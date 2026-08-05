@@ -6,6 +6,7 @@
 // is the fidelity boundary: it carries exactly what the firmware would have sent.
 #include "Arduino.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -85,12 +86,46 @@ void haUartRoundResult(const String& json) {
     g_outbox.push_back("{\"to\":\"uart\",\"kind\":\"round\",\"json\":" + json.str() + "}");
 }
 
+// The 8th sink: the identity trace the firmware prints to its serial console. It is
+// not protocol, but it is the one place that says WHY a hello became a new player or
+// was consolidated onto an existing one, so the sim surfaces it as its own outbox
+// kind rather than dropping it (routing ignores unknown `to` values).
+void haLogJoin(uint8_t pid, uint64_t deviceKey, const char* nick, bool consolidated) {
+    g_outbox.push_back(
+        std::string("{\"to\":\"log\",\"kind\":\"") + (consolidated ? "consolidated" : "join") +
+        "\",\"pid\":" + std::to_string(pid) + ",\"device\":" + std::to_string(deviceKey) +
+        ",\"nick\":\"" + esc(nick) + "\"}");
+}
+
+// --- stub devices ---------------------------------------------------------------
+// The engine keys a player on the phone, so the sim has to model one. On hardware the
+// key is built from the station's MAC; here each simulated socket gets a synthetic
+// locally-administered MAC of its own by default (02:00:00:00:00:<wsId>), which keeps
+// every panel and every existing test a separate device exactly as before. A test that
+// wants two connections on ONE phone calls ha_ws_device() to give them the same key.
+static std::map<uint32_t, uint64_t> g_devByWs;
+
+static uint64_t simDevice(uint32_t wsId) {
+    auto it = g_devByWs.find(wsId);
+    if(it != g_devByWs.end()) return it->second;
+    return 0x020000000000ull | (wsId & 0xFF); // 02:00:00:00:00:<wsId>; ids stay small
+}
+
 // --- exported C API ------------------------------------------------------------
 extern "C" {
 
 void ha_reset() {
     g_millis = 0;
+    g_devByWs.clear();
     engine.reset();
+}
+
+// Put a socket on a given device, overriding the default one-device-per-socket above.
+// The key is passed as two 32-bit halves because ccall has no 64-bit argument type.
+// 0 = unknown (what the firmware reports when it cannot identify the peer), which puts
+// that connection back on per-connection identity.
+void ha_ws_device(uint32_t wsId, uint32_t hi, uint32_t lo) {
+    g_devByWs[wsId] = ((uint64_t)hi << 32) | lo;
 }
 
 void ha_tick(uint32_t now) {
@@ -98,7 +133,7 @@ void ha_tick(uint32_t now) {
     engine.tick(now);
 }
 
-void ha_input(uint32_t wsId, const char* json) { engine.onInput(wsId, json); }
+void ha_input(uint32_t wsId, const char* json) { engine.onInput(wsId, simDevice(wsId), json); }
 void ha_disconnect(uint32_t wsId) { engine.onWsDisconnect(wsId); }
 void ha_select_game(int id) { engine.selectGame((uint8_t)id); }
 void ha_trivia_clear() { engine.triviaTopicsClear(); }

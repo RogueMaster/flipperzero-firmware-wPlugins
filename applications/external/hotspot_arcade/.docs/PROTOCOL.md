@@ -131,7 +131,7 @@ REVEAL/ROUND_END flow down as the host drives rounds. PING beacons throughout.
 
 | `t`      | Fields | Meaning |
 |----------|--------|---------|
-| `welcome`| `pid`, `nick`, `lang` | Assigned player id after `hello`; `lang` is the host's phone-UI language (`""` = English), which the client uses to pick its message catalog |
+| `welcome`| `pid`, `nick`, `avatar`, `lang` | Assigned player id after `hello`, with the identity the server holds for this device (see §10 — on a rebind these are the existing player's, not what the client just sent); `lang` is the host's phone-UI language (`""` = English), which the client uses to pick its message catalog |
 | `lobby`  | `game` ("none"/"trivia"/"connect4"), `players` (`[{pid,nick,score}]`), `me` (pid) | Lobby snapshot; sent on change |
 | `trivia` | `phase` ("idle"/"question"/"reveal"), `i`, `q`, `o` (opts), `dur`, `deadline` (ms epoch-ish, server `millis`), `mine` (my choice or -1), `counts` ([n0..n3]), `correct` (reveal only), `scores` | Full trivia view for this client |
 | `c4`     | `phase` ("lobby"/"playing"/"over"), lobby: `challenges` (`[{from,to}]`); playing: `mid`, `board` (42 ints: 0 empty/1/2), `turn` (pid), `me` (1 or 2), `opp` (nick), `you` (pid); over: `result` ("win"/"lose"/"draw") | Full connect4 view for this client |
@@ -254,7 +254,15 @@ Durations are sent in **seconds**; deadlines in ms (server `millis`).
 
 - **Would You Rather** (`t:"wyr"`): `"vote"`/`"reveal"` carry `round`, `rounds`,
   `a`, `b` (the two options), `myvote` (0/1/-1), `counts` ([a,b]). Vote with the
-  existing `answer{c:0|1}` intent. No scoring — it's a poll.
+  existing `answer{c:0|1}` intent. No scoring — it's a poll. Its `"final"` adds
+  `voters` (players connected now) and `rounds` — here an **array** of the whole
+  game's splits, `[{a,b}, …]`, one entry per round played, latched by the ESP at
+  each reveal. (`rounds` is a count in the play phases and this array in `"final"`.)
+  A round nobody voted in is sent as `{"a":0,"b":0}`. The client draws the
+  agreement chart from it: per-round agreement is the majority share
+  `max(a,b)/(a+b)`, bucketed onto the percentages reachable with `voters` players
+  (`ceil(n/2)/n … n/n`), plus the mean. The history has to come from the ESP —
+  a phone that joined late never received the earlier rounds. Firmware **v18**.
 - **Word Scramble** (`t:"scramble"`): `"play"` carries `round`, `rounds`, `scram`
   (shuffled letters), `len`, `solved` (bool, you), `deadline`, `dur`, `scores`.
   Guess with the existing `guess{text}` intent; first correct scores most
@@ -417,3 +425,142 @@ moment either side plays a move.
 State is pushed only on events — a move, resign, draw, claim, or a flag fall the ESP
 notices on its own clock tick — never on a periodic heartbeat; clients animate the
 countdown locally between pushes from `deadline`.
+
+## 10. Secrets (`secrets`) — game id `16`
+
+A whole-group party game on the shared party skeleton (lobby with a ready-up + pack vote,
+countdown, reveal). Content reuses the pack pipeline: each item is a `Q` (one yes/no
+question). Select with UART `SELECT_GAME` id `16`; lobby `game` string `"secrets"`.
+Firmware **v18**.
+
+Each round shows one question and runs **answer → predict → reveal**. First everyone
+secretly **answers** yes/no; then everyone secretly **predicts** how many of the `N` joined
+players said yes (an integer `0..N`); then reveal. Only the group's total yes-count is ever
+revealed — the individual yes/no answers are never serialized to anyone. An exact
+prediction scores 1, otherwise 0. Six rounds.
+
+Client intents: `ready`, `vote{pack}`, `reply{v}` (`1` = yes, `0` = no; answer stage),
+`predict{n}` (your yes-count guess, clamped `0..N`; predict stage), `again`. The distinct
+`reply`/`predict` verbs avoid colliding with Would You Rather's `answer`/`vote`.
+
+Server `{t:"secrets",phase,...}`:
+- `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
+- `"countdown"`: `sec`.
+- `"answer"` / `"predict"`: `round`, `rounds`, `n` (player count / predict upper bound),
+  `q` (the question), `locked`/`total` (aggregate progress in the current step),
+  `myprediction` and `myanswer` (**your own only**, `-1` if unset), `deadline`/`dur` for
+  the timer bar, and `scores` (the shared leaderboard).
+- `"reveal"`: adds `yes` (the group total, the **only** answer information ever sent),
+  `guesses` (`[{nick, n, pts}]` — every player's prediction and points; predictions are
+  guesses about the group, not personal, so they're public here), and `mygain` (your
+  points). No individual yes/no **answer** is ever serialized, in any phase — anonymity is
+  enforced in `secretsJson(pid)`.
+- `"final"`: `board` (the shared leaderboard).
+---
+
+## 11. Player identity — one phone = one player
+
+Firmware **v18**. A player is bound to the **device**, not to the WebSocket. The ESP
+resolves each connection to the station's **MAC address** and keys the player on that; the
+WebSocket layer only knows a peer IP, and that IP is something the ESP's own DHCP server
+made up, so it is a derived value, not an identity.
+
+Why it is needed: a phone could show up as two or three players at once.
+
+- iOS (and Android) open a **captive mini-browser** for the portal. It is a separate
+  browser context from Safari/Chrome with its own `localStorage`, so the saved-identity
+  auto-rejoin the client does cannot help — play in the captive window *and* open
+  `192.168.4.1` in Safari and the ESP used to see two joins. A second tab, or a second
+  browser, is the same story.
+- A phone that drops (screen lock, WiFi off) closes nothing; the ESP only learns about it
+  when TCP times out, which can take minutes. If the phone comes back first, it used to
+  become a new player while the old one lingered as a ghost on the leaderboard.
+
+How the MAC is obtained (all firmware-side, the wire protocol is unchanged): the AP's DHCP
+server reports the assigned address *and* the client MAC together
+(`ip_event_ap_staipassigned_t`), so the firmware keeps a small IP → MAC table from that
+event. A station whose lease predates the handler is looked up in lwIP's ARP cache
+instead, and if the MAC still cannot be resolved the IP itself is used as the key. The
+engine never sees any of this — it stores an opaque 64-bit device key, `0` = unknown.
+
+Modern phones present a randomized "private" MAC, but it is **stable per SSID**: it
+survives reconnects and only changes if the AP is renamed, which is exactly the lifetime a
+session needs.
+
+Rules the ESP applies to `hello`:
+
+1. **Known socket** → the existing player; `nick`/`avatar` in the message are an edit from
+   the header identity editor and are applied (unchanged behaviour).
+2. **New socket, device already playing** → *rebind*: the existing player is re-pointed at
+   the new socket, keeping their `pid`, `nick`, `avatar` and `score`. Never a second
+   player. The `hello`'s own `nick`/`avatar` are ignored (a fresh context sends a name of
+   its own, and letting that rename a player mid-session is the bug, not the fix). No UART
+   `JOIN` is emitted — nobody joined. The `welcome` reply carries the *existing* identity,
+   and the client adopts it, so the second context immediately shows the same name and
+   avatar.
+3. **New socket, new or unknown device** → a new player, exactly as before.
+
+A `DISCONNECT` only removes a player if the closing socket is still that player's **current**
+socket. The superseded context's late close — and any message it still sends — is ignored.
+
+Device key `0` means "unknown" (reported for anything that is not a joined station,
+including the AP's own address) and never matches, so those clients fall back to one player
+per connection.
+
+The ESP traces each decision to its serial console:
+`[ha] JOIN pid=2 ip=192.168.4.3 mac=AA:BB:CC:DD:EE:FF nick="..."` and
+`[ha] NEW BROWSER same device ip=192.168.4.2 mac=AA:BB:CC:DD:EE:FF -> pid=1 nick="..." (consolidated)`.
+
+**Trade-off, deliberate:** two people can no longer share one phone as two players — the
+second `hello` from that phone joins the first player instead of creating a second. Playing
+one phone per person is the assumption everywhere else in the UI (the phone is the
+controller), and duplicate players from a single phone were the far more common failure. A
+phone whose MAC changes (the AP was renamed) simply becomes a new player, which is the
+pre-existing behaviour.
+
+---
+
+## 12. Game-change vote (`gamevote`) — cross-cutting, firmware v18
+
+A player can change the active game **from their phone** by majority vote, so the host
+device needs no operation. This is the one sanctioned phone→host action — the engine
+otherwise forbids a phone from selecting a game — and it is gated entirely behind the vote.
+A host-initiated `SELECT_GAME` stays authoritative and immediate (no vote), and cancels any
+pending proposal.
+
+The vote sits **above** the active game (it is not a per-game phase). While a proposal is
+pending the active game is **frozen**: `tick` advances only the vote timeout, `onInput`
+honors only `voteGame` (and `leaveGame`), and `pushAll` sends the `gamevote` overlay to
+every client instead of any game/lobby state. On resolution the previous state resumes
+(reject/timeout) or the new game's lobby appears (approve), both signalled by the next
+normal `lobby` push — the client closes the modal when a `lobby` message arrives.
+
+Client intents:
+- `proposeGame{game}`: `game` is the engine game-name string (e.g. `"wyr"`, `"trivia"`), or
+  `"none"` for "back to the lobby" — leaving the current game is voted on like any other
+  change. Starts a proposal if none is pending and the target is a valid game **other than
+  the active one** (so `"none"` is refused while already in the lobby). The proposer counts
+  as an implicit YES. A second proposal while one is pending is ignored.
+- `voteGame{ok}`: one vote per non-proposer pid (`true` = OK, `false` = No). From the
+  **proposer**, `ok:true` is a no-op (their YES is already implicit) and `ok:false`
+  **withdraws** the proposal — the reject path, resuming the frozen game at once. That is
+  what the Cancel button on the proposer's own overlay sends; no separate intent exists.
+
+Server `{t:"gamevote",...}` (pushed to every client while pending): `proposer` (nick),
+`avatar` (the proposer's emoji, so the voters' line can lead with it), `game` (target name,
+`"none"` for the lobby), `label` (same as `game`; the client maps it to a pretty label),
+`yes` (count **including** the proposer), `no`, `others` (`playerCount - 1`), `need` (YES
+votes needed from the others = `floor(others/2)+1`), `youproposed`, `youvoted`.
+
+Resolution (recomputed on every vote, join/leave, and tick):
+- **Approve** when YES among the other players is a strict majority — `yesOthers*2 >
+  others` — or immediately if the proposer is the only player. → `selectGame(target)`.
+- **Reject** as soon as that majority is impossible — `noOthers*2 >= others` — or on
+  **timeout** (`GAMEVOTE_SECS` = 25s). → clear and resume the frozen game.
+- **Withdrawn** when the proposer sends `voteGame{ok:false}` (their Cancel button). → same
+  as reject: clear and resume.
+- If the **proposer leaves**, the proposal is cancelled (reject). A non-proposer leaving
+  recomputes the tally (fewer `others` can tip it either way).
+
+On approve the ESP also emits a UART `EVENT` `{"gamevote":"approved","game":"<name>"}` for
+host-side observability.

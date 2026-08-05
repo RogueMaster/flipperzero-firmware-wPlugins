@@ -26,19 +26,19 @@ function esc(s) {
 /* Which lobby `game` string maps to which top-level screen, and its title.
    The three duels share the single "duel" screen; the duel message's `kind`
    drives the actual board. */
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess"];
+var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets"];
 var GAME_SCREEN = {
   trivia: "trivia", connect4: "duel", tictactoe: "duel", dots: "duel",
   reversi: "duel", draw: "draw", pong: "pong",
   wyr: "wyr", scramble: "scramble", react: "react", gc: "gc", bs: "bs", spectrum: "spectrum", kmk: "kmk",
-  chess: "chess",
+  chess: "chess", secrets: "secrets",
 };
 var GAME_LABEL = {
   trivia: "Trivia", connect4: "Connect 4", tictactoe: "Tic-Tac-Toe",
   dots: "Dots & Boxes", reversi: "Reversi", draw: "Draw & Guess", pong: "Pong",
   wyr: "Would You Rather", scramble: "Word Scramble", react: "Reaction Duel",
   gc: "Guess the Color", bs: "Battleship", spectrum: "Spectrum", kmk: "Kiss Marry Kill",
-  chess: "Chess",
+  chess: "Chess", secrets: "Secrets",
 };
 
 /* Show exactly one top-level screen. */
@@ -53,6 +53,9 @@ function screen(name) {
     rb.classList.toggle("hide", name === "landing");
     rb.classList.remove("open");
   }
+  // The header game switcher 🕹️ is available once you've joined (hidden on landing).
+  var gm = $("game-menu");
+  if (gm) gm.classList.toggle("hide", name === "landing");
   // The shared leaderboard only belongs to the group-score games, which manage
   // it themselves; anywhere else, drop it so it never lingers over a lobby.
   if (name !== "trivia" && name !== "scramble" && name !== "react") A.hideLead();
@@ -374,6 +377,52 @@ function storeKey(name) {
   return h ? name + "_" + h : name;
 }
 
+/* Is the link actually alive? A socket that dies quietly -- the phone's WiFi drops,
+   the host's AP goes away, the phone sleeps -- often produces no "close" event for a
+   long time, so the page keeps looking connected and the player sits there waiting
+   with no hint that anything is wrong. So: ping every PING_MS, and treat silence
+   longer than DEAD_MS as a dead link -- show the reconnect bar and close the socket,
+   which puts us on the normal reconnect path. This is purely the client judging its
+   own connection; the host closes nothing on its behalf. The host already answers
+   {t:"ping"} with {t:"pong"}, so no firmware change is involved. */
+var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
+var liveTimer = null, lastRx = 0, warned = false;
+
+function stopLiveness() {
+  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+  warned = false;
+}
+
+function startLiveness() {
+  stopLiveness();
+  lastRx = Date.now();
+  liveTimer = setInterval(function () {
+    if (!A.ws || A.ws.readyState !== 1) return;
+    var quiet = Date.now() - lastRx;
+    // Two stages on purpose. Saying something at WARN_MS is free -- it only
+    // colours the dot and raises the bar, so a slow reply on a weak antenna
+    // costs nothing but a moment of honesty. Actually closing the socket is
+    // not free: the host drops the player on disconnect, and the reconnect
+    // comes back as a new one with no score, so that waits for DEAD_MS, by
+    // which point the link really is gone.
+    if (quiet > DEAD_MS) {
+      stopLiveness();
+      try { A.ws.close(); } catch (e) {}   // onclose -> scheduleReconnect()
+      return;
+    }
+    if (quiet > WARN_MS && !warned) {
+      warned = true;
+      setDot("warn");
+      if (A.view !== "landing") { $("netbar").textContent = t("net.quiet"); show("netbar"); }
+    } else if (quiet <= WARN_MS && warned) {
+      warned = false;                       // it answered again
+      setDot("");
+      hide("netbar");
+    }
+    try { A.ws.send(JSON.stringify({ t: "ping" })); } catch (e) {}
+  }, PING_MS);
+}
+
 function connect() {
   var ws = harnessSocket();
   if (!ws) {
@@ -384,6 +433,7 @@ function connect() {
 
   ws.onopen = function () {
     A.retry = 0;
+    startLiveness();
     hide("netbar");
     setDot("");           // connected
     // Auto (re)join only if we already have a nickname. A first-time visitor
@@ -393,11 +443,12 @@ function connect() {
 
   ws.onmessage = function (ev) {
     var m;
+    lastRx = Date.now();   // any frame proves the link is alive (see startLiveness)
     try { m = JSON.parse(ev.data); } catch (e) { return; }
     dispatch(m);
   };
 
-  ws.onclose = function () { scheduleReconnect(); };
+  ws.onclose = function () { stopLiveness(); scheduleReconnect(); };
   ws.onerror = function () { try { ws.close(); } catch (e) {} };
 }
 
@@ -436,9 +487,26 @@ function maybeCaptive() {
 function dispatch(m) {
   switch (m.t) {
     case "welcome":
+      // The server owns identity: one phone is one player, recognised by its IP, so
+      // a second browser context on this phone (iOS pops a captive mini-browser with
+      // storage of its own, next to Safari) is handed the player it already has --
+      // same pid, same name, same avatar -- instead of becoming a second player.
+      // Adopting the echo here is what makes that visible in this context's header.
       A.pid = m.pid;
       if (A.setLang) A.setLang(m.lang); // host-chosen UI language; localizes static text
-      if (m.nick) { A.nick = m.nick; setNick(); }
+      if (m.avatar) A.avatar = m.avatar;
+      if (m.nick) {
+        A.nick = m.nick;
+        setNick();                            // header
+        if ($("nick")) $("nick").value = m.nick; // landing field, if they go back to it
+        buildAvatarPicker();                  // and its avatar row, so both agree
+        // Persist what the server says we are, not what this context typed: a
+        // reconnect from here then re-announces the same identity.
+        try {
+          localStorage.setItem(storeKey("ha_nick"), A.nick);
+          localStorage.setItem(storeKey("ha_avatar"), A.avatar);
+        } catch (e) {}
+      }
       break;
     case "lobby":
       onLobby(m);
@@ -519,6 +587,9 @@ A.lobbyView = lobbyView;
    game view; a game message can also switch us in (see game modules). */
 function onLobby(m) {
   if (m.me) A.pid = m.me;
+  // A lobby push only arrives when no game-change vote is pending, so its arrival means
+  // any vote has resolved (approved -> new game, or rejected -> resumed): close the modal.
+  if (A.closeGamevote) A.closeGamevote();
   var prevCount = (A.players || []).length;
   A.players = m.players || [];   // kept for the duel/pong challenge lists
   // A new arrival (after we ourselves joined) gets a little blip.
@@ -538,15 +609,23 @@ function onLobby(m) {
   });
 
   var g = m.game || "none";
-  var gs = $("lobby-game");
+  A.curGame = g;   // the active game name, so the switcher can exclude it from its list
+  // Only the label inside the picker row changes; the 🕹️ box beside it always stays.
+  var gs = $("lobby-game-label");
   gs.textContent = g === "none"
-    ? "Waiting for the host to pick a game."
+    ? t("lobby.pick")
     : (GAME_LABEL[g] || g) + " starting...";
 
-  // If the host went back to the plain lobby, leave any game screen. Otherwise
-  // show the shell of the chosen game; the game message fills in details.
+  // If the host went back to the plain lobby, leave any game screen. Otherwise show
+  // the shell of the chosen game; the game message fills in details. Route in whenever
+  // the player isn't already on the target screen (not only from the plain lobby): a
+  // player left on a PREVIOUS game's screen — a stale board, a "final"/"over" screen —
+  // must still follow the host into the newly selected game. If they're already on the
+  // target screen (mid-game, or a duel switching kind within the shared "duel" screen),
+  // this is a no-op, so it can't yank an active player anywhere they aren't already.
   if (g === "none" && A.view !== "landing") route("lobby");
-  else if (g !== "none" && A.view === "lobby" && GAME_SCREEN[g]) route(GAME_SCREEN[g]);
+  else if (g !== "none" && GAME_SCREEN[g] && A.view !== "landing" && A.view !== GAME_SCREEN[g])
+    route(GAME_SCREEN[g]);
 }
 
 /* Landing flow */
@@ -569,7 +648,7 @@ function startPlay() {
   A.initAudio();          // first gesture: unlock audio for the session
   A.sfx("start"); A.vibe(30);
   try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-  send({ t: "hello", nick: n, avatar: A.avatar });
+  send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
   screen("lobby");
 }
 
@@ -639,7 +718,7 @@ function saveIdEdit() {
   setNick();
   A.sfx("start"); A.vibe(20);
   try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-  send({ t: "hello", nick: n, avatar: A.avatar });
+  send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
   closeIdEdit();
 }
 
@@ -689,6 +768,79 @@ A.handlers.emoji = function (m) {
   if (m.pid !== A.pid) A.vibe(8);
 };
 
+// ---- game switcher + change-game vote --------------------------------------
+// Both 🕹️ buttons (header and lobby) open the one overlay: every game minus the
+// active one, then "Back to Lobby" as a separated last entry. Tapping an entry
+// proposes that switch; the ESP then pauses the active game and runs a majority
+// vote, pushing a {t:"gamevote"} overlay to every client until it resolves.
+function gameMenuItem(name, label, extraClass) {
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "game-item" + (extraClass || "");
+  b.textContent = label;
+  b.addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(12);
+    send({ t: "proposeGame", game: name });
+    closeGameMenu();
+  });
+  return b;
+}
+function openGameMenu() {
+  var list = $("game-list");
+  if (!list) return;
+  list.innerHTML = "";
+  Object.keys(GAME_LABEL).forEach(function (name) {
+    if (name === A.curGame) return;   // the active game isn't a switch target
+    list.appendChild(gameMenuItem(name, GAME_LABEL[name]));
+  });
+  // Leaving the current game is a change like any other, so it votes too. Nothing to
+  // propose when we're already in the plain lobby -- the engine would refuse it.
+  if (A.curGame !== "none") {
+    var sep = document.createElement("div");
+    sep.className = "game-sep";
+    list.appendChild(sep);
+    list.appendChild(gameMenuItem("none", t("gamevote.back_lobby"), " game-item-back"));
+  }
+  show("game-overlay");
+}
+function closeGameMenu() { hide("game-overlay"); }
+
+// The pretty label for a proposal target, including "none" (= the lobby).
+function gameVoteLabel(m) {
+  if (m.game === "none") return t("gamevote.lobby_label");
+  return GAME_LABEL[m.label] || GAME_LABEL[m.game] || m.game;
+}
+
+A.gamevoteOpen = false;
+A.closeGamevote = function () { A.gamevoteOpen = false; hide("gamevote"); };
+A.handlers.gamevote = function (m) {
+  A.gamevoteOpen = true;
+  closeGameMenu();     // if the proposer still had the picker open
+  show("gamevote");
+  var label = gameVoteLabel(m);
+  var head = $("gamevote-head");
+  head.textContent = "";
+  if (m.youproposed) {
+    // Your own pending proposal: what you asked for, the tally, and a way out.
+    head.textContent = t("gamevote.you_want", { game: label });
+  } else {
+    // Everyone else's line leads with the proposer's avatar. Avatar and nick are
+    // player-supplied, so they go in as text nodes -- never as innerHTML.
+    var av = document.createElement("span");
+    av.className = "gamevote-av";
+    av.textContent = m.avatar || "🙂";
+    head.appendChild(av);
+    head.appendChild(document.createTextNode(
+      " " + t("gamevote.wants", { who: m.proposer, game: label })));
+  }
+  // The proposer gets Cancel; anyone who already voted just waits; the rest vote.
+  var waiting = !m.youproposed && !!m.youvoted;
+  $("gamevote-actions").classList.toggle("hide", !!m.youproposed || waiting);
+  $("gamevote-wait").classList.toggle("hide", !waiting);
+  $("gamevote-cancel").classList.toggle("hide", !m.youproposed);
+  $("gamevote-tally").textContent = t("gamevote.tally", { yes: m.yes, no: m.no });
+};
+
 function initApp() {
   var saved = "";
   try {
@@ -713,6 +865,29 @@ function initApp() {
   // Reactions FAB: tap to reveal the emoji row; the bar is hidden on landing.
   $("react-fab").addEventListener("click", function () {
     $("react-bar").classList.toggle("open");
+  });
+
+  // Game switcher: the header 🕹️ and the lobby's whole picker row both open the one game
+  // list; the backdrop closes it (no change).
+  $("game-menu").addEventListener("click", openGameMenu);
+  $("lobby-game").addEventListener("click", openGameMenu);
+  $("game-overlay").addEventListener("click", function (e) {
+    if (e.target === $("game-overlay")) closeGameMenu();
+  });
+  // Change-game vote: OK / No buttons emit voteGame; the ESP tallies and resolves.
+  $("gamevote-yes").addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(15);
+    send({ t: "voteGame", ok: true });
+  });
+  $("gamevote-no").addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(15);
+    send({ t: "voteGame", ok: false });
+  });
+  // The proposer's Cancel withdraws the proposal. A No from the proposer is exactly
+  // that on the engine side (their Yes is implicit), so it needs no separate intent.
+  $("gamevote-cancel").addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(15);
+    send({ t: "voteGame", ok: false });
   });
 
   // Shared leaderboard: toggle the collapsible list; re-render from last board.

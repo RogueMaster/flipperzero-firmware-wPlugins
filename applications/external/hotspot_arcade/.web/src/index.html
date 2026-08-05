@@ -3,6 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="theme-color" content="#0B0B0C">
+<meta name="color-scheme" content="dark">
 <title>Hotspot Arcade</title>
 <style>/*__CSS__*/</style>
 
@@ -13,6 +14,9 @@
 <header class="hdr">
   <span class="wordmark">Hotspot Arcade<span class="cur" aria-hidden="true">&#9616;</span></span>
   <span class="hdr-right">
+    <!-- Players can propose switching the active game from here (majority vote). Shares
+         the mute button's box so the two read as a pair. -->
+    <button id="game-menu" class="game-menu hide" type="button" aria-label="Change game">🕹️</button>
     <button id="mute" class="mute" type="button" aria-label="Mute" aria-pressed="false">&#9834;</button>
     <span id="dot" class="dot warn" title="connection"></span>
     <button id="hdr-nick" class="hdr-id hide" type="button" aria-label="Change name and avatar"></button>
@@ -73,7 +77,13 @@
 <!-- 2. Lobby -->
 <section id="lobby" class="screen hide">
   <header class="bar"><h2 data-i18n="lobby.title">Lobby</h2><span id="lobby-me" class="me"></span></header>
-  <div id="lobby-game" class="game-state" data-i18n="lobby.waiting">Waiting for the host to pick a game.</div>
+  <!-- The lobby's game row IS the picker: the label on the left, the header's 🕹️ box on
+       the right as the affordance, and the whole row tappable. It keeps showing the chosen
+       game once there is one, so it stays the way to change it. -->
+  <button id="lobby-game" class="game-state game-pick" type="button" aria-label="Change game">
+    <span id="lobby-game-label" data-i18n="lobby.pick">Pick a game</span>
+    <span class="game-menu" aria-hidden="true">🕹️</span>
+  </button>
   <ul id="players" class="players"></ul>
   <p class="sub" data-i18n="lobby.chat">Chat</p>
   <div id="lobby-chat" class="chat"></div>
@@ -219,6 +229,16 @@
   <div id="wyr-final" class="hide">
     <header class="bar"><h2 data-i18n="wyr.wrap">That's a wrap</h2></header>
     <div class="game-state" data-i18n="wyr.wrap_body">Thanks for playing. Ready up for another round.</div>
+    <!-- Agreement chart: one bar per reachable agreement percentage, a line at the
+         mean, and a one-line verdict. Filled in by wyr.js from the final payload. -->
+    <div id="wyr-chart" class="wyr-chart hide">
+      <div class="wyr-chart-hd" data-i18n="wyr.chart_title">How much you agreed</div>
+      <div class="wyr-plot">
+        <div id="wyr-buckets" class="wyr-buckets"></div>
+        <div id="wyr-mean" class="wyr-mean hide"><span id="wyr-mean-val" class="wyr-mean-val"></span></div>
+      </div>
+      <div id="wyr-verdict" class="wyr-verdict"></div>
+    </div>
     <button id="wyr-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
@@ -481,11 +501,85 @@
   </div>
 </section>
 
+<!-- 16. Secrets — whole-group hidden yes/no vote + prediction -->
+<section id="secrets" class="screen hide">
+  <div id="sec-lobby" class="hide">
+    <header class="bar"><h2 data-i18n="secrets.title">Secrets</h2><span id="sec-me" class="me"></span></header>
+    <ul id="sec-players" class="players"></ul>
+    <button id="sec-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
+    <div id="sec-topics" class="topics"></div>
+  </div>
+  <div id="sec-count" class="hide count">
+    <div class="count-topic" data-i18n="secrets.count_topic">Secrets</div>
+    <div id="sec-count-num" class="count-num">3</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
+  </div>
+  <div id="sec-play" class="hide">
+    <div class="bar"><span id="sec-meta" class="me"></span><span id="sec-progress" class="me"></span></div>
+    <div id="sec-bar" class="timebar hide"><i></i></div>
+    <div id="sec-q" class="sec-q"></div>
+    <div id="sec-predict" class="hide sec-predict">
+      <div id="sec-predict-label" class="sec-predict-label"></div>
+      <div class="sec-stepper">
+        <button id="sec-minus" class="sec-step" type="button" aria-label="Fewer">−</button>
+        <span id="sec-num" class="sec-num">0</span>
+        <button id="sec-plus" class="sec-step" type="button" aria-label="More">+</button>
+      </div>
+      <button id="sec-predict-go" class="btn big" data-i18n="secrets.predict_go">Lock in prediction</button>
+    </div>
+    <div id="sec-answer" class="hide sec-answer">
+      <button id="sec-yes" class="sec-ans yes" type="button" data-i18n="secrets.yes">Yes</button>
+      <button id="sec-no" class="sec-ans no" type="button" data-i18n="secrets.no">No</button>
+    </div>
+    <div id="sec-reveal" class="hide sec-reveal">
+      <div class="sec-hero">
+        <div id="sec-yesnum" class="sec-yesnum">0</div>
+        <div class="sec-yescap" data-i18n="secrets.said_yes">said yes</div>
+      </div>
+      <ul id="sec-buckets" class="sec-buckets"></ul>
+    </div>
+    <div id="sec-result" class="sec-result"></div>
+    <div id="sec-note" class="sec-note"></div>
+  </div>
+  <div id="sec-final" class="hide">
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+    <ol id="sec-podium" class="podium"></ol>
+    <button id="sec-again" class="btn big" data-i18n="common.play_again">Play again</button>
+  </div>
+</section>
+
 <!-- Emoji reactions: floating layer + a corner button that opens the emoji row -->
 <div id="react-layer" class="react-layer" aria-hidden="true"></div>
 <div id="react-bar" class="react-bar hide">
   <div id="react-row" class="react-row"></div>
   <button id="react-fab" class="react-fab" type="button" aria-label="React">😀</button>
+</div>
+
+<!-- Game switcher: the 🕹️ buttons (header and lobby) open this one overlay; tapping an
+     entry proposes a switch (majority vote), including the last one, "Back to Lobby",
+     which proposes no game at all. Tapping the backdrop closes it with no change. -->
+<div id="game-overlay" class="game-overlay hide" role="dialog" aria-modal="true" aria-label="Change game">
+  <div class="game-overlay-card">
+    <div class="game-overlay-title" data-i18n="gamevote.pick">Change the game</div>
+    <div id="game-list" class="game-list"></div>
+  </div>
+</div>
+
+<!-- Game-change vote modal. Shown to every client while a proposal is pending (the active
+     game is paused): the proposer sees their own proposal with a Cancel that withdraws it,
+     everyone else votes OK / No. -->
+<div id="gamevote" class="gamevote hide" role="dialog" aria-modal="true">
+  <div class="gamevote-card">
+    <div id="gamevote-head" class="gamevote-head"></div>
+    <div id="gamevote-actions" class="gamevote-actions">
+      <button id="gamevote-yes" class="btn big" data-i18n="gamevote.ok">OK!</button>
+      <button id="gamevote-no" class="btn ghost big" data-i18n="gamevote.no">No, continue</button>
+    </div>
+    <div id="gamevote-wait" class="gamevote-wait hide" data-i18n="gamevote.waiting">Waiting for votes…</div>
+    <div id="gamevote-tally" class="gamevote-tally"></div>
+    <button id="gamevote-cancel" class="btn ghost big hide" data-i18n="gamevote.cancel">Cancel</button>
+  </div>
 </div>
 
 <div id="toast" class="toast hide"></div>

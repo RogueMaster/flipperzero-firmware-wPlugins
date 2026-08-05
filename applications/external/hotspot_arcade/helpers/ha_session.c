@@ -302,6 +302,7 @@ static void ha_content_stream_packs(HotspotArcadeApp* app) {
         {HA_GAME_DRAW, "draw"},
         {HA_GAME_SPECTRUM, "spectrum"},
         {HA_GAME_KMK, "kmk"},
+        {HA_GAME_SECRETS, "secrets"},
     };
     for(unsigned g = 0; g < sizeof(games) / sizeof(games[0]); g++) {
         int topics = 0;

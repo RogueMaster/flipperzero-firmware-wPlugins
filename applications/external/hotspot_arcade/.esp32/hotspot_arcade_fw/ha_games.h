@@ -126,10 +126,25 @@ static inline int haUtf8Len(const char* s) {
 #define KMK_GUESS_SECS 30 // guessers' window (safety timer)
 #define KMK_REVEAL_MS 7000
 
+// Secrets: each round shows a yes/no question. Everyone secretly predicts how many
+// of the N joined players will answer "yes" (0..N), then secretly answers. Only the
+// group's total yes-count is ever revealed, never who answered what. Two stages per
+// playing round: 0 = answering yes/no, 1 = predicting the count.
+#define SECRETS_ROUNDS 6
+#define SECRETS_PREDICT_SECS 30 // predict window (safety timer)
+#define SECRETS_ANSWER_SECS 30 // answer window (safety timer)
+#define SECRETS_REVEAL_MS 5000
+
 #define GC_ROUNDS 5
 #define GC_PLAY_SECS 25 // safety deadline per color
 #define GC_REVEAL_MS 6000
 #define GC_SPEED_MS 12000 // speed bonus decays to 0 over this window
+
+// Phone-initiated game-change vote: a cross-cutting proposal that sits ABOVE the active
+// game. Any player can propose switching to another game; while it is pending the active
+// game is paused and every OTHER player votes. This is the one sanctioned phone->host
+// action, gated behind a majority of the other players (see gameVoteResolve).
+#define GAMEVOTE_SECS 25 // proposal times out (treated as reject) after this
 
 // ---- sinks implemented in the .ino ----
 void haWsSendWs(uint32_t wsId, const String& msg); // to one socket (0 = no-op)
@@ -139,13 +154,43 @@ void haUartLeave(uint8_t pid);
 void haUartScore(uint8_t pid, int delta, const char* reason);
 void haUartEvent(const String& json);
 void haUartRoundResult(const String& json);
+// Human-readable trace of every identity decision (see onHello): a genuinely new
+// device, or a second browser context on a phone that is already playing being
+// consolidated onto its existing player. `deviceKey` is opaque here -- the .ino
+// renders it, since it is the side that knows what it was made of.
+void haLogJoin(uint8_t pid, uint64_t deviceKey, const char* nick, bool consolidated);
 
+// One phone = one player. `wsId` identifies a *connection*; `deviceKey` identifies
+// the *phone*, and every browser context on it (the iOS captive mini-browser, Safari,
+// a second tab, a socket that came back after the screen unlocked) presents the same
+// one. Keying identity on the device instead of the socket is what stops one phone
+// from turning into two or three players -- see onHello() for the rebind and
+// onWsDisconnect() for the stale-socket rule.
+//
+// The key is deliberately opaque to the engine: the .ino derives it from the station's
+// MAC (falling back to its IP), and only that side knows or cares. 0 = unknown.
 struct Player {
     bool used;
     uint32_t wsId; // 0 = not connected
+    uint64_t deviceKey; // which phone, 0 = unknown (see onHello)
     char nick[HA_NICK_LEN];
     char avatar[8]; // emoji avatar (UTF-8), player-picked on the landing screen
     int32_t score;
+};
+
+// A phone that drops out keeps its identity for the rest of the session. When the
+// socket closes the player's nick, avatar and score are parked under their device
+// key; the same phone coming back -- a WiFi blip, a locked screen, a browser
+// restart, a tab swiped away -- is handed all three back instead of arriving as a
+// stranger on zero. Ten slots is the softAP's station cap, so a full room's worth
+// of leavers fits; beyond that the stalest is evicted.
+#define HA_PARKED_MAX 10
+struct ParkedPlayer {
+    uint64_t deviceKey; // 0 = free slot
+    char nick[HA_NICK_LEN];
+    char avatar[8];
+    int32_t score;
+    uint32_t at; // millis when parked, for evicting the stalest first
 };
 
 // Trivia content, streamed from the Flipper at session start (the packs become
@@ -254,6 +299,12 @@ struct WyrState {
     uint8_t promptSeq; // rotates prompts across rounds within the pack
     uint8_t prompt; // current prompt index within the chosen pack
     int8_t choice[HA_MAX_PLAYERS + 1]; // A/B vote for the current prompt, -1 = none
+    // Per-round A/B split, latched at reveal, for the final "how much did we agree"
+    // chart. The client cannot reconstruct this from what it saw: a phone that joined
+    // late (or reloaded) never received the earlier rounds, so the engine has to carry
+    // the history into the final payload.
+    uint8_t splitA[WYR_ROUNDS], splitB[WYR_ROUNDS];
+    uint8_t splitCount; // rounds latched so far (<= WYR_ROUNDS)
 };
 
 // Word scramble race: everyone unscrambles the same word; fastest correct win most.
@@ -334,6 +385,26 @@ struct KmkState {
     int8_t gLabel[HA_MAX_PLAYERS + 1][3]; // each guesser's labels per person
     bool guessed[HA_MAX_PLAYERS + 1];
     int gained[HA_MAX_PLAYERS + 1]; // points earned this round (shown on reveal)
+};
+
+// Secrets: reuses WordPack (a flat list of yes/no questions) and the Party skeleton.
+// Each round shows one question; players first secretly predict how many of the N
+// joined players will answer "yes" (0..N), then secretly answer yes/no. Only the
+// group's total yes-count is ever revealed — a player's own prediction/answer/points
+// reach only that player (secretsJson gates it, like Spectrum's serializer).
+struct SecretsState {
+    Party pt;
+    WordPack packs[TRIVIA_MAX_TOPICS]; // each item is one yes/no question
+    uint8_t packCount;
+    int8_t vote[HA_MAX_PLAYERS + 1]; // pack index, -1 = not voted
+    uint8_t pack; // chosen pack (locked when the game starts)
+    uint16_t qSeq; // rotates the question across rounds within the pack
+    uint8_t question; // current question index within the pack
+    uint8_t stage; // 0 answer, 1 predict
+    int8_t predict[HA_MAX_PLAYERS + 1]; // each player's guessed yes-count, -1 = unset
+    int8_t answer[HA_MAX_PLAYERS + 1]; // each player's yes(1)/no(0), -1 = unset
+    int gained[HA_MAX_PLAYERS + 1]; // points earned this round (shown on reveal)
+    int yesCount; // total yes answers this round (computed at reveal)
 };
 
 struct PongMatch {
@@ -459,6 +530,8 @@ public:
         spectrumClear();
         kmkClear();
         chessClear();
+        secretsClear();
+        gameVoteClear();
     }
 
     // ---- roster ----
@@ -469,33 +542,128 @@ public:
         return 0;
     }
 
+    // The player sitting on a given device, or 0. An unknown device (key 0) never
+    // matches, so those clients keep the old one-player-per-connection behaviour
+    // instead of all collapsing into a single player.
+    ParkedPlayer _parked[HA_PARKED_MAX] = {};
+
+    // Park a leaving player's identity so their return can restore it.
+    void parkPlayer(uint8_t pid) {
+        if(!_p[pid].deviceKey) return; // nothing to recognise them by later
+        int slot = -1;
+        for(int i = 0; i < HA_PARKED_MAX; i++) {
+            if(_parked[i].deviceKey == _p[pid].deviceKey) { slot = i; break; }
+            if(!_parked[i].deviceKey && slot < 0) slot = i;
+        }
+        if(slot < 0) { // all taken: evict the stalest
+            slot = 0;
+            for(int i = 1; i < HA_PARKED_MAX; i++)
+                if((int32_t)(_parked[i].at - _parked[slot].at) < 0) slot = i;
+        }
+        _parked[slot].deviceKey = _p[pid].deviceKey;
+        strlcpy(_parked[slot].nick, _p[pid].nick, HA_NICK_LEN);
+        strlcpy(_parked[slot].avatar, _p[pid].avatar, sizeof(_parked[slot].avatar));
+        _parked[slot].score = _p[pid].score;
+        _parked[slot].at = millis();
+    }
+
+    // Take a parked identity back out of the store (consumed, not copied).
+    bool unparkPlayer(uint64_t deviceKey, uint8_t pid) {
+        if(!deviceKey) return false;
+        for(int i = 0; i < HA_PARKED_MAX; i++) {
+            if(_parked[i].deviceKey != deviceKey) continue;
+            strlcpy(_p[pid].nick, _parked[i].nick, HA_NICK_LEN);
+            strlcpy(_p[pid].avatar, _parked[i].avatar, sizeof(_p[pid].avatar));
+            _p[pid].score = _parked[i].score;
+            _parked[i] = ParkedPlayer{};
+            return true;
+        }
+        return false;
+    }
+
+    uint8_t pidByDevice(uint64_t deviceKey) {
+        if(!deviceKey) return 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && _p[i].deviceKey == deviceKey) return i;
+        return 0;
+    }
+
     void onWsDisconnect(uint32_t wsId) {
+        // pidByWs() matches only a player whose CURRENT wsId is this socket, which is
+        // exactly the guard the rebind needs: once a phone has moved to a new
+        // connection the old socket owns nobody, so its close -- which on a locked
+        // phone arrives minutes late, when TCP finally times out -- can no longer
+        // take the live player down with it.
         uint8_t pid = pidByWs(wsId);
         if(!pid) return;
         anyOnLeave(pid); // forfeit any active match
+        bool wasProposer = (_gvActive && pid == _gvProposer);
+        parkPlayer(pid);  // keep nick/avatar/score for this phone's return
         _p[pid] = Player{};
+        _gvVote[pid] = -1; // drop any pending game-change vote from the departed player
         haUartLeave(pid);
+        // While a game-change vote is pending the active game is frozen, so its roster
+        // handlers must not run (a leaver mustn't, say, complete a paused trivia reveal).
+        if(_gvActive) {
+            if(wasProposer) {
+                gameVoteReject(); // the proposer left: cancel and resume the previous game
+            } else {
+                // Fewer "other" players can tip the tally toward approve or reject.
+                if(!gameVoteResolve(millis())) pushAll(); // still pending: refresh counts
+            }
+            return;
+        }
         triviaOnRosterChange();
         partyRosterChanged();
         pushAll();
     }
 
-    void onHello(uint32_t wsId, const char* nick, const char* avatar) {
+    // `deviceKey` says which phone this socket is on (0 = unknown); see the Player
+    // comment for why it, not the socket, is the identity.
+    void onHello(uint32_t wsId, uint64_t deviceKey, const char* nick, const char* avatar,
+                 bool named) {
         uint8_t pid = pidByWs(wsId);
+        // A hello on a NEW socket from a device that is already playing: the phone
+        // opened the page in a second browser context (the captive mini-browser next
+        // to Safari, another tab) or reconnected before the old socket's close was
+        // noticed. Adopt the new connection for the existing player rather than
+        // minting a second one -- pid, nick, avatar and score all stay put, and the
+        // `welcome` below hands that identity to the new context, which adopts it.
+        bool rebound = false;
+        if(!pid) {
+            pid = pidByDevice(deviceKey);
+            if(pid) {
+                _p[pid].wsId = wsId;
+                rebound = true;
+                haLogJoin(pid, deviceKey, _p[pid].nick, true);
+            }
+        }
         if(!pid) {
             pid = freePid();
             if(!pid) return; // full
             _p[pid].used = true;
             _p[pid].wsId = wsId;
+            _p[pid].deviceKey = deviceKey;
             _p[pid].score = 0;
-            strlcpy(_p[pid].nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
-            ha_upper(_p[pid].nick);
-            strlcpy(_p[pid].avatar, (avatar && avatar[0]) ? avatar : "\xF0\x9F\x99\x82", sizeof(_p[pid].avatar));
+            // This phone played earlier and dropped out: hand back its own name,
+            // avatar and score instead of starting it over at zero. A name the
+            // player has just typed still wins over the restored one.
+            bool restored = unparkPlayer(deviceKey, pid);
+            if(!restored || (named && nick && nick[0])) {
+                strlcpy(_p[pid].nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
+                ha_upper(_p[pid].nick);
+            }
+            if(!restored || (named && avatar && avatar[0]))
+                strlcpy(_p[pid].avatar, (avatar && avatar[0]) ? avatar : "\xF0\x9F\x99\x82", sizeof(_p[pid].avatar));
             haUartJoin(pid, _p[pid].nick);
-        } else {
+            haLogJoin(pid, deviceKey, _p[pid].nick, restored);
+        } else if(!rebound || named) {
             // Re-hello from a known socket = the player changed their name/avatar in
             // the header editor. Re-announce over UART so the Flipper's leaderboard
             // updates (player_join there updates an existing pid's nick in place).
+            // A rebind is deliberately NOT this case: the second context sends
+            // whatever name it happens to have saved (often a freshly generated one),
+            // and letting that rename the player mid-session is the bug, not the fix.
             if(nick && nick[0]) {
                 strlcpy(_p[pid].nick, nick, HA_NICK_LEN);
                 ha_upper(_p[pid].nick);
@@ -504,15 +672,26 @@ public:
             if(avatar && avatar[0]) strlcpy(_p[pid].avatar, avatar, sizeof(_p[pid].avatar));
         }
         String w = String("{\"t\":\"welcome\",\"pid\":") + pid + ",\"nick\":\"" +
-                   ha_json_escape(_p[pid].nick) + "\",\"lang\":\"" + _lang + "\"}";
+                   ha_json_escape(_p[pid].nick) + "\",\"avatar\":\"" +
+                   ha_json_escape(_p[pid].avatar) + "\",\"lang\":\"" + _lang + "\"}";
         haWsSendWs(wsId, w);
-        triviaOnRosterChange();
-        partyRosterChanged();
+        // While a game-change vote is pending the active game is frozen, so its roster
+        // handlers must not run here either (a join or a re-hello mid-vote would otherwise
+        // mutate the frozen game, surfacing on reject/timeout). Mirrors onWsDisconnect; the
+        // vote overlay still reaches the new socket via pushAll below.
+        if(!_gvActive) {
+            triviaOnRosterChange();
+            partyRosterChanged();
+        }
         pushAll();
     }
 
     // ---- host (Flipper) driven ----
+    // A host-initiated select is authoritative and immediate: it also cancels any pending
+    // phone game-change vote (gameVoteClear). Phone-initiated changes go through the vote,
+    // which calls this only on approval.
     void selectGame(uint8_t id) {
+        gameVoteClear();
         _active = id;
         triviaClear();
         duelClear();
@@ -526,6 +705,7 @@ public:
         spectrumClear();
         kmkClear();
         chessClear();
+        secretsClear();
         pushAll();
     }
 
@@ -580,6 +760,8 @@ public:
         _spec.packCount = 0;
         for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _kmk.packs[i] = WordPack{};
         _kmk.packCount = 0;
+        for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _secrets.packs[i] = WordPack{};
+        _secrets.packCount = 0;
         _packGame = 0;
     }
 
@@ -617,6 +799,12 @@ public:
                 _kmk.packs[_kmk.packCount].name = name;
                 _kmk.packCount++;
             }
+        } else if(game == HA_GAME_SECRETS) {
+            if(_secrets.packCount < TRIVIA_MAX_TOPICS) {
+                _secrets.packs[_secrets.packCount] = WordPack{};
+                _secrets.packs[_secrets.packCount].name = name;
+                _secrets.packCount++;
+            }
         }
     }
 
@@ -628,6 +816,7 @@ public:
         else if(_packGame == HA_GAME_DRAW) drawLoadItem(json);
         else if(_packGame == HA_GAME_SPECTRUM) spectrumLoadItem(json);
         else if(_packGame == HA_GAME_KMK) kmkLoadItem(json);
+        else if(_packGame == HA_GAME_SECRETS) secretsLoadItem(json);
         // Unknown game ids are dropped on purpose: a newer Flipper must not be able
         // to corrupt an older board's state.
     }
@@ -717,6 +906,17 @@ public:
         return true;
     }
 
+    // Map a Secrets pack file's {q} key (one yes/no question) into the current pack.
+    bool secretsLoadItem(const char* json) {
+        if(_secrets.packCount == 0) return false;
+        WordPack& p = _secrets.packs[_secrets.packCount - 1];
+        if(p.count >= PACK_MAX_ITEMS) return false;
+        char buf[160];
+        if(!ha_json_str(json, "q", buf, sizeof(buf)) || !buf[0]) return false;
+        p.words[p.count++] = buf;
+        return true;
+    }
+
     // Map a draw pack file's {word} key into the current pack.
     bool drawLoadItem(const char* json) {
         if(_d.packCount == 0) return false;
@@ -753,11 +953,18 @@ public:
             kmkClear();
         else if(_active == HA_GAME_CHESS)
             chessClear();
+        else if(_active == HA_GAME_SECRETS)
+            secretsClear();
         pushAll();
     }
 
     // Time-based updates (trivia phases, drawing timers, pong physics). From loop().
     void tick(uint32_t now) {
+        // A pending game-change vote freezes the active game: advance only its timeout.
+        if(_gvActive) {
+            gameVoteResolve(now);
+            return;
+        }
         if(_active == HA_GAME_TRIVIA)
             triviaTick(now);
         else if(_active == HA_GAME_DRAW)
@@ -779,17 +986,29 @@ public:
             kmkTick(now);
         else if(_active == HA_GAME_CHESS)
             chessTick(now);
+        else if(_active == HA_GAME_SECRETS)
+            secretsTick(now);
     }
 
     // ---- player input (parsed WS JSON) ----
-    void onInput(uint32_t wsId, const char* json) {
+    // `deviceKey` says which phone the sending socket is on (0 = unknown). It is
+    // threaded in here rather than cached in a wsId -> key table because it is needed
+    // at exactly one moment -- when `hello` decides whether this is a new player or a
+    // phone that is already playing -- and a table would be a second connection
+    // lifecycle to keep in sync with disconnects and resets for no gain.
+    void onInput(uint32_t wsId, uint64_t deviceKey, const char* json) {
         char type[20];
         if(!ha_json_str(json, "t", type, sizeof(type))) return;
         if(strcmp(type, "hello") == 0) {
             char nick[HA_NICK_LEN], avatar[8];
             ha_json_str(json, "nick", nick, sizeof(nick));
             if(!ha_json_str(json, "avatar", avatar, sizeof(avatar))) avatar[0] = '\0';
-            onHello(wsId, nick, avatar);
+            // "named" marks a hello the player actually typed (pressed Play, or edited
+            // their name) as opposed to the silent auto-rejoin a reconnecting socket
+            // replays. Only a typed name may rename an existing player -- see onHello.
+            int named = 0;
+            ha_json_int(json, "named", &named);
+            onHello(wsId, deviceKey, nick, avatar, named != 0);
             return;
         }
         if(strcmp(type, "ping") == 0) {
@@ -798,6 +1017,18 @@ public:
         }
         uint8_t pid = pidByWs(wsId);
         if(!pid) return;
+        // A pending game-change vote freezes the active game: honor only the vote itself
+        // (and a player leaving); every other game intent is dropped until it resolves.
+        if(_gvActive) {
+            if(strcmp(type, "voteGame") == 0) {
+                const char* okp = ha_json_find(json, "ok");
+                voteGame(pid, okp && strncmp(okp, "true", 4) == 0);
+            } else if(strcmp(type, "leaveGame") == 0) {
+                anyOnLeave(pid);
+                pushAll();
+            }
+            return;
+        }
         int v;
         if(strcmp(type, "react") == 0) {
             char emoji[8];
@@ -817,6 +1048,7 @@ public:
             gcReady(pid, r);
             spectrumReady(pid, r);
             kmkReady(pid, r);
+            secretsReady(pid, r);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "topic", &v)) {
             triviaVote(pid, v);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "pack", &v)) {
@@ -824,6 +1056,7 @@ public:
             scrambleVote(pid, v);
             spectrumVote(pid, v);
             kmkVote(pid, v);
+            secretsVote(pid, v);
         } else if(strcmp(type, "tap") == 0) {
             reactTap(pid);
         } else if(strcmp(type, "clue") == 0) {
@@ -836,6 +1069,10 @@ public:
             if(ha_json_int(json, "kiss", &k) && ha_json_int(json, "marry", &m) &&
                ha_json_int(json, "kill", &x))
                 kmkAssign(pid, k, m, x);
+        } else if(strcmp(type, "predict") == 0 && ha_json_int(json, "n", &v)) {
+            secretsPredict(pid, v);
+        } else if(strcmp(type, "reply") == 0 && ha_json_int(json, "v", &v)) {
+            secretsReply(pid, v);
         } else if(strcmp(type, "again") == 0) {
             triviaAgain(pid);
             drawAgain(pid);
@@ -845,6 +1082,7 @@ public:
             gcAgain(pid);
             spectrumAgain(pid);
             kmkAgain(pid);
+            secretsAgain(pid);
         } else if(strcmp(type, "say") == 0) {
             char t[120];
             if(ha_json_str(json, "text", t, sizeof(t))) onSay(pid, t);
@@ -899,6 +1137,9 @@ public:
         } else if(strcmp(type, "leaveGame") == 0) {
             anyOnLeave(pid);
             pushAll();
+        } else if(strcmp(type, "proposeGame") == 0) {
+            char name[24];
+            if(ha_json_str(json, "game", name, sizeof(name))) proposeGame(pid, name);
         }
     }
 
@@ -923,6 +1164,15 @@ private:
     SpectrumState _spec = {};
     KmkState _kmk = {};
     ChessMatch _cm[CHESS_MAX] = {};
+    SecretsState _secrets = {};
+
+    // Cross-cutting game-change vote (above the active game). When _gvActive, the active
+    // game is frozen and every client is shown a vote overlay instead of game state.
+    bool _gvActive = false;
+    uint8_t _gvProposer = 0; // pid who proposed (an implicit YES)
+    uint8_t _gvTarget = 0; // proposed game id
+    uint32_t _gvStart = 0; // millis the proposal opened (for the timeout)
+    int8_t _gvVote[HA_MAX_PLAYERS + 1] = {}; // -1 none, 0 no, 1 yes
 
     uint8_t freePid() {
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
@@ -938,6 +1188,15 @@ private:
 
     // ---------- broadcast ----------
     void pushAll() {
+        // A pending game-change vote replaces all game/lobby state with the vote overlay,
+        // so every client freezes its current screen and shows the modal until it resolves.
+        if(_gvActive) {
+            for(uint8_t pid = 1; pid <= HA_MAX_PLAYERS; pid++) {
+                if(!_p[pid].used || !_p[pid].wsId) continue;
+                haWsSendWs(_p[pid].wsId, gameVoteJson(pid));
+            }
+            return;
+        }
         String lob = lobbyJson();
         for(uint8_t pid = 1; pid <= HA_MAX_PLAYERS; pid++) {
             if(!_p[pid].used || !_p[pid].wsId) continue;
@@ -966,6 +1225,8 @@ private:
                 haWsSendWs(_p[pid].wsId, kmkJson(pid));
             else if(_active == HA_GAME_CHESS)
                 haWsSendWs(_p[pid].wsId, chessJson(pid));
+            else if(_active == HA_GAME_SECRETS)
+                haWsSendWs(_p[pid].wsId, secretsJson(pid));
         }
     }
 
@@ -1026,6 +1287,8 @@ private:
             return "kmk";
         case HA_GAME_CHESS:
             return "chess";
+        case HA_GAME_SECRETS:
+            return "secrets";
         default:
             return "none";
         }
@@ -2350,6 +2613,8 @@ private:
             spectrumCheckStart();
         else if(_active == HA_GAME_KMK)
             kmkCheckStart();
+        else if(_active == HA_GAME_SECRETS)
+            secretsCheckStart();
     }
 
     // ---------- would you rather (live A/B poll) ----------
@@ -2383,6 +2648,22 @@ private:
         for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
             _wyr.vote[i] = -1;
             _wyr.choice[i] = -1;
+        }
+        _wyr.splitCount = 0;
+        for(int i = 0; i < WYR_ROUNDS; i++) {
+            _wyr.splitA[i] = 0;
+            _wyr.splitB[i] = 0;
+        }
+    }
+
+    // Tally the current prompt's A/B votes over the connected players.
+    void wyrCounts(int& cA, int& cB) {
+        cA = 0;
+        cB = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(_wyr.choice[i] == 0) cA++;
+            else if(_wyr.choice[i] == 1) cB++;
         }
     }
 
@@ -2454,6 +2735,17 @@ private:
     }
 
     void wyrReveal(uint32_t now) {
+        // Latch this prompt's split before flipping to reveal: rounds are indexed
+        // 1..WYR_ROUNDS, and reveal happens exactly once per round (phase 2 -> 3),
+        // so splitCount tracks the round number. A round nobody voted in is stored
+        // as 0/0 and skipped by the chart rather than counted as total agreement.
+        if(_wyr.pt.phase == 2 && _wyr.splitCount < WYR_ROUNDS) {
+            int cA, cB;
+            wyrCounts(cA, cB);
+            _wyr.splitA[_wyr.splitCount] = (uint8_t)cA;
+            _wyr.splitB[_wyr.splitCount] = (uint8_t)cB;
+            _wyr.splitCount++;
+        }
         _wyr.pt.phase = 3;
         _wyr.pt.revealUntil = now + WYR_REVEAL_MS;
         pushAll();
@@ -2503,17 +2795,28 @@ private:
         if(pt.phase == 1)
             return String("{\"t\":\"wyr\",\"phase\":\"countdown\",\"sec\":") +
                    partyCountdownSec(pt) + "}";
-        if(pt.phase == 4)
-            return String("{\"t\":\"wyr\",\"phase\":\"final\",\"you\":") + pid + "}";
+        if(pt.phase == 4) {
+            // Final: hand the client the whole game's A/B history plus the current
+            // player count, so it can draw the agreement chart. `voters` is the axis
+            // the client buckets into (for n voters the reachable agreement values are
+            // ceil(n/2)/n .. n/n); the per-round splits carry the real numbers.
+            String s = String("{\"t\":\"wyr\",\"phase\":\"final\",\"you\":") + pid;
+            int voters = 0;
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+                if(_p[i].used) voters++;
+            s += ",\"voters\":" + String(voters) + ",\"rounds\":[";
+            for(uint8_t i = 0; i < _wyr.splitCount; i++) {
+                if(i) s += ",";
+                s += "{\"a\":" + String((int)_wyr.splitA[i]) + ",\"b\":" + String((int)_wyr.splitB[i]) + "}";
+            }
+            s += "]}";
+            return s;
+        }
         WyrPack& pk = _wyr.packs[_wyr.pack];
         const char* a = pk.items[_wyr.prompt].a.c_str();
         const char* b = pk.items[_wyr.prompt].b.c_str();
-        int cA = 0, cB = 0;
-        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
-            if(!_p[i].used) continue;
-            if(_wyr.choice[i] == 0) cA++;
-            else if(_wyr.choice[i] == 1) cB++;
-        }
+        int cA, cB;
+        wyrCounts(cA, cB);
         String s = String("{\"t\":\"wyr\",\"phase\":\"") + (pt.phase == 3 ? "reveal" : "vote") +
                    "\",\"round\":" + pt.round + ",\"rounds\":" + WYR_ROUNDS + ",\"a\":\"" +
                    ha_json_escape(a) + "\",\"b\":\"" + ha_json_escape(b) + "\",\"myvote\":" +
@@ -4641,6 +4944,391 @@ private:
                  String(_kmk.stage == 0 ? KMK_CHOOSE_SECS : KMK_GUESS_SECS);
         }
         s += ",\"scores\":" + playersJson() + "}";
+        return s;
+    }
+
+    // ---------- Secrets (hidden yes/no vote + prediction) ----------
+    // Which pack wins the pre-round vote; identical policy to wyrWinningPack().
+    int secretsWinningPack() {
+        if(_secrets.packCount == 0) return 0;
+        int votes[TRIVIA_MAX_TOPICS] = {0};
+        int total = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && _secrets.vote[i] >= 0 && _secrets.vote[i] < _secrets.packCount) {
+                votes[_secrets.vote[i]]++;
+                total++;
+            }
+        if(total == 0) return (int)random(_secrets.packCount);
+        int best = 0;
+        for(int i = 1; i < _secrets.packCount; i++)
+            if(votes[i] > votes[best]) best = i;
+        int tie[TRIVIA_MAX_TOPICS], tn = 0;
+        for(int i = 0; i < _secrets.packCount; i++)
+            if(votes[i] == votes[best]) tie[tn++] = i;
+        return tie[(int)random(tn)];
+    }
+
+    void secretsClear() {
+        partyClear(_secrets.pt);
+        _secrets.pack = 0;
+        _secrets.question = 0;
+        _secrets.qSeq = 0;
+        _secrets.stage = 0;
+        _secrets.yesCount = 0;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _secrets.vote[i] = -1;
+            _secrets.predict[i] = -1;
+            _secrets.answer[i] = -1;
+            _secrets.gained[i] = 0;
+        }
+    }
+
+    void secretsReady(uint8_t pid, bool val) {
+        if(_active != HA_GAME_SECRETS) return;
+        if(_secrets.pt.phase != 0 && _secrets.pt.phase != 4) return;
+        if(_secrets.pt.phase == 4 && val) secretsClear(); // ready from final -> new game
+        _secrets.pt.ready[pid] = val;
+        secretsCheckStart();
+        pushAll();
+    }
+
+    void secretsVote(uint8_t pid, int pack) {
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 0) return;
+        if(pack < 0 || pack >= _secrets.packCount) return;
+        _secrets.vote[pid] = (int8_t)pack;
+        pushAll();
+    }
+
+    void secretsCheckStart() {
+        if(_secrets.packCount == 0) return;
+        Party& pt = _secrets.pt;
+        if(pt.phase == 0 && partyAllReady(pt)) {
+            pt.phase = 1;
+            pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;
+            pt.lastSec = -1;
+        } else if(pt.phase == 1 && !partyAllReady(pt)) {
+            pt.phase = 0;
+        }
+    }
+
+    bool secretsAllPredicted() {
+        int n = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            n++;
+            if(_secrets.predict[i] < 0) return false;
+        }
+        return n >= 1;
+    }
+
+    bool secretsAllAnswered() {
+        int n = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            n++;
+            if(_secrets.answer[i] < 0) return false;
+        }
+        return n >= 1;
+    }
+
+    void secretsNextRound(uint32_t now) {
+        Party& pt = _secrets.pt;
+        WordPack& pk = _secrets.packs[_secrets.pack];
+        if(pt.round >= SECRETS_ROUNDS || pk.count == 0) {
+            pt.phase = 4; // final
+            pushAll();
+            return;
+        }
+        pt.round++;
+        _secrets.question = (uint8_t)(_secrets.qSeq % pk.count);
+        _secrets.qSeq++;
+        _secrets.stage = 0; // answer first, then predict
+        _secrets.yesCount = 0;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _secrets.predict[i] = -1;
+            _secrets.answer[i] = -1;
+            _secrets.gained[i] = 0;
+        }
+        pt.deadline = now + (uint32_t)SECRETS_ANSWER_SECS * 1000;
+        pt.phase = 2;
+        pushAll();
+    }
+
+    void secretsToPredict(uint32_t now) {
+        _secrets.stage = 1; // answers are in; now guess how many said yes
+        _secrets.pt.deadline = now + (uint32_t)SECRETS_PREDICT_SECS * 1000;
+        pushAll();
+    }
+
+    void secretsReply(uint8_t pid, int v) {
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 2 || _secrets.stage != 0) return;
+        if(v != 0 && v != 1) return;
+        _secrets.answer[pid] = (int8_t)v;
+        if(secretsAllAnswered()) secretsToPredict(millis());
+        else pushAll();
+    }
+
+    void secretsPredict(uint8_t pid, int n) {
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 2 || _secrets.stage != 1) return;
+        int cap = connectedCount(); // predictions range 0..N (N = joined players)
+        if(n < 0) n = 0;
+        if(n > cap) n = cap;
+        _secrets.predict[pid] = (int8_t)n;
+        if(secretsAllPredicted()) secretsReveal(millis());
+        else pushAll();
+    }
+
+    // Score per player: an exact prediction of the group yes-count earns 1, otherwise 0.
+    // A player who never predicted (predict < 0) scores nothing.
+    void secretsReveal(uint32_t now) {
+        int yes = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && _secrets.answer[i] == 1) yes++;
+        _secrets.yesCount = yes;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            int pred = _secrets.predict[i];
+            // Exact guesses only. Rewarding "off by one" as well made the reveal
+            // fiddly to read (two kinds of winner, two point values) for very little
+            // play value, so a prediction either nails the group's yes-count or it
+            // scores nothing.
+            int pts = (pred >= 0 && pred == yes) ? 1 : 0;
+            _secrets.gained[i] = pts;
+            if(pts) {
+                _p[i].score += pts;
+                haUartScore(i, pts, "secrets");
+            }
+        }
+        haUartRoundResult(String("{\"secrets\":\"round ") + _secrets.pt.round + "\"}");
+        _secrets.pt.phase = 3;
+        _secrets.pt.revealUntil = now + SECRETS_REVEAL_MS;
+        pushAll();
+    }
+
+    void secretsAgain(uint8_t pid) {
+        (void)pid;
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 4) return;
+        secretsClear();
+        pushAll();
+    }
+
+    void secretsTick(uint32_t now) {
+        Party& pt = _secrets.pt;
+        if(pt.phase == 1) {
+            if(partyCountdownDone(pt, now)) {
+                pt.round = 0;
+                _secrets.pack = (uint8_t)secretsWinningPack();
+                _secrets.qSeq = 0;
+                secretsNextRound(now);
+            }
+        } else if(pt.phase == 2) {
+            if(_secrets.stage == 0) {
+                // Answer window expired: move to predicting anyway so a silent player
+                // can't stall the round (a missing answer just counts as no).
+                if((int32_t)(now - pt.deadline) >= 0 || secretsAllAnswered())
+                    secretsToPredict(now);
+            } else {
+                // Predict window expired: reveal anyway (missing predictions score 0).
+                if((int32_t)(now - pt.deadline) >= 0 || secretsAllPredicted())
+                    secretsReveal(now);
+            }
+        } else if(pt.phase == 3) {
+            if((int32_t)(now - pt.revealUntil) >= 0) secretsNextRound(now);
+        }
+    }
+
+    // Anonymity is enforced here. A round runs answer -> predict -> reveal. Each player's
+    // individual yes/no ANSWER is never serialized to anyone, in any phase — only the group
+    // yes-count, and only on reveal. Predictions are guesses about the group (not personal),
+    // so at reveal every player's prediction + points are exposed in "guesses"; before then
+    // only the player's own prediction/answer and aggregate progress counts leave this method.
+    String secretsJson(uint8_t pid) {
+        Party& pt = _secrets.pt;
+        if(pt.phase == 0) {
+            String s = String("{\"t\":\"secrets\",\"phase\":\"lobby\",\"you\":") + pid +
+                       ",\"players\":" + partyPlayersJson(pt);
+            s += ",\"packs\":[";
+            int votes[TRIVIA_MAX_TOPICS] = {0};
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+                if(_p[i].used && _secrets.vote[i] >= 0 && _secrets.vote[i] < _secrets.packCount)
+                    votes[_secrets.vote[i]]++;
+            for(int i = 0; i < _secrets.packCount; i++) {
+                if(i) s += ",";
+                s += "{\"name\":\"" + ha_json_escape(_secrets.packs[i].name.c_str()) +
+                     "\",\"votes\":" + votes[i] + "}";
+            }
+            s += "],\"myvote\":" + String((int)_secrets.vote[pid]) + "}";
+            return s;
+        }
+        if(pt.phase == 1)
+            return String("{\"t\":\"secrets\",\"phase\":\"countdown\",\"sec\":") +
+                   partyCountdownSec(pt) + "}";
+        if(pt.phase == 4)
+            return String("{\"t\":\"secrets\",\"phase\":\"final\",\"board\":") + triviaBoard() +
+                   "}";
+
+        WordPack& pk = _secrets.packs[_secrets.pack];
+        const char* q = pk.words[_secrets.question].c_str();
+        int total = connectedCount(); // number of players (also the predict upper bound)
+        bool reveal = (pt.phase == 3);
+        const char* phase = reveal ? "reveal" : (_secrets.stage == 0 ? "answer" : "predict");
+        // Aggregate progress only: how many have locked in the current step (answers while
+        // answering, predictions while predicting). This never exposes an individual's pick.
+        int locked = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(!reveal && _secrets.stage == 0) {
+                if(_secrets.answer[i] >= 0) locked++;
+            } else if(_secrets.predict[i] >= 0)
+                locked++;
+        }
+
+        String s = String("{\"t\":\"secrets\",\"phase\":\"") + phase + "\",\"round\":" +
+                   pt.round + ",\"rounds\":" + SECRETS_ROUNDS + ",\"n\":" + total +
+                   ",\"q\":\"" + ha_json_escape(q) + "\",\"locked\":" + locked +
+                   ",\"total\":" + total;
+        // Your own prediction/answer are yours to see; nobody else's.
+        s += ",\"myprediction\":";
+        s += (int)_secrets.predict[pid];
+        s += ",\"myanswer\":";
+        s += (int)_secrets.answer[pid];
+        if(reveal) {
+            // Only the group total is revealed, never who answered what. Predictions are
+            // guesses about the group, so every player's prediction + points are listed.
+            s += ",\"yes\":";
+            s += _secrets.yesCount;
+            s += ",\"guesses\":[";
+            bool first = true;
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+                if(!_p[i].used) continue;
+                if(!first) s += ",";
+                first = false;
+                // pid too: the reveal marks *your* row, and nicknames can collide.
+                s += "{\"pid\":" + String((int)i) + ",\"nick\":\"" +
+                     ha_json_escape(_p[i].nick) + "\",\"n\":" + (int)_secrets.predict[i] +
+                     ",\"pts\":" + _secrets.gained[i] + "}";
+            }
+            s += "]";
+            s += ",\"mygain\":";
+            s += _secrets.gained[pid];
+            s += ",\"deadline\":";
+            s += pt.revealUntil;
+            s += ",\"dur\":";
+            s += (SECRETS_REVEAL_MS / 1000);
+        } else {
+            s += ",\"deadline\":";
+            s += pt.deadline;
+            s += ",\"dur\":";
+            s += (_secrets.stage == 0 ? SECRETS_ANSWER_SECS : SECRETS_PREDICT_SECS);
+        }
+        s += ",\"scores\":" + playersJson() + "}";
+        return s;
+    }
+
+    // ---------- game-change vote (cross-cutting, above the active game) ----------
+    // Name -> id, the inverse of gameName(). "none" is a legitimate target (back to the
+    // plain lobby), so HA_GAME_NONE can't double as the not-found marker: returns -1 for
+    // an unknown name instead.
+    static int gameIdByName(const char* name) {
+        if(!name || !name[0]) return -1;
+        for(uint8_t id = HA_GAME_NONE; id <= HA_GAME_SECRETS; id++)
+            if(strcmp(gameName(id), name) == 0) return (int)id;
+        return -1;
+    }
+
+    void gameVoteClear() {
+        _gvActive = false;
+        _gvProposer = 0;
+        _gvTarget = 0;
+        _gvStart = 0;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) _gvVote[i] = -1;
+    }
+
+    // A player proposes switching the active game. Only one proposal at a time, and only to
+    // a different, valid target -- which includes "none", i.e. back to the plain lobby. The
+    // proposer counts as an implicit YES. This is the single sanctioned phone->host action;
+    // a host-initiated select still bypasses the vote.
+    void proposeGame(uint8_t pid, const char* name) {
+        if(_gvActive) return; // one proposal at a time
+        int id = gameIdByName(name);
+        if(id < 0 || (uint8_t)id == _active) return; // unknown, or already the active game
+        _gvActive = true;
+        _gvProposer = pid;
+        _gvTarget = (uint8_t)id;
+        _gvStart = millis();
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) _gvVote[i] = -1;
+        _gvVote[pid] = 1; // the proposer is an implicit YES
+        if(!gameVoteResolve(millis())) pushAll(); // resolves at once if the proposer is alone
+    }
+
+    void voteGame(uint8_t pid, bool ok) {
+        if(!_gvActive) return;
+        if(pid == _gvProposer) {
+            // The proposer's YES is implicit, so an OK from them means nothing -- but a NO is
+            // how they withdraw: cancel the proposal and resume the frozen game at once.
+            if(!ok) gameVoteReject();
+            return;
+        }
+        _gvVote[pid] = ok ? 1 : 0;
+        if(!gameVoteResolve(millis())) pushAll();
+    }
+
+    // Resolve the pending vote. Approve on a strict majority of the OTHER players (the
+    // proposer excluded), or immediately if the proposer is the only player. Reject as soon
+    // as that majority is impossible, or on timeout. Returns true if it resolved (having
+    // already pushed the resulting state), false if the proposal is still open.
+    bool gameVoteResolve(uint32_t now) {
+        if(!_gvActive) return false;
+        int others = 0, yes = 0, no = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || i == _gvProposer) continue;
+            others++;
+            if(_gvVote[i] == 1) yes++;
+            else if(_gvVote[i] == 0) no++;
+        }
+        if(others <= 0 || yes * 2 > others) { // proposer alone, or a strict majority says yes
+            gameVoteApprove();
+            return true;
+        }
+        if(no * 2 >= others || // approval is now impossible ...
+           (int32_t)(now - _gvStart) >= (int32_t)(GAMEVOTE_SECS * 1000)) { // ... or timed out
+            gameVoteReject();
+            return true;
+        }
+        return false;
+    }
+
+    void gameVoteApprove() {
+        uint8_t target = _gvTarget;
+        haUartEvent(String("{\"gamevote\":\"approved\",\"game\":\"") + gameName(target) + "\"}");
+        gameVoteClear();
+        selectGame(target); // resets to the target game's lobby and pushAll()s
+    }
+
+    void gameVoteReject() {
+        gameVoteClear();
+        pushAll(); // resume the frozen game (its state was left untouched)
+    }
+
+    String gameVoteJson(uint8_t pid) {
+        int yes = 0, no = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(_gvVote[i] == 1) yes++; // includes the proposer's implicit YES
+            else if(_gvVote[i] == 0) no++;
+        }
+        int others = connectedCount() - 1;
+        if(others < 0) others = 0;
+        int need = others > 0 ? (others / 2 + 1) : 0; // yes votes needed from the others
+        const char* name = gameName(_gvTarget);
+        // The voters' line leads with the proposer's avatar, so it ships alongside the nick.
+        String s = String("{\"t\":\"gamevote\",\"proposer\":\"") +
+                   ha_json_escape(_p[_gvProposer].nick) + "\",\"avatar\":\"" +
+                   ha_json_escape(_p[_gvProposer].avatar) + "\",\"game\":\"" + name +
+                   "\",\"label\":\"" + name + "\",\"yes\":" + yes + ",\"no\":" + no +
+                   ",\"others\":" + others + ",\"need\":" + need + ",\"youproposed\":" +
+                   (pid == _gvProposer ? "true" : "false") + ",\"youvoted\":" +
+                   (_gvVote[pid] >= 0 ? "true" : "false") + "}";
         return s;
     }
 };

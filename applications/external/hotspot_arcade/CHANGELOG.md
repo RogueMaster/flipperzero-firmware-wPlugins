@@ -4,6 +4,83 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Secrets**, a 16th game (whole-group). Each round shows a yes/no question and runs
+  answer → predict → reveal: every player first secretly answers yes/no, then secretly
+  predicts how many of the group said yes (0..N). Only the group's total yes-count is ever
+  revealed — the individual answers are never serialized to anyone, enforced server-side in
+  the per-player serializer; predictions (guesses about the group, not personal) are shown
+  at reveal. An exact prediction scores 1, anything else 0. Six rounds, on the shared
+  party lobby/countdown/reveal skeleton, with a votable pack of questions. Ships localized
+  (English + German). Firmware **v18**.
+- **Phone-side game-change vote.** Any player can propose switching the active game from
+  their phone (a 🕹️ button in the header, and the lobby's "Pick a game" row, open a
+  game picker); the ESP then freezes the active game and runs a majority vote of the
+  *other* players, resuming the game on reject/timeout or switching on approve. The
+  proposer is an implicit yes; approval needs a strict majority of the others (a lone
+  proposer switches at once); a No majority or a 25s timeout rejects, the proposer can
+  withdraw their own proposal, and the proposer leaving cancels it. The picker's last
+  entry, **Back to Lobby**, proposes leaving the current game and is voted on the same
+  way. This is the one sanctioned phone→host action, gated entirely behind the vote — a
+  host-initiated select stays authoritative and immediate. New intents
+  `proposeGame{game}` / `voteGame{ok}` and a `gamevote` push. Firmware **v18**.
+- **Would You Rather: an agreement chart on the final screen.** The game used to end with
+  nothing to talk about; now it closes with a distribution of how strongly the group
+  agreed. Agreement per round is the majority share (`max(a,b)/(a+b)`), so a 1/9 split
+  reads as 90% just like 9/1 and the value never drops below 50%. The horizontal axis is
+  the set of percentages actually reachable with the current number of voters
+  (`ceil(n/2)/n … n/n` — 50/60/70/80/90/100 for ten players), each bar counts the rounds
+  that landed there, and a dashed line marks the mean with its value, e.g. "You align on
+  average by 62% — lots to talk about!". Rounds nobody voted in are skipped rather than
+  counted as unanimous. The ESP is the source of truth: `wyrJson()`'s `"final"` phase now
+  carries `voters` and a `rounds` array of `{a,b}` splits, because a phone that joined
+  late never saw the earlier rounds. Firmware **v18**.
+- A serial trace of every identity decision, for debugging on real hardware:
+  `[ha] JOIN pid=2 ip=192.168.4.3 mac=AA:BB:CC:DD:EE:FF nick="..."` for a new device, and
+  `[ha] NEW BROWSER same device ip=... mac=... -> pid=1 nick="..." (consolidated)` when a
+  second browser context is folded onto the player that phone already has.
+
+### Fixed
+
+- **One phone = one player.** A player is now bound to the device rather than to the
+  WebSocket, so a phone can no longer show up as two or three players. iOS opens the portal
+  in a captive mini-browser whose storage is separate from Safari's, so playing in both (or
+  in a second tab, or a second browser) used to create a player per context. A `hello` from
+  a device that is already playing now rebinds the existing player to the new socket — never
+  a second player — keeping their pid, name, avatar and score, and the `welcome` reply hands
+  that identity to the new context (it now carries `avatar` alongside `pid`/`nick`, and the
+  client adopts and stores both) so it shows the same name straight away. Firmware **v18**.
+
+  The device is identified by the station's **MAC**, not by its IP: the IP is assigned by
+  the ESP's own DHCP server and is a derived value, while the MAC is the device. The AP's
+  DHCP events report the assigned address together with the client MAC, so the firmware
+  keeps a small IP → MAC table; a station whose lease predates the handler is resolved from
+  lwIP's ARP cache, and if the MAC cannot be resolved at all the IP is used as the key.
+  (Phones use a randomized private MAC these days, but it is stable per SSID, so it lasts
+  exactly as long as a session does.) The engine itself just stores an opaque 64-bit device
+  key and knows nothing about MACs or IPs.
+- **No more ghost players from a stale socket.** A phone that drops (screen lock, WiFi off)
+  closes nothing — the ESP only sees the socket die when TCP times out, minutes later. A
+  disconnect now removes a player only if the closing socket is still that player's
+  *current* socket, so a phone that reconnected in the meantime is no longer taken down by
+  its own stale connection.
+
+  Deliberate trade-off: two people can no longer share one phone as two players.
+- **A dead link now shows the reconnect bar** instead of the page looking connected while
+  the round moves on. A phone dropping (WiFi off, sleep) often produces no socket close for
+  minutes; the client now tracks how long the host has been silent and surfaces the existing
+  reconnect UI once it goes quiet. Client-only.
+
+### Changed
+
+- `sim/`: each simulated socket now carries a stub device key (one per socket, so every
+  panel stays its own phone), with `ha_ws_device()` to put two sockets on one phone. New
+  headless test `sim/test/identity.mjs` covers rebind, distinct devices, the stale-socket
+  disconnect, and the unknown-device fallback.
+
 ## [1.6.0] - 2026-08-03
 
 Chess joins as the fifteenth game. Firmware **v17**.

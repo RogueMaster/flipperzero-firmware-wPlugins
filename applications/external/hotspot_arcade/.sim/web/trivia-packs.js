@@ -132,6 +132,7 @@ export const PACK_DIRS = [
   { game: 5, dir: "draw", names: ["classic", "movies", "food", "nature", "animals", "fantasy"] },
   { game: 13, dir: "spectrum", names: ["everyday", "extremes", "opinions", "tastes"] },
   { game: 14, dir: "kmk", names: ["famous", "fiction", "historical", "mix"] },
+  { game: 16, dir: "secrets", names: ["1-normal", "2-slightly-spicy", "3-super-chili"] },
 ];
 
 export const LANGS = {
@@ -142,6 +143,7 @@ export const LANGS = {
     draw: ["animals", "classic", "fantasy", "food", "movies", "nature"],
     spectrum: ["everyday", "extremes", "opinions", "tastes"],
     kmk: ["famous", "fiction", "historical", "mix"],
+    secrets: ["1-normal", "2-slightly-spicy", "3-super-chili"],
   },
   "pt-br": {
     trivia: ["geral"], wyr: ["cotidiano"], scramble: ["palavras"],
