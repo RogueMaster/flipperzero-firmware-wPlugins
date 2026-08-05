@@ -299,6 +299,12 @@ struct WyrState {
     uint8_t promptSeq; // rotates prompts across rounds within the pack
     uint8_t prompt; // current prompt index within the chosen pack
     int8_t choice[HA_MAX_PLAYERS + 1]; // A/B vote for the current prompt, -1 = none
+    // Per-round A/B split, latched at reveal, for the final "how much did we agree"
+    // chart. The client cannot reconstruct this from what it saw: a phone that joined
+    // late (or reloaded) never received the earlier rounds, so the engine has to carry
+    // the history into the final payload.
+    uint8_t splitA[WYR_ROUNDS], splitB[WYR_ROUNDS];
+    uint8_t splitCount; // rounds latched so far (<= WYR_ROUNDS)
 };
 
 // Word scramble race: everyone unscrambles the same word; fastest correct win most.
@@ -2643,6 +2649,22 @@ private:
             _wyr.vote[i] = -1;
             _wyr.choice[i] = -1;
         }
+        _wyr.splitCount = 0;
+        for(int i = 0; i < WYR_ROUNDS; i++) {
+            _wyr.splitA[i] = 0;
+            _wyr.splitB[i] = 0;
+        }
+    }
+
+    // Tally the current prompt's A/B votes over the connected players.
+    void wyrCounts(int& cA, int& cB) {
+        cA = 0;
+        cB = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(_wyr.choice[i] == 0) cA++;
+            else if(_wyr.choice[i] == 1) cB++;
+        }
     }
 
     void wyrReady(uint8_t pid, bool val) {
@@ -2713,6 +2735,17 @@ private:
     }
 
     void wyrReveal(uint32_t now) {
+        // Latch this prompt's split before flipping to reveal: rounds are indexed
+        // 1..WYR_ROUNDS, and reveal happens exactly once per round (phase 2 -> 3),
+        // so splitCount tracks the round number. A round nobody voted in is stored
+        // as 0/0 and skipped by the chart rather than counted as total agreement.
+        if(_wyr.pt.phase == 2 && _wyr.splitCount < WYR_ROUNDS) {
+            int cA, cB;
+            wyrCounts(cA, cB);
+            _wyr.splitA[_wyr.splitCount] = (uint8_t)cA;
+            _wyr.splitB[_wyr.splitCount] = (uint8_t)cB;
+            _wyr.splitCount++;
+        }
         _wyr.pt.phase = 3;
         _wyr.pt.revealUntil = now + WYR_REVEAL_MS;
         pushAll();
@@ -2762,17 +2795,28 @@ private:
         if(pt.phase == 1)
             return String("{\"t\":\"wyr\",\"phase\":\"countdown\",\"sec\":") +
                    partyCountdownSec(pt) + "}";
-        if(pt.phase == 4)
-            return String("{\"t\":\"wyr\",\"phase\":\"final\",\"you\":") + pid + "}";
+        if(pt.phase == 4) {
+            // Final: hand the client the whole game's A/B history plus the current
+            // player count, so it can draw the agreement chart. `voters` is the axis
+            // the client buckets into (for n voters the reachable agreement values are
+            // ceil(n/2)/n .. n/n); the per-round splits carry the real numbers.
+            String s = String("{\"t\":\"wyr\",\"phase\":\"final\",\"you\":") + pid;
+            int voters = 0;
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+                if(_p[i].used) voters++;
+            s += ",\"voters\":" + String(voters) + ",\"rounds\":[";
+            for(uint8_t i = 0; i < _wyr.splitCount; i++) {
+                if(i) s += ",";
+                s += "{\"a\":" + String((int)_wyr.splitA[i]) + ",\"b\":" + String((int)_wyr.splitB[i]) + "}";
+            }
+            s += "]}";
+            return s;
+        }
         WyrPack& pk = _wyr.packs[_wyr.pack];
         const char* a = pk.items[_wyr.prompt].a.c_str();
         const char* b = pk.items[_wyr.prompt].b.c_str();
-        int cA = 0, cB = 0;
-        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
-            if(!_p[i].used) continue;
-            if(_wyr.choice[i] == 0) cA++;
-            else if(_wyr.choice[i] == 1) cB++;
-        }
+        int cA, cB;
+        wyrCounts(cA, cB);
         String s = String("{\"t\":\"wyr\",\"phase\":\"") + (pt.phase == 3 ? "reveal" : "vote") +
                    "\",\"round\":" + pt.round + ",\"rounds\":" + WYR_ROUNDS + ",\"a\":\"" +
                    ha_json_escape(a) + "\",\"b\":\"" + ha_json_escape(b) + "\",\"myvote\":" +

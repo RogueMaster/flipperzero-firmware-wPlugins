@@ -27,6 +27,17 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
   way. This is the one sanctioned phone→host action, gated entirely behind the vote — a
   host-initiated select stays authoritative and immediate. New intents
   `proposeGame{game}` / `voteGame{ok}` and a `gamevote` push. Firmware **v18**.
+- **Would You Rather: an agreement chart on the final screen.** The game used to end with
+  nothing to talk about; now it closes with a distribution of how strongly the group
+  agreed. Agreement per round is the majority share (`max(a,b)/(a+b)`), so a 1/9 split
+  reads as 90% just like 9/1 and the value never drops below 50%. The horizontal axis is
+  the set of percentages actually reachable with the current number of voters
+  (`ceil(n/2)/n … n/n` — 50/60/70/80/90/100 for ten players), each bar counts the rounds
+  that landed there, and a dashed line marks the mean with its value, e.g. "You align on
+  average by 62% — lots to talk about!". Rounds nobody voted in are skipped rather than
+  counted as unanimous. The ESP is the source of truth: `wyrJson()`'s `"final"` phase now
+  carries `voters` and a `rounds` array of `{a,b}` splits, because a phone that joined
+  late never saw the earlier rounds. Firmware **v18**.
 - A serial trace of every identity decision, for debugging on real hardware:
   `[ha] JOIN pid=2 ip=192.168.4.3 mac=AA:BB:CC:DD:EE:FF nick="..."` for a new device, and
   `[ha] NEW BROWSER same device ip=... mac=... -> pid=1 nick="..." (consolidated)` when a

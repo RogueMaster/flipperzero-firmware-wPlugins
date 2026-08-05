@@ -587,6 +587,41 @@ h3{margin:0; font-weight:600}
 .sec-result{text-align:center; color:var(--orange); font-weight:700; font-size:16px; min-height:20px;
   margin-top:12px}
 .sec-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
+/* Would You Rather — final agreement chart. One column per reachable agreement
+   percentage (the axis follows the player count), the bar height is how many
+   rounds landed there, and a dashed orange line marks the mean. Same card /
+   2px-border / orange-fill language as the podium and the reveal split. */
+.wyr-chart{margin:14px 0; padding:12px; background:var(--surface);
+  border:2px solid var(--line); border-radius:var(--radius)}
+.wyr-chart-hd{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--text-dim); margin-bottom:6px}
+.wyr-plot{position:relative; padding-top:20px}
+.wyr-buckets{display:flex; align-items:flex-end; gap:6px; height:132px}
+.wyr-bkt{flex:1; min-width:0; height:100%; display:flex; flex-direction:column;
+  align-items:center; gap:4px}
+/* z-index + a solid backdrop so the mean line passes behind the count, not through it */
+.wyr-bn{position:relative; z-index:1; background:var(--surface); padding:0 3px;
+  font-size:12px; font-weight:700; color:var(--text-mute); line-height:1;
+  font-variant-numeric:tabular-nums}
+.wyr-bkt.on .wyr-bn{color:var(--text)}
+.wyr-bwrap{flex:1; width:100%; display:flex; align-items:flex-end;
+  border-bottom:2px solid var(--line)}
+.wyr-bwrap i{display:block; width:100%; background:rgba(255,130,0,.20);
+  border:2px solid var(--orange); border-bottom:none; transform-origin:bottom;
+  animation:wyr-grow .35s ease-out both}
+.wyr-bx{font-size:11px; color:var(--text-dim); line-height:1; height:11px;
+  font-variant-numeric:tabular-nums}
+@keyframes wyr-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+/* Mean line: `left` is set inline to the interpolated position. It stops above the
+   axis labels (11px label + 4px gap = 15px) and its value sits in the 20px band
+   .wyr-plot reserves at the top. */
+.wyr-mean{position:absolute; top:20px; bottom:15px; width:0; pointer-events:none;
+  border-left:2px dashed var(--orange)}
+.wyr-mean-val{position:absolute; bottom:100%; margin-bottom:3px; left:0;
+  transform:translateX(-50%); padding:0 4px; background:var(--surface);
+  color:var(--orange); font-size:12px; font-weight:700; line-height:1.2;
+  white-space:nowrap; font-variant-numeric:tabular-nums}
+.wyr-verdict{margin-top:10px; font-size:13px; line-height:1.4; color:var(--text-dim)}
 
 /* Word Scramble: big spaced letters, answer reveal in orange. */
 .scr-letters{background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);
