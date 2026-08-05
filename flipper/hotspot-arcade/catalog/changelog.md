@@ -24,7 +24,8 @@
 
 - The phone UI is fully localized: the host's language reaches every phone, with
   Brazilian Portuguese first and English as the fallback for anything untranslated.
-  Content packs can ship per-language versions (packs/<game>/<lang>/).
+  Content packs can ship per-language versions, placed in a language subfolder
+  under each game's pack folder.
 - Firmware v16.
 
 ## 1.4
