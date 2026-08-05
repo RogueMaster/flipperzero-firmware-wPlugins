@@ -32,6 +32,8 @@
     A.countdown("sec-count-num", m.sec);
   }
 
+  // The stepper is deliberately silent: this is a hidden-vote game played around one
+  // table, and anyone counting the clicks would know the prediction. Haptics only.
   function setNum() { $("sec-num").textContent = predVal; }
 
   function renderPredict(m) {
@@ -144,10 +146,10 @@
     send({ t: "ready", ready: !myready });
   });
   $("sec-minus").addEventListener("click", function () {
-    if (predVal > 0) { predVal--; setNum(); A.sfx("tick"); A.vibe(8); }
+    if (predVal > 0) { predVal--; setNum(); A.vibe(8); }
   });
   $("sec-plus").addEventListener("click", function () {
-    if (predVal < predMax) { predVal++; setNum(); A.sfx("tick"); A.vibe(8); }
+    if (predVal < predMax) { predVal++; setNum(); A.vibe(8); }
   });
   $("sec-predict-go").addEventListener("click", function () {
     A.sfx("start"); A.vibe(20);
