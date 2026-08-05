@@ -5,6 +5,7 @@
 #include <dialogs/dialogs.h>
 #include <gui/gui.h>
 #include <gui/modules/submenu.h>
+#include <gui/modules/widget.h>
 #include <gui/scene_manager.h>
 #include <gui/view.h>
 #include <gui/view_dispatcher.h>
@@ -20,6 +21,7 @@ typedef struct
     SceneManager *sm;
     Submenu *menu;
     Submenu *setmenu;
+    Widget *abt;
     View *pv;
     View *vv;
     Play *play;

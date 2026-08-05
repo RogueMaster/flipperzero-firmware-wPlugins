@@ -4,6 +4,18 @@
 #include <string.h>
 #include <storage/storage.h>
 
+const char abttext[] =
+    "Built by Richard, YO3GND, a ham radio operator who enjoys embedded engineering and DSP.\n\n"
+    "This began as a Morse Flipper spike: send audio to a Baofeng without an audio lead. It worked, so it became its own thing.\n\n"
+    "A first-order sigma-delta modulator turns PCM into one-bit PDM. Each bit selects a CC1101 FSK deviation, approximating narrowband FM audio.\n\n"
+    "The CC1101 is not an audio transmitter. Its carrier can wander during long transmissions; receiver AFC and bandwidth tolerate some drift. FM capture does not fix it.\n\n"
+    "www.yo3gnd.ro\n"
+    "github.com/yo3gnd\n"
+    "yo3gnd@gmail.com\n"
+    "instagram: @yo3gnd\n"
+    "tiktok: @yo3gnd\n"
+    "youtube.com/@yo3gnd";
+
 void playdraw(Canvas *canvas, void *model)
 {
     PlayModel *m = model;
@@ -205,6 +217,12 @@ bool vfoinput(InputEvent *ev, void *ctx)
     return h;
 }
 
+void abtback(GuiButtonType b, InputType t, void *ctx)
+{
+    App *a = ctx;
+    if(t == InputTypeShort && b == GuiButtonTypeLeft) view_dispatcher_send_custom_event(a->vd, MAbout);
+}
+
 static void menucb(void *ctx, uint32_t id)
 {
     App *app = ctx;
@@ -231,6 +249,7 @@ static void mainin(void *ctx)
     submenu_add_item(app->menu, "Start", MStart, menucb, app);
     submenu_add_item(app->menu, "Choose file", MFile, menucb, app);
     submenu_add_item(app->menu, "Settings", MSet, menucb, app);
+    submenu_add_item(app->menu, "About", MAbout, menucb, app);
     submenu_set_selected_item(app->menu, scene_manager_get_scene_state(app->sm, ScMain));
     view_dispatcher_switch_to_view(app->vd, VMain);
 }
@@ -247,7 +266,8 @@ static bool mainev(void *ctx, SceneManagerEvent ev)
     if(ev.event == MStart) scene_manager_next_scene(app->sm, ScPlay);
     else if(ev.event == MFile) pickfile(app);
     else if(ev.event == MSet) scene_manager_next_scene(app->sm, FmtxSceneSettings);
-    if(ev.event <= MSet) return true;
+    else if(ev.event == MAbout) scene_manager_next_scene(app->sm, ScAbout);
+    if(ev.event <= MAbout) return true;
     return false;
 }
 
@@ -300,7 +320,7 @@ static void setin(void *ctx)
 {
     App *app = ctx;
     submenu_set_header(app->setmenu, "Settings");
-    submenu_add_item(app->setmenu, "Set hz", FmtxSettingsSetFrequency, menucb, app);
+    submenu_add_item(app->setmenu, "Transmit frequency", FmtxSettingsSetFrequency, menucb, app);
     view_dispatcher_switch_to_view(app->vd, FmtxViewSettings);
 }
 
@@ -360,12 +380,35 @@ static void vfoout(void *ctx)
     UNUSED(ctx);
 }
 
+static void abtin(void *ctx)
+{
+    App *a = ctx;
+    view_dispatcher_switch_to_view(a->vd, VAbout);
+}
+
+static bool abtev(void *ctx, SceneManagerEvent ev)
+{
+    App *a = ctx;
+    if(ev.type == SceneManagerEventTypeBack || (ev.type == SceneManagerEventTypeCustom && ev.event == MAbout))
+    {
+        scene_manager_previous_scene(a->sm);
+        return true;
+    }
+    return false;
+}
+
+static void abtout(void *ctx)
+{
+    UNUSED(ctx);
+}
+
 static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] =
 {
     [ScMain] = mainin,
     [ScPlay] = playin,
     [FmtxSceneSettings] = setin,
     [FmtxSceneVfo] = vfoin,
+    [ScAbout] = abtin,
 };
 
 static const AppSceneOnEventCallback fmtx_on_event_handlers[] =
@@ -374,6 +417,7 @@ static const AppSceneOnEventCallback fmtx_on_event_handlers[] =
     [ScPlay] = playev,
     [FmtxSceneSettings] = setev,
     [FmtxSceneVfo] = vfoev,
+    [ScAbout] = abtev,
 };
 
 static const AppSceneOnExitCallback fmtx_on_exit_handlers[] =
@@ -382,6 +426,7 @@ static const AppSceneOnExitCallback fmtx_on_exit_handlers[] =
     [ScPlay] = playout,
     [FmtxSceneSettings] = setout,
     [FmtxSceneVfo] = vfoout,
+    [ScAbout] = abtout,
 };
 
 const SceneManagerHandlers scenes =

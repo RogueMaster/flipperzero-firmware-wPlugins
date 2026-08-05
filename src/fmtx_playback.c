@@ -422,7 +422,8 @@ Play *playnew(void)
         return NULL;
     }
     rfinit(playback->rf, 433160000U);
-    playback->gain = 2;
+    playback->gain = 3;
+    rfgain(playback->rf, playback->gain);
     dspinit(&playback->dsp);
     return playback;
 }

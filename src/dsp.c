@@ -11,6 +11,7 @@ void dspinit(Dsp *dsp)
     float t;
     float rc;
     memset(dsp, 0, sizeof(*dsp));
+    dsp->on = true;
 
     t = 1.0f / dsp_hz;
     rc = 1.0f / (TAU * 400U);

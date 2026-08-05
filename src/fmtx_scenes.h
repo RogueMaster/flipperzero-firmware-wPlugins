@@ -9,6 +9,7 @@ typedef enum
     ScPlay,
     FmtxSceneSettings,
     FmtxSceneVfo,
+    ScAbout,
     ScCount,
 } Scn;
 
@@ -18,6 +19,7 @@ typedef enum
     VPlay,
     FmtxViewSettings,
     FmtxViewVfo,
+    VAbout,
 } ViewId;
 
 typedef enum
@@ -25,6 +27,7 @@ typedef enum
     MStart,
     MFile,
     MSet,
+    MAbout,
 } MenuId;
 
 typedef enum
@@ -53,10 +56,12 @@ typedef struct
 } FmtxVfoViewModel;
 
 extern const SceneManagerHandlers scenes;
+extern const char abttext[];
 
 void playdraw(Canvas *canvas, void *model);
 bool playinput(InputEvent *ev, void *ctx);
 void vfodraw(Canvas *canvas, void *model);
 bool vfoinput(InputEvent *ev, void *ctx);
+void abtback(GuiButtonType b, InputType t, void *ctx);
 
 #endif
