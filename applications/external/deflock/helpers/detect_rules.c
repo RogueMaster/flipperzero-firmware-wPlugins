@@ -91,3 +91,23 @@ bool flock_alert_should_fire_ex(
     if(have_alerted_before && (now_tick - last_alert_tick) < ALERT_COOLDOWN_MS) return false;
     return true;
 }
+
+int32_t esp_frames_rate(uint32_t prev_frames, uint32_t now_frames, uint32_t elapsed_ms) {
+    if(elapsed_ms == 0) return -1;
+    if(now_frames < prev_frames) return -1; // lifetime counter fell -> ESP rebooted
+    uint32_t delta = now_frames - prev_frames;
+    // 64-bit intermediate: a 921600-baud link can move enough frames between two
+    // status lines that delta * 1000 overflows 32 bits on a long interval.
+    uint64_t r = ((uint64_t)delta * 1000u) / elapsed_ms;
+    if(r > 99999u) r = 99999u; // clamp so the header can never be blown open
+    return (int32_t)r;
+}
+
+bool wifi_rogue_pair(uint8_t auth_a, uint8_t auth_b) {
+    bool a_weak = (auth_a == WIFI_AUTH_MODE_OPEN || auth_a == WIFI_AUTH_MODE_WEP);
+    bool b_weak = (auth_b == WIFI_AUTH_MODE_OPEN || auth_b == WIFI_AUTH_MODE_WEP);
+    // Exactly one side weak. Both weak is a badly configured network, not a
+    // clone standing in for a secured one; neither weak is transition mode or a
+    // mixed mesh, which is the benign case this rule exists to stop shouting at.
+    return a_weak != b_weak;
+}

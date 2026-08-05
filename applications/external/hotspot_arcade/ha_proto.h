@@ -45,23 +45,23 @@
 #define HA_MSG_PING         0x86
 
 // Game ids
-#define HA_GAME_NONE      0
-#define HA_GAME_TRIVIA    1
-#define HA_GAME_CONNECT4  2
-#define HA_GAME_TICTACTOE 3
-#define HA_GAME_DOTS      4
-#define HA_GAME_DRAW      5
-#define HA_GAME_PONG      6
-#define HA_GAME_REACT     7 // reaction duel (fastest finger)
-#define HA_GAME_WYR       8 // would you rather (poll)
-#define HA_GAME_SCRAMBLE  9 // word scramble race
-#define HA_GAME_REVERSI   10 // reversi/othello (duel kind)
+#define HA_GAME_NONE       0
+#define HA_GAME_TRIVIA     1
+#define HA_GAME_CONNECT4   2
+#define HA_GAME_TICTACTOE  3
+#define HA_GAME_DOTS       4
+#define HA_GAME_DRAW       5
+#define HA_GAME_PONG       6
+#define HA_GAME_REACT      7 // reaction duel (fastest finger)
+#define HA_GAME_WYR        8 // would you rather (poll)
+#define HA_GAME_SCRAMBLE   9 // word scramble race
+#define HA_GAME_REVERSI    10 // reversi/othello (duel kind)
 #define HA_GAME_GUESSCOLOR 11 // guess the color (closest RGB + speed)
 #define HA_GAME_BATTLESHIP 12 // battleship (1v1, hidden fleets)
-#define HA_GAME_SPECTRUM 13 // wavelength-style spectrum guessing (party)
-#define HA_GAME_KMK      14 // kiss marry kill (party)
-#define HA_GAME_CHESS    15 // chess (1v1, full FIDE rules)
-#define HA_GAME_SECRETS  16 // secrets (party, hidden yes/no vote + prediction)
+#define HA_GAME_SPECTRUM   13 // wavelength-style spectrum guessing (party)
+#define HA_GAME_KMK        14 // kiss marry kill (party)
+#define HA_GAME_CHESS      15 // chess (1v1, full FIDE rules)
+#define HA_GAME_SECRETS    16 // secrets (party, hidden yes/no vote + prediction)
 
 static inline uint8_t ha_crc8_upd(uint8_t crc, uint8_t b) {
     crc ^= b;

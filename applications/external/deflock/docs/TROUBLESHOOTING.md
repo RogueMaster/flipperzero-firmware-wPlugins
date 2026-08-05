@@ -33,7 +33,7 @@ explicit notice saying so. Either flash the companion firmware (**ESP32 Firmware
 a .bin**, no computer needed) or use the screens Marauder mode supports: Flock/ALPR
 Detect, Flock Map, and Reports.
 
-**GPS never gets a fix / the badge shows `GPS!`.** `GPS!` means the app knows a fix is
+**GPS never gets a fix / the badge shows `!PORT`, `!PIN` or `!FW`.** These mean the app knows a fix is
 impossible with the current settings, rather than that it is still searching. Almost
 always **GPS Port is set to the same UART as the ESP** — one UART cannot serve both, so
 move the GPS to the other port (LPUART, pins 15/16 by default) and leave the ESP on

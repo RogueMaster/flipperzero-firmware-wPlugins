@@ -118,9 +118,6 @@ void recon_settings_build_gps_pins(ReconApp* app) {
         if(!have && n < RECON_GPS_PIN_MAX) app->gps_pin_vals[n++] = app->settings.esp_gps_pin;
     }
     app->gps_pin_count = n;
-    for(uint8_t i = 0; i < n; i++) {
-        snprintf(app->gps_pin_text[i], sizeof(app->gps_pin_text[i]), "%u", app->gps_pin_vals[i]);
-    }
     // Only re-point the stored pin when the BOARD is the authority for this list
     // and it does not contain that pin -- i.e. this chip genuinely cannot use it.
     if(from_board && n) {
@@ -137,7 +134,8 @@ static void esp_gps_pin_changed(VariableItem* item) {
     uint8_t idx = variable_item_get_current_value_index(item);
     if(idx >= app->gps_pin_count) idx = 0;
     app->settings.esp_gps_pin = app->gps_pin_vals[idx];
-    variable_item_set_current_value_text(item, app->gps_pin_text[idx]);
+    snprintf(app->gps_pin_label, sizeof(app->gps_pin_label), "%u", app->gps_pin_vals[idx]);
+    variable_item_set_current_value_text(item, app->gps_pin_label);
     recon_settings_save(app);
 }
 
@@ -155,6 +153,17 @@ static void esp_band_changed(VariableItem* item) {
     app->settings.esp_band = idx;
     variable_item_set_current_value_text(item, esp_band_text[idx]);
     recon_settings_save(app);
+}
+
+// Fires the REAL alert with the operator's real settings. Left/Right rather than
+// OK because a VariableItemList item is a value-changer, not a button; the value
+// text says so. Deliberately calls the same recon_alert_fire() the detection path
+// calls -- a test that exercises different code than the thing it tests is worth
+// nothing.
+static void test_alert_changed(VariableItem* item) {
+    ReconApp* app = variable_item_get_context(item);
+    variable_item_set_current_value_text(item, "press <>");
+    recon_alert_fire(app->notifications, app->settings.alert_mode, app->settings.sound);
 }
 
 static void gps_port_changed(VariableItem* item) {
@@ -314,7 +323,8 @@ void recon_scene_settings_on_enter(void* context) {
     item =
         variable_item_list_add(list, "ESP GPS Pin", app->gps_pin_count, esp_gps_pin_changed, app);
     variable_item_set_current_value_index(item, idx);
-    variable_item_set_current_value_text(item, app->gps_pin_text[idx]);
+    snprintf(app->gps_pin_label, sizeof(app->gps_pin_label), "%u", app->gps_pin_vals[idx]);
+    variable_item_set_current_value_text(item, app->gps_pin_label);
 
     idx = (app->settings.gps_uart == FuriHalSerialIdLpuart) ? 1 : 0;
     item = variable_item_list_add(list, "GPS Port", 2, gps_port_changed, app);
@@ -376,6 +386,22 @@ void recon_scene_settings_on_enter(void* context) {
     item = variable_item_list_add(list, "Anomaly flag", 2, anomaly_flag_changed, app);
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, onoff_text[idx]);
+
+    // Fire the REAL alert, with the operator's real settings, on demand.
+    //
+    // "No beep or vibrate" has been reported three times and every structural
+    // part of the path audits clean, because the app firing and the Flipper's own
+    // notification settings swallowing it are indistinguishable from the outside.
+    // One press splits them: if this is silent, the fault is the Flipper's
+    // Notifications (volume / vibro) or Alert on hit being OFF, and no amount of
+    // detection tuning will ever produce a sound. If it buzzes, the notification
+    // path works and the question moves to whether a detection qualified.
+    //
+    // Deliberately the same recon_alert_fire() the detection path calls, not a
+    // stand-in: a test that exercises different code than the thing it is testing
+    // is worth nothing.
+    item = variable_item_list_add(list, "Test alert", 2, test_alert_changed, app);
+    variable_item_set_current_value_text(item, "press <>");
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewVarItemList);
 }

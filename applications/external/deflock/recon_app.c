@@ -150,7 +150,12 @@ void recon_app_alert_tick(ReconApp* app) {
 
     // Fire outside the lock: notification_message queues work for the
     // notification service and must not stall the ESP worker behind it.
-    if(pending) recon_alert_fire(app->notifications, mode, sound);
+    if(pending) {
+        recon_alert_fire(app->notifications, mode, sound);
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->alert_fired++;
+        furi_mutex_release(app->mutex);
+    }
 }
 
 void recon_app_set_esp_status(
@@ -171,11 +176,39 @@ void recon_app_set_esp_status(
             app->esp_hits_base = hits;
             app->esp_rebase = false;
         }
-        if(frames < app->esp_frames_base) app->esp_frames_base = frames;
+        // A LIFETIME total can only fall if the board restarted. That was silently
+        // absorbed by the rebase below, so the on-screen count just slid back
+        // toward zero -- reported as a cosmetic oddity on a long drive when it
+        // actually meant the ESP was resetting and dropping detections (issue #5).
+        // Count it so the header can say so.
+        if(frames < app->esp_frames_base) {
+            app->esp_reboots++;
+            app->esp_frames_prev = 0;
+            app->esp_rate_tick = 0;
+            app->esp_frame_rate = -1;
+            app->esp_frames_base = frames;
+        }
         if(hits < app->esp_hits_base) app->esp_hits_base = hits;
         app->esp_frames = frames - app->esp_frames_base;
         app->esp_hits = hits - app->esp_hits_base;
         app->esp_channel = channel;
+
+        // Frames per second, sampled between status lines (~1 Hz). The cumulative
+        // total answers "is the link up"; only a rate answers "is this thing
+        // hearing anything right now", which is the question you have while
+        // parked next to a camera that is not showing up.
+        uint32_t now = furi_get_tick();
+        if(app->esp_rate_tick) {
+            uint32_t elapsed = now - app->esp_rate_tick;
+            if(elapsed >= 500) { // don't divide a burst of lines into a wild rate
+                app->esp_frame_rate = esp_frames_rate(app->esp_frames_prev, frames, elapsed);
+                app->esp_frames_prev = frames;
+                app->esp_rate_tick = now;
+            }
+        } else {
+            app->esp_frames_prev = frames;
+            app->esp_rate_tick = now;
+        }
     }
     furi_mutex_release(app->mutex);
 }
@@ -270,6 +303,12 @@ void recon_app_gps_cfg_tick(ReconApp* app) {
     }
 }
 
+void recon_app_ble_scan_done(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_ble_scans++;
+    furi_mutex_release(app->mutex);
+}
+
 void recon_app_ble_begin(ReconApp* app) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->ble_scanning = true;
@@ -300,6 +339,16 @@ void recon_app_ble_add(
     if(cat == BleCatUnknown && name && strncmp(name, "Flipper", 7) == 0) {
         cat = BleCatFlipper;
     }
+
+    // Every advert counts toward the BLE liveness figure, whether or not it is a
+    // device we care about or one we already have. The Flock screen showed
+    // NOTHING about BLE, so in flockcombo mode a working BLE half and one that
+    // never ran looked identical -- and BLE is usually the easy detection on
+    // these cameras (issue #5). Counted separately from ble_count, which is the
+    // deduplicated table and stops growing once the area is stale.
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_ble_seen++;
+    furi_mutex_release(app->mutex);
 
     char serial[RECON_BLE_SERIAL_LEN] = "";
     uint8_t model = FlockBleModelUnknown;
@@ -495,7 +544,11 @@ void recon_app_wifi_end(ReconApp* app) {
                memcmp(app->wifi[i].bssid, app->wifi[j].bssid, 6) != 0) {
                 app->wifi[i].dup = true;
                 app->wifi[j].dup = true;
-                if(app->wifi[i].authmode != app->wifi[j].authmode) {
+                // Only a security DOWNGRADE is evil-twin shaped. Any auth-mode
+                // difference used to qualify, which fires on WPA2/WPA3
+                // transition mode -- an ordinary modern network -- and told the
+                // operator they were under attack. See wifi_rogue_pair().
+                if(wifi_rogue_pair(app->wifi[i].authmode, app->wifi[j].authmode)) {
                     app->wifi[i].rogue = true;
                     app->wifi[j].rogue = true;
                 }

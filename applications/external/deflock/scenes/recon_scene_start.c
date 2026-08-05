@@ -14,6 +14,7 @@ typedef enum {
     StartItemDeflockShare,
     StartItemLocator,
     StartItemSupport,
+    StartItemHelp,
 } StartItem;
 
 static void recon_scene_start_submenu_cb(void* context, uint32_t index) {
@@ -35,7 +36,9 @@ static void recon_scene_start_update_header(ReconApp* app) {
     WatchState st = (WatchState)app->watch.state;
     if(st == WatchStateClear) {
         submenu_set_header(
-            app->submenu, wifi_only ? "FlipDeFlock - watch: WiFi only" : "FlipDeFlock");
+            app->submenu,
+            wifi_only ? "FlipDeFlock " RECON_VERSION " - WiFi only" :
+                        "FlipDeFlock " RECON_VERSION);
         return;
     }
     const char* bd = app->watch.breakdown;
@@ -74,6 +77,7 @@ void recon_scene_start_on_enter(void* context) {
     submenu_add_item(
         submenu, "Share to DeFlock", StartItemDeflockShare, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartItemSettings, recon_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Help & Warnings", StartItemHelp, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartItemAbout, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Support", StartItemSupport, recon_scene_start_submenu_cb, app);
     submenu_set_selected_item(
@@ -125,6 +129,9 @@ bool recon_scene_start_on_event(void* context, SceneManagerEvent event) {
             break;
         case StartItemSettings:
             scene_manager_next_scene(app->scene_manager, ReconSceneSettings);
+            break;
+        case StartItemHelp:
+            scene_manager_next_scene(app->scene_manager, ReconSceneHelp);
             break;
         case StartItemAbout:
             scene_manager_next_scene(app->scene_manager, ReconSceneAbout);

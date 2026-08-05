@@ -30,12 +30,25 @@
 #include "views/ble_list_view.h"
 #include "views/locator_view.h"
 
-#define RECON_FLOCK_MAX   64
-#define RECON_WIFI_MAX    48
-#define RECON_DEAUTH_MAX  16
-#define RECON_BLE_MAX     48
-#define RECON_TEXT_STORE  160
-#define RECON_SSID_LEN    33
+#define RECON_FLOCK_MAX  64
+#define RECON_WIFI_MAX   48
+#define RECON_DEAUTH_MAX 16
+#define RECON_BLE_MAX    48
+#define RECON_TEXT_STORE 160
+#define RECON_SSID_LEN   33
+/** Shown on the main menu and About, so a bug report can name the build.
+ *
+ *  DEFINED BY THE BUILD, from FAP_VERSION in application.fam -- the same value
+ *  stamped into the .fap. It was a hand-maintained literal here until v0.64,
+ *  which meant two edits in two files with nothing checking they agreed; the
+ *  failure mode is silent and shows a confidently wrong version to exactly the
+ *  person trying to report a bug against a known build.
+ *
+ *  The fallback only appears if someone compiles this outside ufbt/fbt, and says
+ *  so rather than inventing a number. */
+#ifndef RECON_VERSION
+#define RECON_VERSION "v?.??"
+#endif
 /** Most GPS-capable pins any supported part exposes (classic ESP32 has ~34). */
 #define RECON_GPS_PIN_MAX 40
 
@@ -306,7 +319,10 @@ typedef struct {
     uint8_t esp_band_actual; /**< ReconEspBand the board says is in force */
     // GPS pin picker, rebuilt from esp_gps_pin_mask each time Settings opens.
     uint8_t gps_pin_vals[RECON_GPS_PIN_MAX];
-    char gps_pin_text[RECON_GPS_PIN_MAX][4];
+    char gps_pin_label[4]; /**< text for the CURRENT pin only. Storing all 40
+                             *   cost 160 bytes of a single contiguous
+                             *   allocation the loader already struggles to
+                             *   place on heavier firmware. */
     uint8_t gps_pin_count;
     uint16_t esp_band_channels; /**< channels the current sweep covers */
     uint8_t gps_relay; /**< ReconGpsRelayState */
@@ -335,6 +351,32 @@ typedef struct {
     bool esp_rebase; /**< next status line captures the per-session base */
     uint8_t esp_channel;
     uint32_t esp_lines; /**< RX line heartbeat (generic mode liveness) */
+    // Live activity, not lifetime totals. A number that only grows tells you the
+    // link is up but not whether the radio is hearing anything RIGHT NOW, which
+    // is the question you have while parked next to a camera (issue #5).
+    int32_t esp_frame_rate; /**< frames/s from the last two status lines, -1 = unknown */
+    uint32_t esp_frames_prev; /**< lifetime total at the last rate sample */
+    uint32_t esp_rate_tick; /**< tick of that sample */
+    uint32_t esp_ble_scans; /**< BLE scan phases COMPLETED (BEND). Distinguishes
+                             *   "BLE ran and saw nothing" from "BLE never ran",
+                             *   which a bare count of 0 cannot. */
+    bool warn_dismissed; /**< the operator has read the fault panel this session */
+    bool gps_fault_active; /**< a GPS fault is currently showing, so OK means
+                             *   "dismiss" rather than "open detail" */
+    uint32_t alert_fired; /**< alerts actually delivered this session. Shown so an
+                            *   operator can tell the app not firing from the
+                            *   Flipper's own notification settings swallowing it --
+                            *   reported three times as "no beep/vibrate" with no way
+                            *   to see which half was at fault (issue #5). */
+    uint32_t esp_ble_seen; /**< BLE adverts received this session. The Flock screen
+                             *  showed NOTHING about BLE, so in flockcombo mode there
+                             *  was no way to tell a working BLE half from one that
+                             *  never ran -- and BLE is usually the easy detection. */
+    uint32_t esp_reboots; /**< times the companion's lifetime counter fell, i.e. the
+                            *  board restarted mid-session. Silently absorbed before
+                            *  v0.56: a user reported the count "ticking back to 0" on
+                            *  long drives as a cosmetic annoyance, when it was the ESP
+                            *  resetting and dropping detections. */
     uint32_t esp_deauths; /**< deauth/disassoc frames seen (attack indicator) */
     uint8_t esp_proto_version; /**< companion wire-protocol version (FLOCKCO banner; 0 = unknown) */
     bool esp_proto_mismatch; /**< companion speaks a different protocol version than the app */
@@ -506,6 +548,10 @@ void recon_app_set_locate_rssi(ReconApp* app, int8_t rssi);
 
 /** BLE scan results (thread-safe; called from the ESP worker). */
 void recon_app_ble_begin(ReconApp* app);
+
+/** A BLE scan phase finished (BEND). Counted so "BLE never ran" and "BLE ran
+ *  and saw nothing" stop looking identical on the header. */
+void recon_app_ble_scan_done(ReconApp* app);
 void recon_app_ble_add(
     ReconApp* app,
     const uint8_t addr[6],

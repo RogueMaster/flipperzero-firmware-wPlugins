@@ -88,6 +88,54 @@ bool ble_following_gate(uint32_t count, uint32_t elapsed_ms, uint32_t waypoints,
  *  without this the vibro motor machine-guns and drains the battery. */
 #define ALERT_COOLDOWN_MS 3000u
 
+/** esp_wifi wifi_auth_mode_t values this app reasons about. Mirrored rather than
+ *  included so the rule below stays pure and host-testable. */
+#define WIFI_AUTH_MODE_OPEN 0u
+#define WIFI_AUTH_MODE_WEP  1u
+
+/**
+ * Do two APs sharing one SSID look like an evil twin, or just like one network?
+ *
+ * ONLY a security DOWNGRADE counts: one side open (or WEP) while the other is
+ * properly secured. That is the actual attack -- a clone you will join without a
+ * password, or one whose crypto can be broken, standing in for a network you
+ * trust.
+ *
+ * It used to flag ANY auth-mode difference, which is far too loose and produced
+ * a confident "evil twin" on ordinary networks. The common benign case is
+ * WPA2/WPA3 transition mode: one radio or mesh node advertises WPA2_PSK while
+ * another advertises WPA2_WPA3_PSK. Same network, same owner, nothing wrong --
+ * and under the old rule, an alarm telling you that you are being attacked.
+ *
+ * This project's rule is that a false positive is worse than a missed detection,
+ * and it applies hardest here. "There is an evil twin near you" is one of the
+ * scariest things this app can say; if it cries wolf on a home mesh, every later
+ * warning is worth less. A clone using the SAME security was never detectable
+ * this way regardless, so nothing that was catchable is lost.
+ *
+ * @return true if the pair is a downgrade (evil-twin shaped), false if it is
+ *         merely a duplicate SSID.
+ */
+bool wifi_rogue_pair(uint8_t auth_a, uint8_t auth_b);
+
+/**
+ * Frames-per-second from two lifetime counter readings, or -1 when no honest
+ * rate can be derived.
+ *
+ * The companion reports LIFETIME totals, so the on-screen number only ever grew.
+ * That answers "is the link alive" but not "is this thing hearing anything right
+ * now", which is the question you actually have while parked next to a camera
+ * (issue #5). A rate answers it in six characters.
+ *
+ * Returns -1, rather than 0 or a huge number, in the two cases where the inputs
+ * do not describe a rate at all:
+ *   - no time has elapsed between readings (divide by zero), and
+ *   - the counter went DOWN, which a lifetime total cannot do unless the ESP
+ *     rebooted. Reporting 0/s there would read as "the radio went deaf" when
+ *     what happened is the board restarted.
+ */
+int32_t esp_frames_rate(uint32_t prev_frames, uint32_t now_frames, uint32_t elapsed_ms);
+
 /** ReconSettings.alert_min_conf. Index-aligned with alert_conf_text[] in the
  *  settings scene; map to a confidence rung with flock_alert_min_conf_rung(). */
 typedef enum {

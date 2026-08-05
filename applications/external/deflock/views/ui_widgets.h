@@ -53,6 +53,41 @@ void ui_meter(Canvas* canvas, int x, int y, int w, int h, int pct);
  */
 void ui_icon_radio(Canvas* canvas, int x, int y, bool ble);
 
+/** Cell ui_icon_screen() draws into. */
+#define UI_SCREEN_ICON_W 11
+#define UI_SCREEN_ICON_H 9
+
+/** Which screen a title-bar glyph stands for. */
+typedef enum {
+    UiIconCamera = 0, /**< Flock / ALPR detect */
+    UiIconShield, /**< Net Guardian */
+    UiIconCrosshair, /**< Locator */
+    UiIconPage, /**< Reports */
+    UiIconChip, /**< ESP32 Firmware */
+} UiScreenIcon;
+
+/**
+ * Screen glyph in a UI_SCREEN_ICON_W x UI_SCREEN_ICON_H cell at (x, y).
+ *
+ * Hand-placed pixels, every form axis-aligned -- see the note on UiIconCamera in
+ * the .c for why rotation is what kills a glyph at this size, not detail.
+ *
+ * Drawn in the canvas's CURRENT colour (same contract as ui_signal_bars), so it
+ * works on an inverted title bar. It neither sets nor restores a colour.
+ */
+void ui_icon_screen(Canvas* canvas, int x, int y, UiScreenIcon which);
+
+/**
+ * ui_title_bar() with a screen glyph in front of the title.
+ *
+ * The glyph is ~11 px against roughly 70 for a spelled-out name, so a screen
+ * that needs header width (Flock carries channel, hits, rate, BLE and GPS) buys
+ * most of it back by shortening the title text.
+ *
+ * @return y of the first content row below the bar.
+ */
+int ui_title_bar_icon(Canvas* canvas, UiScreenIcon icon, const char* title, const char* right);
+
 /**
  * Draw `s` at (x, baseline), trimmed with a ".." marker if it would not fit
  * before `max_x`.

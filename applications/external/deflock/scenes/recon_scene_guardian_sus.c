@@ -98,11 +98,33 @@ void recon_scene_guardian_sus_on_enter(void* context) {
     for(size_t i = 0; i < app->wifi_count && s_sus_count < SUS_MAX; i++) {
         const WifiAp* a = &app->wifi[i];
         if(!a->rogue) continue;
+        // Say WHICH twin this row is and how it differs, not just that something
+        // fired. "Rogue AP <ssid>" alone is an accusation the operator has no way
+        // to check: they cannot see the two BSSIDs, or which of them is the open
+        // one. The open clone is the dangerous half -- that is the one you would
+        // join without a password -- so it is named outright.
+        const char* kind = (a->authmode == WIFI_AUTH_MODE_OPEN) ? "OPEN" :
+                           (a->authmode == WIFI_AUTH_MODE_WEP)  ? "WEP" :
+                                                                  "sec";
         if(a->ssid[0])
-            snprintf(buf, sizeof(buf), "Rogue AP %s", a->ssid);
+            snprintf(
+                buf,
+                sizeof(buf),
+                "Twin %s [%s] %02X%02X%02X",
+                a->ssid,
+                kind,
+                a->bssid[3],
+                a->bssid[4],
+                a->bssid[5]);
         else
             snprintf(
-                buf, sizeof(buf), "Rogue AP %02X%02X%02X", a->bssid[3], a->bssid[4], a->bssid[5]);
+                buf,
+                sizeof(buf),
+                "Twin [%s] %02X%02X%02X",
+                kind,
+                a->bssid[3],
+                a->bssid[4],
+                a->bssid[5]);
         sus_add(a->bssid, 'w', a->channel, buf, 1, (uint16_t)i);
     }
     furi_mutex_release(app->mutex);

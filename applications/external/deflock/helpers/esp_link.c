@@ -97,6 +97,7 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
         recon_app_ble_begin(app);
         break;
     case EspMsgBleEnd:
+        recon_app_ble_scan_done(app);
         recon_app_ble_end(app);
         break;
     case EspMsgBleDev:

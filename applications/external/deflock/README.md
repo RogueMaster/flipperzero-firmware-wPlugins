@@ -204,7 +204,7 @@ exact dB. `-33dB` closer to 0 means physically closer.
 - **ch / frames / hits** — channel · 802.11 frames captured · Flock detections, counted this session (reset each time you open the screen)
 - **row tag** — `!` CONFIRMED · `F` probe-fingerprint · `L` Likely · `p` Possible · `.` OUI-only · `*` marked
 - **`ST` after the tag** — a SoundThinking (ShotSpotter) acoustic sensor, not an ALPR camera. Untagged rows are cameras; the detail screen names the class in full
-- **GPS badge** — filled `GPS 9` = locked with 9 satellites · hollow `GPS` = on and searching · filled `GPS!` = on but it can never get a fix, so go fix the setting. The usual cause of `GPS!` is **GPS Port set to the same UART as the ESP** — they cannot share one port, so put the GPS on the other one (LPUART / pins 15-16 by default)
+- **GPS badge** - filled `GPS 9` = locked with 9 satellites, hollow `GPS` = on and searching. A fault names what to fix and never says "GPS", because a filled badge starting with those three letters reads as a lock: `!PORT` = GPS and the ESP are on the same UART (put GPS on the other one, LPUART / pins 15-16), `!PIN` = the companion refused that ESP GPS Pin, `!FW` = the companion never answered, so reflash it
 - Marauder mode shows `rx <n>  hits <n>` instead (serial heartbeat + detection count)
 
 **BLE / Tracker Scan** — header `BLE 33  trk 9  follow 0`
@@ -240,6 +240,54 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.66** - **"Evil twin" now requires a security downgrade**, not just any auth-mode
+difference. The old rule fired on WPA2/WPA3 transition mode, i.e. ordinary modern
+networks. The Suspicious list also shows which BSSID is the open one instead of just
+naming the SSID.
+
+**v0.65** - **The asset pack now ships with releases** as `flipdeflock_asset_pack.zip`,
+so the desktop animations can actually be installed without cloning the repo.
+
+**v0.64** - **Asset pack gains a hoodie-kicks-the-camera-pole animation**, a tribute
+to [@h00die](https://github.com/h00die). The on-screen version is also derived from
+a single source now, so it can never disagree with the build it came from.
+
+**v0.63** - **Help & Warnings is readable.** It shipped with prose hand-broken
+mid-sentence; every line is now a short standalone phrase, opening with a summary
+table of the GPS badge states.
+
+**v0.62** - **Help & Warnings**, a new main-menu page explaining every mark the app
+can show and how to fix the ones that matter. A GPS fault also now explains itself
+on the scan screen, with the setting to change, dismissible with OK.
+
+**v0.61** - **GPS fault badges no longer start with "GPS"**, which was being read as
+the opposite of what it meant. They now name the fix: `!PORT`, `!PIN`, `!FW`. The
+Wi-Fi glyph is also tightened so it reads as one mark.
+
+**v0.60** - **The Flock header uses the Wi-Fi and Bluetooth glyphs** instead of the
+letters `rx` and `b`, and the sub-line is now measured against the GPS badge so no
+counter can ever grow into it.
+
+**v0.59** - **Settings gains `Test alert`**: press Left/Right to fire the real
+detection alert with your real settings. If it is silent the fault is the Flipper's
+own Notifications settings or Alert on hit being off, not the detection side.
+
+**v0.58** - **The version is on the main menu and About.** The Flock header also gains
+`a<n>`, the count of alerts actually delivered, so "no beep" can be told apart from
+the Flipper's own notification settings swallowing it; and `b-` now means no BLE scan
+has completed yet, as distinct from `b0` meaning one ran and heard nothing.
+
+**v0.57** - **Screen icons in the title bars.** A camera on Flock, a shield on Net
+Guardian, a crosshair on the Locator, with `FLOCK/ALPR` shortened to `FDF` to hand
+header width back to the counters. Also reclaims 156 bytes from the Settings pin
+picker.
+
+**v0.56** - **The Flock header shows live activity, not a total that only grows.**
+`rx<n>/s` is the Wi-Fi frame rate, `b<n>` is BLE adverts this session (the screen
+previously showed nothing about BLE at all), and `!r<n>` means the companion
+restarted - which used to be hidden, appearing only as the count sliding back
+toward zero.
 
 **v0.55** - **ESP32-C5 correctness.** The **GPS pin picker no longer offers pins that
 can cut the link** - it was a hardcoded classic-ESP32 list, and on a C5 four of those

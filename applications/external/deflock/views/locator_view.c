@@ -67,7 +67,7 @@ static void locator_view_draw_callback(Canvas* canvas, void* _model) {
     // (peak/EMA/trend are folded in recon_app_set_locate_rssi and mirrored above)
 
     canvas_clear(canvas);
-    ui_title_bar(canvas, "LOCATOR", kind == 'b' ? "BLE" : "WiFi");
+    ui_title_bar_icon(canvas, UiIconCrosshair, "LOCATOR", kind == 'b' ? "BLE" : "WiFi");
 
     if(!connected) {
         canvas_set_font(canvas, FontSecondary);

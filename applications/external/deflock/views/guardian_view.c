@@ -122,7 +122,7 @@ static void guardian_view_draw_callback(Canvas* canvas, void* _model) {
 
     // --- HUD title bar (inverted): "NET GUARDIAN" + uptime ------------------
     // Leaves color=black, font=Secondary.
-    ui_title_bar(canvas, "NET GUARDIAN", up);
+    ui_title_bar_icon(canvas, UiIconShield, "GUARDIAN", up);
 
     if(!connected) {
         canvas_set_font(canvas, FontSecondary);

@@ -71,6 +71,14 @@ void recon_scene_guardian_on_enter(void* context) {
     app->esp_attack_tick = 0; // no attack-tool signature carried in from a prior run
     app->esp_frames = 0;
     app->esp_hits = 0;
+    app->esp_frame_rate = -1; // no honest rate until two status lines land
+    app->esp_frames_prev = 0;
+    app->esp_rate_tick = 0;
+    app->esp_ble_seen = 0;
+    app->esp_ble_scans = 0;
+    app->alert_fired = 0;
+    app->warn_dismissed = false;
+    app->esp_reboots = 0;
     app->esp_rebase = true; // per-session rebase off the companion's lifetime total
     app->esp_connected = false;
     furi_mutex_release(app->mutex);

@@ -1,5 +1,194 @@
 # Changelog
 
+## v0.66
+**The evil-twin rule was too loose, and its alert was unverifiable.**
+
+### Fixed
+
+- **"Evil twin" now requires a security DOWNGRADE**, not merely a difference. It
+  flagged any two APs sharing an SSID whose auth modes differed at all -- which
+  fires on **WPA2/WPA3 transition mode**, where one radio or mesh node advertises
+  `WPA2_PSK` and another `WPA2_WPA3_PSK`. That is an ordinary modern network, and
+  the app was telling its owner they were under attack. It now requires one side
+  to be open or WEP while the other is secured: a clone you would join without a
+  password, standing in for a network you trust. A clone using the *same*
+  security was never detectable this way regardless, so nothing catchable is
+  lost. "A false positive is worse than a missed detection" applies hardest to
+  the scariest thing this app can say.
+- **The Suspicious entry shows the evidence.** It read `Rogue AP <ssid>` -- an
+  accusation with no way to check it, since you could not see the two BSSIDs or
+  which one was open. It now reads `Twin <ssid> [OPEN] AABBCC`, naming the
+  security and the BSSID, so the dangerous half is identified rather than implied.
+
+## v0.65
+### Added
+
+- **The asset pack ships with every release**, as `flipdeflock_asset_pack.zip`.
+  It was previously repo-only, which meant the animations existed but nobody
+  could install them without cloning the source. Unzip into `asset_packs/` on the
+  SD card and pick it in the firmware's Desktop settings.
+- **`tools/pack_assets.py`** turns the committed `.png` frames into the `.bm`
+  files the firmware reads. The repo keeps PNGs because those are what a human
+  can open and diff; the device wants `.bm`, and this is the step between.
+  Validated by re-packing the existing frames and diffing against what the
+  firmware SDK's own packer produces: 16 of 16 byte-identical.
+
+## v0.64
+### Added
+
+- **Asset pack: a hooded figure kicking a camera pole down**, 24 frames at
+  128x64, alongside the existing scanner animation. A tribute to
+  [@h00die](https://github.com/h00die), who has field-tested this project harder
+  than anyone and found most of the bugs worth finding.
+
+### Fixed
+
+- **The on-screen version can no longer disagree with the build.** It was a
+  hand-maintained `#define` kept in step with `fap_version` by hand: two edits in
+  two files with nothing checking they matched. It is derived from a single
+  `FAP_VERSION` in `application.fam` now and reaches the C code as a build
+  define. The old arrangement survived seven bumps in a day, and its failure mode
+  was silent -- showing a confidently wrong version to precisely the person who
+  asked for it so he could report bugs against a known build.
+
+## v0.63
+### Fixed
+
+- **Help & Warnings was unreadable on the device.** It shipped as flowing prose
+  hand-broken at a column limit, which put line breaks mid-sentence ("GPS and the
+  ESP are / on the SAME UART. They"), plus doubled section gaps. Rewritten so
+  every line is a short complete phrase that stands on its own -- the same shape
+  the About page uses, which is why that one always read cleanly. It now opens
+  with a summary table of all five GPS badge states, visible without scrolling,
+  before the per-fault detail.
+
+## v0.62
+**A warning that cannot be looked up is not a warning.**
+
+### Added
+
+- **Help & Warnings**, a new main-menu page explaining every mark this app can put
+  on a screen: the GPS badge states and what to do about each, the scan header
+  fields, the row confidence letters and tags, and a common-fixes section. A user
+  hit `!PORT` on his own device and said "I don't know what it means and have no
+  way of finding out" -- naming a fault precisely is only half the job.
+- **A fault explains itself where you meet it.** When GPS cannot work, the scan
+  screen shows what is wrong, what to change, and where -- e.g. `!PORT UART clash
+  / GPS and ESP share a port. / Settings > GPS Port`. OK dismisses it, and it only
+  re-arms on a fresh scan session, so it never becomes something to swat away.
+
+## v0.61
+### Fixed
+
+- **A GPS fault badge no longer starts with the word "GPS".** `GPS!` and `GPS?`
+  were both read as the GPS being on and working -- the reporter of the original
+  GPS bug looked at a filled `GPS!` and described his board as "showing a gps
+  lock", which is the exact opposite of what it meant. That is not a misreading:
+  a filled badge is how this header says "locked, n satellites", so a filled badge
+  whose first three characters are G-P-S reads as a lock at a glance, and the
+  punctuation was carrying the entire meaning alone. Each fault now names the
+  thing to fix: **`!PORT`** (GPS and the ESP are on the same UART), **`!PIN`** (the
+  companion refused that ESP GPS Pin), **`!FW`** (the companion never answered --
+  reflash it).
+- **The Wi-Fi glyph's arcs sit adjacent.** With a blank row between both arcs and
+  the dot it read as three loose fragments rather than one mark. Only the dot
+  keeps its gap now -- it is the device, the arcs are the signal leaving it.
+
+## v0.60
+### Changed
+
+- **The Flock header uses the Wi-Fi and Bluetooth glyphs instead of the letters
+  `rx` and `b`**, suggested by [@h00die](https://github.com/h00die) on
+  [#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5). The same two marks
+  already label every row below, so the header stops needing a vocabulary of its
+  own. Reads `ESP [wifi]55/s [bt]490 a2`.
+- **The sub-line is measured against the GPS badge rather than guessed.** It is
+  drawn as placed segments now, each positioned from the measured width of the
+  one before, and nothing is drawn past the badge's left edge -- so no counter can
+  grow into it however large it gets. Previously the only check on that was a
+  user counting the remaining gap by hand off a photograph.
+
+## v0.59
+### Added
+
+- **Settings gains `Test alert`.** Press Left/Right and the app fires the real
+  detection alert with your real settings, immediately.
+  "No beep or vibrate" has been reported three times on
+  [#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5) and every structural
+  part of the path audits clean, because the app firing and the Flipper's own
+  notification settings swallowing it are indistinguishable from outside. One
+  press separates them. Silent means the fault is the Flipper's **Notifications**
+  (volume / vibro) or **Alert on hit** being OFF, and no detection tuning will
+  ever produce a sound. A buzz means the notification path works and the question
+  moves to whether a detection actually qualified -- which the new `a<n>` counter
+  on the Flock header then answers.
+  It calls the same `recon_alert_fire()` the detection path calls, deliberately:
+  a test that exercises different code than the thing it tests is worth nothing.
+
+## v0.58
+**Version on screen, and two invisible failures made visible.** All from
+[@h00die](https://github.com/h00die) on
+[#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5).
+
+### Added
+
+- **The version is on the main menu** (`FlipDeFlock v0.58`) and on About, so a bug
+  report can name the build without digging.
+- **`a<n>`: alerts actually DELIVERED this session.** "No beep or vibrate" has been
+  reported three times, and there was no way to tell the app not firing from the
+  Flipper's own notification settings swallowing it. Those are different faults
+  with different fixes. If `a` climbs and nothing buzzes, the app did its part and
+  the fault is the Flipper's Notification settings (volume / vibro) or the alert
+  level being set above the rung being detected.
+- **`b-` versus `b0`.** A BLE count of 0 could not distinguish "BLE ran and heard
+  nothing" from "BLE never ran at all" -- and a user seeing `b0` beside a healthy
+  Wi-Fi rate had no way to know which. `b-` now means no BLE scan phase has
+  completed yet; `b0` means one has, and found nothing.
+- Spaces dropped after each header tag, freeing width before the GPS badge.
+- **About credits @h00die**, who has found more real bugs in this project than
+  anyone else using it.
+
+## v0.57
+**Screen icons in the title bars, and a small memory reclaim.**
+
+### Added
+
+- **Title bars carry a screen glyph**: a camera on Flock, a shield on Net
+  Guardian, a crosshair on the Locator. `FLOCK/ALPR` also shortens to `FDF`,
+  which hands roughly 45 px back to a header that has to fit channel, hits, the
+  frame rate, the BLE count and the GPS badge.
+  Hand-placed pixels and every form is axis-aligned. Deriving them from the
+  project logo was tried and abandoned: its camera sits at 45 degrees and was
+  already an unreadable blob at 16 px, because a rotated edge is entirely
+  staircase and leaves nothing for the shape. All three were checked on a real
+  panel, inverted, before shipping.
+
+### Fixed
+
+- **156 bytes reclaimed from the Settings GPS pin picker.** It stored a
+  formatted string for every selectable pin inside the single contiguous
+  allocation the app loader has to place, and only one item is ever dynamic.
+
+## v0.56
+**The Flock header now shows live activity instead of a number that only grows.**
+From a suggestion by [@h00die](https://github.com/h00die) on
+[#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5).
+
+### Added
+
+- **`rx<n>/s` replaces the cumulative frame count.** A lifetime total tells you
+  the link is up; it does not tell you whether the radio is hearing anything right
+  now, which is the question you have while parked next to a camera that is not
+  showing up.
+- **`b<n>`: BLE adverts this session.** The Flock screen previously showed nothing
+  at all about BLE, so in `flockcombo` mode a working BLE half and one that never
+  ran looked identical. BLE is usually the easy detection on these cameras.
+- **`!r<n>`: the companion restarted.** A lifetime counter can only fall if the
+  board rebooted, and that was being silently absorbed by the per-session rebase
+  -- so it just looked like the count sliding back toward zero. Reported as a
+  cosmetic oddity on a long drive; it actually meant the ESP was resetting and
+  dropping detections in between.
+
 ## v0.55
 **ESP32-C5 correctness.** The one person field-testing this runs a C5, and three
 separate things in the app assumed every board was a classic ESP32.

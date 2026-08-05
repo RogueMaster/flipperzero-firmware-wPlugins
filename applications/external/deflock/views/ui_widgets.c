@@ -77,9 +77,13 @@ void ui_icon_radio(Canvas* canvas, int x, int y, bool ble) {
         // marker. A blank row between each arc keeps them from merging at this
         // size.
         //
+        // The two arcs sit ADJACENT. An earlier version left a blank row between
+        // them as well as before the dot, and at this size that read as three
+        // loose fragments rather than one mark. Only the dot keeps its gap: it is
+        // the device, and the arcs are the signal leaving it.
+        //
         //   .#####.
         //   #.....#
-        //   .......
         //   ..###..
         //   .#...#.
         //   .......
@@ -87,11 +91,97 @@ void ui_icon_radio(Canvas* canvas, int x, int y, bool ble) {
         canvas_draw_line(canvas, x + 1, y, x + 5, y);
         canvas_draw_dot(canvas, x, y + 1);
         canvas_draw_dot(canvas, x + 6, y + 1);
-        canvas_draw_line(canvas, x + 2, y + 3, x + 4, y + 3);
-        canvas_draw_dot(canvas, x + 1, y + 4);
-        canvas_draw_dot(canvas, x + 5, y + 4);
-        canvas_draw_dot(canvas, x + 3, y + 6);
+        canvas_draw_line(canvas, x + 2, y + 2, x + 4, y + 2);
+        canvas_draw_dot(canvas, x + 1, y + 3);
+        canvas_draw_dot(canvas, x + 5, y + 3);
+        canvas_draw_dot(canvas, x + 3, y + 5);
     }
+}
+
+void ui_icon_screen(Canvas* canvas, int x, int y, UiScreenIcon which) {
+    switch(which) {
+    case UiIconCamera:
+        // CCTV in side profile, body TAPERED toward the lens, on a stand.
+        //
+        // Axis-aligned on purpose. The project logo's 45-degree camera was tried
+        // first and was an unreadable blob by 16 px: a rotated edge is entirely
+        // staircase, so nothing is left for the shape. Rotation is what these
+        // sizes cannot afford, not detail.
+        //
+        // The taper is load-bearing too. An untapered slab read as a hammer; a
+        // camera has to point somewhere for the eye to call it a camera.
+        canvas_draw_line(canvas, x + 1, y + 1, x + 6, y + 1);
+        canvas_draw_line(canvas, x + 1, y + 2, x + 8, y + 2);
+        canvas_draw_line(canvas, x + 1, y + 3, x + 9, y + 3);
+        canvas_draw_line(canvas, x + 1, y + 4, x + 8, y + 4);
+        canvas_draw_line(canvas, x + 4, y + 5, x + 4, y + 7);
+        canvas_draw_line(canvas, x + 2, y + 8, x + 6, y + 8);
+        break;
+    case UiIconShield:
+        // Solid, not outlined: at 9 px an outline leaves an interior too small to
+        // read as anything, and the silhouette is what carries "shield".
+        canvas_draw_box(canvas, x + 1, y, 9, 5);
+        canvas_draw_line(canvas, x + 2, y + 5, x + 8, y + 5);
+        canvas_draw_line(canvas, x + 3, y + 6, x + 7, y + 6);
+        canvas_draw_line(canvas, x + 4, y + 7, x + 6, y + 7);
+        canvas_draw_dot(canvas, x + 5, y + 8);
+        break;
+    case UiIconCrosshair:
+        // Ring plus cardinal ticks. The ticks are what stop it reading as a plain
+        // circle at a glance.
+        canvas_draw_line(canvas, x + 3, y + 1, x + 7, y + 1);
+        canvas_draw_line(canvas, x + 3, y + 7, x + 7, y + 7);
+        canvas_draw_line(canvas, x + 1, y + 3, x + 1, y + 5);
+        canvas_draw_line(canvas, x + 9, y + 3, x + 9, y + 5);
+        canvas_draw_dot(canvas, x + 2, y + 2);
+        canvas_draw_dot(canvas, x + 8, y + 2);
+        canvas_draw_dot(canvas, x + 2, y + 6);
+        canvas_draw_dot(canvas, x + 8, y + 6);
+        canvas_draw_line(canvas, x + 5, y, x + 5, y + 2);
+        canvas_draw_line(canvas, x + 5, y + 6, x + 5, y + 8);
+        canvas_draw_line(canvas, x, y + 4, x + 2, y + 4);
+        canvas_draw_line(canvas, x + 8, y + 4, x + 10, y + 4);
+        break;
+    case UiIconPage:
+        // Sheet with two text rules. OUTLINED specifically so it cannot be
+        // confused with the solid shield at a glance.
+        canvas_draw_line(canvas, x + 1, y, x + 7, y);
+        canvas_draw_line(canvas, x + 1, y, x + 1, y + 8);
+        canvas_draw_line(canvas, x + 1, y + 8, x + 8, y + 8);
+        canvas_draw_line(canvas, x + 8, y + 3, x + 8, y + 8);
+        canvas_draw_line(canvas, x + 7, y, x + 8, y + 1);
+        canvas_draw_line(canvas, x + 8, y + 1, x + 8, y + 3);
+        canvas_draw_line(canvas, x + 3, y + 3, x + 6, y + 3);
+        canvas_draw_line(canvas, x + 3, y + 5, x + 6, y + 5);
+        break;
+    case UiIconChip:
+    default:
+        // IC package with legs on both sides.
+        canvas_draw_frame(canvas, x + 2, y + 1, 7, 7);
+        canvas_draw_box(canvas, x + 4, y + 3, 3, 3);
+        for(int i = 0; i < 3; i++) {
+            int ly = y + 2 + i * 2;
+            canvas_draw_line(canvas, x, ly, x + 1, ly);
+            canvas_draw_line(canvas, x + 9, ly, x + 10, ly);
+        }
+        break;
+    }
+}
+
+int ui_title_bar_icon(Canvas* canvas, UiScreenIcon icon, const char* title, const char* right) {
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_box(canvas, 0, 0, 128, UI_TITLE_BAR_H);
+    canvas_set_color(canvas, ColorWhite);
+    ui_icon_screen(canvas, 2, 2, icon);
+    canvas_set_font(canvas, FontPrimary);
+    if(title) canvas_draw_str(canvas, 2 + UI_SCREEN_ICON_W + 3, 10, title);
+    if(right) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, right);
+    }
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontSecondary);
+    return UI_TITLE_BAR_H + 2;
 }
 
 void ui_draw_str_fit(Canvas* canvas, int x, int baseline, const char* s, int max_x) {
