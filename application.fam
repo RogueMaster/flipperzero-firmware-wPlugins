@@ -16,6 +16,8 @@ App(
     fap_version="1.0",
     fap_icon="ac_remote.png",
     fap_category="Infrared",
+    fap_author="@dappermint",
+    fap_weburl="https://github.com/dappermint/samsung-ac-remote-flipper-app",
     fap_icon_assets="assets",
     fap_private_libs=[
         Lib(
