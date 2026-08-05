@@ -270,6 +270,7 @@ bool fmtx_vfo_input(FmtxVfo* vfo, const InputEvent* event, bool* accepted)
     if(event->key == InputKeyBack &&
        (event->type == InputTypeShort || event->type == InputTypeLong)) {
         mf_radio_commit_frequency(state);
+        if(!state->snapshot.tx_allowed) return true;
         if(accepted) *accepted = true;
         return true;
     }
