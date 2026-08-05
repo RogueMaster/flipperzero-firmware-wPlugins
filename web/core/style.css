@@ -1,6 +1,10 @@
 /* Hotspot Arcade — Flipper Zero design system (see DESIGN.md).
    Monochrome + one hot orange, mono type, sharp 2px borders, no gradients. */
 :root{
+  /* Opt out of Android's auto/force dark-mode remap (Chrome, WebView, Samsung
+     Internet): the page is already dark, so re-tinting it wrecked the contrast on
+     Android while iOS Safari rendered it as designed. */
+  color-scheme:dark;
   /* Brand */
   --orange:#FF8200; --orange-bright:#FF9E29; --orange-dim:#B85E06;
   /* Surfaces */
