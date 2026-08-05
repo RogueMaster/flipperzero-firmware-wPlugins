@@ -329,7 +329,10 @@ static void setout(void *ctx)
 static void vfoin(void *ctx)
 {
     App *app = ctx;
+    FmtxVfoViewModel *m;
     fmtx_vfo_begin(app->vfo, app->hz);
+    m = view_get_model(app->vv);
+    m->vfo = app->vfo;
     view_commit_model(app->vv, true);
     view_dispatcher_switch_to_view(app->vd, FmtxViewVfo);
 }
