@@ -1,8 +1,9 @@
 // Hotspot Arcade firmware for the ESP32-S2 WiFi dev board.
 //
 // Hosts an open WiFi AP + captive portal that serves a multiplayer game web app
-// (streamed from the Flipper into RAM), and acts as the real-time referee over a
-// WebSocket while the Flipper drives the session over UART v2. See docs/PROTOCOL.md.
+// (streamed from the Flipper into a LittleFS flash partition, then served from flash),
+// and acts as the real-time referee over a WebSocket while the Flipper drives the
+// session over UART v2. See docs/PROTOCOL.md.
 //
 // For education/fun on your own hardware. It runs an OPEN access point and a
 // catch-all captive page; only operate it where that is allowed.
@@ -29,6 +30,7 @@ static IPAddress apIP(192, 168, 4, 1);
 static char apName[33] = "Hotspot Arcade";
 static bool portalRunning = false;
 static uint8_t apMaxConn = AP_MAX_CONN;
+static bool fsReady = false; // LittleFS mounted (bundle store)
 
 static AssetStore assets;
 static Engine engine;
@@ -271,14 +273,26 @@ public:
     void handleRequest(AsyncWebServerRequest* request) override {
         String url = request->url();
         const Asset* a = assets.find(url.c_str());
-        if(!a) a = assets.root(); // captive-detection URLs -> the app
-        if(!a || !a->buf || a->len == 0) {
-            request->send(200, "text/html", "<h1>Hotspot Arcade</h1><p>No bundle loaded.</p>");
+        if(!a) a = assets.root(); // captive-detection URLs and "/" -> the app
+        // Serve the ~47 KB app to real browsers -- including the iOS captive WINDOW, which is
+        // a WebKit view with a "Mozilla" User-Agent, so the app renders there too. The OS
+        // captive-detection *probes* (User-Agent "CaptiveNetworkSupport...") fire several at
+        // once; serving the bundle from flash to each copies into per-connection TCP buffers
+        // and storms the heap, so those get a tiny landing instead.
+        bool browser = request->header("User-Agent").indexOf("Mozilla") >= 0;
+        File f;
+        if(browser && fsReady && a && a->len) f = LittleFS.open(a->fsname, "r");
+        if(!f) {
+            request->send(200, "text/html",
+                          "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
+                          "<body style='margin:0;background:#0b0b12;color:#eee;text-align:center;"
+                          "font:16px system-ui,sans-serif;padding:2.5em 1em'><h2>Hotspot Arcade</h2>"
+                          "<p>Open <b>192.168.4.1</b> in your browser to play.</p></body>");
             return;
         }
-        AsyncWebServerResponse* res =
-            request->beginResponse(200, a->mime, (const uint8_t*)a->buf, a->len);
-        if(a->gzip) res->addHeader("Content-Encoding", "gzip");
+        // Streamed from flash (no RAM copy). The stored name ends ".gz" while a->path does
+        // not, so AsyncFileResponse sets Content-Encoding: gzip for us; mime is explicit.
+        AsyncWebServerResponse* res = request->beginResponse(f, String(a->path), (const char*)a->mime);
         res->addHeader("Cache-Control", "no-store");
         request->send(res);
     }
@@ -419,6 +433,7 @@ static void dispatchFrame() {
             memcpy(apName, rxBuf, n);
             apName[n] = '\0';
         }
+        assets.finishStream(); // file phase done: persist the bundle + its CRC if it changed
         uartStatus("ap_set");
         break;
     case HA_MSG_START:
@@ -564,6 +579,11 @@ void setup() {
     Serial.setRxBufferSize(4096);
     Serial.begin(HA_UART_BAUD);
     delay(100);
+    // Mount the bundle store (formats the spiffs-labelled partition as LittleFS on first
+    // boot) and load any bundle a previous session persisted. maxOpenFiles is raised
+    // because AsyncFileResponse holds a File open per in-flight response.
+    fsReady = LittleFS.begin(true, "/littlefs", 16);
+    if(fsReady) assets.load();
     engine.reset();
     uartStatus("boot");
 }
@@ -582,15 +602,23 @@ void loop() {
     uint32_t now = millis();
     if(now - lastPing >= 2000) {
         lastPing = now;
-        // Identity beacon: magic + version, so the Flipper knows it's our firmware
-        // (and which version), not a different project on the same board.
-        uint8_t beacon[6] = {
+        // Identity beacon: magic + version + the CRC of the web bundle we hold in flash +
+        // the current game id. Version flags an outdated board; the CRC lets the Flipper skip
+        // re-streaming an unchanged bundle; the game id lets it mirror phone-vote game changes
+        // reliably. Bytes 6-10 are new in v19; older Flippers read only 0-5 and ignore the rest.
+        uint32_t bcrc = fsReady ? assets.bundleCrc() : 0;
+        uint8_t beacon[11] = {
             HA_FW_MAGIC_0,
             HA_FW_MAGIC_1,
             HA_FW_MAGIC_2,
             HA_FW_MAGIC_3,
             (uint8_t)(HA_FW_VERSION & 0xFF),
-            (uint8_t)(HA_FW_VERSION >> 8)};
+            (uint8_t)(HA_FW_VERSION >> 8),
+            (uint8_t)(bcrc & 0xFF),
+            (uint8_t)((bcrc >> 8) & 0xFF),
+            (uint8_t)((bcrc >> 16) & 0xFF),
+            (uint8_t)((bcrc >> 24) & 0xFF),
+            engine.activeGame()};
         uartSend(HA_MSG_PING, beacon, sizeof(beacon));
     }
 }

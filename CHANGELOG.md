@@ -6,6 +6,8 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-05
+
 ### Added
 
 - **Secrets**, a 16th game (whole-group). Each round shows a yes/no question and runs
@@ -43,8 +45,40 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
   `[ha] NEW BROWSER same device ip=... mac=... -> pid=1 nick="..." (consolidated)` when a
   second browser context is folded onto the player that phone already has.
 
+### Changed
+
+- **The web bundle lives in ESP flash, not RAM.** It used to be streamed from the Flipper
+  into a heap buffer every session and held there; it is now written once into a
+  **LittleFS** flash partition (the `spiffs`-labelled data partition every board already
+  reserves) as it streams, and served from flash — freeing ~47 KB of heap. The ESP
+  advertises the stored bundle's **CRC32** in its PING beacon and the Flipper **skips
+  re-streaming** when its copy already matches (a changed bundle, or a user override in
+  `apps_data/.../web`, still streams). Firmware **v19**; the PING beacon and `manifest.json`
+  gained a bundle-CRC field.
+- Content packs now allow **8 topics per game**, up from 6, using some of the heap the
+  flash bundle freed.
+
 ### Fixed
 
+- **The AP no longer exhausts RAM and reboots when phones associate.** The ~47 KB web
+  bundle grew across sixteen games; held in heap it left too little for the Wi-Fi/TCP
+  stack, so a couple of Wi-Fi associations could crash the board and drop the AP mid-join
+  ("unable to join" / "192.168.4.1 times out"), worst in RF-dense areas. Moving the bundle
+  to flash (above) fixes it. Firmware **v19**.
+- **A phone-voted game change now shows on the Flipper.** Switching the game from a phone
+  updated the ESP and the other players but left the Flipper's dashboard showing the old
+  game (and an ESP reboot could revert the vote). The PING beacon now carries the ESP's
+  current game id and the Flipper mirrors it while hosting, so any game change — by vote or
+  by the host — reflects on the dashboard within one beacon. Firmware **v19**.
+- **The phone game plays in the iOS captive pop-up, not just the full browser.** The captive
+  window is served the real app now (it's a WebKit view), while the OS's background
+  captive-detection probes get a tiny "open 192.168.4.1 in your browser" landing — so
+  serving the ~47 KB bundle to the burst of probes no longer starves the ESP's heap.
+- **Would You Rather's agreement chart no longer misreads a divided group.** With few voters
+  a round can only land at 50% or 100%, so a half-unanimous/half-split game averaged to a
+  meaningless "75% — like-minded" with a marker in an empty gap. It now detects that
+  polarization, drops the mean marker, and says "Split down the middle — N unanimous, M
+  split." Localized (en/de/pt-BR).
 - **One phone = one player.** A player is now bound to the device rather than to the
   WebSocket, so a phone can no longer show up as two or three players. iOS opens the portal
   in a captive mini-browser whose storage is separate from Safari's, so playing in both (or

@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41 // 'A'
 #define HA_FW_MAGIC_2 0x52 // 'R'
 #define HA_FW_MAGIC_3 0x43 // 'C'  ("HARC" = Hotspot ARCade)
-#define HA_FW_VERSION 18 // v18: Secrets, device identity, game-change vote, WYR agreement chart
+#define HA_FW_VERSION 19 // v19: web bundle in LittleFS flash + bundle CRC in PING (skip re-stream)
 
 // Flipper -> ESP
 enum {

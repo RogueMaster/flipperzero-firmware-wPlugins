@@ -82,27 +82,38 @@ All control messages are framed so the link can resync after noise:
 | 0x83 | SCORE        | `pid(1)` `delta(2 LE, signed)` `reason` — authoritative-persist on Flipper |
 | 0x84 | ROUND_RESULT | JSON, game-specific (trivia: `{"correct":[pid..]}`, c4: `{"win":pid,"lose":pid}` or `{"draw":[a,b]}`) |
 | 0x85 | EVENT        | JSON for host display, e.g. `{"answers":3,"total":5}` or `{"c4":"A vs B started"}` |
-| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. |
+| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)` + `bundleCrc(4 LE, v19+)` + `game(1, v19+)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. `bundleCrc` is the CRC-32/IEEE of the web bundle the ESP holds in flash (0 = none); the Flipper skips re-streaming when it equals the manifest's `crc`. `game` is the ESP's current game id (`HA_GAME_*`); while hosting the Flipper mirrors it (ignoring 0/NONE) so a phone-vote game change reflects on the dashboard reliably — the beacon always arrives, unlike a one-off EVENT. Pre-v19 boards omit bytes 6-10 (backward-compatible). |
 
 ### 1.3 Raw-bulk escape (asset upload)
 
 `FILE_BEGIN` is a normal control frame; immediately after its CRC, the sender
 writes exactly `total` **unframed** bytes (the file content, possibly gzipped).
-The receiver switches to a raw-read state, counts down `total`, stores the bytes,
-then returns to frame parsing. This mirrors flytrap's `sethtml <N>\n` + N bytes,
-generalized to named files. Bulk bytes need no escaping because the length is known.
+The receiver switches to a raw-read state, counts down `total`, **writes the bytes to a
+LittleFS flash partition** (not RAM), then returns to frame parsing. This mirrors flytrap's
+`sethtml <N>\n` + N bytes, generalized to named files. Bulk bytes need no escaping because
+the length is known.
 
 ### 1.4 Handshake (session start)
 
 ```
 Flipper                         ESP
-  |-- CLEAR_FILES -------------->|
-  |-- FILE_BEGIN + bytes (xN) -->|   (index.html.gz, app.js.gz, app.css.gz, ...)
+  |-- CLEAR_FILES -------------->|   (skipped when the bundle is unchanged, see below)
+  |-- FILE_BEGIN + bytes -------->|   index.html.gz -> ESP writes it to LittleFS flash
+  |-- (content packs) ---------->|   trivia/party packs (always streamed)
   |-- SET_AP ------------------->|
   |-- START -------------------->|
   |<------------- STATUS ap_ok --|
   |<------------- STATUS up ip=..|   AP live, phones can join
 ```
+The ESP persists the streamed bundle in flash and serves it from there, so it survives a
+reboot. It advertises the bundle's CRC-32 in every PING (§1.2); when that equals the `crc`
+in the Flipper's `manifest.json`, the Flipper **skips `CLEAR_FILES` and the whole file
+stream**, jumping straight to the content packs + `SET_AP` — the board reuses the copy it
+already holds (no ~47 KB re-transfer per session). A changed bundle, or an
+`apps_data/.../web` override whose manifest carries a different/absent `crc`, streams
+normally and overwrites the stored copy. Skipping is an optimization only: the ESP always
+writes+serves from flash, so an older Flipper that always streams still works.
+
 Then live: JOIN/LEAVE/SCORE/EVENT/ROUND_RESULT flow up; SELECT_GAME/QUESTION/
 REVEAL/ROUND_END flow down as the host drives rounds. PING beacons throughout.
 
@@ -562,5 +573,7 @@ Resolution (recomputed on every vote, join/leave, and tick):
 - If the **proposer leaves**, the proposal is cancelled (reject). A non-proposer leaving
   recomputes the tally (fewer `others` can tip it either way).
 
-On approve the ESP also emits a UART `EVENT` `{"gamevote":"approved","game":"<name>"}` for
-host-side observability.
+On approve the ESP also emits a UART `EVENT` `{"gamevote":"approved","game":"<name>","id":<N>}`
+(the `id` added in v19). The Flipper reads `id` — the numeric `HA_GAME_*` — to update its
+displayed active game to match the vote and to avoid reverting it on an ESP reboot; `game`
+is the short name, for logging. (The Flipper has no name→id map, hence the numeric id.)

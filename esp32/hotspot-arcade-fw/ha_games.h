@@ -62,7 +62,7 @@ static inline void ha_upper(char* s) {
 #define CH_R_AGREE 11 // draw by agreement
 #define CH_R_LEFT 12 // opponent disconnected
 
-#define TRIVIA_MAX_TOPICS 6
+#define TRIVIA_MAX_TOPICS 8 // raised from 6 (v19): ~47 KB freed by moving the web bundle to flash
 #define TRIVIA_MAX_QS 20
 #define PACK_MAX_ITEMS 32 // items in a word/prompt pack (wyr/scramble/draw)
 #define TRIVIA_QDUR 20 // seconds per question (safety timer)
@@ -685,6 +685,10 @@ public:
         }
         pushAll();
     }
+
+    // The current game, advertised in the PING beacon so the Flipper can mirror it -- this
+    // reflects phone-vote changes reliably even when a one-off EVENT wouldn't reach it.
+    uint8_t activeGame() const { return _active; }
 
     // ---- host (Flipper) driven ----
     // A host-initiated select is authoritative and immediate: it also cancels any pending
@@ -5300,7 +5304,10 @@ private:
 
     void gameVoteApprove() {
         uint8_t target = _gvTarget;
-        haUartEvent(String("{\"gamevote\":\"approved\",\"game\":\"") + gameName(target) + "\"}");
+        // Carry the numeric id too: the Flipper has no name->id map and uses it to update
+        // its displayed active game (and to not revert the vote on an ESP reboot).
+        haUartEvent(String("{\"gamevote\":\"approved\",\"game\":\"") + gameName(target) +
+                    "\",\"id\":" + String((int)target) + "}");
         gameVoteClear();
         selectGame(target); // resets to the target game's lobby and pushAll()s
     }

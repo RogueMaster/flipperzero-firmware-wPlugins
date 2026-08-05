@@ -47,6 +47,13 @@ function joinN(e, n) {
     const lob = lastToWs(out, pid, "lobby");
     assert.ok(lob && lob.msg.game === "wyr", "player " + pid + " is switched to WYR on approval");
   }
+  // The host-facing uart EVENT must carry the numeric game id so the Flipper (which has no
+  // name->id map) can update its displayed active game and not revert the vote on a reboot.
+  const ev = out
+    .filter((o) => o.to === "uart" && o.kind === "event" && o.json && o.json.gamevote === "approved")
+    .pop();
+  assert.ok(ev, "approve emits a gamevote uart event for the Flipper");
+  assert.equal(ev.json.id, 8, "the gamevote event carries the numeric game id (wyr = 8)");
   console.log("gamevote: approve switches the game");
 }
 
@@ -145,6 +152,11 @@ function joinN(e, n) {
   out = e.input(3, { t: "voteGame", ok: true });
   for (const pid of [1, 2, 3])
     assert.ok(lastToWs(out, pid, "lobby").msg.game === "none", "approval drops back to the lobby");
+  const evNone = out
+    .filter((o) => o.to === "uart" && o.kind === "event" && o.json && o.json.gamevote === "approved")
+    .pop();
+  assert.ok(evNone, "approving 'none' emits a gamevote uart event");
+  assert.equal(evNone.json.id, 0, "the event carries id 0 (HA_GAME_NONE) for back-to-lobby");
 
   // Already there: proposing the active game -- "none" included -- is refused outright.
   out = e.input(1, { t: "proposeGame", game: "none" });

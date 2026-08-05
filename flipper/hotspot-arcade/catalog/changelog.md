@@ -1,3 +1,16 @@
+## 1.7
+
+- New game: Secrets, the sixteenth (whole-group). Each round poses a yes/no question that
+  everyone answers secretly, then everyone predicts how many of the group said yes — only
+  the group total is ever revealed, never who said what.
+- Players can now vote from their phones to switch the active game (a majority of the other
+  players), with a "Back to Lobby" option too. A host pick stays instant and authoritative.
+- Would You Rather ends with an agreement chart showing how closely the group aligned.
+- More reliable hosting: the phone web app is now kept in the board's flash instead of RAM,
+  so the hotspot no longer runs low on memory and drops connections as more phones join.
+  Trivia and party packs also allow up to eight topics per game.
+- Firmware v19.
+
 ## 1.6
 
 - New game: Chess, the fifteenth. Full FIDE rules refereed on the board: castling, en

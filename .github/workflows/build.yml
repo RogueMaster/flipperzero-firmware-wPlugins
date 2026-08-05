@@ -131,7 +131,10 @@ jobs:
       - name: Web bundle matches assets/web
         # Compare the DECOMPRESSED bundle: zlib emits different bytes across platforms
         # and versions for identical input, so the .gz files themselves don't match
-        # between a dev machine and this runner even when the content is the same.
+        # between a dev machine and this runner even when the content is the same. The
+        # manifest carries a CRC of the gz, which is likewise platform-dependent, so we
+        # can't byte-compare it either: instead check the manifest STRUCTURE (ignoring
+        # crc) and that the shipped crc actually describes the shipped gz.
         run: |
           cd web && node build.mjs && cd ..
           if ! cmp -s <(gunzip -c web/dist/index.html.gz) \
@@ -139,10 +142,23 @@ jobs:
             echo "::error::flipper/hotspot-arcade/assets/web/index.html.gz is stale. Run tools/build-fap.sh and commit the result."
             exit 1
           fi
-          if ! cmp -s web/dist/manifest.json flipper/hotspot-arcade/assets/web/manifest.json; then
-            echo "::error::flipper/hotspot-arcade/assets/web/manifest.json is stale. Run tools/build-fap.sh and commit the result."
-            exit 1
-          fi
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const crc32 = (b) => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) { c ^= b[i]; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1; } return (c ^ 0xffffffff) >>> 0; };
+            const strip = (s) => JSON.stringify(JSON.parse(s).map(({ crc, ...r }) => r));
+            const fresh = readFileSync("web/dist/manifest.json", "utf8");
+            const shipped = readFileSync("flipper/hotspot-arcade/assets/web/manifest.json", "utf8");
+            if (strip(fresh) !== strip(shipped)) {
+              console.error("::error::assets/web/manifest.json structure is stale. Run tools/build-fap.sh and commit the result.");
+              process.exit(1);
+            }
+            const want = crc32(readFileSync("flipper/hotspot-arcade/assets/web/index.html.gz"));
+            for (const a of JSON.parse(shipped))
+              if (a.path === "/" && a.crc !== want) {
+                console.error(`::error::assets/web/manifest.json crc ${a.crc} does not match crc32(assets/web/index.html.gz)=${want}. Run tools/build-fap.sh and commit the result.`);
+                process.exit(1);
+              }
+          '
 
       - name: Content packs match assets/packs
         run: |

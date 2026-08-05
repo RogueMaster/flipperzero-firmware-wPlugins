@@ -213,6 +213,7 @@ var MESSAGES = {
     "wyr.verdict_mid": "You align on average by {p}% — a like-minded bunch.",
     "wyr.verdict_low": "You align on average by {p}% — lots to talk about!",
     "wyr.verdict_split": "You align on average by {p}% — a divided household.",
+    "wyr.verdict_polarized": "Split down the middle — {hi} unanimous, {lo} split the room.",
     "trivia.answered": "Answered {n} / {total}",
   },
   de: {
@@ -389,6 +390,7 @@ var MESSAGES = {
     "wyr.verdict_mid": "Ihr seid euch im Schnitt zu {p}% einig — eine Wellenlänge.",
     "wyr.verdict_low": "Ihr seid euch im Schnitt zu {p}% einig — da gibt's viel zu bereden!",
     "wyr.verdict_split": "Ihr seid euch im Schnitt zu {p}% einig — ein zerstrittener Haushalt.",
+    "wyr.verdict_polarized": "Komplett gespalten — {hi} einstimmig, {lo} zerstritten.",
     "trivia.answered": "Beantwortet {n} / {total}",
     "chess.title": "Schach",
     "chess.check": "Schach!",
@@ -588,6 +590,7 @@ var MESSAGES = {
     "wyr.verdict_mid": "Vocês concordam em média {p}% — turma bem afinada.",
     "wyr.verdict_low": "Vocês concordam em média {p}% — muito o que conversar!",
     "wyr.verdict_split": "Vocês concordam em média {p}% — uma casa dividida.",
+    "wyr.verdict_polarized": "Racha total — {hi} unânimes, {lo} dividiram a sala.",
     "trivia.answered": "Responderam {n} / {total}",
     "net.quiet": "Conexão perdida?",
     "secrets.title": "Segredos",
