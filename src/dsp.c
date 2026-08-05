@@ -27,6 +27,7 @@ void dsprst(Dsp *dsp)
     dsp->h2 = 0.0f;
     dsp->l1 = 0.0f;
     dsp->l2 = 0.0f;
+    dsp->comp = 0.0f;
     dsp->was = dsp->on;
 }
 
@@ -40,6 +41,24 @@ bool dsptoggle(Dsp *dsp)
     if(!dsp) return false;
     dsp->on = !dsp->on;
     return dsp->on;
+}
+
+float comphard(Dsp *d, float x)
+{
+    float a = x < 0.0f ? -x : x;
+    float want;
+    float g;
+
+    if(a > d->comp) d->comp = a;
+    else d->comp += (a - d->comp) * 0.001f;
+
+    if(d->comp <= 6000.0f) return x * 2.0f;
+    want = 6000.0f + (d->comp - 6000.0f) / 8.0f;
+    g = want / d->comp;
+
+
+
+    return x * g * 2.0f;
 }
 
 int16_t dspsample(Dsp *dsp, int16_t s)
@@ -57,7 +76,7 @@ int16_t dspsample(Dsp *dsp, int16_t s)
     dsp->x2 = dsp->h1;
     dsp->l1 += dsp->la * (dsp->h2 - dsp->l1);
     dsp->l2 += dsp->la * (dsp->l1 - dsp->l2);
-    out = dsp->l2 * 2.0f;
+    out = comphard(dsp, dsp->l2);
     if(out > 32767) out = 32767;
     if(out < -32768) out = -32768;
     return out;
