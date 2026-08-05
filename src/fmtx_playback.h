@@ -23,6 +23,7 @@ bool ispaused(const Play *playback);
 bool playenter(Play *playback);
 bool playseek(Play *playback, int32_t frames);
 uint32_t playms(const Play *playback);
+uint32_t playlen(const Play *playback);
 uint8_t playgain(const Play *playback);
 uint8_t gainup(Play *playback);
 bool playfilter(const Play *playback);

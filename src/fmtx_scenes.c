@@ -131,7 +131,10 @@ bool playinput(InputEvent *ev, void *ctx)
             app->holding = true;
             app->heldskip = false;
         }
-        else if(ev->type == InputTypeLong || ev->type == InputTypeRepeat) checkhold(app);
+        else if(ev->type == InputTypeLong || ev->type == InputTypeRepeat)
+        {
+            checkhold(app);
+        }
         else if(ev->type == InputTypeRelease)
         {
             checkhold(app);
@@ -139,17 +142,20 @@ bool playinput(InputEvent *ev, void *ctx)
         }
         else if(ev->type == InputTypeShort)
         {
-            if(!app->heldskip && ev->key == InputKeyLeft)
+            if(!app->heldskip)
             {
-                if(ispaused(app->play) && playms(app->play) == 0) (void)movesong(app, -1);
-                else (void)playseek(app->play, -1);
+                if(ev->key == InputKeyLeft && ispaused(app->play) && playms(app->play) == 0) (void)movesong(app, -1);
+                else (void)playseek(app->play, ev->key == InputKeyLeft ? -1 : 128);
             }
             m = view_get_model(app->pv);
             m->elapsed_ms = playms(app->play);
             m->paused = ispaused(app->play);
             view_commit_model(app->pv, true);
         }
-        else return false;
+        else
+        {
+            return false;
+        }
         return true;
     }
     if(ev->type != InputTypeShort) return false;
