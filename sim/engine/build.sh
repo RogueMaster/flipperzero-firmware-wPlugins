@@ -20,10 +20,14 @@ fi
 
 EXPORTS='["_ha_reset","_ha_tick","_ha_input","_ha_ws_device","_ha_disconnect","_ha_select_game","_ha_trivia_clear","_ha_trivia_add_topic","_ha_trivia_add_q","_ha_round_end","_ha_reset_scores","_ha_drain","_ha_content_clear","_ha_content_pack","_ha_content_item","_ha_set_lang","_ha_chess_load","_ha_chess_perft"]'
 
-FLAGS=(-std=c++17 -O2 -sALLOW_MEMORY_GROWTH=1)
+# -fno-sized-deallocation: newer emscripten toolchains emit calls to the C++14 sized
+# `operator delete(void*, size_t)`, which the WASM runtime doesn't provide here (the
+# String(int) path pulls it in via std::string). Tell the compiler to use the plain
+# `operator delete(void*)` instead, which links.
+FLAGS=(-std=c++17 -O2 -fno-sized-deallocation -sALLOW_MEMORY_GROWTH=1)
 if [ "${1:-}" = "--asan" ]; then
     # ASan needs room to live; the default 16 MB heap is not enough.
-    FLAGS=(-std=c++17 -O1 -g -fsanitize=address,undefined -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=134217728)
+    FLAGS=(-std=c++17 -O1 -g -fno-sized-deallocation -fsanitize=address,undefined -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=134217728)
     echo "==> building with ASan/UBSan"
 fi
 
