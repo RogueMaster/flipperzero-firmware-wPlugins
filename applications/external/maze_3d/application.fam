@@ -10,4 +10,5 @@ App(
     fap_weburl="https://github.com/k20120509/flipper-release",
     fap_version="6.11.1",
     fap_description="3D raycasting maze: 50-level campaign (maze/puzzle/combat), MC sandbox, achievements, enemy AI + bullets",
+    # v6.11.1: 3D raycasting maze with MC sandbox, score shop, 10 items, buff system, bilingual
 )
