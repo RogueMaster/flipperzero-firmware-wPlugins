@@ -13,25 +13,25 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="$REPO/sim/web"
 mkdir -p "$OUT"
 
-if ! command -v emcc >/dev/null 2>&1; then
-    echo "ERROR: emcc not found. Install emscripten (brew install emscripten)." >&2
+if ! command -v em++ >/dev/null 2>&1; then
+    echo "ERROR: em++ not found. Install emscripten (brew install emscripten)." >&2
     exit 1
 fi
 
 EXPORTS='["_ha_reset","_ha_tick","_ha_input","_ha_ws_device","_ha_disconnect","_ha_select_game","_ha_trivia_clear","_ha_trivia_add_topic","_ha_trivia_add_q","_ha_round_end","_ha_reset_scores","_ha_drain","_ha_content_clear","_ha_content_pack","_ha_content_item","_ha_set_lang","_ha_chess_load","_ha_chess_perft"]'
 
-# -fno-sized-deallocation: newer emscripten toolchains emit calls to the C++14 sized
-# `operator delete(void*, size_t)`, which the WASM runtime doesn't provide here (the
-# String(int) path pulls it in via std::string). Tell the compiler to use the plain
-# `operator delete(void*)` instead, which links.
-FLAGS=(-std=c++17 -O2 -fno-sized-deallocation -sALLOW_MEMORY_GROWTH=1)
+FLAGS=(-std=c++17 -O2 -sALLOW_MEMORY_GROWTH=1)
 if [ "${1:-}" = "--asan" ]; then
     # ASan needs room to live; the default 16 MB heap is not enough.
-    FLAGS=(-std=c++17 -O1 -g -fno-sized-deallocation -fsanitize=address,undefined -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=134217728)
+    FLAGS=(-std=c++17 -O1 -g -fsanitize=address,undefined -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=134217728)
     echo "==> building with ASan/UBSan"
 fi
 
-emcc "$REPO/sim/engine/ha_sim.cpp" \
+# em++ (the C++ driver), not emcc (the C driver): ha_sim.cpp pulls in std::string via
+# the Arduino String shim, so it references operator new/delete. Newer emscripten's
+# emcc links only libc, leaving those undefined at wasm-ld time; em++ links libc++abi
+# where they live.
+em++ "$REPO/sim/engine/ha_sim.cpp" \
     -I "$REPO/sim/engine" \
     "${FLAGS[@]}" \
     -sMODULARIZE=1 \
