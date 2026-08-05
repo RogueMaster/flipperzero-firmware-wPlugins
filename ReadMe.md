@@ -62,7 +62,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Flipper Share NFC v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_nfc)
 - Updated: [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
 - Updated: [Android KB Bridge v0.5.8 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
-- Updated: [Tesla Mod v2.16b24 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (Version Only)
 - OFW: Infrared: [initialize timings_cnt on decoder alloc and fix its bounds check #4429 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4429)
 - OFW: js_event_loop: [reject a zero or negative timer interval- #4425 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4425)
 - OFW: LFRFID: [fix the Pyramid trailing Wiegand parity bit #4426 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4426)
@@ -109,6 +108,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FlipFlash v0.1 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
 - Updated: [Hotspot Arcade v1.6 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
 - Updated: [DeFlock v0.69 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Updated: [Tesla Mod v2.16b24 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

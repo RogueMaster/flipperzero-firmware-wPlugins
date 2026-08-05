@@ -46,6 +46,7 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->suppress_speed_chime = true;
     state->ignore_ota           = false;
     state->emergency_vehicle_detect = false;
+    state->summon_unlock        = false;    // opt-in Summon EU Unlock, default OFF
     state->fsd_unlock           = false;
     state->force_fsd            = false;
     state->china_mode           = false;
@@ -224,11 +225,18 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
                           SIG_AP_SPEED_PROFILE_SHIFT);
             modified = true;
         }
-        if (mux == CAN_MUX_1 && state->nag_killer) {
-            // Nag suppression via bit 19 (clear = no hands-on-wheel request)
-            set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);
-            state->nag_suppressed = true;
-            modified = true;
+        if (mux == CAN_MUX_1 && (state->nag_killer || state->summon_unlock)) {
+            if (state->nag_killer) {
+                // Nag suppression via bit 19 (clear = no hands-on-wheel request)
+                set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);
+                state->nag_suppressed = true;
+                modified = true;
+            }
+            if (state->summon_unlock) {
+                set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);       // bit19 EU restriction clear
+                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true);  // bit47 summon enable
+                modified = true;
+            }
         }
         if (mux == CAN_MUX_2 && state->fsd_unlock && state->fsd_enabled) {
             // Write speed offset into bits 7:6 of byte 0 and bits 5:0 of byte 1
@@ -252,11 +260,18 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
                 set_bit(frame, SIG_AP_HW4_EMERGENCY_VEHICLE_BIT, true);
             modified = true;
         }
-        if (mux == CAN_MUX_1 && state->nag_killer) {
-            set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);      // clear hands-on-wheel nag
-            set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true); // HW4 nag-suppression confirmation bit
-            state->nag_suppressed = true;
-            modified = true;
+        if (mux == CAN_MUX_1 && (state->nag_killer || state->summon_unlock)) {
+            if (state->nag_killer) {
+                set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);      // clear hands-on-wheel nag
+                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true); // HW4 nag-suppression confirmation bit
+                state->nag_suppressed = true;
+                modified = true;
+            }
+            if (state->summon_unlock) {
+                set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);       // bit19 EU restriction clear
+                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true);  // bit47 summon enable
+                modified = true;
+            }
         }
         if (mux == CAN_MUX_2 && state->fsd_unlock) {
             // Write speed profile into bits 6:4 of byte 7

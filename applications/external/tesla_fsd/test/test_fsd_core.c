@@ -210,6 +210,64 @@ static void test_autopilot_hw3(void) {
         (f.buffer[6] >> 1) & 0x03);
 }
 
+// ── Summon EU Unlock (0x3FD mux1 bit47) — opt-in, HW3 + HW4 ───────────────────
+// ev-open-can-tools summon-eu-unlock: clear bit19, set bit47 on mux1. This test
+// locks that summon_unlock gates bit47 on HW3 (which never set it before) and
+// that HW3 mux1 with the toggle OFF is byte-for-byte the prior behavior.
+//
+// NOTE on HW4: the Flipper HW4 mux1 path sets bit47 UNCONDITIONALLY (pre-existing
+// behavior, preserved). So on HW4 bit47 is set whether or not summon_unlock is on;
+// the summon toggle adds an explicit guarded path but does not change the emitted
+// HW4 frame. The ESP32 firmware is where the HW4 toggle actually gates bit47 —
+// that divergence is documented for reviewers.
+static void test_summon_unlock(void) {
+    CANFRAME f;
+
+    // ── HW3: bit47 is gated by summon_unlock ──
+    FSDState h3;
+    memset(&h3, 0, sizeof(h3));
+    h3.hw_version = TeslaHW_HW3;
+
+    // summon OFF: mux1 clears bit19, does NOT set bit47 (prior HW3 behavior).
+    h3.summon_unlock = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[2] = 0x08; // pre-set bit19 to prove it is cleared
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux1 summon-off reports modified");
+    CHECK((f.buffer[2] & 0x08) == 0, "HW3 mux1 summon-off bit19 cleared");
+    CHECK((f.buffer[5] & 0x80) == 0, "HW3 mux1 summon-off bit47 NOT set");
+    CHECK(h3.nag_suppressed, "HW3 mux1 summon-off still sets nag_suppressed");
+
+    // summon ON: mux1 now also sets bit47.
+    h3.summon_unlock = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux1 summon-on reports modified");
+    CHECK((f.buffer[5] & 0x80) != 0, "HW3 mux1 summon-on bit47 set");
+
+    // ── HW4: bit47 set on mux1 regardless of the toggle (pre-existing behavior) ──
+    FSDState h4;
+    memset(&h4, 0, sizeof(h4));
+    h4.hw_version = TeslaHW_HW4;
+
+    h4.summon_unlock = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux1 summon-on reports modified");
+    CHECK((f.buffer[5] & 0x80) != 0, "HW4 mux1 summon-on bit47 set");
+
+    // summon OFF: HW4 still sets bit47 unconditionally — frame unchanged from prior.
+    h4.summon_unlock = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux1 summon-off reports modified");
+    CHECK((f.buffer[5] & 0x80) != 0, "HW4 mux1 summon-off bit47 still set (prior behavior)");
+}
+
 // ── 0x399 ISA speed chime: bit + Tesla additive checksum ──────────────────────
 static void test_isa_checksum(void) {
     CANFRAME f;
@@ -2111,6 +2169,7 @@ int main(void) {
     test_follow_distance();
     test_autopilot_hw4();
     test_autopilot_hw3();
+    test_summon_unlock();
     test_isa_checksum();
     test_di_speed();
     test_tlssc_restore();

@@ -495,6 +495,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <span class="lbl">TLSSC Restore</span>
     <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
   </div>
+  <div class="row">
+    <span class="lbl">Summon EU Unlock</span>
+    <label class="sw"><input type="checkbox" id="swSummon" onchange="cmd('summon_unlock',this.checked)"><span class="sl2"></span></label>
+  </div>
   <div class="row" style="display:block">
     <div id="pmSuggest" style="display:none;margin:0 0 8px;padding:8px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--card2)">
       <div style="font-size:12px;color:var(--text)">Looks like variant <b id="pmName">?</b> &mdash; the standard parser can't read AP-state on this bus.</div>
@@ -956,6 +960,7 @@ function upd(d){
   if(document.getElementById('swChime')) document.getElementById('swChime').checked=d.suppress_speed_chime;
   if(document.getElementById('rowChime')) document.getElementById('rowChime').style.display=d.isa_speed_enabled?'flex':'none';
   if(document.getElementById('swTlssc')) document.getElementById('swTlssc').checked=d.tlssc_restore;
+  if(document.getElementById('swSummon')) document.getElementById('swSummon').checked=d.summon_unlock;
   if(document.getElementById('swDisp')) document.getElementById('swDisp').checked=!!d.display_enabled;
   if(document.activeElement.id!=='dispBr' && document.getElementById('dispBr'))
     document.getElementById('dispBr').value=d.display_brightness||50;
@@ -1541,6 +1546,7 @@ static String build_json() {
     j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
     j += "\"suppress_speed_chime\":"; j += state.suppress_speed_chime  ? "true" : "false"; j += ',';
     j += "\"tlssc_restore\":"; j += state.tlssc_restore                ? "true" : "false"; j += ',';
+    j += "\"summon_unlock\":"; j += state.summon_unlock                ? "true" : "false"; j += ',';
     j += "\"firmware_14x_warning\":"; j += state.firmware_14x_warning  ? "true" : "false"; j += ',';
 #if defined(BOARD_TTGO_DISPLAY)
     j += "\"display_enabled\":"; j += state.display_enabled             ? "true" : "false"; j += ',';
@@ -1971,6 +1977,18 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] Suppress Speed Chime: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"summon_unlock\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->summon_unlock = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Summon EU Unlock: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     } else if (strstr(buf, "\"dump\"")) {

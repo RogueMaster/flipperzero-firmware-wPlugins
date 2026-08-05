@@ -90,7 +90,7 @@ typedef struct FSDState {
         // car disengages — keeps injection off the abort edge (#108). Off by default.
     uint8_t
         ap_inject_count; // AP-enable frames modified this engagement (Minimal Inject burst budget;
-    // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
+        // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
     uint8_t das_ap_state; // DAS_autopilotState: 0=UNAVAIL 1=UNAVAILABLE/AVAIL-flicker
         // 2=AVAILABLE (offered, NOT engaged) 3=ACTIVE_NOMINAL (first
         // engaged) 6=active 8/9=aborting/aborted
@@ -191,6 +191,10 @@ typedef struct FSDState {
 
     // --- upstream feature flags ---
     bool enhanced_autopilot; // when true, mux=1 also sets bit46 (EAP/summon)
+    // Summon EU Unlock (ev-open-can-tools summon-eu-unlock): 0x3FD mux1 clears
+    // bit19 (EU summon restriction) and sets bit47 (summon enable), on HW3 + HW4.
+    // Opt-in, default OFF. // TODO: add Summon EU Unlock to Flipper menu
+    bool summon_unlock;
     bool speed_profile_locked; // when true, follow distance won't override profile
     uint8_t hw4_offset; // HW4 mux=2 speed offset override (0 = no override)
 
