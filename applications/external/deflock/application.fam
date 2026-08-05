@@ -60,8 +60,6 @@ App(
         "SERIAL_FLASHER_INTERFACE_UART=1",
         "MD5_ENABLED=1",
         "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
-        # Derived, never typed twice. See FAP_VERSION above.
-        'RECON_VERSION=\\"v' + FAP_VERSION + '\\"',
     ],
     fap_category="GPIO/ESP32",
     fap_author="ReconGrunt",

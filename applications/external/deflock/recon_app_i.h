@@ -30,25 +30,13 @@
 #include "views/ble_list_view.h"
 #include "views/locator_view.h"
 
-#define RECON_FLOCK_MAX  64
-#define RECON_WIFI_MAX   48
-#define RECON_DEAUTH_MAX 16
-#define RECON_BLE_MAX    48
-#define RECON_TEXT_STORE 160
-#define RECON_SSID_LEN   33
-/** Shown on the main menu and About, so a bug report can name the build.
- *
- *  DEFINED BY THE BUILD, from FAP_VERSION in application.fam -- the same value
- *  stamped into the .fap. It was a hand-maintained literal here until v0.64,
- *  which meant two edits in two files with nothing checking they agreed; the
- *  failure mode is silent and shows a confidently wrong version to exactly the
- *  person trying to report a bug against a known build.
- *
- *  The fallback only appears if someone compiles this outside ufbt/fbt, and says
- *  so rather than inventing a number. */
-#ifndef RECON_VERSION
-#define RECON_VERSION "v?.??"
-#endif
+#define RECON_FLOCK_MAX   64
+#define RECON_WIFI_MAX    48
+#define RECON_DEAUTH_MAX  16
+#define RECON_BLE_MAX     48
+#define RECON_TEXT_STORE  160
+#define RECON_SSID_LEN    33
+#define RECON_VERSION     FAP_VERSION
 /** Most GPS-capable pins any supported part exposes (classic ESP32 has ~34). */
 #define RECON_GPS_PIN_MAX 40
 
