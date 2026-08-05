@@ -318,7 +318,15 @@ static void onWsEvent(
 // once in setup(), before any AP comes up, so no lease is missed (see peerDeviceKey).
 static void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
     if(event == ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED)
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+        // esp-idf 5+ (Arduino core 3.x, e.g. the C5): the assign event carries the MAC.
         leaseNote(info.wifi_ap_staipassigned.ip.addr, info.wifi_ap_staipassigned.mac);
+#else
+        // esp-idf 4.x (Arduino core 2.0.x, the S2/WROOM): the staipassigned event has no
+        // MAC field, so we can't record the lease here. peerDeviceKey() then resolves the
+        // station from the lwIP ARP cache at hello() time, which by then holds its entry.
+        (void)info;
+#endif
     else if(event == ARDUINO_EVENT_WIFI_AP_STADISCONNECTED)
         leaseForget(info.wifi_ap_stadisconnected.mac);
 }
