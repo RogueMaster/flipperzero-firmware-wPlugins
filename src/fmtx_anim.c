@@ -1,5 +1,10 @@
 #include "fmtx_anim.h"
 
+#include <furi_hal_random.h>
+
+static uint32_t dice;
+static uint32_t run = ~0U;
+
 static const uint8_t dolph[] =
 {
     0x01,0x00,0x2a,0x01,0x00,0x78,0x01,0xbf,0xd1,0xf0,0x29,0xf0,0x20,0x3e,0x08,0x08,
@@ -37,21 +42,44 @@ static const uint8_t uv5r[] =
     0x0c,0x60,0xde,0x04,0x58,0xc0,0xc0,
 };
 
-static void head(Canvas *c, int x, int y)
+static void notes(Canvas *c, uint8_t f, uint32_t z)
 {
-    canvas_draw_box(c, x + 1, y, 2, 1);
-    canvas_draw_box(c, x, y + 1, 4, 2);
-    canvas_draw_box(c, x + 1, y + 3, 2, 1);
+    int y;
+
+    if(f == 4U)
+    {
+        y = 27 + (int)((z >> 1) % 21U) - 10;
+        canvas_draw_box(c, 71, y, 2, 1);
+        canvas_draw_box(c, 70, y + 1, 4, 2);
+        canvas_draw_box(c, 71, y + 3, 2, 1);
+        canvas_draw_line(c, 73, y - 6, 73, y + 2);
+        canvas_draw_box(c, 79, y + 1, 2, 1);
+        canvas_draw_box(c, 78, y + 2, 4, 2);
+        canvas_draw_box(c, 79, y + 4, 2, 1);
+        canvas_draw_line(c, 81, y - 5, 81, y + 3);
+        canvas_draw_line(c, 73, y - 6, 81, y - 5);
+        if(!(dice & 1U)) return;
+    }
+
+    y = 35 + (int)((z >> 9) % 21U) - 10;
+    canvas_draw_box(c, 89, y, 2, 1);
+    canvas_draw_box(c, 88, y + 1, 4, 2);
+    canvas_draw_box(c, 89, y + 3, 2, 1);
+    canvas_draw_line(c, 91, y - 6, 91, y + 2);
+    canvas_draw_line(c, 91, y - 6, 95, y - 4);
+    canvas_draw_line(c, 95, y - 4, 95, y - 2);
 }
 
-static void note(Canvas *c, int x, int y)
+void txrand(void)
 {
-    head(c, x, y);
-    canvas_draw_line(c, x + 3, y - 6, x + 3, y + 2);
+    dice = furi_hal_random_get();
+    run = ~0U;
 }
 
 void txpic(Canvas *c, uint8_t f)
 {
+    uint32_t z = f == 3U ? dice : (dice << 16) | (dice >> 16);
+
     canvas_clear(c);
 
     if(f < 3U)
@@ -69,25 +97,20 @@ void txpic(Canvas *c, uint8_t f)
     {
         for(uint8_t y = 18; y <= 24; y++) for(uint8_t x = 5; x <= 25; x++) if((x + y) & 1U) canvas_draw_dot(c, 98 + x, 1 + y);
 
-        if(f == 3U)
-        {
-            note(c, 88, 35);
-            canvas_draw_line(c, 91, 29, 95, 31);
-            canvas_draw_line(c, 95, 31, 95, 33);
-        }
-        else
-        {
-            note(c, 70, 27);
-            note(c, 82, 28);
-            canvas_draw_line(c, 73, 21, 85, 22);
-        }
+        notes(c, f, z);
     }
 }
 
 bool txdraw(Canvas *c, uint32_t ms)
 {
     uint32_t p = ms % 20000U;
+    uint32_t n = ms / 20000U;
     if(p < 2000U || p >= 7000U) return false;
+    if(n != run)
+    {
+        run = n;
+        dice = furi_hal_random_get();
+    }
     txpic(c, ((p - 2000U) / 500U) % 5U);
 
     return true;

@@ -64,6 +64,7 @@ static bool startsong(App *app, bool paused)
     const char *path = furi_string_get_cstr(app->path);
     const char *slash = strrchr(path, '/');
     bool ok;
+    txrand();
     playreq(&req, path, app->hz);
     ok = paused ? playpaused(app->play, &req) : playstart(app->play, &req);
     m->elapsed_ms = playms(app->play);
@@ -269,6 +270,7 @@ static void spin(void *x)
 {
     App *a = x;
     PlayModel *m = view_get_model(a->pv);
+    txrand();
     a->spat = furi_get_tick();
     m->elapsed_ms = 0;
     view_set_draw_callback(a->pv, spdraw);

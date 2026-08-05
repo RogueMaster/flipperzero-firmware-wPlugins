@@ -9,7 +9,7 @@ App(
     fap_category="Sub-GHz",
     sources=["src/*.c"],
     cdefines=["MORSE_FLIPPER_FAP"],
-    fap_version="0.0.8",
+    fap_version="0.0.9",
     fap_author="@yo3gnd",
     fap_description="Experimental MP3 audio over CC1101 FM.",
 )
