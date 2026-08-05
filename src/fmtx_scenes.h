@@ -5,6 +5,7 @@
 
 typedef enum
 {
+    ScBoot,
     ScMain,
     ScPlay,
     FmtxSceneSettings,
@@ -46,6 +47,7 @@ typedef struct
     uint32_t pause_ms;
     uint8_t gain;
     bool filter;
+    bool tx;
     bool paused;
     char filename[256];
 } PlayModel;

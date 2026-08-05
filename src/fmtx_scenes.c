@@ -1,4 +1,5 @@
 #include "fmtx_scenes.h"
+#include "fmtx_anim.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -24,6 +25,7 @@ void playdraw(Canvas *canvas, void *model)
     char f[20];
     const char *title = m->filename;
     uint32_t secs = m->elapsed_ms / 1000U;
+    if(m->tx && txdraw(canvas, m->elapsed_ms)) return;
     if(m->paused)
     {
         uint32_t phase = m->pause_ms % 1200U;
@@ -39,6 +41,12 @@ void playdraw(Canvas *canvas, void *model)
     canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignCenter, elapsed);
     canvas_draw_str(canvas, 2, 62, g);
     canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, f);
+}
+
+static void spdraw(Canvas *c, void *x)
+{
+    PlayModel *m = x;
+    txpic(c, m->elapsed_ms / furi_ms_to_ticks(500U));
 }
 
 static bool ismp3(const char *x)
@@ -62,6 +70,7 @@ static bool startsong(App *app, bool paused)
     m->pause_ms = 0;
     m->gain = playgain(app->play);
     m->filter = playfilter(app->play);
+    m->tx = playtx(app->play);
     m->paused = ok && ispaused(app->play);
     strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
     if(m->paused) app->pauseat = furi_get_tick();
@@ -161,6 +170,7 @@ bool playinput(InputEvent *ev, void *ctx)
             }
             m = view_get_model(app->pv);
             m->elapsed_ms = playms(app->play);
+            m->tx = playtx(app->play);
             m->paused = ispaused(app->play);
             view_commit_model(app->pv, true);
         }
@@ -191,6 +201,7 @@ bool playinput(InputEvent *ev, void *ctx)
         view_commit_model(app->pv, false);
         return false;
     }
+    m->tx = playtx(app->play);
     view_commit_model(app->pv, true);
     return true;
 }
@@ -254,6 +265,47 @@ static void mainin(void *ctx)
     view_dispatcher_switch_to_view(app->vd, VMain);
 }
 
+static void spin(void *x)
+{
+    App *a = x;
+    PlayModel *m = view_get_model(a->pv);
+    a->spat = furi_get_tick();
+    m->elapsed_ms = 0;
+    view_set_draw_callback(a->pv, spdraw);
+    view_set_input_callback(a->pv, NULL);
+    view_commit_model(a->pv, true);
+    view_dispatcher_switch_to_view(a->vd, VPlay);
+}
+
+static bool spev(void *x, SceneManagerEvent ev)
+{
+    App *a = x;
+    PlayModel *m;
+    uint32_t t;
+    if(ev.type != SceneManagerEventTypeTick) return false;
+    t = furi_get_tick() - a->spat;
+
+    if(t >= furi_ms_to_ticks(2500U))
+    {
+        scene_manager_next_scene(a->sm, ScMain);
+        return true;
+    }
+
+    m = view_get_model(a->pv);
+    m->elapsed_ms = t;
+    view_commit_model(a->pv, true);
+
+
+    return true;
+}
+
+static void spout(void *x)
+{
+    App *a = x;
+    view_set_draw_callback(a->pv, playdraw);
+    view_set_input_callback(a->pv, playinput);
+}
+
 static bool mainev(void *ctx, SceneManagerEvent ev)
 {
     App *app = ctx;
@@ -300,6 +352,7 @@ static bool playev(void *ctx, SceneManagerEvent ev)
         bool paused = ispaused(app->play);
         if(paused && !m->paused) app->pauseat = furi_get_tick();
         m->elapsed_ms = playms(app->play);
+        m->tx = playtx(app->play);
         m->paused = paused;
         m->pause_ms = paused ? furi_get_tick() - app->pauseat : 0;
         view_commit_model(app->pv, true);
@@ -404,6 +457,7 @@ static void abtout(void *ctx)
 
 static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] =
 {
+    [ScBoot] = spin,
     [ScMain] = mainin,
     [ScPlay] = playin,
     [FmtxSceneSettings] = setin,
@@ -413,6 +467,7 @@ static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] =
 
 static const AppSceneOnEventCallback fmtx_on_event_handlers[] =
 {
+    [ScBoot] = spev,
     [ScMain] = mainev,
     [ScPlay] = playev,
     [FmtxSceneSettings] = setev,
@@ -422,6 +477,7 @@ static const AppSceneOnEventCallback fmtx_on_event_handlers[] =
 
 static const AppSceneOnExitCallback fmtx_on_exit_handlers[] =
 {
+    [ScBoot] = spout,
     [ScMain] = mainout,
     [ScPlay] = playout,
     [FmtxSceneSettings] = setout,

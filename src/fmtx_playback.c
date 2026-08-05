@@ -56,7 +56,7 @@ struct Play
     volatile uint16_t fsamp;
     volatile uint32_t total;
     volatile uint32_t ended;
-    bool radio;
+    volatile bool radio;
     uint8_t gain;
     Dsp dsp;
     int16_t cache[SEEKBUF];
@@ -535,6 +535,13 @@ bool playon(const Play *playback)
     if(!playback) return false;
     __DMB();
     return playback->on;
+}
+
+bool playtx(const Play *playback)
+{
+    if(!playback) return false;
+    __DMB();
+    return playback->on && !playback->paused && !playback->seek && playback->radio && playback->rf->on;
 }
 
 bool ispaused(const Play *playback)

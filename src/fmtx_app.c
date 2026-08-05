@@ -162,7 +162,7 @@ int32_t flipper_zero_fmtx_app(void *ctx)
     UNUSED(ctx);
     App *app = appnew();
     if(!app) return 255;
-    scene_manager_next_scene(app->sm, ScMain);
+    scene_manager_next_scene(app->sm, ScBoot);
     view_dispatcher_run(app->vd);
     appfree(app);
 

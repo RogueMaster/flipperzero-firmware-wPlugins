@@ -19,6 +19,7 @@ bool playstart(Play *playback, const PlayReq *request);
 bool playpaused(Play *playback, const PlayReq *request);
 void playstop(Play *playback);
 bool playon(const Play *playback);
+bool playtx(const Play *playback);
 bool ispaused(const Play *playback);
 bool playenter(Play *playback);
 bool playseek(Play *playback, int32_t frames);
