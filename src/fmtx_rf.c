@@ -37,6 +37,7 @@ void rfinit(Rf *rf, uint32_t hz)
     rf->hz = hz;
     rf->regs = fmtx_preset;
     rf->sample_decisions = 3U;
+    rf->gain = 2;
 }
 
 const uint8_t *rfregs(void)
@@ -71,11 +72,20 @@ static int16_t rfpop(Rf *rf)
         rf->prime = false;
         return 0;
     }
-    int16_t s = rf->ring[t];
+    int32_t x = rf->ring[t] * rf->gain / 2;
+    if(x > 32767) x = 32767;
+    if(x < -32768) x = -32768;
     __DMB();
     rf->tail = (t + 1U) & (RINGSZ - 1U);
     if(rf->played_samples != UINT32_MAX) rf->played_samples++;
-    return s;
+    return x;
+}
+
+void rfgain(Rf *rf, uint8_t gain)
+{
+    if(!rf) return;
+    rf->gain = gain;
+    __DMB();
 }
 
 static LevelDuration rfbit(void *ctx)

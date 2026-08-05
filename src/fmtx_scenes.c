@@ -8,13 +8,36 @@ void playdraw(Canvas *canvas, void *model)
 {
     PlayModel *m = model;
     char elapsed[12];
+    char g[16];
+    char f[20];
     uint32_t secs = m->elapsed_ms / 1000U;
     snprintf(elapsed, sizeof(elapsed), "%02lu:%02lu", (unsigned long)(secs / 60U), (unsigned long)(secs % 60U));
+    snprintf(g, sizeof(g), "Gain: %u%s", m->gain / 2, m->gain & 1 ? ".5x" : "x");
+    snprintf(f, sizeof(f), "Down: filt %s", m->filter ? "on" : "off");
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 25, AlignCenter, AlignCenter, m->filename);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignCenter, elapsed);
+    canvas_draw_str(canvas, 2, 62, g);
+    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, f);
+}
+
+bool playinput(InputEvent *ev, void *ctx)
+{
+    App *app = ctx;
+    PlayModel *m;
+    if(!ev || ev->type != InputTypeShort) return false;
+    m = view_get_model(app->pv);
+    if(ev->key == InputKeyUp) m->gain = gainup(app->play);
+    else if(ev->key == InputKeyDown) m->filter = filtertoggle(app->play);
+    else
+    {
+        view_commit_model(app->pv, false);
+        return false;
+    }
+    view_commit_model(app->pv, true);
+    return true;
 }
 
 void vfodraw(Canvas *canvas, void *model)
@@ -100,6 +123,8 @@ static void playin(void *ctx)
     const char *path = furi_string_get_cstr(app->path);
     const char *slash = strrchr(path, '/');
     m->elapsed_ms = 0;
+    m->gain = playgain(app->play);
+    m->filter = playfilter(app->play);
     strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
     view_commit_model(app->pv, true);
     playreq(&req, path, app->hz);

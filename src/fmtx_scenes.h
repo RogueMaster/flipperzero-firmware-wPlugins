@@ -40,6 +40,8 @@ typedef enum
 typedef struct
 {
     uint32_t elapsed_ms;
+    uint8_t gain;
+    bool filter;
     char filename[256];
 } PlayModel;
 
@@ -51,6 +53,7 @@ typedef struct
 extern const SceneManagerHandlers scenes;
 
 void playdraw(Canvas *canvas, void *model);
+bool playinput(InputEvent *ev, void *ctx);
 void vfodraw(Canvas *canvas, void *model);
 bool vfoinput(InputEvent *ev, void *ctx);
 

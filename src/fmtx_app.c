@@ -105,6 +105,8 @@ static App *appnew(void)
 
     view_allocate_model(app->pv, ViewModelTypeLocking, sizeof(PlayModel));
     view_set_draw_callback(app->pv, playdraw);
+    view_set_input_callback(app->pv, playinput);
+    view_set_context(app->pv, app);
     view_allocate_model(app->vv, ViewModelTypeLocking, sizeof(FmtxVfoViewModel));
     FmtxVfoViewModel *m = view_get_model(app->vv);
     m->vfo = app->vfo;
@@ -121,6 +123,8 @@ static App *appnew(void)
     view_dispatcher_add_view(app->vd, FmtxViewSettings, submenu_get_view(app->setmenu));
     view_dispatcher_add_view(app->vd, FmtxViewVfo, app->vv);
     view_dispatcher_attach_to_gui(app->vd, app->gui, ViewDispatcherTypeFullscreen);
+
+
     return app;
 }
 

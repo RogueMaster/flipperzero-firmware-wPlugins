@@ -23,6 +23,7 @@ typedef struct
     uint8_t sphase;
     uint8_t sample_decisions;
     uint8_t slot;
+    volatile uint8_t gain;
     bool bit;
     bool awake;
 } Rf;
@@ -36,6 +37,7 @@ void rfstop(Rf *rf);
 bool rfput(Rf *rf, int16_t s);
 uint16_t rfused(const Rf *rf);
 void rfhold(Rf *rf, uint8_t decisions);
+void rfgain(Rf *rf, uint8_t gain);
 void rfend(Rf *rf);
 bool rfdone(const Rf *rf);
 bool rfdrain(Rf *rf, uint32_t timeout_ms);

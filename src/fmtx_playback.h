@@ -19,5 +19,9 @@ bool playstart(Play *playback, const PlayReq *request);
 void playstop(Play *playback);
 bool playon(const Play *playback);
 uint32_t playms(const Play *playback);
+uint8_t playgain(const Play *playback);
+uint8_t gainup(Play *playback);
+bool playfilter(const Play *playback);
+bool filtertoggle(Play *playback);
 
 #endif

@@ -1,5 +1,6 @@
 #include "fmtx_playback.h"
 
+#include "dsp.h"
 #include "fmtx_rf.h"
 
 #include <stdlib.h>
@@ -13,7 +14,6 @@
 #include "../third_party/minimp3/minimp3.h"
 
 #define INSZ 8192U
-#define FMTX_OUTPUT_HZ 8000U
 #define STACKSZ (24U * 1024U)
 #define SKIP1 65536U
 #define SKIPN 8192U
@@ -44,6 +44,8 @@ struct Play
     volatile bool stop;
     volatile bool on;
     volatile uint32_t err;
+    uint8_t gain;
+    Dsp dsp;
 };
 
 static void seterr(Play *playback, PlayErr err)
@@ -90,7 +92,7 @@ static bool outframe(Play *playback, const mp3d_sample_t *pcm, const mp3dec_fram
     for(int i = 0; i < samples && !playback->stop; i++)
     {
         int32_t mono = pcm[i * info->channels];
-        uint32_t remaining = FMTX_OUTPUT_HZ;
+        uint32_t remaining = dsp_hz;
         if(info->channels == 2) mono = ((int32_t)pcm[i * 2] + (int32_t)pcm[i * 2 + 1]) / 2;
         while(remaining && !playback->stop)
         {
@@ -101,7 +103,7 @@ static bool outframe(Play *playback, const mp3d_sample_t *pcm, const mp3dec_fram
             remaining -= weight;
             if(rs->filled == rate)
             {
-                int16_t s = rs->sum / (int32_t)rate;
+                int16_t s = dspsample(&playback->dsp, rs->sum / (int32_t)rate);
                 if(!rfput(playback->rf, s)) return false;
                 rs->filled = 0;
                 rs->sum = 0;
@@ -159,6 +161,7 @@ static int32_t playthread(void *ctx)
         seterr(playback, FmtxPlaybackInvalid);
         goto done;
     }
+    dsprst(&playback->dsp);
     rfrst(playback->rf);
     rfhold(playback->rf, 6U);
     playback->rf->hz = playback->req.hz;
@@ -270,7 +273,7 @@ static int32_t playthread(void *ctx)
         {
             if(rs.filled)
             {
-                int16_t s = rs.sum / (int32_t)rs.filled;
+                int16_t s = dspsample(&playback->dsp, rs.sum / (int32_t)rs.filled);
                 if(!rfput(playback->rf, s)) goto done;
             }
             (void)rfdrain(playback->rf, 1000U);
@@ -310,6 +313,8 @@ Play *playnew(void)
         return NULL;
     }
     rfinit(playback->rf, 433160000U);
+    playback->gain = 2;
+    dspinit(&playback->dsp);
     return playback;
 }
 
@@ -370,5 +375,29 @@ bool playon(const Play *playback)
 uint32_t playms(const Play *playback)
 {
     if(!playback) return 0;
-    return (rfplayed(playback->rf) * 1000U) / FMTX_OUTPUT_HZ;
+    return (rfplayed(playback->rf) * 1000U) / dsp_hz;
+}
+
+uint8_t playgain(const Play *playback)
+{
+    return playback ? playback->gain : 2;
+}
+
+uint8_t gainup(Play *playback)
+{
+    if(!playback) return 2;
+    playback->gain = playback->gain == 2 ? 3 : playback->gain == 3 ? 4 : playback->gain == 4 ? 6 : playback->gain == 6 ? 8 : 2;
+    rfgain(playback->rf, playback->gain);
+
+    return playback->gain;
+}
+
+bool playfilter(const Play *playback)
+{
+    return playback && dspon(&playback->dsp);
+}
+
+bool filtertoggle(Play *playback)
+{
+    return playback && dsptoggle(&playback->dsp);
 }
