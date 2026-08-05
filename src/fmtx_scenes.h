@@ -40,8 +40,10 @@ typedef enum
 typedef struct
 {
     uint32_t elapsed_ms;
+    uint32_t pause_ms;
     uint8_t gain;
     bool filter;
+    bool paused;
     char filename[256];
 } PlayModel;
 

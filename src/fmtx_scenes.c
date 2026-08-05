@@ -10,13 +10,19 @@ void playdraw(Canvas *canvas, void *model)
     char elapsed[12];
     char g[16];
     char f[20];
+    const char *title = m->filename;
     uint32_t secs = m->elapsed_ms / 1000U;
+    if(m->paused)
+    {
+        uint32_t phase = m->pause_ms % 1200U;
+        title = phase < 500U ? m->filename : phase < 700U ? "" : phase < 1000U ? "pause" : "";
+    }
     snprintf(elapsed, sizeof(elapsed), "%02lu:%02lu", (unsigned long)(secs / 60U), (unsigned long)(secs % 60U));
     snprintf(g, sizeof(g), "Gain: %u%s", m->gain / 2, m->gain & 1 ? ".5x" : "x");
     snprintf(f, sizeof(f), "Down: filt %s", m->filter ? "on" : "off");
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 25, AlignCenter, AlignCenter, m->filename);
+    canvas_draw_str_aligned(canvas, 64, 25, AlignCenter, AlignCenter, title);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignCenter, elapsed);
     canvas_draw_str(canvas, 2, 62, g);
@@ -38,6 +44,10 @@ bool playinput(InputEvent *ev, void *ctx)
             view_commit_model(app->pv, false);
             return false;
         }
+        m->paused = ispaused(app->play);
+        m->pause_ms = 0;
+        if(m->paused) app->pauseat = furi_get_tick();
+        m->elapsed_ms = playms(app->play);
     }
     else
     {
@@ -131,8 +141,10 @@ static void playin(void *ctx)
     const char *path = furi_string_get_cstr(app->path);
     const char *slash = strrchr(path, '/');
     m->elapsed_ms = 0;
+    m->pause_ms = 0;
     m->gain = playgain(app->play);
     m->filter = playfilter(app->play);
+    m->paused = false;
     strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
     view_commit_model(app->pv, true);
     playreq(&req, path, app->hz);
@@ -152,7 +164,11 @@ static bool playev(void *ctx, SceneManagerEvent ev)
     if(ev.type == SceneManagerEventTypeTick && app->playing)
     {
         PlayModel *m = view_get_model(app->pv);
+        bool paused = ispaused(app->play);
+        if(paused && !m->paused) app->pauseat = furi_get_tick();
         m->elapsed_ms = playms(app->play);
+        m->paused = paused;
+        m->pause_ms = paused ? furi_get_tick() - app->pauseat : 0;
         view_commit_model(app->pv, true);
         return true;
     }

@@ -26,6 +26,7 @@ typedef struct
     FmtxVfo *vfo;
     FuriString *path;
     uint32_t hz;
+    uint32_t pauseat;
     bool playing;
 } App;
 

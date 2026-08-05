@@ -117,7 +117,7 @@ static App *appnew(void)
     view_dispatcher_set_event_callback_context(app->vd, app);
     view_dispatcher_set_custom_event_callback(app->vd, custev);
     view_dispatcher_set_navigation_event_callback(app->vd, backev);
-    view_dispatcher_set_tick_event_callback(app->vd, tickev, 250U);
+    view_dispatcher_set_tick_event_callback(app->vd, tickev, 100U);
     view_dispatcher_add_view(app->vd, VMain, submenu_get_view(app->menu));
     view_dispatcher_add_view(app->vd, VPlay, app->pv);
     view_dispatcher_add_view(app->vd, FmtxViewSettings, submenu_get_view(app->setmenu));
