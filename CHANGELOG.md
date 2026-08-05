@@ -16,6 +16,17 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
   at reveal. An exact prediction scores 1, anything else 0. Six rounds, on the shared
   party lobby/countdown/reveal skeleton, with a votable pack of questions. Ships localized
   (English + German). Firmware **v18**.
+- **Phone-side game-change vote.** Any player can propose switching the active game from
+  their phone (a 🕹️ button in the header, and the lobby's "Pick a game" row, open a
+  game picker); the ESP then freezes the active game and runs a majority vote of the
+  *other* players, resuming the game on reject/timeout or switching on approve. The
+  proposer is an implicit yes; approval needs a strict majority of the others (a lone
+  proposer switches at once); a No majority or a 25s timeout rejects, the proposer can
+  withdraw their own proposal, and the proposer leaving cancels it. The picker's last
+  entry, **Back to Lobby**, proposes leaving the current game and is voted on the same
+  way. This is the one sanctioned phone→host action, gated entirely behind the vote — a
+  host-initiated select stays authoritative and immediate. New intents
+  `proposeGame{game}` / `voteGame{ok}` and a `gamevote` push. Firmware **v18**.
 - A serial trace of every identity decision, for debugging on real hardware:
   `[ha] JOIN pid=2 ip=192.168.4.3 mac=AA:BB:CC:DD:EE:FF nick="..."` for a new device, and
   `[ha] NEW BROWSER same device ip=... mac=... -> pid=1 nick="..." (consolidated)` when a

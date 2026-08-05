@@ -140,6 +140,12 @@ static inline int haUtf8Len(const char* s) {
 #define GC_REVEAL_MS 6000
 #define GC_SPEED_MS 12000 // speed bonus decays to 0 over this window
 
+// Phone-initiated game-change vote: a cross-cutting proposal that sits ABOVE the active
+// game. Any player can propose switching to another game; while it is pending the active
+// game is paused and every OTHER player votes. This is the one sanctioned phone->host
+// action, gated behind a majority of the other players (see gameVoteResolve).
+#define GAMEVOTE_SECS 25 // proposal times out (treated as reject) after this
+
 // ---- sinks implemented in the .ino ----
 void haWsSendWs(uint32_t wsId, const String& msg); // to one socket (0 = no-op)
 void haWsBroadcast(const String& msg); // to all connected sockets
@@ -519,6 +525,7 @@ public:
         kmkClear();
         chessClear();
         secretsClear();
+        gameVoteClear();
     }
 
     // ---- roster ----
@@ -584,9 +591,22 @@ public:
         uint8_t pid = pidByWs(wsId);
         if(!pid) return;
         anyOnLeave(pid); // forfeit any active match
+        bool wasProposer = (_gvActive && pid == _gvProposer);
         parkPlayer(pid);  // keep nick/avatar/score for this phone's return
         _p[pid] = Player{};
+        _gvVote[pid] = -1; // drop any pending game-change vote from the departed player
         haUartLeave(pid);
+        // While a game-change vote is pending the active game is frozen, so its roster
+        // handlers must not run (a leaver mustn't, say, complete a paused trivia reveal).
+        if(_gvActive) {
+            if(wasProposer) {
+                gameVoteReject(); // the proposer left: cancel and resume the previous game
+            } else {
+                // Fewer "other" players can tip the tally toward approve or reject.
+                if(!gameVoteResolve(millis())) pushAll(); // still pending: refresh counts
+            }
+            return;
+        }
         triviaOnRosterChange();
         partyRosterChanged();
         pushAll();
@@ -649,13 +669,23 @@ public:
                    ha_json_escape(_p[pid].nick) + "\",\"avatar\":\"" +
                    ha_json_escape(_p[pid].avatar) + "\",\"lang\":\"" + _lang + "\"}";
         haWsSendWs(wsId, w);
-        triviaOnRosterChange();
-        partyRosterChanged();
+        // While a game-change vote is pending the active game is frozen, so its roster
+        // handlers must not run here either (a join or a re-hello mid-vote would otherwise
+        // mutate the frozen game, surfacing on reject/timeout). Mirrors onWsDisconnect; the
+        // vote overlay still reaches the new socket via pushAll below.
+        if(!_gvActive) {
+            triviaOnRosterChange();
+            partyRosterChanged();
+        }
         pushAll();
     }
 
     // ---- host (Flipper) driven ----
+    // A host-initiated select is authoritative and immediate: it also cancels any pending
+    // phone game-change vote (gameVoteClear). Phone-initiated changes go through the vote,
+    // which calls this only on approval.
     void selectGame(uint8_t id) {
+        gameVoteClear();
         _active = id;
         triviaClear();
         duelClear();
@@ -924,6 +954,11 @@ public:
 
     // Time-based updates (trivia phases, drawing timers, pong physics). From loop().
     void tick(uint32_t now) {
+        // A pending game-change vote freezes the active game: advance only its timeout.
+        if(_gvActive) {
+            gameVoteResolve(now);
+            return;
+        }
         if(_active == HA_GAME_TRIVIA)
             triviaTick(now);
         else if(_active == HA_GAME_DRAW)
@@ -976,6 +1011,18 @@ public:
         }
         uint8_t pid = pidByWs(wsId);
         if(!pid) return;
+        // A pending game-change vote freezes the active game: honor only the vote itself
+        // (and a player leaving); every other game intent is dropped until it resolves.
+        if(_gvActive) {
+            if(strcmp(type, "voteGame") == 0) {
+                const char* okp = ha_json_find(json, "ok");
+                voteGame(pid, okp && strncmp(okp, "true", 4) == 0);
+            } else if(strcmp(type, "leaveGame") == 0) {
+                anyOnLeave(pid);
+                pushAll();
+            }
+            return;
+        }
         int v;
         if(strcmp(type, "react") == 0) {
             char emoji[8];
@@ -1084,6 +1131,9 @@ public:
         } else if(strcmp(type, "leaveGame") == 0) {
             anyOnLeave(pid);
             pushAll();
+        } else if(strcmp(type, "proposeGame") == 0) {
+            char name[24];
+            if(ha_json_str(json, "game", name, sizeof(name))) proposeGame(pid, name);
         }
     }
 
@@ -1110,6 +1160,14 @@ private:
     ChessMatch _cm[CHESS_MAX] = {};
     SecretsState _secrets = {};
 
+    // Cross-cutting game-change vote (above the active game). When _gvActive, the active
+    // game is frozen and every client is shown a vote overlay instead of game state.
+    bool _gvActive = false;
+    uint8_t _gvProposer = 0; // pid who proposed (an implicit YES)
+    uint8_t _gvTarget = 0; // proposed game id
+    uint32_t _gvStart = 0; // millis the proposal opened (for the timeout)
+    int8_t _gvVote[HA_MAX_PLAYERS + 1] = {}; // -1 none, 0 no, 1 yes
+
     uint8_t freePid() {
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
             if(!_p[i].used) return i;
@@ -1124,6 +1182,15 @@ private:
 
     // ---------- broadcast ----------
     void pushAll() {
+        // A pending game-change vote replaces all game/lobby state with the vote overlay,
+        // so every client freezes its current screen and shows the modal until it resolves.
+        if(_gvActive) {
+            for(uint8_t pid = 1; pid <= HA_MAX_PLAYERS; pid++) {
+                if(!_p[pid].used || !_p[pid].wsId) continue;
+                haWsSendWs(_p[pid].wsId, gameVoteJson(pid));
+            }
+            return;
+        }
         String lob = lobbyJson();
         for(uint8_t pid = 1; pid <= HA_MAX_PLAYERS; pid++) {
             if(!_p[pid].used || !_p[pid].wsId) continue;
@@ -5111,6 +5178,113 @@ private:
             s += (_secrets.stage == 0 ? SECRETS_ANSWER_SECS : SECRETS_PREDICT_SECS);
         }
         s += ",\"scores\":" + playersJson() + "}";
+        return s;
+    }
+
+    // ---------- game-change vote (cross-cutting, above the active game) ----------
+    // Name -> id, the inverse of gameName(). "none" is a legitimate target (back to the
+    // plain lobby), so HA_GAME_NONE can't double as the not-found marker: returns -1 for
+    // an unknown name instead.
+    static int gameIdByName(const char* name) {
+        if(!name || !name[0]) return -1;
+        for(uint8_t id = HA_GAME_NONE; id <= HA_GAME_SECRETS; id++)
+            if(strcmp(gameName(id), name) == 0) return (int)id;
+        return -1;
+    }
+
+    void gameVoteClear() {
+        _gvActive = false;
+        _gvProposer = 0;
+        _gvTarget = 0;
+        _gvStart = 0;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) _gvVote[i] = -1;
+    }
+
+    // A player proposes switching the active game. Only one proposal at a time, and only to
+    // a different, valid target -- which includes "none", i.e. back to the plain lobby. The
+    // proposer counts as an implicit YES. This is the single sanctioned phone->host action;
+    // a host-initiated select still bypasses the vote.
+    void proposeGame(uint8_t pid, const char* name) {
+        if(_gvActive) return; // one proposal at a time
+        int id = gameIdByName(name);
+        if(id < 0 || (uint8_t)id == _active) return; // unknown, or already the active game
+        _gvActive = true;
+        _gvProposer = pid;
+        _gvTarget = (uint8_t)id;
+        _gvStart = millis();
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) _gvVote[i] = -1;
+        _gvVote[pid] = 1; // the proposer is an implicit YES
+        if(!gameVoteResolve(millis())) pushAll(); // resolves at once if the proposer is alone
+    }
+
+    void voteGame(uint8_t pid, bool ok) {
+        if(!_gvActive) return;
+        if(pid == _gvProposer) {
+            // The proposer's YES is implicit, so an OK from them means nothing -- but a NO is
+            // how they withdraw: cancel the proposal and resume the frozen game at once.
+            if(!ok) gameVoteReject();
+            return;
+        }
+        _gvVote[pid] = ok ? 1 : 0;
+        if(!gameVoteResolve(millis())) pushAll();
+    }
+
+    // Resolve the pending vote. Approve on a strict majority of the OTHER players (the
+    // proposer excluded), or immediately if the proposer is the only player. Reject as soon
+    // as that majority is impossible, or on timeout. Returns true if it resolved (having
+    // already pushed the resulting state), false if the proposal is still open.
+    bool gameVoteResolve(uint32_t now) {
+        if(!_gvActive) return false;
+        int others = 0, yes = 0, no = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || i == _gvProposer) continue;
+            others++;
+            if(_gvVote[i] == 1) yes++;
+            else if(_gvVote[i] == 0) no++;
+        }
+        if(others <= 0 || yes * 2 > others) { // proposer alone, or a strict majority says yes
+            gameVoteApprove();
+            return true;
+        }
+        if(no * 2 >= others || // approval is now impossible ...
+           (int32_t)(now - _gvStart) >= (int32_t)(GAMEVOTE_SECS * 1000)) { // ... or timed out
+            gameVoteReject();
+            return true;
+        }
+        return false;
+    }
+
+    void gameVoteApprove() {
+        uint8_t target = _gvTarget;
+        haUartEvent(String("{\"gamevote\":\"approved\",\"game\":\"") + gameName(target) + "\"}");
+        gameVoteClear();
+        selectGame(target); // resets to the target game's lobby and pushAll()s
+    }
+
+    void gameVoteReject() {
+        gameVoteClear();
+        pushAll(); // resume the frozen game (its state was left untouched)
+    }
+
+    String gameVoteJson(uint8_t pid) {
+        int yes = 0, no = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(_gvVote[i] == 1) yes++; // includes the proposer's implicit YES
+            else if(_gvVote[i] == 0) no++;
+        }
+        int others = connectedCount() - 1;
+        if(others < 0) others = 0;
+        int need = others > 0 ? (others / 2 + 1) : 0; // yes votes needed from the others
+        const char* name = gameName(_gvTarget);
+        // The voters' line leads with the proposer's avatar, so it ships alongside the nick.
+        String s = String("{\"t\":\"gamevote\",\"proposer\":\"") +
+                   ha_json_escape(_p[_gvProposer].nick) + "\",\"avatar\":\"" +
+                   ha_json_escape(_p[_gvProposer].avatar) + "\",\"game\":\"" + name +
+                   "\",\"label\":\"" + name + "\",\"yes\":" + yes + ",\"no\":" + no +
+                   ",\"others\":" + others + ",\"need\":" + need + ",\"youproposed\":" +
+                   (pid == _gvProposer ? "true" : "false") + ",\"youvoted\":" +
+                   (_gvVote[pid] >= 0 ? "true" : "false") + "}";
         return s;
     }
 };
