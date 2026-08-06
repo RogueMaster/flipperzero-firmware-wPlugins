@@ -1,21 +1,136 @@
 #include "fmtx_scenes.h"
 #include "fmtx_anim.h"
 
+#include <furi_hal.h>
+#include <gui/elements.h>
 #include <stdio.h>
 #include <string.h>
 #include <storage/storage.h>
+
+enum {
+    AboutPageLogo,
+    AboutPageText,
+};
+
+enum {
+    AboutSocialWebsite,
+    AboutSocialInstagram,
+    AboutSocialTiktok,
+    AboutSocialGithub,
+    AboutSocialYoutube,
+};
+
+typedef struct {
+    uint8_t top;
+    uint8_t bottom;
+} AboutSocial;
+
+typedef struct {
+    uint8_t sequence_index;
+} AboutModel;
+
+enum {
+    AboutTextWebsite,
+    AboutTextAtYo3gnd = AboutTextWebsite + sizeof("www.yo3gnd.ro"),
+    AboutTextYo3gnd = AboutTextAtYo3gnd + sizeof("@yo3gnd"),
+    AboutTextWebsiteLabel = AboutTextYo3gnd + sizeof("yo3gnd"),
+    AboutTextInstagram = AboutTextWebsiteLabel + sizeof("website"),
+    AboutTextTiktok = AboutTextInstagram + sizeof("instagram"),
+    AboutTextGithub = AboutTextTiktok + sizeof("tiktok"),
+    AboutTextYoutube = AboutTextGithub + sizeof("github.com"),
+};
+
+static const uint8_t about_logo[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0xf8, 0x1f, 0x00,
+    0x00, 0xfe, 0x7f, 0x00, 0x00, 0x06, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x01, 0x00,
+    0x00, 0xf8, 0x1f, 0x00, 0x00, 0x38, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0xc0, 0x03, 0x00, 0x00, 0x60, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x80, 0x01, 0x00, 0x00, 0xc0, 0x03, 0x00, 0x46, 0xc4, 0x23, 0x62, 0x46, 0x8c, 0x31, 0x62,
+    0xc6, 0x0c, 0x30, 0x63, 0xc6, 0x18, 0x18, 0x63, 0xc6, 0x31, 0x8c, 0x63, 0x8c, 0x01, 0x80, 0x31,
+    0x0c, 0x03, 0xc0, 0x30, 0x1e, 0x06, 0x60, 0x78, 0x3f, 0x04, 0x20, 0xfc, 0x31, 0x00, 0x00, 0x8c,
+    0xe0, 0x00, 0x00, 0x07, 0xc0, 0x01, 0x80, 0x03, 0x80, 0x01, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const char about_social_text[] = "www.yo3gnd.ro\0"
+                                        "@yo3gnd\0"
+                                        "yo3gnd\0"
+                                        "website\0"
+                                        "instagram\0"
+                                        "tiktok\0"
+                                        "github.com\0"
+                                        "youtube";
+
+static const AboutSocial about_socials[] = {
+    [AboutSocialWebsite] = {AboutTextWebsite, AboutTextWebsiteLabel},
+    [AboutSocialInstagram] = {AboutTextAtYo3gnd, AboutTextInstagram},
+    [AboutSocialTiktok] = {AboutTextAtYo3gnd, AboutTextTiktok},
+    [AboutSocialGithub] = {AboutTextYo3gnd, AboutTextGithub},
+    [AboutSocialYoutube] = {AboutTextAtYo3gnd, AboutTextYoutube},
+};
+
+static const uint8_t about_social_sequence[] = {
+    AboutSocialWebsite,
+    AboutSocialInstagram,
+    AboutSocialTiktok,
+    AboutSocialWebsite,
+    AboutSocialInstagram,
+    AboutSocialTiktok,
+    AboutSocialGithub,
+    AboutSocialYoutube,
+};
 
 const char abttext[] =
     "Built by Richard, YO3GND, a ham radio operator who enjoys embedded engineering and DSP.\n\n"
     "This began as a Morse Flipper spike: send audio to a Baofeng without an audio lead. It worked, so it became its own thing.\n\n"
     "A first-order sigma-delta modulator turns PCM into one-bit PDM. Each bit selects a CC1101 FSK deviation, approximating narrowband FM audio.\n\n"
-    "The CC1101 is not an audio transmitter. Its carrier can wander during long transmissions; receiver AFC and bandwidth tolerate some drift. FM capture does not fix it.\n\n"
-    "www.yo3gnd.ro\n"
-    "github.com/yo3gnd\n"
-    "yo3gnd@gmail.com\n"
-    "instagram: @yo3gnd\n"
-    "tiktok: @yo3gnd\n"
-    "youtube.com/@yo3gnd";
+    "The CC1101 is not an audio transmitter. Its carrier can wander during long transmissions; receiver AFC and bandwidth tolerate some drift. FM capture does not fix it.";
+
+static void about_draw(Canvas* canvas, void* model) {
+    AboutModel* about = model;
+    const AboutSocial* social = &about_socials[about_social_sequence[about->sequence_index]];
+
+    canvas_clear(canvas);
+    canvas_draw_xbm(canvas, 4, 16, 32, 32, about_logo);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 82, 19, AlignCenter, AlignBottom, "YO3GND");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas, 82, 37, AlignCenter, AlignBottom, about_social_text + social->top);
+    canvas_draw_str_aligned(
+        canvas, 82, 50, AlignCenter, AlignBottom, about_social_text + social->bottom);
+    elements_button_right(canvas, "Next");
+}
+
+static bool about_input(InputEvent* event, void* ctx) {
+    App* app = ctx;
+    if(!event || event->type != InputTypeShort || event->key != InputKeyRight) return false;
+    view_dispatcher_send_custom_event(app->dispatcher, FmtxAboutNext);
+
+    return true;
+}
+
+static void about_begin(App* app) {
+    DateTime now;
+    AboutModel* model = view_get_model(app->playback_view);
+
+    furi_hal_rtc_get_datetime(&now);
+    model->sequence_index = now.day % COUNT_OF(about_social_sequence);
+    view_commit_model(app->playback_view, false);
+}
+
+static void about_rotate(App* app) {
+    AboutModel* model = view_get_model(app->playback_view);
+
+    model->sequence_index++;
+    if(model->sequence_index >= COUNT_OF(about_social_sequence)) model->sequence_index = 0;
+    view_commit_model(app->playback_view, true);
+}
+
+static void about_show_logo(App* app) {
+    scene_manager_set_scene_state(app->scene_manager, ScAbout, AboutPageLogo);
+    app->screen_started = furi_get_tick();
+    view_dispatcher_switch_to_view(app->dispatcher, VPlay);
+}
 
 void playdraw(Canvas* canvas, void* model) {
     PlayModel* m = model;
@@ -220,7 +335,7 @@ bool vfoinput(InputEvent* ev, void* ctx) {
 void abtback(GuiButtonType b, InputType t, void* ctx) {
     App* a = ctx;
     if(t == InputTypeShort && b == GuiButtonTypeLeft)
-        view_dispatcher_send_custom_event(a->dispatcher, MAbout);
+        view_dispatcher_send_custom_event(a->dispatcher, FmtxAboutBack);
 }
 
 static void menucb(void* ctx, uint32_t id) {
@@ -257,7 +372,7 @@ static void spin(void* x) {
     App* a = x;
     PlayModel* m = view_get_model(a->playback_view);
     txrand();
-    a->splash_started = furi_get_tick();
+    a->screen_started = furi_get_tick();
     m->elapsed_ms = 0;
     view_set_draw_callback(a->playback_view, spdraw);
     view_set_input_callback(a->playback_view, NULL);
@@ -270,7 +385,7 @@ static bool spev(void* x, SceneManagerEvent ev) {
     PlayModel* m;
     uint32_t t;
     if(ev.type != SceneManagerEventTypeTick) return false;
-    t = furi_get_tick() - a->splash_started;
+    t = furi_get_tick() - a->screen_started;
 
     if(t >= furi_ms_to_ticks(2500U)) {
         scene_manager_next_scene(a->scene_manager, ScMain);
@@ -407,13 +522,37 @@ static void vfoout(void* ctx) {
 
 static void abtin(void* ctx) {
     App* a = ctx;
-    view_dispatcher_switch_to_view(a->dispatcher, VAbout);
+
+    fmtx_playback_stop(a->playback);
+    view_set_draw_callback(a->playback_view, about_draw);
+    view_set_input_callback(a->playback_view, about_input);
+    about_begin(a);
+    about_show_logo(a);
 }
 
 static bool abtev(void* ctx, SceneManagerEvent ev) {
     App* a = ctx;
+
+    if(ev.type == SceneManagerEventTypeTick &&
+       scene_manager_get_scene_state(a->scene_manager, ScAbout) == AboutPageLogo &&
+       furi_get_tick() - a->screen_started >= furi_ms_to_ticks(1500U)) {
+        a->screen_started = furi_get_tick();
+        about_rotate(a);
+        return true;
+    }
+    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxAboutNext) {
+        scene_manager_set_scene_state(a->scene_manager, ScAbout, AboutPageText);
+        view_dispatcher_switch_to_view(a->dispatcher, VAbout);
+        return true;
+    }
+    if((ev.type == SceneManagerEventTypeBack ||
+        (ev.type == SceneManagerEventTypeCustom && ev.event == FmtxAboutBack)) &&
+       scene_manager_get_scene_state(a->scene_manager, ScAbout) == AboutPageText) {
+        about_show_logo(a);
+        return true;
+    }
     if(ev.type == SceneManagerEventTypeBack ||
-       (ev.type == SceneManagerEventTypeCustom && ev.event == MAbout)) {
+       (ev.type == SceneManagerEventTypeCustom && ev.event == FmtxAboutBack)) {
         scene_manager_previous_scene(a->scene_manager);
         return true;
     }
@@ -421,7 +560,10 @@ static bool abtev(void* ctx, SceneManagerEvent ev) {
 }
 
 static void abtout(void* ctx) {
-    UNUSED(ctx);
+    App* app = ctx;
+
+    view_set_draw_callback(app->playback_view, playdraw);
+    view_set_input_callback(app->playback_view, playinput);
 }
 
 static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] = {

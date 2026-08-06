@@ -27,7 +27,7 @@ typedef struct {
     FmtxVfo* vfo;
     FuriString* path;
     uint32_t frequency_hz;
-    uint32_t splash_started;
+    uint32_t screen_started;
     uint32_t pause_started;
     uint32_t hold_started;
     InputKey held_key;

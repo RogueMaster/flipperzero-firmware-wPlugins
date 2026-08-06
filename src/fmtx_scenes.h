@@ -36,6 +36,11 @@ typedef enum {
     FmtxVfoDone,
 } FmtxVfoEvent;
 
+typedef enum {
+    FmtxAboutNext,
+    FmtxAboutBack,
+} FmtxAboutEvent;
+
 typedef struct {
     uint32_t elapsed_ms;
     uint32_t pause_ms;
