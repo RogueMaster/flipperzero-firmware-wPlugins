@@ -119,6 +119,7 @@ UL: API: Add `canvas_get_buffer`, `canvas_get_buffer_size` to public API (by @xM
 - NFC:
   - Fix sending 32+ byte ISO 15693-3 commands (by @WillyJL)
   - Fixes to `READ_MULTI` and `GET_BLOCK_SECURITY` commands in ISO 15693-3 emulation (#501 by @WillyJL & aaronjamt)
+  - Fix Type 4 Tag read edge case for cards not supporting specific EF in DF select mode (by @WillyJL)
   - Fix CLI with NTAG4xx and Type 4 Tag support (by @WillyJL)
   - UL: Fix LED not blinking at SLIX unlock (by @xMasterX)
   - UL: Fix "MIR" and other EMV cards crash on Read (by @Dmitry422)
