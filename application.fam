@@ -11,7 +11,7 @@ App(
     fap_private_libs=[
         Lib(name="fmtx_vfo"),
     ],
-    fap_file_assets="assets",
+    fap_file_assets="assets/fap",
     cdefines=["MORSE_FLIPPER_FAP"],
     fap_version="0.0.10",
     fap_author="@yo3gnd",

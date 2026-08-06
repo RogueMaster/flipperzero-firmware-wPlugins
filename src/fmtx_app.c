@@ -79,7 +79,7 @@ static App* appnew(void) {
     app->vfo_view = view_alloc();
     app->playback = fmtx_playback_alloc();
     app->vfo = fmtx_vfo_alloc();
-    app->path = furi_string_alloc_set(APP_ASSETS_PATH("1-monkeys.mp3"));
+    app->path = furi_string_alloc_set(APP_ASSETS_PATH("0-chiptune.mp3"));
     app->frequency_hz = fmtx_config_load_frequency();
     if(app->gui && app->dialogs && app->dispatcher && app->menu && app->settings_menu &&
        app->about_widget && app->playback_view && app->vfo_view && app->playback && app->vfo &&
