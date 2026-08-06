@@ -20,11 +20,11 @@ typedef struct {
     float comp;
 } Dsp;
 
-void dspinit(Dsp *dsp);
-void dsprst(Dsp *dsp);
-bool dspon(const Dsp *dsp);
-bool dsptoggle(Dsp *dsp);
-float comphard(Dsp *d, float x);
-int16_t dspsample(Dsp *dsp, int16_t s);
+void dspinit(Dsp* dsp);
+void dsprst(Dsp* dsp);
+bool dspon(const Dsp* dsp);
+bool dsptoggle(Dsp* dsp);
+float comphard(Dsp* d, float x);
+int16_t dspsample(Dsp* dsp, int16_t s);
 
 #endif

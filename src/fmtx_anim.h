@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <gui/canvas.h>
 
-bool txdraw(Canvas *c, uint32_t ms);
-void txpic(Canvas *c, uint8_t f);
+bool txdraw(Canvas* c, uint32_t ms);
+void txpic(Canvas* c, uint8_t f);
 void txrand(void);
 
 #endif

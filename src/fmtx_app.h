@@ -14,18 +14,18 @@
 #include "fmtx_vfo.h"
 
 typedef struct {
-    Gui *gui;
-    DialogsApp *dialogs;
-    ViewDispatcher *dispatcher;
-    SceneManager *scene_manager;
-    Submenu *menu;
-    Submenu *settings_menu;
-    Widget *about_widget;
-    View *playback_view;
-    View *vfo_view;
-    Play *playback;
-    FmtxVfo *vfo;
-    FuriString *path;
+    Gui* gui;
+    DialogsApp* dialogs;
+    ViewDispatcher* dispatcher;
+    SceneManager* scene_manager;
+    Submenu* menu;
+    Submenu* settings_menu;
+    Widget* about_widget;
+    View* playback_view;
+    View* vfo_view;
+    Play* playback;
+    FmtxVfo* vfo;
+    FuriString* path;
     uint32_t frequency_hz;
     uint32_t splash_started;
     uint32_t pause_started;
@@ -38,6 +38,6 @@ typedef struct {
 
 uint32_t fmtx_config_load_frequency(void);
 bool fmtx_config_save_frequency(uint32_t hz);
-int32_t flipper_zero_fmtx_app(void *ctx);
+int32_t flipper_zero_fmtx_app(void* ctx);
 
 #endif
