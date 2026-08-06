@@ -65,14 +65,14 @@ static bool startsong(App *app, bool paused)
     const char *slash = strrchr(path, '/');
     bool ok;
     txrand();
-    playreq(&req, path, app->frequency_hz);
-    ok = paused ? playpaused(app->playback, &req) : playstart(app->playback, &req);
-    m->elapsed_ms = playms(app->playback);
+    fmtx_playback_request_init(&req, path, app->frequency_hz);
+    ok = paused ? fmtx_playback_start_paused(app->playback, &req) : fmtx_playback_start(app->playback, &req);
+    m->elapsed_ms = fmtx_playback_position_ms(app->playback);
     m->pause_ms = 0;
-    m->gain = playgain(app->playback);
-    m->filter = playfilter(app->playback);
-    m->tx = playtx(app->playback);
-    m->paused = ok && ispaused(app->playback);
+    m->gain = fmtx_playback_gain(app->playback);
+    m->filter = fmtx_playback_filter_enabled(app->playback);
+    m->tx = fmtx_playback_is_transmitting(app->playback);
+    m->paused = ok && fmtx_playback_is_paused(app->playback);
     strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
     if(m->paused) app->pause_started = furi_get_tick();
     view_commit_model(app->playback_view, true);
@@ -125,7 +125,7 @@ static bool movesong(App *app, int move)
     strlcpy(chosen, move < 0 ? prev[0] ? prev : last : next[0] ? next : first, sizeof(chosen));
     n = snprintf(path, sizeof(path), "%s/%s", folder, chosen);
     if(n < 0 || (size_t)n >= sizeof(path)) return false;
-    playstop(app->playback);
+    fmtx_playback_stop(app->playback);
     furi_string_set_str(app->path, path);
 
     return startsong(app, true);
@@ -166,13 +166,13 @@ bool playinput(InputEvent *ev, void *ctx)
         {
             if(!app->hold_handled)
             {
-                if(ev->key == InputKeyLeft && ispaused(app->playback) && playms(app->playback) == 0) (void)movesong(app, -1);
-                else (void)playseek(app->playback, ev->key == InputKeyLeft ? -1 : 128);
+                if(ev->key == InputKeyLeft && fmtx_playback_is_paused(app->playback) && fmtx_playback_position_ms(app->playback) == 0) (void)movesong(app, -1);
+                else (void)fmtx_playback_seek_frames(app->playback, ev->key == InputKeyLeft ? -1 : 128);
             }
             m = view_get_model(app->playback_view);
-            m->elapsed_ms = playms(app->playback);
-            m->tx = playtx(app->playback);
-            m->paused = ispaused(app->playback);
+            m->elapsed_ms = fmtx_playback_position_ms(app->playback);
+            m->tx = fmtx_playback_is_transmitting(app->playback);
+            m->paused = fmtx_playback_is_paused(app->playback);
             view_commit_model(app->playback_view, true);
         }
         else
@@ -183,26 +183,26 @@ bool playinput(InputEvent *ev, void *ctx)
     }
     if(ev->type != InputTypeShort) return false;
     m = view_get_model(app->playback_view);
-    if(ev->key == InputKeyUp) m->gain = gainup(app->playback);
-    else if(ev->key == InputKeyDown) m->filter = filtertoggle(app->playback);
+    if(ev->key == InputKeyUp) m->gain = fmtx_playback_cycle_gain(app->playback);
+    else if(ev->key == InputKeyDown) m->filter = fmtx_playback_toggle_filter(app->playback);
     else if(ev->key == InputKeyOk)
     {
-        if(!playenter(app->playback))
+        if(!fmtx_playback_toggle_pause(app->playback))
         {
             view_commit_model(app->playback_view, false);
             return false;
         }
-        m->paused = ispaused(app->playback);
+        m->paused = fmtx_playback_is_paused(app->playback);
         m->pause_ms = 0;
         if(m->paused) app->pause_started = furi_get_tick();
-        m->elapsed_ms = playms(app->playback);
+        m->elapsed_ms = fmtx_playback_position_ms(app->playback);
     }
     else
     {
         view_commit_model(app->playback_view, false);
         return false;
     }
-    m->tx = playtx(app->playback);
+    m->tx = fmtx_playback_is_transmitting(app->playback);
     view_commit_model(app->playback_view, true);
     return true;
 }
@@ -223,7 +223,7 @@ bool vfoinput(InputEvent *ev, void *ctx)
     if(ok)
     {
         app->frequency_hz = fmtx_vfo_frequency(app->vfo);
-        (void)cfgsave(app->frequency_hz);
+        (void)fmtx_config_save_frequency(app->frequency_hz);
         view_dispatcher_send_custom_event(app->dispatcher, FmtxVfoDone);
     }
     return h;
@@ -351,10 +351,10 @@ static bool playev(void *ctx, SceneManagerEvent ev)
     if(ev.type == SceneManagerEventTypeTick && app->playback_visible)
     {
         PlayModel *m = view_get_model(app->playback_view);
-        bool paused = ispaused(app->playback);
+        bool paused = fmtx_playback_is_paused(app->playback);
         if(paused && !m->paused) app->pause_started = furi_get_tick();
-        m->elapsed_ms = playms(app->playback);
-        m->tx = playtx(app->playback);
+        m->elapsed_ms = fmtx_playback_position_ms(app->playback);
+        m->tx = fmtx_playback_is_transmitting(app->playback);
         m->paused = paused;
         m->pause_ms = paused ? furi_get_tick() - app->pause_started : 0;
         view_commit_model(app->playback_view, true);
@@ -368,7 +368,7 @@ static void playout(void *ctx)
     App *app = ctx;
     app->playback_visible = false;
     app->holding = false;
-    playstop(app->playback);
+    fmtx_playback_stop(app->playback);
 }
 
 static void setin(void *ctx)
@@ -423,7 +423,7 @@ static bool vfoev(void *ctx, SceneManagerEvent ev)
     if(ev.type == SceneManagerEventTypeBack)
     {
         app->frequency_hz = fmtx_vfo_accept(app->vfo);
-        (void)cfgsave(app->frequency_hz);
+        (void)fmtx_config_save_frequency(app->frequency_hz);
         scene_manager_previous_scene(app->scene_manager);
         return true;
     }

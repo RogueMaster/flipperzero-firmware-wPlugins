@@ -37,8 +37,8 @@ typedef struct
     bool playback_visible;
 } App;
 
-uint32_t cfgload(void);
-bool cfgsave(uint32_t hz);
+uint32_t fmtx_config_load_frequency(void);
+bool fmtx_config_save_frequency(uint32_t hz);
 int32_t flipper_zero_fmtx_app(void *ctx);
 
 #endif

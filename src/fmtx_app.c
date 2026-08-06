@@ -23,7 +23,7 @@ static void tickev(void *ctx)
     scene_manager_handle_tick_event(app->scene_manager);
 }
 
-uint32_t cfgload(void)
+uint32_t fmtx_config_load_frequency(void)
 {
     uint8_t data[4];
     uint32_t hz = fmtx_vfo_default_frequency();
@@ -43,7 +43,7 @@ uint32_t cfgload(void)
     return hz;
 }
 
-bool cfgsave(uint32_t hz)
+bool fmtx_config_save_frequency(uint32_t hz)
 {
     uint8_t data[4] =
     {
@@ -83,16 +83,16 @@ static App *appnew(void)
     app->about_widget = widget_alloc();
     app->playback_view = view_alloc();
     app->vfo_view = view_alloc();
-    app->playback = playnew();
+    app->playback = fmtx_playback_alloc();
     app->vfo = fmtx_vfo_alloc();
     app->path = furi_string_alloc_set(APP_ASSETS_PATH("1-monkeys.mp3"));
-    app->frequency_hz = cfgload();
+    app->frequency_hz = fmtx_config_load_frequency();
     if(app->gui && app->dialogs && app->dispatcher && app->menu && app->settings_menu && app->about_widget && app->playback_view && app->vfo_view && app->playback && app->vfo && app->path) app->scene_manager = scene_manager_alloc(&scenes, app);
     if(!app->scene_manager)
     {
         if(app->path) furi_string_free(app->path);
         fmtx_vfo_free(app->vfo);
-        playfree(app->playback);
+        fmtx_playback_free(app->playback);
         if(app->vfo_view) view_free(app->vfo_view);
         if(app->playback_view) view_free(app->playback_view);
         if(app->about_widget) widget_free(app->about_widget);
@@ -136,7 +136,7 @@ static App *appnew(void)
 static void appfree(App *app)
 {
     if(!app) return;
-    playstop(app->playback);
+    fmtx_playback_stop(app->playback);
     view_dispatcher_remove_view(app->dispatcher, VMain);
     view_dispatcher_remove_view(app->dispatcher, VPlay);
     view_dispatcher_remove_view(app->dispatcher, FmtxViewSettings);
@@ -149,7 +149,7 @@ static void appfree(App *app)
     widget_free(app->about_widget);
     view_free(app->playback_view);
     view_free(app->vfo_view);
-    playfree(app->playback);
+    fmtx_playback_free(app->playback);
     fmtx_vfo_free(app->vfo);
     furi_string_free(app->path);
     furi_record_close(RECORD_DIALOGS);

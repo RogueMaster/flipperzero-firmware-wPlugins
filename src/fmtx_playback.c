@@ -405,13 +405,13 @@ done:
     return 0;
 }
 
-void playreq(PlayReq *request, const char *path, uint32_t hz)
+void fmtx_playback_request_init(PlayReq *request, const char *path, uint32_t hz)
 {
     strlcpy(request->path, path, sizeof(request->path));
     request->hz = hz;
 }
 
-Play *playnew(void)
+Play *fmtx_playback_alloc(void)
 {
     Play *playback = calloc(1, sizeof(Play));
     if(!playback) return NULL;
@@ -428,10 +428,10 @@ Play *playnew(void)
     return playback;
 }
 
-void playfree(Play *playback)
+void fmtx_playback_free(Play *playback)
 {
     if(!playback) return;
-    playstop(playback);
+    fmtx_playback_stop(playback);
     free(playback->rf);
     free(playback);
 }
@@ -505,17 +505,17 @@ static bool startat(Play *playback, const PlayReq *request, uint32_t at, bool pa
     return true;
 }
 
-bool playstart(Play *playback, const PlayReq *request)
+bool fmtx_playback_start(Play *playback, const PlayReq *request)
 {
     return startat(playback, request, 0, false);
 }
 
-bool playpaused(Play *playback, const PlayReq *request)
+bool fmtx_playback_start_paused(Play *playback, const PlayReq *request)
 {
     return startat(playback, request, 0, true);
 }
 
-void playstop(Play *playback)
+void fmtx_playback_stop(Play *playback)
 {
     if(!playback) return;
     playback->stop = true;
@@ -530,28 +530,28 @@ void playstop(Play *playback)
     playback->paused = false;
 }
 
-bool playon(const Play *playback)
+bool fmtx_playback_is_running(const Play *playback)
 {
     if(!playback) return false;
     __DMB();
     return playback->on;
 }
 
-bool playtx(const Play *playback)
+bool fmtx_playback_is_transmitting(const Play *playback)
 {
     if(!playback) return false;
     __DMB();
     return playback->on && !playback->paused && !playback->seek && playback->radio && playback->rf->on;
 }
 
-bool ispaused(const Play *playback)
+bool fmtx_playback_is_paused(const Play *playback)
 {
     if(!playback) return false;
     __DMB();
     return playback->paused;
 }
 
-bool playenter(Play *playback)
+bool fmtx_playback_toggle_pause(Play *playback)
 {
     PlayReq req;
     if(!playback || !playback->req.path[0]) return false;
@@ -577,7 +577,7 @@ static uint32_t playbackat(const Play *playback)
     return at;
 }
 
-bool playseek(Play *playback, int32_t frames)
+bool fmtx_playback_seek_frames(Play *playback, int32_t frames)
 {
     PlayReq req;
     uint64_t frame;
@@ -589,7 +589,7 @@ bool playseek(Play *playback, int32_t frames)
     {
         paused = playback->paused;
         memcpy(&req, &playback->req, sizeof(req));
-        playstop(playback);
+        fmtx_playback_stop(playback);
 
         return startat(playback, &req, 0, paused);
     }
@@ -613,25 +613,25 @@ bool playseek(Play *playback, int32_t frames)
     return true;
 }
 
-uint32_t playms(const Play *playback)
+uint32_t fmtx_playback_position_ms(const Play *playback)
 {
     if(!playback) return 0;
     return ((uint64_t)playbackat(playback) * 1000U) / dsp_hz;
 }
 
-uint32_t playlen(const Play *playback)
+uint32_t fmtx_playback_duration_ms(const Play *playback)
 {
     if(!playback) return 0;
     __DMB();
     return ((uint64_t)playback->total * 1000U) / dsp_hz;
 }
 
-uint8_t playgain(const Play *playback)
+uint8_t fmtx_playback_gain(const Play *playback)
 {
     return playback ? playback->gain : 2;
 }
 
-uint8_t gainup(Play *playback)
+uint8_t fmtx_playback_cycle_gain(Play *playback)
 {
     if(!playback) return 2;
     playback->gain = playback->gain == 2 ? 3 : playback->gain == 3 ? 4 : playback->gain == 4 ? 6 : playback->gain == 6 ? 8 : 2;
@@ -640,12 +640,12 @@ uint8_t gainup(Play *playback)
     return playback->gain;
 }
 
-bool playfilter(const Play *playback)
+bool fmtx_playback_filter_enabled(const Play *playback)
 {
     return playback && dspon(&playback->dsp);
 }
 
-bool filtertoggle(Play *playback)
+bool fmtx_playback_toggle_filter(Play *playback)
 {
     return playback && dsptoggle(&playback->dsp);
 }
