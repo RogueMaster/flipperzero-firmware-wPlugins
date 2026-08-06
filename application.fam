@@ -12,7 +12,6 @@ App(
         Lib(name="fmtx_vfo"),
     ],
     fap_file_assets="assets/fap",
-    cdefines=["MORSE_FLIPPER_FAP"],
     fap_version="0.0.10",
     fap_author="@yo3gnd",
     fap_description="Experimental MP3 audio over CC1101 FM.",

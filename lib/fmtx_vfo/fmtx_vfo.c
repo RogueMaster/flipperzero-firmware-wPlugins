@@ -54,22 +54,14 @@ bool mf_radio_frequency_in_vfo(uint32_t frequency_hz) {
 
 static bool hal_frequency_valid(void* context, uint32_t frequency_hz) {
     (void)context;
-#ifdef MORSE_FLIPPER_FAP
     return furi_hal_subghz_is_frequency_valid(frequency_hz);
-#else
-    return frequency_hz != 0U;
-#endif
 }
 
 static bool hal_tx_allowed(void* context, uint32_t frequency_hz) {
-    return hal_frequency_valid(context, frequency_hz)
-#ifdef MORSE_FLIPPER_FAP
-           && furi_hal_region_is_frequency_allowed(frequency_hz)
-#endif
-        ;
+    return hal_frequency_valid(context, frequency_hz) &&
+           furi_hal_region_is_frequency_allowed(frequency_hz);
 }
 
-#ifdef MORSE_FLIPPER_FAP
 typedef struct {
     uint32_t min_hz;
     uint32_t max_hz;
@@ -114,7 +106,6 @@ static uint32_t hal_region_band_default(void) {
     }
     return MF_RADIO_DEFAULT_FREQUENCY_HZ;
 }
-#endif
 
 static uint32_t hal_default_frequency(void* context) {
     static const uint32_t candidates[] = {
@@ -126,17 +117,11 @@ static uint32_t hal_default_frequency(void* context) {
     };
     size_t i;
     (void)context;
-#ifdef MORSE_FLIPPER_FAP
     if(hal_region_wide_open()) return MF_RADIO_DEFAULT_FREQUENCY_HZ;
-#endif
     for(i = 0U; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
         if(hal_tx_allowed(NULL, candidates[i])) return candidates[i];
     }
-#ifdef MORSE_FLIPPER_FAP
     return hal_region_band_default();
-#else
-    return MF_RADIO_DEFAULT_FREQUENCY_HZ;
-#endif
 }
 
 static bool mf_radio_frequency_valid(const MfRadioState* state, uint32_t frequency_hz) {
