@@ -13,10 +13,10 @@
 #define MINIMP3_NO_SIMD
 #include "../lib/minimp3/minimp3.h"
 
-#define INSZ 8192U
+#define INSZ    8192U
 #define STACKSZ (24U * 1024U)
-#define SKIP1 65536U
-#define SKIPN 8192U
+#define SKIP1   65536U
+#define SKIPN   8192U
 #define SEEKBUF 8192U
 
 typedef struct {
@@ -44,8 +44,8 @@ typedef enum {
 } PlaybackState;
 
 struct Play {
-    FuriThread *th;
-    Rf *rf;
+    FuriThread* th;
+    Rf* rf;
     PlayReq req;
     volatile bool stop;
     volatile PlaybackState state;
@@ -66,15 +66,16 @@ struct Play {
     int16_t cache[SEEKBUF];
 };
 
-static void seterr(Play *playback, PlayErr err) {
+static void seterr(Play* playback, PlayErr err) {
     if(playback->err == FmtxPlaybackOk) playback->err = err;
 }
 
-static bool isrunning(const Play *playback) {
-    return playback->state == PlaybackPlaying || playback->state == PlaybackPaused || playback->state == PlaybackSeeking;
+static bool isrunning(const Play* playback) {
+    return playback->state == PlaybackPlaying || playback->state == PlaybackPaused ||
+           playback->state == PlaybackSeeking;
 }
 
-static bool skipid3(File *file) {
+static bool skipid3(File* file) {
     uint8_t h[10];
     size_t n = storage_file_read(file, h, sizeof(h));
     uint32_t size;
@@ -96,11 +97,11 @@ static bool skipid3(File *file) {
     return storage_file_seek(file, size, true);
 }
 
-static uint32_t cachefirst(Play *p) {
+static uint32_t cachefirst(Play* p) {
     return p->ndec > SEEKBUF ? p->ndec - SEEKBUF : 0;
 }
 
-static bool pumpradio(Play *p) {
+static bool pumpradio(Play* p) {
     while(!p->stop) {
         if(p->state == PlaybackSeeking) return true;
         if(p->state == PlaybackPaused) {
@@ -119,8 +120,7 @@ static bool pumpradio(Play *p) {
                 return false;
             }
             p->radio = true;
-        }
-        else if(!p->rf->on && !rfresume(p->rf)) {
+        } else if(!p->rf->on && !rfresume(p->rf)) {
             seterr(p, FmtxPlaybackRadio);
             return false;
         }
@@ -131,14 +131,19 @@ static bool pumpradio(Play *p) {
     return false;
 }
 
-static bool putsample(Play *p, int16_t s) {
+static bool putsample(Play* p, int16_t s) {
     p->cache[p->ndec & (SEEKBUF - 1U)] = s;
     p->ndec++;
 
     return pumpradio(p);
 }
 
-static bool outframe(Play *playback, const mp3d_sample_t *pcm, const mp3dec_frame_info_t *info, int samples, Rs *rs) {
+static bool outframe(
+    Play* playback,
+    const mp3d_sample_t* pcm,
+    const mp3dec_frame_info_t* info,
+    int samples,
+    Rs* rs) {
     uint32_t rate;
     if(info->hz <= 0 || (info->channels != 1 && info->channels != 2)) return false;
     rate = info->hz;
@@ -168,7 +173,7 @@ static bool outframe(Play *playback, const mp3d_sample_t *pcm, const mp3dec_fram
     return !playback->stop;
 }
 
-static bool cleantail(const uint8_t *data, size_t size) {
+static bool cleantail(const uint8_t* data, size_t size) {
     if(size == 0) return true;
     bool zero = true;
     for(size_t i = 0; i < size; i++)
@@ -180,13 +185,13 @@ static bool cleantail(const uint8_t *data, size_t size) {
     return true;
 }
 
-static int32_t playthread(void *ctx) {
-    Play *playback = ctx;
-    Storage *storage = furi_record_open(RECORD_STORAGE);
-    File *file = storage ? storage_file_alloc(storage) : NULL;
-    uint8_t *input = malloc(INSZ);
-    mp3d_sample_t *pcm = malloc(MINIMP3_MAX_SAMPLES_PER_FRAME * sizeof(mp3d_sample_t));
-    mp3dec_t *decoder = malloc(sizeof(mp3dec_t));
+static int32_t playthread(void* ctx) {
+    Play* playback = ctx;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage ? storage_file_alloc(storage) : NULL;
+    uint8_t* input = malloc(INSZ);
+    mp3d_sample_t* pcm = malloc(MINIMP3_MAX_SAMPLES_PER_FRAME * sizeof(mp3d_sample_t));
+    mp3dec_t* decoder = malloc(sizeof(mp3dec_t));
     size_t offset = 0;
     size_t buffered = 0;
     bool eof = false;
@@ -196,9 +201,7 @@ static int32_t playthread(void *ctx) {
     uint32_t skipped_first = 0;
     uint32_t skipped_after = 0;
     bool finished = false;
-    Rs rs = {
-        0
-    };
+    Rs rs = {0};
 
     if(!file || !input || !pcm || !decoder) {
         seterr(playback, FmtxPlaybackMemory);
@@ -232,9 +235,7 @@ static int32_t playthread(void *ctx) {
             playback->nsent = playback->want;
             playback->radio = false;
             dsprst(&playback->dsp);
-            rs = (Rs) {
-                0
-            };
+            rs = (Rs){0};
             __DMB();
             playback->state = playback->after_seek;
         }
@@ -254,12 +255,11 @@ static int32_t playthread(void *ctx) {
         }
         if(buffered == 0) break;
 
-        mp3dec_frame_info_t info = {
-            0
-        };
+        mp3dec_frame_info_t info = {0};
         int samples = mp3dec_decode_frame(decoder, input + offset, buffered, pcm, &info);
         if(samples > 0) {
-            if(info.frame_bytes <= 0 || (size_t)info.frame_bytes > buffered || info.frame_offset < 0 || info.frame_offset > info.frame_bytes) {
+            if(info.frame_bytes <= 0 || (size_t)info.frame_bytes > buffered ||
+               info.frame_offset < 0 || info.frame_offset > info.frame_bytes) {
                 seterr(playback, FmtxPlaybackInvalid);
                 break;
             }
@@ -270,8 +270,7 @@ static int32_t playthread(void *ctx) {
                     break;
                 }
                 skipped_first += skip;
-            }
-            else if(skip > SKIPN - skipped_after) {
+            } else if(skip > SKIPN - skipped_after) {
                 seterr(playback, FmtxPlaybackInvalid);
                 break;
             }
@@ -286,11 +285,9 @@ static int32_t playthread(void *ctx) {
             buffered -= info.frame_bytes;
             frames++;
             skipped_after = 0;
-        }
-        else if(eof) {
+        } else if(eof) {
             break;
-        }
-        else {
+        } else {
             size_t skip = info.frame_bytes > 0 ? (size_t)info.frame_bytes : 1U;
             if(skip > buffered) {
                 seterr(playback, FmtxPlaybackInvalid);
@@ -302,8 +299,7 @@ static int32_t playthread(void *ctx) {
                     break;
                 }
                 skipped_first += skip;
-            }
-            else {
+            } else {
                 if(skip > SKIPN - skipped_after) {
                     seterr(playback, FmtxPlaybackInvalid);
                     break;
@@ -319,8 +315,7 @@ static int32_t playthread(void *ctx) {
     if(!playback->stop && !read_failed && playback->err == FmtxPlaybackOk) {
         if(frames == 0 || !cleantail(input + offset, buffered)) {
             seterr(playback, FmtxPlaybackInvalid);
-        }
-        else {
+        } else {
             if(rs.filled) {
                 int16_t s = dspsample(&playback->dsp, rs.sum / (int32_t)rs.filled);
                 if(!putsample(playback, s)) goto done;
@@ -339,8 +334,7 @@ done:
     rfstop(playback->rf);
     if(finished) {
         playback->ended = playback->ndec;
-    }
-    else {
+    } else {
         uint64_t at = playback->seekat + (uint64_t)rfplayed(playback->rf);
         if(playback->total && at > playback->total) at = playback->total;
         playback->ended = at;
@@ -359,13 +353,13 @@ done:
     return 0;
 }
 
-void fmtx_playback_request_init(PlayReq *request, const char *path, uint32_t hz) {
+void fmtx_playback_request_init(PlayReq* request, const char* path, uint32_t hz) {
     strlcpy(request->path, path, sizeof(request->path));
     request->hz = hz;
 }
 
-Play *fmtx_playback_alloc(void) {
-    Play *playback = calloc(1, sizeof(Play));
+Play* fmtx_playback_alloc(void) {
+    Play* playback = calloc(1, sizeof(Play));
     if(!playback) return NULL;
     playback->rf = malloc(sizeof(Rf));
     if(!playback->rf) {
@@ -379,14 +373,14 @@ Play *fmtx_playback_alloc(void) {
     return playback;
 }
 
-void fmtx_playback_free(Play *playback) {
+void fmtx_playback_free(Play* playback) {
     if(!playback) return;
     fmtx_playback_stop(playback);
     free(playback->rf);
     free(playback);
 }
 
-static uint32_t frameat(const Play *p, uint32_t frame) {
+static uint32_t frameat(const Play* p, uint32_t frame) {
     uint32_t hz = p->fhz ? p->fhz : 44100U;
     uint32_t n = p->fsamp ? p->fsamp : 1152U;
     uint64_t at = (uint64_t)frame * n * dsp_hz / hz;
@@ -394,8 +388,7 @@ static uint32_t frameat(const Play *p, uint32_t frame) {
     return at > UINT32_MAX ? UINT32_MAX : at;
 }
 
-
-static uint32_t atframe(const Play *p, uint32_t at) {
+static uint32_t atframe(const Play* p, uint32_t at) {
     uint32_t hz = p->fhz ? p->fhz : 44100U;
     uint32_t n = p->fsamp ? p->fsamp : 1152U;
     uint64_t one = (uint64_t)n * dsp_hz;
@@ -404,7 +397,7 @@ static uint32_t atframe(const Play *p, uint32_t at) {
     return frame > UINT32_MAX ? UINT32_MAX : frame;
 }
 
-static bool startat(Play *playback, const PlayReq *request, uint32_t at, bool paused) {
+static bool startat(Play* playback, const PlayReq* request, uint32_t at, bool paused) {
     bool same;
     if(!playback || !request || isrunning(playback)) return false;
     if(playback->th) {
@@ -446,15 +439,15 @@ static bool startat(Play *playback, const PlayReq *request, uint32_t at, bool pa
     return true;
 }
 
-bool fmtx_playback_start(Play *playback, const PlayReq *request) {
+bool fmtx_playback_start(Play* playback, const PlayReq* request) {
     return startat(playback, request, 0, false);
 }
 
-bool fmtx_playback_start_paused(Play *playback, const PlayReq *request) {
+bool fmtx_playback_start_paused(Play* playback, const PlayReq* request) {
     return startat(playback, request, 0, true);
 }
 
-void fmtx_playback_stop(Play *playback) {
+void fmtx_playback_stop(Play* playback) {
     if(!playback) return;
     playback->stop = true;
     __DMB();
@@ -466,30 +459,32 @@ void fmtx_playback_stop(Play *playback) {
     playback->state = PlaybackStopped;
 }
 
-bool fmtx_playback_is_running(const Play *playback) {
+bool fmtx_playback_is_running(const Play* playback) {
     if(!playback) return false;
     __DMB();
     return isrunning(playback);
 }
 
-bool fmtx_playback_is_transmitting(const Play *playback) {
+bool fmtx_playback_is_transmitting(const Play* playback) {
     if(!playback) return false;
     __DMB();
     return playback->state == PlaybackPlaying && playback->radio && playback->rf->on;
 }
 
-bool fmtx_playback_is_paused(const Play *playback) {
+bool fmtx_playback_is_paused(const Play* playback) {
     if(!playback) return false;
     __DMB();
-    return playback->state == PlaybackPaused || (playback->state == PlaybackSeeking && playback->after_seek == PlaybackPaused);
+    return playback->state == PlaybackPaused ||
+           (playback->state == PlaybackSeeking && playback->after_seek == PlaybackPaused);
 }
 
-bool fmtx_playback_toggle_pause(Play *playback) {
+bool fmtx_playback_toggle_pause(Play* playback) {
     PlayReq req;
     if(!playback || !playback->req.path[0]) return false;
     if(isrunning(playback)) {
         if(playback->state == PlaybackSeeking)
-            playback->after_seek = playback->after_seek == PlaybackPaused ? PlaybackPlaying : PlaybackPaused;
+            playback->after_seek = playback->after_seek == PlaybackPaused ? PlaybackPlaying :
+                                                                            PlaybackPaused;
         else
             playback->state = playback->state == PlaybackPaused ? PlaybackPlaying : PlaybackPaused;
         __DMB();
@@ -500,7 +495,7 @@ bool fmtx_playback_toggle_pause(Play *playback) {
     return startat(playback, &req, 0, false);
 }
 
-static uint32_t playbackat(const Play *playback) {
+static uint32_t playbackat(const Play* playback) {
     uint64_t at;
     if(!isrunning(playback)) return playback->ended;
     if(playback->state == PlaybackSeeking) return playback->want;
@@ -510,7 +505,7 @@ static uint32_t playbackat(const Play *playback) {
     return at;
 }
 
-bool fmtx_playback_seek_frames(Play *playback, int32_t frames) {
+bool fmtx_playback_seek_frames(Play* playback, int32_t frames) {
     PlayReq req;
     uint64_t frame;
     bool paused;
@@ -544,33 +539,37 @@ bool fmtx_playback_seek_frames(Play *playback, int32_t frames) {
     return true;
 }
 
-uint32_t fmtx_playback_position_ms(const Play *playback) {
+uint32_t fmtx_playback_position_ms(const Play* playback) {
     if(!playback) return 0;
     return ((uint64_t)playbackat(playback) * 1000U) / dsp_hz;
 }
 
-uint32_t fmtx_playback_duration_ms(const Play *playback) {
+uint32_t fmtx_playback_duration_ms(const Play* playback) {
     if(!playback) return 0;
     __DMB();
     return ((uint64_t)playback->total * 1000U) / dsp_hz;
 }
 
-uint8_t fmtx_playback_gain(const Play *playback) {
+uint8_t fmtx_playback_gain(const Play* playback) {
     return playback ? playback->gain : 2;
 }
 
-uint8_t fmtx_playback_cycle_gain(Play *playback) {
+uint8_t fmtx_playback_cycle_gain(Play* playback) {
     if(!playback) return 2;
-    playback->gain = playback->gain == 2 ? 3 : playback->gain == 3 ? 4 : playback->gain == 4 ? 6 : playback->gain == 6 ? 8 : 2;
+    playback->gain = playback->gain == 2 ? 3 :
+                     playback->gain == 3 ? 4 :
+                     playback->gain == 4 ? 6 :
+                     playback->gain == 6 ? 8 :
+                                           2;
     rfgain(playback->rf, playback->gain);
 
     return playback->gain;
 }
 
-bool fmtx_playback_filter_enabled(const Play *playback) {
+bool fmtx_playback_filter_enabled(const Play* playback) {
     return playback && dspon(&playback->dsp);
 }
 
-bool fmtx_playback_toggle_filter(Play *playback) {
+bool fmtx_playback_toggle_filter(Play* playback) {
     return playback && dsptoggle(&playback->dsp);
 }
