@@ -86,6 +86,7 @@ static bool skipid3(File* file) {
     if(memcmp(h, "ID3", 3)) return storage_file_seek(file, 0, true);
     for(unsigned i = 6; i < 10; i++)
         if(h[i] & 0x80U) return false;
+    // ID3v2 stores its size as four syncsafe bytes.
     size = ((uint32_t)h[6] << 21) | ((uint32_t)h[7] << 14) | ((uint32_t)h[8] << 7) | h[9];
     if(size > UINT32_MAX - 10U) return false;
     size += 10U;
@@ -110,6 +111,7 @@ static bool pumpradio(Play* p) {
             continue;
         }
         if(p->nsent >= p->ndec) return true;
+        // Falling behind the cache window cannot be recovered.
         if(p->nsent < cachefirst(p)) {
             seterr(p, FmtxPlaybackInvalid);
             return false;
@@ -152,6 +154,7 @@ static bool outframe(
         rs->filled = 0;
         rs->sum = 0;
     }
+    // Weighted buckets resample arbitrary MP3 rates to 8 kHz.
     for(int i = 0; i < samples && !playback->stop && playback->state != PlaybackSeeking; i++) {
         int32_t mono = pcm[i * info->channels];
         uint32_t remaining = dsp_hz;
@@ -173,6 +176,7 @@ static bool outframe(
     return !playback->stop;
 }
 
+// Accept only zero padding or one final ID3v1 tag after the audio.
 static bool cleantail(const uint8_t* data, size_t size) {
     if(size == 0) return true;
     bool zero = true;
@@ -225,6 +229,7 @@ static int32_t playthread(void* ctx) {
 
     mp3dec_init(decoder);
     while(!playback->stop) {
+        // Forward seeks keep decoder history and discard frames to the target.
         if(playback->state == PlaybackSeeking) {
             __DMB();
             seek_frames = playback->seekfrm;
@@ -405,6 +410,7 @@ static bool startat(Play* playback, const PlayReq* request, uint32_t at, bool pa
         furi_thread_free(playback->th);
         playback->th = NULL;
     }
+    // Reusing the same file keeps its discovered duration and frame geometry.
     same = !strcmp(playback->req.path, request->path);
     if(!same) {
         playback->total = 0;

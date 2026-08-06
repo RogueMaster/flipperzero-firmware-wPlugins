@@ -45,6 +45,7 @@ float comphard(Dsp* d, float x) {
     float want;
     float g;
 
+    // Follow peaks slowly, compress above 6000 at 8:1, then restore 2x gain.
     if(a > d->comp)
         d->comp = a;
     else
@@ -65,6 +66,7 @@ int16_t dspsample(Dsp* dsp, int16_t s) {
     if(!dsp->on) return s;
 
     in = s;
+    // Two high-pass and two low-pass stages sharpen the passband edges.
     dsp->h1 = dsp->ha * (dsp->h1 + in - dsp->x1);
     dsp->x1 = in;
     dsp->h2 = dsp->ha * (dsp->h2 + dsp->h1 - dsp->x2);

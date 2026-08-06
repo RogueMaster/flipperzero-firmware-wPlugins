@@ -107,6 +107,7 @@ static bool movesong(App* app, int move) {
     storage = furi_record_open(RECORD_STORAGE);
     dir = storage ? storage_file_alloc(storage) : NULL;
     opened = dir && storage_dir_open(dir, folder);
+    // Find both neighbours and wrap targets without keeping a directory list.
     while(opened && storage_dir_read(dir, &info, name, sizeof(name))) {
         if((info.flags & FSF_DIRECTORY) || !ismp3(name)) continue;
         if(!first[0] || strcmp(name, first) < 0) strlcpy(first, name, sizeof(first));
@@ -134,6 +135,7 @@ static bool movesong(App* app, int move) {
 static void checkhold(App* app) {
     if(!app->holding || app->hold_handled) return;
     if(furi_get_tick() - app->hold_started < furi_ms_to_ticks(2000U)) return;
+    // Suppress the short seek event which follows a handled hold.
     app->hold_handled = true;
     (void)movesong(app, app->held_key == InputKeyLeft ? -1 : 1);
 }

@@ -43,6 +43,7 @@ static const uint8_t uv5r[] = {
 static void notes(Canvas* c, uint8_t f, uint32_t z) {
     int y;
 
+    // f=3 draws one note; f=4 draws a pair and sometimes the single too.
     if(f == 4U) {
         y = 27 + (int)((z >> 1) % 21U) - 10;
         canvas_draw_box(c, 71, y, 2, 1);
@@ -97,6 +98,7 @@ void txpic(Canvas* c, uint8_t f) {
 }
 
 bool txdraw(Canvas* c, uint32_t ms) {
+    // Five frames repeat twice from seconds 2 through 7 of each 20-second slot.
     uint32_t p = ms % 20000U;
     uint32_t n = ms / 20000U;
     if(p < 2000U || p >= 7000U) return false;

@@ -114,9 +114,11 @@ static LevelDuration rfbit(void* ctx) {
     }
     rf->sphase++;
     if(rf->sphase == rf->sample_decisions) rf->sphase = 0;
+    // One PDM bit selects one of the two FSK deviations.
     rf->err += rf->s;
     rf->bit = rf->err >= 0;
     rf->err += rf->bit ? -32767 : 32768;
+    // Five decisions use 21 us, then one uses 20 us.
     rf->slot++;
     if(rf->slot == 6U) {
         rf->slot = 0;
@@ -149,6 +151,7 @@ bool rfstart(Rf* rf) {
     (void)furi_hal_subghz_set_frequency_and_path(rf->hz);
     furi_hal_gpio_init(furi_hal_subghz_get_data_gpio(), GpioModeInput, GpioPullNo, GpioSpeedLow);
     rf->drain = false;
+    // Start with 100 ms of zero samples while the carrier settles.
     rf->lock_decisions = 4800U;
     rf->on = furi_hal_subghz_start_async_tx(rfbit, rf);
     if(!rf->on) rfstop(rf);
@@ -189,6 +192,7 @@ void rfstop(Rf* rf) {
 }
 
 bool rfput(Rf* rf, int16_t s) {
+    // The async TX callback is the only reader.
     while(rf && rf->on) {
         uint16_t h = rf->head;
         uint16_t n = (h + 1U) & (RINGSZ - 1U);
