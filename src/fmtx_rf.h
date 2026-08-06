@@ -6,8 +6,7 @@
 
 #define RINGSZ 4096U
 
-typedef struct
-{
+typedef struct {
     uint32_t hz;
     const uint8_t *regs;
     volatile uint16_t head;

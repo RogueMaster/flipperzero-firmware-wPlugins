@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 
-typedef struct
-{
+typedef struct {
     uint32_t rp;
     uint32_t cp;
     uint32_t ri;

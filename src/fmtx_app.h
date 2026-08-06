@@ -13,8 +13,7 @@
 #include "fmtx_playback.h"
 #include "fmtx_vfo.h"
 
-typedef struct
-{
+typedef struct {
     Gui *gui;
     DialogsApp *dialogs;
     ViewDispatcher *dispatcher;

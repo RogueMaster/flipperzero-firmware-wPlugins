@@ -4,8 +4,7 @@
 #include <furi_hal.h>
 #include <lib/drivers/cc1101_regs.h>
 
-static const uint8_t fmtx_preset[] =
-{
+static const uint8_t fmtx_preset[] = {
     CC1101_IOCFG0, 0x0D,
     CC1101_FSCTRL1, 0x06,
     CC1101_PKTCTRL0, 0x32,
@@ -31,8 +30,7 @@ static const uint8_t fmtx_preset[] =
     0x00, 0x00,
 };
 
-void rfinit(Rf *rf, uint32_t hz)
-{
+void rfinit(Rf *rf, uint32_t hz) {
     memset(rf, 0, sizeof(*rf));
     rf->hz = hz;
     rf->regs = fmtx_preset;
@@ -40,35 +38,29 @@ void rfinit(Rf *rf, uint32_t hz)
     rf->gain = 2;
 }
 
-const uint8_t *rfregs(void)
-{
+const uint8_t *rfregs(void) {
     return fmtx_preset;
 }
 
-uint16_t rfused(const Rf *rf)
-{
+uint16_t rfused(const Rf *rf) {
     return (rf->head - rf->tail) & (RINGSZ - 1U);
 }
 
-void rfhold(Rf *rf, uint8_t decisions)
-{
+void rfhold(Rf *rf, uint8_t decisions) {
     if(rf->on || decisions == 0) return;
     rf->sample_decisions = decisions;
     rf->sphase = 0;
 }
 
-static int16_t rfpop(Rf *rf)
-{
+static int16_t rfpop(Rf *rf) {
     uint16_t t;
-    if(!rf->prime)
-    {
+    if(!rf->prime) {
         uint16_t threshold = rf->drain ? 1U : 512U;
         if(rfused(rf) < threshold) return 0;
         rf->prime = true;
     }
     t = rf->tail;
-    if(t == rf->head)
-    {
+    if(t == rf->head) {
         rf->prime = false;
         return 0;
     }
@@ -81,24 +73,20 @@ static int16_t rfpop(Rf *rf)
     return x;
 }
 
-void rfgain(Rf *rf, uint8_t gain)
-{
+void rfgain(Rf *rf, uint8_t gain) {
     if(!rf) return;
     rf->gain = gain;
     __DMB();
 }
 
-static LevelDuration rfbit(void *ctx)
-{
+static LevelDuration rfbit(void *ctx) {
     Rf *rf = ctx;
     uint32_t us;
-    if(rf->lock_decisions)
-    {
+    if(rf->lock_decisions) {
         rf->lock_decisions--;
         rf->s = 0;
     }
-    else if(rf->sphase == 0)
-    {
+    else if(rf->sphase == 0) {
         if(rf->drain && rf->tail == rf->head) return level_duration_reset();
         rf->s = rfpop(rf);
     }
@@ -108,22 +96,18 @@ static LevelDuration rfbit(void *ctx)
     rf->bit = rf->err >= 0;
     rf->err += rf->bit ? -32767 : 32768;
     rf->slot++;
-    if(rf->slot == 6U)
-    {
+    if(rf->slot == 6U) {
         rf->slot = 0;
         us = 20U;
     }
-    else
-    {
+    else {
         us = 21U;
     }
     return level_duration_make(rf->bit, us);
 }
 
-static void txled(bool on)
-{
-    if(on)
-    {
+static void txled(bool on) {
+    if(on) {
         furi_hal_light_set(LightBlue, 0);
         furi_hal_light_set(LightGreen, 96);
         furi_hal_light_set(LightRed, 255);
@@ -131,8 +115,7 @@ static void txled(bool on)
     else furi_hal_light_set(LightRed | LightGreen | LightBlue, 0);
 }
 
-bool rfstart(Rf *rf)
-{
+bool rfstart(Rf *rf) {
     if(rf->on) return true;
     if(!furi_hal_subghz_is_frequency_valid(rf->hz) || !furi_hal_region_is_frequency_allowed(rf->hz)) return false;
     furi_hal_power_insomnia_enter();
@@ -152,8 +135,7 @@ bool rfstart(Rf *rf)
     return rf->on;
 }
 
-bool rfresume(Rf *rf)
-{
+bool rfresume(Rf *rf) {
     if(rf->on) return true;
     if(!rf->awake) return false;
     furi_hal_subghz_idle();
@@ -167,16 +149,14 @@ bool rfresume(Rf *rf)
     return rf->on;
 }
 
-void rfpause(Rf *rf)
-{
+void rfpause(Rf *rf) {
     if(rf->on) furi_hal_subghz_stop_async_tx();
     rf->on = false;
     furi_hal_subghz_idle();
     txled(false);
 }
 
-void rfstop(Rf *rf)
-{
+void rfstop(Rf *rf) {
     if(rf->on) furi_hal_subghz_stop_async_tx();
     rf->on = false;
     furi_hal_subghz_idle();
@@ -188,14 +168,11 @@ void rfstop(Rf *rf)
 }
 
 
-bool rfput(Rf *rf, int16_t s)
-{
-    while(rf && rf->on)
-    {
+bool rfput(Rf *rf, int16_t s) {
+    while(rf && rf->on) {
         uint16_t h = rf->head;
         uint16_t n = (h + 1U) & (RINGSZ - 1U);
-        if(n != rf->tail)
-        {
+        if(n != rf->tail) {
             rf->ring[h] = s;
             __DMB();
             rf->head = n;
@@ -206,19 +183,16 @@ bool rfput(Rf *rf, int16_t s)
     return false;
 }
 
-void rfend(Rf *rf)
-{
+void rfend(Rf *rf) {
     __DMB();
     rf->drain = true;
 }
 
-bool rfdone(const Rf *rf)
-{
+bool rfdone(const Rf *rf) {
     return rf->drain && furi_hal_subghz_is_async_tx_complete();
 }
 
-bool rfdrain(Rf *rf, uint32_t timeout_ms)
-{
+bool rfdrain(Rf *rf, uint32_t timeout_ms) {
     uint32_t at;
     if(!rf || !rf->on) return false;
     if(rfused(rf)) rf->prime = true;
@@ -228,15 +202,13 @@ bool rfdrain(Rf *rf, uint32_t timeout_ms)
     return rfdone(rf);
 }
 
-uint32_t rfplayed(const Rf *rf)
-{
+uint32_t rfplayed(const Rf *rf) {
     if(!rf) return 0;
     __DMB();
     return rf->played_samples;
 }
 
-void rfrst(Rf *rf)
-{
+void rfrst(Rf *rf) {
     if(rf->on) return;
     rf->head = 0;
     rf->tail = 0;

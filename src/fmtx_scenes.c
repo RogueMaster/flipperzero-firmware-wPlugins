@@ -17,8 +17,7 @@ const char abttext[] =
     "tiktok: @yo3gnd\n"
     "youtube.com/@yo3gnd";
 
-void playdraw(Canvas *canvas, void *model)
-{
+void playdraw(Canvas *canvas, void *model) {
     PlayModel *m = model;
     char elapsed[12];
     char g[16];
@@ -26,8 +25,7 @@ void playdraw(Canvas *canvas, void *model)
     const char *title = m->filename;
     uint32_t secs = m->elapsed_ms / 1000U;
     if(m->tx && txdraw(canvas, m->elapsed_ms)) return;
-    if(m->paused)
-    {
+    if(m->paused) {
         uint32_t phase = m->pause_ms % 1200U;
         title = phase < 500U ? m->filename : phase < 700U ? "" : phase < 1000U ? "pause" : "";
     }
@@ -43,22 +41,19 @@ void playdraw(Canvas *canvas, void *model)
     canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, f);
 }
 
-static void spdraw(Canvas *c, void *x)
-{
+static void spdraw(Canvas *c, void *x) {
     PlayModel *m = x;
     txpic(c, m->elapsed_ms / furi_ms_to_ticks(500U));
 }
 
-static bool ismp3(const char *x)
-{
+static bool ismp3(const char *x) {
     size_t n = strlen(x);
     if(n < 4U || x[n - 4U] != '.') return false;
 
     return (x[n - 3U] | 0x20) == 'm' && (x[n - 2U] | 0x20) == 'p' && x[n - 1U] == '3';
 }
 
-static bool startsong(App *app, bool paused)
-{
+static bool startsong(App *app, bool paused) {
     PlayReq req;
     PlayModel *m = view_get_model(app->playback_view);
     const char *path = furi_string_get_cstr(app->path);
@@ -80,8 +75,7 @@ static bool startsong(App *app, bool paused)
     return ok;
 }
 
-static bool movesong(App *app, int move)
-{
+static bool movesong(App *app, int move) {
     char folder[256];
     char current[256];
     char name[256];
@@ -107,16 +101,14 @@ static bool movesong(App *app, int move)
     storage = furi_record_open(RECORD_STORAGE);
     dir = storage ? storage_file_alloc(storage) : NULL;
     opened = dir && storage_dir_open(dir, folder);
-    while(opened && storage_dir_read(dir, &info, name, sizeof(name)))
-    {
+    while(opened && storage_dir_read(dir, &info, name, sizeof(name))) {
         if((info.flags & FSF_DIRECTORY) || !ismp3(name)) continue;
         if(!first[0] || strcmp(name, first) < 0) strlcpy(first, name, sizeof(first));
         if(!last[0] || strcmp(name, last) > 0) strlcpy(last, name, sizeof(last));
         if(strcmp(name, current) < 0 && (!prev[0] || strcmp(name, prev) > 0)) strlcpy(prev, name, sizeof(prev));
         if(strcmp(name, current) > 0 && (!next[0] || strcmp(name, next) < 0)) strlcpy(next, name, sizeof(next));
     }
-    if(dir)
-    {
+    if(dir) {
         storage_dir_close(dir);
         storage_file_free(dir);
     }
@@ -131,41 +123,33 @@ static bool movesong(App *app, int move)
     return startsong(app, true);
 }
 
-static void checkhold(App *app)
-{
+static void checkhold(App *app) {
     if(!app->holding || app->hold_handled) return;
     if(furi_get_tick() - app->hold_started < furi_ms_to_ticks(2000U)) return;
     app->hold_handled = true;
     (void)movesong(app, app->held_key == InputKeyLeft ? -1 : 1);
 }
 
-bool playinput(InputEvent *ev, void *ctx)
-{
+bool playinput(InputEvent *ev, void *ctx) {
     App *app = ctx;
     PlayModel *m;
     if(!ev) return false;
-    if(ev->key == InputKeyLeft || ev->key == InputKeyRight)
-    {
-        if(ev->type == InputTypePress)
-        {
+    if(ev->key == InputKeyLeft || ev->key == InputKeyRight) {
+        if(ev->type == InputTypePress) {
             app->held_key = ev->key;
             app->hold_started = furi_get_tick();
             app->holding = true;
             app->hold_handled = false;
         }
-        else if(ev->type == InputTypeLong || ev->type == InputTypeRepeat)
-        {
+        else if(ev->type == InputTypeLong || ev->type == InputTypeRepeat) {
             checkhold(app);
         }
-        else if(ev->type == InputTypeRelease)
-        {
+        else if(ev->type == InputTypeRelease) {
             checkhold(app);
             app->holding = false;
         }
-        else if(ev->type == InputTypeShort)
-        {
-            if(!app->hold_handled)
-            {
+        else if(ev->type == InputTypeShort) {
+            if(!app->hold_handled) {
                 if(ev->key == InputKeyLeft && fmtx_playback_is_paused(app->playback) && fmtx_playback_position_ms(app->playback) == 0) (void)movesong(app, -1);
                 else (void)fmtx_playback_seek_frames(app->playback, ev->key == InputKeyLeft ? -1 : 128);
             }
@@ -175,8 +159,7 @@ bool playinput(InputEvent *ev, void *ctx)
             m->paused = fmtx_playback_is_paused(app->playback);
             view_commit_model(app->playback_view, true);
         }
-        else
-        {
+        else {
             return false;
         }
         return true;
@@ -185,10 +168,8 @@ bool playinput(InputEvent *ev, void *ctx)
     m = view_get_model(app->playback_view);
     if(ev->key == InputKeyUp) m->gain = fmtx_playback_cycle_gain(app->playback);
     else if(ev->key == InputKeyDown) m->filter = fmtx_playback_toggle_filter(app->playback);
-    else if(ev->key == InputKeyOk)
-    {
-        if(!fmtx_playback_toggle_pause(app->playback))
-        {
+    else if(ev->key == InputKeyOk) {
+        if(!fmtx_playback_toggle_pause(app->playback)) {
             view_commit_model(app->playback_view, false);
             return false;
         }
@@ -197,8 +178,7 @@ bool playinput(InputEvent *ev, void *ctx)
         if(m->paused) app->pause_started = furi_get_tick();
         m->elapsed_ms = fmtx_playback_position_ms(app->playback);
     }
-    else
-    {
+    else {
         view_commit_model(app->playback_view, false);
         return false;
     }
@@ -207,21 +187,18 @@ bool playinput(InputEvent *ev, void *ctx)
     return true;
 }
 
-void vfodraw(Canvas *canvas, void *model)
-{
+void vfodraw(Canvas *canvas, void *model) {
     FmtxVfoViewModel *m = model;
     fmtx_vfo_draw(m->vfo, canvas);
 }
 
-bool vfoinput(InputEvent *ev, void *ctx)
-{
+bool vfoinput(InputEvent *ev, void *ctx) {
     App *app = ctx;
     FmtxVfoViewModel *m = view_get_model(app->vfo_view);
     bool ok = false;
     bool h = fmtx_vfo_input(m->vfo, ev, &ok);
     view_commit_model(app->vfo_view, h);
-    if(ok)
-    {
+    if(ok) {
         app->frequency_hz = fmtx_vfo_frequency(app->vfo);
         (void)fmtx_config_save_frequency(app->frequency_hz);
         view_dispatcher_send_custom_event(app->dispatcher, FmtxVfoDone);
@@ -229,20 +206,17 @@ bool vfoinput(InputEvent *ev, void *ctx)
     return h;
 }
 
-void abtback(GuiButtonType b, InputType t, void *ctx)
-{
+void abtback(GuiButtonType b, InputType t, void *ctx) {
     App *a = ctx;
     if(t == InputTypeShort && b == GuiButtonTypeLeft) view_dispatcher_send_custom_event(a->dispatcher, MAbout);
 }
 
-static void menucb(void *ctx, uint32_t id)
-{
+static void menucb(void *ctx, uint32_t id) {
     App *app = ctx;
     view_dispatcher_send_custom_event(app->dispatcher, id);
 }
 
-static void pickfile(App *app)
-{
+static void pickfile(App *app) {
     DialogsFileBrowserOptions opts;
     FuriString *out = furi_string_alloc();
     FuriString *at = furi_string_alloc_set(EXT_PATH("apps_assets/fmtx"));
@@ -254,8 +228,7 @@ static void pickfile(App *app)
     if(out) furi_string_free(out);
 }
 
-static void mainin(void *ctx)
-{
+static void mainin(void *ctx) {
     App *app = ctx;
     submenu_set_header(app->menu, "FM TX");
     submenu_add_item(app->menu, "Start", MStart, menucb, app);
@@ -266,8 +239,7 @@ static void mainin(void *ctx)
     view_dispatcher_switch_to_view(app->dispatcher, VMain);
 }
 
-static void spin(void *x)
-{
+static void spin(void *x) {
     App *a = x;
     PlayModel *m = view_get_model(a->playback_view);
     txrand();
@@ -279,16 +251,14 @@ static void spin(void *x)
     view_dispatcher_switch_to_view(a->dispatcher, VPlay);
 }
 
-static bool spev(void *x, SceneManagerEvent ev)
-{
+static bool spev(void *x, SceneManagerEvent ev) {
     App *a = x;
     PlayModel *m;
     uint32_t t;
     if(ev.type != SceneManagerEventTypeTick) return false;
     t = furi_get_tick() - a->splash_started;
 
-    if(t >= furi_ms_to_ticks(2500U))
-    {
+    if(t >= furi_ms_to_ticks(2500U)) {
         scene_manager_next_scene(a->scene_manager, ScMain);
         return true;
     }
@@ -301,18 +271,15 @@ static bool spev(void *x, SceneManagerEvent ev)
     return true;
 }
 
-static void spout(void *x)
-{
+static void spout(void *x) {
     App *a = x;
     view_set_draw_callback(a->playback_view, playdraw);
     view_set_input_callback(a->playback_view, playinput);
 }
 
-static bool mainev(void *ctx, SceneManagerEvent ev)
-{
+static bool mainev(void *ctx, SceneManagerEvent ev) {
     App *app = ctx;
-    if(ev.type == SceneManagerEventTypeBack)
-    {
+    if(ev.type == SceneManagerEventTypeBack) {
         view_dispatcher_stop(app->dispatcher);
         return true;
     }
@@ -325,31 +292,26 @@ static bool mainev(void *ctx, SceneManagerEvent ev)
     return false;
 }
 
-static void mainout(void *ctx)
-{
+static void mainout(void *ctx) {
     App *app = ctx;
     scene_manager_set_scene_state(app->scene_manager, ScMain, submenu_get_selected_item(app->menu));
     submenu_reset(app->menu);
 }
 
-static void playin(void *ctx)
-{
+static void playin(void *ctx) {
     App *app = ctx;
     app->playback_visible = true;
     (void)startsong(app, false);
     view_dispatcher_switch_to_view(app->dispatcher, VPlay);
 }
 
-static bool playev(void *ctx, SceneManagerEvent ev)
-{
+static bool playev(void *ctx, SceneManagerEvent ev) {
     App *app = ctx;
-    if(ev.type == SceneManagerEventTypeBack)
-    {
+    if(ev.type == SceneManagerEventTypeBack) {
         scene_manager_previous_scene(app->scene_manager);
         return true;
     }
-    if(ev.type == SceneManagerEventTypeTick && app->playback_visible)
-    {
+    if(ev.type == SceneManagerEventTypeTick && app->playback_visible) {
         PlayModel *m = view_get_model(app->playback_view);
         bool paused = fmtx_playback_is_paused(app->playback);
         if(paused && !m->paused) app->pause_started = furi_get_tick();
@@ -363,46 +325,39 @@ static bool playev(void *ctx, SceneManagerEvent ev)
     return false;
 }
 
-static void playout(void *ctx)
-{
+static void playout(void *ctx) {
     App *app = ctx;
     app->playback_visible = false;
     app->holding = false;
     fmtx_playback_stop(app->playback);
 }
 
-static void setin(void *ctx)
-{
+static void setin(void *ctx) {
     App *app = ctx;
     submenu_set_header(app->settings_menu, "Settings");
     submenu_add_item(app->settings_menu, "Transmit frequency", FmtxSettingsSetFrequency, menucb, app);
     view_dispatcher_switch_to_view(app->dispatcher, FmtxViewSettings);
 }
 
-static bool setev(void *ctx, SceneManagerEvent ev)
-{
+static bool setev(void *ctx, SceneManagerEvent ev) {
     App *app = ctx;
-    if(ev.type == SceneManagerEventTypeBack)
-    {
+    if(ev.type == SceneManagerEventTypeBack) {
         scene_manager_previous_scene(app->scene_manager);
         return true;
     }
-    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxSettingsSetFrequency)
-    {
+    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxSettingsSetFrequency) {
         scene_manager_next_scene(app->scene_manager, FmtxSceneVfo);
         return true;
     }
     return false;
 }
 
-static void setout(void *ctx)
-{
+static void setout(void *ctx) {
     App *app = ctx;
     submenu_reset(app->settings_menu);
 }
 
-static void vfoin(void *ctx)
-{
+static void vfoin(void *ctx) {
     App *app = ctx;
     FmtxVfoViewModel *m;
     fmtx_vfo_begin(app->vfo, app->frequency_hz);
@@ -412,16 +367,13 @@ static void vfoin(void *ctx)
     view_dispatcher_switch_to_view(app->dispatcher, FmtxViewVfo);
 }
 
-static bool vfoev(void *ctx, SceneManagerEvent ev)
-{
+static bool vfoev(void *ctx, SceneManagerEvent ev) {
     App *app = ctx;
-    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxVfoDone)
-    {
+    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxVfoDone) {
         scene_manager_previous_scene(app->scene_manager);
         return true;
     }
-    if(ev.type == SceneManagerEventTypeBack)
-    {
+    if(ev.type == SceneManagerEventTypeBack) {
         app->frequency_hz = fmtx_vfo_accept(app->vfo);
         (void)fmtx_config_save_frequency(app->frequency_hz);
         scene_manager_previous_scene(app->scene_manager);
@@ -430,35 +382,29 @@ static bool vfoev(void *ctx, SceneManagerEvent ev)
     return false;
 }
 
-static void vfoout(void *ctx)
-{
+static void vfoout(void *ctx) {
     UNUSED(ctx);
 }
 
-static void abtin(void *ctx)
-{
+static void abtin(void *ctx) {
     App *a = ctx;
     view_dispatcher_switch_to_view(a->dispatcher, VAbout);
 }
 
-static bool abtev(void *ctx, SceneManagerEvent ev)
-{
+static bool abtev(void *ctx, SceneManagerEvent ev) {
     App *a = ctx;
-    if(ev.type == SceneManagerEventTypeBack || (ev.type == SceneManagerEventTypeCustom && ev.event == MAbout))
-    {
+    if(ev.type == SceneManagerEventTypeBack || (ev.type == SceneManagerEventTypeCustom && ev.event == MAbout)) {
         scene_manager_previous_scene(a->scene_manager);
         return true;
     }
     return false;
 }
 
-static void abtout(void *ctx)
-{
+static void abtout(void *ctx) {
     UNUSED(ctx);
 }
 
-static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] =
-{
+static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] = {
     [ScBoot] = spin,
     [ScMain] = mainin,
     [ScPlay] = playin,
@@ -467,8 +413,7 @@ static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] =
     [ScAbout] = abtin,
 };
 
-static const AppSceneOnEventCallback fmtx_on_event_handlers[] =
-{
+static const AppSceneOnEventCallback fmtx_on_event_handlers[] = {
     [ScBoot] = spev,
     [ScMain] = mainev,
     [ScPlay] = playev,
@@ -477,8 +422,7 @@ static const AppSceneOnEventCallback fmtx_on_event_handlers[] =
     [ScAbout] = abtev,
 };
 
-static const AppSceneOnExitCallback fmtx_on_exit_handlers[] =
-{
+static const AppSceneOnExitCallback fmtx_on_exit_handlers[] = {
     [ScBoot] = spout,
     [ScMain] = mainout,
     [ScPlay] = playout,
@@ -487,8 +431,7 @@ static const AppSceneOnExitCallback fmtx_on_exit_handlers[] =
     [ScAbout] = abtout,
 };
 
-const SceneManagerHandlers scenes =
-{
+const SceneManagerHandlers scenes = {
     .on_enter_handlers = fmtx_on_enter_handlers,
     .on_event_handlers = fmtx_on_event_handlers,
     .on_exit_handlers = fmtx_on_exit_handlers,

@@ -6,8 +6,7 @@
 
 extern const uint32_t dsp_hz;
 
-typedef struct
-{
+typedef struct {
     volatile bool on;
     bool was;
     float x1;

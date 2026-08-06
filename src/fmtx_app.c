@@ -5,34 +5,28 @@
 #include <stdlib.h>
 #include <storage/storage.h>
 
-static bool custev(void *ctx, uint32_t event)
-{
+static bool custev(void *ctx, uint32_t event) {
     App *app = ctx;
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-static bool backev(void *ctx)
-{
+static bool backev(void *ctx) {
     App *app = ctx;
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
-static void tickev(void *ctx)
-{
+static void tickev(void *ctx) {
     App *app = ctx;
     scene_manager_handle_tick_event(app->scene_manager);
 }
 
-uint32_t fmtx_config_load_frequency(void)
-{
+uint32_t fmtx_config_load_frequency(void) {
     uint8_t data[4];
     uint32_t hz = fmtx_vfo_default_frequency();
     Storage *storage = furi_record_open(RECORD_STORAGE);
     File *file = storage ? storage_file_alloc(storage) : NULL;
-    if(file && storage_file_open(file, APP_DATA_PATH("config.bin"), FSAM_READ, FSOM_OPEN_EXISTING))
-    {
-        if(storage_file_size(file) == sizeof(data) && storage_file_read(file, data, sizeof(data)) == sizeof(data))
-        {
+    if(file && storage_file_open(file, APP_DATA_PATH("config.bin"), FSAM_READ, FSOM_OPEN_EXISTING)) {
+        if(storage_file_size(file) == sizeof(data) && storage_file_read(file, data, sizeof(data)) == sizeof(data)) {
             uint32_t saved_hz = data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
             if(fmtx_vfo_frequency_valid(saved_hz)) hz = saved_hz;
         }
@@ -43,10 +37,8 @@ uint32_t fmtx_config_load_frequency(void)
     return hz;
 }
 
-bool fmtx_config_save_frequency(uint32_t hz)
-{
-    uint8_t data[4] =
-    {
+bool fmtx_config_save_frequency(uint32_t hz) {
+    uint8_t data[4] = {
         hz,
         hz >> 8,
         hz >> 16,
@@ -61,8 +53,7 @@ bool fmtx_config_save_frequency(uint32_t hz)
     if(!storage) return false;
     err = storage_common_mkdir(storage, APP_DATA_PATH(""));
     file = storage_file_alloc(storage);
-    if((err == FSE_OK || err == FSE_EXIST) && file && storage_file_open(file, APP_DATA_PATH("config.bin"), FSAM_WRITE, FSOM_CREATE_ALWAYS))
-    {
+    if((err == FSE_OK || err == FSE_EXIST) && file && storage_file_open(file, APP_DATA_PATH("config.bin"), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         ok = storage_file_write(file, data, sizeof(data)) == sizeof(data);
         storage_file_close(file);
     }
@@ -71,8 +62,7 @@ bool fmtx_config_save_frequency(uint32_t hz)
     return ok;
 }
 
-static App *appnew(void)
-{
+static App *appnew(void) {
     App *app = calloc(1, sizeof(App));
     if(!app) return NULL;
     app->gui = furi_record_open(RECORD_GUI);
@@ -88,8 +78,7 @@ static App *appnew(void)
     app->path = furi_string_alloc_set(APP_ASSETS_PATH("1-monkeys.mp3"));
     app->frequency_hz = fmtx_config_load_frequency();
     if(app->gui && app->dialogs && app->dispatcher && app->menu && app->settings_menu && app->about_widget && app->playback_view && app->vfo_view && app->playback && app->vfo && app->path) app->scene_manager = scene_manager_alloc(&scenes, app);
-    if(!app->scene_manager)
-    {
+    if(!app->scene_manager) {
         if(app->path) furi_string_free(app->path);
         fmtx_vfo_free(app->vfo);
         fmtx_playback_free(app->playback);
@@ -133,8 +122,7 @@ static App *appnew(void)
     return app;
 }
 
-static void appfree(App *app)
-{
+static void appfree(App *app) {
     if(!app) return;
     fmtx_playback_stop(app->playback);
     view_dispatcher_remove_view(app->dispatcher, VMain);
@@ -157,8 +145,7 @@ static void appfree(App *app)
     free(app);
 }
 
-int32_t flipper_zero_fmtx_app(void *ctx)
-{
+int32_t flipper_zero_fmtx_app(void *ctx) {
     UNUSED(ctx);
     App *app = appnew();
     if(!app) return 255;

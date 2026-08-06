@@ -5,8 +5,7 @@
 static uint32_t dice;
 static uint32_t run = ~0U;
 
-static const uint8_t dolph[] =
-{
+static const uint8_t dolph[] = {
     0x01,0x00,0x2a,0x01,0x00,0x78,0x01,0xbf,0xd1,0xf0,0x29,0xf0,0x20,0x3e,0x08,0x08,
     0x18,0xa6,0x00,0x21,0x83,0x01,0x8a,0x18,0x02,0x18,0xc0,0x18,0xa0,0x40,0x21,0x90,
     0x01,0x88,0x30,0x54,0x00,0x10,0xe0,0x01,0x24,0x03,0x20,0x49,0x04,0x4c,0x2e,0x61,
@@ -28,8 +27,7 @@ static const uint8_t dolph[] =
     0xc9,0x00,0xcd,0x01,0x96,0x20,0xe9,0x24,0x89,0x81,0xb5,0x10,0x20,0x66,
 };
 
-static const uint8_t uv5r[] =
-{
+static const uint8_t uv5r[] = {
     0x01,0x00,0x93,0x00,0xc0,0x41,0xc0,0x63,0xc0,0x87,0x80,0xfc,0x07,0x7f,0x08,0x18,
     0x0c,0x7f,0x10,0x70,0x1c,0x83,0xc7,0xc1,0x9f,0xfc,0xc1,0xfc,0x15,0xff,0xd4,0x1f,
     0xe1,0xff,0xff,0xc1,0xe1,0x02,0x21,0x84,0x79,0x00,0xe3,0x13,0x8a,0x01,0xc6,0x28,
@@ -42,12 +40,10 @@ static const uint8_t uv5r[] =
     0x0c,0x60,0xde,0x04,0x58,0xc0,0xc0,
 };
 
-static void notes(Canvas *c, uint8_t f, uint32_t z)
-{
+static void notes(Canvas *c, uint8_t f, uint32_t z) {
     int y;
 
-    if(f == 4U)
-    {
+    if(f == 4U) {
         y = 27 + (int)((z >> 1) % 21U) - 10;
         canvas_draw_box(c, 71, y, 2, 1);
         canvas_draw_box(c, 70, y + 1, 4, 2);
@@ -70,20 +66,17 @@ static void notes(Canvas *c, uint8_t f, uint32_t z)
     canvas_draw_line(c, 95, y - 4, 95, y - 2);
 }
 
-void txrand(void)
-{
+void txrand(void) {
     dice = furi_hal_random_get();
     run = ~0U;
 }
 
-void txpic(Canvas *c, uint8_t f)
-{
+void txpic(Canvas *c, uint8_t f) {
     uint32_t z = f == 3U ? dice : (dice << 16) | (dice >> 16);
 
     canvas_clear(c);
 
-    if(f < 3U)
-    {
+    if(f < 3U) {
         for(uint8_t i = 0; i <= f; i++) canvas_draw_circle(c, 61, 32, 4U + i * 5U);
         canvas_set_color(c, ColorWhite);
         canvas_draw_box(c, 0, 0, 61, 64);
@@ -93,21 +86,18 @@ void txpic(Canvas *c, uint8_t f)
     canvas_draw_bitmap(c, 0, 0, 51, 64, dolph);
     canvas_draw_bitmap(c, 98, 1, 30, 61, uv5r);
 
-    if(f >= 3U)
-    {
+    if(f >= 3U) {
         for(uint8_t y = 18; y <= 24; y++) for(uint8_t x = 5; x <= 25; x++) if((x + y) & 1U) canvas_draw_dot(c, 98 + x, 1 + y);
 
         notes(c, f, z);
     }
 }
 
-bool txdraw(Canvas *c, uint32_t ms)
-{
+bool txdraw(Canvas *c, uint32_t ms) {
     uint32_t p = ms % 20000U;
     uint32_t n = ms / 20000U;
     if(p < 2000U || p >= 7000U) return false;
-    if(n != run)
-    {
+    if(n != run) {
         run = n;
         dice = furi_hal_random_get();
     }

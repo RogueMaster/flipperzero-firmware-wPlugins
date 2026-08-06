@@ -3,8 +3,7 @@
 
 #include "fmtx_app.h"
 
-typedef enum
-{
+typedef enum {
     ScBoot,
     ScMain,
     ScPlay,
@@ -14,8 +13,7 @@ typedef enum
     ScCount,
 } Scn;
 
-typedef enum
-{
+typedef enum {
     VMain,
     VPlay,
     FmtxViewSettings,
@@ -23,26 +21,22 @@ typedef enum
     VAbout,
 } ViewId;
 
-typedef enum
-{
+typedef enum {
     MStart,
     MFile,
     MSet,
     MAbout,
 } MenuId;
 
-typedef enum
-{
+typedef enum {
     FmtxSettingsSetFrequency,
 } FmtxSettingsItem;
 
-typedef enum
-{
+typedef enum {
     FmtxVfoDone,
 } FmtxVfoEvent;
 
-typedef struct
-{
+typedef struct {
     uint32_t elapsed_ms;
     uint32_t pause_ms;
     uint8_t gain;
@@ -52,8 +46,7 @@ typedef struct
     char filename[256];
 } PlayModel;
 
-typedef struct
-{
+typedef struct {
     FmtxVfo *vfo;
 } FmtxVfoViewModel;
 

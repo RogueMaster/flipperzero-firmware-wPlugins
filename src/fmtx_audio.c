@@ -3,8 +3,7 @@
 #include <limits.h>
 #include <furi_hal_random.h>
 
-static const int16_t sintab[256] =
-{
+static const int16_t sintab[256] = {
     0, 804, 1608, 2410, 3212, 4011, 4808, 5602,
     6393, 7179, 7962, 8739, 9512, 10278, 11039, 11793,
     12539, 13279, 14010, 14732, 15446, 16151, 16846, 17530,
@@ -39,22 +38,18 @@ static const int16_t sintab[256] =
     -6393, -5602, -4808, -4011, -3212, -2410, -1608, -804,
 };
 
-static const uint16_t rows[] =
-{
+static const uint16_t rows[] = {
     697, 770, 852, 914
 };
-static const uint16_t cols[] =
-{
+static const uint16_t cols[] = {
     1209, 1336, 1477, 1633
 };
 
-static uint32_t phinc(uint16_t hz)
-{
+static uint32_t phinc(uint16_t hz) {
     return (uint32_t)(((uint64_t)hz * (1ULL << 32) + 8000U) / 16000U);
 }
 
-void dtmfpick(Dtmf *dtmf)
-{
+void dtmfpick(Dtmf *dtmf) {
     dtmf->key = furi_hal_random_get() & 0x0F;
     dtmf->rp = 0;
     dtmf->cp = 0;
@@ -64,20 +59,16 @@ void dtmfpick(Dtmf *dtmf)
     dtmf->gap = 1600;
 }
 
-int16_t u8pcm(uint8_t s)
-{
+int16_t u8pcm(uint8_t s) {
     return ((int16_t)s - 128) * 256;
 }
 
-void dtmfinit(Dtmf *dtmf)
-{
+void dtmfinit(Dtmf *dtmf) {
     dtmfpick(dtmf);
 }
 
-int16_t dtmfnext(Dtmf *dtmf)
-{
-    if(dtmf->tone)
-    {
+int16_t dtmfnext(Dtmf *dtmf) {
+    if(dtmf->tone) {
         int32_t s = sintab[dtmf->rp >> 24] / 4 + sintab[dtmf->cp >> 24] / 4;
         dtmf->rp += dtmf->ri;
         dtmf->cp += dtmf->ci;
@@ -86,8 +77,7 @@ int16_t dtmfnext(Dtmf *dtmf)
         if(s < INT16_MIN) s = INT16_MIN;
         return s;
     }
-    if(dtmf->gap)
-    {
+    if(dtmf->gap) {
         dtmf->gap--;
         return 0;
     }

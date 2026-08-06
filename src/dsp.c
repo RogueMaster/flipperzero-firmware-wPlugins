@@ -6,8 +6,7 @@
 
 const uint32_t dsp_hz = 8000U;
 
-void dspinit(Dsp *dsp)
-{
+void dspinit(Dsp *dsp) {
     float t;
     float rc;
     memset(dsp, 0, sizeof(*dsp));
@@ -20,8 +19,7 @@ void dspinit(Dsp *dsp)
     dsp->la = t / (rc + t);
 }
 
-void dsprst(Dsp *dsp)
-{
+void dsprst(Dsp *dsp) {
     dsp->x1 = 0.0f;
     dsp->x2 = 0.0f;
     dsp->h1 = 0.0f;
@@ -32,20 +30,17 @@ void dsprst(Dsp *dsp)
     dsp->was = dsp->on;
 }
 
-bool dspon(const Dsp *dsp)
-{
+bool dspon(const Dsp *dsp) {
     return dsp && dsp->on;
 }
 
-bool dsptoggle(Dsp *dsp)
-{
+bool dsptoggle(Dsp *dsp) {
     if(!dsp) return false;
     dsp->on = !dsp->on;
     return dsp->on;
 }
 
-float comphard(Dsp *d, float x)
-{
+float comphard(Dsp *d, float x) {
     float a = x < 0.0f ? -x : x;
     float want;
     float g;
@@ -62,8 +57,7 @@ float comphard(Dsp *d, float x)
     return x * g * 2.0f;
 }
 
-int16_t dspsample(Dsp *dsp, int16_t s)
-{
+int16_t dspsample(Dsp *dsp, int16_t s) {
     float in;
     int32_t out;
     if(!dsp) return s;
