@@ -7,4 +7,4 @@
  */
 #pragma once
 
-#include "../esp32_companion/flock_companion/tracker_rules.h"
+#include "../.esp32_companion/flock_companion/tracker_rules.h"
