@@ -1,0 +1,18 @@
+App(
+    appid="ethernet_enc28j60",
+    name="Ethernet ENC28J60",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="enc28j60_app_main",
+    stack_size=30 * 1024,
+    fap_icon="assets/logo_icon.png",
+    cdefines=[
+        ("PENTEST_MODE", 1),
+    ],
+    fap_icon_assets="assets",
+    fap_icon_assets_symbol="ethernet_app",
+    fap_category="GPIO",
+    fap_author="ElectronicCats",
+    fap_weburl="https://github.com/ElectronicCats/flipper-ENC28J60-ethernet/tree/f3b79ffc670f3f7b61dafe98a933f49e5d344e65",
+    fap_version="2.0",
+    fap_description="Flashcard app that reads flashcards from a text file and support removing cards from the deck. Useful for language learning.",
+)

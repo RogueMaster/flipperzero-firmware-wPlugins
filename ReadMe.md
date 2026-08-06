@@ -110,6 +110,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 - NFC: [Fix Type 4 Tag read edge case for cards not supporting specific EF in DF select mode (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/25a10b1931e3770730b11a937f219febc9fb014d)
 - Updated: [DeFlock v0.70 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Added: [Ethernet ENC28J60 v2.0 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-ENC28J60-ethernet/tree/f3b79ffc670f3f7b61dafe98a933f49e5d344e65)
 
 <a name="release"></a>
 
@@ -514,6 +515,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ESP32CAM Motion Detection v0.1 (By eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
 - [ESP32CAM Nanny Cam v0.1 (By eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
 - [ESP32CAM QR Code v0.1 (By eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
+- [Ethernet ENC28J60 v2.0 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-ENC28J60-ethernet/tree/f3b79ffc670f3f7b61dafe98a933f49e5d344e65)
 - [Ethernet W5500 v1.3 (By karasevia)](https://github.com/karasevia/finik_eth) `Req: W5500`
 - [Evil BLE v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 - [Evil BW16 Controller v1.0 (By dagnazty)](https://github.com/dagnazty/Flipper_Apps)
