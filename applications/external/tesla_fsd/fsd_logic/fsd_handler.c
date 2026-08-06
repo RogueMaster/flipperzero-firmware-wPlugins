@@ -18,7 +18,9 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
     state->das_prev_hands_on_state = 0xFF; // escalation-edge baseline (#100)
     state->enhanced_autopilot = false;
     state->summon_unlock = false; // opt-in Summon EU Unlock, default OFF
+    state->apmv3_branch = 0xFF; // opt-in AP branch/tier selector, default OFF (0xFF sentinel)
     state->continue_on_green = false; // opt-in Continue on Green, default OFF
+    state->assist_rhd_override = false; // opt-in RHD driving-side override, default OFF
     state->speed_profile_locked = false;
     state->hw4_offset = 0;
 }
@@ -259,6 +261,14 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
         }
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
+            // Telemetry Off (experimental): clear reachable DAS_autopilotControl
+            // mux1 telemetry flags — bit48 UI_enableCabinCameraTelemetry,
+            // bit50 UI_autopilotTelemetryInChina. Plain bit-clears, no checksum.
+            // Source: ev-open-can-tools disable-telemetry.json (GPL-3.0).
+            if(state->assist_telemetry_off) {
+                fsd_set_bit(frame, 48, false);
+                fsd_set_bit(frame, 50, false);
+            }
             if(state->summon_unlock) {
                 fsd_set_bit(frame, 47, true); // summon enable (ev-open-can-tools summon-eu-unlock)
             }
@@ -267,6 +277,12 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
             }
             if(state->assist_show_lane_graph) {
                 fsd_set_bit(frame, 45, true);
+            }
+            // AP branch/tier selector (experimental, non-persistent): UI_apmv3Branch
+            // bits 40-42 = byte5 bits 0-2. 0xFF sentinel = OFF (leave untouched).
+            if(state->apmv3_branch <= 5) {
+                frame->buffer[5] =
+                    (uint8_t)((frame->buffer[5] & ~0x07) | (state->apmv3_branch & 0x07));
             }
             state->nag_suppressed = true;
             modified = true;
@@ -290,6 +306,13 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
         }
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
+            // Telemetry Off (experimental): clear reachable DAS_autopilotControl
+            // mux1 telemetry flags — bit48 UI_enableCabinCameraTelemetry,
+            // bit50 UI_autopilotTelemetryInChina. Plain bit-clears, no checksum.
+            if(state->assist_telemetry_off) {
+                fsd_set_bit(frame, 48, false);
+                fsd_set_bit(frame, 50, false);
+            }
             // HW4 sets bit47 (summon enable) unconditionally here (pre-existing),
             // so the summon_unlock toggle is effectively always-on for HW4 on this
             // build. The toggle's real effect is on the HW3 path above; ESP32 gates
@@ -300,6 +323,12 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
             }
             if(state->assist_show_lane_graph) {
                 fsd_set_bit(frame, 45, true);
+            }
+            // AP branch/tier selector (experimental, non-persistent): UI_apmv3Branch
+            // bits 40-42 = byte5 bits 0-2. 0xFF sentinel = OFF (leave untouched).
+            if(state->apmv3_branch <= 5) {
+                frame->buffer[5] =
+                    (uint8_t)((frame->buffer[5] & ~0x07) | (state->apmv3_branch & 0x07));
             }
             state->nag_suppressed = true;
             modified = true;
@@ -724,9 +753,37 @@ bool fsd_handle_driver_assist_override(FSDState* state, CANFRAME* frame) {
         fsd_set_bit(frame, 41, false);
         modified = true;
     }
-    // bit43: UI_enableTripTelemetry = 0 (disable trip data collection)
+    // bit40-41: UI_drivingSide = 2 (RHD) — mutually exclusive with LHD above
+    if(state->assist_rhd_override) {
+        fsd_set_bit(frame, 40, false);
+        fsd_set_bit(frame, 41, true);
+        modified = true;
+    }
+    // Telemetry Off (experimental) — clear the reachable UI_driverAssistControl
+    // telemetry-enable flags on 0x3F8. Plain bit-clears, no checksum on this frame.
+    //   bit19 UI_enableClipParkedTelemetry
+    //   bit42 UI_enableClipTelemetry
+    //   bit43 UI_enableTripTelemetry
+    //   bit44 UI_enableRoadSegmentTelemetry
+    //   bit55 UI_enableClipStartStopTelemetry
+    // Source: ev-open-can-tools disable-telemetry.json (GPL-3.0).
+    //
+    // DELIBERATELY OUT OF SCOPE (documented so coverage is honest, not silently
+    // truncated):
+    //   * 0x389 DAS_status2 bits 13/34/35 — clearing these requires recomputing the
+    //     frame counter (byte6 mask 0xF0) + Tesla checksum; deferred to avoid emitting
+    //     invalid frames.
+    //   * 0x3B3 VCSEC and the ~11 *_alertMatrix *_a030_ECULogUploadRequest frames
+    //     (0x340/341/342/360/3BA/3C0/3C8/3CD/3CE/3CF) — these live on the Vehicle CAN
+    //     bus, which this tool does not reliably tap; injecting them on a Chassis/Party
+    //     tap does nothing. Reaching them needs Vehicle-bus access first.
+    // This is a REACHABLE SUBSET only and does NOT guarantee reduced detection.
     if(state->assist_telemetry_off) {
+        fsd_set_bit(frame, 19, false);
+        fsd_set_bit(frame, 42, false);
         fsd_set_bit(frame, 43, false);
+        fsd_set_bit(frame, 44, false);
+        fsd_set_bit(frame, 55, false);
         modified = true;
     }
 

@@ -1359,11 +1359,15 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         return;
     }
 
-    // Follow distance → speed_profile (0x3F8), no TX
+    // Follow distance → speed_profile (0x3F8). Parse is read-only; the RHD
+    // driving-side override (#66) may modify a copy and re-TX when enabled.
     if (frame.id == CAN_ID_FOLLOW_DIST) {
+        CanFrame f = frame;
         state_enter();
         fsd_handle_follow_distance(&g_state, &frame);
+        bool modified = fsd_handle_driver_assist_override(&g_state, &f);
         state_exit();
+        if (modified && tx) send_on_bus(bus, f);
         return;
     }
 
