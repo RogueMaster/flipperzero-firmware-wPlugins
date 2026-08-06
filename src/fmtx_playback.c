@@ -11,7 +11,7 @@
 #define MINIMP3_IMPLEMENTATION
 #define MINIMP3_ONLY_MP3
 #define MINIMP3_NO_SIMD
-#include "../third_party/minimp3/minimp3.h"
+#include "../lib/minimp3/minimp3.h"
 
 #define INSZ 8192U
 #define STACKSZ (24U * 1024U)
