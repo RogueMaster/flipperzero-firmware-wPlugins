@@ -109,10 +109,8 @@ void recon_scene_ble_on_enter(void* context) {
 
     ble_list_view_set_ok_callback(app->ble_list_view, ble_view_ok_cb, app);
 
-    // scan_session_start keeps the live link across a detail-view round-trip
-    // (idempotent; see scan_session.h / bug B1) and returns true only on a FRESH
-    // start -- exactly the signal used here to decide whether the table gets
-    // cleared.
+    // Returns true only on a genuinely FRESH session -- exactly the signal used
+    // here to decide whether the table gets cleared.
     //
     // It used to reset unconditionally, every on_enter, which fires again on a
     // plain Back from the detail screen (scene re-entry re-runs on_enter, same
@@ -124,6 +122,13 @@ void recon_scene_ble_on_enter(void* context) {
     // marking a device from BLE/Tracker and the Locator having nothing to home
     // on. Same root cause as the Net Guardian data-loss bug (issue #5): clearing
     // a live table on scene entry rather than only on a genuinely fresh session.
+    //
+    // v0.69 added this gate and it did NOT fix the symptom, because the gate was
+    // reading a signal that was always true: the scene's own on_exit tore the
+    // link down on the way INTO the detail screen, so every Back re-entered with
+    // app->esp == NULL and "fresh" fired every time (measured: fresh=1 on a Back,
+    // 36 devices wiped). The gate only became meaningful once the link stopped
+    // being owned by this scene at all -- see helpers/scan_session.h.
     bool fresh_start = scan_session_start(app);
     if(fresh_start) {
         furi_mutex_acquire(app->mutex, FuriWaitForever);
@@ -186,6 +191,7 @@ bool recon_scene_ble_on_event(void* context, SceneManagerEvent event) {
 
 void recon_scene_ble_on_exit(void* context) {
     ReconApp* app = context;
-    scan_session_stop(app);
+    // No scan_session_stop here -- the SDK calls this when the detail screen is
+    // opened too. The Main Menu's on_enter owns the teardown (scan_session.h).
     app->settings.backend = app->saved_backend;
 }

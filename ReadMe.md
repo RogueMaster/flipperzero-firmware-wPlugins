@@ -105,10 +105,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Maze 3D v6.11.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [Specter v2.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Added: [FlipFlash v0.1 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
-- Updated: [DeFlock v0.69 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Tesla Mod v2.16b24 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Hotspot Arcade v1.7 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
+- NFC: [Fix Type 4 Tag read edge case for cards not supporting specific EF in DF select mode (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/25a10b1931e3770730b11a937f219febc9fb014d)
+- Updated: [DeFlock v0.70 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -484,7 +485,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DCF77 Clock Spoof v1.4 (By mdaskalov & molodos)](https://github.com/mdaskalov/dcf77-clock-sync)
 - [DCF77 Transmitter v2.0 (By arha)](https://github.com/arha/flipper-dcf77)
 - [Deauther PWNDTOOLS V2.6.0 (By HEX0DAYS)](https://github.com/HEX0DAYS/FlipperZero-PWNDTOOLS) `Req: ESP8266` [Original](https://github.com/SpacehuhnTech/esp8266_deauther)
-- [DeFlock v0.69 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- [DeFlock v0.70 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)

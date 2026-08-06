@@ -17,36 +17,46 @@ static void recon_scene_flock_ok_cb(void* context, int selected_index) {
 void recon_scene_flock_on_enter(void* context) {
     ReconApp* app = context;
 
-    flock_view_reset(app->flock_view);
     flock_view_set_ok_callback(app->flock_view, recon_scene_flock_ok_cb, app);
 
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->esp_connected = false;
-    app->esp_deauths = 0;
-    app->deauth_count = 0;
-    app->esp_frames = 0; // per-session frame/hit counters start at 0...
-    app->esp_hits = 0;
-    app->esp_frame_rate = -1; // no honest rate until two status lines land
-    app->esp_frames_prev = 0;
-    app->esp_rate_tick = 0;
-    app->esp_ble_seen = 0;
-    app->esp_ble_scans = 0;
-    app->alert_fired = 0;
-    app->warn_dismissed = false;
-    app->esp_reboots = 0;
-    app->esp_rebase = true; // ...and rebase off the companion's lifetime total
-    furi_mutex_release(app->mutex);
-
     // ESP first so it claims its UART (and disables the expansion manager) before
-    // GPS. scan_session_start is idempotent across a detail-view Back re-entry
-    // (see scan_session.h / bug B1) and returns true only on a FRESH start, so the
-    // dual-band kickoff is sent exactly once.
-    if(scan_session_start(app)) {
-        // On the companion firmware, run dual-band (WiFi + BLE) Flock detection.
-        // Marauder can't do this -> it stays WiFi-only via the generic backend.
-        if(app->settings.backend == EspBackendCompanion) {
-            esp_link_send(app->esp, "flockcombo");
-        }
+    // GPS. Returns true only on a genuinely FRESH session -- entered from the
+    // Main Menu, which is also the only place the link is now torn down. A Back
+    // from the detail screen re-runs this on_enter with the link still live, so
+    // fresh_start is false there and the per-session counters below survive.
+    bool fresh_start = scan_session_start(app);
+
+    if(fresh_start) {
+        // Scroll/selection is per-session UI state: resetting it on every
+        // on_enter threw the user back to the top of the list every time they
+        // looked at a detection and pressed Back.
+        flock_view_reset(app->flock_view);
+
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->esp_connected = false;
+        app->esp_deauths = 0;
+        app->deauth_count = 0;
+        app->esp_frames = 0; // per-session frame/hit counters start at 0...
+        app->esp_hits = 0;
+        app->esp_frame_rate = -1; // no honest rate until two status lines land
+        app->esp_frames_prev = 0;
+        app->esp_rate_tick = 0;
+        app->esp_ble_seen = 0;
+        app->esp_ble_scans = 0;
+        app->alert_fired = 0;
+        app->warn_dismissed = false;
+        app->esp_reboots = 0;
+        app->esp_rebase = true; // ...and rebase off the companion's lifetime total
+        furi_mutex_release(app->mutex);
+    }
+
+    // Kickoff goes out on EVERY enter, fresh or not: the detail screen can open
+    // the Locator, which sends `stop` and idles the board. Coming back to a live
+    // link but an idle companion would look exactly like a dead scan. The
+    // command is an idempotent mode-select, so re-sending it just re-arms.
+    // Marauder can't do dual-band -> it stays WiFi-only via the generic backend.
+    if(app->settings.backend == EspBackendCompanion) {
+        esp_link_send(app->esp, "flockcombo");
     }
     scan_session_gps_start(app);
 
@@ -75,6 +85,8 @@ bool recon_scene_flock_on_event(void* context, SceneManagerEvent event) {
 }
 
 void recon_scene_flock_on_exit(void* context) {
-    ReconApp* app = context;
-    scan_session_stop(app);
+    UNUSED(context);
+    // Deliberately does NOT stop the scan session: the SDK calls this on the way
+    // INTO the detail child as well as on a real exit, and it cannot tell the
+    // two apart. The Main Menu's on_enter owns the teardown (scan_session.h).
 }

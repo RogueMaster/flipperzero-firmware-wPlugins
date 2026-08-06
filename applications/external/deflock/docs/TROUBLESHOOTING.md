@@ -5,9 +5,24 @@ with your board, firmware version, Board Mode, and what the screen said.
 
 ## The app won't load
 
-**"API mismatch" / the app refuses to start.** A firmware update bumped the Flipper API
-past the one the release was built against (currently **87.1**). Rebuild from source with
-`ufbt`, or wait for a release targeting the new API. See
+**"App is old" / "API mismatch" / the app refuses to start.** Almost always the wrong
+download rather than an outdated release. A `.fap` records the API version it was built
+against, and the loader refuses one that does not match your firmware. Releases carry one
+file per firmware family:
+
+| Your firmware | Download | API |
+|---|---|---|
+| Official (OFW) | `flipdeflock.fap` | 87.1 |
+| Momentum | `flipdeflock-momentum.fap` | 87.1 |
+| Unleashed | `flipdeflock-unleashed.fap` | 88.2 |
+| RogueMaster | `flipdeflock-unleashed.fap` | 88.2 |
+
+"App is old" specifically means the app's API is BELOW the firmware's, which is what you
+get installing the OFW file on Unleashed or RogueMaster. The opposite message, asking you
+to update the firmware, means the app's API is ahead of it.
+
+If your firmware is not in the table, or it has bumped its API since the last release
+here, build from source with `ufbt`. See
 [Build from source](../README.md#build-from-source).
 
 **The app crashes or won't open after a flash-heavy session.** The `.fap` loads entirely

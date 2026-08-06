@@ -73,7 +73,9 @@ void recon_scene_locator_on_enter(void* context) {
         const FlockEntry* e = &app->flock[i];
         if(!e->marked) continue;
         if(e->ssid[0])
-            snprintf(buf, sizeof(buf), "Flock %s", e->ssid);
+            // Bounds stated rather than left to snprintf's clamp: "Flock " + 21
+            // + NUL is exactly buf. Same cut as before, no behaviour change.
+            snprintf(buf, sizeof(buf), "Flock %.21s", e->ssid);
         else
             snprintf(buf, sizeof(buf), "Flock %02X%02X%02X", e->mac[3], e->mac[4], e->mac[5]);
         loc_add(e->mac, (e->ftype == 'L') ? 'b' : 'w', e->channel, buf);
@@ -82,7 +84,7 @@ void recon_scene_locator_on_enter(void* context) {
         const WifiAp* a = &app->wifi[i];
         if(!a->marked) continue;
         if(a->ssid[0])
-            snprintf(buf, sizeof(buf), "AP %s", a->ssid);
+            snprintf(buf, sizeof(buf), "AP %.24s", a->ssid);
         else
             snprintf(buf, sizeof(buf), "AP %02X%02X%02X", a->bssid[3], a->bssid[4], a->bssid[5]);
         loc_add(a->bssid, 'w', a->channel, buf);
@@ -92,7 +94,8 @@ void recon_scene_locator_on_enter(void* context) {
         if(!d->marked) continue;
         const char* ty = loc_ble_kind(d->cat);
         if(d->name[0])
-            snprintf(buf, sizeof(buf), "%s %s", ty, d->name);
+            // 19 leaves room for the longest loc_ble_kind() ("Flipper") + space.
+            snprintf(buf, sizeof(buf), "%s %.19s", ty, d->name);
         else
             snprintf(buf, sizeof(buf), "%s %02X%02X%02X", ty, d->addr[3], d->addr[4], d->addr[5]);
         loc_add(d->addr, 'b', 0, buf);

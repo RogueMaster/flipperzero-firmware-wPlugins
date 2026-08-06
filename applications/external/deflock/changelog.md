@@ -1,19 +1,83 @@
 # Changelog
 
+## v0.70
+**Opening a detail screen stopped the scan and cleared the table behind it.**
+Every scan screen, not just BLE. v0.69 aimed at this and missed; the entry below
+is corrected.
+
+### Fixed
+
+- **Looking at a detection no longer destroys it.** `scene_manager_next_scene()`
+  calls the outgoing screen's `on_exit` before it opens the child, so pressing OK
+  on any device tore the ESP link down on the way IN. Wi-Fi scanning, BLE
+  scanning, deauth detection and the GPS relay were all offline app-wide for as
+  long as a detail screen was open, and the Back that followed came back to no
+  link at all. Every "is this a fresh scan?" test read that as a new session and
+  cleared the table. Measured on hardware: BLE/Tracker lost 36 devices and the
+  tag just set on one of them, and Net Guardian lost its Wi-Fi count and reset
+  its threat score, every single time. The board answers the next request from
+  its own cache within a fraction of a second, so the counts looked healthy again
+  moments later, which is how this survived two releases.
+
+  The link is now owned by the app rather than by a screen. It is released when
+  you genuinely return to the Main Menu, or when the app exits, and it stays up
+  across a detail round-trip. Net Guardian's baseline reset was gated on nothing
+  at all and is now gated too. Flock Map was never affected: it opens no child
+  screen.
+- **Returning from the Locator no longer leaves the board idle.** The Locator
+  tells the companion to stop, and the scan screens used to be restarted by the
+  link being rebuilt underneath them. With the link surviving, each screen
+  re-sends its own start command on entry instead.
+- **A scan you never started can no longer overwrite saved hits** with an empty
+  table.
+- **The Flock list keeps your place.** It reset to the top of the list every time
+  you looked at a detection and came back.
+
+### Added
+
+- **A `.fap` for each firmware, not just official.** A `.fap` records the API it
+  was built against and the loader refuses one that does not match, so the single
+  file shipped until now only ever worked on API 87.1. Unleashed and RogueMaster
+  are on 88.2 and were being told the app was old. It was not; the API was.
+  Releases now carry `flipdeflock.fap` (official), `flipdeflock-unleashed.fap`
+  (Unleashed and RogueMaster) and `flipdeflock-momentum.fap`. README and
+  [Troubleshooting](docs/TROUBLESHOOTING.md) have a table telling you which one
+  is yours. Thanks to [@nickk02](https://github.com/nickk02).
+
+### Changed
+
+- **Label formatting is explicitly bounded**, so the app builds on SDKs that
+  enable `-Wformat-truncation`. The evil-twin row now keeps the `[OPEN] AABBCC`
+  tail that names which access point is the open one, instead of a long network
+  name eating it. Thanks to [@nickk02](https://github.com/nickk02).
+- **The release checksum job waits for every companion image** before hashing,
+  rather than only the WROOM one. Two images are attached by two independent
+  jobs, so a `SHA256SUMS.txt` that looked complete could have omitted the C5
+  build. **The API drift check reads the right column** of the SDK's
+  `api_symbols.csv`; it had been comparing a status field to a version number and
+  so could never have reported real drift. Thanks to
+  [@nickk02](https://github.com/nickk02).
+
 ## v0.69
+> **Correction (v0.70):** the BLE fix below did not hold. It gated the table
+> clear on a "fresh session" signal that was always true, because the screen's
+> own `on_exit` tore the link down on the way into the detail view. Tagging a
+> device and pressing Back still cleared the table. Fixed properly in v0.70.
+
 **Marking a device sent it to the Locator, and the Locator had nothing to home
 on.** The tag was being thrown away one keypress after it was made.
 
 ### Fixed
 
-- **A tagged device survives a Back press.** The BLE screen cleared its whole
-  table in `on_enter`, and scene re-entry re-runs `on_enter` -- which is exactly
-  what a plain Back from the detail screen does. So tagging a device and stepping
-  back reset the table before the mark was visible to anything else. The Locator
-  reads that table, so it never saw a tag, because making one always costs a Back
-  press. It now clears only on a genuinely fresh scan session, the same signal the
-  Flock, Flock Map and Guardian screens already gated on. Same root cause as the
-  Net Guardian data loss in issue #5.
+- **A tagged device survives a Back press.** *(This did not work; see the
+  correction above.)* The BLE screen cleared its whole table in `on_enter`, and
+  scene re-entry re-runs `on_enter` -- which is exactly what a plain Back from the
+  detail screen does. So tagging a device and stepping back reset the table before
+  the mark was visible to anything else. The Locator reads that table, so it never
+  saw a tag, because making one always costs a Back press. It now clears only on a
+  genuinely fresh scan session, the same signal the Flock, Flock Map and Guardian
+  screens already gated on. Same root cause as the Net Guardian data loss in
+  issue #5.
 
 ### Added
 

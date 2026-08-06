@@ -43,8 +43,14 @@ and only from there. Every release publishes `SHA256SUMS.txt` alongside its asse
 check your download against it:
 
 ```sh
-sha256sum -c SHA256SUMS.txt
+sha256sum --ignore-missing -c SHA256SUMS.txt
 ```
+
+`SHA256SUMS.txt` lists every asset on the release, and you have probably downloaded
+only some of them (there is one `.fap` per firmware). `--ignore-missing` checks what
+you actually have; without it the command reports `FAILED` for the assets you skipped
+and exits non-zero, which looks exactly like the failure it is meant to detect. A
+genuine mismatch still fails, which is the case that matters.
 
 A copy that does not match, or that came from anywhere else, is not an official build.
 That does not automatically make it malicious — but this is counter-surveillance

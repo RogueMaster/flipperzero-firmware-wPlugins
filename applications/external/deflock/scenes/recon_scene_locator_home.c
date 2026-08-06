@@ -75,7 +75,11 @@ bool recon_scene_locator_home_on_event(void* context, SceneManagerEvent event) {
 
 void recon_scene_locator_home_on_exit(void* context) {
     ReconApp* app = context;
-    if(app->esp) esp_link_send(app->esp, "stop"); // end locate mode on the companion
-    scan_session_stop(app);
+    // End locate mode, but leave the LINK up: this scene can be a child of Flock
+    // Detail or the Guardian's Suspicious list, and freeing the link here used
+    // to kill the scan the user was going back to. `stop` idles the companion,
+    // which is why every scan scene re-sends its kickoff on entry. The Main
+    // Menu's on_enter owns the teardown (see helpers/scan_session.h).
+    if(app->esp) esp_link_send(app->esp, "stop");
     widget_reset(app->widget);
 }

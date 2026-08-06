@@ -49,52 +49,66 @@ void recon_scene_guardian_on_enter(void* context) {
     }
     app->guardian_blocked = false;
 
-    // Fresh baseline so the guardian starts honestly CLEAR rather than off the
-    // tail of a previous scan.
-    //
-    // The Flock table is deliberately NOT cleared here. It used to be, and that
-    // destroyed the operator's detections: opening Net Guardian wiped every hit
-    // the Flock screen had collected, including the ones restored from hits.csv,
-    // and leaving Net Guardian then persisted the empty table over the file. A
-    // user lost a drive's worth of hits in the field to exactly this, and a
-    // reboot could not bring them back (issue #5).
-    //
-    // It was never needed for scoring either: recon_app_watchscore_tick() skips
-    // archived entries outright and gates live ones on WATCH_FLOCK_FRESH_MS, so a
-    // stale detection already cannot raise the guardian. The clear bought nothing
-    // and cost the user their data.
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->ble_count = 0;
-    app->wifi_count = 0;
-    app->deauth_count = 0;
-    app->esp_deauths = 0;
-    app->esp_attack_tick = 0; // no attack-tool signature carried in from a prior run
-    app->esp_frames = 0;
-    app->esp_hits = 0;
-    app->esp_frame_rate = -1; // no honest rate until two status lines land
-    app->esp_frames_prev = 0;
-    app->esp_rate_tick = 0;
-    app->esp_ble_seen = 0;
-    app->esp_ble_scans = 0;
-    app->alert_fired = 0;
-    app->warn_dismissed = false;
-    app->esp_reboots = 0;
-    app->esp_rebase = true; // per-session rebase off the companion's lifetime total
-    app->esp_connected = false;
-    furi_mutex_release(app->mutex);
-
-    watchscore_init(&app->watch);
-    app->guardian_since = furi_get_tick();
-    app->guardian_phase = 0;
-    app->guardian_phase_mark = app->guardian_since;
-
     // ESP first so it claims its UART; GPS only if it's on a different port.
-    // scan_session_start keeps the live link across the Sus detail round-trip
-    // (idempotent; see scan_session.h / bug B1) and returns true only on a FRESH
-    // start, so the first sweep phase is kicked off exactly once.
-    if(scan_session_start(app)) {
-        esp_link_send(app->esp, GUARD_PHASES[0].cmd);
+    // Returns true only on a genuinely FRESH session (entered from the Main
+    // Menu, the only place the link is torn down now). Everything below that
+    // destroys collected data is gated on it.
+    //
+    // This gate is new in the B7 fix and is the whole point of it here. The
+    // baseline reset used to run UNCONDITIONALLY on every on_enter -- and
+    // on_enter re-runs on a plain Back from the Suspicious list. Measured on
+    // hardware over three Sus visits: wifi_count 14 -> 0 (and it never came
+    // back, because the sweep had already moved off its wifiscan phase) and the
+    // fused score 30 -> 0. The operator's evidence, deleted by looking at it.
+    bool fresh_start = scan_session_start(app);
+
+    if(fresh_start) {
+        // Fresh baseline so the guardian starts honestly CLEAR rather than off
+        // the tail of a previous scan.
+        //
+        // The Flock table is deliberately NOT cleared here. It used to be, and
+        // that destroyed the operator's detections: opening Net Guardian wiped
+        // every hit the Flock screen had collected, including the ones restored
+        // from hits.csv, and leaving Net Guardian then persisted the empty table
+        // over the file. A user lost a drive's worth of hits in the field to
+        // exactly this, and a reboot could not bring them back (issue #5).
+        //
+        // It was never needed for scoring either: recon_app_watchscore_tick()
+        // skips archived entries outright and gates live ones on
+        // WATCH_FLOCK_FRESH_MS, so a stale detection already cannot raise the
+        // guardian. The clear bought nothing and cost the user their data.
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->ble_count = 0;
+        app->wifi_count = 0;
+        app->deauth_count = 0;
+        app->esp_deauths = 0;
+        app->esp_attack_tick = 0; // no attack-tool signature carried in from a prior run
+        app->esp_frames = 0;
+        app->esp_hits = 0;
+        app->esp_frame_rate = -1; // no honest rate until two status lines land
+        app->esp_frames_prev = 0;
+        app->esp_rate_tick = 0;
+        app->esp_ble_seen = 0;
+        app->esp_ble_scans = 0;
+        app->alert_fired = 0;
+        app->warn_dismissed = false;
+        app->esp_reboots = 0;
+        app->esp_rebase = true; // per-session rebase off the companion's lifetime total
+        app->esp_connected = false;
+        furi_mutex_release(app->mutex);
+
+        watchscore_init(&app->watch);
+        app->guardian_since = furi_get_tick();
+        app->guardian_phase = 0;
+        app->guardian_phase_mark = app->guardian_since;
     }
+
+    // (Re)arm the companion on EVERY enter, in whatever phase the rotating sweep
+    // is currently on -- not always phase 0. Returning from the Suspicious list
+    // must not restart the sweep, but it must not leave the board idle either:
+    // the Sus list can open the Locator, which sends `stop`. These are
+    // idempotent mode-selects, so re-sending the current phase just re-arms it.
+    esp_link_send(app->esp, GUARD_PHASES[app->guardian_phase].cmd);
     scan_session_gps_start(app);
 
     guardian_view_set_ok_callback(app->guardian_view, recon_scene_guardian_ok_cb, app);
@@ -135,6 +149,9 @@ bool recon_scene_guardian_on_event(void* context, SceneManagerEvent event) {
 
 void recon_scene_guardian_on_exit(void* context) {
     ReconApp* app = context;
-    scan_session_stop(app);
+    // No scan_session_stop here: the SDK also calls this when the Suspicious
+    // list is opened, so tearing the link down here killed the monitor every
+    // time the user inspected what it had found. The Main Menu's on_enter owns
+    // the teardown (see helpers/scan_session.h).
     widget_reset(app->widget);
 }

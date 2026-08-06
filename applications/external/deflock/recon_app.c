@@ -8,6 +8,7 @@
 #include "helpers/detect_rules.h"
 #include "helpers/flock_store.h"
 #include "helpers/tracker_rules.h"
+#include "helpers/scan_session.h"
 
 #include <math.h>
 #include <string.h>
@@ -1341,6 +1342,13 @@ int32_t recon_site_survey_app(void* arg) {
 
     scene_manager_next_scene(app->scene_manager, ReconSceneStart);
     view_dispatcher_run(app->view_dispatcher);
+
+    // Backstop for any exit path that does not pass back through the Main Menu:
+    // the link is owned by the app, not by a scene, so the app is what must
+    // guarantee the UART is released and the hits are written. Runs while
+    // app->storage and app->mutex are still alive, and no-ops if the menu
+    // already tore the session down.
+    scan_session_stop(app);
 
     recon_app_free(app);
     return 0;

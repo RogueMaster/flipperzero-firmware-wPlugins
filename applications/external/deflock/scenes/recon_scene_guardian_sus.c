@@ -79,7 +79,8 @@ void recon_scene_guardian_sus_on_enter(void* context) {
         if(!flip && !anom) continue;
         if(flip) {
             if(d->name[0])
-                snprintf(buf, sizeof(buf), "Flipper %s", d->name);
+                // "Flipper " + 19 + NUL fills buf exactly; same cut as before.
+                snprintf(buf, sizeof(buf), "Flipper %.19s", d->name);
             else
                 snprintf(
                     buf, sizeof(buf), "Flipper %02X%02X%02X", d->addr[3], d->addr[4], d->addr[5]);
@@ -107,10 +108,15 @@ void recon_scene_guardian_sus_on_enter(void* context) {
                            (a->authmode == WIFI_AUTH_MODE_WEP)  ? "WEP" :
                                                                   "sec";
         if(a->ssid[0])
+            // Bound the SSID at 8 so the tail survives. Unbounded, snprintf
+            // clamps the WHOLE string at 27 chars, and a long SSID therefore ate
+            // the "[OPEN] AABBCC" that this row exists to show -- naming which
+            // BSSID is the open one is the entire point of the message, so the
+            // name is the field that gives way. 5 + 8 + 2 + 4 + 2 + 6 = 27.
             snprintf(
                 buf,
                 sizeof(buf),
-                "Twin %s [%s] %02X%02X%02X",
+                "Twin %.8s [%s] %02X%02X%02X",
                 a->ssid,
                 kind,
                 a->bssid[3],

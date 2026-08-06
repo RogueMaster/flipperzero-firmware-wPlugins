@@ -35,6 +35,13 @@ void scan_session_gps_start(void* _app) {
 
 void scan_session_stop(void* _app) {
     ReconApp* app = _app;
+    // Nothing running -> nothing to tear down, and crucially nothing to persist.
+    // This is called from recon_scene_start_on_enter(), which also runs once at
+    // launch before any scan has happened; without this guard that first call
+    // would write an EMPTY table straight over the hits.csv recon_hits_load()
+    // had just restored -- issue #5's exact failure, from the other direction.
+    if(!app->esp && !app->gps) return;
+
     if(app->esp) {
         esp_link_stop(app->esp);
         esp_link_free(app->esp);
@@ -46,10 +53,11 @@ void scan_session_stop(void* _app) {
         app->gps = NULL;
     }
     // Persist the detections this scan collected (opt-in; a no-op when the
-    // setting is off). Every scan scene's on_exit funnels through here, so one
-    // call site covers Flock, Flock Map, Net Guardian, WiFi, BLE and Locator --
-    // including the case that prompted the request: backing straight out of the
-    // app after a scan. Done AFTER the links are torn down, so the write can't
-    // race a still-running ESP worker.
+    // setting is off). Both call sites -- the Main Menu's on_enter and the app
+    // teardown -- funnel through here, so one call site still covers Flock,
+    // Flock Map, Net Guardian, WiFi, BLE and Locator, including the case that
+    // prompted the request: backing straight out of the app after a scan. Done
+    // AFTER the links are torn down, so the write can't race a still-running
+    // ESP worker.
     recon_hits_save(app);
 }

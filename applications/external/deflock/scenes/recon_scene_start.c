@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (c) 2026 ReconGrunt
 #include "../recon_app_i.h"
+#include "../helpers/scan_session.h"
 
 typedef enum {
     StartItemFlock,
@@ -60,6 +61,17 @@ static void recon_scene_start_update_header(ReconApp* app) {
 
 void recon_scene_start_on_enter(void* context) {
     ReconApp* app = context;
+
+    // Reaching the Main Menu is the ONE moment we know the user has genuinely
+    // left a scan feature -- a List->Detail hop never comes through here. So
+    // this is where the ESP/GPS link is released (freeing the UART for the
+    // flasher) and the session's detections are persisted. A scan scene's
+    // on_exit cannot do it: the SDK calls that on the way INTO a Detail child
+    // too, which is what killed scanning mid-feature and wiped live tables on
+    // Back (see helpers/scan_session.h). No-op at launch and on every menu
+    // visit where no scan ran.
+    scan_session_stop(app);
+
     Submenu* submenu = app->submenu;
     submenu_reset(submenu);
     recon_scene_start_update_header(app);

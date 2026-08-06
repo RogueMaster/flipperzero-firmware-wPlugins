@@ -30,7 +30,9 @@ anything substantial.
 - **Correctness over features.** A false positive is worse than a missed detection.
   Don't trade precision for recall without good reason.
 - **Detections are indicators, not proof.** Never over-claim in UI text, reports, or docs.
-- Target **API 87.1**; it must build with both `ufbt` and `fbt`.
+- It must build against **every SDK in the release matrix** (official, Unleashed and
+  Momentum, currently APIs 87.1 and 88.2), with both `ufbt` and `fbt`. CI builds all
+  three on every push, so a change that only compiles on one will show up there.
 - Keep it lean — the `.fap` loads entirely into the Flipper's ~256 KB of RAM.
 
 ## Before you open a PR

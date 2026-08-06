@@ -18,8 +18,9 @@ transmitted unless you press it. Detections are indicators, not proof: OUI-only
 matches are possible, not confirmed, so verify by eye. Use it only where you are
 authorized to.
 
-Builds against Flipper API 87.1, shared by current stock OFW and
-[Momentum](https://github.com/Next-Flip/Momentum-Firmware).
+Built for stock OFW, [Unleashed](https://github.com/DarkFlippers/unleashed-firmware),
+[Momentum](https://github.com/Next-Flip/Momentum-Firmware) and RogueMaster. Pick the
+file that matches your firmware; see [Install](#install).
 
 **Free, and staying that way.** If FlipDeFlock is useful to you, crypto donations fund
 development, test hardware, and the legal costs of mapping surveillance infrastructure.
@@ -41,19 +42,41 @@ Bitcoin is also scannable from the Flipper itself: **FlipDeFlock → Support**.
 
 ## Install
 
-Download `flipdeflock.fap` from the [latest release](../../releases/latest), copy
-it to `apps/Tools/` on your Flipper's SD card, and launch **FlipDeFlock** from the
-Tools menu. Every push also builds a fresh `.fap` as a CI artifact under the
-**Actions** tab.
+Grab the file for your firmware from the [latest release](../../releases/latest),
+copy it to `apps/Tools/` on your Flipper's SD card, and launch **FlipDeFlock** from
+the Tools menu.
 
-Releases also carry `SHA256SUMS.txt`. If you got your copy anywhere other than this
-repository's releases page, check it — `sha256sum -c SHA256SUMS.txt` — and see
+| Your firmware | Download | API |
+|---|---|---|
+| Official (OFW) | `flipdeflock.fap` | 87.1 |
+| Momentum | `flipdeflock-momentum.fap` | 87.1 |
+| Unleashed | `flipdeflock-unleashed.fap` | 88.2 |
+| RogueMaster | `flipdeflock-unleashed.fap` | 88.2 |
+
+A `.fap` records the API version it was built against, and the firmware refuses to
+load one that does not match. **If your Flipper says the app is old, you have the
+wrong file, not an old app.** It is the API that is old, not the release. Take the
+matching row above. RogueMaster tracks Unleashed and reports the same API, so the
+Unleashed build is the one to use there.
+
+Every push also builds all three as CI artifacts under the **Actions** tab.
+
+Releases also carry `SHA256SUMS.txt`, covering every asset. If you got your copy
+anywhere other than this repository's releases page, check it:
+
+```sh
+sha256sum --ignore-missing -c SHA256SUMS.txt
+```
+
+`--ignore-missing` checks the files you actually downloaded. Without it the command
+reports `FAILED` for every asset you did not take and exits non-zero, which reads as
+"your download is bad" when nothing is wrong. A genuine mismatch still fails. See
 [TRADEMARK.md](TRADEMARK.md#verifying-an-official-build).
 
-If a newer firmware bumps the API and the app refuses to load ("API mismatch"),
-rebuild it with `ufbt` — see [Build from source](#build-from-source). Other common
-problems — UART busy, no detections, GPS no-fix, flasher errors — are covered in
-[Troubleshooting](docs/TROUBLESHOOTING.md).
+If your firmware is not listed, or it bumps its API before the next release here,
+build it yourself with `ufbt`; see [Build from source](#build-from-source). Other
+common problems (UART busy, no detections, GPS no-fix, flasher errors) are covered
+in [Troubleshooting](docs/TROUBLESHOOTING.md).
 
 ## Hardware
 
@@ -254,10 +277,16 @@ the code and confirm the behavior yourself.
 
 ## What's new
 
-**v0.69** - **A tagged device no longer un-tags itself on Back.** Marking a device
-sent it to the Locator, but the mark was cleared one keypress later, so the Locator
-had nothing to home on. Adds explicit **Ping** and **Ring** actions for a validated
-tracker, and `SHA256SUMS.txt` on every release so an official build can be verified.
+**v0.70** - **Looking at a detection no longer destroys it.** Opening any device's
+detail screen took the ESP link down on the way in, so Wi-Fi, BLE, deauth and GPS
+were all offline while you read it, and pressing Back cleared the table you had
+just been looking at. Affected every scan screen, and v0.69's fix for it did not
+hold. There is now a `.fap` per firmware, so Unleashed and RogueMaster users no
+longer get "app is old" from a file that was never built for them.
+
+**v0.69** - **Ping and Ring for a validated tracker**, plus `SHA256SUMS.txt` on
+every release so an official build can be verified. Its headline fix, a tagged
+device surviving a Back press, did not actually work; that is fixed in v0.70.
 
 **v0.68** - **The Locator now gives a usable closer/farther reading.** It showed the
 last raw RSSI sample, which swings too hard to follow; it shows the smoothed level
@@ -524,7 +553,8 @@ field data. The most useful contributions are **field reports and signatures** (
 Flock/ALPR OUIs, SSID/BLE patterns, probe IE fingerprints — and detections that
 misfired), **board support** reports, and code.
 
-Ground rules: passive recon only, correctness over features, API 87.1, and keep it lean.
+Ground rules: passive recon only, correctness over features, it builds on every SDK in
+the release matrix, and keep it lean.
 Full details, the DCO sign-off requirement, and contribution licensing are in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
