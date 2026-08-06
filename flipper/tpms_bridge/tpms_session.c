@@ -1,0 +1,179 @@
+#include "tpms_session.h"
+#include "tpms_preset.h"
+#include "tpms_lf.h"
+
+#include <furi.h>
+#include <furi_hal.h>
+#include <lib/subghz/devices/devices.h>
+#include <lib/subghz/devices/cc1101_int/cc1101_int_interconnect.h>
+#include <toolbox/level_duration.h>
+
+#define TAG "TpmsSession"
+
+/** Ёмкость буфера интервалов. FSK-шум идёт плотным потоком, поэтому
+ * запас нужен заметный: при 20 kBaud это примерно 0.1 с эфира. */
+#define TPMS_STREAM_CAPACITY 2048
+
+/** Сколько интервалов забираем из буфера за один заход. */
+#define TPMS_PUMP_BATCH 128
+
+struct TpmsSession {
+    const SubGhzDevice* device;
+    FuriStreamBuffer* stream;
+    TpmsRenaultDecoder* decoder;
+
+    TpmsSessionFrameCallback frame_callback;
+    void* frame_context;
+
+    TpmsSessionRawCallback raw_callback;
+    void* raw_context;
+
+    volatile uint32_t overruns;
+    bool running;
+
+    /* Буфер разбора держим здесь, а не на стеке: pump() зовут из потока
+     * CLI-команды, а там стек скромный. */
+    LevelDuration batch[TPMS_PUMP_BATCH];
+};
+
+static void tpms_session_capture_callback(bool level, uint32_t duration, void* context) {
+    /* Контекст прерывания: только положить в буфер, ничего тяжёлого. */
+    TpmsSession* session = context;
+    const LevelDuration level_duration = level_duration_make(level, duration);
+    if(furi_stream_buffer_send(session->stream, &level_duration, sizeof(LevelDuration), 0) !=
+       sizeof(LevelDuration)) {
+        session->overruns++;
+    }
+}
+
+static void tpms_session_frame_callback(const uint8_t* raw, void* context) {
+    TpmsSession* session = context;
+    TpmsRenaultFrame frame;
+    if(!tpms_renault_parse(raw, &frame)) return;
+    if(session->frame_callback) session->frame_callback(&frame, session->frame_context);
+}
+
+TpmsSession* tpms_session_alloc(void) {
+    TpmsSession* session = malloc(sizeof(TpmsSession));
+    memset(session, 0, sizeof(TpmsSession));
+
+    session->stream =
+        furi_stream_buffer_alloc(sizeof(LevelDuration) * TPMS_STREAM_CAPACITY, sizeof(LevelDuration));
+    session->decoder = tpms_renault_decoder_alloc(tpms_session_frame_callback, session);
+    return session;
+}
+
+void tpms_session_free(TpmsSession* session) {
+    furi_check(session);
+    if(session->running) tpms_session_stop(session);
+    tpms_renault_decoder_free(session->decoder);
+    furi_stream_buffer_free(session->stream);
+    free(session);
+}
+
+void tpms_session_set_frame_callback(
+    TpmsSession* session,
+    TpmsSessionFrameCallback callback,
+    void* context) {
+    furi_check(session);
+    session->frame_callback = callback;
+    session->frame_context = context;
+}
+
+void tpms_session_set_raw_callback(
+    TpmsSession* session,
+    TpmsSessionRawCallback callback,
+    void* context) {
+    furi_check(session);
+    session->raw_callback = callback;
+    session->raw_context = context;
+}
+
+bool tpms_session_start(TpmsSession* session, uint32_t frequency) {
+    furi_check(session);
+    furi_check(!session->running);
+
+    subghz_devices_init();
+    session->device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME);
+    if(!session->device) {
+        FURI_LOG_E(TAG, "no cc1101_int device");
+        subghz_devices_deinit();
+        return false;
+    }
+
+    if(!subghz_devices_is_frequency_valid(session->device, frequency)) {
+        FURI_LOG_E(TAG, "frequency %lu is not valid", frequency);
+        subghz_devices_deinit();
+        session->device = NULL;
+        return false;
+    }
+
+    subghz_devices_begin(session->device);
+    subghz_devices_reset(session->device);
+    subghz_devices_idle(session->device);
+    subghz_devices_load_preset(session->device, FuriHalSubGhzPresetCustom, (uint8_t*)tpms_fsk_preset);
+    subghz_devices_set_frequency(session->device, frequency);
+
+    session->overruns = 0;
+    furi_stream_buffer_reset(session->stream);
+    tpms_renault_decoder_reset(session->decoder);
+
+    subghz_devices_start_async_rx(session->device, tpms_session_capture_callback, session);
+    session->running = true;
+    return true;
+}
+
+void tpms_session_stop(TpmsSession* session) {
+    furi_check(session);
+    if(!session->running) return;
+
+    subghz_devices_stop_async_rx(session->device);
+    subghz_devices_idle(session->device);
+    subghz_devices_sleep(session->device);
+    subghz_devices_end(session->device);
+    subghz_devices_deinit();
+
+    session->device = NULL;
+    session->running = false;
+}
+
+size_t tpms_session_pump(TpmsSession* session, uint32_t timeout_ms) {
+    furi_check(session);
+
+    const size_t received =
+        furi_stream_buffer_receive(
+            session->stream, session->batch, sizeof(session->batch), timeout_ms) /
+        sizeof(LevelDuration);
+
+    for(size_t i = 0; i < received; i++) {
+        const bool level = level_duration_get_level(session->batch[i]);
+        const uint32_t duration = level_duration_get_duration(session->batch[i]);
+
+        tpms_renault_decoder_feed(session->decoder, level, duration);
+        if(session->raw_callback) session->raw_callback(level, duration, session->raw_context);
+    }
+    return received;
+}
+
+void tpms_session_wake_pulse(TpmsSession* session, uint32_t duration_ms) {
+    furi_check(session);
+
+    tpms_lf_field_start();
+    const uint32_t deadline = furi_get_tick() + furi_ms_to_ticks(duration_ms);
+    while(furi_get_tick() < deadline) {
+        /* Приём продолжается: ответ датчика приходит сразу после активации. */
+        tpms_session_pump(session, 20);
+    }
+    tpms_lf_field_stop();
+}
+
+float tpms_session_get_rssi(TpmsSession* session) {
+    furi_check(session);
+    if(!session->running) return 0.0f;
+    return subghz_devices_get_rssi(session->device);
+}
+
+uint32_t tpms_session_get_overruns(TpmsSession* session) {
+    furi_check(session);
+    return session->overruns;
+}
