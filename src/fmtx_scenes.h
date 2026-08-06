@@ -44,6 +44,8 @@ typedef enum {
 typedef struct {
     uint32_t elapsed_ms;
     uint32_t pause_ms;
+    uint32_t frequency_hz;
+    uint32_t scroll;
     uint8_t gain;
     bool filter;
     bool tx;

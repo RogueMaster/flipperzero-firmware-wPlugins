@@ -143,13 +143,29 @@ static void about_show_logo(App* app) {
     view_dispatcher_switch_to_view(app->dispatcher, VPlay);
 }
 
+static void draw_filename(Canvas* canvas, const PlayModel* model, const char* title) {
+    uint16_t width = canvas_string_width(canvas, title);
+    if(width <= 124U) {
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, title);
+        return;
+    }
+
+    uint32_t scroll = model->scroll > 10U ? model->scroll - 10U : 0U;
+    scroll %= width + 16U;
+    int32_t x = 2 - (int32_t)scroll;
+    canvas_draw_str_aligned(canvas, x, 32, AlignLeft, AlignCenter, title);
+    canvas_draw_str_aligned(canvas, x + width + 16, 32, AlignLeft, AlignCenter, title);
+}
+
 void playdraw(Canvas* canvas, void* model) {
     PlayModel* m = model;
     char elapsed[12];
+    char frequency[20];
     char g[16];
     char f[20];
     const char* title = m->filename;
     uint32_t secs = m->elapsed_ms / 1000U;
+    uint32_t khz;
     if(m->tx && txdraw(canvas, m->elapsed_ms)) return;
     if(m->paused) {
         uint32_t phase = m->pause_ms % 1200U;
@@ -161,13 +177,23 @@ void playdraw(Canvas* canvas, void* model) {
         "%02lu:%02lu",
         (unsigned long)(secs / 60U),
         (unsigned long)(secs % 60U));
+    khz = (m->frequency_hz + 500U) / 1000U;
+    snprintf(
+        frequency,
+        sizeof(frequency),
+        "%lu.%03lu MHz",
+        (unsigned long)(khz / 1000U),
+        (unsigned long)(khz % 1000U));
     snprintf(g, sizeof(g), "Gain: %u%s", m->gain / 2, m->gain & 1 ? ".5x" : "x");
     snprintf(f, sizeof(f), "Down: filt %s", m->filter ? "on" : "off");
     canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 25, AlignCenter, AlignCenter, title);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignCenter, elapsed);
+    canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignBottom, "github.com/yo3gnd/fmtx");
+    canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignBottom, elapsed);
+    canvas_set_font(canvas, FontPrimary);
+    draw_filename(canvas, m, title);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, frequency);
     canvas_draw_str(canvas, 2, 62, g);
     canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, f);
 }
@@ -196,6 +222,8 @@ static bool startsong(App* app, bool paused) {
                   fmtx_playback_start(app->playback, &req);
     m->elapsed_ms = fmtx_playback_position_ms(app->playback);
     m->pause_ms = 0;
+    m->frequency_hz = app->frequency_hz;
+    m->scroll = 0;
     m->gain = fmtx_playback_gain(app->playback);
     m->filter = fmtx_playback_filter_enabled(app->playback);
     m->tx = fmtx_playback_is_transmitting(app->playback);
@@ -463,6 +491,7 @@ static bool playev(void* ctx, SceneManagerEvent ev) {
         m->tx = fmtx_playback_is_transmitting(app->playback);
         m->paused = paused;
         m->pause_ms = paused ? furi_get_tick() - app->pause_started : 0;
+        m->scroll++;
         view_commit_model(app->playback_view, true);
         return true;
     }
