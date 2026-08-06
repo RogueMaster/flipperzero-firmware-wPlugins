@@ -57,6 +57,18 @@ static inline bool ha_json_int(const char* s, const char* key, int* out) {
     return true;
 }
 
+// Unsigned 32-bit decimal reader. Needed for the bundle CRC, which exceeds the signed
+// range ha_json_int accumulates into (that would be UB / a wrong value here).
+static inline bool ha_json_u32(const char* s, const char* key, uint32_t* out) {
+    const char* q = ha_json_find(s, key);
+    if(!q || *q < '0' || *q > '9') return false;
+    uint32_t v = 0;
+    while(*q >= '0' && *q <= '9')
+        v = v * 10u + (uint32_t)(*q++ - '0');
+    *out = v;
+    return true;
+}
+
 static inline bool ha_json_bool(const char* s, const char* key) {
     const char* q = ha_json_find(s, key);
     return q && strncmp(q, "true", 4) == 0;

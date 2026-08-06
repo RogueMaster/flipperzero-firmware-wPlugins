@@ -109,6 +109,7 @@ static void slice_to(const char* start, const char* end, char* out, size_t n) {
 
 bool ha_storage_load_manifest(HotspotArcadeApp* app) {
     app->asset_count = 0;
+    app->web_bundle_crc = 0; // set from the "/" object's "crc" if present (else always stream)
     FuriString* man = furi_string_alloc();
     // A user bundle in apps_data wins outright (all-or-nothing, so a hand-built bundle
     // is never half-served from the fap's copy); otherwise use the bundled one.
@@ -136,6 +137,9 @@ bool ha_storage_load_manifest(HotspotArcadeApp* app) {
                 if(!ha_json_str(tmp, "mime", a->mime, sizeof(a->mime)))
                     strlcpy(a->mime, "application/octet-stream", sizeof(a->mime));
                 a->gzip = ha_json_bool(tmp, "gzip");
+                uint32_t crc;
+                if(strcmp(a->path, "/") == 0 && ha_json_u32(tmp, "crc", &crc))
+                    app->web_bundle_crc = crc; // bundle identity for the skip-restream check
                 app->asset_count++;
             }
             p = end + 1;

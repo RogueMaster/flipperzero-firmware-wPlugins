@@ -13,8 +13,8 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="$REPO/sim/web"
 mkdir -p "$OUT"
 
-if ! command -v emcc >/dev/null 2>&1; then
-    echo "ERROR: emcc not found. Install emscripten (brew install emscripten)." >&2
+if ! command -v em++ >/dev/null 2>&1; then
+    echo "ERROR: em++ not found. Install emscripten (brew install emscripten)." >&2
     exit 1
 fi
 
@@ -27,7 +27,11 @@ if [ "${1:-}" = "--asan" ]; then
     echo "==> building with ASan/UBSan"
 fi
 
-emcc "$REPO/sim/engine/ha_sim.cpp" \
+# em++ (the C++ driver), not emcc (the C driver): ha_sim.cpp pulls in std::string via
+# the Arduino String shim, so it references operator new/delete. Newer emscripten's
+# emcc links only libc, leaving those undefined at wasm-ld time; em++ links libc++abi
+# where they live.
+em++ "$REPO/sim/engine/ha_sim.cpp" \
     -I "$REPO/sim/engine" \
     "${FLAGS[@]}" \
     -sMODULARIZE=1 \

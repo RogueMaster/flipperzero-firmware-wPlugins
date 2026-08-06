@@ -150,8 +150,12 @@ the games stay in sync.
   mini-browsers are too limited for WebSockets, so it is a "tap to open in your browser"
   handoff).
 - The Flipper streams the (gzipped) web bundle and content packs to the ESP over a
-  framed UART protocol, then orchestrates rounds. Real-time game traffic stays on the
-  ESP and never crosses the slow UART. Protocol: [docs/PROTOCOL.md](docs/PROTOCOL.md).
+  framed UART protocol, then orchestrates rounds. The web bundle is stored in a **LittleFS
+  flash partition** on the ESP and served from flash (so it costs no RAM and survives a
+  reboot); the Flipper re-streams it only when it changes — the board reports the bundle's
+  CRC in its beacon and the Flipper skips the transfer when it already matches. Real-time
+  game traffic stays on the ESP and never crosses the slow UART. Protocol:
+  [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 ## Install
 

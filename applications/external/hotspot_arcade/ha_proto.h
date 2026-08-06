@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41
 #define HA_FW_MAGIC_2 0x52
 #define HA_FW_MAGIC_3 0x43
-#define HA_FW_VERSION 18 // v18: Secrets, device identity, game-change vote, WYR agreement chart
+#define HA_FW_VERSION 19 // v19: web bundle in LittleFS flash + bundle CRC in PING (skip re-stream)
 
 // Flipper -> ESP
 #define HA_MSG_CLEAR_FILES   0x10

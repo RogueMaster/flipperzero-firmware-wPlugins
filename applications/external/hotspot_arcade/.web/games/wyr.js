@@ -156,12 +156,28 @@
       wrap.appendChild(col);
     }
 
-    // Mean of the per-round percentages, drawn at its true horizontal position:
-    // interpolated between the two bucket centres it falls between, so 62% sits
-    // just right of the 60% column instead of on top of it.
     var mean = 0;
     for (i = 0; i < pcts.length; i++) mean += pcts[i];
     mean /= pcts.length;
+
+    // The mean lies about BIMODAL data: half the rounds unanimous and half a dead split
+    // average to a 75% nobody actually felt (and with few voters those two extremes are the
+    // ONLY reachable values). When real mass sits at BOTH ends, hide the mean marker and
+    // name the shape instead of a meaningless middle.
+    var lo = ticks[0], hi = ticks[ticks.length - 1], atLo = 0, atHi = 0;
+    for (i = 0; i < pcts.length; i++) {
+      if (Math.round(pcts[i]) <= lo + 1) atLo++;
+      else if (Math.round(pcts[i]) >= hi - 1) atHi++;
+    }
+    var line = $("wyr-mean");
+    if (pcts.length >= 4 && atLo >= pcts.length / 3 && atHi >= pcts.length / 3) {
+      line.classList.add("hide");
+      $("wyr-verdict").textContent = t("wyr.verdict_polarized", { hi: atHi, lo: atLo });
+      return;
+    }
+
+    // Otherwise draw the mean at its true horizontal position, interpolated between the two
+    // bucket centres it falls between, so 62% sits just right of the 60% column.
     var slot = 0;
     if (mean >= ticks[ticks.length - 1]) slot = ticks.length - 1;
     else if (mean > ticks[0]) {
@@ -171,7 +187,6 @@
           break;
         }
     }
-    var line = $("wyr-mean");
     line.classList.remove("hide");
     line.style.left = (((slot + 0.5) / ticks.length) * 100).toFixed(2) + "%";
     $("wyr-mean-val").textContent = Math.round(mean) + "%";
