@@ -37,15 +37,23 @@ typedef enum
     FmtxPlaybackThread,
 } PlayErr;
 
+typedef enum
+{
+    PlaybackStopped,
+    PlaybackPlaying,
+    PlaybackPaused,
+    PlaybackSeeking,
+    PlaybackFinished,
+} PlaybackState;
+
 struct Play
 {
     FuriThread *th;
     Rf *rf;
     PlayReq req;
     volatile bool stop;
-    volatile bool on;
-    volatile bool paused;
-    volatile bool seek;
+    volatile PlaybackState state;
+    PlaybackState after_seek;
     volatile uint32_t err;
     uint32_t seekat;
     volatile uint32_t want;
@@ -65,6 +73,11 @@ struct Play
 static void seterr(Play *playback, PlayErr err)
 {
     if(playback->err == FmtxPlaybackOk) playback->err = err;
+}
+
+static bool isrunning(const Play *playback)
+{
+    return playback->state == PlaybackPlaying || playback->state == PlaybackPaused || playback->state == PlaybackSeeking;
 }
 
 static bool skipid3(File *file)
@@ -101,8 +114,8 @@ static bool pumpradio(Play *p)
 {
     while(!p->stop)
     {
-        if(p->seek) return true;
-        if(p->paused)
+        if(p->state == PlaybackSeeking) return true;
+        if(p->state == PlaybackPaused)
         {
             if(p->rf->on) rfpause(p->rf);
             furi_delay_tick(1U);
@@ -154,7 +167,7 @@ static bool outframe(Play *playback, const mp3d_sample_t *pcm, const mp3dec_fram
         rs->filled = 0;
         rs->sum = 0;
     }
-    for(int i = 0; i < samples && !playback->stop && !playback->seek; i++)
+    for(int i = 0; i < samples && !playback->stop && playback->state != PlaybackSeeking; i++)
     {
         int32_t mono = pcm[i * info->channels];
         uint32_t remaining = dsp_hz;
@@ -239,7 +252,7 @@ static int32_t playthread(void *ctx)
     mp3dec_init(decoder);
     while(!playback->stop)
     {
-        if(playback->seek)
+        if(playback->state == PlaybackSeeking)
         {
             __DMB();
             seek_frames = playback->seekfrm;
@@ -255,7 +268,7 @@ static int32_t playthread(void *ctx)
                 0
             };
             __DMB();
-            playback->seek = false;
+            playback->state = playback->after_seek;
         }
         if(!eof && buffered <= INSZ / 2U)
         {
@@ -388,8 +401,6 @@ done:
         if(playback->total && at > playback->total) at = playback->total;
         playback->ended = at;
     }
-    playback->paused = false;
-    playback->seek = false;
     playback->radio = false;
     if(file)
     {
@@ -401,7 +412,7 @@ done:
     free(pcm);
     free(input);
     __DMB();
-    playback->on = false;
+    playback->state = finished ? PlaybackFinished : PlaybackStopped;
     return 0;
 }
 
@@ -459,7 +470,7 @@ static uint32_t atframe(const Play *p, uint32_t at)
 static bool startat(Play *playback, const PlayReq *request, uint32_t at, bool paused)
 {
     bool same;
-    if(!playback || !request || playback->on) return false;
+    if(!playback || !request || isrunning(playback)) return false;
     if(playback->th)
     {
         furi_thread_join(playback->th);
@@ -476,7 +487,8 @@ static bool startat(Play *playback, const PlayReq *request, uint32_t at, bool pa
     if(playback->total && at > playback->total) at = playback->total;
     memcpy(&playback->req, request, sizeof(*request));
     playback->stop = false;
-    playback->paused = paused;
+    playback->state = paused ? PlaybackPaused : PlaybackPlaying;
+    playback->after_seek = playback->state;
     playback->err = FmtxPlaybackOk;
     playback->seekat = at;
     playback->want = at;
@@ -484,19 +496,16 @@ static bool startat(Play *playback, const PlayReq *request, uint32_t at, bool pa
     playback->ended = at;
     playback->ndec = 0;
     playback->nsent = at;
-    playback->seek = false;
     playback->radio = false;
     if(playback->total && at == playback->total)
     {
-        playback->paused = false;
+        playback->state = PlaybackFinished;
         return true;
     }
-    playback->on = true;
     playback->th = furi_thread_alloc_ex("FmtxDecode", STACKSZ, playthread, playback);
     if(!playback->th)
     {
-        playback->on = false;
-        playback->paused = false;
+        playback->state = PlaybackStopped;
         seterr(playback, FmtxPlaybackThread);
         return false;
     }
@@ -526,38 +535,40 @@ void fmtx_playback_stop(Play *playback)
         furi_thread_free(playback->th);
         playback->th = NULL;
     }
-    playback->on = false;
-    playback->paused = false;
+    playback->state = PlaybackStopped;
 }
 
 bool fmtx_playback_is_running(const Play *playback)
 {
     if(!playback) return false;
     __DMB();
-    return playback->on;
+    return isrunning(playback);
 }
 
 bool fmtx_playback_is_transmitting(const Play *playback)
 {
     if(!playback) return false;
     __DMB();
-    return playback->on && !playback->paused && !playback->seek && playback->radio && playback->rf->on;
+    return playback->state == PlaybackPlaying && playback->radio && playback->rf->on;
 }
 
 bool fmtx_playback_is_paused(const Play *playback)
 {
     if(!playback) return false;
     __DMB();
-    return playback->paused;
+    return playback->state == PlaybackPaused || (playback->state == PlaybackSeeking && playback->after_seek == PlaybackPaused);
 }
 
 bool fmtx_playback_toggle_pause(Play *playback)
 {
     PlayReq req;
     if(!playback || !playback->req.path[0]) return false;
-    if(playback->on)
+    if(isrunning(playback))
     {
-        playback->paused = !playback->paused;
+        if(playback->state == PlaybackSeeking)
+            playback->after_seek = playback->after_seek == PlaybackPaused ? PlaybackPlaying : PlaybackPaused;
+        else
+            playback->state = playback->state == PlaybackPaused ? PlaybackPlaying : PlaybackPaused;
         __DMB();
         return true;
     }
@@ -569,8 +580,8 @@ bool fmtx_playback_toggle_pause(Play *playback)
 static uint32_t playbackat(const Play *playback)
 {
     uint64_t at;
-    if(!playback->on) return playback->ended;
-    if(playback->seek) return playback->want;
+    if(!isrunning(playback)) return playback->ended;
+    if(playback->state == PlaybackSeeking) return playback->want;
     at = playback->seekat + (uint64_t)rfplayed(playback->rf);
     if(playback->total && at > playback->total) at = playback->total;
 
@@ -587,7 +598,7 @@ bool fmtx_playback_seek_frames(Play *playback, int32_t frames)
     if(!playback || !playback->req.path[0]) return false;
     if(frames < 0)
     {
-        paused = playback->paused;
+        paused = fmtx_playback_is_paused(playback);
         memcpy(&req, &playback->req, sizeof(req));
         fmtx_playback_stop(playback);
 
@@ -602,12 +613,13 @@ bool fmtx_playback_seek_frames(Play *playback, int32_t frames)
         uint32_t x1 = atframe(playback, playback->total);
         if(frame > x1) frame = x1;
     }
-    if((uint32_t)frame == oldframe || !playback->on) return true;
+    if((uint32_t)frame == oldframe || !isrunning(playback)) return true;
     playback->seekfrm = frame;
     playback->want = frameat(playback, frame);
     if(playback->total && playback->want > playback->total) playback->want = playback->total;
     __DMB();
-    playback->seek = true;
+    playback->after_seek = playback->state == PlaybackPaused ? PlaybackPaused : PlaybackPlaying;
+    playback->state = PlaybackSeeking;
     __DMB();
 
     return true;
