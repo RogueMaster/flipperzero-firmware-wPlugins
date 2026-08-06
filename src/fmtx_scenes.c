@@ -60,22 +60,22 @@ static bool ismp3(const char *x)
 static bool startsong(App *app, bool paused)
 {
     PlayReq req;
-    PlayModel *m = view_get_model(app->pv);
+    PlayModel *m = view_get_model(app->playback_view);
     const char *path = furi_string_get_cstr(app->path);
     const char *slash = strrchr(path, '/');
     bool ok;
     txrand();
-    playreq(&req, path, app->hz);
-    ok = paused ? playpaused(app->play, &req) : playstart(app->play, &req);
-    m->elapsed_ms = playms(app->play);
+    playreq(&req, path, app->frequency_hz);
+    ok = paused ? playpaused(app->playback, &req) : playstart(app->playback, &req);
+    m->elapsed_ms = playms(app->playback);
     m->pause_ms = 0;
-    m->gain = playgain(app->play);
-    m->filter = playfilter(app->play);
-    m->tx = playtx(app->play);
-    m->paused = ok && ispaused(app->play);
+    m->gain = playgain(app->playback);
+    m->filter = playfilter(app->playback);
+    m->tx = playtx(app->playback);
+    m->paused = ok && ispaused(app->playback);
     strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
-    if(m->paused) app->pauseat = furi_get_tick();
-    view_commit_model(app->pv, true);
+    if(m->paused) app->pause_started = furi_get_tick();
+    view_commit_model(app->playback_view, true);
 
     return ok;
 }
@@ -125,7 +125,7 @@ static bool movesong(App *app, int move)
     strlcpy(chosen, move < 0 ? prev[0] ? prev : last : next[0] ? next : first, sizeof(chosen));
     n = snprintf(path, sizeof(path), "%s/%s", folder, chosen);
     if(n < 0 || (size_t)n >= sizeof(path)) return false;
-    playstop(app->play);
+    playstop(app->playback);
     furi_string_set_str(app->path, path);
 
     return startsong(app, true);
@@ -133,10 +133,10 @@ static bool movesong(App *app, int move)
 
 static void checkhold(App *app)
 {
-    if(!app->holding || app->heldskip) return;
-    if(furi_get_tick() - app->holdat < furi_ms_to_ticks(2000U)) return;
-    app->heldskip = true;
-    (void)movesong(app, app->holdkey == InputKeyLeft ? -1 : 1);
+    if(!app->holding || app->hold_handled) return;
+    if(furi_get_tick() - app->hold_started < furi_ms_to_ticks(2000U)) return;
+    app->hold_handled = true;
+    (void)movesong(app, app->held_key == InputKeyLeft ? -1 : 1);
 }
 
 bool playinput(InputEvent *ev, void *ctx)
@@ -148,10 +148,10 @@ bool playinput(InputEvent *ev, void *ctx)
     {
         if(ev->type == InputTypePress)
         {
-            app->holdkey = ev->key;
-            app->holdat = furi_get_tick();
+            app->held_key = ev->key;
+            app->hold_started = furi_get_tick();
             app->holding = true;
-            app->heldskip = false;
+            app->hold_handled = false;
         }
         else if(ev->type == InputTypeLong || ev->type == InputTypeRepeat)
         {
@@ -164,16 +164,16 @@ bool playinput(InputEvent *ev, void *ctx)
         }
         else if(ev->type == InputTypeShort)
         {
-            if(!app->heldskip)
+            if(!app->hold_handled)
             {
-                if(ev->key == InputKeyLeft && ispaused(app->play) && playms(app->play) == 0) (void)movesong(app, -1);
-                else (void)playseek(app->play, ev->key == InputKeyLeft ? -1 : 128);
+                if(ev->key == InputKeyLeft && ispaused(app->playback) && playms(app->playback) == 0) (void)movesong(app, -1);
+                else (void)playseek(app->playback, ev->key == InputKeyLeft ? -1 : 128);
             }
-            m = view_get_model(app->pv);
-            m->elapsed_ms = playms(app->play);
-            m->tx = playtx(app->play);
-            m->paused = ispaused(app->play);
-            view_commit_model(app->pv, true);
+            m = view_get_model(app->playback_view);
+            m->elapsed_ms = playms(app->playback);
+            m->tx = playtx(app->playback);
+            m->paused = ispaused(app->playback);
+            view_commit_model(app->playback_view, true);
         }
         else
         {
@@ -182,28 +182,28 @@ bool playinput(InputEvent *ev, void *ctx)
         return true;
     }
     if(ev->type != InputTypeShort) return false;
-    m = view_get_model(app->pv);
-    if(ev->key == InputKeyUp) m->gain = gainup(app->play);
-    else if(ev->key == InputKeyDown) m->filter = filtertoggle(app->play);
+    m = view_get_model(app->playback_view);
+    if(ev->key == InputKeyUp) m->gain = gainup(app->playback);
+    else if(ev->key == InputKeyDown) m->filter = filtertoggle(app->playback);
     else if(ev->key == InputKeyOk)
     {
-        if(!playenter(app->play))
+        if(!playenter(app->playback))
         {
-            view_commit_model(app->pv, false);
+            view_commit_model(app->playback_view, false);
             return false;
         }
-        m->paused = ispaused(app->play);
+        m->paused = ispaused(app->playback);
         m->pause_ms = 0;
-        if(m->paused) app->pauseat = furi_get_tick();
-        m->elapsed_ms = playms(app->play);
+        if(m->paused) app->pause_started = furi_get_tick();
+        m->elapsed_ms = playms(app->playback);
     }
     else
     {
-        view_commit_model(app->pv, false);
+        view_commit_model(app->playback_view, false);
         return false;
     }
-    m->tx = playtx(app->play);
-    view_commit_model(app->pv, true);
+    m->tx = playtx(app->playback);
+    view_commit_model(app->playback_view, true);
     return true;
 }
 
@@ -216,15 +216,15 @@ void vfodraw(Canvas *canvas, void *model)
 bool vfoinput(InputEvent *ev, void *ctx)
 {
     App *app = ctx;
-    FmtxVfoViewModel *m = view_get_model(app->vv);
+    FmtxVfoViewModel *m = view_get_model(app->vfo_view);
     bool ok = false;
     bool h = fmtx_vfo_input(m->vfo, ev, &ok);
-    view_commit_model(app->vv, h);
+    view_commit_model(app->vfo_view, h);
     if(ok)
     {
-        app->hz = fmtx_vfo_frequency(app->vfo);
-        (void)cfgsave(app->hz);
-        view_dispatcher_send_custom_event(app->vd, FmtxVfoDone);
+        app->frequency_hz = fmtx_vfo_frequency(app->vfo);
+        (void)cfgsave(app->frequency_hz);
+        view_dispatcher_send_custom_event(app->dispatcher, FmtxVfoDone);
     }
     return h;
 }
@@ -232,13 +232,13 @@ bool vfoinput(InputEvent *ev, void *ctx)
 void abtback(GuiButtonType b, InputType t, void *ctx)
 {
     App *a = ctx;
-    if(t == InputTypeShort && b == GuiButtonTypeLeft) view_dispatcher_send_custom_event(a->vd, MAbout);
+    if(t == InputTypeShort && b == GuiButtonTypeLeft) view_dispatcher_send_custom_event(a->dispatcher, MAbout);
 }
 
 static void menucb(void *ctx, uint32_t id)
 {
     App *app = ctx;
-    view_dispatcher_send_custom_event(app->vd, id);
+    view_dispatcher_send_custom_event(app->dispatcher, id);
 }
 
 static void pickfile(App *app)
@@ -249,7 +249,7 @@ static void pickfile(App *app)
     dialog_file_browser_set_basic_options(&opts, ".mp3", NULL);
     opts.base_path = EXT_PATH("");
     opts.skip_assets = false;
-    if(out && at && dialog_file_browser_show(app->dlg, out, at, &opts)) furi_string_set(app->path, out);
+    if(out && at && dialog_file_browser_show(app->dialogs, out, at, &opts)) furi_string_set(app->path, out);
     if(at) furi_string_free(at);
     if(out) furi_string_free(out);
 }
@@ -262,21 +262,21 @@ static void mainin(void *ctx)
     submenu_add_item(app->menu, "Choose file", MFile, menucb, app);
     submenu_add_item(app->menu, "Settings", MSet, menucb, app);
     submenu_add_item(app->menu, "About", MAbout, menucb, app);
-    submenu_set_selected_item(app->menu, scene_manager_get_scene_state(app->sm, ScMain));
-    view_dispatcher_switch_to_view(app->vd, VMain);
+    submenu_set_selected_item(app->menu, scene_manager_get_scene_state(app->scene_manager, ScMain));
+    view_dispatcher_switch_to_view(app->dispatcher, VMain);
 }
 
 static void spin(void *x)
 {
     App *a = x;
-    PlayModel *m = view_get_model(a->pv);
+    PlayModel *m = view_get_model(a->playback_view);
     txrand();
-    a->spat = furi_get_tick();
+    a->splash_started = furi_get_tick();
     m->elapsed_ms = 0;
-    view_set_draw_callback(a->pv, spdraw);
-    view_set_input_callback(a->pv, NULL);
-    view_commit_model(a->pv, true);
-    view_dispatcher_switch_to_view(a->vd, VPlay);
+    view_set_draw_callback(a->playback_view, spdraw);
+    view_set_input_callback(a->playback_view, NULL);
+    view_commit_model(a->playback_view, true);
+    view_dispatcher_switch_to_view(a->dispatcher, VPlay);
 }
 
 static bool spev(void *x, SceneManagerEvent ev)
@@ -285,17 +285,17 @@ static bool spev(void *x, SceneManagerEvent ev)
     PlayModel *m;
     uint32_t t;
     if(ev.type != SceneManagerEventTypeTick) return false;
-    t = furi_get_tick() - a->spat;
+    t = furi_get_tick() - a->splash_started;
 
     if(t >= furi_ms_to_ticks(2500U))
     {
-        scene_manager_next_scene(a->sm, ScMain);
+        scene_manager_next_scene(a->scene_manager, ScMain);
         return true;
     }
 
-    m = view_get_model(a->pv);
+    m = view_get_model(a->playback_view);
     m->elapsed_ms = t;
-    view_commit_model(a->pv, true);
+    view_commit_model(a->playback_view, true);
 
 
     return true;
@@ -304,8 +304,8 @@ static bool spev(void *x, SceneManagerEvent ev)
 static void spout(void *x)
 {
     App *a = x;
-    view_set_draw_callback(a->pv, playdraw);
-    view_set_input_callback(a->pv, playinput);
+    view_set_draw_callback(a->playback_view, playdraw);
+    view_set_input_callback(a->playback_view, playinput);
 }
 
 static bool mainev(void *ctx, SceneManagerEvent ev)
@@ -313,14 +313,14 @@ static bool mainev(void *ctx, SceneManagerEvent ev)
     App *app = ctx;
     if(ev.type == SceneManagerEventTypeBack)
     {
-        view_dispatcher_stop(app->vd);
+        view_dispatcher_stop(app->dispatcher);
         return true;
     }
     if(ev.type != SceneManagerEventTypeCustom) return false;
-    if(ev.event == MStart) scene_manager_next_scene(app->sm, ScPlay);
+    if(ev.event == MStart) scene_manager_next_scene(app->scene_manager, ScPlay);
     else if(ev.event == MFile) pickfile(app);
-    else if(ev.event == MSet) scene_manager_next_scene(app->sm, FmtxSceneSettings);
-    else if(ev.event == MAbout) scene_manager_next_scene(app->sm, ScAbout);
+    else if(ev.event == MSet) scene_manager_next_scene(app->scene_manager, FmtxSceneSettings);
+    else if(ev.event == MAbout) scene_manager_next_scene(app->scene_manager, ScAbout);
     if(ev.event <= MAbout) return true;
     return false;
 }
@@ -328,16 +328,16 @@ static bool mainev(void *ctx, SceneManagerEvent ev)
 static void mainout(void *ctx)
 {
     App *app = ctx;
-    scene_manager_set_scene_state(app->sm, ScMain, submenu_get_selected_item(app->menu));
+    scene_manager_set_scene_state(app->scene_manager, ScMain, submenu_get_selected_item(app->menu));
     submenu_reset(app->menu);
 }
 
 static void playin(void *ctx)
 {
     App *app = ctx;
-    app->playing = true;
+    app->playback_visible = true;
     (void)startsong(app, false);
-    view_dispatcher_switch_to_view(app->vd, VPlay);
+    view_dispatcher_switch_to_view(app->dispatcher, VPlay);
 }
 
 static bool playev(void *ctx, SceneManagerEvent ev)
@@ -345,19 +345,19 @@ static bool playev(void *ctx, SceneManagerEvent ev)
     App *app = ctx;
     if(ev.type == SceneManagerEventTypeBack)
     {
-        scene_manager_previous_scene(app->sm);
+        scene_manager_previous_scene(app->scene_manager);
         return true;
     }
-    if(ev.type == SceneManagerEventTypeTick && app->playing)
+    if(ev.type == SceneManagerEventTypeTick && app->playback_visible)
     {
-        PlayModel *m = view_get_model(app->pv);
-        bool paused = ispaused(app->play);
-        if(paused && !m->paused) app->pauseat = furi_get_tick();
-        m->elapsed_ms = playms(app->play);
-        m->tx = playtx(app->play);
+        PlayModel *m = view_get_model(app->playback_view);
+        bool paused = ispaused(app->playback);
+        if(paused && !m->paused) app->pause_started = furi_get_tick();
+        m->elapsed_ms = playms(app->playback);
+        m->tx = playtx(app->playback);
         m->paused = paused;
-        m->pause_ms = paused ? furi_get_tick() - app->pauseat : 0;
-        view_commit_model(app->pv, true);
+        m->pause_ms = paused ? furi_get_tick() - app->pause_started : 0;
+        view_commit_model(app->playback_view, true);
         return true;
     }
     return false;
@@ -366,17 +366,17 @@ static bool playev(void *ctx, SceneManagerEvent ev)
 static void playout(void *ctx)
 {
     App *app = ctx;
-    app->playing = false;
+    app->playback_visible = false;
     app->holding = false;
-    playstop(app->play);
+    playstop(app->playback);
 }
 
 static void setin(void *ctx)
 {
     App *app = ctx;
-    submenu_set_header(app->setmenu, "Settings");
-    submenu_add_item(app->setmenu, "Transmit frequency", FmtxSettingsSetFrequency, menucb, app);
-    view_dispatcher_switch_to_view(app->vd, FmtxViewSettings);
+    submenu_set_header(app->settings_menu, "Settings");
+    submenu_add_item(app->settings_menu, "Transmit frequency", FmtxSettingsSetFrequency, menucb, app);
+    view_dispatcher_switch_to_view(app->dispatcher, FmtxViewSettings);
 }
 
 static bool setev(void *ctx, SceneManagerEvent ev)
@@ -384,12 +384,12 @@ static bool setev(void *ctx, SceneManagerEvent ev)
     App *app = ctx;
     if(ev.type == SceneManagerEventTypeBack)
     {
-        scene_manager_previous_scene(app->sm);
+        scene_manager_previous_scene(app->scene_manager);
         return true;
     }
     if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxSettingsSetFrequency)
     {
-        scene_manager_next_scene(app->sm, FmtxSceneVfo);
+        scene_manager_next_scene(app->scene_manager, FmtxSceneVfo);
         return true;
     }
     return false;
@@ -398,18 +398,18 @@ static bool setev(void *ctx, SceneManagerEvent ev)
 static void setout(void *ctx)
 {
     App *app = ctx;
-    submenu_reset(app->setmenu);
+    submenu_reset(app->settings_menu);
 }
 
 static void vfoin(void *ctx)
 {
     App *app = ctx;
     FmtxVfoViewModel *m;
-    fmtx_vfo_begin(app->vfo, app->hz);
-    m = view_get_model(app->vv);
+    fmtx_vfo_begin(app->vfo, app->frequency_hz);
+    m = view_get_model(app->vfo_view);
     m->vfo = app->vfo;
-    view_commit_model(app->vv, true);
-    view_dispatcher_switch_to_view(app->vd, FmtxViewVfo);
+    view_commit_model(app->vfo_view, true);
+    view_dispatcher_switch_to_view(app->dispatcher, FmtxViewVfo);
 }
 
 static bool vfoev(void *ctx, SceneManagerEvent ev)
@@ -417,14 +417,14 @@ static bool vfoev(void *ctx, SceneManagerEvent ev)
     App *app = ctx;
     if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxVfoDone)
     {
-        scene_manager_previous_scene(app->sm);
+        scene_manager_previous_scene(app->scene_manager);
         return true;
     }
     if(ev.type == SceneManagerEventTypeBack)
     {
-        app->hz = fmtx_vfo_accept(app->vfo);
-        (void)cfgsave(app->hz);
-        scene_manager_previous_scene(app->sm);
+        app->frequency_hz = fmtx_vfo_accept(app->vfo);
+        (void)cfgsave(app->frequency_hz);
+        scene_manager_previous_scene(app->scene_manager);
         return true;
     }
     return false;
@@ -438,7 +438,7 @@ static void vfoout(void *ctx)
 static void abtin(void *ctx)
 {
     App *a = ctx;
-    view_dispatcher_switch_to_view(a->vd, VAbout);
+    view_dispatcher_switch_to_view(a->dispatcher, VAbout);
 }
 
 static bool abtev(void *ctx, SceneManagerEvent ev)
@@ -446,7 +446,7 @@ static bool abtev(void *ctx, SceneManagerEvent ev)
     App *a = ctx;
     if(ev.type == SceneManagerEventTypeBack || (ev.type == SceneManagerEventTypeCustom && ev.event == MAbout))
     {
-        scene_manager_previous_scene(a->sm);
+        scene_manager_previous_scene(a->scene_manager);
         return true;
     }
     return false;

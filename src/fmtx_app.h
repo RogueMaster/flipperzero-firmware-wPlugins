@@ -16,25 +16,25 @@
 typedef struct
 {
     Gui *gui;
-    DialogsApp *dlg;
-    ViewDispatcher *vd;
-    SceneManager *sm;
+    DialogsApp *dialogs;
+    ViewDispatcher *dispatcher;
+    SceneManager *scene_manager;
     Submenu *menu;
-    Submenu *setmenu;
-    Widget *abt;
-    View *pv;
-    View *vv;
-    Play *play;
+    Submenu *settings_menu;
+    Widget *about_widget;
+    View *playback_view;
+    View *vfo_view;
+    Play *playback;
     FmtxVfo *vfo;
     FuriString *path;
-    uint32_t hz;
-    uint32_t spat;
-    uint32_t pauseat;
-    uint32_t holdat;
-    InputKey holdkey;
+    uint32_t frequency_hz;
+    uint32_t splash_started;
+    uint32_t pause_started;
+    uint32_t hold_started;
+    InputKey held_key;
     bool holding;
-    bool heldskip;
-    bool playing;
+    bool hold_handled;
+    bool playback_visible;
 } App;
 
 uint32_t cfgload(void);
