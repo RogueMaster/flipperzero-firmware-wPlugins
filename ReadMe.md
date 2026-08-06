@@ -111,6 +111,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Fix Type 4 Tag read edge case for cards not supporting specific EF in DF select mode (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/25a10b1931e3770730b11a937f219febc9fb014d)
 - Updated: [DeFlock v0.70 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Added: [Ethernet ENC28J60 v2.0 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-ENC28J60-ethernet/tree/f3b79ffc670f3f7b61dafe98a933f49e5d344e65)
+- Added: [Samsung AC Remote v1.0 (By dappermint)](https://github.com/dappermint/samsung-ac-remote-flipper-app)
 
 <a name="release"></a>
 
@@ -825,6 +826,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Rubiks Cube Timer v0.0.2 (By KHOPAN)](https://github.com/KHOPAN/Cuber-Zero)
 - [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
 - [SAM (By Unknown)][Original?](https://github.com/ctoth/SAM)
+- [Samsung AC Remote v1.0 (By dappermint)](https://github.com/dappermint/samsung-ac-remote-flipper-app)
 - [San Morse v1.0.1 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
 - [SD Info v0.1 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/SD-Info-For-Flipper-Zero)
 - [SD SPI v0.5 (By Gl1tchub)](https://github.com/Gl1tchub/Flipperzero-SD-SPI) `Req: External SD Board`
