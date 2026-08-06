@@ -86,10 +86,10 @@ static bool movesong(App *app, int move)
     char current[256];
     char name[256];
     char first[256] = "";
-    char x1[256] = "";
+    char last[256] = "";
     char prev[256] = "";
     char next[256] = "";
-    char pick[256];
+    char chosen[256];
     char path[256];
     const char *selected = furi_string_get_cstr(app->path);
     char *slash;
@@ -111,7 +111,7 @@ static bool movesong(App *app, int move)
     {
         if((info.flags & FSF_DIRECTORY) || !ismp3(name)) continue;
         if(!first[0] || strcmp(name, first) < 0) strlcpy(first, name, sizeof(first));
-        if(!x1[0] || strcmp(name, x1) > 0) strlcpy(x1, name, sizeof(x1));
+        if(!last[0] || strcmp(name, last) > 0) strlcpy(last, name, sizeof(last));
         if(strcmp(name, current) < 0 && (!prev[0] || strcmp(name, prev) > 0)) strlcpy(prev, name, sizeof(prev));
         if(strcmp(name, current) > 0 && (!next[0] || strcmp(name, next) < 0)) strlcpy(next, name, sizeof(next));
     }
@@ -122,8 +122,8 @@ static bool movesong(App *app, int move)
     }
     if(storage) furi_record_close(RECORD_STORAGE);
     if(!first[0]) return false;
-    strlcpy(pick, move < 0 ? prev[0] ? prev : x1 : next[0] ? next : first, sizeof(pick));
-    n = snprintf(path, sizeof(path), "%s/%s", folder, pick);
+    strlcpy(chosen, move < 0 ? prev[0] ? prev : last : next[0] ? next : first, sizeof(chosen));
+    n = snprintf(path, sizeof(path), "%s/%s", folder, chosen);
     if(n < 0 || (size_t)n >= sizeof(path)) return false;
     playstop(app->play);
     furi_string_set_str(app->path, path);

@@ -25,27 +25,27 @@ static void tickev(void *ctx)
 
 uint32_t cfgload(void)
 {
-    uint8_t b[4];
+    uint8_t data[4];
     uint32_t hz = fmtx_vfo_default_frequency();
-    Storage *sto = furi_record_open(RECORD_STORAGE);
-    File *f = sto ? storage_file_alloc(sto) : NULL;
-    if(f && storage_file_open(f, APP_DATA_PATH("config.bin"), FSAM_READ, FSOM_OPEN_EXISTING))
+    Storage *storage = furi_record_open(RECORD_STORAGE);
+    File *file = storage ? storage_file_alloc(storage) : NULL;
+    if(file && storage_file_open(file, APP_DATA_PATH("config.bin"), FSAM_READ, FSOM_OPEN_EXISTING))
     {
-        if(storage_file_size(f) == sizeof(b) && storage_file_read(f, b, sizeof(b)) == sizeof(b))
+        if(storage_file_size(file) == sizeof(data) && storage_file_read(file, data, sizeof(data)) == sizeof(data))
         {
-            uint32_t x = b[0] | ((uint32_t)b[1] << 8) | ((uint32_t)b[2] << 16) | ((uint32_t)b[3] << 24);
-            if(fmtx_vfo_frequency_valid(x)) hz = x;
+            uint32_t saved_hz = data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
+            if(fmtx_vfo_frequency_valid(saved_hz)) hz = saved_hz;
         }
-        storage_file_close(f);
+        storage_file_close(file);
     }
-    if(f) storage_file_free(f);
-    if(sto) furi_record_close(RECORD_STORAGE);
+    if(file) storage_file_free(file);
+    if(storage) furi_record_close(RECORD_STORAGE);
     return hz;
 }
 
 bool cfgsave(uint32_t hz)
 {
-    uint8_t b[4] =
+    uint8_t data[4] =
     {
         hz,
         hz >> 8,
@@ -53,20 +53,20 @@ bool cfgsave(uint32_t hz)
         hz >> 24,
     };
     bool ok = false;
-    Storage *sto;
-    File *f;
+    Storage *storage;
+    File *file;
     FS_Error err;
     if(!fmtx_vfo_frequency_valid(hz)) return false;
-    sto = furi_record_open(RECORD_STORAGE);
-    if(!sto) return false;
-    err = storage_common_mkdir(sto, APP_DATA_PATH(""));
-    f = storage_file_alloc(sto);
-    if((err == FSE_OK || err == FSE_EXIST) && f && storage_file_open(f, APP_DATA_PATH("config.bin"), FSAM_WRITE, FSOM_CREATE_ALWAYS))
+    storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return false;
+    err = storage_common_mkdir(storage, APP_DATA_PATH(""));
+    file = storage_file_alloc(storage);
+    if((err == FSE_OK || err == FSE_EXIST) && file && storage_file_open(file, APP_DATA_PATH("config.bin"), FSAM_WRITE, FSOM_CREATE_ALWAYS))
     {
-        ok = storage_file_write(f, b, sizeof(b)) == sizeof(b);
-        storage_file_close(f);
+        ok = storage_file_write(file, data, sizeof(data)) == sizeof(data);
+        storage_file_close(file);
     }
-    if(f) storage_file_free(f);
+    if(file) storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
     return ok;
 }
