@@ -2,7 +2,7 @@
   <img src="media/logo.png" width="560" alt="FlipDeFlock">
 </p>
 
-<p align="center"><em>"Snoop onto them as they snoop onto us."</em></p>
+<p align="center"><em>The Swiss Army knife of ALPR/Anti-Stalking apps.</em></p>
 
 FlipDeFlock is a Flipper Zero app that pairs the Flipper with an ESP32 board to
 survey the radio around you for surveillance hardware: Flock Safety / ALPR
