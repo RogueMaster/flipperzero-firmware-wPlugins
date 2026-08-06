@@ -1,4 +1,4 @@
-"""Главное окно приложения."""
+"""Main application window."""
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         self._refresh_ports()
 
     # ------------------------------------------------------------------
-    # Сборка интерфейса
+    # Building the interface
     # ------------------------------------------------------------------
 
     def _build_ui(self) -> None:
@@ -124,8 +124,8 @@ class MainWindow(QMainWindow):
         self.frequency_spin.setRange(300_000_000, 928_000_000)
         self.frequency_spin.setSingleStep(10_000)
         self.frequency_spin.setValue(DEFAULT_FREQUENCY)
-        # Разделитель разрядов в локали рисуется точкой и частота начинает
-        # читаться как дробное число — лучше без него.
+        # In this locale the digit group separator is a dot, which makes
+        # the frequency read like a fractional number — better without it.
         self.frequency_spin.setGroupSeparatorShown(False)
         bar.addWidget(self.frequency_spin)
 
@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
         return bar
 
     # ------------------------------------------------------------------
-    # Подключение
+    # Connection
     # ------------------------------------------------------------------
 
     def _refresh_ports(self) -> None:
@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
         self.status.showMessage("Отключено")
 
     # ------------------------------------------------------------------
-    # События
+    # Events
     # ------------------------------------------------------------------
 
     def _poll_events(self) -> None:
@@ -311,7 +311,7 @@ class MainWindow(QMainWindow):
             item = self.table.item(row, len(COLUMNS) - 1)
             item.setText("только что" if age < 2 else f"{int(age)} с назад")
 
-            # Молчащий датчик подсвечиваем, чтобы не спутать со свежим.
+            # Highlight a silent sensor so it is not mistaken for a fresh one.
             stale = age > STALE_AFTER_S
             for column in range(len(COLUMNS)):
                 cell = self.table.item(row, column)
@@ -359,7 +359,7 @@ class MainWindow(QMainWindow):
         self._refresh_chart()
 
     # ------------------------------------------------------------------
-    # Действия
+    # Actions
     # ------------------------------------------------------------------
 
     def _export_csv(self) -> None:
@@ -444,6 +444,6 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------
 
-    def closeEvent(self, event) -> None:  # noqa: N802 — имя из Qt
+    def closeEvent(self, event) -> None:  # noqa: N802 — the name comes from Qt
         self._disconnect()
         super().closeEvent(event)

@@ -1,5 +1,6 @@
 #include "tpms_bridge.h"
 #include "tpms_lf.h"
+#include "tpms_view.h"
 
 #include <furi.h>
 #include <gui/gui.h>
@@ -10,15 +11,15 @@
 
 #define TPMS_INPUT_QUEUE_SIZE 8
 
-void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame) {
+/** Pause before retrying to claim the radio, ms. */
+#define TPMS_RADIO_RETRY_MS 1000
+
+void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame, float rssi_dbm) {
     furi_check(app);
+
     furi_mutex_acquire(app->state_mutex, FuriWaitForever);
-    app->frames++;
-    app->last_id = frame->id;
-    app->last_pressure_raw = frame->pressure_raw;
-    app->last_temperature_c = frame->temperature_c;
-    app->last_frame_tick = furi_get_tick();
-    app->has_frame = true;
+    tpms_store_update(&app->store, frame, (int16_t)(rssi_dbm * 10.0f), furi_get_tick());
+    tpms_view_follow_selection(app);
     furi_mutex_release(app->state_mutex);
 
     if(app->view_port) view_port_update(app->view_port);
@@ -27,47 +28,7 @@ void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame)
 static void tpms_bridge_draw_callback(Canvas* canvas, void* context) {
     TpmsBridgeApp* app = context;
     furi_mutex_acquire(app->state_mutex, FuriWaitForever);
-
-    canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, "TPMS Bridge");
-
-    canvas_set_font(canvas, FontSecondary);
-
-    char line[48];
-    if(app->exit_blocked) {
-        canvas_draw_str(canvas, 2, 22, "Ждём завершения USB-сессии");
-    } else if(app->usb_streaming) {
-        canvas_draw_str(canvas, 2, 22, "USB: streaming");
-    } else if(app->local_rx) {
-        canvas_draw_str(canvas, 2, 22, "Local RX: on");
-    } else {
-        canvas_draw_str(canvas, 2, 22, "Idle - connect via USB");
-    }
-
-    snprintf(line, sizeof(line), "Frames: %lu", (unsigned long)app->frames);
-    canvas_draw_str(canvas, 2, 32, line);
-
-    if(app->has_frame) {
-        snprintf(line, sizeof(line), "ID %06lx", (unsigned long)app->last_id);
-        canvas_draw_str(canvas, 2, 42, line);
-
-        /* Давление в кПа = raw * 0.75; считаем целочисленно. */
-        const uint32_t kpa_x100 = (uint32_t)app->last_pressure_raw * 75UL;
-        snprintf(
-            line,
-            sizeof(line),
-            "%lu.%02lu kPa  %d C",
-            (unsigned long)(kpa_x100 / 100),
-            (unsigned long)(kpa_x100 % 100),
-            (int)app->last_temperature_c);
-        canvas_draw_str(canvas, 2, 52, line);
-    } else {
-        canvas_draw_str(canvas, 2, 42, "No frames yet");
-    }
-
-    canvas_draw_str(canvas, 2, 62, "OK:RX  Right:wake  Back:exit");
-
+    tpms_view_draw(canvas, app);
     furi_mutex_release(app->state_mutex);
 }
 
@@ -76,31 +37,42 @@ static void tpms_bridge_input_callback(InputEvent* event, void* context) {
     furi_message_queue_put(app->input_queue, event, FuriWaitForever);
 }
 
-/** Позволяет закрыть приложение снаружи: `loader close`, `ufbt launch`.
- * Без этого система умеет только просить нажать Back вручную. */
+/** Lets the app be closed from the outside: `loader close`, `ufbt launch`.
+ * Without this the system can only ask the user to press Back. */
 static bool tpms_bridge_signal_callback(uint32_t signal, void* arg, void* context) {
     UNUSED(arg);
     TpmsBridgeApp* app = context;
 
     if(signal != FuriSignalExit) return false;
 
+    /* From the list Back closes the app, from the detail screen it only
+     * goes back. Switch to the list first so that the signal always
+     * reaches its goal. */
+    furi_mutex_acquire(app->state_mutex, FuriWaitForever);
+    app->screen = TpmsScreenList;
+    furi_mutex_release(app->state_mutex);
+
     const InputEvent event = {.type = InputTypeShort, .key = InputKeyBack};
     furi_message_queue_put(app->input_queue, &event, 0);
     return true;
 }
 
-static void tpms_bridge_local_frame_callback(const TpmsRenaultFrame* frame, void* context) {
-    tpms_bridge_report_frame(context, frame);
+static void tpms_bridge_local_frame_callback(
+    const TpmsRenaultFrame* frame,
+    float rssi_dbm,
+    void* context) {
+    tpms_bridge_report_frame(context, frame, rssi_dbm);
 }
 
+/** Local reception: runs all the time unless the USB session has taken
+ * the radio. That is what makes the app useful in a car, with no
+ * computer attached. */
 static int32_t tpms_bridge_local_rx_thread(void* context) {
     TpmsBridgeApp* app = context;
 
     if(furi_mutex_acquire(app->radio_mutex, 0) != FuriStatusOk) {
         FURI_LOG_W(TAG, "radio busy, local rx cancelled");
-        furi_mutex_acquire(app->state_mutex, FuriWaitForever);
         app->local_rx = false;
-        furi_mutex_release(app->state_mutex);
         view_port_update(app->view_port);
         return 0;
     }
@@ -109,11 +81,19 @@ static int32_t tpms_bridge_local_rx_thread(void* context) {
     tpms_session_set_frame_callback(session, tpms_bridge_local_frame_callback, app);
 
     if(tpms_session_start(session, TPMS_DEFAULT_FREQUENCY)) {
-        while(app->local_rx && !app->stop_requested) {
-            if(app->wake_requested) {
+        uint32_t last_wake = 0;
+
+        while(app->local_rx && !app->stop_requested && !app->radio_yield_requested) {
+            const bool wake_due =
+                app->auto_wake && (last_wake == 0 ||
+                                   furi_get_tick() - last_wake > furi_ms_to_ticks(TPMS_LF_PERIOD_MS));
+
+            if(wake_due || app->wake_requested) {
                 app->wake_requested = false;
+                last_wake = furi_get_tick();
                 tpms_session_wake_pulse(session, TPMS_LF_PULSE_MS);
             }
+
             tpms_session_pump(session, 100);
         }
         tpms_session_stop(session);
@@ -124,55 +104,123 @@ static int32_t tpms_bridge_local_rx_thread(void* context) {
     tpms_session_free(session);
     furi_mutex_release(app->radio_mutex);
 
-    furi_mutex_acquire(app->state_mutex, FuriWaitForever);
     app->local_rx = false;
-    furi_mutex_release(app->state_mutex);
     view_port_update(app->view_port);
     return 0;
 }
 
 static void tpms_bridge_stop_local_rx(TpmsBridgeApp* app) {
-    if(!app->local_thread) return;
-
-    furi_mutex_acquire(app->state_mutex, FuriWaitForever);
     app->local_rx = false;
-    furi_mutex_release(app->state_mutex);
+    if(!app->local_thread) return;
 
     furi_thread_join(app->local_thread);
     furi_thread_free(app->local_thread);
     app->local_thread = NULL;
 }
 
-static void tpms_bridge_toggle_local_rx(TpmsBridgeApp* app) {
-    if(app->local_thread) {
-        tpms_bridge_stop_local_rx(app);
-        return;
+/** Keeps local reception running while the radio is free, and gets it out
+ * of the way once a USB session comes for the radio. */
+static void tpms_bridge_reconcile_radio(TpmsBridgeApp* app) {
+    if(app->local_thread && !app->local_rx) {
+        furi_thread_join(app->local_thread);
+        furi_thread_free(app->local_thread);
+        app->local_thread = NULL;
     }
 
-    if(app->usb_streaming) {
-        FURI_LOG_W(TAG, "usb session owns the radio");
+    if(app->local_thread) return;
+    if(app->stop_requested || app->radio_yield_requested || app->usb_streaming) return;
+
+    /* Back off between attempts: if the radio refuses to start, do not
+     * spin up the thread over and over. */
+    const uint32_t now = furi_get_tick();
+    if(app->radio_retry_tick != 0 && now - app->radio_retry_tick < furi_ms_to_ticks(TPMS_RADIO_RETRY_MS)) {
         return;
     }
+    app->radio_retry_tick = now;
 
-    furi_mutex_acquire(app->state_mutex, FuriWaitForever);
     app->local_rx = true;
-    furi_mutex_release(app->state_mutex);
-
-    app->local_thread =
-        furi_thread_alloc_ex("TpmsLocalRx", 2048, tpms_bridge_local_rx_thread, app);
+    app->local_thread = furi_thread_alloc_ex("TpmsLocalRx", 2048, tpms_bridge_local_rx_thread, app);
     furi_thread_start(app->local_thread);
 }
 
 static void tpms_bridge_wake_sensor(TpmsBridgeApp* app) {
-    /* Если приём идёт, импульс должен пройти без остановки приёмника:
-     * датчик отвечает сразу. Разбор крутит владелец сессии, поэтому здесь
-     * только поднимаем флаг. */
+    /* If reception is running the pulse must not stop the receiver: the
+     * sensor answers right away. Decoding is driven by the session owner,
+     * so all we do here is raise a flag. */
     if(app->local_thread || app->usb_streaming) {
         app->wake_requested = true;
         return;
     }
 
     tpms_lf_wake(TPMS_LF_PULSE_MS);
+}
+
+static void tpms_bridge_handle_input(TpmsBridgeApp* app, const InputEvent* event, bool* running) {
+    /* The wake pulse touches the hardware and may take almost a second —
+     * do not hold the state lock across it. */
+    if(event->key == InputKeyRight && event->type == InputTypeShort) {
+        tpms_bridge_wake_sensor(app);
+        return;
+    }
+
+    furi_mutex_acquire(app->state_mutex, FuriWaitForever);
+
+    /* Long OK clears the list: handy when moving from one car to another
+     * and the table still holds someone else's sensors. */
+    if(event->key == InputKeyOk && event->type == InputTypeLong) {
+        tpms_store_reset(&app->store);
+        app->selected = 0;
+        app->scroll = 0;
+        app->screen = TpmsScreenList;
+        furi_mutex_release(app->state_mutex);
+        return;
+    }
+
+    if(event->type != InputTypeShort) {
+        furi_mutex_release(app->state_mutex);
+        return;
+    }
+
+    switch(event->key) {
+    case InputKeyBack:
+        if(app->screen == TpmsScreenDetail) {
+            app->screen = TpmsScreenList;
+        } else {
+            *running = false;
+        }
+        break;
+
+    case InputKeyOk:
+        if(app->screen == TpmsScreenList) {
+            if(app->store.count > 0) app->screen = TpmsScreenDetail;
+        } else {
+            app->screen = TpmsScreenList;
+        }
+        break;
+
+    case InputKeyLeft:
+        if(app->screen == TpmsScreenDetail) {
+            app->screen = TpmsScreenList;
+        } else {
+            app->auto_wake = !app->auto_wake;
+        }
+        break;
+
+    case InputKeyUp:
+        if(app->selected > 0) app->selected--;
+        tpms_view_follow_selection(app);
+        break;
+
+    case InputKeyDown:
+        if(app->store.count > 0 && app->selected + 1 < app->store.count) app->selected++;
+        tpms_view_follow_selection(app);
+        break;
+
+    default:
+        break;
+    }
+
+    furi_mutex_release(app->state_mutex);
 }
 
 static TpmsBridgeApp* tpms_bridge_app_alloc(void) {
@@ -194,8 +242,8 @@ static TpmsBridgeApp* tpms_bridge_app_alloc(void) {
         furi_thread_get_current(), tpms_bridge_signal_callback, app);
 
     app->cli_registry = furi_record_open(RECORD_CLI);
-    /* Стек задаём явно: команда печатает форматированные строки и держит
-     * FuriString, а размер стека по умолчанию у CLI-команд невелик. */
+    /* Set the stack explicitly: the command formats strings and holds a
+     * FuriString, and the default CLI command stack is rather small. */
     cli_registry_add_command_ex(
         app->cli_registry,
         TPMS_CLI_COMMAND_NAME,
@@ -229,27 +277,21 @@ int32_t tpms_bridge_app(void* p) {
     InputEvent event;
     while(running) {
         if(furi_message_queue_get(app->input_queue, &event, 200) == FuriStatusOk) {
-            if(event.type != InputTypeShort) continue;
-
-            if(event.key == InputKeyBack) {
-                running = false;
-            } else if(event.key == InputKeyOk) {
-                tpms_bridge_toggle_local_rx(app);
-            } else if(event.key == InputKeyRight) {
-                tpms_bridge_wake_sensor(app);
-            }
+            tpms_bridge_handle_input(app, &event, &running);
         }
+
+        tpms_bridge_reconcile_radio(app);
         view_port_update(app->view_port);
     }
 
     tpms_bridge_stop_local_rx(app);
 
-    /* Пока CLI-команда крутится, её код лежит в этом .fap — выгружать
-     * приложение нельзя. Просим сессию завершиться и ждём.
+    /* While a CLI command is running its code lives in this .fap, so the
+     * app must not be unloaded. Ask the session to finish and wait.
      *
-     * Ждём ограниченное время: если сессия почему-то не отвечает, лучше
-     * зависнуть на экране с понятной надписью, чем выгрузить код из-под
-     * работающего потока. */
+     * Wait in bounded steps: if the session does not respond for some
+     * reason, staying on screen with a clear message beats pulling the
+     * code out from under a running thread. */
     app->stop_requested = true;
     uint32_t waited_ms = 0;
     while(app->cli_sessions > 0) {

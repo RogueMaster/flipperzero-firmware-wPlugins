@@ -1,3 +1,3 @@
-"""Чтение датчиков TPMS Renault 433 МГц через Flipper Zero."""
+"""Reading Renault 433 MHz TPMS sensors through a Flipper Zero."""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"

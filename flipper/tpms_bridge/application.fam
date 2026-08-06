@@ -7,6 +7,7 @@ App(
     stack_size=4 * 1024,
     fap_category="Sub-GHz",
     fap_icon="icon.png",
-    fap_description="Renault TPMS receiver, streams decoded frames to USB CLI",
-    fap_version="0.1",
+    fap_description="Reads Renault TPMS sensors: pressure, temperature, signal level",
+    fap_author="Vishov Vladimir",
+    fap_version="1.0",
 )

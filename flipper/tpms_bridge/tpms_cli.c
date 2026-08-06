@@ -10,18 +10,19 @@
 
 #define TAG "TpmsCli"
 
-/* Сколько интервалов копим в raw-режиме перед выводом. Держим порцию
- * небольшой: буфер pipe невелик, длинные строки только мешают. */
+/* How many intervals raw mode accumulates before printing. Keep the batch
+ * small: the pipe buffer is modest and long lines only get in the way. */
 #define TPMS_RAW_FLUSH_EVERY 24
 
-/* Сколько ждать места в буфере pipe на одну строку, мс. */
+/* How long to wait for pipe buffer space for a single line, ms. */
 #define TPMS_WRITE_TIMEOUT_MS 500
 
-/* Ограничение на raw-режим: без него FSK-шум забьёт канал за секунды. */
+/* Cap for raw mode: without it FSK noise floods the channel in seconds. */
 #define TPMS_RAW_MAX_INTERVALS 200000UL
 
-/* Если хост перестал читать на столько миллисекунд — считаем, что он ушёл,
- * и освобождаем радиомодуль. Иначе сессия висит вечно и держит его. */
+/* If the host stops reading for this many milliseconds we assume it is
+ * gone and release the radio. Otherwise the session hangs forever and
+ * keeps holding it. */
 #define TPMS_HOST_STALL_MS 5000
 
 #define TPMS_LINE_MAX 256
@@ -35,21 +36,21 @@ typedef struct {
     uint32_t raw_count;
     uint32_t raw_pending;
     uint32_t dropped;
-    uint32_t stall_since; /**< 0 — записи проходят */
+    uint32_t stall_since; /**< 0 means writes are getting through */
     FuriString* raw_buffer;
 } TpmsCliSession;
 
-/** Запись в CLI с ограниченным ожиданием.
+/** Write to the CLI with a bounded wait.
  *
- * Писать через printf нельзя: если хост отвалился, не закрыв команду,
- * буфер pipe переполняется и поток команды блокируется в записи навсегда,
- * удерживая радиомодуль.
+ * printf is not an option here: if the host went away without closing the
+ * command, the pipe buffer fills up and the command thread blocks in the
+ * write forever, holding the radio.
  *
- * Пишем порциями по свободному месту — буфер pipe заметно меньше строки
- * raw-режима, и требовать место под всю строку сразу означало бы
- * выбрасывать вообще всё. Если места нет дольше TPMS_WRITE_TIMEOUT_MS,
- * строка теряется, но управление возвращается, и цикл успевает заметить
- * Ctrl+C или уход хоста.
+ * We write in chunks that fit the free space — the pipe buffer is
+ * noticeably smaller than a raw mode line, and demanding room for the
+ * whole line at once would mean dropping everything. If there is no room
+ * for longer than TPMS_WRITE_TIMEOUT_MS the line is lost, but control
+ * returns and the loop gets a chance to notice Ctrl+C or a departed host.
  */
 static bool tpms_cli_emit(TpmsCliSession* cli, const char* text) {
     const char* cursor = text;
@@ -85,7 +86,7 @@ static void tpms_cli_emit_direct(PipeSide* pipe, const char* text) {
     pipe_send(pipe, text, strlen(text));
 }
 
-static void tpms_cli_print_frame(const TpmsRenaultFrame* frame, void* context) {
+static void tpms_cli_print_frame(const TpmsRenaultFrame* frame, float rssi_dbm, void* context) {
     TpmsCliSession* cli = context;
     cli->frames++;
 
@@ -97,10 +98,10 @@ static void tpms_cli_print_frame(const TpmsRenaultFrame* frame, void* context) {
     }
     raw_hex[sizeof(raw_hex) - 1] = '\0';
 
-    /* Только целые числа: printf прошивки не обязан уметь %f.
-     * Давление отдаём в сотых долях кПа (raw * 0.75 * 100 == raw * 75),
-     * RSSI — в десятых долях дБм. */
-    const int32_t rssi_x10 = (int32_t)(tpms_session_get_rssi(cli->session) * 10.0f);
+    /* Integers only: the firmware printf is not required to support %f.
+     * Pressure goes out in hundredths of a kPa (raw * 0.75 * 100 ==
+     * raw * 75), RSSI in tenths of a dBm. */
+    const int32_t rssi_x10 = (int32_t)(rssi_dbm * 10.0f);
 
     char line[TPMS_LINE_MAX];
     snprintf(
@@ -119,7 +120,7 @@ static void tpms_cli_print_frame(const TpmsRenaultFrame* frame, void* context) {
         (long)rssi_x10);
 
     tpms_cli_emit(cli, line);
-    tpms_bridge_report_frame(cli->app, frame);
+    tpms_bridge_report_frame(cli->app, frame, rssi_dbm);
 }
 
 static void tpms_cli_collect_raw(bool level, uint32_t duration, void* context) {
@@ -172,7 +173,22 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
     }
     furi_string_free(word);
 
-    if(furi_mutex_acquire(app->radio_mutex, 0) != FuriStatusOk) {
+    /* The radio is almost always busy with local reception — it starts on
+     * its own so that the app works without a computer. Raise the flag:
+     * local RX will see it, release the radio and stay off it for as long
+     * as the USB session lasts. */
+    app->radio_yield_requested = true;
+
+    bool radio_acquired = false;
+    for(uint32_t waited = 0; waited <= TPMS_RADIO_YIELD_TIMEOUT_MS; waited += 50) {
+        if(furi_mutex_acquire(app->radio_mutex, 50) == FuriStatusOk) {
+            radio_acquired = true;
+            break;
+        }
+    }
+
+    if(!radio_acquired) {
+        app->radio_yield_requested = false;
         tpms_cli_emit_direct(pipe, "{\"error\":\"radio busy\"}\r\n");
         return;
     }
@@ -192,6 +208,7 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
         tpms_session_free(cli.session);
         furi_string_free(cli.raw_buffer);
         furi_mutex_release(app->radio_mutex);
+        app->radio_yield_requested = false;
         return;
     }
 
@@ -225,12 +242,14 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
             break;
         }
 
+        /* Periodic wake-up is enabled either by a command argument or by
+         * a key on the Flipper itself. */
         const bool wake_due =
-            wake_enabled &&
+            (wake_enabled || app->auto_wake) &&
             (last_wake == 0 || furi_get_tick() - last_wake > furi_ms_to_ticks(TPMS_LF_PERIOD_MS));
 
-        /* Кнопка Right на самом Flipper тоже должна работать во время
-         * USB-сессии — радиомодулем владеет она. */
+        /* The Right key on the Flipper must keep working during a USB
+         * session too — the session is the one that owns the radio. */
         if(wake_due || app->wake_requested) {
             app->wake_requested = false;
             last_wake = furi_get_tick();
@@ -269,4 +288,6 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
     app->cli_sessions--;
 
     furi_mutex_release(app->radio_mutex);
+    /* The radio is free now — local reception will come back on its own. */
+    app->radio_yield_requested = false;
 }

@@ -1,4 +1,4 @@
-"""Тесты накопления показаний."""
+"""Tests for accumulating readings."""
 
 from __future__ import annotations
 

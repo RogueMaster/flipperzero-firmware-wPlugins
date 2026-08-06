@@ -1,22 +1,22 @@
-"""Декодер TPMS Renault: тайминги -> чипы -> Manchester -> 9 байт -> поля.
+"""Renault TPMS decoder: timings -> chips -> Manchester -> 9 bytes -> fields.
 
-Протокол (сверено с rtl_433 src/devices/tpms_renault.c и ProtoView
-protocols/tpms/renault.c):
+Protocol (cross-checked against rtl_433 src/devices/tpms_renault.c and
+ProtoView protocols/tpms/renault.c):
 
-  * 2-FSK, 433.92 МГц, длительность чипа ~50 мкс (~20 kBaud).
-  * Преамбула 55 55 55 56, в потоке чипов ищется 20-битный sync
-    "01010101010101010110".
-  * Дальше 144 чипа Manchester -> 72 бита -> 9 байт.
-  * CRC-8 (poly 0x07, init 0x00) по первым 8 байтам == байт 8.
+  * 2-FSK, 433.92 MHz, chip duration ~50 us (~20 kBaud).
+  * Preamble 55 55 55 56; the 20-bit sync "01010101010101010110" is
+    searched for in the chip stream.
+  * Then 144 Manchester chips -> 72 bits -> 9 bytes.
+  * CRC-8 (poly 0x07, init 0x00) over the first 8 bytes == byte 8.
 
-Про полярность Manchester. rtl_433 инвертирует битбуфер и ищет aa a9,
-ProtoView ищет "...0110" напрямую; в обоих случаях пара чипов "01"
-означает единицу, а "10" — ноль. Комментарий в шапке renault.c у
-ProtoView утверждает обратное, но его же тестовый вектор декодируется
-в заявленные ID 0x7AD779 / 244 кПа / 22 °C только при "01" -> 1.
+About the Manchester polarity. rtl_433 inverts the bit buffer and looks
+for aa a9, ProtoView looks for "...0110" directly; in both cases the chip
+pair "01" means one and "10" means zero. The header comment in ProtoView's
+renault.c claims the opposite, but its own test vector only decodes into
+the stated ID 0x7AD779 / 244 kPa / 22 C with "01" -> 1.
 
-Приёмник может отдать поток с любой полярностью, поэтому decode_chips()
-пробует обе и оставляет ту, где сходится CRC.
+The receiver may hand over the stream in either polarity, so decode_chips()
+tries both and keeps the one whose CRC checks out.
 """
 
 from __future__ import annotations
@@ -25,21 +25,21 @@ from dataclasses import dataclass, field
 from typing import Iterable, Iterator, Sequence
 
 CHIP_US = 50
-"""Номинальная длительность одного чипа, мкс."""
+"""Nominal duration of a single chip, us."""
 
 SYNC = "01010101010101010110"
-"""Хвост преамбулы + sync-слово в чипах."""
+"""Preamble tail plus sync word, in chips."""
 
 FRAME_BYTES = 9
 FRAME_BITS = FRAME_BYTES * 8
 FRAME_CHIPS = FRAME_BITS * 2
 
 MAX_CHIPS_PER_PULSE = 8
-"""Импульс длиннее — это уже не часть кадра, поток рвётся."""
+"""A longer pulse is no longer part of a frame; the stream is broken."""
 
 
 def crc8(data: bytes, poly: int = 0x07, init: int = 0x00) -> int:
-    """CRC-8 в том же виде, что crc8() в rtl_433 и ProtoView."""
+    """CRC-8 in the same form as crc8() in rtl_433 and ProtoView."""
     crc = init
     for byte in data:
         crc ^= byte
@@ -50,7 +50,7 @@ def crc8(data: bytes, poly: int = 0x07, init: int = 0x00) -> int:
 
 @dataclass(frozen=True)
 class RenaultFrame:
-    """Разобранный кадр датчика."""
+    """A decoded sensor frame."""
 
     raw: bytes
     sensor_id: int
@@ -88,7 +88,7 @@ class RenaultFrame:
 
 
 def parse_frame(raw: bytes) -> RenaultFrame | None:
-    """9 байт -> поля. Возвращает None, если CRC не сошлась."""
+    """9 bytes -> fields. Returns None if the CRC does not match."""
     if len(raw) != FRAME_BYTES:
         return None
     if crc8(raw[:8]) != raw[8]:
@@ -111,11 +111,11 @@ def manchester_decode(
     nbytes: int = FRAME_BYTES,
     one: str = "01",
 ) -> bytes | None:
-    """Пары чипов -> байты.
+    """Chip pairs -> bytes.
 
-    `one` задаёт, какая пара означает единицу. Возвращает None, если чипов
-    не хватает или встретилась нарушенная пара ("00"/"11") — то есть кадр
-    оборвался.
+    `one` says which pair means a one. Returns None if there are not
+    enough chips or if a broken pair ("00"/"11") shows up, meaning the
+    frame was cut short.
     """
     zero = "10" if one == "01" else "01"
     need = nbytes * 16
@@ -148,10 +148,10 @@ def _invert(chips: str) -> str:
 
 SYNC_INVERTED = _invert(SYNC)
 
-# Приёмник может отдать поток с любой полярностью, и — как показали живые
-# датчики — полярность sync-слова не обязана совпадать с конвенцией
-# Manchester в данных. Поэтому перебираем оба независимо: правильной
-# считается та комбинация, на которой сходится CRC.
+# The receiver may hand over the stream in either polarity and — as real
+# sensors have shown — the polarity of the sync word does not have to match
+# the Manchester convention in the data. So we try both independently: the
+# right combination is the one whose CRC checks out.
 _VARIANTS = [
     (SYNC, "01"),
     (SYNC, "10"),
@@ -161,7 +161,7 @@ _VARIANTS = [
 
 
 def decode_chips(chips: str) -> list[RenaultFrame]:
-    """Найти в потоке чипов все валидные кадры."""
+    """Find every valid frame in a chip stream."""
     frames: list[RenaultFrame] = []
     seen: set[bytes] = set()
 
@@ -177,8 +177,8 @@ def decode_chips(chips: str) -> list[RenaultFrame]:
                 if frame is not None and frame.raw not in seen:
                     seen.add(frame.raw)
                     frames.append(frame)
-            # Преамбула — это "0101...", поэтому следующий кандидат может
-            # начаться уже через два чипа.
+            # The preamble is "0101...", so the next candidate may start
+            # just two chips later.
             pos = idx + 2
     return frames
 
@@ -188,12 +188,12 @@ def timings_to_chips(
     chip_us: int = CHIP_US,
     gap_us: int | None = None,
 ) -> list[str]:
-    """Знаковые длительности -> строки чипов, разбитые по паузам.
+    """Signed durations -> chip strings, split on gaps.
 
-    Знак задаёт уровень: положительная длительность — высокий уровень,
-    отрицательная — низкий (тот же формат, что в RAW_Data файлов .sub и
-    в raw-режиме FAP-а). Длительность округляется до целого числа чипов;
-    слишком длинный импульс или пауза обрывают текущую серию.
+    The sign carries the level: a positive duration is high, a negative one
+    is low (the same format as RAW_Data in .sub files and as the raw mode
+    of the FAP). Durations are rounded to a whole number of chips; a pulse
+    or gap that is too long ends the current burst.
     """
     if gap_us is None:
         gap_us = chip_us * MAX_CHIPS_PER_PULSE
@@ -208,7 +208,7 @@ def timings_to_chips(
         duration = abs(int(value))
 
         if duration > gap_us:
-            # Длинная пауза/несущая: закрываем серию.
+            # Long gap or carrier: close the burst.
             if current:
                 bursts.append("".join(current))
                 current = []
@@ -225,7 +225,7 @@ def timings_to_chips(
 
 
 def decode_timings(timings: Iterable[int], chip_us: int = CHIP_US) -> list[RenaultFrame]:
-    """Полный путь: тайминги -> кадры."""
+    """The whole path: timings -> frames."""
     frames: list[RenaultFrame] = []
     seen: set[bytes] = set()
     for burst in timings_to_chips(timings, chip_us=chip_us):
@@ -239,8 +239,8 @@ def decode_timings(timings: Iterable[int], chip_us: int = CHIP_US) -> list[Renau
 
 
 # --------------------------------------------------------------------------
-# Обратная сторона: сборка кадра. Нужна для тестов без железа и для
-# проверки декодера на синтетике.
+# The other direction: building a frame. Needed for tests without hardware
+# and for checking the decoder against synthetic data.
 # --------------------------------------------------------------------------
 
 
@@ -251,7 +251,7 @@ def build_frame(
     flags: int = 0x36,
     unknown: int = 0xFFFF,
 ) -> bytes:
-    """Собрать 9 байт кадра с корректной CRC."""
+    """Build the 9 frame bytes with a correct CRC."""
     pressure_raw = int(round(pressure_kpa / 0.75))
     raw = bytearray(9)
     raw[0] = ((flags & 0x3F) << 2) | ((pressure_raw >> 8) & 0x03)
@@ -267,8 +267,8 @@ def build_frame(
 
 
 def frame_to_chips(raw: bytes, preamble_chips: int = 32) -> str:
-    """9 байт -> поток чипов с преамбулой и sync."""
-    # Преамбула "0101...", последние 20 чипов которой и есть SYNC.
+    """9 bytes -> a chip stream with preamble and sync."""
+    # The preamble is "0101...", whose last 20 chips are the SYNC itself.
     lead = "01" * ((preamble_chips - len(SYNC)) // 2)
     chips = [lead, SYNC]
     for byte in raw:
@@ -278,7 +278,7 @@ def frame_to_chips(raw: bytes, preamble_chips: int = 32) -> str:
 
 
 def chips_to_timings(chips: str, chip_us: int = CHIP_US) -> list[int]:
-    """Чипы -> знаковые длительности (склеивая одинаковые уровни)."""
+    """Chips -> signed durations (merging runs of the same level)."""
     timings: list[int] = []
     if not chips:
         return timings

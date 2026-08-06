@@ -1,6 +1,6 @@
-/* Прогон декодера из tpms_bridge на обычном компьютере: тот же
- * тестовый вектор, что и в host/tests/test_decoder.py.
- * Сборка и запуск: ./run.sh */
+/* Runs the tpms_bridge decoder on an ordinary computer, against the same
+ * test vector as host/tests/test_decoder.py.
+ * Build and run: ./run.sh */
 #include "tpms_renault.h"
 #include <stdio.h>
 #include <string.h>
@@ -15,7 +15,7 @@ static void on_frame(const uint8_t* raw, void* ctx) {
     frames_seen++;
 }
 
-/* Собрать поток чипов кадра и скормить декодеру как интервалы. */
+/* Turn a chip stream into intervals and feed them to the decoder. */
 static void feed_chips(TpmsRenaultDecoder* d, const char* chips, int chip_us, int invert) {
     int i = 0;
     while(chips[i]) {
@@ -62,8 +62,9 @@ int main(void) {
         tpms_renault_decoder_free(d);
     }
 
-    /* Живой датчик 407003VU0B: sync приходит в прямой полярности, а пары
-     * Manchester — в обратной. Проверяем, что такое сочетание ловится. */
+    /* Real 407003VU0B sensor: the sync word arrives in normal polarity
+     * while the Manchester pairs are inverted. Check that this
+     * combination is caught. */
     {
         char mixed[512];
         size_t sync_len = 20;
@@ -76,15 +77,15 @@ int main(void) {
         TpmsRenaultDecoder* dm = tpms_renault_decoder_alloc(on_frame, NULL);
         feed_chips(dm, mixed, TPMS_CHIP_US, 0);
         if(frames_seen != 1 || memcmp(last_raw, expected, 9) != 0) {
-            printf("FAIL: sync прямой + данные инвертированные, frames=%d\n", frames_seen);
+            printf("FAIL: normal sync + inverted data, frames=%d\n", frames_seen);
             failures++;
         } else {
-            printf("OK  sync прямой + данные инвертированные\n");
+            printf("OK  normal sync + inverted data\n");
         }
         tpms_renault_decoder_free(dm);
     }
 
-    /* Джиттер длительностей +-15% */
+    /* Duration jitter of +-15% */
     srand(42);
     for(int trial = 0; trial < 20; trial++) {
         frames_seen = 0;
@@ -106,7 +107,7 @@ int main(void) {
     }
     if(!failures) printf("OK  jitter +-15%%: 20/20 trials decoded\n");
 
-    /* Битый кадр не должен пролезать */
+    /* A corrupted frame must not get through */
     frames_seen = 0;
     TpmsRenaultDecoder* d = tpms_renault_decoder_alloc(on_frame, NULL);
     char broken[512];

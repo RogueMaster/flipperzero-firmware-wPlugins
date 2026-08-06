@@ -1,0 +1,33 @@
+# Manifest for the Flipper Apps Catalog.
+#
+# This file is not used by the build. Copy it into a fork of
+# flipperdevices/flipper-application-catalog as
+# applications/Sub-GHz/tpms_bridge/manifest.yml and open a pull request.
+#
+# Before doing that:
+#   * set origin to the public repository URL;
+#   * set commit_sha to the commit that carries all the files;
+#   * make sure every screenshot listed below exists in the repository.
+#
+# Everything else — name, id, category, version, author, icon and the short
+# description — is taken from application.fam. Paths here are relative to
+# the subdir given below.
+#
+# Validate it from a catalog checkout with:
+#   python3 tools/bundle.py --nolint \
+#       applications/Sub-GHz/tpms_bridge/manifest.yml bundle.zip
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/CHANGE-ME/tpms-flipper.git
+    commit_sha: CHANGE-ME
+    subdir: flipper/tpms_bridge
+
+description: "@README.md"
+changelog: "@changelog.md"
+screenshots:
+  - screenshots/1.png
+  - screenshots/2.png
+  - screenshots/3.png
+  - screenshots/4.png

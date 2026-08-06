@@ -1,4 +1,4 @@
-"""Тесты разбора строк, приходящих от Flipper. Порт не открывается."""
+"""Tests for parsing lines coming from the Flipper. No port is opened."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def test_frame_line_becomes_reading():
 
 
 def test_fields_are_recomputed_from_raw_not_trusted():
-    """Прошивка могла посчитать поля иначе — верим только сырым байтам."""
+    """The firmware may compute fields differently — trust only raw bytes."""
     link = _link()
     link._handle_line(
         '{"t":1,"raw":"%s","pressure_kpa_x100":999999,"temp_c":-99}' % RAW_HEX

@@ -1,4 +1,4 @@
-"""Тесты декодера — без Flipper и без датчика."""
+"""Decoder tests: no Flipper and no sensor needed."""
 
 from __future__ import annotations
 
@@ -20,18 +20,18 @@ from tpms.decoder import (
     timings_to_chips,
 )
 
-# Тестовый вектор из ProtoView (protocols/tpms/renault.c). По его же
-# комментариям это ID 0x7AD779, 244 кПа, 22 °C.
+# Test vector from ProtoView (protocols/tpms/renault.c). According to its
+# own comments this is ID 0x7AD779, 244 kPa, 22 C.
 PROTOVIEW_VECTOR = (
-    "01010101010101010110"  # хвост преамбулы + sync
-    "010110010110"  # флаги
-    "10011001101010011001"  # давление, 10 бит
-    "1010010110011010"  # температура
+    "01010101010101010110"  # preamble tail + sync
+    "010110010110"  # flags
+    "10011001101010011001"  # pressure, 10 bits
+    "1010010110011010"  # temperature
     "1001010101101001"
     "0101100110010101"
-    "1001010101100110"  # ID, 24 бита
+    "1001010101100110"  # ID, 24 bits
     "0101010101010101"
-    "0101010101010101"  # два байта 0xFF
+    "0101010101010101"  # two 0xFF bytes
     "0110010101010101"  # CRC-8
 )
 
@@ -53,7 +53,7 @@ def test_protoview_vector_decodes():
 
 
 def test_protoview_vector_survives_inverted_polarity():
-    """Приёмник мог отдать поток с обратной полярностью."""
+    """The receiver may have handed over the stream inverted."""
     inverted = PROTOVIEW_VECTOR.translate(str.maketrans("01", "10"))
     frames = decode_chips(inverted)
     assert len(frames) == 1
@@ -111,7 +111,7 @@ def test_synthetic_roundtrip_through_timings(sensor_id, kpa, temp):
 
 
 def test_decode_survives_timing_jitter():
-    """CC1101 отдаёт тайминги с разбросом — декодер обязан это пережить."""
+    """CC1101 timings come with spread — the decoder must survive it."""
     rng = random.Random(1234)
     raw = build_frame(0x7AD779, 243.75, 22)
     timings = chips_to_timings(frame_to_chips(raw))
@@ -126,7 +126,7 @@ def test_decode_survives_timing_jitter():
 
 
 def test_decode_finds_frame_in_noisy_stream():
-    """Кадр внутри шума и с шумом после него."""
+    """A frame surrounded by noise, with more noise after it."""
     rng = random.Random(7)
     raw = build_frame(0x0AB1C2, 250.5, 18)
 
@@ -140,7 +140,7 @@ def test_decode_finds_frame_in_noisy_stream():
 
 def test_corrupted_frame_is_rejected():
     raw = bytearray(build_frame(0x7AD779, 243.75, 22))
-    raw[4] ^= 0x20  # портим ID, CRC больше не сойдётся
+    raw[4] ^= 0x20  # break the ID, the CRC no longer matches
     timings = chips_to_timings(frame_to_chips(bytes(raw)))
     assert decode_timings(timings) == []
 
@@ -159,10 +159,10 @@ def test_timings_to_chips_splits_on_long_gap():
 
 
 def test_timings_to_chips_counts_multi_chip_pulses():
-    # 100 мкс -> 2 чипа, 150 -> 3, 52 -> 1
+    # 100 us -> 2 chips, 150 -> 3, 52 -> 1
     assert timings_to_chips([100, -150, 52]) == ["110001"]
 
 
 def test_chip_duration_matches_protocol():
-    """Защита от случайной правки константы: чип ~50 мкс."""
+    """Guard against accidentally editing the constant: a chip is ~50 us."""
     assert CHIP_US == 50

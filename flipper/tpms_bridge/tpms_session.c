@@ -10,11 +10,12 @@
 
 #define TAG "TpmsSession"
 
-/** Ёмкость буфера интервалов. FSK-шум идёт плотным потоком, поэтому
- * запас нужен заметный: при 20 kBaud это примерно 0.1 с эфира. */
+/** Capacity of the interval buffer. FSK noise comes in a dense stream, so
+ * the headroom has to be sizeable: at 20 kBaud this is about 0.1 s of
+ * air time. */
 #define TPMS_STREAM_CAPACITY 2048
 
-/** Сколько интервалов забираем из буфера за один заход. */
+/** How many intervals we take out of the buffer in one go. */
 #define TPMS_PUMP_BATCH 128
 
 struct TpmsSession {
@@ -31,13 +32,16 @@ struct TpmsSession {
     volatile uint32_t overruns;
     bool running;
 
-    /* Буфер разбора держим здесь, а не на стеке: pump() зовут из потока
-     * CLI-команды, а там стек скромный. */
+    /* Signal level at the moment the last batch of intervals arrived. */
+    float last_rssi;
+
+    /* The decoding buffer lives here rather than on the stack: pump() is
+     * called from the CLI command thread, where the stack is modest. */
     LevelDuration batch[TPMS_PUMP_BATCH];
 };
 
 static void tpms_session_capture_callback(bool level, uint32_t duration, void* context) {
-    /* Контекст прерывания: только положить в буфер, ничего тяжёлого. */
+    /* Interrupt context: just push into the buffer, nothing heavy. */
     TpmsSession* session = context;
     const LevelDuration level_duration = level_duration_make(level, duration);
     if(furi_stream_buffer_send(session->stream, &level_duration, sizeof(LevelDuration), 0) !=
@@ -50,7 +54,8 @@ static void tpms_session_frame_callback(const uint8_t* raw, void* context) {
     TpmsSession* session = context;
     TpmsRenaultFrame frame;
     if(!tpms_renault_parse(raw, &frame)) return;
-    if(session->frame_callback) session->frame_callback(&frame, session->frame_context);
+    if(session->frame_callback)
+        session->frame_callback(&frame, session->last_rssi, session->frame_context);
 }
 
 TpmsSession* tpms_session_alloc(void) {
@@ -115,6 +120,7 @@ bool tpms_session_start(TpmsSession* session, uint32_t frequency) {
     subghz_devices_set_frequency(session->device, frequency);
 
     session->overruns = 0;
+    session->last_rssi = 0.0f;
     furi_stream_buffer_reset(session->stream);
     tpms_renault_decoder_reset(session->decoder);
 
@@ -145,6 +151,12 @@ size_t tpms_session_pump(TpmsSession* session, uint32_t timeout_ms) {
             session->stream, session->batch, sizeof(session->batch), timeout_ms) /
         sizeof(LevelDuration);
 
+    /* Sample the level as soon as the data arrives: while we decode a
+     * batch the transmission ends and the RSSI drops to the noise floor. */
+    if(received > 0 && session->running) {
+        session->last_rssi = subghz_devices_get_rssi(session->device);
+    }
+
     for(size_t i = 0; i < received; i++) {
         const bool level = level_duration_get_level(session->batch[i]);
         const uint32_t duration = level_duration_get_duration(session->batch[i]);
@@ -161,7 +173,7 @@ void tpms_session_wake_pulse(TpmsSession* session, uint32_t duration_ms) {
     tpms_lf_field_start();
     const uint32_t deadline = furi_get_tick() + furi_ms_to_ticks(duration_ms);
     while(furi_get_tick() < deadline) {
-        /* Приём продолжается: ответ датчика приходит сразу после активации. */
+        /* Keep receiving: the sensor answers right after activation. */
         tpms_session_pump(session, 20);
     }
     tpms_lf_field_stop();

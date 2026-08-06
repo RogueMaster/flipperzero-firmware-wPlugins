@@ -4,7 +4,7 @@
 #include <furi_hal.h>
 
 void tpms_lf_field_start(void) {
-    /* tim_read_start сам переводит пины в режим несущей. */
+    /* tim_read_start switches the pins into carrier mode by itself. */
     furi_hal_rfid_tim_read_start(TPMS_LF_FREQUENCY_HZ, TPMS_LF_DUTY_CYCLE);
 }
 

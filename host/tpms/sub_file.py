@@ -1,16 +1,15 @@
-"""Офлайн-разбор файлов с таймингами.
+"""Offline parsing of timing files.
 
-Два формата:
+Two formats:
 
-* `.sub` (Flipper SubGhz RAW) — строки `RAW_Data:` со знаковыми
-  длительностями;
-* дамп raw-режима команды `tpms_rx` — строки вида `+52 -49 +101 ...`.
+* `.sub` (Flipper SubGhz RAW) — `RAW_Data:` lines with signed durations;
+* a dump of the `tpms_rx` raw mode — lines like `+52 -49 +101 ...`.
 
-Про `.sub`: штатная запись Sub-GHz -> Read RAW для Renault ненадёжна,
-потому что RAW-декодер прошивки выбрасывает импульсы короче 50 мкс
-(`lib/subghz/protocols/raw.c`, `te_short = 50`), а у этого протокола
-длительность чипа как раз ~50 мкс. Разбор оставлен для файлов из других
-источников и для отладки.
+About `.sub`: the stock Sub-GHz -> Read RAW capture is unreliable for
+Renault, because the firmware RAW decoder throws away pulses shorter than
+50 us (`lib/subghz/protocols/raw.c`, `te_short = 50`), and this protocol
+has a chip duration of about exactly 50 us. Parsing is kept for files from
+other sources and for debugging.
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ from .decoder import RenaultFrame, decode_timings
 
 @dataclass
 class TimingCapture:
-    """Захват таймингов вместе с метаданными файла."""
+    """A timing capture together with the file metadata."""
 
     timings: list[int] = field(default_factory=list)
     meta: dict[str, str] = field(default_factory=dict)
@@ -42,7 +41,7 @@ class TimingCapture:
 
 
 def parse_sub(text: str) -> TimingCapture:
-    """Разобрать содержимое .sub файла."""
+    """Parse the contents of a .sub file."""
     capture = TimingCapture()
 
     for line in text.splitlines():
@@ -63,7 +62,7 @@ def parse_sub(text: str) -> TimingCapture:
 
 
 def parse_raw_dump(text: str) -> TimingCapture:
-    """Разобрать вывод `tpms_rx <freq> raw`."""
+    """Parse the output of `tpms_rx <freq> raw`."""
     capture = TimingCapture()
     for line in text.splitlines():
         line = line.strip()
@@ -74,7 +73,7 @@ def parse_raw_dump(text: str) -> TimingCapture:
 
 
 def load(path: str | Path) -> TimingCapture:
-    """Прочитать файл, формат определяется по расширению и содержимому."""
+    """Read a file; the format is detected by extension and content."""
     path = Path(path)
     text = path.read_text(encoding="utf-8", errors="replace")
 

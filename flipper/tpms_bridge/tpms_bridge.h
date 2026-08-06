@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tpms_session.h"
+#include "tpms_store.h"
 
 #include <furi.h>
 #include <cli/cli.h>
@@ -11,36 +12,49 @@
 #define TPMS_CLI_COMMAND_NAME "tpms_rx"
 #define TPMS_DEFAULT_FREQUENCY 433920000UL
 
-/** Стек потока CLI-команды. */
+/** Stack size of the CLI command thread. */
 #define TPMS_CLI_STACK_SIZE (4 * 1024)
 
-/** Сколько ждать завершения CLI-сессии при выходе, мс. */
+/** How long to wait for the CLI session to finish on exit, ms. */
 #define TPMS_CLI_STOP_TIMEOUT_MS 3000
 
-/** Общее состояние: то, что рисуется на экране, и координация доступа
- * к радиомодулю между локальным приёмом и USB-сессией. */
+/** How long the CLI command waits for local RX to release the radio. */
+#define TPMS_RADIO_YIELD_TIMEOUT_MS 2000
+
+/** Application screen. */
+typedef enum {
+    TpmsScreenList, /**< sensor list */
+    TpmsScreenDetail, /**< details of the selected sensor */
+} TpmsScreen;
+
+/** Shared state: what gets drawn on the screen, plus arbitration of the
+ * radio between local reception and the USB session. */
 typedef struct {
     FuriMutex* state_mutex;
 
-    /* Радиомодуль занимает либо локальный приём, либо CLI-сессия. */
+    /* The radio is owned either by local RX or by the CLI session. */
     FuriMutex* radio_mutex;
 
-    /* Пока CLI-команда работает, приложение нельзя выгружать: её код
-     * лежит в этом же .fap. */
+    /* While a CLI command is running the app must not be unloaded: the
+     * command code lives in this very .fap. */
     volatile uint32_t cli_sessions;
     volatile bool stop_requested;
 
-    bool local_rx;
+    /* The CLI session asks local RX to release the radio and to keep off
+     * it while the flag is raised. */
+    volatile bool radio_yield_requested;
+
+    volatile bool local_rx; /**< the local RX thread should be running */
+    uint32_t radio_retry_tick; /**< when the radio was last claimed */
     bool usb_streaming;
     bool exit_blocked;
-    volatile bool wake_requested;
+    volatile bool wake_requested; /**< single pulse requested by a key */
+    volatile bool auto_wake; /**< periodic pulses */
 
-    uint32_t frames;
-    uint32_t last_id;
-    uint16_t last_pressure_raw;
-    int16_t last_temperature_c;
-    uint32_t last_frame_tick;
-    bool has_frame;
+    TpmsStore store;
+    TpmsScreen screen;
+    uint8_t selected;
+    uint8_t scroll;
 
     Gui* gui;
     ViewPort* view_port;
@@ -49,8 +63,8 @@ typedef struct {
     FuriThread* local_thread;
 } TpmsBridgeApp;
 
-/** Записать полученный кадр в общее состояние (для экрана). */
-void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame);
+/** Store a received frame in the shared state (for the screen). */
+void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame, float rssi_dbm);
 
-/** Реализация CLI-команды tpms_rx. */
+/** Implementation of the tpms_rx CLI command. */
 void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context);

@@ -1,4 +1,4 @@
-"""Точка входа: python -m tpms.app"""
+"""Entry point: python -m tpms.app"""
 
 from __future__ import annotations
 

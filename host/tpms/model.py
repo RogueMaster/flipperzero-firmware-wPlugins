@@ -1,4 +1,4 @@
-"""Накопление показаний по датчикам."""
+"""Accumulating readings per sensor."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def convert_pressure(kpa: float, unit: str) -> float:
 
 @dataclass
 class SensorStats:
-    """Всё, что известно про один датчик за сессию."""
+    """Everything known about a single sensor during the session."""
 
     sensor_id: str
     first_seen: float
@@ -59,7 +59,7 @@ class SensorStats:
 
 
 class SensorModel:
-    """Показания всех датчиков, увиденных за сессию."""
+    """Readings of every sensor seen during the session."""
 
     def __init__(self) -> None:
         self._sensors: dict[str, SensorStats] = {}
@@ -81,7 +81,7 @@ class SensorModel:
         return stats
 
     def sensors(self) -> list[SensorStats]:
-        """Датчики в порядке первого появления."""
+        """Sensors in the order they first appeared."""
         return sorted(self._sensors.values(), key=lambda s: s.first_seen)
 
     def get(self, sensor_id: str) -> SensorStats | None:
@@ -96,7 +96,7 @@ class SensorModel:
         self._readings.clear()
 
     def export_csv(self, path: str | Path) -> int:
-        """Выгрузить все показания. Возвращает число строк."""
+        """Export every reading. Returns the number of rows."""
         rows = 0
         with open(path, "w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)

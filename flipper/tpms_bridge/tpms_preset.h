@@ -2,53 +2,53 @@
 
 #include <cc1101_regs.h>
 
-/* Пресет CC1101 для TPMS: 2-FSK, 20 kBaud, девиация 28.56 кГц,
- * полоса приёма 325 кГц. Взят из ProtoView (custom_presets.h,
- * protoview_subghz_tpms1_fsk_async_regs) — там он проверен на реальных
- * датчиках Renault.
+/* CC1101 preset for TPMS: 2-FSK, 20 kBaud, 28.56 kHz deviation, 325 kHz
+ * receive bandwidth. Taken from ProtoView (custom_presets.h,
+ * protoview_subghz_tpms1_fsk_async_regs), where it is proven against real
+ * Renault sensors.
  *
- * Формат для furi_hal_subghz_load_custom_preset / FuriHalSubGhzPresetCustom:
- * плоский массив пар "регистр, значение", терминатор 0x00 0x00, затем
- * 8 байт PA table.
+ * Format expected by furi_hal_subghz_load_custom_preset /
+ * FuriHalSubGhzPresetCustom: a flat array of "register, value" pairs, a
+ * 0x00 0x00 terminator, then 8 bytes of PA table.
  */
 static const uint8_t tpms_fsk_preset[] = {
-    /* GDO0 отдаёт демодулированные данные асинхронно */
+    /* GDO0 outputs demodulated data asynchronously */
     CC1101_IOCFG0,
     0x0D,
 
-    /* Синтезатор частоты: IF = 26 МГц / 2^10 * 6 = 152.34 кГц */
+    /* Frequency synthesizer: IF = 26 MHz / 2^10 * 6 = 152.34 kHz */
     CC1101_FSCTRL1,
     0x06,
 
-    /* Пакетный движок: асинхронный режим, без whitening */
+    /* Packet engine: asynchronous mode, no whitening */
     CC1101_PKTCTRL0,
     0x32,
     CC1101_PKTCTRL1,
     0x04,
 
-    /* Модем */
+    /* Modem */
     CC1101_MDMCFG0,
     0x00,
     CC1101_MDMCFG1,
     0x02,
     CC1101_MDMCFG2,
-    0x04, /* 2-FSK, без преамбулы/sync — их разбираем сами */
+    0x04, /* 2-FSK, no preamble/sync — we detect them ourselves */
     CC1101_MDMCFG3,
     0x93, /* 20 kBaud */
     CC1101_MDMCFG4,
-    0x59, /* полоса 325 кГц */
+    0x59, /* 325 kHz bandwidth */
     CC1101_DEVIATN,
-    0x41, /* девиация 28.56 кГц */
+    0x41, /* 28.56 kHz deviation */
 
-    /* Автокалибровка при переходе idle -> rx/tx */
+    /* Auto-calibration on idle -> rx/tx transition */
     CC1101_MCSM0,
     0x18,
 
-    /* Компенсация смещения частоты */
+    /* Frequency offset compensation */
     CC1101_FOCCFG,
     0x16,
 
-    /* АРУ */
+    /* AGC */
     CC1101_AGCCTRL0,
     0x91,
     CC1101_AGCCTRL1,
@@ -60,17 +60,17 @@ static const uint8_t tpms_fsk_preset[] = {
     CC1101_WORCTRL,
     0xFB,
 
-    /* Фронтенд */
+    /* Front end */
     CC1101_FREND0,
     0x10,
     CC1101_FREND1,
     0x56,
 
-    /* Конец списка регистров */
+    /* End of register list */
     0x00,
     0x00,
 
-    /* PA table (в RX не используется) */
+    /* PA table (unused in RX) */
     0xC0,
     0x00,
     0x00,

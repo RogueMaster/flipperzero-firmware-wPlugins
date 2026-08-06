@@ -1,7 +1,7 @@
-"""График давления и температуры по времени.
+"""Pressure and temperature over time.
 
-Рисуется вручную через QPainter: одна зависимость меньше, а нужно тут
-всего две ломаные с подписанными осями.
+Drawn by hand with QPainter: one dependency less, and all that is needed
+here are two polylines with labelled axes.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ MARGIN_BOTTOM = 26
 
 
 class HistoryChart(QWidget):
-    """История одного датчика: давление (слева) и температура (справа)."""
+    """History of one sensor: pressure (left axis), temperature (right)."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -47,7 +47,7 @@ class HistoryChart(QWidget):
 
     # ------------------------------------------------------------------
 
-    def paintEvent(self, event) -> None:  # noqa: N802 — имя из Qt
+    def paintEvent(self, event) -> None:  # noqa: N802 — the name comes from Qt
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
@@ -86,7 +86,7 @@ class HistoryChart(QWidget):
         p_lo, p_hi = _padded_range(pressures)
         t_lo, t_hi = _padded_range(temperatures)
 
-        # Сетка и подписи осей.
+        # Grid and axis labels.
         painter.setPen(QPen(grid_color, 1, Qt.DotLine))
         for i in range(1, 4):
             y = plot.top() + plot.height() * i / 4
@@ -104,7 +104,7 @@ class HistoryChart(QWidget):
                 pressure_label,
             )
 
-            # При узком диапазоне без десятых подписи вырождаются в одинаковые.
+            # Over a narrow range, labels without decimals all come out the same.
             temperature_digits = 1 if (t_hi - t_lo) < 5 else 0
             temperature_label = f"{t_lo + (t_hi - t_lo) * fraction:.{temperature_digits}f}"
             painter.drawText(
@@ -128,8 +128,8 @@ class HistoryChart(QWidget):
         header_rect = QRectF(plot.left(), 2, plot.width(), MARGIN_TOP - 4)
         painter.drawText(header_rect, Qt.AlignLeft | Qt.AlignVCenter, self._title or "История")
 
-        # Легенда: две подписи подряд, ширина считается по метрике шрифта,
-        # иначе они наезжают друг на друга.
+        # Legend: two labels in a row, widths measured with the font
+        # metrics, otherwise they run into each other.
         metrics = painter.fontMetrics()
         pressure_legend = f"давление, {self._unit}"
         temperature_legend = "температура, °C"

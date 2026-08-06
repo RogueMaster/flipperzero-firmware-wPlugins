@@ -1,6 +1,6 @@
-"""Дымовые тесты UI: окно строится, таблица и график переживают данные.
+"""UI smoke tests: the window builds, the table and chart survive data.
 
-Запускаются в offscreen-режиме Qt, окно на экране не появляется.
+They run in Qt's offscreen mode, so no window appears on screen.
 """
 
 from __future__ import annotations
@@ -82,7 +82,7 @@ def test_unit_switch_rewrites_pressure(window):
 
 
 def test_chart_renders_with_and_without_data(window):
-    # Пустой график тоже должен рисоваться.
+    # An empty chart must render too.
     window.chart.grab()
 
     for index in range(10):
@@ -125,7 +125,7 @@ def test_open_capture_decodes_file(window, tmp_path):
     path = tmp_path / "capture.txt"
     path.write_text(" ".join(str(v) for v in timings), encoding="utf-8")
 
-    # Диалог выбора файла обходим, вызывая разбор напрямую.
+    # Bypass the file dialog by calling the parsing path directly.
     from tpms.sub_file import load
 
     frames = load(path).decode()

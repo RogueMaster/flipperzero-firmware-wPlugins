@@ -1,11 +1,11 @@
-"""Транспорт: CLI Flipper Zero поверх USB-CDC.
+"""Transport: the Flipper Zero CLI over USB-CDC.
 
-Flipper отдаёт CLI на виртуальном COM-порту. Приложение tpms_bridge,
-запущенное на самом Flipper, регистрирует там команду `tpms_rx`, которая
-построчно печатает NDJSON с принятыми кадрами.
+The Flipper exposes its CLI on a virtual COM port. The tpms_bridge app,
+running on the Flipper itself, registers the `tpms_rx` command there, which
+prints received frames as line-delimited JSON.
 
-Модуль ничего не знает про UI: события складываются в очередь, забирает
-их кто угодно.
+This module knows nothing about the UI: events go into a queue and anyone
+can pick them up.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ _ANSI_RE = re.compile(rb"\x1b\[[0-9;?]*[a-zA-Z]")
 
 @dataclass(frozen=True)
 class Reading:
-    """Один принятый кадр вместе с обстоятельствами приёма."""
+    """One received frame together with the circumstances of reception."""
 
     host_time: float
     device_tick: int
@@ -49,7 +49,7 @@ class Reading:
 
 
 def find_flipper_ports() -> list[str]:
-    """Все похожие на Flipper последовательные порты."""
+    """Every serial port that looks like a Flipper."""
     ports: list[str] = []
     for port in list_ports.comports():
         name = (port.device or "") + " " + (port.description or "")
@@ -67,15 +67,15 @@ def _clean(line: bytes) -> str:
 
 
 class FlipperLink:
-    """Читающий поток: держит порт, гоняет команду, отдаёт события.
+    """Reader thread: holds the port, runs the command, emits events.
 
-    События в очереди — кортежи (kind, payload):
-      ("reading", Reading)  — декодированный кадр
-      ("status", str)       — служебное сообщение
-      ("raw", str)          — строка сырых таймингов (режим raw)
-      ("line", str)         — всё прочее, что пришло с устройства
-      ("error", str)        — сбой, поток завершился
-      ("closed", None)      — поток корректно остановлен
+    Events in the queue are (kind, payload) tuples:
+      ("reading", Reading)  decoded frame
+      ("status", str)       informational message
+      ("raw", str)          a line of raw timings (raw mode)
+      ("line", str)         anything else that came from the device
+      ("error", str)        failure, the thread has finished
+      ("closed", None)      the thread stopped cleanly
     """
 
     def __init__(
@@ -97,12 +97,12 @@ class FlipperLink:
         self._stop = threading.Event()
 
     # ------------------------------------------------------------------
-    # Управление
+    # Control
     # ------------------------------------------------------------------
 
     def start(self) -> None:
         if self._thread is not None:
-            raise RuntimeError("уже запущено")
+            raise RuntimeError("already running")
         self._stop.clear()
         self._thread = threading.Thread(target=self._run, name="flipper-link", daemon=True)
         self._thread.start()
@@ -119,7 +119,7 @@ class FlipperLink:
         return self._thread is not None and self._thread.is_alive()
 
     # ------------------------------------------------------------------
-    # Внутреннее
+    # Internals
     # ------------------------------------------------------------------
 
     def _emit(self, kind: str, payload: object = None) -> None:
@@ -129,7 +129,7 @@ class FlipperLink:
         try:
             self._serial = serial.Serial(self.port, timeout=0.2, write_timeout=2.0)
         except serial.SerialException as exc:
-            self._emit("error", f"не удалось открыть {self.port}: {exc}")
+            self._emit("error", f"cannot open {self.port}: {exc}")
             return
 
         try:
@@ -137,17 +137,17 @@ class FlipperLink:
             options = self.mode + (" wake" if self.wake else "")
             command = f"{CLI_COMMAND} {self.frequency} {options}\r\n"
             self._serial.write(command.encode())
-            self._emit("status", f"отправлено: {command.strip()}")
+            self._emit("status", f"sent: {command.strip()}")
             self._read_loop()
         except serial.SerialException as exc:
-            self._emit("error", f"порт отвалился: {exc}")
-        except Exception as exc:  # noqa: BLE001 — поток не должен падать молча
-            self._emit("error", f"сбой чтения: {exc}")
+            self._emit("error", f"port went away: {exc}")
+        except Exception as exc:  # noqa: BLE001 — the thread must not die silently
+            self._emit("error", f"read failure: {exc}")
         finally:
             self._shutdown()
 
     def _drain_banner(self) -> None:
-        """Разбудить CLI и дождаться приглашения."""
+        """Wake the CLI up and wait for its prompt."""
         assert self._serial is not None
         self._serial.write(b"\r\n")
         deadline = time.monotonic() + 2.0
@@ -184,7 +184,7 @@ class FlipperLink:
             self._emit("raw", line)
             return
 
-        # Эхо команды и приглашение CLI не засоряют лог.
+        # The command echo and the CLI prompt do not belong in the log.
         if line.startswith(CLI_COMMAND) or line.startswith(">:"):
             return
 
@@ -216,11 +216,12 @@ class FlipperLink:
             self._emit("line", line)
             return
 
-        # Поля пересчитываем на хосте: decoder.py — единственный источник
-        # правды по протоколу, прошивка отдаёт сырые байты.
+        # Fields are recomputed on the host: decoder.py is the single
+        # source of truth for the protocol, the firmware hands over raw
+        # bytes.
         frame = parse_frame(raw)
         if frame is None:
-            self._emit("line", f"кадр с битой CRC: {raw_hex}")
+            self._emit("line", f"frame with a bad CRC: {raw_hex}")
             return
 
         rssi_x10 = message.get("rssi_dbm_x10")
@@ -237,13 +238,13 @@ class FlipperLink:
     def _shutdown(self) -> None:
         if self._serial is not None:
             try:
-                # Ctrl+C останавливает команду, чтобы Flipper не остался
-                # с включённым приёмником.
+                # Ctrl+C stops the command so that the Flipper is not left
+                # with its receiver running.
                 self._serial.write(CTRL_C)
                 self._serial.flush()
                 time.sleep(0.1)
                 self._serial.read(self._serial.in_waiting or 0)
-            except Exception:  # noqa: BLE001 — порт мог уже исчезнуть
+            except Exception:  # noqa: BLE001 — the port may be gone already
                 pass
             try:
                 self._serial.close()
@@ -254,7 +255,7 @@ class FlipperLink:
 
 
 def drain(events: queue.Queue) -> Iterator[tuple[str, object]]:
-    """Забрать всё, что накопилось в очереди, не блокируясь."""
+    """Take everything the queue has accumulated, without blocking."""
     while True:
         try:
             yield events.get_nowait()

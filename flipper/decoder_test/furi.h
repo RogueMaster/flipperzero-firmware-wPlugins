@@ -1,4 +1,4 @@
-/* Заглушка furi.h для прогона декодера на хосте. */
+/* furi.h stub for running the decoder on the host. */
 #pragma once
 #include <stdio.h>
 #include <stdlib.h>

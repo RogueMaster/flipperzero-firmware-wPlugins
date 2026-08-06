@@ -1,8 +1,8 @@
-"""Полярность приёмника.
+"""Receiver polarity.
 
-На живом датчике 407003VU0B обнаружилось, что полярность sync-слова и
-конвенция Manchester в данных могут не совпадать, поэтому декодер обязан
-перебирать их независимо — все четыре сочетания.
+A real 407003VU0B sensor revealed that the polarity of the sync word and
+the Manchester convention in the data may disagree, so the decoder has to
+try them independently — all four combinations.
 """
 
 from __future__ import annotations
@@ -21,9 +21,9 @@ from tpms.decoder import (
 
 RAW = build_frame(0x7AD779, 243.75, 22)
 
-# Реальный кадр, снятый с датчика 407003VU0B: sync прямой, данные
-# инвертированные. CRC сходится, температура 26 °C, давление около нуля —
-# датчик лежал на столе, а не стоял в шине.
+# A real frame captured from a 407003VU0B sensor: normal sync, inverted
+# data. The CRC matches, temperature 26 C, pressure near zero — the sensor
+# was lying on a table rather than mounted in a tyre.
 REAL_RAW = bytes.fromhex("cc04389dc902c680b9")
 
 
@@ -32,7 +32,7 @@ def _invert(chips: str) -> str:
 
 
 def _mixed_polarity(raw: bytes) -> str:
-    """Sync в прямой полярности, данные в обратной."""
+    """Sync in normal polarity, data inverted."""
     chips = frame_to_chips(raw)
     sync_end = chips.index(SYNC) + len(SYNC)
     return chips[:sync_end] + _invert(chips[sync_end:])
@@ -41,9 +41,9 @@ def _mixed_polarity(raw: bytes) -> str:
 @pytest.mark.parametrize(
     "name,transform",
     [
-        ("всё прямое", lambda c: c),
-        ("всё инвертированное", _invert),
-        ("sync прямой, данные инвертированные", lambda c: _mixed_polarity(RAW)),
+        ("everything normal", lambda c: c),
+        ("everything inverted", _invert),
+        ("normal sync, inverted data", lambda c: _mixed_polarity(RAW)),
     ],
 )
 def test_all_polarity_combinations_decode(name, transform):

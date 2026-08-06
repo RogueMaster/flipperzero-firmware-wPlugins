@@ -1,8 +1,8 @@
-"""Консольный режим — то же самое, что UI, но без окна.
+"""Console mode: the same as the UI, only without a window.
 
-    python -m tpms.console                       # слушать эфир
-    python -m tpms.console --mode raw            # сырые тайминги
-    python -m tpms.console --decode capture.sub  # разобрать файл
+    python -m tpms.console                       # listen on air
+    python -m tpms.console --mode raw            # raw timings
+    python -m tpms.console --decode capture.sub  # parse a file
 """
 
 from __future__ import annotations
@@ -32,15 +32,15 @@ def _describe(reading: Reading) -> str:
 
 def _decode_file(path: str) -> int:
     capture = load(path)
-    print(f"Таймингов в файле: {len(capture.timings)}")
+    print(f"Timings in the file: {len(capture.timings)}")
     if capture.frequency:
-        print(f"Частота: {capture.frequency} Гц")
+        print(f"Frequency: {capture.frequency} Hz")
     if capture.preset:
-        print(f"Пресет: {capture.preset}")
+        print(f"Preset: {capture.preset}")
 
     frames = capture.decode()
     if not frames:
-        print("Валидных кадров Renault не найдено.")
+        print("No valid Renault frames found.")
         return 1
 
     for frame in frames:
@@ -53,16 +53,16 @@ def _decode_file(path: str) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tpms.console", description=__doc__)
-    parser.add_argument("--port", help="последовательный порт Flipper (по умолчанию ищется сам)")
-    parser.add_argument("--freq", type=int, default=DEFAULT_FREQUENCY, help="частота в Гц")
+    parser.add_argument("--port", help="Flipper serial port (found automatically by default)")
+    parser.add_argument("--freq", type=int, default=DEFAULT_FREQUENCY, help="frequency in Hz")
     parser.add_argument("--mode", choices=["json", "raw"], default="json")
     parser.add_argument(
         "--wake",
         action="store_true",
-        help="периодически будить датчик полем 125 кГц (держать его у задней стороны Flipper)",
+        help="periodically wake the sensor with a 125 kHz field (hold it against the back of the Flipper)",
     )
-    parser.add_argument("--csv", help="куда выгрузить показания при выходе")
-    parser.add_argument("--decode", help="разобрать файл .sub или дамп raw-режима")
+    parser.add_argument("--csv", help="where to export the readings on exit")
+    parser.add_argument("--decode", help="parse a .sub file or a raw mode dump")
     args = parser.parse_args(argv)
 
     if args.decode:
@@ -72,15 +72,15 @@ def main(argv: list[str] | None = None) -> int:
     if not port:
         ports = find_flipper_ports()
         if not ports:
-            print("Flipper не найден. Подключите его по USB или укажите --port.", file=sys.stderr)
+            print("No Flipper found. Connect it over USB or pass --port.", file=sys.stderr)
             return 2
         port = ports[0]
 
     print(
-        f"Порт: {port}   частота: {args.freq} Гц   режим: {args.mode}"
-        f"   пробуждение: {'вкл' if args.wake else 'выкл'}"
+        f"Port: {port}   frequency: {args.freq} Hz   mode: {args.mode}"
+        f"   wake: {'on' if args.wake else 'off'}"
     )
-    print("На Flipper должно быть запущено приложение TPMS Bridge. Ctrl+C — выход.\n")
+    print("The TPMS Bridge app must be running on the Flipper. Ctrl+C to quit.\n")
 
     model = SensorModel()
     link = FlipperLink(port=port, frequency=args.freq, mode=args.mode, wake=args.wake)
@@ -99,25 +99,25 @@ def main(argv: list[str] | None = None) -> int:
             elif kind == "raw":
                 print(payload)
             elif kind == "error":
-                print(f"ошибка: {payload}", file=sys.stderr)
+                print(f"error: {payload}", file=sys.stderr)
             elif kind in ("status", "line"):
                 print(f"# {payload}")
     except KeyboardInterrupt:
-        print("\nОстанавливаю...")
+        print("\nStopping...")
     finally:
         link.stop()
 
-    print(f"\nВсего кадров: {model.total_frames}, датчиков: {len(model.sensors())}")
+    print(f"\nFrames total: {model.total_frames}, sensors: {len(model.sensors())}")
     for stats in model.sensors():
         print(
-            f"  {stats.sensor_id}: кадров {stats.frames}, "
-            f"давление {stats.min_pressure_kpa:.2f}..{stats.max_pressure_kpa:.2f} кПа, "
-            f"температура {stats.min_temperature_c}..{stats.max_temperature_c} C"
+            f"  {stats.sensor_id}: frames {stats.frames}, "
+            f"pressure {stats.min_pressure_kpa:.2f}..{stats.max_pressure_kpa:.2f} kPa, "
+            f"temperature {stats.min_temperature_c}..{stats.max_temperature_c} C"
         )
 
     if args.csv and model.total_frames:
         rows = model.export_csv(args.csv)
-        print(f"Записано в {args.csv}: {rows} строк")
+        print(f"Written to {args.csv}: {rows} rows")
 
     return 0
 

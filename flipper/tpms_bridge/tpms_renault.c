@@ -2,21 +2,22 @@
 
 #include <furi.h>
 
-/* Поток от CC1101 приходит как последовательность интервалов "уровень +
- * длительность". Длительность делим на чипы по 50 мкс, чипы собираем в
- * пары Manchester.
+/* The stream from the CC1101 arrives as a sequence of "level + duration"
+ * intervals. Durations are split into 50 us chips, and chips are grouped
+ * into Manchester pairs.
  *
- * Полярность демодулятора заранее неизвестна. Больше того, на живых
- * датчиках полярность sync-слова не обязана совпадать с конвенцией
- * Manchester в данных, поэтому перебираем их независимо: четыре автомата
- * на все сочетания. Правильным считается тот, у кого сойдётся CRC.
+ * The demodulator polarity is not known in advance. What is more, on real
+ * sensors the polarity of the sync word does not have to match the
+ * Manchester convention used in the data, so we try them independently:
+ * four state machines covering every combination. The right one is the
+ * one whose CRC checks out.
  */
 
 typedef struct {
-    bool invert_sync; /**< искать инвертированное sync-слово */
-    bool invert_data; /**< "10" означает единицу, а не "01" */
+    bool invert_sync; /**< look for an inverted sync word */
+    bool invert_data; /**< "10" means one rather than "01" */
 
-    uint32_t sync_reg; /**< сдвиговый регистр поиска sync */
+    uint32_t sync_reg; /**< shift register for the sync search */
     uint8_t bytes[TPMS_RENAULT_FRAME_BYTES];
     uint16_t bit_count;
     bool collecting;
@@ -89,7 +90,7 @@ static void tpms_channel_feed_chip(TpmsRenaultDecoder* decoder, TpmsChannel* cha
 
     channel->have_pending = false;
     if(channel->pending_chip == chip) {
-        /* "00" или "11" — кадр порвался, возвращаемся к поиску sync. */
+        /* "00" or "11": the frame broke, go back to searching for sync. */
         tpms_channel_reset(channel);
         return;
     }

@@ -1,4 +1,4 @@
-"""Тесты офлайн-разбора таймингов."""
+"""Tests for offline timing parsing."""
 
 from __future__ import annotations
 
