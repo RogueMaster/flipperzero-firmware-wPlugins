@@ -5,7 +5,7 @@
 #include <string.h>
 #include <furi_hal.h>
 
-#define MF_RADIO_DEFAULT_FREQUENCY_HZ  433160000U
+#define MF_RADIO_DEFAULT_FREQUENCY_HZ  433075000U
 #define MF_RADIO_FREQ_DIGITS           6U
 
 typedef struct {
