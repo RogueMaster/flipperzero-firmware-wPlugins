@@ -68,6 +68,11 @@
   var revealedFor = -1;
   function renderReveal(m) {
     hide("sec-predict"); hide("sec-answer"); show("sec-reveal");
+    // The note still reads "waiting for the others" from the predict step, and nothing ever
+    // clears it: renderPredict and renderAnswer are its only writers. The reveal happens only
+    // once everyone is in, so the line is not merely stale but wrong -- at a shared table it
+    // reads as "the round is still open" while the result is already up.
+    $("sec-note").textContent = "";
     // Hero: the yes-count as a big number with a small caption beneath it.
     $("sec-yesnum").textContent = m.yes;
     // Bucket every player's prediction by the number they guessed.

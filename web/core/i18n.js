@@ -290,7 +290,7 @@ var MESSAGES = {
     "secrets.yes": "Ja",
     "secrets.no": "Nein",
     "secrets.predict_hint": "Dein Tipp: Wie viele von {n} Spielern sagten ja?",
-    "secrets.predict_locked": "{n} bestätigt. Warte auf die anderen…",
+    "secrets.predict_locked": "Tipp {n} bestätigt. Warte auf die anderen…",
     "secrets.answer_hint": "Deine Antwort — nur die Gesamtzahl wird gezeigt, nie wer was sagte.",
     "secrets.answer_locked": "Antwort bestätigt. Warte…",
     "secrets.locked_count": "{n} / {total} dabei",
