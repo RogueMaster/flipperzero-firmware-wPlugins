@@ -35,9 +35,14 @@ you can develop and demo a whole game without any hardware.
 - **Format C with `ufbt format`** (not a hand-run clang-format), from `flipper/hotspot-arcade/`.
 - **Committed build outputs:** `web/dist/` and the bundled assets under
   `flipper/hotspot-arcade/assets/` are checked in. Rebuild `web/dist/` yourself
-  (`node web/build.mjs`) and commit it. You do **not** need `arduino-cli` — the maintainer
-  regenerates the ESP firmware images and `.bundled-fw.sha256` on merge via
-  `tools/build-fap.sh`. Never hand-edit a committed `.bin`.
+  (`node web/build.mjs`) and commit it — **and copy the result over
+  `flipper/hotspot-arcade/assets/web/`** (`index.html.gz` + `manifest.json`), which is the
+  copy the Flipper streams to the ESP and actually serves to phones. Leaving that one
+  stale is how a finished game reads as "does not start": the served page has no screen to
+  route to and no handler for the game's state pushes, so phones sit in the lobby. You do
+  **not** need `arduino-cli` — the maintainer regenerates the ESP firmware images and
+  `.bundled-fw.sha256` on merge via `tools/build-fap.sh`. Never hand-edit a committed
+  `.bin`.
 - The `bundled-assets` CI job is the alarm for stale outputs; if it fails on your PR, run
   `node web/build.mjs` and commit.
 

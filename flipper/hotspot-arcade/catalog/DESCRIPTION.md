@@ -26,15 +26,32 @@ the list — or flash it from a computer with esptool.
 its bundled firmware and game files to the SD card. The hourglass is the loader working,
 not a hang. Every launch after that is instant.
 
+## Seventeen games
 ## Sixteen games
+## Sixteen games
+## Seventeen games
 
 - **Whole-group:** Trivia, Would You Rather, Word Scramble, Reaction Duel, Guess the
   Color (match a swatch's RGB, closest and fastest wins), Spectrum (a Wavelength-style
   game: one player clues a hidden point on a spectrum, everyone else guesses), Kiss
-  Marry Kill (a chooser secretly labels three people, everyone predicts it), and Secrets
+  Marry Kill (a chooser secretly labels three people, everyone predicts it), Secrets
   (each round everyone secretly answers a yes/no question, then predicts how many said
-  yes — only the total is revealed) — everyone in the room plays at once,
-  with a ready-up lobby and a live leaderboard.
+  yes — only the total is revealed), and Fill the Blank (a prompt with a blank; a
+  rotating Czar picks the funniest answer card played, inspired by Cards Against
+  Humanity with original cards) — everyone in the room plays at once, with a ready-up
+  lobby and a live leaderboard.
+  game: one player clues a hidden point on a spectrum, everyone else guesses), and Kiss
+  Marry Kill (a chooser secretly labels three people, everyone predicts it), and Werewolf
+  (secret roles — werewolves, a seer, a doctor — with night and day phases; the phones
+  referee while you argue out loud in the room) — everyone in the room plays at once, with a ready-up lobby and a live leaderboard.
+  Marry Kill (a chooser secretly labels three people, everyone predicts it), and Spyfall
+  (everyone shares a secret location and a role there except one spy, who has to blend in
+  and work out where they are) — everyone in the room plays at once, with a ready-up lobby
+  and a live leaderboard.
+  yes — only the total is revealed), and Draw a Monster (the exquisite-corpse drawing game:
+  head, torso and legs by three different hands, and the finished creatures are saved to
+  the SD card as SVG) — everyone in the room plays at once, with a ready-up lobby and a
+  live leaderboard.
 - **1v1 duels:** Connect Four, Tic-Tac-Toe, Dots & Boxes, Reversi/Othello, real-time Pong,
   Battleship (place a hidden fleet, then fire), and Chess (full FIDE rules, 5-minute blitz
   clocks) — challenge another player from your phone.

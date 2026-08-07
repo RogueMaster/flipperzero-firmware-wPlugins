@@ -84,6 +84,11 @@ export async function loadSamplePacks(names = ["general", "movies", "science"]) 
 // lowercased keys, exactly what the engine's per-game loadItem expects. This works
 // for every game (trivia {q,a,b,c,d,answer}, wyr {a,b}, scramble/draw {word}) because
 // the Flipper never interprets the keys.
+//
+// A key REPEATED within one block (Spyfall's several "R:" role lines) becomes an array
+// here. The C streamer has no such notion — it just emits one JSON pair per line, so
+// the object it ships genuinely carries the key more than once — and stringifyItem()
+// below reproduces exactly that, which is why this parser must not collapse repeats.
 export function parseGenericPack(text, fallbackName = "") {
   let name = fallbackName;
   const items = [];
@@ -98,10 +103,24 @@ export function parseGenericPack(text, fallbackName = "") {
     const key = line.slice(0, c).trim().toLowerCase();
     const val = line.slice(c + 1).trim();
     if (key === "pack") { if (val) name = val; continue; }
-    if (key) { cur[key] = val; any = true; }
+    if (!key) continue;
+    if (key in cur) cur[key] = [].concat(cur[key], val);
+    else cur[key] = val;
+    any = true;
   }
   flush();
   return { name, items };
+}
+
+// Serialize one parsed block the way the Flipper sends it: one `"key":"value"` pair per
+// source line, in file order, so an array value emits the key repeatedly. JSON.stringify
+// can't express that (an object has one slot per key), hence the hand-rolled emitter.
+export function stringifyItem(item) {
+  const parts = [];
+  for (const [k, v] of Object.entries(item)) {
+    for (const one of [].concat(v)) parts.push(JSON.stringify(k) + ":" + JSON.stringify(one));
+  }
+  return "{" + parts.join(",") + "}";
 }
 
 // Stream one game's packs into the engine the way the Flipper does: contentPack to
@@ -115,7 +134,7 @@ export async function loadGamePacks(engine, game, dir, names, sub = "") {
       if (!res.ok) { console.warn(`${dir} pack "${n}": HTTP ${res.status}`); continue; }
       const pk = parseGenericPack(await res.text(), n);
       engine.contentPack(game, pk.name);
-      for (const it of pk.items) engine.contentItem(JSON.stringify(it));
+      for (const it of pk.items) engine.contentItem(stringifyItem(it));
       loaded.push({ name: pk.name, count: pk.items.length });
     } catch (e) { console.warn(`${dir} pack "${n}":`, e); }
   }
@@ -133,6 +152,8 @@ export const PACK_DIRS = [
   { game: 13, dir: "spectrum", names: ["everyday", "extremes", "opinions", "tastes"] },
   { game: 14, dir: "kmk", names: ["famous", "fiction", "historical", "mix"] },
   { game: 16, dir: "secrets", names: ["1-normal", "2-slightly-spicy", "3-super-chili"] },
+  { game: 17, dir: "fillblank", names: ["1-family", "2-spicy"] },
+  { game: 19, dir: "spyfall", names: ["1-everyday", "2-travel", "3-backstage"] },
 ];
 
 export const LANGS = {
@@ -144,6 +165,8 @@ export const LANGS = {
     spectrum: ["everyday", "extremes", "opinions", "tastes"],
     kmk: ["famous", "fiction", "historical", "mix"],
     secrets: ["1-normal", "2-slightly-spicy", "3-super-chili"],
+    fillblank: ["1-family", "2-spicy"],
+    spyfall: ["1-everyday", "2-travel", "3-backstage"],
   },
   "pt-br": {
     trivia: ["geral"], wyr: ["cotidiano"], scramble: ["palavras"],

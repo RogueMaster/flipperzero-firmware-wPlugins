@@ -792,6 +792,37 @@ h3{margin:0; font-weight:600}
 .kmk-mark.no{color:var(--bad)}
 .kmk-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
 
+/* ---- Fill the Blank ----------------------------------------------------- */
+/* The prompt is the genre's "black card": inverted against the answer cards below it,
+   so the thing everyone is answering reads at a glance from across the table. */
+.fb-prompt{background:var(--text); color:var(--bg); border:2px solid var(--text);
+  padding:16px; margin:12px 0; font-weight:800; font-size:18px; line-height:1.3;
+  min-height:76px; display:flex; align-items:center}
+.fb-cards{display:flex; flex-direction:column; gap:8px; margin:10px 0}
+.fb-card{display:flex; flex-direction:column; align-items:flex-start; gap:6px;
+  width:100%; text-align:left; font:inherit; font-size:15px;
+  font-weight:600; color:var(--text); background:var(--surface-2);
+  border:2px solid var(--line); border-radius:var(--radius);
+  padding:12px; min-height:var(--tap); cursor:pointer}
+.fb-card:active:not(:disabled){transform:translateY(1px); border-color:var(--orange)}
+.fb-card:disabled{cursor:default; opacity:1} /* the browser's default fade would flatten
+  our own chosen/greyed distinction, so opacity stays with the classes below */
+.fb-card .fb-txt{display:block}
+/* The card you committed to: it stays in place, orange, while every other card in the
+   hand greys out -- and both are disabled, so the state is real and not just paint. */
+.fb-card.mine{border-color:var(--orange); color:var(--orange-bright); background:var(--surface)}
+.fb-card.dim{color:var(--text-mute); border-color:var(--line); background:var(--surface)}
+.fb-card.sub{border-style:dashed} /* a submission in the pile, not yours to keep */
+.fb-card.win{border-style:solid; border-color:var(--orange); color:var(--orange-bright)}
+/* Byline: who played the card. Only ever rendered at reveal (the engine sends no
+   authorship before the Czar picks), plus "your card" on your own locked pick. */
+.fb-by{font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--text-dim)}
+.fb-card.win .fb-by{color:var(--orange)}
+.fb-by.deck{color:var(--info)} /* the deck's own card, which scores nobody */
+.fb-pts{margin-left:6px; color:var(--orange); font-weight:800}
+.fb-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
+
 /* ---- Chess ------------------------------------------------------------- */
 .ch-board{display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
   aspect-ratio:1; border:2px solid var(--line); border-radius:var(--radius);
@@ -825,3 +856,121 @@ h3{margin:0; font-weight:600}
   font-size:30px; background:var(--surface-2); border:2px solid var(--line);
   border-radius:var(--radius); color:var(--text)}
 .ch-promo-btn:active{border-color:var(--orange); transform:translateY(1px)}
+
+/* ---- Werewolf ----------------------------------------------------------- */
+/* The night stages tint the whole screen so a glance tells you the room is
+   asleep; day stages drop back to the normal palette. */
+#werewolf.ww-night{background:linear-gradient(180deg,rgba(40,60,120,.20),transparent 260px)}
+.ww-banner{text-align:center; font-size:20px; font-weight:800; color:var(--orange-bright);
+  margin:10px 0 4px}
+.ww-note{text-align:center; color:var(--text-dim); font-size:13px; margin:0 0 10px;
+  min-height:16px}
+.ww-counts{text-align:center; color:var(--text-mute); font-size:12px; margin-top:8px}
+.ww-check{text-align:center; font-weight:800; font-size:15px; padding:8px;
+  border:2px solid var(--line); background:var(--surface-2); margin:8px 0}
+.ww-check.bad{color:var(--bad); border-color:var(--bad)}
+.ww-check.good{color:var(--good); border-color:var(--good)}
+.ww-list{display:flex; flex-direction:column; gap:6px}
+.ww-row{display:flex; align-items:center; gap:8px; background:var(--surface-2);
+  border:2px solid var(--line); padding:10px 12px; min-height:48px}
+.ww-row.tap{cursor:pointer}
+.ww-row.tap:active{border-color:var(--orange); transform:translateY(1px)}
+.ww-row.self{border-color:var(--orange)}
+.ww-row.out{opacity:.45; text-decoration:line-through}
+.ww-av{font-size:20px; line-height:1}
+.ww-name{flex:1; font-weight:800; font-size:15px}
+.ww-tag{font-weight:700; font-size:12px; padding:3px 7px; border:2px solid var(--line);
+  white-space:nowrap}
+.ww-tag.r1{color:var(--text-dim)}                                   /* villager */
+.ww-tag.r2{color:var(--bad); border-color:var(--bad)}               /* werewolf */
+.ww-tag.r3{color:var(--orange-bright); border-color:var(--orange)}  /* seer */
+.ww-tag.ghost{color:var(--text-mute); border-style:dashed}
+.ww-count{font-weight:800; font-size:15px; min-width:22px; text-align:center;
+  color:var(--orange-bright)}
+/* A row the rules put out of reach (the doctor's no-repeat target). */
+.ww-row.barred{opacity:.5}
+/* The choice this phone has already locked in for the phase. */
+.ww-row.chosen{border-color:var(--orange-bright); background:rgba(255,130,0,.10)}
+/* "You still owe an action" / the public day-vote progress. Never a count of
+   outstanding NIGHT actors -- that would be a headcount of the special roles. */
+.ww-wait{text-align:center; color:var(--orange-bright); font-size:12px; font-weight:700;
+  margin:0 0 8px; min-height:14px}
+.ww-log{display:flex; flex-direction:column; gap:2px; margin:4px 0 12px}
+.ww-logrow{font-size:12px; color:var(--text-dim); padding:3px 6px;
+  border-left:2px solid var(--line)}
+.ww-logrow.day{color:var(--text-mute)}
+.ww-winner{text-align:center; font-size:22px; font-weight:800; margin:10px 0}
+.ww-winner.bad{color:var(--bad)}
+.ww-winner.good{color:var(--good)}
+
+/* ---- Spyfall ------------------------------------------------------------ */
+/* One big card carries the only thing that matters (where you are and who you
+   are, or that you're the spy), and one list below it does triple duty: the
+   spy's candidate locations, the accusation ballot, and the reveal. */
+.sf-clock{font-variant-numeric:tabular-nums; font-weight:700}
+.sf-clock.hot{color:var(--bad)}
+.sf-card{display:flex; flex-direction:column; align-items:center; gap:4px;
+  background:var(--surface-2); border:2px solid var(--line); padding:16px 12px;
+  margin:10px 0; text-align:center}
+.sf-card.spy{border-color:var(--orange)}
+.sf-card.good{border-color:var(--good)}
+.sf-card.bad{border-color:var(--bad)}
+.sf-kicker{font-size:12px; letter-spacing:.10em; text-transform:uppercase; color:var(--text-dim)}
+.sf-big{font-size:24px; font-weight:800; line-height:1.15}
+.sf-card.spy .sf-big{color:var(--orange-bright)}
+.sf-sub{font-size:13px; color:var(--text-dim)}
+/* The hold-to-peek button must not be treated as text or as a long-press target:
+   touch-action stops scroll/zoom gestures stealing the press, and the callout/select
+   suppression stops iOS turning a long press into a selection bubble over the card. */
+.sf-hold{touch-action:none; -webkit-touch-callout:none; -webkit-user-select:none;
+  user-select:none}
+.sf-head{text-align:center; font-size:15px; font-weight:700; margin:12px 0 4px;
+  min-height:20px; line-height:1.25}
+.sf-acts{display:flex; flex-direction:column; gap:8px; margin:8px 0}
+.sf-acts .btn{width:100%}
+.sf-acts .btn.spent{opacity:.45}
+.sf-list{display:flex; flex-direction:column; gap:6px; margin:4px 0}
+.sf-row{display:flex; align-items:center; gap:8px; background:var(--surface);
+  border:2px solid var(--line); padding:10px 12px; min-height:44px}
+.sf-row.tap{cursor:pointer}
+.sf-row.tap:active{border-color:var(--orange); transform:translateY(1px)}
+.sf-row.armed{border-color:var(--orange); color:var(--orange-bright)}
+.sf-row.spy{border-color:var(--orange)}
+.sf-row.miss{opacity:.7}
+.sf-rl{flex:1; font-weight:700; font-size:15px}
+.sf-rr{font-size:12px; color:var(--text-dim); white-space:nowrap}
+.sf-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
+
+/* Frankendraw. The drawing and gallery screens are fixed-height flex columns: every
+   control has its own row and the canvas gets the leftover space (flex + min-height:0,
+   overflow hidden), so nothing can push the buttons off a short phone and there is
+   nothing to scroll. The canvas keeps a 2:3 portrait ratio -- the aspect the saved SVG
+   is written in (see docs/PROTOCOL.md) -- fitting inside whatever the stage allows.
+   48px header + the screen's 16/32px padding is the height that is not ours. */
+.fd-col{display:flex; flex-direction:column; gap:6px; overflow:hidden;
+  height:calc(100vh - 104px); min-height:300px}
+@supports (height:100dvh){
+.fd-col{height:calc(100dvh - 104px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+}
+.fd-top{display:flex; align-items:center; gap:8px}
+.fd-top .btn{flex:0 0 auto}
+.fd-meta{flex:1 1 auto; min-width:0; text-align:center; color:var(--text-dim);
+  font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.fd-ink{height:10px; background:var(--surface-2); border:2px solid var(--line);
+  border-radius:999px; overflow:hidden}
+.fd-ink>i{display:block; height:100%; width:100%; background:var(--orange);
+  transform-origin:left center; transform:scaleX(0); transition:transform .12s linear}
+.fd-ink.hot>i{background:var(--bad)}
+.fd-stage{flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center}
+.fd-canvas{height:100%; max-height:100%; max-width:100%; aspect-ratio:2/3;
+  background:#EDEDE6; border:2px solid var(--line); border-radius:var(--radius);
+  touch-action:none}
+.fd-canvas.drawable{border-color:var(--orange); cursor:crosshair}
+.fd-note{text-align:center; color:var(--text-dim); font-size:13px; min-height:16px}
+.fd-thumbs{display:flex; gap:10px; padding-right:62px} /* clear the reactions FAB */
+.fd-thumb{flex:1; appearance:none; font-family:var(--font); font-size:22px; font-weight:800;
+  min-height:var(--tap); background:var(--surface-2); border:2px solid var(--line);
+  border-radius:var(--radius); color:var(--text); cursor:pointer}
+.fd-thumb.on{border-color:var(--orange); color:var(--orange-bright)}
+.fd-thumb:active{transform:translateY(1px)}
+.fd-best{text-align:center; font-weight:800; font-size:17px; color:var(--orange-bright); margin:8px 0}

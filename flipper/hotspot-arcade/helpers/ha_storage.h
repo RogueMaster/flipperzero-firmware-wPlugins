@@ -19,3 +19,12 @@ bool ha_storage_read_file(const char* path, FuriString* out, size_t cap);
 bool ha_storage_load_manifest(HotspotArcadeApp* app);
 
 void ha_timestamp(FuriString* out);
+
+// Frankendraw artwork. The ESP streams one finished sheet as BEGIN, a frame per line
+// segment, then END (see HA_MSG_ART); these turn that stream into one SVG file per
+// sheet under HA_ART_DIR, written incrementally so nothing is buffered. ha_art_abort
+// closes a half-written file when a session ends or a stream is interrupted.
+void ha_art_begin(HotspotArcadeApp* app, const char* json);
+void ha_art_stroke(HotspotArcadeApp* app, const char* json);
+void ha_art_end(HotspotArcadeApp* app);
+void ha_art_abort(HotspotArcadeApp* app);

@@ -44,9 +44,10 @@ Single Arduino sketch plus header-only helpers (one translation unit):
 - `ha_assets.h` — in-RAM file table. The Flipper streams gzipped files in; the HTTP
   catch-all serves them (with `Content-Encoding: gzip`). No filesystem, so nothing
   survives a reboot; the Flipper re-streams on the next session.
-- `ha_games.h` — the engine: player roster (with emoji avatars) plus all fifteen games and
+- `ha_games.h` — the engine: player roster (with emoji avatars) plus all seventeen games and
+- `ha_games.h` — the engine: player roster (with emoji avatars) plus all sixteen games and
   their per-client JSON serialization. The whole-group games (Trivia, Would You Rather,
-  Word Scramble, Reaction Duel, Guess the Color, Spectrum, Kiss Marry Kill) are
+  Word Scramble, Reaction Duel, Guess the Color, Spectrum, Kiss Marry Kill, Spyfall) are
   phone-driven and self-organizing (ready-up -> countdown -> rounds -> podium);
   Connect Four / Tic-Tac-Toe / Dots & Boxes / Reversi share one generalized duel +
   challenge system (parameterized by kind), and Pong, Battleship, and Chess reuse the

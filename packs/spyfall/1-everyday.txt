@@ -1,0 +1,98 @@
+Pack: ☕ Everyday
+Loc: Beach
+R: Lifeguard
+R: Surfer
+R: Ice cream seller
+R: Sunburnt tourist
+R: Sandcastle builder
+---
+Loc: Hospital
+R: Surgeon
+R: Nurse
+R: Patient
+R: Paramedic
+R: Receptionist
+---
+Loc: School
+R: Teacher
+R: Head teacher
+R: Pupil
+R: Janitor
+R: Bus driver
+---
+Loc: Supermarket
+R: Cashier
+R: Shelf stacker
+R: Security guard
+R: Shopper with a full trolley
+R: Baker
+---
+Loc: Cinema
+R: Ticket seller
+R: Projectionist
+R: Usher
+R: Popcorn seller
+R: Bored teenager
+---
+Loc: Restaurant
+R: Chef
+R: Waiter
+R: Dishwasher
+R: Food critic
+R: Birthday guest
+---
+Loc: Gym
+R: Personal trainer
+R: Receptionist
+R: Weightlifter
+R: Yoga instructor
+R: Member who never comes back
+---
+Loc: Zoo
+R: Zookeeper
+R: Vet
+R: Ticket seller
+R: Toddler on shoulders
+R: Souvenir seller
+---
+Loc: Library
+R: Librarian
+R: Student cramming
+R: Storytime reader
+R: Late book returner
+R: Shelver
+---
+Loc: Swimming pool
+R: Lifeguard
+R: Swimming teacher
+R: Toddler with armbands
+R: Diver
+R: Cleaner
+---
+Loc: Hair salon
+R: Hairdresser
+R: Apprentice
+R: Nervous first timer
+R: Receptionist
+R: Gossiping regular
+---
+Loc: Petrol station
+R: Cashier
+R: Lorry driver
+R: Car wash attendant
+R: Snack buyer
+R: Mechanic
+---
+Loc: Amusement park
+R: Ride operator
+R: Mascot
+R: Queueing family
+R: Candy floss seller
+R: Safety inspector
+---
+Loc: Post office
+R: Clerk
+R: Postman
+R: Customer with a huge parcel
+R: Security guard
+R: Stamp collector

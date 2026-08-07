@@ -1,0 +1,99 @@
+Pack: 🎭 Hinter den Kulissen
+Loc: Filmset
+R: Regisseur
+R: Stuntdouble
+R: Statist
+R: Maskenbildnerin
+R: Tonangler
+---
+Loc: Rockkonzert
+R: Sänger
+R: Roadie
+R: Ordner
+R: Fan in der ersten Reihe
+R: Tontechniker
+---
+Loc: Burg
+R: König
+R: Ritter
+R: Hofnarr
+R: Koch
+R: Stallbursche
+R: Torwache
+---
+Loc: Piratenschiff
+R: Kapitän
+R: Schiffskoch
+R: Ausguck
+R: Papageienwärter
+R: Matrose
+---
+Loc: Zirkus
+R: Zirkusdirektor
+R: Clown
+R: Akrobatin
+R: Tiertrainer
+R: Kartenverkäufer
+---
+Loc: Museum
+R: Kurator
+R: Museumsführer
+R: Wachmann
+R: Klassenlehrerin
+R: Restauratorin
+---
+Loc: Hochzeit
+R: Braut
+R: Trauzeuge
+R: Fotograf
+R: Caterer
+R: Peinlicher Cousin
+---
+Loc: Bank
+R: Filialleiter
+R: Schalterkraft
+R: Wachmann
+R: Kunde
+R: Reinigungskraft
+---
+Loc: Polizeiwache
+R: Wachhabender
+R: Kommissarin
+R: Schalterbeamter
+R: Verdächtiger
+R: Spürhundeführer
+---
+Loc: Theater
+R: Hauptdarsteller
+R: Souffleuse
+R: Platzanweiser
+R: Kostümbildnerin
+R: Kritiker
+---
+Loc: Raketenstart
+R: Astronautin
+R: Flugdirektor
+R: Ingenieur
+R: Journalist
+R: Besucherbetreuer
+---
+Loc: Zeitungsredaktion
+R: Chefredakteur
+R: Reporterin
+R: Fotograf
+R: Praktikant
+R: Drucker
+---
+Loc: Bauernhof
+R: Bauer
+R: Traktorfahrer
+R: Tierarzt
+R: Landarbeiter
+R: Marktverkäuferin
+---
+Loc: Geisterbahn
+R: Schauspieler im Kostüm
+R: Kartenverkäufer
+R: Verängstigter Besucher
+R: Maskenbildner
+R: Techniker

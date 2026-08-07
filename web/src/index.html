@@ -549,6 +549,163 @@
   </div>
 </section>
 
+<!-- 17. Fill the Blank: a rotating Czar picks the funniest answer card. -->
+<section id="fillblank" class="screen hide">
+  <div id="fb-lobby" class="hide">
+    <header class="bar"><h2 data-i18n="fb.title">Fill the Blank</h2><span id="fb-me" class="me"></span></header>
+    <ul id="fb-players" class="players"></ul>
+    <div id="fb-need" class="fb-note"></div>
+    <button id="fb-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
+    <div id="fb-topics" class="topics"></div>
+  </div>
+  <div id="fb-count" class="hide count">
+    <div class="count-topic" data-i18n="fb.count_topic">Fill the Blank</div>
+    <div id="fb-count-num" class="count-num">3</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
+  </div>
+  <div id="fb-play" class="hide">
+    <div class="bar"><span id="fb-meta" class="me"></span><span id="fb-role" class="me"></span></div>
+    <div id="fb-bar" class="timebar hide"><i></i></div>
+    <div id="fb-prompt" class="fb-prompt"></div>
+    <div id="fb-subs" class="fb-cards hide"></div>
+    <div id="fb-hand" class="fb-cards hide"></div>
+    <div id="fb-note" class="fb-note"></div>
+  </div>
+  <div id="fb-final" class="hide">
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+    <ol id="fb-podium" class="podium"></ol>
+    <button id="fb-again" class="btn big" data-i18n="common.play_again">Play again</button>
+  </div>
+</section>
+
+<!-- 17. Werewolf: hidden roles dealt by the ESP, night/day phases on timers. The
+     phone only ever renders what the server told THIS player; nothing about
+     another player's role is inferred here. -->
+<section id="werewolf" class="screen hide">
+  <div id="ww-lobby" class="hide">
+    <header class="bar"><h2 data-i18n="werewolf.title">Werewolf</h2><span id="ww-me" class="me"></span></header>
+    <ul id="ww-players" class="players"></ul>
+    <p id="ww-need" class="sub"></p>
+    <button id="ww-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="werewolf.blurb">Roles are secret. Talk it out loud, vote on the phone.</p>
+  </div>
+  <div id="ww-count" class="hide count">
+    <div class="count-topic" data-i18n="werewolf.count_topic">Werewolf</div>
+    <div id="ww-count-num" class="count-num">3</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
+  </div>
+  <div id="ww-play" class="hide">
+    <div class="bar"><span id="ww-meta" class="me"></span><span id="ww-role" class="me"></span></div>
+    <div id="ww-bar" class="timebar hide"><i></i></div>
+    <div id="ww-banner" class="ww-banner"></div>
+    <div id="ww-check" class="ww-check hide"></div>
+    <div id="ww-note" class="ww-note"></div>
+    <div id="ww-wait" class="ww-wait"></div>
+    <div id="ww-list" class="ww-list"></div>
+    <div id="ww-counts" class="ww-counts"></div>
+  </div>
+  <div id="ww-final" class="hide">
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+    <div id="ww-winner" class="ww-winner"></div>
+    <div id="ww-roles" class="ww-list"></div>
+    <p class="sub" data-i18n="werewolf.log_title">What happened</p>
+    <div id="ww-log" class="ww-log"></div>
+    <ol id="ww-podium" class="podium"></ol>
+    <button id="ww-again" class="btn big" data-i18n="common.play_again">Play again</button>
+  </div>
+</section>
+
+<!-- 17. Spyfall — everyone shares a location and a role there, except the spy, who is
+     told neither and has to blend in. The phone is only the referee; the questioning
+     happens out loud around the table. -->
+<section id="spyfall" class="screen hide">
+  <div id="sf-lobby" class="hide">
+    <header class="bar"><h2 data-i18n="sf.title">Spyfall</h2><span id="sf-me" class="me"></span></header>
+    <ul id="sf-players" class="players"></ul>
+    <p id="sf-need" class="sub"></p>
+    <button id="sf-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
+    <div id="sf-topics" class="topics"></div>
+  </div>
+  <div id="sf-count" class="hide count">
+    <div class="count-topic" data-i18n="sf.count_topic">Spyfall</div>
+    <div id="sf-count-num" class="count-num">3</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
+  </div>
+  <div id="sf-play" class="hide">
+    <div class="bar"><span id="sf-meta" class="me"></span><span id="sf-clock" class="sf-clock"></span></div>
+    <div id="sf-bar" class="timebar hide"><i></i></div>
+    <!-- The card is hidden by default once the round is running: "Show my card" only
+         reveals it while the button is held down, so it is never left on screen. -->
+    <div id="sf-card" class="sf-card hide"></div>
+    <div id="sf-head" class="sf-head"></div>
+    <button id="sf-ok" class="btn big hide" data-i18n="sf.got_it">Got it</button>
+    <button id="sf-hold" class="btn big sf-hold hide" type="button" data-i18n="sf.hold">Show my card</button>
+    <div id="sf-acts" class="sf-acts hide">
+      <button id="sf-loc" class="btn ghost hide" type="button" data-i18n="sf.know_loc">I know the location</button>
+      <button id="sf-who" class="btn ghost hide" type="button" data-i18n="sf.know_spy">I know the spy</button>
+    </div>
+    <div id="sf-poll" class="sf-acts hide">
+      <button id="sf-in" class="btn big" type="button" data-i18n="sf.im_in">I'm in</button>
+      <button id="sf-no" class="btn ghost" type="button" data-i18n="sf.not_in">Not convinced</button>
+    </div>
+    <p id="sf-listhead" class="sub hide"></p>
+    <div id="sf-list" class="sf-list"></div>
+    <div id="sf-note" class="sf-note"></div>
+  </div>
+  <div id="sf-final" class="hide">
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+    <ol id="sf-podium" class="podium"></ol>
+    <button id="sf-again" class="btn big" data-i18n="common.play_again">Play again</button>
+  </div>
+</section>
+
+<!-- 17. Draw a Monster (`frankendraw` internally) — exquisite corpse: head, torso,
+     legs, three different hands. -->
+<section id="fd" class="screen hide">
+  <div id="fd-lobby" class="hide">
+    <header class="bar"><h2 data-i18n="fd.title">Draw a Monster</h2><span id="fd-me" class="me"></span></header>
+    <p class="sub" data-i18n="fd.how">Head, torso, legs — each drawn by someone else.</p>
+    <ul id="fd-players" class="players"></ul>
+    <button id="fd-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <div id="fd-need" class="fd-note"></div>
+  </div>
+  <div id="fd-count" class="hide count">
+    <div class="count-topic" data-i18n="fd.count_topic">Draw a Monster</div>
+    <div id="fd-count-num" class="count-num">3</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
+  </div>
+  <!-- Drawing: the controls sit ABOVE the canvas and the canvas takes whatever height
+       is left (flex, min-height:0), so Next can never be scrolled out of reach. -->
+  <div id="fd-play" class="hide fd-col">
+    <div class="fd-top">
+      <button id="fd-undo" class="btn ghost sm" data-i18n="fd.undo">Undo</button>
+      <span id="fd-meta" class="fd-meta"></span>
+      <button id="fd-next" class="btn sm" data-i18n="fd.next">Next &gt;</button>
+    </div>
+    <div id="fd-ink" class="fd-ink"><i></i></div>
+    <div id="fd-bar" class="timebar hide"><i></i></div>
+    <div id="fd-note" class="fd-note"></div>
+    <div id="fd-stage" class="fd-stage"><canvas id="fd-canvas" class="fd-canvas"></canvas></div>
+  </div>
+  <div id="fd-show" class="hide fd-col">
+    <div id="fd-sbar" class="timebar"><i></i></div>
+    <div class="fd-top"><span id="fd-show-meta" class="fd-meta"></span></div>
+    <div class="fd-stage"><canvas id="fd-gallery" class="fd-canvas"></canvas></div>
+    <div id="fd-thumbs" class="fd-thumbs">
+      <button id="fd-up" class="fd-thumb" type="button" aria-label="Thumbs up">👍 <span id="fd-upn">0</span></button>
+      <button id="fd-down" class="fd-thumb" type="button" aria-label="Thumbs down">👎 <span id="fd-downn">0</span></button>
+    </div>
+  </div>
+  <div id="fd-final" class="hide">
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+    <div id="fd-best" class="fd-best"></div>
+    <ol id="fd-podium" class="podium"></ol>
+    <button id="fd-again" class="btn big" data-i18n="common.play_again">Play again</button>
+  </div>
+</section>
+
 <!-- Emoji reactions: floating layer + a corner button that opens the emoji row -->
 <div id="react-layer" class="react-layer" aria-hidden="true"></div>
 <div id="react-bar" class="react-bar hide">
