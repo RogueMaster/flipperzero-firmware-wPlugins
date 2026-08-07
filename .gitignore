@@ -2,7 +2,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Сборка FAP
+# FAP build
 flipper/tpms_bridge/dist/
 flipper/tpms_bridge/.vscode/
 flipper/tpms_bridge/.ufbt/

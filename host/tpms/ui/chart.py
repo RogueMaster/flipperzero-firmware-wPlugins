@@ -72,7 +72,7 @@ class HistoryChart(QWidget):
 
         if len(self._points) < 2:
             painter.setPen(QPen(text_color, 1))
-            painter.drawText(plot, Qt.AlignCenter, "Недостаточно данных для графика")
+            painter.drawText(plot, Qt.AlignCenter, "Not enough data to plot")
             return
 
         times = [p[0] for p in self._points]
@@ -117,22 +117,22 @@ class HistoryChart(QWidget):
         painter.drawText(
             QRectF(plot.left(), plot.bottom() + 4, plot.width(), MARGIN_BOTTOM - 6),
             Qt.AlignLeft | Qt.AlignTop,
-            f"-{span:.0f} с",
+            f"-{span:.0f} s",
         )
         painter.drawText(
             QRectF(plot.left(), plot.bottom() + 4, plot.width(), MARGIN_BOTTOM - 6),
             Qt.AlignRight | Qt.AlignTop,
-            "сейчас",
+            "now",
         )
 
         header_rect = QRectF(plot.left(), 2, plot.width(), MARGIN_TOP - 4)
-        painter.drawText(header_rect, Qt.AlignLeft | Qt.AlignVCenter, self._title or "История")
+        painter.drawText(header_rect, Qt.AlignLeft | Qt.AlignVCenter, self._title or "History")
 
         # Legend: two labels in a row, widths measured with the font
         # metrics, otherwise they run into each other.
         metrics = painter.fontMetrics()
-        pressure_legend = f"давление, {self._unit}"
-        temperature_legend = "температура, °C"
+        pressure_legend = f"pressure, {self._unit}"
+        temperature_legend = "temperature, °C"
         gap = 12.0
 
         temperature_width = metrics.horizontalAdvance(temperature_legend)

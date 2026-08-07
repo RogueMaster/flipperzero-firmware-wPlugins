@@ -97,7 +97,7 @@ def test_chart_renders_with_and_without_data(window):
 def test_ages_refresh_marks_stale_sensor(window):
     _feed(window, _reading(0x7AD779, 243.75, 22, offset=-300))
     window._refresh_ages()
-    assert "назад" in window.table.item(0, 6).text()
+    assert "ago" in window.table.item(0, 6).text()
 
 
 def test_clear_empties_everything(window):
@@ -106,7 +106,7 @@ def test_clear_empties_everything(window):
 
     assert window.table.rowCount() == 0
     assert window.model.total_frames == 0
-    assert window.summary_label.text() == "Кадров: 0   Датчиков: 0"
+    assert window.summary_label.text() == "Frames: 0   Sensors: 0"
 
 
 def test_export_csv_from_window_model(window, tmp_path):

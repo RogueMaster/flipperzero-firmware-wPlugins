@@ -33,7 +33,7 @@ from ..model import PRESSURE_UNITS, SensorModel, convert_pressure
 from ..sub_file import load as load_capture
 from .chart import HistoryChart
 
-COLUMNS = ["ID датчика", "Давление", "Температура", "Флаги", "RSSI", "Кадров", "Последний приём"]
+COLUMNS = ["Sensor ID", "Pressure", "Temperature", "Flags", "RSSI", "Frames", "Last seen"]
 
 LOG_LIMIT = 2000
 POLL_INTERVAL_MS = 150
@@ -92,7 +92,7 @@ class MainWindow(QMainWindow):
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
         self.log.setMaximumBlockCount(LOG_LIMIT)
-        self.log.setPlaceholderText("Сообщения устройства и сырые данные")
+        self.log.setPlaceholderText("Device messages and raw data")
         splitter.addWidget(self.log)
 
         splitter.setStretchFactor(0, 3)
@@ -104,22 +104,22 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         self.status = self.statusBar()
-        self.status.showMessage("Не подключено")
+        self.status.showMessage("Not connected")
 
     def _build_connection_bar(self) -> QHBoxLayout:
         bar = QHBoxLayout()
 
-        bar.addWidget(QLabel("Порт:"))
+        bar.addWidget(QLabel("Port:"))
         self.port_combo = QComboBox()
         self.port_combo.setMinimumWidth(240)
         self.port_combo.setEditable(True)
         bar.addWidget(self.port_combo)
 
-        self.refresh_button = QPushButton("Обновить")
+        self.refresh_button = QPushButton("Refresh")
         self.refresh_button.clicked.connect(self._refresh_ports)
         bar.addWidget(self.refresh_button)
 
-        bar.addWidget(QLabel("Частота, Гц:"))
+        bar.addWidget(QLabel("Frequency, Hz:"))
         self.frequency_spin = QSpinBox()
         self.frequency_spin.setRange(300_000_000, 928_000_000)
         self.frequency_spin.setSingleStep(10_000)
@@ -129,30 +129,30 @@ class MainWindow(QMainWindow):
         self.frequency_spin.setGroupSeparatorShown(False)
         bar.addWidget(self.frequency_spin)
 
-        bar.addWidget(QLabel("Режим:"))
+        bar.addWidget(QLabel("Mode:"))
         self.mode_combo = QComboBox()
         self.mode_combo.addItems(["json", "raw"])
         self.mode_combo.setToolTip(
-            "json — декодированные кадры.\n"
-            "raw — сырые тайминги для диагностики, если кадры не ловятся."
+            "json — decoded frames.\n"
+            "raw — raw timings, for working out why nothing decodes."
         )
         bar.addWidget(self.mode_combo)
 
-        self.wake_check = QCheckBox("Будить")
+        self.wake_check = QCheckBox("Wake")
         self.wake_check.setToolTip(
-            "Периодически излучать поле 125 кГц, чтобы разбудить датчик.\n"
-            "Датчик надо держать вплотную к задней стороне Flipper — там катушка.\n"
-            "В покое датчик молчит и выходит в эфир только от движения колеса."
+            "Periodically emit a 125 kHz field to wake the sensor up.\n"
+            "Hold the sensor against the back of the Flipper — the coil is there.\n"
+            "At rest the sensor stays silent and only transmits when the wheel turns."
         )
         bar.addWidget(self.wake_check)
 
-        self.connect_button = QPushButton("Подключить")
+        self.connect_button = QPushButton("Connect")
         self.connect_button.clicked.connect(self._toggle_connection)
         bar.addWidget(self.connect_button)
 
         bar.addStretch(1)
 
-        bar.addWidget(QLabel("Единицы:"))
+        bar.addWidget(QLabel("Units:"))
         self.unit_combo = QComboBox()
         self.unit_combo.addItems(list(PRESSURE_UNITS))
         self.unit_combo.currentTextChanged.connect(self._on_unit_changed)
@@ -163,25 +163,25 @@ class MainWindow(QMainWindow):
     def _build_action_bar(self) -> QHBoxLayout:
         bar = QHBoxLayout()
 
-        self.export_button = QPushButton("Экспорт CSV…")
+        self.export_button = QPushButton("Export CSV…")
         self.export_button.clicked.connect(self._export_csv)
         bar.addWidget(self.export_button)
 
-        self.save_log_button = QPushButton("Сохранить лог…")
+        self.save_log_button = QPushButton("Save log…")
         self.save_log_button.clicked.connect(self._save_log)
         bar.addWidget(self.save_log_button)
 
-        self.open_button = QPushButton("Открыть .sub / дамп…")
+        self.open_button = QPushButton("Open .sub / dump…")
         self.open_button.clicked.connect(self._open_capture)
         bar.addWidget(self.open_button)
 
-        self.clear_button = QPushButton("Очистить")
+        self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self._clear)
         bar.addWidget(self.clear_button)
 
         bar.addStretch(1)
 
-        self.summary_label = QLabel("Кадров: 0   Датчиков: 0")
+        self.summary_label = QLabel("Frames: 0   Sensors: 0")
         bar.addWidget(self.summary_label)
 
         return bar
@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
         if current and current in ports:
             self.port_combo.setCurrentText(current)
         elif not ports:
-            self._append_log("Flipper не найден. Подключите его по USB и нажмите «Обновить».")
+            self._append_log("No Flipper found. Connect it over USB and press Refresh.")
 
     def _toggle_connection(self) -> None:
         if self.link is not None and self.link.running:
@@ -211,7 +211,7 @@ class MainWindow(QMainWindow):
     def _connect(self) -> None:
         port = self.port_combo.currentText().strip()
         if not port:
-            QMessageBox.warning(self, "Нет порта", "Укажите последовательный порт Flipper.")
+            QMessageBox.warning(self, "No port", "Choose the Flipper serial port.")
             return
 
         self.link = FlipperLink(
@@ -222,18 +222,18 @@ class MainWindow(QMainWindow):
         )
         self.link.start()
 
-        self.connect_button.setText("Отключить")
-        self.status.showMessage(f"Подключено к {port}")
+        self.connect_button.setText("Disconnect")
+        self.status.showMessage(f"Connected to {port}")
         self._append_log(
-            f"Подключение к {port}. На Flipper должно быть запущено приложение TPMS Bridge."
+            f"Connecting to {port}. The TPMS Bridge app must be running on the Flipper."
         )
 
     def _disconnect(self) -> None:
         if self.link is not None:
             self.link.stop()
             self.link = None
-        self.connect_button.setText("Подключить")
-        self.status.showMessage("Отключено")
+        self.connect_button.setText("Connect")
+        self.status.showMessage("Disconnected")
 
     # ------------------------------------------------------------------
     # Events
@@ -257,11 +257,11 @@ class MainWindow(QMainWindow):
             elif kind == "raw":
                 self._append_log(str(payload))
             elif kind == "error":
-                self._append_log(f"ОШИБКА: {payload}")
-                self.status.showMessage(f"Ошибка: {payload}")
+                self._append_log(f"ERROR: {payload}")
+                self.status.showMessage(f"Error: {payload}")
             elif kind == "closed":
-                self._append_log("Соединение закрыто.")
-                self.connect_button.setText("Подключить")
+                self._append_log("Connection closed.")
+                self.connect_button.setText("Connect")
             else:
                 self._append_log(str(payload))
 
@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
             f"0x{frame.flags:02x}",
             "—" if reading.rssi_dbm is None else f"{reading.rssi_dbm:.1f} dBm",
             str(stats.frames),
-            "только что",
+            "just now",
         ]
         for column, value in enumerate(values):
             self.table.item(row, column).setText(value)
@@ -309,7 +309,7 @@ class MainWindow(QMainWindow):
 
             age = now - stats.last_seen
             item = self.table.item(row, len(COLUMNS) - 1)
-            item.setText("только что" if age < 2 else f"{int(age)} с назад")
+            item.setText("just now" if age < 2 else f"{int(age)} s ago")
 
             # Highlight a silent sensor so it is not mistaken for a fresh one.
             stale = age > STALE_AFTER_S
@@ -321,7 +321,7 @@ class MainWindow(QMainWindow):
 
     def _refresh_summary(self) -> None:
         self.summary_label.setText(
-            f"Кадров: {self.model.total_frames}   Датчиков: {len(self.model.sensors())}"
+            f"Frames: {self.model.total_frames}   Sensors: {len(self.model.sensors())}"
         )
 
     def _refresh_chart(self) -> None:
@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
         self.chart.set_history(
             list(stats.history),
             unit=self.unit_combo.currentText(),
-            title=f"Датчик {sensor_id}",
+            title=f"Sensor {sensor_id}",
         )
 
     def _selected_sensor(self) -> str | None:
@@ -364,34 +364,34 @@ class MainWindow(QMainWindow):
 
     def _export_csv(self) -> None:
         if not self.model.total_frames:
-            QMessageBox.information(self, "Нечего выгружать", "Пока не принято ни одного кадра.")
+            QMessageBox.information(self, "Nothing to export", "No frames received yet.")
             return
 
         path, _ = QFileDialog.getSaveFileName(
-            self, "Сохранить показания", "tpms.csv", "CSV (*.csv)"
+            self, "Save readings", "tpms.csv", "CSV (*.csv)"
         )
         if not path:
             return
 
         rows = self.model.export_csv(path)
-        self.status.showMessage(f"Записано строк: {rows} → {path}")
+        self.status.showMessage(f"Rows written: {rows} → {path}")
 
     def _save_log(self) -> None:
         path, _ = QFileDialog.getSaveFileName(
-            self, "Сохранить лог", "tpms_raw.txt", "Текст (*.txt)"
+            self, "Save log", "tpms_raw.txt", "Text (*.txt)"
         )
         if not path:
             return
 
         Path(path).write_text(self.log.toPlainText(), encoding="utf-8")
-        self.status.showMessage(f"Лог сохранён → {path}")
+        self.status.showMessage(f"Log saved → {path}")
 
     def _open_capture(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Открыть запись",
+            "Open capture",
             "",
-            "Записи (*.sub *.txt *.log);;Все файлы (*)",
+            "Captures (*.sub *.txt *.log);;All files (*)",
         )
         if not path:
             return
@@ -399,12 +399,12 @@ class MainWindow(QMainWindow):
         try:
             capture = load_capture(path)
         except OSError as exc:
-            QMessageBox.critical(self, "Не удалось прочитать", str(exc))
+            QMessageBox.critical(self, "Cannot read the file", str(exc))
             return
 
         frames = capture.decode()
         self._append_log(
-            f"Файл {Path(path).name}: таймингов {len(capture.timings)}, кадров {len(frames)}"
+            f"File {Path(path).name}: {len(capture.timings)} timings, {len(frames)} frames"
         )
 
         now = time.time()
@@ -421,11 +421,12 @@ class MainWindow(QMainWindow):
         if not frames:
             QMessageBox.information(
                 self,
-                "Кадров нет",
-                "В файле не нашлось валидных кадров Renault.\n\n"
-                "Если это запись из Sub-GHz → Read RAW, то так и будет: прошивка "
-                "выбрасывает импульсы короче 50 мкс, а у этого протокола длительность "
-                "чипа примерно столько и есть. Снимайте дамп режимом raw команды tpms_rx.",
+                "No frames",
+                "The file holds no valid Renault frames.\n\n"
+                "If this is a Sub-GHz → Read RAW capture, that is expected: the "
+                "firmware throws away pulses shorter than 50 us, and this protocol "
+                "has a chip duration of about that. Capture a dump with the raw "
+                "mode of the tpms_rx command instead.",
             )
 
         self._refresh_summary()
