@@ -2,8 +2,10 @@
 
 #include "fmtx_scenes.h"
 
+#include <furi_hal.h>
 #include <stdlib.h>
 #include <storage/storage.h>
+#include <toolbox/saved_struct.h>
 
 static bool custev(void* ctx, uint32_t event) {
     App* app = ctx;
@@ -18,6 +20,22 @@ static bool backev(void* ctx) {
 static void tickev(void* ctx) {
     App* app = ctx;
     scene_manager_handle_tick_event(app->scene_manager);
+}
+
+static bool startup_animation_due(void) {
+    DateTime now;
+    uint32_t today;
+    uint32_t previous = 0;
+
+    furi_hal_rtc_get_datetime(&now);
+    today = ((uint32_t)now.year << 16) | ((uint32_t)now.month << 8) | now.day;
+    if(saved_struct_load(
+           APP_DATA_PATH("animation-day.bin"), &previous, sizeof(previous), 0x46, 1) &&
+       previous == today)
+        return false;
+    (void)saved_struct_save(
+        APP_DATA_PATH("animation-day.bin"), &today, sizeof(today), 0x46, 1);
+    return true;
 }
 
 uint32_t fmtx_config_load_frequency(void) {
@@ -156,7 +174,7 @@ int32_t flipper_zero_fmtx_app(void* ctx) {
     UNUSED(ctx);
     App* app = appnew();
     if(!app) return 255;
-    scene_manager_next_scene(app->scene_manager, ScBoot);
+    scene_manager_next_scene(app->scene_manager, startup_animation_due() ? ScBoot : ScMain);
     view_dispatcher_run(app->dispatcher);
     appfree(app);
 
