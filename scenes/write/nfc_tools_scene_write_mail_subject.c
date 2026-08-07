@@ -10,11 +10,11 @@ static void nfc_tools_scene_write_mail_subject_callback(void* context) {
 
 void nfc_tools_scene_write_mail_subject_on_enter(void* context) {
     NfcToolsApp* app = context;
-    TextInput* ti = app->text_input;
+    Keyboard* ti = app->keyboard;
 
-    text_input_set_header_text(ti, NTS_INPUT_SUBJECT);
+    keyboard_set_header_text(ti, NTS_INPUT_SUBJECT);
 
-    text_input_set_result_callback(
+    keyboard_set_result_callback(
         ti,
         nfc_tools_scene_write_mail_subject_callback,
         app,
@@ -22,9 +22,9 @@ void nfc_tools_scene_write_mail_subject_on_enter(void* context) {
         sizeof(app->ndef_buf2),
         false);
 
-    text_input_set_minimum_length(ti, 0);
+    keyboard_set_minimum_length(ti, 0);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewTextInput);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_write_mail_subject_on_event(void* context, SceneManagerEvent event) {
@@ -42,5 +42,5 @@ bool nfc_tools_scene_write_mail_subject_on_event(void* context, SceneManagerEven
 
 void nfc_tools_scene_write_mail_subject_on_exit(void* context) {
     NfcToolsApp* app = context;
-    text_input_reset(app->text_input);
+    keyboard_reset(app->keyboard);
 }

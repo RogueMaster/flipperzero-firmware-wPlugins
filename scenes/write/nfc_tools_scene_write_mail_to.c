@@ -7,13 +7,13 @@ static void nfc_tools_scene_write_mail_to_callback(void* context) {
 
 void nfc_tools_scene_write_mail_to_on_enter(void* context) {
     NfcToolsApp* app   = context;
-    EmailInput* input = app->email_input;
-    email_input_set_header_text(input, NTS_INPUT_RECIPIENT);
-    email_input_set_result_callback(
+    Keyboard* input = app->keyboard;
+    keyboard_set_header_text(input, NTS_INPUT_RECIPIENT);
+    keyboard_set_result_callback(
         input, nfc_tools_scene_write_mail_to_callback, app,
         app->ndef_buf1, sizeof(app->ndef_buf1), false);
-    email_input_set_minimum_length(input, 1);
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewEmailInput);
+    keyboard_set_minimum_length(input, 1);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_write_mail_to_on_event(void* context, SceneManagerEvent event) {
@@ -28,5 +28,5 @@ bool nfc_tools_scene_write_mail_to_on_event(void* context, SceneManagerEvent eve
 
 void nfc_tools_scene_write_mail_to_on_exit(void* context) {
     NfcToolsApp* app = context;
-    email_input_reset(app->email_input);
+    keyboard_reset(app->keyboard);
 }

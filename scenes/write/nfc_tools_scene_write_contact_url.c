@@ -9,11 +9,11 @@ static void nfc_tools_scene_write_contact_url_callback(void* context) {
 
 void nfc_tools_scene_write_contact_url_on_enter(void* context) {
     NfcToolsApp* app = context;
-    MimeInput*   mi  = app->mime_input;
+    Keyboard*   mi  = app->keyboard;
 
-    mime_input_set_header_text(mi, NTS_INPUT_WEBSITE);
+    keyboard_set_header_text(mi, NTS_INPUT_WEBSITE);
 
-    mime_input_set_result_callback(
+    keyboard_set_result_callback(
         mi,
         nfc_tools_scene_write_contact_url_callback,
         app,
@@ -21,8 +21,8 @@ void nfc_tools_scene_write_contact_url_on_enter(void* context) {
         sizeof(app->ndef_buf6),
         false);
 
-    mime_input_set_minimum_length(mi, 0);
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewMimeInput);
+    keyboard_set_minimum_length(mi, 0);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_write_contact_url_on_event(void* context, SceneManagerEvent event) {
@@ -39,5 +39,5 @@ bool nfc_tools_scene_write_contact_url_on_event(void* context, SceneManagerEvent
 
 void nfc_tools_scene_write_contact_url_on_exit(void* context) {
     NfcToolsApp* app = context;
-    mime_input_reset(app->mime_input);
+    keyboard_reset(app->keyboard);
 }

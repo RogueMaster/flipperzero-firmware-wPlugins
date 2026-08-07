@@ -7,11 +7,11 @@ static void nfc_tools_scene_write_wifi_pass_callback(void* context) {
 
 void nfc_tools_scene_write_wifi_pass_on_enter(void* context) {
     NfcToolsApp* app = context;
-    TextInput* ti = app->text_input;
+    Keyboard* ti = app->keyboard;
 
-    text_input_set_header_text(ti, NTS_INPUT_WIFI_PASSWORD);
+    keyboard_set_header_text(ti, NTS_INPUT_WIFI_PASSWORD);
 
-    text_input_set_result_callback(
+    keyboard_set_result_callback(
         ti,
         nfc_tools_scene_write_wifi_pass_callback,
         app,
@@ -20,9 +20,10 @@ void nfc_tools_scene_write_wifi_pass_on_enter(void* context) {
         false);
 
     // Password may be empty (open network)
-    text_input_set_minimum_length(ti, 0);
+    keyboard_set_minimum_length(ti, 0);
+    keyboard_set_max_length(ti, 64); // WPA2 PSK: 63 ASCII or 64 hex
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewTextInput);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_write_wifi_pass_on_event(void* context, SceneManagerEvent event) {
@@ -39,5 +40,5 @@ bool nfc_tools_scene_write_wifi_pass_on_event(void* context, SceneManagerEvent e
 
 void nfc_tools_scene_write_wifi_pass_on_exit(void* context) {
     NfcToolsApp* app = context;
-    text_input_reset(app->text_input);
+    keyboard_reset(app->keyboard);
 }

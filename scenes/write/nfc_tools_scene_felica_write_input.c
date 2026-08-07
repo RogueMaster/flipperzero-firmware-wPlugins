@@ -33,10 +33,10 @@ static bool felica_parse_input(NfcToolsApp* app) {
 
 static void nfc_tools_felica_error_popup_cb(void* context) {
     NfcToolsApp* app = context;
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewSpecialInput);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
-// ── Callback SpecialInput ─────────────────────────────────────────────────────
+// ── Callback Keyboard ─────────────────────────────────────────────────────
 
 static void nfc_tools_felica_write_input_cb(void* context) {
     NfcToolsApp* app = context;
@@ -50,17 +50,18 @@ void nfc_tools_scene_felica_write_input_on_enter(void* context) {
 
     app->ndef_buf1[0] = '\0';
 
-    special_input_set_header_text(app->special_input, NTS_INPUT_FELICA_BLOCK);
-    special_input_set_result_callback(
-        app->special_input,
+    keyboard_set_header_text(app->keyboard, NTS_INPUT_FELICA_BLOCK);
+    keyboard_set_result_callback(
+        app->keyboard,
         nfc_tools_felica_write_input_cb,
         app,
         app->ndef_buf1,
         sizeof(app->ndef_buf1),
         false);
-    special_input_set_minimum_length(app->special_input, 34);
+    keyboard_set_minimum_length(app->keyboard, 34);
+    keyboard_set_max_length(app->keyboard, 34); // exactly 2 block digits + 32 hex
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewSpecialInput);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_felica_write_input_on_event(void* context, SceneManagerEvent event) {
@@ -93,6 +94,6 @@ bool nfc_tools_scene_felica_write_input_on_event(void* context, SceneManagerEven
 
 void nfc_tools_scene_felica_write_input_on_exit(void* context) {
     NfcToolsApp* app = context;
-    special_input_reset(app->special_input);
+    keyboard_reset(app->keyboard);
     popup_reset(app->popup);
 }
