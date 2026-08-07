@@ -385,7 +385,7 @@ function storeKey(name) {
    which puts us on the normal reconnect path. This is purely the client judging its
    own connection; the host closes nothing on its behalf. The host already answers
    {t:"ping"} with {t:"pong"}, so no firmware change is involved. */
-var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
+// PING_MS / WARN_MS / DEAD_MS removed with the polling below.
 var liveTimer = null, lastRx = 0, warned = false;
 
 function stopLiveness() {
@@ -393,34 +393,28 @@ function stopLiveness() {
   warned = false;
 }
 
+// DISABLED, deliberately. The polling above cost more than it bought:
+//
+//  - Every phone sent a message every PING_MS, which the host answered. On a party host
+//    that is a steady beat of traffic whose only purpose is to notice silence, and any
+//    code that treats "a message arrived" as "state changed" is now wrong -- that is
+//    exactly how the game-change vote overlay came to be dismissed a second after it
+//    appeared.
+//  - The DEAD_MS branch closed a working socket on the client's own judgement. Its
+//    stated reason -- "the host drops the player on disconnect, and the reconnect comes
+//    back as a new one with no score" -- has not been true since the engine started
+//    parking players by device key, so it was tearing down links to avoid a problem that
+//    no longer exists.
+//  - A reconnect asks the host for a fresh lobby push, and a lobby push is what closes a
+//    pending vote. So a phone that briefly went quiet lost the prompt everyone else
+//    could still see.
+//
+// A socket that really closes still fires onclose and still goes through
+// scheduleReconnect(), which is what actually recovers a dropped link. Left as a no-op
+// rather than deleted so the call sites stay honest about where this used to happen.
 function startLiveness() {
   stopLiveness();
   lastRx = Date.now();
-  liveTimer = setInterval(function () {
-    if (!A.ws || A.ws.readyState !== 1) return;
-    var quiet = Date.now() - lastRx;
-    // Two stages on purpose. Saying something at WARN_MS is free -- it only
-    // colours the dot and raises the bar, so a slow reply on a weak antenna
-    // costs nothing but a moment of honesty. Actually closing the socket is
-    // not free: the host drops the player on disconnect, and the reconnect
-    // comes back as a new one with no score, so that waits for DEAD_MS, by
-    // which point the link really is gone.
-    if (quiet > DEAD_MS) {
-      stopLiveness();
-      try { A.ws.close(); } catch (e) {}   // onclose -> scheduleReconnect()
-      return;
-    }
-    if (quiet > WARN_MS && !warned) {
-      warned = true;
-      setDot("warn");
-      if (A.view !== "landing") { $("netbar").textContent = t("net.quiet"); show("netbar"); }
-    } else if (quiet <= WARN_MS && warned) {
-      warned = false;                       // it answered again
-      setDot("");
-      hide("netbar");
-    }
-    try { A.ws.send(JSON.stringify({ t: "ping" })); } catch (e) {}
-  }, PING_MS);
 }
 
 function connect() {

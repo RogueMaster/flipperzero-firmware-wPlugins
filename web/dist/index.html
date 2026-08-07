@@ -798,7 +798,6 @@ function storeKey(name) {
 var h = new URLSearchParams(location.search).get("harness");
 return h ? name + "_" + h : name;
 }
-var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
 var liveTimer = null, lastRx = 0, warned = false;
 function stopLiveness() {
 if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
@@ -807,25 +806,6 @@ warned = false;
 function startLiveness() {
 stopLiveness();
 lastRx = Date.now();
-liveTimer = setInterval(function () {
-if (!A.ws || A.ws.readyState !== 1) return;
-var quiet = Date.now() - lastRx;
-if (quiet > DEAD_MS) {
-stopLiveness();
-try { A.ws.close(); } catch (e) {}   // onclose -> scheduleReconnect()
-return;
-}
-if (quiet > WARN_MS && !warned) {
-warned = true;
-setDot("warn");
-if (A.view !== "landing") { $("netbar").textContent = t("net.quiet"); show("netbar"); }
-} else if (quiet <= WARN_MS && warned) {
-warned = false;                       // it answered again
-setDot("");
-hide("netbar");
-}
-try { A.ws.send(JSON.stringify({ t: "ping" })); } catch (e) {}
-}, PING_MS);
 }
 function connect() {
 var ws = harnessSocket();
