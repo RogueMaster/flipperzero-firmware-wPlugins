@@ -40,14 +40,15 @@ approach that can be read, verified, and corrected by anyone.
 
 ## What exists today
 
-Version 0.44. A Flipper Zero application paired with commodity ESP32 hardware that
+A Flipper Zero application paired with commodity ESP32 hardware that
 detects Flock/ALPR cameras across Wi-Fi and BLE, identifies Bluetooth trackers that
 persist across your movement, flags active Wi-Fi attacks, and exports findings as
 Markdown, GeoJSON, KML, CSV, and WiGLE.
 
 Detections carry an explicit confidence ladder — *Possible*, *Likely*, *Confirmed*,
 *Class?* — because a counter-surveillance tool that overstates certainty is worse than
-none. Correctness-critical logic is covered by a 291-check host test suite gated in CI.
+none. Correctness-critical logic is covered by a host test suite gated in CI
+(3,553 checks as of v0.70).
 
 **Stated honestly:** most work since v0.20 is verified by continuous integration
 against the compiler, not against real deployed hardware. Closing that gap is the
