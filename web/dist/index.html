@@ -1799,6 +1799,10 @@ de: {
 },
 };
 A.lang = "en";
+try {
+var savedLang = localStorage.getItem("ha_lang");
+if (savedLang && MESSAGES[savedLang]) A.lang = savedLang;
+} catch (e) {}
 function t(key, params) {
 var cat = MESSAGES[A.lang] || MESSAGES.en;
 var s = cat[key];
@@ -1817,6 +1821,7 @@ for (var j = 0; j < ph.length; j++) ph[j].setAttribute("placeholder", t(ph[j].ge
 }
 A.setLang = function (lang) {
 A.lang = (lang && MESSAGES[lang]) ? lang : "en";
+try { localStorage.setItem("ha_lang", A.lang); } catch (e) {} // so the next load opens in it
 applyI18n();
 };
 document.addEventListener("DOMContentLoaded", function () { applyI18n(); });

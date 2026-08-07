@@ -615,7 +615,16 @@ var MESSAGES = {
   },
 };
 
+// The language the host chose arrives in `welcome`, which is a whole WebSocket round trip
+// after the page has already painted -- so a German room saw "Play" turn into "Spielen" a
+// moment later, on every reload. Remember the last host language and open in it; `welcome`
+// still has the final say a moment later, and on a first visit there is nothing to remember
+// and English is as good a guess as any.
 A.lang = "en";
+try {
+  var savedLang = localStorage.getItem("ha_lang");
+  if (savedLang && MESSAGES[savedLang]) A.lang = savedLang;
+} catch (e) {}
 
 // Look up a key in the active language, falling back to English then the key itself.
 // {name} placeholders are filled from params.
@@ -642,6 +651,7 @@ function applyI18n(root) {
 // strings on the next server message, so no full reload is needed.
 A.setLang = function (lang) {
   A.lang = (lang && MESSAGES[lang]) ? lang : "en";
+  try { localStorage.setItem("ha_lang", A.lang); } catch (e) {} // so the next load opens in it
   applyI18n();
 };
 
