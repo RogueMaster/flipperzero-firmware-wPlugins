@@ -1867,7 +1867,14 @@ A.sfx = function (name) {
 if (muted) return;
 var c = ensure(); if (!c) return;
 var fn = SFX[name];
-if (fn) { try { fn(c); } catch (e) {} }
+if (!fn) return;
+if (c.state === "suspended" && c.resume) {
+try {
+c.resume().then(function () { try { fn(c); } catch (e) {} }, function () {});
+return;
+} catch (e) {  }
+}
+try { fn(c); } catch (e) {}
 };
 A.vibe = function (pattern) {
 try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
@@ -1888,6 +1895,15 @@ if (!muted) A.sfx("tick");   // tiny confirmation blip when re-enabling
 paint();
 return muted;
 };
+function unlockOnce() {
+A.initAudio();
+document.removeEventListener("pointerdown", unlockOnce, true);
+document.removeEventListener("touchend", unlockOnce, true);
+document.removeEventListener("keydown", unlockOnce, true);
+}
+document.addEventListener("pointerdown", unlockOnce, true);
+document.addEventListener("touchend", unlockOnce, true);
+document.addEventListener("keydown", unlockOnce, true);
 document.addEventListener("DOMContentLoaded", function () {
 var b = document.getElementById("mute");
 if (b) b.addEventListener("click", function () { A.initAudio(); A.toggleMute(); });
