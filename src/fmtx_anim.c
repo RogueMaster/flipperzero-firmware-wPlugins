@@ -4,6 +4,7 @@
 
 static uint32_t dice;
 static uint32_t run = ~0U;
+static bool skip;
 
 static const uint8_t dolph[] = {
     0x01, 0x00, 0x2a, 0x01, 0x00, 0x78, 0x01, 0xbf, 0xd1, 0xf0, 0x29, 0xf0, 0x20, 0x3e, 0x08, 0x08,
@@ -70,6 +71,12 @@ static void notes(Canvas* c, uint8_t f, uint32_t z) {
 void txrand(void) {
     dice = furi_hal_random_get();
     run = ~0U;
+    skip = false;
+}
+
+void txcancel(uint32_t ms) {
+    uint32_t p = ms % 20000U;
+    if(p >= 2000U && p < 7000U) skip = true;
 }
 
 void txpic(Canvas* c, uint8_t f) {
@@ -101,7 +108,11 @@ bool txdraw(Canvas* c, uint32_t ms) {
     // Five frames repeat twice from seconds 2 through 7 of each 20-second slot.
     uint32_t p = ms % 20000U;
     uint32_t n = ms / 20000U;
-    if(p < 2000U || p >= 7000U) return false;
+    if(p < 2000U || p >= 7000U) {
+        skip = false;
+        return false;
+    }
+    if(skip) return false;
     if(n != run) {
         run = n;
         dice = furi_hal_random_get();

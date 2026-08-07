@@ -298,6 +298,7 @@ bool playinput(InputEvent* ev, void* ctx) {
     App* app = ctx;
     PlayModel* m;
     if(!ev) return false;
+    txcancel(fmtx_playback_position_ms(app->playback));
     if(ev->key == InputKeyLeft || ev->key == InputKeyRight) {
         if(ev->type == InputTypePress) {
             app->held_key = ev->key;
