@@ -10,7 +10,7 @@ This application is the Flipper Zero port of Net Calculator.
 
 - IPv4 VLSM subnet calculation
 - Decimal IPv4 address input
-- Parent prefix selection from `/8` to `/30`
+- Parent prefix selection from /8 to /30
 - Up to 16 subnet requests
 - Automatic sorting from the largest to the smallest subnet
 - Request list with individual request removal
@@ -36,19 +36,19 @@ The main menu contains the following options:
 
 The IPv4 address is entered as four separate decimal octets.
 
-Each octet accepts values from `0` to `255`.
+Each octet accepts values from 0 to 255.
 
-Example: `192.168.1.0`
+Example: 192.168.1.0
 
 The entered address is automatically normalized to the network address of the selected parent prefix.
 
-For example, entering `192.168.1.120/24` uses `192.168.1.0/24` as the parent network.
+For example, entering 192.168.1.120/24 uses 192.168.1.0/24 as the parent network.
 
 ## Parent prefix
 
-The parent network prefix can be set from `/8` to `/30`.
+The parent network prefix can be set from /8 to /30.
 
-Example: `/24`
+Example: /24
 
 The selected prefix defines the address space available for all requested subnets.
 
@@ -103,19 +103,19 @@ If a requested subnet does not fit inside the parent network, the application di
 
 ## Example
 
-Parent network: `192.168.1.0/24`
+Parent network: 192.168.1.0/24
 
 Requested usable hosts:
 
-- `100`
-- `50`
-- `20`
+- 100
+- 50
+- 20
 
 The requests are allocated in the following order:
 
-- `100` hosts require a `/25` subnet
-- `50` hosts require a `/26` subnet
-- `20` hosts require a `/27` subnet
+- 100 hosts require a /25 subnet
+- 50 hosts require a /26 subnet
+- 20 hosts require a /27 subnet
 
 The application then displays the network, first host, last host and broadcast address for every allocated subnet.
 
@@ -123,9 +123,9 @@ The application then displays the network, first host, last host and broadcast a
 
 Selecting **Reset** restores the following values:
 
-- IP address: `192.168.1.0`
-- Parent prefix: `/24`
-- Subnet requests: `0`
+- IP address: 192.168.1.0
+- Parent prefix: /24
+- Subnet requests: 0
 
 ## Project origin
 
@@ -147,7 +147,7 @@ Publisher website [wolfror.com](https://wolfror.com)
 
 This project is licensed under the GNU General Public License version 3 only.
 
-`SPDX-License-Identifier: GPL-3.0-only`
+SPDX-License-Identifier: GPL-3.0-only
 
 See the [LICENSE](LICENSE) file for the complete license text.
 
