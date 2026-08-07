@@ -147,6 +147,7 @@
 #define NTS_LBL_RAW                     "Raw:\n"
 #define NTS_LBL_CHIP_INFO               "Chip Info"
 #define NTS_LBL_NO_RECORDS              "No records found"
+#define NTS_NDEF_VALUE_TRUNCATED        "(value too long - display truncated, QR disabled)\n"
 
 // ── Chip names ────────────────────────────────────────────────────────────────
 #define NTS_CHIP_MF_ULTRALIGHT          "NXP MF Ultralight"

@@ -7,13 +7,14 @@ static void nfc_tools_scene_write_bluetooth_callback(void* context) {
 
 void nfc_tools_scene_write_bluetooth_on_enter(void* context) {
     NfcToolsApp* app   = context;
-    SpecialInput* input = app->special_input;
-    special_input_set_header_text(input, NTS_INPUT_MAC);
-    special_input_set_result_callback(
+    Keyboard* input = app->keyboard;
+    keyboard_set_header_text(input, NTS_INPUT_MAC);
+    keyboard_set_result_callback(
         input, nfc_tools_scene_write_bluetooth_callback, app,
         app->ndef_buf1, sizeof(app->ndef_buf1), false);
-    special_input_set_minimum_length(input, 1);
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewSpecialInput);
+    keyboard_set_minimum_length(input, 1);
+    keyboard_set_max_length(input, 17); // 6-byte MAC as AA:BB:CC:DD:EE:FF
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_write_bluetooth_on_event(void* context, SceneManagerEvent event) {
@@ -28,5 +29,5 @@ bool nfc_tools_scene_write_bluetooth_on_event(void* context, SceneManagerEvent e
 
 void nfc_tools_scene_write_bluetooth_on_exit(void* context) {
     NfcToolsApp* app = context;
-    special_input_reset(app->special_input);
+    keyboard_reset(app->keyboard);
 }

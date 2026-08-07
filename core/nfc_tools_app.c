@@ -45,23 +45,9 @@ static NfcToolsApp* nfc_tools_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, NfcToolsViewTextBox, text_box_get_view(app->text_box));
 
-    app->text_input = text_input_alloc();
+    app->keyboard = keyboard_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, NfcToolsViewTextInput, text_input_get_view(app->text_input));
-
-    app->email_input = email_input_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, NfcToolsViewEmailInput, email_input_get_view(app->email_input));
-
-    app->mime_input = mime_input_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, NfcToolsViewMimeInput, mime_input_get_view(app->mime_input));
-
-    app->special_input = special_input_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher,
-        NfcToolsViewSpecialInput,
-        special_input_get_view(app->special_input));
+        app->view_dispatcher, NfcToolsViewKeyboard, keyboard_get_view(app->keyboard));
 
     // Second submenu for NDEF records list
     app->submenu2 = submenu_alloc();
@@ -100,17 +86,8 @@ static void nfc_tools_app_free(NfcToolsApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, NfcToolsViewSubmenu2);
     submenu_free(app->submenu2);
 
-    view_dispatcher_remove_view(app->view_dispatcher, NfcToolsViewSpecialInput);
-    special_input_free(app->special_input);
-
-    view_dispatcher_remove_view(app->view_dispatcher, NfcToolsViewMimeInput);
-    mime_input_free(app->mime_input);
-
-    view_dispatcher_remove_view(app->view_dispatcher, NfcToolsViewEmailInput);
-    email_input_free(app->email_input);
-
-    view_dispatcher_remove_view(app->view_dispatcher, NfcToolsViewTextInput);
-    text_input_free(app->text_input);
+    view_dispatcher_remove_view(app->view_dispatcher, NfcToolsViewKeyboard);
+    keyboard_free(app->keyboard);
 
     view_dispatcher_remove_view(app->view_dispatcher, NfcToolsViewTextBox);
     text_box_free(app->text_box);

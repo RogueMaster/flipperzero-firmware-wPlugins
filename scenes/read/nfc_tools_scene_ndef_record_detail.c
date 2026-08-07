@@ -57,6 +57,9 @@ static void build_record_detail(NfcToolsApp* app) {
     // Value
     if(rec->value[0]) {
         furi_string_cat_printf(app->info_str, "Value:\n%s\n", rec->value);
+        if(rec->truncated) {
+            furi_string_cat_str(app->info_str, NTS_NDEF_VALUE_TRUNCATED);
+        }
     }
 
     // Payload size

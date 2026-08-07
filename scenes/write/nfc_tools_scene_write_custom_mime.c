@@ -7,13 +7,13 @@ static void nfc_tools_scene_write_custom_mime_callback(void* context) {
 
 void nfc_tools_scene_write_custom_mime_on_enter(void* context) {
     NfcToolsApp* app   = context;
-    MimeInput* input = app->mime_input;
-    mime_input_set_header_text(input, NTS_INPUT_CONTENT_TYPE);
-    mime_input_set_result_callback(
+    Keyboard* input = app->keyboard;
+    keyboard_set_header_text(input, NTS_INPUT_CONTENT_TYPE);
+    keyboard_set_result_callback(
         input, nfc_tools_scene_write_custom_mime_callback, app,
         app->ndef_buf1, sizeof(app->ndef_buf1), false);
-    mime_input_set_minimum_length(input, 1);
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewMimeInput);
+    keyboard_set_minimum_length(input, 1);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_write_custom_mime_on_event(void* context, SceneManagerEvent event) {
@@ -28,5 +28,5 @@ bool nfc_tools_scene_write_custom_mime_on_event(void* context, SceneManagerEvent
 
 void nfc_tools_scene_write_custom_mime_on_exit(void* context) {
     NfcToolsApp* app = context;
-    mime_input_reset(app->mime_input);
+    keyboard_reset(app->keyboard);
 }
