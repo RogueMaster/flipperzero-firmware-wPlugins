@@ -1,6 +1,6 @@
 # FM TX
 
-Can a Flipper Zero decode an MP3 and transmit it as FM? This little spike is here to find out.
+FMTX takes an MP3 from your Flipper and plays it through the internal radio as FM audio. Tune a walkie-talkie or handheld radio to the same frequency and have a listen. Cheap LPD433 sets work; PMR446, FRS and GMRS probably do too, but I have not tested them yet.
 
 This started as an experiment for [Morse Flipper](https://github.com/yo3gnd/morse-flipper), a Morse code trainer, but proved far too interesting to leave buried there, so it gets a slightly unreasonable spike of its own.
 
