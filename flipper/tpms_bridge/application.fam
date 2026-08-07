@@ -9,5 +9,6 @@ App(
     fap_icon="icon.png",
     fap_description="Reads Renault TPMS sensors: pressure, temperature, signal level",
     fap_author="Vishov Vladimir",
+    fap_weburl="https://github.com/VishovVladimir/flipper-zero-tpms",
     fap_version="1.0",
 )

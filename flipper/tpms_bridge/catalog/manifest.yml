@@ -5,7 +5,6 @@
 # applications/Sub-GHz/tpms_bridge/manifest.yml and open a pull request.
 #
 # Before doing that:
-#   * set origin to the public repository URL;
 #   * set commit_sha to the commit that carries all the files;
 #   * make sure every screenshot listed below exists in the repository.
 #
@@ -20,14 +19,14 @@
 sourcecode:
   type: git
   location:
-    origin: https://github.com/CHANGE-ME/tpms-flipper.git
+    origin: https://github.com/VishovVladimir/flipper-zero-tpms.git
     commit_sha: CHANGE-ME
     subdir: flipper/tpms_bridge
 
 description: "@README.md"
 changelog: "@changelog.md"
+# Order matters: the first screenshot is the app preview in the catalog.
 screenshots:
-  - screenshots/1.png
   - screenshots/2.png
   - screenshots/3.png
-  - screenshots/4.png
+  - screenshots/1.png
