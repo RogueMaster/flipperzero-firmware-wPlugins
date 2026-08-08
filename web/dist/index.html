@@ -683,28 +683,22 @@ return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
 return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
 });
 }
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets", "fillblank"];
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "werewolf"];
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "spyfall"];
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets", "fd"];
+var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets", "fillblank", "werewolf", "spyfall", "fd"];
 var GAME_SCREEN = {
 trivia: "trivia", connect4: "duel", tictactoe: "duel", dots: "duel",
 reversi: "duel", draw: "draw", pong: "pong",
 wyr: "wyr", scramble: "scramble", react: "react", gc: "gc", bs: "bs", spectrum: "spectrum", kmk: "kmk",
-chess: "chess", secrets: "secrets", fillblank: "fillblank",
-chess: "chess", werewolf: "werewolf",
-chess: "chess", spyfall: "spyfall",
-chess: "chess", secrets: "secrets", frankendraw: "fd",
+chess: "chess", secrets: "secrets",
+fillblank: "fillblank", werewolf: "werewolf", spyfall: "spyfall", frankendraw: "fd",
 };
 var GAME_LABEL = {
 trivia: "Trivia", connect4: "Connect 4", tictactoe: "Tic-Tac-Toe",
 dots: "Dots & Boxes", reversi: "Reversi", draw: "Draw & Guess", pong: "Pong",
 wyr: "Would You Rather", scramble: "Word Scramble", react: "Reaction Duel",
 gc: "Guess the Color", bs: "Battleship", spectrum: "Spectrum", kmk: "Kiss Marry Kill",
-chess: "Chess", secrets: "Secrets", fillblank: "Fill the Blank",
-chess: "Chess", werewolf: "Werewolf",
-chess: "Chess", spyfall: "Spyfall",
-chess: "Chess", secrets: "Secrets", frankendraw: "Draw a Monster",
+chess: "Chess", secrets: "Secrets",
+fillblank: "Fill the Blank", werewolf: "Werewolf", spyfall: "Spyfall",
+frankendraw: "Draw a Monster",
 };
 function screen(name) {
 A.view = name;
@@ -1100,14 +1094,9 @@ list.appendChild(li);
 var g = m.game || "none";
 A.curGame = g;   // the active game name, so the switcher can exclude it from its list
 var gs = $("lobby-game-label");
-var gs = $("lobby-game");
-var known = g === "none" || !!GAME_SCREEN[g];
 gs.textContent = g === "none"
 ? t("lobby.pick")
 : (GAME_LABEL[g] || g) + " starting...";
-? "Waiting for the host to pick a game."
-: known ? (GAME_LABEL[g] || g) + " starting..."
-: t("lobby.stale_page", { game: g });
 if (g === "none" && A.view !== "landing") route("lobby");
 else if (g !== "none" && GAME_SCREEN[g] && A.view !== "landing" && A.view !== GAME_SCREEN[g])
 route(GAME_SCREEN[g]);

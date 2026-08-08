@@ -26,28 +26,22 @@ function esc(s) {
 /* Which lobby `game` string maps to which top-level screen, and its title.
    The three duels share the single "duel" screen; the duel message's `kind`
    drives the actual board. */
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets", "fillblank"];
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "werewolf"];
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "spyfall"];
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets", "fd"];
+var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets", "fillblank", "werewolf", "spyfall", "fd"];
 var GAME_SCREEN = {
   trivia: "trivia", connect4: "duel", tictactoe: "duel", dots: "duel",
   reversi: "duel", draw: "draw", pong: "pong",
   wyr: "wyr", scramble: "scramble", react: "react", gc: "gc", bs: "bs", spectrum: "spectrum", kmk: "kmk",
-  chess: "chess", secrets: "secrets", fillblank: "fillblank",
-  chess: "chess", werewolf: "werewolf",
-  chess: "chess", spyfall: "spyfall",
-  chess: "chess", secrets: "secrets", frankendraw: "fd",
+  chess: "chess", secrets: "secrets",
+  fillblank: "fillblank", werewolf: "werewolf", spyfall: "spyfall", frankendraw: "fd",
 };
 var GAME_LABEL = {
   trivia: "Trivia", connect4: "Connect 4", tictactoe: "Tic-Tac-Toe",
   dots: "Dots & Boxes", reversi: "Reversi", draw: "Draw & Guess", pong: "Pong",
   wyr: "Would You Rather", scramble: "Word Scramble", react: "Reaction Duel",
   gc: "Guess the Color", bs: "Battleship", spectrum: "Spectrum", kmk: "Kiss Marry Kill",
-  chess: "Chess", secrets: "Secrets", fillblank: "Fill the Blank",
-  chess: "Chess", werewolf: "Werewolf",
-  chess: "Chess", spyfall: "Spyfall",
-  chess: "Chess", secrets: "Secrets", frankendraw: "Draw a Monster",
+  chess: "Chess", secrets: "Secrets",
+  fillblank: "Fill the Blank", werewolf: "Werewolf", spyfall: "Spyfall",
+  frankendraw: "Draw a Monster",
 };
 
 /* Show exactly one top-level screen. */
@@ -615,18 +609,9 @@ function onLobby(m) {
   A.curGame = g;   // the active game name, so the switcher can exclude it from its list
   // Only the label inside the picker row changes; the 🕹️ box beside it always stays.
   var gs = $("lobby-game-label");
-  var gs = $("lobby-game");
-  // A game the board knows and this page doesn't means the served bundle is older
-  // than the firmware -- which used to look exactly like a broken game: no screen
-  // to route to, no handler for its state pushes, so the phone just sat here.
-  // Say so instead, because "nothing happened" is not a reportable symptom.
-  var known = g === "none" || !!GAME_SCREEN[g];
   gs.textContent = g === "none"
     ? t("lobby.pick")
     : (GAME_LABEL[g] || g) + " starting...";
-    ? "Waiting for the host to pick a game."
-    : known ? (GAME_LABEL[g] || g) + " starting..."
-      : t("lobby.stale_page", { game: g });
 
   // If the host went back to the plain lobby, leave any game screen. Otherwise show
   // the shell of the chosen game; the game message fills in details. Route in whenever
