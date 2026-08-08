@@ -10,11 +10,11 @@ static void nfc_tools_scene_write_location_lon_callback(void* context) {
 
 void nfc_tools_scene_write_location_lon_on_enter(void* context) {
     NfcToolsApp* app = context;
-    EmailInput* ei = app->email_input;
+    Keyboard* ei = app->keyboard;
 
-    email_input_set_header_text(ei, NTS_INPUT_LONGITUDE);
+    keyboard_set_header_text(ei, NTS_INPUT_LONGITUDE);
 
-    email_input_set_result_callback(
+    keyboard_set_result_callback(
         ei,
         nfc_tools_scene_write_location_lon_callback,
         app,
@@ -22,9 +22,9 @@ void nfc_tools_scene_write_location_lon_on_enter(void* context) {
         sizeof(app->ndef_buf2),
         false);
 
-    email_input_set_minimum_length(ei, 1);
+    keyboard_set_minimum_length(ei, 1);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewEmailInput);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_write_location_lon_on_event(void* context, SceneManagerEvent event) {
@@ -41,5 +41,5 @@ bool nfc_tools_scene_write_location_lon_on_event(void* context, SceneManagerEven
 
 void nfc_tools_scene_write_location_lon_on_exit(void* context) {
     NfcToolsApp* app = context;
-    email_input_reset(app->email_input);
+    keyboard_reset(app->keyboard);
 }

@@ -7,20 +7,20 @@ static void nfc_tools_scene_nfc_commands_input_callback(void* context) {
 
 void nfc_tools_scene_nfc_commands_input_on_enter(void* context) {
     NfcToolsApp* app = context;
-    SpecialInput* si = app->special_input;
+    Keyboard* si = app->keyboard;
 
-    special_input_set_header_text(si, NTS_INPUT_APDU);
+    keyboard_set_header_text(si, NTS_INPUT_APDU);
     app->ndef_buf1[0] = '\0';
-    special_input_set_result_callback(
+    keyboard_set_result_callback(
         si,
         nfc_tools_scene_nfc_commands_input_callback,
         app,
         app->ndef_buf1,
         sizeof(app->ndef_buf1),
         false);
-    special_input_set_minimum_length(si, 2);
+    keyboard_set_minimum_length(si, 2);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewSpecialInput);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_nfc_commands_input_on_event(void* context, SceneManagerEvent event) {
@@ -37,5 +37,5 @@ bool nfc_tools_scene_nfc_commands_input_on_event(void* context, SceneManagerEven
 
 void nfc_tools_scene_nfc_commands_input_on_exit(void* context) {
     NfcToolsApp* app = context;
-    special_input_reset(app->special_input);
+    keyboard_reset(app->keyboard);
 }
