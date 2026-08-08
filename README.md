@@ -42,5 +42,7 @@ TODO
 * verify NTAG213 data to be a Sonicare brush head (check NDEF contents and MFG regex?)
   * NDEF might point to different Philips URLs - see https://forum.dangerousthings.com/t/weirdest-nfc-device-ive-seen/11430/3
 * determine brush head type from [data](https://blog.mbirth.uk/2026/03/29/sonicare-brush-head-nfc-data.html)
+* show last mode and intensity setting
+* show last timestamp if available
 * allow writing other data (different type, different settings, different timestamp)
   * to test: 1B:pp:pp:pp:pp,A2:gg:dd:dd:dd:dd (p=password, g=page, d=data)
