@@ -1,5 +1,77 @@
 # Changelog
 
+## Unreleased
+
+On `main` and in the [`nightly`](../../releases/tag/nightly) build. **Not tagged
+yet: the export below has not been run on hardware by anyone.**
+
+### Added
+
+- **A redacted false-positive export.** **Reports → False Positive Report** writes
+  a Markdown file you can attach to an issue without publishing where you were.
+  Reporting a wrong detection previously meant handing over the detection log,
+  and that log is a record of your movements and the networks around you.
+
+  Kept: the confidence rung, the indicator that actually fired, the OUI, frame
+  type, channel, RSSI, sighting count and IE fingerprint. Removed: GPS
+  coordinates and heading, the low three octets of every MAC, the sighting
+  timestamp, and any SSID that did not itself match a Flock naming rule.
+
+  An SSID that *did* match is kept as-is, because that is a camera's own name.
+  Anything else becomes a shape (`A`=upper `a`=lower `d`=digit), since an SSID is
+  routinely a surname or a street address and is independently geolocatable
+  through public wardriving databases. The shape still answers the question that
+  matters — was this a MAC-shaped name, or a person's network?
+
+- **Issue templates** for false positives, bugs, and detection signatures. The
+  signature form states plainly that field data needs no DCO sign-off.
+
+- **A `.fap` size report in CI**, against the ~256 KB budget. Currently **58%**.
+  Advisory, and `.fap` size is not heap headroom — the real figure still needs
+  measuring on hardware.
+
+### Fixed
+
+- **Superseded CI runs are cancelled rather than queued.**
+
+## v0.71
+**Nightly builds, so a fix can be tested before it is frozen into a tag.**
+No app behaviour changes in this release; it is release plumbing and docs.
+
+### Added
+
+- **A nightly channel.** `main` is now built and published daily to a rolling
+  `nightly` prerelease whenever something has changed, carrying the same three
+  `.fap` files under the same names as a tagged build. This exists because v0.69
+  shipped a fix that did not hold: between it and the correction in v0.70 the only
+  published build was the broken one, and "wait for the next tag" was the only
+  advice available. It also runs the other way, letting whoever reported a bug
+  confirm the fix before it is tagged.
+
+  Nightlies are marked as prereleases, so `/releases/latest` still resolves to the
+  newest tag and the README install link is unaffected. The companion firmware is
+  not rebuilt for a nightly; pair it with the `.bin` from the newest tag. Skipped
+  entirely on a day when `main` has not moved, so the publish date always means
+  something changed.
+
+### Fixed
+
+- **Superseded CI runs are cancelled instead of queued.** A second push to a
+  branch left the first ESP32 run sitting in the queue behind its own replacement
+  — one on PR #18 sat there for 25 hours, on a result nobody was waiting for.
+  Tag builds are exempt, because a cancelled tag run is a release missing its
+  companion firmware with nothing red to show for it.
+
+### Changed
+
+- **`CONTRIBUTING.md` and `SECURITY.md` moved into `.github/`**, where GitHub
+  surfaces them in the PR and advisory flows. Every link that pointed at them was
+  updated; the licensing grant's original publication date still governs, since a
+  relocation is not a republication.
+- **The asset pack download link and filename** were corrected.
+- **[@nickk02](https://github.com/nickk02) is credited in `CONTRIBUTORS.md`** for
+  the v0.70 release-engineering work.
+
 ## v0.70
 **Opening a detail screen stopped the scan and cleared the table behind it.**
 Every scan screen, not just BLE. v0.69 aimed at this and missed; the entry below

@@ -29,3 +29,30 @@ void fmt_coord(char* out, size_t out_len, float value, const char* fallback);
  * screen cannot disagree about what "-74 dBm" looks like.
  */
 int fmt_signal_level(int rssi);
+
+/**
+ * Format a MAC with only its OUI intact: "3C:91:80:xx:xx:xx" (>= 18 bytes).
+ *
+ * For the false-positive export. The OUI is the part that can MATCH a detection
+ * rule, so it is the part a maintainer needs; the low three octets identify one
+ * physical radio and are what makes a MAC lookup-able in public wardriving sets.
+ * Keeping the vendor prefix and dropping the device is the whole trade.
+ */
+void fmt_mac_oui(char* out, size_t out_len, const uint8_t mac[6]);
+
+/**
+ * Reduce an SSID to its SHAPE: upper -> 'A', lower -> 'a', digit -> 'd',
+ * `-` `_` `.` kept (structural, and near-universal), anything else -> '?'.
+ * An empty name becomes "(none)".
+ *
+ * So "MyHomeNetwork" -> "AaAaaaAaaaaaa" and "3C9180112233" -> "dAdddddddddd".
+ *
+ * WHY A SHAPE AND NOT THE NAME: an SSID is frequently a household surname or a
+ * street address, and is independently geolocatable through public wardriving
+ * databases -- so it is the single most identifying field a user could hand over
+ * when reporting a false positive. The shape still answers the question that
+ * matters ("was this a MAC-shaped name, or a person's network?") without being
+ * the name. Callers keep the literal SSID only when it matched a Flock naming
+ * rule, because that is a camera's own name rather than a user's.
+ */
+void fmt_ssid_shape(char* out, size_t out_len, const char* ssid);

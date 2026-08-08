@@ -5,6 +5,7 @@
 
 typedef enum {
     ReportItemSave,
+    ReportItemFalsePos,
     ReportItemClear,
     ReportItemClearSaved,
 } ReportItem;
@@ -35,6 +36,12 @@ static void recon_scene_reports_build_menu(ReconApp* app) {
     submenu_set_header(submenu, app->text_store);
     submenu_add_item(
         submenu, "Save Marked -> Report", ReportItemSave, recon_scene_reports_submenu_cb, app);
+    // Redacted export for reporting a WRONG detection. Separate item rather than
+    // an option on the one above, because the two files have opposite jobs: that
+    // report is evidence about cameras and carries coordinates, this one is
+    // evidence about the detector and must not.
+    submenu_add_item(
+        submenu, "False Positive Report", ReportItemFalsePos, recon_scene_reports_submenu_cb, app);
     submenu_add_item(
         submenu, "Clear All Marks", ReportItemClear, recon_scene_reports_submenu_cb, app);
     // Erase the persisted hit log. Offered whenever the setting is on OR stored
@@ -78,6 +85,17 @@ bool recon_scene_reports_on_event(void* context, SceneManagerEvent event) {
                 app,
                 ok ? "Report Saved" : "Nothing to Save",
                 ok ? "See apps_data/\nflipdeflock/reports" : "Mark detections first");
+            consumed = true;
+        } else if(event.event == ReportItemFalsePos) {
+            char path[128] = {0};
+            bool ok = recon_report_save_fp(app, path, sizeof(path));
+            if(app->settings.sound) {
+                notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
+            }
+            recon_scene_reports_show_popup(
+                app,
+                ok ? "FP Report Saved" : "Nothing to Save",
+                ok ? "Redacted: no GPS,\nno full MACs" : "No detections yet");
             consumed = true;
         } else if(event.event == ReportItemClear) {
             furi_mutex_acquire(app->mutex, FuriWaitForever);

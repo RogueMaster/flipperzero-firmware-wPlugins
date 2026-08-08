@@ -16,6 +16,7 @@ void suite_detect_rules(void);
 void suite_report_escape(void);
 void suite_gps_parser(void);
 void suite_report_fmt(void);
+void suite_report_fmt_redact(void);
 void suite_flock_store(void);
 void suite_flock_ble(void);
 void suite_oui_vendor(void);
@@ -32,6 +33,7 @@ int main(void) {
     suite_report_escape();
     suite_gps_parser();
     suite_report_fmt();
+    suite_report_fmt_redact();
     suite_flock_store();
     suite_flock_ble();
     suite_oui_vendor();

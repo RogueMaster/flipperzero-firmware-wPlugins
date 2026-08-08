@@ -64,7 +64,7 @@ not influence over what the product does.
 ## Why this arrangement exists
 
 Consolidated copyright is what makes it possible. Every line of FlipDeFlock is the
-maintainer's own work, and [CONTRIBUTING.md](CONTRIBUTING.md) keeps it that way by asking
+maintainer's own work, and [CONTRIBUTING.md](.github/CONTRIBUTING.md) keeps it that way by asking
 contributors for a relicensing grant — with an explicit opt-out, since data contributions
 (field reports, signatures, board reports) are the most valuable ones and carry no
 copyright entanglement at all.

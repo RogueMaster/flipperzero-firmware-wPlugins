@@ -18,6 +18,19 @@ who *does* have that board is often the only way a bug gets found at all.
   release downloads. Prompted the core-3.x compatibility work and the ESP32-C5
   dual-band target in v0.48.
 
+## Code
+
+- **[@nickk02](https://github.com/nickk02)** — release and build engineering across
+  v0.70. Found that the project shipped a single `.fap` built against API 87.1 while
+  Unleashed and RogueMaster are on 88.2, so those users were being told the app was
+  out of date when it was the API that had moved; releases now carry a build per
+  firmware family. Also caught that the checksum job hashed the release before both
+  companion images had landed, meaning a `SHA256SUMS.txt` could look complete while
+  omitting the C5 build, and that the API drift check had been comparing a status
+  column to a version number and so could never have reported real drift. Bounded the
+  label formatting so the app builds on SDKs with `-Wformat-truncation`, pinned every
+  action to a commit SHA, and made a release rehearsable before the tag is pushed.
+
 ## Upstream research this project builds on
 
 Detection signatures and methods come from open counter-surveillance work.
@@ -35,7 +48,7 @@ Credited in the source next to the data they contributed:
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Note that **data-only contributions** —
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md). Note that **data-only contributions** —
 field reports, new OUIs, SSID/BLE patterns, probe fingerprints,
 board-compatibility reports, bug reports, test cases — carry no copyright
 entanglement, so they need no sign-off and are the easiest way to help. Code

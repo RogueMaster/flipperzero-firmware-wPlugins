@@ -265,6 +265,114 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len) {
     return ok;
 }
 
+bool recon_report_save_fp(void* _app, char* out_path_md, size_t out_len) {
+    ReconApp* app = _app;
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    size_t total = app->flock_count;
+    furi_mutex_release(app->mutex);
+    if(total == 0) return false;
+
+    recon_report_ensure_dirs(app);
+
+    char ts[24];
+    recon_report_timestamp(ts, sizeof(ts));
+
+    char path_md[128];
+    snprintf(path_md, sizeof(path_md), "%s/falsepos_%s.md", RECON_REPORT_FOLDER, ts);
+
+    char* line = malloc(REPORT_LINE_MAX);
+    if(!line) return false;
+    RFile md;
+    rfile_open(&md, app->storage, path_md);
+
+    // The header states what was removed, in the file itself. Someone about to
+    // attach this to a public issue should not have to take our word for it from
+    // a menu label they saw once, and whoever receives it should be able to tell
+    // that a missing column is redaction rather than a bug.
+    rfile_printf(
+        &md,
+        line,
+        "# FlipDeFlock - False Positive Report\n\n"
+        "App: %s   Generated: %s (device RTC)\n\n"
+        "**Redacted for sharing.** No GPS coordinates, no heading, no timestamps,\n"
+        "and only the OUI of each MAC. SSIDs are shown as a SHAPE\n"
+        "(`A`=upper `a`=lower `d`=digit) unless the name itself matched a Flock\n"
+        "naming rule, in which case it is the camera's own name and is shown\n"
+        "as-is. Nothing here says where you were.\n\n"
+        "`Method` is the indicator that actually fired. A row reading `OUI` was\n"
+        "flagged on a shared silicon-vendor prefix alone, which is the most\n"
+        "common source of a false positive.\n\n"
+        "| # | Conf | Method | Class | OUI | SSID | Fr | Ch | RSSI | Seen | Hid | IE fp |\n"
+        "|---|------|--------|-------|-----|------|----|----|------|------|-----|-------|\n",
+        RECON_VERSION,
+        ts);
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+
+    int n = 0;
+    for(size_t i = 0; i < app->flock_count; i++) {
+        FlockEntry* e = &app->flock[i];
+        n++;
+
+        char oui_s[20];
+        fmt_mac_oui(oui_s, sizeof(oui_s), e->mac);
+
+        // Keep the literal name ONLY when the name is why this matched. A Flock
+        // pattern name belongs to the camera; anything else belongs to whoever
+        // owns the network, and this file is meant to be shareable.
+        // ssid_out holds ssid_raw plus the two backticks the shape branch adds,
+        // so it must be wider than ssid_raw or the wrap silently truncates the
+        // closing one. Explicit rather than "80 looks fine": this file is built
+        // with -Wformat-truncation on newer SDKs and it is an error there.
+        char ssid_raw[80];
+        char ssid_out[sizeof(ssid_raw) + 2];
+        if(e->ssid[0] && flock_ssid_confidence(e->ssid) != FlockConfidenceNone) {
+            md_escape(e->ssid, ssid_raw, sizeof(ssid_raw));
+            snprintf(ssid_out, sizeof(ssid_out), "%s", ssid_raw);
+        } else {
+            char shape[RECON_SSID_LEN + 8];
+            fmt_ssid_shape(shape, sizeof(shape), e->ssid);
+            // Escaped too: the shape can contain '_', which is Markdown emphasis.
+            md_escape(shape, ssid_raw, sizeof(ssid_raw));
+            snprintf(ssid_out, sizeof(ssid_out), "`%s`", ssid_raw);
+        }
+
+        FlockMethod method = flock_method_of(e->mac, e->ssid, e->ftype, e->ie_fp);
+
+        rfile_printf(
+            &md,
+            line,
+            "| %d | %s | %s | %s | %s | %s | %c | %u | %d | %lu | %s | %08lX |\n",
+            n,
+            flock_confidence_str(e->confidence),
+            flock_method_str(method),
+            flock_class_str((FlockDevClass)e->dev_class),
+            oui_s,
+            ssid_out,
+            e->ftype,
+            e->channel,
+            e->rssi,
+            (unsigned long)e->count,
+            e->hidden ? "y" : "-",
+            (unsigned long)e->ie_fp);
+    }
+
+    furi_mutex_release(app->mutex);
+
+    rfile_printf(&md, line, "\nTotal detections: %d\n", n);
+
+    bool ok = rfile_close(&md);
+    free(line);
+
+    if(!ok) {
+        storage_simply_remove(app->storage, path_md);
+    } else if(out_path_md) {
+        snprintf(out_path_md, out_len, "%s", path_md);
+    }
+    return ok;
+}
+
 static const char* ble_cat_name(uint8_t cat) {
     switch(cat) {
     case 1:

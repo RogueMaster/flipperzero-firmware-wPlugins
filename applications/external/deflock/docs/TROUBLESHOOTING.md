@@ -149,5 +149,5 @@ Open an issue with:
 - Settings that differ from defaults (ports, bauds, flash speed)
 - The exact on-screen message
 
-Security issues go through [SECURITY.md](../SECURITY.md) instead — please don't file
+Security issues go through [SECURITY.md](../.github/SECURITY.md) instead — please don't file
 those publicly.

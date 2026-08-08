@@ -61,7 +61,7 @@ That option is the entire point of the licence.
 
 Impersonation — a repackage or listing passing itself off as official — hurts users
 who cannot tell the difference, and is the one thing this policy exists to stop.
-Report it via [SECURITY.md](SECURITY.md) or by opening an issue.
+Report it via [SECURITY.md](.github/SECURITY.md) or by opening an issue.
 
 Note that a fork which renames itself, keeps the licence headers intact, and publishes
 its source is **not** misuse. That is the licence working as intended, and it is not

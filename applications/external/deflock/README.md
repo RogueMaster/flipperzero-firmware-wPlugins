@@ -61,6 +61,27 @@ Unleashed build is the one to use there.
 
 Every push also builds all three as CI artifacts under the **Actions** tab.
 
+### Stable and nightly
+
+| Channel | Where | What it is |
+|---|---|---|
+| **Stable** | [latest release](../../releases/latest) | A tagged, released build. This is the one to use. |
+| **Nightly** | [`nightly`](../../releases/tag/nightly) | A rolling build of `main`, rebuilt daily when something changes. Untested. |
+
+Stable is the default and the install link above points at it. Nightly is marked
+as a prerelease, so it never becomes "latest" and you will not get it by accident.
+
+Take a nightly when a fix you are waiting on has landed but is not tagged yet, or
+when a release turns out to have a problem and you want the state of `main`
+instead. It carries the same three `.fap` files under the same names, so switching
+back is a matter of copying the stable file over it.
+
+Two things to know about nightlies. They have not been through a release check, so
+treat a nightly the way you would treat any untested build. And the **companion
+firmware is not rebuilt for them** — keep the `.bin` from the newest tagged
+release. If the app and the companion ever disagree about the protocol, the app
+tells you on the scan screen rather than quietly misreporting.
+
 Releases also carry `SHA256SUMS.txt`, covering every asset. If you got your copy
 anywhere other than this repository's releases page, check it:
 
@@ -276,6 +297,13 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.71** - **Nightly builds.** `main` is published daily to a rolling `nightly`
+prerelease when something changes, so there is always a build between tags: one to
+test a fix before it is tagged, and one to fall back to when a tag turns out to have
+a problem. Stable is untouched — nightlies never become "latest". No app behaviour
+changes. Also: superseded CI runs are cancelled rather than queued behind their own
+replacements.
 
 **v0.70** - **Looking at a detection no longer destroys it.** Opening any device's
 detail screen took the ESP link down on the way in, so Wi-Fi, BLE, deauth and GPS
@@ -556,7 +584,7 @@ misfired), **board support** reports, and code.
 Ground rules: passive recon only, correctness over features, it builds on every SDK in
 the release matrix, and keep it lean.
 Full details, the DCO sign-off requirement, and contribution licensing are in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+[CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 Questions, board reports and ideas are welcome in
 [Discussions](https://github.com/ReconGrunt/FlipDeFlock/discussions). Bugs and feature
@@ -564,7 +592,7 @@ requests belong in [Issues](https://github.com/ReconGrunt/FlipDeFlock/issues/new
 please open a **new** one even if a closed issue looks related, since closed threads
 are not watched.
 
-Found a security issue? Please follow [SECURITY.md](SECURITY.md) rather than opening a
+Found a security issue? Please follow [SECURITY.md](.github/SECURITY.md) rather than opening a
 public issue.
 
 ## Support

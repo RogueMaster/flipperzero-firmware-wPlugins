@@ -7,7 +7,7 @@ working toward, and what it refuses to build. Written for prospective funders,
 partners, contributors, and users deciding whether to trust it.
 
 For released work see [changelog.md](../changelog.md). For how to contribute see
-[CONTRIBUTING.md](../CONTRIBUTING.md).
+[CONTRIBUTING.md](../.github/CONTRIBUTING.md).
 
 ---
 
@@ -189,4 +189,4 @@ changes who pays for the work, never who is allowed to use it.
 ## Contact
 
 Issues and contributions: <https://github.com/ReconGrunt/FlipDeFlock>.
-Security reports follow [SECURITY.md](../SECURITY.md) — please do not file those publicly.
+Security reports follow [SECURITY.md](../.github/SECURITY.md) — please do not file those publicly.

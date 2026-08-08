@@ -46,7 +46,7 @@ Honestly, these are worth more than money right now:
 
 - **Field reports.** New Flock/ALPR OUIs, SSID patterns, and probe IE fingerprints from
   corroborated units — and equally, detections that *misfired*. See
-  [CONTRIBUTING.md](CONTRIBUTING.md).
+  [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 - **Board reports.** Tell us what ESP32 you ran it on and what broke.
 - **Star and share the repo.** Reach is the bottleneck, not code.
 
