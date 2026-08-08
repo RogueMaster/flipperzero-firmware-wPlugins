@@ -84,6 +84,7 @@ body{
   color:var(--text-dim); text-align:center; margin-bottom:12px}
 .game-list{display:flex; flex-direction:column; gap:8px}
 .game-item{appearance:none; font-family:var(--font); cursor:pointer; text-align:left;
+  display:flex; align-items:center; gap:8px;
   background:var(--surface-2); color:var(--text); border:2px solid var(--line);
   border-radius:var(--radius); padding:12px 14px; font-size:16px; font-weight:600}
 .game-item:active{border-color:var(--orange); transform:translateY(1px)}
@@ -976,7 +977,11 @@ h3{margin:0; font-weight:600}
 .fd-best{text-align:center; font-weight:800; font-size:17px; color:var(--orange-bright); margin:8px 0}
 
 /* Switcher row tags: what a game needs, and why it is greyed out. */
-.game-tag{margin-left:8px; font-size:11px; color:var(--dim); letter-spacing:.04em}
+/* Tags sit at the right edge: the name reads down the left, what the game needs lines
+   up down the right. margin-left:auto on the first tag does the pushing; a second tag
+   (the "2/5" count) then follows it with the flex gap. */
+.game-tag{font-size:11px; color:var(--dim); letter-spacing:.04em; white-space:nowrap}
+.game-item > .game-tag:first-of-type{margin-left:auto}
 .game-tag.short{color:var(--orange)}
 .game-item-short{opacity:.45}
 .game-item-short:active{transform:none}
