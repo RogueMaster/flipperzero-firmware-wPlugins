@@ -28,6 +28,13 @@ right button ("Reset"), confirm the warning dialog, and hold the head to the Fli
 > **3 wrong password attempts** (AUTHLIM). The password is derived correctly from UID + MFG,
 > but if authentication fails for any reason, do NOT retry more than twice.
 
+Download/Install
+----------------
+
+[Releases page](https://git.mbirth.uk/flipper_zero/sonicare/releases)
+
+[Flipper Lab](https://lab.flipper.net/apps/uk_mbirth_sonicare)
+
 
 Thank You
 ---------
