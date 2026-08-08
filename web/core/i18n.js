@@ -108,6 +108,9 @@ var MESSAGES = {
     "gamevote.cancel": "Cancel",
     "gamevote.waiting": "Waiting for votes…",
     "gamevote.tally": "{yes} yes · {no} no",
+    "test.minlabel": "Testing: ignore player minimums",
+    "test.off": "off",
+    "test.on": "ON",
     "fb.title": "Fill the Blank",
     "fb.count_topic": "Fill the Blank",
     // werewolf (hidden roles; the ESP decides what each phone is told)
@@ -457,6 +460,9 @@ var MESSAGES = {
     "gamevote.cancel": "Abbrechen",
     "gamevote.waiting": "Warte auf Stimmen…",
     "gamevote.tally": "{yes} Ja · {no} Nein",
+    "test.minlabel": "Test: Mindestspielerzahl ignorieren",
+    "test.off": "aus",
+    "test.on": "AN",
     "fb.title": "Lückenfüller",
     "fb.count_topic": "Lückenfüller",
     "kmk.lock": "BestÃ¤tigen",
@@ -906,6 +912,9 @@ var MESSAGES = {
     "gamevote.cancel": "Cancelar",
     "gamevote.waiting": "Aguardando os votos…",
     "gamevote.tally": "{yes} sim · {no} não",
+    "test.minlabel": "Teste: ignorar minimo de jogadores",
+    "test.off": "off",
+    "test.on": "ON",
   },
 };
 

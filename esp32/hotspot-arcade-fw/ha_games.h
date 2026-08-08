@@ -154,7 +154,11 @@ static inline int haUtf8Len(const char* s) {
 #define FB_MAX_ANSWERS 56
 #define FB_HAND 6 // answer cards held by each non-Czar player
 #define FB_ROUNDS 6
-#define FB_MIN_PLAYERS 3 // a Czar plus at least two submissions to judge
+#define FB_MIN_PLAYERS 2 // a Czar plus one answer; the deck pads the pile to FB_MIN_PILE
+// With two players the Czar judges a single real submission, which would be no choice at
+// all -- and worse, a certainty about who wrote it. Pad the pile with the deck's own
+// anonymous cards up to this many, so the Czar always picks blind from a real spread.
+#define FB_MIN_PILE 3
 #define FB_PLAY_SECS 45 // submission window (safety timer)
 #define FB_PICK_SECS 30 // the Czar's judging window (safety timer)
 #define FB_REVEAL_MS 6000
@@ -1414,6 +1418,15 @@ public:
             onHello(wsId, deviceKey, nick, avatar, named != 0);
             return;
         }
+        // Debug: let a two-person room reach the games that need more. Any player may
+        // flip it -- this is a testing aid, not a permission system -- and everyone sees
+        // the new state on the next push so the switch cannot disagree with the host.
+        if(strcmp(type, "minoverride") == 0) {
+            const char* v = ha_json_find(json, "on");
+            _minOverride = v && strncmp(v, "true", 4) == 0;
+            pushAll();
+            return;
+        }
         if(strcmp(type, "ping") == 0) {
             haWsSendWs(wsId, "{\"t\":\"pong\"}");
             return;
@@ -1635,6 +1648,13 @@ private:
         return n;
     }
 
+    // Debug override for the per-game player minimums. Off by default and never
+    // persisted: a room that has it on is testing, not playing. Werewolf's roles do not
+    // work with two people and Spyfall's spy is obvious -- the override does not pretend
+    // otherwise, it just lets a developer reach the screens.
+    bool _minOverride = false;
+    bool enoughPlayers(int need) { return _minOverride || connectedCount() >= need; }
+
     // ---------- broadcast ----------
     void pushAll() {
         // A pending game-change vote replaces all game/lobby state with the vote overlay,
@@ -1761,7 +1781,7 @@ private:
 
     String lobbyJson() {
         return String("{\"t\":\"lobby\",\"game\":\"") + gameName(_active) +
-               "\",\"players\":" + playersJson() + "}";
+               "\",\"players\":" + playersJson() + ",\"minoverride\":" + (_minOverride ? "true" : "false") + "}";
     }
 
     static bool isDuel(uint8_t g) {
@@ -5881,7 +5901,7 @@ private:
     void fillblankCheckStart() {
         if(_fb.packCount == 0) return;
         Party& pt = _fb.pt;
-        bool quorum = connectedCount() >= FB_MIN_PLAYERS;
+        bool quorum = enoughPlayers(FB_MIN_PLAYERS);
         if(pt.phase == 0 && quorum && partyAllReady(pt)) {
             pt.phase = 1;
             pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;
@@ -6067,7 +6087,14 @@ private:
             fillblankReveal(now);
             return;
         }
+        // One deck card always, then as many more as it takes to reach FB_MIN_PILE: with
+        // two players that turns one real answer into a three-card blind choice.
         fillblankAddDeckCard();
+        while(_fb.subCount < FB_MIN_PILE && _fb.subCount < FB_MAX_SUBS) {
+            uint8_t before = _fb.subCount;
+            fillblankAddDeckCard();
+            if(_fb.subCount == before) break; // deck exhausted; don't spin
+        }
         for(int i = (int)_fb.subCount - 1; i > 0; i--) {
             int j = (int)(esp_random() % (uint32_t)(i + 1));
             uint8_t p = _fb.subPid[i], c = _fb.subCard[i];
@@ -6386,7 +6413,7 @@ private:
     // degenerate, so the countdown simply does not arm.
     void wwCheckStart() {
         Party& pt = _ww.pt;
-        bool enough = connectedCount() >= WW_MIN_PLAYERS;
+        bool enough = enoughPlayers(WW_MIN_PLAYERS);
         if(pt.phase == 0 && enough && partyAllReady(pt)) {
             pt.phase = 1;
             pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;
@@ -6835,7 +6862,7 @@ private:
         if(pt.phase == 0)
             return String("{\"t\":\"werewolf\",\"phase\":\"lobby\",\"you\":") + pid +
                    ",\"players\":" + partyPlayersJson(pt) + ",\"min\":" + WW_MIN_PLAYERS +
-                   ",\"enough\":" + (connectedCount() >= WW_MIN_PLAYERS ? "true" : "false") + "}";
+                   ",\"enough\":" + (enoughPlayers(WW_MIN_PLAYERS) ? "true" : "false") + "}";
         if(pt.phase == 1)
             return String("{\"t\":\"werewolf\",\"phase\":\"countdown\",\"sec\":") +
                    partyCountdownSec(pt) + "}";
@@ -7023,7 +7050,7 @@ private:
     void spyfallCheckStart() {
         if(_sf.packCount == 0) return;
         Party& pt = _sf.pt;
-        bool go = partyAllReady(pt) && connectedCount() >= SPYFALL_MIN_PLAYERS;
+        bool go = partyAllReady(pt) && enoughPlayers(SPYFALL_MIN_PLAYERS);
         if(pt.phase == 0 && go) {
             pt.phase = 1;
             pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;
@@ -7605,7 +7632,7 @@ private:
     // back to the player who drew its head.
     void fdCheckStart() {
         Party& pt = _fd.pt;
-        bool enough = connectedCount() >= FD_MIN_PLAYERS;
+        bool enough = enoughPlayers(FD_MIN_PLAYERS);
         if(pt.phase == 0 && enough && partyAllReady(pt)) {
             pt.phase = 1;
             pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;

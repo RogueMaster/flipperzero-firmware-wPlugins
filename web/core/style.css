@@ -974,3 +974,16 @@ h3{margin:0; font-weight:600}
 .fd-thumb.on{border-color:var(--orange); color:var(--orange-bright)}
 .fd-thumb:active{transform:translateY(1px)}
 .fd-best{text-align:center; font-weight:800; font-size:17px; color:var(--orange-bright); margin:8px 0}
+
+/* Switcher row tags: what a game needs, and why it is greyed out. */
+.game-tag{margin-left:8px; font-size:11px; color:var(--dim); letter-spacing:.04em}
+.game-tag.short{color:var(--orange)}
+.game-item-short{opacity:.45}
+.game-item-short:active{transform:none}
+
+/* Test aid at the very bottom of the lobby: deliberately small and dim. */
+.testrow{margin-top:22px; display:flex; align-items:center; gap:8px;
+  font-size:11px; color:var(--dim)}
+.testrow button{font-size:11px; padding:3px 8px; border-radius:5px;
+  border:1px solid var(--dim); background:transparent; color:var(--dim)}
+.testrow button.on{border-color:var(--orange); color:var(--orange)}

@@ -498,6 +498,7 @@ function dispatch(m) {
   // message that was not "gamevote", and the client's own 2s keepalive got a {t:"pong"}
   // back within a second, so nobody could read the prompt, let alone vote on it.
   if (A.gamevoteOpen && !GV_KEEPS_OPEN[m.t] && A.closeGamevote) A.closeGamevote();
+  notePlayerCount(m);   // the switcher greys out on the CURRENT count, not the last lobby's
   switch (m.t) {
     case "welcome":
       // The server owns identity: one phone is one player, recognised by its IP, so
@@ -787,11 +788,63 @@ A.handlers.emoji = function (m) {
 // active one, then "Back to Lobby" as a separated last entry. Tapping an entry
 // proposes that switch; the ESP then pauses the active game and runs a majority
 // vote, pushing a {t:"gamevote"} overlay to every client until it resolves.
+/* What the switcher needs beyond a name. The minimums mirror the engine's own quorums
+   (FB_MIN_PLAYERS and friends) -- keep them in step, because offering a game the room is
+   too small for is exactly how "it just does not start" happens. GAME_DUEL marks the 1v1
+   games, which pair players off instead of playing as a group. */
+var GAME_MIN = { werewolf: 5, spyfall: 3, frankendraw: 3 };
+var GAME_DUEL = { connect4: 1, tictactoe: 1, dots: 1, reversi: 1, pong: 1, bs: 1, chess: 1 };
+function gameMin(name) { return GAME_MIN[name] || 2; }
+
+/* How many are in the room right now. A lobby push carries `players`; a game in progress
+   carries its roster under one of a few names, so take whichever arrived last -- the list
+   has to grey out on the CURRENT count, not the one from the last lobby. */
+A.nPlayers = 0;
+A.minOverride = false;   // host-side debug flag, echoed in the lobby push
+function notePlayerCount(m) {
+  var arr = m.players || m.p || m.scores || m.board;
+  if (arr && arr.length !== undefined) A.nPlayers = arr.length;
+  if (typeof m.minoverride === "boolean") {
+    A.minOverride = m.minoverride;
+    paintMinSwitch();
+  }
+}
+
+/* The testing switch at the bottom of the lobby. The host owns the flag -- we only ask it
+   to flip -- so two phones can never disagree about whether the minimums are off. */
+function paintMinSwitch() {
+  var b = $("test-min");
+  if (!b) return;
+  b.textContent = A.minOverride ? t("test.on") : t("test.off");
+  b.classList.toggle("on", !!A.minOverride);
+}
+
+// Small tag pill inside a switcher row: "(3+)", "1v1", or "2/5".
+function gameTag(cls, text) {
+  var sp = document.createElement("span");
+  sp.className = cls;
+  sp.textContent = text;
+  return sp;
+}
+
 function gameMenuItem(name, label, extraClass) {
   var b = document.createElement("button");
   b.type = "button";
   b.className = "game-item" + (extraClass || "");
   b.textContent = label;
+  // Say what a game needs, and refuse to offer it below that. The engine would reject the
+  // round anyway -- silently -- so the honest place to stop is here, before the vote.
+  var min = gameMin(name);
+  if (GAME_DUEL[name]) {
+    b.appendChild(gameTag("game-tag", "1v1"));
+  } else if (min > 2) {
+    b.appendChild(gameTag("game-tag", "(" + min + "+)"));
+    if (A.nPlayers < min && !A.minOverride) {
+      b.disabled = true;
+      b.classList.add("game-item-short");
+      b.appendChild(gameTag("game-tag short", A.nPlayers + "/" + min));
+    }
+  }
   b.addEventListener("click", function () {
     A.sfx("buzz"); A.vibe(12);
     send({ t: "proposeGame", game: name });
@@ -952,6 +1005,13 @@ function initApp() {
   // Screen Wake Lock sentinels are auto-released when the tab hides; re-sync
   // (and re-request) whenever visibility flips back.
   document.addEventListener("visibilitychange", syncWakeLock);
+
+  var tm = $("test-min");
+  if (tm) tm.addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(10);
+    send({ t: "minoverride", on: !A.minOverride });   // the host answers with the new state
+  });
+  paintMinSwitch();
 
   connect();
   // Keepalive; also nudges the server to resend state after a doze.

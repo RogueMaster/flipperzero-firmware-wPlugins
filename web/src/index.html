@@ -92,6 +92,13 @@
            spellcheck="false" placeholder="Say something" data-i18n-ph="lobby.say_ph">
     <button class="btn sm" type="submit" data-i18n="common.send">Send</button>
   </form>
+  <!-- Test aid, deliberately last and deliberately dull: the games with a player
+       minimum cannot be reached with two phones on a desk. Off by default; the host
+       echoes the state back so every phone agrees about it. -->
+  <div class="testrow">
+    <span data-i18n="test.minlabel">Testing: ignore player minimums</span>
+    <button id="test-min" type="button" data-i18n="test.off">off</button>
+  </div>
 </section>
 
 <!-- 3. Trivia — fully phone-driven, self-organizing (lobby/countdown/
