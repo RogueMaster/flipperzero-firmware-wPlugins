@@ -1,0 +1,19 @@
+App(
+    appid="fmtx",
+    name="FM TX",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_zero_fmtx_app",
+    requires=["gui", "storage"],
+    stack_size=4 * 1024,
+    order=10,
+    fap_category="Sub-GHz",
+    sources=["src/*.c"],
+    fap_private_libs=[
+        Lib(name="fmtx_vfo"),
+    ],
+    fap_file_assets="assets/fap",
+    fap_icon="icon.png",
+    fap_version="0.0.10",
+    fap_author="@yo3gnd",
+    fap_description="Experimental MP3 audio over CC1101 FM.",
+)
