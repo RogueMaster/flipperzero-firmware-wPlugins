@@ -59,3 +59,7 @@ Word: forest
 Word: island
 ---
 Word: orbit
+---
+Word: lantern
+---
+Word: treasure

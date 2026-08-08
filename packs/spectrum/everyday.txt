@@ -70,3 +70,27 @@ Right: Chaotic
 ---
 Left: Gentle
 Right: Fierce
+---
+Left: Messy
+Right: Tidy
+---
+Left: Cloudy
+Right: Sunny
+---
+Left: Sleepy
+Right: Wide awake
+---
+Left: Rude
+Right: Polite
+---
+Left: Blunt
+Right: Sharp
+---
+Left: Crooked
+Right: Straight
+---
+Left: Sticky
+Right: Slippery
+---
+Left: Silly
+Right: Serious

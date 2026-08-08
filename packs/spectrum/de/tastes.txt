@@ -64,3 +64,33 @@ Right: Glühend
 ---
 Left: Ein Häppchen
 Right: Nachschlag, bitte
+---
+Left: Salzig
+Right: Süß
+---
+Left: Matschig
+Right: Knusprig
+---
+Left: Langweiliger Salat
+Right: Pizza mit allem
+---
+Left: Kleiner Teller
+Right: Familienportion
+---
+Left: Wasser
+Right: Energydrink
+---
+Left: Selbstgemacht
+Right: Lieferdienst
+---
+Left: Eine Sorte
+Right: Alles gleichzeitig
+---
+Left: Frühstück
+Right: Mitternachtssnack
+---
+Left: Grün und gesund
+Right: Frittiert
+---
+Left: Nur Käse
+Right: Extra alles

@@ -39,3 +39,27 @@ Word: Popcorn
 Word: Erdbeere
 ---
 Word: Eisbecher
+---
+Word: Brezel
+---
+Word: Waffel
+---
+Word: Eis
+---
+Word: Sushi
+---
+Word: Spaghetti
+---
+Word: Apfelkuchen
+---
+Word: Croissant
+---
+Word: Pfannkuchen
+---
+Word: Milchshake
+---
+Word: Lebkuchen
+---
+Word: Mais
+---
+Word: Pfirsich

@@ -35,3 +35,39 @@ B: Am Lagerfeuer Gruselgeschichten erzählen
 ---
 A: In einem Sarg aufwachen
 B: Auf einem nebligen Friedhof aufwachen
+---
+A: Eine Nacht in einem Leuchtturm
+B: Eine Nacht in einem funktionierenden Aufzug
+---
+A: Ein freundliches Gespenst treffen
+B: Ein schüchternes Monster treffen
+---
+A: Deinen Namen einmal geflüstert hören
+B: Einen Schatten zweimal sehen
+---
+A: Eine Tür finden, die vorher nicht da war
+B: Einen Schlüssel finden, der nirgends passt
+---
+A: Von einer Krähe verfolgt werden
+B: Von einer Straßenkatze verfolgt werden
+---
+A: Mit offenem Schrank schlafen
+B: Mit einem Fuß außerhalb der Decke schlafen
+---
+A: Ein Tagebuch, das sich selbst schreibt
+B: Ein Spiegel, der gestern zeigt
+---
+A: Sich in einem Heckenlabyrinth verlaufen
+B: Nach Schließung im Museum eingeschlossen sein
+---
+A: Ein Foto, auf dem eine Person zu viel ist
+B: Eine Aufnahme mit einer Stimme, die du nicht zuordnen kannst
+---
+A: Neben einem Friedhof zelten
+B: Neben einem Sumpf zelten
+---
+A: Als Erste in einen dunklen Raum gehen
+B: Als Letzte ihn verlassen
+---
+A: Eine Hexe, die dir einen Gefallen schuldet
+B: Ein Gespenst, das einen will

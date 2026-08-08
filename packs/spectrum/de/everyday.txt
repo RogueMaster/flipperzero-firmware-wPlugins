@@ -70,3 +70,27 @@ Right: Chaotisch
 ---
 Left: Sanft
 Right: Wild
+---
+Left: Unordentlich
+Right: Aufgeräumt
+---
+Left: Bewölkt
+Right: Sonnig
+---
+Left: Schläfrig
+Right: Hellwach
+---
+Left: Unhöflich
+Right: Höflich
+---
+Left: Stumpf
+Right: Scharf
+---
+Left: Schief
+Right: Gerade
+---
+Left: Klebrig
+Right: Rutschig
+---
+Left: Albern
+Right: Ernst

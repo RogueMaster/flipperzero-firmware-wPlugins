@@ -35,3 +35,39 @@ B: Grow to giant size
 ---
 A: Have telekinesis
 B: Have telepathy
+---
+A: Control the weather
+B: Control plants
+---
+A: Fly, but slowly
+B: Run extremely fast for ten seconds
+---
+A: Talk to machines
+B: Talk to animals in full sentences
+---
+A: Copy any skill for an hour
+B: Keep one new skill forever
+---
+A: Turn invisible whenever you sneeze
+B: Turn invisible only in the dark
+---
+A: Have super hearing
+B: Have super sight
+---
+A: Breathe fire
+B: Breathe ice
+---
+A: Never get tired
+B: Never get hurt
+---
+A: Teleport only to places you've been
+B: Teleport only to places you haven't
+---
+A: Read one thought per person
+B: Hear every thought for one minute
+---
+A: Stop time for everyone but you
+B: Slow time for everyone including you
+---
+A: Heal others but not yourself
+B: Heal yourself but nobody else

@@ -1,0 +1,64 @@
+Pack: Animal Kingdom
+Name: Lion
+---
+Name: Panda
+---
+Name: Dolphin
+---
+Name: Penguin
+---
+Name: Sloth
+---
+Name: Koala
+---
+Name: Tiger
+---
+Name: Wolf
+---
+Name: Fox
+---
+Name: Owl
+---
+Name: Cat
+---
+Name: Dog
+---
+Name: Horse
+---
+Name: Rabbit
+---
+Name: Hedgehog
+---
+Name: Otter
+---
+Name: Elephant
+---
+Name: Giraffe
+---
+Name: Kangaroo
+---
+Name: Squirrel
+---
+Name: Raccoon
+---
+Name: Meerkat
+---
+Name: Flamingo
+---
+Name: Peacock
+---
+Name: Turtle
+---
+Name: Octopus
+---
+Name: Shark
+---
+Name: Whale
+---
+Name: Bee
+---
+Name: Butterfly
+---
+Name: Chameleon
+---
+Name: Alpaca

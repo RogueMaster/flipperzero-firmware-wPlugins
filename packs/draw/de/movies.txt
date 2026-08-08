@@ -35,3 +35,31 @@ Word: Dracula
 Word: King Kong
 ---
 Word: Pikachu
+---
+Word: Hulk
+---
+Word: Wolverine
+---
+Word: Groot
+---
+Word: R2-D2
+---
+Word: Stormtrooper
+---
+Word: Hermine
+---
+Word: Harry Potter
+---
+Word: Sonic
+---
+Word: Kermit
+---
+Word: Olaf
+---
+Word: Buzz Lightyear
+---
+Word: Woody
+---
+Word: Micky Maus
+---
+Word: Wednesday

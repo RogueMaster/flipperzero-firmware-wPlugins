@@ -35,3 +35,39 @@ B: Deinen peinlichsten Schwarm zugeben
 ---
 A: Einen pikanten Spitznamen für heute Abend bekommen
 B: Allen anderen einen pikanten Spitznamen geben
+---
+A: Dein Schwarm liest dein Tagebuch
+B: Deine Eltern lesen deine Nachrichten
+---
+A: Deine beste Freundin verkuppelt dich
+B: Deine Mutter verkuppelt dich
+---
+A: Vor allen einen langsamen Tanz
+B: Ein Duett mit einer fremden Person singen
+---
+A: Deine erste Nachricht an einen Schwarm wird vorgelesen
+B: Dein letztes Selfie kommt auf eine große Leinwand
+---
+A: Verraten, in wen du in der Schule verliebt warst
+B: Verraten, in wen du jetzt verliebt bist
+---
+A: Allen hier ein ehrliches Kompliment machen
+B: Alle hier freundlich aufziehen
+---
+A: Ein Date in völliger Stille
+B: Ein Date, bei dem du nicht aufhören kannst zu reden
+---
+A: Dein Ex beschreibt dich in drei Worten
+B: Deine beste Freundin beschreibt deinen Typ
+---
+A: Jedes Geheimnis über dich erfahren
+B: Nie ein einziges erfahren
+---
+A: Der Person links von dir die Hand halten
+B: Der Person rechts von dir ein Kompliment machen
+---
+A: Partnerlook mit deinem Date
+B: Etwas tragen, das dein Date ausgesucht hat
+---
+A: Jede Nachricht, die du schreibst, ist ein Gedicht
+B: Jeder Anruf, den du machst, ist ein Lied

@@ -35,3 +35,39 @@ B: Hiccup tiny bubbles
 ---
 A: Be followed by dramatic music
 B: Have a narrator describe your every move
+---
+A: Hiccups that sound like a car alarm
+B: Sneezes that sound like a trumpet
+---
+A: Leave a trail of glitter
+B: Leave a trail of bubbles
+---
+A: Hair that changes colour with your mood
+B: Skin that glows when you lie
+---
+A: Only ever be able to whisper
+B: Only ever be able to shout
+---
+A: Grow an extra thumb
+B: Grow an extra ear
+---
+A: A tiny cloud that rains on you when you are sad
+B: A tiny sun that follows you around
+---
+A: Everything you touch smells of lavender
+B: Everything you eat tastes of strawberry
+---
+A: Shoes that squeak forever
+B: A zip that never stays up
+---
+A: Be able to talk to bread
+B: Be able to talk to furniture
+---
+A: A hat you can never take off
+B: Sunglasses you can never take off
+---
+A: Only blink one eye at a time
+B: Never blink at all
+---
+A: A voice that echoes indoors
+B: Footsteps that jingle

@@ -39,3 +39,27 @@ Word: festival
 Word: speaker
 ---
 Word: encore
+---
+Word: orchestra
+---
+Word: symphony
+---
+Word: microphone
+---
+Word: headphones
+---
+Word: tambourine
+---
+Word: accordion
+---
+Word: clarinet
+---
+Word: trombone
+---
+Word: conductor
+---
+Word: playlist
+---
+Word: ballad
+---
+Word: karaoke

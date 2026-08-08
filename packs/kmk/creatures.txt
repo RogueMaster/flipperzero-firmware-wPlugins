@@ -1,0 +1,64 @@
+Pack: Fabled Creatures
+Name: Unicorn
+---
+Name: Dragon
+---
+Name: Mermaid
+---
+Name: Phoenix
+---
+Name: Griffin
+---
+Name: Yeti
+---
+Name: Werewolf
+---
+Name: Vampire
+---
+Name: Fairy
+---
+Name: Elf
+---
+Name: Dwarf
+---
+Name: Troll
+---
+Name: Goblin
+---
+Name: Giant
+---
+Name: Wizard
+---
+Name: Witch
+---
+Name: Genie
+---
+Name: Centaur
+---
+Name: Pegasus
+---
+Name: Minotaur
+---
+Name: Kraken
+---
+Name: Sphinx
+---
+Name: Gnome
+---
+Name: Ghost
+---
+Name: Zombie
+---
+Name: Robot
+---
+Name: Alien
+---
+Name: Cyclops
+---
+Name: Nessie
+---
+Name: Sea serpent
+---
+Name: Ice queen
+---
+Name: Snow troll

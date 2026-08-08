@@ -64,3 +64,33 @@ Right: Nur für Profis
 ---
 Left: Schnell vergänglich
 Right: Zeitlos
+---
+Left: Zu teuer
+Right: Ein Schnäppchen
+---
+Left: Kindisch
+Right: Erwachsen
+---
+Left: Sinnlose Regel
+Right: Faire Regel
+---
+Left: Zu leicht
+Right: Viel zu schwer
+---
+Left: Verkrampft
+Right: Locker
+---
+Left: Blöde Idee
+Right: Geniale Idee
+---
+Left: Von gestern
+Right: Das nächste große Ding
+---
+Left: Nur für Kinder
+Right: Für alle
+---
+Left: Klingt lustig
+Right: Klingt anstrengend
+---
+Left: Würde ich nie
+Right: Würde ich sofort

@@ -39,3 +39,27 @@ Word: Festival
 Word: Lautsprecher
 ---
 Word: Zugabe
+---
+Word: Orchester
+---
+Word: Sinfonie
+---
+Word: Mikrofon
+---
+Word: Kopfhörer
+---
+Word: Tamburin
+---
+Word: Akkordeon
+---
+Word: Klarinette
+---
+Word: Posaune
+---
+Word: Dirigent
+---
+Word: Playlist
+---
+Word: Ballade
+---
+Word: Karaoke
