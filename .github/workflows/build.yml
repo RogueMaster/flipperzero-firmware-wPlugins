@@ -7,7 +7,7 @@ on:
   push:
     ## put your main branch name under "branches"
     branches: 
-      - master 
+      - master
   pull_request:
   schedule: 
     # do a build every day
@@ -38,5 +38,6 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           # See ufbt action docs for other output variables
-          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          name: uk_mbirth_sonicare-${{ steps.build-app.outputs.suffix }}.fap
           path: ${{ steps.build-app.outputs.fap-artifacts }}
+          archive: false
