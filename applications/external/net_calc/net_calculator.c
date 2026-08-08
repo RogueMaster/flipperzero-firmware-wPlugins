@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define VLSM_MAX_REQUESTS 16
+#define VLSM_MAX_REQUESTS        16
 #define VLSM_EMPTY_REQUEST_INDEX UINT32_MAX
 
 typedef enum {
@@ -79,9 +79,7 @@ static void vlsm_rebuild_requests_menu(VlsmApp* app);
  * Convert four IPv4 octets into one 32-bit integer.
  */
 static uint32_t vlsm_ip_to_u32(const uint8_t ip[4]) {
-    return ((uint32_t)ip[0] << 24) |
-           ((uint32_t)ip[1] << 16) |
-           ((uint32_t)ip[2] << 8) |
+    return ((uint32_t)ip[0] << 24) | ((uint32_t)ip[1] << 16) | ((uint32_t)ip[2] << 8) |
            (uint32_t)ip[3];
 }
 
@@ -133,10 +131,7 @@ static void vlsm_sort_hosts_desc(uint32_t* values, size_t count) {
  * Determine the smallest subnet block that can contain the requested
  * number of usable IPv4 hosts.
  */
-static bool vlsm_block_for_hosts(
-    uint32_t hosts,
-    uint32_t* block_size,
-    uint8_t* prefix) {
+static bool vlsm_block_for_hosts(uint32_t hosts, uint32_t* block_size, uint8_t* prefix) {
     uint64_t required = (uint64_t)hosts + 2U;
     uint64_t block = 1U;
 
@@ -185,40 +180,28 @@ static void vlsm_calculate(VlsmApp* app) {
 
     vlsm_sort_hosts_desc(sorted, app->host_count);
 
-    const uint32_t parent_mask =
-        vlsm_prefix_mask(app->prefix);
+    const uint32_t parent_mask = vlsm_prefix_mask(app->prefix);
 
-    const uint32_t entered_ip =
-        vlsm_ip_to_u32(app->ip);
+    const uint32_t entered_ip = vlsm_ip_to_u32(app->ip);
 
-    const uint32_t parent_network =
-        entered_ip & parent_mask;
+    const uint32_t parent_network = entered_ip & parent_mask;
 
-    const uint32_t parent_broadcast =
-        parent_network | ~parent_mask;
+    const uint32_t parent_broadcast = parent_network | ~parent_mask;
 
     uint64_t cursor = parent_network;
 
     furi_string_cat(app->results, "Parent: ");
     vlsm_append_ip(app->results, parent_network);
 
-    furi_string_cat_printf(
-        app->results,
-        "/%u\n\n",
-        app->prefix);
+    furi_string_cat_printf(app->results, "/%u\n\n", app->prefix);
 
     for(size_t i = 0U; i < app->host_count; i++) {
         uint32_t block_size;
         uint8_t subnet_prefix;
 
-        if(!vlsm_block_for_hosts(
-               sorted[i],
-               &block_size,
-               &subnet_prefix)) {
+        if(!vlsm_block_for_hosts(sorted[i], &block_size, &subnet_prefix)) {
             furi_string_cat_printf(
-                app->results,
-                "#%u: invalid host count\n",
-                (unsigned int)(i + 1U));
+                app->results, "#%u: invalid host count\n", (unsigned int)(i + 1U));
 
             continue;
         }
@@ -226,17 +209,12 @@ static void vlsm_calculate(VlsmApp* app) {
         /*
          * Align the next subnet to the boundary required by its block size.
          */
-        const uint64_t aligned =
-            (cursor + block_size - 1U) &
-            ~((uint64_t)block_size - 1U);
+        const uint64_t aligned = (cursor + block_size - 1U) & ~((uint64_t)block_size - 1U);
 
-        const uint64_t broadcast64 =
-            aligned + block_size - 1U;
+        const uint64_t broadcast64 = aligned + block_size - 1U;
 
-        if(
-            subnet_prefix < app->prefix ||
-            broadcast64 > parent_broadcast ||
-            broadcast64 > 0xFFFFFFFFULL) {
+        if(subnet_prefix < app->prefix || broadcast64 > parent_broadcast ||
+           broadcast64 > 0xFFFFFFFFULL) {
             furi_string_cat_printf(
                 app->results,
                 "#%u: %lu hosts\n"
@@ -247,17 +225,13 @@ static void vlsm_calculate(VlsmApp* app) {
             break;
         }
 
-        const uint32_t network =
-            (uint32_t)aligned;
+        const uint32_t network = (uint32_t)aligned;
 
-        const uint32_t broadcast =
-            (uint32_t)broadcast64;
+        const uint32_t broadcast = (uint32_t)broadcast64;
 
-        const uint32_t first_host =
-            network + 1U;
+        const uint32_t first_host = network + 1U;
 
-        const uint32_t last_host =
-            broadcast - 1U;
+        const uint32_t last_host = broadcast - 1U;
 
         furi_string_cat_printf(
             app->results,
@@ -267,37 +241,21 @@ static void vlsm_calculate(VlsmApp* app) {
             (unsigned long)sorted[i],
             subnet_prefix);
 
-        vlsm_append_ip(
-            app->results,
-            network);
+        vlsm_append_ip(app->results, network);
 
-        furi_string_cat(
-            app->results,
-            "\nF: ");
+        furi_string_cat(app->results, "\nF: ");
 
-        vlsm_append_ip(
-            app->results,
-            first_host);
+        vlsm_append_ip(app->results, first_host);
 
-        furi_string_cat(
-            app->results,
-            "\nL: ");
+        furi_string_cat(app->results, "\nL: ");
 
-        vlsm_append_ip(
-            app->results,
-            last_host);
+        vlsm_append_ip(app->results, last_host);
 
-        furi_string_cat(
-            app->results,
-            "\nB: ");
+        furi_string_cat(app->results, "\nB: ");
 
-        vlsm_append_ip(
-            app->results,
-            broadcast);
+        vlsm_append_ip(app->results, broadcast);
 
-        furi_string_cat(
-            app->results,
-            "\n\n");
+        furi_string_cat(app->results, "\n\n");
 
         cursor = broadcast64 + 1U;
     }
@@ -306,39 +264,30 @@ static void vlsm_calculate(VlsmApp* app) {
 /*
  * Change the currently displayed application view.
  */
-static void vlsm_switch_view(
-    VlsmApp* app,
-    VlsmView view) {
+static void vlsm_switch_view(VlsmApp* app, VlsmView view) {
     app->current_view = view;
 
-    view_dispatcher_switch_to_view(
-        app->view_dispatcher,
-        view);
+    view_dispatcher_switch_to_view(app->view_dispatcher, view);
 }
 
 /*
  * Callback called after accepting a number input.
  */
-static void vlsm_number_saved(
-    void* context,
-    int32_t number) {
+static void vlsm_number_saved(void* context, int32_t number) {
     VlsmApp* app = context;
 
     if(app->number_mode == VlsmNumberPrefix) {
         app->prefix = (uint8_t)number;
 
         vlsm_rebuild_menu(app);
-        vlsm_switch_view(
-            app,
-            VlsmViewMain);
+        vlsm_switch_view(app, VlsmViewMain);
 
         return;
     }
 
     if(app->number_mode == VlsmNumberHosts) {
         if(app->host_count < VLSM_MAX_REQUESTS) {
-            app->host_requests[app->host_count] =
-                (uint32_t)number;
+            app->host_requests[app->host_count] = (uint32_t)number;
 
             app->host_count++;
         }
@@ -346,9 +295,7 @@ static void vlsm_number_saved(
         vlsm_rebuild_menu(app);
         vlsm_rebuild_requests_menu(app);
 
-        vlsm_switch_view(
-            app,
-            VlsmViewMain);
+        vlsm_switch_view(app, VlsmViewMain);
 
         return;
     }
@@ -358,40 +305,26 @@ static void vlsm_number_saved(
      *
      * Each octet is entered separately as a decimal number.
      */
-    app->ip[app->ip_octet_index] =
-        (uint8_t)number;
+    app->ip[app->ip_octet_index] = (uint8_t)number;
 
     if(app->ip_octet_index < 3U) {
         app->ip_octet_index++;
 
         char header[24];
 
-        snprintf(
-            header,
-            sizeof(header),
-            "IP octet %u/4",
-            app->ip_octet_index + 1U);
+        snprintf(header, sizeof(header), "IP octet %u/4", app->ip_octet_index + 1U);
 
-        number_input_set_header_text(
-            app->number_input,
-            header);
+        number_input_set_header_text(app->number_input, header);
 
         number_input_set_result_callback(
-            app->number_input,
-            vlsm_number_saved,
-            app,
-            app->ip[app->ip_octet_index],
-            0,
-            255);
+            app->number_input, vlsm_number_saved, app, app->ip[app->ip_octet_index], 0, 255);
 
         return;
     }
 
     vlsm_rebuild_menu(app);
 
-    vlsm_switch_view(
-        app,
-        VlsmViewMain);
+    vlsm_switch_view(app, VlsmViewMain);
 }
 
 /*
@@ -402,17 +335,9 @@ static void vlsm_show_results(VlsmApp* app) {
 
     widget_reset(app->widget);
 
-    widget_add_text_scroll_element(
-        app->widget,
-        0,
-        0,
-        128,
-        64,
-        furi_string_get_cstr(app->results));
+    widget_add_text_scroll_element(app->widget, 0, 0, 128, 64, furi_string_get_cstr(app->results));
 
-    vlsm_switch_view(
-        app,
-        VlsmViewResults);
+    vlsm_switch_view(app, VlsmViewResults);
 }
 
 /*
@@ -420,25 +345,18 @@ static void vlsm_show_results(VlsmApp* app) {
  *
  * Pressing OK removes the selected request.
  */
-static void vlsm_request_callback(
-    void* context,
-    uint32_t index) {
+static void vlsm_request_callback(void* context, uint32_t index) {
     VlsmApp* app = context;
 
-    if(
-        index == VLSM_EMPTY_REQUEST_INDEX ||
-        index >= app->host_count) {
+    if(index == VLSM_EMPTY_REQUEST_INDEX || index >= app->host_count) {
         return;
     }
 
     /*
      * Move all following elements one position to the left.
      */
-    for(size_t i = index;
-        i + 1U < app->host_count;
-        i++) {
-        app->host_requests[i] =
-            app->host_requests[i + 1U];
+    for(size_t i = index; i + 1U < app->host_count; i++) {
+        app->host_requests[i] = app->host_requests[i + 1U];
     }
 
     app->host_count--;
@@ -453,69 +371,43 @@ static void vlsm_request_callback(
      * Keep the selection close to the deleted item.
      */
     if(app->host_count > 0U) {
-        const uint32_t next_selection =
-            index < app->host_count ?
-                index :
-                (uint32_t)(app->host_count - 1U);
+        const uint32_t next_selection = index < app->host_count ? index :
+                                                                  (uint32_t)(app->host_count - 1U);
 
-        submenu_set_selected_item(
-            app->requests_submenu,
-            next_selection);
+        submenu_set_selected_item(app->requests_submenu, next_selection);
     }
 }
 
 /*
  * Main menu callback.
  */
-static void vlsm_menu_callback(
-    void* context,
-    uint32_t index) {
+static void vlsm_menu_callback(void* context, uint32_t index) {
     VlsmApp* app = context;
 
     switch(index) {
     case VlsmMenuIp:
-        app->number_mode =
-            VlsmNumberIpOctet;
+        app->number_mode = VlsmNumberIpOctet;
 
         app->ip_octet_index = 0U;
 
-        number_input_set_header_text(
-            app->number_input,
-            "IP octet 1/4");
+        number_input_set_header_text(app->number_input, "IP octet 1/4");
 
         number_input_set_result_callback(
-            app->number_input,
-            vlsm_number_saved,
-            app,
-            app->ip[0],
-            0,
-            255);
+            app->number_input, vlsm_number_saved, app, app->ip[0], 0, 255);
 
-        vlsm_switch_view(
-            app,
-            VlsmViewNumberInput);
+        vlsm_switch_view(app, VlsmViewNumberInput);
 
         break;
 
     case VlsmMenuPrefix:
-        app->number_mode =
-            VlsmNumberPrefix;
+        app->number_mode = VlsmNumberPrefix;
 
-        number_input_set_header_text(
-            app->number_input,
-            "Parent prefix /8..30");
+        number_input_set_header_text(app->number_input, "Parent prefix /8..30");
 
         number_input_set_result_callback(
-            app->number_input,
-            vlsm_number_saved,
-            app,
-            app->prefix,
-            8,
-            30);
+            app->number_input, vlsm_number_saved, app, app->prefix, 8, 30);
 
-        vlsm_switch_view(
-            app,
-            VlsmViewNumberInput);
+        vlsm_switch_view(app, VlsmViewNumberInput);
 
         break;
 
@@ -529,47 +421,28 @@ static void vlsm_menu_callback(
             widget_reset(app->widget);
 
             widget_add_text_scroll_element(
-                app->widget,
-                0,
-                0,
-                128,
-                64,
-                furi_string_get_cstr(app->results));
+                app->widget, 0, 0, 128, 64, furi_string_get_cstr(app->results));
 
-            vlsm_switch_view(
-                app,
-                VlsmViewResults);
+            vlsm_switch_view(app, VlsmViewResults);
 
             break;
         }
 
-        app->number_mode =
-            VlsmNumberHosts;
+        app->number_mode = VlsmNumberHosts;
 
-        number_input_set_header_text(
-            app->number_input,
-            "Required usable hosts");
+        number_input_set_header_text(app->number_input, "Required usable hosts");
 
         number_input_set_result_callback(
-            app->number_input,
-            vlsm_number_saved,
-            app,
-            10,
-            1,
-            16777214);
+            app->number_input, vlsm_number_saved, app, 10, 1, 16777214);
 
-        vlsm_switch_view(
-            app,
-            VlsmViewNumberInput);
+        vlsm_switch_view(app, VlsmViewNumberInput);
 
         break;
 
     case VlsmMenuRequests:
         vlsm_rebuild_requests_menu(app);
 
-        vlsm_switch_view(
-            app,
-            VlsmViewRequests);
+        vlsm_switch_view(app, VlsmViewRequests);
 
         break;
 
@@ -601,14 +474,10 @@ static void vlsm_menu_callback(
  *
  * Selecting an entry with OK removes it.
  */
-static void vlsm_rebuild_requests_menu(
-    VlsmApp* app) {
-    submenu_reset(
-        app->requests_submenu);
+static void vlsm_rebuild_requests_menu(VlsmApp* app) {
+    submenu_reset(app->requests_submenu);
 
-    submenu_set_header(
-        app->requests_submenu,
-        "Requests: OK=delete");
+    submenu_set_header(app->requests_submenu, "Requests: OK=delete");
 
     if(app->host_count == 0U) {
         submenu_add_item(
@@ -621,9 +490,7 @@ static void vlsm_rebuild_requests_menu(
         return;
     }
 
-    for(size_t i = 0U;
-        i < app->host_count;
-        i++) {
+    for(size_t i = 0U; i < app->host_count; i++) {
         snprintf(
             app->request_item_labels[i],
             sizeof(app->request_item_labels[i]),
@@ -646,9 +513,7 @@ static void vlsm_rebuild_requests_menu(
 static void vlsm_rebuild_menu(VlsmApp* app) {
     submenu_reset(app->submenu);
 
-    submenu_set_header(
-        app->submenu,
-        "Net Calculator");
+    submenu_set_header(app->submenu, "Net Calculator");
 
     snprintf(
         app->ip_label,
@@ -659,11 +524,7 @@ static void vlsm_rebuild_menu(VlsmApp* app) {
         app->ip[2],
         app->ip[3]);
 
-    snprintf(
-        app->prefix_label,
-        sizeof(app->prefix_label),
-        "Prefix: /%u",
-        app->prefix);
+    snprintf(app->prefix_label, sizeof(app->prefix_label), "Prefix: /%u", app->prefix);
 
     snprintf(
         app->requests_label,
@@ -671,47 +532,17 @@ static void vlsm_rebuild_menu(VlsmApp* app) {
         "Requests: %u",
         (unsigned int)app->host_count);
 
-    submenu_add_item(
-        app->submenu,
-        app->ip_label,
-        VlsmMenuIp,
-        vlsm_menu_callback,
-        app);
+    submenu_add_item(app->submenu, app->ip_label, VlsmMenuIp, vlsm_menu_callback, app);
 
-    submenu_add_item(
-        app->submenu,
-        app->prefix_label,
-        VlsmMenuPrefix,
-        vlsm_menu_callback,
-        app);
+    submenu_add_item(app->submenu, app->prefix_label, VlsmMenuPrefix, vlsm_menu_callback, app);
 
-    submenu_add_item(
-        app->submenu,
-        "Add host request",
-        VlsmMenuAddHosts,
-        vlsm_menu_callback,
-        app);
+    submenu_add_item(app->submenu, "Add host request", VlsmMenuAddHosts, vlsm_menu_callback, app);
 
-    submenu_add_item(
-        app->submenu,
-        app->requests_label,
-        VlsmMenuRequests,
-        vlsm_menu_callback,
-        app);
+    submenu_add_item(app->submenu, app->requests_label, VlsmMenuRequests, vlsm_menu_callback, app);
 
-    submenu_add_item(
-        app->submenu,
-        "Calculate",
-        VlsmMenuCalculate,
-        vlsm_menu_callback,
-        app);
+    submenu_add_item(app->submenu, "Calculate", VlsmMenuCalculate, vlsm_menu_callback, app);
 
-    submenu_add_item(
-        app->submenu,
-        "Reset",
-        VlsmMenuReset,
-        vlsm_menu_callback,
-        app);
+    submenu_add_item(app->submenu, "Reset", VlsmMenuReset, vlsm_menu_callback, app);
 }
 
 /*
@@ -720,19 +551,15 @@ static void vlsm_rebuild_menu(VlsmApp* app) {
  * Back exits the application from the main menu.
  * From any other view, Back returns to the main menu.
  */
-static bool vlsm_navigation_callback(
-    void* context) {
+static bool vlsm_navigation_callback(void* context) {
     VlsmApp* app = context;
 
     if(app->current_view == VlsmViewMain) {
-        view_dispatcher_stop(
-            app->view_dispatcher);
+        view_dispatcher_stop(app->view_dispatcher);
     } else {
         vlsm_rebuild_menu(app);
 
-        vlsm_switch_view(
-            app,
-            VlsmViewMain);
+        vlsm_switch_view(app, VlsmViewMain);
     }
 
     return true;
@@ -742,15 +569,11 @@ static bool vlsm_navigation_callback(
  * Allocate application structures and register all views.
  */
 static VlsmApp* vlsm_app_alloc(void) {
-    VlsmApp* app =
-        malloc(sizeof(VlsmApp));
+    VlsmApp* app = malloc(sizeof(VlsmApp));
 
     furi_check(app);
 
-    memset(
-        app,
-        0,
-        sizeof(VlsmApp));
+    memset(app, 0, sizeof(VlsmApp));
 
     /*
      * Default values.
@@ -762,59 +585,35 @@ static VlsmApp* vlsm_app_alloc(void) {
 
     app->prefix = 24;
 
-    app->results =
-        furi_string_alloc();
+    app->results = furi_string_alloc();
 
-    app->view_dispatcher =
-        view_dispatcher_alloc();
+    app->view_dispatcher = view_dispatcher_alloc();
 
-    app->submenu =
-        submenu_alloc();
+    app->submenu = submenu_alloc();
 
-    app->requests_submenu =
-        submenu_alloc();
+    app->requests_submenu = submenu_alloc();
 
-    app->number_input =
-        number_input_alloc();
+    app->number_input = number_input_alloc();
 
-    app->widget =
-        widget_alloc();
+    app->widget = widget_alloc();
 
-    view_dispatcher_set_event_callback_context(
-        app->view_dispatcher,
-        app);
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
-    view_dispatcher_set_navigation_event_callback(
-        app->view_dispatcher,
-        vlsm_navigation_callback);
+    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, vlsm_navigation_callback);
+
+    view_dispatcher_add_view(app->view_dispatcher, VlsmViewMain, submenu_get_view(app->submenu));
 
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        VlsmViewMain,
-        submenu_get_view(app->submenu));
+        app->view_dispatcher, VlsmViewRequests, submenu_get_view(app->requests_submenu));
 
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        VlsmViewRequests,
-        submenu_get_view(app->requests_submenu));
+        app->view_dispatcher, VlsmViewNumberInput, number_input_get_view(app->number_input));
 
-    view_dispatcher_add_view(
-        app->view_dispatcher,
-        VlsmViewNumberInput,
-        number_input_get_view(app->number_input));
+    view_dispatcher_add_view(app->view_dispatcher, VlsmViewResults, widget_get_view(app->widget));
 
-    view_dispatcher_add_view(
-        app->view_dispatcher,
-        VlsmViewResults,
-        widget_get_view(app->widget));
+    app->gui = furi_record_open(RECORD_GUI);
 
-    app->gui =
-        furi_record_open(RECORD_GUI);
-
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher,
-        app->gui,
-        ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     vlsm_rebuild_menu(app);
     vlsm_rebuild_requests_menu(app);
@@ -826,42 +625,27 @@ static VlsmApp* vlsm_app_alloc(void) {
  * Free application resources.
  */
 static void vlsm_app_free(VlsmApp* app) {
-    view_dispatcher_remove_view(
-        app->view_dispatcher,
-        VlsmViewMain);
+    view_dispatcher_remove_view(app->view_dispatcher, VlsmViewMain);
 
-    view_dispatcher_remove_view(
-        app->view_dispatcher,
-        VlsmViewRequests);
+    view_dispatcher_remove_view(app->view_dispatcher, VlsmViewRequests);
 
-    view_dispatcher_remove_view(
-        app->view_dispatcher,
-        VlsmViewNumberInput);
+    view_dispatcher_remove_view(app->view_dispatcher, VlsmViewNumberInput);
 
-    view_dispatcher_remove_view(
-        app->view_dispatcher,
-        VlsmViewResults);
+    view_dispatcher_remove_view(app->view_dispatcher, VlsmViewResults);
 
-    widget_free(
-        app->widget);
+    widget_free(app->widget);
 
-    number_input_free(
-        app->number_input);
+    number_input_free(app->number_input);
 
-    submenu_free(
-        app->requests_submenu);
+    submenu_free(app->requests_submenu);
 
-    submenu_free(
-        app->submenu);
+    submenu_free(app->submenu);
 
-    view_dispatcher_free(
-        app->view_dispatcher);
+    view_dispatcher_free(app->view_dispatcher);
 
-    furi_record_close(
-        RECORD_GUI);
+    furi_record_close(RECORD_GUI);
 
-    furi_string_free(
-        app->results);
+    furi_string_free(app->results);
 
     free(app);
 }
@@ -872,15 +656,11 @@ static void vlsm_app_free(VlsmApp* app) {
 int32_t net_calculator_app(void* p) {
     UNUSED(p);
 
-    VlsmApp* app =
-        vlsm_app_alloc();
+    VlsmApp* app = vlsm_app_alloc();
 
-    vlsm_switch_view(
-        app,
-        VlsmViewMain);
+    vlsm_switch_view(app, VlsmViewMain);
 
-    view_dispatcher_run(
-        app->view_dispatcher);
+    view_dispatcher_run(app->view_dispatcher);
 
     vlsm_app_free(app);
 

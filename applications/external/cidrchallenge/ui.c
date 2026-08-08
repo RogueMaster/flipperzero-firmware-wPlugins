@@ -32,7 +32,11 @@ static void format_answer_time(char* out, size_t out_size, uint32_t ms) {
         snprintf(out, out_size, "-");
     } else {
         snprintf(
-            out, out_size, "%lu.%lus", (unsigned long)(ms / 1000), (unsigned long)(ms % 1000 / 100));
+            out,
+            out_size,
+            "%lu.%lus",
+            (unsigned long)(ms / 1000),
+            (unsigned long)(ms % 1000 / 100));
     }
 }
 
@@ -114,7 +118,8 @@ static void draw_menu(Canvas* canvas, CidrApp* app) {
         canvas_set_color(canvas, ColorBlack);
     }
 
-    elements_scrollbar_pos(canvas, SCREEN_WIDTH, HEADER_HEIGHT + 1, 52, app->menu_index, MenuCount);
+    elements_scrollbar_pos(
+        canvas, SCREEN_WIDTH, HEADER_HEIGHT + 1, 52, app->menu_index, MenuCount);
 }
 
 static void draw_difficulty(Canvas* canvas, CidrApp* app) {
@@ -192,7 +197,8 @@ static void draw_quiz(Canvas* canvas, CidrApp* app) {
 
     if(session->answered) {
         if(session->last_correct) {
-            snprintf(feedback, sizeof(feedback), "CORRECT +%lu XP", (unsigned long)session->last_xp);
+            snprintf(
+                feedback, sizeof(feedback), "CORRECT +%lu XP", (unsigned long)session->last_xp);
         } else {
             snprintf(feedback, sizeof(feedback), "WRONG");
         }
@@ -289,8 +295,7 @@ static void draw_stats(Canvas* canvas, CidrApp* app) {
         canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Statistics cleared");
     } else {
         uint32_t level = stats_level(stats->xp);
-        snprintf(
-            line, sizeof(line), "Lv %lu - %s", (unsigned long)level, level_title(level));
+        snprintf(line, sizeof(line), "Lv %lu - %s", (unsigned long)level, level_title(level));
         canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, line);
     }
 }

@@ -113,6 +113,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Samsung AC Remote v1.0 (By dappermint)](https://github.com/dappermint/samsung-ac-remote-flipper-app)
 - Updated: [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - Updated: [DeFlock v0.71 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Added: [CIDR Challenge v1.0 (By AlastorApps)](https://github.com/AlastorApps/cidrchallengef0)
+- Added: [FM TX v0.0.10 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
+- Added: [Network Calculator v1.0 (By WolfRorDev)](https://github.com/WolfRorDev/Net-Calculator-for-Flipper-Zero)
 
 <a name="release"></a>
 
@@ -245,6 +248,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Checkers v1.0 (By H4W9)](https://github.com/H4W9/FlipCheckers)
 - [Chess Clock (By ihatecsv)](https://github.com/ihatecsv/flipper_chess_clock)
 - [Chess v1.12 (By xtruan)](https://github.com/xtruan/flipper-chess)
+- [CIDR Challenge v1.0 (By AlastorApps)](https://github.com/AlastorApps/cidrchallengef0)
 - [Cigarette v0.1.2 (By fuckmaz)](https://github.com/fuckmaz/flipper-cigarette)
 - [City Bloxx (By Milk-Cool)](https://github.com/Milk-Cool/fz-citybloxx)
 - [Cognizant Flipper v1.0 (By TunnelDog)](https://github.com/TunnelDog/Cognizant-Flipper)
@@ -580,6 +584,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767/Si4703`
 - [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - [FM Transmitter KT0803 v1.0 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter) `Req: KT0803`
+- [FM TX v0.0.10 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - [FMF2USBMIDI v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_Zero_FMF2USBMIDI)
 - [Ford Radio Codes v0.1 (By DavidB445)](https://github.com/DavidB445/fz_fordradiocodes)
 - [FreeStyle Libre CGM v0.1 (By darendarrow)](https://github.com/darendarrow/flipnCGM)
@@ -731,6 +736,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Nearby Files v1.7 (By Stichoza)](https://github.com/Stichoza/flipper-nearby-files)
 - [NestBridge v1.0 (By Bibfortuna5057)](https://github.com/Bibfortuna5057/NestBridge-Flipper) `Req: Nest Gen 2 Thermostat`
 - [Netflix TV Remote v0.1 (By ablaran)](https://github.com/ablaran/NetflixTvRemote)
+- [Network Calculator v1.0 (By WolfRorDev)](https://github.com/WolfRorDev/Net-Calculator-for-Flipper-Zero)
 - [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
 - [Networking NFC + QR v1.0 (By DonJulve)](https://github.com/DonJulve/Networking_NFC_QR_Flipper_Zero)
 - [NFC APDU Runner v0.3.5 (By SpenserCai)](https://github.com/SpenserCai/nfc_apdu_runner)

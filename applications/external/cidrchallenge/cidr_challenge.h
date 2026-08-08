@@ -8,11 +8,11 @@
 #include <input/input.h>
 #include <notification/notification_messages.h>
 
-#define APP_VERSION "1.0"
+#define APP_VERSION FAP_VERSION
 
-#define SPEED_DURATION_MS 60000
-#define FEEDBACK_MS       1200
-#define TICK_PERIOD_MS    100
+#define SPEED_DURATION_MS  60000
+#define FEEDBACK_MS        1200
+#define TICK_PERIOD_MS     100
 #define MAX_ANSWER_TIME_MS 99999
 
 typedef enum {

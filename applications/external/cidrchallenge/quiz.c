@@ -76,11 +76,8 @@ static uint32_t make_filler(QuestionType type, uint32_t correct, uint8_t prefix,
     return correct + subnet_block_size(prefix) * (1 + attempt);
 }
 
-static void build_answers(
-    Question* question,
-    uint32_t correct,
-    uint8_t prefix,
-    CandidateList* candidates) {
+static void
+    build_answers(Question* question, uint32_t correct, uint8_t prefix, CandidateList* candidates) {
     uint8_t count = 0;
     answer_add(question, &count, correct);
 

@@ -33,8 +33,7 @@ static bool startup_animation_due(void) {
            APP_DATA_PATH("animation-day.bin"), &previous, sizeof(previous), 0x46, 1) &&
        previous == today)
         return false;
-    (void)saved_struct_save(
-        APP_DATA_PATH("animation-day.bin"), &today, sizeof(today), 0x46, 1);
+    (void)saved_struct_save(APP_DATA_PATH("animation-day.bin"), &today, sizeof(today), 0x46, 1);
     return true;
 }
 
