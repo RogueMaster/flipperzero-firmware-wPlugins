@@ -26,41 +26,11 @@ App(
     stack_size=6 * 1024,
     fap_icon_assets_symbol="flipdeflock",
     fap_icon="icon.png",
-    fap_private_libs=[
-        # Espressif esp-serial-flasher (Apache-2.0), vendored under
-        # lib/esp-serial-flasher. Our port/worker/UI is original (GPL-3.0-or-later).
-        Lib(
-            name="esp_serial_flasher",
-            fap_include_paths=["include"],
-            sources=[
-                "src/esp_loader.c",
-                "src/esp_targets.c",
-                "src/md5_hash.c",
-                "src/protocol_serial.c",
-                "src/protocol_uart.c",
-                "src/slip.c",
-                "src/esp_stubs.c",
-            ],
-            cincludes=["lib/esp_serial_flasher/private_include"],
-            cdefines=[
-                "SERIAL_FLASHER_INTERFACE_UART=1",
-                "MD5_ENABLED=1",
-                "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
-                # Match esptool's ERASE_REGION_TIMEOUT_PER_MB (30 s/MB) instead of
-                # the library's 10. A ReksLab Tri-Board erases a 1.45 MB region
-                # slower than the 14.8 s that 10 s/MB allowed, so every flash
-                # failed at esp_loader_flash_start() with a timeout, before a
-                # single byte was written. This only extends how long we wait.
-                "ERASE_FLASH_TIMEOUT_PER_MB=30000",
-            ],
-            cflags=["-Wno-sign-compare"],
-        ),
-    ],
-    cdefines=[
-        "SERIAL_FLASHER_INTERFACE_UART=1",
-        "MD5_ENABLED=1",
-        "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
-    ],
+    # esp-serial-flasher used to be a private lib of the APP. It moved to the
+    # flasher plugin below along with esp_flasher.c, taking a measured 10,230
+    # bytes (13.5%) out of the contiguous allocation the loader has to find at
+    # launch. Nothing in the app links against it any more; the Firmware screen
+    # calls through plugins/flasher_plugin_api.h instead.
     fap_category="GPIO/ESP32",
     fap_author="ReconGrunt",
     fap_weburl="https://github.com/ReconGrunt/FlipDeFlock",
@@ -96,6 +66,55 @@ App(
             name="qrcodegen",
             sources=["qrcodegen.c"],
             cflags=["-Wno-sign-compare", "-Wno-unused-parameter"],
+        ),
+    ],
+)
+
+App(
+    appid="flipdeflock_flasher",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flasher_plugin_ep",
+    requires=["deflock"],
+    sources=["plugins/flasher/*.c"],
+    fal_embedded=True,
+    # The cdefines below are duplicated from the Lib() rather than inherited:
+    # esp_flasher.c itself compiles against SERIAL_FLASHER_INTERFACE_UART and
+    # MD5_ENABLED, and a private lib's cdefines do not reach the app/plugin
+    # sources that include its headers. They were on the main App() before this
+    # moved, which is why they have to travel with it.
+    cdefines=[
+        "SERIAL_FLASHER_INTERFACE_UART=1",
+        "MD5_ENABLED=1",
+        "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+    ],
+    fap_private_libs=[
+        # Espressif esp-serial-flasher (Apache-2.0), vendored under
+        # lib/esp-serial-flasher. Our port/worker/UI is original (GPL-3.0-or-later).
+        Lib(
+            name="esp_serial_flasher",
+            fap_include_paths=["include"],
+            sources=[
+                "src/esp_loader.c",
+                "src/esp_targets.c",
+                "src/md5_hash.c",
+                "src/protocol_serial.c",
+                "src/protocol_uart.c",
+                "src/slip.c",
+                "src/esp_stubs.c",
+            ],
+            cincludes=["lib/esp_serial_flasher/private_include"],
+            cdefines=[
+                "SERIAL_FLASHER_INTERFACE_UART=1",
+                "MD5_ENABLED=1",
+                "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+                # Match esptool's ERASE_REGION_TIMEOUT_PER_MB (30 s/MB) instead of
+                # the library's 10. A ReksLab Tri-Board erases a 1.45 MB region
+                # slower than the 14.8 s that 10 s/MB allowed, so every flash
+                # failed at esp_loader_flash_start() with a timeout, before a
+                # single byte was written. This only extends how long we wait.
+                "ERASE_FLASH_TIMEOUT_PER_MB=30000",
+            ],
+            cflags=["-Wno-sign-compare"],
         ),
     ],
 )

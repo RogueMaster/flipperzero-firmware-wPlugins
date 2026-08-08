@@ -30,10 +30,31 @@ PluginHost* plugin_host_load(const char* app_id, uint32_t api_version, const voi
         return NULL;
     }
 
-    // load_all filters by the appid/api_version handed to alloc(), so a .fal
-    // for a different plugin -- or a stale one from an older app version -- is
-    // skipped rather than mistaken for this one.
-    PluginManagerError err = plugin_manager_load_all(manager, PLUGIN_DIR);
+    // Load THE ONE FILE, not the directory.
+    //
+    // plugin_manager_load_all() cannot be used here once there is more than one
+    // .fal, and the failure is silent. It iterates the directory and BREAKS on
+    // the first plugin whose appid does not match the filter -- then returns
+    // PluginManagerErrorNone anyway. So whichever .fal the directory happens to
+    // yield first wins, and every other plugin becomes unloadable.
+    //
+    // Concretely: `flipdeflock_flasher.fal` sorts before `flipdeflock_qr.fal`,
+    // so asking for the QR encoder scanned the flasher, mismatched, broke out,
+    // and reported "no plugin" with a perfectly healthy .fal sitting in the same
+    // folder. The QR handoff would have died the moment the flasher shipped.
+    //
+    // A plugin's asset is named "<appid>.fal", so the path is derivable and the
+    // scan buys nothing. load_single is also deterministic and does not depend
+    // on readdir order.
+    char path[96];
+    int n = snprintf(path, sizeof(path), "%s/%s.fal", PLUGIN_DIR, app_id);
+    if(n < 0 || (size_t)n >= sizeof(path)) {
+        FURI_LOG_E(TAG, "%s: plugin path too long", app_id);
+        plugin_manager_free(manager);
+        return NULL;
+    }
+
+    PluginManagerError err = plugin_manager_load_single(manager, path);
     if(err != PluginManagerErrorNone || plugin_manager_get_count(manager) == 0) {
         // Not an error worth shouting about: the usual cause is a card whose
         // assets have not been extracted yet. The caller shows "unavailable".

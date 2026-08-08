@@ -137,4 +137,35 @@ void suite_report_fmt_redact(void) {
     char tiny[1];
     fmt_ssid_shape(tiny, sizeof(tiny), "ABC");
     CHECK_INT_EQ((int)strlen(tiny), 0);
+
+    // --- fmt_frame_char -----------------------------------------------------
+    // THE BUG THIS EXISTS FOR: an entry restored from hits.csv can carry
+    // ftype == 0. flock_store writes an empty column for any type outside
+    // "PBROFL", reads it back as a NUL, and memsets the record before parsing.
+    // Printed with %c, that put a NUL BYTE inside a Markdown report -- a file
+    // people attach to issues.
+    CHECK_INT_EQ(fmt_frame_char('\0'), '?');
+
+    // Every known type passes through unchanged, so a normal entry still reads
+    // exactly as it did before the guard existed.
+    for(const char* k = "PBROFL"; *k; k++) {
+        CHECK_INT_EQ(fmt_frame_char(*k), *k);
+    }
+
+    // Anything else is replaced rather than echoed: a corrupt or future column
+    // must not be able to inject a control character, or a pipe that would
+    // silently break the report table's alignment.
+    CHECK_INT_EQ(fmt_frame_char('|'), '?');
+    CHECK_INT_EQ(fmt_frame_char('\n'), '?');
+    CHECK_INT_EQ(fmt_frame_char('p'), '?'); // case-sensitive on purpose
+    CHECK_INT_EQ(fmt_frame_char((char)0x7F), '?');
+
+    // The property the report actually depends on, asserted directly across the
+    // whole char range rather than inferred from the handful of cases above:
+    // the result is always printable ASCII and never NUL.
+    for(int c = -128; c <= 127; c++) {
+        char got = fmt_frame_char((char)c);
+        CHECK(got != '\0');
+        CHECK(got >= 0x20 && got < 0x7F);
+    }
 }

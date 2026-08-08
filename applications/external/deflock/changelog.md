@@ -26,9 +26,26 @@ yet: the export below has not been run on hardware by anyone.**
 - **Issue templates** for false positives, bugs, and detection signatures. The
   signature form states plainly that field data needs no DCO sign-off.
 
-- **A `.fap` size report in CI**, against the ~256 KB budget. Currently **58%**.
-  Advisory, and `.fap` size is not heap headroom — the real figure still needs
-  measuring on hardware.
+- **A size report in CI**, against the ~256 KB budget. It measures the **loaded
+  image** (`.text+.rodata+.data+.bss`), currently **65,444 bytes, 24%** — not the
+  `.fap` on disk, which includes embedded plugins that are extracted to the SD
+  card rather than loaded. Measuring the file would have called the change below
+  a regression.
+
+### Changed
+
+- **The ESP32 flasher loads on demand instead of shipping inside the app.** It is
+  reached from one screen, so it now ships as an embedded `.fal` mapped in only
+  while the Firmware screen is open. Measured on the linked ELF, this took
+  **10,230 bytes (13.5%)** out of the contiguous allocation the loader has to find
+  at launch — the allocation that fails with *"Not enough RAM to run the app"*.
+
+  Install is unchanged: still one file, with the plugin embedded inside it.
+
+  This replaces the idea of splitting Net Guardian and the Wi-Fi audit into
+  separate apps. Measured, those two are ~3.8 KB and ~2.5 KB, so that split would
+  have cost a lot of restructuring to recover under a quarter of what this did.
+  Both stay in the app.
 
 ### Fixed
 

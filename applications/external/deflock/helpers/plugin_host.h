@@ -4,11 +4,20 @@
  * @file plugin_host.h
  * Load/unload a FlipDeFlock plugin from the app's own asset directory.
  *
- * The heavy, rarely-reached modules (the QR encoder; the ESP32 flasher) ship as
- * .fal files embedded in the .fap and are mapped into RAM only while the screen
- * that needs them is open. That is what keeps them out of the contiguous
- * allocation the loader must find at launch -- the failure users were hitting
- * (issue #5).
+ * A plugin ships as a .fal embedded in the .fap and is mapped into RAM only
+ * while the screen that needs it is open. That is what keeps it out of the
+ * contiguous allocation the loader must find at launch -- the failure users
+ * were hitting (issue #5).
+ *
+ * Two plugins use this: `flipdeflock_qr` (the QR encoder) and
+ * `flipdeflock_flasher` (the ESP32 flasher, moved out of the app image in the
+ * v0.72 cycle for a measured 10,230 bytes -- see plugins/flasher_plugin_api.h
+ * for the before/after section table and why the obvious .o-sum figure is
+ * nearly three times too large).
+ *
+ * Before claiming anything else "is already a plugin", check `nm` on the built
+ * .elf. This comment previously said the flasher lived here when it did not,
+ * and the only thing that settled it was looking at the symbol table.
  *
  * FAIL-SAFE BY CONTRACT: every function here returns NULL/void on any problem
  * -- missing asset directory, version mismatch, corrupt .fal -- and never

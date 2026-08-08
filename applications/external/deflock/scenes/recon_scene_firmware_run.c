@@ -1,9 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (c) 2026 ReconGrunt
 #include "../recon_app_i.h"
-#include "../helpers/esp_flasher.h"
+#include "../helpers/plugin_host.h"
+#include "../plugins/flasher_plugin_api.h"
 
 #include <string.h>
+
+// The flasher is an on-demand .fal, not app code. Mapped in on entry to this
+// screen and dropped on the way out -- ~27.6 KB that every other screen, and the
+// launch itself, no longer has to find room for.
+//
+// File-scope because the WORKER THREAD needs the API and only ever gets `app` as
+// its context, and because only one flash or backup can be in flight at a time
+// (this scene owns the thread). Same shape as g_qr_plugin in the handoff scene.
+static PluginHost* g_fw_plugin = NULL;
+static const FlasherPluginApi* g_fw_api = NULL;
 
 static void fw_log_cb(void* ctx, const char* line) {
     ReconApp* app = ctx;
@@ -15,7 +26,18 @@ static void fw_log_cb(void* ctx, const char* line) {
 
 static int32_t fw_worker(void* context) {
     ReconApp* app = context;
-    EspFlasher* fl = esp_flasher_alloc((FuriHalSerialId)app->settings.esp_uart, fw_log_cb, app);
+    const FlasherPluginApi* api = g_fw_api;
+    // on_enter refuses to start this thread without a loaded plugin, so this is
+    // belt-and-braces rather than an expected path -- but it is called from a
+    // thread, and a null deref here would take the whole app down mid-flash.
+    if(!api) {
+        fw_log_cb(app, "Flasher unavailable.");
+        fw_log_cb(app, "== FAILED ==");
+        app->fw_ok = false;
+        app->fw_running = false;
+        return 0;
+    }
+    EspFlasher* fl = api->alloc((FuriHalSerialId)app->settings.esp_uart, fw_log_cb, app);
     bool ok = false;
     if(!fl) {
         fw_log_cb(app, "UART busy.");
@@ -26,14 +48,14 @@ static int32_t fw_worker(void* context) {
         // baud (ROM reads are slow + integrity matters); flash allows the user's
         // Fast (230400) and verifies the write afterwards.
         uint32_t fast = (app->fw_op == 0 || !app->settings.flash_fast) ? 0 : 230400;
-        if(esp_flasher_connect(fl, fast)) {
+        if(api->connect(fl, fast)) {
             if(app->fw_op == 0) {
-                ok = esp_flasher_backup(fl, app->storage, app->fw_path);
+                ok = api->backup(fl, app->storage, app->fw_path);
             } else {
-                ok = esp_flasher_flash_file(fl, app->storage, app->fw_path, 0);
+                ok = api->flash_file(fl, app->storage, app->fw_path, 0);
             }
         }
-        esp_flasher_free(fl);
+        api->free(fl);
     }
     fw_log_cb(app, ok ? "== DONE ==" : "== FAILED ==");
     app->fw_ok = ok;
@@ -89,6 +111,32 @@ void recon_scene_firmware_run_on_enter(void* context) {
         return;
     }
 
+    // Map the flasher in for the lifetime of this screen. Deliberately AFTER the
+    // heap check: the .fal needs room too, so asking for it on a device that is
+    // already short would just turn a readable message into a failed load.
+    //
+    // A failure here is not a crash -- plugin_host_load() returns NULL for a
+    // missing asset directory, a version mismatch or a corrupt .fal, and the
+    // user gets told the feature is unavailable and can back out. The likeliest
+    // real cause is a card the firmware has not extracted app assets onto yet.
+    g_fw_api = NULL;
+    g_fw_plugin = plugin_host_load(
+        FLASHER_PLUGIN_APP_ID, FLASHER_PLUGIN_API_VERSION, (const void**)&g_fw_api);
+    if(!g_fw_plugin || !g_fw_api) {
+        plugin_host_free(g_fw_plugin);
+        g_fw_plugin = NULL;
+        g_fw_api = NULL;
+        fw_log_cb(app, "Flasher unavailable.");
+        fw_log_cb(app, "Reinstall the .fap so");
+        fw_log_cb(app, "its assets are extracted.");
+        fw_log_cb(app, "== FAILED ==");
+        app->fw_running = false;
+        app->fw_ok = false;
+        fw_render(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
+        return;
+    }
+
     app->fw_running = true;
     app->fw_ok = false;
     app->fw_log_dirty = false;
@@ -115,11 +163,18 @@ bool recon_scene_firmware_run_on_event(void* context, SceneManagerEvent event) {
 
 void recon_scene_firmware_run_on_exit(void* context) {
     ReconApp* app = context;
+    // ORDER IS LOAD-BEARING. The worker is executing code that lives inside the
+    // mapped .fal, so the plugin must outlive the thread: abort, JOIN, and only
+    // then unmap. Freeing first would pull the text out from under a running
+    // thread mid-flash, which is both a crash and a half-written ESP32.
     if(app->fw_thread) {
-        esp_flasher_abort(); // stop a long flash/backup so we don't block on join
+        if(g_fw_api) g_fw_api->abort(); // stop a long flash/backup so join returns
         furi_thread_join(app->fw_thread);
         furi_thread_free(app->fw_thread);
         app->fw_thread = NULL;
     }
+    g_fw_api = NULL; // drop the borrowed pointer before unmapping what it points into
+    plugin_host_free(g_fw_plugin);
+    g_fw_plugin = NULL;
     widget_reset(app->widget);
 }

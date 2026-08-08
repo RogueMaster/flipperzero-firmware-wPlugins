@@ -350,7 +350,7 @@ bool recon_report_save_fp(void* _app, char* out_path_md, size_t out_len) {
             flock_class_str((FlockDevClass)e->dev_class),
             oui_s,
             ssid_out,
-            e->ftype,
+            fmt_frame_char(e->ftype),
             e->channel,
             e->rssi,
             (unsigned long)e->count,

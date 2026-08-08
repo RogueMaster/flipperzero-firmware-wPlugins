@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <string.h> // strchr, for fmt_frame_char
 
 void fmt_mac(char* out, size_t out_len, const uint8_t mac[6]) {
     snprintf(
@@ -58,6 +59,13 @@ void fmt_ssid_shape(char* out, size_t out_len, const char* ssid) {
         out[o++] = m;
     }
     out[o] = '\0';
+}
+
+char fmt_frame_char(char ftype) {
+    // Same known set flock_store.c gates its column on, so what round-trips
+    // through hits.csv and what a report prints cannot disagree.
+    if(ftype && strchr("PBROFL", ftype)) return ftype;
+    return '?';
 }
 
 int fmt_signal_level(int rssi) {

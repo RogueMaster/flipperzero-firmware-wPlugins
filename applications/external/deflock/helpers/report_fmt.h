@@ -56,3 +56,15 @@ void fmt_mac_oui(char* out, size_t out_len, const uint8_t mac[6]);
  * rule, because that is a camera's own name rather than a user's.
  */
 void fmt_ssid_shape(char* out, size_t out_len, const char* ssid);
+
+/**
+ * Frame-type character, made safe to print with %c. Returns `ftype` when it is
+ * one of the known set "PBROFL", otherwise '?'.
+ *
+ * NOT COSMETIC. A FlockEntry restored from hits.csv can carry ftype == 0:
+ * flock_store writes an empty column for any type outside that set, reads it
+ * back as f[4][0] == '\0', and memsets the record to zero before parsing. Passed
+ * straight to %c that emits a NUL BYTE into the middle of a report, which is a
+ * text file people attach to issues.
+ */
+char fmt_frame_char(char ftype);
