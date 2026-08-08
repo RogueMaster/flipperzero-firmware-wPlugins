@@ -30,18 +30,47 @@ async function startGame() {
   for (const p of PROMPTS) e.contentItem(JSON.stringify({ p }));
   for (let i = 0; i < 30; i++) e.contentItem(JSON.stringify({ a: "answer-" + i }));
 
-  // Quorum: two players can't play (you need a Czar plus two answers to judge between),
-  // so an all-ready lobby stays a lobby instead of starting a round nobody can finish.
+  // All three ready -> countdown -> round 1. (Two is now enough to play; that path has
+  // its own test below, since it is the one the padding exists for.)
+  e.join(3, "CARA");
+  e.input(1, { t: "ready", ready: true });
+  e.input(2, { t: "ready", ready: true });
+  let out = e.input(3, { t: "ready", ready: true });
+  for (let ms = 1000; ms <= 6000; ms += 1000) out = out.concat(e.tick(ms));
+  return { e, out };
+}
+
+// Two players: one Czar, one answer. A judge choosing between a single card is no
+// choice at all, so the pile is padded from the deck up to FB_MIN_PILE -- which is what
+// makes a two-player game work rather than sit in the lobby forever.
+async function twoPlayersPlay() {
+  const e = await newEngine();
+  e.reset();
+  e.join(1, "ALICE");
+  e.join(2, "BOB");
+  e.selectGame(FB);
+  e.contentClear();
+  e.contentPack(FB, "Test");
+  for (const p of PROMPTS) e.contentItem(JSON.stringify({ p }));
+  for (let i = 0; i < 30; i++) e.contentItem(JSON.stringify({ a: "answer-" + i }));
+
   e.input(1, { t: "ready", ready: true });
   let out = e.input(2, { t: "ready", ready: true });
-  for (let ms = 1000; ms <= 5000; ms += 1000) out = out.concat(e.tick(ms));
-  assert.equal(lastToWs(out, 1, "fillblank").msg.phase, "lobby", "two players is below quorum");
+  for (let ms = 1000; ms <= 6000; ms += 1000) out = out.concat(e.tick(ms));
+  assert.equal(lastToWs(out, 1, "fillblank").msg.phase, "play", "two players start a round");
 
-  // Third player joins and readies -> countdown -> round 1.
-  e.join(3, "CARA");
-  out = e.input(3, { t: "ready", ready: true });
-  for (let ms = 6000; ms <= 10000; ms += 1000) out = out.concat(e.tick(ms));
-  return { e, out };
+  // The non-Czar answers; the pile must still offer the Czar three cards to pick from.
+  const czar = [1, 2].find((p) => lastToWs(out, p, "fillblank").msg.iam);
+  const other = czar === 1 ? 2 : 1;
+  const hand = lastToWs(out, other, "fillblank").msg.hand;
+  assert.ok(hand && hand.length, "the answering player got a hand");
+  out = e.input(other, { t: "play", card: 0 });
+  for (let ms = 7000; ms <= 12000; ms += 1000) out = out.concat(e.tick(ms));
+
+  const m = lastToWs(out, czar, "fillblank").msg;
+  assert.equal(m.stage, "judge", "the Czar is judging");
+  assert.equal(m.subs.length, 3, "one player card padded from the deck up to three");
+  console.log("fillblank: two players play with a padded pile");
 }
 
 const NICK = { 1: "ALICE", 2: "BOB", 3: "CARA" };
@@ -213,5 +242,7 @@ const czarOf = (out) => [1, 2, 3].find((p) => lastToWs(out, p, "fillblank").msg.
     else assert.ok(Object.values(NICK).includes(rev.authors[i]), "player cards stay attributed");
   }
 }
+
+await twoPlayersPlay();
 
 console.log("fillblank: all checks passed");

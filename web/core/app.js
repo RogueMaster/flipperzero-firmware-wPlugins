@@ -481,23 +481,17 @@ function maybeCaptive() {
 
 /* Core message routing. Game-specific messages hand off to registered
    handlers so the modules stay self-contained. */
-/* Messages that carry no game state, and so say nothing about whether a pending game-change
-   vote has resolved. The overlay has to survive all of them: "gamevote" is the vote itself,
-   "pong" answers our own keepalive, and chat / reactions / ink strokes are other players
-   making noise. Anything NOT listed here is a state push, which does mean the vote is over. */
-var GV_KEEPS_OPEN = { gamevote: 1, pong: 1, chat: 1, emoji: 1, ink: 1 };
-
 function dispatch(m) {
-  // Retire the vote overlay on the first real state push. onLobby used to be the only place
-  // that closed it, and a party game's first push is its OWN lobby ({t:"frankendraw",
-  // phase:"lobby"}) -- a plain {t:"lobby"} never arrives. So the proposer sat behind "you
-  // want to switch to X" while everyone else was already playing, which reads exactly like
-  // the game refusing to start.
+  // Do NOT retire the vote overlay from here. Two attempts at that shipped broken: closing on
+  // anything that was not "gamevote" let the 2s keepalive's {t:"pong"} dismiss the prompt
+  // before it could be read, and closing on "the first real state push" made the prompt never
+  // appear on the other phones at all. Both were fixing a symptom of something else entirely
+  // (a duplicate SCREENS block that stopped the client from starting).
   //
-  // The list above is the whole subtlety: an earlier attempt closed the overlay on any
-  // message that was not "gamevote", and the client's own 2s keepalive got a {t:"pong"}
-  // back within a second, so nobody could read the prompt, let alone vote on it.
-  if (A.gamevoteOpen && !GV_KEEPS_OPEN[m.t] && A.closeGamevote) A.closeGamevote();
+  // The engine already makes this unnecessary: while a proposal is open it sends ONLY the vote
+  // (pushAll() returns early when _gvActive), so no game state can arrive mid-vote. Both
+  // outcomes then go through pushAll()'s normal path, which leads with lobbyJson() -- so
+  // onLobby() sees every resolution, approved or rejected. That is the one place that closes it.
   notePlayerCount(m);   // the switcher greys out on the CURRENT count, not the last lobby's
   switch (m.t) {
     case "welcome":

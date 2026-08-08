@@ -998,9 +998,7 @@ function maybeCaptive() {
 if (!captiveEligible() || A.retry < 2 || A.retry < captiveSnoozeUntil) return;
 show("captive");
 }
-var GV_KEEPS_OPEN = { gamevote: 1, pong: 1, chat: 1, emoji: 1, ink: 1 };
 function dispatch(m) {
-if (A.gamevoteOpen && !GV_KEEPS_OPEN[m.t] && A.closeGamevote) A.closeGamevote();
 notePlayerCount(m);   // the switcher greys out on the CURRENT count, not the last lobby's
 switch (m.t) {
 case "welcome":
