@@ -29,6 +29,13 @@ right button ("Reset"), confirm the warning dialog, and hold the head to the Fli
 > but if authentication fails for any reason, do NOT retry more than twice.
 
 
+Thank You
+---------
+
+* Michael Huber - reset feature
+* Vilém Kužel - also reset feature (a few days after Michael)
+
+
 TODO
 ----
 
