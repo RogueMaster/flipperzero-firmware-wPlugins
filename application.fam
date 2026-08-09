@@ -11,4 +11,9 @@ App(
     fap_icon="assets/10x10.png",
     fap_description="Swatch Internet Time (@beats) and local clock",
     fap_author="inernet-time-screen",
+    sources=[
+        "*.c*",
+        "!tests",
+        "!tests/*",
+    ],
 )
