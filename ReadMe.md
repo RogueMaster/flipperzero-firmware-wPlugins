@@ -116,6 +116,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [CIDR Challenge v1.0 (By AlastorApps)](https://github.com/AlastorApps/cidrchallengef0)
 - Added: [FM TX v0.0.10 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - Added: [Network Calculator v1.0 (By WolfRorDev)](https://github.com/WolfRorDev/Net-Calculator-for-Flipper-Zero)
+- Updated: [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 
 <a name="release"></a>
 
@@ -854,7 +855,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Smartra VIN2PIN v2.0 (By evillero)](https://github.com/evillero/smartra_vin2pin)
 - [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
 - [Snowflake v0.1 (By fgreil)](https://github.com/fgreil/mitzi-snowflake)
-- [Sonic Head ID v0.9 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
+- [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - [Space PLayground v0.1 (By alanfortlink)](https://github.com/alanfortlink/fzspground)
 - [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - [Specter v2.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)

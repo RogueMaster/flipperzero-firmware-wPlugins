@@ -48,9 +48,18 @@ void sonicare_scene_read_complete_on_enter(void* context) {
         temp_str, "\e#%s\n", nfc_device_get_name(nfc_device, NfcDeviceNameTypeFull));
 
     // UID
-    furi_string_cat_printf(temp_str, "UID:");
+    furi_string_cat_str(temp_str, "UID:");
     format_bytes(temp_str, ul_data->iso14443_3a_data->uid, ul_data->iso14443_3a_data->uid_len);
-    furi_string_cat_printf(temp_str, "\n");
+    furi_string_cat_str(temp_str, "\n");
+
+    // Cache UID + MFG for the reset scene's password derivation.
+    // MFG (10 bytes, e.g. "221214 12K") = page[0x21].data[2..3] +
+    // page[0x22].data[0..3] + page[0x23].data[0..3]
+    // (first 2 bytes of page 0x21 are the max-usage value, not MFG).
+    memcpy(app->sonicare_uid, ul_data->iso14443_3a_data->uid, 7);
+    memcpy(app->sonicare_mfg + 0, ul_data->page[0x21].data + 2, 2);
+    memcpy(app->sonicare_mfg + 2, ul_data->page[0x22].data, 4);
+    memcpy(app->sonicare_mfg + 6, ul_data->page[0x23].data, 4);
 
     // Manufacturing Code
     furi_string_cat_str(temp_str, "MFG: ");
@@ -115,18 +124,19 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     furi_string_free(temp_str);
     furi_string_free(serial_no);
 
-    // TODO: widget_add_button_element(widget, GuiButtonTypeRight, "Change", sonicare_scene_read_complete_widget_callback, app);
+    widget_add_button_element(
+        widget, GuiButtonTypeRight, "Reset", sonicare_scene_read_complete_widget_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, SonicareViewWidget);
 }
 
 bool sonicare_scene_read_complete_on_event(void* context, SceneManagerEvent event) {
-    UNUSED(context);
+    Sonicare* app = context;
 
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == GuiButtonTypeRight) {
-            // switch to edit screen
+            scene_manager_next_scene(app->scene_manager, SonicareSceneResetConfirm);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
