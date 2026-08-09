@@ -981,6 +981,7 @@ int32_t flipflash(void* p) {
     furi_message_queue_free(app->input_queue);
     furi_string_free(app->text_buffer);
     storage_file_free(app->file);
+    storage_file_free(app->state_file);
     furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);

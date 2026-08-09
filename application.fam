@@ -8,9 +8,9 @@ App(
     stack_size=8 * 1024,
     fap_category="Tools",
     # Optional values
-    # fap_version="0.1",
+    fap_version="1.0",
     fap_icon="icon.png",  # 10x10 1-bit PNG
-    # fap_description="A simple app",
-    # fap_author="J. Doe",
-    # fap_weburl="https://github.com/user/template",
+    fap_description="A Flipper Zero flashcard app", 
+    fap_author="Mushi0",
+    fap_weburl="https://github.com/Mushi0/FlippFlash",
 )
