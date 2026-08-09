@@ -7,9 +7,9 @@ App(
     entry_point="internet_time_screen_app",
     stack_size=10 * 1024,
     fap_category="Tools",
-    fap_version=(0, 1),
+    fap_version=(0, 2),
     fap_icon="assets/10x10.png",
-    fap_description="Swatch Internet Time (@beats) and local clock",
+    fap_description="Swatch Internet Time (@beats), local clock, optional DCF77 sync",
     fap_author="inernet-time-screen",
     sources=[
         "*.c*",
