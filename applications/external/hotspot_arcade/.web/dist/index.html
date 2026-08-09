@@ -1,12 +1,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="theme-color" content="#0B0B0C">
+<meta name="color-scheme" content="dark">
 <title>Hotspot Arcade</title>
-<style>:root{--orange:#FF8200; --orange-bright:#FF9E29; --orange-dim:#B85E06;--bg:#0B0B0C; --surface:#161618; --surface-2:#202024; --line:#2E2E33;--text:#F2F2EE; --text-dim:#9A9A94; --text-mute:#5E5E5A; --on-orange:#0B0B0C;--good:#46D369; --bad:#FF4D4D; --info:#34C6DE;--disc-you:var(--orange); --disc-opp:#EDEDE6;--font:ui-monospace,"SF Mono","Menlo","Consolas","Roboto Mono",monospace;--radius:2px; --gap:8px; --tap:52px;}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%}body{background:var(--bg); color:var(--text); font-family:var(--font);font-size:16px; line-height:1.35;-webkit-user-select:none; user-select:none;}.hide{display:none!important}.scan{position:fixed; inset:0; z-index:40; pointer-events:none;background:repeating-linear-gradient(180deg,rgba(255,255,255,.045) 0 1px, transparent 1px 3px);}.hdr{position:sticky; top:0; z-index:30; display:flex; align-items:center;justify-content:space-between; gap:12px; height:48px; padding:0 16px;padding-top:env(safe-area-inset-top);background:var(--bg); border-bottom:2px solid var(--line);}.wordmark{font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;display:flex; align-items:center; gap:2px;}.cur{color:var(--orange); animation:blink 1s step-end infinite}@keyframes blink{50%{opacity:0}}.hdr-right{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim)}.dot{width:10px; height:10px; border-radius:50%; background:var(--orange); flex:none}.dot.warn{background:var(--text-mute)}.dot.bad{background:var(--bad)}#hdr-nick{max-width:38vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;text-transform:uppercase; letter-spacing:.06em;appearance:none; font-family:var(--font); font-size:12px; color:var(--text-dim);background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);padding:4px 8px; cursor:pointer}#hdr-nick:active{border-color:var(--orange); transform:translateY(1px)}.sheet{position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.66);display:flex; align-items:center; justify-content:center; padding:20px}.sheet-card{width:100%; max-width:360px; background:var(--surface); border:2px solid var(--line);border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:10px}.sheet-card input{background:var(--surface-2); color:var(--text); font-family:var(--font);font-size:16px; padding:12px; border:2px solid var(--line); border-radius:var(--radius)}.sheet-card input:focus{outline:none; border-color:var(--orange)}.sheet-actions{display:flex; flex-direction:column; gap:8px; margin-top:6px}#id-avatars{gap:5px}#id-avatars .av-pick{aspect-ratio:auto; height:42px; min-height:0; font-size:20px}.mute{appearance:none; font-family:var(--font); cursor:pointer;width:34px; height:34px; min-width:34px; padding:0; line-height:1;background:var(--surface-2); color:var(--orange); border:2px solid var(--line);border-radius:var(--radius); font-size:16px; display:grid; place-items:center;}.mute:active{border-color:var(--orange); transform:translateY(1px)}.mute.muted{color:var(--text-mute); position:relative}.mute.muted::after{content:""; position:absolute; left:4px; right:4px; top:50%;height:2px; background:var(--bad); transform:rotate(-24deg)}.netbar{position:sticky; top:48px; z-index:29; text-align:center;background:var(--surface-2); color:var(--orange); border-bottom:2px solid var(--orange);font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:6px;}.screen{max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:16px;padding:16px 16px calc(32px + env(safe-area-inset-bottom));animation:screen-in .16s ease-out}@keyframes screen-in{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}@keyframes tile-in{from{opacity:0; transform:translateY(3px)}to{opacity:1; transform:none}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}h1,h2{margin:0; text-transform:uppercase; letter-spacing:.08em; font-weight:700}h2{font-size:20px}h3{margin:0; font-weight:600}.btn{appearance:none; font-family:var(--font); border:2px solid transparent;border-radius:var(--radius); background:var(--orange); color:var(--on-orange);font-weight:700; font-size:17px; text-transform:uppercase; letter-spacing:.06em;min-height:var(--tap); padding:0 18px; cursor:pointer;transition:transform .1s ease-out, background .1s ease-out, box-shadow .1s ease-out;}.btn:active{background:var(--orange-dim); transform:translateY(1px); box-shadow:0 0 0 2px var(--orange-bright)}.btn.big{width:100%; font-size:18px; min-height:56px}.btn:disabled{background:var(--surface-2); color:var(--text-mute); cursor:default; box-shadow:none; transform:none}.btn.ghost{background:transparent; color:var(--text); border-color:var(--line)}.btn.ghost:active{background:transparent; border-color:var(--orange); box-shadow:none}.btn.sm{min-height:40px; font-size:13px; padding:0 12px}.brand{text-align:center; margin-top:7vh; display:flex; flex-direction:column; align-items:center; gap:14px}.logo-invader{color:var(--orange); display:block}.wordmark-big{margin:0; display:flex; flex-direction:column; line-height:.92;font-size:34px; font-weight:800; letter-spacing:.14em; text-transform:uppercase}.wordmark-big span{color:var(--text)}.wordmark-big .accent{color:var(--orange)}.tag{color:var(--text-mute); margin:0; font-size:12px; letter-spacing:.12em; text-transform:uppercase}.field{display:flex; flex-direction:column; gap:8px}.field input{min-height:var(--tap); border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-family:var(--font);font-size:18px; padding:0 14px; text-transform:uppercase; letter-spacing:.06em;-webkit-user-select:text; user-select:text;}.field input::placeholder{color:var(--text-mute); text-transform:none; letter-spacing:0}.field input:focus{outline:none; border-color:var(--orange)}.hint{color:var(--text-dim); font-size:12px; text-align:center; margin:0}.hint b{color:var(--text)}.bar{display:flex; align-items:center; justify-content:space-between; gap:12px}.me{color:var(--text-dim); font-size:13px; text-transform:uppercase; letter-spacing:.06em}.game-state{background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:16px; text-align:center; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; font-size:13px;}.sub{color:var(--text-dim); font-size:12px; margin:0; text-transform:uppercase; letter-spacing:.1em}.players{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}.players li{display:flex; align-items:center; gap:12px; min-height:48px;background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius); padding:8px 12px;}.players li.self{border-left:4px solid var(--orange)}.players .pn{flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}.players .ps{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums}.players li.self .ps{background:var(--orange); color:var(--on-orange); padding:2px 8px; border-radius:2px}.timebar{height:6px; margin:10px 0; background:var(--surface-2); border:2px solid var(--line); overflow:hidden}.timebar>i{display:block; height:100%; width:100%; background:var(--orange); transform-origin:left}.timebar.hot>i{background:var(--bad)}.question{font-size:20px; line-height:1.3; min-height:1.3em}.opts{display:flex; flex-direction:column; gap:12px; margin:6px 0}.opt{display:flex; align-items:center; gap:12px; text-align:left; font-family:var(--font);min-height:64px; border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-size:16px; font-weight:600;padding:10px 14px; cursor:pointer; transition:border-color .1s ease-out;animation:tile-in .16s ease-out both;}.opt:active:not(:disabled){transform:translateY(1px); border-color:var(--orange)}.opt .lab{width:32px; height:32px; flex:none; border:2px solid var(--line); background:var(--bg);display:grid; place-items:center; font-weight:700; color:var(--text-dim);}.opt .txt{flex:1}.opt .cnt{color:var(--text-dim); font-weight:700; font-variant-numeric:tabular-nums}.opt.mine{border-color:var(--orange)}.opt.mine .lab{background:var(--orange); color:var(--on-orange); border-color:var(--orange)}.opt.correct{border-color:var(--good)}.opt.correct .lab{background:var(--good); color:var(--on-orange); border-color:var(--good)}.opt.wrong{border-color:var(--bad)}.opt.wrong .lab{background:var(--bad); color:var(--on-orange); border-color:var(--bad)}.opt:disabled{cursor:default}.scores{display:flex; flex-wrap:wrap; gap:6px}.scores span{background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);padding:5px 10px; font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em}.scores span b{color:var(--orange)}.players .rdy{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-mute);font-weight:700; flex:none}.players .rdy.on{color:var(--good)}.topics{display:flex; flex-direction:column; gap:8px}.topic{display:flex; align-items:center; gap:12px; text-align:left; font-family:var(--font);min-height:52px; border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-size:15px; font-weight:600;padding:10px 14px; cursor:pointer; transition:border-color .1s ease-out;animation:tile-in .16s ease-out both;}.topic:active{transform:translateY(1px); border-color:var(--orange)}.topic .txt{flex:1}.topic .votes{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums;min-width:22px; text-align:right}.topic.mine{border-color:var(--orange)}.topic.mine .votes{background:var(--orange); color:var(--on-orange); padding:2px 8px; border-radius:2px}#tv-ready.on{background:transparent; color:var(--good); border-color:var(--good); box-shadow:none}#tv-ready,#tv-again,#play{margin:8px 0}.count{display:flex; flex-direction:column; align-items:center; justify-content:center;gap:14px; min-height:52vh; text-align:center}.count-topic{color:var(--orange); text-transform:uppercase; letter-spacing:.1em;font-weight:700; font-size:16px}.count-num{font-size:96px; font-weight:700; line-height:1; color:var(--text);font-variant-numeric:tabular-nums}.count-num.pop{animation:count-pop .3s ease-out}@keyframes count-pop{from{transform:scale(1.35); opacity:.35}to{transform:none; opacity:1}}.tv-head .me:last-child{color:var(--orange)}.tv-head{gap:8px}.tv-head .me{white-space:nowrap}#tv-qmeta{min-width:0; overflow:hidden; text-overflow:ellipsis}#tv-answered{flex-shrink:0}.lead{position:sticky; top:calc(48px + env(safe-area-inset-top)); z-index:20;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius)}.lead.bump{animation:lead-bump .45s ease-out}@keyframes lead-bump{0%{border-color:var(--orange)}100%{border-color:var(--line)}}.lead-bar{display:flex; align-items:center; gap:10px; width:100%; font-family:var(--font);background:transparent; border:0; color:var(--text); min-height:40px; padding:8px 12px;cursor:pointer; text-align:left}.lead-sum{flex:1; font-weight:700; font-size:13px; overflow:hidden; text-overflow:ellipsis;white-space:nowrap; font-variant-numeric:tabular-nums}.lead-sum b{color:var(--orange)}.lead-hint{color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:.08em}.lead-caret{color:var(--text-dim); font-size:10px}.lead-full{list-style:none; margin:0; padding:0 8px 8px; display:flex; flex-direction:column; gap:0}.lead-full li{display:flex; align-items:center; gap:10px; padding:7px 4px;border-top:2px solid var(--line); font-size:14px}.lead-full li.self{color:var(--orange)}.lead-full .r{width:20px; text-align:right; color:var(--text-dim); font-weight:700;font-variant-numeric:tabular-nums}.lead-full li.self .r{color:var(--orange)}.lead-full .pn{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}.lead-full .ps{font-weight:700; font-variant-numeric:tabular-nums}.podium{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}.podium .place{display:flex; align-items:center; gap:12px; min-height:52px;background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius); padding:10px 14px}.podium .place.self{border-left:4px solid var(--orange)}.podium .rank{width:34px; height:34px; flex:none; display:grid; place-items:center;font-weight:700; border:2px solid var(--line); background:var(--bg); color:var(--text-dim)}.podium .pn{flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}.podium .ps{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums}.podium .p1{border-color:var(--orange)}.podium .p1 .rank{background:var(--orange); color:var(--on-orange); border-color:var(--orange)}.podium .p2 .rank{background:var(--disc-opp); color:var(--on-orange); border-color:var(--disc-opp)}.podium .p3 .rank{background:var(--orange-dim); color:var(--text); border-color:var(--orange-dim)}.challenges{display:flex; flex-direction:column; gap:8px}.challenges:not(:empty){margin-bottom:16px}#tv-ready, #wyr-ready, #scr-ready, #rc-ready{margin:14px 0}.challenge{display:flex; align-items:center; gap:10px; background:var(--surface-2);border:2px solid var(--orange); border-radius:var(--radius); padding:10px 12px;}.challenge .pn{flex:1; font-weight:700}.turn{text-align:center; font-weight:700; padding:6px; min-height:1.4em;text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim)}.turn.you{color:var(--orange); animation:pulse 1.3s ease-in-out infinite}.board{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:6px; touch-action:manipulation; transition:opacity .1s ease-out;}.board:not(.mine){opacity:.6}.cell{aspect-ratio:1; border:2px solid var(--line); background:var(--bg); position:relative}.cell::after{content:""; position:absolute; inset:14%; border-radius:50%; background:var(--bg)}.cell.you::after{background:var(--disc-you)}.cell.opp::after{background:var(--disc-opp)}.cell.drop::after{animation:drop .16s ease-out}@keyframes drop{from{transform:translateY(-160%)}to{transform:none}}.cell.place::after{animation:place .18s ease-out}@keyframes place{from{transform:scale(.2); opacity:.2}to{transform:none; opacity:1}}.cell.flip::after{animation:flip .3s ease-in-out}@keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(.12)}100%{transform:scaleX(1)}}.board.mine .cell{cursor:pointer}.over{text-align:center; display:flex; flex-direction:column; gap:20px; margin-top:8vh}.result{font-size:40px; font-weight:700; text-transform:uppercase; letter-spacing:.1em}.result.win{color:var(--good)} .result.lose{color:var(--bad)} .result.draw{color:var(--text-dim)}.over-actions{display:flex; flex-direction:column; gap:10px}.btn.big+.btn.big,.over-actions .btn{width:100%}.board.ttt{aspect-ratio:1; width:100%; max-width:min(66vh,100%); margin:0 auto;grid-template-rows:repeat(3,1fr); gap:6px;}.board.ttt .cell{aspect-ratio:1;display:flex; align-items:center; justify-content:center;font-size:min(24vw,92px); font-weight:700; line-height:1;}.board.ttt .cell::after{display:none}.board.ttt .cell .mk{display:block; transform:translateY(-0.06em)}.board.ttt .cell.you{color:var(--disc-you)}.board.ttt .cell.opp{color:var(--disc-opp)}.board.ttt .cell.drop{animation:markpop .18s ease-out}@keyframes markpop{from{transform:scale(.3); opacity:.3}to{transform:none; opacity:1}}.dotsgrid{display:grid; width:100%; aspect-ratio:1; max-height:66vh;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:10px; gap:0; box-sizing:border-box; transition:opacity .1s ease-out}.dotsgrid:not(.mine){opacity:.7}.dot-node{width:100%; height:100%; background:var(--text-dim); border-radius:50%}.edge{position:relative; background:transparent}.edge::before{content:""; position:absolute; background:transparent}.edge.h::before{left:8%; right:8%; top:50%; height:6px; transform:translateY(-50%)}.edge.v::before{top:8%; bottom:8%; left:50%; width:6px; transform:translateX(-50%)}.edge.on::before{background:var(--text)}.edge.tap{cursor:pointer}.edge.tap::before{background:var(--surface-2)}.edge.tap:active::before{background:var(--orange)}.box{background:transparent; margin:2px}.box.you{background:var(--disc-you)}.box.opp{background:var(--disc-opp)}.dscore{display:flex; justify-content:space-between; gap:10px; font-weight:700;text-transform:uppercase; letter-spacing:.06em; font-size:13px}.dscore .you{color:var(--orange)} .dscore .opp{color:var(--disc-opp)}.draw-word{background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:12px; text-align:center; font-weight:700; font-size:20px; letter-spacing:.04em;min-height:1.2em; word-break:break-word}.draw-word.blanks{letter-spacing:.24em; color:var(--text-dim); font-size:22px}.draw-canvas{width:100%; aspect-ratio:4/3; background:#EDEDE6; border:2px solid var(--line);border-radius:var(--radius); touch-action:none; display:block}.draw-canvas.drawable{border-color:var(--orange); cursor:crosshair}.draw-tools{display:flex; justify-content:flex-end}.chat{background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);padding:8px; height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;font-size:13px; -webkit-user-select:text; user-select:text}.cmsg b{color:var(--orange); font-weight:700}.cmsg.me b{color:var(--text)} .cmsg.sys{color:var(--text-mute)} .cmsg.sys b{color:var(--text-mute)}.guess-row{display:flex; gap:8px}.guess-row input{flex:1; min-height:var(--tap); border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-family:var(--font); font-size:16px; padding:0 12px;-webkit-user-select:text; user-select:text}.guess-row input:focus{outline:none; border-color:var(--orange)}.pong-score{display:flex; justify-content:space-between; gap:10px; font-weight:700;text-transform:uppercase; letter-spacing:.06em; font-size:14px; color:var(--text-dim);font-variant-numeric:tabular-nums}.pong-score .you{color:var(--orange)}.pong-canvas{width:100%; aspect-ratio:3/2; background:var(--bg); border:2px solid var(--line);border-radius:var(--radius); display:block; touch-action:none}.pong-pads{display:flex; gap:10px}.pong-pads .pad{flex:1; min-height:64px; font-size:22px; touch-action:none; user-select:none}.toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%); z-index:35; max-width:88%;background:var(--surface-2); color:var(--text); border-left:3px solid var(--orange);border-top:2px solid var(--line); border-right:2px solid var(--line); border-bottom:2px solid var(--line);border-radius:var(--radius); padding:12px 16px; font-size:13px;}.captive{position:fixed; inset:0; z-index:70; display:flex; align-items:center;justify-content:center; background:rgba(0,0,0,.82);padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}.captive.hide{display:none}.captive-card{width:100%; max-width:420px; background:var(--surface);border:2px solid var(--line); border-top:3px solid var(--orange);border-radius:var(--radius); padding:22px}.captive-title{font-size:20px; font-weight:700; text-transform:uppercase;letter-spacing:.06em; color:var(--orange); margin-bottom:12px}.captive-body{font-size:14px; color:var(--text); line-height:1.5; margin:0 0 14px}.captive-steps{margin:0 0 16px; padding-left:20px; color:var(--text-dim);font-size:14px; line-height:1.65}.captive-steps b{color:var(--text)}.captive-copy{display:flex; gap:8px; margin-bottom:12px}.captive-url{flex:1; min-width:0; font-family:var(--font); font-size:17px;color:var(--text); background:var(--bg); border:2px solid var(--line);border-radius:var(--radius); padding:12px 14px; text-align:center;letter-spacing:.02em; -webkit-user-select:all; user-select:all}.captive-copy .btn{flex:0 0 auto; align-self:stretch; padding-left:16px; padding-right:16px}.captive-dismiss{display:block; width:100%; background:none; border:0;color:var(--text-mute); font-family:var(--font); font-size:13px;text-transform:uppercase; letter-spacing:.08em; padding:6px; cursor:pointer}.avatars{display:grid; grid-template-columns:repeat(8,1fr); gap:6px}.av-pick{appearance:none; font-family:var(--font); cursor:pointer; aspect-ratio:1; min-height:38px;background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);font-size:22px; line-height:1; display:grid; place-items:center; padding:0;}.av-pick.on{border-color:var(--orange); background:var(--bg)}.av-pick:active{transform:translateY(1px)}.players .av,.podium .av{font-size:20px; line-height:1; flex:none; width:24px; text-align:center}.lead-full .av{font-size:15px; line-height:1; flex:none; width:20px; text-align:center}.lead-sum b{color:var(--orange)}.react-layer{position:fixed; inset:0; z-index:34; pointer-events:none; overflow:hidden}.react-layer .float{position:absolute; bottom:14vh; line-height:1;display:flex; align-items:center; gap:6px; white-space:nowrap;background:rgba(11,11,12,.72); border:1px solid var(--line); border-radius:999px;padding:4px 10px 4px 8px;animation:float-up 2.2s ease-out forwards}.react-layer .float .who{font-size:12px; color:var(--text-dim); letter-spacing:.04em}.react-layer .float .em{font-size:28px}@keyframes float-up{0%{opacity:0; transform:translateY(0) scale(.6)}15%{opacity:1; transform:translateY(-10vh) scale(1.1)}100%{opacity:0; transform:translateY(-64vh) scale(1)}}.react-bar{position:fixed; right:14px; bottom:calc(16px + env(safe-area-inset-bottom));z-index:36; display:flex; flex-direction:column; align-items:flex-end; gap:8px}.react-fab{appearance:none; font-family:var(--font); cursor:pointer; width:48px; height:48px; padding:0;background:var(--surface-2); border:2px solid var(--orange); border-radius:50%;font-size:22px; line-height:1; display:grid; place-items:center;}.react-fab:active{transform:translateY(1px)}.react-row{display:none; flex-direction:column; gap:6px; padding:8px;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius)}.react-bar.open .react-row{display:flex}.rx{appearance:none; font-family:var(--font); cursor:pointer; width:44px; height:44px; padding:0;background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);font-size:22px; line-height:1; display:grid; place-items:center}.rx:active{border-color:var(--orange); transform:translateY(1px)}.board.rev{grid-template-columns:repeat(8,1fr); gap:2px}.board.rev .cell{border-color:var(--line)}.board.rev .cell.playable{cursor:pointer}.board.rev .cell.playable::after{background:transparent; inset:34%; border-radius:50%;box-shadow:inset 0 0 0 2px var(--orange); opacity:.75}.board.rev.mine .cell.playable:active::after{background:var(--orange-dim)}.wyr-opts{display:flex; flex-direction:column; gap:12px; margin:6px 0}.wyr-opt{display:flex; align-items:center; gap:12px; text-align:left; font-family:var(--font);min-height:72px; border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-size:17px; font-weight:600;padding:12px 16px; cursor:pointer;transition:border-color .1s ease-out, background .4s ease-out;animation:tile-in .16s ease-out both}.wyr-opt:active:not(.locked){transform:translateY(1px); border-color:var(--orange)}.wyr-opt .wtxt{flex:1}.wyr-opt .wpct{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums;min-width:36px; text-align:right}.wyr-opt.mine{border-color:var(--orange)}.wyr-opt.lead{border-color:var(--orange)}.wyr-opt.locked{cursor:default}.scr-letters{background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:20px 12px; text-align:center; font-weight:700; font-size:30px; letter-spacing:.12em;min-height:1.2em; word-break:break-word; text-transform:uppercase}.scr-letters.answer{color:var(--orange); letter-spacing:.18em}.rc-pad{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;min-height:54vh; border:2px solid var(--line); border-radius:var(--radius); text-align:center;cursor:pointer; user-select:none; -webkit-user-select:none; padding:20px}.rc-pad .rc-big{font-size:40px; font-weight:700; text-transform:uppercase; letter-spacing:.06em}.rc-pad .rc-sub{color:var(--text-dim); font-size:13px; text-transform:uppercase; letter-spacing:.08em}.rc-pad.wait{background:rgba(255,77,77,.12); border-color:var(--bad); color:var(--bad)}.rc-pad.go{background:rgba(70,211,105,.16); border-color:var(--good); color:var(--good);animation:rc-flash .4s ease-out}@keyframes rc-flash{from{transform:scale(.97)}to{transform:none}}.rc-pad.dq{background:var(--surface); border-color:var(--text-mute); color:var(--text-mute)}.rc-pad.reveal{background:var(--surface); border-color:var(--orange); color:var(--text)}.rc-pad.reveal .rc-big{color:var(--orange)}@media (prefers-reduced-motion:reduce){.cur{animation:none}.cell.drop::after{animation:none}.count-num.pop{animation:none}.lead.bump{animation:none}.react-layer .float{animation:none; display:none}.rc-pad.go{animation:none}*{transition:none!important}}</style>
+<style>:root{color-scheme:dark;--orange:#FF8200; --orange-bright:#FF9E29; --orange-dim:#B85E06;--bg:#0B0B0C; --surface:#161618; --surface-2:#202024; --line:#2E2E33;--text:#F2F2EE; --text-dim:#9A9A94; --text-mute:#5E5E5A; --on-orange:#0B0B0C;--good:#46D369; --bad:#FF4D4D; --info:#34C6DE;--disc-you:var(--orange); --disc-opp:#EDEDE6;--font:ui-monospace,"SF Mono","Menlo","Consolas","Roboto Mono",monospace;--radius:2px; --gap:8px; --tap:52px;}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%}body{background:var(--bg); color:var(--text); font-family:var(--font);font-size:16px; line-height:1.35;-webkit-user-select:none; user-select:none;}.hide{display:none!important}.scan{position:fixed; inset:0; z-index:40; pointer-events:none;background:repeating-linear-gradient(180deg,rgba(255,255,255,.045) 0 1px, transparent 1px 3px);}.hdr{position:sticky; top:0; z-index:30; display:flex; align-items:center;justify-content:space-between; gap:12px; height:48px; padding:0 16px;padding-top:env(safe-area-inset-top);background:var(--bg); border-bottom:2px solid var(--line);}.wordmark{font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;display:flex; align-items:center; gap:2px; flex:none; white-space:nowrap;}.cur{color:var(--orange); animation:blink 1s step-end infinite}@keyframes blink{50%{opacity:0}}.hdr-right{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim);min-width:0}.dot{width:10px; height:10px; border-radius:50%; background:var(--orange); flex:none}.dot.warn{background:var(--text-mute)}.dot.bad{background:var(--bad)}#hdr-nick{max-width:38vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;flex:0 1 auto; min-width:0; text-transform:uppercase; letter-spacing:.06em;appearance:none; font-family:var(--font); font-size:12px; color:var(--text-dim);background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);padding:4px 8px; cursor:pointer}#hdr-nick:active{border-color:var(--orange); transform:translateY(1px)}.sheet{position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.66);display:flex; align-items:center; justify-content:center; padding:20px}.sheet-card{width:100%; max-width:360px; background:var(--surface); border:2px solid var(--line);border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:10px}.sheet-card input{background:var(--surface-2); color:var(--text); font-family:var(--font);font-size:16px; padding:12px; border:2px solid var(--line); border-radius:var(--radius)}.sheet-card input:focus{outline:none; border-color:var(--orange)}.sheet-actions{display:flex; flex-direction:column; gap:8px; margin-top:6px}.game-overlay{position:fixed; inset:0; z-index:65; background:rgba(0,0,0,.66);display:flex; align-items:center; justify-content:center; padding:20px}.game-overlay.hide{display:none}.game-overlay-card{width:100%; max-width:360px; max-height:80vh; overflow-y:auto;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius); padding:16px}.game-overlay-title{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;color:var(--text-dim); text-align:center; margin-bottom:12px}.game-list{display:flex; flex-direction:column; gap:8px}.game-item{appearance:none; font-family:var(--font); cursor:pointer; text-align:left;background:var(--surface-2); color:var(--text); border:2px solid var(--line);border-radius:var(--radius); padding:12px 14px; font-size:16px; font-weight:600}.game-item:active{border-color:var(--orange); transform:translateY(1px)}.game-sep{height:2px; background:var(--line); margin:6px 2px}.game-item-back{color:var(--text-dim)}.gamevote{position:fixed; inset:0; z-index:72; background:rgba(0,0,0,.72);display:flex; align-items:center; justify-content:center; padding:20px}.gamevote.hide{display:none}.gamevote-card{width:100%; max-width:360px; background:var(--surface); border:2px solid var(--orange);border-radius:var(--radius); padding:20px; display:flex; flex-direction:column; gap:12px}.gamevote-head{font-size:19px; font-weight:800; text-align:center; line-height:1.3; color:var(--text)}.gamevote-av{font-size:22px}.gamevote-actions{display:flex; flex-direction:column; gap:8px}.gamevote-wait{text-align:center; color:var(--orange); font-weight:700}.gamevote-tally{text-align:center; color:var(--text-dim); font-size:13px; font-variant-numeric:tabular-nums}#id-avatars{gap:5px}#id-avatars .av-pick{aspect-ratio:auto; height:42px; min-height:0; font-size:20px}.mute,.game-menu{appearance:none; font-family:var(--font); cursor:pointer;width:34px; height:34px; min-width:34px; padding:0; line-height:1;background:var(--surface-2); color:var(--orange); border:2px solid var(--line);border-radius:var(--radius); font-size:16px; display:grid; place-items:center;}.mute:active,.game-menu:active{border-color:var(--orange); transform:translateY(1px)}.mute.muted{color:var(--text-mute); position:relative}.mute.muted::after{content:""; position:absolute; left:4px; right:4px; top:50%;height:2px; background:var(--bad); transform:rotate(-24deg)}.netbar{position:sticky; top:48px; z-index:29; text-align:center;background:var(--surface-2); color:var(--orange); border-bottom:2px solid var(--orange);font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:6px;}.screen{max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:16px;padding:16px 16px calc(32px + env(safe-area-inset-bottom));animation:screen-in .16s ease-out}@keyframes screen-in{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}@keyframes tile-in{from{opacity:0; transform:translateY(3px)}to{opacity:1; transform:none}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}h1,h2{margin:0; text-transform:uppercase; letter-spacing:.08em; font-weight:700}h2{font-size:20px}h3{margin:0; font-weight:600}.btn{appearance:none; font-family:var(--font); border:2px solid transparent;border-radius:var(--radius); background:var(--orange); color:var(--on-orange);font-weight:700; font-size:17px; text-transform:uppercase; letter-spacing:.06em;min-height:var(--tap); padding:0 18px; cursor:pointer;transition:transform .1s ease-out, background .1s ease-out, box-shadow .1s ease-out;}.btn:active{background:var(--orange-dim); transform:translateY(1px); box-shadow:0 0 0 2px var(--orange-bright)}.btn.big{width:100%; font-size:18px; min-height:56px}.btn:disabled{background:var(--surface-2); color:var(--text-mute); cursor:default; box-shadow:none; transform:none}.btn.ghost{background:transparent; color:var(--text); border-color:var(--line)}.btn.ghost:active{background:transparent; border-color:var(--orange); box-shadow:none}.btn.sm{min-height:40px; font-size:13px; padding:0 12px}.brand{text-align:center; margin-top:7vh; display:flex; flex-direction:column; align-items:center; gap:14px}.logo-invader{color:var(--orange); display:block}.wordmark-big{margin:0; display:flex; flex-direction:column; line-height:.92;font-size:34px; font-weight:800; letter-spacing:.14em; text-transform:uppercase}.wordmark-big span{color:var(--text)}.wordmark-big .accent{color:var(--orange)}.tag{color:var(--text-mute); margin:0; font-size:12px; letter-spacing:.12em; text-transform:uppercase}.field{display:flex; flex-direction:column; gap:8px}.field input{min-height:var(--tap); border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-family:var(--font);font-size:18px; padding:0 14px; text-transform:uppercase; letter-spacing:.06em;-webkit-user-select:text; user-select:text;}.field input::placeholder{color:var(--text-mute); text-transform:none; letter-spacing:0}.field input:focus{outline:none; border-color:var(--orange)}.hint{color:var(--text-dim); font-size:12px; text-align:center; margin:0}.hint b{color:var(--text)}.bar{display:flex; align-items:center; justify-content:space-between; gap:12px}.me{color:var(--text-dim); font-size:13px; text-transform:uppercase; letter-spacing:.06em}.game-state{background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:16px; text-align:center; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; font-size:13px;}.game-pick{appearance:none; font-family:var(--font); font-size:13px; cursor:pointer; width:100%;display:flex; align-items:center; justify-content:space-between; gap:12px;text-align:left; color:var(--text); padding:10px 10px 10px 16px;}.game-pick > span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}.game-pick:active{border-color:var(--orange); transform:translateY(1px)}.game-pick:active .game-menu,.game-pick:hover .game-menu{border-color:var(--orange)}.sub{color:var(--text-dim); font-size:12px; margin:0; text-transform:uppercase; letter-spacing:.1em}.players{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}.players li{display:flex; align-items:center; gap:12px; min-height:48px;background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius); padding:8px 12px;}.players li.self{border-left:4px solid var(--orange)}.players .pn{flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}.players .ps{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums}.players li.self .ps{background:var(--orange); color:var(--on-orange); padding:2px 8px; border-radius:2px}.timebar{height:6px; margin:10px 0; background:var(--surface-2); border:2px solid var(--line); overflow:hidden}.timebar>i{display:block; height:100%; width:100%; background:var(--orange); transform-origin:left}.timebar.hot>i{background:var(--bad)}.question{font-size:20px; line-height:1.3; min-height:1.3em}.opts{display:flex; flex-direction:column; gap:12px; margin:6px 0}.opt{display:flex; align-items:center; gap:12px; text-align:left; font-family:var(--font);min-height:64px; border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-size:16px; font-weight:600;padding:10px 14px; cursor:pointer; transition:border-color .1s ease-out;animation:tile-in .16s ease-out both;}.opt:active:not(:disabled){transform:translateY(1px); border-color:var(--orange)}.opt .lab{width:32px; height:32px; flex:none; border:2px solid var(--line); background:var(--bg);display:grid; place-items:center; font-weight:700; color:var(--text-dim);}.opt .txt{flex:1}.opt .cnt{color:var(--text-dim); font-weight:700; font-variant-numeric:tabular-nums}.opt.mine{border-color:var(--orange)}.opt.mine .lab{background:var(--orange); color:var(--on-orange); border-color:var(--orange)}.opt.correct{border-color:var(--good)}.opt.correct .lab{background:var(--good); color:var(--on-orange); border-color:var(--good)}.opt.wrong{border-color:var(--bad)}.opt.wrong .lab{background:var(--bad); color:var(--on-orange); border-color:var(--bad)}.opt:disabled{cursor:default}.scores{display:flex; flex-wrap:wrap; gap:6px}.scores span{background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);padding:5px 10px; font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em}.scores span b{color:var(--orange)}.players .rdy{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-mute);font-weight:700; flex:none}.players .rdy.on{color:var(--good)}.topics{display:flex; flex-direction:column; gap:8px}.topic{display:flex; align-items:center; gap:12px; text-align:left; font-family:var(--font);min-height:52px; border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-size:15px; font-weight:600;padding:10px 14px; cursor:pointer; transition:border-color .1s ease-out;animation:tile-in .16s ease-out both;}.topic:active{transform:translateY(1px); border-color:var(--orange)}.topic .txt{flex:1}.topic .votes{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums;min-width:22px; text-align:right}.topic.mine{border-color:var(--orange)}.topic.mine .votes{background:var(--orange); color:var(--on-orange); padding:2px 8px; border-radius:2px}#tv-ready.on{background:transparent; color:var(--good); border-color:var(--good); box-shadow:none}#tv-ready,#tv-again,#play{margin:8px 0}.count{display:flex; flex-direction:column; align-items:center; justify-content:center;gap:14px; min-height:52vh; text-align:center}.count-topic{color:var(--orange); text-transform:uppercase; letter-spacing:.1em;font-weight:700; font-size:16px}.count-num{font-size:96px; font-weight:700; line-height:1; color:var(--text);font-variant-numeric:tabular-nums}.count-num.pop{animation:count-pop .3s ease-out}@keyframes count-pop{from{transform:scale(1.35); opacity:.35}to{transform:none; opacity:1}}.tv-head .me:last-child{color:var(--orange)}.tv-head{gap:8px}.tv-head .me{white-space:nowrap}#tv-qmeta{min-width:0; overflow:hidden; text-overflow:ellipsis}#tv-answered{flex-shrink:0}.lead{position:sticky; top:calc(48px + env(safe-area-inset-top)); z-index:20;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius)}.lead.bump{animation:lead-bump .45s ease-out}@keyframes lead-bump{0%{border-color:var(--orange)}100%{border-color:var(--line)}}.lead-bar{display:flex; align-items:center; gap:10px; width:100%; font-family:var(--font);background:transparent; border:0; color:var(--text); min-height:40px; padding:8px 12px;cursor:pointer; text-align:left}.lead-sum{flex:1; font-weight:700; font-size:13px; overflow:hidden; text-overflow:ellipsis;white-space:nowrap; font-variant-numeric:tabular-nums}.lead-sum b{color:var(--orange)}.lead-hint{color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:.08em}.lead-caret{color:var(--text-dim); font-size:10px}.lead-full{list-style:none; margin:0; padding:0 8px 8px; display:flex; flex-direction:column; gap:0}.lead-full li{display:flex; align-items:center; gap:10px; padding:7px 4px;border-top:2px solid var(--line); font-size:14px}.lead-full li.self{color:var(--orange)}.lead-full .r{width:20px; text-align:right; color:var(--text-dim); font-weight:700;font-variant-numeric:tabular-nums}.lead-full li.self .r{color:var(--orange)}.lead-full .pn{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}.lead-full .ps{font-weight:700; font-variant-numeric:tabular-nums}.podium{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}.podium .place{display:flex; align-items:center; gap:12px; min-height:52px;background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius); padding:10px 14px}.podium .place.self{border-left:4px solid var(--orange)}.podium .rank{width:34px; height:34px; flex:none; display:grid; place-items:center;font-weight:700; border:2px solid var(--line); background:var(--bg); color:var(--text-dim)}.podium .pn{flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}.podium .ps{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums}.podium .p1{border-color:var(--orange)}.podium .p1 .rank{background:var(--orange); color:var(--on-orange); border-color:var(--orange)}.podium .p2 .rank{background:var(--disc-opp); color:var(--on-orange); border-color:var(--disc-opp)}.podium .p3 .rank{background:var(--orange-dim); color:var(--text); border-color:var(--orange-dim)}.challenges{display:flex; flex-direction:column; gap:8px}.challenges:not(:empty){margin-bottom:16px}#tv-ready, #wyr-ready, #scr-ready, #rc-ready{margin:14px 0}.challenge{display:flex; align-items:center; gap:10px; background:var(--surface-2);border:2px solid var(--orange); border-radius:var(--radius); padding:10px 12px;}.challenge .pn{flex:1; font-weight:700}.turn{text-align:center; font-weight:700; padding:6px; min-height:1.4em;text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim)}.turn.you{color:var(--orange); animation:pulse 1.3s ease-in-out infinite}.board{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:6px; touch-action:manipulation; transition:opacity .1s ease-out;}.board:not(.mine){opacity:.6}.cell{aspect-ratio:1; border:2px solid var(--line); background:var(--bg); position:relative}.cell::after{content:""; position:absolute; inset:14%; border-radius:50%; background:var(--bg)}.cell.you::after{background:var(--disc-you)}.cell.opp::after{background:var(--disc-opp)}.cell.drop::after{animation:drop .16s ease-out}@keyframes drop{from{transform:translateY(-160%)}to{transform:none}}.cell.place::after{animation:place .18s ease-out}@keyframes place{from{transform:scale(.2); opacity:.2}to{transform:none; opacity:1}}.cell.flip::after{animation:flip .3s ease-in-out}@keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(.12)}100%{transform:scaleX(1)}}.board.mine .cell{cursor:pointer}.over{text-align:center; display:flex; flex-direction:column; gap:20px; margin-top:8vh}.result{font-size:40px; font-weight:700; text-transform:uppercase; letter-spacing:.1em}.result.win{color:var(--good)} .result.lose{color:var(--bad)} .result.draw{color:var(--text-dim)}.over-actions{display:flex; flex-direction:column; gap:10px}.btn.big+.btn.big,.over-actions .btn{width:100%}.board.ttt{aspect-ratio:1; width:100%; max-width:min(66vh,100%); margin:0 auto;grid-template-rows:repeat(3,1fr); gap:6px;}.board.ttt .cell{aspect-ratio:1;display:flex; align-items:center; justify-content:center;font-size:min(24vw,92px); font-weight:700; line-height:1;}.board.ttt .cell::after{display:none}.board.ttt .cell .mk{display:block; transform:translateY(-0.06em)}.board.ttt .cell.you{color:var(--disc-you)}.board.ttt .cell.opp{color:var(--disc-opp)}.board.ttt .cell.drop{animation:markpop .18s ease-out}@keyframes markpop{from{transform:scale(.3); opacity:.3}to{transform:none; opacity:1}}.dotsgrid{display:grid; width:100%; aspect-ratio:1; max-height:66vh;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:10px; gap:0; box-sizing:border-box; transition:opacity .1s ease-out}.dotsgrid:not(.mine){opacity:.7}.dot-node{width:100%; height:100%; background:var(--text-dim); border-radius:50%}.edge{position:relative; background:transparent}.edge::before{content:""; position:absolute; background:transparent}.edge.h::before{left:8%; right:8%; top:50%; height:6px; transform:translateY(-50%)}.edge.v::before{top:8%; bottom:8%; left:50%; width:6px; transform:translateX(-50%)}.edge.on::before{background:var(--text)}.edge.tap{cursor:pointer}.edge.tap::before{background:var(--surface-2)}.edge.tap:active::before{background:var(--orange)}.box{background:transparent; margin:2px}.box.you{background:var(--disc-you)}.box.opp{background:var(--disc-opp)}.dscore{display:flex; justify-content:space-between; gap:10px; font-weight:700;text-transform:uppercase; letter-spacing:.06em; font-size:13px}.dscore .you{color:var(--orange)} .dscore .opp{color:var(--disc-opp)}.draw-word{background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:12px; text-align:center; font-weight:700; font-size:20px; letter-spacing:.04em;min-height:1.2em; word-break:break-word}.draw-word.blanks{letter-spacing:.24em; color:var(--text-dim); font-size:22px}.draw-canvas{width:100%; aspect-ratio:4/3; background:#EDEDE6; border:2px solid var(--line);border-radius:var(--radius); touch-action:none; display:block}.draw-canvas.drawable{border-color:var(--orange); cursor:crosshair}.draw-tools{display:flex; justify-content:flex-end}.chat{background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);padding:8px; height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;font-size:13px; -webkit-user-select:text; user-select:text}.cmsg b{color:var(--orange); font-weight:700}.cmsg.me b{color:var(--text)} .cmsg.sys{color:var(--text-mute)} .cmsg.sys b{color:var(--text-mute)}.guess-row{display:flex; gap:8px}.guess-row input{flex:1; min-height:var(--tap); border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-family:var(--font); font-size:16px; padding:0 12px;-webkit-user-select:text; user-select:text}.guess-row input:focus{outline:none; border-color:var(--orange)}.pong-score{display:flex; justify-content:space-between; gap:10px; font-weight:700;text-transform:uppercase; letter-spacing:.06em; font-size:14px; color:var(--text-dim);font-variant-numeric:tabular-nums}.pong-score .you{color:var(--orange)}.pong-canvas{width:100%; aspect-ratio:3/2; background:var(--bg); border:2px solid var(--line);border-radius:var(--radius); display:block; touch-action:none}.pong-pads{display:flex; gap:10px}.pong-pads .pad{flex:1; min-height:64px; font-size:22px; touch-action:none; user-select:none}.toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%); z-index:35; max-width:88%;background:var(--surface-2); color:var(--text); border-left:3px solid var(--orange);border-top:2px solid var(--line); border-right:2px solid var(--line); border-bottom:2px solid var(--line);border-radius:var(--radius); padding:12px 16px; font-size:13px;}.captive{position:fixed; inset:0; z-index:70; display:flex; align-items:center;justify-content:center; background:rgba(0,0,0,.82);padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}.captive.hide{display:none}.captive-card{width:100%; max-width:420px; background:var(--surface);border:2px solid var(--line); border-top:3px solid var(--orange);border-radius:var(--radius); padding:22px}.captive-title{font-size:20px; font-weight:700; text-transform:uppercase;letter-spacing:.06em; color:var(--orange); margin-bottom:12px}.captive-body{font-size:14px; color:var(--text); line-height:1.5; margin:0 0 14px}.captive-steps{margin:0 0 16px; padding-left:20px; color:var(--text-dim);font-size:14px; line-height:1.65}.captive-steps b{color:var(--text)}.captive-copy{display:flex; gap:8px; margin-bottom:12px}.captive-url{flex:1; min-width:0; font-family:var(--font); font-size:17px;color:var(--text); background:var(--bg); border:2px solid var(--line);border-radius:var(--radius); padding:12px 14px; text-align:center;letter-spacing:.02em; -webkit-user-select:all; user-select:all}.captive-copy .btn{flex:0 0 auto; align-self:stretch; padding-left:16px; padding-right:16px}.captive-dismiss{display:block; width:100%; background:none; border:0;color:var(--text-mute); font-family:var(--font); font-size:13px;text-transform:uppercase; letter-spacing:.08em; padding:6px; cursor:pointer}.avatars{display:grid; grid-template-columns:repeat(8,1fr); gap:6px}.av-pick{appearance:none; font-family:var(--font); cursor:pointer; aspect-ratio:1; min-height:38px;background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);font-size:22px; line-height:1; display:grid; place-items:center; padding:0;}.av-pick.on{border-color:var(--orange); background:var(--bg)}.av-pick:active{transform:translateY(1px)}.players .av,.podium .av{font-size:20px; line-height:1; flex:none; width:24px; text-align:center}.lead-full .av{font-size:15px; line-height:1; flex:none; width:20px; text-align:center}.lead-sum b{color:var(--orange)}.react-layer{position:fixed; inset:0; z-index:34; pointer-events:none; overflow:hidden}.react-layer .float{position:absolute; bottom:14vh; line-height:1;display:flex; align-items:center; gap:6px; white-space:nowrap;background:rgba(11,11,12,.72); border:1px solid var(--line); border-radius:999px;padding:4px 10px 4px 8px;animation:float-up 2.2s ease-out forwards}.react-layer .float .who{font-size:12px; color:var(--text-dim); letter-spacing:.04em}.react-layer .float .em{font-size:28px}@keyframes float-up{0%{opacity:0; transform:translateY(0) scale(.6)}15%{opacity:1; transform:translateY(-10vh) scale(1.1)}100%{opacity:0; transform:translateY(-64vh) scale(1)}}.react-bar{position:fixed; right:14px; bottom:calc(16px + env(safe-area-inset-bottom));z-index:36; display:flex; flex-direction:column; align-items:flex-end; gap:8px}.react-fab{appearance:none; font-family:var(--font); cursor:pointer; width:48px; height:48px; padding:0;background:var(--surface-2); border:2px solid var(--orange); border-radius:50%;font-size:22px; line-height:1; display:grid; place-items:center;}.react-fab:active{transform:translateY(1px)}.react-row{display:none; flex-direction:column; gap:6px; padding:8px;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius)}.react-bar.open .react-row{display:flex}.rx{appearance:none; font-family:var(--font); cursor:pointer; width:44px; height:44px; padding:0;background:var(--surface-2); border:2px solid var(--line); border-radius:var(--radius);font-size:22px; line-height:1; display:grid; place-items:center}.rx:active{border-color:var(--orange); transform:translateY(1px)}.board.rev{grid-template-columns:repeat(8,1fr); gap:2px}.board.rev .cell{border-color:var(--line)}.board.rev .cell.playable{cursor:pointer}.board.rev .cell.playable::after{background:transparent; inset:34%; border-radius:50%;box-shadow:inset 0 0 0 2px var(--orange); opacity:.75}.board.rev.mine .cell.playable:active::after{background:var(--orange-dim)}.wyr-opts{display:flex; flex-direction:column; gap:12px; margin:6px 0}.wyr-opt{display:flex; align-items:center; gap:12px; text-align:left; font-family:var(--font);min-height:72px; border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-size:17px; font-weight:600;padding:12px 16px; cursor:pointer;transition:border-color .1s ease-out, background .4s ease-out;animation:tile-in .16s ease-out both}.wyr-opt:active:not(.locked){transform:translateY(1px); border-color:var(--orange)}.wyr-opt .wtxt{flex:1}.wyr-opt .wpct{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums;min-width:36px; text-align:right}.wyr-opt.mine{border-color:var(--orange)}.wyr-opt.lead{border-color:var(--orange)}.wyr-opt.locked{cursor:default}.sec-q{text-align:center; font-size:20px; font-weight:800; color:var(--text);padding:16px 8px; min-height:1.4em; word-break:break-word}.sec-predict{display:flex; flex-direction:column; align-items:center; gap:16px; margin:6px 0}.sec-predict-label{font-size:22px; font-weight:400; line-height:1.25; text-align:center;color:var(--orange); max-width:22em}.sec-stepper{display:flex; align-items:center; gap:20px}.sec-step{width:64px; height:64px; border-radius:50%; border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-size:32px; font-weight:700;line-height:1; cursor:pointer; font-family:var(--font)}.sec-step:active:not(:disabled){transform:translateY(1px); border-color:var(--orange)}.sec-step:disabled{opacity:.4; cursor:default}.sec-num{font-size:64px; font-weight:700; min-width:80px; text-align:center;color:var(--orange); font-variant-numeric:tabular-nums}.sec-answer{display:flex; flex-direction:column; gap:12px; margin:6px 0}.sec-ans{min-height:72px; border-radius:var(--radius); border:2px solid var(--line);background:var(--surface-2); color:var(--text); font-size:22px; font-weight:800;font-family:var(--font); cursor:pointer; text-transform:uppercase; letter-spacing:.04em}.sec-ans:active:not(:disabled){transform:translateY(1px)}.sec-ans:disabled{opacity:.5; cursor:default}.sec-ans.yes.mine{border-color:var(--good); color:var(--good)}.sec-ans.no.mine{border-color:var(--bad); color:var(--bad)}.sec-reveal{margin:10px 0}.sec-hero{text-align:center; margin:6px 0 14px}.sec-yesnum{font-size:72px; font-weight:800; line-height:1; color:var(--orange);font-variant-numeric:tabular-nums}.sec-yescap{font-size:13px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;margin-top:2px}.sec-buckets{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}.sec-bucket{display:flex; align-items:center; gap:12px; min-height:40px; padding:6px 12px;border:2px solid var(--line); border-radius:var(--radius); background:var(--surface-2)}.sec-bucket.hit{border-color:var(--orange); background:rgba(255,130,0,.20)}.sec-bnum{flex:0 0 auto; width:28px; text-align:center; font-size:20px; font-weight:800;color:var(--text-dim); font-variant-numeric:tabular-nums}.sec-bucket.hit .sec-bnum{color:var(--orange-bright)}.sec-bnames{flex:1; display:flex; flex-wrap:wrap; gap:6px}.sec-bname{font-weight:700; font-size:14px; color:var(--text); background:#000;border:0; border-radius:var(--radius); padding:2px 8px}.sec-bname.me{background:var(--orange); color:#000}.sec-result{text-align:center; color:var(--orange); font-weight:700; font-size:16px; min-height:20px;margin-top:12px}.sec-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}.wyr-chart{margin:14px 0; padding:12px; background:var(--surface);border:2px solid var(--line); border-radius:var(--radius)}.wyr-chart-hd{font-size:12px; text-transform:uppercase; letter-spacing:.08em;color:var(--text-dim); margin-bottom:6px}.wyr-plot{position:relative; padding-top:20px}.wyr-buckets{display:flex; align-items:flex-end; gap:6px; height:132px}.wyr-bkt{flex:1; min-width:0; height:100%; display:flex; flex-direction:column;align-items:center; gap:4px}.wyr-bn{position:relative; z-index:1; background:var(--surface); padding:0 3px;font-size:12px; font-weight:700; color:var(--text-mute); line-height:1;font-variant-numeric:tabular-nums}.wyr-bkt.on .wyr-bn{color:var(--text)}.wyr-bwrap{flex:1; width:100%; display:flex; align-items:flex-end;border-bottom:2px solid var(--line)}.wyr-bwrap i{display:block; width:100%; background:rgba(255,130,0,.20);border:2px solid var(--orange); border-bottom:none; transform-origin:bottom;animation:wyr-grow .35s ease-out both}.wyr-bx{font-size:11px; color:var(--text-dim); line-height:1; height:11px;font-variant-numeric:tabular-nums}@keyframes wyr-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}.wyr-mean{position:absolute; top:20px; bottom:15px; width:0; pointer-events:none;border-left:2px dashed var(--orange)}.wyr-mean-val{position:absolute; bottom:100%; margin-bottom:3px; left:0;transform:translateX(-50%); padding:0 4px; background:var(--surface);color:var(--orange); font-size:12px; font-weight:700; line-height:1.2;white-space:nowrap; font-variant-numeric:tabular-nums}.wyr-verdict{margin-top:10px; font-size:13px; line-height:1.4; color:var(--text-dim)}.scr-letters{background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:20px 12px; text-align:center; font-weight:700; font-size:30px; letter-spacing:.12em;min-height:1.2em; word-break:break-word; text-transform:uppercase}.scr-letters.answer{color:var(--orange); letter-spacing:.18em}.rc-pad{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;min-height:54vh; border:2px solid var(--line); border-radius:var(--radius); text-align:center;cursor:pointer; user-select:none; -webkit-user-select:none; padding:20px}.rc-pad .rc-big{font-size:40px; font-weight:700; text-transform:uppercase; letter-spacing:.06em}.rc-pad .rc-sub{color:var(--text-dim); font-size:13px; text-transform:uppercase; letter-spacing:.08em}.rc-pad.wait{background:rgba(255,77,77,.12); border-color:var(--bad); color:var(--bad)}.rc-pad.go{background:rgba(70,211,105,.16); border-color:var(--good); color:var(--good);animation:rc-flash .4s ease-out}@keyframes rc-flash{from{transform:scale(.97)}to{transform:none}}.rc-pad.dq{background:var(--surface); border-color:var(--text-mute); color:var(--text-mute)}.rc-pad.reveal{background:var(--surface); border-color:var(--orange); color:var(--text)}.rc-pad.reveal .rc-big{color:var(--orange)}@media (prefers-reduced-motion:reduce){.cur{animation:none}.cell.drop::after{animation:none}.count-num.pop{animation:none}.lead.bump{animation:none}.react-layer .float{animation:none; display:none}.rc-pad.go{animation:none}*{transition:none!important}}.gc-play{display:flex; flex-direction:column; gap:12px}.gc-swatches{display:flex; gap:10px}.gc-sw{flex:1; display:flex; flex-direction:column; gap:4px; align-items:center}.gc-chip{width:100%; aspect-ratio:3/2; border:2px solid var(--line); border-radius:var(--radius);background:#000; position:relative; z-index:41}.gc-lbl{color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:.1em}.gc-rows{display:flex; flex-direction:column; gap:8px}.gc-row{display:flex; align-items:center; gap:8px}.gc-ch{width:22px; font-weight:700; text-align:center}.gc-ch.gc-r{color:#FF5D5D} .gc-ch.gc-g{color:var(--good)} .gc-ch.gc-b{color:var(--info)}.gc-step{min-height:44px; flex:none; width:44px; font-size:22px; padding:0; touch-action:none; user-select:none}.gc-step:disabled{opacity:.35}.gc-slider{flex:1; min-width:0; -webkit-appearance:none; appearance:none; height:10px; border-radius:6px;background:var(--surface-2); border:1px solid var(--line); touch-action:pan-y}.gc-slider::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:28px; height:28px; border-radius:50%;background:var(--orange); border:2px solid var(--bg); cursor:pointer}.gc-slider::-moz-range-thumb{width:28px; height:28px; border:2px solid var(--bg); border-radius:50%;background:var(--orange); cursor:pointer}.gc-slider:disabled{opacity:.45}.gc-val{flex:none; width:46px; text-align:right; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums}.gc-result{text-align:center; display:flex; flex-direction:column; gap:4px}.gc-nums{color:var(--text-dim); font-size:14px}.gc-nums b{color:var(--text); font-variant-numeric:tabular-nums}.gc-pts{color:var(--orange); font-weight:700; font-size:22px}.gc-winner{text-align:center; font-weight:700; margin-top:6px}.gc-target-wrap{display:flex; flex-direction:column; gap:6px; align-items:center}.gc-chip-lg{width:100%; max-width:280px; aspect-ratio:16/9}#gc-reveal{align-items:center}.gc-answer{text-align:center; font-size:13px}.gc-legend{color:var(--text-mute); font-size:10px; text-transform:uppercase; letter-spacing:.08em}.gc-guesses{display:flex; flex-direction:column; gap:6px; width:100%; max-width:340px}.gc-grow{display:flex; align-items:center; gap:10px; padding:6px 8px;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius)}.gc-grow.you{border-color:var(--orange)}.gc-grow.win{background:var(--surface-2)}.gc-gsw{display:flex; width:96px; height:34px; flex:none; overflow:hidden;border:1px solid var(--line); border-radius:2px; position:relative; z-index:41; background:#000}.gc-h{flex:1}.gc-h + .gc-h{border-left:2px solid var(--bg)}.gc-gn{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700}.gc-gd{color:var(--text-dim); font-size:12px; font-variant-numeric:tabular-nums}.gc-gp{flex:none; width:52px; text-align:right; font-weight:700; color:var(--orange);font-variant-numeric:tabular-nums}.gc-grow.win .gc-gp{color:var(--orange-bright)}.bs-grid{display:grid; grid-template-columns:repeat(10,1fr); grid-template-rows:repeat(10,1fr);aspect-ratio:1; gap:2px; background:var(--line); border:2px solid var(--line);border-radius:var(--radius); max-width:360px; margin:0 auto; touch-action:manipulation}.bs-grid.small{max-width:220px}.bs-grid.waiting{opacity:.45}.bs-grid.myturn{border-color:var(--orange); box-shadow:0 0 0 2px var(--orange-dim)}.bs-cell{background:var(--bg); position:relative}.bs-cell.pop{animation:bs-pop .28s ease-out}@keyframes bs-pop{from{transform:scale(.35); opacity:.4}to{transform:scale(1); opacity:1}}.bs-cell.ship{background:#5a5e68}.bs-cell.ship.sel{background:var(--orange-dim); outline:2px solid var(--orange); outline-offset:-2px}.bs-cell.miss::after{content:""; position:absolute; inset:36%; border-radius:50%; background:var(--text-mute)}.bs-cell.hit{background:var(--bad)}.bs-cell.sunk{background:#6e1414}.bs-tray{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:10px 0}.bs-ship{padding:8px 10px; font-size:12px; border:1px solid var(--line); background:var(--surface);color:var(--text); border-radius:var(--radius); font-family:var(--font)}.bs-ship.sel{border-color:var(--orange); color:var(--orange)}.bs-ship.placed{opacity:.45}.bs-actions{display:flex; gap:8px; align-items:center; margin-top:8px}.bs-actions .btn.big{flex:1}.bs-count{text-align:center}.sp-dialwrap{position:relative; margin:8px 0 4px; padding-bottom:58.18%}.sp-dial{position:absolute; inset:0; width:100%; height:100%; overflow:visible;touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none}.sp-dial:active{cursor:grabbing}.sp-arc{fill:none; stroke:var(--line); stroke-width:3}.sp-hub{fill:var(--text); stroke:var(--bg); stroke-width:2}.sp-ndl{stroke:var(--text); stroke-width:3; stroke-linecap:round}.sp-ndl.reveal{stroke:var(--orange)}.sp-band{stroke:none}.sp-band.b1{fill:rgba(255,130,0,.10)}.sp-band.b2{fill:rgba(255,130,0,.20)}.sp-band.b3{fill:rgba(255,130,0,.32)}.sp-band.b4{fill:rgba(255,130,0,.52)}.sp-tline{stroke:var(--orange-bright); stroke-width:2.5}.sp-end{position:absolute; bottom:2px; max-width:44%; font-size:13px; font-weight:700;color:var(--text-dim); line-height:1.15}.sp-end{left:0} .sp-end-r{left:auto; right:0; text-align:right}.sp-dot{fill:var(--text-mute)}.sp-dot.hit{fill:var(--orange)}.sp-dlabel{fill:var(--text-dim); font-size:9px; font-weight:700}.sp-dlabel.hit{fill:var(--orange-bright)}.sp-slider{width:100%; margin:6px 0; accent-color:var(--orange); height:30px; background:transparent}.sp-clue{text-align:center; font-size:20px; font-weight:800; color:var(--orange-bright);margin:10px 0; min-height:4px}.sp-clueform{display:flex; gap:8px; margin:12px 0 6px}.sp-cluein{flex:1; background:var(--surface-2); color:var(--text);border:2px solid var(--line); padding:10px 12px; font:inherit; font-size:16px}.sp-cluein:focus{outline:none; border-color:var(--orange)}.sp-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}.kmk-people{display:flex; flex-direction:column; gap:8px; margin:10px 0}.kmk-row{display:flex; align-items:center; gap:8px; background:var(--surface-2);border:2px solid var(--line); padding:12px; min-height:52px}.kmk-row.tap{cursor:pointer}.kmk-row.tap:active{border-color:var(--orange); transform:translateY(1px)}.kmk-name{flex:1; font-weight:800; font-size:16px}.kmk-tag{font-weight:700; font-size:14px; padding:4px 8px; border:2px solid var(--line);white-space:nowrap}.kmk-tag.none{color:var(--text-mute); border-style:dashed}.kmk-tag.l0{color:#ff7db0; border-color:#ff7db0}.kmk-tag.l1{color:var(--orange-bright); border-color:var(--orange)}.kmk-tag.l2{color:var(--text-dim); border-color:var(--text-mute)}.kmk-mark{font-weight:800; font-size:18px; width:20px; text-align:center}.kmk-mark.ok{color:var(--good)}.kmk-mark.no{color:var(--bad)}.kmk-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}.ch-board{display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);aspect-ratio:1; border:2px solid var(--line); border-radius:var(--radius);max-width:400px; margin:0 auto; touch-action:manipulation; overflow:hidden}#chess-over-board{margin:12px auto; width:100%}.ch-cell{position:relative; display:flex; align-items:center; justify-content:center;font-size:clamp(20px,7vmin,34px); line-height:1}.ch-cell.lt{background:var(--surface-2)}.ch-cell.dk{background:var(--surface)}.ch-cell.w{color:var(--text)}.ch-cell.b{color:var(--orange-bright)}.ch-cell.sel{outline:2px solid var(--orange); outline-offset:-2px}.ch-cell.tgt::after{content:""; position:absolute; inset:38%; border-radius:50%;background:var(--orange); opacity:.55}.ch-cell.last{box-shadow:inset 0 0 0 999px rgba(255,130,0,.16)}.ch-cell.chk{outline:2px solid var(--bad); outline-offset:-2px}.ch-clock{display:flex; justify-content:center; align-items:center; width:88px;font-variant-numeric:tabular-nums; font-weight:700; font-size:20px;background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);padding:8px; margin:0 auto}.ch-clock.hot{color:var(--bad); border-color:var(--bad)}.ch-check{text-align:center; color:var(--bad); font-weight:700; text-transform:uppercase;letter-spacing:.08em; margin:0}.ch-actions{display:flex; gap:8px; margin-top:8px}.ch-actions .btn{flex:1}.ch-promo-card{align-items:center}.ch-promo-row{display:flex; gap:8px; justify-content:center}.ch-promo-btn{appearance:none; font-family:var(--font); cursor:pointer; width:56px; height:56px;font-size:30px; background:var(--surface-2); border:2px solid var(--line);border-radius:var(--radius); color:var(--text)}.ch-promo-btn:active{border-color:var(--orange); transform:translateY(1px)}</style>
 <div class="scan" aria-hidden="true"></div>
 <header class="hdr">
 <span class="wordmark">Hotspot Arcade<span class="cur" aria-hidden="true">&#9616;</span></span>
 <span class="hdr-right">
+<button id="game-menu" class="game-menu hide" type="button" aria-label="Change game">🕹️</button>
 <button id="mute" class="mute" type="button" aria-label="Mute" aria-pressed="false">&#9834;</button>
 <span id="dot" class="dot warn" title="connection"></span>
 <button id="hdr-nick" class="hdr-id hide" type="button" aria-label="Change name and avatar"></button>
@@ -14,22 +16,22 @@
 </header>
 <div id="id-edit" class="sheet hide">
 <div class="sheet-card">
-<p class="sub">Your nickname</p>
+<p class="sub" data-i18n="id.nick">Your nickname</p>
 <input id="id-nick" maxlength="12" autocomplete="off" autocapitalize="characters"
-spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
-<p class="sub">Your avatar</p>
+spellcheck="false" placeholder="e.g. NOVA" data-i18n-ph="id.nick_ph" style="text-transform:uppercase">
+<p class="sub" data-i18n="id.avatar">Your avatar</p>
 <div id="id-avatars" class="avatars"></div>
 <div class="sheet-actions">
-<button id="id-save" class="btn big">Save</button>
-<button id="id-cancel" class="btn ghost big">Cancel</button>
+<button id="id-save" class="btn big" data-i18n="id.save">Save</button>
+<button id="id-cancel" class="btn ghost big" data-i18n="id.cancel">Cancel</button>
 </div>
 </div>
 </div>
-<div id="netbar" class="netbar hide">Reconnecting...</div>
+<div id="netbar" class="netbar hide" data-i18n="net.reconnecting">Reconnecting...</div>
 <div id="lead" class="lead hide">
 <button id="lead-bar" class="lead-bar" type="button" aria-expanded="false">
 <span id="lead-sum" class="lead-sum"></span>
-<span class="lead-hint">Board</span>
+<span class="lead-hint" data-i18n="common.board">Board</span>
 <span id="lead-caret" class="lead-caret">&#9660;</span>
 </button>
 <ol id="lead-full" class="lead-full hide"></ol>
@@ -38,45 +40,48 @@ spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
 <div class="brand">
 <svg class="logo-invader" viewBox="0 0 11 8" width="88" aria-hidden="true" shape-rendering="crispEdges" fill="currentColor"><rect x="2" y="0" width="1" height="1"/><rect x="8" y="0" width="1" height="1"/><rect x="3" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="4" y="2" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/><rect x="5" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="9" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="9" y="4" width="1" height="1"/><rect x="10" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="5" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/><rect x="10" y="5" width="1" height="1"/><rect x="0" y="6" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/><rect x="8" y="6" width="1" height="1"/><rect x="10" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
 <h1 class="wordmark-big"><span>HOTSPOT</span><span class="accent">ARCADE</span></h1>
-<p class="tag">Offline · Multiplayer · No signal</p>
+<p class="tag" data-i18n="landing.tagline">Offline · Multiplayer · No signal</p>
 </div>
 <label class="field">
-<span class="sub">Your nickname</span>
+<span class="sub" data-i18n="landing.nick">Your nickname</span>
 <input id="nick" maxlength="12" autocomplete="off" autocapitalize="characters"
-spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
+spellcheck="false" placeholder="e.g. NOVA" data-i18n-ph="landing.nick_ph" style="text-transform:uppercase">
 </label>
 <div class="field">
-<span class="sub">Pick an avatar</span>
+<span class="sub" data-i18n="landing.avatar">Pick an avatar</span>
 <div id="avatars" class="avatars"></div>
 </div>
-<button id="play" class="btn big">Play</button>
-<p class="hint">If this page closes, rejoin the WiFi and open
-<b>192.168.4.1</b> in your browser.</p>
+<button id="play" class="btn big" data-i18n="landing.play">Play</button>
+<p class="hint" data-i18n="landing.hint">If this page closes, rejoin the WiFi and open
+192.168.4.1 in your browser.</p>
 </section>
 <section id="lobby" class="screen hide">
-<header class="bar"><h2>Lobby</h2><span id="lobby-me" class="me"></span></header>
-<div id="lobby-game" class="game-state">Waiting for the host to pick a game.</div>
+<header class="bar"><h2 data-i18n="lobby.title">Lobby</h2><span id="lobby-me" class="me"></span></header>
+<button id="lobby-game" class="game-state game-pick" type="button" aria-label="Change game">
+<span id="lobby-game-label" data-i18n="lobby.pick">Pick a game</span>
+<span class="game-menu" aria-hidden="true">🕹️</span>
+</button>
 <ul id="players" class="players"></ul>
-<p class="sub">Chat</p>
+<p class="sub" data-i18n="lobby.chat">Chat</p>
 <div id="lobby-chat" class="chat"></div>
 <form id="lobby-form" class="guess-row" autocomplete="off">
 <input id="lobby-input" maxlength="100" autocomplete="off" autocapitalize="sentences"
-spellcheck="false" placeholder="Say something">
-<button class="btn sm" type="submit">Send</button>
+spellcheck="false" placeholder="Say something" data-i18n-ph="lobby.say_ph">
+<button class="btn sm" type="submit" data-i18n="common.send">Send</button>
 </form>
 </section>
 <section id="trivia" class="screen hide">
 <div id="tv-lobby" class="hide">
-<header class="bar"><h2>Trivia</h2><span id="tv-lobby-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="trivia.title">Trivia</h2><span id="tv-lobby-me" class="me"></span></header>
 <ul id="tv-players" class="players"></ul>
-<button id="tv-ready" class="btn big">I'm ready</button>
-<p class="sub">Vote a topic</p>
+<button id="tv-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="trivia.vote_topic">Vote a topic</p>
 <div id="tv-topics" class="topics"></div>
 </div>
 <div id="tv-count" class="hide count">
 <div id="tv-count-topic" class="count-topic"></div>
 <div id="tv-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="tv-play" class="hide">
 <div class="bar tv-head">
@@ -88,16 +93,16 @@ spellcheck="false" placeholder="Say something">
 <div id="tv-opts" class="opts"></div>
 </div>
 <div id="tv-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="tv-podium" class="podium"></ol>
-<button id="tv-again" class="btn big">Play again</button>
+<button id="tv-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="duel" class="screen hide">
-<header class="bar"><h2 id="duel-title">Duel</h2><button id="duel-leave" class="btn ghost sm hide">Leave</button></header>
+<header class="bar"><h2 id="duel-title">Duel</h2><button id="duel-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
 <div id="duel-lobby">
 <div id="duel-incoming" class="challenges"></div>
-<p class="sub">Challenge a player</p>
+<p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
 <ul id="duel-players" class="players"></ul>
 </div>
 <div id="duel-match" class="hide">
@@ -108,38 +113,38 @@ spellcheck="false" placeholder="Say something">
 <div id="duel-over" class="hide over">
 <div id="duel-result" class="result"></div>
 <div class="over-actions">
-<button id="duel-rematch" class="btn big">Rematch</button>
-<button id="duel-back" class="btn ghost big">Back to lobby</button>
+<button id="duel-rematch" class="btn big" data-i18n="common.rematch">Rematch</button>
+<button id="duel-back" class="btn ghost big" data-i18n="common.back_lobby">Back to lobby</button>
 </div>
 </div>
 </section>
 <section id="draw" class="screen hide">
-<header class="bar"><h2>Draw &amp; Guess</h2><span id="draw-status" class="me"></span></header>
+<header class="bar"><h2 data-i18n="draw.title">Draw &amp; Guess</h2><span id="draw-status" class="me"></span></header>
 <div id="draw-bar" class="timebar hide"><i></i></div>
 <div id="draw-word" class="draw-word"></div>
 <canvas id="draw-canvas" class="draw-canvas"></canvas>
 <div id="draw-tools" class="draw-tools hide">
-<button id="draw-clear" class="btn ghost sm">Clear</button>
+<button id="draw-clear" class="btn ghost sm" data-i18n="draw.clear">Clear</button>
 </div>
 <div id="draw-guess" class="hide">
 <div id="draw-chat" class="chat"></div>
 <form id="draw-form" class="guess-row" autocomplete="off">
 <input id="draw-input" maxlength="24" autocomplete="off" autocapitalize="off"
-spellcheck="false" placeholder="Your guess">
-<button class="btn sm" type="submit">Send</button>
+spellcheck="false" placeholder="Your guess" data-i18n-ph="draw.guess_ph">
+<button class="btn sm" type="submit" data-i18n="common.send">Send</button>
 </form>
 </div>
 <div id="draw-reveal" class="game-state hide"></div>
 <div id="draw-final" class="hide">
 <ol id="draw-podium" class="podium"></ol>
-<button id="draw-again" class="btn big">Play again</button>
+<button id="draw-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="pong" class="screen hide">
-<header class="bar"><h2>Pong</h2><button id="pong-leave" class="btn ghost sm hide">Leave</button></header>
+<header class="bar"><h2>Pong</h2><button id="pong-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
 <div id="pong-lobby">
 <div id="pong-incoming" class="challenges"></div>
-<p class="sub">Challenge a player</p>
+<p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
 <ul id="pong-players" class="players"></ul>
 </div>
 <div id="pong-match" class="hide">
@@ -152,21 +157,21 @@ spellcheck="false" placeholder="Your guess">
 </div>
 <div id="pong-over" class="hide over">
 <div id="pong-result" class="result"></div>
-<button id="pong-back" class="btn big">Back to lobby</button>
+<button id="pong-back" class="btn big" data-i18n="common.back_lobby">Back to lobby</button>
 </div>
 </section>
 <section id="wyr" class="screen hide">
 <div id="wyr-lobby" class="hide">
-<header class="bar"><h2>Would You Rather</h2><span id="wyr-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="wyr.title">Would You Rather</h2><span id="wyr-me" class="me"></span></header>
 <ul id="wyr-players" class="players"></ul>
-<button id="wyr-ready" class="btn big">I'm ready</button>
-<p class="sub">Vote a pack</p>
+<button id="wyr-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
 <div id="wyr-topics" class="topics"></div>
 </div>
 <div id="wyr-count" class="hide count">
-<div class="count-topic">Would you rather</div>
+<div class="count-topic" data-i18n="wyr.count_topic">Would you rather</div>
 <div id="wyr-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="wyr-play" class="hide">
 <div class="bar"><span id="wyr-meta" class="me"></span><span id="wyr-tally" class="me"></span></div>
@@ -174,23 +179,31 @@ spellcheck="false" placeholder="Your guess">
 <div id="wyr-opts" class="wyr-opts"></div>
 </div>
 <div id="wyr-final" class="hide">
-<header class="bar"><h2>That's a wrap</h2></header>
-<div class="game-state">Thanks for playing. Ready up for another round.</div>
-<button id="wyr-again" class="btn big">Play again</button>
+<header class="bar"><h2 data-i18n="wyr.wrap">That's a wrap</h2></header>
+<div class="game-state" data-i18n="wyr.wrap_body">Thanks for playing. Ready up for another round.</div>
+<div id="wyr-chart" class="wyr-chart hide">
+<div class="wyr-chart-hd" data-i18n="wyr.chart_title">How much you agreed</div>
+<div class="wyr-plot">
+<div id="wyr-buckets" class="wyr-buckets"></div>
+<div id="wyr-mean" class="wyr-mean hide"><span id="wyr-mean-val" class="wyr-mean-val"></span></div>
+</div>
+<div id="wyr-verdict" class="wyr-verdict"></div>
+</div>
+<button id="wyr-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="scramble" class="screen hide">
 <div id="scr-lobby" class="hide">
-<header class="bar"><h2>Word Scramble</h2><span id="scr-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="scr.title">Word Scramble</h2><span id="scr-me" class="me"></span></header>
 <ul id="scr-players" class="players"></ul>
-<button id="scr-ready" class="btn big">I'm ready</button>
-<p class="sub">Vote a pack</p>
+<button id="scr-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
 <div id="scr-topics" class="topics"></div>
 </div>
 <div id="scr-count" class="hide count">
-<div class="count-topic">Unscramble</div>
+<div class="count-topic" data-i18n="scr.count_topic">Unscramble</div>
 <div id="scr-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="scr-play" class="hide">
 <div class="bar"><span id="scr-meta" class="me"></span><span id="scr-status" class="me"></span></div>
@@ -198,35 +211,274 @@ spellcheck="false" placeholder="Your guess">
 <div id="scr-letters" class="scr-letters"></div>
 <form id="scr-form" class="guess-row" autocomplete="off">
 <input id="scr-input" maxlength="24" autocomplete="off" autocapitalize="off"
-spellcheck="false" placeholder="Type the word">
-<button class="btn sm" type="submit">Go</button>
+spellcheck="false" placeholder="Type the word" data-i18n-ph="scr.type_ph">
+<button class="btn sm" type="submit" data-i18n="common.go">Go</button>
 </form>
 </div>
 <div id="scr-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="scr-podium" class="podium"></ol>
-<button id="scr-again" class="btn big">Play again</button>
+<button id="scr-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="react" class="screen hide">
 <div id="rc-lobby" class="hide">
-<header class="bar"><h2>Reaction Duel</h2><span id="rc-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="rc.title">Reaction Duel</h2><span id="rc-me" class="me"></span></header>
 <ul id="rc-players" class="players"></ul>
-<button id="rc-ready" class="btn big">I'm ready</button>
+<button id="rc-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
 </div>
 <div id="rc-count" class="hide count">
-<div class="count-topic">Get ready</div>
+<div class="count-topic" data-i18n="common.get_ready">Get ready</div>
 <div id="rc-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="rc-arena" class="hide">
 <div class="bar"><span id="rc-meta" class="me"></span></div>
-<div id="rc-pad" class="rc-pad wait"><span class="rc-big">Wait...</span></div>
+<div id="rc-pad" class="rc-pad wait"><span class="rc-big" data-i18n="rc.wait">Wait...</span></div>
 </div>
 <div id="rc-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="rc-podium" class="podium"></ol>
-<button id="rc-again" class="btn big">Play again</button>
+<button id="rc-again" class="btn big" data-i18n="common.play_again">Play again</button>
+</div>
+</section>
+<section id="gc" class="screen hide">
+<div id="gc-lobby" class="hide">
+<header class="bar"><h2 data-i18n="gc.title">Guess the Color</h2><span id="gc-me" class="me"></span></header>
+<ul id="gc-players" class="players"></ul>
+<button id="gc-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+</div>
+<div id="gc-count" class="hide count">
+<div class="count-topic" data-i18n="common.get_ready">Get ready</div>
+<div id="gc-count-num" class="count-num">3</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
+</div>
+<div id="gc-play" class="hide gc-play">
+<div class="bar"><span id="gc-meta" class="me"></span></div>
+<div class="gc-target-wrap">
+<div id="gc-target" class="gc-chip gc-chip-lg"></div>
+<span class="gc-lbl" data-i18n="gc.match">Match this color &mdash; dial in R / G / B</span>
+</div>
+<div class="gc-rows">
+<div class="gc-row"><span class="gc-ch gc-r">R</span>
+<button id="gc-r-dn" class="btn ghost gc-step" aria-label="R minus 1">&minus;</button>
+<input id="gc-r-slider" class="gc-slider" type="range" min="0" max="255" value="128" aria-label="Red">
+<span id="gc-r-val" class="gc-val">128</span>
+<button id="gc-r-up" class="btn ghost gc-step" aria-label="R plus 1">+</button></div>
+<div class="gc-row"><span class="gc-ch gc-g">G</span>
+<button id="gc-g-dn" class="btn ghost gc-step" aria-label="G minus 1">&minus;</button>
+<input id="gc-g-slider" class="gc-slider" type="range" min="0" max="255" value="128" aria-label="Green">
+<span id="gc-g-val" class="gc-val">128</span>
+<button id="gc-g-up" class="btn ghost gc-step" aria-label="G plus 1">+</button></div>
+<div class="gc-row"><span class="gc-ch gc-b">B</span>
+<button id="gc-b-dn" class="btn ghost gc-step" aria-label="B minus 1">&minus;</button>
+<input id="gc-b-slider" class="gc-slider" type="range" min="0" max="255" value="128" aria-label="Blue">
+<span id="gc-b-val" class="gc-val">128</span>
+<button id="gc-b-up" class="btn ghost gc-step" aria-label="B plus 1">+</button></div>
+</div>
+<button id="gc-submit" class="btn big" data-i18n="gc.submit">Submit guess</button>
+<div id="gc-wait" class="hide sub" data-i18n="gc.submitted">Submitted — waiting for others...</div>
+</div>
+<div id="gc-reveal" class="hide gc-play">
+<div class="bar"><span id="gc-rmeta" class="me"></span></div>
+<div class="gc-target-wrap">
+<div id="gc-rtarget" class="gc-chip gc-chip-lg"></div>
+<span id="gc-answer" class="gc-lbl gc-answer">Answer</span>
+</div>
+<div class="gc-legend" data-i18n="gc.legend">◀ answer &middot; guess ▶</div>
+<div id="gc-guesses" class="gc-guesses"></div>
+<div id="gc-winner" class="gc-winner"></div>
+</div>
+<div id="gc-final" class="hide">
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+<ol id="gc-podium" class="podium"></ol>
+<button id="gc-again" class="btn big" data-i18n="common.play_again">Play again</button>
+</div>
+</section>
+<section id="bs" class="screen hide">
+<header class="bar"><h2 data-i18n="bs.title">Battleship</h2><button id="bs-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
+<div id="bs-lobby">
+<div id="bs-incoming" class="challenges"></div>
+<p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
+<ul id="bs-players" class="players"></ul>
+</div>
+<div id="bs-place" class="hide">
+<p id="bs-place-hint" class="sub" data-i18n="bs.place">Place your fleet</p>
+<div id="bs-place-grid" class="bs-grid"></div>
+<div id="bs-tray" class="bs-tray"></div>
+<div id="bs-place-actions" class="bs-actions">
+<button id="bs-rotate" class="btn ghost" data-i18n="bs.rotate">Rotate</button>
+<button id="bs-random" class="btn ghost" data-i18n="bs.random">Random</button>
+<button id="bs-ready" class="btn big" data-i18n="common.ready_short" disabled>Ready</button>
+</div>
+<div id="bs-wait" class="hide sub" data-i18n="bs.wait_opp">Waiting for opponent...</div>
+</div>
+<div id="bs-fire" class="hide">
+<div id="bs-turn" class="turn"></div>
+<p id="bs-ships" class="sub bs-count"></p>
+<p class="sub" data-i18n="bs.enemy_waters">Enemy waters</p>
+<div id="bs-track-grid" class="bs-grid"></div>
+<p class="sub" data-i18n="bs.your_fleet">Your fleet</p>
+<div id="bs-fleet-grid" class="bs-grid small"></div>
+</div>
+<div id="bs-over" class="hide over">
+<div id="bs-result" class="result"></div>
+<p class="sub" data-i18n="bs.enemy_revealed">Enemy fleet revealed</p>
+<div id="bs-over-grid" class="bs-grid"></div>
+<button id="bs-rematch" class="btn big" data-i18n="common.rematch">Rematch</button>
+<button id="bs-back" class="btn ghost" data-i18n="common.back_lobby">Back to lobby</button>
+</div>
+</section>
+<section id="spectrum" class="screen hide">
+<div id="sp-lobby" class="hide">
+<header class="bar"><h2 data-i18n="sp.title">Spectrum</h2><span id="sp-me" class="me"></span></header>
+<ul id="sp-players" class="players"></ul>
+<button id="sp-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
+<div id="sp-topics" class="topics"></div>
+</div>
+<div id="sp-count" class="hide count">
+<div class="count-topic" data-i18n="sp.count_topic">Spectrum</div>
+<div id="sp-count-num" class="count-num">3</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
+</div>
+<div id="sp-play" class="hide">
+<div class="bar"><span id="sp-meta" class="me"></span><span id="sp-role" class="me"></span></div>
+<div id="sp-bar" class="timebar hide"><i></i></div>
+<div class="sp-dialwrap">
+<svg id="sp-dial" class="sp-dial" viewBox="0 0 220 128" aria-hidden="true">
+<path class="sp-arc" d="M14 114 A96 96 0 0 1 206 114"></path>
+<g id="sp-bands"></g>
+<g id="sp-dmarks"></g>
+<line id="sp-ndl" class="sp-ndl hide" x1="110" y1="114" x2="110" y2="18"></line>
+<circle class="sp-hub" cx="110" cy="114" r="7"></circle>
+</svg>
+<span id="sp-left" class="sp-end"></span>
+<span id="sp-right" class="sp-end sp-end-r"></span>
+</div>
+<div id="sp-clue" class="sp-clue"></div>
+<div id="sp-clueform" class="sp-clueform hide">
+<input id="sp-cluein" class="sp-cluein" maxlength="38" placeholder="Type your clue…" data-i18n-ph="sp.clue_ph"
+autocomplete="off" spellcheck="false">
+<button id="sp-cluego" class="btn sm">Send</button>
+</div>
+<button id="sp-guessgo" class="btn big hide" data-i18n="sp.lock_guess">Lock in guess</button>
+<div id="sp-note" class="sp-note"></div>
+</div>
+<div id="sp-final" class="hide">
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+<ol id="sp-podium" class="podium"></ol>
+<button id="sp-again" class="btn big" data-i18n="common.play_again">Play again</button>
+</div>
+</section>
+<section id="kmk" class="screen hide">
+<div id="kmk-lobby" class="hide">
+<header class="bar"><h2 data-i18n="kmk.title">Kiss Marry Kill</h2><span id="kmk-me" class="me"></span></header>
+<ul id="kmk-players" class="players"></ul>
+<button id="kmk-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
+<div id="kmk-topics" class="topics"></div>
+</div>
+<div id="kmk-count" class="hide count">
+<div class="count-topic" data-i18n="kmk.count_topic">Kiss Marry Kill</div>
+<div id="kmk-count-num" class="count-num">3</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
+</div>
+<div id="kmk-play" class="hide">
+<div class="bar"><span id="kmk-meta" class="me"></span><span id="kmk-role" class="me"></span></div>
+<div id="kmk-bar" class="timebar hide"><i></i></div>
+<div id="kmk-people" class="kmk-people"></div>
+<button id="kmk-go" class="btn big hide" data-i18n="kmk.lock">Lock in</button>
+<div id="kmk-note" class="kmk-note"></div>
+</div>
+<div id="kmk-final" class="hide">
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+<ol id="kmk-podium" class="podium"></ol>
+<button id="kmk-again" class="btn big" data-i18n="common.play_again">Play again</button>
+</div>
+</section>
+<section id="chess" class="screen hide">
+<header class="bar"><h2 data-i18n="chess.title">Chess</h2><button id="chess-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
+<div id="chess-lobby">
+<div id="chess-incoming" class="challenges"></div>
+<p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
+<ul id="chess-players" class="players"></ul>
+</div>
+<div id="chess-play" class="hide">
+<div id="chess-opp-clock" class="ch-clock"></div>
+<div id="chess-turn" class="turn"></div>
+<p id="chess-check" class="ch-check hide" data-i18n="chess.check">Check!</p>
+<div id="chess-board" class="ch-board"></div>
+<div id="chess-my-clock" class="ch-clock"></div>
+<div class="ch-actions">
+<button id="chess-resign" class="btn ghost sm" data-i18n="chess.resign">Resign</button>
+<button id="chess-draw" class="btn ghost sm" data-i18n="chess.offer_draw">Offer draw</button>
+<button id="chess-claim" class="btn ghost sm hide" data-i18n="chess.claim_draw">Claim draw</button>
+</div>
+</div>
+<div id="chess-over" class="hide over">
+<div id="chess-result" class="result"></div>
+<p id="chess-reason" class="sub"></p>
+<div id="chess-over-board" class="ch-board"></div>
+<button id="chess-rematch" class="btn big" data-i18n="common.rematch">Rematch</button>
+<button id="chess-back" class="btn ghost" data-i18n="common.back_lobby">Back to lobby</button>
+</div>
+<div id="chess-promo" class="sheet hide">
+<div class="sheet-card ch-promo-card">
+<p class="sub" data-i18n="chess.choose_promo">Choose promotion</p>
+<div class="ch-promo-row">
+<button class="ch-promo-btn" data-promo="5">&#9819;</button>
+<button class="ch-promo-btn" data-promo="4">&#9820;</button>
+<button class="ch-promo-btn" data-promo="3">&#9821;</button>
+<button class="ch-promo-btn" data-promo="2">&#9822;</button>
+</div>
+</div>
+</div>
+</section>
+<section id="secrets" class="screen hide">
+<div id="sec-lobby" class="hide">
+<header class="bar"><h2 data-i18n="secrets.title">Secrets</h2><span id="sec-me" class="me"></span></header>
+<ul id="sec-players" class="players"></ul>
+<button id="sec-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
+<div id="sec-topics" class="topics"></div>
+</div>
+<div id="sec-count" class="hide count">
+<div class="count-topic" data-i18n="secrets.count_topic">Secrets</div>
+<div id="sec-count-num" class="count-num">3</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
+</div>
+<div id="sec-play" class="hide">
+<div class="bar"><span id="sec-meta" class="me"></span><span id="sec-progress" class="me"></span></div>
+<div id="sec-bar" class="timebar hide"><i></i></div>
+<div id="sec-q" class="sec-q"></div>
+<div id="sec-predict" class="hide sec-predict">
+<div id="sec-predict-label" class="sec-predict-label"></div>
+<div class="sec-stepper">
+<button id="sec-minus" class="sec-step" type="button" aria-label="Fewer">−</button>
+<span id="sec-num" class="sec-num">0</span>
+<button id="sec-plus" class="sec-step" type="button" aria-label="More">+</button>
+</div>
+<button id="sec-predict-go" class="btn big" data-i18n="secrets.predict_go">Lock in prediction</button>
+</div>
+<div id="sec-answer" class="hide sec-answer">
+<button id="sec-yes" class="sec-ans yes" type="button" data-i18n="secrets.yes">Yes</button>
+<button id="sec-no" class="sec-ans no" type="button" data-i18n="secrets.no">No</button>
+</div>
+<div id="sec-reveal" class="hide sec-reveal">
+<div class="sec-hero">
+<div id="sec-yesnum" class="sec-yesnum">0</div>
+<div class="sec-yescap" data-i18n="secrets.said_yes">said yes</div>
+</div>
+<ul id="sec-buckets" class="sec-buckets"></ul>
+</div>
+<div id="sec-result" class="sec-result"></div>
+<div id="sec-note" class="sec-note"></div>
+</div>
+<div id="sec-final" class="hide">
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+<ol id="sec-podium" class="podium"></ol>
+<button id="sec-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <div id="react-layer" class="react-layer" aria-hidden="true"></div>
@@ -234,22 +486,40 @@ spellcheck="false" placeholder="Type the word">
 <div id="react-row" class="react-row"></div>
 <button id="react-fab" class="react-fab" type="button" aria-label="React">😀</button>
 </div>
+<div id="game-overlay" class="game-overlay hide" role="dialog" aria-modal="true" aria-label="Change game">
+<div class="game-overlay-card">
+<div class="game-overlay-title" data-i18n="gamevote.pick">Change the game</div>
+<div id="game-list" class="game-list"></div>
+</div>
+</div>
+<div id="gamevote" class="gamevote hide" role="dialog" aria-modal="true">
+<div class="gamevote-card">
+<div id="gamevote-head" class="gamevote-head"></div>
+<div id="gamevote-actions" class="gamevote-actions">
+<button id="gamevote-yes" class="btn big" data-i18n="gamevote.ok">OK!</button>
+<button id="gamevote-no" class="btn ghost big" data-i18n="gamevote.no">No, continue</button>
+</div>
+<div id="gamevote-wait" class="gamevote-wait hide" data-i18n="gamevote.waiting">Waiting for votes…</div>
+<div id="gamevote-tally" class="gamevote-tally"></div>
+<button id="gamevote-cancel" class="btn ghost big hide" data-i18n="gamevote.cancel">Cancel</button>
+</div>
+</div>
 <div id="toast" class="toast hide"></div>
 <div id="captive" class="captive hide" role="dialog" aria-modal="true" aria-labelledby="captive-title">
 <div class="captive-card">
-<div id="captive-title" class="captive-title">Open in your browser</div>
-<p class="captive-body">This Wi-Fi popup can&rsquo;t keep the game connected. To play,
+<div id="captive-title" class="captive-title" data-i18n="captive.title">Open in your browser</div>
+<p class="captive-body" data-i18n="captive.body">This Wi-Fi popup can&rsquo;t keep the game connected. To play,
 leave it and open the game in your phone&rsquo;s browser:</p>
 <ol class="captive-steps">
-<li>Tap <b>Cancel</b>, then <b>Use Without Internet</b></li>
-<li>Open your browser and go to this address:</li>
+<li data-i18n="captive.step1">Tap Cancel, then Use Without Internet</li>
+<li data-i18n="captive.step2">Open your browser and go to this address:</li>
 </ol>
 <div class="captive-copy">
 <input id="captive-url" class="captive-url" readonly value="192.168.4.1"
 aria-label="Game address" spellcheck="false">
-<button id="captive-copy" class="btn sm" type="button">Copy</button>
+<button id="captive-copy" class="btn sm" type="button" data-i18n="captive.copy">Copy</button>
 </div>
-<button id="captive-dismiss" class="captive-dismiss" type="button">Dismiss</button>
+<button id="captive-dismiss" class="captive-dismiss" type="button" data-i18n="captive.dismiss">Dismiss</button>
 </div>
 </div>
 <script>"use strict";
@@ -273,16 +543,19 @@ return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
 return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
 });
 }
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react"];
+var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets"];
 var GAME_SCREEN = {
 trivia: "trivia", connect4: "duel", tictactoe: "duel", dots: "duel",
 reversi: "duel", draw: "draw", pong: "pong",
-wyr: "wyr", scramble: "scramble", react: "react",
+wyr: "wyr", scramble: "scramble", react: "react", gc: "gc", bs: "bs", spectrum: "spectrum", kmk: "kmk",
+chess: "chess", secrets: "secrets",
 };
 var GAME_LABEL = {
 trivia: "Trivia", connect4: "Connect 4", tictactoe: "Tic-Tac-Toe",
 dots: "Dots & Boxes", reversi: "Reversi", draw: "Draw & Guess", pong: "Pong",
 wyr: "Would You Rather", scramble: "Word Scramble", react: "Reaction Duel",
+gc: "Guess the Color", bs: "Battleship", spectrum: "Spectrum", kmk: "Kiss Marry Kill",
+chess: "Chess", secrets: "Secrets",
 };
 function screen(name) {
 A.view = name;
@@ -294,7 +567,58 @@ if (rb) {
 rb.classList.toggle("hide", name === "landing");
 rb.classList.remove("open");
 }
+var gm = $("game-menu");
+if (gm) gm.classList.toggle("hide", name === "landing");
 if (name !== "trivia" && name !== "scramble" && name !== "react") A.hideLead();
+syncWakeLock();
+}
+var wakeSentinel = null;
+var wakeVideo = null;
+var WAKE_MP4 = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMwbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAB9AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAlt0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAB9AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAfQAAAAAAABAAAAAAHTbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAgABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABfm1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAT5zdGJsAAAAvnN0c2QAAAAAAAAAAQAAAK5hdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2Mi4xMS4xMDAgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAANGF2Y0MBZAAK/+EAF2dkAAqs2V7ARAAAAwAEAAADAAg8SJZYAQAGaOvgZSyL/fj4AAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAAs4AAAAAAAAABhzdHRzAAAAAAAAAAEAAAACAABAAAAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAACAAAAAQAAABxzdHN6AAAAAAAAAAAAAAACAAACwgAAAAwAAAAUc3RjbwAAAAAAAAABAAADYAAAAGF1ZHRhAAAAWW1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALGlsc3QAAAAkqXRvbwAAABxkYXRhAAAAAQAAAABMYXZmNjIuMy4xMDAAAAAIZnJlZQAAAtZtZGF0AAACrQYF//+p3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE2NSByMzIyMiBiMzU2MDVhIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAyNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTUxLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAANZYiEABb//RjvApNwGQAAAAhBmiFsQV++gA==";
+function wakeWanted() { return A.joined && A.view !== "landing" && !document.hidden; }
+function ensureWakeVideo() {
+if (wakeVideo) return wakeVideo;
+var v = document.createElement("video");
+v.muted = true; v.setAttribute("muted", "");   // both the property and the attribute (iOS quirk)
+v.playsInline = true; v.setAttribute("playsinline", "");
+v.loop = true;
+v.width = 16; v.height = 16;
+v.style.cssText = "position:fixed; left:0; top:0; width:1px; height:1px; opacity:0; pointer-events:none";
+v.src = WAKE_MP4;
+document.body.appendChild(v);
+wakeVideo = v;
+return v;
+}
+var lastWakeWanted = null;
+var wakeInFlight = false;
+function syncWakeLock() {
+var wanted = wakeWanted();
+if (wanted === lastWakeWanted) return;
+lastWakeWanted = wanted;
+if (navigator.wakeLock && navigator.wakeLock.request) {
+if (wanted) {
+if (wakeInFlight || wakeSentinel) return;
+wakeInFlight = true;
+navigator.wakeLock.request("screen").then(function (s) {
+wakeInFlight = false;
+if (!wakeWanted()) { s.release().catch(function () {}); return; }
+wakeSentinel = s;
+s.addEventListener("release", function () { wakeSentinel = null; });
+}).catch(function () { wakeInFlight = false; });
+} else if (wakeSentinel) {
+wakeSentinel.release().catch(function () {});
+wakeSentinel = null;
+}
+return; // Tier 1 available on this origin: never touch the video fallback.
+}
+var v = ensureWakeVideo();
+if (wanted) {
+if (v.paused) {
+var p = v.play();
+if (p && p.catch) p.catch(function () {});
+}
+}
+else if (!v.paused) v.pause();
 }
 function route(name) { if (A.joined) screen(name); }
 function serverNow() { return Date.now() + A.offset; }
@@ -378,7 +702,7 @@ li.innerHTML =
 ul.appendChild(li);
 });
 var rb = $(cfg.readyId);
-rb.textContent = mine ? "Ready. Tap to cancel" : "I'm ready";
+rb.textContent = mine ? t("common.ready_cancel") : t("common.ready");
 rb.classList.toggle("on", mine);
 return mine;
 };
@@ -474,6 +798,35 @@ function storeKey(name) {
 var h = new URLSearchParams(location.search).get("harness");
 return h ? name + "_" + h : name;
 }
+var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
+var liveTimer = null, lastRx = 0, warned = false;
+function stopLiveness() {
+if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+warned = false;
+}
+function startLiveness() {
+stopLiveness();
+lastRx = Date.now();
+liveTimer = setInterval(function () {
+if (!A.ws || A.ws.readyState !== 1) return;
+var quiet = Date.now() - lastRx;
+if (quiet > DEAD_MS) {
+stopLiveness();
+try { A.ws.close(); } catch (e) {}   // onclose -> scheduleReconnect()
+return;
+}
+if (quiet > WARN_MS && !warned) {
+warned = true;
+setDot("warn");
+if (A.view !== "landing") { $("netbar").textContent = t("net.quiet"); show("netbar"); }
+} else if (quiet <= WARN_MS && warned) {
+warned = false;                       // it answered again
+setDot("");
+hide("netbar");
+}
+try { A.ws.send(JSON.stringify({ t: "ping" })); } catch (e) {}
+}, PING_MS);
+}
 function connect() {
 var ws = harnessSocket();
 if (!ws) {
@@ -483,22 +836,24 @@ catch (e) { scheduleReconnect(); return; }
 A.ws = ws;
 ws.onopen = function () {
 A.retry = 0;
+startLiveness();
 hide("netbar");
 setDot("");           // connected
 if (A.joined) send({ t: "hello", nick: A.nick, avatar: A.avatar });
 };
 ws.onmessage = function (ev) {
 var m;
+lastRx = Date.now();   // any frame proves the link is alive (see startLiveness)
 try { m = JSON.parse(ev.data); } catch (e) { return; }
 dispatch(m);
 };
-ws.onclose = function () { scheduleReconnect(); };
+ws.onclose = function () { stopLiveness(); scheduleReconnect(); };
 ws.onerror = function () { try { ws.close(); } catch (e) {} };
 }
 function scheduleReconnect() {
 setDot(A.retry > 4 ? "bad" : "warn");   // down after repeated failures
 if (A.view !== "landing") {
-$("netbar").textContent = "Reconnecting...";
+$("netbar").textContent = t("net.reconnecting");
 show("netbar");
 }
 var wait = Math.min(1000 * Math.pow(1.6, A.retry), 8000);
@@ -520,7 +875,18 @@ function dispatch(m) {
 switch (m.t) {
 case "welcome":
 A.pid = m.pid;
-if (m.nick) { A.nick = m.nick; setNick(); }
+if (A.setLang) A.setLang(m.lang); // host-chosen UI language; localizes static text
+if (m.avatar) A.avatar = m.avatar;
+if (m.nick) {
+A.nick = m.nick;
+setNick();                            // header
+if ($("nick")) $("nick").value = m.nick; // landing field, if they go back to it
+buildAvatarPicker();                  // and its avatar row, so both agree
+try {
+localStorage.setItem(storeKey("ha_nick"), A.nick);
+localStorage.setItem(storeKey("ha_avatar"), A.avatar);
+} catch (e) {}
+}
 break;
 case "lobby":
 onLobby(m);
@@ -586,6 +952,7 @@ listEl.appendChild(li);
 A.lobbyView = lobbyView;
 function onLobby(m) {
 if (m.me) A.pid = m.me;
+if (A.closeGamevote) A.closeGamevote();
 var prevCount = (A.players || []).length;
 A.players = m.players || [];   // kept for the duel/pong challenge lists
 if (A.joined && A.players.length > prevCount && prevCount > 0) { A.sfx("join"); A.vibe(20); }
@@ -602,12 +969,14 @@ li.innerHTML =
 list.appendChild(li);
 });
 var g = m.game || "none";
-var gs = $("lobby-game");
+A.curGame = g;   // the active game name, so the switcher can exclude it from its list
+var gs = $("lobby-game-label");
 gs.textContent = g === "none"
-? "Waiting for the host to pick a game."
+? t("lobby.pick")
 : (GAME_LABEL[g] || g) + " starting...";
 if (g === "none" && A.view !== "landing") route("lobby");
-else if (g !== "none" && A.view === "lobby" && GAME_SCREEN[g]) route(GAME_SCREEN[g]);
+else if (g !== "none" && GAME_SCREEN[g] && A.view !== "landing" && A.view !== GAME_SCREEN[g])
+route(GAME_SCREEN[g]);
 }
 function startPlay() {
 var n = $("nick").value.trim().slice(0, 12).toUpperCase();
@@ -623,7 +992,7 @@ setNick();
 A.initAudio();          // first gesture: unlock audio for the session
 A.sfx("start"); A.vibe(30);
 try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-send({ t: "hello", nick: n, avatar: A.avatar });
+send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
 screen("lobby");
 }
 function avatarOf(pid) {
@@ -678,7 +1047,7 @@ A.avatar = editAvatar || A.avatar;
 setNick();
 A.sfx("start"); A.vibe(20);
 try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-send({ t: "hello", nick: n, avatar: A.avatar });
+send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
 closeIdEdit();
 }
 var REACTS = ["👍", "😂", "🔥", "😮", "🎉", "❤️", "😠"];
@@ -720,6 +1089,64 @@ A.handlers.emoji = function (m) {
 floatReact(m.emoji, m.nick, m.avatar);
 if (m.pid !== A.pid) A.vibe(8);
 };
+function gameMenuItem(name, label, extraClass) {
+var b = document.createElement("button");
+b.type = "button";
+b.className = "game-item" + (extraClass || "");
+b.textContent = label;
+b.addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(12);
+send({ t: "proposeGame", game: name });
+closeGameMenu();
+});
+return b;
+}
+function openGameMenu() {
+var list = $("game-list");
+if (!list) return;
+list.innerHTML = "";
+Object.keys(GAME_LABEL).forEach(function (name) {
+if (name === A.curGame) return;   // the active game isn't a switch target
+list.appendChild(gameMenuItem(name, GAME_LABEL[name]));
+});
+if (A.curGame !== "none") {
+var sep = document.createElement("div");
+sep.className = "game-sep";
+list.appendChild(sep);
+list.appendChild(gameMenuItem("none", t("gamevote.back_lobby"), " game-item-back"));
+}
+show("game-overlay");
+}
+function closeGameMenu() { hide("game-overlay"); }
+function gameVoteLabel(m) {
+if (m.game === "none") return t("gamevote.lobby_label");
+return GAME_LABEL[m.label] || GAME_LABEL[m.game] || m.game;
+}
+A.gamevoteOpen = false;
+A.closeGamevote = function () { A.gamevoteOpen = false; hide("gamevote"); };
+A.handlers.gamevote = function (m) {
+A.gamevoteOpen = true;
+closeGameMenu();     // if the proposer still had the picker open
+show("gamevote");
+var label = gameVoteLabel(m);
+var head = $("gamevote-head");
+head.textContent = "";
+if (m.youproposed) {
+head.textContent = t("gamevote.you_want", { game: label });
+} else {
+var av = document.createElement("span");
+av.className = "gamevote-av";
+av.textContent = m.avatar || "🙂";
+head.appendChild(av);
+head.appendChild(document.createTextNode(
+" " + t("gamevote.wants", { who: m.proposer, game: label })));
+}
+var waiting = !m.youproposed && !!m.youvoted;
+$("gamevote-actions").classList.toggle("hide", !!m.youproposed || waiting);
+$("gamevote-wait").classList.toggle("hide", !waiting);
+$("gamevote-cancel").classList.toggle("hide", !m.youproposed);
+$("gamevote-tally").textContent = t("gamevote.tally", { yes: m.yes, no: m.no });
+};
 function initApp() {
 var saved = "";
 try {
@@ -739,6 +1166,23 @@ $("id-cancel").addEventListener("click", closeIdEdit);
 $("id-edit").addEventListener("click", function (e) { if (e.target === $("id-edit")) closeIdEdit(); });
 $("react-fab").addEventListener("click", function () {
 $("react-bar").classList.toggle("open");
+});
+$("game-menu").addEventListener("click", openGameMenu);
+$("lobby-game").addEventListener("click", openGameMenu);
+$("game-overlay").addEventListener("click", function (e) {
+if (e.target === $("game-overlay")) closeGameMenu();
+});
+$("gamevote-yes").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(15);
+send({ t: "voteGame", ok: true });
+});
+$("gamevote-no").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(15);
+send({ t: "voteGame", ok: false });
+});
+$("gamevote-cancel").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(15);
+send({ t: "voteGame", ok: false });
 });
 $("lead-bar").addEventListener("click", function () {
 A.leadOpen = !A.leadOpen;
@@ -776,10 +1220,629 @@ A.sfx("buzz"); A.vibe(12);
 send({ t: "say", text: text });
 inp.value = "";
 });
+document.addEventListener("visibilitychange", syncWakeLock);
 connect();
 setInterval(function () { send({ t: "ping" }); }, 20000);
 }
 document.addEventListener("DOMContentLoaded", initApp);
+var MESSAGES = {
+en: {
+"common.ready": "I'm ready",
+"common.ready_cancel": "Ready. Tap to cancel",
+"common.ready_short": "Ready",
+"common.play_again": "Play again",
+"common.final": "Final",
+"common.starting": "Starting",
+"common.send": "Send",
+"common.go": "Go",
+"common.leave": "Leave",
+"common.rematch": "Rematch",
+"common.back_lobby": "Back to lobby",
+"common.challenge_player": "Challenge a player",
+"common.get_ready": "Get ready",
+"common.vote_pack": "Vote a pack",
+"common.board": "Board",
+"landing.tagline": "Offline · Multiplayer · No signal",
+"landing.nick": "Your nickname",
+"landing.avatar": "Pick an avatar",
+"landing.play": "Play",
+"landing.nick_ph": "e.g. NOVA",
+"landing.hint": "If this page closes, rejoin the WiFi and open 192.168.4.1 in your browser.",
+"id.nick": "Your nickname",
+"id.nick_ph": "e.g. NOVA",
+"id.avatar": "Your avatar",
+"id.save": "Save",
+"id.cancel": "Cancel",
+"net.reconnecting": "Reconnecting...",
+"net.quiet": "Connection lost?",
+"lobby.title": "Lobby",
+"lobby.pick": "Pick a game",
+"lobby.chat": "Chat",
+"lobby.say_ph": "Say something",
+"trivia.title": "Trivia",
+"trivia.vote_topic": "Vote a topic",
+"draw.title": "Draw & Guess",
+"draw.clear": "Clear",
+"draw.guess_ph": "Your guess",
+"wyr.title": "Would You Rather",
+"wyr.count_topic": "Would you rather",
+"wyr.wrap": "That's a wrap",
+"wyr.wrap_body": "Thanks for playing. Ready up for another round.",
+"wyr.chart_title": "How much you agreed",
+"scr.title": "Word Scramble",
+"scr.count_topic": "Unscramble",
+"scr.type_ph": "Type the word",
+"rc.title": "Reaction Duel",
+"rc.wait": "Wait...",
+"gc.title": "Guess the Color",
+"gc.match": "Match this color — dial in R / G / B",
+"gc.submit": "Submit guess",
+"gc.submitted": "Submitted — waiting for others...",
+"gc.answer": "Answer",
+"gc.legend": "◀ answer · guess ▶",
+"bs.title": "Battleship",
+"bs.place": "Place your fleet",
+"bs.rotate": "Rotate",
+"bs.random": "Random",
+"bs.wait_opp": "Waiting for opponent...",
+"bs.enemy_waters": "Enemy waters",
+"bs.your_fleet": "Your fleet",
+"bs.enemy_revealed": "Enemy fleet revealed",
+"sp.title": "Spectrum",
+"sp.count_topic": "Spectrum",
+"sp.clue_ph": "Type your clue…",
+"sp.lock_guess": "Lock in guess",
+"kmk.title": "Kiss Marry Kill",
+"kmk.count_topic": "Kiss Marry Kill",
+"kmk.lock": "Lock in",
+"secrets.title": "Secrets",
+"secrets.count_topic": "Secrets",
+"secrets.predict_go": "Lock in prediction",
+"secrets.yes": "Yes",
+"secrets.no": "No",
+"secrets.predict_hint": "Your guess: How many of {n} players said yes?",
+"secrets.predict_locked": "Locked in {n}. Waiting for the others…",
+"secrets.answer_hint": "Your answer — only the total is revealed, never who said what.",
+"secrets.answer_locked": "Answer locked. Waiting…",
+"secrets.locked_count": "{n} / {total} in",
+"secrets.said_yes": "said yes",
+"secrets.result_exact": "Spot on! +{gain}",
+"gamevote.pick": "Change the game",
+"gamevote.back_lobby": "Back to Lobby",
+"gamevote.lobby_label": "Lobby",
+"gamevote.wants": "{who} wants to switch to \"{game}\".",
+"gamevote.you_want": "You want to switch to {game}…",
+"gamevote.ok": "OK!",
+"gamevote.no": "No, continue",
+"gamevote.cancel": "Cancel",
+"gamevote.waiting": "Waiting for votes…",
+"gamevote.tally": "{yes} yes · {no} no",
+"chess.title": "Chess",
+"chess.check": "Check!",
+"chess.resign": "Resign",
+"chess.sure": "Sure?",
+"chess.offer_draw": "Offer draw",
+"chess.accept_draw": "Accept draw",
+"chess.offer_sent": "Offer sent",
+"chess.claim_draw": "Claim draw",
+"chess.choose_promo": "Choose promotion",
+"chess.reason_mate": "Checkmate",
+"chess.reason_stalemate": "Stalemate",
+"chess.reason_resign": "Resignation",
+"chess.reason_flag": "On time",
+"chess.reason_flagdraw": "Time out — no mating material",
+"chess.reason_material": "Insufficient material",
+"chess.reason_rep3": "Threefold repetition",
+"chess.reason_rep5": "Fivefold repetition",
+"chess.reason_move50": "50-move rule",
+"chess.reason_move75": "75-move rule",
+"chess.reason_agree": "Draw agreed",
+"chess.reason_left": "Opponent left",
+"captive.title": "Open in your browser",
+"captive.body": "This Wi-Fi popup can't keep the game connected. To play, leave it and open the game in your phone's browser:",
+"captive.step1": "Tap Cancel, then Use Without Internet",
+"captive.step2": "Open your browser and go to this address:",
+"captive.copy": "Copy",
+"captive.dismiss": "Dismiss",
+"common.round": "Round {n} / {total}",
+"scr.word": "Word {n} / {total}",
+"scr.answer": "Answer",
+"scr.solved": "Solved! Waiting for the round to end.",
+"scr.letters": "{n} letters",
+"gc.answer_val": "Answer  {r}, {g}, {b}",
+"gc.you_closest": "You were closest!",
+"gc.was_closest": "{nick} was closest",
+"common.win": "Win",
+"common.lose": "Lose",
+"common.draw": "Draw",
+"common.over": "Over",
+"common.your_turn": "Your turn",
+"common.opp_turn": "{nick}'s turn",
+"common.opponent": "Opponent",
+"common.opp_left": "Opponent left",
+"common.zero_round": "+0 this round",
+"common.you": "You",
+"common.them": "Them",
+"rc.too_soon": "Too soon!",
+"rc.wait_next": "Wait for the next round",
+"rc.tapped": "Tapped!",
+"rc.tap": "TAP!",
+"rc.wait_green": "Tap when it turns green",
+"rc.you_won": "You won!",
+"rc.nick_won": "{nick} won",
+"rc.no_winner": "No winner",
+"sp.guess_hint": "Guess: {n} — lock it in when ready.",
+"sp.you_psychic": "You are the psychic",
+"sp.psychic_is": "Psychic: {nick}",
+"sp.give_clue": "Give a clue that points to the orange zone.",
+"sp.thinking": "{nick} is thinking of a clue…",
+"sp.clue_sent": "Clue sent. Waiting for guesses…",
+"sp.guess_locked": "Guess locked at {n}. Waiting…",
+"sp.drag": "Drag the dial to where the clue lands, then lock in.",
+"sp.clue_earned": "Your clue earned you +{gain}",
+"sp.nice": "Nice — +{gain}",
+"kmk.kiss": "Kiss",
+"kmk.marry": "Marry",
+"kmk.kill": "Kill",
+"kmk.you_choose": "You choose",
+"kmk.chooser_is": "Chooser: {nick}",
+"kmk.read_perfect": "{perfect} of {total} read you perfectly.  You +{g}",
+"kmk.perfect": "Perfect read! +{g}",
+"kmk.close": "Close - +{g}",
+"kmk.lock_picks": "Lock in your picks",
+"kmk.tap_tag": "Tap each to tag them Kiss, Marry or Kill.",
+"kmk.deciding": "{nick} is deciding…",
+"kmk.locked_waiting": "Locked. Waiting for guesses…",
+"kmk.guess_locked": "Guess locked. Waiting…",
+"kmk.tap_set": "tap to set",
+"kmk.predict": "Predict how {nick} tagged them.",
+"kmk.lock_guess": "Lock in guess",
+"bs.both_ready": "Both ready...",
+"bs.opp_ready": "Opponent is ready - arrange & Ready",
+"bs.tap_ship": "Tap a ship then a cell to move it, or Random",
+"bs.your_turn_fire": "Your turn - fire!",
+"bs.you_win": "You win!",
+"bs.defeated": "Defeated",
+"bs.ship_carrier": "Carrier",
+"bs.ship_battleship": "Battleship",
+"bs.ship_cruiser": "Cruiser",
+"bs.ship_submarine": "Submarine",
+"bs.ship_destroyer": "Destroyer",
+"draw.game_over": "Game over",
+"draw.got_it": "{nick} got it",
+"draw.nobody": "Nobody guessed it",
+"draw.word_label": "Word:",
+"draw.round_over": "Round over",
+"draw.get_ready": "Get ready...",
+"draw.waiting": "Waiting",
+"draw.is_drawing": "{nick} is drawing",
+"wyr.meta": "Would you rather... ({n} / {total})",
+"wyr.verdict_high": "You align on average by {p}% — worryingly in sync.",
+"wyr.verdict_mid": "You align on average by {p}% — a like-minded bunch.",
+"wyr.verdict_low": "You align on average by {p}% — lots to talk about!",
+"wyr.verdict_split": "You align on average by {p}% — a divided household.",
+"wyr.verdict_polarized": "Split down the middle — {hi} unanimous, {lo} split the room.",
+"trivia.answered": "Answered {n} / {total}",
+},
+de: {
+"common.ready": "Ich bin bereit",
+"common.ready_cancel": "Bereit. Tippen zum Abbrechen",
+"common.ready_short": "Bereit",
+"common.play_again": "Nochmal spielen",
+"common.final": "Finale",
+"common.starting": "Startet",
+"common.send": "Senden",
+"common.go": "Los",
+"common.leave": "Verlassen",
+"common.rematch": "Revanche",
+"common.back_lobby": "Zurück zur Lobby",
+"common.challenge_player": "Fordere einen Spieler heraus",
+"common.get_ready": "Macht euch bereit",
+"common.vote_pack": "Pack wählen",
+"common.board": "Rangliste",
+"landing.tagline": "Offline · Mehrspieler · Kein Netz",
+"landing.nick": "Dein Spitzname",
+"landing.avatar": "Wähle einen Avatar",
+"landing.play": "Spielen",
+"landing.nick_ph": "z.B. NOVA",
+"landing.hint": "Falls diese Seite schließt: wieder ins WLAN und 192.168.4.1 im Browser öffnen.",
+"id.nick": "Dein Spitzname",
+"id.nick_ph": "z.B. NOVA",
+"id.avatar": "Dein Avatar",
+"id.save": "Speichern",
+"id.cancel": "Abbrechen",
+"net.reconnecting": "Verbinde neu...",
+"net.quiet": "Verbindung weg?",
+"lobby.title": "Lobby",
+"lobby.pick": "Spiel wählen",
+"lobby.chat": "Chat",
+"lobby.say_ph": "Sag etwas",
+"trivia.title": "Trivia",
+"trivia.vote_topic": "Thema wählen",
+"draw.title": "Malen & Raten",
+"draw.clear": "Löschen",
+"draw.guess_ph": "Dein Tipp",
+"wyr.title": "Entweder oder",
+"wyr.count_topic": "Lieber",
+"wyr.wrap": "Das war's",
+"wyr.wrap_body": "Danke fürs Mitspielen. Bereit für die nächste Runde.",
+"wyr.chart_title": "Wie einig ihr wart",
+"scr.title": "Wortsalat",
+"scr.count_topic": "Entwirren",
+"scr.type_ph": "Wort eintippen",
+"rc.title": "Reaktionsduell",
+"rc.wait": "Warte...",
+"gc.title": "Farbe raten",
+"gc.match": "Triff diese Farbe — stelle R / G / B ein",
+"gc.submit": "Tipp abgeben",
+"gc.submitted": "Abgegeben — warte auf die anderen...",
+"gc.answer": "Lösung",
+"gc.legend": "◀ Lösung · Tipp ▶",
+"bs.title": "Schiffe versenken",
+"bs.place": "Platziere deine Flotte",
+"bs.rotate": "Drehen",
+"bs.random": "Zufall",
+"bs.wait_opp": "Warte auf Gegner...",
+"bs.enemy_waters": "Feindliche Gewässer",
+"bs.your_fleet": "Deine Flotte",
+"bs.enemy_revealed": "Feindliche Flotte aufgedeckt",
+"sp.title": "Spektrum",
+"sp.count_topic": "Spektrum",
+"sp.clue_ph": "Tippe deinen Hinweis…",
+"sp.lock_guess": "Tipp bestätigen",
+"kmk.title": "Kiss Marry Kill",
+"kmk.count_topic": "Kiss Marry Kill",
+"kmk.lock": "Bestätigen",
+"secrets.title": "Geheimnisse",
+"secrets.count_topic": "Geheimnisse",
+"secrets.predict_go": "Tipp bestätigen",
+"secrets.yes": "Ja",
+"secrets.no": "Nein",
+"secrets.predict_hint": "Dein Tipp: Wie viele von {n} Spielern sagten ja?",
+"secrets.predict_locked": "{n} bestätigt. Warte auf die anderen…",
+"secrets.answer_hint": "Deine Antwort — nur die Gesamtzahl wird gezeigt, nie wer was sagte.",
+"secrets.answer_locked": "Antwort bestätigt. Warte…",
+"secrets.locked_count": "{n} / {total} dabei",
+"secrets.said_yes": "sagten Ja",
+"secrets.result_exact": "Genau richtig! +{gain}",
+"gamevote.pick": "Spiel wechseln",
+"gamevote.back_lobby": "Zurück zur Lobby",
+"gamevote.lobby_label": "Lobby",
+"gamevote.wants": "{who} möchte zu \"{game}\" wechseln.",
+"gamevote.you_want": "Du möchtest zu {game} wechseln…",
+"gamevote.ok": "OK!",
+"gamevote.no": "Nein, weiter",
+"gamevote.cancel": "Abbrechen",
+"gamevote.waiting": "Warte auf Stimmen…",
+"gamevote.tally": "{yes} Ja · {no} Nein",
+"captive.title": "Im Browser öffnen",
+"captive.body": "Dieses WLAN-Popup hält die Verbindung nicht. Zum Spielen verlassen und das Spiel im Browser deines Handys öffnen:",
+"captive.step1": "Auf Abbrechen tippen, dann Ohne Internet verwenden",
+"captive.step2": "Browser öffnen und diese Adresse aufrufen:",
+"captive.copy": "Kopieren",
+"captive.dismiss": "Schließen",
+"common.round": "Runde {n} / {total}",
+"scr.word": "Wort {n} / {total}",
+"scr.answer": "Lösung",
+"scr.solved": "Gelöst! Warte auf das Rundenende.",
+"scr.letters": "{n} Buchstaben",
+"gc.answer_val": "Lösung  {r}, {g}, {b}",
+"gc.you_closest": "Du warst am nächsten dran!",
+"gc.was_closest": "{nick} war am nächsten dran",
+"common.win": "Sieg",
+"common.lose": "Niederlage",
+"common.draw": "Unentschieden",
+"common.over": "Vorbei",
+"common.your_turn": "Du bist dran",
+"common.opp_turn": "{nick} ist dran",
+"common.opponent": "Gegner",
+"common.opp_left": "Gegner hat verlassen",
+"common.zero_round": "+0 diese Runde",
+"common.you": "Du",
+"common.them": "Gegner",
+"rc.too_soon": "Zu früh!",
+"rc.wait_next": "Warte auf die nächste Runde",
+"rc.tapped": "Getippt!",
+"rc.tap": "TIPP!",
+"rc.wait_green": "Tippe, wenn es grün wird",
+"rc.you_won": "Du hast gewonnen!",
+"rc.nick_won": "{nick} hat gewonnen",
+"rc.no_winner": "Kein Gewinner",
+"sp.guess_hint": "Tipp: {n} — bestätige, wenn bereit.",
+"sp.you_psychic": "Du bist der Hellseher",
+"sp.psychic_is": "Hellseher: {nick}",
+"sp.give_clue": "Gib einen Hinweis, der auf die orange Zone zeigt.",
+"sp.thinking": "{nick} überlegt einen Hinweis…",
+"sp.clue_sent": "Hinweis gesendet. Warte auf Tipps…",
+"sp.guess_locked": "Tipp bei {n} bestätigt. Warte…",
+"sp.drag": "Zieh den Regler dorthin, wo der Hinweis passt, dann bestätigen.",
+"sp.clue_earned": "Dein Hinweis bringt dir +{gain}",
+"sp.nice": "Stark — +{gain}",
+"kmk.kiss": "Küssen",
+"kmk.marry": "Heiraten",
+"kmk.kill": "Töten",
+"kmk.you_choose": "Du wählst",
+"kmk.chooser_is": "Wählt: {nick}",
+"kmk.read_perfect": "{perfect} von {total} haben dich perfekt gelesen.  Du +{g}",
+"kmk.perfect": "Perfekt gelesen! +{g}",
+"kmk.close": "Knapp - +{g}",
+"kmk.lock_picks": "Auswahl bestätigen",
+"kmk.tap_tag": "Tippe jeden an für Küssen, Heiraten oder Töten.",
+"kmk.deciding": "{nick} entscheidet…",
+"kmk.locked_waiting": "Bestätigt. Warte auf Tipps…",
+"kmk.guess_locked": "Tipp bestätigt. Warte…",
+"kmk.tap_set": "tippen zum Wählen",
+"kmk.predict": "Rate, wie {nick} sie markiert hat.",
+"kmk.lock_guess": "Tipp bestätigen",
+"bs.both_ready": "Beide bereit...",
+"bs.opp_ready": "Gegner ist bereit - platzieren & Bereit",
+"bs.tap_ship": "Schiff antippen, dann Feld zum Verschieben, oder Zufall",
+"bs.your_turn_fire": "Du bist dran - feuern!",
+"bs.you_win": "Du gewinnst!",
+"bs.defeated": "Besiegt",
+"bs.ship_carrier": "Flugzeugträger",
+"bs.ship_battleship": "Schlachtschiff",
+"bs.ship_cruiser": "Kreuzer",
+"bs.ship_submarine": "U-Boot",
+"bs.ship_destroyer": "Zerstörer",
+"draw.game_over": "Spiel vorbei",
+"draw.got_it": "{nick} hat's erraten",
+"draw.nobody": "Niemand hat's erraten",
+"draw.word_label": "Wort:",
+"draw.round_over": "Runde vorbei",
+"draw.get_ready": "Macht euch bereit...",
+"draw.waiting": "Warte",
+"draw.is_drawing": "{nick} malt",
+"wyr.meta": "Lieber... ({n} / {total})",
+"wyr.verdict_high": "Ihr seid euch im Schnitt zu {p}% einig — beunruhigend synchron.",
+"wyr.verdict_mid": "Ihr seid euch im Schnitt zu {p}% einig — eine Wellenlänge.",
+"wyr.verdict_low": "Ihr seid euch im Schnitt zu {p}% einig — da gibt's viel zu bereden!",
+"wyr.verdict_split": "Ihr seid euch im Schnitt zu {p}% einig — ein zerstrittener Haushalt.",
+"wyr.verdict_polarized": "Komplett gespalten — {hi} einstimmig, {lo} zerstritten.",
+"trivia.answered": "Beantwortet {n} / {total}",
+"chess.title": "Schach",
+"chess.check": "Schach!",
+"chess.resign": "Aufgeben",
+"chess.sure": "Sicher?",
+"chess.offer_draw": "Remis anbieten",
+"chess.accept_draw": "Remis annehmen",
+"chess.offer_sent": "Angebot gesendet",
+"chess.claim_draw": "Remis beanspruchen",
+"chess.choose_promo": "Umwandlung wählen",
+"chess.reason_mate": "Schachmatt",
+"chess.reason_stalemate": "Patt",
+"chess.reason_resign": "Aufgabe",
+"chess.reason_flag": "Auf Zeit",
+"chess.reason_flagdraw": "Zeit abgelaufen — kein Mattmaterial",
+"chess.reason_material": "Ungenügendes Material",
+"chess.reason_rep3": "Dreifache Wiederholung",
+"chess.reason_rep5": "Fünffache Wiederholung",
+"chess.reason_move50": "50-Züge-Regel",
+"chess.reason_move75": "75-Züge-Regel",
+"chess.reason_agree": "Remis vereinbart",
+"chess.reason_left": "Gegner hat verlassen",
+},
+"pt-br": {
+"common.ready": "Estou pronto",
+"common.ready_cancel": "Pronto. Toque para cancelar",
+"common.ready_short": "Pronto",
+"common.play_again": "Jogar de novo",
+"common.final": "Fim",
+"common.starting": "Começando",
+"common.send": "Enviar",
+"common.go": "Vai",
+"common.leave": "Sair",
+"common.rematch": "Revanche",
+"common.back_lobby": "Voltar ao lobby",
+"common.challenge_player": "Desafie um jogador",
+"common.get_ready": "Prepare-se",
+"common.vote_pack": "Vote num pacote",
+"common.board": "Placar",
+"landing.tagline": "Offline · Multijogador · Sem sinal",
+"landing.nick": "Seu apelido",
+"landing.avatar": "Escolha um avatar",
+"landing.play": "Jogar",
+"landing.nick_ph": "ex. NOVA",
+"landing.hint": "Se esta página fechar, reconecte no WiFi e abra 192.168.4.1 no navegador.",
+"id.nick": "Seu apelido",
+"id.nick_ph": "ex. NOVA",
+"id.avatar": "Seu avatar",
+"id.save": "Salvar",
+"id.cancel": "Cancelar",
+"net.reconnecting": "Reconectando...",
+"lobby.title": "Lobby",
+"lobby.pick": "Escolha um jogo",
+"lobby.chat": "Bate-papo",
+"lobby.say_ph": "Diga algo",
+"trivia.title": "Trivia",
+"trivia.vote_topic": "Vote num tema",
+"draw.title": "Desenhe e Adivinhe",
+"draw.clear": "Limpar",
+"draw.guess_ph": "Seu palpite",
+"wyr.title": "O Que Você Prefere",
+"wyr.count_topic": "O que você prefere",
+"wyr.wrap": "Fim de jogo",
+"wyr.wrap_body": "Obrigado por jogar. Fique pronto para outra rodada.",
+"wyr.chart_title": "O quanto vocês concordaram",
+"scr.title": "Palavra Embaralhada",
+"scr.count_topic": "Desembaralhe",
+"scr.type_ph": "Digite a palavra",
+"rc.title": "Duelo de Reflexo",
+"rc.wait": "Espere...",
+"gc.title": "Adivinhe a Cor",
+"gc.match": "Iguale esta cor — ajuste R / G / B",
+"gc.submit": "Enviar palpite",
+"gc.submitted": "Enviado — aguardando os outros...",
+"gc.answer": "Resposta",
+"gc.legend": "◀ resposta · palpite ▶",
+"bs.title": "Batalha Naval",
+"bs.place": "Posicione sua frota",
+"bs.rotate": "Girar",
+"bs.random": "Aleatório",
+"bs.wait_opp": "Aguardando o oponente...",
+"bs.enemy_waters": "Águas inimigas",
+"bs.your_fleet": "Sua frota",
+"bs.enemy_revealed": "Frota inimiga revelada",
+"sp.title": "Espectro",
+"sp.count_topic": "Espectro",
+"sp.clue_ph": "Digite sua dica…",
+"sp.lock_guess": "Confirmar palpite",
+"kmk.title": "Kiss Marry Kill",
+"kmk.count_topic": "Kiss Marry Kill",
+"kmk.lock": "Confirmar",
+"chess.title": "Xadrez",
+"chess.check": "Xeque!",
+"chess.resign": "Abandonar",
+"chess.sure": "Confirmar?",
+"chess.offer_draw": "Propor empate",
+"chess.accept_draw": "Aceitar empate",
+"chess.offer_sent": "Proposta enviada",
+"chess.claim_draw": "Reivindicar empate",
+"chess.choose_promo": "Escolha a promoção",
+"chess.reason_mate": "Xeque-mate",
+"chess.reason_stalemate": "Afogamento",
+"chess.reason_resign": "Desistência",
+"chess.reason_flag": "Tempo esgotado",
+"chess.reason_flagdraw": "Tempo esgotado — sem material para mate",
+"chess.reason_material": "Material insuficiente",
+"chess.reason_rep3": "Repetição tripla",
+"chess.reason_rep5": "Repetição quíntupla",
+"chess.reason_move50": "Regra dos 50 lances",
+"chess.reason_move75": "Regra dos 75 lances",
+"chess.reason_agree": "Empate acordado",
+"chess.reason_left": "Oponente saiu",
+"captive.title": "Abra no navegador",
+"captive.body": "Este popup de Wi-Fi não mantém o jogo conectado. Para jogar, saia dele e abra o jogo no navegador do seu celular:",
+"captive.step1": "Toque em Cancelar, depois em Usar Sem Internet",
+"captive.step2": "Abra o navegador e vá para este endereço:",
+"captive.copy": "Copiar",
+"captive.dismiss": "Fechar",
+"common.round": "Rodada {n} / {total}",
+"scr.word": "Palavra {n} / {total}",
+"scr.answer": "Resposta",
+"scr.solved": "Resolvido! Aguardando o fim da rodada.",
+"scr.letters": "{n} letras",
+"gc.answer_val": "Resposta  {r}, {g}, {b}",
+"gc.you_closest": "Você chegou mais perto!",
+"gc.was_closest": "{nick} chegou mais perto",
+"common.win": "Vitória",
+"common.lose": "Derrota",
+"common.draw": "Empate",
+"common.over": "Fim",
+"common.your_turn": "Sua vez",
+"common.opp_turn": "Vez de {nick}",
+"common.opponent": "Oponente",
+"common.opp_left": "O oponente saiu",
+"common.zero_round": "+0 nesta rodada",
+"common.you": "Você",
+"common.them": "Eles",
+"rc.too_soon": "Cedo demais!",
+"rc.wait_next": "Espere a próxima rodada",
+"rc.tapped": "Tocou!",
+"rc.tap": "TOQUE!",
+"rc.wait_green": "Toque quando ficar verde",
+"rc.you_won": "Você venceu!",
+"rc.nick_won": "{nick} venceu",
+"rc.no_winner": "Sem vencedor",
+"sp.guess_hint": "Palpite: {n} — confirme quando quiser.",
+"sp.you_psychic": "Você é o médium",
+"sp.psychic_is": "Médium: {nick}",
+"sp.give_clue": "Dê uma dica que aponte para a zona laranja.",
+"sp.thinking": "{nick} está pensando numa dica…",
+"sp.clue_sent": "Dica enviada. Aguardando os palpites…",
+"sp.guess_locked": "Palpite travado em {n}. Aguardando…",
+"sp.drag": "Arraste o mostrador até onde a dica se encaixa e confirme.",
+"sp.clue_earned": "Sua dica te rendeu +{gain}",
+"sp.nice": "Boa — +{gain}",
+"kmk.kiss": "Beijar",
+"kmk.marry": "Casar",
+"kmk.kill": "Matar",
+"kmk.you_choose": "Você escolhe",
+"kmk.chooser_is": "Quem escolhe: {nick}",
+"kmk.read_perfect": "{perfect} de {total} acertaram você.  Você +{g}",
+"kmk.perfect": "Leitura perfeita! +{g}",
+"kmk.close": "Quase - +{g}",
+"kmk.lock_picks": "Confirmar escolhas",
+"kmk.tap_tag": "Toque em cada um para marcar Beijar, Casar ou Matar.",
+"kmk.deciding": "{nick} está decidindo…",
+"kmk.locked_waiting": "Confirmado. Aguardando os palpites…",
+"kmk.guess_locked": "Palpite travado. Aguardando…",
+"kmk.tap_set": "toque para marcar",
+"kmk.predict": "Preveja como {nick} marcou cada um.",
+"kmk.lock_guess": "Confirmar palpite",
+"bs.both_ready": "Ambos prontos...",
+"bs.opp_ready": "O oponente está pronto - posicione e Pronto",
+"bs.tap_ship": "Toque num navio e depois numa célula para movê-lo, ou Aleatório",
+"bs.your_turn_fire": "Sua vez - atire!",
+"bs.you_win": "Você venceu!",
+"bs.defeated": "Derrotado",
+"bs.ship_carrier": "Porta-aviões",
+"bs.ship_battleship": "Encouraçado",
+"bs.ship_cruiser": "Cruzador",
+"bs.ship_submarine": "Submarino",
+"bs.ship_destroyer": "Destróier",
+"draw.game_over": "Fim de jogo",
+"draw.got_it": "{nick} acertou",
+"draw.nobody": "Ninguém acertou",
+"draw.word_label": "Palavra:",
+"draw.round_over": "Fim da rodada",
+"draw.get_ready": "Prepare-se...",
+"draw.waiting": "Aguardando",
+"draw.is_drawing": "{nick} está desenhando",
+"wyr.meta": "O que você prefere... ({n} / {total})",
+"wyr.verdict_high": "Vocês concordam em média {p}% — sincronizados demais.",
+"wyr.verdict_mid": "Vocês concordam em média {p}% — turma bem afinada.",
+"wyr.verdict_low": "Vocês concordam em média {p}% — muito o que conversar!",
+"wyr.verdict_split": "Vocês concordam em média {p}% — uma casa dividida.",
+"wyr.verdict_polarized": "Racha total — {hi} unânimes, {lo} dividiram a sala.",
+"trivia.answered": "Responderam {n} / {total}",
+"net.quiet": "Conexão perdida?",
+"secrets.title": "Segredos",
+"secrets.count_topic": "Segredos",
+"secrets.predict_go": "Confirmar palpite",
+"secrets.yes": "Sim",
+"secrets.no": "Não",
+"secrets.predict_hint": "Seu palpite: quantos dos {n} jogadores disseram sim?",
+"secrets.predict_locked": "Travado em {n}. Aguardando os outros…",
+"secrets.answer_hint": "Sua resposta — só o total é revelado, nunca quem disse o quê.",
+"secrets.answer_locked": "Resposta confirmada. Aguardando…",
+"secrets.locked_count": "{n} / {total} prontos",
+"secrets.said_yes": "disseram sim",
+"secrets.result_exact": "Na mosca! +{gain}",
+"gamevote.pick": "Trocar de jogo",
+"gamevote.back_lobby": "Voltar ao lobby",
+"gamevote.lobby_label": "Lobby",
+"gamevote.wants": "{who} quer trocar para \"{game}\".",
+"gamevote.you_want": "Você quer trocar para {game}…",
+"gamevote.ok": "OK!",
+"gamevote.no": "Não, continuar",
+"gamevote.cancel": "Cancelar",
+"gamevote.waiting": "Aguardando os votos…",
+"gamevote.tally": "{yes} sim · {no} não",
+},
+};
+A.lang = "en";
+function t(key, params) {
+var cat = MESSAGES[A.lang] || MESSAGES.en;
+var s = cat[key];
+if (s == null) s = MESSAGES.en[key];
+if (s == null) return key;
+if (params)
+s = s.replace(/\{(\w+)\}/g, function (_, k) { return params[k] != null ? params[k] : "{" + k + "}"; });
+return s;
+}
+function applyI18n(root) {
+root = root || document;
+var els = root.querySelectorAll("[data-i18n]");
+for (var i = 0; i < els.length; i++) els[i].textContent = t(els[i].getAttribute("data-i18n"));
+var ph = root.querySelectorAll("[data-i18n-ph]");
+for (var j = 0; j < ph.length; j++) ph[j].setAttribute("placeholder", t(ph[j].getAttribute("data-i18n-ph")));
+}
+A.setLang = function (lang) {
+A.lang = (lang && MESSAGES[lang]) ? lang : "en";
+applyI18n();
+};
+document.addEventListener("DOMContentLoaded", function () { applyI18n(); });
 (function () {
 var ctx = null;
 var muted = false;
@@ -817,7 +1880,11 @@ win:     function (c) { chord(c, [{ f0: 523, dur: 0.1 }, { at: 0.1, f0: 659, dur
 lose:    function (c) { chord(c, [{ f0: 392, dur: 0.14, type: "sawtooth" }, { at: 0.14, f0: 262, dur: 0.24, type: "sawtooth" }]); },
 drop:    function (c) { chord(c, [{ f0: 420, f1: 120, dur: 0.11, type: "square", vol: 0.13 }]); },
 tick:    function (c) { chord(c, [{ f0: 900, dur: 0.03, type: "square", vol: 0.1 }]); },
-score:   function (c) { chord(c, [{ f0: 740, f1: 980, dur: 0.08, type: "square" }]); }
+check:   function (c) { chord(c, [{ f0: 1200, dur: 0.05, type: "square", vol: 0.13 }, { at: 0.06, f0: 1500, dur: 0.08, type: "square", vol: 0.13 }]); },
+score:   function (c) { chord(c, [{ f0: 740, f1: 980, dur: 0.08, type: "square" }]); },
+hit:     function (c) { chord(c, [{ f0: 170, f1: 55, dur: 0.22, type: "sawtooth", vol: 0.17 }, { f0: 80, dur: 0.12, type: "square", vol: 0.1 }]); },
+miss:    function (c) { chord(c, [{ f0: 620, f1: 190, dur: 0.14, type: "sine", vol: 0.14 }]); },
+sunk:    function (c) { chord(c, [{ f0: 300, dur: 0.11, type: "sawtooth", vol: 0.16 }, { at: 0.11, f0: 200, dur: 0.11, type: "sawtooth", vol: 0.16 }, { at: 0.22, f0: 110, dur: 0.22, type: "sawtooth", vol: 0.16 }]); }
 };
 A.sfx = function (name) {
 if (muted) return;
@@ -927,7 +1994,7 @@ function renderQuestion(m) {
 sub("play");
 revealedFor = -1;
 head(m);
-$("tv-answered").textContent = "Answered " + (m.answered || 0) + " / " + (m.total || 0);
+$("tv-answered").textContent = t("trivia.answered", { n: m.answered || 0, total: m.total || 0 });
 $("tv-q").textContent = m.q || "";
 var mine = (typeof m.mine === "number") ? m.mine : -1;
 noteDeadline(m.deadline, m.dur); A.timebar("tv-bar", m.deadline, m.dur, true);
@@ -1119,7 +2186,7 @@ function renderPlaying(m) {
 hide("duel-lobby"); hide("duel-over"); show("duel-match"); show("duel-leave");
 var myTurn = m.turn === m.you;
 var turn = $("duel-turn");
-turn.textContent = myTurn ? "Your turn" : (esc(m.opp || "Opponent") + "'s turn");
+turn.textContent = myTurn ? t("common.your_turn") : t("common.opp_turn", { nick: esc(m.opp) || t("common.opponent") });
 turn.className = "turn" + (myTurn ? " you" : "");
 if (m.kind === "dots") renderDots(m);
 else if (m.kind === "reversi") renderReversi(m);
@@ -1133,8 +2200,8 @@ prevTurnMine = myTurn;
 function renderOver(m) {
 hide("duel-lobby"); hide("duel-match"); show("duel-over"); show("duel-leave");
 var r = $("duel-result");
-var map = { win: ["Win", "win"], lose: ["Lose", "lose"], draw: ["Draw", "draw"] };
-var res = map[m.result] || ["Over", ""];
+var map = { win: [t("common.win"), "win"], lose: [t("common.lose"), "lose"], draw: [t("common.draw"), "draw"] };
+var res = map[m.result] || [t("common.over"), ""];
 r.textContent = res[0];
 r.className = "result " + res[1];
 if (prevPhase !== "over") {
@@ -1168,7 +2235,7 @@ if (rematchTimer) clearTimeout(rematchTimer);
 rematchTimer = setTimeout(function () {
 rematchTimer = null;
 if (prevPhase === "over" && A.view === "duel") {
-toast("Opponent left");
+toast(t("common.opp_left"));
 send({ t: "leaveGame" });
 }
 }, 1500);
@@ -1267,7 +2334,7 @@ role = ""; A.timebarStop("draw-bar");
 hide("draw-bar"); hide("draw-word"); hide("draw-canvas");
 hide("draw-tools"); hide("draw-guess"); hide("draw-reveal");
 show("draw-final");
-status.textContent = "Game over";
+status.textContent = t("draw.game_over");
 renderPodium(m.board);
 return;
 }
@@ -1276,9 +2343,9 @@ finaledFor = false;
 if (m.phase === "reveal") {
 role = ""; A.timebarStop("draw-bar"); hide("draw-bar");
 hide("draw-tools"); hide("draw-guess"); show("draw-reveal");
-var who = m.winner == null ? "Nobody guessed it" : (esc(nickOf(m.winner)) + " got it");
-reveal.innerHTML = "Word: <b>" + esc(m.word || "") + "</b><br>" + who;
-status.textContent = "Round over";
+var who = m.winner == null ? t("draw.nobody") : t("draw.got_it", { nick: esc(nickOf(m.winner)) });
+reveal.innerHTML = t("draw.word_label") + " <b>" + esc(m.word || "") + "</b><br>" + who;
+status.textContent = t("draw.round_over");
 if (revealedRound !== m.round) {
 revealedRound = (m.round == null ? -2 : m.round);
 if (m.winner === A.pid) { A.sfx("win"); A.vibe([40, 60, 40]); }
@@ -1289,8 +2356,8 @@ return;
 if (m.phase === "idle") {
 role = ""; A.timebarStop("draw-bar"); hide("draw-bar");
 hide("draw-tools"); hide("draw-guess"); show("draw-reveal");
-reveal.textContent = "Get ready...";
-status.textContent = "Waiting";
+reveal.textContent = t("draw.get_ready");
+status.textContent = t("draw.waiting");
 word.textContent = "";
 return;
 }
@@ -1298,7 +2365,7 @@ hide("draw-reveal");
 show("draw-word");
 role = m.role;
 revealedRound = -1;
-status.textContent = "Round " + (m.round || 1) + " / " + (m.rounds || m.round || 1);
+status.textContent = t("common.round", { n: (m.round || 1), total: (m.rounds || m.round || 1) });
 noteDeadline(m.deadline, m.dur);
 A.timebar("draw-bar", m.deadline, m.dur, false);
 if (role === "drawer") {
@@ -1313,7 +2380,7 @@ word.textContent = blanks(m.len || 0);
 hide("draw-tools"); show("draw-guess");
 $("draw-chat").innerHTML = "";
 var artist = esc(m.drawer || "Someone");
-chatLine("—", artist + " is drawing", "sys");
+chatLine("—", t("draw.is_drawing", { nick: artist }), "sys");
 sizeCanvas();
 canvas.classList.remove("drawable");
 }
@@ -1415,7 +2482,7 @@ if (!canvas) ready();
 sizeCanvas();
 st = m;
 $("pong-score").innerHTML =
-'<span' + (m.me === 1 ? ' class="you"' : "") + ">You " + (m.me === 1 ? m.s1 : m.s2) + "</span>" +
+'<span' + (m.me === 1 ? ' class="you"' : "") + ">" + t("common.you") + " " + (m.me === 1 ? m.s1 : m.s2) + "</span>" +
 '<span' + (m.me === 2 ? ' class="you"' : "") + ">" + esc(m.opp || "Opp") + " " + (m.me === 1 ? m.s2 : m.s1) + "</span>";
 if (prevPhase === "playing" && (m.s1 !== prevS1 || m.s2 !== prevS2)) { A.sfx("score"); A.vibe(20); }
 prevS1 = m.s1; prevS2 = m.s2;
@@ -1425,8 +2492,8 @@ function renderOver(m) {
 stopLoop();
 hide("pong-lobby"); hide("pong-match"); show("pong-over"); show("pong-leave");
 var r = $("pong-result");
-var map = { win: ["Win", "win"], lose: ["Lose", "lose"], draw: ["Draw", "draw"] };
-var res = map[m.result] || ["Over", ""];
+var map = { win: [t("common.win"), "win"], lose: [t("common.lose"), "lose"], draw: [t("common.draw"), "draw"] };
+var res = map[m.result] || [t("common.over"), ""];
 r.textContent = res[0]; r.className = "result " + res[1];
 if (prevPhase !== "over") {
 if (m.result === "win") { A.sfx("win"); A.vibe([40, 60, 40, 60, 120]); }
@@ -1499,7 +2566,7 @@ var revealedFor = -1;
 function renderPlay(m) {
 sub("play");
 var reveal = m.phase === "reveal";
-$("wyr-meta").textContent = "Would you rather... (" + m.round + " / " + m.rounds + ")";
+$("wyr-meta").textContent = t("wyr.meta", { n: m.round, total: m.rounds });
 noteDeadline(m.deadline, m.dur);
 A.timebar("wyr-bar", m.deadline, m.dur, true);
 var counts = m.counts || [0, 0];
@@ -1539,9 +2606,88 @@ $("wyr-tally").textContent = total + (total === 1 ? " vote" : " votes");
 if (reveal && revealedFor !== m.round) { revealedFor = m.round; A.sfx("correct"); A.vibe(20); }
 if (!reveal) revealedFor = -1;
 }
-function renderFinal() {
+function agreementPcts(rounds) {
+var out = [];
+for (var i = 0; i < (rounds || []).length; i++) {
+var a = rounds[i].a || 0, b = rounds[i].b || 0;
+if (a + b === 0) continue; // nobody voted: nothing to agree or disagree about
+out.push((Math.max(a, b) / (a + b)) * 100);
+}
+return out;
+}
+function axisFor(n) {
+var ticks = [];
+for (var k = Math.ceil(n / 2); k <= n; k++) ticks.push(Math.round((k / n) * 100));
+return ticks;
+}
+function verdictKey(mean) {
+if (mean >= 90) return "wyr.verdict_high";
+if (mean >= 75) return "wyr.verdict_mid";
+if (mean >= 60) return "wyr.verdict_low";
+return "wyr.verdict_split";
+}
+function renderChart(m) {
+var box = $("wyr-chart");
+var pcts = agreementPcts(m && m.rounds);
+if (!pcts.length) { box.classList.add("hide"); return; } // nothing played yet
+box.classList.remove("hide");
+var n = (m.voters > 1) ? m.voters : 2;
+var ticks = axisFor(n);
+var counts = [], i;
+for (i = 0; i < ticks.length; i++) counts.push(0);
+for (i = 0; i < pcts.length; i++) {
+var best = 0;
+for (var j = 1; j < ticks.length; j++)
+if (Math.abs(ticks[j] - pcts[i]) < Math.abs(ticks[best] - pcts[i])) best = j;
+counts[best]++;
+}
+var max = 0;
+for (i = 0; i < counts.length; i++) if (counts[i] > max) max = counts[i];
+var wrap = $("wyr-buckets");
+wrap.innerHTML = "";
+for (i = 0; i < ticks.length; i++) {
+var col = document.createElement("div");
+col.className = "wyr-bkt" + (counts[i] ? " on" : "");
+col.innerHTML =
+'<span class="wyr-bn">' + counts[i] + "</span>" +
+'<div class="wyr-bwrap">' +
+(counts[i] ? '<i style="height:' + Math.round((counts[i] / max) * 100) + '%"></i>' : "") +
+"</div>" +
+'<span class="wyr-bx">' + ticks[i] + "%</span>";
+wrap.appendChild(col);
+}
+var mean = 0;
+for (i = 0; i < pcts.length; i++) mean += pcts[i];
+mean /= pcts.length;
+var lo = ticks[0], hi = ticks[ticks.length - 1], atLo = 0, atHi = 0;
+for (i = 0; i < pcts.length; i++) {
+if (Math.round(pcts[i]) <= lo + 1) atLo++;
+else if (Math.round(pcts[i]) >= hi - 1) atHi++;
+}
+var line = $("wyr-mean");
+if (pcts.length >= 4 && atLo >= pcts.length / 3 && atHi >= pcts.length / 3) {
+line.classList.add("hide");
+$("wyr-verdict").textContent = t("wyr.verdict_polarized", { hi: atHi, lo: atLo });
+return;
+}
+var slot = 0;
+if (mean >= ticks[ticks.length - 1]) slot = ticks.length - 1;
+else if (mean > ticks[0]) {
+for (i = 0; i < ticks.length - 1; i++)
+if (mean >= ticks[i] && mean <= ticks[i + 1]) {
+slot = i + (mean - ticks[i]) / (ticks[i + 1] - ticks[i]);
+break;
+}
+}
+line.classList.remove("hide");
+line.style.left = (((slot + 0.5) / ticks.length) * 100).toFixed(2) + "%";
+$("wyr-mean-val").textContent = Math.round(mean) + "%";
+$("wyr-verdict").textContent = t(verdictKey(mean), { p: Math.round(mean) });
+}
+function renderFinal(m) {
 sub("final");
 stopBar();
+renderChart(m);
 A.sfx("win"); A.vibe([20, 40, 20]);
 }
 A.handlers.wyr = function (m) {
@@ -1566,6 +2712,11 @@ send({ t: "again" });
 (function () {
 var myready = false;
 var solvedFor = -1;
+function upTiles(s) {
+return String(s || "")
+.replace(/[a-z]/g, function (c) { return c.toUpperCase(); })
+.replace(/ß/g, "ẞ");
+}
 function sub(name) {
 ["lobby", "count", "play", "final"].forEach(function (id) {
 $("scr-" + id).classList.toggle("hide", id !== name);
@@ -1589,23 +2740,23 @@ A.countdown("scr-count-num", m.sec);
 function renderPlay(m) {
 sub("play");
 var reveal = m.phase === "reveal";
-$("scr-meta").textContent = "Word " + m.round + " / " + m.rounds;
+$("scr-meta").textContent = t("scr.word", { n: m.round, total: m.rounds });
 var letters = $("scr-letters");
 var form = $("scr-form"), status = $("scr-status");
 if (reveal) {
 A.timebarStop("scr-bar"); hide("scr-bar");
 letters.className = "scr-letters answer";
-letters.textContent = (m.word || "").toUpperCase();
+letters.textContent = upTiles(m.word);
 form.classList.add("hide");
-status.textContent = "Answer";
+status.textContent = t("scr.answer");
 solvedFor = -1;
 } else {
 noteDeadline(m.deadline, m.dur); A.timebar("scr-bar", m.deadline, m.dur, false);
 letters.className = "scr-letters";
-letters.textContent = (m.scram || "").toUpperCase().split("").join(" ");
+letters.textContent = upTiles(m.scram).split("").join(" ");
 var solved = !!m.solved;
 form.classList.toggle("hide", solved);
-status.textContent = solved ? "Solved! Waiting for the round to end." : (m.len + " letters");
+status.textContent = solved ? t("scr.solved") : t("scr.letters", { n: m.len });
 if (solved && solvedFor !== m.round) { solvedFor = m.round; A.sfx("correct"); A.vibe([25, 40, 25]); }
 }
 A.showLead(m.scores || [], reveal);
@@ -1665,15 +2816,15 @@ A.countdown("rc-count-num", m.sec);
 }
 function renderArmed(m) {
 sub("arena");
-$("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+$("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
 var pad = $("rc-pad");
 var go = m.light === "go";
 var cls = "rc-pad " + (m.dq ? "dq" : go ? "go" : "wait");
 pad.className = cls;
-if (m.dq) pad.innerHTML = '<span class="rc-big">Too soon!</span><span class="rc-sub">Wait for the next round</span>';
-else if (m.tapped) pad.innerHTML = '<span class="rc-big">Tapped!</span>';
-else if (go) pad.innerHTML = '<span class="rc-big">TAP!</span>';
-else pad.innerHTML = '<span class="rc-big">Wait...</span><span class="rc-sub">Tap when it turns green</span>';
+if (m.dq) pad.innerHTML = '<span class="rc-big">' + t("rc.too_soon") + '</span><span class="rc-sub">' + t("rc.wait_next") + '</span>';
+else if (m.tapped) pad.innerHTML = '<span class="rc-big">' + t("rc.tapped") + '</span>';
+else if (go) pad.innerHTML = '<span class="rc-big">' + t("rc.tap") + '</span>';
+else pad.innerHTML = '<span class="rc-big">' + t("rc.wait") + '</span><span class="rc-sub">' + t("rc.wait_green") + '</span>';
 if (go && !greenBuzzed && armedFor === m.round) { greenBuzzed = true; A.sfx("buzz"); A.vibe(30); }
 if (armedFor !== m.round) { armedFor = m.round; greenBuzzed = false; }
 A.showLead(m.scores || [], false);
@@ -1681,22 +2832,22 @@ A.showLead(m.scores || [], false);
 function renderReveal(m) {
 sub("arena");
 A.showLead(m.scores || [], true);
-$("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+$("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
 var pad = $("rc-pad");
 pad.className = "rc-pad reveal";
 if (m.winner) {
-pad.innerHTML = '<span class="rc-big">' + (m.iwon ? "You won!" : esc(m.winner) + " won") + "</span>" +
+pad.innerHTML = '<span class="rc-big">' + (m.iwon ? t("rc.you_won") : t("rc.nick_won", { nick: esc(m.winner) })) + "</span>" +
 '<span class="rc-sub">' + m.ms + " ms</span>";
 if (m.iwon) { A.sfx("win"); A.vibe([30, 50, 30]); } else A.sfx("tick");
 } else {
-pad.innerHTML = '<span class="rc-big">No winner</span>';
+pad.innerHTML = '<span class="rc-big">' + t("rc.no_winner") + '</span>';
 }
 greenBuzzed = false; armedFor = -1;
 }
 function renderFinal(m) {
 sub("final");
 A.hideLead();
-var b = A.podium("rc-podium", m.scores);
+var b = A.podium("rc-podium", m.board); // final JSON carries the scoreboard as `board`
 if (b.length && b[0].pid === A.pid) { A.sfx("win"); A.vibe([30, 50, 30]); }
 else A.sfx("lose");
 }
@@ -1721,5 +2872,1095 @@ send({ t: "again" });
 });
 $("rc-pad").addEventListener("click", function () {
 send({ t: "tap" });
+});
+})();
+(function () {
+var myready = false;
+var gr = 128, gg = 128, gb = 128; // local guess, adjusted with the arrows
+var round = -1, submitted = false;
+function sub(name) {
+["lobby", "count", "play", "reveal", "final"].forEach(function (id) {
+$("gc-" + id).classList.toggle("hide", id !== name);
+});
+}
+function clamp(v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
+function get(ch) { return ch === "r" ? gr : ch === "g" ? gg : gb; }
+function set(ch, v) { v = clamp(v); if (ch === "r") gr = v; else if (ch === "g") gg = v; else gb = v; }
+function paintGuess() {
+["r", "g", "b"].forEach(function (ch) {
+var v = get(ch);
+$("gc-" + ch + "-val").textContent = v;
+var s = $("gc-" + ch + "-slider");
+if (+s.value !== v) s.value = v;
+});
+}
+function lock(on) {
+submitted = on;
+$("gc-submit").classList.toggle("hide", on);
+$("gc-wait").classList.toggle("hide", !on);
+["gc-r-up", "gc-r-dn", "gc-g-up", "gc-g-dn", "gc-b-up", "gc-b-dn",
+"gc-r-slider", "gc-g-slider", "gc-b-slider"].forEach(function (id) {
+$(id).disabled = on;
+});
+}
+function renderLobby(m) {
+sub("lobby");
+A.hideLead();
+myready = A.readyLobby({ players: m.players, listId: "gc-players", readyId: "gc-ready", meId: "gc-me" });
+}
+function renderCount(m) {
+sub("count");
+A.hideLead();
+A.countdown("gc-count-num", m.sec);
+}
+function renderPlay(m) {
+sub("play");
+$("gc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
+$("gc-target").style.background = m.color;
+if (m.round !== round) {           // new round: reset the guess and unlock
+round = m.round;
+gr = gg = gb = 128;
+paintGuess();
+lock(false);
+A.sfx("start");
+}
+if (m.submitted && !submitted) lock(true);
+A.showLead(m.scores || [], false);
+}
+function renderReveal(m) {
+sub("reveal");
+$("gc-rmeta").textContent = t("common.round", { n: m.round, total: m.rounds });
+$("gc-rtarget").style.background = m.color; // the answer color, shown big up top
+$("gc-answer").textContent = t("gc.answer_val", { r: m.r, g: m.g, b: m.b });
+var gs = (m.guesses || []).slice().sort(function (a, b) {
+return b.points - a.points || a.dist - b.dist;
+});
+var list = $("gc-guesses");
+list.innerHTML = "";
+gs.forEach(function (g) {
+var row = document.createElement("div");
+row.className = "gc-grow" +
+(g.pid === A.pid ? " you" : "") +
+(g.pid === m.winnerPid ? " win" : "");
+row.innerHTML =
+'<span class="gc-gsw">' +
+'<span class="gc-h" style="background:' + esc(m.color) + '"></span>' +
+'<span class="gc-h" style="background:' + esc(g.color) + '"></span>' +
+"</span>" +
+'<span class="gc-gn">' + esc(g.nick) + "</span>" +
+'<span class="gc-gd">off ' + g.dist + "</span>" +
+'<span class="gc-gp">' + g.points + "/10</span>";
+list.appendChild(row);
+});
+if (!gs.length) list.innerHTML = '<div class="gc-grow"><span class="gc-gn">No guesses</span></div>';
+if (m.winner) {
+$("gc-winner").textContent = m.iwon ? t("gc.you_closest") : t("gc.was_closest", { nick: m.winner });
+if (m.iwon) { A.sfx("win"); A.vibe([30, 50, 30]); } else A.sfx("tick");
+} else {
+$("gc-winner").textContent = "";
+}
+round = -1; // force a reset when the next play round arrives
+A.showLead(m.scores || [], true);
+}
+function renderFinal(m) {
+sub("final");
+A.hideLead();
+var b = A.podium("gc-podium", m.board); // final JSON carries the scoreboard as `board`
+if (b.length && b[0].pid === A.pid) { A.sfx("win"); A.vibe([30, 50, 30]); }
+else A.sfx("lose");
+round = -1;
+}
+A.handlers.gc = function (m) {
+route("gc");
+if (A.view !== "gc") return;
+switch (m.phase) {
+case "lobby": renderLobby(m); break;
+case "countdown": renderCount(m); break;
+case "play": renderPlay(m); break;
+case "reveal": renderReveal(m); break;
+case "final": renderFinal(m); break;
+}
+};
+function bindStep(el, apply) {
+var timer = 0, delay = 0;
+function step() {
+apply();
+delay = Math.max(28, delay - 24);
+timer = setTimeout(step, delay);
+}
+function down(e) {
+e.preventDefault();
+if (submitted) return;
+apply();
+delay = 200;
+timer = setTimeout(step, delay);
+}
+function up(e) { if (e) e.preventDefault(); if (timer) { clearTimeout(timer); timer = 0; } }
+el.addEventListener("pointerdown", down);
+el.addEventListener("pointerup", up);
+el.addEventListener("pointerleave", up);
+el.addEventListener("pointercancel", up);
+}
+document.addEventListener("DOMContentLoaded", function () {
+["r", "g", "b"].forEach(function (ch) {
+bindStep($("gc-" + ch + "-up"), function () { set(ch, get(ch) + 1); paintGuess(); A.vibe(4); });
+bindStep($("gc-" + ch + "-dn"), function () { set(ch, get(ch) - 1); paintGuess(); A.vibe(4); });
+$("gc-" + ch + "-slider").addEventListener("input", function (e) {
+if (submitted) return;
+set(ch, +e.target.value);
+paintGuess();
+});
+});
+$("gc-ready").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(15);
+send({ t: "ready", ready: !myready });
+});
+$("gc-submit").addEventListener("click", function () {
+if (submitted) return;
+lock(true);
+A.sfx("score"); A.vibe(20);
+send({ t: "guess", r: gr, g: gg, b: gb });
+});
+$("gc-again").addEventListener("click", function () {
+A.sfx("start"); A.vibe(20);
+send({ t: "again" });
+});
+});
+})();
+(function () {
+var SIZE = 10, N = 100;
+var LENS = [5, 4, 3, 3, 2];          // fixed ship order (server matches this)
+var NAMES = ["bs.ship_carrier", "bs.ship_battleship", "bs.ship_cruiser", "bs.ship_submarine", "bs.ship_destroyer"];
+var ships = null;                     // local placement: [{len,r,c,d,placed}]
+var sel = 0;                          // selected ship index
+var prevPhase = "";
+var prevTrack = null;                 // last tracking grid, to animate new shots
+var prevMine = null;                  // last fleet grid, to detect incoming hits
+var prevYourTurn = false;             // to cue when the turn flips to you
+var rematchTimer = null;
+function sub(name) {
+["lobby", "place", "fire", "over"].forEach(function (id) {
+$("bs-" + id).classList.toggle("hide", id !== name);
+});
+}
+function grid(el, cls, tap) {
+var rebuild = el.childElementCount !== N;
+if (rebuild) el.innerHTML = "";
+for (var i = 0; i < N; i++) {
+var cell = rebuild ? document.createElement("div") : el.children[i];
+cell.className = "bs-cell " + cls(i);
+if (rebuild) el.appendChild(cell);
+}
+el.onclick = tap
+? function (e) {
+var idx = Array.prototype.indexOf.call(el.children, e.target);
+if (idx >= 0) tap(idx);
+}
+: null;
+}
+function cellsOf(s) {
+var out = [];
+for (var k = 0; k < s.len; k++) out.push(s.d ? (s.r + k) * SIZE + s.c : s.r * SIZE + (s.c + k));
+return out;
+}
+function fits(s, ignore) {
+if (s.d ? s.r + s.len > SIZE : s.c + s.len > SIZE) return false;
+if (s.r < 0 || s.c < 0) return false;
+var occ = {};
+ships.forEach(function (o, i) {
+if (i === ignore || !o.placed) return;
+cellsOf(o).forEach(function (idx) { occ[idx] = 1; });
+});
+return cellsOf(s).every(function (idx) { return !occ[idx]; });
+}
+function initPlacement() {
+ships = LENS.map(function (len) { return { len: len, r: 0, c: 0, d: 0, placed: false }; });
+sel = 0;
+randomize(); // start with a valid random fleet; players tweak or just hit Ready
+}
+function randomize() {
+for (var attempt = 0; attempt < 500; attempt++) {
+ships.forEach(function (s) { s.placed = false; });
+var ok = true;
+for (var i = 0; i < ships.length && ok; i++) {
+var placed = false;
+for (var t = 0; t < 100 && !placed; t++) {
+var s = ships[i];
+s.d = Math.random() < 0.5 ? 0 : 1;
+s.r = Math.floor(Math.random() * SIZE);
+s.c = Math.floor(Math.random() * SIZE);
+if (fits(s, i)) { s.placed = true; placed = true; }
+}
+if (!placed) ok = false;
+}
+if (ok) return;
+}
+}
+function allPlaced() { return ships.every(function (s) { return s.placed; }); }
+function renderTray() {
+var tray = $("bs-tray");
+tray.innerHTML = "";
+ships.forEach(function (s, i) {
+var b = document.createElement("button");
+b.className = "bs-ship" + (i === sel ? " sel" : "") + (s.placed ? " placed" : "");
+b.textContent = t(NAMES[i]) + " (" + s.len + ")";
+b.onclick = function () { sel = i; renderPlace(lastPlaceMsg); };
+tray.appendChild(b);
+});
+}
+var lastPlaceMsg = null;
+function renderPlace(m) {
+lastPlaceMsg = m;
+sub("place");
+if (m.ready) {                       // committed: lock, wait for opponent
+$("bs-place-actions").classList.add("hide");
+$("bs-wait").classList.remove("hide");
+$("bs-place-hint").textContent = m.oppReady ? t("bs.both_ready") : t("bs.wait_opp");
+} else {
+$("bs-place-actions").classList.remove("hide");
+$("bs-wait").classList.add("hide");
+$("bs-place-hint").textContent = m.oppReady ? t("bs.opp_ready") : t("bs.tap_ship");
+}
+$("bs-ready").disabled = !allPlaced();
+var occ = {};
+ships.forEach(function (s, i) { if (s.placed) cellsOf(s).forEach(function (idx) { occ[idx] = i; }); });
+grid($("bs-place-grid"), function (i) {
+return i in occ ? "ship" + (occ[i] === sel ? " sel" : "") : "";
+}, m.ready ? null : function (i) {
+if (i in occ) { sel = occ[i]; A.vibe(6); renderPlace(m); return; } // tap a ship to select it
+var s = ships[sel];
+var old = { r: s.r, c: s.c, placed: s.placed };
+s.r = Math.floor(i / SIZE); s.c = i % SIZE;
+if (fits(s, sel)) {
+s.placed = true;
+A.sfx("drop"); A.vibe(12);
+renderPlace(m);
+} else { s.r = old.r; s.c = old.c; s.placed = old.placed; }
+});
+renderTray();
+}
+function renderFire(m) {
+sub("fire");
+var t = $("bs-turn");
+t.textContent = m.yourTurn ? t("bs.your_turn_fire") : t("common.opp_turn", { nick: esc(m.opp) || t("common.opponent") });
+t.className = "turn" + (m.yourTurn ? " you" : "");
+$("bs-ships").textContent = t("common.you") + " " + m.myShips + " | " + t("common.them") + " " + m.oppShips;
+var TR = ["", "miss", "hit", "sunk"];
+var track = $("bs-track-grid");
+track.classList.toggle("waiting", !m.yourTurn); // dim + no taps when it's not your turn
+track.classList.toggle("myturn", m.yourTurn);   // orange border when it's your turn to fire
+if (prevTrack) {
+for (var s = 0; s < N; s++) {
+if (prevTrack[s] === 0 && m.track[s] !== 0) {
+var v = m.track[s];
+A.sfx(v === 1 ? "miss" : v === 3 ? "sunk" : "hit");
+A.vibe(v === 1 ? 12 : [20, 40]);
+break;
+}
+}
+}
+grid(track, function (i) {
+var cls = TR[m.track[i]];
+if (prevTrack && prevTrack[i] === 0 && m.track[i] !== 0) cls += " pop"; // this shot just landed
+return cls;
+}, m.yourTurn ? function (i) {
+if (m.track[i] !== 0) return;      // already fired here
+A.vibe(10);                        // tap feedback; the hit/miss sound plays on the result
+send({ t: "fire", n: i });
+} : null);
+prevTrack = m.track.slice();
+var MI = ["", "ship", "miss", "hit"];
+if (prevMine) {
+for (var mi = 0; mi < N; mi++) {
+if (prevMine[mi] !== 3 && m.mine[mi] === 3) { A.sfx("hit"); A.vibe([30, 60]); break; }
+}
+}
+prevMine = m.mine.slice();
+if (m.yourTurn && !prevYourTurn) { A.sfx("tick"); A.vibe(30); }
+prevYourTurn = m.yourTurn;
+grid($("bs-fleet-grid"), function (i) { return MI[m.mine[i]]; }, null);
+}
+function renderOver(m) {
+sub("over");
+var r = $("bs-result");
+r.textContent = m.result === "win" ? t("bs.you_win") : t("bs.defeated");
+r.className = "result " + (m.result === "win" ? "win" : "lose");
+if (prevPhase !== "over") {
+if (m.result === "win") { A.sfx("win"); A.vibe([40, 60, 40, 60, 120]); }
+else { A.sfx("lose"); A.vibe(200); }
+}
+var TR = ["", "miss", "hit", "sunk"];
+grid($("bs-over-grid"), function (i) {
+if (m.track[i]) return TR[m.track[i]];
+return m.oppFleet && m.oppFleet[i] ? "ship" : "";
+}, null);
+}
+A.handlers.bs = function (m) {
+route("bs");
+if (A.view !== "bs") return;
+if (rematchTimer && m.phase !== "over") { clearTimeout(rematchTimer); rematchTimer = null; }
+if (m.phase !== "fire") { prevTrack = null; prevMine = null; prevYourTurn = false; } // reset cues across phases
+$("bs-leave").classList.toggle("hide", m.phase === "lobby");
+if (m.phase === "lobby") {
+sub("lobby");
+lobbyView($("bs-incoming"), $("bs-players"), m.challenges);
+} else if (m.phase === "place") {
+if (prevPhase !== "place") initPlacement();
+renderPlace(m);
+} else if (m.phase === "fire") {
+renderFire(m);
+} else if (m.phase === "over") {
+renderOver(m);
+}
+prevPhase = m.phase;
+};
+document.addEventListener("DOMContentLoaded", function () {
+$("bs-rotate").addEventListener("click", function () {
+var s = ships[sel];
+s.d ^= 1;
+if (s.placed && !fits(s, sel)) s.d ^= 1;   // revert if the rotation doesn't fit
+A.vibe(8);
+renderPlace(lastPlaceMsg);
+});
+$("bs-random").addEventListener("click", function () {
+randomize(); sel = 0; A.sfx("drop"); A.vibe(15);
+renderPlace(lastPlaceMsg);
+});
+$("bs-ready").addEventListener("click", function () {
+if (!allPlaced()) return;
+var str = ships.map(function (s) { return s.r + "," + s.c + "," + s.d; }).join(";");
+A.sfx("buzz"); A.vibe(20);
+send({ t: "place", ships: str });
+});
+$("bs-leave").addEventListener("click", function () { send({ t: "leaveGame" }); });
+$("bs-back").addEventListener("click", function () { send({ t: "leaveGame" }); });
+$("bs-rematch").addEventListener("click", function () {
+A.sfx("buzz"); send({ t: "rematch" });
+if (rematchTimer) clearTimeout(rematchTimer);
+rematchTimer = setTimeout(function () {
+rematchTimer = null;
+if (prevPhase === "over" && A.view === "bs") { toast(t("common.opp_left")); send({ t: "leaveGame" }); }
+}, 1500);
+});
+});
+})();
+(function () {
+var myready = false;
+function sub(name) {
+["lobby", "count", "play", "final"].forEach(function (id) {
+$("sp-" + id).classList.toggle("hide", id !== name);
+});
+}
+function stopBar() { A.timebarStop("sp-bar"); hide("sp-bar"); }
+var DC = { x: 110, y: 114, r: 96 };
+var SVGNS = "http://www.w3.org/2000/svg";
+function pt(v, r) {
+if (r == null) r = DC.r;
+var deg = 180 - Math.max(0, Math.min(100, v)) * 1.8; // 0->180deg (left), 100->0deg (right)
+var a = deg * Math.PI / 180;
+return { x: DC.x + r * Math.cos(a), y: DC.y - r * Math.sin(a) };
+}
+function sector(v1, v2) { // filled wedge hub -> arc(v1..v2) -> hub
+v1 = Math.max(0, Math.min(100, v1));
+v2 = Math.max(0, Math.min(100, v2));
+var a = pt(v1), b = pt(v2);
+return "M" + DC.x + " " + DC.y + " L" + a.x.toFixed(1) + " " + a.y.toFixed(1) +
+" A" + DC.r + " " + DC.r + " 0 0 1 " + b.x.toFixed(1) + " " + b.y.toFixed(1) + " Z";
+}
+function mk(tag, attrs) {
+var e = document.createElementNS(SVGNS, tag);
+for (var k in attrs) e.setAttribute(k, attrs[k]);
+return e;
+}
+function drawTarget(target) {
+var g = $("sp-bands"); g.innerHTML = "";
+[[12, "b2"], [7, "b3"], [2, "b4"]].forEach(function (z) {
+g.appendChild(mk("path", { d: sector(target - z[0], target + z[0]), class: "sp-band " + z[1] }));
+});
+var top = pt(target, DC.r), hub = pt(target, 10);
+g.appendChild(mk("line", { x1: hub.x, y1: hub.y, x2: top.x, y2: top.y, class: "sp-tline" }));
+}
+function clearTarget() { $("sp-bands").innerHTML = ""; }
+function setNeedle(v, reveal) {
+var n = $("sp-ndl"), tip = pt(v, DC.r - 8);
+n.setAttribute("x2", tip.x.toFixed(1));
+n.setAttribute("y2", tip.y.toFixed(1));
+n.classList.remove("hide");
+n.classList.toggle("reveal", !!reveal);
+}
+var spGuess = 50, spCanGuess = false, dragging = false;
+function valFromEvent(e) {
+var svg = $("sp-dial"), r = svg.getBoundingClientRect();
+if (!r.width || !r.height) return spGuess; // not laid out yet; keep current
+var cx = (e.clientX != null) ? e.clientX : (e.touches && e.touches[0].clientX);
+var cy = (e.clientY != null) ? e.clientY : (e.touches && e.touches[0].clientY);
+var x = (cx - r.left) * 220 / r.width, y = (cy - r.top) * 128 / r.height;
+var deg = Math.atan2(DC.y - y, x - DC.x) * 180 / Math.PI; // 180 left, 90 up, 0 right
+deg = Math.max(0, Math.min(180, deg));
+return Math.round((180 - deg) / 1.8);
+}
+function dragMove(e) {
+if (!dragging || !spCanGuess) return;
+spGuess = valFromEvent(e);
+setNeedle(spGuess, false);
+$("sp-note").textContent = t("sp.guess_hint", { n: spGuess });
+if (e.cancelable) e.preventDefault();
+}
+function dragStart(e) { if (!spCanGuess) return; dragging = true; dragMove(e); }
+function dragEnd() { dragging = false; }
+function renderLobby(m) {
+sub("lobby");
+stopBar();
+myready = A.readyLobby({ players: m.players, listId: "sp-players", readyId: "sp-ready", meId: "sp-me" });
+A.packVote({
+boxId: "sp-topics",
+packs: m.packs, myvote: m.myvote,
+onVote: function (i) { send({ t: "vote", pack: i }); },
+});
+}
+function renderCount(m) {
+sub("count");
+stopBar();
+A.countdown("sp-count-num", m.sec);
+}
+var lastRound = -1, lastStage = "";
+function renderPlay(m) {
+sub("play");
+var stage = m.stage; // "clue" | "guess" | "reveal"
+$("sp-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
+$("sp-role").textContent = m.iam ? t("sp.you_psychic") : t("sp.psychic_is", { nick: m.psychic });
+$("sp-left").textContent = m.left || "";
+$("sp-right").textContent = m.right || "";
+noteDeadline(m.deadline, m.dur);
+A.timebar("sp-bar", m.deadline, m.dur, false);
+var needle = $("sp-ndl"), dmarks = $("sp-dmarks");
+var clueForm = $("sp-clueform"), clue = $("sp-clue");
+var guessGo = $("sp-guessgo"), note = $("sp-note");
+dmarks.innerHTML = "";
+needle.classList.add("hide");
+spCanGuess = false; // only re-enabled below when I'm a guesser mid-guess
+if (typeof m.target === "number") drawTarget(m.target); else clearTarget();
+clue.textContent = m.clue ? "“" + m.clue + "”" : "";
+clue.classList.toggle("hide", !m.clue);
+if (stage === "clue") {
+clueForm.classList.toggle("hide", !m.iam);
+guessGo.classList.add("hide");
+if (m.iam) {
+note.textContent = t("sp.give_clue");
+if (lastRound !== m.round) { $("sp-cluein").value = ""; setTimeout(function () { $("sp-cluein").focus(); }, 60); }
+} else {
+note.textContent = t("sp.thinking", { nick: m.psychic });
+}
+} else if (stage === "guess") {
+clueForm.classList.add("hide");
+if (m.iam) {
+spCanGuess = false;
+guessGo.classList.add("hide");
+note.textContent = t("sp.clue_sent");
+} else {
+var locked = (typeof m.myguess === "number" && m.myguess >= 0);
+if (lastRound !== m.round || lastStage !== "guess") spGuess = locked ? m.myguess : 50;
+spCanGuess = !locked;
+setNeedle(spGuess, false); // drag the dial to move it
+guessGo.classList.toggle("hide", locked);
+guessGo.disabled = locked;
+note.textContent = locked ? t("sp.guess_locked", { n: m.myguess })
+: t("sp.drag");
+}
+} else { // reveal
+spCanGuess = false;
+clueForm.classList.add("hide");
+guessGo.classList.add("hide");
+(m.guesses || []).forEach(function (g) {
+var hit = g.pts > 0;
+var dot = pt(g.g, DC.r), lab = pt(g.g, DC.r + 12);
+var c = document.createElementNS(SVGNS, "circle");
+c.setAttribute("cx", dot.x.toFixed(1)); c.setAttribute("cy", dot.y.toFixed(1));
+c.setAttribute("r", "4"); c.setAttribute("class", "sp-dot" + (hit ? " hit" : ""));
+dmarks.appendChild(c);
+var t = document.createElementNS(SVGNS, "text");
+t.setAttribute("x", lab.x.toFixed(1)); t.setAttribute("y", lab.y.toFixed(1));
+t.setAttribute("text-anchor", lab.x < DC.x - 10 ? "end" : lab.x > DC.x + 10 ? "start" : "middle");
+t.setAttribute("class", "sp-dlabel" + (hit ? " hit" : ""));
+t.textContent = g.nick + " +" + g.pts;
+dmarks.appendChild(t);
+});
+var gain = (typeof m.mygain === "number") ? m.mygain : 0;
+note.textContent = m.iam ? t("sp.clue_earned", { gain: gain })
+: (gain > 0 ? t("sp.nice", { gain: gain }) : t("common.zero_round"));
+if (lastRound !== m.round || lastStage !== "reveal") {
+A.sfx(gain > 0 ? "correct" : "buzz"); A.vibe(gain > 0 ? 25 : 12);
+}
+}
+lastRound = m.round; lastStage = stage;
+}
+function renderFinal(m) {
+sub("final");
+stopBar();
+var b = A.podium("sp-podium", m.board);
+if (b && b.length && b[0].pid === A.pid) { A.sfx("win"); A.vibe([30, 50, 30]); }
+else { A.sfx("start"); A.vibe(20); }
+}
+A.handlers.spectrum = function (m) {
+route("spectrum");
+if (A.view !== "spectrum") return;
+switch (m.phase) {
+case "lobby": renderLobby(m); break;
+case "countdown": renderCount(m); break;
+case "play": renderPlay(m); break;
+case "final": renderFinal(m); break;
+}
+};
+$("sp-ready").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(15);
+send({ t: "ready", ready: !myready });
+});
+var dial = $("sp-dial");
+dial.addEventListener("pointerdown", dragStart);
+window.addEventListener("pointermove", dragMove, { passive: false });
+window.addEventListener("pointerup", dragEnd);
+window.addEventListener("pointercancel", dragEnd);
+$("sp-cluego").addEventListener("click", function () {
+var v = $("sp-cluein").value.trim();
+if (!v) return;
+A.sfx("start"); A.vibe(20);
+send({ t: "clue", text: v });
+});
+$("sp-cluein").addEventListener("keydown", function (e) {
+if (e.key === "Enter") $("sp-cluego").click();
+});
+$("sp-guessgo").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(18);
+send({ t: "slide", n: spGuess });
+spCanGuess = false;
+this.classList.add("hide");
+});
+$("sp-again").addEventListener("click", function () {
+A.sfx("start"); A.vibe(20);
+send({ t: "again" });
+});
+})();
+(function () {
+var myready = false;
+var LBL = ["kmk.kiss", "kmk.marry", "kmk.kill"]; // index = label key
+var EMO = ["💋", "💍", "💀"]; // kiss/marry/kill
+function sub(name) {
+["lobby", "count", "play", "final"].forEach(function (id) {
+$("kmk-" + id).classList.toggle("hide", id !== name);
+});
+}
+function stopBar() { A.timebarStop("kmk-bar"); hide("kmk-bar"); }
+var mine = [-1, -1, -1];
+var canEdit = false;
+function valid(a) { // a permutation of 0,1,2?
+return a.indexOf(0) >= 0 && a.indexOf(1) >= 0 && a.indexOf(2) >= 0;
+}
+function nextLabel(cur) { return cur >= 2 ? -1 : cur + 1; } // none->kiss->marry->kill->none
+function renderLobby(m) {
+sub("lobby");
+stopBar();
+myready = A.readyLobby({ players: m.players, listId: "kmk-players", readyId: "kmk-ready", meId: "kmk-me" });
+A.packVote({
+boxId: "kmk-topics",
+packs: m.packs, myvote: m.myvote,
+onVote: function (i) { send({ t: "vote", pack: i }); },
+});
+}
+function renderCount(m) {
+sub("count");
+stopBar();
+A.countdown("kmk-count-num", m.sec);
+}
+function renderPeople(people, labels, interactive, answer, counts, total) {
+var box = $("kmk-people");
+box.innerHTML = "";
+(people || []).forEach(function (name, i) {
+var row = document.createElement("div");
+row.className = "kmk-row";
+var lab = labels && labels[i] >= 0 ? labels[i] : -1;
+var tag = lab >= 0 ? '<span class="kmk-tag l' + lab + '">' + EMO[lab] + " " + t(LBL[lab]) + "</span>"
+: '<span class="kmk-tag none">' + t("kmk.tap_set") + '</span>';
+var extra = "";
+if (answer) {
+tag = '<span class="kmk-tag l' + answer[i] + '">' + EMO[answer[i]] + " " + t(LBL[answer[i]]) + "</span>";
+if (counts) {
+extra = '<span class="kmk-count">' + counts[i] + "/" + total + "</span>";
+} else if (labels) {
+var right = labels[i] === answer[i];
+extra = '<span class="kmk-mark ' + (right ? "ok" : "no") + '">' + (right ? "✓" : "✗") + "</span>";
+}
+}
+row.innerHTML = '<span class="kmk-name">' + esc(name) + "</span>" + tag + extra;
+if (interactive) {
+row.classList.add("tap");
+row.addEventListener("click", function () {
+if (!canEdit) return;
+mine[i] = nextLabel(mine[i]);
+A.sfx("buzz"); A.vibe(10);
+renderPeople(people, mine, true);
+$("kmk-go").disabled = !valid(mine);
+});
+}
+box.appendChild(row);
+});
+}
+var lastRound = -1, lastStage = "";
+function renderPlay(m) {
+sub("play");
+var stage = m.stage; // choose | guess | reveal
+$("kmk-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
+$("kmk-role").textContent = m.iam ? t("kmk.you_choose") : t("kmk.chooser_is", { nick: m.chooser });
+noteDeadline(m.deadline, m.dur);
+A.timebar("kmk-bar", m.deadline, m.dur, false);
+var go = $("kmk-go"), note = $("kmk-note");
+if (lastRound !== m.round || lastStage !== stage) {
+mine = (m.mine && m.mine.length === 3) ? m.mine.slice() : [-1, -1, -1];
+}
+if (stage === "reveal") {
+canEdit = false;
+go.classList.add("hide");
+var g = (typeof m.mygain === "number") ? m.mygain : 0;
+if (m.iam) {
+var gs = m.guesses || [];
+var counts = [0, 0, 0];
+gs.forEach(function (gg) {
+for (var i = 0; i < 3; i++) if (gg.pick && gg.pick[i] === m.answer[i]) counts[i]++;
+});
+renderPeople(m.people, null, false, m.answer, counts, gs.length);
+var perfect = gs.filter(function (gg) { return gg.pts >= 3; }).length;
+note.textContent = t("kmk.read_perfect", { perfect: perfect, total: gs.length, g: g });
+} else {
+renderPeople(m.people, m.mine, false, m.answer);
+note.textContent = g >= 3 ? t("kmk.perfect", { g: g }) : g ? t("kmk.close", { g: g }) : t("common.zero_round");
+}
+if (lastRound !== m.round || lastStage !== "reveal") { A.sfx(g ? "correct" : "buzz"); A.vibe(g ? 25 : 12); }
+} else if (stage === "choose") {
+if (m.iam) {
+canEdit = true;
+renderPeople(m.people, mine, true);
+go.classList.remove("hide");
+go.textContent = t("kmk.lock_picks");
+go.disabled = !valid(mine);
+note.textContent = t("kmk.tap_tag");
+} else {
+canEdit = false;
+renderPeople(m.people, null, false);
+go.classList.add("hide");
+note.textContent = t("kmk.deciding", { nick: m.chooser });
+}
+} else { // guess
+if (m.iam) {
+canEdit = false;
+renderPeople(m.people, m.answer, false); // chooser sees their own locked picks
+go.classList.add("hide");
+note.textContent = t("kmk.locked_waiting");
+} else {
+var locked = m.mine && valid(m.mine);
+canEdit = !locked;
+renderPeople(m.people, locked ? m.mine : mine, !locked);
+go.classList.toggle("hide", locked);
+go.textContent = t("kmk.lock_guess");
+go.disabled = !valid(mine);
+note.textContent = locked ? t("kmk.guess_locked")
+: t("kmk.predict", { nick: m.chooser });
+}
+}
+lastRound = m.round; lastStage = stage;
+}
+function renderFinal(m) {
+sub("final");
+stopBar();
+var b = A.podium("kmk-podium", m.board);
+if (b && b.length && b[0].pid === A.pid) { A.sfx("win"); A.vibe([30, 50, 30]); }
+else { A.sfx("start"); A.vibe(20); }
+}
+A.handlers.kmk = function (m) {
+route("kmk");
+if (A.view !== "kmk") return;
+switch (m.phase) {
+case "lobby": renderLobby(m); break;
+case "countdown": renderCount(m); break;
+case "play": renderPlay(m); break;
+case "final": renderFinal(m); break;
+}
+};
+$("kmk-ready").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(15);
+send({ t: "ready", ready: !myready });
+});
+$("kmk-go").addEventListener("click", function () {
+if (!valid(mine)) return;
+A.sfx("start"); A.vibe(20);
+send({ t: "assign", kiss: mine.indexOf(0), marry: mine.indexOf(1), kill: mine.indexOf(2) });
+canEdit = false;
+$("kmk-go").classList.add("hide");
+});
+$("kmk-again").addEventListener("click", function () {
+A.sfx("start"); A.vibe(20);
+send({ t: "again" });
+});
+})();
+(function () {
+var lastMsg = null;       // latest chess message, read by the clock tick + click handler
+var selFrom = -1;         // selected origin square (0..63), -1 = none selected
+var movesFrom = {};       // origin square -> [target squares], rebuilt every render
+var pendingPromo = null;  // {from,to} awaiting a promotion pick, or null
+var clockTimer = null;    // 200ms clock tick, running only while phase is "playing"
+var prevPhase = "";
+var prevYourTurn = false;
+var prevMyCheck = false;  // last "your king is in check" state, for the check sfx edge
+var rematchTimer = null;
+var resignArmed = false;
+var resignTimer = null;
+function sub(name) {
+["lobby", "play", "over"].forEach(function (id) {
+$("chess-" + id).classList.toggle("hide", id !== name);
+});
+}
+function squareAt(i, white) {
+return white ? (7 - Math.floor(i / 8)) * 8 + (i % 8) : Math.floor(i / 8) * 8 + (7 - (i % 8));
+}
+function buildMovesFrom(moves) {
+var out = {};
+(moves || []).forEach(function (v) {
+var f = Math.floor(v / 64), to = v % 64;
+(out[f] || (out[f] = [])).push(to);
+});
+return out;
+}
+function kingSquare(board, white) { return board.indexOf(white ? "K" : "k"); }
+var GLYPH = { P: "♟", N: "♞", B: "♝", R: "♜", Q: "♛", K: "♚" };
+function renderBoard(m, el) {
+var board = m.board;
+var chkSq = m.check ? kingSquare(board, m.wtm) : -1;
+var lastFrom = m.last >= 0 ? Math.floor(m.last / 64) : -1;
+var lastTo = m.last >= 0 ? m.last % 64 : -1;
+el = el || $("chess-board");
+var rebuild = el.childElementCount !== 64;
+if (rebuild) el.innerHTML = "";
+for (var i = 0; i < 64; i++) {
+var cell = rebuild ? document.createElement("div") : el.children[i];
+var sq = squareAt(i, m.white);
+var rank = sq >> 3, file = sq & 7;
+var cls = "ch-cell " + ((rank + file) % 2 === 0 ? "dk" : "lt");
+if (sq === selFrom) cls += " sel";
+if (selFrom !== -1 && movesFrom[selFrom] && movesFrom[selFrom].indexOf(sq) >= 0) cls += " tgt";
+if (sq === lastFrom || sq === lastTo) cls += " last";
+if (sq === chkSq) cls += " chk";
+var ch = board.charAt(sq);
+if (ch !== ".") cls += ch === ch.toUpperCase() ? " w" : " b";
+cell.className = cls;
+cell.textContent = ch === "." ? "" : (GLYPH[ch.toUpperCase()] || "");
+if (rebuild) el.appendChild(cell);
+}
+el.onclick = m.yourTurn ? function (e) {
+var idx = Array.prototype.indexOf.call(el.children, e.target);
+if (idx < 0) return;
+onCellTap(m, squareAt(idx, m.white));
+} : null;
+}
+function onCellTap(m, sq) {
+if (selFrom === -1) {
+if (movesFrom[sq]) { selFrom = sq; A.vibe(8); renderBoard(m); }
+return;
+}
+if (sq === selFrom) { selFrom = -1; renderBoard(m); return; }
+if (movesFrom[selFrom] && movesFrom[selFrom].indexOf(sq) >= 0) {
+var from = selFrom, to = sq;
+var piece = m.board.charAt(from);
+var needsPromo = (piece === "P" && to >= 56) || (piece === "p" && to <= 7);
+selFrom = -1;
+if (needsPromo) { pendingPromo = { from: from, to: to }; renderBoard(m); showPromo(); }
+else { renderBoard(m); sendMove(from, to, 0); }
+return;
+}
+if (movesFrom[sq]) { selFrom = sq; A.vibe(8); renderBoard(m); return; }
+selFrom = -1;
+renderBoard(m);
+}
+function sendMove(from, to, promo) {
+A.sfx("drop"); A.vibe(15);
+var msg = { t: "move", from: from, to: to };
+if (promo) msg.promo = promo;
+send(msg);
+}
+function showPromo() { $("chess-promo").classList.remove("hide"); }
+function hidePromo() {
+$("chess-promo").classList.add("hide");
+pendingPromo = null;
+if (lastMsg && lastMsg.board) renderBoard(lastMsg);
+}
+function fmtClock(ms) {
+var s = Math.max(0, Math.ceil(ms / 1000));
+var mm = Math.floor(s / 60), ss = s % 60;
+return mm + ":" + (ss < 10 ? "0" : "") + ss;
+}
+function paintClocks(m, liveMs) {
+var running = liveMs == null ? m.run : liveMs;
+var paused = m.oms;
+var mine = m.wtm === m.white ? running : paused;
+var theirs = m.wtm === m.white ? paused : running;
+var myEl = $("chess-my-clock"), oppEl = $("chess-opp-clock");
+myEl.textContent = fmtClock(mine);
+oppEl.textContent = fmtClock(theirs);
+myEl.classList.toggle("hot", mine < 30000);
+oppEl.classList.toggle("hot", theirs < 30000);
+}
+function stopClockTimer() { if (clockTimer) { clearInterval(clockTimer); clockTimer = null; } }
+function startClockTimer() {
+stopClockTimer();
+clockTimer = setInterval(function () {
+if (!lastMsg || lastMsg.phase !== "playing") return;
+paintClocks(lastMsg, Math.max(0, lastMsg.deadline - serverNow()));
+}, 200);
+}
+function renderPlay(m) {
+sub("play");
+if (m.run >= 1000) noteDeadline(m.deadline, m.run);
+movesFrom = buildMovesFrom(m.moves);
+if (selFrom !== -1 && !movesFrom[selFrom]) selFrom = -1;
+renderBoard(m);
+paintClocks(m);
+var turnEl = $("chess-turn");
+turnEl.textContent = m.yourTurn ? t("common.your_turn") : t("common.opp_turn", { nick: m.opp || t("common.opponent") });
+turnEl.className = "turn" + (m.yourTurn ? " you" : "");
+var myCheck = !!(m.check && m.yourTurn);
+$("chess-check").classList.toggle("hide", !myCheck);
+if (myCheck && !prevMyCheck) A.sfx("check");
+prevMyCheck = myCheck;
+var drawBtn = $("chess-draw");
+if (m.offer === m.you) { drawBtn.disabled = true; drawBtn.textContent = t("chess.offer_sent"); }
+else if (m.offer) { drawBtn.disabled = false; drawBtn.textContent = t("chess.accept_draw"); }
+else { drawBtn.disabled = false; drawBtn.textContent = t("chess.offer_draw"); }
+$("chess-claim").classList.toggle("hide", !(m.claim3 || m.claim50));
+if (m.yourTurn && !prevYourTurn) { A.sfx("tick"); A.vibe(30); }
+prevYourTurn = m.yourTurn;
+}
+function renderOver(m) {
+sub("over");
+if (m.run >= 1000) noteDeadline(m.deadline, m.run);
+paintClocks(m);
+var r = $("chess-result");
+var RESULT_KEY = { win: "common.win", lose: "common.lose", draw: "common.draw" };
+r.textContent = t(RESULT_KEY[m.result] || "common.draw");
+r.className = "result " + (m.result === "win" ? "win" : m.result === "lose" ? "lose" : "draw");
+var REASON_KEY = {
+mate: "chess.reason_mate", stalemate: "chess.reason_stalemate", resign: "chess.reason_resign",
+flag: "chess.reason_flag", flagdraw: "chess.reason_flagdraw", material: "chess.reason_material",
+rep3: "chess.reason_rep3", rep5: "chess.reason_rep5", move50: "chess.reason_move50",
+move75: "chess.reason_move75", agree: "chess.reason_agree", left: "chess.reason_left",
+};
+$("chess-reason").textContent = t(REASON_KEY[m.reason] || m.reason);
+selFrom = -1;
+if (m.board) renderBoard(m, $("chess-over-board"));
+if (prevPhase !== "over") {
+if (m.result === "win") { A.sfx("win"); A.vibe([40, 60, 40, 60, 120]); }
+else if (m.result === "lose") { A.sfx("lose"); A.vibe(200); }
+}
+}
+A.handlers.chess = function (m) {
+route("chess");
+if (A.view !== "chess") return;
+if (rematchTimer && m.phase !== "over") { clearTimeout(rematchTimer); rematchTimer = null; }
+lastMsg = m;
+$("chess-leave").classList.toggle("hide", m.phase === "lobby");
+if (m.phase === "lobby") {
+stopClockTimer();
+if (resignTimer) clearTimeout(resignTimer);
+resignArmed = false; resignTimer = null;
+selFrom = -1; movesFrom = {}; hidePromo(); prevYourTurn = false; prevMyCheck = false;
+sub("lobby");
+A.lobbyView($("chess-incoming"), $("chess-players"), m.challenges);
+} else if (m.phase === "playing") {
+if (prevPhase !== "playing") { startClockTimer(); selFrom = -1; }
+renderPlay(m);
+} else if (m.phase === "over") {
+stopClockTimer();
+if (resignTimer) clearTimeout(resignTimer);
+resignArmed = false; resignTimer = null;
+hidePromo();
+renderOver(m);
+}
+prevPhase = m.phase;
+};
+document.addEventListener("DOMContentLoaded", function () {
+$("chess-resign").addEventListener("click", function () {
+var btn = $("chess-resign");
+if (!resignArmed) {
+resignArmed = true;
+btn.textContent = t("chess.sure");
+if (resignTimer) clearTimeout(resignTimer);
+resignTimer = setTimeout(function () {
+resignArmed = false; resignTimer = null;
+btn.textContent = t("chess.resign");
+}, 2000);
+} else {
+clearTimeout(resignTimer); resignTimer = null; resignArmed = false;
+btn.textContent = t("chess.resign");
+A.sfx("buzz"); send({ t: "resign" });
+}
+});
+$("chess-draw").addEventListener("click", function () { A.sfx("buzz"); send({ t: "draw" }); });
+$("chess-claim").addEventListener("click", function () { A.sfx("buzz"); send({ t: "claim" }); });
+$("chess-leave").addEventListener("click", function () { send({ t: "leaveGame" }); });
+$("chess-back").addEventListener("click", function () { send({ t: "leaveGame" }); });
+$("chess-rematch").addEventListener("click", function () {
+A.sfx("buzz"); send({ t: "rematch" });
+if (rematchTimer) clearTimeout(rematchTimer);
+rematchTimer = setTimeout(function () {
+rematchTimer = null;
+if (prevPhase === "over" && A.view === "chess") { toast(t("common.opp_left")); send({ t: "leaveGame" }); }
+}, 1500);
+});
+var promoBtns = document.querySelectorAll("#chess-promo .ch-promo-btn");
+for (var pi = 0; pi < promoBtns.length; pi++) {
+(function (btn) {
+btn.addEventListener("click", function () {
+if (!pendingPromo) return;
+var promo = parseInt(btn.getAttribute("data-promo"), 10);
+sendMove(pendingPromo.from, pendingPromo.to, promo);
+hidePromo(); // re-renders the board (see hidePromo's comment)
+});
+})(promoBtns[pi]);
+}
+$("chess-promo").addEventListener("click", function (e) { if (e.target === $("chess-promo")) hidePromo(); });
+});
+})();
+(function () {
+var myready = false;
+var predVal = 0, predMax = 0, predRound = -1; // number-stepper state for the predict view
+function sub(name) {
+["lobby", "count", "play", "final"].forEach(function (id) {
+$("sec-" + id).classList.toggle("hide", id !== name);
+});
+}
+function stopBar() { A.timebarStop("sec-bar"); hide("sec-bar"); }
+function renderLobby(m) {
+sub("lobby");
+stopBar();
+myready = A.readyLobby({ players: m.players, listId: "sec-players", readyId: "sec-ready", meId: "sec-me" });
+A.packVote({
+boxId: "sec-topics",
+packs: m.packs, myvote: m.myvote,
+onVote: function (i) { send({ t: "vote", pack: i }); },
+});
+}
+function renderCount(m) {
+sub("count");
+stopBar();
+A.countdown("sec-count-num", m.sec);
+}
+function setNum() { $("sec-num").textContent = predVal; }
+function renderPredict(m) {
+show("sec-predict"); hide("sec-answer"); hide("sec-reveal");
+var locked = (typeof m.myprediction === "number" && m.myprediction >= 0);
+predMax = m.n;
+if (predRound !== m.round) { predVal = 0; predRound = m.round; }
+if (locked) predVal = m.myprediction;
+if (predVal > predMax) predVal = predMax;
+setNum();
+$("sec-predict-label").textContent = t("secrets.predict_hint", { n: m.n });
+$("sec-minus").disabled = locked;
+$("sec-plus").disabled = locked;
+$("sec-predict-go").disabled = locked;
+$("sec-predict-go").classList.toggle("hide", locked);
+$("sec-note").textContent = locked ? t("secrets.predict_locked", { n: m.myprediction }) : "";
+}
+function renderAnswer(m) {
+hide("sec-predict"); show("sec-answer"); hide("sec-reveal");
+var locked = (typeof m.myanswer === "number" && m.myanswer >= 0);
+$("sec-yes").disabled = locked;
+$("sec-no").disabled = locked;
+$("sec-yes").classList.toggle("mine", m.myanswer === 1);
+$("sec-no").classList.toggle("mine", m.myanswer === 0);
+$("sec-note").textContent = locked ? t("secrets.answer_locked") : t("secrets.answer_hint");
+}
+var revealedFor = -1;
+function renderReveal(m) {
+hide("sec-predict"); hide("sec-answer"); show("sec-reveal");
+$("sec-yesnum").textContent = m.yes;
+var buckets = {};
+(m.guesses || []).forEach(function (g) { (buckets[g.n] = buckets[g.n] || []).push(g); });
+var ul = $("sec-buckets");
+ul.innerHTML = "";
+for (var i = 0; i <= m.n; i++) {
+var li = document.createElement("li");
+li.className = "sec-bucket" + (i === m.yes ? " hit" : "");
+var num = document.createElement("span");
+num.className = "sec-bnum";
+num.textContent = i;
+var names = document.createElement("span");
+names.className = "sec-bnames";
+(buckets[i] || []).forEach(function (g) {
+var chip = document.createElement("span");
+chip.className = "sec-bname" + (g.pid === A.pid ? " me" : "");
+chip.textContent = g.nick + (g.pts > 0 ? " +" + g.pts : "");
+names.appendChild(chip);
+});
+li.appendChild(num);
+li.appendChild(names);
+ul.appendChild(li);
+}
+var gain = (typeof m.mygain === "number") ? m.mygain : 0;
+$("sec-result").textContent = gain > 0 ? t("secrets.result_exact", { gain: gain })
+: t("common.zero_round");
+if (revealedFor !== m.round) {
+revealedFor = m.round;
+A.sfx(gain > 0 ? "correct" : "buzz"); A.vibe(gain > 0 ? 25 : 12);
+}
+}
+function renderPlay(m) {
+sub("play");
+$("sec-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
+$("sec-progress").textContent = t("secrets.locked_count", { n: m.locked, total: m.total });
+$("sec-q").textContent = m.q || "";
+noteDeadline(m.deadline, m.dur);
+A.timebar("sec-bar", m.deadline, m.dur, m.phase !== "reveal");
+if (m.phase !== "reveal") $("sec-result").textContent = "";
+if (m.phase === "reveal") renderReveal(m);
+else { revealedFor = -1; if (m.phase === "predict") renderPredict(m); else renderAnswer(m); }
+}
+function renderFinal(m) {
+sub("final");
+stopBar();
+var b = A.podium("sec-podium", m.board);
+if (b && b.length && b[0].pid === A.pid) { A.sfx("win"); A.vibe([30, 50, 30]); }
+else { A.sfx("start"); A.vibe(20); }
+}
+A.handlers.secrets = function (m) {
+route("secrets");
+if (A.view !== "secrets") return;
+switch (m.phase) {
+case "lobby": renderLobby(m); break;
+case "countdown": renderCount(m); break;
+case "predict": case "answer": case "reveal": renderPlay(m); break;
+case "final": renderFinal(m); break;
+}
+};
+$("sec-ready").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(15);
+send({ t: "ready", ready: !myready });
+});
+$("sec-minus").addEventListener("click", function () {
+if (predVal > 0) { predVal--; setNum(); A.sfx("tick"); A.vibe(8); }
+});
+$("sec-plus").addEventListener("click", function () {
+if (predVal < predMax) { predVal++; setNum(); A.sfx("tick"); A.vibe(8); }
+});
+$("sec-predict-go").addEventListener("click", function () {
+A.sfx("start"); A.vibe(20);
+send({ t: "predict", n: predVal });
+});
+$("sec-yes").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(18);
+send({ t: "reply", v: 1 });
+});
+$("sec-no").addEventListener("click", function () {
+A.sfx("buzz"); A.vibe(18);
+send({ t: "reply", v: 0 });
+});
+$("sec-again").addEventListener("click", function () {
+A.sfx("start"); A.vibe(20);
+send({ t: "again" });
 });
 })();</script>

@@ -11,7 +11,7 @@ import subprocess
 # Bootloader offset differs by chip: 0x1000 on the original ESP32, 0x0 on the
 # newer parts (their ROM loads the bootloader from the start of flash).
 _BOOTLOADER_OFFSET = {
-    "esp32":   "0x1000",
+    "esp32": "0x1000",
     "esp32s2": "0x1000",
     "esp32s3": "0x0",
     "esp32c3": "0x0",
@@ -30,12 +30,16 @@ def merge_firmware(source, target, env):
     app = os.path.join(build_dir, "firmware.bin")
     boot_app0 = os.path.join(
         platform.get_package_dir("framework-arduinoespressif32") or "",
-        "tools", "partitions", "boot_app0.bin")
+        "tools",
+        "partitions",
+        "boot_app0.bin",
+    )
     merged = os.path.join(build_dir, "firmware-merged.bin")
 
     python = env.subst("$PYTHONEXE")
     esptool = os.path.join(
-        platform.get_package_dir("tool-esptoolpy") or "", "esptool.py")
+        platform.get_package_dir("tool-esptoolpy") or "", "esptool.py"
+    )
 
     boot_off = _BOOTLOADER_OFFSET.get(mcu, "0x1000")
     flash_mode = board.get("build.flash_mode", "dio")
@@ -53,11 +57,27 @@ def merge_firmware(source, target, env):
     # characters are passed through verbatim; check=True fails the build if the
     # merge fails so CI never ships a half-built image.
     argv = [
-        python, esptool, "--chip", mcu, "merge_bin", "-o", merged,
-        "--flash_mode", flash_mode, "--flash_freq", flash_freq,
-        "--flash_size", flash_size,
-        boot_off, bootloader, "0x8000", partitions,
-        "0xe000", boot_app0, "0x10000", app,
+        python,
+        esptool,
+        "--chip",
+        mcu,
+        "merge_bin",
+        "-o",
+        merged,
+        "--flash_mode",
+        flash_mode,
+        "--flash_freq",
+        flash_freq,
+        "--flash_size",
+        flash_size,
+        boot_off,
+        bootloader,
+        "0x8000",
+        partitions,
+        "0xe000",
+        boot_app0,
+        "0x10000",
+        app,
     ]
     print("[merge] building full-flash image -> %s" % merged)
     subprocess.run(argv, check=True)

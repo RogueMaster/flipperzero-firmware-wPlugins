@@ -205,7 +205,7 @@ void show_app_info(void* context) {
 
     FURI_LOG_D("AppInfo", "Show app info called, context: %p", app);
 
-    const char* info_text = "Version: v1.8.0\n"
+    const char* info_text = "Version: v" FAP_VERSION "\n"
                             "Created by: Spooky\n"
                             "Updated by:\n"
                             "@jaylikesbunda\n"

@@ -170,7 +170,7 @@ def _proto_ver_generator(target, source, env):
     if not git_describe:
         # Use a fallback version when git tags are not available
         print(fg.boldyellow("Using fallback protobuf version"))
-        git_major, git_minor = "0", "4"
+        git_major, git_minor = "0", "25"
     else:
         git_major, git_minor = git_describe.split(".")
 

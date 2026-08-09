@@ -581,6 +581,12 @@ void variable_item_list_set_enter_callback(
         false);
 }
 
+void variable_item_set_item_label(VariableItem* item, const char* label) {
+    furi_check(item);
+    furi_check(label);
+    furi_string_set(item->label, label);
+}
+
 void variable_item_set_current_value_index(VariableItem* item, uint8_t current_value_index) {
     furi_check(item);
     item->current_value_index = current_value_index;
@@ -589,12 +595,6 @@ void variable_item_set_current_value_index(VariableItem* item, uint8_t current_v
 void variable_item_set_values_count(VariableItem* item, uint8_t values_count) {
     furi_check(item);
     item->values_count = values_count;
-}
-
-void variable_item_set_item_label(VariableItem* item, const char* label) {
-    furi_check(item);
-    furi_check(label);
-    furi_string_set(item->label, label);
 }
 
 void variable_item_set_current_value_text(VariableItem* item, const char* current_value_text) {

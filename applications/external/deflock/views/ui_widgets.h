@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #pragma once
 
 #include <gui/gui.h>
@@ -24,8 +24,78 @@ int ui_signal_level(int rssi);
 /**
  * 4-segment signal-strength bars from an RSSI (dBm). Occupies a ~11x9 cell with
  * its top-left at (x, y). rssi == 0 draws hollow "unknown" ticks.
+ *
+ * Drawn in the canvas's CURRENT color, so it renders on an inverted/selected row
+ * as long as the caller has set ColorWhite first. It does not set the color
+ * itself, and it does not restore one.
  */
 void ui_signal_bars(Canvas* canvas, int x, int y, int rssi);
 
 /** Framed horizontal meter at (x,y,w,h), filled left-to-right to pct (0..100). */
 void ui_meter(Canvas* canvas, int x, int y, int w, int h, int pct);
+
+/** Side of the square cell ui_icon_radio() draws into. */
+#define UI_RADIO_ICON_W 7
+
+/**
+ * Which radio a sighting came in on, as a glyph: the Bluetooth rune for BLE,
+ * the arcs-over-a-dot mark for Wi-Fi. Occupies a UI_RADIO_ICON_W square with its
+ * top-left at (x, y).
+ *
+ * Requested on issue #5: an OUI or an RSSI tells you nothing about which radio
+ * saw the device, and the only other tell is whether the row happens to show an
+ * SSID -- which a hidden AP and a probe request also lack. Drawn from canvas
+ * primitives rather than a compiled asset: two icons cost ~10 lines here against
+ * the RAM budget the .fap is already close to.
+ *
+ * Drawn in the canvas's CURRENT color (same contract as ui_signal_bars), so it
+ * survives an inverted/selected row. It neither sets nor restores a color.
+ */
+void ui_icon_radio(Canvas* canvas, int x, int y, bool ble);
+
+/** Cell ui_icon_screen() draws into. */
+#define UI_SCREEN_ICON_W 11
+#define UI_SCREEN_ICON_H 9
+
+/** Which screen a title-bar glyph stands for. */
+typedef enum {
+    UiIconCamera = 0, /**< Flock / ALPR detect */
+    UiIconShield, /**< Net Guardian */
+    UiIconCrosshair, /**< Locator */
+    UiIconPage, /**< Reports */
+    UiIconChip, /**< ESP32 Firmware */
+} UiScreenIcon;
+
+/**
+ * Screen glyph in a UI_SCREEN_ICON_W x UI_SCREEN_ICON_H cell at (x, y).
+ *
+ * Hand-placed pixels, every form axis-aligned -- see the note on UiIconCamera in
+ * the .c for why rotation is what kills a glyph at this size, not detail.
+ *
+ * Drawn in the canvas's CURRENT colour (same contract as ui_signal_bars), so it
+ * works on an inverted title bar. It neither sets nor restores a colour.
+ */
+void ui_icon_screen(Canvas* canvas, int x, int y, UiScreenIcon which);
+
+/**
+ * ui_title_bar() with a screen glyph in front of the title.
+ *
+ * The glyph is ~11 px against roughly 70 for a spelled-out name, so a screen
+ * that needs header width (Flock carries channel, hits, rate, BLE and GPS) buys
+ * most of it back by shortening the title text.
+ *
+ * @return y of the first content row below the bar.
+ */
+int ui_title_bar_icon(Canvas* canvas, UiScreenIcon icon, const char* title, const char* right);
+
+/**
+ * Draw `s` at (x, baseline), trimmed with a ".." marker if it would not fit
+ * before `max_x`.
+ *
+ * Fixed-row canvas lists cannot wrap the way the Widget text elements they
+ * replaced did, so without this a full-length SSID -- or a MAC on a row that
+ * also carries an icon -- simply runs off the right edge and under whatever is
+ * pinned there. Trimming visibly is the honest degradation; the untruncated
+ * value is still on the detail screen and in the saved report.
+ */
+void ui_draw_str_fit(Canvas* canvas, int x, int baseline, const char* s, int max_x);

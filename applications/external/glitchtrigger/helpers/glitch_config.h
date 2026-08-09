@@ -42,6 +42,14 @@ typedef enum {
     GlitchSearchCount,
 } GlitchSearchMode;
 
+typedef enum {
+    GlitchFbPin, // read a GPIO feedback line
+    GlitchFbUart, // watch the target's UART for a success string
+    GlitchFbCount,
+} GlitchFeedbackSource;
+
+#define GLITCH_SUCCESS_MAX 24 // success-string length incl. NUL
+
 typedef struct {
     uint32_t delay_us; // trigger -> first pulse offset
     uint32_t width_ns; // pulse width (the glitch itself)
@@ -68,12 +76,16 @@ typedef struct {
     uint16_t sweep_dwell;
     GlitchSearchMode search_mode; // linear or random grid traversal
 
-    /* Feedback / auto-hit: sample a target "success" line after each shot. When
-     * `auto_hit` is on, a sweep marks a hit automatically the moment the
-     * feedback pin reaches its success level. */
+    /* Feedback / auto-hit: after each shot, check a target "success" signal.
+     * With a Pin source it's a GPIO level; with a UART source it's a substring
+     * appearing on the target's serial output. When `auto_hit` is on, a sweep
+     * marks a hit automatically the moment success is seen. */
+    GlitchFeedbackSource fb_source; // Pin or UART
     uint8_t fb_pin; // index into glitch_pins[]  (target feedback input)
     bool fb_active_high; // success = feedback HIGH (true) / LOW (false)
-    bool auto_hit; // auto-mark sweep hits from the feedback pin
+    uint32_t uart_baud; // baud for the UART feedback watcher
+    char success_str[GLITCH_SUCCESS_MAX]; // substring that means "glitched!"
+    bool auto_hit; // auto-mark sweep hits from the feedback source
     bool log_hits; // append hits to a CSV on the SD card
 
     uint8_t out_pin; // index into glitch_pins[]  (trigger output)
@@ -100,6 +112,8 @@ extern const uint32_t glitch_ladder_repeat_ms[];
 extern const size_t glitch_ladder_repeat_len;
 extern const uint16_t glitch_ladder_dwell[];
 extern const size_t glitch_ladder_dwell_len;
+extern const uint32_t glitch_ladder_baud[];
+extern const size_t glitch_ladder_baud_len;
 
 size_t glitch_ladder_nearest_u32(const uint32_t* tbl, size_t len, uint32_t v);
 size_t glitch_ladder_nearest_u16(const uint16_t* tbl, size_t len, uint16_t v);
@@ -115,6 +129,7 @@ const char* glitch_polarity_label(GlitchPolarity p);
 const char* glitch_trigger_label(GlitchTriggerMode m);
 const char* glitch_edge_label(GlitchEdge e);
 const char* glitch_search_label(GlitchSearchMode m);
+const char* glitch_fb_source_label(GlitchFeedbackSource s);
 
 /* ---- output/input pin catalogue ---------------------------------------- */
 typedef struct {

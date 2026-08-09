@@ -12,9 +12,12 @@ The source is split for readability; the build inlines everything into one file.
 ```
 src/index.html      HTML shell with /*__CSS__*/ and /*__JS__*/ placeholders
 core/style.css      all styles (Flipper Zero design system, see DESIGN.md)
-core/app.js         WebSocket, router, landing + lobby, reconnect, shared `A` state
-games/trivia.js     trivia screen  (registers A.handlers.trivia)
-games/connect4.js   connect 4 screen (registers A.handlers.c4)
+core/app.js         WebSocket, router, landing + lobby, keep-awake, shared `A` state
+core/i18n.js        message catalog (en + pt-BR) for data-i18n markup and t()
+core/sound.js       synthesized sfx + haptics (A.sfx / A.vibe)
+games/*.js          one module per screen: trivia, duel (c4/ttt/dots/reversi),
+                    pong, wyr, scramble, draw, react, guesscolor, battleship,
+                    spectrum, kmk, chess - each registers its A.handlers entry
 build.mjs           inlines + minifies -> dist/, gzips, writes manifest, size gate
 mock-server.mjs     zero-dep local server for eyeballing the UI in a browser
 ```
@@ -37,7 +40,7 @@ dist/manifest.json   [{"path":"/","file":"index.html.gz","mime":"text/html","gzi
 ```
 
 The build prints raw + gzipped sizes and **exits non-zero if the gzipped bundle
-exceeds 60 KB** (soft target 30 KB). Current bundle: ~7 KB gzipped.
+exceeds 60 KB** (soft target 40 KB). Current bundle: ~39 KB gzipped.
 
 ## Visual style
 
@@ -64,15 +67,15 @@ screen renders; it is a demo, not the referee, and does not implement real game
 rules. Set `PORT` to change the port: `PORT=8091 npm run mock`.
 
 > The `sim/` simulator supersedes this mock: it runs the *real* engine compiled to WASM,
-> so all ten games behave exactly as they do on hardware. Prefer `sim/serve.sh`.
+> so all fifteen games behave exactly as they do on hardware. Prefer `sim/serve.sh`.
 > `mock-server.mjs` hand-rolls approximate rules and does not cover every game.
 
 ## Protocol
 
-Client -> server: `hello`, `answer`, `challenge`, `accept`, `cancel`, `move`,
-`leaveGame`, `ping`. Server -> client: `welcome`, `lobby`, `trivia`, `c4`,
-`toast`, `pong`. The ESP is authoritative; the client sends intents and renders
-server state. The trivia countdown is cosmetic: the client learns the server
+One flat JSON object per message, specified per game in `docs/PROTOCOL.md`
+(client intents like `hello`/`challenge`/`move`, server state like `welcome`/
+`lobby`/per-game payloads). The ESP is authoritative; the client sends intents
+and renders server state. The trivia countdown is cosmetic: the client learns the server
 clock offset from the first timed message (`deadline` is a server `millis()`
 value) and animates a bar toward the deadline. The server is the real referee.
 

@@ -23,6 +23,6 @@ App(
     fap_category="NFC",
     fap_author="bettse",
     fap_weburl="https://github.com/bettse/passy",
-    fap_version="1.5",
+    fap_version="1.6",
     fap_description="eMRTD Reader",
 )

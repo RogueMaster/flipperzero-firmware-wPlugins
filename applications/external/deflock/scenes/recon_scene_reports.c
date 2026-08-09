@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "../recon_app_i.h"
 #include "../helpers/recon_report.h"
 
 typedef enum {
     ReportItemSave,
+    ReportItemFalsePos,
     ReportItemClear,
+    ReportItemClearSaved,
 } ReportItem;
 
 static void recon_scene_reports_submenu_cb(void* context, uint32_t index) {
@@ -21,8 +23,10 @@ static void recon_scene_reports_popup_cb(void* context) {
 static void recon_scene_reports_build_menu(ReconApp* app) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     int marked = 0;
+    int archived = 0;
     for(size_t i = 0; i < app->flock_count; i++) {
         if(app->flock[i].marked) marked++;
+        if(app->flock[i].archived) archived++;
     }
     furi_mutex_release(app->mutex);
 
@@ -32,8 +36,20 @@ static void recon_scene_reports_build_menu(ReconApp* app) {
     submenu_set_header(submenu, app->text_store);
     submenu_add_item(
         submenu, "Save Marked -> Report", ReportItemSave, recon_scene_reports_submenu_cb, app);
+    // Redacted export for reporting a WRONG detection. Separate item rather than
+    // an option on the one above, because the two files have opposite jobs: that
+    // report is evidence about cameras and carries coordinates, this one is
+    // evidence about the detector and must not.
+    submenu_add_item(
+        submenu, "False Positive Report", ReportItemFalsePos, recon_scene_reports_submenu_cb, app);
     submenu_add_item(
         submenu, "Clear All Marks", ReportItemClear, recon_scene_reports_submenu_cb, app);
+    // Erase the persisted hit log. Offered whenever the setting is on OR stored
+    // entries are still loaded, so it stays reachable to undo a past session.
+    if(app->settings.save_hits || archived > 0) {
+        submenu_add_item(
+            submenu, "Clear Saved Hits", ReportItemClearSaved, recon_scene_reports_submenu_cb, app);
+    }
 }
 
 void recon_scene_reports_on_enter(void* context) {
@@ -70,6 +86,17 @@ bool recon_scene_reports_on_event(void* context, SceneManagerEvent event) {
                 ok ? "Report Saved" : "Nothing to Save",
                 ok ? "See apps_data/\nflipdeflock/reports" : "Mark detections first");
             consumed = true;
+        } else if(event.event == ReportItemFalsePos) {
+            char path[128] = {0};
+            bool ok = recon_report_save_fp(app, path, sizeof(path));
+            if(app->settings.sound) {
+                notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
+            }
+            recon_scene_reports_show_popup(
+                app,
+                ok ? "FP Report Saved" : "Nothing to Save",
+                ok ? "Redacted: no GPS,\nno full MACs" : "No detections yet");
+            consumed = true;
         } else if(event.event == ReportItemClear) {
             furi_mutex_acquire(app->mutex, FuriWaitForever);
             for(size_t i = 0; i < app->flock_count; i++) {
@@ -78,6 +105,11 @@ bool recon_scene_reports_on_event(void* context, SceneManagerEvent event) {
             furi_mutex_release(app->mutex);
             recon_scene_reports_build_menu(app);
             recon_scene_reports_show_popup(app, "Marks Cleared", "");
+            consumed = true;
+        } else if(event.event == ReportItemClearSaved) {
+            recon_hits_clear(app); // deletes hits.csv AND drops the restored entries
+            recon_scene_reports_build_menu(app);
+            recon_scene_reports_show_popup(app, "Saved Hits Cleared", "hits.csv deleted");
             consumed = true;
         }
     }

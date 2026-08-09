@@ -24,6 +24,7 @@ static uint32_t s_index, s_total;
 static uint32_t s_hits, s_last_hit_w, s_last_hit_d;
 static bool s_point_hit; // one auto-mark per point
 static bool s_running;
+static bool s_uart; // UART success-string watcher active this sweep
 
 /* Map the current grid position (s_wi/s_di) onto the fault-map cell grid. */
 static uint16_t sweep_map_col(const GlitchFaultMap* m) {
@@ -164,6 +165,12 @@ void glitch_scene_sweep_on_enter(void* context) {
     s_last_hit_d = 0;
     s_running = true;
 
+    /* UART feedback: start watching the target's serial for the success string */
+    s_uart = false;
+    if(app->params.auto_hit && app->params.fb_source == GlitchFbUart) {
+        s_uart = glitch_serial_start(app->serial, app->params.uart_baud, app->params.success_str);
+    }
+
     sweep_view_set_callback(app->sweep_view, glitch_sweep_view_cb, app);
     glitch_sweep_push(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, GlitchViewSweep);
@@ -187,6 +194,7 @@ bool glitch_scene_sweep_on_event(void* context, SceneManagerEvent event) {
             break;
         case SweepEvtRestart:
             glitch_sweep_reset(app);
+            if(s_uart) glitch_serial_clear(app->serial);
             glitch_sweep_push(app);
             consumed = true;
             break;
@@ -202,13 +210,23 @@ bool glitch_scene_sweep_on_event(void* context, SceneManagerEvent event) {
             shot.sweep_enabled = false;
             glitch_engine_fire(app->engine, &shot);
 
-            if(s_auto && !s_point_hit &&
-               glitch_engine_feedback_hit(app->engine, app->params.fb_active_high)) {
-                s_point_hit = true;
-                glitch_sweep_record_hit(app, "auto");
+            /* drain UART so its buffer never overflows during a dwell */
+            if(s_uart) glitch_serial_poll(app->serial);
+
+            if(s_auto && !s_point_hit) {
+                bool hit = (app->params.fb_source == GlitchFbUart) ?
+                               (s_uart && glitch_serial_matched(app->serial)) :
+                               glitch_engine_feedback_hit(app->engine, app->params.fb_active_high);
+                if(hit) {
+                    s_point_hit = true;
+                    glitch_sweep_record_hit(app, s_uart ? "uart" : "auto");
+                }
             }
 
-            if(++s_dwell_i >= s_dwell) glitch_sweep_advance();
+            if(++s_dwell_i >= s_dwell) {
+                glitch_sweep_advance();
+                if(s_uart) glitch_serial_clear(app->serial); // fresh detection per point
+            }
             glitch_sweep_push(app);
         }
         consumed = true;
@@ -218,6 +236,10 @@ bool glitch_scene_sweep_on_event(void* context, SceneManagerEvent event) {
 
 void glitch_scene_sweep_on_exit(void* context) {
     GlitchApp* app = context;
+    if(s_uart) {
+        glitch_serial_stop(app->serial);
+        s_uart = false;
+    }
     glitch_engine_release(app->engine);
     s_running = false;
 }

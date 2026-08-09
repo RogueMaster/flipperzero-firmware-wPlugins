@@ -1,3 +1,18 @@
+## 2.16-beta.24 — manual HW selection on the ESP32 dashboard (#110)
+
+- **Pick your hardware version yourself: Auto-detect / Force HW4 / Force HW3 / Force Legacy.** New selector in the ESP32 dashboard Controls, persisted in NVS and applied at boot. The Flipper build has had Force HW3/HW4 in its menu for a long time — the ESP32 build only ever auto-detected, which is the real gap behind this issue. Auto-detection needs `GTW_carConfig` (`0x398`), and **many Model 3 / Model Y never broadcast it**, so those cars fall back to HW3 and lose the HW4-only features. Rather than making detection guess harder — the beta.20 attempt that regressed working cars — an owner who knows their car can now just say so. **Default is Auto-detect, so nothing changes unless you choose to change it**; once set, auto-detection can no longer move it. Credit to @densen2014 for the suggestion, and @ssw0209-sys for the reports that showed why the automatic approach was the wrong lever.
+- Dashboard footer now links the project's support page (optional, no tracking).
+
+## 2.16-beta.23 — revert the beta.20 forced HW4 detection (regression fix)
+
+- **Reverted: a valid `0x39B` no longer forces HW3 → HW4 (#110 / #122).** beta.20 added that to fix HW4 cars whose tap carries no `0x398` (many Model 3 / Model Y never broadcast it). It backfired on cars where the HW3 path was already working: forcing HW4 switched them to the HW4 DAS parser, whose byte0 latch didn't engage on-car — so AP status stuck on "Waiting" — and HW4-style injection produced a lot of TX errors. @ssw0209-sys pinned it precisely (working on beta.18, broken on beta.19/20). **If you were on beta.19–beta.22 and your AP status stopped working, this restores the beta.18 behaviour.**
+- The underlying issue — HW4 cars misdetected as HW3, so HW4-only features like Config Replay stay hidden — is **still open in [#110](https://github.com/hypery11/flipper-tesla-fsd/issues/110)**. The rework has to detect HW4 for feature-gating *without* changing a DAS-read / injection path that already works. Thanks @ssw0209-sys and @densen2014 for the reports.
+
+## 2.16-beta.22 — flasher works as a plain download (no hosting needed)
+
+- **The web flasher is now a single self-contained file, attached to each release as `tesla-flasher.html`.** Download it from Releases and open it in Chrome / Edge / Opera to flash a blank board — no hosting, no GitHub Pages required (it still works hosted too). The per-board manifests are inlined as `data:` URLs so there are no sibling files to fetch, which also lets it run when opened locally (`file://`).
+- Internal: the firmware-merge step now calls esptool via an argument list instead of a shell string (robust to paths with spaces; fails the build if the merge errors).
+
 ## 2.16-beta.21 — one-click browser flasher + beginner Getting Started guide
 
 - **Browser-based ESP32 flasher (no toolchain).** Flash a blank board straight from Chrome / Edge / Opera at the [Web Flasher](https://hypery11.github.io/flipper-tesla-fsd/install/) — pick your board, press Install. Built on ESP Web Tools. Each release now also ships a **full-flash merged image per board** (`tesla-fsd-<board>-merged.bin`) next to the existing app-only `.bin` (which the in-device dashboard OTA updater still uses).

@@ -99,6 +99,14 @@ void specter_notify_saved(SpecterApp* app) {
     if(app->settings.vibro) notification_message(app->notifications, &seq_vibro_short);
 }
 
+void specter_notify_wake(SpecterApp* app) {
+    furi_assert(app);
+    /* Watch mode's wake-on-detection: pull the backlight on so a detection is
+     * caught at a glance, then let the system timeout dim it again. This is the
+     * one place we override stealth - an alert you can't see isn't an alert. */
+    notification_message(app->notifications, &sequence_display_backlight_on);
+}
+
 /* ---------------- stealth ---------------- */
 void specter_stealth_enter(SpecterApp* app) {
     furi_assert(app);
@@ -110,15 +118,21 @@ void specter_stealth_enter(SpecterApp* app) {
 void specter_stealth_exit(SpecterApp* app) {
     furi_assert(app);
     if(!app->stealth_engaged) return;
-    /* Hand the backlight back to the system's own timeout rather than forcing
-     * it on - leaving it pinned would outlive the app. */
+    /* Two steps, and the order matters. enforce_auto only *unlocks* the
+     * force-off; on its own it leaves the backlight dark until the next input.
+     * That made BACK look broken: you'd leave a stealth sweep, land on the menu,
+     * and stare at a dark screen thinking the press didn't register. So after
+     * unlocking, actively wake the backlight so the screen we return to is lit
+     * now, then fall back to the system's normal timeout. */
     notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
+    notification_message(app->notifications, &sequence_display_backlight_on);
     app->stealth_engaged = false;
 }
 
 void specter_apply_threshold(SpecterApp* app) {
     furi_assert(app);
     field_detector_set_threshold(app->detector, specter_settings_threshold(&app->settings));
+    field_detector_set_full_scale(app->detector, specter_settings_full_scale(&app->settings));
 }
 
 /* ---------------- view dispatcher plumbing ---------------- */
@@ -195,6 +209,10 @@ static SpecterApp* specter_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, SpecterViewSurvey, survey_view_get_view(app->survey_view));
 
+    app->watch_view = watch_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, SpecterViewWatch, watch_view_get_view(app->watch_view));
+
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     return app;
@@ -214,6 +232,7 @@ static void specter_app_free(SpecterApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSweep);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewFingerprint);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSurvey);
+    view_dispatcher_remove_view(app->view_dispatcher, SpecterViewWatch);
 
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
@@ -223,6 +242,7 @@ static void specter_app_free(SpecterApp* app) {
     sweep_view_free(app->sweep_view);
     fingerprint_view_free(app->fingerprint_view);
     survey_view_free(app->survey_view);
+    watch_view_free(app->watch_view);
 
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);

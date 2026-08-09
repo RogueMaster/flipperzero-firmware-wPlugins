@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 /**
  * @file gps_parser.h
  * Pure NMEA sentence parsing (RMC / GGA / GLL): line text -> plain NmeaFix record.

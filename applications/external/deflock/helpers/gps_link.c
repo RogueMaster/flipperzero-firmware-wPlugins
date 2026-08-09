@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "gps_link.h"
 #include "../recon_app_i.h"
 #include "gps_parser.h"
@@ -25,14 +25,17 @@ struct GpsLink {
     volatile bool running;
     char line[GPS_LINE_MAX];
     size_t line_len;
+    /** Bytes the ISR could not buffer. ISR-written, worker-read: single writer. */
+    volatile uint32_t rx_dropped;
+    /** Last start() could not take the port -- see gps_link_port_busy(). */
+    bool port_busy;
 };
 
 // Pure NMEA parsing (nmea_to_decimal / gps_coord_sane / nmea_tokenize /
 // nmea_parse_line) lives in gps_parser.{c,h} so it is host-testable; this file is
 // the thin adapter that applies a parsed NmeaFix to ReconApp under the lock.
 
-static void gps_publish(GpsLink* gps, float lat, float lon, int sats, bool valid) {
-    ReconApp* app = gps->app;
+static void gps_publish(ReconApp* app, float lat, float lon, int sats, bool valid) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     if(valid && gps_coord_sane(lat, lon)) {
         app->gps_lat = lat;
@@ -49,22 +52,38 @@ static void gps_publish(GpsLink* gps, float lat, float lon, int sats, bool valid
     furi_mutex_release(app->mutex);
 }
 
-static void gps_parse_line(GpsLink* gps, char* line) {
+// Public: the single decode+publish path, shared with the companion relay.
+void gps_apply_nmea(void* _app, char* line) {
+    ReconApp* app = _app;
+    if(!app || !line) return;
     NmeaFix fix;
     if(!nmea_parse_line(line, &fix)) return; // unknown / malformed / bad checksum
-    gps_publish(gps, fix.lat, fix.lon, fix.sats, fix.valid);
+    gps_publish(app, fix.lat, fix.lon, fix.sats, fix.valid);
     if(fix.has_course) {
-        furi_mutex_acquire(gps->app->mutex, FuriWaitForever);
-        gps->app->gps_course = fix.course;
-        furi_mutex_release(gps->app->mutex);
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->gps_course = fix.course;
+        furi_mutex_release(app->mutex);
     }
+}
+
+static void gps_parse_line(GpsLink* gps, char* line) {
+    gps_apply_nmea(gps->app, line);
 }
 
 static void gps_rx_isr(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
     GpsLink* gps = context;
     if(event == FuriHalSerialRxEventData) {
         uint8_t data = furi_hal_serial_async_rx(handle);
-        furi_stream_buffer_send(gps->rx_stream, &data, 1, 0);
+        // 0 timeout (an ISR must not block), so a full buffer drops the byte and
+        // the sentence in flight loses a character. Mostly self-defending: when a
+        // "*hh" checksum is present gps_parser.c verifies it (gps_parser.c:62-72)
+        // and rejects the holed sentence rather than parsing a wrong fix. Note
+        // that check is conditional on the '*' surviving, so it is a strong
+        // mitigation, not a guarantee. Count the drop either way, so a chronically
+        // undersized buffer is visible instead of looking like poor reception.
+        if(furi_stream_buffer_send(gps->rx_stream, &data, 1, 0) != 1) {
+            gps->rx_dropped++;
+        }
         furi_thread_flags_set(furi_thread_get_id(gps->thread), GpsEvtRx);
     }
 }
@@ -112,6 +131,7 @@ void gps_link_start(GpsLink* gps) {
     if(gps->running) return;
     ReconApp* app = gps->app;
 
+    gps->port_busy = false;
     gps->line_len = 0;
     gps->rx_stream = furi_stream_buffer_alloc(GPS_RX_BUF, 1);
     gps->thread = furi_thread_alloc_ex("ReconGpsWorker", 1536, gps_worker, gps);
@@ -119,7 +139,9 @@ void gps_link_start(GpsLink* gps) {
 
     gps->serial = furi_hal_serial_control_acquire((FuriHalSerialId)app->settings.gps_uart);
     if(!gps->serial) {
-        // Port busy (e.g. same as ESP); abort cleanly.
+        // Port busy -- nearly always GPS Port set to the ESP's own UART. Latch it
+        // so the UI can SAY so instead of showing "searching" forever (issue #5).
+        gps->port_busy = true;
         furi_thread_flags_set(furi_thread_get_id(gps->thread), GpsEvtStop);
         furi_thread_join(gps->thread);
         furi_thread_free(gps->thread);
@@ -153,4 +175,8 @@ void gps_link_stop(GpsLink* gps) {
         gps->rx_stream = NULL;
     }
     gps->running = false;
+}
+
+bool gps_link_port_busy(GpsLink* gps) {
+    return gps && gps->port_busy;
 }

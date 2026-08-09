@@ -48,15 +48,22 @@ The About screen lists the full pinout for both amplifier modules and scrolls wi
 
 ## Music folder
 
-The default library is /ext/music. To use a different folder, edit the single line in this file on the SD card:
+The default library is /ext/music. To change it, open Settings, highlight Music folder and press OK. A folder browser opens on the SD card:
 
-/ext/apps_data/mp3_player/music_path.txt
+* **OK** on a folder name enters that folder.
+* **OK** on ".." goes up one level.
+* **OK** on "Use this folder" saves the current location and rescans the library.
+* **Back** leaves the browser without changing the folder.
 
-Then choose Settings, Rescan library. Restarting the app is not required. Invalid paths fall back to /ext/music.
+Older versions read the folder from music_path.txt. If that file exists it is imported automatically the first time this version runs, after which the setting lives in the app's own settings file.
 
-Only MP3 files directly inside that folder are read, and subfolders are ignored. The scan stops after five seconds, 1024 directory entries, or 100 songs. Keeping the library flat leaves enough RAM for the decoder.
+Only MP3 files directly inside the chosen folder are read, and subfolders are ignored. The scan stops after five seconds, 1024 directory entries, or 100 songs. Keeping the library flat leaves enough RAM for the decoder.
 
-Volume, repeat mode and output selection persist between launches.
+Volume, repeat mode, output selection and the music folder persist between launches.
+
+## Open from file browser
+
+On firmwares whose file browser can open an MP3 with this app, the app starts straight on Now Playing and plays that file, without loading the library.
 
 ## MAX98357A wiring
 

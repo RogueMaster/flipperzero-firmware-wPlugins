@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "esp_link.h"
 #include "../recon_app_i.h"
 #include "flock_db.h"
 #include "esp_parser.h"
+#include "gps_link.h" // gps_apply_nmea: the shared decode+publish path
+#include "marauder_scan.h"
 
 #include <expansion/expansion.h>
 #include <stdlib.h>
@@ -31,23 +33,17 @@ struct EspLink {
     size_t line_len;
     bool skip_line; /**< dropping the remainder of an overlong (overflowed) line */
     uint32_t lines; /**< total completed RX lines (heartbeat) */
-    uint32_t dropped; /**< overlong lines dropped whole (wire-protocol health metric) */
+    uint32_t dropped; /**< lines dropped whole: overlong, or corrupted by an RX drop */
+    /**
+     * Bytes the ISR could not hand to the worker because the stream buffer was
+     * full. Written ONLY by the ISR, read only by the worker -- single writer, so
+     * no lock is needed. At 921600 baud a full buffer drops bytes MID-LINE, which
+     * silently corrupts a record rather than failing it; the worker compares this
+     * against @ref line_rx_dropped to discard any line that lost bytes.
+     */
+    volatile uint32_t rx_dropped;
+    uint32_t line_rx_dropped; /**< rx_dropped as of the start of the current line */
 };
-
-// ---- parsing helpers -----------------------------------------------------
-
-/** Try to read a "hh:hh:hh:hh:hh:hh" MAC starting at p. (Marauder/generic path;
- *  the companion path's compact-MAC + field parsing live in esp_parser.c.) */
-static bool parse_mac_colon(const char* p, uint8_t mac[6]) {
-    for(int i = 0; i < 6; i++) {
-        int hi = esp_hexval(p[i * 3]);
-        int lo = esp_hexval(p[i * 3 + 1]);
-        if(hi < 0 || lo < 0) return false;
-        if(i < 5 && p[i * 3 + 2] != ':') return false;
-        mac[i] = (uint8_t)((hi << 4) | lo);
-    }
-    return true;
-}
 
 // ---- companion protocol --------------------------------------------------
 
@@ -66,6 +62,19 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
             app,
             m->u.banner.version,
             m->u.banner.version != 0 && m->u.banner.version != ESP_PROTO_VERSION);
+        // Ask the GUI thread to re-send the GPS relay config now that the board
+        // has demonstrably booted and is listening. The session sends it once at
+        // start-up, which a board still coming up simply misses -- and a silently
+        // dropped config is indistinguishable from a dead GPS module, which is
+        // most of why issue #5's GPS problem took four rounds. A banner also
+        // arrives on every ESP reboot, so a mid-session power blip re-arms the
+        // relay by itself.
+        //
+        // A FLAG, not a send. This runs on the ESP worker thread, and calling
+        // furi_hal_serial_tx here would race the commands the GUI thread sends on
+        // the same handle when entering a scan scene. Identical discipline to
+        // alert_pending: the worker only ever raises, the GUI tick acts.
+        recon_app_request_gps_cfg(app);
         break;
     case EspMsgWifiBegin:
         recon_app_wifi_begin(app);
@@ -88,6 +97,7 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
         recon_app_ble_begin(app);
         break;
     case EspMsgBleEnd:
+        recon_app_ble_scan_done(app);
         recon_app_ble_end(app);
         break;
     case EspMsgBleDev:
@@ -100,7 +110,8 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
             m->u.ble.company,
             m->u.ble.mfg_len ? m->u.ble.mfg : NULL,
             m->u.ble.mfg_len,
-            m->u.ble.raven_gatt);
+            m->u.ble.raven_gatt,
+            m->u.ble.tracker_separated);
         break;
     case EspMsgFlock:
         recon_app_report_flock(
@@ -111,7 +122,9 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
             m->u.flock.channel,
             m->u.flock.ftype,
             m->u.flock.conf,
-            m->u.flock.fp);
+            m->u.flock.fp,
+            m->u.flock.dev_class,
+            m->u.flock.hidden);
         break;
     case EspMsgDeauthTarget:
         recon_app_add_deauth_target(app, m->u.deauth.bssid, m->u.deauth.channel);
@@ -121,6 +134,49 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
         break;
     case EspMsgLocate:
         recon_app_set_locate_rssi(app, m->u.locate.rssi);
+        break;
+    case EspMsgAction: {
+        BleActionKind kind = BleActionNone;
+        if(strcmp(m->u.action.op, "PING") == 0) {
+            kind = BleActionPing;
+        } else if(strcmp(m->u.action.op, "RING") == 0) {
+            kind = BleActionRing;
+        }
+        if(kind != BleActionNone) {
+            recon_app_set_ble_action(
+                app, kind, m->u.action.status, m->u.action.have_rssi, m->u.action.rssi);
+        }
+        break;
+    }
+    case EspMsgGpsNmea:
+        // Only when the operator actually selected the companion as the GPS
+        // source. A board that relays NMEA must not be able to override a GPS
+        // the user wired to the Flipper itself, and must not quietly start
+        // geotagging when GPS is switched off altogether.
+        //
+        // m is const, but u.gps.nmea is a char* INTO the mutable line buffer --
+        // nmea_parse_line() tokenizes in place, exactly as on the direct path.
+        if(app->settings.gps_enabled && app->settings.gps_source == ReconGpsSourceCompanion) {
+            gps_apply_nmea(app, m->u.gps.nmea);
+        }
+        break;
+    case EspMsgChip:
+        recon_app_set_chip(
+            app,
+            m->u.chip.target,
+            m->u.chip.gpio_count,
+            m->u.chip.gps_pin_mask,
+            m->u.chip.has_5ghz);
+        break;
+    case EspMsgBand:
+        recon_app_set_band(app, m->u.band.sel, m->u.band.channels);
+        break;
+    case EspMsgGpsCfg:
+        // Recorded regardless of the current source setting: it is the answer to
+        // a question we asked, and the badge decides what to make of it. Storing
+        // it only when the companion source is selected would lose the reply to
+        // the explicit `gps off` the session sends in the other direction.
+        recon_app_set_gps_relay(app, m->u.gpscfg.on, m->u.gpscfg.pin, m->u.gpscfg.baud);
         break;
     case EspMsgStatus:
         recon_app_set_esp_status(
@@ -154,71 +210,39 @@ static const char* const ESP_MARAUDER_CMDS[] = {
 #define ESP_MARAUDER_CMD_COUNT (sizeof(ESP_MARAUDER_CMDS) / sizeof(ESP_MARAUDER_CMDS[0]))
 
 /**
- * Marauder prints the network name after a known label. Return a pointer to the
- * name (rest of line) or NULL. Covers scanap/sniffbeacon ("ESSID: "),
- * sniffraw ("SSID: ") and sniffprobe ("Requesting: ").
+ * Apply a scraped generic/Marauder line to the app.
+ *
+ * The DECISION (which MACs are hits, at what rung) lives in the pure, host-tested
+ * marauder_scan.c; this function only applies the result. Keeping the two apart
+ * is what makes the precision rules -- especially the single-MAC attribution
+ * rule -- regression-testable, and it mirrors the split the companion path
+ * already uses.
  */
-static const char* marauder_extract_ssid(const char* line) {
-    static const char* const labels[] = {"ESSID: ", "SSID: ", "Requesting: "};
-    static char buf[RECON_SSID_LEN]; // 33: SSIDs are max 32 bytes
-    for(size_t k = 0; k < 3; k++) {
-        const char* p = strstr(line, labels[k]);
-        if(!p) continue;
-        p += strlen(labels[k]);
-        // Bound to an SSID length (preserves embedded spaces) so trailing
-        // fields on the line aren't absorbed and a far-away "flock" token can't
-        // spuriously raise confidence. Single-threaded ESP worker -> static ok.
-        size_t i = 0;
-        for(; i < RECON_SSID_LEN - 1 && p[i] && p[i] != '\r' && p[i] != '\n'; i++)
-            buf[i] = p[i];
-        buf[i] = '\0';
-        return buf;
-    }
-    return NULL;
-}
-
 static void esp_parse_generic(EspLink* esp, char* line) {
     // Liveness/connected is handled by the worker via recon_app_set_esp_lines().
+    MarauderScan scan;
+    marauder_scan_line(line, &scan);
 
-    // Prefer the labelled SSID Marauder prints over a whole-line scan, so the
-    // confidence is attributed to the actual network name and we can display it.
-    const char* ssid = marauder_extract_ssid(line);
-    FlockConfidence ssid_conf = flock_ssid_confidence(ssid ? ssid : line);
-    size_t len = strlen(line);
-
-    // Count MAC tokens first. A line-wide SSID match can only be safely
-    // attributed to a specific MAC when the line names exactly one MAC;
-    // otherwise an unrelated "flock" substring would promote every MAC on a
-    // multi-record log line. So: OUI matches always count; a lone MAC may take
-    // the SSID confidence; extra non-OUI MACs are ignored.
-    int mac_count = 0;
-    for(size_t i = 0; i + 17 <= len; i++) {
-        uint8_t mac[6];
-        if(parse_mac_colon(line + i, mac)) {
-            mac_count++;
-            i += 16;
-        }
+    for(int i = 0; i < scan.hit_count; i++) {
+        const MarauderHit* h = &scan.hits[i];
+        recon_app_report_flock(
+            esp->app,
+            h->mac,
+            scan.have_ssid ? scan.ssid : "",
+            0,
+            0,
+            'O',
+            h->conf,
+            0,
+            h->dev_class,
+            false); // Marauder's scraped text carries no hidden-SSID signal
     }
-    bool single = (mac_count == 1);
 
-    for(size_t i = 0; i + 17 <= len; i++) {
-        uint8_t mac[6];
-        if(!parse_mac_colon(line + i, mac)) continue;
-        i += 16;
-
-        bool oui = flock_oui_match(mac);
-        FlockConfidence conf;
-        if(oui) {
-            // OUI vendor prefix; SSID naming on the same line can raise it.
-            conf = (ssid_conf > FlockConfidencePossible) ? ssid_conf : FlockConfidencePossible;
-        } else if(single && ssid_conf != FlockConfidenceNone) {
-            // Sole MAC on a line that names a Flock SSID -> attribute to it.
-            conf = ssid_conf;
-        } else {
-            continue;
-        }
-
-        recon_app_report_flock(esp->app, mac, ssid ? ssid : "", 0, 0, 'O', conf, 0);
+    // A line naming more MACs than one scan can carry is pathological; surface it
+    // as wire-protocol health rather than dropping it silently.
+    if(scan.dropped > 0) {
+        esp->dropped += (uint32_t)scan.dropped;
+        recon_app_set_esp_dropped(esp->app, esp->dropped);
     }
 }
 
@@ -228,7 +252,13 @@ static void esp_rx_isr(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, 
     EspLink* esp = context;
     if(event == FuriHalSerialRxEventData) {
         uint8_t data = furi_hal_serial_async_rx(handle);
-        furi_stream_buffer_send(esp->rx_stream, &data, 1, 0);
+        // 0 timeout: an ISR must never block. A full buffer therefore DROPS the
+        // byte, and a byte lost mid-line corrupts that record rather than failing
+        // it -- the parser would happily read the damaged remainder as a valid
+        // one. Count it so the worker can discard the affected line instead.
+        if(furi_stream_buffer_send(esp->rx_stream, &data, 1, 0) != 1) {
+            esp->rx_dropped++;
+        }
         furi_thread_flags_set(furi_thread_get_id(esp->thread), EspEvtRx);
     }
 }
@@ -248,6 +278,14 @@ static int32_t esp_worker(void* context) {
                         // tail as a spurious record); resume on the next line.
                         esp->skip_line = false;
                         esp->line_len = 0;
+                    } else if(esp->rx_dropped != esp->line_rx_dropped) {
+                        // The ISR dropped at least one byte while this line was
+                        // being assembled, so what we hold is a record with a hole
+                        // in it -- not a shorter valid one. Discard it whole, for
+                        // the same reason an overlong line is discarded whole.
+                        esp->line_len = 0;
+                        esp->dropped++;
+                        recon_app_set_esp_dropped(esp->app, esp->dropped);
                     } else if(esp->line_len > 0) {
                         esp->line[esp->line_len] = '\0';
                         // Every completed line counts as RX activity.
@@ -260,6 +298,9 @@ static int32_t esp_worker(void* context) {
                         }
                         esp->line_len = 0;
                     }
+                    // A line boundary is the only safe place to re-sync the drop
+                    // watermark: whatever was lost belonged to the line just ended.
+                    esp->line_rx_dropped = esp->rx_dropped;
                 } else if(esp->skip_line) {
                     // still discarding the remainder of the overlong line
                 } else if(esp->line_len < ESP_LINE_MAX - 1) {
@@ -285,6 +326,42 @@ void esp_link_send(EspLink* esp, const char* cmd) {
     if(!esp->running || !esp->serial) return;
     furi_hal_serial_tx(esp->serial, (const uint8_t*)cmd, strlen(cmd));
     furi_hal_serial_tx(esp->serial, (const uint8_t*)"\n", 1);
+}
+
+// Index-aligned with ReconEspBand.
+static const char* const esp_band_cmd[] = {"band 2g", "band 5g", "band all"};
+
+void esp_link_send_band(EspLink* esp) {
+    ReconApp* app = esp->app;
+    if(app->settings.backend != EspBackendCompanion) return;
+    uint8_t i = app->settings.esp_band;
+    if(i >= ReconEspBandCount) i = ReconEspBand24;
+    // Sent every session, not only when non-default: the board keeps its own
+    // selection across app restarts, so a companion left on "all" by an earlier
+    // run would silently keep the slow sweep even after the setting was changed.
+    esp_link_send(esp, esp_band_cmd[i]);
+}
+
+void esp_link_send_gps_cfg(EspLink* esp) {
+    ReconApp* app = esp->app;
+    if(app->settings.backend != EspBackendCompanion) return;
+
+    // Sent in BOTH directions so the board's state always matches the setting:
+    // without the explicit "off", a board left relaying from an earlier session
+    // keeps overriding a GPS the user has since moved to the Flipper's own UART.
+    char cmd[32];
+    if(app->settings.gps_enabled && app->settings.gps_source == ReconGpsSourceCompanion) {
+        snprintf(
+            cmd,
+            sizeof(cmd),
+            "gps %u %lu",
+            (unsigned)app->settings.esp_gps_pin,
+            (unsigned long)app->settings.gps_baud);
+    } else {
+        snprintf(cmd, sizeof(cmd), "gps off");
+    }
+    recon_app_gps_relay_pending(app);
+    esp_link_send(esp, cmd);
 }
 
 EspLink* esp_link_alloc(void* app) {

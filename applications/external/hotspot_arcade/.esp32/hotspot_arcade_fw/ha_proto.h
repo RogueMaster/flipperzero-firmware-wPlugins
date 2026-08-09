@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41 // 'A'
 #define HA_FW_MAGIC_2 0x52 // 'R'
 #define HA_FW_MAGIC_3 0x43 // 'C'  ("HARC" = Hotspot ARCade)
-#define HA_FW_VERSION 11 // v11: 3s countdowns; WYR vote/reveal countdown bar
+#define HA_FW_VERSION 19 // v19: web bundle in LittleFS flash + bundle CRC in PING (skip re-stream)
 
 // Flipper -> ESP
 enum {
@@ -61,6 +61,12 @@ enum {
     HA_GAME_WYR = 8, // would you rather (poll)
     HA_GAME_SCRAMBLE = 9, // word scramble race
     HA_GAME_REVERSI = 10, // reversi/othello (duel kind)
+    HA_GAME_GUESSCOLOR = 11, // guess the color (closest RGB + speed)
+    HA_GAME_BATTLESHIP = 12, // battleship (1v1, hidden fleets)
+    HA_GAME_SPECTRUM = 13, // wavelength-style spectrum guessing (party)
+    HA_GAME_KMK = 14, // kiss marry kill (party, predict a player's picks)
+    HA_GAME_CHESS = 15, // chess (1v1, full FIDE rules)
+    HA_GAME_SECRETS = 16, // secrets (party, hidden yes/no vote + prediction)
 };
 
 // CRC-8/ATM: poly 0x07, init 0x00, no reflect, no xorout. Identical both sides.

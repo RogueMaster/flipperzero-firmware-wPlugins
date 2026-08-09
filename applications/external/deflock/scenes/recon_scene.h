@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #pragma once
 
 #include <gui/scene_manager.h>
@@ -8,12 +8,9 @@ typedef enum {
     ReconSceneStart,
     ReconSceneFlock,
     ReconSceneFlockDetail,
-    ReconSceneNfc,
     ReconSceneReports,
     ReconSceneSettings,
     ReconSceneAbout,
-    ReconSceneWifi,
-    ReconSceneWifiDetail,
     ReconSceneBle,
     ReconSceneBleDetail,
     ReconSceneFirmware,
@@ -24,6 +21,8 @@ typedef enum {
     ReconSceneGuardianSus,
     ReconSceneLocator,
     ReconSceneLocatorHome,
+    ReconSceneSupport,
+    ReconSceneHelp,
     ReconSceneNum,
 } ReconScene;
 
@@ -41,10 +40,6 @@ void recon_scene_flock_detail_on_enter(void* context);
 bool recon_scene_flock_detail_on_event(void* context, SceneManagerEvent event);
 void recon_scene_flock_detail_on_exit(void* context);
 
-void recon_scene_nfc_on_enter(void* context);
-bool recon_scene_nfc_on_event(void* context, SceneManagerEvent event);
-void recon_scene_nfc_on_exit(void* context);
-
 void recon_scene_reports_on_enter(void* context);
 bool recon_scene_reports_on_event(void* context, SceneManagerEvent event);
 void recon_scene_reports_on_exit(void* context);
@@ -54,16 +49,11 @@ bool recon_scene_settings_on_event(void* context, SceneManagerEvent event);
 void recon_scene_settings_on_exit(void* context);
 
 void recon_scene_about_on_enter(void* context);
+void recon_scene_help_on_enter(void* context);
+bool recon_scene_help_on_event(void* context, SceneManagerEvent event);
+void recon_scene_help_on_exit(void* context);
 bool recon_scene_about_on_event(void* context, SceneManagerEvent event);
 void recon_scene_about_on_exit(void* context);
-
-void recon_scene_wifi_on_enter(void* context);
-bool recon_scene_wifi_on_event(void* context, SceneManagerEvent event);
-void recon_scene_wifi_on_exit(void* context);
-
-void recon_scene_wifi_detail_on_enter(void* context);
-bool recon_scene_wifi_detail_on_event(void* context, SceneManagerEvent event);
-void recon_scene_wifi_detail_on_exit(void* context);
 
 void recon_scene_ble_on_enter(void* context);
 bool recon_scene_ble_on_event(void* context, SceneManagerEvent event);
@@ -104,3 +94,7 @@ void recon_scene_locator_on_exit(void* context);
 void recon_scene_locator_home_on_enter(void* context);
 bool recon_scene_locator_home_on_event(void* context, SceneManagerEvent event);
 void recon_scene_locator_home_on_exit(void* context);
+
+void recon_scene_support_on_enter(void* context);
+bool recon_scene_support_on_event(void* context, SceneManagerEvent event);
+void recon_scene_support_on_exit(void* context);

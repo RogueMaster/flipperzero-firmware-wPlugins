@@ -1,0 +1,37 @@
+Pack: Filme
+
+Word: Batman
+---
+Word: Superman
+---
+Word: Spider-Man
+---
+Word: Yoda
+---
+Word: Godzilla
+---
+Word: Shrek
+---
+Word: Minion
+---
+Word: Gollum
+---
+Word: Chewbacca
+---
+Word: Joker
+---
+Word: Nemo
+---
+Word: Simba
+---
+Word: Elsa
+---
+Word: Gandalf
+---
+Word: Mario
+---
+Word: Dracula
+---
+Word: King Kong
+---
+Word: Pikachu

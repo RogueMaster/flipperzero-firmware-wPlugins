@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.8.1
+
+- Fixed wardrive CSV captures writing zero-byte files
+- Fixed back navigation landing on the main menu instead of the correct submenu after returning from log/text-input/confirmation views
+
 ## v1.8.0
 
 - Added NetBIOS Scan, HTTP Banner Scan, SNMP Probe, and WPA3 Compliance Check commands to WiFi Scanning menu

@@ -191,14 +191,14 @@ def render(path, W, H, layout="wide"):
     px, py = x0 + title_w + 22 * SS, title_y + title_px - 46 * SS
     pw, ph = 84 * SS, 38 * SS
     td.rounded_rectangle([px, py, px + pw, py + ph], radius=10 * SS, fill=MAG)
-    td.text((px + pw / 2, py + ph / 2), "v2.0", font=f_ver, fill=BG_TOP, anchor="mm")
+    td.text((px + pw / 2, py + ph / 2), "v2.3", font=f_ver, fill=BG_TOP, anchor="mm")
 
     # tagline + subtitle
     tag_y = title_y + title_px + 14 * SS
     td.text((x0, tag_y), "Sweep for the readers you can't see.", font=f_tag, fill=CYAN)
     td.text(
         (x0, tag_y + 50 * SS),
-        "Find it · fingerprint its polling cadence · survey the room. No extra hardware.",
+        "Find it · fingerprint it · survey the room · leave it on watch. No extra hardware.",
         font=f_sub,
         fill=GRAY,
     )

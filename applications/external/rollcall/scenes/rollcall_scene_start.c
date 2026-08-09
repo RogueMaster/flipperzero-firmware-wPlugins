@@ -2,6 +2,7 @@
 
 typedef enum {
     StartIndexCheck,
+    StartIndexHunt,
     StartIndexSettings,
     StartIndexAbout,
 } StartIndex;
@@ -19,6 +20,8 @@ void rollcall_scene_start_on_enter(void* context) {
     submenu_set_header(submenu, "RollCall");
     submenu_add_item(
         submenu, "Run Health Check", StartIndexCheck, rollcall_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Find My Remote", StartIndexHunt, rollcall_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Settings", StartIndexSettings, rollcall_scene_start_submenu_cb, app);
     submenu_add_item(
@@ -39,6 +42,10 @@ bool rollcall_scene_start_on_event(void* context, SceneManagerEvent event) {
         switch(event.event) {
         case StartIndexCheck:
             scene_manager_next_scene(app->scene_manager, RollCallSceneCapture);
+            consumed = true;
+            break;
+        case StartIndexHunt:
+            scene_manager_next_scene(app->scene_manager, RollCallSceneHunt);
             consumed = true;
             break;
         case StartIndexSettings:

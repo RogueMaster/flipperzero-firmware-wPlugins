@@ -44,18 +44,21 @@ Single Arduino sketch plus header-only helpers (one translation unit):
 - `ha_assets.h` — in-RAM file table. The Flipper streams gzipped files in; the HTTP
   catch-all serves them (with `Content-Encoding: gzip`). No filesystem, so nothing
   survives a reboot; the Flipper re-streams on the next session.
-- `ha_games.h` — the engine: player roster (with emoji avatars) plus all ten games and
+- `ha_games.h` — the engine: player roster (with emoji avatars) plus all fifteen games and
   their per-client JSON serialization. The whole-group games (Trivia, Would You Rather,
-  Word Scramble, Reaction Duel) are phone-driven and self-organizing (ready-up -> countdown
-  -> rounds -> podium); Connect Four / Tic-Tac-Toe / Dots & Boxes / Reversi share one
-  generalized duel + challenge system (parameterized by kind); Drawing rotates a drawer and
-  relays ink; Pong and Reaction Duel run on `tick()` (called from the `.ino` loop) alongside
-  the trivia/party/draw round timers. Emoji reactions broadcast to everyone as a `emoji`
-  message. Trivia and the duels are event-driven; Pong is the real-time path.
+  Word Scramble, Reaction Duel, Guess the Color, Spectrum, Kiss Marry Kill) are
+  phone-driven and self-organizing (ready-up -> countdown -> rounds -> podium);
+  Connect Four / Tic-Tac-Toe / Dots & Boxes / Reversi share one generalized duel +
+  challenge system (parameterized by kind), and Pong, Battleship, and Chess reuse the
+  same challenge flow with their own match structs (Chess runs full server-side FIDE
+  legality plus 5+0 blitz clocks); Drawing rotates a drawer and relays ink. Pong,
+  Reaction Duel, and the chess clocks run on `tick()` (called from the `.ino` loop)
+  alongside the trivia/party/draw round timers. Emoji reactions broadcast to everyone
+  as a `emoji` message. Trivia and the duels are event-driven; Pong is the real-time path.
 - `ha_json.h` / `ha_proto.h` — tiny JSON reader/writer and the UART frame constants +
   CRC-8.
 
-The web app is streamed into RAM (about 7 KB gzipped), so RAM stays flat regardless of
+The web app is streamed into RAM (about 39 KB gzipped), so RAM stays flat regardless of
 trivia pack size (questions are pushed one at a time, never stored in bulk).
 
 ## Flipper app (`flipper/hotspot-arcade/`)
@@ -95,7 +98,10 @@ owns the WebSocket, identity (nickname + emoji avatar in localStorage), lobby, s
 router, emoji reactions, and the shared game-UI components (`A.readyLobby` / `A.countdown`
 / `A.timebar` / `A.showLead` leaderboard / `A.podium`). Each game module (`trivia.js`,
 `duel.js` for the four board duels, `draw.js`, `pong.js`, `wyr.js`, `scramble.js`,
-`react.js`) registers handlers for its message types and reuses those components. Styled to the Flipper design
+`react.js`) registers handlers for its message types and reuses those components. User-facing text is
+localized through `core/i18n.js`: the host's language rides in the `welcome` message and
+the client renders from a message catalog, with English the default and the fallback for
+any untranslated string. Styled to the Flipper design
 system ([../web/DESIGN.md](../web/DESIGN.md)): dark, monochrome, one orange accent,
 mono/uppercase, sharp borders. The captive page is a real-browser handoff because iOS/
 Android captive mini-browsers do not run WebSockets reliably.

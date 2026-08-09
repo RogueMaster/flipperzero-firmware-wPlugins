@@ -193,6 +193,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0}
 .row+.row{border-top:1px solid rgba(255,255,255,.04)}
 .lbl{color:var(--text2);font-size:.85em}
+.hint{display:block;color:var(--text2);opacity:.62;font-size:.82em;line-height:1.35;margin-top:2px;max-width:20em}
+details select{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:4px;font-size:.85em;flex:none}
 details input{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right;width:60px}
 details input.cgn{width:38px;margin-left:4px}
 
@@ -421,6 +423,15 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <summary><span id="controlsSummary" class="control-summary">...</span></summary>
   <div class="controls-body">
   <div class="row">
+    <span class="lbl">Hardware<br><span class="hint">Auto-detect needs 0x398 &mdash; many Model 3/Y never send it. Pick your car if detection is wrong.</span></span>
+    <select id="selHwOverride" onchange="cmd('hw_override',parseInt(this.value,10))">
+      <option value="0">Auto-detect</option>
+      <option value="3">Force HW4</option>
+      <option value="2">Force HW3</option>
+      <option value="1">Force Legacy</option>
+    </select>
+  </div>
+  <div class="row">
     <span class="lbl">Ignore OTA</span>
     <label class="sw"><input type="checkbox" id="swIgnoreOta" onchange="cmd('ignore_ota',this.checked)"><span class="sl2"></span></label>
   </div>
@@ -483,6 +494,34 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <div class="row">
     <span class="lbl">TLSSC Restore</span>
     <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Summon EU Unlock</span>
+    <label class="sw"><input type="checkbox" id="swSummon" onchange="cmd('summon_unlock',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Continue on Green<br><small style="color:var(--muted)">pairs with TLSSC</small></span>
+    <label class="sw"><input type="checkbox" id="swCog" onchange="cmd('continue_on_green',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Right-Hand Drive (RHD)<br><small style="color:var(--red)">RHD markets only — do NOT enable while driving on the right.</small></span>
+    <label class="sw"><input type="checkbox" id="swRhd" onchange="cmd('assist_rhd_override',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Telemetry Off (experimental)<br><small style="color:var(--muted)">Experimental &amp; unverified — clears reachable telemetry flags only (not the Vehicle-bus ECU log-upload). Does NOT guarantee reduced detection.</small></span>
+    <label class="sw"><input type="checkbox" id="swTelOff" onchange="cmd('assist_telemetry_off',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">AP Branch/Tier (experimental)<br><small style="color:var(--muted)">Experimental &amp; non-persistent — injects a UI branch/tier hint only, reverts when injection stops; unverified and may be a ban signal. Off by default.</small></span>
+    <select id="selApmv3" onchange="cmd('apmv3_branch',parseInt(this.value,10))">
+      <option value="255">Off</option>
+      <option value="0">Live</option>
+      <option value="1">Stage</option>
+      <option value="2">Dev</option>
+      <option value="3">Stage2</option>
+      <option value="4">EAP</option>
+      <option value="5">Demo</option>
+    </select>
   </div>
   <div class="row" style="display:block">
     <div id="pmSuggest" style="display:none;margin:0 0 8px;padding:8px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--card2)">
@@ -717,6 +756,7 @@ R"rawliteral( TTGO T-Display + MCP2515)rawliteral"
 R"rawliteral( M5Stack ATOM Lite + ATOMIC CAN Base)rawliteral"
 #endif
 R"rawliteral(</div>
+<div class="foot">Free &amp; open source &middot; <a href="https://fsd.fkey.id/" target="_blank" rel="noopener">support the research</a></div>
 </div><!-- /wrap -->
 
 <script>
@@ -924,6 +964,9 @@ function upd(d){
 
   // Switches sync
   if(document.getElementById('swIgnoreOta')) document.getElementById('swIgnoreOta').checked=d.ignore_ota;
+  // Manual HW selection (#110) — don't fight the user while the menu is open.
+  var hwSel=document.getElementById('selHwOverride');
+  if(hwSel && d.hw_override!==undefined && document.activeElement!==hwSel) hwSel.value=String(d.hw_override);
   if(document.getElementById('swFsdUnlock')) document.getElementById('swFsdUnlock').checked=d.fsd_unlock;
   if(document.getElementById('swNag')) document.getElementById('swNag').checked=d.nag_killer;
   if(document.getElementById('swContinuousAp')) document.getElementById('swContinuousAp').checked=d.continuous_ap;
@@ -941,6 +984,12 @@ function upd(d){
   if(document.getElementById('swChime')) document.getElementById('swChime').checked=d.suppress_speed_chime;
   if(document.getElementById('rowChime')) document.getElementById('rowChime').style.display=d.isa_speed_enabled?'flex':'none';
   if(document.getElementById('swTlssc')) document.getElementById('swTlssc').checked=d.tlssc_restore;
+  if(document.getElementById('swSummon')) document.getElementById('swSummon').checked=d.summon_unlock;
+  if(document.getElementById('swCog')) document.getElementById('swCog').checked=d.continue_on_green;
+  if(document.getElementById('swRhd')) document.getElementById('swRhd').checked=d.assist_rhd_override;
+  if(document.getElementById('swTelOff')) document.getElementById('swTelOff').checked=d.assist_telemetry_off;
+  var apmv3Sel=document.getElementById('selApmv3');
+  if(apmv3Sel && d.apmv3_branch!==undefined && document.activeElement!==apmv3Sel) apmv3Sel.value=String(d.apmv3_branch);
   if(document.getElementById('swDisp')) document.getElementById('swDisp').checked=!!d.display_enabled;
   if(document.activeElement.id!=='dispBr' && document.getElementById('dispBr'))
     document.getElementById('dispBr').value=d.display_brightness||50;
@@ -1495,6 +1544,7 @@ static String build_json() {
     j += "\"fsd_enabled\":";   j += state.fsd_enabled                 ? "true" : "false"; j += ',';
     j += "\"ap_active\":";     j += state.ap_active                   ? "true" : "false"; j += ',';
     j += "\"op_mode\":";       j += (int)state.op_mode;                j += ',';
+    j += "\"hw_override\":";   j += (int)state.hw_override;            j += ',';
     j += "\"hw_version\":";    j += (int)state.hw_version;             j += ',';
     j += "\"ota\":";           j += state.tesla_ota_in_progress        ? "true" : "false"; j += ',';
     j += "\"ap_das_profile\":\""; j += ap_das_profile;                 j += "\",";
@@ -1525,6 +1575,11 @@ static String build_json() {
     j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
     j += "\"suppress_speed_chime\":"; j += state.suppress_speed_chime  ? "true" : "false"; j += ',';
     j += "\"tlssc_restore\":"; j += state.tlssc_restore                ? "true" : "false"; j += ',';
+    j += "\"summon_unlock\":"; j += state.summon_unlock                ? "true" : "false"; j += ',';
+    j += "\"continue_on_green\":"; j += state.continue_on_green         ? "true" : "false"; j += ',';
+    j += "\"assist_rhd_override\":"; j += state.assist_rhd_override      ? "true" : "false"; j += ',';
+    j += "\"assist_telemetry_off\":"; j += state.assist_telemetry_off    ? "true" : "false"; j += ',';
+    j += "\"apmv3_branch\":";  j += (int)state.apmv3_branch;             j += ',';
     j += "\"firmware_14x_warning\":"; j += state.firmware_14x_warning  ? "true" : "false"; j += ',';
 #if defined(BOARD_TTGO_DISPLAY)
     j += "\"display_enabled\":"; j += state.display_enabled             ? "true" : "false"; j += ',';
@@ -1624,6 +1679,29 @@ static void ws_event(uint8_t num, WStype_t type,
         http_can_stream_set_enabled(true);  // capture works in both modes now (#108)
         Serial.println(active ? "[Web] → Active mode" : "[Web] → Listen-Only mode");
         prefs_save(&saved);
+    } else if (strstr(buf, "\"hw_override\"")) {
+        // Manual HW selection (#110): 0 = auto-detect, else pin the version.
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            int sel = atoi(vptr);
+            if (sel >= (int)TeslaHW_Unknown && sel <= (int)TeslaHW_HW4) {
+                TeslaHWVersion want = (TeslaHWVersion)sel;
+                FSDState saved;
+                state_enter();
+                g_state->hw_override = want;
+                // Apply at once so the right handlers are live immediately; on
+                // "auto" leave the current detection in place and let the normal
+                // detectors take over again from the next frames.
+                if (want != TeslaHW_Unknown) fsd_apply_hw_version(g_state, want);
+                saved = *g_state;
+                state_exit();
+                Serial.printf("[Web] HW override: %s\n",
+                              (want == TeslaHW_HW4)    ? "HW4" :
+                              (want == TeslaHW_HW3)    ? "HW3" :
+                              (want == TeslaHW_Legacy) ? "Legacy" : "Auto");
+                prefs_save(&saved);
+            }
+        }
     } else if (strstr(buf, "\"ignore_ota\"")) {
         if (vptr) {
             while (*vptr == ' ' || *vptr == ':') vptr++;
@@ -1932,6 +2010,70 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] Suppress Speed Chime: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"summon_unlock\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->summon_unlock = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Summon EU Unlock: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"continue_on_green\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->continue_on_green = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Continue on Green: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"assist_rhd_override\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->assist_rhd_override = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] RHD Override: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"assist_telemetry_off\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->assist_telemetry_off = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Telemetry Off: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"apmv3_branch\"")) {
+        // AP branch/tier selector (experimental, non-persistent): 0-5 select a
+        // UI_apmv3Branch value, any other value (255 = Off) stores the 0xFF
+        // sentinel so the handler leaves the frame untouched.
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            int sel = atoi(vptr);
+            uint8_t want = (sel >= 0 && sel <= 5) ? (uint8_t)sel : 0xFF;
+            FSDState saved;
+            state_enter();
+            g_state->apmv3_branch = want;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] AP Branch/Tier: %d\n", want);
             prefs_save(&saved);
         }
     } else if (strstr(buf, "\"dump\"")) {

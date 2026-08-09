@@ -6,6 +6,226 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-05
+
+### Added
+
+- **Secrets**, a 16th game (whole-group). Each round shows a yes/no question and runs
+  answer → predict → reveal: every player first secretly answers yes/no, then secretly
+  predicts how many of the group said yes (0..N). Only the group's total yes-count is ever
+  revealed — the individual answers are never serialized to anyone, enforced server-side in
+  the per-player serializer; predictions (guesses about the group, not personal) are shown
+  at reveal. An exact prediction scores 1, anything else 0. Six rounds, on the shared
+  party lobby/countdown/reveal skeleton, with a votable pack of questions. Ships localized
+  (English + German). Firmware **v18**.
+- **Phone-side game-change vote.** Any player can propose switching the active game from
+  their phone (a 🕹️ button in the header, and the lobby's "Pick a game" row, open a
+  game picker); the ESP then freezes the active game and runs a majority vote of the
+  *other* players, resuming the game on reject/timeout or switching on approve. The
+  proposer is an implicit yes; approval needs a strict majority of the others (a lone
+  proposer switches at once); a No majority or a 25s timeout rejects, the proposer can
+  withdraw their own proposal, and the proposer leaving cancels it. The picker's last
+  entry, **Back to Lobby**, proposes leaving the current game and is voted on the same
+  way. This is the one sanctioned phone→host action, gated entirely behind the vote — a
+  host-initiated select stays authoritative and immediate. New intents
+  `proposeGame{game}` / `voteGame{ok}` and a `gamevote` push. Firmware **v18**.
+- **Would You Rather: an agreement chart on the final screen.** The game used to end with
+  nothing to talk about; now it closes with a distribution of how strongly the group
+  agreed. Agreement per round is the majority share (`max(a,b)/(a+b)`), so a 1/9 split
+  reads as 90% just like 9/1 and the value never drops below 50%. The horizontal axis is
+  the set of percentages actually reachable with the current number of voters
+  (`ceil(n/2)/n … n/n` — 50/60/70/80/90/100 for ten players), each bar counts the rounds
+  that landed there, and a dashed line marks the mean with its value, e.g. "You align on
+  average by 62% — lots to talk about!". Rounds nobody voted in are skipped rather than
+  counted as unanimous. The ESP is the source of truth: `wyrJson()`'s `"final"` phase now
+  carries `voters` and a `rounds` array of `{a,b}` splits, because a phone that joined
+  late never saw the earlier rounds. Firmware **v18**.
+- A serial trace of every identity decision, for debugging on real hardware:
+  `[ha] JOIN pid=2 ip=192.168.4.3 mac=AA:BB:CC:DD:EE:FF nick="..."` for a new device, and
+  `[ha] NEW BROWSER same device ip=... mac=... -> pid=1 nick="..." (consolidated)` when a
+  second browser context is folded onto the player that phone already has.
+
+### Changed
+
+- **The web bundle lives in ESP flash, not RAM.** It used to be streamed from the Flipper
+  into a heap buffer every session and held there; it is now written once into a
+  **LittleFS** flash partition (the `spiffs`-labelled data partition every board already
+  reserves) as it streams, and served from flash — freeing ~47 KB of heap. The ESP
+  advertises the stored bundle's **CRC32** in its PING beacon and the Flipper **skips
+  re-streaming** when its copy already matches (a changed bundle, or a user override in
+  `apps_data/.../web`, still streams). Firmware **v19**; the PING beacon and `manifest.json`
+  gained a bundle-CRC field.
+- Content packs now allow **8 topics per game**, up from 6, using some of the heap the
+  flash bundle freed.
+
+### Fixed
+
+- **The AP no longer exhausts RAM and reboots when phones associate.** The ~47 KB web
+  bundle grew across sixteen games; held in heap it left too little for the Wi-Fi/TCP
+  stack, so a couple of Wi-Fi associations could crash the board and drop the AP mid-join
+  ("unable to join" / "192.168.4.1 times out"), worst in RF-dense areas. Moving the bundle
+  to flash (above) fixes it. Firmware **v19**.
+- **A phone-voted game change now shows on the Flipper.** Switching the game from a phone
+  updated the ESP and the other players but left the Flipper's dashboard showing the old
+  game (and an ESP reboot could revert the vote). The PING beacon now carries the ESP's
+  current game id and the Flipper mirrors it while hosting, so any game change — by vote or
+  by the host — reflects on the dashboard within one beacon. Firmware **v19**.
+- **The phone game plays in the iOS captive pop-up, not just the full browser.** The captive
+  window is served the real app now (it's a WebKit view), while the OS's background
+  captive-detection probes get a tiny "open 192.168.4.1 in your browser" landing — so
+  serving the ~47 KB bundle to the burst of probes no longer starves the ESP's heap.
+- **Would You Rather's agreement chart no longer misreads a divided group.** With few voters
+  a round can only land at 50% or 100%, so a half-unanimous/half-split game averaged to a
+  meaningless "75% — like-minded" with a marker in an empty gap. It now detects that
+  polarization, drops the mean marker, and says "Split down the middle — N unanimous, M
+  split." Localized (en/de/pt-BR).
+- **One phone = one player.** A player is now bound to the device rather than to the
+  WebSocket, so a phone can no longer show up as two or three players. iOS opens the portal
+  in a captive mini-browser whose storage is separate from Safari's, so playing in both (or
+  in a second tab, or a second browser) used to create a player per context. A `hello` from
+  a device that is already playing now rebinds the existing player to the new socket — never
+  a second player — keeping their pid, name, avatar and score, and the `welcome` reply hands
+  that identity to the new context (it now carries `avatar` alongside `pid`/`nick`, and the
+  client adopts and stores both) so it shows the same name straight away. Firmware **v18**.
+
+  The device is identified by the station's **MAC**, not by its IP: the IP is assigned by
+  the ESP's own DHCP server and is a derived value, while the MAC is the device. The AP's
+  DHCP events report the assigned address together with the client MAC, so the firmware
+  keeps a small IP → MAC table; a station whose lease predates the handler is resolved from
+  lwIP's ARP cache, and if the MAC cannot be resolved at all the IP is used as the key.
+  (Phones use a randomized private MAC these days, but it is stable per SSID, so it lasts
+  exactly as long as a session does.) The engine itself just stores an opaque 64-bit device
+  key and knows nothing about MACs or IPs.
+- **No more ghost players from a stale socket.** A phone that drops (screen lock, WiFi off)
+  closes nothing — the ESP only sees the socket die when TCP times out, minutes later. A
+  disconnect now removes a player only if the closing socket is still that player's
+  *current* socket, so a phone that reconnected in the meantime is no longer taken down by
+  its own stale connection.
+
+  Deliberate trade-off: two people can no longer share one phone as two players.
+- **A dead link now shows the reconnect bar** instead of the page looking connected while
+  the round moves on. A phone dropping (WiFi off, sleep) often produces no socket close for
+  minutes; the client now tracks how long the host has been silent and surfaces the existing
+  reconnect UI once it goes quiet. Client-only.
+
+### Changed
+
+- `sim/`: each simulated socket now carries a stub device key (one per socket, so every
+  panel stays its own phone), with `ha_ws_device()` to put two sockets on one phone. New
+  headless test `sim/test/identity.mjs` covers rebind, distinct devices, the stale-socket
+  disconnect, and the unknown-device fallback.
+
+## [1.6.0] - 2026-08-03
+
+Chess joins as the fifteenth game. Firmware **v17**.
+
+### Added
+
+- **Chess**, a 15th game (1v1). Full FIDE rules refereed on the ESP: legal move
+  generation, check/checkmate/stalemate, castling, en passant, and underpromotion.
+  Threefold repetition and the 50-move rule are claimable, fivefold repetition and the
+  75-move rule end the game automatically, and a flag fall loses unless the opponent
+  couldn't mate by any legal sequence (FIDE 6.9), which draws instead. A 5+0 blitz clock
+  per side, server-authoritative. Ships fully localized (English + Brazilian Portuguese)
+  from day one. Firmware **v17**.
+- A **keep-awake helper** on the phone client: the Wake Lock API where available, falling
+  back to a looping muted video where it isn't (the AP's captive page is served over an
+  insecure context, so `navigator.wakeLock` is absent there) — keeps the screen on through
+  a long chess clock or any other match.
+
+### Fixed
+
+- `selectGame()`'s clear-chain was missing `gcClear()` and `battleClear()`, so switching
+  the active game left live Guess the Color and Battleship matches occupying their slots.
+  Fixed alongside adding the new `chessClear()`.
+- Battleship's "A vs B" match `EVENT` never reached the Flipper: the UART dispatcher's
+  event key chain checked `duel`/`pong`/`draw` but not `bs`. Added (alongside `chess`).
+
+## [1.5.0] - 2026-08-02
+
+Full phone-UI localization and per-language content packs, with Brazilian Portuguese as
+the first language. Firmware **v16** (the board relays the host's language to each phone).
+
+### Added
+
+- **Phone UI localization.** The host's chosen language is relayed to each phone (the ESP
+  echoes it in `welcome`), and the client renders from a message catalog with English as
+  the fallback for any untranslated string. The whole phone UI is localized, static labels
+  and in-game dynamic text alike, across all fourteen games (**Brazilian Portuguese** is
+  the first language). Server-sent toasts stay English. Firmware **v16** (the board relays
+  the language). The Flipper's own menus stay English (host-facing, and the Flipper font
+  has no accented glyphs).
+- **Content languages.** The host picks a content language in Settings, and each game
+  streams that language's packs from `packs/<game>/<lang>/`, falling back to English per
+  game where a language has none (so a partly translated language still plays). English is
+  the unchanged default. **Brazilian Portuguese (pt-BR)** is the first, with a starter pack
+  for every content game. Adding a language is a set of pack files plus one row in the
+  settings picker.
+- **German (de).** A full German translation of all six content games — every pack for
+  Trivia, Would You Rather, Spectrum, Kiss Marry Kill, Word Scramble and Draw (32 packs).
+
+### Fixed
+
+- **Spectrum and Kiss Marry Kill now get their content packs on hardware.** The Flipper's
+  pack streamer only covered trivia/wyr/scramble/draw, so those two games started empty on
+  a real board (the simulator streamed them, which hid it). Both are streamed now.
+- Word Scramble and Draw are now UTF-8-safe, so non-English content packs work: the
+  scramble shuffles whole letters (not bytes), the Draw blank count is per character, and
+  the scramble tiles upper-case ASCII only (so a German `ß` stays one tile). ASCII content
+  is unchanged. From @genkigenki
+  ([#9](https://github.com/tarikbc/hotspot-arcade/pull/9)) — the enabler for language packs.
+
+## [1.4.0] - 2026-08-02
+
+A 14th game. Firmware **v15**.
+
+### Added
+
+- **Kiss Marry Kill**, a 14th game (whole-group), contributed by @genkigenki
+  ([#8](https://github.com/tarikbc/hotspot-arcade/pull/8)). Each round a rotating chooser
+  secretly labels three people (drawn from the pack) Kiss, Marry, and Kill; everyone else
+  predicts the chooser's assignment. Points for matching positions, and the chooser scores
+  by how well the group reads them. Six rounds, four content packs. Firmware **v15**.
+
+## [1.3.0] - 2026-08-01
+
+A 13th game. Firmware **v14**.
+
+### Added
+
+- **Spectrum**, a 13th game (whole-group), a Wavelength-style guessing game contributed by
+  @genkigenki ([#7](https://github.com/tarikbc/hotspot-arcade/pull/7)). Each round one
+  player is the psychic: they see a hidden target on a 0-100 spectrum between two opposing
+  words and type a clue; everyone else slides a dial to guess where it lands. Points by
+  closeness, and the psychic scores by how well the group guesses. Six rounds, rotating
+  psychic, four content packs. Reuses the whole-group party skeleton and the pack pipeline.
+  Firmware **v14**.
+- A contributor guide (`CONTRIBUTING.md`), a PR template, and a `pr-checklist` CI action that
+  reviews PRs against the "adding a game" checklist.
+
+## [1.2.0] - 2026-07-31
+
+Two new games bring the count to **twelve**. Firmware **v13**.
+
+### Added
+
+- **Guess the Color**, an 11th game (whole-group). A random color swatch appears and
+  everyone dials in its R/G/B with a slider per channel; closest guess wins the round with
+  a speed bonus, scored **0-10**, over five rounds to a podium. You never see your own color
+  while guessing — the reveal then lines up every player's guess beside the answer as a
+  split swatch (answer on the left, that player's guess on the right) so you can see how
+  close each was. Firmware **v12**.
+- **Battleship**, a 12th game (1v1). Place a hidden fleet of five ships on a 10x10 grid,
+  then fire at the enemy grid; a hit lets you fire again, and sinking all five ships wins.
+  Distinct hit / miss / sunk sounds, an orange border on your grid when it's your turn, and
+  the enemy fleet revealed at the end. Firmware **v13**.
+
+### Changed
+
+- The official ESP32-S2 dev board is manual-only in the flasher again: its reset lines
+  aren't wired to the pins the auto-boot pulse drives, so the "(auto boot)" row never
+  dropped it into download mode. WROOM and C5 keep both their auto-boot and manual rows.
+
 ## [1.1.2] - 2026-07-22
 
 Third board: **ESP32-C5**. From @xMasterX, tested on C5 hardware. Firmware **v11**

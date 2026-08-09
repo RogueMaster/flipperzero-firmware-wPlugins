@@ -1,3 +1,60 @@
+## 1.7
+
+- New game: Secrets, the sixteenth (whole-group). Each round poses a yes/no question that
+  everyone answers secretly, then everyone predicts how many of the group said yes — only
+  the group total is ever revealed, never who said what.
+- Players can now vote from their phones to switch the active game (a majority of the other
+  players), with a "Back to Lobby" option too. A host pick stays instant and authoritative.
+- Would You Rather ends with an agreement chart showing how closely the group aligned.
+- More reliable hosting: the phone web app is now kept in the board's flash instead of RAM,
+  so the hotspot no longer runs low on memory and drops connections as more phones join.
+  Trivia and party packs also allow up to eight topics per game.
+- Firmware v19.
+
+## 1.6
+
+- New game: Chess, the fifteenth. Full FIDE rules refereed on the board: castling, en
+  passant, underpromotion, claimable draws (threefold repetition, 50-move rule) and
+  automatic ones (fivefold, 75-move, dead position), with a 5-minute blitz clock per
+  side — a flag fall loses unless no mate was possible. The final position stays on the
+  result screen, and the phone keeps its screen awake during games.
+- Firmware v17.
+
+## 1.5
+
+- The phone UI is fully localized: the host's language reaches every phone, with
+  Brazilian Portuguese first and English as the fallback for anything untranslated.
+  Content packs can ship per-language versions, placed in a language subfolder
+  under each game's pack folder.
+- Firmware v16.
+
+## 1.4
+
+- New game: Kiss Marry Kill. Each round a rotating chooser secretly labels three people
+  (drawn from the pack) Kiss, Marry, and Kill; everyone else predicts the chooser's
+  assignment. Points for matching positions, and the chooser scores by how well the group
+  reads them. Six rounds, four content packs. Thanks to genkigenki for contributing it.
+- Firmware v15.
+
+## 1.3
+
+- New game: Spectrum, a Wavelength-style guessing game. Each round one player is the
+  psychic: they see a hidden target on a 0-100 spectrum between two opposing words and type
+  a clue; everyone else slides a dial to guess where it lands. Points by closeness, and the
+  psychic scores by how well the group guesses, so a good clue pays off. Six rounds, four
+  content packs. Thanks to genkigenki for contributing it.
+- Firmware v14.
+
+## 1.2
+
+- Two new games, bringing the total to twelve.
+- Guess the Color: a random color swatch appears; dial in its R/G/B with a slider per
+  channel. Closest guess wins the round with a speed bonus, over five rounds. The reveal
+  lines up everyone's guess beside the answer so you can see how close each was.
+- Battleship: place a hidden fleet of five ships on a 10x10 grid, then fire at the enemy
+  grid. A hit lets you fire again; sink all five ships to win.
+- Firmware v13.
+
 ## 1.1
 
 - Flash more than one ESP board: "Install Firmware" now opens a board picker for the

@@ -109,7 +109,7 @@
       hide("draw-bar"); hide("draw-word"); hide("draw-canvas");
       hide("draw-tools"); hide("draw-guess"); hide("draw-reveal");
       show("draw-final");
-      status.textContent = "Game over";
+      status.textContent = t("draw.game_over");
       renderPodium(m.board);
       return;
     }
@@ -121,9 +121,9 @@
     if (m.phase === "reveal") {
       role = ""; A.timebarStop("draw-bar"); hide("draw-bar");
       hide("draw-tools"); hide("draw-guess"); show("draw-reveal");
-      var who = m.winner == null ? "Nobody guessed it" : (esc(nickOf(m.winner)) + " got it");
-      reveal.innerHTML = "Word: <b>" + esc(m.word || "") + "</b><br>" + who;
-      status.textContent = "Round over";
+      var who = m.winner == null ? t("draw.nobody") : t("draw.got_it", { nick: esc(nickOf(m.winner)) });
+      reveal.innerHTML = t("draw.word_label") + " <b>" + esc(m.word || "") + "</b><br>" + who;
+      status.textContent = t("draw.round_over");
       if (revealedRound !== m.round) {
         revealedRound = (m.round == null ? -2 : m.round);
         if (m.winner === A.pid) { A.sfx("win"); A.vibe([40, 60, 40]); }
@@ -135,8 +135,8 @@
     if (m.phase === "idle") {
       role = ""; A.timebarStop("draw-bar"); hide("draw-bar");
       hide("draw-tools"); hide("draw-guess"); show("draw-reveal");
-      reveal.textContent = "Get ready...";
-      status.textContent = "Waiting";
+      reveal.textContent = t("draw.get_ready");
+      status.textContent = t("draw.waiting");
       word.textContent = "";
       return;
     }
@@ -146,7 +146,7 @@
     show("draw-word");
     role = m.role;
     revealedRound = -1;
-    status.textContent = "Round " + (m.round || 1) + " / " + (m.rounds || m.round || 1);
+    status.textContent = t("common.round", { n: (m.round || 1), total: (m.rounds || m.round || 1) });
     noteDeadline(m.deadline, m.dur);
     A.timebar("draw-bar", m.deadline, m.dur, false);
 
@@ -162,7 +162,7 @@
       hide("draw-tools"); show("draw-guess");
       $("draw-chat").innerHTML = "";
       var artist = esc(m.drawer || "Someone");
-      chatLine("—", artist + " is drawing", "sys");
+      chatLine("—", t("draw.is_drawing", { nick: artist }), "sys");
       sizeCanvas();
       canvas.classList.remove("drawable");
     }

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "../recon_app_i.h"
+#include "../helpers/scan_session.h"
 
 typedef enum {
     StartItemFlock,
     StartItemGuardian,
-    StartItemWifi,
     StartItemBle,
-    StartItemNfc,
     StartItemFirmware,
     StartItemReports,
     StartItemSettings,
@@ -15,6 +14,8 @@ typedef enum {
     StartItemFlockMap,
     StartItemDeflockShare,
     StartItemLocator,
+    StartItemSupport,
+    StartItemHelp,
 } StartItem;
 
 static void recon_scene_start_submenu_cb(void* context, uint32_t index) {
@@ -36,7 +37,9 @@ static void recon_scene_start_update_header(ReconApp* app) {
     WatchState st = (WatchState)app->watch.state;
     if(st == WatchStateClear) {
         submenu_set_header(
-            app->submenu, wifi_only ? "FlipDeFlock - watch: WiFi only" : "FlipDeFlock");
+            app->submenu,
+            wifi_only ? "FlipDeFlock " RECON_VERSION " - WiFi only" :
+                        "FlipDeFlock " RECON_VERSION);
         return;
     }
     const char* bd = app->watch.breakdown;
@@ -58,6 +61,17 @@ static void recon_scene_start_update_header(ReconApp* app) {
 
 void recon_scene_start_on_enter(void* context) {
     ReconApp* app = context;
+
+    // Reaching the Main Menu is the ONE moment we know the user has genuinely
+    // left a scan feature -- a List->Detail hop never comes through here. So
+    // this is where the ESP/GPS link is released (freeing the UART for the
+    // flasher) and the session's detections are persisted. A scan scene's
+    // on_exit cannot do it: the SDK calls that on the way INTO a Detail child
+    // too, which is what killed scanning mid-feature and wiped live tables on
+    // Back (see helpers/scan_session.h). No-op at launch and on every menu
+    // visit where no scan ran.
+    scan_session_stop(app);
+
     Submenu* submenu = app->submenu;
     submenu_reset(submenu);
     recon_scene_start_update_header(app);
@@ -67,17 +81,17 @@ void recon_scene_start_on_enter(void* context) {
         submenu, "Net Guardian", StartItemGuardian, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Locator", StartItemLocator, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Flock Map", StartItemFlockMap, recon_scene_start_submenu_cb, app);
-    submenu_add_item(submenu, "WiFi Audit", StartItemWifi, recon_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "BLE / Tracker Scan", StartItemBle, recon_scene_start_submenu_cb, app);
-    submenu_add_item(submenu, "NFC / RFID Audit", StartItemNfc, recon_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "ESP32 Firmware", StartItemFirmware, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Reports", StartItemReports, recon_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Share to DeFlock", StartItemDeflockShare, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartItemSettings, recon_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Help & Warnings", StartItemHelp, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartItemAbout, recon_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Support", StartItemSupport, recon_scene_start_submenu_cb, app);
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, ReconSceneStart));
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewSubmenu);
@@ -111,14 +125,10 @@ bool recon_scene_start_on_event(void* context, SceneManagerEvent event) {
         case StartItemFlockMap:
             scene_manager_next_scene(app->scene_manager, ReconSceneFlockMap);
             break;
-        case StartItemWifi:
-            scene_manager_next_scene(app->scene_manager, ReconSceneWifi);
             break;
         case StartItemBle:
             scene_manager_next_scene(app->scene_manager, ReconSceneBle);
             break;
-        case StartItemNfc:
-            scene_manager_next_scene(app->scene_manager, ReconSceneNfc);
             break;
         case StartItemFirmware:
             scene_manager_next_scene(app->scene_manager, ReconSceneFirmware);
@@ -132,8 +142,14 @@ bool recon_scene_start_on_event(void* context, SceneManagerEvent event) {
         case StartItemSettings:
             scene_manager_next_scene(app->scene_manager, ReconSceneSettings);
             break;
+        case StartItemHelp:
+            scene_manager_next_scene(app->scene_manager, ReconSceneHelp);
+            break;
         case StartItemAbout:
             scene_manager_next_scene(app->scene_manager, ReconSceneAbout);
+            break;
+        case StartItemSupport:
+            scene_manager_next_scene(app->scene_manager, ReconSceneSupport);
             break;
         default:
             consumed = false;

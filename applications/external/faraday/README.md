@@ -28,7 +28,10 @@
 ## 📟 On the Flipper
 
 <p align="center">
-  <img src="images/screen_baseline.png" width="30%" alt="Baseline capture — fob in the open">
+  <img src="images/screen_splash.png" width="45%" alt="Faraday launch splash">
+</p>
+<p align="center">
+  <img src="images/screen_baseline.png" width="30%" alt="Baseline capture — fob in the open, live sparkline">
   &nbsp;
   <img src="images/screen_shielded.png" width="30%" alt="Shielded capture — fob in the pouch">
   &nbsp;
@@ -79,6 +82,8 @@
   declines — an unpressed fob would otherwise "prove" any pouch perfect.
 - 🕶️ **Listen-only.** Faraday **never transmits** on either radio. It only measures what reaches it.
 - 🔌 **Zero extra hardware.** Onboard CC1101 + onboard ST25R3916. Nothing to flash, nothing to wire.
+- ✨ **Built to feel good.** An animated intro, a verdict that grows in with a filled *pass* badge (or
+  an outlined *warning* one), a marker that sweeps while listening, and a live sparkline of the signal.
 
 ---
 

@@ -1,0 +1,38 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/coolshrimp/flipperzero-xbox-post-code-reader.git
+    commit_sha: 1fd63daca75580a8df8fbf009db1c30e970d7717
+short_description: Read Xbox boot POST codes over I2C and decode them offline
+description: |
+  Turn a Flipper Zero into a portable Xbox boot diagnostic reader. It emulates
+  the MAX6958 POST display at I2C address 0x38 and captures four-digit POST
+  codes directly from a supported Xbox motherboard, keeps a live history,
+  decodes known codes offline, saves sessions to the SD card, and can stream
+  codes over USB to the companion browser tool.
+
+  This is a Flipper Zero adaptation of the PicoDurangoPOST project.
+
+  **Features:**
+
+  - Emulates the MAX6958 POST display at I2C address 0x38
+  - Captures four-digit POST codes without blocking the Flipper controls
+  - Shows one current code or a scrolling 128-entry live log
+  - Decodes selected codes locally using 452 bundled console-aware records
+  - Browses known codes by All, POST, Error, SMC, SP, CPU, or OS category
+  - Saves captures as automatically numbered SD-card logs and reads them back
+  - Streams live codes to WebXboxPOSTTool over USB Web Serial
+  - Shows Xbox One and Xbox Series wiring directly in the app
+  - Displays an offline QR code for opening the decoder on a phone
+
+  **Wiring:** connect only SDA, SCL, and a shared ground to the Xbox POST
+  header. Do not power the motherboard from the Flipper. Confirm the bus is
+  compatible with 3.3 V GPIO and use level shifting when required. Xbox One,
+  One S, and One X use the FACET connector; Xbox Series S and Series X use
+  AARDVARK.
+changelog: "@docs/changelog.md"
+screenshots:
+  - screenshots/MainMenu.png
+  - screenshots/Reader.png
+  - screenshots/KnowCodes.png
+  - screenshots/wiring.png

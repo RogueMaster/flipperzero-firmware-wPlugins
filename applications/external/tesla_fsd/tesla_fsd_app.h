@@ -106,7 +106,7 @@ typedef struct {
     bool assist_lhd_override; // force left-hand drive
     bool assist_show_lane_graph; // lane visualization
     bool assist_tlssc_bit38; // explicit TLSSC enable on 0x3FD mux0
-    bool assist_telemetry_off; // force trip telemetry off (0x3F8 bit43)
+    bool assist_telemetry_off; // experimental: clear reachable telemetry flags (0x3F8 19/42/43/44/55 + 0x3FD mux1 48/50)
 
     // extras toggles (BETA — need on-vehicle verification per CAN ID)
     bool extra_hazard_lights;

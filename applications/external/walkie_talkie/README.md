@@ -1,10 +1,10 @@
-# Walkie Talkie — FRS Channel Scanner for Flipper Zero
+# Walkie Talkie — FRS / PMR446 Channel Scanner for Flipper Zero
 
 > **Audio limitation:** The CC1101 data mirror is a digital receive-data stream, not
 > demodulated analog voice. Treat this app as a channel activity/RSSI scanner unless
-> external demodulation hardware is added; speaker output is not reliable FRS voice.
+> external demodulation hardware is added; speaker output is not reliable voice audio.
 
-📻 Listen in on FRS walkie-talkie channels with your Flipper Zero. Tunes the built-in CC1101 radio to the 22 standard FRS channels and plays whatever it hears through the speaker, with auto-squelch and a channel scanner.
+📻 Listen in on walkie-talkie channels with your Flipper Zero. Tunes the built-in CC1101 radio to the 22 standard FRS channels (US/Canada) or the 16 PMR446 channels (Europe) and plays whatever it hears through the speaker, with auto-squelch and a channel scanner.
 
 > **Receive-only.** This app does not transmit, and it does not decode CTCSS/DCS — subchannel numbers are labels for matching your handheld radio's display, not a privacy-code filter.
 >
@@ -12,7 +12,10 @@
 
 ## ✨ Features
 
-- All 22 standard FRS channels (462/467 MHz) with a scrollable channel list
+- Two channel plans, switchable in Settings:
+  - **FRS** (US/Canada) — all 22 channels, 462/467 MHz
+  - **PMR446** (Europe) — all 16 analogue channels, 446.00625–446.19375 MHz
+- Scrollable channel list for the active band
 - Channel scanner: scans up or down, pauses automatically when a signal is detected, and resumes after the transmission ends
 - Auto-squelch with adjustable sensitivity (or turn it off to hear raw static)
 - Live RSSI readout with a 5-bar signal-strength meter
@@ -24,9 +27,9 @@
 |---|---|
 | ![Listen Now screen](screenshots/Screenshot1.png) | ![Settings screen](screenshots/Screenshot2.png) |
 
-| FRS Channel List | About |
+| Channel List | About |
 |---|---|
-| ![FRS channel list](screenshots/Screenshot3.png) | ![About screen](screenshots/Screenshot4.png) |
+| ![Channel list](screenshots/Screenshot3.png) | ![About screen](screenshots/Screenshot4.png) |
 
 ## 🎛️ Controls
 
@@ -39,13 +42,13 @@
 | OK | Mute / unmute | Start, resume, or stop scanning |
 | Back | Open menu | Exit app |
 
-### Menu / FRS List / Settings
+### Menu / Channel List / Settings
 
 | Button | Action |
 |---|---|
 | Up / Down | Move cursor |
-| OK | Select (in FRS List: tune to the highlighted channel) |
-| Left / Right | Settings: toggle Auto-Squelch or adjust sensitivity |
+| OK | Select (in Channel List: tune to the highlighted channel; in Settings: act on the highlighted row) |
+| Left / Right | Settings: switch band, toggle Auto-Squelch, or adjust sensitivity |
 | Back | Back to previous screen (long press exits the app) |
 
 ## 🔧 Building from source
@@ -65,7 +68,7 @@ Copy `walkie_talkie.fap` to your Flipper's SD card under `apps/Sub-GHz/`, then l
 
 ## ⚖️ Legal note
 
-Receiving FRS transmissions is legal in most jurisdictions, but laws vary — check your local regulations. This app never transmits.
+Receiving FRS or PMR446 transmissions is legal in most jurisdictions, but laws vary — check your local regulations. This app never transmits.
 
 ## 🤔 To do
 

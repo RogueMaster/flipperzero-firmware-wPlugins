@@ -1,0 +1,403 @@
+stages:
+  - pre_check
+  - build_target_example
+  - build_host_examples
+  - test
+  - deploy
+
+default:
+  interruptible: true
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: "$CI_COMMIT_BRANCH"
+
+variables:
+  ZEPHYR_REPO: https://github.com/zephyrproject-rtos/zephyr.git
+  ZEPHYR_REPO_REV: v4.4.0
+  ARM_TOOLCHAIN_URL: https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz
+  PI_PICO_SDK_REV: 2.2.0
+  PI_PICO_SDK: https://github.com/raspberrypi/pico-sdk
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIP_EXTRA_INDEX_URL: "https://dl.espressif.com/pypi"
+
+cache:
+  paths:
+    - "$CI_PROJECT_DIR/.cache/pip"
+
+
+build_target_example:
+  # Build examples that will be flashed by the esp-serial-flasher host
+  stage: build_target_example
+  image: espressif/idf:release-v5.5
+  tags:
+    - build
+    - internet
+  artifacts:
+    paths:
+      - "test/target-example-src/hello-world-ESP32-src/build-*"
+      - "examples/*/target-firmware/"
+    when: always
+    expire_in: 3 days
+  before_script:
+    - apt install ccache python3
+  variables:
+    IDF_CCACHE_ENABLE: 1
+    CCACHE_DIR: "/cache/esf_ccache"
+    CCACHE_SLOPPINESS: "time_macros"
+  parallel:
+    matrix:
+      - TARGET_CHIP: esp32
+        BUILD_TYPE: flash
+        PATHS: "zephyr_example:pi_pico_example:linux_example"
+      - TARGET_CHIP: esp32c3
+        BUILD_TYPE: flash
+        PATHS: "esp32_usb_cdc_acm_example"
+      - TARGET_CHIP: esp32c3
+        BUILD_TYPE: ram
+        PATHS: "esp32_spi_load_ram_example"
+      - TARGET_CHIP: esp32c6
+        BUILD_TYPE: flash
+        PATHS: "esp32_sdio_example"
+      - TARGET_CHIP: esp32c6
+        BUILD_TYPE: ram
+        PATHS: "esp32_sdio_load_ram_example"
+      - TARGET_CHIP: esp32h2
+        BUILD_TYPE: flash
+        PATHS: "esp32_example:esp32_stub_example:esp32_fast_reflash_example:esp32_read_flash_example:esp32_get_target_info_example:esp32_deflate_example"
+      - TARGET_CHIP: esp32h2
+        BUILD_TYPE: ram
+        PATHS: "esp32_load_ram_example"
+  script:
+    - cd $CI_PROJECT_DIR
+    - python3 test/build_target_example.py ${TARGET_CHIP} ${BUILD_TYPE} $(echo ${PATHS} | tr ':' ' ')
+    - |
+      if echo ${PATHS} | grep -q "esp32_deflate_example"; then
+        # esp32_deflate_example needs to have target firmware binaries compressed for deflate flashing, because it flashes compressed data
+        echo "Running compress_firmware.py for esp32_deflate_example..."
+        python3 examples/esp32_deflate_example/target-firmware/compress_firmware.py
+      fi
+
+run_pre_commit:
+  stage: pre_check
+  image: python:3.11-bookworm
+  tags:
+    - internet
+  script:
+    - apt-get update
+    - pip install pre-commit
+    - pre-commit run --show-diff-on-failure --all-files
+
+check_stub_source_correctness:
+  stage: pre_check
+  image: python:3-slim
+  tags:
+    - internet
+  script:
+    - apt-get update
+    - apt-get install -y git
+    - python3 cmake/gen_stub_sources.py
+        '0.8.0'
+        'https://github.com/espressif/esp-flasher-stub/releases/download'
+        .
+    - git diff -I 'SPDX-FileCopyrightText' --exit-code  # ignore annual copyright year updates
+
+.build_host_template:
+  stage: build_host_examples
+  tags:
+    - build
+    - internet
+  needs:
+    - build_target_example
+  before_script:
+    - apt install ccache
+    - pip install -U idf-build-apps --prefer-binary
+  variables:
+    IDF_CCACHE_ENABLE: 1
+    CCACHE_DIR: "/cache/esf_ccache"
+    CCACHE_SLOPPINESS: "time_macros"
+    PEDANTIC_FLAGS: "-Werror -Wall -Wextra"
+    EXTRA_CFLAGS: "${PEDANTIC_FLAGS}"
+    EXTRA_CXXFLAGS: "${PEDANTIC_FLAGS}"
+    BUILD_DIR: "build"
+  script:
+
+    # CCACHE_RECACHE Used when invalidating the current cache.
+    # could be enabled by MR label "ccache:recache"
+    - |
+      if [ -n "${CI_MERGE_REQUEST_LABELS}" ] && echo "${CI_MERGE_REQUEST_LABELS}" | grep -q "ccache::recache"; then
+        export CCACHE_RECACHE="1"
+        echo "INFO: ccache recache enabled"
+      fi
+    # ESP32P4_SELECTS_REV_LESS_V3 is needed for ESP32-P4 since ESP-IDF v5.4 in the CI we use older ESP32-P4
+    # Newer chip will be used when stable version is released - TODO: ESF-258
+    - |
+      echo "CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y" >> examples/esp32_sdio_example/sdkconfig.defaults
+      echo "CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y" >> examples/esp32_sdio_load_ram_example/sdkconfig.defaults
+    - |
+      if [ -n "${TARGETS}" ]; then
+          python -m idf_build_apps build -v -p . \
+              --recursive \
+              --exclude ./test/target-example-src \
+              --config "sdkconfig.defaults*" \
+              --build-dir ${BUILD_DIR}_@w \
+              --check-warnings \
+              --target ${TARGETS}
+      else
+          python -m idf_build_apps build -v -p . \
+              --recursive \
+              --exclude ./test/target-example-src \
+              --config-rules "sdkconfig.defaults*" \
+              --build-dir ${BUILD_DIR}_@w \
+              --check-warnings
+      fi
+    # Show ccache statistics if enabled globally
+    - test "$CI_CCACHE_STATS" == 1 && test -n "$(which ccache)" && ccache --show-stats -vv || true
+
+build_host_idf_v5.5:
+  image: espressif/idf:release-v5.5
+  variables:
+    BUILD_DIR: "build_stable"
+  artifacts:
+    paths:
+      - "**/build*/*.bin"
+      - "**/build*/*.elf"
+      - "**/build*/*.map"
+      - "**/build*/flasher_args.json"
+      - "**/build*/flash_project_args"
+      - "**/build*/config/sdkconfig.json"
+      - "**/build*/bootloader/*.bin"
+      - "**/build*/partition_table/*.bin"
+    when: always
+    expire_in: 3 days
+  extends: .build_host_template
+
+build_host_idf_v6.0:
+  image: espressif/idf:release-v6.0
+  extends: .build_host_template
+
+build_host_idf_v6.1:
+  image: espressif/idf:release-v6.1
+  extends: .build_host_template
+
+build_host_idf_master:
+  image: espressif/idf:latest
+  variables:
+    BUILD_DIR: "build_master"
+  artifacts:
+    paths:
+      - "**/build*/*.bin"
+      - "**/build*/*.elf"
+      - "**/build*/*.map"
+      - "**/build*/flasher_args.json"
+      - "**/build*/flash_project_args"
+      - "**/build*/config/sdkconfig.json"
+      - "**/build*/bootloader/*.bin"
+      - "**/build*/partition_table/*.bin"
+    when: always
+    expire_in: 3 days
+  extends: .build_host_template
+  allow_failure: true
+
+build_host_zephyr:
+  stage: build_host_examples
+  image: debian:latest
+  needs:
+    - build_target_example
+  before_script:
+    - apt-get update
+    - apt-get install -y git cmake ninja-build wget python3 python3-pip python3-venv xz-utils
+  artifacts:
+    paths:
+      - "**/build*/zephyr/*.bin"
+      - "**/build*/zephyr/*.elf"
+      - "**/build*/zephyr/*.map"
+    when: always
+    expire_in: 3 days
+  tags:
+    - build
+    - internet
+  script:
+    - unset IDF_PATH
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install west
+    - west init -m ${ZEPHYR_REPO} --mr ${ZEPHYR_REPO_REV} $CI_PROJECT_DIR/zephyrproject-rtos
+    - cd $CI_PROJECT_DIR/zephyrproject-rtos
+    - west update hal_espressif
+    - west zephyr-export
+    - west packages pip --install
+    - west sdk install -t xtensa-espressif_esp32_zephyr-elf --no-hosttools
+    - west build -p -b esp32_devkitc/esp32/procpu $CI_PROJECT_DIR/examples/zephyr_example -DZEPHYR_EXTRA_MODULES=$CI_PROJECT_DIR
+
+build_host_pi_pico:
+  stage: build_host_examples
+  image: debian:latest
+  tags:
+    - build
+    - internet
+  needs:
+    - build_target_example
+  before_script:
+    - apt-get update
+    - apt-get install -y git wget cmake build-essential python3 python3-pip
+  artifacts:
+    paths:
+      - "**/build*/*.bin"
+      - "**/build*/*.elf"
+      - "**/build*/*.uf2"
+    when: always
+    expire_in: 3 days
+  script:
+    - git clone --recursive --single-branch --depth=1 -b ${PI_PICO_SDK_REV} ${PI_PICO_SDK}
+    - export PICO_SDK_PATH=$(pwd)/pico-sdk
+    - wget --no-verbose -O gcc-arm-none-eabi.tar.xz ${ARM_TOOLCHAIN_URL}
+    - tar xf gcc-arm-none-eabi.tar.xz
+    - mv arm-gnu-toolchain-* gcc-arm-none-eabi
+    - export PATH="$(pwd)/gcc-arm-none-eabi/bin:$PATH"
+    - cd $CI_PROJECT_DIR/examples/pi_pico_example
+    - mkdir build
+    - cd build
+    - cmake ..
+    - cmake --build .
+
+build_host_linux:
+  stage: build_host_examples
+  image: debian:latest
+  tags:
+    - ESF-RPI-01
+  needs:
+    - build_target_example
+  before_script:
+    - apt-get update
+    - apt-get install -y cmake gcc g++ make libgpiod-dev
+  script:
+    - cd $CI_PROJECT_DIR/examples/linux_example
+    - mkdir build && cd build
+    - cmake -DLINUX_PORT_GPIO=ON .. && cmake --build .
+  artifacts:
+    paths:
+      - "${CI_PROJECT_DIR}/examples/linux_example/build/linux_flasher"
+    when: always
+    expire_in: 3 days
+
+test_host_qemu:
+  stage: test
+  image: espressif/idf:release-v6.0
+  tags:
+    - build
+    - internet
+  script:
+    - cd $CI_PROJECT_DIR/test
+    - ./run_qemu_test.sh
+
+.test_template:
+  stage: test
+  image: debian:latest
+  before_script:
+    - apt-get update
+    - apt-get install -y python3 python3-pip python3-venv libffi-dev
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install -r $CI_PROJECT_DIR/test/requirements_test.txt --prefer-binary
+    - pip install esptool --prefer-binary
+  artifacts:
+    paths:
+      - "${CI_PROJECT_DIR}/examples/pytest_embedded_log/"
+    when: always
+    expire_in: 1 week
+
+test_esp1:
+  extends: .test_template
+  tags:
+    - ESF-RPI-02
+  needs:
+    - build_host_idf_v5.5
+    - build_host_idf_master
+  parallel:
+    matrix:
+      - CI_BUILD_FOLDER:
+          - "build_stable"
+          - "build_master"
+  rules:
+    - if: '$CI_BUILD_FOLDER == "build_master"'
+      allow_failure: true
+    - when: always
+  script:
+    - cd $CI_PROJECT_DIR
+    - pytest --target=esp32s3 --port=/dev/serial_ports/ESP32S3_ESP32C3 -k 'not test_esp32_spi_load_ram_example'
+
+test_esp2:
+  extends: .test_template
+  tags:
+    - ESF-RPI-01
+  needs:
+    - build_host_idf_v5.5
+    - build_host_idf_master
+  parallel:
+    matrix:
+      - CI_BUILD_FOLDER:
+          - "build_stable"
+          - "build_master"
+  rules:
+    - if: '$CI_BUILD_FOLDER == "build_master"'
+      allow_failure: true
+    - when: always
+  script:
+    - cd $CI_PROJECT_DIR
+    - pytest --target=esp32 --port=/dev/serial_ports/ESP32_ESP32H2
+    - pytest --target=esp32s3 --port=/dev/serial_ports/ESP32S3_ESP32C3 -k 'not test_esp32_usb_cdc_acm_example'
+    - pytest --target=esp32p4 --port=/dev/serial_ports/ESP32P4_ESP32C6
+
+test_zephyr:
+  extends: .test_template
+  tags:
+    - ESF-RPI-03
+  needs:
+    - build_host_zephyr
+  script:
+    - cd $CI_PROJECT_DIR
+    - pytest --target=zephyr --port=/dev/serial_ports/ESP32_ESP32
+
+test_pi_pico:
+  extends: .test_template
+  tags:
+    - ESF-RPI-03
+  needs:
+    - build_host_pi_pico
+  script:
+    - pytest --target=pi_pico --port=/dev/serial_ports/pico_ESP32
+
+test_linux:
+  extends: .test_template
+  tags:
+    - ESF-RPI-01
+  needs:
+    - build_target_example
+    - build_host_linux
+  before_script:
+    - apt-get update
+    - apt-get install -y python3 python3-pip python3-venv libffi-dev libgpiod3
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install -r $CI_PROJECT_DIR/test/requirements_test.txt --prefer-binary
+  script:
+    - cd $CI_PROJECT_DIR
+    - pytest --target=linux --port=/dev/serial_ports/ESP32_ESP32H2 -k dtr-rts
+    - pytest --target=linux --port=/dev/ttyS0 -k gpio
+
+push_to_the_components_registry:
+  stage: deploy
+  image: python:3.11-bookworm
+  tags:
+    - build
+    - internet
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$FORCE_PUSH_COMPONENT == "1"'
+  script:
+    - pip install idf-component-manager
+    - compote component upload --allow-existing --name=esp-serial-flasher --namespace=espressif

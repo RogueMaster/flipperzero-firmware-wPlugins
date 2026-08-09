@@ -1,0 +1,88 @@
+menu "ESP serial flasher"
+    config SERIAL_FLASHER_RESET_HOLD_TIME_MS
+        int "Time for which the reset pin is asserted when doing a hard reset"
+        default 100
+
+    config SERIAL_FLASHER_BOOT_HOLD_TIME_MS
+        int "Time for which the boot pin is asserted when doing a hard reset"
+        default 50
+
+    choice SERIAL_FLASHER_LOG_LEVEL_CHOICE
+        prompt "Compile-time minimum log level"
+        default SERIAL_FLASHER_LOG_LEVEL_WARN
+
+        config SERIAL_FLASHER_LOG_LEVEL_NONE
+            bool "None — no logging compiled in (zero binary cost)"
+        config SERIAL_FLASHER_LOG_LEVEL_ERROR
+            bool "Error — protocol errors only"
+        config SERIAL_FLASHER_LOG_LEVEL_WARN
+            bool "Warn — errors + unexpected-but-non-fatal events (recommended)"
+        config SERIAL_FLASHER_LOG_LEVEL_INFO
+            bool "Info — + connection, chip detection, flash size, write progress"
+        config SERIAL_FLASHER_LOG_LEVEL_DEBUG
+            bool "Debug — + per-command trace and transfer hex dumps"
+    endchoice
+
+    config SERIAL_FLASHER_LOG_LEVEL
+        int
+        default 0 if SERIAL_FLASHER_LOG_LEVEL_NONE
+        default 1 if SERIAL_FLASHER_LOG_LEVEL_ERROR
+        default 2 if SERIAL_FLASHER_LOG_LEVEL_WARN
+        default 3 if SERIAL_FLASHER_LOG_LEVEL_INFO
+        default 4 if SERIAL_FLASHER_LOG_LEVEL_DEBUG
+
+    config SERIAL_FLASHER_WRITE_BLOCK_RETRIES
+        int "Number of retries when writing blocks either to target flash or RAM"
+        default 3
+
+    config SERIAL_FLASHER_RESET_INVERT
+        bool "Invert reset signal"
+        default n
+        help
+           Enable this option if there is an inverting connection between
+           the output of the serial-flasher and the reset pin of the ESP chip.
+
+    config SERIAL_FLASHER_BOOT_INVERT
+        bool "Invert boot signal"
+        default n
+        help
+           Enable this option if there is an inverting connection between
+           the output of the serial-flasher and the boot pin of the ESP chip.
+
+    menu "Port selection"
+        comment "Select which built-in port implementations to compile into the library."
+        comment "Enable multiple ports to allow runtime switching between interfaces."
+
+        config SERIAL_FLASHER_PORT_UART
+            bool "ESP32 UART port"
+            default y
+            help
+                Compile the ESP32 UART port (esp32_port.c).
+                Required for flashing over a UART connection.
+
+        config SERIAL_FLASHER_PORT_SPI
+            bool "ESP32 SPI port"
+            default n
+            help
+                Compile the ESP32 SPI port (esp32_spi_port.c).
+                Required for flashing over a SPI connection.
+
+        config SERIAL_FLASHER_PORT_SDIO
+            bool "ESP32 SDIO port"
+            default n
+            help
+                Compile the ESP32 SDIO port (esp32_sdio_port.c).
+                Only available on targets with SDIO host support.
+                Required for flashing over an SDIO connection.
+
+        config SERIAL_FLASHER_PORT_USB_CDC_ACM
+            bool "ESP32 USB CDC-ACM port"
+            default n
+            depends on SOC_USB_OTG_SUPPORTED
+            help
+                Compile the ESP32 USB CDC-ACM port (esp32_usb_cdc_acm_port.c).
+                Only available on targets with USB OTG support.
+                Requires the espressif/usb_host_cdc_acm managed component.
+    endmenu
+
+endmenu

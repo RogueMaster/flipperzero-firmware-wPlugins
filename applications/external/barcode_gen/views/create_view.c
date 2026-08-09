@@ -356,20 +356,13 @@ void remove_barcode(CreateView* create_view_object) {
         true);
     furi_record_close(RECORD_STORAGE);
 
-    with_view_model(
-        create_view_object->barcode_app->message_view->view,
-        MessageViewModel * model,
-        {
-            if(success) {
-                model->message = "File Deleted";
-            } else {
-                model->message = "Could not delete file";
-            }
-        },
-        true);
-
-    view_dispatcher_switch_to_view(
-        create_view_object->barcode_app->view_dispatcher, MessageErrorView);
+    MessageView* message_view = create_view_object->barcode_app->message_view;
+    if(success) {
+        message_view_show(message_view, "File Deleted", MainMenuView);
+    } else {
+        //stay in the edit view so the user can retry
+        message_view_show(message_view, "Could not delete file", CreateBarcodeView);
+    }
 }
 
 void save_barcode(CreateView* create_view_object) {
@@ -391,20 +384,26 @@ void save_barcode(CreateView* create_view_object) {
         },
         true);
 
+    MessageView* message_view = create_view_object->barcode_app->message_view;
+
     if(file_name == NULL || furi_string_empty(file_name)) {
         FURI_LOG_E(TAG, "File Name cannot be empty");
+        message_view_show(message_view, "File name\ncannot be empty", CreateBarcodeView);
         return;
     }
     if(barcode_data == NULL || furi_string_empty(barcode_data)) {
         FURI_LOG_E(TAG, "Barcode Data cannot be empty");
+        message_view_show(message_view, "Barcode data\ncannot be empty", CreateBarcodeView);
         return;
     }
     if(barcode_type == NULL) {
         FURI_LOG_E(TAG, "Type not defined");
+        message_view_show(message_view, "Barcode type\nis not selected", CreateBarcodeView);
         return;
     }
 
-    bool success = false;
+    //NULL while the save is still going fine
+    const char* error_message = NULL;
 
     FuriString* full_file_path = furi_string_alloc_set(DEFAULT_USER_BARCODES);
     furi_string_push_back(full_file_path, '/');
@@ -413,76 +412,84 @@ void save_barcode(CreateView* create_view_object) {
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
 
-    if(mode == EditMode) {
-        if(!furi_string_empty(file_path)) {
-            if(!furi_string_equal(file_path, full_file_path)) {
-                FS_Error error = storage_common_rename(
-                    storage,
-                    furi_string_get_cstr(file_path),
-                    furi_string_get_cstr(full_file_path));
-                if(error != FSE_OK) {
-                    FURI_LOG_E(TAG, "Rename error: %s", storage_error_get_desc(error));
-                } else {
-                    FURI_LOG_I(TAG, "Rename Success");
-                }
-            }
+    //ensure the barcodes folder exists before saving,
+    //it could have been removed while the app was running
+    if(!init_folder()) {
+        error_message = "Cannot access\nthe SD card";
+    }
+
+    //overwriting the barcode's own file in edit mode is fine, but saving
+    //over any other existing file would destroy it, fail with a clear message instead
+    bool same_file = file_path != NULL && furi_string_equal(file_path, full_file_path);
+    if(error_message == NULL && !same_file &&
+       storage_file_exists(storage, furi_string_get_cstr(full_file_path))) {
+        FURI_LOG_E(TAG, "File \"%s\" already exists", furi_string_get_cstr(full_file_path));
+        error_message = "A file with this\nname already exists";
+    }
+
+    //in edit mode a changed name moves the old file before saving
+    if(error_message == NULL && mode == EditMode && !same_file && !furi_string_empty(file_path)) {
+        FS_Error error = storage_common_rename(
+            storage, furi_string_get_cstr(file_path), furi_string_get_cstr(full_file_path));
+        if(error != FSE_OK) {
+            FURI_LOG_E(TAG, "Rename error: %s", storage_error_get_desc(error));
+            error_message = "Could not rename\nthe barcode file";
+        } else {
+            FURI_LOG_I(TAG, "Rename Success");
+            //keep the model path in sync so a failed save below
+            //does not leave it pointing at the old, now removed file
+            furi_string_set(file_path, full_file_path);
         }
     }
 
-    FlipperFormat* ff = flipper_format_file_alloc(storage);
+    FlipperFormat* ff = NULL;
+    if(error_message == NULL) {
+        FURI_LOG_I(TAG, "Saving Barcode to: %s", furi_string_get_cstr(full_file_path));
+        ff = flipper_format_file_alloc(storage);
 
-    FURI_LOG_I(TAG, "Saving Barcode to: %s", furi_string_get_cstr(full_file_path));
+        //open_new fails on existing files as a backstop to the check above
+        bool file_saved =
+            mode == NewMode ?
+                flipper_format_file_open_new(ff, furi_string_get_cstr(full_file_path)) :
+                flipper_format_file_open_always(ff, furi_string_get_cstr(full_file_path));
+        if(file_saved) {
+            // Filetype: Barcode
+            // Version: 1
 
-    bool file_opened_status = false;
-    if(mode == NewMode) {
-        file_opened_status =
-            flipper_format_file_open_new(ff, furi_string_get_cstr(full_file_path));
-    } else if(mode == EditMode) {
-        file_opened_status =
-            flipper_format_file_open_always(ff, furi_string_get_cstr(full_file_path));
+            // # Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar
+            // Type: CODE-39
+            // Data: AB
+            file_saved =
+                flipper_format_write_string_cstr(ff, "Filetype", "Barcode") &&
+                flipper_format_write_string_cstr(ff, "Version", FILE_VERSION) &&
+                flipper_format_write_comment_cstr(
+                    ff, "Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar") &&
+                flipper_format_write_string_cstr(ff, "Type", barcode_type->name) &&
+                flipper_format_write_string_cstr(ff, "Data", furi_string_get_cstr(barcode_data));
+            if(!file_saved) {
+                //the file may be partially written, e.g. if the SD card was removed mid-save
+                FURI_LOG_E(TAG, "Could not write the barcode file");
+            }
+        } else {
+            FURI_LOG_E(TAG, "Could not open file %s", furi_string_get_cstr(full_file_path));
+        }
+        if(!file_saved) {
+            error_message = "A saving error\nhas occurred";
+        }
     }
 
-    if(file_opened_status) {
-        // Filetype: Barcode
-        // Version: 1
-
-        // # Types - UPC-A, EAN-8, EAN-13, CODE-39
-        // Type: CODE-39
-        // Data: AB
-        flipper_format_write_string_cstr(ff, "Filetype", "Barcode");
-
-        flipper_format_write_string_cstr(ff, "Version", FILE_VERSION);
-
-        flipper_format_write_comment_cstr(
-            ff, "Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar");
-
-        flipper_format_write_string_cstr(ff, "Type", barcode_type->name);
-
-        flipper_format_write_string_cstr(ff, "Data", furi_string_get_cstr(barcode_data));
-
-        success = true;
-    } else {
-        FURI_LOG_E(TAG, "Save error");
-        success = false;
-    }
     furi_string_free(full_file_path);
-    flipper_format_free(ff);
+    if(ff != NULL) {
+        flipper_format_free(ff);
+    }
     furi_record_close(RECORD_STORAGE);
 
-    with_view_model(
-        create_view_object->barcode_app->message_view->view,
-        MessageViewModel * model,
-        {
-            if(success) {
-                model->message = "File Saved!";
-            } else {
-                model->message = "A saving error has occurred";
-            }
-        },
-        true);
-
-    view_dispatcher_switch_to_view(
-        create_view_object->barcode_app->view_dispatcher, MessageErrorView);
+    if(error_message == NULL) {
+        message_view_show(message_view, "File Saved!", MainMenuView);
+    } else {
+        //go back to the create view so the entered data is not lost
+        message_view_show(message_view, error_message, CreateBarcodeView);
+    }
 }
 
 void create_view_free(CreateView* create_view_object) {

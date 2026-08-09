@@ -26,15 +26,15 @@
 
   function renderArmed(m) {
     sub("arena");
-    $("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+    $("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
     var pad = $("rc-pad");
     var go = m.light === "go";
     var cls = "rc-pad " + (m.dq ? "dq" : go ? "go" : "wait");
     pad.className = cls;
-    if (m.dq) pad.innerHTML = '<span class="rc-big">Too soon!</span><span class="rc-sub">Wait for the next round</span>';
-    else if (m.tapped) pad.innerHTML = '<span class="rc-big">Tapped!</span>';
-    else if (go) pad.innerHTML = '<span class="rc-big">TAP!</span>';
-    else pad.innerHTML = '<span class="rc-big">Wait...</span><span class="rc-sub">Tap when it turns green</span>';
+    if (m.dq) pad.innerHTML = '<span class="rc-big">' + t("rc.too_soon") + '</span><span class="rc-sub">' + t("rc.wait_next") + '</span>';
+    else if (m.tapped) pad.innerHTML = '<span class="rc-big">' + t("rc.tapped") + '</span>';
+    else if (go) pad.innerHTML = '<span class="rc-big">' + t("rc.tap") + '</span>';
+    else pad.innerHTML = '<span class="rc-big">' + t("rc.wait") + '</span><span class="rc-sub">' + t("rc.wait_green") + '</span>';
     if (go && !greenBuzzed && armedFor === m.round) { greenBuzzed = true; A.sfx("buzz"); A.vibe(30); }
     if (armedFor !== m.round) { armedFor = m.round; greenBuzzed = false; }
     A.showLead(m.scores || [], false);
@@ -43,15 +43,15 @@
   function renderReveal(m) {
     sub("arena");
     A.showLead(m.scores || [], true);
-    $("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+    $("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
     var pad = $("rc-pad");
     pad.className = "rc-pad reveal";
     if (m.winner) {
-      pad.innerHTML = '<span class="rc-big">' + (m.iwon ? "You won!" : esc(m.winner) + " won") + "</span>" +
+      pad.innerHTML = '<span class="rc-big">' + (m.iwon ? t("rc.you_won") : t("rc.nick_won", { nick: esc(m.winner) })) + "</span>" +
                       '<span class="rc-sub">' + m.ms + " ms</span>";
       if (m.iwon) { A.sfx("win"); A.vibe([30, 50, 30]); } else A.sfx("tick");
     } else {
-      pad.innerHTML = '<span class="rc-big">No winner</span>';
+      pad.innerHTML = '<span class="rc-big">' + t("rc.no_winner") + '</span>';
     }
     greenBuzzed = false; armedFor = -1;
   }
@@ -59,7 +59,7 @@
   function renderFinal(m) {
     sub("final");
     A.hideLead();
-    var b = A.podium("rc-podium", m.scores);
+    var b = A.podium("rc-podium", m.board); // final JSON carries the scoreboard as `board`
     if (b.length && b[0].pid === A.pid) { A.sfx("win"); A.vibe([30, 50, 30]); }
     else A.sfx("lose");
   }

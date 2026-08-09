@@ -1,0 +1,13 @@
+App(
+    appid="flipper_share_ibutton",
+    name="Flipper Share iButton",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="share_app",
+    stack_size=2 * 1024,
+    fap_icon="ibutton_share.png",
+    fap_category="iButton",
+    fap_author="lomalkin",
+    fap_weburl="https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton",
+    fap_version="0.1",
+    fap_description="Direct file transfer between flippers via iButton pads (1-Wire)",
+)

@@ -4,10 +4,23 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <stdlib.h>
+#include <storage/storage.h>
+#include <lib/toolbox/saved_struct.h>
 #include "spectrum_analyzer.h"
 
 #include <lib/drivers/cc1101_regs.h>
 #include "spectrum_analyzer_worker.h"
+
+#define SPECTRUM_ANALYZER_SETTINGS_PATH    APP_DATA_PATH("spectrum_analyzer.save")
+#define SPECTRUM_ANALYZER_SETTINGS_MAGIC   (0x5A)
+#define SPECTRUM_ANALYZER_SETTINGS_VERSION (1)
+
+typedef struct {
+    uint32_t center_freq;
+    uint8_t width;
+    uint8_t modulation;
+    uint8_t vscroll;
+} SpectrumAnalyzerSettings;
 
 typedef struct {
     uint32_t center_freq;
@@ -25,6 +38,10 @@ typedef struct {
     float max_rssi;
     uint8_t max_rssi_dec;
     uint8_t max_rssi_channel;
+
+    float last_peak_rssi;
+    uint32_t last_peak_frequency;
+
     uint8_t channel_ss[NUM_CHANNELS];
 } SpectrumAnalyzerModel;
 
@@ -167,7 +184,7 @@ static void spectrum_analyzer_render_callback(Canvas* const canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, 127, 4, AlignRight, AlignTop, tmp_str);
     }
 
-    // Draw cross and label
+    // Draw cross on the current peak
     if(model->max_rssi > PEAK_THRESHOLD) {
         // Compress height to max of 64 values (255>>2)
         uint8_t max_y = MAX((model->max_rssi_dec - model->vscroll) >> 2, 0);
@@ -194,16 +211,20 @@ static void spectrum_analyzer_render_callback(Canvas* const canvas, void* ctx) {
         y2 = max_y + 2;
         if(y2 > 63) y2 = 63; // SHOULD NOT HAPPEN CHECK!
         canvas_draw_line(canvas, (uint8_t)x1, (uint8_t)y1, (uint8_t)x2, (uint8_t)y2);
+    }
 
-        // Label
+    // Peak label: latched, so it survives after the signal is gone; hidden
+    // while the mode/modulation overlay occupies the top-right corner
+    if((model->last_peak_rssi > PEAK_THRESHOLD) && !model->mode_change &&
+       !model->modulation_change) {
         char temp_str[36];
         snprintf(
             temp_str,
             36,
-            "Peak: %3.2f Mhz %3.1f dbm",
-            ((double)(model->channel0_frequency + (model->max_rssi_channel * model->spacing)) /
-             1000000),
-            (double)model->max_rssi);
+            "%s: %3.2f Mhz %3.1f dbm",
+            (model->max_rssi > PEAK_THRESHOLD) ? "Peak" : "Last",
+            ((double)model->last_peak_frequency / 1000000),
+            (double)model->last_peak_rssi);
         canvas_draw_str_aligned(canvas, 127, 0, AlignRight, AlignTop, temp_str);
     }
 
@@ -225,6 +246,7 @@ static void spectrum_analyzer_worker_callback(
     float max_rssi,
     uint8_t max_rssi_dec,
     uint8_t max_rssi_channel,
+    uint32_t max_rssi_frequency,
     void* context) {
     SpectrumAnalyzer* spectrum_analyzer = context;
     furi_check(
@@ -235,6 +257,13 @@ static void spectrum_analyzer_worker_callback(
     model->max_rssi = max_rssi;
     model->max_rssi_dec = max_rssi_dec;
     model->max_rssi_channel = max_rssi_channel;
+
+    // Latch the peak with the absolute frequency (Hz) the worker measured
+    // it at, so the held label stays correct after the view is retuned
+    if(max_rssi > PEAK_THRESHOLD) {
+        model->last_peak_rssi = max_rssi;
+        model->last_peak_frequency = max_rssi_frequency;
+    }
 
     furi_mutex_release(spectrum_analyzer->model_mutex);
     view_port_update(spectrum_analyzer->view_port);
@@ -381,6 +410,48 @@ void spectrum_analyzer_calculate_frequencies(SpectrumAnalyzerModel* model) {
         model->channel0_frequency + ((NUM_CHANNELS - 1) * model->spacing));
 }
 
+static void spectrum_analyzer_load_settings(SpectrumAnalyzerModel* model) {
+    SpectrumAnalyzerSettings settings = {0};
+    if(!saved_struct_load(
+           SPECTRUM_ANALYZER_SETTINGS_PATH,
+           &settings,
+           sizeof(settings),
+           SPECTRUM_ANALYZER_SETTINGS_MAGIC,
+           SPECTRUM_ANALYZER_SETTINGS_VERSION)) {
+        return;
+    }
+
+    // If any saved value is out of range, discard the whole file and keep
+    // all defaults
+    if((settings.center_freq < MIN_300) || (settings.center_freq > MAX_900) ||
+       (settings.width > PRECISE) || (settings.modulation > NARROW_MODULATION) ||
+       (settings.vscroll > MAX_VSCROLL)) {
+        FURI_LOG_W("Spectrum", "Discarding out-of-range saved settings");
+        return;
+    }
+
+    model->center_freq = settings.center_freq;
+    model->width = settings.width;
+    model->modulation = settings.modulation;
+    model->vscroll = settings.vscroll;
+}
+
+static void spectrum_analyzer_save_settings(const SpectrumAnalyzerModel* model) {
+    SpectrumAnalyzerSettings settings = {
+        .center_freq = model->center_freq,
+        .width = model->width,
+        .modulation = model->modulation,
+        .vscroll = model->vscroll,
+    };
+
+    saved_struct_save(
+        SPECTRUM_ANALYZER_SETTINGS_PATH,
+        &settings,
+        sizeof(settings),
+        SPECTRUM_ANALYZER_SETTINGS_MAGIC,
+        SPECTRUM_ANALYZER_SETTINGS_VERSION);
+}
+
 SpectrumAnalyzer* spectrum_analyzer_alloc() {
     SpectrumAnalyzer* instance = malloc(sizeof(SpectrumAnalyzer));
     instance->model = malloc(sizeof(SpectrumAnalyzerModel));
@@ -393,6 +464,8 @@ SpectrumAnalyzer* spectrum_analyzer_alloc() {
     model->max_rssi_dec = 0;
     model->max_rssi_channel = 0;
     model->max_rssi = PEAK_THRESHOLD - 1; // Should initializar to < PEAK_THRESHOLD
+    model->last_peak_rssi = PEAK_THRESHOLD - 1;
+    model->last_peak_frequency = 0;
 
     model->center_freq = DEFAULT_FREQ;
     model->width = WIDE;
@@ -400,6 +473,8 @@ SpectrumAnalyzer* spectrum_analyzer_alloc() {
     model->band = BAND_400;
 
     model->vscroll = DEFAULT_VSCROLL;
+
+    spectrum_analyzer_load_settings(model);
 
     instance->model_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     instance->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
@@ -455,6 +530,8 @@ int32_t spectrum_analyzer_app(void* p) {
         spectrum_analyzer->model->channel0_frequency,
         spectrum_analyzer->model->spacing,
         spectrum_analyzer->model->width);
+    spectrum_analyzer_worker_set_modulation(
+        spectrum_analyzer->worker, spectrum_analyzer->model->modulation);
 
     FURI_LOG_D("Spectrum", "Main Loop - Wait on queue");
     furi_delay_ms(50);
@@ -602,6 +679,8 @@ int32_t spectrum_analyzer_app(void* p) {
     }
 
     spectrum_analyzer_worker_stop(spectrum_analyzer->worker);
+
+    spectrum_analyzer_save_settings(spectrum_analyzer->model);
 
     furi_hal_power_suppress_charge_exit();
 

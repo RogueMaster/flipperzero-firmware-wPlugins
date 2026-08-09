@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "locator_view.h"
 #include "../recon_app_i.h"
 #include "ui_widgets.h"
@@ -12,9 +12,13 @@
 #define LOC_RSSI_CEIL  (-35)
 #define LOC_RSSI_FLOOR (-95)
 // A reading older than this means the target has gone quiet / out of range.
-#define LOC_FRESH_MS   2500
+// A Wi-Fi target that hops channels is heard roughly every 1.6 s, so a 2.5 s
+// window sat barely above the gap and flipped the display to "quiet" on any
+// jitter. 4 s is still under the distance a person covers at walking pace
+// between readings, and a stable meter beats an honest-but-flickering one that
+// nobody can follow.
+#define LOC_FRESH_MS   4000
 // dB change before we call it warmer/colder (vs the smoothed average).
-#define LOC_TREND_DB   2
 
 struct LocatorView {
     View* view;
@@ -56,6 +60,16 @@ static void locator_view_draw_callback(Canvas* canvas, void* _model) {
     model->peak = app->locate_peak;
     model->trend = app->locate_trend;
     model->init = app->locate_init;
+    // The SMOOTHED level is what the meter shows. A single frame's RSSI swings
+    // wildly with multipath and body position, and on the main target -- a Flock
+    // camera -- readings arrive roughly once a second, because the camera hops
+    // channels while probing and the companion listens on one. A raw sample that
+    // sparse and that noisy cannot answer "am I getting closer", which is the
+    // only question this screen exists to answer.
+    // RSSI is always negative dBm, so subtracting 0.5 before truncating toward
+    // zero is round-to-nearest. (Written first as a ternary whose two branches
+    // were identical, which was noise pretending to be care.)
+    int ema = (int)(app->locate_ema - 0.5f);
     char label[28];
     snprintf(label, sizeof(label), "%s", app->locate_label);
     furi_mutex_release(app->mutex);
@@ -68,7 +82,7 @@ static void locator_view_draw_callback(Canvas* canvas, void* _model) {
     // (peak/EMA/trend are folded in recon_app_set_locate_rssi and mirrored above)
 
     canvas_clear(canvas);
-    ui_title_bar(canvas, "LOCATOR", kind == 'b' ? "BLE" : "WiFi");
+    ui_title_bar_icon(canvas, UiIconCrosshair, "LOCATOR", kind == 'b' ? "BLE" : "WiFi");
 
     if(!connected) {
         canvas_set_font(canvas, FontSecondary);
@@ -89,9 +103,10 @@ static void locator_view_draw_callback(Canvas* canvas, void* _model) {
         return;
     }
 
-    // Big dBm + warmer/colder word.
+    // Big dBm + warmer/colder word. Smoothed, not the last raw sample.
+    int shown = model->init ? ema : rssi;
     char dbm[12];
-    snprintf(dbm, sizeof(dbm), "%ddB", fresh ? rssi : model->peak);
+    snprintf(dbm, sizeof(dbm), "%ddB", fresh ? shown : model->peak);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 2, 36, dbm);
     canvas_set_font(canvas, FontSecondary);
@@ -103,7 +118,7 @@ static void locator_view_draw_callback(Canvas* canvas, void* _model) {
 
     // Hot/cold meter + a peak-hold tick above it.
     int mx = 2, my = 42, mw = 124, mh = 9;
-    ui_meter(canvas, mx, my, mw, mh, fresh ? loc_pct(rssi) : 0);
+    ui_meter(canvas, mx, my, mw, mh, fresh ? loc_pct(shown) : 0);
     int peak_x = mx + loc_pct(model->peak) * mw / 100;
     if(peak_x > mx + mw - 1) peak_x = mx + mw - 1;
     canvas_draw_line(canvas, peak_x, my - 3, peak_x, my - 1); // peak marker
@@ -112,7 +127,7 @@ static void locator_view_draw_callback(Canvas* canvas, void* _model) {
     char foot[40];
     if(!fresh) {
         snprintf(foot, sizeof(foot), "out of range  best %ddB", model->peak);
-    } else if(gps_valid && rssi >= model->peak) {
+    } else if(gps_valid && shown >= model->peak) {
         snprintf(foot, sizeof(foot), "best %ddB  <- strongest here", model->peak);
     } else {
         snprintf(foot, sizeof(foot), "best %ddB  closer = louder", model->peak);

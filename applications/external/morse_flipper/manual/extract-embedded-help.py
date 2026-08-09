@@ -143,6 +143,17 @@ def must_link(s, old, new):
     return s.replace(old, new)
 
 
+link_exceptions = [
+    ("vail.woozle.net", "http://vail.woozle.net/"),
+    ("morse.halb.it", "https://morse.halb.it/"),
+]
+
+
+def link_bare_domain(s, domain, url):
+    pattern = re.compile(rf"(?<!://)(?<!:// )\b{re.escape(domain)}\b")
+    return pattern.sub(f"[{domain}]({url})", s)
+
+
 md = [
     "# Internal Help",
     "",
@@ -158,6 +169,8 @@ for title, name in chapters:
 
 out_md.parent.mkdir(exist_ok=True)
 txt = "\n".join(md).rstrip() + "\n"
+for domain, url in link_exceptions:
+    txt = link_bare_domain(txt, domain, url)
 txt = must_link(
     txt,
     "shave and a haircut",

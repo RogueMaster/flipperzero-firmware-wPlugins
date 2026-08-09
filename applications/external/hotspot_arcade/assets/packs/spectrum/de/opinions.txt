@@ -1,0 +1,66 @@
+Pack: Meinungen
+Left: Überbewertet
+Right: Unterbewertet
+---
+Left: Nutzlos
+Right: Unverzichtbar
+---
+Left: Vergisst man gleich
+Right: Kultig
+---
+Left: Nullachtfünfzehn
+Right: Einzigartig
+---
+Left: Zeitverschwendung
+Right: Voll lohnenswert
+---
+Left: Seltsam
+Right: Normal
+---
+Left: Uncool
+Right: Cool
+---
+Left: Unbeliebt
+Right: Alle lieben es
+---
+Left: Heimliches Vergnügen
+Right: Echt gut
+---
+Left: Bösewicht
+Right: Held
+---
+Left: Peinlich
+Right: Großartig
+---
+Left: Langweiliges Thema
+Right: Faszinierendes Thema
+---
+Left: Kann man skippen
+Right: Unbedingt ansehen
+---
+Left: Altmodisch
+Right: Hochmodern
+---
+Left: Nervig
+Right: Charmant
+---
+Left: Müll
+Right: Schatz
+---
+Left: Eine Last
+Right: Eine Freude
+---
+Left: Alltäglich
+Right: Einmal im Leben
+---
+Left: Meh
+Right: Fantastisch
+---
+Left: Braucht Glück
+Right: Braucht Können
+---
+Left: Anfängerfreundlich
+Right: Nur für Profis
+---
+Left: Schnell vergänglich
+Right: Zeitlos

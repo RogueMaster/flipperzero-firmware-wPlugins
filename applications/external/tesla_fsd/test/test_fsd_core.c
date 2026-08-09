@@ -210,6 +210,119 @@ static void test_autopilot_hw3(void) {
         (f.buffer[6] >> 1) & 0x03);
 }
 
+// ── Summon EU Unlock (0x3FD mux1 bit47) — opt-in, HW3 + HW4 ───────────────────
+// ev-open-can-tools summon-eu-unlock: clear bit19, set bit47 on mux1. This test
+// locks that summon_unlock gates bit47 on HW3 (which never set it before) and
+// that HW3 mux1 with the toggle OFF is byte-for-byte the prior behavior.
+//
+// NOTE on HW4: the Flipper HW4 mux1 path sets bit47 UNCONDITIONALLY (pre-existing
+// behavior, preserved). So on HW4 bit47 is set whether or not summon_unlock is on;
+// the summon toggle adds an explicit guarded path but does not change the emitted
+// HW4 frame. The ESP32 firmware is where the HW4 toggle actually gates bit47 —
+// that divergence is documented for reviewers.
+static void test_summon_unlock(void) {
+    CANFRAME f;
+
+    // ── HW3: bit47 is gated by summon_unlock ──
+    FSDState h3;
+    memset(&h3, 0, sizeof(h3));
+    h3.hw_version = TeslaHW_HW3;
+
+    // summon OFF: mux1 clears bit19, does NOT set bit47 (prior HW3 behavior).
+    h3.summon_unlock = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[2] = 0x08; // pre-set bit19 to prove it is cleared
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux1 summon-off reports modified");
+    CHECK((f.buffer[2] & 0x08) == 0, "HW3 mux1 summon-off bit19 cleared");
+    CHECK((f.buffer[5] & 0x80) == 0, "HW3 mux1 summon-off bit47 NOT set");
+    CHECK(h3.nag_suppressed, "HW3 mux1 summon-off still sets nag_suppressed");
+
+    // summon ON: mux1 now also sets bit47.
+    h3.summon_unlock = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux1 summon-on reports modified");
+    CHECK((f.buffer[5] & 0x80) != 0, "HW3 mux1 summon-on bit47 set");
+
+    // ── HW4: bit47 set on mux1 regardless of the toggle (pre-existing behavior) ──
+    FSDState h4;
+    memset(&h4, 0, sizeof(h4));
+    h4.hw_version = TeslaHW_HW4;
+
+    h4.summon_unlock = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux1 summon-on reports modified");
+    CHECK((f.buffer[5] & 0x80) != 0, "HW4 mux1 summon-on bit47 set");
+
+    // summon OFF: HW4 still sets bit47 unconditionally — frame unchanged from prior.
+    h4.summon_unlock = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux1 summon-off reports modified");
+    CHECK((f.buffer[5] & 0x80) != 0, "HW4 mux1 summon-off bit47 still set (prior behavior)");
+}
+
+// ── Continue on Green (0x3FD mux0 bit39) — opt-in, HW3 + HW4 ──────────────────
+// ev-open-can-tools TSLLC plugin sets UI_fsdContinueOnGreenWithCIPV (bit39) on
+// mux0. It is gated by continue_on_green + fsd_enabled and applies before the
+// HW3/HW4 split, so bit39 must appear for both hardware versions when ON, and
+// never when the toggle is OFF. bit39 -> byte 4 bit 7 -> mask 0x80.
+static void test_continue_on_green(void) {
+    CANFRAME f;
+
+    // ── HW3 ──
+    FSDState h3;
+    memset(&h3, 0, sizeof(h3));
+    h3.hw_version = TeslaHW_HW3;
+    h3.force_fsd = true; // makes mux0 select FSD -> fsd_enabled = true
+
+    // ON: bit39 set on mux0.
+    h3.continue_on_green = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0; // mux0
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux0 cog-on reports modified");
+    CHECK(h3.fsd_enabled, "HW3 mux0 sets fsd_enabled");
+    CHECK((f.buffer[4] & 0x80) != 0, "HW3 mux0 cog-on bit39 set");
+
+    // OFF: bit39 NOT set.
+    h3.continue_on_green = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    fsd_handle_autopilot_frame(&h3, &f, 0);
+    CHECK((f.buffer[4] & 0x80) == 0, "HW3 mux0 cog-off bit39 NOT set");
+
+    // ── HW4 ──
+    FSDState h4;
+    memset(&h4, 0, sizeof(h4));
+    h4.hw_version = TeslaHW_HW4;
+    h4.force_fsd = true;
+
+    // ON: bit39 set on mux0.
+    h4.continue_on_green = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux0 cog-on reports modified");
+    CHECK(h4.fsd_enabled, "HW4 mux0 sets fsd_enabled");
+    CHECK((f.buffer[4] & 0x80) != 0, "HW4 mux0 cog-on bit39 set");
+
+    // OFF: bit39 NOT set.
+    h4.continue_on_green = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    fsd_handle_autopilot_frame(&h4, &f, 0);
+    CHECK((f.buffer[4] & 0x80) == 0, "HW4 mux0 cog-off bit39 NOT set");
+}
+
 // ── 0x399 ISA speed chime: bit + Tesla additive checksum ──────────────────────
 static void test_isa_checksum(void) {
     CANFRAME f;
@@ -1672,6 +1785,144 @@ static void test_driver_assist(void) {
     CHECK(fsd_handle_driver_assist_override(&s, &f) == false, "assist no flags -> noop");
 }
 
+// ── 0x3F8 RHD driving-side override (#66) ─────────────────────────────────────
+static void test_rhd_override(void) {
+    FSDState s;
+    CANFRAME f;
+
+    // RHD on: bit41 set, bit40 clear
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    s.assist_rhd_override = true;
+    CHECK(fsd_handle_driver_assist_override(&s, &f), "rhd modifies");
+    CHECK((f.buffer[5] & 0x02) != 0, "rhd bit41 set");
+    CHECK((f.buffer[5] & 0x01) == 0, "rhd bit40 clear");
+
+    // RHD off: bit41 not set, no modification
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    s.assist_rhd_override = false;
+    CHECK(fsd_handle_driver_assist_override(&s, &f) == false, "rhd off -> noop");
+    CHECK((f.buffer[5] & 0x02) == 0, "rhd off bit41 clear");
+}
+
+// ── Telemetry Off (experimental): reachable 0x3F8 + 0x3FD mux1 flag clears ─────
+// 0x3F8 UI_driverAssistControl clears bits 19/42/43/44/55; 0x3FD mux1 clears
+// bits 48/50. Plain bit-clears, no checksum. With the toggle off, none move.
+static void test_telemetry_off(void) {
+    FSDState s;
+    CANFRAME f;
+
+    // 0x3F8: with telemetry-off ON, bits 19/42/43/44/55 are cleared.
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[2] = 0x08; // bit19 preset
+    f.buffer[5] = 0x04 | 0x08 | 0x10; // bits 42/43/44 preset
+    f.buffer[6] = 0x80; // bit55 preset
+    s.assist_telemetry_off = true;
+    CHECK(fsd_handle_driver_assist_override(&s, &f), "0x3F8 telemetry-off modifies");
+    CHECK((f.buffer[2] & 0x08) == 0, "0x3F8 bit19 cleared");
+    CHECK((f.buffer[5] & 0x04) == 0, "0x3F8 bit42 cleared");
+    CHECK((f.buffer[5] & 0x08) == 0, "0x3F8 bit43 cleared");
+    CHECK((f.buffer[5] & 0x10) == 0, "0x3F8 bit44 cleared");
+    CHECK((f.buffer[6] & 0x80) == 0, "0x3F8 bit55 cleared");
+
+    // 0x3F8: with telemetry-off OFF, those bits are untouched.
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[2] = 0x08;
+    f.buffer[5] = 0x04 | 0x08 | 0x10;
+    f.buffer[6] = 0x80;
+    s.assist_telemetry_off = false;
+    fsd_handle_driver_assist_override(&s, &f);
+    CHECK((f.buffer[2] & 0x08) != 0, "0x3F8 bit19 untouched when off");
+    CHECK((f.buffer[5] & 0x1C) == 0x1C, "0x3F8 bits42/43/44 untouched when off");
+    CHECK((f.buffer[6] & 0x80) != 0, "0x3F8 bit55 untouched when off");
+
+    // 0x3FD mux1: with telemetry-off ON, bits 48/50 are cleared.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[6] = 0x01 | 0x04; // bits 48/50 preset
+    s.assist_telemetry_off = true;
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "0x3FD mux1 telemetry-off modifies");
+    CHECK((f.buffer[6] & 0x01) == 0, "0x3FD bit48 cleared");
+    CHECK((f.buffer[6] & 0x04) == 0, "0x3FD bit50 cleared");
+
+    // 0x3FD mux1: with telemetry-off OFF, bits 48/50 are untouched.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    f.buffer[6] = 0x01 | 0x04;
+    s.assist_telemetry_off = false;
+    fsd_handle_autopilot_frame(&s, &f, 0);
+    CHECK((f.buffer[6] & 0x01) != 0, "0x3FD bit48 untouched when off");
+    CHECK((f.buffer[6] & 0x04) != 0, "0x3FD bit50 untouched when off");
+}
+
+// ── AP branch/tier selector (0x3FD mux1 UI_apmv3Branch, bits 40-42) ──────────
+// Experimental, opt-in, non-persistent. 0xFF sentinel = OFF (frame untouched);
+// 0-5 write the branch/tier into byte5 bits 0-2.
+static void test_apmv3_branch(void) {
+    FSDState s;
+    CANFRAME f;
+
+    // HW4 mux1: apmv3_branch=4 (EAP) -> byte5 bits0-2 == 4.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW4;
+    s.apmv3_branch = 4;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 mux1 apmv3 modifies");
+    CHECK((f.buffer[5] & 0x07) == 4, "HW4 mux1 apmv3=EAP byte5[0:2]=%u exp 4", f.buffer[5] & 0x07);
+
+    // HW3 mux1: apmv3_branch=4 (EAP) -> byte5 bits0-2 == 4.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    s.apmv3_branch = 4;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 mux1 apmv3 modifies");
+    CHECK((f.buffer[5] & 0x07) == 4, "HW3 mux1 apmv3=EAP byte5[0:2]=%u exp 4", f.buffer[5] & 0x07);
+
+    // OFF (0xFF sentinel): byte5 bits0-2 left untouched (preset 0x05 preserved).
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW4;
+    s.apmv3_branch = 0xFF;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[5] = 0x05; // preset low 3 bits to prove they survive
+    fsd_handle_autopilot_frame(&s, &f, 0);
+    CHECK(
+        (f.buffer[5] & 0x07) == 0x05,
+        "HW4 mux1 apmv3 OFF leaves byte5[0:2]=%u exp 5",
+        f.buffer[5] & 0x07);
+
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    s.apmv3_branch = 0xFF;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[5] = 0x05;
+    fsd_handle_autopilot_frame(&s, &f, 0);
+    CHECK(
+        (f.buffer[5] & 0x07) == 0x05,
+        "HW3 mux1 apmv3 OFF leaves byte5[0:2]=%u exp 5",
+        f.buffer[5] & 0x07);
+}
+
 // ── 0x7FF GTW Config Replay: learn -> arm -> replay ───────────────────────────
 static void test_gtw_shield(void) {
     FSDState s;
@@ -2111,6 +2362,8 @@ int main(void) {
     test_follow_distance();
     test_autopilot_hw4();
     test_autopilot_hw3();
+    test_summon_unlock();
+    test_continue_on_green();
     test_isa_checksum();
     test_di_speed();
     test_tlssc_restore();
@@ -2136,6 +2389,9 @@ int main(void) {
     test_das_status_hw4_no_fallback();
     test_gtw_tier();
     test_driver_assist();
+    test_rhd_override();
+    test_telemetry_off();
+    test_apmv3_branch();
     test_gtw_shield();
     test_scroll_press();
     test_misc_parsers();

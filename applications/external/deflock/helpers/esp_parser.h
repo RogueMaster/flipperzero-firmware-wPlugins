@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 /**
  * @file esp_parser.h
  * Companion wire-protocol parser: line text -> plain tagged record.
@@ -13,11 +13,12 @@
  *   FLOCKCO,<ver>                       version banner (-> connected)
  *   S,<frames>,<hits>,<ch>[,<deauths>]  status heartbeat
  *   WBEGIN / W,<bssid>,<rssi>,<ch>,<auth>,<pair>,<grp>,<wps>,<ssid> / WEND
- *   BBEGIN / BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1] / BEND
- *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>]   Flock detection
+ *   BBEGIN / BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1] / BEND
+ *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]  detection
  *   DA,<bssid>,<ch>                     deauth/disassoc attack target
  *   ATK,<kind>,<value>                  active attack-tool signature
  *   LOC,<rssi>                          live Locator RSSI
+ *   ACT,<op>,<status>[,<rssi>]          explicit tracker action result
  */
 #pragma once
 
@@ -53,6 +54,11 @@ typedef enum {
     EspMsgDeauthTarget, /**< DA: attributed deauth/disassoc target */
     EspMsgAttack, /**< ATK: active attack-tool signature */
     EspMsgLocate, /**< LOC: live RSSI for the Locator target */
+    EspMsgAction, /**< ACT: result of an explicit Ping/Ring request */
+    EspMsgGpsNmea, /**< G: one NMEA sentence relayed from a GPS on the ESP board */
+    EspMsgGpsCfg, /**< GPSCFG: the companion's echo of its GPS relay state */
+    EspMsgChip, /**< CHIP: the board's real SoC, GPIO count and usable GPS pins */
+    EspMsgBand, /**< BAND: the band selection actually in force */
 } EspMsgType;
 
 /**
@@ -71,6 +77,9 @@ typedef struct {
             char ftype;
             FlockConfidence conf;
             uint32_t fp;
+            FlockDevClass dev_class; /**< from `cls=`; absent -> FlockClassAlpr */
+            bool hidden; /**< from `hid=`: beacons but withholds its SSID.
+                           *  Reported, never scored -- see parse_flock(). */
         } flock;
         struct { // EspMsgWifiAp (W)
             uint8_t bssid[6];
@@ -90,6 +99,7 @@ typedef struct {
             uint8_t mfg[32];
             size_t mfg_len;
             bool raven_gatt;
+            bool tracker_separated; /**< tracker advert was in separated state */
         } ble;
         struct { // EspMsgStatus (S)
             uint32_t frames;
@@ -102,6 +112,54 @@ typedef struct {
             uint8_t bssid[6];
             uint8_t channel;
         } deauth;
+        struct { // EspMsgGpsNmea (G)
+            /**
+             * The relayed sentence, starting at '$'. Points INTO the caller's
+             * line buffer like the other string fields here, and the app hands
+             * it straight to nmea_parse_line() -- deliberately NOT parsed here.
+             *
+             * Some boards wire their GPS to the ESP32 rather than to the
+             * Flipper's header, so the Flipper cannot see it at all (issue #5).
+             * Relaying the raw sentence means the companion needs no NMEA code,
+             * and the fix is decoded by the same host-tested parser the direct
+             * UART path already uses -- one implementation and one set of
+             * lock-loss semantics, whichever wire the bytes arrived on.
+             *
+             * Mutable (char*, not const char*): nmea_parse_line() tokenizes in
+             * place, matching how the direct path already feeds it.
+             */
+            char* nmea;
+        } gps;
+        struct { // EspMsgChip (CHIP)
+            /**
+             * What the companion is actually running on. The app used to offer a
+             * hardcoded classic-ESP32 pin list on every board: on an ESP32-C5
+             * four of those pins do not exist, two are the flash/PSRAM bus and
+             * one is UART0 itself. The board is the only thing that knows its own
+             * pinout, so it reports it rather than the app guessing (issue #5).
+             */
+            const char* target; /**< IDF target name, e.g. "esp32" / "esp32c5" */
+            uint8_t gpio_count;
+            uint64_t gps_pin_mask; /**< bit N set = GPIO N can carry the GPS */
+            bool has_5ghz;
+        } chip;
+        struct { // EspMsgBand (BAND)
+            uint8_t sel; /**< ReconEspBand actually in force (2.4-only parts force 0) */
+            uint16_t channels; /**< how many channels the sweep covers */
+        } band;
+        struct { // EspMsgGpsCfg (GPSCFG)
+            /**
+             * The companion's answer to `gps <rx> [baud]`, echoed on every such
+             * command. Without it the app could not tell "relay running, still
+             * searching" from "relay refused that pin" from "this firmware has
+             * no relay at all" -- three states that all rendered as a hollow
+             * "searching" badge forever, which is what made issue #5's GPS
+             * problem take four rounds to pin down.
+             */
+            bool on; /**< the companion is relaying (it accepted the pin) */
+            int16_t pin; /**< the pin it is using, or the one it refused */
+            uint32_t baud;
+        } gpscfg;
         struct { // EspMsgAttack (ATK)
             const char* kind;
             uint32_t value;
@@ -109,6 +167,12 @@ typedef struct {
         struct { // EspMsgLocate (LOC)
             int8_t rssi;
         } locate;
+        struct { // EspMsgAction (ACT)
+            const char* op; /**< PING or RING */
+            const char* status; /**< ok, sent, rejected, not_found, ... */
+            int8_t rssi;
+            bool have_rssi;
+        } action;
         struct { // EspMsgBanner (FLOCKCO)
             uint8_t version; /**< companion's announced wire-protocol version (0 = old FW) */
         } banner;

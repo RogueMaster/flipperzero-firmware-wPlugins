@@ -1,0 +1,66 @@
+Pack: Opinions
+Left: Overrated
+Right: Underrated
+---
+Left: Useless
+Right: Essential
+---
+Left: Forgettable
+Right: Iconic
+---
+Left: Basic
+Right: One of a kind
+---
+Left: Waste of time
+Right: Totally worth it
+---
+Left: Weird
+Right: Normal
+---
+Left: Uncool
+Right: Cool
+---
+Left: Unpopular
+Right: Everyone loves it
+---
+Left: Guilty pleasure
+Right: Actually great
+---
+Left: Villain
+Right: Hero
+---
+Left: Cringe
+Right: Awesome
+---
+Left: Dull topic
+Right: Fascinating topic
+---
+Left: Skip it
+Right: Must see
+---
+Left: Old-fashioned
+Right: Cutting edge
+---
+Left: Annoying
+Right: Charming
+---
+Left: Trash
+Right: Treasure
+---
+Left: A chore
+Right: A joy
+---
+Left: Everyday
+Right: Once in a lifetime
+---
+Left: Meh
+Right: Amazing
+---
+Left: Needs luck
+Right: Needs skill
+---
+Left: Beginner friendly
+Right: Only for experts
+---
+Left: Fades fast
+Right: Timeless

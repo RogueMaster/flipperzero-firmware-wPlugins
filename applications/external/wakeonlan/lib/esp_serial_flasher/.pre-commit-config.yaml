@@ -1,0 +1,70 @@
+# Run `pre-commit autoupdate` to update to the latest pre-commit hooks version.
+
+minimum_pre_commit_version: 3.3.0
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+
+ci:
+  autofix_prs: false
+  autoupdate_commit_msg: 'ci: Bump pre-commit hooks'
+  autoupdate_schedule: quarterly
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: &excludes |
+            (?x)^(
+              .+\.bin
+            )$
+      - id: end-of-file-fixer
+        exclude: *excludes
+      - id: mixed-line-ending
+        args: ['-f=lf']
+        exclude: *excludes
+  - repo: https://github.com/espressif/check-copyright/
+    rev: v1.1.2
+    hooks:
+      - id: check-copyright
+        args: ['--config', '.check_copyright_config.yaml', '--replace']
+  - repo: https://github.com/espressif/astyle_py.git
+    rev: v1.1.0
+    hooks:
+      - id: astyle_py
+        args: [--options=astyle_config]
+        exclude: *excludes
+  - repo: https://github.com/espressif/conventional-precommit-linter
+    rev: v1.11.0
+    hooks:
+      - id: conventional-precommit-linter
+        stages: [commit-msg]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.9
+    hooks:
+      - id: ruff # Runs ruff linter
+        args: [--fix, --exit-non-zero-on-fix] # --fix for fixing errors
+        types: [python]
+      - id: ruff-format
+        types: [python]
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell                                    # Code spell checker
+        args: ["--write-changes"]
+        exclude: |
+            (?x)^(
+              .+\.bin|
+              zephyr/Kconfig|
+              CHANGELOG\.md
+            )$
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        args: [--number] # Keep numbering for ordered lists
+        exclude: CHANGELOG\.md
+        additional_dependencies:
+          - mdformat-gfm # Support for GitHub Flavored Markdown (GFM), including tables, task lists, strikethroughs, and autolinks.
+          - mdformat-ruff # Formats Python code blocks in Markdown files according to the `ruff` linter's style.
+          - mdformat-simple-breaks # Ensures that single line breaks in Markdown are converted to `<br>` t

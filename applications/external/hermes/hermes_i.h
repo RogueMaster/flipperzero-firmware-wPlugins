@@ -10,6 +10,7 @@
 #include <gui/modules/widget.h>
 #include <gui/modules/text_input.h>
 #include <gui/modules/number_input.h>
+#include <gui/modules/byte_input.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 
@@ -24,16 +25,18 @@
 #include "helpers/selftest.h"
 #include "helpers/trigger.h"
 #include "helpers/script.h"
+#include "helpers/sessionstats.h"
 
 #include "views/detect_view.h"
 #include "views/result_view.h"
 #include "views/console_view.h"
 #include "views/wiring_view.h"
 #include "views/selftest_view.h"
+#include "views/summary_view.h"
 
 #include "scenes/hermes_scene.h"
 
-#define HERMES_VERSION "1.2"
+#define HERMES_VERSION FAP_VERSION
 
 /* Bounds for the custom-rate entry. Below 50 the timing is absurd; above
  * 2 Mbaud the LPUART cannot follow and the USART is at its limit. */
@@ -51,17 +54,22 @@
 
 #define HERMES_TEXT_INPUT_MAX (64u)
 
+/* Raw bytes the hex-send screen can compose at once. */
+#define HERMES_HEX_MAX (32u)
+
 typedef enum {
     HermesViewSubmenu,
     HermesViewSettings,
     HermesViewWidget,
     HermesViewTextInput,
     HermesViewNumberInput,
+    HermesViewByteInput,
     HermesViewDetect,
     HermesViewResult,
     HermesViewConsole,
     HermesViewWiring,
     HermesViewSelfTest,
+    HermesViewSummary,
 } HermesViewId;
 
 typedef enum {
@@ -75,6 +83,7 @@ typedef enum {
     HermesCustomEventSelfTestDone,
     HermesCustomEventBaudEntered,
     HermesCustomEventTriggerSet,
+    HermesCustomEventHexEntered,
 
     /* Something else holds the port. Raised from an on_enter, which cannot
      * navigate directly without nesting a scene transition inside itself, so
@@ -113,6 +122,7 @@ typedef struct {
     Widget* widget;
     TextInput* text_input;
     NumberInput* number_input;
+    ByteInput* byte_input;
 
     /* custom views */
     DetectView* detect_view;
@@ -120,6 +130,7 @@ typedef struct {
     ConsoleView* console_view;
     WiringView* wiring_view;
     SelfTestView* selftest_view;
+    SummaryView* summary_view;
 
     /* engines */
     Autobaud* autobaud;
@@ -136,6 +147,17 @@ typedef struct {
     HermesDetectRuntime detect_rt;
     HermesLink link;
     char text_buffer[HERMES_TEXT_INPUT_MAX];
+
+    /* hex-send composition buffer + its current length */
+    uint8_t hex_buffer[HERMES_HEX_MAX];
+    uint8_t hex_len;
+
+    /* filled when the console closes, shown by the summary scene */
+    SessionStats last_session;
+
+    /* live console bookkeeping */
+    uint32_t session_start_tick; // for the summary's duration
+    uint32_t marker_count; // increments per "drop marker"
 
     /* settings */
     HermesPort port;

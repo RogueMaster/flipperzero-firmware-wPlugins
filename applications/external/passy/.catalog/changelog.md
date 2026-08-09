@@ -1,3 +1,8 @@
+## 1.6
+ - Add authentication method menu (Thanks @qistoph)
+ - Show Georgian document code and personal number in MRZ (Thanks @portasynthinca3)
+ - Fix filename sanitizer that allowed all characters
+ - More countries support confirmed (Thailand, Finland)
 ## 1.5
  - Update UI with correct name
  - Save advanced files as well

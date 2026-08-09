@@ -249,6 +249,16 @@ git clone https://github.com/hypery11/flipper-tesla-fsd.git applications_user/te
 - mikegapinski/tesla-can-explorer — 從 Tesla 主機 `libQtCarVAPI.so` 萃取的 4 萬個 Tesla CAN 訊號字典
 - talas9/tesla_can_signals — 各車型 wire format 對照
 
+## 支持這個專案
+
+如果這個專案幫你省下了改裝盒子的錢、讓你看懂 Tesla 的 CAN bus，或在封鎖後保住了你的 TLSSC，歡迎贊助持續的研究與測試。
+
+[![Crypto](https://img.shields.io/badge/Crypto-Donate-F7931A?style=for-the-badge&logo=bitcoin&logoColor=white)](https://fsd.fkey.id/) [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=hypery11@gmail.com&item_name=Tesla+FSD+Open+Source+Research&currency_code=USD) [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-hypery11-EA4AAA?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/hypery11)
+
+加密貨幣請至 **[fsd.fkey.id](https://fsd.fkey.id/)** — 同一個地址、支援多鏈。實際可用的網路請直接開頁面查看。
+
+款項用於測試用的 Tesla 零件（待救援的封鎖 VIN、不同 MCU/硬體組合）、各種 ESP32 硬體，以及逆向新韌體版本所花的時間。
+
 ## 授權
 
 GPL-3.0

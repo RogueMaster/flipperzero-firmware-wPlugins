@@ -5,15 +5,20 @@
 
 // ── Internal types ─────────────────────────────────────────────────────────
 
+typedef enum {
+    KeyboardPageLetters,
+    KeyboardPageSymbols,
+    KeyboardPageCount,
+} KeyboardPage;
+
 struct Keyboard {
     View* view;
-    KeyboardLayout layout;
 };
 
 typedef struct {
-    const char text; // character value; special sentinels below
-    const uint8_t x; // x offset relative to KB_ORIGIN_X
-    const uint8_t y; // y offset relative to KB_ORIGIN_Y
+    const char text;
+    const uint8_t x; // offset from KB_ORIGIN_X
+    const uint8_t y; // offset from KB_ORIGIN_Y
 } KbKey;
 
 typedef struct {
@@ -21,35 +26,29 @@ typedef struct {
     char* text_buffer;
     size_t text_buffer_size;
     size_t minimum_length;
+    size_t max_length; // 0 = derive from text_buffer_size
     bool clear_default_text;
     KeyboardCallback callback;
     void* callback_context;
+    uint8_t page; // KeyboardPage
     uint8_t selected_row;
     uint8_t selected_column;
-    uint8_t page; // 0 = main (ABC), 1 = SYM — only used by Alpha layout
-    KeyboardLayout layout;
 } KbModel;
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
-// Top-left origin of the key grid on the 128x64 Flipper screen.
-// Row y-offsets (8, 20, 32) are added to KB_ORIGIN_Y giving actual y values
-// of 37, 49, 61 — the glyph baseline within a 64-pixel-high canvas.
 static const uint8_t KB_ORIGIN_X = 1;
 static const uint8_t KB_ORIGIN_Y = 29;
-static const uint8_t KB_ROW_COUNT = 3;
+#define KB_ROW_COUNT 3
 
-// Sentinel characters embedded in the key table to trigger special rendering.
-#define ENTER_KEY     '\r' // confirm / OK button
-#define BACKSPACE_KEY '\b' // delete last character
-#define PAGE_KEY      '\x01' // toggle ABC <-> SYM (Alpha layout only)
+// Special key sentinels.
+#define ENTER_KEY     '\r' // "save" / confirm
+#define BACKSPACE_KEY '\b'
+#define SWITCH_KEY    '\t' // toggle letters <-> symbols
+#define SPACE_KEY     ' ' // dedicated space bar, drawn as a framed "_"
 
-// ── Shared ABC rows 0 and 1 (identical across all layouts) ────────────────
-//
-// Row 0 (14 keys): q w e r t y u i o p | 0 1 2 3
-// Row 1 (13 keys): a s d f g h j k l ⌫  | 4 5 6
+// ── Layout tables ──────────────────────────────
 
-static const KbKey kb_abc_row0[] = {
+// Letters page — a permanent 0-9 pad sits on the right (0-3 / 4-6 / 7-9).
+static const KbKey kb_letters_row0[] = {
     {'q', 1, 8},
     {'w', 10, 8},
     {'e', 19, 8},
@@ -60,13 +59,12 @@ static const KbKey kb_abc_row0[] = {
     {'i', 64, 8},
     {'o', 73, 8},
     {'p', 82, 8},
-    {'0', 91, 8},
-    {'1', 100, 8},
-    {'2', 110, 8},
+    {'0', 92, 8},
+    {'1', 102, 8},
+    {'2', 111, 8},
     {'3', 120, 8},
 };
-
-static const KbKey kb_abc_row1[] = {
+static const KbKey kb_letters_row1[] = {
     {'a', 1, 20},
     {'s', 10, 20},
     {'d', 19, 20},
@@ -76,246 +74,267 @@ static const KbKey kb_abc_row1[] = {
     {'j', 55, 20},
     {'k', 64, 20},
     {'l', 73, 20},
-    {BACKSPACE_KEY, 82, 12},
-    {'4', 100, 20},
-    {'5', 110, 20},
+    {BACKSPACE_KEY, 82, 11},
+    {'4', 102, 20},
+    {'5', 111, 20},
     {'6', 120, 20},
 };
-
-// ── Alpha layout — ABC row 2 (12 keys) ───────────────────────────────────
-//
-// z x c v b n m  [sym 20px]  [ok 12px]  |  7  8  9
-// Pixel check: sym ends at (1+64+20)=85, ok ends at (1+86+12)=99,
-//              7 starts at (1+100)=101 — 2 px gap. OK.
-
-static const KbKey kb_alpha_abc_row2[] = {
-    {'z', 1, 32},
-    {'x', 10, 32},
-    {'c', 19, 32},
-    {'v', 28, 32},
-    {'b', 37, 32},
-    {'n', 46, 32},
-    {'m', 55, 32},
-    {PAGE_KEY, 64, 23}, // 20 px wide button drawn by kb_draw_page()
-    {ENTER_KEY, 86, 23}, // 12 px wide button drawn by kb_draw_enter()
-    {'7', 100, 32},
-    {'8', 110, 32},
+static const KbKey kb_letters_row2[] = {
+    {SWITCH_KEY, 0, 23},
+    {'z', 13, 32},
+    {'x', 21, 32},
+    {'c', 29, 32},
+    {'v', 37, 32},
+    {'b', 45, 32},
+    {'n', 53, 32},
+    {'m', 61, 32},
+    {SPACE_KEY, 69, 23}, // framed space bar (literal '_' lives on the symbols page)
+    {ENTER_KEY, 77, 23},
+    {'7', 102, 32},
+    {'8', 111, 32},
     {'9', 120, 32},
 };
 
-// ── Alpha layout — SYM page ───────────────────────────────────────────────
-//
-// Row 0 (14): ! " # $ % & ' ( ) *  |  0 1 2 3
-// Row 1 (13): + - / = < > ; : ^  ⌫  |  4 5 6
-// Row 2 (12): { } [ ] \ | ~  [abc]  [ok]  |  , . ?
-//   Right col of SYM keeps , . ? (unique to SYM page).
-//   Digits 7-9 are on the ABC page right col row 2.
-
-static const KbKey kb_sym_row0[] = {
-    {'!', 1, 8},
-    {'"', 10, 8},
-    {'#', 19, 8},
-    {'$', 28, 8},
-    {'%', 37, 8},
-    {'&', 46, 8},
-    {'\'', 55, 8},
-    {'(', 64, 8},
-    {')', 73, 8},
-    {'*', 82, 8},
-    {'0', 91, 8},
-    {'1', 100, 8},
-    {'2', 110, 8},
-    {'3', 120, 8},
+// Symbols page — the ten right-hand keys are the "illegal" symbols so all 32
+// ASCII symbols are reachable (digits live on the letters page).
+static const KbKey kb_symbols_row0[] = {
+    {'!', 2, 8},
+    {'@', 12, 8},
+    {'#', 22, 8},
+    {'$', 32, 8},
+    {'%', 42, 8},
+    {'^', 52, 8},
+    {'&', 62, 8},
+    {'(', 71, 8},
+    {')', 81, 8},
+    {'_', 92, 8},
+    {'<', 102, 8},
+    {'>', 111, 8},
+    {':', 120, 8},
+};
+static const KbKey kb_symbols_row1[] = {
+    {'~', 2, 20},
+    {'+', 12, 20},
+    {'-', 22, 20},
+    {'=', 32, 20},
+    {'[', 42, 20},
+    {']', 52, 20},
+    {'{', 62, 20},
+    {'}', 72, 20},
+    {BACKSPACE_KEY, 82, 11},
+    {'"', 102, 20},
+    {'/', 111, 20},
+    {'\\', 120, 20},
+};
+static const KbKey kb_symbols_row2[] = {
+    {SWITCH_KEY, 0, 23},
+    {'.', 15, 32},
+    {',', 29, 32},
+    {';', 41, 32},
+    {'`', 53, 32},
+    {'\'', 65, 32},
+    {ENTER_KEY, 77, 23},
+    {'|', 102, 32},
+    {'?', 111, 32},
+    {'*', 120, 32},
 };
 
-static const KbKey kb_sym_row1[] = {
-    {'+', 1, 20},
-    {'-', 10, 20},
-    {'/', 19, 20},
-    {'=', 28, 20},
-    {'<', 37, 20},
-    {'>', 46, 20},
-    {';', 55, 20},
-    {':', 64, 20},
-    {'^', 73, 20},
-    {BACKSPACE_KEY, 82, 12},
-    {'4', 100, 20},
-    {'5', 110, 20},
-    {'6', 120, 20},
-};
+// ── Layout access ────────────────────────────────────────────────────────────
 
-static const KbKey kb_sym_row2[] = {
-    {'{', 1, 32},
-    {'}', 10, 32},
-    {'[', 19, 32},
-    {']', 28, 32},
-    {'\\', 37, 32},
-    {'|', 46, 32},
-    {'~', 55, 32},
-    {PAGE_KEY, 64, 23},
-    {ENTER_KEY, 86, 23},
-    {',', 100, 32},
-    {'.', 110, 32},
-    {'?', 120, 32},
-};
-
-// ── Email layout — row 2 (13 keys) ───────────────────────────────────────
-//
-// z x c v b n m  @  .  [ok 12px]  |  7  8  9
-// Pixel check: ok ends at (1+83+12)=96, 7 starts at (1+100)=101 — 5 px gap. OK.
-// @ and . are directly reachable without a page switch.
-
-static const KbKey kb_email_row2[] = {
-    {'z', 1, 32},
-    {'x', 10, 32},
-    {'c', 19, 32},
-    {'v', 28, 32},
-    {'b', 37, 32},
-    {'n', 46, 32},
-    {'m', 55, 32},
-    {'@', 64, 32},
-    {'.', 73, 32},
-    {ENTER_KEY, 83, 23}, // 12 px wide
-    {'7', 100, 32},
-    {'8', 110, 32},
-    {'9', 120, 32},
-};
-
-// ── MIME layout — row 2 (13 keys) ────────────────────────────────────────
-//
-// z x c v b n m  /  .  [ok 12px]  |  7  8  9
-// / and . cover the separator and sub-type of MIME types (e.g. text/plain).
-
-static const KbKey kb_mime_row2[] = {
-    {'z', 1, 32},
-    {'x', 10, 32},
-    {'c', 19, 32},
-    {'v', 28, 32},
-    {'b', 37, 32},
-    {'n', 46, 32},
-    {'m', 55, 32},
-    {'/', 64, 32},
-    {'.', 73, 32},
-    {ENTER_KEY, 83, 23}, // 12 px wide
-    {'7', 100, 32},
-    {'8', 110, 32},
-    {'9', 120, 32},
-};
-
-// ── Layout helpers ─────────────────────────────────────────────────────────
-
-// Number of keys in a given row for a given layout and page.
-// Row 0: always 14. Row 1: always 13.
-// Row 2: 12 for Alpha (both pages), 13 for Email/Mime.
-static uint8_t kb_row_size(KeyboardLayout layout, uint8_t page, uint8_t row) {
-    if(row == 0) return COUNT_OF(kb_abc_row0); // 14, same on both pages
-    if(row == 1) return COUNT_OF(kb_abc_row1); // 13, same on both pages
-    // row == 2
-    if(page == 1) return COUNT_OF(kb_sym_row2); // 12
-    if(layout == KeyboardLayoutAlpha) return COUNT_OF(kb_alpha_abc_row2); // 12
-    if(layout == KeyboardLayoutEmail) return COUNT_OF(kb_email_row2); // 13
-    if(layout == KeyboardLayoutMime) return COUNT_OF(kb_mime_row2); // 13
-    furi_crash();
+static const KbKey* kb_page_row(uint8_t page, uint8_t row, uint8_t* out_len) {
+    if(page == KeyboardPageSymbols) {
+        switch(row) {
+        case 0:
+            *out_len = COUNT_OF(kb_symbols_row0);
+            return kb_symbols_row0;
+        case 1:
+            *out_len = COUNT_OF(kb_symbols_row1);
+            return kb_symbols_row1;
+        case 2:
+            *out_len = COUNT_OF(kb_symbols_row2);
+            return kb_symbols_row2;
+        default:
+            furi_crash();
+        }
+    } else {
+        switch(row) {
+        case 0:
+            *out_len = COUNT_OF(kb_letters_row0);
+            return kb_letters_row0;
+        case 1:
+            *out_len = COUNT_OF(kb_letters_row1);
+            return kb_letters_row1;
+        case 2:
+            *out_len = COUNT_OF(kb_letters_row2);
+            return kb_letters_row2;
+        default:
+            furi_crash();
+        }
+    }
 }
 
-// Pointer to the key array for a given row, layout and page.
-static const KbKey* kb_get_row(KeyboardLayout layout, uint8_t page, uint8_t row) {
-    if(row == 0) return (page == 1) ? kb_sym_row0 : kb_abc_row0;
-    if(row == 1) return (page == 1) ? kb_sym_row1 : kb_abc_row1;
-    // row == 2
-    if(page == 1) return kb_sym_row2;
-    if(layout == KeyboardLayoutAlpha) return kb_alpha_abc_row2;
-    if(layout == KeyboardLayoutEmail) return kb_email_row2;
-    if(layout == KeyboardLayoutMime) return kb_mime_row2;
-    furi_crash();
+static uint8_t kb_row_len(uint8_t page, uint8_t row) {
+    uint8_t len = 0;
+    kb_page_row(page, row, &len);
+    return len;
 }
 
-static char kb_selected_char(KbModel* m) {
-    return kb_get_row(m->layout, m->page, m->selected_row)[m->selected_column].text;
+static const KbKey* kb_key_at(KbModel* m, uint8_t row, uint8_t col) {
+    uint8_t len = 0;
+    const KbKey* keys = kb_page_row(m->page, row, &len);
+    if(col >= len) col = len - 1;
+    return &keys[col];
 }
 
-static bool kb_is_lowercase(char c) {
+static bool kb_select_key(KbModel* m, char sentinel) {
+    for(uint8_t r = 0; r < KB_ROW_COUNT; r++) {
+        uint8_t len = 0;
+        const KbKey* keys = kb_page_row(m->page, r, &len);
+        for(uint8_t c = 0; c < len; c++) {
+            if(keys[c].text == sentinel) {
+                m->selected_row = r;
+                m->selected_column = c;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// ── Case handling ──────────────────────────────────────────
+
+static bool kb_is_lower(char c) {
     return c >= 'a' && c <= 'z';
 }
 
-// Return the uppercase equivalent of a character.
-// Non-letter characters (digits, @, /, ., symbols) are returned unchanged.
-static char kb_to_uppercase(char c) {
-    if(kb_is_lowercase(c)) return (char)(c - 0x20);
+// Uppercase mapping: lowercase letters shift up; the rest pass through.
+static char kb_to_upper(char c) {
+    if(kb_is_lower(c)) return (char)(c - 0x20);
     return c;
 }
 
-// ── Special key drawing ────────────────────────────────────────────────────
-// SDK system icons are not exported to FAPs; we render them manually.
+// Whether the *display* shows the upper form (empty field / highlighted default),
+// letters page only.
+static bool kb_display_upper(KbModel* m) {
+    if(m->page != KeyboardPageLetters) return false;
+    size_t len = m->text_buffer ? strlen(m->text_buffer) : 0;
+    return (len == 0) || m->clear_default_text;
+}
 
-// Backspace arrow (16 x 9 px): ←| delete glyph
+// ── Navigation (wrap on both axes; nearest column on vertical moves) ─────────
+
+static void kb_move_horizontal(KbModel* m, int dir) {
+    uint8_t len = kb_row_len(m->page, m->selected_row);
+    int c = ((int)m->selected_column + dir) % len;
+    if(c < 0) c += len;
+    m->selected_column = (uint8_t)c;
+}
+
+static void kb_move_vertical(KbModel* m, int dir) {
+    uint8_t cur_x = kb_key_at(m, m->selected_row, m->selected_column)->x;
+    int r = ((int)m->selected_row + dir) % KB_ROW_COUNT;
+    if(r < 0) r += KB_ROW_COUNT;
+
+    uint8_t len = kb_row_len(m->page, (uint8_t)r);
+    uint8_t best_col = 0;
+    uint16_t best_dx = 0xFFFF;
+    for(uint8_t c = 0; c < len; c++) {
+        uint8_t kx = kb_key_at(m, (uint8_t)r, c)->x;
+        uint16_t dx = (kx > cur_x) ? (kx - cur_x) : (cur_x - kx);
+        if(dx < best_dx) {
+            best_dx = dx;
+            best_col = c;
+        }
+    }
+    m->selected_row = (uint8_t)r;
+    m->selected_column = best_col;
+}
+
+// ── Special-key rendering (hand-drawn; SDK icons don't link in a FAP) ─────────
+
 static void kb_draw_backspace(Canvas* canvas, uint8_t x, uint8_t y, bool sel) {
     canvas_set_color(canvas, ColorBlack);
     if(sel) {
-        canvas_draw_box(canvas, x, y, 16, 9);
+        canvas_draw_box(canvas, x, y, 17, 11);
         canvas_set_color(canvas, ColorWhite);
+    } else {
+        canvas_draw_rframe(canvas, x, y, 17, 11, 1);
     }
-    canvas_draw_line(canvas, x + 2, y + 4, x + 12, y + 4); // shaft
-    canvas_draw_line(canvas, x + 2, y + 4, x + 5, y + 2); // arrowhead top
-    canvas_draw_line(canvas, x + 2, y + 4, x + 5, y + 6); // arrowhead bottom
-    canvas_draw_line(canvas, x + 12, y + 2, x + 12, y + 6); // vertical bar
+    uint8_t cx = x + 3, cy = y + 5;
+    canvas_draw_line(canvas, cx, cy, cx + 10, cy);
+    canvas_draw_line(canvas, cx, cy, cx + 3, cy - 2);
+    canvas_draw_line(canvas, cx, cy, cx + 3, cy + 2);
+    canvas_draw_line(canvas, cx + 10, cy - 2, cx + 10, cy + 2);
     canvas_set_color(canvas, ColorBlack);
 }
 
-// OK button (12 x 11 px): rounded rectangle labelled "ok"
-static void kb_draw_enter(Canvas* canvas, uint8_t x, uint8_t y, bool sel) {
+static void kb_draw_save(Canvas* canvas, uint8_t x, uint8_t y, bool sel) {
     canvas_set_color(canvas, ColorBlack);
     if(sel) {
-        canvas_draw_box(canvas, x, y, 12, 11);
+        canvas_draw_box(canvas, x, y, 22, 11);
         canvas_set_color(canvas, ColorWhite);
     } else {
-        canvas_draw_rframe(canvas, x, y, 12, 11, 1);
+        canvas_draw_rframe(canvas, x, y, 22, 11, 1);
     }
     canvas_set_font(canvas, FontSecondary);
-    uint8_t tw = canvas_string_width(canvas, "ok");
-    uint8_t off = (12 > tw) ? (12 - tw) / 2 : 0;
-    canvas_draw_str(canvas, x + off, y + 8, "ok");
+    uint8_t tw = canvas_string_width(canvas, "save");
+    uint8_t off = (22 > tw) ? (uint8_t)((22 - tw) / 2) : 1;
+    canvas_draw_str(canvas, x + off, y + 8, "save");
     canvas_set_font(canvas, FontKeyboard);
     canvas_set_color(canvas, ColorBlack);
 }
 
-// SYM / ABC toggle button (20 x 11 px): rounded rectangle with dynamic label.
-// The label shows the destination page ("sym" on ABC, "abc" on SYM) so the user
-// knows where the button leads, not the current page.
-static void kb_draw_page(Canvas* canvas, uint8_t x, uint8_t y, bool sel, uint8_t page) {
+// Dedicated space bar: a framed button (like save/switch) showing an underscore.
+static void kb_draw_space(Canvas* canvas, uint8_t x, uint8_t y, bool sel) {
     canvas_set_color(canvas, ColorBlack);
     if(sel) {
-        canvas_draw_box(canvas, x, y, 20, 11);
+        canvas_draw_box(canvas, x, y, 7, 11);
         canvas_set_color(canvas, ColorWhite);
     } else {
-        canvas_draw_rframe(canvas, x, y, 20, 11, 1);
+        canvas_draw_rframe(canvas, x, y, 7, 11, 1);
     }
-    canvas_set_font(canvas, FontSecondary);
-    const char* label = (page == 0) ? "sym" : "abc";
-    uint8_t tw = canvas_string_width(canvas, label);
-    uint8_t off = (20 > tw) ? (20 - tw) / 2 : 0;
-    canvas_draw_str(canvas, x + off, y + 8, label);
-    canvas_set_font(canvas, FontKeyboard);
+    canvas_draw_line(canvas, x + 2, y + 8, x + 4, y + 8); // underscore, ~2px margins
     canvas_set_color(canvas, ColorBlack);
 }
 
-// ── Draw callback ──────────────────────────────────────────────────────────
+// Page toggle:
+// with an "A" (top-left) and a "+" (bottom-right). Reproduced pixel-for-pixel
+// from KeyKeyboard_10x11.png so it doesn't depend on the SDK icon (which does
+// not link in a FAP on Official firmware). Each row is 10 bits, MSB = column 0.
+static void kb_draw_switch(Canvas* canvas, uint8_t x, uint8_t y, bool sel) {
+    static const uint16_t icon[11] = {
+        0x1FE, 0x201, 0x241, 0x2A1, 0x2E1, 0x2A1, 0x209, 0x21D, 0x209, 0x201, 0x1FE};
+    static const uint16_t icon_sel[11] = {
+        0x1FE, 0x3FF, 0x3BF, 0x35F, 0x31F, 0x35F, 0x3F7, 0x3E3, 0x3F7, 0x3FF, 0x1FE};
+    const uint16_t* bmp = sel ? icon_sel : icon;
+    canvas_set_color(canvas, ColorBlack);
+    for(uint8_t row = 0; row < 11; row++) {
+        for(uint8_t col = 0; col < 10; col++) {
+            if(bmp[row] & (1u << (9 - col))) canvas_draw_dot(canvas, x + col, y + row);
+        }
+    }
+}
+
+// ── Draw callback ────────────────────────────────────────────────────────────
 
 static void kb_draw_callback(Canvas* canvas, void* _model) {
     KbModel* model = _model;
-    size_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
     uint8_t needed_width = (uint8_t)(canvas_width(canvas) - 8);
     uint8_t start_pos = 4;
     const char* text = model->text_buffer;
+    bool upper = kb_display_upper(model);
 
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
 
-    // Header and text field frame
-    canvas_draw_str(canvas, 2, 8, model->header);
+    // Header (left). No character counter — removed by design.
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 9, model->header);
+
+    // Text field frame.
     elements_slightly_rounded_frame(canvas, 1, 12, 126, 15);
 
-    // Scroll the text field if content overflows
+    // Horizontal scroll: drop leading chars until the tail fits, prefix "…".
     if(text && canvas_string_width(canvas, text) > needed_width) {
         canvas_draw_str(canvas, start_pos, 22, "...");
         start_pos = (uint8_t)(start_pos + 6);
@@ -325,103 +344,119 @@ static void kb_draw_callback(Canvas* canvas, void* _model) {
         text++;
     }
 
-    // Render text or selection highlight
     if(model->clear_default_text) {
         elements_slightly_rounded_box(
             canvas, start_pos - 1, 14, canvas_string_width(canvas, text) + 2, 10);
         canvas_set_color(canvas, ColorWhite);
     } else {
-        // Cursor: two thin vertical bars after the text
         canvas_draw_str(canvas, start_pos + canvas_string_width(canvas, text) + 1, 22, "|");
         canvas_draw_str(canvas, start_pos + canvas_string_width(canvas, text) + 2, 22, "|");
     }
     canvas_draw_str(canvas, start_pos, 22, text);
+    canvas_set_color(canvas, ColorBlack);
 
-    // Render key grid
+    // Key grid.
     canvas_set_font(canvas, FontKeyboard);
-
     for(uint8_t row = 0; row < KB_ROW_COUNT; row++) {
-        uint8_t col_count = kb_row_size(model->layout, model->page, row);
-        const KbKey* keys = kb_get_row(model->layout, model->page, row);
-
-        for(uint8_t col = 0; col < col_count; col++) {
-            char key_char = keys[col].text;
+        uint8_t len = 0;
+        const KbKey* keys = kb_page_row(model->page, row, &len);
+        for(uint8_t col = 0; col < len; col++) {
+            char key = keys[col].text;
             bool sel = (model->selected_row == row && model->selected_column == col);
             uint8_t kx = (uint8_t)(KB_ORIGIN_X + keys[col].x);
             uint8_t ky = (uint8_t)(KB_ORIGIN_Y + keys[col].y);
 
-            if(key_char == ENTER_KEY) {
-                kb_draw_enter(canvas, kx, ky, sel);
-            } else if(key_char == BACKSPACE_KEY) {
+            if(key == ENTER_KEY) {
+                kb_draw_save(canvas, kx, ky, sel);
+            } else if(key == SWITCH_KEY) {
+                kb_draw_switch(canvas, kx, ky, sel);
+            } else if(key == SPACE_KEY) {
+                kb_draw_space(canvas, kx, ky, sel);
+            } else if(key == BACKSPACE_KEY) {
                 kb_draw_backspace(canvas, kx, ky, sel);
-            } else if(key_char == PAGE_KEY) {
-                kb_draw_page(canvas, kx, ky, sel, model->page);
             } else {
-                // Regular character — invert colours when selected
+                // Printable key: a 9×11 rounded box fits wide glyphs (e.g. "%"), and lowercase / "_" are nudged up 1px.
                 if(sel) {
                     canvas_set_color(canvas, ColorBlack);
-                    canvas_draw_box(canvas, kx - 1, ky - 8, 7, 10);
+                    elements_slightly_rounded_box(canvas, kx - 2, ky - 9, 9, 11);
                     canvas_set_color(canvas, ColorWhite);
                 } else {
                     canvas_set_color(canvas, ColorBlack);
                 }
-                // Show uppercase when the buffer is empty or default is selected
-                char glyph = (model->clear_default_text ||
-                              (text_length == 0 && kb_is_lowercase(key_char))) ?
-                                 kb_to_uppercase(key_char) :
-                                 key_char;
-                canvas_draw_glyph(canvas, kx, ky, glyph);
+                char glyph = key;
+                uint8_t gy = ky;
+                if(upper) {
+                    glyph = kb_to_upper(key); // capitals, drawn on the baseline
+                } else {
+                    gy = (uint8_t)(ky - (kb_is_lower(key) || key == '_'));
+                }
+                canvas_draw_glyph(canvas, kx, gy, glyph);
             }
         }
     }
 }
 
-// ── Input handling ─────────────────────────────────────────────────────────
+// ── Editing ──────────────────────────────────────────────────────────────────
 
-static void kb_backspace(KbModel* model) {
-    // If default text is selected, treat it as a single unit to delete
-    size_t len = model->clear_default_text ? 1 : strlen(model->text_buffer);
-    if(len > 0) model->text_buffer[len - 1] = '\0';
+static void kb_backspace(KbModel* m) {
+    if(!m->text_buffer) return;
+    size_t len = m->clear_default_text ? 1 : strlen(m->text_buffer);
+    if(len > 0) m->text_buffer[len - 1] = '\0';
+    m->clear_default_text = false;
 }
 
-static void kb_handle_ok(KbModel* model, bool shift) {
-    char selected = kb_selected_char(model);
+static void kb_insert(KbModel* m, char c) {
+    if(!m->text_buffer || m->text_buffer_size == 0) return;
+    size_t len = m->clear_default_text ? 0 : strlen(m->text_buffer);
+    // Hard limit = buffer capacity; a scene-set max_length (if smaller) caps it
+    // further (protocol-bounded fields).
+    size_t hard_cap = m->text_buffer_size - 1;
+    size_t cap = (m->max_length && m->max_length < hard_cap) ? m->max_length : hard_cap;
+    if(len < cap) {
+        m->text_buffer[len] = c;
+        m->text_buffer[len + 1] = '\0';
+    }
+    m->clear_default_text = false;
+}
 
-    // PAGE_KEY toggles the SYM page (Alpha layout only) — no text modification
-    if(selected == PAGE_KEY) {
-        model->page ^= 1;
-        model->clear_default_text = false;
+static void kb_handle_ok(KbModel* m, bool shift) {
+    char selected = kb_key_at(m, m->selected_row, m->selected_column)->text;
+
+    if(selected == SWITCH_KEY) {
+        m->page = (uint8_t)((m->page + 1) % KeyboardPageCount);
+        uint8_t len = kb_row_len(m->page, m->selected_row);
+        if(m->selected_column >= len) m->selected_column = len - 1;
+        return;
+    }
+    if(selected == ENTER_KEY) {
+        size_t len = m->text_buffer ? strlen(m->text_buffer) : 0;
+        if(m->callback && len >= m->minimum_length) m->callback(m->callback_context);
+        return;
+    }
+    if(selected == BACKSPACE_KEY) {
+        kb_backspace(m);
+        return;
+    }
+    if(selected == SPACE_KEY) {
+        kb_insert(m, ' ');
         return;
     }
 
-    size_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
-
-    // Uppercase logic: default when buffer is empty or default text is highlighted;
-    // long-press (shift) inverts the behaviour.
-    bool toggle_case = (text_length == 0 || model->clear_default_text);
-    if(shift) toggle_case = !toggle_case;
-    if(toggle_case) selected = kb_to_uppercase(selected);
-
-    if(selected == ENTER_KEY) {
-        if(model->callback && text_length >= model->minimum_length) {
-            model->callback(model->callback_context);
-        }
-    } else if(selected == BACKSPACE_KEY) {
-        kb_backspace(model);
-    } else {
-        if(model->clear_default_text) text_length = 0;
-        if(model->text_buffer && text_length < model->text_buffer_size - 1) {
-            model->text_buffer[text_length] = selected;
-            model->text_buffer[text_length + 1] = '\0';
-        }
+    // Printable key. Uppercase applies when (shift XOR empty-field), letters page
+    // only — so the first letter auto-capitalises and long-OK flips the case
+    // (and turns '_' into a space).
+    size_t text_length = m->text_buffer ? strlen(m->text_buffer) : 0;
+    if(m->page == KeyboardPageLetters && (shift != (text_length == 0))) {
+        selected = kb_to_upper(selected);
     }
-    model->clear_default_text = false;
+    kb_insert(m, selected);
 }
+
+// ── Input callback ───────────────────────────────────────────────────────────
 
 static bool kb_input_callback(InputEvent* event, void* context) {
     Keyboard* kb = context;
     bool consumed = false;
-
     KbModel* model = view_get_model(kb->view);
 
     if(event->type == InputTypeShort || event->type == InputTypeLong ||
@@ -429,36 +464,16 @@ static bool kb_input_callback(InputEvent* event, void* context) {
         consumed = true;
         switch(event->key) {
         case InputKeyUp:
-            if(model->selected_row > 0) {
-                model->selected_row--;
-                // Clamp column to the new row's bounds
-                uint8_t max_col = kb_row_size(model->layout, model->page, model->selected_row) - 1;
-                if(model->selected_column > max_col) model->selected_column = max_col;
-            }
+            kb_move_vertical(model, -1);
             break;
         case InputKeyDown:
-            if(model->selected_row < KB_ROW_COUNT - 1) {
-                model->selected_row++;
-                uint8_t max_col = kb_row_size(model->layout, model->page, model->selected_row) - 1;
-                if(model->selected_column > max_col) model->selected_column = max_col;
-            }
+            kb_move_vertical(model, +1);
             break;
         case InputKeyLeft:
-            if(model->selected_column > 0) {
-                model->selected_column--;
-            } else {
-                // Wrap around to the last key of the current row
-                model->selected_column =
-                    kb_row_size(model->layout, model->page, model->selected_row) - 1;
-            }
+            kb_move_horizontal(model, -1);
             break;
         case InputKeyRight:
-            if(model->selected_column <
-               kb_row_size(model->layout, model->page, model->selected_row) - 1) {
-                model->selected_column++;
-            } else {
-                model->selected_column = 0; // wrap to start
-            }
+            kb_move_horizontal(model, +1);
             break;
         case InputKeyOk:
             if(event->type != InputTypeRepeat) kb_handle_ok(model, event->type == InputTypeLong);
@@ -467,7 +482,7 @@ static bool kb_input_callback(InputEvent* event, void* context) {
             if(event->type == InputTypeLong || event->type == InputTypeRepeat)
                 kb_backspace(model);
             else
-                consumed = false; // let SceneManager handle short-Back (pop scene)
+                consumed = false; // short Back → SceneManager pops the scene
             break;
         default:
             consumed = false;
@@ -479,12 +494,11 @@ static bool kb_input_callback(InputEvent* event, void* context) {
     return consumed;
 }
 
-// ── Public API ─────────────────────────────────────────────────────────────
+// ── Public API ───────────────────────────────────────────────────────────────
 
-Keyboard* keyboard_alloc(KeyboardLayout layout) {
+Keyboard* keyboard_alloc(void) {
     Keyboard* kb = malloc(sizeof(Keyboard));
     furi_check(kb);
-    kb->layout = layout;
     kb->view = view_alloc();
     view_set_context(kb->view, kb);
     view_allocate_model(kb->view, ViewModelTypeLocking, sizeof(KbModel));
@@ -506,17 +520,17 @@ void keyboard_reset(Keyboard* kb) {
         kb->view,
         KbModel * model,
         {
-            model->layout = kb->layout;
             model->header = "";
-            model->selected_row = 0;
-            model->selected_column = 0;
-            model->minimum_length = 1;
-            model->clear_default_text = false;
             model->text_buffer = NULL;
             model->text_buffer_size = 0;
+            model->minimum_length = 1;
+            model->max_length = 0;
+            model->clear_default_text = false;
             model->callback = NULL;
             model->callback_context = NULL;
-            model->page = 0; // start on ABC / main page
+            model->page = KeyboardPageLetters;
+            model->selected_row = 0;
+            model->selected_column = 0;
         },
         true);
 }
@@ -548,15 +562,16 @@ void keyboard_set_result_callback(
             model->text_buffer = text_buffer;
             model->text_buffer_size = text_buffer_size;
             model->clear_default_text = clear_default_text;
-            model->page = 0; // reset to main page on every new input session
+            model->page = KeyboardPageLetters;
 
-            // If the buffer is pre-filled, position the cursor on the OK button
-            // so the user can immediately confirm without navigating.
-            // OK is always at (row2_size - 4): right col has 3 digit keys before the
-            // end, and OK is the key just before them.
             if(text_buffer && text_buffer[0] != '\0') {
-                model->selected_row = 2;
-                model->selected_column = kb_row_size(model->layout, 0, 2) - 4;
+                if(!kb_select_key(model, ENTER_KEY)) {
+                    model->selected_row = 0;
+                    model->selected_column = 0;
+                }
+            } else {
+                model->selected_row = 0;
+                model->selected_column = 0;
             }
         },
         true);
@@ -565,4 +580,9 @@ void keyboard_set_result_callback(
 void keyboard_set_minimum_length(Keyboard* kb, size_t minimum_length) {
     furi_check(kb);
     with_view_model(kb->view, KbModel * model, { model->minimum_length = minimum_length; }, true);
+}
+
+void keyboard_set_max_length(Keyboard* kb, size_t max_length) {
+    furi_check(kb);
+    with_view_model(kb->view, KbModel * model, { model->max_length = max_length; }, true);
 }

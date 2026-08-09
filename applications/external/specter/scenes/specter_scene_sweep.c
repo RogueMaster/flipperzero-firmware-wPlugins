@@ -76,7 +76,8 @@ bool specter_scene_sweep_on_event(void* context, SceneManagerEvent event) {
             if(!app->settings.logging) {
                 sweep_view_flash(app->sweep_view, "LOG OFF");
             } else if(specter_log_append(
-                          "SWEEP\n  f%u%% pk%u%% h%lu",
+                          "SWEEP",
+                          "field %u%% peak %u%% hits %lu",
                           (unsigned)st.strength,
                           (unsigned)st.peak,
                           (unsigned long)st.contacts)) {

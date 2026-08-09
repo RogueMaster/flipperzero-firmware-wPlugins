@@ -1,57 +1,10 @@
 #include "../nfc_magic_app_i.h"
+#include "nfc_magic_scene_write_check_common.h"
 
 void nfc_magic_scene_mf_classic_write_check_view_callback(WriteProblemsEvent event, void* context) {
-    NfcMagicApp* instance = context;
-    NfcMagicAppWriteProblemsContext* problems_context = &instance->write_problems_context;
-
-    if(event == WriteProblemsEventCenterPressed) {
-        if(problems_context->problem_index == problems_context->problems_total - 1) {
-            // Continue to the next scene
-            if(instance->gen2_poller_is_wipe_mode) {
-                scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWipe);
-            } else {
-                scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWrite);
-            }
-        } else {
-            // Move to the next problem
-            problems_context->problem_index++;
-            problems_context->problem_index_abs++;
-            write_problems_set_problem_index(
-                instance->write_problems, problems_context->problem_index);
-
-            for(uint8_t i = problems_context->problem_index_abs;
-                i < GEN2_POLLER_WRITE_PROBLEMS_LEN;
-                i++) {
-                if(problems_context->problems.all_problems & (1 << i)) {
-                    write_problems_set_content(instance->write_problems, gen2_problem_strings[i]);
-                    problems_context->problem_index_abs = i;
-                    break;
-                }
-            }
-        }
-    } else if(event == WriteProblemsEventLeftPressed) {
-        if(problems_context->problem_index == 0) {
-            // Exit to the previous scene
-            scene_manager_search_and_switch_to_previous_scene(
-                instance->scene_manager, NfcMagicSceneMfClassicMenu);
-        } else {
-            // Move to the previous problem
-            problems_context->problem_index--;
-            problems_context->problem_index_abs--;
-            write_problems_set_problem_index(
-                instance->write_problems, problems_context->problem_index);
-
-            for(uint8_t i = problems_context->problem_index_abs;
-                i < GEN2_POLLER_WRITE_PROBLEMS_LEN;
-                i--) {
-                if(problems_context->problems.all_problems & (1 << i)) {
-                    write_problems_set_content(instance->write_problems, gen2_problem_strings[i]);
-                    problems_context->problem_index_abs = i;
-                    break;
-                }
-            }
-        }
-    }
+    // Classic path: Left/"Retry" returns to MfClassicMenu. Shared body in
+    // nfc_magic_write_check_handle_event so the two write-check scenes can't diverge again.
+    nfc_magic_write_check_handle_event(context, event, NfcMagicSceneMfClassicMenu);
 }
 
 void nfc_magic_scene_mf_classic_write_check_on_enter(void* context) {
@@ -117,8 +70,16 @@ void nfc_magic_scene_mf_classic_write_check_on_exit(void* context) {
     NfcMagicApp* instance = context;
 
     instance->write_problems_context.problem_index = 0;
+    instance->write_problems_context.problem_index_abs = 0;
     instance->write_problems_context.problems_total = 0;
     instance->write_problems_context.problems.all_problems = 0;
+
+    // Backing out to the menu pops the dict-attack scene without running its on_exit, leaking its
+    // KeysDict; free it here if still owned (dict-attack on_exit NULLs it on the forward path).
+    if(instance->nfc_dict_context.dict) {
+        keys_dict_free(instance->nfc_dict_context.dict);
+        instance->nfc_dict_context.dict = NULL;
+    }
 
     write_problems_reset(instance->write_problems);
 }

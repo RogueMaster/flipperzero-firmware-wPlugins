@@ -5,6 +5,8 @@ typedef enum {
     MenuAscending,
     MenuDescending,
     MenuMixed,
+    MenuChords,
+    MenuScales,
     MenuReference,
     MenuProgress,
     MenuSettings,
@@ -22,9 +24,11 @@ void ear_scene_menu_on_enter(void* context) {
 
     submenu_reset(submenu);
     submenu_set_header(submenu, "Ear Trainer");
-    submenu_add_item(submenu, "Ascending", MenuAscending, menu_callback, app);
-    submenu_add_item(submenu, "Descending", MenuDescending, menu_callback, app);
-    submenu_add_item(submenu, "Mixed", MenuMixed, menu_callback, app);
+    submenu_add_item(submenu, "Intervals - ascending", MenuAscending, menu_callback, app);
+    submenu_add_item(submenu, "Intervals - descending", MenuDescending, menu_callback, app);
+    submenu_add_item(submenu, "Intervals - mixed", MenuMixed, menu_callback, app);
+    submenu_add_item(submenu, "Chords", MenuChords, menu_callback, app);
+    submenu_add_item(submenu, "Scales", MenuScales, menu_callback, app);
     submenu_add_item(submenu, "Interval reference", MenuReference, menu_callback, app);
     submenu_add_item(submenu, "Progress", MenuProgress, menu_callback, app);
     submenu_add_item(submenu, "Settings", MenuSettings, menu_callback, app);
@@ -44,6 +48,8 @@ bool ear_scene_menu_on_event(void* context, SceneManagerEvent event) {
     case MenuAscending:
     case MenuDescending:
     case MenuMixed:
+    case MenuChords:
+    case MenuScales:
         app->mode = event.event;
         scene_manager_next_scene(app->scene_manager, EarSceneLevelSelect);
         return true;

@@ -26,6 +26,7 @@ void ha_storage_load_config(HotspotArcadeApp* app) {
     FlipperFormat* ff = flipper_format_file_alloc(storage);
     FuriString* tmp = furi_string_alloc();
     bool have_ssid = false;
+    app->lang[0] = '\0'; // default: English
 
     if(flipper_format_file_open_existing(ff, HA_CONFIG_PATH)) {
         uint32_t ver = 0;
@@ -40,6 +41,9 @@ void ha_storage_load_config(HotspotArcadeApp* app) {
             if(flipper_format_read_uint32(ff, "Sound", &v, 1)) app->sound_on = (v != 0);
             flipper_format_rewind(ff);
             if(flipper_format_read_uint32(ff, "Vibro", &v, 1)) app->vibro_on = (v != 0);
+            flipper_format_rewind(ff);
+            if(flipper_format_read_string(ff, "Lang", tmp))
+                strlcpy(app->lang, furi_string_get_cstr(tmp), sizeof(app->lang));
         }
     }
 
@@ -59,6 +63,7 @@ void ha_storage_save_config(HotspotArcadeApp* app) {
         uint32_t vibro = app->vibro_on ? 1 : 0;
         flipper_format_write_uint32(ff, "Sound", &sound, 1);
         flipper_format_write_uint32(ff, "Vibro", &vibro, 1);
+        flipper_format_write_string_cstr(ff, "Lang", app->lang);
     }
     flipper_format_free(ff);
     furi_record_close(RECORD_STORAGE);
@@ -104,6 +109,7 @@ static void slice_to(const char* start, const char* end, char* out, size_t n) {
 
 bool ha_storage_load_manifest(HotspotArcadeApp* app) {
     app->asset_count = 0;
+    app->web_bundle_crc = 0; // set from the "/" object's "crc" if present (else always stream)
     FuriString* man = furi_string_alloc();
     // A user bundle in apps_data wins outright (all-or-nothing, so a hand-built bundle
     // is never half-served from the fap's copy); otherwise use the bundled one.
@@ -131,6 +137,9 @@ bool ha_storage_load_manifest(HotspotArcadeApp* app) {
                 if(!ha_json_str(tmp, "mime", a->mime, sizeof(a->mime)))
                     strlcpy(a->mime, "application/octet-stream", sizeof(a->mime));
                 a->gzip = ha_json_bool(tmp, "gzip");
+                uint32_t crc;
+                if(strcmp(a->path, "/") == 0 && ha_json_u32(tmp, "crc", &crc))
+                    app->web_bundle_crc = crc; // bundle identity for the skip-restream check
                 app->asset_count++;
             }
             p = end + 1;

@@ -1,0 +1,13 @@
+App(
+    appid="flipper_share_nfc",
+    name="Flipper Share NFC",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nfc_share_app",
+    stack_size=2 * 1024,
+    fap_icon="nfc_share.png",
+    fap_category="NFC",
+    fap_author="lomalkin",
+    fap_weburl="https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_nfc",
+    fap_version="1.5",
+    fap_description="Direct file transfer between flippers via NFC",
+)

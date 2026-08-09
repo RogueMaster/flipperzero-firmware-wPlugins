@@ -17,6 +17,6 @@ App(
     fap_category="GPIO",
     fap_author="at0m-b0mb",
     fap_weburl="https://github.com/at0m-b0mb/Hermes-FlipperZero",
-    fap_version="1.2",
+    fap_version="1.3",
     fap_description="UART baud detector and console tap. Clip onto an unknown serial line and Hermes measures the bit time with the CPU cycle counter, then re-opens the line as a real UART to verify the guess against hardware framing errors - so it reports 115200 8N1, not just a number. Detects 8N1/8E1/8O1/7E1, ranks runner-up candidates, then drops you into an interactive console with scrollback, hex view, a Ctrl-key palette, SD logging, a string watch that buzzes when your pattern appears, script replay, break and autoboot-interrupt. A loopback self test proves your own wiring before you blame the target. For your own dev boards.",
 )

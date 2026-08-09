@@ -32,6 +32,7 @@ typedef struct {
     bool present;
     uint8_t strength; // 0..100
     uint8_t peak; // 0..100
+    bool saturated; // meter pegged - closing in further will not move it
     uint32_t contacts;
     uint8_t history[SPECTER_HISTORY_LEN];
     uint8_t history_head;
@@ -43,7 +44,12 @@ typedef struct {
     char flash_msg[12];
 } SweepModel;
 
-static const char* proximity_word(uint8_t s) {
+/* Reads against the scaled meter (field_scale.h), so the whole vocabulary is
+ * actually reachable - on raw duty a polling reader could never exceed ~30 and
+ * the top two words were dead. MAX means the meter is pegged: you are as close
+ * as this measurement can tell you, and moving nearer will not change it. */
+static const char* proximity_word(uint8_t s, bool saturated) {
+    if(saturated) return "MAX";
     if(s >= 70) return "STRONG";
     if(s >= 45) return "CLOSE";
     if(s >= 20) return "NEAR";
@@ -175,17 +181,24 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
         canvas_draw_disc(canvas, 4, 58, 1);
         canvas_draw_str(canvas, 9, 62, "ACTIVE READER");
         canvas_draw_str_aligned(
-            canvas, 125, 62, AlignRight, AlignBottom, proximity_word(m->strength));
+            canvas, 125, 62, AlignRight, AlignBottom, proximity_word(m->strength, m->saturated));
         canvas_set_color(canvas, ColorBlack);
         /* alarm frame */
         canvas_draw_frame(canvas, 0, 0, 128, 64);
         canvas_draw_frame(canvas, 1, 1, 126, 62);
     } else {
-        /* live waveform of recent field strength */
+        /* Idle: the active sensitivity on the left, a live waveform of recent
+         * field strength filling whatever space is left to the right of it. */
+        char sbuf[16];
+        snprintf(sbuf, sizeof(sbuf), "S:%s", m->sens[0] ? m->sens : "?");
+        canvas_draw_str(canvas, 2, 62, sbuf);
+        int wave_left = 2 + (int)canvas_string_width(canvas, sbuf) + 4;
+
         for(int k = 0; k < 62; k++) {
+            int x = 126 - k * 2;
+            if(x < wave_left) break;
             int idx = (m->history_head - k + 2 * SPECTER_HISTORY_LEN) % SPECTER_HISTORY_LEN;
             int v = m->history[idx];
-            int x = 126 - k * 2;
             int y = 63 - (v * 9) / 100;
             if(y < 63)
                 canvas_draw_line(canvas, x, 63, x, y);
@@ -197,6 +210,11 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
 
 static bool sweep_view_input(InputEvent* event, void* context) {
     SweepView* v = context;
+
+    /* BACK is never ours - let it reach the scene manager so it always exits,
+     * even mid OK-long-press. Explicit so the swallow logic below can't grow to
+     * cover it by accident. */
+    if(event->key == InputKeyBack) return false;
 
     if(event->key == InputKeyOk) {
         if(event->type == InputTypeShort) {
@@ -269,6 +287,7 @@ void sweep_view_update(SweepView* v, const FieldStats* stats, const char* sens_l
             m->present = stats->present;
             m->strength = stats->strength;
             m->peak = stats->peak;
+            m->saturated = stats->saturated;
             m->contacts = stats->contacts;
             memcpy(m->history, stats->history, sizeof(m->history));
             m->history_head = stats->history_head;

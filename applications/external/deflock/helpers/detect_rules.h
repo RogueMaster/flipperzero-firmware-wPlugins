@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 /**
  * @file detect_rules.h
  * Pure detection "coincidence rules" extracted from the recon_app.c god-object.
@@ -66,3 +66,152 @@ void ble_track_fold_fix(BleTrack* t, float lat, float lon);
  * caller latches the result (never un-follows).
  */
 bool ble_following_gate(uint32_t count, uint32_t elapsed_ms, uint32_t waypoints, float span_m);
+
+// ---- Flock detection alert gate (recon_app_report_flock) ---------------
+//
+// A hit is otherwise silent: it appears as a row on a screen you have to be
+// looking at (GitHub issue #1 -- two cameras detected, noticed blocks later).
+// This decides when the app raises its beep/vibro alert.
+
+/** DEFAULT lowest confidence that may raise an alert. Mirrors FlockConfidenceLikely
+ *  (2). "Possible" is an OUI-prefix-only lead -- generic vendor prefixes appear on
+ *  unrelated hardware, so alerting on it by default would buzz at non-cameras.
+ *  Precision over recall applies to the alert exactly as it does to the display.
+ *
+ *  The operator may lower it (GitHub issue #5): in a thin deployment "Possible"
+ *  can be all you ever see, and an alert you cannot turn on is no alert. Opt-in
+ *  only -- the shipped default is unchanged, so the loose mode is a deliberate
+ *  choice to accept false positives, never something the app does on its own. */
+#define ALERT_MIN_CONF    2u
+/** Minimum gap between two alerts. A MAC-randomising unit, or driving into a
+ *  dense deployment, can mint several qualifying entries inside one second;
+ *  without this the vibro motor machine-guns and drains the battery. */
+#define ALERT_COOLDOWN_MS 3000u
+
+/** esp_wifi wifi_auth_mode_t values this app reasons about. Mirrored rather than
+ *  included so the rule below stays pure and host-testable. */
+#define WIFI_AUTH_MODE_OPEN 0u
+#define WIFI_AUTH_MODE_WEP  1u
+
+/**
+ * Do two APs sharing one SSID look like an evil twin, or just like one network?
+ *
+ * ONLY a security DOWNGRADE counts: one side open (or WEP) while the other is
+ * properly secured. That is the actual attack -- a clone you will join without a
+ * password, or one whose crypto can be broken, standing in for a network you
+ * trust.
+ *
+ * It used to flag ANY auth-mode difference, which is far too loose and produced
+ * a confident "evil twin" on ordinary networks. The common benign case is
+ * WPA2/WPA3 transition mode: one radio or mesh node advertises WPA2_PSK while
+ * another advertises WPA2_WPA3_PSK. Same network, same owner, nothing wrong --
+ * and under the old rule, an alarm telling you that you are being attacked.
+ *
+ * This project's rule is that a false positive is worse than a missed detection,
+ * and it applies hardest here. "There is an evil twin near you" is one of the
+ * scariest things this app can say; if it cries wolf on a home mesh, every later
+ * warning is worth less. A clone using the SAME security was never detectable
+ * this way regardless, so nothing that was catchable is lost.
+ *
+ * @return true if the pair is a downgrade (evil-twin shaped), false if it is
+ *         merely a duplicate SSID.
+ */
+bool wifi_rogue_pair(uint8_t auth_a, uint8_t auth_b);
+
+/**
+ * Frames-per-second from two lifetime counter readings, or -1 when no honest
+ * rate can be derived.
+ *
+ * The companion reports LIFETIME totals, so the on-screen number only ever grew.
+ * That answers "is the link alive" but not "is this thing hearing anything right
+ * now", which is the question you actually have while parked next to a camera
+ * (issue #5). A rate answers it in six characters.
+ *
+ * Returns -1, rather than 0 or a huge number, in the two cases where the inputs
+ * do not describe a rate at all:
+ *   - no time has elapsed between readings (divide by zero), and
+ *   - the counter went DOWN, which a lifetime total cannot do unless the ESP
+ *     rebooted. Reporting 0/s there would read as "the radio went deaf" when
+ *     what happened is the board restarted.
+ */
+int32_t esp_frames_rate(uint32_t prev_frames, uint32_t now_frames, uint32_t elapsed_ms);
+
+/** ReconSettings.alert_min_conf. Index-aligned with alert_conf_text[] in the
+ *  settings scene; map to a confidence rung with flock_alert_min_conf_rung(). */
+typedef enum {
+    AlertConfPossible = 0, /**< OUI-prefix leads included -- expect false positives. */
+    AlertConfLikely = 1, /**< default: ALERT_MIN_CONF. */
+    AlertConfConfirmed = 2, /**< SSID-pattern matches only. */
+    AlertConfCount = 3,
+} AlertConfChoice;
+
+/**
+ * Map an AlertConfChoice to the FlockConfidence rung the gate compares against
+ * (1 Possible / 2 Likely / 4 Confirmed). An out-of-range value -- a corrupt
+ * settings file -- falls back to ALERT_MIN_CONF rather than the loosest rung,
+ * so corruption can never silently turn on the false-positive-prone mode.
+ *
+ * Note 3 (ProbeFp, "Class?") is deliberately not offered: it sits BETWEEN Likely
+ * and Confirmed, so both neighbouring choices already cover it.
+ */
+uint8_t flock_alert_min_conf_rung(uint8_t choice);
+
+/**
+ * Should this detection raise the alert? Fires at most ONCE per device, on the
+ * first crossing from below ALERT_MIN_CONF to at or above it -- so a unit first
+ * seen as "Possible" and later upgraded to "Confirmed" alerts exactly once,
+ * while a camera that keeps being seen never re-alerts.
+ *
+ * @param prev_conf           entry confidence BEFORE this sighting was merged.
+ * @param new_conf            entry confidence AFTER the merge.
+ * @param already_alerted     the entry's own latch (this device already alerted).
+ * @param first_live_sighting this entry was ARCHIVED (restored from hits.csv)
+ *                            until this sighting, so both its latch and its
+ *                            confidence were carried in from an earlier session
+ *                            and neither describes anything that happened now.
+ *                            Treated as a fresh device for alerting purposes.
+ *
+ *                            Without this, saving hits silently disabled alerts
+ *                            for every camera you had ever recorded: the loader
+ *                            sets `alerted` so a restored hit cannot buzz at
+ *                            startup, nothing cleared it, and the restored
+ *                            confidence also failed the crossing test below.
+ *                            Driving past the same camera tomorrow is a new
+ *                            event and must alert (issue #5).
+ * @param now_tick            furi tick of this sighting.
+ * @param last_alert_tick     tick of the last alert this session (any device).
+ * @param have_alerted_before false until the first alert of the session, so a
+ *                            fresh session's `last_alert_tick == 0` can't be
+ *                            mistaken for "an alert 0 ms ago" and swallowed.
+ * @param min_conf            lowest qualifying rung, from
+ *                            flock_alert_min_conf_rung(settings.alert_min_conf).
+ */
+bool flock_alert_should_fire_ex(
+    uint8_t prev_conf,
+    uint8_t new_conf,
+    bool already_alerted,
+    bool first_live_sighting,
+    uint32_t now_tick,
+    uint32_t last_alert_tick,
+    bool have_alerted_before,
+    uint8_t min_conf);
+
+/** Back-compat shim: a live entry that was never archived. */
+static inline bool flock_alert_should_fire(
+    uint8_t prev_conf,
+    uint8_t new_conf,
+    bool already_alerted,
+    uint32_t now_tick,
+    uint32_t last_alert_tick,
+    bool have_alerted_before,
+    uint8_t min_conf) {
+    return flock_alert_should_fire_ex(
+        prev_conf,
+        new_conf,
+        already_alerted,
+        false,
+        now_tick,
+        last_alert_tick,
+        have_alerted_before,
+        min_conf);
+}

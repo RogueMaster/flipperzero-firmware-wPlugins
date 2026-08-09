@@ -198,11 +198,9 @@ uint8_t morse_trainer_session_groups(const MorseTrainer* trainer) {
     return trainer ? trainer->session_groups : 10U;
 }
 
-const char* morse_trainer_charset(const MorseTrainer* trainer) {
+const char* morse_trainer_lesson_charset(const MorseTrainer* trainer) {
     static char buf[MORSE_TRAINER_CHARSET_CAP];
     size_t n;
-
-    if(trainer != NULL && trainer->charset_override[0] != '\0') return trainer->charset_override;
 
     n = trainer ? ((size_t)morse_trainer_lesson(trainer) + 1U) : 2U;
     if(n >= sizeof(buf)) n = sizeof(buf) - 1U;
@@ -210,6 +208,11 @@ const char* morse_trainer_charset(const MorseTrainer* trainer) {
     memcpy(buf, morse_trainer_koch_order, n);
     buf[n] = '\0';
     return buf;
+}
+
+const char* morse_trainer_charset(const MorseTrainer* trainer) {
+    if(trainer != NULL && trainer->charset_override[0] != '\0') return trainer->charset_override;
+    return morse_trainer_lesson_charset(trainer);
 }
 
 const char* morse_trainer_last_group(const MorseTrainer* trainer) {

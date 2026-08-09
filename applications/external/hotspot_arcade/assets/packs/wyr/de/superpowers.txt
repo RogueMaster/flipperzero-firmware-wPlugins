@@ -1,0 +1,37 @@
+Pack: Superkräfte
+
+A: Fliegen können
+B: Dich überallhin teleportieren
+---
+A: Unsichtbar sein
+B: Gedanken lesen
+---
+A: Übermenschliche Stärke haben
+B: Übermenschliche Schnelligkeit haben
+---
+A: Mit Tieren sprechen
+B: Jede Sprache sprechen
+---
+A: Die Zeit anhalten
+B: Die Zeit zurückspulen
+---
+A: Unter Wasser atmen
+B: Im Weltall überleben
+---
+A: Jede Wunde sofort heilen
+B: Nie Schmerz spüren
+---
+A: Feuer beherrschen
+B: Wasser beherrschen
+---
+A: Durch Wände gehen
+B: Unsichtbar werden
+---
+A: Einen Tag in die Zukunft sehen
+B: Eine Sache in deiner Vergangenheit ändern
+---
+A: Auf Ameisengröße schrumpfen
+B: Auf Riesengröße wachsen
+---
+A: Telekinese haben
+B: Telepathie haben

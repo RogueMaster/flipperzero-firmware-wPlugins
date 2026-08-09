@@ -97,6 +97,8 @@ export const engine = {
   contentClear: () => { call("ha_content_clear", [], []); drain(); },
   contentPack: (game, name) => { call("ha_content_pack", ["number", "string"], [game, name]); drain(); },
   contentItem: (json) => { call("ha_content_item", ["string"], [json]); drain(); },
+  // Phone-UI language the ESP echoes to each phone in `welcome`.
+  setLang: (lang) => { call("ha_set_lang", ["string"], [lang || ""]); drain(); },
 };
 
 export function subscribeUart(fn) { uartSubscribers.push(fn); }

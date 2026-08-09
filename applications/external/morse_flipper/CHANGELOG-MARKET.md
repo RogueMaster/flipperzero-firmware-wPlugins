@@ -1,3 +1,11 @@
+v0.1.78:
+- Fix Training settings custom character loading when the custom character file is missing.
+- Create the default custom character file during app startup.
+- Bring firmware sources back in line with the SDK market lint formatter.
+
+v0.1.77:
+- Update USB live-practice help copy and manual links.
+
 v0.1.76:
 - Add AZERTY and QWERTZ keyboard presets for PC keyer modes that pass through host OS keymaps correctly.
 

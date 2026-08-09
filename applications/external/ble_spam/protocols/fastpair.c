@@ -1,7 +1,7 @@
 #include "fastpair.h"
 #include "_protocols.h"
 
-// Hacked together by @Willy-JL and @Spooks4576
+// Hacked together by WillyJL and Spooks4576
 // Documentation at https://developers.google.com/nearby/fast-pair/specifications/introduction
 // https://bluetoothdb.com
 

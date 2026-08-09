@@ -46,6 +46,10 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->suppress_speed_chime = true;
     state->ignore_ota           = false;
     state->emergency_vehicle_detect = false;
+    state->summon_unlock        = false;    // opt-in Summon EU Unlock, default OFF
+    state->apmv3_branch         = 0xFF;      // opt-in AP branch/tier selector, default OFF (0xFF sentinel)
+    state->continue_on_green    = false;    // opt-in Continue on Green, default OFF
+    state->assist_rhd_override  = false;    // opt-in RHD driving-side override, default OFF
     state->fsd_unlock           = false;
     state->force_fsd            = false;
     state->china_mode           = false;
@@ -187,6 +191,48 @@ void fsd_handle_follow_distance(FSDState *state, const CanFrame *frame) {
     }
 }
 
+// ── Driver-assist override (UI_driverAssistControl 0x3F8) ────────────────────
+// Opt-in Right-Hand-Drive: set UI_drivingSide = RHD (bit41=1, bit40=0). #66.
+// Source: ev-open-can-tools RHD.json (frame 1016, bit41=1).
+
+bool fsd_handle_driver_assist_override(FSDState *state, CanFrame *frame) {
+    if (frame->dlc < 8) return false;
+    bool modified = false;
+    // bit40-41: UI_drivingSide = 2 (RHD)
+    if (state->assist_rhd_override) {
+        set_bit(frame, 40, false);
+        set_bit(frame, 41, true);
+        modified = true;
+    }
+    // Telemetry Off (experimental) — clear the reachable UI_driverAssistControl
+    // telemetry-enable flags on 0x3F8. Plain bit-clears, no checksum on this frame.
+    //   bit19 UI_enableClipParkedTelemetry
+    //   bit42 UI_enableClipTelemetry
+    //   bit43 UI_enableTripTelemetry
+    //   bit44 UI_enableRoadSegmentTelemetry
+    //   bit55 UI_enableClipStartStopTelemetry
+    // Source: ev-open-can-tools disable-telemetry.json (GPL-3.0).
+    //
+    // DELIBERATELY OUT OF SCOPE (documented so coverage is honest):
+    //   * 0x389 DAS_status2 bits 13/34/35 — clearing them requires recomputing the
+    //     frame counter (byte6 mask 0xF0) + Tesla checksum; deferred to avoid emitting
+    //     invalid frames.
+    //   * 0x3B3 VCSEC and the ~11 *_alertMatrix *_a030_ECULogUploadRequest frames
+    //     (0x340/341/342/360/3BA/3C0/3C8/3CD/3CE/3CF) — on the Vehicle CAN bus, which
+    //     this tool does not reliably tap; injecting them on a Chassis/Party tap does
+    //     nothing. Reaching them needs Vehicle-bus access first.
+    // REACHABLE SUBSET only — does NOT guarantee reduced detection.
+    if (state->assist_telemetry_off) {
+        set_bit(frame, 19, false);
+        set_bit(frame, 42, false);
+        set_bit(frame, 43, false);
+        set_bit(frame, 44, false);
+        set_bit(frame, 55, false);
+        modified = true;
+    }
+    return modified;
+}
+
 // ── HW3/HW4 autopilot control (DAS_autopilotControl 0x3FD) ───────────────────
 
 bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
@@ -201,6 +247,13 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
 
     // mux 0 is the authoritative "is FSD requested" mux
     if (mux == CAN_MUX_0) state->fsd_enabled = fsd_ui;
+
+    // bit39 continue-on-green with lead car (ev-open-can-tools TSLLC plugin);
+    // same 0x3FD mux0 frame on HW3/HW4, so apply before the HW split; pairs with TLSSC
+    if (mux == CAN_MUX_0 && state->continue_on_green && state->fsd_enabled) {
+        set_bit(frame, SIG_AP_CONTINUE_ON_GREEN_BIT, true);   // bit39 continue-on-green
+        modified = true;
+    }
 
     if (state->hw_version == TeslaHW_HW3) {
         // ── HW3 ──────────────────────────────────────────────────────────────
@@ -224,11 +277,34 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
                           SIG_AP_SPEED_PROFILE_SHIFT);
             modified = true;
         }
-        if (mux == CAN_MUX_1 && state->nag_killer) {
-            // Nag suppression via bit 19 (clear = no hands-on-wheel request)
-            set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);
-            state->nag_suppressed = true;
-            modified = true;
+        if (mux == CAN_MUX_1 &&
+            (state->nag_killer || state->summon_unlock || state->assist_telemetry_off ||
+             state->apmv3_branch <= 5)) {
+            if (state->nag_killer) {
+                // Nag suppression via bit 19 (clear = no hands-on-wheel request)
+                set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);
+                state->nag_suppressed = true;
+                modified = true;
+            }
+            if (state->summon_unlock) {
+                set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);       // bit19 EU restriction clear
+                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true);  // bit47 summon enable
+                modified = true;
+            }
+            // Telemetry Off (experimental): clear reachable DAS_autopilotControl mux1
+            // telemetry flags — bit48 UI_enableCabinCameraTelemetry, bit50
+            // UI_autopilotTelemetryInChina. Plain bit-clears, no checksum.
+            if (state->assist_telemetry_off) {
+                set_bit(frame, 48, false);
+                set_bit(frame, 50, false);
+                modified = true;
+            }
+            // AP branch/tier selector (experimental, non-persistent): UI_apmv3Branch
+            // bits 40-42 = byte5 bits 0-2. 0xFF sentinel = OFF (leave untouched).
+            if (state->apmv3_branch <= 5) {
+                frame->data[5] = (uint8_t)((frame->data[5] & ~0x07) | (state->apmv3_branch & 0x07));
+                modified = true;
+            }
         }
         if (mux == CAN_MUX_2 && state->fsd_unlock && state->fsd_enabled) {
             // Write speed offset into bits 7:6 of byte 0 and bits 5:0 of byte 1
@@ -252,11 +328,34 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
                 set_bit(frame, SIG_AP_HW4_EMERGENCY_VEHICLE_BIT, true);
             modified = true;
         }
-        if (mux == CAN_MUX_1 && state->nag_killer) {
-            set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);      // clear hands-on-wheel nag
-            set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true); // HW4 nag-suppression confirmation bit
-            state->nag_suppressed = true;
-            modified = true;
+        if (mux == CAN_MUX_1 &&
+            (state->nag_killer || state->summon_unlock || state->assist_telemetry_off ||
+             state->apmv3_branch <= 5)) {
+            if (state->nag_killer) {
+                set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);      // clear hands-on-wheel nag
+                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true); // HW4 nag-suppression confirmation bit
+                state->nag_suppressed = true;
+                modified = true;
+            }
+            if (state->summon_unlock) {
+                set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);       // bit19 EU restriction clear
+                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true);  // bit47 summon enable
+                modified = true;
+            }
+            // Telemetry Off (experimental): clear reachable DAS_autopilotControl mux1
+            // telemetry flags — bit48 UI_enableCabinCameraTelemetry, bit50
+            // UI_autopilotTelemetryInChina. Plain bit-clears, no checksum.
+            if (state->assist_telemetry_off) {
+                set_bit(frame, 48, false);
+                set_bit(frame, 50, false);
+                modified = true;
+            }
+            // AP branch/tier selector (experimental, non-persistent): UI_apmv3Branch
+            // bits 40-42 = byte5 bits 0-2. 0xFF sentinel = OFF (leave untouched).
+            if (state->apmv3_branch <= 5) {
+                frame->data[5] = (uint8_t)((frame->data[5] & ~0x07) | (state->apmv3_branch & 0x07));
+                modified = true;
+            }
         }
         if (mux == CAN_MUX_2 && state->fsd_unlock) {
             // Write speed profile into bits 6:4 of byte 7

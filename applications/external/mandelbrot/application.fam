@@ -3,11 +3,11 @@ App(
     name="Mandelbrot Set",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="mandelbrot_app",
-    stack_size=1 * 1024,
+    stack_size=2 * 1024,
     fap_icon="Mandelbrot.png",
     fap_category="Games",
     fap_author="Possibly-Matt",
     fap_weburl="https://github.com/Possibly-Matt",
-    fap_version="1.3",
+    fap_version="1.4",
     fap_description="The Mandelbrot set is the set of all so-called (complex) numbers that meet Mandelbrots simple arithmetic criterion.",
 )

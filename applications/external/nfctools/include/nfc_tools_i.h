@@ -12,7 +12,6 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/popup.h>
 #include <gui/modules/text_box.h>
-#include <gui/modules/text_input.h>
 #include <gui/modules/widget.h>
 #include <notification/notification_messages.h>
 #include <nfc/nfc.h>
@@ -29,12 +28,10 @@
 #include <nfc/helpers/felica_crc.h>
 
 #include "scenes/nfc_tools_scene.h"
-#include "views/email_input/nfc_tools_email_input.h"
-#include "views/mime_input/nfc_tools_mime_input.h"
-#include "views/special_input/nfc_tools_special_input.h"
+#include "views/keyboard/nfc_tools_keyboard.h"
 #include "helpers/md5/nfc_tools_md5.h"
 
-#define NFC_TOOLS_VERSION FAP_VERSION
+#define NFC_TOOLS_VERSION "1.3"
 
 #define NFC_TOOLS_WORKER_FLAG_DETECTED (1u << 0)
 #define NFC_TOOLS_WORKER_FLAG_STOP     (1u << 1)
@@ -59,28 +56,33 @@ typedef struct {
     uint8_t tnf;
     NfcToolsNdefType type;
     char type_str[32]; // raw type (e.g. "U", "T", "application/vnd.wfa.wsc")
-    char value[1024]; // decoded value (URL, text…)
+    char value[128]; // decoded value (URL, text…), truncated to fit
     char summary[40]; // one-liner for the submenu
     uint8_t payload[NFC_TOOLS_NDEF_PAYLOAD_MAX];
     uint16_t payload_len; // actual length (before truncation)
     bool has_qr; // true if a QR code is relevant
+    bool truncated; // decoded value didn't fit value[] (QR suppressed)
 } NfcToolsNdefRecord;
 
-#define NFC_TOOLS_NDEF_BUF1_SIZE 1024 // URL / text / WiFi SSID / Mail To / Contact Name
-#define NFC_TOOLS_NDEF_BUF2_SIZE 64 // WiFi password / Mail Subject / Contact Company
-#define NFC_TOOLS_NDEF_BUF3_SIZE 128 // Mail Body / Contact Address
-#define NFC_TOOLS_NDEF_BUF4_SIZE 64 // Contact Phone
-#define NFC_TOOLS_NDEF_BUF5_SIZE 128 // Contact Email
-#define NFC_TOOLS_NDEF_BUF6_SIZE 128 // Contact URL
+// All input buffers share one generous ceiling (1024 bytes = 1023 usable chars +
+// NUL). The effective limit on what can actually be written is the tag capacity,
+// enforced at write time ("Tag too small"). Per-field protocol caps (WiFi
+// SSID/pass, FeliCa, MAC) are applied via keyboard_set_max_length in their scenes.
+#define NFC_TOOLS_NDEF_BUF_SIZE 1024
+#define NFC_TOOLS_NDEF_BUF1_SIZE \
+    NFC_TOOLS_NDEF_BUF_SIZE // URL / text / WiFi SSID / Mail To / Contact Name
+#define NFC_TOOLS_NDEF_BUF2_SIZE \
+    NFC_TOOLS_NDEF_BUF_SIZE // WiFi password / Mail Subject / Contact Company
+#define NFC_TOOLS_NDEF_BUF3_SIZE NFC_TOOLS_NDEF_BUF_SIZE // Mail Body / Contact Address
+#define NFC_TOOLS_NDEF_BUF4_SIZE NFC_TOOLS_NDEF_BUF_SIZE // Contact Phone
+#define NFC_TOOLS_NDEF_BUF5_SIZE NFC_TOOLS_NDEF_BUF_SIZE // Contact Email
+#define NFC_TOOLS_NDEF_BUF6_SIZE NFC_TOOLS_NDEF_BUF_SIZE // Contact URL
 
 typedef enum {
     NfcToolsViewMainMenu,
     NfcToolsViewPopup,
     NfcToolsViewTextBox,
-    NfcToolsViewTextInput,
-    NfcToolsViewEmailInput,
-    NfcToolsViewMimeInput,
-    NfcToolsViewSpecialInput,
+    NfcToolsViewKeyboard, // unified virtual keyboard (all text input)
     NfcToolsViewSubmenu2, // second submenu (NDEF records list in tag_info)
     NfcToolsViewQrCode, // custom QR code view
     NfcToolsViewWidget, // widget for record detail with button
@@ -126,10 +128,7 @@ typedef struct {
     Widget* widget; // widget for record detail (text + button)
     Popup* popup;
     TextBox* text_box;
-    TextInput* text_input;
-    EmailInput* email_input;
-    MimeInput* mime_input;
-    SpecialInput* special_input;
+    Keyboard* keyboard; // unified virtual keyboard (all text input)
 
     NotificationApp* notifications;
     Nfc* nfc;

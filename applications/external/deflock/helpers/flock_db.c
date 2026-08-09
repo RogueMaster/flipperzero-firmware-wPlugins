@@ -1,30 +1,99 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "flock_db.h"
 #include <string.h>
 
 /**
- * 32 OUI prefixes observed in fielded Flock Safety deployments.
- * First 30 from @NitekryDPaul research; 82:6b:f2 from DeFlockJoplin field
- * testing; b4:1e:52 is Flock Safety's own IEEE-registered OUI (GainSec). These
- * are generic vendor prefixes (Liteon, Espressif, etc.), hence OUI-only matches
- * are scored "possible", never "confirmed".
+ * 31 OUI prefixes observed in fielded Flock Safety deployments.
+ * Mostly @NitekryDPaul research; 82:6b:f2 from DeFlockJoplin field testing;
+ * the last entry b4:1e:52 is Flock Safety's own IEEE-registered OUI (GainSec).
+ * These are generic vendor prefixes (Liteon, Espressif, etc.), hence OUI-only
+ * matches are scored "possible", never "confirmed".
+ *
+ * SOURCE OF TRUTH is now nitekry/nite-oui-collection ->
+ * groups/flockers/my_tested_flock.md, a per-prefix table with Confidence and
+ * Status columns. It SUPERSEDES the flat, statusless
+ * colonelpanichacks/flock-you -> datasets/NitekryDPaul_wifi_ouis.md list this
+ * table was originally imported from -- the flat list cannot record that a
+ * prefix was later doubted, so re-importing from it silently undoes retractions.
+ *
+ * f8:a2:d6 was DROPPED 2026-07-27: upstream marks it Removed ("low confidence;
+ * hit on a Sony Media Player"). Do NOT re-add it from the flat list. Also
+ * retracted upstream and deliberately absent here: 6c:cd:d6 (Netgear),
+ * 94:2a:6f + f4:e2:c6 (Ubiquiti), cc:cc:cc (no hits), 00:0c:e7 (possible FP).
+ *
+ * This table is a claim of FIELD CORROBORATION. Uncorroborated candidates
+ * belong in the user signature file, not here -- see docs/signatures.md.
+ *
+ * DUPLICATED in esp32_companion/flock_companion/flock_companion.ino, which
+ * scores ESP-side. No shared header is possible (that side is an Arduino
+ * sketch), so change BOTH and keep the row layout identical so they can be
+ * diffed by eye. tools/check_oui_parity.py enforces this as a required CI gate.
  */
 static const uint8_t flock_ouis[][3] = {
-    {0x70, 0xc9, 0x4e}, {0x3c, 0x91, 0x80}, {0xd8, 0xf3, 0xbc},
-    {0x80, 0x30, 0x49}, {0xb8, 0x35, 0x32}, {0x14, 0x5a, 0xfc},
-    {0x74, 0x4c, 0xa1}, {0x08, 0x3a, 0x88}, {0x9c, 0x2f, 0x9d},
-    {0xc0, 0x35, 0x32}, {0x94, 0x08, 0x53}, {0xe4, 0xaa, 0xea},
-    {0xf4, 0x6a, 0xdd}, {0xf8, 0xa2, 0xd6}, {0x24, 0xb2, 0xb9},
-    {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57}, {0xe8, 0xd0, 0xfc},
-    {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
-    {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf},
-    {0x58, 0x00, 0xe3}, {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2},
-    {0x64, 0x6e, 0x69}, {0x48, 0x27, 0xea}, {0xa4, 0xcf, 0x12},
-    {0x82, 0x6b, 0xf2}, {0xb4, 0x1e, 0x52}, // Flock Safety's own registered OUI (GainSec)
+    {0x70, 0xc9, 0x4e}, {0x3c, 0x91, 0x80}, {0xd8, 0xf3, 0xbc}, {0x80, 0x30, 0x49},
+    {0xb8, 0x35, 0x32}, {0x14, 0x5a, 0xfc}, {0x74, 0x4c, 0xa1}, {0x08, 0x3a, 0x88},
+    {0x9c, 0x2f, 0x9d}, {0xc0, 0x35, 0x32}, {0x94, 0x08, 0x53}, {0xe4, 0xaa, 0xea},
+    {0xf4, 0x6a, 0xdd}, {0xf8, 0xa2, 0xd6}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d},
+    {0xd0, 0x39, 0x57}, {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4},
+    {0x70, 0x08, 0x94}, {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf},
+    {0x58, 0x00, 0xe3}, {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69},
+    {0x48, 0x27, 0xea}, {0xa4, 0xcf, 0x12}, {0x82, 0x6b, 0xf2}, {0xb4, 0x1e, 0x52},
 };
 
 #define FLOCK_OUI_COUNT (sizeof(flock_ouis) / sizeof(flock_ouis[0]))
+
+/**
+ * SoundThinking (formerly ShotSpotter) acoustic gunshot sensors.
+ *
+ * A DIFFERENT DEVICE CLASS, not an ALPR: these listen, they do not read plates.
+ * Kept in its own table so a hit can be reported as what it is. Folding it into
+ * flock_ouis[] would have the app announce a camera it never saw, which is the
+ * over-claiming the project rules forbid.
+ *
+ * d4:11:d6 via JakeSwiz/WatchFlock (esp32_marauder/WiFiScan.cpp,
+ * fy_soundthinking_mac_prefixes[]). Like every OUI here it is a vendor prefix,
+ * not proof: an OUI-only hit scores "possible", and there is no known SSID tell
+ * for this hardware, so an acoustic detection can never reach "confirmed".
+ *
+ * DUPLICATED in esp32_companion/flock_companion/flock_companion.ino -- same
+ * hand-sync rule as flock_ouis[] above, and covered by the same CI parity gate.
+ */
+static const uint8_t soundthinking_ouis[][3] = {
+    {0xd4, 0x11, 0xd6},
+};
+
+#define SOUNDTHINKING_OUI_COUNT (sizeof(soundthinking_ouis) / sizeof(soundthinking_ouis[0]))
+
+bool soundthinking_oui_match(const uint8_t* mac) {
+    if(!mac) return false;
+    for(size_t i = 0; i < SOUNDTHINKING_OUI_COUNT; i++) {
+        if(mac[0] == soundthinking_ouis[i][0] && mac[1] == soundthinking_ouis[i][1] &&
+           mac[2] == soundthinking_ouis[i][2]) {
+            return true;
+        }
+    }
+    // Deliberately NOT extended by signatures.json: the user schema has no class
+    // field, so a user OUI is always read as ALPR. Adding acoustic prefixes needs
+    // a schema change, not a silent reinterpretation of existing user files.
+    return false;
+}
+
+FlockDevClass flock_class_from_mac(const uint8_t* mac) {
+    return soundthinking_oui_match(mac) ? FlockClassAcoustic : FlockClassAlpr;
+}
+
+const char* flock_class_str(FlockDevClass cls) {
+    return (cls == FlockClassAcoustic) ? "Acoustic" : "ALPR";
+}
+
+const char* flock_class_long_str(FlockDevClass cls) {
+    // "SoundThinking (acoustic sensor)" was 31 characters and overran the detail
+    // screen's 128 px row. Shortened rather than truncated at draw time, so the
+    // device class -- the thing that stops a gunshot sensor being read as a
+    // camera -- is never the field that gets cut off.
+    return (cls == FlockClassAcoustic) ? "SoundThinking sensor" : "Flock / ALPR camera";
+}
 
 /**
  * OPTIONAL user-supplied extras, registered at runtime from the SD card by
@@ -112,6 +181,9 @@ FlockConfidence flock_ssid_confidence(const char* ssid) {
     // exactly ("Flock-" + 6 hex): an unanchored "flock-" substring wrongly
     // confirmed benign names like "Flock-Guest" or the Flock Freight / chat SSIDs.
     // Those still fall through to the "likely" contains-check below.
+    //
+    // "test_flck" is the hard-coded development SSID disclosed as CVE-2025-59409;
+    // on the air it is close to self-identifying, hence Confirmed on substring.
     if(is_flock_provisioning_ssid(ssid) || ci_contains(ssid, "test_flck")) {
         return FlockConfidenceConfirmed;
     }
@@ -180,22 +252,25 @@ FlockIeFp flock_ie_fp_match(uint32_t fp) {
     return FlockIeFpNone;
 }
 
-FlockConfidence flock_score(const uint8_t* mac, const char* ssid, bool is_probe_req) {
-    FlockConfidence by_ssid = flock_ssid_confidence(ssid);
-    if(by_ssid == FlockConfidenceConfirmed) return FlockConfidenceConfirmed;
-
-    bool oui = flock_oui_match(mac);
-
-    // OUI + the camera's phone-home probe behaviour is a strong combination.
-    if(oui && is_probe_req) {
-        return FlockConfidenceLikely > by_ssid ? FlockConfidenceLikely : by_ssid;
-    }
-    if(oui) {
-        return FlockConfidencePossible > by_ssid ? FlockConfidencePossible : by_ssid;
-    }
-
-    return by_ssid;
-}
+/*
+ * flock_score() USED TO LIVE HERE and was deleted in v0.48.
+ *
+ * It read like the canonical scorer and had a full test suite, but it had ZERO
+ * production callers -- nothing on the device ever ran it. The shipped
+ * combination logic is parse_flock() in helpers/esp_parser.c (companion backend)
+ * and the inline block in esp_parse_generic() (Marauder backend), and those are
+ * different code. So the tests that "covered scoring" were guarding a function
+ * the product did not use, while the code that WAS used had no such guard.
+ *
+ * That is not hypothetical: it is exactly how v0.46 shipped "Flock-Guest" as
+ * CONFIRMED with every test green. Rather than leave a second, diverging ladder
+ * around to be maintained and mistaken for the real one, the assertions moved to
+ * esp_parse_companion_line() in test/test_esp_parser.c, where they exercise the
+ * boundary the product actually uses.
+ *
+ * Do not reintroduce a standalone scorer here. If you need combination logic,
+ * put it where the caller is, and test it through the wire protocol.
+ */
 
 const char* flock_confidence_str(FlockConfidence confidence) {
     switch(confidence) {
@@ -210,5 +285,43 @@ const char* flock_confidence_str(FlockConfidence confidence) {
     case FlockConfidenceNone:
     default:
         return "-";
+    }
+}
+
+FlockMethod flock_method_of(const uint8_t* mac, const char* ssid, char ftype, uint32_t ie_fp) {
+    // Strongest re-derivable indicator wins, mirroring the ladder's own ordering
+    // so the label never claims more than the confidence rung does.
+    if(flock_ssid_confidence(ssid) != FlockConfidenceNone) return FlockMethodSsid;
+    if(flock_ie_fp_match(ie_fp) != FlockIeFpNone) return FlockMethodIeFp;
+    // Either table: a SoundThinking prefix is an OUI match too, just for the other
+    // device class. Reporting it as "unclassified" would hide the one indicator we
+    // actually have for an acoustic sensor.
+    if(flock_oui_match(mac) || soundthinking_oui_match(mac)) return FlockMethodOui;
+    // BLE is classified on the companion (mfg id 0x09C8 / Raven GATT) from advert
+    // bytes that never reach this side, so name the source rather than guess.
+    if(ftype == 'L') return FlockMethodBle;
+    return FlockMethodUnknown;
+}
+
+const char* flock_method_str(FlockMethod method) {
+    // TERSE ON PURPOSE. These are composed into "Method: <this> + <frame>" on a
+    // 128 px row that also carries a scrollbar, leaving ~26 characters. The
+    // first draft ("OUI prefix", "IE fingerprint") pushed the longest
+    // combination off the right edge on real hardware. "OUI" and "SSID" are also
+    // the terms the reporter used, so nothing is lost by the shorter form.
+    switch(method) {
+    case FlockMethodSsid:
+        return "SSID";
+    case FlockMethodIeFp:
+        return "IE fp";
+    case FlockMethodOui:
+        return "OUI";
+    case FlockMethodBle:
+        return "BLE mfg ID";
+    case FlockMethodUnknown:
+    default:
+        // Not "none": the companion DID score it, on probe behaviour we cannot
+        // re-derive here. Saying "no indicator" would be the wrong claim.
+        return "ESP probe rule";
     }
 }

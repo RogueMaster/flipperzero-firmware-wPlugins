@@ -1,0 +1,14 @@
+App(
+    appid="xbox_postcode_reader",
+    name="Xbox POST Code Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="app_main",
+    sources=["main.c", "postcode_db.c"],
+    stack_size=4 * 1024,
+    fap_icon="xbox_postcode_reader.png",
+    fap_category="GPIO",
+    fap_author="coolshrimp",
+    fap_version="0.14",
+    fap_weburl="https://github.com/coolshrimp/flipperzero-xbox-post-code-reader",
+    fap_description="Xbox POST Code Reader turns a Flipper Zero into a portable Xbox boot diagnostic reader. It captures POST traffic directly from a supported Xbox motherboard, keeps a live history, decodes known codes offline, saves sessions to the SD card, and can stream codes over USB to the companion browser tool.",
+)

@@ -106,6 +106,17 @@ struct BlackhatApp {
     char text_input_ch[ENTER_NAME_LENGTH];
     bool text_input_req;
     bool is_script_scan;
+
+    bool tui_game_mode;
+    bool tui_ok_held;
+    bool tui_a_pressed;
+    bool tui_ok_chord_used;
+    bool tui_left_chord;
+    bool tui_right_chord;
+    bool tui_back_held;
+    bool tui_back_exit_sent;
+    uint32_t tui_ok_pressed_at;
+    uint32_t tui_back_pressed_at;
 };
 
 typedef enum {

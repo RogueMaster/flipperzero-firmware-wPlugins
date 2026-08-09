@@ -8,7 +8,7 @@ This app main goal is to make it easy to modify a MiZip tag balance.
 If you want to contribute to make this app better, feel free to submit PR!
 
 Features:
-- Modify a tag balance directly (work still in progress)
+- Modify a tag balance directly
 - Change balance of a MiZip saved file with support for shadow files (.shd) to keep your original data safe
 
 ## Disclaimer

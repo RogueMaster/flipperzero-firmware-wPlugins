@@ -6,7 +6,9 @@
 
 It is a rewrite of Flipper Share with the transport replaced by a custom IR modem. The basics of the classic flipper_share file-transfer protocol (resumable, integrity-checked) is preserved.
 
-Actual file transfer speed via **Flipper Share IR** is around 130 Bytes/sec (7.6 KB/min), if you need to achieve higher throughput, consider using the original **Flipper Share** app over Sub-GHz ([README.md](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ir/README.md)).
+Actual file transfer speed via **Flipper Share IR** is around 130 Bytes/sec. If you need higher throughput, consider another Flipper Share transport.
+
+Other Flipper Share transports (Sub-GHz, NFC & more): [github.com/lomalkin/flipper-zero-apps](https://github.com/lomalkin/flipper-zero-apps)
 
 File size tested is 8 MB (~17 hours), but the protocol itself can support up to 4 GB (uint32_t file size). Maximum file size is limited by the Flipper Zero's free RAM on receiver side, actually should be not more than 35 MB.
 

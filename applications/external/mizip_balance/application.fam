@@ -9,6 +9,6 @@ App(
     fap_category="NFC",
     fap_author="Téo Humeau",
     fap_weburl="https://github.com/teohumeau/MiZipBalanceEditor",
-    fap_version="0.2",
+    fap_version="1.0",
     fap_description="Easily modify your MiZip tags balance",
 )

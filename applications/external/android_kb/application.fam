@@ -3,11 +3,11 @@ App(
     name="Android KB Bridge",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="android_keyboard_bridge_app",
-    stack_size=(4 * 1024),
+    stack_size=4 * 1024,
     fap_icon="icon.png",
     fap_category="Bluetooth",
     fap_author="andybeg",
     fap_weburl="https://github.com/andybeg/AndroidFlipperZeroKBD",
-    fap_version="0.5.4",
+    fap_version="0.5.8",
     fap_description="BLE Serial bridge: Android phone keyboard/touchpad → USB HID on PC",
 )

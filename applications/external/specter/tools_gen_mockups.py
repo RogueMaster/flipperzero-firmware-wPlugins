@@ -104,7 +104,13 @@ def gauge_point(value, radius):
     return PCX + math.cos(a) * radius, PCY - math.sin(a) * radius
 
 
-def proximity_word(s):
+def proximity_word(s, saturated=False):
+    if saturated:
+        return "MAX"
+    return _proximity_word(s)
+
+
+def _proximity_word(s):
     return (
         "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
     )
@@ -193,6 +199,8 @@ def render_sweep(
     calibrating=False,
     calib_pct=0,
     flash=None,
+    sens="Medium",
+    saturated=False,
 ):
     img, d = canvas()
     draw_header(d, "SPECTER", state, present, flash)
@@ -209,10 +217,24 @@ def render_sweep(
         box(d, 0, 53, 128, 11)
         disc(d, 4, 58, 1, BG)
         tb(d, 9, 62, "ACTIVE READER", f_sec, BG)
-        tb(d, 125, 62, proximity_word(strength), f_sec, BG, anchor="rs")
+        tb(d, 125, 62, proximity_word(strength, saturated), f_sec, BG, anchor="rs")
         frame(d, 0, 0, 127, 63, FG, lw=2)
     else:
-        draw_waveform(d, history, 63, 9)
+        # active sensitivity on the left, waveform filling the rest
+        label = f"S:{sens}"
+        tb(d, 2, 62, label, f_sec)
+        wave_left = 2 + int(d.textlength(label, font=f_sec) / S) + 4
+        for k in range(62):
+            x = 126 - k * 2
+            if x < wave_left:
+                break
+            idx = (len(history) - 1 - k) % len(history)
+            v = history[idx]
+            y = 63 - (v * 9) // 100
+            if y < 63:
+                line(d, x, 63, x, y, FG, w=S)
+            else:
+                dot(d, x, 63)
     save(img, name)
 
 
@@ -371,20 +393,62 @@ def render_settings():
 
 
 def render_logbook():
+    """The on-device viewer: each entry is a timestamp line then an indented
+    'TYPE detail' line (long details wrap in the real text box; shown here as a
+    representative prefix)."""
     img, d = canvas()
     lines = [
+        "2026-07-18 14:36:20",
+        "  WATCH  hit 4 @92s f61%",
         "2026-07-18 14:35:11",
-        "  SURVEY 60s",
-        "  ACTIVE READER",
-        "  mx74% av21% f38% h5",
+        "  SURVEY 60s ACTIVE mx74",
         "2026-07-18 14:32:07",
-        "  READER POLLING",
-        "  204ms b20 d10% c88%",
+        "  READER POLLING 204ms",
+        "2026-07-18 14:30:55",
+        "  SWEEP  field 78% pk86%",
     ]
     for i, s in enumerate(lines):
-        tb(d, 2, 9 + i * 9, s, f_sec)
-    box(d, 125, 20, 3, 30)  # scrollbar, parked near the end
+        tb(d, 2, 9 + i * 8, s, f_sec)
+    box(d, 125, 14, 3, 34)  # scrollbar, parked near the end
     save(img, "screen_logbook.png")
+
+
+# --------------------------------------------------------------------------
+# Watch Mode (views/watch_view.c)
+# --------------------------------------------------------------------------
+def render_watch(
+    name, watching_s, contacts, peak, present, strength=0, last_ago="--", blink=True
+):
+    img, d = canvas()
+    tb(d, 2, 9, "WATCH", f_sec)
+    tb(d, 126, 9, "ARMED", f_sec, anchor="rs")
+    line(d, 0, 11, 127, 11)
+
+    STATUS_Y, STATUS_H, CLOCK_BASE = 14, 14, 34
+    FOOT1, FOOT2, COLR = 50, 61, 66
+
+    if present:
+        if blink:
+            box(d, 0, STATUS_Y - 1, 128, STATUS_H)
+            tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, BG, anchor="ms")
+        else:
+            frame(d, 0, STATUS_Y - 1, 128, STATUS_H)
+            tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, FG, anchor="ms")
+    else:
+        word = "CLEAR NOW" if contacts else "ALL CLEAR"
+        tb(d, 4, STATUS_Y + 9, word, f_pri, anchor="ls")
+        mm, ss = divmod(watching_s, 60)
+        tb(d, 126, CLOCK_BASE, f"{mm:02d}:{ss:02d}", f_big, anchor="rs")
+
+    line(d, 0, FOOT1 - 10, 127, FOOT1 - 10)
+    tb(d, 2, FOOT1, f"HITS {contacts}", f_sec)
+    tb(d, COLR, FOOT1, f"PEAK {peak}%", f_sec)
+    tb(d, 2, FOOT2, f"LAST {last_ago}", f_sec)
+    if present:
+        tb(d, COLR, FOOT2, f"NOW {strength}%", f_sec)
+    else:
+        tb(d, COLR, FOOT2, "OK=reset", f_sec)
+    save(img, name)
 
 
 CLEAR_HIST = [
@@ -538,7 +602,20 @@ def strip(names, out, cols=None):
 
 if __name__ == "__main__":
     render_sweep("screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2)
+    # A real polling reader at arm's length, and the Flipper laid on top of one
+    # (raw duty ~31% saturates the meter -> reads MAX, not "31%").
     render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1)
+    render_sweep(
+        "screen_reader_max.png",
+        100,
+        100,
+        4,
+        True,
+        "READER",
+        CLEAR_HIST,
+        anim=1,
+        saturated=True,
+    )
     render_sweep(
         "screen_calibrate.png",
         4,
@@ -575,16 +652,34 @@ if __name__ == "__main__":
         "screen_survey_clean.png", "CLEAN", "Nothing emitting here", 6, 2, 0, 0
     )
 
+    render_watch(
+        "screen_watch.png",
+        watching_s=752,
+        contacts=0,
+        peak=6,
+        present=False,
+        last_ago="--",
+    )
+    render_watch(
+        "screen_watch_hit.png",
+        watching_s=92,
+        contacts=4,
+        peak=71,
+        present=True,
+        strength=63,
+        last_ago="0s",
+    )
+
     render_menu()
     render_settings()
     render_logbook()
 
     strip(
         (
-            "screen_clear.png",
             "screen_reader.png",
             "screen_fingerprint.png",
             "screen_survey_done.png",
+            "screen_watch_hit.png",
         ),
         "screens.png",
     )
@@ -595,10 +690,12 @@ if __name__ == "__main__":
             "screen_fingerprint.png",
             "screen_survey_run.png",
             "screen_survey_done.png",
+            "screen_watch.png",
+            "screen_watch_hit.png",
             "screen_logbook.png",
             "screen_calibrate.png",
             "screen_settings.png",
         ),
         "screens_all.png",
-        cols=4,
+        cols=5,
     )

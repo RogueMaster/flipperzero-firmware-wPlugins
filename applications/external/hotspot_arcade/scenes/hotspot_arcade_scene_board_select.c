@@ -8,11 +8,11 @@
 // straight back to whoever opened the picker (the menu, or the lobby's no-board
 // prompt), so flashing still feels like a single step. Scene state 1 marks "sent to
 // the flasher"; on the return re-enter we pop instead of rebuilding the list.
-// Each board gets two rows: one that pulses DTR/RTS to enter download mode on
-// its own, and one for boards wired differently, where the user still holds
-// BOOT and taps RESET by hand.
+// The WROOM and C5 each get two rows: one that pulses DTR/RTS to enter download
+// mode on its own (auto boot), and a manual one where you hold BOOT and tap RESET.
+// The official S2 dev board is manual only -- its reset lines aren't wired to the
+// pins auto boot pulses, so DTR/RTS never drops it into download mode.
 typedef enum {
-    BoardOfficialBoot,
     BoardOfficial,
     BoardWroomBoot,
     BoardWroom,
@@ -35,7 +35,6 @@ void hotspot_arcade_scene_board_select_on_enter(void* context) {
     }
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Select your board");
-    submenu_add_item(app->submenu, "Dev Board (auto boot)", BoardOfficialBoot, ha_board_cb, app);
     submenu_add_item(app->submenu, "Official Dev Board", BoardOfficial, ha_board_cb, app);
     submenu_add_item(app->submenu, "WROOM (auto boot)", BoardWroomBoot, ha_board_cb, app);
     submenu_add_item(app->submenu, "ESP32 WROOM", BoardWroom, ha_board_cb, app);
@@ -50,11 +49,9 @@ bool hotspot_arcade_scene_board_select_on_event(void* context, SceneManagerEvent
     const char* manifest;
     bool auto_boot = false;
     switch(event.event) {
-    case BoardOfficialBoot:
-        auto_boot = true;
-        /* fallthrough */
     case BoardOfficial:
-        manifest = HA_OFFICIAL_FW;
+        manifest =
+            HA_OFFICIAL_FW; // manual only; the S2's reset lines aren't on the auto-boot pins
         break;
     case BoardWroomBoot:
         auto_boot = true;

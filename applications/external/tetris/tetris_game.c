@@ -337,8 +337,8 @@ static void tetris_game_apply_kick(Point points[], Point kick) {
 
 static bool tetris_game_is_valid_pos(TetrisState* tetris_state, Point* shape) {
     for(int i = 0; i < 4; i++) {
-        if(shape[i].y >= FIELD_HEIGHT || shape[i].x < 0 || shape[i].x > (FIELD_WIDTH - 1) ||
-           tetris_state->playField[shape[i].y][shape[i].x] == true) {
+        if(shape[i].y < 0 || shape[i].y >= FIELD_HEIGHT || shape[i].x < 0 ||
+           shape[i].x >= FIELD_WIDTH || tetris_state->playField[shape[i].y][shape[i].x] == true) {
             return false;
         }
     }
@@ -417,7 +417,16 @@ static void
     }
 
     if(wasDownMove) {
-        if(tetris_game_piece_at_bottom(tetris_state, newPiece)) {
+        // Apply gravity to the committed piece, not to the caller's candidate: a
+        // candidate combining a rejected input transform with the down move could
+        // otherwise read as "at bottom", locking the piece mid-air (floating piece)
+        Piece downPiece;
+        memcpy(&downPiece, &tetris_state->currPiece, sizeof(downPiece));
+        for(int i = 0; i < 4; i++) {
+            downPiece.p[i].y += 1;
+        }
+
+        if(tetris_game_piece_at_bottom(tetris_state, &downPiece)) {
             furi_timer_stop(tetris_state->timer);
 
             tetris_state->hardDropping = false;
@@ -463,6 +472,8 @@ static void
                 memcpy(&tetris_state->currPiece, spawnedPiece, sizeof(tetris_state->currPiece));
                 furi_timer_start(tetris_state->timer, tetris_state->fallSpeed);
             }
+        } else {
+            memcpy(&tetris_state->currPiece, &downPiece, sizeof(tetris_state->currPiece));
         }
     }
 
@@ -555,8 +566,16 @@ int32_t tetris_game_app() {
                             tetris_game_remove_curr_piece(tetris_state);
                             tetris_game_try_rotation(tetris_state, newPiece);
                             tetris_game_render_curr_piece(tetris_state);
+                        } else if(tetris_state->gameState == GameStatePaused) {
+                            tetris_state->gameState = GameStatePlaying;
                         } else {
                             tetris_game_init_state(tetris_state);
+                            // Resync the candidate piece, otherwise the previous game's
+                            // leftover piece would overwrite the freshly spawned one
+                            memcpy(
+                                newPiece,
+                                &tetris_state->currPiece,
+                                sizeof(tetris_state->currPiece));
                         }
                         break;
                     case InputKeyBack:
@@ -582,12 +601,6 @@ int32_t tetris_game_app() {
                 }
             } else if(event.type == EventTypeTick) {
                 wasDownMove = true;
-            }
-        }
-
-        if(wasDownMove) {
-            for(int i = 0; i < 4; i++) {
-                newPiece->p[i].y += 1;
             }
         }
 

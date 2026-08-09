@@ -56,7 +56,7 @@ All control messages are framed so the link can resync after noise:
 | 0x17 | QUESTION     | JSON: `{"i":<n>,"q":"..","o":["a","b","c","d"],"c":<0-3>,"dur":<sec>}` (trivia) |
 | 0x18 | REVEAL       | (none) — close the current question, broadcast the correct answer |
 | 0x19 | ROUND_END    | (none) — back to lobby for the active game |
-| 0x1A | CONFIG       | JSON: `{"max":8}` optional tuning |
+| 0x1A | CONFIG       | JSON: `{"max":8,"lang":"pt-br"}` — station cap and the host's phone-UI language (`""`/absent = English). The ESP stores `lang` and echoes it back in each `welcome`. |
 | 0x1B | RESET_SCORES | (none) — zero the ESP live score mirror |
 | 0x1C | CONTENT_CLEAR | (none) — drop all packs, for every game |
 | 0x1D | CONTENT_PACK | game byte + pack name — begin a pack for that game |
@@ -67,6 +67,10 @@ All control messages are framed so the link can resync after noise:
 > content game needs no protocol change. Per-game item shapes (no new opcodes, just what
 > the ESP expects in each `CONTENT_ITEM` JSON object): trivia `{q,a,b,c,d,answer}`, wyr
 > `{a,b}` (the two options), scramble and draw `{word}` (a single plain word).
+>
+> Content **language** is resolved entirely on the Flipper: for the host's chosen `lang`
+> it streams `packs/<game>/<lang>/` (falling back to the English packs at `packs/<game>/`
+> per game), so the wire opcodes above are language-agnostic. Item text is UTF-8.
 
 **ESP -> Flipper**
 
@@ -78,27 +82,38 @@ All control messages are framed so the link can resync after noise:
 | 0x83 | SCORE        | `pid(1)` `delta(2 LE, signed)` `reason` — authoritative-persist on Flipper |
 | 0x84 | ROUND_RESULT | JSON, game-specific (trivia: `{"correct":[pid..]}`, c4: `{"win":pid,"lose":pid}` or `{"draw":[a,b]}`) |
 | 0x85 | EVENT        | JSON for host display, e.g. `{"answers":3,"total":5}` or `{"c4":"A vs B started"}` |
-| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. |
+| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)` + `bundleCrc(4 LE, v19+)` + `game(1, v19+)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. `bundleCrc` is the CRC-32/IEEE of the web bundle the ESP holds in flash (0 = none); the Flipper skips re-streaming when it equals the manifest's `crc`. `game` is the ESP's current game id (`HA_GAME_*`); while hosting the Flipper mirrors it (ignoring 0/NONE) so a phone-vote game change reflects on the dashboard reliably — the beacon always arrives, unlike a one-off EVENT. Pre-v19 boards omit bytes 6-10 (backward-compatible). |
 
 ### 1.3 Raw-bulk escape (asset upload)
 
 `FILE_BEGIN` is a normal control frame; immediately after its CRC, the sender
 writes exactly `total` **unframed** bytes (the file content, possibly gzipped).
-The receiver switches to a raw-read state, counts down `total`, stores the bytes,
-then returns to frame parsing. This mirrors flytrap's `sethtml <N>\n` + N bytes,
-generalized to named files. Bulk bytes need no escaping because the length is known.
+The receiver switches to a raw-read state, counts down `total`, **writes the bytes to a
+LittleFS flash partition** (not RAM), then returns to frame parsing. This mirrors flytrap's
+`sethtml <N>\n` + N bytes, generalized to named files. Bulk bytes need no escaping because
+the length is known.
 
 ### 1.4 Handshake (session start)
 
 ```
 Flipper                         ESP
-  |-- CLEAR_FILES -------------->|
-  |-- FILE_BEGIN + bytes (xN) -->|   (index.html.gz, app.js.gz, app.css.gz, ...)
+  |-- CLEAR_FILES -------------->|   (skipped when the bundle is unchanged, see below)
+  |-- FILE_BEGIN + bytes -------->|   index.html.gz -> ESP writes it to LittleFS flash
+  |-- (content packs) ---------->|   trivia/party packs (always streamed)
   |-- SET_AP ------------------->|
   |-- START -------------------->|
   |<------------- STATUS ap_ok --|
   |<------------- STATUS up ip=..|   AP live, phones can join
 ```
+The ESP persists the streamed bundle in flash and serves it from there, so it survives a
+reboot. It advertises the bundle's CRC-32 in every PING (§1.2); when that equals the `crc`
+in the Flipper's `manifest.json`, the Flipper **skips `CLEAR_FILES` and the whole file
+stream**, jumping straight to the content packs + `SET_AP` — the board reuses the copy it
+already holds (no ~47 KB re-transfer per session). A changed bundle, or an
+`apps_data/.../web` override whose manifest carries a different/absent `crc`, streams
+normally and overwrites the stored copy. Skipping is an optimization only: the ESP always
+writes+serves from flash, so an older Flipper that always streams still works.
+
 Then live: JOIN/LEAVE/SCORE/EVENT/ROUND_RESULT flow up; SELECT_GAME/QUESTION/
 REVEAL/ROUND_END flow down as the host drives rounds. PING beacons throughout.
 
@@ -127,7 +142,7 @@ REVEAL/ROUND_END flow down as the host drives rounds. PING beacons throughout.
 
 | `t`      | Fields | Meaning |
 |----------|--------|---------|
-| `welcome`| `pid`, `nick` | Assigned player id after `hello` |
+| `welcome`| `pid`, `nick`, `avatar`, `lang` | Assigned player id after `hello`, with the identity the server holds for this device (see §10 — on a rebind these are the existing player's, not what the client just sent); `lang` is the host's phone-UI language (`""` = English), which the client uses to pick its message catalog |
 | `lobby`  | `game` ("none"/"trivia"/"connect4"), `players` (`[{pid,nick,score}]`), `me` (pid) | Lobby snapshot; sent on change |
 | `trivia` | `phase` ("idle"/"question"/"reveal"), `i`, `q`, `o` (opts), `dur`, `deadline` (ms epoch-ish, server `millis`), `mine` (my choice or -1), `counts` ([n0..n3]), `correct` (reveal only), `scores` | Full trivia view for this client |
 | `c4`     | `phase` ("lobby"/"playing"/"over"), lobby: `challenges` (`[{from,to}]`); playing: `mid`, `board` (42 ints: 0 empty/1/2), `turn` (pid), `me` (1 or 2), `opp` (nick), `you` (pid); over: `result` ("win"/"lose"/"draw") | Full connect4 view for this client |
@@ -250,7 +265,15 @@ Durations are sent in **seconds**; deadlines in ms (server `millis`).
 
 - **Would You Rather** (`t:"wyr"`): `"vote"`/`"reveal"` carry `round`, `rounds`,
   `a`, `b` (the two options), `myvote` (0/1/-1), `counts` ([a,b]). Vote with the
-  existing `answer{c:0|1}` intent. No scoring — it's a poll.
+  existing `answer{c:0|1}` intent. No scoring — it's a poll. Its `"final"` adds
+  `voters` (players connected now) and `rounds` — here an **array** of the whole
+  game's splits, `[{a,b}, …]`, one entry per round played, latched by the ESP at
+  each reveal. (`rounds` is a count in the play phases and this array in `"final"`.)
+  A round nobody voted in is sent as `{"a":0,"b":0}`. The client draws the
+  agreement chart from it: per-round agreement is the majority share
+  `max(a,b)/(a+b)`, bucketed onto the percentages reachable with `voters` players
+  (`ceil(n/2)/n … n/n`), plus the mean. The history has to come from the ESP —
+  a phone that joined late never received the earlier rounds. Firmware **v18**.
 - **Word Scramble** (`t:"scramble"`): `"play"` carries `round`, `rounds`, `scram`
   (shuffled letters), `len`, `solved` (bool, you), `deadline`, `dur`, `scores`.
   Guess with the existing `guess{text}` intent; first correct scores most
@@ -260,3 +283,297 @@ Durations are sent in **seconds**; deadlines in ms (server `millis`).
   first valid tap after `light:"go"` wins (200), tapping while `"wait"` DQs you
   for the round. `"reveal"` carries `winner` (nick or null), `ms`, `iwon`;
   `"final"` a `board` podium.
+
+## 5. Guess the Color (`gc`) — game id `11`
+
+Whole-group round game on the same `Party` skeleton (`lobby -> countdown -> play
+-> reveal -> ... -> final`, 5 rounds). Select with UART `SELECT_GAME` id `11`;
+lobby `game` string is `"gc"`. Firmware **v12**.
+
+Client intents: `ready{ready:bool}` (lobby), `again` (from final), and
+`guess{r,g,b}` (submit your color, each 0-255). The `guess` type is shared with
+draw/scramble, which send `guess{text}`; the ESP routes by which fields are present.
+
+Server `{t:"gc",phase,...}`:
+- `"play"`: `round`, `rounds`, `color` (`"#RRGGBB"`, the target swatch to match —
+  the numeric answer is hidden), `submitted` (bool, you), `scores`.
+- `"reveal"`: `round`, `rounds`, `r`,`g`,`b` (the true color), `color`, `your`
+  (`{r,g,b,color,dist,points}` or null if you didn't guess), `winner` (nick or
+  null), `iwon`, `scores`.
+- `"final"`: `board` (podium).
+
+Scoring per round: `points = closeness + speed_bonus`, where
+`closeness = round(200 * (1 - dist/441.67))` clamped ≥ 0 (`dist` = Euclidean RGB
+distance) and `speed_bonus = round(100 * (1 - submit_ms/12000))` clamped ≥ 0.
+The round winner is the highest points (ties broken by the faster submit).
+
+## 6. Battleship (`bs`) — game id `12`
+
+A 1v1 match game (like Pong): shares the challenge/lobby flow (`challenge`/`accept`/
+`cancel`, `rematch`, `leaveGame`) but has its own state and screen. 10x10 grid, five ships
+(5,4,3,3,2 = 17 cells). Select with UART `SELECT_GAME` id `12`; lobby `game` string `"bs"`.
+Firmware **v13**.
+
+Client intents (besides the shared match ones): `place{ships}` and `fire{n}`.
+- `place{ships}`: `ships` is a string `"r,c,d;r,c,d;..."`, one triple per ship in fixed
+  order (5,4,3,3,2); `d`=0 horizontal, `d`=1 vertical (anchor is the top/left cell). The
+  server reconstructs the cells, validates bounds and no-overlap, stores the fleet, and
+  marks the player ready. Invalid layouts get a `toast` and no ready. Both ready -> firing.
+- `fire{n}` (0..99): a hit keeps your turn (shoot again); a miss passes it. Sinking a ship
+  sends a `toast` to both players.
+
+Server `{t:"bs",phase,...}`:
+- `"place"`: `you`, `me` (1/2), `opp`, `ready`, `oppReady`. The client renders its own board.
+- `"fire"`: `turn`, `yourTurn`, `opp`, `myShips`, `oppShips`, and two 100-cell arrays:
+  `mine` (your fleet: 0 empty, 1 ship, 2 miss, 3 hit) and `track` (your shots on the enemy:
+  0 un-shot, 1 miss, 2 hit, 3 hit+sunk).
+- `"over"`: adds `result` (win/lose) and `oppFleet` (the enemy fleet revealed).
+
+**Hidden information:** `track` is derived only from the shots you've fired, so an enemy
+ship cell you haven't hit is never in the payload. `oppFleet` appears only in `"over"`.
+
+## 7. Spectrum (`spectrum`) — game id `13`
+
+A whole-group party game (Wavelength-style) on the shared party skeleton (lobby with a
+ready-up + pack vote, countdown, reveal). Content reuses the pack pipeline: each item is a
+`Left`/`Right` word pair. Select with UART `SELECT_GAME` id `13`; lobby `game` string
+`"spectrum"`. Firmware **v14**.
+
+Each round rotates a **psychic** who sees a hidden target on a 0-100 spectrum and types a
+clue; everyone else slides a dial to guess. Points by closeness (±2 = 4, ±7 = 3, ±12 = 2),
+and the psychic earns the guessers' average, so a good clue pays off. Six rounds.
+
+Client intents: `ready`, `vote{pack}`, `clue{text}` (psychic only), `slide{n}` (0..100,
+guessers only), `again`.
+
+Server `{t:"spectrum",phase,...}`:
+- `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
+- `"countdown"`: `sec`.
+- `"play"` with `stage` `"clue"` | `"guess"` | `"reveal"`: `round`, `rounds`, `left`,
+  `right`, `psychic` (nick), `iam` (am I the psychic), `deadline`/`dur` for the timer bar.
+  - `target` (0..100) is sent **only to the psychic** during clue/guess, and to everyone on
+    reveal — an un-revealed target never reaches a guesser.
+  - `clue` appears once the psychic has submitted; `myguess` is the guesser's own locked value.
+  - reveal adds `guesses` (`nick`/`g`/`pts`) and `mygain`.
+- `"final"`: `board` (the shared leaderboard).
+
+## 8. Kiss Marry Kill (`kmk`) — game id `14`
+
+A whole-group party game on the shared party skeleton (lobby with a ready-up + pack vote,
+countdown, reveal). Content reuses the pack pipeline: each item is a `Name` (one person or
+character). Select with UART `SELECT_GAME` id `14`; lobby `game` string `"kmk"`. Firmware
+**v15**.
+
+Each round rotates a **chooser** and draws three people from the pack. The chooser secretly
+assigns Kiss / Marry / Kill; everyone else predicts that assignment. Points are the number
+of matching positions (0, 1, or 3 — matching two forces the third), and the chooser earns
+the guessers' average. Six rounds.
+
+Client intents: `ready`, `vote{pack}`, `assign{kiss,marry,kill}` (each is the 0-2 index of
+the person getting that label; the chooser sends it in the choose stage, guessers in the
+guess stage), `again`.
+
+Server `{t:"kmk",phase,...}`:
+- `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
+- `"countdown"`: `sec`.
+- `"play"` with `stage` `"choose"` | `"guess"` | `"reveal"`: `round`, `rounds`, `chooser`
+  (nick), `iam` (am I the chooser), `people` (the three names), `deadline`/`dur` for the timer.
+  - `answer` (the chooser's Kiss/Marry/Kill labels) is sent **only to the chooser** from the
+    guess stage on, and to everyone on reveal — a guesser never sees it early.
+  - `mine` is the guesser's own submitted labels.
+  - reveal adds `guesses` (`nick`/labels/`pts`) and `mygain`.
+- `"final"`: `board` (the shared leaderboard).
+
+## 9. Chess (`chess`) — game id `15`
+
+A 1v1 duel (like Pong/Battleship): shares the challenge/lobby flow (`challenge`/`accept`/
+`cancel`, `rematch`, `leaveGame`) but plays full FIDE rules, refereed entirely on the ESP.
+Select with UART `SELECT_GAME` id `15`; lobby `game` string `"chess"`. Firmware **v17**.
+Chess has no content packs — its UI strings are localized client-side from the message
+catalog like every game (the host's `lang`, set via `CONFIG` and echoed in `welcome`); the
+per-language `packs/<game>/<lang>/` streaming that content games use does not apply here.
+
+Client intents (besides the shared match ones): `move{from,to[,promo]}`, `resign`, `draw`
+(offer, or accept one already pending), `claim`.
+- `move{from,to,promo}`: squares are 0-63, `a1 = 0` row-major (`h8 = 63`). `promo` is
+  required exactly when the move lands a pawn on the last rank — `2` knight, `3` bishop,
+  `4` rook, `5` queen — and must be omitted/0 otherwise; a mismatched, illegal, or
+  malformed move is silently ignored.
+- `resign`: forfeit the game immediately.
+- `draw`: offers a draw if none is pending; if the opponent already offered, accepts it and
+  ends the game as a draw. The opponent gets a `toast` when an offer arrives.
+- `claim`: claims a draw when threefold repetition or the 50-move count currently stands
+  for the player to move; a no-op otherwise.
+
+Server `{t:"chess",phase,...}`:
+- `"playing"`: `you`, `opp`, `white` (bool, are you playing white), `turn` (pid),
+  `yourTurn`, `board` (64 chars, index 0 = a1, row-major to h8: `PNBRQK`/`pnbrqk`/`.`),
+  `moves` (`[from*64+to, ...]`, your legal moves, always present but populated only for the player to move), `check`,
+  `last` (`from*64+to` of the last move played, `-1` before the first), `deadline`, `run`,
+  `oms`, `wtm`, `claim3`, `claim50`, `offer` (`0` or the pid with a pending draw offer).
+- `"over"`: the same fields minus `moves`/`claim3`/`claim50`, plus `result`
+  (`"win"`/`"lose"`/`"draw"`) and `reason` (`mate`/`stalemate`/`resign`/`flag`/`flagdraw`/
+  `material`/`rep3`/`rep5`/`move50`/`move75`/`agree`/`left`). **Quirk:** the server keeps
+  recomputing `deadline` off the current time even after the game ends, so clients must
+  read the clocks from `run`/`oms` (which the server does freeze on finish) rather than
+  animate a countdown from `deadline` here. `offer` is also stale in this phase — it is not
+  cleared when the game ends — so clients should ignore it once `phase` is `"over"`.
+- `"lobby"`: `challenges` only.
+
+Clocks: fixed 5+0 blitz, no increment, server-authoritative. `run` is the milliseconds left
+on the clock of the side to move (`wtm` = white to move) and `oms` is the other side's
+frozen remaining time; `deadline` is the server's `now + run`, so the client animates a
+countdown without needing clock sync (same pattern as the other timed games). A flag fall
+loses the game for the side whose clock ran out, unless the opponent could not mate by any
+legal sequence (FIDE 6.9), in which case it's a draw (`flagdraw`).
+
+Draw rules: stalemate, dead position (insufficient material), fivefold repetition, and the
+75-move rule end the game automatically; threefold repetition and the 50-move rule are
+claimable only by the player to move, via `claim`, exactly while `claim3`/`claim50` reads
+true; either player can also offer or accept a draw via `draw`. A pending offer lapses the
+moment either side plays a move.
+
+State is pushed only on events — a move, resign, draw, claim, or a flag fall the ESP
+notices on its own clock tick — never on a periodic heartbeat; clients animate the
+countdown locally between pushes from `deadline`.
+
+## 10. Secrets (`secrets`) — game id `16`
+
+A whole-group party game on the shared party skeleton (lobby with a ready-up + pack vote,
+countdown, reveal). Content reuses the pack pipeline: each item is a `Q` (one yes/no
+question). Select with UART `SELECT_GAME` id `16`; lobby `game` string `"secrets"`.
+Firmware **v18**.
+
+Each round shows one question and runs **answer → predict → reveal**. First everyone
+secretly **answers** yes/no; then everyone secretly **predicts** how many of the `N` joined
+players said yes (an integer `0..N`); then reveal. Only the group's total yes-count is ever
+revealed — the individual yes/no answers are never serialized to anyone. An exact
+prediction scores 1, otherwise 0. Six rounds.
+
+Client intents: `ready`, `vote{pack}`, `reply{v}` (`1` = yes, `0` = no; answer stage),
+`predict{n}` (your yes-count guess, clamped `0..N`; predict stage), `again`. The distinct
+`reply`/`predict` verbs avoid colliding with Would You Rather's `answer`/`vote`.
+
+Server `{t:"secrets",phase,...}`:
+- `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
+- `"countdown"`: `sec`.
+- `"answer"` / `"predict"`: `round`, `rounds`, `n` (player count / predict upper bound),
+  `q` (the question), `locked`/`total` (aggregate progress in the current step),
+  `myprediction` and `myanswer` (**your own only**, `-1` if unset), `deadline`/`dur` for
+  the timer bar, and `scores` (the shared leaderboard).
+- `"reveal"`: adds `yes` (the group total, the **only** answer information ever sent),
+  `guesses` (`[{nick, n, pts}]` — every player's prediction and points; predictions are
+  guesses about the group, not personal, so they're public here), and `mygain` (your
+  points). No individual yes/no **answer** is ever serialized, in any phase — anonymity is
+  enforced in `secretsJson(pid)`.
+- `"final"`: `board` (the shared leaderboard).
+---
+
+## 11. Player identity — one phone = one player
+
+Firmware **v18**. A player is bound to the **device**, not to the WebSocket. The ESP
+resolves each connection to the station's **MAC address** and keys the player on that; the
+WebSocket layer only knows a peer IP, and that IP is something the ESP's own DHCP server
+made up, so it is a derived value, not an identity.
+
+Why it is needed: a phone could show up as two or three players at once.
+
+- iOS (and Android) open a **captive mini-browser** for the portal. It is a separate
+  browser context from Safari/Chrome with its own `localStorage`, so the saved-identity
+  auto-rejoin the client does cannot help — play in the captive window *and* open
+  `192.168.4.1` in Safari and the ESP used to see two joins. A second tab, or a second
+  browser, is the same story.
+- A phone that drops (screen lock, WiFi off) closes nothing; the ESP only learns about it
+  when TCP times out, which can take minutes. If the phone comes back first, it used to
+  become a new player while the old one lingered as a ghost on the leaderboard.
+
+How the MAC is obtained (all firmware-side, the wire protocol is unchanged): the AP's DHCP
+server reports the assigned address *and* the client MAC together
+(`ip_event_ap_staipassigned_t`), so the firmware keeps a small IP → MAC table from that
+event. A station whose lease predates the handler is looked up in lwIP's ARP cache
+instead, and if the MAC still cannot be resolved the IP itself is used as the key. The
+engine never sees any of this — it stores an opaque 64-bit device key, `0` = unknown.
+
+Modern phones present a randomized "private" MAC, but it is **stable per SSID**: it
+survives reconnects and only changes if the AP is renamed, which is exactly the lifetime a
+session needs.
+
+Rules the ESP applies to `hello`:
+
+1. **Known socket** → the existing player; `nick`/`avatar` in the message are an edit from
+   the header identity editor and are applied (unchanged behaviour).
+2. **New socket, device already playing** → *rebind*: the existing player is re-pointed at
+   the new socket, keeping their `pid`, `nick`, `avatar` and `score`. Never a second
+   player. The `hello`'s own `nick`/`avatar` are ignored (a fresh context sends a name of
+   its own, and letting that rename a player mid-session is the bug, not the fix). No UART
+   `JOIN` is emitted — nobody joined. The `welcome` reply carries the *existing* identity,
+   and the client adopts it, so the second context immediately shows the same name and
+   avatar.
+3. **New socket, new or unknown device** → a new player, exactly as before.
+
+A `DISCONNECT` only removes a player if the closing socket is still that player's **current**
+socket. The superseded context's late close — and any message it still sends — is ignored.
+
+Device key `0` means "unknown" (reported for anything that is not a joined station,
+including the AP's own address) and never matches, so those clients fall back to one player
+per connection.
+
+The ESP traces each decision to its serial console:
+`[ha] JOIN pid=2 ip=192.168.4.3 mac=AA:BB:CC:DD:EE:FF nick="..."` and
+`[ha] NEW BROWSER same device ip=192.168.4.2 mac=AA:BB:CC:DD:EE:FF -> pid=1 nick="..." (consolidated)`.
+
+**Trade-off, deliberate:** two people can no longer share one phone as two players — the
+second `hello` from that phone joins the first player instead of creating a second. Playing
+one phone per person is the assumption everywhere else in the UI (the phone is the
+controller), and duplicate players from a single phone were the far more common failure. A
+phone whose MAC changes (the AP was renamed) simply becomes a new player, which is the
+pre-existing behaviour.
+
+---
+
+## 12. Game-change vote (`gamevote`) — cross-cutting, firmware v18
+
+A player can change the active game **from their phone** by majority vote, so the host
+device needs no operation. This is the one sanctioned phone→host action — the engine
+otherwise forbids a phone from selecting a game — and it is gated entirely behind the vote.
+A host-initiated `SELECT_GAME` stays authoritative and immediate (no vote), and cancels any
+pending proposal.
+
+The vote sits **above** the active game (it is not a per-game phase). While a proposal is
+pending the active game is **frozen**: `tick` advances only the vote timeout, `onInput`
+honors only `voteGame` (and `leaveGame`), and `pushAll` sends the `gamevote` overlay to
+every client instead of any game/lobby state. On resolution the previous state resumes
+(reject/timeout) or the new game's lobby appears (approve), both signalled by the next
+normal `lobby` push — the client closes the modal when a `lobby` message arrives.
+
+Client intents:
+- `proposeGame{game}`: `game` is the engine game-name string (e.g. `"wyr"`, `"trivia"`), or
+  `"none"` for "back to the lobby" — leaving the current game is voted on like any other
+  change. Starts a proposal if none is pending and the target is a valid game **other than
+  the active one** (so `"none"` is refused while already in the lobby). The proposer counts
+  as an implicit YES. A second proposal while one is pending is ignored.
+- `voteGame{ok}`: one vote per non-proposer pid (`true` = OK, `false` = No). From the
+  **proposer**, `ok:true` is a no-op (their YES is already implicit) and `ok:false`
+  **withdraws** the proposal — the reject path, resuming the frozen game at once. That is
+  what the Cancel button on the proposer's own overlay sends; no separate intent exists.
+
+Server `{t:"gamevote",...}` (pushed to every client while pending): `proposer` (nick),
+`avatar` (the proposer's emoji, so the voters' line can lead with it), `game` (target name,
+`"none"` for the lobby), `label` (same as `game`; the client maps it to a pretty label),
+`yes` (count **including** the proposer), `no`, `others` (`playerCount - 1`), `need` (YES
+votes needed from the others = `floor(others/2)+1`), `youproposed`, `youvoted`.
+
+Resolution (recomputed on every vote, join/leave, and tick):
+- **Approve** when YES among the other players is a strict majority — `yesOthers*2 >
+  others` — or immediately if the proposer is the only player. → `selectGame(target)`.
+- **Reject** as soon as that majority is impossible — `noOthers*2 >= others` — or on
+  **timeout** (`GAMEVOTE_SECS` = 25s). → clear and resume the frozen game.
+- **Withdrawn** when the proposer sends `voteGame{ok:false}` (their Cancel button). → same
+  as reject: clear and resume.
+- If the **proposer leaves**, the proposal is cancelled (reject). A non-proposer leaving
+  recomputes the tally (fewer `others` can tip it either way).
+
+On approve the ESP also emits a UART `EVENT` `{"gamevote":"approved","game":"<name>","id":<N>}`
+(the `id` added in v19). The Flipper reads `id` — the numeric `HA_GAME_*` — to update its
+displayed active game to match the vote and to avoid reverting it on an ESP reboot; `game`
+is the short name, for logging. (The Flipper has no name→id map, hence the numeric id.)

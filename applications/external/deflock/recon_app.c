@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "recon_app_i.h"
 #include "helpers/esp_link.h"
 #include "helpers/gps_link.h"
 #include "helpers/recon_report.h"
 #include "helpers/sig_db.h"
 #include "helpers/detect_rules.h"
+#include "helpers/flock_store.h"
+#include "helpers/tracker_rules.h"
+#include "helpers/scan_session.h"
 
 #include <math.h>
 #include <string.h>
@@ -27,7 +30,9 @@ void recon_app_report_flock(
     uint8_t channel,
     char ftype,
     FlockConfidence confidence,
-    uint32_t ie_fp) {
+    uint32_t ie_fp,
+    FlockDevClass dev_class,
+    bool hidden) {
     if(confidence == FlockConfidenceNone) return;
 
     furi_mutex_acquire(app->mutex, FuriWaitForever);
@@ -41,20 +46,51 @@ void recon_app_report_flock(
         }
     }
 
-    if(!entry && app->flock_count < RECON_FLOCK_MAX) {
-        entry = &app->flock[app->flock_count++];
-        memset(entry, 0, sizeof(FlockEntry));
-        memcpy(entry->mac, mac, 6);
-        entry->first_tick = now;
-        entry->lat = NAN;
-        entry->lon = NAN;
-        entry->heading = NAN;
-        entry->count = 0;
+    if(!entry) {
+        if(app->flock_count < RECON_FLOCK_MAX) {
+            entry = &app->flock[app->flock_count++];
+        } else {
+            // Table full. Restored hits would otherwise block every new live
+            // detection for the rest of the session, so reclaim the least
+            // valuable ARCHIVED slot -- weakest evidence first, oldest to break
+            // a tie (helpers/flock_store.h). A live entry is never evicted, so
+            // with nothing archived this still degrades to the old "drop it".
+            int victim = -1;
+            for(size_t i = 0; i < app->flock_count; i++) {
+                if(!app->flock[i].archived) continue;
+                if(victim < 0 || flock_store_evict_better(
+                                     (uint8_t)app->flock[i].confidence,
+                                     app->flock[i].seen_epoch,
+                                     (uint8_t)app->flock[victim].confidence,
+                                     app->flock[victim].seen_epoch)) {
+                    victim = (int)i;
+                }
+            }
+            if(victim >= 0) entry = &app->flock[victim];
+        }
+        if(entry) {
+            memset(entry, 0, sizeof(FlockEntry));
+            memcpy(entry->mac, mac, 6);
+            entry->first_tick = now;
+            entry->lat = NAN;
+            entry->lon = NAN;
+            entry->heading = NAN;
+            entry->count = 0;
+        }
     }
 
     if(entry) {
+        uint8_t prev_conf = (uint8_t)entry->confidence;
+        // Captured BEFORE the flag is cleared below: it is what tells the alert
+        // rule that this device's latch and confidence were restored from disk
+        // rather than earned this session.
+        bool was_archived = entry->archived;
         entry->count++;
         entry->last_tick = now;
+        // Seen for real this session: it is a live detection again, not a stored
+        // one, and it carries a fresh wall-clock timestamp for the next save.
+        entry->archived = false;
+        entry->seen_epoch = furi_hal_rtc_get_timestamp();
         if(rssi != 0) entry->rssi = rssi;
         if(channel != 0) entry->channel = channel;
         if(ftype) entry->ftype = ftype;
@@ -62,6 +98,15 @@ void recon_app_report_flock(
         // Keep the probe fingerprint so the detail screen can show it (for
         // seeding). Don't let a later fp-less sighting (BLE/beacon) wipe it.
         if(ie_fp != 0) entry->ie_fp = ie_fp;
+        // Same sticky rule for the device class: ALPR is the default/absent
+        // value, so only a positive acoustic identification writes it. A later
+        // sighting that carries no class must not silently relabel a known
+        // SoundThinking sensor as a camera.
+        if(dev_class != FlockClassAlpr) entry->dev_class = (uint8_t)dev_class;
+        // Likewise sticky: we saw this AP hide its name once, and a later probe
+        // request from the same MAC (which carries no hidden flag at all) must
+        // not erase that observation.
+        if(hidden) entry->hidden = true;
         if(ssid && ssid[0] && entry->ssid[0] == '\0') {
             strncpy(entry->ssid, ssid, RECON_SSID_LEN - 1);
             entry->ssid[RECON_SSID_LEN - 1] = '\0';
@@ -75,9 +120,44 @@ void recon_app_report_flock(
             entry->heading = app->gps_course;
             entry->geotag_rssi = rssi;
         }
+        // Raise the detection alert on the first crossing to Likely-or-better
+        // (issue #1). We only set the flag here -- this runs on the ESP worker
+        // thread, so the actual notification is left to the GUI tick.
+        if(flock_alert_should_fire_ex(
+               prev_conf,
+               (uint8_t)entry->confidence,
+               entry->alerted,
+               was_archived,
+               now,
+               app->alert_last_tick,
+               app->alert_have_fired,
+               flock_alert_min_conf_rung(app->settings.alert_min_conf))) {
+            entry->alerted = true;
+            app->alert_pending = true;
+            app->alert_last_tick = now;
+            app->alert_have_fired = true;
+        }
     }
 
     furi_mutex_release(app->mutex);
+}
+
+void recon_app_alert_tick(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    bool pending = app->alert_pending;
+    app->alert_pending = false;
+    uint8_t mode = app->settings.alert_mode;
+    bool sound = app->settings.sound;
+    furi_mutex_release(app->mutex);
+
+    // Fire outside the lock: notification_message queues work for the
+    // notification service and must not stall the ESP worker behind it.
+    if(pending) {
+        recon_alert_fire(app->notifications, mode, sound);
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->alert_fired++;
+        furi_mutex_release(app->mutex);
+    }
 }
 
 void recon_app_set_esp_status(
@@ -98,11 +178,39 @@ void recon_app_set_esp_status(
             app->esp_hits_base = hits;
             app->esp_rebase = false;
         }
-        if(frames < app->esp_frames_base) app->esp_frames_base = frames;
+        // A LIFETIME total can only fall if the board restarted. That was silently
+        // absorbed by the rebase below, so the on-screen count just slid back
+        // toward zero -- reported as a cosmetic oddity on a long drive when it
+        // actually meant the ESP was resetting and dropping detections (issue #5).
+        // Count it so the header can say so.
+        if(frames < app->esp_frames_base) {
+            app->esp_reboots++;
+            app->esp_frames_prev = 0;
+            app->esp_rate_tick = 0;
+            app->esp_frame_rate = -1;
+            app->esp_frames_base = frames;
+        }
         if(hits < app->esp_hits_base) app->esp_hits_base = hits;
         app->esp_frames = frames - app->esp_frames_base;
         app->esp_hits = hits - app->esp_hits_base;
         app->esp_channel = channel;
+
+        // Frames per second, sampled between status lines (~1 Hz). The cumulative
+        // total answers "is the link up"; only a rate answers "is this thing
+        // hearing anything right now", which is the question you have while
+        // parked next to a camera that is not showing up.
+        uint32_t now = furi_get_tick();
+        if(app->esp_rate_tick) {
+            uint32_t elapsed = now - app->esp_rate_tick;
+            if(elapsed >= 500) { // don't divide a burst of lines into a wild rate
+                app->esp_frame_rate = esp_frames_rate(app->esp_frames_prev, frames, elapsed);
+                app->esp_frames_prev = frames;
+                app->esp_rate_tick = now;
+            }
+        } else {
+            app->esp_frames_prev = frames;
+            app->esp_rate_tick = now;
+        }
     }
     furi_mutex_release(app->mutex);
 }
@@ -139,6 +247,70 @@ void recon_app_set_esp_link_state(ReconApp* app, EspLinkState state) {
     furi_mutex_release(app->mutex);
 }
 
+void recon_app_set_gps_relay(ReconApp* app, bool on, int16_t pin, uint32_t baud) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->gps_relay = on ? ReconGpsRelayOn : ReconGpsRelayOff;
+    app->gps_relay_pin = pin;
+    app->gps_relay_baud = baud;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_gps_relay_pending(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->gps_relay = ReconGpsRelayUnknown;
+    app->gps_relay_pin = -1;
+    app->gps_cfg_tick = furi_get_tick();
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_chip(
+    ReconApp* app,
+    const char* target,
+    uint8_t gpio_count,
+    uint64_t gps_pin_mask,
+    bool has_5ghz) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    strncpy(app->esp_chip, target ? target : "", sizeof(app->esp_chip) - 1);
+    app->esp_chip[sizeof(app->esp_chip) - 1] = '\0';
+    app->esp_gpio_count = gpio_count;
+    app->esp_gps_pin_mask = gps_pin_mask;
+    app->esp_has_5ghz = has_5ghz;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_band(ReconApp* app, uint8_t sel, uint16_t channels) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_band_actual = sel;
+    app->esp_band_channels = channels;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_request_gps_cfg(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->gps_cfg_resend = true;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_gps_cfg_tick(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    bool want = app->gps_cfg_resend;
+    app->gps_cfg_resend = false;
+    furi_mutex_release(app->mutex);
+    // Sent from the GUI thread only. The ESP worker raises the flag; if it did
+    // the furi_hal_serial_tx itself it would race the commands this same thread
+    // sends on entering a scan scene, on one UART handle.
+    if(want && app->esp) {
+        esp_link_send_band(app->esp);
+        esp_link_send_gps_cfg(app->esp);
+    }
+}
+
+void recon_app_ble_scan_done(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_ble_scans++;
+    furi_mutex_release(app->mutex);
+}
+
 void recon_app_ble_begin(ReconApp* app) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->ble_scanning = true;
@@ -156,7 +328,8 @@ void recon_app_ble_add(
     uint16_t company,
     const uint8_t* mfg,
     size_t mfg_len,
-    bool raven_gatt) {
+    bool raven_gatt,
+    bool tracker_separated) {
     // Decode the Flock 0x09C8 external-battery advert: extract the device serial
     // and a model guess. The serial/battery advert is shared Falcon/Raven and
     // stays Generic; a Raven is only asserted when the companion saw its
@@ -169,6 +342,22 @@ void recon_app_ble_add(
     if(cat == BleCatUnknown && name && strncmp(name, "Flipper", 7) == 0) {
         cat = BleCatFlipper;
     }
+
+    // Every advert counts toward the BLE liveness figure, whether or not it is a
+    // device we care about or one we already have. The Flock screen showed
+    // NOTHING about BLE, so in flockcombo mode a working BLE half and one that
+    // never ran looked identical -- and BLE is usually the easy detection on
+    // these cameras (issue #5). Counted separately from ble_count, which is the
+    // deduplicated table and stops growing once the area is stale.
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_ble_seen++;
+    furi_mutex_release(app->mutex);
+
+    // A weak tracker advert is useful as a raw BLE observation, but not as
+    // evidence that a tracker is travelling with the operator. The companion
+    // applies the same floor; keep this guard here for older companion builds
+    // and for malformed/manual wire input.
+    if(ble_tracker_category_is_known(cat) && !ble_tracker_rssi_is_usable(rssi)) return;
 
     char serial[RECON_BLE_SERIAL_LEN] = "";
     uint8_t model = FlockBleModelUnknown;
@@ -204,8 +393,17 @@ void recon_app_ble_add(
     if(e) {
         e->count++;
         e->rssi = rssi;
+        // Freshness is a SIGHTING fact, not a location fact: this must advance on
+        // every sighting, with or without a GPS fix. It used to live inside the
+        // `if(app->gps_valid)` block below, so with GPS off (the default) it never
+        // advanced past entry creation and every last_tick consumer silently
+        // expired ~90 s into a session -- the WATCHSCORE flipper_near signal, the
+        // Guardian "Flip N" counter, the anomaly freshness window, and the BLE
+        // detail "FOLLOWING ... over %lus" readout (which always printed 0s).
+        e->last_tick = now;
         if(cat) e->cat = cat;
         e->company = company;
+        if(ble_tracker_category_is_known(cat)) e->tracker_separated = tracker_separated;
         if(name && name[0] && e->name[0] == '\0') {
             strncpy(e->name, name, RECON_SSID_LEN - 1);
             e->name[RECON_SSID_LEN - 1] = '\0';
@@ -218,7 +416,6 @@ void recon_app_ble_add(
         if(app->gps_valid) {
             e->last_lat = app->gps_lat;
             e->last_lon = app->gps_lon;
-            e->last_tick = now;
             // Fold this fix into the waypoint/span track (pure rule; the first fix
             // may arrive after a no-GPS creation, so the track seeds itself lazily).
             BleTrack track = {
@@ -237,7 +434,12 @@ void recon_app_ble_add(
             // "Following": the anti-stalking coincidence gate -- seen across many
             // scans, over a real time window, at several distinct waypoints,
             // spanning real ground (all four, latched). See detect_rules.h.
-            if(ble_following_gate(
+            // Only an identified tracker can raise the anti-stalking signal.
+            // Flock hardware, Flippers, and unnamed BLE devices may move with
+            // us, but labeling them "following" would turn an indicator into
+            // an accusation.
+            if(ble_tracker_category_is_known(e->cat) && ble_tracker_rssi_is_usable(e->rssi) &&
+               ble_following_gate(
                    e->count, now - e->first_tick, e->inrange_wp_count, e->max_span_m)) {
                 e->following = true;
             }
@@ -250,7 +452,25 @@ void recon_app_ble_add(
     // gets geotagged, and lands in reports. (Done after releasing the mutex;
     // recon_app_report_flock takes it itself.)
     if(cat == BleCatFlock) {
-        recon_app_report_flock(app, addr, name, rssi, 0, 'L', FlockConfidenceConfirmed, 0);
+        // Always ALPR-class: every BLE tell we match (0x09C8 battery, Penguin
+        // naming, Raven GATT) belongs to the Flock ecosystem. SoundThinking is a
+        // WiFi-side OUI match only -- no BLE signature for it is known.
+        //
+        // Re-derive the rung rather than asserting Confirmed. The companion also
+        // sets cat=1 on a bare OUI-prefix match against SHARED silicon-vendor
+        // ranges, so a hardcoded Confirmed here announced ordinary ESP32 hardware
+        // as a confirmed camera. See flock_ble_confidence().
+        recon_app_report_flock(
+            app,
+            addr,
+            name,
+            rssi,
+            0,
+            'L',
+            flock_ble_confidence(company, name, raven_gatt),
+            0,
+            FlockClassAlpr,
+            false);
     }
 }
 
@@ -339,7 +559,11 @@ void recon_app_wifi_end(ReconApp* app) {
                memcmp(app->wifi[i].bssid, app->wifi[j].bssid, 6) != 0) {
                 app->wifi[i].dup = true;
                 app->wifi[j].dup = true;
-                if(app->wifi[i].authmode != app->wifi[j].authmode) {
+                // Only a security DOWNGRADE is evil-twin shaped. Any auth-mode
+                // difference used to qualify, which fires on WPA2/WPA3
+                // transition mode -- an ordinary modern network -- and told the
+                // operator they were under attack. See wifi_rogue_pair().
+                if(wifi_rogue_pair(app->wifi[i].authmode, app->wifi[j].authmode)) {
                     app->wifi[i].rogue = true;
                     app->wifi[j].rogue = true;
                 }
@@ -423,9 +647,53 @@ void recon_app_set_locate_rssi(ReconApp* app, int8_t rssi) {
             float d = (float)rssi - app->locate_ema;
             app->locate_trend =
                 (int8_t)((d >= LOCATE_TREND_DB) ? 1 : (d <= -LOCATE_TREND_DB ? -1 : 0));
-            app->locate_ema = app->locate_ema * 0.7f + (float)rssi * 0.3f;
+            // Weighted 50/50, not 70/30. On the primary target -- a Flock camera
+            // -- readings land about once every 1.6 s, because the camera hops
+            // channels while probing and we listen on one. At 0.3 a new sample
+            // took five readings (~8 s) to move the needle, so the meter lagged
+            // far behind where the operator was standing. Each sample is scarce
+            // here, so each one has to count for more.
+            app->locate_ema = app->locate_ema * 0.5f + (float)rssi * 0.5f;
         }
     }
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_ble_action_begin(ReconApp* app, BleActionKind kind) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->ble_action_kind = (uint8_t)kind;
+    app->ble_action_pending = true;
+    app->ble_action_done = false;
+    app->ble_action_have_rssi = false;
+    app->ble_action_rssi = 0;
+    app->ble_action_tick = furi_get_tick();
+    app->ble_action_seq++;
+    if(app->ble_action_seq == 0) app->ble_action_seq = 1;
+    strncpy(app->ble_action_status, "sending", sizeof(app->ble_action_status) - 1);
+    app->ble_action_status[sizeof(app->ble_action_status) - 1] = '\0';
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_ble_action(
+    ReconApp* app,
+    BleActionKind kind,
+    const char* status,
+    bool have_rssi,
+    int8_t rssi) {
+    if(kind == BleActionNone) return;
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->ble_action_kind = (uint8_t)kind;
+    app->ble_action_pending = false;
+    app->ble_action_done = true;
+    app->ble_action_have_rssi = have_rssi;
+    app->ble_action_rssi = rssi;
+    app->ble_action_tick = furi_get_tick();
+    app->ble_action_seq++;
+    if(app->ble_action_seq == 0) app->ble_action_seq = 1;
+    strncpy(
+        app->ble_action_status, status ? status : "unknown", sizeof(app->ble_action_status) - 1);
+    app->ble_action_status[sizeof(app->ble_action_status) - 1] = '\0';
+    app->esp_connected = true;
     furi_mutex_release(app->mutex);
 }
 
@@ -449,6 +717,12 @@ void recon_app_watchscore_tick(ReconApp* app) {
     for(size_t i = 0; i < app->flock_count; i++) {
         const FlockEntry* e = &app->flock[i];
         if(e->confidence < FlockConfidenceConfirmed) continue;
+        // An archived (restored-from-disk) hit is NOT a live sighting. Its
+        // last_tick is 0, so the freshness test below reduces to `now > 60000`
+        // -- false for the first minute after a reboot, which would make a hit
+        // from days ago read as a camera watching you right now. Gate on the
+        // flag; never age an archived entry with tick arithmetic.
+        if(e->archived) continue;
         if((now - e->last_tick) > WATCH_FLOCK_FRESH_MS) continue;
         in.flock_confirmed = true;
         if(e->ftype == 'L') in.flock_via_ble = true;
@@ -465,7 +739,7 @@ void recon_app_watchscore_tick(ReconApp* app) {
     // (2) A BLE tracker that latched the multi-condition anti-stalking gate.
     for(size_t i = 0; i < app->ble_count; i++) {
         const BleDevice* e = &app->ble[i];
-        if(!e->following) continue;
+        if(!e->following || !ble_tracker_category_is_known(e->cat)) continue;
         in.ble_following = true;
         uint32_t mins = (now - e->first_tick) / 60000;
         if(mins > in.ble_follow_min) in.ble_follow_min = mins;
@@ -506,35 +780,31 @@ void recon_app_watchscore_tick(ReconApp* app) {
 
     // (6) A Flipper Zero advertising nearby (BLE name "Flipper ..."), seen this
     // sweep's freshness window. A recon multitool -> WATCHFUL on its own.
-    for(size_t i = 0; i < app->ble_count; i++) {
-        if(app->ble[i].cat == BleCatFlipper &&
-           (now - app->ble[i].last_tick) <= WATCH_BLE_FRESH_MS) {
-            in.flipper_near = true;
-            break;
-        }
-    }
-
     // (7) Opt-in anomaly: an unnamed, unidentified (no mfg id, no recognized
     // category), strong, repeatedly-seen BLE device -- "something is on you and
     // won't identify itself." Off by default; deliberately strict to limit FPs.
-    if(app->settings.anomaly_flag) {
-        for(size_t i = 0; i < app->ble_count; i++) {
-            if(recon_ble_is_anomaly(&app->ble[i], now)) {
-                in.anomaly = true;
-                break;
-            }
+    //
+    // Plus the Guardian HUD's Flipper tally, cached under this same lock so
+    // guardian_view can read its own snapshot instead of re-acquiring the mutex
+    // and re-walking this array twice per frame. Mirrors recon_app_flipper_count.
+    //
+    // All THREE used to walk ble[] separately while holding the mutex, which
+    // blocks the ESP worker and the GUI for the duration. Same results, one pass.
+    // Note flipper_near and flip_n share a predicate: flip_n > 0 IS flipper_near,
+    // so deriving one from the other also removes a chance for them to disagree.
+    uint8_t flip_n = 0;
+    bool check_anomaly = app->settings.anomaly_flag;
+    for(size_t i = 0; i < app->ble_count; i++) {
+        const BleDevice* d = &app->ble[i];
+        if(d->cat == BleCatFlipper && (now - d->last_tick) <= WATCH_BLE_FRESH_MS) {
+            if(flip_n < UINT8_MAX) flip_n++;
+        }
+        if(check_anomaly && !in.anomaly && recon_ble_is_anomaly(d, now)) {
+            in.anomaly = true;
         }
     }
+    in.flipper_near = (flip_n > 0);
 
-    // Cache the Guardian HUD tallies under this same lock so guardian_view can
-    // read them from its own snapshot instead of re-acquiring the mutex (and
-    // re-walking these arrays) twice per frame. Mirrors recon_app_flipper_count /
-    // recon_app_attacks_detected exactly.
-    uint8_t flip_n = 0;
-    for(size_t i = 0; i < app->ble_count; i++) {
-        if(app->ble[i].cat == BleCatFlipper && (now - app->ble[i].last_tick) <= WATCH_BLE_FRESH_MS)
-            flip_n++;
-    }
     uint8_t atk_n = 0;
     for(size_t i = 0; i < app->deauth_count; i++) {
         if(app->deauth[i].count >= WATCH_DEAUTH_FLOOD_MIN) atk_n++;
@@ -568,14 +838,20 @@ void recon_app_watchscore_tick(ReconApp* app) {
 
 static void recon_settings_defaults(ReconApp* app) {
     app->settings.backend = EspBackendCompanion;
+    app->settings.esp_band = ReconEspBand24; // detection first -- see ReconEspBand
     app->settings.esp_uart = FuriHalSerialIdUsart;
     app->settings.gps_uart = FuriHalSerialIdLpuart;
     app->settings.esp_baud = 115200;
     app->settings.gps_baud = 9600;
     app->settings.marauder_cmd = 0; // sniffprobe
     app->settings.gps_enabled = false; // off by default
+    app->settings.gps_source = ReconGpsSourceFlipper; // the wiring the docs describe
+    app->settings.esp_gps_pin = 16; // a common GPS RX on ESP32 carrier boards
     app->settings.sound = true;
+    app->settings.alert_mode = ReconAlertVibro; // haptic-first, like the ELEVATED alert
+    app->settings.alert_min_conf = AlertConfLikely; // precision over recall stays the default
     app->settings.flash_fast = false; // safe 115200 by default
+    app->settings.save_hits = false; // privacy: a hit log is a record of where you have been
     app->settings.log_serials = false; // privacy: don't catalogue police asset serials by default
     app->settings.anomaly_flag = false; // off by default: higher false-positive mode
 }
@@ -587,18 +863,24 @@ void recon_settings_save(ReconApp* app) {
         FuriString* s = furi_string_alloc();
         furi_string_printf(
             s,
-            "backend=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\n",
+            "backend=%d\nesp_band=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\n",
             app->settings.backend,
+            app->settings.esp_band,
             app->settings.esp_uart,
             app->settings.gps_uart,
             (unsigned long)app->settings.esp_baud,
             (unsigned long)app->settings.gps_baud,
             app->settings.marauder_cmd,
             app->settings.gps_enabled ? 1 : 0,
+            app->settings.gps_source,
+            app->settings.esp_gps_pin,
             app->settings.sound ? 1 : 0,
             app->settings.flash_fast ? 1 : 0,
             app->settings.log_serials ? 1 : 0,
-            app->settings.anomaly_flag ? 1 : 0);
+            app->settings.anomaly_flag ? 1 : 0,
+            app->settings.alert_mode,
+            app->settings.alert_min_conf,
+            app->settings.save_hits ? 1 : 0);
         storage_file_write(file, furi_string_get_cstr(s), furi_string_size(s));
         furi_string_free(s);
     }
@@ -624,6 +906,12 @@ static void recon_settings_apply_kv(ReconApp* app, const char* key, long val) {
         app->settings.marauder_cmd = (uint8_t)val;
     else if(strcmp(key, "gps_enabled") == 0)
         app->settings.gps_enabled = (val != 0);
+    else if(strcmp(key, "esp_band") == 0 && val >= 0 && val < ReconEspBandCount)
+        app->settings.esp_band = (uint8_t)val;
+    else if(strcmp(key, "gps_source") == 0 && val >= 0 && val < ReconGpsSourceCount)
+        app->settings.gps_source = (uint8_t)val; // corrupt value -> keep the default
+    else if(strcmp(key, "esp_gps_pin") == 0 && val > 1 && val != 3 && val < 48)
+        app->settings.esp_gps_pin = (uint8_t)val; // same range the companion accepts
     else if(strcmp(key, "sound") == 0)
         app->settings.sound = (val != 0);
     else if(strcmp(key, "flash_fast") == 0)
@@ -632,14 +920,20 @@ static void recon_settings_apply_kv(ReconApp* app, const char* key, long val) {
         app->settings.log_serials = (val != 0);
     else if(strcmp(key, "anomaly_flag") == 0)
         app->settings.anomaly_flag = (val != 0);
+    else if(strcmp(key, "alert_mode") == 0 && val >= 0 && val < ReconAlertModeCount)
+        app->settings.alert_mode = (uint8_t)val; // corrupt value -> keep the default
+    else if(strcmp(key, "alert_min_conf") == 0 && val >= 0 && val < AlertConfCount)
+        app->settings.alert_min_conf = (uint8_t)val; // ditto -- range-checked, not trusted
+    else if(strcmp(key, "save_hits") == 0)
+        app->settings.save_hits = (val != 0);
 }
 
 void recon_settings_load(ReconApp* app) {
     recon_settings_defaults(app);
     File* file = storage_file_alloc(app->storage);
     if(storage_file_open(file, RECON_SETTINGS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        // One read covers the whole file. The settings file is ~10 short key=value
-        // lines (~160 B today); keep generous headroom so adding keys later can't
+        // One read covers the whole file. The settings file is 14 short key=value
+        // lines (~190 B today); keep generous headroom so adding keys later can't
         // silently truncate the load (anything past the buffer is dropped).
         char buf[512];
         size_t n = storage_file_read(file, buf, sizeof(buf) - 1);
@@ -660,6 +954,228 @@ void recon_settings_load(ReconApp* app) {
     storage_file_free(file);
 }
 
+// ---- persisted hits (issue #2) -------------------------------------------
+//
+// Detections used to live only in RAM, so closing the app discarded them. The
+// record format (and its host tests) live in helpers/flock_store.h; this is the
+// file I/O, kept next to the settings load/save because it is the same idiom.
+//
+// Off by default: a hit log is a durable record of where you have been, which is
+// exactly the sort of trail a tool for people evading surveillance should not
+// create without being asked.
+
+/** Chunk size for the streaming line reader. One record is < 192 B; this is a
+ *  read granularity, not a line limit. */
+#define HITS_CHUNK 256
+
+/** Copy one FlockEntry into the POD record the store module serialises. */
+static void recon_hits_rec_from_entry(FlockStoreRec* r, const FlockEntry* e) {
+    memset(r, 0, sizeof(*r));
+    memcpy(r->mac, e->mac, 6);
+    strncpy(r->ssid, e->ssid, FLOCK_STORE_SSID_LEN - 1);
+    r->ssid[FLOCK_STORE_SSID_LEN - 1] = '\0';
+    r->rssi = e->rssi;
+    r->channel = e->channel;
+    r->ftype = e->ftype;
+    r->conf = (uint8_t)e->confidence;
+    r->dev_class = e->dev_class;
+    r->hidden = e->hidden;
+    r->ie_fp = e->ie_fp;
+    r->lat = e->lat;
+    r->lon = e->lon;
+    r->heading = e->heading;
+    r->count = e->count;
+    r->marked = e->marked;
+    r->epoch = e->seen_epoch;
+}
+
+void recon_hits_save(ReconApp* app) {
+    if(!app->settings.save_hits) return;
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    size_t total = app->flock_count;
+    furi_mutex_release(app->mutex);
+    // An empty table must NEVER remove the file from here.
+    //
+    // v0.53 made it do exactly that, reasoning that deleting the last entry
+    // should delete the store. But this function runs on every scan-session exit,
+    // so ANY code path that emptied the table in memory became permanent data
+    // loss on disk -- and Net Guardian emptied it on entry. That combination cost
+    // a user a drive's worth of detections with no way to get them back, which is
+    // strictly worse than the stale file the delete was meant to avoid.
+    //
+    // Removal is now an explicit consequence of the operator deleting something,
+    // and lives in recon_hits_save_after_delete() alone.
+    if(total == 0) return;
+
+    recon_report_ensure_dirs(app);
+
+    File* file = storage_file_alloc(app->storage);
+    if(storage_file_open(file, RECON_HITS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        storage_file_write(file, FLOCK_STORE_SCHEMA "\n", strlen(FLOCK_STORE_SCHEMA) + 1);
+        storage_file_write(file, FLOCK_STORE_HEADER "\n", strlen(FLOCK_STORE_HEADER) + 1);
+
+        // One record at a time, straight to the card. Never assemble the file in
+        // RAM -- same reason the report writers stream (see recon_report.c).
+        // Snapshotting per entry also means the lock is never held across an SD
+        // write, so a still-running ESP worker can't stall behind the filesystem.
+        char line[FLOCK_STORE_LINE_MAX];
+        for(size_t i = 0; i < total; i++) {
+            FlockStoreRec rec;
+            bool have = false;
+            furi_mutex_acquire(app->mutex, FuriWaitForever);
+            if(i < app->flock_count) {
+                recon_hits_rec_from_entry(&rec, &app->flock[i]);
+                have = true;
+            }
+            furi_mutex_release(app->mutex);
+            if(!have) continue;
+
+            size_t n = flock_store_fmt_line(line, sizeof(line), &rec);
+            if(n) storage_file_write(file, line, n);
+        }
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+}
+
+void recon_hits_save_after_delete(ReconApp* app) {
+    if(!app->settings.save_hits) return;
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    size_t total = app->flock_count;
+    furi_mutex_release(app->mutex);
+
+    // The ONLY place an empty table removes the store, because here the emptiness
+    // is the operator's explicit choice: they just deleted the last entry. Left
+    // as a plain save, the stale file would restore everything on next launch and
+    // the deletion would look like it had not worked.
+    if(total == 0) {
+        storage_common_remove(app->storage, RECON_HITS_PATH);
+        return;
+    }
+    recon_hits_save(app);
+}
+
+/** Append one parsed record to the detection table as an archived entry. */
+static void recon_hits_add(ReconApp* app, const FlockStoreRec* r) {
+    if(app->flock_count >= RECON_FLOCK_MAX) return;
+    FlockEntry* e = &app->flock[app->flock_count++];
+    memset(e, 0, sizeof(FlockEntry));
+    memcpy(e->mac, r->mac, 6);
+    strncpy(e->ssid, r->ssid, RECON_SSID_LEN - 1);
+    e->ssid[RECON_SSID_LEN - 1] = '\0';
+    e->rssi = r->rssi;
+    e->channel = r->channel;
+    e->ftype = r->ftype;
+    e->confidence = (FlockConfidence)r->conf;
+    e->dev_class = r->dev_class;
+    e->hidden = r->hidden;
+    e->ie_fp = r->ie_fp;
+    e->lat = r->lat;
+    e->lon = r->lon;
+    e->heading = r->heading;
+    // The stored coordinate came from the sighting whose RSSI we saved, so seed
+    // the hysteresis with it -- otherwise a weak first sighting this session
+    // would immediately overwrite a good geotag.
+    e->geotag_rssi = isnan(r->lat) ? 0 : r->rssi;
+    e->count = r->count;
+    e->marked = r->marked;
+    e->seen_epoch = r->epoch;
+    e->archived = true;
+    // A restored hit must not buzz: the alert announces a NEW detection, and the
+    // user has already been told about this one (possibly days ago).
+    e->alerted = true;
+    // first_tick / last_tick stay 0 and are meaningless for an archived entry.
+    // Everything that ages an entry must gate on `archived` instead.
+}
+
+void recon_hits_load(ReconApp* app) {
+    if(!app->settings.save_hits) return;
+
+    File* file = storage_file_alloc(app->storage);
+    if(storage_file_open(file, RECON_HITS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char chunk[HITS_CHUNK];
+        char line[FLOCK_STORE_LINE_MAX];
+        size_t li = 0;
+        bool overlong = false; // this line blew the buffer -> drop it whole
+        bool schema_seen = false;
+        bool abort = false;
+        size_t n;
+
+        // Streaming line splitter: storage has no getline, and reading the whole
+        // file (up to ~11 KB) into RAM to split it would defeat the point.
+        while(!abort && (n = storage_file_read(file, chunk, sizeof(chunk))) > 0) {
+            for(size_t i = 0; i < n && !abort; i++) {
+                char c = chunk[i];
+                if(c != '\n') {
+                    if(li < sizeof(line) - 1) {
+                        line[li++] = c;
+                    } else {
+                        overlong = true;
+                    }
+                    continue;
+                }
+                line[li] = '\0';
+                li = 0;
+                bool bad = overlong;
+                overlong = false;
+                if(bad) continue;
+
+                // Strip a CR so a file edited on a PC still loads.
+                size_t len = strlen(line);
+                if(len && line[len - 1] == '\r') line[--len] = '\0';
+                if(len == 0) continue;
+
+                if(!schema_seen) {
+                    // An unrecognised first line means "ignore this file", never
+                    // "parse it anyway and get the columns wrong". v1 and v2 are
+                    // both readable; anything newer is not.
+                    if(!flock_store_schema_supported(line)) {
+                        abort = true;
+                        break;
+                    }
+                    schema_seen = true;
+                    continue;
+                }
+                if(line[0] == '#' || strcmp(line, FLOCK_STORE_HEADER) == 0) continue;
+
+                FlockStoreRec rec;
+                if(flock_store_parse_line(line, &rec)) recon_hits_add(app, &rec);
+                if(app->flock_count >= RECON_FLOCK_MAX) abort = true; // table full
+            }
+        }
+        // A final record with no trailing newline (a truncated write) still loads.
+        if(!abort && schema_seen && li && !overlong) {
+            line[li] = '\0';
+            size_t len = strlen(line);
+            if(len && line[len - 1] == '\r') line[--len] = '\0';
+            FlockStoreRec rec;
+            if(len && line[0] != '#' && flock_store_parse_line(line, &rec))
+                recon_hits_add(app, &rec);
+        }
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+}
+
+void recon_hits_clear(ReconApp* app) {
+    storage_common_remove(app->storage, RECON_HITS_PATH);
+
+    // Drop the restored entries too. Leaving them on screen after "clear" would
+    // imply the file is gone when the data plainly is not.
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    size_t w = 0;
+    for(size_t i = 0; i < app->flock_count; i++) {
+        if(app->flock[i].archived) continue;
+        if(w != i) app->flock[w] = app->flock[i];
+        w++;
+    }
+    app->flock_count = w;
+    if(app->selected >= (int)w) app->selected = w ? (int)w - 1 : 0;
+    furi_mutex_release(app->mutex);
+}
+
 // ---- view dispatcher glue ------------------------------------------------
 
 static bool recon_custom_event_callback(void* context, uint32_t event) {
@@ -674,6 +1190,26 @@ static bool recon_back_event_callback(void* context) {
 
 static void recon_tick_event_callback(void* context) {
     ReconApp* app = context;
+    // Announce a pending detection alert here, ONCE, for every scene.
+    //
+    // This used to be each scanning scene's job, and the Locator forgot: Lock In
+    // (issue #6) keeps the ESP link live on the Locator screen, but that scene
+    // was the only scanning one with no recon_app_alert_tick() call, so a camera
+    // found while homing in set alert_pending and nothing ever consumed it. It
+    // was reported as "alerts don't work" by the same person who asked for Lock
+    // In (issue #5) -- the two features shipped in the same release and one
+    // silently disabled the other.
+    //
+    // Hoisted to the dispatcher tick rather than adding a sixth per-scene call,
+    // because "remember to call this in every new scene" is what failed. The
+    // GUI thread owns delivery either way; the ESP worker only sets the flag.
+    recon_app_alert_tick(app);
+    // Same worker-raises / GUI-delivers split, for the same reason: the companion
+    // announces itself with a banner on every boot, and the relay config has to be
+    // re-sent when it does (a board still coming up misses the one the scan
+    // session sent). Doing that transmit on the worker thread would race this
+    // thread's own commands on the same UART handle.
+    recon_app_gps_cfg_tick(app);
     scene_manager_handle_tick_event(app->scene_manager);
 }
 
@@ -696,6 +1232,10 @@ static ReconApp* recon_app_alloc(void) {
 
     recon_settings_load(app);
 
+    // Restore previously saved detections (opt-in). Before the view dispatcher
+    // exists, so the first screen already shows them.
+    recon_hits_load(app);
+
     // Optional SD-loaded extra signatures, merged over the built-ins. Fail-safe:
     // a missing/malformed file leaves sig_db NULL and the built-ins intact.
     app->sig_db = sig_db_load(app->storage);
@@ -715,6 +1255,8 @@ static ReconApp* recon_app_alloc(void) {
     app->popup = popup_alloc();
     app->flock_view = flock_view_alloc();
     flock_view_set_app(app->flock_view, app);
+    app->flock_detail_view = flock_detail_view_alloc();
+    flock_detail_view_set_app(app->flock_detail_view, app);
     app->flock_map_view = flock_map_view_alloc();
     flock_map_view_set_app(app->flock_map_view, app);
     app->deflock_qr_view = deflock_qr_view_alloc();
@@ -723,8 +1265,6 @@ static ReconApp* recon_app_alloc(void) {
     guardian_view_set_app(app->guardian_view, app);
     app->ble_list_view = ble_list_view_alloc();
     ble_list_view_set_app(app->ble_list_view, app);
-    app->wifi_list_view = wifi_list_view_alloc();
-    wifi_list_view_set_app(app->wifi_list_view, app);
     app->locator_view = locator_view_alloc();
     locator_view_set_app(app->locator_view, app);
 
@@ -739,6 +1279,10 @@ static ReconApp* recon_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, ReconViewFlock, flock_view_get_view(app->flock_view));
     view_dispatcher_add_view(
+        app->view_dispatcher,
+        ReconViewFlockDetail,
+        flock_detail_view_get_view(app->flock_detail_view));
+    view_dispatcher_add_view(
         app->view_dispatcher, ReconViewFlockMap, flock_map_view_get_view(app->flock_map_view));
     view_dispatcher_add_view(
         app->view_dispatcher, ReconViewDeflockQr, deflock_qr_view_get_view(app->deflock_qr_view));
@@ -746,8 +1290,6 @@ static ReconApp* recon_app_alloc(void) {
         app->view_dispatcher, ReconViewGuardian, guardian_view_get_view(app->guardian_view));
     view_dispatcher_add_view(
         app->view_dispatcher, ReconViewBleList, ble_list_view_get_view(app->ble_list_view));
-    view_dispatcher_add_view(
-        app->view_dispatcher, ReconViewWifiList, wifi_list_view_get_view(app->wifi_list_view));
     view_dispatcher_add_view(
         app->view_dispatcher, ReconViewLocator, locator_view_get_view(app->locator_view));
 
@@ -762,11 +1304,11 @@ static void recon_app_free(ReconApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewPopup);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewFlock);
+    view_dispatcher_remove_view(app->view_dispatcher, ReconViewFlockDetail);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewFlockMap);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewDeflockQr);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewGuardian);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewBleList);
-    view_dispatcher_remove_view(app->view_dispatcher, ReconViewWifiList);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewLocator);
 
     submenu_free(app->submenu);
@@ -774,11 +1316,11 @@ static void recon_app_free(ReconApp* app) {
     widget_free(app->widget);
     popup_free(app->popup);
     flock_view_free(app->flock_view);
+    flock_detail_view_free(app->flock_detail_view);
     flock_map_view_free(app->flock_map_view);
     deflock_qr_view_free(app->deflock_qr_view);
     guardian_view_free(app->guardian_view);
     ble_list_view_free(app->ble_list_view);
-    wifi_list_view_free(app->wifi_list_view);
     locator_view_free(app->locator_view);
 
     scene_manager_free(app->scene_manager);
@@ -800,6 +1342,13 @@ int32_t recon_site_survey_app(void* arg) {
 
     scene_manager_next_scene(app->scene_manager, ReconSceneStart);
     view_dispatcher_run(app->view_dispatcher);
+
+    // Backstop for any exit path that does not pass back through the Main Menu:
+    // the link is owned by the app, not by a scene, so the app is what must
+    // guarantee the UART is released and the hits are written. Runs while
+    // app->storage and app->mutex are still alive, and no-ops if the menu
+    // already tore the session down.
+    scan_session_stop(app);
 
     recon_app_free(app);
     return 0;

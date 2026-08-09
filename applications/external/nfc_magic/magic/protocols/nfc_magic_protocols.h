@@ -12,7 +12,16 @@ typedef enum {
     // classify it as Gen4 rather than as Gen2 CUID.
     NfcMagicProtocolGen4,
     NfcMagicProtocolGen2,
-    NfcMagicProtocolClassic, // Last to give priority to the others
+    NfcMagicProtocolUscuidUl, // Ultralight family (USCUID-UL)
+    // ISO-A Ultralight that activated but answered no magic signature (not a confirmed
+    // USCUID-UL, not an AA-55 UL-5). Offers a non-confirmed "write anyway" path via the
+    // direct engine, mirroring how NfcMagicProtocolClassic encodes an unconfirmed Classic.
+    NfcMagicProtocolUscuidUlNotDetected,
+    NfcMagicProtocolIso15693, // ISO15693 magic candidate, probed explicitly in
+    // nfc_magic_scanner_detect_pass, not by enum order
+    NfcMagicProtocolClassic, // generic ISO-A MIFARE Classic (unconfirmed-magic "try writing"
+        // fallback); detection priority is set explicitly in
+        // nfc_magic_scanner_detect_pass, not by enum order
 
     NfcMagicProtocolNum,
     NfcMagicProtocolInvalid,

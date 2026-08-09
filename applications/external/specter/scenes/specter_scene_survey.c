@@ -53,7 +53,8 @@ static void specter_survey_complete(SpecterApp* app, const FieldStats* st, uint3
 
     if(app->settings.logging) {
         specter_log_append(
-            "SURVEY %lus\n  %s\n  mx%u%% av%u%% f%u%% h%lu",
+            "SURVEY",
+            "%lus %s max %u%% avg %u%% infield %u%% hits %lu",
             (unsigned long)(elapsed_ms / 1000u),
             survey_verdict_name(verdict),
             (unsigned)summary.peak,

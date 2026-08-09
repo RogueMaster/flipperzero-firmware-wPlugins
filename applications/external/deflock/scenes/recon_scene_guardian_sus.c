@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "../recon_app_i.h"
+
+#include <stdlib.h> // malloc/free for the scene-scoped snapshot
 
 // Net Guardian -> OK -> this list: the devices that tripped (or could trip) the
 // Guardian -- BLE Flippers, opt-in "anomaly" unknown devices, and Wi-Fi rogue /
@@ -21,7 +23,19 @@ typedef struct {
     uint16_t idx; // index into that array (frozen while this scene is up)
 } SusTarget;
 
-static SusTarget s_sus[SUS_MAX];
+/**
+ * Scene-scoped snapshot, allocated on entry and freed on exit.
+ *
+ * This used to be a static array, which cost 2560 bytes of BSS for the entire
+ * run of the app to serve one scene you are usually not in. The Locator and
+ * DeFlock-handoff scenes had the same pattern; together they held ~5.9 KB
+ * permanently out of a ~256 KB budget.
+ *
+ * NULL is a supported state, not an error path to bolt on later: if the
+ * allocation fails the scene renders as an empty list rather than crashing, and
+ * sus_add() simply drops entries. Every consumer below checks.
+ */
+static SusTarget* s_sus;
 static size_t s_sus_count;
 
 static void sus_add(
@@ -31,7 +45,7 @@ static void sus_add(
     const char* label,
     uint8_t src,
     uint16_t idx) {
-    if(s_sus_count >= SUS_MAX) return;
+    if(!s_sus || s_sus_count >= SUS_MAX) return;
     SusTarget* t = &s_sus[s_sus_count++];
     memcpy(t->mac, mac, 6);
     t->kind = kind;
@@ -51,6 +65,9 @@ void recon_scene_guardian_sus_on_enter(void* context) {
     Submenu* submenu = app->submenu;
     submenu_reset(submenu);
     s_sus_count = 0;
+    // Freed in on_exit. malloc (not furi_alloc) so a failure is recoverable:
+    // sus_add() and the render below both tolerate NULL and show an empty list.
+    if(!s_sus) s_sus = malloc(sizeof(SusTarget) * SUS_MAX);
 
     uint32_t now = furi_get_tick();
     char buf[28];
@@ -62,7 +79,8 @@ void recon_scene_guardian_sus_on_enter(void* context) {
         if(!flip && !anom) continue;
         if(flip) {
             if(d->name[0])
-                snprintf(buf, sizeof(buf), "Flipper %s", d->name);
+                // "Flipper " + 19 + NUL fills buf exactly; same cut as before.
+                snprintf(buf, sizeof(buf), "Flipper %.19s", d->name);
             else
                 snprintf(
                     buf, sizeof(buf), "Flipper %02X%02X%02X", d->addr[3], d->addr[4], d->addr[5]);
@@ -81,11 +99,38 @@ void recon_scene_guardian_sus_on_enter(void* context) {
     for(size_t i = 0; i < app->wifi_count && s_sus_count < SUS_MAX; i++) {
         const WifiAp* a = &app->wifi[i];
         if(!a->rogue) continue;
+        // Say WHICH twin this row is and how it differs, not just that something
+        // fired. "Rogue AP <ssid>" alone is an accusation the operator has no way
+        // to check: they cannot see the two BSSIDs, or which of them is the open
+        // one. The open clone is the dangerous half -- that is the one you would
+        // join without a password -- so it is named outright.
+        const char* kind = (a->authmode == WIFI_AUTH_MODE_OPEN) ? "OPEN" :
+                           (a->authmode == WIFI_AUTH_MODE_WEP)  ? "WEP" :
+                                                                  "sec";
         if(a->ssid[0])
-            snprintf(buf, sizeof(buf), "Rogue AP %s", a->ssid);
+            // Bound the SSID at 8 so the tail survives. Unbounded, snprintf
+            // clamps the WHOLE string at 27 chars, and a long SSID therefore ate
+            // the "[OPEN] AABBCC" that this row exists to show -- naming which
+            // BSSID is the open one is the entire point of the message, so the
+            // name is the field that gives way. 5 + 8 + 2 + 4 + 2 + 6 = 27.
+            snprintf(
+                buf,
+                sizeof(buf),
+                "Twin %.8s [%s] %02X%02X%02X",
+                a->ssid,
+                kind,
+                a->bssid[3],
+                a->bssid[4],
+                a->bssid[5]);
         else
             snprintf(
-                buf, sizeof(buf), "Rogue AP %02X%02X%02X", a->bssid[3], a->bssid[4], a->bssid[5]);
+                buf,
+                sizeof(buf),
+                "Twin [%s] %02X%02X%02X",
+                kind,
+                a->bssid[3],
+                a->bssid[4],
+                a->bssid[5]);
         sus_add(a->bssid, 'w', a->channel, buf, 1, (uint16_t)i);
     }
     furi_mutex_release(app->mutex);
@@ -106,7 +151,7 @@ bool recon_scene_guardian_sus_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
     if(event.type == SceneManagerEventTypeCustom) {
         uint32_t idx = event.event;
-        if(idx < s_sus_count) {
+        if(s_sus && idx < s_sus_count) {
             SusTarget* t = &s_sus[idx];
             furi_mutex_acquire(app->mutex, FuriWaitForever);
             // Mark the underlying entry (arrays are frozen while this scene is up)
@@ -130,4 +175,9 @@ bool recon_scene_guardian_sus_on_event(void* context, SceneManagerEvent event) {
 void recon_scene_guardian_sus_on_exit(void* context) {
     ReconApp* app = context;
     submenu_reset(app->submenu);
+    // Release the snapshot: this scene is one of several that each held a
+    // 64-entry array, and they are mutually exclusive in practice.
+    free(s_sus);
+    s_sus = NULL;
+    s_sus_count = 0;
 }

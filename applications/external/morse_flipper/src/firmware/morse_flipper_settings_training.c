@@ -1,11 +1,33 @@
 /*
- * Purpose: Handle LCWO, straight trainer, and TX Groups settings rows.
+ * Purpose: Handle LCWO, straight key trainer, and TX Groups settings rows.
  * Owns: training setting callbacks, clamps, labels, and persistence hooks.
  * Depends on: morse_flipper_app_i.h plus trainer and TX Groups modules.
- * Tests: trainer, straight trainer, and TX Groups host tests cover models.
+ * Tests: trainer, straight key trainer, and TX Groups host tests cover models.
  */
 
 #include "morse_flipper_app_i.h"
+
+static uint8_t morse_flipper_trainer_menu_custom_count(const MorseFlipperApp* app) {
+    if(app == NULL || !app->custom_sets_loaded || app->custom_sets == NULL) return 0U;
+    return app->custom_sets->count;
+}
+
+static uint8_t morse_flipper_trainer_menu_custom_idx(const MorseFlipperApp* app) {
+    uint8_t count = morse_flipper_trainer_menu_custom_count(app);
+    uint8_t idx;
+
+    if(app == NULL) return 0U;
+    idx = app->trainer.custom_set_idx;
+    if(idx == 0U || idx > count) return 0U;
+    return idx;
+}
+
+static const char*
+    morse_flipper_trainer_menu_custom_label(const MorseFlipperApp* app, uint8_t idx) {
+    if(idx == 0U || app == NULL || app->custom_sets == NULL) return "lesson";
+    if(idx > app->custom_sets->count) return "lesson";
+    return app->custom_sets->sets[idx - 1U].name;
+}
 
 void morse_flipper_trainer_sync_farn_item(MorseFlipperApp* app) {
     VariableItem* it;
@@ -90,10 +112,10 @@ void morse_flipper_trainer_menu_refresh(MorseFlipperApp* app) {
 
     it = app->trainer_items[MorseFlipperTrainerSettingChars];
     if(it) {
-        idx = morse_flipper_effective_trainer_custom_set_idx(app);
+        idx = morse_flipper_trainer_menu_custom_idx(app);
         variable_item_set_current_value_index(it, idx);
         variable_item_set_current_value_text(
-            it, idx == 0U ? "lesson" : app->custom_sets.sets[idx - 1U].name);
+            it, morse_flipper_trainer_menu_custom_label(app, idx));
     }
 }
 
@@ -247,10 +269,10 @@ void morse_flipper_trainer_chars_changed(VariableItem* item) {
     MorseFlipperApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
 
+    if(idx > morse_flipper_trainer_menu_custom_count(app)) idx = 0U;
     app->trainer.custom_set_idx = idx;
     morse_flipper_apply_trainer_charset_choice(app);
-    variable_item_set_current_value_text(
-        item, idx == 0U ? "lesson" : app->custom_sets.sets[idx - 1U].name);
+    variable_item_set_current_value_text(item, morse_flipper_trainer_menu_custom_label(app, idx));
     morse_flipper_save_config(app);
 }
 
@@ -260,9 +282,8 @@ void morse_flipper_scene_trainer_on_enter(void* context) {
     uint32_t sel = scene_manager_get_scene_state(app->scene_manager, MorseFlipperSceneTrainer);
     uint8_t gs;
     uint8_t groups;
+    uint8_t custom_count;
     bool dirty = false;
-
-    morse_flipper_ensure_custom_sets_loaded(app);
 
     gs = morse_trainer_group_size(&app->trainer);
     groups = morse_trainer_session_groups(&app->trainer);
@@ -280,6 +301,10 @@ void morse_flipper_scene_trainer_on_enter(void* context) {
     if(dirty) morse_flipper_save_config(app);
 
     morse_flipper_ensure_view(app, MorseFlipperViewSettings);
+    if(app->settings_list == NULL) return;
+    morse_flipper_try_custom_sets_loaded(app);
+    custom_count = app->custom_sets_loaded && app->custom_sets != NULL ? app->custom_sets->count :
+                                                                         0U;
     variable_item_list_reset(app->settings_list);
     memset(app->trainer_items, 0, sizeof(app->trainer_items));
     variable_item_list_set_enter_callback(
@@ -333,7 +358,7 @@ void morse_flipper_scene_trainer_on_enter(void* context) {
     item = variable_item_list_add(
         app->settings_list,
         "Chars",
-        (uint8_t)(app->custom_sets.count + 1U),
+        (uint8_t)(custom_count + 1U),
         morse_flipper_trainer_chars_changed,
         app);
     app->trainer_items[MorseFlipperTrainerSettingChars] = item;
@@ -351,6 +376,8 @@ void morse_flipper_scene_trainer_on_exit(void* context) {
         MorseFlipperSceneTrainer,
         morse_flipper_settings_list_state(app->settings_list));
     variable_item_list_reset(app->settings_list);
+    memset(app->trainer_items, 0, sizeof(app->trainer_items));
+    morse_flipper_unload_custom_sets(app);
 }
 
 void morse_flipper_scene_straight_cfg_on_enter(void* context) {

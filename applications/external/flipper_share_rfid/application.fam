@@ -1,0 +1,15 @@
+App(
+    appid="flipper_share_rfid",
+    name="Flipper Share RFID",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="share_app",
+    sources=["*.c*", "!tools"],
+    stack_size=2 * 1024,
+    fap_icon="rfid_share.png",
+    fap_category="RFID",
+    fap_author="lomalkin",
+    fap_weburl="https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_rfid",
+    fap_version="0.1",
+    fap_description="Direct file transfer between flippers via 125 kHz RFID coil",
+)

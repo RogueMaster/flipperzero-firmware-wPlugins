@@ -105,6 +105,10 @@ void fsd_handle_gtw_car_state(FSDState *state, const CanFrame *frame);
 /** Parse DAS_followDistance (0x3F8) — updates speed_profile from stalk. */
 void fsd_handle_follow_distance(FSDState *state, const CanFrame *frame);
 
+/** Modify UI_driverAssistControl (0x3F8) — opt-in RHD driving-side override (#66).
+ *  Returns true if frame was modified and should be re-sent. */
+bool fsd_handle_driver_assist_override(FSDState *state, CanFrame *frame);
+
 /** Modify DAS_autopilotControl (0x3FD) for HW3/HW4.
  *  Returns true if frame was modified and should be re-sent. */
 bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame);

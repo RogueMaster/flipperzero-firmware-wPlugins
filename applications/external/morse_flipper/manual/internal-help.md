@@ -70,8 +70,8 @@ This is the same help file that lives on the Flipper under Help: a gentle introd
 - Use Farnsworth to open up the gaps. The spacing should help you hear the rhythm, not tempt you back into counting.
 - You need to hear letters, not inventory. If you only copy shapes back as "three dots, one dash", you are practising parroting, not Morse. Doing this will not help you.
 - You can also use this app to sharpen straight key sending and practise five character sending groups competitively. Do not make those the main event too early. Copying characters by ear comes first. If you cannot hear the letters reliably, better sending just makes tidier nonsense.
-- Straight key sending is a skill of its own. The line between a recognisable personal fist and sloppy sending is subtle, and beginners usually cannot hear the difference yet. The Straight trainer grades your marks, gaps and dah/dit ratio. Groups of 5 has Easy, Medium and IARU HST scoring. Use Medium as the first serious target and start at 15 WPM. Drop to Easy if the timing feels impossible, but remember that Easy still permits sending that would sound rough on the air.
-- On the Straight trainer result line: The target ratio is dah/dit = 3. OK means that part was close enough. When you see a number, not OK, it is a percentage score. Higher is better. A low number means that your sending was far from the expected timing. Above 80%, you will only see OK.
+- Straight key sending is a skill of its own. The line between a recognisable personal fist and sloppy sending is subtle, and beginners usually cannot hear the difference yet. The Straight key trainer grades your marks, gaps and dah/dit ratio. Groups of 5 has Easy, Medium and IARU HST scoring. Use Medium as the first serious target and start at 15 WPM. Drop to Easy if the timing feels impossible, but remember that Easy still permits sending that would sound rough on the air.
+- On the Straight key trainer result line: The target ratio is dah/dit = 3. OK means that part was close enough. When you see a number, not OK, it is a percentage score. Higher is better. A low number means that your sending was far from the expected timing. Above 80%, you will only see OK.
   - S → spacing
   - di → dit length
   - da → dah length
@@ -165,7 +165,7 @@ This is the same help file that lives on the Flipper under Help: a gentle introd
 
 ## USB & live practice
 
-- There are sites like https://vail.woozle.org, V-band or iCW let you practise with other people using a real paddle.
+- There are websites like iCW, [vail.woozle.net](http://vail.woozle.net/), [morse.halb.it](https://morse.halb.it/), and VBand that let you practise with other people using a real paddle.
 - To do this, you need a computer adapter for your SK or paddle. This app can emulate an adapter for CW practice sites. You can still use the Flipper's buttons if you must.
 - Most simple adapters lie to the computer and pretend to be a keyboard or mouse. That is how they get a key or paddle in. The fancy word for doing this is emulation.
 - The site reads those key presses, generates audio for your speakers, and sends your keypresses, as Morse, to the other participants.

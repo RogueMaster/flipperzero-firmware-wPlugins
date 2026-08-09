@@ -4,7 +4,7 @@ Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and
 
 It is built around one opinion: do not learn Morse by staring at dots and dashes. Learn the sound. Hear the character, type the character, and keep the counting part of your brain out of it.
 
-It works with nothing more than the Flipper buttons and buzzer. Add a simple jack adapter and it becomes a real key/paddle interface. Add the bigger board and it can key a rig, drive PTT, output cleaner sidetone, and log a portable contact without needing a laptop balanced on a damp picnic table.
+It works with nothing more than the Flipper buttons and internal speaker. Add a simple jack adapter and it becomes a real key/paddle interface. Add the bigger board and it can key a rig, drive PTT, output cleaner sidetone, and log a portable contact without needing a laptop balanced on a damp picnic table.
 
 This started as a 2024 experiment, then got the proper launch-shape treatment in 2026. The important bits are still where they should be: timing, keying, GPIO behaviour, RF compromises, tests, and the stubborn refusal to make CW look like a barcode for the ears.
 
@@ -28,7 +28,7 @@ Some users on both official and custom firmware saw the app get stuck forever on
 - A field keyer/logger for POTA/SOTA-style portable operating. Send canned replies like `UR 5NN HW?` or `P2P RO 0038`; if you send a callsign manually with paddles, it keys your rig and logs the text at the same time.
 - Ham rig keying on GPIO, with `P15` as key and `P16` as PTT in Ham Keyer mode.
 - Vail-style MIDI control, so the browser can talk back to the Flipper for speed, tone and keyer mode. It also means Vail-style browser games can use the Flipper as the adapter, which is tidier than buying another adapter.
-- High-quality sinewave sidetone on `P2/A7`, with internal buzzer and vibration fallback.
+- Smoother internal `Soft Buzz` sidetone, high-quality sinewave sidetone on `P2/A7`, plus square-wave buzzer and vibration fallback.
 - A field-tested decoder, compact run history, saved settings, custom training character files on SD, and startup warnings for suspicious GPIO shorts.
 
 It also falls back sensibly when a straight key is plugged into a stereo paddle jack, because that mistake is not hypothetical. Ask me how I know.
@@ -47,7 +47,7 @@ The other half of the project is hardware. A Flipper is already a pocket full of
 
 ### None required
 
-Morse Flipper works out of the box with no extra hardware. Use the joystick as a straight key, switch to the built-in keyers when you want paddle-style timing, hear the sidetone on the internal buzzer, and use the Flipper radio for short-range Morse experiments where that is legal and sensible. The adapters below make it nicer, sturdier, or more useful with real keys and rigs; they are comfort upgrades, not a hard requirement.
+Morse Flipper works out of the box with no extra hardware. Use the joystick as a straight key, switch to the built-in keyers when you want paddle-style timing, hear smoother `Soft Buzz` sidetone on the internal speaker, and use the Flipper radio for short-range Morse experiments where that is legal and sensible. The adapters below make it nicer, sturdier, or more useful with real keys and rigs; they are comfort upgrades, not a hard requirement.
 
 ### Simple key and paddle jack
 
@@ -89,9 +89,9 @@ Use the Flipper for quick sessions, pocket practice, button/key experiments and 
 
 This is not just a beep demo with a menu stapled on. The app has host-tested C cores for keying, CW token handling, training sessions, straight-key scoring, TX-group timing, RF timing helpers, GPIO rules, run-history layout, and the markdown-ish help renderer.
 
-The firmware side uses stock Flipper `SceneManager` and `ViewDispatcher` flow, GPIO preflight checks for awkward key/paddle wiring, USB HID/MIDI modes, Sub-GHz RX/TX plumbing, and DMA-backed PWM sidetone on `P2/A7`. The tests run on the host, and the final FAP build still goes through the real Flipper toolchain. Not elegant everywhere, but honest, inspectable, and built to be carried rather than merely screenshotted.
+The firmware side uses stock Flipper `SceneManager` and `ViewDispatcher` flow, GPIO preflight checks for awkward key/paddle wiring, USB HID/MIDI modes, Sub-GHz RX/TX plumbing, and DMA-backed PWM sidetone on both the internal speaker and `P2/A7`. The tests run on the host, and the final FAP build still goes through the real Flipper toolchain. Not elegant everywhere, but honest, inspectable, and built to be carried rather than merely screenshotted.
 
-I wanted the sidetone to be something you can live with for more than a minute: no sharp pops, no buzzer-like rasp, and no waveform chopped off mid-swing. The Flipper has neither a bipolar speaker supply nor an audio amp, so the sinewave sidetone rides on a high-frequency PWM carrier. On startup the output creeps up to the centre voltage instead of stepping there, which keeps headphones from popping; each tone is shaped, and release waits for the virtual zero crossing instead of snapping the output off wherever it happens to be.
+I wanted the sidetone to be something you can live with for more than a minute: no sharp pops, less buzzer-like rasp, and no waveform chopped off mid-swing. The Flipper has neither a bipolar speaker supply nor an audio amp, so the shaped sidetone rides on a high-frequency PWM carrier. On startup the sampled outputs begin at their quiet midpoint instead of stepping there; each tone is shaped, and release waits for the virtual zero crossing instead of snapping the output off wherever it happens to be.
 
 The help section is fairly comprehensive, which means reading plain text on a 128x64 screen became annoying almost immediately. There is a custom renderer involved now: scrolling text, inline formatting, best-effort justified text, and tiny inline icons for things the Flipper has no business typesetting, including `µ`, arrows and bullets. Full LaTeX support is almost ready.
 

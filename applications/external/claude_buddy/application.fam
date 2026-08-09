@@ -3,12 +3,8 @@ App(
     name="Claude Buddy",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="claude_buddy_app",
-    requires=["gui", "notification", "bt", "storage"],
     stack_size=4 * 1024,
-    fap_version="0.6",
     fap_icon="icons/claude_10x10.png",
-    fap_category="Bluetooth",
-    fap_description="Claude Code companion - physical remote control with audio feedback",
     sources=[
         "claude_buddy.c",
         "protocol.c",
@@ -25,4 +21,9 @@ App(
         "ui.c",
         "notifications.c",
     ],
+    fap_category="Bluetooth",
+    fap_author="jxw1102",
+    fap_weburl="https://github.com/jxw1102/flipper-claude-buddy",
+    fap_version="0.7",
+    fap_description="Claude Code companion - physical remote control with audio feedback",
 )

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 /**
  * @file scene_util.h
  * Small shared helpers for the scan scenes, to stop copy-pasting the same

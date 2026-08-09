@@ -128,6 +128,7 @@ Any ESP32 board + CAN transceiver works. Pick the matching build env in `platfor
 | `esp32-mcp2515` | Generic ESP32 + MCP2515 module | MCP2515 SPI | SPI CS=5 | 8 MHz crystal |
 | `esp32-lilygo` | LilyGO T-CAN485 | TWAI | 27 / 26 | Built-in SN65HVD230 + SD slot |
 | `ttgo-tdisplay` | LilyGO/TTGO T-Display + MCP2515 | MCP2515 SPI (HSPI) | CS=26, SCK=33, MISO=32, MOSI=25 | Built-in ST7789 dashboard, MISO needs 5V→3.3V divider |
+| `lilygo-t2can` | LilyGO-T2CAN | TWAI/MCP2515 SPI | 7 / 6 | ESP32-S3-WROOM-1U（MCN16R8）with MCP2515 |
 | `waveshare-s3-can` | Waveshare ESP32-S3-RS485-CAN | TWAI | 15 / 16 | ESP32-S3, 8MB flash/PSRAM, USB-CDC |
 | generic | ESP32-C3/S3 Super Mini + SN65HVD230 | TWAI | any two pins | Override `PIN_CAN_TX` / `PIN_CAN_RX` |
 
@@ -166,6 +167,21 @@ The T-Display LCD already owns the board's default VSPI pins, so the `ttgo-tdisp
 > [HARDWARE.md – MCP2515 MISO 5V to 3.3V voltage divider](../HARDWARE.md#mcp2515-miso-5v-to-33v-voltage-divider).
 
 The built-in ST7789 display is enabled by default and can be toggled from the Web Dashboard or by pushing the GPIO35 button.
+
+### LilyGO-T2CAN
+
+LILYGO's physical connector names are easy to confuse with this project's `can0`/`can1`, so use the mapping below. What matters is the vehicle network a function acts on (by CAN ID), not just the firmware controller name.
+
+| Firmware bus | Vehicle network | X179 pins | CAN IDs / functions |
+|---|---|---|---|
+| `can0` / TWAI | Chassis CAN | `13 / 14` | Primary AP/DAS control; the `0x082` precondition is transmitted here |
+| `can1` / MCP2515 | Party CAN | `2 / 3` | Nag-Killer A torque target: `0x370` |
+| `can1` / MCP2515 | Vehicle CAN | `9 / 10` | Scroll/stalk/light/preheat/service: `0x3C2`, `0x229`, `0x249`, `0x273`, `0x339` |
+
+> [!IMPORTANT]
+> The official LILYGO T-2CAN V1.0 labels physical `CANA` as MCP2515/SPI and physical `CANB` as native TWAI.
+
+`can1` is one MCP2515 physical channel. It can be wired to Party CAN or Vehicle CAN for a given test/install, but one MCP2515 channel cannot be on both vehicle networks at the same time.
 
 ### OBD-II (Primary — Plug & Play)
 

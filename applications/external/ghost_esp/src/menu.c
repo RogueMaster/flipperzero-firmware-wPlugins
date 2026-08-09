@@ -3392,7 +3392,14 @@ static void show_menu(
         submenu_set_selected_item(menu, last_index);
     }
 
-    state->previous_view = state->current_view;
+    // Transient views (log output, text input, confirmation) already have the
+    // correct previous_view set by whoever triggered them; don't clobber it
+    // with the transient view id when returning from one of them, or back
+    // navigation ends up bouncing to the default (main menu) case instead.
+    if(state->current_view != VIEW_TEXT_BOX && state->current_view != VIEW_TEXT_INPUT &&
+       state->current_view != VIEW_CONFIRMATION) {
+        state->previous_view = state->current_view;
+    }
     view_dispatcher_switch_to_view(state->view_dispatcher, view_id);
     state->current_view = view_id;
 }

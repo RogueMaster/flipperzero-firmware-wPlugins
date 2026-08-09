@@ -18,6 +18,31 @@ static void hermes_console_suspend(HermesApp* app, HermesScene next) {
     scene_manager_next_scene(app->scene_manager, next);
 }
 
+/** Snapshot the link into app->last_session, for the summary card.
+ *
+ * Read while the tap is still open - it is closed a moment later in on_exit -
+ * so the byte and error totals are the real ones. */
+static void hermes_console_build_stats(HermesApp* app) {
+    SessionStats* s = &app->last_session;
+    memset(s, 0, sizeof(*s));
+
+    s->baud = app->link.baud;
+    s->framing = app->link.framing;
+    s->rx_bytes = uart_tap_rx_total(app->tap);
+    s->errors = uart_tap_errors(app->tap);
+    s->trigger_hits = trigger_hits(app->trigger);
+    /* 64-bit intermediate: ticks * 1000 overflows uint32 on a long session. */
+    const uint32_t elapsed = furi_get_tick() - app->session_start_tick;
+    const uint32_t hz = furi_kernel_get_tick_frequency();
+    s->duration_ms = hz ? (uint32_t)((uint64_t)elapsed * 1000u / hz) : 0u;
+    s->tx_used = app->tx_enabled;
+    s->logged = session_log_is_open(app->log);
+    if(s->logged) {
+        strncpy(s->log_name, session_log_name(app->log), sizeof(s->log_name) - 1);
+        s->log_name[sizeof(s->log_name) - 1] = '\0';
+    }
+}
+
 static void hermes_scene_console_callback(void* context, ConsoleEventType type) {
     HermesApp* app = context;
 
@@ -62,6 +87,9 @@ void hermes_scene_console_on_enter(void* context) {
         if(app->logging) {
             session_log_open(app->log, app->link.baud, app->link.framing, app->port);
         }
+
+        app->session_start_tick = furi_get_tick();
+        app->marker_count = 0;
     }
 
     console_view_set_term(app->console_view, app->term);
@@ -150,6 +178,15 @@ bool hermes_scene_console_on_event(void* context, SceneManagerEvent event) {
             console_view_set_health(
                 app->console_view, uart_tap_errors(app->tap), trigger_hits(app->trigger));
         }
+        return true;
+    }
+
+    if(event.type == SceneManagerEventTypeBack) {
+        /* Leaving for real: snapshot the session while the tap is still open,
+         * then show the summary in place of a bare pop. on_exit (state still
+         * Active) closes the link and flushes the log right after. */
+        hermes_console_build_stats(app);
+        scene_manager_next_scene(app->scene_manager, HermesSceneSummary);
         return true;
     }
 

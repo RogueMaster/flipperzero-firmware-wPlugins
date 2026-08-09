@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 /**
  * @file flock_db.h
  * Flock Safety / ALPR surveillance-device detection database and scoring.
@@ -35,6 +35,35 @@ typedef enum {
                               *   near-unique SSID "Confirmed". */
     FlockConfidenceConfirmed, /**< SSID matches a known Flock naming pattern. */
 } FlockConfidence;
+
+/**
+ * What KIND of surveillance device a detection is, independent of how sure we are.
+ *
+ * Kept separate from FlockConfidence on purpose: they answer different questions
+ * ("what is it" vs "how sure are we"), and folding an acoustic gunshot sensor into
+ * the ALPR list would make the app claim something it has not detected. Reported
+ * and persisted alongside the confidence rung.
+ */
+typedef enum {
+    FlockClassAlpr = 0, /**< Flock Safety ALPR camera (the default / historical case). */
+    FlockClassAcoustic, /**< SoundThinking (formerly ShotSpotter) acoustic sensor. */
+} FlockDevClass;
+
+/** Short human-readable label for a device class ("ALPR", "Acoustic"). */
+const char* flock_class_str(FlockDevClass cls);
+
+/** Long human-readable label for the detail screen. */
+const char* flock_class_long_str(FlockDevClass cls);
+
+/**
+ * True if the first 3 bytes of `mac` match a known SoundThinking / ShotSpotter
+ * OUI prefix. Disjoint from flock_oui_match() -- a MAC is one class or the other,
+ * never both.
+ */
+bool soundthinking_oui_match(const uint8_t* mac);
+
+/** Device class implied by a MAC's OUI. Defaults to FlockClassAlpr. */
+FlockDevClass flock_class_from_mac(const uint8_t* mac);
 
 /** Source of an IE-fingerprint match, so a caller can gate confidence by trust. */
 typedef enum {
@@ -108,18 +137,54 @@ void flock_db_set_extras(const FlockDbExtras* extras);
  */
 FlockConfidence flock_ssid_confidence(const char* ssid);
 
-/**
- * Combined confidence for an observed device.
- *
- * @param mac          6-byte MAC of the transmitter (must not be NULL).
- * @param ssid         Advertised/probed SSID, or NULL/"" if unknown.
- * @param is_probe_req True if this frame is a station-mode probe request
- *                     (the "phoning home" behaviour Flock cameras exhibit).
+/*
+ * NOTE: there is deliberately no combined flock_score() here. It existed until
+ * v0.48 with zero production callers while the real ladder lived in
+ * helpers/esp_parser.c, so its tests guarded code the device never ran. See the
+ * block comment in flock_db.c for the full rationale before adding one back.
  */
-FlockConfidence flock_score(const uint8_t* mac, const char* ssid, bool is_probe_req);
 
 /** Human-readable label for a confidence level. */
 const char* flock_confidence_str(FlockConfidence confidence);
+
+/**
+ * WHICH indicator put a detection on the list, so the operator can weigh it
+ * (GitHub issue #5). "Possible" on its own says how sure we are but not why,
+ * and an OUI-prefix lead and an SSID-pattern match deserve very different
+ * trust.
+ *
+ * Derived from stored evidence (MAC / SSID / IE-fp), never from a field the
+ * companion asserts, so it cannot inherit an over-claim from firmware that
+ * lags the app -- the same trust-boundary reasoning as parse_flock().
+ */
+typedef enum {
+    FlockMethodUnknown = 0, /**< nothing WE can re-derive matched (see below). */
+    FlockMethodSsid, /**< SSID matched a known Flock naming pattern. */
+    FlockMethodIeFp, /**< probe IE-skeleton fingerprint matched. */
+    FlockMethodOui, /**< MAC is in a Flock/SoundThinking-associated OUI table. */
+    FlockMethodBle, /**< BLE sighting: the companion classified it by mfg id / GATT. */
+} FlockMethod;
+
+/**
+ * Re-derive the strongest indicator behind a detection, strongest first:
+ * SSID pattern > IE fingerprint > OUI prefix. A BLE sighting (`ftype == 'L'`)
+ * reports FlockMethodBle when nothing stronger is re-derivable, because its
+ * classification happened on the companion (mfg id 0x09C8 / Raven GATT) and is
+ * not reconstructible from these fields.
+ *
+ * FlockMethodUnknown is a HONEST answer, not a failure: the companion scores
+ * probe-request behaviour we never see, so a "Likely" from a MAC outside our
+ * tables genuinely has no indicator this side can name.
+ *
+ * @param mac    6-byte MAC (NULL-safe).
+ * @param ssid   SSID as stored, may be NULL/empty.
+ * @param ftype  frame-type tag: P/B/R/O/F/L.
+ * @param ie_fp  IE-skeleton fingerprint, 0 = none.
+ */
+FlockMethod flock_method_of(const uint8_t* mac, const char* ssid, char ftype, uint32_t ie_fp);
+
+/** Short label for a detection method ("SSID name", "OUI prefix", ...). */
+const char* flock_method_str(FlockMethod method);
 
 #ifdef __cplusplus
 }

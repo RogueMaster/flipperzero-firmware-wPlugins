@@ -1,0 +1,13 @@
+App(
+    appid="ccid_test",
+    name="CCID Emu",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ccid_test_app",
+    stack_size=1 * 1024,
+    fap_icon="ccid.png",
+    fap_category="USB",
+    fap_author="Filipe Rodrigues",
+    fap_weburl="https://github.com/kidbomb/flipper-ccid-app",
+    fap_version="1.0",
+    fap_description="Emulates a USB smart card reader (CCID) with an ISO7816 T=0 card",
+)

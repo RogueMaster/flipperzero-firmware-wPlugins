@@ -126,6 +126,9 @@ NfcMagicApp* nfc_magic_app_alloc() {
         write_problems_get_view(instance->write_problems));
 
     instance->nfc = nfc_alloc();
+    // iso15693_poller is allocated on demand by the ISO15693 scenes (see nfc_magic_app_i.h).
+    instance->iso15693_poller = NULL;
+    instance->iso15693_data = iso15693_data_alloc();
     instance->scanner = nfc_magic_scanner_alloc(instance->nfc);
 
     return instance;
@@ -201,6 +204,7 @@ void nfc_magic_app_free(NfcMagicApp* instance) {
 
     gen4_free(instance->gen4_data);
 
+    iso15693_data_free(instance->iso15693_data);
     nfc_magic_scanner_free(instance->scanner);
     nfc_free(instance->nfc);
 

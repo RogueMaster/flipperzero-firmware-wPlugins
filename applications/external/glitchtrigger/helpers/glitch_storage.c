@@ -12,9 +12,9 @@
 #define GLITCH_LAST_PATH   GLITCH_DIR "/glitch.settings"
 
 #define GLITCH_PROFILE_MAGIC 0x47543031UL // "GT01"
-#define GLITCH_PROFILE_VER   3 // bumped when GlitchParams layout changes
+#define GLITCH_PROFILE_VER   4 // bumped when GlitchParams layout changes
 #define GLITCH_LAST_MAGIC    0x47544C53UL // "GTLS"
-#define GLITCH_LAST_VER      1
+#define GLITCH_LAST_VER      2 // bumped with the GlitchParams layout
 
 typedef struct {
     uint32_t magic;

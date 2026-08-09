@@ -6,7 +6,7 @@ sourcecode:
     subdir: flipper/hotspot-arcade
 id: hotspot_arcade
 category: GPIO
-short_description: Offline multiplayer party games on the ESP32-S2 WiFi board; friends join your WiFi and play in their phone browser.
+short_description: Offline multiplayer party games on an ESP32 WiFi board; friends join your WiFi and play in their phone browser.
 description: "@catalog/DESCRIPTION.md"
 changelog: "@catalog/changelog.md"
 screenshots:

@@ -1,5 +1,6 @@
 ADD_SCENE(rollcall, start, Start)
 ADD_SCENE(rollcall, capture, Capture)
+ADD_SCENE(rollcall, hunt, Hunt)
 ADD_SCENE(rollcall, verdict, Verdict)
 ADD_SCENE(rollcall, details, Details)
 ADD_SCENE(rollcall, settings, Settings)

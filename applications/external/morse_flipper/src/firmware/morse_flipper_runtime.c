@@ -585,7 +585,9 @@ static void morse_flipper_tick_markdown_scroll(MorseFlipperApp* app) {
     bool changed = false;
 
     if(app == NULL) return;
-    if(app->screen == MorseFlipperScreenHelp) {
+    if(app->screen == MorseFlipperScreenOnboarding) {
+        changed = cwmd_scroll_tick(&app->onboarding_md);
+    } else if(app->screen == MorseFlipperScreenHelp) {
         changed = cwmd_scroll_tick(&app->help_md);
     } else if(app->screen == MorseFlipperScreenAbout && app->about_mode == MorseFlipperAboutModeText) {
         changed = cwmd_scroll_tick(&app->about_md);
@@ -594,13 +596,51 @@ static void morse_flipper_tick_markdown_scroll(MorseFlipperApp* app) {
     if(changed) morse_flipper_view_dirty(app);
 }
 
+static bool morse_flipper_star_animation_active(const MorseFlipperApp* app, uint32_t now_ms) {
+    uint32_t elapsed;
+
+    if(app == NULL || app->star_anim_started_at == 0U) return false;
+    elapsed = now_ms - app->star_anim_started_at;
+
+    if(app->screen == MorseFlipperScreenSessionEnd) {
+        uint8_t score = morse_trainer_session_letter_percent(&app->trainer);
+        uint8_t stars = morse_flipper_progress_stars(score);
+        uint16_t score_wheel_ms =
+            score >= 100U ?
+                0U :
+                (MORSE_FLIPPER_SCORE_WHEEL_RANDOM_MS + MORSE_FLIPPER_SCORE_WHEEL_RANDOM_JITTER_MS +
+                 MORSE_FLIPPER_SCORE_WHEEL_SETTLE_MS + MORSE_FLIPPER_SCORE_WHEEL_SETTLE_JITTER_MS);
+        uint16_t duration =
+            (uint16_t)(score_wheel_ms + MORSE_FLIPPER_SCORE_SETTLED_PAUSE_MS +
+                       MORSE_FLIPPER_SCORE_SLIDE_MS + morse_flipper_star_anim_duration(stars));
+
+        if(elapsed < duration + MORSE_FLIPPER_STAR_REDRAW_MS) return true;
+        return score >= 99U;
+    }
+
+    return false;
+}
+
+static void morse_flipper_tick_star_animation(MorseFlipperApp* app, uint32_t now_ms) {
+    if(app == NULL) return;
+
+    if(!morse_flipper_star_animation_active(app, now_ms)) {
+        app->star_anim_next_redraw_ms = 0U;
+        return;
+    }
+
+    if(app->star_anim_next_redraw_ms == 0U || now_ms >= app->star_anim_next_redraw_ms) {
+        app->star_anim_next_redraw_ms = now_ms + MORSE_FLIPPER_STAR_REDRAW_MS;
+        morse_flipper_view_dirty(app);
+    }
+}
+
 void morse_flipper_poll(MorseFlipperApp* app) {
     uint32_t now_ms = furi_get_tick();
     bool old_tone = app->tone_on;
     bool old_busy = app->speaker_busy;
     uint8_t old_mask = app->input_mask;
     bool old_transport = app->transport_connected;
-    uint8_t old_session_flash = app->session_end_flash_phase;
     uint32_t pwm_tone_hz;
     bool raw_straight;
     bool tx_now;
@@ -716,18 +756,14 @@ void morse_flipper_poll(MorseFlipperApp* app) {
     }
     morse_flipper_maybe_finish_tx_group_raw(app, now_ms);
     morse_flipper_ham_log_flush_if_idle(app, now_ms);
+    morse_flipper_tick_star_animation(app, now_ms);
 
-    if(app->screen == MorseFlipperScreenSessionEnd && morse_flipper_session_end_flash(app))
-        app->session_end_flash_phase = (uint8_t)((now_ms / 250U) & 1U);
-    else
-        app->session_end_flash_phase = 0U;
     morse_flipper_update_sidetone(app);
     morse_flipper_sync_ptt(app, now_ms);
     morse_flipper_sync_backlight(app, now_ms);
 
     if(old_tone != app->tone_on || old_busy != app->speaker_busy || old_mask != app->input_mask ||
-       old_transport != app->transport_connected ||
-       old_session_flash != app->session_end_flash_phase) {
+       old_transport != app->transport_connected) {
         morse_flipper_view_dirty(app);
     }
 }
@@ -740,6 +776,7 @@ void morse_flipper_tick_callback(void* context) {
     morse_flipper_tick_trainer_playback(app, now_ms);
     morse_flipper_tick_about(app, now_ms);
     morse_flipper_tick_markdown_scroll(app);
+    morse_flipper_tick_progress_history_scroll(app, now_ms);
 
     if(app->preview_ticks > 0U) {
         app->preview_ticks--;

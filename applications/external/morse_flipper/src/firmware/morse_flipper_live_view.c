@@ -20,6 +20,11 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
         return;
     }
 
+    if(app->screen == MorseFlipperScreenOnboarding) {
+        morse_flipper_draw_onboarding(canvas, app);
+        return;
+    }
+
     if(app->screen == MorseFlipperScreenAbout) {
         morse_flipper_draw_about(canvas, app);
         return;
@@ -85,6 +90,16 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
 
     if(app->screen == MorseFlipperScreenTrainer) {
         morse_flipper_draw_trainer_setup(canvas, app);
+        return;
+    }
+
+    if(app->screen == MorseFlipperScreenProgress) {
+        morse_flipper_draw_progress(canvas, app);
+        return;
+    }
+
+    if(app->screen == MorseFlipperScreenStreakIntro) {
+        morse_flipper_draw_streak_intro(canvas, app);
         return;
     }
 

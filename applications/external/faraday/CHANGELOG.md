@@ -3,6 +3,27 @@
 All notable changes to Faraday are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2] — 2026-07-19
+
+Polish release — same measurements, a much nicer app to use.
+
+### Added
+
+- **Animated launch splash** — a branded intro on first open: the pouch containing a fob's radiating
+  waves, the wordmark and tagline, and a progress bar that auto-advances (~1.7 s). Any key skips it.
+  It plays once per launch and never replays when you back out of a test.
+- **Verdict that feels earned** — the comparison bars grow in, the attenuation figure tallies up from
+  zero and the pips fill as the result lands, instead of snapping on all at once.
+- **Pass/fail badge treatment** — a B-or-better grade is shown in a *filled* badge (a reward); a
+  poorer grade is only outlined (a warning). A top A+ grade gets a small corner sparkle.
+- **Livelier capture screens** — a marker sweeps the empty meter while the app is listening, and a
+  live sparkline traces the signal under the bar during the baseline capture.
+
+### Notes
+
+- Purely presentational. No measurement, threshold, radio path or saved-result format changed, so
+  v1.1 result logs remain valid and comparable.
+
 ## [1.1] — 2026-07-18
 
 ### Added

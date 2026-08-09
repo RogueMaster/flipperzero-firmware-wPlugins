@@ -32,6 +32,13 @@
 
 typedef struct Sonicare Sonicare;
 
+typedef enum {
+    SonicareResetStateInit,
+    SonicareResetStateSuccess,
+    SonicareResetStateFailedAuth,
+    SonicareResetStateFailedWrite,
+} SonicareResetState;
+
 struct Sonicare {
     ViewDispatcher* view_dispatcher;
     Gui* gui;
@@ -54,6 +61,11 @@ struct Sonicare {
     NfcListener* listener;
     NfcDevice* nfc_device;
     MfUltralightData* nfc_data;
+
+    // Reset flow
+    SonicareResetState reset_state;
+    uint8_t sonicare_uid[7];
+    uint8_t sonicare_mfg[10];
 };
 
 typedef enum {

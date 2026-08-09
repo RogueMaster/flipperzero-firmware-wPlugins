@@ -28,7 +28,18 @@
 #define DEFAULT_FLASH_TIMEOUT 3000
 #define LOAD_RAM_TIMEOUT_PER_MB 2000000
 #define MD5_TIMEOUT_PER_MB 8000
+/* LOCAL CHANGE (FlipDeFlock): overridable from application.fam.
+ *
+ * Upstream allows a region erase 10 s/MB. Espressif's own esptool allows
+ * 30 s/MB (ERASE_REGION_TIMEOUT_PER_MB), so on a flash chip that erases slower
+ * than ~100 KB/s this gives up while the chip is still working, and reports
+ * ESP_LOADER_ERROR_TIMEOUT from esp_loader_flash_start(). Observed on a ReksLab
+ * Tri-Board: a 1.45 MB image got 14.8 s and failed every time, before writing a
+ * single byte. Raising the ceiling only changes how long we WAIT before giving
+ * up -- a board that erases quickly is unaffected. */
+#ifndef ERASE_FLASH_TIMEOUT_PER_MB
 #define ERASE_FLASH_TIMEOUT_PER_MB 10000
+#endif
 
 #define FLASH_SECTOR_SIZE 4096
 #define ROM_FLASH_BLOCK_SIZE 1024

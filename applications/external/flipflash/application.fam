@@ -1,0 +1,13 @@
+App(
+    appid="flipflash",
+    name="FlipFlash",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipflash",
+    stack_size=8 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="Mushi0",
+    fap_weburl="https://github.com/Mushi0/FlippFlash",
+    fap_version="0.1",
+    fap_description="Flashcard app that reads flashcards from a text file and support removing cards from the deck. Useful for language learning.",
+)

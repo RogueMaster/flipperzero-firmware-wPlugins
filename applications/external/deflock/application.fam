@@ -3,13 +3,90 @@ App(
     name="DeFlock",
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
-    # Default glob (*.c*) minus the host-only unit tests, which include host
-    # mocks + gcc-only headers and must not be pulled into the .fap build.
-    sources=["*.c*", "!test"],
+    # Default glob (*.c*) minus the host-only unit tests and the plugin sources.
+    # A plugin is built as its own .fal (see the App() entries at the bottom);
+    # sweeping its .c into the app too would duplicate every symbol AND put the
+    # code back in the image we are trying to shrink.
+    sources=["*.c*", "!test", "!plugins"],
     entry_point="recon_site_survey_app",
-    stack_size=4 * 1024,
+    # 6 KB, raised from 4 KB in v0.48 on a measurement rather than a hunch.
+    # arm-none-eabi-gcc -fstack-usage reports flock_store_parse_line() at 1344
+    # bytes in a SINGLE frame (char f[15][69] scratch, since an escaped 32-byte
+    # SSID can reach 69 bytes). Its caller recon_hits_load() adds chunk[256] +
+    # line[192], so restoring saved hits costs ~1.9 KB before the storage API's
+    # own frames -- on the app's main thread, during startup.
+    #
+    # That was not overflowing 4 KB, but ~1.8 KB of headroom for a startup path
+    # that runs before any UI exists is thin, and a blown stack there is a crash
+    # on launch. The v0.48 BSS reclaim (three scene snapshot arrays moved off
+    # BSS, -5876 bytes measured) more than pays for this, so the app still nets
+    # ~3.8 KB better off. Shrinking that parser's scratch is the real fix; it was
+    # left alone deliberately because its truncation semantics are load-bearing
+    # and well covered by tests, and this is not the release to churn them in.
+    stack_size=6 * 1024,
     fap_icon_assets_symbol="flipdeflock",
     fap_icon="icon.png",
+    # esp-serial-flasher used to be a private lib of the APP. It moved to the
+    # flasher plugin below along with esp_flasher.c, taking a measured 10,230
+    # bytes (13.5%) out of the contiguous allocation the loader has to find at
+    # launch. Nothing in the app links against it any more; the Firmware screen
+    # calls through plugins/flasher_plugin_api.h instead.
+    fap_category="GPIO/ESP32",
+    fap_author="ReconGrunt",
+    fap_weburl="https://github.com/ReconGrunt/FlipDeFlock",
+    fap_version="0.71",
+    fap_description="FlipDeFlock: detect Flock/ALPR surveillance cameras via any "
+    "ESP32 (Marauder or companion FW), with GPS geotagging and "
+    "DeFlock-compatible reports.",
+)
+
+# ---- on-demand plugins ------------------------------------------------------
+# These are built as separate .fal images and embedded into flipdeflock.fap as
+# file assets (fal_embedded), so the install stays a single file. The firmware
+# extracts them next to the app and the app maps one in only while the screen
+# that needs it is open -- see helpers/plugin_host.h.
+#
+# WHY: the loader must find ONE contiguous allocation for the app image, and
+# users on heavier firmware were being refused with "Not enough RAM to run the
+# app" (issue #5). Moving rarely-reached code out of that image is worth more
+# than the same number of bytes saved anywhere else.
+
+App(
+    appid="flipdeflock_qr",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="qr_plugin_ep",
+    requires=["deflock"],
+    sources=["plugins/qr/*.c"],
+    fal_embedded=True,
+    fap_private_libs=[
+        # Nayuki QR Code generator (MIT), vendored under lib/qrcodegen. Used by
+        # the passive DeFlock phone-handoff (renders a QR locally; no network).
+        # Upstream verbatim — see the MIT header in the sources.
+        Lib(
+            name="qrcodegen",
+            sources=["qrcodegen.c"],
+            cflags=["-Wno-sign-compare", "-Wno-unused-parameter"],
+        ),
+    ],
+)
+
+App(
+    appid="flipdeflock_flasher",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flasher_plugin_ep",
+    requires=["deflock"],
+    sources=["plugins/flasher/*.c"],
+    fal_embedded=True,
+    # The cdefines below are duplicated from the Lib() rather than inherited:
+    # esp_flasher.c itself compiles against SERIAL_FLASHER_INTERFACE_UART and
+    # MD5_ENABLED, and a private lib's cdefines do not reach the app/plugin
+    # sources that include its headers. They were on the main App() before this
+    # moved, which is why they have to travel with it.
+    cdefines=[
+        "SERIAL_FLASHER_INTERFACE_UART=1",
+        "MD5_ENABLED=1",
+        "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+    ],
     fap_private_libs=[
         # Espressif esp-serial-flasher (Apache-2.0), vendored under
         # lib/esp-serial-flasher. Our port/worker/UI is original (GPL-3.0-or-later).
@@ -30,28 +107,14 @@ App(
                 "SERIAL_FLASHER_INTERFACE_UART=1",
                 "MD5_ENABLED=1",
                 "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+                # Match esptool's ERASE_REGION_TIMEOUT_PER_MB (30 s/MB) instead of
+                # the library's 10. A ReksLab Tri-Board erases a 1.45 MB region
+                # slower than the 14.8 s that 10 s/MB allowed, so every flash
+                # failed at esp_loader_flash_start() with a timeout, before a
+                # single byte was written. This only extends how long we wait.
+                "ERASE_FLASH_TIMEOUT_PER_MB=30000",
             ],
             cflags=["-Wno-sign-compare"],
         ),
-        # Nayuki QR Code generator (MIT), vendored under lib/qrcodegen.
-        # Used by the passive DeFlock phone-handoff (renders a QR locally; no
-        # network). Upstream verbatim — see the MIT header in the sources.
-        Lib(
-            name="qrcodegen",
-            sources=["qrcodegen.c"],
-            cflags=["-Wno-sign-compare", "-Wno-unused-parameter"],
-        ),
     ],
-    cdefines=[
-        "SERIAL_FLASHER_INTERFACE_UART=1",
-        "MD5_ENABLED=1",
-        "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
-    ],
-    fap_category="GPIO/ESP32",
-    fap_author="ReconGrunt",
-    fap_weburl="https://github.com/ReconGrunt/FlipDeFlock",
-    fap_version="0.43",
-    fap_description="FlipDeFlock: detect Flock/ALPR surveillance cameras via any "
-    "ESP32 (Marauder or companion FW), with NFC/RFID credential audit, GPS "
-    "geotagging and DeFlock-compatible reports.",
 )

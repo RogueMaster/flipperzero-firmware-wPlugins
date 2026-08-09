@@ -19,7 +19,7 @@ the rounds. The ESP32 board is the **referee**: it runs the WiFi access point, s
 the game to phones, and keeps the real-time game state. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Ten games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
+Sixteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
 reactions that float up on everyone's screen mid-game.
 
 **Whole-group** (scale to everyone in the room, ready-up lobby, shared live leaderboard):
@@ -34,12 +34,32 @@ reactions that float up on everyone's screen mid-game.
   Words are the scramble packs on the SD card, votable in the lobby.
 - **Reaction Duel** — fastest finger: wait for green, tap first to win, false-start and
   you're out for the round.
+- **Guess the Color** — a random color swatch appears; dial in its R/G/B (0-255) with a
+  slider per channel and submit. Closest guess wins the round, with a speed bonus, over
+  five rounds to a podium. You never see a preview of your color while guessing.
+- **Spectrum** — a Wavelength-style guessing game. Each round one player is the psychic:
+  they see a hidden target on a 0-100 spectrum between two opposing words (Cold to Hot)
+  and type a clue; everyone else slides a dial to guess where it lands. Points by
+  closeness, and the psychic scores by how well the group guesses, so a good clue pays
+  off. Six rounds, rotating psychic. Prompts are the spectrum packs on the SD card.
+- **Kiss Marry Kill** — each round a rotating chooser secretly labels three people (drawn
+  from the pack) Kiss, Marry, and Kill; everyone else predicts the chooser's assignment.
+  Points for matching positions, and the chooser scores by how well the group reads them.
+  Six rounds. People are the kmk packs on the SD card.
+- **Secrets** — each round shows a yes/no question. Everyone first secretly answers, then
+  secretly predicts how many of the group said "yes". Only the total yes-count is ever
+  revealed, never who answered what — an exact prediction scores 1, anything else 0.
+  Six rounds. Questions are the secrets packs on the SD card, votable in the lobby.
 
 **1v1 duels** (challenge a player, many matches at once, rematch button, wins score on
 the Flipper leaderboard):
 
 - **Connect Four**, **Tic-Tac-Toe**, **Dots & Boxes**, **Reversi/Othello**.
 - **Pong** — real-time rally with on-screen paddles.
+- **Battleship** — place a hidden fleet, then fire at the enemy grid; a hit lets you fire
+  again, sink all five ships to win.
+- **Chess** — full FIDE rules refereed on the board, 5-minute blitz clock per side; offer
+  or claim a draw, or resign.
 
 **Cooperative-ish:**
 
@@ -66,23 +86,30 @@ Pick a nickname and an emoji avatar, then land in the lobby:
 </p>
 
 The other phone games — the shared-lobby party games (Would You Rather, Word Scramble,
-Reaction Duel), Draw &amp; Guess, and a real-time Pong (animated below):
+Reaction Duel, Guess the Color), Draw &amp; Guess, and a real-time Pong (animated below):
 
 <p align="center">
   <img src="docs/img/web-wyr.gif" alt="Would You Rather: A/B poll with the live vote split" width="19%">
   <img src="docs/img/web-scramble.png" alt="Word Scramble: unscramble the letters and type the word" width="19%">
   <img src="docs/img/web-react.png" alt="Reaction Duel: fastest finger with reaction time and leaderboard" width="19%">
+</p>
+<p align="center">
+  <img src="docs/img/web-guesscolor.gif" alt="Guess the Color: dial in the swatch's RGB with a slider per channel, then the reveal" width="19%">
+  <img src="docs/img/web-spectrum.gif" alt="Spectrum: the psychic's clue points at a hidden target on a Cold-to-Hot dial; guessers slide to it" width="19%">
+  <img src="docs/img/web-kmk.gif" alt="Kiss Marry Kill: the chooser secretly labels three people Kiss/Marry/Kill and everyone predicts it" width="19%">
   <img src="docs/img/web-draw.gif" alt="Draw &amp; Guess: the drawer's canvas with strokes forming and the secret word" width="19%">
   <img src="docs/img/web-pong.gif" alt="Pong: real-time 1v1 rally with on-screen paddle controls" width="19%">
 </p>
 
-The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi):
+The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi, Battleship, Chess):
 
 <p align="center">
   <img src="docs/img/web-connect4.png" alt="Connect Four: 7x6 board mid-game, your turn" width="19%">
   <img src="docs/img/web-ttt.png" alt="Tic-Tac-Toe: 3x3 duel, your turn" width="19%">
   <img src="docs/img/web-dots.png" alt="Dots &amp; Boxes: claimed boxes and live score" width="19%">
   <img src="docs/img/web-reversi.gif" alt="Reversi/Othello: 8x8 board with legal-move hints and disc counts" width="19%">
+  <img src="docs/img/web-battleship.gif" alt="Battleship: place a fleet, then fire at the enemy grid with hits, misses, and sinks" width="19%">
+  <img src="docs/img/web-chess.gif" alt="Chess: full FIDE rules with legal-move hints, blitz clocks, and a checkmate finish" width="19%">
 </p>
 
 **On the Flipper** — the host device shows the app menu, the live broadcasting dashboard
@@ -104,6 +131,12 @@ carries the live event log):
   **official Flipper WiFi Dev Board (ESP32-S2)**, an **ESP32 WROOM** board, or an
   **ESP32-C5** board. You pick your board when flashing from the Flipper.
 
+**No Flipper?** There's a community port to the
+[**M5Stack Cardputer**](https://github.com/genkigenki/hotspot-arcade-cardputer) by
+[@genkigenki](https://github.com/genkigenki) — a single ESP32-S3 device that is both the
+access point and the host UI, so it needs no Flipper. It vendors this engine unmodified, so
+the games stay in sync.
+
 ## How it works
 
 ```
@@ -117,8 +150,12 @@ carries the live event log):
   mini-browsers are too limited for WebSockets, so it is a "tap to open in your browser"
   handoff).
 - The Flipper streams the (gzipped) web bundle and content packs to the ESP over a
-  framed UART protocol, then orchestrates rounds. Real-time game traffic stays on the
-  ESP and never crosses the slow UART. Protocol: [docs/PROTOCOL.md](docs/PROTOCOL.md).
+  framed UART protocol, then orchestrates rounds. The web bundle is stored in a **LittleFS
+  flash partition** on the ESP and served from flash (so it costs no RAM and survives a
+  reboot); the Flipper re-streams it only when it changes — the board reports the bundle's
+  CRC in its beacon and the Flipper skips the transfer when it already matches. Real-time
+  game traffic stays on the ESP and never crosses the slow UART. Protocol:
+  [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 ## Install
 
@@ -213,6 +250,9 @@ Headless tests: `sim/test/all.sh`. Memory-bug hunting: `sim/engine/build.sh --as
 sim/test/all.sh`. Full docs, including caveats and what still has to be hand-kept in sync
 with the firmware, in [sim/README.md](sim/README.md).
 
+New games and fixes are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the build/test
+loop and the "adding a game" checklist (a `pr-checklist` action reviews PRs against it).
+
 ## Usage
 
 On the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
@@ -228,13 +268,19 @@ On the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
 
 ## Content packs
 
-Four games are content-driven from plain-text files under `packs/`, one directory per
-game (`trivia/`, `wyr/`, `scramble/`, `draw/`). Format: `Key: value` lines, blocks split
-by `---` or a blank line, `Pack:` names the pack. The keys are per game — Trivia uses
-`Q:`, `A:`-`D:` and `Answer:`; Would You Rather uses `A:` / `B:`; Word Scramble and
-Draw &amp; Guess use `Word:`. Six packs per game ship inside the .fap; drop your own into
-`/ext/apps_data/hotspot_arcade/packs/<game>/` to add to them (yours win a name clash). See
-[packs/README.md](packs/README.md).
+Six games are content-driven from plain-text files under `packs/`, one directory per
+game (`trivia/`, `wyr/`, `scramble/`, `draw/`, `spectrum/`, `kmk/`). Format: `Key: value`
+lines, blocks split by `---` or a blank line, `Pack:` names the pack. The keys are per
+game — e.g. Trivia uses `Q:`, `A:`-`D:` and `Answer:`; Would You Rather uses `A:` / `B:`;
+Word Scramble and Draw &amp; Guess use `Word:`. Packs ship inside the .fap; drop your own
+into `/ext/apps_data/hotspot_arcade/packs/<game>/` to add to them (yours win a name
+clash). See [packs/README.md](packs/README.md).
+
+**Languages.** The host picks a language in Settings, and both the phone UI and the game
+content follow it. English is the default; **Brazilian Portuguese** ships as the first
+translation — the phone UI is fully localized, with a starter content pack per game.
+Translated packs live in a `<lang>/` subdirectory (`packs/<game>/pt-br/`), falling back to
+English per game, and content is UTF-8. The Flipper's own host menus stay English.
 
 ## Responsible use
 

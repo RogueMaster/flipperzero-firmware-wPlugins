@@ -7,24 +7,14 @@
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 <style>
   :root { color-scheme: dark; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    max-width: 720px; margin: 0 auto; padding: 24px 20px 64px;
-    background: #0d1117; color: #e6edf3; line-height: 1.55;
-  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 720px; margin: 0 auto; padding: 24px 20px 64px; background: #0d1117; color: #e6edf3; line-height: 1.55; }
   h1 { font-size: 1.6rem; margin: 0 0 4px; }
   .sub { color: #8b949e; margin: 0 0 24px; }
-  .note {
-    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
-    padding: 14px 16px; margin: 0 0 28px; font-size: .93rem;
-  }
+  .note { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px 16px; margin: 0 0 28px; font-size: .93rem; }
   .note b { color: #58a6ff; }
-  .board {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap;
-    border: 1px solid #30363d; border-radius: 8px;
-    padding: 14px 16px; margin: 0 0 12px; background: #161b22;
-  }
+  .board { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    border: 1px solid #30363d; border-radius: 8px; padding: 14px 16px; margin: 0 0 12px; background: #161b22; }
   .board .name { font-weight: 600; }
   .board .chip { color: #8b949e; font-size: .82rem; font-weight: 400; }
   esp-web-install-button { --esp-tools-button-color: #238636; }
@@ -35,7 +25,7 @@
 </head>
 <body>
 <h1>Tesla FSD — ESP32 Web Flasher</h1>
-<p class="sub">Flash a blank ESP32 board from your browser — no build tools, nothing to install.</p>
+<p class="sub">Flash a blank ESP32 board from your browser — no build tools, nothing to install. This page works either online or downloaded and opened locally.</p>
 
 <div class="note">
   <b>Before you start:</b>
@@ -45,46 +35,118 @@
     <li>Find your board below and press <b>Install</b>, then pick the serial port that appears.</li>
     <li>After flashing, the board creates its own Wi-Fi network. Connect to it and open <b>http://192.168.4.1</b> to control it.</li>
   </ol>
-  The board boots in <b>Listen-Only mode</b> (it cannot transmit) until you switch it to Active in the dashboard, so first-flash is safe.
+  The board boots in <b>Listen-Only mode</b> (it cannot transmit) until you switch it to Active in the dashboard, so first-flash is safe. An internet connection is needed so the flasher can download the firmware from GitHub.
 </div>
 
 <div class="board">
   <span class="name">M5Stack ATOM Lite (+ ATOMIC CAN) <span class="chip">· ESP32</span></span>
-  <esp-web-install-button manifest="manifest-m5stack-atom.json"></esp-web-install-button>
+  <esp-web-install-button data-env="m5stack-atom" data-chip="ESP32"></esp-web-install-button>
 </div>
 <div class="board">
   <span class="name">M5Stack ATOM Matrix <span class="chip">· ESP32</span></span>
-  <esp-web-install-button manifest="manifest-m5stack-atom-matrix.json"></esp-web-install-button>
+  <esp-web-install-button data-env="m5stack-atom-matrix" data-chip="ESP32"></esp-web-install-button>
 </div>
 <div class="board">
   <span class="name">M5Stack ATOM (swapped CAN pins) <span class="chip">· ESP32</span></span>
-  <esp-web-install-button manifest="manifest-m5stack-atom-swap-pins.json"></esp-web-install-button>
+  <esp-web-install-button data-env="m5stack-atom-swap-pins" data-chip="ESP32"></esp-web-install-button>
 </div>
 <div class="board">
   <span class="name">ESP32 DevKit + MCP2515 <span class="chip">· ESP32</span></span>
-  <esp-web-install-button manifest="manifest-esp32-mcp2515.json"></esp-web-install-button>
+  <esp-web-install-button data-env="esp32-mcp2515" data-chip="ESP32"></esp-web-install-button>
 </div>
 <div class="board">
   <span class="name">LilyGo ESP32 + CAN <span class="chip">· ESP32</span></span>
-  <esp-web-install-button manifest="manifest-esp32-lilygo.json"></esp-web-install-button>
+  <esp-web-install-button data-env="esp32-lilygo" data-chip="ESP32"></esp-web-install-button>
 </div>
 <div class="board">
   <span class="name">TTGO T-Display <span class="chip">· ESP32</span></span>
-  <esp-web-install-button manifest="manifest-ttgo-tdisplay.json"></esp-web-install-button>
+  <esp-web-install-button data-env="ttgo-tdisplay" data-chip="ESP32"></esp-web-install-button>
 </div>
 <div class="board">
   <span class="name">LilyGo T-2CAN (dual CAN) <span class="chip">· ESP32-S3</span></span>
-  <esp-web-install-button manifest="manifest-lilygo-t2can.json"></esp-web-install-button>
+  <esp-web-install-button data-env="lilygo-t2can" data-chip="ESP32-S3"></esp-web-install-button>
 </div>
 <div class="board">
   <span class="name">Waveshare ESP32-S3-CAN <span class="chip">· ESP32-S3</span></span>
-  <esp-web-install-button manifest="manifest-waveshare-s3-can.json"></esp-web-install-button>
+  <esp-web-install-button data-env="waveshare-s3-can" data-chip="ESP32-S3"></esp-web-install-button>
 </div>
+
+<p id="relnote" class="sub" style="margin:0 0 20px">Looking up the latest firmware release&hellip;</p>
+
+<script>
+// Resolve the newest release (including pre-releases) and point each button at
+// its merged image. GitHub's /releases/latest/ only ever resolves to a stable
+// release, so it 404s while the current builds are pre-releases — this keeps
+// both the hosted page and a downloaded copy pointing at the real newest build.
+(function () {
+  var REPO = 'hypery11/flipper-tesla-fsd';
+  var note = document.getElementById('relnote');
+  fetch('https://api.github.com/repos/' + REPO + '/releases?per_page=10')
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (rels) {
+      var rel = null;
+      for (var i = 0; i < rels.length; i++) {
+        if (rels[i].draft) continue;
+        var hasMerged = (rels[i].assets || []).some(function (a) {
+          return /-merged\.bin$/.test(a.name);
+        });
+        if (hasMerged) { rel = rels[i]; break; }
+      }
+      if (!rel) throw new Error('no release with flashable images');
+      var byName = {};
+      rel.assets.forEach(function (a) { byName[a.name] = a.browser_download_url; });
+      var missing = 0;
+      document.querySelectorAll('esp-web-install-button').forEach(function (btn) {
+        var env = btn.getAttribute('data-env');
+        var url = byName['tesla-fsd-' + env + '-merged.bin'];
+        if (!url) { missing++; btn.setAttribute('disabled', ''); return; }
+        btn.setAttribute('manifest', 'data:application/json;charset=utf-8,' +
+          encodeURIComponent(JSON.stringify({
+            name: 'Tesla FSD (' + env + ')',
+            version: rel.tag_name,
+            new_install_prompt_erase: true,
+            builds: [{
+              chipFamily: btn.getAttribute('data-chip'),
+              parts: [{ path: url, offset: 0 }]
+            }]
+          })));
+      });
+      // Build with DOM APIs, never innerHTML: the tag name and any error text
+      // come from outside this file, so they are inserted as text and can never
+      // be parsed as markup.
+      var tag = document.createElement('b');
+      tag.textContent = rel.tag_name;
+      note.textContent = 'Installing firmware from ';
+      note.appendChild(tag);
+      note.appendChild(document.createTextNode(
+        missing ? ' — ' + missing + ' board(s) have no image in this release.' : '.'));
+    })
+    .catch(function (e) {
+      var head = document.createElement('b');
+      head.style.color = '#f85149';
+      head.textContent = 'Could not look up the latest release (' + e.message + ').';
+      var link = document.createElement('a');
+      link.href = 'https://github.com/' + REPO + '/releases';
+      link.textContent = 'releases page';
+      note.textContent = '';
+      note.appendChild(head);
+      note.appendChild(document.createTextNode(
+        ' Check your internet connection and reload, or download the -merged.bin for ' +
+        'your board from the '));
+      note.appendChild(link);
+      note.appendChild(document.createTextNode(' and flash it with esptool at offset 0.'));
+    });
+})();
+</script>
 
 <footer>
   Not sure which board you have, or need the wiring to your car? Open an issue on
   <a href="https://github.com/hypery11/flipper-tesla-fsd">GitHub</a>.
-  Each Install flashes the latest release build for that board.
+  Each Install flashes the newest release build for that board.
+  <br><br>
+  This project is free and open source. If it saved you the cost of an aftermarket dongle,
+  you can <a href="https://fsd.fkey.id/">support the research</a> (multi-chain crypto) —
+  entirely optional.
 </footer>
 </body>
 </html>

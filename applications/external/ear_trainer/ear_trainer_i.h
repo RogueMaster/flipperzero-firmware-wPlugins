@@ -10,6 +10,7 @@
 #include <notification/notification_messages.h>
 
 #include "ear_events.h"
+#include "helpers/chords.h"
 #include "helpers/curriculum.h"
 #include "helpers/intervals.h"
 #include "helpers/progress.h"
@@ -61,11 +62,14 @@ typedef struct {
     uint8_t streak;
 
     uint8_t root_midi; /* first note of the current question */
-    uint8_t answer; /* semitones being tested */
-    bool descending; /* second note below the first */
-    uint8_t last_answer; /* avoids asking the same interval twice running */
+    uint8_t answer; /* interval / chord / scale id being tested */
+    bool descending; /* second note below the first (intervals only) */
+    uint8_t last_answer; /* avoids asking the same thing twice running */
 
-    uint8_t pool[IntervalCount]; /* intervals unlocked for this level */
+    uint8_t notes[MAX_SEQUENCE]; /* the run of notes to play, in order */
+    uint8_t note_count;
+
+    uint8_t pool[IntervalCount]; /* ids unlocked for this level */
     uint8_t pool_count;
     uint8_t queue[64]; /* pre-built question order */
     uint8_t queue_len;

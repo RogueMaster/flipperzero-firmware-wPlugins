@@ -22,6 +22,11 @@ typedef enum {
 
 typedef struct FSDState {
     TeslaHWVersion hw_version;
+    // Manual HW selection (#110). TeslaHW_Unknown = auto-detect (default); any
+    // other value pins hw_version and makes auto-detection a no-op. For taps that
+    // carry no 0x398 (many Model 3 / Model Y) detection can only guess, so let an
+    // owner who knows their car say so instead of guessing harder.
+    TeslaHWVersion hw_override;
     int speed_profile;
     int speed_offset;
     bool fsd_enabled;
@@ -186,6 +191,17 @@ typedef struct FSDState {
 
     // --- upstream feature flags ---
     bool enhanced_autopilot; // when true, mux=1 also sets bit46 (EAP/summon)
+    // Summon EU Unlock (ev-open-can-tools summon-eu-unlock): 0x3FD mux1 clears
+    // bit19 (EU summon restriction) and sets bit47 (summon enable), on HW3 + HW4.
+    // Opt-in, default OFF. // TODO: add Summon EU Unlock to Flipper menu
+    bool summon_unlock;
+    // AP branch/tier selector (0x3FD DAS_autopilotControl mux1, UI_apmv3Branch,
+    // bits 40-42 = byte5 bits 0-2). Enum: 0=LIVE 1=STAGE 2=DEV 3=STAGE2 4=EAP
+    // 5=DEMO. Opt-in, default OFF (0xFF sentinel = don't touch). Experimental and
+    // non-persistent: writing this only changes which AP software branch/tier the
+    // UI presents while injection is live; it reverts the instant injection stops.
+    // Real-world effect is unverified.
+    uint8_t apmv3_branch;
     bool speed_profile_locked; // when true, follow distance won't override profile
     uint8_t hw4_offset; // HW4 mux=2 speed offset override (0 = no override)
 
@@ -230,13 +246,21 @@ typedef struct FSDState {
     bool assist_hands_off; // bit14: UI-level hands-on disable
     bool assist_dev_mode; // bit5: UI_dasDeveloper flag
     bool assist_lhd_override; // bit40-41: force left-hand drive
+    bool assist_rhd_override; // bit41 UI_drivingSide = RHD; opt-in, default OFF; mutually exclusive with LHD override
 
     // --- 0x3FD mux1 extras ---
     bool assist_show_lane_graph; // bit45: lane visualization on non-FSD tier
     bool assist_tlssc_bit38; // bit38 on mux0: explicit TLSSC enable (complementary to 0x331)
+    bool continue_on_green; // bit39 on mux0 (UI_fsdContinueOnGreenWithCIPV): continue through a green light behind a lead car without stalk confirm; opt-in, default OFF, pairs with TLSSC/bit38
 
-    // --- telemetry disable (0x3F8 bit43) ---
-    bool assist_telemetry_off; // force UI_enableTripTelemetry=0
+    // --- Telemetry Off (experimental, opt-in, default OFF) ---
+    // Clears the telemetry/logging flags this tool can REACH on the buses it taps:
+    //   0x3F8 UI_driverAssistControl bits 19/42/43/44/55 (clip/trip/road-segment)
+    //   0x3FD DAS_autopilotControl mux1 bits 48/50 (cabin-camera / China AP telemetry)
+    // These are plain bit-clears (no checksum). This is a REACHABLE SUBSET only —
+    // it does NOT touch Vehicle-bus ECU log-upload frames and does NOT guarantee
+    // reduced detection. See the omission notes in fsd_handler.c.
+    bool assist_telemetry_off;
 
     // --- energy consumption (0x33A, read-only) ---
     float energy_wh_per_km;

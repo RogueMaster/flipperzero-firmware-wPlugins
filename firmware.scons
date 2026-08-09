@@ -33,6 +33,7 @@ env = ENV.Clone(
         Dir("!applications/system/js_app/packages"),
         Dir("!applications/external/nfc_sniffer"),
         Dir("!applications/external/gs1_rfid_parser"),
+        Dir("!applications/external/hotspot_arcade/assets/packs"),
         # Avoid merge conflicts
         # Dir("!applications/external"),
     ],

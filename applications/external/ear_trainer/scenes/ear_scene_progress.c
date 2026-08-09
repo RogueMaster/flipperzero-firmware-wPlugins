@@ -8,32 +8,34 @@ void ear_scene_progress_on_enter(void* context) {
     char line[48];
 
     widget_reset(widget);
-    widget_add_string_element(widget, 64, 11, AlignCenter, AlignBottom, FontPrimary, "Progress");
+    widget_add_string_element(widget, 2, 9, AlignLeft, AlignBottom, FontPrimary, "Progress");
 
-    static const char* const mode_names[MODE_COUNT] = {"Asc", "Desc", "Mix"};
+    uint32_t pct = p->answered ? (p->correct * 100) / p->answered : 0;
+    snprintf(line, sizeof(line), "%lu%% of %lu", pct, p->answered);
+    widget_add_string_element(widget, 126, 9, AlignRight, AlignBottom, FontSecondary, line);
+
+    /* one compact row per mode: level reached and stars collected */
+    static const char* const short_names[MODE_COUNT] = {"Asc", "Desc", "Mix", "Chord", "Scale"};
     for(uint8_t m = 0; m < MODE_COUNT; m++) {
+        uint8_t levels = curriculum_level_count(m);
         uint8_t total_stars = 0;
-        for(uint8_t l = 0; l < LEVEL_COUNT; l++)
+        for(uint8_t l = 0; l < levels; l++)
             total_stars += p->stars[m][l];
         snprintf(
             line,
             sizeof(line),
-            "%-5s level %u/%u   %u/%u stars",
-            mode_names[m],
+            "%-5s  lvl %u/%u   %u/%u *",
+            short_names[m],
             p->unlocked[m],
-            LEVEL_COUNT,
+            levels,
             total_stars,
-            LEVEL_COUNT * 3);
+            (uint8_t)(levels * 3));
         widget_add_string_element(
-            widget, 2, 23 + m * 10, AlignLeft, AlignCenter, FontSecondary, line);
+            widget, 2, (uint8_t)(20 + m * 9), AlignLeft, AlignBottom, FontSecondary, line);
     }
 
-    uint32_t pct = p->answered ? (p->correct * 100) / p->answered : 0;
-    snprintf(line, sizeof(line), "%lu/%lu right (%lu%%)", p->correct, p->answered, pct);
-    widget_add_string_element(widget, 2, 55, AlignLeft, AlignCenter, FontSecondary, line);
-
     snprintf(line, sizeof(line), "best streak %u", p->best_streak);
-    widget_add_string_element(widget, 126, 55, AlignRight, AlignCenter, FontSecondary, line);
+    widget_add_string_element(widget, 126, 63, AlignRight, AlignBottom, FontSecondary, line);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, EarViewWidget);
 }

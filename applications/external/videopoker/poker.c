@@ -23,6 +23,10 @@ Sometimes duplicate cards will show up. there is a function to test this. I shou
 
 #define TAG "Video Poker"
 
+/* Bank ceiling, at roughly half of INT_MAX so the bet arithmetic (+/-10 steps
+and doubling) stays inside int - a larger multiplier would need a lower cap */
+#define MAX_BANK 1000000000
+
 static void Shake(void) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     notification_message(notification, &sequence_single_vibro);
@@ -56,9 +60,9 @@ typedef struct {
     int minbet;
 } PokerPlayer;
 
-/* GameState 
+/* GameState
 0=Splash/help, OK button (later on up/down for rules or settings)
-1=cards down, betting enabled, left/right to change bet, OK to confirm
+1=cards down, betting enabled: left/right +/-10, up/down double/halve, hold up/down for half the bank, OK to confirm
 2=first hand, holding enabled, left/right to pick card, OK to hold/unhold card, down to confirm
 3=second hand, only confirm to claim rewards
 4=game over/won 
@@ -373,6 +377,12 @@ static int check_for_dupes(PokerPlayer* app) {
     return 1;
 }
 
+/* Keep the bet between the table minimum and the player's bank (bank wins if it drops below the minimum) */
+static void clamp_bet(PokerPlayer* app) {
+    if(app->bet < app->minbet) app->bet = app->minbet;
+    if(app->bet > app->score) app->bet = app->score;
+}
+
 /* Functions that recognize winning hands */
 
 /*
@@ -585,7 +595,7 @@ void poker_draw_callback(Canvas* canvas, void* ctx) {
     if(poker_player->GameState == 1) {
         snprintf(buffer, sizeof(buffer), "Bet:%d", poker_player->bet);
         canvas_draw_str_aligned(canvas, 0, 0, AlignLeft, AlignTop, buffer);
-        snprintf(buffer, sizeof(buffer), "<*> Place Bet");
+        snprintf(buffer, sizeof(buffer), "<^v*> Place Bet");
         canvas_draw_str_aligned(canvas, 0, 9, AlignLeft, AlignTop, buffer);
 
         for(int i = 0; i < 5; ++i) {
@@ -720,12 +730,6 @@ int32_t video_poker_app(void* p) {
         if(status == FuriStatusOk) {
             if(event.type == InputTypePress) {
                 switch(event.key) {
-                case InputKeyUp:
-                    if(poker_player->GameState == 1) {
-                        poker_player->bet = poker_player->score;
-                    }
-                    Shake();
-                    break;
                 case InputKeyDown:
                     if(poker_player->GameState == 2) {
                         playcard(poker_player);
@@ -738,10 +742,12 @@ int32_t video_poker_app(void* p) {
                     break;
                 case InputKeyLeft:
                     if(poker_player->GameState == 1) {
-                        if(poker_player->bet >= poker_player->minbet + 10) {
+                        if(poker_player->bet - 10 >= poker_player->minbet) {
                             poker_player->bet -= 10;
+                        } else if(poker_player->bet > poker_player->minbet) {
+                            poker_player->bet = poker_player->minbet;
                         } else {
-                            poker_player->bet = poker_player->score;
+                            poker_player->bet = poker_player->score; /* wrap to all-in */
                         }
                     } else if(poker_player->selected > 0 && poker_player->GameState == 2) {
                         poker_player->selected--;
@@ -755,8 +761,9 @@ int32_t video_poker_app(void* p) {
                         if(poker_player->bet < poker_player->score) {
                             poker_player->bet += 10;
                         } else {
-                            poker_player->bet = poker_player->minbet;
+                            poker_player->bet = poker_player->minbet; /* wrap to minimum */
                         }
+                        clamp_bet(poker_player);
                     }
                     if(poker_player->selected < 4 && poker_player->GameState == 2) {
                         poker_player->selected++;
@@ -782,14 +789,19 @@ int32_t video_poker_app(void* p) {
                                  ->held[poker_player->selected]; //cursed and bad pls replace
                     } else if(poker_player->GameState == 3) {
                         /* accept your fate */
-                        if(recognize(poker_player) != 9) {
-                            poker_player->score +=
-                                poker_player->bet * paytable[recognize(poker_player)];
+                        int hand_rank = recognize(poker_player);
+                        if(hand_rank != 9) {
+                            /* Both the payout and the new bank total overflow int at very
+                            large bets - as reported that corrupted the score and dropped a
+                            winning hand on the game-over screen. Work the total out in 64
+                            bits and saturate: a bank this large is already meaningless, and
+                            widening score would ripple through every %d */
+                            int64_t total = (int64_t)poker_player->score +
+                                            (int64_t)poker_player->bet * paytable[hand_rank];
+                            poker_player->score = total > MAX_BANK ? MAX_BANK : (int)total;
                         }
                         poker_player->GameState = 1;
-                        if(poker_player->bet > poker_player->score) {
-                            poker_player->bet = poker_player->score;
-                        }
+                        clamp_bet(poker_player);
                         poker_player->held[0] = 0;
                         poker_player->held[1] = 0;
                         poker_player->held[2] = 0;
@@ -818,6 +830,25 @@ int32_t video_poker_app(void* p) {
                     break;
                 default:
                     break;
+                }
+            } else if(event.type == InputTypeShort && poker_player->GameState == 1) {
+                /* Double or halve the bet */
+                if(event.key == InputKeyUp) {
+                    if(poker_player->bet <= poker_player->score / 2) {
+                        poker_player->bet *= 2;
+                    } else {
+                        poker_player->bet = poker_player->score;
+                    }
+                } else if(event.key == InputKeyDown) {
+                    poker_player->bet /= 2;
+                    clamp_bet(poker_player);
+                }
+            } else if(event.type == InputTypeLong && poker_player->GameState == 1) {
+                /* Bet half the bank */
+                if(event.key == InputKeyUp || event.key == InputKeyDown) {
+                    poker_player->bet = poker_player->score / 2;
+                    clamp_bet(poker_player);
+                    Shake();
                 }
             }
         }

@@ -7,11 +7,11 @@ static void nfc_tools_scene_write_contact_tel_callback(void* context) {
 
 void nfc_tools_scene_write_contact_tel_on_enter(void* context) {
     NfcToolsApp* app = context;
-    TextInput* ti = app->text_input;
+    Keyboard* ti = app->keyboard;
 
-    text_input_set_header_text(ti, NTS_INPUT_PHONE);
+    keyboard_set_header_text(ti, NTS_INPUT_PHONE);
 
-    text_input_set_result_callback(
+    keyboard_set_result_callback(
         ti,
         nfc_tools_scene_write_contact_tel_callback,
         app,
@@ -19,8 +19,8 @@ void nfc_tools_scene_write_contact_tel_on_enter(void* context) {
         sizeof(app->ndef_buf4),
         false);
 
-    text_input_set_minimum_length(ti, 0);
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewTextInput);
+    keyboard_set_minimum_length(ti, 0);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewKeyboard);
 }
 
 bool nfc_tools_scene_write_contact_tel_on_event(void* context, SceneManagerEvent event) {
@@ -37,5 +37,5 @@ bool nfc_tools_scene_write_contact_tel_on_event(void* context, SceneManagerEvent
 
 void nfc_tools_scene_write_contact_tel_on_exit(void* context) {
     NfcToolsApp* app = context;
-    text_input_reset(app->text_input);
+    keyboard_reset(app->keyboard);
 }

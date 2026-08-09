@@ -1,0 +1,66 @@
+DEFAULT:
+  perform_check: yes
+  allowed_licenses:
+    - Apache-2.0
+  license_for_new_files: Apache-2.0
+  new_notice_c: |
+    /*
+     * SPDX-FileCopyrightText: {years} Espressif Systems (Shanghai) CO LTD
+     *
+     * SPDX-License-Identifier: {license}
+     */
+  new_notice_python: |
+    # SPDX-FileCopyrightText: {years} Espressif Systems (Shanghai) CO LTD
+    # SPDX-License-Identifier: {license}
+  espressif_copyright: '{years} Espressif Systems (Shanghai) CO LTD'
+
+stubs:
+  include:
+    - 'src/stubs/'
+    - 'private_include/esp_stubs.h'
+  allowed_licenses:
+    - Apache-2.0 OR MIT
+  license_for_new_files: Apache-2.0 OR MIT
+  new_notice_c: |
+    // SPDX-FileCopyrightText: {years} Espressif Systems (Shanghai) CO LTD
+    // SPDX-License-Identifier: {license}
+  espressif_copyright: '{years} Espressif Systems (Shanghai) CO LTD'
+
+examples:
+  include:
+    - 'examples/'
+  allowed_licenses:
+    - Apache-2.0
+    - Unlicense
+    - CC0-1.0
+    - Unlicense OR CC0-1.0
+  license_for_new_files: Unlicense OR CC0-1.0
+  new_notice_c: |
+    /*
+     * SPDX-FileCopyrightText: {years} Espressif Systems (Shanghai) CO LTD
+     *
+     * SPDX-License-Identifier: {license}
+     */
+  new_notice_python: |
+    # SPDX-FileCopyrightText: {years} Espressif Systems (Shanghai) CO LTD
+    # SPDX-License-Identifier: {license}
+  espressif_copyright: '{years} Espressif Systems (Shanghai) CO LTD'
+
+ignore:
+  perform_check: no
+  include:
+    # Third-party MD5 implementation (BSD licensed, Jouni Malinen)
+    - 'src/md5_hash.c'
+    - 'include/md5_ctx.h'
+    - 'private_include/md5_hash.h'
+    # Third-party test framework
+    - 'test/catch.hpp'
+    # Zephyr port — KT-Elektronik copyright (Apache-2.0), not Espressif-owned
+    - 'port/zephyr_port.c'
+    - 'port/zephyr_port.h'
+    # Zephyr example — mixed KT-Elektronik + Espressif authorship
+    - 'examples/zephyr_example/src/main.c'
+    # Hello-world target firmware source — CC0-1.0, used only for test builds
+    - 'test/target-example-src/'
+    # Zephyr Kconfig (Zephyr project file, no license header expected)
+    - 'zephyr/Kconfig'

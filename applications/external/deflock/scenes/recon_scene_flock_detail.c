@@ -1,123 +1,152 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "../recon_app_i.h"
 
-#include <math.h>
+#include <string.h>
+
+// The screen itself lives in views/flock_detail_view.c (a canvas view, so the
+// RSSI row can draw the same graphical bars as the list -- GitHub issue #5).
+// This scene owns only the two actions those buttons trigger.
 
 typedef enum {
     DetailCustomToggleMark = 200,
+    DetailCustomLockIn = 201,
+    DetailCustomDelete = 202,
 } DetailCustomEvent;
 
-static void
-    recon_scene_flock_detail_button_cb(GuiButtonType type, InputType input, void* context) {
+static void recon_scene_flock_detail_mark_cb(void* context) {
     ReconApp* app = context;
-    if(input == InputTypeShort && type == GuiButtonTypeCenter) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomToggleMark);
-    }
+    view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomToggleMark);
 }
 
-static void recon_scene_flock_detail_render(ReconApp* app) {
-    Widget* widget = app->widget;
-    widget_reset(widget);
+static void recon_scene_flock_detail_lock_cb(void* context) {
+    ReconApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomLockIn);
+}
 
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    if(app->selected < 0 || app->selected >= (int)app->flock_count) {
-        furi_mutex_release(app->mutex);
-        widget_add_string_element(
-            widget, 64, 32, AlignCenter, AlignCenter, FontPrimary, "No selection");
-        return;
-    }
-    FlockEntry e = app->flock[app->selected];
-    furi_mutex_release(app->mutex);
-
-    const char* src;
-    switch(e.ftype) {
-    case 'L':
-        src = "BLE";
-        break;
-    case 'P':
-        src = "probe";
-        break;
-    case 'F':
-        src = "probe-fp"; // B1 IE-fingerprint device-class match
-        break;
-    case 'B':
-        src = "beacon";
-        break;
-    case 'R':
-        src = "p-resp";
-        break;
-    default:
-        src = "RF";
-        break;
-    }
-
-    FuriString* s = furi_string_alloc();
-    furi_string_printf(
-        s,
-        "%s  %s\n"
-        "%02X:%02X:%02X:%02X:%02X:%02X\n"
-        "SSID: %s\n"
-        "RSSI %d  Ch %u  Seen %lu  via %s",
-        flock_confidence_str(e.confidence),
-        e.marked ? "(MARKED)" : "",
-        e.mac[0],
-        e.mac[1],
-        e.mac[2],
-        e.mac[3],
-        e.mac[4],
-        e.mac[5],
-        e.ssid[0] ? e.ssid : "(hidden)",
-        e.rssi,
-        e.channel,
-        (unsigned long)e.count,
-        src);
-
-    if(!isnan(e.lat) && !isnan(e.lon)) {
-        furi_string_cat_printf(s, "\nGPS %.5f, %.5f", (double)e.lat, (double)e.lon);
-    } else {
-        furi_string_cat(s, "\nGPS: no fix");
-    }
-
-    // Show the probe IE-fingerprint when present: a confirmed unit's fp can be
-    // dropped into signatures.json ("ie_fps") to catch its MAC-randomized twins.
-    if(e.ie_fp != 0) {
-        furi_string_cat_printf(s, "\nIE-fp: %08lx", (unsigned long)e.ie_fp);
-    }
-
-    widget_add_text_scroll_element(widget, 0, 0, 128, 44, furi_string_get_cstr(s));
-    furi_string_free(s);
-
-    widget_add_button_element(
-        widget,
-        GuiButtonTypeCenter,
-        e.marked ? "Unmark" : "Mark",
-        recon_scene_flock_detail_button_cb,
-        app);
+static void recon_scene_flock_detail_del_cb(void* context) {
+    ReconApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomDelete);
 }
 
 void recon_scene_flock_detail_on_enter(void* context) {
     ReconApp* app = context;
-    recon_scene_flock_detail_render(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
+    flock_detail_view_reset(app->flock_detail_view); // a new selection starts at the top
+    flock_detail_view_set_callbacks(
+        app->flock_detail_view,
+        recon_scene_flock_detail_mark_cb,
+        recon_scene_flock_detail_lock_cb,
+        recon_scene_flock_detail_del_cb,
+        app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewFlockDetail);
 }
 
 bool recon_scene_flock_detail_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
-    bool consumed = false;
-    if(event.type == SceneManagerEventTypeCustom && event.event == DetailCustomToggleMark) {
+
+    if(event.type == SceneManagerEventTypeTick) {
+        // The parent scan scene is only suspended, not exited, so the ESP worker
+        // keeps feeding this entry -- repaint so RSSI and the sighting count are
+        // live while you are looking at them. Detection alerts are delivered from
+        // the dispatcher tick, not from here.
+        flock_detail_view_refresh(app->flock_detail_view);
+        return true;
+    }
+    if(event.type != SceneManagerEventTypeCustom) return false;
+
+    if(event.event == DetailCustomToggleMark) {
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         if(app->selected >= 0 && app->selected < (int)app->flock_count) {
             app->flock[app->selected].marked = !app->flock[app->selected].marked;
         }
         furi_mutex_release(app->mutex);
-        recon_scene_flock_detail_render(app);
-        consumed = true;
+        flock_detail_view_refresh(app->flock_detail_view);
+        return true;
     }
-    return consumed;
+
+    if(event.event == DetailCustomDelete) {
+        // The view already took the confirmation, so this just does it.
+        //
+        // Persistence made a false positive permanent (issue #5): before hits.csv
+        // you cleared one by backing out and rescanning, and afterwards there was
+        // no way at all. Deleting an entry the radios can still hear only removes
+        // the RECORD -- it reappears on the next sighting, which is the same
+        // behaviour the pre-persistence rescan had and is not a mute list.
+        bool removed = false;
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        if(app->selected >= 0 && app->selected < (int)app->flock_count) {
+            size_t idx = (size_t)app->selected;
+            for(size_t i = idx; i + 1 < app->flock_count; i++) {
+                app->flock[i] = app->flock[i + 1];
+            }
+            app->flock_count--;
+            if(app->selected >= (int)app->flock_count) {
+                app->selected = app->flock_count ? (int)app->flock_count - 1 : 0;
+            }
+            removed = true;
+        }
+        furi_mutex_release(app->mutex);
+
+        if(removed) {
+            // Write through immediately. Deferring to scan_session_stop() would
+            // mean a battery pull between here and leaving the scan screen
+            // resurrects the entry -- and "I deleted that" surviving a reboot is
+            // the entire point of the request.
+            recon_hits_save_after_delete(app);
+            scene_manager_previous_scene(app->scene_manager); // this entry is gone
+        }
+        return true;
+    }
+
+    if(event.event == DetailCustomLockIn) {
+        // Copy this entry into the Locator target slots -- the same fields the
+        // Locator's own marked-device picker fills, so the homing HUD needs no
+        // special case. Kind/channel follow that picker exactly: a BLE sighting
+        // ('L') homes on the BLE radio, everything else on Wi-Fi at its channel.
+        bool valid = false;
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        if(app->selected >= 0 && app->selected < (int)app->flock_count) {
+            const FlockEntry* e = &app->flock[app->selected];
+            memcpy(app->locate_mac, e->mac, 6);
+            app->locate_kind = (e->ftype == 'L') ? 'b' : 'w';
+            app->locate_ch = e->channel;
+            if(e->ssid[0]) {
+                // %.21s, not %s: "Flock " + 21 + NUL is exactly the 28 bytes of
+                // locate_label, so the bound is stated rather than left to
+                // snprintf's own clamp. Same truncation point as before.
+                snprintf(app->locate_label, sizeof(app->locate_label), "Flock %.21s", e->ssid);
+            } else {
+                snprintf(
+                    app->locate_label,
+                    sizeof(app->locate_label),
+                    "Flock %02X%02X%02X",
+                    e->mac[3],
+                    e->mac[4],
+                    e->mac[5]);
+            }
+            valid = true;
+        }
+        furi_mutex_release(app->mutex);
+        // The Locator is companion-only; navigate unconditionally and let
+        // ReconSceneLocatorHome show its own Marauder guard screen rather than
+        // duplicating that check here. Backing out of the HUD lands back on this
+        // screen, and one more Back returns to the Flock list, whose on_enter
+        // re-sends `flockcombo` and so restarts the general sweep -- the round
+        // trip issue #6 asked for.
+        //
+        // That kickoff is deliberately NOT gated on a fresh session. It used to
+        // be, and it worked only because the Locator's on_exit tore the whole
+        // link down, which made the return look like a new session. The link now
+        // survives the round trip (see helpers/scan_session.h), so the only thing
+        // that still needs undoing is the `stop` the Locator sent the companion.
+        // Gate the kickoff again and this path silently returns to a live link
+        // attached to an idle board: a Flock screen that scans nothing.
+        if(valid) scene_manager_next_scene(app->scene_manager, ReconSceneLocatorHome);
+        return true;
+    }
+    return false;
 }
 
 void recon_scene_flock_detail_on_exit(void* context) {
-    ReconApp* app = context;
-    widget_reset(app->widget);
+    UNUSED(context);
 }

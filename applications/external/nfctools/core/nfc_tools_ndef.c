@@ -181,36 +181,62 @@ static void ndef_decode_vcard(const uint8_t* payload, size_t len, FuriString* ou
 
 // ─── Structured NDEF record population ───────────────────────────────────────
 
-static void ndef_build_uri_value(const uint8_t* payload, size_t len, char* out, size_t out_sz) {
-    if(len < 1) return;
+// *truncated (optional) is set when a printable source char could not fit in
+// out[] — the QR code is then suppressed and the detail view flags it.
+static void ndef_build_uri_value(
+    const uint8_t* payload,
+    size_t len,
+    char* out,
+    size_t out_sz,
+    bool* truncated) {
+    if(truncated) *truncated = false;
+    if(len < 1 || out_sz == 0) return;
     uint8_t pfx_id = payload[0];
     size_t written = 0;
     if(pfx_id < NDEF_URI_PREFIXES_COUNT) {
         written = strlcpy(out, ndef_uri_prefixes[pfx_id], out_sz);
+        if(written >= out_sz) { // prefix alone overflowed (defensive; never happens)
+            written = out_sz - 1;
+            if(truncated) *truncated = true;
+        }
     }
-    for(size_t i = 1; i < len && written + 1 < out_sz; i++) {
+    for(size_t i = 1; i < len; i++) {
         uint8_t c = payload[i];
-        if(c >= 0x20 && c < 0x7F) {
+        if(c < 0x20 || c >= 0x7F) continue;
+        if(written + 1 < out_sz) {
             out[written++] = (char)c;
+        } else {
+            if(truncated) *truncated = true;
+            break;
         }
     }
     if(written < out_sz) out[written] = '\0';
 }
 
-static void ndef_build_text_value(const uint8_t* payload, size_t len, char* out, size_t out_sz) {
-    if(len < 1) return;
+static void ndef_build_text_value(
+    const uint8_t* payload,
+    size_t len,
+    char* out,
+    size_t out_sz,
+    bool* truncated) {
+    if(truncated) *truncated = false;
+    if(len < 1 || out_sz == 0) return;
     uint8_t status = payload[0];
     uint8_t lang_len = status & 0x3F;
     if((size_t)(1 + lang_len) >= len) return;
     const uint8_t* text = payload + 1 + lang_len;
     size_t text_len = len - 1 - lang_len;
     size_t written = 0;
-    for(size_t i = 0; i < text_len && written + 1 < out_sz; i++) {
+    for(size_t i = 0; i < text_len; i++) {
         uint8_t c = text[i];
-        if(c >= 0x20 && c < 0x7F) {
-            out[written++] = (char)c;
-        } else if((c == '\n' || c == '\r') && written + 1 < out_sz) {
-            out[written++] = '\n';
+        bool printable = (c >= 0x20 && c < 0x7F);
+        bool newline = (c == '\n' || c == '\r');
+        if(!printable && !newline) continue;
+        if(written + 1 < out_sz) {
+            out[written++] = printable ? (char)c : '\n';
+        } else {
+            if(truncated) *truncated = true;
+            break;
         }
     }
     if(written < out_sz) out[written] = '\0';
@@ -248,14 +274,16 @@ static __attribute__((noinline)) void ndef_fill_record(
     // Decode according to type
     if(tnf == 0x01 && type_len == 1 && type[0] == 'U') {
         rec->type = NfcToolsNdefTypeUri;
-        ndef_build_uri_value(payload, payload_len, rec->value, sizeof(rec->value));
-        rec->has_qr = (rec->value[0] != '\0');
+        ndef_build_uri_value(
+            payload, payload_len, rec->value, sizeof(rec->value), &rec->truncated);
+        rec->has_qr = (rec->value[0] != '\0') && !rec->truncated;
         snprintf(rec->summary, sizeof(rec->summary), "URL: %.34s", rec->value);
 
     } else if(tnf == 0x01 && type_len == 1 && type[0] == 'T') {
         rec->type = NfcToolsNdefTypeText;
-        ndef_build_text_value(payload, payload_len, rec->value, sizeof(rec->value));
-        rec->has_qr = (rec->value[0] != '\0');
+        ndef_build_text_value(
+            payload, payload_len, rec->value, sizeof(rec->value), &rec->truncated);
+        rec->has_qr = (rec->value[0] != '\0') && !rec->truncated;
         snprintf(rec->summary, sizeof(rec->summary), "Text: %.33s", rec->value);
 
     } else if(tnf == 0x02 && type_len == 23 && memcmp(type, "application/vnd.wfa.wsc", 23) == 0) {
@@ -587,8 +615,13 @@ uint8_t* nfc_tools_ndef_build(NfcToolsApp* app, size_t* out_size) {
     case NdefTypeWifi: {
         tnf = 0x02;
         type = "application/vnd.wfa.wsc";
-        uint8_t ssid_len = (uint8_t)strlen(app->ndef_buf1);
-        uint8_t pass_len = (uint8_t)strlen(app->ndef_buf2);
+        // Clamp to protocol limits (SSID ≤ 32, PSK ≤ 64) so the single-byte WSC
+        // length fields and the 0x100E container length can't wrap, whatever the
+        // (now 1024-byte) input buffers hold.
+        size_t ssid_raw = strlen(app->ndef_buf1);
+        size_t pass_raw = strlen(app->ndef_buf2);
+        uint8_t ssid_len = (uint8_t)(ssid_raw > 32 ? 32 : ssid_raw);
+        uint8_t pass_len = (uint8_t)(pass_raw > 64 ? 64 : pass_raw);
         payload_len = ssid_len + pass_len + 39;
         payload = pay_it = malloc(payload_len);
 
@@ -951,6 +984,7 @@ uint8_t* nfc_tools_ndef_build(NfcToolsApp* app, size_t* out_size) {
     flags |= (1 << 6); // ME (Message End)
     flags |= tnf;
     size_t type_len = strlen(type);
+    if(type_len > 255) type_len = 255; // NDEF type-length field is a single byte
 
     bool short_record = (payload_len < 0xFF);
     if(short_record) flags |= (1 << 4); // SR

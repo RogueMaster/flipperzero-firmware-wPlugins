@@ -22,6 +22,7 @@
 #include "views/fingerprint_view.h"
 #include "views/survey_view.h"
 #include "views/sweep_view.h"
+#include "views/watch_view.h"
 #include "scenes/specter_scene.h"
 
 #define SPECTER_VERSION FAP_VERSION
@@ -34,6 +35,7 @@ typedef enum {
     SpecterViewSweep,
     SpecterViewFingerprint,
     SpecterViewSurvey,
+    SpecterViewWatch,
     SpecterViewTextBox,
     SpecterViewSettings,
     SpecterViewWidget, // shared by About and the clear-logbook confirmation
@@ -46,6 +48,7 @@ typedef enum {
     SpecterCustomEventFingerprintSave, // OK on the fingerprint screen logs the finding
     SpecterCustomEventFingerprintReset, // long OK restarts the measurement
     SpecterCustomEventSurveyRestart, // OK re-runs the survey
+    SpecterCustomEventWatchReset, // OK re-arms the watch
 } SpecterCustomEvent;
 
 typedef struct {
@@ -63,6 +66,7 @@ typedef struct {
     SweepView* sweep_view;
     FingerprintView* fingerprint_view;
     SurveyView* survey_view;
+    WatchView* watch_view;
 
     FieldDetector* detector;
 
@@ -80,6 +84,7 @@ void specter_notify_gone(SpecterApp* app); // reader left
 void specter_notify_click(SpecterApp* app); // single geiger tick
 void specter_notify_present_led(SpecterApp* app); // steady "locked" LED blink
 void specter_notify_saved(SpecterApp* app); // a logbook write landed
+void specter_notify_wake(SpecterApp* app); // pull the backlight on (watch mode)
 
 /* Stealth mode: hold the backlight dark for the duration of a sweep so the
  * Flipper does not glow while you are the one doing the looking. */

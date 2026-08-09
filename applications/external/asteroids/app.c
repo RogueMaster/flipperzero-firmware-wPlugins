@@ -13,7 +13,8 @@
 #include <math.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
-#include "asteroids_icons.h"
+#include <toolbox/saved_struct.h>
+#include <asteroids_icons.h>
 
 #define TAG                    "Asteroids" // Used for logging
 #define DEBUG_MSG              0
@@ -29,10 +30,14 @@
 #define POWERUPSTTL            400 /* Max powerup time to live, in ticks. */
 #define MAXDRONES              1 /* Max drone buddies allowed */
 #define DRONE_TTL              300 /* Drone time to live, in ticks. */
-#define DRONE_FIRE_RATE        20 /* Drone fire rate in ticks. */
+#define DRONE_FIRE_RATE        20 /* Minimum ticks between drone fire attempts. */
 #define SHIP_HIT_ANIMATION_LEN 15
-#define SAVING_DIRECTORY       "/ext/apps_data/asteroids"
+#define SHIP_MAX_SPEED         6 /* Ship speed limit, in pixels per tick. */
+#define SHIELD_RADIUS          8 /* Radius of the shield around the ship. */
+#define SAVING_DIRECTORY       STORAGE_APP_DATA_PATH_PREFIX
 #define SAVING_FILENAME        SAVING_DIRECTORY "/game_asteroids.save"
+#define SAVE_MAGIC             0xA5 /* Marks the save file as ours. */
+#define SAVE_VERSION           1
 #define SPLASH_SCREEN_DURATION 3000 /* Splash screen duration in milliseconds */
 #ifndef PI
 #define PI 3.14159265358979f
@@ -87,7 +92,8 @@ typedef struct Asteroid {
 typedef struct Drone {
     float x, y, vx, vy, rot; /* Fields like ship. */
     uint32_t ttl; /* Time to live, in ticks. */
-    uint32_t last_fire_tick; /* Last time drone fired. */
+    uint32_t last_fire_tick; /* Game tick the drone last fired at, or a made
+                                up earlier one so that it can fire at once. */
     bool active; /* Is the drone active? */
 } Drone;
 
@@ -98,6 +104,7 @@ typedef struct AsteroidsApp {
     ViewPort* view_port; /* We just use a raw viewport and we render
                                 everything into the low level canvas. */
     FuriMessageQueue* event_queue; /* Keypress events go here. */
+    NotificationApp* notification; /* Vibration and LED feedback. */
 
     /* Game state. */
     int running; /* Once false exists the app. */
@@ -156,14 +163,17 @@ const NotificationSequence sequence_brake = {
     NULL,
 };
 
+/* Played once per collision. It has to carry the whole crash on its own,
+ * so it is longer than the sequences used for firing and braking. */
 const NotificationSequence sequence_crash = {
     &message_red_255,
 
     &message_vibro_on,
     // &message_note_g5, // Play sound but currently disabled
-    &message_delay_25,
+    &message_delay_100,
     // &message_note_e5,
     &message_vibro_off,
+    &message_delay_250,
     &message_sound_off,
     NULL,
 };
@@ -250,8 +260,8 @@ void spawn_drone_buddy(AsteroidsApp* app);
 /* ============================ 2D drawing ================================== */
 
 /* This structure represents a polygon of at most POLY_MAX points.
- * The function draw_poly() is able to render it on the screen, rotated
- * by the amount specified. */
+ * The function draw_poly_wrapped() is able to render it on the screen,
+ * rotated by the amount specified. */
 #define POLY_MAX 8
 typedef struct Poly {
     float x[POLY_MAX];
@@ -273,8 +283,8 @@ Poly DronePoly = {{-2, 0, 2}, {-2, 4, -2}, 3};
 void rotate_poly(Poly* rot, Poly* poly, float a) {
     /* We want to compute sin(a) and cos(a) only one time
      * for every point to rotate. It's a slow operation. */
-    float sin_a = (float)sin(a);
-    float cos_a = (float)cos(a);
+    float sin_a = sinf(a);
+    float cos_a = cosf(a);
     for(uint32_t j = 0; j < poly->points; j++) {
         rot->x[j] = poly->x[j] * cos_a - poly->y[j] * sin_a;
         rot->y[j] = poly->y[j] * cos_a + poly->x[j] * sin_a;
@@ -294,60 +304,158 @@ void lfsr_next(unsigned char* prev) {
 
 /* ================================ Render ================================ */
 
-/* Safely clamp coordinate to valid canvas bounds */
-static inline int clamp_coordinate(float coord, int min_val, int max_val) {
-    if(coord < min_val) return min_val;
-    if(coord > max_val) return max_val;
-    return (int)coord;
+/* Anything at a position in the playfield is drawn through the two helpers
+ * below, which keep it inside the screen and wrap it around the edges. The
+ * canvas_*() calls elsewhere in this section are the score, the lives and
+ * the other fixed furniture, which is placed by hand and stays put. */
+
+/* Where a point lies with respect to the screen, for the line clipping
+ * below. */
+#define CLIP_LEFT  1
+#define CLIP_RIGHT 2
+#define CLIP_ABOVE 4
+#define CLIP_BELOW 8
+
+/* Called for both ends of every line drawn, so it is worth keeping in line
+ * rather than letting -Os make a call out of four comparisons. */
+static FURI_ALWAYS_INLINE int clip_flags(float x, float y) {
+    int flags = 0;
+    if(x < 0)
+        flags |= CLIP_LEFT;
+    else if(x > SCREEN_XRES - 1)
+        flags |= CLIP_RIGHT;
+    if(y < 0)
+        flags |= CLIP_ABOVE;
+    else if(y > SCREEN_YRES - 1)
+        flags |= CLIP_BELOW;
+    return flags;
 }
 
-/* Render the polygon 'poly' at x,y, rotated by the specified angle. */
-void draw_poly(Canvas* const canvas, Poly* poly, int x, int y, float a) {
-    Poly rot;
-    rotate_poly(&rot, poly, a);
-    canvas_set_color(canvas, ColorBlack);
-    for(uint32_t j = 0; j < rot.points; j++) {
-        uint32_t a = j;
-        uint32_t b = j + 1;
-        if(b == rot.points) b = 0;
+/* Draw the part of the segment that falls on the screen, and nothing at all
+ * if none of it does (Cohen-Sutherland clipping).
+ *
+ * No coordinate outside the screen may reach the canvas. canvas_draw_line()
+ * takes signed coordinates, but the display library behind it holds them as
+ * unsigned 16 bit values, so a point one pixel off the left edge arrives as
+ * x=65535. The line to it is then walked pixel position by pixel position
+ * across the entire width of the display: tens of thousands of them, in a
+ * callback that runs on the GUI service thread. */
+static void draw_line_clipped(Canvas* const canvas, float x1, float y1, float x2, float y2) {
+    int flags1 = clip_flags(x1, y1);
+    int flags2 = clip_flags(x2, y2);
 
-        /* Calculate final coordinates with bounds checking */
-        int x1 = clamp_coordinate(x + rot.x[a], 0, SCREEN_XRES - 1);
-        int y1 = clamp_coordinate(y + rot.y[a], 0, SCREEN_YRES - 1);
-        int x2 = clamp_coordinate(x + rot.x[b], 0, SCREEN_XRES - 1);
-        int y2 = clamp_coordinate(y + rot.y[b], 0, SCREEN_YRES - 1);
+    /* Each pass pulls one end of the segment onto one of the four edges.
+     * Four passes are enough to either fit the segment on the screen or
+     * show that none of it is visible; the two beyond that are slack, so
+     * that an interpolated coordinate rounding a hair past an edge cannot
+     * use up the budget. */
+    for(int pass = 0; pass < 6 && (flags1 | flags2); pass++) {
+        if(flags1 & flags2) return; /* Both ends are beyond the same edge. */
 
-        /* Only draw if coordinates are reasonable (prevent extreme off-screen rendering) */
-        if(abs(x - SCREEN_XRES / 2) < SCREEN_XRES * 2 &&
-           abs(y - SCREEN_YRES / 2) < SCREEN_YRES * 2) {
-            canvas_draw_line(canvas, x1, y1, x2, y2);
+        /* At least one end is off screen, or the loop would have ended;
+         * take that one, the first end before the second. The reject above
+         * leaves the other end on the near side of whichever edge we cross,
+         * so neither division below is by zero. */
+        bool clip_first = flags1 != 0;
+        int flags = clip_first ? flags1 : flags2;
+        float x, y;
+        if(flags & (CLIP_ABOVE | CLIP_BELOW)) {
+            y = flags & CLIP_ABOVE ? 0 : SCREEN_YRES - 1;
+            x = x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+        } else {
+            x = flags & CLIP_LEFT ? 0 : SCREEN_XRES - 1;
+            y = y1 + (y2 - y1) * (x - x1) / (x2 - x1);
         }
+
+        if(clip_first) {
+            x1 = x;
+            y1 = y;
+            flags1 = clip_flags(x1, y1);
+        } else {
+            x2 = x;
+            y2 = y;
+            flags2 = clip_flags(x2, y2);
+        }
+    }
+
+    /* Out of passes. Nothing in the game can produce a segment that needs
+     * this many, so rather than pass on a coordinate that was never checked,
+     * drop it. */
+    if(flags1 | flags2) return;
+
+    canvas_draw_line(canvas, (int)x1, (int)y1, (int)x2, (int)y2);
+}
+
+/* Draw a single dot, wrapped around the edges of the screen. This is the
+ * integer counterpart of wrap_coordinate(). Note that a line cannot be
+ * wrapped this way: wrapping its two ends separately would turn a segment
+ * near an edge into one drawn right across the screen, which is the bug
+ * draw_line_clipped() exists to avoid. Wrapping belongs to whole shapes,
+ * clipping to the segments they are drawn from; a dot is both at once. */
+static void draw_dot_wrapped(Canvas* const canvas, int x, int y) {
+    x %= SCREEN_XRES;
+    y %= SCREEN_YRES;
+    canvas_draw_dot(canvas, x < 0 ? x + SCREEN_XRES : x, y < 0 ? y + SCREEN_YRES : y);
+}
+
+/* Draw the outline of an already rotated polygon, centered at x,y. */
+static void draw_poly_outline(Canvas* const canvas, const Poly* rot, float x, float y) {
+    for(uint32_t j = 0; j < rot->points; j++) {
+        uint32_t next = j + 1 == rot->points ? 0 : j + 1;
+        draw_line_clipped(
+            canvas, x + rot->x[j], y + rot->y[j], x + rot->x[next], y + rot->y[next]);
     }
 }
 
-/* Validate that coordinates are safe for drawing */
-static inline bool is_coordinate_safe(float x, float y) {
-    return (x >= -10 && x <= SCREEN_XRES + 10 && y >= -10 && y <= SCREEN_YRES + 10);
+/* Render the polygon 'poly' at x,y, rotated by the specified angle, for
+ * something in the playfield. The playfield wraps around, so a shape hanging
+ * over an edge is drawn again on the opposite side and comes into view there
+ * as it leaves. */
+void draw_poly_wrapped(Canvas* const canvas, Poly* poly, float x, float y, float a) {
+    Poly rot;
+    rotate_poly(&rot, poly, a);
+    canvas_set_color(canvas, ColorBlack);
+
+    /* Extent of the rotated shape, to know which edge it hangs over. */
+    float min_x = rot.x[0], max_x = rot.x[0];
+    float min_y = rot.y[0], max_y = rot.y[0];
+    for(uint32_t j = 1; j < rot.points; j++) {
+        min_x = MIN(min_x, rot.x[j]);
+        max_x = MAX(max_x, rot.x[j]);
+        min_y = MIN(min_y, rot.y[j]);
+        max_y = MAX(max_y, rot.y[j]);
+    }
+
+    /* One wrapped position per axis is enough: nothing in this game is
+     * anywhere near half a screen across, so no shape can hang over two
+     * opposite edges at once. */
+    float dx = 0, dy = 0;
+    if(x + min_x < 0)
+        dx = SCREEN_XRES;
+    else if(x + max_x > SCREEN_XRES - 1)
+        dx = -SCREEN_XRES;
+    if(y + min_y < 0)
+        dy = SCREEN_YRES;
+    else if(y + max_y > SCREEN_YRES - 1)
+        dy = -SCREEN_YRES;
+
+    /* Once in the middle of the screen, twice along an edge, four times in
+     * a corner. The copies that fall outside are dropped by the clipping. */
+    draw_poly_outline(canvas, &rot, x, y);
+    if(dx != 0) draw_poly_outline(canvas, &rot, x + dx, y);
+    if(dy != 0) draw_poly_outline(canvas, &rot, x, y + dy);
+    if(dx != 0 && dy != 0) draw_poly_outline(canvas, &rot, x + dx, y + dy);
 }
 
 /* A bullet is just a + pixels pattern. A single pixel is not
  * visible enough. */
 void draw_bullet(Canvas* const canvas, Bullet* b) {
-    /* Safety check to prevent drawing at invalid coordinates */
-    if(!is_coordinate_safe(b->x, b->y)) {
-        FURI_LOG_W(TAG, "Unsafe bullet coordinates: x=%.2f, y=%.2f", (double)b->x, (double)b->y);
-        return;
-    }
-
-    int x = clamp_coordinate(b->x, 0, SCREEN_XRES - 1);
-    int y = clamp_coordinate(b->y, 0, SCREEN_YRES - 1);
-
-    /* Draw bullet with bounds checking for each dot */
-    if(x > 0) canvas_draw_dot(canvas, x - 1, y);
-    if(x < SCREEN_XRES - 1) canvas_draw_dot(canvas, x + 1, y);
-    canvas_draw_dot(canvas, x, y);
-    if(y > 0) canvas_draw_dot(canvas, x, y - 1);
-    if(y < SCREEN_YRES - 1) canvas_draw_dot(canvas, x, y + 1);
+    int x = (int)b->x, y = (int)b->y;
+    draw_dot_wrapped(canvas, x, y);
+    draw_dot_wrapped(canvas, x - 1, y);
+    draw_dot_wrapped(canvas, x + 1, y);
+    draw_dot_wrapped(canvas, x, y - 1);
+    draw_dot_wrapped(canvas, x, y + 1);
 }
 
 /* Draw an asteroid. The asteroid shapes is computed on the fly and
@@ -356,52 +464,49 @@ void draw_bullet(Canvas* const canvas, Bullet* b) {
  * to the asteroid size, perturbate according to the asteroid shape
  * seed, and finally draw it rotated of the right amount. */
 void draw_asteroid(Canvas* const canvas, Asteroid* ast) {
-    /* Safety check for asteroid coordinates */
-    if(!is_coordinate_safe(ast->x, ast->y)) {
-        FURI_LOG_W(
-            TAG, "Unsafe asteroid coordinates: x=%.2f, y=%.2f", (double)ast->x, (double)ast->y);
-        return;
-    }
-
-    /* Validate asteroid size to prevent extreme shapes */
-    if(ast->size < 1 || ast->size > 50) {
-        FURI_LOG_W(TAG, "Invalid asteroid size: %.2f", (double)ast->size);
-        return;
-    }
+    /* Sine and cosine of j * 2*PI/8, for j in 0..7: the eight directions an
+     * asteroid outline is built along. They never change, only the distance
+     * of each point from the center does, so they are kept here instead of
+     * being computed again for every asteroid on every frame. */
+    static const float unit_sin[8] = {
+        0, .70710678f, 1, .70710678f, 0, -.70710678f, -1, -.70710678f};
+    static const float unit_cos[8] = {
+        1, .70710678f, 0, -.70710678f, -1, -.70710678f, 0, .70710678f};
 
     Poly ap;
 
-    /* Start with what is kinda of a circle. Note that this could be
-     * stored into a template and copied here, to avoid computing
-     * sin() / cos(). But the Flipper can handle it without problems. */
+    /* Start with what is kinda of a circle. */
     uint8_t r = ast->shape_seed;
     for(int j = 0; j < 8; j++) {
-        float a = (PI * 2) / 8 * j;
-
         /* Before generating the point, to make the shape unique generate
          * a random factor between .7 and 1.3 to scale the distance from
          * the center. However this asteroid should have its unique shape
          * that remains always the same, so we use a predictable PRNG
          * implemented by an 8 bit shift register. */
         lfsr_next(&r);
-        float scaling = .7 + ((float)r / 255 * .6);
+        float scaling = .7f + r * (.6f / 255);
 
-        ap.x[j] = (float)sin(a) * ast->size * scaling;
-        ap.y[j] = (float)cos(a) * ast->size * scaling;
+        ap.x[j] = unit_sin[j] * ast->size * scaling;
+        ap.y[j] = unit_cos[j] * ast->size * scaling;
     }
     ap.points = 8;
-    draw_poly(canvas, &ap, ast->x, ast->y, ast->rot);
+    draw_poly_wrapped(canvas, &ap, ast->x, ast->y, ast->rot);
 }
 
 /* Draw small ships in the top-right part of the screen, one for
  * each left live. */
 void draw_left_lives(Canvas* const canvas, AsteroidsApp* app) {
+    /* Stored already pointing up, so that it does not have to be turned
+     * through half a circle again for every life on every frame. Part of
+     * the score line rather than the playfield, so it does not wrap. */
+    static const Poly mini_ship = {{2, 0, -2}, {2, -4, 2}, 3};
+
     int lives = app->lives;
     int x = SCREEN_XRES - 5;
 
-    Poly mini_ship = {{-2, 0, 2}, {-2, 4, -2}, 3};
+    canvas_set_color(canvas, ColorBlack);
     while(lives--) {
-        draw_poly(canvas, &mini_ship, x, 6, PI);
+        draw_poly_outline(canvas, &mini_ship, x, 6);
         x -= 6;
     }
 }
@@ -437,7 +542,7 @@ void draw_powerUp_RemainingLife(Canvas* canvas, PowerUp* const p, int y_offset) 
 
     if(p->ttl > 0) {
         canvas_set_color(canvas, ColorBlack);
-        int remaining = ceil(((float)p->ttl / (float)POWERUPSTTL) * (float)progress_bar_width);
+        int remaining = ceilf(((float)p->ttl / (float)POWERUPSTTL) * (float)progress_bar_width);
 
         if(remaining > 0) {
             canvas_draw_line(
@@ -520,7 +625,10 @@ void draw_powerUps(Canvas* const canvas, PowerUp* const p) {
         //@todo Uknown Power Up Type Detected
         // Draw box with letter U inside
         canvas_draw_str(canvas, p->x, p->y, "?");
-        FURI_LOG_E(TAG, "Unexpected Power Up Type Detected: %i", p->powerUpType);
+        /* Debug level on purpose: this runs in the draw callback, and
+         * logging there is a blocking write on the GUI service thread. The
+         * question mark on the screen is the signal. */
+        FURI_LOG_D(TAG, "Unexpected Power Up Type Detected: %i", p->powerUpType);
         break;
     }
 }
@@ -528,35 +636,42 @@ void draw_powerUps(Canvas* const canvas, PowerUp* const p) {
 void draw_shield(Canvas* const canvas, AsteroidsApp* app) {
     if(isPowerUpActive(app, PowerUpTypeShield) == false) return;
 
-    /* Safety check for shield coordinates */
-    if(!is_coordinate_safe(app->ship.x, app->ship.y)) {
-        return; /* Skip drawing shield if ship coordinates are invalid */
-    }
-
+    /* The shield follows the ship around the edges of the screen, which
+     * canvas_draw_circle() cannot do, so plot it dot by dot (midpoint
+     * circle) and let each dot wrap on its own. */
     canvas_set_color(canvas, ColorXOR);
-    int x = clamp_coordinate(app->ship.x, 8, SCREEN_XRES - 8);
-    int y = clamp_coordinate(app->ship.y, 8, SCREEN_YRES - 8);
-    // canvas_draw_disc(canvas, x, y, 4);
-    canvas_draw_circle(canvas, x, y, 8);
+    int cx = (int)app->ship.x, cy = (int)app->ship.y;
+    int x = SHIELD_RADIUS, y = 0, err = 1 - SHIELD_RADIUS;
+
+    while(x >= y) {
+        draw_dot_wrapped(canvas, cx + x, cy + y);
+        draw_dot_wrapped(canvas, cx + y, cy + x);
+        draw_dot_wrapped(canvas, cx - y, cy + x);
+        draw_dot_wrapped(canvas, cx - x, cy + y);
+        draw_dot_wrapped(canvas, cx - x, cy - y);
+        draw_dot_wrapped(canvas, cx - y, cy - x);
+        draw_dot_wrapped(canvas, cx + y, cy - x);
+        draw_dot_wrapped(canvas, cx + x, cy - y);
+
+        y++;
+        if(err < 0) {
+            err += 2 * y + 1;
+        } else {
+            x--;
+            err += 2 * (y - x) + 1;
+        }
+    }
 }
 
 /* Draw a drone buddy */
 void draw_drone(Canvas* const canvas, Drone* drone) {
-    /* Safety check for drone coordinates */
-    if(!is_coordinate_safe(drone->x, drone->y)) {
-        FURI_LOG_W(
-            TAG, "Unsafe drone coordinates: x=%.2f, y=%.2f", (double)drone->x, (double)drone->y);
-        return;
-    }
-
-    /* Draw drone with a different color/style to distinguish from main ship */
+    /* Drawn in the same color as the ship: what tells the two apart is the
+     * smaller outline and the dot in the middle. */
     canvas_set_color(canvas, ColorBlack);
-    draw_poly(canvas, &DronePoly, drone->x, drone->y, drone->rot);
+    draw_poly_wrapped(canvas, &DronePoly, drone->x, drone->y, drone->rot);
 
     /* Draw a small dot in the center to make it more visible */
-    int x = clamp_coordinate(drone->x, 0, SCREEN_XRES - 1);
-    int y = clamp_coordinate(drone->y, 0, SCREEN_YRES - 1);
-    canvas_draw_dot(canvas, x, y);
+    draw_dot_wrapped(canvas, (int)drone->x, (int)drone->y);
 }
 
 /* Render the splash screen with credits */
@@ -616,29 +731,18 @@ void render_callback(Canvas* const canvas, void* ctx) {
     draw_left_lives(canvas, app);
 
     /* Draw ship, asteroids, bullets. */
-    /* Safety check for ship coordinates before rendering */
-    if(!is_coordinate_safe(app->ship.x, app->ship.y)) {
-        FURI_LOG_E(
-            TAG,
-            "Ship coordinate corruption detected: x=%.2f, y=%.2f",
-            (double)app->ship.x,
-            (double)app->ship.y);
-        /* Emergency reset ship to center */
-        app->ship.x = SCREEN_XRES / 2;
-        app->ship.y = SCREEN_YRES / 2;
-        app->ship.vx = 0;
-        app->ship.vy = 0;
-    }
-
-    draw_poly(canvas, &ShipPoly, app->ship.x, app->ship.y, app->ship.rot);
+    draw_poly_wrapped(canvas, &ShipPoly, app->ship.x, app->ship.y, app->ship.rot);
 
     /* Draw shield if active. */
     draw_shield(canvas, app);
 
-    if(key_pressed_time(app, InputKeyUp) > 0) {
-        notification_message(furi_record_open(RECORD_NOTIFICATION), &sequence_thrusters);
-        draw_poly(canvas, &ShipFirePoly, app->ship.x, app->ship.y, app->ship.rot);
-    }
+    /* Draw the exhaust flame while the thruster is on. The buzz that goes
+     * with it belongs in the game tick: this callback runs on the GUI
+     * service thread, where notification_message() waiting for room in the
+     * notification queue holds up every redraw and every key press the
+     * service has to deliver, this app's included. */
+    if(app->pressed[InputKeyUp])
+        draw_poly_wrapped(canvas, &ShipFirePoly, app->ship.x, app->ship.y, app->ship.rot);
 
     for(int j = 0; j < app->bullets_num; j++)
         draw_bullet(canvas, &app->bullets[j]);
@@ -680,20 +784,11 @@ void render_callback(Canvas* const canvas, void* ctx) {
             canvas_draw_str(canvas, 36, 9, "High Score");
         }
 
-        // Convert highscore to string
-        int length = snprintf(NULL, 0, "%lu", app->highscore);
-        char* str_high_score = malloc(length + 1);
-        snprintf(str_high_score, length + 1, "%lu", app->highscore);
-
-        // Get length to center on screen
-        int nDigits = 0;
-        if(app->highscore > 0) {
-            nDigits = floor(log10(app->highscore)) + 1;
-        }
-
         // Draw highscore centered
-        canvas_draw_str(canvas, (SCREEN_XRES / 2) - (nDigits * 2), 20, str_high_score);
-        free(str_high_score);
+        char str_high_score[16];
+        snprintf(str_high_score, sizeof(str_high_score), "%lu", app->highscore);
+        canvas_draw_str_aligned(
+            canvas, SCREEN_XRES / 2, 20, AlignCenter, AlignBottom, str_high_score);
 
         canvas_draw_str(canvas, 28, 35, "GAME   OVER");
         canvas_set_font(canvas, FontSecondary);
@@ -703,49 +798,43 @@ void render_callback(Canvas* const canvas, void* ctx) {
 
 /* ============================ Game logic ================================== */
 
-/* Safely wrap coordinate to screen bounds with proper modulo arithmetic */
-static inline float safe_wrap_coordinate(float coord, float max_val) {
-    /* Handle extreme negative values */
-    while(coord < 0) {
+/* Bring a coordinate back inside the screen, so that everything the game
+ * knows about is always at a position that can be drawn. Nothing here moves
+ * by more than a few pixels at a time, so one step across is enough; the
+ * second test catches anything that was further out than that. */
+static float wrap_coordinate(float coord, float max_val) {
+    if(coord < 0)
         coord += max_val;
-    }
-    /* Handle extreme positive values */
-    while(coord >= max_val) {
+    else if(coord >= max_val)
         coord -= max_val;
-    }
+    if(coord < 0 || coord >= max_val) coord = max_val / 2;
     return coord;
 }
 
 /* Given the current position, update it according to the velocity and
  * wrap it back to the other side if the object went over the screen. */
 void update_pos_by_velocity(float* x, float* y, float vx, float vy) {
-    /* Update position */
-    *x += vx;
-    *y += vy;
+    *x = wrap_coordinate(*x + vx, SCREEN_XRES);
+    *y = wrap_coordinate(*y + vy, SCREEN_YRES);
+}
 
-    /* Clamp velocity to prevent extreme jumps that could cause coordinate corruption */
-    const float MAX_VELOCITY = 10.0f;
-    if(vx > MAX_VELOCITY || vx < -MAX_VELOCITY || vy > MAX_VELOCITY || vy < -MAX_VELOCITY) {
-        FURI_LOG_W(TAG, "Extreme velocity detected: vx=%.2f, vy=%.2f", (double)vx, (double)vy);
-    }
-
-    /* Safely wrap coordinates using proper modulo arithmetic */
-    *x = safe_wrap_coordinate(*x, SCREEN_XRES);
-    *y = safe_wrap_coordinate(*y, SCREEN_YRES);
-
-    /* Additional safety check - ensure coordinates are within reasonable bounds */
-    if(*x < 0 || *x >= SCREEN_XRES || *y < 0 || *y >= SCREEN_YRES) {
-        FURI_LOG_E(TAG, "Coordinate corruption detected: x=%.2f, y=%.2f", (double)*x, (double)*y);
-        /* Emergency reset to center of screen */
-        *x = SCREEN_XRES / 2;
-        *y = SCREEN_YRES / 2;
+/* Hold the ship to a speed it can still be flown at. The thruster adds to the
+ * velocity on every tick it is held and nothing takes it away, so without a
+ * limit the ship ends up crossing a good part of the screen between frames,
+ * passing through asteroids instead of hitting them. The limit is under the
+ * distance at which the ship collides with the smallest asteroid. */
+static void limit_ship_speed(Ship* ship) {
+    float speed = sqrtf(ship->vx * ship->vx + ship->vy * ship->vy);
+    if(speed > SHIP_MAX_SPEED) {
+        ship->vx = ship->vx * SHIP_MAX_SPEED / speed;
+        ship->vy = ship->vy * SHIP_MAX_SPEED / speed;
     }
 }
 
 float distance(float x1, float y1, float x2, float y2) {
     float dx = x1 - x2;
     float dy = y1 - y2;
-    return sqrt(dx * dx + dy * dy);
+    return sqrtf(dx * dx + dy * dy);
 }
 
 /* Detect a collision between the object at x1,y1 of radius r1 and
@@ -784,16 +873,16 @@ void ship_fire_bullet(AsteroidsApp* app) {
     // Double the Fire Power
     if(isPowerUpActive(app, PowerUpTypeFirePower) && (app->bullets_num >= (MAXBUL))) return;
 
-    notification_message(furi_record_open(RECORD_NOTIFICATION), &sequence_bullet_fired);
+    notification_message(app->notification, &sequence_bullet_fired);
     Bullet* b = &app->bullets[app->bullets_num];
     b->x = app->ship.x;
     b->y = app->ship.y;
-    b->vx = -sin(app->ship.rot);
-    b->vy = cos(app->ship.rot);
+    b->vx = -sinf(app->ship.rot);
+    b->vy = cosf(app->ship.rot);
 
     /* Ship should fire from its head, not in the middle. */
-    b->x += b->vx * 5;
-    b->y += b->vy * 5;
+    b->x = wrap_coordinate(b->x + b->vx * 5, SCREEN_XRES);
+    b->y = wrap_coordinate(b->y + b->vy * 5, SCREEN_YRES);
 
     /* Give the bullet some velocity (for now the vector is just
      * normalized to 1). */
@@ -872,8 +961,8 @@ void asteroid_was_hit(AsteroidsApp* app, int id) {
         for(int j = 0; j < fragments; j++) {
             a = add_asteroid(app);
             if(a == NULL) break; // Too many asteroids on screen.
-            a->x = x + -(size / 2) + rand() % (int)newsize;
-            a->y = y + -(size / 2) + rand() % (int)newsize;
+            a->x = wrap_coordinate(x - (size / 2) + rand() % (int)newsize, SCREEN_XRES);
+            a->y = wrap_coordinate(y - (size / 2) + rand() % (int)newsize, SCREEN_YRES);
             a->size = newsize;
         }
     } else {
@@ -907,13 +996,13 @@ bool should_trigger_rare_powerUp(PowerUpType selected_powerUpType) {
 
 //@todo Add PowerUp
 PowerUp* add_powerUp(AsteroidsApp* app) {
-    FURI_LOG_I(TAG, "add_powerUp: %i", app->powerUps_num);
+    FURI_LOG_D(TAG, "add_powerUp: %i", app->powerUps_num);
     if(app->powerUps_num == MAXPOWERUPS) return NULL; // Max Power Ups reached
     if(app->lives == MAXLIVES) return NULL; // Max Lives reached
 
     // Randomly select power up for display
     PowerUpType selected_powerUpType = rand() % Number_of_PowerUps;
-    FURI_LOG_I(TAG, "[add_powerUp] Power Up Selected: %i", selected_powerUpType);
+    FURI_LOG_D(TAG, "[add_powerUp] Power Up Selected: %i", selected_powerUpType);
 
     // Don't add already existing power ups
     if(isPowerUpAlreadyExists(app, selected_powerUpType)) {
@@ -958,7 +1047,7 @@ PowerUp* add_powerUp(AsteroidsApp* app) {
     //@todo add powerup type, for now hardcoding to firepower
     p->powerUpType = selected_powerUpType;
     p->isPowerUpActive = false;
-    FURI_LOG_I(TAG, "[add_powerUp] Power Up Added: %i", p->powerUpType);
+    FURI_LOG_D(TAG, "[add_powerUp] Power Up Added: %i", p->powerUpType);
     return p;
 }
 
@@ -982,7 +1071,7 @@ bool isPowerUpAlreadyExists(AsteroidsApp* const app, PowerUpType const powerUpTy
 
 //@todo remove_powerUp
 void remove_powerUp(AsteroidsApp* app, int id) {
-    FURI_LOG_I(TAG, "remove_powerUp: %i", id);
+    FURI_LOG_D(TAG, "remove_powerUp: %i", id);
     // Invalid ID, ignore
     if(id < 0) {
         FURI_LOG_E(TAG, "remove_powerUp: Invalid ID: %i", id);
@@ -1013,7 +1102,7 @@ void powerUp_was_hit(AsteroidsApp* app, int id) {
     if(p->display_ttl == 0) return; // Don't collect if already collected or expired
 
     // Vibrate to indicate power up was collected
-    notification_message(furi_record_open(RECORD_NOTIFICATION), &sequence_powerup_collected);
+    notification_message(app->notification, &sequence_powerup_collected);
 
     switch(p->powerUpType) {
     case PowerUpTypeLife:
@@ -1026,7 +1115,7 @@ void powerUp_was_hit(AsteroidsApp* app, int id) {
         break;
     case PowerUpTypeNuke:
         //TODO: Animate explosion
-        notification_message(furi_record_open(RECORD_NOTIFICATION), &sequence_nuke);
+        notification_message(app->notification, &sequence_nuke);
         // Simulate nuke explosion
         remove_all_astroids_and_bullets(app);
         break;
@@ -1050,23 +1139,25 @@ void spawn_drone_buddy(AsteroidsApp* app) {
     Drone* drone = &app->drones[app->drones_num++];
 
     /* Position drone near the ship but not too close */
-    drone->x = app->ship.x + 15;
-    drone->y = app->ship.y + 10;
+    drone->x = wrap_coordinate(app->ship.x + 15, SCREEN_XRES);
+    drone->y = wrap_coordinate(app->ship.y + 10, SCREEN_YRES);
     drone->vx = 0;
     drone->vy = 0;
     drone->rot = app->ship.rot;
     drone->ttl = DRONE_TTL;
-    drone->last_fire_tick = 0;
+    /* Ready to fire. Early in a game this wraps around, which is fine: the
+     * comparison against it is unsigned too, and wraps back. */
+    drone->last_fire_tick = app->ticks - DRONE_FIRE_RATE;
     drone->active = true;
 
-    FURI_LOG_I(TAG, "Drone buddy spawned at x=%.2f, y=%.2f", (double)drone->x, (double)drone->y);
+    FURI_LOG_D(TAG, "Drone buddy spawned at x=%.2f, y=%.2f", (double)drone->x, (double)drone->y);
 }
 
 /* Remove a drone */
 void remove_drone(AsteroidsApp* app, int id) {
     if(id < 0 || id >= app->drones_num) return;
 
-    FURI_LOG_I(TAG, "Removing drone %d", id);
+    FURI_LOG_D(TAG, "Removing drone %d", id);
 
     /* Replace with last drone to keep array dense */
     int n = --app->drones_num;
@@ -1101,7 +1192,7 @@ void drone_fire_bullet(AsteroidsApp* app, Drone* drone) {
     /* Calculate direction to target */
     float dx = ast->x - drone->x;
     float dy = ast->y - drone->y;
-    float dist = sqrt(dx * dx + dy * dy);
+    float dist = sqrtf(dx * dx + dy * dy);
 
     if(dist > 0) {
         Bullet* b = &app->bullets[app->bullets_num++];
@@ -1112,9 +1203,9 @@ void drone_fire_bullet(AsteroidsApp* app, Drone* drone) {
         b->ttl = TTLBUL;
 
         /* Update drone rotation to face target */
-        drone->rot = atan2(-dx, dy);
+        drone->rot = atan2f(-dx, dy);
 
-        notification_message(furi_record_open(RECORD_NOTIFICATION), &sequence_bullet_fired);
+        notification_message(app->notification, &sequence_bullet_fired);
     }
 }
 
@@ -1142,7 +1233,7 @@ void update_drones(AsteroidsApp* app) {
         /* Simple following behavior */
         float dx = target_x - drone->x;
         float dy = target_y - drone->y;
-        float dist = sqrt(dx * dx + dy * dy);
+        float dist = sqrtf(dx * dx + dy * dy);
 
         if(dist > 5.0f) {
             /* Move towards target position */
@@ -1157,11 +1248,13 @@ void update_drones(AsteroidsApp* app) {
         /* Update position */
         update_pos_by_velocity(&drone->x, &drone->y, drone->vx, drone->vy);
 
-        /* Fire at asteroids */
-        uint32_t now = furi_get_tick();
-        if(now - drone->last_fire_tick >= DRONE_FIRE_RATE) {
+        /* Fire at asteroids, rate limited in game ticks like every other
+         * delay in the game. Comparing against furi_get_tick() instead, in
+         * milliseconds, lets the drone fire on every single frame and flood
+         * both the bullet array and the notification queue. */
+        if(app->ticks - drone->last_fire_tick >= DRONE_FIRE_RATE) {
             drone_fire_bullet(app, drone);
-            drone->last_fire_tick = now;
+            drone->last_fire_tick = app->ticks;
         }
     }
 }
@@ -1176,7 +1269,7 @@ void check_drone_collisions(AsteroidsApp* app) {
             Asteroid* ast = &app->asteroids[j];
             if(objects_are_colliding(drone->x, drone->y, 3, ast->x, ast->y, ast->size, 1)) {
                 /* Drone was hit by asteroid */
-                FURI_LOG_I(TAG, "Drone destroyed by asteroid");
+                FURI_LOG_D(TAG, "Drone destroyed by asteroid");
                 remove_drone(app, i);
                 i--; /* Process this index again */
                 break;
@@ -1197,6 +1290,7 @@ void game_over(AsteroidsApp* app) {
 /* Function called when a collision between the asteroid and the
  * ship is detected. */
 void ship_was_hit(AsteroidsApp* app) {
+    notification_message(app->notification, &sequence_crash);
     app->ship_hit = SHIP_HIT_ANIMATION_LEN;
     if(app->lives) {
         app->lives--;
@@ -1261,20 +1355,13 @@ void update_asteroids_position(AsteroidsApp* app) {
 }
 
 bool should_add_powerUp(AsteroidsApp* app) {
-    srand(furi_get_tick());
     int random_number = rand() % 100 + 1;
 
-    // The chance of spawning a power-up decreases as the game goes on
+    // The chance of spawning a power-up decreases as the score goes up
     int threshold = 100 - (app->score * 5);
 
     // Make sure the threshold doesn't go below 10
     threshold = (threshold < 10) ? 10 : threshold;
-    // FURI_LOG_I(
-    //     TAG,
-    //     "Random number: %d, threshold: %d Bool: %d",
-    //     random_number,
-    //     threshold,
-    //     random_number <= threshold);
     return random_number <= threshold;
 }
 
@@ -1298,7 +1385,7 @@ void update_powerUp_status(AsteroidsApp* app) {
         } else if(app->powerUps[j].display_ttl > 0) {
             app->powerUps[j].display_ttl--;
         } else if(app->powerUps[j].ttl == 0 || app->powerUps[j].display_ttl == 0) {
-            FURI_LOG_I(
+            FURI_LOG_D(
                 TAG,
                 "[update_powerUp_status] Power up expired!, ttl: %lu, display_ttl: %lu id: %d",
                 app->powerUps[j].ttl,
@@ -1342,14 +1429,16 @@ void detect_collisions(AsteroidsApp* app) {
         }
     }
 
-    /* Detect collision between ship and asteroid. */
+    /* Detect collision between ship and asteroid. Nothing in the loop can
+     * pick a power up, so the shield is looked up once. */
+    bool shielded = isPowerUpActive(app, PowerUpTypeShield);
+    bool shield_hit = false;
     for(int j = 0; j < app->asteroids_num; j++) {
         Asteroid* a = &app->asteroids[j];
         if(objects_are_colliding(a->x, a->y, a->size, app->ship.x, app->ship.y, 4, 1)) {
-            if(isPowerUpActive(app, PowerUpTypeShield)) {
+            if(shielded) {
                 // Asteroid was hit with shield
-                notification_message(
-                    furi_record_open(RECORD_NOTIFICATION), &sequence_bullet_fired);
+                shield_hit = true;
                 asteroid_was_hit(app, j);
                 j--; /* Scan this j value again. */
             } else {
@@ -1359,6 +1448,13 @@ void detect_collisions(AsteroidsApp* app) {
             }
         }
     }
+
+    /* One buzz per tick, however many asteroids the shield broke in it. A
+     * shield ploughing into a cluster breaks each asteroid into fragments
+     * that land on the ship and are broken in the same pass, and a sequence
+     * for every one of them fills the notification queue, which the caller
+     * of notification_message() then waits on. */
+    if(shield_hit) notification_message(app->notification, &sequence_bullet_fired);
 
     /* Detect collision between ship and powerUp. */
     for(int j = 0; j < app->powerUps_num; j++) {
@@ -1394,8 +1490,7 @@ void game_tick(void* ctx) {
      * 1. Ship was hit, we frozen the game as long as ship_hit isn't zero
      * again, and show an animation of a rotating ship. */
     if(app->ship_hit) {
-        notification_message(furi_record_open(RECORD_NOTIFICATION), &sequence_crash);
-        app->ship.rot += 0.5;
+        app->ship.rot += 0.5f;
         app->ship_hit--;
         view_port_update(app->view_port);
         if(app->ship_hit == 0) {
@@ -1422,15 +1517,17 @@ void game_tick(void* ctx) {
     }
 
     /* Handle keypresses. */
-    if(app->pressed[InputKeyLeft]) app->ship.rot -= .35;
-    if(app->pressed[InputKeyRight]) app->ship.rot += .35;
+    if(app->pressed[InputKeyLeft]) app->ship.rot -= .35f;
+    if(app->pressed[InputKeyRight]) app->ship.rot += .35f;
     if(app->pressed[InputKeyUp]) {
-        app->ship.vx -= 0.5 * (float)sin(app->ship.rot);
-        app->ship.vy += 0.5 * (float)cos(app->ship.rot);
+        app->ship.vx -= 0.5f * sinf(app->ship.rot);
+        app->ship.vy += 0.5f * cosf(app->ship.rot);
+        limit_ship_speed(&app->ship);
+        notification_message(app->notification, &sequence_thrusters);
     } else if(app->pressed[InputKeyDown]) {
-        notification_message(furi_record_open(RECORD_NOTIFICATION), &sequence_brake);
-        app->ship.vx *= 0.75;
-        app->ship.vy *= 0.75;
+        notification_message(app->notification, &sequence_brake);
+        app->ship.vx *= 0.75f;
+        app->ship.vy *= 0.75f;
     }
 
     /* Fire a bullet if needed. app->fire is set in
@@ -1470,7 +1567,7 @@ void game_tick(void* ctx) {
     /* From time to time, create a new asteroid. The more asteroids
      * already on the screen, the smaller probability of creating
      * a new one. */
-    if(app->asteroids_num == 0 || (random() % 5000) < (30 / (1 + app->asteroids_num))) {
+    if(app->asteroids_num == 0 || (rand() % 5000) < (30 / (1 + app->asteroids_num))) {
         add_asteroid(app);
     }
 
@@ -1487,42 +1584,26 @@ void game_tick(void* ctx) {
 
 /* ======================== Flipper specific code =========================== */
 
+/* The high score is the only thing that outlives a game, so it is the only
+ * thing the save file holds. Earlier versions wrote out the whole application
+ * structure instead, transient arrays and live pointers included, which meant
+ * that any change to it silently invalidated everyone's saved score. Such a
+ * file does not carry the magic and version below, so it is rejected here
+ * and replaced by the next save. */
 bool load_game(AsteroidsApp* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    storage_common_mkdir(storage, SAVING_DIRECTORY);
-    storage_common_copy(storage, EXT_PATH("apps/Games/game_asteroids.save"), SAVING_FILENAME);
-    storage_common_remove(storage, EXT_PATH("apps/Games/game_asteroids.save"));
-
-    File* file = storage_file_alloc(storage);
-    uint16_t bytes_readed = 0;
-    if(storage_file_open(file, SAVING_FILENAME, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        bytes_readed = storage_file_read(file, app, sizeof(AsteroidsApp));
-    }
-    storage_file_close(file);
-    storage_file_free(file);
-
+    storage_common_migrate(storage, EXT_PATH("apps/Games/game_asteroids.save"), SAVING_FILENAME);
     furi_record_close(RECORD_STORAGE);
 
-    return bytes_readed == sizeof(AsteroidsApp);
+    return saved_struct_load(
+        SAVING_FILENAME, &app->highscore, sizeof(app->highscore), SAVE_MAGIC, SAVE_VERSION);
 }
 
 void save_game(AsteroidsApp* app) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-
-    if(storage_common_stat(storage, SAVING_DIRECTORY, NULL) == FSE_NOT_EXIST) {
-        if(!storage_simply_mkdir(storage, SAVING_DIRECTORY)) {
-            return;
-        }
+    if(!saved_struct_save(
+           SAVING_FILENAME, &app->highscore, sizeof(app->highscore), SAVE_MAGIC, SAVE_VERSION)) {
+        FURI_LOG_E(TAG, "Could not save the high score to " SAVING_FILENAME);
     }
-
-    File* file = storage_file_alloc(storage);
-    if(storage_file_open(file, SAVING_FILENAME, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        storage_file_write(file, app, sizeof(AsteroidsApp));
-    }
-    storage_file_close(file);
-    storage_file_free(file);
-
-    furi_record_close(RECORD_STORAGE);
 }
 
 /* Here all we do is putting the events into the queue that will be handled
@@ -1536,14 +1617,16 @@ void input_callback(InputEvent* input_event, void* ctx) {
  * This is called in the entry point to create the application state. */
 AsteroidsApp* asteroids_app_alloc() {
     AsteroidsApp* app = malloc(sizeof(AsteroidsApp));
+    memset(app, 0, sizeof(AsteroidsApp));
 
-    load_game(app);
+    /* Leaves the high score at zero when there is nothing to read. */
+    if(!load_game(app)) FURI_LOG_I(TAG, "No saved high score, starting from zero.");
 
     app->gui = furi_record_open(RECORD_GUI);
+    app->notification = furi_record_open(RECORD_NOTIFICATION);
     app->view_port = view_port_alloc();
     view_port_draw_callback_set(app->view_port, render_callback, app);
     view_port_input_callback_set(app->view_port, input_callback, app);
-    gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
     app->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
     app->running = 1; /* Turns 0 when back is pressed. */
@@ -1552,8 +1635,12 @@ AsteroidsApp* asteroids_app_alloc() {
     app->splash_screen = true;
     app->splash_start_time = furi_get_tick();
 
+    srand(furi_get_tick());
     restart_game_after_gameover(app);
-    memset(app->pressed, 0, sizeof(app->pressed));
+
+    /* Last: this hands the screen to the GUI service, which can call the
+     * draw callback before the next line of this function runs. */
+    gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
     return app;
 }
 
@@ -1568,6 +1655,7 @@ void asteroids_app_free(AsteroidsApp* app) {
     gui_remove_view_port(app->gui, app->view_port);
     view_port_free(app->view_port);
     furi_record_close(RECORD_GUI);
+    furi_record_close(RECORD_NOTIFICATION);
     furi_message_queue_free(app->event_queue);
     app->gui = NULL;
 

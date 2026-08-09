@@ -88,25 +88,33 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     snprintf(idx, sizeof(idx), "%lu/%lu", (unsigned long)m->index, (unsigned long)m->total);
     canvas_draw_str_aligned(canvas, 126, 47, AlignRight, AlignBottom, idx);
 
-    /* counters / last hit */
+    /* counters / last hit, with hit-rate as a permille-derived percent */
     char line[48];
+    uint32_t rate = m->shots ? (m->hits * 100u) / m->shots : 0;
     if(m->last_hit_ns > 0) {
         char h[16];
         glitch_fmt_ns(m->last_hit_ns, h, sizeof(h));
         if(m->is_2d) {
             char hd[16];
             glitch_fmt_us(m->last_hit_delay_us, hd, sizeof(hd));
-            snprintf(line, sizeof(line), "hit %s@%s (%lu)", h, hd, (unsigned long)m->hits);
+            snprintf(line, sizeof(line), "hit %s@%s %lu%%", h, hd, (unsigned long)rate);
         } else {
-            snprintf(line, sizeof(line), "hit @ %s  (%lu)", h, (unsigned long)m->hits);
+            snprintf(
+                line,
+                sizeof(line),
+                "hit @ %s  %lu hit %lu%%",
+                h,
+                (unsigned long)m->hits,
+                (unsigned long)rate);
         }
     } else {
         snprintf(
             line,
             sizeof(line),
-            "shots %lu  hits %lu",
+            "sh %lu  hit %lu  %lu%%",
             (unsigned long)m->shots,
-            (unsigned long)m->hits);
+            (unsigned long)m->hits,
+            (unsigned long)rate);
     }
     canvas_draw_str(canvas, 2, 56, line);
 

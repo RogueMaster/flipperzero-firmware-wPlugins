@@ -1,31 +1,14 @@
 ## Main changes
-- Current API: 88.0
-* SubGHz: **Fix endless TX causing RAW files to be transmitted and crash the system** (via RPC / Mobile App) (Fixes issue #1008)
-* SubGHz: **Fix crash when exiting CLI `subghz chat` with an external CC1101** - pressing Ctrl+C dereferenced the just-freed external CC1101 radio plugin during chat worker shutdown; internal CC1101 was unaffected (by @mishamyte | PR #1036 | Fixes #829)
-* SubGHz: **Add Telcoma/Cardin EDGE protocol** (32bit, Static) (by @half2me | PR #1001)
-* LFRFID: **Support of Hitag Micro chips** (8265/8210/H5.5) (by @mishamyte | PR #1002)
-* LFRFID: **Wipe T5577** (reset to blank, with read-back verification) (by @mishamyte | PR #1003)
-* LFRFID: **Read T5577 tags holding multiple EM4100 IDs again** - a T5577 written with several EM4100 IDs (e.g. via Multiwriter) hung on Read since the Electra protocol was added; also resets a stale PAC/Stanley decoder buffer (by @mishamyte | PR #1025 | Fixes #1024)
-* NFC: **Native MIFARE Plus support in SL3** - MIFARE Plus is now a first-class protocol instead of detection-only: read (AES auth + encrypted/plaintext blocks, admin keys & config, originality signature), automatic dictionary attack with a per-UID key cache (instant re-reads of saved cards), full SL3 emulation with shadow-writeback (a reader can authenticate, read & write the recovered card), write/update-to-card, GetVersion + ATS-based S/X/SE/EV1/EV2 detection, "Add Manually" for 18 Plus variants, and MIFARE-Classic-style dump & keys screens; SL0/SL1/SL2 stay untouched (by @mishamyte | PR #1032 | Closes #1031)
-* NFC: Show MIFARE Ultralight/NTAG PWD & PACK in full info view / on read screen too (by @mishamyte | PR #1010 #1011)
-* NFC: **Add Bambu Lab filament spool parser** (type, color, code, temps, spool specs) (ported from [uzyn/flipper-bambu](https://github.com/uzyn/flipper-bambu), GPL-3.0)
-* NFC: **Align MIFARE type detection with NXP AN10833** - Classic/Ultralight/NTAG/Plus sizing & security level; fixes Mifare Mini clone mis-detection and Ultralight AES read hang (by @mishamyte | PR #1014)
-* NFC: **Read MIFARE Plus 2K in SL1 as full 32 sectors / 64 keys** - a Plus 2K in SL1 is byte-identical to a Classic 1K in SAK/ATQA and was mis-sized as 1K; it is now told apart by its ISO14443-4 ATS (Plus S/X signature), while Plus SE, SmartMX, magic "Perfect CUID" and plain 1K stay 1K (by @mishamyte | PR #1016)
-* NFC: **Fix MIFARE Plus 2K SL1 transit parsers** - Troika, Plantain, SevPPK, SZPPK and Two Cities stopped parsing once Plus 2K SL1 cards began reporting as the new `2K` type (PR #1016): the parsers only knew `1K`/`4K` and required a full-card read. They now treat 2K as the 1K these cards present and accept a partial read (by @mishamyte | PR #1038 | Fixes #1037)
-* NFC: **Fix transit parsers skipping key recovery on a partial read** - Troika, Plantain, SevPPK, SZPPK and Two Cities reported a read as successful on any partial read (needed for Plus 2K SL1), so a card whose data sector wasn't actually read skipped the dictionary/nested attack instead of recovering its keys; a partial read is now accepted only when the sector the parser needs is read (by @mishamyte | PR #1043 | Fixes #1042)
-* NFC: **Show a loading screen while a large CUID dictionary loads on Read** - animated spinner + "CUID dictionary is loading" label instead of a blank/frozen-looking screen while a per-UID (MFKey-recovered) dictionary is scanned (by @mishamyte | PR #1022)
-* NFC: **Fix memory leaks & double-frees in the NFC app** - heap-corrupting double-frees in the Plantain and SZPPK/SEVPPK/SK transit parsers (crash on two-trip tickets), leaks in the Saflok parser, the app API resolver (per launch) and the CUID-dictionary error path, plus a ~15x RAM over-allocation of the MIFARE DESFire file-data array (by @mishamyte | PR #1030 | Fixes #1029)
-* RPC: **Add Network and GPS RPC services** (by @apfxtech (Network based on @noproto code and idea) | PR #1013)
-* Apps: **NFC Magic** - Gen2 CUID/static-nonce detection, Gen1 4b/7b UID, length-aware wipe & write guard (by @mishamyte)
-* Apps: Build tag (**23jul2026p2**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
+- Current API: 88.2
+* NFC: **Fix reading an EMV card with malformed TLV lengths crashing or overflowing buffers** - the poller trusted the card's own length bytes: some tags aborted the firmware through `furi_check`, others were copied straight into fixed-size fields (AID, application name/label, cardholder name, track 1/2), and the PAN/track-2 loops ran past their arrays. Lengths are now bounded against the destination, the PDOL is capped at what the poller can transmit, and rejected tags are logged (by @Endika | PR #1048)
+* NFC: **Fix a crafted EMV `.nfc` file corrupting the heap on load** - `emv_load()` used the file's own lengths as write sizes: three unbounded `strcpy`s into the cardholder name, application name and label, and `PAN length`/`AID length` read as 32-bit then written into 10- and 16-byte fields; an oversized `PAN length` also walked the card-number render loops past the array. Saving a card no longer writes a garbage `PIN try counter` either (by @mishamyte | PR #1056 | Fixes #1055)
+* Apps: Build tag (**3aug2026**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
 ## Other changes
-* OFW: CCID: move USB layer from firmware HAL into ccid_test app
-* OFW: Storage Python script: add retry on file copy to Flipper
-* Apps: Update FindMy app
-* Fix BLE sync, fix possible delay related issues
-* Disabled debug and trace logs in the FW binary (apps .fap's are not affected) to free up some flash space for new features
-* NFC: Fix typo in SLIX poller (by @WillyJL)
-* NFC: Internal MIFARE Plus cleanup - data-drive the "Add Manually" generator variants and unify the admin-key address mapping into one source of truth; small internal-flash saving, no functional change (by @mishamyte | PR #1035)
+* OFW PR 4361: fix HID limits to support international keyboards and add JP keyboard layout (by @d3npa)
+* OFW: CCID: move the debug app out of the firmware repository
+* JS: **JS Runner moved out of the firmware into an external app** (`apps/assets/js_app.fap`) to free up internal flash and RAM; the `js` CLI command is now a CLI plugin and the JS examples ship with the extra resources
+* Docs: **How to build FAPs on Android with Termux** - `ufbt` on a stock phone, no PC/proot/VM (by @CamsShaft | Closes #1028)
+* HID: **Mouse Jiggler Stealth now shows which buttons change the intervals** - Up/Down (Min) and Left/Right (Max) already worked but nothing on screen said so; the arrows appear next to each row while the jiggler is stopped, and only for presses that would actually change the value (by @sequesters | PR #1020)
 <br><br>
 
 ----
@@ -151,6 +134,7 @@ UL: API: Add `canvas_get_buffer`, `canvas_get_buffer_size` to public API (by @xM
 - NFC:
   - Fix sending 32+ byte ISO 15693-3 commands (by @WillyJL)
   - Fixes to `READ_MULTI` and `GET_BLOCK_SECURITY` commands in ISO 15693-3 emulation (#501 by @WillyJL & aaronjamt)
+  - Fix Type 4 Tag read edge case for cards not supporting specific EF in DF select mode (by @WillyJL)
   - Fix CLI with NTAG4xx and Type 4 Tag support (by @WillyJL)
   - UL: Fix LED not blinking at SLIX unlock (by @xMasterX)
   - UL: Fix "MIR" and other EMV cards crash on Read (by @Dmitry422)

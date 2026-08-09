@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #pragma once
 
 /**
@@ -26,3 +26,20 @@ void esp_link_stop(EspLink* esp);
 
 /** Send a raw command line (newline appended automatically). */
 void esp_link_send(EspLink* esp, const char* cmd);
+
+/**
+ * (Re)send the companion's GPS-relay config from current settings, and start the
+ * clock on its `GPSCFG` echo.
+ *
+ * One place builds this command so the scan-session and the on-banner re-send
+ * cannot drift apart. No-op on the Marauder backend, which has no such command.
+ */
+void esp_link_send_gps_cfg(EspLink* esp);
+
+/**
+ * Send the band selection (2.4 / 5 / both) the operator chose.
+ *
+ * Paired with esp_link_send_gps_cfg() everywhere, because both are session
+ * config the board must be told about and both must survive an ESP reboot.
+ */
+void esp_link_send_band(EspLink* esp);

@@ -113,6 +113,7 @@ typedef struct HotspotArcadeApp {
     char ssid_buf[HA_SSID_MAX];
     bool sound_on;
     bool vibro_on;
+    char lang[8]; // content language code, "" = English (streams packs/<game>/<lang>/)
 
     // Web bundle (from manifest.json)
     HaAsset assets[HA_MAX_ASSETS];
@@ -120,6 +121,7 @@ typedef struct HotspotArcadeApp {
     // Dir the loaded manifest came from (user bundle if present, else the bundled one).
     // Asset files are read from here, so a user bundle is never mixed with bundled files.
     const char* web_dir;
+    uint32_t web_bundle_crc; // CRC32 of the SD bundle (manifest "crc"); 0 = unknown/none
 
     // Live roster
     HaPlayer players[HA_MAX_PLAYERS];
@@ -153,6 +155,7 @@ typedef struct HotspotArcadeApp {
     uint32_t last_rx_tick;
     uint32_t last_ping_tick; // last valid PING frame = our firmware is present
     uint16_t board_fw_version; // firmware version reported in the beacon (0 = unknown)
+    uint32_t board_bundle_crc; // CRC32 of the bundle the ESP holds in flash (PING bytes 6-9)
     bool link_lost;
     bool awaiting_board;
 

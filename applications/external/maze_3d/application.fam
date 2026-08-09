@@ -1,0 +1,14 @@
+App(
+    appid="maze3d",
+    name="Maze 3D",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="maze3d_app",
+    stack_size=12 * 1024,
+    fap_icon="maze3d.png",
+    fap_category="Games",
+    fap_author="k20120509",
+    fap_weburl="https://github.com/k20120509/flipper-release",
+    fap_version="6.11.1",
+    fap_description="3D raycasting maze: 50-level campaign (maze/puzzle/combat), MC sandbox, achievements, enemy AI + bullets",
+    # v6.11.1: 3D raycasting maze with MC sandbox, score shop, 10 items, buff system, bilingual
+)
