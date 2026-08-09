@@ -25,33 +25,49 @@ static void app_refresh_clock_strings(App* app) {
         app->settings.utc_offset_minutes, app->offset_text, sizeof(app->offset_text));
 }
 
+static void app_draw_big_at(Canvas* canvas, int32_t left, int32_t cy, uint8_t diameter) {
+    /* Hand-drawn @ sized to match FontBigNumbers — stock big font has no '@'. */
+    const int32_t r = (int32_t)(diameter / 2);
+    const int32_t cx = left + r;
+    canvas_draw_circle(canvas, cx, cy, r);
+    canvas_draw_circle(canvas, cx, cy, r - 1);
+    if(r > 3) {
+        canvas_draw_circle(canvas, cx, cy, r - 2);
+    }
+    /* Tail on the lower-right, like a typographic @. */
+    canvas_draw_line(canvas, cx + r - 1, cy, cx + r + 1, cy + r);
+    canvas_draw_line(canvas, cx + r - 2, cy + 1, cx + r, cy + r);
+}
+
 static void app_draw_callback(Canvas* canvas, void* context) {
     App* app = context;
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
 
     if(app->screen == AppScreenClock) {
-        const int32_t cx = (int32_t)(canvas_width(canvas) / 2);
-        const int32_t beats_cy = 24;
+        const int32_t screen_w = (int32_t)canvas_width(canvas);
+        const int32_t cx = screen_w / 2;
+        const int32_t beats_cy = 22;
         const int32_t time_cy = 50;
 
         canvas_set_font(canvas, FontBigNumbers);
-        const uint16_t digits_w = canvas_string_width(canvas, app->beats_text + 1);
-        canvas_set_font(canvas, FontPrimary);
-        const uint16_t at_w = canvas_string_width(canvas, "@");
-        const uint16_t gap = 3;
-        const int32_t left = cx - (int32_t)((at_w + gap + digits_w) / 2);
+        const char* digits = app->beats_text + 1;
+        const uint16_t digits_w = canvas_string_width(canvas, digits);
+        const uint8_t big_h = (uint8_t)canvas_current_font_height(canvas);
+        const uint8_t at_d = (big_h > 4) ? (uint8_t)(big_h - 2) : big_h;
+        const uint8_t at_w = (uint8_t)(at_d + 2); /* ring + tail */
+        const uint8_t gap = 1;
+        const int32_t total_w = (int32_t)at_w + (int32_t)gap + (int32_t)digits_w;
+        const int32_t left = (screen_w - total_w) / 2;
 
-        canvas_draw_str_aligned(
-            canvas, left + (int32_t)(at_w / 2), beats_cy, AlignCenter, AlignCenter, "@");
-        canvas_set_font(canvas, FontBigNumbers);
+        app_draw_big_at(canvas, left, beats_cy, at_d);
         canvas_draw_str_aligned(
             canvas,
-            left + (int32_t)(at_w + gap + digits_w / 2),
+            left + (int32_t)at_w + (int32_t)gap + (int32_t)(digits_w / 2),
             beats_cy,
             AlignCenter,
             AlignCenter,
-            app->beats_text + 1);
+            digits);
 
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(
