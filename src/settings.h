@@ -8,7 +8,8 @@
 #include <stdint.h>
 #include <storage/storage.h>
 
-#define SETTINGS_CONFIG_PATH APP_DATA_PATH("config.txt")
+/** Explicit SD path — reliable on stock and common CFW. */
+#define SETTINGS_CONFIG_PATH EXT_PATH("apps_data/internet_time_screen/config.txt")
 
 /** Number of selectable quarter-hour offsets from UTC-12 to UTC+14. */
 #define SETTINGS_OFFSET_COUNT                                                 \

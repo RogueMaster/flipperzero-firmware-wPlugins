@@ -31,32 +31,23 @@ static void app_draw_callback(Canvas* canvas, void* context) {
     canvas_set_color(canvas, ColorBlack);
 
     if(app->screen == AppScreenClock) {
-        /* FontBigNumbers is digits-only; draw '@' with a text font. */
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 34, 22, AlignCenter, AlignCenter, "@");
-        canvas_set_font(canvas, FontBigNumbers);
-        canvas_draw_str_aligned(canvas, 72, 22, AlignCenter, AlignCenter, app->beats_text + 1);
-
+        canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignCenter, app->beats_text);
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, app->local_time_text);
     } else {
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 18, AlignCenter, AlignCenter, "UTC Offset");
+        canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignCenter, "UTC Offset");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, app->offset_text);
-        canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignCenter, "Left/Right  Back=OK");
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, app->offset_text);
+        canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, "< Left  Right >");
+        canvas_draw_str_aligned(canvas, 64, 60, AlignCenter, AlignCenter, "OK saves");
     }
 }
 
 static void app_input_callback(InputEvent* event, void* context) {
     App* app = context;
     AppEvent app_event = {.type = AppEventTypeInput, .input = *event};
-    furi_message_queue_put(app->event_queue, &app_event, 0);
-}
-
-static void app_tick_callback(void* context) {
-    App* app = context;
-    AppEvent app_event = {.type = AppEventTypeTick};
     furi_message_queue_put(app->event_queue, &app_event, 0);
 }
 
@@ -83,17 +74,25 @@ static void app_open_settings(App* app) {
 
 static void app_close_settings(App* app) {
     app->settings.loaded = true;
-    (void)settings_save(app->storage, &app->settings);
+    if(!settings_save(app->storage, &app->settings)) {
+        FURI_LOG_E("ITS", "settings_save failed");
+    }
     app->screen = AppScreenClock;
     app_refresh_clock_strings(app);
     view_port_update(app->view_port);
 }
 
-static bool app_handle_input(App* app, const InputEvent* event) {
-    if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
+static bool app_signal_callback(uint32_t signal, void* argument, void* context) {
+    UNUSED(argument);
+    App* app = context;
+    if(signal == FuriSignalExit) {
+        app->running = false;
         return true;
     }
+    return false;
+}
 
+static bool app_handle_input(App* app, const InputEvent* event) {
     if(app->screen == AppScreenClock) {
         if(event->key == InputKeyOk && event->type == InputTypeShort) {
             app_open_settings(app);
@@ -103,17 +102,19 @@ static bool app_handle_input(App* app, const InputEvent* event) {
         return true;
     }
 
-    /* Settings screen */
-    if(event->key == InputKeyLeft) {
+    if(event->key == InputKeyLeft &&
+       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
         app_adjust_offset(app, -1);
         view_port_update(app->view_port);
-    } else if(event->key == InputKeyRight) {
+    } else if(
+        event->key == InputKeyRight &&
+        (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
         app_adjust_offset(app, 1);
         view_port_update(app->view_port);
-    } else if(event->key == InputKeyBack || event->key == InputKeyOk) {
-        if(event->type == InputTypeShort) {
-            app_close_settings(app);
-        }
+    } else if(
+        (event->key == InputKeyOk || event->key == InputKeyBack) &&
+        event->type == InputTypeShort) {
+        app_close_settings(app);
     }
     return true;
 }
@@ -127,16 +128,21 @@ static App* app_alloc(void) {
     settings_init_defaults(&app->settings);
     (void)settings_load(app->storage, &app->settings);
 
-    app->event_queue = furi_message_queue_alloc(8, sizeof(AppEvent));
+    app->event_queue = furi_message_queue_alloc(16, sizeof(AppEvent));
     app->gui = furi_record_open(RECORD_GUI);
     app->view_port = view_port_alloc();
     view_port_draw_callback_set(app->view_port, app_draw_callback, app);
     view_port_input_callback_set(app->view_port, app_input_callback, app);
+    view_port_enabled_set(app->view_port, true);
 
-    app->tick_timer = furi_timer_alloc(app_tick_callback, FuriTimerTypePeriodic, app);
     app->running = true;
-    app->screen = app->settings.loaded ? AppScreenClock : AppScreenSettings;
-
+    if(!app->settings.loaded) {
+        /* Persist UTC+0 default so relaunch opens the clock; user can change via OK. */
+        app->settings.utc_offset_minutes = 0;
+        app->settings.loaded = true;
+        (void)settings_save(app->storage, &app->settings);
+    }
+    app->screen = AppScreenClock;
     app_refresh_clock_strings(app);
     return app;
 }
@@ -144,9 +150,7 @@ static App* app_alloc(void) {
 static void app_free(App* app) {
     furi_check(app);
 
-    furi_timer_stop(app->tick_timer);
-    furi_timer_free(app->tick_timer);
-
+    view_port_enabled_set(app->view_port, false);
     gui_remove_view_port(app->gui, app->view_port);
     view_port_free(app->view_port);
     furi_record_close(RECORD_GUI);
@@ -160,24 +164,31 @@ int32_t app_run(void* p) {
     UNUSED(p);
 
     App* app = app_alloc();
+    furi_thread_set_signal_callback(furi_thread_get_current(), app_signal_callback, app);
+
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
-    furi_timer_start(app->tick_timer, 1000);
     view_port_update(app->view_port);
 
     AppEvent event;
+    uint32_t last_second = 61;
     while(app->running) {
-        if(furi_message_queue_get(app->event_queue, &event, FuriWaitForever) == FuriStatusOk) {
-            if(event.type == AppEventTypeTick) {
-                if(app->screen == AppScreenClock) {
-                    app_refresh_clock_strings(app);
-                    view_port_update(app->view_port);
-                }
-            } else if(event.type == AppEventTypeInput) {
-                app_handle_input(app, &event.input);
+        FuriStatus status = furi_message_queue_get(app->event_queue, &event, 200);
+        if(status == FuriStatusOk && event.type == AppEventTypeInput) {
+            app_handle_input(app, &event.input);
+        }
+
+        if(app->screen == AppScreenClock) {
+            DateTime dt;
+            furi_hal_rtc_get_datetime(&dt);
+            if(dt.second != last_second) {
+                last_second = dt.second;
+                app_refresh_clock_strings(app);
+                view_port_update(app->view_port);
             }
         }
     }
 
+    furi_thread_set_signal_callback(furi_thread_get_current(), NULL, NULL);
     app_free(app);
     return 0;
 }

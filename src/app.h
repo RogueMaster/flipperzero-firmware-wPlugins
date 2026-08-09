@@ -17,7 +17,6 @@ typedef enum {
 
 typedef enum {
     AppEventTypeInput,
-    AppEventTypeTick,
 } AppEventType;
 
 typedef struct {
@@ -29,7 +28,6 @@ typedef struct App {
     Gui* gui;
     ViewPort* view_port;
     FuriMessageQueue* event_queue;
-    FuriTimer* tick_timer;
     Storage* storage;
     AppSettings settings;
     AppScreen screen;

@@ -79,17 +79,27 @@ bool settings_save(Storage* storage, const AppSettings* settings) {
     furi_check(storage);
     furi_check(settings);
 
+    /* Use explicit ext path — more reliable than /data alias on some CFW. */
+    storage_simply_mkdir(storage, EXT_PATH("apps_data"));
+    storage_simply_mkdir(storage, EXT_PATH("apps_data/internet_time_screen"));
+
     FlipperFormat* file = flipper_format_file_alloc(storage);
     bool ok = false;
     int32_t offset = settings->utc_offset_minutes;
 
     do {
-        if(!storage_simply_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX)) {
-            /* Directory may already exist; continue and try write. */
+        if(!flipper_format_file_open_always(file, SETTINGS_CONFIG_PATH)) {
+            FURI_LOG_E("ITS", "open_always failed");
+            break;
         }
-        if(!flipper_format_file_open_always(file, SETTINGS_CONFIG_PATH)) break;
-        if(!flipper_format_write_header_cstr(file, SETTINGS_FILETYPE, SETTINGS_VERSION)) break;
-        if(!flipper_format_write_int32(file, "UTC offset minutes", &offset, 1)) break;
+        if(!flipper_format_write_header_cstr(file, SETTINGS_FILETYPE, SETTINGS_VERSION)) {
+            FURI_LOG_E("ITS", "write_header failed");
+            break;
+        }
+        if(!flipper_format_write_int32(file, "UTC offset minutes", &offset, 1)) {
+            FURI_LOG_E("ITS", "write_int32 failed");
+            break;
+        }
         ok = true;
     } while(false);
 
