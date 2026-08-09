@@ -17,8 +17,13 @@
       INTERNET_TIME_OFFSET_STEP_MINUTES) +                                    \
      1)
 
+#define DCF77_AUTO_SYNC_INTERVAL_S (12u * 3600u)
+
 typedef struct {
     int16_t utc_offset_minutes;
+    bool auto_dcf77_sync;
+    bool dcf77_invert;
+    uint32_t last_dcf77_sync_epoch;
     bool loaded;
 } AppSettings;
 

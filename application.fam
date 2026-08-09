@@ -5,7 +5,7 @@ App(
     name="Internet Time",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="internet_time_screen_app",
-    stack_size=8 * 1024,
+    stack_size=10 * 1024,
     fap_category="Tools",
     fap_version=(0, 1),
     fap_icon="assets/10x10.png",
