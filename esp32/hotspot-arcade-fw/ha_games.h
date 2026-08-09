@@ -315,12 +315,18 @@ void haUartArt(uint8_t op, const String& json);
 
 struct Player {
     bool used;
+    bool bot; // an engine-run fill player (no socket, no device); see botSync()
     uint32_t wsId; // 0 = not connected
     uint64_t deviceKey; // which phone, 0 = unknown (see onHello)
     char nick[HA_NICK_LEN];
     char avatar[8]; // emoji avatar (UTF-8), player-picked on the landing screen
     int32_t score;
 };
+
+// How many bot seats the testing switch may fill. Werewolf's minimum of 5 is the
+// deepest hole a two-person room can be in, so 4 covers every game from one real
+// player up; more would just crowd the roster.
+#define HA_BOT_MAX 4
 
 // A phone that drops out keeps its identity for the rest of the session. When the
 // socket closes the player's nick, avatar and score are parked under their device
@@ -1352,6 +1358,7 @@ public:
             gameVoteResolve(now);
             return;
         }
+        botSync(now); // keep the bot seats (testing switch) matched, and let them act
         if(_active == HA_GAME_TRIVIA)
             triviaTick(now);
         else if(_active == HA_GAME_DRAW)
@@ -1423,9 +1430,12 @@ public:
         // Debug: let a two-person room reach the games that need more. Any player may
         // flip it -- this is a testing aid, not a permission system -- and everyone sees
         // the new state on the next push so the switch cannot disagree with the host.
+        // Flipping it on fills the missing seats with bots (botSync), not merely
+        // silences the check: these games size their round on who is actually present.
         if(strcmp(type, "minoverride") == 0) {
             const char* v = ha_json_find(json, "on");
             _minOverride = v && strncmp(v, "true", 4) == 0;
+            botSync(millis()); // seats appear/vanish now, and its pushAll shows them
             pushAll();
             return;
         }
@@ -1693,12 +1703,174 @@ private:
         return n;
     }
 
-    // Debug override for the per-game player minimums. Off by default and never
-    // persisted: a room that has it on is testing, not playing. Werewolf's roles do not
-    // work with two people and Spyfall's spy is obvious -- the override does not pretend
-    // otherwise, it just lets a developer reach the screens.
+    // The lobby's testing switch (wire name "minoverride", kept for the client's sake).
+    // It used to bypass the per-game minimum check -- the wrong half of the feature:
+    // Werewolf then dealt two roles instead of five, Spyfall had no third chair to hide
+    // the spy behind, and Draw a Monster left a body part with no owner. Every one of
+    // those games sizes its round on the players actually PRESENT, so the seats must
+    // exist. Flipping this now fills the missing seats with engine-run bots (botSync)
+    // and the minimum check itself stays honest.
     bool _minOverride = false;
-    bool enoughPlayers(int need) { return _minOverride || connectedCount() >= need; }
+    bool enoughPlayers(int need) { return connectedCount() >= need; }
+
+    int humanCount() {
+        int n = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && !_p[i].bot) n++;
+        return n;
+    }
+
+    // Only the games whose round genuinely cannot be seated below their minimum get
+    // bot seats. Everything else plays fine with one or two phones and gets none --
+    // a bot in a duel or a trivia round would just be a chair that never answers.
+    int botTargetMin() {
+        if(_active == HA_GAME_WEREWOLF) return WW_MIN_PLAYERS;
+        if(_active == HA_GAME_SPYFALL) return SPYFALL_MIN_PLAYERS;
+        if(_active == HA_GAME_FRANKENDRAW) return FD_MIN_PLAYERS;
+        return 0;
+    }
+
+    uint8_t botAdd() {
+        uint8_t pid = freePid();
+        if(!pid) return 0;
+        // Stable names, assigned by the first free one: removing BOT-BEN and refilling
+        // brings BOT-BEN back, so the roster does not churn through the alphabet.
+        static const char* names[HA_BOT_MAX] = {"BOT-ADA", "BOT-BEN", "BOT-CLU", "BOT-DOT"};
+        int k = 0;
+        for(; k < HA_BOT_MAX; k++) {
+            bool taken = false;
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+                if(_p[i].used && _p[i].bot && strcmp(_p[i].nick, names[k]) == 0) taken = true;
+            if(!taken) break;
+        }
+        if(k >= HA_BOT_MAX) return 0;
+        _p[pid] = Player{};
+        _p[pid].used = true;
+        _p[pid].bot = true;
+        strlcpy(_p[pid].nick, names[k], HA_NICK_LEN);
+        strlcpy(_p[pid].avatar, "\xF0\x9F\xA4\x96", sizeof(_p[pid].avatar)); // robot face
+        haUartJoin(pid, _p[pid].nick);
+        return pid;
+    }
+
+    void botRemove(uint8_t pid) {
+        anyOnLeave(pid); // forfeit anything it was part of, like a leaver would
+        _p[pid] = Player{};
+        _gvVote[pid] = -1;
+        haUartLeave(pid);
+    }
+
+    // Keep the bot seats matched to the switch, the room and the active game, then
+    // let the seated bots act. Called from tick() -- but never while a game-change
+    // vote is pending: the roster feeds the tally, and seats appearing or vanishing
+    // mid-vote is exactly the ghost-voter bug this feature exists to avoid.
+    void botSync(uint32_t now) {
+        if(_gvActive) return;
+        int humans = humanCount();
+        int want = 0;
+        if(_minOverride && humans > 0) {
+            want = botTargetMin() - humans;
+            if(want < 0) want = 0;
+            if(want > HA_BOT_MAX) want = HA_BOT_MAX;
+        }
+        int have = connectedCount() - humans;
+        bool changed = false;
+        while(have < want) {
+            if(!botAdd()) break;
+            have++;
+            changed = true;
+        }
+        for(uint8_t i = HA_MAX_PLAYERS; i >= 1 && have > want; i--) {
+            if(_p[i].used && _p[i].bot) {
+                botRemove(i);
+                have--;
+                changed = true;
+            }
+        }
+        if(changed) {
+            triviaOnRosterChange();
+            partyRosterChanged();
+            pushAll();
+        }
+        if(have > 0) botAct(now);
+    }
+
+    // What the bots actually do: ready-up in a lobby, and the few in-round moves a
+    // round cannot comfortably wait out. Everything else rides the games' own safety
+    // deadlines ("whoever did not act is skipped"). Actions go through the same
+    // public handlers a phone would use, so every rule check still applies; a
+    // rejected call is simply retried on a later tick. The 1.2-3s delay keeps a
+    // phase from resolving before the real players have even seen it.
+    uint32_t _botStamp = 0;
+    uint32_t _botActAt = 0;
+    void botAct(uint32_t now) {
+        uint32_t stamp = ((uint32_t)_active << 24);
+        if(_active == HA_GAME_WEREWOLF)
+            stamp ^= ((uint32_t)_ww.pt.phase << 16) ^ ((uint32_t)_ww.stage << 8) ^ (uint32_t)_ww.pt.round;
+        else if(_active == HA_GAME_SPYFALL)
+            stamp ^= ((uint32_t)_sf.pt.phase << 16) ^ ((uint32_t)_sf.stage << 8) ^
+                     ((uint32_t)_sf.nomStage << 4) ^ (uint32_t)_sf.nominator;
+        else if(_active == HA_GAME_FRANKENDRAW)
+            stamp ^= ((uint32_t)_fd.pt.phase << 16) ^ (uint32_t)_fd.pt.round;
+        if(stamp != _botStamp) {
+            _botStamp = stamp;
+            _botActAt = now + 1200 + (esp_random() % 1800);
+            return;
+        }
+        if((int32_t)(now - _botActAt) < 0) return;
+        _botActAt = now + 2500; // pace repeats; validated no-ops stay cheap
+        for(uint8_t pid = 1; pid <= HA_MAX_PLAYERS; pid++) {
+            if(!_p[pid].used || !_p[pid].bot) continue;
+            if(_active == HA_GAME_WEREWOLF) {
+                if(_ww.pt.phase == 0 && !_ww.pt.ready[pid]) wwReady(pid, true);
+                if(_ww.pt.phase == 2 && _ww.stage == WW_S_NIGHT) {
+                    if(_ww.role[pid] == WW_WOLF && _ww.kill[pid] <= 0)
+                        wwKill(pid, botPickTarget(pid, true));
+                    if(_ww.role[pid] == WW_SEER && !_ww.seerTarget)
+                        wwSee(pid, botPickTarget(pid, false));
+                    if(_ww.role[pid] == WW_DOCTOR && !_ww.docTarget)
+                        wwGuard(pid, botPickTarget(pid, false));
+                }
+                if(_ww.pt.phase == 2 && _ww.stage == WW_S_DAY && _ww.accuse[pid] <= 0 &&
+                   _ww.alive[pid] && _ww.role[pid] != 0)
+                    wwAccuse(pid, botPickTarget(pid, false));
+            } else if(_active == HA_GAME_SPYFALL) {
+                if(_sf.pt.phase == 0 && !_sf.pt.ready[pid]) spyfallReady(pid, true);
+                if(_sf.pt.phase == 2 && _sf.stage == 0 && _sf.inRound[pid] && !_sf.seen[pid])
+                    spyfallSeen(pid);
+                if(_sf.pt.phase == 2 && _sf.stage == 2 && _sf.nomStage == 1 &&
+                   _sf.nominator == pid) {
+                    // A bot never nominates; it passes its round-robin turn at once so
+                    // the table is not left staring at a robot's think time.
+                    _sf.nominated[pid] = true;
+                    spyfallNextNominator(now);
+                }
+                if(_sf.pt.phase == 2 && _sf.stage == 2 && _sf.nomStage == 2 &&
+                   _sf.inRound[pid] && _sf.agree[pid] < 0)
+                    spyfallAgree(pid, _sf.nominee != pid && (esp_random() & 1) != 0);
+            } else if(_active == HA_GAME_FRANKENDRAW) {
+                if(_fd.pt.phase == 0 && !_fd.pt.ready[pid]) fdReady(pid, true);
+                if(_fd.pt.phase == 2 && !_fd.done[pid])
+                    fdDone(pid); // hands in an empty panel; the guard validates the seat
+            }
+        }
+    }
+
+    // A random live, dealt-in werewolf target for `pid`. `hunting` = wolves only pick
+    // outside the pack; the handlers re-validate everything anyway, so a miss here
+    // just means trying again on a later tick.
+    int botPickTarget(uint8_t pid, bool hunting) {
+        uint8_t cand[HA_MAX_PLAYERS];
+        int n = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || i == pid) continue;
+            if(!_ww.alive[i] || _ww.role[i] == 0) continue;
+            if(hunting && _ww.role[i] == WW_WOLF) continue;
+            cand[n++] = i;
+        }
+        if(!n) return 0;
+        return cand[esp_random() % (uint32_t)n];
+    }
 
     // ---------- broadcast ----------
     void pushAll() {
@@ -5807,7 +5979,19 @@ private:
     void proposeGame(uint8_t pid, const char* name) {
         if(_gvActive) return; // one proposal at a time
         int id = gameIdByName(name);
-        if(id < 0 || (uint8_t)id == _active) return; // unknown, or already the active game
+        if(id < 0) return; // unknown name
+        if((uint8_t)id == _active) {
+            // The switcher normally hides the active game, but a stale page can still
+            // propose it. Answer instead of going silent -- a tap that does nothing
+            // reads as "the voting is broken" (it cost a play-test an evening).
+            if(_p[pid].wsId)
+                haWsSendWs(
+                    _p[pid].wsId,
+                    strncmp(_lang, "de", 2) == 0
+                        ? String("{\"t\":\"toast\",\"msg\":\"Das Spiel läuft schon\"}")
+                        : String("{\"t\":\"toast\",\"msg\":\"Already the current game\"}"));
+            return;
+        }
         _gvActive = true;
         _gvProposer = pid;
         _gvTarget = (uint8_t)id;
@@ -5837,7 +6021,9 @@ private:
         if(!_gvActive) return false;
         int others = 0, yes = 0, no = 0;
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
-            if(!_p[i].used || i == _gvProposer) continue;
+            // Bots hold no franchise: a seat that cannot see the overlay must not be
+            // waited on, or every vote in a bot-filled room dies in the timeout.
+            if(!_p[i].used || _p[i].bot || i == _gvProposer) continue;
             others++;
             if(_gvVote[i] == 1) yes++;
             else if(_gvVote[i] == 0) no++;
@@ -5872,11 +6058,11 @@ private:
     String gameVoteJson(uint8_t pid) {
         int yes = 0, no = 0;
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
-            if(!_p[i].used) continue;
+            if(!_p[i].used || _p[i].bot) continue; // bots hold no franchise
             if(_gvVote[i] == 1) yes++; // includes the proposer's implicit YES
             else if(_gvVote[i] == 0) no++;
         }
-        int others = connectedCount() - 1;
+        int others = humanCount() - 1;
         if(others < 0) others = 0;
         int need = others > 0 ? (others / 2 + 1) : 0; // yes votes needed from the others
         const char* name = gameName(_gvTarget);
