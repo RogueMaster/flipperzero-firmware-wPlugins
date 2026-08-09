@@ -59,7 +59,7 @@ Wiring (confirm against your module silk; matches common Flipper DCF77 apps):
 Keep the ferrite rod ≥ ~10 cm from the Flipper and near a window. Reception
 across Europe is typically better at night.
 
-### Where to buy modules
+## Where to buy modules
 
 - [Reichelt — FREI DCF 77 receiver](https://www.reichelt.com/ie/en/shop/product/dcf_77_receiver_module-57772)
 - [Shotech — DCF-1060N-MAS ± antenna](https://www.shotech.de/en/dcf-1060n-mas-77-5-khz-receiver-module-with-mas6181b.html)
