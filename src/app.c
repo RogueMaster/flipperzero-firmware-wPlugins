@@ -31,10 +31,31 @@ static void app_draw_callback(Canvas* canvas, void* context) {
     canvas_set_color(canvas, ColorBlack);
 
     if(app->screen == AppScreenClock) {
+        const int32_t cx = (int32_t)(canvas_width(canvas) / 2);
+        const int32_t beats_cy = 24;
+        const int32_t time_cy = 50;
+
+        canvas_set_font(canvas, FontBigNumbers);
+        const uint16_t digits_w = canvas_string_width(canvas, app->beats_text + 1);
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignCenter, app->beats_text);
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, app->local_time_text);
+        const uint16_t at_w = canvas_string_width(canvas, "@");
+        const uint16_t gap = 3;
+        const int32_t left = cx - (int32_t)((at_w + gap + digits_w) / 2);
+
+        canvas_draw_str_aligned(
+            canvas, left + (int32_t)(at_w / 2), beats_cy, AlignCenter, AlignCenter, "@");
+        canvas_set_font(canvas, FontBigNumbers);
+        canvas_draw_str_aligned(
+            canvas,
+            left + (int32_t)(at_w + gap + digits_w / 2),
+            beats_cy,
+            AlignCenter,
+            AlignCenter,
+            app->beats_text + 1);
+
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(
+            canvas, cx, time_cy, AlignCenter, AlignCenter, app->local_time_text);
     } else {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignCenter, "UTC Offset");
