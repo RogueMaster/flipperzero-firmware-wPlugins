@@ -1,8 +1,9 @@
 #include "clock_model.h"
 #include "internet_time.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static int failures = 0;
@@ -88,16 +89,11 @@ static void test_snapshot(void) {
     expect_str("snapshot local 12h", snap.local_time_text, "12:00:00 AM");
 }
 
-int main(void) {
+int test_clock_model_run(void) {
+    failures = 0;
     test_format_beats();
     test_format_local_24();
     test_format_local_12();
     test_snapshot();
-
-    if(failures != 0) {
-        fprintf(stderr, "%d test(s) failed\n", failures);
-        return 1;
-    }
-    puts("ok");
-    return 0;
+    return failures;
 }
