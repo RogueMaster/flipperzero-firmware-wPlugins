@@ -64,8 +64,12 @@ lists it.
   staring at a frozen screen. Loop.
 - **`run` owns its own cleanup, on every exit path.** There is no teardown hook. If your part
   has to be put back into a low-power mode, do it before every `return`, including the error
-  ones. The BNO055 test parks the sensor in CONFIG whatever happened, because NDOF fusion burns
+  ones. The BNO055 test parks the sensor in CONFIG when it leaves, because NDOF fusion burns
   ~12 mA and nobody is watching once the screen is gone.
+- **Park only what you started.** Cleanup is not unconditional. An address that ACKs is not
+  proof of which part answered — check the ID register first, and if it does not match, write
+  nothing. The mode register you were about to restore belongs to a different chip's map, and
+  a stray write to a stranger is a real way to brick someone's board.
 - **`run` is called on its own thread** with the address the scan already found the part at.
   It never has to search the bus.
 - **Never touch a view, a canvas or the view model.** Publish a `LiveTestState` and the app

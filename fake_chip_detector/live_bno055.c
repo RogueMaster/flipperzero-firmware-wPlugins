@@ -40,13 +40,17 @@ static void bno055_set_lines(LiveTestState* st, const char* l0, const char* l1, 
     }
 }
 
-// CHIP_ID first: an ACK only proves something is at that address, and after a
-// hot-unplug the next thing plugged in may well answer to it too.
-static bool bno055_start(uint8_t addr7, const volatile bool* stop) {
+// CHIP_ID, not just an ACK: after a hot-unplug the next thing plugged in may
+// well answer at the same address, and everything below writes to registers.
+static bool bno055_present(uint8_t addr7) {
     uint8_t chip_id = 0;
     if(!i2c_worker_read_reg(addr7, BNO055_REG_CHIP_ID, &chip_id, I2C_REG_TIMEOUT_MS)) return false;
-    if(chip_id != BNO055_CHIP_ID_VALUE) return false;
+    return chip_id == BNO055_CHIP_ID_VALUE;
+}
 
+// Returns true only once the part is actually running fusion — which is also
+// the answer to "is there anything to put back afterwards?".
+static bool bno055_enter_ndof(uint8_t addr7, const volatile bool* stop) {
     // Mode changes are only accepted from CONFIG, so go there first even if
     // the part is already idle.
     if(!i2c_worker_write_reg(addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, I2C_REG_TIMEOUT_MS))
@@ -116,11 +120,20 @@ static void
         bno055_set_lines(&st, "Starting NDOF fusion", "Nine axes, warming up", NULL);
         publish(ctx, &st);
 
-        if(bno055_start(addr7, stop)) bno055_poll(addr7, stop, publish, ctx);
+        bool in_ndof = false;
+        if(bno055_present(addr7)) {
+            in_ndof = bno055_enter_ndof(addr7, stop);
+            if(in_ndof) bno055_poll(addr7, stop, publish, ctx);
+        }
 
-        // Whatever happened above, leave the part in CONFIG. NDOF runs the
-        // fusion core at ~12 mA and nobody is watching once this returns.
-        i2c_worker_write_reg(addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, I2C_REG_TIMEOUT_MS);
+        // Park only what we started. NDOF runs the fusion core at ~12 mA and
+        // nobody is watching once this returns — but if the CHIP_ID did not
+        // match, whatever is at this address is not a BNO055 and 0x3D is not
+        // its mode register. Do not write to a stranger.
+        if(in_ndof) {
+            i2c_worker_write_reg(
+                addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, I2C_REG_TIMEOUT_MS);
+        }
 
         if(*stop) break;
 
