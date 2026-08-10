@@ -84,10 +84,13 @@ for mod in sorted(pathlib.Path('fake_chip_detector').glob('live_*.c')):
             r'const LiveTest live_test_(\w+)\s*=\s*\{(.*?)\n\};', body, re.S):
         chip = re.search(r'\.chip\s*=\s*"([^"]*)"', fields)
         offer = re.search(r'\.offer\s*=\s*"([^"]*)"', fields)
+        addrs = re.search(r'\.addrs\s*=\s*\{([^}]*)\}', fields)
         if chip and offer:
             defined[symbol] = {
                 'slug': symbol, 'chip': chip.group(1),
                 'offer': offer.group(1), 'file': mod.name,
+                'addrs': [num(a) for a in addrs.group(1).split(',')
+                          if a.strip()] if addrs else None,
             }
 
 missing = sorted(registered - set(defined))
@@ -102,6 +105,39 @@ live_tests = {defined[s]['chip']: defined[s] for s in registered}
 
 for e in entries:
     e['live'] = live_tests.get(e['name'])
+
+# A test's `.addrs` is what a manual launch probes before it starts writing
+# registers, so an address listed there that the part cannot actually use is a
+# write aimed at whatever else happens to answer. The database already knows
+# the right answer; check the test against it rather than trusting two hand-kept
+# lists to stay equal.
+by_name = {e['name']: e for e in entries}
+addr_problems = []
+for chip_name, test in sorted(live_tests.items()):
+    entry = by_name.get(chip_name)
+    if entry is None:
+        addr_problems.append(
+            '%s: .chip "%s" matches no row in chip_db.c' % (test['file'], chip_name))
+        continue
+    if test['addrs'] is None:
+        addr_problems.append('%s: live_test_%s has no .addrs' % (test['file'], test['slug']))
+        continue
+    if entry['lo']:
+        expected = list(range(entry['lo'], entry['hi'] + 1))
+        described = 'the 0x%02X-0x%02X range' % (entry['lo'], entry['hi'])
+    else:
+        expected = entry['addrs']
+        described = ', '.join('0x%02X' % a for a in expected)
+    stray = [a for a in test['addrs'] if a not in expected]
+    if stray:
+        addr_problems.append(
+            '%s: live_test_%s claims %s, but chip_db.c gives %s' % (
+                test['file'], test['slug'],
+                ', '.join('0x%02X' % a for a in stray), described))
+
+if addr_problems:
+    raise SystemExit('live-test addresses disagree with chip_db.c:\n  ' +
+                     '\n  '.join(addr_problems))
 
 
 def live_cell(e):

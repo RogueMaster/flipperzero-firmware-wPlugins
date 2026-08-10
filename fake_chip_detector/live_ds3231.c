@@ -1,5 +1,4 @@
 #include "live_ds3231.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <string.h>
@@ -89,9 +88,15 @@ static bool ds3231_decode_hour(uint8_t raw, uint8_t* hour_out) {
 
 // Returns false only if the part stopped answering. `valid` says whether what
 // came back actually looks like a clock.
-static bool ds3231_read_time(uint8_t addr7, uint8_t* h, uint8_t* m, uint8_t* s, bool* valid) {
+static bool ds3231_read_time(
+    const LiveTestI2c* i2c,
+    uint8_t addr7,
+    uint8_t* h,
+    uint8_t* m,
+    uint8_t* s,
+    bool* valid) {
     uint8_t buf[3] = {0};
-    if(!i2c_worker_read_mem(addr7, DS3231_REG_SECONDS, buf, sizeof(buf), I2C_REG_TIMEOUT_MS))
+    if(!i2c->read_mem(addr7, DS3231_REG_SECONDS, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS))
         return false;
 
     uint8_t secs = buf[0] & DS3231_SECONDS_MASK;
@@ -110,9 +115,9 @@ static bool ds3231_read_time(uint8_t addr7, uint8_t* h, uint8_t* m, uint8_t* s, 
 // shown, never used to judge: on a DS1307 those two addresses fall inside the
 // battery-backed RAM and could legitimately hold anything at all. Accusing a
 // part on that basis would be exactly the kind of guess this app refuses.
-static bool ds3231_read_temp(uint8_t addr7, int32_t* milli_c) {
+static bool ds3231_read_temp(const LiveTestI2c* i2c, uint8_t addr7, int32_t* milli_c) {
     uint8_t buf[2] = {0};
-    if(!i2c_worker_read_mem(addr7, DS3231_REG_TEMP_MSB, buf, sizeof(buf), I2C_REG_TIMEOUT_MS))
+    if(!i2c->read_mem(addr7, DS3231_REG_TEMP_MSB, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS))
         return false;
     if(buf[1] & DS3231_TEMP_LSB_RESERVED) return false;
 
@@ -137,8 +142,13 @@ static void ds3231_format_temp(char* out, size_t len, int32_t milli_c) {
         (unsigned)(magnitude % 1000u / 100u));
 }
 
-static void
-    ds3231_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void ds3231_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -154,7 +164,7 @@ static void
         while(!*stop && errors < 3) {
             uint8_t hh = 0, mm = 0, ss = 0;
             bool valid = false;
-            if(!ds3231_read_time(addr7, &hh, &mm, &ss, &valid)) {
+            if(!ds3231_read_time(i2c, addr7, &hh, &mm, &ss, &valid)) {
                 errors++;
                 ds3231_delay(stop, DS3231_POLL_MS);
                 continue;
@@ -201,7 +211,7 @@ static void
             unsigned h24 = (unsigned)hh % 24u, m60 = (unsigned)mm % 60u, s60 = (unsigned)ss % 60u;
 
             int32_t milli_c = 0;
-            if(ds3231_read_temp(addr7, &milli_c)) {
+            if(ds3231_read_temp(i2c, addr7, &milli_c)) {
                 char die[8];
                 ds3231_format_temp(die, sizeof(die), milli_c);
                 snprintf(
@@ -240,6 +250,7 @@ const LiveTest live_test_ds3231 = {
     .chip = "DS3231",
     .title = "DS3231 test",
     .offer = "Watch the clock run",
+    .addrs = {0x68},
     .run = ds3231_run,
     .draw = NULL,
 };

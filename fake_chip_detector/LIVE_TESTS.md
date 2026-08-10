@@ -23,27 +23,44 @@ registry in `live_test.c`. Nothing in the UI, the menus or the views has to chan
 contract is in [`live_test.h`](live_test.h); this is the shape of it:
 
 ```c
-static void mypart_run(uint8_t addr7, const volatile bool* stop,
-                       LiveTestPublish publish, void* ctx) {
-    while(!*stop) {
+static void mypart_run(const LiveTestEnv* env) {
+    while(!*env->stop) {
+        uint8_t reading = 0;
+        env->i2c->read_reg(env->addr7, MYPART_REG_DATA, &reading, LIVE_TEST_TIMEOUT_MS);
+
         LiveTestState st;
         memset(&st, 0, sizeof(st));
         st.phase = LiveTestPhaseRunning;
         snprintf(st.heading, sizeof(st.heading), "%u", reading);
         snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "Breathe on it");
-        publish(ctx, &st);
+        env->publish(env->ctx, &st);
         furi_delay_ms(100);
     }
 }
 
 const LiveTest live_test_mypart = {
     .chip = "MYPART",              // exactly as spelled in chip_db.c
-    .title = "MYPART live test",
+    .title = "MYPART test",
     .offer = "Watch it react",     // the pitch on the ALL GOOD screen, <= 26 chars
+    .addrs = {0x42, 0x43},         // every address the part can sit at
     .run = mypart_run,
     .draw = NULL,                  // optional; NULL gets you a readable text screen
 };
 ```
+
+Most of the shipped tests unpack `env` into locals on the first lines of `run` — `const uint8_t
+addr7 = env->addr7;` and so on — which keeps the body below readable. Either style is fine.
+
+**Why the bus arrives as `env->i2c` and not as a function you call by name.** It is the one
+thing that lets the same `.c` file be either compiled into the app or built separately as a
+`.fal` and dropped onto the SD card. A test never links against a symbol of this app, so nothing
+has to be exported and there is no second version of the file to keep in step. Do not add
+`#include "i2c_worker.h"` to a test — the moment you do, that test can only ever live inside the
+app. `LIVE_TEST_TIMEOUT_MS` is in `live_test.h` for the same reason.
+
+**`.addrs` is required, and listing an address the part cannot use is not a harmless mistake.**
+It is what allows a test to be launched by hand with no scan behind it: the app probes these
+addresses, and whatever answers gets written to. Copy them from the part's row in `chip_db.c`.
 
 Then add it to the table in `live_test.c`:
 

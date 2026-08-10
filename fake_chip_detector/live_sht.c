@@ -1,5 +1,4 @@
 #include "live_sht.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <string.h>
@@ -93,6 +92,7 @@ static bool sht_crc_self_test(void) {
 // not answer or the checksums did not verify — from the caller's point of view
 // those are the same thing: no number worth showing.
 static bool sht_try(
+    const LiveTestI2c* i2c,
     uint8_t addr7,
     const volatile bool* stop,
     ShtVariant variant,
@@ -100,17 +100,17 @@ static bool sht_try(
     int32_t* t_centi) {
     if(variant == ShtVariant4x) {
         const uint8_t cmd = SHT4X_CMD_MEASURE_HIGH;
-        if(!i2c_worker_write_raw(addr7, &cmd, 1, I2C_REG_TIMEOUT_MS)) return false;
+        if(!i2c->write_raw(addr7, &cmd, 1, LIVE_TEST_TIMEOUT_MS)) return false;
         sht_delay(stop, SHT4X_MEASURE_MS);
     } else {
         const uint8_t cmd[2] = {SHT3X_CMD_MEASURE_HIGH_MSB, SHT3X_CMD_MEASURE_HIGH_LSB};
-        if(!i2c_worker_write_raw(addr7, cmd, sizeof(cmd), I2C_REG_TIMEOUT_MS)) return false;
+        if(!i2c->write_raw(addr7, cmd, sizeof(cmd), LIVE_TEST_TIMEOUT_MS)) return false;
         sht_delay(stop, SHT3X_MEASURE_MS);
     }
     if(*stop) return false;
 
     uint8_t buf[SHT_READ_LEN] = {0};
-    if(!i2c_worker_read_raw(addr7, buf, sizeof(buf), I2C_REG_TIMEOUT_MS)) return false;
+    if(!i2c->read_raw(addr7, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS)) return false;
     if(sht_crc8(&buf[0], 2) != buf[2]) return false;
     if(sht_crc8(&buf[3], 2) != buf[5]) return false;
 
@@ -147,7 +147,12 @@ static void sht_format(char* out, size_t len, int32_t centi) {
         (unsigned)(magnitude % 100u / 10u));
 }
 
-static void sht_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void sht_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -176,14 +181,14 @@ static void sht_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish pu
             bool ok = false;
 
             if(variant != ShtVariantUnknown) {
-                ok = sht_try(addr7, stop, variant, &rh, &temp);
+                ok = sht_try(i2c, addr7, stop, variant, &rh, &temp);
                 if(!ok) variant = ShtVariantUnknown; // it changed its mind; re-probe
             }
             if(!ok && !*stop) {
-                if(sht_try(addr7, stop, ShtVariant4x, &rh, &temp)) {
+                if(sht_try(i2c, addr7, stop, ShtVariant4x, &rh, &temp)) {
                     variant = ShtVariant4x;
                     ok = true;
-                } else if(!*stop && sht_try(addr7, stop, ShtVariant3x, &rh, &temp)) {
+                } else if(!*stop && sht_try(i2c, addr7, stop, ShtVariant3x, &rh, &temp)) {
                     variant = ShtVariant3x;
                     ok = true;
                 }
@@ -242,6 +247,7 @@ const LiveTest live_test_sht = {
     .chip = "SHT3x/SHT4x",
     .title = "SHT3x/4x test",
     .offer = "Breathe on it",
+    .addrs = {0x44, 0x45},
     .run = sht_run,
     .draw = NULL,
 };

@@ -1,5 +1,4 @@
 #include "live_adxl345.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <math.h>
@@ -53,15 +52,15 @@ static void adxl345_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-static bool adxl345_present(uint8_t addr7) {
+static bool adxl345_present(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t id = 0;
-    if(!i2c_worker_read_reg(addr7, ADXL345_REG_DEVID, &id, I2C_REG_TIMEOUT_MS)) return false;
+    if(!i2c->read_reg(addr7, ADXL345_REG_DEVID, &id, LIVE_TEST_TIMEOUT_MS)) return false;
     return id == ADXL345_DEVID_VALUE;
 }
 
-static bool adxl345_read_accel(uint8_t addr7, int32_t out_mg[3]) {
+static bool adxl345_read_accel(const LiveTestI2c* i2c, uint8_t addr7, int32_t out_mg[3]) {
     uint8_t buf[6] = {0};
-    if(!i2c_worker_read_mem(addr7, ADXL345_REG_DATAX0, buf, sizeof(buf), I2C_REG_TIMEOUT_MS))
+    if(!i2c->read_mem(addr7, ADXL345_REG_DATAX0, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS))
         return false;
 
     for(uint8_t axis = 0; axis < 3; axis++) {
@@ -75,8 +74,13 @@ static bool adxl345_read_accel(uint8_t addr7, int32_t out_mg[3]) {
     return true;
 }
 
-static void
-    adxl345_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void adxl345_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -85,16 +89,16 @@ static void
         publish(ctx, &st);
 
         bool measuring = false;
-        if(adxl345_present(addr7)) {
+        if(adxl345_present(i2c, addr7)) {
             // Range first, while the part is still in standby: page 26 asks
             // for configuration to be written before measurement starts.
-            if(i2c_worker_write_reg(
+            if(i2c->write_reg(
                    addr7,
                    ADXL345_REG_DATA_FORMAT,
                    ADXL345_DATA_FORMAT_2G_10BIT,
-                   I2C_REG_TIMEOUT_MS)) {
-                measuring = i2c_worker_write_reg(
-                    addr7, ADXL345_REG_POWER_CTL, ADXL345_POWER_CTL_MEASURE, I2C_REG_TIMEOUT_MS);
+                   LIVE_TEST_TIMEOUT_MS)) {
+                measuring = i2c->write_reg(
+                    addr7, ADXL345_REG_POWER_CTL, ADXL345_POWER_CTL_MEASURE, LIVE_TEST_TIMEOUT_MS);
             }
             if(measuring) adxl345_delay(stop, ADXL345_TURNON_MS);
         }
@@ -104,7 +108,7 @@ static void
 
         while(measuring && !*stop && errors < 3) {
             int32_t mg[3] = {0};
-            if(!adxl345_read_accel(addr7, mg)) {
+            if(!adxl345_read_accel(i2c, addr7, mg)) {
                 errors++;
                 adxl345_delay(stop, ADXL345_POLL_MS);
                 continue;
@@ -161,8 +165,8 @@ static void
         // this puts it back exactly as it was found. Nothing is written if the
         // device ID never matched.
         if(measuring) {
-            i2c_worker_write_reg(
-                addr7, ADXL345_REG_POWER_CTL, ADXL345_POWER_CTL_STANDBY, I2C_REG_TIMEOUT_MS);
+            i2c->write_reg(
+                addr7, ADXL345_REG_POWER_CTL, ADXL345_POWER_CTL_STANDBY, LIVE_TEST_TIMEOUT_MS);
         }
 
         if(*stop) break;
@@ -180,6 +184,7 @@ const LiveTest live_test_adxl345 = {
     .chip = "ADXL345/343",
     .title = "ADXL345 test",
     .offer = "Tip it and watch gravity",
+    .addrs = {0x53, 0x1D},
     .run = adxl345_run,
     .draw = NULL,
 };

@@ -1,5 +1,4 @@
 #include "live_mlx90614.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <string.h>
@@ -83,9 +82,10 @@ typedef enum {
 // is the closest thing to proof of identity there is: it covers the address
 // bytes as well as the data, so a device that merely parks two plausible bytes
 // at this address will not reproduce it.
-static MlxReadResult mlx90614_read_ram(uint8_t addr7, uint8_t ram_addr, int32_t* centi_c) {
+static MlxReadResult
+    mlx90614_read_ram(const LiveTestI2c* i2c, uint8_t addr7, uint8_t ram_addr, int32_t* centi_c) {
     uint8_t buf[MLX90614_READ_LEN] = {0};
-    if(!i2c_worker_read_mem(addr7, ram_addr, buf, sizeof(buf), I2C_REG_TIMEOUT_MS))
+    if(!i2c->read_mem(addr7, ram_addr, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS))
         return MlxReadNoAnswer;
 
     const uint8_t framed[] = {
@@ -116,8 +116,13 @@ static void mlx90614_format(char* out, size_t len, int32_t centi) {
         (unsigned)(magnitude % 100u / 10u));
 }
 
-static void
-    mlx90614_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void mlx90614_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -128,9 +133,10 @@ static void
         uint8_t errors = 0;
         while(!*stop && errors < 3) {
             int32_t object = 0, ambient = 0;
-            MlxReadResult obj_result = mlx90614_read_ram(addr7, MLX90614_RAM_TOBJ1, &object);
+            MlxReadResult obj_result = mlx90614_read_ram(i2c, addr7, MLX90614_RAM_TOBJ1, &object);
             MlxReadResult amb_result = (obj_result == MlxReadOk) ?
-                                           mlx90614_read_ram(addr7, MLX90614_RAM_TA, &ambient) :
+                                           mlx90614_read_ram(
+                                               i2c, addr7, MLX90614_RAM_TA, &ambient) :
                                            obj_result;
 
             if(obj_result == MlxReadNoAnswer || amb_result == MlxReadNoAnswer) {
@@ -200,6 +206,7 @@ const LiveTest live_test_mlx90614 = {
     .chip = "MLX90614",
     .title = "MLX90614 test",
     .offer = "Point it at your hand",
+    .addrs = {0x5A},
     .run = mlx90614_run,
     .draw = NULL,
 };

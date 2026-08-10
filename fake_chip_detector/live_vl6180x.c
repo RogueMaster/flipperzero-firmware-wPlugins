@@ -1,5 +1,4 @@
 #include "live_vl6180x.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <string.h>
@@ -68,18 +67,22 @@ static void
 // One single-shot measurement. Returns false when the sensor stopped talking;
 // *error_code is the datasheet's RESULT__RANGE_STATUS nibble, non-zero for a
 // reading the part itself does not trust (no target, too much ambient light).
-static bool
-    vl6180x_measure(uint8_t addr7, const volatile bool* stop, uint8_t* mm, uint8_t* error_code) {
-    if(!i2c_worker_write_reg16_addr(
-           addr7, VL6180X_SYSRANGE_START, VL6180X_START_SINGLE_SHOT, I2C_REG_TIMEOUT_MS))
+static bool vl6180x_measure(
+    const LiveTestI2c* i2c,
+    uint8_t addr7,
+    const volatile bool* stop,
+    uint8_t* mm,
+    uint8_t* error_code) {
+    if(!i2c->write_reg16_addr(
+           addr7, VL6180X_SYSRANGE_START, VL6180X_START_SINGLE_SHOT, LIVE_TEST_TIMEOUT_MS))
         return false;
 
     uint8_t status = 0;
     uint32_t waited = 0;
     for(;;) {
         if(*stop) return false;
-        if(!i2c_worker_read_reg16_addr(
-               addr7, VL6180X_RESULT_INTERRUPT_STATUS_GPIO, &status, 1, I2C_REG_TIMEOUT_MS))
+        if(!i2c->read_reg16_addr(
+               addr7, VL6180X_RESULT_INTERRUPT_STATUS_GPIO, &status, 1, LIVE_TEST_TIMEOUT_MS))
             return false;
         if((status & VL6180X_INT_RANGE_MASK) == VL6180X_INT_NEW_SAMPLE) break;
         if(waited >= VL6180X_CONVERGE_TIMEOUT_MS) return false;
@@ -89,21 +92,26 @@ static bool
 
     uint8_t range_status = 0;
     bool ok =
-        i2c_worker_read_reg16_addr(
-            addr7, VL6180X_RESULT_RANGE_STATUS, &range_status, 1, I2C_REG_TIMEOUT_MS) &&
-        i2c_worker_read_reg16_addr(addr7, VL6180X_RESULT_RANGE_VAL, mm, 1, I2C_REG_TIMEOUT_MS);
+        i2c->read_reg16_addr(
+            addr7, VL6180X_RESULT_RANGE_STATUS, &range_status, 1, LIVE_TEST_TIMEOUT_MS) &&
+        i2c->read_reg16_addr(addr7, VL6180X_RESULT_RANGE_VAL, mm, 1, LIVE_TEST_TIMEOUT_MS);
 
     // Clear the flag even on a failed read, or the next measurement sees a
     // sample-ready that belongs to this one.
-    i2c_worker_write_reg16_addr(
-        addr7, VL6180X_SYSTEM_INTERRUPT_CLEAR, VL6180X_INT_CLEAR_ALL, I2C_REG_TIMEOUT_MS);
+    i2c->write_reg16_addr(
+        addr7, VL6180X_SYSTEM_INTERRUPT_CLEAR, VL6180X_INT_CLEAR_ALL, LIVE_TEST_TIMEOUT_MS);
 
     *error_code = range_status >> 4;
     return ok;
 }
 
-static void
-    vl6180x_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void vl6180x_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -114,25 +122,25 @@ static void
         // The model ID again, not just an ACK: after a hot-unplug whatever is
         // wired up next may well answer at the same address.
         uint8_t model_id = 0;
-        bool alive = i2c_worker_read_reg16_addr(
+        bool alive = i2c->read_reg16_addr(
                          addr7,
                          VL6180X_IDENTIFICATION_MODEL_ID,
                          &model_id,
                          1,
-                         I2C_REG_TIMEOUT_MS) &&
+                         LIVE_TEST_TIMEOUT_MS) &&
                      model_id == VL6180X_MODEL_ID_VALUE;
 
         if(alive) {
-            alive = i2c_worker_write_reg16_addr(
+            alive = i2c->write_reg16_addr(
                         addr7,
                         VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO,
                         VL6180X_INT_CONFIG_RANGE_READY,
-                        I2C_REG_TIMEOUT_MS) &&
-                    i2c_worker_write_reg16_addr(
+                        LIVE_TEST_TIMEOUT_MS) &&
+                    i2c->write_reg16_addr(
                         addr7,
                         VL6180X_SYSTEM_INTERRUPT_CLEAR,
                         VL6180X_INT_CLEAR_ALL,
-                        I2C_REG_TIMEOUT_MS);
+                        LIVE_TEST_TIMEOUT_MS);
         }
 
         uint8_t seen_min = 255, seen_max = 0;
@@ -141,7 +149,7 @@ static void
 
         while(alive && !*stop && errors < 3) {
             uint8_t mm = 0, error_code = 0;
-            if(!vl6180x_measure(addr7, stop, &mm, &error_code)) {
+            if(!vl6180x_measure(i2c, addr7, stop, &mm, &error_code)) {
                 errors++;
                 vl6180x_delay(stop, VL6180X_POLL_MS);
                 continue;
@@ -237,6 +245,7 @@ const LiveTest live_test_vl6180x = {
     .chip = "VL6180X",
     .title = "VL6180X live test",
     .offer = "Watch it measure",
+    .addrs = {0x29},
     .run = vl6180x_run,
     .draw = vl6180x_draw,
 };

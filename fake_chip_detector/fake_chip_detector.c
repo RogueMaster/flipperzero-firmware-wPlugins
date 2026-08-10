@@ -1190,7 +1190,20 @@ static int32_t live_thread_worker(void* context) {
         },
         false);
 
-    if(test && test->run) test->run(addr, &app->live_stop, live_publish, app);
+    if(test && test->run) {
+        // Built on this thread's stack and handed over by pointer. The test
+        // may be a module compiled into this app or one loaded from the SD
+        // card, and this struct is the entire difference between them —
+        // neither reaches for a symbol of ours by name.
+        const LiveTestEnv env = {
+            .addr7 = addr,
+            .stop = &app->live_stop,
+            .publish = live_publish,
+            .ctx = app,
+            .i2c = live_test_i2c(),
+        };
+        test->run(&env);
+    }
     return 0;
 }
 

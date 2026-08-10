@@ -1,5 +1,4 @@
 #include "live_aht.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <string.h>
@@ -65,17 +64,21 @@ typedef enum {
     AhtReadUncalibrated, // the part says its own calibration is not loaded
 } AhtReadResult;
 
-static AhtReadResult
-    aht_measure(uint8_t addr7, const volatile bool* stop, int32_t* rh_centi, int32_t* t_centi) {
+static AhtReadResult aht_measure(
+    const LiveTestI2c* i2c,
+    uint8_t addr7,
+    const volatile bool* stop,
+    int32_t* rh_centi,
+    int32_t* t_centi) {
     const uint8_t trigger[3] = {AHT_CMD_TRIGGER_0, AHT_CMD_TRIGGER_1, AHT_CMD_TRIGGER_2};
-    if(!i2c_worker_write_raw(addr7, trigger, sizeof(trigger), I2C_REG_TIMEOUT_MS))
+    if(!i2c->write_raw(addr7, trigger, sizeof(trigger), LIVE_TEST_TIMEOUT_MS))
         return AhtReadNoAnswer;
 
     aht_delay(stop, AHT_MEASURE_MS);
     if(*stop) return AhtReadNoAnswer;
 
     uint8_t buf[AHT_READ_LEN] = {0};
-    if(!i2c_worker_read_raw(addr7, buf, sizeof(buf), I2C_REG_TIMEOUT_MS)) return AhtReadNoAnswer;
+    if(!i2c->read_raw(addr7, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS)) return AhtReadNoAnswer;
 
     if(buf[0] & AHT_STATUS_BUSY) return AhtReadBusy;
     if(!(buf[0] & AHT_STATUS_CALIBRATED)) return AhtReadUncalibrated;
@@ -104,7 +107,13 @@ static void aht_format(char* out, size_t len, int32_t centi) {
         (unsigned)(magnitude % 100u / 10u));
 }
 
-static void aht_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void aht_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -117,7 +126,7 @@ static void aht_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish pu
 
         while(!*stop && errors < 3) {
             int32_t rh = 0, temp = 0;
-            AhtReadResult result = aht_measure(addr7, stop, &rh, &temp);
+            AhtReadResult result = aht_measure(i2c, addr7, stop, &rh, &temp);
             if(*stop) break;
             if(result == AhtReadNoAnswer) {
                 errors++;
@@ -186,6 +195,7 @@ const LiveTest live_test_aht = {
     .chip = "AHT10/AHT20",
     .title = "AHT10/20 test",
     .offer = "Breathe on it",
+    .addrs = {0x38},
     .run = aht_run,
     .draw = NULL,
 };

@@ -1,5 +1,4 @@
 #include "live_mpu6050.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <math.h>
@@ -70,8 +69,8 @@ static void mpu_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-static bool mpu_identify(uint8_t addr7, MpuIdentity* id) {
-    if(!i2c_worker_read_reg(addr7, MPU_REG_WHO_AM_I, &id->who_am_i, I2C_REG_TIMEOUT_MS))
+static bool mpu_identify(const LiveTestI2c* i2c, uint8_t addr7, MpuIdentity* id) {
+    if(!i2c->read_reg(addr7, MPU_REG_WHO_AM_I, &id->who_am_i, LIVE_TEST_TIMEOUT_MS))
         return false;
     switch(id->who_am_i) {
     case MPU6050_WHO_AM_I:
@@ -90,9 +89,9 @@ static bool mpu_identify(uint8_t addr7, MpuIdentity* id) {
 // burst read returns all six bytes from the same sampling instant, which
 // single reads do not guarantee — and a torn sample would show up here as a
 // magnitude that is not 1 g.
-static bool mpu_read_accel(uint8_t addr7, int32_t out_mg[3]) {
+static bool mpu_read_accel(const LiveTestI2c* i2c, uint8_t addr7, int32_t out_mg[3]) {
     uint8_t buf[6] = {0};
-    if(!i2c_worker_read_mem(addr7, MPU_REG_ACCEL_XOUT_H, buf, sizeof(buf), I2C_REG_TIMEOUT_MS))
+    if(!i2c->read_mem(addr7, MPU_REG_ACCEL_XOUT_H, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS))
         return false;
 
     for(uint8_t axis = 0; axis < 3; axis++) {
@@ -103,8 +102,12 @@ static bool mpu_read_accel(uint8_t addr7, int32_t out_mg[3]) {
     return true;
 }
 
-static void
-    mpu_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void mpu_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -119,12 +122,12 @@ static void
         // part is awake but unmeasurable, and only the first is true.
         bool woken = false;
         bool ready = false;
-        if(mpu_identify(addr7, &id)) {
-            woken = i2c_worker_write_reg(
-                addr7, MPU_REG_PWR_MGMT_1, MPU_PWR_WAKE, I2C_REG_TIMEOUT_MS);
+        if(mpu_identify(i2c, addr7, &id)) {
+            woken = i2c->write_reg(
+                addr7, MPU_REG_PWR_MGMT_1, MPU_PWR_WAKE, LIVE_TEST_TIMEOUT_MS);
             if(woken)
-                ready = i2c_worker_write_reg(
-                    addr7, MPU_REG_ACCEL_CONFIG, MPU_ACCEL_CONFIG_2G, I2C_REG_TIMEOUT_MS);
+                ready = i2c->write_reg(
+                    addr7, MPU_REG_ACCEL_CONFIG, MPU_ACCEL_CONFIG_2G, LIVE_TEST_TIMEOUT_MS);
             if(ready) mpu_delay(stop, MPU_WAKE_SETTLE_MS);
         }
 
@@ -133,7 +136,7 @@ static void
 
         while(ready && !*stop && errors < 3) {
             int32_t mg[3] = {0};
-            if(!mpu_read_accel(addr7, mg)) {
+            if(!mpu_read_accel(i2c, addr7, mg)) {
                 errors++;
                 mpu_delay(stop, MPU_POLL_MS);
                 continue;
@@ -189,7 +192,7 @@ static void
         // woke up: the 6050 resets asleep, the 6500 and 9250 reset awake. If
         // WHO_AM_I never matched, nothing was written and nothing is restored.
         if(woken) {
-            i2c_worker_write_reg(addr7, MPU_REG_PWR_MGMT_1, id.pwr_reset, I2C_REG_TIMEOUT_MS);
+            i2c->write_reg(addr7, MPU_REG_PWR_MGMT_1, id.pwr_reset, LIVE_TEST_TIMEOUT_MS);
         }
 
         if(*stop) break;
@@ -207,6 +210,7 @@ const LiveTest live_test_mpu6050 = {
     .chip = "MPU6050",
     .title = "MPU6050 test",
     .offer = "Tip it and watch gravity",
+    .addrs = {0x68, 0x69},
     .run = mpu_run,
     .draw = NULL,
 };
@@ -215,6 +219,7 @@ const LiveTest live_test_mpu6500 = {
     .chip = "MPU6500",
     .title = "MPU6500 test",
     .offer = "Tip it and watch gravity",
+    .addrs = {0x68, 0x69},
     .run = mpu_run,
     .draw = NULL,
 };
@@ -223,6 +228,7 @@ const LiveTest live_test_mpu9250 = {
     .chip = "MPU9250",
     .title = "MPU9250 test",
     .offer = "Tip it and watch gravity",
+    .addrs = {0x68, 0x69},
     .run = mpu_run,
     .draw = NULL,
 };

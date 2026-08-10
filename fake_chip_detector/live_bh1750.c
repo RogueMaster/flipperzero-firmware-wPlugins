@@ -1,5 +1,4 @@
 #include "live_bh1750.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <string.h>
@@ -52,22 +51,31 @@ static void bh1750_delay(const volatile bool* stop, uint32_t ms) {
 // One One-Time H-resolution measurement. Trigger and read are separate
 // transactions with a STOP between: page 10 says the part cannot accept
 // several commands without one.
-static bool bh1750_measure(uint8_t addr7, const volatile bool* stop, uint16_t* raw) {
+static bool bh1750_measure(
+    const LiveTestI2c* i2c,
+    uint8_t addr7,
+    const volatile bool* stop,
+    uint16_t* raw) {
     const uint8_t opcode = BH1750_CMD_ONE_TIME_H_RES;
-    if(!i2c_worker_write_raw(addr7, &opcode, 1, I2C_REG_TIMEOUT_MS)) return false;
+    if(!i2c->write_raw(addr7, &opcode, 1, LIVE_TEST_TIMEOUT_MS)) return false;
 
     bh1750_delay(stop, BH1750_MEASURE_MS);
     if(*stop) return false;
 
     uint8_t buf[2] = {0};
-    if(!i2c_worker_read_raw(addr7, buf, sizeof(buf), I2C_REG_TIMEOUT_MS)) return false;
+    if(!i2c->read_raw(addr7, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS)) return false;
 
     *raw = (uint16_t)(((uint16_t)buf[0] << 8) | buf[1]);
     return true;
 }
 
-static void
-    bh1750_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void bh1750_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -80,7 +88,7 @@ static void
 
         while(!*stop && errors < 3) {
             uint16_t raw = 0;
-            if(!bh1750_measure(addr7, stop, &raw)) {
+            if(!bh1750_measure(i2c, addr7, stop, &raw)) {
                 if(*stop) break;
                 errors++;
                 continue;
@@ -133,6 +141,7 @@ const LiveTest live_test_bh1750 = {
     .chip = "BH1750",
     .title = "BH1750 test",
     .offer = "Cover it with your hand",
+    .addrs = {0x23, 0x5C},
     .run = bh1750_run,
     .draw = NULL,
 };

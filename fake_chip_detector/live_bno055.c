@@ -1,5 +1,4 @@
 #include "live_bno055.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <math.h>
@@ -42,30 +41,34 @@ static void bno055_set_lines(LiveTestState* st, const char* l0, const char* l1, 
 
 // CHIP_ID, not just an ACK: after a hot-unplug the next thing plugged in may
 // well answer at the same address, and everything below writes to registers.
-static bool bno055_present(uint8_t addr7) {
+static bool bno055_present(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t chip_id = 0;
-    if(!i2c_worker_read_reg(addr7, BNO055_REG_CHIP_ID, &chip_id, I2C_REG_TIMEOUT_MS)) return false;
+    if(!i2c->read_reg(addr7, BNO055_REG_CHIP_ID, &chip_id, LIVE_TEST_TIMEOUT_MS)) return false;
     return chip_id == BNO055_CHIP_ID_VALUE;
 }
 
 // Returns true only once the part is actually running fusion — which is also
 // the answer to "is there anything to put back afterwards?".
-static bool bno055_enter_ndof(uint8_t addr7, const volatile bool* stop) {
+static bool bno055_enter_ndof(const LiveTestI2c* i2c, uint8_t addr7, const volatile bool* stop) {
     // Mode changes are only accepted from CONFIG, so go there first even if
     // the part is already idle.
-    if(!i2c_worker_write_reg(addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, I2C_REG_TIMEOUT_MS))
+    if(!i2c->write_reg(addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, LIVE_TEST_TIMEOUT_MS))
         return false;
     bno055_delay(stop, BNO055_MODE_SWITCH_MS);
     if(*stop) return false;
 
-    if(!i2c_worker_write_reg(addr7, BNO055_REG_OPR_MODE, BNO055_MODE_NDOF, I2C_REG_TIMEOUT_MS))
+    if(!i2c->write_reg(addr7, BNO055_REG_OPR_MODE, BNO055_MODE_NDOF, LIVE_TEST_TIMEOUT_MS))
         return false;
     bno055_delay(stop, BNO055_FUSION_SETTLE_MS);
     return true;
 }
 
-static void
-    bno055_poll(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void bno055_poll(
+    const LiveTestI2c* i2c,
+    uint8_t addr7,
+    const volatile bool* stop,
+    LiveTestPublish publish,
+    void* ctx) {
     LiveTestState st;
     memset(&st, 0, sizeof(st));
     st.progress_max = BNO055_MAG_CAL_MAX;
@@ -77,9 +80,9 @@ static void
         uint8_t heading[2] = {0};
         uint8_t calib = 0;
         bool ok =
-            i2c_worker_read_mem(
-                addr7, BNO055_REG_EUL_HEADING_LSB, heading, sizeof(heading), I2C_REG_TIMEOUT_MS) &&
-            i2c_worker_read_reg(addr7, BNO055_REG_CALIB_STAT, &calib, I2C_REG_TIMEOUT_MS);
+            i2c->read_mem(
+                addr7, BNO055_REG_EUL_HEADING_LSB, heading, sizeof(heading), LIVE_TEST_TIMEOUT_MS) &&
+            i2c->read_reg(addr7, BNO055_REG_CALIB_STAT, &calib, LIVE_TEST_TIMEOUT_MS);
 
         if(!ok) {
             errors++;
@@ -110,8 +113,13 @@ static void
     }
 }
 
-static void
-    bno055_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void bno055_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -121,9 +129,9 @@ static void
         publish(ctx, &st);
 
         bool in_ndof = false;
-        if(bno055_present(addr7)) {
-            in_ndof = bno055_enter_ndof(addr7, stop);
-            if(in_ndof) bno055_poll(addr7, stop, publish, ctx);
+        if(bno055_present(i2c, addr7)) {
+            in_ndof = bno055_enter_ndof(i2c, addr7, stop);
+            if(in_ndof) bno055_poll(i2c, addr7, stop, publish, ctx);
         }
 
         // Park only what we started. NDOF runs the fusion core at ~12 mA and
@@ -131,8 +139,8 @@ static void
         // match, whatever is at this address is not a BNO055 and 0x3D is not
         // its mode register. Do not write to a stranger.
         if(in_ndof) {
-            i2c_worker_write_reg(
-                addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, I2C_REG_TIMEOUT_MS);
+            i2c->write_reg(
+                addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, LIVE_TEST_TIMEOUT_MS);
         }
 
         if(*stop) break;
@@ -203,6 +211,7 @@ const LiveTest live_test_bno055 = {
     .chip = "BNO055",
     .title = "BNO055 live test",
     .offer = "Prove it finds north",
+    .addrs = {0x28, 0x29},
     .run = bno055_run,
     .draw = bno055_draw,
 };

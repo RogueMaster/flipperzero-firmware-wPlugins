@@ -1,5 +1,4 @@
 #include "live_apds9960.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <string.h>
@@ -67,9 +66,9 @@ static void apds9960_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-static bool apds9960_present(uint8_t addr7) {
+static bool apds9960_present(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t id = 0;
-    if(!i2c_worker_read_reg(addr7, APDS9960_REG_ID, &id, I2C_REG_TIMEOUT_MS)) return false;
+    if(!i2c->read_reg(addr7, APDS9960_REG_ID, &id, LIVE_TEST_TIMEOUT_MS)) return false;
     return id == APDS9960_ID_VALUE;
 }
 
@@ -85,17 +84,21 @@ typedef struct {
 // Page 20 is explicit that every control register must be set before the
 // engine is enabled: "changing control register values while operating may
 // result in invalid results". So ENABLE is written last, deliberately.
-static bool apds9960_start(uint8_t addr7, const volatile bool* stop, ApdsTouched* touched) {
-    touched->ppulse = i2c_worker_write_reg(
-        addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_8_AT_8US, I2C_REG_TIMEOUT_MS);
+static bool apds9960_start(
+    const LiveTestI2c* i2c,
+    uint8_t addr7,
+    const volatile bool* stop,
+    ApdsTouched* touched) {
+    touched->ppulse = i2c->write_reg(
+        addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_8_AT_8US, LIVE_TEST_TIMEOUT_MS);
     if(!touched->ppulse) return false;
 
-    touched->control = i2c_worker_write_reg(
-        addr7, APDS9960_REG_CONTROL, APDS9960_CONTROL_100MA_4X, I2C_REG_TIMEOUT_MS);
+    touched->control = i2c->write_reg(
+        addr7, APDS9960_REG_CONTROL, APDS9960_CONTROL_100MA_4X, LIVE_TEST_TIMEOUT_MS);
     if(!touched->control) return false;
 
-    touched->enable = i2c_worker_write_reg(
-        addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_PROX, I2C_REG_TIMEOUT_MS);
+    touched->enable = i2c->write_reg(
+        addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_PROX, LIVE_TEST_TIMEOUT_MS);
     if(!touched->enable) return false;
 
     apds9960_delay(stop, APDS9960_SETTLE_MS);
@@ -109,13 +112,16 @@ typedef enum {
     ApdsReadNotReady,
 } ApdsReadResult;
 
-static ApdsReadResult
-    apds9960_read(uint8_t addr7, const volatile bool* stop, uint8_t* pdata) {
+static ApdsReadResult apds9960_read(
+    const LiveTestI2c* i2c,
+    uint8_t addr7,
+    const volatile bool* stop,
+    uint8_t* pdata) {
     uint8_t status = 0;
     uint32_t waited = 0;
     for(;;) {
         if(*stop) return ApdsReadNotReady;
-        if(!i2c_worker_read_reg(addr7, APDS9960_REG_STATUS, &status, I2C_REG_TIMEOUT_MS))
+        if(!i2c->read_reg(addr7, APDS9960_REG_STATUS, &status, LIVE_TEST_TIMEOUT_MS))
             return ApdsReadNoAnswer;
         if(status & APDS9960_STATUS_PVALID) break;
         if(waited >= APDS9960_VALID_TIMEOUT_MS) return ApdsReadNotReady;
@@ -126,13 +132,18 @@ static ApdsReadResult
     if(status & APDS9960_STATUS_PGSAT) return ApdsReadSaturated;
     // Reading PDATA is what clears PVALID (page 11), so this read both fetches
     // the sample and arms the next one.
-    if(!i2c_worker_read_reg(addr7, APDS9960_REG_PDATA, pdata, I2C_REG_TIMEOUT_MS))
+    if(!i2c->read_reg(addr7, APDS9960_REG_PDATA, pdata, LIVE_TEST_TIMEOUT_MS))
         return ApdsReadNoAnswer;
     return ApdsReadOk;
 }
 
-static void
-    apds9960_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void apds9960_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -142,14 +153,14 @@ static void
 
         ApdsTouched touched = {0};
         bool running = false;
-        if(apds9960_present(addr7)) running = apds9960_start(addr7, stop, &touched);
+        if(apds9960_present(i2c, addr7)) running = apds9960_start(i2c, addr7, stop, &touched);
 
         uint16_t seen_min = 0xFFFF, seen_max = 0;
         uint8_t errors = 0;
 
         while(running && !*stop && errors < 3) {
             uint8_t pdata = 0;
-            ApdsReadResult result = apds9960_read(addr7, stop, &pdata);
+            ApdsReadResult result = apds9960_read(i2c, addr7, stop, &pdata);
             if(result == ApdsReadNoAnswer) {
                 errors++;
                 apds9960_delay(stop, APDS9960_POLL_MS);
@@ -201,16 +212,16 @@ static void
         // and not one byte is written here — whatever lives at this address,
         // its registers are not ours to clear.
         if(touched.enable) {
-            i2c_worker_write_reg(
-                addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_OFF, I2C_REG_TIMEOUT_MS);
+            i2c->write_reg(
+                addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_OFF, LIVE_TEST_TIMEOUT_MS);
         }
         if(touched.control) {
-            i2c_worker_write_reg(
-                addr7, APDS9960_REG_CONTROL, APDS9960_CONTROL_RESET, I2C_REG_TIMEOUT_MS);
+            i2c->write_reg(
+                addr7, APDS9960_REG_CONTROL, APDS9960_CONTROL_RESET, LIVE_TEST_TIMEOUT_MS);
         }
         if(touched.ppulse) {
-            i2c_worker_write_reg(
-                addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_RESET, I2C_REG_TIMEOUT_MS);
+            i2c->write_reg(
+                addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_RESET, LIVE_TEST_TIMEOUT_MS);
         }
 
         if(*stop) break;
@@ -228,6 +239,7 @@ const LiveTest live_test_apds9960 = {
     .chip = "APDS9960",
     .title = "APDS9960 test",
     .offer = "Wave your hand at it",
+    .addrs = {0x39},
     .run = apds9960_run,
     .draw = NULL,
 };

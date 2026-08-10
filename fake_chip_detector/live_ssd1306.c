@@ -1,5 +1,4 @@
 #include "live_ssd1306.h"
-#include "i2c_worker.h"
 
 #include <furi.h>
 #include <string.h>
@@ -68,13 +67,17 @@ static void ssd1306_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-static bool ssd1306_command(uint8_t addr7, uint8_t command) {
+static bool ssd1306_command(const LiveTestI2c* i2c, uint8_t addr7, uint8_t command) {
     const uint8_t frame[2] = {SSD1306_CTRL_COMMAND_STREAM, command};
-    return i2c_worker_write_raw(addr7, frame, sizeof(frame), I2C_REG_TIMEOUT_MS);
+    return i2c->write_raw(addr7, frame, sizeof(frame), LIVE_TEST_TIMEOUT_MS);
 }
 
-static void
-    ssd1306_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
+static void ssd1306_run(const LiveTestEnv* env) {
+    const uint8_t addr7 = env->addr7;
+    const volatile bool* stop = env->stop;
+    const LiveTestI2c* i2c = env->i2c;
+    const LiveTestPublish publish = env->publish;
+    void* const ctx = env->ctx;
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -83,7 +86,7 @@ static void
         publish(ctx, &st);
 
         bool awake =
-            i2c_worker_write_raw(addr7, ssd1306_wake, sizeof(ssd1306_wake), I2C_REG_TIMEOUT_MS);
+            i2c->write_raw(addr7, ssd1306_wake, sizeof(ssd1306_wake), LIVE_TEST_TIMEOUT_MS);
         bool lit = true;
         uint8_t errors = 0;
 
@@ -103,7 +106,7 @@ static void
             if(*stop) break;
 
             lit = !lit;
-            if(!ssd1306_command(addr7, lit ? SSD1306_DISPLAY_ON : SSD1306_DISPLAY_OFF)) {
+            if(!ssd1306_command(i2c, addr7, lit ? SSD1306_DISPLAY_ON : SSD1306_DISPLAY_OFF)) {
                 errors++;
             } else {
                 errors = 0;
@@ -114,8 +117,8 @@ static void
         // pixel burning after the user walks away would be rude to the panel
         // and to whatever battery is feeding it.
         if(awake) {
-            ssd1306_command(addr7, SSD1306_DISPLAY_FROM_RAM);
-            ssd1306_command(addr7, SSD1306_DISPLAY_OFF);
+            ssd1306_command(i2c, addr7, SSD1306_DISPLAY_FROM_RAM);
+            ssd1306_command(i2c, addr7, SSD1306_DISPLAY_OFF);
         }
 
         if(*stop) break;
@@ -133,6 +136,7 @@ const LiveTest live_test_ssd1306 = {
     .chip = "SSD1306/SH1106",
     .title = "OLED test",
     .offer = "Make the screen blink",
+    .addrs = {0x3C, 0x3D},
     .run = ssd1306_run,
     .draw = NULL,
 };
