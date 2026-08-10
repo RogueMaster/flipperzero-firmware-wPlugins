@@ -9,12 +9,24 @@ be faked by a sticker or a fuse.
 
 ## How the app uses them
 
-Live tests are not a menu item. The app offers one at exactly the moment it is worth running:
-after a scan has identified a single part, and after you have confirmed it is what you ordered.
-On that **ALL GOOD** screen, if a module exists for the chip that was found, `OK` runs it.
+The app offers one at exactly the moment it is worth running: after a scan has identified a
+single part, and after you have confirmed it is what you ordered. On that **ALL GOOD** screen,
+if a module exists for the chip that was found, `OK` runs it.
 
 Chips with no live test are not treated as suspect and the screen does not change for them —
 most parts have no test, and that is normal.
+
+**Live tests** in the main menu lists every test the app can run — the ones built in, and any
+found on the SD card — and runs any of them on demand, with no scan first. Launching one that
+way probes the addresses the test declares and starts only if something answers there. If
+nothing does, it says so and does nothing: running a test against an address with no device on
+it would mean writing configuration registers to whatever else happens to be listening.
+
+Only built-in tests are offered on the ALL GOOD screen. A test from the card is run
+deliberately, from the browser, and is marked `SD` both in the list and on the test screen —
+a built-in test was written against a datasheet and reviewed in this repository, and one from
+the card is somebody else's code. Anyone reading a pass off that screen is entitled to know
+which of the two they are looking at.
 
 ## Writing one
 
@@ -163,6 +175,53 @@ judge, and it **never sets `LiveTestPhasePassed`** — a pass there would mean "
 acknowledged some bytes", dressed up as "your display works".
 
 If your part is like that, do the same. A test that reports honestly beats a test that passes.
+
+## Shipping one as a plugin
+
+A test does not have to be merged here to be useful. Built as a `.fal` and copied to the card,
+it appears in the browser and runs like any other — no rebuild of the app, no pull request, no
+waiting for anyone.
+
+Start from [`test_plugin_template/`](../test_plugin_template) in the repository root. It is a
+complete working test, not a snippet: copy the folder, change the registers, the pass condition
+and the strings, then
+
+```
+cd your_folder
+ufbt                       # produces dist/live_test_yourpart.fal
+```
+
+and copy the `.fal` to the Flipper at
+
+```
+SD Card/apps_data/fake_chip_detector/tests/
+```
+
+The app creates that folder the first time it opens the browser, so run it once before going
+looking for the directory.
+
+The only difference between a plugin and a built-in test is fourteen lines at the bottom of the
+file — a `FlipperAppPluginDescriptor` and the entry point named in `application.fam`. Delete
+them and the same file compiles into the app; add them and it compiles out. Nothing in the test
+itself changes, which is the entire reason the bus arrives as `env->i2c`.
+
+Two things about the manifest that will otherwise cost you an evening:
+
+- **`requires[0]` is read as the parent application and must name a manifest ufbt has loaded**,
+  and ufbt loads exactly one file — yours. The template therefore declares a stub
+  `fake_chip_detector` of type `METAPACKAGE` in the same `application.fam`. `METAPACKAGE` is
+  the right type because ufbt does not build it, so the stub costs nothing and produces
+  nothing. Without it the build stops at *"Missing application manifest"*.
+- **A plugin must not set `stack_size`.** It runs on a thread the app already owns.
+
+The app refuses to run a file rather than guess, and says which of these it was: not built as a
+plugin, built for a different app, **built against another version of the contract**, will not
+load at all, or declares no address. That third one is the one to expect after a release: the
+descriptor carries `LIVE_TEST_PLUGIN_API_VERSION`, and it is bumped whenever `LiveTestState`,
+`LiveTestEnv`, the bus table or the descriptor changes shape. A plugin compiled against the old
+shape would otherwise read past the end of a struct and publish whatever it found there as a
+measurement, which is precisely the failure this app exists to prevent. Rebuild against the
+current header and it will load.
 
 ## A test has to be runnable where it matters
 

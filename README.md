@@ -49,9 +49,16 @@ one register — this app does that and shows its work.
   or ADXL345 and watch gravity move to another axis; wave at an APDS9960; point an MLX90614 at
   your palm; watch a DS3231 tick; make an SSD1306 blink. This matters most for the parts with
   **no ID register at all** — for a DS3231 or an AHT20 the app can otherwise only say "something
-  is there", so a live test is the only evidence that will ever exist. Tests are one file each,
-  so adding one for a new part touches nothing else — see
-  **[LIVE_TESTS.md](fake_chip_detector/LIVE_TESTS.md)**.
+  is there", so a live test is the only evidence that will ever exist. **Live tests** in the
+  menu lists every test and runs any of them on demand, without scanning first.
+- **Your own tests, without rebuilding the app.** A test is one file, and it can be built as a
+  `.fal` and dropped into `apps_data/fake_chip_detector/tests/` on the SD card — the app finds
+  it, lists it and runs it. The same source compiles either into the app or out of it: a test
+  never calls a function of the app by name, it is handed the bus as a table of pointers.
+  [`test_plugin_template/`](test_plugin_template) is a complete working example to copy, and
+  **[LIVE_TESTS.md](fake_chip_detector/LIVE_TESTS.md)** has the rules a test is held to. Tests
+  loaded from the card are marked `SD` on screen, because a built-in test was written against a
+  datasheet and reviewed here and one from the card is somebody else's code.
 - **1-Wire too.** Scans pin 17, decodes the family code and runs a real temperature conversion
   on DS18B20-class parts. A 1-Wire ID can be replayed by any microcontroller, so the app is
   explicit that this proves which *part* answered — a DS18S20 sold as a DS18B20 is caught —

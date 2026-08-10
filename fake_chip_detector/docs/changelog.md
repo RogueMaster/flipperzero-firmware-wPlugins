@@ -30,5 +30,17 @@
   IT ANSWERS rather than being told it is the real deal.
 - The DS3231 test writes nothing whatsoever, so it cannot disturb a clock already keeping time.
 - The OLED test never claims a pass: a display has no readback, so the verdict is the user's.
+- A Live tests screen listing every test the app can run, built in or found on the SD card, and
+  running any of them on demand without scanning first. Launching one probes the addresses that
+  test declares and refuses to start if nothing answers, rather than writing configuration
+  registers to whatever else is on the bus.
+- Tests can be written by anyone and dropped onto the card as .fal plugins in
+  apps_data/fake_chip_detector/tests/ — no rebuild of the app. The same source file compiles
+  either into the app or out of it, because a test is handed the bus as a table of pointers
+  instead of calling the app by name. A complete template to copy ships in the repository.
+- Tests loaded from the card are marked SD in the list and on the test screen: a built-in test
+  was written against a datasheet and reviewed in the repository, and one from the card is
+  somebody else's code. A plugin built against an older version of the contract is refused with
+  a reason rather than run.
 - Browsable list of every known chip.
 - Melody, LED and vibration feedback, each switchable in Settings.

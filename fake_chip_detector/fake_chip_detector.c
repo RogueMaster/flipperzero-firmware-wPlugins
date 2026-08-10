@@ -15,6 +15,7 @@
 #include "i2c_worker.h"
 #include "onewire_worker.h"
 #include "live_test.h"
+#include "live_plugin.h"
 #include "chip_db.h"
 #include "i2c_notify.h"
 #include "i2c_settings.h"
@@ -35,6 +36,8 @@ typedef enum {
     FakeChipViewReport,
     FakeChipViewSaved,
     FakeChipViewOneWire,
+    FakeChipViewTests,
+    FakeChipViewTestHelp,
     FakeChipViewAbout,
 } FakeChipViewId;
 
@@ -42,6 +45,7 @@ typedef enum {
     MenuIndexWiring,
     MenuIndexScan,
     MenuIndexOneWire,
+    MenuIndexTests,
     MenuIndexSettings,
     MenuIndexChips,
     MenuIndexSaved,
@@ -88,6 +92,11 @@ typedef struct {
     uint8_t addr; // where the scan found it, so no test has to search again
     LiveTestState state;
     uint32_t frame;
+    // True when the test came off the SD card. Shown on screen, because a
+    // built-in test was written against a datasheet and reviewed in this
+    // repository, and one from the card is somebody else's code — anyone
+    // reading a pass off this screen is entitled to know which it was.
+    bool from_card;
 } LiveViewModel;
 
 typedef struct {
@@ -113,6 +122,17 @@ typedef struct {
 } SavedViewModel;
 
 typedef struct {
+    // Same reason as SavedViewModel above, and more so: a full folder of
+    // plugin descriptions is over two kilobytes, and this screen is open for
+    // seconds at a time.
+    LivePluginList* plugins;
+    uint16_t selected;
+    // Set when a manual launch found nothing at any of the test's addresses.
+    // Shown in place of the offer line, then cleared by the next keypress.
+    char message[LIVE_TEST_LINE_LEN];
+} TestsViewModel;
+
+typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     NotificationApp* notifications;
@@ -124,6 +144,8 @@ typedef struct {
     View* chips_view;
     View* saved_view;
     View* onewire_view;
+    View* tests_view;
+    View* test_help_view;
     TextBox* report_box;
     FuriString* report_text;
     VariableItemList* settings_list;
@@ -138,6 +160,15 @@ typedef struct {
     I2CSettings settings;
     volatile FakeChipViewId current_view;
     bool live_chimed; // the success chime belongs to the run, not to each frame
+
+    // Non-NULL while a test loaded from the SD card is on screen. The LiveTest
+    // the worker is running points into this plugin's mapped memory, so it is
+    // closed only after the thread has been joined.
+    LivePluginHandle* live_plugin;
+
+    // Where Back goes from a running live test: the screen it was started
+    // from, which is either the scan verdict or the browser.
+    FakeChipViewId live_return_to;
 } FakeChipApp;
 
 static void app_switch_view(FakeChipApp* app, FakeChipViewId view_id) {
@@ -1081,6 +1112,12 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
                             (m->test ? m->test->title : "Live test");
     canvas_draw_str_aligned(canvas, 64, 13, AlignCenter, AlignBottom, title);
 
+    if(m->from_card) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 12, "SD");
+        canvas_set_font(canvas, FontPrimary);
+    }
+
     // "It passed" is the app's job to say, not each test's. Drawing it here
     // means one tick in one place, identical for every module, and leaves the
     // test's own lines free to keep showing the reading that earned it.
@@ -1208,12 +1245,15 @@ static int32_t live_thread_worker(void* context) {
 }
 
 static void app_start_live_test(FakeChipApp* app, const LiveTest* test, uint8_t addr7) {
+    app->live_return_to =
+        (app->current_view == FakeChipViewTests) ? FakeChipViewTests : FakeChipViewScan;
     with_view_model(
         app->live_view,
         LiveViewModel * m,
         {
             m->test = test;
             m->addr = addr7;
+            m->from_card = (app->live_plugin != NULL);
         },
         false);
     app_switch_view(app, FakeChipViewLive);
@@ -1246,6 +1286,15 @@ static void live_exit_callback(void* context) {
         furi_thread_join(app->live_thread);
         furi_thread_free(app->live_thread);
         app->live_thread = NULL;
+    }
+
+    // Strictly after the join. The test's code, its strings and its descriptor
+    // all live inside the plugin's mapped memory, so unmapping it while the
+    // worker is still in there is a jump into freed pages.
+    if(app->live_plugin) {
+        live_plugin_close(app->live_plugin);
+        app->live_plugin = NULL;
+        with_view_model(app->live_view, LiveViewModel * m, { m->test = NULL; }, false);
     }
 }
 
@@ -1413,6 +1462,294 @@ static bool chips_input_callback(InputEvent* event, void* context) {
     return consumed;
 }
 
+
+/* ---------------- Live test browser ---------------- */
+
+#define TESTS_LIST_ROWS 4
+
+// The list is the built-in tests, then whatever was found on the card, then
+// one synthetic row that opens the instructions. Keeping the help row in the
+// list rather than on a hint bar costs no screen furniture and is the first
+// thing a user scrolls to the bottom and finds.
+static size_t tests_total(const TestsViewModel* m) {
+    return live_test_count() + (m->plugins ? m->plugins->count : 0) + 1;
+}
+
+static bool tests_row_is_help(const TestsViewModel* m, size_t index) {
+    return index + 1 == tests_total(m);
+}
+
+// NULL for the help row or an out-of-range index.
+static const LivePluginInfo* tests_row_plugin(const TestsViewModel* m, size_t index) {
+    if(!m->plugins) return NULL;
+    if(index < live_test_count()) return NULL;
+    size_t slot = index - live_test_count();
+    if(slot >= m->plugins->count) return NULL;
+    return &m->plugins->items[slot];
+}
+
+static void tests_row_label(const TestsViewModel* m, size_t index, const char** name, const char** note) {
+    const LivePluginInfo* plugin = tests_row_plugin(m, index);
+    if(plugin) {
+        // A plugin that failed to load still gets a row. Hiding it would leave
+        // the user staring at a folder whose contents do not appear, with no
+        // way to find out why.
+        *name = plugin->status == LivePluginOk ? plugin->chip : plugin->file;
+        *note = plugin->status == LivePluginOk ? plugin->offer :
+                                                 live_plugin_status_text(plugin->status);
+        return;
+    }
+    const LiveTest* test = live_test_get(index);
+    *name = test ? test->chip : "?";
+    *note = test ? test->offer : "";
+}
+
+static void tests_draw_callback(Canvas* canvas, void* model) {
+    TestsViewModel* m = model;
+    size_t total = tests_total(m);
+    canvas_clear(canvas);
+
+    char buf[24];
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Live tests");
+    canvas_set_font(canvas, FontSecondary);
+    snprintf(
+        buf,
+        sizeof(buf),
+        "%u on card",
+        (unsigned)(m->plugins ? m->plugins->count : 0));
+    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
+
+    uint16_t first = 0;
+    if(m->selected >= TESTS_LIST_ROWS) first = m->selected - TESTS_LIST_ROWS + 1;
+
+    for(uint8_t row = 0; row < TESTS_LIST_ROWS; row++) {
+        size_t idx = first + row;
+        if(idx >= total) break;
+        uint8_t y = 22 + row * 10;
+        bool sel = (idx == m->selected);
+        if(sel) {
+            canvas_draw_box(canvas, 0, y - 8, 128, 10);
+            canvas_set_color(canvas, ColorWhite);
+        }
+
+        if(tests_row_is_help(m, idx)) {
+            canvas_draw_str(canvas, 4, y, "Add your own...");
+        } else {
+            const char *name = NULL, *note = NULL;
+            tests_row_label(m, idx, &name, &note);
+            canvas_draw_str(canvas, 4, y, name);
+
+            // Where a test came from is not a detail. A built-in test was
+            // written against a datasheet and reviewed here; one from the card
+            // is somebody else's code, and the person reading a PASS off this
+            // screen deserves to know which they are looking at.
+            if(tests_row_plugin(m, idx)) {
+                canvas_draw_str_aligned(canvas, 124, y, AlignRight, AlignBottom, "SD");
+            }
+        }
+        if(sel) canvas_set_color(canvas, ColorBlack);
+    }
+
+    canvas_draw_box(canvas, 0, 55, 128, 9);
+    canvas_set_color(canvas, ColorWhite);
+    const char* footer;
+    if(m->message[0]) {
+        footer = m->message;
+    } else if(tests_row_is_help(m, m->selected)) {
+        footer = "Write one, drop it in";
+    } else {
+        const char *name = NULL, *note = NULL;
+        tests_row_label(m, m->selected, &name, &note);
+        footer = note;
+    }
+    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, footer);
+    canvas_set_color(canvas, ColorBlack);
+}
+
+// Finds which of a test's declared addresses is actually answering. Returns 0
+// when none does — deliberately, rather than falling back to the first one:
+// running a test against an address with nothing on it would mean writing
+// configuration to whatever else happens to be there.
+static uint8_t tests_probe(const uint8_t* addrs) {
+    for(size_t i = 0; i < LIVE_TEST_MAX_ADDRS; i++) {
+        if(addrs[i] == LIVE_TEST_ADDR_NONE) break;
+        if(i2c_worker_device_ready(addrs[i], I2C_PROBE_TIMEOUT_MS)) return addrs[i];
+    }
+    return 0;
+}
+
+static void tests_describe_addrs(char* out, size_t len, const uint8_t* addrs) {
+    size_t used = 0;
+    out[0] = '\0';
+    for(size_t i = 0; i < LIVE_TEST_MAX_ADDRS && used + 8 < len; i++) {
+        if(addrs[i] == LIVE_TEST_ADDR_NONE) break;
+        used += (size_t)snprintf(
+            out + used, len - used, used ? " or 0x%02X" : "0x%02X", addrs[i]);
+    }
+}
+
+// OK on a row: work out where the part is, then run the test there.
+static void tests_launch(FakeChipApp* app, size_t index) {
+    const LiveTest* test = NULL;
+    const uint8_t* addrs = NULL;
+    char file[LIVE_PLUGIN_FILE_LEN] = {0};
+    bool from_card = false;
+
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        {
+            const LivePluginInfo* plugin = tests_row_plugin(m, index);
+            if(plugin) {
+                from_card = true;
+                if(plugin->status == LivePluginOk) {
+                    strlcpy(file, plugin->file, sizeof(file));
+                    addrs = plugin->addrs;
+                }
+            } else {
+                test = live_test_get(index);
+                if(test) addrs = test->addrs;
+            }
+        },
+        false);
+
+    const char* problem = NULL;
+    char note[LIVE_TEST_LINE_LEN] = {0};
+
+    if(from_card && !file[0]) {
+        problem = "That one will not load";
+    } else if(!addrs) {
+        problem = "No addresses to try";
+    } else {
+        // Copied out before the probe: the model lock is not held during a bus
+        // transfer, and `addrs` for a plugin points into the model.
+        uint8_t candidates[LIVE_TEST_MAX_ADDRS];
+        memcpy(candidates, addrs, sizeof(candidates));
+
+        uint8_t addr = tests_probe(candidates);
+        if(!addr) {
+            // Sized so "Nothing at " plus the widest list this can produce is
+            // provably inside a 26-character line.
+            char where[15];
+            tests_describe_addrs(where, sizeof(where), candidates);
+            snprintf(note, sizeof(note), "Nothing at %s", where);
+            problem = note;
+        } else if(from_card) {
+            // Loaded here and closed in live_exit_callback, once the worker
+            // that is executing its code has been joined.
+            LivePluginStatus status = LivePluginOk;
+            LivePluginHandle* handle = live_plugin_open(file, &status);
+            if(!handle) {
+                problem = live_plugin_status_text(status);
+            } else {
+                app->live_plugin = handle;
+                app_start_live_test(app, live_plugin_test(handle), addr);
+                return;
+            }
+        } else {
+            app_start_live_test(app, test, addr);
+            return;
+        }
+    }
+
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        { strlcpy(m->message, problem, sizeof(m->message)); },
+        true);
+}
+
+static bool tests_input_callback(InputEvent* event, void* context) {
+    FakeChipApp* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+
+    bool consumed = false;
+    bool help = false;
+    size_t launch = SIZE_MAX;
+
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        {
+            size_t total = tests_total(m);
+            // This list wraps, unlike the others. The instructions live on the
+            // last row, and without wrapping a user hunting for them has to
+            // scroll past every test in the app to find out how to add one.
+            if(event->key == InputKeyUp) {
+                m->selected = (uint16_t)(m->selected ? (size_t)m->selected - 1 : total - 1);
+                m->message[0] = '\0';
+                consumed = true;
+            } else if(event->key == InputKeyDown) {
+                m->selected = (uint16_t)(((size_t)m->selected + 1) % total);
+                m->message[0] = '\0';
+                consumed = true;
+            } else if(event->key == InputKeyOk) {
+                m->message[0] = '\0';
+                if(tests_row_is_help(m, m->selected)) {
+                    help = true;
+                } else {
+                    launch = m->selected;
+                }
+                consumed = true;
+            }
+        },
+        consumed);
+
+    // Both of these switch views, so they happen outside the model lock.
+    if(help) app_switch_view(app, FakeChipViewTestHelp);
+    if(launch != SIZE_MAX) tests_launch(app, launch);
+    return consumed;
+}
+
+static void tests_enter_callback(void* context) {
+    FakeChipApp* app = context;
+    // Reading each plugin's name means mapping its ELF, so this costs a moment
+    // per file. Doing it on entry rather than on every draw is the difference
+    // between a screen that opens slowly once and one that never settles.
+    LivePluginList* list = malloc(sizeof(LivePluginList));
+    live_plugin_list(list);
+
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        {
+            free(m->plugins);
+            m->plugins = list;
+            m->message[0] = '\0';
+            if(m->selected >= tests_total(m)) m->selected = 0;
+        },
+        true);
+}
+
+static void tests_exit_callback(void* context) {
+    FakeChipApp* app = context;
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        {
+            free(m->plugins);
+            m->plugins = NULL;
+        },
+        false);
+}
+
+static void test_help_draw_callback(Canvas* canvas, void* model) {
+    UNUSED(model);
+    canvas_clear(canvas);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Add your own test");
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 22, "Build a .fal with ufbt and");
+    canvas_draw_str(canvas, 2, 31, "copy it to the SD card at");
+    canvas_draw_str(canvas, 2, 42, "apps_data/");
+    canvas_draw_str(canvas, 2, 51, "  fake_chip_detector/tests");
+
+    canvas_draw_line(canvas, 0, 54, 128, 54);
+    canvas_draw_str(canvas, 2, 62, "Template + guide: see repo");
+}
 
 /* ---------------- Report viewer ---------------- */
 
@@ -1866,6 +2203,9 @@ static void menu_callback(void* context, uint32_t index) {
     case MenuIndexOneWire:
         app_switch_view(app, FakeChipViewOneWire);
         break;
+    case MenuIndexTests:
+        app_switch_view(app, FakeChipViewTests);
+        break;
     case MenuIndexSettings:
         app_switch_view(app, FakeChipViewSettings);
         break;
@@ -1888,6 +2228,19 @@ static bool wiring_input_callback(InputEvent* event, void* context) {
         return true;
     }
     return false;
+}
+
+static uint32_t nav_to_tests(void* context) {
+    UNUSED(context);
+    return FakeChipViewTests;
+}
+
+// A live test has two ways in: the verdict screen after a scan, and the
+// browser. Sending Back to a fixed destination dumped anyone who came from
+// the browser onto a stale scan result they had already dealt with.
+static uint32_t nav_from_live(void* context) {
+    FakeChipApp* app = context;
+    return app->live_return_to;
 }
 
 static uint32_t nav_to_menu(void* context) {
@@ -1938,6 +2291,7 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     submenu_add_item(app->submenu, "How to wire", MenuIndexWiring, menu_callback, app);
     submenu_add_item(app->submenu, "Scan I2C bus", MenuIndexScan, menu_callback, app);
     submenu_add_item(app->submenu, "Scan 1-Wire", MenuIndexOneWire, menu_callback, app);
+    submenu_add_item(app->submenu, "Live tests", MenuIndexTests, menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MenuIndexSettings, menu_callback, app);
     submenu_add_item(app->submenu, "Known chips", MenuIndexChips, menu_callback, app);
     submenu_add_item(
@@ -1980,8 +2334,9 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_set_draw_callback(app->live_view, live_draw_callback);
     view_set_enter_callback(app->live_view, live_enter_callback);
     view_set_exit_callback(app->live_view, live_exit_callback);
-    // Back returns to the verdict that offered the test, not to the menu.
-    view_set_previous_callback(app->live_view, nav_to_scan);
+    // Back returns wherever the test was started from — the verdict that
+    // offered it, or the browser it was picked out of.
+    view_set_previous_callback(app->live_view, nav_from_live);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewLive, app->live_view);
 
     app->settings_list = variable_item_list_alloc();
@@ -1991,6 +2346,22 @@ static FakeChipApp* fake_chip_app_alloc(void) {
         app->view_dispatcher,
         FakeChipViewSettings,
         variable_item_list_get_view(app->settings_list));
+
+    app->tests_view = view_alloc();
+    view_set_context(app->tests_view, app);
+    view_allocate_model(app->tests_view, ViewModelTypeLocking, sizeof(TestsViewModel));
+    view_set_draw_callback(app->tests_view, tests_draw_callback);
+    view_set_input_callback(app->tests_view, tests_input_callback);
+    view_set_enter_callback(app->tests_view, tests_enter_callback);
+    view_set_exit_callback(app->tests_view, tests_exit_callback);
+    view_set_previous_callback(app->tests_view, nav_to_menu);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewTests, app->tests_view);
+
+    app->test_help_view = view_alloc();
+    view_set_context(app->test_help_view, app);
+    view_set_draw_callback(app->test_help_view, test_help_draw_callback);
+    view_set_previous_callback(app->test_help_view, nav_to_tests);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewTestHelp, app->test_help_view);
 
     app->chips_view = view_alloc();
     view_set_context(app->chips_view, app);
@@ -2079,12 +2450,16 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewReport);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSaved);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewOneWire);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewTests);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewTestHelp);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewAbout);
     submenu_free(app->submenu);
     view_free(app->wiring_view);
     view_free(app->scan_view);
     view_free(app->detail_view);
     view_free(app->live_view);
+    view_free(app->tests_view);
+    view_free(app->test_help_view);
     view_free(app->chips_view);
     view_free(app->saved_view);
     view_free(app->onewire_view);
