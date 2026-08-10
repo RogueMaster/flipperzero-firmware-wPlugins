@@ -447,5 +447,5 @@ const char* story_title(int story_id);
 
 extern const uint8_t TEXTURES[][8];
 #define TEX_COUNT \
-    24 // v6.7-beta: 扩展到24槽, 保留12个空白给未来方块 \
+    24 // v6.7-beta: 扩展到24槽, 保留12个空白给未来方块
         // (圆石/煤/铁/钻石/台阶/玻璃/工作台/熔炉/羊毛/苔石/地狱岩/末地石)
