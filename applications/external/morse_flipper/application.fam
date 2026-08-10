@@ -122,7 +122,6 @@ App(
     appid="morse_flipper_ardf",
     apptype=FlipperAppType.PLUGIN,
     entry_point="morse_flipper_ardf_ep",
-    requires=["morse_flipper"],
     cdefines=["MORSE_FLIPPER_FAP=1"],
     sources=[
         "src/firmware/plugins/common/mf_radio_tx_session.c",
