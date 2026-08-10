@@ -589,11 +589,18 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
         if(good) {
             // The whole point of the app, and the moment to be generous about
             // it: a thumb, a headline, and no hex anywhere in sight.
+            //
+            // Generous, but not louder than the evidence. A part with no ID
+            // register was never verified — it turned up at the right address
+            // and nothing more — so it does not get told it is the real deal.
+            // Saying so here is the same rule the verdict screens follow, and
+            // it is what makes the live test below worth pressing.
+            bool proven = (v == VerdictGenuine);
             canvas_draw_xbm(canvas, 4, 7, THUMB_W, THUMB_H, thumbs_up_bits);
             canvas_set_font(canvas, FontPrimary);
-            canvas_draw_str(canvas, 36, 20, "ALL GOOD");
+            canvas_draw_str(canvas, 36, 20, proven ? "ALL GOOD" : "IT ANSWERS");
             canvas_set_font(canvas, FontSecondary);
-            canvas_draw_str(canvas, 36, 30, "Real deal.");
+            canvas_draw_str(canvas, 36, 30, proven ? "Real deal." : "No ID to check.");
             canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, name);
 
             // The ID said what it is; a live test says it works. Offered here
@@ -1076,8 +1083,25 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
 
     uint8_t y = 26;
     if(measuring && st->heading[0]) {
+        // Number and unit are centred as one block, so the digits do not
+        // shuffle sideways every time the reading gains or loses a character.
+        // Each width is measured with its own font already selected —
+        // canvas_string_width answers for whatever font is current, and asking
+        // in the wrong one lands the unit on top of the number.
         canvas_set_font(canvas, FontBigNumbers);
-        canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignBottom, st->heading);
+        uint8_t num_w = canvas_string_width(canvas, st->heading);
+        uint8_t unit_w = 0;
+        if(st->unit[0]) {
+            canvas_set_font(canvas, FontSecondary);
+            unit_w = canvas_string_width(canvas, st->unit) + 3;
+        }
+        uint8_t x = (num_w + unit_w >= 128) ? 0 : (uint8_t)(64 - (num_w + unit_w) / 2);
+        canvas_set_font(canvas, FontBigNumbers);
+        canvas_draw_str(canvas, x, 36, st->heading);
+        if(st->unit[0]) {
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str(canvas, x + num_w + 3, 36, st->unit);
+        }
         y = 46;
     }
 
@@ -1097,6 +1121,10 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
         canvas_draw_box(canvas, 14, y, w, 8);
     } else if(st->phase == LiveTestPhaseLost && y <= 62) {
         canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, "Retrying...");
+    } else if(measuring && st->bar_max && y + 7 <= 63) {
+        uint8_t fill = st->bar > st->bar_max ? st->bar_max : st->bar;
+        canvas_draw_frame(canvas, 14, y, 100, 7);
+        canvas_draw_box(canvas, 14, y, (uint8_t)((uint32_t)100 * fill / st->bar_max), 7);
     } else if(measuring && st->progress_max && y + 7 <= 63) {
         uint8_t bw = st->progress_max * 9 - 2;
         uint8_t bx = 64 - bw / 2;

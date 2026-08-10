@@ -82,13 +82,27 @@ lists it.
 
 ### Drawing
 
-Leave `.draw` as `NULL` and you get a generic screen: title, the big `heading`, up to three
-lines of text, and a progress row if you set `progress_max`. That is enough for most tests.
+**Prefer `.draw = NULL`.** The generic screen is not a consolation prize — it gives you a
+title, the big `heading` with its `unit` set beside it, up to three lines of text, and one of
+two indicators underneath:
 
-Set it and you own the whole 128×64 canvas for the **Running** and **Passed** phases only —
-"warming up" and "it dropped off" stay the app's screens, so every test looks the same when
-there is nothing to measure. `live_bno055.c` draws a compass and an animated figure-8;
+- set `bar` and `bar_max` for a proportional bar — the right choice for anything that rises and
+  falls, like humidity under your breath or lux under your hand. It makes "the reading is
+  moving" obvious from across the room, which is the whole proof.
+- set `progress` and `progress_max` for a row of boxes — the right choice for steps completed,
+  like calibration levels.
+
+Leave all four at zero and neither is drawn, so a `memset` struct needs no thought.
+
+Setting `.draw` hands you the whole 128×64 canvas, but only for the **Running** and **Passed**
+phases — "warming up" and "it dropped off" stay the app's screens, so every test looks the same
+when there is nothing to measure. `live_bno055.c` draws a compass and an animated figure-8;
 `live_vl6180x.c` draws a distance ruler.
+
+Weigh that against portability before you reach for it. A custom `draw` is C compiled into the
+app, so a test that has one can only ever ship *inside* the app. Tests that stay on the generic
+screen describe themselves entirely in data, which is what lets them move somewhere else later.
+If the picture genuinely carries the proof, draw it. If it is decoration, take the bar.
 
 ### Making it pass
 

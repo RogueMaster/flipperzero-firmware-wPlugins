@@ -95,3 +95,10 @@ bool i2c_worker_read_reg16_addr(
     uint32_t timeout_ms);
 bool i2c_worker_write_reg16_addr(uint8_t addr7, uint16_t reg, uint8_t value, uint32_t timeout_ms);
 bool i2c_worker_write_reg(uint8_t addr7, uint8_t reg, uint8_t value, uint32_t timeout_ms);
+
+// Raw transfers, for the many parts that have no register index at all: the
+// humidity sensors take a bare command and answer with a bare block, and a
+// display takes a control byte followed by a stream. Everything above is a
+// convenience on top of these two.
+bool i2c_worker_write_raw(uint8_t addr7, const uint8_t* data, size_t len, uint32_t timeout_ms);
+bool i2c_worker_read_raw(uint8_t addr7, uint8_t* data, size_t len, uint32_t timeout_ms);

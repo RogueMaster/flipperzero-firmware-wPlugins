@@ -199,6 +199,22 @@ bool i2c_worker_write_reg(uint8_t addr7, uint8_t reg, uint8_t value, uint32_t ti
     return ok;
 }
 
+bool i2c_worker_write_raw(uint8_t addr7, const uint8_t* data, size_t len, uint32_t timeout_ms) {
+    furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
+    bool ok =
+        furi_hal_i2c_tx(&furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), data, len, timeout_ms);
+    furi_hal_i2c_release(&furi_hal_i2c_handle_external);
+    return ok;
+}
+
+bool i2c_worker_read_raw(uint8_t addr7, uint8_t* data, size_t len, uint32_t timeout_ms) {
+    furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
+    bool ok =
+        furi_hal_i2c_rx(&furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), data, len, timeout_ms);
+    furi_hal_i2c_release(&furi_hal_i2c_handle_external);
+    return ok;
+}
+
 /* ---- worker thread ---- */
 
 static void i2c_worker_notify(I2CWorker* worker, I2CWorkerEvent event) {

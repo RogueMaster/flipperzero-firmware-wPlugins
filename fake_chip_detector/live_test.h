@@ -27,6 +27,7 @@
 #define LIVE_TEST_LINES 3
 #define LIVE_TEST_LINE_LEN 26
 #define LIVE_TEST_HEADING_LEN 12
+#define LIVE_TEST_UNIT_LEN 6
 
 typedef enum {
     LiveTestPhaseStarting, // configuring the part, no readings yet
@@ -45,6 +46,10 @@ typedef struct {
     // pressure, a count. Drawn large. Empty string for "nothing yet".
     char heading[LIVE_TEST_HEADING_LEN];
 
+    // Unit for the heading, set small beside it: "mm", "%RH", "lx", "C".
+    // Empty for a bare number.
+    char unit[LIVE_TEST_UNIT_LEN];
+
     // Plain language under it: what is happening, what to do next.
     char lines[LIVE_TEST_LINES][LIVE_TEST_LINE_LEN];
 
@@ -52,6 +57,14 @@ typedef struct {
     // boxes when progress_max is non-zero, and chimed once on completion.
     uint8_t progress;
     uint8_t progress_max;
+
+    // Optional proportional bar, drawn when bar_max is non-zero and filled to
+    // bar/bar_max. This is how a test makes "the reading is moving" obvious
+    // from across the room without writing a draw() of its own. Both fields
+    // zero — the state of a freshly memset struct — means no bar, so a test
+    // that does not want one need not think about it.
+    uint8_t bar;
+    uint8_t bar_max;
 
     // The primary reading as a number, for a module's own draw() to render as
     // a dial, a needle or a bar. Ignored by the generic screen.
