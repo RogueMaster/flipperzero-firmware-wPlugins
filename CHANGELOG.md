@@ -1,4 +1,4 @@
-v6.11.1:
+v6.11:
 - Score Shop System: earn points by killing enemies (+10 per kill), spend on 10 usable items.
 - 10 Items with full functionality: Potion S (+5HP), Potion L (+10HP), Full Heal, Ammo+5, Ammo Max, Key+1, Torch+3, Amulet (warp to start), Shield (5s invincibility), 2x Fire (15s double shot).
 - Item Inventory: long-press OK during gameplay to open item bar. Up/Down to select, OK to use, Back to return.
