@@ -11,14 +11,14 @@
 
 #define TAG "WifiInternetWatch"
 
-#define WIFI_MAX_NETWORKS 16
-#define WIFI_SSID_SIZE 33
-#define WIFI_PASSWORD_SIZE 65
-#define WIFI_MAX_SAVED_NETWORKS 16
-#define AT_RESPONSE_SIZE 8192
-#define MONITOR_INTERVAL_MS 60000
-#define WIFI_CREDENTIALS_PATH APP_DATA_PATH("credentials.bin")
-#define WIFI_CREDENTIALS_MAGIC 0x57495743UL
+#define WIFI_MAX_NETWORKS        16
+#define WIFI_SSID_SIZE           33
+#define WIFI_PASSWORD_SIZE       65
+#define WIFI_MAX_SAVED_NETWORKS  16
+#define AT_RESPONSE_SIZE         8192
+#define MONITOR_INTERVAL_MS      60000
+#define WIFI_CREDENTIALS_PATH    APP_DATA_PATH("credentials.bin")
+#define WIFI_CREDENTIALS_MAGIC   0x57495743UL
 #define WIFI_CREDENTIALS_VERSION 1
 
 typedef enum {
@@ -104,8 +104,20 @@ typedef struct {
 #define WIFI_PASSWORD_KEY_ENTER     '\r'
 
 static const WifiPasswordKey wifi_password_alpha_row_1[] = {
-    {'q', 2},  {'w', 11}, {'e', 20}, {'r', 29}, {'t', 38}, {'y', 47}, {'u', 56},
-    {'i', 65}, {'o', 74}, {'p', 83}, {'0', 93}, {'1', 103}, {'2', 113}, {'3', 123},
+    {'q', 2},
+    {'w', 11},
+    {'e', 20},
+    {'r', 29},
+    {'t', 38},
+    {'y', 47},
+    {'u', 56},
+    {'i', 65},
+    {'o', 74},
+    {'p', 83},
+    {'0', 93},
+    {'1', 103},
+    {'2', 113},
+    {'3', 123},
 };
 
 static const WifiPasswordKey wifi_password_alpha_row_2[] = {
@@ -141,8 +153,19 @@ static const WifiPasswordKey wifi_password_alpha_row_3[] = {
 };
 
 static const WifiPasswordKey wifi_password_symbol_row_1[] = {
-    {'!', 2},  {'@', 12}, {'#', 22}, {'$', 32}, {'%', 42}, {'^', 52}, {'&', 62},
-    {'*', 72}, {'(', 82}, {')', 92}, {'<', 103}, {'>', 113}, {'?', 123},
+    {'!', 2},
+    {'@', 12},
+    {'#', 22},
+    {'$', 32},
+    {'%', 42},
+    {'^', 52},
+    {'&', 62},
+    {'*', 72},
+    {'(', 82},
+    {')', 92},
+    {'<', 103},
+    {'>', 113},
+    {'?', 123},
 };
 
 static const WifiPasswordKey wifi_password_symbol_row_2[] = {
@@ -212,18 +235,13 @@ static bool wifi_credentials_save(WifiInternetWatch* app) {
         .count = app->credentials_count,
     };
 
-    bool success = storage_file_open(
-        file, WIFI_CREDENTIALS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS);
+    bool success = storage_file_open(file, WIFI_CREDENTIALS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS);
     if(success) {
-        success =
-            storage_file_write(file, &header, sizeof(header)) == sizeof(header);
+        success = storage_file_write(file, &header, sizeof(header)) == sizeof(header);
     }
     if(success && app->credentials_count > 0) {
-        const size_t credentials_size =
-            app->credentials_count * sizeof(WifiCredential);
-        success =
-            storage_file_write(file, app->credentials, credentials_size) ==
-            credentials_size;
+        const size_t credentials_size = app->credentials_count * sizeof(WifiCredential);
+        success = storage_file_write(file, app->credentials, credentials_size) == credentials_size;
     }
     if(success) success = storage_file_sync(file);
 
@@ -238,8 +256,7 @@ static void wifi_credentials_load(WifiInternetWatch* app) {
     File* file = storage_file_alloc(app->storage);
     WifiCredentialsHeader header;
 
-    bool success = storage_file_open(
-        file, WIFI_CREDENTIALS_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
+    bool success = storage_file_open(file, WIFI_CREDENTIALS_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
     if(success) {
         success = storage_file_read(file, &header, sizeof(header)) == sizeof(header) &&
                   header.magic == WIFI_CREDENTIALS_MAGIC &&
@@ -249,9 +266,7 @@ static void wifi_credentials_load(WifiInternetWatch* app) {
 
     if(success && header.count > 0) {
         const size_t credentials_size = header.count * sizeof(WifiCredential);
-        success =
-            storage_file_read(file, app->credentials, credentials_size) ==
-            credentials_size;
+        success = storage_file_read(file, app->credentials, credentials_size) == credentials_size;
     }
 
     storage_file_close(file);
@@ -270,10 +285,8 @@ static void wifi_credentials_load(WifiInternetWatch* app) {
     }
 }
 
-static bool wifi_credentials_upsert(
-    WifiInternetWatch* app,
-    const char* ssid,
-    const char* password) {
+static bool
+    wifi_credentials_upsert(WifiInternetWatch* app, const char* ssid, const char* password) {
     int32_t index = wifi_credential_index(app, ssid);
     const size_t old_count = app->credentials_count;
     WifiCredential old_credential = {0};
@@ -334,10 +347,7 @@ static void wifi_set_status(
         true);
 }
 
-static void wifi_set_network_saved(
-    WifiInternetWatch* app,
-    const char* ssid,
-    bool saved) {
+static void wifi_set_network_saved(WifiInternetWatch* app, const char* ssid, bool saved) {
     with_view_model(
         app->main_view,
         WifiViewModel * model,
@@ -417,9 +427,8 @@ static bool wifi_network_exists(
     return false;
 }
 
-static size_t wifi_parse_scan(
-    const char* response,
-    char networks[WIFI_MAX_NETWORKS][WIFI_SSID_SIZE]) {
+static size_t
+    wifi_parse_scan(const char* response, char networks[WIFI_MAX_NETWORKS][WIFI_SSID_SIZE]) {
     size_t count = 0;
     const char* cursor = response;
 
@@ -482,8 +491,7 @@ static void wifi_scan(WifiInternetWatch* app) {
     wifi_at_command(app, "AT+CWAUTOCONN=0", response, AT_RESPONSE_SIZE, 2000);
     wifi_at_command(app, "AT+SYSSTORE=0", response, AT_RESPONSE_SIZE, 2000);
 
-    const bool scan_ok =
-        wifi_at_command(app, "AT+CWLAP", response, AT_RESPONSE_SIZE, 20000);
+    const bool scan_ok = wifi_at_command(app, "AT+CWLAP", response, AT_RESPONSE_SIZE, 20000);
     const size_t network_count = scan_ok ? wifi_parse_scan(response, networks) : 0;
 
     with_view_model(
@@ -494,8 +502,7 @@ static void wifi_scan(WifiInternetWatch* app) {
             model->selected_network = 0;
             for(size_t i = 0; i < network_count; i++) {
                 strlcpy(model->networks[i], networks[i], WIFI_SSID_SIZE);
-                model->saved[i] =
-                    wifi_credential_index(app, networks[i]) >= 0;
+                model->saved[i] = wifi_credential_index(app, networks[i]) >= 0;
             }
 
             if(network_count > 0) {
@@ -541,12 +548,7 @@ static bool wifi_join(WifiInternetWatch* app, char* response, size_t response_si
     wifi_escape_at_string(app->ssid, escaped_ssid, sizeof(escaped_ssid));
     wifi_escape_at_string(app->password, escaped_password, sizeof(escaped_password));
 
-    snprintf(
-        command,
-        sizeof(command),
-        "AT+CWJAP=\"%s\",\"%s\"",
-        escaped_ssid,
-        escaped_password);
+    snprintf(command, sizeof(command), "AT+CWJAP=\"%s\",\"%s\"", escaped_ssid, escaped_password);
 
     return wifi_at_command(app, command, response, response_size, 25000);
 }
@@ -565,8 +567,7 @@ static void wifi_monitor_once(WifiInternetWatch* app) {
     const int32_t credential_index = wifi_credential_index(app, app->ssid);
     if(credential_index < 0 ||
        strcmp(app->credentials[credential_index].password, app->password) != 0) {
-        app->credentials_save_failed =
-            !wifi_credentials_upsert(app, app->ssid, app->password);
+        app->credentials_save_failed = !wifi_credentials_upsert(app, app->ssid, app->password);
         if(!app->credentials_save_failed) {
             wifi_set_network_saved(app, app->ssid, true);
         }
@@ -716,15 +717,12 @@ static bool wifi_input_callback(InputEvent* event, void* context) {
                         model->selected_network++;
                     }
                     consumed = true;
-                } else if(event->key == InputKeyOk &&
-                          (event->type == InputTypeShort ||
-                           event->type == InputTypeLong)) {
+                } else if(
+                    event->key == InputKeyOk &&
+                    (event->type == InputTypeShort || event->type == InputTypeLong)) {
                     strlcpy(
-                        app->ssid,
-                        model->networks[model->selected_network],
-                        sizeof(app->ssid));
-                    if(event->type == InputTypeShort &&
-                       model->saved[model->selected_network]) {
+                        app->ssid, model->networks[model->selected_network], sizeof(app->ssid));
+                    if(event->type == InputTypeShort && model->saved[model->selected_network]) {
                         connect_saved = true;
                     } else {
                         show_password = true;
@@ -747,13 +745,9 @@ static bool wifi_input_callback(InputEvent* event, void* context) {
     if(connect_saved) {
         const int32_t index = wifi_credential_index(app, app->ssid);
         if(index >= 0) {
-            strlcpy(
-                app->password,
-                app->credentials[index].password,
-                sizeof(app->password));
+            strlcpy(app->password, app->credentials[index].password, sizeof(app->password));
             wifi_set_status(app, WifiScreenStatus, "Connecting Wi-Fi...", app->ssid);
-            furi_thread_flags_set(
-                furi_thread_get_id(app->worker), WifiWorkerFlagConnect);
+            furi_thread_flags_set(furi_thread_get_id(app->worker), WifiWorkerFlagConnect);
         } else {
             wifi_set_network_saved(app, app->ssid, false);
             show_password = true;
@@ -782,14 +776,9 @@ static bool wifi_input_callback(InputEvent* event, void* context) {
     if(forget_network) {
         if(wifi_credentials_delete(app, app->forget_ssid)) {
             wifi_set_network_saved(app, app->forget_ssid, false);
-            furi_thread_flags_set(
-                furi_thread_get_id(app->worker), WifiWorkerFlagForget);
+            furi_thread_flags_set(furi_thread_get_id(app->worker), WifiWorkerFlagForget);
         } else {
-            wifi_set_status(
-                app,
-                WifiScreenStatus,
-                "DELETE FAILED",
-                "Check the SD card");
+            wifi_set_status(app, WifiScreenStatus, "DELETE FAILED", "Check the SD card");
         }
     }
 
@@ -844,7 +833,13 @@ static void wifi_password_draw_callback(Canvas* canvas, void* context) {
                 canvas_set_font(canvas, FontSecondary);
                 if(selected) canvas_draw_box(canvas, x - 1, y - 9, 12, 10);
                 canvas_set_color(canvas, selected ? ColorWhite : ColorBlack);
-                canvas_draw_str(canvas, x, y, model->mode == 0 ? "Aa" : model->mode == 1 ? "#?" : "ab");
+                canvas_draw_str(
+                    canvas,
+                    x,
+                    y,
+                    model->mode == 0 ? "Aa" :
+                    model->mode == 1 ? "#?" :
+                                       "ab");
             } else {
                 canvas_set_font(canvas, FontKeyboard);
                 if(selected) canvas_draw_box(canvas, x - 1, y - 8, 7, 10);
@@ -881,9 +876,8 @@ static bool wifi_password_input_callback(InputEvent* event, void* context) {
             const size_t password_size = strlen(model->password);
 
             if(event->key == InputKeyLeft) {
-                model->column =
-                    model->column == 0 ? (uint8_t)(row_size - 1) :
-                                         (uint8_t)(model->column - 1);
+                model->column = model->column == 0 ? (uint8_t)(row_size - 1) :
+                                                     (uint8_t)(model->column - 1);
             } else if(event->key == InputKeyRight) {
                 model->column = (model->column + 1) % row_size;
             } else if(event->key == InputKeyUp) {
@@ -913,8 +907,9 @@ static bool wifi_password_input_callback(InputEvent* event, void* context) {
                     model->password[password_size] = value;
                     model->password[password_size + 1] = '\0';
                 }
-            } else if(event->key == InputKeyBack &&
-                      (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
+            } else if(
+                event->key == InputKeyBack &&
+                (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
                 if(password_size > 0) {
                     model->password[password_size - 1] = '\0';
                 } else {
@@ -959,10 +954,8 @@ static WifiInternetWatch* wifi_app_alloc(void) {
 
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_custom_event_callback(
-        app->view_dispatcher, wifi_custom_event_callback);
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, wifi_custom_event_callback);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     app->main_view = view_alloc();
     view_allocate_model(app->main_view, ViewModelTypeLocking, sizeof(WifiViewModel));
@@ -982,8 +975,7 @@ static WifiInternetWatch* wifi_app_alloc(void) {
     view_dispatcher_add_view(app->view_dispatcher, WifiViewMain, app->main_view);
 
     app->password_view = view_alloc();
-    view_allocate_model(
-        app->password_view, ViewModelTypeLocking, sizeof(WifiPasswordModel));
+    view_allocate_model(app->password_view, ViewModelTypeLocking, sizeof(WifiPasswordModel));
     view_set_context(app->password_view, app);
     view_set_draw_callback(app->password_view, wifi_password_draw_callback);
     view_set_input_callback(app->password_view, wifi_password_input_callback);
@@ -998,8 +990,7 @@ static bool wifi_uart_start(WifiInternetWatch* app) {
     if(!app->serial) return false;
 
     furi_hal_serial_init(app->serial, 115200);
-    furi_hal_serial_async_rx_start(
-        app->serial, wifi_serial_rx_callback, app, false);
+    furi_hal_serial_async_rx_start(app->serial, wifi_serial_rx_callback, app, false);
     return true;
 }
 

@@ -57,10 +57,8 @@ static bool tpms_bridge_signal_callback(uint32_t signal, void* arg, void* contex
     return true;
 }
 
-static void tpms_bridge_local_frame_callback(
-    const TpmsRenaultFrame* frame,
-    float rssi_dbm,
-    void* context) {
+static void
+    tpms_bridge_local_frame_callback(const TpmsRenaultFrame* frame, float rssi_dbm, void* context) {
     tpms_bridge_report_frame(context, frame, rssi_dbm);
 }
 
@@ -84,9 +82,9 @@ static int32_t tpms_bridge_local_rx_thread(void* context) {
         uint32_t last_wake = 0;
 
         while(app->local_rx && !app->stop_requested && !app->radio_yield_requested) {
-            const bool wake_due =
-                app->auto_wake && (last_wake == 0 ||
-                                   furi_get_tick() - last_wake > furi_ms_to_ticks(TPMS_LF_PERIOD_MS));
+            const bool wake_due = app->auto_wake &&
+                                  (last_wake == 0 || furi_get_tick() - last_wake >
+                                                         furi_ms_to_ticks(TPMS_LF_PERIOD_MS));
 
             if(wake_due || app->wake_requested) {
                 app->wake_requested = false;
@@ -133,13 +131,15 @@ static void tpms_bridge_reconcile_radio(TpmsBridgeApp* app) {
     /* Back off between attempts: if the radio refuses to start, do not
      * spin up the thread over and over. */
     const uint32_t now = furi_get_tick();
-    if(app->radio_retry_tick != 0 && now - app->radio_retry_tick < furi_ms_to_ticks(TPMS_RADIO_RETRY_MS)) {
+    if(app->radio_retry_tick != 0 &&
+       now - app->radio_retry_tick < furi_ms_to_ticks(TPMS_RADIO_RETRY_MS)) {
         return;
     }
     app->radio_retry_tick = now;
 
     app->local_rx = true;
-    app->local_thread = furi_thread_alloc_ex("TpmsLocalRx", 2048, tpms_bridge_local_rx_thread, app);
+    app->local_thread =
+        furi_thread_alloc_ex("TpmsLocalRx", 2048, tpms_bridge_local_rx_thread, app);
     furi_thread_start(app->local_thread);
 }
 
@@ -238,8 +238,7 @@ static TpmsBridgeApp* tpms_bridge_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 
-    furi_thread_set_signal_callback(
-        furi_thread_get_current(), tpms_bridge_signal_callback, app);
+    furi_thread_set_signal_callback(furi_thread_get_current(), tpms_bridge_signal_callback, app);
 
     app->cli_registry = furi_record_open(RECORD_CLI);
     /* Set the stack explicitly: the command formats strings and holds a

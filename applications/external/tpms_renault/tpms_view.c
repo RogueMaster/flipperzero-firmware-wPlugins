@@ -36,12 +36,8 @@ static uint8_t tpms_view_bars(int16_t rssi_x10) {
 
 /** Ladder of bars. Stale readings are drawn as outlines: the value is old
  * because the sensor has been silent for a while. */
-static void tpms_view_draw_signal(
-    Canvas* canvas,
-    int32_t x,
-    int32_t bottom,
-    uint8_t bars,
-    bool filled) {
+static void
+    tpms_view_draw_signal(Canvas* canvas, int32_t x, int32_t bottom, uint8_t bars, bool filled) {
     for(uint8_t i = 0; i < TPMS_BAR_COUNT; i++) {
         const int32_t height = 2 + i * 2;
         const int32_t bar_x = x + i * TPMS_BAR_STEP;
@@ -62,7 +58,8 @@ static void tpms_view_draw_signal(
  * raw * 0.75 -> kPa, kPa / 100 -> bar. */
 static void tpms_view_format_bar(char* out, size_t size, uint16_t pressure_raw) {
     const uint32_t bar_x100 = (uint32_t)pressure_raw * 75UL / 100UL;
-    snprintf(out, size, "%lu.%02lu", (unsigned long)(bar_x100 / 100), (unsigned long)(bar_x100 % 100));
+    snprintf(
+        out, size, "%lu.%02lu", (unsigned long)(bar_x100 / 100), (unsigned long)(bar_x100 % 100));
 }
 
 /** A signed value in tenths -> "-86.5". */
@@ -150,8 +147,7 @@ static void tpms_view_draw_list(Canvas* canvas, TpmsBridgeApp* app) {
 
     if(app->store.count == 0) {
         canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "Listening...");
-        canvas_draw_str_aligned(
-            canvas, 64, 42, AlignCenter, AlignBottom, "Right: wake sensor");
+        canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, "Right: wake sensor");
     } else {
         const uint32_t now = furi_get_tick();
         for(uint8_t row = 0; row < TPMS_VIEW_ROWS; row++) {

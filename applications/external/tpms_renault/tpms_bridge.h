@@ -9,7 +9,7 @@
 #include <gui/view_port.h>
 #include <input/input.h>
 
-#define TPMS_CLI_COMMAND_NAME "tpms_rx"
+#define TPMS_CLI_COMMAND_NAME  "tpms_rx"
 #define TPMS_DEFAULT_FREQUENCY 433920000UL
 
 /** Stack size of the CLI command thread. */

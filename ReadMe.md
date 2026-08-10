@@ -120,6 +120,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Maze 3D v6.11.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 - NFC: [Fix -Unlock with Dictionary- destroying a saved MIFARE Classic dump - pressing Skip while no card was on the reader adopted the dictionary poller's still-empty data as the loaded card, so the results screen offered to save a blank dump over the file. Saving under a different name did not help either, because renaming on save deletes the previously loaded file first. The MIFARE Plus dictionary attack could lose data the same way and now merges its result instead of replacing (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1066)
 - NFC: [Fix -Update from Initial Card- dropping sectors from a MIFARE Classic dump - the refresh replaced the dump with whatever that pass re-read instead of merging into it, so a sector that failed to authenticate this time lost both its key and its blocks. Recoverable through -Restore to Original State-, but silent (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1066)
+- Added: [Internet Time Screen v0.2 (By sureserverman)](https://github.com/sureserverman/internet-time-screen)
+- Added: [Wifi Internet Watch v1.1 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
+- Added: [TPMS Bridge Renault v1.0 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 
 <a name="release"></a>
 
@@ -645,6 +648,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [INA Meter v0.8 (By cepetr)](https://github.com/cepetr/flipper-tina)
 - [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
 - [Infrared Playback v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
+- [Internet Time Screen v0.2 (By sureserverman)](https://github.com/sureserverman/internet-time-screen)
 - [Intervalometer v1.2 (By theageoflove)](https://github.com/theageoflove/flipperzero-zeitraffer)
 - [IR Blaster v1.1 (By mateusz-szafraniec)](https://github.com/mateusz-szafraniec/flipperzero-IR_Blaster)
 - [IR Decoder v1.0 (By prplecake)](https://github.com/prplecake/f0/tree/master/infrared/apps/ir_decoder)
@@ -903,6 +907,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Timer v0.1 (By nagamine-git)](https://github.com/nagamine-git/flipperzero_timer_app)
 - [Tone Generator v1.0 (By GEMISIS)](https://github.com/GEMISIS/tone_gen)
 - [TonUINO Writer v2.0 (By Bastelsaal)](https://github.com/Bastelsaal/tonuino-flipper-zero)
+- [TPMS Bridge Renault v1.0 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 - [TPMS Reader v1.0 (By wosk)](https://github.com/wosk/flipperzero-tpms)
 - [Tree Identification v0.0.5 (By fgreil)](https://github.com/fgreil/mitzi-tree-ident)
 - [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero) `Req: 3-in-1 ESP32 + NRF24 + CC1101`
@@ -954,6 +959,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Wiegand Reader v1.4 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio)
 - [WiFi (Deauther) V2 (By Timmotools)](https://github.com/Timmotools/flipperzero_esp8266_deautherv2) `Req: ESP8266`
 - [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest)
+- [Wifi Internet Watch v1.1 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
 - [Wifi Mapping (By carvilsi)](https://github.com/carvilsi/flipper0-wifi-map/tree/main) `Req: ESP32`
 - [Wii EC Analyzer v1.1 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_WiiEC)
 - [WikiFlip v1.3 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)

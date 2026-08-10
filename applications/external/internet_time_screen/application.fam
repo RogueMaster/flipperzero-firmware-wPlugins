@@ -1,19 +1,18 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
 App(
     appid="internet_time_screen",
     name="Internet Time",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="internet_time_screen_app",
     stack_size=10 * 1024,
-    fap_category="Tools",
-    fap_version=(0, 2),
     fap_icon="assets/10x10.png",
-    fap_description="Swatch Internet Time (@beats), local clock, optional DCF77 sync",
-    fap_author="inernet-time-screen",
     sources=[
         "*.c*",
         "!tests",
         "!tests/*",
     ],
+    fap_category="Tools",
+    fap_author="sureserverman",
+    fap_weburl="https://github.com/sureserverman/internet-time-screen",
+    fap_version="0.2",
+    fap_description="Swatch Internet Time (@beats), local clock, optional DCF77 sync",
 )

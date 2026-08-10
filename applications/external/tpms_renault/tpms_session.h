@@ -20,10 +20,8 @@ typedef struct TpmsSession TpmsSession;
  * rather than after decoding, so the value belongs to the transmission
  * itself.
  */
-typedef void (*TpmsSessionFrameCallback)(
-    const TpmsRenaultFrame* frame,
-    float rssi_dbm,
-    void* context);
+typedef void (
+    *TpmsSessionFrameCallback)(const TpmsRenaultFrame* frame, float rssi_dbm, void* context);
 
 /** Raw interval (diagnostic mode). */
 typedef void (*TpmsSessionRawCallback)(bool level, uint32_t duration, void* context);

@@ -62,8 +62,8 @@ TpmsSession* tpms_session_alloc(void) {
     TpmsSession* session = malloc(sizeof(TpmsSession));
     memset(session, 0, sizeof(TpmsSession));
 
-    session->stream =
-        furi_stream_buffer_alloc(sizeof(LevelDuration) * TPMS_STREAM_CAPACITY, sizeof(LevelDuration));
+    session->stream = furi_stream_buffer_alloc(
+        sizeof(LevelDuration) * TPMS_STREAM_CAPACITY, sizeof(LevelDuration));
     session->decoder = tpms_renault_decoder_alloc(tpms_session_frame_callback, session);
     return session;
 }
@@ -116,7 +116,8 @@ bool tpms_session_start(TpmsSession* session, uint32_t frequency) {
     subghz_devices_begin(session->device);
     subghz_devices_reset(session->device);
     subghz_devices_idle(session->device);
-    subghz_devices_load_preset(session->device, FuriHalSubGhzPresetCustom, (uint8_t*)tpms_fsk_preset);
+    subghz_devices_load_preset(
+        session->device, FuriHalSubGhzPresetCustom, (uint8_t*)tpms_fsk_preset);
     subghz_devices_set_frequency(session->device, frequency);
 
     session->overruns = 0;

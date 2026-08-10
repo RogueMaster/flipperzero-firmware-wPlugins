@@ -67,7 +67,8 @@ static void tpms_channel_reset(TpmsChannel* channel) {
     memset(channel->bytes, 0, sizeof(channel->bytes));
 }
 
-static void tpms_channel_feed_chip(TpmsRenaultDecoder* decoder, TpmsChannel* channel, bool raw_chip) {
+static void
+    tpms_channel_feed_chip(TpmsRenaultDecoder* decoder, TpmsChannel* channel, bool raw_chip) {
     if(!channel->collecting) {
         const bool chip = channel->invert_sync ? !raw_chip : raw_chip;
         channel->sync_reg = ((channel->sync_reg << 1) | (chip ? 1U : 0U)) & TPMS_SYNC_MASK;

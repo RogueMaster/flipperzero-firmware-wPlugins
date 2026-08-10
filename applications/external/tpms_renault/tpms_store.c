@@ -60,8 +60,8 @@ uint8_t tpms_store_update(
     sensor->frames++;
     sensor->last_tick = tick;
 
-    const bool peak_expired =
-        (tick - sensor->peak_tick) > furi_ms_to_ticks(TPMS_STORE_PEAK_HOLD_MS);
+    const bool peak_expired = (tick - sensor->peak_tick) >
+                              furi_ms_to_ticks(TPMS_STORE_PEAK_HOLD_MS);
     if(rssi_x10 >= sensor->peak_rssi_x10 || peak_expired) {
         sensor->peak_rssi_x10 = rssi_x10;
         sensor->peak_tick = tick;
