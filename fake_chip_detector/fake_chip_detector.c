@@ -103,7 +103,9 @@ typedef struct {
 } OneWireViewModel;
 
 typedef struct {
-    char names[SAVED_MAX][SAVED_NAME_LEN];
+    // Allocated only while the screen is open: 32 filenames is a KB, and this
+    // app has crashed users before by holding memory it was not using.
+    char (*names)[SAVED_NAME_LEN];
     uint8_t count;
     uint8_t selected;
 } SavedViewModel;
@@ -138,6 +140,40 @@ static void app_switch_view(FakeChipApp* app, FakeChipViewId view_id) {
     app->current_view = view_id;
     view_dispatcher_switch_to_view(app->view_dispatcher, view_id);
 }
+
+
+// The saved-report filename is built here and read back here, so the two can
+// never disagree. Nothing else may assume its shape.
+#define REPORT_FILE_PREFIX "scan_"
+
+static void report_filename_make(char* out, size_t out_size, const DateTime* dt) {
+    snprintf(
+        out,
+        out_size,
+        REPORT_FILE_PREFIX "%04u%02u%02u_%02u%02u%02u.txt",
+        dt->year,
+        dt->month,
+        dt->day,
+        dt->hour,
+        dt->minute,
+        dt->second);
+}
+
+// "scan_20260810_202233.txt" -> "2026-08-10 20:22". Falls back to the raw name
+// rather than printing garbage if the file is not one of ours.
+static void report_filename_label(const char* name, char* out, size_t out_size) {
+    const size_t prefix = strlen(REPORT_FILE_PREFIX);
+    if(strlen(name) < prefix + 15) {
+        snprintf(out, out_size, "%s", name);
+        return;
+    }
+    const char* n = name + prefix;
+    snprintf(out, out_size, "%.4s-%.2s-%.2s %.2s:%.2s", n, n + 4, n + 6, n + 9, n + 11);
+}
+
+// A report a human reads aloud is a couple of kilobytes; this bounds what a
+// damaged file can do to the heap.
+#define REPORT_READ_MAX 8192
 
 /* ---------------- Wiring screen ---------------- */
 
@@ -318,13 +354,15 @@ static void draw_right_key(Canvas* canvas, uint8_t x, uint8_t y) {
 
 // Bottom bar naming the two things the user can do here. Every screen that
 // accepts input says so; the save state takes the bar over when it changes.
-static void draw_action_bar(Canvas* canvas, const char* ok_action) {
+static void draw_action_bar(Canvas* canvas, const char* ok_action, bool offer_save) {
     canvas_draw_box(canvas, 0, 55, 128, 9);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 4, 62, ok_action);
-    canvas_draw_str_aligned(canvas, 125, 62, AlignRight, AlignBottom, "save log");
-    draw_right_key(canvas, 125 - canvas_string_width(canvas, "save log") - 9, 61);
+    if(offer_save) {
+        canvas_draw_str_aligned(canvas, 125, 62, AlignRight, AlignBottom, "save log");
+        draw_right_key(canvas, 125 - canvas_string_width(canvas, "save log") - 9, 61);
+    }
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -406,16 +444,6 @@ static void draw_hint_bar(Canvas* canvas, const char* right_action, bool offer_s
         canvas_draw_str_aligned(canvas, 124, 62, AlignRight, AlignBottom, "save proof");
         draw_down_key(canvas, 124 - canvas_string_width(canvas, "save proof") - 8, 57);
     }
-    canvas_set_color(canvas, ColorBlack);
-}
-
-
-// Bar naming just the OK action, for screens with nothing to save.
-static void draw_action_bar_ok(Canvas* canvas, const char* ok_action) {
-    canvas_draw_box(canvas, 0, 55, 128, 9);
-    canvas_set_color(canvas, ColorWhite);
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 4, 62, ok_action);
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -600,7 +628,7 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
     }
 
-    draw_action_bar(canvas, "OK: details");
+    draw_action_bar(canvas, "OK: details", true);
 }
 
 /* Writes a snapshot of the scan results to /ext/apps_data/fake_chip_detector/.
@@ -618,17 +646,8 @@ static bool scan_save_log(
     DateTime dt;
     furi_hal_rtc_get_datetime(&dt);
 
-    char name[32];
-    snprintf(
-        name,
-        sizeof(name),
-        "scan_%04u%02u%02u_%02u%02u%02u.txt",
-        dt.year,
-        dt.month,
-        dt.day,
-        dt.hour,
-        dt.minute,
-        dt.second);
+    char name[SAVED_NAME_LEN];
+    report_filename_make(name, sizeof(name), &dt);
     if(out_name) snprintf(out_name, out_name_size, "%s", name);
 
     FuriString* path = furi_string_alloc_printf(APP_DATA_PATH("%s"), name);
@@ -985,6 +1004,14 @@ static void detail_draw_callback(Canvas* canvas, void* model) {
 // VariableItemList that is the module instance, not the app, so these must
 // never dereference it — state changes belong in the exit callbacks of the
 // views we own.
+static void app_present_report(FakeChipApp* app, ViewNavigationCallback back_to) {
+    text_box_reset(app->report_box);
+    text_box_set_font(app->report_box, TextBoxFontText);
+    text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
+    view_set_previous_callback(text_box_get_view(app->report_box), back_to);
+    app_switch_view(app, FakeChipViewReport);
+}
+
 static uint32_t nav_to_saved(void* context) {
     UNUSED(context);
     return FakeChipViewSaved;
@@ -1297,13 +1324,7 @@ static void app_show_report(FakeChipApp* app, bool disputed) {
     report_build(app->report_text, snapshot, count, disputed, &dt);
     free(snapshot);
 
-    text_box_reset(app->report_box);
-    text_box_set_font(app->report_box, TextBoxFontText);
-    text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
-    // Back belongs where the reader came from, and this report came from the
-    // scan result.
-    view_set_previous_callback(text_box_get_view(app->report_box), nav_to_scan);
-    app_switch_view(app, FakeChipViewReport);
+    app_present_report(app, nav_to_scan);
 }
 
 
@@ -1321,7 +1342,7 @@ static void saved_reload(FakeChipApp* app) {
     storage_common_resolve_path_and_ensure_app_directory(storage, dir);
 
     File* d = storage_file_alloc(storage);
-    static char names[SAVED_MAX][SAVED_NAME_LEN];
+    char(*names)[SAVED_NAME_LEN] = malloc(SAVED_MAX * SAVED_NAME_LEN);
     uint8_t count = 0;
 
     if(storage_dir_open(d, furi_string_get_cstr(dir))) {
@@ -1329,7 +1350,7 @@ static void saved_reload(FakeChipApp* app) {
         char name[SAVED_NAME_LEN];
         while(count < SAVED_MAX && storage_dir_read(d, &info, name, sizeof(name))) {
             if(file_info_is_dir(&info)) continue;
-            if(strncmp(name, "scan_", 5) != 0) continue;
+            if(strncmp(name, REPORT_FILE_PREFIX, strlen(REPORT_FILE_PREFIX)) != 0) continue;
             snprintf(names[count], SAVED_NAME_LEN, "%s", name);
             count++;
         }
@@ -1339,15 +1360,39 @@ static void saved_reload(FakeChipApp* app) {
     furi_string_free(dir);
     furi_record_close(RECORD_STORAGE);
 
+    // Swap the finished list in under a short lock rather than reading the
+    // directory with the model held.
+    char(*old)[SAVED_NAME_LEN] = NULL;
     with_view_model(
         app->saved_view,
         SavedViewModel * m,
         {
-            memcpy(m->names, names, sizeof(names));
+            old = m->names;
+            m->names = names;
             m->count = count;
             if(m->selected >= count) m->selected = count ? (uint8_t)(count - 1) : 0;
         },
         true);
+    free(old);
+}
+
+// The list is rebuilt on every entry, not just the first: the screen is also
+// reached by backing out of a report, and a scan may have saved one since.
+static void saved_enter(void* context) {
+    saved_reload(context);
+}
+
+static void saved_exit(void* context) {
+    FakeChipApp* app = context;
+    with_view_model(
+        app->saved_view,
+        SavedViewModel * m,
+        {
+            free(m->names);
+            m->names = NULL;
+            m->count = 0;
+        },
+        false);
 }
 
 static void saved_open(FakeChipApp* app) {
@@ -1356,7 +1401,7 @@ static void saved_open(FakeChipApp* app) {
         app->saved_view,
         SavedViewModel * m,
         {
-            if(m->count) snprintf(name, sizeof(name), "%s", m->names[m->selected]);
+            if(m->names && m->count) snprintf(name, sizeof(name), "%s", m->names[m->selected]);
         },
         false);
     if(!name[0]) return;
@@ -1368,11 +1413,18 @@ static void saved_open(FakeChipApp* app) {
     furi_string_reset(app->report_text);
     File* f = storage_file_alloc(storage);
     if(storage_file_open(f, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
-        char chunk[129];
+        // Capped: a real report is a couple of kilobytes, and a corrupt or
+        // hand-edited file must not be able to exhaust the heap.
+        char chunk[257];
         size_t n;
-        while((n = storage_file_read(f, chunk, sizeof(chunk) - 1)) > 0) {
+        size_t total = 0;
+        while(total < REPORT_READ_MAX && (n = storage_file_read(f, chunk, sizeof(chunk) - 1)) > 0) {
             chunk[n] = 0;
             furi_string_cat_str(app->report_text, chunk);
+            total += n;
+        }
+        if(total >= REPORT_READ_MAX) {
+            furi_string_cat_str(app->report_text, "\n[report truncated]\n");
         }
     } else {
         furi_string_set_str(app->report_text, "Could not open this report.");
@@ -1382,11 +1434,7 @@ static void saved_open(FakeChipApp* app) {
     furi_string_free(path);
     furi_record_close(RECORD_STORAGE);
 
-    text_box_reset(app->report_box);
-    text_box_set_font(app->report_box, TextBoxFontText);
-    text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
-    view_set_previous_callback(text_box_get_view(app->report_box), nav_to_saved);
-    app_switch_view(app, FakeChipViewReport);
+    app_present_report(app, nav_to_saved);
 }
 
 static void saved_draw_callback(Canvas* canvas, void* model) {
@@ -1415,10 +1463,7 @@ static void saved_draw_callback(Canvas* canvas, void* model) {
         uint8_t idx = (uint8_t)(first + row);
         if(idx >= m->count) break;
         uint8_t y = (uint8_t)(22 + row * 10);
-        // scan_20260810_202233.txt -> 2026-08-10 20:22
-        const char* n = m->names[idx];
-        snprintf(
-            buf, sizeof(buf), "%.4s-%.2s-%.2s %.2s:%.2s", n + 5, n + 9, n + 11, n + 14, n + 16);
+        report_filename_label(m->names[idx], buf, sizeof(buf));
         if(idx == m->selected) {
             canvas_draw_box(canvas, 0, y - 8, 128, 10);
             canvas_set_color(canvas, ColorWhite);
@@ -1428,7 +1473,7 @@ static void saved_draw_callback(Canvas* canvas, void* model) {
             canvas_draw_str(canvas, 4, y, buf);
         }
     }
-    draw_action_bar_ok(canvas, "OK: read it");
+    draw_action_bar(canvas, "OK: read it", false);
 }
 
 static bool saved_input_callback(InputEvent* event, void* context) {
@@ -1466,29 +1511,24 @@ static int32_t ow_thread_worker(void* context) {
 
     // Scanned into a local first: the search holds the bus for up to a second
     // and the view model must not be locked for anything like that long.
-    OneWireScanResult* res = malloc(sizeof(OneWireScanResult));
-    onewire_worker_scan(res, &app->ow_abort);
+    OneWireScanResult res;
+    onewire_worker_scan(&res, &app->ow_abort);
 
-    bool anything = false;
     with_view_model(
         app->onewire_view,
         OneWireViewModel * m,
         {
-            m->res = *res;
-            m->selected = 0;
+            m->res = res;
             m->busy = false;
-            anything = res->count > 0;
         },
         true);
-
-    OneWireBusState state = res->state;
-    free(res);
 
     if(!app->ow_abort) {
         i2c_notify_play(
             app->notifications,
-            anything ? I2CNotifyNeutral :
-                       (state == OneWireBusShorted ? I2CNotifyBad : I2CNotifyAttention));
+            res.count       ? I2CNotifyNeutral :
+            res.state == OneWireBusShorted ? I2CNotifyBad :
+                              I2CNotifyAttention);
     }
     return 0;
 }
@@ -1521,10 +1561,9 @@ static void onewire_exit(void* context) {
 }
 
 // 16 hex digits with no separators: it is an identifier to compare, not prose.
-static void ow_format_rom(const uint8_t* rom, char* out, size_t out_len) {
-    size_t used = 0;
-    for(uint8_t i = 0; i < 8 && used + 3 <= out_len; i++) {
-        used += (size_t)snprintf(out + used, out_len - used, "%02X", rom[i]);
+static void ow_format_rom(const uint8_t* rom, char out[17]) {
+    for(uint8_t i = 0; i < 8; i++) {
+        snprintf(out + i * 2, 3, "%02X", rom[i]);
     }
 }
 
@@ -1574,9 +1613,15 @@ static void onewire_draw_callback(Canvas* canvas, void* model) {
     const OneWireDevice* dev = &m->res.found[m->selected];
 
     canvas_draw_str(canvas, 2, 10, dev->name ? dev->name : "Unknown part");
-    if(m->res.count > 1) {
-        char pos[8];
-        snprintf(pos, sizeof(pos), "%u/%u", m->selected + 1, m->res.count);
+    if(m->res.count > 1 || m->res.overflow) {
+        char pos[12];
+        snprintf(
+            pos,
+            sizeof(pos),
+            "%u/%u%s",
+            m->selected + 1,
+            m->res.count,
+            m->res.overflow ? "+" : "");
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, pos);
     }
@@ -1590,24 +1635,35 @@ static void onewire_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str(canvas, 2, 21, fam);
     }
 
-    char rom[20];
-    ow_format_rom(dev->rom, rom, sizeof(rom));
+    char rom[17];
+    ow_format_rom(dev->rom, rom);
     canvas_draw_str(canvas, 2, 32, rom);
 
     if(!dev->crc_ok) {
         canvas_draw_str(canvas, 2, 43, "ID checksum is wrong!");
     } else if(dev->measured && dev->scratch_crc_ok) {
-        char line[26];
-        snprintf(line, sizeof(line), "Reads %d.%01d C - it works", (int)dev->temp_c,
-                 (int)((dev->temp_c < 0 ? -dev->temp_c : dev->temp_c) * 10) % 10);
-        canvas_draw_str(canvas, 2, 43, line);
+        // Outside the DS18B20's own -55..+125 range the number is not a
+        // temperature, and claiming "it works" from it would be a lie.
+        int tenths = (int)(dev->temp_c * 10.0f);
+        if(tenths < -550 || tenths > 1250) {
+            canvas_draw_str(canvas, 2, 43, "Reading out of range.");
+        } else {
+            char line[26];
+            snprintf(
+                line,
+                sizeof(line),
+                "Reads %d.%d C - it works",
+                tenths / 10,
+                (tenths < 0 ? -tenths : tenths) % 10);
+            canvas_draw_str(canvas, 2, 43, line);
+        }
     } else if(dev->measured) {
         canvas_draw_str(canvas, 2, 43, "Answered, data corrupt.");
     } else {
         canvas_draw_str(canvas, 2, 43, "Present, ID checks out.");
     }
 
-    draw_action_bar_ok(canvas, "OK: what this proves");
+    draw_action_bar(canvas, "OK: what this proves", false);
 }
 
 static bool onewire_input_callback(InputEvent* event, void* context) {
@@ -1708,7 +1764,6 @@ static void menu_callback(void* context, uint32_t index) {
         app_switch_view(app, FakeChipViewChips);
         break;
     case MenuIndexSaved:
-        saved_reload(app);
         app_switch_view(app, FakeChipViewSaved);
         break;
     case MenuIndexAbout:
@@ -1851,6 +1906,8 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_allocate_model(app->saved_view, ViewModelTypeLocking, sizeof(SavedViewModel));
     view_set_draw_callback(app->saved_view, saved_draw_callback);
     view_set_input_callback(app->saved_view, saved_input_callback);
+    view_set_enter_callback(app->saved_view, saved_enter);
+    view_set_exit_callback(app->saved_view, saved_exit);
     view_set_previous_callback(app->saved_view, nav_to_menu);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewSaved, app->saved_view);
 

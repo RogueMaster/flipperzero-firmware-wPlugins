@@ -60,6 +60,3 @@ typedef struct {
 // abort may be NULL. When it is not, setting it true cuts the measurement pass
 // short so leaving the screen does not have to wait out a conversion.
 void onewire_worker_scan(OneWireScanResult* out, const volatile bool* abort);
-
-// "DS18B20", or NULL when the family code is not one we can name.
-const char* onewire_family_name(uint8_t family_code);

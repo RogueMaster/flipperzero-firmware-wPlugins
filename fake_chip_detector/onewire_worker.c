@@ -48,11 +48,6 @@ static const OneWireFamily* onewire_family_lookup(uint8_t family_code) {
     return NULL;
 }
 
-const char* onewire_family_name(uint8_t family_code) {
-    const OneWireFamily* f = onewire_family_lookup(family_code);
-    return f ? f->name : NULL;
-}
-
 // A parasitic-power sensor needs the line held high while it converts, and an
 // externally powered one does not care, so driving it high suits both.
 static void
