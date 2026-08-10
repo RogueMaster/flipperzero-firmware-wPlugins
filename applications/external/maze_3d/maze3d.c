@@ -1,9 +1,9 @@
 #include "maze3d.h"
-#include "zh_chars.h"
 #include "i18n.h"
+#include "zh_chars.h"
 #include <gui/gui.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #define EVENT_INPUT 1
 
@@ -2158,7 +2158,8 @@ static void handle_new_modes_input(InputKey key, InputType type) {
     }
 }
 
-// 主循环 - **关键**: 渲染受 dirty 控制; 主循环定时器用 120ms 间隔而不是 50ms,减少 CPU
+// 主循环 - **关键**: 渲染受 dirty 控制; 主循环定时器用 120ms 间隔而不是
+// 50ms,减少 CPU
 int32_t maze3d_app(void* p) {
     UNUSED(p);
     memset(&g, 0, sizeof(g));
@@ -2212,7 +2213,8 @@ int32_t maze3d_app(void* p) {
                         const SetEntry* e = settings_get(s_set_sel);
                         if(e) {
                             int dir = (key == InputKeyRight) ? +1 : -1;
-                            // SET_BOOL: 统一按 uint8_t 指针访问 (bool 与 uint8_t 同尺寸 0/1 值一致)
+                            // SET_BOOL: 统一按 uint8_t 指针访问 (bool 与 uint8_t 同尺寸 0/1
+                            // 值一致)
                             uint8_t* vp = (uint8_t*)(e->val_ptr);
                             if(e->type == SET_BOOL) {
                                 *vp = (*vp == 0) ? 1 : 0;
@@ -2408,7 +2410,8 @@ int32_t maze3d_app(void* p) {
                         // v6.2: OK 短按=射击 (所有模式). 解谜/迷宫关无弹药时播"无弹药"
                         player_shoot();
                     } else if(type == InputTypeLong) {
-                        // v6.11: OK 长按=打开新道具栏 (商城道具库存, 战斗/解谜/迷宫关均可用)
+                        // v6.11: OK 长按=打开新道具栏 (商城道具库存,
+                        // 战斗/解谜/迷宫关均可用)
                         s_resume_mode = g.mode;
                         g.mode = MODE_SHOP_INV;
                         g.inv2_sel = 0;

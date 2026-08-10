@@ -379,6 +379,8 @@ static void flash_save_state(FlashApp* app) {
     char line[64];
     snprintf(line, sizeof(line), "mode=%s\n", app->mode == FlashModeRandom ? "random" : "ordered");
     flash_write_line(app->state_file, line);
+    snprintf(line, sizeof(line), "current_card=%d\n", app->current_card);
+    flash_write_line(app->state_file, line);
 
     flash_write_line(app->state_file, "removed=");
     bool first_removed = true;
@@ -425,6 +427,11 @@ static void flash_apply_saved_state(FlashApp* app) {
                 app->mode = FlashModeOrdered;
             }
             continue;
+        }
+
+        if(strncmp(line, "current_card=", 13) == 0) {
+            const char* current_card_value = line + 13;
+            app->current_card = atoi(current_card_value);
         }
 
         if(strncmp(line, "removed=", 8) == 0) {
@@ -1024,6 +1031,7 @@ int32_t flipflash(void* p) {
     furi_message_queue_free(app->input_queue);
     furi_string_free(app->text_buffer);
     storage_file_free(app->file);
+    storage_file_free(app->state_file);
     furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);

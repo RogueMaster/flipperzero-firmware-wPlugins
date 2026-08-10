@@ -8,6 +8,6 @@ App(
     fap_category="Tools",
     fap_author="Mushi0",
     fap_weburl="https://github.com/Mushi0/FlippFlash",
-    fap_version="0.1",
+    fap_version="1.0",
     fap_description="Flashcard app that reads flashcards from a text file and support removing cards from the deck. Useful for language learning.",
 )

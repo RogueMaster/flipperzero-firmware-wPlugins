@@ -161,7 +161,8 @@ static inline uint8_t bayer_at(int x, int y) {
 
 static inline void apply_shade_px(int x, int y, int shade) {
     // 阈值越小越稀疏; 用 4 档密度做平滑距离渐变
-    // v6.9: cfg_brightness 0..4 → 乘数 0.6/0.8/1.0/1.25/1.5, 调节阈值(阈值越高→像素越多越亮)
+    // v6.9: cfg_brightness 0..4 → 乘数 0.6/0.8/1.0/1.25/1.5,
+    // 调节阈值(阈值越高→像素越多越亮)
     int thr;
     static const float bright_mul[] = {0.60f, 0.80f, 1.00f, 1.25f, 1.50f};
     float bm = bright_mul[(g.cfg_brightness < 5) ? g.cfg_brightness : 2];

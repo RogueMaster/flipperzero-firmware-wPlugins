@@ -881,8 +881,8 @@ void game_next_level(void) {
 }
 
 // ---- MC 沙盒模式 (v6.3 完整材质版) ----
-// v6.3: 手持方块类型 mc_block_type: 1=砖 2=石 3=木板 4=草 5=土 6=沙 7=原木 8=树叶
-// 挖到方块自动切换手持 (MC 生存模式核心玩法); 对空地长按 OK = 循环切手持
+// v6.3: 手持方块类型 mc_block_type: 1=砖 2=石 3=木板 4=草 5=土 6=沙 7=原木
+// 8=树叶 挖到方块自动切换手持 (MC 生存模式核心玩法); 对空地长按 OK = 循环切手持
 #define MC_BLOCK_COUNT 8
 static uint8_t mc_block_to_wall(uint8_t bt) {
     switch(bt) {
@@ -1368,7 +1368,8 @@ void game_update(void) {
         g.jump_timer = 0;
         g.jump_z = 0.0f;
     }
-    // v6.9: 转向灵敏度 + 长按加速 — cfg_turn_sens 0..5: 1.0x/1.25x/1.5x/1.75x/2.0x/2.5x
+    // v6.9: 转向灵敏度 + 长按加速 — cfg_turn_sens
+    // 0..5: 1.0x/1.25x/1.5x/1.75x/2.0x/2.5x
     static const float t_sens[] = {1.0f, 1.25f, 1.5f, 1.75f, 2.0f, 2.5f};
     float ts = t_sens[(g.cfg_turn_sens < 6) ? g.cfg_turn_sens : 2];
     // cfg_turn_max 0..4: 0.030,0.038,0.050,0.065,0.085

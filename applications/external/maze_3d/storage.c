@@ -1,7 +1,7 @@
 #include "maze3d.h"
-#include <storage/storage.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <storage/storage.h>
 #include <string.h>
 
 #define SAVE_PATH APP_DATA_PATH("maze3d.sav")
@@ -72,7 +72,8 @@ typedef struct {
     // v4.3+: 设置
     uint8_t sfx_enabled; // 1 on, 0 off
     uint8_t opening_enabled; // 1 on, 0 off
-    // v4.4+: 调试信息 / 开发模式 (复用原 reserved, 旧 MAZ4 存档此处为 0 即关闭, 兼容)
+    // v4.4+: 调试信息 / 开发模式 (复用原 reserved, 旧 MAZ4 存档此处为 0 即关闭,
+    // 兼容)
     uint8_t show_debug; // 1 on, 0 off
     uint8_t dev_mode; // 1 on, 0 off
     uint8_t reserved[4];

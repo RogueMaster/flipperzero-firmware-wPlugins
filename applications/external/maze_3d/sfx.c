@@ -1,6 +1,6 @@
 #include "maze3d.h"
-#include <furi_hal_speaker.h>
 #include <furi_hal.h>
+#include <furi_hal_speaker.h>
 #include <string.h>
 
 // ---- 简易音序器 ----

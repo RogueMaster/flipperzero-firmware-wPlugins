@@ -10,7 +10,7 @@ FlipFlash is a Flipper Zero flashcard app that reads flashcards from a text file
 
 ## Deck format
 
-The flashcard deck files are stored on the Flipper at `/ext/apps_data/FlipFlash/flashcardFile.txt`. It supports adding self-defined text (`.txt`) files, just upload directly to the folder. 
+The flashcard deck files are stored on the Flipper at `/ext/apps_data/flipflash/flashcardFile.txt`. It supports adding self-defined text (`.txt`) files, just upload directly to the folder. 
 
 Each card uses one line in the form:
 
@@ -25,6 +25,8 @@ hola|hello
 adios|goodbye
 ```
 
+Note that the maximum of flashcards a text file can have is 128, any cards outside of this limit will not be read. 
+
 ### Sample decks
 
 On first launch, FlipFlash creates two small Spanish test decks (spanish_words.txt and spanish_verbs.txt) automatically if the deck file does not exist. 
@@ -33,7 +35,7 @@ On first launch, FlipFlash creates two small Spanish test decks (spanish_words.t
 
 The app stores the current mode and removed-card list for each of the flashcard file in:
 
-`/ext/apps_data/FlipFlash/flashcardFile.state`
+`/ext/apps_data/flipflash/flashcardFile.state`
 
 ## Controls
 
