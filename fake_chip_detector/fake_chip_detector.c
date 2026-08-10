@@ -31,6 +31,7 @@ typedef enum {
     FakeChipViewSettings,
     FakeChipViewChips,
     FakeChipViewReport,
+    FakeChipViewSaved,
     FakeChipViewAbout,
 } FakeChipViewId;
 
@@ -40,6 +41,7 @@ typedef enum {
     MenuIndexLiveTest,
     MenuIndexSettings,
     MenuIndexChips,
+    MenuIndexSaved,
     MenuIndexAbout,
 } MenuIndex;
 
@@ -87,6 +89,15 @@ typedef struct {
     uint16_t selected;
 } ChipsViewModel;
 
+#define SAVED_MAX 32
+#define SAVED_NAME_LEN 32
+
+typedef struct {
+    char names[SAVED_MAX][SAVED_NAME_LEN];
+    uint8_t count;
+    uint8_t selected;
+} SavedViewModel;
+
 typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
@@ -97,6 +108,7 @@ typedef struct {
     View* detail_view;
     View* live_view;
     View* chips_view;
+    View* saved_view;
     TextBox* report_box;
     FuriString* report_text;
     VariableItemList* settings_list;
@@ -381,6 +393,16 @@ static void draw_hint_bar(Canvas* canvas, const char* right_action, bool offer_s
         canvas_draw_str_aligned(canvas, 124, 62, AlignRight, AlignBottom, "save proof");
         draw_down_key(canvas, 124 - canvas_string_width(canvas, "save proof") - 8, 57);
     }
+    canvas_set_color(canvas, ColorBlack);
+}
+
+
+// Bar naming just the OK action, for screens with nothing to save.
+static void draw_action_bar_ok(Canvas* canvas, const char* ok_action) {
+    canvas_draw_box(canvas, 0, 55, 128, 9);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 4, 62, ok_action);
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -950,6 +972,11 @@ static void detail_draw_callback(Canvas* canvas, void* model) {
 // VariableItemList that is the module instance, not the app, so these must
 // never dereference it — state changes belong in the exit callbacks of the
 // views we own.
+static uint32_t nav_to_saved(void* context) {
+    UNUSED(context);
+    return FakeChipViewSaved;
+}
+
 static uint32_t nav_to_scan(void* context) {
     UNUSED(context);
     return FakeChipViewScan;
@@ -1260,7 +1287,159 @@ static void app_show_report(FakeChipApp* app, bool disputed) {
     text_box_reset(app->report_box);
     text_box_set_font(app->report_box, TextBoxFontText);
     text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
+    // Back belongs where the reader came from, and this report came from the
+    // scan result.
+    view_set_previous_callback(text_box_get_view(app->report_box), nav_to_scan);
     app_switch_view(app, FakeChipViewReport);
+}
+
+
+/* ---------------- Saved reports ---------------- */
+
+#define SAVED_LIST_ROWS 4
+
+// Reports are evidence, and evidence you cannot open is useless. The app that
+// wrote them can read them back.
+static void saved_reload(FakeChipApp* app) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    // No trailing slash: APP_DATA_PATH("") yields "/data/", and storage_dir_open
+    // will not open that.
+    FuriString* dir = furi_string_alloc_set(STORAGE_APP_DATA_PATH_PREFIX);
+    storage_common_resolve_path_and_ensure_app_directory(storage, dir);
+
+    File* d = storage_file_alloc(storage);
+    static char names[SAVED_MAX][SAVED_NAME_LEN];
+    uint8_t count = 0;
+
+    if(storage_dir_open(d, furi_string_get_cstr(dir))) {
+        FileInfo info;
+        char name[SAVED_NAME_LEN];
+        while(count < SAVED_MAX && storage_dir_read(d, &info, name, sizeof(name))) {
+            if(file_info_is_dir(&info)) continue;
+            if(strncmp(name, "scan_", 5) != 0) continue;
+            snprintf(names[count], SAVED_NAME_LEN, "%s", name);
+            count++;
+        }
+        storage_dir_close(d);
+    }
+    storage_file_free(d);
+    furi_string_free(dir);
+    furi_record_close(RECORD_STORAGE);
+
+    with_view_model(
+        app->saved_view,
+        SavedViewModel * m,
+        {
+            memcpy(m->names, names, sizeof(names));
+            m->count = count;
+            if(m->selected >= count) m->selected = count ? (uint8_t)(count - 1) : 0;
+        },
+        true);
+}
+
+static void saved_open(FakeChipApp* app) {
+    char name[SAVED_NAME_LEN] = {0};
+    with_view_model(
+        app->saved_view,
+        SavedViewModel * m,
+        {
+            if(m->count) snprintf(name, sizeof(name), "%s", m->names[m->selected]);
+        },
+        false);
+    if(!name[0]) return;
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    FuriString* path = furi_string_alloc_printf(APP_DATA_PATH("%s"), name);
+    storage_common_resolve_path_and_ensure_app_directory(storage, path);
+
+    furi_string_reset(app->report_text);
+    File* f = storage_file_alloc(storage);
+    if(storage_file_open(f, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char chunk[129];
+        size_t n;
+        while((n = storage_file_read(f, chunk, sizeof(chunk) - 1)) > 0) {
+            chunk[n] = 0;
+            furi_string_cat_str(app->report_text, chunk);
+        }
+    } else {
+        furi_string_set_str(app->report_text, "Could not open this report.");
+    }
+    storage_file_close(f);
+    storage_file_free(f);
+    furi_string_free(path);
+    furi_record_close(RECORD_STORAGE);
+
+    text_box_reset(app->report_box);
+    text_box_set_font(app->report_box, TextBoxFontText);
+    text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
+    view_set_previous_callback(text_box_get_view(app->report_box), nav_to_saved);
+    app_switch_view(app, FakeChipViewReport);
+}
+
+static void saved_draw_callback(Canvas* canvas, void* model) {
+    SavedViewModel* m = model;
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Saved reports");
+
+    if(m->count == 0) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "Nothing saved yet.");
+        canvas_draw_str_aligned(
+            canvas, 64, 42, AlignCenter, AlignBottom, "Reports show up here");
+        canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, "once you save one.");
+        return;
+    }
+
+    char buf[20];
+    canvas_set_font(canvas, FontSecondary);
+    snprintf(buf, sizeof(buf), "%u/%u", m->selected + 1, m->count);
+    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
+
+    uint8_t first = 0;
+    if(m->selected >= SAVED_LIST_ROWS) first = (uint8_t)(m->selected - SAVED_LIST_ROWS + 1);
+    for(uint8_t row = 0; row < SAVED_LIST_ROWS; row++) {
+        uint8_t idx = (uint8_t)(first + row);
+        if(idx >= m->count) break;
+        uint8_t y = (uint8_t)(22 + row * 10);
+        // scan_20260810_202233.txt -> 2026-08-10 20:22
+        const char* n = m->names[idx];
+        snprintf(
+            buf, sizeof(buf), "%.4s-%.2s-%.2s %.2s:%.2s", n + 5, n + 9, n + 11, n + 14, n + 16);
+        if(idx == m->selected) {
+            canvas_draw_box(canvas, 0, y - 8, 128, 10);
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_str(canvas, 4, y, buf);
+            canvas_set_color(canvas, ColorBlack);
+        } else {
+            canvas_draw_str(canvas, 4, y, buf);
+        }
+    }
+    draw_action_bar_ok(canvas, "OK: read it");
+}
+
+static bool saved_input_callback(InputEvent* event, void* context) {
+    FakeChipApp* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+    bool consumed = false, open = false;
+    with_view_model(
+        app->saved_view,
+        SavedViewModel * m,
+        {
+            if(event->key == InputKeyUp && m->selected > 0) {
+                m->selected--;
+                consumed = true;
+            } else if(event->key == InputKeyDown && (uint8_t)(m->selected + 1) < m->count) {
+                m->selected++;
+                consumed = true;
+            } else if(event->key == InputKeyOk && m->count) {
+                open = true;
+                consumed = true;
+            }
+        },
+        consumed);
+    if(open) saved_open(app);
+    return consumed;
 }
 
 /* ---------------- Animation tick ---------------- */
@@ -1329,6 +1508,10 @@ static void menu_callback(void* context, uint32_t index) {
     case MenuIndexChips:
         app_switch_view(app, FakeChipViewChips);
         break;
+    case MenuIndexSaved:
+        saved_reload(app);
+        app_switch_view(app, FakeChipViewSaved);
+        break;
     case MenuIndexAbout:
         app_switch_view(app, FakeChipViewAbout);
         break;
@@ -1394,6 +1577,8 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     submenu_add_item(app->submenu, "BNO055 live test", MenuIndexLiveTest, menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MenuIndexSettings, menu_callback, app);
     submenu_add_item(app->submenu, "Known chips", MenuIndexChips, menu_callback, app);
+    submenu_add_item(
+        app->submenu, "Saved reports", MenuIndexSaved, menu_callback, app);
     submenu_add_item(app->submenu, "About", MenuIndexAbout, menu_callback, app);
     view_set_previous_callback(submenu_get_view(app->submenu), nav_exit);
     view_dispatcher_add_view(
@@ -1450,6 +1635,14 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_set_input_callback(app->chips_view, chips_input_callback);
     view_set_previous_callback(app->chips_view, nav_to_menu);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewChips, app->chips_view);
+
+    app->saved_view = view_alloc();
+    view_set_context(app->saved_view, app);
+    view_allocate_model(app->saved_view, ViewModelTypeLocking, sizeof(SavedViewModel));
+    view_set_draw_callback(app->saved_view, saved_draw_callback);
+    view_set_input_callback(app->saved_view, saved_input_callback);
+    view_set_previous_callback(app->saved_view, nav_to_menu);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewSaved, app->saved_view);
 
     app->report_text = furi_string_alloc();
     app->report_box = text_box_alloc();
@@ -1508,6 +1701,7 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewChips);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewReport);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSaved);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewAbout);
     submenu_free(app->submenu);
     view_free(app->wiring_view);
@@ -1515,6 +1709,7 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_free(app->detail_view);
     view_free(app->live_view);
     view_free(app->chips_view);
+    view_free(app->saved_view);
     text_box_free(app->report_box);
     furi_string_free(app->report_text);
     variable_item_list_free(app->settings_list);
