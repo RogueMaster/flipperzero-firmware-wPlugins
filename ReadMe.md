@@ -117,6 +117,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FM TX v0.0.10 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - Added: [Network Calculator v1.0 (By WolfRorDev)](https://github.com/WolfRorDev/Net-Calculator-for-Flipper-Zero)
 - Updated: [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
+- Updated: [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
 
 <a name="release"></a>
 
@@ -549,6 +550,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck)
 - [FlipDownloader v1.3.5 (By jblanked)](https://github.com/jblanked/FlipStore) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
+- [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
 - [FlipGemini v1.0 (By jblanked)](https://github.com/jblanked/FlipGemini) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipIRFreq v0.2 (By jsammarco)](https://github.com/jsammarco/FlipIRFreq)
 - [FlipLibrary v1.5 (By jblanked)](https://github.com/jblanked/FlipLibrary) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
