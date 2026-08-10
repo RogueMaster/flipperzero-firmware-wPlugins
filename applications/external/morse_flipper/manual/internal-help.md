@@ -88,7 +88,7 @@ This is the same help file that lives on the Flipper under Help: a gentle introd
 - The Titanic's operators kept transmitting long after all else failed. Morse was one of the last things still working, and the disaster proved ships needed proper backups with batteries on emergency radio.
 - People do in fact build and sell radios for exactly this sort of thing. Small CW QRP rigs, often sold to the prepper crowd, sometimes with decoders built in for when your ears are having an off day.
 - Low power CW on HF with a wire in the trees is hard to locate. A voice call on a fixed emergency frequency is not.
-- Pair CW with NVIS: a wire aimed almost straight up, bouncing signals off the ionosphere. Roughly 500 to 1500 km, two trees, one wire.
+- Pair CW with NVIS: a wire aimed almost straight up, bouncing signals off the ionosphere. Roughly 100 to 500 km, two trees, one wire.
 - Sort the plan out now, not during the emergency: time, frequency, fallback. For example: 7.030, daily at 20:00, listen two minutes, then try again tomorrow.
 - Your messages will be short. `ALL OK` is two words. `QTH DAMAGE NEED MED FER 3` is six. Plan them like you plan the rest of your kit.
 - Use voice for everyday chat. Use CW when power is barely available, conditions are bad, or you want low profile. Digital if you have the gear. Use the simplest thing that works. This is emergency radio, not surgery on nuclear rockets.

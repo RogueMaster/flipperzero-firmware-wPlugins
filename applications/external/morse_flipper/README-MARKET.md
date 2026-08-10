@@ -2,6 +2,8 @@
 
 Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero.
 
+Current release: 0.2.9.
+
 It is built around learning Morse by sound rather than by staring at dots and dashes. You can practise copying, send with buttons or external keys, experiment with keyer timing, and use the Flipper as a small CW hardware adapter.
 
 Morse Flipper also includes a fairly extensive help manual on the Flipper itself, under `Help`. It covers how to learn and practise Morse Code, how to connect straight keys and paddles, what is worth practising, and which outside resources are worth your time. Please read it; there is more useful Morse guidance in there than fits comfortably in a README. You can find the complete Morse Flipper [user manual on GitHub](https://github.com/yo3gnd/morse-flipper/blob/master/manual/README.md).
@@ -9,15 +11,22 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 ## Features
 
 - Flipper-to-Flipper Sub-GHz Morse TX/RX, plus receive and decode experiments for compatible OOK Morse signals inside supported Flipper bands.
+- CWFM makes transmitted Morse audible as a 700 Hz tone on ordinary FM handhelds, including the UV-5R.
 - Listening practice (LCWO/Koch progressions), straight-key timing practice, and five-character sending drills.
+- Lesson progress, history, scores, and daily streaks keep track of whether you are actually practising.
+- Listening answers can be corrected: ↓ deletes the last character and ↑ clears the whole answer.
 - Free practice with a straight key, paddle, Flipper buttons, USB, MIDI, mouse, or keyboard input.
 - Iambic, Elekey-A/B, Ultimatic, bug, keyahead, and Vail-compatible keying modes.
 - Built-in help for setup, hardware, practice, portable operating, contests, and CW operating notes.
 - GPIO key and paddle input using a simple jack adapter, with configurable pins and startup checks for suspicious wiring.
 - Ham keyer mode with rig keying on P15 and PTT on P16.
-- Smoother internal Soft Buzz sidetone, high-quality sidetone on P2/A7, and vibration fallback.
+- Selectable sinewave or square-wave Morse on the internal speaker, high-quality sinewave output on P2/A7, and vibration fallback.
 - Field keyer/logger for portable operating and canned replies.
-- Saved settings, compact run history, custom training character files on SD, and a small CW decoder.
+- Adaptive Instant Character Recognition training brings slow or troublesome characters back more often.
+- Callsign practice has independent speed, spacing, and length settings, and generates callsigns which actually look like callsigns.
+- Passive Listening plays CW, then speaks the answer, in the style of Morse Ninja exercises.
+- Voice output works through the Flipper's internal speaker or the PA2 audio port.
+- ARDF Foxhunting with Standard, Sprint, and Custom modes using carrier-keyed CW or CWFM.
 
 ## Hardware
 
@@ -29,7 +38,7 @@ For rig control, Ham Keyer mode uses P15 as the key output and P16 as PTT. Verif
 
 ## A note on Morse transmissions
 
-Sub-GHz TX remains as jurisdiction-dependent as any ordinary Flipper Zero transmission, which is the polite way of saying: know your band plan before pressing send. It is useful for experiments, practice, and keying a ham transceiver. Do not trust the Flipper's 100 mW for emergency Morse communications. Treat it as an entry-level teaser, or a very bad QRP rig, not a replacement for a proper radio.
+Sub-GHz TX remains as jurisdiction-dependent as any ordinary Flipper Zero transmission, which is the polite way of saying: know your band plan before pressing send. It is useful for experiments, practice, and keying a ham transceiver. Do not trust the Flipper's 16 mW for emergency Morse communications. Treat it as an entry-level teaser, or a very bad QRP rig, not a replacement for a proper radio.
 
 ## More
 
