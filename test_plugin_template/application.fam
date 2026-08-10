@@ -1,0 +1,23 @@
+# Build this with ufbt from inside this folder. The result is a .fal you copy
+# to your Flipper at:
+#
+#     SD Card/apps_data/fake_chip_detector/tests/
+#
+# The app creates that folder the first time it runs, so plug the Flipper in
+# and open Fake Chip Detector once before you go looking for it.
+#
+# apptype=PLUGIN is what makes ufbt emit a .fal instead of a .fap, and a plugin
+# manifest must declare `requires` and must NOT set `stack_size` — it runs on a
+# thread the host app already owns.
+App(
+    appid="live_test_mypart",
+    name="MYPART live test",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="live_test_mypart_plugin_ep",
+    requires=["fake_chip_detector"],
+    sources=["live_mypart.c"],
+    fap_category="GPIO",
+    fap_version="1.0",
+    fap_author="you",
+    fap_description="Live test for the MYPART sensor.",
+)
