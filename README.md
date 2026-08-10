@@ -43,6 +43,10 @@ one register — this app does that and shows its work.
   wrong, is called out as a likely counterfeit.
 - **BNO055 live test.** Proves the sensor works, not merely that it identifies itself: NDOF
   fusion, live heading, magnetometer calibration and an animated figure-8 prompt.
+- **1-Wire too.** Scans pin 17, decodes the family code and runs a real temperature conversion
+  on DS18B20-class parts. A 1-Wire ID can be replayed by any microcontroller, so the app is
+  explicit that this proves which *part* answered — a DS18S20 sold as a DS18B20 is caught —
+  and never that it is authentic.
 
 ## Wiring
 

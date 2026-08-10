@@ -151,9 +151,39 @@ for e in noid:
     L.append('| **%s** | %s | %s | %s |' % (
         e['name'], e['kind'], addr_str(e), e['note'] or ''))
 L.append('')
+# ---- 1-Wire families ------------------------------------------------------
+ow_src = pathlib.Path('fake_chip_detector/onewire_worker.c').read_text(encoding='utf-8')
+ow_body = re.search(
+    r'static const OneWireFamily onewire_families\[\]\s*=\s*\{(.*?)\n\};', ow_src, re.S).group(1)
+families = re.findall(r'\{(0x[0-9A-Fa-f]+),\s*"([^"]*)",\s*"([^"]*)",\s*OneWireRole(\w+)\}', ow_body)
+
+L.append('## 1-Wire parts (%d)' % len(families))
+L.append('')
+L.append('A different bus, on **pin 17**, and a weaker guarantee. Every 1-Wire part carries a')
+L.append('64-bit ROM code burned in at the factory, but any microcontroller can replay one, so')
+L.append('finding the expected ID proves a device is *present* — never that it is authentic. The')
+L.append('app says so on screen and never reports a 1-Wire part as GENUINE.')
+L.append('')
+L.append('What it does prove is which **part** answered: the family code (the low byte of the ROM)')
+L.append('selects the command set and register layout, so a DS18S20 or DS1822 sold as a DS18B20 is')
+L.append('a fact here, not a suspicion. Temperature parts are taken one step further — the app runs')
+L.append('a real conversion and checks the scratchpad CRC, so it reports a working measurement')
+L.append('rather than mere presence.')
+L.append('')
+L.append('| Family code | Part | What it is | Measured |')
+L.append('|---|---|---|---|')
+for fam, name, kind, role in families:
+    L.append('| `%s` | **%s** | %s | %s |' % (
+        fam.upper().replace('0X', '0x'), name, kind,
+        'temperature' if role == 'Temperature' else '—'))
+L.append('')
+L.append('Family codes are from Analog Devices application note AN937 and the parts\' datasheets.')
+L.append('')
 L.append('## Adding a chip')
 L.append('')
-L.append('Add an `IdCheck` array and one `ChipEntry` row to `chip_db.c`, then rebuild. The rule')
+L.append('Add an `IdCheck` array and one `ChipEntry` row to `chip_db.c`, rebuild, then re-run')
+L.append('`python tools/gen_supported_chips.py` from the repository root to regenerate this file —')
+L.append('that regeneration step is the only thing keeping the table honest. The rule')
 L.append('the database is held to: **every constant must come from the manufacturer datasheet or')
 L.append('the vendor\'s own driver.** A wrong expected value makes the app accuse a genuine sensor')
 L.append('of being counterfeit, which is far worse than not supporting the part at all. Anything')

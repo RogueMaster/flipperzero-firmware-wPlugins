@@ -13,6 +13,7 @@
 #include <math.h>
 
 #include "i2c_worker.h"
+#include "onewire_worker.h"
 #include "chip_db.h"
 #include "i2c_notify.h"
 #include "i2c_settings.h"
@@ -32,12 +33,14 @@ typedef enum {
     FakeChipViewChips,
     FakeChipViewReport,
     FakeChipViewSaved,
+    FakeChipViewOneWire,
     FakeChipViewAbout,
 } FakeChipViewId;
 
 typedef enum {
     MenuIndexWiring,
     MenuIndexScan,
+    MenuIndexOneWire,
     MenuIndexLiveTest,
     MenuIndexSettings,
     MenuIndexChips,
@@ -93,6 +96,13 @@ typedef struct {
 #define SAVED_NAME_LEN 32
 
 typedef struct {
+    OneWireScanResult res;
+    uint8_t selected;
+    bool busy;
+    bool explain; // the "what this proves" panel is showing
+} OneWireViewModel;
+
+typedef struct {
     char names[SAVED_MAX][SAVED_NAME_LEN];
     uint8_t count;
     uint8_t selected;
@@ -109,12 +119,15 @@ typedef struct {
     View* live_view;
     View* chips_view;
     View* saved_view;
+    View* onewire_view;
     TextBox* report_box;
     FuriString* report_text;
     VariableItemList* settings_list;
     Widget* about_widget;
     I2CWorker* worker;
     FuriThread* anim_thread;
+    FuriThread* ow_thread;
+    volatile bool ow_abort;
     volatile bool anim_stop;
     I2CSettings settings;
     volatile FakeChipViewId current_view;
@@ -1442,6 +1455,189 @@ static bool saved_input_callback(InputEvent* event, void* context) {
     return consumed;
 }
 
+
+/* ---------------- 1-Wire ---------------- */
+
+// The 1-Wire bus lives on its own pin (17) and has its own failure modes, so
+// it gets its own screen rather than being folded into the I2C scan.
+
+static int32_t ow_thread_worker(void* context) {
+    FakeChipApp* app = context;
+
+    // Scanned into a local first: the search holds the bus for up to a second
+    // and the view model must not be locked for anything like that long.
+    OneWireScanResult* res = malloc(sizeof(OneWireScanResult));
+    onewire_worker_scan(res, &app->ow_abort);
+
+    bool anything = false;
+    with_view_model(
+        app->onewire_view,
+        OneWireViewModel * m,
+        {
+            m->res = *res;
+            m->selected = 0;
+            m->busy = false;
+            anything = res->count > 0;
+        },
+        true);
+
+    OneWireBusState state = res->state;
+    free(res);
+
+    if(!app->ow_abort) {
+        i2c_notify_play(
+            app->notifications,
+            anything ? I2CNotifyNeutral :
+                       (state == OneWireBusShorted ? I2CNotifyBad : I2CNotifyAttention));
+    }
+    return 0;
+}
+
+static void onewire_enter(void* context) {
+    FakeChipApp* app = context;
+    with_view_model(
+        app->onewire_view,
+        OneWireViewModel * m,
+        {
+            memset(&m->res, 0, sizeof(m->res));
+            m->selected = 0;
+            m->busy = true;
+            m->explain = false;
+        },
+        true);
+
+    app->ow_abort = false;
+    app->ow_thread = furi_thread_alloc_ex("FakeChipOneWire", 2048, ow_thread_worker, app);
+    furi_thread_start(app->ow_thread);
+}
+
+static void onewire_exit(void* context) {
+    FakeChipApp* app = context;
+    if(!app->ow_thread) return;
+    app->ow_abort = true;
+    furi_thread_join(app->ow_thread);
+    furi_thread_free(app->ow_thread);
+    app->ow_thread = NULL;
+}
+
+// 16 hex digits with no separators: it is an identifier to compare, not prose.
+static void ow_format_rom(const uint8_t* rom, char* out, size_t out_len) {
+    size_t used = 0;
+    for(uint8_t i = 0; i < 8 && used + 3 <= out_len; i++) {
+        used += (size_t)snprintf(out + used, out_len - used, "%02X", rom[i]);
+    }
+}
+
+static void onewire_draw_callback(Canvas* canvas, void* model) {
+    OneWireViewModel* m = model;
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+
+    // Saying "IDs are copyable" and leaving it there would be worse than not
+    // saying it: the whole point of the app is that the user understands what
+    // the verdict rests on.
+    if(m->explain) {
+        canvas_draw_str(canvas, 2, 10, "What this proves");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 22, "The 64-bit ID is burned");
+        canvas_draw_str(canvas, 2, 31, "in at the factory, but");
+        canvas_draw_str(canvas, 2, 40, "any chip can replay it.");
+        canvas_draw_str(canvas, 2, 49, "It shows which part this");
+        canvas_draw_str(canvas, 2, 58, "is, not who made it.");
+        return;
+    }
+
+    if(m->busy) {
+        canvas_draw_str(canvas, 2, 10, "1-Wire");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignBottom, "Searching the bus...");
+        canvas_draw_str_aligned(
+            canvas, 64, 44, AlignCenter, AlignBottom, "Measuring takes a second.");
+        return;
+    }
+
+    if(m->res.count == 0) {
+        canvas_draw_str(canvas, 2, 10, "Nothing on 1-Wire");
+        canvas_set_font(canvas, FontSecondary);
+        if(m->res.state == OneWireBusShorted) {
+            canvas_draw_str(canvas, 2, 24, "Pin 17 is held low.");
+            canvas_draw_str(canvas, 2, 34, "Shorted to GND, or the");
+            canvas_draw_str(canvas, 2, 44, "4.7k pull-up is missing.");
+        } else {
+            canvas_draw_str(canvas, 2, 24, "No device answered.");
+            canvas_draw_str(canvas, 2, 34, "Data to pin 17, plus 3V3,");
+            canvas_draw_str(canvas, 2, 44, "GND and a 4.7k pull-up.");
+        }
+        return;
+    }
+
+    const OneWireDevice* dev = &m->res.found[m->selected];
+
+    canvas_draw_str(canvas, 2, 10, dev->name ? dev->name : "Unknown part");
+    if(m->res.count > 1) {
+        char pos[8];
+        snprintf(pos, sizeof(pos), "%u/%u", m->selected + 1, m->res.count);
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, pos);
+    }
+
+    canvas_set_font(canvas, FontSecondary);
+    if(dev->kind) {
+        canvas_draw_str(canvas, 2, 21, dev->kind);
+    } else {
+        char fam[24];
+        snprintf(fam, sizeof(fam), "Family code 0x%02X", dev->rom[0]);
+        canvas_draw_str(canvas, 2, 21, fam);
+    }
+
+    char rom[20];
+    ow_format_rom(dev->rom, rom, sizeof(rom));
+    canvas_draw_str(canvas, 2, 32, rom);
+
+    if(!dev->crc_ok) {
+        canvas_draw_str(canvas, 2, 43, "ID checksum is wrong!");
+    } else if(dev->measured && dev->scratch_crc_ok) {
+        char line[26];
+        snprintf(line, sizeof(line), "Reads %d.%01d C - it works", (int)dev->temp_c,
+                 (int)((dev->temp_c < 0 ? -dev->temp_c : dev->temp_c) * 10) % 10);
+        canvas_draw_str(canvas, 2, 43, line);
+    } else if(dev->measured) {
+        canvas_draw_str(canvas, 2, 43, "Answered, data corrupt.");
+    } else {
+        canvas_draw_str(canvas, 2, 43, "Present, ID checks out.");
+    }
+
+    draw_action_bar_ok(canvas, "OK: what this proves");
+}
+
+static bool onewire_input_callback(InputEvent* event, void* context) {
+    FakeChipApp* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+    bool consumed = false;
+    with_view_model(
+        app->onewire_view,
+        OneWireViewModel * m,
+        {
+            if(m->explain) {
+                // Any key closes the panel, Back included — consuming it here
+                // means the first Back returns to the result, not to the menu.
+                m->explain = false;
+                consumed = true;
+            } else if(event->key == InputKeyUp && m->selected > 0) {
+                m->selected--;
+                consumed = true;
+            } else if(event->key == InputKeyDown && (uint8_t)(m->selected + 1) < m->res.count) {
+                m->selected++;
+                consumed = true;
+            } else if(event->key == InputKeyOk && m->res.count) {
+                m->explain = true;
+                consumed = true;
+            }
+        },
+        consumed);
+    return consumed;
+}
+
 /* ---------------- Animation tick ---------------- */
 
 // Animation runs on its own thread rather than a FuriTimer: a timer callback
@@ -1498,6 +1694,9 @@ static void menu_callback(void* context, uint32_t index) {
         break;
     case MenuIndexScan:
         app_start_scan(app);
+        break;
+    case MenuIndexOneWire:
+        app_switch_view(app, FakeChipViewOneWire);
         break;
     case MenuIndexLiveTest:
         app_switch_view(app, FakeChipViewLive);
@@ -1573,7 +1772,8 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     app->submenu = submenu_alloc();
     submenu_set_header(app->submenu, "Fake Chip Detector");
     submenu_add_item(app->submenu, "How to wire", MenuIndexWiring, menu_callback, app);
-    submenu_add_item(app->submenu, "Scan bus", MenuIndexScan, menu_callback, app);
+    submenu_add_item(app->submenu, "Scan I2C bus", MenuIndexScan, menu_callback, app);
+    submenu_add_item(app->submenu, "Scan 1-Wire", MenuIndexOneWire, menu_callback, app);
     submenu_add_item(app->submenu, "BNO055 live test", MenuIndexLiveTest, menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MenuIndexSettings, menu_callback, app);
     submenu_add_item(app->submenu, "Known chips", MenuIndexChips, menu_callback, app);
@@ -1635,6 +1835,16 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_set_input_callback(app->chips_view, chips_input_callback);
     view_set_previous_callback(app->chips_view, nav_to_menu);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewChips, app->chips_view);
+
+    app->onewire_view = view_alloc();
+    view_set_context(app->onewire_view, app);
+    view_allocate_model(app->onewire_view, ViewModelTypeLocking, sizeof(OneWireViewModel));
+    view_set_draw_callback(app->onewire_view, onewire_draw_callback);
+    view_set_input_callback(app->onewire_view, onewire_input_callback);
+    view_set_enter_callback(app->onewire_view, onewire_enter);
+    view_set_exit_callback(app->onewire_view, onewire_exit);
+    view_set_previous_callback(app->onewire_view, nav_to_menu);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewOneWire, app->onewire_view);
 
     app->saved_view = view_alloc();
     view_set_context(app->saved_view, app);
@@ -1702,6 +1912,7 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewChips);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewReport);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSaved);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewOneWire);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewAbout);
     submenu_free(app->submenu);
     view_free(app->wiring_view);
@@ -1710,6 +1921,7 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_free(app->live_view);
     view_free(app->chips_view);
     view_free(app->saved_view);
+    view_free(app->onewire_view);
     text_box_free(app->report_box);
     furi_string_free(app->report_text);
     variable_item_list_free(app->settings_list);

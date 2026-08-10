@@ -112,9 +112,44 @@ to a verdict it cannot support.
 | **MAX44009** | Light sensor | 0x4A, 0x4B |  |
 | **BNO085** | 9-axis IMU + fusion | 0x4A, 0x4B | SHTP protocol, no WHO_AM_I |
 
+## 1-Wire parts (15)
+
+A different bus, on **pin 17**, and a weaker guarantee. Every 1-Wire part carries a
+64-bit ROM code burned in at the factory, but any microcontroller can replay one, so
+finding the expected ID proves a device is *present* — never that it is authentic. The
+app says so on screen and never reports a 1-Wire part as GENUINE.
+
+What it does prove is which **part** answered: the family code (the low byte of the ROM)
+selects the command set and register layout, so a DS18S20 or DS1822 sold as a DS18B20 is
+a fact here, not a suspicion. Temperature parts are taken one step further — the app runs
+a real conversion and checks the scratchpad CRC, so it reports a working measurement
+rather than mere presence.
+
+| Family code | Part | What it is | Measured |
+|---|---|---|---|
+| `0x01` | **DS1990A/DS2401** | Serial number key | — |
+| `0x04` | **DS2404** | Clock + memory | — |
+| `0x05` | **DS2405** | Addressable switch | — |
+| `0x10` | **DS18S20** | Temperature sensor | temperature |
+| `0x1D` | **DS2423** | RAM + counter | — |
+| `0x20` | **DS2450** | 4-channel ADC | — |
+| `0x22` | **DS1822** | Temperature sensor | temperature |
+| `0x26` | **DS2438** | Battery monitor | — |
+| `0x28` | **DS18B20** | Temperature sensor | temperature |
+| `0x29` | **DS2408** | 8-channel switch | — |
+| `0x2D` | **DS2431** | 1Kb EEPROM | — |
+| `0x3A` | **DS2413** | Dual switch | — |
+| `0x3B` | **DS1825/MAX31826** | Temperature sensor | temperature |
+| `0x42` | **DS28EA00** | Temperature sensor | temperature |
+| `0x43` | **DS28EC20** | 20Kb EEPROM | — |
+
+Family codes are from Analog Devices application note AN937 and the parts' datasheets.
+
 ## Adding a chip
 
-Add an `IdCheck` array and one `ChipEntry` row to `chip_db.c`, then rebuild. The rule
+Add an `IdCheck` array and one `ChipEntry` row to `chip_db.c`, rebuild, then re-run
+`python tools/gen_supported_chips.py` from the repository root to regenerate this file —
+that regeneration step is the only thing keeping the table honest. The rule
 the database is held to: **every constant must come from the manufacturer datasheet or
 the vendor's own driver.** A wrong expected value makes the app accuse a genuine sensor
 of being counterfeit, which is far worse than not supporting the part at all. Anything
