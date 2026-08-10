@@ -389,7 +389,7 @@ I2CWorker* i2c_worker_alloc(void) {
     worker->probe_timeout_ms = I2C_PROBE_TIMEOUT_MS;
     worker->progress_addr = I2C_SCAN_ADDR_FIRST;
     worker->found_count = 0;
-    worker->thread = furi_thread_alloc_ex("I2CChipIdWorker", 1024, i2c_worker_thread, worker);
+    worker->thread = furi_thread_alloc_ex("FakeChipWorker", 1024, i2c_worker_thread, worker);
     furi_thread_start(worker->thread);
     return worker;
 }

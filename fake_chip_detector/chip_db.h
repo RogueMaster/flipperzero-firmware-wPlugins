@@ -17,6 +17,7 @@ typedef struct {
 
 typedef struct {
     const char* name;
+    const char* kind; // what the part does, in plain words
     uint8_t addrs[CHIP_MAX_ADDRS]; // 0xFF = end of list
     uint8_t range_lo; // inclusive contiguous address range, 0 = unused
     uint8_t range_hi;
@@ -70,3 +71,6 @@ bool chip_verdict_is_good(ChipVerdict verdict);
 
 // Number of chips in the database, for the About screen.
 size_t chip_db_count(void);
+
+// Iteration, for the "what does this know?" browser.
+const ChipEntry* chip_db_get(size_t index);

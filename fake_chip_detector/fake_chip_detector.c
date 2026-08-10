@@ -16,25 +16,27 @@
 #include "i2c_notify.h"
 #include "i2c_settings.h"
 
-#define TAG "I2CChipId"
+#define TAG "FakeChipDetector"
 
 #define ANIM_PERIOD_MS 60 // ~16 fps, smooth enough and cheap
 
 typedef enum {
-    I2CChipIdViewMenu,
-    I2CChipIdViewWiring,
-    I2CChipIdViewScan,
-    I2CChipIdViewDetail,
-    I2CChipIdViewLive,
-    I2CChipIdViewSettings,
-    I2CChipIdViewAbout,
-} I2CChipIdViewId;
+    FakeChipViewMenu,
+    FakeChipViewWiring,
+    FakeChipViewScan,
+    FakeChipViewDetail,
+    FakeChipViewLive,
+    FakeChipViewSettings,
+    FakeChipViewChips,
+    FakeChipViewAbout,
+} FakeChipViewId;
 
 typedef enum {
     MenuIndexWiring,
     MenuIndexScan,
     MenuIndexLiveTest,
     MenuIndexSettings,
+    MenuIndexChips,
     MenuIndexAbout,
 } MenuIndex;
 
@@ -59,6 +61,14 @@ typedef struct {
     uint8_t scroll;
     I2CBusCheck bus; // captured before the sweep, drives the failure hints
     char status_msg[20];
+    char saved_name[32]; // filename of the last report, shown after saving
+    // Knowing which chip it is only answers half the question. The other half
+    // is whether that is the chip the user paid for, and only they know that.
+    enum {
+        AnswerAsking,
+        AnswerExpected,
+        AnswerNotWhatIOrdered,
+    } answer;
 } ScanViewModel;
 
 typedef struct {
@@ -71,6 +81,10 @@ typedef struct {
 } LiveViewModel;
 
 typedef struct {
+    uint16_t selected;
+} ChipsViewModel;
+
+typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     NotificationApp* notifications;
@@ -79,17 +93,18 @@ typedef struct {
     View* scan_view;
     View* detail_view;
     View* live_view;
+    View* chips_view;
     VariableItemList* settings_list;
     Widget* about_widget;
     I2CWorker* worker;
     FuriThread* anim_thread;
     volatile bool anim_stop;
     I2CSettings settings;
-    volatile I2CChipIdViewId current_view;
+    volatile FakeChipViewId current_view;
     uint8_t last_mag_cal; // to chime once when calibration reaches 3
-} I2CChipIdApp;
+} FakeChipApp;
 
-static void app_switch_view(I2CChipIdApp* app, I2CChipIdViewId view_id) {
+static void app_switch_view(FakeChipApp* app, FakeChipViewId view_id) {
     app->current_view = view_id;
     view_dispatcher_switch_to_view(app->view_dispatcher, view_id);
 }
@@ -242,7 +257,7 @@ static void wiring_draw_callback(Canvas* canvas, void* model) {
 // opens the detail screen, and a verdict with no explanation is just a word.
 #define SCAN_LIST_ROWS 4
 
-static void app_start_scan(I2CChipIdApp* app) {
+static void app_start_scan(FakeChipApp* app) {
     with_view_model(
         app->scan_view,
         ScanViewModel * m,
@@ -257,7 +272,7 @@ static void app_start_scan(I2CChipIdApp* app) {
             m->status_msg[0] = '\0';
         },
         true);
-    app_switch_view(app, I2CChipIdViewScan);
+    app_switch_view(app, FakeChipViewScan);
     i2c_worker_start_scan(app->worker, i2c_settings_probe_timeout(&app->settings));
 }
 
@@ -280,6 +295,99 @@ static void draw_action_bar(Canvas* canvas, const char* ok_action) {
     canvas_draw_str(canvas, 4, 62, ok_action);
     canvas_draw_str_aligned(canvas, 125, 62, AlignRight, AlignBottom, "save log");
     draw_right_key(canvas, 125 - canvas_string_width(canvas, "save log") - 9, 61);
+    canvas_set_color(canvas, ColorBlack);
+}
+
+// 24x24 thumbs-up, XBM (least significant bit leftmost). Hand-drawn: a
+// verdict the user is happy about deserves more than a word.
+#define THUMB_W 24
+#define THUMB_H 24
+static const uint8_t thumbs_up_bits[] = {
+    0x00, 0x0F, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00,
+    0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0xC0, 0xE0, 0xFF,
+    0x70, 0x00, 0x80, 0x18, 0x00, 0x80, 0x0C, 0x00, 0x80, 0x04, 0xC0, 0xFF,
+    0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0xC0, 0xFF,
+    0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0xC0, 0xFF,
+    0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x1C, 0x00, 0x80, 0xF0, 0xFF, 0xFF,
+};
+
+// A pictogram per verdict, 15px tall, drawn with primitives. At 1bpp an icon
+// carries the mood faster than any word: a sealed badge reads as "good", a
+// warning triangle as "trouble", before the text is even parsed.
+static void draw_verdict_icon(Canvas* canvas, uint8_t cx, uint8_t cy, ChipVerdict verdict) {
+    switch(verdict) {
+    case VerdictGenuine:
+        // Filled seal with a punched-out check
+        canvas_draw_disc(canvas, cx, cy, 7);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_line(canvas, cx - 3, cy, cx - 1, cy + 3);
+        canvas_draw_line(canvas, cx - 2, cy, cx, cy + 3);
+        canvas_draw_line(canvas, cx - 1, cy + 3, cx + 4, cy - 3);
+        canvas_draw_line(canvas, cx, cy + 3, cx + 5, cy - 3);
+        canvas_set_color(canvas, ColorBlack);
+        break;
+    case VerdictWrongChip:
+        // Warning triangle with an exclamation mark
+        canvas_draw_line(canvas, cx, cy - 7, cx - 7, cy + 6);
+        canvas_draw_line(canvas, cx, cy - 7, cx + 7, cy + 6);
+        canvas_draw_line(canvas, cx - 7, cy + 6, cx + 7, cy + 6);
+        canvas_draw_line(canvas, cx, cy - 3, cx, cy + 2);
+        canvas_draw_dot(canvas, cx, cy + 4);
+        break;
+    case VerdictNoMatch:
+    case VerdictUnknown:
+        // Question mark in a ring
+        canvas_draw_circle(canvas, cx, cy, 7);
+        canvas_draw_line(canvas, cx - 2, cy - 3, cx + 1, cy - 4);
+        canvas_draw_line(canvas, cx + 1, cy - 4, cx + 2, cy - 1);
+        canvas_draw_line(canvas, cx + 2, cy - 1, cx, cy + 1);
+        canvas_draw_dot(canvas, cx, cy + 4);
+        break;
+    case VerdictDetectedNoId:
+        // Plug pictogram: it is here, that is all we know
+        canvas_draw_circle(canvas, cx, cy, 7);
+        canvas_draw_box(canvas, cx - 3, cy - 2, 6, 5);
+        canvas_draw_line(canvas, cx - 2, cy - 5, cx - 2, cy - 3);
+        canvas_draw_line(canvas, cx + 1, cy - 5, cx + 1, cy - 3);
+        break;
+    default:
+        // Silent: a struck-through ring
+        canvas_draw_circle(canvas, cx, cy, 7);
+        canvas_draw_line(canvas, cx - 5, cy + 5, cx + 5, cy - 5);
+        break;
+    }
+}
+
+static void draw_down_key(Canvas* canvas, uint8_t x, uint8_t y) {
+    for(uint8_t i = 0; i < 4; i++) {
+        canvas_draw_line(canvas, x - 3 + i, y + i, x + 3 - i, y + i);
+    }
+}
+
+// Outcome-screen bar. Details hide behind Right so the raw hex never greets
+// anyone; saving only appears where a saved file is actually worth having.
+static void draw_hint_bar(Canvas* canvas, const char* right_action, bool offer_save) {
+    canvas_draw_box(canvas, 0, 55, 128, 9);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_set_font(canvas, FontSecondary);
+    draw_right_key(canvas, 5, 60);
+    canvas_draw_str(canvas, 12, 62, right_action);
+    if(offer_save) {
+        canvas_draw_str_aligned(canvas, 124, 62, AlignRight, AlignBottom, "save proof");
+        draw_down_key(canvas, 124 - canvas_string_width(canvas, "save proof") - 8, 57);
+    }
+    canvas_set_color(canvas, ColorBlack);
+}
+
+// Yes/no bar for the expectation question.
+static void draw_choice_bar(Canvas* canvas) {
+    canvas_draw_box(canvas, 0, 55, 128, 9);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 4, 62, "OK");
+    canvas_draw_str(canvas, 20, 62, "yes");
+    canvas_draw_str_aligned(canvas, 124, 62, AlignRight, AlignBottom, "no");
+    draw_down_key(canvas, 124 - canvas_string_width(canvas, "no") - 8, 57);
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -357,26 +465,65 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
     if(m->found_count == 1) {
         const I2CFoundDevice* dev = &m->found[0];
         ChipVerdict v = dev->ident.verdict;
+        const char* name = dev->ident.chip ? dev->ident.chip->name : "Unknown chip";
+        const char* kind = dev->ident.chip ? dev->ident.chip->kind : NULL;
 
-        canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(
-            canvas, 64, 13, AlignCenter, AlignBottom, chip_verdict_headline(v));
+        if(m->answer == AnswerAsking) {
+            // What it is, said in one breath: badge, part number and what the
+            // part does — nobody should have to search for the number.
+            draw_verdict_icon(canvas, 12, 17, v);
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str(canvas, 26, 15, name);
+            canvas_set_font(canvas, FontSecondary);
+            if(kind) canvas_draw_str(canvas, 26, 25, kind);
 
-        canvas_set_font(canvas, FontSecondary);
-        snprintf(
-            buf,
-            sizeof(buf),
-            "%s at 0x%02X",
-            dev->ident.chip ? dev->ident.chip->name : "Unknown chip",
-            dev->addr);
-        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignBottom, buf);
+            snprintf(buf, sizeof(buf), "%s at 0x%02X", chip_verdict_headline(v), dev->addr);
+            canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignBottom, buf);
+            canvas_draw_str_aligned(
+                canvas, 64, 49, AlignCenter, AlignBottom, "Is this what you bought?");
+            draw_choice_bar(canvas);
+            return;
+        }
 
-        const char *l1, *l2;
-        chip_verdict_explain(v, &l1, &l2);
-        canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignBottom, l1);
-        canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignBottom, l2);
+        // Saving a file and not saying where it went is not saving it. Show
+        // the name and the folder until the user presses Back.
+        if(m->saved_name[0]) {
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "REPORT SAVED");
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignBottom, m->saved_name);
+            canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignBottom, "On the SD card, in");
+            canvas_draw_str_aligned(canvas, 64, 49, AlignCenter, AlignBottom, "apps_data/");
+            canvas_draw_str_aligned(
+                canvas, 64, 58, AlignCenter, AlignBottom, "fake_chip_detector");
+            return;
+        }
 
-        draw_action_bar(canvas, "OK: registers");
+        bool good = (m->answer == AnswerExpected) && chip_verdict_is_good(v);
+
+        if(good) {
+            // The whole point of the app, and the moment to be generous about
+            // it: a thumb, a headline, and no hex anywhere in sight.
+            canvas_draw_xbm(canvas, 4, 7, THUMB_W, THUMB_H, thumbs_up_bits);
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str(canvas, 36, 20, "ALL GOOD");
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str(canvas, 36, 30, "Real deal.");
+            canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, name);
+            if(kind) canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, kind);
+            draw_hint_bar(canvas, "details", false);
+        } else {
+            draw_verdict_icon(canvas, 12, 20, VerdictWrongChip);
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str(canvas, 28, 16, "NOT YOURS");
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str(canvas, 28, 26, "You were sold");
+            snprintf(buf, sizeof(buf), "a %s", kind ? kind : name);
+            canvas_draw_str(canvas, 28, 35, buf);
+            canvas_draw_str_aligned(
+                canvas, 64, 48, AlignCenter, AlignBottom, "Save proof for the seller.");
+            draw_hint_bar(canvas, "details", true);
+        }
         return;
     }
 
@@ -416,15 +563,33 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
     draw_action_bar(canvas, "OK: details");
 }
 
-/* Writes a snapshot of the scan results to /ext/apps_data/i2c_chipid/.
+/* Writes a snapshot of the scan results to /ext/apps_data/fake_chip_detector/.
  * Takes a copy rather than the live model: SD writes can stall for seconds
  * and must never run while the view-model mutex is held. */
-static bool scan_save_log(const I2CFoundDevice* found, uint8_t count) {
+static bool scan_save_log(
+    const I2CFoundDevice* found,
+    uint8_t count,
+    bool disputed,
+    char* out_name,
+    size_t out_name_size) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     bool ok = false;
 
     DateTime dt;
     furi_hal_rtc_get_datetime(&dt);
+
+    char name[32];
+    snprintf(
+        name,
+        sizeof(name),
+        "scan_%04u%02u%02u_%02u%02u%02u.txt",
+        dt.year,
+        dt.month,
+        dt.day,
+        dt.hour,
+        dt.minute,
+        dt.second);
+    if(out_name) snprintf(out_name, out_name_size, "%s", name);
 
     FuriString* path = furi_string_alloc_printf(
         APP_DATA_PATH("scan_%04u%02u%02u_%02u%02u%02u.txt"),
@@ -439,16 +604,99 @@ static bool scan_save_log(const I2CFoundDevice* found, uint8_t count) {
     File* file = storage_file_alloc(storage);
     if(storage_file_open(file, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         FuriString* line = furi_string_alloc();
+
+        // This file gets shown to a seller or a courier, not to an engineer.
+        // Plain language first, the hex dump last: anything technical above
+        // the explanation and the reader stops reading.
         furi_string_printf(
             line,
-            "I2C Chip ID scan %04u-%02u-%02u %02u:%02u:%02u\n"
-            "Bus: external, 100 kHz, pin 16 SCL / pin 15 SDA\n\n",
+            "%s\n"
+            "==================================\n\n",
+            disputed ? "WRONG PART REPORT" : "CHIP INSPECTION REPORT");
+
+        for(uint8_t i = 0; i < count; i++) {
+            const I2CFoundDevice* dev = &found[i];
+            const char* name = dev->ident.chip ? dev->ident.chip->name : NULL;
+            const char* kind = dev->ident.chip ? dev->ident.chip->kind : NULL;
+
+            if(name && kind) {
+                furi_string_cat_printf(line, "Inside this module: %s\n", name);
+                furi_string_cat_printf(line, "It is a: %s\n\n", kind);
+            } else {
+                furi_string_cat_printf(
+                    line, "A device answered, but its identity\nis unknown.\n\n");
+            }
+
+            switch(dev->ident.verdict) {
+            case VerdictGenuine:
+                furi_string_cat_printf(
+                    line,
+                    "The factory ID inside the chip matches\n"
+                    "a real %s exactly.\n\n",
+                    name);
+                break;
+            case VerdictWrongChip:
+                furi_string_cat_printf(
+                    line,
+                    "Part of the factory ID is WRONG. A real\n"
+                    "%s answers with different\nvalues. This is not that part.\n\n",
+                    name ? name : "chip");
+                break;
+            case VerdictDetectedNoId:
+                furi_string_cat_printf(
+                    line,
+                    "This type of chip carries no factory ID,\n"
+                    "so only its presence could be proven.\n\n");
+                break;
+            case VerdictNoAnswer:
+                furi_string_cat_printf(
+                    line,
+                    "The chip responded to its address but\n"
+                    "would not return any data.\n\n");
+                break;
+            default:
+                furi_string_cat_printf(
+                    line,
+                    "The ID it reported matches no chip known\n"
+                    "to this tool.\n\n");
+                break;
+            }
+        }
+
+        if(disputed) {
+            furi_string_cat_str(
+                line,
+                "The buyer states this is NOT the part\n"
+                "that was ordered.\n\n");
+        }
+
+        furi_string_cat_str(
+            line,
+            "How this was checked\n"
+            "--------------------\n"
+            "Every chip of this kind has an identity\n"
+            "number written into the silicon at the\n"
+            "factory. It is read-only: no software and\n"
+            "no seller can change it. The chip was\n"
+            "asked for that number over its standard\n"
+            "data connection, and the answer is shown\n"
+            "above. Anyone can repeat this test with\n"
+            "the same free tool and get the same\n"
+            "result.\n\n");
+
+        furi_string_cat_printf(
+            line,
+            "Checked %04u-%02u-%02u %02u:%02u with\n"
+            "Fake Chip Detector on a Flipper Zero.\n\n\n"
+            "---------- technical detail ----------\n"
+            "Bus: I2C external, 100 kHz\n"
+            "Pins: 16 SCL, 15 SDA, 9 3V3, 8 GND\n\n",
             dt.year,
             dt.month,
             dt.day,
             dt.hour,
-            dt.minute,
-            dt.second);
+            dt.minute);
+
         for(uint8_t i = 0; i < count; i++) {
             const I2CFoundDevice* dev = &found[i];
             furi_string_cat_printf(
@@ -502,7 +750,7 @@ static bool scan_save_log(const I2CFoundDevice* found, uint8_t count) {
  * The snapshot lives on the heap only for the duration of the write — as a
  * static buffer it would cost 800+ bytes of permanent RAM for something that
  * runs once per scan. */
-static void app_save_log(I2CChipIdApp* app) {
+static void app_save_log(FakeChipApp* app, bool disputed) {
     I2CFoundDevice* snapshot = malloc(sizeof(I2CFoundDevice) * I2C_SCAN_MAX_FOUND);
     uint8_t count = 0;
 
@@ -516,17 +764,23 @@ static void app_save_log(I2CChipIdApp* app) {
         },
         false);
 
-    bool saved = scan_save_log(snapshot, count);
+    char name[32] = {0};
+    bool saved = scan_save_log(snapshot, count, disputed, name, sizeof(name));
     free(snapshot);
 
     with_view_model(
         app->scan_view,
         ScanViewModel * m,
-        { snprintf(
-            m->status_msg,
-            sizeof(m->status_msg),
-            "%s",
-            saved ? "Log saved to SD" : "SD write failed!"); },
+        {
+            snprintf(
+                m->status_msg,
+                sizeof(m->status_msg),
+                "%s",
+                saved ? "Log saved to SD" : "SD write failed!");
+            // Drives the confirmation screen: a file the user cannot find is
+            // the same as no file at all.
+            snprintf(m->saved_name, sizeof(m->saved_name), "%s", saved ? name : "");
+        },
         true);
 }
 
@@ -545,25 +799,45 @@ static I2CNotifyKind verdict_notify_kind(ChipVerdict verdict) {
 }
 
 static bool scan_input_callback(InputEvent* event, void* context) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
 
     bool consumed = false;
     bool rescan = false;
     bool open_detail = false;
     bool do_save = false;
+    bool answered_wrong = false;
+    bool disputed = false;
 
     with_view_model(
         app->scan_view,
         ScanViewModel * m,
         {
             if(!m->scanning) { // no navigation while scanning
-                if(event->key == InputKeyOk && event->type == InputTypeShort) {
+                if(m->saved_name[0]) {
+                    // any key dismisses the save confirmation
+                    m->saved_name[0] = '\0';
+                    consumed = true;
+                } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
                     if(m->found_count == 0) {
                         rescan = true;
-                    } else {
+                    } else if(m->found_count == 1 && m->answer == AnswerAsking) {
+                        m->answer = AnswerExpected; // "yes, that is what I bought"
+                    } else if(m->found_count > 1) {
                         open_detail = true;
                     }
+                    consumed = true;
+                } else if(
+                    event->key == InputKeyDown && m->found_count == 1 &&
+                    m->answer == AnswerAsking && event->type == InputTypeShort) {
+                    m->answer = AnswerNotWhatIOrdered;
+                    answered_wrong = true;
+                    consumed = true;
+                } else if(
+                    event->key == InputKeyDown && m->found_count == 1 &&
+                    m->answer != AnswerAsking && event->type == InputTypeShort) {
+                    do_save = true;
+                    disputed = (m->answer == AnswerNotWhatIOrdered);
                     consumed = true;
                 } else if(event->key == InputKeyUp && m->found_count > 0) {
                     if(m->selected > 0) m->selected--;
@@ -577,15 +851,22 @@ static bool scan_input_callback(InputEvent* event, void* context) {
                 } else if(
                     event->key == InputKeyRight && m->found_count > 0 &&
                     event->type == InputTypeShort) {
-                    do_save = true;
+                    if(m->found_count == 1 && m->answer != AnswerAsking) {
+                        open_detail = true; // hex lives behind Right, never up front
+                    } else {
+                        do_save = true;
+                    }
+                    disputed = (m->answer == AnswerNotWhatIOrdered);
                     consumed = true;
                 }
             }
         },
         consumed);
 
+    if(answered_wrong) i2c_notify_play(app->notifications, I2CNotifyBad);
+
     if(do_save) {
-        app_save_log(app);
+        app_save_log(app, disputed);
         i2c_notify_play(app->notifications, I2CNotifyNeutral);
     }
 
@@ -607,7 +888,7 @@ static bool scan_input_callback(InputEvent* event, void* context) {
         if(have) {
             with_view_model(
                 app->detail_view, DetailViewModel * dm, { dm->device = selected_dev; }, true);
-            app_switch_view(app, I2CChipIdViewDetail);
+            app_switch_view(app, FakeChipViewDetail);
             i2c_notify_play(app->notifications, verdict_notify_kind(selected_dev.ident.verdict));
         }
     }
@@ -615,7 +896,7 @@ static bool scan_input_callback(InputEvent* event, void* context) {
 }
 
 static void worker_event_callback(I2CWorkerEvent event, void* context) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
 
     if(event == I2CWorkerEventScanProgress || event == I2CWorkerEventScanDone) {
         bool done = (event == I2CWorkerEventScanDone);
@@ -658,7 +939,7 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
             }
             i2c_notify_play(app->notifications, kind);
 
-            if(app->settings.autosave && count > 0) app_save_log(app);
+            if(app->settings.autosave && count > 0) app_save_log(app, false);
         }
     } else if(event == I2CWorkerEventLiveUpdate) {
         uint8_t cal = 0;
@@ -706,7 +987,7 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
 /* ---------------- Wiring enter/exit ---------------- */
 
 static void wiring_enter_callback(void* context) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
     with_view_model(
         app->wiring_view,
         WiringViewModel * m,
@@ -721,7 +1002,7 @@ static void wiring_enter_callback(void* context) {
 }
 
 static void wiring_exit_callback(void* context) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
     i2c_worker_watch_stop(app->worker);
 }
 
@@ -798,7 +1079,7 @@ static void detail_draw_callback(Canvas* canvas, void* model) {
 // views we own.
 static uint32_t nav_to_scan(void* context) {
     UNUSED(context);
-    return I2CChipIdViewScan;
+    return FakeChipViewScan;
 }
 
 /* ---------------- BNO055 live test ---------------- */
@@ -898,7 +1179,7 @@ static void live_draw_callback(Canvas* canvas, void* model) {
 }
 
 static void live_enter_callback(void* context) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
     app->last_mag_cal = 0;
     with_view_model(
         app->live_view,
@@ -912,7 +1193,7 @@ static void live_enter_callback(void* context) {
 }
 
 static void live_exit_callback(void* context) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
     i2c_worker_live_stop(app->worker);
 }
 
@@ -920,13 +1201,13 @@ static void live_exit_callback(void* context) {
 
 static const char* const on_off_names[] = {"OFF", "ON"};
 
-static void settings_apply(I2CChipIdApp* app) {
+static void settings_apply(FakeChipApp* app) {
     i2c_notify_apply_settings(&app->settings);
     i2c_settings_save(&app->settings);
 }
 
 static void settings_sound_changed(VariableItem* item) {
-    I2CChipIdApp* app = variable_item_get_context(item);
+    FakeChipApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, on_off_names[idx]);
     app->settings.sound = idx;
@@ -934,7 +1215,7 @@ static void settings_sound_changed(VariableItem* item) {
 }
 
 static void settings_vibro_changed(VariableItem* item) {
-    I2CChipIdApp* app = variable_item_get_context(item);
+    FakeChipApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, on_off_names[idx]);
     app->settings.vibro = idx;
@@ -944,7 +1225,7 @@ static void settings_vibro_changed(VariableItem* item) {
 }
 
 static void settings_led_changed(VariableItem* item) {
-    I2CChipIdApp* app = variable_item_get_context(item);
+    FakeChipApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, on_off_names[idx]);
     app->settings.led = idx;
@@ -953,7 +1234,7 @@ static void settings_led_changed(VariableItem* item) {
 }
 
 static void settings_backlight_changed(VariableItem* item) {
-    I2CChipIdApp* app = variable_item_get_context(item);
+    FakeChipApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, on_off_names[idx]);
     app->settings.backlight = idx;
@@ -965,7 +1246,7 @@ static void settings_backlight_changed(VariableItem* item) {
 }
 
 static void settings_timeout_changed(VariableItem* item) {
-    I2CChipIdApp* app = variable_item_get_context(item);
+    FakeChipApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, i2c_settings_timeout_names[idx]);
     app->settings.probe_timeout_idx = idx;
@@ -973,14 +1254,14 @@ static void settings_timeout_changed(VariableItem* item) {
 }
 
 static void settings_autosave_changed(VariableItem* item) {
-    I2CChipIdApp* app = variable_item_get_context(item);
+    FakeChipApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, on_off_names[idx]);
     app->settings.autosave = idx;
     settings_apply(app);
 }
 
-static void settings_build(I2CChipIdApp* app) {
+static void settings_build(FakeChipApp* app) {
     VariableItemList* list = app->settings_list;
     VariableItem* item;
 
@@ -1011,6 +1292,75 @@ static void settings_build(I2CChipIdApp* app) {
     variable_item_set_current_value_text(item, on_off_names[app->settings.autosave]);
 }
 
+
+/* ---------------- Supported chips ---------------- */
+
+#define CHIPS_LIST_ROWS 4
+
+// Answers "what does this thing actually know?", and doubles as the place
+// where every name and description is shown at full width — if one of them
+// were too long for the screen, it would be obvious here.
+static void chips_draw_callback(Canvas* canvas, void* model) {
+    ChipsViewModel* m = model;
+    size_t total = chip_db_count();
+    canvas_clear(canvas);
+
+    char buf[24];
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Known chips");
+    canvas_set_font(canvas, FontSecondary);
+    snprintf(buf, sizeof(buf), "%u/%u", (unsigned)m->selected + 1, (unsigned)total);
+    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
+
+    uint16_t first = 0;
+    if(m->selected >= CHIPS_LIST_ROWS) first = m->selected - CHIPS_LIST_ROWS + 1;
+
+    for(uint8_t row = 0; row < CHIPS_LIST_ROWS; row++) {
+        size_t idx = first + row;
+        if(idx >= total) break;
+        const ChipEntry* chip = chip_db_get(idx);
+        uint8_t y = 22 + row * 10;
+        bool sel = (idx == m->selected);
+        if(sel) {
+            canvas_draw_box(canvas, 0, y - 8, 128, 10);
+            canvas_set_color(canvas, ColorWhite);
+        }
+        canvas_draw_str(canvas, 4, y, chip->name);
+        if(sel) canvas_set_color(canvas, ColorBlack);
+    }
+
+    // The description gets a line of its own. Packing it beside the name made
+    // the two collide as soon as either was long.
+    const ChipEntry* current = chip_db_get(m->selected);
+    if(current) {
+        canvas_draw_box(canvas, 0, 55, 128, 9);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, current->kind);
+        canvas_set_color(canvas, ColorBlack);
+    }
+}
+
+static bool chips_input_callback(InputEvent* event, void* context) {
+    FakeChipApp* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+    bool consumed = false;
+    with_view_model(
+        app->chips_view,
+        ChipsViewModel * m,
+        {
+            size_t total = chip_db_count();
+            if(event->key == InputKeyUp && m->selected > 0) {
+                m->selected--;
+                consumed = true;
+            } else if(event->key == InputKeyDown && (size_t)(m->selected + 1) < total) {
+                m->selected++;
+                consumed = true;
+            }
+        },
+        consumed);
+    return consumed;
+}
+
 /* ---------------- Animation tick ---------------- */
 
 // Animation runs on its own thread rather than a FuriTimer: a timer callback
@@ -1018,14 +1368,14 @@ static void settings_build(I2CChipIdApp* app) {
 // mutex plus queueing a GUI redraw from there can stall every timer in the
 // firmware — including the ones the USB and storage services depend on.
 static int32_t anim_thread_worker(void* context) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
 
     while(!app->anim_stop) {
         furi_delay_ms(ANIM_PERIOD_MS);
         if(app->anim_stop) break;
 
         switch(app->current_view) {
-        case I2CChipIdViewWiring:
+        case FakeChipViewWiring:
             with_view_model(
                 app->wiring_view,
                 WiringViewModel * m,
@@ -1044,10 +1394,10 @@ static int32_t anim_thread_worker(void* context) {
                 },
                 true);
             break;
-        case I2CChipIdViewScan:
+        case FakeChipViewScan:
             with_view_model(app->scan_view, ScanViewModel * m, { m->frame++; }, true);
             break;
-        case I2CChipIdViewLive:
+        case FakeChipViewLive:
             with_view_model(app->live_view, LiveViewModel * m, { m->frame++; }, true);
             break;
         default:
@@ -1060,28 +1410,31 @@ static int32_t anim_thread_worker(void* context) {
 /* ---------------- Menu ---------------- */
 
 static void menu_callback(void* context, uint32_t index) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
     switch(index) {
     case MenuIndexWiring:
-        app_switch_view(app, I2CChipIdViewWiring);
+        app_switch_view(app, FakeChipViewWiring);
         break;
     case MenuIndexScan:
         app_start_scan(app);
         break;
     case MenuIndexLiveTest:
-        app_switch_view(app, I2CChipIdViewLive);
+        app_switch_view(app, FakeChipViewLive);
         break;
     case MenuIndexSettings:
-        app_switch_view(app, I2CChipIdViewSettings);
+        app_switch_view(app, FakeChipViewSettings);
+        break;
+    case MenuIndexChips:
+        app_switch_view(app, FakeChipViewChips);
         break;
     case MenuIndexAbout:
-        app_switch_view(app, I2CChipIdViewAbout);
+        app_switch_view(app, FakeChipViewAbout);
         break;
     }
 }
 
 static bool wiring_input_callback(InputEvent* event, void* context) {
-    I2CChipIdApp* app = context;
+    FakeChipApp* app = context;
     if(event->type == InputTypeShort && event->key == InputKeyOk) {
         app_start_scan(app);
         return true;
@@ -1091,18 +1444,18 @@ static bool wiring_input_callback(InputEvent* event, void* context) {
 
 static uint32_t nav_to_menu(void* context) {
     UNUSED(context);
-    return I2CChipIdViewMenu;
+    return FakeChipViewMenu;
 }
 
 static void scan_exit_callback(void* context) {
-    I2CChipIdApp* app = context;
-    app->current_view = I2CChipIdViewMenu;
+    FakeChipApp* app = context;
+    app->current_view = FakeChipViewMenu;
     i2c_worker_abort_scan(app->worker); // never leave a sweep running behind us
 }
 
 static void detail_enter_callback(void* context) {
-    I2CChipIdApp* app = context;
-    app->current_view = I2CChipIdViewDetail;
+    FakeChipApp* app = context;
+    app->current_view = FakeChipViewDetail;
 }
 
 static uint32_t nav_exit(void* context) {
@@ -1112,9 +1465,9 @@ static uint32_t nav_exit(void* context) {
 
 /* ---------------- App lifecycle ---------------- */
 
-static I2CChipIdApp* i2c_chipid_app_alloc(void) {
-    I2CChipIdApp* app = malloc(sizeof(I2CChipIdApp));
-    memset(app, 0, sizeof(I2CChipIdApp));
+static FakeChipApp* fake_chip_app_alloc(void) {
+    FakeChipApp* app = malloc(sizeof(FakeChipApp));
+    memset(app, 0, sizeof(FakeChipApp));
 
     i2c_settings_load(&app->settings);
     i2c_notify_apply_settings(&app->settings);
@@ -1123,7 +1476,7 @@ static I2CChipIdApp* i2c_chipid_app_alloc(void) {
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-    app->current_view = I2CChipIdViewMenu;
+    app->current_view = FakeChipViewMenu;
 
     if(app->settings.backlight) {
         notification_message(app->notifications, &sequence_display_backlight_enforce_on);
@@ -1133,15 +1486,16 @@ static I2CChipIdApp* i2c_chipid_app_alloc(void) {
     i2c_worker_set_callback(app->worker, worker_event_callback, app);
 
     app->submenu = submenu_alloc();
-    submenu_set_header(app->submenu, "I2C Chip ID");
+    submenu_set_header(app->submenu, "Fake Chip Detector");
     submenu_add_item(app->submenu, "How to wire", MenuIndexWiring, menu_callback, app);
     submenu_add_item(app->submenu, "Scan bus", MenuIndexScan, menu_callback, app);
     submenu_add_item(app->submenu, "BNO055 live test", MenuIndexLiveTest, menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MenuIndexSettings, menu_callback, app);
+    submenu_add_item(app->submenu, "Known chips", MenuIndexChips, menu_callback, app);
     submenu_add_item(app->submenu, "About", MenuIndexAbout, menu_callback, app);
     view_set_previous_callback(submenu_get_view(app->submenu), nav_exit);
     view_dispatcher_add_view(
-        app->view_dispatcher, I2CChipIdViewMenu, submenu_get_view(app->submenu));
+        app->view_dispatcher, FakeChipViewMenu, submenu_get_view(app->submenu));
 
     app->wiring_view = view_alloc();
     view_set_context(app->wiring_view, app);
@@ -1151,7 +1505,7 @@ static I2CChipIdApp* i2c_chipid_app_alloc(void) {
     view_set_enter_callback(app->wiring_view, wiring_enter_callback);
     view_set_exit_callback(app->wiring_view, wiring_exit_callback);
     view_set_previous_callback(app->wiring_view, nav_to_menu);
-    view_dispatcher_add_view(app->view_dispatcher, I2CChipIdViewWiring, app->wiring_view);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewWiring, app->wiring_view);
 
     app->scan_view = view_alloc();
     view_set_context(app->scan_view, app);
@@ -1160,7 +1514,7 @@ static I2CChipIdApp* i2c_chipid_app_alloc(void) {
     view_set_input_callback(app->scan_view, scan_input_callback);
     view_set_exit_callback(app->scan_view, scan_exit_callback);
     view_set_previous_callback(app->scan_view, nav_to_menu);
-    view_dispatcher_add_view(app->view_dispatcher, I2CChipIdViewScan, app->scan_view);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewScan, app->scan_view);
 
     app->detail_view = view_alloc();
     view_set_context(app->detail_view, app);
@@ -1168,7 +1522,7 @@ static I2CChipIdApp* i2c_chipid_app_alloc(void) {
     view_set_draw_callback(app->detail_view, detail_draw_callback);
     view_set_enter_callback(app->detail_view, detail_enter_callback);
     view_set_previous_callback(app->detail_view, nav_to_scan);
-    view_dispatcher_add_view(app->view_dispatcher, I2CChipIdViewDetail, app->detail_view);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewDetail, app->detail_view);
 
     app->live_view = view_alloc();
     view_set_context(app->live_view, app);
@@ -1177,19 +1531,27 @@ static I2CChipIdApp* i2c_chipid_app_alloc(void) {
     view_set_enter_callback(app->live_view, live_enter_callback);
     view_set_exit_callback(app->live_view, live_exit_callback);
     view_set_previous_callback(app->live_view, nav_to_menu);
-    view_dispatcher_add_view(app->view_dispatcher, I2CChipIdViewLive, app->live_view);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewLive, app->live_view);
 
     app->settings_list = variable_item_list_alloc();
     settings_build(app);
     view_set_previous_callback(variable_item_list_get_view(app->settings_list), nav_to_menu);
     view_dispatcher_add_view(
         app->view_dispatcher,
-        I2CChipIdViewSettings,
+        FakeChipViewSettings,
         variable_item_list_get_view(app->settings_list));
+
+    app->chips_view = view_alloc();
+    view_set_context(app->chips_view, app);
+    view_allocate_model(app->chips_view, ViewModelTypeLocking, sizeof(ChipsViewModel));
+    view_set_draw_callback(app->chips_view, chips_draw_callback);
+    view_set_input_callback(app->chips_view, chips_input_callback);
+    view_set_previous_callback(app->chips_view, nav_to_menu);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewChips, app->chips_view);
 
     app->about_widget = widget_alloc();
     widget_add_string_element(
-        app->about_widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "I2C Chip ID");
+        app->about_widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "Fake Chip Detector");
     widget_add_string_element(
         app->about_widget, 64, 20, AlignCenter, AlignTop, FontSecondary, "Spot fake I2C sensors");
     widget_add_string_element(
@@ -1210,17 +1572,17 @@ static I2CChipIdApp* i2c_chipid_app_alloc(void) {
         "pin16 SCL/15 SDA - MIT");
     view_set_previous_callback(widget_get_view(app->about_widget), nav_to_menu);
     view_dispatcher_add_view(
-        app->view_dispatcher, I2CChipIdViewAbout, widget_get_view(app->about_widget));
+        app->view_dispatcher, FakeChipViewAbout, widget_get_view(app->about_widget));
 
     app->anim_stop = false;
-    app->anim_thread = furi_thread_alloc_ex("I2CChipIdAnim", 1024, anim_thread_worker, app);
+    app->anim_thread = furi_thread_alloc_ex("FakeChipAnim", 1024, anim_thread_worker, app);
     furi_thread_start(app->anim_thread);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, I2CChipIdViewMenu);
+    view_dispatcher_switch_to_view(app->view_dispatcher, FakeChipViewMenu);
     return app;
 }
 
-static void i2c_chipid_app_free(I2CChipIdApp* app) {
+static void fake_chip_app_free(FakeChipApp* app) {
     // Animation thread first: it touches the view models
     app->anim_stop = true;
     furi_thread_join(app->anim_thread);
@@ -1230,18 +1592,20 @@ static void i2c_chipid_app_free(I2CChipIdApp* app) {
 
     notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
 
-    view_dispatcher_remove_view(app->view_dispatcher, I2CChipIdViewMenu);
-    view_dispatcher_remove_view(app->view_dispatcher, I2CChipIdViewWiring);
-    view_dispatcher_remove_view(app->view_dispatcher, I2CChipIdViewScan);
-    view_dispatcher_remove_view(app->view_dispatcher, I2CChipIdViewDetail);
-    view_dispatcher_remove_view(app->view_dispatcher, I2CChipIdViewLive);
-    view_dispatcher_remove_view(app->view_dispatcher, I2CChipIdViewSettings);
-    view_dispatcher_remove_view(app->view_dispatcher, I2CChipIdViewAbout);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewMenu);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewWiring);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewScan);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewDetail);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewLive);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSettings);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewChips);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewAbout);
     submenu_free(app->submenu);
     view_free(app->wiring_view);
     view_free(app->scan_view);
     view_free(app->detail_view);
     view_free(app->live_view);
+    view_free(app->chips_view);
     variable_item_list_free(app->settings_list);
     widget_free(app->about_widget);
     view_dispatcher_free(app->view_dispatcher);
@@ -1250,14 +1614,14 @@ static void i2c_chipid_app_free(I2CChipIdApp* app) {
     free(app);
 }
 
-int32_t i2c_chipid_app(void* p) {
+int32_t fake_chip_detector_app(void* p) {
     UNUSED(p);
     // The sensor is powered from pin 9: make sure the external 3.3V rail is on.
     // It is on by default after boot, so we leave it enabled on exit.
     furi_hal_power_enable_external_3_3v();
 
-    I2CChipIdApp* app = i2c_chipid_app_alloc();
+    FakeChipApp* app = fake_chip_app_alloc();
     view_dispatcher_run(app->view_dispatcher);
-    i2c_chipid_app_free(app);
+    fake_chip_app_free(app);
     return 0;
 }
