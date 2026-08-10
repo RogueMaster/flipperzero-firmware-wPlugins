@@ -1,0 +1,13 @@
+App(
+    appid="i2c_chipid",
+    name="I2C Chip ID",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="i2c_chipid_app",
+    requires=["gui", "storage", "notification"],
+    stack_size=4 * 1024,
+    fap_icon="icons/i2c_chipid_10px.png",
+    fap_category="GPIO",
+    fap_version="1.0",
+    fap_author="hleserg",
+    fap_description="Identify I2C sensors by their WHO_AM_I registers and spot counterfeit modules before soldering them in.",
+)
