@@ -381,15 +381,15 @@ const char* chip_verdict_str(ChipVerdict verdict) {
 const char* chip_verdict_short_str(ChipVerdict verdict) {
     switch(verdict) {
     case VerdictGenuine:
-        return "OK";
+        return "GENUINE";
     case VerdictWrongChip:
         return "FAKE?";
     case VerdictNoMatch:
-        return "??";
+        return "no match";
     case VerdictDetectedNoId:
-        return "no-ID";
+        return "no ID reg";
     case VerdictUnknown:
-        return "?";
+        return "unknown";
     case VerdictNoAnswer:
         return "silent";
     default:

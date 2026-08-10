@@ -197,7 +197,7 @@ static void wiring_draw_callback(Canvas* canvas, void* model) {
             canvas, 64, 62, AlignCenter, AlignBottom, "SDA and SCL are shorted!");
     } else if(m->bus.health == I2CBusStuckLow) {
         canvas_draw_str_aligned(
-            canvas, 64, 62, AlignCenter, AlignBottom, "Line stuck low - check short");
+            canvas, 64, 62, AlignCenter, AlignBottom, "Line stuck low - short?");
     } else if(m->bus.stray_pin) {
         // Only one line of room here, so alternate the quip and the fact.
         if((m->frame / 50) % 2) {
@@ -238,7 +238,9 @@ static void wiring_draw_callback(Canvas* canvas, void* model) {
 
 /* ---------------- Scan screen ---------------- */
 
-#define SCAN_LIST_ROWS 5
+// Four rows plus a hint bar: without the bar nothing tells the user that OK
+// opens the detail screen, and a verdict with no explanation is just a word.
+#define SCAN_LIST_ROWS 4
 
 static void app_start_scan(I2CChipIdApp* app) {
     with_view_model(
@@ -303,18 +305,20 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
             l1 = m->bus.scl_stuck ?
                      (m->bus.sda_stuck ? "Both lines held LOW" : "SCL (pin 16) held LOW") :
                      "SDA (pin 15) held LOW";
-            l2 = "Short to GND or hung chip.";
-            l3 = "Unplug, re-seat, try again.";
+            l2 = "Shorted, or a hung chip.";
+            l3 = "Unplug and re-seat it.";
             break;
         case I2CBusFloating:
+            // FontSecondary is ~5px per character, so a line must stay under
+            // ~25 characters or it is clipped at both edges.
             l1 = "No pull-ups on the bus.";
-            l2 = "Sensor unpowered or not wired.";
-            l3 = "Check 9=3V3, 8=GND, 16, 15.";
+            l2 = "No power, or not wired.";
+            l3 = "Check pins 8, 9, 15, 16.";
             break;
         default:
-            l1 = "Bus looks electrically OK.";
-            l2 = "Wrong address, or SCL/SDA";
-            l3 = "swapped, or the chip is dead.";
+            l1 = "Bus is electrically OK.";
+            l2 = "Wrong address, SDA/SCL";
+            l3 = "swapped, or dead chip.";
             break;
         }
         canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignBottom, l1);
@@ -325,14 +329,14 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
     }
 
     char buf[40];
-    if(m->status_msg[0]) {
-        snprintf(buf, sizeof(buf), "Found %u  [%s]", m->found_count, m->status_msg);
-    } else {
-        snprintf(buf, sizeof(buf), "Found %u device(s)", m->found_count);
-    }
+    snprintf(
+        buf,
+        sizeof(buf),
+        "Found %u device%s",
+        m->found_count,
+        m->found_count == 1 ? "" : "s");
     canvas_draw_str(canvas, 2, 10, buf);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, "R=save");
 
     for(uint8_t row = 0; row < SCAN_LIST_ROWS; row++) {
         uint8_t idx = m->scroll + row;
@@ -356,6 +360,23 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
             canvas_draw_str(canvas, 4, y, buf);
         }
     }
+
+    // More results than fit: say so rather than silently hiding them
+    if(m->found_count > SCAN_LIST_ROWS) {
+        snprintf(buf, sizeof(buf), "%u/%u", m->selected + 1, m->found_count);
+        canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
+    }
+
+    canvas_draw_box(canvas, 0, 55, 128, 9);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_str_aligned(
+        canvas,
+        64,
+        62,
+        AlignCenter,
+        AlignBottom,
+        m->status_msg[0] ? m->status_msg : "OK = details, R = save");
+    canvas_set_color(canvas, ColorBlack);
 }
 
 /* Writes a snapshot of the scan results to /ext/apps_data/i2c_chipid/.
@@ -402,12 +423,17 @@ static bool scan_save_log(const I2CFoundDevice* found, uint8_t count) {
             for(uint8_t r = 0; r < dev->ident.read_count; r++) {
                 const IdReadResult* rr = &dev->ident.reads[r];
                 uint8_t digits = rr->wide ? 4 : 2;
+                // A 16-bit index must be logged as such, or the reader cannot
+                // look the register up in the datasheet.
+                uint8_t rdigits = rr->reg16 ? 4 : 2;
                 if(!rr->read_ok) {
-                    furi_string_cat_printf(line, "  reg 0x%02X read FAILED\n", rr->reg);
+                    furi_string_cat_printf(
+                        line, "  reg 0x%0*X read FAILED\n", rdigits, rr->reg);
                 } else if(rr->has_expected) {
                     furi_string_cat_printf(
                         line,
-                        "  reg 0x%02X = 0x%0*X (exp 0x%0*X) %s\n",
+                        "  reg 0x%0*X = 0x%0*X (exp 0x%0*X) %s\n",
+                        rdigits,
                         rr->reg,
                         digits,
                         rr->actual,
@@ -415,7 +441,8 @@ static bool scan_save_log(const I2CFoundDevice* found, uint8_t count) {
                         rr->expected,
                         rr->match ? "OK" : "MISMATCH");
                 } else {
-                    furi_string_cat_printf(line, "  reg 0x%02X = 0x%02X\n", rr->reg, rr->actual);
+                    furi_string_cat_printf(
+                        line, "  reg 0x%0*X = 0x%02X\n", rdigits, rr->reg, rr->actual);
                 }
             }
             if(dev->ident.chip && dev->ident.chip->note) {
@@ -458,7 +485,11 @@ static void app_save_log(I2CChipIdApp* app) {
     with_view_model(
         app->scan_view,
         ScanViewModel * m,
-        { snprintf(m->status_msg, sizeof(m->status_msg), "%s", saved ? "saved" : "SD error"); },
+        { snprintf(
+            m->status_msg,
+            sizeof(m->status_msg),
+            "%s",
+            saved ? "Log saved to SD" : "SD write failed!"); },
         true);
 }
 
@@ -704,12 +735,12 @@ static void detail_draw_callback(Canvas* canvas, void* model) {
     }
 
     if(dev->ident.read_count == 0) {
-        canvas_draw_str(canvas, 2, 20, "No ID register on this chip:");
-        canvas_draw_str(canvas, 2, 29, "presence is all we can prove.");
+        canvas_draw_str(canvas, 2, 20, "This chip has no ID reg:");
+        canvas_draw_str(canvas, 2, 29, "only presence is proven.");
         y = 38;
     }
     if(any_read_failed && y <= 45) {
-        canvas_draw_str(canvas, 2, y, "ACK but no data: check pull-ups");
+        canvas_draw_str(canvas, 2, y, "Answers, but reads fail.");
         y += 9;
     }
     if(dev->ident.chip && dev->ident.chip->note && y <= 51) {
@@ -774,9 +805,9 @@ static void live_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "Sensor dropped off!");
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(
-            canvas, 64, 28, AlignCenter, AlignBottom, "It answered, then went quiet.");
+            canvas, 64, 28, AlignCenter, AlignBottom, "It replied, then stopped.");
         canvas_draw_str_aligned(
-            canvas, 64, 38, AlignCenter, AlignBottom, "Check 3V3 and loose wires.");
+            canvas, 64, 38, AlignCenter, AlignBottom, "Check 3V3 and wires.");
         canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, "Retrying...");
         return;
     case I2CLiveStatusRunning:
@@ -824,7 +855,7 @@ static void live_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_box(canvas, 0, 51, 128, 13);
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_str_aligned(
-            canvas, 64, 61, AlignCenter, AlignBottom, "CALIBRATED - spin a full turn");
+            canvas, 64, 61, AlignCenter, AlignBottom, "CALIBRATED - now spin it");
         canvas_set_color(canvas, ColorBlack);
     }
 }
