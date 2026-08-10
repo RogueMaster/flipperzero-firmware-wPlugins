@@ -704,6 +704,18 @@ chess: "Chess", secrets: "Secrets",
 fillblank: "Fill the Blank", werewolf: "Werewolf", spyfall: "Spyfall",
 frankendraw: "Draw a Monster",
 };
+var GAME_TITLE_KEY = {
+trivia: "trivia.title", draw: "draw.title", wyr: "wyr.title",
+scramble: "scr.title", react: "rc.title", gc: "gc.title", bs: "bs.title",
+spectrum: "sp.title", kmk: "kmk.title", chess: "chess.title",
+secrets: "secrets.title", fillblank: "fb.title", werewolf: "werewolf.title",
+spyfall: "sf.title", frankendraw: "fd.title",
+};
+function gameLabel(name) {
+var k = GAME_TITLE_KEY[name];
+if (k) { var v = t(k); if (v && v !== k) return v; }
+return GAME_LABEL[name] || name;
+}
 function screen(name) {
 A.view = name;
 SCREENS.forEach(function (s) {
@@ -1134,7 +1146,7 @@ A.curGame = g;   // the active game name, so the switcher can exclude it from it
 var gs = $("lobby-game-label");
 gs.textContent = g === "none"
 ? t("lobby.pick")
-: (GAME_LABEL[g] || g) + " starting...";
+: gameLabel(g) + " starting...";
 if (g === "none" && A.view !== "landing") route("lobby");
 else if (g !== "none" && GAME_SCREEN[g] && A.view !== "landing" && A.view !== GAME_SCREEN[g])
 route(GAME_SCREEN[g]);
@@ -1305,7 +1317,7 @@ if (!list) return;
 list.innerHTML = "";
 Object.keys(GAME_LABEL).forEach(function (name) {
 if (name === A.curGame) return;   // the active game isn't a switch target
-list.appendChild(gameMenuItem(name, GAME_LABEL[name]));
+list.appendChild(gameMenuItem(name, gameLabel(name)));
 });
 if (A.curGame !== "none") {
 var sep = document.createElement("div");
@@ -1318,7 +1330,7 @@ show("game-overlay");
 function closeGameMenu() { hide("game-overlay"); }
 function gameVoteLabel(m) {
 if (m.game === "none") return t("gamevote.lobby_label");
-return GAME_LABEL[m.label] || GAME_LABEL[m.game] || m.game;
+return gameLabel(m.label !== undefined && GAME_LABEL[m.label] ? m.label : m.game);
 }
 A.gamevoteOpen = false;
 A.closeGamevote = function () { A.gamevoteOpen = false; hide("gamevote"); };

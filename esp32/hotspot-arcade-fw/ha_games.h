@@ -63,7 +63,9 @@ static inline void ha_upper(char* s) {
 #define CH_R_LEFT 12 // opponent disconnected
 
 #define TRIVIA_MAX_TOPICS 8 // raised from 6 (v19): ~47 KB freed by moving the web bundle to flash
+#ifndef TRIVIA_MAX_QS // a host may size this down for RAM (see the Cardputer port)
 #define TRIVIA_MAX_QS 20
+#endif
 #define PACK_MAX_ITEMS 32 // items in a word/prompt pack (wyr/scramble/draw)
 #define TRIVIA_QDUR 20 // seconds per question (safety timer)
 #define TRIVIA_COUNTDOWN 3 // seconds after all-ready before the first question
@@ -266,7 +268,9 @@ static inline int haUtf8Len(const char* s) {
 #define FD_UNIT 255 // sheet coordinate range, both axes
 #define FD_BAND 85 // FD_UNIT / FD_PANELS: one panel's height
 #define FD_OVERLAP 7 // sliver of the panel above that the next drawer sees (~8% of a band)
+#ifndef FD_PANEL_STROKES // a host may size this down for RAM (see the Cardputer port)
 #define FD_PANEL_STROKES 192 // segments per panel; at the cap the pen stops (see fdStroke)
+#endif
 #define FD_MIN_PLAYERS 3 // a sheet has to pass through three different hands
 #define FD_DRAW_SECS 75 // per panel (safety timer; "done" from everyone ends it early)
 #define FD_SHOW_MS 5000 // gallery: how long each finished creature is on screen
