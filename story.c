@@ -14,7 +14,7 @@
 // 每页用 \n 分行, 每行 <= 21 字符 (FontSecondary 8px, 128宽)
 // 渲染器每页最多绘制 5 行 (y=14..46, y>=50 截止), 故每页 <= 5 行
 
-static const char *PROLOGUE_PAGES[] = {
+static const char* PROLOGUE_PAGES[] = {
     // page 1
     "You wake in a stone\n"
     "labyrinth, no memory\n"
@@ -43,7 +43,7 @@ static const char *PROLOGUE_PAGES[] = {
 };
 #define PROLOGUE_NP 3
 
-static const char *DESCENT_PAGES[] = {
+static const char* DESCENT_PAGES[] = {
     // page 1: 地面塌陷, 坠入更深
     "The floor gives way.\n"
     "You fall into shadow.\n"
@@ -60,7 +60,7 @@ static const char *DESCENT_PAGES[] = {
 };
 #define DESCENT_NP 2
 
-static const char *THEKEY_PAGES[] = {
+static const char* THEKEY_PAGES[] = {
     // page 1: 发现神秘钥匙
     "A glint in the dust.\n"
     "A key, cold and old.\n"
@@ -77,7 +77,7 @@ static const char *THEKEY_PAGES[] = {
 };
 #define THEKEY_NP 2
 
-static const char *THEHUNT_PAGES[] = {
+static const char* THEHUNT_PAGES[] = {
     // page 1: 敌人出现
     "Eyes in the darkness.\n"
     "Something stirs near.\n"
@@ -94,7 +94,7 @@ static const char *THEHUNT_PAGES[] = {
 };
 #define THEHUNT_NP 2
 
-static const char *CROSSROADS_PAGES[] = {
+static const char* CROSSROADS_PAGES[] = {
     // page 1: 分岔路口
     "Two paths split here.\n"
     "One goes deeper down.\n"
@@ -111,7 +111,7 @@ static const char *CROSSROADS_PAGES[] = {
 };
 #define CROSSROADS_NP 2
 
-static const char *ESCAPE_PAGES[] = {
+static const char* ESCAPE_PAGES[] = {
     // page 1: 裂缝透光
     "A crack in the stone.\n"
     "Pale light leaks in.\n"
@@ -129,82 +129,81 @@ static const char *ESCAPE_PAGES[] = {
 #define ESCAPE_NP 2
 
 int story_pages(int story_id) {
-  switch (story_id) {
-  case 0:
-    return PROLOGUE_NP;
-  case 1:
-    return DESCENT_NP;
-  case 2:
-    return THEKEY_NP;
-  case 3:
-    return THEHUNT_NP;
-  case 4:
-    return CROSSROADS_NP;
-  case 5:
-    return ESCAPE_NP;
-  default:
-    return 0;
-  }
+    switch(story_id) {
+    case 0:
+        return PROLOGUE_NP;
+    case 1:
+        return DESCENT_NP;
+    case 2:
+        return THEKEY_NP;
+    case 3:
+        return THEHUNT_NP;
+    case 4:
+        return CROSSROADS_NP;
+    case 5:
+        return ESCAPE_NP;
+    default:
+        return 0;
+    }
 }
 
-const char *story_page_text(int story_id, int page) {
-  if (page < 0)
-    return "";
-  switch (story_id) {
-  case 0:
-    return (page < PROLOGUE_NP) ? PROLOGUE_PAGES[page] : "";
-  case 1:
-    return (page < DESCENT_NP) ? DESCENT_PAGES[page] : "";
-  case 2:
-    return (page < THEKEY_NP) ? THEKEY_PAGES[page] : "";
-  case 3:
-    return (page < THEHUNT_NP) ? THEHUNT_PAGES[page] : "";
-  case 4:
-    return (page < CROSSROADS_NP) ? CROSSROADS_PAGES[page] : "";
-  case 5:
-    return (page < ESCAPE_NP) ? ESCAPE_PAGES[page] : "";
-  default:
-    return "";
-  }
+const char* story_page_text(int story_id, int page) {
+    if(page < 0) return "";
+    switch(story_id) {
+    case 0:
+        return (page < PROLOGUE_NP) ? PROLOGUE_PAGES[page] : "";
+    case 1:
+        return (page < DESCENT_NP) ? DESCENT_PAGES[page] : "";
+    case 2:
+        return (page < THEKEY_NP) ? THEKEY_PAGES[page] : "";
+    case 3:
+        return (page < THEHUNT_NP) ? THEHUNT_PAGES[page] : "";
+    case 4:
+        return (page < CROSSROADS_NP) ? CROSSROADS_PAGES[page] : "";
+    case 5:
+        return (page < ESCAPE_NP) ? ESCAPE_PAGES[page] : "";
+    default:
+        return "";
+    }
 }
 
-const char *story_choice_a(int story_id) {
-  switch (story_id) {
-  case 0:
-    return "A) Warrior: +HP, no items";
-  case 4:
-    return "A) Descend deeper";
-  default:
-    return "A) Continue";
-  }
+const char* story_choice_a(int story_id) {
+    switch(story_id) {
+    case 0:
+        return "A) Warrior: +HP, no items";
+    case 4:
+        return "A) Descend deeper";
+    default:
+        return "A) Continue";
+    }
 }
 
-const char *story_choice_b(int story_id) {
-  switch (story_id) {
-  case 0:
-    return "B) Seeker: -HP, +1 torch";
-  case 4:
-    return "B) Seek the gold";
-  default:
-    return "B) Continue";
-  }
+const char* story_choice_b(int story_id) {
+    switch(story_id) {
+    case 0:
+        return "B) Seeker: -HP, +1 torch";
+    case 4:
+        return "B) Seek the gold";
+    default:
+        return "B) Continue";
+    }
 }
 
-const char *story_title(int story_id) {
-  switch (story_id) {
-  case 0:
-    return "PROLOGUE";
-  case 1:
-    return "DESCENT";
-  case 2:
-    return "THE KEY";
-  case 3:
-    return "THE HUNT";
-  case 4:
-    return "CROSSROADS";
-  case 5:
-    return "ESCAPE";
-  default:
-    return "STORY";
-  }
+const char* story_title(int story_id) {
+    switch(story_id) {
+    case 0:
+        return "PROLOGUE";
+    case 1:
+        return "DESCENT";
+    case 2:
+        return "THE KEY";
+    case 3:
+        return "THE HUNT";
+    case 4:
+        return "CROSSROADS";
+    case 5:
+        return "ESCAPE";
+    default:
+        return "STORY";
+    }
 }
