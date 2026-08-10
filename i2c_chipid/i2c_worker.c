@@ -121,17 +121,20 @@ void i2c_worker_check_bus(I2CBusCheck* out) {
     out->scl_stuck = scl_stuck;
     out->sda_stuck = sda_stuck;
 
+    // A pull-up reads high only if the module's supply is live *and* shares
+    // our ground reference, so one pulled-up line already proves both. That
+    // makes the power rows meaningful while the user is still part-way
+    // through wiring the bus up.
+    out->powered = out->scl_ok || out->sda_ok;
+
     if(scl_stuck || sda_stuck) {
         out->health = I2CBusStuckLow;
     } else if(out->scl_ok && out->sda_ok) {
-        out->health = I2CBusOk;
-        // Pull-ups on both lines can only be powered through the module's own
-        // 3V3 and GND, so this doubles as a power check.
-        out->powered = true;
+        out->health = I2CBusOk; // both lines are needed before I2C can work
         out->shorted = i2c_lines_shorted();
     } else {
         out->health = I2CBusFloating;
-        // Nothing on the I2C pins: look for the module on the wrong ones.
+        // Nothing on the I2C pins at all: look for the module on the wrong ones.
         if(!out->scl_ok && !out->sda_ok) out->stray_pin = i2c_find_stray_pullup();
     }
 }
