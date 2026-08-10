@@ -23,3 +23,6 @@ __pycache__/
 # Personal cloud drive (separate repo, do not ship with maze3d)
 drive/
 
+
+# Local working files
+.github/
