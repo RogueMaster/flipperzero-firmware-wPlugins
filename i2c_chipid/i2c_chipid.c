@@ -136,8 +136,10 @@ static void wiring_draw_callback(Canvas* canvas, void* model) {
     WiringViewModel* m = model;
     canvas_clear(canvas);
 
+    // Baseline 9, not 7: FontPrimary caps are ~7px tall and would be clipped
+    // by the top edge of the screen.
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 7, AlignCenter, AlignBottom, "3.3V ONLY - NOT 5V!");
+    canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom, "3.3V ONLY - NOT 5V!");
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 17, "FLIPPER");
