@@ -1,0 +1,15 @@
+key,type,encoding,value
+factory_param,namespace,,
+version,data,i8,4
+module_name,data,string,"WROVER"
+max_tx_power,data,i8,78
+country_code,data,string,"CN"
+start_channel,data,u8,1
+channel_num,data,u8,13
+uart_port,data,i8,1
+uart_baudrate,data,i32,115200
+uart_tx_pin,data,i32,17
+uart_rx_pin,data,i32,18
+uart_cts_pin,data,i32,-1
+uart_rts_pin,data,i32,-1
+sys_store,data,u8,1

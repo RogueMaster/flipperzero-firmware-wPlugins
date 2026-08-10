@@ -1,0 +1,13 @@
+App(
+    appid="wifi_internet_watch",
+    name="WiFi Internet Watch",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="wifi_internet_watch_app",
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_version=(1, 0),
+    fap_description="Select a WiFi network and monitor internet availability through ESP-AT",
+    fap_author="Pavel Druzhinin",
+    fap_icon="wifi_10px.png",
+    sources=["*.c"],
+)
