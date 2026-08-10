@@ -18,6 +18,10 @@
   matching nothing is unidentified rather than fake; a failed read is shown as a failure.
 - Wiring guide with live per-line detection, a stray-pull-up sweep for the wrong pins, and
   SDA/SCL short detection.
-- BNO055 live test: NDOF fusion, heading, magnetometer calibration, animated figure-8 prompt.
+- Live tests: after a part checks out, the app offers to prove it actually works rather than
+  merely identifying itself. BNO055 runs NDOF fusion with a live compass, magnetometer
+  calibration and an animated figure-8 prompt; VL6180X runs real single-shot ranging against
+  your hand. Each test is a self-contained module, so adding one for another part touches
+  nothing else.
 - Browsable list of every known chip.
 - Melody, LED and vibration feedback, each switchable in Settings.

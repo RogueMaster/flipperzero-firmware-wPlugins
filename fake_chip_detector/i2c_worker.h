@@ -114,4 +114,5 @@ bool i2c_worker_read_reg16_addr(
     uint8_t* data,
     size_t len,
     uint32_t timeout_ms);
+bool i2c_worker_write_reg16_addr(uint8_t addr7, uint16_t reg, uint8_t value, uint32_t timeout_ms);
 bool i2c_worker_write_reg(uint8_t addr7, uint8_t reg, uint8_t value, uint32_t timeout_ms);

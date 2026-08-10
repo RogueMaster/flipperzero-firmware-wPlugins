@@ -14,6 +14,7 @@
 
 #include "i2c_worker.h"
 #include "onewire_worker.h"
+#include "live_test.h"
 #include "chip_db.h"
 #include "i2c_notify.h"
 #include "i2c_settings.h"
@@ -41,7 +42,6 @@ typedef enum {
     MenuIndexWiring,
     MenuIndexScan,
     MenuIndexOneWire,
-    MenuIndexLiveTest,
     MenuIndexSettings,
     MenuIndexChips,
     MenuIndexSaved,
@@ -84,7 +84,9 @@ typedef struct {
 } DetailViewModel;
 
 typedef struct {
-    I2CLiveData data;
+    const LiveTest* test; // which module is running; NULL means nothing to run
+    uint8_t addr; // where the scan found it, so no test has to search again
+    LiveTestState state;
     uint32_t frame;
 } LiveViewModel;
 
@@ -129,11 +131,13 @@ typedef struct {
     I2CWorker* worker;
     FuriThread* anim_thread;
     FuriThread* ow_thread;
+    FuriThread* live_thread;
     volatile bool ow_abort;
+    volatile bool live_stop;
     volatile bool anim_stop;
     I2CSettings settings;
     volatile FakeChipViewId current_view;
-    uint8_t last_mag_cal; // to chime once when calibration reaches 3
+    bool live_chimed; // the success chime belongs to the run, not to each frame
 } FakeChipApp;
 
 static void app_switch_view(FakeChipApp* app, FakeChipViewId view_id) {
@@ -447,6 +451,19 @@ static void draw_hint_bar(Canvas* canvas, const char* right_action, bool offer_s
     canvas_set_color(canvas, ColorBlack);
 }
 
+// Bar for the ALL GOOD screen when the chip has a live test: the offer is the
+// headline action, so it takes OK, and the hex stays behind Right.
+static void draw_offer_bar(Canvas* canvas, const char* ok_action) {
+    canvas_draw_box(canvas, 0, 55, 128, 9);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 4, 62, "OK");
+    canvas_draw_str(canvas, 20, 62, ok_action);
+    canvas_draw_str_aligned(canvas, 124, 62, AlignRight, AlignBottom, "details");
+    draw_right_key(canvas, 124 - canvas_string_width(canvas, "details") - 9, 61);
+    canvas_set_color(canvas, ColorBlack);
+}
+
 // Yes/no bar for the expectation question.
 static void draw_choice_bar(Canvas* canvas) {
     canvas_draw_box(canvas, 0, 55, 128, 9);
@@ -578,8 +595,18 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
             canvas_set_font(canvas, FontSecondary);
             canvas_draw_str(canvas, 36, 30, "Real deal.");
             canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, name);
-            if(kind) canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, kind);
-            draw_hint_bar(canvas, "details", false);
+
+            // The ID said what it is; a live test says it works. Offered here
+            // and only here, because this is the moment the answer is yes.
+            const LiveTest* test =
+                dev->ident.chip ? live_test_for_chip(dev->ident.chip->name) : NULL;
+            if(test) {
+                canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, test->offer);
+                draw_offer_bar(canvas, "live test");
+            } else {
+                if(kind) canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, kind);
+                draw_hint_bar(canvas, "details", false);
+            }
         } else {
             draw_verdict_icon(canvas, 12, 20, VerdictWrongChip);
             canvas_set_font(canvas, FontPrimary);
@@ -669,6 +696,7 @@ static bool scan_save_log(
 }
 
 static void app_show_report(FakeChipApp* app, bool disputed);
+static void app_start_live_test(FakeChipApp* app, const LiveTest* test, uint8_t addr7);
 
 // Snapshots the results and writes the report outside the model lock: SD
 // writes can stall for seconds and must never hold up the GUI.
@@ -730,6 +758,8 @@ static bool scan_input_callback(InputEvent* event, void* context) {
     bool answered_wrong = false;
     bool disputed = false;
     bool show_report = false;
+    const LiveTest* start_live = NULL;
+    uint8_t live_addr = 0;
 
     with_view_model(
         app->scan_view,
@@ -746,11 +776,28 @@ static bool scan_input_callback(InputEvent* event, void* context) {
                     } else if(m->found_count == 1 && m->answer == AnswerAsking) {
                         m->answer = AnswerExpected; // "yes, that is what I bought"
                     } else if(m->found_count == 1) {
-                        show_report = true;
-                        disputed = (m->answer == AnswerNotWhatIOrdered);
+                        // On a clean verdict OK runs the live test if the part
+                        // has one — that is the offer the screen is making.
+                        // The report keeps Up either way.
+                        const I2CFoundDevice* dev = &m->found[0];
+                        if(m->answer == AnswerExpected &&
+                           chip_verdict_is_good(dev->ident.verdict) && dev->ident.chip) {
+                            start_live = live_test_for_chip(dev->ident.chip->name);
+                            live_addr = dev->addr;
+                        }
+                        if(!start_live) {
+                            show_report = true;
+                            disputed = (m->answer == AnswerNotWhatIOrdered);
+                        }
                     } else {
                         open_detail = true;
                     }
+                    consumed = true;
+                } else if(
+                    event->key == InputKeyUp && m->found_count == 1 &&
+                    m->answer != AnswerAsking && event->type == InputTypeShort) {
+                    show_report = true;
+                    disputed = (m->answer == AnswerNotWhatIOrdered);
                     consumed = true;
                 } else if(
                     event->key == InputKeyDown && m->found_count == 1 &&
@@ -789,6 +836,8 @@ static bool scan_input_callback(InputEvent* event, void* context) {
         consumed);
 
     if(answered_wrong) i2c_notify_play(app->notifications, I2CNotifyBad);
+
+    if(start_live) app_start_live_test(app, start_live, live_addr);
 
     if(show_report) app_show_report(app, disputed);
 
@@ -868,23 +917,6 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
 
             if(app->settings.autosave && count > 0) app_save_log(app, false);
         }
-    } else if(event == I2CWorkerEventLiveUpdate) {
-        uint8_t cal = 0;
-        bool running = false;
-        with_view_model(
-            app->live_view,
-            LiveViewModel * m,
-            {
-                i2c_worker_get_live(app->worker, &m->data);
-                cal = m->data.mag_cal;
-                running = (m->data.status == I2CLiveStatusRunning);
-            },
-            true);
-        // Chime once, on the transition to fully calibrated
-        if(running && cal == 3 && app->last_mag_cal != 3) {
-            i2c_notify_play(app->notifications, I2CNotifyCalibrated);
-        }
-        if(running) app->last_mag_cal = cal;
     } else if(event == I2CWorkerEventBusUpdate) {
         I2CBusCheck bus;
         i2c_worker_get_bus(app->worker, &bus);
@@ -1022,119 +1054,148 @@ static uint32_t nav_to_scan(void* context) {
     return FakeChipViewScan;
 }
 
-/* ---------------- BNO055 live test ---------------- */
+/* ---------------- Live tests ---------------- */
 
-// Lemniscate traced by a moving dot: the figure-8 motion the magnetometer
-// needs for calibration, shown instead of described.
-static void draw_figure8(Canvas* canvas, uint8_t cx, uint8_t cy, uint32_t frame) {
-    const float rx = 20.0f, ry = 8.0f;
-    for(uint8_t i = 0; i < 32; i++) {
-        float t = (float)i / 32.0f * 2.0f * (float)M_PI;
-        canvas_draw_dot(canvas, cx + (int8_t)(rx * sinf(t)), cy + (int8_t)(ry * sinf(2 * t)));
+// Nothing here knows about any particular chip. What a test measures — and
+// how it draws that, if text will not do — lives in live_<part>.c; see
+// live_test.h for the contract and how to add one.
+
+// The screen for every phase where there is nothing to measure yet. Shared on
+// purpose: "warming up" and "it dropped off" should look the same whichever
+// part is being tested, so only the readings get a custom picture.
+static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
+    const LiveTestState* st = &m->state;
+    bool measuring =
+        (st->phase == LiveTestPhaseRunning || st->phase == LiveTestPhasePassed);
+
+    canvas_set_font(canvas, FontPrimary);
+    const char* title = (st->phase == LiveTestPhaseLost) ?
+                            "Sensor dropped off!" :
+                            (m->test ? m->test->title : "Live test");
+    canvas_draw_str_aligned(canvas, 64, 13, AlignCenter, AlignBottom, title);
+
+    uint8_t y = 26;
+    if(measuring && st->heading[0]) {
+        canvas_set_font(canvas, FontBigNumbers);
+        canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignBottom, st->heading);
+        y = 46;
     }
-    float t = (float)(frame % 48) / 48.0f * 2.0f * (float)M_PI;
-    canvas_draw_disc(
-        canvas, cx + (int8_t)(rx * sinf(t)), cy + (int8_t)(ry * sinf(2 * t)), 2);
+
+    canvas_set_font(canvas, FontSecondary);
+    for(size_t i = 0; i < LIVE_TEST_LINES && y <= 62; i++) {
+        if(!st->lines[i][0]) continue;
+        canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, st->lines[i]);
+        y += 10;
+    }
+
+    if(st->phase == LiveTestPhaseStarting && y + 8 <= 62) {
+        // A sweep, not a percentage: the wait is a fixed settle time, and a
+        // fake progress bar that claims to know how far along it is would be
+        // exactly the kind of made-up number this app refuses to show.
+        uint8_t w = (uint8_t)((m->frame % 20) * 100 / 20);
+        canvas_draw_frame(canvas, 14, y, 100, 8);
+        canvas_draw_box(canvas, 14, y, w, 8);
+    } else if(st->phase == LiveTestPhaseLost && y <= 62) {
+        canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, "Retrying...");
+    } else if(measuring && st->progress_max && y + 7 <= 63) {
+        uint8_t bw = st->progress_max * 9 - 2;
+        uint8_t bx = 64 - bw / 2;
+        for(uint8_t i = 0; i < st->progress_max; i++) {
+            if(i < st->progress) {
+                canvas_draw_box(canvas, bx + i * 9, y, 7, 7);
+            } else {
+                canvas_draw_frame(canvas, bx + i * 9, y, 7, 7);
+            }
+        }
+    }
 }
 
 static void live_draw_callback(Canvas* canvas, void* model) {
     LiveViewModel* m = model;
     canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
 
-    switch(m->data.status) {
-    case I2CLiveStatusSearching:
-        canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom, "Looking for BNO055");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignBottom, "Probing 0x28 and 0x29");
-        draw_scan_spinner(canvas, 64, 40, m->frame);
-        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Plug it in - I'll wait");
-        return;
-    case I2CLiveStatusInit: {
-        canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "Starting NDOF mode");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignBottom, "Sensor fusion warm-up");
-        uint8_t w = (uint8_t)((m->frame % 20) * 100 / 20);
-        canvas_draw_frame(canvas, 14, 34, 100, 8);
-        canvas_draw_box(canvas, 14, 34, w, 8);
-        return;
-    }
-    case I2CLiveStatusLost:
-        canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "Sensor dropped off!");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(
-            canvas, 64, 28, AlignCenter, AlignBottom, "It replied, then stopped.");
-        canvas_draw_str_aligned(
-            canvas, 64, 38, AlignCenter, AlignBottom, "Check 3V3 and wires.");
-        canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, "Retrying...");
-        return;
-    case I2CLiveStatusRunning:
-        break;
-    }
-
-    // Heading arrives in 1/16 degree steps; integer math keeps printf light.
-    int32_t raw = m->data.heading_raw;
-    if(raw < 0) raw += 360 * 16;
-    int32_t deg = raw / 16;
-    int32_t frac = (raw % 16) * 10 / 16;
-
-    char buf[24];
-    canvas_set_font(canvas, FontBigNumbers);
-    snprintf(buf, sizeof(buf), "%ld.%ld", (long)deg, (long)frac);
-    canvas_draw_str(canvas, 2, 26, buf);
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 4, 36, "deg");
-
-    // Compass: 0 deg = north = up, needle follows the sensor
-    const uint8_t cx = 100, cy = 24, r = 18;
-    canvas_draw_circle(canvas, cx, cy, r);
-    canvas_draw_str_aligned(canvas, cx, cy - r + 6, AlignCenter, AlignBottom, "N");
-    float a = (float)raw / 16.0f * ((float)M_PI / 180.0f);
-    int8_t dx = (int8_t)(sinf(a) * (r - 4));
-    int8_t dy = (int8_t)(-cosf(a) * (r - 4));
-    canvas_draw_line(canvas, cx, cy, cx + dx, cy + dy);
-    canvas_draw_disc(canvas, cx + dx, cy + dy, 2);
-
-    snprintf(buf, sizeof(buf), "MAG CAL %u/3", m->data.mag_cal);
-    canvas_draw_str(canvas, 2, 47, buf);
-    for(uint8_t i = 0; i < 3; i++) {
-        uint8_t bx = 58 + i * 9;
-        if(i < m->data.mag_cal) {
-            canvas_draw_box(canvas, bx, 40, 7, 7);
-        } else {
-            canvas_draw_frame(canvas, bx, 40, 7, 7);
-        }
-    }
-
-    if(m->data.mag_cal < 3) {
-        draw_figure8(canvas, 24, 57, m->frame);
-        canvas_draw_str(canvas, 50, 60, "Rotate in figure-8");
+    bool measuring =
+        (m->state.phase == LiveTestPhaseRunning || m->state.phase == LiveTestPhasePassed);
+    if(measuring && m->test && m->test->draw) {
+        m->test->draw(canvas, &m->state, m->frame);
     } else {
-        canvas_draw_box(canvas, 0, 51, 128, 13);
-        canvas_set_color(canvas, ColorWhite);
-        canvas_draw_str_aligned(
-            canvas, 64, 61, AlignCenter, AlignBottom, "CALIBRATED - now spin it");
-        canvas_set_color(canvas, ColorBlack);
+        live_draw_generic(canvas, m);
     }
 }
 
-static void live_enter_callback(void* context) {
+// Called from the test's own thread. Copies the state under the model lock and
+// owns the one thing a test must not decide for itself: when to make a noise.
+static void live_publish(void* ctx, const LiveTestState* state) {
+    FakeChipApp* app = ctx;
+    with_view_model(app->live_view, LiveViewModel * m, { m->state = *state; }, true);
+
+    bool succeeded = (state->phase == LiveTestPhasePassed) ||
+                     (state->progress_max && state->progress >= state->progress_max);
+    if(succeeded && !app->live_chimed) {
+        i2c_notify_play(app->notifications, I2CNotifyCalibrated);
+    }
+    // Latched so the chime fires on the transition, not on every poll — and
+    // re-arms if the part falls back out of its success state.
+    app->live_chimed = succeeded;
+}
+
+static int32_t live_thread_worker(void* context) {
     FakeChipApp* app = context;
-    app->last_mag_cal = 0;
+    const LiveTest* test = NULL;
+    uint8_t addr = 0;
     with_view_model(
         app->live_view,
         LiveViewModel * m,
         {
-            m->data = (I2CLiveData){.status = I2CLiveStatusSearching};
+            test = m->test;
+            addr = m->addr;
+        },
+        false);
+
+    if(test && test->run) test->run(addr, &app->live_stop, live_publish, app);
+    return 0;
+}
+
+static void app_start_live_test(FakeChipApp* app, const LiveTest* test, uint8_t addr7) {
+    with_view_model(
+        app->live_view,
+        LiveViewModel * m,
+        {
+            m->test = test;
+            m->addr = addr7;
+        },
+        false);
+    app_switch_view(app, FakeChipViewLive);
+}
+
+static void live_enter_callback(void* context) {
+    FakeChipApp* app = context;
+    app->live_chimed = false;
+    with_view_model(
+        app->live_view,
+        LiveViewModel * m,
+        {
+            memset(&m->state, 0, sizeof(m->state));
             m->frame = 0;
         },
         true);
-    i2c_worker_live_start(app->worker);
+
+    // The thread exists only while the screen does. A live test talks to the
+    // chip continuously, and leaving one running behind a menu would keep the
+    // sensor powered up and the I2C bus busy for no reason.
+    app->live_stop = false;
+    app->live_thread = furi_thread_alloc_ex("FakeChipLive", 2048, live_thread_worker, app);
+    furi_thread_start(app->live_thread);
 }
 
 static void live_exit_callback(void* context) {
     FakeChipApp* app = context;
-    i2c_worker_live_stop(app->worker);
+    app->live_stop = true;
+    if(app->live_thread) {
+        furi_thread_join(app->live_thread);
+        furi_thread_free(app->live_thread);
+        app->live_thread = NULL;
+    }
 }
 
 /* ---------------- Settings ---------------- */
@@ -1754,9 +1815,6 @@ static void menu_callback(void* context, uint32_t index) {
     case MenuIndexOneWire:
         app_switch_view(app, FakeChipViewOneWire);
         break;
-    case MenuIndexLiveTest:
-        app_switch_view(app, FakeChipViewLive);
-        break;
     case MenuIndexSettings:
         app_switch_view(app, FakeChipViewSettings);
         break;
@@ -1829,7 +1887,6 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     submenu_add_item(app->submenu, "How to wire", MenuIndexWiring, menu_callback, app);
     submenu_add_item(app->submenu, "Scan I2C bus", MenuIndexScan, menu_callback, app);
     submenu_add_item(app->submenu, "Scan 1-Wire", MenuIndexOneWire, menu_callback, app);
-    submenu_add_item(app->submenu, "BNO055 live test", MenuIndexLiveTest, menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MenuIndexSettings, menu_callback, app);
     submenu_add_item(app->submenu, "Known chips", MenuIndexChips, menu_callback, app);
     submenu_add_item(
@@ -1872,7 +1929,8 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_set_draw_callback(app->live_view, live_draw_callback);
     view_set_enter_callback(app->live_view, live_enter_callback);
     view_set_exit_callback(app->live_view, live_exit_callback);
-    view_set_previous_callback(app->live_view, nav_to_menu);
+    // Back returns to the verdict that offered the test, not to the menu.
+    view_set_previous_callback(app->live_view, nav_to_scan);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewLive, app->live_view);
 
     app->settings_list = variable_item_list_alloc();

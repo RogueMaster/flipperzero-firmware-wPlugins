@@ -41,8 +41,11 @@ one register — this app does that and shows its work.
   A device whose IDs match nothing is `UNIDENTIFIED`, not "fake" — that is far more often a gap
   in the database. Only a partial match, where some of a known chip's IDs are right and others
   wrong, is called out as a likely counterfeit.
-- **BNO055 live test.** Proves the sensor works, not merely that it identifies itself: NDOF
-  fusion, live heading, magnetometer calibration and an animated figure-8 prompt.
+- **Proves the part works, not just that it answers.** An ID register is one byte, and one byte
+  is what a relabeller can copy. When a chip that checked out has a live test, the app offers to
+  run it: the BNO055 finds north and calibrates its magnetometer, the VL6180X measures the
+  distance to your hand. Tests are one file each, so adding one for a new part touches nothing
+  else — see **[LIVE_TESTS.md](LIVE_TESTS.md)**.
 - **1-Wire too.** Scans pin 17, decodes the family code and runs a real temperature conversion
   on DS18B20-class parts. A 1-Wire ID can be replayed by any microcontroller, so the app is
   explicit that this proves which *part* answered — a DS18S20 sold as a DS18B20 is caught —

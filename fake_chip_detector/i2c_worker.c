@@ -192,6 +192,19 @@ bool i2c_worker_read_reg16_addr(
     return ok;
 }
 
+bool i2c_worker_write_reg16_addr(
+    uint8_t addr7,
+    uint16_t reg,
+    uint8_t value,
+    uint32_t timeout_ms) {
+    const uint8_t frame[3] = {(uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF), value};
+    furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
+    bool ok = furi_hal_i2c_tx(
+        &furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), frame, sizeof(frame), timeout_ms);
+    furi_hal_i2c_release(&furi_hal_i2c_handle_external);
+    return ok;
+}
+
 bool i2c_worker_write_reg(uint8_t addr7, uint8_t reg, uint8_t value, uint32_t timeout_ms) {
     furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
     bool ok = furi_hal_i2c_write_reg_8(

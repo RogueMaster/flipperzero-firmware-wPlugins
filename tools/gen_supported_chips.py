@@ -67,6 +67,27 @@ for line in table.splitlines():
     })
 
 
+# ---- live tests -----------------------------------------------------------
+# One module per part, all listed in live_test.c. Parsed rather than hand-kept
+# for the same reason as the chip table: a doc that can drift will.
+registry = pathlib.Path('fake_chip_detector/live_test.c').read_text(encoding='utf-8')
+registered = re.findall(r'&live_test_(\w+)\s*,', registry)
+live_tests = {}
+for slug in registered:
+    mod = pathlib.Path('fake_chip_detector/live_%s.c' % slug)
+    body = mod.read_text(encoding='utf-8')
+    chip = re.search(r'\.chip\s*=\s*"([^"]*)"', body).group(1)
+    offer = re.search(r'\.offer\s*=\s*"([^"]*)"', body).group(1)
+    live_tests[chip] = {'slug': slug, 'offer': offer, 'file': mod.name}
+
+for e in entries:
+    e['live'] = live_tests.get(e['name'])
+
+
+def live_cell(e):
+    return e['live']['offer'] if e['live'] else '—'
+
+
 def addr_str(e):
     if e['lo']:
         return '0x%02X-0x%02X' % (e['lo'], e['hi'])
@@ -121,6 +142,9 @@ L.append('  register address (ST time-of-flight parts and Goodix touch controlle
 L.append('- **Expected** — the value a genuine part returns. A mask means only those bits are')
 L.append('  compared; the rest are revision or configuration bits that legitimately vary.')
 L.append('- **Width** — how many bytes the value itself is.')
+L.append('- **Live test** — an ID register is one byte, and one byte is what a relabeller can')
+L.append('  copy. Where a module exists, the app offers to make the part *do* its job and prove')
+L.append('  it. See [LIVE_TESTS.md](LIVE_TESTS.md) for how to write one.')
 L.append('- Several rows in one cell mean the app checks all of them. Every one has to match')
 L.append('  before it will say GENUINE.')
 L.append('')
@@ -132,12 +156,12 @@ L.append('')
 L.append('These can be verified. A mismatch here is real evidence that the part is not what the')
 L.append('label claims.')
 L.append('')
-L.append('| Chip | What it is | I2C address | Register | Expected | Width | Notes |')
-L.append('|---|---|---|---|---|---|---|')
+L.append('| Chip | What it is | I2C address | Register | Expected | Width | Live test | Notes |')
+L.append('|---|---|---|---|---|---|---|---|')
 for e in ided:
-    L.append('| **%s** | %s | %s | %s | %s | %s | %s |' % (
+    L.append('| **%s** | %s | %s | %s | %s | %s | %s | %s |' % (
         e['name'], e['kind'], addr_str(e), reg_cell(e), val_cell(e), width_cell(e),
-        e['note'] or ''))
+        live_cell(e), e['note'] or ''))
 L.append('')
 L.append('## Chips recognised by address only (%d)' % len(noid))
 L.append('')

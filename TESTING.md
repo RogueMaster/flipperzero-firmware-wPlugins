@@ -97,12 +97,24 @@ and the verdict. Press RIGHT on the results list to save a log to
 The same trick catches a "MPU9250" that is really an MPU6500 (reg `0x75`: 0x71 vs 0x70) and a
 "HMC5883L" that is really a QMC5883L (different address entirely: 0x0D instead of 0x1E).
 
-## Step 6 — BNO055 live test
+## Step 6 — the live test
 
-Only if you have a BNO055. It proves the sensor does not merely identify itself but actually
-works: the app switches it into NDOF fusion, shows a live compass, and animates the figure-8
-motion the magnetometer needs. Turn the board through a full circle — the heading should sweep
-0→359 smoothly and come back, and MAG CAL should climb to 3/3 as you move it.
+Scan a part that has one, answer *yes* to "is this what you bought?", and the **ALL GOOD**
+screen offers a live test under `OK`. It proves the sensor does not merely identify itself but
+actually works. Chips with no test show the same screen without the offer; that is normal, most
+parts have none.
+
+- **BNO055** — the app switches it into NDOF fusion, shows a live compass and animates the
+  figure-8 motion the magnetometer needs. Turn the board through a full circle: the heading
+  should sweep 0→359 smoothly and come back, and MAG CAL should climb to 3/3 as you move it.
+- **VL6180X** — real single-shot ranging. Hold a hand about 5 cm from the sensor and the
+  distance should follow it; the test passes once the reading has moved 30 mm or more. With
+  nothing in front of it the sensor reports its own error code instead of a made-up number.
+
+`Up` still opens the written report from that screen, and `Right` still opens the hex detail.
+
+[LIVE_TESTS.md](fake_chip_detector/LIVE_TESTS.md) covers writing a test for a part that has
+none.
 
 ## If nothing is found
 
