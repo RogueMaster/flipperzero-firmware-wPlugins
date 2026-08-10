@@ -7,14 +7,19 @@
 #include <gui/view_dispatcher.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
+#include <storage/storage.h>
 
 #define TAG "WifiInternetWatch"
 
 #define WIFI_MAX_NETWORKS 16
 #define WIFI_SSID_SIZE 33
 #define WIFI_PASSWORD_SIZE 65
+#define WIFI_MAX_SAVED_NETWORKS 16
 #define AT_RESPONSE_SIZE 8192
 #define MONITOR_INTERVAL_MS 60000
+#define WIFI_CREDENTIALS_PATH APP_DATA_PATH("credentials.bin")
+#define WIFI_CREDENTIALS_MAGIC 0x57495743UL
+#define WIFI_CREDENTIALS_VERSION 1
 
 typedef enum {
     WifiScreenScanning,
@@ -34,11 +39,13 @@ typedef enum {
 typedef enum {
     WifiWorkerFlagStop = (1U << 0),
     WifiWorkerFlagConnect = (1U << 1),
+    WifiWorkerFlagForget = (1U << 2),
 } WifiWorkerFlag;
 
 typedef struct {
     WifiScreen screen;
     char networks[WIFI_MAX_NETWORKS][WIFI_SSID_SIZE];
+    bool saved[WIFI_MAX_NETWORKS];
     size_t network_count;
     size_t selected_network;
     char status[32];
@@ -58,12 +65,24 @@ typedef struct {
 } WifiPasswordKey;
 
 typedef struct {
+    char ssid[WIFI_SSID_SIZE];
+    char password[WIFI_PASSWORD_SIZE];
+} WifiCredential;
+
+typedef struct {
+    uint32_t magic;
+    uint16_t version;
+    uint16_t count;
+} WifiCredentialsHeader;
+
+typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     View* main_view;
     View* password_view;
     NotificationApp* notification;
     Expansion* expansion;
+    Storage* storage;
 
     FuriHalSerialHandle* serial;
     FuriStreamBuffer* rx_stream;
@@ -71,8 +90,12 @@ typedef struct {
 
     char ssid[WIFI_SSID_SIZE];
     char password[WIFI_PASSWORD_SIZE];
+    char forget_ssid[WIFI_SSID_SIZE];
+    WifiCredential credentials[WIFI_MAX_SAVED_NETWORKS];
+    size_t credentials_count;
     bool monitor_active;
     bool was_online;
+    bool credentials_save_failed;
     bool otg_was_enabled;
 } WifiInternetWatch;
 
@@ -174,6 +197,127 @@ static size_t wifi_password_get_row_size(uint8_t mode, uint8_t row) {
     return COUNT_OF(wifi_password_alpha_row_3);
 }
 
+static int32_t wifi_credential_index(const WifiInternetWatch* app, const char* ssid) {
+    for(size_t i = 0; i < app->credentials_count; i++) {
+        if(strcmp(app->credentials[i].ssid, ssid) == 0) return (int32_t)i;
+    }
+    return -1;
+}
+
+static bool wifi_credentials_save(WifiInternetWatch* app) {
+    File* file = storage_file_alloc(app->storage);
+    const WifiCredentialsHeader header = {
+        .magic = WIFI_CREDENTIALS_MAGIC,
+        .version = WIFI_CREDENTIALS_VERSION,
+        .count = app->credentials_count,
+    };
+
+    bool success = storage_file_open(
+        file, WIFI_CREDENTIALS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS);
+    if(success) {
+        success =
+            storage_file_write(file, &header, sizeof(header)) == sizeof(header);
+    }
+    if(success && app->credentials_count > 0) {
+        const size_t credentials_size =
+            app->credentials_count * sizeof(WifiCredential);
+        success =
+            storage_file_write(file, app->credentials, credentials_size) ==
+            credentials_size;
+    }
+    if(success) success = storage_file_sync(file);
+
+    storage_file_close(file);
+    storage_file_free(file);
+
+    if(!success) FURI_LOG_E(TAG, "Failed to save Wi-Fi credentials");
+    return success;
+}
+
+static void wifi_credentials_load(WifiInternetWatch* app) {
+    File* file = storage_file_alloc(app->storage);
+    WifiCredentialsHeader header;
+
+    bool success = storage_file_open(
+        file, WIFI_CREDENTIALS_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
+    if(success) {
+        success = storage_file_read(file, &header, sizeof(header)) == sizeof(header) &&
+                  header.magic == WIFI_CREDENTIALS_MAGIC &&
+                  header.version == WIFI_CREDENTIALS_VERSION &&
+                  header.count <= WIFI_MAX_SAVED_NETWORKS;
+    }
+
+    if(success && header.count > 0) {
+        const size_t credentials_size = header.count * sizeof(WifiCredential);
+        success =
+            storage_file_read(file, app->credentials, credentials_size) ==
+            credentials_size;
+    }
+
+    storage_file_close(file);
+    storage_file_free(file);
+
+    if(!success) {
+        app->credentials_count = 0;
+        memset(app->credentials, 0, sizeof(app->credentials));
+        return;
+    }
+
+    app->credentials_count = header.count;
+    for(size_t i = 0; i < app->credentials_count; i++) {
+        app->credentials[i].ssid[WIFI_SSID_SIZE - 1] = '\0';
+        app->credentials[i].password[WIFI_PASSWORD_SIZE - 1] = '\0';
+    }
+}
+
+static bool wifi_credentials_upsert(
+    WifiInternetWatch* app,
+    const char* ssid,
+    const char* password) {
+    int32_t index = wifi_credential_index(app, ssid);
+    const size_t old_count = app->credentials_count;
+    WifiCredential old_credential = {0};
+
+    if(index >= 0) {
+        old_credential = app->credentials[index];
+    } else {
+        if(app->credentials_count >= WIFI_MAX_SAVED_NETWORKS) return false;
+        index = app->credentials_count++;
+    }
+
+    strlcpy(app->credentials[index].ssid, ssid, WIFI_SSID_SIZE);
+    strlcpy(app->credentials[index].password, password, WIFI_PASSWORD_SIZE);
+
+    if(wifi_credentials_save(app)) return true;
+
+    app->credentials_count = old_count;
+    if((size_t)index < old_count) app->credentials[index] = old_credential;
+    return false;
+}
+
+static bool wifi_credentials_delete(WifiInternetWatch* app, const char* ssid) {
+    const int32_t index = wifi_credential_index(app, ssid);
+    if(index < 0) return true;
+
+    const WifiCredential deleted_credential = app->credentials[index];
+    const size_t old_count = app->credentials_count;
+
+    for(size_t i = index; i + 1 < app->credentials_count; i++) {
+        app->credentials[i] = app->credentials[i + 1];
+    }
+    app->credentials_count--;
+    memset(&app->credentials[app->credentials_count], 0, sizeof(WifiCredential));
+
+    if(wifi_credentials_save(app)) return true;
+
+    app->credentials_count = old_count;
+    for(size_t i = old_count - 1; i > (size_t)index; i--) {
+        app->credentials[i] = app->credentials[i - 1];
+    }
+    app->credentials[index] = deleted_credential;
+    return false;
+}
+
 static void wifi_set_status(
     WifiInternetWatch* app,
     WifiScreen screen,
@@ -186,6 +330,24 @@ static void wifi_set_status(
             model->screen = screen;
             strlcpy(model->status, status ? status : "", sizeof(model->status));
             strlcpy(model->detail, detail ? detail : "", sizeof(model->detail));
+        },
+        true);
+}
+
+static void wifi_set_network_saved(
+    WifiInternetWatch* app,
+    const char* ssid,
+    bool saved) {
+    with_view_model(
+        app->main_view,
+        WifiViewModel * model,
+        {
+            for(size_t i = 0; i < model->network_count; i++) {
+                if(strcmp(model->networks[i], ssid) == 0) {
+                    model->saved[i] = saved;
+                    break;
+                }
+            }
         },
         true);
 }
@@ -316,6 +478,9 @@ static void wifi_scan(WifiInternetWatch* app) {
     wifi_at_command(app, "AT", response, AT_RESPONSE_SIZE, 1000);
     wifi_at_command(app, "ATE0", response, AT_RESPONSE_SIZE, 1000);
     wifi_at_command(app, "AT+CWMODE=1", response, AT_RESPONSE_SIZE, 2000);
+    wifi_at_command(app, "AT+SYSSTORE=1", response, AT_RESPONSE_SIZE, 2000);
+    wifi_at_command(app, "AT+CWAUTOCONN=0", response, AT_RESPONSE_SIZE, 2000);
+    wifi_at_command(app, "AT+SYSSTORE=0", response, AT_RESPONSE_SIZE, 2000);
 
     const bool scan_ok =
         wifi_at_command(app, "AT+CWLAP", response, AT_RESPONSE_SIZE, 20000);
@@ -329,6 +494,8 @@ static void wifi_scan(WifiInternetWatch* app) {
             model->selected_network = 0;
             for(size_t i = 0; i < network_count; i++) {
                 strlcpy(model->networks[i], networks[i], WIFI_SSID_SIZE);
+                model->saved[i] =
+                    wifi_credential_index(app, networks[i]) >= 0;
             }
 
             if(network_count > 0) {
@@ -355,9 +522,17 @@ static bool wifi_is_joined(WifiInternetWatch* app, char* response, size_t respon
 }
 
 static bool wifi_join(WifiInternetWatch* app, char* response, size_t response_size) {
-    if(wifi_is_joined(app, response, response_size) &&
-       strstr(response, app->ssid) != NULL) {
+    const int32_t credential_index = wifi_credential_index(app, app->ssid);
+    const bool password_is_saved =
+        credential_index >= 0 &&
+        strcmp(app->credentials[credential_index].password, app->password) == 0;
+    const bool joined = wifi_is_joined(app, response, response_size);
+
+    if(joined && strstr(response, app->ssid) != NULL && password_is_saved) {
         return true;
+    }
+    if(joined) {
+        wifi_at_command(app, "AT+CWQAP", response, response_size, 3000);
     }
 
     char escaped_ssid[WIFI_SSID_SIZE * 2];
@@ -387,19 +562,39 @@ static void wifi_monitor_once(WifiInternetWatch* app) {
         return;
     }
 
+    const int32_t credential_index = wifi_credential_index(app, app->ssid);
+    if(credential_index < 0 ||
+       strcmp(app->credentials[credential_index].password, app->password) != 0) {
+        app->credentials_save_failed =
+            !wifi_credentials_upsert(app, app->ssid, app->password);
+        if(!app->credentials_save_failed) {
+            wifi_set_network_saved(app, app->ssid, true);
+        }
+    } else {
+        app->credentials_save_failed = false;
+    }
+
     wifi_set_status(app, WifiScreenStatus, "Checking internet...", "1.1.1.1");
     const bool online =
         wifi_at_command(app, "AT+PING=\"1.1.1.1\"", response, sizeof(response), 10000) &&
         strstr(response, "+PING:") != NULL;
 
     if(online) {
-        wifi_set_status(app, WifiScreenStatus, "ONLINE", app->ssid);
+        wifi_set_status(
+            app,
+            WifiScreenStatus,
+            app->credentials_save_failed ? "ONLINE - NOT SAVED" : "ONLINE",
+            app->ssid);
         notification_message(app->notification, &sequence_set_only_green_255);
         if(!app->was_online) {
             notification_message(app->notification, &sequence_success);
         }
     } else {
-        wifi_set_status(app, WifiScreenStatus, "OFFLINE", app->ssid);
+        wifi_set_status(
+            app,
+            WifiScreenStatus,
+            app->credentials_save_failed ? "OFFLINE - NOT SAVED" : "OFFLINE",
+            app->ssid);
         notification_message(app->notification, &sequence_set_only_red_255);
     }
 
@@ -413,7 +608,9 @@ static int32_t wifi_worker(void* context) {
     while(true) {
         const uint32_t timeout = app->monitor_active ? MONITOR_INTERVAL_MS : FuriWaitForever;
         const uint32_t flags = furi_thread_flags_wait(
-            WifiWorkerFlagStop | WifiWorkerFlagConnect, FuriFlagWaitAny, timeout);
+            WifiWorkerFlagStop | WifiWorkerFlagConnect | WifiWorkerFlagForget,
+            FuriFlagWaitAny,
+            timeout);
 
         if(flags & WifiWorkerFlagStop) break;
 
@@ -426,6 +623,17 @@ static int32_t wifi_worker(void* context) {
             app->monitor_active = true;
             app->was_online = false;
             wifi_monitor_once(app);
+        }
+
+        if(flags & WifiWorkerFlagForget) {
+            char response[256];
+            app->monitor_active = false;
+            app->was_online = false;
+            if(wifi_is_joined(app, response, sizeof(response)) &&
+               strstr(response, app->forget_ssid) != NULL) {
+                wifi_at_command(app, "AT+CWQAP", response, sizeof(response), 3000);
+            }
+            notification_message(app->notification, &sequence_reset_rgb);
         }
     }
 
@@ -462,10 +670,14 @@ static void wifi_draw_callback(Canvas* canvas, void* context) {
                 canvas_set_color(canvas, ColorWhite);
             }
             canvas_draw_str(canvas, 4, y, model->networks[index]);
+            if(model->saved[index]) canvas_draw_str(canvas, 120, y, "*");
             if(index == model->selected_network) canvas_set_color(canvas, ColorBlack);
         }
 
-        elements_button_center(canvas, "Select");
+        elements_button_center(canvas, "Join");
+        if(model->saved[model->selected_network]) {
+            elements_button_right(canvas, "Forget");
+        }
     } else {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 4, 31, model->status);
@@ -481,46 +693,104 @@ static bool wifi_input_callback(InputEvent* event, void* context) {
         return true;
     }
 
-    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat &&
+       event->type != InputTypeLong) {
+        return false;
+    }
 
     bool consumed = false;
-    bool select_network = false;
+    bool show_password = false;
+    bool connect_saved = false;
+    bool forget_network = false;
 
     with_view_model(
         app->main_view,
         WifiViewModel * model,
         {
             if(model->screen == WifiScreenNetworkList && model->network_count > 0) {
-                if(event->key == InputKeyUp) {
+                if(event->key == InputKeyUp && event->type != InputTypeLong) {
                     if(model->selected_network > 0) model->selected_network--;
                     consumed = true;
-                } else if(event->key == InputKeyDown) {
+                } else if(event->key == InputKeyDown && event->type != InputTypeLong) {
                     if(model->selected_network + 1 < model->network_count) {
                         model->selected_network++;
                     }
                     consumed = true;
-                } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
+                } else if(event->key == InputKeyOk &&
+                          (event->type == InputTypeShort ||
+                           event->type == InputTypeLong)) {
                     strlcpy(
                         app->ssid,
                         model->networks[model->selected_network],
                         sizeof(app->ssid));
-                    select_network = true;
+                    if(event->type == InputTypeShort &&
+                       model->saved[model->selected_network]) {
+                        connect_saved = true;
+                    } else {
+                        show_password = true;
+                    }
+                    consumed = true;
+                } else if(
+                    event->key == InputKeyRight && event->type == InputTypeShort &&
+                    model->saved[model->selected_network]) {
+                    strlcpy(
+                        app->forget_ssid,
+                        model->networks[model->selected_network],
+                        sizeof(app->forget_ssid));
+                    forget_network = true;
                     consumed = true;
                 }
             }
         },
         consumed);
 
-    if(select_network) {
+    if(connect_saved) {
+        const int32_t index = wifi_credential_index(app, app->ssid);
+        if(index >= 0) {
+            strlcpy(
+                app->password,
+                app->credentials[index].password,
+                sizeof(app->password));
+            wifi_set_status(app, WifiScreenStatus, "Connecting Wi-Fi...", app->ssid);
+            furi_thread_flags_set(
+                furi_thread_get_id(app->worker), WifiWorkerFlagConnect);
+        } else {
+            wifi_set_network_saved(app, app->ssid, false);
+            show_password = true;
+        }
+    }
+
+    if(show_password) {
         app->password[0] = '\0';
+        const int32_t index = wifi_credential_index(app, app->ssid);
         with_view_model(
             app->password_view,
             WifiPasswordModel * model,
             {
                 memset(model, 0, sizeof(WifiPasswordModel));
+                if(index >= 0) {
+                    strlcpy(
+                        model->password,
+                        app->credentials[index].password,
+                        sizeof(model->password));
+                }
             },
             false);
         view_dispatcher_switch_to_view(app->view_dispatcher, WifiViewPassword);
+    }
+
+    if(forget_network) {
+        if(wifi_credentials_delete(app, app->forget_ssid)) {
+            wifi_set_network_saved(app, app->forget_ssid, false);
+            furi_thread_flags_set(
+                furi_thread_get_id(app->worker), WifiWorkerFlagForget);
+        } else {
+            wifi_set_status(
+                app,
+                WifiScreenStatus,
+                "DELETE FAILED",
+                "Check the SD card");
+        }
     }
 
     return consumed;
@@ -684,6 +954,8 @@ static WifiInternetWatch* wifi_app_alloc(void) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->notification = furi_record_open(RECORD_NOTIFICATION);
+    app->storage = furi_record_open(RECORD_STORAGE);
+    wifi_credentials_load(app);
 
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -755,6 +1027,7 @@ static void wifi_app_free(WifiInternetWatch* app) {
 
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);
+    furi_record_close(RECORD_STORAGE);
     free(app);
 }
 

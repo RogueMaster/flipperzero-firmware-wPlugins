@@ -6,6 +6,8 @@ Flipper Zero FAP application that uses an official Wi-Fi Developer Board running
 
 - Scans nearby Wi-Fi networks
 - Lets you select an SSID and enter its password
+- Remembers up to 16 Wi-Fi credentials on the Flipper microSD card
+- Lets you update or forget a saved network
 - Connects through ESP-AT
 - Checks internet availability every 60 seconds
 - Shows `ONLINE`, `OFFLINE`, or `NO WI-FI`
@@ -61,9 +63,16 @@ Copy it to:
 3. Open **Apps → GPIO → WiFi Internet Watch**.
 4. Select a network, enter its password, and wait for the status screen.
 
+Saved networks are marked with `*`. Press **OK** to connect using the saved password,
+hold **OK** to edit it, or press **Right** (`Forget`) to delete it. New and updated
+passwords are saved only after ESP-AT successfully joins the network.
+
 The password screen supports lowercase and uppercase letters, digits, spaces, and common
 symbols. Select the `Aa`, `#?`, or `ab` key to switch between lowercase, uppercase, and
 symbol layouts. Select `OK` on the keyboard to connect, and use **Back** to delete.
+
+Credentials are stored in the application's private data file on the microSD card. They
+are not encrypted, so anyone with access to the card can recover them.
 
 ## License
 
