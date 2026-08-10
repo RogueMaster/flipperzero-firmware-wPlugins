@@ -734,7 +734,11 @@ static bool scan_save_log(
 }
 
 static void app_show_report(FakeChipApp* app, bool disputed);
-static void app_start_live_test(FakeChipApp* app, const LiveTest* test, uint8_t addr7);
+static void app_start_live_test(
+    FakeChipApp* app,
+    const LiveTest* test,
+    uint8_t addr7,
+    FakeChipViewId back_to);
 
 // Snapshots the results and writes the report outside the model lock: SD
 // writes can stall for seconds and must never hold up the GUI.
@@ -875,7 +879,7 @@ static bool scan_input_callback(InputEvent* event, void* context) {
 
     if(answered_wrong) i2c_notify_play(app->notifications, I2CNotifyBad);
 
-    if(start_live) app_start_live_test(app, start_live, live_addr);
+    if(start_live) app_start_live_test(app, start_live, live_addr, FakeChipViewScan);
 
     if(show_report) app_show_report(app, disputed);
 
@@ -1244,9 +1248,16 @@ static int32_t live_thread_worker(void* context) {
     return 0;
 }
 
-static void app_start_live_test(FakeChipApp* app, const LiveTest* test, uint8_t addr7) {
-    app->live_return_to =
-        (app->current_view == FakeChipViewTests) ? FakeChipViewTests : FakeChipViewScan;
+// `back_to` is passed rather than read from app->current_view, which only
+// tracks forward navigation: a Back keypress goes through the view's previous
+// callback and never updates it. Inferring the origin from it sent anyone who
+// entered the browser by pressing Back to the scan verdict instead.
+static void app_start_live_test(
+    FakeChipApp* app,
+    const LiveTest* test,
+    uint8_t addr7,
+    FakeChipViewId back_to) {
+    app->live_return_to = back_to;
     with_view_model(
         app->live_view,
         LiveViewModel * m,
@@ -1288,13 +1299,17 @@ static void live_exit_callback(void* context) {
         app->live_thread = NULL;
     }
 
-    // Strictly after the join. The test's code, its strings and its descriptor
-    // all live inside the plugin's mapped memory, so unmapping it while the
-    // worker is still in there is a jump into freed pages.
+    // Strictly after the join, and the order of these two lines is the whole
+    // point. The worker is not the only thread holding a pointer into the
+    // plugin: the GUI thread draws m->test->title on every frame, and
+    // m->test->draw if the plugin supplied one. Joining says nothing about
+    // that. Clearing m->test under the model lock does — taking the lock waits
+    // out any draw already in progress, and once it is NULL no later draw can
+    // follow the pointer. Only then is it safe to unmap.
     if(app->live_plugin) {
+        with_view_model(app->live_view, LiveViewModel * m, { m->test = NULL; }, false);
         live_plugin_close(app->live_plugin);
         app->live_plugin = NULL;
-        with_view_model(app->live_view, LiveViewModel * m, { m->test = NULL; }, false);
     }
 }
 
@@ -1644,11 +1659,11 @@ static void tests_launch(FakeChipApp* app, size_t index) {
                 problem = live_plugin_status_text(status);
             } else {
                 app->live_plugin = handle;
-                app_start_live_test(app, live_plugin_test(handle), addr);
+                app_start_live_test(app, live_plugin_test(handle), addr, FakeChipViewTests);
                 return;
             }
         } else {
-            app_start_live_test(app, test, addr);
+            app_start_live_test(app, test, addr, FakeChipViewTests);
             return;
         }
     }

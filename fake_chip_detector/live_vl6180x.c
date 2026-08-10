@@ -31,6 +31,10 @@
 // makes single-shot ranging observable at all.
 #define VL6180X_INT_CONFIG_RANGE_READY 0x04
 
+// And the reset value it is put back to. This is the only register this test
+// changes that does not undo itself, so it is the only one to restore.
+#define VL6180X_INT_CONFIG_DISABLED 0x00
+
 // SYSTEM__INTERRUPT_CLEAR bits 0/1/2 clear the range, ALS and error
 // interrupts; writing all three is the documented way to reset the flags.
 #define VL6180X_INT_CLEAR_ALL 0x07
@@ -130,17 +134,22 @@ static void vl6180x_run(const LiveTestEnv* env) {
                          LIVE_TEST_TIMEOUT_MS) &&
                      model_id == VL6180X_MODEL_ID_VALUE;
 
+        // Tracked separately from `alive` because the two answer different
+        // questions: whether the part is worth reading, and whether a register
+        // was changed and has to be put back. They stop agreeing the moment
+        // the first write lands and the second does not.
+        bool configured = false;
         if(alive) {
-            alive = i2c->write_reg16_addr(
-                        addr7,
-                        VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO,
-                        VL6180X_INT_CONFIG_RANGE_READY,
-                        LIVE_TEST_TIMEOUT_MS) &&
-                    i2c->write_reg16_addr(
-                        addr7,
-                        VL6180X_SYSTEM_INTERRUPT_CLEAR,
-                        VL6180X_INT_CLEAR_ALL,
-                        LIVE_TEST_TIMEOUT_MS);
+            configured = i2c->write_reg16_addr(
+                addr7,
+                VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO,
+                VL6180X_INT_CONFIG_RANGE_READY,
+                LIVE_TEST_TIMEOUT_MS);
+            alive = configured && i2c->write_reg16_addr(
+                                      addr7,
+                                      VL6180X_SYSTEM_INTERRUPT_CLEAR,
+                                      VL6180X_INT_CLEAR_ALL,
+                                      LIVE_TEST_TIMEOUT_MS);
         }
 
         uint8_t seen_min = 255, seen_max = 0;
@@ -187,6 +196,19 @@ static void vl6180x_run(const LiveTestEnv* env) {
             vl6180x_delay(stop, VL6180X_POLL_MS);
         }
 
+        // Park only what we started, before the stop check so that leaving the
+        // screen runs it too. Single-shot ranging does stop on its own, and
+        // INTERRUPT_CLEAR is self-clearing, but the interrupt config is not:
+        // left at 4 it keeps asserting range-ready on GPIO1 for whatever uses
+        // this sensor next. Nothing is written if the model ID never matched.
+        if(configured) {
+            i2c->write_reg16_addr(
+                addr7,
+                VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO,
+                VL6180X_INT_CONFIG_DISABLED,
+                LIVE_TEST_TIMEOUT_MS);
+        }
+
         if(*stop) break;
 
         memset(&st, 0, sizeof(st));
@@ -195,8 +217,6 @@ static void vl6180x_run(const LiveTestEnv* env) {
         publish(ctx, &st);
         vl6180x_delay(stop, 500);
     }
-    // Nothing to tear down: single-shot ranging leaves the part idle between
-    // measurements, so walking away already stops it.
 }
 
 static void vl6180x_draw(Canvas* canvas, const LiveTestState* st, uint32_t frame) {
