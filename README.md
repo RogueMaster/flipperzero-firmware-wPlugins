@@ -61,6 +61,10 @@ Copy it to:
 3. Open **Apps → GPIO → WiFi Internet Watch**.
 4. Select a network, enter its password, and wait for the status screen.
 
+The password screen supports lowercase and uppercase letters, digits, spaces, and common
+symbols. Select the `Aa`, `#?`, or `ab` key to switch between lowercase, uppercase, and
+symbol layouts. Select `OK` on the keyboard to connect, and use **Back** to delete.
+
 ## License
 
 MIT

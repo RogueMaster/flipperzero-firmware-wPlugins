@@ -5,7 +5,6 @@
 #include <gui/elements.h>
 #include <gui/view.h>
 #include <gui/view_dispatcher.h>
-#include <gui/modules/text_input.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 
@@ -47,10 +46,22 @@ typedef struct {
 } WifiViewModel;
 
 typedef struct {
+    char password[WIFI_PASSWORD_SIZE];
+    uint8_t mode;
+    uint8_t row;
+    uint8_t column;
+} WifiPasswordModel;
+
+typedef struct {
+    char value;
+    uint8_t x;
+} WifiPasswordKey;
+
+typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     View* main_view;
-    TextInput* password_input;
+    View* password_view;
     NotificationApp* notification;
     Expansion* expansion;
 
@@ -65,7 +76,103 @@ typedef struct {
     bool otg_was_enabled;
 } WifiInternetWatch;
 
-static void wifi_password_done_callback(void* context);
+#define WIFI_PASSWORD_KEY_SWITCH    ((char)0x01)
+#define WIFI_PASSWORD_KEY_BACKSPACE '\b'
+#define WIFI_PASSWORD_KEY_ENTER     '\r'
+
+static const WifiPasswordKey wifi_password_alpha_row_1[] = {
+    {'q', 2},  {'w', 11}, {'e', 20}, {'r', 29}, {'t', 38}, {'y', 47}, {'u', 56},
+    {'i', 65}, {'o', 74}, {'p', 83}, {'0', 93}, {'1', 103}, {'2', 113}, {'3', 123},
+};
+
+static const WifiPasswordKey wifi_password_alpha_row_2[] = {
+    {'a', 2},
+    {'s', 11},
+    {'d', 20},
+    {'f', 29},
+    {'g', 38},
+    {'h', 47},
+    {'j', 56},
+    {'k', 65},
+    {'l', 74},
+    {WIFI_PASSWORD_KEY_BACKSPACE, 84},
+    {'4', 103},
+    {'5', 113},
+    {'6', 123},
+};
+
+static const WifiPasswordKey wifi_password_alpha_row_3[] = {
+    {WIFI_PASSWORD_KEY_SWITCH, 2},
+    {'z', 15},
+    {'x', 23},
+    {'c', 31},
+    {'v', 39},
+    {'b', 47},
+    {'n', 55},
+    {'m', 63},
+    {' ', 71},
+    {WIFI_PASSWORD_KEY_ENTER, 79},
+    {'7', 103},
+    {'8', 113},
+    {'9', 123},
+};
+
+static const WifiPasswordKey wifi_password_symbol_row_1[] = {
+    {'!', 2},  {'@', 12}, {'#', 22}, {'$', 32}, {'%', 42}, {'^', 52}, {'&', 62},
+    {'*', 72}, {'(', 82}, {')', 92}, {'<', 103}, {'>', 113}, {'?', 123},
+};
+
+static const WifiPasswordKey wifi_password_symbol_row_2[] = {
+    {'~', 2},
+    {'+', 11},
+    {'-', 20},
+    {'_', 29},
+    {'=', 38},
+    {'[', 47},
+    {']', 56},
+    {'{', 65},
+    {'}', 74},
+    {WIFI_PASSWORD_KEY_BACKSPACE, 84},
+    {'/', 103},
+    {'\\', 113},
+    {'|', 123},
+};
+
+static const WifiPasswordKey wifi_password_symbol_row_3[] = {
+    {WIFI_PASSWORD_KEY_SWITCH, 2},
+    {'.', 16},
+    {',', 27},
+    {';', 38},
+    {':', 49},
+    {'\'', 60},
+    {'"', 70},
+    {WIFI_PASSWORD_KEY_ENTER, 79},
+    {'`', 103},
+};
+
+static const WifiPasswordKey* wifi_password_get_row(uint8_t mode, uint8_t row) {
+    if(mode == 2) {
+        if(row == 0) return wifi_password_symbol_row_1;
+        if(row == 1) return wifi_password_symbol_row_2;
+        return wifi_password_symbol_row_3;
+    }
+
+    if(row == 0) return wifi_password_alpha_row_1;
+    if(row == 1) return wifi_password_alpha_row_2;
+    return wifi_password_alpha_row_3;
+}
+
+static size_t wifi_password_get_row_size(uint8_t mode, uint8_t row) {
+    if(mode == 2) {
+        if(row == 0) return COUNT_OF(wifi_password_symbol_row_1);
+        if(row == 1) return COUNT_OF(wifi_password_symbol_row_2);
+        return COUNT_OF(wifi_password_symbol_row_3);
+    }
+
+    if(row == 0) return COUNT_OF(wifi_password_alpha_row_1);
+    if(row == 1) return COUNT_OF(wifi_password_alpha_row_2);
+    return COUNT_OF(wifi_password_alpha_row_3);
+}
 
 static void wifi_set_status(
     WifiInternetWatch* app,
@@ -406,15 +513,13 @@ static bool wifi_input_callback(InputEvent* event, void* context) {
 
     if(select_network) {
         app->password[0] = '\0';
-        text_input_reset(app->password_input);
-        text_input_set_header_text(app->password_input, app->ssid);
-        text_input_set_result_callback(
-            app->password_input,
-            wifi_password_done_callback,
-            app,
-            app->password,
-            sizeof(app->password),
-            true);
+        with_view_model(
+            app->password_view,
+            WifiPasswordModel * model,
+            {
+                memset(model, 0, sizeof(WifiPasswordModel));
+            },
+            false);
         view_dispatcher_switch_to_view(app->view_dispatcher, WifiViewPassword);
     }
 
@@ -426,14 +531,138 @@ static uint32_t wifi_exit_callback(void* context) {
     return VIEW_NONE;
 }
 
-static uint32_t wifi_password_back_callback(void* context) {
-    UNUSED(context);
-    return WifiViewMain;
+static void wifi_password_draw_callback(Canvas* canvas, void* context) {
+    WifiPasswordModel* model = context;
+    char password_text[WIFI_PASSWORD_SIZE];
+    const size_t password_size = strlen(model->password);
+
+    canvas_clear(canvas);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 8, "Wi-Fi password");
+    elements_slightly_rounded_frame(canvas, 1, 11, 126, 15);
+
+    const size_t visible_size = MIN(password_size, sizeof(password_text) - 1);
+    for(size_t i = 0; i < visible_size; i++) {
+        password_text[i] = '*';
+    }
+    password_text[visible_size] = '\0';
+    canvas_draw_str(canvas, 4, 21, password_text);
+
+    canvas_set_font(canvas, FontKeyboard);
+    for(uint8_t row = 0; row < 3; row++) {
+        const WifiPasswordKey* keys = wifi_password_get_row(model->mode, row);
+        const size_t row_size = wifi_password_get_row_size(model->mode, row);
+        const uint8_t y = 36 + row * 12;
+
+        for(size_t column = 0; column < row_size; column++) {
+            const bool selected = model->row == row && model->column == column;
+            const char value = keys[column].value;
+            const uint8_t x = keys[column].x;
+
+            if(value == WIFI_PASSWORD_KEY_BACKSPACE) {
+                canvas_set_font(canvas, FontSecondary);
+                if(selected) canvas_draw_box(canvas, x - 2, y - 9, 16, 10);
+                canvas_set_color(canvas, selected ? ColorWhite : ColorBlack);
+                canvas_draw_str(canvas, x, y, "<-");
+            } else if(value == WIFI_PASSWORD_KEY_ENTER) {
+                canvas_set_font(canvas, FontSecondary);
+                if(selected) canvas_draw_box(canvas, x - 2, y - 9, 20, 10);
+                canvas_set_color(canvas, selected ? ColorWhite : ColorBlack);
+                canvas_draw_str(canvas, x, y, "OK");
+            } else if(value == WIFI_PASSWORD_KEY_SWITCH) {
+                canvas_set_font(canvas, FontSecondary);
+                if(selected) canvas_draw_box(canvas, x - 1, y - 9, 12, 10);
+                canvas_set_color(canvas, selected ? ColorWhite : ColorBlack);
+                canvas_draw_str(canvas, x, y, model->mode == 0 ? "Aa" : model->mode == 1 ? "#?" : "ab");
+            } else {
+                canvas_set_font(canvas, FontKeyboard);
+                if(selected) canvas_draw_box(canvas, x - 1, y - 8, 7, 10);
+                canvas_set_color(canvas, selected ? ColorWhite : ColorBlack);
+                char display = value;
+                if(model->mode == 1 && display >= 'a' && display <= 'z') {
+                    display = display - ('a' - 'A');
+                }
+                canvas_draw_glyph(canvas, x, y, display);
+            }
+
+            canvas_set_color(canvas, ColorBlack);
+            canvas_set_font(canvas, FontKeyboard);
+        }
+    }
 }
 
-static void wifi_password_done_callback(void* context) {
+static bool wifi_password_input_callback(InputEvent* event, void* context) {
     WifiInternetWatch* app = context;
-    view_dispatcher_send_custom_event(app->view_dispatcher, WifiEventPasswordDone);
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
+        return false;
+    }
+
+    bool consumed = true;
+    bool connect = false;
+    bool return_to_networks = false;
+
+    with_view_model(
+        app->password_view,
+        WifiPasswordModel * model,
+        {
+            const WifiPasswordKey* row = wifi_password_get_row(model->mode, model->row);
+            const size_t row_size = wifi_password_get_row_size(model->mode, model->row);
+            const size_t password_size = strlen(model->password);
+
+            if(event->key == InputKeyLeft) {
+                model->column =
+                    model->column == 0 ? (uint8_t)(row_size - 1) :
+                                         (uint8_t)(model->column - 1);
+            } else if(event->key == InputKeyRight) {
+                model->column = (model->column + 1) % row_size;
+            } else if(event->key == InputKeyUp) {
+                model->row = model->row == 0 ? 2 : model->row - 1;
+                const size_t new_row_size = wifi_password_get_row_size(model->mode, model->row);
+                if(model->column >= new_row_size) model->column = new_row_size - 1;
+            } else if(event->key == InputKeyDown) {
+                model->row = (model->row + 1) % 3;
+                const size_t new_row_size = wifi_password_get_row_size(model->mode, model->row);
+                if(model->column >= new_row_size) model->column = new_row_size - 1;
+            } else if(event->key == InputKeyOk) {
+                char value = row[model->column].value;
+                if(value == WIFI_PASSWORD_KEY_SWITCH) {
+                    model->mode = (model->mode + 1) % 3;
+                    const size_t new_row_size =
+                        wifi_password_get_row_size(model->mode, model->row);
+                    if(model->column >= new_row_size) model->column = new_row_size - 1;
+                } else if(value == WIFI_PASSWORD_KEY_BACKSPACE) {
+                    if(password_size > 0) model->password[password_size - 1] = '\0';
+                } else if(value == WIFI_PASSWORD_KEY_ENTER) {
+                    strlcpy(app->password, model->password, sizeof(app->password));
+                    connect = true;
+                } else if(password_size + 1 < sizeof(model->password)) {
+                    if(model->mode == 1 && value >= 'a' && value <= 'z') {
+                        value = value - ('a' - 'A');
+                    }
+                    model->password[password_size] = value;
+                    model->password[password_size + 1] = '\0';
+                }
+            } else if(event->key == InputKeyBack &&
+                      (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
+                if(password_size > 0) {
+                    model->password[password_size - 1] = '\0';
+                } else {
+                    return_to_networks = true;
+                }
+            } else {
+                consumed = false;
+            }
+        },
+        consumed);
+
+    if(connect) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, WifiEventPasswordDone);
+    } else if(return_to_networks) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, WifiViewMain);
+    }
+
+    return consumed;
 }
 
 static bool wifi_custom_event_callback(void* context, uint32_t event) {
@@ -480,17 +709,13 @@ static WifiInternetWatch* wifi_app_alloc(void) {
         false);
     view_dispatcher_add_view(app->view_dispatcher, WifiViewMain, app->main_view);
 
-    app->password_input = text_input_alloc();
-    text_input_set_result_callback(
-        app->password_input,
-        wifi_password_done_callback,
-        app,
-        app->password,
-        sizeof(app->password),
-        true);
-    view_set_previous_callback(text_input_get_view(app->password_input), wifi_password_back_callback);
-    view_dispatcher_add_view(
-        app->view_dispatcher, WifiViewPassword, text_input_get_view(app->password_input));
+    app->password_view = view_alloc();
+    view_allocate_model(
+        app->password_view, ViewModelTypeLocking, sizeof(WifiPasswordModel));
+    view_set_context(app->password_view, app);
+    view_set_draw_callback(app->password_view, wifi_password_draw_callback);
+    view_set_input_callback(app->password_view, wifi_password_input_callback);
+    view_dispatcher_add_view(app->view_dispatcher, WifiViewPassword, app->password_view);
 
     return app;
 }
@@ -523,7 +748,7 @@ static void wifi_app_free(WifiInternetWatch* app) {
     notification_message(app->notification, &sequence_reset_rgb);
 
     view_dispatcher_remove_view(app->view_dispatcher, WifiViewPassword);
-    text_input_free(app->password_input);
+    view_free(app->password_view);
     view_dispatcher_remove_view(app->view_dispatcher, WifiViewMain);
     view_free(app->main_view);
     view_dispatcher_free(app->view_dispatcher);
