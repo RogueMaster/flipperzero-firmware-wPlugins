@@ -1,0 +1,123 @@
+# Supported chips
+
+Every part **Fake Chip Detector** knows how to recognise, and exactly what it reads to
+do it. Generated from [`chip_db.c`](chip_db.c) — the app and this table cannot disagree.
+
+- **Register** — the ID register the app reads, with the datasheet name where the
+  datasheet gives one. A four-digit register index means the chip takes a 16-bit
+  register address (ST time-of-flight parts and Goodix touch controllers do).
+- **Expected** — the value a genuine part returns. A mask means only those bits are
+  compared; the rest are revision or configuration bits that legitimately vary.
+- **Width** — how many bytes the value itself is.
+- Several rows in one cell mean the app checks all of them. Every one has to match
+  before it will say GENUINE.
+
+If your chip is missing, the app says so plainly rather than calling it a fake — see
+[Adding a chip](#adding-a-chip) below.
+
+## Chips with a factory ID register (51)
+
+These can be verified. A mismatch here is real evidence that the part is not what the
+label claims.
+
+| Chip | What it is | I2C address | Register | Expected | Width | Notes |
+|---|---|---|---|---|---|---|
+| **BNO055** | 9-axis IMU + fusion | 0x28, 0x29 | `0x00` CHIP_ID<br>`0x01` ACC_ID (BMA280)<br>`0x02` MAG_ID (BMM150)<br>`0x03` GYR_ID (BMG160) | `0xA0`<br>`0xFB`<br>`0x32`<br>`0x0F` | 8-bit<br>8-bit<br>8-bit<br>8-bit |  |
+| **BMP280** | Pressure sensor | 0x76, 0x77 | `0xD0` | `0x58` | 8-bit |  |
+| **BME280** | Press/temp/humidity | 0x76, 0x77 | `0xD0` | `0x60` | 8-bit |  |
+| **BMP180** | Pressure sensor | 0x77 | `0xD0` | `0x55` | 8-bit |  |
+| **BMP388** | Pressure sensor | 0x76, 0x77 | `0x00` | `0x50` | 8-bit |  |
+| **BMP390** | Pressure sensor | 0x76, 0x77 | `0x00` | `0x60` | 8-bit |  |
+| **BME680** | Air quality + climate | 0x76, 0x77 | `0xD0`<br>`0xF0` | `0x61`<br>`0x00` | 8-bit<br>8-bit |  |
+| **BME688** | Air quality + climate | 0x76, 0x77 | `0xD0`<br>`0xF0` | `0x61`<br>`0x01` | 8-bit<br>8-bit |  |
+| **DPS310** | Pressure sensor | 0x76, 0x77 | `0x0D` | `0x10` | 8-bit |  |
+| **CCS811** | Air quality (VOC) | 0x5A, 0x5B | `0x20` | `0x81` | 8-bit | EOL part, clones common |
+| **ENS160** | Air quality (VOC) | 0x52, 0x53 | `0x00`<br>`0x01` | `0x60`<br>`0x01` | 8-bit<br>8-bit |  |
+| **HDC1080** | Temp + humidity | 0x40 | `0xFE`<br>`0xFF` | `0x5449`<br>`0x1050` | 16-bit<br>16-bit |  |
+| **MPU6050** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x68` | 8-bit | TDK EOL, old stock |
+| **MPU6500** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x70` | 8-bit | often sold as MPU9250 |
+| **MPU9250** | 9-axis IMU | 0x68, 0x69 | `0x75` | `0x71` | 8-bit | TDK EOL, often faked |
+| **MPU6886** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x19` | 8-bit |  |
+| **ICM20948** | 9-axis IMU | 0x68, 0x69 | `0x00` | `0xEA` | 8-bit |  |
+| **ICM42605** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x42` | 8-bit |  |
+| **ICM42688P** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x47` | 8-bit |  |
+| **BMI160** | 6-axis IMU | 0x68, 0x69 | `0x00` | `0xD1` | 8-bit |  |
+| **BMI270** | 6-axis IMU | 0x68, 0x69 | `0x00` | `0x24` | 8-bit |  |
+| **BMI088 gyro** | Gyroscope | 0x68, 0x69 | `0x00` | `0x0F` | 8-bit |  |
+| **BMI088 accel** | Accelerometer | 0x18, 0x19 | `0x00` | `0x1E` | 8-bit |  |
+| **LSM6DS3** | 6-axis IMU | 0x6A, 0x6B | `0x0F` | `0x69` | 8-bit |  |
+| **LSM6DS3TR-C** | 6-axis IMU | 0x6A, 0x6B | `0x0F` | `0x6A` | 8-bit |  |
+| **LSM6DSO/OX** | 6-axis IMU | 0x6A, 0x6B | `0x0F` | `0x6C` | 8-bit | DSO and DSOX share the ID |
+| **LSM6DSV16X** | 6-axis IMU | 0x6A, 0x6B | `0x0F` | `0x70` | 8-bit |  |
+| **QMI8658** | 6-axis IMU | 0x6A, 0x6B | `0x00` | `0x05` | 8-bit |  |
+| **LIS3DH/2DH12** | Accelerometer | 0x18, 0x19 | `0x0F` | `0x33` | 8-bit | same ID as LIS2DH12 |
+| **ADXL345/343** | Accelerometer | 0x53, 0x1D | `0x00` | `0xE5` | 8-bit |  |
+| **ADXL355** | Accelerometer | 0x1D, 0x53 | `0x00`<br>`0x01`<br>`0x02` | `0xAD`<br>`0x1D`<br>`0xED` | 8-bit<br>8-bit<br>8-bit |  |
+| **LIS3MDL** | Magnetometer | 0x1C, 0x1E | `0x0F` | `0x3D` | 8-bit |  |
+| **LIS2MDL** | Magnetometer | 0x1E | `0x4F` | `0x40` | 8-bit |  |
+| **MMC5603** | Magnetometer | 0x30 | `0x39` | `0x10` | 8-bit |  |
+| **HMC5883L** | Magnetometer | 0x1E | `0x0A`<br>`0x0B`<br>`0x0C` | `0x48`<br>`0x34`<br>`0x33` | 8-bit<br>8-bit<br>8-bit | EOL since 2016, mostly fake |
+| **QMC5883L** | Magnetometer | 0x0D | `0x0D` | `0xFF` | 8-bit |  |
+| **VL53L0X** | Laser rangefinder | 0x29 | `0xC0` | `0xEE` | 8-bit |  |
+| **VL53L1X** | Laser rangefinder | 0x29 | `0x010F` MODEL_ID<br>`0x0110` MODULE_TYPE | `0xEA`<br>`0xCC` | 8-bit<br>8-bit |  |
+| **VL6180X** | Laser rangefinder | 0x29 | `0x0000` | `0xB4` | 8-bit |  |
+| **TCS34725** | Colour sensor | 0x29 | `0x92` | `0x44` | 8-bit |  |
+| **TSL2591** | Light sensor | 0x29 | `0xB2` | `0x50` | 8-bit |  |
+| **APDS9960** | Gesture + colour | 0x39 | `0x92` | `0xAB` | 8-bit |  |
+| **LTR-390UV** | UV + light sensor | 0x53 | `0x06` | `0xB0` (mask `0xF0`) | 8-bit |  |
+| **MAX30102** | Heart rate / SpO2 | 0x57 | `0xFF` | `0x15` | 8-bit | 0x11 here = MAX30100 relabel |
+| **INA226** | Current monitor | 0x40-0x4F | `0xFE`<br>`0xFF` | `0x5449`<br>`0x2260` | 16-bit<br>16-bit |  |
+| **INA260** | Current monitor | 0x40-0x4F | `0xFE`<br>`0xFF` | `0x5449`<br>`0x2270` | 16-bit<br>16-bit |  |
+| **INA228** | Current monitor | 0x40-0x4F | `0x3E` | `0x5449` | 16-bit |  |
+| **TMP117** | Temperature sensor | 0x48-0x4B | `0x0F` | `0x0117` (mask `0x0FFF`) | 16-bit |  |
+| **LPS22HB** | Pressure sensor | 0x5C, 0x5D | `0x0F` | `0xB1` | 8-bit |  |
+| **LPS25HB** | Pressure sensor | 0x5C, 0x5D | `0x0F` | `0xBD` | 8-bit |  |
+| **CST816S** | Touch controller | 0x15 | `0xA7` | `0xB4` | 8-bit | sleeps until touched |
+
+## Chips recognised by address only (29)
+
+These parts carry no ID register at all — there is nothing to read, so no honest tool
+can confirm which one it is. The app reports them as DETECTED rather than pretending
+to a verdict it cannot support.
+
+| Chip | What it is | I2C address | Notes |
+|---|---|---|---|
+| **DS3231** | Real-time clock | 0x68 |  |
+| **DS1307** | Real-time clock | 0x68 |  |
+| **PCF8563** | Real-time clock | 0x51 |  |
+| **SSD1306/SH1106** | OLED display | 0x3C, 0x3D | SH1106 fakes undetectable |
+| **AHT10/AHT20** | Temp + humidity | 0x38 |  |
+| **BH1750** | Light sensor | 0x23, 0x5C |  |
+| **SHT3x/SHT4x** | Temp + humidity | 0x44, 0x45 | grade relabels undetectable |
+| **SCD4x** | CO2 sensor | 0x62 |  |
+| **SGP30** | Air quality (VOC) | 0x58 |  |
+| **SGP40/41** | Air quality (VOC) | 0x59 |  |
+| **SCD30** | CO2 sensor | 0x61 |  |
+| **Si7021/HTU21D** | Temp + humidity | 0x40 |  |
+| **MLX90614** | IR thermometer | 0x5A |  |
+| **MLX90640** | Thermal camera | 0x33 |  |
+| **AS5600** | Magnetic angle | 0x36 |  |
+| **MAX17048** | Battery fuel gauge | 0x36 |  |
+| **ADS1115** | ADC | 0x48-0x4B |  |
+| **INA219** | Current monitor | 0x40-0x4F |  |
+| **MCP23017** | GPIO expander | 0x20-0x27 |  |
+| **PCF8574** | GPIO expander | 0x20-0x27 |  |
+| **PCF8574A** | GPIO expander | 0x38-0x3F |  |
+| **MCP4725** | DAC | 0x60-0x67 |  |
+| **PCA9685** | PWM / servo driver | 0x40 |  |
+| **TCA9548A** | I2C multiplexer | 0x70-0x77 |  |
+| **AT24Cxx** | EEPROM memory | 0x50-0x57 |  |
+| **MS5611** | Pressure sensor | 0x76, 0x77 |  |
+| **VEML6070** | UV sensor | 0x38, 0x39 |  |
+| **MAX44009** | Light sensor | 0x4A, 0x4B |  |
+| **BNO085** | 9-axis IMU + fusion | 0x4A, 0x4B | SHTP protocol, no WHO_AM_I |
+
+## Adding a chip
+
+Add an `IdCheck` array and one `ChipEntry` row to `chip_db.c`, then rebuild. The rule
+the database is held to: **every constant must come from the manufacturer datasheet or
+the vendor's own driver.** A wrong expected value makes the app accuse a genuine sensor
+of being counterfeit, which is far worse than not supporting the part at all. Anything
+that could not be pinned down to a primary source was deliberately left out.
+
+Cite the source in a comment, the way the existing entries do.

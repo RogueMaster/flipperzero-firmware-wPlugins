@@ -27,6 +27,8 @@ one register — this app does that and shows its work.
 - **Names the part and what it is.** Not just `VL6180X` but `VL6180X — Laser rangefinder`, for
   all 80 chips in the database. No searching a part number to find out you were sent a distance
   sensor instead of the IMU you paid for.
+  → **[Full list of supported chips](SUPPORTED_CHIPS.md)**, with the register and expected value
+  used for each one.
 - **Asks whether that is what you ordered.** Knowing which chip it is only answers half the
   question; the app cannot see the label, so it asks.
 - **Produces a report you can read out at the front door.** Plain language first — what the chip
