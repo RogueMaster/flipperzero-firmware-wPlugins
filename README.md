@@ -14,6 +14,8 @@ plain words, and asks the one question it cannot answer itself: is this what you
 | What was found, and the question only you can answer | The answer you want to see |
 | ![Report](fake_chip_detector/screenshots/06_report.png) | ![Scanning](fake_chip_detector/screenshots/03_scanning.png) |
 | The report, readable on screen — show it to the seller | Sweeping the bus |
+| ![Stray pull-up](fake_chip_detector/screenshots/10_wiring_stray.png) | ![Wrong hole](fake_chip_detector/screenshots/11_wrong_hole.png) |
+| SDA is off pin 15 — so the app goes looking, and finds the module's pull-up sitting on pin 6 | And it is nice about it |
 
 ## Why
 
