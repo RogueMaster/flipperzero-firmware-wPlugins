@@ -38,10 +38,15 @@ typedef enum {
     MenuIndexAbout,
 } MenuIndex;
 
+// Half-width of the break in each wire, in pixels. Animates to zero as the
+// line comes alive, so a connection visibly closes the circuit.
+#define WIRE_GAP_MAX 10
+
 typedef struct {
     uint32_t frame;
     I2CBusCheck bus;
     bool sensor_seen; // pull-ups detected => something is wired up
+    uint8_t gap[4]; // per-row animated break
 } WiringViewModel;
 
 typedef struct {
@@ -97,44 +102,86 @@ static void draw_connector(Canvas* canvas, uint8_t x, uint8_t y) {
     canvas_draw_line(canvas, x + 3, y, x + 5, y);
 }
 
+// The wire itself carries the state, so there is nothing extra to decode:
+// a broken line means not connected, the break closes up when the line comes
+// alive, and a cross in the break means a fault.
+typedef enum {
+    WireMissing,
+    WireLive,
+    WireFault,
+} WireState;
+
+// Row order on screen: GND, 3V3, SDA, SCL.
+static WireState wiring_state(const I2CBusCheck* bus, uint8_t row) {
+    switch(row) {
+    case 0:
+    case 1:
+        // GND and 3V3 cannot be sensed directly — the Flipper drives them.
+        // But a module's pull-ups hang off its own supply, so both lines
+        // reading pulled up proves power and ground are reaching it.
+        return bus->powered ? WireLive : WireMissing;
+    case 2:
+        return bus->sda_stuck ? WireFault : (bus->sda_ok ? WireLive : WireMissing);
+    default:
+        return bus->scl_stuck ? WireFault : (bus->scl_ok ? WireLive : WireMissing);
+    }
+}
+
 // Wire rows: text lives in a gap in the line rather than on top of it, so
 // nothing overlaps on a 128x64 screen.
-#define WIRE_X0 42 // line starts after the Flipper pin label
-#define WIRE_X1 82 // line ends before the sensor signal label
+#define WIRE_X0 38 // line starts after the Flipper pin label
+#define WIRE_X1 84 // line ends before the sensor signal label
 
 static void wiring_draw_callback(Canvas* canvas, void* model) {
     WiringViewModel* m = model;
     canvas_clear(canvas);
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignBottom, "3.3V ONLY - NOT 5V!");
+    canvas_draw_str_aligned(canvas, 64, 7, AlignCenter, AlignBottom, "3.3V ONLY - NOT 5V!");
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 19, "FLIPPER");
-    canvas_draw_str(canvas, 88, 19, "SENSOR");
-    canvas_draw_line(canvas, 0, 21, 127, 21);
+    canvas_draw_str(canvas, 2, 17, "FLIPPER");
+    canvas_draw_str(canvas, 88, 17, "SENSOR");
+    canvas_draw_line(canvas, 0, 19, 127, 19);
 
+    // Listed in ascending pin order so the numbers read in sequence and each
+    // pair sits together on the header: 8 and 9 are neighbours in the top
+    // row, 15 and 16 in the bottom row. Power first also matches the order
+    // you actually want to wire things up in.
     // Pin numbers verified against furi_hal_resources.c gpio_pins[]:
     // PC0 (SCL) is header pin 16, PC1 (SDA) is header pin 15.
-    const char* pins[] = {"pin 16", "pin 15", "pin 9", "pin 8"};
-    const char* signals[] = {"SCL", "SDA", "3V3", "GND"};
+    const char* pins[] = {"pin 8", "pin 9", "pin 15", "pin 16"};
+    const char* signals[] = {"GND", "3V3", "SDA", "SCL"};
+
+    const uint8_t mid = (WIRE_X0 + WIRE_X1) / 2;
 
     for(uint8_t i = 0; i < 4; i++) {
-        uint8_t baseline = 31 + i * 8;
+        uint8_t baseline = 28 + i * 8;
         uint8_t y = baseline - 2; // wire runs through the middle of the text
+        WireState state = wiring_state(&m->bus, i);
+        uint8_t gap = m->gap[i];
 
         canvas_draw_str(canvas, 2, baseline, pins[i]);
         canvas_draw_str(canvas, 88, baseline, signals[i]);
-        canvas_draw_line(canvas, WIRE_X0, y, WIRE_X1, y);
         draw_connector(canvas, WIRE_X0 - 5, y);
         canvas_draw_box(canvas, WIRE_X1, y - 2, 3, 5);
 
-        // A pulse travelling Flipper -> sensor shows the link is live; it
-        // speeds up once pull-ups appear on the bus.
-        uint8_t speed = m->sensor_seen ? 3 : 1;
-        uint8_t span = WIRE_X1 - WIRE_X0;
-        uint8_t px = WIRE_X0 + (uint8_t)((m->frame * speed + i * 11) % span);
-        canvas_draw_disc(canvas, px, y, 1);
+        if(state == WireLive && gap == 0) {
+            canvas_draw_line(canvas, WIRE_X0, y, WIRE_X1, y);
+            // A pulse travelling Flipper -> sensor shows the link is live
+            uint8_t span = WIRE_X1 - WIRE_X0;
+            uint8_t px = WIRE_X0 + (uint8_t)((m->frame * 3 + i * 11) % span);
+            canvas_draw_disc(canvas, px, y, 1);
+        } else {
+            // Open circuit: dashed stubs reaching towards each other. The gap
+            // shrinks to nothing as the connection is made.
+            for(uint8_t x = WIRE_X0; x <= mid - gap; x += 3) canvas_draw_dot(canvas, x, y);
+            for(uint8_t x = WIRE_X1; x >= mid + gap; x -= 3) canvas_draw_dot(canvas, x, y);
+            if(state == WireFault) {
+                canvas_draw_line(canvas, mid - 3, y - 3, mid + 3, y + 3);
+                canvas_draw_line(canvas, mid - 3, y + 3, mid + 3, y - 3);
+            }
+        }
     }
 
     if(m->sensor_seen) {
@@ -143,9 +190,28 @@ static void wiring_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str_aligned(
             canvas, 64, 62, AlignCenter, AlignBottom, "Sensor found! OK = scan");
         canvas_set_color(canvas, ColorBlack);
+    } else if(m->bus.shorted) {
+        canvas_draw_str_aligned(
+            canvas, 64, 62, AlignCenter, AlignBottom, "SDA and SCL are shorted!");
     } else if(m->bus.health == I2CBusStuckLow) {
         canvas_draw_str_aligned(
             canvas, 64, 62, AlignCenter, AlignBottom, "Line stuck low - check short");
+    } else if(m->bus.stray_pin) {
+        // Only one line of room here, so alternate the quip and the fact.
+        if((m->frame / 50) % 2) {
+            canvas_draw_str_aligned(
+                canvas, 64, 62, AlignCenter, AlignBottom, "Wrong hole - it happens.");
+        } else {
+            char buf[36];
+            snprintf(buf, sizeof(buf), "Pull-ups are on pin %u", m->bus.stray_pin);
+            canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, buf);
+        }
+    } else if((m->frame / 50) % 2) {
+        // The rows above are already in the correct order to wire them up:
+        // ground first to tie the references together, power next, signals
+        // last into an already-powered chip. Say so while the user waits.
+        canvas_draw_str_aligned(
+            canvas, 64, 62, AlignCenter, AlignBottom, "Wire top-down: GND first");
     } else {
         // Fixed-width dots so the centred text does not jitter
         char buf[32];
@@ -545,17 +611,25 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
         I2CBusCheck bus;
         i2c_worker_get_bus(app->worker, &bus);
         bool became_connected = false;
+        bool became_wrong = false;
         with_view_model(
             app->wiring_view,
             WiringViewModel * m,
             {
-                bool seen = (bus.health == I2CBusOk);
+                bool seen = (bus.health == I2CBusOk) && !bus.shorted;
+                bool wrong = bus.shorted || bus.stray_pin ||
+                             bus.health == I2CBusStuckLow;
+                bool was_wrong = m->bus.shorted || m->bus.stray_pin ||
+                                 m->bus.health == I2CBusStuckLow;
                 if(seen && !m->sensor_seen) became_connected = true;
+                if(wrong && !was_wrong) became_wrong = true;
                 m->bus = bus;
                 m->sensor_seen = seen;
             },
             true);
-        if(became_connected) i2c_notify_play(app->notifications, I2CNotifyNeutral);
+        // Chirp once per transition, never on every poll
+        if(became_connected) i2c_notify_play(app->notifications, I2CNotifyGenuine);
+        if(became_wrong) i2c_notify_play(app->notifications, I2CNotifyAttention);
     }
 }
 
@@ -570,6 +644,7 @@ static void wiring_enter_callback(void* context) {
             m->frame = 0;
             m->sensor_seen = false;
             m->bus = (I2CBusCheck){0};
+            for(uint8_t i = 0; i < 4; i++) m->gap[i] = WIRE_GAP_MAX;
         },
         true);
     i2c_worker_watch_start(app->worker);
@@ -879,7 +954,23 @@ static int32_t anim_thread_worker(void* context) {
 
         switch(app->current_view) {
         case I2CChipIdViewWiring:
-            with_view_model(app->wiring_view, WiringViewModel * m, { m->frame++; }, true);
+            with_view_model(
+                app->wiring_view,
+                WiringViewModel * m,
+                {
+                    m->frame++;
+                    // Ease each wire's break shut as its line comes alive,
+                    // and back open if it is unplugged again.
+                    for(uint8_t i = 0; i < 4; i++) {
+                        bool live = wiring_state(&m->bus, i) == WireLive;
+                        if(live && m->gap[i] > 0) {
+                            m->gap[i]--;
+                        } else if(!live && m->gap[i] < WIRE_GAP_MAX) {
+                            m->gap[i]++;
+                        }
+                    }
+                },
+                true);
             break;
         case I2CChipIdViewScan:
             with_view_model(app->scan_view, ScanViewModel * m, { m->frame++; }, true);

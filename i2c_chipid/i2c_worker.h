@@ -44,6 +44,9 @@ typedef struct {
     bool sda_ok;
     bool scl_stuck; // line held low even against the internal pull-up
     bool sda_stuck;
+    bool shorted; // SDA follows SCL: the two lines are tied together
+    bool powered; // both lines pulled up => the module has 3V3 and GND
+    uint8_t stray_pin; // header pin number carrying a stray pull-up, 0 = none
 } I2CBusCheck;
 
 // Probes the electrical state of SCL/SDA without touching the I2C peripheral.

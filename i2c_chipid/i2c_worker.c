@@ -64,7 +64,55 @@ static bool i2c_line_probe(const GpioPin* pin, bool* stuck_low) {
     return high_with_pulldown;
 }
 
+// Pins the user might plug the sensor into by mistake. Deliberately excludes
+// 13/14 (UART), 10/12 (SWD) and 17 (iButton has its own pull-up on board),
+// where a reading would be meaningless or disruptive.
+typedef struct {
+    const GpioPin* pin;
+    uint8_t number;
+} StrayCandidate;
+
+static const StrayCandidate stray_candidates[] = {
+    {&gpio_ext_pa7, 2},
+    {&gpio_ext_pa6, 3},
+    {&gpio_ext_pa4, 4},
+    {&gpio_ext_pb3, 5},
+    {&gpio_ext_pb2, 6},
+    {&gpio_ext_pc3, 7},
+};
+
+// A module's pull-ups sit on whichever pins it is wired to. If they show up
+// somewhere other than 15/16, the user is on the wrong pins.
+static uint8_t i2c_find_stray_pullup(void) {
+    for(size_t i = 0; i < COUNT_OF(stray_candidates); i++) {
+        const GpioPin* pin = stray_candidates[i].pin;
+        furi_hal_gpio_init(pin, GpioModeInput, GpioPullDown, GpioSpeedLow);
+        furi_delay_ms(2);
+        bool pulled_up = furi_hal_gpio_read(pin);
+        furi_hal_gpio_init(pin, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+        if(pulled_up) return stray_candidates[i].number;
+    }
+    return 0;
+}
+
+// Drives SCL low and watches SDA. A lone clock pulse is harmless to any
+// slave, while a short between the two lines makes SDA follow.
+static bool i2c_lines_shorted(void) {
+    furi_hal_gpio_init(&gpio_ext_pc1, GpioModeInput, GpioPullUp, GpioSpeedLow);
+    furi_hal_gpio_init(&gpio_ext_pc0, GpioModeOutputOpenDrain, GpioPullNo, GpioSpeedLow);
+    furi_hal_gpio_write(&gpio_ext_pc0, false);
+    furi_delay_ms(2);
+    bool sda_followed = !furi_hal_gpio_read(&gpio_ext_pc1);
+
+    furi_hal_gpio_write(&gpio_ext_pc0, true);
+    furi_hal_gpio_init(&gpio_ext_pc0, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+    furi_hal_gpio_init(&gpio_ext_pc1, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+    return sda_followed;
+}
+
 void i2c_worker_check_bus(I2CBusCheck* out) {
+    memset(out, 0, sizeof(*out));
+
     bool scl_stuck = false, sda_stuck = false;
     // PC0 is SCL and PC1 is SDA per furi_hal_i2c_config.h; on the header
     // PC0 is pin 16 and PC1 is pin 15 (furi_hal_resources.c gpio_pins[]).
@@ -77,8 +125,14 @@ void i2c_worker_check_bus(I2CBusCheck* out) {
         out->health = I2CBusStuckLow;
     } else if(out->scl_ok && out->sda_ok) {
         out->health = I2CBusOk;
+        // Pull-ups on both lines can only be powered through the module's own
+        // 3V3 and GND, so this doubles as a power check.
+        out->powered = true;
+        out->shorted = i2c_lines_shorted();
     } else {
         out->health = I2CBusFloating;
+        // Nothing on the I2C pins: look for the module on the wrong ones.
+        if(!out->scl_ok && !out->sda_ok) out->stray_pin = i2c_find_stray_pullup();
     }
 }
 
