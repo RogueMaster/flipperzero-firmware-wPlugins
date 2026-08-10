@@ -117,8 +117,8 @@ static WireState wiring_state(const I2CBusCheck* bus, uint8_t row) {
     case 0:
     case 1:
         // GND and 3V3 cannot be sensed directly — the Flipper drives them.
-        // But a module's pull-ups hang off its own supply, so both lines
-        // reading pulled up proves power and ground are reaching it.
+        // But a pull-up only reads high if the module's supply is live and
+        // shares our ground, so one pulled-up line already proves both.
         return bus->powered ? WireLive : WireMissing;
     case 2:
         return bus->sda_stuck ? WireFault : (bus->sda_ok ? WireLive : WireMissing);
@@ -680,14 +680,16 @@ static void detail_draw_callback(Canvas* canvas, void* model) {
     for(uint8_t r = 0; r < dev->ident.read_count && r < CHIP_MAX_CHECKS; r++) {
         const IdReadResult* rr = &dev->ident.reads[r];
         uint8_t digits = rr->wide ? 4 : 2;
+        uint8_t rdigits = rr->reg16 ? 4 : 2;
         if(!rr->read_ok) {
             any_read_failed = true;
-            snprintf(buf, sizeof(buf), "0x%02X: read FAILED", rr->reg);
+            snprintf(buf, sizeof(buf), "0x%0*X: read FAILED", rdigits, rr->reg);
         } else if(rr->has_expected) {
             snprintf(
                 buf,
                 sizeof(buf),
-                "0x%02X: %0*X exp %0*X %s",
+                "0x%0*X: %0*X exp %0*X %s",
+                rdigits,
                 rr->reg,
                 digits,
                 rr->actual,
@@ -695,7 +697,7 @@ static void detail_draw_callback(Canvas* canvas, void* model) {
                 rr->expected,
                 rr->match ? "OK" : "BAD");
         } else {
-            snprintf(buf, sizeof(buf), "0x%02X: %02X", rr->reg, rr->actual);
+            snprintf(buf, sizeof(buf), "0x%0*X: %02X", rdigits, rr->reg, rr->actual);
         }
         canvas_draw_str(canvas, 2, y, buf);
         y += 9;

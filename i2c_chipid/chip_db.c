@@ -23,83 +23,90 @@
 // BNO055: checking all four sub-IDs is the strongest fake test — clones get
 // CHIP_ID right but rarely the BMA280/BMM150/BMG160 sub-IDs.
 static const IdCheck bno055_checks[] = {
-    {0x00, 0xA0, M8, false}, // CHIP_ID
-    {0x01, 0xFB, M8, false}, // ACC_ID  (BMA280)
-    {0x02, 0x32, M8, false}, // MAG_ID  (BMM150)
-    {0x03, 0x0F, M8, false}, // GYR_ID  (BMG160)
+    {0x00, 0xA0, M8, false, false}, // CHIP_ID
+    {0x01, 0xFB, M8, false, false}, // ACC_ID  (BMA280)
+    {0x02, 0x32, M8, false, false}, // MAG_ID  (BMM150)
+    {0x03, 0x0F, M8, false, false}, // GYR_ID  (BMG160)
 };
 
 /* --- pressure / environmental --- */
-static const IdCheck bmp280_checks[] = {{0xD0, 0x58, M8, false}};
-static const IdCheck bme280_checks[] = {{0xD0, 0x60, M8, false}};
-static const IdCheck bmp180_checks[] = {{0xD0, 0x55, M8, false}};
-static const IdCheck bmp388_checks[] = {{0x00, 0x50, M8, false}};
-static const IdCheck bmp390_checks[] = {{0x00, 0x60, M8, false}};
+static const IdCheck bmp280_checks[] = {{0xD0, 0x58, M8, false, false}};
+static const IdCheck bme280_checks[] = {{0xD0, 0x60, M8, false, false}};
+static const IdCheck bmp180_checks[] = {{0xD0, 0x55, M8, false, false}};
+static const IdCheck bmp388_checks[] = {{0x00, 0x50, M8, false, false}};
+static const IdCheck bmp390_checks[] = {{0x00, 0x60, M8, false, false}};
 // BME680 and BME688 share CHIP_ID 0x61; the variant register separates them.
-static const IdCheck bme680_checks[] = {{0xD0, 0x61, M8, false}, {0xF0, 0x00, M8, false}};
-static const IdCheck bme688_checks[] = {{0xD0, 0x61, M8, false}, {0xF0, 0x01, M8, false}};
-static const IdCheck dps310_checks[] = {{0x0D, 0x10, M8, false}};
-static const IdCheck ccs811_checks[] = {{0x20, 0x81, M8, false}};
-static const IdCheck ens160_checks[] = {{0x00, 0x60, M8, false}, {0x01, 0x01, M8, false}};
+static const IdCheck bme680_checks[] = {{0xD0, 0x61, M8, false, false}, {0xF0, 0x00, M8, false, false}};
+static const IdCheck bme688_checks[] = {{0xD0, 0x61, M8, false, false}, {0xF0, 0x01, M8, false, false}};
+static const IdCheck dps310_checks[] = {{0x0D, 0x10, M8, false, false}};
+static const IdCheck ccs811_checks[] = {{0x20, 0x81, M8, false, false}};
+static const IdCheck ens160_checks[] = {{0x00, 0x60, M8, false, false}, {0x01, 0x01, M8, false, false}};
 // HDC1080: 16-bit registers, manufacturer ID reads ASCII "TI".
-static const IdCheck hdc1080_checks[] = {{0xFE, 0x5449, M16, true}, {0xFF, 0x1050, M16, true}};
+static const IdCheck hdc1080_checks[] = {{0xFE, 0x5449, M16, true, false}, {0xFF, 0x1050, M16, true, false}};
 
 /* --- IMU --- */
-static const IdCheck mpu6050_checks[] = {{0x75, 0x68, M8, false}};
-static const IdCheck mpu6500_checks[] = {{0x75, 0x70, M8, false}};
-static const IdCheck mpu9250_checks[] = {{0x75, 0x71, M8, false}};
-static const IdCheck mpu6886_checks[] = {{0x75, 0x19, M8, false}};
-static const IdCheck icm42605_checks[] = {{0x75, 0x42, M8, false}};
-static const IdCheck icm42688_checks[] = {{0x75, 0x47, M8, false}};
-static const IdCheck icm20948_checks[] = {{0x00, 0xEA, M8, false}};
-static const IdCheck bmi160_checks[] = {{0x00, 0xD1, M8, false}};
-static const IdCheck bmi270_checks[] = {{0x00, 0x24, M8, false}};
-static const IdCheck bmi088a_checks[] = {{0x00, 0x1E, M8, false}};
-static const IdCheck bmi088g_checks[] = {{0x00, 0x0F, M8, false}};
-static const IdCheck lsm6ds3_checks[] = {{0x0F, 0x69, M8, false}};
-static const IdCheck lsm6ds3trc_checks[] = {{0x0F, 0x6A, M8, false}};
-static const IdCheck lsm6dso_checks[] = {{0x0F, 0x6C, M8, false}};
-static const IdCheck lsm6dsv_checks[] = {{0x0F, 0x70, M8, false}};
-static const IdCheck qmi8658_checks[] = {{0x00, 0x05, M8, false}};
-static const IdCheck lis3dh_checks[] = {{0x0F, 0x33, M8, false}};
-static const IdCheck adxl345_checks[] = {{0x00, 0xE5, M8, false}};
+static const IdCheck mpu6050_checks[] = {{0x75, 0x68, M8, false, false}};
+static const IdCheck mpu6500_checks[] = {{0x75, 0x70, M8, false, false}};
+static const IdCheck mpu9250_checks[] = {{0x75, 0x71, M8, false, false}};
+static const IdCheck mpu6886_checks[] = {{0x75, 0x19, M8, false, false}};
+static const IdCheck icm42605_checks[] = {{0x75, 0x42, M8, false, false}};
+static const IdCheck icm42688_checks[] = {{0x75, 0x47, M8, false, false}};
+static const IdCheck icm20948_checks[] = {{0x00, 0xEA, M8, false, false}};
+static const IdCheck bmi160_checks[] = {{0x00, 0xD1, M8, false, false}};
+static const IdCheck bmi270_checks[] = {{0x00, 0x24, M8, false, false}};
+static const IdCheck bmi088a_checks[] = {{0x00, 0x1E, M8, false, false}};
+static const IdCheck bmi088g_checks[] = {{0x00, 0x0F, M8, false, false}};
+static const IdCheck lsm6ds3_checks[] = {{0x0F, 0x69, M8, false, false}};
+static const IdCheck lsm6ds3trc_checks[] = {{0x0F, 0x6A, M8, false, false}};
+static const IdCheck lsm6dso_checks[] = {{0x0F, 0x6C, M8, false, false}};
+static const IdCheck lsm6dsv_checks[] = {{0x0F, 0x70, M8, false, false}};
+static const IdCheck qmi8658_checks[] = {{0x00, 0x05, M8, false, false}};
+static const IdCheck lis3dh_checks[] = {{0x0F, 0x33, M8, false, false}};
+static const IdCheck adxl345_checks[] = {{0x00, 0xE5, M8, false, false}};
 static const IdCheck adxl355_checks[] = {
-    {0x00, 0xAD, M8, false},
-    {0x01, 0x1D, M8, false},
-    {0x02, 0xED, M8, false},
+    {0x00, 0xAD, M8, false, false},
+    {0x01, 0x1D, M8, false, false},
+    {0x02, 0xED, M8, false, false},
 };
 
 /* --- magnetometers --- */
-static const IdCheck lis3mdl_checks[] = {{0x0F, 0x3D, M8, false}};
-static const IdCheck lis2mdl_checks[] = {{0x4F, 0x40, M8, false}};
-static const IdCheck mmc5603_checks[] = {{0x39, 0x10, M8, false}};
+static const IdCheck lis3mdl_checks[] = {{0x0F, 0x3D, M8, false, false}};
+static const IdCheck lis2mdl_checks[] = {{0x4F, 0x40, M8, false, false}};
+static const IdCheck mmc5603_checks[] = {{0x39, 0x10, M8, false, false}};
 // HMC5883L identification registers A/B/C spell "H43".
 static const IdCheck hmc5883l_checks[] = {
-    {0x0A, 0x48, M8, false},
-    {0x0B, 0x34, M8, false},
-    {0x0C, 0x33, M8, false},
+    {0x0A, 0x48, M8, false, false},
+    {0x0B, 0x34, M8, false, false},
+    {0x0C, 0x33, M8, false, false},
 };
-static const IdCheck qmc5883l_checks[] = {{0x0D, 0xFF, M8, false}};
+static const IdCheck qmc5883l_checks[] = {{0x0D, 0xFF, M8, false, false}};
 
 /* --- light / proximity / ToF --- */
-static const IdCheck vl53l0x_checks[] = {{0xC0, 0xEE, M8, false}}; // IDENTIFICATION_MODEL_ID
+// ST time-of-flight parts index their registers with a 16-bit address.
+static const IdCheck vl6180x_checks[] = {{0x0000, 0xB4, M8, false, true}};
+static const IdCheck vl53l1x_checks[] = {
+    {0x010F, 0xEA, M8, false, true}, // MODEL_ID
+    {0x0110, 0xCC, M8, false, true}, // MODULE_TYPE
+};
+
+static const IdCheck vl53l0x_checks[] = {{0xC0, 0xEE, M8, false, false}}; // IDENTIFICATION_MODEL_ID
 // TCS34725 and TSL2591 need the command bit set in the register byte.
-static const IdCheck tcs34725_checks[] = {{0x92, 0x44, M8, false}};
-static const IdCheck tsl2591_checks[] = {{0xB2, 0x50, M8, false}};
-static const IdCheck apds9960_checks[] = {{0x92, 0xAB, M8, false}};
-static const IdCheck ltr390_checks[] = {{0x06, 0xB0, 0x00F0, false}}; // low nibble = revision
-static const IdCheck max30102_checks[] = {{0xFF, 0x15, M8, false}};
+static const IdCheck tcs34725_checks[] = {{0x92, 0x44, M8, false, false}};
+static const IdCheck tsl2591_checks[] = {{0xB2, 0x50, M8, false, false}};
+static const IdCheck apds9960_checks[] = {{0x92, 0xAB, M8, false, false}};
+static const IdCheck ltr390_checks[] = {{0x06, 0xB0, 0x00F0, false, false}}; // low nibble = revision
+static const IdCheck max30102_checks[] = {{0xFF, 0x15, M8, false, false}};
 
 /* --- power / temperature --- */
-static const IdCheck ina226_checks[] = {{0xFE, 0x5449, M16, true}, {0xFF, 0x2260, M16, true}};
-static const IdCheck ina260_checks[] = {{0xFE, 0x5449, M16, true}, {0xFF, 0x2270, M16, true}};
-static const IdCheck ina228_checks[] = {{0x3E, 0x5449, M16, true}};
-static const IdCheck tmp117_checks[] = {{0x0F, 0x0117, 0x0FFF, true}}; // top nibble = revision
-static const IdCheck lps22hb_checks[] = {{0x0F, 0xB1, M8, false}};
-static const IdCheck lps25hb_checks[] = {{0x0F, 0xBD, M8, false}};
+static const IdCheck ina226_checks[] = {{0xFE, 0x5449, M16, true, false}, {0xFF, 0x2260, M16, true, false}};
+static const IdCheck ina260_checks[] = {{0xFE, 0x5449, M16, true, false}, {0xFF, 0x2270, M16, true, false}};
+static const IdCheck ina228_checks[] = {{0x3E, 0x5449, M16, true, false}};
+static const IdCheck tmp117_checks[] = {{0x0F, 0x0117, 0x0FFF, true, false}}; // top nibble = revision
+static const IdCheck lps22hb_checks[] = {{0x0F, 0xB1, M8, false, false}};
+static const IdCheck lps25hb_checks[] = {{0x0F, 0xBD, M8, false, false}};
 
 /* --- touch --- */
-static const IdCheck cst816s_checks[] = {{0xA7, 0xB4, M8, false}};
+static const IdCheck cst816s_checks[] = {{0xA7, 0xB4, M8, false, false}};
 
 static const ChipEntry chip_db[] = {
     /* name, addrs, range_lo, range_hi, checks, count, note */
@@ -143,6 +150,8 @@ static const ChipEntry chip_db[] = {
     {"QMC5883L", {0x0D, 0xFF}, 0, 0, qmc5883l_checks, 1, NULL},
 
     {"VL53L0X", {0x29, 0xFF}, 0, 0, vl53l0x_checks, 1, NULL},
+    {"VL53L1X", {0x29, 0xFF}, 0, 0, vl53l1x_checks, 2, NULL},
+    {"VL6180X", {0x29, 0xFF}, 0, 0, vl6180x_checks, 1, NULL},
     {"TCS34725", {0x29, 0xFF}, 0, 0, tcs34725_checks, 1, NULL},
     {"TSL2591", {0x29, 0xFF}, 0, 0, tsl2591_checks, 1, NULL},
     {"APDS9960", {0x39, 0xFF}, 0, 0, apds9960_checks, 1, NULL},
@@ -207,19 +216,20 @@ static bool chip_has_addr(const ChipEntry* chip, uint8_t addr7) {
 // weak pull-ups) can drop one transaction, and without the retry that single
 // glitch would brand a genuine chip as counterfeit.
 static bool read_id_reg(uint8_t addr7, const IdCheck* check, uint16_t* value) {
+    size_t len = check->wide ? 2 : 1;
     for(uint8_t attempt = 0; attempt < 2; attempt++) {
-        if(check->wide) {
-            uint8_t buf[2] = {0};
-            if(i2c_worker_read_mem(addr7, check->reg, buf, 2, I2C_REG_TIMEOUT_MS)) {
-                *value = (uint16_t)(((uint16_t)buf[0] << 8) | buf[1]);
-                return true;
-            }
+        uint8_t buf[2] = {0};
+        bool ok;
+        if(check->reg16) {
+            ok = i2c_worker_read_reg16_addr(addr7, check->reg, buf, len, I2C_REG_TIMEOUT_MS);
+        } else if(check->wide) {
+            ok = i2c_worker_read_mem(addr7, (uint8_t)check->reg, buf, len, I2C_REG_TIMEOUT_MS);
         } else {
-            uint8_t byte = 0;
-            if(i2c_worker_read_reg(addr7, check->reg, &byte, I2C_REG_TIMEOUT_MS)) {
-                *value = byte;
-                return true;
-            }
+            ok = i2c_worker_read_reg(addr7, (uint8_t)check->reg, buf, I2C_REG_TIMEOUT_MS);
+        }
+        if(ok) {
+            *value = check->wide ? (uint16_t)(((uint16_t)buf[0] << 8) | buf[1]) : buf[0];
+            return true;
         }
         furi_delay_ms(2); // let a confused slave finish its previous transfer
     }
@@ -240,6 +250,7 @@ static int32_t chip_try_candidate(const ChipEntry* chip, uint8_t addr7, IdReadRe
         reads[i].reg = check->reg;
         reads[i].expected = check->expected;
         reads[i].wide = check->wide;
+        reads[i].reg16 = check->reg16;
         reads[i].has_expected = true;
         reads[i].read_ok = read_id_reg(addr7, check, &reads[i].actual);
 
@@ -331,10 +342,21 @@ void chip_db_identify(uint8_t addr7, ChipIdentification* out) {
         return;
     }
 
-    out->chip = best_chip;
     memcpy(out->reads, best_reads, sizeof(best_reads));
     out->read_count = best_read_count;
-    out->verdict = VerdictWrongChip;
+
+    if(best_matches > 0) {
+        // Some of a known chip's IDs match and the rest do not. A genuine part
+        // has all of them, so this is real evidence of a counterfeit.
+        out->chip = best_chip;
+        out->verdict = VerdictWrongChip;
+    } else {
+        // Nothing matched at all. That is far more often a chip missing from
+        // the database than a fake, so do not accuse it — show the bytes and
+        // let the user look them up.
+        out->chip = NULL;
+        out->verdict = VerdictNoMatch;
+    }
 }
 
 const char* chip_verdict_str(ChipVerdict verdict) {
@@ -342,7 +364,9 @@ const char* chip_verdict_str(ChipVerdict verdict) {
     case VerdictGenuine:
         return "GENUINE";
     case VerdictWrongChip:
-        return "WRONG CHIP";
+        return "LIKELY FAKE";
+    case VerdictNoMatch:
+        return "UNIDENTIFIED";
     case VerdictDetectedNoId:
         return "DETECTED (no ID reg)";
     case VerdictUnknown:
@@ -360,6 +384,8 @@ const char* chip_verdict_short_str(ChipVerdict verdict) {
         return "OK";
     case VerdictWrongChip:
         return "FAKE?";
+    case VerdictNoMatch:
+        return "??";
     case VerdictDetectedNoId:
         return "no-ID";
     case VerdictUnknown:

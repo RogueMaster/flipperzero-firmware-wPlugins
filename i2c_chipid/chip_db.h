@@ -8,10 +8,11 @@
 #define CHIP_MAX_CHECKS 4
 
 typedef struct {
-    uint8_t reg;
+    uint16_t reg; // register index, 8-bit unless reg16 is set
     uint16_t expected;
     uint16_t mask; // 0 means 0xFF/0xFFFF depending on width
-    bool wide; // true = 16-bit big-endian read of reg and reg+1
+    bool wide; // true = 16-bit big-endian value
+    bool reg16; // true = the index itself is 16-bit big-endian (ST ToF, Goodix)
 } IdCheck;
 
 typedef struct {
@@ -26,17 +27,19 @@ typedef struct {
 
 typedef enum {
     VerdictGenuine, // all ID registers match
-    VerdictWrongChip, // device answers but IDs match no known candidate
+    VerdictWrongChip, // some IDs of a known chip match and others do not
+    VerdictNoMatch, // answers, but nothing matched any candidate here
     VerdictDetectedNoId, // address belongs to a chip without an ID register
     VerdictUnknown, // address not in the database
     VerdictNoAnswer, // device stopped answering register reads
 } ChipVerdict;
 
 typedef struct {
-    uint8_t reg;
+    uint16_t reg;
     uint16_t expected;
     uint16_t actual;
     bool wide;
+    bool reg16;
     bool has_expected; // false for raw probe reads of unknown devices
     bool read_ok; // distinguishes "read 0x00" from "could not read"
     bool match;
