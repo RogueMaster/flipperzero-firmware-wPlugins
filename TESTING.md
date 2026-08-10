@@ -104,12 +104,35 @@ screen offers a live test under `OK`. It proves the sensor does not merely ident
 actually works. Chips with no test show the same screen without the offer; that is normal, most
 parts have none.
 
-- **BNO055** — the app switches it into NDOF fusion, shows a live compass and animates the
-  figure-8 motion the magnetometer needs. Turn the board through a full circle: the heading
-  should sweep 0→359 smoothly and come back, and MAG CAL should climb to 3/3 as you move it.
-- **VL6180X** — real single-shot ranging. Hold a hand about 5 cm from the sensor and the
-  distance should follow it; the test passes once the reading has moved 30 mm or more. With
-  nothing in front of it the sensor reports its own error code instead of a made-up number.
+Every test is one you could run at a pickup counter before paying, using nothing but your hand
+and your breath. A tick appears in the corner and the Flipper chimes the moment a test passes.
+
+| Board | What to do | What proves it |
+|---|---|---|
+| `AHT10`, `AHT20`, `GY-213V` | breathe on it | humidity climbs 15+ points |
+| `SHT30`, `SHT31`, `SHT40` | breathe on it | same; the app also says which family answered |
+| `BH1750`, `GY-302` | hold it to the light, then cover it | it must reach 30+ counts lit **and** fall to ≤3 covered — the dark floor its datasheet specifies |
+| `GY-521` / `MPU-6050`, `GY-291` / `ADXL345` | lay it flat, then tip it on its side | gravity has to move to a different axis; magnitude stays near 1.00 g |
+| `APDS-9960` | wave a hand over it | proximity count rises 50+ |
+| `GY-906` / `MLX90614` | point it at your palm | object temperature runs 5 °C over the ambient the same chip reports |
+| `ZS-042` / `DS3231` | nothing at all | the seconds advance by exactly one, three times running |
+| `0.96" OLED` / `SSD1306` | look at the panel | it blinks fully lit, then dark |
+| `BNO055` | rotate it in a figure-8 | live compass; MAG CAL climbs to 3/3 |
+| `VL6180X` | hold a hand ~5 cm away | the distance follows it; passes after 30 mm of movement |
+
+Two of these are worth doing deliberately, because they are the ones the app could otherwise
+never say anything about:
+
+- **DS3231 and AHT20 have no ID register.** Before this, the app could only report "something is
+  at this address". The verdict screen now says **IT ANSWERS / No ID to check** rather than
+  claiming the part is genuine, and the live test is the only proof available.
+- **The DS3231 test writes nothing at all.** Reading the clock cannot disturb it — only writing
+  the seconds register resets the countdown chain — so it is safe on an RTC already keeping
+  time you care about.
+
+The OLED test is the one exception to "the app decides": a display has no readback, so every
+command is acknowledged whether or not the panel lights. It blinks the screen and leaves the
+verdict to you, and deliberately never claims a pass.
 
 `Up` still opens the written report from that screen, and `Right` still opens the hex detail.
 

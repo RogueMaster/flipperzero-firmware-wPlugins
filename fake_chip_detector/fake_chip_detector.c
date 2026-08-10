@@ -1081,6 +1081,16 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
                             (m->test ? m->test->title : "Live test");
     canvas_draw_str_aligned(canvas, 64, 13, AlignCenter, AlignBottom, title);
 
+    // "It passed" is the app's job to say, not each test's. Drawing it here
+    // means one tick in one place, identical for every module, and leaves the
+    // test's own lines free to keep showing the reading that earned it.
+    if(st->phase == LiveTestPhasePassed) {
+        canvas_draw_line(canvas, 118, 9, 120, 12);
+        canvas_draw_line(canvas, 118, 10, 120, 13);
+        canvas_draw_line(canvas, 120, 12, 125, 5);
+        canvas_draw_line(canvas, 120, 13, 125, 6);
+    }
+
     uint8_t y = 26;
     if(measuring && st->heading[0]) {
         // Number and unit are centred as one block, so the digits do not

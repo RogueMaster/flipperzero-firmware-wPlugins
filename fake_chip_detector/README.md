@@ -43,9 +43,14 @@ one register — this app does that and shows its work.
   wrong, is called out as a likely counterfeit.
 - **Proves the part works, not just that it answers.** An ID register is one byte, and one byte
   is what a relabeller can copy. When a chip that checked out has a live test, the app offers to
-  run it: the BNO055 finds north and calibrates its magnetometer, the VL6180X measures the
-  distance to your hand. Tests are one file each, so adding one for a new part touches nothing
-  else — see **[LIVE_TESTS.md](LIVE_TESTS.md)**.
+  run it — and every test is one you can do standing at a pickup counter before you pay, with
+  nothing but your hand and your breath. Breathe on an AHT20 or SHT31 and watch the humidity
+  climb; cover a BH1750 and watch it hit the dark floor its datasheet specifies; tip an MPU6050
+  or ADXL345 and watch gravity move to another axis; wave at an APDS9960; point an MLX90614 at
+  your palm; watch a DS3231 tick; make an SSD1306 blink. This matters most for the parts with
+  **no ID register at all** — for a DS3231 or an AHT20 the app can otherwise only say "something
+  is there", so a live test is the only evidence that will ever exist. Tests are one file each,
+  so adding one for a new part touches nothing else — see **[LIVE_TESTS.md](LIVE_TESTS.md)**.
 - **1-Wire too.** Scans pin 17, decodes the family code and runs a real temperature conversion
   on DS18B20-class parts. A 1-Wire ID can be replayed by any microcontroller, so the app is
   explicit that this proves which *part* answered — a DS18S20 sold as a DS18B20 is caught —

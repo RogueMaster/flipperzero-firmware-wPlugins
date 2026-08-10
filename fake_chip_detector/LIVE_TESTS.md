@@ -106,13 +106,37 @@ If the picture genuinely carries the proof, draw it. If it is decoration, take t
 
 ### Making it pass
 
-`LiveTestPhasePassed` is the test's own success condition, and the app chimes once when it is
-reached. Pick something the part cannot fake by holding still:
+`LiveTestPhasePassed` is the test's own success condition, and the app chimes once and draws a
+tick when it is reached. Pick something the part cannot fake by holding still:
 
 - **BNO055** — magnetometer calibration reaches level 3, which only happens if the sensor is
   genuinely tracking a magnetic field.
 - **VL6180X** — the distance reading moves by 30 mm or more. A stuck register reads the same
   value forever; a working time-of-flight sensor cannot, once a hand comes near it.
+- **BH1750** — the count rises above 30 in the light **and** falls to 3 or below under a hand.
+  Both halves are needed: the dark floor of 0–3 counts is a printed datasheet figure, but a
+  part stuck at zero would satisfy it forever without the light half.
+- **DS3231** — the seconds register advances by exactly one, three times running. A frozen
+  register never moves and a part improvising bytes jumps around.
+- **MPU6050 / ADXL345** — gravity is seen on two *different* axes. A canned constant can look
+  like 1 g on Z forever; it cannot hand the weight over to X when the board is tipped.
+- **AHT / SHT** — humidity rises 15 points above the lowest reading seen.
+- **MLX90614** — the object temperature runs 5 °C above the ambient the same part reports.
+
+Two of these are worth copying for the shape rather than the numbers. The BH1750 test insists
+on **both directions**, which is what stops a dead part passing by accident. The accelerometer
+tests pass on a **change of which axis** holds gravity rather than on any absolute value, so
+they need no knowledge of how the board is mounted and no trust in the zero-g offset.
+
+### When a test cannot honestly pass
+
+Sometimes there is no measurement to check, and the right answer is to say so. The OLED test is
+the case in point: a display has no readback, so every command is acknowledged by a controller
+whose panel may be stone dead. It blinks the screen and tells the user that only they can
+judge, and it **never sets `LiveTestPhasePassed`** — a pass there would mean "the chip
+acknowledged some bytes", dressed up as "your display works".
+
+If your part is like that, do the same. A test that reports honestly beats a test that passes.
 
 ## A test has to be runnable where it matters
 
@@ -127,3 +151,27 @@ right there:
 If a test needs a reference instrument, a heat source, a magnet, a vacuum or a long
 calibration, it fails that bar. Skip the part rather than shipping a test nobody can actually
 use in the moment that counts.
+
+Every test in the app today passes it with nothing but a hand and a breath: breathe on it,
+cover it, wave at it, tip it over, or just watch it tick.
+
+### Parts deliberately left without a test
+
+Skipping is a real answer, and these were all considered and dropped rather than overlooked:
+
+| Part | Why not |
+|---|---|
+| INA219 / INA226 / INA260 | Reads zero until current flows. Needs a load and a supply. |
+| CCS811 / ENS160 / SGP30 / SGP40 | The datasheets require a burn-in of minutes to days before a reading means anything. |
+| SCD30 / SCD4x | CO2 needs a warm-up, and breath saturates it rather than proving anything. |
+| AS5600 | Needs a diametrically magnetised magnet on an axle. |
+| MCP23017 / PCF8574 | A GPIO expander proves itself by driving a pin. Needs a wire and something to watch. |
+| MCP4725 / PCA9685 | Output is a voltage or a servo pulse. Needs a meter or a servo. |
+| TCA9548A | A multiplexer proves itself only through devices behind it. |
+| AT24Cxx | The honest test writes a byte, and that could destroy data the user cares about. |
+| MLX90640 | A 768-pixel thermal image, on a 128x64 screen, over I2C. Possible, but not in seconds. |
+| MAX17048 | Reports the battery it is soldered to; nothing to make it move. |
+| VL53L0X | Ranging without ST's initialisation blob is not documented, and the blob is not in the datasheet. |
+
+If you disagree about one of these, that is exactly the sort of contribution the module layout
+exists for.

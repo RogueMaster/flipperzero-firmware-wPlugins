@@ -37,9 +37,9 @@ label claims.
 | **CCS811** | Air quality (VOC) | 0x5A, 0x5B | `0x20` | `0x81` | 8-bit | — | EOL part, clones common |
 | **ENS160** | Air quality (VOC) | 0x52, 0x53 | `0x00`<br>`0x01` | `0x60`<br>`0x01` | 8-bit<br>8-bit | — |  |
 | **HDC1080** | Temp + humidity | 0x40 | `0xFE`<br>`0xFF` | `0x5449`<br>`0x1050` | 16-bit<br>16-bit | — |  |
-| **MPU6050** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x68` | 8-bit | — | TDK EOL, old stock |
-| **MPU6500** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x70` | 8-bit | — | often sold as MPU9250 |
-| **MPU9250** | 9-axis IMU | 0x68, 0x69 | `0x75` | `0x71` | 8-bit | — | TDK EOL, often faked |
+| **MPU6050** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x68` | 8-bit | Tip it and watch gravity | TDK EOL, old stock |
+| **MPU6500** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x70` | 8-bit | Tip it and watch gravity | often sold as MPU9250 |
+| **MPU9250** | 9-axis IMU | 0x68, 0x69 | `0x75` | `0x71` | 8-bit | Tip it and watch gravity | TDK EOL, often faked |
 | **MPU6886** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x19` | 8-bit | — |  |
 | **ICM20948** | 9-axis IMU | 0x68, 0x69 | `0x00` | `0xEA` | 8-bit | — |  |
 | **ICM42605** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x42` | 8-bit | — |  |
@@ -54,7 +54,7 @@ label claims.
 | **LSM6DSV16X** | 6-axis IMU | 0x6A, 0x6B | `0x0F` | `0x70` | 8-bit | — |  |
 | **QMI8658** | 6-axis IMU | 0x6A, 0x6B | `0x00` | `0x05` | 8-bit | — |  |
 | **LIS3DH/2DH12** | Accelerometer | 0x18, 0x19 | `0x0F` | `0x33` | 8-bit | — | same ID as LIS2DH12 |
-| **ADXL345/343** | Accelerometer | 0x53, 0x1D | `0x00` | `0xE5` | 8-bit | — |  |
+| **ADXL345/343** | Accelerometer | 0x53, 0x1D | `0x00` | `0xE5` | 8-bit | Tip it and watch gravity |  |
 | **ADXL355** | Accelerometer | 0x1D, 0x53 | `0x00`<br>`0x01`<br>`0x02` | `0xAD`<br>`0x1D`<br>`0xED` | 8-bit<br>8-bit<br>8-bit | — |  |
 | **LIS3MDL** | Magnetometer | 0x1C, 0x1E | `0x0F` | `0x3D` | 8-bit | — |  |
 | **LIS2MDL** | Magnetometer | 0x1E | `0x4F` | `0x40` | 8-bit | — |  |
@@ -66,7 +66,7 @@ label claims.
 | **VL6180X** | Laser rangefinder | 0x29 | `0x0000` | `0xB4` | 8-bit | Watch it measure |  |
 | **TCS34725** | Colour sensor | 0x29 | `0x92` | `0x44` | 8-bit | — |  |
 | **TSL2591** | Light sensor | 0x29 | `0xB2` | `0x50` | 8-bit | — |  |
-| **APDS9960** | Gesture + colour | 0x39 | `0x92` | `0xAB` | 8-bit | — |  |
+| **APDS9960** | Gesture + colour | 0x39 | `0x92` | `0xAB` | 8-bit | Wave your hand at it |  |
 | **LTR-390UV** | UV + light sensor | 0x53 | `0x06` | `0xB0` (mask `0xF0`) | 8-bit | — |  |
 | **MAX30102** | Heart rate / SpO2 | 0x57 | `0xFF` | `0x15` | 8-bit | — | 0x11 here = MAX30100 relabel |
 | **INA226** | Current monitor | 0x40-0x4F | `0xFE`<br>`0xFF` | `0x5449`<br>`0x2260` | 16-bit<br>16-bit | — |  |
@@ -83,37 +83,41 @@ These parts carry no ID register at all — there is nothing to read, so no hone
 can confirm which one it is. The app reports them as DETECTED rather than pretending
 to a verdict it cannot support.
 
-| Chip | What it is | I2C address | Notes |
-|---|---|---|---|
-| **DS3231** | Real-time clock | 0x68 |  |
-| **DS1307** | Real-time clock | 0x68 |  |
-| **PCF8563** | Real-time clock | 0x51 |  |
-| **SSD1306/SH1106** | OLED display | 0x3C, 0x3D | SH1106 fakes undetectable |
-| **AHT10/AHT20** | Temp + humidity | 0x38 |  |
-| **BH1750** | Light sensor | 0x23, 0x5C |  |
-| **SHT3x/SHT4x** | Temp + humidity | 0x44, 0x45 | grade relabels undetectable |
-| **SCD4x** | CO2 sensor | 0x62 |  |
-| **SGP30** | Air quality (VOC) | 0x58 |  |
-| **SGP40/41** | Air quality (VOC) | 0x59 |  |
-| **SCD30** | CO2 sensor | 0x61 |  |
-| **Si7021/HTU21D** | Temp + humidity | 0x40 |  |
-| **MLX90614** | IR thermometer | 0x5A |  |
-| **MLX90640** | Thermal camera | 0x33 |  |
-| **AS5600** | Magnetic angle | 0x36 |  |
-| **MAX17048** | Battery fuel gauge | 0x36 |  |
-| **ADS1115** | ADC | 0x48-0x4B |  |
-| **INA219** | Current monitor | 0x40-0x4F |  |
-| **MCP23017** | GPIO expander | 0x20-0x27 |  |
-| **PCF8574** | GPIO expander | 0x20-0x27 |  |
-| **PCF8574A** | GPIO expander | 0x38-0x3F |  |
-| **MCP4725** | DAC | 0x60-0x67 |  |
-| **PCA9685** | PWM / servo driver | 0x40 |  |
-| **TCA9548A** | I2C multiplexer | 0x70-0x77 |  |
-| **AT24Cxx** | EEPROM memory | 0x50-0x57 |  |
-| **MS5611** | Pressure sensor | 0x76, 0x77 |  |
-| **VEML6070** | UV sensor | 0x38, 0x39 |  |
-| **MAX44009** | Light sensor | 0x4A, 0x4B |  |
-| **BNO085** | 9-axis IMU + fusion | 0x4A, 0x4B | SHTP protocol, no WHO_AM_I |
+This is exactly where a live test earns its keep. For a chip in the table above, a
+live test is a second opinion; for one down here it is the *only* evidence that can
+ever exist, because asking the part to do its job is the one question left to ask.
+
+| Chip | What it is | I2C address | Live test | Notes |
+|---|---|---|---|---|
+| **DS3231** | Real-time clock | 0x68 | Watch the clock run |  |
+| **DS1307** | Real-time clock | 0x68 | — |  |
+| **PCF8563** | Real-time clock | 0x51 | — |  |
+| **SSD1306/SH1106** | OLED display | 0x3C, 0x3D | Make the screen blink | SH1106 fakes undetectable |
+| **AHT10/AHT20** | Temp + humidity | 0x38 | Breathe on it |  |
+| **BH1750** | Light sensor | 0x23, 0x5C | Cover it with your hand |  |
+| **SHT3x/SHT4x** | Temp + humidity | 0x44, 0x45 | Breathe on it | grade relabels undetectable |
+| **SCD4x** | CO2 sensor | 0x62 | — |  |
+| **SGP30** | Air quality (VOC) | 0x58 | — |  |
+| **SGP40/41** | Air quality (VOC) | 0x59 | — |  |
+| **SCD30** | CO2 sensor | 0x61 | — |  |
+| **Si7021/HTU21D** | Temp + humidity | 0x40 | — |  |
+| **MLX90614** | IR thermometer | 0x5A | Point it at your hand |  |
+| **MLX90640** | Thermal camera | 0x33 | — |  |
+| **AS5600** | Magnetic angle | 0x36 | — |  |
+| **MAX17048** | Battery fuel gauge | 0x36 | — |  |
+| **ADS1115** | ADC | 0x48-0x4B | — |  |
+| **INA219** | Current monitor | 0x40-0x4F | — |  |
+| **MCP23017** | GPIO expander | 0x20-0x27 | — |  |
+| **PCF8574** | GPIO expander | 0x20-0x27 | — |  |
+| **PCF8574A** | GPIO expander | 0x38-0x3F | — |  |
+| **MCP4725** | DAC | 0x60-0x67 | — |  |
+| **PCA9685** | PWM / servo driver | 0x40 | — |  |
+| **TCA9548A** | I2C multiplexer | 0x70-0x77 | — |  |
+| **AT24Cxx** | EEPROM memory | 0x50-0x57 | — |  |
+| **MS5611** | Pressure sensor | 0x76, 0x77 | — |  |
+| **VEML6070** | UV sensor | 0x38, 0x39 | — |  |
+| **MAX44009** | Light sensor | 0x4A, 0x4B | — |  |
+| **BNO085** | 9-axis IMU + fusion | 0x4A, 0x4B | — | SHTP protocol, no WHO_AM_I |
 
 ## 1-Wire parts (15)
 

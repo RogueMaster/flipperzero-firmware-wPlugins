@@ -71,14 +71,34 @@ for line in table.splitlines():
 # One module per part, all listed in live_test.c. Parsed rather than hand-kept
 # for the same reason as the chip table: a doc that can drift will.
 registry = pathlib.Path('fake_chip_detector/live_test.c').read_text(encoding='utf-8')
-registered = re.findall(r'&live_test_(\w+)\s*,', registry)
-live_tests = {}
-for slug in registered:
-    mod = pathlib.Path('fake_chip_detector/live_%s.c' % slug)
+registered = set(re.findall(r'&live_test_(\w+)\s*,', registry))
+
+# Every definition found in the sources, keyed by the symbol it defines. The
+# files are scanned rather than derived from the symbol names, because a module
+# may define more than one test: the MPU-6050, 6500 and 9250 share an
+# accelerometer register map and therefore share an implementation.
+defined = {}
+for mod in sorted(pathlib.Path('fake_chip_detector').glob('live_*.c')):
     body = mod.read_text(encoding='utf-8')
-    chip = re.search(r'\.chip\s*=\s*"([^"]*)"', body).group(1)
-    offer = re.search(r'\.offer\s*=\s*"([^"]*)"', body).group(1)
-    live_tests[chip] = {'slug': slug, 'offer': offer, 'file': mod.name}
+    for symbol, fields in re.findall(
+            r'const LiveTest live_test_(\w+)\s*=\s*\{(.*?)\n\};', body, re.S):
+        chip = re.search(r'\.chip\s*=\s*"([^"]*)"', fields)
+        offer = re.search(r'\.offer\s*=\s*"([^"]*)"', fields)
+        if chip and offer:
+            defined[symbol] = {
+                'slug': symbol, 'chip': chip.group(1),
+                'offer': offer.group(1), 'file': mod.name,
+            }
+
+missing = sorted(registered - set(defined))
+if missing:
+    raise SystemExit('registered in live_test.c but never defined: %s' % ', '.join(missing))
+
+orphans = sorted(set(defined) - registered)
+if orphans:
+    raise SystemExit('defined but not registered in live_test.c: %s' % ', '.join(orphans))
+
+live_tests = {defined[s]['chip']: defined[s] for s in registered}
 
 for e in entries:
     e['live'] = live_tests.get(e['name'])
@@ -169,11 +189,15 @@ L.append('These parts carry no ID register at all — there is nothing to read, 
 L.append('can confirm which one it is. The app reports them as DETECTED rather than pretending')
 L.append('to a verdict it cannot support.')
 L.append('')
-L.append('| Chip | What it is | I2C address | Notes |')
-L.append('|---|---|---|---|')
+L.append('This is exactly where a live test earns its keep. For a chip in the table above, a')
+L.append('live test is a second opinion; for one down here it is the *only* evidence that can')
+L.append('ever exist, because asking the part to do its job is the one question left to ask.')
+L.append('')
+L.append('| Chip | What it is | I2C address | Live test | Notes |')
+L.append('|---|---|---|---|---|')
 for e in noid:
-    L.append('| **%s** | %s | %s | %s |' % (
-        e['name'], e['kind'], addr_str(e), e['note'] or ''))
+    L.append('| **%s** | %s | %s | %s | %s |' % (
+        e['name'], e['kind'], addr_str(e), live_cell(e), e['note'] or ''))
 L.append('')
 # ---- 1-Wire families ------------------------------------------------------
 ow_src = pathlib.Path('fake_chip_detector/onewire_worker.c').read_text(encoding='utf-8')
