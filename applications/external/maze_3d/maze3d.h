@@ -1,8 +1,8 @@
 #pragma once
-#include <stdint.h>
-#include <stdbool.h>
 #include <furi.h>
 #include <input/input.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 // 屏幕尺寸
 #define SCREEN_W    128
@@ -447,4 +447,5 @@ const char* story_title(int story_id);
 
 extern const uint8_t TEXTURES[][8];
 #define TEX_COUNT \
-    24 // v6.7-beta: 扩展到24槽, 保留12个空白给未来方块 (圆石/煤/铁/钻石/台阶/玻璃/工作台/熔炉/羊毛/苔石/地狱岩/末地石)
+    24 // v6.7-beta: 扩展到24槽, 保留12个空白给未来方块 \
+        // (圆石/煤/铁/钻石/台阶/玻璃/工作台/熔炉/羊毛/苔石/地狱岩/末地石)

@@ -1,11 +1,11 @@
-v6.11.1:
+v6.11:
 - Score Shop System: earn points by killing enemies (+10 per kill), spend on 10 usable items.
 - 10 Items with full functionality: Potion S (+5HP), Potion L (+10HP), Full Heal, Ammo+5, Ammo Max, Key+1, Torch+3, Amulet (warp to start), Shield (5s invincibility), 2x Fire (15s double shot).
 - Item Inventory: long-press OK during gameplay to open item bar. Up/Down to select, OK to use, Back to return.
 - Buff System: Shield (300 frames invincibility) and Double Fire (900 frames, fires 2 bullets per shot at 11-degree offset). HUD progress bars show remaining time.
 - Bilingual Support: full Chinese and English UI. In English mode, all menus, settings (26 items), shop, item names/descriptions, and buff labels are 100% English.
 - Dev Settings: 26 configurable parameters with bilingual labels (turn sensitivity, move speed, fog, brightness, volume, maze scale, MC world size, etc.).
-- Item inventory persistence: g.items[10] saved to SaveData, persists across sessions.
+- Item inventory persistence: items array (10 entries) saved to SaveData, persists across sessions.
 - Zero Chinese leakage in English mode: all settings labels, category tags, option values (On/Off, Low/Mid/High, etc.), shop descriptions, and buff timers fully translated.
 
 v6.10:

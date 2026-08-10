@@ -102,7 +102,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - OFW: PR: [Fix HID limits to support international keyboards and add JP keyboard layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
 - Updated: [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
-- Updated: [Maze 3D v6.11.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [Specter v2.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Added: [FlipFlash v0.1 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
 - Updated: [Tesla Mod v2.16b24 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
@@ -118,6 +117,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Network Calculator v1.0 (By WolfRorDev)](https://github.com/WolfRorDev/Net-Calculator-for-Flipper-Zero)
 - Updated: [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - Updated: [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
+- Updated: [Maze 3D v6.11.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 
 <a name="release"></a>
 
@@ -314,7 +314,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Mancala v0.1 (By fgreil)](https://github.com/fgreil/mitzi-mancala)
 - [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins)
 - [Matagotchi v1.1 (By MrModd)](https://github.com/MrModd/Matagotchi)
-- [Maze 3D v6.11.1 (By k20120509)](https://github.com/k20120509/flipper-release)
+- [Maze 3D v6.11.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 - [Mind Probe v0.1 (By Miksang)](https://github.com/Miksang/flipper_guessing_game)
 - [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
 - [Minesweeper v1.2 (By panki27)](https://github.com/panki27/minesweeper)
