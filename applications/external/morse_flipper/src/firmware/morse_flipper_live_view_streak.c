@@ -5,6 +5,7 @@
  * Tests: firmware build; UI rendering is hardware-only.
  */
 
+#include "fonts/morse_flipper_terminus24.h"
 #include "morse_flipper_app_i.h"
 
 void morse_flipper_draw_streak_intro(Canvas* canvas, MorseFlipperApp* app) {
@@ -29,9 +30,9 @@ void morse_flipper_draw_streak_intro(Canvas* canvas, MorseFlipperApp* app) {
     start_x = 64 - (run_w / 2) + (digit_w / 2);
     for(i = 0U; i < len; i++) {
         morse_flipper_draw_straight_prompt(
-            canvas, app, start_x + ((digit_w + gap) * (int32_t)i), 34, (uint8_t)digits[i]);
+            canvas, start_x + ((digit_w + gap) * (int32_t)i), 34, (uint8_t)digits[i]);
     }
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 56, AlignCenter, AlignCenter, "days");
+    canvas_draw_str_aligned(canvas, 64, 60, AlignCenter, AlignCenter, "days");
 }

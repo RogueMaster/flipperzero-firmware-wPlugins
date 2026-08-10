@@ -133,7 +133,7 @@ static uint32_t morse_flipper_straight_target_ms(const MorseFlipperApp* app) {
     uint32_t units;
     uint32_t dit_ms;
 
-    if(app == NULL) return MORSE_FLIPPER_STRAIGHT_DEFAULT_DIT_MS;
+    if(app == NULL) return MORSE_FLIPPER_DEFAULT_DIT_MS;
 
     units = morse_flipper_straight_trainer_target_total_units(&app->straight_trainer);
     if(units == 0U) units = 1U;

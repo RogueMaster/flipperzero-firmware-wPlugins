@@ -38,6 +38,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Barcode App v1.5 (By Kingal1337)](https://github.com/Kingal1337/flipper-barcode-generator) [fix first-save failure and make save errors descriptive (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/236)
 - Updated: [Frequency Analyzer (External) v1.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext)
 - Updated: [Spectrum Analyzer v1.5 (By jolcese)](https://github.com/jolcese/flipperzero-firmware/tree/spectrum/applications/spectrum_analyzer) [hold last peak, persist settings; Freq Analyzer [Ext]: radio parked-state fix (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/235)
+- Updated: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Added: [Xbox Post Code Reader v0.14 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-xbox-post-code-reader)
 - Updated: [Video Poker v1.4 (By PixlEmly)](https://github.com/PixlEmly/flipperzero-firmware-testing/blob/420/applications/VideoPoker/poker.c) [flexible bid controls (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/237)
 - Updated: [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins) [fix the hang, centre the zoom, add held-key panning (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/241)
@@ -98,6 +99,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: CCID: [Move the debug app out of the firmware repository #4431 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4431)
 - Added: [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 - Added: [NFC Canary v0.2 (By antitree)](https://github.com/antitree/nfc_canary)
+- Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - OFW: PR: [Fix HID limits to support international keyboards and add JP keyboard layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
 - Updated: [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
 - Updated: [Specter v2.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
@@ -122,7 +124,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [TPMS Bridge Renault v1.0 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 - NFC, LF RFID, iButton: [Renaming a saved file no longer deletes it before the replacement is written - all three apps unlinked the loaded file first, so a save that then failed (full SD, card pulled) left the user with neither copy. The new file is written first and the old one dropped only once it is safely on disk, a stale NFC shadow file can no longer override a fresh save, and a failed save no longer leaves the app pointing at a file that was never created. Note this protects renames; re-saving under the same name still writes over the only copy (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1067)
 - Updated: [Maze 3D v6.11.2 (By k20120509)](https://github.com/k20120509/flipper-release) [Fixed multi-line comment warning in maze_3d/maze3d.h (By mruwzum)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1197)
-- Updated: [Morse Flipper v0.2.9 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 
 <a name="release"></a>
 
@@ -725,7 +726,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Moisture Sensor v1.0 (By smallwat3r)](https://github.com/smallwat3r/flipperzero-moisture-sensor)
 - [Moon Phases v1.0 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Morse Code v1.3 (By wh00hw)](https://github.com/wh00hw/MorseCodeFAP)
-- [Morse Flipper v0.2.9 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - [Mouse Jacker for MS Mouse v1.2 (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/mousejacker_ms) `Req: NRF24`
 - [Mouse Jacker v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/mousejacker) [Pin Out from nocomp/Frog/UberGuidoZ](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/mousejacker) `Req: NRF24`
 - [Mouse Jiggler v1.2 (By Jacob-Tate & ozgunawesome)](https://github.com/Jacob-Tate/flipperzero-firmware/blob/dev/applications/mouse_jiggler/mouse_jiggler.c)
