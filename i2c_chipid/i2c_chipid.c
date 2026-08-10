@@ -261,6 +261,28 @@ static void app_start_scan(I2CChipIdApp* app) {
     i2c_worker_start_scan(app->worker, i2c_settings_probe_timeout(&app->settings));
 }
 
+// The Right button, drawn as the play-style triangle users already associate
+// with it. A bare letter "R" reads as part of the sentence, not as a key.
+static void draw_right_key(Canvas* canvas, uint8_t x, uint8_t y) {
+    // canvas_draw_triangle outlines; a play glyph has to be solid, so fill it
+    // as vertical spans tapering to the point.
+    for(uint8_t i = 0; i < 4; i++) {
+        canvas_draw_line(canvas, x + i, y - 3 + i, x + i, y + 3 - i);
+    }
+}
+
+// Bottom bar naming the two things the user can do here. Every screen that
+// accepts input says so; the save state takes the bar over when it changes.
+static void draw_action_bar(Canvas* canvas, const char* ok_action) {
+    canvas_draw_box(canvas, 0, 55, 128, 9);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 4, 62, ok_action);
+    canvas_draw_str_aligned(canvas, 125, 62, AlignRight, AlignBottom, "save log");
+    draw_right_key(canvas, 125 - canvas_string_width(canvas, "save log") - 9, 61);
+    canvas_set_color(canvas, ColorBlack);
+}
+
 // Rotating radar sweep: a scan that visibly moves reads as alive even when
 // every address NACKs.
 static void draw_scan_spinner(Canvas* canvas, uint8_t cx, uint8_t cy, uint32_t frame) {
@@ -329,12 +351,36 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
     }
 
     char buf[40];
-    snprintf(
-        buf,
-        sizeof(buf),
-        "Found %u device%s",
-        m->found_count,
-        m->found_count == 1 ? "" : "s");
+
+    // One device is the normal case: the user is checking a single sensor and
+    // wants an answer, not a table. Give the whole screen to the verdict.
+    if(m->found_count == 1) {
+        const I2CFoundDevice* dev = &m->found[0];
+        ChipVerdict v = dev->ident.verdict;
+
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(
+            canvas, 64, 13, AlignCenter, AlignBottom, chip_verdict_headline(v));
+
+        canvas_set_font(canvas, FontSecondary);
+        snprintf(
+            buf,
+            sizeof(buf),
+            "%s at 0x%02X",
+            dev->ident.chip ? dev->ident.chip->name : "Unknown chip",
+            dev->addr);
+        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignBottom, buf);
+
+        const char *l1, *l2;
+        chip_verdict_explain(v, &l1, &l2);
+        canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignBottom, l1);
+        canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignBottom, l2);
+
+        draw_action_bar(canvas, "OK: registers");
+        return;
+    }
+
+    snprintf(buf, sizeof(buf), "Found %u devices", m->found_count);
     canvas_draw_str(canvas, 2, 10, buf);
     canvas_set_font(canvas, FontSecondary);
 
@@ -367,16 +413,7 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
     }
 
-    canvas_draw_box(canvas, 0, 55, 128, 9);
-    canvas_set_color(canvas, ColorWhite);
-    canvas_draw_str_aligned(
-        canvas,
-        64,
-        62,
-        AlignCenter,
-        AlignBottom,
-        m->status_msg[0] ? m->status_msg : "OK = details, R = save");
-    canvas_set_color(canvas, ColorBlack);
+    draw_action_bar(canvas, "OK: details");
 }
 
 /* Writes a snapshot of the scan results to /ext/apps_data/i2c_chipid/.

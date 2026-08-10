@@ -378,6 +378,58 @@ const char* chip_verdict_str(ChipVerdict verdict) {
     }
 }
 
+const char* chip_verdict_headline(ChipVerdict verdict) {
+    switch(verdict) {
+    case VerdictGenuine:
+        return "GENUINE";
+    case VerdictWrongChip:
+        return "LIKELY FAKE";
+    case VerdictNoMatch:
+        return "UNIDENTIFIED";
+    case VerdictDetectedNoId:
+        return "DETECTED";
+    case VerdictUnknown:
+        return "UNKNOWN";
+    case VerdictNoAnswer:
+        return "NO ANSWER";
+    default:
+        return "?";
+    }
+}
+
+void chip_verdict_explain(ChipVerdict verdict, const char** line1, const char** line2) {
+    switch(verdict) {
+    case VerdictGenuine:
+        *line1 = "Its ID register matches.";
+        *line2 = "The chip is what it says.";
+        break;
+    case VerdictWrongChip:
+        *line1 = "Some of its IDs are wrong.";
+        *line2 = "Not the labelled part.";
+        break;
+    case VerdictNoMatch:
+        *line1 = "No known ID matched here.";
+        *line2 = "A chip we do not know yet.";
+        break;
+    case VerdictDetectedNoId:
+        *line1 = "This chip has no ID reg.";
+        *line2 = "Only presence is proven.";
+        break;
+    case VerdictNoAnswer:
+        *line1 = "It answers, reads fail.";
+        *line2 = "Check pull-ups and wires.";
+        break;
+    default:
+        *line1 = "Address not in database.";
+        *line2 = "Raw bytes are in details.";
+        break;
+    }
+}
+
+bool chip_verdict_is_good(ChipVerdict verdict) {
+    return verdict == VerdictGenuine || verdict == VerdictDetectedNoId;
+}
+
 const char* chip_verdict_short_str(ChipVerdict verdict) {
     switch(verdict) {
     case VerdictGenuine:
@@ -396,3 +448,4 @@ const char* chip_verdict_short_str(ChipVerdict verdict) {
         return "?";
     }
 }
+

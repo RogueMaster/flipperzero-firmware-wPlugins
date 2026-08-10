@@ -58,5 +58,15 @@ void chip_db_identify(uint8_t addr7, ChipIdentification* out);
 const char* chip_verdict_str(ChipVerdict verdict);
 const char* chip_verdict_short_str(ChipVerdict verdict);
 
+// One-word headline for the summary screen.
+const char* chip_verdict_headline(ChipVerdict verdict);
+
+// Two short lines of plain language saying what the verdict actually means,
+// so the user is never left holding a word they have to interpret.
+void chip_verdict_explain(ChipVerdict verdict, const char** line1, const char** line2);
+
+// True when the verdict means "nothing is wrong here".
+bool chip_verdict_is_good(ChipVerdict verdict);
+
 // Number of chips in the database, for the About screen.
 size_t chip_db_count(void);
