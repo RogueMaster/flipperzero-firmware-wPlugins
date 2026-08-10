@@ -118,6 +118,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - Updated: [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
 - Updated: [Maze 3D v6.11.2 (By k20120509)](https://github.com/k20120509/flipper-release)
+- NFC: [Fix -Unlock with Dictionary- destroying a saved MIFARE Classic dump - pressing Skip while no card was on the reader adopted the dictionary poller's still-empty data as the loaded card, so the results screen offered to save a blank dump over the file. Saving under a different name did not help either, because renaming on save deletes the previously loaded file first. The MIFARE Plus dictionary attack could lose data the same way and now merges its result instead of replacing (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1066)
+- NFC: [Fix -Update from Initial Card- dropping sectors from a MIFARE Classic dump - the refresh replaced the dump with whatever that pass re-read instead of merging into it, so a sector that failed to authenticate this time lost both its key and its blocks. Recoverable through -Restore to Original State-, but silent (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1066)
 
 <a name="release"></a>
 
