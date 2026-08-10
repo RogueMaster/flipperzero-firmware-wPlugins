@@ -27,7 +27,6 @@ typedef struct I2CWorker I2CWorker;
 typedef enum {
     I2CWorkerEventScanProgress,
     I2CWorkerEventScanDone,
-    I2CWorkerEventLiveUpdate,
     I2CWorkerEventBusUpdate,
 } I2CWorkerEvent;
 
@@ -54,20 +53,6 @@ typedef struct {
 // worker thread owns it in watch mode. Safe only while the bus is released.
 void i2c_worker_check_bus(I2CBusCheck* out);
 
-typedef enum {
-    I2CLiveStatusSearching, // no BNO055 on the bus yet
-    I2CLiveStatusInit, // switching to NDOF, sensor settling
-    I2CLiveStatusRunning,
-    I2CLiveStatusLost, // sensor stopped answering mid-run
-} I2CLiveStatus;
-
-typedef struct {
-    I2CLiveStatus status;
-    uint8_t addr; // where the BNO055 was found
-    int16_t heading_raw; // 1/16 degree units, valid when running
-    uint8_t mag_cal; // magnetometer calibration level 0..3
-} I2CLiveData;
-
 typedef void (*I2CWorkerCallback)(I2CWorkerEvent event, void* context);
 
 I2CWorker* i2c_worker_alloc(void);
@@ -78,12 +63,6 @@ void i2c_worker_set_callback(I2CWorker* worker, I2CWorkerCallback callback, void
 void i2c_worker_start_scan(I2CWorker* worker, uint32_t probe_timeout_ms);
 void i2c_worker_abort_scan(I2CWorker* worker);
 bool i2c_worker_is_busy(I2CWorker* worker);
-
-// BNO055 live test: start spins up a search + NDOF read loop in the worker
-// thread, stop requests loop exit (the loop finishes within ~250 ms).
-void i2c_worker_live_start(I2CWorker* worker);
-void i2c_worker_live_stop(I2CWorker* worker);
-void i2c_worker_get_live(I2CWorker* worker, I2CLiveData* out);
 
 // Watch mode: polls bus health in the worker thread so the wiring screen can
 // react the moment the user plugs the sensor in. Emits I2CWorkerEventBusUpdate.
