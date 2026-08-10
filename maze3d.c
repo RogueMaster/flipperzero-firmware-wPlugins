@@ -1183,7 +1183,7 @@ static const char* LBL_ONOFF_EN[] = {"Off", "On"};
 
 // --- 简单设置 (所有模式可见): 音效/开场 ---
 #define SET_SIMPLE(type_, vp, mn, mx, lzh, len, fmt, lzh2, len2) \
-    { type_, vp, mn, mx, lzh, len, fmt, lzh2, len2 }
+    {type_, vp, mn, mx, lzh, len, fmt, lzh2, len2}
 static const SetEntry SIMPLE_SETS[] = {
     SET_SIMPLE(SET_BOOL, &g.sfx_enabled, 0, 1, LBL_ONOFF_ZH, LBL_ONOFF_EN, NULL, "音效", "Sound FX"),
     SET_SIMPLE(
