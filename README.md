@@ -74,11 +74,17 @@ Developed against Unleashed firmware (SDK API 87.8, target f7).
 
 | Verdict | Meaning |
 |---|---|
-| `GENUINE` | Every ID register of a known chip matched. |
-| `WRONG CHIP` | The device answers, but its IDs match no candidate for that address. The raw bytes are shown so you can look them up. |
+| `GENUINE` | Every ID register of a known chip matched. The silicon really is that part — now compare it with what the board and the listing claim. |
+| `LIKELY FAKE` | Some of a known chip's IDs match and others do not. A genuine part has all of them, so this is real evidence of a counterfeit. |
+| `UNIDENTIFIED` | The device answers but nothing matched. Usually a chip missing from the database rather than a fake; the raw bytes are shown so you can look them up. |
 | `DETECTED (no ID reg)` | A known chip lives at this address but has no ID register — presence is all that can be proven. |
 | `UNKNOWN` | Address not in the database. Common WHO_AM_I locations are probed and the raw bytes displayed. |
 | `NO ANSWER` | The device acknowledged its address but no register read succeeded. |
+
+**What the app can and cannot know.** It reads what the silicon says about itself. It cannot
+see the silkscreen, the packaging or the seller's listing, so it never claims a chip matches
+its label — that comparison is yours to make. The app's job is to tell you what the part
+actually is; catching the lie is what happens when that disagrees with what you were sold.
 
 ## Limitations
 

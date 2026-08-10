@@ -397,23 +397,26 @@ const char* chip_verdict_headline(ChipVerdict verdict) {
     }
 }
 
+// The app can only ever say which chip the silicon identifies itself as. It
+// cannot see the silkscreen, the listing or the packaging, so it must never
+// imply it compared anything to a label — it asks the user to do that.
 void chip_verdict_explain(ChipVerdict verdict, const char** line1, const char** line2) {
     switch(verdict) {
     case VerdictGenuine:
-        *line1 = "Its ID register matches.";
-        *line2 = "The chip is what it says.";
+        *line1 = "All ID registers match.";
+        *line2 = "Does the label agree?";
         break;
     case VerdictWrongChip:
-        *line1 = "Some of its IDs are wrong.";
-        *line2 = "Not the labelled part.";
+        *line1 = "Some IDs do not match.";
+        *line2 = "A real one matches all.";
         break;
     case VerdictNoMatch:
-        *line1 = "No known ID matched here.";
-        *line2 = "A chip we do not know yet.";
+        *line1 = "No known ID matched.";
+        *line2 = "Unknown, or not in the DB.";
         break;
     case VerdictDetectedNoId:
         *line1 = "This chip has no ID reg.";
-        *line2 = "Only presence is proven.";
+        *line2 = "Presence only, no proof.";
         break;
     case VerdictNoAnswer:
         *line1 = "It answers, reads fail.";
