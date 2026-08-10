@@ -8,6 +8,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/variable_item_list.h>
+#include <gui/modules/text_box.h>
 #include <storage/storage.h>
 #include <math.h>
 
@@ -15,6 +16,7 @@
 #include "chip_db.h"
 #include "i2c_notify.h"
 #include "i2c_settings.h"
+#include "report.h"
 
 #define TAG "FakeChipDetector"
 
@@ -28,6 +30,7 @@ typedef enum {
     FakeChipViewLive,
     FakeChipViewSettings,
     FakeChipViewChips,
+    FakeChipViewReport,
     FakeChipViewAbout,
 } FakeChipViewId;
 
@@ -94,6 +97,8 @@ typedef struct {
     View* detail_view;
     View* live_view;
     View* chips_view;
+    TextBox* report_box;
+    FuriString* report_text;
     VariableItemList* settings_list;
     Widget* about_widget;
     I2CWorker* worker;
@@ -591,153 +596,16 @@ static bool scan_save_log(
         dt.second);
     if(out_name) snprintf(out_name, out_name_size, "%s", name);
 
-    FuriString* path = furi_string_alloc_printf(
-        APP_DATA_PATH("scan_%04u%02u%02u_%02u%02u%02u.txt"),
-        dt.year,
-        dt.month,
-        dt.day,
-        dt.hour,
-        dt.minute,
-        dt.second);
+    FuriString* path = furi_string_alloc_printf(APP_DATA_PATH("%s"), name);
     storage_common_resolve_path_and_ensure_app_directory(storage, path);
 
     File* file = storage_file_alloc(storage);
     if(storage_file_open(file, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        FuriString* line = furi_string_alloc();
-
-        // This file gets shown to a seller or a courier, not to an engineer.
-        // Plain language first, the hex dump last: anything technical above
-        // the explanation and the reader stops reading.
-        furi_string_printf(
-            line,
-            "%s\n"
-            "==================================\n\n",
-            disputed ? "WRONG PART REPORT" : "CHIP INSPECTION REPORT");
-
-        for(uint8_t i = 0; i < count; i++) {
-            const I2CFoundDevice* dev = &found[i];
-            const char* name = dev->ident.chip ? dev->ident.chip->name : NULL;
-            const char* kind = dev->ident.chip ? dev->ident.chip->kind : NULL;
-
-            if(name && kind) {
-                furi_string_cat_printf(line, "Inside this module: %s\n", name);
-                furi_string_cat_printf(line, "It is a: %s\n\n", kind);
-            } else {
-                furi_string_cat_printf(
-                    line, "A device answered, but its identity\nis unknown.\n\n");
-            }
-
-            switch(dev->ident.verdict) {
-            case VerdictGenuine:
-                furi_string_cat_printf(
-                    line,
-                    "The factory ID inside the chip matches\n"
-                    "a real %s exactly.\n\n",
-                    name);
-                break;
-            case VerdictWrongChip:
-                furi_string_cat_printf(
-                    line,
-                    "Part of the factory ID is WRONG. A real\n"
-                    "%s answers with different\nvalues. This is not that part.\n\n",
-                    name ? name : "chip");
-                break;
-            case VerdictDetectedNoId:
-                furi_string_cat_printf(
-                    line,
-                    "This type of chip carries no factory ID,\n"
-                    "so only its presence could be proven.\n\n");
-                break;
-            case VerdictNoAnswer:
-                furi_string_cat_printf(
-                    line,
-                    "The chip responded to its address but\n"
-                    "would not return any data.\n\n");
-                break;
-            default:
-                furi_string_cat_printf(
-                    line,
-                    "The ID it reported matches no chip known\n"
-                    "to this tool.\n\n");
-                break;
-            }
-        }
-
-        if(disputed) {
-            furi_string_cat_str(
-                line,
-                "The buyer states this is NOT the part\n"
-                "that was ordered.\n\n");
-        }
-
-        furi_string_cat_str(
-            line,
-            "How this was checked\n"
-            "--------------------\n"
-            "Every chip of this kind has an identity\n"
-            "number written into the silicon at the\n"
-            "factory. It is read-only: no software and\n"
-            "no seller can change it. The chip was\n"
-            "asked for that number over its standard\n"
-            "data connection, and the answer is shown\n"
-            "above. Anyone can repeat this test with\n"
-            "the same free tool and get the same\n"
-            "result.\n\n");
-
-        furi_string_cat_printf(
-            line,
-            "Checked %04u-%02u-%02u %02u:%02u with\n"
-            "Fake Chip Detector on a Flipper Zero.\n\n\n"
-            "---------- technical detail ----------\n"
-            "Bus: I2C external, 100 kHz\n"
-            "Pins: 16 SCL, 15 SDA, 9 3V3, 8 GND\n\n",
-            dt.year,
-            dt.month,
-            dt.day,
-            dt.hour,
-            dt.minute);
-
-        for(uint8_t i = 0; i < count; i++) {
-            const I2CFoundDevice* dev = &found[i];
-            furi_string_cat_printf(
-                line,
-                "addr 0x%02X  %s  %s\n",
-                dev->addr,
-                dev->ident.chip ? dev->ident.chip->name : "UNKNOWN",
-                chip_verdict_str(dev->ident.verdict));
-            for(uint8_t r = 0; r < dev->ident.read_count; r++) {
-                const IdReadResult* rr = &dev->ident.reads[r];
-                uint8_t digits = rr->wide ? 4 : 2;
-                // A 16-bit index must be logged as such, or the reader cannot
-                // look the register up in the datasheet.
-                uint8_t rdigits = rr->reg16 ? 4 : 2;
-                if(!rr->read_ok) {
-                    furi_string_cat_printf(
-                        line, "  reg 0x%0*X read FAILED\n", rdigits, rr->reg);
-                } else if(rr->has_expected) {
-                    furi_string_cat_printf(
-                        line,
-                        "  reg 0x%0*X = 0x%0*X (exp 0x%0*X) %s\n",
-                        rdigits,
-                        rr->reg,
-                        digits,
-                        rr->actual,
-                        digits,
-                        rr->expected,
-                        rr->match ? "OK" : "MISMATCH");
-                } else {
-                    furi_string_cat_printf(
-                        line, "  reg 0x%0*X = 0x%02X\n", rdigits, rr->reg, rr->actual);
-                }
-            }
-            if(dev->ident.chip && dev->ident.chip->note) {
-                furi_string_cat_printf(line, "  note: %s\n", dev->ident.chip->note);
-            }
-        }
-        if(count == 0) furi_string_cat_str(line, "No devices found\n");
-        size_t len = furi_string_size(line);
-        ok = storage_file_write(file, furi_string_get_cstr(line), len) == len;
-        furi_string_free(line);
+        FuriString* text = furi_string_alloc();
+        report_build(text, found, count, disputed, &dt);
+        size_t len = furi_string_size(text);
+        ok = storage_file_write(file, furi_string_get_cstr(text), len) == len;
+        furi_string_free(text);
     }
     storage_file_close(file);
     storage_file_free(file);
@@ -746,14 +614,13 @@ static bool scan_save_log(
     return ok;
 }
 
-/* Snapshots the result list and writes it to SD outside the model lock.
- * The snapshot lives on the heap only for the duration of the write — as a
- * static buffer it would cost 800+ bytes of permanent RAM for something that
- * runs once per scan. */
+static void app_show_report(FakeChipApp* app, bool disputed);
+
+// Snapshots the results and writes the report outside the model lock: SD
+// writes can stall for seconds and must never hold up the GUI.
 static void app_save_log(FakeChipApp* app, bool disputed) {
     I2CFoundDevice* snapshot = malloc(sizeof(I2CFoundDevice) * I2C_SCAN_MAX_FOUND);
     uint8_t count = 0;
-
     with_view_model(
         app->scan_view,
         ScanViewModel * m,
@@ -808,6 +675,7 @@ static bool scan_input_callback(InputEvent* event, void* context) {
     bool do_save = false;
     bool answered_wrong = false;
     bool disputed = false;
+    bool show_report = false;
 
     with_view_model(
         app->scan_view,
@@ -823,7 +691,10 @@ static bool scan_input_callback(InputEvent* event, void* context) {
                         rescan = true;
                     } else if(m->found_count == 1 && m->answer == AnswerAsking) {
                         m->answer = AnswerExpected; // "yes, that is what I bought"
-                    } else if(m->found_count > 1) {
+                    } else if(m->found_count == 1) {
+                        show_report = true;
+                        disputed = (m->answer == AnswerNotWhatIOrdered);
+                    } else {
                         open_detail = true;
                     }
                     consumed = true;
@@ -864,6 +735,8 @@ static bool scan_input_callback(InputEvent* event, void* context) {
         consumed);
 
     if(answered_wrong) i2c_notify_play(app->notifications, I2CNotifyBad);
+
+    if(show_report) app_show_report(app, disputed);
 
     if(do_save) {
         app_save_log(app, disputed);
@@ -1361,6 +1234,35 @@ static bool chips_input_callback(InputEvent* event, void* context) {
     return consumed;
 }
 
+
+/* ---------------- Report viewer ---------------- */
+
+// The file on the SD card is for later. What matters at the front door is a
+// screen you can hand to the courier, so the same text goes on the display.
+static void app_show_report(FakeChipApp* app, bool disputed) {
+    I2CFoundDevice* snapshot = malloc(sizeof(I2CFoundDevice) * I2C_SCAN_MAX_FOUND);
+    uint8_t count = 0;
+    with_view_model(
+        app->scan_view,
+        ScanViewModel * m,
+        {
+            count = m->found_count;
+            if(count > I2C_SCAN_MAX_FOUND) count = I2C_SCAN_MAX_FOUND;
+            memcpy(snapshot, m->found, count * sizeof(I2CFoundDevice));
+        },
+        false);
+
+    DateTime dt;
+    furi_hal_rtc_get_datetime(&dt);
+    report_build(app->report_text, snapshot, count, disputed, &dt);
+    free(snapshot);
+
+    text_box_reset(app->report_box);
+    text_box_set_font(app->report_box, TextBoxFontText);
+    text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
+    app_switch_view(app, FakeChipViewReport);
+}
+
 /* ---------------- Animation tick ---------------- */
 
 // Animation runs on its own thread rather than a FuriTimer: a timer callback
@@ -1549,6 +1451,12 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_set_previous_callback(app->chips_view, nav_to_menu);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewChips, app->chips_view);
 
+    app->report_text = furi_string_alloc();
+    app->report_box = text_box_alloc();
+    view_set_previous_callback(text_box_get_view(app->report_box), nav_to_scan);
+    view_dispatcher_add_view(
+        app->view_dispatcher, FakeChipViewReport, text_box_get_view(app->report_box));
+
     app->about_widget = widget_alloc();
     widget_add_string_element(
         app->about_widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "Fake Chip Detector");
@@ -1599,6 +1507,7 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewLive);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewChips);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewReport);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewAbout);
     submenu_free(app->submenu);
     view_free(app->wiring_view);
@@ -1606,6 +1515,8 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_free(app->detail_view);
     view_free(app->live_view);
     view_free(app->chips_view);
+    text_box_free(app->report_box);
+    furi_string_free(app->report_text);
     variable_item_list_free(app->settings_list);
     widget_free(app->about_widget);
     view_dispatcher_free(app->view_dispatcher);

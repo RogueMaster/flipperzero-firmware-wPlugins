@@ -27,7 +27,7 @@ almost every breakout module already has them.
 
 ## Step 1 — no hardware needed (30 seconds)
 
-Open **I2C Chip ID** from `Apps → GPIO`, then **How to wire** with nothing plugged in.
+Open **Fake Chip Detector** from `Apps → GPIO`, then **How to wire** with nothing plugged in.
 
 You should see four broken, dashed wires and "Waiting for sensor…". Press BACK, then run
 **Scan bus**. Expected result: *"No pull-ups on the bus / sensor unpowered or not wired"*.
@@ -92,7 +92,7 @@ same address, and look identical. Sellers ship the cheaper BMP280 die on boards 
 
 Scan, press OK on the 0x76 entry, and the detail screen shows the register, the expected value
 and the verdict. Press RIGHT on the results list to save a log to
-`/ext/apps_data/i2c_chipid/` — that is the file to attach to a refund dispute.
+`/ext/apps_data/fake_chip_detector/` — that is the file to attach to a refund dispute.
 
 The same trick catches a "MPU9250" that is really an MPU6500 (reg `0x75`: 0x71 vs 0x70) and a
 "HMC5883L" that is really a QMC5883L (different address entirely: 0x0D instead of 0x1E).

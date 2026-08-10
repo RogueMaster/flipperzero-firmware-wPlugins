@@ -3,18 +3,21 @@
 ## 1.0
 
 - Initial release.
-- I2C bus scan over the valid 7-bit address range (0x08-0x77) with a live progress display.
-- Chip identification against a database of 70+ parts using WHO_AM_I / chip-ID registers,
-  including 16-bit ID registers, masked revision fields and address ranges.
-- Verdicts: GENUINE, WRONG CHIP, DETECTED (no ID reg), UNKNOWN, NO ANSWER. Chips without an
-  ID register are never reported as genuine.
-- Address-collision resolution: every candidate sharing an address is probed and the one whose
-  ID matches wins.
-- Electrical bus diagnostics that tell a missing pull-up apart from a line shorted low, with
-  wiring hints derived from the measurement.
-- Animated wiring screen that detects the sensor the moment it is plugged in.
-- BNO055 live test: NDOF mode, heading readout, compass needle, magnetometer calibration level
-  and an animated figure-8 calibration prompt.
-- Feedback via melody, RGB LED and vibration, each independently switchable.
-- Settings: sound, vibration, LED, backlight, probe speed and automatic log saving.
-- Scan logs saved to /ext/apps_data/i2c_chipid/ as plain text.
+- Identifies I2C chips by their factory ID registers and reports whether the silicon really is
+  the part it claims to be. 80 chips in the database, each with a plain-language description of
+  what it does.
+- Asks whether the part found is the one the user ordered, since the app cannot see the label,
+  and turns a "no" into a report written for a seller or a courier.
+- Reports are readable on screen and saved to /ext/apps_data/fake_chip_detector/ as evidence:
+  plain statement first, an explanation of why a factory ID cannot be forged, technical detail
+  last.
+- Supports 8-bit and 16-bit register indices and 16-bit values, covering ST time-of-flight
+  parts and TI power monitors alongside the usual WHO_AM_I chips.
+- Resolves address collisions by probing every candidate that shares an address.
+- Never overclaims: chips without an ID register are reported as present, not genuine; a device
+  matching nothing is unidentified rather than fake; a failed read is shown as a failure.
+- Wiring guide with live per-line detection, a stray-pull-up sweep for the wrong pins, and
+  SDA/SCL short detection.
+- BNO055 live test: NDOF fusion, heading, magnetometer calibration, animated figure-8 prompt.
+- Browsable list of every known chip.
+- Melody, LED and vibration feedback, each switchable in Settings.
