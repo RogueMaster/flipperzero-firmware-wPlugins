@@ -97,45 +97,57 @@ static void draw_connector(Canvas* canvas, uint8_t x, uint8_t y) {
     canvas_draw_line(canvas, x + 3, y, x + 5, y);
 }
 
+// Wire rows: text lives in a gap in the line rather than on top of it, so
+// nothing overlaps on a 128x64 screen.
+#define WIRE_X0 42 // line starts after the Flipper pin label
+#define WIRE_X1 82 // line ends before the sensor signal label
+
 static void wiring_draw_callback(Canvas* canvas, void* model) {
     WiringViewModel* m = model;
     canvas_clear(canvas);
 
-    canvas_draw_rframe(canvas, 0, 10, 38, 44, 2);
-    canvas_draw_rframe(canvas, 92, 10, 36, 44, 2);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignBottom, "3.3V ONLY - NOT 5V!");
+
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 3, 20, "FLIPPER");
-    canvas_draw_str(canvas, 95, 20, "SENSOR");
+    canvas_draw_str(canvas, 2, 19, "FLIPPER");
+    canvas_draw_str(canvas, 88, 19, "SENSOR");
+    canvas_draw_line(canvas, 0, 21, 127, 21);
 
     // Pin numbers verified against furi_hal_resources.c gpio_pins[]:
     // PC0 (SCL) is header pin 16, PC1 (SDA) is header pin 15.
-    const char* labels[] = {"16 SCL", "15 SDA", "9  3V3", "8  GND"};
+    const char* pins[] = {"pin 16", "pin 15", "pin 9", "pin 8"};
+    const char* signals[] = {"SCL", "SDA", "3V3", "GND"};
+
     for(uint8_t i = 0; i < 4; i++) {
-        uint8_t y = 26 + i * 8;
-        canvas_draw_line(canvas, 38, y, 92, y);
-        draw_connector(canvas, 33, y);
-        draw_connector(canvas, 87, y);
-        canvas_draw_str(canvas, 44, y - 1, labels[i]);
+        uint8_t baseline = 31 + i * 8;
+        uint8_t y = baseline - 2; // wire runs through the middle of the text
+
+        canvas_draw_str(canvas, 2, baseline, pins[i]);
+        canvas_draw_str(canvas, 88, baseline, signals[i]);
+        canvas_draw_line(canvas, WIRE_X0, y, WIRE_X1, y);
+        draw_connector(canvas, WIRE_X0 - 5, y);
+        canvas_draw_box(canvas, WIRE_X1, y - 2, 3, 5);
 
         // A pulse travelling Flipper -> sensor shows the link is live; it
         // speeds up once pull-ups appear on the bus.
         uint8_t speed = m->sensor_seen ? 3 : 1;
-        uint8_t span = 92 - 38;
-        uint8_t px = 38 + (uint8_t)((m->frame * speed + i * 13) % span);
+        uint8_t span = WIRE_X1 - WIRE_X0;
+        uint8_t px = WIRE_X0 + (uint8_t)((m->frame * speed + i * 11) % span);
         canvas_draw_disc(canvas, px, y, 1);
     }
 
-    canvas_set_font(canvas, FontSecondary);
     if(m->sensor_seen) {
         canvas_draw_box(canvas, 0, 55, 128, 9);
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_str_aligned(
-            canvas, 64, 63, AlignCenter, AlignBottom, "Sensor detected! OK = scan");
+            canvas, 64, 62, AlignCenter, AlignBottom, "Sensor found! OK = scan");
         canvas_set_color(canvas, ColorBlack);
     } else if(m->bus.health == I2CBusStuckLow) {
         canvas_draw_str_aligned(
-            canvas, 64, 63, AlignCenter, AlignBottom, "Line stuck low - check short");
+            canvas, 64, 62, AlignCenter, AlignBottom, "Line stuck low - check short");
     } else {
+        // Fixed-width dots so the centred text does not jitter
         char buf[32];
         const char* dots = "   ";
         switch((m->frame / 8) % 4) {
@@ -152,11 +164,8 @@ static void wiring_draw_callback(Canvas* canvas, void* model) {
             break;
         }
         snprintf(buf, sizeof(buf), "Waiting for sensor%s", dots);
-        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, buf);
+        canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, buf);
     }
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignBottom, "3.3V ONLY - NOT 5V!");
 }
 
 /* ---------------- Scan screen ---------------- */
