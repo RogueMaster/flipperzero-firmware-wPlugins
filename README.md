@@ -86,7 +86,7 @@ TPMS                    4 dev  RX
 7ad779   2.25b   24C        ▁▃▅
 1b04f2   2.15b   31C        ▁▃
 0a11c3   2.29b   19C        ·
-OK:info       R:wake      L:auto
+OK:info       L:auto      R:wake
 ```
 
 The bars on the right are the signal level: the taller, the closer the
@@ -102,7 +102,7 @@ Keys:
 | **OK** | details of the selected sensor, press again to go back |
 | **OK, long press** | clear the list (before moving to another car, say) |
 | **Right** | one wake pulse, 0.7 s |
-| **Left** | periodic waking on and off, a pulse every 5 s; when on, the header shows `wake` |
+| **Left** | periodic waking on and off, a pulse every 5 s; when on, the header shows `W` |
 | **Back** | from the details to the list, from the list out of the app |
 
 The detail screen shows pressure in bar, PSI and kPa, temperature, the

@@ -27,6 +27,7 @@ description: "@README.md"
 changelog: "@changelog.md"
 # Order matters: the first screenshot is the app preview in the catalog.
 screenshots:
-  - screenshots/2.png
+  - screenshots/4.png
   - screenshots/3.png
+  - screenshots/2.png
   - screenshots/1.png

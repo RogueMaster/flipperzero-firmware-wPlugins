@@ -106,7 +106,7 @@ static void tpms_view_draw_header(Canvas* canvas, TpmsBridgeApp* app) {
         "%u dev  %s%s",
         (unsigned)app->store.count,
         radio,
-        app->auto_wake ? " wake" : "");
+        app->auto_wake ? " W" : "");
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, status);
@@ -181,8 +181,8 @@ static void tpms_view_draw_list(Canvas* canvas, TpmsBridgeApp* app) {
     /* Spread the hints across the width: they do not fit as one string. */
     canvas_draw_line(canvas, 0, 54, 127, 54);
     canvas_draw_str(canvas, TPMS_LIST_LEFT, 62, "OK:info");
-    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "R:wake");
-    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "L:auto");
+    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "L:auto");
+    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "R:wake");
 }
 
 static void tpms_view_draw_detail(Canvas* canvas, TpmsBridgeApp* app) {
