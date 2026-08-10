@@ -5,7 +5,7 @@ v6.11.1:
 - Buff System: Shield (300 frames invincibility) and Double Fire (900 frames, fires 2 bullets per shot at 11-degree offset). HUD progress bars show remaining time.
 - Bilingual Support: full Chinese and English UI. In English mode, all menus, settings (26 items), shop, item names/descriptions, and buff labels are 100% English.
 - Dev Settings: 26 configurable parameters with bilingual labels (turn sensitivity, move speed, fog, brightness, volume, maze scale, MC world size, etc.).
-- Item inventory persistence: g.items[10] saved to SaveData, persists across sessions.
+- Item inventory persistence: items array (10 entries) saved to SaveData, persists across sessions.
 - Zero Chinese leakage in English mode: all settings labels, category tags, option values (On/Off, Low/Mid/High, etc.), shop descriptions, and buff timers fully translated.
 
 v6.10:

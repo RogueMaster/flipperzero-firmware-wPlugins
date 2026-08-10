@@ -62,13 +62,7 @@ A first-person 3D raycasting maze game for Flipper Zero, tuned for the 128x64 mo
 
 ## Building
 
-```bash
-pip install ufbt
-ufbt update
-ufbt build
-```
-
-The compiled `maze3d.fap` will be in `dist/`. Copy it to `apps/Games/maze3d.fap` on the Flipper's SD card, or sideload via qFlipper.
+Install ufbt, update the SDK, and build. Run these commands in your terminal: pip install ufbt, then ufbt update, then ufbt build. The compiled maze3d.fap will be in the dist folder. Copy it to apps/Games/maze3d.fap on the Flipper SD card, or sideload via qFlipper.
 
 ## License
 
