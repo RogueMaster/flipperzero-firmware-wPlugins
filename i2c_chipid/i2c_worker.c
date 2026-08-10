@@ -134,8 +134,10 @@ void i2c_worker_check_bus(I2CBusCheck* out) {
         out->shorted = i2c_lines_shorted();
     } else {
         out->health = I2CBusFloating;
-        // Nothing on the I2C pins at all: look for the module on the wrong ones.
-        if(!out->scl_ok && !out->sda_ok) out->stray_pin = i2c_find_stray_pullup();
+        // Any incomplete bus is worth checking, not just a completely dead
+        // one: with SDA on the right pin and SCL on the wrong one, the old
+        // "both lines dead" condition never fired and the user got no hint.
+        out->stray_pin = i2c_find_stray_pullup();
     }
 }
 
