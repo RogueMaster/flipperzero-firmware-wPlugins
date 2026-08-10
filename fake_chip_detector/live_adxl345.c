@@ -12,17 +12,25 @@
 // whether the MEMS structure behind it actually moves.
 #define ADXL345_REG_DEVID 0x00
 #define ADXL345_REG_POWER_CTL 0x2D
+#define ADXL345_REG_DATA_FORMAT 0x31
 #define ADXL345_REG_DATAX0 0x32
 
 // Page 24: "a fixed device ID code of 0xE5".
 #define ADXL345_DEVID_VALUE 0xE5
 
 // Page 26: the part powers up in standby with every sensor function off, and
-// bit 3 of POWER_CTL is what starts it measuring. That is the only write this
-// test needs — the reset values already select +/-2 g, 10-bit, right-justified
-// output at a 100 Hz data rate.
+// bit 3 of POWER_CTL is what starts it measuring.
 #define ADXL345_POWER_CTL_MEASURE 0x08
 #define ADXL345_POWER_CTL_STANDBY 0x00
+
+// DATA_FORMAT resets to 0x00: +/-2 g, 10-bit, right-justified (page 27). The
+// 256 LSB/g below is true at that setting and no other, so it is written
+// rather than trusted. This part has no soft reset and keeps its registers
+// until power is pulled, so a board that arrived configured for +/-16 g or
+// FULL_RES would read wrong by up to eight times, and the number on screen
+// would look perfectly reasonable. Writing the reset value leaves nothing to
+// undo on the way out.
+#define ADXL345_DATA_FORMAT_2G_10BIT 0x00
 
 // Table 1, note 7: at the default 100 Hz data rate the turn-on time is about
 // 11.1 ms.
@@ -78,8 +86,16 @@ static void
 
         bool measuring = false;
         if(adxl345_present(addr7)) {
-            measuring = i2c_worker_write_reg(
-                addr7, ADXL345_REG_POWER_CTL, ADXL345_POWER_CTL_MEASURE, I2C_REG_TIMEOUT_MS);
+            // Range first, while the part is still in standby: page 26 asks
+            // for configuration to be written before measurement starts.
+            if(i2c_worker_write_reg(
+                   addr7,
+                   ADXL345_REG_DATA_FORMAT,
+                   ADXL345_DATA_FORMAT_2G_10BIT,
+                   I2C_REG_TIMEOUT_MS)) {
+                measuring = i2c_worker_write_reg(
+                    addr7, ADXL345_REG_POWER_CTL, ADXL345_POWER_CTL_MEASURE, I2C_REG_TIMEOUT_MS);
+            }
             if(measuring) adxl345_delay(stop, ADXL345_TURNON_MS);
         }
 

@@ -121,6 +121,22 @@ static bool ds3231_read_temp(uint8_t addr7, int32_t* milli_c) {
     return true;
 }
 
+// Thousandths of a degree to one decimal place. The magnitude is split off
+// before dividing so a reading between 0 and -1 C keeps its sign, which plain
+// integer division silently drops: -0.25 C would otherwise print as "0.2".
+static void ds3231_format_temp(char* out, size_t len, int32_t milli_c) {
+    bool negative = milli_c < 0;
+    uint32_t magnitude = (uint32_t)(negative ? -milli_c : milli_c);
+    if(magnitude > 99999u) magnitude = 99999u;
+    snprintf(
+        out,
+        len,
+        "%s%u.%u",
+        negative ? "-" : "",
+        (unsigned)(magnitude / 1000u),
+        (unsigned)(magnitude % 1000u / 100u));
+}
+
 static void
     ds3231_run(uint8_t addr7, const volatile bool* stop, LiveTestPublish publish, void* ctx) {
     while(!*stop) {
@@ -178,19 +194,28 @@ static void
             snprintf(st.heading, sizeof(st.heading), "%02u", ss);
             snprintf(st.unit, sizeof(st.unit), "sec");
 
+            // The modulo is redundant - both fields were validated above - but
+            // it is what proves to the compiler that two digits is the widest
+            // these can print, which is what keeps the composed line inside 26
+            // characters without a runtime check.
+            unsigned h24 = (unsigned)hh % 24u, m60 = (unsigned)mm % 60u, s60 = (unsigned)ss % 60u;
+
             int32_t milli_c = 0;
             if(ds3231_read_temp(addr7, &milli_c)) {
+                char die[8];
+                ds3231_format_temp(die, sizeof(die), milli_c);
                 snprintf(
-                    st.lines[0],
-                    LIVE_TEST_LINE_LEN,
-                    "%02u:%02u:%02u   %ld.%01ld C",
-                    hh,
-                    mm,
-                    ss,
-                    (long)(milli_c / 1000),
-                    (long)((milli_c < 0 ? -milli_c : milli_c) % 1000 / 100));
+                    st.lines[0], LIVE_TEST_LINE_LEN, "%02u:%02u:%02u  %s C", h24, m60, s60, die);
             } else {
-                snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "%02u:%02u:%02u", hh, mm, ss);
+                // Say so rather than quietly dropping the field. The die
+                // thermometer is the one thing a DS3231 has that the
+                // pin-compatible DS1307 does not, and both live at 0x68 with
+                // the same time registers, so a DS1307 sold as a DS3231 will
+                // otherwise sail through this test. It is reported, never
+                // judged: on a DS1307 those two addresses are battery-backed
+                // RAM and may legitimately hold anything at all.
+                snprintf(
+                    st.lines[0], LIVE_TEST_LINE_LEN, "%02u:%02u:%02u  no temp", h24, m60, s60);
             }
 
             if(ticks >= DS3231_PROOF_TICKS) st.phase = LiveTestPhasePassed;

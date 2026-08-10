@@ -79,6 +79,15 @@ lists it.
   makes the app accuse a genuine part of being counterfeit.
 - **Never print a number the part did not stand behind.** If the sensor reports an error or an
   out-of-range status, say so — do not render the raw byte as if it were a measurement.
+- **Write the configuration your arithmetic depends on. Do not assume the reset value.** If you
+  divide by an LSB-per-unit constant, that constant is true for exactly one range setting, and
+  the part in front of you keeps its registers until power is pulled — a board that some other
+  firmware configured for a wider range arrives still configured that way. The ADXL345 is the
+  sharp case: no soft reset at all, and a part left at ±16 g reads eight times low while the
+  screen shows a perfectly plausible number. Write the range register even when the value you
+  write *is* the reset value; that costs one transaction and means there is nothing to restore.
+  Track it separately from your teardown flag, though — a write that fails halfway leaves the
+  part changed but unmeasurable, and cleanup still has to undo exactly what landed.
 
 ### Drawing
 

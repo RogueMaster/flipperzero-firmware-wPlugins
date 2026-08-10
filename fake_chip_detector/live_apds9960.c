@@ -34,6 +34,13 @@
 #define APDS9960_PPULSE_8_AT_8US 0x47 // PPLEN=8us, 7+1 = 8 pulses (page 23)
 #define APDS9960_CONTROL_100MA_4X 0x08 // LDRIVE 100 mA, PGAIN 4x (page 24)
 
+// The reset values of those same two registers, from the map on page 19: one
+// 8 us pulse, 100 mA, 1x gain. Both are restored on the way out, because a
+// live test has no business leaving the next program's sensor eight times more
+// sensitive than the part it thinks it is holding.
+#define APDS9960_PPULSE_RESET 0x40
+#define APDS9960_CONTROL_RESET 0x00
+
 // STATUS bits, page 25. PVALID says a proximity cycle finished and is cleared
 // by the act of reading PDATA; PGSAT says the analog front end saturated and
 // the datasheet warns the result "may not be accurate".
@@ -66,19 +73,30 @@ static bool apds9960_present(uint8_t addr7) {
     return id == APDS9960_ID_VALUE;
 }
 
+// Which registers this test actually managed to change. A write can fail
+// halfway through the sequence, and the cleanup at the end has to undo exactly
+// the ones that landed - no more, and no fewer.
+typedef struct {
+    bool ppulse;
+    bool control;
+    bool enable;
+} ApdsTouched;
+
 // Page 20 is explicit that every control register must be set before the
 // engine is enabled: "changing control register values while operating may
 // result in invalid results". So ENABLE is written last, deliberately.
-static bool apds9960_start(uint8_t addr7, const volatile bool* stop) {
-    if(!i2c_worker_write_reg(
-           addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_8_AT_8US, I2C_REG_TIMEOUT_MS))
-        return false;
-    if(!i2c_worker_write_reg(
-           addr7, APDS9960_REG_CONTROL, APDS9960_CONTROL_100MA_4X, I2C_REG_TIMEOUT_MS))
-        return false;
-    if(!i2c_worker_write_reg(
-           addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_PROX, I2C_REG_TIMEOUT_MS))
-        return false;
+static bool apds9960_start(uint8_t addr7, const volatile bool* stop, ApdsTouched* touched) {
+    touched->ppulse = i2c_worker_write_reg(
+        addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_8_AT_8US, I2C_REG_TIMEOUT_MS);
+    if(!touched->ppulse) return false;
+
+    touched->control = i2c_worker_write_reg(
+        addr7, APDS9960_REG_CONTROL, APDS9960_CONTROL_100MA_4X, I2C_REG_TIMEOUT_MS);
+    if(!touched->control) return false;
+
+    touched->enable = i2c_worker_write_reg(
+        addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_PROX, I2C_REG_TIMEOUT_MS);
+    if(!touched->enable) return false;
 
     apds9960_delay(stop, APDS9960_SETTLE_MS);
     return true;
@@ -122,8 +140,9 @@ static void
         snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "Lighting the IR LED");
         publish(ctx, &st);
 
+        ApdsTouched touched = {0};
         bool running = false;
-        if(apds9960_present(addr7)) running = apds9960_start(addr7, stop);
+        if(apds9960_present(addr7)) running = apds9960_start(addr7, stop, &touched);
 
         uint16_t seen_min = 0xFFFF, seen_max = 0;
         uint8_t errors = 0;
@@ -175,13 +194,23 @@ static void
             apds9960_delay(stop, APDS9960_POLL_MS);
         }
 
-        // Park only what we started: the IR LED and the oscillator are on
-        // because this test turned them on. If the ID never matched, nothing
-        // was enabled and nothing is written here — whatever lives at this
-        // address, register 0x80 is not ours to clear.
-        if(running) {
+        // Park only what we started, in the reverse of the order it was
+        // started: the engine stops first, so the pulse and gain settings are
+        // never changed while it is running, which is the thing page 20 warns
+        // against. If the ID never matched, apds9960_start was never called
+        // and not one byte is written here — whatever lives at this address,
+        // its registers are not ours to clear.
+        if(touched.enable) {
             i2c_worker_write_reg(
                 addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_OFF, I2C_REG_TIMEOUT_MS);
+        }
+        if(touched.control) {
+            i2c_worker_write_reg(
+                addr7, APDS9960_REG_CONTROL, APDS9960_CONTROL_RESET, I2C_REG_TIMEOUT_MS);
+        }
+        if(touched.ppulse) {
+            i2c_worker_write_reg(
+                addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_RESET, I2C_REG_TIMEOUT_MS);
         }
 
         if(*stop) break;

@@ -12,6 +12,7 @@
 // the same addresses, in the same byte order, with the same default scale.
 // That is why one file serves three database entries.
 #define MPU_REG_ACCEL_XOUT_H 0x3B
+#define MPU_REG_ACCEL_CONFIG 0x1C
 #define MPU_REG_PWR_MGMT_1 0x6B
 #define MPU_REG_WHO_AM_I 0x75
 
@@ -38,7 +39,12 @@
 #define MPU_POLL_MS 100
 
 // ACCEL_CONFIG resets to 0x00, which is the +/-2 g range, and the register map
-// gives 16384 LSB per g there. Nothing needs writing to select it.
+// gives 16384 LSB per g there. It is written anyway rather than assumed: the
+// part keeps its configuration until power is removed, so a board that some
+// other firmware left at +/-16 g would divide by a scale eight times too small
+// and print a confident, wrong g — with nothing on screen to say so. Writing
+// the reset value also means there is nothing extra to put back afterwards.
+#define MPU_ACCEL_CONFIG_2G 0x00
 #define MPU_LSB_PER_G 16384
 
 // Enough of gravity on one axis to call it the one holding the board up. Well
@@ -107,17 +113,25 @@ static void
         publish(ctx, &st);
 
         MpuIdentity id = {0};
+        // Two flags, because they answer different questions. `woken` says a
+        // register was changed and has to be put back; `ready` says the scale
+        // is known and a number may be shown. If the range write fails the
+        // part is awake but unmeasurable, and only the first is true.
         bool woken = false;
+        bool ready = false;
         if(mpu_identify(addr7, &id)) {
             woken = i2c_worker_write_reg(
                 addr7, MPU_REG_PWR_MGMT_1, MPU_PWR_WAKE, I2C_REG_TIMEOUT_MS);
-            if(woken) mpu_delay(stop, MPU_WAKE_SETTLE_MS);
+            if(woken)
+                ready = i2c_worker_write_reg(
+                    addr7, MPU_REG_ACCEL_CONFIG, MPU_ACCEL_CONFIG_2G, I2C_REG_TIMEOUT_MS);
+            if(ready) mpu_delay(stop, MPU_WAKE_SETTLE_MS);
         }
 
         uint8_t axes_seen = 0;
         uint8_t errors = 0;
 
-        while(woken && !*stop && errors < 3) {
+        while(ready && !*stop && errors < 3) {
             int32_t mg[3] = {0};
             if(!mpu_read_accel(addr7, mg)) {
                 errors++;
