@@ -4,9 +4,8 @@
 # flipperdevices/flipper-application-catalog as
 # applications/Sub-GHz/tpms_bridge/manifest.yml and open a pull request.
 #
-# Before doing that:
-#   * set commit_sha to the commit that carries all the files;
-#   * make sure every screenshot listed below exists in the repository.
+# Keep commit_sha pointing at the commit that carries the app sources and
+# the screenshots being published. Bump it for every catalog update.
 #
 # Everything else — name, id, category, version, author, icon and the short
 # description — is taken from application.fam. Paths here are relative to
@@ -20,7 +19,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/VishovVladimir/flipper-zero-tpms.git
-    commit_sha: CHANGE-ME
+    commit_sha: a93a5daf541839301aeaddbe8efa855d14e89c3c
     subdir: flipper/tpms_bridge
 
 description: "@README.md"
