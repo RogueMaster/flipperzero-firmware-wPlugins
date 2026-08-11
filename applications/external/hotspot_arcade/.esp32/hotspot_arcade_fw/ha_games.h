@@ -1012,6 +1012,20 @@ public:
             // replays. Only a typed name may rename an existing player -- see onHello.
             int named = 0;
             ha_json_int(json, "named", &named);
+            // A phone can send a stable client id it stores itself (localStorage). When
+            // present it becomes the device key, so restoring a returning player survives
+            // iOS Wi-Fi MAC randomization -- a "forget network" or OS change gives a new MAC,
+            // which would otherwise look like a brand-new phone with no score. Falls back to
+            // the MAC-derived key when the phone sends no cid (older clients).
+            char cid[24];
+            if(ha_json_str(json, "cid", cid, sizeof(cid)) && cid[0]) {
+                uint64_t h = 1469598103934665603ULL; // FNV-1a 64
+                for(const char* p = cid; *p; p++) {
+                    h ^= (uint8_t)*p;
+                    h *= 1099511628211ULL;
+                }
+                if(h) deviceKey = h; // never 0 (0 means "unknown")
+            }
             onHello(wsId, deviceKey, nick, avatar, named != 0);
             return;
         }

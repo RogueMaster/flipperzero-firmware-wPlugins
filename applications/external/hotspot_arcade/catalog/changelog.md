@@ -1,3 +1,14 @@
+## 1.7.1
+
+- Fixes a freeze under load: hosting a busy session used to slowly run the board out of
+  memory until the hotspot stopped serving pages and needed a power-cycle. The official
+  ESP32-S2 board's spare PSRAM is now used for the Wi-Fi and serving buffers, so memory
+  stays healthy all session. Boards without PSRAM still need a further fix.
+- Reconnecting keeps your score: a returning phone is recognised by a stable id it saves
+  itself, so it restores even when the phone changes its Wi-Fi address.
+- The phone game loads faster on a reload (it is cached and revalidated, not re-sent).
+- The Flipper dashboard now shows the board's free memory.
+
 ## 1.7
 
 - New game: Secrets, the sixteenth (whole-group). Each round poses a yes/no question that
