@@ -2446,6 +2446,17 @@ static FakeChipApp* fake_chip_app_alloc(void) {
 }
 
 static void fake_chip_app_free(FakeChipApp* app) {
+    // A live test should already have been torn down by the view's exit
+    // callback, because leaving the screen is the only way to reach here and
+    // that always navigates. "Should" is doing real work in that sentence
+    // though: it holds only while nothing installs an input callback on
+    // live_view or stops the dispatcher from elsewhere, and neither is
+    // something the next person to touch this file would expect to be
+    // load-bearing. What it would cost is a mapped plugin leaked and a thread
+    // still executing code inside it. So call the teardown again — it is
+    // idempotent, and it keeps the join-then-unmap order in exactly one place.
+    live_exit_callback(app);
+
     // Animation thread first: it touches the view models
     app->anim_stop = true;
     furi_thread_join(app->anim_thread);
