@@ -68,14 +68,27 @@ All four point at the release commit — `git rev-parse v0.8.0`.
 | [Momentum-Apps](https://github.com/Next-Flip/Momentum-Apps) | re-copy into `fake_chip_detector/`; `.gitsubtree` stays as it is; base on **`dev`** |
 | [awesome-flipperzero](https://github.com/djsime1/awesome-flipperzero) | nothing unless the description changed |
 
-Two traps that have already cost a round trip each:
+**The pack copies are not byte-identical to this repository, and a plain re-copy silently
+reverts the differences.** After copying, re-apply both:
+
+- `docs/changelog.md` goes in as `CHANGELOG.md` in the app directory (all-the-plugins asks for it
+  there; Momentum carries it for consistency).
+- In `LIVE_TESTS.md`, the two `../test_plugin_template` links become
+  `https://github.com/hleserg/flipper-fake-chip-detector/tree/master/test_plugin_template`, and
+  the second one reads "in the upstream repository" rather than "in the repository root".
+
+```bash
+grep -rn '](\.\./' non_catalog_apps/fake_chip_detector/    # must print nothing
+```
+
+Two more traps that have already cost a round trip each:
 
 - **Base branch.** Both packs develop on `dev` and `gh pr create` will happily open the PR
   against `main` instead, which produces an eleven-thousand-file diff that no maintainer will
-  read. Check `changedFiles` after opening it.
-- **Relative links.** The docs copied into the packs must not link to anything outside the app
-  directory. `../test_plugin_template` resolves to nothing there; use the full GitHub URL in the
-  copies.
+  read. Check `changedFiles` after opening it; `gh pr edit <n> --base dev` fixes it in place.
+- **The ReadMe index.** `all-the-plugins` keeps a curated table at `ReadMe.md`; the merged
+  app-addition PRs add a row to it in the block for the app's category. The catalog cell stays
+  `![None Badge]` until the app is actually live on lab.flipper.net.
 
 Validate the catalog manifest before pushing, from a checkout of the catalog repo — **twice**,
 because the second form is the one CI runs:
