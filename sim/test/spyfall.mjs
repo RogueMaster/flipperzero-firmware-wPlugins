@@ -377,4 +377,26 @@ function toNominations(g) {
   }
 }
 
+// Regression (freed-pid leak): a non-spy who drops mid-round must not hand the secret
+// location to whoever later reuses their pid. Before spyfallRosterChanged scrubbed freed
+// pids, the newcomer inherited the departed player's stale inRound + role and was dealt the
+// location -- the whole secret of the game.
+{
+  const g = await table(6);
+  const { spy, others } = g.readCards(); // roles dealt, talk stage, spy known
+  const dropPid = others[others.length - 1]; // a non-spy leaves mid-round
+  const out = [
+    ...g.e.disconnect(dropPid),
+    ...g.e.join(90, "NEWCOMER"), // a fresh device, handed the vacated pid
+    ...g.e.tick(g.t + 50),
+  ];
+  const m = lastToWs(out, 90, "spyfall");
+  assert.ok(m, "the newcomer receives a spyfall payload");
+  assert.notEqual(m.msg.stage, "reveal",
+    "a single non-spy leaving a full table does not abort the round");
+  assert.equal(m.msg.loc, undefined, "a reused pid is NOT handed the secret location");
+  assert.equal(m.msg.role, undefined, "nor the role at that location");
+  console.log("spyfall: a reused pid does not inherit the location (freed-pid scrub)");
+}
+
 console.log("spyfall: all checks passed");

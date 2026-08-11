@@ -7366,6 +7366,21 @@ private:
     // scoring nobody and the rotation carries on; the same applies if the table falls
     // under the quorum. Otherwise a leaver can unblock whatever the room was waiting on.
     void spyfallRosterChanged() {
+        // Scrub a departed player's per-round state before anything reads it, so a phone that
+        // later reuses their freed pid starts as an out-of-round spectator. Without this, the
+        // reused pid inherits a stale inRound + role and spyfallJson() would hand the newcomer
+        // the secret location -- mirrors wwRosterChanged / fillblankRosterChanged.
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(_p[i].used) continue;
+            _sf.inRound[i] = false;
+            _sf.role[i] = -1;
+            _sf.seen[i] = false;
+            _sf.spent[i] = false;
+            _sf.nominated[i] = false;
+            _sf.agree[i] = -1;
+            _sf.vote[i] = -1;
+            _sf.gained[i] = 0;
+        }
         spyfallCheckStart();
         Party& pt = _sf.pt;
         if(pt.phase != 2) return;

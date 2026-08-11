@@ -406,7 +406,7 @@ A.cid = clientId();
    which puts us on the normal reconnect path. This is purely the client judging its
    own connection; the host closes nothing on its behalf. The host already answers
    {t:"ping"} with {t:"pong"}, so no firmware change is involved. */
-// PING_MS / WARN_MS / DEAD_MS removed with the polling below.
+var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
 var liveTimer = null, lastRx = 0, warned = false;
 
 function stopLiveness() {
@@ -414,28 +414,37 @@ function stopLiveness() {
   warned = false;
 }
 
-// DISABLED, deliberately. The polling above cost more than it bought:
-//
-//  - Every phone sent a message every PING_MS, which the host answered. On a party host
-//    that is a steady beat of traffic whose only purpose is to notice silence, and any
-//    code that treats "a message arrived" as "state changed" is now wrong -- that is
-//    exactly how the game-change vote overlay came to be dismissed a second after it
-//    appeared.
-//  - The DEAD_MS branch closed a working socket on the client's own judgement. Its
-//    stated reason -- "the host drops the player on disconnect, and the reconnect comes
-//    back as a new one with no score" -- has not been true since the engine started
-//    parking players by device key, so it was tearing down links to avoid a problem that
-//    no longer exists.
-//  - A reconnect asks the host for a fresh lobby push, and a lobby push is what closes a
-//    pending vote. So a phone that briefly went quiet lost the prompt everyone else
-//    could still see.
-//
-// A socket that really closes still fires onclose and still goes through
-// scheduleReconnect(), which is what actually recovers a dropped link. Left as a no-op
-// rather than deleted so the call sites stay honest about where this used to happen.
+// Detect a link that has gone quiet and recover it fast. A half-open socket keeps
+// readyState 1 and never fires onclose on its own, so without this a dropped phone can hang
+// for minutes with no hint anything is wrong. Two stages: warn at WARN_MS (colour the dot,
+// raise the bar -- free), and close at DEAD_MS so onclose -> scheduleReconnect() actually
+// tears the dead link down. Reconnecting is safe now: the phone restores its own player by
+// its stable client id (clientId()/onHello), and a reconnect while a game-vote is open
+// RE-pushes the vote rather than dismissing it -- the host's pushAll short-circuits to the
+// vote while it is active, and the client no longer closes the overlay on stray traffic --
+// so the old "a reconnect ate the vote overlay" behaviour cannot recur.
 function startLiveness() {
   stopLiveness();
   lastRx = Date.now();
+  liveTimer = setInterval(function () {
+    if (!A.ws || A.ws.readyState !== 1) return;
+    var quiet = Date.now() - lastRx;
+    if (quiet > DEAD_MS) {
+      stopLiveness();
+      try { A.ws.close(); } catch (e) {}   // onclose -> scheduleReconnect()
+      return;
+    }
+    if (quiet > WARN_MS && !warned) {
+      warned = true;
+      setDot("warn");
+      if (A.view !== "landing") { $("netbar").textContent = t("net.quiet"); show("netbar"); }
+    } else if (quiet <= WARN_MS && warned) {
+      warned = false;                       // it answered again
+      setDot("");
+      hide("netbar");
+    }
+    try { A.ws.send(JSON.stringify({ t: "ping" })); } catch (e) {}
+  }, PING_MS);
 }
 
 function connect() {
