@@ -798,6 +798,19 @@ function storeKey(name) {
 var h = new URLSearchParams(location.search).get("harness");
 return h ? name + "_" + h : name;
 }
+function clientId() {
+try {
+var k = storeKey("ha_cid"), v = localStorage.getItem(k);
+if (!v) {
+v = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+localStorage.setItem(k, v);
+}
+return v;
+} catch (e) {
+return "";
+}
+}
+A.cid = clientId();
 var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
 var liveTimer = null, lastRx = 0, warned = false;
 function stopLiveness() {
@@ -839,7 +852,7 @@ A.retry = 0;
 startLiveness();
 hide("netbar");
 setDot("");           // connected
-if (A.joined) send({ t: "hello", nick: A.nick, avatar: A.avatar });
+if (A.joined) send({ t: "hello", nick: A.nick, avatar: A.avatar, cid: A.cid });
 };
 ws.onmessage = function (ev) {
 var m;
@@ -992,7 +1005,7 @@ setNick();
 A.initAudio();          // first gesture: unlock audio for the session
 A.sfx("start"); A.vibe(30);
 try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
+send({ t: "hello", nick: n, avatar: A.avatar, named: 1, cid: A.cid });
 screen("lobby");
 }
 function avatarOf(pid) {
@@ -1047,7 +1060,7 @@ A.avatar = editAvatar || A.avatar;
 setNick();
 A.sfx("start"); A.vibe(20);
 try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
+send({ t: "hello", nick: n, avatar: A.avatar, named: 1, cid: A.cid });
 closeIdEdit();
 }
 var REACTS = ["👍", "😂", "🔥", "😮", "🎉", "❤️", "😠"];

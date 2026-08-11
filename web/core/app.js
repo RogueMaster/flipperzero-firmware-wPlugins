@@ -377,6 +377,24 @@ function storeKey(name) {
   return h ? name + "_" + h : name;
 }
 
+/* Stable per-phone id so a returning player keeps their score even when iOS hands out a
+   fresh randomized Wi-Fi MAC (a "forget network" or OS change makes the phone look new to
+   the host). Generated once, kept in localStorage, and sent in every hello; the host keys
+   parked players on it instead of the MAC. */
+function clientId() {
+  try {
+    var k = storeKey("ha_cid"), v = localStorage.getItem(k);
+    if (!v) {
+      v = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(k, v);
+    }
+    return v;
+  } catch (e) {
+    return "";
+  }
+}
+A.cid = clientId();
+
 /* Is the link actually alive? A socket that dies quietly -- the phone's WiFi drops,
    the host's AP goes away, the phone sleeps -- often produces no "close" event for a
    long time, so the page keeps looking connected and the player sits there waiting
@@ -438,7 +456,7 @@ function connect() {
     setDot("");           // connected
     // Auto (re)join only if we already have a nickname. A first-time visitor
     // stays on the landing screen until they press Play.
-    if (A.joined) send({ t: "hello", nick: A.nick, avatar: A.avatar });
+    if (A.joined) send({ t: "hello", nick: A.nick, avatar: A.avatar, cid: A.cid });
   };
 
   ws.onmessage = function (ev) {
@@ -648,7 +666,7 @@ function startPlay() {
   A.initAudio();          // first gesture: unlock audio for the session
   A.sfx("start"); A.vibe(30);
   try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-  send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
+  send({ t: "hello", nick: n, avatar: A.avatar, named: 1, cid: A.cid });
   screen("lobby");
 }
 
@@ -718,7 +736,7 @@ function saveIdEdit() {
   setNick();
   A.sfx("start"); A.vibe(20);
   try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-  send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
+  send({ t: "hello", nick: n, avatar: A.avatar, named: 1, cid: A.cid });
   closeIdEdit();
 }
 
