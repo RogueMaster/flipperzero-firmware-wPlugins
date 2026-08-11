@@ -7,3 +7,6 @@ __pycache__/
 *.pyc
 .ufbt/
 .clang-format
+
+# Session state from the assistant, not project files
+.claude/

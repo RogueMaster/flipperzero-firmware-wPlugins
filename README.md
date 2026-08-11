@@ -6,6 +6,11 @@ before you solder it in, or while the courier is still at the door.
 Plug the module into the GPIO header, scan, and the app names the part, says what it does in
 plain words, and asks the one question it cannot answer itself: is this what you bought?
 
+![A VL6180X live test running](fake_chip_detector/screenshots/19_live_test.gif)
+
+An ID register can be copied. A working sensor cannot — so the app asks the part to do its job
+and shows you the answer moving. Above: a VL6180X following a hand, captured off the device.
+
 | | |
 |---|---|
 | ![Menu](fake_chip_detector/screenshots/01_menu.png) | ![Wiring](fake_chip_detector/screenshots/02_wiring.png) |
