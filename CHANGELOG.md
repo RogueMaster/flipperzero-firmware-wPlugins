@@ -6,6 +6,28 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-08-10
+
+### Fixed
+
+- **The hotspot no longer freezes under load.** Serving the phone bundle repeatedly
+  exhausted and fragmented the ESP32-S2's small internal heap until the web server
+  could no longer accept connections — the Wi-Fi stayed up but pages stopped loading
+  and the board needed a power-cycle. The official S2 dev board has ~2 MB of PSRAM
+  that the firmware never enabled; turning it on moves the Wi-Fi and serving buffers
+  off the internal heap, which now holds steady all session. (Boards without PSRAM
+  still need the underlying serve-path fix — tracked separately.)
+- **Reconnecting keeps your score.** A returning phone is now recognized by a stable
+  id it stores itself, so it restores correctly even when iOS hands out a fresh
+  randomized Wi-Fi MAC (after "Forget This Network" or an OS change).
+
+### Added
+
+- The phone bundle is served with an ETag and answers `If-None-Match` with a 304, so
+  reloads and captive re-probes no longer re-download the whole ~47 KB bundle.
+- The Flipper dashboard shows the ESP board's free heap and PSRAM, so memory health
+  is visible at a glance.
+
 ## [1.7.0] - 2026-08-05
 
 ### Added
