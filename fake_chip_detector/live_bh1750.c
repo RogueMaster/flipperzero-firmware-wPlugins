@@ -51,6 +51,32 @@ static void bh1750_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
+// Long enough to read the sentence and pull a jumper, short enough not to be in
+// the way of somebody who knows what they plugged in. Not a datasheet figure;
+// there is nothing to cite.
+#define BH1750_BLIND_WARN_S 3
+
+// The comment at the top of this file argues the trigger opcode is harmless,
+// and it is — to a BH1750. It says nothing about what else answers here. This
+// part's addresses are 0x23 and 0x5C, and the app's own database puts PCF8574
+// and MCP23017 across 0x20-0x27, where the single byte 0x20 lands as an
+// output-port write driving whatever is wired to those pins. With no ID
+// register there is no way to rule that out before writing, so say it out loud
+// while the wire is still in the user's hand — the same warning the AHT and
+// SSD1306 tests give, for the same reason.
+static void bh1750_warn_blind(const LiveTestEnv* env) {
+    for(uint8_t left = BH1750_BLIND_WARN_S; left && !*env->stop; left--) {
+        LiveTestState st;
+        memset(&st, 0, sizeof(st));
+        st.phase = LiveTestPhaseStarting;
+        snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "Cannot identify this part");
+        snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Unplug now if it is not");
+        snprintf(st.lines[2], LIVE_TEST_LINE_LEN, "a sensor. Writing in %u", left);
+        env->publish(env->ctx, &st);
+        bh1750_delay(env->stop, 1000);
+    }
+}
+
 // One One-Time H-resolution measurement. Trigger and read are separate
 // transactions with a STOP between: page 10 says the part cannot accept
 // several commands without one.
@@ -78,6 +104,11 @@ static void bh1750_run(const LiveTestEnv* env) {
     const LiveTestI2c* i2c = env->i2c;
     const LiveTestPublish publish = env->publish;
     void* const ctx = env->ctx;
+
+    // Before the first write, not inside the loop: the warning is about this
+    // address, which does not change, and repeating it after every retry would
+    // train the user to press through it.
+    bh1750_warn_blind(env);
 
     while(!*stop) {
         LiveTestState st;

@@ -123,6 +123,7 @@ typedef struct {
     // app has crashed users before by holding memory it was not using.
     char (*names)[SAVED_NAME_LEN];
     uint8_t count;
+    uint16_t skipped; // matching files past SAVED_MAX, reported rather than hidden
     uint8_t selected;
 } SavedViewModel;
 
@@ -377,6 +378,12 @@ static void app_start_scan(FakeChipApp* app) {
             m->scroll = 0;
             m->bus = (I2CBusCheck){0};
             m->status_msg[0] = '\0';
+            // The question belongs to the module that was on the bus when it
+            // was asked. Carrying the answer into the next scan silently skips
+            // asking and hands the previous module's verdict to this one: a
+            // genuine part accused of being "NOT YOURS", or worse, a part
+            // nobody was asked about waved through as the real deal.
+            m->answer = AnswerAsking;
         },
         true);
     app_switch_view(app, FakeChipViewScan);
@@ -995,6 +1002,7 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
 
 static void wiring_enter_callback(void* context) {
     FakeChipApp* app = context;
+    app->current_view = FakeChipViewWiring;
     with_view_model(
         app->wiring_view,
         WiringViewModel * m,
@@ -1108,6 +1116,11 @@ static uint32_t nav_to_scan(void* context) {
 // how it draws that, if text will not do — lives in live_<part>.c; see
 // live_test.h for the contract and how to add one.
 
+// Steps a test can ask to have counted out as boxes. Eleven of them at nine
+// pixels fill the hundred-pixel strip the bar has; nothing wider fits, and a
+// test asking for more is asking for something that cannot be drawn.
+#define LIVE_PROGRESS_MAX_CELLS 11
+
 // The screen for every phase where there is nothing to measure yet. Shared on
 // purpose: "warming up" and "it dropped off" should look the same whichever
 // part is being tested, so only the readings get a custom picture.
@@ -1167,11 +1180,22 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
         y = 46;
     }
 
+    // A bar sits in the bottom strip of the screen rather than flowing after
+    // the text, because the text is what decides whether it appears at all:
+    // laid out in sequence, a heading and two lines left y past the bottom and
+    // the bar was silently never drawn — which is exactly the shape the AHT
+    // test publishes on every poll. Reserving the strip costs a pixel of line
+    // spacing and keeps both.
+    const bool has_bar = measuring && (st->bar_max || st->progress_max);
+    const uint8_t bar_y = 57; // a 7-pixel bar ends on row 63, the last one
+    const uint8_t line_limit = has_bar ? (uint8_t)(bar_y - 2) : 62;
+    const uint8_t line_step = has_bar ? 9 : 10;
+
     canvas_set_font(canvas, FontSecondary);
-    for(size_t i = 0; i < LIVE_TEST_LINES && y <= 62; i++) {
+    for(size_t i = 0; i < LIVE_TEST_LINES && y <= line_limit; i++) {
         if(!st->lines[i][0]) continue;
         canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, st->lines[i]);
-        y += 10;
+        y += line_step;
     }
 
     if(st->phase == LiveTestPhaseStarting && y + 8 <= 62) {
@@ -1186,18 +1210,18 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
         // True for both: the test's outer loop keeps re-checking, so swapping
         // the module or pushing the wire back in picks up without leaving.
         canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, "Retrying...");
-    } else if(measuring && st->bar_max && y + 7 <= 63) {
+    } else if(measuring && st->bar_max) {
         uint8_t fill = st->bar > st->bar_max ? st->bar_max : st->bar;
-        canvas_draw_frame(canvas, 14, y, 100, 7);
-        canvas_draw_box(canvas, 14, y, (uint8_t)((uint32_t)100 * fill / st->bar_max), 7);
-    } else if(measuring && st->progress_max && y + 7 <= 63) {
+        canvas_draw_frame(canvas, 14, bar_y, 100, 7);
+        canvas_draw_box(canvas, 14, bar_y, (uint8_t)((uint32_t)100 * fill / st->bar_max), 7);
+    } else if(measuring && st->progress_max) {
         uint8_t bw = st->progress_max * 9 - 2;
         uint8_t bx = 64 - bw / 2;
         for(uint8_t i = 0; i < st->progress_max; i++) {
             if(i < st->progress) {
-                canvas_draw_box(canvas, bx + i * 9, y, 7, 7);
+                canvas_draw_box(canvas, bx + i * 9, bar_y, 7, 7);
             } else {
-                canvas_draw_frame(canvas, bx + i * 9, y, 7, 7);
+                canvas_draw_frame(canvas, bx + i * 9, bar_y, 7, 7);
             }
         }
     }
@@ -1220,7 +1244,34 @@ static void live_draw_callback(Canvas* canvas, void* model) {
 // owns the one thing a test must not decide for itself: when to make a noise.
 static void live_publish(void* ctx, const LiveTestState* state) {
     FakeChipApp* app = ctx;
-    with_view_model(app->live_view, LiveViewModel * m, { m->state = *state; }, true);
+    with_view_model(
+        app->live_view,
+        LiveViewModel * m,
+        {
+            m->state = *state;
+            // The test filled these, and a test can be somebody else's .fal off
+            // the SD card. One that writes its full buffer width leaves no
+            // terminator, and the draw callback then walks out of the array and
+            // off the end of this model — on a part with no MMU that is a hard
+            // fault mid-measurement, not a garbled line. The last byte of each
+            // is the app's, not the test's.
+            m->state.heading[LIVE_TEST_HEADING_LEN - 1] = '\0';
+            m->state.unit[LIVE_TEST_UNIT_LEN - 1] = '\0';
+            for(size_t i = 0; i < LIVE_TEST_LINES; i++) {
+                m->state.lines[i][LIVE_TEST_LINE_LEN - 1] = '\0';
+            }
+            // Same reason, in arithmetic rather than in bytes. A step count the
+            // strip cannot hold makes `progress_max * 9 - 2` wrap the width it
+            // is measured in and sends the draw loop round two hundred times
+            // for a row of boxes off the side of the screen.
+            if(m->state.progress_max > LIVE_PROGRESS_MAX_CELLS) {
+                m->state.progress_max = LIVE_PROGRESS_MAX_CELLS;
+            }
+            if(m->state.progress > m->state.progress_max) {
+                m->state.progress = m->state.progress_max;
+            }
+        },
+        true);
 
     bool succeeded = (state->phase == LiveTestPhasePassed) ||
                      (state->progress_max && state->progress >= state->progress_max);
@@ -1236,11 +1287,16 @@ static void live_publish(void* ctx, const LiveTestState* state) {
            now - app->live_chime_tick >= furi_ms_to_ticks(LIVE_CHIME_MIN_GAP_MS)) {
             app->live_chime_tick = now;
             i2c_notify_play(app->notifications, I2CNotifyCalibrated);
+            // Latched only once it has actually been heard, so the chime fires
+            // on the transition rather than on every poll. Latching a
+            // suppressed one instead would spend the success on silence: the
+            // rate limit would swallow it and the latch would stop it ever
+            // being retried, leaving a tick on screen with no sound at all.
+            app->live_chimed = true;
         }
+    } else if(!succeeded) {
+        app->live_chimed = false; // re-arm when the part falls back out
     }
-    // Latched so the chime fires on the transition, not on every poll — and
-    // re-arms if the part falls back out of its success state.
-    app->live_chimed = succeeded;
 }
 
 static int32_t live_thread_worker(void* context) {
@@ -1297,6 +1353,7 @@ static void app_start_live_test(
 
 static void live_enter_callback(void* context) {
     FakeChipApp* app = context;
+    app->current_view = FakeChipViewLive;
     app->live_chimed = false;
     app->live_chime_tick = 0;
     with_view_model(
@@ -1316,10 +1373,47 @@ static void live_enter_callback(void* context) {
     furi_thread_start(app->live_thread);
 }
 
+// How long a test gets to notice the stop flag before the app says out loud
+// that it is the test's fault. Every shipped test slices its delays, so the
+// longest honest wait is one slice; two seconds is far past that.
+#define LIVE_STOP_GRACE_MS 2000
+
 static void live_exit_callback(void* context) {
     FakeChipApp* app = context;
     app->live_stop = true;
     if(app->live_thread) {
+        // This runs on the dispatcher's thread, so the wait is felt as the
+        // whole app stopping — and the code being waited for can be somebody
+        // else's .fal. Giving up on the join is not the way out of that: the
+        // worker holds a pointer to this view model and, for a card test, is
+        // executing inside a mapping the lines below are about to unmap.
+        // Returning early would trade a stall the user can see for a write into
+        // freed memory they cannot, which is the one failure this app must not
+        // produce. So the join stays.
+        //
+        // What is said about it cannot be said on the screen. The dispatcher
+        // runs its views on an event loop, and this thread is that loop: a
+        // model committed with update=true only queues a repaint for a consumer
+        // that is standing right here, so nothing would be drawn — and the
+        // animation thread is filling that same queue at every tick, so putting
+        // one more message on it from this side risks blocking forever on a
+        // queue nobody can drain. A stall would become a hang.
+        //
+        // The notification service has its own thread and keeps draining, so
+        // the attention chirp is the one signal that still gets out. It says
+        // "this is the app, not your imagination" and nothing more; the honest
+        // description of what went wrong belongs in LIVE_TESTS.md, where it is
+        // addressed to whoever wrote the test.
+        uint32_t waited = 0;
+        bool complained = false;
+        while(furi_thread_get_state(app->live_thread) != FuriThreadStateStopped) {
+            if(!complained && waited >= LIVE_STOP_GRACE_MS) {
+                complained = true;
+                i2c_notify_play(app->notifications, I2CNotifyAttention);
+            }
+            furi_delay_ms(20);
+            waited += 20;
+        }
         furi_thread_join(app->live_thread);
         furi_thread_free(app->live_thread);
         app->live_thread = NULL;
@@ -1834,15 +1928,32 @@ static void saved_reload(FakeChipApp* app) {
     File* d = storage_file_alloc(storage);
     char(*names)[SAVED_NAME_LEN] = malloc(SAVED_MAX * SAVED_NAME_LEN);
     uint8_t count = 0;
+    uint16_t total = 0;
 
     if(storage_dir_open(d, furi_string_get_cstr(dir))) {
         FileInfo info;
         char name[SAVED_NAME_LEN];
-        while(count < SAVED_MAX && storage_dir_read(d, &info, name, sizeof(name))) {
+        while(storage_dir_read(d, &info, name, sizeof(name))) {
             if(file_info_is_dir(&info)) continue;
             if(strncmp(name, REPORT_FILE_PREFIX, strlen(REPORT_FILE_PREFIX)) != 0) continue;
-            snprintf(names[count], SAVED_NAME_LEN, "%s", name);
-            count++;
+            total++;
+
+            // Newest first, and the newest are the ones kept. Stopping at the
+            // first SAVED_MAX the directory happened to hand over threw away
+            // whichever were newest — so the user saved a report, opened this
+            // screen and could not find the one they had just made. The name
+            // carries the timestamp in a form that sorts, so "newer" is only
+            // "greater", and an insertion into a list this short costs nothing
+            // next to the directory read it sits inside.
+            if(count == SAVED_MAX && strcmp(name, names[SAVED_MAX - 1]) <= 0) continue;
+
+            uint8_t pos = count < SAVED_MAX ? count : (uint8_t)(SAVED_MAX - 1);
+            while(pos > 0 && strcmp(names[pos - 1], name) < 0) {
+                memcpy(names[pos], names[pos - 1], SAVED_NAME_LEN);
+                pos--;
+            }
+            snprintf(names[pos], SAVED_NAME_LEN, "%s", name);
+            if(count < SAVED_MAX) count++;
         }
         storage_dir_close(d);
     }
@@ -1860,6 +1971,7 @@ static void saved_reload(FakeChipApp* app) {
             old = m->names;
             m->names = names;
             m->count = count;
+            m->skipped = (uint16_t)(total - count);
             if(m->selected >= count) m->selected = count ? (uint8_t)(count - 1) : 0;
         },
         true);
@@ -1963,7 +2075,16 @@ static void saved_draw_callback(Canvas* canvas, void* model) {
             canvas_draw_str(canvas, 4, y, buf);
         }
     }
-    draw_action_bar(canvas, "OK: read it", false);
+
+    // What was left out is said, not hidden. A list that quietly stops at 32 of
+    // 40 reads as "that is all of them".
+    if(m->skipped) {
+        char bar[32];
+        snprintf(bar, sizeof(bar), "OK: read it - %u older", m->skipped);
+        draw_action_bar(canvas, bar, false);
+    } else {
+        draw_action_bar(canvas, "OK: read it", false);
+    }
 }
 
 static bool saved_input_callback(InputEvent* event, void* context) {
@@ -2289,9 +2410,21 @@ static uint32_t nav_to_menu(void* context) {
     return FakeChipViewMenu;
 }
 
+// Which screen the animation thread should be ticking. The dispatcher runs the
+// outgoing view's exit callback *after* app_switch_view has already published
+// the incoming one, so an exit callback that assigns unconditionally undoes the
+// switch that is happening right now — which is how the live test ended up
+// launching from the verdict screen with its frame counter stuck at zero. An
+// enter callback runs last and can assign freely; an exit callback may only
+// stand down if nobody else has claimed the slot.
+static void scan_enter_callback(void* context) {
+    FakeChipApp* app = context;
+    app->current_view = FakeChipViewScan;
+}
+
 static void scan_exit_callback(void* context) {
     FakeChipApp* app = context;
-    app->current_view = FakeChipViewMenu;
+    if(app->current_view == FakeChipViewScan) app->current_view = FakeChipViewMenu;
     i2c_worker_abort_scan(app->worker); // never leave a sweep running behind us
 }
 
@@ -2357,6 +2490,7 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_allocate_model(app->scan_view, ViewModelTypeLocking, sizeof(ScanViewModel));
     view_set_draw_callback(app->scan_view, scan_draw_callback);
     view_set_input_callback(app->scan_view, scan_input_callback);
+    view_set_enter_callback(app->scan_view, scan_enter_callback);
     view_set_exit_callback(app->scan_view, scan_exit_callback);
     view_set_previous_callback(app->scan_view, nav_to_menu);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewScan, app->scan_view);

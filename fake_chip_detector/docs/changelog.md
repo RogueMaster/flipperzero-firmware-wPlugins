@@ -74,5 +74,31 @@
   perfectly happily on the bus — so a genuine VL6180X at 0x29 made the BNO055 test tell a user to
   check wiring that was already correct. If the address still answers, something is there and
   does not speak this register map, and that is the wrong part rather than a loose wire.
+- The BH1750 test warns before its blind write too. It has no ID register at all and its
+  addresses are 0x23 and 0x5C, where the database puts a PCF8574 and an MCP23017 — the single
+  trigger byte would land there as an output-port write, repeated every 180 ms.
+- The question "is this what you bought?" is asked again for every scan. Its answer used to
+  survive into the next one, so a genuine sensor scanned after a rejected one was called NOT
+  YOURS without ever being asked about, and the report was saved as disputed.
+- Nothing on a card is taken at its word. A plugin's own name, title and offer must end inside
+  the room there is for them or it is refused with a reason: copying an unterminated string
+  walked off the end of the mapped file while merely listing the folder, and the resulting crash
+  left no way to delete the file from inside the app. The state a running test publishes is
+  terminated by the app before anything draws it, and a step count wider than the screen is
+  clamped rather than wrapped. A test that ignores its stop flag can still stall the app on the
+  way out — the worker is writing into the view model and, from a card, running inside a mapping
+  about to be unmapped, so the wait cannot be abandoned — and the screen cannot say so, because
+  the thread that draws it is the one waiting. Past two seconds it chirps instead, which is the
+  one signal that still gets out.
+- A 1-Wire scratchpad of nothing but zeros is rejected rather than reported as 0.0 °C. CRC8 over
+  eight zero bytes is zero, so a transfer that collapsed halfway passed the checksum and was
+  drawn as a working sensor.
+- The success chime is latched only once it has actually played. Latching a chime the rate limit
+  had just swallowed meant that success was never announced at all.
+- Bars are drawn in a strip of their own at the foot of the screen. Laid out after the text they
+  could not fit under a heading and two lines, so the AHT's humidity bar was computed on every
+  poll and silently never shown.
+- The saved-reports list keeps the newest thirty-two and says how many older ones remain. Reading
+  the directory in its own order dropped exactly the report that had just been saved.
 - Browsable list of every known chip.
 - Melody, LED and vibration feedback, each switchable in Settings.

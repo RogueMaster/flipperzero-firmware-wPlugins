@@ -40,6 +40,7 @@ typedef enum {
     LivePluginWrongVersion, // ours, but built against a different contract
     LivePluginBadFile, // will not load: corrupt, or built for another target
     LivePluginNoAddrs, // loads, but declares no address to probe
+    LivePluginBadStrings, // its name or offer never ends inside the room for it
 } LivePluginStatus;
 
 // Everything known about one file in the tests folder. All strings are copies:

@@ -38,6 +38,21 @@ static bool live_plugin_has_ext(const char* name) {
     return true;
 }
 
+// True if `s` reaches a terminator within `max` bytes, so a bounded copy of it
+// is safe. The strings in a descriptor belong to somebody else's file, and the
+// only thing standing between a missing terminator and a walk off the end of
+// the mapped image is a length nobody has checked — a listing screen that
+// hard-faults every time it opens leaves no way to delete the offending file
+// from the app. This bounds the read; it cannot rescue a pointer that was never
+// valid, which would fault on its first byte and needs image bounds the loader
+// does not expose.
+static bool live_plugin_str_ok(const char* s, size_t max) {
+    for(size_t i = 0; i < max; i++) {
+        if(!s[i]) return true;
+    }
+    return false;
+}
+
 // Loads one plugin far enough to have its descriptor in hand. On success the
 // caller owns *app and must free it; on failure nothing is left mapped.
 static LivePluginStatus
@@ -80,6 +95,12 @@ static LivePluginStatus
 
         const LiveTest* test = descriptor->entry_point;
         if(!test->chip || !test->title || !test->offer || !test->run) break;
+        if(!live_plugin_str_ok(test->chip, LIVE_PLUGIN_CHIP_LEN) ||
+           !live_plugin_str_ok(test->title, LIVE_PLUGIN_TITLE_LEN) ||
+           !live_plugin_str_ok(test->offer, LIVE_TEST_LINE_LEN)) {
+            status = LivePluginBadStrings;
+            break;
+        }
         if(test->addrs[0] == LIVE_TEST_ADDR_NONE) {
             // Without an address there is nothing to probe, and guessing one
             // would mean writing configuration registers to whatever answers.
@@ -110,6 +131,8 @@ const char* live_plugin_status_text(LivePluginStatus status) {
         return "Will not load";
     case LivePluginNoAddrs:
         return "Declares no address";
+    case LivePluginBadStrings:
+        return "Its own name is damaged";
     default:
         return "Unknown";
     }

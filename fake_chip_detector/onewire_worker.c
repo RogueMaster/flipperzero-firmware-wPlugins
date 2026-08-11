@@ -73,7 +73,22 @@ static void
     onewire_host_read_bytes(host, scratch, sizeof(scratch));
 
     dev->measured = true;
-    dev->scratch_crc_ok = maxim_crc8(scratch, 8, 0) == scratch[8];
+
+    // A checksum is only evidence if the thing it checks could have failed it.
+    // CRC8 over eight zero bytes is zero, so a scratchpad that came back as
+    // nothing at all — the device stopped driving the line, the wire came out
+    // mid-read — passes the check perfectly and converts to exactly 0.0 C,
+    // which the screen then shows as a sensor that works. Nine zero bytes are
+    // not a reading, whatever the arithmetic says about them.
+    bool all_zero = true;
+    for(size_t i = 0; i < sizeof(scratch); i++) {
+        if(scratch[i]) {
+            all_zero = false;
+            break;
+        }
+    }
+
+    dev->scratch_crc_ok = !all_zero && maxim_crc8(scratch, 8, 0) == scratch[8];
     if(!dev->scratch_crc_ok) return;
 
     int16_t raw = (int16_t)((uint16_t)scratch[0] | ((uint16_t)scratch[1] << 8));
