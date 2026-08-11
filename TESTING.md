@@ -139,6 +139,23 @@ verdict to you, and deliberately never claims a pass.
 [LIVE_TESTS.md](fake_chip_detector/LIVE_TESTS.md) covers writing a test for a part that has
 none.
 
+## Step 7 — 1-Wire, if you have a DS18B20
+
+A DS18B20 probe — the stainless steel one on a cable, or a bare TO-92 — wires to **pin 17**
+(data), pin 8 (GND) and pin 9 (3.3 V), with a 4.7 kΩ resistor from data to 3.3 V if the probe
+does not already have one. Then run **Scan 1-Wire**.
+
+The app reads the 64-bit ROM, decodes the family code and runs a real temperature conversion:
+
+- family `0x28` is a DS18B20, `0x10` a DS18S20, `0x22` a DS1822 — a DS18S20 sold as a DS18B20 is
+  caught here, and they are not interchangeable: the DS18S20 reports in half degrees.
+- the temperature has to be plausible for the room. The app rejects a scratchpad of all zeros
+  rather than reporting it as a working sensor at exactly 0.0 °C, because the checksum over
+  eight zero bytes is itself zero and proves nothing.
+
+A 1-Wire ROM can be replayed by any microcontroller, so this proves **which part answered**,
+never that the part is authentic. The app says so on the screen.
+
 ## If nothing is found
 
 The app tells you which of these it is rather than making you guess:

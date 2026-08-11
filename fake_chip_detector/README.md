@@ -1,128 +1,14 @@
 # Fake Chip Detector
 
-A Flipper Zero app that tells you whether an I²C sensor really is the chip it was sold as —
-before you solder it in, or while the courier is still at the door.
+The app itself. Everything about what it does, how to wire a module to it and how to install it
+lives in the repository README, one directory up: **[../README.md](../README.md)**.
 
-Plug the module into the GPIO header, scan, and the app names the part, says what it does in
-plain words, and asks the one question it cannot answer itself: is this what you bought?
+In this directory:
 
-| | |
-|---|---|
-| ![Menu](fake_chip_detector/screenshots/01_menu.png) | ![Wiring](fake_chip_detector/screenshots/02_wiring.png) |
-| The app | Wiring guide: each line is drawn broken and closes up when that connection goes live |
-| ![Question](fake_chip_detector/screenshots/04_question.png) | ![All good](fake_chip_detector/screenshots/05_allgood.png) |
-| What was found, and the question only you can answer | The answer you want to see |
-| ![Report](fake_chip_detector/screenshots/06_report.png) | ![Scanning](fake_chip_detector/screenshots/03_scanning.png) |
-| The report, readable on screen — show it to the seller | Sweeping the bus |
+- **[SUPPORTED_CHIPS.md](SUPPORTED_CHIPS.md)** — every chip in the database, with the register
+  and expected value used to identify each one. Generated from `chip_db.c`; do not hand-edit.
+- **[LIVE_TESTS.md](LIVE_TESTS.md)** — how a live test works, how to run one from the SD card,
+  and how to write your own.
+- **[docs/changelog.md](docs/changelog.md)** — what shipped.
 
-## Why
-
-Modules sold as BME280 frequently carry a BMP280 die. "MPU9250" boards often contain an
-MPU6500. HMC5883L has been end-of-life since 2016, so a GY-271 labelled HMC5883L is usually a
-QMC5883L or something else. Every one of these is distinguishable in about a second by reading
-one register — this app does that and shows its work.
-
-## What it does
-
-- **Names the part and what it is.** Not just `VL6180X` but `VL6180X — Laser rangefinder`, for
-  all 80 chips in the database. No searching a part number to find out you were sent a distance
-  sensor instead of the IMU you paid for.
-  → **[Full list of supported chips](SUPPORTED_CHIPS.md)**, with the register and expected value
-  used for each one.
-- **Asks whether that is what you ordered.** Knowing which chip it is only answers half the
-  question; the app cannot see the label, so it asks.
-- **Produces a report you can read out at the front door.** Plain language first — what the chip
-  is, and why a factory ID cannot be forged by a seller — with the register values last, under a
-  separator. Viewable on screen and saved to the SD card as evidence.
-- **Diagnoses the wiring.** Before blaming the sensor it measures both bus lines, tells a missing
-  pull-up apart from a line shorted to ground, notices when the module is on the wrong pins, and
-  detects SDA shorted to SCL.
-- **Refuses to overclaim.** A chip with no ID register is reported as present, never as genuine.
-  A device whose IDs match nothing is `UNIDENTIFIED`, not "fake" — that is far more often a gap
-  in the database. Only a partial match, where some of a known chip's IDs are right and others
-  wrong, is called out as a likely counterfeit.
-- **Proves the part works, not just that it answers.** An ID register is one byte, and one byte
-  is what a relabeller can copy. When a chip that checked out has a live test, the app offers to
-  run it — and every test is one you can do standing at a pickup counter before you pay, with
-  nothing but your hand and your breath. Breathe on an AHT20 or SHT31 and watch the humidity
-  climb; cover a BH1750 and watch it hit the dark floor its datasheet specifies; tip an MPU6050
-  or ADXL345 and watch gravity move to another axis; wave at an APDS9960; point an MLX90614 at
-  your palm; watch a DS3231 tick; make an SSD1306 blink. This matters most for the parts with
-  **no ID register at all** — for a DS3231 or an AHT20 the app can otherwise only say "something
-  is there", so a live test is the only evidence that will ever exist. Tests are one file each,
-  so adding one for a new part touches nothing else — see **[LIVE_TESTS.md](LIVE_TESTS.md)**.
-- **1-Wire too.** Scans pin 17, decodes the family code and runs a real temperature conversion
-  on DS18B20-class parts. A 1-Wire ID can be replayed by any microcontroller, so the app is
-  explicit that this proves which *part* answered — a DS18S20 sold as a DS18B20 is caught —
-  and never that it is authentic.
-
-## Wiring
-
-| Flipper pin | Signal |
-|---|---|
-| 8 | GND |
-| 9 | 3.3 V |
-| 15 | SDA (PC1) |
-| 16 | SCL (PC0) |
-
-Connect in that order: **ground first, power next, signals last.** Until ground is in, return
-current from a signal has to flow through the chip's protection diodes, which is how modules get
-damaged. Unplug in reverse.
-
-> Note the pin order: on the Flipper header **PC0 is pin 16 and PC1 is pin 15**
-> (`gpio_pins[]` in `furi_hal_resources.c`), and the external I²C bus uses PC0 for SCL
-> (`furi_hal_i2c_config.h`). Several popular pinout diagrams have these two swapped.
-
-The GPIO pins are **3.3 V only and not 5 V tolerant.** The bus runs at 100 kHz, which is what
-clock-stretching parts such as the BNO055 need. Most breakout boards include pull-up resistors;
-a bare chip needs 4.7 kΩ on both lines.
-
-## Building
-
-Requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt). The SDK must match the
-firmware on the device, or the loader refuses the app with "App Too Old".
-
-```bash
-cd fake_chip_detector
-ufbt update     # if the firmware was updated
-ufbt            # build
-ufbt launch     # build, install and run
-```
-
-Developed against Unleashed, SDK API 88, target f7.
-
-## Verdicts
-
-| Verdict | Meaning |
-|---|---|
-| `GENUINE` | Every ID register of a known chip matched. The silicon really is that part — now compare it with what the board and the listing claim. |
-| `LIKELY FAKE` | Some of a known chip's IDs match and others do not. A genuine part has all of them. |
-| `UNIDENTIFIED` | It answers but nothing matched. Usually a chip missing from the database; the raw bytes are shown so you can look them up. |
-| `DETECTED (no ID reg)` | A known chip lives at this address but has no ID register — presence is all that can be proven. |
-| `NO ANSWER` | The device acknowledged its address but no register read succeeded. |
-
-**What the app can and cannot know.** It reads what the silicon says about itself. It cannot see
-the silkscreen, the packaging or the seller's listing, so it never claims a chip matches its
-label — that comparison is yours. Its job is to tell you what the part actually is.
-
-## Limitations
-
-Some counterfeits cannot be caught by an ID register, and the app says so rather than guessing:
-
-- SHT30 / SHT31 / SHT35 differ only in accuracy grade and are electrically identical.
-- "SSD1306" displays that are really SH1106 or SSD1315 return no identifying byte over I²C.
-- Sensors needing a command sequence rather than a register read (Sensirion SHT4x/SCD4x,
-  MLX90614) are presence-only.
-- ADXL345 clones usually return the correct `0xE5` and only reveal themselves through drift.
-
-A `GENUINE` verdict is strong evidence against relabelling. It is not a guarantee of quality or
-of the part being new.
-
-## Testing it yourself
-
-[TESTING.md](TESTING.md) walks from checks that need no hardware at all, through a single jumper
-wire, to a real counterfeit hunt.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+Build with `ufbt` from this directory — it is the one that holds `application.fam`.

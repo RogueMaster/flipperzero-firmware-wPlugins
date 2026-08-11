@@ -12,12 +12,23 @@ plain words, and asks the one question it cannot answer itself: is this what you
 | The app | Wiring guide: each line is drawn broken and closes up when that connection goes live |
 | ![Question](fake_chip_detector/screenshots/04_question.png) | ![All good](fake_chip_detector/screenshots/05_allgood.png) |
 | What was found, and the question only you can answer | The answer you want to see |
-| ![Report](fake_chip_detector/screenshots/06_report.png) | ![Scanning](fake_chip_detector/screenshots/03_scanning.png) |
-| The report, readable on screen — show it to the seller | Sweeping the bus |
+| ![Report](fake_chip_detector/screenshots/06_report.png) | ![Live tests](fake_chip_detector/screenshots/14_live_tests.png) |
+| The report, readable on screen — show it to the seller | Every test the app can run, including any found on the SD card |
 | ![Stray pull-up](fake_chip_detector/screenshots/10_wiring_stray.png) | ![Wrong hole](fake_chip_detector/screenshots/11_wrong_hole.png) |
 | SDA is off pin 15 — so the app goes looking, and finds the module's pull-up sitting on pin 6 | And it is nice about it |
 | ![Live test](fake_chip_detector/screenshots/12_live_vl6180x.png) | ![Wrong chip](fake_chip_detector/screenshots/13_wrong_chip.png) |
 | A live test: the rangefinder actually ranging, before you pay for it | 0x29 answers — it is just not the chip this test is for |
+
+## Install
+
+Download **`fake_chip_detector.fap`** from
+[the latest release](https://github.com/hleserg/flipper-fake-chip-detector/releases/latest) and
+copy it to `apps/GPIO/` on the SD card, or drag it onto qFlipper.
+
+The release is built for **Unleashed `unlshd-090`, API 88.2, target f7**. A FAP is tied to the
+firmware API it was built against: on a different firmware the loader refuses it with
+"App Too Old" or an API mismatch, and the fix is a build against that SDK — see
+[Building](#building).
 
 ## Why
 
@@ -48,10 +59,12 @@ one register — this app does that and shows its work.
 - **Proves the part works, not just that it answers.** An ID register is one byte, and one byte
   is what a relabeller can copy. When a chip that checked out has a live test, the app offers to
   run it — and every test is one you can do standing at a pickup counter before you pay, with
-  nothing but your hand and your breath. Breathe on an AHT20 or SHT31 and watch the humidity
-  climb; cover a BH1750 and watch it hit the dark floor its datasheet specifies; tip an MPU6050
-  or ADXL345 and watch gravity move to another axis; wave at an APDS9960; point an MLX90614 at
-  your palm; watch a DS3231 tick; make an SSD1306 blink. This matters most for the parts with
+  nothing but your hand and your breath. Thirteen parts are covered: breathe on an AHT20 or
+  SHT31 and watch the humidity climb; cover a BH1750 and watch it hit the dark floor its
+  datasheet specifies; tip an MPU6050, MPU6500, MPU9250 or ADXL345 and watch gravity move to
+  another axis; wave at an APDS9960; point an MLX90614 at your palm; watch a DS3231 tick; make
+  an SSD1306 blink; turn a BNO055 through a figure-8 until it calibrates; hold a hand in front
+  of a VL6180X and watch the distance follow it. This matters most for the parts with
   **no ID register at all** — for a DS3231 or an AHT20 the app can otherwise only say "something
   is there", so a live test is the only evidence that will ever exist. **Live tests** in the
   menu lists every test and runs any of them on demand, without scanning first.
@@ -101,7 +114,8 @@ ufbt            # build
 ufbt launch     # build, install and run
 ```
 
-Developed against Unleashed, SDK API 88, target f7.
+Developed against Unleashed `unlshd-090`, SDK API 88.2, target f7 — the same SDK the released
+`.fap` is built with.
 
 ## Verdicts
 
@@ -134,6 +148,11 @@ of the part being new.
 
 [TESTING.md](TESTING.md) walks from checks that need no hardware at all, through a single jumper
 wire, to a real counterfeit hunt.
+
+## Contact
+
+Questions, a chip that should be in the database, a module the app got wrong — write to
+[@skhlebnikov](https://t.me/skhlebnikov) on Telegram, or open an issue.
 
 ## License
 
