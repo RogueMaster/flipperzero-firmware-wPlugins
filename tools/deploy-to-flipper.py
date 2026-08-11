@@ -84,7 +84,10 @@ def upload(s, local, remote):
                 raise RuntimeError(f"no Ready for {remote}")
             s.write(block)
             read_until(s, PROMPT, timeout=8)
-    out = cmd(s, f"storage md5 {remote}")
+    # The on-device md5 reads the whole file back off SD: ~8s was not enough for the
+    # ~3.7 MB fap and reported a false FAIL. Scale the wait with the file size.
+    size = os.path.getsize(local)
+    out = cmd(s, f"storage md5 {remote}", timeout=10 + size // (128 * 1024))
     return local_md5(local) in out.lower()
 
 
