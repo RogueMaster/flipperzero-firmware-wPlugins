@@ -1,6 +1,17 @@
-"""Generate SUPPORTED_CHIPS.md from chip_db.c so the two can never drift."""
+"""Generate SUPPORTED_CHIPS.md from chip_db.c so the two can never drift.
+
+    python tools/gen_supported_chips.py            rewrite the file
+    python tools/gen_supported_chips.py --check    exit 1 if it is out of date
+
+The --check mode is what CI runs. "Can never drift" is only true while somebody
+remembers to re-run the generator, and the drift that actually happened was not
+even a chip edit: clang-format rewrapped the table and the parser stopped seeing
+half of it. A silent generator is the failure mode, so this one fails loudly.
+"""
 import re
+import sys
 import pathlib
+import difflib
 
 SRC = pathlib.Path('fake_chip_detector/chip_db.c')
 OUT = pathlib.Path('fake_chip_detector/SUPPORTED_CHIPS.md')
@@ -314,5 +325,20 @@ L.append('')
 L.append('Cite the source in a comment, the way the existing entries do.')
 L.append('')
 
-OUT.write_text('\n'.join(L), encoding='utf-8')
-print('%s: %d chips (%d with ID, %d address-only)' % (OUT, len(entries), len(ided), len(noid)))
+generated = '\n'.join(L)
+summary = '%s: %d chips (%d with ID, %d address-only)' % (OUT, len(entries), len(ided), len(noid))
+
+if '--check' in sys.argv[1:]:
+    on_disk = OUT.read_text(encoding='utf-8') if OUT.exists() else ''
+    if on_disk == generated:
+        print('up to date -- ' + summary)
+    else:
+        sys.stdout.writelines(difflib.unified_diff(
+            on_disk.splitlines(True), generated.splitlines(True),
+            fromfile=str(OUT) + ' (committed)', tofile=str(OUT) + ' (from chip_db.c)'))
+        sys.stderr.write(
+            '\n%s is out of date. Run: python tools/gen_supported_chips.py\n' % OUT)
+        raise SystemExit(1)
+else:
+    OUT.write_text(generated, encoding='utf-8')
+    print(summary)

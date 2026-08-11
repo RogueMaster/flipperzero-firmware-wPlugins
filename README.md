@@ -182,6 +182,9 @@ of the part being new.
 [TESTING.md](TESTING.md) walks from checks that need no hardware at all, through a single jumper
 wire, to a real counterfeit hunt.
 
+Cutting a release — the tag, the three builds and the four places that carry a copy of the
+app — is [RELEASING.md](RELEASING.md).
+
 ## Contact
 
 Questions, a chip that should be in the database, a module the app got wrong — write to
