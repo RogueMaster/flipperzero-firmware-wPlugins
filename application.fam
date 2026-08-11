@@ -9,5 +9,5 @@ App(
     fap_description="Learn your Flipper with short, gamified hands-on labs.",
     fap_author="PerfectoWeb",
     fap_weburl="https://github.com/PerfectoWeb/flipper-pocketlab",
-    fap_version=(1, 5),
+    fap_version=(1, 6),
 )
