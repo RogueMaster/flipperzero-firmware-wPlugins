@@ -4,9 +4,10 @@
 
 # Hotspot Arcade
 
-[![build](https://github.com/tarikbc/hotspot-arcade/actions/workflows/build.yml/badge.svg)](https://github.com/tarikbc/hotspot-arcade/actions/workflows/build.yml)
-[![latest release](https://img.shields.io/github/v/release/tarikbc/hotspot-arcade?sort=semver)](https://github.com/tarikbc/hotspot-arcade/releases/latest)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![build](https://img.shields.io/github/actions/workflow/status/tarikbc/hotspot-arcade/build.yml?style=for-the-badge&color=ff8200)](https://github.com/tarikbc/hotspot-arcade/actions/workflows/build.yml)
+[![release](https://img.shields.io/github/v/release/tarikbc/hotspot-arcade?sort=semver&style=for-the-badge&color=ff8200)](https://github.com/tarikbc/hotspot-arcade/releases/latest)
+[![downloads](https://img.shields.io/github/downloads/tarikbc/hotspot-arcade/total?style=for-the-badge&color=ff8200)](https://github.com/tarikbc/hotspot-arcade/releases)
+[![license](https://img.shields.io/badge/license-MIT-ff8200?style=for-the-badge)](LICENSE)
 
 **Offline multiplayer party games hosted from a Flipper Zero + ESP32 WiFi board.**
 No internet, no app install. You host an open WiFi network from the Flipper; people
