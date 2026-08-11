@@ -7,7 +7,7 @@ App(
     stack_size=4 * 1024,
     fap_icon="icons/fake_chip_detector_10px.png",
     fap_category="GPIO",
-    fap_version="1.0",
+    fap_version="0.7",
     fap_author="hleserg",
     fap_description="Check whether an I2C sensor really is the chip it was sold as, before you solder it in.",
 )

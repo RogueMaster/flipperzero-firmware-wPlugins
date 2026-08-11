@@ -55,6 +55,11 @@ reading a pass off that screen knows which of the two they are looking at. For t
 a card test is never offered automatically on the ALL GOOD screen — you launch it deliberately
 or not at all.
 
+**A `.fal` belongs to a firmware, the same way the app does.** One built with the official SDK
+will not load into the app running on Unleashed. If you publish a test, say which firmware you
+built it for; if you build one for yourself, build it with the same SDK you built or downloaded
+the app with.
+
 **If the app refuses to run it**, it says which of these it is rather than guessing: the file was
 not built as a plugin, it was built for a different app, it was built against an older version
 of the test contract, it will not load at all, it declares no address, or its own descriptor

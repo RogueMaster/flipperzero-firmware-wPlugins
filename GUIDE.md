@@ -18,8 +18,11 @@ which wire goes where and what should appear on the screen.
 ## 1. What you need
 
 - **A Flipper Zero.** Any of them.
-- **The app**, `fake_chip_detector.fap`, from
+- **The app**, from
   [the latest release](https://github.com/hleserg/flipper-fake-chip-detector/releases/latest).
+  There are three files there, one per firmware — Unleashed, official, Momentum. Take the one
+  matching what your Flipper runs; if you have never changed the firmware, that is the official
+  one. Picking the wrong one is harmless: the Flipper refuses to open it and says so.
 - **The sensor module** you want to check. This app is for **I²C** sensors — that means the
   board has pins labelled **SDA** and **SCL** somewhere on it. If it does, this app works with
   it. (There is a second mode for DS18B20 temperature probes; see step 9.)
@@ -41,9 +44,8 @@ Then on the Flipper: **Apps → GPIO → Fake Chip Detector**.
 
 ![The menu](fake_chip_detector/screenshots/01_menu.png)
 
-If the Flipper says *"App Too Old"* or something about an API version, the app was built for a
-different firmware than yours. That is not something you can fix by re-downloading; see
-[the README](README.md#install).
+If the Flipper says *"App Too Old"* or something about an API version, you have the file for a
+different firmware. Go back to the release page and take one of the other two.
 
 ## 3. Connect four wires
 

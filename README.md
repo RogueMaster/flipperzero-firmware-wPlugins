@@ -21,14 +21,29 @@ plain words, and asks the one question it cannot answer itself: is this what you
 
 ## Install
 
-Download **`fake_chip_detector.fap`** from
+Take the build for **your** firmware from
 [the latest release](https://github.com/hleserg/flipper-fake-chip-detector/releases/latest) and
 copy it to `apps/GPIO/` on the SD card, or drag it onto qFlipper.
 
-The release is built for **Unleashed `unlshd-090`, API 88.2, target f7**. A FAP is tied to the
-firmware API it was built against: on a different firmware the loader refuses it with
-"App Too Old" or an API mismatch, and the fix is a build against that SDK — see
-[Building](#building).
+| Firmware | File | Built against |
+|---|---|---|
+| Unleashed | `fake_chip_detector-unleashed.fap` | `unlshd-090`, API 88.2 |
+| Official | `fake_chip_detector-official.fap` | 1.4.3, API 87.1 |
+| Momentum | `fake_chip_detector-momentum.fap` | `mntm-012`, API 87.1 |
+
+A FAP is tied to the firmware API it was built against. Take the wrong one and the loader
+refuses it — "App Too Old", or an API mismatch — which is annoying but harmless. Take the right
+one and it just runs.
+
+> **Only the Unleashed build has been run on hardware.** The other two compile cleanly against
+> their SDKs and that is all anybody knows about them. If you run one, please say what happened —
+> [@skhlebnikov](https://t.me/skhlebnikov) or an
+> [issue](https://github.com/hleserg/flipper-fake-chip-detector/issues). "It works" is a useful
+> report; so is a photo of it failing.
+
+**This is 0.7, and the number is honest.** One sensor has been driven end to end on real
+silicon. Twelve of the thirteen live tests have never met the chip they were written for. It
+goes to 1.0 when other people's hardware has had a say.
 
 **New to this?** **[GUIDE.md](GUIDE.md)** walks through the whole thing with screenshots at every
 step — which wire goes in which hole, what the words on the screen mean, and what to do when
@@ -121,8 +136,19 @@ ufbt            # build
 ufbt launch     # build, install and run
 ```
 
-Developed against Unleashed `unlshd-090`, SDK API 88.2, target f7 — the same SDK the released
-`.fap` is built with.
+Developed against Unleashed `unlshd-090`, SDK API 88.2, target f7. The other two release builds
+come from the same source with a different SDK deployed — `ufbt` keeps its state in one place,
+so give each firmware its own:
+
+```bash
+UFBT_HOME=~/.ufbt_official  ufbt update --channel release
+UFBT_HOME=~/.ufbt_official  ufbt
+
+UFBT_HOME=~/.ufbt_momentum  ufbt update --index-url https://up.momentum-fw.dev/firmware/directory.json --channel release
+UFBT_HOME=~/.ufbt_momentum  ufbt
+```
+
+Nothing in the source is conditional on the firmware; all three are the same code.
 
 ## Verdicts
 

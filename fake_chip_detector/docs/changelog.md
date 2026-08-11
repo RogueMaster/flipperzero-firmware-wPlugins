@@ -1,8 +1,12 @@
 # Changelog
 
-## 1.0
+## 0.7 — beta
 
-- Initial release.
+- First public release, and deliberately not called 1.0. Everything here is built and reviewed,
+  but only one part has been driven end to end on real silicon: a VL6180X. Twelve of the
+  thirteen live tests have never met the chip they are written for, and the official-firmware
+  and Momentum builds compile but have not been run by anybody. The version will go up when
+  that changes — feedback is the thing standing between this and a 1.0.
 - Identifies I2C chips by their factory ID registers and reports whether the silicon really is
   the part it claims to be. 80 chips in the database, each with a plain-language description of
   what it does.
