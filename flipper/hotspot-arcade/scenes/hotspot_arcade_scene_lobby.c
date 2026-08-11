@@ -124,43 +124,42 @@ static void ha_dashboard(HotspotArcadeApp* app) {
     widget_reset(app->widget);
     FuriString* tmp = furi_string_alloc();
 
-    // Header = the live status (the thing the host most needs to see), with a
-    // filled dot when broadcasting.
+    // Header: a filled dot + the live status on the left, the player count on the right.
     bool live = app->portal_running && !app->link_lost;
     const char* state = app->link_lost ? "Reconnecting" : live ? "Broadcasting" : "Starting...";
     widget_add_circle_element(app->widget, 5, 6, 3, live);
     widget_add_string_element(app->widget, 13, 0, AlignLeft, AlignTop, FontPrimary, state);
+    furi_string_printf(tmp, "%dP", ha_player_count(app));
+    widget_add_string_element(
+        app->widget, 127, 2, AlignRight, AlignTop, FontSecondary, furi_string_get_cstr(tmp));
     widget_add_line_element(app->widget, 0, 14, 127, 14);
 
-    // How players join: the network name, then the address if the captive page
-    // does not pop on its own.
+    // How players join: the network name, then the address (left) with the selected game
+    // (right) so the host sees at a glance what's on.
     furi_string_printf(tmp, "Join: %s", furi_string_get_cstr(app->ssid));
     widget_add_string_element(
-        app->widget, 0, 18, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(tmp));
+        app->widget, 0, 17, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(tmp));
     widget_add_string_element(
-        app->widget, 0, 29, AlignLeft, AlignTop, FontSecondary, "then 192.168.4.1");
+        app->widget, 0, 28, AlignLeft, AlignTop, FontSecondary, "Open 192.168.4.1");
+    widget_add_string_element(
+        app->widget, 127, 28, AlignRight, AlignTop, FontSecondary, game_name(app->active_game));
 
-    // Player count (left) and the selected game (right) share one line so nothing
-    // collides with the button row.
-    furi_string_printf(tmp, "Players: %d", ha_player_count(app));
-    widget_add_string_element(
-        app->widget, 0, 40, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(tmp));
-    widget_add_string_element(
-        app->widget, 127, 40, AlignRight, AlignTop, FontSecondary, game_name(app->active_game));
-
-    // ESP memory readout, centered above the button row: free internal heap, and free PSRAM
-    // when the board has it. Only shown once a beacon has reported it (heap_kb > 0). This is
-    // the health gauge -- internal heap should stay well clear of zero all session.
+    // Bottom content line, its own clear slot now (no longer crammed between the buttons):
+    // the board's free memory. Internal heap is the number to watch -- it should stay well
+    // clear of zero all session -- and PSRAM is shown so it's obvious the S2's extra memory
+    // is doing the work.
     if(app->board_heap_kb) {
         if(app->board_psram_kb)
             furi_string_printf(
-                tmp, "%uK  PSRAM %u.%uM", app->board_heap_kb, app->board_psram_kb / 1024,
+                tmp, "RAM %uK  PSRAM %u.%uM", app->board_heap_kb, app->board_psram_kb / 1024,
                 (app->board_psram_kb % 1024) * 10 / 1024);
         else
-            furi_string_printf(tmp, "RAM %uK", app->board_heap_kb);
-        widget_add_string_element(
-            app->widget, 64, 52, AlignCenter, AlignTop, FontSecondary, furi_string_get_cstr(tmp));
+            furi_string_printf(tmp, "RAM %uK free", app->board_heap_kb);
+    } else {
+        furi_string_set(tmp, "RAM ...");
     }
+    widget_add_string_element(
+        app->widget, 0, 40, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(tmp));
 
     // Left picks the game; Right shows scores. Games are player-driven, so there is no
     // host-side game screen — the main menu's Console shows the live event feed.
