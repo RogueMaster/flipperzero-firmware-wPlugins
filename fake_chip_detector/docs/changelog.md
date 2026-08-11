@@ -42,5 +42,10 @@
   was written against a datasheet and reviewed in the repository, and one from the card is
   somebody else's code. A plugin built against an older version of the contract is refused with
   a reason rather than run.
+- A live test tells "the sensor fell off" apart from "that is not the part". If the ID register
+  cannot be read at all the screen says the sensor dropped off and to check the wires; if it
+  reads back the wrong value it says WRONG CHIP instead, because the wiring is fine and the
+  advice would otherwise send somebody to reseat a jumper that was never loose. It matters at
+  the crowded addresses: 0x68 carries a DS3231 and ten IMUs, 0x28/0x29 a BNO055 and a VL6180X.
 - Browsable list of every known chip.
 - Melody, LED and vibration feedback, each switchable in Settings.

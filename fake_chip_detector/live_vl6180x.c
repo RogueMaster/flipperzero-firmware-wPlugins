@@ -128,13 +128,12 @@ static void vl6180x_run(const LiveTestEnv* env) {
         // The model ID again, not just an ACK: after a hot-unplug whatever is
         // wired up next may well answer at the same address.
         uint8_t model_id = 0;
-        bool alive = i2c->read_reg16_addr(
-                         addr7,
-                         VL6180X_IDENTIFICATION_MODEL_ID,
-                         &model_id,
-                         1,
-                         LIVE_TEST_TIMEOUT_MS) &&
-                     model_id == VL6180X_MODEL_ID_VALUE;
+        const LiveTestIdResult id_seen =
+            !i2c->read_reg16_addr(
+                addr7, VL6180X_IDENTIFICATION_MODEL_ID, &model_id, 1, LIVE_TEST_TIMEOUT_MS) ?
+                LiveTestIdNoAnswer :
+                (model_id == VL6180X_MODEL_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch);
+        bool alive = (id_seen == LiveTestIdMatch);
 
         // Tracked separately from `alive` because the two answer different
         // questions: whether the part is worth reading, and whether a register
@@ -214,8 +213,15 @@ static void vl6180x_run(const LiveTestEnv* env) {
         if(*stop) break;
 
         memset(&st, 0, sizeof(st));
-        st.phase = LiveTestPhaseLost;
-        vl6180x_set_lines(&st, "It replied, then stopped.", "Check 3V3 and the wires.", NULL);
+        if(id_seen == LiveTestIdMismatch) {
+            // Do not send them to the wiring: the wiring is fine, the module
+            // is not a VL6180X.
+            st.phase = LiveTestPhaseWrongChip;
+            vl6180x_set_lines(&st, "It answers, but its ID", "belongs to another chip.", NULL);
+        } else {
+            st.phase = LiveTestPhaseLost;
+            vl6180x_set_lines(&st, "It replied, then stopped.", "Check 3V3 and the wires.", NULL);
+        }
         publish(ctx, &st);
         vl6180x_delay(stop, 500);
     }

@@ -66,10 +66,11 @@ static void apds9960_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-static bool apds9960_present(const LiveTestI2c* i2c, uint8_t addr7) {
+static LiveTestIdResult apds9960_identify(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t id = 0;
-    if(!i2c->read_reg(addr7, APDS9960_REG_ID, &id, LIVE_TEST_TIMEOUT_MS)) return false;
-    return id == APDS9960_ID_VALUE;
+    if(!i2c->read_reg(addr7, APDS9960_REG_ID, &id, LIVE_TEST_TIMEOUT_MS))
+        return LiveTestIdNoAnswer;
+    return id == APDS9960_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
 }
 
 // Which registers this test actually managed to change. A write can fail
@@ -153,7 +154,8 @@ static void apds9960_run(const LiveTestEnv* env) {
 
         ApdsTouched touched = {0};
         bool running = false;
-        if(apds9960_present(i2c, addr7)) running = apds9960_start(i2c, addr7, stop, &touched);
+        const LiveTestIdResult id_seen = apds9960_identify(i2c, addr7);
+        if(id_seen == LiveTestIdMatch) running = apds9960_start(i2c, addr7, stop, &touched);
 
         uint16_t seen_min = 0xFFFF, seen_max = 0;
         uint8_t errors = 0;
@@ -227,9 +229,17 @@ static void apds9960_run(const LiveTestEnv* env) {
         if(*stop) break;
 
         memset(&st, 0, sizeof(st));
-        st.phase = LiveTestPhaseLost;
-        snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
-        snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
+        if(id_seen == LiveTestIdMismatch) {
+            // Do not send them to the wiring: the wiring is fine, the module
+            // is not an APDS9960.
+            st.phase = LiveTestPhaseWrongChip;
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It answers, but its ID");
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "belongs to another chip.");
+        } else {
+            st.phase = LiveTestPhaseLost;
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
+        }
         publish(ctx, &st);
         apds9960_delay(stop, 500);
     }

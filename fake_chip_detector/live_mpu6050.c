@@ -69,19 +69,19 @@ static void mpu_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-static bool mpu_identify(const LiveTestI2c* i2c, uint8_t addr7, MpuIdentity* id) {
+static LiveTestIdResult mpu_identify(const LiveTestI2c* i2c, uint8_t addr7, MpuIdentity* id) {
     if(!i2c->read_reg(addr7, MPU_REG_WHO_AM_I, &id->who_am_i, LIVE_TEST_TIMEOUT_MS))
-        return false;
+        return LiveTestIdNoAnswer;
     switch(id->who_am_i) {
     case MPU6050_WHO_AM_I:
         id->pwr_reset = MPU6050_PWR_RESET;
-        return true;
+        return LiveTestIdMatch;
     case MPU6500_WHO_AM_I:
     case MPU9250_WHO_AM_I:
         id->pwr_reset = MPU6500_PWR_RESET;
-        return true;
+        return LiveTestIdMatch;
     default:
-        return false;
+        return LiveTestIdMismatch;
     }
 }
 
@@ -122,7 +122,8 @@ static void mpu_run(const LiveTestEnv* env) {
         // part is awake but unmeasurable, and only the first is true.
         bool woken = false;
         bool ready = false;
-        if(mpu_identify(i2c, addr7, &id)) {
+        const LiveTestIdResult id_seen = mpu_identify(i2c, addr7, &id);
+        if(id_seen == LiveTestIdMatch) {
             woken = i2c->write_reg(
                 addr7, MPU_REG_PWR_MGMT_1, MPU_PWR_WAKE, LIVE_TEST_TIMEOUT_MS);
             if(woken)
@@ -198,9 +199,19 @@ static void mpu_run(const LiveTestEnv* env) {
         if(*stop) break;
 
         memset(&st, 0, sizeof(st));
-        st.phase = LiveTestPhaseLost;
-        snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
-        snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
+        if(id_seen == LiveTestIdMismatch) {
+            // 0x68 is the busiest address in the database — a DS3231 and ten
+            // other IMUs share it — so "something else is here" is by far the
+            // likeliest way this test fails, and sending the user to check
+            // their wiring would be actively misleading.
+            st.phase = LiveTestPhaseWrongChip;
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "WHO_AM_I says this is");
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "not an MPU. Wrong board?");
+        } else {
+            st.phase = LiveTestPhaseLost;
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
+        }
         publish(ctx, &st);
         mpu_delay(stop, 500);
     }

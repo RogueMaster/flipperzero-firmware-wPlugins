@@ -41,10 +41,11 @@ static void bno055_set_lines(LiveTestState* st, const char* l0, const char* l1, 
 
 // CHIP_ID, not just an ACK: after a hot-unplug the next thing plugged in may
 // well answer at the same address, and everything below writes to registers.
-static bool bno055_present(const LiveTestI2c* i2c, uint8_t addr7) {
+static LiveTestIdResult bno055_identify(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t chip_id = 0;
-    if(!i2c->read_reg(addr7, BNO055_REG_CHIP_ID, &chip_id, LIVE_TEST_TIMEOUT_MS)) return false;
-    return chip_id == BNO055_CHIP_ID_VALUE;
+    if(!i2c->read_reg(addr7, BNO055_REG_CHIP_ID, &chip_id, LIVE_TEST_TIMEOUT_MS))
+        return LiveTestIdNoAnswer;
+    return chip_id == BNO055_CHIP_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
 }
 
 // Returns true only once the part is actually running fusion — which is also
@@ -129,7 +130,8 @@ static void bno055_run(const LiveTestEnv* env) {
         publish(ctx, &st);
 
         bool in_ndof = false;
-        if(bno055_present(i2c, addr7)) {
+        const LiveTestIdResult id_seen = bno055_identify(i2c, addr7);
+        if(id_seen == LiveTestIdMatch) {
             in_ndof = bno055_enter_ndof(i2c, addr7, stop);
             if(in_ndof) bno055_poll(i2c, addr7, stop, publish, ctx);
         }
@@ -146,8 +148,16 @@ static void bno055_run(const LiveTestEnv* env) {
         if(*stop) break;
 
         memset(&st, 0, sizeof(st));
-        st.phase = LiveTestPhaseLost;
-        bno055_set_lines(&st, "It replied, then stopped.", "Check 3V3 and the wires.", NULL);
+        if(id_seen == LiveTestIdMismatch) {
+            // Do not send them to the wiring: the wiring is fine, the module
+            // is not a BNO055. Worth telling apart here more than anywhere —
+            // 0x28 and 0x29 are shared with a crowd of other parts.
+            st.phase = LiveTestPhaseWrongChip;
+            bno055_set_lines(&st, "It answers, but its ID", "belongs to another chip.", NULL);
+        } else {
+            st.phase = LiveTestPhaseLost;
+            bno055_set_lines(&st, "It replied, then stopped.", "Check 3V3 and the wires.", NULL);
+        }
         publish(ctx, &st);
         bno055_delay(stop, 500);
     }

@@ -1111,9 +1111,14 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
         (st->phase == LiveTestPhaseRunning || st->phase == LiveTestPhasePassed);
 
     canvas_set_font(canvas, FontPrimary);
-    const char* title = (st->phase == LiveTestPhaseLost) ?
-                            "Sensor dropped off!" :
-                            (m->test ? m->test->title : "Live test");
+    // Two different failures, two different headlines. "Dropped off" sends the
+    // user to the wiring; "wrong chip" tells them the wiring is fine and the
+    // module is not what the test is for. Saying the first when it is the
+    // second is how somebody ends up reseating a perfectly good jumper.
+    const char* title = (st->phase == LiveTestPhaseLost)      ? "Sensor dropped off!" :
+                        (st->phase == LiveTestPhaseWrongChip) ? "Wrong chip!" :
+                                                                (m->test ? m->test->title :
+                                                                           "Live test");
     canvas_draw_str_aligned(canvas, 64, 13, AlignCenter, AlignBottom, title);
 
     if(m->from_card) {
@@ -1170,7 +1175,10 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
         uint8_t w = (uint8_t)((m->frame % 20) * 100 / 20);
         canvas_draw_frame(canvas, 14, y, 100, 8);
         canvas_draw_box(canvas, 14, y, w, 8);
-    } else if(st->phase == LiveTestPhaseLost && y <= 62) {
+    } else if(
+        (st->phase == LiveTestPhaseLost || st->phase == LiveTestPhaseWrongChip) && y <= 62) {
+        // True for both: the test's outer loop keeps re-checking, so swapping
+        // the module or pushing the wire back in picks up without leaving.
         canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, "Retrying...");
     } else if(measuring && st->bar_max && y + 7 <= 63) {
         uint8_t fill = st->bar > st->bar_max ? st->bar_max : st->bar;

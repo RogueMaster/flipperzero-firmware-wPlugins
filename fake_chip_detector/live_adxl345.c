@@ -52,10 +52,11 @@ static void adxl345_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-static bool adxl345_present(const LiveTestI2c* i2c, uint8_t addr7) {
+static LiveTestIdResult adxl345_identify(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t id = 0;
-    if(!i2c->read_reg(addr7, ADXL345_REG_DEVID, &id, LIVE_TEST_TIMEOUT_MS)) return false;
-    return id == ADXL345_DEVID_VALUE;
+    if(!i2c->read_reg(addr7, ADXL345_REG_DEVID, &id, LIVE_TEST_TIMEOUT_MS))
+        return LiveTestIdNoAnswer;
+    return id == ADXL345_DEVID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
 }
 
 static bool adxl345_read_accel(const LiveTestI2c* i2c, uint8_t addr7, int32_t out_mg[3]) {
@@ -89,7 +90,8 @@ static void adxl345_run(const LiveTestEnv* env) {
         publish(ctx, &st);
 
         bool measuring = false;
-        if(adxl345_present(i2c, addr7)) {
+        const LiveTestIdResult id_seen = adxl345_identify(i2c, addr7);
+        if(id_seen == LiveTestIdMatch) {
             // Range first, while the part is still in standby: page 26 asks
             // for configuration to be written before measurement starts.
             if(i2c->write_reg(
@@ -172,9 +174,17 @@ static void adxl345_run(const LiveTestEnv* env) {
         if(*stop) break;
 
         memset(&st, 0, sizeof(st));
-        st.phase = LiveTestPhaseLost;
-        snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
-        snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
+        if(id_seen == LiveTestIdMismatch) {
+            // Do not send them to the wiring: the wiring is fine, the module
+            // is not an ADXL345.
+            st.phase = LiveTestPhaseWrongChip;
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It answers, but its ID");
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "belongs to another chip.");
+        } else {
+            st.phase = LiveTestPhaseLost;
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
+        }
         publish(ctx, &st);
         adxl345_delay(stop, 500);
     }

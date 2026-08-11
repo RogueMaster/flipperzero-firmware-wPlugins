@@ -67,7 +67,29 @@ typedef enum {
     LiveTestPhaseRunning, // producing readings
     LiveTestPhaseLost, // it answered, then stopped
     LiveTestPhasePassed, // the test reached its own success condition
+
+    // Something is at this address and talking, but its ID register says it is
+    // not the part this test is for. Completely different advice from Lost:
+    // there is nothing wrong with the wiring, the wrong module is plugged in.
+    //
+    // Appended rather than slotted in beside Lost on purpose. These are plain
+    // enumerators, so inserting one would renumber LiveTestPhasePassed, and a
+    // plugin compiled before the change would go on sending the old number for
+    // "it passed" while the app read it as this. Adding at the end cannot do
+    // that, which is why this needed no version bump.
+    LiveTestPhaseWrongChip,
 } LiveTestPhase;
+
+// What an ID register said. Tests used to fold this into a bool and lost the
+// distinction that matters most to the person holding the board: a read that
+// failed outright means nothing is answering any more, while a read that
+// succeeded and disagreed means something else is plugged in. The first is a
+// wiring problem and the second is not.
+typedef enum {
+    LiveTestIdNoAnswer, // the transfer failed - it is gone
+    LiveTestIdMismatch, // it answered, and it is not this part
+    LiveTestIdMatch,
+} LiveTestIdResult;
 
 // Everything a test tells the UI. Deliberately a plain value type: the worker
 // thread fills one on its stack and hands it over, so no test ever touches a

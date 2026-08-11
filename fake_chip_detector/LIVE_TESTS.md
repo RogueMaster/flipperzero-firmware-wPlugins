@@ -166,6 +166,32 @@ on **both directions**, which is what stops a dead part passing by accident. The
 tests pass on a **change of which axis** holds gravity rather than on any absolute value, so
 they need no knowledge of how the board is mounted and no trust in the zero-g offset.
 
+### Telling "it fell off" apart from "that is not the part"
+
+When a test stops getting readings there are two completely different reasons, and they call for
+opposite advice. If the ID read itself failed, nothing is answering any more: that is
+`LiveTestPhaseLost`, and the screen says **Sensor dropped off!** and to check the wires. If the
+ID read succeeded and the value disagreed, the wiring is fine and the wrong module is plugged
+in: that is `LiveTestPhaseWrongChip`, and the screen says **Wrong chip!** instead.
+
+Folding both into one bool is the easy mistake, and it sends somebody to reseat a jumper that
+was never loose. Return `LiveTestIdResult` from your identify helper rather than `bool`:
+
+```c
+static LiveTestIdResult mypart_identify(const LiveTestI2c* i2c, uint8_t addr7) {
+    uint8_t id = 0;
+    if(!i2c->read_reg(addr7, MYPART_REG_ID, &id, LIVE_TEST_TIMEOUT_MS))
+        return LiveTestIdNoAnswer;
+    return id == MYPART_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
+}
+```
+
+It matters most at the crowded addresses. 0x68 carries a DS3231 and ten IMUs, and 0x28/0x29 hold
+a BNO055 and a VL6180X — at those, "something else is here" is the likeliest way a test fails.
+
+Both phases keep retrying, so swapping the module is picked up without leaving the screen. A
+part with no ID register cannot make this distinction and should not pretend to.
+
 ### When a test cannot honestly pass
 
 Sometimes there is no measurement to check, and the right answer is to say so. The OLED test is
