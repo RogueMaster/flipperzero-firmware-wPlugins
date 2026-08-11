@@ -27,7 +27,7 @@ Five seconds, at the pickup counter, before you pay.
   hand in front of a VL6180X.
 - **Scans 1-Wire too**, on pin 17: decodes the family code and runs a real temperature
   conversion, so a DS18S20 sold as a DS18B20 is caught.
-- **Takes tests written by other people.** A live test can be built as a `.fal` and dropped into
+- **Takes tests written by other people.** A live test can be built as a .fal plugin file and dropped into
   *apps_data/fake_chip_detector/tests/* with no rebuild of the app. Tests from the card are
   marked **SD**, because a built-in test was reviewed in the repository and one from the card is
   somebody else's code.
