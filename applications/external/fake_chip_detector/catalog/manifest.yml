@@ -1,0 +1,34 @@
+# Template for the Flipper Apps Catalog submission.
+#
+# To publish: fork github.com/flipperdevices/flipper-application-catalog,
+# copy this file to applications/GPIO/fake_chip_detector/manifest.yml, replace
+# commit_sha with the released commit, validate, then open a PR:
+#
+#   python -m venv venv && . venv/Scripts/activate
+#   python -m pip install -r tools/requirements.txt
+#   python tools/bundle.py --nolint applications/GPIO/fake_chip_detector/manifest.yml bundle.zip
+#
+# name, id, category, version, author, icon and short_description all come
+# from application.fam and deliberately are not duplicated here.
+#
+# NOTE before submitting: @-references and screenshot paths resolve relative
+# to location.subdir, so README.md and screenshots/ must live inside
+# fake_chip_detector/ — not at the repository root. Move or copy them first.
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/hleserg/flipper-fake-chip-detector.git
+    commit_sha: REPLACE_WITH_RELEASE_COMMIT_SHA
+    subdir: fake_chip_detector
+
+short_description: Check whether an I2C sensor really is the chip it was sold as.
+
+description: "@README.md"
+changelog: "@./docs/changelog.md"
+
+screenshots:
+  - screenshots/01_menu.png
+  - screenshots/02_wiring.png
+  - screenshots/04_question.png
+  - screenshots/05_allgood.png

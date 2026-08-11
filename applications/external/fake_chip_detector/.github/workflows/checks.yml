@@ -1,0 +1,40 @@
+name: Checks
+
+# The two things that have actually broken here, both silently:
+#
+#   - SUPPORTED_CHIPS.md drifting from chip_db.c. It drifted once without a
+#     single chip being edited: clang-format rewrapped the table and the
+#     generator quietly parsed less of it than before.
+#   - Formatting. The Apps Catalog CI runs `ufbt lint` over the whole app and
+#     fails on code that has never seen clang-format, which costs a round trip
+#     in review rather than here.
+#
+# Both are cheap, so they run on every push and every pull request.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  docs:
+    name: SUPPORTED_CHIPS.md matches chip_db.c
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tools/gen_supported_chips.py --check
+
+  lint:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
+        with:
+          app-dir: fake_chip_detector
+          sdk-channel: release
+          task: lint
