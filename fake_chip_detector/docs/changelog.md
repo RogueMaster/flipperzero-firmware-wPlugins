@@ -42,6 +42,12 @@
   was written against a datasheet and reviewed in the repository, and one from the card is
   somebody else's code. A plugin built against an older version of the contract is refused with
   a reason rather than run.
+- The two tests that have to write to a part they cannot identify now say so before they do.
+  A display has no readback, and an AHT's checksum cannot be read until a measurement has been
+  triggered — and the database puts a PCF8574A across 0x38-0x3F, covering both OLED addresses
+  and the AHT, where those bytes would drive a GPIO expander's pins. Three seconds of "cannot
+  identify this part, unplug now if it is not a display" beats quietly taking that risk on
+  somebody's behalf.
 - The AHT test verifies the AHT20's checksum rather than trusting the status byte. Address 0x38
   is shared with a VEML6070 and sits inside the PCF8574A's range, and an all-ones answer has the
   calibration bit set — so the status byte on its own says almost nothing. A checksum that

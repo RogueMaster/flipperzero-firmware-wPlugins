@@ -75,6 +75,33 @@ static void ssd1306_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
+// Long enough to read the sentence and pull a jumper, short enough not to be
+// in the way of somebody who knows what they plugged in. Not a datasheet
+// figure; there is nothing to cite.
+#define SSD1306_BLIND_WARN_S 3
+
+// A display has no readback at all, so this test can never confirm what it is
+// talking to — not before writing, not after. And the app's own database puts
+// a PCF8574A across 0x38-0x3F, which covers both OLED addresses: those command
+// bytes would land on a GPIO expander as output-port writes, driving whatever
+// is wired to its pins.
+//
+// There is no way to make that safe, so the honest thing is to say it out loud
+// while the wire is still in the user's hand. Shown once per run, before the
+// first byte goes out.
+static void ssd1306_warn_blind(const LiveTestEnv* env) {
+    for(uint8_t left = SSD1306_BLIND_WARN_S; left && !*env->stop; left--) {
+        LiveTestState st;
+        memset(&st, 0, sizeof(st));
+        st.phase = LiveTestPhaseStarting;
+        snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "Cannot identify this part");
+        snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Unplug now if it is not");
+        snprintf(st.lines[2], LIVE_TEST_LINE_LEN, "a display. Writing in %u", left);
+        env->publish(env->ctx, &st);
+        ssd1306_delay(env->stop, 1000);
+    }
+}
+
 static bool ssd1306_command(const LiveTestI2c* i2c, uint8_t addr7, uint8_t command) {
     const uint8_t frame[2] = {SSD1306_CTRL_COMMAND_STREAM, command};
     return i2c->write_raw(addr7, frame, sizeof(frame), LIVE_TEST_TIMEOUT_MS);
@@ -86,6 +113,12 @@ static void ssd1306_run(const LiveTestEnv* env) {
     const LiveTestI2c* i2c = env->i2c;
     const LiveTestPublish publish = env->publish;
     void* const ctx = env->ctx;
+
+    // Before the first write, not inside the loop: the warning is about this
+    // address, which does not change, and repeating it after every retry would
+    // train the user to press through it.
+    ssd1306_warn_blind(env);
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));

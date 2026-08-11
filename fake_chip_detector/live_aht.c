@@ -90,6 +90,33 @@ static bool aht_crc_self_test(void) {
     return aht_crc8(vector, sizeof(vector)) == 0x92;
 }
 
+// Long enough to read the sentence and pull a jumper, short enough not to be
+// in the way of somebody who knows what they plugged in. Not a datasheet
+// figure; there is nothing to cite.
+#define AHT_BLIND_WARN_S 3
+
+// The checksum below identifies the part, but it cannot be read until after a
+// measurement has been triggered — and triggering is itself three bytes
+// written to a device nothing has identified yet. There is no way round that
+// ordering, and 0x38 is a bad address to guess at: a VEML6070 sits there, and
+// the app's own database puts a PCF8574A across 0x38-0x3F, where 0xAC 0x33
+// 0x00 would land as output-port writes driving whatever is on its pins.
+//
+// So say it out loud while the wire is still in the user's hand. Once per run,
+// before the first byte goes out.
+static void aht_warn_blind(const LiveTestEnv* env) {
+    for(uint8_t left = AHT_BLIND_WARN_S; left && !*env->stop; left--) {
+        LiveTestState st;
+        memset(&st, 0, sizeof(st));
+        st.phase = LiveTestPhaseStarting;
+        snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "Cannot identify this part");
+        snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Unplug now if it is not");
+        snprintf(st.lines[2], LIVE_TEST_LINE_LEN, "a sensor. Writing in %u", left);
+        env->publish(env->ctx, &st);
+        aht_delay(env->stop, 1000);
+    }
+}
+
 typedef enum {
     AhtReadOk,
     AhtReadNoAnswer,
@@ -154,6 +181,11 @@ static void aht_run(const LiveTestEnv* env) {
     void* const ctx = env->ctx;
 
     const bool crc_usable = aht_crc_self_test();
+
+    // Before the first write, not inside the loop: the warning is about this
+    // address, which does not change, and repeating it after every retry would
+    // train the user to press through it.
+    aht_warn_blind(env);
 
     while(!*stop) {
         LiveTestState st;

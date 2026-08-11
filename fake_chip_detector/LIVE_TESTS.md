@@ -99,6 +99,14 @@ lists it.
   proof of which part answered — check the ID register first, and if it does not match, write
   nothing. The mode register you were about to restore belongs to a different chip's map, and
   a stray write to a stranger is a real way to brick someone's board.
+- **If you cannot identify the part and still have to write, say so on screen first.** Some
+  parts leave no choice: a display has no readback at all, and an AHT's checksum cannot be read
+  until after a measurement has been triggered. Both of those addresses are shared — the
+  database puts a PCF8574A across 0x38-0x3F, covering the AHT and both OLED addresses, where
+  command bytes land as output-port writes driving whatever is on its pins. Neither test can be
+  made safe, so both spend three seconds saying "cannot identify this part, unplug now if it is
+  not a display" before the first byte goes out, once per run rather than after every retry.
+  Silence would be the app quietly taking a risk on the user's behalf.
 - **`run` is called on its own thread** with the address the scan already found the part at.
   It never has to search the bus.
 - **Never touch a view, a canvas or the view model.** Publish a `LiveTestState` and the app
