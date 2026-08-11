@@ -91,6 +91,12 @@ lists it.
 
 - **`run` returns only when `*stop` is true.** A test that finishes early leaves the user
   staring at a frozen screen. Loop.
+- **And it returns promptly once it is.** The app waits for `run` on the thread that draws every
+  screen, because until it returns the test is still writing into the view model and, from a
+  card, still executing inside a mapping about to be unmapped — so the wait cannot be abandoned.
+  While it lasts nothing redraws and no key does anything: it looks exactly like the firmware
+  has died, and past two seconds the app chirps to say the stall is real. Slice long delays and
+  check the flag between the slices; every test here checks it at least five times a second.
 - **`run` owns its own cleanup, on every exit path.** There is no teardown hook. If your part
   has to be put back into a low-power mode, do it before every `return`, including the error
   ones. The BNO055 test parks the sensor in CONFIG when it leaves, because NDOF fusion burns
@@ -136,7 +142,8 @@ two indicators underneath:
   falls, like humidity under your breath or lux under your hand. It makes "the reading is
   moving" obvious from across the room, which is the whole proof.
 - set `progress` and `progress_max` for a row of boxes — the right choice for steps completed,
-  like calibration levels.
+  like calibration levels. Eleven boxes is what the strip holds; ask for more and the app clamps
+  it rather than drawing off the side of the screen.
 
 Leave all four at zero and neither is drawn, so a `memset` struct needs no thought.
 
