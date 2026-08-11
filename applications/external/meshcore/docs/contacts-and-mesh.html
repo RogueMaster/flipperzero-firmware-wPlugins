@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0f0f">
+<title>Контакты и сеть — MeshCore Config</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#0d0f0f; --panel:#151918; --panel-2:#1c2120; --ink:#d7e0dc; --dim:#8fa39b;
+  --line:#2a312f; --accent:#5ef2a4; --accent-dim:#2f7d59; --amber:#ffb340;
+  --warn:#ffcc66; --danger:#ff7a6b; --tip:#7fd6ff; --ok:#5ef2a4;
+  --mono:ui-monospace,'Cascadia Mono','Segoe UI Mono','SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.65 var(--mono);
+  padding:0 0 4rem;
+}
+.wrap{max-width:52rem;margin:0 auto;padding:0 1rem}
+header.site{
+  border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121615,#0d0f0f);
+  position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)
+}
+header.site .wrap{display:flex;align-items:center;gap:.75rem;padding-top:.7rem;padding-bottom:.7rem}
+header.site a.brand{color:var(--accent);text-decoration:none;font-weight:700;letter-spacing:.02em}
+header.site .tag{color:var(--dim);font-size:.78rem;margin-left:auto}
+h1,h2,h3,h4{line-height:1.25;margin:2rem 0 .75rem;color:#eef5f2}
+h1{font-size:1.6rem;margin-top:1.5rem}
+h2{font-size:1.25rem;border-bottom:1px solid var(--line);padding-bottom:.35rem}
+h3{font-size:1.05rem;color:var(--accent)}
+p,li{overflow-wrap:anywhere}
+a{color:var(--accent);text-underline-offset:.2em}
+code{background:var(--panel-2);padding:.12em .38em;border-radius:.25rem;font-size:.92em}
+pre{
+  background:var(--panel);border:1px solid var(--line);border-radius:.5rem;
+  padding:.85rem 1rem;overflow-x:auto;position:relative;margin:1rem 0
+}
+pre code{background:none;padding:0;font-size:.86rem;line-height:1.5}
+.copy{
+  position:absolute;top:.4rem;right:.4rem;background:var(--panel-2);color:var(--dim);
+  border:1px solid var(--line);border-radius:.35rem;padding:.28rem .6rem;
+  font:inherit;font-size:.72rem;cursor:pointer;transition:.15s
+}
+.copy:hover{color:var(--accent);border-color:var(--accent-dim)}
+.copy.done{color:#0d0f0f;background:var(--accent);border-color:var(--accent)}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel-2);color:#eef5f2}
+tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+blockquote{margin:0;padding:0}
+.callout{
+  border-left:3px solid var(--dim);background:var(--panel);border-radius:.4rem;
+  padding:.8rem 1rem;margin:1.1rem 0
+}
+.callout p:first-child{margin-top:0}.callout p:last-child{margin-bottom:0}
+.callout.warning{border-color:var(--warn);background:rgba(255,204,102,.07)}
+.callout.danger{border-color:var(--danger);background:rgba(255,122,107,.08)}
+.callout.tip{border-color:var(--tip);background:rgba(127,214,255,.07)}
+.callout.success{border-color:var(--ok);background:rgba(94,242,164,.07)}
+.toc{background:var(--panel);border:1px solid var(--line);border-radius:.5rem;margin:1.5rem 0}
+.toc summary{cursor:pointer;padding:.7rem 1rem;color:var(--accent);font-weight:700}
+.toc ol{margin:0;padding:0 1rem 1rem 2rem}
+.toc li{margin:.25rem 0}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent)}
+.toc .lvl3{margin-left:1rem;font-size:.9rem;color:var(--dim)}
+.cards{display:grid;gap:1rem;grid-template-columns:1fr;margin:1.5rem 0}
+@media(min-width:34rem){.cards{grid-template-columns:1fr 1fr}}
+.card{
+  display:block;background:var(--panel);border:1px solid var(--line);border-radius:.6rem;
+  padding:1.1rem;text-decoration:none;color:var(--ink);transition:.15s
+}
+.card:hover{border-color:var(--accent-dim);transform:translateY(-2px)}
+.card h3{margin:.1rem 0 .4rem;color:var(--accent)}
+.card p{margin:0;color:var(--dim);font-size:.88rem}
+.card .who{font-size:.72rem;color:var(--amber);text-transform:uppercase;letter-spacing:.08em}
+figure{margin:1.5rem 0;text-align:center}
+figure svg{max-width:100%;height:auto;border:1px solid var(--line);border-radius:.5rem;background:#120e05}
+figcaption{color:var(--dim);font-size:.82rem;margin-top:.5rem;text-align:left}
+.gotcha{border:1px solid var(--line);border-radius:.5rem;margin:.6rem 0;background:var(--panel)}
+.gotcha summary{cursor:pointer;padding:.7rem 1rem;color:var(--warn)}
+.gotcha .body{padding:0 1rem 1rem;border-top:1px solid var(--line)}
+.top{
+  position:fixed;right:1rem;bottom:1rem;background:var(--panel-2);border:1px solid var(--line);
+  color:var(--dim);border-radius:.5rem;padding:.5rem .7rem;text-decoration:none;font-size:.8rem;
+  opacity:0;pointer-events:none;transition:.2s;z-index:30
+}
+.top.show{opacity:1;pointer-events:auto}
+footer.site{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;color:var(--dim);font-size:.8rem}
+.offline-note{color:var(--dim);font-size:.78rem;margin-top:.4rem}
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="index.html">MeshCore Config</a>
+<span class="tag">Greyrock Labs</span>
+</div></header>
+<main class="wrap">
+<a href="index.html" style="color:var(--dim);text-decoration:none">&larr; Все инструкции</a>
+<details class="toc" open><summary>Содержание</summary><ol><li><a href="#главное-правило-одна-сеть-одинаковое-радио">Главное правило: одна сеть = одинаковое радио</a></li><li><a href="#ноды-настраиваются-по-отдельности">Ноды настраиваются по отдельности</a></li><li><a href="#контакт-привязан-к-ноде-а-не-к-частоте">Контакт привязан к ноде, а не к частоте</a></li><li><a href="#две-ноды-сразу-что-сейчас-что-в-планах">Две ноды сразу — что сейчас, что в планах</a></li><li><a href="#как-добавить-контакт-без-qr-в-лесу">Как добавить контакт — без QR, в лесу</a></li><li class="lvl3"><a href="#способ-1-адверт-основной-ничего-не-набирать">Способ 1 — адверт (основной, ничего не набирать)</a></li><li class="lvl3"><a href="#способ-2-моя-карточка-для-того-у-кого-телефон">Способ 2 — «моя карточка» для того, у кого телефон</a></li><li class="lvl3"><a href="#способ-3-импорт-по-ссылке">Способ 3 — импорт по ссылке</a></li><li><a href="#надёжность-сообщений-что-где-хранится">Надёжность сообщений — что где хранится</a></li><li><a href="#приватные-каналы-своя-группа">Приватные каналы — своя группа</a></li><li><a href="#чеклист-я-в-лесу-с-новой-группой">Чеклист «я в лесу с новой группой»</a></li><li><a href="#что-уже-работает-а-что-в-планах-честно">Что уже работает, а что в планах — честно</a></li></ol></details>
+<h1 id="контакты-и-сеть-как-это-устроено">Контакты и сеть — как это устроено</h1><p>Эта страница отвечает на вопросы, которые в лесу уже не задать: <strong>какая нода сейчас работает, что с частотами, как добавить контакт без QR и как отдать себя телефону.</strong> Прочитай один раз дома — в поле будет понятно, что происходит.</p><div class="callout tip"><p>💡 Коротко: <strong>ноды слышат друг друга, только если у них одинаковые настройки радио.</strong> Контакт живёт «под» той нодой, что его услышала. Добавление контактов в поле — это не QR, а одна кнопка <strong>advert</strong>, которую жмут все по очереди.</p></div><h2 id="главное-правило-одна-сеть-одинаковое-радио">Главное правило: одна сеть = одинаковое радио</h2><p>LoRa — это не WiFi. Две ноды услышат друг друга, только если у них <strong>совпадают все четыре параметра</strong>: частота, полоса (bandwidth), spreading factor и coding rate. Плюс для приватного канала — общий секрет.</p><table><thead><tr><th>Параметр</th><th>В приложении</th><th>Пример</th></tr></thead><tbody><tr><td>Частота</td><td>Radio → Freq</td><td><code>869.525 MHz</code></td></tr><tr><td>Полоса</td><td>Radio → BW</td><td><code>250 kHz</code></td></tr><tr><td>Spreading factor</td><td>Radio → SF</td><td><code>10</code></td></tr><tr><td>Coding rate</td><td>Radio → CR</td><td><code>5</code></td></tr></tbody></table><div class="callout danger"><p>🚨 <strong>Нода с другой частотой — это не «слабый сигнал», это другая сеть.</strong> Она тебя не слышит и никогда не услышит, хоть стой рядом. И в поле это не починить вслепую — там не видно, что у кого настроено. Поэтому:</p></div><div class="callout warning"><p>⚠️ <strong>Перед выходом выставь на всех нодах группы одинаковые freq/BW/SF/CR и запиши их на бумажке.</strong> Одна нода, случайно оставленная на другой частоте, — это человек, которого группа не видит и не слышит весь поход.</p></div><details class="gotcha"><summary>Почему нельзя просто «докрутить частоту в поле»</summary><div class="body"><p>Можно — через <strong>Radio</strong> на подключённой ноде или применив <strong>Profile</strong>. Но чтобы докрутить, ноду надо воткнуть во флиппер и знать, к какому значению крутить. Если у группы нет общей записанной настройки — ты крутишь наугад, а остальные ноды в этот момент недоступны, чтобы свериться. Поэтому настройку согласовывают и записывают дома.</p></div></details><h2 id="ноды-настраиваются-по-отдельности">Ноды настраиваются по отдельности</h2><p>Каждая нода хранит свои настройки сама. Приложение в каждый момент говорит с <strong>одной</strong> нодой — той, что воткнута в флиппер (блок A, пины 13/14). Radio, Identity, Profiles, Send advert — всё это про <strong>эту</strong> ноду.</p><p>Это и есть ответ на «какая нода на connect»: <strong>та, что на пинах 13/14.</strong> Хочешь настроить вторую — воткни вторую и подключись к ней; настройки первой при этом не трогаются.</p><div class="callout tip"><p>💡 Чтобы у всех нод группы было одинаковое радио, ты по очереди подключаешь каждую и применяешь один и тот же <strong>Profile</strong> (Profiles → выбрать → Apply). Приложение перечитывает настройку обратно и показывает, что нода реально её приняла, а не просто ответила «ок».</p></div><h2 id="контакт-привязан-к-ноде-а-не-к-частоте">Контакт привязан к ноде, а не к частоте</h2><p>Отсюда — важное следствие, которое снимает твой страх «отправил, а никто не получил, потому что контакт на другой частоте»:</p><p><strong>Контакт вообще не может оказаться на «другой частоте».</strong> Он появляется в адресной книге ноды только потому, что нода <strong>услышала его адверт</strong> — а услышать можно лишь того, кто на той же частоте. То есть каждый контакт по определению уже на одной сети с той нодой, что его знает.</p><p>Когда ты выбираешь контакт и пишешь ему — сообщение уходит через ту ноду, в чьей книге он лежит. Промаха по частоте тут быть не может: книга и частота — это одна и та же нода.</p><div class="callout success"><p>✅ Поэтому отдельно «сохранять частоту с контактом» не нужно: частоту несёт нода, а контакт и так живёт под своей нодой. Мы привязали контакт к <strong>ноде</strong>, а не к числу — так ошибка невозможна by design.</p></div><h2 id="две-ноды-сразу-что-сейчас-что-в-планах">Две ноды сразу — что сейчас, что в планах</h2><p>Ты спросил: можно ли писать с произвольной ноды, чтобы обе принимали, и чтобы было видно, с какой пришло. Честно, как есть:</p><ul><li><strong>Сейчас:</strong> приложение работает с одной нодой за раз (пины 13/14). Всё, что ты</li></ul><p>  шлёшь и принимаешь, — это её сеть. Чтобы перейти в другую сеть, перенастраиваешь   эту же ноду (Radio) или применяешь другой Profile.</p><ul><li><strong>В планах (когда приедет вторая нода):</strong> вторая нода на пинах 15/16, выбор</li></ul><p>  «с какой ноды пишу», обе принимают, у каждого входящего — метка, с какой ноды   пришло.</p><div class="callout tip"><p>💡 По официальной документации: в самом MeshCore <strong>нет режима «одно устройство — два радио»</strong> — каждая нода это отдельная companion-связь. То есть «две ноды сразу» — это не готовая фича MeshCore, которую я не использовал, а именно две независимые связи, которые надо свести на стороне флиппера. Так что архитектура тут единственно возможная, а не упущенная.</p></div><div class="callout warning"><p>⚠️ Почему второй канал не включён «вслепую»: это два параллельных потока к двум радио одновременно. В таком коде уже дважды всплывали гонки, и я не хочу дестабилизировать приложение, которым ты пользуешься, кодом, который не могу проверить без второй ноды. Модель и распайка готовы; включаю и проверяю, как только появится второе железо. Пины под неё зарезервированы (15=TX, 16=RX).</p></div><details class="gotcha"><summary>А если реально нужны две сети в одном походе уже сейчас</summary><div class="body"><p>Рабочий обход без второй ноды: держи под каждую сеть свой <strong>Profile</strong> (Profiles). Подключаешь ноду, applyшь профиль сети №1 — работаешь в ней; нужно в сеть №2 — apply профиль №2. Это не «одновременно», но одной нодой покрывает обе сети без наугад-настройки.</p></div></details><h2 id="как-добавить-контакт-без-qr-в-лесу">Как добавить контакт — без QR, в лесу</h2><p>У флиппера нет камеры, QR не отсканировать. И не надо. Порядок способов — от «вообще без набора» к «на крайний случай»:</p><h3 id="способ-1-адверт-основной-ничего-не-набирать">Способ 1 — адверт (основной, ничего не набирать)</h3><p>Каждый в группе один раз объявляет себя, и все друг у друга появляются сами:</p><ol><li><strong>Messenger → <code>+ Add / share</code> → Find peers (advert)</strong> — нода «кричит» о себе</li></ol><p>   на всю сеть.</p><ol><li>Кто в зоне и на той же частоте — слышит и добавляет тебя; а ты добавляешь тех,</li></ol><p>   кто ответит.</p><ol><li>Открываешь список контактов — они уже там.</li></ol><p>То же самое делает пункт меню <strong>Send advert</strong>. В поле схема простая: <strong>все встали в кружок, каждый нажал advert, у всех появились все.</strong> Ноль набора, ноль QR.</p><div class="callout tip"><p>💡 Важно понимать: твой advert делает <strong>тебя</strong> видимым для других. Чужая нода появляется у тебя в контактах, когда <strong>она</strong> объявляет себя. Поэтому в кружке жмут по очереди все — тогда у каждого появляются все. (Отправку advert и обновление списка я проверил на железе; само «знакомство» — это поведение двух и более нод.)</p></div><h3 id="способ-2-моя-карточка-для-того-у-кого-телефон">Способ 2 — «моя карточка» для того, у кого телефон</h3><p>Если у человека телефон с приложением MeshCore:</p><ul><li><strong>Если рядом есть его нода на твоей частоте</strong> — вбивать ничего не надо. Жми</li></ul><p>  <strong>Send advert</strong>, его нода услышит и добавит тебя. <strong>Это основной путь и он   надёжнее</strong> — тот же advert, что и в Способе 1.</p><ul><li><strong>Если ноды рядом нет</strong> (нужно передать себя заранее) — **Messenger →</li></ul><p>  <code>+ Add / share</code> → Share my card**: экран покажет твой публичный ключ и ссылку   <code>meshcore://…</code>, их можно продиктовать или вбить в приложение на телефоне.</p><div class="callout"><p>⏳ Отдачу карточки я проверил, ссылка — документированного формата <code>meshcore://contact/add?name=…&amp;public_key=…&amp;type=…</code>. Сам <strong>приём её телефоном не сверял</strong> — нет телефона в контуре. Поэтому где можно — знакомься адвертом (Способ 1), а карточку держи как запасной вариант «передать себя заранее».</p></div><h3 id="способ-3-импорт-по-ссылке">Способ 3 — импорт по ссылке</h3><p>Если тебе дали ссылку <code>meshcore://contact/add?...</code> (например, из приложения на телефоне), контакт можно добавить руками:</p><ul><li><strong>Messenger → <code>+ Add / share</code> → Import from link</strong> → вставь/набери ссылку → OK.</li></ul><p>Формат ссылки — официальный (docs.meshcore.io): имя, публичный ключ (64 hex), тип (1 — обычный узел, 2 — репитер, 3 — room server, 4 — сенсор). Флиппер разбирает её и добавляет контакт командой <code>ADD_UPDATE_CONTACT</code> — ровно так же, как это делает референсный клиент. Набор длинной ссылки на клавиатуре — на любителя, поэтому в поле первым делом всё равно <strong>адверт</strong> (Способ 1); импорт — на случай, когда контакт дали заранее.</p><div class="callout"><p>QR-код своей карточки на экране флиппера пока не делаю: камеры у флиппера нет, проверить скан телефоном мне нечем, а ссылка текстом (Способ 2) работает и так.</p></div><h2 id="надёжность-сообщений-что-где-хранится">Надёжность сообщений — что где хранится</h2><p>Три вещи, которые важно понимать, чтобы не потерять сообщения в поле.</p><p><strong>«Connect» — это к ноде, а не к сети.</strong> Флиппер подключается к <strong>ноде</strong> по проводу (UART). Сама нода слышит сеть <strong>всё время, пока у неё есть заряд</strong>, — независимо от того, подключён флиппер или нет. Пока флиппер отключён, входящие копятся <strong>в самой ноде</strong>, и приложение вытягивает их в течение ~5 секунд после подключения (или сразу по пушу «есть почта»). То есть отключение флиппера сообщения не теряет — их держит нода.</p><div class="callout warning"><p>⚠️ Что <strong>реально</strong> теряет сообщение: если <strong>нода-получатель выключена</strong> (разряд/сон), а room-сервера в сети нет — прямое сообщение до неё не дойдёт и пропадёт (отправитель не получит подтверждения и в итоге бросит попытки). Вывод для поля: <strong>держи ноды включёнными</strong>, а на ключевую точку по возможности ставь ноду, которая не спит.</p></div><p><strong>История сообщений хранится на карте — всегда.</strong> Каждое сообщение (входящее и исходящее) дописывается в файл <code>/ext/apps_data/meshcore_cfg/messages.log</code> на SD и переживает перезапуск: при старте приложение подгружает историю обратно в чат. Файл только растёт (ничего не стирается), так что переписка не пропадёт при выходе из приложения или разряде флиппера. <em>(В самом чате на экране показываются последние ~48 сообщений; полная история — в файле.)</em></p><p><strong>Сколько хопов сделает сообщение.</strong> MeshCore передаёт по цепочке репитеров, путь — до 64 байт (<code>MAX_PATH_SIZE</code>). При 1-байтном path hash (наш дефолт) это <strong>до 64 хопов</strong>; при 2-байтном — 32, при 3-байтном — 21. Отдельного лимита TTL в доке нет. Маршрут ищется флудом: сообщение может дойти до «мамы» <strong>обходным путём</strong> через дальние репитеры и вернуться другой дорогой — если существует хоть какая-то цепочка репитеров длиной ≤64, оно дойдёт. Так что подозрение «дойдёт только в объезд, через дальнюю ноду» — вполне рабочий сценарий.</p><h2 id="приватные-каналы-своя-группа">Приватные каналы — своя группа</h2><p>Канал — это «общий чат»: сообщение уходит всем, кто на этом канале. Слот 0 — публичный (есть у всех), слоты 1–7 — приватные, каждый со своим 16-байтным секретом. Читать приватный канал может только тот, у кого этот секрет.</p><p><strong>Создать группу (без набора):</strong></p><ol><li><strong>Messenger → <code># Channels</code> → <code>+ New / join channel</code> → New private channel.</strong></li><li>Флиппер сам генерирует случайный секрет, пишет канал в свободный слот</li></ol><p>   (<code>SET_CHANNEL</code>) и перечитывает, что нода приняла.</p><ol><li>Экран покажет ссылку <code>meshcore://channel/add?name=…&amp;secret=…</code> — **раздай её</li></ol><p>   остальным**, чтобы они присоединились.</p><p><strong>Присоединиться по ссылке:</strong></p><ul><li><strong><code>+ New / join channel</code> → Join from link</strong> → вставь/набери ссылку канала → OK.</li></ul><p>  Флиппер разберёт её и запишет канал командой <code>SET_CHANNEL</code>.</p><div class="callout success"><p>✅ Создание приватного канала проверено на железе: свободный слот → <code>SET_CHANNEL</code> → перечитывание. Набор чужой ссылки на клавиатуре — вручную.</p></div><div class="callout tip"><p>💡 В поле: один человек создаёт группу («New private channel»), диктует/передаёт ссылку, остальные жмут «Join from link». Дальше пишете в неё через <code># Channels → выбрать канал → Write</code>.</p></div><h2 id="чеклист-я-в-лесу-с-новой-группой">Чеклист «я в лесу с новой группой»</h2><p><strong>Дома, до выхода:</strong></p><ul><li>[ ] На всех нодах группы — <strong>одинаковые</strong> freq/BW/SF/CR (проще всего: один</li></ul><p>      Profile на все, каждой Apply с проверкой).</p><ul><li>[ ] Приватный канал (если нужен): один создаёт (<strong>New private channel</strong>),</li></ul><p>      остальные присоединяются по его ссылке (<strong>Join from link</strong>).</p><ul><li>[ ] Каждой ноде — понятное имя: <strong>Identity</strong> (это имя другие видят в контактах).</li><li>[ ] Записал настройки сети на бумагу / в заметку. <strong>Это твоя страховка.</strong></li><li>[ ] Зарядил ноды и повербанки.</li></ul><p><strong>В поле, при встрече группы:</strong></p><ul><li>[ ] Встали рядом, каждый: <strong>Messenger → + Add / share → Find peers (advert).</strong></li><li>[ ] Открыл контакты — проверил, что видишь всех. Нет кого-то — он, скорее всего,</li></ul><p>      на другой частоте: сверься с бумажкой и перенастрой его ноду (Radio).</p><ul><li>[ ] Личное сообщение — через контакт; на всю группу — через канал (<code># Channels</code>).</li></ul><div class="callout tip"><p>💡 Порядок сообщений в чате: <strong>новые сверху</strong>. Открыл переписку — сразу видно последнее, листать вниз не нужно.</p></div><h2 id="что-уже-работает-а-что-в-планах-честно">Что уже работает, а что в планах — честно</h2><table><thead><tr><th>Возможность</th><th>Статус</th></tr></thead><tbody><tr><td>Настройка радио ноды, проверка чтением обратно</td><td>✅ на железе</td></tr><tr><td>Автоподключение (без ручного Connect)</td><td>✅ на железе</td></tr><tr><td>Контакты, личные сообщения</td><td>✅ на железе</td></tr><tr><td>Каналы — список (публичный + приватные)</td><td>✅ список на железе</td></tr><tr><td>История сообщений на карте (переживает перезапуск)</td><td>✅ на железе</td></tr><tr><td>Создать приватный канал (<code>SET_CHANNEL</code>)</td><td>✅ на железе</td></tr><tr><td>Присоединиться к каналу по ссылке</td><td>⏳ путь проверен; набор вручную</td></tr><tr><td>Add / share: advert → переход в контакты</td><td>✅ на железе</td></tr><tr><td>Send advert + перечитывание списка</td><td>✅ на железе</td></tr><tr><td>Знакомство нод по адвертам (нужно ≥2 ноды)</td><td>⏳ проверю с двумя нодами</td></tr><tr><td>«Моя карточка» — отдача ссылки + ключа</td><td>✅ на железе</td></tr><tr><td>Приём карточки телефоном</td><td>⏳ нет телефона в контуре</td></tr><tr><td>Отправка в канал (набор с клавиатуры)</td><td>⏳ ручная проверка</td></tr><tr><td>Импорт по ссылке — разбор <code>meshcore://contact/add</code></td><td>✅ парсер в host-тестах</td></tr><tr><td>Импорт по ссылке — набор на клавиатуре</td><td>⏳ ручная проверка</td></tr><tr><td>QR своей карточки на экране</td><td>⏳ в планах (нет камеры для проверки скана)</td></tr><tr><td>Две ноды одновременно, метка источника</td><td>⏳ в планах (нужна вторая нода)</td></tr></tbody></table>
+<footer class="site">
+<p>MeshCore Config — Greyrock Labs. Страница работает без сети: добавь её на главный экран телефона.</p>
+</footer>
+</main>
+<a class="top" href="#">↑ наверх</a>
+<script>
+// Copy button on every code block. The site is read on a phone in a field —
+// retyping a command from a screen is exactly where mistakes come from.
+document.querySelectorAll('pre').forEach(function(pre){
+  var btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.type = 'button';
+  btn.textContent = 'Копировать';
+  btn.addEventListener('click', function(){
+    var text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    var done = function(){
+      btn.textContent = 'Скопировано ✓';
+      btn.classList.add('done');
+      setTimeout(function(){ btn.textContent = 'Копировать'; btn.classList.remove('done'); }, 1400);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+    function fallback(){
+      // execCommand is deprecated but still the only thing that works when the
+      // page is opened from a file:// URL or an old mobile browser.
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e) {}
+      document.body.removeChild(ta);
+    }
+  });
+  pre.appendChild(btn);
+});
+
+// Back to top, once the reader is far enough down to want it.
+var top = document.querySelector('.top');
+if(top){
+  window.addEventListener('scroll', function(){
+    top.classList.toggle('show', window.scrollY > 700);
+  }, {passive:true});
+}
+
+// Register the service worker with an explicit relative scope: the site lives
+// on a sub-path, and an absolute scope would claim the wrong root.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js', {scope: './'});
+  });
+}
+</script>
+</body>
+</html>

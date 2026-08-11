@@ -1,0 +1,8 @@
+{
+  "name": "Fest-869",
+  "freq_mhz": 869.525,
+  "bw_khz": 250,
+  "sf": 11,
+  "cr": 5,
+  "path_hash_bytes": 1
+}

@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" role="img" aria-label="Распайка двух нод к двум блокам флиппера">
+  <style>
+    .box{fill:#151918;stroke:#2a312f;stroke-width:2}
+    .blk{fill:#121716;stroke:#2f7d59;stroke-width:2}
+    .ttl{fill:#eef5f2;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:700}
+    .lbl{fill:#d7e0dc;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+    .sub{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+    .pin{fill:#ffb340;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+    .det{fill:#c58cff;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+    .wtx{stroke:#5ef2a4;stroke-width:2.5;fill:none}
+    .wrx{stroke:#7fd6ff;stroke-width:2.5;fill:none}
+    .wdet{stroke:#c58cff;stroke-width:2.5;fill:none}
+    .wgnd{stroke:#8fa39b;stroke-width:2.5;fill:none;stroke-dasharray:5 4}
+    .cap{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+  </style>
+  <rect width="760" height="560" fill="#0d0f0f"/>
+
+  <!-- ============ Flipper ============ -->
+  <rect class="box" x="24" y="60" width="210" height="330" rx="10"/>
+  <text class="ttl" x="42" y="88">Flipper Zero</text>
+  <text class="sub" x="42" y="106">гребёнка GPIO</text>
+
+  <!-- block A -->
+  <rect class="blk" x="40" y="122" width="178" height="102" rx="7"/>
+  <text class="lbl" x="52" y="142">БЛОК A — USART</text>
+  <text class="pin"  x="52" y="164">11  GND</text>
+  <text class="det"  x="52" y="182">12  DETECT</text>
+  <text class="pin"  x="52" y="200">13  TX  →</text>
+  <text class="pin"  x="52" y="218">14  RX  ←</text>
+
+  <!-- block B -->
+  <rect class="blk" x="40" y="246" width="178" height="102" rx="7"/>
+  <text class="lbl" x="52" y="266">БЛОК B — LPUART</text>
+  <text class="pin"  x="52" y="288">15  TX  →</text>
+  <text class="pin"  x="52" y="306">16  RX  ←</text>
+  <text class="det"  x="52" y="324">17  DETECT</text>
+  <text class="pin"  x="52" y="342">18  GND</text>
+
+  <!-- ============ T114 ============ -->
+  <rect class="box" x="470" y="46" width="265" height="150" rx="10"/>
+  <text class="ttl" x="488" y="74">Heltec T114 · хедер P1</text>
+  <text class="sub" x="488" y="92">nRF52840 — всё на одном хедере</text>
+  <text class="pin" x="488" y="116">P1·4   GND</text>
+  <text class="det" x="488" y="136">P1·8   DETECT = GPIO33</text>
+  <text class="pin" x="488" y="156">P1·12  RX     = GPIO9</text>
+  <text class="pin" x="488" y="176">P1·13  TX     = GPIO10</text>
+
+  <!-- ============ V4 ============ -->
+  <rect class="box" x="470" y="256" width="265" height="150" rx="10"/>
+  <text class="ttl" x="488" y="284">Heltec V4 · хедер J2</text>
+  <text class="sub" x="488" y="302">ESP32-S3 — всё на одном хедере</text>
+  <text class="pin" x="488" y="326">J2·1   GND</text>
+  <text class="det" x="488" y="346">J2·12  DETECT = GPIO33</text>
+  <text class="pin" x="488" y="366">J2·13  RX     = GPIO47</text>
+  <text class="pin" x="488" y="386">J2·14  TX     = GPIO48</text>
+
+  <!-- ===== cable A: block A -> T114 ===== -->
+  <path class="wgnd" d="M222 160 C 330 160, 380 112, 465 112"/>
+  <path class="wdet" d="M222 178 C 330 178, 380 132, 465 132"/>
+  <path class="wtx"  d="M222 196 C 340 196, 380 152, 465 152"/>
+  <path class="wrx"  d="M222 214 C 340 214, 380 172, 465 172"/>
+  <text class="cap" x="292" y="120">кабель A</text>
+
+  <!-- ===== cable B: block B -> V4 ===== -->
+  <path class="wtx"  d="M222 284 C 340 284, 380 362, 465 362"/>
+  <path class="wrx"  d="M222 302 C 340 302, 380 382, 465 382"/>
+  <path class="wdet" d="M222 320 C 330 320, 380 342, 465 342"/>
+  <path class="wgnd" d="M222 338 C 330 338, 380 322, 465 322"/>
+  <text class="cap" x="292" y="410">кабель B</text>
+
+  <!-- ===== legend ===== -->
+  <line class="wtx"  x1="40" y1="424" x2="76" y2="424"/>
+  <text class="cap" x="84" y="428">TX флиппера → RX ноды</text>
+  <line class="wrx"  x1="330" y1="424" x2="366" y2="424"/>
+  <text class="cap" x="374" y="428">TX ноды → RX флиппера</text>
+  <line class="wdet" x1="40" y1="448" x2="76" y2="448"/>
+  <text class="cap" x="84" y="452">DETECT — флиппер держит HIGH</text>
+  <line class="wgnd" x1="330" y1="448" x2="366" y2="448"/>
+  <text class="cap" x="374" y="452">общая земля</text>
+
+  <text class="cap" x="40" y="486">Разъём на ноде одинаковый в обоих случаях: GND · DET · RX · TX.</text>
+  <text class="cap" x="40" y="506">Кабель A — прямой (11·12·13·14). Кабель B — с перестановкой (18·17·15·16).</text>
+  <text class="cap" x="40" y="526">Мнемоника: DETECT на обеих платах — GPIO33.</text>
+  <text class="cap" x="40" y="546">Питание нод своё. От флиппера только GND, DETECT и две линии данных.</text>
+</svg>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 300" role="img" aria-label="Экран логгера">
+  <style>
+    .lcd{fill:#ff9a1f}
+    .px{fill:#1a1205;font-family:ui-monospace,Menlo,Consolas,monospace}
+    .b{font-weight:700}
+    .ann{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+    .lead{stroke:#5ef2a4;stroke-width:1.5;fill:none}
+    .dot{fill:#5ef2a4}
+  </style>
+  <rect width="520" height="300" fill="#120e05"/>
+
+  <rect x="26" y="28" width="276" height="156" rx="8" fill="#2a2113"/>
+  <rect class="lcd" x="34" y="36" width="256" height="128"/>
+
+  <text class="px b" x="42" y="56" font-size="15">Logging</text>
+  <text class="px" x="150" y="56" font-size="12">ROVER-S</text>
+  <text class="px" x="42" y="84" font-size="12">packets: 137</text>
+  <text class="px" x="42" y="108" font-size="12">SNR 8.25  RSSI -74</text>
+  <text class="px" x="42" y="132" font-size="12">20260723-141207</text>
+  <text class="px" x="42" y="156" font-size="11">Back = stop</text>
+
+  <text class="ann" x="26" y="204">Счётчик растёт — нода слышит эфир и строки пишутся на SD</text>
+
+  <line class="lead" x1="300" y1="82" x2="352" y2="82"/><circle class="dot" cx="300" cy="82" r="3"/>
+  <text class="ann" x="358" y="86">принято пакетов</text>
+
+  <line class="lead" x1="300" y1="106" x2="352" y2="106"/><circle class="dot" cx="300" cy="106" r="3"/>
+  <text class="ann" x="358" y="110">последний замер:</text>
+  <text class="ann" x="358" y="126">SNR ≥ +5 dB — норма</text>
+
+  <line class="lead" x1="300" y1="130" x2="352" y2="130"/><circle class="dot" cx="300" cy="130" r="3"/>
+  <text class="ann" x="358" y="134">папка сессии на SD</text>
+
+  <text class="ann" x="26" y="236">Back закрывает файлы. Каждая строка сбрасывается на карту</text>
+  <text class="ann" x="26" y="254">сразу — выдернешь питание, потеряешь максимум одну.</text>
+</svg>

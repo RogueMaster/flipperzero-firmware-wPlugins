@@ -1,0 +1,33 @@
+App(
+    appid="meshcore_cfg",
+    name="MeshCore Config",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="meshcore_cfg_app",
+    # GUI thread only; the protocol worker gets its own stack (see scene_connect).
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_icon="meshcore_10px.png",
+    fap_author="Greyrock Labs",
+    fap_version="0.1",
+    fap_description=(
+        "Configure MeshCore nodes over the Flipper hardware UART "
+        "(pin 13 = TX, 14 = RX, 18 = GND, 115200 8N1)."
+    ),
+    # Listed per directory rather than left at the default "*.c*". That default
+    # is globbed recursively from the app root, which would compile test/ into
+    # the firmware -- host test code has no business in a .fap, and its fakes
+    # would collide with the real UART layer at link time. Add a line here when
+    # a new source directory appears.
+    sources=[
+        "meshcore_cfg.c",
+        "meshcore_log.c",
+        "uart/*.c",
+        "config/*.c",
+        "detect/*.c",
+        "protocol/*.c",
+        "protocol/meshcore_c/*.c",
+        "messenger/*.c",
+        "logger/*.c",
+        "scenes/*.c",
+    ],
+)

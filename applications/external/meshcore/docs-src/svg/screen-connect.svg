@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 300" role="img" aria-label="Экран подключения к ноде">
+  <style>
+    .lcd{fill:#ff9a1f}
+    .px{fill:#1a1205;font-family:ui-monospace,Menlo,Consolas,monospace}
+    .b{font-weight:700}
+    .ann{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+    .lead{stroke:#5ef2a4;stroke-width:1.5;fill:none}
+    .dot{fill:#5ef2a4}
+  </style>
+  <rect width="520" height="300" fill="#120e05"/>
+
+  <!-- bezel -->
+  <rect x="26" y="28" width="276" height="156" rx="8" fill="#2a2113"/>
+  <!-- 128x64 at 2x -->
+  <rect class="lcd" x="34" y="36" width="256" height="128"/>
+
+  <text class="px b" x="42" y="54" font-size="14">Heltec T114</text>
+  <text class="px" x="42" y="74" font-size="12">fw v1.12.0 (v10)</text>
+  <text class="px" x="42" y="92" font-size="12">name: ROVER-S</text>
+  <text class="px" x="42" y="110" font-size="12">freq: 869.525 MHz</text>
+  <text class="px" x="42" y="128" font-size="12">bw 250 kHz sf 11 cr 5</text>
+  <text class="px" x="42" y="152" font-size="11">tx 22 dBm (max 30)</text>
+
+  <text class="ann" x="26" y="204">128 × 64, оранжевая подсветка — как на самом флиппере</text>
+
+  <!-- annotations -->
+  <line class="lead" x1="300" y1="52" x2="352" y2="52"/><circle class="dot" cx="300" cy="52" r="3"/>
+  <text class="ann" x="358" y="56">модель ноды</text>
+
+  <line class="lead" x1="300" y1="72" x2="352" y2="72"/><circle class="dot" cx="300" cy="72" r="3"/>
+  <text class="ann" x="358" y="76">версия прошивки</text>
+
+  <line class="lead" x1="300" y1="108" x2="352" y2="108"/><circle class="dot" cx="300" cy="108" r="3"/>
+  <text class="ann" x="358" y="112">текущее радио —</text>
+  <text class="ann" x="358" y="128">сверь с 869.525</text>
+
+  <text class="ann" x="26" y="236">Back — назад в меню.  Если вместо этого «No reply from</text>
+  <text class="ann" x="26" y="254">the node» — смотри «Грабли»: TX/RX, прошивка, пины.</text>
+</svg>

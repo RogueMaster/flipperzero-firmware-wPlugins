@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0f0f">
+<title>Мануал приложения — MeshCore Config</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#0d0f0f; --panel:#151918; --panel-2:#1c2120; --ink:#d7e0dc; --dim:#8fa39b;
+  --line:#2a312f; --accent:#5ef2a4; --accent-dim:#2f7d59; --amber:#ffb340;
+  --warn:#ffcc66; --danger:#ff7a6b; --tip:#7fd6ff; --ok:#5ef2a4;
+  --mono:ui-monospace,'Cascadia Mono','Segoe UI Mono','SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.65 var(--mono);
+  padding:0 0 4rem;
+}
+.wrap{max-width:52rem;margin:0 auto;padding:0 1rem}
+header.site{
+  border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121615,#0d0f0f);
+  position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)
+}
+header.site .wrap{display:flex;align-items:center;gap:.75rem;padding-top:.7rem;padding-bottom:.7rem}
+header.site a.brand{color:var(--accent);text-decoration:none;font-weight:700;letter-spacing:.02em}
+header.site .tag{color:var(--dim);font-size:.78rem;margin-left:auto}
+h1,h2,h3,h4{line-height:1.25;margin:2rem 0 .75rem;color:#eef5f2}
+h1{font-size:1.6rem;margin-top:1.5rem}
+h2{font-size:1.25rem;border-bottom:1px solid var(--line);padding-bottom:.35rem}
+h3{font-size:1.05rem;color:var(--accent)}
+p,li{overflow-wrap:anywhere}
+a{color:var(--accent);text-underline-offset:.2em}
+code{background:var(--panel-2);padding:.12em .38em;border-radius:.25rem;font-size:.92em}
+pre{
+  background:var(--panel);border:1px solid var(--line);border-radius:.5rem;
+  padding:.85rem 1rem;overflow-x:auto;position:relative;margin:1rem 0
+}
+pre code{background:none;padding:0;font-size:.86rem;line-height:1.5}
+.copy{
+  position:absolute;top:.4rem;right:.4rem;background:var(--panel-2);color:var(--dim);
+  border:1px solid var(--line);border-radius:.35rem;padding:.28rem .6rem;
+  font:inherit;font-size:.72rem;cursor:pointer;transition:.15s
+}
+.copy:hover{color:var(--accent);border-color:var(--accent-dim)}
+.copy.done{color:#0d0f0f;background:var(--accent);border-color:var(--accent)}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel-2);color:#eef5f2}
+tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+blockquote{margin:0;padding:0}
+.callout{
+  border-left:3px solid var(--dim);background:var(--panel);border-radius:.4rem;
+  padding:.8rem 1rem;margin:1.1rem 0
+}
+.callout p:first-child{margin-top:0}.callout p:last-child{margin-bottom:0}
+.callout.warning{border-color:var(--warn);background:rgba(255,204,102,.07)}
+.callout.danger{border-color:var(--danger);background:rgba(255,122,107,.08)}
+.callout.tip{border-color:var(--tip);background:rgba(127,214,255,.07)}
+.callout.success{border-color:var(--ok);background:rgba(94,242,164,.07)}
+.toc{background:var(--panel);border:1px solid var(--line);border-radius:.5rem;margin:1.5rem 0}
+.toc summary{cursor:pointer;padding:.7rem 1rem;color:var(--accent);font-weight:700}
+.toc ol{margin:0;padding:0 1rem 1rem 2rem}
+.toc li{margin:.25rem 0}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent)}
+.toc .lvl3{margin-left:1rem;font-size:.9rem;color:var(--dim)}
+.cards{display:grid;gap:1rem;grid-template-columns:1fr;margin:1.5rem 0}
+@media(min-width:34rem){.cards{grid-template-columns:1fr 1fr}}
+.card{
+  display:block;background:var(--panel);border:1px solid var(--line);border-radius:.6rem;
+  padding:1.1rem;text-decoration:none;color:var(--ink);transition:.15s
+}
+.card:hover{border-color:var(--accent-dim);transform:translateY(-2px)}
+.card h3{margin:.1rem 0 .4rem;color:var(--accent)}
+.card p{margin:0;color:var(--dim);font-size:.88rem}
+.card .who{font-size:.72rem;color:var(--amber);text-transform:uppercase;letter-spacing:.08em}
+figure{margin:1.5rem 0;text-align:center}
+figure svg{max-width:100%;height:auto;border:1px solid var(--line);border-radius:.5rem;background:#120e05}
+figcaption{color:var(--dim);font-size:.82rem;margin-top:.5rem;text-align:left}
+.gotcha{border:1px solid var(--line);border-radius:.5rem;margin:.6rem 0;background:var(--panel)}
+.gotcha summary{cursor:pointer;padding:.7rem 1rem;color:var(--warn)}
+.gotcha .body{padding:0 1rem 1rem;border-top:1px solid var(--line)}
+.top{
+  position:fixed;right:1rem;bottom:1rem;background:var(--panel-2);border:1px solid var(--line);
+  color:var(--dim);border-radius:.5rem;padding:.5rem .7rem;text-decoration:none;font-size:.8rem;
+  opacity:0;pointer-events:none;transition:.2s;z-index:30
+}
+.top.show{opacity:1;pointer-events:auto}
+footer.site{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;color:var(--dim);font-size:.8rem}
+.offline-note{color:var(--dim);font-size:.78rem;margin-top:.4rem}
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="index.html">MeshCore Config</a>
+<span class="tag">Greyrock Labs</span>
+</div></header>
+<main class="wrap">
+<a href="index.html" style="color:var(--dim);text-decoration:none">&larr; Все инструкции</a>
+<details class="toc" open><summary>Содержание</summary><ol><li><a href="#что-нужно-перед-началом">Что нужно перед началом</a></li><li><a href="#правило-воткнул-и-ребутнул">Правило «воткнул и ребутнул»</a></li><li><a href="#запуск-и-главное-меню">Запуск и главное меню</a></li><li><a href="#режим-1-configurator-настроить-ноду">Режим 1: Configurator — настроить ноду</a></li><li class="lvl3"><a href="#connect">Connect</a></li><li class="lvl3"><a href="#пресеты">Пресеты</a></li><li><a href="#режим-2-messenger-переписка">Режим 2: Messenger — переписка</a></li><li><a href="#режим-3-logger-полевой-лог">Режим 3: Logger — полевой лог</a></li><li class="lvl3"><a href="#как-читать-экран">Как читать экран</a></li><li class="lvl3"><a href="#куда-пишется">Куда пишется</a></li><li class="lvl3"><a href="#координаты">Координаты</a></li><li><a href="#если-что-то-не-так">Если что-то не так</a></li><li><a href="#чего-приложение-не-умеет">Чего приложение не умеет</a></li></ol></details>
+<h1 id="мануал-meshcore-config-на-флиппере">Мануал: MeshCore Config на флиппере</h1><p>Приложение превращает флиппер в пульт к ноде MeshCore. Три режима: настроить ноду, переписываться через меш, и писать полевой лог на карту памяти.</p><div class="callout tip"><p>💡 <strong>Радио — в ноде, не во флиппере.</strong> Флиппер не передаёт и не принимает LoRa. Он говорит с нодой по трём проводам и показывает то, что нода услышала. Меш, ключи и твоя личность живут на ноде, флиппер их только читает.</p></div><p>---</p><h2 id="что-нужно-перед-началом">Что нужно перед началом</h2><ol><li>Нода, прошитая <strong>сборкой с автодетектом</strong> с <a href="https://hleserg.github.io/meshcore-node-fw">нашего флешера</a>.</li></ol><p>   Стоковый companion отдаёт протокол только в USB-CDC или BLE — флиппер до него    не достучится.</p><ol><li>Четыре провода: земля, DETECT и две линии данных.</li><li>Питание ноды — своё.</li><li>SD-карта во флиппере, если собираешься логировать.</li></ol><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" role="img" aria-label="Распайка двух нод к двум блокам флиппера">
+  <style>
+    .box{fill:#151918;stroke:#2a312f;stroke-width:2}
+    .blk{fill:#121716;stroke:#2f7d59;stroke-width:2}
+    .ttl{fill:#eef5f2;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:700}
+    .lbl{fill:#d7e0dc;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+    .sub{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+    .pin{fill:#ffb340;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+    .det{fill:#c58cff;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+    .wtx{stroke:#5ef2a4;stroke-width:2.5;fill:none}
+    .wrx{stroke:#7fd6ff;stroke-width:2.5;fill:none}
+    .wdet{stroke:#c58cff;stroke-width:2.5;fill:none}
+    .wgnd{stroke:#8fa39b;stroke-width:2.5;fill:none;stroke-dasharray:5 4}
+    .cap{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+  </style>
+  <rect width="760" height="560" fill="#0d0f0f"/>
+
+  <!-- ============ Flipper ============ -->
+  <rect class="box" x="24" y="60" width="210" height="330" rx="10"/>
+  <text class="ttl" x="42" y="88">Flipper Zero</text>
+  <text class="sub" x="42" y="106">гребёнка GPIO</text>
+
+  <!-- block A -->
+  <rect class="blk" x="40" y="122" width="178" height="102" rx="7"/>
+  <text class="lbl" x="52" y="142">БЛОК A — USART</text>
+  <text class="pin"  x="52" y="164">11  GND</text>
+  <text class="det"  x="52" y="182">12  DETECT</text>
+  <text class="pin"  x="52" y="200">13  TX  →</text>
+  <text class="pin"  x="52" y="218">14  RX  ←</text>
+
+  <!-- block B -->
+  <rect class="blk" x="40" y="246" width="178" height="102" rx="7"/>
+  <text class="lbl" x="52" y="266">БЛОК B — LPUART</text>
+  <text class="pin"  x="52" y="288">15  TX  →</text>
+  <text class="pin"  x="52" y="306">16  RX  ←</text>
+  <text class="det"  x="52" y="324">17  DETECT</text>
+  <text class="pin"  x="52" y="342">18  GND</text>
+
+  <!-- ============ T114 ============ -->
+  <rect class="box" x="470" y="46" width="265" height="150" rx="10"/>
+  <text class="ttl" x="488" y="74">Heltec T114 · хедер P1</text>
+  <text class="sub" x="488" y="92">nRF52840 — всё на одном хедере</text>
+  <text class="pin" x="488" y="116">P1·4   GND</text>
+  <text class="det" x="488" y="136">P1·8   DETECT = GPIO33</text>
+  <text class="pin" x="488" y="156">P1·12  RX     = GPIO9</text>
+  <text class="pin" x="488" y="176">P1·13  TX     = GPIO10</text>
+
+  <!-- ============ V4 ============ -->
+  <rect class="box" x="470" y="256" width="265" height="150" rx="10"/>
+  <text class="ttl" x="488" y="284">Heltec V4 · хедер J2</text>
+  <text class="sub" x="488" y="302">ESP32-S3 — всё на одном хедере</text>
+  <text class="pin" x="488" y="326">J2·1   GND</text>
+  <text class="det" x="488" y="346">J2·12  DETECT = GPIO33</text>
+  <text class="pin" x="488" y="366">J2·13  RX     = GPIO47</text>
+  <text class="pin" x="488" y="386">J2·14  TX     = GPIO48</text>
+
+  <!-- ===== cable A: block A -> T114 ===== -->
+  <path class="wgnd" d="M222 160 C 330 160, 380 112, 465 112"/>
+  <path class="wdet" d="M222 178 C 330 178, 380 132, 465 132"/>
+  <path class="wtx"  d="M222 196 C 340 196, 380 152, 465 152"/>
+  <path class="wrx"  d="M222 214 C 340 214, 380 172, 465 172"/>
+  <text class="cap" x="292" y="120">кабель A</text>
+
+  <!-- ===== cable B: block B -> V4 ===== -->
+  <path class="wtx"  d="M222 284 C 340 284, 380 362, 465 362"/>
+  <path class="wrx"  d="M222 302 C 340 302, 380 382, 465 382"/>
+  <path class="wdet" d="M222 320 C 330 320, 380 342, 465 342"/>
+  <path class="wgnd" d="M222 338 C 330 338, 380 322, 465 322"/>
+  <text class="cap" x="292" y="410">кабель B</text>
+
+  <!-- ===== legend ===== -->
+  <line class="wtx"  x1="40" y1="424" x2="76" y2="424"/>
+  <text class="cap" x="84" y="428">TX флиппера → RX ноды</text>
+  <line class="wrx"  x1="330" y1="424" x2="366" y2="424"/>
+  <text class="cap" x="374" y="428">TX ноды → RX флиппера</text>
+  <line class="wdet" x1="40" y1="448" x2="76" y2="448"/>
+  <text class="cap" x="84" y="452">DETECT — флиппер держит HIGH</text>
+  <line class="wgnd" x1="330" y1="448" x2="366" y2="448"/>
+  <text class="cap" x="374" y="452">общая земля</text>
+
+  <text class="cap" x="40" y="486">Разъём на ноде одинаковый в обоих случаях: GND · DET · RX · TX.</text>
+  <text class="cap" x="40" y="506">Кабель A — прямой (11·12·13·14). Кабель B — с перестановкой (18·17·15·16).</text>
+  <text class="cap" x="40" y="526">Мнемоника: DETECT на обеих платах — GPIO33.</text>
+  <text class="cap" x="40" y="546">Питание нод своё. От флиппера только GND, DETECT и две линии данных.</text>
+</svg><figcaption>Два блока на гребёнке и два кабеля. Со стороны ноды разъём одинаковый — GND · DETECT · RX · TX, — поэтому кабели отличаются только порядком на флиппере.</figcaption></figure><table><thead><tr><th>Сигнал</th><th>T114 — хедер P1</th><th>V4 — хедер J2</th><th>Кабель A</th><th>Кабель B</th></tr></thead><tbody><tr><td>GND</td><td><strong>P1·4</strong></td><td><strong>J2·1</strong></td><td>пин 11</td><td>пин 18</td></tr><tr><td>DETECT</td><td><strong>P1·8</strong> = GPIO33</td><td><strong>J2·12</strong> = GPIO33</td><td>пин 12</td><td>пин 17</td></tr><tr><td>RX ноды</td><td><strong>P1·12</strong> = GPIO9</td><td><strong>J2·13</strong> = GPIO47</td><td>пин 13</td><td>пин 15</td></tr><tr><td>TX ноды</td><td><strong>P1·13</strong> = GPIO10</td><td><strong>J2·14</strong> = GPIO48</td><td>пин 14</td><td>пин 16</td></tr></tbody></table><div class="callout tip"><p>💡 <strong>Мнемоника:</strong> DETECT на обеих платах — <strong>GPIO33</strong>. У обеих всё на одном хедере, тянуть через плату ничего не нужно.</p></div><div class="callout danger"><p>🚨 <strong>TX идёт в RX.</strong> Выход одной стороны — во вход другой. Соединение TX с TX выглядит ровно как мёртвая нода и съедает больше всего времени.</p></div><h2 id="правило-воткнул-и-ребутнул">Правило «воткнул и ребутнул»</h2><p>Нода смотрит на пин DETECT <strong>в момент своего старта</strong> и по нему решает, кем работать:</p><table><thead><tr><th>DETECT</th><th>Нода</th></tr></thead><tbody><tr><td><strong>HIGH</strong> — провод воткнут, приложение открыто</td><td>остаётся в serial-режиме, рулит флиппер</td></tr><tr><td><strong>LOW</strong> — провода нет</td><td>поднимает своё радио: V4 точку WiFi, T114 BLE</td></tr></tbody></table><p>Приложение держит пины 12 и 17 в HIGH всё время работы и отпускает их при выходе.</p><div class="callout danger"><p>🚨 <strong>Нужен провод — воткнул и перезагрузил ноду. Нужен телефон — вынул и перезагрузил ноду.</strong> Горячего переключения нет: нода спрашивает линию один раз, на старте.</p></div><div class="callout warning"><p>⚠️ <strong>Выключи Debug на флиппере:</strong> Settings → System → Debug: <strong>OFF</strong>. Пин 12 — это PA13, он же SWDIO, и в режиме отладки им владеет отладочный блок. Экран Connect предупредит, если Debug включён.</p></div><p>---</p><h2 id="запуск-и-главное-меню">Запуск и главное меню</h2><p><strong>Apps → GPIO → MeshCore Config</strong></p><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 300" role="img" aria-label="Главное меню приложения">
+  <style>
+    .lcd{fill:#ff9a1f}
+    .px{fill:#1a1205;font-family:ui-monospace,Menlo,Consolas,monospace}
+    .inv{fill:#1a1205}
+    .invtxt{fill:#ff9a1f;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700}
+    .ann{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+    .lead{stroke:#5ef2a4;stroke-width:1.5;fill:none}
+    .dot{fill:#5ef2a4}
+  </style>
+  <rect width="520" height="300" fill="#120e05"/>
+
+  <rect x="26" y="28" width="276" height="156" rx="8" fill="#2a2113"/>
+  <rect class="lcd" x="34" y="36" width="256" height="128"/>
+
+  <text class="px" x="42" y="52" font-size="11" font-weight="700">MeshCore Config</text>
+  <line x1="34" y1="58" x2="290" y2="58" stroke="#1a1205" stroke-width="1"/>
+
+  <!-- selected row is inverted, the classic Flipper look -->
+  <rect class="inv" x="34" y="62" width="256" height="18"/>
+  <text class="invtxt" x="42" y="76" font-size="13">Connect</text>
+
+  <text class="px" x="42" y="94" font-size="13">Messenger</text>
+  <text class="px" x="42" y="112" font-size="13">Logger</text>
+  <text class="px" x="42" y="130" font-size="13">Presets</text>
+  <text class="px" x="42" y="148" font-size="13">Serial log</text>
+
+  <text class="ann" x="26" y="204">Выделенная строка инвертирована — обычный флипперский стиль</text>
+
+  <line class="lead" x1="300" y1="71" x2="352" y2="71"/><circle class="dot" cx="300" cy="71" r="3"/>
+  <text class="ann" x="358" y="75">начни отсюда</text>
+
+  <line class="lead" x1="300" y1="108" x2="352" y2="108"/><circle class="dot" cx="300" cy="108" r="3"/>
+  <text class="ann" x="358" y="112">полевой лог на SD</text>
+
+  <line class="lead" x1="300" y1="145" x2="352" y2="145"/><circle class="dot" cx="300" cy="145" r="3"/>
+  <text class="ann" x="358" y="149">сырой обмен байтами —</text>
+  <text class="ann" x="358" y="165">сюда при проблемах</text>
+
+  <text class="ann" x="26" y="236">↑↓ — выбор.  OK — войти.  Back — выйти из приложения.</text>
+</svg><figcaption>Главное меню. Стрелки — выбор, OK — войти, Back — выйти.</figcaption></figure><table><thead><tr><th>Пункт</th><th>Что делает</th></tr></thead><tbody><tr><td><strong>Connect</strong></td><td>Подключиться к ноде, показать модель, версию прошивки и текущее радио</td></tr><tr><td><strong>Messenger</strong></td><td>Контакты меша и переписка</td></tr><tr><td><strong>Logger</strong></td><td>Полевой лог на SD-карту</td></tr><tr><td><strong>Presets</strong></td><td>Готовые наборы радио-настроек, применить на ноду</td></tr><tr><td><strong>Radio / Identity / Role</strong></td><td>Точечная правка отдельных параметров</td></tr><tr><td><strong>Send advert</strong></td><td>Отправить маячок — «я здесь»</td></tr><tr><td><strong>Serial log</strong></td><td>Сырой обмен байтами. Первое место, куда идти при проблемах</td></tr></tbody></table><p>---</p><h2 id="режим-1-configurator-настроить-ноду">Режим 1: Configurator — настроить ноду</h2><h3 id="connect">Connect</h3><p>Начинай всегда отсюда. Приложение открывает порт, здоровается с нодой и показывает, кто ответил.</p><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 300" role="img" aria-label="Экран подключения к ноде">
+  <style>
+    .lcd{fill:#ff9a1f}
+    .px{fill:#1a1205;font-family:ui-monospace,Menlo,Consolas,monospace}
+    .b{font-weight:700}
+    .ann{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+    .lead{stroke:#5ef2a4;stroke-width:1.5;fill:none}
+    .dot{fill:#5ef2a4}
+  </style>
+  <rect width="520" height="300" fill="#120e05"/>
+
+  <!-- bezel -->
+  <rect x="26" y="28" width="276" height="156" rx="8" fill="#2a2113"/>
+  <!-- 128x64 at 2x -->
+  <rect class="lcd" x="34" y="36" width="256" height="128"/>
+
+  <text class="px b" x="42" y="54" font-size="14">Heltec T114</text>
+  <text class="px" x="42" y="74" font-size="12">fw v1.12.0 (v10)</text>
+  <text class="px" x="42" y="92" font-size="12">name: ROVER-S</text>
+  <text class="px" x="42" y="110" font-size="12">freq: 869.525 MHz</text>
+  <text class="px" x="42" y="128" font-size="12">bw 250 kHz sf 11 cr 5</text>
+  <text class="px" x="42" y="152" font-size="11">tx 22 dBm (max 30)</text>
+
+  <text class="ann" x="26" y="204">128 × 64, оранжевая подсветка — как на самом флиппере</text>
+
+  <!-- annotations -->
+  <line class="lead" x1="300" y1="52" x2="352" y2="52"/><circle class="dot" cx="300" cy="52" r="3"/>
+  <text class="ann" x="358" y="56">модель ноды</text>
+
+  <line class="lead" x1="300" y1="72" x2="352" y2="72"/><circle class="dot" cx="300" cy="72" r="3"/>
+  <text class="ann" x="358" y="76">версия прошивки</text>
+
+  <line class="lead" x1="300" y1="108" x2="352" y2="108"/><circle class="dot" cx="300" cy="108" r="3"/>
+  <text class="ann" x="358" y="112">текущее радио —</text>
+  <text class="ann" x="358" y="128">сверь с 869.525</text>
+
+  <text class="ann" x="26" y="236">Back — назад в меню.  Если вместо этого «No reply from</text>
+  <text class="ann" x="26" y="254">the node» — смотри «Грабли»: TX/RX, прошивка, пины.</text>
+</svg><figcaption>Успешное подключение. Здесь же видно текущее радио — сверь его с тем, что должно быть.</figcaption></figure><p>Если написано <strong>«No reply from the node»</strong> — открой <strong>Serial log</strong>:</p><ul><li><strong>пусто</strong> — до флиппера не дошло ни байта. Проводка или не та прошивка.</li><li><strong>мусор</strong> — байты идут, но это не кадры. Не тот бод или перепутаны TX/RX.</li></ul><h3 id="пресеты">Пресеты</h3><p>Пресет — именованный набор <code>частота / полоса / SF / CR / байты path hash</code> (и опционально мощность передатчика <code>tx_dbm</code>). Смысл в клонировании: настроил одну ноду как надо, сохранил, раскатал на остальные.</p><p><strong>City/daily</strong> вшит в приложение и есть всегда, даже без карты памяти:</p><table><thead><tr><th>Параметр</th><th>Значение</th></tr></thead><tbody><tr><td>Частота</td><td>868.731 МГц</td></tr><tr><td>Полоса</td><td>62.5 кГц</td></tr><tr><td>Spreading factor</td><td>7</td></tr><tr><td>Coding rate</td><td>7</td></tr><tr><td>Path hash</td><td>1 байт</td></tr></tbody></table><p>Свои пресеты клади на карту в <code>/ext/apps_data/meshcore_cfg/presets/</code>, по файлу на пресет:</p><pre><code>{
+  "name": "Fest-869",
+  "freq_mhz": 869.525,
+  "bw_khz": 250,
+  "sf": 11,
+  "cr": 5,
+  "path_hash_bytes": 1,
+  "tx_dbm": 22
+}</code></pre><div class="callout tip"><p>💡 <code>tx_dbm</code> необязателен: без него мощность ноды не трогается. Точечно её можно задать в <strong>Radio → TX</strong> (значения 1..макс ноды), с той же проверкой чтением обратно, что и остальные параметры.</p></div><p>Применение — три команды и перечитывание. Галочка напротив строки означает <strong>«нода подтвердила»</strong>, а не «мы отправили»: приложение заново читает настройки с ноды и сравнивает по каждому полю отдельно.</p><div class="callout success"><p>✅ <strong>Save from node</strong> делает обратное — считывает конфиг воткнутой ноды в новый файл пресета. Настроил одну ноду вручную — сохрани и клонируй.</p></div><div class="callout tip"><p>💡 <strong>Path hash задаётся отдельной командой</strong>, а не вместе с радио. Это не прихоть: в прошивке это отдельная настройка, которая живёт в сохранённых параметрах ноды.</p></div><p>---</p><h2 id="режим-2-messenger-переписка">Режим 2: Messenger — переписка</h2><p><strong>Contacts</strong> — ноды, которые твоя нода знает, свежие сверху. Справа от имени — сколько назад её слышали в последний раз.</p><p>Возраст считается <strong>по часам ноды</strong>, а не по часам флиппера: время последнего маячка приходит в таймбейзе ноды, и они расходятся.</p><p>Выбери контакт → лента переписки. Входящие приходят сами: нода сообщает «есть почта», приложение её забирает и показывает.</p><div class="callout tip"><p>💡 Ключи и личность остаются на ноде. Флиппер ничего не дублирует у себя — он читает и показывает.</p></div><p>---</p><h2 id="режим-3-logger-полевой-лог">Режим 3: Logger — полевой лог</h2><p>Главный режим для тестов покрытия. Ходишь — оно пишет.</p><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 300" role="img" aria-label="Экран логгера">
+  <style>
+    .lcd{fill:#ff9a1f}
+    .px{fill:#1a1205;font-family:ui-monospace,Menlo,Consolas,monospace}
+    .b{font-weight:700}
+    .ann{fill:#8fa39b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+    .lead{stroke:#5ef2a4;stroke-width:1.5;fill:none}
+    .dot{fill:#5ef2a4}
+  </style>
+  <rect width="520" height="300" fill="#120e05"/>
+
+  <rect x="26" y="28" width="276" height="156" rx="8" fill="#2a2113"/>
+  <rect class="lcd" x="34" y="36" width="256" height="128"/>
+
+  <text class="px b" x="42" y="56" font-size="15">Logging</text>
+  <text class="px" x="150" y="56" font-size="12">ROVER-S</text>
+  <text class="px" x="42" y="84" font-size="12">packets: 137</text>
+  <text class="px" x="42" y="108" font-size="12">SNR 8.25  RSSI -74</text>
+  <text class="px" x="42" y="132" font-size="12">20260723-141207</text>
+  <text class="px" x="42" y="156" font-size="11">Back = stop</text>
+
+  <text class="ann" x="26" y="204">Счётчик растёт — нода слышит эфир и строки пишутся на SD</text>
+
+  <line class="lead" x1="300" y1="82" x2="352" y2="82"/><circle class="dot" cx="300" cy="82" r="3"/>
+  <text class="ann" x="358" y="86">принято пакетов</text>
+
+  <line class="lead" x1="300" y1="106" x2="352" y2="106"/><circle class="dot" cx="300" cy="106" r="3"/>
+  <text class="ann" x="358" y="110">последний замер:</text>
+  <text class="ann" x="358" y="126">SNR ≥ +5 dB — норма</text>
+
+  <line class="lead" x1="300" y1="130" x2="352" y2="130"/><circle class="dot" cx="300" cy="130" r="3"/>
+  <text class="ann" x="358" y="134">папка сессии на SD</text>
+
+  <text class="ann" x="26" y="236">Back закрывает файлы. Каждая строка сбрасывается на карту</text>
+  <text class="ann" x="26" y="254">сразу — выдернешь питание, потеряешь максимум одну.</text>
+</svg><figcaption>Логгер в работе. Растущий счётчик означает, что нода слышит эфир.</figcaption></figure><p>Запуск: <strong>Logger → OK</strong>. Остановка: <strong>Back</strong> — файлы закрываются.</p><h3 id="как-читать-экран">Как читать экран</h3><table><thead><tr><th>Строка</th><th>Что значит</th></tr></thead><tbody><tr><td>имя ноды</td><td>какая нода слушает</td></tr><tr><td><code>packets</code></td><td>сколько пакетов услышано с начала сессии</td></tr><tr><td><code>SNR</code> / <code>RSSI</code></td><td>последний замер. <strong>SNR — главная метрика</strong></td></tr><tr><td>папка</td><td>куда пишется сессия на карте</td></tr><tr><td><code>dropped</code></td><td>появляется, только если карта не успевает. Ноль — норма</td></tr></tbody></table><p><strong>Пороги приёмки:</strong> SNR <strong>≥ +5 dB</strong>, потери пингов <strong>&lt; 5 %</strong>. Если на пустой площадке SNR впритык к нулю — на людном фесте эта связь ляжет.</p><h3 id="куда-пишется">Куда пишется</h3><pre><code>/ext/apps_data/meshcore_cfg/logs/&lt;дата-время&gt;/</code></pre><p>Одна папка на сессию, по файлу на метрику: <code>rx_log.csv</code>, <code>telemetry.csv</code>, <code>ping.csv</code>, <code>events.csv</code>.</p><p><strong>Каждая строка сбрасывается на карту сразу.</strong> Выдернешь питание посреди прогулки — потеряешь максимум одну строку, а не сессию.</p><div class="callout tip"><p>💡 <strong>Колонки совместимы с <code>meshlog.py</code>.</strong> Порядок тот же, в конце добавлены <code>node,role,hw</code> — по ним видно, какая нода что услышала. Логи с флиппера и логи с телефона сводятся вместе как раньше.</p></div><h3 id="координаты">Координаты</h3><p>Берутся <strong>из ноды</strong> — своего GPS у флиппера нет. Нет позиции в ноде — колонки <code>lat</code>/<code>lon</code>/<code>acc</code> останутся пустыми, всё остальное пишется как обычно.</p><p>---</p><h2 id="если-что-то-не-так">Если что-то не так</h2><details class="gotcha"><summary>«No reply from the node»</summary><div class="body"><p>По убыванию частоты: перепутаны TX/RX → не та прошивка (нужна UART-сборка) → не тот пин. На T114 нумерация на плате не совпадает с нумерацией GPIO.</p></div></details><details class="gotcha"><summary>«Noise on the line» или мусор в Serial log</summary><div class="body"><p>Байты доходят, но это не кадры. Не тот бод (нужен 115200) либо всё-таки TX/RX.</p></div></details><details class="gotcha"><summary>«Cannot take the USART»</summary><div class="body"><p>Порт держит другое приложение флиппера. Выйди из всех приложений и зайди заново.</p></div></details><details class="gotcha"><summary><code>rx_log.csv</code> только с заголовком</summary><div class="body"><p>Нода не отдаёт rx-логи. Перешей UART-сборкой посвежее.</p></div></details><details class="gotcha"><summary>Логи вообще не появляются</summary><div class="body"><p>Проверь, что карта вставлена и смонтирована: <strong>Settings → Storage</strong>.</p></div></details><details class="gotcha"><summary>T114 молчит, а V4 на том же проводе работает</summary><div class="body"><p>На nRF52 в стоке консоль уходит только в USB-CDC. Нужна сборка с роутом на <code>Serial1</code> — это и есть наша UART-сборка.</p></div></details><p>---</p><h2 id="чего-приложение-не-умеет">Чего приложение не умеет</h2><p>Честно, чтобы не искать несуществующее.</p><ul><li><strong>Trace Path</strong> — пер-хоп SNR по каждому прыжку. Это фича мобильного приложения</li></ul><p>  MeshCore. Нужны пер-хоп трейсы — доставай телефон и цепляйся по BLE к любой   companion-ноде.</p><ul><li><strong>Спектр</strong> — но это умеет сам флиппер: <strong>Sub-GHz → Frequency Analyzer</strong>.</li><li><strong>Прошивать ноды</strong> — для этого веб-флешер, ссылки на главной странице.</li></ul>
+<footer class="site">
+<p>MeshCore Config — Greyrock Labs. Страница работает без сети: добавь её на главный экран телефона.</p>
+</footer>
+</main>
+<a class="top" href="#">↑ наверх</a>
+<script>
+// Copy button on every code block. The site is read on a phone in a field —
+// retyping a command from a screen is exactly where mistakes come from.
+document.querySelectorAll('pre').forEach(function(pre){
+  var btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.type = 'button';
+  btn.textContent = 'Копировать';
+  btn.addEventListener('click', function(){
+    var text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    var done = function(){
+      btn.textContent = 'Скопировано ✓';
+      btn.classList.add('done');
+      setTimeout(function(){ btn.textContent = 'Копировать'; btn.classList.remove('done'); }, 1400);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+    function fallback(){
+      // execCommand is deprecated but still the only thing that works when the
+      // page is opened from a file:// URL or an old mobile browser.
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e) {}
+      document.body.removeChild(ta);
+    }
+  });
+  pre.appendChild(btn);
+});
+
+// Back to top, once the reader is far enough down to want it.
+var top = document.querySelector('.top');
+if(top){
+  window.addEventListener('scroll', function(){
+    top.classList.toggle('show', window.scrollY > 700);
+  }, {passive:true});
+}
+
+// Register the service worker with an explicit relative scope: the site lives
+// on a sub-path, and an absolute scope would claim the wrong root.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js', {scope: './'});
+  });
+}
+</script>
+</body>
+</html>

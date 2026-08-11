@@ -1,0 +1,106 @@
+name: checks
+
+# Everything here runs without a Flipper and without a MeshCore node. That is
+# deliberate: the hardware gates are tracked in TASKS.md and run by hand, so CI
+# covers exactly the part that can be checked automatically — and covers it on
+# every push instead of only when someone remembers.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host-tests:
+    name: host protocol tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Zig is the C compiler: it installs from PyPI, so there is no apt step
+      # and no toolchain to cache.
+      - run: pip install ziglang
+
+      - name: run
+        run: |
+          chmod +x test/run.sh
+          ./test/run.sh
+
+  emulator-gate:
+    name: emulator vs reference client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The reference client is the whole point of this gate: if an
+      # independent implementation decodes our frames, the layouts are right.
+      - run: pip install meshcore
+
+      - name: stage 1 gate — reference client reads the node
+        run: python tools/node-emulator/tests/gate_stage1.py
+
+      # The stronger of the two: meshlog.py is field code written against real
+      # nodes. If it fills its CSVs from the fixture, the protocol is right.
+      - name: stage 2 gate — meshlog.py fills its CSVs
+        run: python tools/node-emulator/tests/gate_stage2.py --seconds 45
+
+      # The command sequence a preset apply sends, and the read-back that
+      # makes Apply's ticks mean something.
+      - name: preset apply gate
+        run: python tools/node-emulator/tests/gate_apply.py
+
+  docs:
+    name: docs site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Pages deploys straight from /docs with no build step, so the committed
+      # HTML *is* the site. Rebuilding and diffing catches the classic mistake:
+      # editing a source file and forgetting to commit the output.
+      - name: rebuild and check nothing drifted
+        run: |
+          python tools/docs-build/build.py
+          git diff --exit-code -- docs/ || {
+            echo "::error::docs/ is out of date -- run tools/docs-build/build.py and commit the result"
+            exit 1
+          }
+
+      - name: verify the site keeps its promises
+        run: python tools/docs-build/verify.py
+
+  firmware:
+    name: build the FAP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install ufbt
+
+      # Built against Unleashed, which is what the target device runs. A .fap
+      # records the API version it was compiled against, so building against
+      # the wrong SDK produces something that will not load — and nothing
+      # catches that at build time.
+      - name: point ufbt at the Unleashed SDK
+        run: ufbt update --index-url=https://up.unleashedflip.com/directory.json --channel=release
+
+      - name: build
+        run: ufbt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meshcore_cfg.fap
+          path: dist/meshcore_cfg.fap
+          if-no-files-found: error

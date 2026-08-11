@@ -1,0 +1,12 @@
+# The site is generated and then committed, because Pages deploys straight from
+# /docs with no build step. CI rebuilds and diffs to catch a source edited
+# without its output committed -- so the build has to be byte-stable across
+# machines. The builder writes LF; without this, a Windows checkout hands it
+# back CRLF and every local rebuild looks like a change.
+docs/**        text eol=lf
+docs-src/**    text eol=lf
+
+# Same reasoning for the tools that produce them, and for the shell scripts that
+# have to stay runnable after a round trip through Windows.
+tools/**       text eol=lf
+test/*.sh      text eol=lf
