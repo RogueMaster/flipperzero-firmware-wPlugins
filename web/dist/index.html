@@ -811,7 +811,6 @@ return "";
 }
 }
 A.cid = clientId();
-var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
 var liveTimer = null, lastRx = 0, warned = false;
 function stopLiveness() {
 if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
@@ -820,25 +819,6 @@ warned = false;
 function startLiveness() {
 stopLiveness();
 lastRx = Date.now();
-liveTimer = setInterval(function () {
-if (!A.ws || A.ws.readyState !== 1) return;
-var quiet = Date.now() - lastRx;
-if (quiet > DEAD_MS) {
-stopLiveness();
-try { A.ws.close(); } catch (e) {}   // onclose -> scheduleReconnect()
-return;
-}
-if (quiet > WARN_MS && !warned) {
-warned = true;
-setDot("warn");
-if (A.view !== "landing") { $("netbar").textContent = t("net.quiet"); show("netbar"); }
-} else if (quiet <= WARN_MS && warned) {
-warned = false;                       // it answered again
-setDot("");
-hide("netbar");
-}
-try { A.ws.send(JSON.stringify({ t: "ping" })); } catch (e) {}
-}, PING_MS);
 }
 function connect() {
 var ws = harnessSocket();
@@ -1512,7 +1492,7 @@ de: {
 "secrets.yes": "Ja",
 "secrets.no": "Nein",
 "secrets.predict_hint": "Dein Tipp: Wie viele von {n} Spielern sagten ja?",
-"secrets.predict_locked": "{n} bestätigt. Warte auf die anderen…",
+"secrets.predict_locked": "Tipp {n} bestätigt. Warte auf die anderen…",
 "secrets.answer_hint": "Deine Antwort — nur die Gesamtzahl wird gezeigt, nie wer was sagte.",
 "secrets.answer_locked": "Antwort bestätigt. Warte…",
 "secrets.locked_count": "{n} / {total} dabei",
@@ -1835,6 +1815,10 @@ de: {
 },
 };
 A.lang = "en";
+try {
+var savedLang = localStorage.getItem("ha_lang");
+if (savedLang && MESSAGES[savedLang]) A.lang = savedLang;
+} catch (e) {}
 function t(key, params) {
 var cat = MESSAGES[A.lang] || MESSAGES.en;
 var s = cat[key];
@@ -1853,6 +1837,7 @@ for (var j = 0; j < ph.length; j++) ph[j].setAttribute("placeholder", t(ph[j].ge
 }
 A.setLang = function (lang) {
 A.lang = (lang && MESSAGES[lang]) ? lang : "en";
+try { localStorage.setItem("ha_lang", A.lang); } catch (e) {} // so the next load opens in it
 applyI18n();
 };
 document.addEventListener("DOMContentLoaded", function () { applyI18n(); });
@@ -1903,7 +1888,14 @@ A.sfx = function (name) {
 if (muted) return;
 var c = ensure(); if (!c) return;
 var fn = SFX[name];
-if (fn) { try { fn(c); } catch (e) {} }
+if (!fn) return;
+if (c.state === "suspended" && c.resume) {
+try {
+c.resume().then(function () { try { fn(c); } catch (e) {} }, function () {});
+return;
+} catch (e) {  }
+}
+try { fn(c); } catch (e) {}
 };
 A.vibe = function (pattern) {
 try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
@@ -1924,6 +1916,15 @@ if (!muted) A.sfx("tick");   // tiny confirmation blip when re-enabling
 paint();
 return muted;
 };
+function unlockOnce() {
+A.initAudio();
+document.removeEventListener("pointerdown", unlockOnce, true);
+document.removeEventListener("touchend", unlockOnce, true);
+document.removeEventListener("keydown", unlockOnce, true);
+}
+document.addEventListener("pointerdown", unlockOnce, true);
+document.addEventListener("touchend", unlockOnce, true);
+document.addEventListener("keydown", unlockOnce, true);
 document.addEventListener("DOMContentLoaded", function () {
 var b = document.getElementById("mute");
 if (b) b.addEventListener("click", function () { A.initAudio(); A.toggleMute(); });
@@ -2603,7 +2604,7 @@ b.innerHTML =
 '<span class="wtxt">' + esc(texts[i] || "") + "</span>" +
 '<span class="wpct">' + (reveal ? pct + "%" : (mine === i ? "✓" : "")) + "</span>";
 if (reveal) {
-var tint = (counts[i] >= counts[1 - i] && total) ? "rgba(255,130,0,.20)" : "rgba(120,120,120,.16)";
+var tint = (counts[i] >= counts[1 - i] && total) ? "rgba(255,130,0,.32)" : "rgba(255,255,255,.20)";
 b.style.background = "linear-gradient(90deg," + tint + " " + pct + "%,var(--surface-2) " + pct + "%)";
 }
 if (!reveal && mine < 0) b.addEventListener("click", function () {
@@ -3891,6 +3892,7 @@ $("sec-note").textContent = locked ? t("secrets.answer_locked") : t("secrets.ans
 var revealedFor = -1;
 function renderReveal(m) {
 hide("sec-predict"); hide("sec-answer"); show("sec-reveal");
+$("sec-note").textContent = "";
 $("sec-yesnum").textContent = m.yes;
 var buckets = {};
 (m.guesses || []).forEach(function (g) { (buckets[g.n] = buckets[g.n] || []).push(g); });
@@ -3955,10 +3957,10 @@ A.sfx("buzz"); A.vibe(15);
 send({ t: "ready", ready: !myready });
 });
 $("sec-minus").addEventListener("click", function () {
-if (predVal > 0) { predVal--; setNum(); A.sfx("tick"); A.vibe(8); }
+if (predVal > 0) { predVal--; setNum(); A.vibe(8); }
 });
 $("sec-plus").addEventListener("click", function () {
-if (predVal < predMax) { predVal++; setNum(); A.sfx("tick"); A.vibe(8); }
+if (predVal < predMax) { predVal++; setNum(); A.vibe(8); }
 });
 $("sec-predict-go").addEventListener("click", function () {
 A.sfx("start"); A.vibe(20);
