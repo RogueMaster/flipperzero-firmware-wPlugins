@@ -1,4 +1,4 @@
-Pack: On the Move
+Pack: ✈️ On the Move
 Loc: Airport
 R: Pilot
 R: Flight attendant

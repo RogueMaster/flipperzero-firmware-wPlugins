@@ -1,4 +1,4 @@
-Pack: Everyday
+Pack: ☕ Everyday
 Loc: Beach
 R: Lifeguard
 R: Surfer

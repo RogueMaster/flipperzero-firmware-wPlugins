@@ -1,4 +1,4 @@
-Pack: Family
+Pack: 👨‍👩‍👧 Familie
 P: Die größte Bedrohung der Menschheit 2026 ist _____.
 ---
 P: Mein Smart Home streikt, bis ich mich entschuldige für _____.

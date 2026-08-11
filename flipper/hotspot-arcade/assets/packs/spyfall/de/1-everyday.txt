@@ -1,4 +1,4 @@
-Pack: Alltag
+Pack: ☕ Alltag
 Loc: Strand
 R: Rettungsschwimmer
 R: Surfer
