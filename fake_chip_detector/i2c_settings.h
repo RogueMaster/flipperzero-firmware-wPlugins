@@ -5,7 +5,7 @@
 
 // Bumped whenever the struct layout changes; an older file is discarded
 // rather than misread.
-#define I2C_SETTINGS_MAGIC 0x1C
+#define I2C_SETTINGS_MAGIC   0x1C
 #define I2C_SETTINGS_VERSION 1
 
 typedef struct {

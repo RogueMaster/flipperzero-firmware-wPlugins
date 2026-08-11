@@ -9,10 +9,10 @@
 // live test more than most: its ID register is the only thing distinguishing
 // it from a relabel, and a die that answers 0xE5 has told you nothing about
 // whether the MEMS structure behind it actually moves.
-#define ADXL345_REG_DEVID 0x00
-#define ADXL345_REG_POWER_CTL 0x2D
+#define ADXL345_REG_DEVID       0x00
+#define ADXL345_REG_POWER_CTL   0x2D
 #define ADXL345_REG_DATA_FORMAT 0x31
-#define ADXL345_REG_DATAX0 0x32
+#define ADXL345_REG_DATAX0      0x32
 
 // Page 24: "a fixed device ID code of 0xE5".
 #define ADXL345_DEVID_VALUE 0xE5
@@ -34,7 +34,7 @@
 // Table 1, note 7: at the default 100 Hz data rate the turn-on time is about
 // 11.1 ms.
 #define ADXL345_TURNON_MS 12
-#define ADXL345_POLL_MS 100
+#define ADXL345_POLL_MS   100
 
 // Table 1: 256 LSB/g typical at the default +/-2 g, 10-bit setting.
 #define ADXL345_LSB_PER_G 256
@@ -42,7 +42,7 @@
 // Comfortably past the guaranteed +/-250 mg zero-g limit on Z, so a resting
 // offset can never be mistaken for the axis carrying the board's weight.
 #define ADXL345_DOMINANT_MG 700
-#define ADXL345_PROOF_AXES 2
+#define ADXL345_PROOF_AXES  2
 
 static void adxl345_delay(const volatile bool* stop, uint32_t ms) {
     while(ms && !*stop) {
@@ -133,12 +133,11 @@ static void adxl345_run(const LiveTestEnv* env) {
                 if(axes_seen & (1u << axis)) count++;
             }
 
-            float total = sqrtf(
-                (float)mg[0] * mg[0] + (float)mg[1] * mg[1] + (float)mg[2] * mg[2]);
+            float total =
+                sqrtf((float)mg[0] * mg[0] + (float)mg[1] * mg[1] + (float)mg[2] * mg[2]);
 
             memset(&st, 0, sizeof(st));
-            st.phase = (count >= ADXL345_PROOF_AXES) ? LiveTestPhasePassed :
-                                                       LiveTestPhaseRunning;
+            st.phase = (count >= ADXL345_PROOF_AXES) ? LiveTestPhasePassed : LiveTestPhaseRunning;
             st.value = total / 1000.0f;
             st.progress = count;
             st.progress_max = ADXL345_PROOF_AXES;

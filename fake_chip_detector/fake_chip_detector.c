@@ -108,7 +108,7 @@ typedef struct {
     uint16_t selected;
 } ChipsViewModel;
 
-#define SAVED_MAX 32
+#define SAVED_MAX      32
 #define SAVED_NAME_LEN 32
 
 typedef struct {
@@ -182,7 +182,6 @@ static void app_switch_view(FakeChipApp* app, FakeChipViewId view_id) {
     app->current_view = view_id;
     view_dispatcher_switch_to_view(app->view_dispatcher, view_id);
 }
-
 
 // The saved-report filename is built here and read back here, so the two can
 // never disagree. Nothing else may assume its shape.
@@ -300,8 +299,10 @@ static void wiring_draw_callback(Canvas* canvas, void* model) {
         } else {
             // Open circuit: dashed stubs reaching towards each other. The gap
             // shrinks to nothing as the connection is made.
-            for(uint8_t x = WIRE_X0; x <= mid - gap; x += 3) canvas_draw_dot(canvas, x, y);
-            for(uint8_t x = WIRE_X1; x >= mid + gap; x -= 3) canvas_draw_dot(canvas, x, y);
+            for(uint8_t x = WIRE_X0; x <= mid - gap; x += 3)
+                canvas_draw_dot(canvas, x, y);
+            for(uint8_t x = WIRE_X1; x >= mid + gap; x -= 3)
+                canvas_draw_dot(canvas, x, y);
             if(state == WireFault) {
                 canvas_draw_line(canvas, mid - 3, y - 3, mid + 3, y + 3);
                 canvas_draw_line(canvas, mid - 3, y + 3, mid + 3, y - 3);
@@ -419,11 +420,10 @@ static void draw_action_bar(Canvas* canvas, const char* ok_action, bool offer_sa
 #define THUMB_W 24
 #define THUMB_H 24
 static const uint8_t thumbs_up_bits[] = {
-    0x00, 0x0F, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00,
-    0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0xC0, 0xE0, 0xFF,
-    0x70, 0x00, 0x80, 0x18, 0x00, 0x80, 0x0C, 0x00, 0x80, 0x04, 0xC0, 0xFF,
-    0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0xC0, 0xFF,
-    0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0xC0, 0xFF,
+    0x00, 0x0F, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0x80, 0x10, 0x00,
+    0x80, 0x10, 0x00, 0x80, 0x10, 0x00, 0xC0, 0xE0, 0xFF, 0x70, 0x00, 0x80, 0x18, 0x00, 0x80,
+    0x0C, 0x00, 0x80, 0x04, 0xC0, 0xFF, 0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0x00, 0x80,
+    0x04, 0xC0, 0xFF, 0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x04, 0xC0, 0xFF,
     0x04, 0x00, 0x80, 0x04, 0x00, 0x80, 0x1C, 0x00, 0x80, 0xF0, 0xFF, 0xFF,
 };
 
@@ -525,8 +525,7 @@ static void draw_choice_bar(Canvas* canvas) {
 static void draw_scan_spinner(Canvas* canvas, uint8_t cx, uint8_t cy, uint32_t frame) {
     canvas_draw_circle(canvas, cx, cy, 9);
     float a = (float)(frame % 32) / 32.0f * 2.0f * (float)M_PI;
-    canvas_draw_line(
-        canvas, cx, cy, cx + (int8_t)(sinf(a) * 8.0f), cy - (int8_t)(cosf(a) * 8.0f));
+    canvas_draw_line(canvas, cx, cy, cx + (int8_t)(sinf(a) * 8.0f), cy - (int8_t)(cosf(a) * 8.0f));
     canvas_draw_disc(canvas, cx, cy, 1);
 }
 
@@ -621,7 +620,8 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
             canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "REPORT SAVED");
             canvas_set_font(canvas, FontSecondary);
             canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignBottom, m->saved_name);
-            canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignBottom, "On the SD card, in");
+            canvas_draw_str_aligned(
+                canvas, 64, 40, AlignCenter, AlignBottom, "On the SD card, in");
             canvas_draw_str_aligned(canvas, 64, 49, AlignCenter, AlignBottom, "apps_data/");
             canvas_draw_str_aligned(
                 canvas, 64, 58, AlignCenter, AlignBottom, "fake_chip_detector");
@@ -649,8 +649,8 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
 
             // The ID said what it is; a live test says it works. Offered here
             // and only here, because this is the moment the answer is yes.
-            const LiveTest* test =
-                dev->ident.chip ? live_test_for_chip(dev->ident.chip->name) : NULL;
+            const LiveTest* test = dev->ident.chip ? live_test_for_chip(dev->ident.chip->name) :
+                                                     NULL;
             if(test) {
                 canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, test->offer);
                 draw_offer_bar(canvas, "live test");
@@ -849,8 +849,8 @@ static bool scan_input_callback(InputEvent* event, void* context) {
                     }
                     consumed = true;
                 } else if(
-                    event->key == InputKeyUp && m->found_count == 1 &&
-                    m->answer != AnswerAsking && event->type == InputTypeShort) {
+                    event->key == InputKeyUp && m->found_count == 1 && m->answer != AnswerAsking &&
+                    event->type == InputTypeShort) {
                     show_report = true;
                     disputed = (m->answer == AnswerNotWhatIOrdered);
                     consumed = true;
@@ -982,8 +982,7 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
             WiringViewModel * m,
             {
                 bool seen = (bus.health == I2CBusOk) && !bus.shorted;
-                bool wrong = bus.shorted || bus.stray_pin ||
-                             bus.health == I2CBusStuckLow;
+                bool wrong = bus.shorted || bus.stray_pin || bus.health == I2CBusStuckLow;
                 bool was_wrong = m->bus.shorted || m->bus.stray_pin ||
                                  m->bus.health == I2CBusStuckLow;
                 if(seen && !m->sensor_seen) became_connected = true;
@@ -1010,7 +1009,8 @@ static void wiring_enter_callback(void* context) {
             m->frame = 0;
             m->sensor_seen = false;
             m->bus = (I2CBusCheck){0};
-            for(uint8_t i = 0; i < 4; i++) m->gap[i] = WIRE_GAP_MAX;
+            for(uint8_t i = 0; i < 4; i++)
+                m->gap[i] = WIRE_GAP_MAX;
         },
         true);
     i2c_worker_watch_start(app->worker);
@@ -1126,18 +1126,17 @@ static uint32_t nav_to_scan(void* context) {
 // part is being tested, so only the readings get a custom picture.
 static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
     const LiveTestState* st = &m->state;
-    bool measuring =
-        (st->phase == LiveTestPhaseRunning || st->phase == LiveTestPhasePassed);
+    bool measuring = (st->phase == LiveTestPhaseRunning || st->phase == LiveTestPhasePassed);
 
     canvas_set_font(canvas, FontPrimary);
     // Two different failures, two different headlines. "Dropped off" sends the
     // user to the wiring; "wrong chip" tells them the wiring is fine and the
     // module is not what the test is for. Saying the first when it is the
     // second is how somebody ends up reseating a perfectly good jumper.
-    const char* title = (st->phase == LiveTestPhaseLost)      ? "Sensor dropped off!" :
-                        (st->phase == LiveTestPhaseWrongChip) ? "Wrong chip!" :
-                                                                (m->test ? m->test->title :
-                                                                           "Live test");
+    const char* title =
+        (st->phase == LiveTestPhaseLost)      ? "Sensor dropped off!" :
+        (st->phase == LiveTestPhaseWrongChip) ? "Wrong chip!" :
+                                                (m->test ? m->test->title : "Live test");
     canvas_draw_str_aligned(canvas, 64, 13, AlignCenter, AlignBottom, title);
 
     if(m->from_card) {
@@ -1205,8 +1204,7 @@ static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
         uint8_t w = (uint8_t)((m->frame % 20) * 100 / 20);
         canvas_draw_frame(canvas, 14, y, 100, 8);
         canvas_draw_box(canvas, 14, y, w, 8);
-    } else if(
-        (st->phase == LiveTestPhaseLost || st->phase == LiveTestPhaseWrongChip) && y <= 62) {
+    } else if((st->phase == LiveTestPhaseLost || st->phase == LiveTestPhaseWrongChip) && y <= 62) {
         // True for both: the test's outer loop keeps re-checking, so swapping
         // the module or pushing the wire back in picks up without leaving.
         canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, "Retrying...");
@@ -1476,8 +1474,7 @@ static void settings_backlight_changed(VariableItem* item) {
     app->settings.backlight = idx;
     notification_message(
         app->notifications,
-        idx ? &sequence_display_backlight_enforce_on :
-              &sequence_display_backlight_enforce_auto);
+        idx ? &sequence_display_backlight_enforce_on : &sequence_display_backlight_enforce_auto);
     settings_apply(app);
 }
 
@@ -1527,7 +1524,6 @@ static void settings_build(FakeChipApp* app) {
     variable_item_set_current_value_index(item, app->settings.autosave);
     variable_item_set_current_value_text(item, on_off_names[app->settings.autosave]);
 }
-
 
 /* ---------------- Supported chips ---------------- */
 
@@ -1597,7 +1593,6 @@ static bool chips_input_callback(InputEvent* event, void* context) {
     return consumed;
 }
 
-
 /* ---------------- Live test browser ---------------- */
 
 #define TESTS_LIST_ROWS 4
@@ -1623,7 +1618,8 @@ static const LivePluginInfo* tests_row_plugin(const TestsViewModel* m, size_t in
     return &m->plugins->items[slot];
 }
 
-static void tests_row_label(const TestsViewModel* m, size_t index, const char** name, const char** note) {
+static void
+    tests_row_label(const TestsViewModel* m, size_t index, const char** name, const char** note) {
     const LivePluginInfo* plugin = tests_row_plugin(m, index);
     if(plugin) {
         // A plugin that failed to load still gets a row. Hiding it would leave
@@ -1648,11 +1644,7 @@ static void tests_draw_callback(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 2, 10, "Live tests");
     canvas_set_font(canvas, FontSecondary);
-    snprintf(
-        buf,
-        sizeof(buf),
-        "%u on card",
-        (unsigned)(m->plugins ? m->plugins->count : 0));
+    snprintf(buf, sizeof(buf), "%u on card", (unsigned)(m->plugins ? m->plugins->count : 0));
     canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
 
     uint16_t first = 0;
@@ -1719,8 +1711,7 @@ static void tests_describe_addrs(char* out, size_t len, const uint8_t* addrs) {
     out[0] = '\0';
     for(size_t i = 0; i < LIVE_TEST_MAX_ADDRS && used + 8 < len; i++) {
         if(addrs[i] == LIVE_TEST_ADDR_NONE) break;
-        used += (size_t)snprintf(
-            out + used, len - used, used ? " or 0x%02X" : "0x%02X", addrs[i]);
+        used += (size_t)snprintf(out + used, len - used, used ? " or 0x%02X" : "0x%02X", addrs[i]);
     }
 }
 
@@ -1911,7 +1902,6 @@ static void app_show_report(FakeChipApp* app, bool disputed) {
     app_present_report(app, nav_to_scan);
 }
 
-
 /* ---------------- Saved reports ---------------- */
 
 #define SAVED_LIST_ROWS 4
@@ -2020,7 +2010,8 @@ static void saved_open(FakeChipApp* app) {
         char chunk[257];
         size_t n;
         size_t total = 0;
-        while(total < REPORT_READ_MAX && (n = storage_file_read(f, chunk, sizeof(chunk) - 1)) > 0) {
+        while(total < REPORT_READ_MAX &&
+              (n = storage_file_read(f, chunk, sizeof(chunk) - 1)) > 0) {
             chunk[n] = 0;
             furi_string_cat_str(app->report_text, chunk);
             total += n;
@@ -2048,8 +2039,7 @@ static void saved_draw_callback(Canvas* canvas, void* model) {
     if(m->count == 0) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "Nothing saved yet.");
-        canvas_draw_str_aligned(
-            canvas, 64, 42, AlignCenter, AlignBottom, "Reports show up here");
+        canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, "Reports show up here");
         canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, "once you save one.");
         return;
     }
@@ -2111,7 +2101,6 @@ static bool saved_input_callback(InputEvent* event, void* context) {
     return consumed;
 }
 
-
 /* ---------------- 1-Wire ---------------- */
 
 // The 1-Wire bus lives on its own pin (17) and has its own failure modes, so
@@ -2137,9 +2126,9 @@ static int32_t ow_thread_worker(void* context) {
     if(!app->ow_abort) {
         i2c_notify_play(
             app->notifications,
-            res.count       ? I2CNotifyNeutral :
+            res.count                      ? I2CNotifyNeutral :
             res.state == OneWireBusShorted ? I2CNotifyBad :
-                              I2CNotifyAttention);
+                                             I2CNotifyAttention);
     }
     return 0;
 }
@@ -2227,12 +2216,7 @@ static void onewire_draw_callback(Canvas* canvas, void* model) {
     if(m->res.count > 1 || m->res.overflow) {
         char pos[12];
         snprintf(
-            pos,
-            sizeof(pos),
-            "%u/%u%s",
-            m->selected + 1,
-            m->res.count,
-            m->res.overflow ? "+" : "");
+            pos, sizeof(pos), "%u/%u%s", m->selected + 1, m->res.count, m->res.overflow ? "+" : "");
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, pos);
     }
@@ -2468,8 +2452,7 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     submenu_add_item(app->submenu, "Live tests", MenuIndexTests, menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MenuIndexSettings, menu_callback, app);
     submenu_add_item(app->submenu, "Known chips", MenuIndexChips, menu_callback, app);
-    submenu_add_item(
-        app->submenu, "Saved reports", MenuIndexSaved, menu_callback, app);
+    submenu_add_item(app->submenu, "Saved reports", MenuIndexSaved, menu_callback, app);
     submenu_add_item(app->submenu, "About", MenuIndexAbout, menu_callback, app);
     view_set_previous_callback(submenu_get_view(app->submenu), nav_exit);
     view_dispatcher_add_view(
@@ -2586,13 +2569,7 @@ static FakeChipApp* fake_chip_app_alloc(void) {
             app->about_widget, 64, 42, AlignCenter, AlignTop, FontSecondary, db_line);
     }
     widget_add_string_element(
-        app->about_widget,
-        64,
-        52,
-        AlignCenter,
-        AlignTop,
-        FontSecondary,
-        "pin16 SCL/15 SDA - MIT");
+        app->about_widget, 64, 52, AlignCenter, AlignTop, FontSecondary, "pin16 SCL/15 SDA - MIT");
     view_set_previous_callback(widget_get_view(app->about_widget), nav_to_menu);
     view_dispatcher_add_view(
         app->view_dispatcher, FakeChipViewAbout, widget_get_view(app->about_widget));

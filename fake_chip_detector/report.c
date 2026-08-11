@@ -37,8 +37,7 @@ void report_build(
 
         switch(dev->ident.verdict) {
         case VerdictGenuine:
-            furi_string_cat_printf(
-                out, "Its factory ID matches a real %s exactly.\n\n", name);
+            furi_string_cat_printf(out, "Its factory ID matches a real %s exactly.\n\n", name);
             break;
         case VerdictWrongChip:
             furi_string_cat_printf(
@@ -58,8 +57,7 @@ void report_build(
                 out, "The chip acknowledged its address but returned no data.\n\n");
             break;
         default:
-            furi_string_cat_str(
-                out, "The ID it reported matches no chip known to this tool.\n\n");
+            furi_string_cat_str(out, "The ID it reported matches no chip known to this tool.\n\n");
             break;
         }
     }

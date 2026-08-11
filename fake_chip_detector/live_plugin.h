@@ -19,15 +19,15 @@
 // on first run so the folder is there to be found, rather than the user being
 // told to make a directory whose name they have to guess.
 #define LIVE_PLUGIN_DIR_NAME "tests"
-#define LIVE_PLUGIN_EXT ".fal"
+#define LIVE_PLUGIN_EXT      ".fal"
 
 // A folder with more than this in it is a folder nobody is scrolling through.
 // The count of what was skipped is reported rather than silently dropped.
 #define LIVE_PLUGIN_MAX 24
 
-#define LIVE_PLUGIN_FILE_LEN 32
-#define LIVE_PLUGIN_CHIP_LEN 20
-#define LIVE_PLUGIN_TITLE_LEN 24
+#define LIVE_PLUGIN_FILE_LEN    32
+#define LIVE_PLUGIN_CHIP_LEN    20
+#define LIVE_PLUGIN_TITLE_LEN   24
 #define LIVE_PLUGIN_PROBLEM_LEN 28
 
 // Why a file in the tests folder cannot be run. Kept as a code rather than a

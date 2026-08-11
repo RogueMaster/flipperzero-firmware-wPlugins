@@ -17,7 +17,7 @@
 // MMC5603NJ; ADI ADXL345, ADXL355, MAX30102; TI INA226/228/260, TMP117;
 // Infineon DPS310; ScioSense ENS160; Hynitron CST816S (community drivers).
 
-#define M8 0x00FF // convenience: full 8-bit mask
+#define M8  0x00FF // convenience: full 8-bit mask
 #define M16 0xFFFF
 
 // BNO055: checking all four sub-IDs is the strongest fake test — clones get
@@ -36,13 +36,21 @@ static const IdCheck bmp180_checks[] = {{0xD0, 0x55, M8, false, false}};
 static const IdCheck bmp388_checks[] = {{0x00, 0x50, M8, false, false}};
 static const IdCheck bmp390_checks[] = {{0x00, 0x60, M8, false, false}};
 // BME680 and BME688 share CHIP_ID 0x61; the variant register separates them.
-static const IdCheck bme680_checks[] = {{0xD0, 0x61, M8, false, false}, {0xF0, 0x00, M8, false, false}};
-static const IdCheck bme688_checks[] = {{0xD0, 0x61, M8, false, false}, {0xF0, 0x01, M8, false, false}};
+static const IdCheck bme680_checks[] = {
+    {0xD0, 0x61, M8, false, false},
+    {0xF0, 0x00, M8, false, false}};
+static const IdCheck bme688_checks[] = {
+    {0xD0, 0x61, M8, false, false},
+    {0xF0, 0x01, M8, false, false}};
 static const IdCheck dps310_checks[] = {{0x0D, 0x10, M8, false, false}};
 static const IdCheck ccs811_checks[] = {{0x20, 0x81, M8, false, false}};
-static const IdCheck ens160_checks[] = {{0x00, 0x60, M8, false, false}, {0x01, 0x01, M8, false, false}};
+static const IdCheck ens160_checks[] = {
+    {0x00, 0x60, M8, false, false},
+    {0x01, 0x01, M8, false, false}};
 // HDC1080: 16-bit registers, manufacturer ID reads ASCII "TI".
-static const IdCheck hdc1080_checks[] = {{0xFE, 0x5449, M16, true, false}, {0xFF, 0x1050, M16, true, false}};
+static const IdCheck hdc1080_checks[] = {
+    {0xFE, 0x5449, M16, true, false},
+    {0xFF, 0x1050, M16, true, false}};
 
 /* --- IMU --- */
 static const IdCheck mpu6050_checks[] = {{0x75, 0x68, M8, false, false}};
@@ -89,19 +97,26 @@ static const IdCheck vl53l1x_checks[] = {
     {0x0110, 0xCC, M8, false, true}, // MODULE_TYPE
 };
 
-static const IdCheck vl53l0x_checks[] = {{0xC0, 0xEE, M8, false, false}}; // IDENTIFICATION_MODEL_ID
+static const IdCheck vl53l0x_checks[] = {
+    {0xC0, 0xEE, M8, false, false}}; // IDENTIFICATION_MODEL_ID
 // TCS34725 and TSL2591 need the command bit set in the register byte.
 static const IdCheck tcs34725_checks[] = {{0x92, 0x44, M8, false, false}};
 static const IdCheck tsl2591_checks[] = {{0xB2, 0x50, M8, false, false}};
 static const IdCheck apds9960_checks[] = {{0x92, 0xAB, M8, false, false}};
-static const IdCheck ltr390_checks[] = {{0x06, 0xB0, 0x00F0, false, false}}; // low nibble = revision
+static const IdCheck ltr390_checks[] = {
+    {0x06, 0xB0, 0x00F0, false, false}}; // low nibble = revision
 static const IdCheck max30102_checks[] = {{0xFF, 0x15, M8, false, false}};
 
 /* --- power / temperature --- */
-static const IdCheck ina226_checks[] = {{0xFE, 0x5449, M16, true, false}, {0xFF, 0x2260, M16, true, false}};
-static const IdCheck ina260_checks[] = {{0xFE, 0x5449, M16, true, false}, {0xFF, 0x2270, M16, true, false}};
+static const IdCheck ina226_checks[] = {
+    {0xFE, 0x5449, M16, true, false},
+    {0xFF, 0x2260, M16, true, false}};
+static const IdCheck ina260_checks[] = {
+    {0xFE, 0x5449, M16, true, false},
+    {0xFF, 0x2270, M16, true, false}};
 static const IdCheck ina228_checks[] = {{0x3E, 0x5449, M16, true, false}};
-static const IdCheck tmp117_checks[] = {{0x0F, 0x0117, 0x0FFF, true, false}}; // top nibble = revision
+static const IdCheck tmp117_checks[] = {
+    {0x0F, 0x0117, 0x0FFF, true, false}}; // top nibble = revision
 static const IdCheck lps22hb_checks[] = {{0x0F, 0xB1, M8, false, false}};
 static const IdCheck lps25hb_checks[] = {{0x0F, 0xBD, M8, false, false}};
 
@@ -119,7 +134,14 @@ static const ChipEntry chip_db[] = {
     {"BME680", "Air quality + climate", {0x76, 0x77, 0xFF}, 0, 0, bme680_checks, 2, NULL},
     {"BME688", "Air quality + climate", {0x76, 0x77, 0xFF}, 0, 0, bme688_checks, 2, NULL},
     {"DPS310", "Pressure sensor", {0x76, 0x77, 0xFF}, 0, 0, dps310_checks, 1, NULL},
-    {"CCS811", "Air quality (VOC)", {0x5A, 0x5B, 0xFF}, 0, 0, ccs811_checks, 1, "EOL part, clones common"},
+    {"CCS811",
+     "Air quality (VOC)",
+     {0x5A, 0x5B, 0xFF},
+     0,
+     0,
+     ccs811_checks,
+     1,
+     "EOL part, clones common"},
     {"ENS160", "Air quality (VOC)", {0x52, 0x53, 0xFF}, 0, 0, ens160_checks, 2, NULL},
     {"HDC1080", "Temp + humidity", {0x40, 0xFF}, 0, 0, hdc1080_checks, 2, NULL},
 
@@ -136,17 +158,38 @@ static const ChipEntry chip_db[] = {
     {"BMI088 accel", "Accelerometer", {0x18, 0x19, 0xFF}, 0, 0, bmi088a_checks, 1, NULL},
     {"LSM6DS3", "6-axis IMU", {0x6A, 0x6B, 0xFF}, 0, 0, lsm6ds3_checks, 1, NULL},
     {"LSM6DS3TR-C", "6-axis IMU", {0x6A, 0x6B, 0xFF}, 0, 0, lsm6ds3trc_checks, 1, NULL},
-    {"LSM6DSO/OX", "6-axis IMU", {0x6A, 0x6B, 0xFF}, 0, 0, lsm6dso_checks, 1, "DSO and DSOX share the ID"},
+    {"LSM6DSO/OX",
+     "6-axis IMU",
+     {0x6A, 0x6B, 0xFF},
+     0,
+     0,
+     lsm6dso_checks,
+     1,
+     "DSO and DSOX share the ID"},
     {"LSM6DSV16X", "6-axis IMU", {0x6A, 0x6B, 0xFF}, 0, 0, lsm6dsv_checks, 1, NULL},
     {"QMI8658", "6-axis IMU", {0x6A, 0x6B, 0xFF}, 0, 0, qmi8658_checks, 1, NULL},
-    {"LIS3DH/2DH12", "Accelerometer", {0x18, 0x19, 0xFF}, 0, 0, lis3dh_checks, 1, "same ID as LIS2DH12"},
+    {"LIS3DH/2DH12",
+     "Accelerometer",
+     {0x18, 0x19, 0xFF},
+     0,
+     0,
+     lis3dh_checks,
+     1,
+     "same ID as LIS2DH12"},
     {"ADXL345/343", "Accelerometer", {0x53, 0x1D, 0xFF}, 0, 0, adxl345_checks, 1, NULL},
     {"ADXL355", "Accelerometer", {0x1D, 0x53, 0xFF}, 0, 0, adxl355_checks, 3, NULL},
 
     {"LIS3MDL", "Magnetometer", {0x1C, 0x1E, 0xFF}, 0, 0, lis3mdl_checks, 1, NULL},
     {"LIS2MDL", "Magnetometer", {0x1E, 0xFF}, 0, 0, lis2mdl_checks, 1, NULL},
     {"MMC5603", "Magnetometer", {0x30, 0xFF}, 0, 0, mmc5603_checks, 1, NULL},
-    {"HMC5883L", "Magnetometer", {0x1E, 0xFF}, 0, 0, hmc5883l_checks, 3, "EOL since 2016, mostly fake"},
+    {"HMC5883L",
+     "Magnetometer",
+     {0x1E, 0xFF},
+     0,
+     0,
+     hmc5883l_checks,
+     3,
+     "EOL since 2016, mostly fake"},
     {"QMC5883L", "Magnetometer", {0x0D, 0xFF}, 0, 0, qmc5883l_checks, 1, NULL},
 
     {"VL53L0X", "Laser rangefinder", {0x29, 0xFF}, 0, 0, vl53l0x_checks, 1, NULL},
@@ -156,7 +199,14 @@ static const ChipEntry chip_db[] = {
     {"TSL2591", "Light sensor", {0x29, 0xFF}, 0, 0, tsl2591_checks, 1, NULL},
     {"APDS9960", "Gesture + colour", {0x39, 0xFF}, 0, 0, apds9960_checks, 1, NULL},
     {"LTR-390UV", "UV + light sensor", {0x53, 0xFF}, 0, 0, ltr390_checks, 1, NULL},
-    {"MAX30102", "Heart rate / SpO2", {0x57, 0xFF}, 0, 0, max30102_checks, 1, "0x11 here = MAX30100 relabel"},
+    {"MAX30102",
+     "Heart rate / SpO2",
+     {0x57, 0xFF},
+     0,
+     0,
+     max30102_checks,
+     1,
+     "0x11 here = MAX30100 relabel"},
 
     {"INA226", "Current monitor", {0xFF}, 0x40, 0x4F, ina226_checks, 2, NULL},
     {"INA260", "Current monitor", {0xFF}, 0x40, 0x4F, ina260_checks, 2, NULL},
@@ -170,10 +220,24 @@ static const ChipEntry chip_db[] = {
     {"DS3231", "Real-time clock", {0x68, 0xFF}, 0, 0, NULL, 0, NULL},
     {"DS1307", "Real-time clock", {0x68, 0xFF}, 0, 0, NULL, 0, NULL},
     {"PCF8563", "Real-time clock", {0x51, 0xFF}, 0, 0, NULL, 0, NULL},
-    {"SSD1306/SH1106", "OLED display", {0x3C, 0x3D, 0xFF}, 0, 0, NULL, 0, "SH1106 fakes undetectable"},
+    {"SSD1306/SH1106",
+     "OLED display",
+     {0x3C, 0x3D, 0xFF},
+     0,
+     0,
+     NULL,
+     0,
+     "SH1106 fakes undetectable"},
     {"AHT10/AHT20", "Temp + humidity", {0x38, 0xFF}, 0, 0, NULL, 0, NULL},
     {"BH1750", "Light sensor", {0x23, 0x5C, 0xFF}, 0, 0, NULL, 0, NULL},
-    {"SHT3x/SHT4x", "Temp + humidity", {0x44, 0x45, 0xFF}, 0, 0, NULL, 0, "grade relabels undetectable"},
+    {"SHT3x/SHT4x",
+     "Temp + humidity",
+     {0x44, 0x45, 0xFF},
+     0,
+     0,
+     NULL,
+     0,
+     "grade relabels undetectable"},
     {"SCD4x", "CO2 sensor", {0x62, 0xFF}, 0, 0, NULL, 0, NULL},
     {"SGP30", "Air quality (VOC)", {0x58, 0xFF}, 0, 0, NULL, 0, NULL},
     {"SGP40/41", "Air quality (VOC)", {0x59, 0xFF}, 0, 0, NULL, 0, NULL},
@@ -195,7 +259,14 @@ static const ChipEntry chip_db[] = {
     {"MS5611", "Pressure sensor", {0x76, 0x77, 0xFF}, 0, 0, NULL, 0, NULL},
     {"VEML6070", "UV sensor", {0x38, 0x39, 0xFF}, 0, 0, NULL, 0, NULL},
     {"MAX44009", "Light sensor", {0x4A, 0x4B, 0xFF}, 0, 0, NULL, 0, NULL},
-    {"BNO085", "9-axis IMU + fusion", {0x4A, 0x4B, 0xFF}, 0, 0, NULL, 0, "SHTP protocol, no WHO_AM_I"},
+    {"BNO085",
+     "9-axis IMU + fusion",
+     {0x4A, 0x4B, 0xFF},
+     0,
+     0,
+     NULL,
+     0,
+     "SHTP protocol, no WHO_AM_I"},
 };
 
 #define CHIP_DB_COUNT (sizeof(chip_db) / sizeof(chip_db[0]))
@@ -451,7 +522,6 @@ const char* chip_verdict_short_str(ChipVerdict verdict) {
         return "?";
     }
 }
-
 
 const ChipEntry* chip_db_get(size_t index) {
     if(index >= CHIP_DB_COUNT) return NULL;

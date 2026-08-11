@@ -7,21 +7,21 @@
 
 // Registers from the Bosch BNO055 datasheet (BST-BNO055-DS000-14), page 51
 // onwards. CHIP_ID reads 0xA0 on every genuine part.
-#define BNO055_REG_CHIP_ID 0x00
+#define BNO055_REG_CHIP_ID         0x00
 #define BNO055_REG_EUL_HEADING_LSB 0x1A
-#define BNO055_REG_CALIB_STAT 0x35
-#define BNO055_REG_OPR_MODE 0x3D
-#define BNO055_CHIP_ID_VALUE 0xA0
-#define BNO055_MODE_CONFIG 0x00
-#define BNO055_MODE_NDOF 0x0C
+#define BNO055_REG_CALIB_STAT      0x35
+#define BNO055_REG_OPR_MODE        0x3D
+#define BNO055_CHIP_ID_VALUE       0xA0
+#define BNO055_MODE_CONFIG         0x00
+#define BNO055_MODE_NDOF           0x0C
 
 // Datasheet table 3-6: CONFIG -> any operating mode takes 7 ms, the other way
 // 19 ms. 30 ms is that with room to spare. The 700 ms is not a mode switch —
 // it is fusion needing a few output cycles before the heading means anything.
-#define BNO055_MODE_SWITCH_MS 30
+#define BNO055_MODE_SWITCH_MS   30
 #define BNO055_FUSION_SETTLE_MS 700
-#define BNO055_POLL_MS 100
-#define BNO055_MAG_CAL_MAX 3
+#define BNO055_POLL_MS          100
+#define BNO055_MAG_CAL_MAX      3
 
 // Sleeps in slices so leaving the screen is not stuck behind a settle delay.
 static void bno055_delay(const volatile bool* stop, uint32_t ms) {
@@ -80,10 +80,13 @@ static void bno055_poll(
         // across an update.
         uint8_t heading[2] = {0};
         uint8_t calib = 0;
-        bool ok =
-            i2c->read_mem(
-                addr7, BNO055_REG_EUL_HEADING_LSB, heading, sizeof(heading), LIVE_TEST_TIMEOUT_MS) &&
-            i2c->read_reg(addr7, BNO055_REG_CALIB_STAT, &calib, LIVE_TEST_TIMEOUT_MS);
+        bool ok = i2c->read_mem(
+                      addr7,
+                      BNO055_REG_EUL_HEADING_LSB,
+                      heading,
+                      sizeof(heading),
+                      LIVE_TEST_TIMEOUT_MS) &&
+                  i2c->read_reg(addr7, BNO055_REG_CALIB_STAT, &calib, LIVE_TEST_TIMEOUT_MS);
 
         if(!ok) {
             errors++;
@@ -102,11 +105,17 @@ static void bno055_poll(
         st.phase = (st.progress >= BNO055_MAG_CAL_MAX) ? LiveTestPhasePassed :
                                                          LiveTestPhaseRunning;
 
-        snprintf(st.heading, sizeof(st.heading), "%ld.%ld", (long)(raw / 16), (long)((raw % 16) * 10 / 16));
+        snprintf(
+            st.heading,
+            sizeof(st.heading),
+            "%ld.%ld",
+            (long)(raw / 16),
+            (long)((raw % 16) * 10 / 16));
         if(st.phase == LiveTestPhasePassed) {
             bno055_set_lines(&st, "Heading, degrees", "Calibrated - now spin it", NULL);
         } else {
-            bno055_set_lines(&st, "Heading, degrees", "Rotate in a figure-8", "to calibrate the mag");
+            bno055_set_lines(
+                &st, "Heading, degrees", "Rotate in a figure-8", "to calibrate the mag");
         }
         publish(ctx, &st);
 
@@ -141,8 +150,7 @@ static void bno055_run(const LiveTestEnv* env) {
         // match, whatever is at this address is not a BNO055 and 0x3D is not
         // its mode register. Do not write to a stranger.
         if(in_ndof) {
-            i2c->write_reg(
-                addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, LIVE_TEST_TIMEOUT_MS);
+            i2c->write_reg(addr7, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, LIVE_TEST_TIMEOUT_MS);
         }
 
         if(*stop) break;

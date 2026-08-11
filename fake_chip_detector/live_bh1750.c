@@ -41,7 +41,7 @@
 // progress ladder, shown as filled boxes and used to enforce the order —
 // light has to be seen before dark counts for anything.
 #define BH1750_STEP_SAW_LIGHT 1
-#define BH1750_STEP_SAW_DARK 2
+#define BH1750_STEP_SAW_DARK  2
 
 static void bh1750_delay(const volatile bool* stop, uint32_t ms) {
     while(ms && !*stop) {

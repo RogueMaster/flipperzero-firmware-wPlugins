@@ -7,12 +7,12 @@
 // From the Broadcom APDS-9960 datasheet (AV02-4191EN, 13 November 2015).
 // Register addresses in the map on page 19 already carry the command bit, so
 // they go on the wire exactly as printed.
-#define APDS9960_REG_ENABLE 0x80
-#define APDS9960_REG_PPULSE 0x8E
+#define APDS9960_REG_ENABLE  0x80
+#define APDS9960_REG_PPULSE  0x8E
 #define APDS9960_REG_CONTROL 0x8F
-#define APDS9960_REG_ID 0x92
-#define APDS9960_REG_STATUS 0x93
-#define APDS9960_REG_PDATA 0x9C
+#define APDS9960_REG_ID      0x92
+#define APDS9960_REG_STATUS  0x93
+#define APDS9960_REG_PDATA   0x9C
 
 // Page 25 lists exactly one part number, 0xAB. Values circulating in hobby
 // libraries for other lots do not appear in the Broadcom document, so they are
@@ -22,7 +22,7 @@
 // ENABLE bits, page 20: bit 0 PON powers the oscillator, bit 2 PEN starts the
 // proximity engine. Those two are the only writes strictly required.
 #define APDS9960_ENABLE_PROX 0x05
-#define APDS9960_ENABLE_OFF 0x00
+#define APDS9960_ENABLE_OFF  0x00
 
 // Not required to make it run, but required for the number to mean anything.
 // The proximity counts quoted on pages 4 and 5 are measured at eight 8 us
@@ -30,25 +30,25 @@
 // at defaults the part works but reads far lower than any published figure,
 // and the test would be judging a genuine sensor against a spec it was never
 // characterised under.
-#define APDS9960_PPULSE_8_AT_8US 0x47 // PPLEN=8us, 7+1 = 8 pulses (page 23)
+#define APDS9960_PPULSE_8_AT_8US  0x47 // PPLEN=8us, 7+1 = 8 pulses (page 23)
 #define APDS9960_CONTROL_100MA_4X 0x08 // LDRIVE 100 mA, PGAIN 4x (page 24)
 
 // The reset values of those same two registers, from the map on page 19: one
 // 8 us pulse, 100 mA, 1x gain. Both are restored on the way out, because a
 // live test has no business leaving the next program's sensor eight times more
 // sensitive than the part it thinks it is holding.
-#define APDS9960_PPULSE_RESET 0x40
+#define APDS9960_PPULSE_RESET  0x40
 #define APDS9960_CONTROL_RESET 0x00
 
 // STATUS bits, page 25. PVALID says a proximity cycle finished and is cleared
 // by the act of reading PDATA; PGSAT says the analog front end saturated and
 // the datasheet warns the result "may not be accurate".
 #define APDS9960_STATUS_PVALID 0x02
-#define APDS9960_STATUS_PGSAT 0x40
+#define APDS9960_STATUS_PGSAT  0x40
 
 // Page 9: 7 ms to leave sleep, plus about 1.2 ms for a conversion.
-#define APDS9960_SETTLE_MS 10
-#define APDS9960_POLL_MS 60
+#define APDS9960_SETTLE_MS        10
+#define APDS9960_POLL_MS          60
 #define APDS9960_VALID_TIMEOUT_MS 120
 
 // No object reads typically 10 counts and at most 25 (page 4); a target at
@@ -90,16 +90,16 @@ static bool apds9960_start(
     uint8_t addr7,
     const volatile bool* stop,
     ApdsTouched* touched) {
-    touched->ppulse = i2c->write_reg(
-        addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_8_AT_8US, LIVE_TEST_TIMEOUT_MS);
+    touched->ppulse =
+        i2c->write_reg(addr7, APDS9960_REG_PPULSE, APDS9960_PPULSE_8_AT_8US, LIVE_TEST_TIMEOUT_MS);
     if(!touched->ppulse) return false;
 
     touched->control = i2c->write_reg(
         addr7, APDS9960_REG_CONTROL, APDS9960_CONTROL_100MA_4X, LIVE_TEST_TIMEOUT_MS);
     if(!touched->control) return false;
 
-    touched->enable = i2c->write_reg(
-        addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_PROX, LIVE_TEST_TIMEOUT_MS);
+    touched->enable =
+        i2c->write_reg(addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_PROX, LIVE_TEST_TIMEOUT_MS);
     if(!touched->enable) return false;
 
     apds9960_delay(stop, APDS9960_SETTLE_MS);
@@ -180,8 +180,7 @@ static void apds9960_run(const LiveTestEnv* env) {
                     st.lines[0],
                     LIVE_TEST_LINE_LEN,
                     "%s",
-                    result == ApdsReadSaturated ? "Saturated - move back" :
-                                                  "No sample came back");
+                    result == ApdsReadSaturated ? "Saturated - move back" : "No sample came back");
                 publish(ctx, &st);
                 apds9960_delay(stop, APDS9960_POLL_MS);
                 continue;
@@ -214,8 +213,7 @@ static void apds9960_run(const LiveTestEnv* env) {
         // and not one byte is written here — whatever lives at this address,
         // its registers are not ours to clear.
         if(touched.enable) {
-            i2c->write_reg(
-                addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_OFF, LIVE_TEST_TIMEOUT_MS);
+            i2c->write_reg(addr7, APDS9960_REG_ENABLE, APDS9960_ENABLE_OFF, LIVE_TEST_TIMEOUT_MS);
         }
         if(touched.control) {
             i2c->write_reg(

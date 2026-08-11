@@ -5,15 +5,15 @@
 #include <stddef.h>
 
 #define I2C_SCAN_ADDR_FIRST 0x08
-#define I2C_SCAN_ADDR_LAST 0x77
+#define I2C_SCAN_ADDR_LAST  0x77
 // A real bus rarely carries more than a handful of devices; each slot costs
 // ~40 bytes in both the worker and the view model, so keep the cap modest.
-#define I2C_SCAN_MAX_FOUND 16
+#define I2C_SCAN_MAX_FOUND  16
 
 // Timeout for a single address probe. Missing devices NACK immediately,
 // the timeout only bounds a stuck bus, so a full sweep stays fast.
 #define I2C_PROBE_TIMEOUT_MS 10
-#define I2C_REG_TIMEOUT_MS 50
+#define I2C_REG_TIMEOUT_MS   50
 
 #include "chip_db.h"
 
@@ -77,12 +77,7 @@ size_t i2c_worker_get_found(I2CWorker* worker, I2CFoundDevice* out, size_t max_c
 // All addresses are 7-bit; the <<1 shift the HAL expects happens inside.
 bool i2c_worker_device_ready(uint8_t addr7, uint32_t timeout_ms);
 bool i2c_worker_read_reg(uint8_t addr7, uint8_t reg, uint8_t* value, uint32_t timeout_ms);
-bool i2c_worker_read_mem(
-    uint8_t addr7,
-    uint8_t reg,
-    uint8_t* data,
-    size_t len,
-    uint32_t timeout_ms);
+bool i2c_worker_read_mem(uint8_t addr7, uint8_t reg, uint8_t* data, size_t len, uint32_t timeout_ms);
 
 // Reads from a device that addresses its registers with a 16-bit index sent
 // big-endian (ST time-of-flight parts, Goodix touch controllers). Writes the

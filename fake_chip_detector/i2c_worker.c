@@ -7,10 +7,10 @@
 
 #define TAG "I2CWorker"
 
-#define WORKER_FLAG_SCAN (1UL << 0)
-#define WORKER_FLAG_EXIT (1UL << 1)
+#define WORKER_FLAG_SCAN  (1UL << 0)
+#define WORKER_FLAG_EXIT  (1UL << 1)
 #define WORKER_FLAG_WATCH (1UL << 3)
-#define WORKER_FLAG_ALL (WORKER_FLAG_SCAN | WORKER_FLAG_EXIT | WORKER_FLAG_WATCH)
+#define WORKER_FLAG_ALL   (WORKER_FLAG_SCAN | WORKER_FLAG_EXIT | WORKER_FLAG_WATCH)
 
 struct I2CWorker {
     FuriThread* thread;
@@ -178,11 +178,7 @@ bool i2c_worker_read_reg16_addr(
     return ok;
 }
 
-bool i2c_worker_write_reg16_addr(
-    uint8_t addr7,
-    uint16_t reg,
-    uint8_t value,
-    uint32_t timeout_ms) {
+bool i2c_worker_write_reg16_addr(uint8_t addr7, uint16_t reg, uint8_t value, uint32_t timeout_ms) {
     const uint8_t frame[3] = {(uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF), value};
     furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
     bool ok = furi_hal_i2c_tx(
@@ -201,16 +197,16 @@ bool i2c_worker_write_reg(uint8_t addr7, uint8_t reg, uint8_t value, uint32_t ti
 
 bool i2c_worker_write_raw(uint8_t addr7, const uint8_t* data, size_t len, uint32_t timeout_ms) {
     furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
-    bool ok =
-        furi_hal_i2c_tx(&furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), data, len, timeout_ms);
+    bool ok = furi_hal_i2c_tx(
+        &furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), data, len, timeout_ms);
     furi_hal_i2c_release(&furi_hal_i2c_handle_external);
     return ok;
 }
 
 bool i2c_worker_read_raw(uint8_t addr7, uint8_t* data, size_t len, uint32_t timeout_ms) {
     furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
-    bool ok =
-        furi_hal_i2c_rx(&furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), data, len, timeout_ms);
+    bool ok = furi_hal_i2c_rx(
+        &furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), data, len, timeout_ms);
     furi_hal_i2c_release(&furi_hal_i2c_handle_external);
     return ok;
 }
@@ -273,8 +269,7 @@ static void i2c_worker_do_watch(I2CWorker* worker) {
 static int32_t i2c_worker_thread(void* context) {
     I2CWorker* worker = context;
     for(;;) {
-        uint32_t flags =
-            furi_thread_flags_wait(WORKER_FLAG_ALL, FuriFlagWaitAny, FuriWaitForever);
+        uint32_t flags = furi_thread_flags_wait(WORKER_FLAG_ALL, FuriFlagWaitAny, FuriWaitForever);
         if(flags & WORKER_FLAG_EXIT) break;
         if(flags & WORKER_FLAG_SCAN) {
             worker->busy = true;
@@ -345,7 +340,6 @@ void i2c_worker_abort_scan(I2CWorker* worker) {
 bool i2c_worker_is_busy(I2CWorker* worker) {
     return worker->busy;
 }
-
 
 void i2c_worker_watch_start(I2CWorker* worker) {
     worker->watch_stop = false;

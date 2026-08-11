@@ -33,8 +33,8 @@ static const OneWireFamily onewire_families[] = {
     {0x43, "DS28EC20", "20Kb EEPROM", OneWireRoleMemory},
 };
 
-#define ONEWIRE_CMD_MATCH_ROM 0x55
-#define ONEWIRE_CMD_CONVERT_T 0x44
+#define ONEWIRE_CMD_MATCH_ROM       0x55
+#define ONEWIRE_CMD_CONVERT_T       0x44
 #define ONEWIRE_CMD_READ_SCRATCHPAD 0xBE
 
 // Datasheet worst case for a 12-bit conversion is 750 ms; the margin costs

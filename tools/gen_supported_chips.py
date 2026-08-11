@@ -41,9 +41,47 @@ for m in re.finditer(
 
 # ---- chip table -----------------------------------------------------------
 table = re.search(r'static const ChipEntry chip_db\[\]\s*=\s*\{(.*?)\n\};', src, re.S).group(1)
+
+
+def top_level_groups(text):
+    """Yield each outermost {...} of the table as one whitespace-collapsed string.
+
+    Parsing this line by line broke the moment clang-format decided an entry was
+    too long and wrapped it, which is not a thing the formatter should be able to
+    do to a generator. Braces are what actually delimit an entry, so count those.
+    A // comment can sit between entries and must not be folded into one.
+    """
+    depth = 0
+    start = None
+    in_str = False
+    i = 0
+    while i < len(text):
+        c = text[i]
+        if in_str:
+            if c == '\\':
+                i += 2
+                continue
+            if c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+        elif c == '/' and text[i:i + 2] == '//':
+            end = text.find('\n', i)
+            i = len(text) if end < 0 else end
+            continue
+        elif c == '{':
+            if depth == 0:
+                start = i
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                yield ' '.join(text[start:i + 1].split())
+        i += 1
+
+
 entries = []
-for line in table.splitlines():
-    line = line.strip()
+for line in top_level_groups(table):
     if not line.startswith('{"'):
         continue
     m = re.match(

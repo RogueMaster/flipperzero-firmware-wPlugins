@@ -6,3 +6,4 @@ build/
 __pycache__/
 *.pyc
 .ufbt/
+.clang-format

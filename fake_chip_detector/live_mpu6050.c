@@ -12,8 +12,8 @@
 // That is why one file serves three database entries.
 #define MPU_REG_ACCEL_XOUT_H 0x3B
 #define MPU_REG_ACCEL_CONFIG 0x1C
-#define MPU_REG_PWR_MGMT_1 0x6B
-#define MPU_REG_WHO_AM_I 0x75
+#define MPU_REG_PWR_MGMT_1   0x6B
+#define MPU_REG_WHO_AM_I     0x75
 
 // WHO_AM_I tells the three apart. Worth knowing for the counterfeit case this
 // app exists for: a board sold as an MPU-9250 that answers 0x70 is an
@@ -28,14 +28,14 @@
 // to be woken. The 6500 and 9250 reset to 0x01 and are already awake. Writing
 // zero wakes all three; what differs is what has to be put back afterwards,
 // which is why the reset value is remembered per part.
-#define MPU_PWR_WAKE 0x00
+#define MPU_PWR_WAKE      0x00
 #define MPU6050_PWR_RESET 0x40
 #define MPU6500_PWR_RESET 0x01
 
 // The 6500 and 9250 specify 20 ms from sleep; the 6050 documents no figure at
 // all, so the larger of the two known numbers is used for every part.
 #define MPU_WAKE_SETTLE_MS 30
-#define MPU_POLL_MS 100
+#define MPU_POLL_MS        100
 
 // ACCEL_CONFIG resets to 0x00, which is the +/-2 g range, and the register map
 // gives 16384 LSB per g there. It is written anyway rather than assumed: the
@@ -44,7 +44,7 @@
 // and print a confident, wrong g — with nothing on screen to say so. Writing
 // the reset value also means there is nothing extra to put back afterwards.
 #define MPU_ACCEL_CONFIG_2G 0x00
-#define MPU_LSB_PER_G 16384
+#define MPU_LSB_PER_G       16384
 
 // Enough of gravity on one axis to call it the one holding the board up. Well
 // clear of the +/-80 mg zero-g tolerance and of the tilt angles a hand wobble
@@ -124,8 +124,7 @@ static void mpu_run(const LiveTestEnv* env) {
         bool ready = false;
         const LiveTestIdResult id_seen = mpu_identify(i2c, addr7, &id);
         if(id_seen == LiveTestIdMatch) {
-            woken = i2c->write_reg(
-                addr7, MPU_REG_PWR_MGMT_1, MPU_PWR_WAKE, LIVE_TEST_TIMEOUT_MS);
+            woken = i2c->write_reg(addr7, MPU_REG_PWR_MGMT_1, MPU_PWR_WAKE, LIVE_TEST_TIMEOUT_MS);
             if(woken)
                 ready = i2c->write_reg(
                     addr7, MPU_REG_ACCEL_CONFIG, MPU_ACCEL_CONFIG_2G, LIVE_TEST_TIMEOUT_MS);
@@ -160,8 +159,8 @@ static void mpu_run(const LiveTestEnv* env) {
                 if(axes_seen & (1u << axis)) count++;
             }
 
-            float total = sqrtf(
-                (float)mg[0] * mg[0] + (float)mg[1] * mg[1] + (float)mg[2] * mg[2]);
+            float total =
+                sqrtf((float)mg[0] * mg[0] + (float)mg[1] * mg[1] + (float)mg[2] * mg[2]);
 
             memset(&st, 0, sizeof(st));
             st.phase = (count >= MPU_PROOF_AXES) ? LiveTestPhasePassed : LiveTestPhaseRunning;

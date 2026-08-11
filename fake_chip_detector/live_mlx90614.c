@@ -11,7 +11,7 @@
 // (Table 15, page 19), so a RAM address doubles as its own command byte. RAM
 // is read-only, which is the whole reason this test is safe to run on a part
 // that might not be an MLX90614 at all: it only ever reads.
-#define MLX90614_RAM_TA 0x06
+#define MLX90614_RAM_TA    0x06
 #define MLX90614_RAM_TOBJ1 0x07
 
 // A read returns three bytes: data low, data high, then the packet error code
@@ -36,7 +36,7 @@
 // Page 30: divide by 50 for kelvin, then subtract 273.15. In hundredths of a
 // degree that is exactly raw*2 - 27315, with no floating point and no rounding
 // error. Worked example from the datasheet: 0x3AF7 -> 2875 -> 28.75 C.
-#define MLX90614_CENTI_PER_LSB 2
+#define MLX90614_CENTI_PER_LSB       2
 #define MLX90614_KELVIN_OFFSET_CENTI 27315
 
 // Page 22 warns that back-to-back reads couple SCL noise into the sensor and
@@ -49,7 +49,7 @@
 // above sensor noise and ambient drift while still being reached by a cold
 // hand, which matters when the test is run in a shop doorway in winter.
 #define MLX90614_PROOF_DELTA_CENTI 500
-#define MLX90614_BAR_MAX_C 10
+#define MLX90614_BAR_MAX_C         10
 
 static void mlx90614_delay(const volatile bool* stop, uint32_t ms) {
     while(ms && !*stop) {
@@ -134,10 +134,10 @@ static void mlx90614_run(const LiveTestEnv* env) {
         while(!*stop && errors < 3) {
             int32_t object = 0, ambient = 0;
             MlxReadResult obj_result = mlx90614_read_ram(i2c, addr7, MLX90614_RAM_TOBJ1, &object);
-            MlxReadResult amb_result = (obj_result == MlxReadOk) ?
-                                           mlx90614_read_ram(
-                                               i2c, addr7, MLX90614_RAM_TA, &ambient) :
-                                           obj_result;
+            MlxReadResult amb_result =
+                (obj_result == MlxReadOk) ?
+                    mlx90614_read_ram(i2c, addr7, MLX90614_RAM_TA, &ambient) :
+                    obj_result;
 
             if(obj_result == MlxReadNoAnswer || amb_result == MlxReadNoAnswer) {
                 errors++;
@@ -170,7 +170,9 @@ static void mlx90614_run(const LiveTestEnv* env) {
 
             int32_t bar_c = delta / 100;
             st.value = (float)object / 100.0f;
-            st.bar = (uint8_t)(bar_c < 0 ? 0 : (bar_c > MLX90614_BAR_MAX_C ? MLX90614_BAR_MAX_C : bar_c));
+            st.bar = (uint8_t)(bar_c < 0 ?
+                                   0 :
+                                   (bar_c > MLX90614_BAR_MAX_C ? MLX90614_BAR_MAX_C : bar_c));
             st.bar_max = MLX90614_BAR_MAX_C;
 
             // Eight bytes holds the widest the formatter can produce, and

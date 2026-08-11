@@ -23,11 +23,7 @@ static void i2c_settings_set_defaults(I2CSettings* settings) {
 
 void i2c_settings_load(I2CSettings* settings) {
     if(!saved_struct_load(
-           SETTINGS_PATH,
-           settings,
-           sizeof(I2CSettings),
-           I2C_SETTINGS_MAGIC,
-           I2C_SETTINGS_VERSION)) {
+           SETTINGS_PATH, settings, sizeof(I2CSettings), I2C_SETTINGS_MAGIC, I2C_SETTINGS_VERSION)) {
         i2c_settings_set_defaults(settings);
         return;
     }
@@ -42,7 +38,10 @@ void i2c_settings_save(const I2CSettings* settings) {
     // saved_struct_save creates the app data directory as needed; a failure
     // here only costs persistence, so it is not surfaced to the user.
     saved_struct_save(
-        SETTINGS_PATH, (void*)settings, sizeof(I2CSettings), I2C_SETTINGS_MAGIC,
+        SETTINGS_PATH,
+        (void*)settings,
+        sizeof(I2CSettings),
+        I2C_SETTINGS_MAGIC,
         I2C_SETTINGS_VERSION);
 }
 

@@ -27,10 +27,10 @@
 // which is the peak-current case described at ssd1306_wake, and on long jumper
 // wires that can brown the panel out and imitate the very failure being
 // tested for.
-#define SSD1306_DISPLAY_OFF 0xAE
-#define SSD1306_DISPLAY_ON 0xAF
+#define SSD1306_DISPLAY_OFF      0xAE
+#define SSD1306_DISPLAY_ON       0xAF
 #define SSD1306_DISPLAY_FROM_RAM 0xA4
-#define SSD1306_DISPLAY_ALL_ON 0xA5
+#define SSD1306_DISPLAY_ALL_ON   0xA5
 
 // Half a second each way: slow enough to read as deliberate blinking rather
 // than flicker, fast enough that the whole test takes a few seconds.
@@ -43,17 +43,21 @@
 static const uint8_t ssd1306_wake[] = {
     SSD1306_CTRL_COMMAND_STREAM,
     SSD1306_DISPLAY_OFF, // start from a known state
-    0xA8, 0x3F, // multiplex ratio 64, for a 128x64 panel
-    0xD3, 0x00, // display offset zero
+    0xA8,
+    0x3F, // multiplex ratio 64, for a 128x64 panel
+    0xD3,
+    0x00, // display offset zero
     0x40, // display start line zero
-    0x81, 0x7F, // contrast at its reset value
+    0x81,
+    0x7F, // contrast at its reset value
     0xA6, // normal, in case something left it inverted
     // The charge pump. It is not in the datasheet's command tables at all —
     // only in the application note — and it is the single most common reason a
     // perfectly good module stays black: without it the OLED driver block has
     // no supply on a board with no external Vcc, while every byte still gets
     // acknowledged. The note requires it before display-on.
-    0x8D, 0x14,
+    0x8D,
+    0x14,
     SSD1306_DISPLAY_ON,
     // Lights every pixel regardless of what is in display RAM. That matters:
     // a reset does not clear the RAM, so anything that renders RAM would show

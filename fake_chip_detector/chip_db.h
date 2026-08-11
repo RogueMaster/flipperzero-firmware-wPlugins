@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define CHIP_MAX_ADDRS 4
+#define CHIP_MAX_ADDRS  4
 #define CHIP_MAX_CHECKS 4
 
 typedef struct {

@@ -13,15 +13,15 @@
 // written". Reading cannot disturb it — a read only latches the current time
 // into a shadow copy while the clock keeps running (page 11) — so there is
 // also nothing to put back on the way out.
-#define DS3231_REG_SECONDS 0x00
+#define DS3231_REG_SECONDS  0x00
 #define DS3231_REG_TEMP_MSB 0x11
 
 // Temperature is a 10-bit two's-complement value at 0.25 C per LSB: the
 // integer part in 0x11, the fraction in the top two bits of 0x12 (page 15).
 // The bottom six bits of 0x12 are fixed zero in the map on page 11, which is
 // a cheap sanity check on whether these two bytes really are a temperature.
-#define DS3231_TEMP_LSB_RESERVED 0x3F
-#define DS3231_TEMP_SHIFT 6
+#define DS3231_TEMP_LSB_RESERVED    0x3F
+#define DS3231_TEMP_SHIFT           6
 #define DS3231_TEMP_MILLI_C_PER_LSB 250
 
 // Four times a second: fast enough that no tick can slip past unseen, slow
@@ -41,9 +41,9 @@
 #define DS3231_SECONDS_MASK 0x7F
 #define DS3231_MINUTES_MASK 0x7F
 #define DS3231_HOUR_12H_BIT 0x40
-#define DS3231_HOUR_PM_BIT 0x20
-#define DS3231_HOUR_10_BIT 0x10
-#define DS3231_HOUR_20_BIT 0x20
+#define DS3231_HOUR_PM_BIT  0x20
+#define DS3231_HOUR_10_BIT  0x10
+#define DS3231_HOUR_20_BIT  0x20
 
 // Every value in these registers is BCD (page 11), so the low nibble is the
 // units digit and the high nibble the tens.
@@ -88,7 +88,8 @@ static bool ds3231_decode_hour(uint8_t raw, uint8_t* hour_out) {
         return true;
     }
 
-    uint8_t tens = (uint8_t)(((raw & DS3231_HOUR_20_BIT) ? 2 : 0) + ((raw & DS3231_HOUR_10_BIT) ? 1 : 0));
+    uint8_t tens =
+        (uint8_t)(((raw & DS3231_HOUR_20_BIT) ? 2 : 0) + ((raw & DS3231_HOUR_10_BIT) ? 1 : 0));
     uint8_t hour = (uint8_t)(tens * 10 + units);
     if(hour > 23) return false;
     *hour_out = hour;

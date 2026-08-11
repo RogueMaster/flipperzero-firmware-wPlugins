@@ -42,10 +42,10 @@
 // mistaken for a chip test.
 #define LIVE_TEST_PLUGIN_APPID "fake_chip_detector_live_test"
 
-#define LIVE_TEST_LINES 3
-#define LIVE_TEST_LINE_LEN 26
+#define LIVE_TEST_LINES       3
+#define LIVE_TEST_LINE_LEN    26
 #define LIVE_TEST_HEADING_LEN 12
-#define LIVE_TEST_UNIT_LEN 6
+#define LIVE_TEST_UNIT_LEN    6
 
 // Enough for every part in the database; the widest today uses two.
 #define LIVE_TEST_MAX_ADDRS 4

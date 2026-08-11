@@ -23,13 +23,13 @@
 #define AHT_CMD_TRIGGER_2 0x00
 
 // Status byte, table 10: bit 7 busy, bit 3 calibration enabled.
-#define AHT_STATUS_BUSY 0x80
+#define AHT_STATUS_BUSY       0x80
 #define AHT_STATUS_CALIBRATED 0x08
 
 // Section 5.4 gives 80 ms for a measurement, after which the busy bit should
 // have cleared.
 #define AHT_MEASURE_MS 80
-#define AHT_POLL_MS 120
+#define AHT_POLL_MS    120
 
 // Six data bytes: status, then twenty bits of humidity and twenty of
 // temperature sharing the middle byte. The AHT20 appends a seventh CRC byte;
@@ -54,7 +54,7 @@
 // first keeps all of this inside 32-bit arithmetic; it costs a hundredth of a
 // percent, far below the part's +/-2% accuracy.
 #define AHT_RAW_SHIFT 4
-#define AHT_RAW_BITS 16
+#define AHT_RAW_BITS  16
 
 // Exhaled breath is near saturation and drives a nearby sensor from a normal
 // indoor 30-50% up towards 90%. Fifteen points is a swing room air cannot
@@ -222,8 +222,7 @@ static void aht_run(const LiveTestEnv* env) {
                     st.lines[0],
                     LIVE_TEST_LINE_LEN,
                     "%s",
-                    result == AhtReadBusy ? "Still busy measuring" :
-                                            "It reports no calibration");
+                    result == AhtReadBusy ? "Still busy measuring" : "It reports no calibration");
                 publish(ctx, &st);
                 aht_delay(stop, AHT_POLL_MS);
                 continue;

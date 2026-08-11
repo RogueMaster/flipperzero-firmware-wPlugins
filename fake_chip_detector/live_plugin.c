@@ -55,8 +55,11 @@ static bool live_plugin_str_ok(const char* s, size_t max) {
 
 // Loads one plugin far enough to have its descriptor in hand. On success the
 // caller owns *app and must free it; on failure nothing is left mapped.
-static LivePluginStatus
-    live_plugin_map(Storage* storage, const char* path, FlipperApplication** out_app, const LiveTest** out_test) {
+static LivePluginStatus live_plugin_map(
+    Storage* storage,
+    const char* path,
+    FlipperApplication** out_app,
+    const LiveTest** out_test) {
     *out_app = NULL;
     *out_test = NULL;
 
@@ -173,8 +176,7 @@ void live_plugin_list(LivePluginList* out) {
             // Flipper is already short of heap.
             FlipperApplication* loaded = NULL;
             const LiveTest* test = NULL;
-            item->status =
-                live_plugin_map(storage, furi_string_get_cstr(path), &loaded, &test);
+            item->status = live_plugin_map(storage, furi_string_get_cstr(path), &loaded, &test);
 
             if(item->status == LivePluginOk) {
                 strlcpy(item->chip, test->chip, sizeof(item->chip));

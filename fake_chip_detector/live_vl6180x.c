@@ -7,13 +7,13 @@
 // Registers from the ST VL6180X datasheet (DocID026171 Rev 3), section 6.2.
 // This part indexes its registers with a 16-bit big-endian address, which is
 // why every access below goes through the *_reg16_addr helpers.
-#define VL6180X_IDENTIFICATION_MODEL_ID 0x0000
+#define VL6180X_IDENTIFICATION_MODEL_ID      0x0000
 #define VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO 0x0014
-#define VL6180X_SYSTEM_INTERRUPT_CLEAR 0x0015
-#define VL6180X_SYSRANGE_START 0x0018
-#define VL6180X_RESULT_RANGE_STATUS 0x004D
+#define VL6180X_SYSTEM_INTERRUPT_CLEAR       0x0015
+#define VL6180X_SYSRANGE_START               0x0018
+#define VL6180X_RESULT_RANGE_STATUS          0x004D
 #define VL6180X_RESULT_INTERRUPT_STATUS_GPIO 0x004F
-#define VL6180X_RESULT_RANGE_VAL 0x0062
+#define VL6180X_RESULT_RANGE_VAL             0x0062
 
 // The reset value of IDENTIFICATION__MODEL_ID in the same section 6.2 table:
 // a VL6180X reads 0xB4 there, and nothing else this app knows about does.
@@ -44,7 +44,7 @@
 // SYSRANGE__MAX_CONVERGENCE_TIME defaults to 49 ms, so a reading that has not
 // arrived in four times that is a sensor that has stopped answering.
 #define VL6180X_CONVERGE_TIMEOUT_MS 200
-#define VL6180X_POLL_MS 100
+#define VL6180X_POLL_MS             100
 
 // RESULT__RANGE_VAL is a single byte of millimetres, and the part is specified
 // to 100 mm (up to ~200 mm on a good target), so this is the full useful span.
@@ -62,8 +62,7 @@ static void vl6180x_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-static void
-    vl6180x_set_lines(LiveTestState* st, const char* l0, const char* l1, const char* l2) {
+static void vl6180x_set_lines(LiveTestState* st, const char* l0, const char* l1, const char* l2) {
     const char* src[LIVE_TEST_LINES] = {l0, l1, l2};
     for(size_t i = 0; i < LIVE_TEST_LINES; i++) {
         snprintf(st->lines[i], LIVE_TEST_LINE_LEN, "%s", src[i] ? src[i] : "");
@@ -97,10 +96,9 @@ static bool vl6180x_measure(
     }
 
     uint8_t range_status = 0;
-    bool ok =
-        i2c->read_reg16_addr(
-            addr7, VL6180X_RESULT_RANGE_STATUS, &range_status, 1, LIVE_TEST_TIMEOUT_MS) &&
-        i2c->read_reg16_addr(addr7, VL6180X_RESULT_RANGE_VAL, mm, 1, LIVE_TEST_TIMEOUT_MS);
+    bool ok = i2c->read_reg16_addr(
+                  addr7, VL6180X_RESULT_RANGE_STATUS, &range_status, 1, LIVE_TEST_TIMEOUT_MS) &&
+              i2c->read_reg16_addr(addr7, VL6180X_RESULT_RANGE_VAL, mm, 1, LIVE_TEST_TIMEOUT_MS);
 
     // Clear the flag even on a failed read, or the next measurement sees a
     // sample-ready that belongs to this one.
@@ -188,7 +186,7 @@ static void vl6180x_run(const LiveTestEnv* env) {
             st.phase = proved ? LiveTestPhasePassed : LiveTestPhaseRunning;
             vl6180x_set_lines(
                 &st,
-                proved         ? "It tracks - real sensor" :
+                proved          ? "It tracks - real sensor" :
                 error_code == 0 ? "Move your hand closer" :
                                   "Hold a hand 5cm away",
                 detail,

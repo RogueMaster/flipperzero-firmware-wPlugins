@@ -18,7 +18,7 @@
 // bytes with the same CRC-8, so the test simply asks an SHT4x question first
 // and believes the answer only if the CRC verifies. If it does not, it asks
 // the SHT3x question instead. Nothing is ever decoded on a guess.
-#define SHT4X_CMD_MEASURE_HIGH 0xFD // page 12, table 8
+#define SHT4X_CMD_MEASURE_HIGH     0xFD // page 12, table 8
 #define SHT3X_CMD_MEASURE_HIGH_MSB 0x2C // page 10, table 9: 0x2C06,
 #define SHT3X_CMD_MEASURE_HIGH_LSB 0x06 // high repeatability, clock stretching
 
@@ -26,7 +26,7 @@
 // start pseudo-code waits 10. SHT3x high repeatability needs 15 ms (page 7).
 #define SHT4X_MEASURE_MS 10
 #define SHT3X_MEASURE_MS 15
-#define SHT_POLL_MS 120
+#define SHT_POLL_MS      120
 
 // Six bytes both ways: temperature, its CRC, humidity, its CRC. Temperature
 // comes first on both parts (SHT3x page 10, SHT4x page 11).
@@ -44,12 +44,12 @@
 //   T  = -45 + 175 * S / 65535            (SHT3x page 14, SHT4x page 12)
 //   RH = 100 * S / 65535                  (SHT3x page 14)
 //   RH = -6 + 125 * S / 65535, clamped    (SHT4x page 12 and its note on 13)
-#define SHT_T_SPAN_CENTI 17500
-#define SHT_T_OFFSET_CENTI 4500
-#define SHT3X_RH_SPAN_CENTI 10000
-#define SHT4X_RH_SPAN_CENTI 12500
+#define SHT_T_SPAN_CENTI      17500
+#define SHT_T_OFFSET_CENTI    4500
+#define SHT3X_RH_SPAN_CENTI   10000
+#define SHT4X_RH_SPAN_CENTI   12500
 #define SHT4X_RH_OFFSET_CENTI 600
-#define SHT_FULL_SCALE 65535
+#define SHT_FULL_SCALE        65535
 
 // Exhaled breath is near saturation; indoor air sits at 30-50%. Fifteen points
 // is beyond anything room air does by itself and beyond the part's own +/-2%.
@@ -120,8 +120,8 @@ static bool sht_try(
     *t_centi = (int32_t)(raw_t * SHT_T_SPAN_CENTI / SHT_FULL_SCALE) - SHT_T_OFFSET_CENTI;
 
     if(variant == ShtVariant4x) {
-        int32_t rh = (int32_t)(raw_rh * SHT4X_RH_SPAN_CENTI / SHT_FULL_SCALE) -
-                     SHT4X_RH_OFFSET_CENTI;
+        int32_t rh =
+            (int32_t)(raw_rh * SHT4X_RH_SPAN_CENTI / SHT_FULL_SCALE) - SHT4X_RH_OFFSET_CENTI;
         // The SHT4x equation can legitimately run past both ends of the scale;
         // page 13 asks for it to be cropped rather than shown as -3% humidity.
         *rh_centi = rh < 0 ? 0 : (rh > 10000 ? 10000 : rh);
