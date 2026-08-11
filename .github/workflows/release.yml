@@ -31,7 +31,7 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@2.0.17
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app \
+            --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled \
             --libraries esp32/libs \
             --output-dir esp32/hotspot-arcade-fw/build \
             esp32/hotspot-arcade-fw

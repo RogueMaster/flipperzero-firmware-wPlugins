@@ -36,7 +36,7 @@ CORE_VER_C5="${CORE_VER_C5:-3.3.11}"
 # exists in the 3.x cores, while the S2/WROOM images stay on the pinned 2.0.17 so this
 # doesn't quietly re-cut them on a core with different WiFi/USB behaviour.
 BOARDS=(
-    "esp32:esp32:esp32s2:PartitionScheme=huge_app|official_devboard"
+    "esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled|official_devboard"
     "esp32:esp32:esp32|wroom"
     "esp32:esp32:esp32c5:PartitionScheme=huge_app,CDCOnBoot=default|c5|$CORE_VER_C5"
 )

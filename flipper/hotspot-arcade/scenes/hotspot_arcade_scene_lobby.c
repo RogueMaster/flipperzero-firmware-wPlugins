@@ -148,6 +148,20 @@ static void ha_dashboard(HotspotArcadeApp* app) {
     widget_add_string_element(
         app->widget, 127, 40, AlignRight, AlignTop, FontSecondary, game_name(app->active_game));
 
+    // ESP memory readout, centered above the button row: free internal heap, and free PSRAM
+    // when the board has it. Only shown once a beacon has reported it (heap_kb > 0). This is
+    // the health gauge -- internal heap should stay well clear of zero all session.
+    if(app->board_heap_kb) {
+        if(app->board_psram_kb)
+            furi_string_printf(
+                tmp, "%uK  PSRAM %u.%uM", app->board_heap_kb, app->board_psram_kb / 1024,
+                (app->board_psram_kb % 1024) * 10 / 1024);
+        else
+            furi_string_printf(tmp, "RAM %uK", app->board_heap_kb);
+        widget_add_string_element(
+            app->widget, 64, 52, AlignCenter, AlignTop, FontSecondary, furi_string_get_cstr(tmp));
+    }
+
     // Left picks the game; Right shows scores. Games are player-driven, so there is no
     // host-side game screen — the main menu's Console shows the live event feed.
     widget_add_button_element(app->widget, GuiButtonTypeLeft, "Games", ha_lobby_button_cb, app);

@@ -77,7 +77,7 @@ jobs:
         # ESPAsyncWebServer are vendored in esp32/libs/; output goes to build/<board>/.
         run: |
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app \
+            --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled \
             --libraries esp32/libs \
             --output-dir esp32/hotspot-arcade-fw/build/official_devboard \
             esp32/hotspot-arcade-fw

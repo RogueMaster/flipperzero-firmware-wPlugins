@@ -156,6 +156,8 @@ typedef struct HotspotArcadeApp {
     uint32_t last_ping_tick; // last valid PING frame = our firmware is present
     uint16_t board_fw_version; // firmware version reported in the beacon (0 = unknown)
     uint32_t board_bundle_crc; // CRC32 of the bundle the ESP holds in flash (PING bytes 6-9)
+    uint16_t board_heap_kb; // ESP free internal heap, KB (PING bytes 11-12); 0 = unknown
+    uint16_t board_psram_kb; // ESP free PSRAM, KB (PING bytes 13-14); 0 = none/unknown
     bool link_lost;
     bool awaiting_board;
 

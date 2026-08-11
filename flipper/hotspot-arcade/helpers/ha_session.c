@@ -514,6 +514,10 @@ static void dispatch_frame(HotspotArcadeApp* app) {
             // clobber the game we're about to restore.
             if(len >= 11 && app->session_active && p[10] != 0 && p[10] != app->active_game)
                 app->active_game = p[10];
+            // v1.7.1+: bytes 11-14 are the ESP's free internal heap and free PSRAM in KB (LE
+            // uint16 each), for the dashboard memory readout. Older boards omit them -> 0.
+            app->board_heap_kb = (len >= 13) ? (uint16_t)(p[11] | ((uint16_t)p[12] << 8)) : 0;
+            app->board_psram_kb = (len >= 15) ? (uint16_t)(p[13] | ((uint16_t)p[14] << 8)) : 0;
         }
         return;
     }
