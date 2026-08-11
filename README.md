@@ -16,6 +16,8 @@ plain words, and asks the one question it cannot answer itself: is this what you
 | The report, readable on screen — show it to the seller | Sweeping the bus |
 | ![Stray pull-up](fake_chip_detector/screenshots/10_wiring_stray.png) | ![Wrong hole](fake_chip_detector/screenshots/11_wrong_hole.png) |
 | SDA is off pin 15 — so the app goes looking, and finds the module's pull-up sitting on pin 6 | And it is nice about it |
+| ![Live test](fake_chip_detector/screenshots/12_live_vl6180x.png) | ![Wrong chip](fake_chip_detector/screenshots/13_wrong_chip.png) |
+| A live test: the rangefinder actually ranging, before you pay for it | 0x29 answers — it is just not the chip this test is for |
 
 ## Why
 
