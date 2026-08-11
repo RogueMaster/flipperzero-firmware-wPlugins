@@ -82,8 +82,7 @@ All control messages are framed so the link can resync after noise:
 | 0x83 | SCORE        | `pid(1)` `delta(2 LE, signed)` `reason` — authoritative-persist on Flipper |
 | 0x84 | ROUND_RESULT | JSON, game-specific (trivia: `{"correct":[pid..]}`, c4: `{"win":pid,"lose":pid}` or `{"draw":[a,b]}`) |
 | 0x85 | EVENT        | JSON for host display, e.g. `{"answers":3,"total":5}` or `{"c4":"A vs B started"}` |
-| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)` + `bundleCrc(4 LE, v19+)` + `game(1, v19+)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. `bundleCrc` is the CRC-32/IEEE of the web bundle the ESP holds in flash (0 = none); the Flipper skips re-streaming when it equals the manifest's `crc`. `game` is the ESP's current game id (`HA_GAME_*`); while hosting the Flipper mirrors it (ignoring 0/NONE) so a phone-vote game change reflects on the dashboard reliably — the beacon always arrives, unlike a one-off EVENT. Pre-v19 boards omit bytes 6-10 (backward-compatible). |
-| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. |
+| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)` + `bundleCrc(4 LE, v19+)` + `game(1, v19+)` + `heapKb(2 LE, v20+)` + `psramKb(2 LE, v20+)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. `bundleCrc` is the CRC-32/IEEE of the web bundle the ESP holds in flash (0 = none); the Flipper skips re-streaming when it equals the manifest's `crc`. `game` is the ESP's current game id (`HA_GAME_*`); while hosting the Flipper mirrors it (ignoring 0/NONE) so a phone-vote game change reflects on the dashboard reliably — the beacon always arrives, unlike a one-off EVENT. `heapKb`/`psramKb` are the board's free internal heap and free PSRAM in KB (0 = no PSRAM), shown on the dashboard. Older boards send shorter beacons; every field is length-guarded (backward-compatible). |
 | 0x87 | ART          | finished artwork, streamed: `op(1)` + JSON. `op` 0 = begin a sheet (`{"game":"frankendraw","id":n,"w0":"..","w1":"..","w2":".."}` — the three panels' drawers), 1 = one line segment (`{"p":panel,"x0":..,"y0":..,"x1":..,"y1":..}`, 0..255 sheet units), 2 = end (`{"id":n}`). One frame per segment: the picture is streamed as it is finished, so neither side ever buffers a drawing. The Flipper writes each sheet to `/ext/apps_data/hotspot_arcade/art/fd-<YYMMDD-HHMMSS>-<n>.svg`. |
 
 ### 1.3 Raw-bulk escape (asset upload)
@@ -94,6 +93,12 @@ The receiver switches to a raw-read state, counts down `total`, **writes the byt
 LittleFS flash partition** (not RAM), then returns to frame parsing. This mirrors flytrap's
 `sethtml <N>\n` + N bytes, generalized to named files. Bulk bytes need no escaping because
 the length is known.
+
+One size cap applies, on the **sender**: the Flipper reads the whole file into RAM to
+stream it, capped at `HA_FILE_MAX` (`hotspot_arcade_i.h`, 73728) — which MUST equal
+`CEIL` in `web/build.mjs`. An oversized file is refused loudly ("web asset too big")
+rather than truncated; when the pair once drifted, a silently clipped gzip served every
+phone a page whose scripts never arrived. The `bundled-assets` CI job asserts the pair.
 
 ### 1.4 Handshake (session start)
 

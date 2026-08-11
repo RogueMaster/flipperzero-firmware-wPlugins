@@ -36,13 +36,6 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
   id it stores itself, so it restores correctly even when iOS hands out a fresh
   randomized Wi-Fi MAC (after "Forget This Network" or an OS change).
 
-### Added
-
-- The phone bundle is served with an ETag and answers `If-None-Match` with a 304, so
-  reloads and captive re-probes no longer re-download the whole ~47 KB bundle.
-- The Flipper dashboard shows the ESP board's free heap and PSRAM, so memory health
-  is visible at a glance.
-
 ## [1.7.0] - 2026-08-05
 
 ### Added

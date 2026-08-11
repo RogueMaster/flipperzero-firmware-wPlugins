@@ -20,10 +20,7 @@ the rounds. The ESP32 board is the **referee**: it runs the WiFi access point, s
 the game to phones, and keeps the real-time game state. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Seventeen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
-Sixteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
-Sixteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
-Seventeen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
+Twenty games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
 reactions that float up on everyone's screen mid-game.
 
 **Whole-group** (scale to everyone in the room, ready-up lobby, shared live leaderboard):

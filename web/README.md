@@ -67,8 +67,7 @@ screen renders; it is a demo, not the referee, and does not implement real game
 rules. Set `PORT` to change the port: `PORT=8091 npm run mock`.
 
 > The `sim/` simulator supersedes this mock: it runs the *real* engine compiled to WASM,
-> so all seventeen games behave exactly as they do on hardware. Prefer `sim/serve.sh`.
-> so all sixteen games behave exactly as they do on hardware. Prefer `sim/serve.sh`.
+> so all twenty games behave exactly as they do on hardware. Prefer `sim/serve.sh`.
 > `mock-server.mjs` hand-rolls approximate rules and does not cover every game.
 
 ## Protocol

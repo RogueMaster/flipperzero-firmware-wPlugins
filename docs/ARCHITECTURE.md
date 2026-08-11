@@ -27,7 +27,7 @@ UART only ever carries low-frequency, high-level messages, never per-frame state
 | Which game is active, round flow (start/reveal/next)| Per-move / per-question game state       |
 | Trivia question bank (SD) fed one round at a time    | Move validation, buzz timing            |
 | Authoritative persistent scores, host display        | Broadcasting state to phones            |
-| Streaming the web bundle to the ESP                  | Serving the bundle from RAM             |
+| Streaming the web bundle to the ESP (on change)      | Serving the bundle from LittleFS flash  |
 
 Scores are computed by the ESP (it is the referee), broadcast to phones for display,
 **and** reported to the Flipper via `SCORE`/`ROUND_RESULT` so the host screen and
@@ -41,13 +41,19 @@ Single Arduino sketch plus header-only helpers (one translation unit):
   framed UART RX/TX, and the engine "sink" implementations. Two FreeRTOS mutexes:
   `serialMutex` serializes whole UART frames (emitted from the loop and async tasks),
   `engineMutex` (recursive) guards engine state touched from both tasks.
-- `ha_assets.h` — in-RAM file table. The Flipper streams gzipped files in; the HTTP
-  catch-all serves them (with `Content-Encoding: gzip`). No filesystem, so nothing
-  survives a reboot; the Flipper re-streams on the next session.
-- `ha_games.h` — the engine: player roster (with emoji avatars) plus all seventeen games and
-- `ha_games.h` — the engine: player roster (with emoji avatars) plus all sixteen games and
-  their per-client JSON serialization. The whole-group games (Trivia, Would You Rather,
-  Word Scramble, Reaction Duel, Guess the Color, Spectrum, Kiss Marry Kill, Spyfall) are
+- `ha_assets.h` — the file table. The Flipper streams gzipped files in; the ESP writes
+  them to a LittleFS flash partition during the stream and the HTTP catch-all serves
+  them from flash (with `Content-Encoding: gzip`), so the bundle survives reboots and
+  costs no heap. The ESP advertises a CRC of the stored bundle in its PING beacon and
+  the Flipper skips re-streaming when it matches (see docs/PROTOCOL.md).
+- `ha_games.h` — the engine: player roster (with emoji avatars) plus all twenty games and
+  their per-client JSON serialization. Per-game runtime state shares one union (only
+  the active game's state is ever live; a game switch zeroes it and re-defaults only
+  the incoming game), content packs stay resident outside the union, and Draw a
+  Monster's large stroke store is heap/PSRAM-allocated only while it is the active
+  game — that is how twenty games fit the S2's internal DRAM. The whole-group games
+  (Trivia, Would You Rather, Word Scramble, Reaction Duel, Guess the Color, Spectrum,
+  Kiss Marry Kill, Secrets, Fill the Blank, Werewolf, Spyfall, Draw a Monster) are
   phone-driven and self-organizing (ready-up -> countdown -> rounds -> podium);
   Connect Four / Tic-Tac-Toe / Dots & Boxes / Reversi share one generalized duel +
   challenge system (parameterized by kind), and Pong, Battleship, and Chess reuse the
@@ -59,8 +65,8 @@ Single Arduino sketch plus header-only helpers (one translation unit):
 - `ha_json.h` / `ha_proto.h` — tiny JSON reader/writer and the UART frame constants +
   CRC-8.
 
-The web app is streamed into RAM (about 39 KB gzipped), so RAM stays flat regardless of
-trivia pack size (questions are pushed one at a time, never stored in bulk).
+The web app (about 63 KB gzipped) lives in LittleFS flash, and RAM stays flat regardless
+of trivia pack size (questions are pushed one at a time, never stored in bulk).
 
 ## Flipper app (`flipper/hotspot-arcade/`)
 
