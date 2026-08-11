@@ -138,6 +138,15 @@ Reaction Duel, Guess the Color), Draw &amp; Guess, and a real-time Pong (animate
   <img src="docs/img/web-pong.gif" alt="Pong: real-time 1v1 rally with on-screen paddle controls" width="19%">
 </p>
 
+The social-deduction and party batch (Fill the Blank, Werewolf, Spyfall, Draw a Monster):
+
+<p align="center">
+  <img src="docs/img/web-fillblank.gif" alt="Fill the Blank: a prompt with a gap, a hand of answer cards, and the reveal naming every card" width="19%">
+  <img src="docs/img/web-werewolf.gif" alt="Werewolf: the werewolf picks a night victim, then the village votes a wolf out at dusk" width="19%">
+  <img src="docs/img/web-spyfall.gif" alt="Spyfall: the spy's card, the questioning options, and the reveal after the spy calls the location" width="19%">
+  <img src="docs/img/web-frankendraw.gif" alt="Draw a Monster: draw a head, carry on from the sliver, and the assembled creature reveal" width="19%">
+</p>
+
 The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi, Battleship, Chess):
 
 <p align="center">
