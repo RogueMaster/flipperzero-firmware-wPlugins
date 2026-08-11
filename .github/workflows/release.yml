@@ -1,0 +1,64 @@
+name: Release builds
+
+# One source, three firmwares. Fires when a release is published, builds the
+# app against each firmware's latest stable SDK and attaches the three .fap
+# files to that release.
+#
+# fail-fast is off on purpose: if Momentum's SDK moves and stops building, the
+# other two should still reach the release page. A missing file is visible;
+# three missing files because one broke is a wasted release.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build and attach to (e.g. v0.7.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Official firmware: ufbt's default index, so no URL to give it.
+          - firmware: official
+            index-url: ""
+          - firmware: unleashed
+            index-url: https://up.unleashedflip.com/directory.json
+          - firmware: momentum
+            index-url: https://up.momentum-fw.dev/firmware/directory.json
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+
+      - name: Build
+        id: build
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
+        with:
+          app-dir: fake_chip_detector
+          # release, never dev: what ships has to match what people are running.
+          sdk-channel: release
+          sdk-index-url: ${{ matrix.index-url }}
+
+      - name: Name it after the firmware it is for
+        run: |
+          set -eu
+          fap=$(find "${{ steps.build.outputs.fap-dir }}" -maxdepth 1 -name '*.fap' | head -1)
+          test -n "$fap"
+          cp "$fap" "fake_chip_detector-${{ matrix.firmware }}.fap"
+          echo "API ${{ steps.build.outputs.api-version }} -> fake_chip_detector-${{ matrix.firmware }}.fap"
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+        run: gh release upload "$TAG" "fake_chip_detector-${{ matrix.firmware }}.fap" --clobber
