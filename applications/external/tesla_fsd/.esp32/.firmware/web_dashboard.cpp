@@ -524,6 +524,28 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     </select>
   </div>
   <div class="row" style="display:block">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="lbl">Track Mode (experimental)<br><small style="color:var(--muted)">Experimental &mdash; Vehicle-bus; not car-validated. Defaults to rear-biased (rotation 100) + 30% stability &mdash; fun with a safety margin. Raise stability for stock feel.</small></span>
+      <label class="sw"><input type="checkbox" id="swTrkMode" onchange="cmd('track_mode_inject',this.checked)"><span class="sl2"></span></label>
+    </div>
+    <div style="margin-top:8px">
+      <label style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>Handling Balance <small>(stable &rarr; rotation)</small></span><span id="trkRotV">100</span></label>
+      <input type="range" id="trkRot" min="0" max="100" style="width:100%" oninput="document.getElementById('trkRotV').textContent=this.value" onchange="cmd('track_rotation_pct',parseInt(this.value,10))">
+    </div>
+    <div style="margin-top:6px">
+      <label style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>Stability Assist</span><span id="trkStabV">30</span></label>
+      <input type="range" id="trkStab" min="0" max="100" style="width:100%" oninput="document.getElementById('trkStabV').textContent=this.value" onchange="cmd('track_stability_pct',parseInt(this.value,10))">
+    </div>
+    <div class="row" style="padding:6px 0 0">
+      <span class="lbl">Post-drive Cooling</span>
+      <label class="sw"><input type="checkbox" id="swTrkPC" onchange="cmd('track_post_cooling',this.checked)"><span class="sl2"></span></label>
+    </div>
+    <div class="row" style="padding:0">
+      <span class="lbl">Compressor Overclock<br><small style="color:var(--muted)">max cooling</small></span>
+      <label class="sw"><input type="checkbox" id="swTrkCO" onchange="cmd('track_cmp_overclock',this.checked)"><span class="sl2"></span></label>
+    </div>
+  </div>
+  <div class="row" style="display:block">
     <div id="pmSuggest" style="display:none;margin:0 0 8px;padding:8px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--card2)">
       <div style="font-size:12px;color:var(--text)">Looks like variant <b id="pmName">?</b> &mdash; the standard parser can't read AP-state on this bus.</div>
       <button type="button" id="pmApply" onclick="pmApply()" style="margin-top:6px;background:var(--accent);color:#000;border:0;padding:6px 12px;border-radius:4px;cursor:pointer">Apply this profile</button>
@@ -990,6 +1012,11 @@ function upd(d){
   if(document.getElementById('swTelOff')) document.getElementById('swTelOff').checked=d.assist_telemetry_off;
   var apmv3Sel=document.getElementById('selApmv3');
   if(apmv3Sel && d.apmv3_branch!==undefined && document.activeElement!==apmv3Sel) apmv3Sel.value=String(d.apmv3_branch);
+  if(document.getElementById('swTrkMode')) document.getElementById('swTrkMode').checked=d.track_mode_inject;
+  if(document.getElementById('trkRot')&&document.activeElement.id!=='trkRot'&&d.track_rotation_pct!==undefined){document.getElementById('trkRot').value=d.track_rotation_pct;var _tr=document.getElementById('trkRotV');if(_tr)_tr.textContent=d.track_rotation_pct;}
+  if(document.getElementById('trkStab')&&document.activeElement.id!=='trkStab'&&d.track_stability_pct!==undefined){document.getElementById('trkStab').value=d.track_stability_pct;var _ts=document.getElementById('trkStabV');if(_ts)_ts.textContent=d.track_stability_pct;}
+  if(document.getElementById('swTrkPC')) document.getElementById('swTrkPC').checked=d.track_post_cooling;
+  if(document.getElementById('swTrkCO')) document.getElementById('swTrkCO').checked=d.track_cmp_overclock;
   if(document.getElementById('swDisp')) document.getElementById('swDisp').checked=!!d.display_enabled;
   if(document.activeElement.id!=='dispBr' && document.getElementById('dispBr'))
     document.getElementById('dispBr').value=d.display_brightness||50;
@@ -1580,6 +1607,11 @@ static String build_json() {
     j += "\"assist_rhd_override\":"; j += state.assist_rhd_override      ? "true" : "false"; j += ',';
     j += "\"assist_telemetry_off\":"; j += state.assist_telemetry_off    ? "true" : "false"; j += ',';
     j += "\"apmv3_branch\":";  j += (int)state.apmv3_branch;             j += ',';
+    j += "\"track_mode_inject\":"; j += state.track_mode_inject         ? "true" : "false"; j += ',';
+    j += "\"track_rotation_pct\":";  j += (int)state.track_rotation_pct;   j += ',';
+    j += "\"track_stability_pct\":"; j += (int)state.track_stability_pct;  j += ',';
+    j += "\"track_post_cooling\":"; j += state.track_post_cooling        ? "true" : "false"; j += ',';
+    j += "\"track_cmp_overclock\":"; j += state.track_cmp_overclock       ? "true" : "false"; j += ',';
     j += "\"firmware_14x_warning\":"; j += state.firmware_14x_warning  ? "true" : "false"; j += ',';
 #if defined(BOARD_TTGO_DISPLAY)
     j += "\"display_enabled\":"; j += state.display_enabled             ? "true" : "false"; j += ',';
@@ -2074,6 +2106,68 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] AP Branch/Tier: %d\n", want);
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_mode_inject\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->track_mode_inject = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Mode inject: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_rotation_pct\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            uint8_t val = (uint8_t)atoi(vptr);
+            if (val > 100) val = 100;
+            FSDState saved;
+            state_enter();
+            g_state->track_rotation_pct = val;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Handling Balance: %u\n", val);
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_stability_pct\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            uint8_t val = (uint8_t)atoi(vptr);
+            if (val > 100) val = 100;
+            FSDState saved;
+            state_enter();
+            g_state->track_stability_pct = val;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Stability Assist: %u\n", val);
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_post_cooling\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->track_post_cooling = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Post-drive Cooling: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_cmp_overclock\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->track_cmp_overclock = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Compressor Overclock: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     } else if (strstr(buf, "\"dump\"")) {

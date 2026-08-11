@@ -410,7 +410,8 @@ static int32_t fsd_running_worker(void* context) {
                     }
                 }
 
-                // Track Mode inject (Service mode only, 0x313)
+                // Track Mode inject (0x313) — adjustable balance/stability/cooling,
+                // gated by the master opt-in inside the handler
                 if(frame.canId == CAN_ID_TRACK_MODE_SET) {
                     if(fsd_handle_track_mode_inject(&state, &frame) && tx_allowed) {
                         send_can_frame(mcp, &frame);

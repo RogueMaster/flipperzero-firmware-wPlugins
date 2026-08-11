@@ -37,6 +37,11 @@ void prefs_load(FSDState *state) {
     state->bms_output               = g_prefs.getBool("bms",    false);
     state->firmware_14x_warning     = g_prefs.getBool("14x",    true);
     state->blackbox_enabled         = g_prefs.getBool("bbx",    BLACKBOX_DEFAULT_ENABLED);
+    state->track_mode_inject        = g_prefs.getBool("tmInj",  false);
+    state->track_rotation_pct       = g_prefs.getUChar("tmRot", 100);
+    state->track_stability_pct      = g_prefs.getUChar("tmStab", 30);
+    state->track_post_cooling       = g_prefs.getBool("tmPC",   false);
+    state->track_cmp_overclock      = g_prefs.getBool("tmCO",   false);
 #if defined(BOARD_TTGO_DISPLAY)
     state->display_enabled          = g_prefs.getBool("disp",   true);
     state->display_brightness       = g_prefs.getUChar("disp_br", 50);
@@ -67,11 +72,13 @@ void prefs_load(FSDState *state) {
     state->cfg_steer_hi      = g_prefs.getUChar("cshi",   1);
     state->cfg_steer_lo      = g_prefs.getUChar("cslo",   0);
 
-    Serial.printf("[NVS] Loaded: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d RHD=%d TelOff=%d APMv3=%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
+    Serial.printf("[NVS] Loaded: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
                   state->fsd_unlock, state->nag_killer, state->continuous_ap, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime, state->summon_unlock,
                   state->continue_on_green, state->assist_rhd_override, state->assist_telemetry_off,
-                  state->apmv3_branch, state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
+                  state->apmv3_branch, state->track_mode_inject, state->track_rotation_pct,
+                  state->track_stability_pct, state->track_post_cooling, state->track_cmp_overclock,
+                  state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
                   state->wifi_hidden);
     g_prefs.end();
 }
@@ -111,6 +118,11 @@ void prefs_save(const FSDState *state) {
     g_prefs.putBool("bms",    state->bms_output);
     g_prefs.putBool("14x",    state->firmware_14x_warning);
     g_prefs.putBool("bbx",    state->blackbox_enabled);
+    g_prefs.putBool("tmInj",  state->track_mode_inject);
+    g_prefs.putUChar("tmRot", state->track_rotation_pct);
+    g_prefs.putUChar("tmStab",state->track_stability_pct);
+    g_prefs.putBool("tmPC",   state->track_post_cooling);
+    g_prefs.putBool("tmCO",   state->track_cmp_overclock);
 #if defined(BOARD_TTGO_DISPLAY)
     g_prefs.putBool("disp",   state->display_enabled);
     g_prefs.putUChar("disp_br", state->display_brightness);
@@ -140,11 +152,13 @@ void prefs_save(const FSDState *state) {
     g_prefs.putUChar("cshi",  state->cfg_steer_hi);
     g_prefs.putUChar("cslo",  state->cfg_steer_lo);
 
-    Serial.printf("[NVS] Saved: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d RHD=%d TelOff=%d APMv3=%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
+    Serial.printf("[NVS] Saved: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
                   state->fsd_unlock, state->nag_killer, state->continuous_ap, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime, state->summon_unlock,
                   state->continue_on_green, state->assist_rhd_override, state->assist_telemetry_off,
-                  state->apmv3_branch, state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
+                  state->apmv3_branch, state->track_mode_inject, state->track_rotation_pct,
+                  state->track_stability_pct, state->track_post_cooling, state->track_cmp_overclock,
+                  state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
                   state->wifi_hidden);
     g_prefs.end();
 }

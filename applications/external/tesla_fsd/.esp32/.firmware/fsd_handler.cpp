@@ -50,6 +50,11 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->apmv3_branch         = 0xFF;      // opt-in AP branch/tier selector, default OFF (0xFF sentinel)
     state->continue_on_green    = false;    // opt-in Continue on Green, default OFF
     state->assist_rhd_override  = false;    // opt-in RHD driving-side override, default OFF
+    state->track_mode_inject    = false;    // Track Mode inject master opt-in, default OFF
+    state->track_rotation_pct   = 100;      // full rotation = rear-biased / RWD-like
+    state->track_stability_pct  = 30;       // 30% keeps a safety margin but lets it move
+    state->track_post_cooling   = false;
+    state->track_cmp_overclock  = false;
     state->fsd_unlock           = false;
     state->force_fsd            = false;
     state->china_mode           = false;
@@ -231,6 +236,36 @@ bool fsd_handle_driver_assist_override(FSDState *state, CanFrame *frame) {
         modified = true;
     }
     return modified;
+}
+
+// ── Track Mode inject (UI_trackModeSettings 0x313) ───────────────────────────
+// Adjustable Track Mode via the car's own 0x313 broadcast: request ON + handling
+// balance / stability assist / cooling, then recompute the additive checksum.
+// The byte6 counter is left untouched (we modify the car's own frame in place).
+// Master opt-in only; not gated on trim or the read-back 0x118 state, because the
+// enable request works on non-Performance trims too.
+// Source: joshwardell/model3dbc UI_trackModeSettings (frame 787).
+//   byte0 bits1:0 = UI_trackModeRequest (0 IDLE / 1 ON / 2 OFF)
+//   byte1 = UI_trackRotationTendency, factor 0.5 (raw = pct*2, 0..200)
+//   byte2 = UI_trackStabilityAssist,  factor 0.5 (raw = pct*2, 0..200)
+//   byte3 bit0 = UI_trackPostCooling (bit24), bit1 = UI_trackCmpOverclock (bit25)
+//   byte7 = UI_trackModeSettingsChecksum = additive checksum over bytes 0..6
+static uint8_t track_pct_to_raw(uint8_t pct) {
+    if (pct > 100) pct = 100;   // clamp 0..100
+    return (uint8_t)(pct * 2);  // factor 0.5 -> raw 0..200
+}
+
+bool fsd_handle_track_mode_inject(FSDState *state, CanFrame *frame) {
+    if (!state->track_mode_inject) return false;
+    if (frame->dlc < 8) return false;
+
+    frame->data[0] = (uint8_t)((frame->data[0] & 0xFC) | 0x01);      // UI_trackModeRequest = ON
+    frame->data[1] = track_pct_to_raw(state->track_rotation_pct);    // UI_trackRotationTendency
+    frame->data[2] = track_pct_to_raw(state->track_stability_pct);   // UI_trackStabilityAssist
+    set_bit(frame, 24, state->track_post_cooling);                   // UI_trackPostCooling (byte3 bit0)
+    set_bit(frame, 25, state->track_cmp_overclock);                  // UI_trackCmpOverclock (byte3 bit1)
+    frame->data[7] = tesla_additive_checksum(CAN_ID_TRACK_MODE_SET, frame->data, 7);
+    return true;
 }
 
 // ── HW3/HW4 autopilot control (DAS_autopilotControl 0x3FD) ───────────────────

@@ -396,8 +396,7 @@ static void test_tlssc_restore(void) {
 static void test_track_mode_crc(void) {
     FSDState s;
     memset(&s, 0, sizeof(s));
-    s.op_mode = OpMode_Service; // gated behind Service mode
-    s.track_mode_state = 2; // user toggled
+    s.track_mode_inject = true; // master opt-in
     CANFRAME f;
     zero(&f);
     f.data_lenght = 8;
@@ -417,12 +416,52 @@ static void test_track_mode_crc(void) {
         f.buffer[7],
         (uint8_t)(sum & 0xFF));
 
-    // Service-mode gate: not in Service -> no-op
-    s.op_mode = OpMode_Active;
+    // Master-toggle gate: inject off -> no-op
+    s.track_mode_inject = false;
     CANFRAME g;
     zero(&g);
     g.data_lenght = 8;
-    CHECK(fsd_handle_track_mode_inject(&s, &g) == false, "track-mode gated outside Service");
+    CHECK(fsd_handle_track_mode_inject(&s, &g) == false, "track-mode gated when inject off");
+}
+
+// ── 0x313 adjustable balance / stability / cooling ────────────────────────────
+static void test_track_mode_adjust(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    s.track_mode_inject = true;
+    s.track_rotation_pct = 40; // -> raw 80
+    s.track_stability_pct = 80; // -> raw 160
+    s.track_post_cooling = true; // byte3 bit0 set
+    s.track_cmp_overclock = false; // byte3 bit1 clear
+
+    CANFRAME f;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[3] = 0xF0; // upper nibble must survive the bit0/bit1 write
+
+    CHECK(fsd_handle_track_mode_inject(&s, &f), "track-adjust reports modified");
+    CHECK((f.buffer[0] & 0x03) == 0x01, "track-adjust request ON");
+    CHECK(f.buffer[1] == 80, "track-adjust rotation raw got %u exp 80", f.buffer[1]);
+    CHECK(f.buffer[2] == 160, "track-adjust stability raw got %u exp 160", f.buffer[2]);
+    CHECK((f.buffer[3] & 0x01) == 0x01, "track-adjust post-cooling bit set");
+    CHECK((f.buffer[3] & 0x02) == 0x00, "track-adjust overclock bit clear");
+    CHECK((f.buffer[3] & 0xF0) == 0xF0, "track-adjust preserves byte3 upper bits");
+    CHECK(
+        f.buffer[7] == tesla_additive_checksum(0x313, f.buffer, 7),
+        "track-adjust checksum got 0x%02X",
+        f.buffer[7]);
+
+    // inject off -> false, frame unchanged
+    FSDState s2;
+    memset(&s2, 0, sizeof(s2));
+    s2.track_mode_inject = false;
+    CANFRAME g;
+    zero(&g);
+    g.data_lenght = 8;
+    g.buffer[0] = 0xAA;
+    g.buffer[1] = 0xBB;
+    CHECK(fsd_handle_track_mode_inject(&s2, &g) == false, "track-adjust off -> no-op");
+    CHECK(g.buffer[0] == 0xAA && g.buffer[1] == 0xBB, "track-adjust off leaves frame unchanged");
 }
 
 // ── 0x249 SCCM_leftStalk builders + CRC ───────────────────────────────────────
@@ -2368,6 +2407,7 @@ int main(void) {
     test_di_speed();
     test_tlssc_restore();
     test_track_mode_crc();
+    test_track_mode_adjust();
     test_sccm_crc();
     test_nag_killer();
     test_nag_killer_faithful();

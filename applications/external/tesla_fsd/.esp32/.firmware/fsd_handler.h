@@ -109,6 +109,12 @@ void fsd_handle_follow_distance(FSDState *state, const CanFrame *frame);
  *  Returns true if frame was modified and should be re-sent. */
 bool fsd_handle_driver_assist_override(FSDState *state, CanFrame *frame);
 
+/** Modify UI_trackModeSettings (0x313) — adjustable Track Mode inject. Sets the
+ *  request ON plus handling balance / stability / cooling and recomputes the
+ *  additive checksum. Master opt-in (state->track_mode_inject). The byte6 counter
+ *  is left untouched. Returns true if the frame was modified and should be re-sent. */
+bool fsd_handle_track_mode_inject(FSDState *state, CanFrame *frame);
+
 /** Modify DAS_autopilotControl (0x3FD) for HW3/HW4.
  *  Returns true if frame was modified and should be re-sent. */
 bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame);

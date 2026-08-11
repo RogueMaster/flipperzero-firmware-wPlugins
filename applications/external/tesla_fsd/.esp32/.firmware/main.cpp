@@ -1381,6 +1381,17 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         return;
     }
 
+    // Track Mode inject (0x313) — adjustable balance/stability/cooling on the
+    // car's own UI_trackModeSettings broadcast (master opt-in inside the handler).
+    if (frame.id == CAN_ID_TRACK_MODE_SET) {
+        CanFrame f = frame;
+        state_enter();
+        bool modified = fsd_handle_track_mode_inject(&g_state, &f);
+        state_exit();
+        if (modified && tx) send_on_bus(bus, f);
+        return;
+    }
+
     // HW3/HW4 autopilot control (0x3FD) — main FSD activation frame
     if (frame.id == CAN_ID_AP_CONTROL) {
         CanFrame f = frame;
