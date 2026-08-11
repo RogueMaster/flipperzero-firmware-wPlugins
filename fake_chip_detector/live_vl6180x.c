@@ -15,6 +15,8 @@
 #define VL6180X_RESULT_INTERRUPT_STATUS_GPIO 0x004F
 #define VL6180X_RESULT_RANGE_VAL 0x0062
 
+// The reset value of IDENTIFICATION__MODEL_ID in the same section 6.2 table:
+// a VL6180X reads 0xB4 there, and nothing else this app knows about does.
 #define VL6180X_MODEL_ID_VALUE 0xB4
 
 // SYSRANGE__START bit 1 selects the mode (0 = single-shot) and bit 0 is the

@@ -19,6 +19,14 @@
 // and D/C# in bit 6. With both clear, every byte to the STOP is a command.
 #define SSD1306_CTRL_COMMAND_STREAM 0x00
 
+// The fundamental command table, same datasheet. AE puts the panel to sleep
+// and AF wakes it; A4 resumes showing the contents of display RAM and A5
+// forces every pixel on regardless of what is in RAM.
+//
+// The blink below uses AE/AF and not A5, deliberately: A5 lights every pixel,
+// which is the peak-current case described at ssd1306_wake, and on long jumper
+// wires that can brown the panel out and imitate the very failure being
+// tested for.
 #define SSD1306_DISPLAY_OFF 0xAE
 #define SSD1306_DISPLAY_ON 0xAF
 #define SSD1306_DISPLAY_FROM_RAM 0xA4

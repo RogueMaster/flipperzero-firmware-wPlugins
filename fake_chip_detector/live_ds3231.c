@@ -32,12 +32,21 @@
 // three consecutive increments of exactly one cannot be.
 #define DS3231_PROOF_TICKS 3
 
+// Bit layout of the timekeeping registers, from the same map (Figure 1, page
+// 11) and the text describing it on page 12. Seconds and minutes occupy bits
+// 6:0, so bit 7 is masked off rather than trusted. In the hours register bit 6
+// selects 12-hour mode; bit 5 is AM/PM there (high = PM) and the second
+// 10-hour bit (20-23) in 24-hour mode, which is why the same 0x20 appears
+// twice below under two names — see ds3231_decode_hour.
 #define DS3231_SECONDS_MASK 0x7F
 #define DS3231_MINUTES_MASK 0x7F
 #define DS3231_HOUR_12H_BIT 0x40
 #define DS3231_HOUR_PM_BIT 0x20
 #define DS3231_HOUR_10_BIT 0x10
 #define DS3231_HOUR_20_BIT 0x20
+
+// Every value in these registers is BCD (page 11), so the low nibble is the
+// units digit and the high nibble the tens.
 #define DS3231_BCD_UNITS_MASK 0x0F
 
 static void ds3231_delay(const volatile bool* stop, uint32_t ms) {

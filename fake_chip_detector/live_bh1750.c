@@ -37,6 +37,9 @@
 // under any lit room and well over the documented dark maximum.
 #define BH1750_LIGHT_MIN_COUNTS 30
 
+// Not from the datasheet: these are just the two rungs of this test's own
+// progress ladder, shown as filled boxes and used to enforce the order —
+// light has to be seen before dark counts for anything.
 #define BH1750_STEP_SAW_LIGHT 1
 #define BH1750_STEP_SAW_DARK 2
 
