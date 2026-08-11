@@ -1,0 +1,99 @@
+Pack: ✈️ Unterwegs
+Loc: Flughafen
+R: Pilot
+R: Flugbegleiterin
+R: Gepäckarbeiter
+R: Verspäteter Passagier
+R: Sicherheitsbeamter
+R: Duty-Free-Kassiererin
+---
+Loc: Kreuzfahrtschiff
+R: Kapitän
+R: Kellner
+R: Unterhalter
+R: Seekranker Passagier
+R: Maschinist
+---
+Loc: Bahnhof
+R: Zugbegleiter
+R: Fahrkartenkontrolleur
+R: Straßenmusiker
+R: Pendler
+R: Ansagerin
+---
+Loc: Skigebiet
+R: Skilehrer
+R: Liftwärter
+R: Anfänger am Übungshang
+R: Bergwacht
+R: Glühweinverkäufer
+---
+Loc: Wüstenkarawane
+R: Kameltreiber
+R: Führer
+R: Koch
+R: Verirrter Tourist
+R: Händler
+---
+Loc: Safari-Jeep
+R: Ranger
+R: Fotograf
+R: Fahrer
+R: Vogelbeobachter
+R: Nervöser Tourist
+---
+Loc: Hotel
+R: Rezeptionist
+R: Zimmermädchen
+R: Concierge
+R: Gast im Bademantel
+R: Page
+---
+Loc: Campingplatz
+R: Pfadfinderleiter
+R: Camper
+R: Marshmallow-Röster
+R: Parkwächter
+R: Wer die Zeltstangen vergessen hat
+---
+Loc: Leuchtturm
+R: Leuchtturmwärter
+R: Funker
+R: Inspektor auf Besuch
+R: Seevogelforscher
+R: Schiffbrüchiger
+---
+Loc: U-Boot
+R: Kapitän
+R: Sonaroperator
+R: Koch
+R: Maschinist
+R: Nervöser Neuling
+---
+Loc: Raumstation
+R: Kommandant
+R: Wissenschaftlerin
+R: Techniker
+R: Weltraumtourist
+R: Stimme aus der Bodenkontrolle
+---
+Loc: Autobahnraststätte
+R: Kassiererin
+R: Lastwagenfahrer
+R: Familie auf langer Fahrt
+R: Reinigungskraft
+R: Kaffeemaschinen-Techniker
+---
+Loc: Berghütte
+R: Hüttenwirt
+R: Wanderer
+R: Bergführer
+R: Lawinenhundeführer
+R: Koch
+---
+Loc: Fähre
+R: Kapitän
+R: Matrose
+R: Kartenverkäufer
+R: Passagier im Autodeck
+R: Bordbistro-Kraft

@@ -1,0 +1,146 @@
+Pack: 👨‍👩‍👧 Familie
+P: Die größte Bedrohung der Menschheit 2026 ist _____.
+---
+P: Mein Smart Home streikt, bis ich mich entschuldige für _____.
+---
+P: _____ hat das Familienessen ruiniert.
+---
+P: Die KI-Assistentin empfiehlt mir ständig _____.
+---
+P: Omas Geheimzutat war am Ende _____.
+---
+P: Der wahre Grund, warum das WLAN weg ist: _____.
+---
+P: Mein E-Auto springt nicht an wegen _____.
+---
+P: Das Schultheaterstück heißt dieses Jahr "Die Sage von _____".
+---
+P: Keiner hat damit gerechnet, dass der Gruppenchat endet mit _____.
+---
+P: Der Saugroboter hat jetzt Angst vor _____.
+---
+P: _____ ist das neue Zeichen dafür, dass man alt wird.
+---
+P: Unser Urlaubsfoto wurde ruiniert von _____.
+---
+P: Im Januar ist das Fitnessstudio voll wegen _____.
+---
+P: _____ sollte am Frühstückstisch verboten sein.
+---
+P: Die Autokorrektur macht aus meinem Namen dauernd _____.
+---
+P: Die Lieferdrohne hat _____ in den Nachbarpool fallen lassen.
+---
+P: Papas Midlife-Crisis kam in Form von _____.
+---
+P: Wegen _____ können wir keine schönen Dinge haben.
+---
+P: Der Teambuilding-Tag endete in _____.
+---
+P: Die nächste überraschende Erfolgsdoku handelt von _____.
+---
+P: _____ erklärt endlich den Geruch im Kühlschrank.
+---
+P: Irgendwann lernen Kinder in der Schule, dass _____.
+---
+A: eine KI, die nur in Emojis spricht
+---
+A: Elon Musk, der es schon wieder umbenennt
+---
+A: ein selbstfahrendes Auto mit klarer Meinung
+---
+A: Taylor Swift, die ein Lied darüber schreibt
+---
+A: ein Saugroboter mit Gefühlen
+---
+A: der Gruppenchat, aus dem keiner rauskommt
+---
+A: Greta Thunbergs enttäuschter Blick
+---
+A: ein Kühlschrank, der selbst Snacks bestellt
+---
+A: Papas Playlist
+---
+A: vierhundert ungelesene E-Mails
+---
+A: Cristiano Ronaldos Bauchmuskeln
+---
+A: ein Drucker, der nur dienstags funktioniert
+---
+A: der Geruch von verbranntem Toast
+---
+A: Mark Zuckerberg, der versucht, normal zu wirken
+---
+A: ein Sprachassistent, der alles mitgehört hat
+---
+A: Socken in Sandalen
+---
+A: eine Lieferdrohne mit Bindungsangst
+---
+A: Sam Altman, der verspricht, es sei völlig sicher
+---
+A: das letzte Stück Kuchen
+---
+A: ein sehr selbstbewusstes Kleinkind
+---
+A: eine Videokonferenz ohne Stummschaltung
+---
+A: Heidi Klum, die unangekündigt auftaucht
+---
+A: eine Rolltreppe, die seitwärts fährt
+---
+A: eine Katze auf der Tastatur
+---
+A: Bill Gates, der es sehr geduldig erklärt
+---
+A: ein Sauerteig namens Kevin
+---
+A: eine Möbel-Aufbauanleitung
+---
+A: der Laubbläser vom Nachbarn
+---
+A: ein Saugroboter voller Glitzer
+---
+A: ein Pferd im Supermarkt
+---
+A: Jeff Bezos in einer sehr kleinen Rakete
+---
+A: mein Browserverlauf
+---
+A: ein verdächtig billiger Flug
+---
+A: die Kaffeemaschine im Büro
+---
+A: eine von der KI geschriebene Hochzeitsrede
+---
+A: ein Eichhörnchen mit einem Plan
+---
+A: Dieter Bohlens ehrliche Meinung
+---
+A: ein aufblasbares Dinosaurierkostüm
+---
+A: siebenundvierzig Kundenkarten
+---
+A: der jährliche Versuch eines Familienfotos
+---
+A: ein Rauchmelder um drei Uhr nachts
+---
+A: ein E-Roller im Hausflur
+---
+A: eine Selbstbedienungskasse, die dich hasst
+---
+A: die Urlaubsbilder von jemandem
+---
+A: eine Ziege, die Türen öffnen kann
+---
+A: die Park-App
+---
+A: eine Geburtstagskerze, die nicht ausgeht
+---
+A: eine Werbung, die man nicht überspringen kann
+---
+A: ein Trampolin im Sturm
+---
+A: die letzten fünf Prozent Akku
+---
+A: die Deutsche Bahn

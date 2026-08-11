@@ -26,12 +26,13 @@ function esc(s) {
 /* Which lobby `game` string maps to which top-level screen, and its title.
    The three duels share the single "duel" screen; the duel message's `kind`
    drives the actual board. */
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets"];
+var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess", "secrets", "fillblank", "werewolf", "spyfall", "fd"];
 var GAME_SCREEN = {
   trivia: "trivia", connect4: "duel", tictactoe: "duel", dots: "duel",
   reversi: "duel", draw: "draw", pong: "pong",
   wyr: "wyr", scramble: "scramble", react: "react", gc: "gc", bs: "bs", spectrum: "spectrum", kmk: "kmk",
   chess: "chess", secrets: "secrets",
+  fillblank: "fillblank", werewolf: "werewolf", spyfall: "spyfall", frankendraw: "fd",
 };
 var GAME_LABEL = {
   trivia: "Trivia", connect4: "Connect 4", tictactoe: "Tic-Tac-Toe",
@@ -39,6 +40,8 @@ var GAME_LABEL = {
   wyr: "Would You Rather", scramble: "Word Scramble", react: "Reaction Duel",
   gc: "Guess the Color", bs: "Battleship", spectrum: "Spectrum", kmk: "Kiss Marry Kill",
   chess: "Chess", secrets: "Secrets",
+  fillblank: "Fill the Blank", werewolf: "Werewolf", spyfall: "Spyfall",
+  frankendraw: "Draw a Monster",
 };
 
 /* Show exactly one top-level screen. */
@@ -497,6 +500,17 @@ function maybeCaptive() {
 /* Core message routing. Game-specific messages hand off to registered
    handlers so the modules stay self-contained. */
 function dispatch(m) {
+  // Do NOT retire the vote overlay from here. Two attempts at that shipped broken: closing on
+  // anything that was not "gamevote" let the 2s keepalive's {t:"pong"} dismiss the prompt
+  // before it could be read, and closing on "the first real state push" made the prompt never
+  // appear on the other phones at all. Both were fixing a symptom of something else entirely
+  // (a duplicate SCREENS block that stopped the client from starting).
+  //
+  // The engine already makes this unnecessary: while a proposal is open it sends ONLY the vote
+  // (pushAll() returns early when _gvActive), so no game state can arrive mid-vote. Both
+  // outcomes then go through pushAll()'s normal path, which leads with lobbyJson() -- so
+  // onLobby() sees every resolution, approved or rejected. That is the one place that closes it.
+  notePlayerCount(m);   // the switcher greys out on the CURRENT count, not the last lobby's
   switch (m.t) {
     case "welcome":
       // The server owns identity: one phone is one player, recognised by its IP, so
@@ -638,6 +652,7 @@ function onLobby(m) {
   if (g === "none" && A.view !== "landing") route("lobby");
   else if (g !== "none" && GAME_SCREEN[g] && A.view !== "landing" && A.view !== GAME_SCREEN[g])
     route(GAME_SCREEN[g]);
+  else if (g !== "none" && A.view === "lobby" && known) route(GAME_SCREEN[g]);
 }
 
 /* Landing flow */
@@ -785,11 +800,63 @@ A.handlers.emoji = function (m) {
 // active one, then "Back to Lobby" as a separated last entry. Tapping an entry
 // proposes that switch; the ESP then pauses the active game and runs a majority
 // vote, pushing a {t:"gamevote"} overlay to every client until it resolves.
+/* What the switcher needs beyond a name. The minimums mirror the engine's own quorums
+   (FB_MIN_PLAYERS and friends) -- keep them in step, because offering a game the room is
+   too small for is exactly how "it just does not start" happens. GAME_DUEL marks the 1v1
+   games, which pair players off instead of playing as a group. */
+var GAME_MIN = { werewolf: 5, spyfall: 3, frankendraw: 3 };
+var GAME_DUEL = { connect4: 1, tictactoe: 1, dots: 1, reversi: 1, pong: 1, bs: 1, chess: 1 };
+function gameMin(name) { return GAME_MIN[name] || 2; }
+
+/* How many are in the room right now. A lobby push carries `players`; a game in progress
+   carries its roster under one of a few names, so take whichever arrived last -- the list
+   has to grey out on the CURRENT count, not the one from the last lobby. */
+A.nPlayers = 0;
+A.minOverride = false;   // host-side debug flag, echoed in the lobby push
+function notePlayerCount(m) {
+  var arr = m.players || m.p || m.scores || m.board;
+  if (arr && arr.length !== undefined) A.nPlayers = arr.length;
+  if (typeof m.minoverride === "boolean") {
+    A.minOverride = m.minoverride;
+    paintMinSwitch();
+  }
+}
+
+/* The testing switch at the bottom of the lobby. The host owns the flag -- we only ask it
+   to flip -- so two phones can never disagree about whether the minimums are off. */
+function paintMinSwitch() {
+  var b = $("test-min");
+  if (!b) return;
+  b.textContent = A.minOverride ? t("test.on") : t("test.off");
+  b.classList.toggle("on", !!A.minOverride);
+}
+
+// Small tag pill inside a switcher row: "(3+)", "1v1", or "2/5".
+function gameTag(cls, text) {
+  var sp = document.createElement("span");
+  sp.className = cls;
+  sp.textContent = text;
+  return sp;
+}
+
 function gameMenuItem(name, label, extraClass) {
   var b = document.createElement("button");
   b.type = "button";
   b.className = "game-item" + (extraClass || "");
   b.textContent = label;
+  // Say what a game needs, and refuse to offer it below that. The engine would reject the
+  // round anyway -- silently -- so the honest place to stop is here, before the vote.
+  var min = gameMin(name);
+  if (GAME_DUEL[name]) {
+    b.appendChild(gameTag("game-tag", "1v1"));
+  } else if (min > 2) {
+    b.appendChild(gameTag("game-tag", "(" + min + "+)"));
+    if (A.nPlayers < min && !A.minOverride) {
+      b.disabled = true;
+      b.classList.add("game-item-short");
+      b.appendChild(gameTag("game-tag short", A.nPlayers + "/" + min));
+    }
+  }
   b.addEventListener("click", function () {
     A.sfx("buzz"); A.vibe(12);
     send({ t: "proposeGame", game: name });
@@ -950,6 +1017,13 @@ function initApp() {
   // Screen Wake Lock sentinels are auto-released when the tab hides; re-sync
   // (and re-request) whenever visibility flips back.
   document.addEventListener("visibilitychange", syncWakeLock);
+
+  var tm = $("test-min");
+  if (tm) tm.addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(10);
+    send({ t: "minoverride", on: !A.minOverride });   // the host answers with the new state
+  });
+  paintMinSwitch();
 
   connect();
   // Keepalive; also nudges the server to resend state after a doze.

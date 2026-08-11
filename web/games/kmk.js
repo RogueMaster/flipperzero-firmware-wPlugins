@@ -51,8 +51,12 @@
       var row = document.createElement("div");
       row.className = "kmk-row";
       var lab = labels && labels[i] >= 0 ? labels[i] : -1;
+      // "tap to set" is an instruction, so only the player who can actually tap gets it.
+      // Everyone else is waiting for the chooser, and telling them to tap something that
+      // does nothing reads as a broken screen -- reported from a real table as buttons
+      // that "do not work while the other one is choosing".
       var tag = lab >= 0 ? '<span class="kmk-tag l' + lab + '">' + EMO[lab] + " " + t(LBL[lab]) + "</span>"
-                         : '<span class="kmk-tag none">' + t("kmk.tap_set") + '</span>';
+                         : '<span class="kmk-tag none">' + (interactive ? t("kmk.tap_set") : "") + '</span>';
       var extra = "";
       if (answer) {
         tag = '<span class="kmk-tag l' + answer[i] + '">' + EMO[answer[i]] + " " + t(LBL[answer[i]]) + "</span>";

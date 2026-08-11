@@ -1,0 +1,99 @@
+Pack: ✈️ On the Move
+Loc: Airport
+R: Pilot
+R: Flight attendant
+R: Baggage handler
+R: Passenger running late
+R: Security officer
+R: Duty free cashier
+---
+Loc: Cruise ship
+R: Captain
+R: Waiter
+R: Entertainer
+R: Seasick passenger
+R: Engineer
+---
+Loc: Train station
+R: Conductor
+R: Ticket inspector
+R: Busker
+R: Commuter
+R: Announcer
+---
+Loc: Ski resort
+R: Ski instructor
+R: Lift operator
+R: Beginner on the nursery slope
+R: Rescue patrol
+R: Hot chocolate seller
+---
+Loc: Desert caravan
+R: Camel driver
+R: Guide
+R: Cook
+R: Lost tourist
+R: Merchant
+---
+Loc: Safari jeep
+R: Ranger
+R: Photographer
+R: Driver
+R: Birdwatcher
+R: Nervous tourist
+---
+Loc: Hotel
+R: Receptionist
+R: Housekeeper
+R: Concierge
+R: Guest in a bathrobe
+R: Bellhop
+---
+Loc: Campsite
+R: Scout leader
+R: Camper
+R: Marshmallow toaster
+R: Park ranger
+R: Person who forgot the tent poles
+---
+Loc: Lighthouse
+R: Keeper
+R: Radio operator
+R: Visiting inspector
+R: Seabird watcher
+R: Shipwrecked sailor
+---
+Loc: Submarine
+R: Captain
+R: Sonar operator
+R: Cook
+R: Engineer
+R: Nervous new recruit
+---
+Loc: Space station
+R: Commander
+R: Scientist
+R: Engineer
+R: Space tourist
+R: Voice from mission control
+---
+Loc: Motorway services
+R: Cashier
+R: Lorry driver
+R: Family on a long drive
+R: Cleaner
+R: Coffee machine engineer
+---
+Loc: Mountain hut
+R: Hut warden
+R: Hiker
+R: Mountain guide
+R: Rescue dog handler
+R: Cook
+---
+Loc: Ferry
+R: Captain
+R: Deckhand
+R: Ticket seller
+R: Passenger stuck below deck
+R: Cafe worker

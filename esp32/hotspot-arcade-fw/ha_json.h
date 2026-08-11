@@ -7,7 +7,11 @@
 // Find `"key"` then the following `:` and return a pointer just past the colon
 // (skipping spaces), or nullptr. Only scans the top level well enough for our
 // flat objects (values are strings/ints/arrays we control).
-static inline const char* ha_json_find(const char* s, const char* key) {
+// Find the `n`-th (0-based) occurrence of `"key":` and return a pointer just past the
+// colon. Repeats matter because the Flipper's pack streamer emits one JSON pair per
+// "Key: value" line of a content block, so a block that repeats a key (Spyfall's
+// several "R:" role lines) really does arrive as a repeated key in one object.
+static inline const char* ha_json_find_nth(const char* s, const char* key, int n) {
     size_t klen = strlen(key);
     for(const char* p = s; *p; p++) {
         if(p[0] != '"') continue;
@@ -17,16 +21,22 @@ static inline const char* ha_json_find(const char* s, const char* key) {
             if(*q != ':') continue;
             q++;
             while(*q == ' ') q++;
-            return q;
+            if(n-- <= 0) return q;
         }
     }
     return nullptr;
 }
 
-// Read a string value for `key` into out (NUL-terminated, basic \" \\ unescape).
-static inline bool ha_json_str(const char* s, const char* key, char* out, size_t n) {
+static inline const char* ha_json_find(const char* s, const char* key) {
+    return ha_json_find_nth(s, key, 0);
+}
+
+// Read the `nth` (0-based) string value for `key` into out. Same unescaping as
+// ha_json_str; used to walk a content block's repeated keys in file order.
+static inline bool ha_json_str_nth(const char* s, const char* key, int nth, char* out,
+                                   size_t n) {
     out[0] = '\0';
-    const char* q = ha_json_find(s, key);
+    const char* q = ha_json_find_nth(s, key, nth);
     if(!q || *q != '"') return false;
     q++;
     size_t i = 0;
@@ -46,6 +56,11 @@ static inline bool ha_json_str(const char* s, const char* key, char* out, size_t
     }
     out[i] = '\0';
     return true;
+}
+
+// Read a string value for `key` into out (NUL-terminated, basic \" \\ unescape).
+static inline bool ha_json_str(const char* s, const char* key, char* out, size_t n) {
+    return ha_json_str_nth(s, key, 0, out, n);
 }
 
 // Read an integer value for `key`. Returns false if absent/non-numeric.

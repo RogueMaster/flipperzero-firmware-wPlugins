@@ -1,0 +1,98 @@
+Pack: ☕ Alltag
+Loc: Strand
+R: Rettungsschwimmer
+R: Surfer
+R: Eisverkäufer
+R: Sonnenbrand-Tourist
+R: Sandburgenbauer
+---
+Loc: Krankenhaus
+R: Chirurg
+R: Krankenpfleger
+R: Patient
+R: Sanitäter
+R: Empfangsdame
+---
+Loc: Schule
+R: Lehrer
+R: Schulleiter
+R: Schüler
+R: Hausmeister
+R: Busfahrer
+---
+Loc: Supermarkt
+R: Kassierer
+R: Regalauffüller
+R: Ladendetektiv
+R: Kunde mit vollem Wagen
+R: Bäcker
+---
+Loc: Kino
+R: Kartenverkäufer
+R: Filmvorführer
+R: Platzanweiser
+R: Popcornverkäufer
+R: Gelangweilter Teenager
+---
+Loc: Restaurant
+R: Koch
+R: Kellner
+R: Tellerwäscher
+R: Restaurantkritiker
+R: Geburtstagsgast
+---
+Loc: Fitnessstudio
+R: Personal Trainer
+R: Empfangskraft
+R: Gewichtheber
+R: Yogalehrerin
+R: Mitglied, das nie wiederkommt
+---
+Loc: Zoo
+R: Tierpfleger
+R: Tierarzt
+R: Kartenverkäufer
+R: Kleinkind auf Schultern
+R: Souvenirverkäufer
+---
+Loc: Bibliothek
+R: Bibliothekarin
+R: Büffelnder Student
+R: Vorleserin
+R: Mahngebühren-Zahler
+R: Regaleinräumer
+---
+Loc: Schwimmbad
+R: Bademeister
+R: Schwimmlehrer
+R: Kleinkind mit Schwimmflügeln
+R: Turmspringer
+R: Reinigungskraft
+---
+Loc: Friseursalon
+R: Friseurin
+R: Auszubildende
+R: Nervöser Erstkunde
+R: Empfangskraft
+R: Tratschende Stammkundin
+---
+Loc: Tankstelle
+R: Kassierer
+R: Lastwagenfahrer
+R: Waschstraßen-Helfer
+R: Snackkäufer
+R: Mechaniker
+---
+Loc: Freizeitpark
+R: Fahrgeschäft-Betreiber
+R: Maskottchen
+R: Wartende Familie
+R: Zuckerwatteverkäufer
+R: Sicherheitsprüfer
+---
+Loc: Postamt
+R: Schalterbeamter
+R: Postbote
+R: Kunde mit riesigem Paket
+R: Wachmann
+R: Briefmarkensammler

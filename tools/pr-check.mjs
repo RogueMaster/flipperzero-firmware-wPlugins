@@ -69,6 +69,31 @@ try {
 }
 H(bundleOk, "web/dist matches `node web/build.mjs` (decompressed)", bundleDetail);
 
+// ---- HARD: the fap's bundled web copy matches web/dist ----
+// flipper/hotspot-arcade/assets/web/ is the copy the Flipper actually streams to the ESP
+// and serves to phones -- a SEPARATE committed build output from web/dist. When it went
+// stale, a newly added game looked completely broken on hardware: the served page had no
+// screen to route to and no handler for the game's state pushes, so phones just sat in
+// the lobby forever. Mirrors the build.yml "bundled-assets" job so it fails here first.
+let webAssetOk = false, webAssetDetail = "";
+// The two copies can differ only by line endings on a CRLF checkout; compare content.
+const lf = (s) => s.split("\r").join("");
+try {
+  const dist = gunzipSync(readFileSync(REPO + "/web/dist/index.html.gz")).toString();
+  const bundled = gunzipSync(
+    readFileSync(REPO + "/flipper/hotspot-arcade/assets/web/index.html.gz")).toString();
+  const manifestSame =
+    lf(read("/web/dist/manifest.json")) === lf(read("/flipper/hotspot-arcade/assets/web/manifest.json"));
+  webAssetOk = dist === bundled && manifestSame;
+  webAssetDetail = webAssetOk ? "up to date"
+    : dist !== bundled
+      ? "assets/web/index.html.gz is stale — run `tools/build-fap.sh` (or copy web/dist/*.gz over) and commit"
+      : "assets/web/manifest.json is stale — run `tools/build-fap.sh` and commit";
+} catch (e) {
+  webAssetDetail = "could not check the bundled web asset: " + e.message.split("\n")[0];
+}
+H(webAssetOk, "flipper assets/web matches web/dist (decompressed)", webAssetDetail);
+
 // ---- HARD: i18n catalog integrity ----
 // Every t("key") the client calls must resolve in the English catalog — a missing key
 // leaks the raw key string to players. pt-BR (or any non-en) gaps are advisory: they

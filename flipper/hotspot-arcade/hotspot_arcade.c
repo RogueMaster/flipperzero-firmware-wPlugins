@@ -125,6 +125,7 @@ static HotspotArcadeApp* ha_app_alloc(void) {
 static void ha_app_free(HotspotArcadeApp* app) {
     app->closing = true;
     ha_uart_stop_rx(app->uart);
+    ha_art_abort(app); // close any SVG still being streamed
 
     // AP down: reset the ESP (its reply is ignored since RX is off).
     ha_proto_send(app->uart, HA_MSG_RESET, NULL, 0);

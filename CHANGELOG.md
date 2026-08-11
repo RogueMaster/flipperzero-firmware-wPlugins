@@ -136,6 +136,122 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
   panel stays its own phone), with `ha_ws_device()` to put two sockets on one phone. New
   headless test `sim/test/identity.mjs` covers rebind, distinct devices, the stale-socket
   disconnect, and the unknown-device fallback.
+- **Draw a Monster**, a 17th game (whole-group, id `20`, `frankendraw` internally and on
+  the wire): the exquisite-corpse drawing
+  game. Everyone starts a sheet and draws a head; the sheets rotate one seat a round so
+  the torso and the legs are drawn by two other players, and the only thing a drawer
+  ever sees of the panel above theirs is a thin overlap sliver — enforced in the
+  per-player serializer, not the client — plus a faint join mark showing roughly where
+  the neck or the hips should land. Everyone draws at once behind a 75-second timer that
+  ends early once all have tapped Next. Undo and Next sit above the canvas with an ink
+  bar between them, so the controls can never be scrolled out of reach and a panel
+  running out of its segment budget is visible before it happens. The finished creatures
+  then walk past one at a time, five seconds each, with a name label on every band and
+  thumbs-up / thumbs-down buttons whose counts the whole room watches move live; the best
+  net score wins, is shown again as the finale, and pays its three drawers. Needs three
+  players; no content packs. Firmware **v20**.
+- A **finished-artwork sink** (`haUartArt`) and its UART report `ART` (`0x87`): a
+  completed sheet is streamed to the host as begin / one frame per line segment / end,
+  so neither the ESP nor the Flipper ever buffers a drawing. The Flipper writes each
+  sheet straight out as an **SVG** under `/ext/apps_data/hotspot_arcade/art/`, one file
+  per creature, named so a session's set groups together.
+
+## [Unreleased]
+
+### Added
+
+- **Fill the Blank**, a 17th game (whole-group). A prompt card with a blank goes up and
+  everyone except the rotating Czar plays one answer card from their hand, face down — the
+  card stays put, marked as the one you chose, with the rest of the hand greyed out and
+  unselectable. The played cards come back shuffled and anonymous, and the Czar picks the
+  funniest. Six rounds, then the usual podium. Hands refill each round and used cards are
+  reshuffled back into the draw pile, so a long game never runs out. Inspired by Cards
+  Against Humanity — the cards shipped with it are original, written for this project,
+  and there is no affiliation with that game. Content comes from the new `fillblank`
+  packs (a `P:` block is a prompt card, an `A:` block an answer card). Ships with English
+  and German phone UI. Firmware **v19**.
+
+  Two things make the judging more than a formality. Every round shuffles in **one extra
+  answer card drawn at random from the deck**, judged blind next to the players' cards and
+  indistinguishable from them until the pick — and if the Czar picks it, **nobody scores**,
+  because the deck beat the room. And the Czar **also scores 1** when they land on a real
+  player's card, so judging well is worth something instead of being an arbitrary tap.
+
+  The reveal then names everyone: every card is shown with the player who played it (the
+  deck's card labelled as the deck's), with the winning card called out and its +1. Nothing
+  about authorship reaches any client before the Czar has chosen — not the names, and not
+  which card the deck contributed.
+
+## [Unreleased]
+
+### Fixed
+
+- **`flipper/hotspot-arcade/assets/web/` was left stale**, which made Werewolf look like it
+  did not exist: that directory (not `web/dist/`) is what the Flipper streams to the ESP and
+  serves to phones, so the room got the pre-Werewolf page. It had no `werewolf` entry in
+  `GAME_SCREEN`, and the lobby's route guard is `... && GAME_SCREEN[g]`, so selecting the
+  game routed nowhere and its state pushes hit `dispatch()` with no registered handler —
+  phones sat in the lobby forever with no error. Refreshed, and the trap is now closed from
+  three sides: `tools/pr-check.mjs` gained a HARD check mirroring the `bundled-assets` CI
+  job, CONTRIBUTING says to copy the bundle over, and the phone now says "the host picked
+  <game>, which this page does not have" instead of silently doing nothing when the board
+  offers a game the served page has never heard of.
+- The Werewolf lobby now always states why it is waiting — "Needs 5 players, 3 here", or
+  "2 of 6 still to tap ready". A silent lobby is indistinguishable from a broken game, which
+  is how a below-quorum room would have been reported next.
+
+### Added
+
+- **Werewolf**, a 16th game (whole-group party). The phones are the referee, not a chat
+  client: they deal the secret roles — about one werewolf per four players, one seer, one
+  doctor from six players up, the rest villagers — and run the night/day clock, while the
+  deduction happens out loud in the room. Night (a fixed 60s): the werewolves converge on a
+  victim, the seer privately checks one player, and the doctor shields one, which makes the
+  attack fail. Day (60s + 20s per living player, 90–240s): the outcome is announced with
+  the dead player's role, then the village votes someone out — early on a majority hammer,
+  and a tied vote hangs nobody. Villagers win when the last wolf is gone, werewolves when
+  they are no longer outnumbered; every player still alive on the winning side scores 1.
+  Needs five players; no content packs. Ships localized in English and German. Firmware
+  **v19** (game id `18`; 16 is Secrets, already on master, and 17 is claimed by a game on
+  another open branch — so this one is trivially renumbered down to 17 if that one is
+  dropped or lands after it).
+
+  Secrecy is enforced server-side: the per-player serializer only tells a phone what it is
+  entitled to know, so a role never appears in another player's payload before a legitimate
+  reveal (death or game end), and the seer's reading, the doctor's shield and the pack's
+  tally are gated the same way. The night is deliberately a *fixed* window — a night that
+  ended as soon as every special had acted would tell the room how many are still alive —
+  and nothing is ever announced about a player failing to act. The pack's tally is pushed
+  live on every tap, because players are in the same room and the phone is the wolves' only
+  way to coordinate. At six players or fewer the first night takes nobody, so a small table
+  does not collapse to four players before anyone has learned anything.
+
+## [Unreleased]
+
+### Added
+
+- **Spyfall**, a 16th game (whole-group). Everyone at the table shares a secret location
+  and holds a role there; one player is the spy and is told neither, seeing only the list
+  of possible locations. The round is driven by players pressing things, not by a clock:
+  read your card and tap OK (the six minutes only start once every phone has, so nobody is
+  still reading when the questioning begins), then **Show my card** reveals it again only
+  while the button is held down. At any moment **I know the spy** (open to every player
+  including the spy, as cover) ends the round if it lands, or spends that player's one
+  accusation for the round if it misses; **I know the location** is the spy's gamble.
+  Running the clock out does not end the round -- the table goes round one seat at a time
+  nominating a suspect, and a nomination only stands if as many players back it as there
+  are non-spies. If every seat nominates in vain the spy wins. Four rounds with a rotating
+  spy, then the usual podium. Every outcome is worth exactly 1 point, so the shared
+  leaderboard stays flat. Minimum three players. Firmware **v18**.
+- **Spyfall content packs**: three English (`Everyday`, `On the Move`, `Backstage`) and
+  the same three in German, 14 locations each with five or six roles apiece. The pack
+  format extends the generic `Key: value` grammar with a `Loc:` line followed by one `R:`
+  line per role.
+- `ha_json_str_nth()` / `ha_json_find_nth()` in the ESP's JSON helpers, for content blocks
+  that legitimately repeat a key (the Flipper streams one JSON pair per source line, so
+  Spyfall's several `R:` lines arrive as the same key repeated).
+- `spyfall` joins the Flipper's `EVENT` key chain, so a missed accusation shows up in the
+  host console (the same seam Battleship was once silently missing from).
 
 ## [1.6.0] - 2026-08-03
 

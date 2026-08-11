@@ -1,6 +1,6 @@
 // Hosts the REAL engine (esp32/hotspot-arcade-fw/ha_games.h) off-target.
 //
-// The engine reaches the outside world only through 7 sink functions, which the
+// The engine reaches the outside world only through 9 sink functions, which the
 // firmware implements against AsyncWebServer and the UART. Here they append to an
 // outbox queue instead, and ha_drain() hands it to the harness as JSON. That queue
 // is the fidelity boundary: it carries exactly what the firmware would have sent.
@@ -47,7 +47,7 @@ static std::string esc(const char* s) {
     return o;
 }
 
-// --- the 7 sinks ---------------------------------------------------------------
+// --- the 9 sinks ---------------------------------------------------------------
 // msg/json arguments are already valid JSON objects, so they are spliced in raw
 // rather than escaped into a string. That keeps the drained payload directly
 // usable as structured data on the JS side.
@@ -95,6 +95,15 @@ void haLogJoin(uint8_t pid, uint64_t deviceKey, const char* nick, bool consolida
         std::string("{\"to\":\"log\",\"kind\":\"") + (consolidated ? "consolidated" : "join") +
         "\",\"pid\":" + std::to_string(pid) + ",\"device\":" + std::to_string(deviceKey) +
         ",\"nick\":\"" + esc(nick) + "\"}");
+}
+
+// The 9th sink: a finished Frankendraw sheet, streamed as begin / one frame per line
+// segment / end. On hardware the Flipper turns that stream into an SVG on its SD card;
+// here each call becomes one outbox item, so a test can assert exactly what was saved.
+void haUartArt(uint8_t op, const String& json) {
+    g_outbox.push_back(
+        "{\"to\":\"uart\",\"kind\":\"art\",\"op\":" + std::to_string((int)op) +
+        ",\"json\":" + json.str() + "}");
 }
 
 // --- stub devices ---------------------------------------------------------------

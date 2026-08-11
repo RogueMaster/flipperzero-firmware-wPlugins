@@ -17,7 +17,7 @@ core/i18n.js        message catalog (en + pt-BR) for data-i18n markup and t()
 core/sound.js       synthesized sfx + haptics (A.sfx / A.vibe)
 games/*.js          one module per screen: trivia, duel (c4/ttt/dots/reversi),
                     pong, wyr, scramble, draw, react, guesscolor, battleship,
-                    spectrum, kmk, chess - each registers its A.handlers entry
+                    spectrum, kmk, chess, spyfall - each registers its A.handlers entry
 build.mjs           inlines + minifies -> dist/, gzips, writes manifest, size gate
 mock-server.mjs     zero-dep local server for eyeballing the UI in a browser
 ```
@@ -67,7 +67,8 @@ screen renders; it is a demo, not the referee, and does not implement real game
 rules. Set `PORT` to change the port: `PORT=8091 npm run mock`.
 
 > The `sim/` simulator supersedes this mock: it runs the *real* engine compiled to WASM,
-> so all fifteen games behave exactly as they do on hardware. Prefer `sim/serve.sh`.
+> so all seventeen games behave exactly as they do on hardware. Prefer `sim/serve.sh`.
+> so all sixteen games behave exactly as they do on hardware. Prefer `sim/serve.sh`.
 > `mock-server.mjs` hand-rolls approximate rules and does not cover every game.
 
 ## Protocol
