@@ -2,7 +2,8 @@
 
 Runs the **real** ESP game engine (`esp32/hotspot-arcade-fw/ha_games.h`, compiled to
 WebAssembly) in a browser page, with 2–8 phone panels and a Flipper panel. Lets you play
-and design games without a Flipper, a dev board, or eight friends.
+and design games without a Flipper, a dev board, or eight friends. It is also where the
+README's gallery GIFs are captured — see `docs/GIFS.md`.
 
 ## Use
 
