@@ -177,10 +177,10 @@ they need no knowledge of how the board is mounted and no trust in the zero-g of
 ### Telling "it fell off" apart from "that is not the part"
 
 When a test stops getting readings there are two completely different reasons, and they call for
-opposite advice. If the ID read itself failed, nothing is answering any more: that is
-`LiveTestPhaseLost`, and the screen says **Sensor dropped off!** and to check the wires. If the
-ID read succeeded and the value disagreed, the wiring is fine and the wrong module is plugged
-in: that is `LiveTestPhaseWrongChip`, and the screen says **Wrong chip!** instead.
+opposite advice. If nothing acknowledges the address any more, the part is gone: that is
+`LiveTestPhaseLost`, and the screen says **Sensor dropped off!** and to check the wires. If
+something is still there and it is not this part, the wiring is fine and the wrong module is
+plugged in: that is `LiveTestPhaseWrongChip`, and the screen says **Wrong chip!** instead.
 
 Folding both into one bool is the easy mistake, and it sends somebody to reseat a jumper that
 was never loose. Return `LiveTestIdResult` from your identify helper rather than `bool`:
@@ -188,16 +188,37 @@ was never loose. Return `LiveTestIdResult` from your identify helper rather than
 ```c
 static LiveTestIdResult mypart_identify(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t id = 0;
-    if(!i2c->read_reg(addr7, MYPART_REG_ID, &id, LIVE_TEST_TIMEOUT_MS))
-        return LiveTestIdNoAnswer;
+    if(!live_test_read_id8(i2c, addr7, MYPART_REG_ID, &id))
+        return live_test_id_unreadable(i2c, addr7);
     return id == MYPART_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
 }
 ```
 
+**Identify with `live_test_read_id8`, not `i2c->read_reg`.** It reads the register twice and
+believes it only if both reads agree. One byte is eight bits of evidence and this loop asks again
+for as long as the screen is open, so a one-in-256 accident is not a tail risk — a VL6180X left on
+the BNO055 test returned 0xA0 after about ninety seconds, and the test went on to write its mode
+register and draw a heading off a part with no magnetometer in it. `live_test_read_id16` is the
+same for a part that indexes its registers with sixteen bits.
+
+**A failed read is not `LiveTestIdNoAnswer`** — that is what `live_test_id_unreadable` is for, and
+returning the enumerator directly is a bug the app already shipped once. Reading an 8-bit-indexed
+register is one write of the index byte followed by a repeated start, and a part that indexes its
+registers with sixteen bits NACKs that whole exchange while sitting perfectly happily on the bus.
+A real VL6180X at 0x29 does exactly that to the BNO055 test, which used to answer by telling the
+user to go and check their wiring. The helper asks the address itself: still acknowledging means
+something is there and does not speak this register map, which is the wrong part, not a wire.
+
+Word the **Wrong chip!** lines so they hold for both — an ID that read back wrong and an ID that
+could not be read at all. Naming a register the code may never have reached ("WHO_AM_I says…")
+is how that goes wrong; the shipped tests say `0x29 answers, but not the way a BNO055 does.`
+
 It matters most at the crowded addresses. 0x68 carries a DS3231 and ten IMUs, and 0x28/0x29 hold
 a BNO055 and a VL6180X — at those, "something else is here" is the likeliest way a test fails.
 
-Both phases keep retrying, so swapping the module is picked up without leaving the screen. A
+Both phases keep retrying, so swapping the module is picked up without leaving the screen —
+`LIVE_TEST_RETRY_MS` while something is merely missing, and `LIVE_TEST_WRONG_CHIP_RETRY_MS` once
+the part has been identified as somebody else, because that does not recover without a hand. A
 part with no ID register cannot make this distinction and should not pretend to.
 
 ### When a test cannot honestly pass

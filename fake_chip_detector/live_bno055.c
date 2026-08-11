@@ -43,8 +43,8 @@ static void bno055_set_lines(LiveTestState* st, const char* l0, const char* l1, 
 // well answer at the same address, and everything below writes to registers.
 static LiveTestIdResult bno055_identify(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t chip_id = 0;
-    if(!i2c->read_reg(addr7, BNO055_REG_CHIP_ID, &chip_id, LIVE_TEST_TIMEOUT_MS))
-        return LiveTestIdNoAnswer;
+    if(!live_test_read_id8(i2c, addr7, BNO055_REG_CHIP_ID, &chip_id))
+        return live_test_id_unreadable(i2c, addr7);
     return chip_id == BNO055_CHIP_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
 }
 
@@ -151,15 +151,22 @@ static void bno055_run(const LiveTestEnv* env) {
         if(id_seen == LiveTestIdMismatch) {
             // Do not send them to the wiring: the wiring is fine, the module
             // is not a BNO055. Worth telling apart here more than anywhere —
-            // 0x28 and 0x29 are shared with a crowd of other parts.
+            // 0x28 and 0x29 are shared with a crowd of other parts, and a
+            // VL6180X sitting at 0x29 does not answer an 8-bit read at all,
+            // so this is also where "the ID could not be read" lands.
+            char where[LIVE_TEST_LINE_LEN];
+            snprintf(where, sizeof(where), "0x%02X answers, but not", addr7);
             st.phase = LiveTestPhaseWrongChip;
-            bno055_set_lines(&st, "It answers, but its ID", "belongs to another chip.", NULL);
+            bno055_set_lines(&st, where, "the way a BNO055 does.", NULL);
         } else {
             st.phase = LiveTestPhaseLost;
             bno055_set_lines(&st, "It replied, then stopped.", "Check 3V3 and the wires.", NULL);
         }
         publish(ctx, &st);
-        bno055_delay(stop, 500);
+        bno055_delay(
+            stop,
+            st.phase == LiveTestPhaseWrongChip ? LIVE_TEST_WRONG_CHIP_RETRY_MS :
+                                                 LIVE_TEST_RETRY_MS);
     }
 }
 

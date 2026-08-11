@@ -70,8 +70,8 @@ static void mpu_delay(const volatile bool* stop, uint32_t ms) {
 }
 
 static LiveTestIdResult mpu_identify(const LiveTestI2c* i2c, uint8_t addr7, MpuIdentity* id) {
-    if(!i2c->read_reg(addr7, MPU_REG_WHO_AM_I, &id->who_am_i, LIVE_TEST_TIMEOUT_MS))
-        return LiveTestIdNoAnswer;
+    if(!live_test_read_id8(i2c, addr7, MPU_REG_WHO_AM_I, &id->who_am_i))
+        return live_test_id_unreadable(i2c, addr7);
     switch(id->who_am_i) {
     case MPU6050_WHO_AM_I:
         id->pwr_reset = MPU6050_PWR_RESET;
@@ -203,17 +203,23 @@ static void mpu_run(const LiveTestEnv* env) {
             // 0x68 is the busiest address in the database — a DS3231 and ten
             // other IMUs share it — so "something else is here" is by far the
             // likeliest way this test fails, and sending the user to check
-            // their wiring would be actively misleading.
+            // their wiring would be actively misleading. It does not name
+            // WHO_AM_I either: this branch is also where a part that never
+            // answered that read at all ends up, and saying a register said
+            // something when it was never read would be a lie.
             st.phase = LiveTestPhaseWrongChip;
-            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "WHO_AM_I says this is");
-            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "not an MPU. Wrong board?");
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "0x%02X answers, but not", addr7);
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "the way an MPU does.");
         } else {
             st.phase = LiveTestPhaseLost;
             snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
             snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
         }
         publish(ctx, &st);
-        mpu_delay(stop, 500);
+        mpu_delay(
+            stop,
+            st.phase == LiveTestPhaseWrongChip ? LIVE_TEST_WRONG_CHIP_RETRY_MS :
+                                                 LIVE_TEST_RETRY_MS);
     }
 }
 

@@ -197,7 +197,7 @@ static void mlx90614_run(const LiveTestEnv* env) {
         snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
         snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
         publish(ctx, &st);
-        mlx90614_delay(stop, 500);
+        mlx90614_delay(stop, LIVE_TEST_RETRY_MS);
     }
     // Nothing to tear down: RAM is read-only and no mode was ever changed.
 }

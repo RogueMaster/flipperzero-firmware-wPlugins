@@ -250,7 +250,7 @@ static void ds3231_run(const LiveTestEnv* env) {
         snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
         snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
         publish(ctx, &st);
-        ds3231_delay(stop, 500);
+        ds3231_delay(stop, LIVE_TEST_RETRY_MS);
     }
     // Nothing to tear down: this test never wrote a byte.
 }

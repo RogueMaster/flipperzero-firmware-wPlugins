@@ -53,10 +53,26 @@
   calibration bit set — so the status byte on its own says almost nothing. A checksum that
   verifies identifies an AHT20; when none does the screen says so, because that is consistent
   with an AHT10 and equally consistent with something else at the same address.
-- A live test tells "the sensor fell off" apart from "that is not the part". If the ID register
-  cannot be read at all the screen says the sensor dropped off and to check the wires; if it
-  reads back the wrong value it says WRONG CHIP instead, because the wiring is fine and the
-  advice would otherwise send somebody to reseat a jumper that was never loose. It matters at
-  the crowded addresses: 0x68 carries a DS3231 and ten IMUs, 0x28/0x29 a BNO055 and a VL6180X.
+- A live test tells "the sensor fell off" apart from "that is not the part". If nothing
+  acknowledges the address any more the screen says the sensor dropped off and to check the
+  wires; if something is still there and it is not this part it says WRONG CHIP instead, because
+  the wiring is fine and the advice would otherwise send somebody to reseat a jumper that was
+  never loose. It matters at the crowded addresses: 0x68 carries a DS3231 and ten IMUs, 0x28/0x29
+  a BNO055 and a VL6180X.
+- An ID register is read twice and believed only if both reads agree, and the test backs off once
+  it has decided the part is somebody else. One byte is eight bits of evidence and a test screen
+  asks again for as long as it is open, so a one-in-256 accident is not a tail risk: a VL6180X
+  left on the BNO055 test came back 0xA0 after a minute and a half, and the test wrote its mode
+  register and drew a heading off a part with no magnetometer in it.
+- The success chime cannot fire faster than once every three seconds. It re-arms when a reading
+  falls back out of its success state, which is right, but a reading flapping on its threshold
+  turned that into a machine gun — and a test can arrive on somebody's SD card, so the buzzer is
+  the app's to bound rather than each test's.
+- Which of the two it is comes from asking the address, not from whether a register read worked.
+  Reading an 8-bit-indexed register is one write of the index byte and then a repeated start, and
+  a part that indexes its registers with sixteen bits refuses that outright while sitting
+  perfectly happily on the bus — so a genuine VL6180X at 0x29 made the BNO055 test tell a user to
+  check wiring that was already correct. If the address still answers, something is there and
+  does not speak this register map, and that is the wrong part rather than a loose wire.
 - Browsable list of every known chip.
 - Melody, LED and vibration feedback, each switchable in Settings.

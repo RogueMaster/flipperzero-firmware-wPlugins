@@ -56,10 +56,16 @@ static void mypart_delay(const volatile bool* stop, uint32_t ms) {
 // acknowledges is not proof of which chip is behind it, and the register you
 // were about to configure may mean something entirely different on whatever is
 // actually there.
-static bool mypart_present(const LiveTestI2c* i2c, uint8_t addr7) {
+//
+// Note what a failed read returns: not LiveTestIdNoAnswer. A part that indexes
+// its registers with sixteen bits NACKs an 8-bit read outright while sitting
+// perfectly happily on the bus, so the helper asks the address itself before
+// the screen tells anybody their wiring is at fault.
+static LiveTestIdResult mypart_identify(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t id = 0;
-    if(!i2c->read_reg(addr7, MYPART_REG_ID, &id, LIVE_TEST_TIMEOUT_MS)) return false;
-    return id == MYPART_ID_VALUE;
+    if(!live_test_read_id8(i2c, addr7, MYPART_REG_ID, &id))
+        return live_test_id_unreadable(i2c, addr7);
+    return id == MYPART_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
 }
 
 static void mypart_run(const LiveTestEnv* env) {
@@ -77,9 +83,11 @@ static void mypart_run(const LiveTestEnv* env) {
         snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "Waking the sensor");
         env->publish(env->ctx, &st);
 
-        bool ready = mypart_present(i2c, addr7);
+        const LiveTestIdResult id_seen = mypart_identify(i2c, addr7);
+        const bool ready = (id_seen == LiveTestIdMatch);
         // If your part needs configuring, do it here, and remember what you
-        // changed so you can put it back at the bottom of this loop.
+        // changed so you can put it back at the bottom of this loop. Guard it
+        // on `ready`: never write to something that failed its ID check.
 
         uint8_t lowest = 0xFF;
         uint8_t errors = 0;
@@ -121,12 +129,25 @@ static void mypart_run(const LiveTestEnv* env) {
 
         if(*stop) break;
 
+        // Two failures, opposite advice. Nothing acknowledges the address any
+        // more, so the wiring is worth checking — or something is still there
+        // and it is not this part, in which case the wiring is fine and saying
+        // otherwise sends somebody to reseat a jumper that was never loose.
         memset(&st, 0, sizeof(st));
-        st.phase = LiveTestPhaseLost;
-        snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
-        snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
+        if(id_seen == LiveTestIdMismatch) {
+            st.phase = LiveTestPhaseWrongChip;
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "0x%02X answers, but not", addr7);
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "the way a MYPART does.");
+        } else {
+            st.phase = LiveTestPhaseLost;
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
+        }
         env->publish(env->ctx, &st);
-        mypart_delay(stop, 500);
+        mypart_delay(
+            stop,
+            st.phase == LiveTestPhaseWrongChip ? LIVE_TEST_WRONG_CHIP_RETRY_MS :
+                                                 LIVE_TEST_RETRY_MS);
     }
 }
 

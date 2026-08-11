@@ -128,11 +128,12 @@ static void vl6180x_run(const LiveTestEnv* env) {
         // The model ID again, not just an ACK: after a hot-unplug whatever is
         // wired up next may well answer at the same address.
         uint8_t model_id = 0;
-        const LiveTestIdResult id_seen =
-            !i2c->read_reg16_addr(
-                addr7, VL6180X_IDENTIFICATION_MODEL_ID, &model_id, 1, LIVE_TEST_TIMEOUT_MS) ?
-                LiveTestIdNoAnswer :
-                (model_id == VL6180X_MODEL_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch);
+        LiveTestIdResult id_seen;
+        if(!live_test_read_id16(i2c, addr7, VL6180X_IDENTIFICATION_MODEL_ID, &model_id)) {
+            id_seen = live_test_id_unreadable(i2c, addr7);
+        } else {
+            id_seen = model_id == VL6180X_MODEL_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
+        }
         bool alive = (id_seen == LiveTestIdMatch);
 
         // Tracked separately from `alive` because the two answer different
@@ -215,15 +216,22 @@ static void vl6180x_run(const LiveTestEnv* env) {
         memset(&st, 0, sizeof(st));
         if(id_seen == LiveTestIdMismatch) {
             // Do not send them to the wiring: the wiring is fine, the module
-            // is not a VL6180X.
+            // is not a VL6180X. Worded for both ways of finding that out — a
+            // model ID that read back wrong, and one that could not be read at
+            // all from an address that still answers.
+            char where[LIVE_TEST_LINE_LEN];
+            snprintf(where, sizeof(where), "0x%02X answers, but not", addr7);
             st.phase = LiveTestPhaseWrongChip;
-            vl6180x_set_lines(&st, "It answers, but its ID", "belongs to another chip.", NULL);
+            vl6180x_set_lines(&st, where, "the way a VL6180X does.", NULL);
         } else {
             st.phase = LiveTestPhaseLost;
             vl6180x_set_lines(&st, "It replied, then stopped.", "Check 3V3 and the wires.", NULL);
         }
         publish(ctx, &st);
-        vl6180x_delay(stop, 500);
+        vl6180x_delay(
+            stop,
+            st.phase == LiveTestPhaseWrongChip ? LIVE_TEST_WRONG_CHIP_RETRY_MS :
+                                                 LIVE_TEST_RETRY_MS);
     }
 }
 

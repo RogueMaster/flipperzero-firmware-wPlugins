@@ -238,7 +238,7 @@ static void sht_run(const LiveTestEnv* env) {
         snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
         snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
         publish(ctx, &st);
-        sht_delay(stop, 500);
+        sht_delay(stop, LIVE_TEST_RETRY_MS);
     }
     // Nothing to tear down: single-shot measurements leave the part idle.
 }

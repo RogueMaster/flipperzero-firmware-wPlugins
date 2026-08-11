@@ -134,7 +134,7 @@ static void bh1750_run(const LiveTestEnv* env) {
         snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
         snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
         publish(ctx, &st);
-        bh1750_delay(stop, 500);
+        bh1750_delay(stop, LIVE_TEST_RETRY_MS);
     }
     // Nothing to tear down: One-Time mode powers the part down on its own once
     // the measurement is read (page 5).

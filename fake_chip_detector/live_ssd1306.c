@@ -169,7 +169,7 @@ static void ssd1306_run(const LiveTestEnv* env) {
         snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It stopped accepting");
         snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "commands. Check wiring.");
         publish(ctx, &st);
-        ssd1306_delay(stop, 500);
+        ssd1306_delay(stop, LIVE_TEST_RETRY_MS);
     }
 }
 

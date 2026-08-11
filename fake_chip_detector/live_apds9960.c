@@ -68,8 +68,8 @@ static void apds9960_delay(const volatile bool* stop, uint32_t ms) {
 
 static LiveTestIdResult apds9960_identify(const LiveTestI2c* i2c, uint8_t addr7) {
     uint8_t id = 0;
-    if(!i2c->read_reg(addr7, APDS9960_REG_ID, &id, LIVE_TEST_TIMEOUT_MS))
-        return LiveTestIdNoAnswer;
+    if(!live_test_read_id8(i2c, addr7, APDS9960_REG_ID, &id))
+        return live_test_id_unreadable(i2c, addr7);
     return id == APDS9960_ID_VALUE ? LiveTestIdMatch : LiveTestIdMismatch;
 }
 
@@ -231,17 +231,22 @@ static void apds9960_run(const LiveTestEnv* env) {
         memset(&st, 0, sizeof(st));
         if(id_seen == LiveTestIdMismatch) {
             // Do not send them to the wiring: the wiring is fine, the module
-            // is not an APDS9960.
+            // is not an APDS9960. Worded for both ways of finding that out —
+            // an ID that read back wrong, and an ID that could not be read at
+            // all from an address that still answers.
             st.phase = LiveTestPhaseWrongChip;
-            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It answers, but its ID");
-            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "belongs to another chip.");
+            snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "0x%02X answers, but not", addr7);
+            snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "the way an APDS9960 does.");
         } else {
             st.phase = LiveTestPhaseLost;
             snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "It replied, then stopped.");
             snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Check 3V3 and the wires.");
         }
         publish(ctx, &st);
-        apds9960_delay(stop, 500);
+        apds9960_delay(
+            stop,
+            st.phase == LiveTestPhaseWrongChip ? LIVE_TEST_WRONG_CHIP_RETRY_MS :
+                                                 LIVE_TEST_RETRY_MS);
     }
 }
 

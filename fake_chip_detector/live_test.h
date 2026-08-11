@@ -80,14 +80,14 @@ typedef enum {
     LiveTestPhaseWrongChip,
 } LiveTestPhase;
 
-// What an ID register said. Tests used to fold this into a bool and lost the
-// distinction that matters most to the person holding the board: a read that
-// failed outright means nothing is answering any more, while a read that
-// succeeded and disagreed means something else is plugged in. The first is a
-// wiring problem and the second is not.
+// What an ID check found. Tests used to fold this into a bool and lost the
+// distinction that matters most to the person holding the board: nothing on
+// the bus at all is a wiring problem, and something on the bus that is not
+// this part is not. Note that the split is between those two and not between
+// "the read worked" and "the read failed" — see live_test_id_unreadable.
 typedef enum {
-    LiveTestIdNoAnswer, // the transfer failed - it is gone
-    LiveTestIdMismatch, // it answered, and it is not this part
+    LiveTestIdNoAnswer, // nothing acknowledges this address any more
+    LiveTestIdMismatch, // something is there, and it is not this part
     LiveTestIdMatch,
 } LiveTestIdResult;
 
@@ -157,6 +157,76 @@ typedef struct {
     bool (*write_raw)(uint8_t addr7, const uint8_t* data, size_t len, uint32_t timeout_ms);
     bool (*read_raw)(uint8_t addr7, uint8_t* data, size_t len, uint32_t timeout_ms);
 } LiveTestI2c;
+
+// What a failed ID read actually means. Call this instead of returning
+// LiveTestIdNoAnswer the moment a read fails.
+//
+// A read failing is not the part being gone. Reading an 8-bit-indexed register
+// is one write of the index byte and then a repeated start, and a part that
+// indexes its registers with sixteen bits NACKs that exchange outright while
+// sitting perfectly happily on the bus. That is not a hypothetical: a VL6180X
+// lives at 0x29, so does a BNO055, and the BNO055 test read 0x00 from a real
+// VL6180X and told the user to go and check their wiring.
+//
+// So ask the address. If it still acknowledges, something is there and does
+// not answer this register - which is the wrong part, not a loose jumper. Only
+// silence means gone.
+//
+// Inline in the header rather than a call through the bus table, so a plugin
+// built before this existed keeps working and one built after needs nothing
+// new from the app.
+static inline LiveTestIdResult live_test_id_unreadable(const LiveTestI2c* i2c, uint8_t addr7) {
+    return i2c->device_ready(addr7, LIVE_TEST_TIMEOUT_MS) ? LiveTestIdMismatch :
+                                                            LiveTestIdNoAnswer;
+}
+
+// Read an ID register twice and only believe it if both reads agree. Use these
+// rather than i2c->read_reg for an identification; keep read_reg for readings.
+//
+// One byte of ID is eight bits of evidence and the outer loop asks again twice
+// a second for as long as the screen is open, so a one-in-256 accident is not
+// unlikely - it is what happens if somebody walks away for a few minutes. It
+// did happen: a VL6180X left on the BNO055 test eventually returned 0xA0 from
+// an 8-bit read, and the test wrote to it and drew a heading off a part that
+// had never measured one.
+//
+// Worse than the odds is where the byte comes from. An 8-bit read leaves a
+// 16-bit-indexed part holding half an index, so what it answers next is not
+// its register map at all - it is whatever that half-written index landed on.
+// A value that will not repeat is not an identification, and two transactions
+// is a cheap price for saying so.
+static inline bool
+    live_test_read_id8(const LiveTestI2c* i2c, uint8_t addr7, uint8_t reg, uint8_t* out) {
+    uint8_t first = 0, second = 0;
+    if(!i2c->read_reg(addr7, reg, &first, LIVE_TEST_TIMEOUT_MS)) return false;
+    if(!i2c->read_reg(addr7, reg, &second, LIVE_TEST_TIMEOUT_MS)) return false;
+    if(first != second) return false;
+    *out = first;
+    return true;
+}
+
+// The same for a part that indexes its registers with sixteen bits.
+static inline bool
+    live_test_read_id16(const LiveTestI2c* i2c, uint8_t addr7, uint16_t reg, uint8_t* out) {
+    uint8_t first = 0, second = 0;
+    if(!i2c->read_reg16_addr(addr7, reg, &first, 1, LIVE_TEST_TIMEOUT_MS)) return false;
+    if(!i2c->read_reg16_addr(addr7, reg, &second, 1, LIVE_TEST_TIMEOUT_MS)) return false;
+    if(first != second) return false;
+    *out = first;
+    return true;
+}
+
+// How long to wait before an outer loop tries to identify the part again.
+//
+// Half a second while something is merely missing: that is somebody pushing a
+// jumper back in, and they should not have to wait to see it take.
+#define LIVE_TEST_RETRY_MS 500
+
+// Four times slower once the part has been identified as somebody else. There
+// is nothing to recover from - the module has to be physically swapped - and
+// re-reading a stranger's registers twice a second is both a worse lottery and
+// a lot of pointless traffic aimed at a part whose register map is unknown.
+#define LIVE_TEST_WRONG_CHIP_RETRY_MS 2000
 
 // Everything run() is given. Passed as one pointer so the shape can grow
 // behind a version bump without every test changing signature again.
