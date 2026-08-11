@@ -35,6 +35,7 @@ struct SubGhzHistory {
     uint32_t last_update_timestamp;
     uint16_t last_index_write;
     uint32_t code_last_hash_data;
+    bool code_last_hash_data_set;
     FuriString* tmp_string;
     SubGhzHistoryStruct* history;
     Rpc* rpc;
@@ -128,6 +129,13 @@ void subghz_history_reset(SubGhzHistory* instance) {
     SubGhzHistoryItemArray_reset(instance->history->data);
     instance->last_index_write = 0;
     instance->code_last_hash_data = 0;
+    instance->code_last_hash_data_set = false;
+    instance->last_update_timestamp = furi_get_tick();
+}
+
+void subghz_history_restart_duplicate_timeout(SubGhzHistory* instance) {
+    furi_assert(instance);
+    instance->last_update_timestamp = furi_get_tick();
 }
 
 void subghz_history_delete_item(SubGhzHistory* instance, uint16_t idx) {
@@ -242,9 +250,11 @@ bool subghz_history_add_to_history(
     if(subghz_history_full(instance)) return false;
 
     SubGhzProtocolDecoderBase* decoder_base = context;
-    uint32_t hash_data = subghz_protocol_decoder_base_get_hash_data_long(decoder_base);
-    if((instance->code_last_hash_data == hash_data) &&
-       ((furi_get_tick() - instance->last_update_timestamp) < 600)) {
+    uint32_t code_hash_data = subghz_protocol_decoder_base_get_hash_data_long(decoder_base);
+    //the "have we seen anything at all" flag matters: without it a signal whose hash is
+    //zero would match the value the filter starts out with and never reach the history
+    if(instance->code_last_hash_data_set && (instance->code_last_hash_data == code_hash_data) &&
+       ((furi_get_tick() - instance->last_update_timestamp) < 500)) {
         instance->last_update_timestamp = furi_get_tick();
         return false;
     }
@@ -254,14 +264,15 @@ bool subghz_history_add_to_history(
     SubGhzHistoryItemArray_it_last(it, instance->history->data);
     while(!SubGhzHistoryItemArray_end_p(it)) {
         SubGhzHistoryItem* search = SubGhzHistoryItemArray_ref(it);
-        if(search->hash_data == hash_data && search->protocol == decoder_base->protocol) {
+        if(search->hash_data == code_hash_data && search->protocol == decoder_base->protocol) {
             repeats = search->repeats + 1;
             break;
         }
         SubGhzHistoryItemArray_previous(it);
     }
 
-    instance->code_last_hash_data = hash_data;
+    instance->code_last_hash_data = code_hash_data;
+    instance->code_last_hash_data_set = true;
     instance->last_update_timestamp = furi_get_tick();
 
     SubGhzHistoryItem* item = SubGhzHistoryItemArray_push_raw(instance->history->data);
@@ -278,7 +289,7 @@ bool subghz_history_add_to_history(
     item->preset->data = preset->data;
     item->preset->data_size = preset->data_size;
     furi_hal_rtc_get_datetime(&item->datetime);
-    item->hash_data = hash_data;
+    item->hash_data = code_hash_data;
     item->protocol = decoder_base->protocol;
     item->repeats = repeats;
     item->latitude = preset->latitude;
