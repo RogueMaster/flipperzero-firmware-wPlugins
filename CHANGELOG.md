@@ -6,7 +6,22 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
-## [1.7.1] - 2026-08-10
+## [1.8.0] - 2026-08-11
+
+### Added
+
+- **Four new games (twenty total).** Fill the Blank (a prompt with a gap; everyone
+  answers from a hand of cards and a rotating judge picks the funniest), Werewolf
+  (hidden roles, night and day, with seer and doctor), Spyfall (everyone shares a
+  secret location and a role there except one spy), and Draw a Monster (everyone
+  draws one panel of a creature blind; the finished sheet streams to the Flipper as
+  an SVG). Thanks to genkigenki.
+- The phone bundle is served with an ETag and answers `If-None-Match` with a 304, so
+  reloads and captive re-probes no longer re-download the whole ~47 KB bundle.
+- The Flipper dashboard shows the ESP board's free heap and PSRAM, so memory health
+  is visible at a glance.
+- Play-test polish: the phone opens in the host's language, audio unlocks for an
+  auto-rejoined player, and the Secrets stepper no longer ticks away the hidden vote.
 
 ### Fixed
 
