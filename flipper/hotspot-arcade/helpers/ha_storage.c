@@ -209,10 +209,12 @@ void ha_art_begin(HotspotArcadeApp* app, const char* json) {
     if(id == 0 || app->art_stamp[0] == '\0') {
         DateTime dt;
         furi_hal_rtc_get_datetime(&dt);
+        // Every field is masked to two digits so -Werror=format-truncation can prove
+        // the stamp fits art_stamp[16] (13 chars + NUL); semantically a no-op.
         snprintf(
             app->art_stamp, sizeof(app->art_stamp), "%02u%02u%02u-%02u%02u%02u",
-            (unsigned)(dt.year % 100), (unsigned)dt.month, (unsigned)dt.day, (unsigned)dt.hour,
-            (unsigned)dt.minute, (unsigned)dt.second);
+            (unsigned)(dt.year % 100), (unsigned)(dt.month % 100), (unsigned)(dt.day % 100),
+            (unsigned)(dt.hour % 100), (unsigned)(dt.minute % 100), (unsigned)(dt.second % 100));
     }
 
     app->art_storage = furi_record_open(RECORD_STORAGE);
