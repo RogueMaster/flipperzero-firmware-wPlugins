@@ -30,7 +30,12 @@
 #define HA_LINK_TIMEOUT_MS      (5000)
 #define HA_HANDSHAKE_TIMEOUT_MS (4000) // no ack progress -> board isn't our firmware
 #define HA_CONSOLE_MAX          (3072)
-#define HA_FILE_MAX             (60000) // max single web asset streamed to the ESP
+// Max single web asset streamed to the ESP. MUST equal web/build.mjs's CEIL (72*1024):
+// the build fails above CEIL, and send_next_file refuses a bigger file -- when this was
+// smaller than CEIL, the 63KB 20-game bundle was silently truncated at 60000 bytes and
+// every phone got a page whose scripts never arrived (v1.8.0 hardware test). The
+// bundled-assets CI job cross-checks this constant against the committed bundle.
+#define HA_FILE_MAX             (73728)
 
 #define HA_DATA_DIR    EXT_PATH("apps_data/hotspot_arcade")
 #define HA_LOGS_DIR    HA_DATA_DIR "/logs"

@@ -162,6 +162,29 @@ jobs:
               }
           '
 
+      - name: Bundle fits the Flipper's stream cap (HA_FILE_MAX)
+        # web/build.mjs's CEIL and the Flipper's HA_FILE_MAX must be the same number:
+        # the Flipper reads the whole gz to stream it, and when HA_FILE_MAX lagged the
+        # raised ceiling the bundle was silently truncated at 60000 bytes -- every phone
+        # rendered a scriptless page with no error anywhere (v1.8.0 hardware test).
+        run: |
+          cap=$(sed -nE 's/#define HA_FILE_MAX +\(([0-9]+)\).*/\1/p' flipper/hotspot-arcade/hotspot_arcade_i.h)
+          ceil=$(sed -nE 's/const CEIL = ([0-9]+) \* ([0-9]+);.*/\1 \2/p' web/build.mjs | awk '{print $1*$2}')
+          size=$(wc -c < flipper/hotspot-arcade/assets/web/index.html.gz | tr -d ' ')
+          echo "HA_FILE_MAX=$cap CEIL=$ceil bundle=$size"
+          if [ -z "$cap" ] || [ -z "$ceil" ]; then
+            echo "::error::could not parse HA_FILE_MAX or CEIL -- fix this check's sed patterns."
+            exit 1
+          fi
+          if [ "$cap" != "$ceil" ]; then
+            echo "::error::HA_FILE_MAX ($cap) != web/build.mjs CEIL ($ceil). Keep the pair identical."
+            exit 1
+          fi
+          if [ "$size" -gt "$cap" ]; then
+            echo "::error::bundled index.html.gz ($size bytes) exceeds HA_FILE_MAX ($cap): the Flipper would refuse to stream it."
+            exit 1
+          fi
+
       - name: Content packs match assets/packs
         run: |
           for pack in packs/*/*.txt; do

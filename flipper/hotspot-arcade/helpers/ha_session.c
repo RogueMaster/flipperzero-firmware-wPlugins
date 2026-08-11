@@ -368,10 +368,20 @@ static void send_next_file(HotspotArcadeApp* app) {
     FuriString* path = furi_string_alloc();
     furi_string_printf(path, "%s/%s", app->web_dir, a->file);
     FuriString* content = furi_string_alloc();
-    bool ok = ha_storage_read_file(furi_string_get_cstr(path), content, HA_FILE_MAX);
+    // Read one byte past the cap so an oversized file is DETECTED, not silently
+    // truncated: a clipped gzip stream serves a page whose tail (all the scripts)
+    // never arrives, which looks like "the app is broken" on every phone with no
+    // error anywhere. Better to refuse loudly here.
+    bool ok = ha_storage_read_file(furi_string_get_cstr(path), content, HA_FILE_MAX + 1);
     furi_string_free(path);
     if(!ok) {
         furi_string_set(app->status, "asset read err");
+        app->hs = HaHsErr;
+        furi_string_free(content);
+        return;
+    }
+    if(furi_string_size(content) > HA_FILE_MAX) {
+        furi_string_set(app->status, "web asset too big");
         app->hs = HaHsErr;
         furi_string_free(content);
         return;
