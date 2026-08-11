@@ -25,6 +25,11 @@
 
 #define ANIM_PERIOD_MS 60 // ~16 fps, smooth enough and cheap
 
+// Floor on the gap between two success chimes on a live test screen. Long
+// enough that a reading sitting on its threshold cannot machine-gun the
+// buzzer, short enough that genuinely doing the thing twice is heard twice.
+#define LIVE_CHIME_MIN_GAP_MS 3000
+
 typedef enum {
     FakeChipViewMenu,
     FakeChipViewWiring,
@@ -160,6 +165,7 @@ typedef struct {
     I2CSettings settings;
     volatile FakeChipViewId current_view;
     bool live_chimed; // the success chime belongs to the run, not to each frame
+    uint32_t live_chime_tick; // when it last played; 0 for not yet this run
 
     // Non-NULL while a test loaded from the SD card is on screen. The LiveTest
     // the worker is running points into this plugin's mapped memory, so it is
@@ -1219,7 +1225,18 @@ static void live_publish(void* ctx, const LiveTestState* state) {
     bool succeeded = (state->phase == LiveTestPhasePassed) ||
                      (state->progress_max && state->progress >= state->progress_max);
     if(succeeded && !app->live_chimed) {
-        i2c_notify_play(app->notifications, I2CNotifyCalibrated);
+        // Rate limited, and not as a nicety. Re-arming on the falling edge is
+        // what makes a second success audible, but it also means a reading
+        // flapping across the threshold plays the chime at whatever rate the
+        // test polls at — which is exactly what a wrong chip returning garbage
+        // did, twice a second, until it had to be unplugged. A test can come
+        // off somebody else's SD card, so the buzzer is the app's to bound.
+        uint32_t now = furi_get_tick();
+        if(!app->live_chime_tick ||
+           now - app->live_chime_tick >= furi_ms_to_ticks(LIVE_CHIME_MIN_GAP_MS)) {
+            app->live_chime_tick = now;
+            i2c_notify_play(app->notifications, I2CNotifyCalibrated);
+        }
     }
     // Latched so the chime fires on the transition, not on every poll — and
     // re-arms if the part falls back out of its success state.
@@ -1281,6 +1298,7 @@ static void app_start_live_test(
 static void live_enter_callback(void* context) {
     FakeChipApp* app = context;
     app->live_chimed = false;
+    app->live_chime_tick = 0;
     with_view_model(
         app->live_view,
         LiveViewModel * m,
