@@ -13,6 +13,9 @@
 #include <math.h>
 
 #include "i2c_worker.h"
+#include "onewire_worker.h"
+#include "live_test.h"
+#include "live_plugin.h"
 #include "chip_db.h"
 #include "i2c_notify.h"
 #include "i2c_settings.h"
@@ -21,6 +24,11 @@
 #define TAG "FakeChipDetector"
 
 #define ANIM_PERIOD_MS 60 // ~16 fps, smooth enough and cheap
+
+// Floor on the gap between two success chimes on a live test screen. Long
+// enough that a reading sitting on its threshold cannot machine-gun the
+// buzzer, short enough that genuinely doing the thing twice is heard twice.
+#define LIVE_CHIME_MIN_GAP_MS 3000
 
 typedef enum {
     FakeChipViewMenu,
@@ -32,13 +40,17 @@ typedef enum {
     FakeChipViewChips,
     FakeChipViewReport,
     FakeChipViewSaved,
+    FakeChipViewOneWire,
+    FakeChipViewTests,
+    FakeChipViewTestHelp,
     FakeChipViewAbout,
 } FakeChipViewId;
 
 typedef enum {
     MenuIndexWiring,
     MenuIndexScan,
-    MenuIndexLiveTest,
+    MenuIndexOneWire,
+    MenuIndexTests,
     MenuIndexSettings,
     MenuIndexChips,
     MenuIndexSaved,
@@ -81,8 +93,15 @@ typedef struct {
 } DetailViewModel;
 
 typedef struct {
-    I2CLiveData data;
+    const LiveTest* test; // which module is running; NULL means nothing to run
+    uint8_t addr; // where the scan found it, so no test has to search again
+    LiveTestState state;
     uint32_t frame;
+    // True when the test came off the SD card. Shown on screen, because a
+    // built-in test was written against a datasheet and reviewed in this
+    // repository, and one from the card is somebody else's code — anyone
+    // reading a pass off this screen is entitled to know which it was.
+    bool from_card;
 } LiveViewModel;
 
 typedef struct {
@@ -93,10 +112,30 @@ typedef struct {
 #define SAVED_NAME_LEN 32
 
 typedef struct {
-    char names[SAVED_MAX][SAVED_NAME_LEN];
+    OneWireScanResult res;
+    uint8_t selected;
+    bool busy;
+    bool explain; // the "what this proves" panel is showing
+} OneWireViewModel;
+
+typedef struct {
+    // Allocated only while the screen is open: 32 filenames is a KB, and this
+    // app has crashed users before by holding memory it was not using.
+    char (*names)[SAVED_NAME_LEN];
     uint8_t count;
     uint8_t selected;
 } SavedViewModel;
+
+typedef struct {
+    // Same reason as SavedViewModel above, and more so: a full folder of
+    // plugin descriptions is over two kilobytes, and this screen is open for
+    // seconds at a time.
+    LivePluginList* plugins;
+    uint16_t selected;
+    // Set when a manual launch found nothing at any of the test's addresses.
+    // Shown in place of the offer line, then cleared by the next keypress.
+    char message[LIVE_TEST_LINE_LEN];
+} TestsViewModel;
 
 typedef struct {
     Gui* gui;
@@ -109,22 +148,73 @@ typedef struct {
     View* live_view;
     View* chips_view;
     View* saved_view;
+    View* onewire_view;
+    View* tests_view;
+    View* test_help_view;
     TextBox* report_box;
     FuriString* report_text;
     VariableItemList* settings_list;
     Widget* about_widget;
     I2CWorker* worker;
     FuriThread* anim_thread;
+    FuriThread* ow_thread;
+    FuriThread* live_thread;
+    volatile bool ow_abort;
+    volatile bool live_stop;
     volatile bool anim_stop;
     I2CSettings settings;
     volatile FakeChipViewId current_view;
-    uint8_t last_mag_cal; // to chime once when calibration reaches 3
+    bool live_chimed; // the success chime belongs to the run, not to each frame
+    uint32_t live_chime_tick; // when it last played; 0 for not yet this run
+
+    // Non-NULL while a test loaded from the SD card is on screen. The LiveTest
+    // the worker is running points into this plugin's mapped memory, so it is
+    // closed only after the thread has been joined.
+    LivePluginHandle* live_plugin;
+
+    // Where Back goes from a running live test: the screen it was started
+    // from, which is either the scan verdict or the browser.
+    FakeChipViewId live_return_to;
 } FakeChipApp;
 
 static void app_switch_view(FakeChipApp* app, FakeChipViewId view_id) {
     app->current_view = view_id;
     view_dispatcher_switch_to_view(app->view_dispatcher, view_id);
 }
+
+
+// The saved-report filename is built here and read back here, so the two can
+// never disagree. Nothing else may assume its shape.
+#define REPORT_FILE_PREFIX "scan_"
+
+static void report_filename_make(char* out, size_t out_size, const DateTime* dt) {
+    snprintf(
+        out,
+        out_size,
+        REPORT_FILE_PREFIX "%04u%02u%02u_%02u%02u%02u.txt",
+        dt->year,
+        dt->month,
+        dt->day,
+        dt->hour,
+        dt->minute,
+        dt->second);
+}
+
+// "scan_20260810_202233.txt" -> "2026-08-10 20:22". Falls back to the raw name
+// rather than printing garbage if the file is not one of ours.
+static void report_filename_label(const char* name, char* out, size_t out_size) {
+    const size_t prefix = strlen(REPORT_FILE_PREFIX);
+    if(strlen(name) < prefix + 15) {
+        snprintf(out, out_size, "%s", name);
+        return;
+    }
+    const char* n = name + prefix;
+    snprintf(out, out_size, "%.4s-%.2s-%.2s %.2s:%.2s", n, n + 4, n + 6, n + 9, n + 11);
+}
+
+// A report a human reads aloud is a couple of kilobytes; this bounds what a
+// damaged file can do to the heap.
+#define REPORT_READ_MAX 8192
 
 /* ---------------- Wiring screen ---------------- */
 
@@ -305,13 +395,15 @@ static void draw_right_key(Canvas* canvas, uint8_t x, uint8_t y) {
 
 // Bottom bar naming the two things the user can do here. Every screen that
 // accepts input says so; the save state takes the bar over when it changes.
-static void draw_action_bar(Canvas* canvas, const char* ok_action) {
+static void draw_action_bar(Canvas* canvas, const char* ok_action, bool offer_save) {
     canvas_draw_box(canvas, 0, 55, 128, 9);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 4, 62, ok_action);
-    canvas_draw_str_aligned(canvas, 125, 62, AlignRight, AlignBottom, "save log");
-    draw_right_key(canvas, 125 - canvas_string_width(canvas, "save log") - 9, 61);
+    if(offer_save) {
+        canvas_draw_str_aligned(canvas, 125, 62, AlignRight, AlignBottom, "save log");
+        draw_right_key(canvas, 125 - canvas_string_width(canvas, "save log") - 9, 61);
+    }
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -396,13 +488,16 @@ static void draw_hint_bar(Canvas* canvas, const char* right_action, bool offer_s
     canvas_set_color(canvas, ColorBlack);
 }
 
-
-// Bar naming just the OK action, for screens with nothing to save.
-static void draw_action_bar_ok(Canvas* canvas, const char* ok_action) {
+// Bar for the ALL GOOD screen when the chip has a live test: the offer is the
+// headline action, so it takes OK, and the hex stays behind Right.
+static void draw_offer_bar(Canvas* canvas, const char* ok_action) {
     canvas_draw_box(canvas, 0, 55, 128, 9);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 4, 62, ok_action);
+    canvas_draw_str(canvas, 4, 62, "OK");
+    canvas_draw_str(canvas, 20, 62, ok_action);
+    canvas_draw_str_aligned(canvas, 124, 62, AlignRight, AlignBottom, "details");
+    draw_right_key(canvas, 124 - canvas_string_width(canvas, "details") - 9, 61);
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -531,14 +626,31 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
         if(good) {
             // The whole point of the app, and the moment to be generous about
             // it: a thumb, a headline, and no hex anywhere in sight.
+            //
+            // Generous, but not louder than the evidence. A part with no ID
+            // register was never verified — it turned up at the right address
+            // and nothing more — so it does not get told it is the real deal.
+            // Saying so here is the same rule the verdict screens follow, and
+            // it is what makes the live test below worth pressing.
+            bool proven = (v == VerdictGenuine);
             canvas_draw_xbm(canvas, 4, 7, THUMB_W, THUMB_H, thumbs_up_bits);
             canvas_set_font(canvas, FontPrimary);
-            canvas_draw_str(canvas, 36, 20, "ALL GOOD");
+            canvas_draw_str(canvas, 36, 20, proven ? "ALL GOOD" : "IT ANSWERS");
             canvas_set_font(canvas, FontSecondary);
-            canvas_draw_str(canvas, 36, 30, "Real deal.");
+            canvas_draw_str(canvas, 36, 30, proven ? "Real deal." : "No ID to check.");
             canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, name);
-            if(kind) canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, kind);
-            draw_hint_bar(canvas, "details", false);
+
+            // The ID said what it is; a live test says it works. Offered here
+            // and only here, because this is the moment the answer is yes.
+            const LiveTest* test =
+                dev->ident.chip ? live_test_for_chip(dev->ident.chip->name) : NULL;
+            if(test) {
+                canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, test->offer);
+                draw_offer_bar(canvas, "live test");
+            } else {
+                if(kind) canvas_draw_str_aligned(canvas, 64, 51, AlignCenter, AlignBottom, kind);
+                draw_hint_bar(canvas, "details", false);
+            }
         } else {
             draw_verdict_icon(canvas, 12, 20, VerdictWrongChip);
             canvas_set_font(canvas, FontPrimary);
@@ -587,7 +699,7 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
     }
 
-    draw_action_bar(canvas, "OK: details");
+    draw_action_bar(canvas, "OK: details", true);
 }
 
 /* Writes a snapshot of the scan results to /ext/apps_data/fake_chip_detector/.
@@ -605,17 +717,8 @@ static bool scan_save_log(
     DateTime dt;
     furi_hal_rtc_get_datetime(&dt);
 
-    char name[32];
-    snprintf(
-        name,
-        sizeof(name),
-        "scan_%04u%02u%02u_%02u%02u%02u.txt",
-        dt.year,
-        dt.month,
-        dt.day,
-        dt.hour,
-        dt.minute,
-        dt.second);
+    char name[SAVED_NAME_LEN];
+    report_filename_make(name, sizeof(name), &dt);
     if(out_name) snprintf(out_name, out_name_size, "%s", name);
 
     FuriString* path = furi_string_alloc_printf(APP_DATA_PATH("%s"), name);
@@ -637,6 +740,11 @@ static bool scan_save_log(
 }
 
 static void app_show_report(FakeChipApp* app, bool disputed);
+static void app_start_live_test(
+    FakeChipApp* app,
+    const LiveTest* test,
+    uint8_t addr7,
+    FakeChipViewId back_to);
 
 // Snapshots the results and writes the report outside the model lock: SD
 // writes can stall for seconds and must never hold up the GUI.
@@ -698,6 +806,8 @@ static bool scan_input_callback(InputEvent* event, void* context) {
     bool answered_wrong = false;
     bool disputed = false;
     bool show_report = false;
+    const LiveTest* start_live = NULL;
+    uint8_t live_addr = 0;
 
     with_view_model(
         app->scan_view,
@@ -714,11 +824,28 @@ static bool scan_input_callback(InputEvent* event, void* context) {
                     } else if(m->found_count == 1 && m->answer == AnswerAsking) {
                         m->answer = AnswerExpected; // "yes, that is what I bought"
                     } else if(m->found_count == 1) {
-                        show_report = true;
-                        disputed = (m->answer == AnswerNotWhatIOrdered);
+                        // On a clean verdict OK runs the live test if the part
+                        // has one — that is the offer the screen is making.
+                        // The report keeps Up either way.
+                        const I2CFoundDevice* dev = &m->found[0];
+                        if(m->answer == AnswerExpected &&
+                           chip_verdict_is_good(dev->ident.verdict) && dev->ident.chip) {
+                            start_live = live_test_for_chip(dev->ident.chip->name);
+                            live_addr = dev->addr;
+                        }
+                        if(!start_live) {
+                            show_report = true;
+                            disputed = (m->answer == AnswerNotWhatIOrdered);
+                        }
                     } else {
                         open_detail = true;
                     }
+                    consumed = true;
+                } else if(
+                    event->key == InputKeyUp && m->found_count == 1 &&
+                    m->answer != AnswerAsking && event->type == InputTypeShort) {
+                    show_report = true;
+                    disputed = (m->answer == AnswerNotWhatIOrdered);
                     consumed = true;
                 } else if(
                     event->key == InputKeyDown && m->found_count == 1 &&
@@ -757,6 +884,8 @@ static bool scan_input_callback(InputEvent* event, void* context) {
         consumed);
 
     if(answered_wrong) i2c_notify_play(app->notifications, I2CNotifyBad);
+
+    if(start_live) app_start_live_test(app, start_live, live_addr, FakeChipViewScan);
 
     if(show_report) app_show_report(app, disputed);
 
@@ -836,23 +965,6 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
 
             if(app->settings.autosave && count > 0) app_save_log(app, false);
         }
-    } else if(event == I2CWorkerEventLiveUpdate) {
-        uint8_t cal = 0;
-        bool running = false;
-        with_view_model(
-            app->live_view,
-            LiveViewModel * m,
-            {
-                i2c_worker_get_live(app->worker, &m->data);
-                cal = m->data.mag_cal;
-                running = (m->data.status == I2CLiveStatusRunning);
-            },
-            true);
-        // Chime once, on the transition to fully calibrated
-        if(running && cal == 3 && app->last_mag_cal != 3) {
-            i2c_notify_play(app->notifications, I2CNotifyCalibrated);
-        }
-        if(running) app->last_mag_cal = cal;
     } else if(event == I2CWorkerEventBusUpdate) {
         I2CBusCheck bus;
         i2c_worker_get_bus(app->worker, &bus);
@@ -972,6 +1084,14 @@ static void detail_draw_callback(Canvas* canvas, void* model) {
 // VariableItemList that is the module instance, not the app, so these must
 // never dereference it — state changes belong in the exit callbacks of the
 // views we own.
+static void app_present_report(FakeChipApp* app, ViewNavigationCallback back_to) {
+    text_box_reset(app->report_box);
+    text_box_set_font(app->report_box, TextBoxFontText);
+    text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
+    view_set_previous_callback(text_box_get_view(app->report_box), back_to);
+    app_switch_view(app, FakeChipViewReport);
+}
+
 static uint32_t nav_to_saved(void* context) {
     UNUSED(context);
     return FakeChipViewSaved;
@@ -982,119 +1102,241 @@ static uint32_t nav_to_scan(void* context) {
     return FakeChipViewScan;
 }
 
-/* ---------------- BNO055 live test ---------------- */
+/* ---------------- Live tests ---------------- */
 
-// Lemniscate traced by a moving dot: the figure-8 motion the magnetometer
-// needs for calibration, shown instead of described.
-static void draw_figure8(Canvas* canvas, uint8_t cx, uint8_t cy, uint32_t frame) {
-    const float rx = 20.0f, ry = 8.0f;
-    for(uint8_t i = 0; i < 32; i++) {
-        float t = (float)i / 32.0f * 2.0f * (float)M_PI;
-        canvas_draw_dot(canvas, cx + (int8_t)(rx * sinf(t)), cy + (int8_t)(ry * sinf(2 * t)));
+// Nothing here knows about any particular chip. What a test measures — and
+// how it draws that, if text will not do — lives in live_<part>.c; see
+// live_test.h for the contract and how to add one.
+
+// The screen for every phase where there is nothing to measure yet. Shared on
+// purpose: "warming up" and "it dropped off" should look the same whichever
+// part is being tested, so only the readings get a custom picture.
+static void live_draw_generic(Canvas* canvas, const LiveViewModel* m) {
+    const LiveTestState* st = &m->state;
+    bool measuring =
+        (st->phase == LiveTestPhaseRunning || st->phase == LiveTestPhasePassed);
+
+    canvas_set_font(canvas, FontPrimary);
+    // Two different failures, two different headlines. "Dropped off" sends the
+    // user to the wiring; "wrong chip" tells them the wiring is fine and the
+    // module is not what the test is for. Saying the first when it is the
+    // second is how somebody ends up reseating a perfectly good jumper.
+    const char* title = (st->phase == LiveTestPhaseLost)      ? "Sensor dropped off!" :
+                        (st->phase == LiveTestPhaseWrongChip) ? "Wrong chip!" :
+                                                                (m->test ? m->test->title :
+                                                                           "Live test");
+    canvas_draw_str_aligned(canvas, 64, 13, AlignCenter, AlignBottom, title);
+
+    if(m->from_card) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 12, "SD");
+        canvas_set_font(canvas, FontPrimary);
     }
-    float t = (float)(frame % 48) / 48.0f * 2.0f * (float)M_PI;
-    canvas_draw_disc(
-        canvas, cx + (int8_t)(rx * sinf(t)), cy + (int8_t)(ry * sinf(2 * t)), 2);
+
+    // "It passed" is the app's job to say, not each test's. Drawing it here
+    // means one tick in one place, identical for every module, and leaves the
+    // test's own lines free to keep showing the reading that earned it.
+    if(st->phase == LiveTestPhasePassed) {
+        canvas_draw_line(canvas, 118, 9, 120, 12);
+        canvas_draw_line(canvas, 118, 10, 120, 13);
+        canvas_draw_line(canvas, 120, 12, 125, 5);
+        canvas_draw_line(canvas, 120, 13, 125, 6);
+    }
+
+    uint8_t y = 26;
+    if(measuring && st->heading[0]) {
+        // Number and unit are centred as one block, so the digits do not
+        // shuffle sideways every time the reading gains or loses a character.
+        // Each width is measured with its own font already selected —
+        // canvas_string_width answers for whatever font is current, and asking
+        // in the wrong one lands the unit on top of the number.
+        canvas_set_font(canvas, FontBigNumbers);
+        uint8_t num_w = canvas_string_width(canvas, st->heading);
+        uint8_t unit_w = 0;
+        if(st->unit[0]) {
+            canvas_set_font(canvas, FontSecondary);
+            unit_w = canvas_string_width(canvas, st->unit) + 3;
+        }
+        uint8_t x = (num_w + unit_w >= 128) ? 0 : (uint8_t)(64 - (num_w + unit_w) / 2);
+        canvas_set_font(canvas, FontBigNumbers);
+        canvas_draw_str(canvas, x, 36, st->heading);
+        if(st->unit[0]) {
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str(canvas, x + num_w + 3, 36, st->unit);
+        }
+        y = 46;
+    }
+
+    canvas_set_font(canvas, FontSecondary);
+    for(size_t i = 0; i < LIVE_TEST_LINES && y <= 62; i++) {
+        if(!st->lines[i][0]) continue;
+        canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, st->lines[i]);
+        y += 10;
+    }
+
+    if(st->phase == LiveTestPhaseStarting && y + 8 <= 62) {
+        // A sweep, not a percentage: the wait is a fixed settle time, and a
+        // fake progress bar that claims to know how far along it is would be
+        // exactly the kind of made-up number this app refuses to show.
+        uint8_t w = (uint8_t)((m->frame % 20) * 100 / 20);
+        canvas_draw_frame(canvas, 14, y, 100, 8);
+        canvas_draw_box(canvas, 14, y, w, 8);
+    } else if(
+        (st->phase == LiveTestPhaseLost || st->phase == LiveTestPhaseWrongChip) && y <= 62) {
+        // True for both: the test's outer loop keeps re-checking, so swapping
+        // the module or pushing the wire back in picks up without leaving.
+        canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignBottom, "Retrying...");
+    } else if(measuring && st->bar_max && y + 7 <= 63) {
+        uint8_t fill = st->bar > st->bar_max ? st->bar_max : st->bar;
+        canvas_draw_frame(canvas, 14, y, 100, 7);
+        canvas_draw_box(canvas, 14, y, (uint8_t)((uint32_t)100 * fill / st->bar_max), 7);
+    } else if(measuring && st->progress_max && y + 7 <= 63) {
+        uint8_t bw = st->progress_max * 9 - 2;
+        uint8_t bx = 64 - bw / 2;
+        for(uint8_t i = 0; i < st->progress_max; i++) {
+            if(i < st->progress) {
+                canvas_draw_box(canvas, bx + i * 9, y, 7, 7);
+            } else {
+                canvas_draw_frame(canvas, bx + i * 9, y, 7, 7);
+            }
+        }
+    }
 }
 
 static void live_draw_callback(Canvas* canvas, void* model) {
     LiveViewModel* m = model;
     canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
 
-    switch(m->data.status) {
-    case I2CLiveStatusSearching:
-        canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom, "Looking for BNO055");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignBottom, "Probing 0x28 and 0x29");
-        draw_scan_spinner(canvas, 64, 40, m->frame);
-        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Plug it in - I'll wait");
-        return;
-    case I2CLiveStatusInit: {
-        canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "Starting NDOF mode");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignBottom, "Sensor fusion warm-up");
-        uint8_t w = (uint8_t)((m->frame % 20) * 100 / 20);
-        canvas_draw_frame(canvas, 14, 34, 100, 8);
-        canvas_draw_box(canvas, 14, 34, w, 8);
-        return;
-    }
-    case I2CLiveStatusLost:
-        canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "Sensor dropped off!");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(
-            canvas, 64, 28, AlignCenter, AlignBottom, "It replied, then stopped.");
-        canvas_draw_str_aligned(
-            canvas, 64, 38, AlignCenter, AlignBottom, "Check 3V3 and wires.");
-        canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, "Retrying...");
-        return;
-    case I2CLiveStatusRunning:
-        break;
-    }
-
-    // Heading arrives in 1/16 degree steps; integer math keeps printf light.
-    int32_t raw = m->data.heading_raw;
-    if(raw < 0) raw += 360 * 16;
-    int32_t deg = raw / 16;
-    int32_t frac = (raw % 16) * 10 / 16;
-
-    char buf[24];
-    canvas_set_font(canvas, FontBigNumbers);
-    snprintf(buf, sizeof(buf), "%ld.%ld", (long)deg, (long)frac);
-    canvas_draw_str(canvas, 2, 26, buf);
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 4, 36, "deg");
-
-    // Compass: 0 deg = north = up, needle follows the sensor
-    const uint8_t cx = 100, cy = 24, r = 18;
-    canvas_draw_circle(canvas, cx, cy, r);
-    canvas_draw_str_aligned(canvas, cx, cy - r + 6, AlignCenter, AlignBottom, "N");
-    float a = (float)raw / 16.0f * ((float)M_PI / 180.0f);
-    int8_t dx = (int8_t)(sinf(a) * (r - 4));
-    int8_t dy = (int8_t)(-cosf(a) * (r - 4));
-    canvas_draw_line(canvas, cx, cy, cx + dx, cy + dy);
-    canvas_draw_disc(canvas, cx + dx, cy + dy, 2);
-
-    snprintf(buf, sizeof(buf), "MAG CAL %u/3", m->data.mag_cal);
-    canvas_draw_str(canvas, 2, 47, buf);
-    for(uint8_t i = 0; i < 3; i++) {
-        uint8_t bx = 58 + i * 9;
-        if(i < m->data.mag_cal) {
-            canvas_draw_box(canvas, bx, 40, 7, 7);
-        } else {
-            canvas_draw_frame(canvas, bx, 40, 7, 7);
-        }
-    }
-
-    if(m->data.mag_cal < 3) {
-        draw_figure8(canvas, 24, 57, m->frame);
-        canvas_draw_str(canvas, 50, 60, "Rotate in figure-8");
+    bool measuring =
+        (m->state.phase == LiveTestPhaseRunning || m->state.phase == LiveTestPhasePassed);
+    if(measuring && m->test && m->test->draw) {
+        m->test->draw(canvas, &m->state, m->frame);
     } else {
-        canvas_draw_box(canvas, 0, 51, 128, 13);
-        canvas_set_color(canvas, ColorWhite);
-        canvas_draw_str_aligned(
-            canvas, 64, 61, AlignCenter, AlignBottom, "CALIBRATED - now spin it");
-        canvas_set_color(canvas, ColorBlack);
+        live_draw_generic(canvas, m);
     }
 }
 
-static void live_enter_callback(void* context) {
+// Called from the test's own thread. Copies the state under the model lock and
+// owns the one thing a test must not decide for itself: when to make a noise.
+static void live_publish(void* ctx, const LiveTestState* state) {
+    FakeChipApp* app = ctx;
+    with_view_model(app->live_view, LiveViewModel * m, { m->state = *state; }, true);
+
+    bool succeeded = (state->phase == LiveTestPhasePassed) ||
+                     (state->progress_max && state->progress >= state->progress_max);
+    if(succeeded && !app->live_chimed) {
+        // Rate limited, and not as a nicety. Re-arming on the falling edge is
+        // what makes a second success audible, but it also means a reading
+        // flapping across the threshold plays the chime at whatever rate the
+        // test polls at — which is exactly what a wrong chip returning garbage
+        // did, twice a second, until it had to be unplugged. A test can come
+        // off somebody else's SD card, so the buzzer is the app's to bound.
+        uint32_t now = furi_get_tick();
+        if(!app->live_chime_tick ||
+           now - app->live_chime_tick >= furi_ms_to_ticks(LIVE_CHIME_MIN_GAP_MS)) {
+            app->live_chime_tick = now;
+            i2c_notify_play(app->notifications, I2CNotifyCalibrated);
+        }
+    }
+    // Latched so the chime fires on the transition, not on every poll — and
+    // re-arms if the part falls back out of its success state.
+    app->live_chimed = succeeded;
+}
+
+static int32_t live_thread_worker(void* context) {
     FakeChipApp* app = context;
-    app->last_mag_cal = 0;
+    const LiveTest* test = NULL;
+    uint8_t addr = 0;
     with_view_model(
         app->live_view,
         LiveViewModel * m,
         {
-            m->data = (I2CLiveData){.status = I2CLiveStatusSearching};
+            test = m->test;
+            addr = m->addr;
+        },
+        false);
+
+    if(test && test->run) {
+        // Built on this thread's stack and handed over by pointer. The test
+        // may be a module compiled into this app or one loaded from the SD
+        // card, and this struct is the entire difference between them —
+        // neither reaches for a symbol of ours by name.
+        const LiveTestEnv env = {
+            .addr7 = addr,
+            .stop = &app->live_stop,
+            .publish = live_publish,
+            .ctx = app,
+            .i2c = live_test_i2c(),
+        };
+        test->run(&env);
+    }
+    return 0;
+}
+
+// `back_to` is passed rather than read from app->current_view, which only
+// tracks forward navigation: a Back keypress goes through the view's previous
+// callback and never updates it. Inferring the origin from it sent anyone who
+// entered the browser by pressing Back to the scan verdict instead.
+static void app_start_live_test(
+    FakeChipApp* app,
+    const LiveTest* test,
+    uint8_t addr7,
+    FakeChipViewId back_to) {
+    app->live_return_to = back_to;
+    with_view_model(
+        app->live_view,
+        LiveViewModel * m,
+        {
+            m->test = test;
+            m->addr = addr7;
+            m->from_card = (app->live_plugin != NULL);
+        },
+        false);
+    app_switch_view(app, FakeChipViewLive);
+}
+
+static void live_enter_callback(void* context) {
+    FakeChipApp* app = context;
+    app->live_chimed = false;
+    app->live_chime_tick = 0;
+    with_view_model(
+        app->live_view,
+        LiveViewModel * m,
+        {
+            memset(&m->state, 0, sizeof(m->state));
             m->frame = 0;
         },
         true);
-    i2c_worker_live_start(app->worker);
+
+    // The thread exists only while the screen does. A live test talks to the
+    // chip continuously, and leaving one running behind a menu would keep the
+    // sensor powered up and the I2C bus busy for no reason.
+    app->live_stop = false;
+    app->live_thread = furi_thread_alloc_ex("FakeChipLive", 2048, live_thread_worker, app);
+    furi_thread_start(app->live_thread);
 }
 
 static void live_exit_callback(void* context) {
     FakeChipApp* app = context;
-    i2c_worker_live_stop(app->worker);
+    app->live_stop = true;
+    if(app->live_thread) {
+        furi_thread_join(app->live_thread);
+        furi_thread_free(app->live_thread);
+        app->live_thread = NULL;
+    }
+
+    // Strictly after the join, and the order of these two lines is the whole
+    // point. The worker is not the only thread holding a pointer into the
+    // plugin: the GUI thread draws m->test->title on every frame, and
+    // m->test->draw if the plugin supplied one. Joining says nothing about
+    // that. Clearing m->test under the model lock does — taking the lock waits
+    // out any draw already in progress, and once it is NULL no later draw can
+    // follow the pointer. Only then is it safe to unmap.
+    if(app->live_plugin) {
+        with_view_model(app->live_view, LiveViewModel * m, { m->test = NULL; }, false);
+        live_plugin_close(app->live_plugin);
+        app->live_plugin = NULL;
+    }
 }
 
 /* ---------------- Settings ---------------- */
@@ -1262,6 +1504,294 @@ static bool chips_input_callback(InputEvent* event, void* context) {
 }
 
 
+/* ---------------- Live test browser ---------------- */
+
+#define TESTS_LIST_ROWS 4
+
+// The list is the built-in tests, then whatever was found on the card, then
+// one synthetic row that opens the instructions. Keeping the help row in the
+// list rather than on a hint bar costs no screen furniture and is the first
+// thing a user scrolls to the bottom and finds.
+static size_t tests_total(const TestsViewModel* m) {
+    return live_test_count() + (m->plugins ? m->plugins->count : 0) + 1;
+}
+
+static bool tests_row_is_help(const TestsViewModel* m, size_t index) {
+    return index + 1 == tests_total(m);
+}
+
+// NULL for the help row or an out-of-range index.
+static const LivePluginInfo* tests_row_plugin(const TestsViewModel* m, size_t index) {
+    if(!m->plugins) return NULL;
+    if(index < live_test_count()) return NULL;
+    size_t slot = index - live_test_count();
+    if(slot >= m->plugins->count) return NULL;
+    return &m->plugins->items[slot];
+}
+
+static void tests_row_label(const TestsViewModel* m, size_t index, const char** name, const char** note) {
+    const LivePluginInfo* plugin = tests_row_plugin(m, index);
+    if(plugin) {
+        // A plugin that failed to load still gets a row. Hiding it would leave
+        // the user staring at a folder whose contents do not appear, with no
+        // way to find out why.
+        *name = plugin->status == LivePluginOk ? plugin->chip : plugin->file;
+        *note = plugin->status == LivePluginOk ? plugin->offer :
+                                                 live_plugin_status_text(plugin->status);
+        return;
+    }
+    const LiveTest* test = live_test_get(index);
+    *name = test ? test->chip : "?";
+    *note = test ? test->offer : "";
+}
+
+static void tests_draw_callback(Canvas* canvas, void* model) {
+    TestsViewModel* m = model;
+    size_t total = tests_total(m);
+    canvas_clear(canvas);
+
+    char buf[24];
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Live tests");
+    canvas_set_font(canvas, FontSecondary);
+    snprintf(
+        buf,
+        sizeof(buf),
+        "%u on card",
+        (unsigned)(m->plugins ? m->plugins->count : 0));
+    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
+
+    uint16_t first = 0;
+    if(m->selected >= TESTS_LIST_ROWS) first = m->selected - TESTS_LIST_ROWS + 1;
+
+    for(uint8_t row = 0; row < TESTS_LIST_ROWS; row++) {
+        size_t idx = first + row;
+        if(idx >= total) break;
+        uint8_t y = 22 + row * 10;
+        bool sel = (idx == m->selected);
+        if(sel) {
+            canvas_draw_box(canvas, 0, y - 8, 128, 10);
+            canvas_set_color(canvas, ColorWhite);
+        }
+
+        if(tests_row_is_help(m, idx)) {
+            canvas_draw_str(canvas, 4, y, "Add your own...");
+        } else {
+            const char *name = NULL, *note = NULL;
+            tests_row_label(m, idx, &name, &note);
+            canvas_draw_str(canvas, 4, y, name);
+
+            // Where a test came from is not a detail. A built-in test was
+            // written against a datasheet and reviewed here; one from the card
+            // is somebody else's code, and the person reading a PASS off this
+            // screen deserves to know which they are looking at.
+            if(tests_row_plugin(m, idx)) {
+                canvas_draw_str_aligned(canvas, 124, y, AlignRight, AlignBottom, "SD");
+            }
+        }
+        if(sel) canvas_set_color(canvas, ColorBlack);
+    }
+
+    canvas_draw_box(canvas, 0, 55, 128, 9);
+    canvas_set_color(canvas, ColorWhite);
+    const char* footer;
+    if(m->message[0]) {
+        footer = m->message;
+    } else if(tests_row_is_help(m, m->selected)) {
+        footer = "Write one, drop it in";
+    } else {
+        const char *name = NULL, *note = NULL;
+        tests_row_label(m, m->selected, &name, &note);
+        footer = note;
+    }
+    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, footer);
+    canvas_set_color(canvas, ColorBlack);
+}
+
+// Finds which of a test's declared addresses is actually answering. Returns 0
+// when none does — deliberately, rather than falling back to the first one:
+// running a test against an address with nothing on it would mean writing
+// configuration to whatever else happens to be there.
+static uint8_t tests_probe(const uint8_t* addrs) {
+    for(size_t i = 0; i < LIVE_TEST_MAX_ADDRS; i++) {
+        if(addrs[i] == LIVE_TEST_ADDR_NONE) break;
+        if(i2c_worker_device_ready(addrs[i], I2C_PROBE_TIMEOUT_MS)) return addrs[i];
+    }
+    return 0;
+}
+
+static void tests_describe_addrs(char* out, size_t len, const uint8_t* addrs) {
+    size_t used = 0;
+    out[0] = '\0';
+    for(size_t i = 0; i < LIVE_TEST_MAX_ADDRS && used + 8 < len; i++) {
+        if(addrs[i] == LIVE_TEST_ADDR_NONE) break;
+        used += (size_t)snprintf(
+            out + used, len - used, used ? " or 0x%02X" : "0x%02X", addrs[i]);
+    }
+}
+
+// OK on a row: work out where the part is, then run the test there.
+static void tests_launch(FakeChipApp* app, size_t index) {
+    const LiveTest* test = NULL;
+    const uint8_t* addrs = NULL;
+    char file[LIVE_PLUGIN_FILE_LEN] = {0};
+    bool from_card = false;
+
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        {
+            const LivePluginInfo* plugin = tests_row_plugin(m, index);
+            if(plugin) {
+                from_card = true;
+                if(plugin->status == LivePluginOk) {
+                    strlcpy(file, plugin->file, sizeof(file));
+                    addrs = plugin->addrs;
+                }
+            } else {
+                test = live_test_get(index);
+                if(test) addrs = test->addrs;
+            }
+        },
+        false);
+
+    const char* problem = NULL;
+    char note[LIVE_TEST_LINE_LEN] = {0};
+
+    if(from_card && !file[0]) {
+        problem = "That one will not load";
+    } else if(!addrs) {
+        problem = "No addresses to try";
+    } else {
+        // Copied out before the probe: the model lock is not held during a bus
+        // transfer, and `addrs` for a plugin points into the model.
+        uint8_t candidates[LIVE_TEST_MAX_ADDRS];
+        memcpy(candidates, addrs, sizeof(candidates));
+
+        uint8_t addr = tests_probe(candidates);
+        if(!addr) {
+            // Sized so "Nothing at " plus the widest list this can produce is
+            // provably inside a 26-character line.
+            char where[15];
+            tests_describe_addrs(where, sizeof(where), candidates);
+            snprintf(note, sizeof(note), "Nothing at %s", where);
+            problem = note;
+        } else if(from_card) {
+            // Loaded here and closed in live_exit_callback, once the worker
+            // that is executing its code has been joined.
+            LivePluginStatus status = LivePluginOk;
+            LivePluginHandle* handle = live_plugin_open(file, &status);
+            if(!handle) {
+                problem = live_plugin_status_text(status);
+            } else {
+                app->live_plugin = handle;
+                app_start_live_test(app, live_plugin_test(handle), addr, FakeChipViewTests);
+                return;
+            }
+        } else {
+            app_start_live_test(app, test, addr, FakeChipViewTests);
+            return;
+        }
+    }
+
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        { strlcpy(m->message, problem, sizeof(m->message)); },
+        true);
+}
+
+static bool tests_input_callback(InputEvent* event, void* context) {
+    FakeChipApp* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+
+    bool consumed = false;
+    bool help = false;
+    size_t launch = SIZE_MAX;
+
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        {
+            size_t total = tests_total(m);
+            // This list wraps, unlike the others. The instructions live on the
+            // last row, and without wrapping a user hunting for them has to
+            // scroll past every test in the app to find out how to add one.
+            if(event->key == InputKeyUp) {
+                m->selected = (uint16_t)(m->selected ? (size_t)m->selected - 1 : total - 1);
+                m->message[0] = '\0';
+                consumed = true;
+            } else if(event->key == InputKeyDown) {
+                m->selected = (uint16_t)(((size_t)m->selected + 1) % total);
+                m->message[0] = '\0';
+                consumed = true;
+            } else if(event->key == InputKeyOk) {
+                m->message[0] = '\0';
+                if(tests_row_is_help(m, m->selected)) {
+                    help = true;
+                } else {
+                    launch = m->selected;
+                }
+                consumed = true;
+            }
+        },
+        consumed);
+
+    // Both of these switch views, so they happen outside the model lock.
+    if(help) app_switch_view(app, FakeChipViewTestHelp);
+    if(launch != SIZE_MAX) tests_launch(app, launch);
+    return consumed;
+}
+
+static void tests_enter_callback(void* context) {
+    FakeChipApp* app = context;
+    // Reading each plugin's name means mapping its ELF, so this costs a moment
+    // per file. Doing it on entry rather than on every draw is the difference
+    // between a screen that opens slowly once and one that never settles.
+    LivePluginList* list = malloc(sizeof(LivePluginList));
+    live_plugin_list(list);
+
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        {
+            free(m->plugins);
+            m->plugins = list;
+            m->message[0] = '\0';
+            if(m->selected >= tests_total(m)) m->selected = 0;
+        },
+        true);
+}
+
+static void tests_exit_callback(void* context) {
+    FakeChipApp* app = context;
+    with_view_model(
+        app->tests_view,
+        TestsViewModel * m,
+        {
+            free(m->plugins);
+            m->plugins = NULL;
+        },
+        false);
+}
+
+static void test_help_draw_callback(Canvas* canvas, void* model) {
+    UNUSED(model);
+    canvas_clear(canvas);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Add your own test");
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 22, "Build a .fal with ufbt and");
+    canvas_draw_str(canvas, 2, 31, "copy it to the SD card at");
+    canvas_draw_str(canvas, 2, 42, "apps_data/");
+    canvas_draw_str(canvas, 2, 51, "  fake_chip_detector/tests");
+
+    canvas_draw_line(canvas, 0, 54, 128, 54);
+    canvas_draw_str(canvas, 2, 62, "Template + guide: see repo");
+}
+
 /* ---------------- Report viewer ---------------- */
 
 // The file on the SD card is for later. What matters at the front door is a
@@ -1284,13 +1814,7 @@ static void app_show_report(FakeChipApp* app, bool disputed) {
     report_build(app->report_text, snapshot, count, disputed, &dt);
     free(snapshot);
 
-    text_box_reset(app->report_box);
-    text_box_set_font(app->report_box, TextBoxFontText);
-    text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
-    // Back belongs where the reader came from, and this report came from the
-    // scan result.
-    view_set_previous_callback(text_box_get_view(app->report_box), nav_to_scan);
-    app_switch_view(app, FakeChipViewReport);
+    app_present_report(app, nav_to_scan);
 }
 
 
@@ -1308,7 +1832,7 @@ static void saved_reload(FakeChipApp* app) {
     storage_common_resolve_path_and_ensure_app_directory(storage, dir);
 
     File* d = storage_file_alloc(storage);
-    static char names[SAVED_MAX][SAVED_NAME_LEN];
+    char(*names)[SAVED_NAME_LEN] = malloc(SAVED_MAX * SAVED_NAME_LEN);
     uint8_t count = 0;
 
     if(storage_dir_open(d, furi_string_get_cstr(dir))) {
@@ -1316,7 +1840,7 @@ static void saved_reload(FakeChipApp* app) {
         char name[SAVED_NAME_LEN];
         while(count < SAVED_MAX && storage_dir_read(d, &info, name, sizeof(name))) {
             if(file_info_is_dir(&info)) continue;
-            if(strncmp(name, "scan_", 5) != 0) continue;
+            if(strncmp(name, REPORT_FILE_PREFIX, strlen(REPORT_FILE_PREFIX)) != 0) continue;
             snprintf(names[count], SAVED_NAME_LEN, "%s", name);
             count++;
         }
@@ -1326,15 +1850,39 @@ static void saved_reload(FakeChipApp* app) {
     furi_string_free(dir);
     furi_record_close(RECORD_STORAGE);
 
+    // Swap the finished list in under a short lock rather than reading the
+    // directory with the model held.
+    char(*old)[SAVED_NAME_LEN] = NULL;
     with_view_model(
         app->saved_view,
         SavedViewModel * m,
         {
-            memcpy(m->names, names, sizeof(names));
+            old = m->names;
+            m->names = names;
             m->count = count;
             if(m->selected >= count) m->selected = count ? (uint8_t)(count - 1) : 0;
         },
         true);
+    free(old);
+}
+
+// The list is rebuilt on every entry, not just the first: the screen is also
+// reached by backing out of a report, and a scan may have saved one since.
+static void saved_enter(void* context) {
+    saved_reload(context);
+}
+
+static void saved_exit(void* context) {
+    FakeChipApp* app = context;
+    with_view_model(
+        app->saved_view,
+        SavedViewModel * m,
+        {
+            free(m->names);
+            m->names = NULL;
+            m->count = 0;
+        },
+        false);
 }
 
 static void saved_open(FakeChipApp* app) {
@@ -1343,7 +1891,7 @@ static void saved_open(FakeChipApp* app) {
         app->saved_view,
         SavedViewModel * m,
         {
-            if(m->count) snprintf(name, sizeof(name), "%s", m->names[m->selected]);
+            if(m->names && m->count) snprintf(name, sizeof(name), "%s", m->names[m->selected]);
         },
         false);
     if(!name[0]) return;
@@ -1355,11 +1903,18 @@ static void saved_open(FakeChipApp* app) {
     furi_string_reset(app->report_text);
     File* f = storage_file_alloc(storage);
     if(storage_file_open(f, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
-        char chunk[129];
+        // Capped: a real report is a couple of kilobytes, and a corrupt or
+        // hand-edited file must not be able to exhaust the heap.
+        char chunk[257];
         size_t n;
-        while((n = storage_file_read(f, chunk, sizeof(chunk) - 1)) > 0) {
+        size_t total = 0;
+        while(total < REPORT_READ_MAX && (n = storage_file_read(f, chunk, sizeof(chunk) - 1)) > 0) {
             chunk[n] = 0;
             furi_string_cat_str(app->report_text, chunk);
+            total += n;
+        }
+        if(total >= REPORT_READ_MAX) {
+            furi_string_cat_str(app->report_text, "\n[report truncated]\n");
         }
     } else {
         furi_string_set_str(app->report_text, "Could not open this report.");
@@ -1369,11 +1924,7 @@ static void saved_open(FakeChipApp* app) {
     furi_string_free(path);
     furi_record_close(RECORD_STORAGE);
 
-    text_box_reset(app->report_box);
-    text_box_set_font(app->report_box, TextBoxFontText);
-    text_box_set_text(app->report_box, furi_string_get_cstr(app->report_text));
-    view_set_previous_callback(text_box_get_view(app->report_box), nav_to_saved);
-    app_switch_view(app, FakeChipViewReport);
+    app_present_report(app, nav_to_saved);
 }
 
 static void saved_draw_callback(Canvas* canvas, void* model) {
@@ -1402,10 +1953,7 @@ static void saved_draw_callback(Canvas* canvas, void* model) {
         uint8_t idx = (uint8_t)(first + row);
         if(idx >= m->count) break;
         uint8_t y = (uint8_t)(22 + row * 10);
-        // scan_20260810_202233.txt -> 2026-08-10 20:22
-        const char* n = m->names[idx];
-        snprintf(
-            buf, sizeof(buf), "%.4s-%.2s-%.2s %.2s:%.2s", n + 5, n + 9, n + 11, n + 14, n + 16);
+        report_filename_label(m->names[idx], buf, sizeof(buf));
         if(idx == m->selected) {
             canvas_draw_box(canvas, 0, y - 8, 128, 10);
             canvas_set_color(canvas, ColorWhite);
@@ -1415,7 +1963,7 @@ static void saved_draw_callback(Canvas* canvas, void* model) {
             canvas_draw_str(canvas, 4, y, buf);
         }
     }
-    draw_action_bar_ok(canvas, "OK: read it");
+    draw_action_bar(canvas, "OK: read it", false);
 }
 
 static bool saved_input_callback(InputEvent* event, void* context) {
@@ -1439,6 +1987,200 @@ static bool saved_input_callback(InputEvent* event, void* context) {
         },
         consumed);
     if(open) saved_open(app);
+    return consumed;
+}
+
+
+/* ---------------- 1-Wire ---------------- */
+
+// The 1-Wire bus lives on its own pin (17) and has its own failure modes, so
+// it gets its own screen rather than being folded into the I2C scan.
+
+static int32_t ow_thread_worker(void* context) {
+    FakeChipApp* app = context;
+
+    // Scanned into a local first: the search holds the bus for up to a second
+    // and the view model must not be locked for anything like that long.
+    OneWireScanResult res;
+    onewire_worker_scan(&res, &app->ow_abort);
+
+    with_view_model(
+        app->onewire_view,
+        OneWireViewModel * m,
+        {
+            m->res = res;
+            m->busy = false;
+        },
+        true);
+
+    if(!app->ow_abort) {
+        i2c_notify_play(
+            app->notifications,
+            res.count       ? I2CNotifyNeutral :
+            res.state == OneWireBusShorted ? I2CNotifyBad :
+                              I2CNotifyAttention);
+    }
+    return 0;
+}
+
+static void onewire_enter(void* context) {
+    FakeChipApp* app = context;
+    with_view_model(
+        app->onewire_view,
+        OneWireViewModel * m,
+        {
+            memset(&m->res, 0, sizeof(m->res));
+            m->selected = 0;
+            m->busy = true;
+            m->explain = false;
+        },
+        true);
+
+    app->ow_abort = false;
+    app->ow_thread = furi_thread_alloc_ex("FakeChipOneWire", 2048, ow_thread_worker, app);
+    furi_thread_start(app->ow_thread);
+}
+
+static void onewire_exit(void* context) {
+    FakeChipApp* app = context;
+    if(!app->ow_thread) return;
+    app->ow_abort = true;
+    furi_thread_join(app->ow_thread);
+    furi_thread_free(app->ow_thread);
+    app->ow_thread = NULL;
+}
+
+// 16 hex digits with no separators: it is an identifier to compare, not prose.
+static void ow_format_rom(const uint8_t* rom, char out[17]) {
+    for(uint8_t i = 0; i < 8; i++) {
+        snprintf(out + i * 2, 3, "%02X", rom[i]);
+    }
+}
+
+static void onewire_draw_callback(Canvas* canvas, void* model) {
+    OneWireViewModel* m = model;
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+
+    // Saying "IDs are copyable" and leaving it there would be worse than not
+    // saying it: the whole point of the app is that the user understands what
+    // the verdict rests on.
+    if(m->explain) {
+        canvas_draw_str(canvas, 2, 10, "What this proves");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 22, "The 64-bit ID is burned");
+        canvas_draw_str(canvas, 2, 31, "in at the factory, but");
+        canvas_draw_str(canvas, 2, 40, "any chip can replay it.");
+        canvas_draw_str(canvas, 2, 49, "It shows which part this");
+        canvas_draw_str(canvas, 2, 58, "is, not who made it.");
+        return;
+    }
+
+    if(m->busy) {
+        canvas_draw_str(canvas, 2, 10, "1-Wire");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignBottom, "Searching the bus...");
+        canvas_draw_str_aligned(
+            canvas, 64, 44, AlignCenter, AlignBottom, "Measuring takes a second.");
+        return;
+    }
+
+    if(m->res.count == 0) {
+        canvas_draw_str(canvas, 2, 10, "Nothing on 1-Wire");
+        canvas_set_font(canvas, FontSecondary);
+        if(m->res.state == OneWireBusShorted) {
+            canvas_draw_str(canvas, 2, 24, "Pin 17 is held low.");
+            canvas_draw_str(canvas, 2, 34, "Shorted to GND, or the");
+            canvas_draw_str(canvas, 2, 44, "4.7k pull-up is missing.");
+        } else {
+            canvas_draw_str(canvas, 2, 24, "No device answered.");
+            canvas_draw_str(canvas, 2, 34, "Data to pin 17, plus 3V3,");
+            canvas_draw_str(canvas, 2, 44, "GND and a 4.7k pull-up.");
+        }
+        return;
+    }
+
+    const OneWireDevice* dev = &m->res.found[m->selected];
+
+    canvas_draw_str(canvas, 2, 10, dev->name ? dev->name : "Unknown part");
+    if(m->res.count > 1 || m->res.overflow) {
+        char pos[12];
+        snprintf(
+            pos,
+            sizeof(pos),
+            "%u/%u%s",
+            m->selected + 1,
+            m->res.count,
+            m->res.overflow ? "+" : "");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, pos);
+    }
+
+    canvas_set_font(canvas, FontSecondary);
+    if(dev->kind) {
+        canvas_draw_str(canvas, 2, 21, dev->kind);
+    } else {
+        char fam[24];
+        snprintf(fam, sizeof(fam), "Family code 0x%02X", dev->rom[0]);
+        canvas_draw_str(canvas, 2, 21, fam);
+    }
+
+    char rom[17];
+    ow_format_rom(dev->rom, rom);
+    canvas_draw_str(canvas, 2, 32, rom);
+
+    if(!dev->crc_ok) {
+        canvas_draw_str(canvas, 2, 43, "ID checksum is wrong!");
+    } else if(dev->measured && dev->scratch_crc_ok) {
+        // Outside the DS18B20's own -55..+125 range the number is not a
+        // temperature, and claiming "it works" from it would be a lie.
+        int tenths = (int)(dev->temp_c * 10.0f);
+        if(tenths < -550 || tenths > 1250) {
+            canvas_draw_str(canvas, 2, 43, "Reading out of range.");
+        } else {
+            char line[26];
+            snprintf(
+                line,
+                sizeof(line),
+                "Reads %d.%d C - it works",
+                tenths / 10,
+                (tenths < 0 ? -tenths : tenths) % 10);
+            canvas_draw_str(canvas, 2, 43, line);
+        }
+    } else if(dev->measured) {
+        canvas_draw_str(canvas, 2, 43, "Answered, data corrupt.");
+    } else {
+        canvas_draw_str(canvas, 2, 43, "Present, ID checks out.");
+    }
+
+    draw_action_bar(canvas, "OK: what this proves", false);
+}
+
+static bool onewire_input_callback(InputEvent* event, void* context) {
+    FakeChipApp* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+    bool consumed = false;
+    with_view_model(
+        app->onewire_view,
+        OneWireViewModel * m,
+        {
+            if(m->explain) {
+                // Any key closes the panel, Back included — consuming it here
+                // means the first Back returns to the result, not to the menu.
+                m->explain = false;
+                consumed = true;
+            } else if(event->key == InputKeyUp && m->selected > 0) {
+                m->selected--;
+                consumed = true;
+            } else if(event->key == InputKeyDown && (uint8_t)(m->selected + 1) < m->res.count) {
+                m->selected++;
+                consumed = true;
+            } else if(event->key == InputKeyOk && m->res.count) {
+                m->explain = true;
+                consumed = true;
+            }
+        },
+        consumed);
     return consumed;
 }
 
@@ -1499,8 +2241,11 @@ static void menu_callback(void* context, uint32_t index) {
     case MenuIndexScan:
         app_start_scan(app);
         break;
-    case MenuIndexLiveTest:
-        app_switch_view(app, FakeChipViewLive);
+    case MenuIndexOneWire:
+        app_switch_view(app, FakeChipViewOneWire);
+        break;
+    case MenuIndexTests:
+        app_switch_view(app, FakeChipViewTests);
         break;
     case MenuIndexSettings:
         app_switch_view(app, FakeChipViewSettings);
@@ -1509,7 +2254,6 @@ static void menu_callback(void* context, uint32_t index) {
         app_switch_view(app, FakeChipViewChips);
         break;
     case MenuIndexSaved:
-        saved_reload(app);
         app_switch_view(app, FakeChipViewSaved);
         break;
     case MenuIndexAbout:
@@ -1525,6 +2269,19 @@ static bool wiring_input_callback(InputEvent* event, void* context) {
         return true;
     }
     return false;
+}
+
+static uint32_t nav_to_tests(void* context) {
+    UNUSED(context);
+    return FakeChipViewTests;
+}
+
+// A live test has two ways in: the verdict screen after a scan, and the
+// browser. Sending Back to a fixed destination dumped anyone who came from
+// the browser onto a stale scan result they had already dealt with.
+static uint32_t nav_from_live(void* context) {
+    FakeChipApp* app = context;
+    return app->live_return_to;
 }
 
 static uint32_t nav_to_menu(void* context) {
@@ -1573,8 +2330,9 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     app->submenu = submenu_alloc();
     submenu_set_header(app->submenu, "Fake Chip Detector");
     submenu_add_item(app->submenu, "How to wire", MenuIndexWiring, menu_callback, app);
-    submenu_add_item(app->submenu, "Scan bus", MenuIndexScan, menu_callback, app);
-    submenu_add_item(app->submenu, "BNO055 live test", MenuIndexLiveTest, menu_callback, app);
+    submenu_add_item(app->submenu, "Scan I2C bus", MenuIndexScan, menu_callback, app);
+    submenu_add_item(app->submenu, "Scan 1-Wire", MenuIndexOneWire, menu_callback, app);
+    submenu_add_item(app->submenu, "Live tests", MenuIndexTests, menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MenuIndexSettings, menu_callback, app);
     submenu_add_item(app->submenu, "Known chips", MenuIndexChips, menu_callback, app);
     submenu_add_item(
@@ -1617,7 +2375,9 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_set_draw_callback(app->live_view, live_draw_callback);
     view_set_enter_callback(app->live_view, live_enter_callback);
     view_set_exit_callback(app->live_view, live_exit_callback);
-    view_set_previous_callback(app->live_view, nav_to_menu);
+    // Back returns wherever the test was started from — the verdict that
+    // offered it, or the browser it was picked out of.
+    view_set_previous_callback(app->live_view, nav_from_live);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewLive, app->live_view);
 
     app->settings_list = variable_item_list_alloc();
@@ -1628,6 +2388,22 @@ static FakeChipApp* fake_chip_app_alloc(void) {
         FakeChipViewSettings,
         variable_item_list_get_view(app->settings_list));
 
+    app->tests_view = view_alloc();
+    view_set_context(app->tests_view, app);
+    view_allocate_model(app->tests_view, ViewModelTypeLocking, sizeof(TestsViewModel));
+    view_set_draw_callback(app->tests_view, tests_draw_callback);
+    view_set_input_callback(app->tests_view, tests_input_callback);
+    view_set_enter_callback(app->tests_view, tests_enter_callback);
+    view_set_exit_callback(app->tests_view, tests_exit_callback);
+    view_set_previous_callback(app->tests_view, nav_to_menu);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewTests, app->tests_view);
+
+    app->test_help_view = view_alloc();
+    view_set_context(app->test_help_view, app);
+    view_set_draw_callback(app->test_help_view, test_help_draw_callback);
+    view_set_previous_callback(app->test_help_view, nav_to_tests);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewTestHelp, app->test_help_view);
+
     app->chips_view = view_alloc();
     view_set_context(app->chips_view, app);
     view_allocate_model(app->chips_view, ViewModelTypeLocking, sizeof(ChipsViewModel));
@@ -1636,11 +2412,23 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_set_previous_callback(app->chips_view, nav_to_menu);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewChips, app->chips_view);
 
+    app->onewire_view = view_alloc();
+    view_set_context(app->onewire_view, app);
+    view_allocate_model(app->onewire_view, ViewModelTypeLocking, sizeof(OneWireViewModel));
+    view_set_draw_callback(app->onewire_view, onewire_draw_callback);
+    view_set_input_callback(app->onewire_view, onewire_input_callback);
+    view_set_enter_callback(app->onewire_view, onewire_enter);
+    view_set_exit_callback(app->onewire_view, onewire_exit);
+    view_set_previous_callback(app->onewire_view, nav_to_menu);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewOneWire, app->onewire_view);
+
     app->saved_view = view_alloc();
     view_set_context(app->saved_view, app);
     view_allocate_model(app->saved_view, ViewModelTypeLocking, sizeof(SavedViewModel));
     view_set_draw_callback(app->saved_view, saved_draw_callback);
     view_set_input_callback(app->saved_view, saved_input_callback);
+    view_set_enter_callback(app->saved_view, saved_enter);
+    view_set_exit_callback(app->saved_view, saved_exit);
     view_set_previous_callback(app->saved_view, nav_to_menu);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewSaved, app->saved_view);
 
@@ -1684,6 +2472,17 @@ static FakeChipApp* fake_chip_app_alloc(void) {
 }
 
 static void fake_chip_app_free(FakeChipApp* app) {
+    // A live test should already have been torn down by the view's exit
+    // callback, because leaving the screen is the only way to reach here and
+    // that always navigates. "Should" is doing real work in that sentence
+    // though: it holds only while nothing installs an input callback on
+    // live_view or stops the dispatcher from elsewhere, and neither is
+    // something the next person to touch this file would expect to be
+    // load-bearing. What it would cost is a mapped plugin leaked and a thread
+    // still executing code inside it. So call the teardown again — it is
+    // idempotent, and it keeps the join-then-unmap order in exactly one place.
+    live_exit_callback(app);
+
     // Animation thread first: it touches the view models
     app->anim_stop = true;
     furi_thread_join(app->anim_thread);
@@ -1702,14 +2501,20 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewChips);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewReport);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSaved);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewOneWire);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewTests);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewTestHelp);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewAbout);
     submenu_free(app->submenu);
     view_free(app->wiring_view);
     view_free(app->scan_view);
     view_free(app->detail_view);
     view_free(app->live_view);
+    view_free(app->tests_view);
+    view_free(app->test_help_view);
     view_free(app->chips_view);
     view_free(app->saved_view);
+    view_free(app->onewire_view);
     text_box_free(app->report_box);
     furi_string_free(app->report_text);
     variable_item_list_free(app->settings_list);

@@ -9,20 +9,8 @@
 
 #define WORKER_FLAG_SCAN (1UL << 0)
 #define WORKER_FLAG_EXIT (1UL << 1)
-#define WORKER_FLAG_LIVE (1UL << 2)
 #define WORKER_FLAG_WATCH (1UL << 3)
-#define WORKER_FLAG_ALL \
-    (WORKER_FLAG_SCAN | WORKER_FLAG_EXIT | WORKER_FLAG_LIVE | WORKER_FLAG_WATCH)
-
-// BNO055 registers
-#define BNO055_REG_CHIP_ID 0x00
-#define BNO055_REG_EUL_HEADING_LSB 0x1A
-#define BNO055_REG_EUL_HEADING_MSB 0x1B
-#define BNO055_REG_CALIB_STAT 0x35
-#define BNO055_REG_OPR_MODE 0x3D
-#define BNO055_CHIP_ID_VALUE 0xA0
-#define BNO055_MODE_CONFIG 0x00
-#define BNO055_MODE_NDOF 0x0C
+#define WORKER_FLAG_ALL (WORKER_FLAG_SCAN | WORKER_FLAG_EXIT | WORKER_FLAG_WATCH)
 
 struct I2CWorker {
     FuriThread* thread;
@@ -30,14 +18,12 @@ struct I2CWorker {
     I2CWorkerCallback callback;
     void* callback_context;
     volatile bool busy;
-    volatile bool live_stop;
     volatile bool watch_stop;
     volatile bool scan_abort;
     volatile uint32_t probe_timeout_ms;
     volatile uint8_t progress_addr;
     I2CFoundDevice found[I2C_SCAN_MAX_FOUND];
     size_t found_count;
-    I2CLiveData live;
     I2CBusCheck bus;
 };
 
@@ -192,10 +178,39 @@ bool i2c_worker_read_reg16_addr(
     return ok;
 }
 
+bool i2c_worker_write_reg16_addr(
+    uint8_t addr7,
+    uint16_t reg,
+    uint8_t value,
+    uint32_t timeout_ms) {
+    const uint8_t frame[3] = {(uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF), value};
+    furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
+    bool ok = furi_hal_i2c_tx(
+        &furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), frame, sizeof(frame), timeout_ms);
+    furi_hal_i2c_release(&furi_hal_i2c_handle_external);
+    return ok;
+}
+
 bool i2c_worker_write_reg(uint8_t addr7, uint8_t reg, uint8_t value, uint32_t timeout_ms) {
     furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
     bool ok = furi_hal_i2c_write_reg_8(
         &furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), reg, value, timeout_ms);
+    furi_hal_i2c_release(&furi_hal_i2c_handle_external);
+    return ok;
+}
+
+bool i2c_worker_write_raw(uint8_t addr7, const uint8_t* data, size_t len, uint32_t timeout_ms) {
+    furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
+    bool ok =
+        furi_hal_i2c_tx(&furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), data, len, timeout_ms);
+    furi_hal_i2c_release(&furi_hal_i2c_handle_external);
+    return ok;
+}
+
+bool i2c_worker_read_raw(uint8_t addr7, uint8_t* data, size_t len, uint32_t timeout_ms) {
+    furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
+    bool ok =
+        furi_hal_i2c_rx(&furi_hal_i2c_handle_external, (uint8_t)(addr7 << 1), data, len, timeout_ms);
     furi_hal_i2c_release(&furi_hal_i2c_handle_external);
     return ok;
 }
@@ -237,97 +252,6 @@ static void i2c_worker_do_scan(I2CWorker* worker) {
     }
 }
 
-/* ---- BNO055 live test ---- */
-
-static void i2c_worker_live_set(I2CWorker* worker, const I2CLiveData* data) {
-    furi_mutex_acquire(worker->mutex, FuriWaitForever);
-    worker->live = *data;
-    furi_mutex_release(worker->mutex);
-    i2c_worker_notify(worker, I2CWorkerEventLiveUpdate);
-}
-
-// Sleeps in small chunks so a stop request is honored quickly
-static void i2c_worker_live_delay(I2CWorker* worker, uint32_t ms) {
-    while(ms && !worker->live_stop) {
-        uint32_t chunk = ms > 50 ? 50 : ms;
-        furi_delay_ms(chunk);
-        ms -= chunk;
-    }
-}
-
-static bool i2c_worker_live_find(I2CWorker* worker, uint8_t* addr_out) {
-    UNUSED(worker);
-    const uint8_t addrs[] = {0x28, 0x29};
-    for(size_t i = 0; i < sizeof(addrs); i++) {
-        uint8_t chip_id = 0;
-        if(i2c_worker_read_reg(addrs[i], BNO055_REG_CHIP_ID, &chip_id, I2C_REG_TIMEOUT_MS) &&
-           chip_id == BNO055_CHIP_ID_VALUE) {
-            *addr_out = addrs[i];
-            return true;
-        }
-    }
-    return false;
-}
-
-static void i2c_worker_do_live(I2CWorker* worker) {
-    I2CLiveData data = {.status = I2CLiveStatusSearching, .addr = 0, .heading_raw = 0, .mag_cal = 0};
-
-    while(!worker->live_stop) {
-        // 1. Find a BNO055 (checks CHIP_ID, not just an ACK)
-        data.status = I2CLiveStatusSearching;
-        i2c_worker_live_set(worker, &data);
-        if(!i2c_worker_live_find(worker, &data.addr)) {
-            i2c_worker_live_delay(worker, 250);
-            continue;
-        }
-
-        // 2. CONFIG then NDOF; the sensor needs time to start fusion
-        data.status = I2CLiveStatusInit;
-        i2c_worker_live_set(worker, &data);
-        if(!i2c_worker_write_reg(
-               data.addr, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, I2C_REG_TIMEOUT_MS)) {
-            continue;
-        }
-        i2c_worker_live_delay(worker, 30);
-        if(worker->live_stop) break;
-        if(!i2c_worker_write_reg(
-               data.addr, BNO055_REG_OPR_MODE, BNO055_MODE_NDOF, I2C_REG_TIMEOUT_MS)) {
-            continue;
-        }
-        i2c_worker_live_delay(worker, 700);
-
-        // 3. Read heading and calibration until stopped or the sensor drops off
-        uint8_t errors = 0;
-        while(!worker->live_stop && errors < 3) {
-            uint8_t heading[2] = {0}; // LSB, MSB in one transaction — no tearing
-            uint8_t calib = 0;
-            bool ok =
-                i2c_worker_read_mem(
-                    data.addr, BNO055_REG_EUL_HEADING_LSB, heading, 2, I2C_REG_TIMEOUT_MS) &&
-                i2c_worker_read_reg(data.addr, BNO055_REG_CALIB_STAT, &calib, I2C_REG_TIMEOUT_MS);
-            if(ok) {
-                errors = 0;
-                data.status = I2CLiveStatusRunning;
-                data.heading_raw = (int16_t)(((uint16_t)heading[1] << 8) | heading[0]);
-                data.mag_cal = calib & 0x03; // bits 1:0 = magnetometer level
-                i2c_worker_live_set(worker, &data);
-            } else {
-                errors++;
-            }
-            i2c_worker_live_delay(worker, 100);
-        }
-        // Park the sensor back in CONFIG so it stops burning ~12 mA running
-        // fusion after the user has walked away from the test.
-        i2c_worker_write_reg(data.addr, BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG, I2C_REG_TIMEOUT_MS);
-
-        if(!worker->live_stop) {
-            data.status = I2CLiveStatusLost;
-            i2c_worker_live_set(worker, &data);
-            i2c_worker_live_delay(worker, 500);
-        }
-    }
-}
-
 /* ---- bus watch ---- */
 
 static void i2c_worker_do_watch(I2CWorker* worker) {
@@ -358,11 +282,6 @@ static int32_t i2c_worker_thread(void* context) {
             worker->busy = false;
             i2c_worker_notify(worker, I2CWorkerEventScanDone);
         }
-        if(flags & WORKER_FLAG_LIVE) {
-            worker->busy = true;
-            i2c_worker_do_live(worker);
-            worker->busy = false;
-        }
         if(flags & WORKER_FLAG_WATCH) {
             worker->busy = true;
             i2c_worker_do_watch(worker);
@@ -383,7 +302,6 @@ I2CWorker* i2c_worker_alloc(void) {
     worker->callback = NULL;
     worker->callback_context = NULL;
     worker->busy = false;
-    worker->live_stop = true;
     worker->watch_stop = true;
     worker->scan_abort = false;
     worker->probe_timeout_ms = I2C_PROBE_TIMEOUT_MS;
@@ -396,7 +314,6 @@ I2CWorker* i2c_worker_alloc(void) {
 
 void i2c_worker_free(I2CWorker* worker) {
     // Break any long-running loop before asking the thread to exit
-    worker->live_stop = true;
     worker->watch_stop = true;
     worker->scan_abort = true;
     furi_thread_flags_set(furi_thread_get_id(worker->thread), WORKER_FLAG_EXIT);
@@ -413,12 +330,11 @@ void i2c_worker_set_callback(I2CWorker* worker, I2CWorkerCallback callback, void
 
 void i2c_worker_start_scan(I2CWorker* worker, uint32_t probe_timeout_ms) {
     // No busy check: the thread flag stays pending, so a scan requested while
-    // watch or live mode is still winding down runs as soon as that job ends.
-    // Guarding on `busy` here would silently drop the request.
+    // watch mode is still winding down runs as soon as that job ends. Guarding
+    // on `busy` here would silently drop the request.
     worker->probe_timeout_ms = probe_timeout_ms;
     worker->scan_abort = false;
     worker->watch_stop = true; // ask any running watch loop to yield
-    worker->live_stop = true;
     furi_thread_flags_set(furi_thread_get_id(worker->thread), WORKER_FLAG_SCAN);
 }
 
@@ -430,25 +346,6 @@ bool i2c_worker_is_busy(I2CWorker* worker) {
     return worker->busy;
 }
 
-void i2c_worker_live_start(I2CWorker* worker) {
-    // No busy guard: if a scan is still running, the flag stays pending and
-    // the live loop starts as soon as the scan finishes.
-    worker->live_stop = false;
-    furi_mutex_acquire(worker->mutex, FuriWaitForever);
-    worker->live = (I2CLiveData){.status = I2CLiveStatusSearching};
-    furi_mutex_release(worker->mutex);
-    furi_thread_flags_set(furi_thread_get_id(worker->thread), WORKER_FLAG_LIVE);
-}
-
-void i2c_worker_live_stop(I2CWorker* worker) {
-    worker->live_stop = true;
-}
-
-void i2c_worker_get_live(I2CWorker* worker, I2CLiveData* out) {
-    furi_mutex_acquire(worker->mutex, FuriWaitForever);
-    *out = worker->live;
-    furi_mutex_release(worker->mutex);
-}
 
 void i2c_worker_watch_start(I2CWorker* worker) {
     worker->watch_stop = false;

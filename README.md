@@ -14,6 +14,10 @@ plain words, and asks the one question it cannot answer itself: is this what you
 | What was found, and the question only you can answer | The answer you want to see |
 | ![Report](fake_chip_detector/screenshots/06_report.png) | ![Scanning](fake_chip_detector/screenshots/03_scanning.png) |
 | The report, readable on screen — show it to the seller | Sweeping the bus |
+| ![Stray pull-up](fake_chip_detector/screenshots/10_wiring_stray.png) | ![Wrong hole](fake_chip_detector/screenshots/11_wrong_hole.png) |
+| SDA is off pin 15 — so the app goes looking, and finds the module's pull-up sitting on pin 6 | And it is nice about it |
+| ![Live test](fake_chip_detector/screenshots/12_live_vl6180x.png) | ![Wrong chip](fake_chip_detector/screenshots/13_wrong_chip.png) |
+| A live test: the rangefinder actually ranging, before you pay for it | 0x29 answers — it is just not the chip this test is for |
 
 ## Why
 
@@ -27,6 +31,8 @@ one register — this app does that and shows its work.
 - **Names the part and what it is.** Not just `VL6180X` but `VL6180X — Laser rangefinder`, for
   all 80 chips in the database. No searching a part number to find out you were sent a distance
   sensor instead of the IMU you paid for.
+  → **[Full list of supported chips](fake_chip_detector/SUPPORTED_CHIPS.md)**, with the register
+  and expected value used for each one.
 - **Asks whether that is what you ordered.** Knowing which chip it is only answers half the
   question; the app cannot see the label, so it asks.
 - **Produces a report you can read out at the front door.** Plain language first — what the chip
@@ -39,8 +45,28 @@ one register — this app does that and shows its work.
   A device whose IDs match nothing is `UNIDENTIFIED`, not "fake" — that is far more often a gap
   in the database. Only a partial match, where some of a known chip's IDs are right and others
   wrong, is called out as a likely counterfeit.
-- **BNO055 live test.** Proves the sensor works, not merely that it identifies itself: NDOF
-  fusion, live heading, magnetometer calibration and an animated figure-8 prompt.
+- **Proves the part works, not just that it answers.** An ID register is one byte, and one byte
+  is what a relabeller can copy. When a chip that checked out has a live test, the app offers to
+  run it — and every test is one you can do standing at a pickup counter before you pay, with
+  nothing but your hand and your breath. Breathe on an AHT20 or SHT31 and watch the humidity
+  climb; cover a BH1750 and watch it hit the dark floor its datasheet specifies; tip an MPU6050
+  or ADXL345 and watch gravity move to another axis; wave at an APDS9960; point an MLX90614 at
+  your palm; watch a DS3231 tick; make an SSD1306 blink. This matters most for the parts with
+  **no ID register at all** — for a DS3231 or an AHT20 the app can otherwise only say "something
+  is there", so a live test is the only evidence that will ever exist. **Live tests** in the
+  menu lists every test and runs any of them on demand, without scanning first.
+- **Your own tests, without rebuilding the app.** A test is one file, and it can be built as a
+  `.fal` and dropped into `apps_data/fake_chip_detector/tests/` on the SD card — the app finds
+  it, lists it and runs it. The same source compiles either into the app or out of it: a test
+  never calls a function of the app by name, it is handed the bus as a table of pointers.
+  [`test_plugin_template/`](test_plugin_template) is a complete working example to copy, and
+  **[LIVE_TESTS.md](fake_chip_detector/LIVE_TESTS.md)** has the rules a test is held to. Tests
+  loaded from the card are marked `SD` on screen, because a built-in test was written against a
+  datasheet and reviewed here and one from the card is somebody else's code.
+- **1-Wire too.** Scans pin 17, decodes the family code and runs a real temperature conversion
+  on DS18B20-class parts. A 1-Wire ID can be replayed by any microcontroller, so the app is
+  explicit that this proves which *part* answered — a DS18S20 sold as a DS18B20 is caught —
+  and never that it is authentic.
 
 ## Wiring
 

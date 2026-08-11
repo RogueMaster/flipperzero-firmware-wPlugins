@@ -27,6 +27,8 @@ one register — this app does that and shows its work.
 - **Names the part and what it is.** Not just `VL6180X` but `VL6180X — Laser rangefinder`, for
   all 80 chips in the database. No searching a part number to find out you were sent a distance
   sensor instead of the IMU you paid for.
+  → **[Full list of supported chips](SUPPORTED_CHIPS.md)**, with the register and expected value
+  used for each one.
 - **Asks whether that is what you ordered.** Knowing which chip it is only answers half the
   question; the app cannot see the label, so it asks.
 - **Produces a report you can read out at the front door.** Plain language first — what the chip
@@ -39,8 +41,20 @@ one register — this app does that and shows its work.
   A device whose IDs match nothing is `UNIDENTIFIED`, not "fake" — that is far more often a gap
   in the database. Only a partial match, where some of a known chip's IDs are right and others
   wrong, is called out as a likely counterfeit.
-- **BNO055 live test.** Proves the sensor works, not merely that it identifies itself: NDOF
-  fusion, live heading, magnetometer calibration and an animated figure-8 prompt.
+- **Proves the part works, not just that it answers.** An ID register is one byte, and one byte
+  is what a relabeller can copy. When a chip that checked out has a live test, the app offers to
+  run it — and every test is one you can do standing at a pickup counter before you pay, with
+  nothing but your hand and your breath. Breathe on an AHT20 or SHT31 and watch the humidity
+  climb; cover a BH1750 and watch it hit the dark floor its datasheet specifies; tip an MPU6050
+  or ADXL345 and watch gravity move to another axis; wave at an APDS9960; point an MLX90614 at
+  your palm; watch a DS3231 tick; make an SSD1306 blink. This matters most for the parts with
+  **no ID register at all** — for a DS3231 or an AHT20 the app can otherwise only say "something
+  is there", so a live test is the only evidence that will ever exist. Tests are one file each,
+  so adding one for a new part touches nothing else — see **[LIVE_TESTS.md](LIVE_TESTS.md)**.
+- **1-Wire too.** Scans pin 17, decodes the family code and runs a real temperature conversion
+  on DS18B20-class parts. A 1-Wire ID can be replayed by any microcontroller, so the app is
+  explicit that this proves which *part* answered — a DS18S20 sold as a DS18B20 is caught —
+  and never that it is authentic.
 
 ## Wiring
 
