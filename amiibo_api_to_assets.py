@@ -72,7 +72,7 @@ def process_amiibo_data(amiibo_data: dict) -> dict[str, str]:
     amiibo_strs = dict(sorted(amiibo_strs.items()))
     amiibo_mapping_strs = dict(sorted(amiibo_mapping_strs.items()))
 
-    with open("files/amiibo.dat", "w") as amiibo_file:
+    with open("files/amiibo.dat", "w", encoding="utf-8") as amiibo_file:
         amiibo_file.write("Filetype: AmiTool Amiibo DB\n")
         amiibo_file.write("Version: 1\n")
         amiibo_file.write(f"AmiiboCount: {len(amiibos)}\n")
@@ -81,7 +81,7 @@ def process_amiibo_data(amiibo_data: dict) -> dict[str, str]:
         for amiibo_id, amiibo_str in amiibo_strs.items():
             amiibo_file.write(f"{amiibo_id}: {amiibo_str}\n")
 
-    with open("files/amiibo_name.dat", "w") as amiibo_name_file:
+    with open("files/amiibo_name.dat", "w", encoding="utf-8") as amiibo_name_file:
         amiibo_name_file.write("Filetype: AmiTool Amiibo Name DB\n")
         amiibo_name_file.write("Version: 1\n")
         amiibo_name_file.write(f"AmiiboCount: {len(amiibos)}\n")
@@ -133,7 +133,7 @@ def _write_game_files(
     # Sort games by name for deterministic UI streaming
     sorted_game_names = sorted(games_map.keys(), key=lambda n: n.casefold())
 
-    with open(f"files/game_{console.lower()}.dat", "w") as games_file:
+    with open(f"files/game_{console.lower()}.dat", "w", encoding="utf-8") as games_file:
         games_file.write("Filetype: AmiTool Games DB\n")
         games_file.write("Version: 1\n")
         games_file.write(f"Console: {console}\n")
@@ -143,7 +143,7 @@ def _write_game_files(
         for game_name in sorted_game_names:
             games_file.write(f"{game_name}\n")
 
-    with open(f"files/game_{console.lower()}_mapping.dat", "w") as mapping_file:
+    with open(f"files/game_{console.lower()}_mapping.dat", "w", encoding="utf-8") as mapping_file:
         mapping_file.write("Filetype: AmiTool Games Mapping DB\n")
         mapping_file.write("Version: 1\n")
         mapping_file.write(f"Console: {console}\n")
@@ -228,7 +228,7 @@ def process_games_info_data(games_info_data: dict, amiibo_id_to_name: dict[str, 
     # Sort amiibo_usage.dat by amiibo name (then ID for stability)
     usage_lines.sort(key=lambda t: (t[0], t[1].casefold()))
 
-    with open("files/amiibo_usage.dat", "w") as usage_file:
+    with open("files/amiibo_usage.dat", "w", encoding="utf-8") as usage_file:
         usage_file.write("Filetype: AmiTool Usage DB\n")
         usage_file.write("Version: 1\n")
         usage_file.write(f"AmiiboCount: {len(games_info_data.get('amiibos', {}))}\n")
