@@ -30,6 +30,10 @@ firmware API it was built against: on a different firmware the loader refuses it
 "App Too Old" or an API mismatch, and the fix is a build against that SDK — see
 [Building](#building).
 
+**New to this?** **[GUIDE.md](GUIDE.md)** walks through the whole thing with screenshots at every
+step — which wire goes in which hole, what the words on the screen mean, and what to do when
+nothing is found. No electronics knowledge assumed.
+
 ## Why
 
 Modules sold as BME280 frequently carry a BMP280 die. "MPU9250" boards often contain an
@@ -73,9 +77,12 @@ one register — this app does that and shows its work.
   it, lists it and runs it. The same source compiles either into the app or out of it: a test
   never calls a function of the app by name, it is handed the bus as a table of pointers.
   [`test_plugin_template/`](test_plugin_template) is a complete working example to copy, and
-  **[LIVE_TESTS.md](fake_chip_detector/LIVE_TESTS.md)** has the rules a test is held to. Tests
+  **[LIVE_TESTS.md](fake_chip_detector/LIVE_TESTS.md)** covers all of it: how to put a test from
+  somebody else onto the card, how to write your own, and the rules a test is held to. Tests
   loaded from the card are marked `SD` on screen, because a built-in test was written against a
   datasheet and reviewed here and one from the card is somebody else's code.
+  **If you write one that works on a real part, send it here** — in the app it ships to
+  everybody and gets offered automatically after a scan, instead of living on one SD card.
 - **1-Wire too.** Scans pin 17, decodes the family code and runs a real temperature conversion
   on DS18B20-class parts. A 1-Wire ID can be replayed by any microcontroller, so the app is
   explicit that this proves which *part* answered — a DS18S20 sold as a DS18B20 is caught —

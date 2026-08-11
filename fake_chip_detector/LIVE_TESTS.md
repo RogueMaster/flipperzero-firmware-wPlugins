@@ -28,6 +28,45 @@ a built-in test was written against a datasheet and reviewed in this repository,
 the card is somebody else's code. Anyone reading a pass off that screen is entitled to know
 which of the two they are looking at.
 
+## Running a test somebody else wrote
+
+Tests do not have to be built into the app. A test can be shipped as a single `.fal` file, and
+the app will find it, list it and run it — no rebuild, no reflash.
+
+1. Get the `.fal`. Build it yourself from [`test_plugin_template/`](../test_plugin_template), or
+   take one somebody published.
+2. Open **Live tests** once. The app creates the folder it looks in, which saves you guessing at
+   the spelling.
+3. Copy the file to the SD card at:
+
+   ```
+   SD Card/apps_data/fake_chip_detector/tests/
+   ```
+
+   With qFlipper, drag it into that folder in the file browser. With the card in a reader, the
+   path is the same.
+4. Open **Live tests** again. The header counts what it found — *"2 on card"* — and each one is
+   marked `SD` in the list. Press `OK` to run it.
+
+**The `SD` mark is the point, not decoration.** A built-in test was written against a datasheet
+and reviewed in this repository. A test from the card is somebody else's code, running on your
+Flipper, writing to your sensor. The mark stays on the test screen while it runs, so anybody
+reading a pass off that screen knows which of the two they are looking at. For the same reason,
+a card test is never offered automatically on the ALL GOOD screen — you launch it deliberately
+or not at all.
+
+**If the app refuses to run it**, it says which of these it is rather than guessing: the file was
+not built as a plugin, it was built for a different app, it was built against an older version
+of the test contract, it will not load at all, it declares no address, or its own descriptor
+strings are damaged. The one to expect after an app update is the contract version — the fix is
+a rebuild against the current header, and only the person who wrote the test can do it.
+
+**What the app protects you from, and what it does not.** It bounds what it reads out of a
+plugin and it terminates every string a test publishes before drawing it, so a malformed file
+cannot walk the screen off the end of memory. It cannot make somebody else's code safe: a test
+runs on the same bus your sensor is on and can write to it. Run tests from people whose work you
+are willing to point at your hardware.
+
 ## Writing one
 
 Each test is one file pair, `live_<part>.c` / `live_<part>.h`, plus a single line in the
@@ -284,6 +323,43 @@ descriptor carries `LIVE_TEST_PLUGIN_API_VERSION`, and it is bumped whenever `Li
 shape would otherwise read past the end of a struct and publish whatever it found there as a
 measurement, which is precisely the failure this app exists to prevent. Rebuild against the
 current header and it will load.
+
+## Send it here when it works
+
+A `.fal` on your own card proves your part. A test in the app proves everybody's — it ships in
+the release, it is offered automatically the moment a scan finds that chip, and nobody has to
+find a file, trust a stranger's binary or know the app has a plugin folder at all.
+
+So if you wrote one and it works on a real part: **open a pull request.** The bar is not
+elegance, it is evidence.
+
+What to put in it:
+
+- **The test**, as `live_<part>.c` / `live_<part>.h` plus its line in the registry in
+  `live_test.c`. Strip the plugin descriptor — the same file compiles either way.
+- **A datasheet reference for every constant.** Register addresses, expected ID values, timings,
+  thresholds. A page or section number in a comment is enough. This is the one thing that is not
+  negotiable: this app calls parts counterfeit, and a register number somebody remembered wrong
+  turns that into an accusation against a genuine chip.
+- **The addresses from `chip_db.c`**, and `.chip` matching the database entry character for
+  character — that is what connects the test to a scan result.
+- **How you verified it, on what.** "Tested on a GY-302 from AliExpress: 180 lx under a desk
+  lamp, 1 lx under my hand, passes in about two seconds." Say which part number and where it
+  came from. If you tested a clone as well as a genuine part, say what each did — that is the
+  most valuable paragraph in the whole PR.
+- **What a pass means, and what it does not.** A test that cannot honestly pass should say so on
+  screen rather than passing anyway; the SSD1306 test is the worked example.
+
+What will be looked at in review: that the test identifies the part before writing to it, that
+it parks only what it changed, that it returns promptly when the user leaves, and that a pass
+requires movement in the reading rather than a single lucky byte. All of that is spelled out
+above — none of it is a surprise waiting in review.
+
+Not comfortable with a pull request? Send the file to
+[@skhlebnikov](https://t.me/skhlebnikov) on Telegram or attach it to an
+[issue](https://github.com/hleserg/flipper-fake-chip-detector/issues), with the same notes about
+what you tested it on. A working test from somebody who owns the part is worth more than a
+perfectly formatted one from somebody who does not.
 
 ## A test has to be runnable where it matters
 
