@@ -42,6 +42,11 @@
   was written against a datasheet and reviewed in the repository, and one from the card is
   somebody else's code. A plugin built against an older version of the contract is refused with
   a reason rather than run.
+- The AHT test verifies the AHT20's checksum rather than trusting the status byte. Address 0x38
+  is shared with a VEML6070 and sits inside the PCF8574A's range, and an all-ones answer has the
+  calibration bit set — so the status byte on its own says almost nothing. A checksum that
+  verifies identifies an AHT20; when none does the screen says so, because that is consistent
+  with an AHT10 and equally consistent with something else at the same address.
 - A live test tells "the sensor fell off" apart from "that is not the part". If the ID register
   cannot be read at all the screen says the sensor dropped off and to check the wires; if it
   reads back the wrong value it says WRONG CHIP instead, because the wiring is fine and the

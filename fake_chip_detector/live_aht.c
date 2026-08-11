@@ -31,11 +31,23 @@
 #define AHT_MEASURE_MS 80
 #define AHT_POLL_MS 120
 
-// Six bytes: status, then twenty bits of humidity and twenty of temperature
-// sharing the middle byte. The AHT20 appends a seventh CRC byte the AHT10 does
-// not document, so only six are read — legal on both, since the master simply
-// stops early.
-#define AHT_READ_LEN 6
+// Six data bytes: status, then twenty bits of humidity and twenty of
+// temperature sharing the middle byte. The AHT20 appends a seventh CRC byte;
+// the AHT10 documents none, and reading a byte a part has nothing to say about
+// is harmless — the master simply clocks out whatever is shifted at it.
+//
+// That seventh byte is the only identity check this address has. 0x38 is
+// shared with a VEML6070 and sits inside the PCF8574A's 0x38-0x3F range, and
+// the status byte alone cannot tell them apart: 0xFF has the calibration bit
+// set, so a part answering all-ones looks calibrated and ready. A CRC that
+// verifies over the preceding six bytes cannot be produced by accident.
+#define AHT_READ_LEN 7
+#define AHT_DATA_LEN 6
+
+// Same polynomial and starting value Sensirion uses, x^8 + x^5 + x^4 + 1 with
+// 0xFF (AHT20 product manual V1.0, section 5.4).
+#define AHT_CRC_POLY 0x31
+#define AHT_CRC_INIT 0xFF
 
 // Humidity is a fraction of 2^20 scaled to 100%, temperature the same scaled to
 // 200 and offset by -50 (sections 6.1 and 6.2). Dropping the low four bits
@@ -57,6 +69,27 @@ static void aht_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
+static uint8_t aht_crc8(const uint8_t* data, size_t len) {
+    uint8_t crc = AHT_CRC_INIT;
+    for(size_t i = 0; i < len; i++) {
+        crc ^= data[i];
+        for(uint8_t bit = 0; bit < 8; bit++) {
+            crc = (crc & 0x80) ? (uint8_t)((crc << 1) ^ AHT_CRC_POLY) : (uint8_t)(crc << 1);
+        }
+    }
+    return crc;
+}
+
+// ASAIR publishes no test vector of its own, so the algorithm is checked
+// against Sensirion's CRC(0xBEEF) = 0x92 — identical polynomial and starting
+// value, so a pass proves this implementation rather than the part. Without
+// it, a checksum routine of mine that was subtly wrong would report every
+// genuine AHT20 in the world as unverified.
+static bool aht_crc_self_test(void) {
+    const uint8_t vector[2] = {0xBE, 0xEF};
+    return aht_crc8(vector, sizeof(vector)) == 0x92;
+}
+
 typedef enum {
     AhtReadOk,
     AhtReadNoAnswer,
@@ -69,7 +102,9 @@ static AhtReadResult aht_measure(
     uint8_t addr7,
     const volatile bool* stop,
     int32_t* rh_centi,
-    int32_t* t_centi) {
+    int32_t* t_centi,
+    bool* crc_ok) {
+    *crc_ok = false;
     const uint8_t trigger[3] = {AHT_CMD_TRIGGER_0, AHT_CMD_TRIGGER_1, AHT_CMD_TRIGGER_2};
     if(!i2c->write_raw(addr7, trigger, sizeof(trigger), LIVE_TEST_TIMEOUT_MS))
         return AhtReadNoAnswer;
@@ -79,6 +114,10 @@ static AhtReadResult aht_measure(
 
     uint8_t buf[AHT_READ_LEN] = {0};
     if(!i2c->read_raw(addr7, buf, sizeof(buf), LIVE_TEST_TIMEOUT_MS)) return AhtReadNoAnswer;
+
+    // Checked before the status byte is trusted for anything, because the
+    // status byte is what an impostor gets right by accident.
+    *crc_ok = (aht_crc8(buf, AHT_DATA_LEN) == buf[AHT_DATA_LEN]);
 
     if(buf[0] & AHT_STATUS_BUSY) return AhtReadBusy;
     if(!(buf[0] & AHT_STATUS_CALIBRATED)) return AhtReadUncalibrated;
@@ -114,6 +153,8 @@ static void aht_run(const LiveTestEnv* env) {
     const LiveTestPublish publish = env->publish;
     void* const ctx = env->ctx;
 
+    const bool crc_usable = aht_crc_self_test();
+
     while(!*stop) {
         LiveTestState st;
         memset(&st, 0, sizeof(st));
@@ -123,10 +164,15 @@ static void aht_run(const LiveTestEnv* env) {
 
         int32_t baseline = INT32_MAX;
         uint8_t errors = 0;
+        // Latched: one verified checksum settles what the part is, and a later
+        // corrupted transfer does not un-identify it.
+        bool identified = false;
 
         while(!*stop && errors < 3) {
             int32_t rh = 0, temp = 0;
-            AhtReadResult result = aht_measure(i2c, addr7, stop, &rh, &temp);
+            bool crc_ok = false;
+            AhtReadResult result = aht_measure(i2c, addr7, stop, &rh, &temp, &crc_ok);
+            if(crc_usable && crc_ok) identified = true;
             if(*stop) break;
             if(result == AhtReadNoAnswer) {
                 errors++;
@@ -173,6 +219,17 @@ static void aht_run(const LiveTestEnv* env) {
             } else {
                 snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "%s C - breathe on it", temp_str);
             }
+
+            // Say which of the two this is, and say so plainly when it cannot
+            // be established. A verified checksum names the part; the absence
+            // of one is consistent with an AHT10 and equally consistent with
+            // something else entirely at the same address, and the user is
+            // entitled to know which of those they are looking at.
+            snprintf(
+                st.lines[1],
+                LIVE_TEST_LINE_LEN,
+                "%s",
+                identified ? "AHT20, checksum checks" : "No checksum - AHT10?");
             publish(ctx, &st);
 
             aht_delay(stop, AHT_POLL_MS);
