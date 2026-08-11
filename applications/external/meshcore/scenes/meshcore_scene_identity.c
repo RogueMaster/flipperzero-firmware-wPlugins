@@ -9,8 +9,8 @@
  */
 #include "../meshcore_cfg.h"
 
-#define MESHCORE_IDENTITY_EVENT_SET 0x460u
-#define MESHCORE_IDENTITY_EVENT_DONE 0x461u
+#define MESHCORE_IDENTITY_EVENT_SET    0x460u
+#define MESHCORE_IDENTITY_EVENT_DONE   0x461u
 #define MESHCORE_IDENTITY_WORKER_STACK 2048u
 
 static void meshcore_identity_input_done(void* context) {
@@ -35,18 +35,14 @@ static int32_t meshcore_identity_worker(void* context) {
         app->worker_error = "Name too long.";
     } else if(!meshcore_session_request(
                   app->session, payload, len, MC_RESP_OK, &event, MESHCORE_LINK_TIMEOUT_MS)) {
-        app->worker_error =
-            (event.code == MC_RESP_ERR) ? "Node refused the name." : "No answer from the node.";
+        app->worker_error = (event.code == MC_RESP_ERR) ? "Node refused the name." :
+                                                          "No answer from the node.";
     } else {
         /* Confirm by re-reading, then keep the app's copy in step. */
         len = mc_cmd_app_start(payload, sizeof(payload), MESHCORE_LINK_APP_NAME);
-        if(len == 0 || !meshcore_session_request(
-                           app->session,
-                           payload,
-                           len,
-                           MC_RESP_SELF_INFO,
-                           &event,
-                           MESHCORE_LINK_TIMEOUT_MS)) {
+        if(len == 0 ||
+           !meshcore_session_request(
+               app->session, payload, len, MC_RESP_SELF_INFO, &event, MESHCORE_LINK_TIMEOUT_MS)) {
             app->worker_error = "Set, but could not confirm.";
         } else if(strncmp(event.u.self_info.name, app->identity_buf, MC_NAME_LEN) != 0) {
             app->worker_error = "Node said OK but kept its name.";
@@ -66,7 +62,10 @@ void meshcore_scene_identity_on_enter(void* context) {
     /* Seed the field with the current name so the user edits rather than
      * retypes. If we never connected, it starts empty. */
     snprintf(
-        app->identity_buf, sizeof(app->identity_buf), "%.32s", app->node.valid ? app->node.name : "");
+        app->identity_buf,
+        sizeof(app->identity_buf),
+        "%.32s",
+        app->node.valid ? app->node.name : "");
 
     text_input_reset(app->text_input);
     text_input_set_header_text(app->text_input, "Node name");
@@ -116,7 +115,8 @@ bool meshcore_scene_identity_on_event(void* context, SceneManagerEvent event) {
                 "\e#Name set\n%.32s\n\nOther nodes will show this\nafter the next advert.",
                 app->identity_buf);
         } else {
-            snprintf(text, sizeof(text), "\e#Not set\n%s\n\nBack to try again.", app->worker_error);
+            snprintf(
+                text, sizeof(text), "\e#Not set\n%s\n\nBack to try again.", app->worker_error);
         }
         widget_add_text_scroll_element(app->widget, 0, 0, 128, 64, text);
         view_dispatcher_switch_to_view(app->view_dispatcher, MeshCoreViewWidget);

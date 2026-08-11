@@ -22,7 +22,7 @@
 #include "../protocol/meshcore_c/meshcore_companion.h"
 
 #define MESHCORE_MESSAGES_MAX 48
-#define MESHCORE_PEER_LEN 6
+#define MESHCORE_PEER_LEN     6
 
 typedef enum {
     MeshCoreMessageIncoming,

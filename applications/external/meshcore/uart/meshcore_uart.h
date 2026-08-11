@@ -22,7 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MESHCORE_UART_BAUD    115200u
+#define MESHCORE_UART_BAUD     115200u
 /* Sized for the largest uninterrupted burst a node sends, not for one frame.
  * A GET_CONTACTS reply arrives back to back -- CONTACTS_START, a 151-byte
  * frame per contact, then END_OF_CONTACTS -- so a node with twenty contacts

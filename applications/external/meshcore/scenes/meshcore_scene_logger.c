@@ -9,8 +9,8 @@
 #include "../meshcore_cfg.h"
 
 #define MESHCORE_LOGGER_EVENT_STARTED 0x300u
-#define MESHCORE_LOGGER_EVENT_MARK 0x301u
-#define MESHCORE_LOGGER_WORKER_STACK 2048u
+#define MESHCORE_LOGGER_EVENT_MARK    0x301u
+#define MESHCORE_LOGGER_WORKER_STACK  2048u
 
 /* The OK button drops a point mark into events.csv. It runs on the GUI thread,
  * so it only posts an event: everything the mark does happens back in the
@@ -55,8 +55,7 @@ static void meshcore_scene_logger_show_running(MeshCoreApp* app) {
     char line[48];
     widget_reset(app->widget);
 
-    widget_add_string_element(
-        app->widget, 0, 10, AlignLeft, AlignBottom, FontPrimary, "Logging");
+    widget_add_string_element(app->widget, 0, 10, AlignLeft, AlignBottom, FontPrimary, "Logging");
 
     snprintf(line, sizeof(line), "%.20s", node->name);
     widget_add_string_element(app->widget, 64, 10, AlignLeft, AlignBottom, FontSecondary, line);
@@ -77,7 +76,8 @@ static void meshcore_scene_logger_show_running(MeshCoreApp* app) {
         /* Right-aligned so it sits at the edge and reads as a verdict, not part
          * of the number. */
         const char* grade = meshcore_rxlog_grade_label(meshcore_rxlog_grade_snr(snr_q4));
-        widget_add_string_element(app->widget, 128, 24, AlignRight, AlignBottom, FontPrimary, grade);
+        widget_add_string_element(
+            app->widget, 128, 24, AlignRight, AlignBottom, FontPrimary, grade);
     } else {
         snprintf(line, sizeof(line), "waiting for traffic");
         widget_add_string_element(app->widget, 0, 24, AlignLeft, AlignBottom, FontPrimary, line);
@@ -183,8 +183,7 @@ void meshcore_scene_logger_on_enter(void* context) {
 bool meshcore_scene_logger_on_event(void* context, SceneManagerEvent event) {
     MeshCoreApp* app = context;
 
-    if(event.type == SceneManagerEventTypeCustom &&
-       event.event == MESHCORE_LOGGER_EVENT_STARTED) {
+    if(event.type == SceneManagerEventTypeCustom && event.event == MESHCORE_LOGGER_EVENT_STARTED) {
         /* The worker posted this as its last act, so joining is immediate.
          * Clearing it here is what lets the tick handler take over refreshing. */
         if(app->worker) {
@@ -214,7 +213,8 @@ bool meshcore_scene_logger_on_event(void* context, SceneManagerEvent event) {
             /* Redraw only when something on screen actually changed. Rebuilding
              * on every tick regardless would make the screen flicker and would
              * fight anything the user is doing with it. */
-            uint32_t shown = scene_manager_get_scene_state(app->scene_manager, MeshCoreSceneLogger);
+            uint32_t shown =
+                scene_manager_get_scene_state(app->scene_manager, MeshCoreSceneLogger);
             uint32_t now = meshcore_scene_logger_signature(app);
             if(shown != now) {
                 scene_manager_set_scene_state(app->scene_manager, MeshCoreSceneLogger, now);

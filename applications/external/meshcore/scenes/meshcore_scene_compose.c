@@ -17,8 +17,8 @@
 #include "../meshcore_cfg.h"
 #include "../messenger/meshcore_messages.h"
 
-#define MESHCORE_COMPOSE_EVENT_SEND 0x420u
-#define MESHCORE_COMPOSE_EVENT_DONE 0x421u
+#define MESHCORE_COMPOSE_EVENT_SEND   0x420u
+#define MESHCORE_COMPOSE_EVENT_DONE   0x421u
 #define MESHCORE_COMPOSE_WORKER_STACK 2048u
 
 /* Runs on the GUI thread when the keyboard's OK is pressed. Only posts an
@@ -48,7 +48,12 @@ static int32_t meshcore_scene_compose_worker(void* context) {
     size_t len;
     if(app->chat_is_channel) {
         len = mc_cmd_send_channel_text(
-            payload, sizeof(payload), MC_TXT_PLAIN, app->chat_channel_idx, sender_ts, app->compose_buf);
+            payload,
+            sizeof(payload),
+            MC_TXT_PLAIN,
+            app->chat_channel_idx,
+            sender_ts,
+            app->compose_buf);
     } else {
         len = mc_cmd_send_txt_msg(
             payload,
@@ -67,8 +72,8 @@ static int32_t meshcore_scene_compose_worker(void* context) {
                   app->session, payload, len, MC_RESP_SENT, &event, MESHCORE_LINK_TIMEOUT_MS)) {
         /* MC_RESP_ERR means the node refused it; silence means it never
          * answered. Either way it is not on its way. */
-        app->worker_error =
-            (event.code == MC_RESP_ERR) ? "Node refused the message." : "No answer from the node.";
+        app->worker_error = (event.code == MC_RESP_ERR) ? "Node refused the message." :
+                                                          "No answer from the node.";
     } else {
         /* Recorded only once the node has taken it, so the chat never shows a
          * line that was never actually handed off. The store keys outgoing
@@ -98,7 +103,8 @@ static int32_t meshcore_scene_compose_worker(void* context) {
          * restart — outside the lock, like the mailbox does for incoming. */
         meshcore_msglog_append(app->msglog, &message);
 
-        meshcore_log_printf(app->log, "sent to %.20s: %.40s", app->chat_peer_name, app->compose_buf);
+        meshcore_log_printf(
+            app->log, "sent to %.20s: %.40s", app->chat_peer_name, app->compose_buf);
     }
 
     view_dispatcher_send_custom_event(app->view_dispatcher, MESHCORE_COMPOSE_EVENT_DONE);

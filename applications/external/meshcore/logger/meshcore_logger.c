@@ -11,16 +11,16 @@
 #include "meshcore_telemetry.h"
 
 #define MESHCORE_LOG_ROOT EXT_PATH("apps_data/meshcore_cfg")
-#define MESHCORE_LOG_DIR MESHCORE_LOG_ROOT "/logs"
+#define MESHCORE_LOG_DIR  MESHCORE_LOG_ROOT "/logs"
 
 /* Worst case is an rx_log row: the raw packet can be the whole companion
  * payload minus the 3-byte push header (up to MC_MAX_PAYLOAD-3 = 252 bytes =
  * 504 hex characters), plus the timestamp, signal fields and node tags — still
  * comfortably under this. */
-#define MESHCORE_LOG_LINE_MAX 640u
+#define MESHCORE_LOG_LINE_MAX     640u
 /* LoRa packet rates are low, so a shallow queue is plenty; it exists to keep
  * SD latency off the UART thread, not to buffer a flood. */
-#define MESHCORE_LOG_QUEUE_DEPTH 8u
+#define MESHCORE_LOG_QUEUE_DEPTH  8u
 #define MESHCORE_LOG_WRITER_STACK 2048u
 /* Sized against the measured worst frame rather than guessed: an mc_event_t
  * (252 bytes) plus a command payload (255) plus one MeshCoreLogLine (644) plus
@@ -34,18 +34,18 @@
  * again instead of letting it crash. */
 #define MESHCORE_LOG_POLLER_STACK 3072u
 /* Below this much free stack, say so in the log rather than wait for the fault. */
-#define MESHCORE_LOG_STACK_WARN 512u
+#define MESHCORE_LOG_STACK_WARN   512u
 
 /* meshlog.py's defaults, so a Flipper session and a phone session sample at the
  * same rate and their rows line up on a common time axis. */
 #define MESHCORE_LOG_STATS_INTERVAL_MS 60000u
-#define MESHCORE_LOG_PING_INTERVAL_MS 15000u
+#define MESHCORE_LOG_PING_INTERVAL_MS  15000u
 /* meshlog.py waits `interval - 1`, floored at two seconds. Same here, fixed:
  * the interval is not user-settable yet. */
-#define MESHCORE_LOG_PING_TIMEOUT_MS 14000u
+#define MESHCORE_LOG_PING_TIMEOUT_MS   14000u
 /* How often the poller wakes to check its two timers. Short enough that a stop
  * is not noticeably delayed, long enough not to matter. */
-#define MESHCORE_LOG_POLLER_TICK_MS 250u
+#define MESHCORE_LOG_POLLER_TICK_MS    250u
 
 #define MESHCORE_RX_LOG_HEADER "ts,snr,rssi,lat,lon,acc,raw,node,role,hw"
 
@@ -123,7 +123,8 @@ struct MeshCoreLogger {
     volatile int8_t last_rssi;
 };
 
-static void meshcore_logger_emit(MeshCoreLogger* logger, MeshCoreLogFile target, MeshCoreLogLine* line);
+static void
+    meshcore_logger_emit(MeshCoreLogger* logger, MeshCoreLogFile target, MeshCoreLogLine* line);
 static uint32_t meshcore_logger_ticks_to_ms(uint32_t ticks);
 
 /* ---- small formatting helpers ---- */
@@ -239,7 +240,8 @@ static int32_t meshcore_logger_writer(void* context) {
  * and copying it into a second MeshCoreLogLine here would put two 644-byte
  * buffers in one stack frame, which is most of a thread stack — and the poller
  * thread died of exactly that. */
-static void meshcore_logger_emit(MeshCoreLogger* logger, MeshCoreLogFile target, MeshCoreLogLine* line) {
+static void
+    meshcore_logger_emit(MeshCoreLogger* logger, MeshCoreLogFile target, MeshCoreLogLine* line) {
     char name[24];
     meshcore_logger_sanitise(logger->node.name, name, sizeof(name));
 
@@ -269,7 +271,12 @@ static void meshcore_logger_emit(MeshCoreLogger* logger, MeshCoreLogFile target,
 
 /* The position every row carries, taken from the node — the Flipper has no GPS
  * of its own. Empty strings when the node has never been given a fix. */
-static void meshcore_logger_position(MeshCoreLogger* logger, char* lat, size_t lat_cap, char* lon, size_t lon_cap) {
+static void meshcore_logger_position(
+    MeshCoreLogger* logger,
+    char* lat,
+    size_t lat_cap,
+    char* lon,
+    size_t lon_cap) {
     lat[0] = '\0';
     lon[0] = '\0';
     if(!logger->node.has_position) return;
@@ -322,7 +329,15 @@ static void meshcore_logger_on_event(
         /* ts,snr,rssi,lat,lon,acc,raw — acc is always empty, the companion
          * protocol carries no position accuracy. */
         snprintf(
-            line.text, sizeof(line.text), "%s,%s,%d,%s,%s,,%s", ts, snr, (int)rx.rssi, lat, lon, raw);
+            line.text,
+            sizeof(line.text),
+            "%s,%s,%d,%s,%s,,%s",
+            ts,
+            snr,
+            (int)rx.rssi,
+            lat,
+            lon,
+            raw);
         meshcore_logger_emit(logger, MeshCoreLogFileRx, &line);
         return;
     }
@@ -417,8 +432,9 @@ static void meshcore_logger_on_event(
 
         /* Contact and channel messages land in different union members; a
          * channel message's text already carries "Name: body". */
-        const bool channel = (event->code == MC_RESP_CHANNEL_MSG_RECV ||
-                              event->code == MC_RESP_CHANNEL_MSG_RECV_V3);
+        const bool channel =
+            (event->code == MC_RESP_CHANNEL_MSG_RECV ||
+             event->code == MC_RESP_CHANNEL_MSG_RECV_V3);
         meshcore_logger_sanitise(
             channel ? event->u.channel_msg.text : event->u.contact_msg.text, info, sizeof(info));
 
@@ -604,7 +620,14 @@ static void meshcore_logger_ping_once(MeshCoreLogger* logger) {
 
     snprintf(text, sizeof(text), "ping %lu", (unsigned long)seq);
     size_t len = mc_cmd_send_txt_msg(
-        payload, sizeof(payload), MC_TXT_PLAIN, 0, (uint32_t)furi_hal_rtc_get_timestamp(), pubkey, 6, text);
+        payload,
+        sizeof(payload),
+        MC_TXT_PLAIN,
+        0,
+        (uint32_t)furi_hal_rtc_get_timestamp(),
+        pubkey,
+        6,
+        text);
     if(len == 0) return;
 
     logger->ping_sent++;
@@ -800,7 +823,12 @@ static void meshcore_logger_read_node(MeshCoreLogger* logger) {
     if(len == 0) return;
 
     if(!meshcore_session_request(
-           logger->node.session, payload, len, MC_RESP_SELF_INFO, &event, MESHCORE_LINK_TIMEOUT_MS)) {
+           logger->node.session,
+           payload,
+           len,
+           MC_RESP_SELF_INFO,
+           &event,
+           MESHCORE_LINK_TIMEOUT_MS)) {
         /* Not fatal: RX log pushes do not depend on the handshake, so we can
          * still record signal data from an unidentified node. */
         meshcore_log_printf(logger->log, "logger: no self-info, tagging as unknown");

@@ -79,7 +79,15 @@ bool meshcore_message_decode(const char* line, MeshCoreMessage* out) {
     int consumed = 0;
 
     int matched = sscanf(
-        line, "%u,%u,%u,%12[0-9a-fA-F],%lu,%d,%u,%n", &dir, &chan, &idx, peer, &ts, &snr, &path,
+        line,
+        "%u,%u,%u,%12[0-9a-fA-F],%lu,%d,%u,%n",
+        &dir,
+        &chan,
+        &idx,
+        peer,
+        &ts,
+        &snr,
+        &path,
         &consumed);
     if(matched < 7 || consumed == 0) return false;
     if(strlen(peer) != 2 * MESHCORE_PEER_LEN) return false;
@@ -91,8 +99,8 @@ bool meshcore_message_decode(const char* line, MeshCoreMessage* out) {
         out->peer[i] = (uint8_t)((hi << 4) | lo);
     }
 
-    out->direction =
-        (dir == MeshCoreMessageOutgoing) ? MeshCoreMessageOutgoing : MeshCoreMessageIncoming;
+    out->direction = (dir == MeshCoreMessageOutgoing) ? MeshCoreMessageOutgoing :
+                                                        MeshCoreMessageIncoming;
     out->is_channel = chan != 0;
     out->channel_idx = (uint8_t)idx;
     out->timestamp = (uint32_t)ts;

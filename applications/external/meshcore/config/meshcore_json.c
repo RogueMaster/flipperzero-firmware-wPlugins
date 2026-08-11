@@ -29,7 +29,8 @@ static const char* meshcore_json_find_key(const char* json, const char* key) {
              * object we care about. */
             if(depth == 1 && strncmp(p + 1, key, key_len) == 0 && p[1 + key_len] == '"') {
                 const char* after = p + 2 + key_len;
-                while(*after == ' ' || *after == '\t' || *after == '\n' || *after == '\r') after++;
+                while(*after == ' ' || *after == '\t' || *after == '\n' || *after == '\r')
+                    after++;
                 if(*after == ':') return after + 1;
             }
             in_string = true;
@@ -49,14 +50,16 @@ bool meshcore_json_get(const char* json, const char* key, char* out, size_t cap)
     const char* value = meshcore_json_find_key(json, key);
     if(!value) return false;
 
-    while(*value == ' ' || *value == '\t' || *value == '\n' || *value == '\r') value++;
+    while(*value == ' ' || *value == '\t' || *value == '\n' || *value == '\r')
+        value++;
 
     size_t written = 0;
 
     if(*value == '"') {
         value++;
         while(*value && *value != '"') {
-            if(*value == '\\' && value[1]) value++; /* keep it simple: take the
+            if(*value == '\\' && value[1])
+                value++; /* keep it simple: take the
                                                      * escaped character as-is */
             if(written + 1 >= cap) return false;
             out[written++] = *value++;
@@ -70,7 +73,8 @@ bool meshcore_json_get(const char* json, const char* key, char* out, size_t cap)
             out[written++] = *value++;
         }
         /* Trailing whitespace is not part of the value. */
-        while(written > 0 && (out[written - 1] == ' ' || out[written - 1] == '\t')) written--;
+        while(written > 0 && (out[written - 1] == ' ' || out[written - 1] == '\t'))
+            written--;
         if(written == 0) return false;
     }
 
@@ -82,7 +86,8 @@ bool meshcore_parse_scaled(const char* text, uint32_t scale, uint32_t* out) {
     if(!text || !out || scale == 0) return false;
 
     const char* p = text;
-    while(*p == ' ') p++;
+    while(*p == ' ')
+        p++;
     if(*p == '+') p++;
     if(*p == '-') return false; /* every field this is used for is unsigned */
     if(*p == '\0') return false;
@@ -113,7 +118,8 @@ bool meshcore_parse_scaled(const char* text, uint32_t scale, uint32_t* out) {
         }
     }
 
-    while(*p == ' ') p++;
+    while(*p == ' ')
+        p++;
     if(*p != '\0' || !any_digit) return false;
     if(value > 0xFFFFFFFFull) return false;
 

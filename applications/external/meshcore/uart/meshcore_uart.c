@@ -4,8 +4,8 @@
 #include <furi_hal_serial_control.h>
 #include <expansion/expansion.h>
 
-#define MESHCORE_UART_RX_ERROR_EVENTS                                        \
-    (FuriHalSerialRxEventFrameError | FuriHalSerialRxEventNoiseError |       \
+#define MESHCORE_UART_RX_ERROR_EVENTS                                  \
+    (FuriHalSerialRxEventFrameError | FuriHalSerialRxEventNoiseError | \
      FuriHalSerialRxEventOverrunError | FuriHalSerialRxEventParityError)
 
 struct MeshCoreUart {
@@ -39,10 +39,8 @@ static void meshcore_uart_expansion_release(void) {
 /* Interrupt context: drain the peripheral into the stream buffer and get out.
  * A full buffer means the consumer is not keeping up; dropping is preferable
  * to blocking in an ISR, and mc_rx_poll() resyncs past the resulting gap. */
-static void meshcore_uart_rx_isr(
-    FuriHalSerialHandle* handle,
-    FuriHalSerialRxEvent event,
-    void* context) {
+static void
+    meshcore_uart_rx_isr(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
     MeshCoreUart* uart = context;
 
     if(event & FuriHalSerialRxEventData) {

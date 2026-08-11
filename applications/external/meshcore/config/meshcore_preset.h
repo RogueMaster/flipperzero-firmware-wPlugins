@@ -23,9 +23,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MESHCORE_PRESET_NAME_LEN 24
+#define MESHCORE_PRESET_NAME_LEN      24
 #define MESHCORE_PRESET_NODE_NAME_LEN 32
-#define MESHCORE_PRESET_ROLE_LEN 16
+#define MESHCORE_PRESET_ROLE_LEN      16
 
 /* Long enough for "868.731 MHz" / "62.5 kHz". */
 #define MESHCORE_PRESET_FIELD_LEN 16

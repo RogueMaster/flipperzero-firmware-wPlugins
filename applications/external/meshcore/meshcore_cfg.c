@@ -67,7 +67,8 @@ static MeshCoreApp* meshcore_cfg_app_alloc(void) {
         app->view_dispatcher, MeshCoreViewSubmenu, submenu_get_view(app->submenu));
 
     app->widget = widget_alloc();
-    view_dispatcher_add_view(app->view_dispatcher, MeshCoreViewWidget, widget_get_view(app->widget));
+    view_dispatcher_add_view(
+        app->view_dispatcher, MeshCoreViewWidget, widget_get_view(app->widget));
 
     app->text_box = text_box_alloc();
     view_dispatcher_add_view(

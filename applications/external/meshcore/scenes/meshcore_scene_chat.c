@@ -30,7 +30,8 @@ void meshcore_scene_chat_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, MeshCoreViewWidget);
 }
 
-static void meshcore_scene_chat_append(FuriString* out, MeshCoreApp* app, const MeshCoreMessage* message) {
+static void
+    meshcore_scene_chat_append(FuriString* out, MeshCoreApp* app, const MeshCoreMessage* message) {
     char age[MESHCORE_AGE_LEN];
     meshcore_contacts_format_age(app->node_time, message->timestamp, age, sizeof(age));
 
@@ -59,10 +60,10 @@ static void meshcore_scene_chat_build(MeshCoreApp* app) {
         const MeshCoreMessage* message = meshcore_messages_at(&app->messages, i);
         /* A channel chat shows that channel's traffic; a direct chat shows the
          * conversation with one peer. */
-        bool mine = app->chat_is_channel ?
-                        (message->is_channel && message->channel_idx == app->chat_channel_idx) :
-                        (!message->is_channel &&
-                         meshcore_message_is_from(message, app->chat_peer));
+        bool mine =
+            app->chat_is_channel ?
+                (message->is_channel && message->channel_idx == app->chat_channel_idx) :
+                (!message->is_channel && meshcore_message_is_from(message, app->chat_peer));
         if(!mine) continue;
         meshcore_scene_chat_append(out, app, message);
         shown++;

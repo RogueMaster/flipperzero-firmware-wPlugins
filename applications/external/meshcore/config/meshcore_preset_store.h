@@ -55,7 +55,4 @@ bool meshcore_preset_store_usable(const MeshCorePresetEntry* entry);
 
 /** Write a preset to the card as JSON, so a node that was set up by hand can
  *  be cloned onto the rest. False if the card would not take it. */
-bool meshcore_preset_store_save(
-    Storage* storage,
-    const MeshCorePreset* preset,
-    const char** why);
+bool meshcore_preset_store_save(Storage* storage, const MeshCorePreset* preset, const char** why);

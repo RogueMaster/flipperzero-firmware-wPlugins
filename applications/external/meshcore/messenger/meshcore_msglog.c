@@ -3,7 +3,7 @@
 #include <furi.h>
 #include <storage/storage.h>
 
-#define MESHCORE_MSGLOG_DIR EXT_PATH("apps_data/meshcore_cfg")
+#define MESHCORE_MSGLOG_DIR  EXT_PATH("apps_data/meshcore_cfg")
 #define MESHCORE_MSGLOG_PATH MESHCORE_MSGLOG_DIR "/messages.log"
 
 /* A saved line is the encoded message; sized with headroom over the text. */

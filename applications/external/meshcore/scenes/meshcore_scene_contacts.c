@@ -8,13 +8,13 @@
  */
 #include "../meshcore_cfg.h"
 
-#define MESHCORE_CONTACTS_EVENT_DONE 0x200u
+#define MESHCORE_CONTACTS_EVENT_DONE   0x200u
 /* Picking contact i sends PICK + i, so the base sits clear of DONE. */
-#define MESHCORE_CONTACTS_EVENT_PICK 0x1000u
+#define MESHCORE_CONTACTS_EVENT_PICK   0x1000u
 /* The "Channels" and "Add / share" rows ride the same callback with indices no
  * contact list will ever reach. */
 #define MESHCORE_CONTACTS_CHANNELS_ROW 0xFFFFu
-#define MESHCORE_CONTACTS_ADD_ROW 0xFFFEu
+#define MESHCORE_CONTACTS_ADD_ROW      0xFFFEu
 #define MESHCORE_CONTACTS_WORKER_STACK 2048u
 
 /* A node with a full address book sends ~150 bytes per contact; at 115200 that
@@ -83,8 +83,7 @@ static int32_t meshcore_contacts_worker(void* context) {
 
 static void meshcore_scene_contacts_submenu_callback(void* context, uint32_t index) {
     MeshCoreApp* app = context;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, MESHCORE_CONTACTS_EVENT_PICK + index);
+    view_dispatcher_send_custom_event(app->view_dispatcher, MESHCORE_CONTACTS_EVENT_PICK + index);
 }
 
 static void meshcore_scene_contacts_show_error(MeshCoreApp* app) {
@@ -204,8 +203,7 @@ bool meshcore_scene_contacts_on_event(void* context, SceneManagerEvent event) {
                  * entries while the chat is open, and the conversation is
                  * keyed by the key, not by a row number. */
                 memcpy(app->chat_peer, contact->public_key, sizeof(app->chat_peer));
-                snprintf(
-                    app->chat_peer_name, sizeof(app->chat_peer_name), "%s", contact->name);
+                snprintf(app->chat_peer_name, sizeof(app->chat_peer_name), "%s", contact->name);
                 /* A direct chat, not a channel. */
                 app->chat_is_channel = false;
 

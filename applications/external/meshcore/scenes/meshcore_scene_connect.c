@@ -11,7 +11,7 @@
 /* Offset well clear of the menu's item indices: a completion event that lands
  * just after the user backs out would otherwise be routed to scene_menu and
  * move its cursor. */
-#define MESHCORE_CONNECT_EVENT_DONE 0x100u
+#define MESHCORE_CONNECT_EVENT_DONE   0x100u
 #define MESHCORE_CONNECT_WORKER_STACK 2048u
 
 static void meshcore_connect_copy_self_info(MeshCoreNodeInfo* node, const mc_self_info_t* info) {
@@ -62,9 +62,9 @@ static const char* meshcore_connect_run(MeshCoreApp* app) {
     /* DEVICE_QUERY gives model and firmware version. Older firmware may not
      * answer it — that is not fatal, we already have the settings. */
     len = mc_cmd_device_query(payload, sizeof(payload), MESHCORE_LINK_PROTO_VER);
-    if(len != 0 && meshcore_session_request(
-                       app->session, payload, len, MC_RESP_DEVICE_INFO, &ev,
-                       MESHCORE_LINK_TIMEOUT_MS)) {
+    if(len != 0 &&
+       meshcore_session_request(
+           app->session, payload, len, MC_RESP_DEVICE_INFO, &ev, MESHCORE_LINK_TIMEOUT_MS)) {
         snprintf(node->model, sizeof(node->model), "%s", ev.u.device_info.model);
         snprintf(node->fw_ver, sizeof(node->fw_ver), "%s", ev.u.device_info.ver);
         node->fw_ver_code = ev.u.device_info.fw_ver;

@@ -107,8 +107,8 @@ bool meshcore_preset_from_json(const char* json, MeshCorePreset* out, const char
                     out->tx_power = (uint8_t)tx;
                 }
 
-                out->has_node_name = meshcore_json_get(
-                    json, "node_name", out->node_name, sizeof(out->node_name));
+                out->has_node_name =
+                    meshcore_json_get(json, "node_name", out->node_name, sizeof(out->node_name));
                 out->has_role = meshcore_json_get(json, "role", out->role, sizeof(out->role));
             }
         }

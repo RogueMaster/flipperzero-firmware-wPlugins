@@ -44,7 +44,8 @@ size_t meshcore_apply_build(
     case MeshCoreApplyRadio:
         /* freq in kHz, bw in Hz -- the preset already holds wire units, which
          * is the whole reason it stores them that way. */
-        return mc_cmd_set_radio_params(out, cap, preset->freq_khz, preset->bw_hz, preset->sf, preset->cr);
+        return mc_cmd_set_radio_params(
+            out, cap, preset->freq_khz, preset->bw_hz, preset->sf, preset->cr);
 
     case MeshCoreApplyPathHash: {
         /* [61][0][mode]. The zero is mandatory: the firmware checks

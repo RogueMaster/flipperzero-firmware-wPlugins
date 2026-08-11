@@ -8,7 +8,8 @@ MeshCoreCodeSet meshcore_code_set_one(uint8_t code) {
 MeshCoreCodeSet meshcore_code_set(const uint8_t* codes, uint8_t count) {
     MeshCoreCodeSet set = {{0}, 0};
     if(count > MESHCORE_CODE_SET_MAX) count = MESHCORE_CODE_SET_MAX;
-    for(uint8_t i = 0; i < count; i++) set.codes[i] = codes[i];
+    for(uint8_t i = 0; i < count; i++)
+        set.codes[i] = codes[i];
     set.count = count;
     return set;
 }

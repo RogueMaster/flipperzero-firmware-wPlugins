@@ -17,9 +17,9 @@
  */
 #include "../meshcore_cfg.h"
 
-#define MESHCORE_ADDCONTACT_EVENT_PICK 0x1000u
+#define MESHCORE_ADDCONTACT_EVENT_PICK        0x1000u
 #define MESHCORE_ADDCONTACT_EVENT_ADVERT_DONE 0x4A0u
-#define MESHCORE_ADDCONTACT_WORKER_STACK 2048u
+#define MESHCORE_ADDCONTACT_WORKER_STACK      2048u
 
 typedef enum {
     MeshCoreAddContactAdvert,
@@ -53,7 +53,8 @@ static int32_t meshcore_addcontact_advert_worker(void* context) {
 
 static void meshcore_addcontact_callback(void* context, uint32_t index) {
     MeshCoreApp* app = context;
-    view_dispatcher_send_custom_event(app->view_dispatcher, MESHCORE_ADDCONTACT_EVENT_PICK + index);
+    view_dispatcher_send_custom_event(
+        app->view_dispatcher, MESHCORE_ADDCONTACT_EVENT_PICK + index);
 }
 
 void meshcore_scene_addcontact_on_enter(void* context) {
@@ -105,7 +106,8 @@ bool meshcore_scene_addcontact_on_event(void* context, SceneManagerEvent event) 
 
     if(event.event >= MESHCORE_ADDCONTACT_EVENT_PICK) {
         size_t index = event.event - MESHCORE_ADDCONTACT_EVENT_PICK;
-        scene_manager_set_scene_state(app->scene_manager, MeshCoreSceneAddContact, (uint32_t)index);
+        scene_manager_set_scene_state(
+            app->scene_manager, MeshCoreSceneAddContact, (uint32_t)index);
 
         if(index == MeshCoreAddContactAdvert) {
             if(app->worker != NULL) return true;

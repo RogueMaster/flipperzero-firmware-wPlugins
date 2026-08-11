@@ -30,7 +30,8 @@ static bool meshcore_hex_decode(const char* hex, size_t hex_len, uint8_t* out) {
 /* Length of the value starting at `p`, up to '&' or end of string. */
 static size_t meshcore_value_len(const char* p) {
     size_t n = 0;
-    while(p[n] != '\0' && p[n] != '&') n++;
+    while(p[n] != '\0' && p[n] != '&')
+        n++;
     return n;
 }
 

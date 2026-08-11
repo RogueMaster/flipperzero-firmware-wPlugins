@@ -9,15 +9,15 @@
  */
 #include "../meshcore_cfg.h"
 
-#define MESHCORE_CHANNELS_EVENT_DONE 0x480u
-#define MESHCORE_CHANNELS_EVENT_PICK 0x1000u
+#define MESHCORE_CHANNELS_EVENT_DONE   0x480u
+#define MESHCORE_CHANNELS_EVENT_PICK   0x1000u
 /* The "New / join" row rides the same callback with an index no channel list
  * will ever reach. */
-#define MESHCORE_CHANNELS_ADD_ROW 0xFFFFu
+#define MESHCORE_CHANNELS_ADD_ROW      0xFFFFu
 #define MESHCORE_CHANNELS_WORKER_STACK 2048u
 /* Firmware advertises max_channels; a handful covers any field setup and keeps
  * the query short. */
-#define MESHCORE_CHANNELS_MAX 8u
+#define MESHCORE_CHANNELS_MAX          8u
 
 typedef struct {
     uint8_t idx;
@@ -105,7 +105,11 @@ static void meshcore_channels_show_list(MeshCoreApp* app) {
     /* Create or join a private channel; kept at the top so it is reachable even
      * when the node reports only the public channel (or none). */
     submenu_add_item(
-        submenu, "+ New / join channel", MESHCORE_CHANNELS_ADD_ROW, meshcore_channels_callback, app);
+        submenu,
+        "+ New / join channel",
+        MESHCORE_CHANNELS_ADD_ROW,
+        meshcore_channels_callback,
+        app);
 
     for(size_t i = 0; i < channels.count; i++) {
         char label[40];

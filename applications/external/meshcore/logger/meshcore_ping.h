@@ -20,7 +20,7 @@
 
 /* Four is what fits the field kit: a base and up to three repeaters. */
 #define MESHCORE_PING_MAX_TARGETS 4u
-#define MESHCORE_PING_NAME_LEN 24u
+#define MESHCORE_PING_NAME_LEN    24u
 
 typedef struct {
     char name[MESHCORE_PING_NAME_LEN];
@@ -84,7 +84,11 @@ void meshcore_ping_started(
 
 /** Match an incoming SEND_CONFIRMED. True when it belongs to the outstanding
  *  ping, in which case `rtt_ms` is filled and the slot is freed. */
-bool meshcore_ping_confirm(MeshCorePing* ping, uint32_t ack_code, uint32_t now_ms, uint32_t* rtt_ms);
+bool meshcore_ping_confirm(
+    MeshCorePing* ping,
+    uint32_t ack_code,
+    uint32_t now_ms,
+    uint32_t* rtt_ms);
 
 /** Give up on the outstanding ping. True if there was one. */
 bool meshcore_ping_timeout(MeshCorePing* ping);

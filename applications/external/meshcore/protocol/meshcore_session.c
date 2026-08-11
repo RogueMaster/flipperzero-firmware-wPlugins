@@ -2,9 +2,9 @@
 
 /* How long one pump iteration waits for bytes. Bounds how quickly the worker
  * notices a stop request — and so how long meshcore_session_stop() blocks. */
-#define MESHCORE_SESSION_SLICE_MS 50u
+#define MESHCORE_SESSION_SLICE_MS     50u
 #define MESHCORE_SESSION_WORKER_STACK 2048u
-#define MESHCORE_SESSION_REPLY_FLAG (1u << 0)
+#define MESHCORE_SESSION_REPLY_FLAG   (1u << 0)
 
 struct MeshCoreSession {
     MeshCoreLink link;

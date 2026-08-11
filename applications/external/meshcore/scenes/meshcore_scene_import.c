@@ -16,8 +16,8 @@
 #include "../meshcore_cfg.h"
 #include "../messenger/meshcore_share_uri.h"
 
-#define MESHCORE_IMPORT_EVENT_ADD 0x4B0u
-#define MESHCORE_IMPORT_EVENT_DONE 0x4B1u
+#define MESHCORE_IMPORT_EVENT_ADD    0x4B0u
+#define MESHCORE_IMPORT_EVENT_DONE   0x4B1u
 #define MESHCORE_IMPORT_WORKER_STACK 2048u
 
 static void meshcore_import_input_done(void* context) {
@@ -48,8 +48,8 @@ static int32_t meshcore_import_worker(void* context) {
         app->worker_error = "Could not build the contact.";
     } else if(!meshcore_session_request(
                   app->session, payload, len, MC_RESP_OK, &event, MESHCORE_LINK_TIMEOUT_MS)) {
-        app->worker_error =
-            (event.code == MC_RESP_ERR) ? "Node refused the contact." : "No answer from the node.";
+        app->worker_error = (event.code == MC_RESP_ERR) ? "Node refused the contact." :
+                                                          "No answer from the node.";
     } else {
         meshcore_log_printf(app->log, "imported contact %.32s", contact.adv_name);
     }

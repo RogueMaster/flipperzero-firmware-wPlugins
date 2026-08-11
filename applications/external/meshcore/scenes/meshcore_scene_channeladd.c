@@ -19,11 +19,11 @@
 #include "../meshcore_cfg.h"
 #include "../messenger/meshcore_share_uri.h"
 
-#define MESHCORE_CHANNELADD_EVENT_PICK 0x1000u
-#define MESHCORE_CHANNELADD_EVENT_NEW_DONE 0x4C0u
+#define MESHCORE_CHANNELADD_EVENT_PICK       0x1000u
+#define MESHCORE_CHANNELADD_EVENT_NEW_DONE   0x4C0u
 #define MESHCORE_CHANNELADD_EVENT_JOIN_INPUT 0x4C1u
-#define MESHCORE_CHANNELADD_EVENT_JOIN_DONE 0x4C2u
-#define MESHCORE_CHANNELADD_WORKER_STACK 2048u
+#define MESHCORE_CHANNELADD_EVENT_JOIN_DONE  0x4C2u
+#define MESHCORE_CHANNELADD_WORKER_STACK     2048u
 
 typedef enum {
     MeshCoreChannelAddNew,
@@ -72,9 +72,9 @@ static const char* meshcore_channeladd_write(
     }
 
     len = mc_cmd_get_channel(payload, sizeof(payload), slot);
-    if(len == 0 || !meshcore_session_request(
-                       app->session, payload, len, MC_RESP_CHANNEL_INFO, &ev,
-                       MESHCORE_LINK_TIMEOUT_MS)) {
+    if(len == 0 ||
+       !meshcore_session_request(
+           app->session, payload, len, MC_RESP_CHANNEL_INFO, &ev, MESHCORE_LINK_TIMEOUT_MS)) {
         return "Set, but could not confirm.";
     }
     if(strncmp(ev.u.channel_info.name, name, MC_NAME_LEN) != 0) {
@@ -128,7 +128,8 @@ static int32_t meshcore_channeladd_join_worker(void* context) {
     uint8_t secret[MC_SECRET_LEN];
     if(!meshcore_channel_uri_parse(app->import_buf, name, sizeof(name), secret)) {
         app->worker_error = "Not a channel link.";
-        view_dispatcher_send_custom_event(app->view_dispatcher, MESHCORE_CHANNELADD_EVENT_JOIN_DONE);
+        view_dispatcher_send_custom_event(
+            app->view_dispatcher, MESHCORE_CHANNELADD_EVENT_JOIN_DONE);
         return 0;
     }
     /* An empty name would look like a free slot; give it a label. */
@@ -153,7 +154,8 @@ static int32_t meshcore_channeladd_join_worker(void* context) {
 
 static void meshcore_channeladd_callback(void* context, uint32_t index) {
     MeshCoreApp* app = context;
-    view_dispatcher_send_custom_event(app->view_dispatcher, MESHCORE_CHANNELADD_EVENT_PICK + index);
+    view_dispatcher_send_custom_event(
+        app->view_dispatcher, MESHCORE_CHANNELADD_EVENT_PICK + index);
 }
 
 static void meshcore_channeladd_input_done(void* context) {
@@ -161,7 +163,8 @@ static void meshcore_channeladd_input_done(void* context) {
     view_dispatcher_send_custom_event(app->view_dispatcher, MESHCORE_CHANNELADD_EVENT_JOIN_INPUT);
 }
 
-static void meshcore_channeladd_start(MeshCoreApp* app, FuriThreadCallback worker, const char* busy) {
+static void
+    meshcore_channeladd_start(MeshCoreApp* app, FuriThreadCallback worker, const char* busy) {
     widget_reset(app->widget);
     widget_add_text_scroll_element(app->widget, 0, 0, 128, 64, busy);
     view_dispatcher_switch_to_view(app->view_dispatcher, MeshCoreViewWidget);
@@ -222,7 +225,8 @@ bool meshcore_scene_channeladd_on_event(void* context, SceneManagerEvent event) 
     if(event.event == MESHCORE_CHANNELADD_EVENT_JOIN_INPUT) {
         if(app->worker != NULL) return true;
         app->worker_error = NULL;
-        meshcore_channeladd_start(app, meshcore_channeladd_join_worker, "\e#Join\nJoining channel...");
+        meshcore_channeladd_start(
+            app, meshcore_channeladd_join_worker, "\e#Join\nJoining channel...");
         return true;
     }
 
@@ -250,7 +254,8 @@ bool meshcore_scene_channeladd_on_event(void* context, SceneManagerEvent event) 
 
     if(event.event >= MESHCORE_CHANNELADD_EVENT_PICK) {
         size_t index = event.event - MESHCORE_CHANNELADD_EVENT_PICK;
-        scene_manager_set_scene_state(app->scene_manager, MeshCoreSceneChannelAdd, (uint32_t)index);
+        scene_manager_set_scene_state(
+            app->scene_manager, MeshCoreSceneChannelAdd, (uint32_t)index);
 
         if(index == MeshCoreChannelAddNew) {
             if(app->worker != NULL) return true;

@@ -15,7 +15,7 @@
  */
 #include "../meshcore_cfg.h"
 
-#define MESHCORE_MYCARD_EVENT_DONE 0x490u
+#define MESHCORE_MYCARD_EVENT_DONE   0x490u
 #define MESHCORE_MYCARD_WORKER_STACK 2048u
 
 /* The card link the node returned, valid between the worker finishing and the
@@ -37,9 +37,9 @@ static const char* meshcore_mycard_run(MeshCoreApp* app) {
     /* NULL key == "export my own card". Older firmware may not answer it; that
      * is not fatal, the public key from SELF_INFO is still shown. */
     size_t len = mc_cmd_export_contact(payload, sizeof(payload), NULL);
-    if(len != 0 && meshcore_session_request(
-                       app->session, payload, len, MC_RESP_CONTACT_URI, &ev,
-                       MESHCORE_LINK_TIMEOUT_MS)) {
+    if(len != 0 &&
+       meshcore_session_request(
+           app->session, payload, len, MC_RESP_CONTACT_URI, &ev, MESHCORE_LINK_TIMEOUT_MS)) {
         size_t n = ev.u.contact_uri.len;
         if(n > MC_MAX_DATA) n = MC_MAX_DATA;
         memcpy(mycard.uri, ev.u.contact_uri.data, n);
@@ -62,8 +62,7 @@ static void meshcore_mycard_show(MeshCoreApp* app) {
     char text[512];
     size_t off = 0;
 
-    off += snprintf(
-        text + off, sizeof(text) - off, "\e#My card\n%.32s\n\n", app->node.name);
+    off += snprintf(text + off, sizeof(text) - off, "\e#My card\n%.32s\n\n", app->node.name);
 
     /* Public key as hex: the identity other nodes key us by. Always available
      * once connected, link or no link. */

@@ -14,9 +14,9 @@
 
 #include "../meshcore_cfg.h"
 
-#define MESHCORE_SPLASH_FPS_MS 33u
+#define MESHCORE_SPLASH_FPS_MS     33u
 /* ~2 s at 33 ms a frame. */
-#define MESHCORE_SPLASH_FRAMES 60u
+#define MESHCORE_SPLASH_FRAMES     60u
 #define MESHCORE_SPLASH_EVENT_DONE 0x470u
 
 typedef struct {
@@ -92,13 +92,11 @@ View* meshcore_scene_splash_view_alloc(MeshCoreApp* app) {
 void meshcore_scene_splash_on_enter(void* context) {
     MeshCoreApp* app = context;
 
-    with_view_model(
-        app->splash_view, MeshCoreSplashModel * model, { model->frame = 0; }, false);
+    with_view_model(app->splash_view, MeshCoreSplashModel * model, { model->frame = 0; }, false);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, MeshCoreViewSplash);
 
-    app->splash_timer =
-        furi_timer_alloc(meshcore_splash_tick, FuriTimerTypePeriodic, app);
+    app->splash_timer = furi_timer_alloc(meshcore_splash_tick, FuriTimerTypePeriodic, app);
     furi_timer_start(app->splash_timer, furi_ms_to_ticks(MESHCORE_SPLASH_FPS_MS));
 }
 

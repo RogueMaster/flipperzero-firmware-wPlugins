@@ -13,7 +13,7 @@
 #include "../config/meshcore_apply.h"
 #include "../meshcore_cfg.h"
 
-#define MESHCORE_APPLY_EVENT_DONE 0x410u
+#define MESHCORE_APPLY_EVENT_DONE   0x410u
 #define MESHCORE_APPLY_WORKER_STACK 2048u
 
 typedef enum {
@@ -59,7 +59,8 @@ static int32_t meshcore_scene_apply_worker(void* context) {
             continue;
         }
 
-        size_t len = meshcore_apply_build(preset, (MeshCoreApplyStep)step, payload, sizeof(payload));
+        size_t len =
+            meshcore_apply_build(preset, (MeshCoreApplyStep)step, payload, sizeof(payload));
         if(len == 0) {
             app->apply_result[step] = MeshCoreApplyResultSkipped;
             continue;
@@ -77,13 +78,10 @@ static int32_t meshcore_scene_apply_worker(void* context) {
 
     /* Now the part that makes the ticks mean something. */
     size_t len = mc_cmd_app_start(payload, sizeof(payload), MESHCORE_LINK_APP_NAME);
-    bool self_ok = len != 0 && meshcore_session_request(
-                                   app->session,
-                                   payload,
-                                   len,
-                                   MC_RESP_SELF_INFO,
-                                   &event,
-                                   MESHCORE_LINK_TIMEOUT_MS);
+    bool self_ok =
+        len != 0 &&
+        meshcore_session_request(
+            app->session, payload, len, MC_RESP_SELF_INFO, &event, MESHCORE_LINK_TIMEOUT_MS);
     if(self_ok) {
         if(app->apply_result[MeshCoreApplyRadio] == MeshCoreApplyResultOk &&
            !meshcore_apply_verify_radio(preset, &event.u.self_info)) {
@@ -114,13 +112,10 @@ static int32_t meshcore_scene_apply_worker(void* context) {
     }
 
     len = mc_cmd_device_query(payload, sizeof(payload), MESHCORE_LINK_PROTO_VER);
-    bool dev_ok = len != 0 && meshcore_session_request(
-                                  app->session,
-                                  payload,
-                                  len,
-                                  MC_RESP_DEVICE_INFO,
-                                  &event,
-                                  MESHCORE_LINK_TIMEOUT_MS);
+    bool dev_ok =
+        len != 0 &&
+        meshcore_session_request(
+            app->session, payload, len, MC_RESP_DEVICE_INFO, &event, MESHCORE_LINK_TIMEOUT_MS);
     if(dev_ok) {
         if(app->apply_result[MeshCoreApplyPathHash] == MeshCoreApplyResultOk) {
             bool checkable = false;

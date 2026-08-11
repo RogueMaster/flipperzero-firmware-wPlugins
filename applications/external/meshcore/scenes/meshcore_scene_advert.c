@@ -8,7 +8,7 @@
  */
 #include "../meshcore_cfg.h"
 
-#define MESHCORE_ADVERT_EVENT_DONE 0x450u
+#define MESHCORE_ADVERT_EVENT_DONE   0x450u
 #define MESHCORE_ADVERT_WORKER_STACK 2048u
 
 static int32_t meshcore_advert_worker(void* context) {

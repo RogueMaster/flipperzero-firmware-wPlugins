@@ -1,9 +1,0 @@
-dist/
-build/
-.vscode/
-*.fap
-*.elf
-__pycache__/
-*.pyc
-.ufbt/
-.clang-format

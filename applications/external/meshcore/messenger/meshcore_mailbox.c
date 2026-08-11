@@ -1,6 +1,6 @@
 #include "meshcore_mailbox.h"
 
-#define MESHCORE_MAILBOX_WAKE_FLAG (1u << 0)
+#define MESHCORE_MAILBOX_WAKE_FLAG    (1u << 0)
 #define MESHCORE_MAILBOX_WORKER_STACK 2048u
 
 /* Safety-net period. Long enough to be free when idle, short enough that a

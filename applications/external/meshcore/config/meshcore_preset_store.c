@@ -21,10 +21,8 @@ void meshcore_preset_store_init(MeshCorePresetStore* store) {
 }
 
 /* One file into one entry. Failures are recorded rather than dropped. */
-static void meshcore_preset_store_read_one(
-    MeshCorePresetEntry* entry,
-    Storage* storage,
-    const char* name) {
+static void
+    meshcore_preset_store_read_one(MeshCorePresetEntry* entry, Storage* storage, const char* name) {
     char path[128];
     snprintf(path, sizeof(path), "%s/%s", MESHCORE_PRESET_DIR, name);
     snprintf(entry->file, sizeof(entry->file), "%.31s", name);
@@ -186,7 +184,10 @@ bool meshcore_preset_store_save(Storage* storage, const MeshCorePreset* preset, 
 
     if(preset->has_node_name && len > 0 && (size_t)len < sizeof(text)) {
         len += snprintf(
-            text + len, sizeof(text) - (size_t)len, ",\n  \"node_name\": \"%s\"", preset->node_name);
+            text + len,
+            sizeof(text) - (size_t)len,
+            ",\n  \"node_name\": \"%s\"",
+            preset->node_name);
     }
     if(len > 0 && (size_t)len < sizeof(text)) {
         len += snprintf(text + len, sizeof(text) - (size_t)len, "\n}\n");
