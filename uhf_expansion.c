@@ -44,6 +44,8 @@
 #define UHF_POWER_OFF_MS      500U
 #define UHF_POWER_BOOT_MS     100U
 #define UHF_POWER_READY_MS    300U
+#define UHF_RESET_LOW_MS       20U
+#define UHF_RESET_BOOT_MS     300U
 
 #define UHF_SOFT_UART_BIT_US         104U
 #define UHF_SOFT_UART_IDLE_POLL_US   10U
@@ -62,6 +64,7 @@
 #define UHF_TARGET_RX_PIN_FALLBACK 4
 #define UHF_BRIDGE_TX_EXT_PIN      13
 #define UHF_BRIDGE_RX_EXT_PIN      14
+#define UHF_RESET_EXT_PIN          16
 
 #define UHF_MAX_TAGS          120U
 #define UHF_EPC_HEX_MAX       64U
@@ -311,6 +314,8 @@ static bool uhf_probe_current_serial(UhfApp* app, uint32_t baud);
 static bool uhf_try_reader_handshake(UhfApp* app, uint8_t attempts);
 static bool uhf_recover_reader(UhfApp* app);
 static bool uhf_power_cycle_reader(UhfApp* app);
+static void uhf_hardware_reset_reader(UhfApp* app);
+static void uhf_release_reset_pin(void);
 static void uhf_start_inventory(UhfApp* app);
 static void uhf_stop_inventory(UhfApp* app);
 static void uhf_service_inventory(UhfApp* app);
@@ -1145,6 +1150,9 @@ static void uhf_run_startup_sequence(UhfApp* app) {
         app->rx_ext_pin,
         (unsigned long)app->baud_rate);
 
+    uhf_set_startup_text(app, "Initializing", "Hardware reset on C0", 1);
+    uhf_hardware_reset_reader(app);
+
     if(app->rx_stream) furi_stream_buffer_reset(app->rx_stream);
     app->frame_buffer_len = 0;
 
@@ -1347,17 +1355,6 @@ static bool uhf_ensure_hardware(UhfApp* app) {
         probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
     }
 
-    if(!probe_ok && app->serial) {
-        const FuriHalSerialId current_id = app->serial_id;
-        const FuriHalSerialId other_id =
-            (current_id == FuriHalSerialIdUsart) ? FuriHalSerialIdLpuart : FuriHalSerialIdUsart;
-        uhf_close_serial(app);
-        if(uhf_open_serial(app, other_id)) {
-            if(desired_baud != 0U) probe_ok = uhf_probe_current_serial(app, desired_baud);
-            if(!probe_ok) probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
-        }
-    }
-
     uhf_diag_log(
         app,
         "HW ready TX:%d RX:%d probe=%s",
@@ -1480,6 +1477,27 @@ static bool uhf_recover_reader(UhfApp* app) {
     return true;
 }
 
+static void uhf_release_reset_pin(void) {
+    furi_hal_gpio_init_simple(&gpio_ext_pc0, GpioModeAnalog);
+}
+
+static void uhf_hardware_reset_reader(UhfApp* app) {
+    /* Hardware revision 2 connects UCM601NC RST (active low) to Flipper C0,
+       external header pin 16. Keep it driven high after the pulse so the
+       reader cannot drift back into reset. On revision 1 C0 is unconnected,
+       making this sequence harmless. */
+    furi_hal_gpio_write(&gpio_ext_pc0, true);
+    furi_hal_gpio_init_simple(&gpio_ext_pc0, GpioModeOutputPushPull);
+    furi_delay_ms(2U);
+    furi_hal_gpio_write(&gpio_ext_pc0, false);
+    furi_delay_ms(UHF_RESET_LOW_MS);
+    furi_hal_gpio_write(&gpio_ext_pc0, true);
+    furi_delay_ms(UHF_RESET_BOOT_MS);
+    if(app) {
+        uhf_diag_log(app, "Hardware reset C0/pin %u", (unsigned)UHF_RESET_EXT_PIN);
+    }
+}
+
 static bool uhf_power_cycle_reader(UhfApp* app) {
     if(!app || app->hard_reset_attempted) return false;
     app->hard_reset_attempted = true;
@@ -1542,6 +1560,7 @@ static bool uhf_power_cycle_reader(UhfApp* app) {
     }
 
     app->hardware_ready = true;
+    uhf_hardware_reset_reader(app);
     app->frame_buffer_len = 0U;
     if(app->rx_stream) furi_stream_buffer_reset(app->rx_stream);
     uhf_clear_version(app);
@@ -2531,15 +2550,13 @@ static bool uhf_open_serial(UhfApp* app, FuriHalSerialId serial_id) {
 }
 
 static bool uhf_open_bridge_uart(UhfApp* app) {
-    const FuriHalSerialId ids[] = {FuriHalSerialIdUsart, FuriHalSerialIdLpuart};
-
-    for(size_t i = 0; i < COUNT_OF(ids); i++) {
-        if(!uhf_open_serial(app, ids[i])) continue;
-
-        if((app->tx_ext_pin == UHF_BRIDGE_TX_EXT_PIN) && (app->rx_ext_pin == UHF_BRIDGE_RX_EXT_PIN)) {
+    /* C0/pin 16 is reserved for the reader's hardware reset on revision 2,
+       so LPUART must never be opened as a fallback. */
+    if(uhf_open_serial(app, FuriHalSerialIdUsart)) {
+        if((app->tx_ext_pin == UHF_BRIDGE_TX_EXT_PIN) &&
+           (app->rx_ext_pin == UHF_BRIDGE_RX_EXT_PIN)) {
             return true;
         }
-
         uhf_close_serial(app);
     }
 
@@ -2560,6 +2577,8 @@ static void uhf_close_serial(UhfApp* app) {
     furi_hal_serial_control_release(app->serial);
     app->serial = NULL;
 
+    uhf_release_reset_pin();
+
     if(app->expansion) {
         expansion_enable(app->expansion);
     }
@@ -2571,10 +2590,6 @@ static bool __attribute__((unused)) uhf_pick_and_open_serial(UhfApp* app) {
         if(is_target_pins) return true;
 
         // Keep USART as a usable fallback even if it is not A6/A4.
-        return true;
-    }
-
-    if(uhf_open_serial(app, FuriHalSerialIdLpuart)) {
         return true;
     }
 
@@ -2604,33 +2619,6 @@ static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app) {
                 rx_label);
             return true;
         }
-    }
-
-    if(!app->soft_uart_enabled) {
-        const FuriHalSerialId current_id = app->serial_id;
-        const FuriHalSerialId other_id =
-            (current_id == FuriHalSerialIdUsart) ? FuriHalSerialIdLpuart : FuriHalSerialIdUsart;
-
-        uhf_close_serial(app);
-        if(uhf_open_serial(app, other_id)) {
-            for(size_t i = 0; i < 1; i++) {
-                if(uhf_probe_current_serial(app, bauds[i])) {
-                    uhf_format_pin_label(app->tx_ext_pin, tx_label, sizeof(tx_label));
-                    uhf_format_pin_label(app->rx_ext_pin, rx_label, sizeof(rx_label));
-                    uhf_set_status(
-                        app,
-                        "Reader OK %lu TX:%s RX:%s",
-                        (unsigned long)app->baud_rate,
-                        tx_label,
-                        rx_label);
-                    return true;
-                }
-            }
-        }
-
-        uhf_close_serial(app);
-        (void)uhf_pick_and_open_serial(app);
-        uhf_apply_baud(app, UHF_BAUD_RATE);
     }
 
     uhf_set_status(app, "No version. Check or swap A6/A4");
