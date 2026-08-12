@@ -50,6 +50,51 @@ void suite_flock_db(void) {
     CHECK(!flock_oui_match(unknown));
     CHECK(!flock_oui_match(NULL));
 
+    // --- RETRACTED prefixes must never match --------------------------------
+    // Upstream tracked each of these and then withdrew it. Re-adding one is
+    // always a bug, never a rediscovery: the older flat OUI list still carries
+    // some of them and has no status column to record the doubt.
+    //
+    // THIS BLOCK EXISTS BECAUSE THE COMMENT WAS NOT ENOUGH. f8:a2:d6 was dropped
+    // for v0.44, then silently re-added by 93beede (2026-08-05) while the tables
+    // were reflowed, and shipped in v0.67-v0.71. Every test stayed green and the
+    // parity gate stayed green (it compared the two tables to each other, and
+    // both had drifted the same way). Nothing asserted absence, so nothing
+    // noticed. tools/check_oui_parity.py now enforces the same denylist from the
+    // other side; keep BOTH -- the CI gate catches a source edit, this catches a
+    // matcher that starts accepting one for some other reason.
+    //
+    // The pairing with pos[]/neg[] below matters: assert the NEGATIVE case, and
+    // keep a positive control beside it so a matcher that has stopped matching
+    // anything at all cannot pass this block by accident.
+    static const uint8_t retracted[][6] = {
+        {0xf8, 0xa2, 0xd6, 0x00, 0x00, 0x01}, // "low confidence; hit on a Sony Media Player"
+        {0x6c, 0xcd, 0xd6, 0x00, 0x00, 0x01}, // "Nope - Netgear" (misattributed)
+        {0x94, 0x2a, 0x6f, 0x00, 0x00, 0x01}, // "Nope - Ubiquiti" (misattributed)
+        {0xf4, 0xe2, 0xc6, 0x00, 0x00, 0x01}, // "Nope - Ubiquiti" (misattributed)
+        {0xcc, 0xcc, 0xcc, 0x00, 0x00, 0x01}, // "No clue; no hits"
+        {0x00, 0x0c, 0xe7, 0x00, 0x00, 0x01}, // MediaTek, "possible false positive"
+    };
+    for(size_t i = 0; i < sizeof(retracted) / sizeof(retracted[0]); i++) {
+        CHECK(!flock_oui_match(retracted[i]));
+        CHECK(!soundthinking_oui_match(retracted[i]));
+        // A retracted prefix must also not be reachable as a device class or a
+        // method label -- those are what the UI actually prints.
+        CHECK_INT_EQ(flock_class_from_mac(retracted[i]), FlockClassAlpr);
+        CHECK_INT_EQ(flock_method_of(retracted[i], "", 'B', 0), FlockMethodUnknown);
+    }
+
+    // Positive control: a prefix that IS in the table still matches, so the loop
+    // above cannot be satisfied by a matcher that rejects everything.
+    CHECK(flock_oui_match(known));
+    CHECK_INT_EQ(flock_method_of(known, "", 'B', 0), FlockMethodOui);
+
+    // The built-in table's size is pinned so an accidental add/remove shows up
+    // here as well as in the CI parity gate. If you intentionally change the
+    // table, update this number AND both files' count comments in the same
+    // commit -- that is the drift 93beede left behind for five releases.
+    CHECK_INT_EQ((int)flock_oui_count(), 31);
+
     // --- extra OUIs (user signatures merged OVER the built-ins) --------------
     static const uint8_t extra[][3] = {{0x11, 0x22, 0x33}};
     FlockDbExtras ex_oui = {.ouis = extra, .oui_count = 1};

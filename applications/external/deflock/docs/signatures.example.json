@@ -3,10 +3,10 @@
     "aa:bb:cc"
   ],
   "ssid_confirmed": [
-    "flock-"
+    "example-confirmed-ssid"
   ],
   "ssid_likely": [
-    "flock"
+    "example-likely-ssid"
   ],
   "ie_fps": [
     "deadbeef"

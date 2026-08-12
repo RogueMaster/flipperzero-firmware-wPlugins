@@ -1,9 +1,14 @@
 # Changelog
 
-## Unreleased
+## v0.72
+**A retracted false-positive OUI came back and shipped in five releases. It is out
+again, and there is now a guard that would have caught it.**
 
-On `main` and in the [`nightly`](../../releases/tag/nightly) build. **Not tagged
-yet: the export below has not been run on hardware by anyone.**
+If you are running **v0.67 through v0.71**, that build scores an unrelated consumer
+device as a *Likely* ALPR camera on one prefix. Updating is worth it for that alone.
+
+**Not run on hardware.** As with everything since v0.20, this is verified by host
+tests, both compilers and the CI gates — not against a radio.
 
 ### Added
 
@@ -79,7 +84,71 @@ yet: the export below has not been run on hardware by anyone.**
 
 ### Fixed
 
+- **The retracted OUI `f8:a2:d6` is out of the detection tables again.** Upstream
+  withdrew it — *"low confidence; hit on a Sony Media Player"* — and it was dropped
+  for v0.44. It came back silently in `93beede` (2026-08-05), a commit about
+  *tightening* precision, which reflowed both OUI tables and reinstated the prefix in
+  the process. It shipped in **v0.67, v0.68, v0.69, v0.70 and v0.71**.
+
+  It was not harmless while it was there. A camera is scored *Likely* on a Flock OUI
+  plus a wildcard probe request — and every ordinary Wi-Fi client sends wildcard
+  probes while looking for networks. So a device on this prefix was reported as a
+  **Likely Flock/ALPR camera** for simply scanning for Wi-Fi. That is the same class
+  of false positive as the T-Mobile gateway that `93beede` was written to eliminate.
+
+  The tables now hold **31** prefixes, which is what both files' comments, the v0.44
+  changelog entry and `docs/signatures.md` had been claiming throughout.
+
+- **The OUI parity gate now checks more than parity, because parity was not enough.**
+  `tools/check_oui_parity.py` compared the app's table against the companion's and
+  nothing else. `93beede` changed **both files identically**, so the gate stayed green
+  at 32-vs-32 for five releases while both count comments still said 31 — the script
+  printed the contradicting number and had no rule to act on it. It now also fails on:
+
+  - a **count comment that disagrees with its own array**, and
+  - any **upstream-retracted prefix** reappearing in a built-in table — `f8:a2:d6`,
+    `6c:cd:d6`, `94:2a:6f`, `f4:e2:c6`, `cc:cc:cc`, `00:0c:e7`, each carrying its
+    retraction reason so it cannot be "rediscovered" from the older flat OUI list.
+
+  `test/test_flock_db.c` asserts the same denylist from the matcher side and pins the
+  table size. Both guards were verified against the failing case — the regression was
+  re-seeded in a throwaway copy outside the repo, and each guard was confirmed to fail
+  on its own, including with the count comments "corrected" to hide the first one.
+
+- **`signatures.example.json` no longer teaches users to reintroduce the
+  `Flock-Guest` bug.** The template shipped `"ssid_confirmed": ["flock-"]`, and
+  `docs/signatures.md` tells you to copy the file and edit it. User SSID needles are
+  matched as **unanchored substrings**, so that value marks `Flock-Guest`,
+  `Flock-Freight-WiFi` and similar benign networks **CONFIRMED** — precisely the
+  over-claim that the built-in `Flock-` rule was anchored to prevent in v0.47, reached
+  through a supported path instead. The app's re-derivation guard cannot catch it,
+  because it re-checks against the same matcher that is consulting your needle.
+
+  Both example values are now inert placeholders, matching how `aa:bb:cc` and
+  `deadbeef` already behaved, and `docs/signatures.md` carries an explicit warning
+  that `ssid_confirmed` is the one key where a user file can manufacture a false
+  CONFIRMED. Anything doubtful belongs in `ssid_likely`.
+
 - **Superseded CI runs are cancelled rather than queued.**
+
+### Changed
+
+- **The built-in OUI table now records what each prefix is actually resting on.** It
+  describes itself as prefixes *observed in fielded Flock Safety deployments*, which
+  is true of most but not all of it. `docs/signatures.md` gains a provenance table
+  separating Flock's own registered OUI, field-corroborated prefixes, four
+  contract-manufacturer prefixes that WatchFlock files separately as false-positive
+  prone (Liteon/USI), four inherited from the superseded flat list with no status in
+  the curated source at all, and three the curated source rates as weak. **No scoring
+  changes** — an OUI-only match still caps at *Possible* regardless of grade — this
+  only stops the table's own claim reading as stronger than the evidence.
+
+- **Signature sources re-checked against upstream.** No new Flock or SoundThinking
+  prefixes exist that this app lacks; coverage of published research is current. BLE
+  tells are unchanged and confirmed: XUNTONG company id `0x09C8`, the Raven GATT range
+  `0x3100`–`0x3500`, and the `Penguin-` / `FS Ext` naming. `e0:0a:f6` stays in
+  `docs/signatures.seed.json` rather than being promoted — its second source rates it
+  *lower*, not higher.
 
 ## v0.71
 **Nightly builds, so a fix can be tested before it is frozen into a tag.**

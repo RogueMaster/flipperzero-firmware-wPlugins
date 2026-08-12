@@ -17,28 +17,54 @@
  * table was originally imported from -- the flat list cannot record that a
  * prefix was later doubted, so re-importing from it silently undoes retractions.
  *
- * f8:a2:d6 was DROPPED 2026-07-27: upstream marks it Removed ("low confidence;
- * hit on a Sony Media Player"). Do NOT re-add it from the flat list. Also
- * retracted upstream and deliberately absent here: 6c:cd:d6 (Netgear),
- * 94:2a:6f + f4:e2:c6 (Ubiquiti), cc:cc:cc (no hits), 00:0c:e7 (possible FP).
+ * RETRACTED UPSTREAM -- never re-add any of these: f8:a2:d6 ("low confidence;
+ * hit on a Sony Media Player"), 6c:cd:d6 (Netgear), 94:2a:6f + f4:e2:c6
+ * (Ubiquiti), cc:cc:cc (no hits), 00:0c:e7 (possible FP). The flat list still
+ * carries some of them, which is exactly why re-importing from it is forbidden.
+ *
+ * f8:a2:d6 HAS BEEN REMOVED TWICE. Dropped 2026-07-27 for v0.44, then silently
+ * re-added by 93beede (2026-08-05) -- a commit about TIGHTENING precision -- while
+ * the table was reflowed, and it shipped in v0.67 through v0.71 scoring "Likely"
+ * on any wildcard probe. Nothing caught it: the parity gate compared this table
+ * against the sketch's and 93beede drifted BOTH sides identically, so 32-vs-32
+ * passed while both count comments still said 31. That recurrence is why
+ * tools/check_oui_parity.py now also checks the declared count and enforces a
+ * retracted-prefix denylist, and why test_flock_db.c asserts each one is absent.
+ * A comment is not a guard; treat the denylist as the real rule.
  *
  * This table is a claim of FIELD CORROBORATION. Uncorroborated candidates
  * belong in the user signature file, not here -- see docs/signatures.md.
  *
+ * PROVENANCE GRADES. The rows below are NOT uniform evidence, and the ordering
+ * is historical, so the grades are listed here rather than inline (the entries
+ * would have to be reordered to comment them per row, and reordering both files
+ * in lockstep is a worse risk than this list). Full table in docs/signatures.md.
+ *   - Contract manufacturer (Liteon/USI), shared with unrelated consumer gear:
+ *     f4:6a:dd, 00:f4:8d, d0:39:57, e8:d0:fc. WatchFlock files these separately
+ *     from direct-Flock prefixes and warns a MAC match alone may be a FP.
+ *   - Flat-list orphans, absent from the curated table in EVERY section (not
+ *     Active, not testing, not Removed): 70:08:94, 58:00:e3, 5c:93:a2, 64:6e:69.
+ *     Kept because absence is not retraction, but their status is unverifiable.
+ *   - Weak upstream confidence: 08:3a:88 ("BLE Ring conflict - unsure"),
+ *     48:27:ea + a4:cf:12 ("low, WiGLE crowdsource"). These three do NOT meet
+ *     the field-corroboration bar this table's first line claims.
+ * Nothing here changes scoring: an OUI-only match caps at "possible" regardless.
+ *
  * DUPLICATED in esp32_companion/flock_companion/flock_companion.ino, which
  * scores ESP-side. No shared header is possible (that side is an Arduino
- * sketch), so change BOTH and keep the row layout identical so they can be
- * diffed by eye. tools/check_oui_parity.py enforces this as a required CI gate.
+ * sketch), so change BOTH and keep the row layout identical -- EXACTLY four
+ * entries per row -- so they can be diffed by eye. tools/check_oui_parity.py
+ * enforces content parity as a required CI gate; the row layout is on you.
  */
 static const uint8_t flock_ouis[][3] = {
     {0x70, 0xc9, 0x4e}, {0x3c, 0x91, 0x80}, {0xd8, 0xf3, 0xbc}, {0x80, 0x30, 0x49},
     {0xb8, 0x35, 0x32}, {0x14, 0x5a, 0xfc}, {0x74, 0x4c, 0xa1}, {0x08, 0x3a, 0x88},
     {0x9c, 0x2f, 0x9d}, {0xc0, 0x35, 0x32}, {0x94, 0x08, 0x53}, {0xe4, 0xaa, 0xea},
-    {0xf4, 0x6a, 0xdd}, {0xf8, 0xa2, 0xd6}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d},
-    {0xd0, 0x39, 0x57}, {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4},
-    {0x70, 0x08, 0x94}, {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf},
-    {0x58, 0x00, 0xe3}, {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69},
-    {0x48, 0x27, 0xea}, {0xa4, 0xcf, 0x12}, {0x82, 0x6b, 0xf2}, {0xb4, 0x1e, 0x52},
+    {0xf4, 0x6a, 0xdd}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
+    {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
+    {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf}, {0x58, 0x00, 0xe3},
+    {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x48, 0x27, 0xea},
+    {0xa4, 0xcf, 0x12}, {0x82, 0x6b, 0xf2}, {0xb4, 0x1e, 0x52},
 };
 
 #define FLOCK_OUI_COUNT (sizeof(flock_ouis) / sizeof(flock_ouis[0]))

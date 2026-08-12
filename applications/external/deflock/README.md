@@ -319,6 +319,18 @@ the code and confirm the behavior yourself.
 
 ## What's new
 
+**v0.72** - **A retracted false-positive OUI is out of the tables again.**
+`f8:a2:d6` was withdrawn upstream ("hit on a Sony Media Player") and dropped for
+v0.44, but a commit that reflowed the OUI tables put it back, and it shipped in
+**v0.67 through v0.71**. On those builds an unrelated consumer device is reported as
+a *Likely* ALPR camera just for sending the wildcard probe requests every Wi-Fi
+client sends. The parity gate stayed green the whole time because it only compared
+the two copies of the table to each other, and both had drifted the same way — so it
+now also fails on a stale count comment and on any retracted prefix reappearing, and
+the host tests assert the same list from the matcher side. Also fixed: the shipped
+`signatures.example.json` no longer contains an SSID pattern that would mark
+`Flock-Guest` as CONFIRMED if you copied the template as instructed.
+
 **v0.71** - **Nightly builds.** `main` is published daily to a rolling `nightly`
 prerelease when something changes, so there is always a build between tags: one to
 test a fix before it is tagged, and one to fall back to when a tag turns out to have

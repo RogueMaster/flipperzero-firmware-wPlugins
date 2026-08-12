@@ -168,17 +168,25 @@ static inline const uint8_t* fble_addr_bytes(BLEAddress& a) {
 // shared header (an Arduino sketch cannot include the app's), so editing one
 // side alone would silently desync ESP-side `conf` scoring from the Flipper's.
 // tools/check_oui_parity.py is a REQUIRED CI gate that catches exactly that.
-// See flock_db.c for the provenance notes. f8:a2:d6 dropped 2026-07-27 (upstream
-// false positive: hit on a Sony Media Player) -- do NOT re-add it from the older
-// flat OUI list.
+// See flock_db.c for the provenance notes and the per-grade breakdown (contract
+// manufacturer / flat-list orphan / weak upstream confidence).
+//
+// RETRACTED UPSTREAM -- never re-add: f8:a2:d6 (hit on a Sony Media Player),
+// 6c:cd:d6, 94:2a:6f, f4:e2:c6, cc:cc:cc, 00:0c:e7. f8:a2:d6 in particular has
+// been removed TWICE: dropped for v0.44, silently re-added here by 93beede
+// (2026-08-05) during a reflow, and shipped in v0.67-v0.71 scoring `conf=2` on
+// any wildcard probe (see the ladder below). The parity gate did not catch it
+// because that commit drifted this table and flock_db.c identically. The gate
+// now also enforces the declared count and a retracted-prefix denylist.
 //
 // The last entry, b4:1e:52, is Flock Safety's own registered OUI (GainSec).
-// Row layout matches flock_db.c line-for-line so the two can be diffed by eye.
+// Row layout matches flock_db.c line-for-line -- EXACTLY four entries per row --
+// so the two can be diffed by eye. The 5-on-one-row drift is what hid 93beede.
 static const uint8_t FLOCK_OUIS[][3] = {
     {0x70, 0xc9, 0x4e}, {0x3c, 0x91, 0x80}, {0xd8, 0xf3, 0xbc}, {0x80, 0x30, 0x49},
     {0xb8, 0x35, 0x32}, {0x14, 0x5a, 0xfc}, {0x74, 0x4c, 0xa1}, {0x08, 0x3a, 0x88},
     {0x9c, 0x2f, 0x9d}, {0xc0, 0x35, 0x32}, {0x94, 0x08, 0x53}, {0xe4, 0xaa, 0xea},
-    {0xf4, 0x6a, 0xdd}, {0xf8, 0xa2, 0xd6}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
+    {0xf4, 0x6a, 0xdd}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
     {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
     {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf}, {0x58, 0x00, 0xe3},
     {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x48, 0x27, 0xea},
