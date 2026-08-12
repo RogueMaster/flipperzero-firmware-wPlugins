@@ -1133,7 +1133,7 @@ static void uhf_run_startup_sequence(UhfApp* app) {
     if(!app) return;
 
     app->startup_active = true;
-    uhf_set_startup_text(app, "Loading", "Preparing UHF Expansion", 0);
+    uhf_set_startup_text(app, "Initializing", "Preparing reader", 0);
 
     bool got_version = false;
     app->baud_rate = UHF_BAUD_RATE;
@@ -1150,17 +1150,17 @@ static void uhf_run_startup_sequence(UhfApp* app) {
         app->rx_ext_pin,
         (unsigned long)app->baud_rate);
 
-    uhf_set_startup_text(app, "Initializing", "Hardware reset on C0", 1);
+    uhf_set_startup_text(app, "Initializing", "Hardware reset", 0);
     uhf_hardware_reset_reader(app);
 
     if(app->rx_stream) furi_stream_buffer_reset(app->rx_stream);
     app->frame_buffer_len = 0;
 
-    uhf_set_startup_text(app, "Initializing", "UHF Expansion", 1);
+    uhf_set_startup_text(app, "Initializing", "Checking reader", 0);
     got_version = uhf_try_reader_handshake(app, 1U);
 
     if(!got_version) {
-        uhf_set_startup_text(app, "Recovering", "Power cycling UHF reader", 2);
+        uhf_set_startup_text(app, "Initializing", "Power-cycle reset", 0);
         if(uhf_power_cycle_reader(app)) {
             got_version = uhf_try_reader_handshake(app, 3U);
         }
@@ -1190,8 +1190,8 @@ startup_done:
             (unsigned long)app->rx_errors);
         uhf_diag_log(app, "Startup failed %s", failure);
         (void)uhf_save_diag_log(app);
-        uhf_set_startup_text(app, "Reader not ready", failure, 0);
-        uhf_set_status(app, "UHF reader needs hardware reset");
+        uhf_set_startup_text(app, "Not Ready", failure, 0);
+        uhf_set_status(app, "Not Ready");
         furi_delay_ms(800U);
     }
 
@@ -1419,7 +1419,7 @@ static void uhf_start_inventory(UhfApp* app) {
             reader_ok = uhf_try_reader_handshake(app, 5U);
         }
         if(!reader_ok) {
-            uhf_set_status(app, "Reader needs hardware reset");
+            uhf_set_status(app, "Not Ready");
             return;
         }
     }
