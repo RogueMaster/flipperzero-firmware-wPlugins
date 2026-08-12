@@ -22,6 +22,7 @@
 #define HF_PLUGIN_POLLER_MAX_FWT         (200000U)
 #define HF_PLUGIN_POLLER_MAX_BUFFER_SIZE (258U)
 #define HF_PLUGIN_MAX_ATS_SIZE           33U
+#define HF_PLUGIN_APDU_SW_SIZE           2U // trailing SW1 SW2 status word
 
 // ATS bit definitions
 #define ISO14443_4A_ATS_T0_TA1 (1U << 4)
@@ -288,20 +289,29 @@ static void
     const uint8_t* buffer = bit_buffer_get_data(tx_buffer);
     size_t len = bit_buffer_get_size_bytes(tx_buffer);
     const uint8_t* rx_buffer_data = bit_buffer_get_data(rx_buffer);
+    const size_t rx_len = bit_buffer_get_size_bytes(rx_buffer);
     if(!buffer || !rx_buffer_data || len == 0U) return;
 
     if(ctx->api->get_credential_type(ctx->host_ctx) == SeaderCredentialTypePicopass) {
         if(buffer[0] == RFAL_PICOPASS_CMD_READ4) {
-            uint8_t block_num = buffer[1];
+            /* A full READ4 returns four blocks plus a CRC. Capture only what actually arrived
+               rather than assuming the full length, so a truncated frame does not pad the SIO
+               out with whatever else is sitting in the receive buffer. */
+            if(rx_len <= ISO13239_CRC_SIZE) return;
+            const size_t payload_len = rx_len - ISO13239_CRC_SIZE;
+            const size_t max_len = (size_t)PICOPASS_BLOCK_LEN * 4U;
+
             ctx->api->append_picopass_sio(
-                ctx->host_ctx, block_num, rx_buffer_data, PICOPASS_BLOCK_LEN * 4);
+                ctx->host_ctx,
+                buffer[1],
+                rx_buffer_data,
+                payload_len < max_len ? payload_len : max_len);
         }
     } else if(ctx->api->get_credential_type(ctx->host_ctx) == SeaderCredentialType14A) {
         uint8_t desfire_read[] = {0x90, 0xbd, 0x00, 0x00, 0x07, 0x0f, 0x00, 0x00, 0x00};
         if(len == 13 && memcmp(buffer, desfire_read, sizeof(desfire_read)) == 0 &&
-           rx_buffer_data[0] == 0x30) {
-            size_t sio_len = bit_buffer_get_size_bytes(rx_buffer) - 2;
-            ctx->api->set_14a_sio(ctx->host_ctx, rx_buffer_data, sio_len);
+           rx_len > HF_PLUGIN_APDU_SW_SIZE && rx_buffer_data[0] == 0x30) {
+            ctx->api->set_14a_sio(ctx->host_ctx, rx_buffer_data, rx_len - HF_PLUGIN_APDU_SW_SIZE);
         }
     }
 }
