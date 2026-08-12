@@ -1,2 +1,2 @@
 httpx==0.28.1
-anthropic==0.120.2
+anthropic==0.121.0
