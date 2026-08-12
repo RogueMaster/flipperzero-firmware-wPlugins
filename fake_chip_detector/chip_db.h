@@ -69,6 +69,42 @@ void chip_verdict_explain(ChipVerdict verdict, const char** line1, const char** 
 // True when the verdict means "nothing is wrong here".
 bool chip_verdict_is_good(ChipVerdict verdict);
 
+// A pin that can take a part off the I2C bus entirely while leaving it in
+// perfect health. Two flavours: a protocol select that hands the part to SPI
+// or UART, and an enable pin that holds it in reset. Either way an I2C sweep
+// finds nothing, which is indistinguishable from a dead chip unless the app
+// says otherwise -- and someone has already returned a working BNO055 over
+// exactly this.
+typedef enum {
+    ModePinProtocol, // picks which bus the part speaks
+    ModePinEnable, // holds the part in reset or shutdown
+} ModePinKind;
+
+typedef enum {
+    ModeAltSpi,
+    ModeAltUart,
+    ModeAltOff, // not another protocol: the part simply is not running
+} ModeAlt;
+
+typedef struct {
+    const char* chip; // exact ChipEntry.name; the doc generator checks this
+    const char* pad; // what the breakout silkscreens: "CSB", "CS", "PS1"
+    uint8_t kind; // ModePinKind
+    uint8_t alt; // ModeAlt: where the part goes when the pad is wrong
+    bool i2c_high; // level this pad needs for the part to speak I2C
+    // Sampled at reset. Strapping the pad is then not enough on its own: the
+    // part keeps whatever it latched until the power is cycled, which is why
+    // the fix screen offers to cycle the rail rather than just say "rescan".
+    bool latched;
+} ChipModePin;
+
+// NULL is the normal answer: most parts have no such pin.
+const ChipModePin* chip_mode_pin_for(const char* chip_name);
+
+// Iteration, for the docs generator and the silent-bus screens.
+size_t chip_mode_pin_count(void);
+const ChipModePin* chip_mode_pin_get(size_t index);
+
 // Number of chips in the database, for the About screen.
 size_t chip_db_count(void);
 

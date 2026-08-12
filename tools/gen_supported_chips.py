@@ -341,6 +341,59 @@ L.append('BMA280, BMM150 and BMG160 sub-IDs, which clones get wrong far more oft
 L.append('CHIP_ID wrong.')
 L.append('')
 
+# ---- mode pins ------------------------------------------------------------
+# A pin that takes a healthy part off the bus. The scan then finds nothing,
+# which reads as "dead chip" unless something says otherwise -- and a working
+# BNO055 has already gone back to a courier over exactly this.
+mode_body = re.search(
+    r'static const ChipModePin chip_mode_pins\[\]\s*=\s*\{(.*?)\n\};', src, re.S).group(1)
+
+MODE_ALT = {'ModeAltSpi': 'SPI', 'ModeAltUart': 'UART', 'ModeAltOff': 'nothing — it is held off'}
+mode_pins = []
+for line in top_level_groups(mode_body):
+    m = re.match(
+        r'\{"([^"]*)",\s*"([^"]*)",\s*(\w+),\s*(\w+),\s*(true|false),\s*(true|false)\s*\},?',
+        line)
+    if not m:
+        raise SystemExit('unparsed mode-pin line: ' + line)
+    mode_pins.append({
+        'chip': m.group(1), 'pad': m.group(2), 'kind': m.group(3),
+        'alt': m.group(4), 'i2c_high': m.group(5) == 'true',
+        'latched': m.group(6) == 'true',
+    })
+
+# Same reasoning as the live-test check above: a renamed chip must break the
+# build, not silently strand the guidance that names it.
+strays = [p['chip'] for p in mode_pins if p['chip'] not in by_name]
+if strays:
+    raise SystemExit('chip_mode_pins names no row in chip_db.c: ' + ', '.join(strays))
+
+L.append('## Chips that can be strapped off the I2C bus (%d)' % len(mode_pins))
+L.append('')
+L.append('These parts have a pin that decides whether they speak I2C at all. Set the wrong way —')
+L.append('by the board, by the factory, or by one glitch on the pad — the part is healthy, powered')
+L.append('and completely invisible to any scan, because in that state it does not have an I2C')
+L.append('address to answer on. An empty scan is not evidence that a chip is dead.')
+L.append('')
+L.append('| Chip | Pad | I2C needs it | Otherwise it speaks | After strapping |')
+L.append('|---|---|---|---|---|')
+for p in mode_pins:
+    L.append('| **%s** | `%s` | %s | %s | %s |' % (
+        p['chip'], p['pad'], 'HIGH' if p['i2c_high'] else 'LOW',
+        MODE_ALT[p['alt']],
+        'power-cycle it' if p['latched'] else 'takes effect at once'))
+L.append('')
+L.append('The last column is not a detail. A latched pin is sampled at reset and nowhere else, so')
+L.append('strapping the pad and rescanning changes nothing and looks like proof the part is')
+L.append('broken. Bosch put it plainly for the BMP280, BME280 and BME680: once `CSB` has been')
+L.append('pulled down even once, *"the I2C interface is disabled until the next power-on-reset"*.')
+L.append('')
+L.append('The list is short because a row that could not be checked against a datasheet is not')
+L.append('here. A wrong entry would send someone to tie a pin the wrong way round, which is worse')
+L.append('than no entry at all. Address-select pins are deliberately excluded: the sweep covers')
+L.append('`0x08`-`0x77`, so they cannot hide a part.')
+L.append('')
+
 # ---- 1-Wire families ------------------------------------------------------
 ow_src = pathlib.Path('fake_chip_detector/onewire_worker.c').read_text(encoding='utf-8')
 ow_body = re.search(

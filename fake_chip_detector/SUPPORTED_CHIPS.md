@@ -243,6 +243,33 @@ separates them by reading four ID registers rather than one — CHIP_ID plus the
 BMA280, BMM150 and BMG160 sub-IDs, which clones get wrong far more often than they get
 CHIP_ID wrong.
 
+## Chips that can be strapped off the I2C bus (7)
+
+These parts have a pin that decides whether they speak I2C at all. Set the wrong way —
+by the board, by the factory, or by one glitch on the pad — the part is healthy, powered
+and completely invisible to any scan, because in that state it does not have an I2C
+address to answer on. An empty scan is not evidence that a chip is dead.
+
+| Chip | Pad | I2C needs it | Otherwise it speaks | After strapping |
+|---|---|---|---|---|
+| **BNO055** | `PS1` | LOW | UART | power-cycle it |
+| **BMP280** | `CSB` | HIGH | SPI | power-cycle it |
+| **BME280** | `CSB` | HIGH | SPI | power-cycle it |
+| **BME680** | `CSB` | HIGH | SPI | power-cycle it |
+| **LIS3DH/2DH12** | `CS` | HIGH | SPI | takes effect at once |
+| **LSM6DS3** | `CS` | HIGH | SPI | takes effect at once |
+| **ADXL345/343** | `CS` | HIGH | SPI | takes effect at once |
+
+The last column is not a detail. A latched pin is sampled at reset and nowhere else, so
+strapping the pad and rescanning changes nothing and looks like proof the part is
+broken. Bosch put it plainly for the BMP280, BME280 and BME680: once `CSB` has been
+pulled down even once, *"the I2C interface is disabled until the next power-on-reset"*.
+
+The list is short because a row that could not be checked against a datasheet is not
+here. A wrong entry would send someone to tie a pin the wrong way round, which is worse
+than no entry at all. Address-select pins are deliberately excluded: the sweep covers
+`0x08`-`0x77`, so they cannot hide a part.
+
 ## 1-Wire parts (15)
 
 A different bus, on **pin 17**, and a weaker guarantee. Every 1-Wire part carries a
