@@ -55,12 +55,19 @@ All CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_hand
 - **BMS Live Data UI hooks** — fields exist in UI/API, but BMS section is currently not working reliably on tested vehicle setup
 - **CAN Bus Stats** — RX frame count, TX modified count, CRC errors, frames/second
 - **HTTP CAN Log Stream** — phone-friendly candump collection via dashboard button; device streams CAN frames over HTTP on port 82 and the browser saves the collected `.dump` file on Stop
-- **Web Controls** — toggle buttons for:
+- **Web Controls** — toggle buttons and selectors for:
   - Activate/Stop FSD (Listen-Only ↔ Active mode switch)
   - Ignore OTA on/off (allows Active mode TX during a detected Tesla OTA)
   - NAG Killer on/off
   - BMS serial output on/off
   - Force FSD toggle
+  - Summon EU Unlock (clears the EU AP restriction and enables summon on `0x3FD` mux1)
+  - Continue on Green (proceed through a green light with a lead car; pairs with TLSSC)
+  - Right-Hand Drive (RHD) override (`0x3F8` driving-side — RHD markets only)
+  - Telemetry Off (experimental) (clears reachable telemetry-enable flags on `0x3F8` / `0x3FD` mux1)
+  - AP Branch/Tier selector (experimental apmv3 — Live / Stage / Dev / Stage2 / EAP / Demo, or Off)
+  - Track Mode (experimental) (adjustable rotation / stability / cooling via `0x313`)
+  - Hardware override selector (Auto-detect / Force HW4 / Force HW3 / Force Legacy)
 - **OTA Warning Banner** — pulsing red alert when vehicle OTA update is detected
 - **Connection Status** — green/red dot indicator with auto-reconnect on WebSocket disconnect
 - **Device Info** — firmware build date, uptime counter, WiFi client count
@@ -96,6 +103,13 @@ This avoids a manual AP/DAS profile. The dashboard hides the chime toggle until 
 | **Speed Profile** | `0x3FD` mux2 | Follow-distance stalk maps to speed offset |
 | **DAS Status** | `0x399` or `0x39B` | Runtime HW version selects status source |
 | **ISA Chime Suppress** | `0x399` | HW4 only; disabled for Legacy/HW3 because `0x399` is DAS status |
+| **Summon EU Unlock** | `0x3FD` mux1 | Clears EU AP restriction (bit19) + enables summon (bit47) |
+| **Continue on Green** | `0x3FD` mux0 | Proceed through a green light with a lead car (bit39); pairs with TLSSC |
+| **AP Branch/Tier** | `0x3FD` mux1 | Experimental apmv3 branch/tier hint (bits 40-42); off by default |
+| **RHD Override** | `0x3F8` | Right-Hand Drive driving-side override (bits 40-41); RHD markets only |
+| **Telemetry Off** | `0x3F8` / `0x3FD` mux1 | Experimental; clears reachable telemetry-enable flags |
+| **Track Mode** | `0x313` | Experimental adjustable Track Mode (rotation / stability / cooling) |
+| **HW Override** | — | Manual Auto-detect / Force HW4 / Force HW3 / Force Legacy selector |
 | **Battery Precondition** | `0x082` | Frame builder implemented; no user control exposed yet |
 | **BMS Dashboard** | `0x132`/`0x292`/`0x312` | Parsing/UI path implemented, but currently not working reliably |
 | **OTA Protection** | `0x318` | Auto-stops TX when OTA update detected unless Ignore OTA is enabled |
@@ -128,7 +142,7 @@ Any ESP32 board + CAN transceiver works. Pick the matching build env in `platfor
 | `esp32-mcp2515` | Generic ESP32 + MCP2515 module | MCP2515 SPI | SPI CS=5 | 8 MHz crystal |
 | `esp32-lilygo` | LilyGO T-CAN485 | TWAI | 27 / 26 | Built-in SN65HVD230 + SD slot |
 | `ttgo-tdisplay` | LilyGO/TTGO T-Display + MCP2515 | MCP2515 SPI (HSPI) | CS=26, SCK=33, MISO=32, MOSI=25 | Built-in ST7789 dashboard, MISO needs 5V→3.3V divider |
-| `lilygo-t2can` | LilyGO-T2CAN | TWAI/MCP2515 SPI | 7 / 6 | ESP32-S3-WROOM-1U（MCN16R8）with MCP2515 |
+| `lilygo-t2can` | LilyGO-T2CAN | TWAI/MCP2515 SPI | 7 / 6 | ESP32-S3-WROOM-1U (MCN16R8) with MCP2515 |
 | `waveshare-s3-can` | Waveshare ESP32-S3-RS485-CAN | TWAI | 15 / 16 | ESP32-S3, 8MB flash/PSRAM, USB-CDC |
 | generic | ESP32-C3/S3 Super Mini + SN65HVD230 | TWAI | any two pins | Override `PIN_CAN_TX` / `PIN_CAN_RX` |
 
@@ -197,6 +211,14 @@ Only 2 wires needed. Power via USB-C (car USB port or power bank).
 Located in the rear center console area:
 - 20-pin connector: Pin 13 (CAN-H), Pin 14 (CAN-L)
 - 26-pin connector: Pin 18 (CAN-H), Pin 19 (CAN-L)
+
+> [!IMPORTANT]
+> **The X179 pin→bus map is not fixed — verify it on your own car.** On many
+> harnesses pins 13/14 are **Chassis CAN**, not the "Bus 6" mix, and the third
+> CAN pair has moved to other pins on newer builds. The deterministic check is
+> the car's **Service Mode → CAN Port** page, which lists each pin's bus by name.
+> See [HARDWARE.md – X179](../HARDWARE.md#x179--behind-the-rear-center-console-2021-model-3y)
+> for the per-harness maps before you tap.
 
 ---
 
@@ -372,6 +394,7 @@ esp32/
 - **[wjsall/tesla-fsd-controller](https://github.com/wjsall/tesla-fsd-controller)** — ESP32 WiFi Web architecture reference.
 - **[tuncasoftbildik/tesla-can-mod](https://github.com/tuncasoftbildik/tesla-can-mod)** — Tesla-inspired dark theme UI design reference.
 - **[tesla-can-explorer](https://github.com/mikegapinski/tesla-can-explorer)** by @mikegapinski — CAN signal names and DBC definitions.
+- **@ssw0209-sys** ([#137](https://github.com/hypery11/flipper-tesla-fsd/issues/137)) — LilyGO T-2CAN firmware / bus / wiring reference.
 
 ---
 

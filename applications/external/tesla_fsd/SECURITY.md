@@ -69,8 +69,9 @@ is fine.
 For peace of mind, here is the explicit list of CAN ID classes this
 project's TX path can write to:
 
-- `0x3FD` `UI_autopilotControl` — modifies bits 19, 46, 47, 59, 60 only;
-  retransmits otherwise unchanged
+- `0x3FD` `UI_autopilotControl` — modifies bits 19, 39, 40-42, 46, 47, 48,
+  50, 59, 60 only (bit39 Continue on Green, bits 40-42 apmv3 branch/tier,
+  bits 48/50 cleared for Telemetry Off); retransmits otherwise unchanged
 - `0x3EE` `UI_autopilotControl` (Legacy HW1/HW2) — same as above on
   different bit positions
 - `0x370` `EPAS3P_sysStatus` — sends a counter+1 echo with handsOnLevel = 1
@@ -84,9 +85,13 @@ project's TX path can write to:
   0x1B (SELF_DRIVING) for TLSSC Restore on banned vehicles; only when
   the user enables the TLSSC Restore setting
 - `0x3F8` `UI_driverAssistControl` — Nav FSD Route (bits 13/48/49),
-  Hands-Off (bit14), Dev Mode (bit5), Force LHD (bits 40-41),
-  Telemetry Off (bit43); only when the corresponding Settings toggle
-  is ON
+  Hands-Off (bit14), Dev Mode (bit5), driving-side override — Force LHD /
+  RHD (bits 40-41), Telemetry Off (bits 19/42/43/44/55); only when the
+  corresponding Settings toggle is ON
+- `0x313` `UI_trackModeSettings` — when the Track Mode setting is ON,
+  requests Track Mode ON and writes the handling-balance / stability-assist
+  / cooling fields, then recomputes the additive checksum; the car's own
+  broadcast frame is modified in place
 - `0x7FF` `GTW_carConfig` — replays the learned-healthy snapshot when
   GTW Config Replay (formerly "Ban Shield") detects the gateway has
   modified a frame; only when the feature is armed

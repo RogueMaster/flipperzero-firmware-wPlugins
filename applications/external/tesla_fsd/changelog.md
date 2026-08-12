@@ -1,3 +1,16 @@
+## 2.16-beta.26 — adjustable Track Mode (PR #150)
+
+- **Adjustable Track Mode via `0x313` `UI_trackModeSettings` (opt-in, default OFF).** Requests Track Mode ON plus **Handling Balance** (`UI_trackRotationTendency`, byte1), **Stability Assist** (`UI_trackStabilityAssist`, byte2), and post-drive cooling / compressor overclock (byte3). The additive checksum is recomputed and the message counter preserved (modify-and-resend on the Vehicle bus). Defaults: rotation 100 (rear-biased) / stability 30%. **Works on non-Performance trims.** Wired on the Flipper, the ESP32, and the dashboard. (PR #150)
+
+## 2.16-beta.25 — EU unlocks + experimental stealth/tier options (all opt-in, default OFF)
+
+- **Summon EU Unlock.** `0x3FD` mux1: clears bit19 (EU restriction) and sets bit47 (summon enable) — the HW3 gap is now closed. (#111, #139, PR #144)
+- **Continue on Green.** `0x3FD` mux0 bit39 (`UI_fsdContinueOnGreenWithCIPV`): continue through a green behind a lead car without stalk confirmation. (#111, PR #145)
+- **Right-Hand Drive (RHD) override.** `0x3F8` bit41 (`UI_drivingSide`). RHD markets only. (#66, PR #146)
+- **Telemetry Off (experimental).** Clears the reachable telemetry-enable flags on `0x3F8` (bits 19/42/43/44/55) and `0x3FD` mux1 (bits 48/50). It does **not** cover the Vehicle-bus ECU log-upload, so it is not a ban guarantee. (PR #147)
+- **AP branch/tier selector (experimental).** `0x3FD` mux1 bits 40–42 (`UI_apmv3Branch`: Live / Stage / Dev / Stage2 / EAP / Demo) — a non-persistent UI hint. (PR #148)
+- **Docs: LilyGO T-2CAN firmware / bus / wiring reference** added to `esp32/README.md` (thanks @ssw0209-sys, #137).
+
 ## 2.16-beta.24 — manual HW selection on the ESP32 dashboard (#110)
 
 - **Pick your hardware version yourself: Auto-detect / Force HW4 / Force HW3 / Force Legacy.** New selector in the ESP32 dashboard Controls, persisted in NVS and applied at boot. The Flipper build has had Force HW3/HW4 in its menu for a long time — the ESP32 build only ever auto-detected, which is the real gap behind this issue. Auto-detection needs `GTW_carConfig` (`0x398`), and **many Model 3 / Model Y never broadcast it**, so those cars fall back to HW3 and lose the HW4-only features. Rather than making detection guess harder — the beta.20 attempt that regressed working cars — an owner who knows their car can now just say so. **Default is Auto-detect, so nothing changes unless you choose to change it**; once set, auto-detection can no longer move it. Credit to @densen2014 for the suggestion, and @ssw0209-sys for the reports that showed why the automatic approach was the wrong lever.

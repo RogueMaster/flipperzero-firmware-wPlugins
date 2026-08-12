@@ -283,7 +283,7 @@ And these "Vehicle CAN" signals are also writable on bus 6:
 >
 > A dual-CAN board (e.g. **LILYGO T-2CAN**) gives the full attack surface in
 > one device: Bus 6 for `0x3FD` / `0x370` / `0x3F8` / TLSSC, and Vehicle CAN
-> direct for `0x3C2`. Slated as a v2.16 platformio variant.
+> direct for `0x3C2`. This ships as the `lilygo-t2can` platformio env.
 
 > [!IMPORTANT]
 > **On HW4-modern, `0x370` EPAS3P_sysStatus is the mirror case of `0x3C2`: it is
@@ -401,9 +401,9 @@ Build with `pio run -e esp32-mcp2515`, adjust pin config in
 | **Total** | **~$16-20** |
 
 ATOMIC CAN Base snaps onto the ATOM Lite. Solder X179 CAN-H/CAN-L to
-the screw terminals, 12V to VIN, GND to GND. Build: `pio run -e esp32-twai`.
+the screw terminals, 12V to VIN, GND to GND. Build: `pio run -e m5stack-atom`.
 
-### Setup C — LILYGO T-2CAN dual-CAN (~$33)
+### Setup C — LILYGO T-2CAN dual-CAN (~$27-29)
 
 | Component | Price |
 |-----------|-------|
@@ -411,10 +411,12 @@ the screw terminals, 12V to VIN, GND to GND. Build: `pio run -e esp32-twai`.
 | X179 pigtail cable (4-wire) | ~$3-5 |
 | **Total** | **~$27-29** |
 
-The T-2CAN has **dual isolated MCP2515 controllers**, dual screw
-terminals, 12–24V input, WiFi, BLE, QWIIC, and USB-C. Connect X179
-to CAN1 screw terminal. CAN2 stays free for future use (e.g., OBD-II
-Party CAN for redundancy, or a second X179 bus pair).
+The T-2CAN has **two independent CAN controllers — one native ESP32-S3
+TWAI and one MCP2515 (SPI)** — plus dual screw terminals, 12–24V input,
+WiFi, BLE, QWIIC, and USB-C. The `lilygo-t2can` build drives both (the
+`CAN_DRIVER_T2CAN_DUAL` driver). Connect X179 to one screw terminal; the
+other channel stays free for future use (e.g., OBD-II Party CAN for
+redundancy, or a second X179 bus pair).
 
 This is the recommended board for anyone who wants headroom for
 dual-bus features in a future firmware update.

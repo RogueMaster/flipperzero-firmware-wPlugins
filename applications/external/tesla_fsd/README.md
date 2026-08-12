@@ -96,6 +96,13 @@
 - **CAN Capture** — record every received frame to the SD card in candump format (`apps_data/tesla_mod/captures/`). Read-only; safe to run on any car. Feeds `tools/tesla_crc_cracker.py`.
 - **Send Test** — load a user-authored `.cantest` text profile from the SD card and replay your own frames. Defaults to dry-run; transmitting is hard-gated to a **parked, stationary** car (fail-closed) and re-checked before every frame. Result is logged for a bug report. Format + workflow: [docs/cantest-format.md](docs/cantest-format.md), example: [examples/example.cantest](examples/example.cantest).
 
+### Extra unlocks (v2.16+, opt-in, default OFF)
+- **Summon EU Unlock** — `0x3FD` mux1: clears bit19 (EU AP restriction) and sets bit47 (summon-enable) to expose Summon on EU-restricted cars
+- **Continue on Green** — `0x3FD` mux0 bit39 `UI_fsdContinueOnGreenWithCIPV` — continue through a green light behind a lead car without a stalk confirmation; pairs with TLSSC
+- **Right-Hand Drive (RHD) override** — `0x3F8` bit41 `UI_drivingSide` = RHD. RHD markets only
+- **AP branch/tier selector** — `0x3FD` mux1 bits 40-42 `UI_apmv3Branch`: Live / Stage / Dev / Stage2 / EAP / Demo. Experimental, non-persistent UI hint — reverts when injection stops
+- **Adjustable Track Mode** — `0x313` `UI_trackModeSettings`: Handling Balance + Stability Assist + post-drive cooling, checksum recomputed. Vehicle bus; defaults to rotation 100 / stability 30%, and works on non-Performance trims too
+
 ### Settings (runtime toggles)
 
 **Stable (car-tested):**
@@ -123,9 +130,9 @@
 | **Lane Graph** | `0x3FD` mux1 bit45 | UI_showLaneGraph — lane visualization on non-FSD tier |
 | **Tier Override** | `0x7FF` mux=2 | Force GTW_autopilot to SELF_DRIVING (more aggressive than GTW Config Replay — actively writes rather than replays) |
 | **Dev Mode** | `0x3F8` bit5 | UI_dasDeveloper flag |
-| **Force LHD** | `0x3F8` bits 40-41 | UI_drivingSide signal override. **Empirically does not change FSD lane-side behavior** (tested on banned RHD HW3 / 2026.2.6 — values 0, 1, 2 all leave FSD on the LHD side; see [#66](https://github.com/hypery11/flipper-tesla-fsd/issues/66)). Likely a UI-only signal. **Slated for removal in v2.15** if no value-3 / DAS_settings counter-evidence surfaces |
+| **Right-Hand Drive (RHD)** | `0x3F8` bit41 | `UI_drivingSide` = RHD (bit41 set, bit40 clear — mutually exclusive with the old LHD probe). RHD markets only. Honest note: the earlier Force-LHD probe was **empirically ineffective** — values 0/1/2 all left FSD on the LHD side on a banned RHD HW3 / 2026.2.6 ([#66](https://github.com/hypery11/flipper-tesla-fsd/issues/66)); RHD now ships as the requested-direction override |
 | **Hands-Off** | `0x3F8` bit14 | UI-level hands-on disable (second nag vector) |
-| **Telemetry Off** | `0x3F8` bit43 | Disable trip telemetry — may itself be a ban signal, use only with SIM pulled |
+| **Telemetry Off** | `0x3F8` bits 19/42/43/44/55 + `0x3FD` mux1 bits 48/50 | Clears the reachable telemetry-enable flags (clip / trip / road-segment on 0x3F8, cabin-camera / China on 0x3FD). Experimental — **reachable flags only, not the Vehicle-bus ECU log-upload, and not a ban guarantee.** Use only with SIM pulled |
 
 **14.x experimental (off by default, please report):**
 
@@ -144,6 +151,7 @@ These target Tesla 2026.14.x / 2026.20 behaviour and are all **off by default**.
 | Setting | Description |
 |---------|-------------|
 | **MCP Crystal** | 16 / 8 / 12 MHz — match your CAN module's crystal frequency. |
+| **Hardware** (ESP32) | Auto-detect / Force HW4 / Force HW3 / Force Legacy. Auto-detect needs `0x398`, which many Model 3/Y never send — pin your car if detection is wrong. NVS-persisted, applied at boot. |
 
 ### HW Support
 
@@ -295,11 +303,12 @@ Single-bus read-modify-retransmit on Party CAN. No MITM, no second bus tap.
 | `0x370` | `EPAS3P_sysStatus` | TX | Nag killer — counter+1 echo with organic torque |
 | `0x399` | `ISA_speedLimit` / `DAS_status` | TX/RX | ESP32 HW-dependent: Legacy/HW3 read DAS status here; HW4 uses ISA speed chime suppression |
 | `0x3FD` | `UI_autopilotControl` | TX | FSD unlock — bit46/60 (HW3/HW4), TLSSC bit38, lane graph bit45 |
-| `0x3F8` | `UI_driverAssistControl` | TX | Nav FSD route, hands-off, dev mode, LHD, telemetry (beta) |
+| `0x3F8` | `UI_driverAssistControl` | TX | Nav FSD route, hands-off, dev mode, RHD driving-side (bit41), telemetry-off (beta) |
 | `0x3EE` | `UI_autopilotControl` | TX | FSD unlock — Legacy HW1/HW2 |
 | `0x3C2` | `VCLEFT_switchStatus` | TX | ScrollPress AP — right-scroll injection on mux=1 (HW4, Service mode, beta) |
 | `0x7FF` | `GTW_carConfig` | TX | GTW Config Replay + active tier override |
 | `0x082` | `UI_tripPlanning` | TX | Battery preconditioning trigger |
+| `0x313` | `UI_trackModeSettings` | TX | Track Mode — handling balance / stability / cooling (checksum recomputed; Vehicle bus) |
 | `0x398` | `GTW_carConfig` | RX | HW version detection |
 | `0x318` | `GTW_carState` | RX | OTA detection (auto-suspend TX) |
 | `0x399` | `DAS_status` (HW3/Legacy) / `ISA_speedLimit` (HW4) | RX/TX | HW-dispatched: pre-Highland HW3 reads as DAS_status (AP state + hands-on); HW4 keeps the chime-suppression write path |
@@ -309,7 +318,7 @@ Single-bus read-modify-retransmit on Party CAN. No MITM, no second bus tap.
 | `0x312` | `BMS_thermalStatus` | RX | Battery temperature |
 | `0x33A` | `UI_ratedConsumption` | RX | Energy consumption (Wh/km) |
 
-Full list of 37 handlers (14 TX, 23 RX) in [`fsd_logic/fsd_handler.h`](fsd_logic/fsd_handler.h).
+Full list of 42 handlers (18 TX, 24 RX) in [`fsd_logic/fsd_handler.h`](fsd_logic/fsd_handler.h).
 
 ---
 
@@ -353,7 +362,7 @@ For the Flipper: yes, any MCP2515-based module (Electronic Cats, generic boards)
 - [ElectronicCats/flipper-MCP2515-CANBUS](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) — MCP2515 driver for Flipper
 - Community contributors — the on-car testing, captures, and research this project runs on:
   - **Protocol, nag killer & 2026.14.x work:** @jewelrylin (T-2CAN dual-bus captures, the frame-content preflight test, the X179 Service Mode pinout), @DrStrangeglovebox (the Feifan `0x370` reference capture + HW4 dual-CAN data + safety findings), @ssw0209-sys (the Mode-C steering-torque reference + HW4 14.x testing), @0xAccretion (HW4 Highland China-MIC DAS-layout findings, #116/#117), @dunckencn (China HW3 start-after-AP validation, steer-jerk + bus-off reports), @kristopf007 (HW4 14.x on-car testing)
-  - **Features, captures & PRs:** @JakNo (ScrollPress AP / `0x3C2`), @vrs11 (Continuous AP), @sqladm1n (RTC capture-log PR + bus/wiring investigation), @DmitroPanteliuk (full-rate `0x229` captures), @se7en7777777 (`0x485` / Highland / checksum analysis), @RoyRakete (TLSSC banned-car combo), @mamixsystem (post-SOP10 connector reference)
+  - **Features, captures & PRs:** @JakNo (ScrollPress AP / `0x3C2`), @vrs11 (Continuous AP), @sqladm1n (RTC capture-log PR + bus/wiring investigation), @DmitroPanteliuk (full-rate `0x229` captures), @se7en7777777 (`0x485` / Highland / checksum analysis), @RoyRakete (TLSSC banned-car combo), @mamixsystem (post-SOP10 connector reference), @p0sixturtle (Summon / tier-selector pointers, #139), @dahua910 (RHD request, #66), @HamzaObaidat (theatre-mode `0x118` research, #149), @fboulegue (EU / new-harness Juniper reports, #143/#109/#110), @densen2014 (ESP32 HW-selector suggestion, #110)
   - **Ban research, platform testing, ESP32, bug fixes:** @THER4iN, @MiniCS, @kp43h8, @gauner1986, @dmagyar, @ViPiMP, @marcobellinoroci-source, @danpadure, @bruvv, @Symness, @hkloudou, @nagotti, @patatman, @JordanzhaoD
 - `Starmixcraft/tesla-fsd-can-mod` — original CanFeather FSD research (GitLab repo removed; mirror at [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod))
 

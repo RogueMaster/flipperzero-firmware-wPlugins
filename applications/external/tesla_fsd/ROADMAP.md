@@ -5,29 +5,38 @@ actions whose CAN frame templates are already documented in public sources
 and can be implemented on our existing MCP2515 + Flipper stack without any
 new hardware or vendor firmware.
 
-## v2.15 — locked, in PR review (target: early June 2026)
+## v2.15 — shipped (first 2026.14.x bypass + HW3 DAS_status fix)
 
-The v2.15 stack is feature-complete and waiting on on-car verification
-before tagging beta. Public PR set:
+Tagged and released. The whole PR set landed:
 
-- **PR #82** — `0x3C2` Scroll-Press AP Engage (HW4-only, first confirmed 2026.14.x bypass) — needs @JakNo / pin-9/10 on-car verify
-- **PR #83** — On-demand grip pulse nag killer enhancement — needs @deftdawg on-car verify on MX HW3
-- **PR #84** — 14.x firmware warning banner (Flipper + ESP32, default ON, dismissible) — docs-style; ready to merge
-- **PR #81** — Ban Shield → GTW Config Replay rename (honest framing, NVS-key preserved) — needs @bruvv review (#67)
-- **PR #97** — Flipper HW3 0x399 DAS_status parser fix (mirror of merged ESP32 #92) — needs HW3 user verify
+- **PR #82** — `0x3C2` Scroll-Press AP Engage (HW4-only, first confirmed 2026.14.x bypass)
+- **PR #83** — On-demand grip pulse nag killer enhancement
+- **PR #84** — 14.x firmware warning banner (Flipper + ESP32, default ON, dismissible)
+- **PR #81** — Ban Shield → GTW Config Replay rename (honest framing, NVS-key preserved, #67)
+- **PR #97** — Flipper HW3 `0x399` DAS_status parser fix (mirror of ESP32 #92)
+- ESP32 side (vrs11): HW3 `0x399` DAS_status fix + `can_signals.h` refactor (#92), HTTP CAN log stream on port 82 (#94), Ignore OTA toggle (#93)
 
-Already landed in main (ESP32 side):
-- vrs11 PR #92 — HW3 0x399 DAS_status fix + `can_signals.h` refactor
-- vrs11 PR #94 — HTTP CAN log stream (port 82, candump-compatible)
-- vrs11 PR #93 — Ignore OTA toggle (cherry-picked after rebase)
+## v2.16 — shipped (beta line, currently beta.26)
 
-## v2.16 — candidate backlog (post v2.15 ship)
+The v2.16 beta line shipped and is on **beta.26**. What started as the
+baseline-capture tooling grew into the Field-Readiness initiative (#127)
+and a long run of on-car 14.x nag / steer-jerk fixes. Highlights across the
+line (see `changelog.md` for the full per-beta history):
 
-Open tracker issues, contributions welcome:
+- **Shared protocol core + host test suite / CI gate** (beta, beta.2) — one definition of the frame type, checksums, enums and parsers shared by the Flipper and ESP32 builds, gating both.
+- **Capture tooling** — Flipper CAN Capture (beta), full-rate single-ID capture (beta.3), user-loadable `.cantest` SEND profiles (beta.2), ESP32 STA WiFi + dashboard config (beta.2).
+- **Field-Readiness (#127)** — black-box incident recorder (#124), tap capability checker (#125), `0x39B`/`0x399` variant auto-profiles (#126), from beta.12 on.
+- **14.x nag / steer-jerk work** — ESP32 AP-First (beta.6), EPAS-faithful / Mode-C nag (beta.7/8/10), Nag Burst + ±1.8 Nm cap + Signal Map (beta.11), Abort Guard (beta.11), Soft Engage (beta.10), Instant Engage / Minimal Inject (beta.16/17/19), plus HW4-detect and dashboard fixes (beta.20–24).
+- **`0x229 SCCM_rightStalk` — resolved (#95).** The AUTOSAR-E2E checksum was cracked and documented (`tools/crack_0x229.py`, 224/224 real frames across two full-rate captures, beta.4). Outcome: injection is a dead end on a shared bus — the genuine SCCM never stops sending `0x229`, so an injected pull collides bit-for-bit and breaks the rolling-counter sequence (this is why `0x3C2` ScrollPress works and `0x229` doesn't). `0x229` is therefore blocked from loadable `.cantest` profiles for safety (a pulled-down stalk is a shift-to-DRIVE request the parked/stationary interlock can't catch). Credit @DmitroPanteliuk (full-rate captures), @se7en7777777, @jewelrylin.
+- **LILYGO T-2CAN dual-CAN — shipped (#96).** `lilygo-t2can` is a live PlatformIO env (onboard MCP2515/SPI as Vehicle CAN + native TWAI), carrying Bus 6 plus Vehicle CAN Bus 2 direct on one board. T-2CAN firmware / bus / wiring reference merged into `esp32/README.md` via #137 (beta.25). Credit @ssw0209-sys.
+- **EU / AP feature toggles (beta.25, all opt-in, default OFF)** — Summon EU Unlock (`0x3FD` mux1, clears bit19 + sets bit47, closing the HW3 gap; #111/#139, PR #144); Continue on Green (`0x3FD` mux0 bit39; PR #145); Right-Hand Drive override (`0x3F8` bit41; #66, PR #146); Telemetry Off (experimental — clears reachable telemetry-enable flags, not a ban guarantee; PR #147); AP branch/tier selector (`UI_apmv3Branch`, experimental, non-persistent; PR #148).
+- **Adjustable Track Mode (beta.26, PR #150)** — `0x313 UI_trackModeSettings`: Track Mode ON + Handling Balance (byte1) + Stability Assist (byte2) + post-drive cooling (byte3), additive checksum recomputed and counter preserved. Opt-in, default OFF, works on non-Performance trims. (See Tier 2 / Tier 3 below.)
 
-- **#95** — `0x229 SCCM_rightStalk` AP engage for pre-Highland HW3 (physical stalk cars). Sibling to v2.15's `0x3C2` HW4 path; requires counter + Tesla CRC handling. Source: @JakNo in [#43](https://github.com/hypery11/flipper-tesla-fsd/issues/43#issuecomment-4529411812). Gated on v2.15 HW3 DAS readback (#92, merged) being stable before exposing a new injection path on top of it.
-- **#96** — LILYGO T-2CAN dual-CAN platformio env (`help wanted`). Single-board solution that carries Bus 6 (existing feature set) + Vehicle CAN Bus 2 direct (`0x3C2` and future `0x229`). Needs board owner for pinout verification.
-- **HW3 `0x3C2` retest with v2.15 code** — @DmitroPanteliuk's earlier HW3 negative test (emergency brake on 2026.14.6) may have been caused by `0x399`-vs-`0x39B` DAS readback failure, now fixed in #92. Retest with v2.15 ESP32 code before deciding whether to expose `0x3C2` on HW3.
+### Now / next (post beta.26)
+
+Genuinely-open, contributions welcome:
+
+- **HW3 `0x3C2` retest with current code** — @DmitroPanteliuk's earlier HW3 negative test (emergency brake on 2026.14.6) may have been caused by the `0x399`-vs-`0x39B` DAS readback failure since fixed in #92. Retest with current ESP32 code before deciding whether to expose `0x3C2` on HW3.
 - **L2 nag trigger investigation** — @deftdawg flagged that residual 2-second yellow nags still appear on the on-demand grip pulse path. L2 (transitional / "marginal hands") may be the missing trigger. Needs CAN capture of L1→L2 transitions on a banned car before deciding to add to the trigger set — acting on L1 directly is a fingerprint risk.
 - **OpenWRT spoofing AP** — @vadimpelau raised the question of DNS-spoofing Tesla domains to keep maps/multimedia alive while reducing ban risk. Marginal improvement for ban prevention given Tesla's mutual-TLS-pinning on telemetry paths, but useful for UX. If anyone has a working OpenWRT writeup that handles cert pinning, drop in [#80](https://github.com/hypery11/flipper-tesla-fsd/issues/80).
 
@@ -71,7 +80,7 @@ retransmit. Estimated ~30 LOC each.
 - [ ] `FoldMirrors` / `MirrorsDip` / `MirrorsDim` (`0x273` bits) — read current state, toggle
 - [ ] `StoppingMode` select (`0x293`)
 - [ ] `TractionControl` off (`0x2A1 ESP_status`)
-- [ ] `TrackMode` enter/exit (`0x293` + `0x2B9`)
+- [x] `TrackMode` enter/exit — shipped via `0x313 UI_trackModeSettings` (beta.26, PR #150; the real frame, not the guessed `0x293`/`0x2B9`)
 - [ ] `WiperMode` cycle / `WipersWasher` pulse (`0x3E2`)
 - [ ] **Cybertruck Homelink bridge** — requested by @JoshuaSpain on [slxslx/tesla-open-can-mod-slx-repo#2](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo/-/issues/2). Tesla removed the Homelink module from Cybertruck and replaced it with a MyQ subscription. The CT's firmware almost certainly still runs the Homelink code path — Tesla is known to leave code for removed hardware (rain sensor, ultrasonic, etc.) — so the car is plausibly sending a "Homelink requested" frame every time the UI button is pressed, it just has no physical module to act on it.
   
@@ -96,7 +105,7 @@ retransmit. Estimated ~30 LOC each.
 - [ ] `CabinTemp` / `CabinTempLeft` / `CabinTempRight` — current temp read, setpoint write
 - [ ] Seat heat family: `FrontSeatHeatLeft/Right`, `RearSeatHeatLeft/Right/Central/All`, `AllSeatHeat`, `SteeringWheelHeat` (`0x2E1` bitfield)
 - [ ] `FrontSeatVentLeft` / `FrontSeatVentRight` (`0x2E1`)
-- [ ] `TrackModeStability` / `TrackModeHandling` sliders (`0x2B9` — the 0/10/20/…/100 bucket enum visible in .so symbols)
+- [x] `TrackModeStability` / `TrackModeHandling` sliders — shipped via `0x313` Stability Assist (byte2) + Handling Balance (byte1) (beta.26, PR #150; the real frame, not `0x2B9`)
 
 ## Tier 4 — multi-frame / safety-gated
 
