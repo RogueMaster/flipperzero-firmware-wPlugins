@@ -48,6 +48,8 @@
 #define UHF_SOFT_UART_PROBE_WINDOWMS 380U
 #define UHF_SOFT_UART_RX_BATCH       1U
 #define UHF_INV_CMD_COOLDOWN_MS      450U
+#define UHF_RADAR_STEP_MS             65U
+#define UHF_RADAR_PHASE_COUNT         96U
 #define UHF_LIST_VISIBLE_ROWS        5U
 #define UHF_ABOUT_VISIBLE_LINES      5U
 
@@ -86,7 +88,8 @@ typedef enum {
 typedef enum {
     UhfPageCounter = 0,
     UhfPageList = 1,
-    UhfPageAbout = 2,
+    UhfPageRadar = 2,
+    UhfPageAbout = 3,
 } UhfPage;
 
 typedef struct {
@@ -142,6 +145,12 @@ typedef struct {
     bool down_long_latched;
     uint32_t last_inv_cmd_tick;
     uint32_t last_tag_beep_tick;
+    uint32_t rate_window_started;
+    uint32_t rate_window_reports;
+    uint32_t tags_per_second;
+    uint32_t radar_step_tick;
+    uint8_t radar_sweep_phase;
+    uint8_t radar_trail_depth;
     bool tag_beep_enabled;
     bool baud_probed;
     UhfPage page;
@@ -282,6 +291,8 @@ static void uhf_on_rx_irq(FuriHalSerialHandle* handle, FuriHalSerialRxEvent even
 static void uhf_app_free(UhfApp* app);
 static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app);
 static void uhf_clear_tags(UhfApp* app);
+static void uhf_update_inventory_rate(UhfApp* app);
+static void uhf_update_radar_animation(UhfApp* app);
 static void uhf_process_rx(UhfApp* app);
 static bool uhf_wait_for_version(UhfApp* app, uint32_t timeout_ms);
 static bool uhf_has_version(UhfApp* app);
@@ -1399,6 +1410,10 @@ static void uhf_apply_baud(UhfApp* app, uint32_t baud_rate) {
 static void uhf_stop_inventory(UhfApp* app) {
     static const uint8_t stop_frame[] = {0xA0, 0x03, 0x00, 0x8C, 0xD1};
     app->inventory_running = false;
+    app->tags_per_second = 0;
+    app->rate_window_reports = 0;
+    app->rate_window_started = furi_get_tick();
+    app->radar_step_tick = furi_get_tick();
     if(app->hardware_ready) {
         for(uint8_t i = 0; i < 3; i++) {
             (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
@@ -1432,6 +1447,10 @@ static void uhf_start_inventory(UhfApp* app) {
 
     if(sent) {
         app->inventory_running = true;
+        app->tags_per_second = 0;
+        app->rate_window_reports = 0;
+        app->rate_window_started = furi_get_tick();
+        app->radar_step_tick = furi_get_tick();
         uhf_set_status(app, "Inventory running");
     } else {
         uhf_set_status(app, "Start inventory failed");
@@ -1544,6 +1563,7 @@ static bool uhf_add_inventory_tag(
     }
 
     tag->read_count++;
+    app->rate_window_reports++;
     tag->last_seen = furi_get_tick();
     tag->antenna = antenna;
     tag->rssi = rssi;
@@ -1981,6 +2001,56 @@ static void uhf_clear_tags(UhfApp* app) {
     uhf_set_status(app, "Records cleared");
 }
 
+static void uhf_update_inventory_rate(UhfApp* app) {
+    if(!app) return;
+
+    const uint32_t now = furi_get_tick();
+    if(app->rate_window_started == 0U) {
+        app->rate_window_started = now;
+        return;
+    }
+
+    const uint32_t elapsed = now - app->rate_window_started;
+    if(elapsed < 1000U) return;
+
+    if(uhf_data_lock(app, 10)) {
+        app->tags_per_second = app->inventory_running ?
+                                   (uint32_t)(((uint64_t)app->rate_window_reports * 1000U) / elapsed) :
+                                   0U;
+        app->rate_window_reports = 0U;
+        app->rate_window_started = now;
+        uhf_data_unlock(app);
+    }
+}
+
+static void uhf_update_radar_animation(UhfApp* app) {
+    if(!app) return;
+
+    const uint32_t now = furi_get_tick();
+    if(!app->inventory_running) {
+        /* Prevent a paused radar from catching up when inventory resumes. */
+        app->radar_step_tick = now;
+        return;
+    }
+
+    if(app->radar_step_tick == 0U) {
+        app->radar_step_tick = now;
+        return;
+    }
+
+    const uint32_t elapsed = now - app->radar_step_tick;
+    if(elapsed < UHF_RADAR_STEP_MS) return;
+
+    const uint32_t steps = elapsed / UHF_RADAR_STEP_MS;
+    app->radar_sweep_phase =
+        (uint8_t)((app->radar_sweep_phase + steps) % UHF_RADAR_PHASE_COUNT);
+    if(app->page == UhfPageRadar && app->radar_trail_depth < 8U) {
+        const uint32_t depth = app->radar_trail_depth + steps;
+        app->radar_trail_depth = (uint8_t)(depth > 8U ? 8U : depth);
+    }
+    app->radar_step_tick += steps * UHF_RADAR_STEP_MS;
+}
+
 static size_t uhf_collect_tag_previews(
     UhfApp* app,
     size_t start,
@@ -2023,6 +2093,166 @@ static void uhf_draw_centered_text(Canvas* canvas, int y, const char* text) {
     canvas_draw_str(canvas, x, y, text);
 }
 
+static void uhf_draw_radar_ring(
+    Canvas* canvas,
+    int32_t center_x,
+    int32_t center_y,
+    const int8_t* ring_x,
+    const int8_t* ring_y,
+    int32_t scale) {
+    for(uint8_t i = 0; i < 24U; i++) {
+        const uint8_t next = (uint8_t)((i + 1U) % 24U);
+        canvas_draw_line(
+            canvas,
+            center_x + ((int32_t)ring_x[i] * scale) / 27,
+            center_y + ((int32_t)ring_y[i] * scale) / 27,
+            center_x + ((int32_t)ring_x[next] * scale) / 27,
+            center_y + ((int32_t)ring_y[next] * scale) / 27);
+    }
+}
+
+static int32_t uhf_radar_sin(uint8_t phase) {
+    static const uint8_t quarter_wave[25] = {
+        0, 8, 17, 25, 33, 41, 49, 56, 63, 71, 77, 84, 90,
+        95, 101, 106, 110, 114, 117, 120, 123, 125, 126, 127, 127,
+    };
+
+    phase %= UHF_RADAR_PHASE_COUNT;
+    const uint8_t quadrant = phase / 24U;
+    const uint8_t offset = phase % 24U;
+
+    if(quadrant == 0U) return quarter_wave[offset];
+    if(quadrant == 1U) return quarter_wave[24U - offset];
+    if(quadrant == 2U) return -(int32_t)quarter_wave[offset];
+    return -(int32_t)quarter_wave[24U - offset];
+}
+
+static void uhf_radar_vector(uint8_t phase, int32_t radius, int32_t* x, int32_t* y) {
+    *x = (uhf_radar_sin(phase) * radius * 29) / (127 * 27);
+    *y = -(uhf_radar_sin((uint8_t)(phase + 24U)) * radius) / 127;
+}
+
+static void uhf_draw_radar_page(Canvas* canvas, UhfApp* app) {
+    static const int8_t sweep_x[24] = {
+        0, 8, 15, 21, 25, 28, 29, 28, 25, 21, 15, 8,
+        0, -8, -15, -21, -25, -28, -29, -28, -25, -21, -15, -8,
+    };
+    static const int8_t sweep_y[24] = {
+        -27, -26, -23, -19, -14, -7, 0, 7, 14, 19, 23, 26,
+        27, 26, 23, 19, 14, 7, 0, -7, -14, -19, -23, -26,
+    };
+
+    const int32_t center_x = 31;
+    const int32_t center_y = 36;
+    uint8_t target_x[UHF_MAX_TAGS];
+    uint8_t target_y[UHF_MAX_TAGS];
+    size_t target_count = 0;
+    uint32_t rate = 0;
+    size_t unique = 0;
+    uint8_t sweep_phase = 0;
+    uint8_t trail_depth = 0;
+
+    if(uhf_data_lock(app, 10)) {
+        rate = app->tags_per_second;
+        unique = app->tag_count;
+        sweep_phase = app->radar_sweep_phase;
+        trail_depth = app->radar_trail_depth;
+
+        for(size_t i = 0; i < UHF_MAX_TAGS && target_count < UHF_MAX_TAGS; i++) {
+            if(!app->tags[i].used) continue;
+
+            /* Stable FNV-1a placement keeps each EPC at the same radar
+               position while avoiding any artificial distance claim. */
+            uint32_t hash = 2166136261U;
+            for(const char* p = app->tags[i].epc; *p; p++) {
+                hash ^= (uint8_t)*p;
+                hash *= 16777619U;
+            }
+
+            /* Place targets across the upper semicircle (left horizon through
+               top to right horizon), where they remain easiest to see. */
+            const uint8_t upper_slot = (uint8_t)(hash % 13U);
+            const uint8_t direction = (uint8_t)((18U + upper_slot) % 24U);
+            const int32_t distance = 5 + (int32_t)((hash >> 8U) % 20U);
+            const int32_t x = center_x + ((int32_t)sweep_x[direction] * distance) / 27;
+            const int32_t y = center_y + ((int32_t)sweep_y[direction] * distance) / 27;
+            target_x[target_count] = (uint8_t)x;
+            target_y[target_count] = (uint8_t)y;
+            target_count++;
+        }
+        uhf_data_unlock(app);
+    }
+
+    canvas_set_font(canvas, FontPrimary);
+    const char* radar_title = "UHF Radar";
+    const int32_t title_width = canvas_string_width(canvas, radar_title);
+    canvas_draw_str(canvas, (65 - title_width) / 2, 8, radar_title);
+
+    uhf_draw_radar_ring(canvas, center_x, center_y, sweep_x, sweep_y, 27);
+    uhf_draw_radar_ring(canvas, center_x, center_y, sweep_x, sweep_y, 18);
+    uhf_draw_radar_ring(canvas, center_x, center_y, sweep_x, sweep_y, 9);
+    canvas_draw_dot(canvas, center_x, center_y);
+    for(int32_t offset = -25; offset <= 25; offset += 5) {
+        canvas_draw_dot(canvas, center_x + offset, center_y);
+    }
+    for(int32_t offset = -25; offset <= 25; offset += 5) {
+        canvas_draw_dot(canvas, center_x, center_y + offset);
+    }
+
+    /* All trail segments keep their full length. Older segments use fewer
+       pixels, creating a stable pseudo-gray fade on the 1-bit display. */
+    for(uint8_t age = trail_depth; age > 0U; age--) {
+        const uint8_t trail_phase =
+            (uint8_t)((sweep_phase + UHF_RADAR_PHASE_COUNT - age) %
+                      UHF_RADAR_PHASE_COUNT);
+        for(int32_t step = 4; step <= 27; step++) {
+            if(((step + age) % (age + 1U)) != 0U) continue;
+            int32_t trail_x = 0;
+            int32_t trail_y = 0;
+            uhf_radar_vector(trail_phase, step, &trail_x, &trail_y);
+            canvas_draw_dot(canvas, center_x + trail_x, center_y + trail_y);
+        }
+    }
+
+    int32_t sweep_dx = 0;
+    int32_t sweep_dy = 0;
+    uhf_radar_vector(sweep_phase, 27, &sweep_dx, &sweep_dy);
+    canvas_draw_line(canvas, center_x, center_y, center_x + sweep_dx, center_y + sweep_dy);
+
+    /* Draw a parallel one-pixel offset to make the leading sweep two pixels
+       thick at every angle. */
+    const int32_t abs_dx = sweep_dx < 0 ? -sweep_dx : sweep_dx;
+    const int32_t abs_dy = sweep_dy < 0 ? -sweep_dy : sweep_dy;
+    const int32_t offset_x =
+        (abs_dy > abs_dx) ? ((sweep_dy > 0) ? -1 : 1) : 0;
+    const int32_t offset_y =
+        (abs_dy > abs_dx) ? 0 : ((sweep_dx >= 0) ? 1 : -1);
+    canvas_draw_line(
+        canvas,
+        center_x + offset_x,
+        center_y + offset_y,
+        center_x + sweep_dx + offset_x,
+        center_y + sweep_dy + offset_y);
+
+    /* Draw targets last so they remain solid above the sweep and trail. */
+    for(size_t i = 0; i < target_count; i++) {
+        canvas_draw_box(canvas, (int32_t)target_x[i] - 1, (int32_t)target_y[i] - 1, 3, 3);
+    }
+
+    canvas_draw_line(canvas, 65, 0, 65, 63);
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 70, 11, "SPEED");
+    canvas_draw_str(canvas, 70, 42, "UNIQUE");
+
+    canvas_set_font(canvas, FontPrimary);
+    char value[24];
+    snprintf(value, sizeof(value), "%lu /s", (unsigned long)rate);
+    canvas_draw_str(canvas, 70, 26, value);
+    snprintf(value, sizeof(value), "%lu", (unsigned long)unique);
+    canvas_draw_str(canvas, 70, 58, value);
+}
+
 static void uhf_input_callback(InputEvent* event, void* context) {
     if(!context || !event) return;
     UhfApp* app = context;
@@ -2052,7 +2282,7 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
 
     if(page == UhfPageAbout) {
         uhf_draw_centered_text(canvas, 11, "About UHF Expansion");
-    } else {
+    } else if(page != UhfPageRadar) {
         uhf_draw_centered_text(canvas, 11, "UHF Expansion");
     }
 
@@ -2140,6 +2370,8 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
         uhf_draw_right_text(canvas, 63, line);
 
         uhf_draw_scan_hint(canvas, app->inventory_running);
+    } else if(page == UhfPageRadar) {
+        uhf_draw_radar_page(canvas, app);
     } else {
         canvas_set_font(canvas, FontBigNumbers);
         char line[32];
@@ -2322,6 +2554,11 @@ static void uhf_toggle_page(UhfApp* app) {
     if(!app) return;
 
     if(app->page == UhfPageCounter) {
+        app->page = UhfPageRadar;
+        app->radar_trail_depth = 0U;
+        app->radar_step_tick = furi_get_tick();
+        uhf_set_status(app, "Radar page");
+    } else if(app->page == UhfPageRadar) {
         const size_t total = uhf_count_e2_tags(app);
         app->page = UhfPageList;
 
@@ -2477,7 +2714,8 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
     switch(input->key) {
     case InputKeyOk: {
         if(input->type == InputTypeLong) {
-            if(app->page == UhfPageList || app->page == UhfPageCounter) {
+            if(app->page == UhfPageList || app->page == UhfPageCounter ||
+               app->page == UhfPageRadar) {
                 uhf_show_list_menu(app);
             }
             break;
@@ -2495,7 +2733,8 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
         break;
     }
     case InputKeyLeft:
-        if((app->page == UhfPageCounter || app->page == UhfPageList) &&
+        if((app->page == UhfPageCounter || app->page == UhfPageList ||
+            app->page == UhfPageRadar) &&
            input->type == InputTypeShort) {
             uhf_clear_tags(app);
         }
@@ -2559,6 +2798,9 @@ int32_t uhf_expansion_app(void* p) {
         if(app->hardware_ready) {
             uhf_process_rx(app);
         }
+
+        uhf_update_inventory_rate(app);
+        uhf_update_radar_animation(app);
 
         if(app->diag_save_pending) {
             app->diag_save_pending = false;
