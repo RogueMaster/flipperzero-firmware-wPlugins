@@ -108,7 +108,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Ethernet ENC28J60 v2.0 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-ENC28J60-ethernet/tree/f3b79ffc670f3f7b61dafe98a933f49e5d344e65)
 - Added: [Samsung AC Remote v1.0 (By dappermint)](https://github.com/dappermint/samsung-ac-remote-flipper-app)
 - Updated: [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz)
-- Updated: [DeFlock v0.71 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Added: [CIDR Challenge v1.0 (By AlastorApps)](https://github.com/AlastorApps/cidrchallengef0)
 - Added: [FM TX v0.0.10 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - Added: [Network Calculator v1.0 (By WolfRorDev)](https://github.com/WolfRorDev/Net-Calculator-for-Flipper-Zero)
@@ -125,6 +124,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.16b26 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Hotspot Arcade v1.8.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
+- Updated: [DeFlock v0.71 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 

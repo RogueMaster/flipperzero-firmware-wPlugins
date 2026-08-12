@@ -15,6 +15,7 @@ void suite_esp_parser(void);
 void suite_detect_rules(void);
 void suite_report_escape(void);
 void suite_gps_parser(void);
+void suite_gps_rpc_convert(void);
 void suite_report_fmt(void);
 void suite_report_fmt_redact(void);
 void suite_flock_store(void);
@@ -32,6 +33,7 @@ int main(void) {
     suite_detect_rules();
     suite_report_escape();
     suite_gps_parser();
+    suite_gps_rpc_convert();
     suite_report_fmt();
     suite_report_fmt_redact();
     suite_flock_store();

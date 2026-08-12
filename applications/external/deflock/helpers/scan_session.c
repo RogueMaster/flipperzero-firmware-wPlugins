@@ -4,6 +4,7 @@
 #include "../recon_app_i.h"
 #include "esp_link.h"
 #include "gps_link.h"
+#include "gps_rpc.h"
 
 bool scan_session_start(void* _app) {
     ReconApp* app = _app;
@@ -22,8 +23,21 @@ bool scan_session_start(void* _app) {
 
 void scan_session_gps_start(void* _app) {
     ReconApp* app = _app;
-    if(app->gps) return; // already running
     if(!app->settings.gps_enabled) return;
+
+    // Phone source: the fix arrives over the firmware's RPC location service from
+    // whatever companion app is paired, so like the companion relay there is no
+    // second UART to open -- but unlike it, there is a subscription to set up, so
+    // this cannot simply return. Handled first because the UART checks below are
+    // meaningless for it.
+    if(app->settings.gps_source == ReconGpsSourcePhone) {
+        if(app->gps_rpc) return; // already running
+        app->gps_rpc = gps_rpc_alloc(app);
+        gps_rpc_start(app->gps_rpc);
+        return;
+    }
+
+    if(app->gps) return; // already running
     // Companion source: the fix arrives as `G,<nmea>` on the ESP link, so there
     // is no second UART to open here at all. Opening one would take a port for
     // nothing (and on a single-UART wiring, take the ESP's).
@@ -40,7 +54,7 @@ void scan_session_stop(void* _app) {
     // launch before any scan has happened; without this guard that first call
     // would write an EMPTY table straight over the hits.csv recon_hits_load()
     // had just restored -- issue #5's exact failure, from the other direction.
-    if(!app->esp && !app->gps) return;
+    if(!app->esp && !app->gps && !app->gps_rpc) return;
 
     if(app->esp) {
         esp_link_stop(app->esp);
@@ -51,6 +65,12 @@ void scan_session_stop(void* _app) {
         gps_link_stop(app->gps);
         gps_link_free(app->gps);
         app->gps = NULL;
+    }
+    if(app->gps_rpc) {
+        // Unsubscribes from the RPC callback before freeing -- see gps_rpc_stop().
+        gps_rpc_stop(app->gps_rpc);
+        gps_rpc_free(app->gps_rpc);
+        app->gps_rpc = NULL;
     }
     // Persist the detections this scan collected (opt-in; a no-op when the
     // setting is off). Both call sites -- the Main Menu's on_enter and the app

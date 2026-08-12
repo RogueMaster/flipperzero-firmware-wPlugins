@@ -22,6 +22,11 @@ Built for stock OFW, [Unleashed](https://github.com/DarkFlippers/unleashed-firmw
 [Momentum](https://github.com/Next-Flip/Momentum-Firmware) and RogueMaster. Pick the
 file that matches your firmware; see [Install](#install).
 
+> [!TIP]
+> Want an unreleased fix before it's tagged? Grab a [nightly build](../../releases/tag/nightly)
+> instead of the [latest release](../../releases/latest) — untested, rebuilt from `main`. Details
+> in [Stable and nightly](#stable-and-nightly).
+
 **Free, and staying that way.** If FlipDeFlock is useful to you, crypto donations fund
 development, test hardware, and the legal costs of mapping surveillance infrastructure.
 [Donations never gate a feature](SUPPORTERS.md).
@@ -123,6 +128,22 @@ ESP32 rather than to the Flipper header, so the Flipper cannot see it on any pin
 **GPS From** to `ESP32` and **ESP GPS Pin** to the ESP GPIO the module's TX is on; the
 companion firmware then relays each NMEA sentence over the link it already has. Needs
 companion firmware v0.52+. Default is `Flipper`, i.e. the pin table above.
+
+**No GPS module at all?** Set **GPS From** to `Phone` and the position comes from a
+paired phone instead, over the firmware's RPC location service. Needs **Unleashed
+firmware** (the service does not exist on official firmware or Momentum — the badge
+says `!FW` there) and the [qUnleashed](https://github.com/DarkFlippers/qUnleashed)
+companion app paired over BLE or USB, with location permission granted and the app
+open for the whole scan. Fixes coarser than 100 m are rejected rather than used: a
+phone answers with a cell-tower estimate when it has no sky view, and a camera pinned
+two kilometres from where it actually is is worse than one with no pin at all.
+
+> **If you value anonymity, do not use your phone for GPS.** A GPS module receives
+> and never transmits. A phone is a second radio-connected device with its own
+> identifiers, tied to a subscriber account and continuously logged by the network —
+> so using one to geotag surveillance cameras puts a record of exactly where you went
+> in someone else's hands. The `Phone` option exists because a phone is what many
+> people already have; it is not the recommended one, and it is not the default.
 
 ### Board Mode
 
@@ -261,7 +282,7 @@ exact dB. `-33dB` closer to 0 means physically closer.
 - **ch / frames / hits** — channel · 802.11 frames captured · Flock detections, counted this session (reset each time you open the screen)
 - **row tag** — `!` CONFIRMED · `F` probe-fingerprint · `L` Likely · `p` Possible · `.` OUI-only · `*` marked
 - **`ST` after the tag** — a SoundThinking (ShotSpotter) acoustic sensor, not an ALPR camera. Untagged rows are cameras; the detail screen names the class in full
-- **GPS badge** - filled `GPS 9` = locked with 9 satellites, hollow `GPS` = on and searching. A fault names what to fix and never says "GPS", because a filled badge starting with those three letters reads as a lock: `!PORT` = GPS and the ESP are on the same UART (put GPS on the other one, LPUART / pins 15-16), `!PIN` = the companion refused that ESP GPS Pin, `!FW` = the companion never answered, so reflash it
+- **GPS badge** - filled `GPS 9` = locked with 9 satellites, filled `GPS` = locked but nothing reported a satellite count (normal on the `Phone` source), hollow `GPS` = on and searching. A fault names what to fix and never says "GPS", because a filled badge starting with those three letters reads as a lock: `!PORT` = GPS and the ESP are on the same UART (put GPS on the other one, LPUART / pins 15-16), `!PIN` = the companion refused that ESP GPS Pin, `!FW` = the companion never answered so reflash it — or, on the `Phone` source, this firmware has no location service (needs Unleashed). Phone-only faults: `!APP` = nothing paired, open qUnleashed · `!PERM` = the phone denied location permission · `!LOC` = the phone's location is off, or the paired device has no receiver · `!ACC` = fixes are arriving but coarser than 100 m, so go outside · `!ERR` = the companion app reported a fault
 - Marauder mode shows `rx <n>  hits <n>` instead (serial heartbeat + detection count)
 
 **BLE / Tracker Scan** — header `BLE 33  trk 9  follow 0`
@@ -527,6 +548,7 @@ helpers/
   esp_link / esp_parser              ESP32 UART link (companion + generic backends)
   esp_flasher                        in-app ESP32 backup/flash (esp-serial-flasher port)
   gps_link / gps_parser              NMEA GPS reader (2nd UART)
+  gps_rpc / gps_rpc_convert          phone GPS via the Unleashed RPC location service
   recon_report / report_escape       Markdown + GeoJSON + KML + CSV/WiGLE writers
   watchscore / scan_session          fused surveillance score, scan lifecycle
 lib/esp-serial-flasher/  vendored Espressif flasher (Apache-2.0)

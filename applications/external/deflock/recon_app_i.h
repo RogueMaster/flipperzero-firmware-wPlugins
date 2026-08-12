@@ -97,18 +97,52 @@ typedef enum {
 } EspLinkState;
 
 /**
- * Where NMEA comes from.
+ * Where the position comes from.
  *
  * Plenty of ESP32 carrier boards put the GPS module on the ESP itself rather
  * than on the Flipper's header, so the Flipper's UART can never see it and no
  * pin setting helps (issue #5). For those, the companion firmware relays each
  * sentence over the link it already has.
+ *
+ * The first two are NMEA from a real receiver. The third is not: it is a phone's
+ * own location, fetched over Unleashed's RPC location service (see gps_rpc.h).
+ * ORDER IS LOAD-BEARING -- these values are persisted in settings.txt as
+ * integers, so append only, never reorder.
  */
 typedef enum {
     ReconGpsSourceFlipper = 0, /**< default: a GPS wired to the Flipper's own UART */
     ReconGpsSourceCompanion, /**< relayed by the companion as `G,<nmea>` */
+    ReconGpsSourcePhone, /**< the paired phone's own fix, over the Unleashed RPC service */
     ReconGpsSourceCount,
 } ReconGpsSource;
+
+/**
+ * What the phone GPS source has managed to do this session.
+ *
+ * The companion relay got this treatment in v0.54 after issue #5 showed that one
+ * hollow "searching" badge standing in for four different faults costs four
+ * rounds of back-and-forth to diagnose. The RPC source has strictly more ways to
+ * fail than the relay does -- wrong firmware, no phone attached, permission
+ * denied, location switched off, or a fix so coarse it is worthless -- so it gets
+ * the same treatment up front rather than after the bug report.
+ *
+ * ReconGpsPhoneCoarse is the one with no NMEA equivalent: the phone IS answering,
+ * with a fused cell/Wi-Fi estimate kilometres wide. A receiver with no lock says
+ * so; a phone guesses. Reporting that as "searching" would be a lie the operator
+ * cannot see through.
+ */
+typedef enum {
+    ReconGpsPhoneOff = 0, /**< not selected, or never started */
+    ReconGpsPhoneUnsupported, /**< this .fap was built without the location service */
+    ReconGpsPhoneWaiting, /**< subscribed, nothing delivered yet */
+    ReconGpsPhoneNoClient, /**< no RPC session: nothing is paired, or the app is closed */
+    ReconGpsPhoneStreaming, /**< a usable fix has arrived */
+    ReconGpsPhoneCoarse, /**< answering, but every fix is outside the accuracy gate */
+    ReconGpsPhoneNoPermission, /**< the phone refused: location permission not granted */
+    ReconGpsPhoneDisabled, /**< the phone's location services are switched off */
+    ReconGpsPhoneNoFix, /**< the client cannot supply location at all (e.g. a desktop) */
+    ReconGpsPhoneError, /**< the client reported an error it did not classify */
+} ReconGpsPhoneState;
 
 /**
  * What the companion has said about its GPS relay this session.
@@ -267,6 +301,7 @@ typedef struct {
 
 typedef struct EspLink EspLink;
 typedef struct GpsLink GpsLink;
+typedef struct GpsRpc GpsRpc;
 typedef struct SigDb SigDb;
 
 typedef struct {
@@ -292,6 +327,7 @@ typedef struct {
 
     EspLink* esp;
     GpsLink* gps;
+    GpsRpc* gps_rpc; /**< phone GPS over the Unleashed RPC service; NULL unless selected */
     SigDb* sig_db; /**< SD-loaded extra signatures (NULL = built-ins only) */
 
     FuriMutex* mutex; /**< protects flock[] and gps_* snapshot */
@@ -331,6 +367,10 @@ typedef struct {
                            *  A flag, not a direct send: furi_hal_serial_tx from the
                            *  ESP worker would race the GUI thread's own commands on
                            *  the same handle. Same discipline as alert_pending. */
+
+    uint8_t gps_phone; /**< ReconGpsPhoneState. Written by the RPC callback under
+                         *   the mutex, read by the UI -- same discipline as the
+                         *   gps_* fix snapshot below. */
 
     bool gps_valid;
     float gps_lat;

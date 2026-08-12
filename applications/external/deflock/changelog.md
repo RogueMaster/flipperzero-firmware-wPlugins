@@ -7,6 +7,36 @@ yet: the export below has not been run on hardware by anyone.**
 
 ### Added
 
+- **Phone GPS, on Unleashed firmware.** **Settings → GPS From → `Phone`** takes the
+  position from a paired phone over the firmware's RPC location service, for people
+  who have no GPS module. Needs Unleashed and the qUnleashed companion app paired
+  over BLE or USB. Requested in discussion #20.
+
+  **A phone is not the recommended source and is not the default.** A GPS module
+  only receives; a phone is a second radio-connected device tied to a subscriber
+  account and logged by the network, which is a poor trade for anyone using this
+  tool to avoid being tracked. README states the tradeoff plainly.
+
+  Fixes coarser than **100 m are rejected**, which has no equivalent on the NMEA
+  paths: a receiver without a lock reports no fix, while a phone answers with a
+  cell-tower estimate that looks identical to a real one. Pinning a camera two
+  kilometres out is worse than leaving it unpinned — precision over recall, applied
+  to position. A heading is kept only when the fix passed and the phone was actually
+  moving, since a stationary phone reports no bearing and 0 is indistinguishable
+  from due north.
+
+  Six new badge states, because the phone source has six ways to fail and one
+  hollow "searching" badge standing in for all of them is what made issue #5 take
+  four rounds: `!FW` no location service on this firmware · `!APP` nothing paired ·
+  `!PERM` permission denied · `!LOC` phone location off, or no receiver on the
+  paired device · `!ACC` answering but too coarse · `!ERR` companion fault.
+
+  Gated at compile time on `__has_include(<gps/gps.h>)`, so the official-firmware
+  and Momentum builds compile it to a no-op and keep linking — CI builds all three
+  from one tree and the service exists only in Unleashed's API 88.2. Verified by
+  building against all three SDKs and confirming the `gps_*` API imports are present
+  in the Unleashed image and absent from the other two.
+
 - **A redacted false-positive export.** **Reports → False Positive Report** writes
   a Markdown file you can attach to an issue without publishing where you were.
   Reporting a wrong detection previously meant handing over the detection log,

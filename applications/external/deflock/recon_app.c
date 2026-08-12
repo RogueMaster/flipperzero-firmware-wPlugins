@@ -3,6 +3,7 @@
 #include "recon_app_i.h"
 #include "helpers/esp_link.h"
 #include "helpers/gps_link.h"
+#include "helpers/gps_rpc.h"
 #include "helpers/recon_report.h"
 #include "helpers/sig_db.h"
 #include "helpers/detect_rules.h"
@@ -1210,6 +1211,12 @@ static void recon_tick_event_callback(void* context) {
     // session sent). Doing that transmit on the worker thread would race this
     // thread's own commands on the same UART handle.
     recon_app_gps_cfg_tick(app);
+    // Phone GPS: re-ask for the location stream while it is not delivering. Same
+    // hoisted-to-the-dispatcher reasoning as the two above -- the ordinary case is
+    // that the operator opens a scan screen and connects the phone afterwards, and
+    // that must not need a per-scene call somebody forgets to add. A no-op when
+    // the phone source is not selected, and on firmware without the service.
+    gps_rpc_tick(app->gps_rpc);
     scene_manager_handle_tick_event(app->scene_manager);
 }
 

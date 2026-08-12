@@ -37,7 +37,7 @@ bool gps_link_port_busy(GpsLink* gps);
 /**
  * Decode one NMEA sentence and publish the fix into the app, under its mutex.
  *
- * Shared by BOTH gps sources -- the GPS wired to the Flipper's own UART, and the
+ * Shared by BOTH NMEA sources -- the GPS wired to the Flipper's own UART, and the
  * one relayed by the companion as `G,<nmea>` for boards that wire their GPS to
  * the ESP32 instead (issue #5). Deliberately one function: the lock-loss rule
  * (an explicit RMC 'V' / GGA fixq 0 clears the fix; a garbled-but-"valid"
@@ -49,3 +49,21 @@ bool gps_link_port_busy(GpsLink* gps);
  *              be mutable and is not usable afterwards.
  */
 void gps_apply_nmea(void* app, char* line);
+
+/**
+ * Publish an already-decoded fix into the app, under its mutex.
+ *
+ * The NMEA-free half of gps_apply_nmea(), exported for the RPC (phone) source,
+ * which receives a decoded location and so has no sentence to parse. It exists
+ * rather than a second publisher in gps_rpc.c for the reason above: the lock-loss
+ * rule is the subtle part, it is identical for every source, and two copies of it
+ * would drift into a stale fix geotagging detections with the wrong place.
+ *
+ * @param app    ReconApp* (void* to avoid a header cycle).
+ * @param lat    decimal degrees; ignored unless `valid`.
+ * @param lon    decimal degrees; ignored unless `valid`.
+ * @param sats   satellite count, or negative to leave the last count alone.
+ * @param valid  false explicitly CLEARS the fix (lock lost). True publishes only
+ *               if the coordinates also pass gps_coord_sane().
+ */
+void gps_publish_fix(void* app, float lat, float lon, int sats, bool valid);

@@ -62,10 +62,18 @@ static void gps_enabled_changed(VariableItem* item) {
     recon_settings_save(app);
 }
 
-// Where NMEA comes from. "ESP32" is for carrier boards whose GPS module is wired
-// to the ESP rather than to the Flipper's header -- the Flipper cannot see those
-// on any pin, so the companion relays each sentence instead (issue #5).
-static const char* const gps_source_text[] = {"Flipper", "ESP32"};
+// Where the position comes from. "ESP32" is for carrier boards whose GPS module
+// is wired to the ESP rather than to the Flipper's header -- the Flipper cannot
+// see those on any pin, so the companion relays each sentence instead (issue #5).
+//
+// "Phone" is not a receiver at all: it is the paired phone's own location, over
+// Unleashed's RPC location service (helpers/gps_rpc.h). Listed LAST and never the
+// default, deliberately. It is the only source that needs a second radio-connected
+// device, which is a materially worse OPSEC position for a tool whose users are
+// avoiding being tracked -- and it is offered anyway because a phone is what many
+// people already have. The README states the tradeoff; the badge names the fault
+// when the firmware or the phone cannot deliver.
+static const char* const gps_source_text[] = {"Flipper", "ESP32", "Phone"};
 
 static void gps_source_changed(VariableItem* item) {
     ReconApp* app = variable_item_get_context(item);

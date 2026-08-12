@@ -156,11 +156,11 @@ bool ha_storage_load_manifest(HotspotArcadeApp* app) {
 // portrait page -- x doubled, y tripled -- because the three panels are drawn on a
 // 2:3 sheet on the phone. The file is appended to as the segments arrive, so the
 // Flipper never holds a picture in memory either.
-#define HA_ART_W     510
-#define HA_ART_H     765
-#define HA_ART_XS    2 // sheet unit -> page unit, across
-#define HA_ART_YS    3 // sheet unit -> page unit, down
-#define HA_ART_NICK  24
+#define HA_ART_W    510
+#define HA_ART_H    765
+#define HA_ART_XS   2 // sheet unit -> page unit, across
+#define HA_ART_YS   3 // sheet unit -> page unit, down
+#define HA_ART_NICK 24
 
 static void art_write(HotspotArcadeApp* app, const char* s) {
     if(app->art_file) storage_file_write(app->art_file, s, strlen(s));
@@ -212,9 +212,15 @@ void ha_art_begin(HotspotArcadeApp* app, const char* json) {
         // Every field is masked to two digits so -Werror=format-truncation can prove
         // the stamp fits art_stamp[16] (13 chars + NUL); semantically a no-op.
         snprintf(
-            app->art_stamp, sizeof(app->art_stamp), "%02u%02u%02u-%02u%02u%02u",
-            (unsigned)(dt.year % 100), (unsigned)(dt.month % 100), (unsigned)(dt.day % 100),
-            (unsigned)(dt.hour % 100), (unsigned)(dt.minute % 100), (unsigned)(dt.second % 100));
+            app->art_stamp,
+            sizeof(app->art_stamp),
+            "%02u%02u%02u-%02u%02u%02u",
+            (unsigned)(dt.year % 100),
+            (unsigned)(dt.month % 100),
+            (unsigned)(dt.day % 100),
+            (unsigned)(dt.hour % 100),
+            (unsigned)(dt.minute % 100),
+            (unsigned)(dt.second % 100));
     }
 
     app->art_storage = furi_record_open(RECORD_STORAGE);
@@ -250,7 +256,9 @@ void ha_art_begin(HotspotArcadeApp* app, const char* json) {
         line,
         "<text x=\"12\" y=\"752\" font-family=\"sans-serif\" font-size=\"18\" "
         "fill=\"#8A8A80\">%s / %s / %s</text>\n",
-        who[0], who[1], who[2]);
+        who[0],
+        who[1],
+        who[2]);
     art_write(app, furi_string_get_cstr(line));
     furi_string_free(line);
 
@@ -268,8 +276,13 @@ void ha_art_stroke(HotspotArcadeApp* app, const char* json) {
         return;
     char buf[64];
     snprintf(
-        buf, sizeof(buf), "<path d=\"M%d %dL%d %d\"/>\n", x0 * HA_ART_XS, y0 * HA_ART_YS,
-        x1 * HA_ART_XS, y1 * HA_ART_YS);
+        buf,
+        sizeof(buf),
+        "<path d=\"M%d %dL%d %d\"/>\n",
+        x0 * HA_ART_XS,
+        y0 * HA_ART_YS,
+        x1 * HA_ART_XS,
+        y1 * HA_ART_YS);
     art_write(app, buf);
 }
 

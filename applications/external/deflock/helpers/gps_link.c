@@ -35,7 +35,10 @@ struct GpsLink {
 // nmea_parse_line) lives in gps_parser.{c,h} so it is host-testable; this file is
 // the thin adapter that applies a parsed NmeaFix to ReconApp under the lock.
 
-static void gps_publish(ReconApp* app, float lat, float lon, int sats, bool valid) {
+// Public: shared with the RPC (phone) source, which arrives already decoded.
+void gps_publish_fix(void* _app, float lat, float lon, int sats, bool valid) {
+    ReconApp* app = _app;
+    if(!app) return;
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     if(valid && gps_coord_sane(lat, lon)) {
         app->gps_lat = lat;
@@ -58,7 +61,7 @@ void gps_apply_nmea(void* _app, char* line) {
     if(!app || !line) return;
     NmeaFix fix;
     if(!nmea_parse_line(line, &fix)) return; // unknown / malformed / bad checksum
-    gps_publish(app, fix.lat, fix.lon, fix.sats, fix.valid);
+    gps_publish_fix(app, fix.lat, fix.lon, fix.sats, fix.valid);
     if(fix.has_course) {
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         app->gps_course = fix.course;
