@@ -53,3 +53,12 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+
+# === Flipper Zero & ufbt ===
+build/
+.fbt_dump/
+dist/
+*.fap
+.ufbt/
+.vscode/
