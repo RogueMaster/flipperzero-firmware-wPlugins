@@ -121,10 +121,14 @@ def check_declared_count(label, path, actual):
         return False
     declared = int(m.group(1))
     if declared == actual:
-        print(f"  OK   {label}: {path.name} comment says {declared}, array holds {actual}")
+        print(
+            f"  OK   {label}: {path.name} comment says {declared}, array holds {actual}"
+        )
         return True
     print(f"  STALE {label}: {path.name} comment says {declared}, array holds {actual}")
-    print("        Update the count comment, or the entry you added/removed is a mistake.")
+    print(
+        "        Update the count comment, or the entry you added/removed is a mistake."
+    )
     return False
 
 

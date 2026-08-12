@@ -126,6 +126,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 - Updated: [PocketLab v1.6 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab) (Version Only)
 - Updated: [DeFlock v0.72 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Updated: [NFC Seader v4.1.1 (By bettse)](https://github.com/bettse/seader)
 
 <a name="release"></a>
 
