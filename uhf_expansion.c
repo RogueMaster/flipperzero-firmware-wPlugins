@@ -580,13 +580,14 @@ static void uhf_set_status(UhfApp* app, const char* fmt, ...) {
     }
 }
 
-#define UHF_TAG_BEEP_COOLDOWN_MS 50U
+#define UHF_TAG_BEEP_COOLDOWN_MS 20U
 
 static void uhf_notify_tag_found(UhfApp* app) {
     if(!app || !app->notifications) return;
     if(!app->tag_beep_enabled) return;
 
-    /* Throttle: only beep if enough time has passed since last beep */
+    /* Match the main RX polling cadence for prompt feedback without flooding
+       the asynchronous notification queue with duplicate sounds. */
     const uint32_t now = furi_get_tick();
     if((now - app->last_tag_beep_tick) < UHF_TAG_BEEP_COOLDOWN_MS) return;
 
