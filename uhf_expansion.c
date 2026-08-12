@@ -41,6 +41,9 @@
 #define UHF_PROBE_TIMEOUT_MS  240U
 #define UHF_STOP_SETTLE_MS     50U
 #define UHF_RESET_SETTLE_MS   350U
+#define UHF_POWER_OFF_MS      500U
+#define UHF_POWER_BOOT_MS     100U
+#define UHF_POWER_READY_MS    300U
 
 #define UHF_SOFT_UART_BIT_US         104U
 #define UHF_SOFT_UART_IDLE_POLL_US   10U
@@ -50,6 +53,8 @@
 #define UHF_INV_CMD_COOLDOWN_MS      450U
 #define UHF_RADAR_STEP_MS             65U
 #define UHF_RADAR_PHASE_COUNT         96U
+#define UHF_INV_KEEPALIVE_MS       12000U
+#define UHF_INV_RESTART_SETTLE_MS     40U
 #define UHF_LIST_VISIBLE_ROWS        5U
 #define UHF_ABOUT_VISIBLE_LINES      5U
 
@@ -144,6 +149,8 @@ typedef struct {
     bool diag_save_running;
     bool down_long_latched;
     uint32_t last_inv_cmd_tick;
+    uint32_t last_inv_refresh_tick;
+    uint32_t last_inv_rx_tick;
     uint32_t last_tag_beep_tick;
     uint32_t rate_window_started;
     uint32_t rate_window_reports;
@@ -151,6 +158,8 @@ typedef struct {
     uint32_t radar_step_tick;
     uint8_t radar_sweep_phase;
     uint8_t radar_trail_depth;
+    bool inventory_restart_pending;
+    bool hard_reset_attempted;
     bool tag_beep_enabled;
     bool baud_probed;
     UhfPage page;
@@ -293,6 +302,7 @@ static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app);
 static void uhf_clear_tags(UhfApp* app);
 static void uhf_update_inventory_rate(UhfApp* app);
 static void uhf_update_radar_animation(UhfApp* app);
+static bool uhf_save_diag_log(UhfApp* app);
 static void uhf_process_rx(UhfApp* app);
 static bool uhf_wait_for_version(UhfApp* app, uint32_t timeout_ms);
 static bool uhf_has_version(UhfApp* app);
@@ -300,8 +310,10 @@ static void uhf_request_version(UhfApp* app);
 static bool uhf_probe_current_serial(UhfApp* app, uint32_t baud);
 static bool uhf_try_reader_handshake(UhfApp* app, uint8_t attempts);
 static bool uhf_recover_reader(UhfApp* app);
+static bool uhf_power_cycle_reader(UhfApp* app);
 static void uhf_start_inventory(UhfApp* app);
 static void uhf_stop_inventory(UhfApp* app);
+static void uhf_service_inventory(UhfApp* app);
 static bool uhf_open_serial(UhfApp* app, FuriHalSerialId serial_id);
 static void uhf_close_serial(UhfApp* app);
 static bool uhf_open_bridge_uart(UhfApp* app);
@@ -1118,32 +1130,31 @@ static void uhf_run_startup_sequence(UhfApp* app) {
     app->startup_active = true;
     uhf_set_startup_text(app, "Loading", "Preparing UHF Expansion", 0);
 
-    /* Open serial at 115200 */
     bool got_version = false;
     app->baud_rate = UHF_BAUD_RATE;
     if(!uhf_open_bridge_uart(app)) {
+        uhf_diag_log(app, "Startup UART open failed");
         goto startup_done;
     }
     app->hardware_ready = true;
-
-    /* A previous app session can leave the continuously powered reader in
-       inventory mode. Stop it before trying commands that expect one reply. */
-    uhf_stop_inventory(app);
-    furi_delay_ms(UHF_STOP_SETTLE_MS);
+    uhf_diag_log(
+        app,
+        "Startup UART id=%u TX:%d RX:%d baud=%lu",
+        (unsigned)app->serial_id,
+        app->tx_ext_pin,
+        app->rx_ext_pin,
+        (unsigned long)app->baud_rate);
 
     if(app->rx_stream) furi_stream_buffer_reset(app->rx_stream);
     app->frame_buffer_len = 0;
 
     uhf_set_startup_text(app, "Initializing", "UHF Expansion", 1);
-    got_version = uhf_try_reader_handshake(app, 3U);
+    got_version = uhf_try_reader_handshake(app, 1U);
 
-    /* The reader is powered from the Flipper 3.3 V rail, so closing and
-       reopening the app does not power-cycle it. If a normal handshake fails,
-       use the reader's protocol reset command instead of requiring a replug. */
     if(!got_version) {
-        uhf_set_startup_text(app, "Recovering", "Resetting UHF reader", 2);
-        if(uhf_recover_reader(app)) {
-            got_version = uhf_try_reader_handshake(app, 8U);
+        uhf_set_startup_text(app, "Recovering", "Power cycling UHF reader", 2);
+        if(uhf_power_cycle_reader(app)) {
+            got_version = uhf_try_reader_handshake(app, 3U);
         }
     }
 
@@ -1151,15 +1162,29 @@ startup_done:
 
     if(got_version) {
         char line[40];
-        snprintf(line, sizeof(line), "Version %s @ %lu",
-            app->version, (unsigned long)app->baud_rate);
+        snprintf(
+            line,
+            sizeof(line),
+            "Version %s @ %lu",
+            app->version,
+            (unsigned long)app->baud_rate);
         uhf_set_startup_text(app, "Ready", line, 0);
         uhf_set_status(app, "Ready");
-        furi_delay_ms(650);
+        furi_delay_ms(650U);
     } else {
-        uhf_set_startup_text(app, "Please replug", "UHF Expansion", 0);
-        uhf_set_status(app, "Please replug UHF Expansion");
-        furi_delay_ms(1000);
+        char failure[40];
+        snprintf(
+            failure,
+            sizeof(failure),
+            "RX:%lu frames:%lu errors:%lu",
+            (unsigned long)app->rx_bytes,
+            (unsigned long)app->rx_frames,
+            (unsigned long)app->rx_errors);
+        uhf_diag_log(app, "Startup failed %s", failure);
+        (void)uhf_save_diag_log(app);
+        uhf_set_startup_text(app, "Reader not ready", failure, 0);
+        uhf_set_status(app, "UHF reader needs hardware reset");
+        furi_delay_ms(800U);
     }
 
     app->startup_active = false;
@@ -1299,7 +1324,7 @@ static bool uhf_send_command(UhfApp* app, uint8_t cmd, const uint8_t* payload, s
 
 static bool uhf_ensure_hardware(UhfApp* app) {
     /* hardware_ready means the UART is configured. Reader presence is tracked
-       independently by the version response and retried from the main loop. */
+       independently by the version response. */
     if(app->hardware_ready && (app->serial || app->soft_uart_enabled)) return true;
 
     const uint32_t desired_baud = app->baud_rate;
@@ -1315,13 +1340,9 @@ static bool uhf_ensure_hardware(UhfApp* app) {
     app->hardware_ready = true;
 
     bool probe_ok = false;
-
-    /* Try the desired baud rate */
-    if(desired_baud != 0) {
+    if(desired_baud != 0U) {
         probe_ok = uhf_probe_current_serial(app, desired_baud);
     }
-
-    /* Fall back to 115200 */
     if(!probe_ok) {
         probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
     }
@@ -1330,41 +1351,11 @@ static bool uhf_ensure_hardware(UhfApp* app) {
         const FuriHalSerialId current_id = app->serial_id;
         const FuriHalSerialId other_id =
             (current_id == FuriHalSerialIdUsart) ? FuriHalSerialIdLpuart : FuriHalSerialIdUsart;
-
-        uhf_diag_log(app, "Probe fail on %u, try %u", (unsigned)current_id, (unsigned)other_id);
         uhf_close_serial(app);
         if(uhf_open_serial(app, other_id)) {
-            /* Try desired baud first on the alternate serial port */
-            if(desired_baud != 0) {
-                probe_ok = uhf_probe_current_serial(app, desired_baud);
-            }
-            if(!probe_ok) {
-                probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
-            }
+            if(desired_baud != 0U) probe_ok = uhf_probe_current_serial(app, desired_baud);
+            if(!probe_ok) probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
         }
-    }
-
-    if(!probe_ok && !app->serial) {
-        if(!uhf_open_bridge_uart(app)) {
-            app->hardware_ready = false;
-            uhf_set_status(app, "UART reopen failed");
-            return false;
-        }
-        app->baud_rate = UHF_BAUD_RATE;
-        furi_hal_serial_set_br(app->serial, app->baud_rate);
-        /* Try the desired baud rate on the bridge UART */
-        if(desired_baud != 0) {
-            probe_ok = uhf_probe_current_serial(app, desired_baud);
-        }
-        if(!probe_ok) {
-            probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
-        }
-    }
-
-    if(probe_ok && uhf_has_version(app)) {
-        uhf_set_status(app, "UART%d/%d V:%s", app->tx_ext_pin, app->rx_ext_pin, app->version);
-    } else {
-        uhf_set_status(app, "UART%d/%d ready (no ver)", app->tx_ext_pin, app->rx_ext_pin);
     }
 
     uhf_diag_log(
@@ -1414,11 +1405,9 @@ static void uhf_stop_inventory(UhfApp* app) {
     app->rate_window_reports = 0;
     app->rate_window_started = furi_get_tick();
     app->radar_step_tick = furi_get_tick();
+    app->inventory_restart_pending = false;
     if(app->hardware_ready) {
-        for(uint8_t i = 0; i < 3; i++) {
-            (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
-            furi_delay_ms(5);
-        }
+        (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
     }
 }
 
@@ -1426,8 +1415,6 @@ static void uhf_start_inventory(UhfApp* app) {
     static const uint8_t start_frame[] = {0xA0, 0x04, 0x00, 0x89, 0x01, 0xD2};
     if(!uhf_ensure_hardware(app)) return;
 
-    /* Do not report a successful scan merely because bytes were written to an
-       open UART. Recover and verify the reader when startup did not handshake. */
     if(!uhf_has_version(app)) {
         uhf_set_status(app, "Connecting reader...");
         bool reader_ok = uhf_try_reader_handshake(app, 2U);
@@ -1435,7 +1422,7 @@ static void uhf_start_inventory(UhfApp* app) {
             reader_ok = uhf_try_reader_handshake(app, 5U);
         }
         if(!reader_ok) {
-            uhf_set_status(app, "Reader not responding");
+            uhf_set_status(app, "Reader needs hardware reset");
             return;
         }
     }
@@ -1451,9 +1438,152 @@ static void uhf_start_inventory(UhfApp* app) {
         app->rate_window_reports = 0;
         app->rate_window_started = furi_get_tick();
         app->radar_step_tick = furi_get_tick();
+        app->inventory_restart_pending = false;
+        app->last_inv_refresh_tick = furi_get_tick();
+        app->last_inv_rx_tick = app->last_inv_refresh_tick;
         uhf_set_status(app, "Inventory running");
     } else {
         uhf_set_status(app, "Start inventory failed");
+    }
+}
+
+static bool uhf_try_reader_handshake(UhfApp* app, uint8_t attempts) {
+    if(!app || attempts == 0U) return false;
+
+    for(uint8_t attempt = 0U; attempt < attempts; attempt++) {
+        uhf_request_version(app);
+        if(uhf_wait_for_version(app, UHF_PROBE_TIMEOUT_MS)) {
+            app->baud_probed = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool uhf_recover_reader(UhfApp* app) {
+    if(!app || (!app->serial && !app->soft_uart_enabled)) return false;
+
+    uhf_stop_inventory(app);
+    furi_delay_ms(UHF_STOP_SETTLE_MS);
+    if(app->rx_stream) furi_stream_buffer_reset(app->rx_stream);
+    app->frame_buffer_len = 0U;
+
+    static const uint8_t reset_frame[] = {0xA0, 0x03, 0x00, UHF_CMD_RESET, 0xED};
+    if(!uhf_send_raw_frame(app, reset_frame, sizeof(reset_frame))) return false;
+
+    uhf_diag_log(app, "Reader reset sent");
+    furi_delay_ms(UHF_RESET_SETTLE_MS);
+    uhf_process_rx(app);
+    if(app->rx_stream) furi_stream_buffer_reset(app->rx_stream);
+    app->frame_buffer_len = 0U;
+    uhf_clear_version(app);
+    return true;
+}
+
+static bool uhf_power_cycle_reader(UhfApp* app) {
+    if(!app || app->hard_reset_attempted) return false;
+    app->hard_reset_attempted = true;
+
+    if(app->serial) uhf_close_serial(app);
+    app->hardware_ready = false;
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) {
+        uhf_diag_log(app, "Hard reset: storage unavailable");
+        return false;
+    }
+
+    const FS_Error unmount_error = storage_sd_unmount(storage);
+    if(unmount_error != FSE_OK && unmount_error != FSE_NOT_READY) {
+        uhf_diag_log(app, "Hard reset: SD unmount failed %d", (int)unmount_error);
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+
+    /* Put both UART lines low before the supply falls, keep them low while the
+       reader is unpowered, and hold them low throughout its next power-up. */
+    furi_hal_gpio_write(&gpio_usart_tx, false);
+    furi_hal_gpio_write(&gpio_usart_rx, false);
+    furi_hal_gpio_init_simple(&gpio_usart_tx, GpioModeOutputPushPull);
+    furi_hal_gpio_init_simple(&gpio_usart_rx, GpioModeOutputPushPull);
+
+    uhf_diag_log(app, "Hard reset: UART low, external 3.3V off");
+    furi_hal_power_disable_external_3_3v();
+    furi_delay_ms(UHF_POWER_OFF_MS);
+
+    furi_hal_power_enable_external_3_3v();
+
+    FS_Error mount_error = FSE_NOT_READY;
+    uint32_t power_boot_elapsed_ms = 0U;
+    for(uint8_t attempt = 0U; attempt < 8U && mount_error != FSE_OK; attempt++) {
+        furi_delay_ms(100U);
+        power_boot_elapsed_ms += 100U;
+        mount_error = storage_sd_mount(storage);
+    }
+
+    if(UHF_POWER_BOOT_MS > power_boot_elapsed_ms) {
+        furi_delay_ms(UHF_POWER_BOOT_MS - power_boot_elapsed_ms);
+    }
+
+    furi_hal_gpio_init_simple(&gpio_usart_tx, GpioModeAnalog);
+    furi_hal_gpio_init_simple(&gpio_usart_rx, GpioModeAnalog);
+    furi_delay_ms(UHF_POWER_READY_MS);
+    furi_record_close(RECORD_STORAGE);
+
+    if(mount_error != FSE_OK) {
+        uhf_diag_log(app, "Hard reset: SD mount failed %d", (int)mount_error);
+        return false;
+    }
+
+    app->baud_rate = UHF_BAUD_RATE;
+    if(!uhf_open_bridge_uart(app)) {
+        uhf_diag_log(app, "Hard reset: UART reopen failed");
+        return false;
+    }
+
+    app->hardware_ready = true;
+    app->frame_buffer_len = 0U;
+    if(app->rx_stream) furi_stream_buffer_reset(app->rx_stream);
+    uhf_clear_version(app);
+    uhf_diag_log(app, "Hard reset complete");
+    return true;
+}
+
+static void uhf_service_inventory(UhfApp* app) {
+    if(!app || !app->inventory_running || app->diag_save_running) return;
+
+    const uint32_t now = furi_get_tick();
+    const bool periodic_refresh =
+        (now - app->last_inv_refresh_tick) >= UHF_INV_KEEPALIVE_MS;
+    if(!app->inventory_restart_pending && !periodic_refresh) return;
+
+    /* Some reader states entered before this app owns the UART stop reporting
+       after roughly 20 seconds even though 0x89 is specified as continuous.
+       Renew the real-time inventory session before that state expires. */
+    static const uint8_t stop_frame[] = {0xA0, 0x03, 0x00, 0x8C, 0xD1};
+    static const uint8_t start_frame[] = {0xA0, 0x04, 0x00, 0x89, 0x01, 0xD2};
+
+    for(uint8_t i = 0U; i < 2U; i++) {
+        (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
+        furi_delay_ms(5U);
+    }
+    furi_delay_ms(UHF_INV_RESTART_SETTLE_MS);
+
+    uhf_process_rx(app);
+    if(app->rx_stream) {
+        (void)furi_stream_buffer_reset(app->rx_stream);
+    }
+    app->frame_buffer_len = 0U;
+
+    if(uhf_send_raw_frame(app, start_frame, sizeof(start_frame))) {
+        app->inventory_restart_pending = false;
+        app->last_inv_refresh_tick = furi_get_tick();
+        app->last_inv_rx_tick = app->last_inv_refresh_tick;
+        uhf_set_status(app, "Inventory running");
+        uhf_diag_log(app, "Inventory session renewed");
+    } else {
+        app->inventory_restart_pending = true;
+        uhf_set_status(app, "Inventory restart failed");
     }
 }
 
@@ -1486,51 +1616,6 @@ static void uhf_request_version(UhfApp* app) {
         uhf_set_status(app, "Version tx failed");
         uhf_diag_log(app, "Version tx failed");
     }
-}
-
-static bool uhf_try_reader_handshake(UhfApp* app, uint8_t attempts) {
-    if(!app || attempts == 0U) return false;
-
-    for(uint8_t attempt = 0; attempt < attempts; attempt++) {
-        uhf_request_version(app);
-        if(uhf_wait_for_version(app, UHF_PROBE_TIMEOUT_MS)) {
-            app->baud_probed = true;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-static bool uhf_recover_reader(UhfApp* app) {
-    if(!app || (!app->serial && !app->soft_uart_enabled)) return false;
-
-    /* Stop any continuous inventory left by this or another app session. */
-    uhf_stop_inventory(app);
-    furi_delay_ms(UHF_STOP_SETTLE_MS);
-
-    if(app->rx_stream) {
-        (void)furi_stream_buffer_reset(app->rx_stream);
-    }
-    app->frame_buffer_len = 0;
-
-    static const uint8_t reset_frame[] = {0xA0, 0x03, 0x00, UHF_CMD_RESET, 0xED};
-    if(!uhf_send_raw_frame(app, reset_frame, sizeof(reset_frame))) {
-        uhf_diag_log(app, "Reader reset TX failed");
-        return false;
-    }
-
-    uhf_diag_log(app, "Reader reset sent");
-    furi_delay_ms(UHF_RESET_SETTLE_MS);
-
-    /* Discard reset acknowledgement and boot noise before the version probe. */
-    uhf_process_rx(app);
-    if(app->rx_stream) {
-        (void)furi_stream_buffer_reset(app->rx_stream);
-    }
-    app->frame_buffer_len = 0;
-    uhf_clear_version(app);
-    return true;
 }
 
 static void __attribute__((unused)) uhf_swap_soft_uart_direction(UhfApp* app) {
@@ -1685,7 +1770,17 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
         uhf_set_status(app, "Version %s", app->version);
         uhf_diag_log(app, "Version=%s", app->version);
     } else if(cmd == UHF_CMD_START_INV || cmd == UHF_CMD_INV_ALT || app->inventory_running) {
-        (void)uhf_parse_inventory_frame(app, data, data_len, cmd);
+        const bool parsed_tag = uhf_parse_inventory_frame(app, data, data_len, cmd);
+        if(parsed_tag) {
+            app->last_inv_rx_tick = furi_get_tick();
+        } else if(
+            checksum_acc == 0U && (cmd == UHF_CMD_START_INV || cmd == UHF_CMD_INV_ALT) &&
+            data_len <= 7U) {
+            /* A short 0x89/0x8A reply is completion/error status, not tag data.
+               Keep the user's scan active by scheduling a fresh session. */
+            app->inventory_restart_pending = true;
+            uhf_diag_log(app, "Inventory ended cmd=%02X len=%lu", cmd, (unsigned long)data_len);
+        }
     } else if(cmd == UHF_CMD_STOP_INV) {
         if(!app->inventory_running) {
             uhf_set_status(app, "Inventory stopped");
@@ -2635,7 +2730,8 @@ static UhfApp* uhf_app_alloc(void) {
 static void uhf_app_free(UhfApp* app) {
     if(!app) return;
 
-    if(app->hardware_ready && (app->serial || app->soft_uart_enabled)) {
+    if(app->inventory_running && app->hardware_ready &&
+       (app->serial || app->soft_uart_enabled)) {
         uhf_stop_inventory(app);
         /* Flush any remaining RX data so the module's state is clean */
         if(app->rx_stream) {
@@ -2797,6 +2893,7 @@ int32_t uhf_expansion_app(void* p) {
 
         if(app->hardware_ready) {
             uhf_process_rx(app);
+            uhf_service_inventory(app);
         }
 
         uhf_update_inventory_rate(app);
