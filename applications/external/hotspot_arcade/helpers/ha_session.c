@@ -303,6 +303,8 @@ static void ha_content_stream_packs(HotspotArcadeApp* app) {
         {HA_GAME_SPECTRUM, "spectrum"},
         {HA_GAME_KMK, "kmk"},
         {HA_GAME_SECRETS, "secrets"},
+        {HA_GAME_FILLBLANK, "fillblank"},
+        {HA_GAME_SPYFALL, "spyfall"},
     };
     for(unsigned g = 0; g < sizeof(games) / sizeof(games[0]); g++) {
         int topics = 0;
@@ -367,10 +369,20 @@ static void send_next_file(HotspotArcadeApp* app) {
     FuriString* path = furi_string_alloc();
     furi_string_printf(path, "%s/%s", app->web_dir, a->file);
     FuriString* content = furi_string_alloc();
-    bool ok = ha_storage_read_file(furi_string_get_cstr(path), content, HA_FILE_MAX);
+    // Read one byte past the cap so an oversized file is DETECTED, not silently
+    // truncated: a clipped gzip stream serves a page whose tail (all the scripts)
+    // never arrives, which looks like "the app is broken" on every phone with no
+    // error anywhere. Better to refuse loudly here.
+    bool ok = ha_storage_read_file(furi_string_get_cstr(path), content, HA_FILE_MAX + 1);
     furi_string_free(path);
     if(!ok) {
         furi_string_set(app->status, "asset read err");
+        app->hs = HaHsErr;
+        furi_string_free(content);
+        return;
+    }
+    if(furi_string_size(content) > HA_FILE_MAX) {
+        furi_string_set(app->status, "web asset too big");
         app->hs = HaHsErr;
         furi_string_free(content);
         return;
@@ -435,6 +447,7 @@ void ha_session_start(HotspotArcadeApp* app) {
 }
 
 void ha_session_stop(HotspotArcadeApp* app) {
+    ha_art_abort(app); // no half-written SVG survives the session
     ha_proto_send(app->uart, HA_MSG_STOP, NULL, 0);
     app->session_active = false;
     app->portal_running = false;
@@ -561,6 +574,19 @@ static void dispatch_frame(HotspotArcadeApp* app) {
         console_add(app, (const char*)p);
         feedback_success(app); // trivia reveal scored, or a Connect Four win
         break;
+    case HA_MSG_ART:
+        // Finished Frankendraw artwork: op byte + JSON. Straight through to the SVG
+        // writer -- a segment at a time, nothing held between frames.
+        if(len >= 1) {
+            const char* js = (const char*)p + 1;
+            if(p[0] == HA_ART_BEGIN)
+                ha_art_begin(app, js);
+            else if(p[0] == HA_ART_STROKE)
+                ha_art_stroke(app, js);
+            else if(p[0] == HA_ART_END)
+                ha_art_end(app);
+        }
+        break;
     case HA_MSG_EVENT: {
         // Game-specific host-facing status line for the console / duel feed.
         char ev[64];
@@ -568,7 +594,8 @@ static void dispatch_frame(HotspotArcadeApp* app) {
            ha_json_str((const char*)p, "pong", ev, sizeof(ev)) ||
            ha_json_str((const char*)p, "draw", ev, sizeof(ev)) ||
            ha_json_str((const char*)p, "chess", ev, sizeof(ev)) ||
-           ha_json_str((const char*)p, "bs", ev, sizeof(ev))) {
+           ha_json_str((const char*)p, "bs", ev, sizeof(ev)) ||
+           ha_json_str((const char*)p, "spyfall", ev, sizeof(ev))) {
             furi_string_set_str(app->last_event, ev);
             console_add(app, ev);
         } else if(ha_json_str((const char*)p, "gamevote", ev, sizeof(ev))) {

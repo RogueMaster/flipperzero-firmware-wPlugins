@@ -1,0 +1,99 @@
+Pack: 🎭 Backstage
+Loc: Film set
+R: Director
+R: Stunt double
+R: Extra
+R: Makeup artist
+R: Boom operator
+---
+Loc: Rock concert
+R: Lead singer
+R: Roadie
+R: Security guard
+R: Fan in the front row
+R: Sound engineer
+---
+Loc: Castle
+R: King
+R: Knight
+R: Jester
+R: Cook
+R: Stable hand
+R: Gate guard
+---
+Loc: Pirate ship
+R: Captain
+R: Cook
+R: Lookout
+R: Parrot keeper
+R: Deckhand
+---
+Loc: Circus
+R: Ringmaster
+R: Clown
+R: Acrobat
+R: Animal trainer
+R: Ticket seller
+---
+Loc: Museum
+R: Curator
+R: Tour guide
+R: Security guard
+R: School group leader
+R: Restorer
+---
+Loc: Wedding
+R: Bride
+R: Best man
+R: Photographer
+R: Caterer
+R: Awkward cousin
+---
+Loc: Bank
+R: Manager
+R: Teller
+R: Security guard
+R: Customer
+R: Cleaner
+---
+Loc: Police station
+R: Sergeant
+R: Detective
+R: Desk clerk
+R: Suspect
+R: Sniffer dog handler
+---
+Loc: Theatre
+R: Lead actor
+R: Prompter
+R: Usher
+R: Costume designer
+R: Critic
+---
+Loc: Rocket launch
+R: Astronaut
+R: Flight director
+R: Engineer
+R: Journalist
+R: Crowd wrangler
+---
+Loc: Newspaper office
+R: Editor
+R: Reporter
+R: Photographer
+R: Intern
+R: Printer
+---
+Loc: Farm
+R: Farmer
+R: Tractor driver
+R: Vet
+R: Farmhand
+R: Market seller
+---
+Loc: Haunted house ride
+R: Actor in a costume
+R: Ticket seller
+R: Terrified visitor
+R: Makeup artist
+R: Technician

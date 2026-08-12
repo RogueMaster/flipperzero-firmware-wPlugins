@@ -79,6 +79,12 @@ inline uint32_t esp_random() {
     return (uint32_t)::rand();
 }
 
+// Arduino's PSRAM allocator (esp32-hal-psram.h). On real hardware it hands back PSRAM when
+// the board has it and falls back to internal heap; off-target there is no PSRAM, so it is
+// plain malloc. The engine uses it for Frankendraw's on-demand stroke store, so the sim (and
+// AddressSanitizer) exercise that same heap allocation.
+inline void* ps_malloc(size_t n) { return std::malloc(n); }
+
 #ifndef strlcpy
 inline size_t strlcpy(char* dst, const char* src, size_t n) {
     size_t len = std::strlen(src);

@@ -69,7 +69,7 @@
       // On reveal, paint the vote share as a background gradient (no extra DOM,
       // so nothing perturbs the row height). The leading option tints orange.
       if (reveal) {
-        var tint = (counts[i] >= counts[1 - i] && total) ? "rgba(255,130,0,.20)" : "rgba(120,120,120,.16)";
+        var tint = (counts[i] >= counts[1 - i] && total) ? "rgba(255,130,0,.32)" : "rgba(255,255,255,.20)";
         b.style.background = "linear-gradient(90deg," + tint + " " + pct + "%,var(--surface-2) " + pct + "%)";
       }
       if (!reveal && mine < 0) b.addEventListener("click", function () {

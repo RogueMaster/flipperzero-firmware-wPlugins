@@ -32,6 +32,8 @@
     A.countdown("sec-count-num", m.sec);
   }
 
+  // The stepper is deliberately silent: this is a hidden-vote game played around one
+  // table, and anyone counting the clicks would know the prediction. Haptics only.
   function setNum() { $("sec-num").textContent = predVal; }
 
   function renderPredict(m) {
@@ -66,6 +68,11 @@
   var revealedFor = -1;
   function renderReveal(m) {
     hide("sec-predict"); hide("sec-answer"); show("sec-reveal");
+    // The note still reads "waiting for the others" from the predict step, and nothing ever
+    // clears it: renderPredict and renderAnswer are its only writers. The reveal happens only
+    // once everyone is in, so the line is not merely stale but wrong -- at a shared table it
+    // reads as "the round is still open" while the result is already up.
+    $("sec-note").textContent = "";
     // Hero: the yes-count as a big number with a small caption beneath it.
     $("sec-yesnum").textContent = m.yes;
     // Bucket every player's prediction by the number they guessed.
@@ -144,10 +151,10 @@
     send({ t: "ready", ready: !myready });
   });
   $("sec-minus").addEventListener("click", function () {
-    if (predVal > 0) { predVal--; setNum(); A.sfx("tick"); A.vibe(8); }
+    if (predVal > 0) { predVal--; setNum(); A.vibe(8); }
   });
   $("sec-plus").addEventListener("click", function () {
-    if (predVal < predMax) { predVal++; setNum(); A.sfx("tick"); A.vibe(8); }
+    if (predVal < predMax) { predVal++; setNum(); A.vibe(8); }
   });
   $("sec-predict-go").addEventListener("click", function () {
     A.sfx("start"); A.vibe(20);

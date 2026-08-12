@@ -1,8 +1,9 @@
 /* Tiny WebAudio SFX engine + haptics. No audio files: every sound is a short
    oscillator+gain envelope, synthesised on the fly. Exposes A.sfx(name),
    A.vibe(pattern), and a mute toggle persisted to localStorage. Audio is only
-   created on the first user gesture (A.initAudio, called from the Play button)
-   so mobile autoplay policies never block it. */
+   created on the first user gesture -- any gesture, see unlockOnce below -- so mobile
+   autoplay policies never block it. Play used to be the only trigger, which left a
+   returning player (auto-rejoined from a saved nickname, never pressing Play) silent. */
 (function () {
   var ctx = null;
   var muted = false;
@@ -62,7 +63,18 @@
     if (muted) return;
     var c = ensure(); if (!c) return;
     var fn = SFX[name];
-    if (fn) { try { fn(c); } catch (e) {} }
+    if (!fn) return;
+    // resume() is asynchronous. Scheduling the note straight after it on a context that is
+    // still "suspended" drops the sound with no error, so wait for the state to actually
+    // flip. This is the difference between a phone that plays and one that is silent all
+    // evening: the notes were being queued onto a sleeping clock.
+    if (c.state === "suspended" && c.resume) {
+      try {
+        c.resume().then(function () { try { fn(c); } catch (e) {} }, function () {});
+        return;
+      } catch (e) { /* fall through and try anyway */ }
+    }
+    try { fn(c); } catch (e) {}
   };
 
   // Haptics. No-op on desktop and iOS Safari (where vibrate is absent). Guarded.
@@ -88,6 +100,21 @@
     paint();
     return muted;
   };
+
+  // Unlock on the FIRST user gesture anywhere, not just on Play. A returning player is
+  // rejoined automatically from a saved nickname (see A.joined in app.js) and so never
+  // touches the Play button -- that phone used to reach the whole session without the
+  // context ever being created inside a gesture, and stayed mute while a first-time phone
+  // beside it played normally. One-shot, passive, and removed once it has fired.
+  function unlockOnce() {
+    A.initAudio();
+    document.removeEventListener("pointerdown", unlockOnce, true);
+    document.removeEventListener("touchend", unlockOnce, true);
+    document.removeEventListener("keydown", unlockOnce, true);
+  }
+  document.addEventListener("pointerdown", unlockOnce, true);
+  document.addEventListener("touchend", unlockOnce, true);
+  document.addEventListener("keydown", unlockOnce, true);
 
   document.addEventListener("DOMContentLoaded", function () {
     var b = document.getElementById("mute");

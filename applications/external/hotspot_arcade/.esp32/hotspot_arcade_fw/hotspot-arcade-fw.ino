@@ -235,6 +235,17 @@ void haUartEvent(const String& json) {
 void haUartRoundResult(const String& json) {
     uartSend(HA_MSG_ROUND_RESULT, (const uint8_t*)json.c_str(), json.length());
 }
+// Finished artwork (Frankendraw). One frame per call -- a sheet header, a single line
+// segment, or the end marker -- so a whole drawing streams to the Flipper a segment at
+// a time and neither side ever buffers one. Payload is the op byte then the JSON.
+void haUartArt(uint8_t op, const String& json) {
+    uint8_t buf[192];
+    buf[0] = op;
+    size_t n = json.length();
+    if(n > sizeof(buf) - 1) n = sizeof(buf) - 1;
+    memcpy(buf + 1, json.c_str(), n);
+    uartSend(HA_MSG_ART, buf, 1 + n);
+}
 
 // Debug trace of the engine's identity decisions. Serial is the Flipper link, so a
 // log line shares the wire with the framed protocol: safe because the receiver only

@@ -30,11 +30,18 @@
 #define HA_LINK_TIMEOUT_MS      (5000)
 #define HA_HANDSHAKE_TIMEOUT_MS (4000) // no ack progress -> board isn't our firmware
 #define HA_CONSOLE_MAX          (3072)
-#define HA_FILE_MAX             (60000) // max single web asset streamed to the ESP
+// Max single web asset streamed to the ESP. MUST equal web/build.mjs's CEIL (72*1024):
+// the build fails above CEIL, and send_next_file refuses a bigger file -- when this was
+// smaller than CEIL, the 63KB 20-game bundle was silently truncated at 60000 bytes and
+// every phone got a page whose scripts never arrived (v1.8.0 hardware test). The
+// bundled-assets CI job cross-checks this constant against the committed bundle.
+#define HA_FILE_MAX             (73728)
 
 #define HA_DATA_DIR    EXT_PATH("apps_data/hotspot_arcade")
 #define HA_LOGS_DIR    HA_DATA_DIR "/logs"
 #define HA_CONFIG_PATH HA_DATA_DIR "/config.txt"
+// Finished Frankendraw sheets, one SVG each (see ha_art_* in helpers/ha_storage.h).
+#define HA_ART_DIR     HA_DATA_DIR "/art"
 
 // Content (ESP firmware, web bundle, trivia packs) ships inside the fap via
 // fap_file_assets; the loader extracts it to apps_assets on launch, so a fresh install
@@ -179,6 +186,14 @@ typedef struct HotspotArcadeApp {
     // have to tap RESET and then also confirm. Continue stays as the manual fallback.
     volatile bool flash_await_boot;
     // --- end ESP flasher ---
+
+    // Frankendraw artwork writer. The ESP streams a finished sheet as begin / one
+    // frame per line segment / end, and we append straight to the open SVG, so a
+    // whole picture is written without ever being held in RAM. `art_stamp` is set
+    // once per gallery so one game's sheets sort together on the SD card.
+    File* art_file; // open only between an ART begin and its end
+    Storage* art_storage; // record held while art_file is open
+    char art_stamp[16];
 
     volatile bool closing;
 } HotspotArcadeApp;
