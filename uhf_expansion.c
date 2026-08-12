@@ -44,8 +44,8 @@
 #define UHF_POWER_OFF_MS      500U
 #define UHF_POWER_BOOT_MS     100U
 #define UHF_POWER_READY_MS    300U
-#define UHF_RESET_LOW_MS       20U
-#define UHF_RESET_BOOT_MS     300U
+#define UHF_RESET_LOW_MS      250U
+#define UHF_RESET_BOOT_MS     600U
 
 #define UHF_SOFT_UART_BIT_US         104U
 #define UHF_SOFT_UART_IDLE_POLL_US   10U
