@@ -39,7 +39,6 @@ PicopassError picopass_poller_send_frame(
             ret = PicopassErrorIncorrectCrc;
             break;
         }
-        iso13239_crc_trim(instance->rx_buffer);
     } while(false);
 
     return ret;
@@ -71,6 +70,7 @@ PicopassError picopass_poller_identify(
         ret = picopass_poller_send_frame(
             instance, instance->tx_buffer, instance->rx_buffer, PICOPASS_POLLER_FWT_FC);
         if(ret != PicopassErrorNone) break;
+        iso13239_crc_trim(instance->rx_buffer);
         if(bit_buffer_get_size_bytes(instance->rx_buffer) != sizeof(PicopassColResSerialNum)) {
             ret = PicopassErrorProtocol;
             break;
@@ -96,6 +96,7 @@ PicopassError picopass_poller_select(
         ret = picopass_poller_send_frame(
             instance, instance->tx_buffer, instance->rx_buffer, PICOPASS_POLLER_FWT_FC);
         if(ret != PicopassErrorNone) break;
+        iso13239_crc_trim(instance->rx_buffer);
         if(bit_buffer_get_size_bytes(instance->rx_buffer) != sizeof(PicopassSerialNum)) {
             ret = PicopassErrorProtocol;
             break;
