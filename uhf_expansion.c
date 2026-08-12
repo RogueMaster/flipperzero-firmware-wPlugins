@@ -55,8 +55,9 @@
 #define UHF_INV_CMD_COOLDOWN_MS      450U
 #define UHF_RADAR_STEP_MS             65U
 #define UHF_RADAR_PHASE_COUNT         96U
-#define UHF_INV_KEEPALIVE_MS       12000U
-#define UHF_INV_RESTART_SETTLE_MS     40U
+#define UHF_INV_HEARTBEAT_MS         250U
+#define UHF_INV_SESSION_RENEW_MS   10000U
+#define UHF_INV_RENEW_SETTLE_MS       10U
 #define UHF_LIST_VISIBLE_ROWS        5U
 #define UHF_ABOUT_VISIBLE_LINES      5U
 
@@ -153,15 +154,14 @@ typedef struct {
     bool down_long_latched;
     uint32_t last_inv_cmd_tick;
     uint32_t last_inv_refresh_tick;
-    uint32_t last_inv_rx_tick;
+    uint32_t last_inv_session_tick;
     uint32_t last_tag_beep_tick;
     uint32_t rate_window_started;
-    uint32_t rate_window_reports;
+    uint32_t rate_window_reads;
     uint32_t tags_per_second;
     uint32_t radar_step_tick;
     uint8_t radar_sweep_phase;
     uint8_t radar_trail_depth;
-    bool inventory_restart_pending;
     bool hard_reset_attempted;
     bool tag_beep_enabled;
     bool baud_probed;
@@ -1400,10 +1400,10 @@ static void uhf_stop_inventory(UhfApp* app) {
     static const uint8_t stop_frame[] = {0xA0, 0x03, 0x00, 0x8C, 0xD1};
     app->inventory_running = false;
     app->tags_per_second = 0;
-    app->rate_window_reports = 0;
+    app->rate_window_reads = 0;
     app->rate_window_started = furi_get_tick();
     app->radar_step_tick = furi_get_tick();
-    app->inventory_restart_pending = false;
+    app->last_inv_session_tick = 0U;
     if(app->hardware_ready) {
         (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
     }
@@ -1433,12 +1433,11 @@ static void uhf_start_inventory(UhfApp* app) {
     if(sent) {
         app->inventory_running = true;
         app->tags_per_second = 0;
-        app->rate_window_reports = 0;
+        app->rate_window_reads = 0;
         app->rate_window_started = furi_get_tick();
         app->radar_step_tick = furi_get_tick();
-        app->inventory_restart_pending = false;
         app->last_inv_refresh_tick = furi_get_tick();
-        app->last_inv_rx_tick = app->last_inv_refresh_tick;
+        app->last_inv_session_tick = app->last_inv_refresh_tick;
         uhf_set_status(app, "Inventory running");
     } else {
         uhf_set_status(app, "Start inventory failed");
@@ -1573,36 +1572,44 @@ static void uhf_service_inventory(UhfApp* app) {
     if(!app || !app->inventory_running || app->diag_save_running) return;
 
     const uint32_t now = furi_get_tick();
-    const bool periodic_refresh =
-        (now - app->last_inv_refresh_tick) >= UHF_INV_KEEPALIVE_MS;
-    if(!app->inventory_restart_pending && !periodic_refresh) return;
+    const bool session_renew_due =
+        (now - app->last_inv_session_tick) >= UHF_INV_SESSION_RENEW_MS;
+    if(session_renew_due) {
+        static const uint8_t stop_frame[] = {0xA0, 0x03, 0x00, 0x8C, 0xD1};
+        static const uint8_t start_frame[] = {0xA0, 0x04, 0x00, 0x89, 0x01, 0xD2};
 
-    /* Some reader states entered before this app owns the UART stop reporting
-       after roughly 20 seconds even though 0x89 is specified as continuous.
-       Renew the real-time inventory session before that state expires. */
-    static const uint8_t stop_frame[] = {0xA0, 0x03, 0x00, 0x8C, 0xD1};
+        (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
+        furi_delay_ms(UHF_INV_RENEW_SETTLE_MS);
+        uhf_process_rx(app);
+
+        const uint32_t restarted_at = furi_get_tick();
+        if(uhf_send_raw_frame(app, start_frame, sizeof(start_frame))) {
+            app->last_inv_refresh_tick = restarted_at;
+            app->last_inv_session_tick = restarted_at;
+            uhf_set_status(app, "Inventory running");
+            uhf_diag_log(app, "Inventory session renewed");
+        } else {
+            app->last_inv_session_tick = restarted_at;
+            uhf_set_status(app, "Inventory restart failed");
+        }
+        return;
+    }
+
+    const bool heartbeat_due =
+        (now - app->last_inv_refresh_tick) >= UHF_INV_HEARTBEAT_MS;
+    if(!heartbeat_due) return;
+
+    /* The reader's completion response is not a reliable pacing signal and
+       immediately chaining on it can overrun the reader. Match the proven
+       Cardputer cadence: start one repeat every 250 ms without inserting a
+       stop command or clearing buffered reports between rounds. */
     static const uint8_t start_frame[] = {0xA0, 0x04, 0x00, 0x89, 0x01, 0xD2};
 
-    for(uint8_t i = 0U; i < 2U; i++) {
-        (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
-        furi_delay_ms(5U);
-    }
-    furi_delay_ms(UHF_INV_RESTART_SETTLE_MS);
-
-    uhf_process_rx(app);
-    if(app->rx_stream) {
-        (void)furi_stream_buffer_reset(app->rx_stream);
-    }
-    app->frame_buffer_len = 0U;
-
     if(uhf_send_raw_frame(app, start_frame, sizeof(start_frame))) {
-        app->inventory_restart_pending = false;
-        app->last_inv_refresh_tick = furi_get_tick();
-        app->last_inv_rx_tick = app->last_inv_refresh_tick;
+        app->last_inv_refresh_tick = now;
         uhf_set_status(app, "Inventory running");
-        uhf_diag_log(app, "Inventory session renewed");
     } else {
-        app->inventory_restart_pending = true;
+        app->last_inv_refresh_tick = now;
         uhf_set_status(app, "Inventory restart failed");
     }
 }
@@ -1650,9 +1657,11 @@ static bool uhf_add_inventory_tag(
     size_t epc_len,
     uint8_t antenna,
     uint32_t rssi,
-    uint32_t frequency) {
+    uint32_t frequency,
+    uint32_t hit_count) {
     if(epc_len == 0 || epc_len > (UHF_EPC_HEX_MAX / 2U)) return false;
     if(epc[0] != 0xE2U) return false;
+    if(hit_count == 0U) hit_count = 1U;
 
     char epc_hex[UHF_EPC_HEX_MAX + 1];
     if(!uhf_bytes_to_hex(epc, epc_len, epc_hex, sizeof(epc_hex))) return false;
@@ -1667,8 +1676,9 @@ static bool uhf_add_inventory_tag(
         return false;
     }
 
-    tag->read_count++;
-    app->rate_window_reports++;
+    const uint32_t updated_count = (uint32_t)tag->read_count + hit_count;
+    tag->read_count = updated_count > UINT16_MAX ? UINT16_MAX : (uint16_t)updated_count;
+    app->rate_window_reads += hit_count;
     tag->last_seen = furi_get_tick();
     tag->antenna = antenna;
     tag->rssi = rssi;
@@ -1709,7 +1719,7 @@ static bool uhf_parse_pc_epc_at(UhfApp* app, const uint8_t* data, size_t data_le
         frequency = uhf_read_be(&data[meta_offset + 4U], 3);
     }
 
-    return uhf_add_inventory_tag(app, &data[epc_offset], epc_len, antenna, rssi, frequency);
+    return uhf_add_inventory_tag(app, &data[epc_offset], epc_len, antenna, rssi, frequency, 1U);
 }
 
 static bool uhf_parse_inventory_buffer_frame(UhfApp* app, const uint8_t* data, size_t data_len) {
@@ -1723,17 +1733,23 @@ static bool uhf_parse_inventory_buffer_frame(UhfApp* app, const uint8_t* data, s
     const size_t epc_len = inv_data_len - 4U;
     const size_t offset = 1U + inv_data_len;
     const uint8_t antenna = data[offset + 7U];
+    uint32_t hit_count = data[offset + 8U];
+    if(hit_count == 0U) hit_count = 1U;
     const uint32_t rssi = uhf_read_be(&data[offset], 4);
     const uint32_t frequency = uhf_read_be(&data[offset + 4U], 3);
 
-    return uhf_add_inventory_tag(app, &inv_data[2], epc_len, antenna, rssi, frequency);
+    return uhf_add_inventory_tag(
+        app, &inv_data[2], epc_len, antenna, rssi, frequency, hit_count);
 }
 
 static bool uhf_parse_inventory_frame(UhfApp* app, const uint8_t* data, size_t data_len, uint8_t cmd) {
-    UNUSED(cmd);
-
+    if(cmd == UHF_CMD_INV_ALT && uhf_parse_inventory_buffer_frame(app, data, data_len)) {
+        return true;
+    }
     if(uhf_parse_pc_epc_at(app, data, data_len, 1U, data_len ? data[0] : 0U)) return true;
-    if(uhf_parse_inventory_buffer_frame(app, data, data_len)) return true;
+    if(cmd != UHF_CMD_INV_ALT && uhf_parse_inventory_buffer_frame(app, data, data_len)) {
+        return true;
+    }
 
     for(size_t offset = 0; offset < 3U && offset < data_len; offset++) {
         if(uhf_parse_pc_epc_at(app, data, data_len, offset, 0)) return true;
@@ -1746,7 +1762,7 @@ static bool uhf_parse_inventory_frame(UhfApp* app, const uint8_t* data, size_t d
         for(size_t l = 0; l < sizeof(lengths); l++) {
             const size_t epc_len = lengths[l];
             if(i + epc_len <= data_len) {
-                if(uhf_add_inventory_tag(app, &data[i], epc_len, 0, 0, 0)) {
+                if(uhf_add_inventory_tag(app, &data[i], epc_len, 0, 0, 0, 1U)) {
                     return true;
                 }
             }
@@ -1791,14 +1807,11 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
         uhf_diag_log(app, "Version=%s", app->version);
     } else if(cmd == UHF_CMD_START_INV || cmd == UHF_CMD_INV_ALT || app->inventory_running) {
         const bool parsed_tag = uhf_parse_inventory_frame(app, data, data_len, cmd);
-        if(parsed_tag) {
-            app->last_inv_rx_tick = furi_get_tick();
-        } else if(
+        if(!parsed_tag &&
             checksum_acc == 0U && (cmd == UHF_CMD_START_INV || cmd == UHF_CMD_INV_ALT) &&
             data_len <= 7U) {
             /* A short 0x89/0x8A reply is completion/error status, not tag data.
-               Keep the user's scan active by scheduling a fresh session. */
-            app->inventory_restart_pending = true;
+               The fixed inventory heartbeat starts the next round. */
             uhf_diag_log(app, "Inventory ended cmd=%02X len=%lu", cmd, (unsigned long)data_len);
         }
     } else if(cmd == UHF_CMD_STOP_INV) {
@@ -2130,9 +2143,9 @@ static void uhf_update_inventory_rate(UhfApp* app) {
 
     if(uhf_data_lock(app, 10)) {
         app->tags_per_second = app->inventory_running ?
-                                   (uint32_t)(((uint64_t)app->rate_window_reports * 1000U) / elapsed) :
+                                   (uint32_t)(((uint64_t)app->rate_window_reads * 1000U) / elapsed) :
                                    0U;
-        app->rate_window_reports = 0U;
+        app->rate_window_reads = 0U;
         app->rate_window_started = now;
         uhf_data_unlock(app);
     }
