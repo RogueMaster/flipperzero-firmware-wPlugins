@@ -75,7 +75,7 @@ def main():
     # below 20ms, so clamp rather than let a burst of fast frames play at a
     # speed no one will see.
     images = [im.convert('P', palette=Image.ADAPTIVE, colors=2) for im, _ in frames]
-    delays = [max(40, min(2000, ms)) for _, ms in frames]
+    delays = [max(40, min(6000, ms)) for _, ms in frames]
 
     images[0].save(
         out, save_all=True, append_images=images[1:],

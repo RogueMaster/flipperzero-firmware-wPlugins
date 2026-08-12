@@ -73,7 +73,10 @@ def run(port_name, timeline, seconds, scale):
                 frames.append((last_bytes, int((now - last_at) * 1000)))
             last_bytes, last_at = data, now
         if last_bytes is not None:
-            frames.append((last_bytes, 300))
+            # However long the last screen was actually up for. A fixed tail
+            # would cut a final verdict short precisely when the recording was
+            # extended to let someone read it.
+            frames.append((last_bytes, int((time.time() - last_at) * 1000)))
     finally:
         rpc.close()
     return [(F.framebuffer_to_image(b, scale), ms) for b, ms in frames]
@@ -84,7 +87,11 @@ def save(frames, out):
     # "L" so the palette conversion has something to count.
     images = [im.convert('L').convert('P', palette=Image.ADAPTIVE, colors=2)
               for im, _ in frames]
-    delays = [max(40, min(2000, ms)) for _, ms in frames]
+    # Most viewers will not honour a delay under 20ms, so there is a floor. The
+    # ceiling is generous on purpose: a verdict that stayed on screen for four
+    # seconds should stay on screen for four seconds. Clamping it to two was
+    # squashing exactly the screens a viewer needs time to read.
+    delays = [max(40, min(6000, ms)) for _, ms in frames]
     images[0].save(
         out, save_all=True, append_images=images[1:],
         duration=delays, loop=0, optimize=True, disposal=2)

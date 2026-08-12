@@ -119,6 +119,130 @@ ever exist, because asking the part to do its job is the one question left to as
 | **MAX44009** | Light sensor | 0x4A, 0x4B | — |  |
 | **BNO085** | 9-axis IMU + fusion | 0x4A, 0x4B | — | SHTP protocol, no WHO_AM_I |
 
+## Addresses more than one chip answers on (49)
+
+**An I2C address does not name a part.** It is seven bits chosen by the manufacturer,
+and plenty of unrelated chips chose the same ones. This is why the app probes rather
+than looks up: for every candidate registered at the address that answered, it reads
+that candidate's ID registers and keeps the one with the most matches. A scan that
+reports one part at a crowded address has already ruled the others out.
+
+| Address | Chips that use it |
+|---|---|
+| `0x18` | **BMI088 accel** (Accelerometer), **LIS3DH/2DH12** (Accelerometer) |
+| `0x19` | **BMI088 accel** (Accelerometer), **LIS3DH/2DH12** (Accelerometer) |
+| `0x1D` | **ADXL345/343** (Accelerometer), **ADXL355** (Accelerometer) |
+| `0x1E` | **LIS3MDL** (Magnetometer), **LIS2MDL** (Magnetometer), **HMC5883L** (Magnetometer) |
+| `0x20` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
+| `0x21` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
+| `0x22` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
+| `0x23` | **BH1750** (Light sensor), **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
+| `0x24` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
+| `0x25` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
+| `0x26` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
+| `0x27` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
+| `0x29` | **BNO055** (9-axis IMU + fusion), **VL53L0X** (Laser rangefinder), **VL53L1X** (Laser rangefinder), **VL6180X** (Laser rangefinder), **TCS34725** (Colour sensor), **TSL2591** (Light sensor) |
+| `0x36` | **AS5600** (Magnetic angle), **MAX17048** (Battery fuel gauge) |
+| `0x38` | **AHT10/AHT20** (Temp + humidity), **PCF8574A** (GPIO expander), **VEML6070** (UV sensor) |
+| `0x39` | **APDS9960** (Gesture + colour), **PCF8574A** (GPIO expander), **VEML6070** (UV sensor) |
+| `0x3C` | **SSD1306/SH1106** (OLED display), **PCF8574A** (GPIO expander) |
+| `0x3D` | **SSD1306/SH1106** (OLED display), **PCF8574A** (GPIO expander) |
+| `0x40` | **HDC1080** (Temp + humidity), **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **Si7021/HTU21D** (Temp + humidity), **INA219** (Current monitor), **PCA9685** (PWM / servo driver) |
+| `0x41` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x42` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x43` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x44` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **SHT3x/SHT4x** (Temp + humidity), **INA219** (Current monitor) |
+| `0x45` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **SHT3x/SHT4x** (Temp + humidity), **INA219** (Current monitor) |
+| `0x46` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x47` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x48` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor) |
+| `0x49` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor) |
+| `0x4A` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor), **MAX44009** (Light sensor), **BNO085** (9-axis IMU + fusion) |
+| `0x4B` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor), **MAX44009** (Light sensor), **BNO085** (9-axis IMU + fusion) |
+| `0x4C` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x4D` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x4E` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x4F` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
+| `0x51` | **PCF8563** (Real-time clock), **AT24Cxx** (EEPROM memory) |
+| `0x52` | **ENS160** (Air quality (VOC)), **AT24Cxx** (EEPROM memory) |
+| `0x53` | **ENS160** (Air quality (VOC)), **ADXL345/343** (Accelerometer), **ADXL355** (Accelerometer), **LTR-390UV** (UV + light sensor), **AT24Cxx** (EEPROM memory) |
+| `0x57` | **MAX30102** (Heart rate / SpO2), **AT24Cxx** (EEPROM memory) |
+| `0x5A` | **CCS811** (Air quality (VOC)), **MLX90614** (IR thermometer) |
+| `0x5C` | **LPS22HB** (Pressure sensor), **LPS25HB** (Pressure sensor), **BH1750** (Light sensor) |
+| `0x5D` | **LPS22HB** (Pressure sensor), **LPS25HB** (Pressure sensor) |
+| `0x61` | **SCD30** (CO2 sensor), **MCP4725** (DAC) |
+| `0x62` | **SCD4x** (CO2 sensor), **MCP4725** (DAC) |
+| `0x68` | **MPU6050** (6-axis IMU), **MPU6500** (6-axis IMU), **MPU9250** (9-axis IMU), **MPU6886** (6-axis IMU), **ICM20948** (9-axis IMU), **ICM42605** (6-axis IMU), **ICM42688P** (6-axis IMU), **BMI160** (6-axis IMU), **BMI270** (6-axis IMU), **BMI088 gyro** (Gyroscope), **DS3231** (Real-time clock), **DS1307** (Real-time clock) |
+| `0x69` | **MPU6050** (6-axis IMU), **MPU6500** (6-axis IMU), **MPU9250** (9-axis IMU), **MPU6886** (6-axis IMU), **ICM20948** (9-axis IMU), **ICM42605** (6-axis IMU), **ICM42688P** (6-axis IMU), **BMI160** (6-axis IMU), **BMI270** (6-axis IMU), **BMI088 gyro** (Gyroscope) |
+| `0x6A` | **LSM6DS3** (6-axis IMU), **LSM6DS3TR-C** (6-axis IMU), **LSM6DSO/OX** (6-axis IMU), **LSM6DSV16X** (6-axis IMU), **QMI8658** (6-axis IMU) |
+| `0x6B` | **LSM6DS3** (6-axis IMU), **LSM6DS3TR-C** (6-axis IMU), **LSM6DSO/OX** (6-axis IMU), **LSM6DSV16X** (6-axis IMU), **QMI8658** (6-axis IMU) |
+| `0x76` | **BMP280** (Pressure sensor), **BME280** (Press/temp/humidity), **BMP388** (Pressure sensor), **BMP390** (Pressure sensor), **BME680** (Air quality + climate), **BME688** (Air quality + climate), **DPS310** (Pressure sensor), **TCA9548A** (I2C multiplexer), **MS5611** (Pressure sensor) |
+| `0x77` | **BMP280** (Pressure sensor), **BME280** (Press/temp/humidity), **BMP180** (Pressure sensor), **BMP388** (Pressure sensor), **BMP390** (Pressure sensor), **BME680** (Air quality + climate), **BME688** (Air quality + climate), **DPS310** (Pressure sensor), **TCA9548A** (I2C multiplexer), **MS5611** (Pressure sensor) |
+
+Reading this the other way: a chip whose neighbours all have ID registers is safe to
+identify by probing, and one sharing an address with an address-only part is not — the
+app will say DETECTED rather than guess between them.
+
+### Chips that can sit at more than one address (39)
+
+A pin on the module picks which. If a scan finds nothing, the pin is worth checking
+before the wiring is: the app searches every address in this list, but only the ones
+in it.
+
+| Chip | Addresses | Notes |
+|---|---|---|
+| **BNO055** | `0x28`, `0x29` |  |
+| **BMP280** | `0x76`, `0x77` |  |
+| **BME280** | `0x76`, `0x77` |  |
+| **BMP388** | `0x76`, `0x77` |  |
+| **BMP390** | `0x76`, `0x77` |  |
+| **BME680** | `0x76`, `0x77` |  |
+| **BME688** | `0x76`, `0x77` |  |
+| **DPS310** | `0x76`, `0x77` |  |
+| **CCS811** | `0x5A`, `0x5B` | EOL part, clones common |
+| **ENS160** | `0x52`, `0x53` |  |
+| **MPU6050** | `0x68`, `0x69` | TDK EOL, old stock |
+| **MPU6500** | `0x68`, `0x69` | often sold as MPU9250 |
+| **MPU9250** | `0x68`, `0x69` | TDK EOL, often faked |
+| **MPU6886** | `0x68`, `0x69` |  |
+| **ICM20948** | `0x68`, `0x69` |  |
+| **ICM42605** | `0x68`, `0x69` |  |
+| **ICM42688P** | `0x68`, `0x69` |  |
+| **BMI160** | `0x68`, `0x69` |  |
+| **BMI270** | `0x68`, `0x69` |  |
+| **BMI088 gyro** | `0x68`, `0x69` |  |
+| **BMI088 accel** | `0x18`, `0x19` |  |
+| **LSM6DS3** | `0x6A`, `0x6B` |  |
+| **LSM6DS3TR-C** | `0x6A`, `0x6B` |  |
+| **LSM6DSO/OX** | `0x6A`, `0x6B` | DSO and DSOX share the ID |
+| **LSM6DSV16X** | `0x6A`, `0x6B` |  |
+| **QMI8658** | `0x6A`, `0x6B` |  |
+| **LIS3DH/2DH12** | `0x18`, `0x19` | same ID as LIS2DH12 |
+| **ADXL345/343** | `0x53`, `0x1D` |  |
+| **ADXL355** | `0x1D`, `0x53` |  |
+| **LIS3MDL** | `0x1C`, `0x1E` |  |
+| **LPS22HB** | `0x5C`, `0x5D` |  |
+| **LPS25HB** | `0x5C`, `0x5D` |  |
+| **SSD1306/SH1106** | `0x3C`, `0x3D` | SH1106 fakes undetectable |
+| **BH1750** | `0x23`, `0x5C` |  |
+| **SHT3x/SHT4x** | `0x44`, `0x45` | grade relabels undetectable |
+| **MS5611** | `0x76`, `0x77` |  |
+| **VEML6070** | `0x38`, `0x39` |  |
+| **MAX44009** | `0x4A`, `0x4B` |  |
+| **BNO085** | `0x4A`, `0x4B` | SHTP protocol, no WHO_AM_I |
+
+The BNO055 is the one to know about, because its datasheet and every breakout board
+disagree. Bosch BST-BNO055-DS000 Table 4-7 calls `0x29` the *default* and `0x28` the
+alternative, selected by the COM3 pin: HIGH gives `0x29`, LOW gives `0x28`. Boards tie
+COM3 low, so in practice almost every module answers on `0x28` and everyone calls that
+the default. Both are in the database.
+
+That same chip is also the clearest case of an address proving nothing: `0x29` is
+shared with three ST time-of-flight rangefinders and two light sensors, and the app
+separates them by reading four ID registers rather than one — CHIP_ID plus the
+BMA280, BMM150 and BMG160 sub-IDs, which clones get wrong far more often than they get
+CHIP_ID wrong.
+
 ## 1-Wire parts (15)
 
 A different bus, on **pin 17**, and a weaker guarantee. Every 1-Wire part carries a

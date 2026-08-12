@@ -284,6 +284,63 @@ for e in noid:
     L.append('| **%s** | %s | %s | %s | %s |' % (
         e['name'], e['kind'], addr_str(e), live_cell(e), e['note'] or ''))
 L.append('')
+
+# ---- shared addresses -----------------------------------------------------
+# The single most common way to misread a scan is to assume the address names
+# the part. It does not, and the tables above only show that if you read all
+# eighty rows and cross-reference them yourself.
+by_addr = {}
+for e in entries:
+    addrs = range(e['lo'], e['hi'] + 1) if e['lo'] else e['addrs']
+    for a in addrs:
+        by_addr.setdefault(a, []).append(e)
+
+shared = sorted((a, es) for a, es in by_addr.items() if len(es) > 1)
+movable = [e for e in entries if not e['lo'] and len(e['addrs']) > 1]
+
+L.append('## Addresses more than one chip answers on (%d)' % len(shared))
+L.append('')
+L.append('**An I2C address does not name a part.** It is seven bits chosen by the manufacturer,')
+L.append('and plenty of unrelated chips chose the same ones. This is why the app probes rather')
+L.append('than looks up: for every candidate registered at the address that answered, it reads')
+L.append('that candidate\'s ID registers and keeps the one with the most matches. A scan that')
+L.append('reports one part at a crowded address has already ruled the others out.')
+L.append('')
+L.append('| Address | Chips that use it |')
+L.append('|---|---|')
+for a, es in shared:
+    L.append('| `0x%02X` | %s |' % (
+        a, ', '.join('**%s** (%s)' % (e['name'], e['kind']) for e in es)))
+L.append('')
+L.append('Reading this the other way: a chip whose neighbours all have ID registers is safe to')
+L.append('identify by probing, and one sharing an address with an address-only part is not — the')
+L.append('app will say DETECTED rather than guess between them.')
+L.append('')
+L.append('### Chips that can sit at more than one address (%d)' % len(movable))
+L.append('')
+L.append('A pin on the module picks which. If a scan finds nothing, the pin is worth checking')
+L.append('before the wiring is: the app searches every address in this list, but only the ones')
+L.append('in it.')
+L.append('')
+L.append('| Chip | Addresses | Notes |')
+L.append('|---|---|---|')
+for e in movable:
+    L.append('| **%s** | %s | %s |' % (
+        e['name'], ', '.join('`0x%02X`' % a for a in e['addrs']), e['note'] or ''))
+L.append('')
+L.append('The BNO055 is the one to know about, because its datasheet and every breakout board')
+L.append('disagree. Bosch BST-BNO055-DS000 Table 4-7 calls `0x29` the *default* and `0x28` the')
+L.append('alternative, selected by the COM3 pin: HIGH gives `0x29`, LOW gives `0x28`. Boards tie')
+L.append('COM3 low, so in practice almost every module answers on `0x28` and everyone calls that')
+L.append('the default. Both are in the database.')
+L.append('')
+L.append('That same chip is also the clearest case of an address proving nothing: `0x29` is')
+L.append('shared with three ST time-of-flight rangefinders and two light sensors, and the app')
+L.append('separates them by reading four ID registers rather than one — CHIP_ID plus the')
+L.append('BMA280, BMM150 and BMG160 sub-IDs, which clones get wrong far more often than they get')
+L.append('CHIP_ID wrong.')
+L.append('')
+
 # ---- 1-Wire families ------------------------------------------------------
 ow_src = pathlib.Path('fake_chip_detector/onewire_worker.c').read_text(encoding='utf-8')
 ow_body = re.search(
