@@ -362,8 +362,8 @@ void seader_virtual_picopass_state_machine(Seader* seader, uint8_t* buffer, size
             } else if(buffer[1] == PACS_CFG_INDEX) {
                 bit_buffer_append_bytes(rx_buffer, pacs_sr_cfg, sizeof(pacs_sr_cfg));
             } else { // What i've seen is 0c 12
-                const uint8_t* fragment = seader_virtual_sio_fragment(
-                    seader->credential, buffer[1], PICOPASS_BLOCK_LEN);
+                const uint8_t* fragment =
+                    seader_virtual_sio_fragment(seader->credential, buffer[1], PICOPASS_BLOCK_LEN);
                 if(!fragment) {
                     FURI_LOG_W(TAG, "Virtual read of block %02x outside saved SIO", buffer[1]);
                     break;
