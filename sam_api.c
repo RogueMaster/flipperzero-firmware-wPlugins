@@ -422,6 +422,27 @@ PicopassError seader_worker_fake_epurse_update(BitBuffer* tx_buffer, BitBuffer* 
     return PicopassErrorNone;
 }
 
+/* Saved credentials store the SIO from index zero no matter which block it started on, and the
+   replay always presents an SR-shaped card, so the SAM's block numbers are relative to the SR
+   base block. Returns NULL when the requested block falls outside the saved SIO, which happens
+   for SE credentials (they start at block 6) and for any block the SAM probes speculatively. */
+static const uint8_t* seader_virtual_sio_fragment(
+    const SeaderCredential* credential,
+    uint8_t block_num,
+    size_t fragment_len) {
+    if(block_num < SEADER_ICLASS_SR_SIO_BASE_BLOCK) {
+        return NULL;
+    }
+
+    const size_t offset =
+        (size_t)(block_num - SEADER_ICLASS_SR_SIO_BASE_BLOCK) * PICOPASS_BLOCK_LEN;
+    if(offset > sizeof(credential->sio) || sizeof(credential->sio) - offset < fragment_len) {
+        return NULL;
+    }
+
+    return credential->sio + offset;
+}
+
 void seader_virtual_picopass_state_machine(Seader* seader, uint8_t* buffer, size_t len) {
     BitBuffer* tx_buffer = bit_buffer_alloc(len);
     BitBuffer* rx_buffer = bit_buffer_alloc(SEADER_POLLER_MAX_BUFFER_SIZE);
@@ -442,7 +463,6 @@ void seader_virtual_picopass_state_machine(Seader* seader, uint8_t* buffer, size
     uint8_t tmac[4] = {};
     uint8_t cc_p[12] = {};
     uint8_t div_key[PICOPASS_BLOCK_LEN] = {};
-    uint8_t offset; // for READ4
 
     do {
         switch(buffer[0]) {
@@ -452,11 +472,13 @@ void seader_virtual_picopass_state_machine(Seader* seader, uint8_t* buffer, size
             } else if(buffer[1] == PACS_CFG_INDEX) {
                 bit_buffer_append_bytes(rx_buffer, pacs_sr_cfg, sizeof(pacs_sr_cfg));
             } else { // What i've seen is 0c 12
-                offset = buffer[1] - SEADER_ICLASS_SR_SIO_BASE_BLOCK;
-                bit_buffer_append_bytes(
-                    rx_buffer,
-                    seader->credential->sio + (PICOPASS_BLOCK_LEN * offset),
-                    PICOPASS_BLOCK_LEN);
+                const uint8_t* fragment = seader_virtual_sio_fragment(
+                    seader->credential, buffer[1], PICOPASS_BLOCK_LEN);
+                if(!fragment) {
+                    FURI_LOG_W(TAG, "Virtual read of block %02x outside saved SIO", buffer[1]);
+                    break;
+                }
+                bit_buffer_append_bytes(rx_buffer, fragment, PICOPASS_BLOCK_LEN);
             }
             iso13239_crc_append(Iso13239CrcTypePicopass, rx_buffer);
             break;
@@ -485,11 +507,13 @@ void seader_virtual_picopass_state_machine(Seader* seader, uint8_t* buffer, size
                     bit_buffer_append_bytes(rx_buffer, zeroes, sizeof(zeroes));
                 }
             } else {
-                offset = buffer[1] - SEADER_ICLASS_SR_SIO_BASE_BLOCK;
-                bit_buffer_append_bytes(
-                    rx_buffer,
-                    seader->credential->sio + (PICOPASS_BLOCK_LEN * offset),
-                    PICOPASS_BLOCK_LEN * 4);
+                const uint8_t* fragment = seader_virtual_sio_fragment(
+                    seader->credential, buffer[1], PICOPASS_BLOCK_LEN * 4);
+                if(!fragment) {
+                    FURI_LOG_W(TAG, "Virtual read4 of block %02x outside saved SIO", buffer[1]);
+                    break;
+                }
+                bit_buffer_append_bytes(rx_buffer, fragment, PICOPASS_BLOCK_LEN * 4);
             }
             iso13239_crc_append(Iso13239CrcTypePicopass, rx_buffer);
             break;
