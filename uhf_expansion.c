@@ -78,6 +78,7 @@
 
 #define UHF_APP_DATA_DIR APP_DATA_PATH("uhf_expansion")
 #define UHF_DIAG_DATA_DIR "/int/uhf_expansion"
+#define UHF_VIEW_STATE_PATH UHF_DIAG_DATA_DIR "/view_state.bin"
 
 typedef struct {
     InputEvent input;
@@ -323,6 +324,8 @@ static bool uhf_open_serial(UhfApp* app, FuriHalSerialId serial_id);
 static void uhf_close_serial(UhfApp* app);
 static bool uhf_open_bridge_uart(UhfApp* app);
 static void uhf_set_startup_text(UhfApp* app, const char* text, const char* subtext, uint8_t dots);
+static UhfPage uhf_load_last_page(void);
+static void uhf_save_last_page(const UhfApp* app);
 
 static const char* const uhf_about_lines[] = {
     "Features:",
@@ -2647,6 +2650,59 @@ static void uhf_toggle_serial_port(UhfApp* app) {
     uhf_set_status(app, "UART reset 115200");
 }
 
+static UhfPage uhf_load_last_page(void) {
+    UhfPage page = UhfPageCounter;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return page;
+
+    File* file = storage_file_alloc(storage);
+    if(file) {
+        uint8_t stored_page = (uint8_t)UhfPageCounter;
+        if(storage_file_open(file, UHF_VIEW_STATE_PATH, FSAM_READ, FSOM_OPEN_EXISTING) &&
+           storage_file_read(file, &stored_page, sizeof(stored_page)) == sizeof(stored_page) &&
+           stored_page <= (uint8_t)UhfPageRadar) {
+            page = (UhfPage)stored_page;
+        }
+        storage_file_close(file);
+        storage_file_free(file);
+    }
+
+    furi_record_close(RECORD_STORAGE);
+    return page;
+}
+
+static void uhf_save_last_page(const UhfApp* app) {
+    if(!app) return;
+
+    UhfPage page = app->page;
+    if(page == UhfPageAbout) page = app->about_return_page;
+    if(page > UhfPageRadar) page = UhfPageCounter;
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return;
+
+    if(!storage_dir_exists(storage, UHF_DIAG_DATA_DIR)) {
+        const FS_Error mkdir_result = storage_common_mkdir(storage, UHF_DIAG_DATA_DIR);
+        if(mkdir_result != FSE_OK && mkdir_result != FSE_EXIST) {
+            furi_record_close(RECORD_STORAGE);
+            return;
+        }
+    }
+
+    File* file = storage_file_alloc(storage);
+    if(file) {
+        const uint8_t stored_page = (uint8_t)page;
+        if(storage_file_open(file, UHF_VIEW_STATE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+            (void)storage_file_write(file, &stored_page, sizeof(stored_page));
+            storage_file_sync(file);
+        }
+        storage_file_close(file);
+        storage_file_free(file);
+    }
+
+    furi_record_close(RECORD_STORAGE);
+}
+
 static void uhf_toggle_page(UhfApp* app) {
     if(!app) return;
 
@@ -2690,6 +2746,8 @@ static UhfApp* uhf_app_alloc(void) {
     app->rx_ext_pin = -1;
     app->serial_id = FuriHalSerialIdUsart;
     app->baud_rate = UHF_BAUD_RATE;
+    app->page = uhf_load_last_page();
+    app->about_return_page = app->page;
     uhf_set_status(app, "Init");
 
     app->data_mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
@@ -2920,6 +2978,7 @@ int32_t uhf_expansion_app(void* p) {
         }
     }
 
+    uhf_save_last_page(app);
     uhf_app_free(app);
     return 0;
 }
