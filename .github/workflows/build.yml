@@ -6,6 +6,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python contract tests
+        run: |
+          python3 test_vault_capacity_contract.py
+          python3 test_navigation_contract.py
+          python3 test_edit_entry_contract.py
+          python3 test_password_presets.py
+          python3 test_macos_hid_contract.py
+          python3 test_fido2_runtime_contract.py
+      - name: Vault store unit test
+        run: |
+          gcc -std=c11 -Wall -Wextra -Werror -O2 -o test_vault_store test_vault_store.c ck42x_vault_store.c
+          ./test_vault_store
+
   build:
     runs-on: ubuntu-latest
     steps:

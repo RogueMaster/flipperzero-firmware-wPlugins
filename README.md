@@ -27,7 +27,7 @@ Website: <https://ck42x.com>
 
 ## Edit a saved entry
 
-Version `v0.4.5` can update an existing entry without changing the encrypted vault format.
+Version `v0.4.6` can update an existing entry without changing the encrypted vault format. The password vault is no longer capped at 20 saved accounts.
 
 1. Open a saved entry.
 2. Press `Edit`.
@@ -39,7 +39,7 @@ Cancelling confirmation leaves the original entry unchanged. If encrypted storag
 
 ## FIDO2 security key
 
-The experimental FIDO2 runtime in v0.4.5 supports FIDO 2.0 WebAuthn with ES256,
+The experimental FIDO2 runtime in v0.4.6 supports FIDO 2.0 WebAuthn with ES256,
 non-resident credentials, allow lists, and physical user presence.
 
 1. Unlock PassVault with the master PIN.
@@ -59,7 +59,7 @@ Browser installer, release notes, and operating guide:
 
 ## macOS keyboard setup
 
-Version `v0.4.5` includes an explicit one-time setup action for macOS. It keeps the standard Flipper USB HID identity instead of impersonating an Apple keyboard.
+Version `v0.4.6` includes an explicit one-time setup action for macOS. It keeps the standard Flipper USB HID identity instead of impersonating an Apple keyboard.
 
 1. Connect Flipper Zero directly to the Mac over USB.
 2. Unlock PassVault and choose `macOS Keyboard Setup`.
@@ -115,7 +115,7 @@ If USB automation is unavailable, copy `dist/ck42x_passvault.fap` to the Flipper
 
 Generated passwords use the Flipper RNG and the app checks generated passwords against saved entries before saving, so it will not intentionally create a duplicate generated password already in the vault.
 
-v0.4 stores the active vault in app data as AES-GCM encrypted `vault.pv1` and gates vault access behind a master PIN. The key is derived in-app from the PIN and a per-vault random salt using a compact SHA-256 KDF. A fresh random AES-GCM nonce is used on each save.
+v0.4 stores the active vault in app data as AES-GCM encrypted `vault.pv1` and gates vault access behind a master PIN. The key is derived in-app from the PIN and a per-vault random salt using a compact SHA-256 KDF. A fresh random AES-GCM nonce is used on each save. Saved password entries grow as needed; the old 20-entry cap is gone. A 256 KiB encrypted-file sanity bound remains so a corrupt vault cannot request an unbounded allocation.
 
 FIDO2 credentials are kept separately in AES-GCM encrypted `fido2.pv1`, using
 distinct file magic/AAD and the unlocked vault key. The experimental store is
@@ -125,7 +125,7 @@ If a legacy plaintext `vault.tsv` exists and no encrypted vault exists, first PI
 
 This is still a small Flipper utility, not a hardened audited password manager. Device compromise, weak PINs, shoulder surfing, debug access, or modified firmware can still expose vault contents.
 
-The FIDO2 runtime in `v0.4.5` remains experimental. Physical testing on an Oaspote
+The FIDO2 runtime in `v0.4.6` remains experimental. Physical testing on an Oaspote
 Flipper Zero proved CTAP2 GetInfo, browser WebAuthn registration and
 authentication in Chromium, credential persistence across a FIDO-mode restart,
 ES256 signature verification, signature-counter advancement, and restoration of
