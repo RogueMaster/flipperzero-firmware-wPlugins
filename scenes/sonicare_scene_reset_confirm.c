@@ -33,7 +33,7 @@ void sonicare_scene_reset_confirm_on_enter(void* context) {
         38,
         AlignLeft,
         AlignTop,
-        "\e#Warning:\e# The NTAG213 permanently\nlocks after 3 wrong\npassword attempts.",
+        "\e#Warning:\e# The NTAG213 per-\nmanently locks after 3 wrong\npassword attempts.",
         false);
 
     widget_add_button_element(
