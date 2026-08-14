@@ -39,10 +39,16 @@ static NfcCommand sonicare_scene_reset_poller_callback(NfcGenericEvent event, vo
     } else if(ev->type == MfUltralightPollerEventTypeAuthSuccess) {
         FURI_LOG_I("sonicare_scene_reset", "Auth success, writing page 0x24");
 
+        const MfUltralightData* ul_data = app->nfc_data;
         MfUltralightPoller* poller = (MfUltralightPoller*)event.instance;
 
         // Official reset: write page 0x24 = {00 00 02 00}
         MfUltralightPage page = {.data = {0x00, 0x00, 0x02, 0x00}};
+
+        // copy mode and intensity settings
+        page.data[2] = ul_data->page[SONICARE_PAGE_USAGE].data[2];
+        page.data[3] = ul_data->page[SONICARE_PAGE_USAGE].data[3];
+
         MfUltralightError err =
             mf_ultralight_poller_write_page(poller, SONICARE_PAGE_USAGE, &page);
 
