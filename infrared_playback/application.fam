@@ -8,7 +8,7 @@ App(
     stack_size=2 * 1024,
     fap_category="Infrared",
     # Optional values
-    fap_version="0.1",
+    fap_version="0.2",
     fap_icon="assets/icon.png",  # 10x10 1-bit PNG
     fap_description="Implementation of the saved remote feature of the main infrared app with a fix for larger files and payloads",
     fap_author="K. Diller",

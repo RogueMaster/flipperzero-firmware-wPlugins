@@ -189,6 +189,7 @@ void remote_playback_scene_on_enter(void* context){
     
     ui->remote_playback_scene->has_error = false;
     
+    ui->remote_playback_scene->current_ir_payload = 0;
     ui->remote_playback_scene->num_ir_payloads = 0;
     
     FlipperFormat* ff = flipper_format_buffered_file_alloc(ui->storage);
