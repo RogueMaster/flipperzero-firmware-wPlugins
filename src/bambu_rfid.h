@@ -9,7 +9,7 @@
 
 #define BR_APP_ID "bambu_rfid"
 #define BR_APP_NAME "Bambu RFID"
-#define BR_APP_VERSION "0.1.0"
+#define BR_APP_VERSION "0.2.0"
 
 #define BR_DATA_DIR EXT_PATH("apps_data/bambu_rfid")
 #define BR_TAGS_DIR BR_DATA_DIR "/tags"
