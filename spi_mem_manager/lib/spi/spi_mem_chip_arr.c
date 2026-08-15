@@ -1398,4 +1398,6 @@ const SPIMemChip SPIMemChips[] = {
     {0xE0, 0x40, 0x13, "PN25F04A", 524288, 256, SPIMemChipVendorParagon, SPIMemChipWriteModePage},
     {0x0B, 0x40, 0x18, "XT25F128B", 16777216, 256, SPIMemChipVendorXTX, SPIMemChipWriteModePage},
     {0x20, 0x70, 0x17, "XM25QH64C", 8388608, 256, SPIMemChipVendorXMC, SPIMemChipWriteModePage},
-    {0x20, 0x70, 0x18, "XM25QH128A", 16777216, 256, SPIMemChipVendorXMC, SPIMemChipWriteModePage}};
+    {0x20, 0x70, 0x18, "XM25QH128A", 16777216, 256, SPIMemChipVendorXMC, SPIMemChipWriteModePage},
+    // Terminator: spi_mem_chip_find_all() walks this array until model_name is NULL
+    {0x00, 0x00, 0x00, NULL, 0, 0, SPIMemChipVendorUnknown, SPIMemChipWriteModeUnknown}};

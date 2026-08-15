@@ -88,10 +88,17 @@ def generateCArr(arr, filename):
             print(" " + cur["size"] + ",", file=out, end="")
             print(" " + cur["pageSize"] + ",", file=out, end="")
             print(" " + cur["vendorEnum"] + ",", file=out, end="")
-            if cur == arr[-1]:
-                print(" " + cur["writeMode"] + "}};", file=out)
-            else:
-                print(" " + cur["writeMode"] + "},", file=out)
+            print(" " + cur["writeMode"] + "},", file=out)
+        # Terminator: spi_mem_chip_find_all() walks the array until model_name is NULL
+        print(
+            "    // Terminator: spi_mem_chip_find_all() walks this array until model_name is NULL",
+            file=out,
+        )
+        print(
+            "    {0x00, 0x00, 0x00, NULL, 0, 0, SPIMemChipVendorUnknown,"
+            " SPIMemChipWriteModeUnknown}};",
+            file=out,
+        )
 
 def main():
     filename = "spi_mem_chip_arr.c"
