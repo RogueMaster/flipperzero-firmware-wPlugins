@@ -103,5 +103,5 @@ App(
     fap_category="Tools",
     fap_description=description,
     fap_author="Alex Stoyanov",
-    fap_version=(0, 7),
+    fap_version=(0, 8),
 )
