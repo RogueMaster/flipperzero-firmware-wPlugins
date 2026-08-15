@@ -137,6 +137,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DAP Link v1.3 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1897)
 - Updated: [SPI Mem Manager v1.4 (By drunkbatya)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/spi_mem_manager)
 - Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
+- NFC: [Fix cards whose 4-byte UID starts with 0x88 failing to read - the anticollision loop decided UID completeness from the first UID byte (the `0x88` cascade tag value) instead of the SAK cascade bit, so a genuine 4-byte UID that happens to begin with `0x88` (seen on some MIFARE Classic and magic cards) was mistaken for the first level of a 7-byte UID; the poller then issued a second cascade SELECT the card ignored and the read aborted. Now decided from the SAK cascade bit per ISO14443-3, fixing it across every NFC-A protocol (Classic, Ultralight/NTAG, DESFire, Plus, ISO14443-4a, EMV) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1075)
 
 <a name="release"></a>
 
