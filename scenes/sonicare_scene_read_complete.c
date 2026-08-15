@@ -44,17 +44,17 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     const uint8_t brush_id = ul_data->page[0x1f].data[2];
     const char* brush_names[] = {
         "Unknown brush: 0x00",
-        "Prem. Plaque Defence, Wt",
-        "Prem. Plaque Defence, Bk",
+        "Prem. Plaque Def., Wt",
+        "Prem. Plaque Defence, B",
         "Premium Gum Care, Wt",
         "Premium Gum Care, Bk",
         "Premium White, White",
         "Premium White, Black",
-        "Optimal Plaque Defence, W",
+        "Opt. Plaque Defence, Wt",
         "Optimal Gum Care, Wt",   // 0x08
         "Optimal White, White",
         "Optimal White, Black",
-        "Optimal White (small), W",
+        "Opt. White (small), Wt",
         "InterCare, White",
         "InterCare (small), Wt",
         "TongueCare+, White",
@@ -69,6 +69,13 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     };
 
     int brush_names_max = sizeof(brush_names)/sizeof(brush_names[0]);
+
+    /* DEBUG STRING LENGTHS
+    for (int i=0; i<brush_names_max; i++) {
+        furi_string_cat_printf(temp_str, "\e#%s\n", brush_names[i]);
+    }
+    */
+
     if (brush_id < brush_names_max) {
         furi_string_cat_printf(temp_str, "\e#%s\n", brush_names[brush_id]);
     } else {
