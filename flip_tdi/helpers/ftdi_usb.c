@@ -138,6 +138,8 @@ static FtdiUsb* ftdi_cur = NULL;
 
 static void ftdi_usb_callback_tx_immediate(void* context) {
     FtdiUsb* ftdi_usb = context;
+    if (!ftdi_usb || !ftdi_usb->thread) return;
+
     furi_thread_flags_set(furi_thread_get_id(ftdi_usb->thread), EventTxImmediate);
 }
 
@@ -186,6 +188,7 @@ static void ftdi_usb_deinit(usbd_device* dev) {
     free(ftdi_usb->usb.str_serial_descr);
     ftdi_usb->usb.str_serial_descr = NULL;
     free(ftdi_usb);
+    ftdi_usb = NULL;
 }
 
 static void ftdi_usb_send(usbd_device* dev, uint8_t* buf, uint16_t len) {
