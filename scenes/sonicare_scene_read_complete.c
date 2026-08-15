@@ -5,6 +5,7 @@
 #include <gui/modules/widget_elements/widget_element.h>
 #include <gui/scene_manager.h>
 #include <gui/view_dispatcher.h>
+#include <datetime/datetime.h>
 #include <uk_mbirth_sonicare_icons.h>
 #include <dolphin/dolphin.h>
 
@@ -135,6 +136,29 @@ void sonicare_scene_read_complete_on_enter(void* context) {
         furi_string_cat_printf(temp_str, "Last intensity: %s\n", brush_intensities[brush_intensity]);
     } else {
         furi_string_cat_printf(temp_str, "Unknown last intensity: 0x%02x", brush_intensity);
+    }
+
+    // Last brush timestamp
+    uint32_t unixtime =
+        ul_data->page[0x26].data[3] * 16777216
+        + ul_data->page[0x26].data[2] * 65536
+        + ul_data->page[0x26].data[1] * 256
+        + ul_data->page[0x26].data[0];
+    furi_string_cat_printf(temp_str, "Last brush: %li\n", unixtime);
+    
+    if (unixtime > 0) {
+        DateTime brush_dt;
+        datetime_timestamp_to_datetime(unixtime, &brush_dt);
+        furi_string_cat_printf(
+            temp_str,
+            "%04i-%02i-%02i %02i:%02i:%02i UTC\n",
+            brush_dt.year,
+            brush_dt.month,
+            brush_dt.day,
+            brush_dt.hour,
+            brush_dt.minute,
+            brush_dt.second
+        );
     }
 
     furi_string_cat_str(temp_str, "____________________\n");
