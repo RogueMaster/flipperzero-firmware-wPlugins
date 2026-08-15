@@ -34,15 +34,47 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     
     widget_reset(widget);
     
-    const NfcDevice* nfc_device = app->nfc_device;
     FURI_LOG_D("sonicare_scene_read_complete", "Pulling Mifare Ultralight data from NFC device");
     const MfUltralightData* ul_data = app->nfc_data;
 
     FURI_LOG_D("sonicare_scene_read_complete", "Alloc'ing temp_str for output");
     FuriString* temp_str = furi_string_alloc();
-
-    furi_string_cat_printf(temp_str, "\e#%s\n", nfc_device_get_name(nfc_device, NfcDeviceNameTypeFull));
     
+    // Brush type and colour
+    const uint8_t brush_id = ul_data->page[0x1f].data[2];
+    const char* brush_names[] = {
+        "Unknown brush: 0x00",
+        "Prem. Plaque Defence, Wt",
+        "Prem. Plaque Defence, Bk",
+        "Premium Gum Care, Wt",
+        "Premium Gum Care, Bk",
+        "Premium White, White",
+        "Premium White, Black",
+        "Optimal Plaque Defence, W",
+        "Optimal Gum Care, Wt",   // 0x08
+        "Optimal White, White",
+        "Optimal White, Black",
+        "Optimal White (small), W",
+        "InterCare, White",
+        "InterCare (small), Wt",
+        "TongueCare+, White",
+        "TongueCare+, Black",
+        "A3 Prem. All-in-One, Wt",  // 0x10
+        "A3 Prem. All-in-One, Bk",
+        "SimplyClean, White",
+        "ProResults, White",
+        "Sensitive, White",
+        "Sensitive, Black",
+        "Gentle Clean, White"
+    };
+
+    int brush_names_max = sizeof(brush_names)/sizeof(brush_names[0]);
+    if (brush_id < brush_names_max) {
+        furi_string_cat_printf(temp_str, "\e#%s\n", brush_names[brush_id]);
+    } else {
+        furi_string_cat_printf(temp_str, "\e#Unknown brush: 0x%02x\n", brush_id);
+    }
+
     // UID
     furi_string_cat_str(temp_str, "UID:");
     format_bytes(temp_str, ul_data->iso14443_3a_data->uid, ul_data->iso14443_3a_data->uid_len);
