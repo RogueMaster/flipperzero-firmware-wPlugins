@@ -208,6 +208,17 @@ UFZ::Directory::Directory(File& f) noexcept {
 
 bool UFZ::Directory::open(UFZ::File& f, const char* path) noexcept {
     file = &f;
+
+    // A File only allocates its raw handle inside File::open(), which calls
+    // storage_file_open — the wrong call for a directory. Allocate the handle here when the
+    // File does not have one yet, so `File f(fs); Directory d; d.open(f, path);` works;
+    // storage_dir_open(nullptr, ...) would trip furi_check. init() allocates from the
+    // Filesystem the File captured at construction, so there is nothing to do without one.
+    if(file->file == nullptr) {
+        if(file->storage == nullptr) return false;
+        file->init();
+    }
+
     // Mark the File as a directory so its teardown (here or in ~File) closes it as one.
     file->bDirectory = true;
     return storage_dir_open(file->file, path);

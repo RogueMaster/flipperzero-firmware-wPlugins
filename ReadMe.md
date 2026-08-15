@@ -52,7 +52,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [GlitchTrigger v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
 - Updated: [Swimmy Fish v2.5 (By Invizabel)](https://github.com/Invizabel/fish)
 - Added: [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)
-- Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - Updated: [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244) [make Up/Down actually change the screen brightness (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/246) [Daily alarm & other changes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/be05e0cdeff599797e53144a263b572bee571333)
 - Added: [Flipper Share iButton v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton)
 - Updated: [San Morse v1.0.1 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
@@ -133,6 +132,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Stack v1.0 (By bergr22)](https://github.com/bergr22/Stack)
 - Added: [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 - Updated: [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
+- Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
+- Updated: [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 
 <a name="release"></a>
 
