@@ -48,6 +48,7 @@ void dap_thread_send_stop(FuriThread* thread) {
 GpioPin flipper_dap_swclk_pin;
 GpioPin flipper_dap_swdio_pin;
 GpioPin flipper_dap_reset_pin;
+GpioPin flipper_dap_trst_pin;
 GpioPin flipper_dap_tdo_pin;
 GpioPin flipper_dap_tdi_pin;
 
@@ -145,6 +146,7 @@ static void dap_init_gpio(DapSwdPins swd_pins) {
     }
 
     flipper_dap_reset_pin = gpio_ext_pa4;
+    flipper_dap_trst_pin = gpio_ext_pc3;
     flipper_dap_tdo_pin = gpio_ext_pb3;
     flipper_dap_tdi_pin = gpio_ext_pb2;
 }
@@ -152,6 +154,7 @@ static void dap_init_gpio(DapSwdPins swd_pins) {
 static void dap_deinit_gpio(DapSwdPins swd_pins) {
     // setup gpio pins to default state
     furi_hal_gpio_init(&flipper_dap_reset_pin, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+    furi_hal_gpio_init(&flipper_dap_trst_pin, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
     furi_hal_gpio_init(&flipper_dap_tdo_pin, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
     furi_hal_gpio_init(&flipper_dap_tdi_pin, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
 
