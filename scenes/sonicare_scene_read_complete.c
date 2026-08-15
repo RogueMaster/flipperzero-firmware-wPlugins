@@ -109,6 +109,21 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     // TODO: Maybe show "replace soon" marker if 170 brushes or more?
     // TODO: Maybe show "replace head" marker if 180 brushes or more?
 
+    // Brush Mode
+    const char* brush_modes[] = {
+        "Clean",
+        "White+",
+        "Gum Health",
+        "Deep Clean+",
+        "Sensitive"
+    };
+    const uint8_t brush_mode = ul_data->page[0x24].data[3];
+    if (brush_mode<(sizeof(brush_modes)/sizeof(brush_modes[0]))) {
+        furi_string_cat_printf(temp_str, "Last mode: %s\n", brush_modes[brush_mode]);
+    } else {
+        furi_string_cat_printf(temp_str, "Unknown last mode: 0x%02x", brush_mode);
+    }
+
     furi_string_cat_str(temp_str, "____________________\n");
 
     // UID
