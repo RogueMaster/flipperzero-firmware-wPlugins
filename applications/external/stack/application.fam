@@ -1,0 +1,15 @@
+App(
+    appid="stack_game",
+    name="Stack",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="stack_app",
+    cdefines=["APP_STACK"],
+    requires=["gui"],
+    stack_size=2 * 1024,
+    order=20,
+    fap_category="Games",
+    fap_author="bergr22",
+    fap_version="1.0",
+    fap_description="Reflex and rhythm based tower stacking game.",
+    fap_icon="stack.png",
+)
