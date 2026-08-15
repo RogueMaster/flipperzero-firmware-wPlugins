@@ -1,0 +1,14 @@
+App(
+    appid="bambu_rfid",
+    name="Bambu RFID",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="bambu_rfid_app",
+    targets=["f7"],
+    stack_size=6 * 1024,
+    fap_version="0.1.0",
+    fap_category="NFC",
+    fap_description="Read, save, browse, and inspect Bambu Lab filament RFID tags.",
+    fap_author="Open-source community",
+    sources=["src/*.cpp", "src/ui/*.cpp"],
+    fap_libs=["mbedtls"],
+)
