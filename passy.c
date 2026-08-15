@@ -58,6 +58,11 @@ bool passy_save_mrz_info(Passy* passy) {
     FuriString* temp_str = furi_string_alloc();
 
     do {
+        if(passy->passport_number[0] == 0 || passy->date_of_birth[0] == 0 ||
+           passy->date_of_expiry[0] == 0) {
+            break;
+        }
+
         furi_string_printf(
             temp_str, "%s/%s%s", STORAGE_APP_DATA_PATH_PREFIX, PASSY_MRZ_INFO_FILENAME, ".txt");
 
