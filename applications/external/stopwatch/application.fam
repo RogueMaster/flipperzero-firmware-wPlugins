@@ -1,12 +1,14 @@
 App(
     appid="stopwatch_flipper",
-    name="Stopwatch Flipper",
+    name="Stopwatch",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="stopwatch_app_main",
     stack_size=2 * 1024,
-    fap_category="Tools",
     fap_icon="stopwatch.png",
     fap_icon_assets="assets",
-    fap_description="Simple stopwatch with split and reset functions.",
+    fap_category="Tools",
     fap_author="bergrfpv",
+    fap_weburl="https://github.com/bergr22/Stopwatch-Flipper",
+    fap_version="1.0",
+    fap_description="Simple stopwatch with split and reset functions.",
 )

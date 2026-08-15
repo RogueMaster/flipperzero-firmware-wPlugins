@@ -131,6 +131,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Create a blank MIFARE Ultralight AES card from -Add Manually- - generate a factory-default MF0AES20 from scratch and save or emulate it, not just read one (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1070)
 - NFC: [Create a blank MIFARE Ultralight C card from -Add Manually- - generate a factory-default UL-C (open, default -BREAKMEIFYOUCAN!- 3DES key) from scratch and save or emulate it, not just read one (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1072)
 - Added: [Stack v1.0 (By bergr22)](https://github.com/bergr22/Stack)
+- Added: [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 
 <a name="release"></a>
 
@@ -882,6 +883,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [SPI Terminal v0.4 (By janwiesemann)](https://github.com/janwiesemann/flipper-spi-terminal)
 - [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - [SSD1306 Test v1.1 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
+- [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 - [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
 - [Sub Duplicate Finder v1.2.1 (By Endika)](https://github.com/Endika/flipper-sub-dup)
