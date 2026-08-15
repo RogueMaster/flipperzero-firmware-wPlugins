@@ -68,7 +68,7 @@ void sonicare_scene_read_complete_on_enter(void* context) {
         "Gentle Clean, White"
     };
 
-    int brush_names_max = sizeof(brush_names)/sizeof(brush_names[0]);
+    const int brush_names_max = sizeof(brush_names)/sizeof(brush_names[0]);
 
     /* DEBUG STRING LENGTHS
     for (int i=0; i<brush_names_max; i++) {
