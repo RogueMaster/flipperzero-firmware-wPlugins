@@ -1,3 +1,5 @@
+## 1.4
+ - Typo correction
 ## 1.3
  - Removed call to legacy SDK API
 ## 1.2

@@ -235,7 +235,7 @@ static AirMouseApp* air_mouse_alloc(void) {
 
     app->error_dialog = dialog_ex_alloc();
     dialog_ex_set_header(app->error_dialog, "Sensor Module error", 63, 0, AlignCenter, AlignTop);
-    dialog_ex_set_text(app->error_dialog, "Module not conntected", 63, 30, AlignCenter, AlignTop);
+    dialog_ex_set_text(app->error_dialog, "Module not connected", 63, 30, AlignCenter, AlignTop);
     view_set_previous_callback(dialog_ex_get_view(app->error_dialog), air_mouse_exit);
     view_dispatcher_add_view(
         app->view_dispatcher, AirMouseViewError, dialog_ex_get_view(app->error_dialog));
