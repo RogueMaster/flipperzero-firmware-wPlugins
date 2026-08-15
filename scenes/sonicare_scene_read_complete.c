@@ -124,6 +124,19 @@ void sonicare_scene_read_complete_on_enter(void* context) {
         furi_string_cat_printf(temp_str, "Unknown last mode: 0x%02x", brush_mode);
     }
 
+    // Brush Intensity
+    const char* brush_intensities[] = {
+        "Low",
+        "Med",
+        "High"
+    };
+    const uint8_t brush_intensity = ul_data->page[0x24].data[2];
+    if (brush_intensity<(sizeof(brush_intensities)/sizeof(brush_intensities[0]))) {
+        furi_string_cat_printf(temp_str, "Last intensity: %s\n", brush_intensities[brush_intensity]);
+    } else {
+        furi_string_cat_printf(temp_str, "Unknown last intensity: 0x%02x", brush_intensity);
+    }
+
     furi_string_cat_str(temp_str, "____________________\n");
 
     // UID
