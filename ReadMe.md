@@ -130,6 +130,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Native MIFARE Ultralight AES (MF0AES20) support - read via AES 3-pass auth + dictionary/manual unlock, write-back (Keep/Copy Key), emulation, and secure messaging (CMAC) end to end, plus the 3 one-way counters, config decoding, originality signature and Random ID real-UID retrieval; hardware-validated on a real MF0AES20 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1058)
 - NFC: [Create a blank MIFARE Ultralight AES card from -Add Manually- - generate a factory-default MF0AES20 from scratch and save or emulate it, not just read one (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1070)
 - NFC: [Create a blank MIFARE Ultralight C card from -Add Manually- - generate a factory-default UL-C (open, default -BREAKMEIFYOUCAN!- 3DES key) from scratch and save or emulate it, not just read one (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1072)
+- Added: [Stack v1.0 (By bergr22)](https://github.com/bergr22/Stack)
 
 <a name="release"></a>
 
@@ -377,6 +378,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Space Impact II v1.0.2 (By Erbonator3000 & VoidXH)](https://github.com/Erbonator3000/Flipper-Zero-Space-Impact-II)
 - [Space Impact WIP v0.2 (By Ka3u6y6a)](https://github.com/Ka3u6y6a/flipper-zero-space-impact)
 - [Space Invaders v0.1 (By PavelZurek)](https://github.com/PavelZurek/flipperzero-space-invaders)
+- [Stack v1.0 (By bergr22)](https://github.com/bergr22/Stack)
 - [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 - [Strategem Zero v0.1 (By nymda)](https://github.com/nymda/StratagemZero)
 - [Sudoku v1.2 (By profelis)](https://github.com/profelis/fz-sudoku)

@@ -9,16 +9,16 @@
 #include <furi_hal_light.h>
 
 #define SAVE_FOLDER "/ext/apps_data/stack"
-#define SAVE_PATH "/ext/apps_data/stack/stack.save"
+#define SAVE_PATH   "/ext/apps_data/stack/stack.save"
 
-#define FPS 30
-#define BLOCK_H 4
-#define INITIAL_SIZE 22.0f
-#define MIN_SIZE 2.5f
-#define MAX_TOWER 16
+#define FPS               30
+#define BLOCK_H           4
+#define INITIAL_SIZE      22.0f
+#define MIN_SIZE          2.5f
+#define MAX_TOWER         16
 #define PERFECT_TOLERANCE 1.2f
-#define COMBO_TARGET 6
-#define GROWTH_AMT 3.5f
+#define COMBO_TARGET      6
+#define GROWTH_AMT        3.5f
 
 #define SCREEN_CENTER_X 64
 #define SCREEN_CENTER_Y 34
@@ -30,7 +30,7 @@ static const float SCALE_FREQS[] = {
     659.25f, // MI (E5)
     698.46f, // FA (F5)
     783.99f, // SOL (G5)
-    880.00f  // LA (A5)
+    880.00f // LA (A5)
 };
 
 typedef enum {
@@ -89,17 +89,17 @@ typedef struct {
     IsoBlock tower[MAX_TOWER];
     int tower_count;
     int total_height;
-    
+
     Axis active_axis;
     float active_pos;
     float active_w, active_l;
     float speed;
     float dir;
-    
+
     int score;
     int high_score;
     int combo;
-    
+
     bool sound_enabled;
     bool vibro_enabled;
 
@@ -110,7 +110,7 @@ typedef struct {
     int effect_ticks;
     bool speaker_active;
     bool vibro_active;
-    
+
     FuriMutex* mutex;
 } StackGame;
 
@@ -218,8 +218,7 @@ static void save_settings(StackGame* game) {
         SaveData save = {
             .high_score = game->high_score,
             .sound_enabled = game->sound_enabled,
-            .vibro_enabled = game->vibro_enabled
-        };
+            .vibro_enabled = game->vibro_enabled};
         storage_file_write(file, &save, sizeof(SaveData));
     }
 
@@ -236,9 +235,30 @@ static void project_iso(float x, float y, float z, float cam_z, int* out_x, int*
 }
 
 static void draw_filled_triangle(Canvas* canvas, int x0, int y0, int x1, int y1, int x2, int y2) {
-    if(y0 > y1) { int tx=x0; x0=x1; x1=tx; int ty=y0; y0=y1; y1=ty; }
-    if(y1 > y2) { int tx=x1; x1=x2; x2=tx; int ty=y1; y1=y2; y2=ty; }
-    if(y0 > y1) { int tx=x0; x0=x1; x1=tx; int ty=y0; y0=y1; y1=ty; }
+    if(y0 > y1) {
+        int tx = x0;
+        x0 = x1;
+        x1 = tx;
+        int ty = y0;
+        y0 = y1;
+        y1 = ty;
+    }
+    if(y1 > y2) {
+        int tx = x1;
+        x1 = x2;
+        x2 = tx;
+        int ty = y1;
+        y1 = y2;
+        y2 = ty;
+    }
+    if(y0 > y1) {
+        int tx = x0;
+        x0 = x1;
+        x1 = tx;
+        int ty = y0;
+        y0 = y1;
+        y1 = ty;
+    }
 
     if(y0 == y2) return;
 
@@ -248,23 +268,28 @@ static void draw_filled_triangle(Canvas* canvas, int x0, int y0, int x1, int y1,
         if(segment_height == 0) continue;
 
         float alpha = (float)(y - y0) / (float)(y2 - y0);
-        float beta  = (float)(y - (second_half ? y1 : y0)) / (float)segment_height;
+        float beta = (float)(y - (second_half ? y1 : y0)) / (float)segment_height;
 
         int ax = x0 + (int)((x2 - x0) * alpha);
         int bx = second_half ? (x1 + (int)((x2 - x1) * beta)) : (x0 + (int)((x1 - x0) * beta));
 
-        if(ax > bx) { int t = ax; ax = bx; bx = t; }
+        if(ax > bx) {
+            int t = ax;
+            ax = bx;
+            bx = t;
+        }
         canvas_draw_line(canvas, ax, y, bx, y);
     }
 }
 
-static void draw_iso_block(Canvas* canvas, float x, float y, float z, float w, float l, float cam_z) {
+static void
+    draw_iso_block(Canvas* canvas, float x, float y, float z, float w, float l, float cam_z) {
     int x0, y0, x1, y1, x2, y2, x3, y3;
-    
-    project_iso(x, y, z, cam_z, &x0, &y0);         // Top corner
-    project_iso(x + w, y, z, cam_z, &x1, &y1);     // Right corner
+
+    project_iso(x, y, z, cam_z, &x0, &y0); // Top corner
+    project_iso(x + w, y, z, cam_z, &x1, &y1); // Right corner
     project_iso(x + w, y + l, z, cam_z, &x2, &y2); // Bottom corner
-    project_iso(x, y + l, z, cam_z, &x3, &y3);     // Left corner
+    project_iso(x, y + l, z, cam_z, &x3, &y3); // Left corner
 
     int h = BLOCK_H;
 
@@ -486,14 +511,15 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             if(i == (int)game->menu_selected) {
                 canvas_draw_box(canvas, 34, y - 6, 60, 9);
                 canvas_set_color(canvas, ColorWhite);
-                canvas_draw_str_aligned(canvas, 64, y - 1, AlignCenter, AlignCenter, menu_items[i]);
+                canvas_draw_str_aligned(
+                    canvas, 64, y - 1, AlignCenter, AlignCenter, menu_items[i]);
                 canvas_set_color(canvas, ColorBlack);
             } else {
-                canvas_draw_str_aligned(canvas, 64, y - 1, AlignCenter, AlignCenter, menu_items[i]);
+                canvas_draw_str_aligned(
+                    canvas, 64, y - 1, AlignCenter, AlignCenter, menu_items[i]);
             }
         }
-    } 
-    else if(game->state == StateSettings) {
+    } else if(game->state == StateSettings) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignCenter, "SETTINGS");
         canvas_draw_line(canvas, 10, 18, 118, 18);
@@ -518,8 +544,7 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         }
 
         canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignCenter, "[BACK] Return");
-    }
-    else if(game->state == StateCredits) {
+    } else if(game->state == StateCredits) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignCenter, "CREDITS");
         canvas_draw_line(canvas, 10, 20, 118, 20);
@@ -528,8 +553,7 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, 64, 31, AlignCenter, AlignCenter, "Developer: bergr22");
         canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignCenter, "github.com/bergr22");
         canvas_draw_str_aligned(canvas, 64, 57, AlignCenter, AlignCenter, "[BACK] Return");
-    }
-    else if(game->state == StatePlaying || game->state == StateGameOver) {
+    } else if(game->state == StatePlaying || game->state == StateGameOver) {
         // Tower rendering
         for(int i = game->tower_count - 1; i >= 0; i--) {
             IsoBlock* b = &game->tower[i];
@@ -542,7 +566,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             float cur_y = (game->active_axis == AxisY) ? game->active_pos : top->y;
             float cur_z = game->total_height + 1;
 
-            draw_iso_block(canvas, cur_x, cur_y, cur_z, game->active_w, game->active_l, game->camera_z);
+            draw_iso_block(
+                canvas, cur_x, cur_y, cur_z, game->active_w, game->active_l, game->camera_z);
         }
 
         // Score display
@@ -565,10 +590,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
 
             canvas_set_font(canvas, FontPrimary);
             canvas_draw_str_aligned(canvas, 64, 23, AlignCenter, AlignCenter, "GAME OVER");
-            
+
             canvas_set_font(canvas, FontSecondary);
             char best_info[32];
-            snprintf(best_info, sizeof(best_info), "Score: %d  Best: %d", game->score, game->high_score);
+            snprintf(
+                best_info, sizeof(best_info), "Score: %d  Best: %d", game->score, game->high_score);
             canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignCenter, best_info);
             canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignCenter, "Press OK to Retry");
         }
@@ -628,7 +654,6 @@ int32_t stack_app(void* p) {
                 game_tick(game);
             } else if(event.type == AppEventTypeInput) {
                 if(event.input.type == InputTypeShort || event.input.type == InputTypeRepeat) {
-                    
                     // --- MENU INPUTS ---
                     if(game->state == StateMenu) {
                         if(event.input.key == InputKeyUp) {
@@ -650,9 +675,13 @@ int32_t stack_app(void* p) {
                     // --- SETTINGS INPUTS ---
                     else if(game->state == StateSettings) {
                         if(event.input.key == InputKeyUp || event.input.key == InputKeyDown) {
-                            game->settings_selected = (game->settings_selected == SettingsItemSound) ? 
-                                                      SettingsItemVibro : SettingsItemSound;
-                        } else if(event.input.key == InputKeyLeft || event.input.key == InputKeyRight || event.input.key == InputKeyOk) {
+                            game->settings_selected =
+                                (game->settings_selected == SettingsItemSound) ?
+                                    SettingsItemVibro :
+                                    SettingsItemSound;
+                        } else if(
+                            event.input.key == InputKeyLeft || event.input.key == InputKeyRight ||
+                            event.input.key == InputKeyOk) {
                             if(game->settings_selected == SettingsItemSound) {
                                 game->sound_enabled = !game->sound_enabled;
                             } else {
