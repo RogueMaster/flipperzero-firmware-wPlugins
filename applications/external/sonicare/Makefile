@@ -3,6 +3,9 @@
 all:
 	ufbt
 
+.PHONY: run
+run:
+	ufbt launch
 
 .PHONY: clean
 clean:

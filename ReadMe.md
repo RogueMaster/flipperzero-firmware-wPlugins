@@ -132,6 +132,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Create a blank MIFARE Ultralight C card from -Add Manually- - generate a factory-default UL-C (open, default -BREAKMEIFYOUCAN!- 3DES key) from scratch and save or emulate it, not just read one (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1072)
 - Added: [Stack v1.0 (By bergr22)](https://github.com/bergr22/Stack)
 - Added: [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
+- Updated: [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 
 <a name="release"></a>
 

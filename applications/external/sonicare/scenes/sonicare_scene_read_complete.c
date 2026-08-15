@@ -5,6 +5,7 @@
 #include <gui/modules/widget_elements/widget_element.h>
 #include <gui/scene_manager.h>
 #include <gui/view_dispatcher.h>
+#include <datetime/datetime.h>
 #include <uk_mbirth_sonicare_icons.h>
 #include <dolphin/dolphin.h>
 
@@ -37,37 +38,39 @@ void sonicare_scene_read_complete_on_enter(void* context) {
 
     widget_reset(widget);
 
-    const NfcDevice* nfc_device = app->nfc_device;
     FURI_LOG_D("sonicare_scene_read_complete", "Pulling Mifare Ultralight data from NFC device");
     const MfUltralightData* ul_data = app->nfc_data;
 
     FURI_LOG_D("sonicare_scene_read_complete", "Alloc'ing temp_str for output");
     FuriString* temp_str = furi_string_alloc();
 
-    furi_string_cat_printf(
-        temp_str, "\e#%s\n", nfc_device_get_name(nfc_device, NfcDeviceNameTypeFull));
+    // Brush type and colour
+    const uint8_t brush_id = ul_data->page[0x1f].data[2];
+    const char* brush_names[] = {
+        "Unknown brush: 0x00",     "Prem. Plaque Def., Wt",   "Prem. Plaque Defence, B",
+        "Premium Gum Care, Wt",    "Premium Gum Care, Bk",    "Premium White, White",
+        "Premium White, Black",    "Opt. Plaque Defence, Wt",
+        "Optimal Gum Care, Wt", // 0x08
+        "Optimal White, White",    "Optimal White, Black",    "Opt. White (small), Wt",
+        "InterCare, White",        "InterCare (small), Wt",   "TongueCare+, White",
+        "TongueCare+, Black",
+        "A3 Prem. All-in-One, Wt", // 0x10
+        "A3 Prem. All-in-One, Bk", "SimplyClean, White",      "ProResults, White",
+        "Sensitive, White",        "Sensitive, Black",        "Gentle Clean, White"};
 
-    // UID
-    furi_string_cat_str(temp_str, "UID:");
-    format_bytes(temp_str, ul_data->iso14443_3a_data->uid, ul_data->iso14443_3a_data->uid_len);
-    furi_string_cat_str(temp_str, "\n");
+    const int brush_names_max = sizeof(brush_names) / sizeof(brush_names[0]);
 
-    // Cache UID + MFG for the reset scene's password derivation.
-    // MFG (10 bytes, e.g. "221214 12K") = page[0x21].data[2..3] +
-    // page[0x22].data[0..3] + page[0x23].data[0..3]
-    // (first 2 bytes of page 0x21 are the max-usage value, not MFG).
-    memcpy(app->sonicare_uid, ul_data->iso14443_3a_data->uid, 7);
-    memcpy(app->sonicare_mfg + 0, ul_data->page[0x21].data + 2, 2);
-    memcpy(app->sonicare_mfg + 2, ul_data->page[0x22].data, 4);
-    memcpy(app->sonicare_mfg + 6, ul_data->page[0x23].data, 4);
+    /* DEBUG STRING LENGTHS
+    for (int i=0; i<brush_names_max; i++) {
+        furi_string_cat_printf(temp_str, "\e#%s\n", brush_names[i]);
+    }
+    */
 
-    // Manufacturing Code
-    furi_string_cat_str(temp_str, "MFG: ");
-    FuriString* serial_no = furi_string_alloc();
-    furi_string_cat_str(serial_no, (char*)(ul_data->page[0x21].data));
-    furi_string_right(serial_no, 2);
-    furi_string_cat(temp_str, serial_no);
-    furi_string_cat_printf(temp_str, "\n");
+    if(brush_id < brush_names_max) {
+        furi_string_cat_printf(temp_str, "\e#%s\n", brush_names[brush_id]);
+    } else {
+        furi_string_cat_printf(temp_str, "\e#Unknown brush: 0x%02x\n", brush_id);
+    }
 
     // Usage
     uint16_t seconds = ul_data->page[0x24].data[1] * 256 + ul_data->page[0x24].data[0];
@@ -107,6 +110,69 @@ void sonicare_scene_read_complete_on_enter(void* context) {
 
     // TODO: Maybe show "replace soon" marker if 170 brushes or more?
     // TODO: Maybe show "replace head" marker if 180 brushes or more?
+
+    // Brush Mode
+    const char* brush_modes[] = {"Clean", "White+", "Gum Health", "Deep Clean+", "Sensitive"};
+    const uint8_t brush_mode = ul_data->page[0x24].data[3];
+    if(brush_mode < (sizeof(brush_modes) / sizeof(brush_modes[0]))) {
+        furi_string_cat_printf(temp_str, "Last mode: %s\n", brush_modes[brush_mode]);
+    } else {
+        furi_string_cat_printf(temp_str, "Unknown last mode: 0x%02x", brush_mode);
+    }
+
+    // Brush Intensity
+    const char* brush_intensities[] = {"Low", "Med", "High"};
+    const uint8_t brush_intensity = ul_data->page[0x24].data[2];
+    if(brush_intensity < (sizeof(brush_intensities) / sizeof(brush_intensities[0]))) {
+        furi_string_cat_printf(
+            temp_str, "Last intensity: %s\n", brush_intensities[brush_intensity]);
+    } else {
+        furi_string_cat_printf(temp_str, "Unknown last intensity: 0x%02x", brush_intensity);
+    }
+
+    // Last brush timestamp
+    uint32_t unixtime = ul_data->page[0x26].data[3] * 16777216 +
+                        ul_data->page[0x26].data[2] * 65536 + ul_data->page[0x26].data[1] * 256 +
+                        ul_data->page[0x26].data[0];
+    furi_string_cat_printf(temp_str, "Last brush: %li\n", unixtime);
+
+    if(unixtime > 0) {
+        DateTime brush_dt;
+        datetime_timestamp_to_datetime(unixtime, &brush_dt);
+        furi_string_cat_printf(
+            temp_str,
+            "%04i-%02i-%02i %02i:%02i:%02i UTC\n",
+            brush_dt.year,
+            brush_dt.month,
+            brush_dt.day,
+            brush_dt.hour,
+            brush_dt.minute,
+            brush_dt.second);
+    }
+
+    furi_string_cat_str(temp_str, "____________________\n");
+
+    // UID
+    furi_string_cat_str(temp_str, "UID:");
+    format_bytes(temp_str, ul_data->iso14443_3a_data->uid, ul_data->iso14443_3a_data->uid_len);
+    furi_string_cat_str(temp_str, "\n");
+
+    // Cache UID + MFG for the reset scene's password derivation.
+    // MFG (10 bytes, e.g. "221214 12K") = page[0x21].data[2..3] +
+    // page[0x22].data[0..3] + page[0x23].data[0..3]
+    // (first 2 bytes of page 0x21 are the max-usage value, not MFG).
+    memcpy(app->sonicare_uid, ul_data->iso14443_3a_data->uid, 7);
+    memcpy(app->sonicare_mfg + 0, ul_data->page[0x21].data + 2, 2);
+    memcpy(app->sonicare_mfg + 2, ul_data->page[0x22].data, 4);
+    memcpy(app->sonicare_mfg + 6, ul_data->page[0x23].data, 4);
+
+    // Manufacturing Code
+    furi_string_cat_str(temp_str, "MFG: ");
+    FuriString* serial_no = furi_string_alloc();
+    furi_string_cat_str(serial_no, (char*)(ul_data->page[0x21].data));
+    furi_string_right(serial_no, 2);
+    furi_string_cat(temp_str, serial_no);
+    furi_string_cat_printf(temp_str, "\n");
 
     // NFC password
     uint32_t unlock_pwd_big = get_sonicare_password(
