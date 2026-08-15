@@ -59,6 +59,10 @@ struct MassStorageUsb {
     FuriThread* thread;
     usbd_device* dev;
     SCSIDeviceFunc fn;
+
+    bool connected;
+    MassStorageUsbConnectionStatusCallback status_cb;
+    void* status_cb_context;
 };
 
 static int32_t mass_thread_worker(void* context) {
@@ -106,6 +110,7 @@ static int32_t mass_thread_worker(void* context) {
                         FURI_LOG_T(TAG, "cbw not ready");
                         break;
                     }
+                    if(!mass->connected) mass->connected = true;
                     if(len != sizeof(cbw) || cbw.sig != CBW_SIG) {
                         FURI_LOG_W(TAG, "bad cbw sig=%08lx", cbw.sig);
                         usbd_ep_stall(dev, USB_MSC_TX_EP);
@@ -268,16 +273,12 @@ static void usb_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx) {
     MassStorageUsb* mass = ctx;
     mass_cur = mass;
     mass->dev = dev;
+    mass->connected = false;
 
     usbd_reg_config(dev, usb_ep_config);
     usbd_reg_control(dev, usb_control);
     usbd_connect(dev, true);
 
-    mass->thread = furi_thread_alloc();
-    furi_thread_set_name(mass->thread, "MassStorageUsb");
-    furi_thread_set_stack_size(mass->thread, 1024);
-    furi_thread_set_context(mass->thread, ctx);
-    furi_thread_set_callback(mass->thread, mass_thread_worker);
     furi_thread_start(mass->thread);
 }
 
@@ -292,17 +293,14 @@ static void usb_deinit(usbd_device* dev) {
     }
     mass_cur = NULL;
 
-    furi_assert(mass->thread);
-    furi_thread_flags_set(furi_thread_get_id(mass->thread), EventExit);
-    furi_thread_join(mass->thread);
-    furi_thread_free(mass->thread);
-    mass->thread = NULL;
+    if(mass->thread) {
+        furi_thread_flags_set(furi_thread_get_id(mass->thread), EventExit);
+        furi_thread_join(mass->thread);
+    }
 
-    free(mass->usb.str_prod_descr);
-    mass->usb.str_prod_descr = NULL;
-    free(mass->usb.str_serial_descr);
-    mass->usb.str_serial_descr = NULL;
-    free(mass);
+    if(!mass->connected && mass->status_cb) {
+        mass->status_cb(false, mass->status_cb_context);
+    }
 }
 
 static void usb_wakeup(usbd_device* dev) {
@@ -466,8 +464,10 @@ MassStorageUsb* mass_storage_usb_start(const char* filename, SCSIDeviceFunc fn) 
     mass->usb.str_serial_descr = str_serial_descr;
 
     mass->fn = fn;
+    mass->thread = furi_thread_alloc_ex("MassStorageUsb", 1024, mass_thread_worker, mass);
     if(!furi_hal_usb_set_config(&mass->usb, mass)) {
         FURI_LOG_E(TAG, "USB locked, cannot start Mass Storage");
+        furi_thread_free(mass->thread);
         free(mass->usb.str_prod_descr);
         free(mass->usb.str_serial_descr);
         free(mass);
@@ -478,4 +478,16 @@ MassStorageUsb* mass_storage_usb_start(const char* filename, SCSIDeviceFunc fn) 
 
 void mass_storage_usb_stop(MassStorageUsb* mass) {
     furi_hal_usb_set_config(mass->usb_prev, NULL);
+    furi_thread_free(mass->thread);
+    free(mass->usb.str_prod_descr);
+    free(mass->usb.str_serial_descr);
+    free(mass);
+}
+
+void mass_storage_usb_set_connection_status_callback(
+    MassStorageUsb* mass,
+    MassStorageUsbConnectionStatusCallback cb,
+    void* context) {
+    mass->status_cb = cb;
+    mass->status_cb_context = context;
 }

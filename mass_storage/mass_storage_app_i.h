@@ -59,6 +59,7 @@ enum MassStorageCustomEvent {
     MassStorageCustomEventReserved = 100,
 
     MassStorageCustomEventEject,
+    MassStorageCustomEventConnectionError,
     MassStorageCustomEventFileSelect,
     MassStorageCustomEventNewImage,
     MassStorageCustomEventNameInput,

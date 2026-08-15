@@ -51,6 +51,13 @@ static void file_eject(void* ctx) {
     view_dispatcher_send_custom_event(app->view_dispatcher, MassStorageCustomEventEject);
 }
 
+static void usb_connection_status_cb(bool connected, void* ctx) {
+    UNUSED(connected);
+    MassStorageApp* app = ctx;
+    view_dispatcher_send_custom_event(
+        app->view_dispatcher, MassStorageCustomEventConnectionError);
+}
+
 bool mass_storage_scene_work_on_event(void* context, SceneManagerEvent event) {
     MassStorageApp* app = context;
     bool consumed = false;
@@ -62,6 +69,9 @@ bool mass_storage_scene_work_on_event(void* context, SceneManagerEvent event) {
                 consumed = scene_manager_search_and_switch_to_previous_scene(
                     app->scene_manager, MassStorageSceneStart);
             }
+        } else if(event.event == MassStorageCustomEventConnectionError) {
+            mass_storage_set_connection_error(app->mass_storage_view);
+            consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeTick) {
         mass_storage_set_stats(app->mass_storage_view, app->bytes_read, app->bytes_written);
@@ -79,6 +89,7 @@ bool mass_storage_scene_work_on_event(void* context, SceneManagerEvent event) {
 void mass_storage_scene_work_on_enter(void* context) {
     MassStorageApp* app = context;
     app->bytes_read = app->bytes_written = 0;
+    mass_storage_clear_connection_error(app->mass_storage_view);
 
     if(!storage_file_exists(app->fs_api, furi_string_get_cstr(app->file_path))) {
         scene_manager_search_and_switch_to_previous_scene(
@@ -110,6 +121,9 @@ void mass_storage_scene_work_on_enter(void* context) {
     };
 
     app->usb = mass_storage_usb_start(furi_string_get_cstr(file_name), fn);
+    if(app->usb) {
+        mass_storage_usb_set_connection_status_callback(app->usb, usb_connection_status_cb, app);
+    }
 
     furi_string_free(file_name);
 
@@ -126,6 +140,7 @@ void mass_storage_scene_work_on_exit(void* context) {
         app->usb_mutex = NULL;
     }
     if(app->usb) {
+        mass_storage_usb_set_connection_status_callback(app->usb, NULL, NULL);
         mass_storage_usb_stop(app->usb);
         app->usb = NULL;
     }
