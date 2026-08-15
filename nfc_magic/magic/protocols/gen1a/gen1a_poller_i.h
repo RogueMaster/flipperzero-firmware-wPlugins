@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 #define GEN1A_POLLER_MAX_BUFFER_SIZE (64U)
-#define GEN1A_POLLER_MAX_FWT (60000U)
+#define GEN1A_POLLER_MAX_FWT         (60000U)
 
 typedef enum {
     Gen1aPollerErrorNone,

@@ -8,9 +8,9 @@
 #include <m-array.h>
 
 #define FRAME_HEIGHT 12
-#define MAX_LEN_PX 112
-#define MENU_ITEMS 4u
-#define UNLOCK_CNT 3
+#define MAX_LEN_PX   112
+#define MENU_ITEMS   4u
+#define UNLOCK_CNT   3
 
 #define SUBGHZ_RAW_THRESHOLD_MIN -90.0f
 typedef struct {
@@ -451,8 +451,7 @@ View* ws_view_receiver_get_view(WSReceiver* ws_receiver) {
 uint16_t ws_view_receiver_get_idx_menu(WSReceiver* ws_receiver) {
     furi_assert(ws_receiver);
     uint32_t idx = 0;
-    with_view_model(
-        ws_receiver->view, WSReceiverModel * model, { idx = model->idx; }, false);
+    with_view_model(ws_receiver->view, WSReceiverModel * model, { idx = model->idx; }, false);
     return idx;
 }
 

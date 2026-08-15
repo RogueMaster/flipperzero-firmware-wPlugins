@@ -9,11 +9,8 @@
 
 #define USB_WINUSB_WINDOWS_VERSION 0x06030000 // Windows 8.1
 
-#define USB_WINUSB_PLATFORM_CAPABILITY_ID                                                         \
-    {                                                                                             \
-        0xdf, 0x60, 0xdd, 0xd8, 0x89, 0x45, 0xc7, 0x4c, 0x9c, 0xd2, 0x65, 0x9d, 0x9e, 0x64, 0x8a, \
-            0x9f                                                                                  \
-    }
+#define USB_WINUSB_PLATFORM_CAPABILITY_ID \
+    {0xdf, 0x60, 0xdd, 0xd8, 0x89, 0x45, 0xc7, 0x4c, 0x9c, 0xd2, 0x65, 0x9d, 0x9e, 0x64, 0x8a, 0x9f}
 
 enum // WinUSB Microsoft OS 2.0 descriptor request codes
 {

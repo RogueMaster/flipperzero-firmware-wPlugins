@@ -10,7 +10,7 @@
 #include <string.h>
 
 #define GEN4_POLLER_THREAD_FLAG_DETECTED (1U << 0)
-#define GEN4_POLLER_DEFAULT_CONFIG_SIZE (28)
+#define GEN4_POLLER_DEFAULT_CONFIG_SIZE  (28)
 
 typedef NfcCommand (*Gen4PollerStateHandler)(Gen4Poller* instance);
 

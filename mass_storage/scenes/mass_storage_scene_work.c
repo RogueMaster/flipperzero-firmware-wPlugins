@@ -54,8 +54,7 @@ static void file_eject(void* ctx) {
 static void usb_connection_status_cb(bool connected, void* ctx) {
     UNUSED(connected);
     MassStorageApp* app = ctx;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, MassStorageCustomEventConnectionError);
+    view_dispatcher_send_custom_event(app->view_dispatcher, MassStorageCustomEventConnectionError);
 }
 
 bool mass_storage_scene_work_on_event(void* context, SceneManagerEvent event) {

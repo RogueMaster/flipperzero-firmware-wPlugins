@@ -10,12 +10,12 @@ extern "C" {
 #endif
 
 #define GEN2_CMD_READ_ATS (0xE0)
-#define GEN2_FSDI_256 (0x8U)
+#define GEN2_FSDI_256     (0x8U)
 
 #define GEN2_POLLER_BLOCK_SIZE (16)
 
 #define GEN2_POLLER_MAX_BUFFER_SIZE (64U)
-#define GEN2_POLLER_MAX_FWT (150000U)
+#define GEN2_POLLER_MAX_FWT         (150000U)
 
 typedef enum {
     Gen2PollerStateIdle,

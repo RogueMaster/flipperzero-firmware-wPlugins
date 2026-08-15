@@ -15,7 +15,6 @@
 
 #include "helpers/ftdi_usb.h"
 
-
 typedef struct FlipTDIApp FlipTDIApp;
 
 struct FlipTDIApp {

@@ -35,19 +35,9 @@ static void mass_storage_draw_callback(Canvas* canvas, void* _model) {
             canvas, canvas_width(canvas) / 2, 12, AlignCenter, AlignCenter, "USB Error");
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(
-            canvas,
-            canvas_width(canvas) / 2,
-            28,
-            AlignCenter,
-            AlignCenter,
-            "Check your USB cable");
+            canvas, canvas_width(canvas) / 2, 28, AlignCenter, AlignCenter, "Check your USB cable");
         canvas_draw_str_aligned(
-            canvas,
-            canvas_width(canvas) / 2,
-            42,
-            AlignCenter,
-            AlignCenter,
-            "and try again");
+            canvas, canvas_width(canvas) / 2, 42, AlignCenter, AlignCenter, "and try again");
         elements_button_left(canvas, "Back");
         return;
     }
@@ -131,18 +121,12 @@ void mass_storage_set_file_name(MassStorage* mass_storage, FuriString* name) {
 
 void mass_storage_set_connection_error(MassStorage* mass_storage) {
     with_view_model(
-        mass_storage->view,
-        MassStorageModel * model,
-        { model->connection_error = true; },
-        true);
+        mass_storage->view, MassStorageModel * model, { model->connection_error = true; }, true);
 }
 
 void mass_storage_clear_connection_error(MassStorage* mass_storage) {
     with_view_model(
-        mass_storage->view,
-        MassStorageModel * model,
-        { model->connection_error = false; },
-        false);
+        mass_storage->view, MassStorageModel * model, { model->connection_error = false; }, false);
 }
 
 void mass_storage_set_stats(MassStorage* mass_storage, uint32_t read, uint32_t written) {

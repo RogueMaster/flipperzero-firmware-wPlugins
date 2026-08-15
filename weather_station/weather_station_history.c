@@ -7,7 +7,7 @@
 #include <furi.h>
 
 #define WS_HISTORY_MAX 50
-#define TAG "WSHistory"
+#define TAG            "WSHistory"
 
 typedef struct {
     FuriString* item_str;

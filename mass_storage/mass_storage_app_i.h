@@ -19,8 +19,8 @@
 #include <mass_storage_icons.h>
 
 #define MASS_STORAGE_APP_PATH_FOLDER STORAGE_APP_DATA_PATH_PREFIX
-#define MASS_STORAGE_APP_EXTENSION ".img"
-#define MASS_STORAGE_FILE_NAME_LEN 40
+#define MASS_STORAGE_APP_EXTENSION   ".img"
+#define MASS_STORAGE_FILE_NAME_LEN   40
 
 struct MassStorageApp {
     Gui* gui;

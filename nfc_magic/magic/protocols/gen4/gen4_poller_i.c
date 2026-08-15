@@ -6,15 +6,15 @@
 
 #define GEN4_CMD_PREFIX (0xCF)
 
-#define GEN4_CMD_SET_SHD_MODE (0x32)
-#define GEN4_CMD_GET_CFG (0xC6)
-#define GEN4_CMD_GET_REVISION (0xCC)
-#define GEN4_CMD_WRITE (0xCD)
-#define GEN4_CMD_READ (0xCE)
+#define GEN4_CMD_SET_SHD_MODE   (0x32)
+#define GEN4_CMD_GET_CFG        (0xC6)
+#define GEN4_CMD_GET_REVISION   (0xCC)
+#define GEN4_CMD_WRITE          (0xCD)
+#define GEN4_CMD_READ           (0xCE)
 #define GEN4_CMD_SET_DW_BLOCK_0 (0xCF)
-#define GEN4_CMD_SET_CFG (0xF0)
-#define GEN4_CMD_FUSE_CFG (0xF1)
-#define GEN4_CMD_SET_PWD (0xFE)
+#define GEN4_CMD_SET_CFG        (0xF0)
+#define GEN4_CMD_FUSE_CFG       (0xF1)
+#define GEN4_CMD_SET_PWD        (0xFE)
 
 #define GEN4_RESPONSE_SUCCESS (0x02)
 

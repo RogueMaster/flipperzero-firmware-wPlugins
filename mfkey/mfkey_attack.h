@@ -9,13 +9,13 @@ int calculate_msb_tables_optimized(
     int oks,
     int eks,
     int msb_round,
-    MfClassicNonce *n,
-    unsigned int *states_buffer,
-    struct Msb *odd_msbs,
-    struct Msb *even_msbs,
-    unsigned int *temp_states_odd,
-    unsigned int *temp_states_even,
+    MfClassicNonce* n,
+    unsigned int* states_buffer,
+    struct Msb* odd_msbs,
+    struct Msb* even_msbs,
+    unsigned int* temp_states_odd,
+    unsigned int* temp_states_even,
     unsigned int in,
-    ProgramState *program_state);
+    ProgramState* program_state);
 
 #endif // MFKEY_ATTACK_H

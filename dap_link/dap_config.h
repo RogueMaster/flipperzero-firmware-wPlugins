@@ -10,22 +10,22 @@
 /*- Definitions -------------------------------------------------------------*/
 #define DAP_CONFIG_ENABLE_JTAG
 
-#define DAP_CONFIG_DEFAULT_PORT DAP_PORT_SWD
+#define DAP_CONFIG_DEFAULT_PORT  DAP_PORT_SWD
 #define DAP_CONFIG_DEFAULT_CLOCK 4200000 // Hz
 
-#define DAP_CONFIG_PACKET_SIZE 64
+#define DAP_CONFIG_PACKET_SIZE  64
 #define DAP_CONFIG_PACKET_COUNT 1
 
 #define DAP_CONFIG_JTAG_DEV_COUNT 8
 
 // DAP_CONFIG_PRODUCT_STR must contain "CMSIS-DAP" to be compatible with the standard
-#define DAP_CONFIG_VENDOR_STR "Flipper Zero"
-#define DAP_CONFIG_PRODUCT_STR "Generic CMSIS-DAP Adapter"
-#define DAP_CONFIG_SER_NUM_STR usb_serial_number
+#define DAP_CONFIG_VENDOR_STR        "Flipper Zero"
+#define DAP_CONFIG_PRODUCT_STR       "Generic CMSIS-DAP Adapter"
+#define DAP_CONFIG_SER_NUM_STR       usb_serial_number
 #define DAP_CONFIG_CMSIS_DAP_VER_STR "2.0.0"
 
 #define DAP_CONFIG_RESET_TARGET_FN dap_app_target_reset
-#define DAP_CONFIG_VENDOR_FN dap_app_vendor_cmd
+#define DAP_CONFIG_VENDOR_FN       dap_app_vendor_cmd
 
 // Attribute to use for performance-critical functions
 #define DAP_CONFIG_PERFORMANCE_ATTR
@@ -156,7 +156,7 @@ static inline void DAP_CONFIG_SETUP(void) {
     furi_hal_gpio_init(&flipper_dap_swdio_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&flipper_dap_swclk_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&flipper_dap_reset_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
-    #ifdef DAP_CONFIG_ENABLE_JTAG
+#ifdef DAP_CONFIG_ENABLE_JTAG
     furi_hal_gpio_init(&flipper_dap_trst_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&flipper_dap_tdo_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&flipper_dap_tdi_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
@@ -168,7 +168,7 @@ static inline void DAP_CONFIG_DISCONNECT(void) {
     furi_hal_gpio_init(&flipper_dap_swdio_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&flipper_dap_swclk_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&flipper_dap_reset_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
-    #ifdef DAP_CONFIG_ENABLE_JTAG
+#ifdef DAP_CONFIG_ENABLE_JTAG
     furi_hal_gpio_init(&flipper_dap_trst_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&flipper_dap_tdo_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&flipper_dap_tdi_pin, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);

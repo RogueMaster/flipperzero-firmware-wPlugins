@@ -2,13 +2,13 @@
 
 #include <furi.h>
 
-#define UF2_BLOCK_SIZE (512UL)
-#define UF2_DATA_SIZE (476UL)
+#define UF2_BLOCK_SIZE    (512UL)
+#define UF2_DATA_SIZE     (476UL)
 #define UF2_CHECKSUM_SIZE (16UL)
 
 #define UF2_MAGIC_START_0 (0x0A324655UL)
 #define UF2_MAGIC_START_1 (0x9E5D5157UL)
-#define UF2_MAGIC_END (0x0AB16F30UL)
+#define UF2_MAGIC_END     (0x0AB16F30UL)
 
 #define TAG "VgmUf2"
 

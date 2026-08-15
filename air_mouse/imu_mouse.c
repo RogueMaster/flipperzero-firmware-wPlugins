@@ -8,12 +8,12 @@
 #define ACCEL_GYRO_RATE DataRate1kHz
 
 #define FILTER_SAMPLE_FREQ 1000.f
-#define FILTER_BETA 0.08f
+#define FILTER_BETA        0.08f
 
-#define SCROLL_RATE_DIV 50
+#define SCROLL_RATE_DIV      50
 #define SCROLL_SENSITIVITY_K 0.25f
-#define MOUSE_SENSITIVITY_K 30.f
-#define EXP_RATE 1.1f
+#define MOUSE_SENSITIVITY_K  30.f
+#define EXP_RATE             1.1f
 
 #define IMU_CALI_AVG 64
 

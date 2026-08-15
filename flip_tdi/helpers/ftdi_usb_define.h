@@ -4,12 +4,12 @@
 #include <assert.h>
 
 // # Clocks and baudrates
-#define FTDIBUS_CLOCK_BASE 6000000UL
-#define FTDIBUS_CLOCK_HIGH 30000000UL
+#define FTDIBUS_CLOCK_BASE               6000000UL
+#define FTDIBUS_CLOCK_HIGH               30000000UL
 #define FTDI_BITBANG_BAUDRATE_RATIO_BASE 16
 #define FTDI_BITBANG_BAUDRATE_RATIO_HIGH 5
-#define FTDI_BAUDRATE_REF_BASE 3000000UL
-#define FTDI_BAUDRATE_REF_HIGH 12000000UL
+#define FTDI_BAUDRATE_REF_BASE           3000000UL
+#define FTDI_BAUDRATE_REF_HIGH           12000000UL
 
 /*descriptor type*/
 typedef enum {
@@ -85,18 +85,17 @@ typedef enum {
 typedef struct {
     //uint8_t MASK : 8; /*Mask*/
     uint8_t BITBANG : 1; /*classical asynchronous bitbang mode, introduced with B-type chips*/
-    uint8_t MPSSE : 1; /*MPSSE mode, available on 2232x chips*/
-    uint8_t SYNCBB : 1; /*synchronous bitbang mode, available on 2232x and R-type chips*/
-    uint8_t MCU : 1; /*MCU Host Bus Emulation mode, available on 2232x chips*/
-    uint8_t OPTO : 1; /*Fast Opto-Isolated Serial Interface Mode, available on 2232x chips*/
-    uint8_t CBUS : 1; /*Bitbang on CBUS pins of R-type chips, configure in EEPROM before*/
-    uint8_t SYNCFF : 1; /*Single Channel Synchronous FIFO mode, available on 2232H chips*/
-    uint8_t FT1284 : 1; /*FT1284 mode, available on 232H chips*/
+    uint8_t MPSSE   : 1; /*MPSSE mode, available on 2232x chips*/
+    uint8_t SYNCBB  : 1; /*synchronous bitbang mode, available on 2232x and R-type chips*/
+    uint8_t MCU     : 1; /*MCU Host Bus Emulation mode, available on 2232x chips*/
+    uint8_t OPTO    : 1; /*Fast Opto-Isolated Serial Interface Mode, available on 2232x chips*/
+    uint8_t CBUS    : 1; /*Bitbang on CBUS pins of R-type chips, configure in EEPROM before*/
+    uint8_t SYNCFF  : 1; /*Single Channel Synchronous FIFO mode, available on 2232H chips*/
+    uint8_t FT1284  : 1; /*FT1284 mode, available on 232H chips*/
 } FtdiBitMode;
 static_assert(sizeof(FtdiBitMode) == sizeof(uint8_t), "Wrong FtdiBitMode");
 /* FTDI MPSSE commands */
 typedef enum {
-
     //     /* Shifting commands IN MPSSE Mode*/
     // #define MPSSE_WRITE_NEG 0x01   /* Write TDI/DO on negative TCK/SK edge*/
     // #define MPSSE_BITMODE   0x02   /* Write bits, not bytes */
@@ -107,12 +106,16 @@ typedef enum {
     // #define MPSSE_WRITE_TMS 0x40   /* Write TMS/CS */
 
     /*MPSSE Commands*/
-    FtdiMpsseCommandsWriteBytesPveMsb = 0x10, /**< Write bytes with positive edge clock, MSB first */
-    FtdiMpsseCommandsWriteBytesNveMsb = 0x11, /**< Write bytes with negative edge clock, MSB first */
+    FtdiMpsseCommandsWriteBytesPveMsb =
+        0x10, /**< Write bytes with positive edge clock, MSB first */
+    FtdiMpsseCommandsWriteBytesNveMsb =
+        0x11, /**< Write bytes with negative edge clock, MSB first */
     FtdiMpsseCommandsWriteBitsPveMsb = 0x12, /**< Write bits with positive edge clock, MSB first */
     FtdiMpsseCommandsWriteBitsNveMsb = 0x13, /**< Write bits with negative edge clock, MSB first */
-    FtdiMpsseCommandsWriteBytesPveLsb = 0x18, /**< Write bytes with positive edge clock, LSB first */
-    FtdiMpsseCommandsWriteBytesNveLsb = 0x19, /**< Write bytes with negative edge clock, LSB first */
+    FtdiMpsseCommandsWriteBytesPveLsb =
+        0x18, /**< Write bytes with positive edge clock, LSB first */
+    FtdiMpsseCommandsWriteBytesNveLsb =
+        0x19, /**< Write bytes with negative edge clock, LSB first */
     FtdiMpsseCommandsWriteBitsPveLsb = 0x1a, /**< Write bits with positive edge clock, LSB first */
     FtdiMpsseCommandsWriteBitsNveLsb = 0x1b, /**< Write bits with negative edge clock, LSB first */
     FtdiMpsseCommandsReadBytesPveMsb = 0x20, /**< Read bytes with positive edge clock, MSB first */
@@ -123,21 +126,32 @@ typedef enum {
     FtdiMpsseCommandsReadBytesNveLsb = 0x2c, /**< Read bytes with negative edge clock, LSB first */
     FtdiMpsseCommandsReadBitsPveLsb = 0x2a, /**< Read bits with positive edge clock, LSB first */
     FtdiMpsseCommandsReadBitsNveLsb = 0x2e, /**< Read bits with negative edge clock, LSB first */
-    FtdiMpsseCommandsRwBytesPveNveMsb = 0x31, /**< Read/Write bytes with positive edge clock, MSB first */
-    FtdiMpsseCommandsRwBytesNvePveMsb = 0x34, /**< Read/Write bytes with negative edge clock, MSB first */
-    FtdiMpsseCommandsRwBitsPveNveMsb = 0x33, /**< Read/Write bits with positive edge clock, MSB first */
-    FtdiMpsseCommandsRwBitsNvePveMsb = 0x36, /**< Read/Write bits with negative edge clock, MSB first */
-    FtdiMpsseCommandsRwBytesPveNveLsb = 0x39, /**< Read/Write bytes with positive edge clock, LSB first */
-    FtdiMpsseCommandsRwBytesNvePveLsb = 0x3c, /**< Read/Write bytes with negative edge clock, LSB first */
-    FtdiMpsseCommandsRwBitsPveNveLsb = 0x3b, /**< Read/Write bits with positive edge clock, LSB first */
-    FtdiMpsseCommandsRwBitsNvePveLsb = 0x3e, /**< Read/Write bits with negative edge clock, LSB first */
+    FtdiMpsseCommandsRwBytesPveNveMsb =
+        0x31, /**< Read/Write bytes with positive edge clock, MSB first */
+    FtdiMpsseCommandsRwBytesNvePveMsb =
+        0x34, /**< Read/Write bytes with negative edge clock, MSB first */
+    FtdiMpsseCommandsRwBitsPveNveMsb =
+        0x33, /**< Read/Write bits with positive edge clock, MSB first */
+    FtdiMpsseCommandsRwBitsNvePveMsb =
+        0x36, /**< Read/Write bits with negative edge clock, MSB first */
+    FtdiMpsseCommandsRwBytesPveNveLsb =
+        0x39, /**< Read/Write bytes with positive edge clock, LSB first */
+    FtdiMpsseCommandsRwBytesNvePveLsb =
+        0x3c, /**< Read/Write bytes with negative edge clock, LSB first */
+    FtdiMpsseCommandsRwBitsPveNveLsb =
+        0x3b, /**< Read/Write bits with positive edge clock, LSB first */
+    FtdiMpsseCommandsRwBitsNvePveLsb =
+        0x3e, /**< Read/Write bits with negative edge clock, LSB first */
     FtdiMpsseCommandsWriteBitsTmsPve = 0x4a, /**< Write bits with TMS, positive edge clock */
     FtdiMpsseCommandsWriteBitsTmsNve = 0x4b, /**< Write bits with TMS, negative edge clock */
-    FtdiMpsseCommandsRwBitsTmsPvePve = 0x6a, /**< Read/Write bits with TMS, positive edge clock, MSB first */
-    FtdiMpsseCommandsRwBitsTmsPveNve = 0x6b, /**< Read/Write bits with TMS, positive edge clock, MSB first */
-    FtdiMpsseCommandsRwBitsTmsNvePve = 0x6e, /**< Read/Write bits with TMS, negative edge clock, MSB first */
-    FtdiMpsseCommandsRwBitsTmsNveNve = 0x6f, /**< Read/Write bits with TMS, negative edge clock, MSB first */
-
+    FtdiMpsseCommandsRwBitsTmsPvePve =
+        0x6a, /**< Read/Write bits with TMS, positive edge clock, MSB first */
+    FtdiMpsseCommandsRwBitsTmsPveNve =
+        0x6b, /**< Read/Write bits with TMS, positive edge clock, MSB first */
+    FtdiMpsseCommandsRwBitsTmsNvePve =
+        0x6e, /**< Read/Write bits with TMS, negative edge clock, MSB first */
+    FtdiMpsseCommandsRwBitsTmsNveNve =
+        0x6f, /**< Read/Write bits with TMS, negative edge clock, MSB first */
 
     FtdiMpsseCommandsSetBitsLow = 0x80, /**< Change LSB GPIO output */
     /*BYTE DATA*/
@@ -260,11 +274,11 @@ typedef enum {
 } FtdiBreak;
 
 typedef struct {
-    uint8_t BITS : 4; /*Cound data bits*/
-    uint8_t RESERVED : 4; /*Reserved0*/
-    uint8_t PARITY : 3; /*Parity*/
+    uint8_t BITS      : 4; /*Cound data bits*/
+    uint8_t RESERVED  : 4; /*Reserved0*/
+    uint8_t PARITY    : 3; /*Parity*/
     uint8_t STOP_BITS : 2; /*Number of stop bits*/
-    uint8_t BREAK : 1; /*Break type*/
+    uint8_t BREAK     : 1; /*Break type*/
 } FtdiDataConfig;
 static_assert(sizeof(FtdiDataConfig) == sizeof(uint16_t), "Wrong FtdiDataConfig");
 
@@ -273,17 +287,17 @@ typedef struct {
     uint8_t RESERVED1 : 1; /*Reserved1*/
     uint8_t RESERVED2 : 1; /*Reserved2*/
     uint8_t RESERVED3 : 1; /*Reserved3*/
-    uint8_t CTS : 1; /*Clear to send (CTS)*/
-    uint8_t DTR : 1; /*Data set ready (DTR)*/
-    uint8_t RI : 1; /*Ring indicator (RI)*/
-    uint8_t RLSD : 1; /*Receive line signal detect (RLSD)*/
-    uint8_t DR : 1; /*Data ready (DR)*/
-    uint8_t OE : 1; /*Overrun error (OE)*/
-    uint8_t PE : 1; /*Parity error (PE)*/
-    uint8_t FE : 1; /*Framing error (FE)*/
-    uint8_t BI : 1; /*Break interrupt (BI)*/
-    uint8_t THRE : 1; /*Transmitter holding register (THRE)*/
-    uint8_t TEMT : 1; /*Transmitter empty (TEMT)*/
+    uint8_t CTS       : 1; /*Clear to send (CTS)*/
+    uint8_t DTR       : 1; /*Data set ready (DTR)*/
+    uint8_t RI        : 1; /*Ring indicator (RI)*/
+    uint8_t RLSD      : 1; /*Receive line signal detect (RLSD)*/
+    uint8_t DR        : 1; /*Data ready (DR)*/
+    uint8_t OE        : 1; /*Overrun error (OE)*/
+    uint8_t PE        : 1; /*Parity error (PE)*/
+    uint8_t FE        : 1; /*Framing error (FE)*/
+    uint8_t BI        : 1; /*Break interrupt (BI)*/
+    uint8_t THRE      : 1; /*Transmitter holding register (THRE)*/
+    uint8_t TEMT      : 1; /*Transmitter empty (TEMT)*/
     uint8_t RCVR_FIFO : 1; /*Error in RCVR FIFO*/
 } FtdiModemStatus;
 static_assert(sizeof(FtdiModemStatus) == sizeof(uint16_t), "Wrong FtdiModemStatus");

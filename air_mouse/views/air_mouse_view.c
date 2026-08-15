@@ -133,8 +133,7 @@ AirMouseView* air_mouse_view_alloc(AirMouseViewExit exit_callback, void* context
     view_set_enter_callback(air_mouse->view, air_mouse_view_enter);
     view_set_exit_callback(air_mouse->view, air_mouse_view_exit);
 
-    with_view_model(
-        air_mouse->view, AirMouseModel * model, { model->connected = true; }, true);
+    with_view_model(air_mouse->view, AirMouseModel * model, { model->connected = true; }, true);
 
     return air_mouse;
 }

@@ -9,7 +9,7 @@
 
 typedef void (*FtdiMpsseGpioO)(uint8_t state);
 
-#define FTDI_MPSSE_TIMEOUT 5000
+#define FTDI_MPSSE_TIMEOUT    5000
 #define FTDI_MPSSE_TX_RX_SIZE (4096UL)
 
 typedef enum {

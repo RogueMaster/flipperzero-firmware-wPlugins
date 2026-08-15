@@ -5,9 +5,9 @@
 
 #define TAG "VgmSwd"
 
-#define SWD_REQUEST_LEN (8U)
+#define SWD_REQUEST_LEN  (8U)
 #define SWD_RESPONSE_LEN (3U)
-#define SWD_DATA_LEN (32U)
+#define SWD_DATA_LEN     (32U)
 
 #define SWD_ALERT_SEQUENCE_0 (0x6209F392UL)
 #define SWD_ALERT_SEQUENCE_1 (0x86852D95UL)
@@ -18,9 +18,9 @@
 
 #define SWD_SLEEP_SEQUENCE (0xE3BCU)
 
-#define SWD_READ_REQUEST_INIT (0x85U)
+#define SWD_READ_REQUEST_INIT  (0x85U)
 #define SWD_WRITE_REQUEST_INIT (0x81U)
-#define SWD_REQUEST_INIT (0x81U)
+#define SWD_REQUEST_INIT       (0x81U)
 
 typedef enum {
     SwdioDirectionIn,

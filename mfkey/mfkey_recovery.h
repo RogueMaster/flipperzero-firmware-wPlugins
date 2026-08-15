@@ -24,7 +24,7 @@ int old_recover_bs(
     int eks,
     int rem,
     int s,
-    MfClassicNonce *n,
+    MfClassicNonce* n,
     unsigned int in,
     int first_run);
 

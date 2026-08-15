@@ -5,7 +5,7 @@
 #include <furi.h>
 
 #define AVR_ISP_PROG_TX_RX_BUF_SIZE 320
-#define TAG "AvrIsp"
+#define TAG                         "AvrIsp"
 
 struct AvrIsp {
     AvrIspSpiSw* spi;

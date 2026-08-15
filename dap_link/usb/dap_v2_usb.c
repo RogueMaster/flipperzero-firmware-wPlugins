@@ -9,29 +9,29 @@
 
 // #define DAP_USB_LOG
 
-#define HID_EP_IN 0x80
+#define HID_EP_IN  0x80
 #define HID_EP_OUT 0x00
 
-#define DAP_HID_EP_SEND 1
-#define DAP_HID_EP_RECV 2
+#define DAP_HID_EP_SEND      1
+#define DAP_HID_EP_RECV      2
 #define DAP_HID_EP_BULK_RECV 3
 #define DAP_HID_EP_BULK_SEND 4
-#define DAP_CDC_EP_COMM 5
-#define DAP_CDC_EP_SEND 6
-#define DAP_CDC_EP_RECV 7
+#define DAP_CDC_EP_COMM      5
+#define DAP_CDC_EP_SEND      6
+#define DAP_CDC_EP_RECV      7
 
-#define DAP_HID_EP_IN (HID_EP_IN | DAP_HID_EP_SEND)
-#define DAP_HID_EP_OUT (HID_EP_OUT | DAP_HID_EP_RECV)
-#define DAP_HID_EP_BULK_IN (HID_EP_IN | DAP_HID_EP_BULK_SEND)
+#define DAP_HID_EP_IN       (HID_EP_IN | DAP_HID_EP_SEND)
+#define DAP_HID_EP_OUT      (HID_EP_OUT | DAP_HID_EP_RECV)
+#define DAP_HID_EP_BULK_IN  (HID_EP_IN | DAP_HID_EP_BULK_SEND)
 #define DAP_HID_EP_BULK_OUT (HID_EP_OUT | DAP_HID_EP_BULK_RECV)
 
-#define DAP_HID_EP_SIZE 64
+#define DAP_HID_EP_SIZE      64
 #define DAP_CDC_COMM_EP_SIZE 8
-#define DAP_CDC_EP_SIZE 64
+#define DAP_CDC_EP_SIZE      64
 
-#define DAP_BULK_INTERVAL 0
-#define DAP_HID_INTERVAL 1
-#define DAP_CDC_INTERVAL 0
+#define DAP_BULK_INTERVAL     0
+#define DAP_HID_INTERVAL      1
+#define DAP_CDC_INTERVAL      0
 #define DAP_CDC_COMM_INTERVAL 1
 
 #define DAP_HID_VID 0x0483
@@ -40,7 +40,7 @@
 #define DAP_USB_EP0_SIZE 8
 
 #define EP_CFG_DECONFIGURE 0
-#define EP_CFG_CONFIGURE 1
+#define EP_CFG_CONFIGURE   1
 
 enum {
     USB_INTF_HID,
@@ -363,9 +363,9 @@ typedef struct USB_PACK {
     usb_msos_descriptor_subset_t subset;
 } usb_msos_descriptor_set_t;
 
-#define USB_DTYPE_BINARY_OBJECT_STORE 15
+#define USB_DTYPE_BINARY_OBJECT_STORE          15
 #define USB_DTYPE_DEVICE_CAPABILITY_DESCRIPTOR 16
-#define USB_DC_TYPE_PLATFORM 5
+#define USB_DC_TYPE_PLATFORM                   5
 
 const usb_bos_hierarchy_t usb_bos_hierarchy = {
     .bos =

@@ -278,7 +278,7 @@ static bool ws_protocol_bl999_remote_controller(WSBlockGeneric* instance) {
     sum &= 15;
 
     // limit temperature to valid range for this type of sensor
-    if (instance->temp < -40.0 || instance->temp > 50.0) {
+    if(instance->temp < -40.0 || instance->temp > 50.0) {
         return false;
     }
 

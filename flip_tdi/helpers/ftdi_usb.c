@@ -138,7 +138,7 @@ static FtdiUsb* ftdi_cur = NULL;
 
 static void ftdi_usb_callback_tx_immediate(void* context) {
     FtdiUsb* ftdi_usb = context;
-    if (!ftdi_usb || !ftdi_usb->thread) return;
+    if(!ftdi_usb || !ftdi_usb->thread) return;
 
     furi_thread_flags_set(furi_thread_get_id(ftdi_usb->thread), EventTxImmediate);
 }

@@ -11,14 +11,14 @@ extern "C" {
 #endif
 
 // TODO: cleanup, check gen4_poller_i.c defines
-#define GEN4_CMD_PREFIX (0xCF)
-#define GEN4_CMD_GET_CFG (0xC6)
+#define GEN4_CMD_PREFIX       (0xCF)
+#define GEN4_CMD_GET_CFG      (0xC6)
 #define GEN4_CMD_GET_REVISION (0xCC)
-#define GEN4_CMD_WRITE (0xCD)
-#define GEN4_CMD_READ (0xCE)
-#define GEN4_CMD_SET_CFG (0xF0)
-#define GEN4_CMD_FUSE_CFG (0xF1)
-#define GEN4_CMD_SET_PWD (0xFE)
+#define GEN4_CMD_WRITE        (0xCD)
+#define GEN4_CMD_READ         (0xCE)
+#define GEN4_CMD_SET_CFG      (0xF0)
+#define GEN4_CMD_FUSE_CFG     (0xF1)
+#define GEN4_CMD_SET_PWD      (0xFE)
 
 typedef enum {
     Gen4PollerErrorNone,

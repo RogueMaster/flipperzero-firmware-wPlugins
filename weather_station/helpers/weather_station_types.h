@@ -4,10 +4,10 @@
 #include <furi_hal.h>
 
 #define WS_DEVELOPED "SkorP"
-#define WS_GITHUB "https://github.com/flipperdevices/flipperzero-good-faps"
+#define WS_GITHUB    "https://github.com/flipperdevices/flipperzero-good-faps"
 
 #define WS_KEY_FILE_VERSION 1
-#define WS_KEY_FILE_TYPE "Flipper Weather Station Key File"
+#define WS_KEY_FILE_TYPE    "Flipper Weather Station Key File"
 
 /** WSRxKeyState state */
 typedef enum {

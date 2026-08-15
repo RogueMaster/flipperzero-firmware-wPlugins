@@ -2,9 +2,9 @@
 #include "game_settings.h"
 #include <lib/toolbox/saved_struct.h>
 
-#define SETTINGS_PATH APP_DATA_PATH("settings.bin")
+#define SETTINGS_PATH    APP_DATA_PATH("settings.bin")
 #define SETTINGS_VERSION (0)
-#define SETTINGS_MAGIC (0x69)
+#define SETTINGS_MAGIC   (0x69)
 
 bool game_settings_load(Settings* settings) {
     furi_assert(settings);

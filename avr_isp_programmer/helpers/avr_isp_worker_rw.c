@@ -12,7 +12,7 @@
 
 #define TAG "AvrIspWorkerRW"
 
-#define NAME_PATERN_FLASH_FILE "flash.hex"
+#define NAME_PATERN_FLASH_FILE  "flash.hex"
 #define NAME_PATERN_EEPROM_FILE "eeprom.hex"
 
 struct AvrIspWorkerRW {

@@ -146,8 +146,7 @@ void dap_main_view_set_left_callback(
 }
 
 void dap_main_view_set_mode(DapMainView* dap_main_view, DapMainViewMode mode) {
-    with_view_model(
-        dap_main_view->view, DapMainViewModel * model, { model->mode = mode; }, false);
+    with_view_model(dap_main_view->view, DapMainViewModel * model, { model->mode = mode; }, false);
 }
 
 void dap_main_view_set_dap(DapMainView* dap_main_view, bool active) {
@@ -171,8 +170,7 @@ void dap_main_view_set_baudrate(DapMainView* dap_main_view, uint32_t baudrate) {
 }
 
 void dap_main_view_update(DapMainView* dap_main_view) {
-    with_view_model(
-        dap_main_view->view, DapMainViewModel * model, { UNUSED(model); }, true);
+    with_view_model(dap_main_view->view, DapMainViewModel * model, { UNUSED(model); }, true);
 }
 
 void dap_main_view_set_version(DapMainView* dap_main_view, DapMainViewVersion version) {

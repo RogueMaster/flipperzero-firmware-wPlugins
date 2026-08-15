@@ -3,13 +3,13 @@
 #include "core/common_defines.h"
 #include <stdint.h>
 
-#define GEN4_CONFIG_SIZE (32)
+#define GEN4_CONFIG_SIZE   (32)
 #define GEN4_REVISION_SIZE (5)
 
 #define GEN4_PASSWORD_LEN (4)
-#define GEN4_ATS_MAX_LEN (16)
-#define GEN4_ATQA_LEN (2)
-#define GEN4_CRC_LEN (2)
+#define GEN4_ATS_MAX_LEN  (16)
+#define GEN4_ATQA_LEN     (2)
+#define GEN4_CRC_LEN      (2)
 
 typedef enum {
     Gen4ProtocolMfClassic = 0x00,

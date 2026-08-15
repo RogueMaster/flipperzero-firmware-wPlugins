@@ -21,17 +21,17 @@
 #define SWD_DP_REG_ADDR_SHIFT (2U)
 
 // Debug port registers - write
-#define SWD_DP_REG_WO_ABORT (0x0U >> SWD_DP_REG_ADDR_SHIFT)
-#define SWD_DP_REG_WO_SELECT (0x8U >> SWD_DP_REG_ADDR_SHIFT)
+#define SWD_DP_REG_WO_ABORT      (0x0U >> SWD_DP_REG_ADDR_SHIFT)
+#define SWD_DP_REG_WO_SELECT     (0x8U >> SWD_DP_REG_ADDR_SHIFT)
 #define SWD_DP_REG_WO_TASRGETSEL (0xCU >> SWD_DP_REG_ADDR_SHIFT)
 
 // Debug port registers - read
-#define SWD_DP_REG_RO_DPIDR (0x0U >> SWD_DP_REG_ADDR_SHIFT)
+#define SWD_DP_REG_RO_DPIDR  (0x0U >> SWD_DP_REG_ADDR_SHIFT)
 #define SWD_DP_REG_RO_RESEND (0x8U >> SWD_DP_REG_ADDR_SHIFT)
 #define SWD_DP_REG_RO_RDBUFF (0xCU >> SWD_DP_REG_ADDR_SHIFT)
 
 // Debug port registers - read/write
-#define SWD_DP_REG_RW_BANK (0x4U >> SWD_DP_REG_ADDR_SHIFT)
+#define SWD_DP_REG_RW_BANK      (0x4U >> SWD_DP_REG_ADDR_SHIFT)
 #define SWD_DP_REG_RW_CTRL_STAT (SWD_DP_REG_RW_BANK)
 
 // Access port registers
@@ -47,12 +47,12 @@
 #define SWD_DP_REG_CTRL_STAT_CSYSPWRUPACK (1UL << 31U)
 
 // CSW bits (PROT bits are for AHB3)
-#define SWD_AP_REG_CSW_SIZE_WORD (2UL << 0U)
-#define SWD_AP_REG_CSW_HPROT_DATA (1UL << 24U)
+#define SWD_AP_REG_CSW_SIZE_WORD        (2UL << 0U)
+#define SWD_AP_REG_CSW_HPROT_DATA       (1UL << 24U)
 #define SWD_AP_REG_CSW_HPROT_PRIVILIGED (1UL << 25U)
 #define SWD_AP_REG_CSW_HPROT_BUFFERABLE (1UL << 26U)
-#define SWD_AP_REG_CSW_HPROT_CACHEABLE (1UL << 27U)
-#define SWD_AP_REG_CSW_HNONSEC (1UL << 30U)
+#define SWD_AP_REG_CSW_HPROT_CACHEABLE  (1UL << 27U)
+#define SWD_AP_REG_CSW_HNONSEC          (1UL << 30U)
 
 /**
  * @brief Initialise SWD bus.

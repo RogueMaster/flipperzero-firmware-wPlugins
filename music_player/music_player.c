@@ -11,14 +11,14 @@
 #define TAG "MusicPlayer"
 
 #define MUSIC_PLAYER_APP_EXTENSION "*"
-#define MUSIC_PLAYER_EXAMPLE_FILE "Marble_Machine.fmf"
+#define MUSIC_PLAYER_EXAMPLE_FILE  "Marble_Machine.fmf"
 
 #define MUSIC_PLAYER_SEMITONE_HISTORY_SIZE 3
 
 // Speed control constants
-#define MUSIC_PLAYER_TEMPO_STEP 10u   // BPM change per button press
-#define MUSIC_PLAYER_TEMPO_MIN  10u   // absolute minimum BPM
-#define MUSIC_PLAYER_TEMPO_MAX  500u  // absolute maximum BPM
+#define MUSIC_PLAYER_TEMPO_STEP 10u // BPM change per button press
+#define MUSIC_PLAYER_TEMPO_MIN  10u // absolute minimum BPM
+#define MUSIC_PLAYER_TEMPO_MAX  500u // absolute maximum BPM
 
 // Temporary file used when reloading with a new BPM
 #define MUSIC_PLAYER_TEMP_FILE APP_DATA_PATH("_tempo_tmp.fmf")
@@ -31,10 +31,10 @@ typedef struct {
     uint8_t semitone;
     uint8_t dots;
     uint8_t duration;
-    float   position;
+    float position;
 
-    uint32_t tempo;  // live BPM (0 = not yet loaded)
-    bool     paused; // true when playback is paused via OK button
+    uint32_t tempo; // live BPM (0 = not yet loaded)
+    bool paused; // true when playback is paused via OK button
 } MusicPlayerModel;
 
 typedef struct {
@@ -186,8 +186,8 @@ static void render_callback(Canvas* canvas, void* ctx) {
     const uint8_t white_w = 10;
     const uint8_t white_h = 40;
 
-    const int8_t  black_x = 6;
-    const int8_t  black_y = -5;
+    const int8_t black_x = 6;
+    const int8_t black_y = -5;
     const uint8_t black_w = 8;
     const uint8_t black_h = 32;
 
@@ -249,7 +249,9 @@ static void render_callback(Canvas* canvas, void* ctx) {
             canvas_set_color(canvas, ColorBlack);
         }
         canvas_draw_str(
-            canvas, x_pos + 4, 64 - 16 * i - 3,
+            canvas,
+            x_pos + 4,
+            64 - 16 * i - 3,
             semitone_to_note(music_player->model->semitone_history[i]));
         canvas_draw_str(canvas, x_pos + 31, 64 - 16 * i - 3, duration_text);
         if(i < MUSIC_PLAYER_SEMITONE_HISTORY_SIZE - 1)
@@ -307,7 +309,7 @@ MusicPlayer* music_player_alloc() {
 
     instance->model = malloc(sizeof(MusicPlayerModel));
     instance->model->volume = 3;
-    instance->model->tempo  = 0;
+    instance->model->tempo = 0;
     instance->model->paused = false;
 
     instance->model_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
@@ -352,13 +354,13 @@ void music_player_free(MusicPlayer* instance) {
  */
 static bool music_player_read_file(const char* path, FuriString* out) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    File*    file    = storage_file_alloc(storage);
-    bool     ok      = false;
+    File* file = storage_file_alloc(storage);
+    bool ok = false;
 
     furi_string_reset(out);
 
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        char     buf[64];
+        char buf[64];
         uint16_t n;
         while((n = storage_file_read(file, buf, sizeof(buf))) > 0) {
             for(uint16_t i = 0; i < n; i++)
@@ -377,9 +379,9 @@ static bool music_player_read_file(const char* path, FuriString* out) {
  * Parse "BPM: <n>" from an FMF file's raw content.
  */
 static uint32_t music_player_parse_bpm(const FuriString* content) {
-    const char* s   = furi_string_get_cstr(content);
+    const char* s = furi_string_get_cstr(content);
     const char* tag = "BPM: ";
-    const char* p   = strstr(s, tag);
+    const char* p = strstr(s, tag);
     if(!p) return 0;
     return (uint32_t)atoi(p + strlen(tag));
 }
@@ -392,13 +394,14 @@ static uint32_t music_player_parse_bpm(const FuriString* content) {
 static bool music_player_reload_with_tempo(MusicPlayer* mp, uint32_t new_bpm) {
     const char* src = furi_string_get_cstr(mp->file_content);
     const char* tag = "BPM: ";
-    const char* p   = strstr(src, tag);
+    const char* p = strstr(src, tag);
     if(!p) return false;
 
     // Position of the digit string that follows "BPM: "
     size_t num_start = (size_t)(p - src) + strlen(tag);
-    size_t num_end   = num_start;
-    while(src[num_end] >= '0' && src[num_end] <= '9') num_end++;
+    size_t num_end = num_start;
+    while(src[num_end] >= '0' && src[num_end] <= '9')
+        num_end++;
 
     // Compose the patched text
     FuriString* patched = furi_string_alloc();
@@ -414,12 +417,12 @@ static bool music_player_reload_with_tempo(MusicPlayer* mp, uint32_t new_bpm) {
 
     // Write to temp file
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    File*    file    = storage_file_alloc(storage);
-    bool     ok      = false;
+    File* file = storage_file_alloc(storage);
+    bool ok = false;
 
     if(storage_file_open(file, MUSIC_PLAYER_TEMP_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         const char* out = furi_string_get_cstr(patched);
-        uint16_t    len = (uint16_t)strlen(out);
+        uint16_t len = (uint16_t)strlen(out);
         ok = (storage_file_write(file, out, len) == len);
         storage_file_close(file);
     }
@@ -480,8 +483,7 @@ int32_t music_player_app(void* p) {
         }
 
         // Cache raw file content so we can patch BPM without touching the original
-        if(!music_player_read_file(
-               furi_string_get_cstr(file_path), music_player->file_content)) {
+        if(!music_player_read_file(furi_string_get_cstr(file_path), music_player->file_content)) {
             FURI_LOG_E(TAG, "Unable to read file");
             break;
         }
@@ -499,7 +501,6 @@ int32_t music_player_app(void* p) {
         InputEvent input;
         while(furi_message_queue_get(music_player->input_queue, &input, FuriWaitForever) ==
               FuriStatusOk) {
-
             if(input.key == InputKeyBack) {
                 break;
             }
@@ -552,9 +553,9 @@ int32_t music_player_app(void* p) {
             } else if(input.key == InputKeyLeft) {
                 // Slow down
                 uint32_t cur = music_player->model->tempo;
-                uint32_t new_tempo = (cur > MUSIC_PLAYER_TEMPO_MIN + MUSIC_PLAYER_TEMPO_STEP)
-                    ? cur - MUSIC_PLAYER_TEMPO_STEP
-                    : MUSIC_PLAYER_TEMPO_MIN;
+                uint32_t new_tempo = (cur > MUSIC_PLAYER_TEMPO_MIN + MUSIC_PLAYER_TEMPO_STEP) ?
+                                         cur - MUSIC_PLAYER_TEMPO_STEP :
+                                         MUSIC_PLAYER_TEMPO_MIN;
 
                 if(new_tempo != cur) {
                     music_player->model->tempo = new_tempo;
@@ -586,7 +587,7 @@ int32_t music_player_app(void* p) {
 
         if(p && strlen(p)) break;
         music_player_clear(music_player);
-        music_player->model->tempo  = 0;
+        music_player->model->tempo = 0;
         music_player->model->paused = false;
         furi_string_reset(music_player->file_content);
     } while(1);

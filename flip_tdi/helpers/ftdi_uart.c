@@ -5,11 +5,11 @@
 #include <stm32wbxx_ll_lpuart.h>
 #include <stm32wbxx_ll_dma.h>
 
-#define TAG "FTDI_UART"
+#define TAG                     "FTDI_UART"
 #define FTDI_UART_MAX_TXRX_SIZE (256UL)
 
 #define FTDI_UART_LPUART_DMA_INSTANCE (DMA2)
-#define FTDI_UART_LPUART_DMA_CHANNEL (LL_DMA_CHANNEL_1)
+#define FTDI_UART_LPUART_DMA_CHANNEL  (LL_DMA_CHANNEL_1)
 
 struct FtdiUart {
     FuriThread* worker_thread;

@@ -12,9 +12,9 @@ extern "C" {
 #endif
 
 #define GEN4_POLLER_MAX_BUFFER_SIZE (64U)
-#define GEN4_POLLER_MAX_FWT (200000U)
+#define GEN4_POLLER_MAX_FWT         (200000U)
 
-#define GEN4_POLLER_BLOCK_SIZE (16)
+#define GEN4_POLLER_BLOCK_SIZE   (16)
 #define GEN4_POLLER_BLOCKS_TOTAL (256)
 
 typedef enum {

@@ -11,9 +11,9 @@
 
 #define COUNT_BYTE_PAYLOAD 32 //how much payload will be used
 
-#define I32HEX_TYPE_DATA 0x00
-#define I32HEX_TYPE_END_OF_FILE 0x01
-#define I32HEX_TYPE_EXT_LINEAR_ADDR 0x04
+#define I32HEX_TYPE_DATA              0x00
+#define I32HEX_TYPE_END_OF_FILE       0x01
+#define I32HEX_TYPE_EXT_LINEAR_ADDR   0x04
 #define I32HEX_TYPE_START_LINEAR_ADDR 0x05
 
 struct FlipperI32HexFile {

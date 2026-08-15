@@ -25,7 +25,7 @@ typedef union {
     uint8_t all_problems;
     struct {
         bool uid_locked : 1; // UID may be non-rewritable. Check data after writing
-        bool no_data : 1; // Shouldn't happen, mfc_data missing in nfc device
+        bool no_data    : 1; // Shouldn't happen, mfc_data missing in nfc device
         bool locked_access_bits : 1; // Access bits on the target card don't allow writing in some cases
         bool missing_target_keys : 1; // Keys to write some sectors are not available
         bool missing_source_data : 1; // The source dump is incomplete
