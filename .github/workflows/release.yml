@@ -1,0 +1,48 @@
+name: Release FAP
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uFBT
+        run: python3 -m pip install --upgrade ufbt
+      - name: Build
+        run: ufbt
+      - name: Package artifact
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          cp dist/ck42x_passvault.fap "dist/ck42x_passvault-${VERSION}.fap"
+          SUM="$(sha256sum "dist/ck42x_passvault-${VERSION}.fap" | awk '{print $1}')"
+          SIZE="$(wc -c < "dist/ck42x_passvault-${VERSION}.fap" | tr -d ' ')"
+          {
+            echo "CK42X PassVault ${VERSION}"
+            echo
+            echo "Highlights:"
+            echo "- Removed the 20-entry password vault cap. Saved accounts grow with available Flipper memory and SD space."
+            echo "- Existing encrypted vault.pv1 files keep the same format."
+            echo "- FIDO2 credential storage remains separately limited to 20 records."
+            echo
+            echo "Artifact:"
+            echo "- ck42x_passvault-${VERSION}.fap"
+            echo "- Size: ${SIZE} bytes"
+            echo "- SHA-256: ${SUM}"
+            echo
+            echo "Security posture:"
+            echo "PassVault and its FIDO2 implementation remain experimental and unaudited. Flipper Zero has no secure element, this build is not FIDO certified, and it should not be your only authenticator or account-recovery method."
+          } > release-body.md
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CK42X PassVault ${{ github.ref_name }}
+          files: dist/ck42x_passvault-${{ github.ref_name }}.fap
+          body_path: release-body.md
+          make_latest: true

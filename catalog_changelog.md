@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.6
+
+- Removed the 20-entry password vault cap. Saved accounts now grow with available Flipper memory and SD space.
+- Existing encrypted vault.pv1 files keep the same format.
+
 ## v0.4.5
 
 - Added editing for saved Name, Username, and Password fields with prefilled values and confirmation.

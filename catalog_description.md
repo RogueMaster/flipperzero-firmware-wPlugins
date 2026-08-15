@@ -1,8 +1,8 @@
 # CK42X PassVault
 
-CK42X PassVault is a Flipper Zero app for storing, generating, editing, and typing passwords from the device. Version 0.4.5 also includes experimental FIDO2 WebAuthn registration and authentication plus an explicit macOS ANSI keyboard setup flow.
+CK42X PassVault is a Flipper Zero app for storing, generating, editing, and typing passwords from the device. Version 0.4.6 removes the old 20-password vault cap and still includes experimental FIDO2 WebAuthn registration and authentication plus an explicit macOS ANSI keyboard setup flow.
 
-It lets you save and edit account entries, generate passwords from readable presets, and type a selected password over USB HID after explicit confirmation on the Flipper. After macOS identifies the keyboard once, PassVault keeps the HID session active for repeated injections until the app exits.
+It lets you save and edit as many account entries as Flipper memory and SD space allow, generate passwords from readable presets, and type a selected password over USB HID after explicit confirmation on the Flipper. After macOS identifies the keyboard once, PassVault keeps the HID session active for repeated injections until the app exits.
 
 Generated passwords use the Flipper RNG. Before saving a generated password, the app checks it against the passwords already saved in the vault and changes it if needed so the generated password is unique within the current vault.
 
