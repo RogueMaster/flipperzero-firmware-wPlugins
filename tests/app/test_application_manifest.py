@@ -36,7 +36,7 @@ class ManifestProfileTests(unittest.TestCase):
         app = self.load_manifest()
 
         self.assertEqual(app["fap_description"], "FIDO2 for Flipper Zero")
-        self.assertEqual(app["fap_version"], (0, 7))
+        self.assertEqual(app["fap_version"], (0, 8))
         self.assertIn("ZF_USB_ONLY", app["cdefines"])
         self.assertIn("ZF_RELEASE_DIAGNOSTICS=0", app["cdefines"])
         self.assertIn("ZF_USB_DIAGNOSTICS=0", app["cdefines"])
