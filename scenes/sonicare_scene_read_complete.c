@@ -75,28 +75,6 @@ void sonicare_scene_read_complete_on_enter(void* context) {
         furi_string_cat_printf(temp_str, "\e#Unknown brush: 0x%02x\n", brush_id);
     }
 
-    // UID
-    furi_string_cat_str(temp_str, "UID:");
-    format_bytes(temp_str, ul_data->iso14443_3a_data->uid, ul_data->iso14443_3a_data->uid_len);
-    furi_string_cat_str(temp_str, "\n");
-
-    // Cache UID + MFG for the reset scene's password derivation.
-    // MFG (10 bytes, e.g. "221214 12K") = page[0x21].data[2..3] +
-    // page[0x22].data[0..3] + page[0x23].data[0..3]
-    // (first 2 bytes of page 0x21 are the max-usage value, not MFG).
-    memcpy(app->sonicare_uid, ul_data->iso14443_3a_data->uid, 7);
-    memcpy(app->sonicare_mfg + 0, ul_data->page[0x21].data + 2, 2);
-    memcpy(app->sonicare_mfg + 2, ul_data->page[0x22].data, 4);
-    memcpy(app->sonicare_mfg + 6, ul_data->page[0x23].data, 4);
-    
-    // Manufacturing Code
-    furi_string_cat_str(temp_str, "MFG: ");
-    FuriString* serial_no = furi_string_alloc();
-    furi_string_cat_str(serial_no, (char*)(ul_data->page[0x21].data));
-    furi_string_right(serial_no, 2);
-    furi_string_cat(temp_str, serial_no);
-    furi_string_cat_printf(temp_str, "\n");
-
     // Usage
     uint16_t seconds = ul_data->page[0x24].data[1]*256 + ul_data->page[0x24].data[0];
     uint16_t brushes = seconds / 120;   // one brush = 2 minutes
@@ -123,6 +101,30 @@ void sonicare_scene_read_complete_on_enter(void* context) {
 
     // TODO: Maybe show "replace soon" marker if 170 brushes or more?
     // TODO: Maybe show "replace head" marker if 180 brushes or more?
+
+    furi_string_cat_str(temp_str, "____________________\n");
+
+    // UID
+    furi_string_cat_str(temp_str, "UID:");
+    format_bytes(temp_str, ul_data->iso14443_3a_data->uid, ul_data->iso14443_3a_data->uid_len);
+    furi_string_cat_str(temp_str, "\n");
+
+    // Cache UID + MFG for the reset scene's password derivation.
+    // MFG (10 bytes, e.g. "221214 12K") = page[0x21].data[2..3] +
+    // page[0x22].data[0..3] + page[0x23].data[0..3]
+    // (first 2 bytes of page 0x21 are the max-usage value, not MFG).
+    memcpy(app->sonicare_uid, ul_data->iso14443_3a_data->uid, 7);
+    memcpy(app->sonicare_mfg + 0, ul_data->page[0x21].data + 2, 2);
+    memcpy(app->sonicare_mfg + 2, ul_data->page[0x22].data, 4);
+    memcpy(app->sonicare_mfg + 6, ul_data->page[0x23].data, 4);
+    
+    // Manufacturing Code
+    furi_string_cat_str(temp_str, "MFG: ");
+    FuriString* serial_no = furi_string_alloc();
+    furi_string_cat_str(serial_no, (char*)(ul_data->page[0x21].data));
+    furi_string_right(serial_no, 2);
+    furi_string_cat(temp_str, serial_no);
+    furi_string_cat_printf(temp_str, "\n");
 
     // NFC password
     uint32_t unlock_pwd_big = get_sonicare_password((uint8_t*)ul_data->iso14443_3a_data->uid, (uint8_t*)furi_string_get_cstr(serial_no));
