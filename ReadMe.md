@@ -134,6 +134,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - Updated: [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
+- Updated: [DAP Link v1.3 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1897)
+- Updated: [SPI Mem Manager v1.4 (By drunkbatya)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/spi_mem_manager)
+- Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 
 <a name="release"></a>
 

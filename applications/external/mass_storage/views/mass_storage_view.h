@@ -13,3 +13,6 @@ View* mass_storage_get_view(MassStorage* mass_storage);
 void mass_storage_set_file_name(MassStorage* mass_storage, FuriString* name);
 
 void mass_storage_set_stats(MassStorage* mass_storage, uint32_t read, uint32_t written);
+
+void mass_storage_set_connection_error(MassStorage* mass_storage);
+void mass_storage_clear_connection_error(MassStorage* mass_storage);

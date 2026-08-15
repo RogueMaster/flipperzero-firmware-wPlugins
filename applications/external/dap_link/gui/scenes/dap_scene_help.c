@@ -38,7 +38,8 @@ void dap_scene_help_on_enter(void* context) {
             "    TMS: 3 [A6]\r\n"
             "    RST: 4 [A4]\r\n"
             "    TDO: 5 [B3]\r\n"
-            "    TDI: 6 [B2]\r\n");
+            "    TDI: 6 [B2]\r\n"
+            "    TRS: 7 [C3]\r\n");
         break;
     case DapSwdPinsPA14PA13:
         furi_string_cat(
@@ -46,6 +47,7 @@ void dap_scene_help_on_enter(void* context) {
             "    RST: 4 [A4]\r\n"
             "    TDO: 5 [B3]\r\n"
             "    TDI: 6 [B2]\r\n"
+            "    TRS: 7 [C3]\r\n"
             "    TCK: 10 [SWC]\r\n"
             "    TMS: 12 [SIO]\r\n");
         break;
