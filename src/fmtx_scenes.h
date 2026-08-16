@@ -8,6 +8,7 @@ typedef enum {
     ScMain,
     ScPlay,
     FmtxSceneSettings,
+    FmtxSceneSource,
     FmtxSceneVfo,
     ScAbout,
     ScCount,
@@ -30,6 +31,7 @@ typedef enum {
 
 typedef enum {
     FmtxSettingsSetFrequency,
+    FmtxSettingsSource,
 } FmtxSettingsItem;
 
 typedef enum {
@@ -50,6 +52,7 @@ typedef struct {
     bool filter;
     bool tx;
     bool paused;
+    bool usb;
     char filename[256];
 } PlayModel;
 

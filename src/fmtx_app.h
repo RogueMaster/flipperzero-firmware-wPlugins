@@ -13,6 +13,11 @@
 #include "fmtx_playback.h"
 #include "fmtx_vfo.h"
 
+typedef enum {
+    FmtxSourceMp3,
+    FmtxSourceUsb,
+} FmtxSource;
+
 typedef struct {
     Gui* gui;
     DialogsApp* dialogs;
@@ -27,6 +32,7 @@ typedef struct {
     FmtxVfo* vfo;
     FuriString* path;
     uint32_t frequency_hz;
+    FmtxSource source;
     uint32_t screen_started;
     uint32_t pause_started;
     uint32_t hold_started;

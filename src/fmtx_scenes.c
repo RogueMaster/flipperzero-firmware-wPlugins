@@ -166,6 +166,15 @@ void playdraw(Canvas* canvas, void* model) {
     const char* title = m->filename;
     uint32_t secs = m->elapsed_ms / 1000U;
     uint32_t khz;
+    if(m->usb) {
+        snprintf(g, sizeof(g), "Gain: %u%s", m->gain / 2, m->gain & 1 ? ".5x" : "x");
+        snprintf(f, sizeof(f), "Down: filt %s", m->filter ? "on" : "off");
+        canvas_clear(canvas);
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 62, g);
+        canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, f);
+        return;
+    }
     if(m->tx && txdraw(canvas, m->elapsed_ms)) return;
     if(m->paused) {
         uint32_t phase = m->pause_ms % 1200U;
@@ -228,6 +237,7 @@ static bool startsong(App* app, bool paused) {
     m->filter = fmtx_playback_filter_enabled(app->playback);
     m->tx = fmtx_playback_is_transmitting(app->playback);
     m->paused = ok && fmtx_playback_is_paused(app->playback);
+    m->usb = false;
     strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
     if(m->paused) app->pause_started = furi_get_tick();
     view_commit_model(app->playback_view, true);
@@ -298,6 +308,8 @@ bool playinput(InputEvent* ev, void* ctx) {
     App* app = ctx;
     PlayModel* m;
     if(!ev) return false;
+    if(app->source == FmtxSourceUsb && ev->key != InputKeyUp && ev->key != InputKeyDown)
+        return false;
     txcancel(fmtx_playback_position_ms(app->playback));
     if(ev->key == InputKeyLeft || ev->key == InputKeyRight) {
         if(ev->type == InputTypePress) {
@@ -474,7 +486,17 @@ static void mainout(void* ctx) {
 static void playin(void* ctx) {
     App* app = ctx;
     app->playback_visible = true;
-    (void)startsong(app, false);
+    if(app->source == FmtxSourceUsb) {
+        PlayModel* m = view_get_model(app->playback_view);
+        m->elapsed_ms = 0;
+        m->gain = fmtx_playback_gain(app->playback);
+        m->filter = fmtx_playback_filter_enabled(app->playback);
+        m->tx = false;
+        m->paused = false;
+        m->usb = true;
+        view_commit_model(app->playback_view, true);
+    } else
+        (void)startsong(app, false);
     view_dispatcher_switch_to_view(app->dispatcher, VPlay);
 }
 
@@ -511,6 +533,7 @@ static void setin(void* ctx) {
     submenu_set_header(app->settings_menu, "Settings");
     submenu_add_item(
         app->settings_menu, "Transmit frequency", FmtxSettingsSetFrequency, menucb, app);
+    submenu_add_item(app->settings_menu, "Source", FmtxSettingsSource, menucb, app);
     view_dispatcher_switch_to_view(app->dispatcher, FmtxViewSettings);
 }
 
@@ -524,10 +547,42 @@ static bool setev(void* ctx, SceneManagerEvent ev) {
         scene_manager_next_scene(app->scene_manager, FmtxSceneVfo);
         return true;
     }
+    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxSettingsSource) {
+        scene_manager_next_scene(app->scene_manager, FmtxSceneSource);
+        return true;
+    }
     return false;
 }
 
 static void setout(void* ctx) {
+    App* app = ctx;
+    submenu_reset(app->settings_menu);
+}
+
+static void sourcein(void* ctx) {
+    App* app = ctx;
+    submenu_set_header(app->settings_menu, "Source");
+    submenu_add_item(app->settings_menu, "MP3", FmtxSourceMp3, menucb, app);
+    submenu_add_item(app->settings_menu, "USB", FmtxSourceUsb, menucb, app);
+    submenu_set_selected_item(app->settings_menu, app->source);
+    view_dispatcher_switch_to_view(app->dispatcher, FmtxViewSettings);
+}
+
+static bool sourceev(void* ctx, SceneManagerEvent ev) {
+    App* app = ctx;
+    if(ev.type == SceneManagerEventTypeBack) {
+        scene_manager_previous_scene(app->scene_manager);
+        return true;
+    }
+    if(ev.type == SceneManagerEventTypeCustom && ev.event <= FmtxSourceUsb) {
+        app->source = ev.event;
+        scene_manager_previous_scene(app->scene_manager);
+        return true;
+    }
+    return false;
+}
+
+static void sourceout(void* ctx) {
     App* app = ctx;
     submenu_reset(app->settings_menu);
 }
@@ -612,6 +667,7 @@ static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] = {
     [ScMain] = mainin,
     [ScPlay] = playin,
     [FmtxSceneSettings] = setin,
+    [FmtxSceneSource] = sourcein,
     [FmtxSceneVfo] = vfoin,
     [ScAbout] = abtin,
 };
@@ -621,6 +677,7 @@ static const AppSceneOnEventCallback fmtx_on_event_handlers[] = {
     [ScMain] = mainev,
     [ScPlay] = playev,
     [FmtxSceneSettings] = setev,
+    [FmtxSceneSource] = sourceev,
     [FmtxSceneVfo] = vfoev,
     [ScAbout] = abtev,
 };
@@ -630,6 +687,7 @@ static const AppSceneOnExitCallback fmtx_on_exit_handlers[] = {
     [ScMain] = mainout,
     [ScPlay] = playout,
     [FmtxSceneSettings] = setout,
+    [FmtxSceneSource] = sourceout,
     [FmtxSceneVfo] = vfoout,
     [ScAbout] = abtout,
 };
