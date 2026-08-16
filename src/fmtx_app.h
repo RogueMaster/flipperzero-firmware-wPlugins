@@ -5,6 +5,7 @@
 #include <dialogs/dialogs.h>
 #include <gui/gui.h>
 #include <gui/modules/submenu.h>
+#include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
 #include <gui/scene_manager.h>
 #include <gui/view.h>
@@ -24,7 +25,7 @@ typedef struct {
     ViewDispatcher* dispatcher;
     SceneManager* scene_manager;
     Submenu* menu;
-    Submenu* settings_menu;
+    VariableItemList* settings_menu;
     Widget* about_widget;
     View* playback_view;
     View* vfo_view;
@@ -42,8 +43,8 @@ typedef struct {
     bool playback_visible;
 } App;
 
-uint32_t fmtx_config_load_frequency(void);
-bool fmtx_config_save_frequency(uint32_t hz);
+void fmtx_config_load(uint32_t* hz, FmtxSource* source);
+bool fmtx_config_save(uint32_t hz, FmtxSource source);
 int32_t flipper_zero_fmtx_app(void* ctx);
 
 #endif

@@ -392,7 +392,7 @@ bool vfoinput(InputEvent* ev, void* ctx) {
     view_commit_model(app->vfo_view, h);
     if(ok) {
         app->frequency_hz = fmtx_vfo_frequency(app->vfo);
-        (void)fmtx_config_save_frequency(app->frequency_hz);
+        (void)fmtx_config_save(app->frequency_hz, app->source);
         view_dispatcher_send_custom_event(app->dispatcher, FmtxVfoDone);
     }
     return h;
@@ -545,12 +545,29 @@ static void playout(void* ctx) {
     fmtx_playback_stop(app->playback);
 }
 
+static const char* source_names[] = {"MP3", "USB"};
+
+static void sourcecb(VariableItem* item) {
+    App* app = variable_item_get_context(item);
+    app->source = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, source_names[app->source]);
+    (void)fmtx_config_save(app->frequency_hz, app->source);
+}
+
+static void settingscb(void* ctx, uint32_t index) {
+    App* app = ctx;
+    if(index == FmtxSettingsSetFrequency)
+        view_dispatcher_send_custom_event(app->dispatcher, index);
+}
+
 static void setin(void* ctx) {
     App* app = ctx;
-    submenu_set_header(app->settings_menu, "Settings");
-    submenu_add_item(
-        app->settings_menu, "Transmit frequency", FmtxSettingsSetFrequency, menucb, app);
-    submenu_add_item(app->settings_menu, "Source", FmtxSettingsSource, menucb, app);
+    VariableItem* item;
+    variable_item_list_add(app->settings_menu, "Transmit frequency", 0, NULL, app);
+    item = variable_item_list_add(app->settings_menu, "Source", 2, sourcecb, app);
+    variable_item_set_current_value_index(item, app->source);
+    variable_item_set_current_value_text(item, source_names[app->source]);
+    variable_item_list_set_enter_callback(app->settings_menu, settingscb, app);
     view_dispatcher_switch_to_view(app->dispatcher, FmtxViewSettings);
 }
 
@@ -564,44 +581,12 @@ static bool setev(void* ctx, SceneManagerEvent ev) {
         scene_manager_next_scene(app->scene_manager, FmtxSceneVfo);
         return true;
     }
-    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxSettingsSource) {
-        scene_manager_next_scene(app->scene_manager, FmtxSceneSource);
-        return true;
-    }
     return false;
 }
 
 static void setout(void* ctx) {
     App* app = ctx;
-    submenu_reset(app->settings_menu);
-}
-
-static void sourcein(void* ctx) {
-    App* app = ctx;
-    submenu_set_header(app->settings_menu, "Source");
-    submenu_add_item(app->settings_menu, "MP3", FmtxSourceMp3, menucb, app);
-    submenu_add_item(app->settings_menu, "USB", FmtxSourceUsb, menucb, app);
-    submenu_set_selected_item(app->settings_menu, app->source);
-    view_dispatcher_switch_to_view(app->dispatcher, FmtxViewSettings);
-}
-
-static bool sourceev(void* ctx, SceneManagerEvent ev) {
-    App* app = ctx;
-    if(ev.type == SceneManagerEventTypeBack) {
-        scene_manager_previous_scene(app->scene_manager);
-        return true;
-    }
-    if(ev.type == SceneManagerEventTypeCustom && ev.event <= FmtxSourceUsb) {
-        app->source = ev.event;
-        scene_manager_previous_scene(app->scene_manager);
-        return true;
-    }
-    return false;
-}
-
-static void sourceout(void* ctx) {
-    App* app = ctx;
-    submenu_reset(app->settings_menu);
+    variable_item_list_reset(app->settings_menu);
 }
 
 static void vfoin(void* ctx) {
@@ -622,7 +607,7 @@ static bool vfoev(void* ctx, SceneManagerEvent ev) {
     }
     if(ev.type == SceneManagerEventTypeBack) {
         app->frequency_hz = fmtx_vfo_accept(app->vfo);
-        (void)fmtx_config_save_frequency(app->frequency_hz);
+        (void)fmtx_config_save(app->frequency_hz, app->source);
         scene_manager_previous_scene(app->scene_manager);
         return true;
     }
@@ -684,7 +669,6 @@ static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] = {
     [ScMain] = mainin,
     [ScPlay] = playin,
     [FmtxSceneSettings] = setin,
-    [FmtxSceneSource] = sourcein,
     [FmtxSceneVfo] = vfoin,
     [ScAbout] = abtin,
 };
@@ -694,7 +678,6 @@ static const AppSceneOnEventCallback fmtx_on_event_handlers[] = {
     [ScMain] = mainev,
     [ScPlay] = playev,
     [FmtxSceneSettings] = setev,
-    [FmtxSceneSource] = sourceev,
     [FmtxSceneVfo] = vfoev,
     [ScAbout] = abtev,
 };
@@ -704,7 +687,6 @@ static const AppSceneOnExitCallback fmtx_on_exit_handlers[] = {
     [ScMain] = mainout,
     [ScPlay] = playout,
     [FmtxSceneSettings] = setout,
-    [FmtxSceneSource] = sourceout,
     [FmtxSceneVfo] = vfoout,
     [ScAbout] = abtout,
 };

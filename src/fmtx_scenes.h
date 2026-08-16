@@ -8,7 +8,6 @@ typedef enum {
     ScMain,
     ScPlay,
     FmtxSceneSettings,
-    FmtxSceneSource,
     FmtxSceneVfo,
     ScAbout,
     ScCount,
