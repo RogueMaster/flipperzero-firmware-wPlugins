@@ -392,7 +392,7 @@ bool vfoinput(InputEvent* ev, void* ctx) {
     view_commit_model(app->vfo_view, h);
     if(ok) {
         app->frequency_hz = fmtx_vfo_frequency(app->vfo);
-        (void)fmtx_config_save(app->frequency_hz, app->source);
+        (void)fmtx_config_save(app->frequency_hz, app->source, app->transmitter);
         view_dispatcher_send_custom_event(app->dispatcher, FmtxVfoDone);
     }
     return h;
@@ -471,6 +471,41 @@ static void spout(void* x) {
     view_set_input_callback(a->playback_view, playinput);
 }
 
+static void radiodialogcb(DialogExResult result, void* ctx) {
+    App* app = ctx;
+    if(result == DialogExResultCenter)
+        view_dispatcher_send_custom_event(app->dispatcher, FmtxRadioDialogOk);
+}
+
+static void missingin(void* ctx) {
+    App* app = ctx;
+    dialog_ex_set_header(
+        app->radio_dialog, "External transmitter", 64, 15, AlignCenter, AlignCenter);
+    dialog_ex_set_text(app->radio_dialog, "not detected", 64, 35, AlignCenter, AlignCenter);
+    dialog_ex_set_center_button_text(app->radio_dialog, "OK");
+    dialog_ex_set_result_callback(app->radio_dialog, radiodialogcb);
+    dialog_ex_set_context(app->radio_dialog, app);
+    view_dispatcher_switch_to_view(app->dispatcher, FmtxViewRadioDialog);
+}
+
+static bool missingev(void* ctx, SceneManagerEvent ev) {
+    App* app = ctx;
+    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxRadioDialogOk) {
+        scene_manager_next_scene(app->scene_manager, ScPlay);
+        return true;
+    }
+    if(ev.type == SceneManagerEventTypeBack) {
+        scene_manager_previous_scene(app->scene_manager);
+        return true;
+    }
+    return false;
+}
+
+static void missingout(void* ctx) {
+    App* app = ctx;
+    dialog_ex_reset(app->radio_dialog);
+}
+
 static bool mainev(void* ctx, SceneManagerEvent ev) {
     App* app = ctx;
     if(ev.type == SceneManagerEventTypeBack) {
@@ -478,9 +513,15 @@ static bool mainev(void* ctx, SceneManagerEvent ev) {
         return true;
     }
     if(ev.type != SceneManagerEventTypeCustom) return false;
-    if(ev.event == MStart)
-        scene_manager_next_scene(app->scene_manager, ScPlay);
-    else if(ev.event == MFile)
+    if(ev.event == MStart) {
+        fmtx_playback_set_radio(app->playback, app->transmitter);
+        if(app->transmitter == FmtxRadioExternal &&
+           !fmtx_playback_external_available(app->playback)) {
+            fmtx_playback_set_radio(app->playback, FmtxRadioInternal);
+            scene_manager_next_scene(app->scene_manager, FmtxSceneRadioMissing);
+        } else
+            scene_manager_next_scene(app->scene_manager, ScPlay);
+    } else if(ev.event == MFile)
         pickfile(app);
     else if(ev.event == MSet)
         scene_manager_next_scene(app->scene_manager, FmtxSceneSettings);
@@ -519,7 +560,7 @@ static void playin(void* ctx) {
 static bool playev(void* ctx, SceneManagerEvent ev) {
     App* app = ctx;
     if(ev.type == SceneManagerEventTypeBack) {
-        scene_manager_previous_scene(app->scene_manager);
+        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, ScMain);
         return true;
     }
     if(ev.type == SceneManagerEventTypeTick && app->playback_visible) {
@@ -546,12 +587,20 @@ static void playout(void* ctx) {
 }
 
 static const char* source_names[] = {"MP3", "USB"};
+static const char* transmitter_names[] = {"Auto", "External", "Internal"};
 
 static void sourcecb(VariableItem* item) {
     App* app = variable_item_get_context(item);
     app->source = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, source_names[app->source]);
-    (void)fmtx_config_save(app->frequency_hz, app->source);
+    (void)fmtx_config_save(app->frequency_hz, app->source, app->transmitter);
+}
+
+static void transmittercb(VariableItem* item) {
+    App* app = variable_item_get_context(item);
+    app->transmitter = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, transmitter_names[app->transmitter]);
+    (void)fmtx_config_save(app->frequency_hz, app->source, app->transmitter);
 }
 
 static void settingscb(void* ctx, uint32_t index) {
@@ -567,6 +616,9 @@ static void setin(void* ctx) {
     item = variable_item_list_add(app->settings_menu, "Source", 2, sourcecb, app);
     variable_item_set_current_value_index(item, app->source);
     variable_item_set_current_value_text(item, source_names[app->source]);
+    item = variable_item_list_add(app->settings_menu, "Transmitter", 3, transmittercb, app);
+    variable_item_set_current_value_index(item, app->transmitter);
+    variable_item_set_current_value_text(item, transmitter_names[app->transmitter]);
     variable_item_list_set_enter_callback(app->settings_menu, settingscb, app);
     view_dispatcher_switch_to_view(app->dispatcher, FmtxViewSettings);
 }
@@ -607,7 +659,7 @@ static bool vfoev(void* ctx, SceneManagerEvent ev) {
     }
     if(ev.type == SceneManagerEventTypeBack) {
         app->frequency_hz = fmtx_vfo_accept(app->vfo);
-        (void)fmtx_config_save(app->frequency_hz, app->source);
+        (void)fmtx_config_save(app->frequency_hz, app->source, app->transmitter);
         scene_manager_previous_scene(app->scene_manager);
         return true;
     }
@@ -668,6 +720,7 @@ static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] = {
     [ScBoot] = spin,
     [ScMain] = mainin,
     [ScPlay] = playin,
+    [FmtxSceneRadioMissing] = missingin,
     [FmtxSceneSettings] = setin,
     [FmtxSceneVfo] = vfoin,
     [ScAbout] = abtin,
@@ -677,6 +730,7 @@ static const AppSceneOnEventCallback fmtx_on_event_handlers[] = {
     [ScBoot] = spev,
     [ScMain] = mainev,
     [ScPlay] = playev,
+    [FmtxSceneRadioMissing] = missingev,
     [FmtxSceneSettings] = setev,
     [FmtxSceneVfo] = vfoev,
     [ScAbout] = abtev,
@@ -686,6 +740,7 @@ static const AppSceneOnExitCallback fmtx_on_exit_handlers[] = {
     [ScBoot] = spout,
     [ScMain] = mainout,
     [ScPlay] = playout,
+    [FmtxSceneRadioMissing] = missingout,
     [FmtxSceneSettings] = setout,
     [FmtxSceneVfo] = vfoout,
     [ScAbout] = abtout,

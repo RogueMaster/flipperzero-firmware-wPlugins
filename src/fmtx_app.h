@@ -4,6 +4,7 @@
 #include <furi.h>
 #include <dialogs/dialogs.h>
 #include <gui/gui.h>
+#include <gui/modules/dialog_ex.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
@@ -26,6 +27,7 @@ typedef struct {
     SceneManager* scene_manager;
     Submenu* menu;
     VariableItemList* settings_menu;
+    DialogEx* radio_dialog;
     Widget* about_widget;
     View* playback_view;
     View* vfo_view;
@@ -34,6 +36,7 @@ typedef struct {
     FuriString* path;
     uint32_t frequency_hz;
     FmtxSource source;
+    FmtxRadio transmitter;
     uint32_t screen_started;
     uint32_t pause_started;
     uint32_t hold_started;
@@ -43,8 +46,8 @@ typedef struct {
     bool playback_visible;
 } App;
 
-void fmtx_config_load(uint32_t* hz, FmtxSource* source);
-bool fmtx_config_save(uint32_t hz, FmtxSource source);
+void fmtx_config_load(uint32_t* hz, FmtxSource* source, FmtxRadio* transmitter);
+bool fmtx_config_save(uint32_t hz, FmtxSource source, FmtxRadio transmitter);
 int32_t flipper_zero_fmtx_app(void* ctx);
 
 #endif

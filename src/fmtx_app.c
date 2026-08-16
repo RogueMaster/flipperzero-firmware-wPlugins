@@ -8,7 +8,7 @@
 #include <toolbox/saved_struct.h>
 
 #define FMTX_CONFIG_MAGIC 100000U
-#define FMTX_CONFIG_VERSION 1U
+#define FMTX_CONFIG_VERSION 2U
 
 static bool custev(void* ctx, uint32_t event) {
     App* app = ctx;
@@ -41,12 +41,13 @@ static bool startup_animation_due(void) {
     return true;
 }
 
-void fmtx_config_load(uint32_t* hz, FmtxSource* source) {
-    uint8_t data[10];
+void fmtx_config_load(uint32_t* hz, FmtxSource* source, FmtxRadio* transmitter) {
+    uint8_t data[11];
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage ? storage_file_alloc(storage) : NULL;
     *hz = fmtx_vfo_default_frequency();
     *source = FmtxSourceMp3;
+    *transmitter = FmtxRadioAuto;
     if(file &&
        storage_file_open(file, APP_DATA_PATH("config.bin"), FSAM_READ, FSOM_OPEN_EXISTING)) {
         if(storage_file_size(file) == sizeof(data) &&
@@ -56,9 +57,11 @@ void fmtx_config_load(uint32_t* hz, FmtxSource* source) {
             uint32_t saved_hz = data[5] | ((uint32_t)data[6] << 8) |
                                 ((uint32_t)data[7] << 16) | ((uint32_t)data[8] << 24);
             if(magic == FMTX_CONFIG_MAGIC && data[4] == FMTX_CONFIG_VERSION &&
-               fmtx_vfo_frequency_valid(saved_hz) && data[9] <= FmtxSourceUsb) {
+               fmtx_vfo_frequency_valid(saved_hz) && data[9] <= FmtxSourceUsb &&
+               data[10] <= FmtxRadioInternal) {
                 *hz = saved_hz;
                 *source = data[9];
+                *transmitter = data[10];
             }
         }
         storage_file_close(file);
@@ -67,8 +70,8 @@ void fmtx_config_load(uint32_t* hz, FmtxSource* source) {
     if(storage) furi_record_close(RECORD_STORAGE);
 }
 
-bool fmtx_config_save(uint32_t hz, FmtxSource source) {
-    uint8_t data[10] = {
+bool fmtx_config_save(uint32_t hz, FmtxSource source, FmtxRadio transmitter) {
+    uint8_t data[11] = {
         (uint8_t)FMTX_CONFIG_MAGIC,
         (uint8_t)(FMTX_CONFIG_MAGIC >> 8),
         (uint8_t)(FMTX_CONFIG_MAGIC >> 16),
@@ -79,11 +82,14 @@ bool fmtx_config_save(uint32_t hz, FmtxSource source) {
         hz >> 16,
         hz >> 24,
         source,
+        transmitter,
     };
     bool ok = false;
     Storage* storage;
     File* file;
-    if(!fmtx_vfo_frequency_valid(hz) || source > FmtxSourceUsb) return false;
+    if(!fmtx_vfo_frequency_valid(hz) || source > FmtxSourceUsb ||
+       transmitter > FmtxRadioInternal)
+        return false;
     storage = furi_record_open(RECORD_STORAGE);
     if(!storage) return false;
     (void)storage_common_mkdir(storage, APP_DATA_PATH(""));
@@ -106,16 +112,17 @@ static App* appnew(void) {
     app->dispatcher = view_dispatcher_alloc();
     app->menu = submenu_alloc();
     app->settings_menu = variable_item_list_alloc();
+    app->radio_dialog = dialog_ex_alloc();
     app->about_widget = widget_alloc();
     app->playback_view = view_alloc();
     app->vfo_view = view_alloc();
     app->playback = fmtx_playback_alloc();
     app->vfo = fmtx_vfo_alloc();
     app->path = furi_string_alloc_set(APP_ASSETS_PATH("0-chiptune.mp3"));
-    fmtx_config_load(&app->frequency_hz, &app->source);
+    fmtx_config_load(&app->frequency_hz, &app->source, &app->transmitter);
     if(app->gui && app->dialogs && app->dispatcher && app->menu && app->settings_menu &&
-       app->about_widget && app->playback_view && app->vfo_view && app->playback && app->vfo &&
-       app->path)
+       app->radio_dialog && app->about_widget && app->playback_view && app->vfo_view &&
+       app->playback && app->vfo && app->path)
         app->scene_manager = scene_manager_alloc(&scenes, app);
     if(!app->scene_manager) {
         if(app->path) furi_string_free(app->path);
@@ -124,6 +131,7 @@ static App* appnew(void) {
         if(app->vfo_view) view_free(app->vfo_view);
         if(app->playback_view) view_free(app->playback_view);
         if(app->about_widget) widget_free(app->about_widget);
+        if(app->radio_dialog) dialog_ex_free(app->radio_dialog);
         if(app->settings_menu) variable_item_list_free(app->settings_menu);
         if(app->menu) submenu_free(app->menu);
         if(app->dispatcher) view_dispatcher_free(app->dispatcher);
@@ -154,6 +162,8 @@ static App* appnew(void) {
     view_dispatcher_add_view(app->dispatcher, VPlay, app->playback_view);
     view_dispatcher_add_view(
         app->dispatcher, FmtxViewSettings, variable_item_list_get_view(app->settings_menu));
+    view_dispatcher_add_view(
+        app->dispatcher, FmtxViewRadioDialog, dialog_ex_get_view(app->radio_dialog));
     view_dispatcher_add_view(app->dispatcher, FmtxViewVfo, app->vfo_view);
     view_dispatcher_add_view(app->dispatcher, VAbout, widget_get_view(app->about_widget));
     view_dispatcher_attach_to_gui(app->dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -167,12 +177,14 @@ static void appfree(App* app) {
     view_dispatcher_remove_view(app->dispatcher, VMain);
     view_dispatcher_remove_view(app->dispatcher, VPlay);
     view_dispatcher_remove_view(app->dispatcher, FmtxViewSettings);
+    view_dispatcher_remove_view(app->dispatcher, FmtxViewRadioDialog);
     view_dispatcher_remove_view(app->dispatcher, FmtxViewVfo);
     view_dispatcher_remove_view(app->dispatcher, VAbout);
     scene_manager_free(app->scene_manager);
     view_dispatcher_free(app->dispatcher);
     submenu_free(app->menu);
     variable_item_list_free(app->settings_menu);
+    dialog_ex_free(app->radio_dialog);
     widget_free(app->about_widget);
     view_free(app->playback_view);
     view_free(app->vfo_view);

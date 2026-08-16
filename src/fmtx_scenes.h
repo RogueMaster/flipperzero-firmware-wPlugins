@@ -7,6 +7,7 @@ typedef enum {
     ScBoot,
     ScMain,
     ScPlay,
+    FmtxSceneRadioMissing,
     FmtxSceneSettings,
     FmtxSceneVfo,
     ScAbout,
@@ -16,6 +17,7 @@ typedef enum {
 typedef enum {
     VMain,
     VPlay,
+    FmtxViewRadioDialog,
     FmtxViewSettings,
     FmtxViewVfo,
     VAbout,
@@ -31,7 +33,12 @@ typedef enum {
 typedef enum {
     FmtxSettingsSetFrequency,
     FmtxSettingsSource,
+    FmtxSettingsTransmitter,
 } FmtxSettingsItem;
+
+typedef enum {
+    FmtxRadioDialogOk,
+} FmtxRadioDialogEvent;
 
 typedef enum {
     FmtxVfoDone,

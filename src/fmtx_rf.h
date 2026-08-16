@@ -3,12 +3,20 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <lib/subghz/devices/devices.h>
 
 #define RINGSZ 4096U
+
+typedef enum {
+    FmtxRadioAuto,
+    FmtxRadioExternal,
+    FmtxRadioInternal,
+} FmtxRadio;
 
 typedef struct {
     uint32_t hz;
     const uint8_t* regs;
+    const SubGhzDevice* device;
     volatile uint16_t head;
     volatile uint16_t tail;
     int16_t ring[RINGSZ];
@@ -23,12 +31,19 @@ typedef struct {
     uint8_t sample_decisions;
     uint8_t slot;
     volatile uint8_t gain;
+    FmtxRadio selected;
     bool bit;
     bool awake;
+    bool external;
+    bool devices_started;
+    bool device_started;
+    bool power_started;
 } Rf;
 
 void rfinit(Rf* rf, uint32_t hz);
 const uint8_t* rfregs(void);
+void rfselect(Rf* rf, FmtxRadio radio);
+bool rfexternal(Rf* rf);
 bool rfstart(Rf* rf);
 bool rfresume(Rf* rf);
 void rfpause(Rf* rf);

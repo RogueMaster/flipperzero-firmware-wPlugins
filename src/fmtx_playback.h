@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "fmtx_rf.h"
+
 typedef struct {
     char path[256];
     uint32_t hz;
@@ -14,6 +16,8 @@ typedef struct Play Play;
 void fmtx_playback_request_init(PlayReq* request, const char* path, uint32_t hz);
 Play* fmtx_playback_alloc(void);
 void fmtx_playback_free(Play* playback);
+void fmtx_playback_set_radio(Play* playback, FmtxRadio radio);
+bool fmtx_playback_external_available(Play* playback);
 bool fmtx_playback_start(Play* playback, const PlayReq* request);
 bool fmtx_playback_start_paused(Play* playback, const PlayReq* request);
 bool fmtx_playback_start_usb(Play* playback, uint32_t hz);

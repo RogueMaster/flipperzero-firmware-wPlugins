@@ -508,6 +508,14 @@ void fmtx_playback_free(Play* playback) {
     free(playback);
 }
 
+void fmtx_playback_set_radio(Play* playback, FmtxRadio radio) {
+    if(playback) rfselect(playback->rf, radio);
+}
+
+bool fmtx_playback_external_available(Play* playback) {
+    return playback && rfexternal(playback->rf);
+}
+
 static uint32_t frameat(const Play* p, uint32_t frame) {
     uint32_t hz = p->fhz ? p->fhz : 44100U;
     uint32_t n = p->fsamp ? p->fsamp : 1152U;
