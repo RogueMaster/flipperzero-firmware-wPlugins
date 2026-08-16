@@ -1,10 +1,18 @@
 #include "fmtx_usb.h"
 
+#include <furi_hal_version.h>
 #include <usb.h>
 #include <usb_std.h>
 
 #define FMTX_USB_EP     0x01
 #define FMTX_USB_PACKET 96U
+#define FMTX_USB_STRING_MAX 28U
+
+typedef struct {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint16_t wString[FMTX_USB_STRING_MAX];
+} __attribute__((packed, aligned(2))) FmtxUsbString;
 
 enum {
     FmtxUsbStringManufacturer = 1,
@@ -30,9 +38,8 @@ static struct usb_device_descriptor fmtx_usb_device = {
 };
 
 static const struct usb_string_descriptor fmtx_usb_manufacturer = USB_STRING_DESC("YO3GND");
-static const struct usb_string_descriptor fmtx_usb_product =
-    USB_STRING_DESC("YO3GND Flipper FMTX");
-static const struct usb_string_descriptor fmtx_usb_serial = USB_STRING_DESC("YO3GND-FMTX-0001");
+static FmtxUsbString fmtx_usb_product;
+static FmtxUsbString fmtx_usb_serial;
 
 // clang-format off
 static const uint8_t fmtx_usb_config[] = {
@@ -67,6 +74,33 @@ static volatile bool fmtx_usb_configured;
 static usbd_device* volatile fmtx_usb_dev;
 
 static void fmtx_usb_rx(usbd_device* dev, uint8_t event, uint8_t ep);
+
+static void fmtx_usb_make_string(FmtxUsbString* desc, const char* prefix, const char* name) {
+    size_t n = 0;
+    while(*prefix && n < FMTX_USB_STRING_MAX) desc->wString[n++] = *prefix++;
+    while(*name && n < FMTX_USB_STRING_MAX) desc->wString[n++] = *name++;
+    desc->bLength = 2U + n * 2U;
+    desc->bDescriptorType = USB_DTYPE_STRING;
+}
+
+static void fmtx_usb_make_strings(void) {
+    const char* name = furi_hal_version_get_name_ptr();
+    char uid_name[17];
+    if(!name) {
+        static const char hex[] = "0123456789ABCDEF";
+        const uint8_t* uid = furi_hal_version_uid();
+        size_t size = furi_hal_version_uid_size();
+        if(size > 8U) size = 8U;
+        for(size_t i = 0; i < size; i++) {
+            uid_name[i * 2U] = hex[uid[i] >> 4U];
+            uid_name[i * 2U + 1U] = hex[uid[i] & 0x0FU];
+        }
+        uid_name[size * 2U] = 0;
+        name = uid_name;
+    }
+    fmtx_usb_make_string(&fmtx_usb_product, "YO3GND FMTX ", name);
+    fmtx_usb_make_string(&fmtx_usb_serial, "fmtx_", name);
+}
 
 static bool fmtx_usb_stream(usbd_device* dev, bool on) {
     if(on) {
@@ -185,6 +219,7 @@ FuriHalUsbInterface fmtx_usb_audio = {
 
 bool fmtx_usb_start(FmtxUsbRx callback, void* ctx) {
     if(fmtx_usb_active || !callback) return false;
+    fmtx_usb_make_strings();
     fmtx_usb_previous = furi_hal_usb_get_config();
     fmtx_usb_callback = callback;
     fmtx_usb_context = ctx;
