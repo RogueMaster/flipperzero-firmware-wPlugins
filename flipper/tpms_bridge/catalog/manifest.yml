@@ -19,7 +19,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/VishovVladimir/flipper-zero-tpms.git
-    commit_sha: a93a5daf541839301aeaddbe8efa855d14e89c3c
+    commit_sha: 4d1c07d508f99b508f26794bc2da100f90350c5e
     subdir: flipper/tpms_bridge
 
 description: "@README.md"
