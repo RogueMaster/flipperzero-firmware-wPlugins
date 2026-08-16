@@ -53,6 +53,7 @@ typedef struct {
     bool tx;
     bool paused;
     bool usb;
+    bool usb_ok;
     char filename[256];
 } PlayModel;
 

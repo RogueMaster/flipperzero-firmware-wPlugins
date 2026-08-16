@@ -12,5 +12,6 @@ extern FuriHalUsbInterface fmtx_usb_audio;
 
 bool fmtx_usb_start(FmtxUsbRx callback, void* ctx);
 void fmtx_usb_stop(void);
+bool fmtx_usb_connected(void);
 
 #endif

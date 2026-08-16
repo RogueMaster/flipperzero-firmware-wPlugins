@@ -134,8 +134,18 @@ static void txled(bool on) {
         furi_hal_light_set(LightBlue, 0);
         furi_hal_light_set(LightGreen, 96);
         furi_hal_light_set(LightRed, 255);
-    } else
-        furi_hal_light_set(LightRed | LightGreen | LightBlue, 0);
+    } else {
+        furi_hal_light_set(LightRed | LightGreen, 0);
+        furi_hal_light_set(LightBlue, 255);
+    }
+}
+
+void rfledidle(void) {
+    txled(false);
+}
+
+void rfledoff(void) {
+    furi_hal_light_set(LightRed | LightGreen | LightBlue, 0);
 }
 
 bool rfstart(Rf* rf) {

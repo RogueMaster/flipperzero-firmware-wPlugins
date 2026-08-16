@@ -59,7 +59,9 @@ static uint8_t fmtx_usb_alt;
 static uint8_t fmtx_usb_phase;
 static int32_t fmtx_usb_sum;
 static uint8_t fmtx_usb_reply;
-static bool fmtx_usb_active;
+static volatile bool fmtx_usb_active;
+static volatile bool fmtx_usb_configured;
+static usbd_device* volatile fmtx_usb_dev;
 
 static void fmtx_usb_rx(usbd_device* dev, uint8_t event, uint8_t ep) {
     int16_t input[FMTX_USB_PACKET / 2U];
@@ -69,6 +71,7 @@ static void fmtx_usb_rx(usbd_device* dev, uint8_t event, uint8_t ep) {
     if(event != usbd_evt_eprx) return;
     n = usbd_ep_read(dev, ep, input, sizeof(input));
     if(n <= 0 || fmtx_usb_alt != 1U) return;
+    fmtx_usb_configured = true;
     for(int32_t i = 0; i < n / 2; i++) {
         fmtx_usb_sum += input[i];
         fmtx_usb_phase++;
@@ -82,17 +85,19 @@ static void fmtx_usb_rx(usbd_device* dev, uint8_t event, uint8_t ep) {
 }
 
 static usbd_respond fmtx_usb_ep_config(usbd_device* dev, uint8_t cfg) {
+    fmtx_usb_configured = false;
+    fmtx_usb_alt = 0;
+    fmtx_usb_phase = 0;
+    fmtx_usb_sum = 0;
     if(cfg == 0U) {
         usbd_ep_deconfig(dev, FMTX_USB_EP);
         usbd_reg_endpoint(dev, FMTX_USB_EP, NULL);
         return usbd_ack;
     }
     if(cfg == 1U) {
-        fmtx_usb_alt = 0;
-        fmtx_usb_phase = 0;
-        fmtx_usb_sum = 0;
         usbd_ep_config(dev, FMTX_USB_EP, USB_EPTYPE_ISOCHRONUS, FMTX_USB_PACKET);
         usbd_reg_endpoint(dev, FMTX_USB_EP, fmtx_usb_rx);
+        fmtx_usb_configured = true;
         return usbd_ack;
     }
     return usbd_fail;
@@ -129,22 +134,27 @@ static usbd_respond
 static void fmtx_usb_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx) {
     (void)intf;
     (void)ctx;
+    fmtx_usb_dev = dev;
     usbd_reg_config(dev, fmtx_usb_ep_config);
     usbd_reg_control(dev, fmtx_usb_control);
     usbd_connect(dev, true);
 }
 
 static void fmtx_usb_deinit(usbd_device* dev) {
+    fmtx_usb_configured = false;
+    fmtx_usb_alt = 0;
     usbd_reg_config(dev, NULL);
     usbd_reg_control(dev, NULL);
+    fmtx_usb_dev = NULL;
 }
 
 static void fmtx_usb_wakeup(usbd_device* dev) {
-    (void)dev;
+    fmtx_usb_configured = dev->status.device_state == usbd_state_configured;
 }
 
 static void fmtx_usb_suspend(usbd_device* dev) {
     (void)dev;
+    fmtx_usb_configured = false;
 }
 
 FuriHalUsbInterface fmtx_usb_audio = {
@@ -165,6 +175,7 @@ bool fmtx_usb_start(FmtxUsbRx callback, void* ctx) {
     fmtx_usb_context = ctx;
     fmtx_usb_phase = 0;
     fmtx_usb_sum = 0;
+    fmtx_usb_configured = false;
     if(!furi_hal_usb_set_config(&fmtx_usb_audio, NULL)) {
         fmtx_usb_callback = NULL;
         fmtx_usb_context = NULL;
@@ -180,8 +191,16 @@ void fmtx_usb_stop(void) {
     if(!fmtx_usb_active) return;
     fmtx_usb_callback = NULL;
     fmtx_usb_context = NULL;
+    fmtx_usb_configured = false;
+    fmtx_usb_alt = 0;
     previous = fmtx_usb_previous;
     fmtx_usb_previous = NULL;
     fmtx_usb_active = false;
     (void)furi_hal_usb_set_config(previous, NULL);
+}
+
+bool fmtx_usb_connected(void) {
+    usbd_device* dev = fmtx_usb_dev;
+    return fmtx_usb_active && fmtx_usb_configured && dev &&
+           dev->status.device_state == usbd_state_configured;
 }

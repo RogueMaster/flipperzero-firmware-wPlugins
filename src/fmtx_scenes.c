@@ -157,21 +157,33 @@ static void draw_filename(Canvas* canvas, const PlayModel* model, const char* ti
     canvas_draw_str_aligned(canvas, x + width + 16, 32, AlignLeft, AlignCenter, title);
 }
 
+static void drawtriangle(Canvas* canvas, int32_t x, int32_t y, bool up) {
+    for(int32_t i = 0; i < 4; i++) {
+        int32_t n = up ? i : 3 - i;
+        canvas_draw_line(canvas, x - n, y + i, x + n, y + i);
+    }
+}
+
 void playdraw(Canvas* canvas, void* model) {
     PlayModel* m = model;
     char elapsed[12];
     char frequency[20];
     char g[16];
     char f[20];
+    char u[10];
     const char* title = m->filename;
     uint32_t secs = m->elapsed_ms / 1000U;
     uint32_t khz;
     if(m->usb) {
-        snprintf(g, sizeof(g), "Gain: %u%s", m->gain / 2, m->gain & 1 ? ".5x" : "x");
-        snprintf(f, sizeof(f), "Down: filt %s", m->filter ? "on" : "off");
+        snprintf(g, sizeof(g), "%u%s", m->gain / 2, m->gain & 1 ? ".5x" : "x");
+        snprintf(f, sizeof(f), "filt %s", m->filter ? "on" : "off");
+        snprintf(u, sizeof(u), "usb:%s", m->usb_ok ? "ok" : "no");
         canvas_clear(canvas);
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 62, g);
+        drawtriangle(canvas, 5, 55, true);
+        canvas_draw_str(canvas, 12, 62, g);
+        canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, u);
+        drawtriangle(canvas, 119 - canvas_string_width(canvas, f), 55, false);
         canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, f);
         return;
     }
@@ -193,8 +205,8 @@ void playdraw(Canvas* canvas, void* model) {
         "%lu.%03lu MHz",
         (unsigned long)(khz / 1000U),
         (unsigned long)(khz % 1000U));
-    snprintf(g, sizeof(g), "Gain: %u%s", m->gain / 2, m->gain & 1 ? ".5x" : "x");
-    snprintf(f, sizeof(f), "Down: filt %s", m->filter ? "on" : "off");
+    snprintf(g, sizeof(g), "%u%s", m->gain / 2, m->gain & 1 ? ".5x" : "x");
+    snprintf(f, sizeof(f), "filt %s", m->filter ? "on" : "off");
     canvas_clear(canvas);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignBottom, "github.com/yo3gnd/fmtx");
@@ -203,7 +215,9 @@ void playdraw(Canvas* canvas, void* model) {
     draw_filename(canvas, m, title);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, frequency);
-    canvas_draw_str(canvas, 2, 62, g);
+    drawtriangle(canvas, 5, 55, true);
+    canvas_draw_str(canvas, 12, 62, g);
+    drawtriangle(canvas, 119 - canvas_string_width(canvas, f), 55, false);
     canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, f);
 }
 
@@ -495,6 +509,7 @@ static void playin(void* ctx) {
         m->tx = false;
         m->paused = false;
         m->usb = true;
+        m->usb_ok = false;
         view_commit_model(app->playback_view, true);
     } else
         (void)startsong(app, false);
@@ -513,6 +528,7 @@ static bool playev(void* ctx, SceneManagerEvent ev) {
         if(paused && !m->paused) app->pause_started = furi_get_tick();
         m->elapsed_ms = fmtx_playback_position_ms(app->playback);
         m->tx = fmtx_playback_is_transmitting(app->playback);
+        m->usb_ok = fmtx_playback_usb_connected(app->playback);
         m->paused = paused;
         m->pause_ms = paused ? furi_get_tick() - app->pause_started : 0;
         m->scroll++;

@@ -33,6 +33,8 @@ bool rfstart(Rf* rf);
 bool rfresume(Rf* rf);
 void rfpause(Rf* rf);
 void rfstop(Rf* rf);
+void rfledidle(void);
+void rfledoff(void);
 bool rfput(Rf* rf, int16_t s);
 uint16_t rfused(const Rf* rf);
 void rfhold(Rf* rf, uint8_t decisions);
