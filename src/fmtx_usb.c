@@ -9,6 +9,7 @@
 enum {
     FmtxUsbStringManufacturer = 1,
     FmtxUsbStringProduct,
+    FmtxUsbStringSerial,
 };
 
 static struct usb_device_descriptor fmtx_usb_device = {
@@ -20,16 +21,18 @@ static struct usb_device_descriptor fmtx_usb_device = {
     .bDeviceProtocol = USB_PROTO_NONE,
     .bMaxPacketSize0 = 8,
     .idVendor = 0x0483,
-    .idProduct = 0x5742,
-    .bcdDevice = VERSION_BCD(1, 0, 0),
+    .idProduct = 0x5743,
+    .bcdDevice = VERSION_BCD(1, 0, 1),
     .iManufacturer = FmtxUsbStringManufacturer,
     .iProduct = FmtxUsbStringProduct,
+    .iSerialNumber = FmtxUsbStringSerial,
     .bNumConfigurations = 1,
 };
 
 static const struct usb_string_descriptor fmtx_usb_manufacturer = USB_STRING_DESC("YO3GND");
 static const struct usb_string_descriptor fmtx_usb_product =
     USB_STRING_DESC("YO3GND Flipper FMTX");
+static const struct usb_string_descriptor fmtx_usb_serial = USB_STRING_DESC("YO3GND-FMTX-0001");
 
 // clang-format off
 static const uint8_t fmtx_usb_config[] = {
@@ -176,6 +179,7 @@ FuriHalUsbInterface fmtx_usb_audio = {
     .dev_descr = &fmtx_usb_device,
     .str_manuf_descr = (void*)&fmtx_usb_manufacturer,
     .str_prod_descr = (void*)&fmtx_usb_product,
+    .str_serial_descr = (void*)&fmtx_usb_serial,
     .cfg_descr = (void*)fmtx_usb_config,
 };
 
