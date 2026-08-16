@@ -55,11 +55,19 @@ picked: the band and the modulation.
 - **FSK** covers 26 of the protocols, including every European OEM sensor;
   **OOK** covers the other 13, mostly Schrader and aftermarket units.
 
-The defaults are 433.92 MHz and FSK. **Up** and **Down** step through the
-six settings the two make between them, and the header shows which one is
-live. Scanning alternates the modulation every four seconds, which finds a
-sensor whose kind is not known in advance at the cost of hearing each of
-them half as often.
+**Up** and **Down** step through five settings:
+
+- **433F** — 433.92 MHz, FSK. The default, and where a European car's own
+  sensors are.
+- **433O** — 433.92 MHz, OOK
+- **315F** — 315 MHz, FSK
+- **315O** — 315 MHz, OOK
+- **Scan** — all four in turn, four seconds each
+
+The header shows which one is on air; while scanning the letter is
+lowercase, because it is about to move on. Scanning finds a sensor whose
+kind is not known in advance, at the cost of hearing any one of them a
+quarter of the time.
 
 ## Waking a sensor at rest
 

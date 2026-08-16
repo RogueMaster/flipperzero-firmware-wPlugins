@@ -167,8 +167,14 @@ static void tpms_cli_collect_raw(bool level, uint32_t duration, void* context) {
 void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
     TpmsBridgeApp* app = context;
 
-    uint32_t frequency = tpms_frequencies[app->frequency_index % TPMS_FREQUENCY_COUNT];
+    const uint8_t current_slot =
+        app->config == TpmsConfigScan ? app->active_slot : (uint8_t)(app->config % TPMS_SLOT_COUNT);
+
+    uint32_t frequency = tpms_slot_frequency(current_slot);
+    TpmsModulation modulation = tpms_slot_modulation(current_slot);
+    uint8_t band = (uint8_t)(current_slot / 2);
     bool pinned_frequency = false;
+    bool scan_requested = app->config == TpmsConfigScan;
     bool raw_mode = false;
     bool wake_enabled = false;
 
@@ -192,7 +198,7 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
         pinned_frequency = true;
         for(uint8_t i = 0; i < TPMS_FREQUENCY_COUNT; i++) {
             if(tpms_frequencies[i] == frequency) {
-                app->frequency_index = i;
+                band = i;
                 pinned_frequency = false;
                 break;
             }
@@ -204,11 +210,13 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
             } else if(furi_string_equal_str(word, "wake")) {
                 wake_enabled = true;
             } else if(furi_string_equal_str(word, "fsk")) {
-                app->radio_mode = TpmsRadioModeFsk;
+                modulation = TpmsModulationFsk;
+                scan_requested = false;
             } else if(furi_string_equal_str(word, "ook")) {
-                app->radio_mode = TpmsRadioModeOok;
+                modulation = TpmsModulationOok;
+                scan_requested = false;
             } else if(furi_string_equal_str(word, "scan")) {
-                app->radio_mode = TpmsRadioModeScan;
+                scan_requested = true;
             } else if(!furi_string_equal_str(word, "json")) {
                 tpms_cli_emit_direct(
                     pipe, "Unknown option, expected json, raw, wake, fsk, ook or scan\r\n");
@@ -219,8 +227,14 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
     }
     furi_string_free(word);
 
-    const TpmsModulation modulation =
-        app->radio_mode == TpmsRadioModeOok ? TpmsModulationOok : TpmsModulationFsk;
+    /* Unless the frequency was pinned to something outside the two bands,
+     * the session follows the same setting the screen shows, so the keys
+     * keep working while a computer is listening. */
+    if(!pinned_frequency) {
+        app->config = scan_requested ?
+                          (uint8_t)TpmsConfigScan :
+                          (uint8_t)(band * 2 + (modulation == TpmsModulationOok ? 1 : 0));
+    }
 
     /* The radio is almost always busy with local reception — it starts on
      * its own so that the app works without a computer. Raise the flag:
@@ -260,7 +274,7 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
         app->radio_yield_requested = false;
         return;
     }
-    app->active_modulation = (uint8_t)modulation;
+    if(!pinned_frequency) app->active_slot = (uint8_t)(band * 2 + (modulation == TpmsModulationOok ? 1 : 0));
 
     app->cli_sessions++;
     furi_mutex_acquire(app->state_mutex, FuriWaitForever);
@@ -276,9 +290,8 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
         (unsigned long)frequency,
         raw_mode ? "raw" : "json",
         wake_enabled ? "true" : "false",
-        app->radio_mode == TpmsRadioModeOok ? "ook" :
-                                              (app->radio_mode == TpmsRadioModeScan ? "scan" :
-                                                                                      "fsk"),
+        app->config == TpmsConfigScan ? "scan" :
+                                        (modulation == TpmsModulationOok ? "ook" : "fsk"),
         (unsigned)tpms_protocol_count);
     tpms_cli_emit(&cli, started);
 

@@ -7,6 +7,7 @@ cc -Wall -Wextra -I. -Istubs -I../tpms_bridge \
     main.c canvas_stub.c \
     ../tpms_bridge/tpms_view.c \
     ../tpms_bridge/tpms_store.c \
+    ../tpms_bridge/tpms_radio.c \
     ../tpms_bridge/tpms_bits.c \
     ../tpms_bridge/tpms_protocols.c \
     ../tpms_bridge/tpms_proto_*.c

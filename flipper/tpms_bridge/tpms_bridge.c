@@ -14,11 +14,6 @@
 /** Pause before retrying to claim the radio, ms. */
 #define TPMS_RADIO_RETRY_MS 1000
 
-const uint32_t tpms_frequencies[TPMS_FREQUENCY_COUNT] = {
-    433920000UL, /* Europe */
-    315000000UL, /* North America, Japan */
-};
-
 void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsFrame* frame, float rssi_dbm) {
     furi_check(app);
 
@@ -33,22 +28,20 @@ void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsFrame* frame, float 
 void tpms_bridge_tune_radio(TpmsBridgeApp* app, TpmsSession* session) {
     furi_check(app);
 
-    TpmsModulation wanted = (TpmsModulation)app->active_modulation;
-
-    if(app->radio_mode == TpmsRadioModeScan) {
+    uint8_t slot;
+    if(app->config == TpmsConfigScan) {
         const uint32_t now = furi_get_tick();
-        if(app->scan_tick == 0 ||
-           now - app->scan_tick > furi_ms_to_ticks(TPMS_SCAN_PERIOD_MS)) {
+        if(app->scan_tick == 0 || now - app->scan_tick > furi_ms_to_ticks(TPMS_SCAN_PERIOD_MS)) {
             app->scan_tick = now;
-            wanted = wanted == TpmsModulationFsk ? TpmsModulationOok : TpmsModulationFsk;
+            app->scan_step = (uint8_t)((app->scan_step + 1) % TPMS_SLOT_COUNT);
         }
+        slot = app->scan_step;
     } else {
-        wanted = app->radio_mode == TpmsRadioModeOok ? TpmsModulationOok : TpmsModulationFsk;
+        slot = (uint8_t)(app->config % TPMS_SLOT_COUNT);
     }
 
-    const uint32_t frequency = tpms_frequencies[app->frequency_index % TPMS_FREQUENCY_COUNT];
-    if(tpms_session_retune(session, frequency, wanted)) {
-        app->active_modulation = (uint8_t)wanted;
+    if(tpms_session_retune(session, tpms_slot_frequency(slot), tpms_slot_modulation(slot))) {
+        app->active_slot = slot;
     }
 }
 
@@ -105,12 +98,11 @@ static int32_t tpms_bridge_local_rx_thread(void* context) {
     TpmsSession* session = tpms_session_alloc();
     tpms_session_set_frame_callback(session, tpms_bridge_local_frame_callback, app);
 
-    const uint32_t frequency = tpms_frequencies[app->frequency_index % TPMS_FREQUENCY_COUNT];
-    const TpmsModulation modulation =
-        app->radio_mode == TpmsRadioModeOok ? TpmsModulationOok : TpmsModulationFsk;
+    const uint8_t slot =
+        app->config == TpmsConfigScan ? app->scan_step : (uint8_t)(app->config % TPMS_SLOT_COUNT);
 
-    if(tpms_session_start(session, frequency, modulation)) {
-        app->active_modulation = (uint8_t)modulation;
+    if(tpms_session_start(session, tpms_slot_frequency(slot), tpms_slot_modulation(slot))) {
+        app->active_slot = slot;
         uint32_t last_wake = 0;
 
         while(app->local_rx && !app->stop_requested && !app->radio_yield_requested) {
@@ -178,16 +170,11 @@ static void tpms_bridge_reconcile_radio(TpmsBridgeApp* app) {
 /** Step through the radio configurations.
  *
  * The band and the modulation are one list rather than two settings: the
- * radio holds one of each at a time, and stepping through six entries
- * with two keys is less to remember than two separate cycles.
+ * radio holds one of each at a time, and one ring of five entries is less
+ * to remember than two separate cycles.
  */
 static void tpms_bridge_step_config(TpmsBridgeApp* app, int8_t delta) {
-    const uint8_t count = TPMS_FREQUENCY_COUNT * 3;
-    uint8_t index = (uint8_t)(app->frequency_index * 3 + app->radio_mode);
-
-    index = (uint8_t)((index + count + delta) % count);
-    app->frequency_index = (uint8_t)(index / 3);
-    app->radio_mode = (uint8_t)(index % 3);
+    app->config = (uint8_t)((app->config + TpmsConfigCount + delta) % TpmsConfigCount);
     app->scan_tick = 0;
 }
 

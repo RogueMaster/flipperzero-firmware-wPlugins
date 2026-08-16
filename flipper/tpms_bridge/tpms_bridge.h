@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tpms_radio.h"
 #include "tpms_session.h"
 #include "tpms_store.h"
 
@@ -10,25 +11,6 @@
 #include <input/input.h>
 
 #define TPMS_CLI_COMMAND_NAME "tpms_rx"
-
-/** Bands these sensors use: 433.92 MHz in Europe, 315 MHz in North
- * America and much of Asia. The radio listens on one at a time. */
-#define TPMS_FREQUENCY_COUNT 2
-extern const uint32_t tpms_frequencies[TPMS_FREQUENCY_COUNT];
-
-#define TPMS_DEFAULT_FREQUENCY tpms_frequencies[0]
-
-/** Which protocols the radio is set up for. Scanning steps through both,
- * which halves the chance of catching any one transmission but finds
- * sensors whose modulation is not known in advance. */
-typedef enum {
-    TpmsRadioModeFsk,
-    TpmsRadioModeOok,
-    TpmsRadioModeScan,
-} TpmsRadioMode;
-
-/** How long each modulation gets while scanning, ms. */
-#define TPMS_SCAN_PERIOD_MS 4000
 
 /** Stack size of the CLI command thread. */
 #define TPMS_CLI_STACK_SIZE (4 * 1024)
@@ -71,9 +53,9 @@ typedef struct {
 
     /* Radio configuration, changed from the keys and applied by whoever
      * owns the radio. */
-    volatile uint8_t frequency_index;
-    volatile uint8_t radio_mode; /**< TpmsRadioMode */
-    volatile uint8_t active_modulation; /**< TpmsModulation on air now */
+    volatile uint8_t config; /**< TpmsConfig */
+    volatile uint8_t active_slot; /**< the combination on air right now */
+    uint8_t scan_step; /**< which combination the scan is on */
     uint32_t scan_tick; /**< when the scan last stepped */
 
     TpmsStore store;

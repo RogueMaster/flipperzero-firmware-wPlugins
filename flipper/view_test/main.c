@@ -78,9 +78,8 @@ int main(void) {
     app.selected = 4;
     app.auto_wake = true;
     app.usb_streaming = true;
-    app.frequency_index = 1;
-    app.radio_mode = TpmsRadioModeScan;
-    app.active_modulation = TpmsModulationOok;
+    app.config = TpmsConfigScan;
+    app.active_slot = TpmsConfig315Ook;
     tpms_test_tick = 5000 + 120000; /* sensors went silent two minutes ago */
     show(&app, "List: scrolling and extreme values");
 

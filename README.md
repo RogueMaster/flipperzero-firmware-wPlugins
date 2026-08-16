@@ -116,9 +116,11 @@ OK:info       L:auto      R:wake
 ```
 
 The header carries the number of sensors, the band and modulation the
-radio is on (`433F` is 433.92 MHz and FSK, `315O` is 315 MHz and OOK, a
-lowercase letter means scanning), and whether reception is local (`RX`) or
-handed over to a USB session (`USB`).
+radio is on (`433F` is 433.92 MHz and FSK, `315O` is 315 MHz and OOK) and
+whether reception is local (`RX`) or handed over to a USB session (`USB`).
+**Up** and **Down** step through the five settings — the four combinations
+and a scan that takes all of them in turn, four seconds each. While
+scanning the letter is lowercase, since it is about to change.
 
 The bars on the right are the signal level: the taller, the closer the
 sensor. That is how the wheels are told apart — carry the Flipper from one
@@ -129,7 +131,7 @@ Keys:
 
 | Key | What it does |
 |---|---|
-| **Up / Down** | on the list: step through the six band and modulation settings; on the detail screen: previous and next sensor |
+| **Up / Down** | on the list: step through the five radio settings (433F, 433O, 315F, 315O, scan); on the detail screen: previous and next sensor |
 | **Up / Down, long press** | pick a sensor out of the list |
 | **OK** | details of the selected sensor, press again to go back |
 | **OK, long press** | clear the list (before moving to another car, say) |

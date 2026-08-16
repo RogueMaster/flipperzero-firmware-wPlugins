@@ -1,4 +1,5 @@
 #include "tpms_view.h"
+#include "tpms_radio.h"
 
 #include <furi.h>
 #include <gui/elements.h>
@@ -117,11 +118,11 @@ static void tpms_view_draw_header(Canvas* canvas, TpmsBridgeApp* app) {
     }
 
     /* Which band and which set of protocols the radio is on. While
-     * scanning it steps between the two, so the letter is the one on air
-     * right now. */
-    const char* band = app->frequency_index == 0 ? "433" : "315";
-    char mode = app->active_modulation == TpmsModulationOok ? 'O' : 'F';
-    if(app->radio_mode == TpmsRadioModeScan) mode = mode == 'O' ? 'o' : 'f';
+     * scanning it steps through all four combinations, so this is the one
+     * on air right now, and a lowercase letter says it will move on. */
+    const char* band = tpms_slot_frequency(app->active_slot) == tpms_frequencies[0] ? "433" : "315";
+    char mode = tpms_slot_modulation(app->active_slot) == TpmsModulationOok ? 'O' : 'F';
+    if(app->config == TpmsConfigScan) mode = mode == 'O' ? 'o' : 'f';
 
     char status[TPMS_TEXT_MAX];
     snprintf(
