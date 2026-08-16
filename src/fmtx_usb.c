@@ -22,7 +22,7 @@ static struct usb_device_descriptor fmtx_usb_device = {
     .bMaxPacketSize0 = 8,
     .idVendor = 0x0483,
     .idProduct = 0x5743,
-    .bcdDevice = VERSION_BCD(1, 0, 1),
+    .bcdDevice = VERSION_BCD(1, 0, 2),
     .iManufacturer = FmtxUsbStringManufacturer,
     .iProduct = FmtxUsbStringProduct,
     .iSerialNumber = FmtxUsbStringSerial,
@@ -46,7 +46,7 @@ static const uint8_t fmtx_usb_config[] = {
 
     9, USB_DTYPE_INTERFACE, 1, 0, 0, USB_CLASS_AUDIO, 2, 0, 0,
     9, USB_DTYPE_INTERFACE, 1, 1, 1, USB_CLASS_AUDIO, 2, 0, 0,
-    7, USB_DTYPE_CS_INTERFACE, 1, 1, 1, 0, 0,
+    7, USB_DTYPE_CS_INTERFACE, 1, 1, 1, 1, 0,
     11, USB_DTYPE_CS_INTERFACE, 2, 1, 1, 2, 16, 1, 0x80, 0xbb, 0x00,
     9, USB_DTYPE_ENDPOINT, 0x01, USB_EPTYPE_ISOCHRONUS | USB_EPATTR_ADAPTIVE, 96, 0, 1, 0, 0,
     7, USB_DTYPE_CS_ENDPOINT, 1, 0, 0, 0, 0,
