@@ -57,6 +57,7 @@ static void* fmtx_usb_context;
 static FuriHalUsbInterface* fmtx_usb_previous;
 static uint8_t fmtx_usb_alt;
 static uint8_t fmtx_usb_phase;
+static int32_t fmtx_usb_sum;
 static uint8_t fmtx_usb_reply;
 static bool fmtx_usb_active;
 
@@ -69,9 +70,13 @@ static void fmtx_usb_rx(usbd_device* dev, uint8_t event, uint8_t ep) {
     n = usbd_ep_read(dev, ep, input, sizeof(input));
     if(n <= 0 || fmtx_usb_alt != 1U) return;
     for(int32_t i = 0; i < n / 2; i++) {
-        if(fmtx_usb_phase == 0U) output[count++] = input[i];
+        fmtx_usb_sum += input[i];
         fmtx_usb_phase++;
-        if(fmtx_usb_phase == 6U) fmtx_usb_phase = 0;
+        if(fmtx_usb_phase == 6U) {
+            output[count++] = fmtx_usb_sum / 6;
+            fmtx_usb_phase = 0;
+            fmtx_usb_sum = 0;
+        }
     }
     if(fmtx_usb_callback && count) fmtx_usb_callback(output, count, fmtx_usb_context);
 }
@@ -85,6 +90,7 @@ static usbd_respond fmtx_usb_ep_config(usbd_device* dev, uint8_t cfg) {
     if(cfg == 1U) {
         fmtx_usb_alt = 0;
         fmtx_usb_phase = 0;
+        fmtx_usb_sum = 0;
         usbd_ep_config(dev, FMTX_USB_EP, USB_EPTYPE_ISOCHRONUS, FMTX_USB_PACKET);
         usbd_reg_endpoint(dev, FMTX_USB_EP, fmtx_usb_rx);
         return usbd_ack;
@@ -105,6 +111,7 @@ static usbd_respond
             return usbd_fail;
         fmtx_usb_alt = req->wIndex == 1U ? req->wValue : 0U;
         fmtx_usb_phase = 0;
+        fmtx_usb_sum = 0;
         return usbd_ack;
     }
     if(req->bRequest == USB_STD_GET_INTERFACE) {
@@ -157,6 +164,7 @@ bool fmtx_usb_start(FmtxUsbRx callback, void* ctx) {
     fmtx_usb_callback = callback;
     fmtx_usb_context = ctx;
     fmtx_usb_phase = 0;
+    fmtx_usb_sum = 0;
     if(!furi_hal_usb_set_config(&fmtx_usb_audio, NULL)) {
         fmtx_usb_callback = NULL;
         fmtx_usb_context = NULL;

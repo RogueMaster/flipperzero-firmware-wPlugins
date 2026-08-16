@@ -14,12 +14,13 @@
 #define MINIMP3_NO_SIMD
 #include "../lib/minimp3/minimp3.h"
 
-#define INSZ     8192U
-#define STACKSZ  (24U * 1024U)
-#define USBSTACK 2048U
-#define SKIP1    65536U
-#define SKIPN    8192U
-#define SEEKBUF  8192U
+#define INSZ       8192U
+#define STACKSZ    (24U * 1024U)
+#define USBSTACK   2048U
+#define USBTIMEOUT 250U
+#define SKIP1      65536U
+#define SKIPN      8192U
+#define SEEKBUF    8192U
 
 typedef struct {
     uint32_t source_rate;
@@ -62,6 +63,7 @@ struct Play {
     volatile uint16_t fsamp;
     volatile uint32_t total;
     volatile uint32_t ended;
+    volatile uint32_t usb_last;
     volatile bool radio;
     volatile bool usb;
     uint8_t gain;
@@ -146,6 +148,7 @@ static bool putsample(Play* p, int16_t s) {
 static void usbrx(const int16_t* samples, size_t count, void* ctx) {
     Play* p = ctx;
     if(!p || p->stop || !p->usb || p->state != PlaybackPlaying) return;
+    p->usb_last = furi_get_tick();
     for(size_t i = 0; i < count; i++) {
         uint32_t n = p->ndec;
         if(n - p->nsent >= SEEKBUF) break;
@@ -163,6 +166,7 @@ static int32_t usbthread(void* ctx) {
     p->rf->hz = p->req.hz;
     p->ndec = 0;
     p->nsent = 0;
+    p->usb_last = furi_get_tick();
     p->radio = false;
     if(!fmtx_usb_start(usbrx, p)) {
         seterr(p, FmtxPlaybackInvalid);
@@ -171,6 +175,10 @@ static int32_t usbthread(void* ctx) {
     while(!p->stop) {
         int16_t sample;
         if(p->nsent >= p->ndec) {
+            if(p->radio && furi_get_tick() - p->usb_last >= furi_ms_to_ticks(USBTIMEOUT)) {
+                rfstop(p->rf);
+                p->radio = false;
+            }
             furi_delay_tick(1U);
             continue;
         }
