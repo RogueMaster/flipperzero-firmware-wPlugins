@@ -488,6 +488,7 @@ static void playin(void* ctx) {
     app->playback_visible = true;
     if(app->source == FmtxSourceUsb) {
         PlayModel* m = view_get_model(app->playback_view);
+        (void)fmtx_playback_start_usb(app->playback, app->frequency_hz);
         m->elapsed_ms = 0;
         m->gain = fmtx_playback_gain(app->playback);
         m->filter = fmtx_playback_filter_enabled(app->playback);

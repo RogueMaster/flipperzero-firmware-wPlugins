@@ -16,6 +16,7 @@ Play* fmtx_playback_alloc(void);
 void fmtx_playback_free(Play* playback);
 bool fmtx_playback_start(Play* playback, const PlayReq* request);
 bool fmtx_playback_start_paused(Play* playback, const PlayReq* request);
+bool fmtx_playback_start_usb(Play* playback, uint32_t hz);
 void fmtx_playback_stop(Play* playback);
 bool fmtx_playback_is_running(const Play* playback);
 bool fmtx_playback_is_transmitting(const Play* playback);

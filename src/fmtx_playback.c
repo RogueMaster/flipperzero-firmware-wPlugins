@@ -2,6 +2,7 @@
 
 #include "dsp.h"
 #include "fmtx_rf.h"
+#include "fmtx_usb.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -13,11 +14,12 @@
 #define MINIMP3_NO_SIMD
 #include "../lib/minimp3/minimp3.h"
 
-#define INSZ    8192U
-#define STACKSZ (24U * 1024U)
-#define SKIP1   65536U
-#define SKIPN   8192U
-#define SEEKBUF 8192U
+#define INSZ     8192U
+#define STACKSZ  (24U * 1024U)
+#define USBSTACK 2048U
+#define SKIP1    65536U
+#define SKIPN    8192U
+#define SEEKBUF  8192U
 
 typedef struct {
     uint32_t source_rate;
@@ -54,13 +56,14 @@ struct Play {
     uint32_t seekat;
     volatile uint32_t want;
     volatile uint32_t seekfrm;
-    uint32_t ndec;
-    uint32_t nsent;
+    volatile uint32_t ndec;
+    volatile uint32_t nsent;
     volatile uint32_t fhz;
     volatile uint16_t fsamp;
     volatile uint32_t total;
     volatile uint32_t ended;
     volatile bool radio;
+    volatile bool usb;
     uint8_t gain;
     Dsp dsp;
     int16_t cache[SEEKBUF];
@@ -138,6 +141,63 @@ static bool putsample(Play* p, int16_t s) {
     p->ndec++;
 
     return pumpradio(p);
+}
+
+static void usbrx(const int16_t* samples, size_t count, void* ctx) {
+    Play* p = ctx;
+    if(!p || p->stop || !p->usb || p->state != PlaybackPlaying) return;
+    for(size_t i = 0; i < count; i++) {
+        uint32_t n = p->ndec;
+        if(n - p->nsent >= SEEKBUF) break;
+        p->cache[n & (SEEKBUF - 1U)] = samples[i];
+        __DMB();
+        p->ndec = n + 1U;
+    }
+}
+
+static int32_t usbthread(void* ctx) {
+    Play* p = ctx;
+    dsprst(&p->dsp);
+    rfrst(p->rf);
+    rfhold(p->rf, 6U);
+    p->rf->hz = p->req.hz;
+    p->ndec = 0;
+    p->nsent = 0;
+    p->radio = false;
+    if(!fmtx_usb_start(usbrx, p)) {
+        seterr(p, FmtxPlaybackInvalid);
+        goto done;
+    }
+    while(!p->stop) {
+        int16_t sample;
+        if(p->nsent >= p->ndec) {
+            furi_delay_tick(1U);
+            continue;
+        }
+        if(!p->radio) {
+            if(!rfstart(p->rf)) {
+                seterr(p, FmtxPlaybackRadio);
+                break;
+            }
+            p->radio = true;
+        }
+        sample = dspsample(&p->dsp, p->cache[p->nsent & (SEEKBUF - 1U)]);
+        if(!rfput(p->rf, sample)) {
+            if(!p->stop) seterr(p, FmtxPlaybackRadio);
+            break;
+        }
+        p->nsent++;
+    }
+
+done:
+    fmtx_usb_stop();
+    rfstop(p->rf);
+    p->ended = rfplayed(p->rf);
+    p->radio = false;
+    p->usb = false;
+    __DMB();
+    p->state = PlaybackStopped;
+    return 0;
 }
 
 static bool outframe(
@@ -430,6 +490,7 @@ static bool startat(Play* playback, const PlayReq* request, uint32_t at, bool pa
     playback->ndec = 0;
     playback->nsent = at;
     playback->radio = false;
+    playback->usb = false;
     if(playback->total && at == playback->total) {
         playback->state = PlaybackFinished;
         return true;
@@ -453,6 +514,36 @@ bool fmtx_playback_start_paused(Play* playback, const PlayReq* request) {
     return startat(playback, request, 0, true);
 }
 
+bool fmtx_playback_start_usb(Play* playback, uint32_t hz) {
+    if(!playback || isrunning(playback)) return false;
+    if(playback->th) {
+        furi_thread_join(playback->th);
+        furi_thread_free(playback->th);
+        playback->th = NULL;
+    }
+    playback->req.path[0] = 0;
+    playback->req.hz = hz;
+    playback->stop = false;
+    playback->state = PlaybackPlaying;
+    playback->err = FmtxPlaybackOk;
+    playback->seekat = 0;
+    playback->ended = 0;
+    playback->total = 0;
+    playback->fhz = 48000U;
+    playback->fsamp = 48U;
+    playback->usb = true;
+    playback->th = furi_thread_alloc_ex("FmtxUsb", USBSTACK, usbthread, playback);
+    if(!playback->th) {
+        playback->usb = false;
+        playback->state = PlaybackStopped;
+        seterr(playback, FmtxPlaybackThread);
+        return false;
+    }
+    furi_thread_set_priority(playback->th, FuriThreadPriorityHigh);
+    furi_thread_start(playback->th);
+    return true;
+}
+
 void fmtx_playback_stop(Play* playback) {
     if(!playback) return;
     playback->stop = true;
@@ -462,6 +553,8 @@ void fmtx_playback_stop(Play* playback) {
         furi_thread_free(playback->th);
         playback->th = NULL;
     }
+    if(playback->usb) fmtx_usb_stop();
+    playback->usb = false;
     playback->state = PlaybackStopped;
 }
 
