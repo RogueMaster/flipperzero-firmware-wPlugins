@@ -2,7 +2,8 @@
 #include "ccid_logic.h"
 #include "trace_log.h"
 
-#define TAG "SeaderCCID"
+#define TAG                  "SeaderCCID"
+#define CCID_POWER_SELECT_3V 2
 const uint8_t SAM_ATR[] =
     {0x3b, 0x95, 0x96, 0x80, 0xb1, 0xfe, 0x55, 0x1f, 0xc7, 0x47, 0x72, 0x61, 0x63, 0x65, 0x13};
 const uint8_t SAM_ATR2[] = {0x3b, 0x90, 0x96, 0x91, 0x81, 0xb1, 0xfe, 0x55, 0x1f, 0xc7, 0xd4};
@@ -64,7 +65,7 @@ void seader_ccid_IccPowerOn(SeaderUartBridge* seader_uart, uint8_t slot) {
 
     frame[2 + 5] = slot;
     frame[2 + 6] = seader_ccid_next_sequence(seader_uart, slot);
-    frame[2 + 7] = 1; //power
+    frame[2 + 7] = CCID_POWER_SELECT_3V; //power
 
     seader_uart->tx_len =
         seader_ccid_build_control_frame_lrc(frame, seader_ccid_control_frame_size(0U));
