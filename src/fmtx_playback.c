@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <furi.h>
+#include <furi_hal_power.h>
 #include <storage/storage.h>
 
 #define MINIMP3_IMPLEMENTATION
@@ -18,6 +19,8 @@
 #define STACKSZ    (24U * 1024U)
 #define USBSTACK   2048U
 #define USBTIMEOUT 100U
+#define USBRETRY   3000U
+#define USBPOLL    250U
 #define SKIP1      65536U
 #define SKIPN      8192U
 #define SEEKBUF    8192U
@@ -66,6 +69,7 @@ struct Play {
     volatile uint32_t usb_sound;
     volatile bool radio;
     volatile bool usb;
+    volatile bool usb_cable;
     uint8_t gain;
     Dsp dsp;
     int16_t cache[SEEKBUF];
@@ -165,6 +169,8 @@ static void usbrx(const int16_t* samples, size_t count, void* ctx) {
 static int32_t usbthread(void* ctx) {
     Play* p = ctx;
     bool connected = false;
+    uint32_t retry = furi_get_tick();
+    uint32_t poll = retry - furi_ms_to_ticks(USBPOLL);
     dsprst(&p->dsp);
     rfrst(p->rf);
     rfhold(p->rf, 6U);
@@ -180,9 +186,14 @@ static int32_t usbthread(void* ctx) {
     }
     while(!p->stop) {
         int16_t sample;
-        bool ok = fmtx_usb_connected();
         uint32_t sound = p->usb_sound;
         uint32_t now = furi_get_tick();
+        if(now - poll >= furi_ms_to_ticks(USBPOLL)) {
+            p->usb_cable = furi_hal_power_get_usb_voltage() >= 4.0f;
+            poll = now;
+        }
+        bool cable = p->usb_cable;
+        bool ok = cable && fmtx_usb_connected();
         if(ok != connected) {
             connected = ok;
             if(connected)
@@ -197,9 +208,16 @@ static int32_t usbthread(void* ctx) {
             }
         }
         if(!connected) {
+            if(!cable)
+                retry = now;
+            else if(now - retry >= furi_ms_to_ticks(USBRETRY)) {
+                retry = now;
+                furi_hal_usb_reinit();
+            }
             furi_delay_tick(1U);
             continue;
         }
+        retry = now;
         if(now - sound >= furi_ms_to_ticks(USBTIMEOUT)) {
             if(p->radio) {
                 rfstop(p->rf);
@@ -575,6 +593,7 @@ bool fmtx_playback_start_usb(Play* playback, uint32_t hz) {
     playback->fhz = 48000U;
     playback->fsamp = 48U;
     playback->usb = true;
+    playback->usb_cable = false;
     playback->th = furi_thread_alloc_ex("FmtxUsb", USBSTACK, usbthread, playback);
     if(!playback->th) {
         playback->usb = false;
@@ -616,7 +635,7 @@ bool fmtx_playback_is_transmitting(const Play* playback) {
 
 bool fmtx_playback_usb_connected(const Play* playback) {
     if(!playback || !playback->usb) return false;
-    return fmtx_usb_connected();
+    return playback->usb_cable && fmtx_usb_connected();
 }
 
 bool fmtx_playback_is_paused(const Play* playback) {

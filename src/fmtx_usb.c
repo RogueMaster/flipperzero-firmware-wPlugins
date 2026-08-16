@@ -155,7 +155,6 @@ static void fmtx_usb_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx
 
 static void fmtx_usb_deinit(usbd_device* dev) {
     fmtx_usb_configured = false;
-    if(fmtx_usb_alt == 1U) fmtx_usb_stream(dev, false);
     fmtx_usb_alt = 0;
     usbd_reg_config(dev, NULL);
     usbd_reg_control(dev, NULL);
@@ -164,22 +163,11 @@ static void fmtx_usb_deinit(usbd_device* dev) {
 
 static void fmtx_usb_wakeup(usbd_device* dev) {
     fmtx_usb_configured = dev->status.device_state == usbd_state_configured;
-    if(fmtx_usb_configured && fmtx_usb_alt == 1U) fmtx_usb_stream(dev, true);
 }
 
 static void fmtx_usb_suspend(usbd_device* dev) {
+    (void)dev;
     fmtx_usb_configured = false;
-    if(fmtx_usb_alt == 1U) fmtx_usb_stream(dev, false);
-}
-
-static void fmtx_usb_state(FuriHalUsbStateEvent state, void* ctx) {
-    (void)ctx;
-    if(state != FuriHalUsbStateEventReset) return;
-    fmtx_usb_configured = false;
-    fmtx_usb_alt = 0;
-    fmtx_usb_phase = 0;
-    fmtx_usb_sum = 0;
-    if(fmtx_usb_dev) usbd_reg_endpoint(fmtx_usb_dev, FMTX_USB_EP, NULL);
 }
 
 FuriHalUsbInterface fmtx_usb_audio = {
@@ -201,9 +189,7 @@ bool fmtx_usb_start(FmtxUsbRx callback, void* ctx) {
     fmtx_usb_phase = 0;
     fmtx_usb_sum = 0;
     fmtx_usb_configured = false;
-    furi_hal_usb_set_state_callback(fmtx_usb_state, NULL);
     if(!furi_hal_usb_set_config(&fmtx_usb_audio, NULL)) {
-        furi_hal_usb_set_state_callback(NULL, NULL);
         fmtx_usb_callback = NULL;
         fmtx_usb_context = NULL;
         fmtx_usb_previous = NULL;
@@ -223,7 +209,6 @@ void fmtx_usb_stop(void) {
     previous = fmtx_usb_previous;
     fmtx_usb_previous = NULL;
     fmtx_usb_active = false;
-    furi_hal_usb_set_state_callback(NULL, NULL);
     (void)furi_hal_usb_set_config(previous, NULL);
 }
 
