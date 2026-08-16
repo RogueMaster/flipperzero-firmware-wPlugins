@@ -167,7 +167,6 @@ static void fmtx_usb_wakeup(usbd_device* dev) {
 
 static void fmtx_usb_suspend(usbd_device* dev) {
     (void)dev;
-    fmtx_usb_configured = false;
 }
 
 FuriHalUsbInterface fmtx_usb_audio = {
