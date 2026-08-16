@@ -25,9 +25,11 @@ jobs:
       updated-map: ${{ steps.compare.outputs.updated-map }}
 
     steps:
+      # Restore-only: the cache is saved by the save-sdk-cache job, and only
+      # after every triggered build has succeeded. This way a failed build
+      # retries on the next scheduled run instead of being skipped forever.
       - name: Restore SDK version cache
-        id: cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: .sdk-versions
           key: sdk-versions-${{ github.run_id }}
@@ -108,14 +110,23 @@ jobs:
           {
             echo "any-updated=$ANY_UPDATED"
             echo "updated-map=$(echo "$UPDATED_MAP" | jq -c .)"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
+
+      # Hand the fresh version files to the save-sdk-cache job.
+      # include-hidden-files is required because .sdk-versions is a dot-dir.
+      - name: Upload SDK versions for deferred cache save
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-versions
+          path: .sdk-versions/
+          include-hidden-files: true
 
   build:
     needs: check-sdk-updates
     if: needs.check-sdk-updates.outputs.any-updated == 'true'
     runs-on: ubuntu-latest
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # ← add this
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       fail-fast: false
       matrix:
@@ -153,7 +164,7 @@ jobs:
           MAP='${{ needs.check-sdk-updates.outputs.updated-map }}'
           TAG='${{ matrix.release-tag }}'
           UPDATED=$(echo "$MAP" | jq -r --arg t "$TAG" '.[$t] // "false"')
-          echo "updated=$UPDATED" >> $GITHUB_OUTPUT
+          echo "updated=$UPDATED" >> "$GITHUB_OUTPUT"
           if [ "$UPDATED" != "true" ]; then
             echo "No SDK update for $TAG — skipping."
           fi
@@ -167,7 +178,7 @@ jobs:
         id: timestamp
         run: |
           TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
-          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "timestamp=$TIMESTAMP" >> "$GITHUB_OUTPUT"
 
       - name: Build with ufbt
         if: steps.should-build.outputs.updated == 'true'
@@ -177,34 +188,30 @@ jobs:
           sdk-channel: ${{ matrix.sdk-channel }}
           sdk-index-url: ${{ matrix.sdk-index-url }}
 
+      # fap-dir is the action's dist directory (always a directory).
+      # Do NOT use fap-artifacts here — it's a newline-delimited file list
+      # that also includes .fal files.
       - name: Verify .fap artifacts exist
         if: steps.should-build.outputs.updated == 'true'
         id: verify
         run: |
-          FAP_ARTIFACTS="${{ steps.build-app.outputs.fap-artifacts }}"
+          FAP_DIR="${{ steps.build-app.outputs.fap-dir }}"
 
-          # fap-artifacts may be a file path or a directory depending on
-          # the ufbt action version. Normalize to a glob that always works.
-          if [ -f "$FAP_ARTIFACTS" ] && echo "$FAP_ARTIFACTS" | grep -q '\.fap$'; then
-            # It's the .fap file itself
-            FAP_GLOB="$FAP_ARTIFACTS"
-            FAP_COUNT=1
-          elif [ -d "$FAP_ARTIFACTS" ]; then
-            # It's a directory — glob inside it
-            FAP_GLOB="$FAP_ARTIFACTS/*.fap"
-            FAP_COUNT=$(find "$FAP_ARTIFACTS" -name "*.fap" | wc -l)
-          else
-            echo "ERROR: fap-artifacts path '$FAP_ARTIFACTS' is neither a .fap file nor a directory."
+          if [ -z "$FAP_DIR" ] || [ ! -d "$FAP_DIR" ]; then
+            echo "ERROR: fap-dir '$FAP_DIR' is not a directory."
             exit 1
           fi
 
-          echo "Found $FAP_COUNT .fap file(s): $FAP_GLOB"
+          FAP_COUNT=$(find "$FAP_DIR" -maxdepth 1 -name "*.fap" | wc -l)
+          echo "Found $FAP_COUNT .fap file(s) in $FAP_DIR:"
+          find "$FAP_DIR" -maxdepth 1 -name "*.fap"
+
           if [ "$FAP_COUNT" -eq 0 ]; then
             echo "ERROR: No .fap files found."
             exit 1
           fi
 
-          echo "fap-glob=$FAP_GLOB" >> $GITHUB_OUTPUT
+          echo "fap-glob=$FAP_DIR/*.fap" >> "$GITHUB_OUTPUT"
 
       - name: Get app info
         if: steps.should-build.outputs.updated == 'true'
@@ -214,8 +221,8 @@ jobs:
             | sed 's/.*name\s*=\s*"\([^"]*\)".*/\1/' | head -1)
           APP_NAME_CLEAN=$(echo "$APP_NAME" \
             | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')
-          echo "name=$APP_NAME" >> $GITHUB_OUTPUT
-          echo "clean_name=$APP_NAME_CLEAN" >> $GITHUB_OUTPUT
+          echo "name=$APP_NAME" >> "$GITHUB_OUTPUT"
+          echo "clean_name=$APP_NAME_CLEAN" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifacts
         if: steps.should-build.outputs.updated == 'true'
@@ -226,11 +233,12 @@ jobs:
 
       - name: Create Release
         if: steps.should-build.outputs.updated == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ matrix.release-tag }}-${{ steps.timestamp.outputs.timestamp }}
           name: ${{ steps.app-info.outputs.name }} - ${{ matrix.name }} (${{ steps.timestamp.outputs.timestamp }})
           files: ${{ steps.verify.outputs.fap-glob }}
+          fail_on_unmatched_files: true
           body: |
             ## ${{ steps.app-info.outputs.name }}
 
@@ -249,6 +257,26 @@ jobs:
           prerelease: ${{ contains(matrix.sdk-channel, 'dev') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Persist the new SDK versions ONLY after every triggered build succeeded.
+  # If any build fails, the cache stays on the old versions and the next
+  # scheduled run detects the same "update" and retries automatically.
+  save-sdk-cache:
+    needs: [check-sdk-updates, build]
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download SDK versions
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-versions
+          path: .sdk-versions
+
+      - name: Save SDK version cache
+        uses: actions/cache/save@v4
+        with:
+          path: .sdk-versions
+          key: sdk-versions-${{ github.run_id }}
 
   cleanup-old-releases:
     needs: [check-sdk-updates, build]
