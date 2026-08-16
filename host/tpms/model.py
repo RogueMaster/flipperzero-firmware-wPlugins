@@ -46,10 +46,13 @@ class SensorStats:
         self.last_seen = reading.host_time
         self.last_reading = reading
 
-        self.min_pressure_kpa = min(self.min_pressure_kpa, frame.pressure_kpa)
-        self.max_pressure_kpa = max(self.max_pressure_kpa, frame.pressure_kpa)
-        self.min_temperature_c = min(self.min_temperature_c, frame.temperature_c)
-        self.max_temperature_c = max(self.max_temperature_c, frame.temperature_c)
+        # Not every protocol reports both, and a couple report neither.
+        if frame.pressure_kpa is not None:
+            self.min_pressure_kpa = min(self.min_pressure_kpa, frame.pressure_kpa)
+            self.max_pressure_kpa = max(self.max_pressure_kpa, frame.pressure_kpa)
+        if frame.temperature_c is not None:
+            self.min_temperature_c = min(self.min_temperature_c, frame.temperature_c)
+            self.max_temperature_c = max(self.max_temperature_c, frame.temperature_c)
 
         self.history.append((reading.host_time, frame.pressure_kpa, frame.temperature_c))
 
@@ -106,6 +109,7 @@ class SensorModel:
                     "host_time",
                     "device_tick",
                     "sensor_id",
+                    "protocol",
                     "pressure_kpa",
                     "pressure_bar",
                     "pressure_psi",
@@ -123,10 +127,11 @@ class SensorModel:
                         f"{reading.host_time:.3f}",
                         reading.device_tick,
                         frame.id_hex,
-                        f"{frame.pressure_kpa:.2f}",
-                        f"{frame.pressure_bar:.3f}",
-                        f"{frame.pressure_psi:.2f}",
-                        frame.temperature_c,
+                        frame.proto,
+                        "" if frame.pressure_kpa is None else f"{frame.pressure_kpa:.2f}",
+                        "" if frame.pressure_bar is None else f"{frame.pressure_bar:.3f}",
+                        "" if frame.pressure_psi is None else f"{frame.pressure_psi:.2f}",
+                        "" if frame.temperature_c is None else frame.temperature_c,
                         frame.flags,
                         "" if reading.rssi_dbm is None else f"{reading.rssi_dbm:.1f}",
                         frame.raw_hex,

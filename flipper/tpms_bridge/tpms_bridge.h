@@ -10,7 +10,25 @@
 #include <input/input.h>
 
 #define TPMS_CLI_COMMAND_NAME "tpms_rx"
-#define TPMS_DEFAULT_FREQUENCY 433920000UL
+
+/** Bands these sensors use: 433.92 MHz in Europe, 315 MHz in North
+ * America and much of Asia. The radio listens on one at a time. */
+#define TPMS_FREQUENCY_COUNT 2
+extern const uint32_t tpms_frequencies[TPMS_FREQUENCY_COUNT];
+
+#define TPMS_DEFAULT_FREQUENCY tpms_frequencies[0]
+
+/** Which protocols the radio is set up for. Scanning steps through both,
+ * which halves the chance of catching any one transmission but finds
+ * sensors whose modulation is not known in advance. */
+typedef enum {
+    TpmsRadioModeFsk,
+    TpmsRadioModeOok,
+    TpmsRadioModeScan,
+} TpmsRadioMode;
+
+/** How long each modulation gets while scanning, ms. */
+#define TPMS_SCAN_PERIOD_MS 4000
 
 /** Stack size of the CLI command thread. */
 #define TPMS_CLI_STACK_SIZE (4 * 1024)
@@ -51,6 +69,13 @@ typedef struct {
     volatile bool wake_requested; /**< single pulse requested by a key */
     volatile bool auto_wake; /**< periodic pulses */
 
+    /* Radio configuration, changed from the keys and applied by whoever
+     * owns the radio. */
+    volatile uint8_t frequency_index;
+    volatile uint8_t radio_mode; /**< TpmsRadioMode */
+    volatile uint8_t active_modulation; /**< TpmsModulation on air now */
+    uint32_t scan_tick; /**< when the scan last stepped */
+
     TpmsStore store;
     TpmsScreen screen;
     uint8_t selected;
@@ -64,7 +89,11 @@ typedef struct {
 } TpmsBridgeApp;
 
 /** Store a received frame in the shared state (for the screen). */
-void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame, float rssi_dbm);
+void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsFrame* frame, float rssi_dbm);
+
+/** Keep the radio in step with the settings, and step the scan along.
+ * Called from whichever loop owns the radio. */
+void tpms_bridge_tune_radio(TpmsBridgeApp* app, TpmsSession* session);
 
 /** Implementation of the tpms_rx CLI command. */
 void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context);

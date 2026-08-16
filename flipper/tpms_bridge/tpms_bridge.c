@@ -14,7 +14,12 @@
 /** Pause before retrying to claim the radio, ms. */
 #define TPMS_RADIO_RETRY_MS 1000
 
-void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame, float rssi_dbm) {
+const uint32_t tpms_frequencies[TPMS_FREQUENCY_COUNT] = {
+    433920000UL, /* Europe */
+    315000000UL, /* North America, Japan */
+};
+
+void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsFrame* frame, float rssi_dbm) {
     furi_check(app);
 
     furi_mutex_acquire(app->state_mutex, FuriWaitForever);
@@ -23,6 +28,28 @@ void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame,
     furi_mutex_release(app->state_mutex);
 
     if(app->view_port) view_port_update(app->view_port);
+}
+
+void tpms_bridge_tune_radio(TpmsBridgeApp* app, TpmsSession* session) {
+    furi_check(app);
+
+    TpmsModulation wanted = (TpmsModulation)app->active_modulation;
+
+    if(app->radio_mode == TpmsRadioModeScan) {
+        const uint32_t now = furi_get_tick();
+        if(app->scan_tick == 0 ||
+           now - app->scan_tick > furi_ms_to_ticks(TPMS_SCAN_PERIOD_MS)) {
+            app->scan_tick = now;
+            wanted = wanted == TpmsModulationFsk ? TpmsModulationOok : TpmsModulationFsk;
+        }
+    } else {
+        wanted = app->radio_mode == TpmsRadioModeOok ? TpmsModulationOok : TpmsModulationFsk;
+    }
+
+    const uint32_t frequency = tpms_frequencies[app->frequency_index % TPMS_FREQUENCY_COUNT];
+    if(tpms_session_retune(session, frequency, wanted)) {
+        app->active_modulation = (uint8_t)wanted;
+    }
 }
 
 static void tpms_bridge_draw_callback(Canvas* canvas, void* context) {
@@ -57,10 +84,8 @@ static bool tpms_bridge_signal_callback(uint32_t signal, void* arg, void* contex
     return true;
 }
 
-static void tpms_bridge_local_frame_callback(
-    const TpmsRenaultFrame* frame,
-    float rssi_dbm,
-    void* context) {
+static void
+    tpms_bridge_local_frame_callback(const TpmsFrame* frame, float rssi_dbm, void* context) {
     tpms_bridge_report_frame(context, frame, rssi_dbm);
 }
 
@@ -80,7 +105,12 @@ static int32_t tpms_bridge_local_rx_thread(void* context) {
     TpmsSession* session = tpms_session_alloc();
     tpms_session_set_frame_callback(session, tpms_bridge_local_frame_callback, app);
 
-    if(tpms_session_start(session, TPMS_DEFAULT_FREQUENCY)) {
+    const uint32_t frequency = tpms_frequencies[app->frequency_index % TPMS_FREQUENCY_COUNT];
+    const TpmsModulation modulation =
+        app->radio_mode == TpmsRadioModeOok ? TpmsModulationOok : TpmsModulationFsk;
+
+    if(tpms_session_start(session, frequency, modulation)) {
+        app->active_modulation = (uint8_t)modulation;
         uint32_t last_wake = 0;
 
         while(app->local_rx && !app->stop_requested && !app->radio_yield_requested) {
@@ -94,6 +124,7 @@ static int32_t tpms_bridge_local_rx_thread(void* context) {
                 tpms_session_wake_pulse(session, TPMS_LF_PULSE_MS);
             }
 
+            tpms_bridge_tune_radio(app, session);
             tpms_session_pump(session, 100);
         }
         tpms_session_stop(session);
@@ -133,7 +164,8 @@ static void tpms_bridge_reconcile_radio(TpmsBridgeApp* app) {
     /* Back off between attempts: if the radio refuses to start, do not
      * spin up the thread over and over. */
     const uint32_t now = furi_get_tick();
-    if(app->radio_retry_tick != 0 && now - app->radio_retry_tick < furi_ms_to_ticks(TPMS_RADIO_RETRY_MS)) {
+    if(app->radio_retry_tick != 0 &&
+       now - app->radio_retry_tick < furi_ms_to_ticks(TPMS_RADIO_RETRY_MS)) {
         return;
     }
     app->radio_retry_tick = now;
@@ -165,13 +197,31 @@ static void tpms_bridge_handle_input(TpmsBridgeApp* app, const InputEvent* event
 
     furi_mutex_acquire(app->state_mutex, FuriWaitForever);
 
-    /* Long OK clears the list: handy when moving from one car to another
-     * and the table still holds someone else's sensors. */
-    if(event->key == InputKeyOk && event->type == InputTypeLong) {
-        tpms_store_reset(&app->store);
-        app->selected = 0;
-        app->scroll = 0;
-        app->screen = TpmsScreenList;
+    if(event->type == InputTypeLong) {
+        switch(event->key) {
+        case InputKeyOk:
+            /* Clear the list: handy when moving from one car to another
+             * and the table still holds someone else's sensors. */
+            tpms_store_reset(&app->store);
+            app->selected = 0;
+            app->scroll = 0;
+            app->screen = TpmsScreenList;
+            break;
+
+        case InputKeyLeft:
+            /* FSK, OOK, or both in turn. */
+            app->radio_mode = (uint8_t)((app->radio_mode + 1) % 3);
+            app->scan_tick = 0;
+            break;
+
+        case InputKeyRight:
+            app->frequency_index = (uint8_t)((app->frequency_index + 1) % TPMS_FREQUENCY_COUNT);
+            break;
+
+        default:
+            break;
+        }
+
         furi_mutex_release(app->state_mutex);
         return;
     }
@@ -238,8 +288,7 @@ static TpmsBridgeApp* tpms_bridge_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 
-    furi_thread_set_signal_callback(
-        furi_thread_get_current(), tpms_bridge_signal_callback, app);
+    furi_thread_set_signal_callback(furi_thread_get_current(), tpms_bridge_signal_callback, app);
 
     app->cli_registry = furi_record_open(RECORD_CLI);
     /* Set the stack explicitly: the command formats strings and holds a

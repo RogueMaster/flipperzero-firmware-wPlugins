@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tpms_renault.h"
+#include "tpms_protocol.h"
 
 /** How many sensors we remember. A car has four wheels, but sensors from
  * other cars show up on air too — keep headroom so that our own ones are
@@ -16,12 +16,16 @@
 #define TPMS_STORE_PEAK_HOLD_MS 10000UL
 
 typedef struct {
+    uint8_t protocol; /**< index into tpms_protocols[] */
     uint32_t id;
-    uint8_t raw[TPMS_RENAULT_FRAME_BYTES];
-    uint16_t pressure_raw; /**< multiply by 0.75 to get kPa */
+
+    int32_t pressure_kpa_x100;
     int16_t temperature_c;
+    uint8_t have; /**< TPMS_HAS_*, accumulated over frames */
     uint8_t flags;
-    uint16_t unknown;
+
+    uint8_t raw[TPMS_RAW_MAX];
+    uint8_t raw_len;
 
     int16_t rssi_x10; /**< latest, tenths of a dBm */
     int16_t peak_rssi_x10;
@@ -42,12 +46,15 @@ typedef struct {
 
 void tpms_store_reset(TpmsStore* store);
 
-/** Store a frame. Returns the index of the sensor in the table. */
-uint8_t tpms_store_update(
-    TpmsStore* store,
-    const TpmsRenaultFrame* frame,
-    int16_t rssi_x10,
-    uint32_t tick);
+/** Store a frame. Returns the index of the sensor in the table.
+ *
+ * A sensor is a protocol and an id together: two protocols may well use
+ * the same id, and a few carry no id at all. Fields the frame does not
+ * bring are left as they were — SmarTire sends pressure and temperature
+ * in separate transmissions, and a row should hold both.
+ */
+uint8_t
+    tpms_store_update(TpmsStore* store, const TpmsFrame* frame, int16_t rssi_x10, uint32_t tick);
 
 /** True if the sensor has been silent for longer than TPMS_STORE_STALE_MS. */
 bool tpms_sensor_is_stale(const TpmsSensor* sensor, uint32_t now_tick);

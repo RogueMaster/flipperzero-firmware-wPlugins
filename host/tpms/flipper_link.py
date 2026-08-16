@@ -21,7 +21,7 @@ from typing import Iterator
 import serial
 from serial.tools import list_ports
 
-from .decoder import RenaultFrame, parse_frame
+from .decoder import TpmsFrame, parse_frame
 
 DEFAULT_FREQUENCY = 433_920_000
 CLI_COMMAND = "tpms_rx"
@@ -216,13 +216,32 @@ class FlipperLink:
             self._emit("line", line)
             return
 
-        # Fields are recomputed on the host: decoder.py is the single
-        # source of truth for the protocol, the firmware hands over raw
-        # bytes.
-        frame = parse_frame(raw)
-        if frame is None:
-            self._emit("line", f"frame with a bad CRC: {raw_hex}")
-            return
+        # The firmware knows all the protocols and has already checked
+        # the frame, so the fields come from it; the raw bytes travel
+        # along so that anything can be re-derived later. Renault frames
+        # are still parsed here as well, which keeps the one protocol
+        # this project was built around verified end to end.
+        proto = str(message.get("proto", "renault"))
+        pressure = message.get("pressure_kpa_x100")
+        identifier = str(message.get("id", "0"))
+
+        frame = TpmsFrame(
+            raw=raw,
+            sensor_id=int(identifier, 16),
+            pressure_kpa=(pressure / 100.0) if isinstance(pressure, (int, float)) else None,
+            temperature_c=message.get("temp_c"),
+            flags=int(message.get("flags", 0)),
+            proto=proto,
+            battery_ok=message.get("battery_ok"),
+            id_digits=max(6, len(identifier)),
+        )
+
+        if proto == "renault":
+            checked = parse_frame(raw)
+            if checked is None:
+                self._emit("line", f"frame with a bad CRC: {raw_hex}")
+                return
+            frame = checked
 
         rssi_x10 = message.get("rssi_dbm_x10")
         self._emit(

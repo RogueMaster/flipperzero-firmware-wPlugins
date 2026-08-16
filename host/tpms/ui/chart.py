@@ -37,7 +37,11 @@ class HistoryChart(QWidget):
         unit: str = "kPa",
         title: str = "",
     ) -> None:
-        self._points = points
+        # Sensors that report pressure and temperature in separate
+        # transmissions leave gaps; a point is only plottable with both.
+        self._points = [
+            point for point in points if point[1] is not None and point[2] is not None
+        ]
         self._unit = unit if unit in PRESSURE_UNITS else "kPa"
         self._title = title
         self.update()

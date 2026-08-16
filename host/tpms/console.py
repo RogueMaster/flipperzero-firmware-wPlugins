@@ -17,14 +17,28 @@ from .model import SensorModel
 from .sub_file import load
 
 
+def _range(low: float, high: float) -> str:
+    """A min..max pair, or a dash where nothing was ever reported."""
+    if low > high:
+        return "--"
+    return f"{low:.2f}..{high:.2f}" if isinstance(low, float) else f"{low}..{high}"
+
+
 def _describe(reading: Reading) -> str:
     frame = reading.frame
     rssi = "" if reading.rssi_dbm is None else f"  rssi {reading.rssi_dbm:6.1f} dBm"
+    pressure = (
+        "        --      "
+        if frame.pressure_kpa is None
+        else f"{frame.pressure_kpa:6.2f} kPa ({frame.pressure_bar:.3f} bar, {frame.pressure_psi:.1f} PSI)"
+    )
+    temperature = "  -- " if frame.temperature_c is None else f"{frame.temperature_c:4d} C"
     return (
         f"[{time.strftime('%H:%M:%S')}] "
+        f"{frame.proto:<14s} "
         f"ID {frame.id_hex}  "
-        f"{frame.pressure_kpa:6.2f} kPa ({frame.pressure_bar:.3f} bar, {frame.pressure_psi:.1f} PSI)  "
-        f"{frame.temperature_c:4d} C  "
+        f"{pressure}  "
+        f"{temperature}  "
         f"flags 0x{frame.flags:02x}  "
         f"raw {frame.raw_hex}{rssi}"
     )
@@ -111,8 +125,8 @@ def main(argv: list[str] | None = None) -> int:
     for stats in model.sensors():
         print(
             f"  {stats.sensor_id}: frames {stats.frames}, "
-            f"pressure {stats.min_pressure_kpa:.2f}..{stats.max_pressure_kpa:.2f} kPa, "
-            f"temperature {stats.min_temperature_c}..{stats.max_temperature_c} C"
+            f"pressure {_range(stats.min_pressure_kpa, stats.max_pressure_kpa)} kPa, "
+            f"temperature {_range(stats.min_temperature_c, stats.max_temperature_c)} C"
         )
 
     if args.csv and model.total_frames:

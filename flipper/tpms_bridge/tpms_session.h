@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tpms_renault.h"
+#include "tpms_decoder.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -14,16 +14,13 @@
  */
 typedef struct TpmsSession TpmsSession;
 
-/** A frame with a matching CRC.
+/** A frame that passed its protocol's checks.
  *
  * rssi_dbm is sampled when the batch of intervals arrives from the radio
  * rather than after decoding, so the value belongs to the transmission
  * itself.
  */
-typedef void (*TpmsSessionFrameCallback)(
-    const TpmsRenaultFrame* frame,
-    float rssi_dbm,
-    void* context);
+typedef void (*TpmsSessionFrameCallback)(const TpmsFrame* frame, float rssi_dbm, void* context);
 
 /** Raw interval (diagnostic mode). */
 typedef void (*TpmsSessionRawCallback)(bool level, uint32_t duration, void* context);
@@ -42,8 +39,17 @@ void tpms_session_set_raw_callback(
     TpmsSessionRawCallback callback,
     void* context);
 
-bool tpms_session_start(TpmsSession* session, uint32_t frequency);
+bool tpms_session_start(TpmsSession* session, uint32_t frequency, TpmsModulation modulation);
 void tpms_session_stop(TpmsSession* session);
+
+/** Retune the running session.
+ *
+ * The radio holds one configuration at a time, so listening for the OOK
+ * protocols means not listening for the FSK ones, and the same goes for
+ * the two frequency bands. Both are changed without tearing the session
+ * down, which keeps the wake-up timer and the CLI stream alive.
+ */
+bool tpms_session_retune(TpmsSession* session, uint32_t frequency, TpmsModulation modulation);
 
 /** Decode what has been buffered. Returns the number of intervals handled. */
 size_t tpms_session_pump(TpmsSession* session, uint32_t timeout_ms);

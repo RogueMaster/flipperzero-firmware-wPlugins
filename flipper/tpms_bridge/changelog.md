@@ -1,13 +1,18 @@
 v1.0:
 First release.
 
-Receives Renault TPMS sensors on 433.92 MHz and shows them on the Flipper
-screen: sensor list with signal level bars, and a detail screen with
-pressure in bar, PSI and kPa, temperature, current and peak signal level,
-frame counter and protocol flags.
+Reads tyre pressure sensors and shows what they report on the Flipper
+screen: sensor id, pressure, temperature and signal level. Reception
+starts with the app, so the Flipper is useful on its own.
 
-Wakes a sensor at rest with a 125 kHz field: a single pulse on the Right
-key, or a repeating pulse every 5 seconds on the Left key.
+Thirty-nine protocols, all ported from rtl_433 and all searched at the
+same time — no protocol has to be chosen. Both bands the sensors use are
+supported, 433.92 MHz and 315 MHz, and both modulations, FSK and OOK,
+with a scan that steps between them.
 
-Streams decoded frames as line-delimited JSON over the USB CLI through the
-tpms_rx command, for logging and charting on a computer.
+A sensor at rest can be woken with the 125 kHz coil, one pulse or one
+every five seconds. Frames also go out over the USB CLI as line delimited
+JSON.
+
+Only the Renault group sensor has been verified against real hardware;
+every other decoder is checked against rtl_433 itself.

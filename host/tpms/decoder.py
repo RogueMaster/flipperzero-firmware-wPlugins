@@ -49,45 +49,59 @@ def crc8(data: bytes, poly: int = 0x07, init: int = 0x00) -> int:
 
 
 @dataclass(frozen=True)
-class RenaultFrame:
-    """A decoded sensor frame."""
+class TpmsFrame:
+    """A decoded sensor frame, whichever protocol it came from.
+
+    The firmware decodes every protocol it knows and reports the fields in
+    shared units, so pressure and temperature can be missing: a few
+    sensors send them in separate transmissions, and one or two carry
+    neither.
+    """
 
     raw: bytes
     sensor_id: int
-    pressure_kpa: float
-    temperature_c: int
-    flags: int
-    unknown: int
+    pressure_kpa: float | None = None
+    temperature_c: int | None = None
+    flags: int = 0
+    unknown: int = 0
+    proto: str = "renault"
+    battery_ok: bool | None = None
+    id_digits: int = 6
 
     @property
     def id_hex(self) -> str:
-        return f"{self.sensor_id:06x}"
+        return f"{self.sensor_id:0{self.id_digits}x}"
 
     @property
     def raw_hex(self) -> str:
         return self.raw.hex()
 
     @property
-    def pressure_bar(self) -> float:
-        return self.pressure_kpa / 100.0
+    def pressure_bar(self) -> float | None:
+        return None if self.pressure_kpa is None else self.pressure_kpa / 100.0
 
     @property
-    def pressure_psi(self) -> float:
-        return self.pressure_kpa * 0.1450377
+    def pressure_psi(self) -> float | None:
+        return None if self.pressure_kpa is None else self.pressure_kpa * 0.1450377
 
     def to_dict(self) -> dict:
         return {
-            "proto": "renault",
+            "proto": self.proto,
             "id": self.id_hex,
             "raw": self.raw_hex,
-            "pressure_kpa": round(self.pressure_kpa, 2),
+            "pressure_kpa": None if self.pressure_kpa is None else round(self.pressure_kpa, 2),
             "temp_c": self.temperature_c,
             "flags": self.flags,
             "unknown": self.unknown,
         }
 
 
-def parse_frame(raw: bytes) -> RenaultFrame | None:
+# The Renault decoder in this file predates the rest and is what the
+# offline paths still use, so its old name stays as an alias.
+RenaultFrame = TpmsFrame
+
+
+def parse_frame(raw: bytes) -> TpmsFrame | None:
     """9 bytes -> fields. Returns None if the CRC does not match."""
     if len(raw) != FRAME_BYTES:
         return None
@@ -95,7 +109,7 @@ def parse_frame(raw: bytes) -> RenaultFrame | None:
         return None
 
     pressure_raw = ((raw[0] & 0x03) << 8) | raw[1]
-    return RenaultFrame(
+    return TpmsFrame(
         raw=bytes(raw),
         sensor_id=(raw[5] << 16) | (raw[4] << 8) | raw[3],  # little-endian
         pressure_kpa=pressure_raw * 0.75,
@@ -160,9 +174,9 @@ _VARIANTS = [
 ]
 
 
-def decode_chips(chips: str) -> list[RenaultFrame]:
+def decode_chips(chips: str) -> list[TpmsFrame]:
     """Find every valid frame in a chip stream."""
-    frames: list[RenaultFrame] = []
+    frames: list[TpmsFrame] = []
     seen: set[bytes] = set()
 
     for pattern, one in _VARIANTS:
@@ -224,9 +238,9 @@ def timings_to_chips(
     return bursts
 
 
-def decode_timings(timings: Iterable[int], chip_us: int = CHIP_US) -> list[RenaultFrame]:
+def decode_timings(timings: Iterable[int], chip_us: int = CHIP_US) -> list[TpmsFrame]:
     """The whole path: timings -> frames."""
-    frames: list[RenaultFrame] = []
+    frames: list[TpmsFrame] = []
     seen: set[bytes] = set()
     for burst in timings_to_chips(timings, chip_us=chip_us):
         if len(burst) < len(SYNC) + FRAME_CHIPS:

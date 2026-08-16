@@ -290,8 +290,10 @@ class MainWindow(QMainWindow):
 
         values = [
             sensor_id,
-            f"{convert_pressure(frame.pressure_kpa, unit)} {unit}",
-            f"{frame.temperature_c} °C",
+            "—"
+            if frame.pressure_kpa is None
+            else f"{convert_pressure(frame.pressure_kpa, unit)} {unit}",
+            "—" if frame.temperature_c is None else f"{frame.temperature_c} °C",
             f"0x{frame.flags:02x}",
             "—" if reading.rssi_dbm is None else f"{reading.rssi_dbm:.1f} dBm",
             str(stats.frames),
@@ -355,7 +357,9 @@ class MainWindow(QMainWindow):
             if stats is None or stats.last_reading is None:
                 continue
             pressure = stats.last_reading.frame.pressure_kpa
-            self.table.item(row, 1).setText(f"{convert_pressure(pressure, unit)} {unit}")
+            self.table.item(row, 1).setText(
+                "—" if pressure is None else f"{convert_pressure(pressure, unit)} {unit}"
+            )
         self._refresh_chart()
 
     # ------------------------------------------------------------------
