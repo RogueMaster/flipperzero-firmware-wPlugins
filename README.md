@@ -261,9 +261,10 @@ wrongly fails. Every protocol is tried in both stream polarities.
 
 The Renault decoder additionally gets the cases real hardware produced: a
 sync word in normal polarity with the Manchester pairs inverted, ±15%
-timing jitter, and a corrupted frame that must be rejected. Finally 400000
-random intervals are fed in to check that noise does not turn into
-readings.
+timing jitter, and a corrupted frame that must be rejected. Finally a
+frame is buried between 40000 noise intervals to check that it still comes
+through, and 400000 random intervals are fed in on their own to check that
+noise does not turn into readings.
 
 `view_test` draws the app screens with the very same code as the firmware,
 only the canvas is an emulator: it prints the picture as ASCII art and

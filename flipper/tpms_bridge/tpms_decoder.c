@@ -125,6 +125,10 @@ struct TpmsDecoder {
     TpmsStream stream[TPMS_MAX_STREAMS];
     TpmsPending pending[TPMS_MAX_PENDING];
     uint8_t pending_count;
+    /* How many matches each stream is waiting on. Almost always zero, and
+     * then the whole list can be skipped — which matters, because this
+     * runs for every stream on every chip. */
+    uint8_t stream_pending[TPMS_MAX_STREAMS];
 
     uint8_t prefilter[TPMS_PREFILTER_BYTES];
 
@@ -213,11 +217,17 @@ static void tpms_decoder_build(TpmsDecoder* decoder) {
     }
 }
 
+static void tpms_pending_release(TpmsDecoder* decoder, TpmsPending* entry) {
+    entry->active = false;
+    if(decoder->pending_count > 0) decoder->pending_count--;
+    if(decoder->stream_pending[entry->stream] > 0) decoder->stream_pending[entry->stream]--;
+}
+
 static void tpms_pending_drop_stream(TpmsDecoder* decoder, uint8_t stream) {
+    if(decoder->stream_pending[stream] == 0) return;
     for(uint8_t i = 0; i < TPMS_MAX_PENDING; i++) {
         if(decoder->pending[i].active && decoder->pending[i].stream == stream) {
-            decoder->pending[i].active = false;
-            if(decoder->pending_count > 0) decoder->pending_count--;
+            tpms_pending_release(decoder, &decoder->pending[i]);
         }
     }
 }
@@ -263,6 +273,7 @@ static void tpms_pending_add(
     slot->inverted = inverted;
     slot->start = start;
     decoder->pending_count++;
+    decoder->stream_pending[stream]++;
 }
 
 static bool tpms_frame_plausible(const TpmsFrame* frame) {
@@ -357,16 +368,17 @@ static void tpms_stream_bit(
     }
     stream->count++;
 
-    if(decoder->pending_count > 0) {
-        for(uint8_t i = 0; i < TPMS_MAX_PENDING; i++) {
+    if(decoder->stream_pending[index] > 0) {
+        uint8_t left = decoder->stream_pending[index];
+        for(uint8_t i = 0; i < TPMS_MAX_PENDING && left > 0; i++) {
             TpmsPending* entry = &decoder->pending[i];
             if(!entry->active || entry->stream != index) continue;
+            left--;
             if(stream->count - entry->start < tpms_protocols[entry->protocol].capture_bits) {
                 continue;
             }
 
-            entry->active = false;
-            decoder->pending_count--;
+            tpms_pending_release(decoder, entry);
             tpms_pending_decode(decoder, entry);
         }
     }
@@ -480,6 +492,7 @@ void tpms_decoder_free(TpmsDecoder* decoder) {
 void tpms_decoder_reset(TpmsDecoder* decoder) {
     for(uint8_t i = 0; i < TPMS_MAX_PENDING; i++) decoder->pending[i].active = false;
     decoder->pending_count = 0;
+    memset(decoder->stream_pending, 0, sizeof(decoder->stream_pending));
     for(uint8_t i = 0; i < TPMS_MAX_PROTOCOLS; i++) {
         for(uint8_t slot = 0; slot < TPMS_SLOT_COUNT; slot++) {
             /* One short of the largest value, so that "the bit before"

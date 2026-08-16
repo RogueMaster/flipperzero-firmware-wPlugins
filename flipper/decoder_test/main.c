@@ -233,6 +233,41 @@ static int renault_hardware_cases(void) {
     return failures;
 }
 
+/** A frame buried in noise must still come through. The decoder keeps
+ * state between intervals, and noise fills that state with rubbish. */
+static int noise_then_frame_case(void) {
+    frame_count = 0;
+    TpmsDecoder* decoder = tpms_decoder_alloc(on_frame, NULL);
+
+    srand(11);
+    for(int i = 0; i < 20000; i++) {
+        tpms_decoder_feed(decoder, rand() & 1, (uint32_t)(20 + rand() % 140));
+    }
+
+    size_t i = 0;
+    while(RENAULT_VECTOR[i]) {
+        const char level = RENAULT_VECTOR[i];
+        int run = 0;
+        while(RENAULT_VECTOR[i] == level) {
+            run++;
+            i++;
+        }
+        tpms_decoder_feed(decoder, level == '1', (uint32_t)(run * 52));
+    }
+
+    for(int n = 0; n < 20000; n++) {
+        tpms_decoder_feed(decoder, rand() & 1, (uint32_t)(20 + rand() % 140));
+    }
+    tpms_decoder_free(decoder);
+
+    if(!renault_decoded()) {
+        printf("FAIL renault frame buried in noise was lost\n");
+        return 1;
+    }
+    printf("ok   renault        a frame between 40k noise intervals\n");
+    return 0;
+}
+
 /** Noise must not turn into readings. */
 static int noise_case(void) {
     frame_count = 0;
@@ -264,6 +299,7 @@ int main(void) {
     printf("\n");
     failures += renault_hardware_cases();
     printf("\n");
+    failures += noise_then_frame_case();
     failures += noise_case();
 
     if(failures) {
