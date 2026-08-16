@@ -185,7 +185,7 @@ static void tpms_view_draw_list(Canvas* canvas, TpmsBridgeApp* app) {
     if(app->store.count == 0) {
         canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignBottom, "Listening...");
         canvas_draw_str_aligned(canvas, 64, 39, AlignCenter, AlignBottom, "Right: wake sensor");
-        canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignBottom, "Hold L/R: mode, band");
+        canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignBottom, "Up/Down: band, mode");
     } else {
         const uint32_t now = furi_get_tick();
         for(uint8_t row = 0; row < TPMS_VIEW_ROWS; row++) {
@@ -215,10 +215,8 @@ static void tpms_view_draw_list(Canvas* canvas, TpmsBridgeApp* app) {
     /* Spread the hints across the width: they do not fit as one string. */
     canvas_draw_line(canvas, 0, 54, 127, 54);
     canvas_draw_str(canvas, TPMS_LIST_LEFT, 62, "OK:info");
-    /* Right key on the right, Left key on the far side: the hints line up
-     * with the keys they name. */
-    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "R:wake");
-    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "L:auto");
+    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "L:auto");
+    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "R:wake");
 }
 
 static void tpms_view_draw_detail(Canvas* canvas, TpmsBridgeApp* app) {

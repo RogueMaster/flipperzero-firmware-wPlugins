@@ -175,6 +175,31 @@ static void tpms_bridge_reconcile_radio(TpmsBridgeApp* app) {
     furi_thread_start(app->local_thread);
 }
 
+/** Step through the radio configurations.
+ *
+ * The band and the modulation are one list rather than two settings: the
+ * radio holds one of each at a time, and stepping through six entries
+ * with two keys is less to remember than two separate cycles.
+ */
+static void tpms_bridge_step_config(TpmsBridgeApp* app, int8_t delta) {
+    const uint8_t count = TPMS_FREQUENCY_COUNT * 3;
+    uint8_t index = (uint8_t)(app->frequency_index * 3 + app->radio_mode);
+
+    index = (uint8_t)((index + count + delta) % count);
+    app->frequency_index = (uint8_t)(index / 3);
+    app->radio_mode = (uint8_t)(index % 3);
+    app->scan_tick = 0;
+}
+
+static void tpms_bridge_select(TpmsBridgeApp* app, int8_t delta) {
+    if(delta < 0) {
+        if(app->selected > 0) app->selected--;
+    } else if(app->store.count > 0 && app->selected + 1 < app->store.count) {
+        app->selected++;
+    }
+    tpms_view_follow_selection(app);
+}
+
 static void tpms_bridge_wake_sensor(TpmsBridgeApp* app) {
     /* If reception is running the pulse must not stop the receiver: the
      * sensor answers right away. Decoding is driven by the session owner,
@@ -208,14 +233,11 @@ static void tpms_bridge_handle_input(TpmsBridgeApp* app, const InputEvent* event
             app->screen = TpmsScreenList;
             break;
 
-        case InputKeyLeft:
-            /* FSK, OOK, or both in turn. */
-            app->radio_mode = (uint8_t)((app->radio_mode + 1) % 3);
-            app->scan_tick = 0;
-            break;
-
-        case InputKeyRight:
-            app->frequency_index = (uint8_t)((app->frequency_index + 1) % TPMS_FREQUENCY_COUNT);
+        case InputKeyUp:
+        case InputKeyDown:
+            /* Up and Down step the radio configuration, so picking a row
+             * out of the list moves to holding them. */
+            tpms_bridge_select(app, event->key == InputKeyUp ? -1 : 1);
             break;
 
         default:
@@ -257,14 +279,17 @@ static void tpms_bridge_handle_input(TpmsBridgeApp* app, const InputEvent* event
         break;
 
     case InputKeyUp:
-        if(app->selected > 0) app->selected--;
-        tpms_view_follow_selection(app);
+    case InputKeyDown: {
+        const int8_t delta = event->key == InputKeyUp ? -1 : 1;
+        /* On the list these step the band and the modulation; on the
+         * detail screen they walk from one sensor to the next. */
+        if(app->screen == TpmsScreenDetail) {
+            tpms_bridge_select(app, delta);
+        } else {
+            tpms_bridge_step_config(app, delta);
+        }
         break;
-
-    case InputKeyDown:
-        if(app->store.count > 0 && app->selected + 1 < app->store.count) app->selected++;
-        tpms_view_follow_selection(app);
-        break;
+    }
 
     default:
         break;

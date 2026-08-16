@@ -112,7 +112,7 @@ TPMS               4 433F RX
 7ad779   2.25b   24C     ▁▃▅
 1b04f2   2.15b   31C     ▁▃
 0a11c3   2.29b   19C        ·
-OK:info       R:wake      L:auto
+OK:info       L:auto      R:wake
 ```
 
 The header carries the number of sensors, the band and modulation the
@@ -129,13 +129,12 @@ Keys:
 
 | Key | What it does |
 |---|---|
-| **Up / Down** | select a sensor |
+| **Up / Down** | on the list: step through the six band and modulation settings; on the detail screen: previous and next sensor |
+| **Up / Down, long press** | pick a sensor out of the list |
 | **OK** | details of the selected sensor, press again to go back |
 | **OK, long press** | clear the list (before moving to another car, say) |
 | **Left** | periodic waking on and off, a pulse every 5 s; when on, the header shows `wake` |
-| **Left, long press** | modulation: FSK, OOK, or both in turn |
 | **Right** | one wake pulse, 0.7 s |
-| **Right, long press** | band: 433.92 MHz or 315 MHz |
 | **Back** | from the details to the list, from the list out of the app |
 
 The detail screen shows pressure in bar, PSI and kPa, temperature, the

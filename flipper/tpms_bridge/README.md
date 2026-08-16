@@ -36,13 +36,13 @@ radio is on, and whether reception is local or handed to USB.
 
 ## Keys
 
-- **Up, Down** — pick a sensor
+- **Up, Down** — on the list, step through the six band and modulation
+  settings; on the detail screen, walk from one sensor to the next
+- **Up, Down held** — pick a sensor out of the list
 - **OK** — details, press again to go back
 - **OK, hold** — clear the list, for when you move to another car
 - **Left** — periodic waking on and off, a pulse every 5 s
-- **Left, hold** — FSK, OOK, or both in turn
 - **Right** — one wake pulse, 0.7 s
-- **Right, hold** — switch between 433.92 MHz and 315 MHz
 - **Back** — from the details to the list, from the list out of the app
 
 ## Bands and modulation
@@ -55,9 +55,11 @@ picked: the band and the modulation.
 - **FSK** covers 26 of the protocols, including every European OEM sensor;
   **OOK** covers the other 13, mostly Schrader and aftermarket units.
 
-The defaults are 433.92 MHz and FSK. Scanning steps between the two
-modulations every four seconds, which finds a sensor whose kind is not
-known in advance at the cost of missing half the transmissions.
+The defaults are 433.92 MHz and FSK. **Up** and **Down** step through the
+six settings the two make between them, and the header shows which one is
+live. Scanning alternates the modulation every four seconds, which finds a
+sensor whose kind is not known in advance at the cost of hearing each of
+them half as often.
 
 ## Waking a sensor at rest
 
