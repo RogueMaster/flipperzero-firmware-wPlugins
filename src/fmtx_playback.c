@@ -153,7 +153,7 @@ static void usbrx(const int16_t* samples, size_t count, void* ctx) {
     Play* p = ctx;
     if(!p || p->stop || !p->usb || p->state != PlaybackPlaying) return;
     for(size_t i = 0; i < count; i++)
-        if(samples[i]) {
+        if(samples[i] > 32 || samples[i] < -32) {
             p->usb_sound = furi_get_tick();
             break;
         }
