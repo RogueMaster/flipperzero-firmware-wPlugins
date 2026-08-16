@@ -19,7 +19,7 @@
 #define STACKSZ    (24U * 1024U)
 #define USBSTACK   2048U
 #define USBTIMEOUT 100U
-#define USBRETRY   3000U
+#define USBRETRY   10000U
 #define USBPOLL    250U
 #define SKIP1      65536U
 #define SKIPN      8192U
@@ -169,6 +169,7 @@ static void usbrx(const int16_t* samples, size_t count, void* ctx) {
 static int32_t usbthread(void* ctx) {
     Play* p = ctx;
     bool connected = false;
+    bool retried = false;
     uint32_t retry = furi_get_tick();
     uint32_t poll = retry - furi_ms_to_ticks(USBPOLL);
     dsprst(&p->dsp);
@@ -208,16 +209,18 @@ static int32_t usbthread(void* ctx) {
             }
         }
         if(!connected) {
-            if(!cable)
+            if(!cable) {
                 retry = now;
-            else if(now - retry >= furi_ms_to_ticks(USBRETRY)) {
-                retry = now;
+                retried = false;
+            } else if(!retried && now - retry >= furi_ms_to_ticks(USBRETRY)) {
+                retried = true;
                 furi_hal_usb_reinit();
             }
             furi_delay_tick(1U);
             continue;
         }
         retry = now;
+        retried = false;
         if(now - sound >= furi_ms_to_ticks(USBTIMEOUT)) {
             if(p->radio) {
                 rfstop(p->rf);
