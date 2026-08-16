@@ -105,8 +105,22 @@ static void tpms_view_format_id(char* out, size_t size, const TpmsSensor* sensor
 }
 
 static void tpms_view_draw_header(Canvas* canvas, TpmsBridgeApp* app) {
+    /* The radio setting takes the place a title would: which band and
+     * modulation the app is listening on is the one thing that decides
+     * whether anything can show up at all. While scanning, AUTO says the
+     * setting is about to move on by itself. */
+    const bool scanning = app->config == TpmsConfigScan;
+    const char* band =
+        tpms_slot_frequency(app->active_slot) == tpms_frequencies[0] ? "433" : "315";
+    const char mode = tpms_slot_modulation(app->active_slot) == TpmsModulationOok ?
+                          (scanning ? 'o' : 'O') :
+                          (scanning ? 'f' : 'F');
+
+    char setting[TPMS_TEXT_MAX];
+    snprintf(setting, sizeof(setting), "%s%s%c", scanning ? "AUTO-" : "", band, mode);
+
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, TPMS_LIST_LEFT, 10, "TPMS");
+    canvas_draw_str(canvas, TPMS_LIST_LEFT, 10, setting);
 
     const char* radio = "off";
     if(app->exit_blocked) {
@@ -117,21 +131,12 @@ static void tpms_view_draw_header(Canvas* canvas, TpmsBridgeApp* app) {
         radio = "RX";
     }
 
-    /* Which band and which set of protocols the radio is on. While
-     * scanning it steps through all four combinations, so this is the one
-     * on air right now, and a lowercase letter says it will move on. */
-    const char* band = tpms_slot_frequency(app->active_slot) == tpms_frequencies[0] ? "433" : "315";
-    char mode = tpms_slot_modulation(app->active_slot) == TpmsModulationOok ? 'O' : 'F';
-    if(app->config == TpmsConfigScan) mode = mode == 'O' ? 'o' : 'f';
-
     char status[TPMS_TEXT_MAX];
     snprintf(
         status,
         sizeof(status),
-        "%u %s%c %s%s",
+        "%u %s%s",
         (unsigned)app->store.count,
-        band,
-        mode,
         radio,
         app->auto_wake ? " wake" : "");
 

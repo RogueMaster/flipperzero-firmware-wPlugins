@@ -107,7 +107,7 @@ The list screen shows one row per sensor, up to eight held in memory, four
 visible at a time and the rest reachable by scrolling:
 
 ```
-TPMS               4 433F RX
+433F                  4 RX
 02c99d   2.19b   26C     ▁▃▅▇
 7ad779   2.25b   24C     ▁▃▅
 1b04f2   2.15b   31C     ▁▃
@@ -115,12 +115,13 @@ TPMS               4 433F RX
 OK:info       L:auto      R:wake
 ```
 
-The header carries the number of sensors, the band and modulation the
-radio is on (`433F` is 433.92 MHz and FSK, `315O` is 315 MHz and OOK) and
+The header opens with what the radio is set to — `433F` is 433.92 MHz and
+FSK, `315O` is 315 MHz and OOK — and then gives the number of sensors and
 whether reception is local (`RX`) or handed over to a USB session (`USB`).
-**Up** and **Down** step through the five settings — the four combinations
+**Up** and **Down** step through the five settings: the four combinations
 and a scan that takes all of them in turn, four seconds each. While
-scanning the letter is lowercase, since it is about to change.
+scanning the header reads `AUTO-433f`, lowercase and with the prefix,
+because the setting moves on by itself.
 
 The bars on the right are the signal level: the taller, the closer the
 sensor. That is how the wheels are told apart — carry the Flipper from one

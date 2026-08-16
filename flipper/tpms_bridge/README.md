@@ -31,8 +31,8 @@ The detail screen adds pressure in PSI and kPa, the exact signal level
 with a ten second peak hold, a frame counter, the age of the last frame,
 and which protocol the frame turned out to be.
 
-The header shows how many sensors are known, the band and modulation the
-radio is on, and whether reception is local or handed to USB.
+The header opens with what the radio is set to, then how many sensors are
+known and whether reception is local or handed to USB.
 
 ## Keys
 
@@ -64,10 +64,10 @@ picked: the band and the modulation.
 - **315O** — 315 MHz, OOK
 - **Scan** — all four in turn, four seconds each
 
-The header shows which one is on air; while scanning the letter is
-lowercase, because it is about to move on. Scanning finds a sensor whose
-kind is not known in advance, at the cost of hearing any one of them a
-quarter of the time.
+The header shows which one is on air. While scanning it reads `AUTO-433f`,
+with the prefix and a lowercase letter, because the setting moves on by
+itself. Scanning finds a sensor whose kind is not known in advance, at the
+cost of hearing any one of them a quarter of the time.
 
 ## Waking a sensor at rest
 
