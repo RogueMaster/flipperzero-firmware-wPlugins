@@ -5,7 +5,7 @@
 typedef struct {
     MfPassiveSettingsModel model;
     MfPassiveSettingsArgs settings;
-    VariableItem* items[9];
+    VariableItem* items[10];
     bool active;
     bool dirty;
     bool save_failed;

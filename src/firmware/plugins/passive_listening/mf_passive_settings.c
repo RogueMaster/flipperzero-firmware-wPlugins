@@ -16,7 +16,34 @@ enum {
     MfPassiveSettingAnswerDelay,
     MfPassiveSettingRepeat,
     MfPassiveSettingCourtesyDelay,
+    MfPassiveSettingTransmitFm,
     MfPassiveSettingCount,
+};
+
+static const char* const mf_passive_setting_labels[MfPassiveSettingCount] = {
+    "Mode",
+    "Length",
+    "Lesson",
+    "WPM",
+    "Farnsworth",
+    "Vibrate",
+    "Delay before answer",
+    "Repeat after answer",
+    "Courtesy tone",
+    "Transmit FM",
+};
+
+static const uint8_t mf_passive_setting_counts[MfPassiveSettingCount] = {
+    2U,
+    6U,
+    0U,
+    21U,
+    30U,
+    2U,
+    5U,
+    2U,
+    11U,
+    2U,
 };
 
 static bool mf_passive_settings_persist(MfPassiveSettingsState* state) {
@@ -29,6 +56,15 @@ static bool mf_passive_settings_persist(MfPassiveSettingsState* state) {
     state->dirty = true;
     state->save_failed = true;
     return false;
+}
+
+__attribute__((noinline)) static void mf_passive_settings_refresh_binary(
+    VariableItem* item,
+    uint8_t value,
+    const char* false_text,
+    const char* true_text) {
+    variable_item_set_current_value_index(item, value);
+    variable_item_set_current_value_text(item, value ? true_text : false_text);
 }
 
 static void mf_passive_settings_refresh(MfPassiveSettingsState* state) {
@@ -61,15 +97,13 @@ static void mf_passive_settings_refresh(MfPassiveSettingsState* state) {
     snprintf(text, sizeof(text), "%u", (unsigned)state->model.farnsworth_wpm);
     variable_item_set_current_value_text(item, text);
     item = state->items[MfPassiveSettingVibrate];
-    variable_item_set_current_value_index(item, state->model.vibrate);
-    variable_item_set_current_value_text(item, state->model.vibrate ? "On" : "Off");
+    mf_passive_settings_refresh_binary(item, state->model.vibrate, "Off", "On");
     item = state->items[MfPassiveSettingAnswerDelay];
     variable_item_set_current_value_index(item, state->model.answer_delay_s - 1U);
     snprintf(text, sizeof(text), "%u s", (unsigned)state->model.answer_delay_s);
     variable_item_set_current_value_text(item, text);
     item = state->items[MfPassiveSettingRepeat];
-    variable_item_set_current_value_index(item, state->model.repeat_after_answer);
-    variable_item_set_current_value_text(item, state->model.repeat_after_answer ? "Yes" : "No");
+    mf_passive_settings_refresh_binary(item, state->model.repeat_after_answer, "No", "Yes");
     item = state->items[MfPassiveSettingCourtesyDelay];
     variable_item_set_current_value_index(item, state->model.courtesy_delay_half_s);
     if(state->model.courtesy_delay_half_s == 0U) {
@@ -83,6 +117,8 @@ static void mf_passive_settings_refresh(MfPassiveSettingsState* state) {
             state->model.courtesy_delay_half_s & 1U ? 5U : 0U);
         variable_item_set_current_value_text(item, text);
     }
+    item = state->items[MfPassiveSettingTransmitFm];
+    mf_passive_settings_refresh_binary(item, state->model.transmit_fm, "No", "Yes");
 }
 
 static void mf_passive_settings_changed(VariableItem* item) {
@@ -105,8 +141,10 @@ static void mf_passive_settings_changed(VariableItem* item) {
         state->model.answer_delay_s = index + 1U;
     else if(item == state->items[MfPassiveSettingRepeat])
         state->model.repeat_after_answer = index;
-    else
+    else if(item == state->items[MfPassiveSettingCourtesyDelay])
         state->model.courtesy_delay_half_s = index;
+    else
+        state->model.transmit_fm = index;
     mf_passive_settings_refresh(state);
     state->dirty = true;
     if(!mf_passive_settings_persist(state))
@@ -137,28 +175,12 @@ bool mf_passive_settings_enter(
     list = settings->list;
     variable_item_list_reset(list);
     variable_item_list_set_enter_callback(list, mf_passive_settings_noop_enter, state);
-    state->items[MfPassiveSettingMode] =
-        variable_item_list_add(list, "Mode", 2U, mf_passive_settings_changed, state);
-    state->items[MfPassiveSettingLength] =
-        variable_item_list_add(list, "Length", 6U, mf_passive_settings_changed, state);
-    state->items[MfPassiveSettingLesson] = variable_item_list_add(
-        list,
-        "Lesson",
-        (uint8_t)mf_passive_settings_lesson_count(),
-        mf_passive_settings_changed,
-        state);
-    state->items[MfPassiveSettingWpm] =
-        variable_item_list_add(list, "WPM", 21U, mf_passive_settings_changed, state);
-    state->items[MfPassiveSettingFarnsworth] =
-        variable_item_list_add(list, "Farnsworth", 30U, mf_passive_settings_changed, state);
-    state->items[MfPassiveSettingVibrate] =
-        variable_item_list_add(list, "Vibrate", 2U, mf_passive_settings_changed, state);
-    state->items[MfPassiveSettingAnswerDelay] = variable_item_list_add(
-        list, "Delay before answer", 5U, mf_passive_settings_changed, state);
-    state->items[MfPassiveSettingRepeat] = variable_item_list_add(
-        list, "Repeat after answer", 2U, mf_passive_settings_changed, state);
-    state->items[MfPassiveSettingCourtesyDelay] =
-        variable_item_list_add(list, "Courtesy tone", 11U, mf_passive_settings_changed, state);
+    for(uint8_t index = 0U; index < MfPassiveSettingCount; index++) {
+        uint8_t count = mf_passive_setting_counts[index];
+        if(index == MfPassiveSettingLesson) count = (uint8_t)mf_passive_settings_lesson_count();
+        state->items[index] = variable_item_list_add(
+            list, mf_passive_setting_labels[index], count, mf_passive_settings_changed, state);
+    }
     mf_passive_settings_refresh(state);
     variable_item_list_set_selected_item(
         list, state->model.selected_row < MfPassiveSettingCount ? state->model.selected_row : 0U);

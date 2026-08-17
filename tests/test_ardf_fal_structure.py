@@ -20,7 +20,7 @@ api_epochs = {
     "src/firmware/plugins/icr/morse_flipper_icr_api.h": "MORSE_FLIPPER_ICR_API_VERSION 6U",
     "src/firmware/plugins/rx_practice/morse_flipper_rx_practice_api.h":
         "MORSE_FLIPPER_RX_PRACTICE_API_VERSION 12U",
-    "src/firmware/plugins/passive_listening/mf_passive_api.h": "MF_PASSIVE_API_VERSION        8U",
+    "src/firmware/plugins/passive_listening/mf_passive_api.h": "MF_PASSIVE_API_VERSION        9U",
     "src/firmware/plugins/settings/mf_settings_api.h": "MF_SETTINGS_API_VERSION 5U",
     "src/firmware/plugins/tx_groups/mf_tx_groups_api.h": "MF_TX_GROUPS_API_VERSION 2U",
     "src/firmware/plugins/radio/mf_radio_api.h": "MF_RADIO_API_VERSION 4U",

@@ -105,6 +105,7 @@ bool morse_flipper_passive_host_enter(MorseFlipperApp* app, uint32_t now_ms, uin
                 {
                     .now_ms = now_ms,
                     .rng_seed = furi_hal_random_get(),
+                    .frequency_hz = app->rf_frequency_hz,
                     .tone_hz = (uint16_t)(morse_flipper_active_tone_hz(app) + 0.5f),
                     .output_target = target,
                     .volume_pct = morse_flipper_p2_volume_pct(app),

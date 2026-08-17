@@ -2,7 +2,7 @@
 
 Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero.
 
-Current release: 0.2.9.
+Current release: 0.2.13.
 
 It is built around learning Morse by sound rather than by staring at dots and dashes. You can practise copying, send with buttons or external keys, experiment with keyer timing, and use the Flipper as a small CW hardware adapter.
 
@@ -26,6 +26,7 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 - Callsign practice has independent speed, spacing, and length settings, and generates callsigns which actually look like callsigns.
 - Passive Listening plays CW, then speaks the answer, in the style of Morse Ninja exercises.
 - Voice output works through the Flipper's internal speaker or the PA2 audio port.
+- Passive Listening can transmit its questions and spoken answers as audio over FM on the saved Radio frequency, with local audio and vibration suppressed.
 - ARDF Foxhunting with Standard, Sprint, and Custom modes using carrier-keyed CW or CWFM.
 
 ## Hardware

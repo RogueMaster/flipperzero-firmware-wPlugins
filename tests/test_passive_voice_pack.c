@@ -195,15 +195,15 @@ static void test_bounded_refill(void) {
     io = memory_io(&file);
     CHECK(mf_passive_voice_pack_open_io(&pack, &io));
     CHECK(mf_passive_voice_pack_begin(&pack, &pipe, '0'));
-    CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) == MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
-    CHECK(pipe.write_pos == MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
+    CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) == MF_PASSIVE_VOICE_READ_MAX);
+    CHECK(pipe.write_pos == MF_PASSIVE_VOICE_READ_MAX);
     CHECK(!mf_passive_voice_pack_eof(&pack));
     CHECK(!mf_passive_voice_pack_failed(&pack));
     CHECK(file.largest_read <= MF_PASSIVE_VOICE_READ_MAX);
-    pipe.read_pos = pipe.write_pos;
     CHECK(
         mf_passive_voice_pack_refill(&pack, &pipe, 100U) ==
-        sizeof(payload) - MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
+        sizeof(payload) - MF_PASSIVE_VOICE_READ_MAX);
+    CHECK(pipe.write_pos == sizeof(payload));
     CHECK(mf_passive_voice_pack_eof(&pack));
     CHECK(file.largest_read <= MF_PASSIVE_VOICE_READ_MAX);
     pipe.read_pos = pipe.write_pos;

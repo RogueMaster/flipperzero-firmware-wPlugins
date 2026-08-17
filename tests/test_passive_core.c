@@ -24,6 +24,7 @@ typedef struct {
     uint32_t vibrations_on;
     uint32_t vibrations_off;
     uint32_t releases;
+    uint32_t commands;
     uint32_t last_voice_rate;
     MfPassivePcmPipe* claimed_pipe;
 } FakeServices;
@@ -66,7 +67,7 @@ static bool memory_read(void* context, uint32_t offset, void* buffer, size_t len
     return true;
 }
 
-static void make_pack(MemoryFile* file) {
+static void make_pack_rate(MemoryFile* file, uint32_t sample_rate_hz) {
     uint8_t payload[200];
     uint32_t data_offset = HEADER_SIZE + ENTRY_SIZE * ENTRY_COUNT;
     uint32_t offset = data_offset;
@@ -77,7 +78,7 @@ static void make_pack(MemoryFile* file) {
     file->bytes[4] = 1U;
     file->bytes[5] = MfPassiveCodecU8;
     put16(file->bytes + 6U, ENTRY_COUNT);
-    put32(file->bytes + 8U, 8000U);
+    put32(file->bytes + 8U, sample_rate_hz);
     put32(file->bytes + 12U, HEADER_SIZE);
     put32(file->bytes + 16U, offset);
     for(uint8_t id = 0U; id < ENTRY_COUNT; id++) {
@@ -93,6 +94,10 @@ static void make_pack(MemoryFile* file) {
     put32(file->bytes + 20U, file->size);
     put32(file->bytes + 24U, crc32(0U, file->bytes + HEADER_SIZE, ENTRY_SIZE * ENTRY_COUNT));
     put32(file->bytes + 28U, crc32(0U, file->bytes + data_offset, file->size - data_offset));
+}
+
+static void make_pack(MemoryFile* file) {
+    make_pack_rate(file, 8000U);
 }
 
 static bool fake_claim(
@@ -147,6 +152,7 @@ static bool fake_command(
     MfPassiveHostCommand command,
     uint32_t value,
     MfPassivePcmPipe* pipe) {
+    ((FakeServices*)context)->commands++;
     switch(command) {
     case MfPassiveHostCommandClaim:
         return fake_claim(
@@ -171,6 +177,86 @@ static bool fake_command(
 static MfPassiveHostServices services = {
     .struct_size = sizeof(MfPassiveHostServices),
     .command = fake_command,
+};
+
+typedef struct {
+    uint32_t denied_hz;
+    uint32_t async_starts;
+    uint32_t async_stops;
+    uint32_t led_on;
+    uint32_t led_off;
+    uint32_t insomnia_enters;
+    uint32_t insomnia_exits;
+    bool load_ok;
+    bool frequency_ok;
+    bool async_ok;
+} FakeRf;
+
+static bool fake_rf_frequency_valid(void* context, uint32_t frequency_hz) {
+    FakeRf* fake = context;
+    return fake->frequency_ok && frequency_hz != fake->denied_hz;
+}
+
+static bool fake_rf_frequency_allowed(void* context, uint32_t frequency_hz) {
+    FakeRf* fake = context;
+    return fake->frequency_ok && frequency_hz != fake->denied_hz;
+}
+
+static void fake_rf_noop(void* context) {
+    (void)context;
+}
+
+static bool fake_rf_load(void* context, const uint8_t* preset, size_t size) {
+    FakeRf* fake = context;
+    CHECK(preset != NULL && size == 46U);
+    return fake->load_ok;
+}
+
+static uint32_t fake_rf_set_frequency(void* context, uint32_t frequency_hz) {
+    FakeRf* fake = context;
+    return fake->frequency_ok ? frequency_hz : 0U;
+}
+
+static bool fake_rf_async_start(void* context, MfPassiveRfAudio* audio) {
+    FakeRf* fake = context;
+    CHECK(audio != NULL);
+    fake->async_starts++;
+    return fake->async_ok;
+}
+
+static void fake_rf_async_stop(void* context) {
+    ((FakeRf*)context)->async_stops++;
+}
+
+static void fake_rf_led(void* context, bool on) {
+    FakeRf* fake = context;
+    if(on)
+        fake->led_on++;
+    else
+        fake->led_off++;
+}
+
+static void fake_rf_insomnia_enter(void* context) {
+    ((FakeRf*)context)->insomnia_enters++;
+}
+
+static void fake_rf_insomnia_exit(void* context) {
+    ((FakeRf*)context)->insomnia_exits++;
+}
+
+static const MfPassiveRfHardwareOps core_rf_ops = {
+    .frequency_valid = fake_rf_frequency_valid,
+    .frequency_allowed = fake_rf_frequency_allowed,
+    .radio_idle = fake_rf_noop,
+    .load_preset = fake_rf_load,
+    .set_frequency_and_path = fake_rf_set_frequency,
+    .data_gpio_input = fake_rf_noop,
+    .async_start = fake_rf_async_start,
+    .async_stop = fake_rf_async_stop,
+    .radio_sleep = fake_rf_noop,
+    .set_led = fake_rf_led,
+    .insomnia_enter = fake_rf_insomnia_enter,
+    .insomnia_exit = fake_rf_insomnia_exit,
 };
 
 static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
@@ -203,6 +289,26 @@ static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
     state->audio_claimed = true;
     state->phase = MfPassivePhaseCw;
     state->next_at = 0U;
+}
+
+static void setup_fm(
+    MfPassiveState* state,
+    FakeServices* services_fake,
+    FakeRf* rf_fake,
+    MemoryFile* file) {
+    setup(state, services_fake, file);
+    memset(services_fake, 0, sizeof(*services_fake));
+    memset(rf_fake, 0, sizeof(*rf_fake));
+    rf_fake->load_ok = true;
+    rf_fake->frequency_ok = true;
+    rf_fake->async_ok = true;
+    state->audio_claimed = false;
+    state->transmit_fm = true;
+    state->frequency_hz = 433160000U;
+    state->voice_gain_pct = 70U;
+    mf_passive_rf_audio_init(&state->rf_audio, &core_rf_ops, rf_fake, &state->pipe);
+    CHECK(mf_passive_rf_audio_prepare(&state->rf_audio, state->frequency_hz));
+    CHECK(mf_passive_rf_audio_start_burst(&state->rf_audio));
 }
 
 static uint32_t run_cw_to_post(MfPassiveState* state) {
@@ -594,8 +700,303 @@ static void test_length_ranges_and_courtesy_off(void) {
     mf_passive_leave(&state);
 }
 
+static void drain_fm_voice(MfPassiveState* state) {
+    for(uint32_t pulse = 0U; pulse < 10000U && !state->pipe.drained; pulse++)
+        mf_passive_rf_audio_next_pulse(&state->rf_audio);
+    CHECK(state->pipe.drained);
+}
+
+static void test_fm_initial_lock_and_input(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+    FakeRf rf;
+    InputEvent event = {.key = InputKeyUp, .type = InputTypeShort};
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    mf_passive_rf_audio_pause(&state.rf_audio);
+    state.phase = MfPassivePhasePrepare;
+    state.next_at = 900U;
+    mf_passive_tick(&state, 899U);
+    CHECK(state.phase == MfPassivePhasePrepare && !state.rf_audio.running);
+    mf_passive_tick(&state, 900U);
+    CHECK(state.phase == MfPassivePhaseInitialRfLock && state.next_at == 1000U);
+    CHECK(state.rf_audio.running);
+    mf_passive_tick(&state, 999U);
+    CHECK(state.phase == MfPassivePhaseInitialRfLock && !state.cw_mark);
+    mf_passive_tick(&state, 1000U);
+    CHECK(state.phase == MfPassivePhaseCw && state.cw_mark);
+    CHECK(fake.commands == 0U);
+
+    state.back_clicks = 1U;
+    CHECK(mf_passive_input(&state, &event, 1001U).handled);
+    CHECK(state.voice_gain_pct == 70U && state.back_clicks == 0U);
+    CHECK(fake.commands == 0U);
+    mf_passive_leave(&state);
+    CHECK(fake.commands == 0U && rf.async_stops == rf.async_starts);
+    CHECK(rf.insomnia_enters == rf.insomnia_exits);
+}
+
+static void test_fm_full_round_and_timing(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+    FakeRf rf;
+    MfPassiveResult result;
+    uint32_t final_cw;
+    uint32_t voice_lock_at;
+    uint32_t now;
+    uint32_t cue_lock_at;
+    uint32_t cue_at;
+    uint32_t cue_end;
+    uint32_t next_lock_at;
+    uint32_t stops_between_tokens;
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    final_cw = run_cw_to_post(&state);
+    CHECK(!state.rf_audio.running && rf.async_stops == 1U);
+    CHECK(state.next_at == final_cw + 2900U);
+    mf_passive_tick(&state, state.next_at - 1U);
+    CHECK(state.phase == MfPassivePhasePostCw && rf.async_starts == 1U);
+    voice_lock_at = state.next_at;
+    mf_passive_tick(&state, voice_lock_at);
+    CHECK(state.phase == MfPassivePhaseVoiceRfLock && state.next_at == final_cw + 3000U);
+    CHECK(state.rf_audio.running && rf.async_starts == 2U);
+    result = mf_passive_tick(&state, state.next_at);
+    CHECK(result.redraw && state.phase == MfPassivePhaseVoice && state.revealed_count == 1U);
+    now = state.next_at;
+    stops_between_tokens = rf.async_stops;
+
+    for(uint8_t token = 0U; token < state.prompt_len; token++) {
+        drain_fm_voice(&state);
+        now += 20U;
+        mf_passive_tick(&state, now);
+        if(token + 1U < state.prompt_len) {
+            CHECK(state.phase == MfPassivePhaseBetweenTokens);
+            CHECK(rf.async_stops == stops_between_tokens && state.rf_audio.running);
+            now = state.next_at;
+            result = mf_passive_tick(&state, now);
+            CHECK(result.redraw && state.phase == MfPassivePhaseVoice);
+            CHECK(state.revealed_count == token + 2U);
+            CHECK(rf.async_stops == stops_between_tokens && state.rf_audio.running);
+        }
+    }
+    CHECK(state.phase == MfPassivePhasePostVoice && !state.rf_audio.running);
+    CHECK(rf.async_stops == stops_between_tokens + 1U);
+    CHECK(state.next_at == now + 900U);
+
+    cue_lock_at = state.next_at;
+    mf_passive_tick(&state, cue_lock_at);
+    CHECK(state.phase == MfPassivePhaseCueRfLock && state.next_at == cue_lock_at + 100U);
+    cue_at = state.next_at;
+    mf_passive_tick(&state, cue_at);
+    CHECK(state.phase == MfPassivePhaseCue && state.next_at == cue_at + 30U);
+    CHECK(fake.vibrations_on == 0U && fake.commands == 0U);
+    cue_end = state.next_at;
+    mf_passive_tick(&state, cue_end);
+    CHECK(state.phase == MfPassivePhasePostCue && !state.rf_audio.running);
+    CHECK(state.next_at == cue_end + 900U);
+    next_lock_at = state.next_at;
+    mf_passive_tick(&state, next_lock_at);
+    CHECK(state.phase == MfPassivePhaseNextRfLock && state.next_at == next_lock_at + 100U);
+    result = mf_passive_tick(&state, state.next_at);
+    CHECK(result.feedback == MfPassiveFeedbackRoundComplete);
+    CHECK(result.redraw && state.phase == MfPassivePhaseCw && state.rf_audio.running);
+    CHECK(fake.commands == 0U);
+    mf_passive_leave(&state);
+    CHECK(fake.commands == 0U && rf.insomnia_enters == rf.insomnia_exits);
+}
+
+static void test_fm_repeat_and_failures(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+    FakeRf rf;
+    uint32_t repeat_lock_at;
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    mf_passive_rf_audio_pause(&state.rf_audio);
+    state.repeat_after_answer = 1U;
+    state.phase = MfPassivePhasePostVoice;
+    state.next_at = 900U;
+    repeat_lock_at = state.next_at;
+    mf_passive_tick(&state, repeat_lock_at - 1U);
+    CHECK(state.phase == MfPassivePhasePostVoice && !state.rf_audio.running);
+    mf_passive_tick(&state, repeat_lock_at);
+    CHECK(state.phase == MfPassivePhaseRepeatRfLock && state.next_at == 1000U);
+    mf_passive_tick(&state, state.next_at);
+    CHECK(state.phase == MfPassivePhaseRepeatCw && state.cw_mark);
+    CHECK(fake.commands == 0U);
+    mf_passive_leave(&state);
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    mf_passive_rf_audio_pause(&state.rf_audio);
+    rf.async_ok = false;
+    state.phase = MfPassivePhasePrepare;
+    state.next_at = 0U;
+    mf_passive_tick(&state, 0U);
+    CHECK(state.phase == MfPassivePhaseError && state.error == MfPassiveErrorFmUnavailable);
+    CHECK(fake.commands == 0U && rf.insomnia_enters == rf.insomnia_exits);
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    mf_passive_voice_pack_close(&state.pack);
+    state.phase = MfPassivePhasePostCw;
+    state.next_at = 1000U;
+    mf_passive_tick(&state, 1U);
+    CHECK(state.phase == MfPassivePhaseError && state.error == MfPassiveErrorAudio);
+    CHECK(fake.commands == 0U && !state.rf_audio.running);
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    mf_passive_rf_audio_pause(&state.rf_audio);
+    rf.denied_hz = state.frequency_hz + MF_PASSIVE_RF_DEVIATION_HZ;
+    state.repeat_after_answer = 1U;
+    state.phase = MfPassivePhasePostVoice;
+    state.next_at = 0U;
+    mf_passive_tick(&state, 0U);
+    CHECK(state.phase == MfPassivePhaseError && state.error == MfPassiveErrorFmUnavailable);
+    CHECK(fake.commands == 0U && !state.rf_audio.running);
+
+    make_pack(&file);
+    setup_fm(&state, &fake, &rf, &file);
+    for(uint16_t i = 0U; i < MF_PASSIVE_VOICE_PIPE_PRIME_SAMPLES; i++)
+        state.pipe.samples[i] = 1000;
+    state.pipe.write_pos = MF_PASSIVE_VOICE_PIPE_PRIME_SAMPLES;
+    state.phase = MfPassivePhaseVoicePrime;
+    mf_passive_tick(&state, 0U);
+    CHECK(state.phase == MfPassivePhaseError && state.error == MfPassiveErrorAudio);
+    CHECK(fake.commands == 0U && !state.rf_audio.running);
+}
+
+static void test_fm_exit_phases(void) {
+    static const uint8_t phases[] = {
+        MfPassivePhaseInitialRfLock,
+        MfPassivePhaseCw,
+        MfPassivePhaseVoiceRfLock,
+        MfPassivePhaseVoice,
+        MfPassivePhaseBetweenTokens,
+        MfPassivePhaseRepeatRfLock,
+        MfPassivePhaseRepeatCw,
+        MfPassivePhaseCueRfLock,
+        MfPassivePhaseCue,
+        MfPassivePhaseNextRfLock,
+    };
+    MemoryFile file;
+
+    for(size_t i = 0U; i < sizeof(phases); i++) {
+        MfPassiveState state;
+        FakeServices fake;
+        FakeRf rf;
+        make_pack_rate(&file, 16000U);
+        setup_fm(&state, &fake, &rf, &file);
+        state.phase = phases[i];
+        mf_passive_leave(&state);
+        CHECK(fake.commands == 0U);
+        CHECK(rf.async_stops == rf.async_starts);
+        CHECK(rf.insomnia_enters == rf.insomnia_exits);
+        mf_passive_leave(&state);
+        CHECK(fake.commands == 0U);
+    }
+}
+
+static void test_fm_stall_wrap_courtesy_off_and_underrun(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+    FakeRf rf;
+    MfPassiveResult result;
+    uint32_t starts;
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    mf_passive_rf_audio_pause(&state.rf_audio);
+    state.phase = MfPassivePhasePostCw;
+    state.next_at = 1000U;
+    state.pack.active = true;
+    state.pack.eof = false;
+    state.pack.payload_at = 1U;
+    state.pack.payload_end = 1U;
+    mf_passive_tick(&state, 1000U);
+    CHECK(state.phase == MfPassivePhasePostCw && !state.rf_audio.running);
+    CHECK(state.revealed_count == 0U);
+    for(uint16_t i = 0U; i < MF_PASSIVE_VOICE_PIPE_PRIME_SAMPLES; i++)
+        state.pipe.samples[i] = (int16_t)i;
+    state.pipe.write_pos = MF_PASSIVE_VOICE_PIPE_PRIME_SAMPLES;
+    state.pack.active = true;
+    mf_passive_tick(&state, 1037U);
+    CHECK(state.phase == MfPassivePhaseVoiceRfLock && state.next_at == 1137U);
+    CHECK(state.rf_audio.running && state.revealed_count == 0U);
+    mf_passive_tick(&state, 1136U);
+    CHECK(state.phase == MfPassivePhaseVoiceRfLock && state.revealed_count == 0U);
+    result = mf_passive_tick(&state, 1137U);
+    CHECK(result.redraw && state.phase == MfPassivePhaseVoice && state.revealed_count == 1U);
+    mf_passive_leave(&state);
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    mf_passive_rf_audio_pause(&state.rf_audio);
+    state.phase = MfPassivePhasePrepare;
+    state.next_at = UINT32_MAX - 50U;
+    mf_passive_tick(&state, UINT32_MAX - 51U);
+    CHECK(state.phase == MfPassivePhasePrepare);
+    mf_passive_tick(&state, UINT32_MAX - 50U);
+    CHECK(state.phase == MfPassivePhaseInitialRfLock && state.next_at == 49U);
+    mf_passive_tick(&state, 48U);
+    CHECK(state.phase == MfPassivePhaseInitialRfLock);
+    mf_passive_tick(&state, 49U);
+    CHECK(state.phase == MfPassivePhaseCw && state.cw_mark);
+    mf_passive_leave(&state);
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    mf_passive_rf_audio_pause(&state.rf_audio);
+    state.repeat_after_answer = 0U;
+    state.courtesy_delay_ms = 0U;
+    state.phase = MfPassivePhasePostVoice;
+    state.next_at = 100U;
+    starts = rf.async_starts;
+    mf_passive_tick(&state, 100U);
+    CHECK(state.phase == MfPassivePhasePostCue && state.next_at == 1000U);
+    CHECK(rf.async_starts == starts && fake.commands == 0U);
+    mf_passive_tick(&state, 1000U);
+    CHECK(state.phase == MfPassivePhaseNextRfLock && rf.async_starts == starts + 1U);
+    mf_passive_leave(&state);
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    state.phase = MfPassivePhaseVoice;
+    state.pipe.underruns = 65U;
+    mf_passive_tick(&state, 0U);
+    CHECK(state.phase == MfPassivePhaseError && state.error == MfPassiveErrorAudio);
+    CHECK(!state.rf_audio.running && rf.insomnia_enters == rf.insomnia_exits);
+    CHECK(fake.commands == 0U);
+}
+
+static void test_fm_triple_back_requests_clean_exit(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+    FakeRf rf;
+    InputEvent event = {.key = InputKeyBack, .type = InputTypeShort};
+
+    make_pack_rate(&file, 16000U);
+    setup_fm(&state, &fake, &rf, &file);
+    CHECK(!mf_passive_input(&state, &event, 10U).request_exit);
+    CHECK(!mf_passive_input(&state, &event, 20U).request_exit);
+    CHECK(mf_passive_input(&state, &event, 30U).request_exit);
+    CHECK(state.rf_audio.running);
+    mf_passive_leave(&state);
+    CHECK(rf.async_stops == rf.async_starts);
+    CHECK(rf.insomnia_enters == rf.insomnia_exits && fake.commands == 0U);
+}
+
 int main(void) {
-    CHECK(sizeof(MfPassiveState) <= 2432U);
+    CHECK(sizeof(MfPassiveState) <= 3584U);
     test_initial_delay();
     test_sequence_and_timing();
     test_delayed_tick_and_failures();
@@ -604,6 +1005,12 @@ int main(void) {
     test_lesson_prompt_bounds_and_delays();
     test_single_character_lesson_rounds();
     test_length_ranges_and_courtesy_off();
+    test_fm_initial_lock_and_input();
+    test_fm_full_round_and_timing();
+    test_fm_repeat_and_failures();
+    test_fm_exit_phases();
+    test_fm_stall_wrap_courtesy_off_and_underrun();
+    test_fm_triple_back_requests_clean_exit();
     printf("test_passive_core: %u checks passed\n", checks);
     return 0;
 }

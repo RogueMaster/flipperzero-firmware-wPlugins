@@ -47,7 +47,8 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     if(model->answer_delay_s < 1U || model->answer_delay_s > 5U) model->answer_delay_s = 1U;
     model->repeat_after_answer = model->repeat_after_answer ? 1U : 0U;
     if(model->courtesy_delay_half_s > 10U) model->courtesy_delay_half_s = 2U;
-    if(model->selected_row >= 9U) model->selected_row = 0U;
+    if(model->selected_row >= 10U) model->selected_row = 0U;
+    model->transmit_fm = model->transmit_fm ? 1U : 0U;
 }
 
 uint8_t mf_passive_settings_wpm(const MfPassiveSettingsModel* model) {
@@ -149,7 +150,9 @@ static void setup(MfPassiveSettingsState* state, VariableItemList* list, uint8_t
     memset(state, 0, sizeof(*state));
     CHECK(mf_passive_settings_enter(state, &args, &result));
     CHECK(result.handled && result.redraw);
-    CHECK(list->count == 9U && list->resets == 1U);
+    CHECK(list->count == 10U && list->resets == 1U);
+    CHECK(strcmp(list->items[9].label, "Transmit FM") == 0);
+    CHECK(strcmp(list->items[9].current_text, "No") == 0);
 }
 
 static void change(VariableItemList* list, uint8_t row, uint8_t value) {
@@ -225,6 +228,21 @@ static void test_selected_row_only_save(void) {
     CHECK(saved_model.selected_row == 3U);
 }
 
+static void test_transmit_fm_save_and_restore(void) {
+    MfPassiveSettingsState state;
+    VariableItemList list;
+
+    setup(&state, &list, 9U);
+    save_outcomes[0] = true;
+    change(&list, 9U, 1U);
+    CHECK(save_calls == 1U);
+    CHECK(saved_model.transmit_fm == 1U);
+    CHECK(saved_model.vibrate == 1U);
+    CHECK(saved_model.selected_row == 9U);
+    CHECK(strcmp(list.items[9].current_text, "Yes") == 0);
+    mf_passive_settings_leave(&state);
+}
+
 static void test_noop_leave_has_no_write(void) {
     MfPassiveSettingsState state;
     VariableItemList list;
@@ -241,6 +259,7 @@ int main(void) {
     test_leave_retry_success();
     test_leave_retry_failure_is_bounded();
     test_selected_row_only_save();
+    test_transmit_fm_save_and_restore();
     test_noop_leave_has_no_write();
     printf("test_passive_settings: %u checks passed\n", checks);
     return 0;

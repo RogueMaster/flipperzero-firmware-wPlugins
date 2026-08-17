@@ -1,6 +1,6 @@
 # Morse Flipper
 
-Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero. [Download version 0.2.9 here](https://github.com/yo3gnd/morse-flipper/releases/download/v0.2.9/morse_flipper.fap).
+Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero. [Download version 0.2.13 here](https://github.com/yo3gnd/morse-flipper/releases/download/v0.2.13/morse_flipper.fap).
 
 It is built around one opinion: do not learn Morse by staring at dots and dashes. Learn the sound. Hear the character, type the character, and keep the counting part of your brain out of it.
 
@@ -12,7 +12,11 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 
 The full Morse Flipper manual lives here: [manual/README.md](manual/README.md).
 
-## 0.2.9
+## 0.2.13
+
+Passive Listening can now transmit its CW questions, spoken answers, repeats, and courtesy tones as audio over FM on the saved Radio frequency. Enable `Transmit FM` in the Passive Listening settings; local audio and vibration remain off while it is enabled.
+
+## 0.2.11
 
 This release adds an [Instant Character Recognition](manual/225-instant-character-recognition.md) trainer, a callsign generator, and Morse Ninja-style passive listening through either the internal buzzer or the PA2 audio port. It also adds progress history and daily streaks, because apparently even Morse practice benefits from keeping score. We finally have backspace, too: ↓ removes the last character and ↑ clears the whole answer. There is also ARDF Foxhunting, with Standard, Sprint, and Custom modes using either carrier-keyed CW or CWFM.
 

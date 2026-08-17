@@ -27,6 +27,7 @@ static void test_defaults(void) {
     CHECK(model.repeat_after_answer == 0U);
     CHECK(model.courtesy_delay_half_s == 2U);
     CHECK(model.selected_row == 0U);
+    CHECK(model.transmit_fm == 0U);
 }
 
 static void test_normalize_and_wpm(void) {
@@ -40,6 +41,7 @@ static void test_normalize_and_wpm(void) {
         .answer_delay_s = 0U,
         .repeat_after_answer = 2U,
         .selected_row = 255U,
+        .transmit_fm = 7U,
     };
 
     CHECK(mf_passive_settings_wpm(NULL) == 25U);
@@ -50,6 +52,11 @@ static void test_normalize_and_wpm(void) {
     CHECK(model.dit_ms == 48U && model.farnsworth_wpm == 25U);
     CHECK(model.vibrate == 1U && model.answer_delay_s == 1U);
     CHECK(model.repeat_after_answer == 1U && model.selected_row == 0U);
+    CHECK(model.transmit_fm == 1U);
+    model.selected_row = 9U;
+    model.transmit_fm = 0U;
+    mf_passive_settings_normalize(&model);
+    CHECK(model.selected_row == 9U && model.transmit_fm == 0U);
     model.mode = 1U;
     model.length = 0U;
     mf_passive_settings_normalize(&model);

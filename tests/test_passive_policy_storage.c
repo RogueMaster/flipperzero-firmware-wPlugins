@@ -209,6 +209,7 @@ static void test_load_prefers_valid_final(void) {
     assert(read_opens == 1U && closes == 1U);
     assert(model.selected_row == 1U && model.dit_ms == 80U);
     assert(model.courtesy_delay_half_s == 4U);
+    assert(model.transmit_fm == 0U);
 }
 
 static void test_load_v1_defaults_courtesy_delay(void) {
@@ -222,6 +223,7 @@ static void test_load_v1_defaults_courtesy_delay(void) {
     mf_passive_settings_load(&model);
     check_resources();
     assert(model.courtesy_delay_half_s == 2U);
+    assert(model.transmit_fm == 0U);
 }
 
 static void test_load_recovers_from_temp(void) {
@@ -278,6 +280,7 @@ static void test_save_success(void) {
         .repeat_after_answer = 1U,
         .selected_row = 7U,
         .courtesy_delay_half_s = 10U,
+        .transmit_fm = 1U,
     };
 
     reset_storage();
@@ -290,8 +293,74 @@ static void test_save_success(void) {
     assert(written_record.magic == 0x4D465053UL && written_record.version == 2U);
     assert(written_record.mode == model.mode && written_record.length == model.length);
     assert(written_record.dit_ms == model.dit_ms);
-    assert(written_record.selected_row == model.selected_row);
+    assert(written_record.selected_row == (model.selected_row | 0x80U));
     assert(written_record.courtesy_delay_half_s == model.courtesy_delay_half_s);
+}
+
+static void test_cursor_and_fm_round_trip(void) {
+    for(uint8_t transmit_fm = 0U; transmit_fm <= 1U; transmit_fm++) {
+        for(uint8_t selected_row = 0U; selected_row <= 9U; selected_row++) {
+            MfPassiveSettingsModel model = {
+                .mode = 1U,
+                .length = 6U,
+                .lesson = 2U,
+                .dit_ms = 60U,
+                .farnsworth_wpm = 15U,
+                .vibrate = 1U,
+                .answer_delay_s = 5U,
+                .repeat_after_answer = 1U,
+                .courtesy_delay_half_s = 10U,
+                .selected_row = selected_row,
+                .transmit_fm = transmit_fm,
+            };
+            SavedRecord record;
+
+            reset_storage();
+            assert(mf_passive_settings_save(&model));
+            record = written_record;
+            assert(sizeof(record) == 16U);
+            assert(record.selected_row == (selected_row | (transmit_fm ? 0x80U : 0U)));
+
+            reset_storage();
+            final_present = true;
+            final_record = record;
+            mf_passive_settings_load(&model);
+            assert(model.selected_row == selected_row);
+            assert(model.transmit_fm == transmit_fm);
+            assert(model.mode == 1U && model.length == 6U && model.lesson == 2U);
+            assert(model.dit_ms == 60U && model.farnsworth_wpm == 15U);
+            assert(model.vibrate == 1U && model.answer_delay_s == 5U);
+            assert(model.repeat_after_answer == 1U && model.courtesy_delay_half_s == 10U);
+        }
+    }
+}
+
+static void test_malformed_cursor_preserves_fm_flag(void) {
+    MfPassiveSettingsModel model;
+
+    reset_storage();
+    final_present = true;
+    final_record = valid_record(0xFFU);
+    mf_passive_settings_load(&model);
+    assert(model.selected_row == 0U);
+    assert(model.transmit_fm == 1U);
+    assert(model.mode == 1U && model.length == 5U && model.lesson == 2U);
+    assert(model.vibrate == 1U && model.repeat_after_answer == 1U);
+}
+
+static void test_old_reader_only_normalizes_cursor(void) {
+    SavedRecord record = valid_record(0x89U);
+    SavedRecord before = record;
+
+    if(record.selected_row > 8U) record.selected_row = 0U;
+    assert(record.selected_row == 0U);
+    assert(record.magic == before.magic && record.version == before.version);
+    assert(record.mode == before.mode && record.length == before.length);
+    assert(record.lesson == before.lesson && record.dit_ms == before.dit_ms);
+    assert(record.farnsworth_wpm == before.farnsworth_wpm);
+    assert(record.vibrate == before.vibrate && record.answer_delay_s == before.answer_delay_s);
+    assert(record.repeat_after_answer == before.repeat_after_answer);
+    assert(record.courtesy_delay_half_s == before.courtesy_delay_half_s);
 }
 
 static void test_save_pre_rename_failures_clean_temp(void) {
@@ -339,6 +408,9 @@ int main(void) {
     test_load_recovers_from_temp();
     test_load_close_failure_uses_temp();
     test_save_success();
+    test_cursor_and_fm_round_trip();
+    test_malformed_cursor_preserves_fm_flag();
+    test_old_reader_only_normalizes_cursor();
     test_save_pre_rename_failures_clean_temp();
     test_rename_failure_retains_temp();
     test_remove_failures_are_bounded();

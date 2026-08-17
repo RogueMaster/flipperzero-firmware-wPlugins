@@ -33,7 +33,13 @@ void mf_passive_draw(const MfPassiveState* state, Canvas* canvas) {
         return;
     }
     if(state->phase == MfPassivePhaseError) {
-        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "AUDIO ERR");
+        canvas_draw_str_aligned(
+            canvas,
+            64,
+            32,
+            AlignCenter,
+            AlignCenter,
+            state->error == MfPassiveErrorFmUnavailable ? "FM unavailable" : "AUDIO ERR");
         return;
     }
     left = (128 - (int32_t)(state->prompt_len * MF_BIG_CALLSIGN_WIDTH +
