@@ -732,6 +732,15 @@ static void test_fm_initial_lock_and_input(void) {
     state.back_clicks = 1U;
     CHECK(mf_passive_input(&state, &event, 1001U).handled);
     CHECK(state.voice_gain_pct == 70U && state.back_clicks == 0U);
+    CHECK(mf_passive_rf_audio_voice_gain_pct(&state.rf_audio) == 175U);
+    event.key = InputKeyDown;
+    CHECK(mf_passive_input(&state, &event, 1002U).handled);
+    CHECK(mf_passive_rf_audio_voice_gain_pct(&state.rf_audio) == 150U);
+    event.key = InputKeyOk;
+    CHECK(mf_passive_input(&state, &event, 1003U).redraw);
+    CHECK(mf_passive_rf_audio_dsp_enabled(&state.rf_audio));
+    CHECK(mf_passive_input(&state, &event, 1004U).redraw);
+    CHECK(!mf_passive_rf_audio_dsp_enabled(&state.rf_audio));
     CHECK(fake.commands == 0U);
     mf_passive_leave(&state);
     CHECK(fake.commands == 0U && rf.async_stops == rf.async_starts);

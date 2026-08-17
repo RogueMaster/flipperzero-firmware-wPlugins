@@ -15,7 +15,7 @@ LIMITS = {
     "ardf": {"text": 11_000, "alloc": 13_000},
     "icr": {"text": 5_300, "alloc": 9_300},
     "radio": {"text": 10_000, "alloc": 12_000},
-    "passive": {"text": 10_800, "alloc": 12_400},
+    "passive": {"text": 12_500, "alloc": 14_200},
     "passive_settings": {"text": 2_150, "alloc": 2_600},
     "tx_groups": {"text": 5_250, "alloc": 6_250},
     "settings": {"text": 12_000, "alloc": 13_500},

@@ -327,16 +327,35 @@ MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event,
     if((event->key == InputKeyUp || event->key == InputKeyDown) &&
        (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
         uint8_t voice_gain_pct = state->voice_gain_pct;
-        if(!state->transmit_fm) {
+        if(state->transmit_fm) {
+            uint16_t gain_pct = mf_passive_rf_audio_voice_gain_pct(&state->rf_audio);
+            if(event->key == InputKeyUp) {
+                gain_pct = gain_pct <= MF_PASSIVE_RF_GAIN_MAX_PCT - MF_PASSIVE_RF_GAIN_STEP_PCT ?
+                               (uint16_t)(gain_pct + MF_PASSIVE_RF_GAIN_STEP_PCT) :
+                               MF_PASSIVE_RF_GAIN_MAX_PCT;
+            } else {
+                gain_pct = gain_pct >= MF_PASSIVE_RF_GAIN_MIN_PCT + MF_PASSIVE_RF_GAIN_STEP_PCT ?
+                               (uint16_t)(gain_pct - MF_PASSIVE_RF_GAIN_STEP_PCT) :
+                               MF_PASSIVE_RF_GAIN_MIN_PCT;
+            }
+            mf_passive_rf_audio_set_voice_gain_pct(&state->rf_audio, gain_pct);
+            redraw = true;
+        } else {
             if(event->key == InputKeyUp)
                 voice_gain_pct = voice_gain_pct < 95U ? (uint8_t)(voice_gain_pct + 5U) : 100U;
             else
                 voice_gain_pct = voice_gain_pct > 15U ? (uint8_t)(voice_gain_pct - 5U) : 10U;
+            redraw = state->back_clicks != 0U;
         }
-        redraw = state->back_clicks != 0U;
         state->back_clicks = 0U;
         state->voice_gain_pct = voice_gain_pct;
         return mf_passive_result(state, redraw);
+    }
+    if(state->transmit_fm && event->key == InputKeyOk && event->type == InputTypeShort) {
+        mf_passive_rf_audio_set_dsp_enabled(
+            &state->rf_audio, !mf_passive_rf_audio_dsp_enabled(&state->rf_audio));
+        state->back_clicks = 0U;
+        return mf_passive_result(state, true);
     }
     if(event->key == InputKeyBack && event->type == InputTypeShort) {
         if(state->back_clicks == 0U || (uint32_t)(now_ms - state->last_back_at) > 700U)

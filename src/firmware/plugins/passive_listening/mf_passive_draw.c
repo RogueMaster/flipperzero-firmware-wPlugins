@@ -1,5 +1,7 @@
 #include "mf_passive_draw.h"
 
+#include <stdio.h>
+
 #include "../common/mf_big_callsign_font.h"
 
 static const uint8_t mf_passive_back_icon[] = {
@@ -26,6 +28,7 @@ void mf_passive_draw(const MfPassiveState* state, Canvas* canvas) {
     int32_t footer_left;
     uint8_t label_width;
     uint8_t remaining;
+    char fm_status[24];
     if(state == NULL || canvas == NULL) return;
     if(state->phase == MfPassivePhaseLoading) {
         canvas_draw_str(canvas, 31, 34, "Loading");
@@ -41,6 +44,16 @@ void mf_passive_draw(const MfPassiveState* state, Canvas* canvas) {
             AlignCenter,
             state->error == MfPassiveErrorFmUnavailable ? "FM unavailable" : "AUDIO ERR");
         return;
+    }
+    if(state->transmit_fm) {
+        snprintf(
+            fm_status,
+            sizeof(fm_status),
+            "FM %u%% DSP %s",
+            (unsigned int)mf_passive_rf_audio_voice_gain_pct(&state->rf_audio),
+            mf_passive_rf_audio_dsp_enabled(&state->rf_audio) ? "on" : "off");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignBottom, fm_status);
     }
     left = (128 - (int32_t)(state->prompt_len * MF_BIG_CALLSIGN_WIDTH +
                             (state->prompt_len - 1U) * MF_BIG_CALLSIGN_GAP)) /

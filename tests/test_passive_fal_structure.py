@@ -80,6 +80,9 @@ for phase in (
     assert phase_enum.count(f"MfPassivePhase{phase}") == 1
 assert '"FM unavailable"' in draw
 assert '"AUDIO ERR"' in draw
+assert '"FM %u%% DSP %s"' in draw
+assert "mf_passive_rf_audio_set_voice_gain_pct" in core
+assert "mf_passive_rf_audio_set_dsp_enabled" in core
 
 fail_body = core.split("static void mf_passive_fail(", 1)[1].split("\n}", 1)[0]
 leave_body = core.split("void mf_passive_leave(", 1)[1].split("\n}", 1)[0]

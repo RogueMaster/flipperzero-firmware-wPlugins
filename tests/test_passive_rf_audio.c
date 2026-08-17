@@ -223,6 +223,129 @@ static void test_voice_pdm_and_gain(void) {
     mf_passive_rf_audio_release(&audio);
 }
 
+static uint32_t dsp_average_abs(
+    MfPassiveRfAudio* audio,
+    const int16_t* wave,
+    size_t wave_len,
+    uint32_t settle_samples,
+    uint32_t measure_samples) {
+    uint64_t total = 0U;
+    for(uint32_t i = 0U; i < settle_samples; i++)
+        mf_passive_rf_audio_process_voice_sample(audio, wave[i % wave_len]);
+    for(uint32_t i = 0U; i < measure_samples; i++) {
+        int32_t sample = mf_passive_rf_audio_process_voice_sample(audio, wave[i % wave_len]);
+        total += (uint32_t)(sample < 0 ? -sample : sample);
+    }
+    return (uint32_t)(total / measure_samples);
+}
+
+static void test_voice_tuning_and_dsp(void) {
+    static const int16_t sine_1k_low[] = {
+        0,
+        765,
+        1414,
+        1848,
+        2000,
+        1848,
+        1414,
+        765,
+        0,
+        -765,
+        -1414,
+        -1848,
+        -2000,
+        -1848,
+        -1414,
+        -765,
+    };
+    static const int16_t sine_1k_high[] = {
+        0,
+        7654,
+        14142,
+        18478,
+        20000,
+        18478,
+        14142,
+        7654,
+        0,
+        -7654,
+        -14142,
+        -18478,
+        -20000,
+        -18478,
+        -14142,
+        -7654,
+    };
+    static const int16_t sine_1k_mid[] = {
+        0,
+        4592,
+        8485,
+        11087,
+        12000,
+        11087,
+        8485,
+        4592,
+        0,
+        -4592,
+        -8485,
+        -11087,
+        -12000,
+        -11087,
+        -8485,
+        -4592,
+    };
+    static const int16_t sine_4k_mid[] = {0, 12000, 0, -12000};
+    MfPassiveRfAudio audio;
+    MfPassivePcmPipe pipe;
+    FakeHardware fake;
+    uint32_t passband;
+    uint32_t stopband;
+    uint32_t compressed_low;
+    uint32_t compressed_high;
+    int16_t dc = 0;
+
+    setup(&audio, &pipe, &fake);
+    CHECK(mf_passive_rf_audio_voice_gain_pct(&audio) == 150U);
+    CHECK(!mf_passive_rf_audio_dsp_enabled(&audio));
+    CHECK(mf_passive_rf_audio_process_voice_sample(&audio, 10000) == 15000);
+    CHECK(mf_passive_rf_audio_process_voice_sample(&audio, -10001) == -15001);
+    mf_passive_rf_audio_set_voice_gain_pct(&audio, 0U);
+    CHECK(mf_passive_rf_audio_voice_gain_pct(&audio) == MF_PASSIVE_RF_GAIN_MIN_PCT);
+    mf_passive_rf_audio_set_voice_gain_pct(&audio, UINT16_MAX);
+    CHECK(mf_passive_rf_audio_voice_gain_pct(&audio) == MF_PASSIVE_RF_GAIN_MAX_PCT);
+    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
+    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
+    CHECK(mf_passive_rf_audio_dsp_enabled(&audio));
+    for(uint32_t i = 0U; i < 32000U; i++)
+        dc = mf_passive_rf_audio_process_voice_sample(&audio, 12000);
+    CHECK(abs(dc) < 16);
+
+    setup(&audio, &pipe, &fake);
+    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
+    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
+    passband = dsp_average_abs(&audio, sine_1k_mid, 16U, 4000U, 1600U);
+    setup(&audio, &pipe, &fake);
+    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
+    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
+    stopband = dsp_average_abs(&audio, sine_4k_mid, 4U, 4000U, 1600U);
+    CHECK(passband > stopband * 2U);
+
+    setup(&audio, &pipe, &fake);
+    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
+    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
+    compressed_low = dsp_average_abs(&audio, sine_1k_low, 16U, 4000U, 1600U);
+    setup(&audio, &pipe, &fake);
+    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
+    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
+    compressed_high = dsp_average_abs(&audio, sine_1k_high, 16U, 4000U, 1600U);
+    CHECK(compressed_high > compressed_low);
+    CHECK(compressed_high < compressed_low * 6U);
+
+    mf_passive_rf_audio_set_dsp_enabled(&audio, false);
+    CHECK(!mf_passive_rf_audio_dsp_enabled(&audio));
+    CHECK(mf_passive_rf_audio_process_voice_sample(&audio, 1000) == 1000);
+}
+
 static void test_voice_pacing_wrap_and_eof(void) {
     MfPassiveRfAudio audio;
     MfPassivePcmPipe pipe;
@@ -474,6 +597,7 @@ static void test_constants(void) {
 int main(void) {
     test_duration_cycle();
     test_voice_pdm_and_gain();
+    test_voice_tuning_and_dsp();
     test_voice_pacing_wrap_and_eof();
     test_underrun_and_silence();
     test_tone_and_courtesy();
