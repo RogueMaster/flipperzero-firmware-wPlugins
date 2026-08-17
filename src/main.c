@@ -565,6 +565,9 @@ cleanup:
     FURI_LOG_I("Ghost_ESP", "Freeing buffers...");
     if(state && state->input_buffer) free(state->input_buffer);
     if(state && state->textBoxBuffer) free(state->textBoxBuffer);
+    if(state && state->ir_remotes) free(state->ir_remotes);
+    if(state && state->ir_signals) free(state->ir_signals);
+    if(state && state->ir_universals) free(state->ir_universals);
     // state->filter_config is now embedded, no need to free
     if(state && state->ir_file_buffer) free(state->ir_file_buffer);
     if(state && state->active_confirm_context) {

@@ -9,7 +9,7 @@ App(
     fap_category="GPIO/ESP",
     # Optional values
     icon="A_GhostESP_14",
-    fap_version="1.8.1",
+    fap_version="1.8.2",
     fap_icon="ghost_esp.png",  # 10x10 1-bit PNG
     fap_icon_assets="images",  # Image assets to compile for this application
 )

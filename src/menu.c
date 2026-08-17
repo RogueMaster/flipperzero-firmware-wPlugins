@@ -1742,6 +1742,61 @@ static const MenuCommand ir_commands[] = {
 };
 
 #define IR_UART_PARSE_BUF_SIZE 1024
+#define IR_INITIAL_CAPACITY 4
+
+static bool ir_grow_catalog(
+    void** catalog,
+    size_t* capacity,
+    size_t element_size,
+    size_t required,
+    size_t maximum) {
+    if(!catalog || !capacity || required > maximum) return false;
+    if(required <= *capacity) return true;
+
+    size_t new_capacity = *capacity ? *capacity * 2 : IR_INITIAL_CAPACITY;
+    if(new_capacity < required) new_capacity = required;
+    if(new_capacity > maximum) new_capacity = maximum;
+
+    void* resized = realloc(*catalog, new_capacity * element_size);
+    if(!resized) return false;
+
+    if(new_capacity > *capacity) {
+        memset(
+            (uint8_t*)resized + (*capacity * element_size),
+            0,
+            (new_capacity - *capacity) * element_size);
+    }
+    *catalog = resized;
+    *capacity = new_capacity;
+    return true;
+}
+
+static bool ir_ensure_remotes(AppState* state, size_t required) {
+    return state && ir_grow_catalog(
+                         (void**)&state->ir_remotes,
+                         &state->ir_remote_capacity,
+                         sizeof(IrRemoteEntry),
+                         required,
+                         IR_REMOTE_CAPACITY);
+}
+
+static bool ir_ensure_signals(AppState* state, size_t required) {
+    return state && ir_grow_catalog(
+                         (void**)&state->ir_signals,
+                         &state->ir_signal_capacity,
+                         sizeof(IrSignalEntry),
+                         required,
+                         IR_SIGNAL_CAPACITY);
+}
+
+static bool ir_ensure_universals(AppState* state, size_t required) {
+    return state && ir_grow_catalog(
+                         (void**)&state->ir_universals,
+                         &state->ir_universal_capacity,
+                         sizeof(IrUniversalEntry),
+                         required,
+                         IR_UNIVERSAL_CAPACITY);
+}
 
 static char* next_line(char* buf, size_t* offset) {
     if(!buf || !offset) return NULL;
@@ -1786,6 +1841,7 @@ static bool ir_query_and_parse_list(AppState* state) {
     }
 
     state->ir_remote_count = 0;
+    if(!ir_ensure_remotes(state, 1)) return false;
 
     size_t pos = 0;
     char* line = NULL;
@@ -1802,7 +1858,8 @@ static bool ir_query_and_parse_list(AppState* state) {
             unsigned int idx = 0;
             char name[64] = {0};
             if(sscanf(line, "[%u] %63s", &idx, name) == 2) {
-                if(state->ir_remote_count < COUNT_OF(state->ir_remotes)) {
+                if(state->ir_remote_count < IR_REMOTE_CAPACITY &&
+                   ir_ensure_remotes(state, state->ir_remote_count + 1)) {
                     IrRemoteEntry* e = &state->ir_remotes[state->ir_remote_count++];
                     e->index = idx;
                     strncpy(e->name, name, sizeof(e->name) - 1);
@@ -1845,6 +1902,7 @@ static bool ir_query_and_parse_show(AppState* state, uint32_t remote_index) {
     }
 
     state->ir_signal_count = 0;
+    if(!ir_ensure_signals(state, 1)) return false;
 
     size_t pos = 0;
     char* line = NULL;
@@ -1863,7 +1921,8 @@ static bool ir_query_and_parse_show(AppState* state, uint32_t remote_index) {
             char proto[16] = {0};
             int n = sscanf(line, "[%u] %31s (%15[^)])", &idx, name, proto);
             if(n >= 2) {
-                if(state->ir_signal_count < COUNT_OF(state->ir_signals)) {
+                if(state->ir_signal_count < IR_SIGNAL_CAPACITY &&
+                   ir_ensure_signals(state, state->ir_signal_count + 1)) {
                     IrSignalEntry* e = &state->ir_signals[state->ir_signal_count++];
                     e->index = idx;
                     strncpy(e->name, name, sizeof(e->name) - 1);
@@ -1900,13 +1959,14 @@ static bool ir_index_buttons_from_file(AppState* state) {
         size_t block_start = 0;
 
         state->ir_signal_count = 0;
+        if(!ir_ensure_signals(state, 1)) break;
 
         while(true) {
             uint16_t read = storage_file_read(file, buf, buf_size);
             if(read == 0) break;
 
             size_t pos = 0;
-            while(pos < read && state->ir_signal_count < COUNT_OF(state->ir_signals)) {
+            while(pos < read && state->ir_signal_count < IR_SIGNAL_CAPACITY) {
                 // Consume whitespace
                 while(pos < read && (buf[pos] == '\r' || buf[pos] == '\n' || buf[pos] == ' ' ||
                                      buf[pos] == '\t')) {
@@ -1959,7 +2019,8 @@ static bool ir_index_buttons_from_file(AppState* state) {
                         val_end--;
                     }
 
-                    if(state->ir_signal_count < COUNT_OF(state->ir_signals)) {
+                    if(state->ir_signal_count < IR_SIGNAL_CAPACITY &&
+                       ir_ensure_signals(state, state->ir_signal_count + 1)) {
                         IrSignalEntry* e = &state->ir_signals[state->ir_signal_count];
                         size_t name_len = (val_end > val_start) ? (val_end - val_start) : 0;
                         if(name_len >= sizeof(e->name)) name_len = sizeof(e->name) - 1;
@@ -2039,6 +2100,7 @@ static bool ir_query_and_parse_universals(AppState* state) {
     }
 
     state->ir_universal_count = 0;
+    if(!ir_ensure_universals(state, 1)) return false;
     bool in_files_section = false;
 
     size_t pos = 0;
@@ -2073,7 +2135,8 @@ static bool ir_query_and_parse_universals(AppState* state) {
                 continue;
             }
 
-            if(state->ir_universal_count < COUNT_OF(state->ir_universals)) {
+            if(state->ir_universal_count < IR_UNIVERSAL_CAPACITY &&
+               ir_ensure_universals(state, state->ir_universal_count + 1)) {
                 IrUniversalEntry* e = &state->ir_universals[state->ir_universal_count];
                 e->index = state->ir_universal_count;
                 strncpy(e->name, line, sizeof(e->name) - 1);
@@ -2120,6 +2183,7 @@ static bool ir_query_and_parse_universal_buttons(AppState* state, const char* fi
     }
 
     state->ir_signal_count = 0;
+    if(!ir_ensure_signals(state, 1)) return false;
 
     size_t pos = 0;
     char* line = NULL;
@@ -2151,7 +2215,8 @@ static bool ir_query_and_parse_universal_buttons(AppState* state, const char* fi
                         break;
                     }
                 }
-                if(!exists && state->ir_signal_count < COUNT_OF(state->ir_signals)) {
+                if(!exists && state->ir_signal_count < IR_SIGNAL_CAPACITY &&
+                   ir_ensure_signals(state, state->ir_signal_count + 1)) {
                     IrSignalEntry* e = &state->ir_signals[state->ir_signal_count++];
                     e->index = idx;
                     strncpy(e->name, name, sizeof(e->name) - 1);
