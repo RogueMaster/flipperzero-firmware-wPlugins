@@ -1,3 +1,6 @@
+## 1.5
+ - Added support for the FM25Q16A flash chip
+ - Fixed the missing SPIMemChips array terminator
 ## 1.4
  - Fixed UI rendering bug related to line breaks
  - Removed call to legacy SDK API
