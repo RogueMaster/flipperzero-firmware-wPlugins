@@ -574,9 +574,14 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
             l3 = "Check pins 8, 9, 15, 16.";
             break;
         default:
+            // The sweep covers 0x08-0x77, so a wrong address is not one of the
+            // possibilities. A part strapped into UART mode is: it is powered,
+            // its pull-ups still hold the bus high, and it will never answer an
+            // I2C address because it does not have one. A BNO055 with PS1 high
+            // looks exactly like a dead chip from here unless we say so.
             l1 = "Bus is electrically OK.";
-            l2 = "Wrong address, SDA/SCL";
-            l3 = "swapped, or dead chip.";
+            l2 = "SDA/SCL swapped, dead";
+            l3 = "chip, or in UART mode.";
             break;
         }
         canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignBottom, l1);

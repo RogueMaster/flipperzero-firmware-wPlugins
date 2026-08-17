@@ -2,6 +2,7 @@
 #include "i2c_worker.h"
 
 #include <furi.h>
+#include <string.h>
 
 // Every constant below was checked against the manufacturer datasheet or the
 // vendor's own driver. A wrong value here makes the app accuse a genuine
@@ -526,4 +527,68 @@ const char* chip_verdict_short_str(ChipVerdict verdict) {
 const ChipEntry* chip_db_get(size_t index) {
     if(index >= CHIP_DB_COUNT) return NULL;
     return &chip_db[index];
+}
+
+// Pins that take a healthy part off the I2C bus. Same rule as the ID table
+// above, and it matters more here: a wrong `i2c_high` sends someone to strap a
+// pin the wrong way round, so a row nobody could verify is a row that is not
+// here. Quotes are from the datasheet named on each line.
+//
+// Two things deliberately absent. Address-select pins (AD0, ADR, SDO used as
+// an address bit) are not mode pins -- the sweep covers 0x08-0x77, so they
+// cannot hide anything, and listing them would have the screen cry wolf. And
+// the MPU6050 has no SPI at all; only the MPU6500/9250 siblings do.
+//
+// Still to verify before adding: BMP388, BMP390, BME688, BMI160, BMI270,
+// BMI088, MPU6500, MPU9250, MPU6886, ICM20948, ICM42605, ICM42688P,
+// LSM6DS3TR-C, LSM6DSO/OX, LSM6DSV16X, LIS3MDL, LIS2MDL, LPS22HB, LPS25HB,
+// ADXL355, and XSHUT on the VL53/VL6180X family.
+static const ChipModePin chip_mode_pins[] = {
+    // Bosch BST-BNO055-DS000 Table 4-4: PS1.PS0 = 0b00 is I2C, 0b10 is UART.
+    // Table 4-5: in UART mode COM2 (the SCL pad) becomes Tx and COM3 (the ADR
+    // pad) becomes Rx, so the part has no I2C address at all. The PS pins are
+    // read at reset, and the datasheet forbids leaving them floating.
+    {"BNO055", "PS1", ModePinProtocol, ModeAltUart, false, true},
+
+    // Bosch BST-BMP280-DS001, BST-BME280-DS002 and BME680 all carry the same
+    // sentence: "If CSB is connected to VDDIO, the I2C interface is active. If
+    // CSB is pulled down, the SPI interface is activated. After CSB has been
+    // pulled down once (regardless of whether any clock cycle occurred), the
+    // I2C interface is disabled until the next power-on-reset." One glitch on
+    // that pad is therefore permanent until the rail is cycled.
+    {"BMP280", "CSB", ModePinProtocol, ModeAltSpi, true, true},
+    {"BME280", "CSB", ModePinProtocol, ModeAltSpi, true, true},
+    {"BME680", "CSB", ModePinProtocol, ModeAltSpi, true, true},
+
+    // ST LIS3DH: "When using the I2C, CS must be tied high." Sampled live
+    // rather than latched, so raising the pad is enough on its own.
+    {"LIS3DH/2DH12", "CS", ModePinProtocol, ModeAltSpi, true, false},
+
+    // ST LSM6DS3 pin table, pin 12 CS: "I2C/SPI mode selection (1: SPI idle
+    // mode / I2C communication enabled; 0: SPI communication mode / I2C
+    // disabled)".
+    {"LSM6DS3", "CS", ModePinProtocol, ModeAltSpi, true, false},
+
+    // ADI ADXL345: "I2C mode is enabled if the CS pin is tied high to VDD I/O.
+    // The CS pin should always be tied high to VDD I/O."
+    {"ADXL345/343", "CS", ModePinProtocol, ModeAltSpi, true, false},
+};
+
+#define CHIP_MODE_PIN_COUNT (sizeof(chip_mode_pins) / sizeof(chip_mode_pins[0]))
+
+const ChipModePin* chip_mode_pin_for(const char* chip_name) {
+    if(!chip_name) return NULL;
+    for(size_t i = 0; i < CHIP_MODE_PIN_COUNT; i++) {
+        if(strcmp(chip_mode_pins[i].chip, chip_name) == 0) return &chip_mode_pins[i];
+    }
+    return NULL;
+}
+
+size_t chip_mode_pin_count(void) {
+    return CHIP_MODE_PIN_COUNT;
+}
+
+const ChipModePin* chip_mode_pin_get(size_t index) {
+    if(index >= CHIP_MODE_PIN_COUNT) return NULL;
+    return &chip_mode_pins[index];
 }
