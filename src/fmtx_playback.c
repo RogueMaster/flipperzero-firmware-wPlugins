@@ -252,7 +252,7 @@ static int32_t usbthread(void* ctx) {
     }
 
 done:
-    fmtx_usb_stop();
+    while(!fmtx_usb_stop()) furi_delay_tick(1U);
     rfstop(p->rf);
     rfledoff();
     p->ended = rfplayed(p->rf);
@@ -626,7 +626,8 @@ void fmtx_playback_stop(Play* playback) {
         furi_thread_free(playback->th);
         playback->th = NULL;
     }
-    if(playback->usb) fmtx_usb_stop();
+    if(playback->usb)
+        while(!fmtx_usb_stop()) furi_delay_tick(1U);
     playback->usb = false;
     playback->state = PlaybackStopped;
     rfledoff();

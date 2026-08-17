@@ -236,16 +236,17 @@ bool fmtx_usb_start(FmtxUsbRx callback, void* ctx) {
     return true;
 }
 
-void fmtx_usb_stop(void) {
+bool fmtx_usb_stop(void) {
     FuriHalUsbInterface* previous;
-    if(!fmtx_usb_active) return;
+    if(!fmtx_usb_active) return true;
     fmtx_usb_callback = NULL;
     fmtx_usb_context = NULL;
     fmtx_usb_configured = false;
     previous = fmtx_usb_previous;
+    if(!furi_hal_usb_set_config(previous, NULL)) return false;
     fmtx_usb_previous = NULL;
     fmtx_usb_active = false;
-    (void)furi_hal_usb_set_config(previous, NULL);
+    return true;
 }
 
 bool fmtx_usb_connected(void) {

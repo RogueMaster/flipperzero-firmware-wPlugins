@@ -155,21 +155,15 @@ void rfselect(Rf* rf, FmtxRadio radio) {
     rf->selected = radio <= FmtxRadioInternal ? radio : FmtxRadioAuto;
 }
 
-static bool rfextvbus(void) {
-    return furi_hal_power_get_usb_voltage() > 4.0f;
-}
-
 static bool rfextpoweron(Rf* rf) {
     uint8_t i;
-    if(furi_hal_power_is_otg_enabled() || rfextvbus()) return true;
+    if(furi_hal_power_is_otg_enabled()) return true;
     for(i = 0; i < 5; i++) {
-        furi_hal_power_enable_otg();
-        furi_delay_ms(10);
-        if(furi_hal_power_is_otg_enabled()) {
+        if(furi_hal_power_enable_otg()) {
             rf->power_started = true;
             return true;
         }
-        if(rfextvbus()) return true;
+        furi_delay_ms(10);
     }
     return false;
 }
