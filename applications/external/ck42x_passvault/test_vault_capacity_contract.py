@@ -20,8 +20,13 @@ assert "event >= CkEventSavedBase && event < CkFido2ServiceEventPresence" in sou
 assert "CK_MAX_VAULT_FILE (256U * 1024U)" in source
 assert 'fap_version="0.4.6"' in manifest
 
-assert "bool ck_vault_store_reserve(CkVaultStore* store, size_t needed);" in store_header
-assert "bool ck_vault_store_append(CkVaultStore* store, const CkVaultEntry* entry);" in store_header
+assert (
+    "bool ck_vault_store_reserve(CkVaultStore* store, size_t needed);" in store_header
+)
+assert (
+    "bool ck_vault_store_append(CkVaultStore* store, const CkVaultEntry* entry);"
+    in store_header
+)
 assert "store->capacity ? store->capacity : 8" in store_impl
 assert "store->count * CK_LINE_MAX + 1" in store_impl
 
