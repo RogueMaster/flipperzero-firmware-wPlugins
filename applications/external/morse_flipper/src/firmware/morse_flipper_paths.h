@@ -14,6 +14,7 @@
 #define MORSE_FLIPPER_STATE_PATH           APP_DATA_PATH("morse_flipper.state")
 #define MORSE_FLIPPER_ONBOARDING_PATH      APP_DATA_PATH("onboarding.flag")
 #define MORSE_FLIPPER_PROGRESS_PATH        APP_DATA_PATH("progress.bin")
+#define MORSE_FLIPPER_ICR_STATS_PATH       APP_DATA_PATH("icr.bin")
 #define MORSE_FLIPPER_PROGRESS_HISTORY_DIR APP_DATA_PATH("history")
 #define MORSE_FLIPPER_CUSTOM_CHARS_PATH    APP_DATA_PATH("flipper-cw-custom-characters.txt")
 #define MORSE_FLIPPER_SESSION_LOG_PATH     APP_DATA_PATH("morse-flipper-session-log.txt")
@@ -23,6 +24,7 @@
 #define MORSE_FLIPPER_STATE_PATH           "morse_flipper.state"
 #define MORSE_FLIPPER_ONBOARDING_PATH      MORSE_FLIPPER_APP_DATA_DIR "/onboarding.flag"
 #define MORSE_FLIPPER_PROGRESS_PATH        MORSE_FLIPPER_APP_DATA_DIR "/progress.bin"
+#define MORSE_FLIPPER_ICR_STATS_PATH       MORSE_FLIPPER_APP_DATA_DIR "/icr.bin"
 #define MORSE_FLIPPER_PROGRESS_HISTORY_DIR MORSE_FLIPPER_APP_DATA_DIR "/history"
 #define MORSE_FLIPPER_CUSTOM_CHARS_PATH \
     MORSE_FLIPPER_APP_DATA_DIR "/flipper-cw-custom-characters.txt"

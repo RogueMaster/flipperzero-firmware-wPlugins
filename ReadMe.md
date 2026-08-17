@@ -38,7 +38,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Barcode App v1.5 (By Kingal1337)](https://github.com/Kingal1337/flipper-barcode-generator) [fix first-save failure and make save errors descriptive (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/236)
 - Updated: [Frequency Analyzer (External) v1.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext)
 - Updated: [Spectrum Analyzer v1.5 (By jolcese)](https://github.com/jolcese/flipperzero-firmware/tree/spectrum/applications/spectrum_analyzer) [hold last peak, persist settings; Freq Analyzer [Ext]: radio parked-state fix (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/235)
-- Updated: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Added: [Xbox Post Code Reader v0.14 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-xbox-post-code-reader)
 - Updated: [Video Poker v1.4 (By PixlEmly)](https://github.com/PixlEmly/flipperzero-firmware-testing/blob/420/applications/VideoPoker/poker.c) [flexible bid controls (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/237)
 - Updated: [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins) [fix the hang, centre the zoom, add held-key panning (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/241)
@@ -156,6 +155,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Ultralight AES is no longer dictionary attacked automatically on read - unlike Ultralight C it has an auth attempt limit, and wrong keys can lock the card permanently, so it is now started manually from -Unlock with Dictionary- with a warning (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/4533be796f9f6231443c76549bcf47e9be3b65ad)
 - Added: [I2C BMS Reader v0.4 (By gazirov)](https://github.com/gazirov/battery_reader) `Req: TI BQ30/BQ40 controllers`
 - Updated: [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido) (Version Only)
+- Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 
 <a name="release"></a>
 
@@ -763,7 +763,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Moisture Sensor v1.0 (By smallwat3r)](https://github.com/smallwat3r/flipperzero-moisture-sensor)
 - [Moon Phases v1.0 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Morse Code v1.3 (By wh00hw)](https://github.com/wh00hw/MorseCodeFAP)
-- [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - [Mouse Jacker for MS Mouse v1.2 (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/mousejacker_ms) `Req: NRF24`
 - [Mouse Jacker v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/mousejacker) [Pin Out from nocomp/Frog/UberGuidoZ](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/mousejacker) `Req: NRF24`
 - [Mouse Jiggler v1.2 (By Jacob-Tate & ozgunawesome)](https://github.com/Jacob-Tate/flipperzero-firmware/blob/dev/applications/mouse_jiggler/mouse_jiggler.c)

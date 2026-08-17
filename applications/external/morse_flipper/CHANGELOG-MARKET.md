@@ -1,3 +1,30 @@
+v0.3.0:
+- Add adaptive Instant Character Recognition and realistic callsign practice.
+- Add Passive Listening with spoken NATO answers through the internal speaker, P2/A7 or FM.
+- Add lesson progress, recent-session history, scores and daily streaks.
+- Add CWFM transmission and ARDF Foxhunting.
+- Add answer editing with Down for one character and Up for the complete answer.
+- Improve RF behaviour, keying reliability and memory use.
+
+v0.2.8:
+- Add optional 700 Hz CWFM transmission in Flipper Radio.
+- Add ARDF Foxhunting with Standard, Sprint, and Custom modes using CW or CWFM.
+
+v0.2.7:
+- Expand realistic callsign practice to 20 entities with length-aware patterns.
+
+v0.2.6:
+- Fix timing of bug-style keyer.
+
+v0.2.5:
+- Add adaptive Instant Character Recognition training.
+- Add callsign practice with realistic generated callsigns.
+- Add Morse Ninja-style Passive Listening with NATO phonetic answers.
+- Add lesson progress, recent-session history, scores, and daily streaks.
+- Add answer editing: ↓ deletes the last character; ↑ clears the whole answer.
+- Add selectable sinewave or square-wave Morse output on the internal buzzer.
+- Improve Sub-GHz receive calibration, signal release, and transmit timing.
+
 v0.1.78:
 - Fix Training settings custom character loading when the custom character file is missing.
 - Create the default custom character file during app startup.
