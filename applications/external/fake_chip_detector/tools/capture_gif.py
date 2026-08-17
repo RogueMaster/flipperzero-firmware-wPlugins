@@ -12,6 +12,7 @@ flipper_rpc.py's screenshot() restarts the stream for each capture to be sure
 it has the current screen, which costs about a second per frame. That is right
 for stills and useless for an animation, so this reads the stream straight.
 """
+
 import sys
 import time
 import pathlib
@@ -63,28 +64,36 @@ def main():
         return 2
     port_name, out, seconds = sys.argv[1], sys.argv[2], float(sys.argv[3])
     scale = 4
-    if '--scale' in sys.argv:
-        scale = int(sys.argv[sys.argv.index('--scale') + 1])
+    if "--scale" in sys.argv:
+        scale = int(sys.argv[sys.argv.index("--scale") + 1])
 
     frames = record(port_name, seconds, scale)
     if not frames:
-        print('no frames captured -- is the app on screen?')
+        print("no frames captured -- is the app on screen?")
         return 1
 
     # GIF stores delays in hundredths of a second and most viewers refuse to go
     # below 20ms, so clamp rather than let a burst of fast frames play at a
     # speed no one will see.
-    images = [im.convert('P', palette=Image.ADAPTIVE, colors=2) for im, _ in frames]
+    images = [im.convert("P", palette=Image.ADAPTIVE, colors=2) for im, _ in frames]
     delays = [max(40, min(6000, ms)) for _, ms in frames]
 
     images[0].save(
-        out, save_all=True, append_images=images[1:],
-        duration=delays, loop=0, optimize=True, disposal=2)
+        out,
+        save_all=True,
+        append_images=images[1:],
+        duration=delays,
+        loop=0,
+        optimize=True,
+        disposal=2,
+    )
     total = sum(delays) / 1000.0
-    print('%s: %d frames, %.1fs, %d bytes'
-          % (out, len(images), total, pathlib.Path(out).stat().st_size))
+    print(
+        "%s: %d frames, %.1fs, %d bytes"
+        % (out, len(images), total, pathlib.Path(out).stat().st_size)
+    )
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

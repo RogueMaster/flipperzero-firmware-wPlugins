@@ -11,6 +11,7 @@ Every frame written is a frame the device drew. Identical consecutive frames
 collapse into one held longer, and the delays are the measured ones -- nothing
 is invented and nothing is resampled to a pretty constant rate.
 """
+
 import sys
 import time
 import pathlib
@@ -55,7 +56,7 @@ def run(port_name, timeline, seconds, scale):
                 break
             if pending and elapsed >= pending[0][0]:
                 _, key = pending.pop(0)
-                print('  t=%.1f  %s' % (elapsed, key))
+                print("  t=%.1f  %s" % (elapsed, key))
                 rpc.press(key)
                 continue
             msg = read_frame_if_any(rpc.port)
@@ -85,43 +86,62 @@ def run(port_name, timeline, seconds, scale):
 def save(frames, out):
     # The framebuffer arrives as mode "1", which quantize() refuses; go through
     # "L" so the palette conversion has something to count.
-    images = [im.convert('L').convert('P', palette=Image.ADAPTIVE, colors=2)
-              for im, _ in frames]
+    images = [
+        im.convert("L").convert("P", palette=Image.ADAPTIVE, colors=2)
+        for im, _ in frames
+    ]
     # Most viewers will not honour a delay under 20ms, so there is a floor. The
     # ceiling is generous on purpose: a verdict that stayed on screen for four
     # seconds should stay on screen for four seconds. Clamping it to two was
     # squashing exactly the screens a viewer needs time to read.
     delays = [max(40, min(6000, ms)) for _, ms in frames]
     images[0].save(
-        out, save_all=True, append_images=images[1:],
-        duration=delays, loop=0, optimize=True, disposal=2)
-    print('%s: %d frames, %.1fs, %.0f KB'
-          % (out, len(images), sum(delays) / 1000.0,
-             pathlib.Path(out).stat().st_size / 1024.0))
+        out,
+        save_all=True,
+        append_images=images[1:],
+        duration=delays,
+        loop=0,
+        optimize=True,
+        disposal=2,
+    )
+    print(
+        "%s: %d frames, %.1fs, %.0f KB"
+        % (
+            out,
+            len(images),
+            sum(delays) / 1000.0,
+            pathlib.Path(out).stat().st_size / 1024.0,
+        )
+    )
 
 
 def main():
     if len(sys.argv) < 5:
         print(__doc__)
         return 2
-    port_name, out, spec, seconds = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4])
+    port_name, out, spec, seconds = (
+        sys.argv[1],
+        sys.argv[2],
+        sys.argv[3],
+        float(sys.argv[4]),
+    )
     scale = int(sys.argv[5]) if len(sys.argv) > 5 else 4
 
     timeline = []
-    for part in spec.split(','):
+    for part in spec.split(","):
         part = part.strip()
         if not part:
             continue
-        at, key = part.split(':')
+        at, key = part.split(":")
         timeline.append((float(at), key.strip()))
 
     frames = run(port_name, timeline, seconds, scale)
     if not frames:
-        print('no frames captured')
+        print("no frames captured")
         return 1
     save(frames, out)
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

@@ -133,6 +133,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - Updated: [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
+- Added: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector) (Added previous build)
+- Added: [Meshcore Config v0.1 (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/tree/main) (Added previous build)
 - Updated: [DAP Link v1.3 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1897)
 - NFC: [Fix cards whose 4-byte UID starts with 0x88 failing to read - the anticollision loop decided UID completeness from the first UID byte (the `0x88` cascade tag value) instead of the SAK cascade bit, so a genuine 4-byte UID that happens to begin with `0x88` (seen on some MIFARE Classic and magic cards) was mistaken for the first level of a 7-byte UID; the poller then issued a second cascade SELECT the card ignored and the read aborted. Now decided from the SAK cascade bit per ISO14443-3, fixing it across every NFC-A protocol (Classic, Ultralight/NTAG, DESFire, Plus, ISO14443-4a, EMV) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1075)
 - Updated: [Infrared Playback v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
@@ -149,6 +151,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Fix: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 - Updated: [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - Updated: [Ghost ESP v1.8.2 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
+- Updated: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 
 <a name="release"></a>
 
@@ -562,6 +565,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Evil BW16 Controller v1.0 (By dagnazty)](https://github.com/dagnazty/Flipper_Apps)
 - [Evil Portal v0.6 (By bigbrodude6119)](https://github.com/bigbrodude6119/flipper-zero-evil-portal)
 - [Eye Saver v0.1 (By paul-sopin)](https://github.com/paul-sopin/flipper-eye-saver)
+- [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - [FAP Boilerplate v1.3 (By leedave)](https://github.com/leedave/flipper-zero-fap-boilerplate)
 - [Faraday v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
 - [FCC ID Lookup v0.1 (By lrehmann)](https://github.com/lrehmann/fcc-id-lookup-flipper)
@@ -731,6 +735,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Math Wiz v1.1 (By ImPapaGhost)](https://github.com/ImPapaGhost/math_wiz)
 - [MAX31855 (By skotopes)](https://github.com/skotopes/flipperzero_max31855)
 - [Mayan Decoder v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/Mayan_decoder)
+- [Meshcore Config v0.1 (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/tree/main)
 - [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
 - [Metronome v1.3 (By panki27)](https://github.com/panki27/Metronome)
 - [MFC Editor v1.0 (By TollyH)](https://github.com/TollyH/flipper-apps)
