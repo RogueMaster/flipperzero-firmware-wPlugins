@@ -155,6 +155,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - NFC: [Ultralight AES is no longer dictionary attacked automatically on read - unlike Ultralight C it has an auth attempt limit, and wrong keys can lock the card permanently, so it is now started manually from -Unlock with Dictionary- with a warning (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/4533be796f9f6231443c76549bcf47e9be3b65ad)
 - Added: [I2C BMS Reader v0.4 (By gazirov)](https://github.com/gazirov/battery_reader) `Req: TI BQ30/BQ40 controllers`
+- Updated: [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido) (Version Only)
 
 <a name="release"></a>
 
@@ -1010,7 +1011,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
 - [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max)
-- [ZeroFIDO v0.7 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
+- [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
 - [ZeroMesh v2.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
 # Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0722-1811-ff9f4feb.tgz&channel=RM0722-1811-ff9f4feb&version=0.420.0&target=f7)
