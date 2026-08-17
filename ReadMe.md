@@ -134,7 +134,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - Updated: [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - Updated: [DAP Link v1.3 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1897)
-- Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 - NFC: [Fix cards whose 4-byte UID starts with 0x88 failing to read - the anticollision loop decided UID completeness from the first UID byte (the `0x88` cascade tag value) instead of the SAK cascade bit, so a genuine 4-byte UID that happens to begin with `0x88` (seen on some MIFARE Classic and magic cards) was mistaken for the first level of a 7-byte UID; the poller then issued a second cascade SELECT the card ignored and the read aborted. Now decided from the SAK cascade bit per ISO14443-3, fixing it across every NFC-A protocol (Classic, Ultralight/NTAG, DESFire, Plus, ISO14443-4a, EMV) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1075)
 - Updated: [Infrared Playback v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
 - Added: [Bambu RID v0.2 (By DanTheMan827)](https://github.com/DanTheMan827/bambu-rfid-flipper)
@@ -147,6 +146,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: NFC [DESFire: Fix crash when reading card with a zero-key application #4439 (By jcz0)](https://github.com/flipperdevices/flipperzero-firmware/pull/4439)
 - JS Runner, NFC: [Fix some out of memory crashes - apps no longer bundle their own copy of the soft-float code, it is shared from the firmware now (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a8164fc4e248f5addc1f0fa5564e4b3619f6c7d1)
 - Lib: [Music worker pause/resume - new `music_worker_pause()` / `music_worker_resume()` in the app API, resuming continues from the same note (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/513868186f0ea2f303ce75e273da1c8f0e253a13)
+- Fix: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 
 <a name="release"></a>
 
