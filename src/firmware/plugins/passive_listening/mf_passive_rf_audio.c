@@ -7,6 +7,7 @@
 #define MF_PASSIVE_RF_DSP_HP_400_Q15     28320L
 #define MF_PASSIVE_RF_DSP_LP_2400_Q15    15899L
 #define MF_PASSIVE_RF_DSP_COMP_THRESHOLD 6000L
+#define MF_PASSIVE_RF_DSP_GAIN_PCT       200L
 
 #ifdef MORSE_FLIPPER_FAP
 #include <furi_hal.h>
@@ -100,7 +101,6 @@ void mf_passive_rf_audio_init(
     audio->ops = ops;
     audio->hardware_context = hardware_context;
     audio->pipe = pipe;
-    audio->voice_gain_pct = MF_PASSIVE_RF_GAIN_DEFAULT_PCT;
 }
 
 static bool mf_passive_rf_probe(const MfPassiveRfAudio* audio, uint32_t frequency_hz) {
@@ -148,7 +148,6 @@ static void mf_passive_rf_audio_reset_stream(MfPassiveRfAudio* audio) {
     audio->dsp_l1 = 0;
     audio->dsp_l2 = 0;
     audio->dsp_comp = 0;
-    audio->dsp_was_enabled = audio->dsp_enabled;
     audio->duration_slot = 0U;
     audio->level = false;
     audio->tone_positive = true;
@@ -235,67 +234,33 @@ static int32_t mf_passive_rf_q15_mul(int32_t coefficient, int32_t value) {
     return (int32_t)(product / MF_PASSIVE_RF_DSP_Q15);
 }
 
-static void mf_passive_rf_reset_dsp(MfPassiveRfAudio* audio) {
-    audio->dsp_x1 = 0;
-    audio->dsp_x2 = 0;
-    audio->dsp_h1 = 0;
-    audio->dsp_h2 = 0;
-    audio->dsp_l1 = 0;
-    audio->dsp_l2 = 0;
-    audio->dsp_comp = 0;
-    audio->dsp_was_enabled = audio->dsp_enabled;
-}
-
-uint16_t mf_passive_rf_audio_voice_gain_pct(const MfPassiveRfAudio* audio) {
-    return audio != NULL ? audio->voice_gain_pct : MF_PASSIVE_RF_GAIN_DEFAULT_PCT;
-}
-
-void mf_passive_rf_audio_set_voice_gain_pct(MfPassiveRfAudio* audio, uint16_t gain_pct) {
-    if(audio == NULL) return;
-    if(gain_pct < MF_PASSIVE_RF_GAIN_MIN_PCT) gain_pct = MF_PASSIVE_RF_GAIN_MIN_PCT;
-    if(gain_pct > MF_PASSIVE_RF_GAIN_MAX_PCT) gain_pct = MF_PASSIVE_RF_GAIN_MAX_PCT;
-    audio->voice_gain_pct = gain_pct;
-}
-
-bool mf_passive_rf_audio_dsp_enabled(const MfPassiveRfAudio* audio) {
-    return audio != NULL && audio->dsp_enabled;
-}
-
-void mf_passive_rf_audio_set_dsp_enabled(MfPassiveRfAudio* audio, bool enabled) {
-    if(audio == NULL) return;
-    audio->dsp_enabled = enabled;
-}
-
 int16_t mf_passive_rf_audio_process_voice_sample(MfPassiveRfAudio* audio, int16_t sample) {
     int32_t value = sample;
     int32_t magnitude;
     int32_t wanted;
     if(audio == NULL) return sample;
-    if(audio->dsp_enabled != audio->dsp_was_enabled) mf_passive_rf_reset_dsp(audio);
-    if(audio->dsp_enabled) {
-        audio->dsp_h1 = mf_passive_rf_q15_mul(
-            MF_PASSIVE_RF_DSP_HP_400_Q15, audio->dsp_h1 + value - audio->dsp_x1);
-        audio->dsp_x1 = value;
-        audio->dsp_h2 = mf_passive_rf_q15_mul(
-            MF_PASSIVE_RF_DSP_HP_400_Q15, audio->dsp_h2 + audio->dsp_h1 - audio->dsp_x2);
-        audio->dsp_x2 = audio->dsp_h1;
-        audio->dsp_l1 +=
-            mf_passive_rf_q15_mul(MF_PASSIVE_RF_DSP_LP_2400_Q15, audio->dsp_h2 - audio->dsp_l1);
-        audio->dsp_l2 +=
-            mf_passive_rf_q15_mul(MF_PASSIVE_RF_DSP_LP_2400_Q15, audio->dsp_l1 - audio->dsp_l2);
-        magnitude = audio->dsp_l2 < 0 ? -audio->dsp_l2 : audio->dsp_l2;
-        if(magnitude > audio->dsp_comp)
-            audio->dsp_comp = magnitude;
-        else
-            audio->dsp_comp += (magnitude - audio->dsp_comp) / 2048;
-        value = audio->dsp_l2 * 2;
-        if(audio->dsp_comp > MF_PASSIVE_RF_DSP_COMP_THRESHOLD) {
-            wanted = MF_PASSIVE_RF_DSP_COMP_THRESHOLD +
-                     (audio->dsp_comp - MF_PASSIVE_RF_DSP_COMP_THRESHOLD) / 8;
-            value = (int32_t)(((int64_t)value * wanted) / audio->dsp_comp);
-        }
+    audio->dsp_h1 =
+        mf_passive_rf_q15_mul(MF_PASSIVE_RF_DSP_HP_400_Q15, audio->dsp_h1 + value - audio->dsp_x1);
+    audio->dsp_x1 = value;
+    audio->dsp_h2 = mf_passive_rf_q15_mul(
+        MF_PASSIVE_RF_DSP_HP_400_Q15, audio->dsp_h2 + audio->dsp_h1 - audio->dsp_x2);
+    audio->dsp_x2 = audio->dsp_h1;
+    audio->dsp_l1 +=
+        mf_passive_rf_q15_mul(MF_PASSIVE_RF_DSP_LP_2400_Q15, audio->dsp_h2 - audio->dsp_l1);
+    audio->dsp_l2 +=
+        mf_passive_rf_q15_mul(MF_PASSIVE_RF_DSP_LP_2400_Q15, audio->dsp_l1 - audio->dsp_l2);
+    magnitude = audio->dsp_l2 < 0 ? -audio->dsp_l2 : audio->dsp_l2;
+    if(magnitude > audio->dsp_comp)
+        audio->dsp_comp = magnitude;
+    else
+        audio->dsp_comp += (magnitude - audio->dsp_comp) / 2048;
+    value = audio->dsp_l2 * 2;
+    if(audio->dsp_comp > MF_PASSIVE_RF_DSP_COMP_THRESHOLD) {
+        wanted = MF_PASSIVE_RF_DSP_COMP_THRESHOLD +
+                 (audio->dsp_comp - MF_PASSIVE_RF_DSP_COMP_THRESHOLD) / 8;
+        value = (int32_t)(((int64_t)value * wanted) / audio->dsp_comp);
     }
-    value = (value * audio->voice_gain_pct) / 100;
+    value = (value * MF_PASSIVE_RF_DSP_GAIN_PCT) / 100;
     return mf_passive_rf_clamp_sample(value);
 }
 

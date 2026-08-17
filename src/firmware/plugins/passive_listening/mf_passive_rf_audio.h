@@ -6,15 +6,11 @@
 
 #include "mf_passive_audio_pipe.h"
 
-#define MF_PASSIVE_RF_PDM_HZ           48000U
-#define MF_PASSIVE_RF_DEVIATION_HZ     2381U
-#define MF_PASSIVE_RF_VOICE_RATE_HZ    16000U
-#define MF_PASSIVE_RF_TONE_AMPLITUDE   (INT16_MAX / 3)
-#define MF_PASSIVE_RF_TONE_RAMP_SLOTS  144U
-#define MF_PASSIVE_RF_GAIN_MIN_PCT     50U
-#define MF_PASSIVE_RF_GAIN_MAX_PCT     300U
-#define MF_PASSIVE_RF_GAIN_STEP_PCT    25U
-#define MF_PASSIVE_RF_GAIN_DEFAULT_PCT 150U
+#define MF_PASSIVE_RF_PDM_HZ          48000U
+#define MF_PASSIVE_RF_DEVIATION_HZ    2381U
+#define MF_PASSIVE_RF_VOICE_RATE_HZ   16000U
+#define MF_PASSIVE_RF_TONE_AMPLITUDE  (INT16_MAX / 3)
+#define MF_PASSIVE_RF_TONE_RAMP_SLOTS 144U
 
 typedef struct MfPassiveRfAudio MfPassiveRfAudio;
 
@@ -62,11 +58,8 @@ struct MfPassiveRfAudio {
     int32_t dsp_l2;
     int32_t dsp_comp;
     int16_t sample;
-    volatile uint16_t voice_gain_pct;
     uint16_t tone_hz;
     volatile uint8_t source;
-    volatile bool dsp_enabled;
-    bool dsp_was_enabled;
     uint8_t duration_slot;
     bool level;
     bool tone_positive;
@@ -94,10 +87,6 @@ bool mf_passive_rf_audio_start_tone(
     uint16_t tone_hz,
     uint32_t duration_ms);
 bool mf_passive_rf_audio_start_voice(MfPassiveRfAudio* audio);
-uint16_t mf_passive_rf_audio_voice_gain_pct(const MfPassiveRfAudio* audio);
-void mf_passive_rf_audio_set_voice_gain_pct(MfPassiveRfAudio* audio, uint16_t gain_pct);
-bool mf_passive_rf_audio_dsp_enabled(const MfPassiveRfAudio* audio);
-void mf_passive_rf_audio_set_dsp_enabled(MfPassiveRfAudio* audio, bool enabled);
 int16_t mf_passive_rf_audio_process_voice_sample(MfPassiveRfAudio* audio, int16_t sample);
 bool mf_passive_rf_audio_tone_complete(const MfPassiveRfAudio* audio);
 MfPassiveRfPulse mf_passive_rf_audio_next_pulse(MfPassiveRfAudio* audio);

@@ -200,7 +200,7 @@ static void test_voice_pdm_and_gain(void) {
     pipe.write_pos = 2U;
     pipe.eof = true;
     CHECK(mf_passive_rf_audio_start_voice(&audio));
-    CHECK(audio.sample == 15000 && pipe.read_pos == 1U);
+    CHECK(audio.sample == 7032 && pipe.read_pos == 1U);
     for(size_t i = 0U; i < sizeof(expected) / sizeof(expected[0]); i++)
         CHECK(mf_passive_rf_audio_next_pulse(&audio).level == expected[i]);
     CHECK(pipe.read_pos == 2U && pipe.drained);
@@ -212,14 +212,14 @@ static void test_voice_pdm_and_gain(void) {
     pipe.samples[0] = 30000;
     CHECK(mf_passive_rf_audio_start_burst(&audio));
     CHECK(mf_passive_rf_audio_start_voice(&audio));
-    CHECK(audio.sample == INT16_MAX);
+    CHECK(audio.sample == 21100);
     mf_passive_rf_audio_pause(&audio);
     pipe.read_pos = 0U;
     pipe.write_pos = 1U;
     pipe.samples[0] = -30000;
     CHECK(mf_passive_rf_audio_start_burst(&audio));
     CHECK(mf_passive_rf_audio_start_voice(&audio));
-    CHECK(audio.sample == INT16_MIN);
+    CHECK(audio.sample == -21100);
     mf_passive_rf_audio_release(&audio);
 }
 
@@ -239,7 +239,7 @@ static uint32_t dsp_average_abs(
     return (uint32_t)(total / measure_samples);
 }
 
-static void test_voice_tuning_and_dsp(void) {
+static void test_voice_dsp(void) {
     static const int16_t sine_1k_low[] = {
         0,
         765,
@@ -305,45 +305,22 @@ static void test_voice_tuning_and_dsp(void) {
     int16_t dc = 0;
 
     setup(&audio, &pipe, &fake);
-    CHECK(mf_passive_rf_audio_voice_gain_pct(&audio) == 150U);
-    CHECK(!mf_passive_rf_audio_dsp_enabled(&audio));
-    CHECK(mf_passive_rf_audio_process_voice_sample(&audio, 10000) == 15000);
-    CHECK(mf_passive_rf_audio_process_voice_sample(&audio, -10001) == -15001);
-    mf_passive_rf_audio_set_voice_gain_pct(&audio, 0U);
-    CHECK(mf_passive_rf_audio_voice_gain_pct(&audio) == MF_PASSIVE_RF_GAIN_MIN_PCT);
-    mf_passive_rf_audio_set_voice_gain_pct(&audio, UINT16_MAX);
-    CHECK(mf_passive_rf_audio_voice_gain_pct(&audio) == MF_PASSIVE_RF_GAIN_MAX_PCT);
-    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
-    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
-    CHECK(mf_passive_rf_audio_dsp_enabled(&audio));
     for(uint32_t i = 0U; i < 32000U; i++)
         dc = mf_passive_rf_audio_process_voice_sample(&audio, 12000);
-    CHECK(abs(dc) < 16);
+    CHECK(abs(dc) < 32);
 
     setup(&audio, &pipe, &fake);
-    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
-    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
     passband = dsp_average_abs(&audio, sine_1k_mid, 16U, 4000U, 1600U);
     setup(&audio, &pipe, &fake);
-    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
-    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
     stopband = dsp_average_abs(&audio, sine_4k_mid, 4U, 4000U, 1600U);
     CHECK(passband > stopband * 2U);
 
     setup(&audio, &pipe, &fake);
-    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
-    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
     compressed_low = dsp_average_abs(&audio, sine_1k_low, 16U, 4000U, 1600U);
     setup(&audio, &pipe, &fake);
-    mf_passive_rf_audio_set_voice_gain_pct(&audio, 100U);
-    mf_passive_rf_audio_set_dsp_enabled(&audio, true);
     compressed_high = dsp_average_abs(&audio, sine_1k_high, 16U, 4000U, 1600U);
     CHECK(compressed_high > compressed_low);
     CHECK(compressed_high < compressed_low * 6U);
-
-    mf_passive_rf_audio_set_dsp_enabled(&audio, false);
-    CHECK(!mf_passive_rf_audio_dsp_enabled(&audio));
-    CHECK(mf_passive_rf_audio_process_voice_sample(&audio, 1000) == 1000);
 }
 
 static void test_voice_pacing_wrap_and_eof(void) {
@@ -358,12 +335,12 @@ static void test_voice_pacing_wrap_and_eof(void) {
     pipe.write_pos = 1U;
     pipe.eof = true;
     CHECK(mf_passive_rf_audio_start_voice(&audio));
-    CHECK(pipe.read_pos == 0U && audio.sample == 1500);
+    CHECK(pipe.read_pos == 0U && audio.sample == 704);
     mf_passive_rf_audio_next_pulse(&audio);
     mf_passive_rf_audio_next_pulse(&audio);
     CHECK(pipe.read_pos == 0U && !pipe.drained);
     mf_passive_rf_audio_next_pulse(&audio);
-    CHECK(pipe.read_pos == 1U && audio.sample == 3000 && !pipe.drained);
+    CHECK(pipe.read_pos == 1U && audio.sample == 1940 && !pipe.drained);
     mf_passive_rf_audio_next_pulse(&audio);
     mf_passive_rf_audio_next_pulse(&audio);
     CHECK(!pipe.drained);
@@ -597,7 +574,7 @@ static void test_constants(void) {
 int main(void) {
     test_duration_cycle();
     test_voice_pdm_and_gain();
-    test_voice_tuning_and_dsp();
+    test_voice_dsp();
     test_voice_pacing_wrap_and_eof();
     test_underrun_and_silence();
     test_tone_and_courtesy();
