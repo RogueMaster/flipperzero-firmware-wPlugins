@@ -1,0 +1,22 @@
+App(
+    appid="i2c_bms_reader",
+    name="I2C BMS Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="battery_reader_app",
+    fap_icon="assets/battery_reader.png",
+    fap_icon_assets="assets",
+    fap_icon_assets_symbol="battery_reader",
+    sources=[
+        "src/main.c",
+        "src/lib/i2c_driver/flipper_i2c.c",
+        "src/lib/sbs_protocol/sbs_protocol.c",
+        "src/lib/bq_chip/bq_unlock.c",
+        "src/lib/crypto/sha1_digest.c",
+        "src/lib/file_export.c",
+    ],
+    fap_category="GPIO",
+    fap_author="gazirov",
+    fap_weburl="https://github.com/gazirov/battery_reader",
+    fap_version="0.4.0",
+    fap_description="SBS battery reader and service tool for TI BQ30/BQ40 controllers",
+)

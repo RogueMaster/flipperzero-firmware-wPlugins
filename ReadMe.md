@@ -154,6 +154,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - ESP Flasher: [Bump Marauder v1.14.3 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.3)
 - Updated: [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - NFC: [Ultralight AES is no longer dictionary attacked automatically on read - unlike Ultralight C it has an auth attempt limit, and wrong keys can lock the card permanently, so it is now started manually from -Unlock with Dictionary- with a warning (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/4533be796f9f6231443c76549bcf47e9be3b65ad)
+- Added: [I2C BMS Reader v0.4 (By gazirov)](https://github.com/gazirov/battery_reader) `Req: TI BQ30/BQ40 controllers`
 
 <a name="release"></a>
 
@@ -669,6 +670,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Hitachi AC Remote v1.1 (By dogtopus)](https://github.com/dogtopus/flipperzero-hitachi-ac-remote)
 - [HTW AC Remote v1.1 (By sokogen)](https://github.com/sokogen/flipperzero-htw-ac-remote)
 - [HyperFocus Calc v0.1.2 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
+- [I2C BMS Reader v0.4 (By gazirov)](https://github.com/gazirov/battery_reader) `Req: TI BQ30/BQ40 controllers`
 - [I2C Explorer v0.9 (By 4mb3rz)](https://github.com/4mb3rz/Flipper-I2C-Explorer)
 - [I2C Tools Cli v1.0 (By Tristus1er)](https://github.com/Tristus1er/flipperzero-i2c-tools-cli)
 - [i2c Tools v1.2 (By NaejEL)](https://github.com/NaejEL/flipperzero-i2ctools)
