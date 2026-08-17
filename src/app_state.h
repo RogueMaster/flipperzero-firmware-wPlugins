@@ -12,9 +12,9 @@
 #include "app_types.h"
 #include "settings_ui_types.h"
 
-#define INPUT_BUFFER_SIZE 128
-#define IR_REMOTE_CAPACITY 32
-#define IR_SIGNAL_CAPACITY 64
+#define INPUT_BUFFER_SIZE     128
+#define IR_REMOTE_CAPACITY    32
+#define IR_SIGNAL_CAPACITY    64
 #define IR_UNIVERSAL_CAPACITY 64
 
 typedef enum {

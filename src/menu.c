@@ -1742,7 +1742,7 @@ static const MenuCommand ir_commands[] = {
 };
 
 #define IR_UART_PARSE_BUF_SIZE 1024
-#define IR_INITIAL_CAPACITY 4
+#define IR_INITIAL_CAPACITY    4
 
 static bool ir_grow_catalog(
     void** catalog,
@@ -1773,29 +1773,29 @@ static bool ir_grow_catalog(
 
 static bool ir_ensure_remotes(AppState* state, size_t required) {
     return state && ir_grow_catalog(
-                         (void**)&state->ir_remotes,
-                         &state->ir_remote_capacity,
-                         sizeof(IrRemoteEntry),
-                         required,
-                         IR_REMOTE_CAPACITY);
+                        (void**)&state->ir_remotes,
+                        &state->ir_remote_capacity,
+                        sizeof(IrRemoteEntry),
+                        required,
+                        IR_REMOTE_CAPACITY);
 }
 
 static bool ir_ensure_signals(AppState* state, size_t required) {
     return state && ir_grow_catalog(
-                         (void**)&state->ir_signals,
-                         &state->ir_signal_capacity,
-                         sizeof(IrSignalEntry),
-                         required,
-                         IR_SIGNAL_CAPACITY);
+                        (void**)&state->ir_signals,
+                        &state->ir_signal_capacity,
+                        sizeof(IrSignalEntry),
+                        required,
+                        IR_SIGNAL_CAPACITY);
 }
 
 static bool ir_ensure_universals(AppState* state, size_t required) {
     return state && ir_grow_catalog(
-                         (void**)&state->ir_universals,
-                         &state->ir_universal_capacity,
-                         sizeof(IrUniversalEntry),
-                         required,
-                         IR_UNIVERSAL_CAPACITY);
+                        (void**)&state->ir_universals,
+                        &state->ir_universal_capacity,
+                        sizeof(IrUniversalEntry),
+                        required,
+                        IR_UNIVERSAL_CAPACITY);
 }
 
 static char* next_line(char* buf, size_t* offset) {
