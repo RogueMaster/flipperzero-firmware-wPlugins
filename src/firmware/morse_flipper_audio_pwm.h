@@ -14,6 +14,7 @@
 typedef struct MfPassivePcmPipe MfPassivePcmPipe;
 
 #define MORSE_FLIPPER_AUDIO_PWM_P2_SAMPLE_RATE_HZ        32000U
+#define MORSE_FLIPPER_AUDIO_PWM_P2_TONE_SAMPLE_RATE_HZ   16000U
 #define MORSE_FLIPPER_AUDIO_PWM_P2_CARRIER_HZ            256000U
 #define MORSE_FLIPPER_AUDIO_PWM_SOFT_BUZZ_SAMPLE_RATE_HZ 31250U
 #define MORSE_FLIPPER_AUDIO_PWM_SOFT_BUZZ_CARRIER_HZ     250000U
@@ -25,7 +26,7 @@ typedef struct MfPassivePcmPipe MfPassivePcmPipe;
 #define MORSE_FLIPPER_AUDIO_PWM_RAMP_MS                  250U
 #define MORSE_FLIPPER_AUDIO_PWM_RAMP_STEPS               10U
 #define MORSE_FLIPPER_AUDIO_PWM_SINE_SAMPLES             64U
-#define MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES           32U
+#define MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES           64U
 #define MORSE_FLIPPER_AUDIO_PWM_BUFFER_HALF_SAMPLES      (MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES / 2U)
 #define MORSE_FLIPPER_AUDIO_PWM_Q15                      32767U
 
@@ -74,8 +75,8 @@ typedef struct {
     uint16_t env_idx;
     uint16_t env_anchor_q15;
     MorseFlipperAudioPwmEnvState env_state;
-    uint16_t attack_q15[MORSE_FLIPPER_AUDIO_PWM_SINE_SAMPLES];
-    uint16_t release_q15[MORSE_FLIPPER_AUDIO_PWM_SINE_SAMPLES];
+    uint8_t attack_q8[MORSE_FLIPPER_AUDIO_PWM_SINE_SAMPLES];
+    uint8_t release_q8[MORSE_FLIPPER_AUDIO_PWM_SINE_SAMPLES];
     uint16_t dma_buffer[MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES];
 #ifdef MORSE_FLIPPER_FAP
     bool own_bus_tim1;

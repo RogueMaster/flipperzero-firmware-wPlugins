@@ -18,6 +18,37 @@ static void prepare(MorseFlipperAudioPwm* audio, uint32_t sample_rate_hz) {
         audio, MorseFlipperAudioPwmTargetP2, 256000U, sample_rate_hz, 700U, 100U, 0U, 0U);
 }
 
+static void test_interrupt_budget(void) {
+    MorseFlipperAudioPwm audio;
+    uint32_t tone_interrupts_per_second = (MORSE_FLIPPER_AUDIO_PWM_P2_TONE_SAMPLE_RATE_HZ * 2U) /
+                                          MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES;
+    uint32_t voice_interrupts_per_second =
+        (MORSE_FLIPPER_AUDIO_PWM_P2_SAMPLE_RATE_HZ * 2U) / MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES;
+
+    CHECK(MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES == 64U);
+    CHECK(MORSE_FLIPPER_AUDIO_PWM_P2_TONE_SAMPLE_RATE_HZ == 16000U);
+    CHECK(MORSE_FLIPPER_AUDIO_PWM_P2_SAMPLE_RATE_HZ == 32000U);
+    CHECK(tone_interrupts_per_second <= 500U);
+    CHECK(voice_interrupts_per_second <= 1000U);
+
+    morse_flipper_audio_pwm_prepare_target(
+        &audio,
+        MorseFlipperAudioPwmTargetP2,
+        MORSE_FLIPPER_AUDIO_PWM_P2_CARRIER_HZ,
+        MORSE_FLIPPER_AUDIO_PWM_P2_TONE_SAMPLE_RATE_HZ,
+        700U,
+        100U,
+        MORSE_FLIPPER_AUDIO_PWM_FADE_MS,
+        MORSE_FLIPPER_AUDIO_PWM_FADE_MS);
+    CHECK(audio.attack_len == 32U && audio.release_len == 32U);
+    CHECK(audio.attack_q8[0] == 0U && audio.attack_q8[31] == UINT8_MAX);
+    CHECK(audio.release_q8[0] == UINT8_MAX && audio.release_q8[31] == 0U);
+    for(size_t i = 1U; i < audio.attack_len; i++) {
+        CHECK(audio.attack_q8[i] >= audio.attack_q8[i - 1U]);
+        CHECK(audio.release_q8[i] <= audio.release_q8[i - 1U]);
+    }
+}
+
 static void test_voice_rate(uint32_t output_rate_hz, uint32_t source_rate_hz) {
     MorseFlipperAudioPwm audio;
     MfPassivePcmPipe pipe = {0};
@@ -98,6 +129,7 @@ static void test_eof_holds_final_sample(void) {
 }
 
 int main(void) {
+    test_interrupt_budget();
     test_voice_rate(32000U, 8000U);
     test_voice_rate(32000U, 16000U);
     test_voice_rate(31250U, 8000U);

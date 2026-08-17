@@ -79,6 +79,7 @@ PYTHON_TESTS = (
     "tests/test_fap_bundle_check.py",
     "tests/test_passive_config_compat.py",
     "tests/test_passive_voice_pack_tool.py",
+    "tests/test_pa2_timing_budget.py",
     "tests/test_scene_handlers.py",
     "tests/test_rx_practice_lock_graph.py",
     "tests/test_rx_practice_phase_gating.py",
