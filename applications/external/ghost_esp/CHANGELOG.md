@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.8.2
+
+- Reduced IR memory usage with independently allocated, dynamically growing catalogs
+
 ## v1.8.1
 
 - Fixed wardrive CSV captures writing zero-byte files

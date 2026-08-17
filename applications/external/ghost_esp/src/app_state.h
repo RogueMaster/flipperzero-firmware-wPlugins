@@ -12,7 +12,10 @@
 #include "app_types.h"
 #include "settings_ui_types.h"
 
-#define INPUT_BUFFER_SIZE 128
+#define INPUT_BUFFER_SIZE     128
+#define IR_REMOTE_CAPACITY    32
+#define IR_SIGNAL_CAPACITY    64
+#define IR_UNIVERSAL_CAPACITY 64
 
 typedef enum {
     VIEW_MAIN = 0,
@@ -181,12 +184,15 @@ struct AppState {
     uint32_t last_gps_config_index;
     uint32_t last_gps_wardrive_index;
     uint32_t ir_current_remote_index;
-    IrRemoteEntry ir_remotes[32];
+    IrRemoteEntry* ir_remotes;
     size_t ir_remote_count;
-    IrSignalEntry ir_signals[64];
+    size_t ir_remote_capacity;
+    IrSignalEntry* ir_signals;
     size_t ir_signal_count;
-    IrUniversalEntry ir_universals[64];
+    size_t ir_signal_capacity;
+    IrUniversalEntry* ir_universals;
     size_t ir_universal_count;
+    size_t ir_universal_capacity;
     char ir_current_universal_file[64];
     bool ir_universal_buttons_mode;
     bool ir_file_buttons_mode;
