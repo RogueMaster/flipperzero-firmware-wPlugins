@@ -452,10 +452,11 @@ void recon_app_ble_add(
     // into the Flock list (ftype 'L' = BLE) so it shows alongside WiFi hits,
     // gets geotagged, and lands in reports. (Done after releasing the mutex;
     // recon_app_report_flock takes it itself.)
-    if(cat == BleCatFlock) {
-        // Always ALPR-class: every BLE tell we match (0x09C8 battery, Penguin
-        // naming, Raven GATT) belongs to the Flock ecosystem. SoundThinking is a
-        // WiFi-side OUI match only -- no BLE signature for it is known.
+    if(cat == BleCatFlock || cat == BleCatAxon) {
+        // Flock tells (0x09C8 battery, Penguin naming, Raven GATT) are ALPR-class;
+        // Axon's own SIG company id is body/in-car kit, which is a different thing
+        // entirely and must not be reported as a camera on a pole. SoundThinking
+        // is a WiFi-side OUI match only -- no BLE signature for it is known.
         //
         // Re-derive the rung rather than asserting Confirmed. The companion also
         // sets cat=1 on a bare OUI-prefix match against SHARED silicon-vendor
@@ -470,7 +471,7 @@ void recon_app_ble_add(
             'L',
             flock_ble_confidence(company, name, raven_gatt),
             0,
-            FlockClassAlpr,
+            (cat == BleCatAxon) ? FlockClassBodycam : FlockClassAlpr,
             false);
     }
 }

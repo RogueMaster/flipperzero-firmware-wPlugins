@@ -257,7 +257,7 @@ bool flock_store_parse_line(const char* line, FlockStoreRec* out) {
     // -- FlockClassAlpr and hidden-never-observed, which is what every v1
     // detection actually was.
     if(ncols == FLOCK_STORE_COLS) {
-        if(!fs_parse_u32(f[13], &u) || u > 1) return false; // FlockDevClass values
+        if(!fs_parse_u32(f[13], &u) || u > FLOCK_STORE_MAX_DEV_CLASS) return false;
         r.dev_class = (uint8_t)u;
         if(!fs_parse_u32(f[14], &u) || u > 1) return false;
         r.hidden = (u != 0);

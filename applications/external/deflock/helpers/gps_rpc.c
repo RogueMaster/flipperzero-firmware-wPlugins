@@ -23,6 +23,9 @@
 
 #include <gps/gps.h>
 
+#include <flipper_application/elf/elf_api_interface.h>
+#include <loader/firmware_api/firmware_api.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -39,12 +42,45 @@
 /** How long to wait before re-asking, while the stream is not delivering. */
 #define GPS_RPC_RETRY_MS 3000
 
+typedef bool (*GpsRequestStreamFn)(Gps* gps, uint8_t frequency);
+typedef bool (*GpsStopStreamFn)(Gps* gps);
+typedef void (*GpsSetLocationCallbackFn)(Gps* gps, GpsLocationCallback callback, void* context);
+
+/**
+ * Resolve an optional firmware API symbol without putting it in the FAP's
+ * mandatory import table.
+ *
+ * API-compatible firmware variants do not necessarily ship the same optional
+ * services. Unleashed exposes the GPS service, while RogueMaster can report
+ * the same API version without exporting its symbols. A normal call would make
+ * the loader reject the whole app with "Missing Imports" before it can show the
+ * GPS feature as unavailable. Calling the firmware resolver directly keeps the
+ * dependency optional and lets the ordinary unsupported-state UI handle that
+ * variant.
+ */
+static uint32_t gps_rpc_symbol_hash(const char* name) {
+    uint32_t hash = 0x1505;
+    for(const unsigned char* p = (const unsigned char*)name; *p != '\0'; p++) {
+        hash = (hash << 5) + hash + *p;
+    }
+    return hash;
+}
+
+static bool gps_rpc_resolve(const char* name, Elf32_Addr* address) {
+    return firmware_api_interface && firmware_api_interface->resolver_callback &&
+           firmware_api_interface->resolver_callback(
+               firmware_api_interface, gps_rpc_symbol_hash(name), address);
+}
+
 struct GpsRpc {
     ReconApp* app;
     Gps* gps; /**< the furi record, NULL when the service is absent */
     bool subscribed; /**< our callback is installed (so stop() must remove it) */
     bool streaming; /**< a stream request has been accepted at least once */
     uint32_t retry_tick; /**< tick of the last stream request */
+    GpsRequestStreamFn request_stream;
+    GpsStopStreamFn stop_stream;
+    GpsSetLocationCallbackFn set_location_callback;
 };
 
 bool gps_rpc_supported(void) {
@@ -121,7 +157,7 @@ static void gps_rpc_request(GpsRpc* rpc) {
     rpc->retry_tick = furi_get_tick();
     // False means the service has no RPC bridge attached, i.e. nothing is paired
     // -- not that the phone refused. Distinct states, distinct fixes.
-    if(gps_request_stream(rpc->gps, GPS_RPC_STREAM_HZ)) {
+    if(rpc->request_stream(rpc->gps, GPS_RPC_STREAM_HZ)) {
         rpc->streaming = true;
         gps_rpc_set_state(rpc, ReconGpsPhoneWaiting);
     } else {
@@ -146,6 +182,23 @@ void gps_rpc_free(GpsRpc* rpc) {
 void gps_rpc_start(GpsRpc* rpc) {
     if(!rpc || rpc->gps) return;
 
+    Elf32_Addr address;
+    if(!gps_rpc_resolve("gps_request_stream", &address)) {
+        gps_rpc_set_state(rpc, ReconGpsPhoneUnsupported);
+        return;
+    }
+    rpc->request_stream = (GpsRequestStreamFn)(uintptr_t)address;
+    if(!gps_rpc_resolve("gps_stop_stream", &address)) {
+        gps_rpc_set_state(rpc, ReconGpsPhoneUnsupported);
+        return;
+    }
+    rpc->stop_stream = (GpsStopStreamFn)(uintptr_t)address;
+    if(!gps_rpc_resolve("gps_set_location_callback", &address)) {
+        gps_rpc_set_state(rpc, ReconGpsPhoneUnsupported);
+        return;
+    }
+    rpc->set_location_callback = (GpsSetLocationCallbackFn)(uintptr_t)address;
+
     // furi_record_open() BLOCKS FOREVER on a record that was never created, so it
     // must not be called speculatively. The header can be present while the
     // service is not (a firmware built with the GPS service disabled), and that
@@ -157,7 +210,7 @@ void gps_rpc_start(GpsRpc* rpc) {
     }
 
     rpc->gps = furi_record_open(RECORD_GPS);
-    gps_set_location_callback(rpc->gps, gps_rpc_on_location, rpc);
+    rpc->set_location_callback(rpc->gps, gps_rpc_on_location, rpc);
     rpc->subscribed = true;
     gps_rpc_request(rpc);
 }
@@ -165,12 +218,12 @@ void gps_rpc_start(GpsRpc* rpc) {
 void gps_rpc_stop(GpsRpc* rpc) {
     if(!rpc || !rpc->gps) return;
 
-    if(rpc->streaming) gps_stop_stream(rpc->gps);
+    if(rpc->streaming) rpc->stop_stream(rpc->gps);
     if(rpc->subscribed) {
         // Unsubscribe BEFORE closing the record: the callback holds this GpsRpc
         // as its context and fires from the RPC thread, so leaving it installed
         // past teardown is a use-after-free waiting for one more location.
-        gps_set_location_callback(rpc->gps, NULL, NULL);
+        rpc->set_location_callback(rpc->gps, NULL, NULL);
         rpc->subscribed = false;
     }
     furi_record_close(RECORD_GPS);

@@ -47,9 +47,10 @@ typedef enum {
 typedef enum {
     FlockClassAlpr = 0, /**< Flock Safety ALPR camera (the default / historical case). */
     FlockClassAcoustic, /**< SoundThinking (formerly ShotSpotter) acoustic sensor. */
+    FlockClassBodycam, /**< Axon body-worn / in-car law-enforcement equipment. */
 } FlockDevClass;
 
-/** Short human-readable label for a device class ("ALPR", "Acoustic"). */
+/** Short human-readable label for a device class ("ALPR", "Acoustic", "Axon"). */
 const char* flock_class_str(FlockDevClass cls);
 
 /** Long human-readable label for the detail screen. */
@@ -61,6 +62,17 @@ const char* flock_class_long_str(FlockDevClass cls);
  * never both.
  */
 bool soundthinking_oui_match(const uint8_t* mac);
+
+/**
+ * True if the first 3 bytes of `mac` are Axon Enterprise's IEEE-registered OUI.
+ *
+ * A DIFFERENT KIND OF DEVICE AND A DIFFERENT KIND OF EVIDENCE. Axon makes
+ * body-worn and in-car police equipment, not fixed ALPR poles, so a hit here says
+ * "equipment that moves with a person or a vehicle", never "a camera on that
+ * pole". See flock_db.c for why this is registry-verified but field-unproven.
+ * Disjoint from the other two tables.
+ */
+bool axon_oui_match(const uint8_t* mac);
 
 /** Device class implied by a MAC's OUI. Defaults to FlockClassAlpr. */
 FlockDevClass flock_class_from_mac(const uint8_t* mac);

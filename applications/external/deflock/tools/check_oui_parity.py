@@ -7,8 +7,8 @@ Fail if the OUI tables in the Flipper app and the ESP32 companion have drifted.
 WHY THIS EXISTS. The same two tables are compiled into two different binaries
 built by two different toolchains:
 
-    helpers/flock_db.c                                flock_ouis[]  / soundthinking_ouis[]
-    esp32_companion/flock_companion/flock_companion.ino  FLOCK_OUIS[] / SOUNDTHINKING_OUIS[]
+    helpers/flock_db.c                     flock_ouis[] / soundthinking_ouis[] / axon_ouis[]
+    esp32_companion/.../flock_companion.ino  FLOCK_OUIS[] / SOUNDTHINKING_OUIS[] / AXON_OUIS[]
 
 There is no shared header -- the companion is an Arduino sketch that cannot
 include the app's headers -- so both files carry a comment saying "keep these in
@@ -105,7 +105,17 @@ COUNT_CLAIMS = {
     ("Flock", ESP): re.compile(r"Flock-associated OUI prefixes\s*\((\d+)\)"),
     ("SoundThinking", APP): None,
     ("SoundThinking", ESP): re.compile(r"acoustic sensors\s*\((\d+)\)"),
+    ("Axon", APP): None,
+    ("Axon", ESP): re.compile(r"in-car police equipment\s*\((\d+)\)"),
 }
+
+# Every table compared, in one place, so adding a fourth device class cannot land
+# with only two of the three checks wired up.
+TABLES = (
+    ("Flock", "flock_ouis", "FLOCK_OUIS"),
+    ("SoundThinking", "soundthinking_ouis", "SOUNDTHINKING_OUIS"),
+    ("Axon", "axon_ouis", "AXON_OUIS"),
+)
 
 
 def check_declared_count(label, path, actual):
@@ -145,23 +155,18 @@ def check_retracted(label, path, symbol):
 
 def main():
     print("OUI table parity: Flipper app vs ESP32 companion")
-    ok = compare("Flock", "flock_ouis", "FLOCK_OUIS")
-    ok &= compare("SoundThinking", "soundthinking_ouis", "SOUNDTHINKING_OUIS")
+    ok = True
+    for label, app_sym, esp_sym in TABLES:
+        ok &= compare(label, app_sym, esp_sym)
 
     print("\nDeclared counts vs actual array length")
-    for label, app_sym, esp_sym in (
-        ("Flock", "flock_ouis", "FLOCK_OUIS"),
-        ("SoundThinking", "soundthinking_ouis", "SOUNDTHINKING_OUIS"),
-    ):
+    for label, app_sym, esp_sym in TABLES:
         ok &= check_declared_count(label, APP, len(extract(APP, app_sym)))
         ok &= check_declared_count(label, ESP, len(extract(ESP, esp_sym)))
 
     print("\nRetracted prefixes (must be absent from both built-in tables)")
     retracted_ok = True
-    for label, app_sym, esp_sym in (
-        ("Flock", "flock_ouis", "FLOCK_OUIS"),
-        ("SoundThinking", "soundthinking_ouis", "SOUNDTHINKING_OUIS"),
-    ):
+    for label, app_sym, esp_sym in TABLES:
         retracted_ok &= check_retracted(label, APP, app_sym)
         retracted_ok &= check_retracted(label, ESP, esp_sym)
     if retracted_ok:

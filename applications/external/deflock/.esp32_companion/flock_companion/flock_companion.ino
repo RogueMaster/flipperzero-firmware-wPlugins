@@ -21,7 +21,7 @@
  * Line protocol (newline-terminated, ASCII), TX to Flipper:
  *   FLOCKCO,1                              banner / version on boot and on "ver"
  *   S,<frames>,<hits>,<ch>,<deauth_rate>   status, ~1 Hz (deauth/disassoc per interval)
- *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]  detection
+ *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a|x][,hid=1] detection
  *       mac : aabbccddeeff (lower hex, no separators)
  *       rssi: signed dBm
  *       ch  : 1-13 (2.4 GHz), or 36-177 (5 GHz, ESP32-C5 only)
@@ -42,6 +42,7 @@
  *       Add one and you must also grow the field array in esp_parser.c.
  *   BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1]   BLE device
  *       cat   : 0 unknown 1 Flock/Raven 2 AirTag 3 Tile 4 SmartTag 5 FMDN
+ *               7 Axon (SIG company id 0x034D, TASER International)
  *       mfghex: raw mfg-data hex (Flock 0x09C8 only) for serial decode; pure
  *               hex, no '='. Trailing, older parsers ignore.
  *       rv=1  : the device exposed a Raven-specific GATT service (0x3100-
@@ -203,6 +204,24 @@ static const uint8_t SOUNDTHINKING_OUIS[][3] = {
 };
 static const size_t SOUNDTHINKING_OUI_COUNT =
     sizeof(SOUNDTHINKING_OUIS) / sizeof(SOUNDTHINKING_OUIS[0]);
+
+// ---- Axon Enterprise body-worn / in-car police equipment (1) -------------
+// A THIRD DEVICE CLASS, and not fixed infrastructure: these MOVE with a person
+// or a vehicle. Tagged `cls=x` on the wire. MUST stay byte-identical to
+// axon_ouis[] in helpers/flock_db.c -- same CI parity gate as the other two.
+//
+// 00:25:df is Axon Enterprise's only IEEE registration, verified at the registry.
+// Do NOT add prefixes by searching a vendor database for "axon" (that also hits
+// Axon NETWORKS, Axona, Axonne, Interaxon, Maxon, Praxon, Paxonet, Yaxon -- all
+// unrelated), nor from a curated "law enforcement" OUI list: one such list was
+// checked entry by entry and 11 of 15 were wrong, including Apple prefixes filed
+// as Digital Ally and Axis Communications filed as Flock Safety.
+//
+// REGISTRY-VERIFIED, NEVER FIELD-OBSERVED -- see flock_db.c for why that matters.
+static const uint8_t AXON_OUIS[][3] = {
+    {0x00, 0x25, 0xdf},
+};
+static const size_t AXON_OUI_COUNT = sizeof(AXON_OUIS) / sizeof(AXON_OUIS[0]);
 
 // ---- State ---------------------------------------------------------------
 //
@@ -434,6 +453,13 @@ static const struct OuiFirstIndex {
             uint8_t b = SOUNDTHINKING_OUIS[i][0];
             bits[b >> 3] |= (uint8_t)(1u << (b & 7));
         }
+        // Axon too. Miss this and oui_first_possible() rejects every Axon frame
+        // before ax_oui_match() is ever reached -- detection would be silently
+        // dead while the table looked perfectly correct.
+        for(size_t i = 0; i < AXON_OUI_COUNT; i++) {
+            uint8_t b = AXON_OUIS[i][0];
+            bits[b >> 3] |= (uint8_t)(1u << (b & 7));
+        }
     }
 } g_oui_index;
 
@@ -461,10 +487,20 @@ static bool st_oui_match(const uint8_t* mac) {
     return false;
 }
 
-// Any known surveillance-vendor prefix, either class. Scoring is class-agnostic;
+static bool ax_oui_match(const uint8_t* mac) {
+    if(!oui_first_possible(mac[0])) return false; // fast reject, no table walk
+    for(size_t i = 0; i < AXON_OUI_COUNT; i++) {
+        if(mac[0] == AXON_OUIS[i][0] && mac[1] == AXON_OUIS[i][1] &&
+           mac[2] == AXON_OUIS[i][2])
+            return true;
+    }
+    return false;
+}
+
+// Any known surveillance-vendor prefix, any class. Scoring is class-agnostic;
 // the class itself rides along in the `cls=` field.
 static bool oui_match(const uint8_t* mac) {
-    return flock_oui_match(mac) || st_oui_match(mac);
+    return flock_oui_match(mac) || st_oui_match(mac) || ax_oui_match(mac);
 }
 
 static char lc(char c) {
@@ -815,6 +851,7 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     // means ALPR, so the wire stays unchanged for every existing detection and
     // an older Flipper build just ignores the token.
     if(st_oui_match(mac)) buf_appendf(line, sizeof(line), &pos, ",cls=a");
+    else if(ax_oui_match(mac)) buf_appendf(line, sizeof(line), &pos, ",cls=x");
     // Hidden-SSID attribute. Rides on a line we were already sending, so it adds
     // no UART traffic and needs no per-BSSID dedup of its own. Reported, NOT
     // scored: see the note in helpers/esp_parser.c.
@@ -915,7 +952,7 @@ static void wifi_security_scan() {
 // the radio, active-scans a few seconds, classifies each device, then restores
 // WiFi/Flock mode.
 //   BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1]
-//   cat: 0 unknown  1 Flock/Raven  2 AirTag/FindMy  3 Tile  4 SmartTag
+//   cat: 0 unknown  1 Flock/Raven  2 AirTag/FindMy  3 Tile  4 SmartTag  7 Axon
 //   mfghex: raw manufacturer-specific data as hex (Flock 0x09C8 only), so the
 //   Flipper can decode the device serial; trailing field, older parsers ignore.
 //   rv=1: device exposed a Raven-specific GATT service (0x3100-0x3500) -> a
@@ -992,6 +1029,12 @@ static void ble_do_scan(int seconds) {
             if(md.length() >= 2) company = (uint8_t)md[0] | ((uint8_t)md[1] << 8);
             if(company == 0x09C8) {
                 cat = 1; // Flock Safety / Raven
+            } else if(company == 0x034D) {
+                // Axon Enterprise, filed with the SIG under their former name
+                // TASER International. Its own category, NOT Flock's: the two are
+                // unrelated vendors and merging them would have the app report a
+                // body camera as Flock hardware.
+                cat = 7;
             } else if(company == APPLE_FIND_MY_COMPANY_ID) {
                 AppleFindMyAdvert advert;
                 if(apple_find_my_decode(

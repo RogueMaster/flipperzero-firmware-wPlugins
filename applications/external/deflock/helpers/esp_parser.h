@@ -14,7 +14,7 @@
  *   S,<frames>,<hits>,<ch>[,<deauths>]  status heartbeat
  *   WBEGIN / W,<bssid>,<rssi>,<ch>,<auth>,<pair>,<grp>,<wps>,<ssid> / WEND
  *   BBEGIN / BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1] / BEND
- *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]  detection
+ *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a|x][,hid=1] detection
  *   DA,<bssid>,<ch>                     deauth/disassoc attack target
  *   ATK,<kind>,<value>                  active attack-tool signature
  *   LOC,<rssi>                          live Locator RSSI

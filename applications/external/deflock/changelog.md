@@ -1,5 +1,88 @@
 # Changelog
 
+## v0.73
+
+The v0.72 RogueMaster load failure is fixed. **Not run against a radio.**
+
+### Added
+
+- **Axon Enterprise detection, as its own device class.** Axon makes body-worn and
+  in-car police equipment — Axon Body, Axon Fleet — and rows for it carry an `AX`
+  tag next to the confidence character, alongside the existing `ST` for
+  SoundThinking. Two identifiers, both taken from the issuing registry rather than
+  from anyone's list: the IEEE OUI **`00:25:df`** (*Axon Enterprise, Inc.*, their
+  only registration) and the Bluetooth SIG company id **`0x034D`**, filed under
+  their former name TASER International — the same pattern as Flock's `0x09C8`
+  sitting under the battery vendor XUNTONG.
+
+  **It is deliberately not folded into the ALPR class.** An Axon unit is not fixed
+  infrastructure: it moves with a person or a vehicle. The detail screen says "Axon
+  body/in-car kit" and the label is asserted by test to contain no word *camera*,
+  because the one thing this must never do is read like a camera on a pole.
+
+  **Registry-verified, never field-observed.** Nobody has captured an Axon device
+  using these on the air, and embedded products routinely expose the Wi-Fi *module*
+  vendor's OUI instead of the brand owner's — which is why most Flock hardware
+  appears as Liteon or Espressif rather than `b4:1e:52`. This may match every Axon
+  radio or none of them. An OUI-only hit caps at *Possible* exactly like every
+  other OUI; the BLE company id reaches *Confirmed*, as `0x09C8` does. There is
+  also a real duty-cycle limit: Axon's own docs say a body camera checks for a
+  known network every **15 minutes**, versus roughly every 125 ms for a Flock
+  camera, so you have to be listening in the right window.
+
+  Two traps are recorded in `docs/signatures.md` and pinned by tests. Searching a
+  vendor database for "axon" also returns *Axon Networks Inc* — an unrelated
+  networking company — plus Axona, Axonne, Interaxon, Maxon, Praxon, Paxonet and
+  Yaxon. And a curated "law enforcement OUI" list in circulation turned out to have
+  **11 of 15 prefixes wrong** when checked against IEEE: Apple filed as Digital
+  Ally, Nintendo as WatchGuard, General Motors and Samsung as Panasonic i-PRO,
+  Xiaomi and Dell as Getac, and Axis Communications as Flock Safety. Importing it
+  would have reported phones, consoles, cars and laptops as police equipment. Every
+  one of those prefixes is now asserted absent, so re-importing that list breaks
+  the build.
+
+### Fixed
+
+- **RogueMaster no longer fails at launch with `Missing Imports`.** The optional
+  phone-GPS calls are resolved only when the Phone source starts, so firmware
+  variants that share an API version without exporting that optional service can
+  load the app and report Phone GPS as unsupported instead.
+
+- **A stored Axon detection would not have survived a restart.** The `hits.csv`
+  parser bounded the device-class column at the old maximum, so a line carrying the
+  new class was rejected outright — the sighting would not have come back
+  mislabelled, it would not have come back at all. The bound is now a named
+  constant beside the field it guards, and every value the enum can hold is
+  round-tripped by test. Verified against the failing case: restoring the old bound
+  turns 16 checks red.
+
+- **API drift is now checked on the nightly, not only on push.** Unleashed shipped
+  `unlshd-091` (API 88.2 → 88.3) and nothing reported it, because the check lived
+  in the push-triggered workflow while the nightly — the job that actually rebuilds
+  against each firmware's live release channel — had no such step. Both now share
+  one composite action rather than two copies of the same 50 lines of shell.
+
+  **Nothing was broken by that bump.** The loader compares only the *major* API
+  version; the minor comparison is commented out in the firmware source, identically
+  on official firmware and Unleashed. README claimed the firmware refuses a `.fap`
+  "built against a different one", which overstated it and could have sent someone
+  hunting a problem that did not exist.
+
+### Changed
+
+- **Raven firmware 1.1.7 cannot be positively identified, and the README now says
+  so.** The Raven-specific Bluetooth services (`0x3100`–`0x3500`) that back the
+  "Flock Raven (audio)" label arrived in Raven firmware **1.2.0**. A unit still on
+  1.1.7 publishes only generic services — device information, health thermometer,
+  location and navigation — which millions of ordinary devices also publish.
+  Matching those would flag half the consumer electronics in range, so an older
+  Raven simply does not get the label.
+
+- **Troubleshooting explains why an OUI emulator shows two "missing" detections.**
+  Bench tools that replay Flock prefixes include `cc:cc:cc` and `f8:a2:d6`, both
+  retracted upstream and both deliberately unmatched here, so those two identities
+  producing nothing is the correct result rather than a miss.
+
 ## v0.72
 **A retracted false-positive OUI came back and shipped in five releases. It is out
 again, and there is now a guard that would have caught it.**

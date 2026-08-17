@@ -38,6 +38,11 @@ FlockConfidence flock_ble_confidence(uint16_t company, const char* name, bool ra
     //   - the Raven GATT services (0x3100-0x3500) are Raven-SPECIFIC;
     //   - "Penguin-*" / "FS Ext *" are Flock's own product naming.
     if(company == FLOCK_BLE_COMPANY_ID) return FlockConfidenceConfirmed;
+    // Axon's own SIG-registered company id. Vendor-exclusive like 0x09C8 -- it
+    // names Axon, not a silicon vendor -- so it stands on its own for the same
+    // reason. What it confirms is an AXON DEVICE, not a Flock camera; the device
+    // class carries that distinction, this function only answers "how sure".
+    if(company == AXON_BLE_COMPANY_ID) return FlockConfidenceConfirmed;
     if(raven_gatt) return FlockConfidenceConfirmed;
     if(ci_prefix(name, "PENGUIN") || ci_contains(name, "FS EXT")) return FlockConfidenceConfirmed;
 

@@ -36,6 +36,17 @@ extern "C" {
 /** Flock Safety's manufacturer id (XUNTONG) in the BLE advert. */
 #define FLOCK_BLE_COMPANY_ID 0x09C8
 
+/**
+ * Axon Enterprise's Bluetooth SIG manufacturer id, registered under their former
+ * name TASER International (they renamed in 2017; SIG records keep the original,
+ * exactly as 0x09C8 is filed under the battery vendor XUNTONG rather than Flock).
+ *
+ * Vendor-exclusive, so it is a genuine tell rather than a shared silicon range --
+ * but like the Axon OUI it is REGISTRY-VERIFIED AND NEVER FIELD-OBSERVED. See the
+ * axon_ouis[] comment in flock_db.c.
+ */
+#define AXON_BLE_COMPANY_ID 0x034D
+
 /** Conservative Flock BLE model identification from the 0x09C8 advert + GATT. */
 typedef enum {
     FlockBleModelUnknown = 0, /**< Nothing decoded as a Flock battery unit. */

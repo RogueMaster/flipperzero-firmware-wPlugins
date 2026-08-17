@@ -47,7 +47,7 @@ static char confidence_char(FlockConfidence c) {
 typedef struct {
     char conf_ch;
     char ftype; /**< P/B/R/O/F/L -- 'L' is the BLE radio, everything else Wi-Fi */
-    bool acoustic; /**< SoundThinking sensor, not an ALPR -> "ST" tag on the row */
+    uint8_t dev_class; /**< FlockDevClass -> short "ST "/"AX " tag on the row */
     bool hidden; /**< beacons with no SSID -> "[hid]" instead of a blank name */
     char ssid[RECON_SSID_LEN];
     uint8_t mac[6];
@@ -263,7 +263,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             FlockRowSnap* r = &rows[nrows++];
             r->conf_ch = confidence_char(e->confidence);
             r->ftype = e->ftype;
-            r->acoustic = (e->dev_class == FlockClassAcoustic);
+            r->dev_class = e->dev_class;
             r->hidden = e->hidden;
             strncpy(r->ssid, e->ssid, RECON_SSID_LEN - 1);
             r->ssid[RECON_SSID_LEN - 1] = '\0';
@@ -606,10 +606,16 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
         canvas_draw_str(canvas, 2, y + 8, cbuf);
         ui_icon_radio(canvas, 8, y + 1, r->ftype == 'L');
 
-        // "ST " marks a SoundThinking acoustic sensor. Untagged rows are ALPR
-        // cameras -- the common case stays as terse as it was, and the list never
-        // silently presents a gunshot sensor as a camera.
-        const char* cls = r->acoustic ? "ST " : "";
+        // "ST " marks a SoundThinking acoustic sensor, "AX " Axon body-worn or
+        // in-car police kit. Untagged rows are ALPR cameras -- the common case
+        // stays as terse as it was, and the list never silently presents a
+        // gunshot sensor or a body camera as a camera on a pole. Three chars each
+        // so the tagged and untagged rows still line up.
+        const char* cls = "";
+        if(r->dev_class == FlockClassAcoustic)
+            cls = "ST ";
+        else if(r->dev_class == FlockClassBodycam)
+            cls = "AX ";
 
         char line[48];
         if(r->ssid[0] != '\0') {

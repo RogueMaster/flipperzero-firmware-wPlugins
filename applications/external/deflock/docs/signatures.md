@@ -141,6 +141,66 @@ Retracting any of these would only lose recall against evidence we do not have, 
 they stay. But if you are weighing a single *Possible* OUI hit with nothing else
 behind it, this table is what that hit is resting on.
 
+## Axon Enterprise (`AX` rows)
+
+Axon makes body-worn and in-car police equipment — Axon Body, Axon Fleet — which is
+**not fixed infrastructure**. It moves with a person or a vehicle, so an `AX` row
+says nothing about a camera on a pole, and the app labels it "Axon body/in-car kit"
+rather than anything with the word *camera* in it.
+
+Two identifiers, both taken straight from the issuing registry rather than from a
+list:
+
+| Identifier | Value | Registry |
+|---|---|---|
+| Wi-Fi / BLE MAC OUI | `00:25:df` | IEEE — *Axon Enterprise, Inc.* |
+| BLE company id | `0x034D` | Bluetooth SIG — *TASER International, Inc.* |
+
+`0x034D` is filed under Axon's former name; they renamed from TASER International in
+2017 and the SIG record kept the original. That is the same pattern as Flock's
+`0x09C8`, which is filed under the battery vendor XUNTONG.
+
+**Field status: registry-verified, never field-observed.** Nobody has captured an
+Axon device using these on the air, and embedded products very often expose the
+Wi-Fi *module* vendor's OUI instead of the brand owner's — which is exactly why most
+Flock hardware shows up as Liteon or Espressif rather than `b4:1e:52`. So this may
+match every Axon radio or none of them. Treat an `AX` row as a lead.
+
+There is also a recall limit worth knowing. Axon body cameras are Wi-Fi **clients**,
+not access points, and Axon's own documentation says a camera checks for an approved
+network **every 15 minutes**. That check is a probe request and is what makes the
+device detectable at all — but at that duty cycle you have to be listening in the
+right window. Flock cameras probe roughly every 125 ms; this is four orders of
+magnitude quieter.
+
+### Two ways to get this badly wrong
+
+**Do not add prefixes by searching a vendor database for "axon".** That substring
+also matches *Axon Networks Inc* (`00:58:28`, `00:c0:d4`, `84:70:03`) — an unrelated
+networking company — plus Axona, Axonne, Interaxon, Maxon, Praxon, Paxonet and
+Yaxon. Twelve registrants, none of them police equipment. Axon Enterprise holds
+**exactly one** OUI.
+
+**Do not trust a curated "law enforcement OUI" list.** One in circulation was checked
+entry by entry against the IEEE registry and **11 of its 15 prefixes were wrong**:
+
+| It claimed | Actually registered to |
+|---|---|
+| Axon / TASER `00:1f:55` | Honeywell Security |
+| Axon / TASER `00:0f:13` | Nisca |
+| Digital Ally `00:11:24`, `00:1b:63` | Apple |
+| WatchGuard / Motorola `00:1a:e9` | Nintendo |
+| Panasonic i-PRO `e0:13:33` | General Motors |
+| Panasonic i-PRO `3c:bb:fd` | Samsung |
+| Getac `50:ec:50` | Xiaomi |
+| Getac `00:1c:23` | Dell |
+| Flock Safety `00:40:8c`, `ac:cc:8e` | Axis Communications |
+
+Importing it would have reported Apple devices, Nintendo consoles, GM vehicles,
+Xiaomi phones, Dell laptops and Samsung TVs as police surveillance equipment. Every
+prefix in the table above is asserted as absent by `test/test_flock_db.c`, so
+re-importing that list breaks the build. Verify at the registry, every time.
+
 Either way the scoring is the same: an OUI hit from a user file caps at **Possible**,
 exactly as a built-in OUI hit does. Nothing here can manufacture a *Confirmed*.
 

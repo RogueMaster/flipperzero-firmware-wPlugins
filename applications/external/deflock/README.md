@@ -55,16 +55,22 @@ the Tools menu.
 |---|---|---|
 | Official (OFW) | `flipdeflock.fap` | 87.1 |
 | Momentum | `flipdeflock-momentum.fap` | 87.1 |
-| Unleashed | `flipdeflock-unleashed.fap` | 88.2 |
-| RogueMaster | `flipdeflock-unleashed.fap` | 88.2 |
+| Unleashed | `flipdeflock-unleashed.fap` | 88.3 |
+| RogueMaster | `deflock.fap` | 88.3 |
 
 A `.fap` records the API version it was built against, and the firmware refuses to
-load one that does not match. **If your Flipper says the app is old, you have the
-wrong file, not an old app.** It is the API that is old, not the release. Take the
-matching row above. RogueMaster tracks Unleashed and reports the same API, so the
-Unleashed build is the one to use there.
+load one whose **major** version does not match — the number before the dot. **If
+your Flipper says the app is old, you have the wrong file, not an old app.** It is
+the API that is old, not the release. Take the matching row above. RogueMaster
+tracks Unleashed and reports the same API, but uses its own conventional
+`deflock.fap` filename. Use that row's file there.
 
-Every push also builds all three as CI artifacts under the **Actions** tab.
+The minor version — the number after the dot — is **not** checked by the firmware,
+so a build made against 88.2 still loads on 88.3. A minor bump only adds symbols.
+That is why the table can lag a fresh firmware release by a few days without
+anything actually breaking for you.
+
+Every push also builds all four as CI artifacts under the **Actions** tab.
 
 ### Stable and nightly
 
@@ -171,7 +177,9 @@ firmware; in Marauder mode they explain what's missing.
   while a deauth/disassoc flood is active and clears when it stops. Set **Alert on
   hit** in Settings (Vibrate / Beep / both) to be told about a camera you aren't
   watching the screen for — it fires once per device, and never for an OUI-only
-  "Possible" lead.
+  "Possible" lead. Three device classes are distinguished rather than lumped
+  together: Flock/ALPR cameras, SoundThinking acoustic sensors (`ST`), and Axon
+  body-worn / in-car police equipment (`AX`).
 - **Flock Map** — a live map around your GPS position: you're at center, cameras
   are plotted by bearing and distance, dot size is confidence, with a heading tick
   and a scale bar. Left/Right zoom, OK re-fits. Needs a GPS fix; ungeotagged
@@ -183,7 +191,12 @@ firmware; in Marauder mode they explain what's missing.
   flagged `!FOLLOWING` (anti-stalking); open it for the track. `SEP state` is an
   advertisement state marker, not proof of ownership or stalking. Labels a
   **Flock Raven (audio sensor)** only when it sees the Raven's own Bluetooth
-  services — it never guesses "camera" by elimination. On a validated tracker you
+  services — it never guesses "camera" by elimination. Those services arrived in
+  **Raven firmware 1.2.0**; a unit still on **1.1.7** publishes only generic
+  Bluetooth services that millions of ordinary devices also publish, so it cannot
+  be positively identified as a Raven and will not carry that label. Matching the
+  generic services instead would flag half the consumer electronics in range, which
+  is not a trade this project makes. On a validated tracker you
   can also send **Ping** (a one-shot reachability check) or **Ring** (a non-owner
   sound request, Apple/Find My only) — the only actions in the app that transmit,
   and only when you press them.
@@ -282,6 +295,7 @@ exact dB. `-33dB` closer to 0 means physically closer.
 - **ch / frames / hits** — channel · 802.11 frames captured · Flock detections, counted this session (reset each time you open the screen)
 - **row tag** — `!` CONFIRMED · `F` probe-fingerprint · `L` Likely · `p` Possible · `.` OUI-only · `*` marked
 - **`ST` after the tag** — a SoundThinking (ShotSpotter) acoustic sensor, not an ALPR camera. Untagged rows are cameras; the detail screen names the class in full
+- **`AX` after the tag** — Axon body-worn or in-car police equipment. Not fixed infrastructure: it moves with a person or a vehicle, so it says nothing about a camera on a pole
 - **GPS badge** - filled `GPS 9` = locked with 9 satellites, filled `GPS` = locked but nothing reported a satellite count (normal on the `Phone` source), hollow `GPS` = on and searching. A fault names what to fix and never says "GPS", because a filled badge starting with those three letters reads as a lock: `!PORT` = GPS and the ESP are on the same UART (put GPS on the other one, LPUART / pins 15-16), `!PIN` = the companion refused that ESP GPS Pin, `!FW` = the companion never answered so reflash it — or, on the `Phone` source, this firmware has no location service (needs Unleashed). Phone-only faults: `!APP` = nothing paired, open qUnleashed · `!PERM` = the phone denied location permission · `!LOC` = the phone's location is off, or the paired device has no receiver · `!ACC` = fixes are arriving but coarser than 100 m, so go outside · `!ERR` = the companion app reported a fault
 - Marauder mode shows `rx <n>  hits <n>` instead (serial heartbeat + detection count)
 
@@ -318,6 +332,11 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.73** - **RogueMaster no longer fails at launch with `Missing Imports`.**
+Optional phone-GPS symbols are resolved only when the Phone source is used, so
+firmware variants without that optional service can still load the app and show
+`!FW` when Phone GPS is unavailable.
 
 **v0.72** - **A retracted false-positive OUI is out of the tables again.**
 `f8:a2:d6` was withdrawn upstream ("hit on a Sony Media Player") and dropped for

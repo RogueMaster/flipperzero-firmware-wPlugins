@@ -89,7 +89,10 @@ static EspMsgType parse_flock(char** f, int n, EspMsg* out) {
     // Trailing key=value fields. Older firmware omits them and newer firmware may
     // add more, so unknown keys are skipped rather than treated as an error.
     //   fp=<hex32>  B1 IE-skeleton fingerprint (probe requests only)
-    //   cls=a       device class: acoustic (SoundThinking). Absent means ALPR.
+    //   cls=a       device class: acoustic (SoundThinking).
+    //   cls=x       device class: Axon body-worn / in-car police equipment.
+    //               Absent, or a letter this build does not know, means fall
+    //               back to the class implied by the MAC's own OUI.
     //   hid=1       the AP beacons but withholds its SSID.
     // Start at f[7] (AFTER the ssid at f[6]) so an SSID that literally begins
     // "fp=" or "cls=" can't be misread as one of these fields.
@@ -103,7 +106,16 @@ static EspMsgType parse_flock(char** f, int n, EspMsg* out) {
         if(strncmp(f[i], "fp=", 3) == 0) {
             fp = (uint32_t)strtoul(f[i] + 3, NULL, 16);
         } else if(strncmp(f[i], "cls=", 4) == 0) {
-            dev_class = (f[i][4] == 'a') ? FlockClassAcoustic : FlockClassAlpr;
+            // Unknown letters fall back to the MAC-derived class rather than to
+            // ALPR: a newer companion may name a class this build predates, and
+            // guessing "camera" for something we cannot identify is the exact
+            // over-claim the class field exists to prevent.
+            if(f[i][4] == 'a')
+                dev_class = FlockClassAcoustic;
+            else if(f[i][4] == 'x')
+                dev_class = FlockClassBodycam;
+            else if(f[i][4] == 'c')
+                dev_class = FlockClassAlpr;
         } else if(strncmp(f[i], "hid=", 4) == 0) {
             hidden = (f[i][4] == '1');
         }
@@ -365,7 +377,7 @@ EspMsgType esp_parse_companion_line(char* line, EspMsg* out) {
         return out->type;
     }
     if(line[0] == 'D' && line[1] == ',') {
-        // D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]
+        // D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a|x][,hid=1]
         // 10 slots = 7 base fields + ALL optional trailers. esp_split_fields
         // stops splitting once it hits `max`, so a short array does not drop the
         // extra token -- it silently glues it onto the previous one, where the

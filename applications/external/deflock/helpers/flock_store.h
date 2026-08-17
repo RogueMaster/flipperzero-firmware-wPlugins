@@ -80,6 +80,21 @@ typedef struct {
 } FlockStoreRec;
 
 /**
+ * Highest FlockDevClass value this build will accept out of a stored line.
+ *
+ * MUST TRACK FlockDevClass in flock_db.h. This header stays dependency-free on
+ * purpose -- it is the on-disk POD, host-tested without the firmware or the
+ * detection tables -- so the enum cannot simply be included here, and the bound
+ * is restated instead.
+ *
+ * Get it wrong and the failure is quiet and total: the parser rejects the whole
+ * LINE, so a detection of the new class does not come back with a wrong label,
+ * it does not come back at all. Adding FlockClassBodycam without raising this
+ * would have silently dropped every stored Axon sighting on load.
+ */
+#define FLOCK_STORE_MAX_DEV_CLASS 2u /* FlockClassBodycam */
+
+/**
  * Format one record as a CSV line, including the trailing newline. Returns the
  * number of bytes written, or 0 if the record could not be formatted within
  * `out_len` (in which case `out` holds no usable line).

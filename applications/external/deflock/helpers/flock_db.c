@@ -105,12 +105,77 @@ bool soundthinking_oui_match(const uint8_t* mac) {
     return false;
 }
 
+/**
+ * Axon Enterprise (formerly TASER International) body-worn and in-car police
+ * equipment.
+ *
+ * A THIRD DEVICE CLASS, and not fixed infrastructure at all: an Axon Body camera
+ * is worn by a person and an Axon Fleet unit rides in a vehicle. Both MOVE. A hit
+ * here must never be read as "a camera on that pole" -- that is why it gets its
+ * own class rather than joining flock_ouis[], and why the long label says
+ * "body/in-car", not "camera".
+ *
+ * 00:25:df is Axon Enterprise's IEEE OUI registration -- the ONLY one they hold.
+ * Verified directly against the IEEE registry, not taken from a list.
+ *
+ * DO NOT ADD PREFIXES BY SEARCHING A VENDOR DATABASE FOR "axon". That substring
+ * also matches Axon NETWORKS Inc (00:58:28, 00:c0:d4, 84:70:03 -- an unrelated
+ * networking company), Axona, Axonne, Interaxon, Maxon, Praxon, Paxonet and
+ * Yaxon. Twelve unrelated registrants, none of them police equipment.
+ *
+ * NOR FROM A CURATED "LAW ENFORCEMENT" OUI LIST. One such list was checked
+ * prefix-by-prefix against the IEEE registry and 11 of its 15 entries were wrong:
+ * it attributed Apple prefixes to Digital Ally, Nintendo to WatchGuard, General
+ * Motors and Samsung to Panasonic i-PRO, Xiaomi and Dell to Getac, and Axis
+ * Communications to Flock Safety. Two of its three "Axon / TASER" prefixes are
+ * really Honeywell Security and Nisca. Verify every prefix at the registry.
+ *
+ * FIELD STATUS: REGISTRY-VERIFIED, NEVER FIELD-OBSERVED. We have no capture of an
+ * Axon device using this prefix on the air. Embedded products frequently expose
+ * the Wi-Fi MODULE vendor's OUI instead of the brand owner's -- which is exactly
+ * why most Flock hardware appears as Liteon or Espressif rather than b4:1e:52. So
+ * this may match every Axon radio, or none of them. Scored accordingly: an
+ * OUI-only hit caps at "possible", same as every other OUI in this file.
+ *
+ * DUPLICATED in esp32_companion/flock_companion/flock_companion.ino and covered
+ * by the same tools/check_oui_parity.py gate as the other two tables.
+ */
+static const uint8_t axon_ouis[][3] = {
+    {0x00, 0x25, 0xdf},
+};
+
+#define AXON_OUI_COUNT (sizeof(axon_ouis) / sizeof(axon_ouis[0]))
+
+bool axon_oui_match(const uint8_t* mac) {
+    if(!mac) return false;
+    for(size_t i = 0; i < AXON_OUI_COUNT; i++) {
+        if(mac[0] == axon_ouis[i][0] && mac[1] == axon_ouis[i][1] && mac[2] == axon_ouis[i][2]) {
+            return true;
+        }
+    }
+    // Deliberately NOT extended by signatures.json, for the same reason
+    // soundthinking_oui_match() is not: the user schema has no class field, so a
+    // user OUI is always read as ALPR. Letting one silently become a body-camera
+    // detection would be a reinterpretation the file never asked for.
+    return false;
+}
+
 FlockDevClass flock_class_from_mac(const uint8_t* mac) {
-    return soundthinking_oui_match(mac) ? FlockClassAcoustic : FlockClassAlpr;
+    if(soundthinking_oui_match(mac)) return FlockClassAcoustic;
+    if(axon_oui_match(mac)) return FlockClassBodycam;
+    return FlockClassAlpr;
 }
 
 const char* flock_class_str(FlockDevClass cls) {
-    return (cls == FlockClassAcoustic) ? "Acoustic" : "ALPR";
+    switch(cls) {
+    case FlockClassAcoustic:
+        return "Acoustic";
+    case FlockClassBodycam:
+        return "Axon";
+    case FlockClassAlpr:
+    default:
+        return "ALPR";
+    }
 }
 
 const char* flock_class_long_str(FlockDevClass cls) {
@@ -118,7 +183,18 @@ const char* flock_class_long_str(FlockDevClass cls) {
     // screen's 128 px row. Shortened rather than truncated at draw time, so the
     // device class -- the thing that stops a gunshot sensor being read as a
     // camera -- is never the field that gets cut off.
-    return (cls == FlockClassAcoustic) ? "SoundThinking sensor" : "Flock / ALPR camera";
+    switch(cls) {
+    case FlockClassAcoustic:
+        return "SoundThinking sensor";
+    case FlockClassBodycam:
+        // "body/in-car" and NOT "camera": an Axon unit moves with a person or a
+        // vehicle, so the one thing this label must not do is read like a fixed
+        // pole. 20 chars, inside the same row budget as the string above.
+        return "Axon body/in-car kit";
+    case FlockClassAlpr:
+    default:
+        return "Flock / ALPR camera";
+    }
 }
 
 /**
@@ -319,10 +395,12 @@ FlockMethod flock_method_of(const uint8_t* mac, const char* ssid, char ftype, ui
     // so the label never claims more than the confidence rung does.
     if(flock_ssid_confidence(ssid) != FlockConfidenceNone) return FlockMethodSsid;
     if(flock_ie_fp_match(ie_fp) != FlockIeFpNone) return FlockMethodIeFp;
-    // Either table: a SoundThinking prefix is an OUI match too, just for the other
-    // device class. Reporting it as "unclassified" would hide the one indicator we
-    // actually have for an acoustic sensor.
-    if(flock_oui_match(mac) || soundthinking_oui_match(mac)) return FlockMethodOui;
+    // Any of the three tables: a SoundThinking or Axon prefix is an OUI match too,
+    // just for another device class. Reporting it as "unclassified" would hide the
+    // one indicator we actually have for those.
+    if(flock_oui_match(mac) || soundthinking_oui_match(mac) || axon_oui_match(mac)) {
+        return FlockMethodOui;
+    }
     // BLE is classified on the companion (mfg id 0x09C8 / Raven GATT) from advert
     // bytes that never reach this side, so name the source rather than guess.
     if(ftype == 'L') return FlockMethodBle;

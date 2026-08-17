@@ -50,6 +50,7 @@ typedef enum {
     BleCatFindMyDevice =
         5, /**< Google Find My Device network (0xFEAA): Pebblebee/Chipolo/Moto/Eufy */
     BleCatFlipper = 6, /**< Flipper Zero (recon multitool): advertised name "Flipper <name>" */
+    BleCatAxon = 7, /**< Axon body-worn / in-car police kit (SIG company id 0x034D) */
 } BleCat;
 
 /** Explicit, user-triggered actions for a validated BLE tracker. */

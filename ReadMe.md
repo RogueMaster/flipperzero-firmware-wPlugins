@@ -124,7 +124,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Hotspot Arcade v1.8.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 - Updated: [PocketLab v1.6 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab) (Version Only)
-- Updated: [DeFlock v0.72 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader)
 - NFC: [Native MIFARE Ultralight AES (MF0AES20) support - read via AES 3-pass auth + dictionary/manual unlock, write-back (Keep/Copy Key), emulation, and secure messaging (CMAC) end to end, plus the 3 one-way counters, config decoding, originality signature and Random ID real-UID retrieval; hardware-validated on a real MF0AES20 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1058)
 - NFC: [Create a blank MIFARE Ultralight AES card from -Add Manually- - generate a factory-default MF0AES20 from scratch and save or emulate it, not just read one (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1070)
@@ -143,6 +142,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Music Player v1.4 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1189)
 - Updated: [SPI Mem Manager v1.5 (By drunkbatya)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/spi_mem_manager) (Version Only)
 - Updated: [VGM Air Mouse v1.4 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/motion_mouse_app) `Req: ICM42688, or Video Game Module By Flipper Devices` (Version Only)
+- Updated: [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader)
+- Updated: [DeFlock v0.73 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -521,7 +522,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DCF77 Clock Spoof v1.4 (By mdaskalov & molodos)](https://github.com/mdaskalov/dcf77-clock-sync)
 - [DCF77 Transmitter v2.0 (By arha)](https://github.com/arha/flipper-dcf77)
 - [Deauther PWNDTOOLS V2.6.0 (By HEX0DAYS)](https://github.com/HEX0DAYS/FlipperZero-PWNDTOOLS) `Req: ESP8266` [Original](https://github.com/SpacehuhnTech/esp8266_deauther)
-- [DeFlock v0.72 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- [DeFlock v0.73 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)
