@@ -7,22 +7,22 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define BR_APP_ID "bambu_rfid"
-#define BR_APP_NAME "Bambu RFID"
+#define BR_APP_ID      "bambu_rfid"
+#define BR_APP_NAME    "Bambu RFID"
 #define BR_APP_VERSION "0.2.0"
 
 #define BR_DATA_DIR EXT_PATH("apps_data/bambu_rfid")
 #define BR_TAGS_DIR BR_DATA_DIR "/tags"
 
-#define BR_UID_SIZE 4U
+#define BR_UID_SIZE     4U
 #define BR_SECTOR_COUNT 16U
-#define BR_BLOCK_COUNT 64U
-#define BR_BLOCK_SIZE 16U
-#define BR_TAG_SIZE (BR_BLOCK_COUNT * BR_BLOCK_SIZE)
+#define BR_BLOCK_COUNT  64U
+#define BR_BLOCK_SIZE   16U
+#define BR_TAG_SIZE     (BR_BLOCK_COUNT * BR_BLOCK_SIZE)
 
-#define BR_MAX_SAVED 64U
-#define BR_PATH_MAX 192U
-#define BR_NAME_MAX 64U
+#define BR_MAX_SAVED   64U
+#define BR_PATH_MAX    192U
+#define BR_NAME_MAX    64U
 #define BR_DETAIL_ROWS 19U
 
 struct BrTagDump {

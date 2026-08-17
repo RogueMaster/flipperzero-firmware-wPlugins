@@ -139,6 +139,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 - NFC: [Fix cards whose 4-byte UID starts with 0x88 failing to read - the anticollision loop decided UID completeness from the first UID byte (the `0x88` cascade tag value) instead of the SAK cascade bit, so a genuine 4-byte UID that happens to begin with `0x88` (seen on some MIFARE Classic and magic cards) was mistaken for the first level of a 7-byte UID; the poller then issued a second cascade SELECT the card ignored and the read aborted. Now decided from the SAK cascade bit per ISO14443-3, fixing it across every NFC-A protocol (Classic, Ultralight/NTAG, DESFire, Plus, ISO14443-4a, EMV) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1075)
 - Updated: [Infrared Playback v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
+- Added: [Bambu RID v0.2 (By DanTheMan827)](https://github.com/DanTheMan827/bambu-rfid-flipper)
 
 <a name="release"></a>
 
@@ -447,6 +448,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Badge Audit v1.0 (By ViperDroid)](https://github.com/ViperDroid/flipper-badge-audit)
 - [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [BadUSB wPlaceholders v1.0 (By whitewhidow)](https://github.com/whitewhidow/flipper-badusb-ph)
+- [Bambu RID v0.2 (By DanTheMan827)](https://github.com/DanTheMan827/bambu-rfid-flipper)
 - [Barcode App v1.5 (By Kingal1337)](https://github.com/Kingal1337/flipper-barcode-generator)
 - [BarCode Scanner Emulator (By polarikus)](https://github.com/polarikus/flipper-zero_bc_scanner_emulator) `Uses: COM-port`
 - [Battery Checker v0.2 (By Programistich)](https://github.com/Programistich/battery_checker)

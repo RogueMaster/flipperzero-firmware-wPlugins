@@ -168,8 +168,7 @@ bool write_dump_json(Storage* storage, const char* path, const BrTagDump& dump) 
               write_text(file, "  \"Card\": {\n") &&
               write_format(file, "    \"UID\": \"%s\",\n", uid) &&
               write_format(file, "    \"ATQA\": \"%s\",\n", atqa) &&
-              write_format(file, "    \"SAK\": \"%s\"\n", sak) &&
-              write_text(file, "  },\n") &&
+              write_format(file, "    \"SAK\": \"%s\"\n", sak) && write_text(file, "  },\n") &&
               write_text(file, "  \"blocks\": {\n");
 
     for(uint8_t block = 0; block < BR_BLOCK_COUNT && ok; ++block) {
@@ -189,8 +188,7 @@ bool write_dump_json(Storage* storage, const char* path, const BrTagDump& dump) 
         hex_compact(trailer + 10U, MF_CLASSIC_KEY_SIZE, key_b, sizeof(key_b));
         hex_compact(trailer + 6U, 4U, access_hex, sizeof(access_hex));
 
-        ok = write_format(
-                 file, "    \"%u\": {\n", static_cast<unsigned int>(sector)) &&
+        ok = write_format(file, "    \"%u\": {\n", static_cast<unsigned int>(sector)) &&
              write_format(file, "      \"KeyA\": \"%s\",\n", key_a) &&
              write_format(file, "      \"KeyB\": \"%s\",\n", key_b) &&
              write_format(file, "      \"AccessConditions\": \"%s\",\n", access_hex) &&
@@ -198,7 +196,8 @@ bool write_dump_json(Storage* storage, const char* path, const BrTagDump& dump) 
 
         for(uint8_t local_block = 0; local_block < BlocksPerSector && ok; ++local_block) {
             const uint8_t code = access_code(trailer + 6U, local_block);
-            const uint8_t absolute_block = static_cast<uint8_t>(sector * BlocksPerSector + local_block);
+            const uint8_t absolute_block =
+                static_cast<uint8_t>(sector * BlocksPerSector + local_block);
             const char* text = local_block == 3U ? TrailerAccessText[code] : DataAccessText[code];
             ok = write_format(
                 file,
@@ -206,13 +205,12 @@ bool write_dump_json(Storage* storage, const char* path, const BrTagDump& dump) 
                 static_cast<unsigned int>(absolute_block),
                 text);
         }
-        ok = ok &&
-             write_format(
-                 file,
-                 "        \"UserData\": \"%02X\"\n",
-                 static_cast<unsigned int>(trailer[9])) &&
-             write_text(file, "      }\n") &&
-             write_format(file, "    }%s\n", sector + 1U < BR_SECTOR_COUNT ? "," : "");
+        ok =
+            ok &&
+            write_format(
+                file, "        \"UserData\": \"%02X\"\n", static_cast<unsigned int>(trailer[9])) &&
+            write_text(file, "      }\n") &&
+            write_format(file, "    }%s\n", sector + 1U < BR_SECTOR_COUNT ? "," : "");
     }
 
     ok = ok && write_text(file, "  }\n}\n");
@@ -233,26 +231,27 @@ bool write_flipper_nfc(Storage* storage, const char* path, const BrTagDump& dump
     hex_spaced(reversed_atqa, sizeof(reversed_atqa), atqa, sizeof(atqa));
     hex_compact(dump.blocks[0] + 5U, 1U, sak, sizeof(sak));
 
-    bool ok = write_text(file, "Filetype: Flipper NFC device\n") &&
-              write_text(file, "Version: 4\n") &&
-              write_text(
-                  file,
-                  "# Device type can be ISO14443-3A, ISO14443-3B, ISO14443-4A, ISO14443-4B, ISO15693-3, FeliCa, NTAG/Ultralight, Mifare Classic, Mifare Plus, Mifare DESFire, SLIX, ST25TB, EMV\n") &&
-              write_text(file, "Device type: Mifare Classic\n") &&
-              write_text(file, "# UID is common for all formats\n") &&
-              write_format(file, "UID: %s\n", uid) &&
-              write_text(file, "# ISO14443-3A specific data\n") &&
-              write_format(file, "ATQA: %s\n", atqa) &&
-              write_format(file, "SAK: %s\n", sak) &&
-              write_text(file, "# Mifare Classic specific data\n") &&
-              write_text(file, "Mifare Classic type: 1K\n") &&
-              write_text(file, "Data format version: 2\n") &&
-              write_text(file, "# Mifare Classic blocks, '?" "?' means unknown data\n");
+    bool ok =
+        write_text(file, "Filetype: Flipper NFC device\n") && write_text(file, "Version: 4\n") &&
+        write_text(
+            file,
+            "# Device type can be ISO14443-3A, ISO14443-3B, ISO14443-4A, ISO14443-4B, ISO15693-3, FeliCa, NTAG/Ultralight, Mifare Classic, Mifare Plus, Mifare DESFire, SLIX, ST25TB, EMV\n") &&
+        write_text(file, "Device type: Mifare Classic\n") &&
+        write_text(file, "# UID is common for all formats\n") &&
+        write_format(file, "UID: %s\n", uid) &&
+        write_text(file, "# ISO14443-3A specific data\n") &&
+        write_format(file, "ATQA: %s\n", atqa) && write_format(file, "SAK: %s\n", sak) &&
+        write_text(file, "# Mifare Classic specific data\n") &&
+        write_text(file, "Mifare Classic type: 1K\n") &&
+        write_text(file, "Data format version: 2\n") &&
+        write_text(
+            file,
+            "# Mifare Classic blocks, '?"
+            "?' means unknown data\n");
 
     for(uint8_t block = 0; block < BR_BLOCK_COUNT && ok; ++block) {
         hex_spaced(dump.blocks[block], BR_BLOCK_SIZE, block_hex, sizeof(block_hex));
-        ok = write_format(
-            file, "Block %u: %s\n", static_cast<unsigned int>(block), block_hex);
+        ok = write_format(file, "Block %u: %s\n", static_cast<unsigned int>(block), block_hex);
     }
 
     close_output(file);
@@ -290,55 +289,60 @@ bool write_readme(Storage* storage, const char* path, const BrTagInfo& info) {
     format_fixed_2(spool_width, sizeof(spool_width), info.spool_width_mm);
     format_fixed_1(nozzle, sizeof(nozzle), info.nozzle_diameter_mm);
 
-    bool ok = write_format(file, "# Bambu RFID Tag %s\n\n", info.uid_hex) &&
-              write_format(file, "Generated by %s %s.\n\n", BR_APP_NAME, BR_APP_VERSION) &&
-              write_text(file, "## Tag information\n\n") &&
-              write_format(file, "- UID: `%s`\n", info.uid_hex) &&
-              write_format(file, "- Filament type: `%s`\n", info.filament_type) &&
-              write_format(file, "- Detailed filament type: `%s`\n", info.detailed_filament_type) &&
-              write_format(file, "- Material ID: `%s`\n", info.material_id) &&
-              write_format(file, "- Variant ID: `%s`\n", info.variant_id) &&
-              write_format(file, "- Primary color (RGBA): `%s`\n", info.color_hex) &&
-              (info.color_count != 2U ||
-               write_format(file, "- Secondary color (RGBA): `%s`\n", info.second_color_hex)) &&
-              write_format(
-                  file, "- Color count: `%u`\n", static_cast<unsigned int>(info.color_count)) &&
-              write_format(
-                  file, "- Spool weight: `%u g`\n", static_cast<unsigned int>(info.spool_weight_g)) &&
-              write_format(file, "- Filament diameter: `%s mm`\n", diameter) &&
-              write_format(
-                  file,
-                  "- Filament length: `%u m`\n",
-                  static_cast<unsigned int>(info.filament_length_m)) &&
-              write_format(file, "- Spool width: `%s mm`\n", spool_width) &&
-              write_format(file, "- Nozzle diameter: `%s mm`\n", nozzle) &&
-              write_format(
-                  file,
-                  "- Hotend range: `%u-%u C`\n",
-                  static_cast<unsigned int>(info.hotend_min_c),
-                  static_cast<unsigned int>(info.hotend_max_c)) &&
-              write_format(
-                  file,
-                  "- Bed temperature: `%u C` (type `%u`)\n",
-                  static_cast<unsigned int>(info.bed_temp_c),
-                  static_cast<unsigned int>(info.bed_temp_type)) &&
-              write_format(
-                  file,
-                  "- Drying: `%u C` for `%u h`\n",
-                  static_cast<unsigned int>(info.drying_temp_c),
-                  static_cast<unsigned int>(info.drying_time_h)) &&
-              write_format(file, "- Production timestamp: `%s`\n", info.production_date) &&
-              write_format(file, "- Short production date: `%s`\n", info.short_date) &&
-              write_format(file, "- Tray UID: `%s`\n", info.tray_uid_hex) &&
-              write_format(file, "- XCam data: `%s`\n", info.xcam_hex) &&
-              write_format(file, "- Block 17 prefix: `%s`\n", info.block17_hex) &&
-              write_format(file, "- Complete 1K dump: `%s`\n\n", info.complete ? "yes" : "no") &&
-              write_text(file, "## Files\n\n") &&
-              write_format(file, "- `hf-mf-%s-dump.bin` - raw 1024-byte MIFARE Classic dump\n", info.uid_hex) &&
-              write_format(file, "- `hf-mf-%s-dump.json` - Proxmark-style mfc v2 JSON dump\n", info.uid_hex) &&
-              write_format(file, "- `hf-mf-%s-key.bin` - 16 Key A values followed by 16 Key B values\n", info.uid_hex) &&
-              write_format(file, "- `hf-mf-%s.nfc` - Flipper NFC device file\n", info.uid_hex) &&
-              write_text(file, "- `README.md` - parsed tag summary\n");
+    bool ok =
+        write_format(file, "# Bambu RFID Tag %s\n\n", info.uid_hex) &&
+        write_format(file, "Generated by %s %s.\n\n", BR_APP_NAME, BR_APP_VERSION) &&
+        write_text(file, "## Tag information\n\n") &&
+        write_format(file, "- UID: `%s`\n", info.uid_hex) &&
+        write_format(file, "- Filament type: `%s`\n", info.filament_type) &&
+        write_format(file, "- Detailed filament type: `%s`\n", info.detailed_filament_type) &&
+        write_format(file, "- Material ID: `%s`\n", info.material_id) &&
+        write_format(file, "- Variant ID: `%s`\n", info.variant_id) &&
+        write_format(file, "- Primary color (RGBA): `%s`\n", info.color_hex) &&
+        (info.color_count != 2U ||
+         write_format(file, "- Secondary color (RGBA): `%s`\n", info.second_color_hex)) &&
+        write_format(file, "- Color count: `%u`\n", static_cast<unsigned int>(info.color_count)) &&
+        write_format(
+            file, "- Spool weight: `%u g`\n", static_cast<unsigned int>(info.spool_weight_g)) &&
+        write_format(file, "- Filament diameter: `%s mm`\n", diameter) &&
+        write_format(
+            file,
+            "- Filament length: `%u m`\n",
+            static_cast<unsigned int>(info.filament_length_m)) &&
+        write_format(file, "- Spool width: `%s mm`\n", spool_width) &&
+        write_format(file, "- Nozzle diameter: `%s mm`\n", nozzle) &&
+        write_format(
+            file,
+            "- Hotend range: `%u-%u C`\n",
+            static_cast<unsigned int>(info.hotend_min_c),
+            static_cast<unsigned int>(info.hotend_max_c)) &&
+        write_format(
+            file,
+            "- Bed temperature: `%u C` (type `%u`)\n",
+            static_cast<unsigned int>(info.bed_temp_c),
+            static_cast<unsigned int>(info.bed_temp_type)) &&
+        write_format(
+            file,
+            "- Drying: `%u C` for `%u h`\n",
+            static_cast<unsigned int>(info.drying_temp_c),
+            static_cast<unsigned int>(info.drying_time_h)) &&
+        write_format(file, "- Production timestamp: `%s`\n", info.production_date) &&
+        write_format(file, "- Short production date: `%s`\n", info.short_date) &&
+        write_format(file, "- Tray UID: `%s`\n", info.tray_uid_hex) &&
+        write_format(file, "- XCam data: `%s`\n", info.xcam_hex) &&
+        write_format(file, "- Block 17 prefix: `%s`\n", info.block17_hex) &&
+        write_format(file, "- Complete 1K dump: `%s`\n\n", info.complete ? "yes" : "no") &&
+        write_text(file, "## Files\n\n") &&
+        write_format(
+            file, "- `hf-mf-%s-dump.bin` - raw 1024-byte MIFARE Classic dump\n", info.uid_hex) &&
+        write_format(
+            file, "- `hf-mf-%s-dump.json` - Proxmark-style mfc v2 JSON dump\n", info.uid_hex) &&
+        write_format(
+            file,
+            "- `hf-mf-%s-key.bin` - 16 Key A values followed by 16 Key B values\n",
+            info.uid_hex) &&
+        write_format(file, "- `hf-mf-%s.nfc` - Flipper NFC device file\n", info.uid_hex) &&
+        write_text(file, "- `README.md` - parsed tag summary\n");
 
     close_output(file);
     return ok;

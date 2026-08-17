@@ -15,8 +15,17 @@ public:
     void run();
 
 private:
-    enum class Screen : uint8_t { MainMenu, Scan, Browse, Detail, About };
-    enum CustomEvent : uint32_t { ScanProgress = 1, ScanDone = 2 };
+    enum class Screen : uint8_t {
+        MainMenu,
+        Scan,
+        Browse,
+        Detail,
+        About
+    };
+    enum CustomEvent : uint32_t {
+        ScanProgress = 1,
+        ScanDone = 2
+    };
 
     static constexpr uint8_t StackMax = 6;
     static constexpr uint8_t VisibleRows = 4;

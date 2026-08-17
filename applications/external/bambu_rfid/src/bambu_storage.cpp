@@ -13,12 +13,13 @@ bool supported_extension(const char* name) {
 }
 
 bool safe_name(const char* name) {
-    return name && name[0] && !strchr(name, '/') && !strchr(name, '\\') && strcmp(name, ".") != 0 &&
-           strcmp(name, "..") != 0;
+    return name && name[0] && !strchr(name, '/') && !strchr(name, '\\') &&
+           strcmp(name, ".") != 0 && strcmp(name, "..") != 0;
 }
 
 bool safe_relative_path(const char* path) {
-    if(!path || !path[0] || path[0] == '/' || strchr(path, '\\') || strstr(path, "..")) return false;
+    if(!path || !path[0] || path[0] == '/' || strchr(path, '\\') || strstr(path, ".."))
+        return false;
     return true;
 }
 
@@ -88,12 +89,7 @@ bool load_bundle_folder(
     char source_name[BR_PATH_MAX];
 
     int length = snprintf(
-        full_path,
-        sizeof(full_path),
-        "%s/%s/hf-mf-%s.nfc",
-        BR_TAGS_DIR,
-        folder_name,
-        folder_name);
+        full_path, sizeof(full_path), "%s/%s/hf-mf-%s.nfc", BR_TAGS_DIR, folder_name, folder_name);
     if(length > 0 && static_cast<size_t>(length) < sizeof(full_path)) {
         snprintf(source_name, sizeof(source_name), "%s/hf-mf-%s.nfc", folder_name, folder_name);
         if(add_entry(storage, entries, count, max_entries, full_path, source_name)) return true;
@@ -108,11 +104,7 @@ bool load_bundle_folder(
         folder_name);
     if(length > 0 && static_cast<size_t>(length) < sizeof(full_path)) {
         snprintf(
-            source_name,
-            sizeof(source_name),
-            "%s/hf-mf-%s-dump.bin",
-            folder_name,
-            folder_name);
+            source_name, sizeof(source_name), "%s/hf-mf-%s-dump.bin", folder_name, folder_name);
         if(add_entry(storage, entries, count, max_entries, full_path, source_name)) return true;
     }
 
@@ -131,7 +123,8 @@ bool load_bundle_folder(
     FileInfo info;
     char filename[BR_NAME_MAX];
     while(!found && storage_dir_read(dir, &info, filename, sizeof(filename))) {
-        if((info.flags & FSF_DIRECTORY) || !safe_name(filename) || !supported_extension(filename)) continue;
+        if((info.flags & FSF_DIRECTORY) || !safe_name(filename) || !supported_extension(filename))
+            continue;
         length = snprintf(full_path, sizeof(full_path), "%s/%s", folder_path, filename);
         if(length <= 0 || static_cast<size_t>(length) >= sizeof(full_path)) continue;
         snprintf(source_name, sizeof(source_name), "%s/%s", folder_name, filename);
@@ -178,7 +171,8 @@ uint16_t br_saved_scan(Storage* storage, BrSavedEntry* entries, uint16_t max_ent
         }
 
         // Backward compatibility with the older flat .nfc/.bin save layout.
-        if(!supported_extension(filename) || !br_saved_path(filename, path, sizeof(path))) continue;
+        if(!supported_extension(filename) || !br_saved_path(filename, path, sizeof(path)))
+            continue;
         add_entry(storage, entries, &count, max_entries, path, filename);
     }
 

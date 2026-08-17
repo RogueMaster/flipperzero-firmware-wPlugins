@@ -17,7 +17,6 @@ void set_message(BrScanResult* result, const char* text) {
     snprintf(result->message, sizeof(result->message), "%s", text ? text : "");
 }
 
-
 bool all_blocks_read(const MfClassicData* data) {
     if(!data || data->type != MfClassicType1k) return false;
     for(uint8_t block = 0; block < BR_BLOCK_COUNT; ++block) {
@@ -32,7 +31,8 @@ bool wait_for_uid(Nfc* nfc, volatile bool* cancel, uint8_t uid[BR_UID_SIZE]) {
         if(!poller) return false;
         bool found = nfc_poller_detect(poller);
         if(found) {
-            const Iso14443_3aData* data = static_cast<const Iso14443_3aData*>(nfc_poller_get_data(poller));
+            const Iso14443_3aData* data =
+                static_cast<const Iso14443_3aData*>(nfc_poller_get_data(poller));
             if(data && data->uid_len == BR_UID_SIZE) {
                 memcpy(uid, data->uid, BR_UID_SIZE);
                 nfc_poller_free(poller);
@@ -109,7 +109,8 @@ int32_t br_scan_worker(void* context) {
     error = mf_classic_poller_sync_read(nfc, &keys, data);
     // Both A and B keys are UID-derived. Still accept PartialRead defensively, but only
     // treat the scan as successful when every one of the 64 blocks is present.
-    if((error != MfClassicErrorNone && error != MfClassicErrorPartialRead) || !all_blocks_read(data)) {
+    if((error != MfClassicErrorNone && error != MfClassicErrorPartialRead) ||
+       !all_blocks_read(data)) {
         set_message(result, "Read incomplete - keep tag steady and retry");
         mf_classic_free(data);
         nfc_free(nfc);
@@ -145,7 +146,8 @@ int32_t br_scan_worker(void* context) {
     }
 
     result->ok = true;
-    snprintf(result->message, sizeof(result->message), "Saved %s tag bundle", result->info.uid_hex);
+    snprintf(
+        result->message, sizeof(result->message), "Saved %s tag bundle", result->info.uid_hex);
 
     mf_classic_free(data);
     nfc_free(nfc);

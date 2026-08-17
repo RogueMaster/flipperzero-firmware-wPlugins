@@ -58,7 +58,8 @@ bool next_wrapped_line(
     if(!text || !offset || !out || out_size < 2) return false;
 
     size_t begin = *offset;
-    while(text[begin] == ' ') ++begin;
+    while(text[begin] == ' ')
+        ++begin;
     if(text[begin] == '\0') {
         *offset = begin;
         return false;
@@ -99,13 +100,15 @@ bool next_wrapped_line(
 
     if(!width_exceeded && end == begin && text[begin] != '\0') end = begin + 1;
 
-    while(end > begin && text[end - 1] == ' ') --end;
+    while(end > begin && text[end - 1] == ' ')
+        --end;
     const size_t line_len = end - begin;
     memcpy(out, text + begin, line_len);
     out[line_len] = '\0';
 
     size_t next = width_exceeded ? (last_space > begin ? last_space + 1 : end) : cursor;
-    while(text[next] == ' ') ++next;
+    while(text[next] == ' ')
+        ++next;
     if(text[next] == '\n') ++next;
     if(next <= begin) next = begin + 1;
     *offset = next;
@@ -123,7 +126,8 @@ uint8_t draw_wrapped_text(
     size_t offset = 0;
     uint8_t lines = 0;
     char line[WrappedLineBuffer];
-    while(lines < max_lines && next_wrapped_line(canvas, text, &offset, max_width, line, sizeof(line))) {
+    while(lines < max_lines &&
+          next_wrapped_line(canvas, text, &offset, max_width, line, sizeof(line))) {
         canvas_draw_str(canvas, x, y + lines * line_height, line);
         ++lines;
     }
@@ -153,25 +157,25 @@ void format_fixed_1(char* out, size_t out_size, float value, const char* unit) {
 }
 } // namespace
 
-BrUiManager::BrUiManager(BrApp& app) :
-    app_(app),
-    dispatcher_(nullptr),
-    view_(nullptr),
-    stack_{},
-    depth_(0),
-    menu_index_(0),
-    browse_index_(0),
-    detail_offset_(0),
-    about_offset_(0),
-    saved_{},
-    saved_count_(0),
-    current_info_{},
-    current_source_{},
-    scan_thread_(nullptr),
-    scan_cancel_(false),
-    scan_context_{},
-    scan_result_{},
-    scan_running_(false) {
+BrUiManager::BrUiManager(BrApp& app)
+    : app_(app)
+    , dispatcher_(nullptr)
+    , view_(nullptr)
+    , stack_{}
+    , depth_(0)
+    , menu_index_(0)
+    , browse_index_(0)
+    , detail_offset_(0)
+    , about_offset_(0)
+    , saved_{}
+    , saved_count_(0)
+    , current_info_{}
+    , current_source_{}
+    , scan_thread_(nullptr)
+    , scan_cancel_(false)
+    , scan_context_{}
+    , scan_result_{}
+    , scan_running_(false) {
 }
 
 BrUiManager::~BrUiManager() {
@@ -270,7 +274,8 @@ void BrUiManager::startScan() {
 
     scan_thread_ = furi_thread_alloc_ex("BambuScan", 4096, br_scan_worker, &scan_context_);
     if(!scan_thread_) {
-        snprintf(scan_result_.message, sizeof(scan_result_.message), "Could not start scan thread");
+        snprintf(
+            scan_result_.message, sizeof(scan_result_.message), "Could not start scan thread");
         return;
     }
     scan_running_ = true;
@@ -306,8 +311,10 @@ void BrUiManager::finishScan() {
 
 void BrUiManager::reloadSaved() {
     saved_count_ = br_saved_scan(app_.storage, saved_, BR_MAX_SAVED);
-    if(saved_count_ == 0) browse_index_ = 0;
-    else if(browse_index_ >= saved_count_) browse_index_ = saved_count_ - 1;
+    if(saved_count_ == 0)
+        browse_index_ = 0;
+    else if(browse_index_ >= saved_count_)
+        browse_index_ = saved_count_ - 1;
 }
 
 bool BrUiManager::openSaved(uint16_t index) {
@@ -328,7 +335,10 @@ void BrUiManager::drawMainMenu(Canvas* canvas) const {
     drawHeader(canvas, BR_APP_NAME);
     for(size_t i = 0; i < COUNT_OF(MainMenuItems); ++i) {
         draw_menu_row(
-            canvas, static_cast<uint8_t>(i), MainMenuItems[i], i == static_cast<size_t>(menu_index_));
+            canvas,
+            static_cast<uint8_t>(i),
+            MainMenuItems[i],
+            i == static_cast<size_t>(menu_index_));
     }
 }
 
@@ -402,11 +412,21 @@ uint16_t BrUiManager::detailCount() const {
 void BrUiManager::detailLine(uint16_t index, char* out, size_t out_size) const {
     const BrTagInfo& t = current_info_;
     switch(index) {
-    case 0: snprintf(out, out_size, "UID: %s", t.uid_hex); break;
-    case 1: snprintf(out, out_size, "Type: %s", t.filament_type); break;
-    case 2: snprintf(out, out_size, "Detail: %s", t.detailed_filament_type); break;
-    case 3: snprintf(out, out_size, "Material: %s", t.material_id); break;
-    case 4: snprintf(out, out_size, "Variant: %s", t.variant_id); break;
+    case 0:
+        snprintf(out, out_size, "UID: %s", t.uid_hex);
+        break;
+    case 1:
+        snprintf(out, out_size, "Type: %s", t.filament_type);
+        break;
+    case 2:
+        snprintf(out, out_size, "Detail: %s", t.detailed_filament_type);
+        break;
+    case 3:
+        snprintf(out, out_size, "Material: %s", t.material_id);
+        break;
+    case 4:
+        snprintf(out, out_size, "Variant: %s", t.variant_id);
+        break;
     case 5:
         snprintf(
             out,
@@ -416,36 +436,52 @@ void BrUiManager::detailLine(uint16_t index, char* out, size_t out_size) const {
             t.color_count == 2 ? " / " : "",
             t.color_count == 2 ? t.second_color_hex : "");
         break;
-    case 6: snprintf(out, out_size, "Weight: %u g", t.spool_weight_g); break;
+    case 6:
+        snprintf(out, out_size, "Weight: %u g", t.spool_weight_g);
+        break;
     case 7:
         snprintf(out, out_size, "Diameter: ");
         format_fixed_2(out + strlen(out), out_size - strlen(out), t.filament_diameter_mm, "mm");
         break;
-    case 8: snprintf(out, out_size, "Length: %u m", t.filament_length_m); break;
+    case 8:
+        snprintf(out, out_size, "Length: %u m", t.filament_length_m);
+        break;
     case 9:
         snprintf(out, out_size, "Spool width: ");
         format_fixed_2(out + strlen(out), out_size - strlen(out), t.spool_width_mm, "mm");
         break;
-    case 10: snprintf(out, out_size, "Hotend: %u-%u C", t.hotend_min_c, t.hotend_max_c); break;
-    case 11: snprintf(out, out_size, "Bed: %u C (type %u)", t.bed_temp_c, t.bed_temp_type); break;
-    case 12: snprintf(out, out_size, "Dry: %u C / %u h", t.drying_temp_c, t.drying_time_h); break;
+    case 10:
+        snprintf(out, out_size, "Hotend: %u-%u C", t.hotend_min_c, t.hotend_max_c);
+        break;
+    case 11:
+        snprintf(out, out_size, "Bed: %u C (type %u)", t.bed_temp_c, t.bed_temp_type);
+        break;
+    case 12:
+        snprintf(out, out_size, "Dry: %u C / %u h", t.drying_temp_c, t.drying_time_h);
+        break;
     case 13:
         snprintf(out, out_size, "Nozzle: ");
         format_fixed_1(out + strlen(out), out_size - strlen(out), t.nozzle_diameter_mm, "mm");
         break;
-    case 14: snprintf(out, out_size, "Made: %s", t.production_date); break;
-    case 15: snprintf(out, out_size, "Short date: %s", t.short_date); break;
-    case 16: snprintf(out, out_size, "Tray UID: %s", t.tray_uid_hex); break;
-    case 17: snprintf(out, out_size, "XCam: %s", t.xcam_hex); break;
+    case 14:
+        snprintf(out, out_size, "Made: %s", t.production_date);
+        break;
+    case 15:
+        snprintf(out, out_size, "Short date: %s", t.short_date);
+        break;
+    case 16:
+        snprintf(out, out_size, "Tray UID: %s", t.tray_uid_hex);
+        break;
+    case 17:
+        snprintf(out, out_size, "XCam: %s", t.xcam_hex);
+        break;
     case 18:
         snprintf(
-            out,
-            out_size,
-            "Block17: %s  %s",
-            t.block17_hex,
-            t.complete ? "complete" : "partial");
+            out, out_size, "Block17: %s  %s", t.block17_hex, t.complete ? "complete" : "partial");
         break;
-    default: out[0] = '\0'; break;
+    default:
+        out[0] = '\0';
+        break;
     }
 }
 
@@ -458,8 +494,8 @@ void BrUiManager::drawDetail(Canvas* canvas) const {
     while(item < detailCount() && y <= 62) {
         detailLine(item, text, sizeof(text));
         const uint8_t available_lines = static_cast<uint8_t>((62 - y) / TextLineHeight + 1);
-        const uint8_t used = draw_wrapped_text(
-            canvas, 4, y, ContentWidth, TextLineHeight, text, available_lines);
+        const uint8_t used =
+            draw_wrapped_text(canvas, 4, y, ContentWidth, TextLineHeight, text, available_lines);
         if(used == 0) break;
         y = static_cast<uint8_t>(y + used * TextLineHeight);
         ++item;
@@ -489,11 +525,21 @@ void BrUiManager::draw(Canvas* canvas) {
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
     switch(screen()) {
-    case Screen::MainMenu: drawMainMenu(canvas); break;
-    case Screen::Scan: drawScan(canvas); break;
-    case Screen::Browse: drawBrowse(canvas); break;
-    case Screen::Detail: drawDetail(canvas); break;
-    case Screen::About: drawAbout(canvas); break;
+    case Screen::MainMenu:
+        drawMainMenu(canvas);
+        break;
+    case Screen::Scan:
+        drawScan(canvas);
+        break;
+    case Screen::Browse:
+        drawBrowse(canvas);
+        break;
+    case Screen::Detail:
+        drawDetail(canvas);
+        break;
+    case Screen::About:
+        drawAbout(canvas);
+        break;
     }
 }
 
@@ -503,36 +549,46 @@ bool BrUiManager::input(InputEvent* event) {
 
     switch(screen()) {
     case Screen::MainMenu:
-        if(event->key == InputKeyUp && menu_index_ > 0) --menu_index_;
+        if(event->key == InputKeyUp && menu_index_ > 0)
+            --menu_index_;
         else if(
             event->key == InputKeyDown &&
             static_cast<size_t>(menu_index_) + 1U < COUNT_OF(MainMenuItems))
             ++menu_index_;
         else if(event->key == InputKeyOk && event->type == InputTypeShort) {
-            if(menu_index_ == 0) push(Screen::Scan);
-            else if(menu_index_ == 1) push(Screen::Browse);
-            else push(Screen::About);
+            if(menu_index_ == 0)
+                push(Screen::Scan);
+            else if(menu_index_ == 1)
+                push(Screen::Browse);
+            else
+                push(Screen::About);
         }
         break;
     case Screen::Scan:
         if(event->key == InputKeyOk && event->type == InputTypeShort && !scan_running_) {
-            if(scan_result_.ok) push(Screen::Detail);
-            else startScan();
+            if(scan_result_.ok)
+                push(Screen::Detail);
+            else
+                startScan();
         }
         break;
     case Screen::Browse:
-        if(saved_count_ && event->key == InputKeyUp && browse_index_ > 0) --browse_index_;
+        if(saved_count_ && event->key == InputKeyUp && browse_index_ > 0)
+            --browse_index_;
         else if(saved_count_ && event->key == InputKeyDown && browse_index_ + 1 < saved_count_)
             ++browse_index_;
         else if(saved_count_ && event->key == InputKeyOk && event->type == InputTypeShort)
             openSaved(browse_index_);
         break;
     case Screen::Detail:
-        if(event->key == InputKeyUp && detail_offset_ > 0) --detail_offset_;
-        else if(event->key == InputKeyDown && detail_offset_ + 1 < detailCount()) ++detail_offset_;
+        if(event->key == InputKeyUp && detail_offset_ > 0)
+            --detail_offset_;
+        else if(event->key == InputKeyDown && detail_offset_ + 1 < detailCount())
+            ++detail_offset_;
         break;
     case Screen::About:
-        if(event->key == InputKeyUp && about_offset_ > 0) --about_offset_;
+        if(event->key == InputKeyUp && about_offset_ > 0)
+            --about_offset_;
         else if(
             event->key == InputKeyDown &&
             static_cast<size_t>(about_offset_) + 1U < COUNT_OF(AboutItems))

@@ -25,7 +25,8 @@ void ascii_field(const uint8_t* src, size_t len, char* dst, size_t dst_size) {
         if(c == 0) break;
         dst[out++] = (c >= 0x20 && c <= 0x7E) ? (char)c : '?';
     }
-    while(out && dst[out - 1] == ' ') --out;
+    while(out && dst[out - 1] == ' ')
+        --out;
     dst[out] = '\0';
 }
 
@@ -179,8 +180,8 @@ bool br_load_tag_file(Storage* storage, const char* path, BrTagInfo* info) {
         if(!device) return false;
         bool ok = nfc_device_load(device, path);
         if(ok && nfc_device_get_protocol(device) == NfcProtocolMfClassic) {
-            const MfClassicData* data =
-                static_cast<const MfClassicData*>(nfc_device_get_data(device, NfcProtocolMfClassic));
+            const MfClassicData* data = static_cast<const MfClassicData*>(
+                nfc_device_get_data(device, NfcProtocolMfClassic));
             ok = br_parse_mf(data, info);
         } else {
             ok = false;
