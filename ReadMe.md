@@ -144,6 +144,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [VGM Air Mouse v1.4 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/motion_mouse_app) `Req: ICM42688, or Video Game Module By Flipper Devices` (Version Only)
 - Updated: [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader)
 - Updated: [DeFlock v0.73 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- OFW: NFC [DESFire: Fix crash when reading card with a zero-key application #4439 (By jcz0)](https://github.com/flipperdevices/flipperzero-firmware/pull/4439)
+- JS Runner, NFC: [Fix some out of memory crashes - apps no longer bundle their own copy of the soft-float code, it is shared from the firmware now (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a8164fc4e248f5addc1f0fa5564e4b3619f6c7d1)
+- RPC: [Fix crash when starting an app over RPC - launching an app with a mismatched API version hit an unhandled loader status and took the firmware down instead of returning an error (By apfxtech)](https://github.com/DarkFlippers/unleashed-firmware/pull/1076)
+- Lib: [Music worker pause/resume - new `music_worker_pause()` / `music_worker_resume()` in the app API, resuming continues from the same note (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/513868186f0ea2f303ce75e273da1c8f0e253a13)
 
 <a name="release"></a>
 
