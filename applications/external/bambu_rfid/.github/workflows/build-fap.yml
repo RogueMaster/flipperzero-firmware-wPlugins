@@ -1,0 +1,126 @@
+name: Build FAP
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*.*.*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fap-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FALLBACK_VERSION: "0.1.0"
+
+jobs:
+  build:
+    name: Build (${{ matrix.sdk-channel }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk-channel: [release, dev]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve build version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="$(git rev-parse --short=7 HEAD)"
+          semver_regex='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          event_tag=""
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            event_tag="${GITHUB_REF_NAME}"
+            [[ "${event_tag}" =~ ${semver_regex} ]] || { echo "::error::Tag must be vX.Y.Z"; exit 1; }
+          fi
+          exact_tag="${event_tag}"
+          if [[ -z "${exact_tag}" ]]; then
+            exact_tag="$(git tag --points-at HEAD | grep -E "${semver_regex}" | sort -V | tail -n 1 || true)"
+          fi
+          if [[ -n "${exact_tag}" ]]; then
+            base_version="${exact_tag#v}"
+            display_version="${base_version}"
+          else
+            previous_tag="$(git tag --merged HEAD | grep -E "${semver_regex}" | sort -V | tail -n 1 || true)"
+            base_version="${previous_tag#v}"
+            [[ -n "${base_version}" ]] || base_version="${FALLBACK_VERSION}"
+            display_version="${base_version}-${short_sha}"
+          fi
+          echo "base=${base_version}" >> "${GITHUB_OUTPUT}"
+          echo "display=${display_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Inject build version
+        env:
+          BASE_VERSION: ${{ steps.version.outputs.base }}
+          DISPLAY_VERSION: ${{ steps.version.outputs.display }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          edits = [
+              (Path("application.fam"), r'(fap_version\s*=\s*")[^"]*(")', rf'\g<1>{os.environ["BASE_VERSION"]}\g<2>'),
+              (Path("src/bambu_rfid.h"), r'(#define\s+BR_APP_VERSION\s+")[^"]*(")', rf'\g<1>{os.environ["DISPLAY_VERSION"]}\g<2>'),
+          ]
+          for path, pattern, replacement in edits:
+              text = path.read_text()
+              text, count = re.subn(pattern, replacement, text, count=1)
+              if count != 1: raise SystemExit(f"Could not update {path}")
+              path.write_text(text)
+          PY
+
+      - name: Validate Bambu KDF/data vectors
+        run: python3 tests/test_vectors.py
+
+      - name: Build with uFBT
+        id: build-app
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
+        with:
+          app-dir: .
+          sdk-channel: ${{ matrix.sdk-channel }}
+          task: build
+
+      - name: Upload FAP artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: bambu-rfid-${{ matrix.sdk-channel }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release FAP
+        uses: actions/download-artifact@v8
+        with:
+          name: bambu-rfid-release
+          path: release-dist
+          
+      - name: Public release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Bambu RFID v${{ steps.release-version.outputs.version}}"
+          tag_name: "v${{ steps.release-version.outputs.version}}"
+          draft: false
+          generate_release_notes: true
+          files: |
+            release-dist/*.fap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
