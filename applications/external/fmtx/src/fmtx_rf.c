@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <furi_hal.h>
+#include <applications/drivers/subghz/cc1101_ext/cc1101_ext_interconnect.h>
 #include <lib/drivers/cc1101_regs.h>
 
 static const uint8_t fmtx_preset[] = {
@@ -59,6 +60,7 @@ void rfinit(Rf* rf, uint32_t hz) {
     rf->regs = fmtx_preset;
     rf->sample_decisions = 3U;
     rf->gain = 2;
+    rf->selected = FmtxRadioAuto;
 }
 
 const uint8_t* rfregs(void) {
@@ -134,17 +136,103 @@ static void txled(bool on) {
         furi_hal_light_set(LightBlue, 0);
         furi_hal_light_set(LightGreen, 96);
         furi_hal_light_set(LightRed, 255);
-    } else
-        furi_hal_light_set(LightRed | LightGreen | LightBlue, 0);
+    } else {
+        furi_hal_light_set(LightRed | LightGreen, 0);
+        furi_hal_light_set(LightBlue, 255);
+    }
 }
 
-bool rfstart(Rf* rf) {
-    if(rf->on) return true;
-    if(!furi_hal_subghz_is_frequency_valid(rf->hz) ||
-       !furi_hal_region_is_frequency_allowed(rf->hz))
+void rfledidle(void) {
+    txled(false);
+}
+
+void rfledoff(void) {
+    furi_hal_light_set(LightRed | LightGreen | LightBlue, 0);
+}
+
+void rfselect(Rf* rf, FmtxRadio radio) {
+    if(!rf || rf->on || rf->awake) return;
+    rf->selected = radio <= FmtxRadioInternal ? radio : FmtxRadioAuto;
+}
+
+static bool rfextpoweron(Rf* rf) {
+    uint8_t i;
+    if(furi_hal_power_is_otg_enabled()) return true;
+    for(i = 0; i < 5; i++) {
+        if(furi_hal_power_enable_otg()) {
+            rf->power_started = true;
+            return true;
+        }
+        furi_delay_ms(10);
+    }
+    return false;
+}
+
+static void rfextclose(Rf* rf) {
+    if(rf->device && rf->device_started) {
+        subghz_devices_sleep(rf->device);
+        subghz_devices_end(rf->device);
+    }
+    rf->device = NULL;
+    rf->device_started = false;
+    rf->external = false;
+    if(rf->devices_started) {
+        subghz_devices_deinit();
+        rf->devices_started = false;
+    }
+    if(rf->power_started && furi_hal_power_is_otg_enabled()) furi_hal_power_disable_otg();
+    rf->power_started = false;
+}
+
+static bool rfextopen(Rf* rf) {
+    if(!rfextpoweron(rf)) return false;
+    subghz_devices_init();
+    rf->devices_started = true;
+    rf->device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
+    if(!rf->device) {
+        rfextclose(rf);
         return false;
-    furi_hal_power_insomnia_enter();
-    rf->awake = true;
+    }
+    if(!subghz_devices_begin(rf->device)) {
+        subghz_devices_end(rf->device);
+        rf->device = NULL;
+        rfextclose(rf);
+        return false;
+    }
+    rf->device_started = true;
+    if(!subghz_devices_is_connect(rf->device)) {
+        rfextclose(rf);
+        return false;
+    }
+    rf->external = true;
+    return true;
+}
+
+bool rfexternal(Rf* rf) {
+    bool ok;
+    if(!rf || rf->on || rf->awake) return false;
+    ok = rfextopen(rf);
+    rfextclose(rf);
+    return ok;
+}
+
+static bool rfstartext(Rf* rf) {
+    if(!rfextopen(rf)) return false;
+    subghz_devices_reset(rf->device);
+    subghz_devices_idle(rf->device);
+    subghz_devices_load_preset(rf->device, FuriHalSubGhzPresetCustom, (uint8_t*)rf->regs);
+    (void)subghz_devices_set_frequency(rf->device, rf->hz);
+    subghz_devices_flush_tx(rf->device);
+    if(!subghz_devices_set_tx(rf->device)) {
+        rfextclose(rf);
+        return false;
+    }
+    rf->on = subghz_devices_start_async_tx(rf->device, rfbit, rf);
+    if(!rf->on) rfextclose(rf);
+    return rf->on;
+}
+
+static bool rfstartint(Rf* rf) {
     furi_hal_subghz_reset();
     furi_hal_subghz_idle();
     furi_hal_subghz_load_custom_preset(rf->regs);
@@ -154,38 +242,80 @@ bool rfstart(Rf* rf) {
     // Start with 100 ms of zero samples while the carrier settles.
     rf->lock_decisions = 4800U;
     rf->on = furi_hal_subghz_start_async_tx(rfbit, rf);
-    if(!rf->on) rfstop(rf);
-    if(rf->on) txled(true);
+    return rf->on;
+}
 
+bool rfstart(Rf* rf) {
+    if(rf->on) return true;
+    if(!furi_hal_subghz_is_frequency_valid(rf->hz) ||
+       !furi_hal_region_is_frequency_allowed(rf->hz))
+        return false;
+    furi_hal_power_insomnia_enter();
+    rf->awake = true;
+    rf->drain = false;
+    rf->lock_decisions = 4800U;
+    if(rf->selected != FmtxRadioInternal && rfstartext(rf)) {
+        txled(true);
+        return true;
+    }
+    if(rf->selected != FmtxRadioExternal && rfstartint(rf)) {
+        txled(true);
+        return true;
+    }
+    rfstop(rf);
     return rf->on;
 }
 
 bool rfresume(Rf* rf) {
     if(rf->on) return true;
     if(!rf->awake) return false;
-    furi_hal_subghz_idle();
-    (void)furi_hal_subghz_set_frequency_and_path(rf->hz);
-    furi_hal_gpio_init(furi_hal_subghz_get_data_gpio(), GpioModeInput, GpioPullNo, GpioSpeedLow);
     rf->drain = false;
-    rf->on = furi_hal_subghz_start_async_tx(rfbit, rf);
+    if(rf->external) {
+        subghz_devices_idle(rf->device);
+        (void)subghz_devices_set_frequency(rf->device, rf->hz);
+        subghz_devices_flush_tx(rf->device);
+        if(subghz_devices_set_tx(rf->device))
+            rf->on = subghz_devices_start_async_tx(rf->device, rfbit, rf);
+    } else {
+        furi_hal_subghz_idle();
+        (void)furi_hal_subghz_set_frequency_and_path(rf->hz);
+        furi_hal_gpio_init(
+            furi_hal_subghz_get_data_gpio(), GpioModeInput, GpioPullNo, GpioSpeedLow);
+        rf->on = furi_hal_subghz_start_async_tx(rfbit, rf);
+    }
     txled(rf->on);
 
     return rf->on;
 }
 
 void rfpause(Rf* rf) {
-    if(rf->on) furi_hal_subghz_stop_async_tx();
+    if(rf->on) {
+        if(rf->external)
+            subghz_devices_stop_async_tx(rf->device);
+        else
+            furi_hal_subghz_stop_async_tx();
+    }
     rf->on = false;
-    furi_hal_subghz_idle();
+    if(rf->external)
+        subghz_devices_idle(rf->device);
+    else
+        furi_hal_subghz_idle();
     txled(false);
 }
 
 void rfstop(Rf* rf) {
-    if(rf->on) furi_hal_subghz_stop_async_tx();
-    rf->on = false;
-    furi_hal_subghz_idle();
-    furi_hal_gpio_init(furi_hal_subghz_get_data_gpio(), GpioModeInput, GpioPullNo, GpioSpeedLow);
-    furi_hal_subghz_sleep();
+    if(rf->external) {
+        if(rf->on) subghz_devices_stop_async_tx(rf->device);
+        rf->on = false;
+        rfextclose(rf);
+    } else {
+        if(rf->on) furi_hal_subghz_stop_async_tx();
+        rf->on = false;
+        furi_hal_subghz_idle();
+        furi_hal_gpio_init(
+            furi_hal_subghz_get_data_gpio(), GpioModeInput, GpioPullNo, GpioSpeedLow);
+        furi_hal_subghz_sleep();
+    }
     txled(false);
     if(rf->awake) furi_hal_power_insomnia_exit();
     rf->awake = false;
@@ -213,7 +343,8 @@ void rfend(Rf* rf) {
 }
 
 bool rfdone(const Rf* rf) {
-    return rf->drain && furi_hal_subghz_is_async_tx_complete();
+    return rf->drain && (rf->external ? subghz_devices_is_async_complete_tx(rf->device) :
+                                        furi_hal_subghz_is_async_tx_complete());
 }
 
 bool rfdrain(Rf* rf, uint32_t timeout_ms) {

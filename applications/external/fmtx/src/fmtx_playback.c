@@ -2,10 +2,12 @@
 
 #include "dsp.h"
 #include "fmtx_rf.h"
+#include "fmtx_usb.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <furi.h>
+#include <furi_hal_power.h>
 #include <storage/storage.h>
 
 #define MINIMP3_IMPLEMENTATION
@@ -13,11 +15,15 @@
 #define MINIMP3_NO_SIMD
 #include "../lib/minimp3/minimp3.h"
 
-#define INSZ    8192U
-#define STACKSZ (24U * 1024U)
-#define SKIP1   65536U
-#define SKIPN   8192U
-#define SEEKBUF 8192U
+#define INSZ       8192U
+#define STACKSZ    (24U * 1024U)
+#define USBSTACK   2048U
+#define USBTIMEOUT 100U
+#define USBRETRY   10000U
+#define USBPOLL    250U
+#define SKIP1      65536U
+#define SKIPN      8192U
+#define SEEKBUF    8192U
 
 typedef struct {
     uint32_t source_rate;
@@ -54,13 +60,16 @@ struct Play {
     uint32_t seekat;
     volatile uint32_t want;
     volatile uint32_t seekfrm;
-    uint32_t ndec;
-    uint32_t nsent;
+    volatile uint32_t ndec;
+    volatile uint32_t nsent;
     volatile uint32_t fhz;
     volatile uint16_t fsamp;
     volatile uint32_t total;
     volatile uint32_t ended;
+    volatile uint32_t usb_sound;
     volatile bool radio;
+    volatile bool usb;
+    volatile bool usb_cable;
     uint8_t gain;
     Dsp dsp;
     int16_t cache[SEEKBUF];
@@ -138,6 +147,121 @@ static bool putsample(Play* p, int16_t s) {
     p->ndec++;
 
     return pumpradio(p);
+}
+
+static void usbrx(const int16_t* samples, size_t count, void* ctx) {
+    Play* p = ctx;
+    if(!p || p->stop || !p->usb || p->state != PlaybackPlaying) return;
+    for(size_t i = 0; i < count; i++)
+        if(samples[i] > 32 || samples[i] < -32) {
+            p->usb_sound = furi_get_tick();
+            break;
+        }
+    for(size_t i = 0; i < count; i++) {
+        uint32_t n = p->ndec;
+        if(n - p->nsent >= SEEKBUF) break;
+        p->cache[n & (SEEKBUF - 1U)] = samples[i];
+        __DMB();
+        p->ndec = n + 1U;
+    }
+}
+
+static int32_t usbthread(void* ctx) {
+    Play* p = ctx;
+    bool connected = false;
+    bool retried = false;
+    uint32_t retry = furi_get_tick();
+    uint32_t poll = retry - furi_ms_to_ticks(USBPOLL);
+    dsprst(&p->dsp);
+    rfrst(p->rf);
+    rfhold(p->rf, 6U);
+    p->rf->hz = p->req.hz;
+    p->ndec = 0;
+    p->nsent = 0;
+    p->usb_sound = furi_get_tick() - furi_ms_to_ticks(USBTIMEOUT);
+    p->radio = false;
+    rfledoff();
+    if(!fmtx_usb_start(usbrx, p)) {
+        seterr(p, FmtxPlaybackInvalid);
+        goto done;
+    }
+    while(!p->stop) {
+        int16_t sample;
+        uint32_t sound = p->usb_sound;
+        uint32_t now = furi_get_tick();
+        if(now - poll >= furi_ms_to_ticks(USBPOLL)) {
+            p->usb_cable = furi_hal_power_get_usb_voltage() >= 4.0f;
+            poll = now;
+        }
+        bool cable = p->usb_cable;
+        bool ok = cable && fmtx_usb_connected();
+        if(ok != connected) {
+            connected = ok;
+            if(connected)
+                rfledidle();
+            else {
+                rfstop(p->rf);
+                p->radio = false;
+                p->nsent = p->ndec;
+                rfrst(p->rf);
+                dsprst(&p->dsp);
+                rfledoff();
+            }
+        }
+        if(!connected) {
+            if(!cable) {
+                retry = now;
+                retried = false;
+            } else if(!retried && now - retry >= furi_ms_to_ticks(USBRETRY)) {
+                retried = true;
+                furi_hal_usb_reinit();
+            }
+            furi_delay_tick(1U);
+            continue;
+        }
+        retry = now;
+        retried = false;
+        if(now - sound >= furi_ms_to_ticks(USBTIMEOUT)) {
+            if(p->radio) {
+                rfstop(p->rf);
+                p->radio = false;
+                rfrst(p->rf);
+                dsprst(&p->dsp);
+            }
+            p->nsent = p->ndec;
+            furi_delay_tick(1U);
+            continue;
+        }
+        if(p->nsent >= p->ndec) {
+            furi_delay_tick(1U);
+            continue;
+        }
+        if(!p->radio) {
+            if(!rfstart(p->rf)) {
+                seterr(p, FmtxPlaybackRadio);
+                break;
+            }
+            p->radio = true;
+        }
+        sample = dspsample(&p->dsp, p->cache[p->nsent & (SEEKBUF - 1U)]);
+        if(!rfput(p->rf, sample)) {
+            if(!p->stop) seterr(p, FmtxPlaybackRadio);
+            break;
+        }
+        p->nsent++;
+    }
+
+done:
+    while(!fmtx_usb_stop())
+        furi_delay_tick(1U);
+    rfstop(p->rf);
+    rfledoff();
+    p->ended = rfplayed(p->rf);
+    p->radio = false;
+    p->usb = false;
+    __DMB();
+    p->state = PlaybackStopped;
+    return 0;
 }
 
 static bool outframe(
@@ -385,6 +509,14 @@ void fmtx_playback_free(Play* playback) {
     free(playback);
 }
 
+void fmtx_playback_set_radio(Play* playback, FmtxRadio radio) {
+    if(playback) rfselect(playback->rf, radio);
+}
+
+bool fmtx_playback_external_available(Play* playback) {
+    return playback && rfexternal(playback->rf);
+}
+
 static uint32_t frameat(const Play* p, uint32_t frame) {
     uint32_t hz = p->fhz ? p->fhz : 44100U;
     uint32_t n = p->fsamp ? p->fsamp : 1152U;
@@ -430,6 +562,8 @@ static bool startat(Play* playback, const PlayReq* request, uint32_t at, bool pa
     playback->ndec = 0;
     playback->nsent = at;
     playback->radio = false;
+    playback->usb = false;
+    rfledidle();
     if(playback->total && at == playback->total) {
         playback->state = PlaybackFinished;
         return true;
@@ -453,6 +587,37 @@ bool fmtx_playback_start_paused(Play* playback, const PlayReq* request) {
     return startat(playback, request, 0, true);
 }
 
+bool fmtx_playback_start_usb(Play* playback, uint32_t hz) {
+    if(!playback || isrunning(playback)) return false;
+    if(playback->th) {
+        furi_thread_join(playback->th);
+        furi_thread_free(playback->th);
+        playback->th = NULL;
+    }
+    playback->req.path[0] = 0;
+    playback->req.hz = hz;
+    playback->stop = false;
+    playback->state = PlaybackPlaying;
+    playback->err = FmtxPlaybackOk;
+    playback->seekat = 0;
+    playback->ended = 0;
+    playback->total = 0;
+    playback->fhz = 48000U;
+    playback->fsamp = 48U;
+    playback->usb = true;
+    playback->usb_cable = false;
+    playback->th = furi_thread_alloc_ex("FmtxUsb", USBSTACK, usbthread, playback);
+    if(!playback->th) {
+        playback->usb = false;
+        playback->state = PlaybackStopped;
+        seterr(playback, FmtxPlaybackThread);
+        return false;
+    }
+    furi_thread_set_priority(playback->th, FuriThreadPriorityHigh);
+    furi_thread_start(playback->th);
+    return true;
+}
+
 void fmtx_playback_stop(Play* playback) {
     if(!playback) return;
     playback->stop = true;
@@ -462,7 +627,12 @@ void fmtx_playback_stop(Play* playback) {
         furi_thread_free(playback->th);
         playback->th = NULL;
     }
+    if(playback->usb)
+        while(!fmtx_usb_stop())
+            furi_delay_tick(1U);
+    playback->usb = false;
     playback->state = PlaybackStopped;
+    rfledoff();
 }
 
 bool fmtx_playback_is_running(const Play* playback) {
@@ -475,6 +645,11 @@ bool fmtx_playback_is_transmitting(const Play* playback) {
     if(!playback) return false;
     __DMB();
     return playback->state == PlaybackPlaying && playback->radio && playback->rf->on;
+}
+
+bool fmtx_playback_usb_connected(const Play* playback) {
+    if(!playback || !playback->usb) return false;
+    return playback->usb_cable && fmtx_usb_connected();
 }
 
 bool fmtx_playback_is_paused(const Play* playback) {

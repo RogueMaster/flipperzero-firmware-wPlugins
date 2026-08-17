@@ -147,6 +147,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - JS Runner, NFC: [Fix some out of memory crashes - apps no longer bundle their own copy of the soft-float code, it is shared from the firmware now (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a8164fc4e248f5addc1f0fa5564e4b3619f6c7d1)
 - Lib: [Music worker pause/resume - new `music_worker_pause()` / `music_worker_resume()` in the app API, resuming continues from the same note (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/513868186f0ea2f303ce75e273da1c8f0e253a13)
 - Fix: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
+- Updated: [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 
 <a name="release"></a>
 
@@ -618,7 +619,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767/Si4703`
 - [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - [FM Transmitter KT0803 v1.0 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter) `Req: KT0803`
-- [FM TX v0.0.10 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
+- [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - [FMF2USBMIDI v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_Zero_FMF2USBMIDI)
 - [Ford Radio Codes v0.1 (By DavidB445)](https://github.com/DavidB445/fz_fordradiocodes)
 - [FreeStyle Libre CGM v0.1 (By darendarrow)](https://github.com/darendarrow/flipnCGM)

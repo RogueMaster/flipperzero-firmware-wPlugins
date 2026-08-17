@@ -14,6 +14,6 @@ App(
     fap_category="Sub-GHz",
     fap_author="yo3gnd",
     fap_weburl="https://github.com/yo3gnd/fmtx",
-    fap_version="0.0.10",
-    fap_description="Experimental MP3 audio over CC1101 FM.",
+    fap_version="0.1.0",
+    fap_description="Transmit audio to FM radios from MP3 files or via USB audio.",
 )
