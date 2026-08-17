@@ -27,10 +27,10 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a> 
 
-## Latest Updates - [PATREON: Latest Release RM0815-0249-74bc5b34-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM0817-1730-f188ed86-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-08-15 02:49 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-08-15 02:49 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-08-17 17:30 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-08-17 17:30 EST`
 - Updated: [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
 - SubGHz: [Fix Frequency Analyzer leaving the radio in a degraded state - the worker parked the internal CC1101 with the antenna isolated and its near-field AGC profile still loaded; apps driving the radio HAL directly (without a full re-init) inherited a -sticky- sensitivity loss - the radio is now reset to its boot state on exit (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1045)
 - Updated: [Tetris v1.6 (By jeffplang)](https://github.com/jeffplang/flipperzero-firmware/tree/tetris_game/applications/tetris_game) [fix pause restart, stale piece on new game and floating piece locks (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/233)
