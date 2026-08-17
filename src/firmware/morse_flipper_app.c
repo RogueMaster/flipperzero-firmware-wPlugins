@@ -6,6 +6,7 @@
  */
 
 #include "morse_flipper_app_i.h"
+#include "usb/morse_usb_ids.h"
 
 #include <stdlib.h>
 
@@ -32,8 +33,8 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .previous_usb_config = NULL,
         .hid_cfg =
             {
-                .vid = 0x6666U,
-                .pid = 0x434BU,
+                .vid = MORSE_USB_VID,
+                .pid = MORSE_USB_KEYBOARD_PID,
                 .manuf = "YO3GND",
                 .product = "Morse Flipper Kbd",
             },

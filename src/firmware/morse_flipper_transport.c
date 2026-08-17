@@ -6,6 +6,7 @@
  */
 
 #include "morse_flipper_app_i.h"
+#include "usb/morse_usb_ids.h"
 
 const char* morse_flipper_pc_state_name(const MorseFlipperApp* app) {
     bool up = false;
@@ -258,7 +259,11 @@ void morse_flipper_set_pc_mode(MorseFlipperApp* app, uint8_t mode) {
         furi_delay_ms(150U);
         furi_check(furi_hal_usb_set_config(&morse_usb_midi_interface, NULL));
     } else {
-        if(mode == MorseFlipperPcModeMouse) prod = "Morse Flipper Mouse";
+        app->hid_cfg.pid = MORSE_USB_KEYBOARD_PID;
+        if(mode == MorseFlipperPcModeMouse) {
+            prod = "Morse Flipper Mouse";
+            app->hid_cfg.pid = MORSE_USB_MOUSE_PID;
+        }
         snprintf(app->hid_cfg.product, sizeof(app->hid_cfg.product), "%s", prod);
         morse_usb_midi_set_rx_callback(NULL);
         morse_usb_midi_set_context(NULL);

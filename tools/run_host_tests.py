@@ -89,6 +89,7 @@ PYTHON_TESTS = (
     "tests/test_runtime_input_gating.py",
     "tests/test_terminus24_asset.py",
     "tests/test_trace_contract.py",
+    "tests/test_usb_ids.py",
     "tests/test_version_consistency.py",
 )
 
