@@ -13,7 +13,7 @@ App(
     ],
     fap_file_assets="assets/fap",
     fap_icon="icon.png",
-    fap_version="0.0.10",
+    fap_version="0.1.0",
     fap_author="@yo3gnd",
-    fap_description="Experimental MP3 audio over CC1101 FM.",
+    fap_description="Transmit audio to FM radios from MP3 files or via USB audio.",
 )

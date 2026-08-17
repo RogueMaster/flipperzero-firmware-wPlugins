@@ -10,4 +10,4 @@ src/fmtx_scenes.c - https://github.com/yo3gnd/morse-flipper
 
 0-chiptune.mp3 - self-rendered sine-wave rendition of a well-known meme song.
 
-external radio - same logic like github.com/yo3gnd/flipper-zero-aprs
+external radio - same logic like [github.com/yo3gnd/flipper-zero-aprs](https://github.com/yo3gnd/flipper-zero-aprs)

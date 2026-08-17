@@ -92,6 +92,7 @@ static const uint8_t about_social_sequence[] = {
 };
 
 const char abttext[] =
+    "Version: 0.1.0\n"
     "Built by Richard, YO3GND, a ham radio operator who enjoys embedded engineering and DSP.\n\n"
     "This began as a Morse Flipper spike: send audio to a Baofeng without an audio lead. It worked, so it became its own thing.\n\n"
     "A first-order sigma-delta modulator turns PCM into one-bit PDM. Each bit selects a CC1101 FSK deviation, approximating narrowband FM audio.\n\n"
