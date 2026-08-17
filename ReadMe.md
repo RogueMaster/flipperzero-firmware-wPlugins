@@ -87,7 +87,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Fortune Spinner v1.0 (By xantopren)](https://github.com/xantopren/fortune-spinner)
 - Added: [Rock Paper Scissors 3 v1.0 (By xantopren)](https://github.com/xantopren/rock-paper-scissors)
 - HID: [Mouse Jiggler Stealth now shows which buttons change the intervals - Up/Down (Min) and Left/Right (Max) already worked but nothing on screen said so; the arrows appear next to each row while the jiggler is stopped, and only for presses that would actually change the value (By sequesters)](https://github.com/DarkFlippers/unleashed-firmware/pull/1020)
-- Updated: [CK42X Passvault v0.4.5 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - [Fixed Protobuf tags not detected causing restore to OFW before new RM update (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a66624d5f7203346da4b980554b6cb03bb93d386)
 - ESP Flasher: [Bump Marauder v1.14.1 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.1)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Marauder 1.14.1 firmwares.
@@ -153,6 +152,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Ghost ESP v1.8.2 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - Updated: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - ESP Flasher: [Bump Marauder v1.14.3 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.3)
+- Updated: [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 
 <a name="release"></a>
 
@@ -505,7 +505,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
 - [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)
 - [Chronometer (By nmrr)](https://github.com/nmrr/flipperzero-chronometer)
-- [CK42X Passvault v0.4.5 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
+- [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - [CK42X Wakeup v2.29 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-wakeup)
 - [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
 - [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)

@@ -1,3 +1,8 @@
+v0.4.6:
+- removed the 20-entry password vault cap so saved accounts grow until Flipper memory or SD write fails
+- existing encrypted `vault.pv1` format is unchanged; larger vaults use the same AES-GCM file
+- FIDO2 credential storage remains separately limited to 20 records
+
 v0.4.5:
 - added editing for saved Name, Username, and Password fields
 - added Keep Existing, Generate Password, and Enter Custom choices during editing

@@ -14,16 +14,13 @@
 #include <ck42x_passvault_icons.h>
 
 #include "ck42x_fido2_service.h"
+#include "ck42x_vault_store.h"
 
 #define CK_TAG            "CK42XPassVault"
-#define CK_MAX_ENTRIES    20
-#define CK_ACCOUNT_LEN    32
-#define CK_USERNAME_LEN   48
-#define CK_PASSWORD_LEN   72
 #define CK_INPUT_LEN      72
-#define CK_LINE_MAX       180
 #define CK_PIN_MIN_LEN    4
-#define CK_MAX_VAULT_FILE 8192
+/* Sanity bound for a corrupt vault file, not an entry-count cap. */
+#define CK_MAX_VAULT_FILE (256U * 1024U)
 
 #define CK_PLAINTEXT_FILE APP_DATA_PATH("vault.tsv")
 #define CK_VAULT_FILE     APP_DATA_PATH("vault.pv1")
@@ -36,11 +33,6 @@
 #define CK_HDR_LEN   (CK_MAGIC_LEN + CK_SALT_LEN + CK_NONCE_LEN + CK_TAG_LEN)
 
 static const uint8_t ck_vault_magic[CK_MAGIC_LEN] = {'C', 'K', 'P', 'V', '1', 0, 0, 0};
-typedef struct {
-    char account[CK_ACCOUNT_LEN];
-    char username[CK_USERNAME_LEN];
-    char password[CK_PASSWORD_LEN];
-} CkVaultEntry;
 
 typedef enum {
     CkViewMain = 0,
@@ -74,7 +66,7 @@ typedef enum {
     CkEventAbout = 2,
     CkEventSecurityKey = 3,
     CkEventMacKeyboardSetup = 4,
-    CkEventSavedBase = 100,
+    CkEventSavedBase = 0x1000,
     CkEventTextDone = 300,
     CkEventChooseGenerate = 400,
     CkEventChooseCustom = 401,
@@ -106,9 +98,8 @@ typedef struct {
     DialogEx* dialog;
     Storage* storage;
 
-    CkVaultEntry entries[CK_MAX_ENTRIES];
-    uint8_t entry_count;
-    int8_t selected;
+    CkVaultStore vault;
+    int32_t selected;
 
     CkVaultEntry draft;
     char input[CK_INPUT_LEN];
@@ -339,8 +330,8 @@ static void ck_derive_key_from_pin(
 
 static bool ck_password_exists(const CkApp* app, const char* password) {
     if(!password || password[0] == '\0') return true;
-    for(uint8_t i = 0; i < app->entry_count; i++) {
-        if(strcmp(app->entries[i].password, password) == 0) return true;
+    for(size_t i = 0; i < app->vault.count; i++) {
+        if(strcmp(app->vault.entries[i].password, password) == 0) return true;
     }
     return false;
 }
@@ -469,29 +460,8 @@ static bool ck_remove_file(CkApp* app, const char* app_data_file) {
     return ok;
 }
 
-static void ck_parse_entries(CkApp* app, char* buf) {
-    app->entry_count = 0;
-    char* line = buf;
-    while(line && *line && app->entry_count < CK_MAX_ENTRIES) {
-        char* next = strchr(line, '\n');
-        if(next) {
-            *next = '\0';
-            next++;
-        }
-        char* tab1 = strchr(line, '\t');
-        if(tab1) {
-            *tab1 = '\0';
-            char* tab2 = strchr(tab1 + 1, '\t');
-            if(tab2) {
-                *tab2 = '\0';
-                CkVaultEntry* e = &app->entries[app->entry_count++];
-                ck_copy(e->account, sizeof(e->account), line);
-                ck_copy(e->username, sizeof(e->username), tab1 + 1);
-                ck_copy(e->password, sizeof(e->password), tab2 + 1);
-            }
-        }
-        line = next;
-    }
+static bool ck_parse_entries(CkApp* app, char* buf) {
+    return ck_vault_store_parse(&app->vault, buf);
 }
 
 static bool ck_read_file(CkApp* app, const char* app_data_file, uint8_t** out, size_t* out_len) {
@@ -534,10 +504,9 @@ static bool ck_load_plaintext_entries(CkApp* app) {
         if(buf) {
             memcpy(buf, raw, len);
             buf[len] = '\0';
-            ck_parse_entries(app, buf);
+            ok = ck_parse_entries(app, buf);
             ck_secure_zero(buf, len);
             free(buf);
-            ok = true;
         }
     }
 
@@ -549,31 +518,7 @@ static bool ck_load_plaintext_entries(CkApp* app) {
 }
 
 static bool ck_serialize_entries(CkApp* app, uint8_t** out, size_t* out_len) {
-    size_t cap = CK_MAX_ENTRIES * CK_LINE_MAX + 1;
-    char* buf = malloc(cap);
-    if(!buf) return false;
-
-    size_t used = 0;
-    buf[0] = '\0';
-    for(uint8_t i = 0; i < app->entry_count; i++) {
-        int len = snprintf(
-            buf + used,
-            cap - used,
-            "%s\t%s\t%s\n",
-            app->entries[i].account,
-            app->entries[i].username,
-            app->entries[i].password);
-        if(len <= 0 || (size_t)len >= cap - used) {
-            ck_secure_zero(buf, cap);
-            free(buf);
-            return false;
-        }
-        used += (size_t)len;
-    }
-
-    *out = (uint8_t*)buf;
-    *out_len = used;
-    return true;
+    return ck_vault_store_serialize(&app->vault, out, out_len);
 }
 
 static bool ck_load_encrypted_entries(CkApp* app, const char* pin) {
@@ -601,10 +546,10 @@ static bool ck_load_encrypted_entries(CkApp* app, const char* pin) {
     if(state != FuriHalCryptoGCMStateOk) goto cleanup;
 
     plain[cipher_len] = '\0';
+    if(!ck_parse_entries(app, (char*)plain)) goto cleanup;
     memcpy(app->vault_key, key, CK_KEY_LEN);
     memcpy(app->vault_salt, salt, CK_SALT_LEN);
     app->unlocked = true;
-    ck_parse_entries(app, (char*)plain);
     ok = true;
 
 cleanup:
@@ -757,9 +702,13 @@ static void ck_show_main(CkApp* app) {
         ck_submenu_callback,
         app);
     submenu_add_item(app->submenu, "About / ck42x.com", CkEventAbout, ck_submenu_callback, app);
-    for(uint8_t i = 0; i < app->entry_count; i++) {
+    for(size_t i = 0; i < app->vault.count; i++) {
         submenu_add_item(
-            app->submenu, app->entries[i].account, CkEventSavedBase + i, ck_submenu_callback, app);
+            app->submenu,
+            app->vault.entries[i].account,
+            CkEventSavedBase + (uint32_t)i,
+            ck_submenu_callback,
+            app);
     }
     app->current_view = CkViewMain;
     view_dispatcher_switch_to_view(app->dispatcher, CkViewMain);
@@ -812,11 +761,11 @@ static void ck_show_text_input(CkApp* app, CkInputStage stage, const char* heade
 }
 
 static void ck_show_entry_widget(CkApp* app) {
-    if(app->selected < 0 || app->selected >= app->entry_count) {
+    if(app->selected < 0 || (size_t)app->selected >= app->vault.count) {
         ck_show_main(app);
         return;
     }
-    CkVaultEntry* e = &app->entries[app->selected];
+    CkVaultEntry* e = &app->vault.entries[app->selected];
     char text[320];
     snprintf(
         text,
@@ -839,9 +788,9 @@ static void ck_show_entry_widget(CkApp* app) {
 }
 
 static void ck_begin_edit(CkApp* app) {
-    if(app->selected < 0 || app->selected >= app->entry_count) return;
+    if(app->selected < 0 || (size_t)app->selected >= app->vault.count) return;
     app->editing_entry = true;
-    app->draft = app->entries[app->selected];
+    app->draft = app->vault.entries[app->selected];
     ck_show_text_input(app, CkInputAccount, "Name", app->draft.account);
 }
 
@@ -873,7 +822,7 @@ static void ck_show_save_dialog(CkApp* app) {
 }
 
 static void ck_show_inject_confirm(CkApp* app) {
-    if(app->selected < 0 || app->selected >= app->entry_count) {
+    if(app->selected < 0 || (size_t)app->selected >= app->vault.count) {
         ck_show_main(app);
         return;
     }
@@ -1085,14 +1034,14 @@ static void ck_hid_type_string(const char* text) {
 }
 
 static bool ck_inject_selected(CkApp* app) {
-    if(app->selected < 0 || app->selected >= app->entry_count) return false;
+    if(app->selected < 0 || (size_t)app->selected >= app->vault.count) return false;
     app->previous_usb = furi_hal_usb_get_config();
     if(app->previous_usb != &usb_hid) {
         if(!furi_hal_usb_set_config(&usb_hid, NULL)) return false;
         furi_delay_ms(800);
     }
 
-    ck_hid_type_string(app->entries[app->selected].password);
+    ck_hid_type_string(app->vault.entries[app->selected].password);
     furi_hal_hid_kb_release_all();
     furi_delay_ms(100);
 
@@ -1104,7 +1053,7 @@ static bool ck_inject_selected(CkApp* app) {
 
 static void ck_begin_auth(CkApp* app) {
     app->unlocked = false;
-    app->entry_count = 0;
+    ck_vault_store_reset(&app->vault);
     if(ck_file_exists(app, CK_VAULT_FILE)) {
         ck_show_text_input(app, CkInputUnlockPin, "Enter Master PIN", NULL);
     } else {
@@ -1123,7 +1072,7 @@ static void ck_handle_set_pin(CkApp* app) {
     ck_derive_key_from_pin(app->input, app->vault_salt, app->vault_key);
     ck_secure_zero(app->input, sizeof(app->input));
     app->unlocked = true;
-    app->entry_count = 0;
+    ck_vault_store_reset(&app->vault);
 
     if(had_plaintext && !ck_load_plaintext_entries(app)) {
         app->unlocked = false;
@@ -1176,37 +1125,36 @@ static void ck_handle_text_done(CkApp* app) {
 
 static void ck_save_draft(CkApp* app) {
     if(app->editing_entry) {
-        if(app->selected < 0 || app->selected >= app->entry_count) {
+        if(app->selected < 0 || (size_t)app->selected >= app->vault.count) {
             app->editing_entry = false;
             ck_show_main(app);
             return;
         }
-        CkVaultEntry original = app->entries[app->selected];
-        app->entries[app->selected] = app->draft;
+        CkVaultEntry original = app->vault.entries[app->selected];
+        app->vault.entries[app->selected] = app->draft;
         if(ck_save_entries(app)) {
             app->editing_entry = false;
             ck_show_entry_widget(app);
         } else {
-            app->entries[app->selected] = original;
+            app->vault.entries[app->selected] = original;
             ck_show_status(app, "Save Failed", "Original unchanged.");
         }
         ck_secure_zero(&original, sizeof(original));
         return;
     }
 
-    if(app->entry_count >= CK_MAX_ENTRIES) {
-        ck_show_status(app, "Vault Full", "Max entries reached.");
+    size_t saved_index = app->vault.count;
+    if(!ck_vault_store_append(&app->vault, &app->draft)) {
+        ck_show_status(app, "Save Failed", "Not enough memory.");
         return;
     }
-    uint8_t saved_index = app->entry_count;
-    app->entries[app->entry_count++] = app->draft;
     bool ok = ck_save_entries(app);
     if(ok) {
-        app->selected = saved_index;
+        app->selected = (int32_t)saved_index;
         ck_show_entry_widget(app);
     } else {
-        app->entry_count--;
-        memset(&app->entries[app->entry_count], 0, sizeof(CkVaultEntry));
+        app->vault.count--;
+        ck_secure_zero(&app->vault.entries[app->vault.count], sizeof(CkVaultEntry));
         ck_show_status(app, "Save Failed", "SD/app data write failed.");
     }
 }
@@ -1224,10 +1172,10 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         ck_show_mac_keyboard_setup(app);
     } else if(event == CkEventAbout) {
         ck_show_about(app);
-    } else if(event >= CkEventSavedBase && event < CkEventSavedBase + CK_MAX_ENTRIES) {
+    } else if(event >= CkEventSavedBase && event < CkFido2ServiceEventPresence) {
         uint32_t idx = event - CkEventSavedBase;
-        if(idx < app->entry_count) {
-            app->selected = idx;
+        if(idx < app->vault.count) {
+            app->selected = (int32_t)idx;
             ck_show_entry_widget(app);
         }
     } else if(event == CkEventTextDone) {
@@ -1315,6 +1263,7 @@ static CkApp* ck_app_alloc(void) {
     CkApp* app = malloc(sizeof(CkApp));
     furi_assert(app);
     memset(app, 0, sizeof(CkApp));
+    ck_vault_store_init(&app->vault);
     app->selected = -1;
 
     app->storage = furi_record_open(RECORD_STORAGE);
@@ -1355,6 +1304,8 @@ static void ck_app_free(CkApp* app) {
     ck_secure_zero(app->vault_key, sizeof(app->vault_key));
     ck_secure_zero(app->vault_salt, sizeof(app->vault_salt));
     ck_secure_zero(app->input, sizeof(app->input));
+    ck_secure_zero(&app->draft, sizeof(app->draft));
+    ck_vault_store_free(&app->vault);
     free(app);
 }
 

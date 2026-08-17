@@ -10,6 +10,6 @@ App(
     fap_category="Tools",
     fap_author="CK42X / lordbuffcloud",
     fap_weburl="https://github.com/lordbuffcloud/flipper-ck42x-passvault",
-    fap_version="0.4.5",
+    fap_version="0.4.6",
     fap_description="CK42X.com PIN-gated encrypted password vault with RNG generation and opt-in HID password typing.",
 )
