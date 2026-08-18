@@ -9,7 +9,15 @@ name: Checks
 #     fails on code that has never seen clang-format, which costs a round trip
 #     in review rather than here.
 #
-# Both are cheap, so they run on every push and every pull request.
+# And one thing that had nothing watching it at all: until the build job below
+# existed, no workflow ever compiled the app on a pull request. `ufbt lint`
+# only runs clang-format. The one place the app was actually built was
+# release.yml, which fires after a release is published -- so the first thing
+# to notice a broken build would have been a release with .fap files missing
+# from it. Three firmwares, three SDKs, and code that compiles against one can
+# fail against another; that is a thing to learn on the pull request.
+#
+# All of it is cheap, so it runs on every push and every pull request.
 
 on:
   push:
@@ -38,3 +46,32 @@ jobs:
           app-dir: fake_chip_detector
           sdk-channel: release
           task: lint
+
+  build:
+    name: build (${{ matrix.firmware }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Same reason as in release.yml: if one firmware's SDK moves and stops
+      # building, the other two results are still worth having. Knowing it
+      # broke on exactly one of the three is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        include:
+          # Official firmware: ufbt's default index, so no URL to give it.
+          - firmware: official
+            index-url: ""
+          - firmware: unleashed
+            index-url: https://up.unleashedflip.com/directory.json
+          - firmware: momentum
+            index-url: https://up.momentum-fw.dev/firmware/directory.json
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
+        with:
+          app-dir: fake_chip_detector
+          # release, never dev: the same channel release.yml ships from, so a
+          # green check here means the release build has the same SDK to work
+          # with. No task given, which is this action's build.
+          sdk-channel: release
+          sdk-index-url: ${{ matrix.index-url }}
