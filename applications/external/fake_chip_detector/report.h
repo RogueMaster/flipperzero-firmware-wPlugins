@@ -28,6 +28,17 @@ typedef struct {
     bool pad_wanted_high; // the level I2C needed, for the sentence above
 } SilentDiagnosis;
 
+// Prose helpers, exported because the screen has to say the same phrase the
+// report does. "You were sold a 8-channel switch" was on the screen and in the
+// document, and it is the sort of thing a seller points at.
+const char* report_article(const char* word);
+
+// Article and capital together, because the same first word decides both:
+// report_phrase_kind(buf, sizeof(buf), "Air quality (VOC)") writes
+// "an air quality (VOC)". Pass a kind, not a part number -- a name keeps its
+// capital, so Si7021 must go through report_article on its own.
+void report_phrase_kind(char* out, size_t size, const char* kind);
+
 // disputed: the buyer has said this is not the part they ordered, which turns
 // the document from an inspection note into a reason for refusing delivery.
 void report_build(
