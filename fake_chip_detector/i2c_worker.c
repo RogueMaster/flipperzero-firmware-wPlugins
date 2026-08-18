@@ -152,12 +152,21 @@ void i2c_worker_check_bus(I2CBusCheck* out) {
     out->powered = out->scl_ok || out->sda_ok;
 
     if(scl_stuck || sda_stuck) {
+        // No short test on this branch: a line already held low follows the
+        // clock whatever the other line does, so the answer would be yes for a
+        // reason that has nothing to do with a short.
         out->health = I2CBusStuckLow;
     } else if(out->scl_ok && out->sda_ok) {
         out->health = I2CBusOk; // both lines are needed before I2C can work
         out->shorted = i2c_lines_shorted();
     } else {
         out->health = I2CBusFloating;
+        // Two bare wires touching each other have no pull-ups between them, so
+        // a plain SDA-to-SCL short lands here rather than on the branch above --
+        // and while this test only ran up there, the app could not see the
+        // easiest mistake to make with four loose wires. TESTING.md has been
+        // promising it since before it was true.
+        out->shorted = i2c_lines_shorted();
         // Any incomplete bus is worth checking, not just a completely dead
         // one: with SDA on the right pin and SCL on the wrong one, the old
         // "both lines dead" condition never fired and the user got no hint.
