@@ -31,6 +31,7 @@ typedef enum {
     I2CWorkerEventBusUpdate,
     I2CWorkerEventPadUpdate,
     I2CWorkerEventFixUpdate,
+    I2CWorkerEventSelftestDone,
 } I2CWorkerEvent;
 
 // Where a fix run has got to. Every step but the first ends on a measurement,
@@ -164,3 +165,33 @@ bool i2c_worker_write_reg(uint8_t addr7, uint8_t reg, uint8_t value, uint32_t ti
 // convenience on top of these two.
 bool i2c_worker_write_raw(uint8_t addr7, const uint8_t* data, size_t len, uint32_t timeout_ms);
 bool i2c_worker_read_raw(uint8_t addr7, uint8_t* data, size_t len, uint32_t timeout_ms);
+
+/* ---- LPUART loopback self-test ---- */
+
+// How the loopback ended. Never run is the zero value, so a caller who reads
+// this before anything has been tried is told nothing rather than told it
+// passed -- the same rule the listen outcome follows.
+typedef enum {
+    I2CSelftestNeverRun,
+    I2CSelftestPassed,
+    I2CSelftestFailed,
+    // Not a result. Pull-ups were seen on pins 15 and 16, so something is still
+    // wired to them, and the test drives one of those pins. Refusing to run is
+    // a different thing from running and failing, and the user needs to be told
+    // which one happened.
+    I2CSelftestBlocked,
+} I2CSelftestState;
+
+// Big enough for what uart_selftest_loopback writes; it truncates at 40 itself.
+#define I2C_SELFTEST_DETAIL_SIZE 40
+
+// Runs the jumper loopback on the worker thread. It stands the expansion
+// service down and takes the serial handle, which is not work for the thread
+// that is drawing the screen.
+void i2c_worker_selftest_start(I2CWorker* worker);
+
+// detail receives the line the test wrote about itself, verbatim; pass NULL to
+// skip. It is preset to "LPUART unavailable" and only overwritten when the body
+// actually reached the wire, which is what tells "never got a handle" apart
+// from "sent and heard nothing back".
+I2CSelftestState i2c_worker_get_selftest(I2CWorker* worker, char* detail, size_t detail_size);

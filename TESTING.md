@@ -45,6 +45,15 @@ naming pin 15. Move the jumper to **pin 16** and it should name pin 16 instead.
 Now connect a jumper from **pin 15 straight to pin 16** — the app should report
 *"SDA and SCL are shorted!"*. Nothing else on the Flipper can tell you that.
 
+**The same jumper proves the serial path.** Leave it between pin 15 and pin 16, press BACK to the
+menu and open **UART self-test**, then press OK. Expected result: *"Passed"*, with *"6 bytes back,
+clean"* under it. The app sent six bytes out of pin 15 and read them back on pin 16 over the
+LPUART — the same path it uses to listen for a talking sensor after an I²C sweep finds nothing.
+
+Pull the jumper out and run it again: *"Failed"* and *"nothing came back"*. Leave a module wired
+up and it declines rather than reporting a fault — *"Not run"*, *"Pull-ups on pins 15/16"* —
+because the test drives pin 15 and will not fight a sensor for the line.
+
 ## Step 3 — plug into the wrong pins on purpose
 
 Wire any I²C module's SDA/SCL to **pins 6 and 7** instead of 15/16 (keep GND and 3.3 V correct).

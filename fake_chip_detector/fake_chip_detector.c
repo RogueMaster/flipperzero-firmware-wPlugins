@@ -44,6 +44,7 @@ typedef enum {
     FakeChipViewSilent,
     FakeChipViewTests,
     FakeChipViewTestHelp,
+    FakeChipViewSelftest,
     FakeChipViewAbout,
 } FakeChipViewId;
 
@@ -52,6 +53,7 @@ typedef enum {
     MenuIndexScan,
     MenuIndexOneWire,
     MenuIndexTests,
+    MenuIndexSelftest,
     MenuIndexSettings,
     MenuIndexChips,
     MenuIndexSaved,
@@ -173,6 +175,17 @@ typedef struct {
     uint32_t saved_frame;
 } SilentViewModel;
 
+// The transport can be proved with one jumper and no sensor at all, and until
+// this screen existed there was no way to ask for that from the device -- the
+// only thing that ever called it was a plan. Somebody whose sensor is silent
+// deserves to know whether the app's own serial path works before they conclude
+// anything about the part in their hand.
+typedef struct {
+    uint8_t state; // I2CSelftestState
+    bool running;
+    char detail[I2C_SELFTEST_DETAIL_SIZE];
+} SelftestViewModel;
+
 typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
@@ -188,6 +201,7 @@ typedef struct {
     View* silent_view;
     View* tests_view;
     View* test_help_view;
+    View* selftest_view;
     TextBox* report_box;
     FuriString* report_text;
     VariableItemList* settings_list;
@@ -1541,6 +1555,18 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
         // Chirp once per transition, never on every poll
         if(became_connected) i2c_notify_play(app->notifications, I2CNotifyGenuine);
         if(became_wrong) i2c_notify_play(app->notifications, I2CNotifyAttention);
+    } else if(event == I2CWorkerEventSelftestDone) {
+        char detail[I2C_SELFTEST_DETAIL_SIZE];
+        I2CSelftestState state = i2c_worker_get_selftest(app->worker, detail, sizeof(detail));
+        with_view_model(
+            app->selftest_view,
+            SelftestViewModel * m,
+            {
+                m->state = (uint8_t)state;
+                m->running = false;
+                snprintf(m->detail, sizeof(m->detail), "%s", detail);
+            },
+            true);
     } else if(event == I2CWorkerEventPadUpdate) {
         uint8_t level = (uint8_t)i2c_worker_get_pad(app->worker);
         with_view_model(app->silent_view, SilentViewModel * m, { m->level = level; }, true);
@@ -2495,6 +2521,81 @@ static void test_help_draw_callback(Canvas* canvas, void* model) {
     canvas_draw_str(canvas, 2, 62, "Template + guide: see repo");
 }
 
+/* ---------------- UART self-test ---------------- */
+
+static void selftest_draw_callback(Canvas* canvas, void* model) {
+    SelftestViewModel* m = model;
+    canvas_clear(canvas);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "UART self-test");
+
+    // The setup stays on screen beside the result rather than being replaced by
+    // it. It is what makes a failure actionable, and it is also the whole answer
+    // to the blocked state, so clearing it the moment a result arrives would
+    // take away the fix at the exact moment it is needed.
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 22, "Jumper pin 15 to pin 16,");
+    canvas_draw_str(canvas, 2, 31, "nothing else on the bus.");
+
+    canvas_draw_line(canvas, 0, 36, 128, 36);
+
+    const char* headline;
+    const char* detail = m->detail;
+    if(m->running) {
+        headline = "Running...";
+        detail = "";
+    } else if(m->state == I2CSelftestPassed) {
+        headline = "Passed";
+    } else if(m->state == I2CSelftestFailed) {
+        headline = "Failed";
+    } else if(m->state == I2CSelftestBlocked) {
+        // Deliberately not "Failed". Nothing was measured, so nothing failed.
+        headline = "Not run";
+    } else {
+        headline = "Not run yet";
+        detail = "Press OK to start";
+    }
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 48, headline);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 59, detail);
+}
+
+static bool selftest_input_callback(InputEvent* event, void* context) {
+    FakeChipApp* app = context;
+    if(event->type == InputTypeShort && event->key == InputKeyOk) {
+        // Everything else the worker does owns these same two pins. Nothing
+        // reaches this screen while one of them is running, but queueing behind
+        // one would start the test at some unpredictable later moment, and a
+        // self-test that runs when it was not asked for is worse than one that
+        // declines.
+        if(i2c_worker_is_busy(app->worker)) return true;
+        with_view_model(app->selftest_view, SelftestViewModel * m, { m->running = true; }, true);
+        i2c_worker_selftest_start(app->worker);
+        return true;
+    }
+    return false;
+}
+
+static void selftest_enter_callback(void* context) {
+    FakeChipApp* app = context;
+    char detail[I2C_SELFTEST_DETAIL_SIZE];
+    I2CSelftestState state = i2c_worker_get_selftest(app->worker, detail, sizeof(detail));
+    // running is left alone on purpose: a test still in flight because the user
+    // walked out and back in is still in flight, and the done event clears it
+    // wherever they happen to be standing.
+    with_view_model(
+        app->selftest_view,
+        SelftestViewModel * m,
+        {
+            m->state = (uint8_t)state;
+            snprintf(m->detail, sizeof(m->detail), "%s", detail);
+        },
+        true);
+}
+
 /* ---------------- Report viewer ---------------- */
 
 // The file on the SD card is for later. What matters at the front door is a
@@ -3065,6 +3166,9 @@ static void menu_callback(void* context, uint32_t index) {
     case MenuIndexTests:
         app_switch_view(app, FakeChipViewTests);
         break;
+    case MenuIndexSelftest:
+        app_switch_view(app, FakeChipViewSelftest);
+        break;
     case MenuIndexSettings:
         app_switch_view(app, FakeChipViewSettings);
         break;
@@ -3165,6 +3269,7 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     submenu_add_item(app->submenu, "Scan I2C bus", MenuIndexScan, menu_callback, app);
     submenu_add_item(app->submenu, "Scan 1-Wire", MenuIndexOneWire, menu_callback, app);
     submenu_add_item(app->submenu, "Live tests", MenuIndexTests, menu_callback, app);
+    submenu_add_item(app->submenu, "UART self-test", MenuIndexSelftest, menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MenuIndexSettings, menu_callback, app);
     submenu_add_item(app->submenu, "Known chips", MenuIndexChips, menu_callback, app);
     submenu_add_item(app->submenu, "Saved reports", MenuIndexSaved, menu_callback, app);
@@ -3235,6 +3340,15 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     view_set_draw_callback(app->test_help_view, test_help_draw_callback);
     view_set_previous_callback(app->test_help_view, nav_to_tests);
     view_dispatcher_add_view(app->view_dispatcher, FakeChipViewTestHelp, app->test_help_view);
+
+    app->selftest_view = view_alloc();
+    view_set_context(app->selftest_view, app);
+    view_allocate_model(app->selftest_view, ViewModelTypeLocking, sizeof(SelftestViewModel));
+    view_set_draw_callback(app->selftest_view, selftest_draw_callback);
+    view_set_input_callback(app->selftest_view, selftest_input_callback);
+    view_set_enter_callback(app->selftest_view, selftest_enter_callback);
+    view_set_previous_callback(app->selftest_view, nav_to_menu);
+    view_dispatcher_add_view(app->view_dispatcher, FakeChipViewSelftest, app->selftest_view);
 
     app->chips_view = view_alloc();
     view_set_context(app->chips_view, app);
@@ -3350,6 +3464,7 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSilent);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewTests);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewTestHelp);
+    view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewSelftest);
     view_dispatcher_remove_view(app->view_dispatcher, FakeChipViewAbout);
     submenu_free(app->submenu);
     view_free(app->wiring_view);
@@ -3358,6 +3473,7 @@ static void fake_chip_app_free(FakeChipApp* app) {
     view_free(app->live_view);
     view_free(app->tests_view);
     view_free(app->test_help_view);
+    view_free(app->selftest_view);
     view_free(app->chips_view);
     view_free(app->saved_view);
     view_free(app->onewire_view);
