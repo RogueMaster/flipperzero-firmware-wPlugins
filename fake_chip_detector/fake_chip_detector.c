@@ -117,6 +117,12 @@ typedef struct {
     uint8_t selected;
     bool busy;
     bool explain; // the "what this proves" panel is showing
+
+    // Two fields rather than one, because a write that failed has to be as
+    // loud as one that worked. A user who walks away believing a file exists
+    // is worse off than one who was told plainly that it does not.
+    char saved_name[SAVED_NAME_LEN]; // filename of the last report, on success
+    bool save_failed; // the SD write did not go through
 } OneWireViewModel;
 
 typedef struct {
@@ -750,24 +756,22 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
     draw_action_bar(canvas, "OK: details", true);
 }
 
-/* Writes a snapshot of the scan results to /ext/apps_data/fake_chip_detector/.
- * Takes a copy rather than the live model: SD writes can stall for seconds
- * and must never run while the view-model mutex is held. */
-static bool scan_save_log(
-    const I2CFoundDevice* found,
-    uint8_t count,
-    bool disputed,
-    const SilentDiagnosis* silent,
+/* Files an already-built report in /ext/apps_data/fake_chip_detector/ and
+ * hands back the name it chose. The document and the name it is filed under
+ * are made from the same DateTime, so a report cannot be dated one minute in
+ * its own text and another in the folder. Two kinds of report go through here
+ * — the I2C scan and the 1-Wire bus — and only the writing is shared: the
+ * documents themselves say different things and are built apart. */
+static bool report_save_text(
+    const FuriString* text,
+    const DateTime* dt,
     char* out_name,
     size_t out_name_size) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     bool ok = false;
 
-    DateTime dt;
-    furi_hal_rtc_get_datetime(&dt);
-
     char name[SAVED_NAME_LEN];
-    report_filename_make(name, sizeof(name), &dt);
+    report_filename_make(name, sizeof(name), dt);
     if(out_name) snprintf(out_name, out_name_size, "%s", name);
 
     FuriString* path = furi_string_alloc_printf(APP_DATA_PATH("%s"), name);
@@ -775,16 +779,33 @@ static bool scan_save_log(
 
     File* file = storage_file_alloc(storage);
     if(storage_file_open(file, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        FuriString* text = furi_string_alloc();
-        report_build(text, found, count, disputed, &dt, silent);
         size_t len = furi_string_size(text);
         ok = storage_file_write(file, furi_string_get_cstr(text), len) == len;
-        furi_string_free(text);
     }
     storage_file_close(file);
     storage_file_free(file);
     furi_string_free(path);
     furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+/* Writes a snapshot of the scan results. Takes a copy rather than the live
+ * model: SD writes can stall for seconds and must never run while the
+ * view-model mutex is held. */
+static bool scan_save_log(
+    const I2CFoundDevice* found,
+    uint8_t count,
+    bool disputed,
+    const SilentDiagnosis* silent,
+    char* out_name,
+    size_t out_name_size) {
+    DateTime dt;
+    furi_hal_rtc_get_datetime(&dt);
+
+    FuriString* text = furi_string_alloc();
+    report_build(text, found, count, disputed, &dt, silent);
+    bool ok = report_save_text(text, &dt, out_name, out_name_size);
+    furi_string_free(text);
     return ok;
 }
 
@@ -2593,6 +2614,8 @@ static void onewire_enter(void* context) {
             m->selected = 0;
             m->busy = true;
             m->explain = false;
+            m->saved_name[0] = '\0';
+            m->save_failed = false;
         },
         true);
 
@@ -2610,6 +2633,34 @@ static void onewire_exit(void* context) {
     app->ow_thread = NULL;
 }
 
+// Same rule as the scan side: snapshot the result, then build and write the
+// report outside the model lock. An SD write can stall for seconds and the GUI
+// must not be holding the mutex while it does.
+static void onewire_save_log(FakeChipApp* app) {
+    OneWireScanResult* snapshot = malloc(sizeof(OneWireScanResult));
+    with_view_model(app->onewire_view, OneWireViewModel * m, { *snapshot = m->res; }, false);
+
+    DateTime dt;
+    furi_hal_rtc_get_datetime(&dt);
+
+    FuriString* text = furi_string_alloc();
+    report_build_onewire(text, snapshot, &dt);
+    free(snapshot);
+
+    char name[SAVED_NAME_LEN] = {0};
+    bool saved = report_save_text(text, &dt, name, sizeof(name));
+    furi_string_free(text);
+
+    with_view_model(
+        app->onewire_view,
+        OneWireViewModel * m,
+        {
+            snprintf(m->saved_name, sizeof(m->saved_name), "%s", saved ? name : "");
+            m->save_failed = !saved;
+        },
+        true);
+}
+
 // 16 hex digits with no separators: it is an identifier to compare, not prose.
 static void ow_format_rom(const uint8_t* rom, char out[17]) {
     for(uint8_t i = 0; i < 8; i++) {
@@ -2621,6 +2672,31 @@ static void onewire_draw_callback(Canvas* canvas, void* model) {
     OneWireViewModel* m = model;
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
+
+    // Saving a file and not saying where it went is not saving it — and a
+    // write that failed has to say so just as plainly, or the user leaves
+    // holding evidence that was never written.
+    if(m->saved_name[0] || m->save_failed) {
+        if(m->save_failed) {
+            canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "SAVE FAILED");
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(
+                canvas, 64, 30, AlignCenter, AlignBottom, "The SD card did not take");
+            canvas_draw_str_aligned(
+                canvas, 64, 41, AlignCenter, AlignBottom, "the file. Card missing,");
+            canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, "or out of space?");
+        } else {
+            canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "REPORT SAVED");
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignBottom, m->saved_name);
+            canvas_draw_str_aligned(
+                canvas, 64, 40, AlignCenter, AlignBottom, "On the SD card, in");
+            canvas_draw_str_aligned(canvas, 64, 49, AlignCenter, AlignBottom, "apps_data/");
+            canvas_draw_str_aligned(
+                canvas, 64, 58, AlignCenter, AlignBottom, "fake_chip_detector");
+        }
+        return;
+    }
 
     // Saying "IDs are copyable" and leaving it there would be worse than not
     // saying it: the whole point of the app is that the user understands what
@@ -2657,6 +2733,13 @@ static void onewire_draw_callback(Canvas* canvas, void* model) {
             canvas_draw_str(canvas, 2, 34, "Data to pin 17, plus 3V3,");
             canvas_draw_str(canvas, 2, 44, "GND and a 4.7k pull-up.");
         }
+        // Saving matters most here, not least. The person holding a part that
+        // said nothing at all is the one being asked to accept or refuse a
+        // parcel with no evidence either way, and the report has something to
+        // give them: whether the line was held low, which is usually their own
+        // wiring, or whether it was idle and simply nobody answered. There is
+        // no OK action on this screen, so the bar carries only the save hint.
+        draw_action_bar(canvas, "", true);
         return;
     }
 
@@ -2715,21 +2798,39 @@ static void onewire_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str(canvas, 2, 43, "Present, ID checks out.");
     }
 
-    draw_action_bar(canvas, "OK: what this proves", false);
+    // Shorter than the "OK: what this proves" this screen used to say: the
+    // save hint and its key glyph now take the right-hand end of the bar, and
+    // the only other call that offers save gets by with a label this length.
+    draw_action_bar(canvas, "OK: explain", true);
 }
 
 static bool onewire_input_callback(InputEvent* event, void* context) {
     FakeChipApp* app = context;
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
     bool consumed = false;
+    bool do_save = false;
     with_view_model(
         app->onewire_view,
         OneWireViewModel * m,
         {
-            if(m->explain) {
+            if(m->saved_name[0] || m->save_failed) {
+                // any key dismisses the save confirmation, Back included, so
+                // the first Back returns to the result rather than the menu
+                m->saved_name[0] = '\0';
+                m->save_failed = false;
+                consumed = true;
+            } else if(m->explain) {
                 // Any key closes the panel, Back included — consuming it here
                 // means the first Back returns to the result, not to the menu.
+                // Checked before the save key so that promise stays literal.
                 m->explain = false;
+                consumed = true;
+            } else if(event->key == InputKeyRight && !m->busy && event->type == InputTypeShort) {
+                // Deliberately not gated on a device having been found: an
+                // empty bus is a result too, and it is the one its owner most
+                // needs written down. Gated on !busy so a half-finished scan
+                // can never be filed as a finished one.
+                do_save = true;
                 consumed = true;
             } else if(event->key == InputKeyUp && m->selected > 0) {
                 m->selected--;
@@ -2743,6 +2844,11 @@ static bool onewire_input_callback(InputEvent* event, void* context) {
             }
         },
         consumed);
+
+    if(do_save) {
+        onewire_save_log(app);
+        i2c_notify_play(app->notifications, I2CNotifyNeutral);
+    }
     return consumed;
 }
 
