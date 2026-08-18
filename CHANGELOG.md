@@ -50,7 +50,7 @@ UL: API: Add `canvas_get_buffer`, `canvas_get_buffer_size` to public API (by @xM
   - UL: USB/BT Remote: PTT improvements (by @hryamzik)
   - Ami Tool: Remove copyrighted names, write card fully using low level poller (by @Firefox2100)
   - CAN Tools: Parity with DBC format, support importing DBC files (by @MatthewKuKanich)
-  - ESP Flasher: Bump Marauder 1.12.1 (by @justcallmekoko) FlipperHTTP 2.1.1 (by @jblanked) Blackmagic 0.1.2-rc (by @hedger), advanced flashing mode (by @H4W9)
+  - ESP Flasher: Bump Marauder 1.14.3 (by @justcallmekoko) FlipperHTTP 2.1.1 (by @jblanked) Blackmagic 0.1.2-rc (by @hedger), quick flash fix (by @xMasterX), advanced flashing mode (by @H4W9)
   - ESP32 WiFi Marauder: Marauder 1.12.0 support (by @pfefferle), Marauder 1.10.0 support (by @justcallmekoko), Marauder 1.9.0 support (by @H4W9)
   - FlipLibrary: Added Fahrenheit, current weather, and wind speed/direction (by @H4W9)
   - FlipSocial: Autocomplete, keyboard improvements, explore and profile view enhancements, bugfixes (by @jblanked)
