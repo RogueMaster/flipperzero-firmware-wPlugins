@@ -1,5 +1,6 @@
 #include "file_browser.h"
 #include "file_browser_worker.h"
+#include "file_browser_worker_i.h"
 
 #include <gui/elements.h>
 #include <assets_icons.h>
@@ -33,7 +34,7 @@ typedef enum {
 } BrowserItemType;
 
 typedef struct {
-    FuriString* path;
+    FuriString* name;
     BrowserItemType type;
     uint8_t* custom_icon_data;
     FuriString* display_name;
@@ -41,14 +42,14 @@ typedef struct {
 
 static void BrowserItem_t_init(BrowserItem_t* obj) {
     obj->type = BrowserItemTypeLoading;
-    obj->path = furi_string_alloc();
+    obj->name = furi_string_alloc();
     obj->display_name = furi_string_alloc();
     obj->custom_icon_data = NULL;
 }
 
 static void BrowserItem_t_init_set(BrowserItem_t* obj, const BrowserItem_t* src) {
     obj->type = src->type;
-    obj->path = furi_string_alloc_set(src->path);
+    obj->name = furi_string_alloc_set(src->name);
     obj->display_name = furi_string_alloc_set(src->display_name);
     if(src->custom_icon_data) {
         obj->custom_icon_data = malloc(CUSTOM_ICON_MAX_SIZE);
@@ -60,7 +61,7 @@ static void BrowserItem_t_init_set(BrowserItem_t* obj, const BrowserItem_t* src)
 
 static void BrowserItem_t_set(BrowserItem_t* obj, const BrowserItem_t* src) {
     obj->type = src->type;
-    furi_string_set(obj->path, src->path);
+    furi_string_set(obj->name, src->name);
     furi_string_set(obj->display_name, src->display_name);
     if(src->custom_icon_data) {
         memcpy(obj->custom_icon_data, src->custom_icon_data, CUSTOM_ICON_MAX_SIZE);
@@ -70,7 +71,7 @@ static void BrowserItem_t_set(BrowserItem_t* obj, const BrowserItem_t* src) {
 }
 
 static void BrowserItem_t_clear(BrowserItem_t* obj) {
-    furi_string_free(obj->path);
+    furi_string_free(obj->name);
     furi_string_free(obj->display_name);
     if(obj->custom_icon_data) {
         free(obj->custom_icon_data);
@@ -440,7 +441,8 @@ static void
     item.custom_icon_data = NULL;
 
     if(!is_last) {
-        item.path = furi_string_alloc_set(item_path);
+        item.name = furi_string_alloc();
+        path_extract_filename(item_path, item.name, false);
         item.display_name = furi_string_alloc();
         if(is_folder) {
             item.type = BrowserItemTypeFolder;
@@ -476,7 +478,7 @@ static void
             instant_update);
 
         furi_string_free(item.display_name);
-        furi_string_free(item.path);
+        furi_string_free(item.name);
         if(item.custom_icon_data) {
             free(item.custom_icon_data);
         }
@@ -491,14 +493,14 @@ static void
                     FuriString* selected = NULL;
                     if(model->item_idx > 0) {
                         selected = furi_string_alloc_set(
-                            items_array_get(model->items, model->item_idx)->path);
+                            items_array_get(model->items, model->item_idx)->name);
                     }
 
                     items_array_sort(model->items);
 
                     if(selected != NULL) {
                         for(uint32_t i = 0; i < model->item_cnt; i++) {
-                            if(!furi_string_cmp(items_array_get(model->items, i)->path, selected)) {
+                            if(!furi_string_cmp(items_array_get(model->items, i)->name, selected)) {
                                 model->item_idx = i;
                                 break;
                             }
@@ -791,9 +793,18 @@ static bool file_browser_view_input_callback(InputEvent* event, void* context) {
                 if(selected_item->type == BrowserItemTypeBack) {
                     file_browser_worker_folder_exit(browser->worker);
                 } else if(selected_item->type == BrowserItemTypeFolder) {
-                    file_browser_worker_folder_enter(browser->worker, selected_item->path, 0);
+                    FuriString* tmp_path = furi_string_alloc();
+                    path_concat(
+                        file_browser_worker_get_path_current(browser->worker),
+                        furi_string_get_cstr(selected_item->name),
+                        tmp_path);
+                    file_browser_worker_folder_enter(browser->worker, tmp_path, 0);
+                    furi_string_free(tmp_path);
                 } else if(selected_item->type == BrowserItemTypeFile) {
-                    furi_string_set(browser->result_path, selected_item->path);
+                    path_concat(
+                        file_browser_worker_get_path_current(browser->worker),
+                        furi_string_get_cstr(selected_item->name),
+                        browser->result_path);
                     if(browser->callback) {
                         browser->callback(browser->context);
                     }
@@ -818,7 +829,10 @@ static bool file_browser_view_input_callback(InputEvent* event, void* context) {
             if(selected_item) {
                 if(selected_item->type == BrowserItemTypeFile ||
                    selected_item->type == BrowserItemTypeFolder) {
-                    furi_string_set(browser->result_path, selected_item->path);
+                    path_concat(
+                        file_browser_worker_get_path_current(browser->worker),
+                        furi_string_get_cstr(selected_item->name),
+                        browser->result_path);
                     if(browser->callback) {
                         browser->callback(browser->context);
                     }

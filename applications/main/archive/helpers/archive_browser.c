@@ -6,6 +6,7 @@
 #include <core/common_defines.h>
 #include <core/log.h>
 #include <gui/modules/file_browser_worker.h>
+#include <gui/modules/file_browser_worker_i.h>
 #include <flipper_application/flipper_application.h>
 
 static void
