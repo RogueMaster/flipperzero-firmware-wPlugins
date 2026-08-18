@@ -168,6 +168,7 @@ typedef struct {
     uint32_t last_temperature_query_tick;
     uint8_t radar_sweep_phase;
     uint8_t radar_trail_depth;
+    /* Internal reader/RF operating temperature from command 0x7B, not ambient. */
     int16_t reader_temperature_c;
     uint8_t reader_power_dbm;
     bool temperature_valid;
@@ -1877,6 +1878,13 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
         uhf_diag_log(app, "Version=%s", app->version);
     } else if(cmd == UHF_CMD_GET_TEMP) {
         app->temperature_query_pending = false;
+        FURI_LOG_I(
+            TAG,
+            "Temperature response: len=%lu sign=%u value=%u checksum=%s",
+            (unsigned long)data_len,
+            data_len >= 1U ? data[0] : 0U,
+            data_len >= 2U ? data[1] : 0U,
+            checksum_acc == 0U ? "ok" : "bad");
         if(checksum_acc == 0U && data_len >= 2U && data[0] <= 1U) {
             int16_t temperature = (int16_t)data[1];
             if(data[0] == 0U) temperature = -temperature;
@@ -2481,7 +2489,7 @@ static void uhf_draw_radar_page(Canvas* canvas, UhfApp* app) {
     canvas_set_font(canvas, FontSecondary);
     char value[24];
 
-    canvas_draw_str(canvas, 70, 10, "SPD");
+    canvas_draw_str(canvas, 70, 10, "RATE");
     if(rate > 9999U) {
         snprintf(value, sizeof(value), "9999+");
     } else {
