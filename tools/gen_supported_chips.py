@@ -126,8 +126,14 @@ for line in top_level_groups(table):
 # So this is a tripwire, not a guarantee. 21 is simply the longest kind that has
 # actually been measured. A longer one is not necessarily too wide, but it has
 # not been checked, and the failure mode is a word quietly cut off on the one
-# screen that tells somebody they were sold the wrong part. Measure it against
-# the font, then raise this.
+# screen that tells somebody they were sold the wrong part.
+#
+# To measure one instead of guessing, and with the article NOT YOURS puts in
+# front of it:
+#
+#     python tools/screen_width.py "a magnetic angle sensor"
+#
+# If it fits the not-yours slot, raise this to the new length.
 KIND_MAX = 21
 
 

@@ -30,7 +30,8 @@ typedef struct {
     // The longest one here is "a magnetic angle sensor" at 98px. Counting
     // characters does not predict this -- "Temp/humidity sensor" is 20 of them
     // and overflows by a pixel, "Magnetic angle sensor" is 21 and fits -- so a
-    // long new kind wants measuring against FontSecondary, not estimating.
+    // long new kind wants measuring against FontSecondary, not estimating:
+    // tools/screen_width.py does it exactly, off the device.
     const char* kind;
     uint8_t addrs[CHIP_MAX_ADDRS]; // 0xFF = end of list
     uint8_t range_lo; // inclusive contiguous address range, 0 = unused
