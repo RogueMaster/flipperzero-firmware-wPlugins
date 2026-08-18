@@ -126,6 +126,7 @@ UL: API: Add `canvas_get_buffer`, `canvas_get_buffer_size` to public API (by @xM
   - OFW PR 4362: Fix BusFault in Write to Initial Card (by @akrylysov)
   - OFW PR 4369: Fix stack buffer overflows in MFUL FAST_READ and DESFire file settings parsers (by @qp-x-qp)
 - GUI: Optimize RAM usage of FileBrowser (by @WillyJL)
+- Archive: Fix wrong cursor when opening dirs with more than 220 files (by @WillyJL)
 - uFBT: Fix .clangd config for IDEs besides VSCode (by @WillyJL)
 - UL: Settings: Storage settings exit scenes properly if used via favourites (by @xMasterX)
 - UL: UI: Some small changes (by @xMasterX)

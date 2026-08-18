@@ -88,10 +88,9 @@ static void
                             }
                         }
                     }
-
-                    if(model->item_idx < 0) {
-                        model->item_idx = 0;
-                    }
+                }
+                if(model->item_idx < 0) {
+                    model->item_idx = 0;
                 }
                 if(archive_is_file_list_load_required(model)) {
                     model->list_loading = true;
