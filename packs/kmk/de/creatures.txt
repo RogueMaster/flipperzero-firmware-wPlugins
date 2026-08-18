@@ -1,9 +1,9 @@
 Pack: Fabelwesen
 Name: Einhorn
 ---
-Name: Drache
+Name: Drache/Drachin
 ---
-Name: Meerjungfrau
+Name: Meerjungfrau/-mann
 ---
 Name: Phönix
 ---
@@ -11,29 +11,29 @@ Name: Greif
 ---
 Name: Yeti
 ---
-Name: Werwolf
+Name: Werwolf/Werwölfin
 ---
-Name: Vampir
+Name: Vampir/Vampirin
 ---
 Name: Fee
 ---
-Name: Elf
+Name: Elf/Elfe
 ---
-Name: Zwerg
+Name: Zwerg/Zwergin
 ---
-Name: Troll
+Name: Troll/Trollin
 ---
-Name: Kobold
+Name: Kobold/Koboldin
 ---
-Name: Riese
+Name: Riese/Riesin
 ---
-Name: Zauberer
+Name: Zauberer/Zauberin
 ---
-Name: Hexe
+Name: Hexe/Hexer
 ---
 Name: Flaschengeist
 ---
-Name: Zentaur
+Name: Zentaur/Zentaurin
 ---
 Name: Pegasus
 ---
@@ -43,7 +43,7 @@ Name: Kraken
 ---
 Name: Sphinx
 ---
-Name: Gnom
+Name: Gnom/Gnomin
 ---
 Name: Gespenst
 ---
@@ -53,12 +53,12 @@ Name: Roboter
 ---
 Name: Alien
 ---
-Name: Zyklop
+Name: Zyklop/Zyklopin
 ---
 Name: Nessie
 ---
 Name: Seeschlange
 ---
-Name: Eiskönigin
+Name: Eiskönig/Eiskönigin
 ---
-Name: Schneetroll
+Name: Schneetroll/-in

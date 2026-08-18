@@ -1,5 +1,5 @@
 Pack: Tierreich
-Name: Löwe
+Name: Löwe/Löwin
 ---
 Name: Panda
 ---
@@ -11,27 +11,27 @@ Name: Faultier
 ---
 Name: Koala
 ---
-Name: Tiger
+Name: Tiger/Tigerin
 ---
-Name: Wolf
+Name: Wolf/Wölfin
 ---
-Name: Fuchs
+Name: Fuchs/Füchsin
 ---
 Name: Eule
 ---
-Name: Katze
+Name: Katze/Kater
 ---
-Name: Hund
+Name: Hund/Hündin
 ---
 Name: Pferd
 ---
-Name: Hase
+Name: Hase/Häsin
 ---
 Name: Igel
 ---
 Name: Otter
 ---
-Name: Elefant
+Name: Elefant/Elefantin
 ---
 Name: Giraffe
 ---
@@ -39,7 +39,7 @@ Name: Känguru
 ---
 Name: Eichhörnchen
 ---
-Name: Waschbär
+Name: Waschbär/Waschbärin
 ---
 Name: Erdmännchen
 ---
