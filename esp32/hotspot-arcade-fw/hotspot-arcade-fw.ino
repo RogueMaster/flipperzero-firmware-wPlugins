@@ -334,7 +334,16 @@ static void onWsEvent(
     uint8_t* data,
     size_t len) {
     (void)srv;
-    if(type == WS_EVT_DISCONNECT) {
+    if(type == WS_EVT_CONNECT) {
+        // Every push is a whole snapshot -- pushAll() sends the lobby plus the full
+        // game state, never a delta -- so a frame that goes missing is repaired by
+        // the next one a moment later. The library's default trade is the opposite:
+        // when a client's send queue fills up it closes the connection. On a phone
+        // that dozed off for a second that is the difference between a stutter and
+        // losing your seat mid-round, and it looks to the room like a random drop.
+        // Discard the frame instead; the next push carries the same truth.
+        client->setCloseClientOnQueueFull(false);
+    } else if(type == WS_EVT_DISCONNECT) {
         ENGINE_LOCK();
         engine.onWsDisconnect(client->id());
         ENGINE_UNLOCK();
