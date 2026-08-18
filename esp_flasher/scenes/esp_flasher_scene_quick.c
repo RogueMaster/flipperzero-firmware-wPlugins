@@ -1,4 +1,5 @@
 #include "../esp_flasher_app_i.h"
+#include "../esp_flasher_worker.h"
 
 // Marauder firmware source - https://github.com/justcallmekoko/ESP32Marauder
 // BlackMagic firmware source - https://github.com/flipperdevices/blackmagic-esp32-s2
@@ -171,7 +172,8 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
 
         bool enter_bootloader = false;
         bool s3 = false;
-        const char* boot = NULL; // 0x1000 (or 0x0 on S3)
+        bool c5 = false;
+        const char* boot = NULL; // 0x1000 (or 0x0 on S3 / 0x2000 on C5)
         const char* part = NULL; // 0x8000
         const char* app0 = NULL; // 0xE000
         const char* firm = NULL; // 0x10000
@@ -269,6 +271,21 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
         app->bin_file_path_custom[0] = '\0';
 
         app->selected_flash_options[SelectedFlashS3Mode] = s3;
+        app->selected_flash_options[SelectedFlashC5Mode] = c5;
+
+        // The worker takes every flash address from custom_slot_addrs, and
+        // app_alloc() zeroes it, so quick flash has to fill in the standard
+        // layout here or every binary would be written to 0x0.
+        app->custom_slot_addrs[SelectedFlashBoot] = c5 ? ESP_ADDR_BOOT_C5 :
+                                                    s3 ? ESP_ADDR_BOOT_S3 :
+                                                         ESP_ADDR_BOOT;
+        app->custom_slot_addrs[SelectedFlashPart] = ESP_ADDR_PART;
+        app->custom_slot_addrs[SelectedFlashNvs] = ESP_ADDR_NVS;
+        app->custom_slot_addrs[SelectedFlashBootApp0] = ESP_ADDR_BOOT_APP0;
+        app->custom_slot_addrs[SelectedFlashAppA] = ESP_ADDR_APP_A;
+        app->custom_slot_addrs[SelectedFlashAppB] = ESP_ADDR_APP_B;
+        app->custom_slot_addrs[SelectedFlashCustom] = 0x0;
+
         if(boot) {
             app->selected_flash_options[SelectedFlashBoot] = true;
             strncpy(app->bin_file_path_boot, boot, sizeof(app->bin_file_path_boot));
