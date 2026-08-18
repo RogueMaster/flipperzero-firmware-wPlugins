@@ -147,7 +147,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - JS Runner, NFC: [Fix some out of memory crashes - apps no longer bundle their own copy of the soft-float code, it is shared from the firmware now (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a8164fc4e248f5addc1f0fa5564e4b3619f6c7d1)
 - Lib: [Music worker pause/resume - new `music_worker_pause()` / `music_worker_resume()` in the app API, resuming continues from the same note (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/513868186f0ea2f303ce75e273da1c8f0e253a13)
 - Fix: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
-- Updated: [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - Updated: [Ghost ESP v1.8.2 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - ESP Flasher: [Bump Marauder v1.14.3 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.3)
 - Updated: [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
@@ -156,6 +155,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido) (Version Only)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Updated: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
+- Updated: [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 
 <a name="release"></a>
 
