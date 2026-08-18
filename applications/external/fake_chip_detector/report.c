@@ -38,7 +38,7 @@ const char* report_article(const char* word) {
         letters++;
 
     // Acronyms the world says as a word instead of spelling out. The letter
-    // rule below gets them backwards -- "an RAM + counter", "an MAX30102" --
+    // rule below gets them backwards -- "an RAM + counter chip", "an MAX30102" --
     // and the comparison is against the letters alone, because the string is
     // MAX30102 and not MAX. Add a line here when a new part starts with one.
     static const char* const said_as_a_word[] = {"RAM", "MAX"};
@@ -60,7 +60,7 @@ const char* report_article(const char* word) {
 }
 
 // A kind is written to stand on its own under a part number on the screen --
-// "Air quality (VOC)" -- and here it has to sit in the middle of a sentence
+// "Air quality sensor" -- and here it has to sit in the middle of a sentence
 // instead: article in front, capital dropped. The capital stays when the word
 // is one the world writes in capitals, EEPROM and GPIO and I2C, which is the
 // same test as "is the second letter lower case". That is also why lowering
@@ -78,6 +78,176 @@ void report_phrase_kind(char* out, size_t size, const char* kind) {
 // Written to be read aloud at a front door, by someone who has never heard of
 // I2C. Plain statement first, then why the evidence cannot be faked, and only
 // at the very bottom the register values an engineer would want.
+
+// What the listen heard, or did not. Three outcomes and three different
+// paragraphs: a document that printed "nothing was transmitting" when the app
+// never got as far as listening would be claiming a measurement it did not
+// make, in writing, to somebody who is going to show it to a seller.
+static void report_silence_listen(FuriString* out, const SilentDiagnosis* s) {
+    const UartListenResult* r = &s->listen;
+
+    switch(s->listen_outcome) {
+    case UartListenHeard:
+        if(r->bytes) {
+            furi_string_cat_printf(
+                out,
+                "The same two pins were then listened to as a plain serial line, and something "
+                "was transmitting on them: %u bytes at %lu baud, with no framing errors. ",
+                (unsigned)r->bytes,
+                (unsigned long)r->baud);
+            if(r->sample_len) {
+                // The bytes themselves, because a reader who knows the part
+                // can recognise them and a reader who does not can still show
+                // them to someone who can.
+                furi_string_cat_str(out, "The first of them were");
+                size_t show = r->sample_len < 16 ? r->sample_len : 16;
+                for(size_t i = 0; i < show; i++) {
+                    furi_string_cat_printf(out, " %02X", r->sample[i]);
+                }
+                furi_string_cat_str(out, show < r->sample_len ? " ...\n" : ".\n");
+            }
+            furi_string_cat_str(
+                out,
+                "A part that is transmitting is powered and running. It is not answering on "
+                "I2C because it is not speaking I2C.\n\n");
+        } else {
+            // Framing errors and not one clean byte. Naming a rate here would
+            // be reporting the guess rather than the measurement.
+            furi_string_cat_str(
+                out,
+                "The same two pins were then listened to as a plain serial line. Something was "
+                "switching the line, but not at any of the rates tried, so nothing could be "
+                "read off it. Even so, a pin that is being driven is being driven by something "
+                "powered and running.\n\n");
+        }
+        break;
+
+    case UartListenSilent:
+        furi_string_cat_str(
+            out,
+            "The same two pins were then listened to as a plain serial line, at four common "
+            "rates, for about two seconds in all. Nothing arrived. That is not the same as "
+            "proof that nothing is there: a part that only speaks when it is spoken to says "
+            "nothing to a listener, and a module that reports once a second can fall between "
+            "windows that short.\n\n");
+        break;
+
+    default:
+        // Never listened. Saying nothing here would let the report read as
+        // though only I2C had ever been tried, which is a different account of
+        // what the app did.
+        furi_string_cat_str(
+            out,
+            "The serial line on those same two pins could not be listened to on this run, so "
+            "nothing about it can be said either way.\n\n");
+        break;
+    }
+}
+
+// Nothing identified itself, so the app cannot say which part is on the board.
+// What it can say is which parts carry a pin of this class -- and that is what
+// makes the measurement checkable, because the reader can hold the list
+// against the module in their hand. It is also the difference between "a pin
+// read low" and a sentence a seller has to answer.
+static void report_silence_known(FuriString* out, const SilentDiagnosis* s) {
+    if(!s->pad_mode_known) return; // the address row: those pads pick no bus
+
+    // Only the level that takes the part off the bus is worth a list. Naming
+    // SPI-selecting parts under a reading that says the pad is fine would be
+    // arguing against the app's own measurement. Floating is wrong on every
+    // mode pin: the datasheets forbid it, and whatever such a pad settles on
+    // at power-up is chance.
+    bool wrong = s->pad_level == I2CPadFloating ||
+                 s->pad_level == (s->pad_wanted_high ? I2CPadLow : I2CPadHigh);
+    if(!wrong) return;
+
+    size_t total = 0;
+    size_t latched = 0;
+    for(size_t i = 0; i < chip_mode_pin_count(); i++) {
+        const ChipModePin* p = chip_mode_pin_get(i);
+        if(!chip_mode_pin_matches(p, s->pad_mode_kind, s->pad_mode_alt, s->pad_wanted_high))
+            continue;
+        total++;
+        if(p->latched) latched++;
+    }
+    if(!total) return; // a class no row in this build has been verified for
+
+    // Singular and plural threaded through as fragments rather than as two
+    // copies of every sentence. One part is not the rare case here: BNO055 is
+    // the whole reason this screen exists.
+    bool one = total == 1;
+
+    if(s->pad_level == I2CPadFloating) {
+        furi_string_cat_printf(
+            out,
+            "A pin of that kind is not allowed to float, and the level it settles on at "
+            "power-up is chance rather than a setting. %s: ",
+            one ? "This tool knows of one part with such a pin" :
+                  "These are the parts this tool knows that have one");
+    } else {
+        const char* went = s->pad_mode_alt == ModeAltUart ?
+                               "hands the part to a serial line, where it has no I2C address "
+                               "at all" :
+                           s->pad_mode_alt == ModeAltSpi ?
+                               "hands the part to SPI, which switches its I2C interface off" :
+                               "holds the part shut down";
+        furi_string_cat_printf(
+            out,
+            "On the %s this tool knows with a pin marked that way, that level %s: ",
+            one ? "one part" : "parts",
+            went);
+    }
+
+    // Each part with the pad name from its own datasheet, not the family's list
+    // of labels: a row whose silkscreen name is not one of those four is then
+    // visible as itself instead of being quietly filed under the wrong heading.
+    size_t printed = 0;
+    for(size_t i = 0; i < chip_mode_pin_count(); i++) {
+        const ChipModePin* p = chip_mode_pin_get(i);
+        if(!chip_mode_pin_matches(p, s->pad_mode_kind, s->pad_mode_alt, s->pad_wanted_high))
+            continue;
+        furi_string_cat_printf(out, "%s%s (%s)", printed++ ? ", " : "", p->chip, p->pad);
+    }
+    furi_string_cat_str(out, ". ");
+
+    if(latched == total) {
+        furi_string_cat_printf(
+            out,
+            "That choice is latched when the power comes up%s, so holding the pad the other "
+            "way changes nothing until the power has been cycled. ",
+            one ? "" : " on all of them");
+    } else if(latched) {
+        furi_string_cat_str(out, "On ");
+        printed = 0;
+        for(size_t i = 0; i < chip_mode_pin_count(); i++) {
+            const ChipModePin* p = chip_mode_pin_get(i);
+            if(!chip_mode_pin_matches(p, s->pad_mode_kind, s->pad_mode_alt, s->pad_wanted_high))
+                continue;
+            if(!p->latched) continue;
+            furi_string_cat_printf(out, "%s%s", printed++ ? ", " : "", p->chip);
+        }
+        furi_string_cat_str(
+            out,
+            " that choice is latched when the power comes up, so holding the pad the other "
+            "way changes nothing until the power has been cycled. The rest read the pin "
+            "continuously. ");
+    } else {
+        // No family reaches this today, and the enable pins will: a part held
+        // in reset reads that pin the whole time it is running, so the moment
+        // rows like XSHUT are verified this is the branch they land in.
+        furi_string_cat_str(
+            out, "These read the pin continuously, so the level above is the one that counted. ");
+    }
+
+    // The list is what parts of this kind do, never what this board is. Saying
+    // so in the same breath is the difference between evidence and a guess
+    // dressed as evidence.
+    furi_string_cat_printf(
+        out,
+        "Whether %s what is on this board is unknown: nothing answered, so nothing "
+        "identified itself.\n\n",
+        one ? "that part is" : "one of those parts is");
+}
 
 // The nothing-answered document. Deliberately refuses to conclude: everything
 // here is either a measurement or a fact about how these parts are built, and
@@ -108,6 +278,13 @@ static void report_silence(FuriString* out, const SilentDiagnosis* s) {
         break;
     }
 
+    // Only where it was tried. The listen runs after a sweep that came back
+    // empty on a healthy bus, and only there -- on a bus with no pull-ups the
+    // receive pin drifts, and drift alone can look like traffic. Reporting on
+    // a listen that was never applicable would be answering a question nobody
+    // asked.
+    if(s->bus.health == I2CBusOk) report_silence_listen(out, s);
+
     if(s->pad_measured && s->pad_labels) {
         const char* level = s->pad_level == I2CPadHigh ? "HIGH" :
                             s->pad_level == I2CPadLow  ? "LOW" :
@@ -122,6 +299,8 @@ static void report_silence(FuriString* out, const SilentDiagnosis* s) {
                 s->pad_wanted_high ? "up" : "down",
                 s->pad_wanted_high ? "low" : "high");
         }
+
+        report_silence_known(out, s);
     }
 
     furi_string_cat_str(

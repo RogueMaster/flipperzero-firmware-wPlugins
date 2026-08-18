@@ -249,6 +249,14 @@ family code that says which part answered without vouching for who made it.
 
 ![1-Wire parts](fake_chip_detector/screenshots/20_onewire_parts.png)
 
+**Prove the serial side works.** When an I²C sweep finds nothing, the app spends a moment
+listening on the same two pins, in case the part is talking rather than answering. **UART
+self-test** in the menu checks that listening path itself, and it needs no sensor at all — one
+jumper from **pin 15 to pin 16**, and nothing else on the bus. The app sends a short pattern out
+of one pin and reads it back on the other, then tells you how many bytes came home. It answers
+the question you cannot otherwise settle at a delivery counter: is it the sensor, or is it this
+app? If the app can hear itself, the silence belongs to the sensor.
+
 ## What this app cannot do
 
 It reads what the chip says about itself. It cannot see the packaging or the seller's listing, so

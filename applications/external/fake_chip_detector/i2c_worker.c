@@ -8,13 +8,15 @@
 
 #define TAG "I2CWorker"
 
-#define WORKER_FLAG_SCAN  (1UL << 0)
-#define WORKER_FLAG_EXIT  (1UL << 1)
-#define WORKER_FLAG_WATCH (1UL << 3)
-#define WORKER_FLAG_PAD   (1UL << 4)
-#define WORKER_FLAG_FIX   (1UL << 5)
-#define WORKER_FLAG_ALL \
-    (WORKER_FLAG_SCAN | WORKER_FLAG_EXIT | WORKER_FLAG_WATCH | WORKER_FLAG_PAD | WORKER_FLAG_FIX)
+#define WORKER_FLAG_SCAN     (1UL << 0)
+#define WORKER_FLAG_EXIT     (1UL << 1)
+#define WORKER_FLAG_WATCH    (1UL << 3)
+#define WORKER_FLAG_PAD      (1UL << 4)
+#define WORKER_FLAG_FIX      (1UL << 5)
+#define WORKER_FLAG_SELFTEST (1UL << 6)
+#define WORKER_FLAG_ALL                                                          \
+    (WORKER_FLAG_SCAN | WORKER_FLAG_EXIT | WORKER_FLAG_WATCH | WORKER_FLAG_PAD | \
+     WORKER_FLAG_FIX | WORKER_FLAG_SELFTEST)
 
 // How many agreeing reads it takes to move the pad meter. At 50ms a read that
 // is a fifth of a second of steadiness, which is short enough to feel live and
@@ -53,6 +55,11 @@ struct I2CWorker {
     volatile bool fix_want_high; // level the pad has to sit at for I2C
     volatile uint32_t probe_timeout_ms;
     volatile uint8_t progress_addr;
+    volatile bool listening; // the sweep is over and the serial line is being heard out
+    volatile uint8_t listen_outcome; // UartListenOutcome
+    UartListenResult listen;
+    volatile uint8_t selftest_state; // I2CSelftestState
+    char selftest_detail[I2C_SELFTEST_DETAIL_SIZE];
     I2CFoundDevice found[I2C_SCAN_MAX_FOUND];
     size_t found_count;
     I2CBusCheck bus;
@@ -145,12 +152,21 @@ void i2c_worker_check_bus(I2CBusCheck* out) {
     out->powered = out->scl_ok || out->sda_ok;
 
     if(scl_stuck || sda_stuck) {
+        // No short test on this branch: a line already held low follows the
+        // clock whatever the other line does, so the answer would be yes for a
+        // reason that has nothing to do with a short.
         out->health = I2CBusStuckLow;
     } else if(out->scl_ok && out->sda_ok) {
         out->health = I2CBusOk; // both lines are needed before I2C can work
         out->shorted = i2c_lines_shorted();
     } else {
         out->health = I2CBusFloating;
+        // Two bare wires touching each other have no pull-ups between them, so
+        // a plain SDA-to-SCL short lands here rather than on the branch above --
+        // and while this test only ran up there, the app could not see the
+        // easiest mistake to make with four loose wires. TESTING.md has been
+        // promising it since before it was true.
+        out->shorted = i2c_lines_shorted();
         // Any incomplete bus is worth checking, not just a completely dead
         // one: with SDA on the right pin and SCL on the wrong one, the old
         // "both lines dead" condition never fired and the user got no hint.
@@ -248,6 +264,20 @@ static void i2c_worker_notify(I2CWorker* worker, I2CWorkerEvent event) {
     if(worker->callback) worker->callback(event, worker->callback_context);
 }
 
+// Rates worth trying, commonest first. Not a guess between them: a wrong rate
+// turns real traffic into framing errors rather than into silence, so the
+// sweep can tell "wrong rate" from "nothing there" and picks its winner on
+// that evidence.
+static const uint32_t LISTEN_BAUDS[] = {9600, 115200, 38400, 57600};
+
+// Per rate, so about two seconds in all -- spent only on a sweep that has
+// already failed, and while the screen says what it is doing. Not longer,
+// because this sits between somebody and their answer. And not treated as
+// exhaustive either: a GPS module bursts once a second and can fall between
+// two windows this size, which is why nothing downstream is allowed to say
+// the part is silent, only that nothing was heard.
+#define LISTEN_WINDOW_MS 450
+
 static void i2c_worker_do_scan(I2CWorker* worker) {
     // Electrical state first: it explains an empty sweep far better than
     // "no devices found" on its own.
@@ -257,6 +287,11 @@ static void i2c_worker_do_scan(I2CWorker* worker) {
     furi_mutex_acquire(worker->mutex, FuriWaitForever);
     worker->found_count = 0;
     worker->bus = check;
+    // Cleared here, not after the listen: a result carried over from the
+    // previous scan would sit on screen beside a fresh sweep as though it had
+    // just been measured.
+    worker->listen_outcome = UartListenUnavailable;
+    memset(&worker->listen, 0, sizeof(worker->listen));
     furi_mutex_release(worker->mutex);
 
     for(uint8_t addr = I2C_SCAN_ADDR_FIRST; addr <= I2C_SCAN_ADDR_LAST; addr++) {
@@ -276,6 +311,38 @@ static void i2c_worker_do_scan(I2CWorker* worker) {
             furi_mutex_release(worker->mutex);
         }
         if((addr & 0x07) == 0) i2c_worker_notify(worker, I2CWorkerEventScanProgress);
+    }
+
+    furi_mutex_acquire(worker->mutex, FuriWaitForever);
+    bool empty = worker->found_count == 0;
+    furi_mutex_release(worker->mutex);
+
+    // Nothing answered, and the bus itself was fine: powered, both pull-ups
+    // there, both lines idle high. That is the shape of a part strapped off
+    // the I2C bus rather than a part that is dead, so before the screen says
+    // anything, listen on the same two wires. LPUART is on PC0 and PC1, which
+    // are pins 16 and 15 -- nothing has to be re-plugged.
+    //
+    // The health gate is not only about relevance, it is the noise guard.
+    // With the module's pull-ups present the receive pin idles high, so a
+    // framing error means real edges arrived. On a floating bus the pin drifts
+    // and drift alone can raise framing errors, which the sweep reports as
+    // "something was transmitting". Listening off a dead bus would invent
+    // traffic out of nothing, on the one screen where a user is least able to
+    // argue back.
+    if(!worker->scan_abort && empty && check.health == I2CBusOk) {
+        worker->listening = true;
+        i2c_worker_notify(worker, I2CWorkerEventScanProgress);
+
+        UartListenResult result;
+        UartListenOutcome outcome = uart_listen_sweep(
+            LISTEN_BAUDS, COUNT_OF(LISTEN_BAUDS), LISTEN_WINDOW_MS, &worker->scan_abort, &result);
+
+        furi_mutex_acquire(worker->mutex, FuriWaitForever);
+        worker->listen = result;
+        worker->listen_outcome = (uint8_t)outcome;
+        furi_mutex_release(worker->mutex);
+        worker->listening = false;
     }
 }
 
@@ -470,6 +537,43 @@ static void i2c_worker_do_fix(I2CWorker* worker) {
     }
 }
 
+// The loopback proves the transport with one jumper and no sensor: expansion
+// service stood down, handle acquired, pinout as documented, framing, transmit,
+// the interrupt-context receive, clean release.
+static void i2c_worker_do_selftest(I2CWorker* worker) {
+    char detail[I2C_SELFTEST_DETAIL_SIZE];
+    uint8_t state;
+
+    // Anything at all on these two pins stops the run. A pull-up means a module
+    // is still wired up; a line held low means something is driving it, and
+    // this test drives pin 15 itself. Either way the fight would surface as a
+    // transport fault, which is the one wrong answer to give someone who came
+    // here to find out whether the transport works.
+    //
+    // The jumper alone does not trip this: i2c_line_probe leaves the other pin
+    // analog and unpulled while it reads, so the two float together rather than
+    // pulling against each other.
+    I2CBusCheck bus;
+    i2c_worker_check_bus(&bus);
+    if(bus.health == I2CBusStuckLow) {
+        state = I2CSelftestBlocked;
+        snprintf(detail, sizeof(detail), "A line is held low");
+    } else if(bus.powered) {
+        state = I2CSelftestBlocked;
+        snprintf(detail, sizeof(detail), "Pull-ups on pins 15/16");
+    } else {
+        // One rate is enough. What this proves is the path, and the path is the
+        // same at every rate; 115200 because the listen sweep leans on it.
+        bool ok = uart_selftest_loopback(115200, detail, sizeof(detail));
+        state = ok ? I2CSelftestPassed : I2CSelftestFailed;
+    }
+
+    furi_mutex_acquire(worker->mutex, FuriWaitForever);
+    snprintf(worker->selftest_detail, sizeof(worker->selftest_detail), "%s", detail);
+    worker->selftest_state = state;
+    furi_mutex_release(worker->mutex);
+}
+
 static int32_t i2c_worker_thread(void* context) {
     I2CWorker* worker = context;
     for(;;) {
@@ -495,6 +599,12 @@ static int32_t i2c_worker_thread(void* context) {
             worker->busy = true;
             i2c_worker_do_fix(worker);
             worker->busy = false;
+        }
+        if(flags & WORKER_FLAG_SELFTEST) {
+            worker->busy = true;
+            i2c_worker_do_selftest(worker);
+            worker->busy = false;
+            i2c_worker_notify(worker, I2CWorkerEventSelftestDone);
         }
     }
     // Never leave the bench dark, and never leave a pull hanging on the bus:
@@ -554,6 +664,34 @@ void i2c_worker_start_scan(I2CWorker* worker, uint32_t probe_timeout_ms) {
 
 void i2c_worker_abort_scan(I2CWorker* worker) {
     worker->scan_abort = true;
+}
+
+UartListenOutcome i2c_worker_get_listen(I2CWorker* worker, UartListenResult* out) {
+    furi_mutex_acquire(worker->mutex, FuriWaitForever);
+    UartListenOutcome outcome = (UartListenOutcome)worker->listen_outcome;
+    if(out) *out = worker->listen;
+    furi_mutex_release(worker->mutex);
+    return outcome;
+}
+
+void i2c_worker_selftest_start(I2CWorker* worker) {
+    // Both of those own pins 15 and 16, and the serial handle needs them. The
+    // self-test screen is not reached from either, so this is belt and braces.
+    worker->watch_stop = true;
+    worker->pad_stop = true;
+    furi_thread_flags_set(furi_thread_get_id(worker->thread), WORKER_FLAG_SELFTEST);
+}
+
+I2CSelftestState i2c_worker_get_selftest(I2CWorker* worker, char* detail, size_t detail_size) {
+    furi_mutex_acquire(worker->mutex, FuriWaitForever);
+    I2CSelftestState state = (I2CSelftestState)worker->selftest_state;
+    if(detail && detail_size) snprintf(detail, detail_size, "%s", worker->selftest_detail);
+    furi_mutex_release(worker->mutex);
+    return state;
+}
+
+bool i2c_worker_is_listening(I2CWorker* worker) {
+    return worker->listening;
 }
 
 bool i2c_worker_is_busy(I2CWorker* worker) {

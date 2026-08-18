@@ -5,6 +5,7 @@
 
 #include "i2c_worker.h"
 #include "onewire_worker.h"
+#include "uart_listen.h"
 
 // Builds the human-readable report. The same text is what the screen shows
 // and what lands on the SD card — a report you hand to a courier must not
@@ -26,6 +27,19 @@ typedef struct {
     // change it.
     bool pad_held;
     bool pad_wanted_high; // the level I2C needed, for the sentence above
+    // Which class of mode pin those labels belong to, so the report can name
+    // the parts that have one. False for the address row, whose labels pick no
+    // bus at all; when false the two fields below mean nothing. Together with
+    // pad_wanted_high this is the key into chip_mode_pin_matches().
+    bool pad_mode_known;
+    uint8_t pad_mode_kind; // ModePinKind
+    uint8_t pad_mode_alt; // ModeAlt: where a wrong level sends the part
+    // What the automatic listen after the empty sweep established. The zero
+    // value is UartListenUnavailable -- "never listened" -- which is the right
+    // answer for a report built before the listen could run, and is a
+    // different sentence from "listened and heard nothing".
+    uint8_t listen_outcome; // UartListenOutcome
+    UartListenResult listen;
 } SilentDiagnosis;
 
 // Prose helpers, exported because the screen has to say the same phrase the
@@ -34,8 +48,8 @@ typedef struct {
 const char* report_article(const char* word);
 
 // Article and capital together, because the same first word decides both:
-// report_phrase_kind(buf, sizeof(buf), "Air quality (VOC)") writes
-// "an air quality (VOC)". Pass a kind, not a part number -- a name keeps its
+// report_phrase_kind(buf, sizeof(buf), "Air quality sensor") writes
+// "an air quality sensor". Pass a kind, not a part number -- a name keeps its
 // capital, so Si7021 must go through report_article on its own.
 void report_phrase_kind(char* out, size_t size, const char* kind);
 

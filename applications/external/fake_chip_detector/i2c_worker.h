@@ -16,6 +16,7 @@
 #define I2C_REG_TIMEOUT_MS   50
 
 #include "chip_db.h"
+#include "uart_listen.h"
 
 typedef struct {
     uint8_t addr; // 7-bit
@@ -30,6 +31,7 @@ typedef enum {
     I2CWorkerEventBusUpdate,
     I2CWorkerEventPadUpdate,
     I2CWorkerEventFixUpdate,
+    I2CWorkerEventSelftestDone,
 } I2CWorkerEvent;
 
 // Where a fix run has got to. Every step but the first ends on a measurement,
@@ -120,6 +122,21 @@ void i2c_worker_fix_start(I2CWorker* worker, bool want_high);
 void i2c_worker_fix_stop(I2CWorker* worker);
 I2CFixStage i2c_worker_get_fix_stage(I2CWorker* worker);
 
+// What the listen that follows an empty sweep established. It runs by itself,
+// with nothing to press: the person this app exists for read the headline as a
+// conclusion and handed a working sensor back, so an extra question they have
+// to think of asking is no question at all. It costs about two seconds and
+// only on a sweep that already failed.
+//
+// UartListenUnavailable on every path where no listening happened, including
+// before the first scan. The zero value claims nothing, which is the answer a
+// caller who forgets to check should get.
+UartListenOutcome i2c_worker_get_listen(I2CWorker* worker, UartListenResult* out);
+
+// True between the end of the sweep and the end of the listen, so the busy
+// screen can say what it is doing rather than sit at 0x77 looking wedged.
+bool i2c_worker_is_listening(I2CWorker* worker);
+
 uint8_t i2c_worker_get_progress(I2CWorker* worker);
 size_t i2c_worker_get_found(I2CWorker* worker, I2CFoundDevice* out, size_t max_count);
 
@@ -148,3 +165,33 @@ bool i2c_worker_write_reg(uint8_t addr7, uint8_t reg, uint8_t value, uint32_t ti
 // convenience on top of these two.
 bool i2c_worker_write_raw(uint8_t addr7, const uint8_t* data, size_t len, uint32_t timeout_ms);
 bool i2c_worker_read_raw(uint8_t addr7, uint8_t* data, size_t len, uint32_t timeout_ms);
+
+/* ---- LPUART loopback self-test ---- */
+
+// How the loopback ended. Never run is the zero value, so a caller who reads
+// this before anything has been tried is told nothing rather than told it
+// passed -- the same rule the listen outcome follows.
+typedef enum {
+    I2CSelftestNeverRun,
+    I2CSelftestPassed,
+    I2CSelftestFailed,
+    // Not a result. Pull-ups were seen on pins 15 and 16, so something is still
+    // wired to them, and the test drives one of those pins. Refusing to run is
+    // a different thing from running and failing, and the user needs to be told
+    // which one happened.
+    I2CSelftestBlocked,
+} I2CSelftestState;
+
+// Big enough for what uart_selftest_loopback writes; it truncates at 40 itself.
+#define I2C_SELFTEST_DETAIL_SIZE 40
+
+// Runs the jumper loopback on the worker thread. It stands the expansion
+// service down and takes the serial handle, which is not work for the thread
+// that is drawing the screen.
+void i2c_worker_selftest_start(I2CWorker* worker);
+
+// detail receives the line the test wrote about itself, verbatim; pass NULL to
+// skip. It is preset to "LPUART unavailable" and only overwritten when the body
+// actually reached the wire, which is what tells "never got a handle" apart
+// from "sent and heard nothing back".
+I2CSelftestState i2c_worker_get_selftest(I2CWorker* worker, char* detail, size_t detail_size);

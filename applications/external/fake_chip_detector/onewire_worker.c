@@ -10,10 +10,10 @@
 // so reading a different one than the label promises is a hard fact.
 static const OneWireFamily onewire_families[] = {
     {0x01, "DS1990A/DS2401", "Serial number key", OneWireRoleOther},
-    {0x04, "DS2404", "Clock + memory", OneWireRoleMemory},
+    {0x04, "DS2404", "Clock + memory chip", OneWireRoleMemory},
     {0x05, "DS2405", "Addressable switch", OneWireRoleSwitch},
     {0x10, "DS18S20", "Temperature sensor", OneWireRoleTemperature},
-    {0x1D, "DS2423", "RAM + counter", OneWireRoleMemory},
+    {0x1D, "DS2423", "RAM + counter chip", OneWireRoleMemory},
     {0x20, "DS2450", "4-channel ADC", OneWireRoleOther},
     {0x22, "DS1822", "Temperature sensor", OneWireRoleTemperature},
     {0x26, "DS2438", "Battery monitor", OneWireRoleOther},
