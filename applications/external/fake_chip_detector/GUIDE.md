@@ -115,6 +115,42 @@ Say no and the app writes it down as a dispute — the wording is aimed at a sel
 
 If several chips answered, you get a list instead; press OK on the one you care about.
 
+### Nothing answered
+
+An empty sweep is not a verdict. Plenty of perfectly good sensors have a pin that decides
+whether they speak I2C at all, and set the other way they have no I2C address to answer on —
+healthy, powered, and invisible. Somebody handed a working BNO055 back to a courier over
+exactly this.
+
+So the screen says **No I2C answer**, not "no devices found", and offers **▸ find out**.
+
+Behind it is a meter. Move the sensor end of the wire that sits in **pin 15** onto whichever
+pin on the board looks like a mode pin — the label is printed next to it — and the screen
+shows what that pin is actually doing, live: **HIGH**, **LOW** or **FLOATING**. Then pick the
+row that matches the label you are on, and the bottom line tells you what that level means for
+that kind of pin. Ruling a pin out is progress too.
+
+If the level is a reason the chip cannot answer, press **OK** and the app walks you through it:
+
+1. It holds the pin the way I2C needs — gently, with an internal resistor, so it can never
+   fight anything on your board — and then reads the pin back to check the hold actually took.
+   If the board ties that pin down in copper, the pull loses and the app says so. That is the
+   answer, not a failure: the module was built that way and no rewiring at a parcel counter
+   will change it.
+2. Most of these pins are only read at the moment the chip powers up, so the chip has to be
+   restarted while the pin is held. The Flipper cannot switch its own 3.3 V pin off, so it asks
+   you to pull the sensor's power wire out and push it back — and it watches the board's
+   pull-up resistors disappear and come back, so it knows whether that really happened.
+3. Then it asks for the wire back on the **SDA** pad and rescans on its own, the moment both
+   bus lines are alive again.
+
+One pin cannot be fixed this way: a plain enable or reset pin has to stay held the whole time,
+so the same wire cannot also carry SDA. With four wires that is a fifth-wire job, and the app
+says that rather than pretending.
+
+Every one of those screens can write the report to the SD card with **◂ (left)**, including the
+one that says the board holds the pin. That report is the thing to show a seller.
+
 ## 6. What the words mean
 
 | On screen | In plain language |
@@ -202,10 +238,16 @@ The Flipper is loud in a quiet shop.
 
 ![Settings](fake_chip_detector/screenshots/16_settings.png)
 
-**Browse what it knows.** **Known chips** lists all 80 parts in the app's database with a line
-about what each one does — handy when a listing gives you a part number and nothing else.
+**Browse what it knows.** **Known chips** lists all 80 I²C parts in the app's database with a
+line about what each one does — handy when a listing gives you a part number and nothing else.
+Keep scrolling past the end of it and the heading changes to **1-Wire parts**: the 15 families
+the app can name on pin 17. They are listed apart because they are not the same kind of
+knowledge — an I²C part is identified by an ID register the app reads back, a 1-Wire part by a
+family code that says which part answered without vouching for who made it.
 
 ![Known chips](fake_chip_detector/screenshots/17_known_chips.png)
+
+![1-Wire parts](fake_chip_detector/screenshots/20_onewire_parts.png)
 
 ## What this app cannot do
 

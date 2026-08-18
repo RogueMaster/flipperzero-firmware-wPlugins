@@ -149,13 +149,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Fix: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 - Updated: [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - Updated: [Ghost ESP v1.8.2 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
-- Updated: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - ESP Flasher: [Bump Marauder v1.14.3 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.3)
 - Updated: [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - NFC: [Ultralight AES is no longer dictionary attacked automatically on read - unlike Ultralight C it has an auth attempt limit, and wrong keys can lock the card permanently, so it is now started manually from -Unlock with Dictionary- with a warning (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/4533be796f9f6231443c76549bcf47e9be3b65ad)
 - Added: [I2C BMS Reader v0.4 (By gazirov)](https://github.com/gazirov/battery_reader) `Req: TI BQ30/BQ40 controllers`
 - Updated: [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido) (Version Only)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- Updated: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 
 <a name="release"></a>
 

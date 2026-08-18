@@ -183,14 +183,19 @@ static void vl6180x_run(const LiveTestEnv* env) {
                 snprintf(detail, sizeof(detail), "err 0x%X", error_code);
             }
 
+            // The proof stands once the distance has moved with a hand: that
+            // happened and no later reading unhappens it. What the banner may
+            // not do is describe the present tense wrongly. Saying "it tracks"
+            // over a reading the part itself rejected puts the app in an
+            // argument with its own number, and the number wins every time.
             st.phase = proved ? LiveTestPhasePassed : LiveTestPhaseRunning;
-            vl6180x_set_lines(
-                &st,
-                proved          ? "It tracks - real sensor" :
-                error_code == 0 ? "Move your hand closer" :
-                                  "Hold a hand 5cm away",
-                detail,
-                NULL);
+            const char* headline;
+            if(proved) {
+                headline = error_code == 0 ? "It tracks - real sensor" : "It tracked earlier";
+            } else {
+                headline = error_code == 0 ? "Move your hand closer" : "Hold a hand 5cm away";
+            }
+            vl6180x_set_lines(&st, headline, detail, NULL);
             publish(ctx, &st);
 
             vl6180x_delay(stop, VL6180X_POLL_MS);

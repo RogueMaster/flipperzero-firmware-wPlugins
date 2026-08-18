@@ -337,6 +337,10 @@ static int32_t chip_try_candidate(const ChipEntry* chip, uint8_t addr7, IdReadRe
 }
 
 void chip_db_identify(uint8_t addr7, ChipIdentification* out) {
+    // Zero here means VerdictNotChecked, not VerdictGenuine. Every return below
+    // sets a verdict of its own, so this only ever shows if someone later adds
+    // a path that forgets to -- and then it says "not checked" rather than
+    // calling an unexamined part real.
     memset(out, 0, sizeof(*out));
 
     const ChipEntry* no_id_candidate = NULL;
@@ -433,6 +437,8 @@ void chip_db_identify(uint8_t addr7, ChipIdentification* out) {
 
 const char* chip_verdict_str(ChipVerdict verdict) {
     switch(verdict) {
+    case VerdictNotChecked:
+        return "NOT CHECKED";
     case VerdictGenuine:
         return "GENUINE";
     case VerdictWrongChip:
@@ -452,6 +458,8 @@ const char* chip_verdict_str(ChipVerdict verdict) {
 
 const char* chip_verdict_headline(ChipVerdict verdict) {
     switch(verdict) {
+    case VerdictNotChecked:
+        return "NOT CHECKED";
     case VerdictGenuine:
         return "GENUINE";
     case VerdictWrongChip:
@@ -474,6 +482,10 @@ const char* chip_verdict_headline(ChipVerdict verdict) {
 // imply it compared anything to a label — it asks the user to do that.
 void chip_verdict_explain(ChipVerdict verdict, const char** line1, const char** line2) {
     switch(verdict) {
+    case VerdictNotChecked:
+        *line1 = "Nothing was checked yet.";
+        *line2 = "This should not appear.";
+        break;
     case VerdictGenuine:
         *line1 = "All ID registers match.";
         *line2 = "Does the label agree?";
@@ -507,6 +519,8 @@ bool chip_verdict_is_good(ChipVerdict verdict) {
 
 const char* chip_verdict_short_str(ChipVerdict verdict) {
     switch(verdict) {
+    case VerdictNotChecked:
+        return "not checked";
     case VerdictGenuine:
         return "GENUINE";
     case VerdictWrongChip:

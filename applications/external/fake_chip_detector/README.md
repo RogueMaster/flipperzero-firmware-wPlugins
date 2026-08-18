@@ -76,6 +76,18 @@ one register — this app does that and shows its work.
 - **Diagnoses the wiring.** Before blaming the sensor it measures both bus lines, tells a missing
   pull-up apart from a line shorted to ground, notices when the module is on the wrong pins, and
   detects SDA shorted to SCL.
+- **Treats an empty scan as a question, not a verdict.** Many sensors have a pin that decides
+  whether they speak I2C at all, and set the other way they have no address to answer on: healthy,
+  powered and invisible. So the screen says `No I2C answer` and offers to find out. Move the pin-15
+  wire onto the pad in question and the app meters it live — HIGH, LOW or FLOATING — and says what
+  that level means for that kind of pin. Where it is the cause, it holds the pad the way I2C needs
+  with an internal pull too weak to fight anything on the board, reads the pad back to see whether
+  the hold took, walks you through restarting the sensor so a pin that is only sampled at reset
+  gets sampled again, and rescans by itself once the bus is back. Every step ends on a measurement:
+  a pad the board ties down in copper is reported as exactly that, and a pin that has to be held
+  the whole time is called a fifth-wire job rather than offered a fix that would do nothing. The
+  report can be saved from any of those screens — the person who most needs a document is the one
+  whose scan came back empty.
 - **Refuses to overclaim.** A chip with no ID register is reported as present, never as genuine.
   A device whose IDs match nothing is `UNIDENTIFIED`, not "fake" — that is far more often a gap
   in the database. Only a partial match, where some of a known chip's IDs are right and others

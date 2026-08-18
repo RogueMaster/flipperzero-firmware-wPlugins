@@ -24,6 +24,19 @@ typedef enum {
     OneWireRoleOther,
 } OneWireRole;
 
+// One row of the family table: what a given family code means. The table is
+// also what the app can honestly claim to recognise on this bus, so it is
+// public — a count that leaves it out under-reports the app's own coverage.
+typedef struct {
+    uint8_t family;
+    const char* name;
+    const char* kind;
+    OneWireRole role;
+} OneWireFamily;
+
+size_t onewire_family_count(void);
+const OneWireFamily* onewire_family_get(size_t index); // NULL when out of range
+
 typedef struct {
     uint8_t rom[8]; // [0] family code, [1..6] serial, [7] CRC8
     bool crc_ok; // ROM CRC8 checks out

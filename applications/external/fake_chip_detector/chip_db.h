@@ -27,6 +27,14 @@ typedef struct {
 } ChipEntry;
 
 typedef enum {
+    // Nothing has been decided yet, and it is first so that zero means this.
+    // GENUINE used to be the zero value, which made "this chip is real" the
+    // answer any uninitialised or partly filled ChipIdentification gave --
+    // including the one chip_db_identify memsets before it starts work. Every
+    // path through that function does assign a verdict today, so nothing shows
+    // it; the point is that the app's worst possible output should never be one
+    // missing return statement away.
+    VerdictNotChecked,
     VerdictGenuine, // all ID registers match
     VerdictWrongChip, // some IDs of a known chip match and others do not
     VerdictNoMatch, // answers, but nothing matched any candidate here
