@@ -598,6 +598,10 @@ const ChipModePin* chip_mode_pin_for(const char* chip_name) {
     return NULL;
 }
 
+bool chip_mode_pin_matches(const ChipModePin* pin, uint8_t kind, uint8_t alt, bool i2c_high) {
+    return pin && pin->kind == kind && pin->alt == alt && pin->i2c_high == i2c_high;
+}
+
 size_t chip_mode_pin_count(void) {
     return CHIP_MODE_PIN_COUNT;
 }

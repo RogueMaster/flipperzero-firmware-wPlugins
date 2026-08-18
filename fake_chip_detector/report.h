@@ -26,6 +26,13 @@ typedef struct {
     // change it.
     bool pad_held;
     bool pad_wanted_high; // the level I2C needed, for the sentence above
+    // Which class of mode pin those labels belong to, so the report can name
+    // the parts that have one. False for the address row, whose labels pick no
+    // bus at all; when false the two fields below mean nothing. Together with
+    // pad_wanted_high this is the key into chip_mode_pin_matches().
+    bool pad_mode_known;
+    uint8_t pad_mode_kind; // ModePinKind
+    uint8_t pad_mode_alt; // ModeAlt: where a wrong level sends the part
 } SilentDiagnosis;
 
 // Prose helpers, exported because the screen has to say the same phrase the

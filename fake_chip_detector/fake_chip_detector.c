@@ -1028,40 +1028,67 @@ typedef struct {
     // held the whole time cannot be fixed and helped at once with four wires,
     // and saying so is the honest answer.
     bool latched;
+    // Which class of pin in chip_mode_pins these labels stand for, so the
+    // screen can name the parts that have one. The user picked a silkscreen
+    // label, not a chip, and (kind, alt, want_high) is what turns that label
+    // back into a set of parts -- matching on the label strings themselves
+    // would tie the database to the wording of a menu row.
+    bool has_mode_class; // false for the address row: those pads pick no bus
+    uint8_t kind; // ModePinKind
+    uint8_t alt; // ModeAlt
 } PadFamily;
 
+// Named fields, not positions. Five of these are booleans in a row and one of
+// them decides which way somebody is told to strap a pin: a transposition here
+// would be invisible on the page and wrong on the bench.
 static const PadFamily pad_families[SILENT_ROWS] = {
     // The SPI class: BME280, BMP280, most ST and ADI accelerometers. Every one
     // of them wants this pad high to stay on I2C. The Bosch parts latch it:
     // "the I2C interface is disabled until the next power-on-reset".
-    {"CS  CSB  NSS", "High = I2C. Not this.", "Low picks SPI. This is it.", false, true, true, true},
+    {
+        .labels = "CS  CSB  NSS",
+        .when_high = "High = I2C. Not this.",
+        .when_low = "Low picks SPI. This is it.",
+        .explains_low = true,
+        .want_high = true,
+        .latched = true,
+        .has_mode_class = true,
+        .kind = ModePinProtocol,
+        .alt = ModeAltSpi,
+    },
     // Protocol select proper, which is the BNO055 case. Table 4-4: the pins are
     // read at reset and must not be left floating.
-    {"PS0  PS1  SEL",
-     "High picks UART or SPI.",
-     "Low picks I2C. Not this.",
-     true,
-     false,
-     false,
-     true},
+    {
+        .labels = "PS0  PS1  SEL",
+        .when_high = "High picks UART or SPI.",
+        .when_low = "Low picks I2C. Not this.",
+        .explains_high = true,
+        .latched = true,
+        .has_mode_class = true,
+        .kind = ModePinProtocol,
+        .alt = ModeAltUart,
+    },
     // Not a protocol at all: the part is simply held off, and it stays off for
     // exactly as long as the pin is low. Nothing is latched, so there is no
     // moment where letting go is safe.
-    {"XSHUT  RES  EN",
-     "High = enabled. Not this.",
-     "Low holds it in reset.",
-     false,
-     true,
-     true,
-     false},
-    // Ruling something out is progress and should read as progress.
-    {"AD0  ADR  SDO",
-     "Address only - all swept.",
-     "Address only - all swept.",
-     false,
-     false,
-     false,
-     false},
+    {
+        .labels = "XSHUT  RES  EN",
+        .when_high = "High = enabled. Not this.",
+        .when_low = "Low holds it in reset.",
+        .explains_low = true,
+        .want_high = true,
+        .has_mode_class = true,
+        .kind = ModePinEnable,
+        .alt = ModeAltOff,
+    },
+    // Ruling something out is progress and should read as progress. No mode
+    // class on purpose: an address pin picks no bus, so kind and alt are left
+    // at zero and never read.
+    {
+        .labels = "AD0  ADR  SDO",
+        .when_high = "Address only - all swept.",
+        .when_low = "Address only - all swept.",
+    },
 };
 
 // ~3 seconds at the 60ms tick. A save nobody is told about is the same as no
@@ -1082,6 +1109,45 @@ static bool silent_pad_explains(const PadFamily* fam, uint8_t level) {
     if(level == I2CPadFloating) return true;
     return (level == I2CPadHigh && fam->explains_high) ||
            (level == I2CPadLow && fam->explains_low);
+}
+
+// "Known: BMP280 BME280 +4". A rule with no example behind it is something to
+// be taken on trust; a part number is something the reader can compare with
+// the board in their hand. Empty when this build has no verified rows for the
+// class, and empty is the right answer then -- a heading over nothing would
+// read as "this tool knows of none", which is a different claim.
+static void silent_known_parts(Canvas* canvas, const PadFamily* fam, char* out, size_t size) {
+    out[0] = '\0';
+    if(!fam->has_mode_class) return;
+
+    // Measured against the font rather than counted in characters: these are
+    // part numbers, all capitals and digits, and they run far wider per
+    // character than the prose this footer normally carries. Room is kept for
+    // the tail, because a list that quietly ran out of room reads as the whole
+    // set -- and the whole set is what somebody would check their board
+    // against.
+    uint16_t budget = 126 - canvas_string_width(canvas, " +99");
+    size_t used = 0;
+    uint8_t hidden = 0;
+    for(size_t i = 0; i < chip_mode_pin_count(); i++) {
+        const ChipModePin* p = chip_mode_pin_get(i);
+        if(!chip_mode_pin_matches(p, fam->kind, fam->alt, fam->want_high)) continue;
+        if(!hidden) {
+            snprintf(out + used, size - used, "%s%s", used ? " " : "Known: ", p->chip);
+            if(canvas_string_width(canvas, out) <= budget) {
+                used = strlen(out);
+                continue;
+            }
+            out[used] = '\0'; // it did not fit; put the string back as it was
+        }
+        // Once one name has been dropped every later one is too, even where a
+        // shorter one would have fitted. Skipping ahead to whatever fits would
+        // print a list in an order that matches nothing.
+        hidden++;
+    }
+    // used == 0 means even the first name was too wide, and then there is no
+    // list for "+N" to be counting from.
+    if(hidden && used) snprintf(out + used, size - used, " +%u", (unsigned)hidden);
 }
 
 // One instruction, one thing the app is waiting to see. Every stage but the
@@ -1215,6 +1281,10 @@ static void silent_draw_callback(Canvas* canvas, void* model) {
     // their head at a counter.
     canvas_draw_box(canvas, 0, 55, 128, 9);
     canvas_set_color(canvas, ColorWhite);
+    // Wide enough that the pixel budget always runs out first: no glyph in
+    // this font is narrower than two pixels, so 126 pixels cannot hold 64
+    // characters, and a name can never be cut in half by the buffer.
+    char known[64];
     const char* foot;
     if(silent_saved_recently(m)) {
         foot = "Saved to the SD card.";
@@ -1228,6 +1298,17 @@ static void silent_draw_callback(Canvas* canvas, void* model) {
         foot = (m->frame / 24) % 2 ? "Wire still in pin 15?" : "Nothing drives this pad.";
     } else {
         foot = m->level == I2CPadHigh ? fam->when_high : fam->when_low;
+        // The parts get a turn only once the reading and the pad agree that
+        // something is wrong. Naming the SPI-selecting parts under "High =
+        // I2C. Not this." would have the footer argue with itself.
+        //
+        // Alternating rather than replacing: the rule is the answer and has to
+        // come back round. Somebody holding a module that is on neither list
+        // still needs to be told what the level means.
+        if(explained && (m->frame / 24) % 2) {
+            silent_known_parts(canvas, fam, known, sizeof(known));
+            if(known[0]) foot = known;
+        }
     }
     canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, foot);
     canvas_set_color(canvas, ColorBlack);
@@ -1273,6 +1354,9 @@ static bool silent_input_callback(InputEvent* event, void* context) {
                 diag.pad_labels = pad_families[m->selected].labels;
                 diag.pad_held = m->stage == I2CFixPadHeld;
                 diag.pad_wanted_high = pad_families[m->selected].want_high;
+                diag.pad_mode_known = pad_families[m->selected].has_mode_class;
+                diag.pad_mode_kind = pad_families[m->selected].kind;
+                diag.pad_mode_alt = pad_families[m->selected].alt;
                 m->saved_frame = m->frame ? m->frame : 1;
                 do_save = true;
                 consumed = true;

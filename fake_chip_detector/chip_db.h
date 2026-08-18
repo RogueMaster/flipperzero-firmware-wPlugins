@@ -109,6 +109,16 @@ typedef struct {
 // NULL is the normal answer: most parts have no such pin.
 const ChipModePin* chip_mode_pin_for(const char* chip_name);
 
+// The silent-bus screens work the other way round: nothing identified itself,
+// so there is no chip name to look up -- only the label the user read off the
+// board. A silkscreen label names a class of pin, and this turns that class
+// back into the set of parts the tool can actually vouch for.
+//
+// i2c_high is part of the key rather than assumed from the kind. A future row
+// where a low level is the I2C one would otherwise be listed under prose
+// claiming the opposite of its own datasheet quote.
+bool chip_mode_pin_matches(const ChipModePin* pin, uint8_t kind, uint8_t alt, bool i2c_high);
+
 // Iteration, for the docs generator and the silent-bus screens.
 size_t chip_mode_pin_count(void);
 const ChipModePin* chip_mode_pin_get(size_t index);

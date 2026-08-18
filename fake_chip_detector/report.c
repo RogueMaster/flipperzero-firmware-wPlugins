@@ -79,6 +79,111 @@ void report_phrase_kind(char* out, size_t size, const char* kind) {
 // I2C. Plain statement first, then why the evidence cannot be faked, and only
 // at the very bottom the register values an engineer would want.
 
+// Nothing identified itself, so the app cannot say which part is on the board.
+// What it can say is which parts carry a pin of this class -- and that is what
+// makes the measurement checkable, because the reader can hold the list
+// against the module in their hand. It is also the difference between "a pin
+// read low" and a sentence a seller has to answer.
+static void report_silence_known(FuriString* out, const SilentDiagnosis* s) {
+    if(!s->pad_mode_known) return; // the address row: those pads pick no bus
+
+    // Only the level that takes the part off the bus is worth a list. Naming
+    // SPI-selecting parts under a reading that says the pad is fine would be
+    // arguing against the app's own measurement. Floating is wrong on every
+    // mode pin: the datasheets forbid it, and whatever such a pad settles on
+    // at power-up is chance.
+    bool wrong = s->pad_level == I2CPadFloating ||
+                 s->pad_level == (s->pad_wanted_high ? I2CPadLow : I2CPadHigh);
+    if(!wrong) return;
+
+    size_t total = 0;
+    size_t latched = 0;
+    for(size_t i = 0; i < chip_mode_pin_count(); i++) {
+        const ChipModePin* p = chip_mode_pin_get(i);
+        if(!chip_mode_pin_matches(p, s->pad_mode_kind, s->pad_mode_alt, s->pad_wanted_high))
+            continue;
+        total++;
+        if(p->latched) latched++;
+    }
+    if(!total) return; // a class no row in this build has been verified for
+
+    // Singular and plural threaded through as fragments rather than as two
+    // copies of every sentence. One part is not the rare case here: BNO055 is
+    // the whole reason this screen exists.
+    bool one = total == 1;
+
+    if(s->pad_level == I2CPadFloating) {
+        furi_string_cat_printf(
+            out,
+            "A pin of that kind is not allowed to float, and the level it settles on at "
+            "power-up is chance rather than a setting. %s: ",
+            one ? "This tool knows of one part with such a pin" :
+                  "These are the parts this tool knows that have one");
+    } else {
+        const char* went = s->pad_mode_alt == ModeAltUart ?
+                               "hands the part to a serial line, where it has no I2C address "
+                               "at all" :
+                           s->pad_mode_alt == ModeAltSpi ?
+                               "hands the part to SPI, which switches its I2C interface off" :
+                               "holds the part shut down";
+        furi_string_cat_printf(
+            out,
+            "On the %s this tool knows with a pin marked that way, that level %s: ",
+            one ? "one part" : "parts",
+            went);
+    }
+
+    // Each part with the pad name from its own datasheet, not the family's list
+    // of labels: a row whose silkscreen name is not one of those four is then
+    // visible as itself instead of being quietly filed under the wrong heading.
+    size_t printed = 0;
+    for(size_t i = 0; i < chip_mode_pin_count(); i++) {
+        const ChipModePin* p = chip_mode_pin_get(i);
+        if(!chip_mode_pin_matches(p, s->pad_mode_kind, s->pad_mode_alt, s->pad_wanted_high))
+            continue;
+        furi_string_cat_printf(out, "%s%s (%s)", printed++ ? ", " : "", p->chip, p->pad);
+    }
+    furi_string_cat_str(out, ". ");
+
+    if(latched == total) {
+        furi_string_cat_printf(
+            out,
+            "That choice is latched when the power comes up%s, so holding the pad the other "
+            "way changes nothing until the power has been cycled. ",
+            one ? "" : " on all of them");
+    } else if(latched) {
+        furi_string_cat_str(out, "On ");
+        printed = 0;
+        for(size_t i = 0; i < chip_mode_pin_count(); i++) {
+            const ChipModePin* p = chip_mode_pin_get(i);
+            if(!chip_mode_pin_matches(p, s->pad_mode_kind, s->pad_mode_alt, s->pad_wanted_high))
+                continue;
+            if(!p->latched) continue;
+            furi_string_cat_printf(out, "%s%s", printed++ ? ", " : "", p->chip);
+        }
+        furi_string_cat_str(
+            out,
+            " that choice is latched when the power comes up, so holding the pad the other "
+            "way changes nothing until the power has been cycled. The rest read the pin "
+            "continuously. ");
+    } else {
+        // No family reaches this today, and the enable pins will: a part held
+        // in reset reads that pin the whole time it is running, so the moment
+        // rows like XSHUT are verified this is the branch they land in.
+        furi_string_cat_str(
+            out, "These read the pin continuously, so the level above is the one that counted. ");
+    }
+
+    // The list is what parts of this kind do, never what this board is. Saying
+    // so in the same breath is the difference between evidence and a guess
+    // dressed as evidence.
+    furi_string_cat_printf(
+        out,
+        "Whether %s what is on this board is unknown: nothing answered, so nothing "
+        "identified itself.\n\n",
+        one ? "that part is" : "one of those parts is");
+}
+
 // The nothing-answered document. Deliberately refuses to conclude: everything
 // here is either a measurement or a fact about how these parts are built, and
 // the one sentence a reader will act on says plainly that none of it is
@@ -122,6 +227,8 @@ static void report_silence(FuriString* out, const SilentDiagnosis* s) {
                 s->pad_wanted_high ? "up" : "down",
                 s->pad_wanted_high ? "low" : "high");
         }
+
+        report_silence_known(out, s);
     }
 
     furi_string_cat_str(
