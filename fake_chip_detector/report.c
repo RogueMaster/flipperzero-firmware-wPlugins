@@ -1,6 +1,80 @@
 #include "report.h"
 #include "chip_db.h"
 
+#include <string.h>
+
+static bool is_upper(char c) {
+    return c >= 'A' && c <= 'Z';
+}
+
+static bool is_lower(char c) {
+    return c >= 'a' && c <= 'z';
+}
+
+static bool is_digit(char c) {
+    return c >= '0' && c <= '9';
+}
+
+// "a" or "an", decided by how the next word is said out loud rather than by
+// the letter it starts with. In this app's vocabulary the two disagree
+// constantly: an 8-channel switch but a 6-axis IMU, an MPU6050 but a BNO055,
+// and a UV sensor even though U is a vowel. A small thing, and it lands in the
+// first line of a document someone reads aloud at a front door.
+const char* report_article(const char* word) {
+    if(!word || !word[0]) return "a";
+
+    // Numbers first, before the spelled-out test below, which would otherwise
+    // claim "1Kb EEPROM" on the strength of its capital K. Only the first
+    // syllable matters: eight, eleven and eighteen begin with a vowel and no
+    // other number does, and 80 or 800 still begin with "eight".
+    if(is_digit(word[0])) {
+        if(word[0] == '8') return "an";
+        if(word[0] == '1' && (word[1] == '1' || word[1] == '8') && !is_digit(word[2])) return "an";
+        return "a";
+    }
+
+    size_t letters = 0;
+    while(is_upper(word[letters]) || is_lower(word[letters]))
+        letters++;
+
+    // Acronyms the world says as a word instead of spelling out. The letter
+    // rule below gets them backwards -- "an RAM + counter", "an MAX30102" --
+    // and the comparison is against the letters alone, because the string is
+    // MAX30102 and not MAX. Add a line here when a new part starts with one.
+    static const char* const said_as_a_word[] = {"RAM", "MAX"};
+    for(size_t i = 0; i < COUNT_OF(said_as_a_word); i++) {
+        if(strlen(said_as_a_word[i]) == letters && strncmp(word, said_as_a_word[i], letters) == 0)
+            return "a";
+    }
+
+    // Two capitals running, or a capital then a digit, means the letters are
+    // read out one at a time -- and then it is the name of the first letter
+    // that decides. An "ess", an "em", an "aitch"; but a "you", which is why
+    // UV and USB take "a".
+    if(is_upper(word[0]) && !is_lower(word[1])) {
+        return strchr("AEFHILMNORSX", word[0]) ? "an" : "a";
+    }
+
+    char first = is_upper(word[0]) ? (char)(word[0] - 'A' + 'a') : word[0];
+    return strchr("aeiou", first) ? "an" : "a";
+}
+
+// A kind is written to stand on its own under a part number on the screen --
+// "Air quality (VOC)" -- and here it has to sit in the middle of a sentence
+// instead: article in front, capital dropped. The capital stays when the word
+// is one the world writes in capitals, EEPROM and GPIO and I2C, which is the
+// same test as "is the second letter lower case". That is also why lowering
+// can never change the article: a word with a lower-case second letter was
+// never being spelled out in the first place.
+void report_phrase_kind(char* out, size_t size, const char* kind) {
+    const char* article = report_article(kind);
+    if(is_upper(kind[0]) && is_lower(kind[1])) {
+        snprintf(out, size, "%s %c%s", article, (char)(kind[0] - 'A' + 'a'), kind + 1);
+    } else {
+        snprintf(out, size, "%s %s", article, kind);
+    }
+}
+
 // Written to be read aloud at a front door, by someone who has never heard of
 // I2C. Plain statement first, then why the evidence cannot be faked, and only
 // at the very bottom the register values an engineer would want.
@@ -103,8 +177,11 @@ void report_build(
         const char* kind = dev->ident.chip ? dev->ident.chip->kind : NULL;
 
         if(name && kind) {
-            furi_string_cat_printf(out, "The chip inside this module is a %s.\n", name);
-            furi_string_cat_printf(out, "That part is a %s.\n\n", kind);
+            char phrase[48];
+            furi_string_cat_printf(
+                out, "The chip inside this module is %s %s.\n", report_article(name), name);
+            report_phrase_kind(phrase, sizeof(phrase), kind);
+            furi_string_cat_printf(out, "That part is %s.\n\n", phrase);
         } else {
             furi_string_cat_str(
                 out, "A chip answered, but it does not identify itself as any known part.\n\n");
@@ -250,8 +327,11 @@ void report_build_onewire(FuriString* out, const OneWireScanResult* res, const D
         const OneWireDevice* dev = &res->found[i];
 
         if(dev->name && dev->kind) {
-            furi_string_cat_printf(out, "The part on this bus is a %s.\n", dev->name);
-            furi_string_cat_printf(out, "That part is a %s.\n", dev->kind);
+            char phrase[48];
+            furi_string_cat_printf(
+                out, "The part on this bus is %s %s.\n", report_article(dev->name), dev->name);
+            report_phrase_kind(phrase, sizeof(phrase), dev->kind);
+            furi_string_cat_printf(out, "That part is %s.\n", phrase);
         } else {
             furi_string_cat_printf(
                 out,

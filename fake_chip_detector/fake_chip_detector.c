@@ -711,7 +711,12 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
             canvas_draw_str(canvas, 28, 16, "NOT YOURS");
             canvas_set_font(canvas, FontSecondary);
             canvas_draw_str(canvas, 28, 26, "You were sold");
-            snprintf(buf, sizeof(buf), "a %s", kind ? kind : name);
+            // kind is NULL only when nothing in the database matched -- every
+            // row has one, and the generator that builds SUPPORTED_CHIPS.md
+            // fails the build if a row does not. So `name` here is the
+            // "Unknown chip" placeholder rather than a part number: prose, and
+            // it lowercases like prose.
+            report_phrase_kind(buf, sizeof(buf), kind ? kind : name);
             canvas_draw_str(canvas, 28, 35, buf);
             canvas_draw_str_aligned(
                 canvas, 64, 48, AlignCenter, AlignBottom, "Save proof for the seller.");
