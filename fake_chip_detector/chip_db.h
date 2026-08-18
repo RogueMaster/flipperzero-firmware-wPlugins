@@ -17,7 +17,21 @@ typedef struct {
 
 typedef struct {
     const char* name;
-    const char* kind; // what the part does, in plain words
+    // What the part does, in plain words. Two constraints, because the one
+    // string is used two ways.
+    //
+    // It has to survive being dropped into a sentence: the report writes "That
+    // part is %s." around it. "Press/temp/humidity" came out as "That part is a
+    // press/temp/humidity." -- a sentence that stops halfway. Give it a head
+    // noun, even when the label would read fine without one.
+    //
+    // And it has to fit the narrowest screen that draws it, which is NOT YOURS:
+    // article and kind together start at x=28, so 100px of the 128 are left.
+    // The longest one here is "a magnetic angle sensor" at 98px. Counting
+    // characters does not predict this -- "Temp/humidity sensor" is 20 of them
+    // and overflows by a pixel, "Magnetic angle sensor" is 21 and fits -- so a
+    // long new kind wants measuring against FontSecondary, not estimating.
+    const char* kind;
     uint8_t addrs[CHIP_MAX_ADDRS]; // 0xFF = end of list
     uint8_t range_lo; // inclusive contiguous address range, 0 = unused
     uint8_t range_hi;

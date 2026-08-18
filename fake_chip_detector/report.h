@@ -48,8 +48,8 @@ typedef struct {
 const char* report_article(const char* word);
 
 // Article and capital together, because the same first word decides both:
-// report_phrase_kind(buf, sizeof(buf), "Air quality (VOC)") writes
-// "an air quality (VOC)". Pass a kind, not a part number -- a name keeps its
+// report_phrase_kind(buf, sizeof(buf), "Air quality sensor") writes
+// "an air quality sensor". Pass a kind, not a part number -- a name keeps its
 // capital, so Si7021 must go through report_article on its own.
 void report_phrase_kind(char* out, size_t size, const char* kind);
 

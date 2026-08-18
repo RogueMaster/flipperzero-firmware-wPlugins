@@ -38,7 +38,7 @@ const char* report_article(const char* word) {
         letters++;
 
     // Acronyms the world says as a word instead of spelling out. The letter
-    // rule below gets them backwards -- "an RAM + counter", "an MAX30102" --
+    // rule below gets them backwards -- "an RAM + counter chip", "an MAX30102" --
     // and the comparison is against the letters alone, because the string is
     // MAX30102 and not MAX. Add a line here when a new part starts with one.
     static const char* const said_as_a_word[] = {"RAM", "MAX"};
@@ -60,7 +60,7 @@ const char* report_article(const char* word) {
 }
 
 // A kind is written to stand on its own under a part number on the screen --
-// "Air quality (VOC)" -- and here it has to sit in the middle of a sentence
+// "Air quality sensor" -- and here it has to sit in the middle of a sentence
 // instead: article in front, capital dropped. The capital stays when the word
 // is one the world writes in capitals, EEPROM and GPIO and I2C, which is the
 // same test as "is the second letter lower case". That is also why lowering

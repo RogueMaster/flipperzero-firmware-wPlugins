@@ -116,6 +116,33 @@ for line in top_level_groups(table):
     })
 
 
+# ---- kind length ----------------------------------------------------------
+# A kind is drawn on the NOT YOURS screen with its article in front, starting at
+# x=28, which leaves 100px of the 128. Nothing here can measure that: the real
+# limit is pixels in FontSecondary (u8g2_font_haxrcorp4089_tr), and characters
+# predict it badly -- "Temp/humidity sensor" is 20 of them and overflows by one
+# pixel, while "Magnetic angle sensor" is 21 and fits with two to spare.
+#
+# So this is a tripwire, not a guarantee. 21 is simply the longest kind that has
+# actually been measured. A longer one is not necessarily too wide, but it has
+# not been checked, and the failure mode is a word quietly cut off on the one
+# screen that tells somebody they were sold the wrong part. Measure it against
+# the font, then raise this.
+KIND_MAX = 21
+
+
+def check_kind_lengths(pairs, source):
+    over = ['%s: "%s" is %d characters' % (name, kind, len(kind))
+            for name, kind in pairs if len(kind) > KIND_MAX]
+    if over:
+        raise SystemExit(
+            'kind longer than %d characters in %s, and no one has measured it:\n  %s'
+            % (KIND_MAX, source, '\n  '.join(over)))
+
+
+check_kind_lengths([(e['name'], e['kind']) for e in entries], 'chip_db.c')
+
+
 # ---- live tests -----------------------------------------------------------
 # One module per part, all listed in live_test.c. Parsed rather than hand-kept
 # for the same reason as the chip table: a doc that can drift will.
@@ -399,6 +426,13 @@ ow_src = pathlib.Path('fake_chip_detector/onewire_worker.c').read_text(encoding=
 ow_body = re.search(
     r'static const OneWireFamily onewire_families\[\]\s*=\s*\{(.*?)\n\};', ow_src, re.S).group(1)
 families = re.findall(r'\{(0x[0-9A-Fa-f]+),\s*"([^"]*)",\s*"([^"]*)",\s*OneWireRole(\w+)\}', ow_body)
+
+# These never reach NOT YOURS, which is an I2C screen, so the cap is stricter
+# than they need -- the widest slot they land in is the chips browser, centred
+# across the full 128. One number for both is worth more than the few characters
+# a second limit would buy back, and the sentence in the 1-Wire report is the
+# same sentence.
+check_kind_lengths([(name, kind) for _, name, kind, _ in families], 'onewire_worker.c')
 
 L.append('## 1-Wire parts (%d)' % len(families))
 L.append('')

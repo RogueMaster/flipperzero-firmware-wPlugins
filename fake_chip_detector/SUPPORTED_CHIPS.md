@@ -25,18 +25,18 @@ label claims.
 
 | Chip | What it is | I2C address | Register | Expected | Width | Live test | Notes |
 |---|---|---|---|---|---|---|---|
-| **BNO055** | 9-axis IMU + fusion | 0x28, 0x29 | `0x00` CHIP_ID<br>`0x01` ACC_ID (BMA280)<br>`0x02` MAG_ID (BMM150)<br>`0x03` GYR_ID (BMG160) | `0xA0`<br>`0xFB`<br>`0x32`<br>`0x0F` | 8-bit<br>8-bit<br>8-bit<br>8-bit | Prove it finds north |  |
+| **BNO055** | 9-axis fusion IMU | 0x28, 0x29 | `0x00` CHIP_ID<br>`0x01` ACC_ID (BMA280)<br>`0x02` MAG_ID (BMM150)<br>`0x03` GYR_ID (BMG160) | `0xA0`<br>`0xFB`<br>`0x32`<br>`0x0F` | 8-bit<br>8-bit<br>8-bit<br>8-bit | Prove it finds north |  |
 | **BMP280** | Pressure sensor | 0x76, 0x77 | `0xD0` | `0x58` | 8-bit | — |  |
-| **BME280** | Press/temp/humidity | 0x76, 0x77 | `0xD0` | `0x60` | 8-bit | — |  |
+| **BME280** | Climate sensor | 0x76, 0x77 | `0xD0` | `0x60` | 8-bit | — |  |
 | **BMP180** | Pressure sensor | 0x77 | `0xD0` | `0x55` | 8-bit | — |  |
 | **BMP388** | Pressure sensor | 0x76, 0x77 | `0x00` | `0x50` | 8-bit | — |  |
 | **BMP390** | Pressure sensor | 0x76, 0x77 | `0x00` | `0x60` | 8-bit | — |  |
-| **BME680** | Air quality + climate | 0x76, 0x77 | `0xD0`<br>`0xF0` | `0x61`<br>`0x00` | 8-bit<br>8-bit | — |  |
-| **BME688** | Air quality + climate | 0x76, 0x77 | `0xD0`<br>`0xF0` | `0x61`<br>`0x01` | 8-bit<br>8-bit | — |  |
+| **BME680** | Gas + climate sensor | 0x76, 0x77 | `0xD0`<br>`0xF0` | `0x61`<br>`0x00` | 8-bit<br>8-bit | — |  |
+| **BME688** | Gas + climate sensor | 0x76, 0x77 | `0xD0`<br>`0xF0` | `0x61`<br>`0x01` | 8-bit<br>8-bit | — |  |
 | **DPS310** | Pressure sensor | 0x76, 0x77 | `0x0D` | `0x10` | 8-bit | — |  |
-| **CCS811** | Air quality (VOC) | 0x5A, 0x5B | `0x20` | `0x81` | 8-bit | — | EOL part, clones common |
-| **ENS160** | Air quality (VOC) | 0x52, 0x53 | `0x00`<br>`0x01` | `0x60`<br>`0x01` | 8-bit<br>8-bit | — |  |
-| **HDC1080** | Temp + humidity | 0x40 | `0xFE`<br>`0xFF` | `0x5449`<br>`0x1050` | 16-bit<br>16-bit | — |  |
+| **CCS811** | Air quality sensor | 0x5A, 0x5B | `0x20` | `0x81` | 8-bit | — | EOL part, clones common |
+| **ENS160** | Air quality sensor | 0x52, 0x53 | `0x00`<br>`0x01` | `0x60`<br>`0x01` | 8-bit<br>8-bit | — |  |
+| **HDC1080** | Humidity sensor | 0x40 | `0xFE`<br>`0xFF` | `0x5449`<br>`0x1050` | 16-bit<br>16-bit | — |  |
 | **MPU6050** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x68` | 8-bit | Tip it and watch gravity | TDK EOL, old stock |
 | **MPU6500** | 6-axis IMU | 0x68, 0x69 | `0x75` | `0x70` | 8-bit | Tip it and watch gravity | often sold as MPU9250 |
 | **MPU9250** | 9-axis IMU | 0x68, 0x69 | `0x75` | `0x71` | 8-bit | Tip it and watch gravity | TDK EOL, often faked |
@@ -66,9 +66,9 @@ label claims.
 | **VL6180X** | Laser rangefinder | 0x29 | `0x0000` | `0xB4` | 8-bit | Watch it measure |  |
 | **TCS34725** | Colour sensor | 0x29 | `0x92` | `0x44` | 8-bit | — |  |
 | **TSL2591** | Light sensor | 0x29 | `0xB2` | `0x50` | 8-bit | — |  |
-| **APDS9960** | Gesture + colour | 0x39 | `0x92` | `0xAB` | 8-bit | Wave your hand at it |  |
+| **APDS9960** | Gesture + RGB sensor | 0x39 | `0x92` | `0xAB` | 8-bit | Wave your hand at it |  |
 | **LTR-390UV** | UV + light sensor | 0x53 | `0x06` | `0xB0` (mask `0xF0`) | 8-bit | — |  |
-| **MAX30102** | Heart rate / SpO2 | 0x57 | `0xFF` | `0x15` | 8-bit | — | 0x11 here = MAX30100 relabel |
+| **MAX30102** | Pulse oximeter | 0x57 | `0xFF` | `0x15` | 8-bit | — | 0x11 here = MAX30100 relabel |
 | **INA226** | Current monitor | 0x40-0x4F | `0xFE`<br>`0xFF` | `0x5449`<br>`0x2260` | 16-bit<br>16-bit | — |  |
 | **INA260** | Current monitor | 0x40-0x4F | `0xFE`<br>`0xFF` | `0x5449`<br>`0x2270` | 16-bit<br>16-bit | — |  |
 | **INA228** | Current monitor | 0x40-0x4F | `0x3E` | `0x5449` | 16-bit | — |  |
@@ -93,17 +93,17 @@ ever exist, because asking the part to do its job is the one question left to as
 | **DS1307** | Real-time clock | 0x68 | — |  |
 | **PCF8563** | Real-time clock | 0x51 | — |  |
 | **SSD1306/SH1106** | OLED display | 0x3C, 0x3D | Make the screen blink | SH1106 fakes undetectable |
-| **AHT10/AHT20** | Temp + humidity | 0x38 | Breathe on it |  |
+| **AHT10/AHT20** | Humidity sensor | 0x38 | Breathe on it |  |
 | **BH1750** | Light sensor | 0x23, 0x5C | Cover it with your hand |  |
-| **SHT3x/SHT4x** | Temp + humidity | 0x44, 0x45 | Breathe on it | grade relabels undetectable |
+| **SHT3x/SHT4x** | Humidity sensor | 0x44, 0x45 | Breathe on it | grade relabels undetectable |
 | **SCD4x** | CO2 sensor | 0x62 | — |  |
-| **SGP30** | Air quality (VOC) | 0x58 | — |  |
-| **SGP40/41** | Air quality (VOC) | 0x59 | — |  |
+| **SGP30** | Air quality sensor | 0x58 | — |  |
+| **SGP40/41** | Air quality sensor | 0x59 | — |  |
 | **SCD30** | CO2 sensor | 0x61 | — |  |
-| **Si7021/HTU21D** | Temp + humidity | 0x40 | — |  |
+| **Si7021/HTU21D** | Humidity sensor | 0x40 | — |  |
 | **MLX90614** | IR thermometer | 0x5A | Point it at your hand |  |
 | **MLX90640** | Thermal camera | 0x33 | — |  |
-| **AS5600** | Magnetic angle | 0x36 | — |  |
+| **AS5600** | Magnetic angle sensor | 0x36 | — |  |
 | **MAX17048** | Battery fuel gauge | 0x36 | — |  |
 | **ADS1115** | ADC | 0x48-0x4B | — |  |
 | **INA219** | Current monitor | 0x40-0x4F | — |  |
@@ -117,7 +117,7 @@ ever exist, because asking the part to do its job is the one question left to as
 | **MS5611** | Pressure sensor | 0x76, 0x77 | — |  |
 | **VEML6070** | UV sensor | 0x38, 0x39 | — |  |
 | **MAX44009** | Light sensor | 0x4A, 0x4B | — |  |
-| **BNO085** | 9-axis IMU + fusion | 0x4A, 0x4B | — | SHTP protocol, no WHO_AM_I |
+| **BNO085** | 9-axis fusion IMU | 0x4A, 0x4B | — | SHTP protocol, no WHO_AM_I |
 
 ## Addresses more than one chip answers on (49)
 
@@ -141,33 +141,33 @@ reports one part at a crowded address has already ruled the others out.
 | `0x25` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
 | `0x26` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
 | `0x27` | **MCP23017** (GPIO expander), **PCF8574** (GPIO expander) |
-| `0x29` | **BNO055** (9-axis IMU + fusion), **VL53L0X** (Laser rangefinder), **VL53L1X** (Laser rangefinder), **VL6180X** (Laser rangefinder), **TCS34725** (Colour sensor), **TSL2591** (Light sensor) |
-| `0x36` | **AS5600** (Magnetic angle), **MAX17048** (Battery fuel gauge) |
-| `0x38` | **AHT10/AHT20** (Temp + humidity), **PCF8574A** (GPIO expander), **VEML6070** (UV sensor) |
-| `0x39` | **APDS9960** (Gesture + colour), **PCF8574A** (GPIO expander), **VEML6070** (UV sensor) |
+| `0x29` | **BNO055** (9-axis fusion IMU), **VL53L0X** (Laser rangefinder), **VL53L1X** (Laser rangefinder), **VL6180X** (Laser rangefinder), **TCS34725** (Colour sensor), **TSL2591** (Light sensor) |
+| `0x36` | **AS5600** (Magnetic angle sensor), **MAX17048** (Battery fuel gauge) |
+| `0x38` | **AHT10/AHT20** (Humidity sensor), **PCF8574A** (GPIO expander), **VEML6070** (UV sensor) |
+| `0x39` | **APDS9960** (Gesture + RGB sensor), **PCF8574A** (GPIO expander), **VEML6070** (UV sensor) |
 | `0x3C` | **SSD1306/SH1106** (OLED display), **PCF8574A** (GPIO expander) |
 | `0x3D` | **SSD1306/SH1106** (OLED display), **PCF8574A** (GPIO expander) |
-| `0x40` | **HDC1080** (Temp + humidity), **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **Si7021/HTU21D** (Temp + humidity), **INA219** (Current monitor), **PCA9685** (PWM / servo driver) |
+| `0x40` | **HDC1080** (Humidity sensor), **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **Si7021/HTU21D** (Humidity sensor), **INA219** (Current monitor), **PCA9685** (PWM / servo driver) |
 | `0x41` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
 | `0x42` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
 | `0x43` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
-| `0x44` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **SHT3x/SHT4x** (Temp + humidity), **INA219** (Current monitor) |
-| `0x45` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **SHT3x/SHT4x** (Temp + humidity), **INA219** (Current monitor) |
+| `0x44` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **SHT3x/SHT4x** (Humidity sensor), **INA219** (Current monitor) |
+| `0x45` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **SHT3x/SHT4x** (Humidity sensor), **INA219** (Current monitor) |
 | `0x46` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
 | `0x47` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
 | `0x48` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor) |
 | `0x49` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor) |
-| `0x4A` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor), **MAX44009** (Light sensor), **BNO085** (9-axis IMU + fusion) |
-| `0x4B` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor), **MAX44009** (Light sensor), **BNO085** (9-axis IMU + fusion) |
+| `0x4A` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor), **MAX44009** (Light sensor), **BNO085** (9-axis fusion IMU) |
+| `0x4B` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **TMP117** (Temperature sensor), **ADS1115** (ADC), **INA219** (Current monitor), **MAX44009** (Light sensor), **BNO085** (9-axis fusion IMU) |
 | `0x4C` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
 | `0x4D` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
 | `0x4E` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
 | `0x4F` | **INA226** (Current monitor), **INA260** (Current monitor), **INA228** (Current monitor), **INA219** (Current monitor) |
 | `0x51` | **PCF8563** (Real-time clock), **AT24Cxx** (EEPROM memory) |
-| `0x52` | **ENS160** (Air quality (VOC)), **AT24Cxx** (EEPROM memory) |
-| `0x53` | **ENS160** (Air quality (VOC)), **ADXL345/343** (Accelerometer), **ADXL355** (Accelerometer), **LTR-390UV** (UV + light sensor), **AT24Cxx** (EEPROM memory) |
-| `0x57` | **MAX30102** (Heart rate / SpO2), **AT24Cxx** (EEPROM memory) |
-| `0x5A` | **CCS811** (Air quality (VOC)), **MLX90614** (IR thermometer) |
+| `0x52` | **ENS160** (Air quality sensor), **AT24Cxx** (EEPROM memory) |
+| `0x53` | **ENS160** (Air quality sensor), **ADXL345/343** (Accelerometer), **ADXL355** (Accelerometer), **LTR-390UV** (UV + light sensor), **AT24Cxx** (EEPROM memory) |
+| `0x57` | **MAX30102** (Pulse oximeter), **AT24Cxx** (EEPROM memory) |
+| `0x5A` | **CCS811** (Air quality sensor), **MLX90614** (IR thermometer) |
 | `0x5C` | **LPS22HB** (Pressure sensor), **LPS25HB** (Pressure sensor), **BH1750** (Light sensor) |
 | `0x5D` | **LPS22HB** (Pressure sensor), **LPS25HB** (Pressure sensor) |
 | `0x61` | **SCD30** (CO2 sensor), **MCP4725** (DAC) |
@@ -176,8 +176,8 @@ reports one part at a crowded address has already ruled the others out.
 | `0x69` | **MPU6050** (6-axis IMU), **MPU6500** (6-axis IMU), **MPU9250** (9-axis IMU), **MPU6886** (6-axis IMU), **ICM20948** (9-axis IMU), **ICM42605** (6-axis IMU), **ICM42688P** (6-axis IMU), **BMI160** (6-axis IMU), **BMI270** (6-axis IMU), **BMI088 gyro** (Gyroscope) |
 | `0x6A` | **LSM6DS3** (6-axis IMU), **LSM6DS3TR-C** (6-axis IMU), **LSM6DSO/OX** (6-axis IMU), **LSM6DSV16X** (6-axis IMU), **QMI8658** (6-axis IMU) |
 | `0x6B` | **LSM6DS3** (6-axis IMU), **LSM6DS3TR-C** (6-axis IMU), **LSM6DSO/OX** (6-axis IMU), **LSM6DSV16X** (6-axis IMU), **QMI8658** (6-axis IMU) |
-| `0x76` | **BMP280** (Pressure sensor), **BME280** (Press/temp/humidity), **BMP388** (Pressure sensor), **BMP390** (Pressure sensor), **BME680** (Air quality + climate), **BME688** (Air quality + climate), **DPS310** (Pressure sensor), **TCA9548A** (I2C multiplexer), **MS5611** (Pressure sensor) |
-| `0x77` | **BMP280** (Pressure sensor), **BME280** (Press/temp/humidity), **BMP180** (Pressure sensor), **BMP388** (Pressure sensor), **BMP390** (Pressure sensor), **BME680** (Air quality + climate), **BME688** (Air quality + climate), **DPS310** (Pressure sensor), **TCA9548A** (I2C multiplexer), **MS5611** (Pressure sensor) |
+| `0x76` | **BMP280** (Pressure sensor), **BME280** (Climate sensor), **BMP388** (Pressure sensor), **BMP390** (Pressure sensor), **BME680** (Gas + climate sensor), **BME688** (Gas + climate sensor), **DPS310** (Pressure sensor), **TCA9548A** (I2C multiplexer), **MS5611** (Pressure sensor) |
+| `0x77` | **BMP280** (Pressure sensor), **BME280** (Climate sensor), **BMP180** (Pressure sensor), **BMP388** (Pressure sensor), **BMP390** (Pressure sensor), **BME680** (Gas + climate sensor), **BME688** (Gas + climate sensor), **DPS310** (Pressure sensor), **TCA9548A** (I2C multiplexer), **MS5611** (Pressure sensor) |
 
 Reading this the other way: a chip whose neighbours all have ID registers is safe to
 identify by probing, and one sharing an address with an address-only part is not — the
@@ -286,10 +286,10 @@ rather than mere presence.
 | Family code | Part | What it is | Measured |
 |---|---|---|---|
 | `0x01` | **DS1990A/DS2401** | Serial number key | — |
-| `0x04` | **DS2404** | Clock + memory | — |
+| `0x04` | **DS2404** | Clock + memory chip | — |
 | `0x05` | **DS2405** | Addressable switch | — |
 | `0x10` | **DS18S20** | Temperature sensor | temperature |
-| `0x1D` | **DS2423** | RAM + counter | — |
+| `0x1D` | **DS2423** | RAM + counter chip | — |
 | `0x20` | **DS2450** | 4-channel ADC | — |
 | `0x22` | **DS1822** | Temperature sensor | temperature |
 | `0x26` | **DS2438** | Battery monitor | — |
