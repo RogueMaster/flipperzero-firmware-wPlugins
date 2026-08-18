@@ -33,6 +33,12 @@ class TwaiDriver : public CanDriver {
     bool     busoff_event_  = false;  // consume-on-read edge: recovery just started
 
     bool install_and_start(bool listen_only) {
+#ifdef SNIFFER_ONLY
+        // Research sniffer build: hardware-forced Listen-Only. TWAI_MODE_LISTEN_ONLY
+        // never emits dominant bits (not even ACKs), so the node is physically
+        // incapable of transmitting — zero ban risk from injected frames.
+        listen_only = true;
+#endif
         twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(
             (gpio_num_t)tx_pin_,
             (gpio_num_t)rx_pin_,
@@ -154,6 +160,10 @@ public:
     uint32_t rxCount() override { return rx_count_; }
 
     void setListenOnly(bool enable) override {
+#ifdef SNIFFER_ONLY
+        (void)enable;   // sniffer build is permanently Listen-Only; ignore mode switches
+        return;
+#endif
         if (listen_only_ == enable) return;
         stop_and_uninstall();
         if (!install_and_start(enable)) {
