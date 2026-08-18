@@ -17,7 +17,14 @@ name: Checks
 # from it. Three firmwares, three SDKs, and code that compiles against one can
 # fail against another; that is a thing to learn on the pull request.
 #
-# All of it is cheap, so it runs on every push and every pull request.
+# All of it is cheap, so it runs on every pull request and on every push to
+# master. A push to a branch with no pull request open runs nothing at all.
+# That is deliberate -- a branch that already has a PR would otherwise be built
+# twice for the same commit -- but it is worth knowing before you push a branch
+# and sit waiting for checks that were never going to start. To build one
+# early, dispatch it by hand:
+#
+#   gh workflow run checks.yml --ref <branch>
 
 on:
   push:
