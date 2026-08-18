@@ -591,6 +591,11 @@ void file_browser_worker_set_config(
     furi_thread_flags_set(furi_thread_get_id(browser->thread), WorkerEvtConfigChange);
 }
 
+const char* file_browser_worker_get_path_current(BrowserWorker* browser) {
+    furi_check(browser);
+    return furi_string_get_cstr(browser->path_current);
+}
+
 const char* file_browser_worker_get_filter_ext(BrowserWorker* browser) {
     furi_check(browser);
     return furi_string_get_cstr(browser->passed_ext_filter);

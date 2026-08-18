@@ -156,6 +156,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Updated: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - Updated: [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
+- GUI: [Optimize RAM usage of FileBrowser (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b8757a5e7ab319b2ab9259ab561cd0ea72ca4554)
+- Archive: [Fix wrong cursor when opening dirs with more than 220 files (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/757cca0279bf2cbb711c56d69e8c86b2b17662d2)
 
 <a name="release"></a>
 

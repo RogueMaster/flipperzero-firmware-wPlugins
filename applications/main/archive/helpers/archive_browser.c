@@ -6,6 +6,7 @@
 #include <core/common_defines.h>
 #include <core/log.h>
 #include <gui/modules/file_browser_worker.h>
+#include <gui/modules/file_browser_worker_i.h>
 #include <flipper_application/flipper_application.h>
 
 static void
@@ -87,10 +88,9 @@ static void
                             }
                         }
                     }
-
-                    if(model->item_idx < 0) {
-                        model->item_idx = 0;
-                    }
+                }
+                if(model->item_idx < 0) {
+                    model->item_idx = 0;
                 }
                 if(archive_is_file_list_load_required(model)) {
                     model->list_loading = true;
