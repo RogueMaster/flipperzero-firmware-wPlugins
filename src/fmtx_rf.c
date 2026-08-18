@@ -155,14 +155,19 @@ void rfselect(Rf* rf, FmtxRadio radio) {
     rf->selected = radio <= FmtxRadioInternal ? radio : FmtxRadioAuto;
 }
 
+static bool rfextvbus(void) {
+    return furi_hal_power_get_usb_voltage() > 4.0f;
+}
+
 static bool rfextpoweron(Rf* rf) {
     uint8_t i;
-    if(furi_hal_power_is_otg_enabled()) return true;
+    if(furi_hal_power_is_otg_enabled() || rfextvbus()) return true;
     for(i = 0; i < 5; i++) {
         if(furi_hal_power_enable_otg()) {
             rf->power_started = true;
             return true;
         }
+        if(rfextvbus()) return true;
         furi_delay_ms(10);
     }
     return false;
@@ -194,6 +199,10 @@ static bool rfextopen(Rf* rf) {
         rfextclose(rf);
         return false;
     }
+    if(!subghz_devices_is_connect(rf->device)) {
+        rfextclose(rf);
+        return false;
+    }
     if(!subghz_devices_begin(rf->device)) {
         subghz_devices_end(rf->device);
         rf->device = NULL;
@@ -201,10 +210,6 @@ static bool rfextopen(Rf* rf) {
         return false;
     }
     rf->device_started = true;
-    if(!subghz_devices_is_connect(rf->device)) {
-        rfextclose(rf);
-        return false;
-    }
     rf->external = true;
     return true;
 }
