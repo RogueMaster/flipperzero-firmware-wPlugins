@@ -5,13 +5,88 @@
 // I2C. Plain statement first, then why the evidence cannot be faked, and only
 // at the very bottom the register values an engineer would want.
 
+// The nothing-answered document. Deliberately refuses to conclude: everything
+// here is either a measurement or a fact about how these parts are built, and
+// the one sentence a reader will act on says plainly that none of it is
+// evidence the chip is broken.
+static void report_silence(FuriString* out, const SilentDiagnosis* s) {
+    furi_string_cat_str(out, "NOTHING ANSWERED ON THE I2C BUS\n\n");
+
+    switch(s->bus.health) {
+    case I2CBusStuckLow:
+        furi_string_cat_str(
+            out,
+            "A data line is held low. That is a wiring fault or a chip that has hung, "
+            "and it has to be fixed before anything can be said about the part.\n\n");
+        break;
+    case I2CBusFloating:
+        furi_string_cat_str(
+            out,
+            "Neither data line is pulled up, so the module is either unpowered or not "
+            "connected. Nothing can be concluded about the chip from this.\n\n");
+        break;
+    default:
+        furi_string_cat_str(
+            out,
+            "The bus itself was electrically healthy: the module had power and its "
+            "pull-up resistors were present on both lines. Something is connected and "
+            "it did not answer.\n\n");
+        break;
+    }
+
+    if(s->pad_measured && s->pad_labels) {
+        const char* level = s->pad_level == I2CPadHigh ? "HIGH" :
+                            s->pad_level == I2CPadLow  ? "LOW" :
+                                                         "floating";
+        furi_string_cat_printf(out, "The pin marked %s measured %s.\n\n", s->pad_labels, level);
+
+        if(s->pad_held) {
+            furi_string_cat_printf(
+                out,
+                "Pulling that pin %s did not move it, so it is tied %s on the board itself. "
+                "The module was built this way and no rewiring can change it.\n\n",
+                s->pad_wanted_high ? "up" : "down",
+                s->pad_wanted_high ? "low" : "high");
+        }
+    }
+
+    furi_string_cat_str(
+        out,
+        "WHY THIS IS NOT PROOF OF A FAULT\n"
+        "Many sensors have a pin that chooses which kind of connection they use. Set one "
+        "way the chip talks I2C; set the other it talks SPI or a serial line instead, and "
+        "then it has no I2C address at all and cannot answer, however healthy it is. That "
+        "pin is often decided by the board rather than by the buyer. An empty scan is "
+        "therefore a reason to look closer, not a reason to call the part defective.\n\n");
+}
+
 void report_build(
     FuriString* out,
     const I2CFoundDevice* found,
     uint8_t count,
     bool disputed,
-    const DateTime* dt) {
+    const DateTime* dt,
+    const SilentDiagnosis* silent) {
     furi_string_reset(out);
+
+    if(count == 0 && silent) {
+        report_silence(out, silent);
+        furi_string_cat_printf(
+            out,
+            "Checked %04u-%02u-%02u %02u:%02u with Fake Chip Detector on a Flipper Zero.\n\n"
+            "--- TECHNICAL DETAIL ---\n"
+            "Bus: I2C, 100 kHz. Swept every 7-bit address, 0x08 to 0x77.\n"
+            "SCL pull-up: %s   SDA pull-up: %s   Lines shorted: %s\n",
+            dt->year,
+            dt->month,
+            dt->day,
+            dt->hour,
+            dt->minute,
+            silent->bus.scl_ok ? "yes" : "no",
+            silent->bus.sda_ok ? "yes" : "no",
+            silent->bus.shorted ? "yes" : "no");
+        return;
+    }
 
     if(disputed) {
         furi_string_cat_str(
