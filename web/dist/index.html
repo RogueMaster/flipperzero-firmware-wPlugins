@@ -872,9 +872,21 @@ box.appendChild(b);
 };
 A.countdown = function (numId, sec) {
 var n = $(numId);
-n.textContent = sec;
+if (A._cdTimer) { clearInterval(A._cdTimer); A._cdTimer = null; }
+var cur = sec;
+var paint = function () {
+n.textContent = cur;
 A.sfx("tick"); A.vibe(10);
 if (!noMotionPref()) { n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop"); }
+};
+paint();
+A._cdTimer = setInterval(function () {
+if (--cur < 1 || n.offsetParent === null) {
+clearInterval(A._cdTimer); A._cdTimer = null;
+return;
+}
+paint();
+}, 1000);
 };
 A.podium = function (listId, board) {
 var b = A.ranked(board);
