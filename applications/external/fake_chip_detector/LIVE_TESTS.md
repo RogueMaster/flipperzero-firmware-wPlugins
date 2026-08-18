@@ -33,7 +33,7 @@ which of the two they are looking at.
 Tests do not have to be built into the app. A test can be shipped as a single `.fal` file, and
 the app will find it, list it and run it — no rebuild, no reflash.
 
-1. Get the `.fal`. Build it yourself from [`test_plugin_template/`](https://github.com/hleserg/flipper-fake-chip-detector/tree/master/test_plugin_template), or
+1. Get the `.fal`. Build it yourself from [`test_plugin_template/`](../test_plugin_template), or
    take one somebody published.
 2. Open **Live tests** once. The app creates the folder it looks in, which saves you guessing at
    the spelling.
@@ -288,7 +288,7 @@ A test does not have to be merged here to be useful. Built as a `.fal` and copie
 it appears in the browser and runs like any other — no rebuild of the app, no pull request, no
 waiting for anyone.
 
-Start from [`test_plugin_template/`](https://github.com/hleserg/flipper-fake-chip-detector/tree/master/test_plugin_template) in the upstream repository. It is a
+Start from [`test_plugin_template/`](../test_plugin_template) in the repository root. It is a
 complete working test, not a snippet: copy the folder, change the registers, the pass condition
 and the strings, then
 
