@@ -33,6 +33,8 @@
 #define UHF_CMD_GET_VERSION   0x72U
 #define UHF_CMD_RESET         0x70U
 #define UHF_CMD_SET_POWER     0x76U
+#define UHF_CMD_GET_POWER     0x77U
+#define UHF_CMD_GET_TEMP      0x7BU
 #define UHF_CMD_START_INV     0x89U
 #define UHF_CMD_STOP_INV      0x8CU
 #define UHF_CMD_INV_ALT       0x8AU
@@ -58,6 +60,8 @@
 #define UHF_INV_HEARTBEAT_MS         250U
 #define UHF_INV_SESSION_RENEW_MS   10000U
 #define UHF_INV_RENEW_SETTLE_MS       10U
+#define UHF_READER_QUERY_TIMEOUT_MS   150U
+#define UHF_TEMP_REFRESH_MS         60000U
 #define UHF_LIST_VISIBLE_ROWS        5U
 #define UHF_ABOUT_VISIBLE_LINES      5U
 
@@ -68,7 +72,7 @@
 #define UHF_RESET_EXT_PIN          16
 
 #define UHF_MAX_TAGS          120U
-#define UHF_EPC_HEX_MAX       64U
+#define UHF_EPC_HEX_MAX       96U
 #define UHF_RX_STREAM_SIZE    1024U
 #define UHF_FRAME_BUFFER_SIZE 1024U
 #define UHF_RX_CHUNKS_PER_PASS 4U
@@ -161,8 +165,15 @@ typedef struct {
     uint32_t rate_window_reads;
     uint32_t tags_per_second;
     uint32_t radar_step_tick;
+    uint32_t last_temperature_query_tick;
     uint8_t radar_sweep_phase;
     uint8_t radar_trail_depth;
+    int16_t reader_temperature_c;
+    uint8_t reader_power_dbm;
+    bool temperature_valid;
+    bool power_valid;
+    bool temperature_query_pending;
+    bool power_query_pending;
     bool hard_reset_attempted;
     bool tag_beep_enabled;
     bool baud_probed;
@@ -311,6 +322,8 @@ static void uhf_process_rx(UhfApp* app);
 static bool uhf_wait_for_version(UhfApp* app, uint32_t timeout_ms);
 static bool uhf_has_version(UhfApp* app);
 static void uhf_request_version(UhfApp* app);
+static bool uhf_query_reader_temperature(UhfApp* app, bool wait_for_response);
+static bool uhf_query_reader_power(UhfApp* app, bool wait_for_response);
 static bool uhf_probe_current_serial(UhfApp* app, uint32_t baud);
 static bool uhf_try_reader_handshake(UhfApp* app, uint8_t attempts);
 static bool uhf_recover_reader(UhfApp* app);
@@ -739,10 +752,9 @@ static bool uhf_save_index_epc_csv(UhfApp* app, const char* filename) {
         }
 
         size_t index = 1;
-        char line[96];
+        char line[UHF_EPC_HEX_MAX + 32U];
         for(size_t i = 0; i < UHF_MAX_TAGS; i++) {
             if(!app->tags[i].used) continue;
-            if(strncmp(app->tags[i].epc, "E2", 2) != 0) continue;
 
             const int len = snprintf(line, sizeof(line), "%lu,%s\n", (unsigned long)index, app->tags[i].epc);
             if(len <= 0 || (size_t)len >= sizeof(line)) continue;
@@ -772,14 +784,13 @@ save_cleanup:
     return ok;
 }
 
-static size_t uhf_count_e2_tags(UhfApp* app) {
+static size_t uhf_count_tags(UhfApp* app) {
     if(!app) return 0;
     if(!uhf_data_lock(app, 20)) return 0;
 
     size_t total = 0;
     for(size_t i = 0; i < UHF_MAX_TAGS; i++) {
         if(!app->tags[i].used) continue;
-        if(strncmp(app->tags[i].epc, "E2", 2) != 0) continue;
         total++;
     }
 
@@ -790,7 +801,7 @@ static size_t uhf_count_e2_tags(UhfApp* app) {
 static void uhf_move_list_selection(UhfApp* app, bool down) {
     if(!app) return;
 
-    const size_t total = uhf_count_e2_tags(app);
+    const size_t total = uhf_count_tags(app);
     if(total == 0) {
         app->list_selected_index = 0;
         app->list_top_index = 0;
@@ -949,8 +960,8 @@ static void uhf_menu_draw_callback(Canvas* canvas, void* context) {
     if(!canvas || !ctx || !ctx->app) return;
 
     UhfApp* app = ctx->app;
-    const size_t e2_count = uhf_count_e2_tags(app);
-    const bool show_save = (e2_count > 1);
+    const size_t tag_count = uhf_count_tags(app);
+    const bool show_save = (tag_count > 1);
 
     /* Build dynamic menu: items[id] = {label, is_adjustable} */
     struct { const char* label; bool adj; } items[4];
@@ -1046,7 +1057,7 @@ static void uhf_menu_input_callback(InputEvent* event, void* context) {
         return;
     }
 
-    const bool show_save = (uhf_count_e2_tags(ctx->app) > 1);
+    const bool show_save = (uhf_count_tags(ctx->app) > 1);
     const uint32_t max_idx = uhf_menu_count(show_save) - 1;
 
     switch(event->key) {
@@ -1108,7 +1119,7 @@ static void uhf_show_list_menu(UhfApp* app) {
     bool exited_by_back = ctx.back_pressed;
 
     if(!exited_by_back && ctx.submitted && !app->exit_requested) {
-        const bool show_save = (uhf_count_e2_tags(app) > 1);
+        const bool show_save = (uhf_count_tags(app) > 1);
         const uint32_t action = uhf_menu_visual_to_action(show_save, ctx.selected);
         uhf_list_menu_execute(app, action);
     }
@@ -1237,6 +1248,24 @@ static bool uhf_bytes_to_hex(const uint8_t* data, size_t len, char* out, size_t 
     }
     out[len * 2] = '\0';
     return true;
+}
+
+static bool uhf_is_valid_epc(const uint8_t* epc, size_t epc_len) {
+    static const uint8_t reader_placeholder[] = {0xE2U, 0x80U, 0x69U, 0x00U, 0x00U};
+
+    if(!epc || epc_len < 4U || epc_len > (UHF_EPC_HEX_MAX / 2U)) return false;
+
+    bool nonzero = false;
+    for(size_t i = 0; i < epc_len; i++) {
+        if(epc[i] != 0U) {
+            nonzero = true;
+            break;
+        }
+    }
+
+    return nonzero &&
+           !(epc_len >= sizeof(reader_placeholder) &&
+             memcmp(epc, reader_placeholder, sizeof(reader_placeholder)) == 0);
 }
 
 static UhfTagEntry* uhf_find_or_add_tag(UhfApp* app, const char* epc_hex, bool* is_new_tag) {
@@ -1412,6 +1441,42 @@ static void uhf_stop_inventory(UhfApp* app) {
     }
 }
 
+static bool uhf_wait_for_reader_query(UhfApp* app, bool* pending) {
+    const uint32_t started = furi_get_tick();
+    while(*pending && (furi_get_tick() - started) < UHF_READER_QUERY_TIMEOUT_MS) {
+        uhf_process_rx(app);
+        if(*pending) furi_delay_ms(5U);
+    }
+
+    if(*pending) {
+        *pending = false;
+        return false;
+    }
+    return true;
+}
+
+static bool uhf_query_reader_temperature(UhfApp* app, bool wait_for_response) {
+    app->temperature_query_pending = true;
+    if(!uhf_send_command(app, UHF_CMD_GET_TEMP, NULL, 0U)) {
+        app->temperature_query_pending = false;
+        return false;
+    }
+
+    app->last_temperature_query_tick = furi_get_tick();
+    return !wait_for_response ||
+           uhf_wait_for_reader_query(app, &app->temperature_query_pending);
+}
+
+static bool uhf_query_reader_power(UhfApp* app, bool wait_for_response) {
+    app->power_query_pending = true;
+    if(!uhf_send_command(app, UHF_CMD_GET_POWER, NULL, 0U)) {
+        app->power_query_pending = false;
+        return false;
+    }
+
+    return !wait_for_response || uhf_wait_for_reader_query(app, &app->power_query_pending);
+}
+
 static void uhf_start_inventory(UhfApp* app) {
     static const uint8_t start_frame[] = {0xA0, 0x04, 0x00, 0x89, 0x01, 0xD2};
     if(!uhf_ensure_hardware(app)) return;
@@ -1427,6 +1492,12 @@ static void uhf_start_inventory(UhfApp* app) {
             return;
         }
     }
+
+    /* Read reader telemetry while RF inventory is idle so the replies cannot
+       compete with a burst of tag reports. A missing reply does not prevent
+       inventory from starting; the radar keeps the last valid value. */
+    (void)uhf_query_reader_temperature(app, true);
+    (void)uhf_query_reader_power(app, true);
 
     (void)furi_stream_buffer_reset(app->rx_stream);
     app->frame_buffer_len = 0;
@@ -1575,6 +1646,17 @@ static void uhf_service_inventory(UhfApp* app) {
     if(!app || !app->inventory_running || app->diag_save_running) return;
 
     const uint32_t now = furi_get_tick();
+    if(app->temperature_query_pending &&
+       (now - app->last_temperature_query_tick) >= UHF_READER_QUERY_TIMEOUT_MS) {
+        app->temperature_query_pending = false;
+        uhf_diag_log(app, "Temperature query timeout");
+    }
+    if(!app->temperature_query_pending &&
+       (now - app->last_temperature_query_tick) >= UHF_TEMP_REFRESH_MS) {
+        (void)uhf_query_reader_temperature(app, false);
+        return;
+    }
+
     const bool session_renew_due =
         (now - app->last_inv_session_tick) >= UHF_INV_SESSION_RENEW_MS;
     if(session_renew_due) {
@@ -1662,8 +1744,7 @@ static bool uhf_add_inventory_tag(
     uint32_t rssi,
     uint32_t frequency,
     uint32_t hit_count) {
-    if(epc_len == 0 || epc_len > (UHF_EPC_HEX_MAX / 2U)) return false;
-    if(epc[0] != 0xE2U) return false;
+    if(!uhf_is_valid_epc(epc, epc_len)) return false;
     if(hit_count == 0U) hit_count = 1U;
 
     char epc_hex[UHF_EPC_HEX_MAX + 1];
@@ -1691,7 +1772,7 @@ static bool uhf_add_inventory_tag(
     uhf_notify_tag_found(app);
 
     if(is_new_tag) {
-        const size_t total = uhf_count_e2_tags(app);
+        const size_t total = uhf_count_tags(app);
         if(total > UHF_LIST_VISIBLE_ROWS) {
             app->list_top_index = total - UHF_LIST_VISIBLE_ROWS;
         } else {
@@ -1758,20 +1839,6 @@ static bool uhf_parse_inventory_frame(UhfApp* app, const uint8_t* data, size_t d
         if(uhf_parse_pc_epc_at(app, data, data_len, offset, 0)) return true;
     }
 
-    // Fallback for modules that return non-standard layouts: capture first E2-prefixed EPC-like payload.
-    static const uint8_t lengths[] = {12U, 16U, 24U, 8U};
-    for(size_t i = 0; i < data_len; i++) {
-        if(data[i] != 0xE2U) continue;
-        for(size_t l = 0; l < sizeof(lengths); l++) {
-            const size_t epc_len = lengths[l];
-            if(i + epc_len <= data_len) {
-                if(uhf_add_inventory_tag(app, &data[i], epc_len, 0, 0, 0, 1U)) {
-                    return true;
-                }
-            }
-        }
-    }
-
     return false;
 }
 
@@ -1808,6 +1875,38 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
         }
         uhf_set_status(app, "Version %s", app->version);
         uhf_diag_log(app, "Version=%s", app->version);
+    } else if(cmd == UHF_CMD_GET_TEMP) {
+        app->temperature_query_pending = false;
+        if(checksum_acc == 0U && data_len >= 2U && data[0] <= 1U) {
+            int16_t temperature = (int16_t)data[1];
+            if(data[0] == 0U) temperature = -temperature;
+            if(uhf_data_lock(app, 10)) {
+                app->reader_temperature_c = temperature;
+                app->temperature_valid = true;
+                uhf_data_unlock(app);
+            }
+            uhf_diag_log(app, "Temperature=%dC", (int)temperature);
+            FURI_LOG_I(TAG, "Reader temperature: %d C", (int)temperature);
+        } else {
+            uhf_diag_log(app, "Temperature query failed");
+            FURI_LOG_W(TAG, "Reader temperature query failed");
+        }
+    } else if(cmd == UHF_CMD_GET_POWER) {
+        app->power_query_pending = false;
+        if(checksum_acc == 0U && data_len >= 1U && data[0] <= 33U) {
+            if(uhf_data_lock(app, 10)) {
+                /* This expansion uses antenna 1; multi-antenna readers return
+                   additional power bytes after the first one. */
+                app->reader_power_dbm = data[0];
+                app->power_valid = true;
+                uhf_data_unlock(app);
+            }
+            uhf_diag_log(app, "Power=%udBm", data[0]);
+            FURI_LOG_I(TAG, "Reader output power: %u dBm", data[0]);
+        } else {
+            uhf_diag_log(app, "Power query failed");
+            FURI_LOG_W(TAG, "Reader output power query failed");
+        }
     } else if(cmd == UHF_CMD_START_INV || cmd == UHF_CMD_INV_ALT || app->inventory_running) {
         const bool parsed_tag = uhf_parse_inventory_frame(app, data, data_len, cmd);
         if(!parsed_tag &&
@@ -2197,7 +2296,6 @@ static size_t uhf_collect_tag_previews(
 
     for(size_t i = 0; i < UHF_MAX_TAGS; i++) {
         if(!app->tags[i].used) continue;
-        if(strncmp(app->tags[i].epc, "E2", 2) != 0) continue;
 
         if(index >= start && copied < max_items) {
             strncpy(out[copied].epc, app->tags[i].epc, sizeof(out[copied].epc) - 1);
@@ -2280,12 +2378,20 @@ static void uhf_draw_radar_page(Canvas* canvas, UhfApp* app) {
     size_t target_count = 0;
     uint32_t rate = 0;
     size_t unique = 0;
+    int16_t temperature = 0;
+    uint8_t power_dbm = 0;
+    bool temperature_valid = false;
+    bool power_valid = false;
     uint8_t sweep_phase = 0;
     uint8_t trail_depth = 0;
 
     if(uhf_data_lock(app, 10)) {
         rate = app->tags_per_second;
         unique = app->tag_count;
+        temperature = app->reader_temperature_c;
+        power_dbm = app->reader_power_dbm;
+        temperature_valid = app->temperature_valid;
+        power_valid = app->power_valid;
         sweep_phase = app->radar_sweep_phase;
         trail_depth = app->radar_trail_depth;
 
@@ -2373,15 +2479,35 @@ static void uhf_draw_radar_page(Canvas* canvas, UhfApp* app) {
     canvas_draw_line(canvas, 65, 0, 65, 63);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 70, 11, "SPEED");
-    canvas_draw_str(canvas, 70, 42, "UNIQUE");
-
-    canvas_set_font(canvas, FontPrimary);
     char value[24];
-    snprintf(value, sizeof(value), "%lu /s", (unsigned long)rate);
-    canvas_draw_str(canvas, 70, 26, value);
+
+    canvas_draw_str(canvas, 70, 10, "SPD");
+    if(rate > 9999U) {
+        snprintf(value, sizeof(value), "9999+");
+    } else {
+        snprintf(value, sizeof(value), "%lu/s", (unsigned long)rate);
+    }
+    uhf_draw_right_text(canvas, 10, value);
+
+    canvas_draw_str(canvas, 70, 26, "TAGS");
     snprintf(value, sizeof(value), "%lu", (unsigned long)unique);
-    canvas_draw_str(canvas, 70, 58, value);
+    uhf_draw_right_text(canvas, 26, value);
+
+    canvas_draw_str(canvas, 70, 42, "TEMP");
+    if(temperature_valid) {
+        snprintf(value, sizeof(value), "%dC", (int)temperature);
+    } else {
+        snprintf(value, sizeof(value), "--C");
+    }
+    uhf_draw_right_text(canvas, 42, value);
+
+    canvas_draw_str(canvas, 70, 58, "PWR");
+    if(power_valid) {
+        snprintf(value, sizeof(value), "%udBm", power_dbm);
+    } else {
+        snprintf(value, sizeof(value), "--");
+    }
+    uhf_draw_right_text(canvas, 58, value);
 }
 
 static void uhf_input_callback(InputEvent* event, void* context) {
@@ -2712,7 +2838,7 @@ static void uhf_toggle_page(UhfApp* app) {
         app->radar_step_tick = furi_get_tick();
         uhf_set_status(app, "Radar page");
     } else if(app->page == UhfPageRadar) {
-        const size_t total = uhf_count_e2_tags(app);
+        const size_t total = uhf_count_tags(app);
         app->page = UhfPageList;
 
         if(total > 0U) {
