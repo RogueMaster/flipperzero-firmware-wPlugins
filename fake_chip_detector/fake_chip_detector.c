@@ -78,6 +78,12 @@ typedef struct {
     uint8_t selected;
     uint8_t scroll;
     I2CBusCheck bus; // captured before the sweep, drives the failure hints
+    // The sweep is over and the serial line is being heard out. Its own flag
+    // rather than a stage of `scanning`, because the progress bar is finished
+    // and full by then and the screen has a different thing to say.
+    bool listening;
+    uint8_t listen_outcome; // UartListenOutcome, once the listen has ended
+    UartListenResult listen;
     char status_msg[20];
     char saved_name[32]; // filename of the last report, shown after saving
     // Knowing which chip it is only answers half the question. The other half
@@ -408,6 +414,13 @@ static void app_start_scan(FakeChipApp* app) {
             m->selected = 0;
             m->scroll = 0;
             m->bus = (I2CBusCheck){0};
+            // Same reason as the answer below: what the last scan heard is not
+            // evidence about this module. Clearing it here rather than trusting
+            // the worker to overwrite it means a scan that is aborted before
+            // the listen leaves nothing behind either.
+            m->listening = false;
+            m->listen_outcome = UartListenUnavailable;
+            m->listen = (UartListenResult){0};
             m->status_msg[0] = '\0';
             // The question belongs to the module that was on the bus when it
             // was asked. Carrying the answer into the next scan silently skips
@@ -565,7 +578,10 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
 
     if(m->scanning) {
-        canvas_draw_str(canvas, 2, 12, "Scanning bus...");
+        // Two seconds of an unmoving progress bar at 0x77 reads as a hang, and
+        // a user who thinks the app has hung stops trusting the answer it
+        // eventually gives. Say the thing instead.
+        canvas_draw_str(canvas, 2, 12, m->listening ? "Nothing on I2C." : "Scanning bus...");
         draw_scan_spinner(canvas, 112, 20, m->frame);
 
         uint8_t span = I2C_SCAN_ADDR_LAST - I2C_SCAN_ADDR_FIRST;
@@ -575,8 +591,13 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
 
         canvas_set_font(canvas, FontSecondary);
         char buf[28];
-        snprintf(buf, sizeof(buf), "addr 0x%02X   found: %u", m->progress_addr, m->found_count);
-        canvas_draw_str(canvas, 4, 52, buf);
+        if(m->listening) {
+            canvas_draw_str(canvas, 4, 52, "Listening on pin 16...");
+        } else {
+            snprintf(
+                buf, sizeof(buf), "addr 0x%02X   found: %u", m->progress_addr, m->found_count);
+            canvas_draw_str(canvas, 4, 52, buf);
+        }
         return;
     }
 
@@ -592,6 +613,7 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
         const char* l1;
         const char* l2;
         const char* l3;
+        char heard[26];
         switch(m->bus.health) {
         case I2CBusStuckLow:
             l1 = m->bus.scl_stuck ?
@@ -615,6 +637,31 @@ static void scan_draw_callback(Canvas* canvas, void* model) {
             l1 = "Board has power and its";
             l2 = "pull-ups are there. Some";
             l3 = "chips boot with I2C off.";
+
+            // Unless the listen actually heard the thing. Then this stops
+            // being a list of possibilities and becomes a measurement, and it
+            // is the strongest one this app can make without an ID register:
+            // the part is powered, running, and talking on a bus that is not
+            // I2C. Nobody should hand that back to a courier.
+            if(m->listen_outcome == UartListenHeard) {
+                if(m->listen.bytes) {
+                    snprintf(
+                        heard,
+                        sizeof(heard),
+                        "pin 16, at %lu baud.",
+                        (unsigned long)m->listen.baud);
+                    l1 = "Something IS talking on";
+                    l2 = heard;
+                    l3 = "That is a serial line.";
+                } else {
+                    // Framing errors and no clean bytes: the line is moving,
+                    // but not at any rate that was tried. Claiming a rate here
+                    // would be reporting the guess instead of the measurement.
+                    l1 = "Pin 16 is switching, but";
+                    l2 = "at no rate this tried.";
+                    l3 = "Something is alive.";
+                }
+            }
             break;
         }
         canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignBottom, l1);
@@ -1399,6 +1446,11 @@ static bool silent_input_callback(InputEvent* event, void* context) {
 
     if(do_save) {
         i2c_worker_get_bus(app->worker, &diag.bus);
+        // Straight from the worker rather than from the scan view model: this
+        // is the one measurement in the document that the app made on its own,
+        // without being asked, and it should not depend on a screen the user
+        // may never have looked at having been updated.
+        diag.listen_outcome = (uint8_t)i2c_worker_get_listen(app->worker, &diag.listen);
         app_save_log(app, false, &diag);
         i2c_notify_play(app->notifications, I2CNotifyNeutral);
     }
@@ -1424,6 +1476,9 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
         bool any_genuine = false, any_bad = false;
         I2CBusCheck bus;
         i2c_worker_get_bus(app->worker, &bus);
+        bool listening = i2c_worker_is_listening(app->worker);
+        UartListenResult listen;
+        UartListenOutcome listen_outcome = i2c_worker_get_listen(app->worker, &listen);
 
         with_view_model(
             app->scan_view,
@@ -1432,6 +1487,9 @@ static void worker_event_callback(I2CWorkerEvent event, void* context) {
                 m->progress_addr = i2c_worker_get_progress(app->worker);
                 m->found_count = i2c_worker_get_found(app->worker, m->found, I2C_SCAN_MAX_FOUND);
                 m->bus = bus;
+                m->listening = listening;
+                m->listen_outcome = (uint8_t)listen_outcome;
+                m->listen = listen;
                 if(done) {
                     m->scanning = false;
                     m->selected = 0;

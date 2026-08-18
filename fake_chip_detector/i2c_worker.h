@@ -16,6 +16,7 @@
 #define I2C_REG_TIMEOUT_MS   50
 
 #include "chip_db.h"
+#include "uart_listen.h"
 
 typedef struct {
     uint8_t addr; // 7-bit
@@ -119,6 +120,21 @@ I2CPadLevel i2c_worker_get_pad(I2CWorker* worker);
 void i2c_worker_fix_start(I2CWorker* worker, bool want_high);
 void i2c_worker_fix_stop(I2CWorker* worker);
 I2CFixStage i2c_worker_get_fix_stage(I2CWorker* worker);
+
+// What the listen that follows an empty sweep established. It runs by itself,
+// with nothing to press: the person this app exists for read the headline as a
+// conclusion and handed a working sensor back, so an extra question they have
+// to think of asking is no question at all. It costs about two seconds and
+// only on a sweep that already failed.
+//
+// UartListenUnavailable on every path where no listening happened, including
+// before the first scan. The zero value claims nothing, which is the answer a
+// caller who forgets to check should get.
+UartListenOutcome i2c_worker_get_listen(I2CWorker* worker, UartListenResult* out);
+
+// True between the end of the sweep and the end of the listen, so the busy
+// screen can say what it is doing rather than sit at 0x77 looking wedged.
+bool i2c_worker_is_listening(I2CWorker* worker);
 
 uint8_t i2c_worker_get_progress(I2CWorker* worker);
 size_t i2c_worker_get_found(I2CWorker* worker, I2CFoundDevice* out, size_t max_count);

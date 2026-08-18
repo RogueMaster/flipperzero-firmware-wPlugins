@@ -53,6 +53,9 @@ struct I2CWorker {
     volatile bool fix_want_high; // level the pad has to sit at for I2C
     volatile uint32_t probe_timeout_ms;
     volatile uint8_t progress_addr;
+    volatile bool listening; // the sweep is over and the serial line is being heard out
+    volatile uint8_t listen_outcome; // UartListenOutcome
+    UartListenResult listen;
     I2CFoundDevice found[I2C_SCAN_MAX_FOUND];
     size_t found_count;
     I2CBusCheck bus;
@@ -248,6 +251,20 @@ static void i2c_worker_notify(I2CWorker* worker, I2CWorkerEvent event) {
     if(worker->callback) worker->callback(event, worker->callback_context);
 }
 
+// Rates worth trying, commonest first. Not a guess between them: a wrong rate
+// turns real traffic into framing errors rather than into silence, so the
+// sweep can tell "wrong rate" from "nothing there" and picks its winner on
+// that evidence.
+static const uint32_t LISTEN_BAUDS[] = {9600, 115200, 38400, 57600};
+
+// Per rate, so about two seconds in all -- spent only on a sweep that has
+// already failed, and while the screen says what it is doing. Not longer,
+// because this sits between somebody and their answer. And not treated as
+// exhaustive either: a GPS module bursts once a second and can fall between
+// two windows this size, which is why nothing downstream is allowed to say
+// the part is silent, only that nothing was heard.
+#define LISTEN_WINDOW_MS 450
+
 static void i2c_worker_do_scan(I2CWorker* worker) {
     // Electrical state first: it explains an empty sweep far better than
     // "no devices found" on its own.
@@ -257,6 +274,11 @@ static void i2c_worker_do_scan(I2CWorker* worker) {
     furi_mutex_acquire(worker->mutex, FuriWaitForever);
     worker->found_count = 0;
     worker->bus = check;
+    // Cleared here, not after the listen: a result carried over from the
+    // previous scan would sit on screen beside a fresh sweep as though it had
+    // just been measured.
+    worker->listen_outcome = UartListenUnavailable;
+    memset(&worker->listen, 0, sizeof(worker->listen));
     furi_mutex_release(worker->mutex);
 
     for(uint8_t addr = I2C_SCAN_ADDR_FIRST; addr <= I2C_SCAN_ADDR_LAST; addr++) {
@@ -276,6 +298,38 @@ static void i2c_worker_do_scan(I2CWorker* worker) {
             furi_mutex_release(worker->mutex);
         }
         if((addr & 0x07) == 0) i2c_worker_notify(worker, I2CWorkerEventScanProgress);
+    }
+
+    furi_mutex_acquire(worker->mutex, FuriWaitForever);
+    bool empty = worker->found_count == 0;
+    furi_mutex_release(worker->mutex);
+
+    // Nothing answered, and the bus itself was fine: powered, both pull-ups
+    // there, both lines idle high. That is the shape of a part strapped off
+    // the I2C bus rather than a part that is dead, so before the screen says
+    // anything, listen on the same two wires. LPUART is on PC0 and PC1, which
+    // are pins 16 and 15 -- nothing has to be re-plugged.
+    //
+    // The health gate is not only about relevance, it is the noise guard.
+    // With the module's pull-ups present the receive pin idles high, so a
+    // framing error means real edges arrived. On a floating bus the pin drifts
+    // and drift alone can raise framing errors, which the sweep reports as
+    // "something was transmitting". Listening off a dead bus would invent
+    // traffic out of nothing, on the one screen where a user is least able to
+    // argue back.
+    if(!worker->scan_abort && empty && check.health == I2CBusOk) {
+        worker->listening = true;
+        i2c_worker_notify(worker, I2CWorkerEventScanProgress);
+
+        UartListenResult result;
+        UartListenOutcome outcome = uart_listen_sweep(
+            LISTEN_BAUDS, COUNT_OF(LISTEN_BAUDS), LISTEN_WINDOW_MS, &worker->scan_abort, &result);
+
+        furi_mutex_acquire(worker->mutex, FuriWaitForever);
+        worker->listen = result;
+        worker->listen_outcome = (uint8_t)outcome;
+        furi_mutex_release(worker->mutex);
+        worker->listening = false;
     }
 }
 
@@ -554,6 +608,18 @@ void i2c_worker_start_scan(I2CWorker* worker, uint32_t probe_timeout_ms) {
 
 void i2c_worker_abort_scan(I2CWorker* worker) {
     worker->scan_abort = true;
+}
+
+UartListenOutcome i2c_worker_get_listen(I2CWorker* worker, UartListenResult* out) {
+    furi_mutex_acquire(worker->mutex, FuriWaitForever);
+    UartListenOutcome outcome = (UartListenOutcome)worker->listen_outcome;
+    if(out) *out = worker->listen;
+    furi_mutex_release(worker->mutex);
+    return outcome;
+}
+
+bool i2c_worker_is_listening(I2CWorker* worker) {
+    return worker->listening;
 }
 
 bool i2c_worker_is_busy(I2CWorker* worker) {

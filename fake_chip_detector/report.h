@@ -5,6 +5,7 @@
 
 #include "i2c_worker.h"
 #include "onewire_worker.h"
+#include "uart_listen.h"
 
 // Builds the human-readable report. The same text is what the screen shows
 // and what lands on the SD card — a report you hand to a courier must not
@@ -33,6 +34,12 @@ typedef struct {
     bool pad_mode_known;
     uint8_t pad_mode_kind; // ModePinKind
     uint8_t pad_mode_alt; // ModeAlt: where a wrong level sends the part
+    // What the automatic listen after the empty sweep established. The zero
+    // value is UartListenUnavailable -- "never listened" -- which is the right
+    // answer for a report built before the listen could run, and is a
+    // different sentence from "listened and heard nothing".
+    uint8_t listen_outcome; // UartListenOutcome
+    UartListenResult listen;
 } SilentDiagnosis;
 
 // Prose helpers, exported because the screen has to say the same phrase the
