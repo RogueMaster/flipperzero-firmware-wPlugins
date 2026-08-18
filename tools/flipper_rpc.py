@@ -153,6 +153,23 @@ class FlipperRPC:
     def __init__(self, port_name: str):
         self.port = serial.Serial(port_name, 230400, timeout=0.4, write_timeout=5)
         time.sleep(0.4)
+
+        # Tear down anything a previous run left behind before saying hello. A
+        # run that dies mid-frame leaves the screen stream running, and the
+        # firmware then keeps pushing frames into a CDC nobody is reading: the
+        # app's GUI thread blocks inside the frame callback, input stops being
+        # processed, and even the loader cannot close it. It looks exactly like
+        # an application hang and it is not one. If a session is still live
+        # these two messages end it; if it is not, they are noise to the shell,
+        # which the wake-up below clears.
+        self.command_id = 1
+        for content in (embedded(21, b""), embedded(19, b"")):
+            try:
+                self._send(content)
+            except serial.SerialException:
+                break
+        time.sleep(0.3)
+
         self.port.reset_input_buffer()
         self.port.write(b"\r\n")
         time.sleep(0.4)
@@ -244,12 +261,16 @@ class FlipperRPC:
         time.sleep(0.3)
 
     def close(self) -> None:
-        try:
-            self.stop_stream()
-            self._send(embedded(19, b""))  # stop_session
-            time.sleep(0.2)
-        finally:
-            self.port.close()
+        # Each half is guarded separately: if stopping the stream fails because
+        # the port has already wedged, the session teardown is still worth
+        # attempting, and the port must close either way.
+        for step in (self.stop_stream, lambda: self._send(embedded(19, b""))):
+            try:
+                step()
+            except serial.SerialException:
+                pass
+        time.sleep(0.2)
+        self.port.close()
 
 
 def main() -> int:
