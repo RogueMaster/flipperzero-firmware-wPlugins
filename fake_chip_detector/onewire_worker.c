@@ -8,13 +8,6 @@
 // Family codes come from Maxim/Analog application note AN937 and the parts'
 // own datasheets. The family code is not a hint: it selects the command set,
 // so reading a different one than the label promises is a hard fact.
-typedef struct {
-    uint8_t family;
-    const char* name;
-    const char* kind;
-    OneWireRole role;
-} OneWireFamily;
-
 static const OneWireFamily onewire_families[] = {
     {0x01, "DS1990A/DS2401", "Serial number key", OneWireRoleOther},
     {0x04, "DS2404", "Clock + memory", OneWireRoleMemory},
@@ -40,6 +33,15 @@ static const OneWireFamily onewire_families[] = {
 // Datasheet worst case for a 12-bit conversion is 750 ms; the margin costs
 // nothing and a truncated wait reads back a stale or garbage temperature.
 #define ONEWIRE_CONVERT_MS 800
+
+size_t onewire_family_count(void) {
+    return COUNT_OF(onewire_families);
+}
+
+const OneWireFamily* onewire_family_get(size_t index) {
+    if(index >= COUNT_OF(onewire_families)) return NULL;
+    return &onewire_families[index];
+}
 
 static const OneWireFamily* onewire_family_lookup(uint8_t family_code) {
     for(size_t i = 0; i < COUNT_OF(onewire_families); i++) {

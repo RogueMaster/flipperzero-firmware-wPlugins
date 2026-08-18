@@ -202,10 +202,16 @@ The Flipper is loud in a quiet shop.
 
 ![Settings](fake_chip_detector/screenshots/16_settings.png)
 
-**Browse what it knows.** **Known chips** lists all 80 parts in the app's database with a line
-about what each one does — handy when a listing gives you a part number and nothing else.
+**Browse what it knows.** **Known chips** lists all 80 I²C parts in the app's database with a
+line about what each one does — handy when a listing gives you a part number and nothing else.
+Keep scrolling past the end of it and the heading changes to **1-Wire parts**: the 15 families
+the app can name on pin 17. They are listed apart because they are not the same kind of
+knowledge — an I²C part is identified by an ID register the app reads back, a 1-Wire part by a
+family code that says which part answered without vouching for who made it.
 
 ![Known chips](fake_chip_detector/screenshots/17_known_chips.png)
+
+![1-Wire parts](fake_chip_detector/screenshots/20_onewire_parts.png)
 
 ## What this app cannot do
 

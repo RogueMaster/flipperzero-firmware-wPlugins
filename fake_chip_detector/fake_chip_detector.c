@@ -1534,17 +1534,63 @@ static void settings_build(FakeChipApp* app) {
 
 #define CHIPS_LIST_ROWS 4
 
+// The list is every I2C chip, then every 1-Wire family. Both are things the
+// app can name off the bus, so leaving either out of "what do you know?"
+// under-reports it — a user with a DS18B20 who does not find it here concludes
+// the app cannot identify it, when it can.
+static size_t chips_total(void) {
+    return chip_db_count() + onewire_family_count();
+}
+
+// One row, whichever table it comes from; every out parameter may be NULL.
+// is_onewire also decides the heading, because the two buses do not carry the
+// same promise: an I2C part can be called GENUINE off its ID register, a
+// 1-Wire ROM can be replayed by any microcontroller and never is.
+static bool chips_row(size_t idx, const char** name, const char** kind, bool* is_onewire) {
+    const char* row_name;
+    const char* row_kind;
+    bool row_onewire;
+
+    size_t i2c_count = chip_db_count();
+    if(idx < i2c_count) {
+        const ChipEntry* chip = chip_db_get(idx);
+        if(!chip) return false;
+        row_name = chip->name;
+        row_kind = chip->kind;
+        row_onewire = false;
+    } else {
+        const OneWireFamily* family = onewire_family_get(idx - i2c_count);
+        if(!family) return false;
+        row_name = family->name;
+        row_kind = family->kind;
+        row_onewire = true;
+    }
+
+    if(name) *name = row_name;
+    if(kind) *kind = row_kind;
+    if(is_onewire) *is_onewire = row_onewire;
+    return true;
+}
+
 // Answers "what does this thing actually know?", and doubles as the place
 // where every name and description is shown at full width — if one of them
 // were too long for the screen, it would be obvious here.
 static void chips_draw_callback(Canvas* canvas, void* model) {
     ChipsViewModel* m = model;
-    size_t total = chip_db_count();
+    size_t total = chips_total();
     canvas_clear(canvas);
+
+    const char* sel_name = NULL;
+    const char* sel_kind = NULL;
+    bool sel_onewire = false;
+    bool have_sel = chips_row(m->selected, &sel_name, &sel_kind, &sel_onewire);
 
     char buf[24];
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, "Known chips");
+    // The heading follows the selection rather than sitting still: scrolling
+    // off the end of the I2C table into the 1-Wire families is otherwise
+    // invisible, and the two are not interchangeable.
+    canvas_draw_str(canvas, 2, 10, sel_onewire ? "1-Wire parts" : "Known chips");
     canvas_set_font(canvas, FontSecondary);
     snprintf(buf, sizeof(buf), "%u/%u", (unsigned)m->selected + 1, (unsigned)total);
     canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
@@ -1554,25 +1600,24 @@ static void chips_draw_callback(Canvas* canvas, void* model) {
 
     for(uint8_t row = 0; row < CHIPS_LIST_ROWS; row++) {
         size_t idx = first + row;
-        if(idx >= total) break;
-        const ChipEntry* chip = chip_db_get(idx);
+        const char* name = NULL;
+        if(idx >= total || !chips_row(idx, &name, NULL, NULL)) break;
         uint8_t y = 22 + row * 10;
         bool sel = (idx == m->selected);
         if(sel) {
             canvas_draw_box(canvas, 0, y - 8, 128, 10);
             canvas_set_color(canvas, ColorWhite);
         }
-        canvas_draw_str(canvas, 4, y, chip->name);
+        canvas_draw_str(canvas, 4, y, name);
         if(sel) canvas_set_color(canvas, ColorBlack);
     }
 
     // The description gets a line of its own. Packing it beside the name made
     // the two collide as soon as either was long.
-    const ChipEntry* current = chip_db_get(m->selected);
-    if(current) {
+    if(have_sel) {
         canvas_draw_box(canvas, 0, 55, 128, 9);
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, current->kind);
+        canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, sel_kind);
         canvas_set_color(canvas, ColorBlack);
     }
 }
@@ -1585,7 +1630,7 @@ static bool chips_input_callback(InputEvent* event, void* context) {
         app->chips_view,
         ChipsViewModel * m,
         {
-            size_t total = chip_db_count();
+            size_t total = chips_total();
             if(event->key == InputKeyUp && m->selected > 0) {
                 m->selected--;
                 consumed = true;
@@ -2568,8 +2613,17 @@ static FakeChipApp* fake_chip_app_alloc(void) {
     widget_add_string_element(
         app->about_widget, 64, 30, AlignCenter, AlignTop, FontSecondary, "by their ID registers.");
     {
+        // Two numbers rather than one total: they are not the same kind of
+        // knowledge. An I2C chip is named from an ID register the app reads
+        // back; a 1-Wire part is named from a family code that identifies the
+        // part without vouching for it.
         static char db_line[32];
-        snprintf(db_line, sizeof(db_line), "%u chips known", (unsigned)chip_db_count());
+        snprintf(
+            db_line,
+            sizeof(db_line),
+            "%u I2C + %u 1-Wire known",
+            (unsigned)chip_db_count(),
+            (unsigned)onewire_family_count());
         widget_add_string_element(
             app->about_widget, 64, 42, AlignCenter, AlignTop, FontSecondary, db_line);
     }
