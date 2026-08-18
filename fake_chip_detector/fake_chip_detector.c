@@ -2293,13 +2293,20 @@ static void onewire_draw_callback(Canvas* canvas, void* model) {
         if(tenths < -550 || tenths > 1250) {
             canvas_draw_str(canvas, 2, 43, "Reading out of range.");
         } else {
+            // The sign is printed on its own, not carried by tenths/10. C
+            // truncates toward zero, so anything from -0.9 to -0.1 C has a
+            // whole part of 0 -- and "0" has no minus in it. Formatted the
+            // obvious way, a sensor sitting at half a degree below freezing
+            // reported half a degree above it.
+            int mag = tenths < 0 ? -tenths : tenths;
             char line[26];
             snprintf(
                 line,
                 sizeof(line),
-                "Reads %d.%d C - it works",
-                tenths / 10,
-                (tenths < 0 ? -tenths : tenths) % 10);
+                "Reads %s%d.%d C - it works",
+                tenths < 0 ? "-" : "",
+                mag / 10,
+                mag % 10);
             canvas_draw_str(canvas, 2, 43, line);
         }
     } else if(dev->measured) {
