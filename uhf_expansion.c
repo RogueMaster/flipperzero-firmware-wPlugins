@@ -361,6 +361,22 @@ static void uhf_draw_right_text(Canvas* canvas, int y, const char* text) {
     canvas_draw_str(canvas, x, y, text);
 }
 
+static void uhf_draw_right_temperature(Canvas* canvas, int y, const char* value) {
+    if(!canvas || !value) return;
+
+    const int value_width = canvas_string_width(canvas, value);
+    const int c_width = canvas_string_width(canvas, "C");
+    const int degree_gap = 3;
+    const int total_width = value_width + degree_gap + c_width;
+    int x = 128 - total_width;
+    if(x < 0) x = 0;
+
+    canvas_draw_str(canvas, x, y, value);
+    const int c_x = x + value_width + degree_gap;
+    canvas_draw_str(canvas, c_x, y, "C");
+    canvas_draw_box(canvas, c_x - 2, y - 7, 2, 2);
+}
+
 static void uhf_draw_scan_state_icon(Canvas* canvas, int x, int y, bool running) {
     if(!canvas) return;
 
@@ -2503,11 +2519,11 @@ static void uhf_draw_radar_page(Canvas* canvas, UhfApp* app) {
 
     canvas_draw_str(canvas, 70, 42, "TEMP");
     if(temperature_valid) {
-        snprintf(value, sizeof(value), "%dC", (int)temperature);
+        snprintf(value, sizeof(value), "%d", (int)temperature);
     } else {
-        snprintf(value, sizeof(value), "--C");
+        snprintf(value, sizeof(value), "--");
     }
-    uhf_draw_right_text(canvas, 42, value);
+    uhf_draw_right_temperature(canvas, 42, value);
 
     canvas_draw_str(canvas, 70, 58, "PWR");
     if(power_valid) {
