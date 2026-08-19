@@ -16,14 +16,8 @@ bool morse_flipper_scene_supports_audio_pwm(uint8_t scene) {
     case MorseFlipperSceneSession:
     case MorseFlipperSceneSessionEnd:
     case MorseFlipperSceneStraight:
-    case MorseFlipperSceneIcr:
-    case MorseFlipperSceneRxCallsigns:
-    case MorseFlipperSceneTxGroups:
-    case MorseFlipperSceneTxGroupsResult:
-    case MorseFlipperSceneTxGroupsFinal:
     case MorseFlipperSceneRf:
     case MorseFlipperSceneRfRx:
-    case MorseFlipperSceneArdf:
         return true;
     default:
         return false;
@@ -87,7 +81,7 @@ void morse_flipper_sync_audio_output(MorseFlipperApp* app) {
                 &app->audio_pwm,
                 MorseFlipperAudioPwmTargetP2,
                 MORSE_FLIPPER_AUDIO_PWM_P2_CARRIER_HZ,
-                MORSE_FLIPPER_AUDIO_PWM_P2_TONE_SAMPLE_RATE_HZ,
+                MORSE_FLIPPER_AUDIO_PWM_P2_SAMPLE_RATE_HZ,
                 (uint32_t)(morse_flipper_active_tone_hz(app) + 0.5f),
                 morse_flipper_p2_volume_pct(app),
                 MORSE_FLIPPER_AUDIO_PWM_FADE_MS,

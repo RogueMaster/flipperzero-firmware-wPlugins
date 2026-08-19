@@ -96,7 +96,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: CCID: [Move the debug app out of the firmware repository #4431 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4431)
 - Added: [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 - Added: [NFC Canary v0.2 (By antitree)](https://github.com/antitree/nfc_canary)
-- Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - OFW: PR: [Fix HID limits to support international keyboards and add JP keyboard layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
 - Updated: [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
 - Updated: [Specter v2.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
@@ -153,12 +152,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Ultralight AES is no longer dictionary attacked automatically on read - unlike Ultralight C it has an auth attempt limit, and wrong keys can lock the card permanently, so it is now started manually from -Unlock with Dictionary- with a warning (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/4533be796f9f6231443c76549bcf47e9be3b65ad)
 - Added: [I2C BMS Reader v0.4 (By gazirov)](https://github.com/gazirov/battery_reader) `Req: TI BQ30/BQ40 controllers`
 - Updated: [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido) (Version Only)
-- Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Updated: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - Updated: [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - GUI: [Optimize RAM usage of FileBrowser (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b8757a5e7ab319b2ab9259ab561cd0ea72ca4554)
 - Archive: [Fix wrong cursor when opening dirs with more than 220 files (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/757cca0279bf2cbb711c56d69e8c86b2b17662d2)
 - NFC: [Ultralight AES - closed the remaining card-lock (AUTHLIM) paths (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1082)
+- Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 
 <a name="release"></a>
 
@@ -766,7 +765,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Moisture Sensor v1.0 (By smallwat3r)](https://github.com/smallwat3r/flipperzero-moisture-sensor)
 - [Moon Phases v1.0 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Morse Code v1.3 (By wh00hw)](https://github.com/wh00hw/MorseCodeFAP)
-- [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - [Mouse Jacker for MS Mouse v1.2 (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/mousejacker_ms) `Req: NRF24`
 - [Mouse Jacker v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/mousejacker) [Pin Out from nocomp/Frog/UberGuidoZ](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/mousejacker) `Req: NRF24`
 - [Mouse Jiggler v1.2 (By Jacob-Tate & ozgunawesome)](https://github.com/Jacob-Tate/flipperzero-firmware/blob/dev/applications/mouse_jiggler/mouse_jiggler.c)

@@ -5,15 +5,8 @@
  * Tests: tests/test_prompt_font.c plus firmware build.
  */
 
+#include "fonts/morse_flipper_terminus24.h"
 #include "morse_flipper_app_i.h"
-#include "morse_flipper_divider_geometry.h"
-
-void morse_flipper_draw_plugin_unavailable(Canvas* canvas) {
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignBottom, "Plugin unavailable");
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, "Back");
-}
 
 void morse_flipper_draw_left_exit_hint(Canvas* canvas) {
     canvas_draw_box(canvas, 124, 32, 1, 1);
@@ -23,7 +16,18 @@ void morse_flipper_draw_left_exit_hint(Canvas* canvas) {
 }
 
 void morse_flipper_draw_tx_history_divider(Canvas* canvas, bool left_hint) {
-    morse_flipper_draw_tx_history_divider_geometry(canvas, left_hint);
+    if(canvas == NULL) return;
+
+    if(!left_hint) {
+        canvas_draw_line(canvas, 0, 34, 127, 34);
+        return;
+    }
+
+    canvas_draw_line(canvas, 0, 34, 119, 34);
+    canvas_draw_box(canvas, 124, 34, 1, 1);
+    canvas_draw_box(canvas, 125, 33, 1, 3);
+    canvas_draw_box(canvas, 126, 32, 1, 5);
+    canvas_draw_box(canvas, 127, 31, 1, 7);
 }
 
 uint16_t morse_flipper_star_anim_duration(uint8_t target_stars) {
@@ -239,39 +243,29 @@ void morse_flipper_draw_star_glyph(Canvas* canvas, uint8_t cx, uint8_t cy, bool 
         canvas, cx, cy, filled ? MORSE_FLIPPER_STAR_REVEAL_COLS : 0U);
 }
 
-uint8_t morse_flipper_upper_char(uint8_t ch) {
+uint8_t morse_flipper_live_upper_char(uint8_t ch) {
     if(ch >= 'a' && ch <= 'z') return (char)(ch - ('a' - 'A'));
     return ch;
 }
 
-void morse_flipper_draw_straight_prompt(
-    Canvas* canvas,
-    const MorseFlipperApp* app,
-    int32_t cx,
-    int32_t cy,
-    uint8_t ch) {
-    const MorseFlipperTerminus24PreparedGlyph* glyph;
+void morse_flipper_draw_straight_prompt(Canvas* canvas, int32_t cx, int32_t cy, uint8_t ch) {
+    const MorseFlipperTerminus24Glyph* glyph;
     int32_t x0;
     int32_t y0;
     size_t row;
     size_t x_max;
     size_t y_max;
 
-    if(canvas == NULL || app == NULL) return;
+    if(canvas == NULL) return;
 
-    glyph = morse_flipper_terminus24_prepared(&app->terminus24, ch);
-    if(!app->terminus24.asset_ok || glyph == NULL) {
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, cx, cy, AlignCenter, AlignCenter, "FONT ERR");
-        return;
-    }
+    glyph = morse_flipper_terminus24_glyph(morse_flipper_live_upper_char(ch));
     x0 = cx - (int32_t)(MORSE_FLIPPER_TERMINUS24_WIDTH / 2U);
     y0 = cy - (int32_t)(MORSE_FLIPPER_TERMINUS24_HEIGHT / 2U);
     x_max = canvas_width(canvas);
     y_max = canvas_height(canvas);
 
     for(row = 0U; row < MORSE_FLIPPER_TERMINUS24_HEIGHT; row++) {
-        uint16_t bits = morse_flipper_terminus24_prepared_row(glyph, row);
+        uint16_t bits = morse_flipper_terminus24_row(glyph, row);
         uint8_t col;
 
         for(col = 0U; col < MORSE_FLIPPER_TERMINUS24_WIDTH; col++) {

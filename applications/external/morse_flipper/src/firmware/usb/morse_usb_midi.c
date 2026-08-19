@@ -6,11 +6,13 @@
  */
 
 #include "morse_usb_midi.h"
-#include "morse_usb_ids.h"
 
 #include <furi.h>
 #include <usb.h>
 #include <usb_std.h>
+
+#define MORSE_USB_MIDI_VID 0x6666
+#define MORSE_USB_MIDI_PID 0x4357
 
 #define MORSE_USB_EP0_SIZE     8U
 #define MORSE_USB_MIDI_EP_SIZE 64U
@@ -148,7 +150,7 @@ static struct usb_device_descriptor morse_usb_midi_device_descriptor = {
     .bDeviceSubClass = USB_SUBCLASS_NONE,
     .bDeviceProtocol = USB_PROTO_NONE,
     .bMaxPacketSize0 = MORSE_USB_EP0_SIZE,
-    .idVendor = MORSE_USB_VID,
+    .idVendor = MORSE_USB_MIDI_VID,
     .idProduct = MORSE_USB_MIDI_PID,
     .bcdDevice = VERSION_BCD(1, 0, 0),
     .iManufacturer = MorseUsbStrManufacturer,
@@ -415,7 +417,7 @@ static void morse_usb_midi_init(usbd_device* dev, FuriHalUsbInterface* intf, voi
     morse_usb_midi_interface.str_manuf_descr = (void*)&morse_usb_midi_manufacturer;
     morse_usb_midi_interface.str_prod_descr = (void*)&morse_usb_midi_product;
     morse_usb_midi_interface.str_serial_descr = (void*)&morse_usb_midi_serial;
-    morse_usb_midi_interface.dev_descr->idVendor = MORSE_USB_VID;
+    morse_usb_midi_interface.dev_descr->idVendor = MORSE_USB_MIDI_VID;
     morse_usb_midi_interface.dev_descr->idProduct = MORSE_USB_MIDI_PID;
     morse_usb_midi_interface.dev_descr->iManufacturer = MorseUsbStrManufacturer;
     morse_usb_midi_interface.dev_descr->iProduct = MorseUsbStrProduct;

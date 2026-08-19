@@ -10,7 +10,6 @@
 void morse_flipper_view_dirty(MorseFlipperApp* app) {
     if(app == NULL || app->live_view == NULL) return;
 
-    morse_flipper_terminus24_prepare(app);
     with_view_model(app->live_view, MorseFlipperLiveModel * m, { m->bump++; }, true);
 }
 
@@ -33,17 +32,6 @@ void morse_flipper_scene_back(MorseFlipperApp* app) {
 
     scene_manager_stop(app->scene_manager);
     if(app->view_dispatcher) view_dispatcher_stop(app->view_dispatcher);
-}
-
-void morse_flipper_scene_return_to_training(MorseFlipperApp* app) {
-    if(app == NULL || app->scene_manager == NULL) return;
-
-    if(scene_manager_search_and_switch_to_previous_scene(
-           app->scene_manager, MorseFlipperSceneMenuTraining))
-        return;
-
-    scene_manager_search_and_switch_to_another_scene(
-        app->scene_manager, MorseFlipperSceneMenuTraining);
 }
 
 void morse_flipper_scene_menu_pick(void* ctx, uint32_t idx) {
@@ -99,14 +87,6 @@ static uint8_t morse_flipper_scene_screen(uint32_t scene) {
         return MorseFlipperScreenProgress;
     case MorseFlipperSceneStreakIntro:
         return MorseFlipperScreenStreakIntro;
-    case MorseFlipperSceneIcr:
-        return MorseFlipperScreenIcr;
-    case MorseFlipperSceneRxCallsigns:
-        return MorseFlipperScreenRxPractice;
-    case MorseFlipperScenePassive:
-        return MorseFlipperScreenPassive;
-    case MorseFlipperSceneArdf:
-        return MorseFlipperScreenArdf;
     default:
         return MorseFlipperScreenMenu;
     }
@@ -119,7 +99,6 @@ static uint8_t morse_flipper_scene_view(uint32_t scene) {
     case MorseFlipperSceneTrainer:
     case MorseFlipperSceneStraightCfg:
     case MorseFlipperSceneTxGroupsCfg:
-    case MorseFlipperSceneRxCallsignsCfg:
     case MorseFlipperScenePc:
     case MorseFlipperSceneGpio:
         return MorseFlipperViewSettings;
@@ -133,7 +112,6 @@ static uint8_t morse_flipper_scene_view(uint32_t scene) {
     case MorseFlipperSceneMenuHam:
     case MorseFlipperSceneHamConfigure:
     case MorseFlipperSceneHamMessageActions:
-    case MorseFlipperSceneArdf:
         return MorseFlipperViewMenu;
     default:
         return MorseFlipperViewLive;
@@ -146,7 +124,6 @@ void morse_flipper_scene_enter_now(MorseFlipperApp* app, uint32_t scene) {
     morse_flipper_ensure_view(app, view);
 
     morse_flipper_enter_screen(app, morse_flipper_scene_screen(scene), scene, furi_get_tick());
-    if(view == MorseFlipperViewLive) morse_flipper_terminus24_prepare(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, view);
     if(view == MorseFlipperViewLive) morse_flipper_view_dirty(app);
 }
