@@ -88,5 +88,9 @@ void field_detector_reset(FieldDetector* fd);
  * FieldStats. The caller is responsible for standing somewhere quiet. */
 void field_detector_calibrate_begin(FieldDetector* fd, uint32_t duration_ms);
 
+/* Abandon a calibration in progress. Nothing is adopted and the previous
+ * threshold stays in force. Safe to call when no calibration is running. */
+void field_detector_calibrate_cancel(FieldDetector* fd);
+
 /* Atomically copy the latest stats out for the UI. */
 void field_detector_get(FieldDetector* fd, FieldStats* out);

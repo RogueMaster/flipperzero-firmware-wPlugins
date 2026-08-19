@@ -25,7 +25,7 @@
 #include "views/watch_view.h"
 #include "scenes/specter_scene.h"
 
-#define SPECTER_VERSION "2.4"
+#define SPECTER_VERSION "2.5"
 
 /* How long the noise-floor calibration listens for, in milliseconds. */
 #define SPECTER_CALIBRATE_MS 3000u
@@ -77,6 +77,7 @@ typedef struct {
     uint32_t last_found_tick; // floor on how often the found alert may fire
     uint32_t last_wake_tick; // floor on how often we may wake the screen
     bool stealth_engaged; // backlight currently forced dark
+    bool settings_dirty; // settings changed while the radio is busy; save on exit
 } SpecterApp;
 
 /* alert feedback (defined in specter.c) - each is a no-op when the matching

@@ -225,7 +225,8 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     canvas_draw_line(canvas, 0, 52, 127, 52);
     if(m->calibrating) {
         /* Learning the room's own noise floor, right where you are standing. */
-        canvas_draw_str(canvas, 2, 59, "SAMPLING NOISE FLOOR");
+        canvas_draw_str(canvas, 2, 59, "NOISE FLOOR");
+        canvas_draw_str_aligned(canvas, 126, 59, AlignRight, AlignBottom, "OK=cancel");
         canvas_draw_frame(canvas, 0, 60, 128, 4);
         uint32_t fill = ((uint32_t)m->calib_progress * 126u) / 100u;
         if(fill) canvas_draw_box(canvas, 1, 61, (int)fill, 2);

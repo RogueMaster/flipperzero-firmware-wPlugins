@@ -208,7 +208,8 @@ def render_sweep(name, strength, peak, contacts, present, state, history,
     draw_readout(d, strength, peak, contacts, trend)
     line(d, 0, 52, 127, 52)
     if calibrating:
-        tb(d, 2, 59, "SAMPLING NOISE FLOOR", f_sec)
+        tb(d, 2, 59, "NOISE FLOOR", f_sec)
+        tb(d, 126, 59, "OK=cancel", f_sec, anchor="rs")
         frame(d, 0, 60, 128, 4)
         fill = (calib_pct * 126) // 100
         if fill:

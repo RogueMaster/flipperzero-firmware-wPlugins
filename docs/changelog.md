@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5
+
+- **Fix: the app could lock out every button and force a Flipper reboot** (reported in [#1](https://github.com/at0m-b0mb/Specter-FlipperZero/issues/1), most easily triggered by pressing keys during a noise-floor scan). The sampling worker paced itself with `furi_delay_us()`, which the firmware documents as a DWT busy-loop — it never yields to the scheduler. The thread therefore held the CPU at 100% for the whole scan, starving the GUI and input services; once the view dispatcher stopped draining its input queue quickly enough, the GUI thread blocked posting into it and took the entire UI down with it. The worker now sleeps with `furi_delay_tick()` and runs at low priority, below the UI. This affected every version since 1.0.
+- **Fix: no way to stop a noise-floor scan.** `OK` now cancels one in progress, and the scan strip says so.
+- **Fix: settings were written to the SD card from the event-loop thread** the instant a calibration finished — card I/O on the hot path, with the radio still sampling, exactly when the user is most likely pressing keys. The result is applied immediately and the write is deferred until the scan screen is closed and the worker has stopped.
+- The noise-floor strip now reads `NOISE FLOOR … OK=cancel` instead of a bare status line, so it is clear what is happening and how to get out of it.
+
 ## 2.4
 
 - **Fix: Watch Mode flickered between `READER PRESENT` and `CLEAR NOW` with a reader sitting right there.** Presence was decided one ~96 ms sampling window at a time, but readers *poll* — burst, sleep, burst — so consecutive windows legitimately alternated between "carrier seen" and "nothing". Presence is now latched and only released after 1.5 s of genuine silence, so a steady reader reads steady.
