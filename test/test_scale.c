@@ -37,13 +37,17 @@ int main(void) {
 
     /* --- the reported bug -------------------------------------------------
      * A payment terminal / access reader polling ~30% of the time, with the
-     * Flipper sitting on top of it. Before scaling this displayed "31". */
+     * Flipper sitting on top of it. Measured on real hardware at 31-32% raw.
+     * First it displayed "31" (unscaled), then "89-91" (full scale set too
+     * high). Resting on a reader has to peg the meter. */
     {
-        uint8_t on_top = field_scale_apply(31, FS);
-        check(on_top >= 85, "a saturating reader reads high, not ~31");
-        check_eq(field_scale_apply(35, FS), 100, "at full scale the meter pegs");
-        check(field_scale_is_saturated(35, FS), "full scale counts as saturated");
-        check(field_scale_is_saturated(31, FS) == false, "just below is not saturated");
+        check_eq(field_scale_apply(31, FS), 100, "31% raw - on a reader - pegs");
+        check_eq(field_scale_apply(32, FS), 100, "32% raw pegs too");
+        check(field_scale_is_saturated(31, FS), "and reports itself as saturated");
+        check_eq(field_scale_apply(FS, FS), 100, "at full scale the meter pegs");
+        check(field_scale_is_saturated(FS, FS), "full scale counts as saturated");
+        check(!field_scale_is_saturated(FS - 1, FS), "just below is not saturated");
+        check(field_scale_apply(FS - 1, FS) >= 90, "but just below still reads high");
     }
 
     /* --- ends and clamping ------------------------------------------------ */

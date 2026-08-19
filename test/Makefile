@@ -8,7 +8,7 @@
 CC      ?= cc
 CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O1 -g
 
-TESTS   := build/test_classify build/test_survey build/test_scale
+TESTS   := build/test_classify build/test_survey build/test_scale build/test_present
 
 .PHONY: all clean
 all: $(TESTS)
@@ -28,3 +28,7 @@ build/test_scale: test_scale.c ../helpers/field_scale.c ../helpers/field_scale.h
 
 clean:
 	rm -rf build
+
+build/test_present: test_present.c ../helpers/present_hold.h
+	@mkdir -p build
+	$(CC) $(CFLAGS) -o $@ test_present.c

@@ -33,6 +33,7 @@ typedef struct {
     uint32_t watching_ms;
     uint32_t first_ms;
     uint32_t last_ms;
+    uint32_t in_field_ms; // total time a carrier was actually up this watch
     uint8_t anim;
 } WatchModel;
 
@@ -122,6 +123,17 @@ static void watch_view_draw(Canvas* canvas, void* model) {
     if(m->present) {
         snprintf(buf, sizeof(buf), "NOW %u%%", (unsigned)m->strength);
         canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, buf);
+    } else if(m->contacts) {
+        /* Nothing right now, but something was here: how long a carrier was
+         * actually up across the whole watch. That is the figure you want when
+         * you come back to a Flipper you left somewhere. */
+        uint32_t s = m->in_field_ms / 1000u;
+        if(s < 600u) {
+            snprintf(buf, sizeof(buf), "SEEN %lus", (unsigned long)s);
+        } else {
+            snprintf(buf, sizeof(buf), "SEEN %lum", (unsigned long)(s / 60u));
+        }
+        canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, buf);
     } else {
         canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, "OK=reset");
     }
@@ -185,6 +197,7 @@ void watch_view_update(
             m->watching_ms = watching_ms;
             m->first_ms = first_ms;
             m->last_ms = last_ms;
+            m->in_field_ms = stats->in_field_ms;
         },
         true);
 }

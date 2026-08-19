@@ -175,21 +175,37 @@ def draw_gauge(d, strength, peak, present, anim, scan=40):
         circle(d, PCX, PCY, R_OUT + 1 + (anim % 3))
 
 
-def draw_readout(d, strength, peak, contacts):
+def draw_trend(d, x, y, direction):
+    """Mirrors draw_trend() in views/sweep_view.c exactly."""
+    if direction == 0:
+        line(d, x - 2, y + 2, x + 2, y + 2)
+        return
+    tip = y if direction > 0 else y + 5
+    tail = y + 5 if direction > 0 else y
+    barb = y + 3 if direction > 0 else y + 2
+    line(d, x, tail, x, tip)
+    line(d, x - 2, barb, x, tip)
+    line(d, x + 2, barb, x, tip)
+
+
+def draw_readout(d, strength, peak, contacts, trend=None):
     line(d, 64, 13, 64, 51)
     tb(d, 68, 20, "FIELD", f_sec)
-    tb(d, 112, 45, str(strength), f_big, anchor="rs")
-    tb(d, 114, 43, "%", f_sec)
-    tb(d, 68, 51, f"PK{peak} C{contacts}", f_sec)
+    if trend is not None:
+        draw_trend(d, 120, 14, trend)
+    tb(d, 112, 42, str(strength), f_big, anchor="rs")
+    tb(d, 114, 40, "%", f_sec)
+    label = f"PK{peak} C999+" if contacts > 999 else f"PK{peak} C{contacts}"
+    tb(d, 68, 51, label, f_sec)
 
 
 def render_sweep(name, strength, peak, contacts, present, state, history,
                  anim=1, calibrating=False, calib_pct=0, flash=None, sens="Medium",
-                 saturated=False):
+                 saturated=False, trend=None):
     img, d = canvas()
     draw_header(d, "SPECTER", state, present, flash)
     draw_gauge(d, strength, peak, present, anim)
-    draw_readout(d, strength, peak, contacts)
+    draw_readout(d, strength, peak, contacts, trend)
     line(d, 0, 52, 127, 52)
     if calibrating:
         tb(d, 2, 59, "SAMPLING NOISE FLOOR", f_sec)
@@ -385,7 +401,7 @@ def render_logbook():
 # Watch Mode (views/watch_view.c)
 # --------------------------------------------------------------------------
 def render_watch(name, watching_s, contacts, peak, present, strength=0,
-                 last_ago="--", blink=True):
+                 last_ago="--", blink=True, seen_s=0):
     img, d = canvas()
     tb(d, 2, 9, "WATCH", f_sec)
     tb(d, 126, 9, "ARMED", f_sec, anchor="rs")
@@ -413,6 +429,8 @@ def render_watch(name, watching_s, contacts, peak, present, strength=0,
     tb(d, 2, FOOT2, f"LAST {last_ago}", f_sec)
     if present:
         tb(d, COLR, FOOT2, f"NOW {strength}%", f_sec)
+    elif contacts:
+        tb(d, COLR, FOOT2, f"SEEN {seen_s}s", f_sec)
     else:
         tb(d, COLR, FOOT2, "OK=reset", f_sec)
     save(img, name)
@@ -446,12 +464,14 @@ def strip(names, out, cols=None):
 
 
 if __name__ == "__main__":
-    render_sweep("screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2)
+    render_sweep("screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2,
+                 trend=0)
     # A real polling reader at arm's length, and the Flipper laid on top of one
     # (raw duty ~31% saturates the meter -> reads MAX, not "31%").
-    render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1)
+    render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1,
+                 trend=1)
     render_sweep("screen_reader_max.png", 100, 100, 4, True, "READER", CLEAR_HIST,
-                 anim=1, saturated=True)
+                 anim=1, saturated=True, trend=1)
     render_sweep("screen_calibrate.png", 4, 9, 0, False, "CALIBRATE", CLEAR_HIST,
                  anim=2, calibrating=True, calib_pct=62)
 
@@ -466,8 +486,8 @@ if __name__ == "__main__":
     render_survey_verdict("screen_survey_clean.png", "CLEAN", "Nothing emitting here",
                           6, 2, 0, 0)
 
-    render_watch("screen_watch.png", watching_s=752, contacts=0, peak=6, present=False,
-                 last_ago="--")
+    render_watch("screen_watch.png", watching_s=752, contacts=2, peak=100, present=False,
+                 last_ago="3m12s", seen_s=47)
     render_watch("screen_watch_hit.png", watching_s=92, contacts=4, peak=71, present=True,
                  strength=63, last_ago="0s")
 

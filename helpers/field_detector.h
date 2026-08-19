@@ -6,6 +6,7 @@
 
 #include "emitter_classify.h"
 #include "field_scale.h"
+#include "present_hold.h"
 
 /* The detector samples the onboard NFC chip's "external field present" bit at a
  * high rate on a worker thread and condenses it into two things:

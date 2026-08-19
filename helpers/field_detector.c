@@ -143,6 +143,11 @@ static int32_t field_detector_worker(void* context) {
     /* running mean of the windowed strength, for the session average */
     uint32_t strength_sum = 0, strength_n = 0;
 
+    /* Presence is latched rather than taken window-by-window - a polling
+     * reader legitimately goes quiet between bursts. See present_hold.h. */
+    PresentHold hold;
+    present_hold_reset(&hold);
+
     /* per-sample edge tracking */
     bool raw_prev = false;
     uint32_t run_start = armed_tick;
@@ -209,6 +214,7 @@ static int32_t field_detector_worker(void* context) {
                 ema = 0;
                 was_present = false;
                 have_burst = false;
+                present_hold_reset(&hold);
                 strength_sum = 0;
                 strength_n = 0;
                 calibrating = false;
@@ -233,8 +239,12 @@ static int32_t field_detector_worker(void* context) {
             }
 
             /* Detection stays on the raw duty: the noise floor is a statement
-             * about the signal, not about how the gauge is drawn. */
-            bool present = duty > fd->threshold;
+             * about the signal, not about how the gauge is drawn. The verdict is
+             * then latched, so the gaps in a reader's polling cycle do not read
+             * as the reader disappearing - which used to inflate the contact
+             * count and machine-gun the alert notifications. */
+            bool present = present_hold_update(
+                &hold, duty > fd->threshold, now, SPECTER_PRESENT_HOLD_MS);
             s->present = present;
             s->strength_raw = ema;
 

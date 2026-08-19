@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=for-the-badge&logo=flipper&logoColor=white" alt="Flipper Zero">
-  <img src="https://img.shields.io/badge/version-2.3-FF3DAE?style=for-the-badge" alt="Version 2.3">
+  <img src="https://img.shields.io/badge/version-2.4-FF3DAE?style=for-the-badge" alt="Version 2.4">
   <img src="https://img.shields.io/badge/radio-13.56%20MHz%20NFC%20(onboard)-26E8CA?style=for-the-badge" alt="Onboard NFC">
   <img src="https://img.shields.io/badge/hardware-none%20required-9B5DE5?style=for-the-badge" alt="No extra hardware">
   <img src="https://img.shields.io/badge/build-ufbt-2da0ff?style=for-the-badge" alt="ufbt">
@@ -42,84 +42,135 @@
 
 ---
 
-## ✨ What it does
+## ✨ The five modes
 
-Specter answers four different questions — *where is it, what is it, is the room clean,* and *did one
-show up while I was away* — and each has its own screen.
+Specter is five tools around one sensor. Each answers a different question, so
+the right one depends on what you are actually trying to find out:
+
+| Mode | The question it answers | Use it when |
+|---|---|---|
+| 🔍 **Sweep** | *Where is it?* | You suspect a device and want to pinpoint it by moving around |
+| 🔬 **Fingerprint** | *What kind of thing is it?* | You have found an emitter and want to know how it behaves |
+| 🗺️ **Site Survey** | *Is this room clean?* | You want one verdict for a whole space, hands-free |
+| 🛰️ **Watch Mode** | *Did one appear while I was away?* | You are leaving the Flipper somewhere to stand guard |
+| 📖 **Logbook** | *What did I find, and when?* | You are writing it up, or comparing today with last week |
+
+---
 
 ### 🔍 Sweep — *where is it?*
 
-<img src="images/screen_reader.png" width="42%" align="right" alt="Sweep — active reader found">
+<img src="images/screen_reader_max.png" width="42%" align="right" alt="Sweep — reader found, meter pegged">
 
-The showpiece: an **analog-style EMF gauge**. The needle rides the **FIELD %** in real time, a
-peak-hold marker remembers the strongest hit, and the top of the dial is a **hot zone**. A live
-waveform traces the noise floor while it's quiet.
+**What it does.** A live EMF-style meter. Hold the Flipper flat and move it slowly
+over the thing you're checking — a card terminal, a door reader, the underside of
+an ATM lip, a parcel, a desk. The needle rides the field strength in real time.
 
-The instant a reader's carrier is sensed the screen frames itself in an **alarm border**, a throb
-ring pulses around the dial, and the strip flips to **`● ACTIVE READER`** with a proximity readout
-(`FAINT → NEAR → CLOSE → STRONG`). Optional **geiger clicks speed up as the field gets stronger**, so
-you can sweep a surface with the Flipper in your pocket and *hear* yourself getting warmer.
+**What you see.**
+- **The dial** — needle = live reading, the small dot = *peak-hold* (the strongest
+  spot you've touched, so you can compare positions).
+- **`FIELD %`** — the same reading as a number, with a **▲ / ▼ trend arrow**
+  telling you whether the last half-second made things *warmer or colder*. When
+  you're hunting, that arrow matters more than the number.
+- **`PK` / `C`** — peak reading and how many separate contacts you've had.
+- **Bottom strip** — the live waveform and your current sensitivity while quiet;
+  it flips to a black **`● ACTIVE READER`** alarm bar with a proximity word the
+  moment a carrier is detected.
+- **Proximity** — `FAINT → NEAR → CLOSE → STRONG → MAX`. `MAX` means the meter is
+  *pegged*: you're as close as this measurement can resolve.
 
-`OK` resets peak/contacts · `hold OK` logs the reading · `LEFT` calibrates to the room you're in.
+**Sound.** Optional geiger clicks that **speed up as you get closer**, so you can
+sweep with the Flipper in your pocket and hunt by ear alone.
+
+| Key | Action |
+|---|---|
+| `OK` | Reset peak-hold and contact count |
+| `hold OK` | Save this reading to the logbook |
+| `LEFT` | Calibrate to the room's noise floor (3 s) |
 
 <br clear="right">
 
-### 🔬 Fingerprint — *what is it?* &nbsp;<sub>`NEW in 2.0`</sub>
+### 🔬 Fingerprint — *what kind of thing is it?*
 
 <img src="images/screen_fingerprint.png" width="42%" align="right" alt="Fingerprint — polling reader identified">
 
-Found something? Hold still on it. Specter stops chasing proximity and starts **timing the carrier's
-on/off edges**, then tells you what kind of emitter you're looking at:
+**What it does.** Once Sweep has found something, hold the Flipper **still**
+against it. Fingerprint stops measuring proximity and starts **timing the
+carrier's on/off edges**, which is what actually distinguishes one kind of
+emitter from another.
 
-| Class | What it means |
+**What you see.** A verdict, a confidence bar, and the evidence behind both:
+
+| Class | What it means in practice |
 |---|---|
-| **CONTINUOUS** | Carrier held permanently up |
-| **POLLING** | Fixed poll cycle — the period is shown in ms |
-| **INTERMITTENT** | Bursty but irregular |
+| **CONTINUOUS** | The carrier is held permanently up |
+| **POLLING** | A fixed, crystal-timed poll cycle — the period is shown in ms |
+| **INTERMITTENT** | Bursty but irregular — often a phone or a reader in use |
 
-You get the **polling period**, **burst width**, **jitter**, **duty-cycle** and a **confidence bar** —
-plus a **logic-analyser pulse train** of the raw carrier along the bottom, so the verdict is never
-asked to be believed on its own. A reader's polling loop is crystal-timed, so a genuine poll shows up
-as an unmistakable square wave.
+Underneath are `PER` (poll period), `BST` (burst width), `JIT` (jitter) and
+`DUTY` (true duty-cycle), plus a **logic-analyser pulse train** of the raw
+carrier — so the verdict is never something you have to take on faith. A genuine
+polling reader shows up as an unmistakable square wave.
 
-`OK` saves the finding to the logbook · `hold OK` restarts the measurement.
+> A `~` before a timing means it's close to the 2 ms sampling floor, and the
+> confidence is discounted to match.
+
+| Key | Action |
+|---|---|
+| `OK` | Save the finding to the logbook |
+| `hold OK` | Restart the measurement |
 
 <br clear="right">
 
-### 🗺️ Site Survey — *is this room clean?* &nbsp;<sub>`NEW in 2.0`</sub>
+### 🗺️ Site Survey — *is this room clean?*
 
 <img src="images/screen_survey_done.png" width="42%" align="right" alt="Site Survey — verdict">
 
-A **timed sweep** of a whole space. Start it, walk the room, and get **one verdict** at the end
-instead of having to watch a needle the entire time:
+**What it does.** A **timed** sweep of a whole space. Start it, walk the room
+normally, and get a single verdict at the end — no needle-watching.
+
+**What you see.** A countdown and progress bar while it runs, then a verdict card:
 
 - **`CLEAN`** — nothing crossed the noise floor
-- **`TRACE`** — brief or faint hits, worth a second pass
-- **`ACTIVE READER`** — something was up and emitting for real
+- **`TRACE`** — brief or faint hits; worth a slower second pass
+- **`ACTIVE READER`** — something was genuinely up and emitting
 
-…with max/average field, contact count, and **how much of the survey a carrier was actually up**.
-Runs for 30 s, 60 s or 2 min, and auto-logs the result.
+…with `MAX` / `AVG` field, contact count, and `FIELD %` — **how much of the survey
+a carrier was actually up**, which is often the most telling number of the four.
+Runs for 30 s, 60 s or 2 min, and logs the result automatically.
+
+| Key | Action |
+|---|---|
+| `OK` | Run the survey again |
 
 <br clear="right">
 
-### 🛰️ Watch Mode — *tell me if one shows up* &nbsp;<sub>`NEW in 2.1`</sub>
+### 🛰️ Watch Mode — *did one appear while I was away?*
 
 <img src="images/screen_watch_hit.png" width="42%" align="right" alt="Watch Mode — reader present">
 
-Where Sweep is you hunting and Survey is a bounded verdict, **Watch stands guard indefinitely**. Arm
-it, set the Flipper down, and walk away. It keeps a running clock and a **detection count**, remembers
-**when the last contact was**, and — the whole point — **wakes the screen and sounds off the instant a
-reader appears**. Each new contact is auto-logged with its timestamp.
+**What it does.** Stands guard **indefinitely**. Arm it, set the Flipper down,
+walk away. Where Sweep is you hunting and Survey is a fixed-length test, Watch
+just waits — for minutes or hours.
 
-It deliberately **ignores stealth**: a silent, dark guard that never tells you it saw something would
-be worse than useless. `OK` re-arms it (clears the count and clock).
+**What you see.** A large elapsed clock and `ALL CLEAR` while nothing is there.
+The instant a reader appears the band inverts to a blinking **`READER PRESENT`**,
+the **screen wakes**, and the alarm sounds. After it passes, the screen keeps the
+evidence: `HITS` (how many separate contacts), `PEAK`, `LAST` (how long ago the
+most recent one was) and `SEEN` (total time a carrier was actually up).
+
+Watch **deliberately ignores stealth mode** — a dark, silent guard that never
+tells you it saw something would be worse than useless.
+
+| Key | Action |
+|---|---|
+| `OK` | Re-arm — clears the clock and counters |
 
 <br clear="right">
 
-### 📖 Logbook + live CSV &nbsp;<sub>`CSV NEW in 2.1`</sub>
+### 📖 Logbook — *what did I find, and when?*
 
-Every finding is written **twice, from one action** — so it's readable on the device *and* already a
-spreadsheet, with no export step to remember:
+Findings are saved **twice, from one action**, so they're readable on the device
+*and* already a spreadsheet — no export step to remember:
 
 <table>
 <tr><th><code>logbook.txt</code> — grouped, for the on-device viewer</th><th><code>logbook.csv</code> — one flat row per entry</th></tr>
@@ -143,53 +194,59 @@ timestamp,type,detail
 </td></tr>
 </table>
 
-Both live in `apps_data/specter/` on the SD card. Nothing leaves the device.
+Entries are tagged `SWEEP`, `READER`, `SURVEY` or `WATCH` and stamped from the
+Flipper's clock. Both files live in `apps_data/specter/` on the SD card. Nothing
+ever leaves the device. Clear them from **Settings → Clear logbook** (confirmed
+first — it's the one irreversible thing the app can do).
 
-### 🎯 Auto-calibration &nbsp;<sub>`NEW in 2.0`</sub>
+---
 
-Press **LEFT** on the Sweep screen and Specter listens to the **ambient noise floor for 3 seconds**,
-then sets the detection threshold just above whatever it measured — saved as your **Custom**
-sensitivity. Every room has a different RF floor; this tunes to the one you're standing in rather
-than a number baked in at build time.
+## ⚙️ The supporting bits
 
-### 🕶️ Stealth mode &nbsp;<sub>`NEW in 2.0`</sub>
+### 🎯 Auto-calibration
 
-Keeps the **screen and LED dark** for the whole sweep, so the Flipper doesn't glow while you're the
-one doing the looking. Sound and vibration keep working — the point isn't to disable the feedback
-you're sweeping by. Exiting a stealth screen **re-lights the display**, so `BACK` always lands you on
-a lit menu <sub>(fixed in 2.2 — it used to leave the screen dark, which made `BACK` look dead)</sub>.
+Press **LEFT** on the Sweep screen and Specter listens to the **ambient noise
+floor for 3 seconds**, then sets the detection threshold just above whatever it
+measured — saved as your **Custom** sensitivity. Every room has a different RF
+floor; this tunes to the one you're standing in rather than a number baked in at
+build time. Stand somewhere quiet when you run it.
 
-### 📏 Reading the meter &nbsp;<sub>`FIXED in 2.3`</sub>
+### 🕶️ Stealth mode
 
-**Why a reader you're touching doesn't emit 100% of the time.** The detector measures one physical
-thing: what fraction of the time a 13.56 MHz carrier is actually up. But readers **poll** — a short
-burst, a sleep, another burst. A typical terminal or access reader is only radiating **20–35% of the
-time**, so raw duty-cycle *saturates* around 30% no matter how close you get.
+Keeps the **screen and LED dark** for the whole sweep, so the Flipper doesn't glow
+while you're the one doing the looking. Sound and vibration keep working — the
+point isn't to disable the feedback you're sweeping by. Exiting a stealth screen
+re-lights the display, so `BACK` always lands you on a lit menu.
 
-Specter used to print that raw number on the gauge, which made a perfect detection look like a third
-of one — and left `CLOSE`/`STRONG` and the survey's peak test permanently out of reach. The meter is
-now scaled against that real polling band:
+### 📏 Reading the meter
+
+**Why a reader you're touching doesn't emit 100% of the time.** The detector
+measures one physical thing: what fraction of the time a 13.56 MHz carrier is up.
+But readers **poll** — a short burst, a sleep, another burst. A typical terminal
+is only radiating **20–35% of the time**, so raw duty-cycle *saturates* around 30%
+no matter how close you get.
+
+Showing that raw number on the gauge made a perfect detection look like a third
+of one. The meter is scaled against that real polling band instead:
 
 | Raw carrier duty | Meter | Proximity |
 |---|---|---|
-| 3% (room noise) | 9% | `FAINT` |
-| 12% | 34% | `NEAR` |
-| 20% | 57% | `CLOSE` |
-| 31% *(on top of a reader)* | **89%** | `STRONG` |
-| ≥35% / continuous wave | 100% | `MAX` |
+| 3% (room noise) | 10% | `FAINT` |
+| 12% | 40% | `NEAR` |
+| 20% | 67% | `CLOSE` |
+| 28% | 93% | `STRONG` |
+| ≥30% *(resting on a reader)* | **100%** | `MAX` |
 
-`MAX` means **pegged** — you're as close as this measurement can resolve, and moving nearer won't
-change it. That's stated rather than hidden, so a stuck needle never looks like a broken one.
+The **raw duty is never lost**: the noise floor, auto-calibration and the
+Fingerprint screen's `DUTY` all still work in true duty-cycle, because those
+describe the *signal*, not your distance from it. Want the literal number?
+**Settings → Meter → Raw**.
 
-The **raw duty is never lost**: the noise floor, auto-calibration and the Fingerprint screen's `DUTY`
-all still work in true duty-cycle, because those describe the *signal*, not your distance from it.
-Prefer the literal number? **Settings → Meter → Raw**.
+### 💾 Everything persists
 
-### 💾 Everything persists &nbsp;<sub>`NEW in 2.0`</sub>
-
-Sensitivity, survey length, sound, vibe, LED, stealth, logging and meter mode are **saved to the SD
-card** the moment you change them. A sweep kit that forgets its setup is worse than no persistence at
-all.
+Sensitivity, survey length, sound, vibe, LED, stealth, logging and meter mode are
+**saved to the SD card** the moment you change them. A sweep kit that forgets its
+setup is worse than no persistence at all.
 
 ---
 
@@ -235,7 +292,7 @@ clean", "this is what the needle should read" — are pure C with no hardware de
 pinned down by host tests rather than discovered on the device:
 
 ```bash
-make -C test     # 284 checks: classifier, survey verdict, meter scaling
+make -C test     # 300 checks: classifier, verdict, meter scaling, presence
 ```
 
 ---
@@ -354,6 +411,7 @@ authorised** to assess. You are responsible for how you use it. Know your local 
 - [x] Export the logbook as CSV for reporting — *written live alongside the .txt*
 - [x] Long-run unattended watch mode with a wake-on-detection alarm
 - [x] Make the meter use its full range against real polling readers
+- [x] Warmer/colder trend arrow while hunting
 - [ ] Investigate an LF (125 kHz) coil-based reader sense as a separate mode
 - [ ] On-device logbook filtering by type
 
@@ -371,6 +429,7 @@ Specter-FlipperZero/
 │   ├── emitter_classify.{c,h}    # pure: cadence -> CONTINUOUS/POLLING/INTERMITTENT
 │   ├── survey_verdict.{c,h}      # pure: survey stats -> CLEAN/TRACE/ACTIVE
 │   ├── field_scale.{c,h}         # pure: raw carrier duty -> full-scale meter
+│   ├── present_hold.h            # pure: debounce presence across poll gaps
 │   ├── specter_settings.{c,h}    # persisted settings (saved_struct)
 │   └── specter_log.{c,h}         # SD logbook, RTC-stamped .txt + live .csv
 ├── views/
