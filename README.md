@@ -34,7 +34,7 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 | `8` (3.3V)  | VCC        |
 | `18` (GND)  | GND        |
 
-> **Note:** The application is configured to use hardware UART (USART) on pins 13/14 at 115200 baud by default. Software UART fallback on A4/A6 is also supported.
+> **Note:** The application uses hardware UART (USART) on pins 13/14 at 115200 baud by default.
 
 > **Hardware reset:** New board revisions should connect the UCM601NC active-low `RST` pin to Flipper `C0` (external pin 16). The application pulses C0 low before its first version probe, preventing the reader from remaining unresponsive after a failed power-on reset. C0 is reserved for reset and is not used as an LPUART fallback.
 

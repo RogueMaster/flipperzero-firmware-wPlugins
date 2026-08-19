@@ -49,11 +49,6 @@
 #define UHF_RESET_LOW_MS      250U
 #define UHF_RESET_BOOT_MS     600U
 
-#define UHF_SOFT_UART_BIT_US         104U
-#define UHF_SOFT_UART_IDLE_POLL_US   10U
-#define UHF_SOFT_UART_FRAME_WAIT_US  120U
-#define UHF_SOFT_UART_PROBE_WINDOWMS 380U
-#define UHF_SOFT_UART_RX_BATCH       1U
 #define UHF_INV_CMD_COOLDOWN_MS      450U
 #define UHF_RADAR_STEP_MS             65U
 #define UHF_RADAR_PHASE_COUNT         96U
@@ -66,8 +61,6 @@
 #define UHF_LIST_VISIBLE_ROWS        5U
 #define UHF_ABOUT_VISIBLE_LINES      5U
 
-#define UHF_TARGET_TX_PIN_FALLBACK 6
-#define UHF_TARGET_RX_PIN_FALLBACK 4
 #define UHF_BRIDGE_TX_EXT_PIN      13
 #define UHF_BRIDGE_RX_EXT_PIN      14
 #define UHF_RESET_EXT_PIN          16
@@ -82,8 +75,7 @@
 #define UHF_DIAG_LOG_LEN      96U
 
 #define UHF_APP_DATA_DIR APP_DATA_PATH("uhf_expansion")
-#define UHF_DIAG_DATA_DIR "/int/uhf_expansion"
-#define UHF_VIEW_STATE_PATH UHF_DIAG_DATA_DIR "/view_state.bin"
+#define UHF_VIEW_STATE_PATH UHF_APP_DATA_DIR "/view_state.bin"
 
 typedef struct {
     InputEvent input;
@@ -144,20 +136,13 @@ typedef struct {
     bool inventory_running;
     bool exit_requested;
     bool hardware_ready;
-    bool soft_uart_enabled;
-    const GpioPin* soft_tx_gpio;
-    const GpioPin* soft_rx_gpio;
     uint32_t rx_bytes;
     uint32_t rx_frames;
     uint32_t rx_errors;
-    uint32_t key_count;
     char last_rx_hex[41];
     char diag_log[UHF_DIAG_LOG_LINES][UHF_DIAG_LOG_LEN];
     uint8_t diag_head;
     uint8_t diag_count;
-    bool diag_save_pending;
-    bool diag_save_running;
-    bool down_long_latched;
     uint32_t last_inv_cmd_tick;
     uint32_t last_inv_refresh_tick;
     uint32_t last_inv_session_tick;
@@ -315,7 +300,6 @@ static void uhf_format_list_epc_compact(
 
 static void uhf_on_rx_irq(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context);
 static void uhf_app_free(UhfApp* app);
-static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app);
 static void uhf_clear_tags(UhfApp* app);
 static void uhf_update_inventory_rate(UhfApp* app);
 static void uhf_update_radar_animation(UhfApp* app);
@@ -444,117 +428,6 @@ static void uhf_diag_log(UhfApp* app, const char* fmt, ...) {
     }
 }
 
-static int8_t __attribute__((unused))
-    uhf_resolve_ext_pin_number(const char* pin_name_a, const char* pin_name_b, int8_t fallback) {
-    const GpioPinRecord* pin = furi_hal_resources_pin_by_name(pin_name_a);
-    if(!pin && pin_name_b) {
-        pin = furi_hal_resources_pin_by_name(pin_name_b);
-    }
-    return pin ? (int8_t)pin->number : fallback;
-}
-
-static int8_t __attribute__((unused)) uhf_target_pin_a6(void) {
-    static int8_t cached = INT8_MIN;
-    if(cached == INT8_MIN) {
-        cached = uhf_resolve_ext_pin_number("PA6", "A6", UHF_TARGET_TX_PIN_FALLBACK);
-    }
-    return cached;
-}
-
-static int8_t __attribute__((unused)) uhf_target_pin_a4(void) {
-    static int8_t cached = INT8_MIN;
-    if(cached == INT8_MIN) {
-        cached = uhf_resolve_ext_pin_number("PA4", "A4", UHF_TARGET_RX_PIN_FALLBACK);
-    }
-    return cached;
-}
-
-static void uhf_format_pin_label(int8_t ext_pin, char* out, size_t out_size) {
-    if(ext_pin < 0) {
-        snprintf(out, out_size, "N/A");
-        return;
-    }
-
-    const GpioPinRecord* pin = furi_hal_resources_pin_by_number((uint8_t)ext_pin);
-    if(pin && pin->name) {
-        snprintf(out, out_size, "%s", pin->name);
-    } else {
-        snprintf(out, out_size, "P%d", ext_pin);
-    }
-}
-
-static void uhf_soft_uart_set_line(const GpioPin* gpio, bool high) {
-    furi_hal_gpio_write(gpio, high);
-}
-
-static void uhf_soft_uart_tx_byte(UhfApp* app, uint8_t value) {
-    if(!app->soft_uart_enabled || !app->soft_tx_gpio) return;
-
-    // 8N1, LSB first, idle high.
-    uhf_soft_uart_set_line(app->soft_tx_gpio, false);
-    furi_delay_us(UHF_SOFT_UART_BIT_US);
-
-    for(size_t i = 0; i < 8; i++) {
-        uhf_soft_uart_set_line(app->soft_tx_gpio, (value >> i) & 0x01);
-        furi_delay_us(UHF_SOFT_UART_BIT_US);
-    }
-
-    uhf_soft_uart_set_line(app->soft_tx_gpio, true);
-    furi_delay_us(UHF_SOFT_UART_BIT_US);
-}
-
-static void uhf_soft_uart_tx(UhfApp* app, const uint8_t* data, size_t length) {
-    for(size_t i = 0; i < length; i++) {
-        uhf_soft_uart_tx_byte(app, data[i]);
-    }
-}
-
-static bool uhf_soft_uart_rx_byte(UhfApp* app, uint8_t* out, uint32_t timeout_us) {
-    if(!app->soft_uart_enabled || !app->soft_rx_gpio) return false;
-
-    uint32_t waited = 0;
-    while(true) {
-        if(!furi_hal_gpio_read(app->soft_rx_gpio)) {
-            // Confirm start bit in its middle.
-            furi_delay_us(UHF_SOFT_UART_BIT_US / 2U);
-            if(!furi_hal_gpio_read(app->soft_rx_gpio)) {
-                uint8_t value = 0;
-                furi_delay_us(UHF_SOFT_UART_BIT_US);
-                for(size_t i = 0; i < 8; i++) {
-                    if(furi_hal_gpio_read(app->soft_rx_gpio)) {
-                        value |= (uint8_t)(1U << i);
-                    }
-                    furi_delay_us(UHF_SOFT_UART_BIT_US);
-                }
-
-                // Stop bit time.
-                furi_delay_us(UHF_SOFT_UART_BIT_US / 2U);
-                *out = value;
-                return true;
-            }
-        }
-
-        if(waited >= timeout_us) {
-            return false;
-        }
-
-        furi_delay_us(UHF_SOFT_UART_IDLE_POLL_US);
-        waited += UHF_SOFT_UART_IDLE_POLL_US;
-    }
-}
-
-static void __attribute__((unused))
-    uhf_soft_uart_configure(UhfApp* app, const GpioPin* tx_gpio, const GpioPin* rx_gpio) {
-    furi_hal_gpio_init(tx_gpio, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
-    furi_hal_gpio_write(tx_gpio, true);
-    furi_hal_gpio_init(rx_gpio, GpioModeInput, GpioPullUp, GpioSpeedVeryHigh);
-
-    app->soft_uart_enabled = true;
-    app->soft_tx_gpio = tx_gpio;
-    app->soft_rx_gpio = rx_gpio;
-    app->serial = NULL;
-}
-
 static void uhf_force_direct_a6_a4(UhfApp* app) {
     if(!app) return;
 
@@ -562,10 +435,6 @@ static void uhf_force_direct_a6_a4(UhfApp* app) {
     if(app->serial) {
         uhf_close_serial(app);
     }
-
-    app->soft_uart_enabled = false;
-    app->soft_tx_gpio = NULL;
-    app->soft_rx_gpio = NULL;
 
     if(!uhf_open_bridge_uart(app)) {
         app->tx_ext_pin = -1;
@@ -931,7 +800,6 @@ static void uhf_about_scroll(UhfApp* app, bool down) {
 
 /* Forward declarations */
 static void uhf_draw_centered_text(Canvas* canvas, int y, const char* text);
-static void uhf_list_menu_submenu_callback(void* context, uint32_t index);
 static void uhf_run_startup_sequence(UhfApp* app);
 static bool uhf_ensure_hardware(UhfApp* app);
 static void uhf_clear_version(UhfApp* app);
@@ -954,23 +822,6 @@ static void uhf_list_menu_execute(UhfApp* app, uint32_t item) {
     default:
         break;
     }
-}
-
-/* submenu callbacks -- kept for compatibility, marked unused */
-static void __attribute__((unused)) uhf_list_menu_submenu_callback(void* context, uint32_t index) {
-    UhfListMenuCtx* menu_ctx = context;
-    if(!menu_ctx) return;
-    menu_ctx->selected = index;
-    menu_ctx->submitted = true;
-    if(menu_ctx->dispatcher) view_dispatcher_stop(menu_ctx->dispatcher);
-}
-
-static bool __attribute__((unused)) uhf_list_menu_back_callback(void* context) {
-    UhfListMenuCtx* menu_ctx = context;
-    if(!menu_ctx) return true;
-    menu_ctx->submitted = false;
-    if(menu_ctx->dispatcher) view_dispatcher_stop(menu_ctx->dispatcher);
-    return true;
 }
 
 static void uhf_menu_draw_callback(Canvas* canvas, void* context) {
@@ -1348,14 +1199,10 @@ static bool uhf_build_frame(
 
 static bool uhf_send_raw_frame(UhfApp* app, const uint8_t* frame, size_t frame_size) {
     if(!frame || frame_size < 5U) return false;
-    if(!app->serial && !app->soft_uart_enabled) return false;
+    if(!app->serial) return false;
 
-    if(app->soft_uart_enabled) {
-        uhf_soft_uart_tx(app, frame, frame_size);
-    } else {
-        furi_hal_serial_tx(app->serial, frame, frame_size);
-        furi_hal_serial_tx_wait_complete(app->serial);
-    }
+    furi_hal_serial_tx(app->serial, frame, frame_size);
+    furi_hal_serial_tx_wait_complete(app->serial);
 
     char hex[49] = "";
     const size_t shown = frame_size > 24U ? 24U : frame_size;
@@ -1384,11 +1231,11 @@ static bool uhf_send_command(UhfApp* app, uint8_t cmd, const uint8_t* payload, s
 static bool uhf_ensure_hardware(UhfApp* app) {
     /* hardware_ready means the UART is configured. Reader presence is tracked
        independently by the version response. */
-    if(app->hardware_ready && (app->serial || app->soft_uart_enabled)) return true;
+    if(app->hardware_ready && app->serial) return true;
 
     const uint32_t desired_baud = app->baud_rate;
 
-    if(!app->serial && !app->soft_uart_enabled) {
+    if(!app->serial) {
         uhf_force_direct_a6_a4(app);
     }
     if(!app->serial) {
@@ -1416,11 +1263,6 @@ static bool uhf_ensure_hardware(UhfApp* app) {
 }
 
 static void uhf_apply_baud(UhfApp* app, uint32_t baud_rate) {
-    if(app->soft_uart_enabled) {
-        app->baud_rate = UHF_BAUD_RATE;
-        return;
-    }
-
     app->baud_rate = baud_rate;
     if(!app->serial) return;
 
@@ -1439,13 +1281,6 @@ static void uhf_apply_baud(UhfApp* app, uint32_t baud_rate) {
     }
     uhf_set_status(app, "Baud: %lu", (unsigned long)baud_rate);
 }
-
-
-
- static void __attribute__((unused)) uhf_apply_saved_baud(UhfApp* app) {
-     (void)app;
- }
-
 static void uhf_stop_inventory(UhfApp* app) {
     static const uint8_t stop_frame[] = {0xA0, 0x03, 0x00, 0x8C, 0xD1};
     app->inventory_running = false;
@@ -1550,7 +1385,7 @@ static bool uhf_try_reader_handshake(UhfApp* app, uint8_t attempts) {
 }
 
 static bool uhf_recover_reader(UhfApp* app) {
-    if(!app || (!app->serial && !app->soft_uart_enabled)) return false;
+    if(!app || !app->serial) return false;
 
     uhf_stop_inventory(app);
     furi_delay_ms(UHF_STOP_SETTLE_MS);
@@ -1661,7 +1496,7 @@ static bool uhf_power_cycle_reader(UhfApp* app) {
 }
 
 static void uhf_service_inventory(UhfApp* app) {
-    if(!app || !app->inventory_running || app->diag_save_running) return;
+    if(!app || !app->inventory_running) return;
 
     const uint32_t now = furi_get_tick();
     if(app->temperature_query_pending &&
@@ -1746,12 +1581,6 @@ static void uhf_request_version(UhfApp* app) {
         uhf_set_status(app, "Version tx failed");
         uhf_diag_log(app, "Version tx failed");
     }
-}
-
-static void __attribute__((unused)) uhf_swap_soft_uart_direction(UhfApp* app) {
-    if(!uhf_ensure_hardware(app)) return;
-    uhf_force_direct_a6_a4(app);
-    uhf_set_status(app, "UART bridge reset");
 }
 
 static bool uhf_add_inventory_tag(
@@ -2013,52 +1842,6 @@ static void uhf_process_rx(UhfApp* app) {
         }
     }
 
-    if(app->soft_uart_enabled) {
-        uint8_t b = 0;
-        size_t soft_read = 0;
-        while(frame_budget && soft_read < UHF_SOFT_UART_RX_BATCH &&
-              uhf_soft_uart_rx_byte(app, &b, UHF_SOFT_UART_FRAME_WAIT_US)) {
-            if(app->frame_buffer_len >= sizeof(app->frame_buffer)) {
-                app->rx_errors++;
-                app->frame_buffer_len = 0;
-            }
-            app->frame_buffer[app->frame_buffer_len++] = b;
-            app->rx_bytes++;
-            soft_read++;
-
-            size_t index = 0;
-            while(index < app->frame_buffer_len) {
-                while(index < app->frame_buffer_len && app->frame_buffer[index] != UHF_FRAME_START) {
-                    index++;
-                }
-                if((app->frame_buffer_len - index) < 2U) break;
-
-                const size_t frame_size = (size_t)app->frame_buffer[index + 1U] + 2U;
-                if(frame_size < 5U) {
-                    app->rx_errors++;
-                    index++;
-                    continue;
-                }
-                if((app->frame_buffer_len - index) < frame_size) break;
-
-                uhf_handle_frame(app, &app->frame_buffer[index], frame_size);
-                index += frame_size;
-
-                frame_budget--;
-                if(frame_budget == 0U) {
-                    break;
-                }
-            }
-
-            if(index > 0U) {
-                const size_t remain = app->frame_buffer_len - index;
-                if(remain) {
-                    memmove(app->frame_buffer, &app->frame_buffer[index], remain);
-                }
-                app->frame_buffer_len = remain;
-            }
-        }
-    }
 }
 
 static bool uhf_wait_for_version(UhfApp* app, uint32_t timeout_ms) {
@@ -2068,13 +1851,13 @@ static bool uhf_wait_for_version(UhfApp* app, uint32_t timeout_ms) {
         if(uhf_has_version(app)) {
             return true;
         }
-        furi_delay_ms(app->soft_uart_enabled ? 1U : 12U);
+        furi_delay_ms(12U);
     }
     return false;
 }
 
 static bool uhf_probe_current_serial(UhfApp* app, uint32_t baud) {
-    if(!app->serial && !app->soft_uart_enabled) return false;
+    if(!app->serial) return false;
 
     uhf_apply_baud(app, baud);
     uhf_clear_version(app);
@@ -2084,27 +1867,9 @@ static bool uhf_probe_current_serial(UhfApp* app, uint32_t baud) {
     return uhf_wait_for_version(app, UHF_PROBE_TIMEOUT_MS);
 }
 
-static bool __attribute__((unused)) uhf_is_target_uart_pair(int8_t tx_pin, int8_t rx_pin) {
-    const int8_t a6 = uhf_target_pin_a6();
-    const int8_t a4 = uhf_target_pin_a4();
-    return ((tx_pin == a6) && (rx_pin == a4)) || ((tx_pin == a4) && (rx_pin == a6));
-}
-
-static bool __attribute__((unused)) uhf_save_records(UhfApp* app) {
-    if(!uhf_data_lock(app, 50)) {
-        uhf_set_status(app, "Busy");
-        return false;
-    }
-
-    if(app->tag_count == 0U) {
-        uhf_data_unlock(app);
-        uhf_set_status(app, "No records to save");
-        return false;
-    }
-
+static bool uhf_save_diag_log(UhfApp* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(!storage) {
-        uhf_data_unlock(app);
         uhf_set_status(app, "Storage unavailable");
         return false;
     }
@@ -2113,7 +1878,6 @@ static bool __attribute__((unused)) uhf_save_records(UhfApp* app) {
         const FS_Error mkdir_result = storage_common_mkdir(storage, UHF_APP_DATA_DIR);
         if(mkdir_result != FSE_OK && mkdir_result != FSE_EXIST) {
             furi_record_close(RECORD_STORAGE);
-            uhf_data_unlock(app);
             uhf_set_status(app, "Create dir failed");
             return false;
         }
@@ -2121,83 +1885,7 @@ static bool __attribute__((unused)) uhf_save_records(UhfApp* app) {
 
     char path[128];
     const uint32_t now = furi_get_tick();
-    snprintf(path, sizeof(path), UHF_APP_DATA_DIR "/tags_%lu.csv", (unsigned long)now);
-
-    File* file = storage_file_alloc(storage);
-    if(!file) {
-        furi_record_close(RECORD_STORAGE);
-        uhf_data_unlock(app);
-        uhf_set_status(app, "File alloc failed");
-        return false;
-    }
-
-    bool ok = false;
-
-    do {
-        if(!storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-            uhf_set_status(app, "Open file failed");
-            break;
-        }
-
-        const char* header = "EPC,RSSI,Frequency,Antenna,ReadCount,LastSeenTick\n";
-        if(storage_file_write(file, header, strlen(header)) != strlen(header)) {
-            uhf_set_status(app, "Write header failed");
-            break;
-        }
-
-        char line[192];
-        for(size_t i = 0; i < UHF_MAX_TAGS; i++) {
-            if(!app->tags[i].used) continue;
-
-            const int len = snprintf(
-                line,
-                sizeof(line),
-                "%s,%lu,%lu,%u,%u,%lu\n",
-                app->tags[i].epc,
-                (unsigned long)app->tags[i].rssi,
-                (unsigned long)app->tags[i].frequency,
-                app->tags[i].antenna,
-                app->tags[i].read_count,
-                (unsigned long)app->tags[i].last_seen);
-            if(len <= 0 || (size_t)len >= sizeof(line)) continue;
-
-            if(storage_file_write(file, line, (size_t)len) != (size_t)len) {
-                uhf_set_status(app, "Write record failed");
-                break;
-            }
-        }
-
-        storage_file_sync(file);
-        uhf_set_status(app, "Saved: %s", path);
-        ok = true;
-    } while(false);
-
-    storage_file_close(file);
-    storage_file_free(file);
-    furi_record_close(RECORD_STORAGE);
-    uhf_data_unlock(app);
-    return ok;
-}
-
-static bool uhf_save_diag_log(UhfApp* app) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    if(!storage) {
-        uhf_set_status(app, "Storage unavailable");
-        return false;
-    }
-
-    if(!storage_dir_exists(storage, UHF_DIAG_DATA_DIR)) {
-        const FS_Error mkdir_result = storage_common_mkdir(storage, UHF_DIAG_DATA_DIR);
-        if(mkdir_result != FSE_OK && mkdir_result != FSE_EXIST) {
-            furi_record_close(RECORD_STORAGE);
-            uhf_set_status(app, "Create dir failed");
-            return false;
-        }
-    }
-
-    char path[128];
-    const uint32_t now = furi_get_tick();
-    snprintf(path, sizeof(path), UHF_DIAG_DATA_DIR "/diag_%lu.log", (unsigned long)now);
+    snprintf(path, sizeof(path), UHF_APP_DATA_DIR "/diag_%lu.log", (unsigned long)now);
 
     File* file = storage_file_alloc(storage);
     if(!file) {
@@ -2677,8 +2365,10 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
     }
 }
 
-static void __attribute__((unused))
-    uhf_on_rx_irq(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
+static void uhf_on_rx_irq(
+    FuriHalSerialHandle* handle,
+    FuriHalSerialRxEvent event,
+    void* context) {
     UhfApp* app = context;
     if(!app || !app->rx_stream) return;
 
@@ -2762,47 +2452,6 @@ static void uhf_close_serial(UhfApp* app) {
     }
 }
 
-static bool __attribute__((unused)) uhf_pick_and_open_serial(UhfApp* app) {
-    if(uhf_open_serial(app, FuriHalSerialIdUsart)) {
-        const bool is_target_pins = uhf_is_target_uart_pair(app->tx_ext_pin, app->rx_ext_pin);
-        if(is_target_pins) return true;
-
-        // Keep USART as a usable fallback even if it is not A6/A4.
-        return true;
-    }
-
-    app->tx_ext_pin = -1;
-    app->rx_ext_pin = -1;
-    return false;
-}
-
-static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app) {
-    const uint32_t bauds[1] = {UHF_BAUD_RATE};
-    char tx_label[12] = "N/A";
-    char rx_label[12] = "N/A";
-
-    if(!app->serial && !app->soft_uart_enabled && !uhf_pick_and_open_serial(app)) {
-        return false;
-    }
-
-    for(size_t i = 0; i < 1; i++) {
-        if(uhf_probe_current_serial(app, bauds[i])) {
-            uhf_format_pin_label(app->tx_ext_pin, tx_label, sizeof(tx_label));
-            uhf_format_pin_label(app->rx_ext_pin, rx_label, sizeof(rx_label));
-            uhf_set_status(
-                app,
-                "Reader OK %lu TX:%s RX:%s",
-                (unsigned long)app->baud_rate,
-                tx_label,
-                rx_label);
-            return true;
-        }
-    }
-
-    uhf_set_status(app, "No version. Check or swap A6/A4");
-    return false;
-}
-
 static void uhf_toggle_serial_port(UhfApp* app) {
     if(!uhf_ensure_hardware(app)) return;
 
@@ -2842,8 +2491,8 @@ static void uhf_save_last_page(const UhfApp* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(!storage) return;
 
-    if(!storage_dir_exists(storage, UHF_DIAG_DATA_DIR)) {
-        const FS_Error mkdir_result = storage_common_mkdir(storage, UHF_DIAG_DATA_DIR);
+    if(!storage_dir_exists(storage, UHF_APP_DATA_DIR)) {
+        const FS_Error mkdir_result = storage_common_mkdir(storage, UHF_APP_DATA_DIR);
         if(mkdir_result != FSE_OK && mkdir_result != FSE_EXIST) {
             furi_record_close(RECORD_STORAGE);
             return;
@@ -2951,8 +2600,7 @@ static UhfApp* uhf_app_alloc(void) {
 static void uhf_app_free(UhfApp* app) {
     if(!app) return;
 
-    if(app->inventory_running && app->hardware_ready &&
-       (app->serial || app->soft_uart_enabled)) {
+    if(app->inventory_running && app->hardware_ready && app->serial) {
         uhf_stop_inventory(app);
         /* Flush any remaining RX data so the module's state is clean */
         if(app->rx_stream) {
@@ -2972,11 +2620,6 @@ static void uhf_app_free(UhfApp* app) {
         } else {
             furi_hal_power_disable_otg();
         }
-    }
-
-    if(app->hardware_ready && app->soft_uart_enabled) {
-        furi_hal_gpio_init_simple(&gpio_ext_pa6, GpioModeAnalog);
-        furi_hal_gpio_init_simple(&gpio_ext_pa4, GpioModeAnalog);
     }
 
     if(app->hardware_ready) {
@@ -3015,15 +2658,9 @@ static void uhf_app_free(UhfApp* app) {
 }
 
 static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
-    if((input->key == InputKeyDown) && (input->type == InputTypeRelease)) {
-        app->down_long_latched = false;
-        return;
-    }
-
     const bool fire = (input->type == InputTypeShort) || (input->type == InputTypeLong);
     if(!fire) return;
 
-    app->key_count++;
     if(app->view_port) {
         view_port_update(app->view_port);
     }
@@ -3107,8 +2744,7 @@ int32_t uhf_expansion_app(void* p) {
 
     while(!app->exit_requested) {
         UhfEvent event;
-        const uint32_t input_wait = (app->hardware_ready && app->soft_uart_enabled) ? 1U : 20U;
-        if(furi_message_queue_get(app->event_queue, &event, input_wait) == FuriStatusOk) {
+        if(furi_message_queue_get(app->event_queue, &event, 20U) == FuriStatusOk) {
             uhf_handle_input(app, &event.input);
         }
 
@@ -3119,17 +2755,6 @@ int32_t uhf_expansion_app(void* p) {
 
         uhf_update_inventory_rate(app);
         uhf_update_radar_animation(app);
-
-        if(app->diag_save_pending) {
-            app->diag_save_pending = false;
-            app->diag_save_running = true;
-            if(app->inventory_running) {
-                uhf_stop_inventory(app);
-                furi_delay_ms(2);
-            }
-            (void)uhf_save_diag_log(app);
-            app->diag_save_running = false;
-        }
 
         const uint32_t now = furi_get_tick();
 
