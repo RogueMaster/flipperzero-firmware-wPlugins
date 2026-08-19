@@ -279,11 +279,33 @@ A.packVote = function (cfg) {
 };
 
 // Countdown number with a per-second tick + pop animation.
+// The host pushes one frame per second of the countdown, and a phone that misses
+// them shows no digits at all -- it sits on the lobby and then jumps straight to
+// the round, because the next frame it receives is already the round. Three
+// seconds is a narrow window to be sure of three deliveries over a dozing radio.
+// So a frame starts a local tick instead of only painting once: whatever arrives
+// resyncs the number, and what is lost costs nothing. No extra traffic either
+// way, and the countdown stops on its own when the number runs out or the screen
+// it lives on goes away.
 A.countdown = function (numId, sec) {
   var n = $(numId);
-  n.textContent = sec;
-  A.sfx("tick"); A.vibe(10);
-  if (!noMotionPref()) { n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop"); }
+  if (A._cdTimer) { clearInterval(A._cdTimer); A._cdTimer = null; }
+  var cur = sec;
+  var paint = function () {
+    n.textContent = cur;
+    A.sfx("tick"); A.vibe(10);
+    if (!noMotionPref()) { n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop"); }
+  };
+  paint();
+  A._cdTimer = setInterval(function () {
+    // offsetParent is null once the countdown screen is hidden: the round started
+    // (or the game changed) and this tick has nothing left to say.
+    if (--cur < 1 || n.offsetParent === null) {
+      clearInterval(A._cdTimer); A._cdTimer = null;
+      return;
+    }
+    paint();
+  }, 1000);
 };
 
 // Final podium (avatar + rank + score). Returns the ranked list so the caller
