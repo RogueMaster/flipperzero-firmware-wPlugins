@@ -8,6 +8,10 @@
 #define BTN_WIDTH  30
 #define BTN_HEIGHT 12
 
+// Dropdown picker row height and vertical position (right below row 1 buttons)
+#define PICKER_ITEM_H 11
+#define PICKER_Y      23
+
 // Focus items enumeration
 typedef enum {
     FocusMode = 0,
@@ -24,6 +28,13 @@ typedef enum {
     FocusCount
 } FocusItem;
 
+// Which parameter the dropdown picker is currently showing, if any
+typedef enum {
+    HtwPickerNone = 0,
+    HtwPickerMode,
+    HtwPickerFan,
+} HtwPickerKind;
+
 // Model for the view
 typedef struct {
     HtwState* state;
@@ -37,6 +48,10 @@ typedef struct {
 
     // Debounce: pending state send
     bool state_pending;
+
+    // Dropdown picker for Mode/Fan
+    HtwPickerKind picker_kind;
+    uint8_t picker_index;
 } HtwMainViewModel;
 
 struct HtwMainView {
@@ -197,6 +212,50 @@ static void draw_logo(Canvas* canvas, int16_t y, bool sending, int frame) {
     }
 }
 
+// Helper: Number of items in a picker's list
+static uint8_t picker_item_count(HtwPickerKind kind) {
+    return kind == HtwPickerMode ? HtwModeCount : HtwFanCount;
+}
+
+// Helper: Name of a picker item by index
+static const char* picker_item_name(HtwPickerKind kind, uint8_t index) {
+    if(kind == HtwPickerMode) {
+        return htw_ir_get_mode_name((HtwMode)index);
+    }
+    return htw_ir_get_fan_name((HtwFan)index);
+}
+
+// Helper: Draw dropdown picker overlay on top of the current screen
+static void draw_picker(Canvas* canvas, HtwMainViewModel* m) {
+    uint8_t count = picker_item_count(m->picker_kind);
+    int16_t box_x = (m->picker_kind == HtwPickerMode) ? 1 : 33;
+    int16_t box_w = BTN_WIDTH;
+    int16_t box_h = count * PICKER_ITEM_H + 2;
+
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, box_x, PICKER_Y, box_w, box_h);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_frame(canvas, box_x, PICKER_Y, box_w, box_h);
+
+    canvas_set_font(canvas, FontSecondary);
+    for(uint8_t i = 0; i < count; i++) {
+        int16_t row_y = PICKER_Y + 1 + i * PICKER_ITEM_H;
+        int16_t text_y = row_y + PICKER_ITEM_H / 2;
+        const char* name = picker_item_name(m->picker_kind, i);
+
+        if(i == m->picker_index) {
+            canvas_draw_box(canvas, box_x + 1, row_y, box_w - 2, PICKER_ITEM_H - 1);
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_str_aligned(
+                canvas, box_x + box_w / 2, text_y, AlignCenter, AlignCenter, name);
+            canvas_set_color(canvas, ColorBlack);
+        } else {
+            canvas_draw_str_aligned(
+                canvas, box_x + box_w / 2, text_y, AlignCenter, AlignCenter, name);
+        }
+    }
+}
+
 static void htw_main_view_draw(Canvas* canvas, void* model) {
     HtwMainViewModel* m = model;
     if(!m->state) return;
@@ -247,6 +306,11 @@ static void htw_main_view_draw(Canvas* canvas, void* model) {
 
     // Row 7: HTW logo at bottom (y=116)
     draw_logo(canvas, 116, m->is_sending, m->send_anim_frame);
+
+    // Dropdown picker overlay, drawn last so it sits on top without shifting anything
+    if(m->picker_kind != HtwPickerNone) {
+        draw_picker(canvas, m);
+    }
 }
 
 // Debounce timer callback
@@ -298,6 +362,24 @@ static void send_toggle_immediate(HtwMainView* view, HtwToggle toggle) {
     }
 }
 
+// Send a confirmed picker selection immediately (no debounce)
+static void send_state_immediate(HtwMainView* view) {
+    furi_timer_stop(view->debounce_timer);
+
+    with_view_model(
+        view->view,
+        HtwMainViewModel * m,
+        {
+            m->state_pending = false;
+            m->last_was_toggle = false;
+        },
+        false);
+
+    if(view->send_callback) {
+        view->send_callback(view->send_context);
+    }
+}
+
 static bool htw_main_view_input(InputEvent* event, void* context) {
     HtwMainView* view = context;
     bool consumed = false;
@@ -307,156 +389,195 @@ static bool htw_main_view_input(InputEvent* event, void* context) {
         HtwMainViewModel * m,
         {
             if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
-                switch(event->key) {
-                case InputKeyLeft:
-                    // Navigation only
-                    if(m->focus == FocusFan) {
-                        m->focus = FocusMode;
-                    } else if(m->focus == FocusTempUp) {
-                        m->focus = FocusTempDown;
-                    } else if(m->focus == FocusTurbo) {
-                        m->focus = FocusSwing;
-                    } else if(m->focus == FocusLed) {
-                        m->focus = FocusFresh;
-                    } else if(m->focus == FocusTimer) {
-                        m->focus = FocusClean;
-                    }
-                    consumed = true;
-                    break;
-
-                case InputKeyRight:
-                    // Navigation only
-                    if(m->focus == FocusMode) {
-                        m->focus = FocusFan;
-                    } else if(m->focus == FocusTempDown) {
-                        m->focus = FocusTempUp;
-                    } else if(m->focus == FocusSwing) {
-                        m->focus = FocusTurbo;
-                    } else if(m->focus == FocusFresh) {
-                        m->focus = FocusLed;
-                    } else if(m->focus == FocusClean) {
-                        m->focus = FocusTimer;
-                    }
-                    consumed = true;
-                    break;
-
-                case InputKeyUp:
-                    // Preserve column position when navigating up
-                    if(m->focus == FocusMode || m->focus == FocusFan) {
-                        // Already at top, do nothing
-                    } else if(m->focus == FocusTempDown) {
-                        m->focus = FocusMode;
-                    } else if(m->focus == FocusTempUp) {
-                        m->focus = FocusFan;
-                    } else if(m->focus == FocusSwing) {
-                        m->focus = FocusTempDown;
-                    } else if(m->focus == FocusTurbo) {
-                        m->focus = FocusTempUp;
-                    } else if(m->focus == FocusFresh) {
-                        m->focus = FocusSwing;
-                    } else if(m->focus == FocusLed) {
-                        m->focus = FocusTurbo;
-                    } else if(m->focus == FocusClean) {
-                        m->focus = FocusFresh;
-                    } else if(m->focus == FocusTimer) {
-                        m->focus = FocusLed;
-                    } else if(m->focus == FocusSetup) {
-                        m->focus = FocusClean;
-                    }
-                    consumed = true;
-                    break;
-
-                case InputKeyDown:
-                    // Preserve column position when navigating down
-                    if(m->focus == FocusMode) {
-                        m->focus = FocusTempDown;
-                    } else if(m->focus == FocusFan) {
-                        m->focus = FocusTempUp;
-                    } else if(m->focus == FocusTempDown) {
-                        m->focus = FocusSwing;
-                    } else if(m->focus == FocusTempUp) {
-                        m->focus = FocusTurbo;
-                    } else if(m->focus == FocusSwing) {
-                        m->focus = FocusFresh;
-                    } else if(m->focus == FocusTurbo) {
-                        m->focus = FocusLed;
-                    } else if(m->focus == FocusFresh) {
-                        m->focus = FocusClean;
-                    } else if(m->focus == FocusLed) {
-                        m->focus = FocusTimer;
-                    } else if(m->focus == FocusClean || m->focus == FocusTimer) {
-                        m->focus = FocusSetup;
-                    }
-                    // Setup is at bottom, do nothing
-                    consumed = true;
-                    break;
-
-                case InputKeyOk:
-                    if(event->type != InputTypeShort) {
+                if(m->picker_kind != HtwPickerNone) {
+                    // Dropdown picker is open: Up/Down browse, Ok confirms & sends, Back cancels
+                    switch(event->key) {
+                    case InputKeyUp:
+                        if(m->picker_index > 0) {
+                            m->picker_index--;
+                        }
+                        consumed = true;
+                        break;
+                    case InputKeyDown:
+                        if(m->picker_index + 1 < picker_item_count(m->picker_kind)) {
+                            m->picker_index++;
+                        }
+                        consumed = true;
+                        break;
+                    case InputKeyOk:
+                        if(event->type == InputTypeShort) {
+                            if(m->picker_kind == HtwPickerMode) {
+                                htw_state_set_mode(m->state, (HtwMode)m->picker_index);
+                            } else {
+                                htw_state_set_fan(m->state, (HtwFan)m->picker_index);
+                            }
+                            m->picker_kind = HtwPickerNone;
+                            send_state_immediate(view);
+                        }
+                        consumed = true;
+                        break;
+                    case InputKeyBack:
+                        if(event->type == InputTypeShort) {
+                            m->picker_kind = HtwPickerNone;
+                        }
+                        consumed = true;
+                        break;
+                    default:
                         consumed = true;
                         break;
                     }
-                    switch(m->focus) {
-                    case FocusMode:
-                        htw_state_mode_next(m->state);
-                        schedule_state_send(view);
-                        break;
-                    case FocusFan:
-                        if(htw_state_can_change_fan(m->state)) {
-                            htw_state_fan_next(m->state);
-                            schedule_state_send(view);
+                } else {
+                    switch(event->key) {
+                    case InputKeyLeft:
+                        // Navigation only
+                        if(m->focus == FocusFan) {
+                            m->focus = FocusMode;
+                        } else if(m->focus == FocusTempUp) {
+                            m->focus = FocusTempDown;
+                        } else if(m->focus == FocusTurbo) {
+                            m->focus = FocusSwing;
+                        } else if(m->focus == FocusLed) {
+                            m->focus = FocusFresh;
+                        } else if(m->focus == FocusTimer) {
+                            m->focus = FocusClean;
                         }
+                        consumed = true;
                         break;
-                    case FocusTempDown:
-                        if(htw_state_can_change_temp(m->state)) {
-                            htw_state_temp_down(m->state);
-                            schedule_state_send(view);
+
+                    case InputKeyRight:
+                        // Navigation only
+                        if(m->focus == FocusMode) {
+                            m->focus = FocusFan;
+                        } else if(m->focus == FocusTempDown) {
+                            m->focus = FocusTempUp;
+                        } else if(m->focus == FocusSwing) {
+                            m->focus = FocusTurbo;
+                        } else if(m->focus == FocusFresh) {
+                            m->focus = FocusLed;
+                        } else if(m->focus == FocusClean) {
+                            m->focus = FocusTimer;
                         }
+                        consumed = true;
                         break;
-                    case FocusTempUp:
-                        if(htw_state_can_change_temp(m->state)) {
-                            htw_state_temp_up(m->state);
-                            schedule_state_send(view);
+
+                    case InputKeyUp:
+                        // Preserve column position when navigating up
+                        if(m->focus == FocusMode || m->focus == FocusFan) {
+                            // Already at top, do nothing
+                        } else if(m->focus == FocusTempDown) {
+                            m->focus = FocusMode;
+                        } else if(m->focus == FocusTempUp) {
+                            m->focus = FocusFan;
+                        } else if(m->focus == FocusSwing) {
+                            m->focus = FocusTempDown;
+                        } else if(m->focus == FocusTurbo) {
+                            m->focus = FocusTempUp;
+                        } else if(m->focus == FocusFresh) {
+                            m->focus = FocusSwing;
+                        } else if(m->focus == FocusLed) {
+                            m->focus = FocusTurbo;
+                        } else if(m->focus == FocusClean) {
+                            m->focus = FocusFresh;
+                        } else if(m->focus == FocusTimer) {
+                            m->focus = FocusLed;
+                        } else if(m->focus == FocusSetup) {
+                            m->focus = FocusClean;
                         }
+                        consumed = true;
                         break;
-                    case FocusSwing:
-                        htw_state_toggle(m->state, HtwToggleSwing);
-                        send_toggle_immediate(view, HtwToggleSwing);
-                        break;
-                    case FocusTurbo:
-                        htw_state_toggle(m->state, HtwToggleTurbo);
-                        send_toggle_immediate(view, HtwToggleTurbo);
-                        break;
-                    case FocusFresh:
-                        htw_state_toggle(m->state, HtwToggleFresh);
-                        send_toggle_immediate(view, HtwToggleFresh);
-                        break;
-                    case FocusLed:
-                        htw_state_toggle(m->state, HtwToggleLed);
-                        send_toggle_immediate(view, HtwToggleLed);
-                        break;
-                    case FocusClean:
-                        htw_state_toggle(m->state, HtwToggleClean);
-                        send_toggle_immediate(view, HtwToggleClean);
-                        break;
-                    case FocusTimer:
-                        if(view->timer_callback) {
-                            view->timer_callback(view->timer_context);
+
+                    case InputKeyDown:
+                        // Preserve column position when navigating down
+                        if(m->focus == FocusMode) {
+                            m->focus = FocusTempDown;
+                        } else if(m->focus == FocusFan) {
+                            m->focus = FocusTempUp;
+                        } else if(m->focus == FocusTempDown) {
+                            m->focus = FocusSwing;
+                        } else if(m->focus == FocusTempUp) {
+                            m->focus = FocusTurbo;
+                        } else if(m->focus == FocusSwing) {
+                            m->focus = FocusFresh;
+                        } else if(m->focus == FocusTurbo) {
+                            m->focus = FocusLed;
+                        } else if(m->focus == FocusFresh) {
+                            m->focus = FocusClean;
+                        } else if(m->focus == FocusLed) {
+                            m->focus = FocusTimer;
+                        } else if(m->focus == FocusClean || m->focus == FocusTimer) {
+                            m->focus = FocusSetup;
                         }
+                        // Setup is at bottom, do nothing
+                        consumed = true;
                         break;
-                    case FocusSetup:
-                        if(view->setup_callback) {
-                            view->setup_callback(view->setup_context);
+
+                    case InputKeyOk:
+                        if(event->type != InputTypeShort) {
+                            consumed = true;
+                            break;
                         }
+                        switch(m->focus) {
+                        case FocusMode:
+                            m->picker_kind = HtwPickerMode;
+                            m->picker_index = (uint8_t)m->state->mode;
+                            break;
+                        case FocusFan:
+                            if(htw_state_can_change_fan(m->state)) {
+                                m->picker_kind = HtwPickerFan;
+                                m->picker_index = (uint8_t)m->state->fan;
+                            }
+                            break;
+                        case FocusTempDown:
+                            if(htw_state_can_change_temp(m->state)) {
+                                htw_state_temp_down(m->state);
+                                schedule_state_send(view);
+                            }
+                            break;
+                        case FocusTempUp:
+                            if(htw_state_can_change_temp(m->state)) {
+                                htw_state_temp_up(m->state);
+                                schedule_state_send(view);
+                            }
+                            break;
+                        case FocusSwing:
+                            htw_state_toggle(m->state, HtwToggleSwing);
+                            send_toggle_immediate(view, HtwToggleSwing);
+                            break;
+                        case FocusTurbo:
+                            htw_state_toggle(m->state, HtwToggleTurbo);
+                            send_toggle_immediate(view, HtwToggleTurbo);
+                            break;
+                        case FocusFresh:
+                            htw_state_toggle(m->state, HtwToggleFresh);
+                            send_toggle_immediate(view, HtwToggleFresh);
+                            break;
+                        case FocusLed:
+                            htw_state_toggle(m->state, HtwToggleLed);
+                            send_toggle_immediate(view, HtwToggleLed);
+                            break;
+                        case FocusClean:
+                            htw_state_toggle(m->state, HtwToggleClean);
+                            send_toggle_immediate(view, HtwToggleClean);
+                            break;
+                        case FocusTimer:
+                            if(view->timer_callback) {
+                                view->timer_callback(view->timer_context);
+                            }
+                            break;
+                        case FocusSetup:
+                            if(view->setup_callback) {
+                                view->setup_callback(view->setup_context);
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                        consumed = true;
                         break;
+
                     default:
                         break;
                     }
-                    consumed = true;
-                    break;
-
-                default:
-                    break;
                 }
             }
         },
@@ -489,6 +610,8 @@ HtwMainView* htw_main_view_alloc(void) {
             m->last_was_toggle = false;
             m->last_toggle = HtwTogglePowerOff;
             m->state_pending = false;
+            m->picker_kind = HtwPickerNone;
+            m->picker_index = 0;
         },
         true);
 
