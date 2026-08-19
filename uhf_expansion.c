@@ -62,6 +62,7 @@
 #define UHF_INV_RENEW_SETTLE_MS       10U
 #define UHF_READER_QUERY_TIMEOUT_MS   150U
 #define UHF_TEMP_REFRESH_MS         60000U
+#define UHF_TEMP_DISPLAY_OFFSET_C     (-20)
 #define UHF_LIST_VISIBLE_ROWS        5U
 #define UHF_ABOUT_VISIBLE_LINES      5U
 
@@ -168,7 +169,7 @@ typedef struct {
     uint32_t last_temperature_query_tick;
     uint8_t radar_sweep_phase;
     uint8_t radar_trail_depth;
-    /* Internal reader/RF operating temperature from command 0x7B, not ambient. */
+    /* Calibrated reader temperature; raw 0x7B values remain available in logs. */
     int16_t reader_temperature_c;
     uint8_t reader_power_dbm;
     bool temperature_valid;
@@ -1902,15 +1903,25 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
             data_len >= 2U ? data[1] : 0U,
             checksum_acc == 0U ? "ok" : "bad");
         if(checksum_acc == 0U && data_len >= 2U && data[0] <= 1U) {
-            int16_t temperature = (int16_t)data[1];
-            if(data[0] == 0U) temperature = -temperature;
+            int16_t raw_temperature = (int16_t)data[1];
+            if(data[0] == 0U) raw_temperature = -raw_temperature;
+            const int16_t display_temperature =
+                raw_temperature + UHF_TEMP_DISPLAY_OFFSET_C;
             if(uhf_data_lock(app, 10)) {
-                app->reader_temperature_c = temperature;
+                app->reader_temperature_c = display_temperature;
                 app->temperature_valid = true;
                 uhf_data_unlock(app);
             }
-            uhf_diag_log(app, "Temperature=%dC", (int)temperature);
-            FURI_LOG_I(TAG, "Reader temperature: %d C", (int)temperature);
+            uhf_diag_log(
+                app,
+                "Temperature raw=%dC display=%dC",
+                (int)raw_temperature,
+                (int)display_temperature);
+            FURI_LOG_I(
+                TAG,
+                "Reader temperature: raw=%d C display=%d C",
+                (int)raw_temperature,
+                (int)display_temperature);
         } else {
             uhf_diag_log(app, "Temperature query failed");
             FURI_LOG_W(TAG, "Reader temperature query failed");
