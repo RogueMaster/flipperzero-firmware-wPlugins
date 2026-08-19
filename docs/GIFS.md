@@ -60,6 +60,32 @@ longest, ~1.5 s).
 - **Draw a Monster** is easiest with exactly 3 players (3 sheets to fill). Everyone
   tapping **Next** advances the round early, so you control the pace. Best arc: blank
   head canvas → head → the sliver handoff → the assembled creature in the gallery.
+- **Secrets** needs a pack vote before it will start. The reveal is only
+  `SECRETS_REVEAL_MS` (5 s) and the answer/predict windows are 30 s safety timers, so
+  drive answer → predict → reveal in one uninterrupted pass; stop to read a file in
+  between and the round times out with everyone defaulted to "no". Step the prediction
+  with `#sec-plus` / read `#sec-num` — a lookup by the button's "+" text finds the wrong
+  element. Best arc: lobby pack vote → the yes/no question → the stepper → the reveal
+  with the histogram of who guessed what.
+- **Reaction Duel** is the one game whose payoff frame is hard to catch, because green
+  lasts 6 s at most and the round settles the moment every player has tapped. Trick:
+  when green lands, tap from every phone EXCEPT the one you are screenshotting. A winner
+  now exists, so the no-winner timeout never fires, and the round cannot settle until
+  your phone taps — the green pad holds indefinitely. Tap it yourself afterwards. For a
+  believable reaction time in the reveal, script the taps in-page (a CLI round trip puts
+  seconds on the clock) and burst-screenshot across a whole session to catch one.
+- **The 1v1 board duels** (Connect Four, Tic-Tac-Toe, Dots & Boxes) start with
+  `{t:"challenge",to:pid}` then `{t:"accept",from:pid}`, and moves are `{t:"move",n}`.
+  The win screen REPLACES the board with WIN/REMATCH, so there is no frame showing the
+  winning line — let the last board frame carry the near-win and hold the WIN screen
+  after it.
+- **Dots & Boxes** edges: `0..29` horizontal (`r*5+c`, r 0-5), `30..59` vertical
+  (`30 + r*6+c`, r 0-4). Sending the same edge from BOTH duellists needs no turn
+  tracking: the engine ignores the player whose turn it isn't, and an already-drawn edge
+  is a no-op.
+- **Word Scramble** needs a pack vote too. The input is `#scr-input` and the intent is
+  `{t:"guess",text:"WORD"}`. Best arc: the jumbled letters → the word typed in → the
+  ANSWER reveal.
 
 ## Assemble
 

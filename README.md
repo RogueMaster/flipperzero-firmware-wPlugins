@@ -112,20 +112,20 @@ so adding a game is mostly a small module on each side.
 Pick a nickname and an emoji avatar, then land in the lobby:
 
 <p align="center">
-  <img src="docs/img/web-landing.png" alt="Landing screen: nickname entry and emoji avatar picker" width="19%">
-  <img src="docs/img/web-trivia-lobby.png" alt="Trivia lobby: ready up and vote a topic with live tallies" width="19%">
-  <img src="docs/img/web-trivia.png" alt="Trivia question with A/B/C/D tiles and a collapsible leaderboard" width="19%">
-  <img src="docs/img/web-trivia-reveal.png" alt="Trivia reveal: correct answer, per-option counts, live leaderboard" width="19%">
-  <img src="docs/img/web-trivia-final.png" alt="Trivia final podium" width="19%">
+  <img src="docs/img/web-landing.png" alt="Landing screen: nickname entry and emoji avatar picker" width="30%">
+  <img src="docs/img/web-trivia.gif" alt="Trivia: vote a topic in the lobby, answer A/B/C/D, then the reveal marks the correct answer with per-option counts and your points" width="30%">
+  <img src="docs/img/web-trivia-final.png" alt="Trivia final podium" width="30%">
 </p>
 
 The other phone games — the shared-lobby party games (Would You Rather, Word Scramble,
-Reaction Duel, Guess the Color), Draw &amp; Guess, and a real-time Pong (animated below):
+Reaction Duel, Secrets, Guess the Color, Spectrum, Kiss Marry Kill), Draw &amp; Guess, and a
+real-time Pong (animated below):
 
 <p align="center">
   <img src="docs/img/web-wyr.gif" alt="Would You Rather: A/B poll with the live vote split" width="19%">
-  <img src="docs/img/web-scramble.png" alt="Word Scramble: unscramble the letters and type the word" width="19%">
-  <img src="docs/img/web-react.png" alt="Reaction Duel: fastest finger with reaction time and leaderboard" width="19%">
+  <img src="docs/img/web-scramble.gif" alt="Word Scramble: six jumbled letters, type the word, then the answer is revealed" width="19%">
+  <img src="docs/img/web-react.gif" alt="Reaction Duel: wait on the red pad, tap the instant it turns green, then your reaction time" width="19%">
+  <img src="docs/img/web-secrets.gif" alt="Secrets: answer a yes/no question in private, guess how many of the group said yes, then only the total is revealed" width="19%">
 </p>
 <p align="center">
   <img src="docs/img/web-guesscolor.gif" alt="Guess the Color: dial in the swatch's RGB with a slider per channel, then the reveal" width="19%">
@@ -147,9 +147,9 @@ The social-deduction and party batch (Fill the Blank, Werewolf, Spyfall, Draw a 
 The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi, Battleship, Chess):
 
 <p align="center">
-  <img src="docs/img/web-connect4.png" alt="Connect Four: 7x6 board mid-game, your turn" width="19%">
-  <img src="docs/img/web-ttt.png" alt="Tic-Tac-Toe: 3x3 duel, your turn" width="19%">
-  <img src="docs/img/web-dots.png" alt="Dots &amp; Boxes: claimed boxes and live score" width="19%">
+  <img src="docs/img/web-connect4.gif" alt="Connect Four: challenge a player, then drop discs down the 7x6 board until four line up" width="19%">
+  <img src="docs/img/web-ttt.gif" alt="Tic-Tac-Toe: a 3x3 duel played out to a winning row" width="19%">
+  <img src="docs/img/web-dots.gif" alt="Dots &amp; Boxes: join dots edge by edge, closing a box claims it, with a live score per player" width="19%">
   <img src="docs/img/web-reversi.gif" alt="Reversi/Othello: 8x8 board with legal-move hints and disc counts" width="19%">
   <img src="docs/img/web-battleship.gif" alt="Battleship: place a fleet, then fire at the enemy grid with hits, misses, and sinks" width="19%">
   <img src="docs/img/web-chess.gif" alt="Chess: full FIDE rules with legal-move hints, blitz clocks, and a checkmate finish" width="19%">
