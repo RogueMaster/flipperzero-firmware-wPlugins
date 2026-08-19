@@ -99,6 +99,16 @@ static void draw_selector_button(
     canvas_set_color(canvas, ColorBlack);
 }
 
+// Helper: Draw a +/- icon with uniform stroke weight, centered in a box
+static void draw_temp_icon(Canvas* canvas, int16_t box_x, int16_t box_y, bool plus) {
+    int16_t cx = box_x + 7;
+    int16_t cy = box_y + 7;
+    canvas_draw_box(canvas, cx - 4, cy - 1, 8, 2);
+    if(plus) {
+        canvas_draw_box(canvas, cx - 1, cy - 4, 2, 8);
+    }
+}
+
 // Helper: Draw temperature with +/- buttons
 static void draw_temperature(
     Canvas* canvas,
@@ -124,8 +134,7 @@ static void draw_temperature(
     } else {
         canvas_draw_rframe(canvas, 2, btn_y, 14, 14, 2);
     }
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 6, btn_y + 11, "-");
+    draw_temp_icon(canvas, 2, btn_y, false);
     canvas_set_color(canvas, ColorBlack);
 
     // Plus button (right)
@@ -135,7 +144,7 @@ static void draw_temperature(
     } else {
         canvas_draw_rframe(canvas, 48, btn_y, 14, 14, 2);
     }
-    canvas_draw_str(canvas, 51, btn_y + 11, "+");
+    draw_temp_icon(canvas, 48, btn_y, true);
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -274,35 +283,35 @@ static void htw_main_view_draw(Canvas* canvas, void* model) {
         canvas, 1, 0, 30, "Mode", htw_ir_get_mode_name(m->state->mode), m->focus == FocusMode);
     draw_selector_button(canvas, 33, 0, 30, "Fan", fan_value, m->focus == FocusFan);
 
-    // Row 2: Temperature (y=26)
+    // Row 2: Temperature (y=28)
     bool can_temp = htw_state_can_change_temp(m->state);
     if(m->state->mode == HtwModeFan || m->state->mode == HtwModeOff) {
         canvas_set_font(canvas, FontBigNumbers);
-        canvas_draw_str_aligned(canvas, 32, 26, AlignCenter, AlignTop, "--");
+        canvas_draw_str_aligned(canvas, 32, 28, AlignCenter, AlignTop, "--");
     } else {
         draw_temperature(
             canvas,
-            26,
+            28,
             m->state->temp,
             m->focus == FocusTempDown,
             m->focus == FocusTempUp,
             can_temp);
     }
 
-    // Row 3: Toggle buttons - Swing, Turbo (y=46)
-    draw_toggle_btn(canvas, 2, 46, "Swing", m->focus == FocusSwing);
-    draw_toggle_btn(canvas, 34, 46, "Turbo", m->focus == FocusTurbo);
+    // Row 3: Toggle buttons - Swing, Turbo (y=49)
+    draw_toggle_btn(canvas, 2, 49, "Swing", m->focus == FocusSwing);
+    draw_toggle_btn(canvas, 34, 49, "Turbo", m->focus == FocusTurbo);
 
-    // Row 4: Toggle buttons - Fresh, LED (y=60)
-    draw_toggle_btn(canvas, 2, 60, "Fresh", m->focus == FocusFresh);
-    draw_toggle_btn(canvas, 34, 60, "LED", m->focus == FocusLed);
+    // Row 4: Toggle buttons - Fresh, LED (y=64)
+    draw_toggle_btn(canvas, 2, 64, "Fresh", m->focus == FocusFresh);
+    draw_toggle_btn(canvas, 34, 64, "LED", m->focus == FocusLed);
 
-    // Row 5: Clean and Timer buttons (y=74)
-    draw_toggle_btn(canvas, 2, 74, "Clean", m->focus == FocusClean);
-    draw_menu_btn_at(canvas, 34, 74, "Timer", m->focus == FocusTimer);
+    // Row 5: Clean and Timer buttons (y=79)
+    draw_toggle_btn(canvas, 2, 79, "Clean", m->focus == FocusClean);
+    draw_menu_btn_at(canvas, 34, 79, "Timer", m->focus == FocusTimer);
 
-    // Row 6: Setup button (y=88)
-    draw_menu_btn(canvas, 88, "Setup", m->focus == FocusSetup);
+    // Row 6: Setup button (y=94)
+    draw_menu_btn(canvas, 94, "Setup", m->focus == FocusSetup);
 
     // Row 7: HTW logo at bottom (y=116)
     draw_logo(canvas, 116, m->is_sending, m->send_anim_frame);
