@@ -14,11 +14,13 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 
 ## Screenshots
 
-| Inventory | Tag List |
+| Radar | About |
 |:--:|:--:|
-| ![Inventory screen](images/01.png) | ![Tag list screen](images/02.png) |
-| **Tag Details** | **Menu** |
-| ![Tag details screen](images/03.png) | ![Menu screen](images/04.png) |
+| ![Radar screen](images/01.png) | ![About screen](images/05.png) |
+| **Settings menu** | **Tag counter** |
+| ![Settings menu](images/04.png) | ![Tag counter screen](images/03.png) |
+| **Tag list** | |
+| ![Tag list screen](images/02.png) | |
 
 ## Hardware Setup
 
@@ -86,10 +88,17 @@ The module communicates using a binary protocol over UART (115200 baud, 8N1):
 
 - **Frame start:** `0xA0`
 - **Get version:** `0x72`
+- **Get output power:** `0x77`
+- **Get reader temperature:** `0x7B`
 - **Start inventory:** `0x89` / `0x8A`
 - **Stop inventory:** `0x8C`
 
 Tag responses include EPC (Electronic Product Code), RSSI, and PC bits.
+
+## Responsible Use
+
+Use this application only with RFID tags and systems you own or are authorized
+to test. Follow local radio, privacy, and data-protection requirements.
 
 ## License
 
