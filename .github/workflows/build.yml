@@ -17,6 +17,9 @@ jobs:
       - name: Run host tests
         run: make -C test
 
+      - name: Check view layouts for overlapping draws
+        run: python3 tools_check_layout.py --max 15
+
   build:
     needs: test
     runs-on: ubuntu-latest

@@ -225,18 +225,25 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     canvas_draw_line(canvas, 0, 52, 127, 52);
     if(m->calibrating) {
         /* Learning the room's own noise floor, right where you are standing. */
-        canvas_draw_str(canvas, 2, 59, "NOISE FLOOR");
-        canvas_draw_str_aligned(canvas, 126, 59, AlignRight, AlignBottom, "OK=cancel");
-        canvas_draw_frame(canvas, 0, 60, 128, 4);
-        uint32_t fill = ((uint32_t)m->calib_progress * 126u) / 100u;
-        if(fill) canvas_draw_box(canvas, 1, 61, (int)fill, 2);
+        /* FontSecondary occupies rows [baseline-7 .. baseline], so a baseline of
+         * 59 put the glyph tops on row 52 - straight through the divider above.
+         * 60 clears it, and the progress bar drops to a plain 2px fill hugging
+         * the bottom edge rather than a framed box that would then clip the
+         * text from below. */
+        canvas_draw_str(canvas, 2, 60, "NOISE FLOOR");
+        canvas_draw_str_aligned(canvas, 126, 60, AlignRight, AlignBottom, "OK=cancel");
+        uint32_t fill = ((uint32_t)m->calib_progress * 128u) / 100u;
+        if(fill) canvas_draw_box(canvas, 0, 62, (int)fill, 2);
     } else if(m->present) {
         canvas_draw_box(canvas, 0, 53, 128, 11);
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_disc(canvas, 4, 58, 1);
-        canvas_draw_str(canvas, 9, 62, "ACTIVE READER");
+        /* Baseline 61, not 62: the inner alarm frame below draws its bottom
+         * edge along row 62, which would erase the last pixel row of both of
+         * these strings. */
+        canvas_draw_str(canvas, 9, 61, "ACTIVE READER");
         canvas_draw_str_aligned(
-            canvas, 125, 62, AlignRight, AlignBottom, proximity_word(m->strength, m->saturated));
+            canvas, 125, 61, AlignRight, AlignBottom, proximity_word(m->strength, m->saturated));
         canvas_set_color(canvas, ColorBlack);
         /* alarm frame */
         canvas_draw_frame(canvas, 0, 0, 128, 64);

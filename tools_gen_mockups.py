@@ -6,6 +6,11 @@ by BASELINE (anchor "ls"/"rs"/"ms"), because canvas_draw_str() takes y as the
 baseline - drawing these any other way quietly hides real layout collisions.
 Layout constants below are copied from the C, so if a screen looks wrong here it
 looks wrong on the device too.
+
+CAVEAT: the desktop font used here is close to the device's FontSecondary but
+sits one pixel shorter, so it will NOT reveal a tight vertical collision - two
+of those shipped before anyone noticed. tools_check_layout.py is the authority
+on overlaps; this script is for how a screen reads, not whether it fits.
 """
 from PIL import Image, ImageDraw, ImageFont
 import math, os
@@ -208,17 +213,16 @@ def render_sweep(name, strength, peak, contacts, present, state, history,
     draw_readout(d, strength, peak, contacts, trend)
     line(d, 0, 52, 127, 52)
     if calibrating:
-        tb(d, 2, 59, "NOISE FLOOR", f_sec)
-        tb(d, 126, 59, "OK=cancel", f_sec, anchor="rs")
-        frame(d, 0, 60, 128, 4)
-        fill = (calib_pct * 126) // 100
+        tb(d, 2, 60, "NOISE FLOOR", f_sec)
+        tb(d, 126, 60, "OK=cancel", f_sec, anchor="rs")
+        fill = (calib_pct * 128) // 100
         if fill:
-            box(d, 1, 61, fill, 2)
+            box(d, 0, 62, fill, 2)
     elif present:
         box(d, 0, 53, 128, 11)
         disc(d, 4, 58, 1, BG)
-        tb(d, 9, 62, "ACTIVE READER", f_sec, BG)
-        tb(d, 125, 62, proximity_word(strength, saturated), f_sec, BG, anchor="rs")
+        tb(d, 9, 61, "ACTIVE READER", f_sec, BG)
+        tb(d, 125, 61, proximity_word(strength, saturated), f_sec, BG, anchor="rs")
         frame(d, 0, 0, 127, 63, FG, lw=2)
     else:
         # active sensitivity on the left, waveform filling the rest

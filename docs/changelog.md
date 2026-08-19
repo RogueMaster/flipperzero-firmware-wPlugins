@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6
+
+- **Fix: the divider line cut through the `NOISE FLOOR` text** during a noise-floor scan. `FontSecondary` occupies rows `[baseline-7 .. baseline]`, so a baseline of 59 put the glyph tops on row 52 — exactly where the strip divider is drawn. The text moved down a row and the progress bar became a plain fill along the bottom edge instead of a framed box that would then clip it from below.
+- **Fix: the `ACTIVE READER` alarm text had its bottom pixel row erased** by the inner alarm frame, whose bottom edge runs along row 62. Found by the new checker, not reported — it had been there since 1.0.
+- **New: `tools_check_layout.py`**, a static checker that reads the view sources and reports every drawing primitive whose vertical band overlaps another's. Two collisions had already reached users because nothing verified this and the mockup renderer's desktop font sits a pixel shorter than the device's, so it drew both as "fine". CI now pins the candidate count, so a new overlap fails the build.
+
 ## 2.5
 
 - **Fix: the app could lock out every button and force a Flipper reboot** (reported in [#1](https://github.com/at0m-b0mb/Specter-FlipperZero/issues/1), most easily triggered by pressing keys during a noise-floor scan). The sampling worker paced itself with `furi_delay_us()`, which the firmware documents as a DWT busy-loop — it never yields to the scheduler. The thread therefore held the CPU at 100% for the whole scan, starving the GUI and input services; once the view dispatcher stopped draining its input queue quickly enough, the GUI thread blocked posting into it and took the entire UI down with it. The worker now sleeps with `furi_delay_tick()` and runs at low priority, below the UI. This affected every version since 1.0.
