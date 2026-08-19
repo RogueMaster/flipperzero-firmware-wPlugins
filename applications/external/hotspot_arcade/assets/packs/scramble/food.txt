@@ -39,3 +39,27 @@ Word: nachos
 Word: pudding
 ---
 Word: cereal
+---
+Word: chocolate
+---
+Word: strawberry
+---
+Word: pineapple
+---
+Word: watermelon
+---
+Word: lasagna
+---
+Word: omelette
+---
+Word: croissant
+---
+Word: marmalade
+---
+Word: cinnamon
+---
+Word: blueberry
+---
+Word: cauliflower
+---
+Word: gingerbread

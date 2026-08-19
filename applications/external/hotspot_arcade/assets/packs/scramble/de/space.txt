@@ -39,3 +39,27 @@ Word: Universum
 Word: Umlaufbahn
 ---
 Word: Start
+---
+Word: Astronomie
+---
+Word: Raumanzug
+---
+Word: Supernova
+---
+Word: Sternbild
+---
+Word: Kosmonaut
+---
+Word: Raumschiff
+---
+Word: Meteorit
+---
+Word: Atmosphäre
+---
+Word: Ausstieg
+---
+Word: Startrampe
+---
+Word: Mondgestein
+---
+Word: Sternenlicht

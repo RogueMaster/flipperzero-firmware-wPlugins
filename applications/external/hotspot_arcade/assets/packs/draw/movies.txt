@@ -35,3 +35,31 @@ Word: dracula
 Word: kingkong
 ---
 Word: pikachu
+---
+Word: hulk
+---
+Word: wolverine
+---
+Word: groot
+---
+Word: r2d2
+---
+Word: stormtrooper
+---
+Word: hermione
+---
+Word: harry potter
+---
+Word: sonic
+---
+Word: kermit
+---
+Word: olaf
+---
+Word: buzz lightyear
+---
+Word: woody
+---
+Word: mickey mouse
+---
+Word: wednesday

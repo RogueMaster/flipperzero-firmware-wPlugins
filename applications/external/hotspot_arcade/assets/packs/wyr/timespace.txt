@@ -35,3 +35,39 @@ B: Discover a new species
 ---
 A: Know how the world ends
 B: Know how the world began
+---
+A: Watch the dinosaurs from safety
+B: Watch the first city being built
+---
+A: Send one message to your past self
+B: Get one from your future self
+---
+A: See Earth from orbit once
+B: Walk on another planet once
+---
+A: Know the day you'll be happiest
+B: Know the day you'll be proudest
+---
+A: A week in the year 1500
+B: A week in the year 2500
+---
+A: Live one day twice
+B: Skip one day forever
+---
+A: Meet your great-grandparents
+B: Meet your great-grandchildren
+---
+A: A map of every place
+B: A calendar of every event
+---
+A: Freeze one perfect afternoon
+B: Replay one perfect evening
+---
+A: Travel anywhere with no luggage
+B: Travel with everything, but only by train
+---
+A: Learn how the pyramids were built
+B: Learn what's at the bottom of the ocean
+---
+A: Speak to someone 1000 years ago
+B: Speak to someone 1000 years from now

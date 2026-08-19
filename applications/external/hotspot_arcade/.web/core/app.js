@@ -43,6 +43,23 @@ var GAME_LABEL = {
   fillblank: "Fill the Blank", werewolf: "Werewolf", spyfall: "Spyfall",
   frankendraw: "Draw a Monster",
 };
+/* The switcher and the vote box must say the same name the game's own screen
+   says, in the same language -- "Fill the Blank" in the menu opening a screen
+   titled "Lückenfüller" reads as two different games. Localize through the
+   games' own title keys; a game with no key (the classic duels are proper
+   names anyway) keeps its GAME_LABEL. */
+var GAME_TITLE_KEY = {
+  trivia: "trivia.title", draw: "draw.title", wyr: "wyr.title",
+  scramble: "scr.title", react: "rc.title", gc: "gc.title", bs: "bs.title",
+  spectrum: "sp.title", kmk: "kmk.title", chess: "chess.title",
+  secrets: "secrets.title", fillblank: "fb.title", werewolf: "werewolf.title",
+  spyfall: "sf.title", frankendraw: "fd.title",
+};
+function gameLabel(name) {
+  var k = GAME_TITLE_KEY[name];
+  if (k) { var v = t(k); if (v && v !== k) return v; }
+  return GAME_LABEL[name] || name;
+}
 
 /* Show exactly one top-level screen. */
 function screen(name) {
@@ -279,11 +296,33 @@ A.packVote = function (cfg) {
 };
 
 // Countdown number with a per-second tick + pop animation.
+// The host pushes one frame per second of the countdown, and a phone that misses
+// them shows no digits at all -- it sits on the lobby and then jumps straight to
+// the round, because the next frame it receives is already the round. Three
+// seconds is a narrow window to be sure of three deliveries over a dozing radio.
+// So a frame starts a local tick instead of only painting once: whatever arrives
+// resyncs the number, and what is lost costs nothing. No extra traffic either
+// way, and the countdown stops on its own when the number runs out or the screen
+// it lives on goes away.
 A.countdown = function (numId, sec) {
   var n = $(numId);
-  n.textContent = sec;
-  A.sfx("tick"); A.vibe(10);
-  if (!noMotionPref()) { n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop"); }
+  if (A._cdTimer) { clearInterval(A._cdTimer); A._cdTimer = null; }
+  var cur = sec;
+  var paint = function () {
+    n.textContent = cur;
+    A.sfx("tick"); A.vibe(10);
+    if (!noMotionPref()) { n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop"); }
+  };
+  paint();
+  A._cdTimer = setInterval(function () {
+    // offsetParent is null once the countdown screen is hidden: the round started
+    // (or the game changed) and this tick has nothing left to say.
+    if (--cur < 1 || n.offsetParent === null) {
+      clearInterval(A._cdTimer); A._cdTimer = null;
+      return;
+    }
+    paint();
+  }, 1000);
 };
 
 // Final podium (avatar + rank + score). Returns the ranked list so the caller
@@ -649,7 +688,7 @@ function onLobby(m) {
   var gs = $("lobby-game-label");
   gs.textContent = g === "none"
     ? t("lobby.pick")
-    : (GAME_LABEL[g] || g) + " starting...";
+    : gameLabel(g) + " starting...";
 
   // If the host went back to the plain lobby, leave any game screen. Otherwise show
   // the shell of the chosen game; the game message fills in details. Route in whenever
@@ -879,7 +918,7 @@ function openGameMenu() {
   list.innerHTML = "";
   Object.keys(GAME_LABEL).forEach(function (name) {
     if (name === A.curGame) return;   // the active game isn't a switch target
-    list.appendChild(gameMenuItem(name, GAME_LABEL[name]));
+    list.appendChild(gameMenuItem(name, gameLabel(name)));
   });
   // Leaving the current game is a change like any other, so it votes too. Nothing to
   // propose when we're already in the plain lobby -- the engine would refuse it.
@@ -896,7 +935,7 @@ function closeGameMenu() { hide("game-overlay"); }
 // The pretty label for a proposal target, including "none" (= the lobby).
 function gameVoteLabel(m) {
   if (m.game === "none") return t("gamevote.lobby_label");
-  return GAME_LABEL[m.label] || GAME_LABEL[m.game] || m.game;
+  return gameLabel(m.label !== undefined && GAME_LABEL[m.label] ? m.label : m.game);
 }
 
 A.gamevoteOpen = false;

@@ -46,3 +46,19 @@ Name: Gordon Ramsay
 Name: Dua Lipa
 ---
 Name: Lionel Messi
+---
+Name: Emma Stone
+---
+Name: Harry Styles
+---
+Name: Selena Gomez
+---
+Name: Chris Hemsworth
+---
+Name: Millie Bobby Brown
+---
+Name: Shakira
+---
+Name: Roger Federer
+---
+Name: Michelle Obama

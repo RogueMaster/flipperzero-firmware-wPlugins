@@ -39,3 +39,27 @@ Word: Nachos
 Word: Pudding
 ---
 Word: Müsli
+---
+Word: Schokolade
+---
+Word: Erdbeere
+---
+Word: Ananas
+---
+Word: Wassermelone
+---
+Word: Lasagne
+---
+Word: Omelett
+---
+Word: Croissant
+---
+Word: Marmelade
+---
+Word: Zimt
+---
+Word: Blaubeere
+---
+Word: Blumenkohl
+---
+Word: Lebkuchen

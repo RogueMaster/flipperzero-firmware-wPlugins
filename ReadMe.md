@@ -120,8 +120,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - Added: [Meshcore Config v0.1 (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/tree/main)
 - Updated: [Tesla Mod v2.16b26 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [Hotspot Arcade v1.8.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
-- [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 - Updated: [PocketLab v1.6 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab) (Version Only)
 - Updated: [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader)
 - NFC: [Native MIFARE Ultralight AES (MF0AES20) support - read via AES 3-pass auth + dictionary/manual unlock, write-back (Keep/Copy Key), emulation, and secure messaging (CMAC) end to end, plus the 3 one-way counters, config decoding, originality signature and Random ID real-UID retrieval; hardware-validated on a real MF0AES20 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1058)
@@ -158,6 +156,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Archive: [Fix wrong cursor when opening dirs with more than 220 files (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/757cca0279bf2cbb711c56d69e8c86b2b17662d2)
 - NFC: [Ultralight AES - closed the remaining card-lock (AUTHLIM) paths (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1082)
 - Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- Updated: [Hotspot Arcade v1.8.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
+- [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 
 <a name="release"></a>
 
