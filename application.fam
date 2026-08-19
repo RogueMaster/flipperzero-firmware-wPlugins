@@ -5,7 +5,7 @@ App(
     entry_point="maze3d_app",
     stack_size=12 * 1024,
     icon="maze3d.png",
-    fap_version="6.11",
+    fap_version="6.12",
     fap_category="Games",
     fap_description="3D raycasting maze with MC sandbox, score shop, 10 items, buff system, bilingual",
     fap_author="k20120509",

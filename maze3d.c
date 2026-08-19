@@ -19,7 +19,8 @@ typedef enum {
     M_SETTINGS = 3,
     M_MC = 4, // MC 沙盒模式 (Beta)
     M_SHOP = 5, // v6.11: 积分商城 (主菜单入口)
-    M_COUNT = 6,
+    M_RAP = 6, // v6.12-beta: RAP 单键挑战 (OK 循环转/走/看)
+    M_COUNT = 7,
 } MenuItem;
 
 #define MENU_VISIBLE 5 // 菜单可见行数 (选中项永远在中间第3行, 即 MENU_SEL_IDX=2)
@@ -1463,14 +1464,16 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         // 菜单分隔线
         canvas_draw_line(canvas, 0, 16, 127, 16);
 
-        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游  4.设置  5.MC模式(Beta)  6.积分商城
-        const uint8_t* zh_items[M_COUNT] = {m1_bits, m2_bits, m3_bits, m4_bits, m5_bits, NULL};
+        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游  4.设置  5.MC模式(Beta)  6.积分商城  7.RAP单键挑战
+        const uint8_t* zh_items[M_COUNT] = {
+            m1_bits, m2_bits, m3_bits, m4_bits, m5_bits, NULL, NULL};
         const char* en_items[M_COUNT] = {
-            EN_M1, EN_M2, EN_M3, "4. Settings", "5. MC Beta", "6. Shop"};
-        const int ws[M_COUNT] = {M1_W, M2_W, M3_W, M4_W, M5_W, 0};
-        const int hs[M_COUNT] = {M1_H, M2_H, M3_H, M4_H, M5_H, 0};
-        // v6.11: 商城项无 XBM 位图, 中英文都用文字显示
-        const char* zh_text_items[M_COUNT] = {NULL, NULL, NULL, NULL, NULL, "6. 商城"};
+            EN_M1, EN_M2, EN_M3, "4. Settings", "5. MC Beta", "6. Shop", "7. RAP OneKey"};
+        const int ws[M_COUNT] = {M1_W, M2_W, M3_W, M4_W, M5_W, 0, 0};
+        const int hs[M_COUNT] = {M1_H, M2_H, M3_H, M4_H, M5_H, 0, 0};
+        // v6.11: 商城/RAP项无 XBM 位图, 中英文都用文字显示
+        const char* zh_text_items[M_COUNT] = {
+            NULL, NULL, NULL, NULL, NULL, "6. 商城", "7. RAP单键"};
         // ---- 真正居中: 选中项永远在可见区正中央, 列表围绕它滚动 ----
         int y_top = 17, y_bot = 51;
         int row_h = MENU_ROW_H;
@@ -1992,8 +1995,16 @@ static void input_callback(InputEvent* ev, void* ctx) {
 static void handle_overlay_input(InputKey key) {
     if(g.mode == MODE_LEVEL_CLEAR) {
         if(key == InputKeyOk) {
-            game_next_level();
+            // v6.12-beta: RAP 模式 rap_active=true 时, 通关后直接下一层(不同迷宫递增)
+            if(g.rap_active) {
+                g.endless_floor++;
+                g.level = g.endless_floor;
+                game_init_rap();
+            } else {
+                game_next_level();
+            }
         } else if(key == InputKeyBack) {
+            g.rap_active = false; // 离开 RAP 流程(回菜单)时清除标记
             g.mode = MODE_MENU;
         } else if(key == InputKeyLeft) {
             g.mode = MODE_SHOP;
@@ -2043,11 +2054,15 @@ static void handle_overlay_input(InputKey key) {
     } else if(g.mode == MODE_GAME_OVER) {
         GameMode old = s_resume_mode;
         if(key == InputKeyOk) {
-            if(old == MODE_CAMPAIGN)
+            // v6.12-beta: RAP 模式死亡后直接重启 RAP
+            if(g.rap_active) {
+                game_init_rap();
+            } else if(old == MODE_CAMPAIGN)
                 game_init_campaign(g.level);
             else
                 game_init_endless(g.endless_floor, (old == MODE_ENDLESS_VISITOR));
         } else if(key == InputKeyBack) {
+            g.rap_active = false;
             g.mode = MODE_MENU;
         }
     } else if(g.mode == MODE_PAUSED) {
@@ -2278,6 +2293,9 @@ int32_t maze3d_app(void* p) {
                             g.shop_sel = 0;
                             g.shop_page = 0;
                             g.shop_page_sel = 0;
+                        } else if(s_sel == M_RAP) {
+                            // v6.12-beta: RAP 单键挑战 — 一键启动, rap_active=true
+                            game_init_rap();
                         }
                     } else if(key == InputKeyBack) {
                         running = false;
@@ -2379,6 +2397,94 @@ int32_t maze3d_app(void* p) {
                     game_handle_input(key, type);
                 }
                 did_input = true;
+            } else if(g.mode == MODE_RAP) {
+                // v6.12-beta: RAP 单键挑战 — 只按 OK 就能玩!
+                //   OK 短按: 循环执行 4 个动作 (转/走/看/冲), 每次带视角动画
+                //   动作顺序: 0=右转+扫视左  1=前进+抬头  2=左转+扫视右  3=冲刺+低头
+                //   Back 短按 = 暂停, Back 长按×3 = 退出 (Beta 保护)
+                //   上下左右 = 自由微调视角 (可选, 不打断节奏)
+                if(key == InputKeyBack) {
+                    if(type == InputTypeLong) {
+                        if(g.exit_long_ttl > 0 && g.exit_long_cnt < 3) {
+                            g.exit_long_cnt++;
+                        } else {
+                            g.exit_long_cnt = 1;
+                        }
+                        g.exit_long_ttl = 90;
+                        sfx_play(SFX_LOCKED);
+                        if(g.exit_long_cnt >= 3) {
+                            g.exit_long_cnt = 0;
+                            g.exit_long_ttl = 0;
+                            g.rap_active = false;
+                            running = false;
+                            sfx_stop_all();
+                        }
+                    } else if(type == InputTypeShort) {
+                        s_resume_mode = g.mode;
+                        g.mode = MODE_PAUSED;
+                        sfx_play(SFX_MENU_OK);
+                    }
+                } else if(key == InputKeyOk) {
+                    if(type == InputTypeShort) {
+                        // 核心! 单键循环 4 动作 + 视角动画
+                        uint8_t act = g.rap_action;
+                        if(act == 0) {
+                            // 右转小角度 + 扫视左边 (头向左瞟)
+                            g.turn_target += 0.22f;
+                            g.view_yaw_sweep_target = -0.18f;
+                            sfx_play(SFX_MENU_MOVE);
+                        } else if(act == 1) {
+                            // 前进一格 + 抬头看 (像看天空/天花板)
+                            g.move_fwd_target += 0.28f;
+                            g.view_pitch_target = 0.35f;
+                            sfx_play(SFX_PICK_ITEM);
+                        } else if(act == 2) {
+                            // 左转小角度 + 扫视右边 (头向右瞟)
+                            g.turn_target -= 0.22f;
+                            g.view_yaw_sweep_target = 0.18f;
+                            sfx_play(SFX_MENU_MOVE);
+                        } else {
+                            // 冲刺前进 + 低头看脚下 + 自动扫回中心
+                            g.move_dash_target += 0.52f;
+                            g.view_pitch_target = -0.30f;
+                            g.view_yaw_sweep_target = 0.0f;
+                            sfx_play(SFX_SHOOT);
+                        }
+                        g.rap_action = (act + 1) & 3; // 循环 0..3
+                        // 视角每 2 个动作自动回正中心 (让视觉不总是歪的)
+                        if(g.rap_action == 0) {
+                            g.view_pitch_target = 0.0f;
+                        }
+                        g.dirty = true;
+                    } else if(type == InputTypeLong) {
+                        // OK 长按 = 强制视角回正 + 小跳一下 (彩蛋动作)
+                        g.view_pitch_target = 0.0f;
+                        g.view_yaw_sweep_target = 0.0f;
+                        if(g.jump_timer == 0) g.jump_timer = 1;
+                        sfx_play(SFX_MENU_OK);
+                    }
+                } else if(key == InputKeyUp) {
+                    if(type == InputTypeShort) {
+                        g.view_pitch_target += 0.15f;
+                        if(g.view_pitch_target > 0.7f) g.view_pitch_target = 0.7f;
+                    }
+                } else if(key == InputKeyDown) {
+                    if(type == InputTypeShort) {
+                        g.view_pitch_target -= 0.15f;
+                        if(g.view_pitch_target < -0.7f) g.view_pitch_target = -0.7f;
+                    }
+                } else if(key == InputKeyLeft) {
+                    if(type == InputTypeShort) {
+                        g.view_yaw_sweep_target -= 0.12f;
+                        if(g.view_yaw_sweep_target < -0.5f) g.view_yaw_sweep_target = -0.5f;
+                    }
+                } else if(key == InputKeyRight) {
+                    if(type == InputTypeShort) {
+                        g.view_yaw_sweep_target += 0.12f;
+                        if(g.view_yaw_sweep_target > 0.5f) g.view_yaw_sweep_target = 0.5f;
+                    }
+                }
+                did_input = true;
             } else {
                 // v6.7-beta: 所有游戏模式 (闯关/无尽/游客) — Beta 保护:
                 //   OK 短按 = 射击
@@ -2452,7 +2558,7 @@ int32_t maze3d_app(void* p) {
                 }
             }
             if(g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN ||
-               g.mode == MODE_ENDLESS_VISITOR || g.mode == MODE_MC) {
+               g.mode == MODE_ENDLESS_VISITOR || g.mode == MODE_MC || g.mode == MODE_RAP) {
                 game_update();
                 did_update_world = true;
             }
@@ -2465,7 +2571,8 @@ int32_t maze3d_app(void* p) {
             (g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN ||
              g.mode == MODE_ENDLESS_VISITOR || g.mode == MODE_PAUSED ||
              g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER || g.mode == MODE_MC ||
-             g.mode == MODE_SHOP || g.mode == MODE_SHOP_INV); // v6.11
+             g.mode == MODE_RAP || g.mode == MODE_SHOP ||
+             g.mode == MODE_SHOP_INV); // v6.11 + v6.12 RAP
         if(in_game_view && need_render) {
             engine_render();
             g.dirty = false;

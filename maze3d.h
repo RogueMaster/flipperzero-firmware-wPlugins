@@ -145,6 +145,7 @@ typedef enum {
     MODE_MC, // MC 沙盒模式 (Beta): 小空间内挖掘/放置方块
     MODE_SHOP, // v6.10: 积分商城
     MODE_SHOP_INV, // v6.11: 新道具栏 (长按 OK 呼出)
+    MODE_RAP, // v6.12-beta: RAP 单键挑战模式 (OK 切换 转/走/看)
 } GameMode;
 
 typedef enum {
@@ -293,6 +294,13 @@ typedef struct {
     // v6.11: 道具增益计时器 (帧数, >0 时生效)
     uint16_t buff_shield; // 无敌护盾剩余帧
     uint16_t buff_doublefire; // 双倍火力剩余帧
+    // v6.12-beta: RAP 单键挑战模式 + 自由视角
+    float view_pitch_target; // 视角俯仰目标 (弧度, >0 抬头 <0 低头)
+    float view_pitch; // 当前俯仰(插值到 target)
+    float view_yaw_sweep_target; // 左右扫视偏移目标 (弧度)
+    float view_yaw_sweep; // 当前扫视偏移(插值)
+    uint8_t rap_action; // RAP 模式当前动作 0=TurnR 1=Forward 2=TurnL 3=Dash
+    bool rap_active; // 是否在 RAP 模式中 (驱动主循环单键逻辑)
 } GameState;
 
 // v6.2: 粒子接口
@@ -361,6 +369,7 @@ uint32_t maze_rng_next(void);
 void game_init_campaign(int level);
 void game_init_endless(int floor, bool visitor);
 void game_init_mc(void); // MC 沙盒模式 (Beta)
+void game_init_rap(void); // v6.12-beta: RAP 单键挑战模式初始化
 void mc_mine(void); // MC: 挖掘前方方块
 void mc_place(void); // MC: 在前方放置方块
 void mc_cycle_block(void); // MC: 切换手持方块
@@ -446,6 +455,6 @@ const char* story_choice_b(int story_id);
 const char* story_title(int story_id);
 
 extern const uint8_t TEXTURES[][8];
-#define TEX_COUNT \
-    24 // v6.7-beta: 扩展到24槽, 保留12个空白给未来方块 \
-        // (圆石/煤/铁/钻石/台阶/玻璃/工作台/熔炉/羊毛/苔石/地狱岩/末地石)
+#define TEX_COUNT 24
+// v6.7-beta: 扩展到24槽, 保留12个空白给未来方块
+// (圆石/煤/铁/钻石/台阶/玻璃/工作台/熔炉/羊毛/苔石/地狱岩/末地石)
