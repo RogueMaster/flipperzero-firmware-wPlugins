@@ -54,16 +54,40 @@ H(gamesEqual, "HA_GAME_* ids match in both ha_proto.h",
 // Compare the DECOMPRESSED bundle, not the raw .gz: gzip container bytes vary by the
 // platform's zlib, so a raw-byte check false-fails when the committer built on a
 // different OS. The decompressed HTML is what actually differs when the bundle is stale.
+//
+// manifest.json can't be byte-compared for exactly the same reason: it carries a crc32
+// OF THE GZ, so it moves with the builder's zlib even when the content is identical.
+// Comparing it verbatim failed every PR opened against a bundle built elsewhere, whatever
+// the PR touched. Check the STRUCTURE instead (crc stripped) plus that the committed crc
+// really describes the committed gz -- the same rule build.yml's "bundled-assets" job
+// already uses, which this script was never brought in line with.
+const crc32 = (b) => {
+  let c = 0xffffffff;
+  for (let i = 0; i < b.length; i++) {
+    c ^= b[i];
+    for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1;
+  }
+  return (c ^ 0xffffffff) >>> 0;
+};
+// JSON round-trip, so this also normalises whitespace and CRLF between the two copies.
+const stripCrc = (s) => JSON.stringify(JSON.parse(s).map(({ crc, ...rest }) => rest));
+const crcOf = (s) => (JSON.parse(s).find((a) => a.path === "/") || {}).crc;
+
 let bundleOk = false, bundleDetail = "";
 try {
-  const committedHtml = gunzipSync(execSync("git show HEAD:web/dist/index.html.gz", { cwd: REPO })).toString();
+  const committedGz = execSync("git show HEAD:web/dist/index.html.gz", { cwd: REPO });
+  const committedHtml = gunzipSync(committedGz).toString();
+  const committedManifest = sh("git show HEAD:web/dist/manifest.json");
   sh("node web/build.mjs"); // overwrites web/dist in the working tree
   const builtHtml = gunzipSync(readFileSync(REPO + "web/dist/index.html.gz")).toString();
-  const manifestStale = sh("git status --porcelain -- web/dist/manifest.json").length > 0;
-  bundleOk = committedHtml === builtHtml && !manifestStale;
+  const structureOk = stripCrc(committedManifest) === stripCrc(read("/web/dist/manifest.json"));
+  const want = crc32(committedGz);
+  const crcOk = crcOf(committedManifest) === want;
+  bundleOk = committedHtml === builtHtml && structureOk && crcOk;
   bundleDetail = bundleOk ? "up to date"
     : committedHtml !== builtHtml ? "the built bundle differs from web/dist — run `node web/build.mjs` and commit"
-      : "web/dist/manifest.json is stale — run `node web/build.mjs` and commit";
+      : !structureOk ? "web/dist/manifest.json is stale — run `node web/build.mjs` and commit"
+        : `web/dist/manifest.json crc ${crcOf(committedManifest)} does not describe web/dist/index.html.gz (${want}) — run \`node web/build.mjs\` and commit`;
 } catch (e) {
   bundleDetail = "could not check the web bundle: " + e.message.split("\n")[0];
 }
@@ -75,20 +99,25 @@ H(bundleOk, "web/dist matches `node web/build.mjs` (decompressed)", bundleDetail
 // stale, a newly added game looked completely broken on hardware: the served page had no
 // screen to route to and no handler for the game's state pushes, so phones just sat in
 // the lobby forever. Mirrors the build.yml "bundled-assets" job so it fails here first.
+//
+// web/dist was rebuilt in the working tree by the check above, so its manifest now holds
+// THIS machine's crc; compare structure and check the bundled crc against the bundled gz.
 let webAssetOk = false, webAssetDetail = "";
-// The two copies can differ only by line endings on a CRLF checkout; compare content.
-const lf = (s) => s.split("\r").join("");
 try {
   const dist = gunzipSync(readFileSync(REPO + "/web/dist/index.html.gz")).toString();
-  const bundled = gunzipSync(
-    readFileSync(REPO + "/flipper/hotspot-arcade/assets/web/index.html.gz")).toString();
-  const manifestSame =
-    lf(read("/web/dist/manifest.json")) === lf(read("/flipper/hotspot-arcade/assets/web/manifest.json"));
-  webAssetOk = dist === bundled && manifestSame;
+  const bundledGz = readFileSync(REPO + "/flipper/hotspot-arcade/assets/web/index.html.gz");
+  const bundled = gunzipSync(bundledGz).toString();
+  const bundledManifest = read("/flipper/hotspot-arcade/assets/web/manifest.json");
+  const structureSame = stripCrc(read("/web/dist/manifest.json")) === stripCrc(bundledManifest);
+  const want = crc32(bundledGz);
+  const crcOk = crcOf(bundledManifest) === want;
+  webAssetOk = dist === bundled && structureSame && crcOk;
   webAssetDetail = webAssetOk ? "up to date"
     : dist !== bundled
       ? "assets/web/index.html.gz is stale — run `tools/build-fap.sh` (or copy web/dist/*.gz over) and commit"
-      : "assets/web/manifest.json is stale — run `tools/build-fap.sh` and commit";
+      : !structureSame
+        ? "assets/web/manifest.json is stale — run `tools/build-fap.sh` and commit"
+        : `assets/web/manifest.json crc ${crcOf(bundledManifest)} does not describe assets/web/index.html.gz (${want}) — run \`tools/build-fap.sh\` and commit`;
 } catch (e) {
   webAssetDetail = "could not check the bundled web asset: " + e.message.split("\n")[0];
 }
