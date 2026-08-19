@@ -1,17 +1,14 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
 App(
-    appid="uhf_expansion",  # Must be unique
-    name="UHF Expansion",  # Displayed in menus
+    appid="uhf_expansion",
+    name="UHF Expansion",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="uhf_expansion_app",
     stack_size=6 * 1024,
+    fap_icon="uhf_icon.png",
+    fap_icon_assets="images",
     fap_category="GPIO",
-    # Optional values
-    fap_version="1.0",
-    fap_icon="uhf_icon.png",  # 10x10 1-bit PNG
-    fap_description="UHF RFID inventory reader over GPIO UART",
     fap_author="MTools Tec",
     fap_weburl="https://github.com/mtoolstec/fz-uhf-expansion",
-    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_version="1.0",
+    fap_description="UHF RFID inventory reader over GPIO UART",
 )

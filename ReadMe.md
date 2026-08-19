@@ -158,6 +158,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Updated: [Hotspot Arcade v1.8.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
+- Added: [UHF Expansion v1.0 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 
 <a name="release"></a>
 
@@ -960,6 +961,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - [UDECard v1.0.4 (By hahnworks](https://github.com/hahnworks/UDECard)
+- [UHF Expansion v1.0 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
 - [UL-C Bruteforce Optimized v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
