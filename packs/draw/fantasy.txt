@@ -39,3 +39,27 @@ Word: spaceship
 Word: monster
 ---
 Word: wand
+---
+Word: goblin
+---
+Word: troll
+---
+Word: phoenix
+---
+Word: griffin
+---
+Word: vampire
+---
+Word: werewolf
+---
+Word: elf
+---
+Word: dwarf
+---
+Word: giant
+---
+Word: yeti
+---
+Word: genie
+---
+Word: crystal ball

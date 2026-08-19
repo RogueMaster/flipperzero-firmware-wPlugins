@@ -39,3 +39,27 @@ Word: Känguru
 Word: Flamingo
 ---
 Word: Dinosaurier
+---
+Word: Biene
+---
+Word: Kamel
+---
+Word: Huhn
+---
+Word: Hirsch
+---
+Word: Adler
+---
+Word: Fuchs
+---
+Word: Hamster
+---
+Word: Qualle
+---
+Word: Marienkäfer
+---
+Word: Löwe
+---
+Word: Panda
+---
+Word: Seepferdchen

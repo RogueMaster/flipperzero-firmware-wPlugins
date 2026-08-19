@@ -64,3 +64,33 @@ Right: Only for experts
 ---
 Left: Fades fast
 Right: Timeless
+---
+Left: Overpriced
+Right: A bargain
+---
+Left: Childish
+Right: Grown up
+---
+Left: Pointless rule
+Right: Fair rule
+---
+Left: Too easy
+Right: Way too hard
+---
+Left: Try-hard
+Right: Effortless
+---
+Left: Bad idea
+Right: Genius idea
+---
+Left: Yesterday's news
+Right: The next big thing
+---
+Left: Only for kids
+Right: For everyone
+---
+Left: Sounds fun
+Right: Sounds exhausting
+---
+Left: Would never
+Right: Would immediately

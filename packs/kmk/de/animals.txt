@@ -1,0 +1,64 @@
+Pack: Tierreich
+Name: Löwe/Löwin
+---
+Name: Panda
+---
+Name: Delfin
+---
+Name: Pinguin
+---
+Name: Faultier
+---
+Name: Koala
+---
+Name: Tiger/Tigerin
+---
+Name: Wolf/Wölfin
+---
+Name: Fuchs/Füchsin
+---
+Name: Eule
+---
+Name: Katze/Kater
+---
+Name: Hund/Hündin
+---
+Name: Pferd
+---
+Name: Hase/Häsin
+---
+Name: Igel
+---
+Name: Otter
+---
+Name: Elefant/Elefantin
+---
+Name: Giraffe
+---
+Name: Känguru
+---
+Name: Eichhörnchen
+---
+Name: Waschbär/Waschbärin
+---
+Name: Erdmännchen
+---
+Name: Flamingo
+---
+Name: Pfau
+---
+Name: Schildkröte
+---
+Name: Krake
+---
+Name: Hai
+---
+Name: Wal
+---
+Name: Biene
+---
+Name: Schmetterling
+---
+Name: Chamäleon
+---
+Name: Alpaka

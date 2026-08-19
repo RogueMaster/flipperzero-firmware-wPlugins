@@ -39,3 +39,27 @@ Word: universe
 Word: orbit
 ---
 Word: launch
+---
+Word: astronomy
+---
+Word: spacesuit
+---
+Word: supernova
+---
+Word: constellation
+---
+Word: cosmonaut
+---
+Word: spaceship
+---
+Word: meteorite
+---
+Word: atmosphere
+---
+Word: spacewalk
+---
+Word: launchpad
+---
+Word: moonrock
+---
+Word: starlight

@@ -35,3 +35,39 @@ B: Eine neue Spezies entdecken
 ---
 A: Wissen, wie die Welt endet
 B: Wissen, wie die Welt begann
+---
+A: Die Dinosaurier aus Sicherheit beobachten
+B: Zusehen, wie die erste Stadt gebaut wird
+---
+A: Eine Nachricht an dein früheres Ich schicken
+B: Eine von deinem zukünftigen Ich bekommen
+---
+A: Einmal die Erde aus dem Orbit sehen
+B: Einmal einen anderen Planeten betreten
+---
+A: Wissen, an welchem Tag du am glücklichsten bist
+B: Wissen, an welchem Tag du am stolzesten bist
+---
+A: Eine Woche im Jahr 1500
+B: Eine Woche im Jahr 2500
+---
+A: Einen Tag zweimal erleben
+B: Einen Tag für immer überspringen
+---
+A: Deine Urgroßeltern treffen
+B: Deine Urenkel treffen
+---
+A: Eine Karte von jedem Ort
+B: Ein Kalender mit jedem Ereignis
+---
+A: Einen perfekten Nachmittag einfrieren
+B: Einen perfekten Abend wiederholen
+---
+A: Überallhin reisen, aber ohne Gepäck
+B: Mit allem reisen, aber nur mit dem Zug
+---
+A: Erfahren, wie die Pyramiden gebaut wurden
+B: Erfahren, was am Grund des Ozeans liegt
+---
+A: Mit jemandem vor 1000 Jahren sprechen
+B: Mit jemandem in 1000 Jahren sprechen

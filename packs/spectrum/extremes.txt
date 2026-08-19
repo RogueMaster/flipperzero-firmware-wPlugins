@@ -64,3 +64,33 @@ Right: Warp speed
 ---
 Left: A crumb
 Right: A mountain of it
+---
+Left: A puddle
+Right: An ocean
+---
+Left: A candle
+Right: The sun
+---
+Left: A mouse
+Right: An elephant
+---
+Left: A pebble
+Right: A boulder
+---
+Left: A nap
+Right: Hibernation
+---
+Left: A scratch
+Right: A catastrophe
+---
+Left: Lukewarm
+Right: Volcanic
+---
+Left: A hum
+Right: A thunderclap
+---
+Left: One step
+Right: A marathon
+---
+Left: A joke
+Right: A tragedy

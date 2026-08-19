@@ -39,3 +39,27 @@ Word: whistle
 Word: goalie
 ---
 Word: racket
+---
+Word: basketball
+---
+Word: volleyball
+---
+Word: badminton
+---
+Word: gymnastics
+---
+Word: swimming
+---
+Word: wrestling
+---
+Word: snowboard
+---
+Word: triathlon
+---
+Word: penalty
+---
+Word: champion
+---
+Word: dribble
+---
+Word: offside

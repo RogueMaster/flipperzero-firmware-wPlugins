@@ -35,3 +35,39 @@ B: Tell ghost stories around a campfire
 ---
 A: Wake up in a coffin
 B: Wake up in a fog-filled cemetery
+---
+A: A night in a lighthouse
+B: A night in a lift that works
+---
+A: Meet a friendly ghost
+B: Meet a shy monster
+---
+A: Hear your name whispered once
+B: See a shadow move twice
+---
+A: Find a door that wasn't there
+B: Find a key that fits nothing
+---
+A: Be followed by a crow
+B: Be followed by a stray cat
+---
+A: Sleep with the wardrobe open
+B: Sleep with one foot out of the covers
+---
+A: A diary that writes itself
+B: A mirror that shows yesterday
+---
+A: Get lost in a hedge maze
+B: Get locked in a museum after closing
+---
+A: A photo with someone extra in it
+B: A recording with a voice you can't place
+---
+A: Camp next to a graveyard
+B: Camp next to a swamp
+---
+A: Be the first into a dark room
+B: Be the last to leave it
+---
+A: A witch who owes you a favour
+B: A ghost who wants one

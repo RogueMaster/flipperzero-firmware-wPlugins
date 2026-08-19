@@ -39,3 +39,27 @@ Word: Raumschiff
 Word: Monster
 ---
 Word: Zauberstab
+---
+Word: Kobold
+---
+Word: Troll
+---
+Word: Phönix
+---
+Word: Greif
+---
+Word: Vampir
+---
+Word: Werwolf
+---
+Word: Elf
+---
+Word: Zwerg
+---
+Word: Riese
+---
+Word: Yeti
+---
+Word: Flaschengeist
+---
+Word: Kristallkugel

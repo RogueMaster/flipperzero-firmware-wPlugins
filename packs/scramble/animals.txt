@@ -35,3 +35,31 @@ Word: otter
 Word: falcon
 ---
 Word: bison
+---
+Word: butterfly
+---
+Word: crocodile
+---
+Word: chameleon
+---
+Word: porcupine
+---
+Word: armadillo
+---
+Word: dolphin
+---
+Word: salamander
+---
+Word: tortoise
+---
+Word: buffalo
+---
+Word: meerkat
+---
+Word: platypus
+---
+Word: seahorse
+---
+Word: pelican
+---
+Word: badger

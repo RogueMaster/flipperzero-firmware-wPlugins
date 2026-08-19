@@ -39,3 +39,27 @@ Word: Zelt
 Word: Blitz
 ---
 Word: Strand
+---
+Word: Sonnenblume
+---
+Word: Pilz
+---
+Word: Eichel
+---
+Word: Muschel
+---
+Word: Eisberg
+---
+Word: Palme
+---
+Word: Gewitter
+---
+Word: Nebel
+---
+Word: Sanddüne
+---
+Word: Geysir
+---
+Word: Koralle
+---
+Word: Tannenzapfen
