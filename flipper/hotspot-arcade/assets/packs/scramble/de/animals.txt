@@ -35,3 +35,31 @@ Word: Falke
 Word: Bison
 ---
 Word: Pinguin
+---
+Word: Schmetterling
+---
+Word: Krokodil
+---
+Word: Chamäleon
+---
+Word: Stachelschwein
+---
+Word: Gürteltier
+---
+Word: Delfin
+---
+Word: Salamander
+---
+Word: Schildkröte
+---
+Word: Büffel
+---
+Word: Erdmännchen
+---
+Word: Schnabeltier
+---
+Word: Seepferdchen
+---
+Word: Pelikan
+---
+Word: Dachs

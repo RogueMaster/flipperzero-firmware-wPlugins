@@ -39,3 +39,27 @@ Word: popcorn
 Word: strawberry
 ---
 Word: sundae
+---
+Word: pretzel
+---
+Word: waffle
+---
+Word: ice cream
+---
+Word: sushi
+---
+Word: spaghetti
+---
+Word: apple pie
+---
+Word: croissant
+---
+Word: pancake
+---
+Word: milkshake
+---
+Word: gingerbread
+---
+Word: corn
+---
+Word: peach

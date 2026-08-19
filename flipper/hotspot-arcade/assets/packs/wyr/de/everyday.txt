@@ -35,3 +35,39 @@ B: Einen Monat ohne Kaffee
 ---
 A: Den Weltraum erkunden
 B: Die Tiefsee erkunden
+---
+A: Nie wieder Kopfhörer benutzen
+B: Nach Sonnenuntergang keinen Bildschirm mehr
+---
+A: Immer die Wahrheit sagen müssen
+B: Einen Tag pro Woche schweigen müssen
+---
+A: Einmal im Jahr ein Freiticket überallhin
+B: Für immer gratis Essen in deiner Stadt
+---
+A: Überall sofort einschlafen können
+B: Nie mehr als vier Stunden Schlaf brauchen
+---
+A: Einen Monat ohne Handy
+B: Deinen Lieblingspullover für immer verlieren
+---
+A: Immer ein bisschen zu früh sein
+B: Nie wissen, wie viel Uhr es ist
+---
+A: Einen eigenen Koch haben
+B: Einen eigenen Fahrer haben
+---
+A: Dort leben, wo immer Frühling ist
+B: Dort leben, wo immer Herbst ist
+---
+A: Nie wieder in einer Schlange stehen
+B: Nie wieder im Stau stehen
+---
+A: Ein Instrument perfekt beherrschen
+B: Eine weitere Sprache perfekt sprechen
+---
+A: Eine Dusche, die immer perfekt ist
+B: Ein Bett, das immer die richtige Temperatur hat
+---
+A: Nie wieder deine Schlüssel verlieren
+B: Nie wieder eine Socke verlieren

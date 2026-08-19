@@ -86,6 +86,12 @@ if [ -z "${ARDUINO_DIRECTORIES_DATA:-}" ] && [ -n "$ACLI" ]; then
     fi
 fi
 
+# Which esp32 core version arduino-cli currently has installed (empty if none).
+installed_core() {
+    [ -n "$ACLI" ] || return 0
+    "$ACLI" core list 2>/dev/null | awk '$1 == "esp32:esp32" { print $2; exit }'
+}
+
 # --- locate the core's boot_app0.bin (only needed when actually building) ---
 find_boot_app0() {
     local ver="${1:-$CORE_VER}"
@@ -109,6 +115,18 @@ for entry in "${BOARDS[@]}"; do
     out="$ASSETS_FW/$subdir"
     BOOT_APP0=""
     if [ -n "$ACLI" ]; then
+        # arduino-cli keeps ONE version of a platform installed at a time, and these
+        # boards deliberately build against different ones: the C5 exists only in the
+        # 3.x cores, while the S2/WROOM stay pinned to 2.0.17 for its WiFi/USB
+        # behaviour. So the core has to be swapped mid-run, exactly as build.yml does
+        # by hand between its two compile steps. BOARDS is grouped by core version, so
+        # this swaps at most once per run. Without it the script simply cannot produce
+        # a full image set on a dev machine: it reached the C5 with 2.0.17 installed
+        # and died looking for a boot_app0.bin that only ships with the 3.x core.
+        if [ "$(installed_core)" != "$board_core" ]; then
+            echo "==> switching to the esp32 $board_core core (for $subdir)"
+            "$ACLI" core install "esp32:esp32@$board_core"
+        fi
         BOOT_APP0="$(find_boot_app0 "$board_core" || true)"
         if [ -z "$BOOT_APP0" ]; then
             echo "ERROR: could not find boot_app0.bin for the esp32 $board_core core." >&2

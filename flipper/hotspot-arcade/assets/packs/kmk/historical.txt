@@ -46,3 +46,19 @@ Name: King Tut
 Name: Beethoven
 ---
 Name: Isaac Newton
+---
+Name: Galileo Galilei
+---
+Name: Anne Frank
+---
+Name: Mahatma Gandhi
+---
+Name: Rosa Parks
+---
+Name: Charles Darwin
+---
+Name: Florence Nightingale
+---
+Name: Christopher Columbus
+---
+Name: Elizabeth I

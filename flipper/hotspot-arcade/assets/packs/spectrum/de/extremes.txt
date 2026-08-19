@@ -64,3 +64,33 @@ Right: Warp-Tempo
 ---
 Left: Ein Krümel
 Right: Ein Berg davon
+---
+Left: Eine Pfütze
+Right: Ein Ozean
+---
+Left: Eine Kerze
+Right: Die Sonne
+---
+Left: Eine Maus
+Right: Ein Elefant
+---
+Left: Ein Kiesel
+Right: Ein Felsbrocken
+---
+Left: Ein Nickerchen
+Right: Winterschlaf
+---
+Left: Ein Kratzer
+Right: Eine Katastrophe
+---
+Left: Lauwarm
+Right: Vulkanisch
+---
+Left: Ein Summen
+Right: Ein Donnerschlag
+---
+Left: Ein Schritt
+Right: Ein Marathon
+---
+Left: Ein Witz
+Right: Eine Tragödie

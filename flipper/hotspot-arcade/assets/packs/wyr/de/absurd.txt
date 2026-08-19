@@ -35,3 +35,39 @@ B: Beim Schluckauf winzige Blasen machen
 ---
 A: Von dramatischer Musik begleitet werden
 B: Einen Erzähler haben, der jede Bewegung kommentiert
+---
+A: Schluckauf, der wie eine Autoalarmanlage klingt
+B: Niesen, das wie eine Trompete klingt
+---
+A: Eine Glitzerspur hinterlassen
+B: Eine Seifenblasenspur hinterlassen
+---
+A: Haare, die die Farbe mit deiner Stimmung wechseln
+B: Haut, die leuchtet, wenn du lügst
+---
+A: Für immer nur flüstern können
+B: Für immer nur schreien können
+---
+A: Einen zusätzlichen Daumen bekommen
+B: Ein zusätzliches Ohr bekommen
+---
+A: Eine kleine Wolke, die auf dich regnet, wenn du traurig bist
+B: Eine kleine Sonne, die dir folgt
+---
+A: Alles, was du anfasst, riecht nach Lavendel
+B: Alles, was du isst, schmeckt nach Erdbeere
+---
+A: Schuhe, die für immer quietschen
+B: Ein Reißverschluss, der nie oben bleibt
+---
+A: Mit Brot sprechen können
+B: Mit Möbeln sprechen können
+---
+A: Ein Hut, den du nie abnehmen kannst
+B: Eine Sonnenbrille, die du nie abnehmen kannst
+---
+A: Immer nur ein Auge zwinkern können
+B: Überhaupt nicht mehr blinken
+---
+A: Eine Stimme, die drinnen hallt
+B: Schritte, die klingeln

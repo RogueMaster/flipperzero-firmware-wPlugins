@@ -35,3 +35,39 @@ B: Auf Riesengröße wachsen
 ---
 A: Telekinese haben
 B: Telepathie haben
+---
+A: Das Wetter steuern
+B: Pflanzen steuern
+---
+A: Fliegen, aber langsam
+B: Zehn Sekunden extrem schnell rennen
+---
+A: Mit Maschinen sprechen
+B: Mit Tieren in ganzen Sätzen sprechen
+---
+A: Jede Fähigkeit für eine Stunde kopieren
+B: Eine neue Fähigkeit für immer behalten
+---
+A: Unsichtbar werden, wenn du niest
+B: Nur im Dunkeln unsichtbar werden
+---
+A: Supergehör haben
+B: Superblick haben
+---
+A: Feuer spucken
+B: Eis atmen
+---
+A: Nie müde werden
+B: Nie verletzt werden
+---
+A: Nur dorthin teleportieren, wo du schon warst
+B: Nur dorthin, wo du noch nie warst
+---
+A: Einen Gedanken pro Person lesen
+B: Eine Minute lang alle Gedanken hören
+---
+A: Die Zeit für alle außer dir anhalten
+B: Die Zeit für alle verlangsamen, dich eingeschlossen
+---
+A: Andere heilen, aber nicht dich
+B: Dich heilen, aber niemanden sonst

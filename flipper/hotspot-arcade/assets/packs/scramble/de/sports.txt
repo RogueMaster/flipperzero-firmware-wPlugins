@@ -39,3 +39,27 @@ Word: Trillerpfeife
 Word: Torwart
 ---
 Word: Schläger
+---
+Word: Basketball
+---
+Word: Volleyball
+---
+Word: Badminton
+---
+Word: Turnen
+---
+Word: Schwimmen
+---
+Word: Ringen
+---
+Word: Snowboard
+---
+Word: Triathlon
+---
+Word: Elfmeter
+---
+Word: Meister
+---
+Word: Dribbling
+---
+Word: Abseits

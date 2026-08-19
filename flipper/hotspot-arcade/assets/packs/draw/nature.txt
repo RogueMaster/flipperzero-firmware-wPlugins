@@ -39,3 +39,27 @@ Word: tent
 Word: lightning
 ---
 Word: beach
+---
+Word: sunflower
+---
+Word: mushroom
+---
+Word: acorn
+---
+Word: seashell
+---
+Word: iceberg
+---
+Word: palm tree
+---
+Word: thunderstorm
+---
+Word: fog
+---
+Word: sand dune
+---
+Word: geyser
+---
+Word: coral
+---
+Word: pinecone

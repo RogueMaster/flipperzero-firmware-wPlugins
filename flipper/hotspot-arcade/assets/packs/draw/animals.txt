@@ -39,3 +39,27 @@ Word: kangaroo
 Word: flamingo
 ---
 Word: dinosaur
+---
+Word: bee
+---
+Word: camel
+---
+Word: chicken
+---
+Word: deer
+---
+Word: eagle
+---
+Word: fox
+---
+Word: hamster
+---
+Word: jellyfish
+---
+Word: ladybug
+---
+Word: lion
+---
+Word: panda
+---
+Word: seahorse
