@@ -10,7 +10,7 @@ App(
     # Optional values
     fap_version="1.0",
     fap_icon="uhf_icon.png",  # 10x10 1-bit PNG
-    fap_description="UHF Expansion for Flipper Zero",
+    fap_description="UHF RFID inventory reader over GPIO UART",
     fap_author="MTools Tec",
     fap_weburl="https://github.com/mtoolstec/fz-uhf-expansion",
     fap_icon_assets="images",  # Image assets to compile for this application
