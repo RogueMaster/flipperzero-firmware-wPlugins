@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=for-the-badge&logo=flipper&logoColor=white" alt="Flipper Zero">
-  <img src="https://img.shields.io/badge/version-2.6-FF3DAE?style=for-the-badge" alt="Version 2.6">
+  <img src="https://img.shields.io/badge/version-2.7-FF3DAE?style=for-the-badge" alt="Version 2.7">
   <img src="https://img.shields.io/badge/radio-13.56%20MHz%20NFC%20(onboard)-26E8CA?style=for-the-badge" alt="Onboard NFC">
   <img src="https://img.shields.io/badge/hardware-none%20required-9B5DE5?style=for-the-badge" alt="No extra hardware">
   <img src="https://img.shields.io/badge/build-ufbt-2da0ff?style=for-the-badge" alt="ufbt">
@@ -153,8 +153,9 @@ walk away. Where Sweep is you hunting and Survey is a fixed-length test, Watch
 just waits — for minutes or hours.
 
 **What you see.** A large elapsed clock and `ALL CLEAR` while nothing is there.
-The instant a reader appears the band inverts to a blinking **`READER PRESENT`**,
-the **screen wakes**, and the alarm sounds. After it passes, the screen keeps the
+The instant a reader appears the band inverts to **`READER PRESENT`**, the
+**screen wakes**, and the alarm sounds. The band is steady rather than flashing —
+a small marker pulses instead, so it reads as live without strobing at you. After it passes, the screen keeps the
 evidence: `HITS` (how many separate contacts), `PEAK`, `LAST` (how long ago the
 most recent one was) and `SEEN` (total time a carrier was actually up).
 
@@ -303,7 +304,17 @@ No devboard, no firmware to flash — it's a single `.fap`.
 
 **Option A — prebuilt `.fap` (easiest)**
 
-1. Grab `specter.fap` from the [**Releases**](https://github.com/at0m-b0mb/Specter-FlipperZero/releases) page.
+1. Grab the right `.fap` from the [**Releases**](https://github.com/at0m-b0mb/Specter-FlipperZero/releases) page:
+
+   | Your firmware | File |
+   |---|---|
+   | **Official / stock** | `specter.fap` |
+   | **Unleashed, RogueMaster, Momentum** or anything newer | `specter-fw-dev.fap` |
+
+   > If the Flipper says **`APP:87 < FW:88 — This app might not work`**, you have the
+   > wrong one — take the other file. The app's API version is fixed when it's compiled,
+   > so a single build can't satisfy both firmware lines. It usually still runs if you
+   > press Continue, but the matching build won't ask.
 2. Open **qFlipper**, drag the file onto `SD Card / apps / NFC /`.
 3. On the Flipper: **Apps → NFC → Specter**.
 

@@ -22,7 +22,8 @@ static void check(int cond, const char* what) {
 
 int main(void) {
     printf("present_hold\n");
-    const uint32_t HOLD = SPECTER_PRESENT_HOLD_MS;
+    /* A representative hold; the adaptive sizing is exercised separately below. */
+    const uint32_t HOLD = SPECTER_PRESENT_HOLD_MAX_MS;
 
     /* --- nothing there ---------------------------------------------------- */
     {
@@ -116,6 +117,49 @@ int main(void) {
         check(
             !present_hold_update(&h, false, near_end + HOLD, HOLD),
             "and still releases correctly across the wrap");
+    }
+
+    /* --- the hold adapts to the reader's own rhythm -----------------------
+     * A flat 1500 ms hold meant the alarm stayed up for ~2 s after the reader
+     * was taken away, which reads as a frozen screen. */
+    {
+        check(
+            present_hold_ms_for(0) == SPECTER_PRESENT_HOLD_MIN_MS,
+            "an unmeasured period falls back to the floor");
+        check(
+            present_hold_ms_for(200) == SPECTER_PRESENT_HOLD_MIN_MS,
+            "a fast poller releases at the floor, not 1.5s");
+        check(present_hold_ms_for(400) == 1000, "2.5 cycles of a 400ms poll");
+        check(
+            present_hold_ms_for(5000) == SPECTER_PRESENT_HOLD_MAX_MS,
+            "an absurdly slow period is capped");
+        check(
+            SPECTER_PRESENT_HOLD_MIN_MS < 1000u,
+            "the floor is under a second so release feels immediate");
+
+        /* it must still be long enough to bridge that reader's own gaps */
+        for(uint32_t period = 100; period <= 500; period += 50) {
+            check(
+                present_hold_ms_for(period) > period * 2u,
+                "the hold always outlasts two poll cycles");
+        }
+    }
+
+    /* A 300ms poller must stay solid, then release promptly once it stops. */
+    {
+        PresentHold h;
+        present_hold_reset(&h);
+        uint32_t hold = present_hold_ms_for(300);
+        int drops = 0;
+        uint32_t t = 0;
+        for(; t < 6000; t += 96) {
+            if(!present_hold_update(&h, (t % 300u) < 96u, t, hold)) drops++;
+        }
+        check(drops == 0, "300ms poller never flickers");
+
+        uint32_t gone_at = t;
+        while(present_hold_update(&h, false, t, hold) && t < gone_at + 5000) t += 96;
+        check(t - gone_at <= 1000, "and lets go within a second of removal");
     }
 
     printf("%d checks, %d failed\n", checks, failures);

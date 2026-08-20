@@ -22,15 +22,31 @@ jobs:
       - name: Install ufbt
         run: python3 -m pip install --upgrade ufbt
 
-      - name: Sync SDK (release)
-        run: ufbt update --channel=release
+      # The API version is baked into the .fap manifest from whichever SDK built
+      # it, and the loader warns when the app's major is behind the firmware's
+      # ("APP:87 < FW:88 - This app might not work"). Official firmware is on
+      # API 87 while Unleashed/RM and friends track 88, so one build cannot
+      # satisfy both. Ship both and let people pick.
+      - name: Build for official firmware (release SDK)
+        run: |
+          ufbt update --channel=release
+          ufbt
+          mkdir -p out
+          cp dist/specter.fap out/specter.fap
+          echo "release API: $(ufbt status 2>/dev/null | grep -i version || true)"
 
-      - name: Build Specter
-        run: ufbt
+      - name: Build for newer firmware (dev SDK)
+        run: |
+          ufbt clean || true
+          ufbt update --channel=dev
+          ufbt
+          cp dist/specter.fap out/specter-fw-dev.fap
 
-      - name: Attach .fap to the release
+      - name: Attach both .fap builds to the release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/specter.fap
+          files: |
+            out/specter.fap
+            out/specter-fw-dev.fap
           fail_on_unmatched_files: true

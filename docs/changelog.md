@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.7
+
+- **Releases now ship two builds.** A `.fap`'s API version is fixed when it is compiled, and the loader warns when it trails the firmware's (`APP:87 < FW:88 — This app might not work`). Official firmware tracks API 87 while Unleashed / RogueMaster / Momentum track 88, so one build cannot satisfy both. Releases now carry `specter.fap` for official firmware and `specter-fw-dev.fap` for the newer line. Reported by @drdelaney in [#1](https://github.com/at0m-b0mb/Specter-FlipperZero/issues/1).
+
+- **Fix: the `READER PRESENT` band strobed.** It alternated between filled and outlined on every UI tick — at a 100 ms tick that is a **5 Hz flash across the full width of the screen**. Unpleasant to look at, harder to read, and no more attention-grabbing than a steady block. The band is now solidly inverted, with a small marker pulsing at about 1 Hz as the "this is live, not frozen" cue.
+- **Fix: `READER PRESENT` lingered ~2 seconds after the reader was taken away.** Presence is deliberately latched so a polling reader's quiet gaps don't read as it disappearing, but that latch was pinned at a blanket 1500 ms — sized for the slowest imaginable emitter. It now derives from the reader's *own measured polling period* (2.5 cycles, clamped to 600–1500 ms), so a typical reader releases in well under a second while a slow poller stays just as stable.
+
 ## 2.6
 
 - **Fix: the divider line cut through the `NOISE FLOOR` text** during a noise-floor scan. `FontSecondary` occupies rows `[baseline-7 .. baseline]`, so a baseline of 59 put the glyph tops on row 52 — exactly where the strip divider is drawn. The text moved down a row and the progress bar became a plain fill along the bottom edge instead of a framed box that would then clip it from below.

@@ -260,13 +260,21 @@ static int32_t field_detector_worker(void* context) {
                 s->calibration_progress = 0;
             }
 
+            /* Cadence first: the hold below is sized from the measured polling
+             * period, so it has to be up to date before presence is decided. */
+            cadence_ring_summarise(&ring, &s->cadence, ema);
+
             /* Detection stays on the raw duty: the noise floor is a statement
              * about the signal, not about how the gauge is drawn. The verdict is
              * then latched, so the gaps in a reader's polling cycle do not read
              * as the reader disappearing - which used to inflate the contact
-             * count and machine-gun the alert notifications. */
+             * count and machine-gun the alert notifications - but the latch is
+             * only as long as this reader's own rhythm needs. */
             bool present = present_hold_update(
-                &hold, duty > fd->threshold, now, SPECTER_PRESENT_HOLD_MS);
+                &hold,
+                duty > fd->threshold,
+                now,
+                present_hold_ms_for(s->cadence.period_ms));
             s->present = present;
             s->strength_raw = ema;
 
@@ -297,9 +305,6 @@ static int32_t field_detector_worker(void* context) {
             s->history_head = (uint8_t)((s->history_head + 1u) % SPECTER_HISTORY_LEN);
             s->history[s->history_head] = shown;
 
-            /* The classifier reasons about the carrier itself - it gets the raw
-             * duty, so its CONTINUOUS test keeps meaning "carrier held up". */
-            cadence_ring_summarise(&ring, &s->cadence, ema);
 
             /* ---- calibration pass ---- */
             if(calibrating) {

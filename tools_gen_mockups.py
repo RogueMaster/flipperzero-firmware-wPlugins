@@ -416,12 +416,12 @@ def render_watch(name, watching_s, contacts, peak, present, strength=0,
     FOOT1, FOOT2, COLR = 50, 61, 66
 
     if present:
+        # Solid, never strobing; the liveness cue is the pair of small markers.
+        box(d, 0, STATUS_Y - 1, 128, STATUS_H)
+        tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, BG, anchor="ms")
         if blink:
-            box(d, 0, STATUS_Y - 1, 128, STATUS_H)
-            tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, BG, anchor="ms")
-        else:
-            frame(d, 0, STATUS_Y - 1, 128, STATUS_H)
-            tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, FG, anchor="ms")
+            disc(d, 6, STATUS_Y + 5, 2, BG)
+            disc(d, 121, STATUS_Y + 5, 2, BG)
     else:
         word = "CLEAR NOW" if contacts else "ALL CLEAR"
         tb(d, 4, STATUS_Y + 9, word, f_pri, anchor="ls")

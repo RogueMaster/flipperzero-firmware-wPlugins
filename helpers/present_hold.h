@@ -24,9 +24,29 @@
  *
  * Pure and header-only so the firmware and the host tests share one copy. */
 
-/* Longer than a typical reader's poll gap (100-300 ms) with room to spare, and
- * still short enough that walking away from a reader updates promptly. */
-#define SPECTER_PRESENT_HOLD_MS 1500u
+/* How long presence latches for.
+ *
+ * A single blanket figure is the wrong shape here. It has to outlast the gap
+ * between one reader's polls, but every millisecond of it is also a millisecond
+ * the screen keeps claiming a reader is there after you have taken the Flipper
+ * away. Pinning it at the slowest case (1500 ms) made the alarm hang on for
+ * about two seconds after the reader was gone, which reads as a stuck display.
+ *
+ * So it adapts. We already measure the emitter's polling period, so the hold is
+ * derived from that - a couple of poll cycles, which is what "it has genuinely
+ * stopped" actually means for this reader - and clamped into a sane range. Fast
+ * pollers, which is most of them, now release in well under a second. */
+#define SPECTER_PRESENT_HOLD_MIN_MS 600u
+#define SPECTER_PRESENT_HOLD_MAX_MS 1500u
+
+/* Hold for the given measured poll period (0 = not measured yet). */
+static inline uint32_t present_hold_ms_for(uint32_t period_ms) {
+    /* 2.5 cycles: one missed poll can be noise, two in a row means it stopped. */
+    uint32_t hold = (period_ms * 5u) / 2u;
+    if(hold < SPECTER_PRESENT_HOLD_MIN_MS) hold = SPECTER_PRESENT_HOLD_MIN_MS;
+    if(hold > SPECTER_PRESENT_HOLD_MAX_MS) hold = SPECTER_PRESENT_HOLD_MAX_MS;
+    return hold;
+}
 
 typedef struct {
     uint32_t last_hit_tick; // when the carrier was last seen above the floor
