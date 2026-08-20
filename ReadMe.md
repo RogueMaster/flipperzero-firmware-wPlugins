@@ -32,6 +32,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-08-19 22:50 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-08-19 22:50 EST`
 - Updated: [HTW AC Remote v1.2 (By sokogen)](https://github.com/sokogen/flipperzero-htw-ac-remote)
+- ESP Flasher: [Bump Marauder v1.15.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.15.0)
 
 <a name="release"></a>
 
@@ -61,7 +62,7 @@ This software is for experimental purposes only and is not meant for any illegal
 ## New on MNTM RM Branch!
 
 - TLDR: More Assets, Game Mode, RM Passport & Many more apps! Extra NFC, RFID & SubGHz features!
-- ESP Flasher: [Bump Marauder v1.14.3 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.3)
+- ESP Flasher: [Comes with Marauder v1.15.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.15.0)
 - Animations: [Asset Packs for RM HERE](https://github.com/RogueMaster/awesome-flipperzero-withModules/tree/rogue_main/RM_AssetPacks)
 - Animations: [PREVIEW "RM Minimal" animations (build default)](https://www.patreon.com/posts/animation-rm-77441581) or [OTHER SETS](https://www.patreon.com/RogueMaster?filters[tag]=Animations)
 - Archive: Open MP3 from File Browser, thanks to [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
