@@ -86,32 +86,18 @@ bool htw_state_load(HtwState* state);
 bool htw_state_save(HtwState* state);
 
 /**
- * Cycle mode to next value
- * Order: Off -> Cool -> Auto -> Dry -> Heat -> Fan -> Off
- *
+ * Set mode directly to a specific value
  * @param state State to modify
+ * @param mode Mode to set
  */
-void htw_state_mode_next(HtwState* state);
+void htw_state_set_mode(HtwState* state, HtwMode mode);
 
 /**
- * Cycle mode to previous value
+ * Set fan directly to a specific value
  * @param state State to modify
+ * @param fan Fan speed to set
  */
-void htw_state_mode_prev(HtwState* state);
-
-/**
- * Cycle fan to next value
- * Order: Auto -> Low -> Medium -> High -> Auto
- *
- * @param state State to modify
- */
-void htw_state_fan_next(HtwState* state);
-
-/**
- * Cycle fan to previous value
- * @param state State to modify
- */
-void htw_state_fan_prev(HtwState* state);
+void htw_state_set_fan(HtwState* state, HtwFan fan);
 
 /**
  * Increase temperature by 1

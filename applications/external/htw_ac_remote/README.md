@@ -59,8 +59,8 @@ Or manually copy `dist/htw_ac_remote.fap` to your Flipper's SD card:
 
 ### Main Screen
 
-- **Mode** - Press OK to cycle through modes (Off → Cool → Auto → Dry → Heat → Fan)
-- **Fan** - Press OK to cycle fan speed (Auto → Low → Med → High)
+- **Mode** - Press OK to open a dropdown list (Off / Cool / Auto / Dry / Heat / Fan), Up/Down to browse, OK to select and send, Back to cancel
+- **Fan** - Press OK to open a dropdown list (Auto / Low / Med / High), Up/Down to browse, OK to select and send, Back to cancel
 - **Temperature** - Use [-] and [+] buttons to adjust (17-30°C)
 - **Toggle Buttons** - Press OK to send toggle command (Swing, Turbo, Fresh, LED, Clean)
 - **Timer** - Open timer configuration menu
