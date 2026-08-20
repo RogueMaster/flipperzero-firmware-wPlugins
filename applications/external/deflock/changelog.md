@@ -84,10 +84,24 @@ still on older firmware. See the note under that entry.
   evil-twin signal; deauth attribution still works for it. Changing the target
   resets the score rather than carrying one earned against a different question.
 
-  **Verified on hardware**, not just in CI: the picker opens on Right and renders
-  safely with an empty AP list, a live AP was selected from a real scan, the HUD
-  showed `>Kestral` in place of the `OK=sus` hint, and the choice round-tripped
-  through `settings.txt` as `guard_bssid` + `guard_ssid` and reloaded on restart.
+  **You can run the scan from inside the picker.** If no networks are listed yet,
+  a **Scan for networks** row runs one on the link the Guardian already holds and
+  the list fills in place — no leaving the screen and coming back. The row reads
+  `Scanning...` while the sweep is out and `Scan again` afterwards, and it says
+  `No ESP32 - check wiring` when there is no companion to ask.
+
+  The first cut showed `(no APs seen yet - run a scan)` instead, which was wrong
+  twice over: the submenu clipped it to `(no APs seen yet - run a s...` so the
+  instruction was cut off mid-word, and selecting the row did nothing anyway. Every
+  label on this screen is now short enough to render whole — a half-read
+  instruction is worse than none.
+
+  **Verified on hardware**, not just in CI: the picker opens on Right, an empty AP
+  list renders safely, the in-place scan was run and repopulated the list live, a
+  real AP was selected, the HUD showed `>Kestral` in place of the `OK=sus` hint,
+  the active target is marked with `*` on re-entry, hidden APs list as `(hidden)`,
+  and the choice round-tripped through `settings.txt` as `guard_bssid` +
+  `guard_ssid` and reloaded on restart.
 
 ### Added
 
