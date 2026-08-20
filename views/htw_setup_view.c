@@ -7,6 +7,10 @@
 #define SCREEN_WIDTH  64
 #define SCREEN_HEIGHT 128
 
+#ifndef FAP_VERSION
+#define FAP_VERSION "?"
+#endif
+
 // Model
 typedef struct {
     HtwState* state;
@@ -59,30 +63,33 @@ static void htw_setup_view_draw(Canvas* canvas, void* model) {
 
     // Title
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 32, 2, AlignCenter, AlignTop, "Settings");
+    canvas_draw_str_aligned(canvas, 32, 0, AlignCenter, AlignTop, "Settings");
 
     // Separator line
-    canvas_draw_line(canvas, 0, 14, SCREEN_WIDTH, 14);
+    canvas_draw_line(canvas, 0, 11, SCREEN_WIDTH, 11);
 
     // Save state option
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 32, 22, AlignCenter, AlignTop, "Save state");
+    canvas_draw_str_aligned(canvas, 32, 15, AlignCenter, AlignTop, "Save state");
 
     // ON/OFF label
     canvas_set_font(canvas, FontPrimary);
     const char* label = m->state->save_state ? "ON" : "OFF";
-    canvas_draw_str_aligned(canvas, 32, 36, AlignCenter, AlignTop, label);
+    canvas_draw_str_aligned(canvas, 32, 26, AlignCenter, AlignTop, label);
 
     // Toggle switch (always focused since it's the only control)
-    draw_toggle_switch(canvas, 14, 52, m->state->save_state, true);
+    draw_toggle_switch(canvas, 14, 46, m->state->save_state, true);
 
     // Description box
-    canvas_draw_rframe(canvas, 2, 76, 60, 46, 3);
+    canvas_draw_rframe(canvas, 2, 68, 60, 40, 3);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 32, 80, AlignCenter, AlignTop, "When ON:");
-    canvas_draw_str_aligned(canvas, 32, 92, AlignCenter, AlignTop, "Settings are");
-    canvas_draw_str_aligned(canvas, 32, 104, AlignCenter, AlignTop, "saved to SD");
+    canvas_draw_str_aligned(canvas, 32, 72, AlignCenter, AlignTop, "When ON:");
+    canvas_draw_str_aligned(canvas, 32, 83, AlignCenter, AlignTop, "Settings are");
+    canvas_draw_str_aligned(canvas, 32, 94, AlignCenter, AlignTop, "saved to SD");
+
+    // Version, pulled from fap_version in application.fam at build time
+    canvas_draw_str_aligned(canvas, 32, 114, AlignCenter, AlignTop, "v" FAP_VERSION);
 }
 
 static bool htw_setup_view_input(InputEvent* event, void* context) {

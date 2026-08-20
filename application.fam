@@ -7,10 +7,9 @@ App(
     entry_point="htw_ac_remote_app",
     stack_size=4 * 1024,
     fap_category="Infrared",
-    fap_version="1.1",
+    fap_version="1.2",
     fap_icon="htw_ac_remote.png",
     fap_description="IR remote control for HTW air conditioner",
     fap_author="sokogen",
-    fap_icon_assets="images",
     fap_libs=["infrared"],
 )

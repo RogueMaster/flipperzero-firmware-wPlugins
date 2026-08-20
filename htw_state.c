@@ -189,38 +189,19 @@ bool htw_state_save(HtwState* state) {
     return success;
 }
 
-void htw_state_mode_next(HtwState* state) {
+void htw_state_set_mode(HtwState* state, HtwMode mode) {
     if(!state) return;
-    state->mode = (state->mode + 1) % HtwModeCount;
+    if(mode >= HtwModeCount) return;
+    state->mode = mode;
     if(state->mode != HtwModeOff) {
         state->last_active_mode = state->mode;
     }
 }
 
-void htw_state_mode_prev(HtwState* state) {
+void htw_state_set_fan(HtwState* state, HtwFan fan) {
     if(!state) return;
-    if(state->mode == 0) {
-        state->mode = HtwModeCount - 1;
-    } else {
-        state->mode--;
-    }
-    if(state->mode != HtwModeOff) {
-        state->last_active_mode = state->mode;
-    }
-}
-
-void htw_state_fan_next(HtwState* state) {
-    if(!state) return;
-    state->fan = (state->fan + 1) % HtwFanCount;
-}
-
-void htw_state_fan_prev(HtwState* state) {
-    if(!state) return;
-    if(state->fan == 0) {
-        state->fan = HtwFanCount - 1;
-    } else {
-        state->fan--;
-    }
+    if(fan >= HtwFanCount) return;
+    state->fan = fan;
 }
 
 void htw_state_temp_up(HtwState* state) {

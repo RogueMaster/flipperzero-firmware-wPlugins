@@ -124,12 +124,12 @@ Handles IR signal encoding:
 #### Main View (`views/htw_main_view.c/h`)
 
 Primary user interface:
-- Mode/Fan selectors with labels
+- Mode/Fan selectors with labels, each opening a dropdown list overlay (OK to open, Up/Down to browse, OK to confirm & send immediately, Back to cancel) drawn on top of the screen without shifting other elements
 - Temperature display with +/- buttons
 - Toggle buttons grid (Swing, Turbo, Fresh, LED, Clean)
 - Navigation to Timer and Setup
 - HTW logo with sending animation
-- Debounce mechanism for carousel parameters (800ms delay)
+- Debounce mechanism for temperature +/- (800ms delay)
 
 #### Timer View (`views/htw_timer_view.c/h`)
 
