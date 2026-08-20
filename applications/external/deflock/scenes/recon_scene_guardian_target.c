@@ -30,7 +30,7 @@
 #define GUARD_TARGET_SCAN_INDEX  0xFFFEu
 // One companion `wifiscan` sweep is ~6 s. Hold the scanning state a little longer
 // so the row does not flip back to "Scan" while results are still landing.
-#define GUARD_TARGET_SCAN_MS 9000u
+#define GUARD_TARGET_SCAN_MS     9000u
 
 typedef struct {
     uint8_t bssid[6];
