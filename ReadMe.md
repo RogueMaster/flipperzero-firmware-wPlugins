@@ -25,7 +25,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Supporters also get SD Card Assets zip file with extra NFC Assets such as Infrared remotes, NFC files, SubGHz files and 86 RM Pro Trained Level 50 Sm@sh Amiib0 (By RogueMaster)](https://www.patreon.com/RogueMaster/membership)
 - We are open to PRs, suggestions and advice if you feel you need anything that has been left out. [Contact me on Discord](https://discord.gg/gF2bBUzAFe)
 
-<a name="latest"></a> 
+<a name="latest"></a>
 
 ## Latest Updates - [PATREON: Latest Release RM0817-1730-f188ed86-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
@@ -115,7 +115,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Wifi Internet Watch v1.1 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
 - Added: [TPMS Bridge Renault v1.0 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 - NFC, LF RFID, iButton: [Renaming a saved file no longer deletes it before the replacement is written - all three apps unlinked the loaded file first, so a save that then failed (full SD, card pulled) left the user with neither copy. The new file is written first and the old one dropped only once it is safely on disk, a stale NFC shadow file can no longer override a fresh save, and a failed save no longer leaves the app pointing at a file that was never created. Note this protects renames; re-saving under the same name still writes over the only copy (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1067)
-- Updated: [Maze 3D v6.11.2 (By k20120509)](https://github.com/k20120509/flipper-release) [Fixed multi-line comment warning in maze_3d/maze3d.h (By mruwzum)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1197)
 - SubGHz: [Fix decoding RAW files - all signals in the file show up now, instead of only one and a different one on every run for cases when signal gets flagged as duplicate (same uint8 hash), and opening a signal and going back no longer adds a duplicate of it (in Read too) (hashing algo for deduplicate was tuned also) (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/5ce3517e076d81af53f7f9ab54276d9bfc8fc294) Modified to use uint32 instead of uint8 (By RogueMaster)
 - Added: [Fake Chip Detector v0.7 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - Added: [Meshcore Config v0.1 (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/tree/main)
@@ -160,6 +159,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [UHF Expansion v1.0 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [DeFlock v0.73 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Specter v2.7 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- Updated: [Maze 3D v6.12 (By k20120509)](https://github.com/k20120509/flipper-release)
 
 <a name="release"></a>
 
@@ -356,7 +356,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Mancala v0.1 (By fgreil)](https://github.com/fgreil/mitzi-mancala)
 - [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins)
 - [Matagotchi v1.1 (By MrModd)](https://github.com/MrModd/Matagotchi)
-- [Maze 3D v6.11.2 (By k20120509)](https://github.com/k20120509/flipper-release)
+- [Maze 3D v6.12 (By k20120509)](https://github.com/k20120509/flipper-release)
 - [Mind Probe v0.1 (By Miksang)](https://github.com/Miksang/flipper_guessing_game)
 - [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
 - [Minesweeper v1.2 (By panki27)](https://github.com/panki27/minesweeper)

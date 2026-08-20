@@ -526,6 +526,12 @@ bool player_move(float dx, float dy) {
             game_next_level();
         } else if(g.mode == MODE_ENDLESS_VISITOR) {
             set_msg(MSG_EXIT);
+        } else if(g.mode == MODE_RAP) {
+            // v6.12-beta RAP: 找到出口 → 过关弹框, 之后下一层
+            g.mode = MODE_LEVEL_CLEAR;
+            g.ach_total_clears++;
+            sfx_play(SFX_LEVEL_CLEAR);
+            storage_save();
         }
     } else if(here == CELL_LOCKED_EXIT) {
         // v6.4 修复: 任务完成后锁定出口自动放行 (之前总是弹回, 导致无法通关)
@@ -999,6 +1005,73 @@ void game_init_mc(void) {
     g.dirty = true;
 }
 
+// v6.12-beta: RAP 单键挑战模式初始化
+//   - 基于无尽模式: 小迷宫 13x13, 纯找出口
+//   - rap_active=true, rap_action=0 (从右转+扫视开始)
+//   - 视角全部归零 (启动时平视)
+void game_init_rap(void) {
+    g.mode = MODE_RAP;
+    g.rap_active = true;
+    g.rap_action = 0; // 0=TurnR 1=Fwd 2=TurnL 3=Dash
+    g.view_pitch_target = 0.0f;
+    g.view_pitch = 0.0f;
+    g.view_yaw_sweep_target = 0.0f;
+    g.view_yaw_sweep = 0.0f;
+
+    g.level = 1;
+    g.endless_floor = 1;
+    g.stage = STAGE_MAZE_ONLY; // 纯迷宫, 不搞战斗/解谜 (单键玩就纯走路)
+    g.has_exit = true;
+    g.exit_found = true;
+    g.tick = 0;
+    g.show_hud = false;
+    // 清零所有插值 target
+    g.turn_target = 0.0f;
+    g.move_fwd_target = 0.0f;
+    g.move_bwd_target = 0.0f;
+    g.move_dash_target = 0.0f;
+    g.turn_hold_dir = 0;
+    g.turn_hold_time = 0;
+    g.move_hold_dir = 0;
+    g.move_hold_time = 0;
+    g.jump_timer = 0;
+    g.jump_z = 0.0f;
+    g.invincible_timer = 0;
+    g.regen_timer = 0;
+
+    // RAP: 固定小迷宫 13x13 — 尺寸合适, 找出口不太难也不太简单
+    int sz = 13;
+    g.map_w = sz;
+    g.map_h = sz;
+    // 种子: 每局 RAP 开始都不同, 但稳定可复现
+    unsigned seed = 0x5A5A0000u ^ (unsigned)furi_get_tick();
+    maze_generate(sz, sz, 1, seed);
+    // 放置玩家 + 给 10 血 (死亡=游戏结束, 但纯迷宫没有陷阱)
+    g.player.x = 1.5f;
+    g.player.y = 1.5f;
+    g.map_w = sz;
+    g.map_h = sz;
+    // 重设方向 (东)
+    {
+        float angle = 0.0f;
+        g.player.dir_x = cosf(angle);
+        g.player.dir_y = sinf(angle);
+        g.player.plane_x = -g.player.dir_y * 0.66f;
+        g.player.plane_y = g.player.dir_x * 0.66f;
+    }
+    g.player.keys = 0;
+    g.player.torches = 0;
+    g.player.potions = 0;
+    g.player.amulets = 0;
+    g.actor_count = 0;
+    g.ammo = 0;
+    g.player.max_health = 10;
+    g.player.health = 10;
+    quest_init_for_level(1); // 任务: 找出口
+    set_msg(MSG_RUN); // "无尽挑战" 提示位图 (凑合用)
+    g.dirty = true;
+}
+
 // v6.4: mc_mine — OK 长按挖掘前方方块, 挖到后手持自动切换为该方块
 void mc_mine(void) {
     int tx, ty;
@@ -1434,6 +1507,41 @@ void game_update(void) {
         player_move(-g.player.dir_x * s, -g.player.dir_y * s);
         g.move_bwd_target -= s;
         if(g.move_bwd_target < 0.0f) g.move_bwd_target = 0.0f;
+    }
+
+    // v6.12-beta: 视角插值 (俯仰 pitch + 左右扫视 yaw sweep)
+    //   所有模式都支持 — 让游戏画面有呼吸感, 单键模式节奏更强
+    {
+        float lerp_rate = g.rap_active ? 0.38f : 0.25f; // RAP 模式更快回弹, 更嗨
+        float dp = g.view_pitch_target - g.view_pitch;
+        if(fabsf(dp) > 0.002f) {
+            float step = dp * lerp_rate;
+            if(fabsf(step) < 0.003f) {
+                g.view_pitch = g.view_pitch_target;
+            } else {
+                g.view_pitch += step;
+            }
+        } else {
+            g.view_pitch = g.view_pitch_target;
+        }
+        float dyw = g.view_yaw_sweep_target - g.view_yaw_sweep;
+        if(fabsf(dyw) > 0.002f) {
+            float step = dyw * lerp_rate;
+            if(fabsf(step) < 0.003f) {
+                g.view_yaw_sweep = g.view_yaw_sweep_target;
+            } else {
+                g.view_yaw_sweep += step;
+            }
+        } else {
+            g.view_yaw_sweep = g.view_yaw_sweep_target;
+        }
+        // RAP 模式: 每帧加一点随机扫视抖动(像 Rapper 一样不停晃头), 让画面更有动感
+        if(g.rap_active && (g.tick & 3) == 0) {
+            float wob = ((float)((int)(maze_rng_next() & 31) - 16)) * 0.002f;
+            g.view_yaw_sweep += wob;
+            float wob_p = ((float)((int)(maze_rng_next() & 15) - 8)) * 0.002f;
+            g.view_pitch += wob_p;
+        }
     }
 
     actors_update();

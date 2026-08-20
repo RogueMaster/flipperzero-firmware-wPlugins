@@ -361,6 +361,18 @@ void engine_render(void) {
     const float dirX = p->dir_x, dirY = p->dir_y;
     const float planeX = p->plane_x, planeY = p->plane_y;
 
+    // v6.12-beta: 视角 yaw_sweep 扫视偏移 (头部微转) — 旋转相机方向 + 投影面
+    float yaw_sw = g.view_yaw_sweep;
+    float cs_sw = cosf(yaw_sw), sn_sw = sinf(yaw_sw);
+    float dirX_eff = dirX * cs_sw - dirY * sn_sw;
+    float dirY_eff = dirX * sn_sw + dirY * cs_sw;
+    float planeX_eff = planeX * cs_sw - planeY * sn_sw;
+    float planeY_eff = planeX * sn_sw + planeY * cs_sw;
+
+    // v6.12-beta: 视角 pitch 俯仰偏移 (抬头/低头) — 地平线像素位移
+    //   pitch>0=抬头 → 画面整体下移 → pitchShift>0
+    int pitchShift = (int)(g.view_pitch * (float)SCREEN_H * 0.55f);
+
     // v6.9: cfg_density 0..2 → 列数 32/48/64
     static const int dens_cols[] = {32, 48, 64};
     int RENDER_COLS_DYN = dens_cols[(g.cfg_density < 3) ? g.cfg_density : 2];
@@ -373,8 +385,8 @@ void engine_render(void) {
         int px_ctr = (px_start + px_end) / 2;
 
         float cameraX = 2.0f * (float)(px_ctr + 0.5f) / (float)SCREEN_W - 1.0f;
-        float rayX = dirX + planeX * cameraX;
-        float rayY = dirY + planeY * cameraX;
+        float rayX = dirX_eff + planeX_eff * cameraX;
+        float rayY = dirY_eff + planeY_eff * cameraX;
 
         int mapX = (int)posX;
         int mapY = (int)posY;
@@ -425,8 +437,10 @@ void engine_render(void) {
         }
         if(!hit) {
             // 没打到墙: 仅画地板/天花板, 填充整列像素范围
+            // (无 perp 距离, jumpShift=0, 只受pitchShift俯仰影响)
+            int horizon = SCREEN_H / 2 + pitchShift;
             for(int y = 0; y < SCREEN_H; y++) {
-                uint8_t on = (y < SCREEN_H / 2) ? ceil_px(px_ctr, y) : floor_px(px_ctr, y);
+                uint8_t on = (y < horizon) ? ceil_px(px_ctr, y) : floor_px(px_ctr, y);
                 for(int px = px_start; px <= px_end; px++)
                     fb_set(px, y, on);
             }
@@ -447,12 +461,14 @@ void engine_render(void) {
         int lineH = (int)((float)SCREEN_H / perp);
         if(lineH < 1) lineH = 1;
         // v6.7-beta: 跳跃 — 根据离地 jump_z 像素高度, 按距离将墙面+地平线整体下移
+        // v6.12-beta: +pitchShift 俯仰地平线位移
         int jumpShift = 0;
         if(g.jump_z != 0.0f) {
             jumpShift = (int)(g.jump_z * (float)SCREEN_H / perp);
         }
-        int drawStart = -lineH / 2 + SCREEN_H / 2 + jumpShift;
-        int drawEnd = lineH / 2 + SCREEN_H / 2 + jumpShift;
+        int vertShift = jumpShift + pitchShift;
+        int drawStart = -lineH / 2 + SCREEN_H / 2 + vertShift;
+        int drawEnd = lineH / 2 + SCREEN_H / 2 + vertShift;
         if(drawStart < 0) drawStart = 0;
         if(drawEnd >= SCREEN_H) drawEnd = SCREEN_H - 1;
 
@@ -486,7 +502,7 @@ void engine_render(void) {
                 fb_set(px, y, on);
         }
         // 画墙 (填充像素范围)
-        int constHalf = -lineH / 2 + SCREEN_H / 2 + jumpShift;
+        int constHalf = -lineH / 2 + SCREEN_H / 2 + vertShift;
         for(int y = drawStart; y <= drawEnd; y++) {
             int texY = ((y - constHalf) * 8) / lineH;
             if(texY < 0)
@@ -513,10 +529,10 @@ void engine_render(void) {
         float spx = (float)g.exit_x + 0.5f - g.player.x;
         float spy = (float)g.exit_y + 0.5f - g.player.y;
         float dist = sqrtf(spx * spx + spy * spy);
-        float invDet =
-            1.0f / (g.player.plane_x * g.player.dir_y - g.player.dir_x * g.player.plane_y);
-        float transX = invDet * (g.player.dir_y * spx - g.player.dir_x * spy);
-        float transY = invDet * (-g.player.plane_y * spx + g.player.plane_x * spy);
+        // v6.12-beta: 使用 yaw_sweep 后的相机基矢 (保持和 raycasting 一致)
+        float invDet = 1.0f / (planeX_eff * dirY_eff - dirX_eff * planeY_eff);
+        float transX = invDet * (dirY_eff * spx - dirX_eff * spy);
+        float transY = invDet * (-planeY_eff * spx + planeX_eff * spy);
 
         // 靠近出口时, 在屏幕中上方画脉冲提示 (不管方向)
         if(dist < 4.0f && (g.tick & 7) < 5) {
@@ -583,8 +599,8 @@ void engine_render(void) {
     {
         int px = (int)g.player.x;
         int py = (int)g.player.y;
-        Player* pp = &g.player;
-        const float invDet = 1.0f / (pp->plane_x * pp->dir_y - pp->dir_x * pp->plane_y);
+        // v6.12-beta: 使用 yaw_sweep 后的相机基矢 (保持和 raycasting 一致)
+        const float invDet = 1.0f / (planeX_eff * dirY_eff - dirX_eff * planeY_eff);
         for(int y = -3; y <= 3; y++) {
             for(int x = -3; x <= 3; x++) {
                 int cx1 = px + x, cy1 = py + y;
@@ -593,10 +609,10 @@ void engine_render(void) {
                    cell != CELL_AMULET && cell != CELL_TRAP && cell != CELL_EXIT)
                     continue;
                 // 精灵世界坐标
-                float spx = (float)cx1 + 0.5f - pp->x;
-                float spy = (float)cy1 + 0.5f - pp->y;
-                float transX = invDet * (pp->dir_y * spx - pp->dir_x * spy);
-                float transY = invDet * (-pp->plane_y * spx + pp->plane_x * spy);
+                float spx = (float)cx1 + 0.5f - g.player.x;
+                float spy = (float)cy1 + 0.5f - g.player.y;
+                float transX = invDet * (dirY_eff * spx - dirX_eff * spy);
+                float transY = invDet * (-planeY_eff * spx + planeX_eff * spy);
                 if(transY <= 0.1f) continue; // 背后或太近
                 int screenX = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
                 // 投影尺寸
@@ -605,12 +621,13 @@ void engine_render(void) {
                 if(ss > 40) ss = 40;
                 // 道具中心位于地板线附近 (下半屏, drawEnd 附近)
                 // v6.7-beta: 加上跳跃位移 — 相机升高, 地板上的精灵整体下移
+                // v6.12-beta: +pitchShift 俯仰位移
                 int jumpShiftSprite = 0;
                 if(g.jump_z != 0.0f) {
                     jumpShiftSprite = (int)(g.jump_z * (float)SCREEN_H / transY);
                 }
-                int cy_base =
-                    SCREEN_H / 2 + (int)((float)SCREEN_H * 0.12f / transY) + jumpShiftSprite;
+                int cy_base = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.12f / transY) +
+                              jumpShiftSprite + pitchShift;
                 if(cy_base > SCREEN_H - 1) cy_base = SCREEN_H - 1;
                 // 根据道具类型选简单标志形状 (2x2 或 十字 闪烁)
                 bool show = true;
@@ -675,15 +692,15 @@ void engine_render(void) {
 
     // v6.1: 渲染敌人精灵 (3D 投影 + 外形 + 受伤反白 + 移动呼吸)
     {
-        Player* pp = &g.player;
-        const float invDet = 1.0f / (pp->plane_x * pp->dir_y - pp->dir_x * pp->plane_y);
+        // v6.12-beta: 使用 yaw_sweep 后的相机基矢 (保持和 raycasting 一致)
+        const float invDet = 1.0f / (planeX_eff * dirY_eff - dirX_eff * planeY_eff);
         for(int i = 0; i < g.actor_count; i++) {
             Actor* a = &g.actors[i];
             if(!a->active || a->hp == 0) continue;
-            float spx = a->x - pp->x;
-            float spy = a->y - pp->y;
-            float transX = invDet * (pp->dir_y * spx - pp->dir_x * spy);
-            float transY = invDet * (-pp->plane_y * spx + pp->plane_x * spy);
+            float spx = a->x - g.player.x;
+            float spy = a->y - g.player.y;
+            float transX = invDet * (dirY_eff * spx - dirX_eff * spy);
+            float transY = invDet * (-planeY_eff * spx + planeX_eff * spy);
             if(transY <= 0.2f) continue; // 背后或太近不画
             int screenX = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
             if(screenX < -8 || screenX > SCREEN_W + 8) continue;
@@ -707,11 +724,13 @@ void engine_render(void) {
             }
             // 垂直锚点: 站在地板上 (脚部在 drawEnd 附近)
             // v6.7-beta: 跳跃位移 — 敌人站地板上, 随相机升高而下移
+            // v6.12-beta: +pitchShift 俯仰位移
             int jumpShiftActor = 0;
             if(g.jump_z != 0.0f) {
                 jumpShiftActor = (int)(g.jump_z * (float)SCREEN_H / transY);
             }
-            int feet_y = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.4f / transY) + jumpShiftActor;
+            int feet_y = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.4f / transY) + jumpShiftActor +
+                         pitchShift;
             if(feet_y > SCREEN_H - 1) feet_y = SCREEN_H - 1;
             int top_y = feet_y - sh;
             if(top_y < 0) top_y = 0;
