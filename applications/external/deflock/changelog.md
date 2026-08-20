@@ -2,7 +2,15 @@
 
 ## v0.73
 
-The v0.72 RogueMaster load failure is fixed. **Not run against a radio.**
+The v0.72 RogueMaster load failure is fixed.
+
+**Partly hardware-verified, for once.** Run on a Flipper Zero (Momentum
+`mntm-dev`, API 87.1) with the ESP32 companion attached: Net Guardian's network
+targeting was exercised end to end, and the v0.70 Detail-round-trip fix was
+confirmed on real hardware for the first time (a tagged tracker survived Back,
+and the device table grew 25 -> 28 rather than resetting). **The probe-rate gate
+below was NOT verified** -- it runs on the companion and the attached board is
+still on older firmware. See the note under that entry.
 
 ### Fixed
 
@@ -38,7 +46,19 @@ The v0.72 RogueMaster load failure is fixed. **Not run against a radio.**
   clear the reported false positive without risking a real camera. The observed
   count now rides the wire as `pr=<n>` and reaches the app as an observation —
   never a confidence input — precisely so it can be tuned from real captures
-  instead of guessed at twice. **Needs a companion reflash to take effect.**
+  instead of guessed at twice.
+
+  **BOTH HALVES NEED A COMPANION REFLASH**, and the demotion is the less obvious
+  one. The OUI table is compiled into the companion as well, so a board running
+  older firmware still matches `48:27:ea` and still reports it -- and the app
+  trusts the companion for every rung below Confirmed, because those depend on
+  probe behaviour it cannot re-derive. Updating the `.fap` alone will not clear
+  this false positive. Flash `flipdeflock_companion_esp32wroom.bin` from the same
+  release.
+
+  **Not verified on hardware.** The gate is companion-side and the board attached
+  during testing was on older firmware, so nothing exercised it. The thresholds
+  remain unmeasured guesses until someone runs a camera and a phone past it.
 
 - **Net Guardian can guard ONE network instead of everything in range.** Press
   **Right** on the Guardian screen to pick an access point; the bottom line then
@@ -63,6 +83,11 @@ The v0.72 RogueMaster load failure is fixed. **Not run against a radio.**
   fire. A target with no name (a hidden AP) simply never contributes the
   evil-twin signal; deauth attribution still works for it. Changing the target
   resets the score rather than carrying one earned against a different question.
+
+  **Verified on hardware**, not just in CI: the picker opens on Right and renders
+  safely with an empty AP list, a live AP was selected from a real scan, the HUD
+  showed `>Kestral` in place of the `OK=sus` hint, and the choice round-tripped
+  through `settings.txt` as `guard_bssid` + `guard_ssid` and reloaded on restart.
 
 ### Added
 

@@ -92,6 +92,14 @@ mode around December 2025 — they send probe requests and do not beacon — so 
 on a beacon is, by construction, some other product on the same silicon. An emulator
 that only beacons will produce fewer hits than one that also sends probe requests.
 
+**Still seeing a false positive after updating the app?** Update the **companion
+firmware** too. The OUI table and the probe-rate gate are compiled into the ESP32
+as well as the app, and the app deliberately trusts the companion for every
+confidence rung below *Confirmed* — those depend on probe behaviour it cannot
+re-derive on its own. So a board on older firmware keeps reporting a prefix the
+app has since dropped. Flash `flipdeflock_companion_esp32wroom.bin` from the same
+release as your `.fap`.
+
 ## GPS
 
 **No fix / no geotags.** GPS is **off by default** — turn it on in Settings. Then give
