@@ -126,9 +126,23 @@ void recon_scene_firmware_run_on_enter(void* context) {
         plugin_host_free(g_fw_plugin);
         g_fw_plugin = NULL;
         g_fw_api = NULL;
-        fw_log_cb(app, "Flasher unavailable.");
-        fw_log_cb(app, "Reinstall the .fap so");
-        fw_log_cb(app, "its assets are extracted.");
+        // Name the actual cause instead of guessing at one. The old text said
+        // "reinstall the .fap so its assets are extracted", which is only ONE of
+        // the reasons this fails and was simply wrong for issue #23 -- a
+        // RogueMaster user whose assets were extracted under a different
+        // directory name than the running app resolved to. Being told to
+        // reinstall something already installed correctly wastes the reporter's
+        // time and tells the maintainer nothing.
+        //
+        // The log carries every path that was tried (see plugin_host.c); this
+        // points at it, because a screenshot of this screen is what actually
+        // arrives on an issue.
+        fw_log_cb(app, "Flasher plugin not found.");
+        fw_log_cb(app, "Checked /ext/apps_assets/");
+        fw_log_cb(app, "<app name>/plugins/.");
+        fw_log_cb(app, "Try: reinstall the .fap,");
+        fw_log_cb(app, "or send the CLI log -- it");
+        fw_log_cb(app, "lists every path tried.");
         fw_log_cb(app, "== FAILED ==");
         app->fw_running = false;
         app->fw_ok = false;

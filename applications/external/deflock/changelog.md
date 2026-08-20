@@ -1,5 +1,55 @@
 # Changelog
 
+## v0.76
+
+**The ESP32 flasher would not open on RogueMaster** ([#23](https://github.com/ReconGrunt/FlipDeFlock/issues/23),
+reported by [@h00die](https://github.com/h00die)). It failed with *"Flasher
+unavailable"* the moment the screen was entered.
+
+### Fixed
+
+- **Plugins are found under any of the filenames this project ships as.** The
+  flasher and the QR encoder ship as `.fal` files embedded in the `.fap` and are
+  mapped in only while their screen is open. The loader looked in exactly one
+  place: `/assets/plugins/`.
+
+  `/assets` is a **virtual** path. The firmware rewrites it to
+  `/ext/apps_assets/<appid>` — and for an external `.fap` that appid is **not**
+  the manifest appid, it is the *filename*:
+
+  ```c
+  path_extract_filename_no_ext(path, app_name);
+  furi_thread_set_appid(loader->app.thread, ...);
+  ```
+
+  Asset extraction derives its directory the same way, so on stock firmware the
+  two agree and one path was enough. That assumption broke the moment the same
+  app began shipping under a second filename — `deflock.fap` for RogueMaster,
+  added in [#21](https://github.com/ReconGrunt/FlipDeFlock/pull/21). Anything
+  that makes the running name and the extracted name disagree leaves a perfectly
+  good `.fal` sitting on the card that the app cannot see.
+
+  The loader now tries the virtual path first, then the concrete directory for
+  every artifact name the project releases. The QR handoff used the same loader
+  and had the identical latent bug; it is fixed by the same change.
+
+- **The failure now says what it checked, instead of guessing.** The old message
+  was *"Reinstall the .fap so its assets are extracted"* — one possible cause,
+  stated as if it were the only one, and simply wrong for #23: those assets
+  **were** extracted, just under a different directory name. Being told to
+  reinstall something already installed correctly costs the reporter time and
+  tells the maintainer nothing.
+
+  Every attempted path is now logged individually, and the on-screen text points
+  at that log, because a photo of this screen is what actually arrives on an
+  issue.
+
+**Honest status:** this is a fix for a real defect found by reading the firmware's
+own path resolution, and it covers the case #23 describes. It has **not** been
+confirmed against a RogueMaster device — none was available — so if the flasher
+still fails there, the CLI log will now name every path tried, which is the thing
+that was missing the first time.
+
 ## v0.75
 
 **The probe-rate gate is removed.** It shipped in v0.74 and should not have.

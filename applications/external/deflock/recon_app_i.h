@@ -62,7 +62,7 @@ typedef enum {
 
 #define RECON_BLE_ACTION_STATUS_LEN 24
 
-#define RECON_APP_FOLDER    EXT_PATH("apps_data/flipdeflock")
+#define RECON_APP_FOLDER    APP_DATA_PATH("")
 #define RECON_REPORT_FOLDER RECON_APP_FOLDER "/reports"
 #define RECON_SETTINGS_PATH RECON_APP_FOLDER "/settings.txt"
 #define RECON_HITS_PATH     RECON_APP_FOLDER "/hits.csv"

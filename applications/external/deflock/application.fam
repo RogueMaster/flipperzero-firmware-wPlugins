@@ -1,6 +1,6 @@
 App(
-    appid="deflock",
-    name="DeFlock",
+    appid="flipdeflock",
+    name="FlipDeFlock",
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
     # Default glob (*.c*) minus the host-only unit tests and the plugin sources.
@@ -33,7 +33,7 @@ App(
     # left alone deliberately because its truncation semantics are load-bearing
     # and well covered by tests, and this is not the release to churn them in.
     stack_size=6 * 1024,
-    fap_icon_assets_symbol="flipdeflock",
+    fap_file_assets=".esp32_companion/flock_companion",
     fap_icon="icon.png",
     # esp-serial-flasher used to be a private lib of the APP. It moved to the
     # flasher plugin below along with esp_flasher.c, taking a measured 10,230
@@ -43,7 +43,7 @@ App(
     fap_category="GPIO/ESP32",
     fap_author="ReconGrunt",
     fap_weburl="https://github.com/ReconGrunt/FlipDeFlock",
-    fap_version="0.75",
+    fap_version="0.76",
     fap_description="FlipDeFlock: detect Flock/ALPR surveillance cameras via any "
     "ESP32 (Marauder or companion FW), with GPS geotagging and "
     "DeFlock-compatible reports.",
@@ -64,7 +64,7 @@ App(
     appid="flipdeflock_qr",
     apptype=FlipperAppType.PLUGIN,
     entry_point="qr_plugin_ep",
-    requires=["deflock"],
+    requires=["flipdeflock"],
     sources=["plugins/qr/*.c"],
     fal_embedded=True,
     fap_private_libs=[
@@ -83,7 +83,7 @@ App(
     appid="flipdeflock_flasher",
     apptype=FlipperAppType.PLUGIN,
     entry_point="flasher_plugin_ep",
-    requires=["deflock"],
+    requires=["flipdeflock"],
     sources=["plugins/flasher/*.c"],
     fal_embedded=True,
     # The cdefines below are duplicated from the Lib() rather than inherited:

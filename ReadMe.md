@@ -33,13 +33,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-08-19 22:50 EST`
 - Updated: [HTW AC Remote v1.2 (By sokogen)](https://github.com/sokogen/flipperzero-htw-ac-remote)
 - ESP Flasher: [Bump Marauder v1.15.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.15.0)
-- Updated: [DeFlock v0.75 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - NFC: [Protocol scenes moved into their own plugins, roughly halving the app's resident RAM (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1073)
 - NFC: [Fixed the EMV plugin, which never loaded (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1073)
 - NFC: [Removed unreachable EMV render code that called an undefined function (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1085)
 - NFC: [Ultralight - Amiibo/Xiaomi unlock no longer burns an AUTHLIM attempt when the password cannot be derived (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1086)
 - NFC: [Ultralight read result now says whether authentication failed or was never attempted (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1090)
 - NFC: [Ultralight - the default password is no longer tried when AUTHLIM cannot be read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1089)
+- Updated: [FlipDeFlock v0.76 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -418,7 +418,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DCF77 Clock Spoof v1.4 (By mdaskalov & molodos)](https://github.com/mdaskalov/dcf77-clock-sync)
 - [DCF77 Transmitter v2.0 (By arha)](https://github.com/arha/flipper-dcf77)
 - [Deauther PWNDTOOLS V2.6.0 (By HEX0DAYS)](https://github.com/HEX0DAYS/FlipperZero-PWNDTOOLS) `Req: ESP8266` [Original](https://github.com/SpacehuhnTech/esp8266_deauther)
-- [DeFlock v0.75 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)
@@ -473,6 +472,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipBoard Simon v1.10 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipCrypt v0.6 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 - [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck)
+- [FlipDeFlock v0.76 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [FlipDownloader v1.3.5 (By jblanked)](https://github.com/jblanked/FlipStore) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
 - [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)

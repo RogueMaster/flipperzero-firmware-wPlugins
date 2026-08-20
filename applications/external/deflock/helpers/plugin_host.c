@@ -7,13 +7,46 @@
 #include <loader/firmware_api/firmware_api.h>
 #include <storage/storage.h>
 
+#include <stdbool.h>
 #include <stdlib.h>
 
 #define TAG "PluginHost"
 
-/** Where the firmware extracts this app's embedded file assets. Resolved by the
- *  storage service per running app, so it needs no appid baked in here. */
-#define PLUGIN_DIR APP_ASSETS_PATH("plugins")
+/**
+ * Where the firmware extracts this app's embedded file assets.
+ *
+ * "/assets" is a VIRTUAL path. storage_processing.c rewrites it to
+ * /ext/apps_assets/<appid>, and for an external .fap that appid is NOT the
+ * manifest appid -- the loader takes it from the FILENAME:
+ *
+ *     path_extract_filename_no_ext(path, app_name);
+ *     furi_thread_set_appid(loader->app.thread, ...);
+ *
+ * Extraction derives its directory the same way, so on stock firmware the two
+ * agree and one path is enough. That stops being true the moment the same app
+ * ships under more than one filename -- which is exactly what RogueMaster
+ * builds do as `deflock.fap` (#21). Anything that makes the running name and
+ * the extracted name disagree leaves a perfectly good .fal on the card that the
+ * app cannot see, and the only symptom is "unavailable".
+ *
+ * So the virtual path is tried first (correct whenever the firmware behaves as
+ * documented), then the concrete directory for every filename this project
+ * actually ships under. Bounded, cheap, and it removes a whole class of
+ * "works on my firmware" report.
+ */
+#define PLUGIN_SUBDIR "plugins"
+
+static const char* const PLUGIN_ASSET_DIRS[] = {
+    APP_ASSETS_PATH(PLUGIN_SUBDIR), // per-app virtual path; correct on stock firmware
+    // Concrete fallbacks, one per released artifact name. Keep in step with
+    // .github/actions/name-fap/action.yml, which decides those filenames.
+    "/ext/apps_assets/flipdeflock/" PLUGIN_SUBDIR,
+    "/ext/apps_assets/deflock/" PLUGIN_SUBDIR, // RogueMaster
+    "/ext/apps_assets/flipdeflock-unleashed/" PLUGIN_SUBDIR,
+    "/ext/apps_assets/flipdeflock-momentum/" PLUGIN_SUBDIR,
+};
+
+#define PLUGIN_ASSET_DIR_COUNT (sizeof(PLUGIN_ASSET_DIRS) / sizeof(PLUGIN_ASSET_DIRS[0]))
 
 struct PluginHost {
     PluginManager* manager;
@@ -46,19 +79,32 @@ PluginHost* plugin_host_load(const char* app_id, uint32_t api_version, const voi
     // A plugin's asset is named "<appid>.fal", so the path is derivable and the
     // scan buys nothing. load_single is also deterministic and does not depend
     // on readdir order.
-    char path[96];
-    int n = snprintf(path, sizeof(path), "%s/%s.fal", PLUGIN_DIR, app_id);
-    if(n < 0 || (size_t)n >= sizeof(path)) {
-        FURI_LOG_E(TAG, "%s: plugin path too long", app_id);
-        plugin_manager_free(manager);
-        return NULL;
+    // Try each candidate in turn, and LOG EVERY ATTEMPT with its full path. The
+    // previous version logged only "no plugin", which is what turned issue #23
+    // into an investigation rather than a one-line answer.
+    char path[128];
+    bool loaded = false;
+    for(size_t i = 0; i < PLUGIN_ASSET_DIR_COUNT && !loaded; i++) {
+        int n = snprintf(path, sizeof(path), "%s/%s.fal", PLUGIN_ASSET_DIRS[i], app_id);
+        if(n < 0 || (size_t)n >= sizeof(path)) {
+            FURI_LOG_E(TAG, "%s: path too long under %s", app_id, PLUGIN_ASSET_DIRS[i]);
+            continue;
+        }
+        PluginManagerError err = plugin_manager_load_single(manager, path);
+        if(err == PluginManagerErrorNone && plugin_manager_get_count(manager) > 0) {
+            FURI_LOG_I(TAG, "%s: loaded from %s", app_id, path);
+            loaded = true;
+        } else {
+            FURI_LOG_W(TAG, "%s: not at %s (err=%d)", app_id, path, (int)err);
+        }
     }
 
-    PluginManagerError err = plugin_manager_load_single(manager, path);
-    if(err != PluginManagerErrorNone || plugin_manager_get_count(manager) == 0) {
-        // Not an error worth shouting about: the usual cause is a card whose
-        // assets have not been extracted yet. The caller shows "unavailable".
-        FURI_LOG_W(TAG, "%s: no plugin (err=%d)", app_id, (int)err);
+    if(!loaded) {
+        // Not worth trapping over: a card whose assets were never extracted is a
+        // legitimate state. The caller shows "unavailable"; the log above now
+        // names every path that was tried.
+        FURI_LOG_E(
+            TAG, "%s: no plugin in any of %u asset dirs", app_id, (unsigned)PLUGIN_ASSET_DIR_COUNT);
         plugin_manager_free(manager);
         return NULL;
     }
