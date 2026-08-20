@@ -4,7 +4,7 @@
 #include <string.h>
 
 /**
- * 31 OUI prefixes observed in fielded Flock Safety deployments.
+ * 29 OUI prefixes observed in fielded Flock Safety deployments.
  * Mostly @NitekryDPaul research; 82:6b:f2 from DeFlockJoplin field testing;
  * the last entry b4:1e:52 is Flock Safety's own IEEE-registered OUI (GainSec).
  * These are generic vendor prefixes (Liteon, Espressif, etc.), hence OUI-only
@@ -45,10 +45,28 @@
  *   - Flat-list orphans, absent from the curated table in EVERY section (not
  *     Active, not testing, not Removed): 70:08:94, 58:00:e3, 5c:93:a2, 64:6e:69.
  *     Kept because absence is not retraction, but their status is unverifiable.
- *   - Weak upstream confidence: 08:3a:88 ("BLE Ring conflict - unsure"),
- *     48:27:ea + a4:cf:12 ("low, WiGLE crowdsource"). These three do NOT meet
- *     the field-corroboration bar this table's first line claims.
+ *   - Weak upstream confidence: 08:3a:88 ("BLE Ring conflict - unsure"). Does
+ *     NOT meet the field-corroboration bar this table's first line claims.
  * Nothing here changes scoring: an OUI-only match caps at "possible" regardless.
+ *
+ * DEMOTED to docs/signatures.seed.json (v0.73): 48:27:ea and a4:cf:12. Upstream
+ * rates both "low confidence, WiGLE crowdsource" -- the weakest tier it has --
+ * and the IEEE registry says 48:27:ea belongs to SAMSUNG ELECTRONICS and
+ * a4:cf:12 to Espressif. Neither is Flock hardware; they are the chip vendors
+ * inside a great many phones, tablets and hotspots.
+ *
+ * That mattered in the field, not just on paper. The companion scores
+ * "Flock OUI + wildcard probe request" as LIKELY, and a wildcard probe is the
+ * single most ordinary frame a Wi-Fi client emits -- it is what scanning for
+ * networks looks like. So a Samsung-based T-Mobile hotspot doing nothing but
+ * looking for a network was reported as a likely ALPR camera. Same failure as
+ * the "tmobile-5416" gateway that killed bare-OUI-on-a-beacon scoring, one rung
+ * up the ladder. A user reported it; that is what got these two demoted and the
+ * probe-rate gate added on the companion side.
+ *
+ * Twenty-one of the prefixes below are registered to LITEON alone. Read the
+ * table as "chip vendors Flock buys from", not "Flock devices" -- only
+ * b4:1e:52 is registered to Flock Safety itself.
  *
  * DUPLICATED in esp32_companion/flock_companion/flock_companion.ino, which
  * scores ESP-side. No shared header is possible (that side is an Arduino
@@ -63,8 +81,8 @@ static const uint8_t flock_ouis[][3] = {
     {0xf4, 0x6a, 0xdd}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
     {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
     {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf}, {0x58, 0x00, 0xe3},
-    {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x48, 0x27, 0xea},
-    {0xa4, 0xcf, 0x12}, {0x82, 0x6b, 0xf2}, {0xb4, 0x1e, 0x52},
+    {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x82, 0x6b, 0xf2},
+    {0xb4, 0x1e, 0x52},
 };
 
 #define FLOCK_OUI_COUNT (sizeof(flock_ouis) / sizeof(flock_ouis[0]))

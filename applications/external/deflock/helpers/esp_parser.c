@@ -94,10 +94,15 @@ static EspMsgType parse_flock(char** f, int n, EspMsg* out) {
     //               Absent, or a letter this build does not know, means fall
     //               back to the class implied by the MAC's own OUI.
     //   hid=1       the AP beacons but withholds its SSID.
+    //   pr=<n>      probes this transmitter sent inside the companion's sliding
+    //               window. An OBSERVATION, not a score: the companion has
+    //               already applied its own gate. Surfaced so a threshold set
+    //               without field data can be tuned against real captures.
     // Start at f[7] (AFTER the ssid at f[6]) so an SSID that literally begins
     // "fp=" or "cls=" can't be misread as one of these fields.
     uint32_t fp = 0;
     bool hidden = false;
+    uint8_t probe_rate = 0;
     // Default the class from the MAC's own OUI rather than assuming ALPR: that
     // keeps classification right when an older companion sends no cls= field.
     // An explicit cls= below still wins.
@@ -118,6 +123,9 @@ static EspMsgType parse_flock(char** f, int n, EspMsg* out) {
                 dev_class = FlockClassAlpr;
         } else if(strncmp(f[i], "hid=", 4) == 0) {
             hidden = (f[i][4] == '1');
+        } else if(strncmp(f[i], "pr=", 3) == 0) {
+            unsigned long v = strtoul(f[i] + 3, NULL, 10);
+            probe_rate = (uint8_t)(v > 255 ? 255 : v);
         }
     }
 
@@ -154,6 +162,7 @@ static EspMsgType parse_flock(char** f, int n, EspMsg* out) {
     out->u.flock.fp = fp; // raw fp passed through for the detail screen (seeding)
     out->u.flock.dev_class = dev_class;
     out->u.flock.hidden = hidden;
+    out->u.flock.probe_rate = probe_rate;
     return EspMsgFlock;
 }
 

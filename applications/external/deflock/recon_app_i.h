@@ -443,6 +443,24 @@ typedef struct {
     DeauthTarget deauth[RECON_DEAUTH_MAX]; /**< BSSIDs seen under deauth attack */
     size_t deauth_count;
 
+    /**
+     * Net Guardian's GUARDED NETWORK, or "everything in range" when unset.
+     *
+     * Untargeted, the Guardian answers "is anything around me under attack?",
+     * which in a busy building is somebody else's problem most of the time. With
+     * a target set it answers "is MY network under attack?" -- only deauths aimed
+     * at this BSSID and evil twins of this SSID feed the score. Everything else
+     * (Flock, trackers, Flipper, attack tools) is unchanged: those are about the
+     * operator, not the network, and filtering them on a BSSID would be nonsense.
+     *
+     * The SSID is kept alongside the BSSID because an evil twin BY DEFINITION
+     * has a different BSSID -- matching a clone needs the name, and matching a
+     * deauth needs the address. Storing only one cannot express both.
+     */
+    uint8_t guard_bssid[6];
+    char guard_ssid[RECON_SSID_LEN];
+    bool guard_active; /**< false = guard everything in range (the default) */
+
     BleDevice ble[RECON_BLE_MAX]; /**< BLE devices / trackers */
     size_t ble_count;
     bool ble_scanning;

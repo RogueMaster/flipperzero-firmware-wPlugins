@@ -11,6 +11,8 @@ struct GuardianView {
     View* view;
     void (*ok_cb)(void*); /**< short-OK -> open the Suspicious list */
     void* ok_ctx;
+    void (*right_cb)(void*); /**< short-RIGHT -> open the guarded-network picker */
+    void* right_ctx;
 };
 
 typedef struct {
@@ -175,7 +177,17 @@ static void guardian_view_draw_callback(Canvas* canvas, void* _model) {
         draw_wrapped(canvas, bd, 62);
     } else {
         char status[32];
-        snprintf(status, sizeof(status), "%s ch%u  OK=sus", guardian_mode(phase), channel);
+        // With a network targeted, name it instead of the generic hint: the one
+        // thing the operator must be able to tell at a glance is WHICH question
+        // the score is answering. ">" prefixes it so a network literally called
+        // "sus" cannot be misread as the untargeted hint.
+        if(app->guard_active) {
+            const char* gname = app->guard_ssid[0] ? app->guard_ssid : "(hidden)";
+            snprintf(
+                status, sizeof(status), "%s ch%u  >%.12s", guardian_mode(phase), channel, gname);
+        } else {
+            snprintf(status, sizeof(status), "%s ch%u  OK=sus", guardian_mode(phase), channel);
+        }
         canvas_draw_str(canvas, 2, 62, status);
     }
 }
@@ -188,6 +200,10 @@ static bool guardian_view_input_callback(InputEvent* event, void* context) {
         gv->ok_cb(gv->ok_ctx);
         return true;
     }
+    if(event->type == InputTypeShort && event->key == InputKeyRight && gv->right_cb) {
+        gv->right_cb(gv->right_ctx);
+        return true;
+    }
     return false;
 }
 
@@ -196,6 +212,8 @@ GuardianView* guardian_view_alloc(void) {
     gv->view = view_alloc();
     gv->ok_cb = NULL;
     gv->ok_ctx = NULL;
+    gv->right_cb = NULL;
+    gv->right_ctx = NULL;
     view_set_context(gv->view, gv);
     view_allocate_model(gv->view, ViewModelTypeLocking, sizeof(GuardianViewModel));
     view_set_draw_callback(gv->view, guardian_view_draw_callback);
@@ -220,6 +238,11 @@ void guardian_view_set_app(GuardianView* gv, void* app) {
 void guardian_view_set_ok_callback(GuardianView* gv, void (*cb)(void*), void* ctx) {
     gv->ok_cb = cb;
     gv->ok_ctx = ctx;
+}
+
+void guardian_view_set_right_callback(GuardianView* gv, void (*cb)(void*), void* ctx) {
+    gv->right_cb = cb;
+    gv->right_ctx = ctx;
 }
 
 void guardian_view_refresh(GuardianView* gv) {

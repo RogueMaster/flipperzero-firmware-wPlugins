@@ -14,7 +14,7 @@
  *   S,<frames>,<hits>,<ch>[,<deauths>]  status heartbeat
  *   WBEGIN / W,<bssid>,<rssi>,<ch>,<auth>,<pair>,<grp>,<wps>,<ssid> / WEND
  *   BBEGIN / BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1] / BEND
- *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a|x][,hid=1] detection
+ *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,pr=<n>][,cls=a|x][,hid=1]
  *   DA,<bssid>,<ch>                     deauth/disassoc attack target
  *   ATK,<kind>,<value>                  active attack-tool signature
  *   LOC,<rssi>                          live Locator RSSI
@@ -78,7 +78,10 @@ typedef struct {
             FlockConfidence conf;
             uint32_t fp;
             FlockDevClass dev_class; /**< from `cls=`; absent -> FlockClassAlpr */
-            bool hidden; /**< from `hid=`: beacons but withholds its SSID.
+            bool hidden;
+            uint8_t probe_rate; /**< probes seen from this transmitter inside the
+                                  *  companion's window (0 = not reported). An
+                                  *  observation, never a confidence input. */ /**< from `hid=`: beacons but withholds its SSID.
                            *  Reported, never scored -- see parse_flock(). */
         } flock;
         struct { // EspMsgWifiAp (W)

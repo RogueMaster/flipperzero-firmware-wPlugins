@@ -164,13 +164,18 @@ static inline const uint8_t* fble_addr_bytes(BLEAddress& a) {
 }
 #endif
 
-// ---- Flock-associated OUI prefixes (31) ----------------------------------
+// ---- Flock-associated OUI prefixes (29) ----------------------------------
 // MUST stay byte-identical to flock_ouis[] in helpers/flock_db.c. There is no
 // shared header (an Arduino sketch cannot include the app's), so editing one
 // side alone would silently desync ESP-side `conf` scoring from the Flipper's.
 // tools/check_oui_parity.py is a REQUIRED CI gate that catches exactly that.
 // See flock_db.c for the provenance notes and the per-grade breakdown (contract
 // manufacturer / flat-list orphan / weak upstream confidence).
+//
+// DEMOTED in v0.73: 48:27:ea (SAMSUNG) and a4:cf:12 (Espressif), both rated
+// "low confidence, WiGLE crowdsource" upstream. They made a Samsung-based
+// T-Mobile hotspot score LIKELY just for sending the wildcard probe every
+// Wi-Fi client sends while scanning. They now live in docs/signatures.seed.json.
 //
 // RETRACTED UPSTREAM -- never re-add: f8:a2:d6 (hit on a Sony Media Player),
 // 6c:cd:d6, 94:2a:6f, f4:e2:c6, cc:cc:cc, 00:0c:e7. f8:a2:d6 in particular has
@@ -190,8 +195,8 @@ static const uint8_t FLOCK_OUIS[][3] = {
     {0xf4, 0x6a, 0xdd}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
     {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
     {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf}, {0x58, 0x00, 0xe3},
-    {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x48, 0x27, 0xea},
-    {0xa4, 0xcf, 0x12}, {0x82, 0x6b, 0xf2}, {0xb4, 0x1e, 0x52},
+    {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x82, 0x6b, 0xf2},
+    {0xb4, 0x1e, 0x52},
 };
 static const size_t FLOCK_OUI_COUNT = sizeof(FLOCK_OUIS) / sizeof(FLOCK_OUIS[0]);
 
@@ -577,6 +582,81 @@ static void buf_appendf(char* buf, size_t bufsz, size_t* pos, const char* fmt, .
     *pos += ((size_t)n > avail) ? avail : (size_t)n;
 }
 
+// ---- Sustained-probe-rate gate -------------------------------------------
+//
+// WHY. "Flock OUI + wildcard probe request -> LIKELY" is too generous on its own,
+// because a wildcard probe is the most ordinary frame a Wi-Fi client emits: it is
+// literally what scanning for a network looks like. And FLOCK_OUIS is mostly chip
+// vendors, not Flock -- 21 of its entries are Liteon. So an ordinary consumer
+// device built on the same silicon, doing nothing but looking for a network, was
+// scoring LIKELY. A user reported exactly that for a T-Mobile hotspot.
+//
+// WHAT SEPARATES THEM IS RATE, NOT BEHAVIOUR. A fielded Flock camera runs in
+// station mode and sprays wildcard probes roughly every 125 ms -- about eight a
+// second, continuously, because it is trying to phone home. A phone or a hotspot
+// scanning emits a short burst on each channel and then goes quiet for tens of
+// seconds. Same frame type, completely different cadence.
+//
+// So: require several probes from the same transmitter inside a short window
+// before OUI+probe may reach conf=2. A camera clears PROBE_BURST_MIN in well
+// under a second; a client sweeping channels rarely puts that many on OUR channel
+// inside the window.
+//
+// THRESHOLDS ARE NOT FIELD-TUNED. 125 ms is upstream's figure, but the client-side
+// distribution has never been measured here, so these are deliberately loose --
+// they are set to catch the reported false positive without risking a real
+// camera, not to be optimal. The observed count is reported on the wire as
+// `pr=<n>` precisely so it can be tuned from real captures instead of guessed at
+// again. Widen the window or lower the threshold only with data.
+#define PROBE_TRACK_N     24   // transmitters tracked (LRU); urban scans are busy
+#define PROBE_WINDOW_MS   2000 // sliding window a burst must land inside
+#define PROBE_BURST_MIN   3    // probes within the window to count as "sustained"
+
+struct ProbeTrack {
+    uint8_t mac[6];
+    uint8_t count;
+    uint32_t first_ms;
+    uint32_t last_ms;
+};
+static ProbeTrack g_probe_track[PROBE_TRACK_N];
+
+/**
+ * Record one probe request from `mac` and return how many it has sent inside the
+ * current window (>= 1). Called on EVERY candidate probe, before the sequence-run
+ * coalescer -- the coalescer deliberately suppresses repeats, so counting after it
+ * would always see 1 and the gate would reject everything including real cameras.
+ */
+static uint8_t probe_rate_bump(const uint8_t* mac) {
+    uint32_t now = millis();
+    int slot = -1, oldest = 0;
+    for(int i = 0; i < PROBE_TRACK_N; i++) {
+        if(memcmp(g_probe_track[i].mac, mac, 6) == 0 && g_probe_track[i].count) {
+            slot = i;
+            break;
+        }
+        // millis() wraps every ~49 days; the subtraction is unsigned so the
+        // comparison stays correct across the wrap.
+        if((uint32_t)(now - g_probe_track[i].last_ms) >
+           (uint32_t)(now - g_probe_track[oldest].last_ms)) {
+            oldest = i;
+        }
+    }
+    if(slot < 0) { // evict the least recently used entry
+        slot = oldest;
+        memcpy(g_probe_track[slot].mac, mac, 6);
+        g_probe_track[slot].count = 0;
+    }
+    ProbeTrack* e = &g_probe_track[slot];
+    if(e->count == 0 || (uint32_t)(now - e->first_ms) > PROBE_WINDOW_MS) {
+        e->count = 1; // window expired -> start a fresh one
+        e->first_ms = now;
+    } else if(e->count < 255) {
+        e->count++;
+    }
+    e->last_ms = now;
+    return e->count;
+}
+
 // ---- B1: probe IE-fingerprint + sequence-number coalescer ----------------
 //
 // The whole OUI/SSID ladder collapses the day Flock randomizes the probe MAC.
@@ -770,15 +850,33 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     bool is_probe = (ftype == 'P');
     bool wildcard = is_probe && (ssid_len == 0); // broadcast/wildcard probe
 
+    // Count this probe against its transmitter BEFORE the coalescer downstream
+    // suppresses repeats. Only the transmitter is rate-tracked: on an oui_rx hit
+    // the frame was sent TO the Flock-OUI device by someone else, so the cadence
+    // belongs to that someone else and says nothing about the receiver.
+    uint8_t probe_rate = 0;
+    if(is_probe) probe_rate = probe_rate_bump(p + 10); // addr2 = transmitter
+    bool sustained = probe_rate >= PROBE_BURST_MIN;
+
     int conf = 0;
     if(s_score == 3)
         conf = 3; // confirmed Flock SSID name
-    else if(oui_tx && wildcard)
-        conf = 2; // OUI + wildcard probe -> only "likely": FLOCK_OUIS includes shared
-                  // silicon-vendor ranges (e.g. Espressif), so any ESP32 device
-                  // probing hits this. Reserve conf=3 for an SSID-name / IE-fp match.
-    else if((oui_tx || oui_rx) && is_probe)
-        conf = 2; // OUI (sender or silent receiver) + probe behaviour
+    else if(oui_tx && wildcard && sustained)
+        conf = 2; // OUI + SUSTAINED wildcard probing -> "likely". The rate gate is
+                  // what makes this usable: FLOCK_OUIS is mostly chip vendors
+                  // (21 Liteon entries), so without it any consumer device on the
+                  // same silicon scored LIKELY just for scanning -- the reported
+                  // T-Mobile hotspot false positive. A real camera probes ~8x a
+                  // second and clears the gate almost instantly.
+                  // Reserve conf=3 for an SSID-name / IE-fp match.
+    else if(oui_tx && is_probe && sustained)
+        conf = 2; // same rule for a directed probe from the OUI device itself
+    else if(oui_rx && is_probe)
+        conf = 2; // OUI on the SILENT RECEIVER: a frame addressed to a Flock-OUI
+                  // device by some other station. Deliberately NOT rate-gated --
+                  // the rate would be the sender's, not this device's, and this is
+                  // upstream's key technique for catching a dormant camera that is
+                  // not transmitting at all. Narrower and rarer than the tx paths.
     else if(s_score == 2)
         conf = 2;
     // NO conf=1 FOR A BARE OUI MATCH ANY MORE.
@@ -850,6 +948,7 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     // Device class. Only emitted for the non-default (acoustic) case: absent
     // means ALPR, so the wire stays unchanged for every existing detection and
     // an older Flipper build just ignores the token.
+    if(probe_rate) buf_appendf(line, sizeof(line), &pos, ",pr=%u", (unsigned)probe_rate);
     if(st_oui_match(mac)) buf_appendf(line, sizeof(line), &pos, ",cls=a");
     else if(ax_oui_match(mac)) buf_appendf(line, sizeof(line), &pos, ",cls=x");
     // Hidden-SSID attribute. Rides on a line we were already sending, so it adds

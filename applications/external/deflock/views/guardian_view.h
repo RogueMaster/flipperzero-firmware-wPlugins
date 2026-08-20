@@ -20,5 +20,10 @@ void guardian_view_set_app(GuardianView* gv, void* app);
 /** Called on a short OK press (used to open the Suspicious-devices list). */
 void guardian_view_set_ok_callback(GuardianView* gv, void (*cb)(void*), void* ctx);
 
+/** RIGHT opens the guarded-network picker. Separate from OK so the Suspicious
+ *  list keeps the key it has always had -- retraining muscle memory to add a
+ *  feature is a poor trade on a device with five buttons. */
+void guardian_view_set_right_callback(GuardianView* gv, void (*cb)(void*), void* ctx);
+
 /** Request a redraw (call from a GUI-thread tick; never hold app->mutex). */
 void guardian_view_refresh(GuardianView* gv);

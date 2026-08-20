@@ -28,11 +28,17 @@ static const struct {
 };
 #define GUARD_PHASE_COUNT (sizeof(GUARD_PHASES) / sizeof(GUARD_PHASES[0]))
 
-#define GUARDIAN_EV_SUS 100 // short-OK -> open the Suspicious list
+#define GUARDIAN_EV_SUS    100 // short-OK -> open the Suspicious list
+#define GUARDIAN_EV_TARGET 101 // short-RIGHT -> pick the guarded network
 
 static void recon_scene_guardian_ok_cb(void* ctx) {
     ReconApp* app = ctx;
     view_dispatcher_send_custom_event(app->view_dispatcher, GUARDIAN_EV_SUS);
+}
+
+static void recon_scene_guardian_right_cb(void* ctx) {
+    ReconApp* app = ctx;
+    view_dispatcher_send_custom_event(app->view_dispatcher, GUARDIAN_EV_TARGET);
 }
 
 void recon_scene_guardian_on_enter(void* context) {
@@ -112,6 +118,7 @@ void recon_scene_guardian_on_enter(void* context) {
     scan_session_gps_start(app);
 
     guardian_view_set_ok_callback(app->guardian_view, recon_scene_guardian_ok_cb, app);
+    guardian_view_set_right_callback(app->guardian_view, recon_scene_guardian_right_cb, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewGuardian);
 }
 
@@ -121,6 +128,11 @@ bool recon_scene_guardian_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom && event.event == GUARDIAN_EV_SUS) {
         scene_manager_next_scene(app->scene_manager, ReconSceneGuardianSus);
+        return true;
+    }
+
+    if(event.type == SceneManagerEventTypeCustom && event.event == GUARDIAN_EV_TARGET) {
+        scene_manager_next_scene(app->scene_manager, ReconSceneGuardianTarget);
         return true;
     }
 

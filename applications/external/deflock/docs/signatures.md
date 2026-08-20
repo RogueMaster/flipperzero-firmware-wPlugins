@@ -102,6 +102,24 @@ out if you'd rather not chase false positives.
 | `38:5b:44` | Listed direct-Flock by WatchFlock | No stated corroboration |
 | `94:34:69` | Listed direct-Flock by WatchFlock | No stated corroboration |
 | `b4:e3:f9` | Listed direct-Flock by WatchFlock | No stated corroboration |
+| `48:27:ea` | **Demoted from the built-ins in v0.73.** nitekry: *"low confidence, WiGLE crowdsource"* | IEEE registers it to **Samsung Electronics** |
+| `a4:cf:12` | **Demoted from the built-ins in v0.73.** nitekry: *"low confidence, WiGLE crowdsource"* | IEEE registers it to **Espressif** |
+
+> **Why those last two were demoted, and what it cost.** They were compiled in
+> until v0.73. The companion scores *Flock OUI + wildcard probe request* as
+> **Likely**, and a wildcard probe is the most ordinary frame a Wi-Fi client
+> emits — it is what scanning for a network looks like. So a Samsung-based
+> T-Mobile hotspot doing nothing but looking for a network was reported as a
+> likely ALPR camera. A user reported exactly that.
+>
+> They are **not retracted** — nothing says they are wrong, only that nobody has
+> corroborated them — so they live here and you can opt back in. If you do, expect
+> hits on ordinary Samsung and ESP32 hardware.
+>
+> v0.73 also added a **sustained-probe-rate gate** on the companion, which is the
+> general fix: a fielded Flock camera probes roughly every 125 ms, while a phone
+> or hotspot emits a short burst and then goes quiet for tens of seconds. Rate is
+> what separates them; the frame type does not.
 
 Sources:
 
@@ -135,7 +153,7 @@ behaviour or an SSID/IE match.
 | Field-corroborated | the remainder | Curated upstream table, `Active` or `High confidence`. `e4:aa:ea` caught a Falcon V2 in the field; `82:6b:f2` is DeFlockJoplin field testing. |
 | Contract manufacturer | `f4:6a:dd`, `00:f4:8d`, `d0:39:57`, `e8:d0:fc` | Liteon/USI. WatchFlock files these **separately** from direct-Flock prefixes and warns a MAC match alone may be a false positive — these OUIs also ship unrelated consumer hardware. |
 | Flat-list orphans | `70:08:94`, `58:00:e3`, `5c:93:a2`, `64:6e:69` | Inherited from the superseded flat list. Absent from the curated table in **every** section — not Active, not under test, not Removed. Kept because absence is not retraction, but their status is unverifiable upstream. |
-| Weak upstream confidence | `08:3a:88`, `48:27:ea`, `a4:cf:12` | Upstream notes are *"BLE Ring conflict - unsure"* and *"low confidence, WiGLE crowdsource"*. These do **not** meet the field-corroboration bar. |
+| Weak upstream confidence | `08:3a:88` | Upstream notes it as *"BLE Ring conflict - unsure"*. Does **not** meet the field-corroboration bar. (`48:27:ea` and `a4:cf:12` were in this tier and were demoted to the seed file in v0.73 — see above.) |
 
 Retracting any of these would only lose recall against evidence we do not have, so
 they stay. But if you are weighing a single *Possible* OUI hit with nothing else
