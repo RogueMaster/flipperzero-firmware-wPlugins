@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (c) 2026 ReconGrunt
 """
 Pack a Flipper asset pack's .png frames into the .bm files the firmware reads.
 

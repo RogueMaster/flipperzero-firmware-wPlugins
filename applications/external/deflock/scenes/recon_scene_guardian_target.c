@@ -66,12 +66,23 @@ static bool guardian_target_scanning(void) {
  * Rebuild the whole submenu from the current AP table.
  *
  * Called on entry and again whenever the table grows, so a scan started from this
- * screen fills the list in place. Rebuilding resets the selection, which is why
- * the caller only does it when something actually changed -- otherwise the cursor
- * would jump under the operator's thumb on every tick.
+ * screen fills the list in place.
+ *
+ * THE CURSOR IS CARRIED ACROSS THE REBUILD, and that is not cosmetic. submenu_reset()
+ * drops the selection back to row 0, so while a scan was delivering, the list
+ * shifted under the operator between reading a row and pressing OK -- and the row
+ * that was under the cursor a moment ago was not the row that got selected. Caught
+ * on hardware: Kestral was chosen and the neighbouring WiFi ended up guarded, with
+ * nothing on screen to say so. Silently guarding the wrong network is worse than
+ * not offering the feature.
+ *
+ * Restoring the raw index is correct because positions are stable: the two action
+ * rows are always 0 and 1, and app->wifi[] only ever appends, so an AP keeps its
+ * row for as long as this scene is up.
  */
 static void guardian_target_build(ReconApp* app) {
     Submenu* submenu = app->submenu;
+    uint32_t sel = submenu_get_selected_item(submenu);
     submenu_reset(submenu);
 
     s_row_count = 0;
@@ -135,6 +146,13 @@ static void guardian_target_build(ReconApp* app) {
             s_rows[i].bssid[5]);
         submenu_add_item(submenu, label, (uint32_t)i, guardian_target_cb, app);
     }
+
+    // Put the cursor back where the operator left it. Clamped, because a rebuild
+    // can only ever grow this list while the scene is up, but a clamp costs
+    // nothing and an out-of-range index would be a crash rather than a wrong row.
+    uint32_t rows = 2 + (uint32_t)s_row_count; // the two action rows, then the APs
+    if(sel >= rows) sel = rows ? rows - 1 : 0;
+    submenu_set_selected_item(submenu, sel);
 }
 
 void recon_scene_guardian_target_on_enter(void* context) {

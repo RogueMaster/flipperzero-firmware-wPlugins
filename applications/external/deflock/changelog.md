@@ -1,16 +1,162 @@
 # Changelog
 
-## v0.73
+## v0.75
 
-The v0.72 RogueMaster load failure is fixed.
+**The probe-rate gate is removed.** It shipped in v0.74 and should not have.
 
-**Partly hardware-verified, for once.** Run on a Flipper Zero (Momentum
-`mntm-dev`, API 87.1) with the ESP32 companion attached: Net Guardian's network
-targeting was exercised end to end, and the v0.70 Detail-round-trip fix was
-confirmed on real hardware for the first time (a tagged tracker survived Back,
-and the device table grew 25 -> 28 rather than resetting). **The probe-rate gate
-below was NOT verified** -- it runs on the companion and the attached board is
-still on older firmware. See the note under that entry.
+v0.74 required 3 probe requests from one transmitter inside 2000 ms before a
+Flock OUI plus probe behaviour could score *Likely*. That threshold was not
+strict, it was **impossible**. The companion watches any single channel for
+300 ms out of every 3900 ms, so a camera probing every ~125 ms can put at most 2
+probes into one window, and consecutive windows are 3900 ms apart. The condition
+could never be met by anything, including a real camera, and it sat on the rung
+upstream says finds most fielded cameras.
+
+Widening the window to span sweeps was tried next. On the bench that still
+produced **zero** probe-sourced detections, while beacons from the same board
+detected normally -- so the receive path was fine and the probe rung was not.
+Whether the remaining cause was the gate or the test rig's own MAC spoofing was
+never established, and a filter on the primary detection path that cannot be
+shown to pass a true positive is worse than the false positive it prevents.
+
+So the gate is gone and the behaviour returns to what upstream runs and field
+tested at 11 of 12 cameras with 2 false positives. **The reported T-Mobile false
+positive stays fixed**, because its actual cause was never the cadence: it was
+`48:27:ea` (Samsung Electronics) and `a4:cf:12` (Espressif) sitting in the
+built-in OUI table. Those remain demoted to the seed file.
+
+What survives is the **measurement**. The per-transmitter probe counter is still
+there and still reports `pr=<n>` on the wire -- as an observation, never a
+confidence input. A future threshold should come from that data rather than from
+reasoning about cadence, which is now 0 for 2.
+
+**Requires a companion reflash**, like the change it reverses.
+
+### Fixed
+
+- **The bench emitter never transmitted Wi-Fi.** `tools/flock_emitter` passed
+  `en_sys_seq = false` to `esp_wifi_80211_tx()`, while its own comment 200 lines
+  above states the IDF refuses foreign-MAC injection unless that flag is true. The
+  driver logged the objection for every beacon and nothing reached the air. On
+  hardware the Flipper saw 0 Wi-Fi detections across minutes at 36 frames/s while
+  reporting BLE identities from the same board.
+
+  That is why "the emitter has never been run" mattered: it compiles either way,
+  and the only symptom is a detector that stays empty while the serial log
+  narrates identities it never sent. Fixed, and the rig immediately earned its
+  keep -- it is what caught the impossible gate above.
+
+- **Probe identities in the emitter now model a camera.** They held for 3 seconds
+  and fired a single scan, so they were usually off the air when the detector was
+  listening. A fielded camera probes continuously in station mode; the identity
+  now holds across several detector sweeps and re-arms its scan throughout,
+  pinned to the bench channel.
+
+- **The emitter never spoofed a probe MAC.** `esp_wifi_set_mac()` was called on a
+  started interface and with the same address already assigned to the AP, which
+  the ESP32 rejects as `ESP_ERR_WIFI_MAC` (0x3009). The return code was never
+  read, so every probe identity went out from the factory Espressif MAC while the
+  serial log announced a Flock OUI. The detector was right to ignore them: they
+  were not Flock frames.
+
+  The symptom is worth recognising -- **beacons detect, probes never do**. Beacon
+  source addresses are a field in a hand-built frame, so they were always correct;
+  only the interface-level spoof was broken. The rig now stops the interface to
+  set the MAC, leaves the AP address alone for probe identities, and **reads the
+  return code**, warning loudly if it ever fails again.
+
+### Verified on hardware
+
+Run against the emitter on a second ESP32:
+
+| Identity | Expected | Observed |
+|---|---|---|
+| `Flock-A1B2C3` | CONFIRMED | **CONFIRMED** |
+| `test_flck` | CONFIRMED | **CONFIRMED** |
+| `Flock-Guest` | Likely, never CONFIRMED | **Likely** |
+| Flock OUI + wildcard probe | Likely | **Likely**, `Method: OUI + probe req` |
+
+The last row is the one this release is about. It is the rung upstream says finds
+most fielded cameras, it was dead under v0.74's gate, and it had never once been
+checked against a radio. `Flock-Guest` is the v0.46 over-claim, also confirmed on
+the air rather than argued from a unit test.
+
+## v0.74
+
+**A false positive users actually hit, and a Net Guardian you can point at one
+network.**
+
+**Partly hardware-verified.** Run on a Flipper Zero (Momentum `mntm-dev`, API
+87.1) with the ESP32 companion attached and reflashed to this build. Net
+Guardian's network targeting was exercised end to end, the Axon device class was
+confirmed rendering on a real screen, and the v0.70 Detail-round-trip fix was
+verified on hardware for the first time (a tagged tracker survived Back, and the
+device table grew 25 -> 28 rather than resetting). **The probe-rate gate's
+thresholds are still unmeasured** -- no Flock hardware was present to exercise a
+true positive, so the gate is known to stop the reported false positive and is
+NOT known to pass a real camera. See the note under that entry.
+
+### Added
+
+- **Net Guardian can guard ONE network instead of everything in range.** Press
+  **Right** on the Guardian screen to pick an access point; the bottom line then
+  names it (`> MyNetwork`) instead of showing the `OK=sus` hint. The choice
+  persists, so a Flipper left next to a router comes back guarding the same
+  network.
+
+  Untargeted, the Guardian answers *"is anything around me under attack?"* — and
+  in a flat, an office or a hotel that is mostly somebody else's traffic. A
+  Guardian that lights up for the neighbours is one you learn to ignore, which is
+  precisely the alert fatigue the fused score was built to remove.
+
+  **Only the network-shaped inputs are filtered:** a deauth flood must be aimed at
+  the guarded BSSID, and an evil twin must clone the guarded SSID. Flock
+  detections, BLE trackers, a Flipper nearby and attack-tool signatures are about
+  the **operator**, not the network, so they keep contributing whatever is
+  targeted — filtering those on a BSSID would be meaningless.
+
+  The BSSID and the SSID are both stored because they answer different questions:
+  a deauth is attributed by address, while an evil twin *by definition* announces
+  the same name from a **different** address. Matching a twin on BSSID could never
+  fire. A target with no name (a hidden AP) simply never contributes the
+  evil-twin signal; deauth attribution still works for it. Changing the target
+  resets the score rather than carrying one earned against a different question.
+
+  **You can run the scan from inside the picker.** If no networks are listed yet,
+  a **Scan for networks** row runs one on the link the Guardian already holds and
+  the list fills in place — no leaving the screen and coming back. The row reads
+  `Scanning...` while the sweep is out and `Scan again` afterwards, and it says
+  `No ESP32 - check wiring` when there is no companion to ask.
+
+  The first cut showed `(no APs seen yet - run a scan)` instead, which was wrong
+  twice over: the submenu clipped it to `(no APs seen yet - run a s...` so the
+  instruction was cut off mid-word, and selecting the row did nothing anyway. Every
+  label on this screen is now short enough to render whole — a half-read
+  instruction is worse than none.
+
+  **The row under the cursor is the row you get.** Rebuilding the list to show new
+  scan results reset the submenu selection to the top, so while a scan was
+  delivering, the list shifted between reading a row and pressing OK — and a
+  different network got guarded than the one that was highlighted. Caught on
+  hardware: `Kestral` was chosen and the neighbouring `WiFi` ended up targeted,
+  with nothing on screen to say so. The cursor is now carried across the rebuild.
+  Silently guarding the wrong network is worse than not offering the feature.
+
+  **Verified on hardware**, not just in CI: the picker opens on Right, an empty AP
+  list renders safely, the in-place scan was run and repopulated the list live, a
+  real AP was selected, the HUD showed `>Kestral` in place of the `OK=sus` hint,
+  the active target is marked with `*` on re-entry, hidden APs list as `(hidden)`,
+  and the choice round-tripped through `settings.txt` as `guard_bssid` +
+  `guard_ssid` and reloaded on restart.
+
+### Changed
+
+- **RogueMaster gets its own release artifact, `deflock.fap`.** RogueMaster names
+  the app that way, so anyone installing there had been renaming the Unleashed
+  file by hand. It now builds as a fourth CI target and ships under the name that
+  firmware expects. Contributed by [@h00die](https://github.com/h00die) in
+  [#21](https://github.com/ReconGrunt/FlipDeFlock/pull/21); it uses the Unleashed
+  SDK, since RogueMaster tracks it and reports the same API.
 
 ### Fixed
 
@@ -60,48 +206,9 @@ still on older firmware. See the note under that entry.
   during testing was on older firmware, so nothing exercised it. The thresholds
   remain unmeasured guesses until someone runs a camera and a phone past it.
 
-- **Net Guardian can guard ONE network instead of everything in range.** Press
-  **Right** on the Guardian screen to pick an access point; the bottom line then
-  names it (`> MyNetwork`) instead of showing the `OK=sus` hint. The choice
-  persists, so a Flipper left next to a router comes back guarding the same
-  network.
+## v0.73
 
-  Untargeted, the Guardian answers *"is anything around me under attack?"* — and
-  in a flat, an office or a hotel that is mostly somebody else's traffic. A
-  Guardian that lights up for the neighbours is one you learn to ignore, which is
-  precisely the alert fatigue the fused score was built to remove.
-
-  **Only the network-shaped inputs are filtered:** a deauth flood must be aimed at
-  the guarded BSSID, and an evil twin must clone the guarded SSID. Flock
-  detections, BLE trackers, a Flipper nearby and attack-tool signatures are about
-  the **operator**, not the network, so they keep contributing whatever is
-  targeted — filtering those on a BSSID would be meaningless.
-
-  The BSSID and the SSID are both stored because they answer different questions:
-  a deauth is attributed by address, while an evil twin *by definition* announces
-  the same name from a **different** address. Matching a twin on BSSID could never
-  fire. A target with no name (a hidden AP) simply never contributes the
-  evil-twin signal; deauth attribution still works for it. Changing the target
-  resets the score rather than carrying one earned against a different question.
-
-  **You can run the scan from inside the picker.** If no networks are listed yet,
-  a **Scan for networks** row runs one on the link the Guardian already holds and
-  the list fills in place — no leaving the screen and coming back. The row reads
-  `Scanning...` while the sweep is out and `Scan again` afterwards, and it says
-  `No ESP32 - check wiring` when there is no companion to ask.
-
-  The first cut showed `(no APs seen yet - run a scan)` instead, which was wrong
-  twice over: the submenu clipped it to `(no APs seen yet - run a s...` so the
-  instruction was cut off mid-word, and selecting the row did nothing anyway. Every
-  label on this screen is now short enough to render whole — a half-read
-  instruction is worse than none.
-
-  **Verified on hardware**, not just in CI: the picker opens on Right, an empty AP
-  list renders safely, the in-place scan was run and repopulated the list live, a
-  real AP was selected, the HUD showed `>Kestral` in place of the `OK=sus` hint,
-  the active target is marked with `*` on re-entry, hidden APs list as `(hidden)`,
-  and the choice round-tripped through `settings.txt` as `guard_bssid` +
-  `guard_ssid` and reloaded on restart.
+The v0.72 RogueMaster load failure is fixed. **Not run against a radio.**
 
 ### Added
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (c) 2026 ReconGrunt
 """
 Generate FlipDeFlock branding:
   - icon.png  : 10x10 1-bit Flipper .fap menu icon (camera-with-slash glyph)

@@ -7,7 +7,16 @@ App(
     # A plugin is built as its own .fal (see the App() entries at the bottom);
     # sweeping its .c into the app too would duplicate every symbol AND put the
     # code back in the image we are trying to shrink.
-    sources=["*.c*", "!test", "!plugins"],
+    #
+    # "!__pycache__" is not paranoia. The glob is "*.c*", which matches any name
+    # containing ".c" -- including CPython bytecode such as
+    # tools/__pycache__/pack_assets.cpython-313.pyc. Import any tools/*.py once
+    # and the next ufbt run hands a .pyc to the linker:
+    #     .pyc: file not recognized: file format not recognized
+    #     collect2.exe: error: ld returned 1 exit status
+    # The file is gitignored, so it never reaches CI and the break is local-only
+    # and baffling. Excluding the directory costs nothing and removes the trap.
+    sources=["*.c*", "!test", "!plugins", "!__pycache__"],
     entry_point="recon_site_survey_app",
     # 6 KB, raised from 4 KB in v0.48 on a measurement rather than a hunch.
     # arm-none-eabi-gcc -fstack-usage reports flock_store_parse_line() at 1344
@@ -34,7 +43,7 @@ App(
     fap_category="GPIO/ESP32",
     fap_author="ReconGrunt",
     fap_weburl="https://github.com/ReconGrunt/FlipDeFlock",
-    fap_version="0.73",
+    fap_version="0.75",
     fap_description="FlipDeFlock: detect Flock/ALPR surveillance cameras via any "
     "ESP32 (Marauder or companion FW), with GPS geotagging and "
     "DeFlock-compatible reports.",

@@ -33,6 +33,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-08-19 22:50 EST`
 - Updated: [HTW AC Remote v1.2 (By sokogen)](https://github.com/sokogen/flipperzero-htw-ac-remote)
 - ESP Flasher: [Bump Marauder v1.15.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.15.0)
+- Updated: [DeFlock v0.75 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -411,7 +412,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DCF77 Clock Spoof v1.4 (By mdaskalov & molodos)](https://github.com/mdaskalov/dcf77-clock-sync)
 - [DCF77 Transmitter v2.0 (By arha)](https://github.com/arha/flipper-dcf77)
 - [Deauther PWNDTOOLS V2.6.0 (By HEX0DAYS)](https://github.com/HEX0DAYS/FlipperZero-PWNDTOOLS) `Req: ESP8266` [Original](https://github.com/SpacehuhnTech/esp8266_deauther)
-- [DeFlock v0.73 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- [DeFlock v0.75 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)

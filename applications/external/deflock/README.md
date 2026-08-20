@@ -252,7 +252,24 @@ firmware; in Marauder mode they explain what's missing.
 | <img src="media/screenshots/esp32-firmware.png" width="330" alt="ESP32 Firmware"><br>**ESP32 Firmware** | |
 
 <sub>Captured on a Flipper Zero running v0.49. The devices shown are fabricated
-demo records — no real network, tracker or location appears in any screenshot.</sub>
+demo records — no real network, tracker or location appears in any screenshot.
+The row tags for SoundThinking (`ST`) and Axon (`AX`) arrived later and are not
+pictured here yet.</sub>
+
+## Asset pack
+
+Releases carry `flipdeflock_asset_pack.zip` — a Flipper asset pack with two
+desktop animations. Copy it to `/ext/asset_packs/` and pick it in
+**Settings → Desktop → Asset Pack** on a firmware that supports them
+(Momentum, Unleashed, RogueMaster).
+
+| | |
+|:--:|:--:|
+| <img src="media/asset-pack-kick.gif" width="330" alt="Hoodie kicks an ALPR pole"><br>**Kick** | <img src="media/asset-pack-scan.gif" width="330" alt="Scanning animation"><br>**Scan** |
+
+Both are rendered straight from the pack by `tools/make_anim_gif.py`, which reads
+the frame order and frame rate out of each animation's own `meta.txt` — so the
+picture here cannot drift from what the Flipper actually plays.
 
 ## Detection confidence
 
@@ -332,6 +349,28 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.74** - **A false positive users actually hit, and a Net Guardian you can
+point at one network.** A T-Mobile hotspot was being reported as a *Likely* ALPR
+camera. Two causes: the built-in OUI list is mostly chip vendors rather than
+Flock — checked against the IEEE registry, 21 entries belong to **Liteon** and
+only `b4:1e:52` to Flock Safety itself — and two of them were worse still,
+`48:27:ea` being **Samsung** and `a4:cf:12` **Espressif**. Both are demoted to the
+seed file. The deeper cause was the ladder: *Flock OUI + wildcard probe* scored
+**Likely**, and a wildcard probe is simply what a phone scanning for Wi-Fi looks
+like. The companion now needs a **sustained probe rate** first — a fielded camera
+probes roughly every 125 ms, a phone emits a burst and goes quiet. **This half
+needs a companion reflash to take effect.**
+
+**Net Guardian can guard one network** instead of everything in range: press
+**Right**, pick an access point, and only deauths aimed at that BSSID and evil
+twins of that SSID feed the score. If no networks are listed yet, a **Scan for
+networks** row runs one and the list fills in place. The choice persists.
+
+Also new: **Axon Enterprise detection** as its own device class, tagged `AX` and
+labelled *body/in-car kit* rather than anything resembling a camera on a pole —
+an Axon unit moves with a person. Registry-verified (IEEE `00:25:df`, Bluetooth
+SIG `0x034D`) but never field-observed, and the docs say so.
 
 **v0.73** - **RogueMaster no longer fails at launch with `Missing Imports`.**
 Optional phone-GPS symbols are resolved only when the Phone source is used, so
