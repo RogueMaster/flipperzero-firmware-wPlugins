@@ -3,15 +3,13 @@
 - JS Runner, NFC: **Fix some out of memory crashes**
 - OFW: NFC DESFire: **Fix crash when reading card with a zero-key application**
 - NFC: **Ultralight AES is no longer dictionary attacked automatically on read**
+- NFC: **Protocol scenes moved into their own plugins, roughly halving the app's resident RAM** (by @mishamyte | PR #1073)
+- NFC: **Fixed the EMV plugin, which never loaded** (by @mishamyte | PR #1073)
 - NFC: **Ultralight AES - closed the remaining card-lock (AUTHLIM) paths** (by @mishamyte | PR #1082 | Fixes #1081)
 - Apps: **Added categories for apps in firmware builds**, if you had apps that were moved to new subfolders in favourites, or on quick buttons, you will need to re-add them to favs/buttons
 - Apps: Build tag (**18aug2026p2**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
 ## Other changes
-* OFW PR 4361: fix HID limits to support international keyboards and add JP keyboard layout (by @d3npa)
-* OFW: CCID: move the debug app out of the firmware repository
-* JS: **JS Runner moved out of the firmware into an external app** (`apps/assets/js_app.fap`) to free up internal flash and RAM; the `js` CLI command is now a CLI plugin and the JS examples ship with the extra resources
-* Docs: **How to build FAPs on Android with Termux** - `ufbt` on a stock phone, no PC/proot/VM (by @CamsShaft | Closes #1028)
-* HID: **Mouse Jiggler Stealth now shows which buttons change the intervals** - Up/Down (Min) and Left/Right (Max) already worked but nothing on screen said so; the arrows appear next to each row while the jiggler is stopped, and only for presses that would actually change the value (by @sequesters | PR #1020)
+- NFC: Removed unreachable EMV render code that called an undefined function (by @mishamyte | PR #1085 | Fixes #1084)
 <br><br>
 
 ----

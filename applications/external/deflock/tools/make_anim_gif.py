@@ -78,7 +78,9 @@ def render(anim_dir):
         w, h = mono.size
         # Black source pixel = lit pixel on the device.
         colour = Image.new("RGB", (w, h), BACKLIGHT)
-        colour.paste(Image.new("RGB", (w, h), PIXEL), mask=Image.eval(mono, lambda v: 255 - v))
+        colour.paste(
+            Image.new("RGB", (w, h), PIXEL), mask=Image.eval(mono, lambda v: 255 - v)
+        )
         frames.append(colour.resize((w * SCALE, h * SCALE), Image.NEAREST))
 
     # Friendly filename for the README: L1_FlipDeFlock_Kick_128x64 -> asset-pack-kick.gif
@@ -93,7 +95,9 @@ def render(anim_dir):
         loop=0,
         optimize=True,
     )
-    print(f"  {out.relative_to(ROOT)}  {len(frames)} frames @ {rate} fps  {out.stat().st_size:,} B")
+    print(
+        f"  {out.relative_to(ROOT)}  {len(frames)} frames @ {rate} fps  {out.stat().st_size:,} B"
+    )
     return out
 
 
@@ -101,7 +105,9 @@ def main():
     if not ANIMS.is_dir():
         sys.exit(f"no animations at {ANIMS}")
     wanted = sys.argv[1] if len(sys.argv) > 1 else ""
-    dirs = sorted(d for d in ANIMS.iterdir() if d.is_dir() and wanted.lower() in d.name.lower())
+    dirs = sorted(
+        d for d in ANIMS.iterdir() if d.is_dir() and wanted.lower() in d.name.lower()
+    )
     if not dirs:
         sys.exit(f"no animation directories matching {wanted!r}")
     print(f"Rendering {len(dirs)} animation(s) from {ANIMS.relative_to(ROOT)}")

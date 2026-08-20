@@ -118,7 +118,13 @@ def stamp(p: Path) -> bool:
         meta = PngImagePlugin.PngInfo()
         # Re-carry any existing text so stamping is additive, never lossy.
         for k, v in im.info.items():
-            if isinstance(v, str) and k not in ("Author", "Copyright", "License", "Source", "Software"):
+            if isinstance(v, str) and k not in (
+                "Author",
+                "Copyright",
+                "License",
+                "Source",
+                "Software",
+            ):
                 meta.add_text(k, v)
         meta.add_text("Author", AUTHOR)
         meta.add_text("Copyright", COPYRIGHT)
@@ -136,7 +142,9 @@ def main():
     if not files:
         sys.exit("no assets matched")
 
-    print(f"{'Checking' if check_only else 'Stamping'} {len(files)} asset(s) with {AUTHOR} authorship")
+    print(
+        f"{'Checking' if check_only else 'Stamping'} {len(files)} asset(s) with {AUTHOR} authorship"
+    )
     unstamped, changed = [], 0
     for p in files:
         rel = p.relative_to(ROOT)

@@ -62,7 +62,11 @@ def main():
 
     files = sorted(tracked_sources())
     for rel in files:
-        head = (ROOT / rel).read_text(encoding="utf-8", errors="replace").splitlines()[:HEAD_LINES]
+        head = (
+            (ROOT / rel)
+            .read_text(encoding="utf-8", errors="replace")
+            .splitlines()[:HEAD_LINES]
+        )
         blob = "\n".join(head)
         if "SPDX-License-Identifier" not in blob:
             missing_spdx.append(rel)
@@ -72,9 +76,17 @@ def main():
             missing_holder.append(rel)
 
     for label, items, hint in (
-        ("no SPDX-License-Identifier", missing_spdx, f"add: SPDX-License-Identifier: {LICENCE}"),
+        (
+            "no SPDX-License-Identifier",
+            missing_spdx,
+            f"add: SPDX-License-Identifier: {LICENCE}",
+        ),
         (f"SPDX is not {LICENCE}", wrong_licence, "the project is GPL-3.0-or-later"),
-        (f"no '{HOLDER}' copyright line", missing_holder, f"add: Copyright (c) <year> {HOLDER}"),
+        (
+            f"no '{HOLDER}' copyright line",
+            missing_holder,
+            f"add: Copyright (c) <year> {HOLDER}",
+        ),
     ):
         if items:
             print(f"\n  {len(items)} file(s) with {label}  --  {hint}")
