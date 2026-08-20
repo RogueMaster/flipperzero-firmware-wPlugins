@@ -44,8 +44,14 @@ static void specter_sweep_adopt_calibration(SpecterApp* app, const FieldStats* s
 
     app->settings.custom_threshold = st->calibration_suggest;
     app->settings.sensitivity_index = SPECTER_SENS_CUSTOM;
-    specter_settings_save(&app->settings);
     specter_apply_threshold(app);
+
+    /* Deliberately NOT written to the SD card here. This runs on the event-loop
+     * thread with the radio worker still sampling, and card I/O on that path -
+     * while the user is very likely mashing keys to see what the scan did - is
+     * exactly the kind of stall that backs up the input queue. The flag is
+     * flushed on the way out of the scene, once the worker has stopped. */
+    app->settings_dirty = true;
 
     snprintf(
         msg,
@@ -63,8 +69,18 @@ bool specter_scene_sweep_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == SpecterCustomEventReset) {
-            field_detector_reset(app->detector);
-            sweep_view_flash(app->sweep_view, "RESET");
+            /* Mid-scan, the obvious meaning of OK is "stop this", not "reset my
+             * counters" - that is what people reach for when they want out. */
+            FieldStats st;
+            field_detector_get(app->detector, &st);
+            if(st.calibrating) {
+                field_detector_calibrate_cancel(app->detector);
+                calibration_handled = true; // nothing to adopt
+                sweep_view_flash(app->sweep_view, "CANCELLED");
+            } else {
+                field_detector_reset(app->detector);
+                sweep_view_flash(app->sweep_view, "RESET");
+            }
             consumed = true;
         } else if(event.event == SpecterCustomEventCalibrate) {
             calibration_handled = false;
@@ -136,5 +152,10 @@ bool specter_scene_sweep_on_event(void* context, SceneManagerEvent event) {
 void specter_scene_sweep_on_exit(void* context) {
     SpecterApp* app = context;
     field_detector_stop(app->detector);
+    if(app->settings_dirty) {
+        /* Worker is stopped, so the card is not competing with the radio. */
+        specter_settings_save(&app->settings);
+        app->settings_dirty = false;
+    }
     specter_stealth_exit(app);
 }

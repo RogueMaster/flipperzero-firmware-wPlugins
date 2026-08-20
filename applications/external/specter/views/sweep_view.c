@@ -64,6 +64,44 @@ static void gauge_point(uint8_t value, float radius, int* x, int* y) {
     *y = PCY - (int)(sinf(a) * radius);
 }
 
+/* Warmer or colder? Compare the newest few readings with the ones just before
+ * them. When you are hunting by hand this is the thing you actually want to
+ * know - the absolute number matters far less than whether the last half second
+ * of movement took you toward the source or away from it. */
+#define TREND_SPAN     5
+#define TREND_DEADBAND 3
+
+static int sweep_trend(const uint8_t* hist, uint8_t head) {
+    int recent = 0, older = 0;
+    for(int k = 0; k < TREND_SPAN; k++) {
+        int i = (head - k + 2 * (int)SPECTER_HISTORY_LEN) % (int)SPECTER_HISTORY_LEN;
+        recent += hist[i];
+    }
+    for(int k = TREND_SPAN; k < 2 * TREND_SPAN; k++) {
+        int i = (head - k + 2 * (int)SPECTER_HISTORY_LEN) % (int)SPECTER_HISTORY_LEN;
+        older += hist[i];
+    }
+    int delta = (recent - older) / TREND_SPAN;
+    if(delta >= TREND_DEADBAND) return 1;
+    if(delta <= -TREND_DEADBAND) return -1;
+    return 0;
+}
+
+/* Drawn from explicit lines rather than a glyph so the shape is identical on
+ * the device and in the generated mockups. */
+static void draw_trend(Canvas* canvas, int x, int y, int dir) {
+    if(dir == 0) {
+        canvas_draw_line(canvas, x - 2, y + 2, x + 2, y + 2);
+        return;
+    }
+    int tip = (dir > 0) ? y : y + 5;
+    int tail = (dir > 0) ? y + 5 : y;
+    int barb = (dir > 0) ? y + 3 : y + 2;
+    canvas_draw_line(canvas, x, tail, x, tip);
+    canvas_draw_line(canvas, x - 2, barb, x, tip);
+    canvas_draw_line(canvas, x + 2, barb, x, tip);
+}
+
 static void draw_error(Canvas* canvas) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignCenter, "NFC unavailable");
@@ -158,30 +196,53 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 68, 20, "FIELD");
 
+    /* Warmer/colder arrow, tucked beside the FIELD label. */
+    if(m->armed && !m->calibrating) {
+        draw_trend(canvas, 120, 14, sweep_trend(m->history, m->history_head));
+    }
+
+    /* The big number's glyphs are ~19px tall and hang down to their baseline, so
+     * this sits high enough to clear the PK/C line underneath it - at baseline
+     * 45 the two rows collided by a pixel and looked like one smudged block. */
     canvas_set_font(canvas, FontBigNumbers);
     snprintf(buf, sizeof(buf), "%u", (unsigned)m->strength);
-    canvas_draw_str_aligned(canvas, 112, 45, AlignRight, AlignBottom, buf);
+    canvas_draw_str_aligned(canvas, 112, 42, AlignRight, AlignBottom, buf);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 114, 43, "%");
+    canvas_draw_str(canvas, 114, 40, "%");
 
-    snprintf(buf, sizeof(buf), "PK%u C%lu", (unsigned)m->peak, (unsigned long)m->contacts);
+    /* Contacts are clamped for width: past a few hundred the exact figure stops
+     * meaning anything, and the row must not run into the panel edge. */
+    unsigned long c = (unsigned long)m->contacts;
+    if(c > 999u) {
+        snprintf(buf, sizeof(buf), "PK%u C999+", (unsigned)m->peak);
+    } else {
+        snprintf(buf, sizeof(buf), "PK%u C%lu", (unsigned)m->peak, c);
+    }
     canvas_draw_str(canvas, 68, 51, buf);
 
     /* ---------- bottom strip ---------- */
     canvas_draw_line(canvas, 0, 52, 127, 52);
     if(m->calibrating) {
         /* Learning the room's own noise floor, right where you are standing. */
-        canvas_draw_str(canvas, 2, 59, "SAMPLING NOISE FLOOR");
-        canvas_draw_frame(canvas, 0, 60, 128, 4);
-        uint32_t fill = ((uint32_t)m->calib_progress * 126u) / 100u;
-        if(fill) canvas_draw_box(canvas, 1, 61, (int)fill, 2);
+        /* FontSecondary occupies rows [baseline-7 .. baseline], so a baseline of
+         * 59 put the glyph tops on row 52 - straight through the divider above.
+         * 60 clears it, and the progress bar drops to a plain 2px fill hugging
+         * the bottom edge rather than a framed box that would then clip the
+         * text from below. */
+        canvas_draw_str(canvas, 2, 60, "NOISE FLOOR");
+        canvas_draw_str_aligned(canvas, 126, 60, AlignRight, AlignBottom, "OK=cancel");
+        uint32_t fill = ((uint32_t)m->calib_progress * 128u) / 100u;
+        if(fill) canvas_draw_box(canvas, 0, 62, (int)fill, 2);
     } else if(m->present) {
         canvas_draw_box(canvas, 0, 53, 128, 11);
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_disc(canvas, 4, 58, 1);
-        canvas_draw_str(canvas, 9, 62, "ACTIVE READER");
+        /* Baseline 61, not 62: the inner alarm frame below draws its bottom
+         * edge along row 62, which would erase the last pixel row of both of
+         * these strings. */
+        canvas_draw_str(canvas, 9, 61, "ACTIVE READER");
         canvas_draw_str_aligned(
-            canvas, 125, 62, AlignRight, AlignBottom, proximity_word(m->strength, m->saturated));
+            canvas, 125, 61, AlignRight, AlignBottom, proximity_word(m->strength, m->saturated));
         canvas_set_color(canvas, ColorBlack);
         /* alarm frame */
         canvas_draw_frame(canvas, 0, 0, 128, 64);

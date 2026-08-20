@@ -33,11 +33,16 @@
  * the emitter classifier all keep working in raw duty, because those are
  * statements about the signal itself rather than about proximity. */
 
-/* Raw duty at which the display reads 100%. Chosen at the top of the normal
- * polling band: a reader that polls more sparsely still pegs the meter when you
- * are on it, and a continuous-wave emitter (duty ~100) pegs it from further
- * away, which is correct - CW really is a stronger exposure. */
-#define SPECTER_FULL_SCALE_DUTY 35u
+/* Raw duty at which the display reads 100%.
+ *
+ * Set from measurements on real hardware: a contactless terminal with the
+ * Flipper laid on it measures around 30-32% duty, so a full scale of 35 left
+ * the meter stuck in the low 90s at the point where it should obviously peg.
+ * 30 is at the middle of the observed saturation band, which means "resting on
+ * a reader" reads 100 / MAX as a user expects, while a sparsely-polling emitter
+ * still climbs most of the dial and a continuous-wave one pegs from further
+ * away - correct, since CW really is a stronger exposure. */
+#define SPECTER_FULL_SCALE_DUTY 30u
 
 /* Passing this as the full scale disables scaling (display == raw duty). */
 #define SPECTER_SCALE_RAW 100u

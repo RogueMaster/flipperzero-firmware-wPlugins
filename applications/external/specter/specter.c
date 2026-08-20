@@ -69,8 +69,25 @@ static bool specter_lights_allowed(const SpecterApp* app) {
     return app->settings.led && !app->settings.stealth;
 }
 
+/* Notification sequences are queued to the notification service with an
+ * unbounded wait, so a caller that posts faster than the service can play them
+ * will eventually fill that queue and block - on the GUI thread that means a
+ * frozen app. Presence is debounced upstream so this should never be hit, but
+ * the alerts that carry real playback time get a floor anyway: no input from
+ * the radio can turn into an unbounded rate of notifications. */
+static bool specter_rate_allows(uint32_t* last_tick, uint32_t min_interval_ms) {
+    uint32_t now = furi_get_tick();
+    if(*last_tick != 0 && (uint32_t)(now - *last_tick) < min_interval_ms) return false;
+    *last_tick = now;
+    return true;
+}
+
+#define FOUND_MIN_INTERVAL_MS 900u
+#define WAKE_MIN_INTERVAL_MS  1500u
+
 void specter_notify_found(SpecterApp* app) {
     furi_assert(app);
+    if(!specter_rate_allows(&app->last_found_tick, FOUND_MIN_INTERVAL_MS)) return;
     if(specter_lights_allowed(app)) notification_message(app->notifications, &seq_led_magenta);
     if(app->settings.vibro) notification_message(app->notifications, &seq_vibro_short);
     if(app->settings.sound) notification_message(app->notifications, &seq_snd_found);
@@ -104,6 +121,7 @@ void specter_notify_wake(SpecterApp* app) {
     /* Watch mode's wake-on-detection: pull the backlight on so a detection is
      * caught at a glance, then let the system timeout dim it again. This is the
      * one place we override stealth - an alert you can't see isn't an alert. */
+    if(!specter_rate_allows(&app->last_wake_tick, WAKE_MIN_INTERVAL_MS)) return;
     notification_message(app->notifications, &sequence_display_backlight_on);
 }
 

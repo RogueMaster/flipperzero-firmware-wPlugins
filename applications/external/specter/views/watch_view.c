@@ -33,6 +33,7 @@ typedef struct {
     uint32_t watching_ms;
     uint32_t first_ms;
     uint32_t last_ms;
+    uint32_t in_field_ms; // total time a carrier was actually up this watch
     uint8_t anim;
 } WatchModel;
 
@@ -82,17 +83,22 @@ static void watch_view_draw(Canvas* canvas, void* model) {
     /* ---------- status band ---------- */
     bool alarm = m->present;
     if(alarm) {
-        /* inverted, and blinking via the animation phase, so it reads as an
-         * active alert rather than a static label */
-        if(m->anim & 1u) {
-            canvas_draw_box(canvas, 0, STATUS_Y - 1, 128, STATUS_H);
-            canvas_set_color(canvas, ColorWhite);
-        } else {
-            canvas_draw_frame(canvas, 0, STATUS_Y - 1, 128, STATUS_H);
-        }
+        /* The band stays solidly inverted. It used to alternate between filled
+         * and outlined on every tick, which at a 100 ms tick is a 5 Hz strobe
+         * across the full width of the screen - unpleasant to look at, hard to
+         * read, and no more attention-grabbing than a steady block.
+         *
+         * The "this is live, not frozen" cue is a single small marker pulsing
+         * at about 1 Hz instead. Same job, none of the flicker. */
+        canvas_draw_box(canvas, 0, STATUS_Y - 1, 128, STATUS_H);
+        canvas_set_color(canvas, ColorWhite);
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(
             canvas, 64, STATUS_Y + 9, AlignCenter, AlignBottom, "READER PRESENT");
+        if((m->anim / 5u) & 1u) {
+            canvas_draw_disc(canvas, 6, STATUS_Y + 5, 2);
+            canvas_draw_disc(canvas, 121, STATUS_Y + 5, 2);
+        }
         canvas_set_color(canvas, ColorBlack);
     } else {
         canvas_set_font(canvas, FontPrimary);
@@ -121,6 +127,17 @@ static void watch_view_draw(Canvas* canvas, void* model) {
 
     if(m->present) {
         snprintf(buf, sizeof(buf), "NOW %u%%", (unsigned)m->strength);
+        canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, buf);
+    } else if(m->contacts) {
+        /* Nothing right now, but something was here: how long a carrier was
+         * actually up across the whole watch. That is the figure you want when
+         * you come back to a Flipper you left somewhere. */
+        uint32_t s = m->in_field_ms / 1000u;
+        if(s < 600u) {
+            snprintf(buf, sizeof(buf), "SEEN %lus", (unsigned long)s);
+        } else {
+            snprintf(buf, sizeof(buf), "SEEN %lum", (unsigned long)(s / 60u));
+        }
         canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, buf);
     } else {
         canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, "OK=reset");
@@ -185,6 +202,7 @@ void watch_view_update(
             m->watching_ms = watching_ms;
             m->first_ms = first_ms;
             m->last_ms = last_ms;
+            m->in_field_ms = stats->in_field_ms;
         },
         true);
 }

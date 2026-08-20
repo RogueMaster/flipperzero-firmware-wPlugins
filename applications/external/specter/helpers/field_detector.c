@@ -6,9 +6,16 @@
  * That's fast enough to catch the short polling bursts a reader emits while
  * still giving the meter a smooth, readable cadence. SPECTER_SAMPLE_MS in
  * emitter_classify.h must agree with this - it is what the classifier treats as
- * its resolution floor. */
-#define SAMPLE_PERIOD_US 2000u
-#define WINDOW_SAMPLES   48u
+ * its resolution floor.
+ *
+ * The wait between samples MUST yield to the scheduler. furi_delay_us() does
+ * not: it is a DWT busy-loop, so pacing this thread with it pinned a core at
+ * 100% for the whole scan. Everything else on the system - the GUI thread, the
+ * input service, storage - then had to fight this thread for time, and once the
+ * view dispatcher stopped draining its input queue fast enough the GUI thread
+ * blocked posting into it and took the whole UI down with it: dead buttons and
+ * a Flipper that needed a reboot. furi_delay_tick() sleeps properly instead. */
+#define WINDOW_SAMPLES 48u
 
 /* The pulse trace compresses 4 samples (~8 ms) into one column, so the 128-column
  * buffer spans ~1.0 s - enough to show four or five cycles of a typical 200 ms
@@ -28,6 +35,7 @@ struct FieldDetector {
     volatile bool running;
     volatile bool reset_req;
     volatile bool calib_req;
+    volatile bool calib_cancel_req;
     volatile uint32_t calib_duration_ms;
     uint8_t threshold; // duty-cycle noise floor (%)
     volatile uint8_t full_scale; // raw duty that displays as 100%
@@ -135,6 +143,12 @@ static int32_t field_detector_worker(void* context) {
     fd->stats.armed_tick = armed_tick;
     furi_mutex_release(fd->mutex);
 
+    /* Derived from the real tick rate rather than assuming 1 kHz, and never
+     * zero - a zero-tick delay would put us straight back to a spin loop. */
+    uint32_t tick_hz = furi_kernel_get_tick_frequency();
+    uint32_t sample_ticks = (SPECTER_SAMPLE_MS * tick_hz) / 1000u;
+    if(sample_ticks == 0u) sample_ticks = 1u;
+
     uint32_t hits = 0, samples = 0;
     uint8_t ema = 0; // smoothed strength
     bool was_present = false;
@@ -142,6 +156,11 @@ static int32_t field_detector_worker(void* context) {
 
     /* running mean of the windowed strength, for the session average */
     uint32_t strength_sum = 0, strength_n = 0;
+
+    /* Presence is latched rather than taken window-by-window - a polling
+     * reader legitimately goes quiet between bursts. See present_hold.h. */
+    PresentHold hold;
+    present_hold_reset(&hold);
 
     /* per-sample edge tracking */
     bool raw_prev = false;
@@ -209,6 +228,7 @@ static int32_t field_detector_worker(void* context) {
                 ema = 0;
                 was_present = false;
                 have_burst = false;
+                present_hold_reset(&hold);
                 strength_sum = 0;
                 strength_n = 0;
                 calibrating = false;
@@ -218,6 +238,14 @@ static int32_t field_detector_worker(void* context) {
                 /* This window straddles the reset, so none of it belongs to the
                  * new session's in-field total. */
                 window_ms = 0;
+            }
+
+            if(fd->calib_cancel_req) {
+                fd->calib_cancel_req = false;
+                calibrating = false;
+                s->calibrating = false;
+                s->calibration_ready = false;
+                s->calibration_progress = 0;
             }
 
             if(fd->calib_req) {
@@ -232,9 +260,18 @@ static int32_t field_detector_worker(void* context) {
                 s->calibration_progress = 0;
             }
 
+            /* Cadence first: the hold below is sized from the measured polling
+             * period, so it has to be up to date before presence is decided. */
+            cadence_ring_summarise(&ring, &s->cadence, ema);
+
             /* Detection stays on the raw duty: the noise floor is a statement
-             * about the signal, not about how the gauge is drawn. */
-            bool present = duty > fd->threshold;
+             * about the signal, not about how the gauge is drawn. The verdict is
+             * then latched, so the gaps in a reader's polling cycle do not read
+             * as the reader disappearing - which used to inflate the contact
+             * count and machine-gun the alert notifications - but the latch is
+             * only as long as this reader's own rhythm needs. */
+            bool present = present_hold_update(
+                &hold, duty > fd->threshold, now, present_hold_ms_for(s->cadence.period_ms));
             s->present = present;
             s->strength_raw = ema;
 
@@ -265,10 +302,6 @@ static int32_t field_detector_worker(void* context) {
             s->history_head = (uint8_t)((s->history_head + 1u) % SPECTER_HISTORY_LEN);
             s->history[s->history_head] = shown;
 
-            /* The classifier reasons about the carrier itself - it gets the raw
-             * duty, so its CONTINUOUS test keeps meaning "carrier held up". */
-            cadence_ring_summarise(&ring, &s->cadence, ema);
-
             /* ---- calibration pass ---- */
             if(calibrating) {
                 if(duty > calib_max) calib_max = duty;
@@ -296,7 +329,7 @@ static int32_t field_detector_worker(void* context) {
             window_start = now;
         }
 
-        furi_delay_us(SAMPLE_PERIOD_US);
+        furi_delay_tick(sample_ticks);
     }
 
     furi_hal_nfc_field_detect_stop();
@@ -353,8 +386,12 @@ void field_detector_start(FieldDetector* fd) {
 
     fd->reset_req = false;
     fd->calib_req = false;
+    fd->calib_cancel_req = false;
     fd->running = true;
     fd->thread = furi_thread_alloc_ex("SpecterSniffer", 2048, field_detector_worker, fd);
+    /* Below the GUI and input services on purpose. Sampling a bit late is
+     * invisible; a laggy or unresponsive UI is not. */
+    furi_thread_set_priority(fd->thread, FuriThreadPriorityLow);
     furi_thread_start(fd->thread);
 }
 
@@ -390,6 +427,12 @@ void field_detector_calibrate_begin(FieldDetector* fd, uint32_t duration_ms) {
     if(!fd->running) return;
     fd->calib_duration_ms = duration_ms;
     fd->calib_req = true;
+}
+
+void field_detector_calibrate_cancel(FieldDetector* fd) {
+    furi_assert(fd);
+    fd->calib_req = false;
+    fd->calib_cancel_req = true;
 }
 
 void field_detector_get(FieldDetector* fd, FieldStats* out) {

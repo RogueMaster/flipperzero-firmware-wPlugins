@@ -6,6 +6,11 @@ by BASELINE (anchor "ls"/"rs"/"ms"), because canvas_draw_str() takes y as the
 baseline - drawing these any other way quietly hides real layout collisions.
 Layout constants below are copied from the C, so if a screen looks wrong here it
 looks wrong on the device too.
+
+CAVEAT: the desktop font used here is close to the device's FontSecondary but
+sits one pixel shorter, so it will NOT reveal a tight vertical collision - two
+of those shipped before anyone noticed. tools_check_layout.py is the authority
+on overlaps; this script is for how a screen reads, not whether it fits.
 """
 from PIL import Image, ImageDraw, ImageFont
 import math, os
@@ -179,12 +184,28 @@ def draw_gauge(d, strength, peak, present, anim, scan=40):
         circle(d, PCX, PCY, R_OUT + 1 + (anim % 3))
 
 
-def draw_readout(d, strength, peak, contacts):
+def draw_trend(d, x, y, direction):
+    """Mirrors draw_trend() in views/sweep_view.c exactly."""
+    if direction == 0:
+        line(d, x - 2, y + 2, x + 2, y + 2)
+        return
+    tip = y if direction > 0 else y + 5
+    tail = y + 5 if direction > 0 else y
+    barb = y + 3 if direction > 0 else y + 2
+    line(d, x, tail, x, tip)
+    line(d, x - 2, barb, x, tip)
+    line(d, x + 2, barb, x, tip)
+
+
+def draw_readout(d, strength, peak, contacts, trend=None):
     line(d, 64, 13, 64, 51)
     tb(d, 68, 20, "FIELD", f_sec)
-    tb(d, 112, 45, str(strength), f_big, anchor="rs")
-    tb(d, 114, 43, "%", f_sec)
-    tb(d, 68, 51, f"PK{peak} C{contacts}", f_sec)
+    if trend is not None:
+        draw_trend(d, 120, 14, trend)
+    tb(d, 112, 42, str(strength), f_big, anchor="rs")
+    tb(d, 114, 40, "%", f_sec)
+    label = f"PK{peak} C999+" if contacts > 999 else f"PK{peak} C{contacts}"
+    tb(d, 68, 51, label, f_sec)
 
 
 def render_sweep(
@@ -201,23 +222,24 @@ def render_sweep(
     flash=None,
     sens="Medium",
     saturated=False,
+    trend=None,
 ):
     img, d = canvas()
     draw_header(d, "SPECTER", state, present, flash)
     draw_gauge(d, strength, peak, present, anim)
-    draw_readout(d, strength, peak, contacts)
+    draw_readout(d, strength, peak, contacts, trend)
     line(d, 0, 52, 127, 52)
     if calibrating:
-        tb(d, 2, 59, "SAMPLING NOISE FLOOR", f_sec)
-        frame(d, 0, 60, 128, 4)
-        fill = (calib_pct * 126) // 100
+        tb(d, 2, 60, "NOISE FLOOR", f_sec)
+        tb(d, 126, 60, "OK=cancel", f_sec, anchor="rs")
+        fill = (calib_pct * 128) // 100
         if fill:
-            box(d, 1, 61, fill, 2)
+            box(d, 0, 62, fill, 2)
     elif present:
         box(d, 0, 53, 128, 11)
         disc(d, 4, 58, 1, BG)
-        tb(d, 9, 62, "ACTIVE READER", f_sec, BG)
-        tb(d, 125, 62, proximity_word(strength, saturated), f_sec, BG, anchor="rs")
+        tb(d, 9, 61, "ACTIVE READER", f_sec, BG)
+        tb(d, 125, 61, proximity_word(strength, saturated), f_sec, BG, anchor="rs")
         frame(d, 0, 0, 127, 63, FG, lw=2)
     else:
         # active sensitivity on the left, waveform filling the rest
@@ -417,7 +439,15 @@ def render_logbook():
 # Watch Mode (views/watch_view.c)
 # --------------------------------------------------------------------------
 def render_watch(
-    name, watching_s, contacts, peak, present, strength=0, last_ago="--", blink=True
+    name,
+    watching_s,
+    contacts,
+    peak,
+    present,
+    strength=0,
+    last_ago="--",
+    blink=True,
+    seen_s=0,
 ):
     img, d = canvas()
     tb(d, 2, 9, "WATCH", f_sec)
@@ -428,12 +458,12 @@ def render_watch(
     FOOT1, FOOT2, COLR = 50, 61, 66
 
     if present:
+        # Solid, never strobing; the liveness cue is the pair of small markers.
+        box(d, 0, STATUS_Y - 1, 128, STATUS_H)
+        tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, BG, anchor="ms")
         if blink:
-            box(d, 0, STATUS_Y - 1, 128, STATUS_H)
-            tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, BG, anchor="ms")
-        else:
-            frame(d, 0, STATUS_Y - 1, 128, STATUS_H)
-            tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, FG, anchor="ms")
+            disc(d, 6, STATUS_Y + 5, 2, BG)
+            disc(d, 121, STATUS_Y + 5, 2, BG)
     else:
         word = "CLEAR NOW" if contacts else "ALL CLEAR"
         tb(d, 4, STATUS_Y + 9, word, f_pri, anchor="ls")
@@ -446,6 +476,8 @@ def render_watch(
     tb(d, 2, FOOT2, f"LAST {last_ago}", f_sec)
     if present:
         tb(d, COLR, FOOT2, f"NOW {strength}%", f_sec)
+    elif contacts:
+        tb(d, COLR, FOOT2, f"SEEN {seen_s}s", f_sec)
     else:
         tb(d, COLR, FOOT2, "OK=reset", f_sec)
     save(img, name)
@@ -601,10 +633,14 @@ def strip(names, out, cols=None):
 
 
 if __name__ == "__main__":
-    render_sweep("screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2)
+    render_sweep(
+        "screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2, trend=0
+    )
     # A real polling reader at arm's length, and the Flipper laid on top of one
     # (raw duty ~31% saturates the meter -> reads MAX, not "31%").
-    render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1)
+    render_sweep(
+        "screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1, trend=1
+    )
     render_sweep(
         "screen_reader_max.png",
         100,
@@ -615,6 +651,7 @@ if __name__ == "__main__":
         CLEAR_HIST,
         anim=1,
         saturated=True,
+        trend=1,
     )
     render_sweep(
         "screen_calibrate.png",
@@ -655,10 +692,11 @@ if __name__ == "__main__":
     render_watch(
         "screen_watch.png",
         watching_s=752,
-        contacts=0,
-        peak=6,
+        contacts=2,
+        peak=100,
         present=False,
-        last_ago="--",
+        last_ago="3m12s",
+        seen_s=47,
     )
     render_watch(
         "screen_watch_hit.png",
