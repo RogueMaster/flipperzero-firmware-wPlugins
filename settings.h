@@ -7,6 +7,7 @@ typedef struct View View;
 typedef struct {
     bool sound_enabled;
     bool vibro_enabled;
+    bool flipped_enabled;
 } StrataHeroSettings;
 
 void stratahero_load_settings(StrataHeroSettings* settings);
