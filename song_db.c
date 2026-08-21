@@ -102,11 +102,14 @@ static bool song_parse(const char* record, Song* out) {
     /* chord list */
     char* p = f[1];
     while(*p && out->count < SONG_MAX_CHORDS) {
-        while(*p == ' ') p++;
+        while(*p == ' ')
+            p++;
         char* start = p;
-        while(*p && *p != ',') p++;
+        while(*p && *p != ',')
+            p++;
         size_t len = (size_t)(p - start);
-        while(len > 0 && start[len - 1] == ' ') len--; // trim trailing space
+        while(len > 0 && start[len - 1] == ' ')
+            len--; // trim trailing space
         if(len > 0) {
             if(len > CHORD_NAME_LEN - 1) len = CHORD_NAME_LEN - 1;
             memcpy(out->chords[out->count], start, len);

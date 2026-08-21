@@ -3,15 +3,15 @@
 #include <furi.h>
 #include <storage/storage.h>
 
-#define CHORD_STRINGS 6
-#define CHORD_NAME_LEN 14
-#define CHORD_ROOT_LEN 3
+#define CHORD_STRINGS     6
+#define CHORD_NAME_LEN    14
+#define CHORD_ROOT_LEN    3
 #define CHORD_QUALITY_LEN 12
 
 #define CHORD_FRET_MUTED (-1)
-#define CHORD_FRET_OPEN (0)
+#define CHORD_FRET_OPEN  (0)
 
-#define CHORD_DB_DIR EXT_PATH("apps_data/guitar_chords")
+#define CHORD_DB_DIR  EXT_PATH("apps_data/guitar_chords")
 #define CHORD_DB_PATH CHORD_DB_DIR "/chords.csv"
 
 typedef struct {

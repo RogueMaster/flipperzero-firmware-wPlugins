@@ -3,17 +3,17 @@
 #include <furi.h>
 
 /* Diagram geometry (screen is 128x64) */
-#define GRID_X 34 // x of the low-E string
-#define GRID_Y 20 // y of the nut / top fret wire
-#define STR_DX 12 // string spacing
-#define FRET_DY 8 // fret spacing
-#define FRET_ROWS 4 // visible fret spaces
-#define GRID_W (STR_DX * (CHORD_STRINGS - 1))
+#define GRID_X      34 // x of the low-E string
+#define GRID_Y      20 // y of the nut / top fret wire
+#define STR_DX      12 // string spacing
+#define FRET_DY     8 // fret spacing
+#define FRET_ROWS   4 // visible fret spaces
+#define GRID_W      (STR_DX * (CHORD_STRINGS - 1))
 #define GRID_BOTTOM (GRID_Y + FRET_DY * FRET_ROWS)
 
 /* Voicing-cycle arrows: ARROW_H columns wide, (2*ARROW_H - 1) px tall at the back */
-#define ARROW_H 4
-#define ARROW_Y (GRID_Y + 16) // vertical middle of the grid
+#define ARROW_H   4
+#define ARROW_Y   (GRID_Y + 16) // vertical middle of the grid
 #define ARROW_X_L 5 // back edge; apex points left
 #define ARROW_X_R 122 // back edge; apex points right
 
@@ -57,7 +57,8 @@ static void draw_grid(Canvas* canvas, const Chord* c) {
         canvas_draw_line(canvas, string_x(s), GRID_Y, string_x(s), GRID_BOTTOM);
     }
     for(int f = 0; f <= FRET_ROWS; f++) {
-        canvas_draw_line(canvas, GRID_X, GRID_Y + f * FRET_DY, GRID_X + GRID_W, GRID_Y + f * FRET_DY);
+        canvas_draw_line(
+            canvas, GRID_X, GRID_Y + f * FRET_DY, GRID_X + GRID_W, GRID_Y + f * FRET_DY);
     }
 
     if(c->base_fret == 1) {

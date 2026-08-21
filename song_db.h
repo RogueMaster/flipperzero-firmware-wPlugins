@@ -3,14 +3,14 @@
 #include <furi.h>
 #include "chord_db.h"
 
-#define SONG_NAME_LEN 22
+#define SONG_NAME_LEN   22
 #define SONG_MAX_CHORDS 8
 
 #define SONG_DB_PATH CHORD_DB_DIR "/songs.csv"
 
-#define SONG_BPM_MIN 40
-#define SONG_BPM_MAX 200
-#define SONG_BPM_STEP 5
+#define SONG_BPM_MIN         40
+#define SONG_BPM_MAX         200
+#define SONG_BPM_STEP        5
 #define SONG_BEATS_PER_CHORD 4
 
 typedef struct {

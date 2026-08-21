@@ -13,8 +13,8 @@
 
 #define TAG "GuitarChords"
 
-#define MAX_ROOTS 20
-#define MAX_NAMES 64
+#define MAX_ROOTS    20
+#define MAX_NAMES    64
 #define MAX_VOICINGS 16
 
 /* Submenu index for the "Practice" entry; kept clear of any root index. */
@@ -183,8 +183,7 @@ static void app_practice_step_by(GuitarChordsApp* app, int delta) {
     if(delta > 0) {
         app->practice_step = (uint8_t)((app->practice_step + 1) % song->count);
     } else {
-        app->practice_step =
-            (uint8_t)((app->practice_step + song->count - 1) % song->count);
+        app->practice_step = (uint8_t)((app->practice_step + song->count - 1) % song->count);
     }
     app->practice_beat = 0;
 }
@@ -295,8 +294,8 @@ static void app_show_diagram(GuitarChordsApp* app) {
 
 /** Load the chord at `app->name_index` and show it from its first voicing. */
 static void app_select_name(GuitarChordsApp* app) {
-    app->voicing_count = chord_db_voicings(
-        app->db, app->names[app->name_index], app->voicings, MAX_VOICINGS);
+    app->voicing_count =
+        chord_db_voicings(app->db, app->names[app->name_index], app->voicings, MAX_VOICINGS);
     app->voicing_index = 0;
     app_show_diagram(app);
 }
@@ -320,8 +319,7 @@ static void root_menu_callback(void* context, uint32_t index) {
     }
     if(index >= app->root_count) return;
 
-    app->name_count =
-        chord_db_names_for_root(app->db, app->roots[index], app->names, MAX_NAMES);
+    app->name_count = chord_db_names_for_root(app->db, app->roots[index], app->names, MAX_NAMES);
     app->name_index = 0;
 
     submenu_reset(app->chord_menu);
@@ -340,8 +338,7 @@ static void build_root_menu(GuitarChordsApp* app) {
     submenu_reset(app->root_menu);
     submenu_set_header(app->root_menu, "Guitar Chords");
     if(app->songs->count > 0) {
-        submenu_add_item(
-            app->root_menu, "Practice", MENU_INDEX_PRACTICE, root_menu_callback, app);
+        submenu_add_item(app->root_menu, "Practice", MENU_INDEX_PRACTICE, root_menu_callback, app);
     }
     for(size_t i = 0; i < app->root_count; i++) {
         submenu_add_item(app->root_menu, app->roots[i], i, root_menu_callback, app);
@@ -479,12 +476,14 @@ static GuitarChordsApp* app_alloc(void) {
     view_set_input_callback(app->splash_view, splash_input_callback);
     view_dispatcher_add_view(app->view_dispatcher, ViewIdSplash, app->splash_view);
 
-    view_dispatcher_add_view(app->view_dispatcher, ViewIdRootMenu, submenu_get_view(app->root_menu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, ViewIdRootMenu, submenu_get_view(app->root_menu));
     view_dispatcher_add_view(
         app->view_dispatcher, ViewIdChordMenu, submenu_get_view(app->chord_menu));
     view_dispatcher_add_view(
         app->view_dispatcher, ViewIdDiagram, chord_view_get_view(app->chord_view));
-    view_dispatcher_add_view(app->view_dispatcher, ViewIdSongMenu, submenu_get_view(app->song_menu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, ViewIdSongMenu, submenu_get_view(app->song_menu));
     view_dispatcher_add_view(
         app->view_dispatcher, ViewIdPractice, practice_view_get_view(app->practice_view));
 

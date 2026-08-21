@@ -3,7 +3,7 @@
 
 #include <furi.h>
 
-#define STEP_DOT_Y 58
+#define STEP_DOT_Y  58
 #define STEP_DOT_DX 9
 
 typedef struct {
