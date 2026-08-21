@@ -44,6 +44,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Social Moscow - a partially read card no longer shows an all-zero card number as if it were real (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1097)
 - NFC: [Mosgortrans - an unrecognised ticket layout is now named in the debug log, instead of the Metro/Ground section vanishing with no explanation (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1097)
 - NFC: [SmartRider, All-In-One and Banapass no longer log an error for every card that is not theirs (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1097)
+- NFC: [Metromoney, Plantain, Two Cities and Kazan no longer present values from blocks that were never read - a 42949671.96 GEL balance, an empty purse dated 01.01.2010, a ticket valid from 00.00.2000 - declining the card or naming the field Unknown instead (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
+- NFC: [Plantain no longer claims the PPK keys are installed on every 1K card; a card without the sector that carries them now reads No, and one whose key is missing reads Unknown (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
+- NFC: [A supported-card parser that declines a card no longer leaks its output into the next parser (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
+- NFC: [Social Moscow again parses dumps saved before the format carried a read mask, such as converted PM3 dumps (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
 
 <a name="release"></a>
 

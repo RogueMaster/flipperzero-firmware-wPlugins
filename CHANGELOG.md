@@ -17,6 +17,10 @@
 - NFC: Social Moscow - a partially read card no longer shows an all-zero card number as if it were real (by @mishamyte | PR #1097 | Fixes #1093)
 - NFC: Mosgortrans - an unrecognised ticket layout is now named in the debug log, instead of the Metro/Ground section vanishing with no explanation (by @mishamyte | PR #1097 | Fixes #1094)
 - NFC: SmartRider, All-In-One and Banapass no longer log an error for every card that is not theirs (by @mishamyte | PR #1097 | Fixes #1096)
+- NFC: Metromoney, Plantain, Two Cities and Kazan no longer present values from blocks that were never read - a 42949671.96 GEL balance, an empty purse dated 01.01.2010, a ticket valid from 00.00.2000 - declining the card or naming the field Unknown instead (by @mishamyte | PR #1102 | Fixes #1098)
+- NFC: Plantain no longer claims the PPK keys are installed on every 1K card; a card without the sector that carries them now reads No, and one whose key is missing reads Unknown (by @mishamyte | PR #1102 | Fixes #1098)
+- NFC: a supported-card parser that declines a card no longer leaks its output into the next parser (by @mishamyte | PR #1102 | Fixes #1099)
+- NFC: Social Moscow again parses dumps saved before the format carried a read mask, such as converted PM3 dumps (by @mishamyte | PR #1102 | Fixes #1098)
 <br><br>
 
 ----
