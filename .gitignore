@@ -9,3 +9,7 @@ compile_commands.json
 
 # macOS
 .DS_Store
+
+# catalog submission artifact - lives in the flipper-application-catalog fork,
+# and embedding this repo commit SHA in this repo is circular
+catalog-manifest.yml
