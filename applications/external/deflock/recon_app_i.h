@@ -53,6 +53,15 @@ typedef enum {
     BleCatAxon = 7, /**< Axon body-worn / in-car police kit (SIG company id 0x034D) */
 } BleCat;
 
+/** How Net Guardian escalates when an attack is ACTIVE (not a blip).
+ *  Order is persisted in settings.txt as an integer -- append only. */
+typedef enum {
+    GuardAlertOff = 0, /**< no sound/haptic for attacks (the score still shows) */
+    GuardAlertOnce, /**< one buzz on the rising edge into an active attack (default) */
+    GuardAlertPersistent, /**< re-buzz every GUARD_ALERT_REPEAT_MS while it stays active */
+    GuardAlertCount,
+} GuardAlertMode;
+
 /** Explicit, user-triggered actions for a validated BLE tracker. */
 typedef enum {
     BleActionNone = 0,
@@ -66,6 +75,7 @@ typedef enum {
 #define RECON_REPORT_FOLDER RECON_APP_FOLDER "/reports"
 #define RECON_SETTINGS_PATH RECON_APP_FOLDER "/settings.txt"
 #define RECON_HITS_PATH     RECON_APP_FOLDER "/hits.csv"
+#define RECON_ATTACKS_PATH  RECON_APP_FOLDER "/attacks.csv"
 
 /** ViewDispatcher view indexes. */
 typedef enum {
@@ -205,6 +215,8 @@ typedef struct {
                       *   it is a durable record of where you have been) */
     bool log_serials; /**< log Flock device serials to saved reports (default OFF) */
     bool anomaly_flag; /**< Net Guardian: flag unidentified strong/persistent devices (default OFF, higher FP) */
+    bool guard_evidence; /**< Net Guardian: append confirmed attacks to attacks.csv (default ON) */
+    uint8_t guard_alert; /**< GuardAlertMode: how Net Guardian sounds an active attack */
 } ReconSettings;
 
 /**
@@ -267,7 +279,9 @@ typedef struct {
     uint8_t bssid[6];
     uint8_t channel;
     uint32_t count;
+    uint32_t first_tick; /**< tick this BSSID was first seen under attack (for span) */
     uint32_t last_tick;
+    bool logged; /**< already written to attacks.csv this episode (dedup) */
 } DeauthTarget;
 
 /** A BLE device sighting (anti-tracker / BLE-Flock). */
@@ -425,6 +439,11 @@ typedef struct {
     // Active attack-tool signature reported by the companion (ATK line): BLE-spam
     // advert flood, beacon-spam (Marauder / Pineapple), or probe-request flood.
     uint32_t esp_attack_tick; /**< furi tick of the last ATK line (0 = none this session) */
+    uint32_t esp_attack_first_tick; /**< tick the current ATK episode began */
+    bool esp_attack_logged; /**< current ATK episode already in attacks.csv */
+    uint32_t guard_evidence_n; /**< attacks written to attacks.csv this session */
+    uint32_t guard_alert_tick; /**< last time an active-attack alert fired (persistent mode) */
+    uint8_t guard_active_atk; /**< TRIAGED active attacks right now (for the HUD hint) */
     uint32_t esp_attack_value; /**< the count/rate the companion reported with it */
     char esp_attack_kind[16]; /**< short kind from the ATK line, e.g. "BLE-spam" */
     bool esp_attack_ble; /**< true if the signature is BLE-borne (BLE-spam) vs Wi-Fi */

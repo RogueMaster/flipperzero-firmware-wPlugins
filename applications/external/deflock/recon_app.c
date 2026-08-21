@@ -11,6 +11,8 @@
 #include "helpers/flock_store.h"
 #include "helpers/tracker_rules.h"
 #include "helpers/scan_session.h"
+#include "helpers/attack_triage.h"
+#include "helpers/report_fmt.h"
 
 #include <math.h>
 #include <string.h>
@@ -498,6 +500,7 @@ void recon_app_add_deauth_target(ReconApp* app, const uint8_t bssid[6], uint8_t 
         t = &app->deauth[app->deauth_count++];
         memset(t, 0, sizeof(DeauthTarget));
         memcpy(t->bssid, bssid, 6);
+        t->first_tick = now; // span starts here (attack_triage_status reads it)
     }
     if(t) {
         t->count++;
@@ -602,7 +605,14 @@ void recon_app_wifi_end(ReconApp* app) {
 
 void recon_app_set_attack(ReconApp* app, const char* kind, uint32_t value) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->esp_attack_tick = furi_get_tick();
+    uint32_t now = furi_get_tick();
+    // A gap longer than the freshness window means the previous episode ended;
+    // start a new span (and re-arm the evidence log) rather than stretching it.
+    if(app->esp_attack_tick == 0 || (now - app->esp_attack_tick) > WATCH_ATTACK_FRESH_MS) {
+        app->esp_attack_first_tick = now;
+        app->esp_attack_logged = false;
+    }
+    app->esp_attack_tick = now;
     app->esp_attack_value = value;
     // BLE-spam is the one BLE-borne signature; beacon/probe floods are Wi-Fi.
     app->esp_attack_ble = (strncmp(kind, "ble", 3) == 0 || strncmp(kind, "BLE", 3) == 0);
@@ -698,6 +708,128 @@ void recon_app_set_ble_action(
     app->ble_action_status[sizeof(app->ble_action_status) - 1] = '\0';
     app->esp_connected = true;
     furi_mutex_release(app->mutex);
+}
+
+// How often Net Guardian re-buzzes while an attack stays active, in persistent
+// alert mode. Slow enough not to be maddening, fast enough to notice.
+#define GUARD_ALERT_REPEAT_MS 20000u
+
+/** Append one attack record to attacks.csv (best-effort; a failed write is not
+ *  fatal to the scan). Header is written when the file is first created. */
+static void recon_attack_log_line(ReconApp* app, const char* line) {
+    if(!app->storage) return;
+    File* f = storage_file_alloc(app->storage);
+    if(storage_file_open(f, RECON_ATTACKS_PATH, FSAM_WRITE, FSOM_OPEN_APPEND)) {
+        if(storage_file_size(f) == 0) {
+            const char* hdr = "# FlipDeFlock attacks v1\nepoch,kind,target,channel,count,dur_s\n";
+            storage_file_write(f, hdr, strlen(hdr));
+        }
+        storage_file_write(f, line, strlen(line));
+    }
+    storage_file_close(f);
+    storage_file_free(f);
+}
+
+/**
+ * Per-tick Net Guardian attack handling: count the ACTIVE (triaged, not just
+ * counted) attacks, write any newly-active ones to the evidence log once, and
+ * drive the escalated alert. Called from recon_app_watchscore_tick after the
+ * fused-score alert. Returns nothing; publishes the active count on the app.
+ *
+ * The evidence log is the operator's record that "my network was attacked at
+ * this time" -- defensive, not a movement trail, so unlike hits.csv it defaults
+ * ON. Still a toggle (guard_evidence) for anyone who wants nothing written.
+ */
+static void recon_app_guard_attacks(ReconApp* app) {
+    // Snapshot + mark-logged under the lock; write files and buzz outside it.
+    struct {
+        char line[96];
+    } pending[RECON_DEAUTH_MAX + 1];
+    unsigned n_pending = 0, active = 0;
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    uint32_t now = furi_get_tick();
+    bool log_on = app->settings.guard_evidence;
+    uint32_t epoch = furi_hal_rtc_get_timestamp();
+
+    for(size_t i = 0; i < app->deauth_count; i++) {
+        DeauthTarget* d = &app->deauth[i];
+        AttackStatus st =
+            attack_triage_status(d->count, d->first_tick, d->last_tick, now, 0, 0, 0);
+        if(st != AttackStatusActive) {
+            if(st == AttackStatusEnded) d->logged = false; // re-arm for a future episode
+            continue;
+        }
+        active++;
+        if(log_on && !d->logged && n_pending < RECON_DEAUTH_MAX) {
+            char mac[18];
+            fmt_mac(mac, sizeof(mac), d->bssid);
+            uint32_t secs = (d->last_tick - d->first_tick) / 1000;
+            snprintf(
+                pending[n_pending].line,
+                sizeof(pending[n_pending].line),
+                "%lu,deauth,%s,%u,%lu,%lu\n",
+                (unsigned long)epoch,
+                mac,
+                d->channel,
+                (unsigned long)d->count,
+                (unsigned long)secs);
+            n_pending++;
+            d->logged = true;
+            app->guard_evidence_n++;
+        }
+    }
+
+    if(app->esp_attack_tick) {
+        AttackStatus st = attack_triage_status(
+            app->esp_attack_value, app->esp_attack_first_tick, app->esp_attack_tick, now, 1, 0, 0);
+        if(st == AttackStatusActive) {
+            active++;
+            if(log_on && !app->esp_attack_logged && n_pending <= RECON_DEAUTH_MAX) {
+                uint32_t secs = (app->esp_attack_tick - app->esp_attack_first_tick) / 1000;
+                char kind[16];
+                strncpy(kind, app->esp_attack_kind, sizeof(kind) - 1);
+                kind[sizeof(kind) - 1] = '\0';
+                snprintf(
+                    pending[n_pending].line,
+                    sizeof(pending[n_pending].line),
+                    "%lu,%s,-,0,%lu,%lu\n",
+                    (unsigned long)epoch,
+                    kind,
+                    (unsigned long)app->esp_attack_value,
+                    (unsigned long)secs);
+                n_pending++;
+                app->esp_attack_logged = true;
+                app->guard_evidence_n++;
+            }
+        }
+    }
+
+    uint8_t alert_mode = app->settings.guard_alert;
+    uint32_t last_alert = app->guard_alert_tick;
+    // Update the alert clock under the lock so the read/modify is atomic.
+    bool buzz = false;
+    if(active > 0) {
+        if(last_alert == 0) {
+            buzz = (alert_mode != GuardAlertOff); // rising edge into an active attack
+            app->guard_alert_tick = now;
+        } else if(alert_mode == GuardAlertPersistent && (now - last_alert) >= GUARD_ALERT_REPEAT_MS) {
+            buzz = true;
+            app->guard_alert_tick = now;
+        }
+    } else {
+        app->guard_alert_tick = 0; // cleared; next attack re-arms the edge
+    }
+    app->guard_active_atk = (uint8_t)(active > 255 ? 255 : active);
+    furi_mutex_release(app->mutex);
+
+    for(unsigned i = 0; i < n_pending; i++)
+        recon_attack_log_line(app, pending[i].line);
+
+    if(buzz && app->notifications) {
+        notification_message(app->notifications, &sequence_double_vibro);
+        if(app->settings.sound) notification_message(app->notifications, &sequence_error);
+    }
 }
 
 void recon_app_watchscore_tick(ReconApp* app) {
@@ -851,6 +983,9 @@ void recon_app_watchscore_tick(ReconApp* app) {
             notification_message(app->notifications, &sequence_error);
         }
     }
+
+    // Attack triage, evidence log and escalated alert (Net Guardian, passive).
+    recon_app_guard_attacks(app);
 }
 
 // ---- settings ------------------------------------------------------------
@@ -882,7 +1017,7 @@ void recon_settings_save(ReconApp* app) {
         FuriString* s = furi_string_alloc();
         furi_string_printf(
             s,
-            "backend=%d\nesp_band=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\n",
+            "backend=%d\nesp_band=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\nguard_evidence=%d\nguard_alert=%d\n",
             app->settings.backend,
             app->settings.esp_band,
             app->settings.esp_uart,
@@ -899,7 +1034,9 @@ void recon_settings_save(ReconApp* app) {
             app->settings.anomaly_flag ? 1 : 0,
             app->settings.alert_mode,
             app->settings.alert_min_conf,
-            app->settings.save_hits ? 1 : 0);
+            app->settings.save_hits ? 1 : 0,
+            app->settings.guard_evidence ? 1 : 0,
+            app->settings.guard_alert);
 
         // The guarded network, appended only when one is set, so an untargeted
         // install keeps exactly the file it has always had.
@@ -968,6 +1105,10 @@ static void recon_settings_apply_kv(ReconApp* app, const char* key, long val, co
         app->settings.log_serials = (val != 0);
     else if(strcmp(key, "anomaly_flag") == 0)
         app->settings.anomaly_flag = (val != 0);
+    else if(strcmp(key, "guard_evidence") == 0)
+        app->settings.guard_evidence = (val != 0);
+    else if(strcmp(key, "guard_alert") == 0 && val >= 0 && val < GuardAlertCount)
+        app->settings.guard_alert = (uint8_t)val;
     else if(strcmp(key, "alert_mode") == 0 && val >= 0 && val < ReconAlertModeCount)
         app->settings.alert_mode = (uint8_t)val; // corrupt value -> keep the default
     else if(strcmp(key, "alert_min_conf") == 0 && val >= 0 && val < AlertConfCount)

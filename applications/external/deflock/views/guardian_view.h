@@ -25,5 +25,9 @@ void guardian_view_set_ok_callback(GuardianView* gv, void (*cb)(void*), void* ct
  *  feature is a poor trade on a device with five buttons. */
 void guardian_view_set_right_callback(GuardianView* gv, void (*cb)(void*), void* ctx);
 
+/** LEFT opens the attack-detail screen (triage + evidence + advice). Separate
+ *  key from OK/Right so each drill-down keeps a stable button. */
+void guardian_view_set_left_callback(GuardianView* gv, void (*cb)(void*), void* ctx);
+
 /** Request a redraw (call from a GUI-thread tick; never hold app->mutex). */
 void guardian_view_refresh(GuardianView* gv);

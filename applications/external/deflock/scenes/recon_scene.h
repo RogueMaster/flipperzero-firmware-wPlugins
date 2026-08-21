@@ -20,6 +20,7 @@ typedef enum {
     ReconSceneGuardian,
     ReconSceneGuardianSus,
     ReconSceneGuardianTarget,
+    ReconSceneGuardianAttacks,
     ReconSceneLocator,
     ReconSceneLocatorHome,
     ReconSceneSupport,
@@ -36,6 +37,10 @@ void recon_scene_start_on_exit(void* context);
 void recon_scene_flock_on_enter(void* context);
 bool recon_scene_flock_on_event(void* context, SceneManagerEvent event);
 void recon_scene_flock_on_exit(void* context);
+
+void recon_scene_guardian_attacks_on_enter(void* context);
+bool recon_scene_guardian_attacks_on_event(void* context, SceneManagerEvent event);
+void recon_scene_guardian_attacks_on_exit(void* context);
 
 void recon_scene_guardian_target_on_enter(void* context);
 bool recon_scene_guardian_target_on_event(void* context, SceneManagerEvent event);

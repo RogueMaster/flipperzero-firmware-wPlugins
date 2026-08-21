@@ -39,7 +39,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Ultralight - Amiibo/Xiaomi unlock no longer burns an AUTHLIM attempt when the password cannot be derived (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1086)
 - NFC: [Ultralight read result now says whether authentication failed or was never attempted (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1090)
 - NFC: [Ultralight - the default password is no longer tried when AUTHLIM cannot be read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1089)
-- Updated: [FlipDeFlock v0.76 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Updated: [FlipDeFlock v0.77 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -472,7 +472,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipBoard Simon v1.10 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipCrypt v0.6 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 - [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck)
-- [FlipDeFlock v0.76 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- [FlipDeFlock v0.77 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [FlipDownloader v1.3.5 (By jblanked)](https://github.com/jblanked/FlipStore) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
 - [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)

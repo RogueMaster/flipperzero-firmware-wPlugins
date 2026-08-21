@@ -27,8 +27,10 @@
     "'am I being watched?' score;\n"     \
     "counts Flock cameras, nearby\n"     \
     "Flippers & active attacks.\n"       \
-    "OK opens the Suspicious\n"          \
-    "list.\n \n"                         \
+    "OK: Suspicious list.\n"             \
+    "LEFT: attack triage +\n"            \
+    "what to do about it.\n"             \
+    "RIGHT: guard 1 network.\n \n"       \
     "LOCATOR (Companion)\n"              \
     "Hunt a marked device by\n"          \
     "signal: a hot/cold meter\n"         \

@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.77
+
+**Net Guardian can now tell you what an attack IS, not just that it happened.**
+The HUD only ever showed a count ("Atk 1"), which answers the wrong question --
+the one you actually have is "is someone attacking my network right now, or did
+the router just reboot?" A count cannot tell those apart. Everything here is
+passive: it reads only what the scan already saw. No transmit.
+
+### Added
+
+- **Attack detail screen** -- press **Left** on Net Guardian. For each live
+  attack it shows what it is (deauth flood / beacon-probe-BLE spam / evil twin),
+  the target BSSID and channel, how many frames over how long, a verdict
+  (**brief** vs **ACTIVE**), and what to actually do about it.
+
+  The verdict is the point. A router reboot or one congested moment is a *blip*:
+  a short burst that stops. A real attack *persists* -- frames keep arriving
+  across many status intervals, so the span grows while it stays fresh. That
+  timing is what separates them, and it is host-tested in `test_attack_triage.c`.
+
+- **Actionable advice, per attack kind.** Deauth is the one with a real fix, and
+  it gets the direct instruction: enable **WPA3 / PMF (802.11w)** on your router,
+  after which a spoofed deauth is simply ignored. The flood/spam kinds are
+  nuisances a passive tool cannot stop and does not pretend to -- the advice says
+  so and where they are coming from.
+
+- **Evidence log.** Confirmed (sustained, not blip) attacks are appended to
+  `apps_data/flipdeflock/attacks.csv` with a timestamp, kind, target, frame count
+  and duration -- a record you can keep or hand to someone. Unlike `hits.csv`
+  this defaults **ON**: it is a log of attacks *against* you, not a movement
+  trail. Toggle **Settings -> Attack log**.
+
+- **Escalated alerting.** **Settings -> Attack alert**: *Off*, *Once* (one buzz on
+  a new active attack, the default), or *Repeat* (re-buzz every 20 s while it
+  stays active). The HUD also shows `<atk!N` whenever a triaged attack is live, so
+  the Left drill-down is discoverable.
+
+**Passive by design, on purpose.** This does not transmit, jam, or spin up a
+decoy -- the Flock/ALPR passive pledge is unaffected. A decoy SSID would also not
+work against a deauth flood (the attacker spoofs your real BSSID; a same-named AP
+does not intercept that), so the honest defence is detection, evidence, and
+pointing you at PMF, which actually stops it.
+
+**Not yet verified on hardware.** Builds and host-tests pass; the on-device
+screens are checked next.
+
 ## v0.76
 
 **The ESP32 flasher would not open on RogueMaster** ([#23](https://github.com/ReconGrunt/FlipDeFlock/issues/23),

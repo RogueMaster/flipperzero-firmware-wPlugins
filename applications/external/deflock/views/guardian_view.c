@@ -13,6 +13,8 @@ struct GuardianView {
     void* ok_ctx;
     void (*right_cb)(void*); /**< short-RIGHT -> open the guarded-network picker */
     void* right_ctx;
+    void (*left_cb)(void*); /**< short-LEFT -> open the attack-detail screen */
+    void* left_ctx;
 };
 
 typedef struct {
@@ -181,7 +183,18 @@ static void guardian_view_draw_callback(Canvas* canvas, void* _model) {
         // thing the operator must be able to tell at a glance is WHICH question
         // the score is answering. ">" prefixes it so a network literally called
         // "sus" cannot be misread as the untargeted hint.
-        if(app->guard_active) {
+        // "<atk!" takes the line whenever a TRIAGED attack is active -- that is the
+        // one thing the operator most needs to be told to look at, and Left opens
+        // its detail. Falls back to the guarded-network name, then the OK=sus hint.
+        if(app->guard_active_atk > 0) {
+            snprintf(
+                status,
+                sizeof(status),
+                "%s ch%u  <atk!%u",
+                guardian_mode(phase),
+                channel,
+                app->guard_active_atk);
+        } else if(app->guard_active) {
             const char* gname = app->guard_ssid[0] ? app->guard_ssid : "(hidden)";
             snprintf(
                 status, sizeof(status), "%s ch%u  >%.12s", guardian_mode(phase), channel, gname);
@@ -204,6 +217,10 @@ static bool guardian_view_input_callback(InputEvent* event, void* context) {
         gv->right_cb(gv->right_ctx);
         return true;
     }
+    if(event->type == InputTypeShort && event->key == InputKeyLeft && gv->left_cb) {
+        gv->left_cb(gv->left_ctx);
+        return true;
+    }
     return false;
 }
 
@@ -214,6 +231,8 @@ GuardianView* guardian_view_alloc(void) {
     gv->ok_ctx = NULL;
     gv->right_cb = NULL;
     gv->right_ctx = NULL;
+    gv->left_cb = NULL;
+    gv->left_ctx = NULL;
     view_set_context(gv->view, gv);
     view_allocate_model(gv->view, ViewModelTypeLocking, sizeof(GuardianViewModel));
     view_set_draw_callback(gv->view, guardian_view_draw_callback);
@@ -243,6 +262,11 @@ void guardian_view_set_ok_callback(GuardianView* gv, void (*cb)(void*), void* ct
 void guardian_view_set_right_callback(GuardianView* gv, void (*cb)(void*), void* ctx) {
     gv->right_cb = cb;
     gv->right_ctx = ctx;
+}
+
+void guardian_view_set_left_callback(GuardianView* gv, void (*cb)(void*), void* ctx) {
+    gv->left_cb = cb;
+    gv->left_ctx = ctx;
 }
 
 void guardian_view_refresh(GuardianView* gv) {

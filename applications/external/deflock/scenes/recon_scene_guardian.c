@@ -28,8 +28,9 @@ static const struct {
 };
 #define GUARD_PHASE_COUNT (sizeof(GUARD_PHASES) / sizeof(GUARD_PHASES[0]))
 
-#define GUARDIAN_EV_SUS    100 // short-OK -> open the Suspicious list
-#define GUARDIAN_EV_TARGET 101 // short-RIGHT -> pick the guarded network
+#define GUARDIAN_EV_SUS     100 // short-OK -> open the Suspicious list
+#define GUARDIAN_EV_TARGET  101 // short-RIGHT -> pick the guarded network
+#define GUARDIAN_EV_ATTACKS 102 // short-LEFT -> attack detail / evidence
 
 static void recon_scene_guardian_ok_cb(void* ctx) {
     ReconApp* app = ctx;
@@ -39,6 +40,11 @@ static void recon_scene_guardian_ok_cb(void* ctx) {
 static void recon_scene_guardian_right_cb(void* ctx) {
     ReconApp* app = ctx;
     view_dispatcher_send_custom_event(app->view_dispatcher, GUARDIAN_EV_TARGET);
+}
+
+static void recon_scene_guardian_left_cb(void* ctx) {
+    ReconApp* app = ctx;
+    view_dispatcher_send_custom_event(app->view_dispatcher, GUARDIAN_EV_ATTACKS);
 }
 
 void recon_scene_guardian_on_enter(void* context) {
@@ -89,6 +95,11 @@ void recon_scene_guardian_on_enter(void* context) {
         app->deauth_count = 0;
         app->esp_deauths = 0;
         app->esp_attack_tick = 0; // no attack-tool signature carried in from a prior run
+        app->esp_attack_first_tick = 0;
+        app->esp_attack_logged = false;
+        app->guard_evidence_n = 0; // per-session evidence counter
+        app->guard_alert_tick = 0; // re-arm the escalated alert
+        app->guard_active_atk = 0;
         app->esp_frames = 0;
         app->esp_hits = 0;
         app->esp_frame_rate = -1; // no honest rate until two status lines land
@@ -119,6 +130,7 @@ void recon_scene_guardian_on_enter(void* context) {
 
     guardian_view_set_ok_callback(app->guardian_view, recon_scene_guardian_ok_cb, app);
     guardian_view_set_right_callback(app->guardian_view, recon_scene_guardian_right_cb, app);
+    guardian_view_set_left_callback(app->guardian_view, recon_scene_guardian_left_cb, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewGuardian);
 }
 
@@ -133,6 +145,11 @@ bool recon_scene_guardian_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom && event.event == GUARDIAN_EV_TARGET) {
         scene_manager_next_scene(app->scene_manager, ReconSceneGuardianTarget);
+        return true;
+    }
+
+    if(event.type == SceneManagerEventTypeCustom && event.event == GUARDIAN_EV_ATTACKS) {
+        scene_manager_next_scene(app->scene_manager, ReconSceneGuardianAttacks);
         return true;
     }
 
