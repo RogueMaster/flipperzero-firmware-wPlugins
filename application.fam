@@ -1,0 +1,16 @@
+App(
+    appid="handpan_chords",
+    name="Handpan Chords",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="handpan_app",
+    requires=[
+        "gui",
+        "storage",
+    ],
+    stack_size=4 * 1024,
+    fap_category="Media",
+    fap_icon="icon.png",
+    fap_description="Chord reference for handpans: shows which pads to strike",
+    fap_author="KingBoa (NoodleNugget.com)",
+    fap_version="1.0",
+)
