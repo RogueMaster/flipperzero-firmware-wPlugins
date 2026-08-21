@@ -1,0 +1,572 @@
+#include "chord_db.h"
+
+#include <storage/storage.h>
+#include <toolbox/stream/stream.h>
+#include <toolbox/stream/file_stream.h>
+
+#define TAG "ChordDb"
+
+/* ------------------------------------------------------------------ */
+/* Builtin starter library                                             */
+/* ------------------------------------------------------------------ */
+
+/* Compact source form: name | frets | base | fingers
+ * frets:   6 chars, 'x' = muted, '0' = open, '1'-'9' = fret offset from base
+ * fingers: 6 chars, '-' = none, '1'-'4' = finger
+ */
+static const char* const BUILTIN[] = {
+    // C
+    "C|x32010|1|-32-1-",
+    "C|x13331|3|-13421",
+    "C|133211|8|134211",
+    "Cm|x13321|3|-13421",
+    "Cm|133111|8|134111",
+    "Cm|xx1342|10|--1342",
+    "C7|x32310|1|-3241-",
+    "C7|x13131|3|-13141",
+    "C7|131211|8|131211",
+    "Cm7|x13121|3|-13121",
+    "Cm7|131111|8|131111",
+    "Cm7|xx1322|10|--1322",
+    "Cmaj7|x32000|1|-32---",
+    "Cmaj7|x13231|3|-13241",
+    "Cmaj7|132211|8|142311",
+    "Csus2|x13311|3|-13411",
+    "Csus2|xx1341|10|--1341",
+    "Csus4|x13341|3|-12341",
+    "Csus4|133311|8|123411",
+    "Csus4|xx1344|10|--1234",
+    "C5|x13xxx|3|-13---",
+    "C5|133xxx|8|134---",
+    "C5|xx134x|10|--134-",
+    "Cadd9|x32030|1|-32-4-",
+    // C#
+    "C#|x13331|4|-13421",
+    "C#|133211|9|134211",
+    "C#|xx1343|11|--1243",
+    "C#m|x13321|4|-13421",
+    "C#m|133111|9|134111",
+    "C#m|xx1342|11|--1342",
+    "C#7|x13131|4|-13141",
+    "C#7|131211|9|131211",
+    "C#7|xx1323|11|--1324",
+    "C#m7|x13121|4|-13121",
+    "C#m7|131111|9|131111",
+    "C#m7|xx1322|11|--1322",
+    "C#maj7|x13231|4|-13241",
+    "C#maj7|132211|9|142311",
+    "C#maj7|xx1333|11|--1333",
+    "C#sus2|x13311|4|-13411",
+    "C#sus2|xx1341|11|--1341",
+    "C#sus4|x13341|4|-12341",
+    "C#sus4|133311|9|123411",
+    "C#sus4|xx1344|11|--1234",
+    "C#5|x13xxx|4|-13---",
+    "C#5|133xxx|9|134---",
+    "C#5|xx134x|11|--134-",
+    // D
+    "D|xx0232|1|---132",
+    "D|x13331|5|-13421",
+    "D|133211|10|134211",
+    "Dm|xx0231|1|---231",
+    "Dm|x13321|5|-13421",
+    "Dm|133111|10|134111",
+    "D7|xx0212|1|---213",
+    "D7|x13131|5|-13141",
+    "D7|131211|10|131211",
+    "Dm7|xx0211|1|---211",
+    "Dm7|x13121|5|-13121",
+    "Dm7|131111|10|131111",
+    "Dmaj7|xx0222|1|---111",
+    "Dmaj7|x13231|5|-13241",
+    "Dmaj7|132211|10|142311",
+    "Dsus2|xx0230|1|---13-",
+    "Dsus2|x13311|5|-13411",
+    "Dsus2|xx1341|12|--1341",
+    "Dsus4|xx0233|1|---134",
+    "Dsus4|x13341|5|-12341",
+    "Dsus4|133311|10|123411",
+    "D5|xx023x|1|---13-",
+    "D5|x13xxx|5|-13---",
+    "D5|133xxx|10|134---",
+    // Eb
+    "Eb|xx1343|1|--1243",
+    "Eb|x13331|6|-13421",
+    "Eb|133211|11|134211",
+    "Ebm|xx1342|1|--1342",
+    "Ebm|x13321|6|-13421",
+    "Ebm|133111|11|134111",
+    "Eb7|xx1323|1|--1324",
+    "Eb7|x13131|6|-13141",
+    "Eb7|131211|11|131211",
+    "Ebm7|xx1322|1|--1322",
+    "Ebm7|x13121|6|-13121",
+    "Ebm7|131111|11|131111",
+    "Ebmaj7|xx1333|1|--1333",
+    "Ebmaj7|x13231|6|-13241",
+    "Ebmaj7|132211|11|142311",
+    "Ebsus2|xx1341|1|--1341",
+    "Ebsus2|x13311|6|-13411",
+    "Ebsus4|xx1344|1|--1234",
+    "Ebsus4|x13341|6|-12341",
+    "Ebsus4|133311|11|123411",
+    "Eb5|xx134x|1|--134-",
+    "Eb5|x13xxx|6|-13---",
+    "Eb5|133xxx|11|134---",
+    // E
+    "E|022100|1|-231--",
+    "E|xx1343|2|--1243",
+    "E|x13331|7|-13421",
+    "Em|022000|1|-23---",
+    "Em|xx1342|2|--1342",
+    "Em|x13321|7|-13421",
+    "E7|020100|1|-2-1--",
+    "E7|xx1323|2|--1324",
+    "E7|x13131|7|-13141",
+    "Em7|020000|1|-2----",
+    "Em7|xx1322|2|--1322",
+    "Em7|x13121|7|-13121",
+    "Emaj7|021100|1|-231--",
+    "Emaj7|xx1333|2|--1333",
+    "Emaj7|x13231|7|-13241",
+    "Esus2|xx1341|2|--1341",
+    "Esus2|x13311|7|-13411",
+    "Esus4|022200|1|-234--",
+    "Esus4|xx1344|2|--1234",
+    "Esus4|x13341|7|-12341",
+    "E5|022xxx|1|-13---",
+    "E5|xx134x|2|--134-",
+    "E5|x13xxx|7|-13---",
+    // F
+    "F|133211|1|134211",
+    "F|xx1343|3|--1243",
+    "F|x13331|8|-13421",
+    "Fm|133111|1|134111",
+    "Fm|xx1342|3|--1342",
+    "Fm|x13321|8|-13421",
+    "F7|131211|1|131211",
+    "F7|xx1323|3|--1324",
+    "F7|x13131|8|-13141",
+    "Fm7|131111|1|131111",
+    "Fm7|xx1322|3|--1322",
+    "Fm7|x13121|8|-13121",
+    "Fmaj7|xx3210|1|--321-",
+    "Fmaj7|132211|1|142311",
+    "Fmaj7|xx1333|3|--1333",
+    "Fsus2|xx1341|3|--1341",
+    "Fsus2|x13311|8|-13411",
+    "Fsus4|133311|1|123411",
+    "Fsus4|xx1344|3|--1234",
+    "Fsus4|x13341|8|-12341",
+    "F5|133xxx|1|134---",
+    "F5|xx134x|3|--134-",
+    "F5|x13xxx|8|-13---",
+    "F/C|x33211|1|-34211",
+    // F#
+    "F#|133211|2|134211",
+    "F#|xx1343|4|--1243",
+    "F#|x13331|9|-13421",
+    "F#m|133111|2|134111",
+    "F#m|xx1342|4|--1342",
+    "F#m|x13321|9|-13421",
+    "F#7|131211|2|131211",
+    "F#7|xx1323|4|--1324",
+    "F#7|x13131|9|-13141",
+    "F#m7|131111|2|131111",
+    "F#m7|xx1322|4|--1322",
+    "F#m7|x13121|9|-13121",
+    "F#maj7|132211|2|142311",
+    "F#maj7|xx1333|4|--1333",
+    "F#maj7|x13231|9|-13241",
+    "F#sus2|xx1341|4|--1341",
+    "F#sus2|x13311|9|-13411",
+    "F#sus4|133311|2|123411",
+    "F#sus4|xx1344|4|--1234",
+    "F#sus4|x13341|9|-12341",
+    "F#5|133xxx|2|134---",
+    "F#5|xx134x|4|--134-",
+    "F#5|x13xxx|9|-13---",
+    // G
+    "G|320003|1|21---3",
+    "G|133211|3|134211",
+    "G|xx1343|5|--1243",
+    "Gm|133111|3|134111",
+    "Gm|xx1342|5|--1342",
+    "Gm|x13321|10|-13421",
+    "G7|320001|1|32---1",
+    "G7|131211|3|131211",
+    "G7|xx1323|5|--1324",
+    "Gm7|131111|3|131111",
+    "Gm7|xx1322|5|--1322",
+    "Gm7|x13121|10|-13121",
+    "Gmaj7|320002|1|21---3",
+    "Gmaj7|132211|3|142311",
+    "Gmaj7|xx1333|5|--1333",
+    "Gsus2|xx1341|5|--1341",
+    "Gsus2|x13311|10|-13411",
+    "Gsus4|133311|3|123411",
+    "Gsus4|xx1344|5|--1234",
+    "Gsus4|x13341|10|-12341",
+    "G5|133xxx|3|134---",
+    "G5|xx134x|5|--134-",
+    "G5|x13xxx|10|-13---",
+    "G/B|x20003|1|-2---3",
+    // Ab
+    "Ab|133211|4|134211",
+    "Ab|xx1343|6|--1243",
+    "Ab|x13331|11|-13421",
+    "Abm|133111|4|134111",
+    "Abm|xx1342|6|--1342",
+    "Abm|x13321|11|-13421",
+    "Ab7|131211|4|131211",
+    "Ab7|xx1323|6|--1324",
+    "Ab7|x13131|11|-13141",
+    "Abm7|131111|4|131111",
+    "Abm7|xx1322|6|--1322",
+    "Abm7|x13121|11|-13121",
+    "Abmaj7|132211|4|142311",
+    "Abmaj7|xx1333|6|--1333",
+    "Abmaj7|x13231|11|-13241",
+    "Absus2|xx1341|6|--1341",
+    "Absus2|x13311|11|-13411",
+    "Absus4|133311|4|123411",
+    "Absus4|xx1344|6|--1234",
+    "Absus4|x13341|11|-12341",
+    "Ab5|133xxx|4|134---",
+    "Ab5|xx134x|6|--134-",
+    "Ab5|x13xxx|11|-13---",
+    // A
+    "A|x02220|1|--123-",
+    "A|133211|5|134211",
+    "A|xx1343|7|--1243",
+    "Am|x02210|1|--231-",
+    "Am|133111|5|134111",
+    "Am|xx1342|7|--1342",
+    "A7|x02020|1|--2-3-",
+    "A7|131211|5|131211",
+    "A7|xx1323|7|--1324",
+    "Am7|x02010|1|--2-1-",
+    "Am7|131111|5|131111",
+    "Am7|xx1322|7|--1322",
+    "Amaj7|x02120|1|--213-",
+    "Amaj7|132211|5|142311",
+    "Amaj7|xx1333|7|--1333",
+    "Asus2|x02200|1|--23--",
+    "Asus2|xx1341|7|--1341",
+    "Asus2|x13311|12|-13411",
+    "Asus4|x02230|1|--134-",
+    "Asus4|133311|5|123411",
+    "Asus4|xx1344|7|--1234",
+    "A5|x022xx|1|--13--",
+    "A5|133xxx|5|134---",
+    "A5|xx134x|7|--134-",
+    // Bb
+    "Bb|x13331|1|-13421",
+    "Bb|133211|6|134211",
+    "Bb|xx1343|8|--1243",
+    "Bbm|x13321|1|-13421",
+    "Bbm|133111|6|134111",
+    "Bbm|xx1342|8|--1342",
+    "Bb7|x13131|1|-13141",
+    "Bb7|131211|6|131211",
+    "Bb7|xx1323|8|--1324",
+    "Bbm7|x13121|1|-13121",
+    "Bbm7|131111|6|131111",
+    "Bbm7|xx1322|8|--1322",
+    "Bbmaj7|x13231|1|-13241",
+    "Bbmaj7|132211|6|142311",
+    "Bbmaj7|xx1333|8|--1333",
+    "Bbsus2|x13311|1|-13411",
+    "Bbsus2|xx1341|8|--1341",
+    "Bbsus4|x13341|1|-12341",
+    "Bbsus4|133311|6|123411",
+    "Bbsus4|xx1344|8|--1234",
+    "Bb5|x13xxx|1|-13---",
+    "Bb5|133xxx|6|134---",
+    "Bb5|xx134x|8|--134-",
+    // B
+    "B|x13331|2|-13421",
+    "B|133211|7|134211",
+    "B|xx1343|9|--1243",
+    "Bm|x13321|2|-13421",
+    "Bm|133111|7|134111",
+    "Bm|xx1342|9|--1342",
+    "B7|x21202|1|-213-4",
+    "B7|x13131|2|-13141",
+    "B7|131211|7|131211",
+    "Bm7|x13121|2|-13121",
+    "Bm7|131111|7|131111",
+    "Bm7|xx1322|9|--1322",
+    "Bmaj7|x13231|2|-13241",
+    "Bmaj7|132211|7|142311",
+    "Bmaj7|xx1333|9|--1333",
+    "Bsus2|x13311|2|-13411",
+    "Bsus2|xx1341|9|--1341",
+    "Bsus4|x13341|2|-12341",
+    "Bsus4|133311|7|123411",
+    "Bsus4|xx1344|9|--1234",
+    "B5|x13xxx|2|-13---",
+    "B5|133xxx|7|134---",
+    "B5|xx134x|9|--134-",
+};
+
+/* Chromatic order used for the root menu; both spellings kept. */
+static const char* const ROOT_ORDER[] = {
+    "C",
+    "C#",
+    "Db",
+    "D",
+    "D#",
+    "Eb",
+    "E",
+    "F",
+    "F#",
+    "Gb",
+    "G",
+    "G#",
+    "Ab",
+    "A",
+    "A#",
+    "Bb",
+    "B",
+};
+#define ROOT_ORDER_COUNT (sizeof(ROOT_ORDER) / sizeof(ROOT_ORDER[0]))
+
+/* ------------------------------------------------------------------ */
+/* Storage                                                             */
+/* ------------------------------------------------------------------ */
+
+ChordDb* chord_db_alloc(void) {
+    ChordDb* db = malloc(sizeof(ChordDb));
+    db->items = NULL;
+    db->count = 0;
+    db->capacity = 0;
+    return db;
+}
+
+void chord_db_free(ChordDb* db) {
+    if(!db) return;
+    if(db->items) free(db->items);
+    free(db);
+}
+
+static void chord_db_reset(ChordDb* db) {
+    db->count = 0;
+}
+
+static void chord_db_grow(ChordDb* db) {
+    size_t new_cap = db->capacity ? db->capacity * 2 : 32;
+    Chord* items = malloc(sizeof(Chord) * new_cap);
+    if(db->items) {
+        memcpy(items, db->items, sizeof(Chord) * db->count);
+        free(db->items);
+    }
+    db->items = items;
+    db->capacity = new_cap;
+}
+
+static void chord_db_push(ChordDb* db, const Chord* c) {
+    if(db->count == db->capacity) chord_db_grow(db);
+    db->items[db->count++] = *c;
+}
+
+/* ------------------------------------------------------------------ */
+/* Parsing                                                             */
+/* ------------------------------------------------------------------ */
+
+/* Split "A|B|C|D" in place. Returns number of fields found (max `max`). */
+static size_t split_pipe(char* line, char** fields, size_t max) {
+    size_t n = 0;
+    char* p = line;
+    fields[n++] = p;
+    while(*p && n < max) {
+        if(*p == '|') {
+            *p = '\0';
+            fields[n++] = p + 1;
+        }
+        p++;
+    }
+    return n;
+}
+
+static void parse_root_quality(Chord* c) {
+    memset(c->root, 0, CHORD_ROOT_LEN);
+    memset(c->quality, 0, CHORD_QUALITY_LEN);
+
+    const char* n = c->name;
+    size_t r = 0;
+    if(n[0] >= 'A' && n[0] <= 'G') {
+        c->root[r++] = n[0];
+        if(n[1] == '#' || n[1] == 'b') c->root[r++] = n[1];
+    }
+    c->root[r] = '\0';
+    strncpy(c->quality, n + r, CHORD_QUALITY_LEN - 1);
+}
+
+/** Parse one "NAME|FRETS|BASE|FINGERS" record. FINGERS may be omitted. */
+static bool chord_parse(const char* record, Chord* out) {
+    char buf[64];
+    strncpy(buf, record, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+
+    char* f[4] = {0};
+    size_t n = split_pipe(buf, f, 4);
+    if(n < 2) return false;
+
+    memset(out, 0, sizeof(Chord));
+    strncpy(out->name, f[0], CHORD_NAME_LEN - 1);
+    parse_root_quality(out);
+
+    const char* frets = f[1];
+    if(strlen(frets) < CHORD_STRINGS) return false;
+    for(size_t i = 0; i < CHORD_STRINGS; i++) {
+        char ch = frets[i];
+        if(ch == 'x' || ch == 'X') {
+            out->frets[i] = CHORD_FRET_MUTED;
+        } else if(ch >= '0' && ch <= '9') {
+            out->frets[i] = (int8_t)(ch - '0');
+        } else {
+            return false;
+        }
+    }
+
+    out->base_fret = 1;
+    if(n >= 3 && f[2] && f[2][0]) {
+        int b = atoi(f[2]);
+        if(b >= 1 && b <= 20) out->base_fret = (uint8_t)b;
+    }
+
+    if(n >= 4 && f[3] && strlen(f[3]) >= CHORD_STRINGS) {
+        for(size_t i = 0; i < CHORD_STRINGS; i++) {
+            char ch = f[3][i];
+            out->fingers[i] = (ch >= '1' && ch <= '4') ? (int8_t)(ch - '0') : 0;
+        }
+    }
+
+    /* Forgive absolute frets in the CSV: slide the window so everything
+     * fits the 4-fret diagram. */
+    int8_t lo = 127, hi = 0;
+    for(size_t i = 0; i < CHORD_STRINGS; i++) {
+        if(out->frets[i] <= 0) continue;
+        if(out->frets[i] < lo) lo = out->frets[i];
+        if(out->frets[i] > hi) hi = out->frets[i];
+    }
+    if(hi > 4 && lo > 1) {
+        int8_t shift = lo - 1;
+        for(size_t i = 0; i < CHORD_STRINGS; i++) {
+            if(out->frets[i] > 0) out->frets[i] -= shift;
+        }
+        out->base_fret += shift;
+    }
+
+    return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Loading                                                             */
+/* ------------------------------------------------------------------ */
+
+void chord_db_load_builtin(ChordDb* db) {
+    chord_db_reset(db);
+    size_t total = sizeof(BUILTIN) / sizeof(BUILTIN[0]);
+    for(size_t i = 0; i < total; i++) {
+        Chord c;
+        if(chord_parse(BUILTIN[i], &c)) chord_db_push(db, &c);
+    }
+}
+
+bool chord_db_load_csv(ChordDb* db, const char* path) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    Stream* stream = file_stream_alloc(storage);
+    bool ok = false;
+
+    if(file_stream_open(stream, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        chord_db_reset(db);
+        FuriString* line = furi_string_alloc();
+        while(stream_read_line(stream, line)) {
+            furi_string_trim(line);
+            if(furi_string_empty(line)) continue;
+            if(furi_string_get_char(line, 0) == '#') continue;
+
+            Chord c;
+            if(chord_parse(furi_string_get_cstr(line), &c)) {
+                chord_db_push(db, &c);
+            } else {
+                FURI_LOG_W(TAG, "bad line: %s", furi_string_get_cstr(line));
+            }
+        }
+        furi_string_free(line);
+        ok = db->count > 0;
+    }
+
+    file_stream_close(stream);
+    stream_free(stream);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+bool chord_db_write_default_csv(const char* path) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    Stream* stream = file_stream_alloc(storage);
+    bool ok = false;
+
+    if(file_stream_open(stream, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        stream_write_cstring(stream, "# Guitar Chords library\n");
+        stream_write_cstring(stream, "# NAME|FRETS|BASE_FRET|FINGERS\n");
+        stream_write_cstring(stream, "# FRETS: 6 chars, low E first. x=muted 0=open 1-9=offset\n");
+        stream_write_cstring(stream, "# FINGERS: 6 chars, -=none 1-4=finger. Optional.\n");
+        stream_write_cstring(stream, "# Lines starting with # are ignored.\n\n");
+        size_t total = sizeof(BUILTIN) / sizeof(BUILTIN[0]);
+        for(size_t i = 0; i < total; i++) {
+            stream_write_cstring(stream, BUILTIN[i]);
+            stream_write_char(stream, '\n');
+        }
+        ok = true;
+    }
+
+    file_stream_close(stream);
+    stream_free(stream);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+/* ------------------------------------------------------------------ */
+/* Queries                                                             */
+/* ------------------------------------------------------------------ */
+
+size_t chord_db_roots(ChordDb* db, const char** out, size_t out_max) {
+    size_t n = 0;
+    for(size_t r = 0; r < ROOT_ORDER_COUNT && n < out_max; r++) {
+        for(size_t i = 0; i < db->count; i++) {
+            if(strcmp(db->items[i].root, ROOT_ORDER[r]) == 0) {
+                out[n++] = ROOT_ORDER[r];
+                break;
+            }
+        }
+    }
+    return n;
+}
+
+size_t chord_db_names_for_root(ChordDb* db, const char* root, const char** out, size_t out_max) {
+    size_t n = 0;
+    for(size_t i = 0; i < db->count && n < out_max; i++) {
+        if(strcmp(db->items[i].root, root) != 0) continue;
+        bool seen = false;
+        for(size_t j = 0; j < n; j++) {
+            if(strcmp(out[j], db->items[i].name) == 0) {
+                seen = true;
+                break;
+            }
+        }
+        if(!seen) out[n++] = db->items[i].name;
+    }
+    return n;
+}
+
+size_t chord_db_voicings(ChordDb* db, const char* name, size_t* out, size_t out_max) {
+    size_t n = 0;
+    for(size_t i = 0; i < db->count && n < out_max; i++) {
+        if(strcmp(db->items[i].name, name) == 0) out[n++] = i;
+    }
+    return n;
+}
