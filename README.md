@@ -151,7 +151,7 @@ size_t hp_build_chords(const HpScale* s, uint8_t max_tones, HpChord* out, size_t
 Output is capped at `HP_MAX_CHORDS` (72). The richest drum currently produces 41
 chords, so nothing is truncated today.
 
-### Formula table ordering
+## Formula table ordering
 
 `hp_formulas[]` is ordered simplest-first — triads, then sixths and sevenths,
 then extensions — because the depth filter is just `formula->count <= max_tones`.

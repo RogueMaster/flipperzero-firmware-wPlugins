@@ -10,7 +10,7 @@ App(
     stack_size=4 * 1024,
     fap_category="Media",
     fap_icon="icon.png",
-    fap_description="Chord reference for handpans: shows which pads to strike",
+    fap_description="See which pads to strike for any chord on your handpan",
     fap_author="KingBoa (NoodleNugget.com)",
     fap_version="1.0",
 )
