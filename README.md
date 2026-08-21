@@ -12,9 +12,10 @@ drum's tuning — nothing is hardcoded per drum. See
 
 By KingBoa — [NoodleNugget.com](https://noodlenugget.com)
 
-| | | |
-| --- | --- | --- |
-| ![Chord view](screenshots/chord_view.png) | ![Menu](screenshots/menu.png) | ![Splash](screenshots/splash.png) |
+| | |
+| --- | --- |
+| ![Chord view](screenshots/Screenshot-20260821-161722.png) | ![Practice](screenshots/Screenshot-20260821-161804.png) |
+| ![Scales](screenshots/Screenshot-20260821-161701.png) | ![Splash](screenshots/Screenshot-20260821-161612.png) |
 
 ## Building (macOS)
 
