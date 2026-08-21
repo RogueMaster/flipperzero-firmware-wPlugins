@@ -10,6 +10,8 @@ compile_commands.json
 # macOS
 .DS_Store
 
-# catalog submission artifact - lives in the flipper-application-catalog fork,
-# and embedding this repo commit SHA in this repo is circular
+# Catalog submission artifacts. These belong to the PR against
+# flipper-application-catalog, not to the app itself, and the manifest embeds
+# this repo's own commit SHA, which would be circular to track here.
 catalog-manifest.yml
+catalog-pr-body.md
