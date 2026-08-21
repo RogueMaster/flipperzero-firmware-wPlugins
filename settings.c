@@ -14,6 +14,7 @@
 void stratahero_load_settings(StrataHeroSettings* settings) {
     settings->sound_enabled = true;
     settings->vibro_enabled = true;
+    settings->flipped_enabled = false;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* file = flipper_format_file_alloc(storage);
@@ -21,6 +22,7 @@ void stratahero_load_settings(StrataHeroSettings* settings) {
     if (flipper_format_file_open_existing(file, SETTINGS_FILE_PATH)) {
         flipper_format_read_bool(file, "sound_enabled", &settings->sound_enabled, 1);
         flipper_format_read_bool(file, "vibro_enabled", &settings->vibro_enabled, 1);
+        flipper_format_read_bool(file, "flipped_enabled", &settings->flipped_enabled, 1);
     }
 
     flipper_format_file_close(file);
@@ -39,6 +41,7 @@ void stratahero_save_settings(StrataHeroSettings* settings) {
 
         flipper_format_write_bool(file, "sound_enabled", &settings->sound_enabled, 1);
         flipper_format_write_bool(file, "vibro_enabled", &settings->vibro_enabled, 1);
+        flipper_format_write_bool(file, "flipped_enabled", &settings->flipped_enabled, 1);
     }
 
     flipper_format_file_close(file);
@@ -53,6 +56,7 @@ struct StrataHeroSettingsWidget {
     VariableItemList* menu;
     VariableItem* sound_enabled_item;
     VariableItem* vibro_enabled_item;
+    VariableItem* flipped_enabled_item;
 
     DialogEx* save_confirmation_dialog;
 
@@ -83,6 +87,9 @@ static void settings_sync_ui(StrataHeroSettingsWidget* widget) {
 
     variable_item_set_current_value_index(widget->vibro_enabled_item, widget->settings.vibro_enabled ? 1 : 0);
     variable_item_set_current_value_text(widget->vibro_enabled_item, widget->settings.vibro_enabled ? "ON" : "OFF");
+
+    variable_item_set_current_value_index(widget->flipped_enabled_item, widget->settings.flipped_enabled ? 1 : 0);
+    variable_item_set_current_value_text(widget->flipped_enabled_item, widget->settings.flipped_enabled ? "ON" : "OFF");
 }
 
 static void save_confirmation_dialog_callback(DialogExResult result, void* context) {
@@ -116,6 +123,7 @@ StrataHeroSettingsWidget* stratahero_settings_widget_alloc() {
     widget->menu = variable_item_list_alloc();
     widget->sound_enabled_item = variable_item_list_add(widget->menu, "Sound", 2, bool_change_callback, &widget->settings.sound_enabled);
     widget->vibro_enabled_item = variable_item_list_add(widget->menu, "Vibro", 2, bool_change_callback, &widget->settings.vibro_enabled);
+    widget->flipped_enabled_item = variable_item_list_add(widget->menu, "Flipped", 2, bool_change_callback, &widget->settings.flipped_enabled);
 
     // Settings save confirmation
     widget->save_confirmation_dialog = dialog_ex_alloc();
@@ -146,7 +154,8 @@ View* stratahero_settings_widget_get_confirmation_view(StrataHeroSettingsWidget*
 
 bool stratahero_settings_widget_has_pending_changes(StrataHeroSettingsWidget* widget) {
     return widget->settings.sound_enabled != widget->original_settings.sound_enabled ||
-           widget->settings.vibro_enabled != widget->original_settings.vibro_enabled;
+           widget->settings.vibro_enabled != widget->original_settings.vibro_enabled ||
+           widget->settings.flipped_enabled != widget->original_settings.flipped_enabled;
 }
 
 StrataHeroSettings* stratahero_settings_widget_get_settings(StrataHeroSettingsWidget* widget) {
