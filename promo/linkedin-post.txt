@@ -1,0 +1,20 @@
+A few weeks ago I pushed a small Flipper Zero app to GitHub. This week I found it on Help Net Security, Cyber Security News, and a handful of feeds I don't run.
+
+So here's the version from the person who wrote it.
+
+Specter listens for NFC card readers. Not cards — readers. Every powered-on reader is shouting a 13.56 MHz carrier constantly, waiting for a card to wake up. A skimmer glued inside a payment terminal is shouting too. You can't see it, but the Flipper's NFC chip has a hardware "is there a field?" bit, and if you sample that bit fast enough while never switching your own transmitter on, you can hunt the thing by ear.
+
+It never transmits. It only listens.
+
+The part I did not expect: the meter capped around 31% no matter how close I got. Not a bug in the detection — readers *poll*. Burst, sleep, burst. A live terminal only radiates about a third of the time, so 31% WAS the ceiling. I had been showing a saturated reading as if it were a third of one.
+
+The part I'd rather not have shipped: my sampling loop paced itself with a busy-wait that never yielded to the scheduler. It pinned the CPU for the whole scan and could wedge the entire UI until you rebooted the Flipper. A user named drdelaney found it, wrote a genuinely excellent bug report, and it turned out to have been there since day one.
+
+Both of those are fixed. It's now five modes, 316 host tests, and a lot more honesty in the UI about what it cannot tell you.
+
+Free, MIT, no extra hardware:
+github.com/at0m-b0mb/Specter-FlipperZero
+
+If you build tools: ship the limitations in the README. People trust the ones that admit what they can't do.
+
+#FlipperZero #NFC #RFID #Hardware #OpenSource #CyberSecurity #EmbeddedSystems
