@@ -2,11 +2,11 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/NoodleNugget-com/handpan_chords.git
-    commit_sha: bad700b6f215f7b01f525c670173f2746b2d0819
+    commit_sha: f0bc052c7dfca611c61882856c39bc5731b7799f
 screenshots:
   - screenshots/chord_view.png
   - screenshots/menu.png
   - screenshots/splash.png
 short_description: See which pads to strike for any chord on your handpan
-description: "@README.md"
+description: "@catalog-description.md"
 changelog: "@changelog.md"
