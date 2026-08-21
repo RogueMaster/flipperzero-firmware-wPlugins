@@ -1,3 +1,4 @@
 dist/
 .github/
 .vscode/
+__pycache__/
