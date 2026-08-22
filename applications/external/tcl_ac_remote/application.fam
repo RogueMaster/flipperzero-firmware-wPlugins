@@ -1,7 +1,8 @@
 App(
     appid="tcl_ac_remote",
-    name="TCL",
+    name="TCL AC",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="tcl_ac_remote_app",
     stack_size=4 * 1024,
     fap_icon="tcl_ac_remote.png",

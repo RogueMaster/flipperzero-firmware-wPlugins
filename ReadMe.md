@@ -54,6 +54,21 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Stratagem Hero v1.0.1 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 - Added: [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - Added: [Handpan Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/handpan_chords)
+- Added: [Ballu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Carrier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Coolix AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Delonghi AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Fujitsu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [LG AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Mitsubishi AC (New) v1.0 (By Str4ch)](https://github.com/Str4ch/flipperzero-mitsubishi-ac-remote-new-protocol)
+- Added: [MitsuHeavy AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Neoclima AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Panasonic AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [TCL AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- Added: [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 
 <a name="release"></a>
 
@@ -362,6 +377,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Badge Audit v1.0 (By ViperDroid)](https://github.com/ViperDroid/flipper-badge-audit)
 - [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [BadUSB wPlaceholders v1.0 (By whitewhidow)](https://github.com/whitewhidow/flipper-badusb-ph)
+- [Ballu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Bambu RID v0.2 (By DanTheMan827)](https://github.com/DanTheMan827/bambu-rfid-flipper)
 - [Barcode App v1.5 (By Kingal1337)](https://github.com/Kingal1337/flipper-barcode-generator)
 - [BarCode Scanner Emulator (By polarikus)](https://github.com/polarikus/flipper-zero_bc_scanner_emulator) `Uses: COM-port`
@@ -397,6 +413,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CANBUS ATTACK v1.0 (By jorgepnaranjo25)](https://github.com/jorgepnaranjo25/CAN-Bus-Attack) `Req: CANBUS By ElectronicCats`
 - [CANBUS v1.1.6.2 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) `Req: CANBUS By ElectronicCats`
 - [Canon Intervalometer v1.0 (By TravisCG)](https://github.com/TravisCG/canonivm)
+- [Carrier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 - [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus)
@@ -420,12 +437,14 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Combo Cracker v0.5 (By CharlesTheGreat77)](https://github.com/CharlesTheGreat77/ComboCracker-FZ)
 - [Continuity Tester (By benallen-dev)](https://github.com/benallen-dev/flipper-zero-apps/tree/main/continuity)
 - [Cookie Clicker v1.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/hid/hid_cookie)
+- [Coolix AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Count Down Timer v1.5 (By 0w0mewo)](https://github.com/0w0mewo/fpz_cntdown_timer)
 - [Counter v1.5 (By Krulknul & TEXploder)](https://github.com/TEXploder/TEX-Counter)
 - [Cross Remote v3.4 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
 - [Crypto Dictionary v0.1 (By armixz)](https://github.com/armixz/Flipper-Zero-Crypto-Dictionary)
 - [Cyborg Detector v1.1 (By RocketGod-Git)](https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector)
 - [Dab Timer v2.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
+- [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
 - [Dallas Tester v0.1 (By mishamyte)](https://github.com/mishamyte/flipper-dallas-tester)
 - [DAP Link v1.4 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1897)
@@ -433,6 +452,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DCF77 Transmitter v2.0 (By arha)](https://github.com/arha/flipper-dcf77)
 - [Deauther PWNDTOOLS V2.6.0 (By HEX0DAYS)](https://github.com/HEX0DAYS/FlipperZero-PWNDTOOLS) `Req: ESP8266` [Original](https://github.com/SpacehuhnTech/esp8266_deauther)
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
+- [Delonghi AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)
 - [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
@@ -532,6 +552,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FreeStyle Libre CGM v0.1 (By darendarrow)](https://github.com/darendarrow/flipnCGM)
 - [Frequency Analyzer (External) v1.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext)
 - [FRSScan v0.2 (By thecybermind)](https://github.com/thecybermind/frsscan)
+- [Fujitsu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [FZ nRF24 Jammer v1.4 (By W0rthlessS0ul)](https://github.com/W0rthlessS0ul/FZ_nRF24_jammer)
 - [Gas Sensor v0.1 (By iancohee)](https://github.com/iancohee/gas_sensor_fap) `Req: BME680 / SGP30`
 - [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
@@ -554,11 +575,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPIO w I2C (By gornekich)-OFW] with [I²C-Scanner #1431 (By GitChris3004)](https://github.com/flipperdevices/flipperzero-firmware/pull/1431) and [read EEPROM of SFP Modules using I2C (By marcusju)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/198)
 - [GPS Track v1.0 (By xumbax)](https://github.com/xumbax/GPS-Track) `Req: NMEA GPS Module`
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
+- [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)
 - [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
+- [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - [Handpan Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/handpan_chords)
 - [Hard Hat Brigade IR v0.1 (By Anomalous68)](https://github.com/Anomalous68/HHB-Flipper-App) `Req: Hard Hat Brigade Hat`
@@ -615,6 +638,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [LED Ring & Matrix Studio v0.1 (By xfwluna)](https://github.com/xfwluna/led_ring_matrix_studio) `Req: WS2812B / SK6812 NeoPixel`
 - [LEGO Dimensions Toy Pad v0.5 (By SegerEnd)](https://github.com/SegerEnd/Flipper-Zero-LD-Toypad-Emulator)
 - [Letter Beacon v1.0 (By nmrr)](https://github.com/nmrr/flipperzero-rfidbeacon)
+- [LG AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [LGT ISP (SWD) v0.7 (By mkrasem / SimonE)](https://github.com/mkrasem/flipper_lgt_isp) `Req: LGT8F328P`
 - [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
 - [Lightmeter v1.3 (By oleksiikutuzov)](https://github.com/oleksiikutuzov/flipperzero-lightmeter) `Req: BH1750/MAX44009`
@@ -656,6 +680,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [MIDI RX v0.1 (By crackerjacques)](https://github.com/crackerjacques/flipper_zero_midi_rx)
 - [Miele Scout RX2 v1.0 (By kallevaravas)](https://github.com/kallevaravas/flipper-miele-scout)
 - [Mifare Fuzzer v1.5 (By spheeere98)](https://github.com/spheeere98/mifare_fuzzer)
+- [Mitsubishi AC (New) v1.0 (By Str4ch)](https://github.com/Str4ch/flipperzero-mitsubishi-ac-remote-new-protocol)
+- [MitsuHeavy AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Mitsubishi AC Remote v1.0 (By achistyakov)](https://github.com/achistyakov/flipperzero-mitsubishi-ac-remote)
 - [Mitzi Type Aid Demo v0.1 (By fgreil)](https://github.com/fgreil/mitzi-tyaid)
 - [MiZip Balance Editor v1.0 (By teohumeau)](https://github.com/teohumeau/MiZipBalanceEditor)
@@ -681,6 +707,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Mx2125 Step Counter v1.0 (By 47lecoste a.k.a. grugnoymeme)](https://github.com/grugnoymeme/flipperzero-stepcounter-fap)
 - [Name Changer (By ESurge)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/488)
 - [Nearby Files v1.7 (By Stichoza)](https://github.com/Stichoza/flipper-nearby-files)
+- [Neoclima AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [NestBridge v1.0 (By Bibfortuna5057)](https://github.com/Bibfortuna5057/NestBridge-Flipper) `Req: Nest Gen 2 Thermostat`
 - [Netflix TV Remote v0.1 (By ablaran)](https://github.com/ablaran/NetflixTvRemote)
 - [Network Calculator v1.0 (By WolfRorDev)](https://github.com/WolfRorDev/Net-Calculator-for-Flipper-Zero)
@@ -723,6 +750,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Orgasmotron v1.1 (By leedave)](https://github.com/leedave/Leeds-Flipper-Zero-Applications)
 - [Oscilloscope v0.4 (By anfractuosity)](https://github.com/anfractuosity/flipperscope)
 - [OSM Logger GPS v0.15 (By simongrossi)](https://github.com/simongrossi/flipperzero-osm-logger-gps)
+- [Panasonic AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
 - [Password Generator v1.4 (By anakod)](https://github.com/anakod/flipper_passgen)
 - [Password Keyboard v0.1 (By evgeniyraev)](https://github.com/evgeniyraev/password_keyboard)
@@ -834,6 +862,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
+- [TCL AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - [Tesla Mod v2.16b26 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - [Text To SAM v1.5 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)
@@ -846,6 +875,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Timer v0.1 (By nagamine-git)](https://github.com/nagamine-git/flipperzero_timer_app)
 - [Tone Generator v1.0 (By GEMISIS)](https://github.com/GEMISIS/tone_gen)
 - [TonUINO Writer v2.0 (By Bastelsaal)](https://github.com/Bastelsaal/tonuino-flipper-zero)
+- [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)- [Bambu RID v0.2 (By DanTheMan827)](https://github.com/DanTheMan827/bambu-rfid-flipper)
 - [TPMS Bridge Renault v1.0 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 - [TPMS Reader v1.0 (By wosk)](https://github.com/wosk/flipperzero-tpms)
 - [Tree Identification v0.0.5 (By fgreil)](https://github.com/fgreil/mitzi-tree-ident)

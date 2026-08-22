@@ -1,7 +1,8 @@
 App(
     appid="delonghi_ac_remote",
-    name="Delonghi",
+    name="Delonghi AC",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="delonghi_ac_remote_app",
     stack_size=4 * 1024,
     fap_icon="delonghi_ac_remote.png",

@@ -1,7 +1,8 @@
 App(
     appid="coolix_ac_remote",
-    name="Coolix",
+    name="Coolix AC",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="coolix_ac_remote_app",
     stack_size=4 * 1024,
     fap_icon="coolix_ac_remote.png",

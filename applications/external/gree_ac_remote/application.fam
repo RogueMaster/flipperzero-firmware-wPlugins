@@ -1,7 +1,8 @@
 App(
     appid="gree_ac_remote",
-    name="Gree",
+    name="Gree AC",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="gree_ac_remote_app",
     stack_size=4 * 1024,
     fap_icon="gree_ac_remote.png",

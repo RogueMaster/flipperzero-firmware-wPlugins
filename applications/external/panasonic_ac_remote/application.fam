@@ -1,7 +1,8 @@
 App(
     appid="panasonic_ac_remote",
-    name="Panasonic",
+    name="Panasonic AC",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="panasonic_ac_remote_app",
     stack_size=4 * 1024,
     fap_icon="panasonic_ac_remote.png",
