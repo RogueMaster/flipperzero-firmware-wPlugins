@@ -23,6 +23,9 @@
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
 #include <nfc/helpers/iso14443_crc.h>
 
+#include <cli/cli.h>
+#include <stdio.h>
+
 #include "bv_crypto.h"
 #include "bv_vault.h"
 #include "bv_records.h"
@@ -176,6 +179,7 @@ typedef struct {
     BvOp op;
 
     BvVaultData* vault; // in-RAM vault (heap; ~3.8KB, never on the stack)
+    FuriMutex* vault_mutex; // guards `vault` (GUI thread vs. CLI thread)
     uint8_t selected; // entry index shown in the detail view
     bool vault_loaded; // true once synced with the tag (or a known-empty tag)
 
@@ -376,7 +380,10 @@ static void bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
     size_t pt_len = 0;
     bool prepared = false;
 
-    if(!bv_records_serialize(app->vault, pt, 4096, &pt_len)) {
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    bool ser_ok = bv_records_serialize(app->vault, pt, 4096, &pt_len);
+    furi_mutex_release(app->vault_mutex);
+    if(!ser_ok) {
         err = BvErrTooBig;
     } else if(pt_len + BV_BLOB_OVERHEAD > SECTOR1_BYTES) {
         err = BvErrTooBig;
@@ -473,7 +480,9 @@ static void bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
             size_t blob_len = 0;
             if(!bv_vault_framed_len(buf, SECTOR1_BYTES, &blob_len)) {
                 // Empty / non-vault tag: a valid fresh (empty) vault, not an error.
+                furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
                 bv_records_init(app->vault);
+                furi_mutex_release(app->vault_mutex);
                 count = 0;
             } else {
                 BvVaultKey key;
@@ -481,9 +490,14 @@ static void bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
                     err = BvErrCrypto;
                 } else {
                     size_t pt_len = 0;
-                    if(bv_vault_decrypt(&key, buf, blob_len, pt, 1024, &pt_len) &&
-                       bv_records_parse(app->vault, pt, pt_len)) {
-                        count = app->vault->count;
+                    if(bv_vault_decrypt(&key, buf, blob_len, pt, 1024, &pt_len)) {
+                        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+                        if(bv_records_parse(app->vault, pt, pt_len)) {
+                            count = app->vault->count;
+                        } else {
+                            err = BvErrCrypto;
+                        }
+                        furi_mutex_release(app->vault_mutex);
                     } else {
                         err = BvErrCrypto; // wrong device/key, or corrupt
                     }
@@ -615,10 +629,12 @@ static void bv_build_detail(BioVault* app);
 static void bv_build_browser(BioVault* app) {
     submenu_reset(app->browser);
     submenu_set_header(app->browser, "Vault");
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
     for(uint8_t i = 0; i < app->vault->count; i++) {
         submenu_add_item(
             app->browser, app->vault->entries[i].label, i, bv_browser_item_callback, app);
     }
+    furi_mutex_release(app->vault_mutex);
 }
 
 // --- Read view UI ---
@@ -940,6 +956,7 @@ static uint32_t bv_browser_previous(void* context) {
 // own lines so the TextBox wraps and scrolls them however long they are.
 static void bv_build_detail(BioVault* app) {
     text_box_reset(app->detail);
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
     if(app->selected >= app->vault->count) {
         app->detail_text[0] = '\0';
     } else {
@@ -961,6 +978,7 @@ static void bv_build_detail(BioVault* app) {
                 e->secret);
         }
     }
+    furi_mutex_release(app->vault_mutex);
     text_box_set_font(app->detail, TextBoxFontText);
     text_box_set_text(app->detail, app->detail_text);
 }
@@ -990,7 +1008,9 @@ static void bv_input_result(void* context) {
     case BvAddSecret: {
         // No username -> it's a note/data entry, not a credential.
         BvEntryType type = (strlen(app->edit_user) > 0) ? BvEntryCred : BvEntryNote;
+        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
         bv_records_add(app->vault, type, app->edit_label, app->edit_user, app->edit_secret);
+        furi_mutex_release(app->vault_mutex);
         FURI_LOG_I(TAG, "added %s '%s' (vault now %u)",
             type == BvEntryNote ? "note" : "cred", app->edit_label, app->vault->count);
         bv_build_browser(app);
@@ -1058,10 +1078,12 @@ static void bv_menu_callback(void* context, uint32_t index) {
     case BvMenuSeed:
         // TEMPORARY test scaffolding until CLI / on-device entry lands: fill the
         // in-RAM vault with sample entries so Save/Load have data to round-trip.
+        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
         bv_records_init(app->vault);
         bv_records_add(app->vault, BvEntryCred, "example.com", "alice", "hunter2");
         bv_records_add(app->vault, BvEntryCred, "reddit.com", "bob", "s3cret,pw");
         bv_records_add(app->vault, BvEntryNote, "recovery", "", "correct horse battery");
+        furi_mutex_release(app->vault_mutex);
         app->vault_loaded = true; // seeded vault is a known state, safe to save
         FURI_LOG_I(TAG, "seeded %u test entries", app->vault->count);
         break;
@@ -1126,6 +1148,108 @@ static void bv_build_diag(BioVault* app) {
     }
 }
 
+// --- CLI command (registered while the app is running) ---
+//
+// `biovault list|get|add|remove` drives the same in-RAM vault as the GUI, so
+// complex secrets can be entered over USB (arbitrary characters, RAM-only on the
+// device). Interactive prompts keep secrets out of the host shell history; note
+// they still land in the host terminal's scrollback.
+
+static void bv_cli_read_line(char* buf, size_t size) {
+    size_t i = 0;
+    while(i + 1 < size) {
+        int c = getchar();
+        if(c < 0 || c == '\r') break; // Enter
+        if(c == '\n') continue; // ignore LF (handles CRLF line endings)
+        if(c == 0x08 || c == 0x7f) { // backspace / delete
+            if(i > 0) {
+                i--;
+                printf("\b \b");
+                fflush(stdout);
+            }
+            continue;
+        }
+        buf[i++] = (char)c;
+        putchar(c);
+        fflush(stdout);
+    }
+    buf[i] = '\0';
+    printf("\r\n");
+}
+
+static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    BioVault* app = context;
+
+    char sub[16] = {0};
+    char label[BV_LABEL_CAP] = {0};
+    sscanf(furi_string_get_cstr(args), "%15s %47s", sub, label);
+
+    if(strcmp(sub, "list") == 0) {
+        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+        printf("Vault: %u entries\r\n", app->vault->count);
+        for(uint8_t i = 0; i < app->vault->count; i++) {
+            const BvEntry* e = &app->vault->entries[i];
+            printf("  [%u] %s%s\r\n", i, e->label, e->type == BvEntryNote ? "  (note)" : "");
+        }
+        furi_mutex_release(app->vault_mutex);
+
+    } else if(strcmp(sub, "get") == 0) {
+        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+        int idx = bv_records_find(app->vault, label);
+        if(idx < 0) {
+            printf("Not found: %s\r\n", label);
+        } else {
+            const BvEntry* e = &app->vault->entries[idx];
+            printf("%s\r\n", e->label);
+            if(e->type == BvEntryNote) {
+                printf("  data: %s\r\n", e->secret);
+            } else {
+                printf("  user: %s\r\n  pass: %s\r\n", e->user, e->secret);
+            }
+        }
+        furi_mutex_release(app->vault_mutex);
+
+    } else if(strcmp(sub, "remove") == 0) {
+        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+        int idx = bv_records_find(app->vault, label);
+        bool ok = (idx >= 0) && bv_records_remove(app->vault, (uint8_t)idx);
+        furi_mutex_release(app->vault_mutex);
+        printf(ok ? "Removed '%s'. Use Save to Implant to persist.\r\n" : "Not found: %s\r\n", label);
+
+    } else if(strcmp(sub, "add") == 0) {
+        if(strlen(label) == 0) {
+            printf("Usage: biovault add <label>\r\n");
+            return;
+        }
+        char user[BV_USER_CAP] = {0};
+        char secret[BV_SECRET_CAP] = {0};
+        printf("Username (blank = note): ");
+        fflush(stdout);
+        bv_cli_read_line(user, sizeof(user)); // read outside the lock
+        printf("Secret: ");
+        fflush(stdout);
+        bv_cli_read_line(secret, sizeof(secret));
+
+        BvEntryType type = (strlen(user) > 0) ? BvEntryCred : BvEntryNote;
+        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+        bool ok = bv_records_add(app->vault, type, label, user, secret);
+        furi_mutex_release(app->vault_mutex);
+        printf(
+            ok ? "Added '%s'. Use Save to Implant to persist.\r\n" :
+                 "Add failed (vault full or field too long).\r\n",
+            label);
+
+    } else {
+        printf("BioVault CLI\r\n");
+        printf("  biovault list             list entries (labels only)\r\n");
+        printf("  biovault get <label>      show an entry (prints the secret)\r\n");
+        printf("  biovault add <label>      add a cred/note (prompts for fields)\r\n");
+        printf("  biovault remove <label>   remove an entry\r\n");
+        printf("Changes are in RAM; use 'Save to Implant' in the app to persist.\r\n");
+    }
+}
+
 // --- App lifecycle ---
 
 static BioVault* bv_alloc(void) {
@@ -1149,6 +1273,7 @@ static BioVault* bv_alloc(void) {
 
     app->vault = malloc(sizeof(BvVaultData));
     bv_records_init(app->vault);
+    app->vault_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
     app->nfc = nfc_alloc();
     app->gui = furi_record_open(RECORD_GUI);
@@ -1237,10 +1362,22 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(widget_get_view(app->diag), bv_diag_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewDiag, widget_get_view(app->diag));
 
+    // Register the `biovault` CLI command (stays registered until we delete it).
+    // ParallelSafe so the CLI shell allows it to run while our app is open
+    // (that's the whole point) — the vault mutex makes it safe.
+    CliRegistry* cli = furi_record_open(RECORD_CLI);
+    cli_registry_add_command(
+        cli, "biovault", CliCommandFlagParallelSafe, bv_cli_callback, app);
+    furi_record_close(RECORD_CLI);
+
     return app;
 }
 
 static void bv_free(BioVault* app) {
+    CliRegistry* cli = furi_record_open(RECORD_CLI);
+    cli_registry_delete_command(cli, "biovault");
+    furi_record_close(RECORD_CLI);
+
     bv_poller_stop(app);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewMenu);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewRead);
@@ -1265,6 +1402,7 @@ static void bv_free(BioVault* app) {
     nfc_free(app->nfc);
     bv_records_clear(app->vault);
     free(app->vault);
+    furi_mutex_free(app->vault_mutex);
     free(app);
 }
 
