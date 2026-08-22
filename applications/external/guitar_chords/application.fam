@@ -1,0 +1,16 @@
+App(
+    appid="guitar_chords",
+    name="Guitar Chords",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="guitar_chords_app",
+    # Default is ["*.c*"], which also matches assets/chords.csv and feeds it to
+    # the linker. Narrow it to real C sources.
+    sources=["*.c"],
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_author="KingBoa / NoodleNugget.com",
+    fap_version="1.0",
+    fap_description="Browse guitar chord diagrams and practice chord progressions with a built-in metronome.",
+    fap_icon="icon.png",          # 10x10 1-bit PNG
+    # fap_icon_assets="images",     # optional
+)
