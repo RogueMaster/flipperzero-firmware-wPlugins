@@ -13,7 +13,6 @@
 #include <gui/view_dispatcher.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
-#include <gui/modules/text_input.h>
 #include <input/input.h>
 
 #include <nfc/nfc.h>
@@ -26,6 +25,7 @@
 #include "bv_crypto.h"
 #include "bv_vault.h"
 #include "bv_records.h"
+#include "bv_text_input.h"
 
 #define TAG "BioVault"
 
@@ -158,7 +158,7 @@ typedef struct {
     View* load_view;
     Submenu* browser;
     View* detail_view;
-    TextInput* input;
+    BvTextInput* input;
     View* zero_view;
     Widget* diag;
 
@@ -989,21 +989,21 @@ static void bv_input_result(void* context) {
 static void bv_configure_input(BioVault* app) {
     switch(app->add_state) {
     case BvAddLabel:
-        text_input_set_header_text(app->input, "Label (site or name)");
-        text_input_set_minimum_length(app->input, 1);
-        text_input_set_result_callback(
+        bv_text_input_set_header_text(app->input, "Label (site or name)");
+        bv_text_input_set_minimum_length(app->input, 1);
+        bv_text_input_set_result_callback(
             app->input, bv_input_result, app, app->edit_label, sizeof(app->edit_label), true);
         break;
     case BvAddUser:
-        text_input_set_header_text(app->input, "Username (optional)");
-        text_input_set_minimum_length(app->input, 0);
-        text_input_set_result_callback(
+        bv_text_input_set_header_text(app->input, "Username (optional)");
+        bv_text_input_set_minimum_length(app->input, 0);
+        bv_text_input_set_result_callback(
             app->input, bv_input_result, app, app->edit_user, sizeof(app->edit_user), true);
         break;
     case BvAddSecret:
-        text_input_set_header_text(app->input, "Password / secret");
-        text_input_set_minimum_length(app->input, 0);
-        text_input_set_result_callback(
+        bv_text_input_set_header_text(app->input, "Password / secret");
+        bv_text_input_set_minimum_length(app->input, 0);
+        bv_text_input_set_result_callback(
             app->input, bv_input_result, app, app->edit_secret, sizeof(app->edit_secret), true);
         break;
     }
@@ -1205,9 +1205,9 @@ static BioVault* bv_alloc(void) {
     view_dispatcher_add_view(app->view_dispatcher, BvViewDetail, app->detail_view);
 
     // Add Entry keyboard view
-    app->input = text_input_alloc();
-    view_set_previous_callback(text_input_get_view(app->input), bv_input_previous);
-    view_dispatcher_add_view(app->view_dispatcher, BvViewInput, text_input_get_view(app->input));
+    app->input = bv_text_input_alloc();
+    view_set_previous_callback(bv_text_input_get_view(app->input), bv_input_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewInput, bv_text_input_get_view(app->input));
 
     // Zero Sector 1 view
     app->zero_view = view_alloc();
@@ -1246,7 +1246,7 @@ static void bv_free(BioVault* app) {
     view_free(app->load_view);
     submenu_free(app->browser);
     view_free(app->detail_view);
-    text_input_free(app->input);
+    bv_text_input_free(app->input);
     view_free(app->zero_view);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
