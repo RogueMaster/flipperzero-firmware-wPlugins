@@ -6,13 +6,20 @@
 <h1 align="center">Specter 👻</h1>
 <p align="center"><i>Sweep for the readers you can't see.</i></p>
 
+<!-- live badges: these track the repo, so the README never goes stale -->
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=for-the-badge&logo=flipper&logoColor=white" alt="Flipper Zero">
-  <img src="https://img.shields.io/badge/version-2.7-FF3DAE?style=for-the-badge" alt="Version 2.7">
-  <img src="https://img.shields.io/badge/radio-13.56%20MHz%20NFC%20(onboard)-26E8CA?style=for-the-badge" alt="Onboard NFC">
-  <img src="https://img.shields.io/badge/hardware-none%20required-9B5DE5?style=for-the-badge" alt="No extra hardware">
-  <img src="https://img.shields.io/badge/build-ufbt-2da0ff?style=for-the-badge" alt="ufbt">
-  <img src="https://img.shields.io/badge/license-MIT-3ad17a?style=for-the-badge" alt="MIT">
+  <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/releases/latest"><img src="https://img.shields.io/github/v/release/at0m-b0mb/Specter-FlipperZero?style=for-the-badge&color=FF3DAE&labelColor=0a0f16" alt="Latest release"></a>
+  <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/releases"><img src="https://img.shields.io/github/downloads/at0m-b0mb/Specter-FlipperZero/total?style=for-the-badge&color=26E8CA&labelColor=0a0f16&label=downloads" alt="Downloads"></a>
+  <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/stargazers"><img src="https://img.shields.io/github/stars/at0m-b0mb/Specter-FlipperZero?style=for-the-badge&color=FFB000&labelColor=0a0f16" alt="Stars"></a>
+  <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/at0m-b0mb/Specter-FlipperZero/build.yml?branch=main&style=for-the-badge&labelColor=0a0f16&label=build" alt="Build"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=for-the-badge&logo=flipper&logoColor=white&labelColor=0a0f16" alt="Flipper Zero">
+  <img src="https://img.shields.io/badge/radio-13.56%20MHz%20NFC%20(onboard)-26E8CA?style=for-the-badge&labelColor=0a0f16" alt="Onboard NFC">
+  <img src="https://img.shields.io/badge/extra%20hardware-none-9B5DE5?style=for-the-badge&labelColor=0a0f16" alt="No extra hardware">
+  <img src="https://img.shields.io/badge/transmits-never-3ad17a?style=for-the-badge&labelColor=0a0f16" alt="Listen-only">
+  <img src="https://img.shields.io/badge/license-MIT-2da0ff?style=for-the-badge&labelColor=0a0f16" alt="MIT">
 </p>
 
 <p align="center">
@@ -26,9 +33,25 @@
 
 <p align="center"><sub>The readers are invisible. Specter makes them visible.</sub></p>
 
+<p align="center">
+  <sub>
+    <b>As featured in</b><br>
+    <a href="https://www.helpnetsecurity.com/2026/07/29/specter-flipper-zero-skimmer-detector/">Help Net Security</a>
+    &nbsp;·&nbsp;
+    <a href="https://cybersecuritynews.com/specter-with-flipper-zero/">Cyber Security News</a>
+  </sub>
+</p>
+
 ---
 
 ## 📟 On the Flipper
+
+<p align="center">
+  <img src="images/demo.gif" width="70%" alt="Specter in use: sweeping a quiet room, closing in on a reader, locking on at MAX, fingerprinting its polling cadence, then a site-survey verdict">
+</p>
+<p align="center">
+  <sub>A sweep, start to finish: quiet room → closing in → locked on → <b>what</b> it is → the room's verdict.</sub>
+</p>
 
 <p align="center">
   <img src="images/screens_all.png" width="100%" alt="Specter screens">
@@ -454,6 +477,30 @@ Specter-FlipperZero/
 ├── images/                       # banner + screen mockups (generated)
 └── tools_gen_*.py                # regenerate icons / mockups / banner
 ```
+
+---
+
+## 🎨 Branding
+
+All artwork is generated, so it never drifts from the app:
+
+| Asset | Size | Where it goes |
+|---|---|---|
+| `images/banner.png` | 2560×800 | README header (2× so it stays crisp on retina) |
+| `images/social-preview.png` | **1280×640** | **Settings → Social preview** — GitHub's recommended size (min 640×320, 1 MB cap) |
+| `images/mark.png` | 512×512 | Square logo mark: avatars, favicons, slides |
+| `images/demo.gif` | 768×384 | The animation above, ~9 s, built from the real view constants |
+
+```bash
+python3 tools_gen_banner.py    # banner, social preview, logo mark
+python3 tools_gen_gif.py       # the demo animation
+python3 tools_gen_mockups.py   # screen stills
+python3 tools_gen_icons.py     # 1-bit Flipper icons
+```
+
+> The social preview is the one asset GitHub can't pick up from the repo — it has
+> to be uploaded once by hand in **Settings → Social preview**. It's what renders
+> when the repo is shared on Slack, X, LinkedIn or Discord.
 
 ---
 
