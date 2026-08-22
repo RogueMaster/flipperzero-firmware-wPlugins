@@ -24,6 +24,7 @@
 #include <nfc/helpers/iso14443_crc.h>
 
 #include <cli/cli.h>
+#include <toolbox/cli/shell/cli_shell.h>
 #include <stdio.h>
 
 #include "bv_crypto.h"
@@ -1177,77 +1178,123 @@ static void bv_cli_read_line(char* buf, size_t size) {
     printf("\r\n");
 }
 
-static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
+// Extract the first whitespace-delimited token of `args` into `out`.
+static void bv_cli_arg(FuriString* args, char* out, size_t size) {
+    out[0] = '\0';
+    char fmt[16];
+    snprintf(fmt, sizeof(fmt), "%%%us", (unsigned)(size - 1));
+    sscanf(furi_string_get_cstr(args), fmt, out);
+}
+
+// --- Subshell subcommands (context = BioVault*) ---
+
+static void bv_cli_list(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    UNUSED(args);
+    BioVault* app = context;
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    printf("Vault: %u entries\r\n", app->vault->count);
+    for(uint8_t i = 0; i < app->vault->count; i++) {
+        const BvEntry* e = &app->vault->entries[i];
+        printf("  [%u] %s%s\r\n", i, e->label, e->type == BvEntryNote ? "  (note)" : "");
+    }
+    furi_mutex_release(app->vault_mutex);
+}
+
+static void bv_cli_get(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(pipe);
     BioVault* app = context;
-
-    char sub[16] = {0};
-    char label[BV_LABEL_CAP] = {0};
-    sscanf(furi_string_get_cstr(args), "%15s %47s", sub, label);
-
-    if(strcmp(sub, "list") == 0) {
-        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-        printf("Vault: %u entries\r\n", app->vault->count);
-        for(uint8_t i = 0; i < app->vault->count; i++) {
-            const BvEntry* e = &app->vault->entries[i];
-            printf("  [%u] %s%s\r\n", i, e->label, e->type == BvEntryNote ? "  (note)" : "");
-        }
-        furi_mutex_release(app->vault_mutex);
-
-    } else if(strcmp(sub, "get") == 0) {
-        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-        int idx = bv_records_find(app->vault, label);
-        if(idx < 0) {
-            printf("Not found: %s\r\n", label);
-        } else {
-            const BvEntry* e = &app->vault->entries[idx];
-            printf("%s\r\n", e->label);
-            if(e->type == BvEntryNote) {
-                printf("  data: %s\r\n", e->secret);
-            } else {
-                printf("  user: %s\r\n  pass: %s\r\n", e->user, e->secret);
-            }
-        }
-        furi_mutex_release(app->vault_mutex);
-
-    } else if(strcmp(sub, "remove") == 0) {
-        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-        int idx = bv_records_find(app->vault, label);
-        bool ok = (idx >= 0) && bv_records_remove(app->vault, (uint8_t)idx);
-        furi_mutex_release(app->vault_mutex);
-        printf(ok ? "Removed '%s'. Use Save to Implant to persist.\r\n" : "Not found: %s\r\n", label);
-
-    } else if(strcmp(sub, "add") == 0) {
-        if(strlen(label) == 0) {
-            printf("Usage: biovault add <label>\r\n");
-            return;
-        }
-        char user[BV_USER_CAP] = {0};
-        char secret[BV_SECRET_CAP] = {0};
-        printf("Username (blank = note): ");
-        fflush(stdout);
-        bv_cli_read_line(user, sizeof(user)); // read outside the lock
-        printf("Secret: ");
-        fflush(stdout);
-        bv_cli_read_line(secret, sizeof(secret));
-
-        BvEntryType type = (strlen(user) > 0) ? BvEntryCred : BvEntryNote;
-        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-        bool ok = bv_records_add(app->vault, type, label, user, secret);
-        furi_mutex_release(app->vault_mutex);
-        printf(
-            ok ? "Added '%s'. Use Save to Implant to persist.\r\n" :
-                 "Add failed (vault full or field too long).\r\n",
-            label);
-
-    } else {
-        printf("BioVault CLI\r\n");
-        printf("  biovault list             list entries (labels only)\r\n");
-        printf("  biovault get <label>      show an entry (prints the secret)\r\n");
-        printf("  biovault add <label>      add a cred/note (prompts for fields)\r\n");
-        printf("  biovault remove <label>   remove an entry\r\n");
-        printf("Changes are in RAM; use 'Save to Implant' in the app to persist.\r\n");
+    char label[BV_LABEL_CAP];
+    bv_cli_arg(args, label, sizeof(label));
+    if(!strlen(label)) {
+        printf("Usage: get <label>\r\n");
+        return;
     }
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    int idx = bv_records_find(app->vault, label);
+    if(idx < 0) {
+        printf("Not found: %s\r\n", label);
+    } else {
+        const BvEntry* e = &app->vault->entries[idx];
+        printf("%s\r\n", e->label);
+        if(e->type == BvEntryNote) {
+            printf("  data: %s\r\n", e->secret);
+        } else {
+            printf("  user: %s\r\n  pass: %s\r\n", e->user, e->secret);
+        }
+    }
+    furi_mutex_release(app->vault_mutex);
+}
+
+static void bv_cli_remove(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    BioVault* app = context;
+    char label[BV_LABEL_CAP];
+    bv_cli_arg(args, label, sizeof(label));
+    if(!strlen(label)) {
+        printf("Usage: remove <label>\r\n");
+        return;
+    }
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    int idx = bv_records_find(app->vault, label);
+    bool ok = (idx >= 0) && bv_records_remove(app->vault, (uint8_t)idx);
+    furi_mutex_release(app->vault_mutex);
+    printf(ok ? "Removed '%s'. Use Save to Implant to persist.\r\n" : "Not found: %s\r\n", label);
+}
+
+static void bv_cli_add(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    BioVault* app = context;
+    char label[BV_LABEL_CAP];
+    bv_cli_arg(args, label, sizeof(label));
+    if(!strlen(label)) {
+        printf("Usage: add <label>\r\n");
+        return;
+    }
+    char user[BV_USER_CAP] = {0};
+    char secret[BV_SECRET_CAP] = {0};
+    printf("Username (blank = note): ");
+    fflush(stdout);
+    bv_cli_read_line(user, sizeof(user));
+    printf("Secret: ");
+    fflush(stdout);
+    bv_cli_read_line(secret, sizeof(secret));
+
+    BvEntryType type = (strlen(user) > 0) ? BvEntryCred : BvEntryNote;
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    bool ok = bv_records_add(app->vault, type, label, user, secret);
+    furi_mutex_release(app->vault_mutex);
+    printf(
+        ok ? "Added '%s'. Use Save to Implant to persist.\r\n" :
+             "Add failed (vault full or field too long).\r\n",
+        label);
+}
+
+static void bv_cli_motd(void* context) {
+    UNUSED(context);
+    printf("BioVault vault shell. Commands: list, get <label>, add <label>, "
+           "remove <label>, exit\r\n");
+    printf("Changes are in RAM; use 'Save to Implant' in the app to persist.\r\n");
+}
+
+// The `biovault` command opens a subshell (biovault>:) with the vault commands,
+// so entries can be managed without re-typing `biovault` each time.
+static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(args);
+    BioVault* app = context;
+
+    CliRegistry* registry = cli_registry_alloc();
+    cli_registry_add_command(registry, "list", CliCommandFlagParallelSafe, bv_cli_list, app);
+    cli_registry_add_command(registry, "get", CliCommandFlagParallelSafe, bv_cli_get, app);
+    cli_registry_add_command(registry, "add", CliCommandFlagParallelSafe, bv_cli_add, app);
+    cli_registry_add_command(registry, "remove", CliCommandFlagParallelSafe, bv_cli_remove, app);
+
+    CliShell* shell = cli_shell_alloc(bv_cli_motd, app, pipe, registry, NULL);
+    cli_shell_set_prompt(shell, "biovault");
+    cli_shell_start(shell);
+    cli_shell_join(shell); // blocks until the user types `exit` or disconnects
+    cli_shell_free(shell);
+    cli_registry_free(registry);
 }
 
 // --- App lifecycle ---
