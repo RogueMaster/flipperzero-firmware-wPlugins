@@ -1,5 +1,12 @@
-.ufbt/
-dist/
+dist/*
 build/
 *.fap
-.vscode/
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+
+# Personal implant dumps — never commit (contains your UID/NDEF; disposable)
+*.dump

@@ -25,6 +25,8 @@
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
 #include <nfc/helpers/iso14443_crc.h>
 
+#include "bv_crypto.h"
+
 #define TAG "BioVault"
 
 // --- NTAG I2C Plus 2K command set (from the Lua utils script) ---
@@ -83,6 +85,11 @@ typedef struct {
     uint8_t sector1[SECTOR1_BYTES];
     size_t sector1_len;
     uint16_t view_offset; // byte offset shown on screen (page-aligned)
+
+    // M2 crypto self-test results (run once at startup).
+    bool enclave_ok;
+    bool gcm_ok;
+    bool dek_ok;
 } BioVault;
 
 // --- Low-level ISO14443-3A exchange helpers (run only inside poller callback) ---
@@ -345,9 +352,17 @@ static void bv_draw_callback(Canvas* canvas, void* context) {
     char line[40];
     switch(app->state) {
     case BvStateIdle:
-        canvas_draw_str(canvas, 2, 26, "Sector 1 reader");
-        canvas_draw_str(canvas, 2, 40, "OK: read implant");
-        canvas_draw_str(canvas, 2, 52, "Back: exit");
+        snprintf(
+            line,
+            sizeof(line),
+            "Enclave KEK: %s",
+            app->enclave_ok ? "OK" : "FAIL");
+        canvas_draw_str(canvas, 2, 24, line);
+        snprintf(line, sizeof(line), "AES-GCM KAT: %s", app->gcm_ok ? "OK" : "FAIL");
+        canvas_draw_str(canvas, 2, 33, line);
+        snprintf(line, sizeof(line), "KEK/DEK wrap: %s", app->dek_ok ? "OK" : "FAIL");
+        canvas_draw_str(canvas, 2, 42, line);
+        canvas_draw_str(canvas, 2, 54, "OK: read  Back: exit");
         break;
     case BvStateReading:
         canvas_draw_str(canvas, 2, 30, "Hold to implant...");
@@ -428,6 +443,18 @@ static void bv_free(BioVault* app) {
 int32_t biovault_app(void* p) {
     UNUSED(p);
     BioVault* app = bv_alloc();
+
+    // M2 step 1: prove the enclave KEK and AES-GCM work on this unit before we
+    // build the vault codec on top of them.
+    app->enclave_ok = bv_crypto_enclave_selftest();
+    app->gcm_ok = bv_crypto_gcm_kat();
+    app->dek_ok = bv_crypto_dek_selftest();
+    FURI_LOG_I(
+        TAG,
+        "crypto self-test: enclave=%d gcm=%d dek=%d",
+        app->enclave_ok,
+        app->gcm_ok,
+        app->dek_ok);
 
     bool running = true;
     InputEvent event;
