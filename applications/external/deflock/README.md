@@ -5,7 +5,7 @@
 <p align="center"><em>The Swiss Army knife of ALPR/Anti-Stalking apps.</em></p>
 
 FlipDeFlock is a Flipper Zero app that pairs the Flipper with an ESP32 board to
-survey the radio around you for surveillance hardware: Flock Safety / ALPR
+survey the radio around you for surveillance hardware: Flock Safety / ALPR / AXON
 cameras, Bluetooth trackers that follow you, and active Wi-Fi attacks such as
 deauth floods and evil-twin APs. The Flipper is the screen, GPS tagger, and
 logger; the ESP32 does the Wi-Fi sniffing its BLE-only radio can't. It's for
