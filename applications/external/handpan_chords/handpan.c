@@ -133,8 +133,8 @@ static void hp_list_scroll(size_t count, size_t sel, size_t* top);
 /* ------------------------------------------------------------------ */
 
 static void hp_rebuild_chords(HpApp* app) {
-    app->chord_count =
-        hp_build_chords(&hp_scales[app->scale_idx], hp_depths[app->depth_idx], app->chords, HP_MAX_CHORDS);
+    app->chord_count = hp_build_chords(
+        &hp_scales[app->scale_idx], hp_depths[app->depth_idx], app->chords, HP_MAX_CHORDS);
     if(app->chord_count == 0) {
         app->chord_sel = 0;
     } else if(app->chord_sel >= app->chord_count) {
@@ -279,13 +279,8 @@ static void hp_list_move(size_t count, size_t* sel, size_t* top, int delta) {
     hp_list_scroll(count, *sel, top);
 }
 
-static void hp_draw_list(
-    Canvas* canvas,
-    HpApp* app,
-    size_t count,
-    size_t sel,
-    size_t top,
-    HpLabelFn label) {
+static void
+    hp_draw_list(Canvas* canvas, HpApp* app, size_t count, size_t sel, size_t top, HpLabelFn label) {
     canvas_set_font(canvas, FontSecondary);
 
     if(count == 0) {
@@ -320,8 +315,7 @@ static void hp_draw_list(
     if(scrollbar) {
         int32_t track_y = HP_LIST_TOP;
         int32_t track_h = HP_SCREEN_H - HP_LIST_TOP;
-        canvas_draw_line(
-            canvas, HP_SCROLLBAR_X, track_y, HP_SCROLLBAR_X, track_y + track_h - 1);
+        canvas_draw_line(canvas, HP_SCROLLBAR_X, track_y, HP_SCROLLBAR_X, track_y + track_h - 1);
 
         int32_t knob_h = (int32_t)((size_t)track_h * HP_LIST_ROWS / count);
         if(knob_h < 4) knob_h = 4;
@@ -547,11 +541,7 @@ static void hp_draw_chords(Canvas* canvas, HpApp* app) {
 
     char index[16];
     snprintf(
-        index,
-        sizeof(index),
-        "%u/%u",
-        (unsigned)(app->chord_sel + 1),
-        (unsigned)app->chord_count);
+        index, sizeof(index), "%u/%u", (unsigned)(app->chord_sel + 1), (unsigned)app->chord_count);
     canvas_draw_str(canvas, 65, 62, index);
 
     if(hp_current_is_fav(app)) {
@@ -594,8 +584,7 @@ static void hp_step_note_text(const HpScale* s, uint16_t mask, char* out, size_t
         char note[8];
         hp_note_name(hp_scale_pad_midi(s, pad), s->flats, note, sizeof(note));
 
-        int written =
-            snprintf(out + len, out_size - len, "%s%s", (len > 0) ? "+" : "", note);
+        int written = snprintf(out + len, out_size - len, "%s%s", (len > 0) ? "+" : "", note);
         if(written < 0) break;
         len += (size_t)written;
         if(len >= out_size) {
@@ -654,15 +643,10 @@ static void hp_draw_play(Canvas* canvas, HpApp* app) {
     canvas_set_font(canvas, FontSecondary);
     char buf[24];
     snprintf(
-        buf,
-        sizeof(buf),
-        "Step %u/%u",
-        (unsigned)(app->play_step + 1),
-        (unsigned)app->play_len);
+        buf, sizeof(buf), "Step %u/%u", (unsigned)(app->play_step + 1), (unsigned)app->play_len);
     canvas_draw_str(canvas, 65, 36, buf);
 
-    snprintf(
-        buf, sizeof(buf), "%s %s", app->playing ? ">" : "||", hp_speed_names[app->speed_idx]);
+    snprintf(buf, sizeof(buf), "%s %s", app->playing ? ">" : "||", hp_speed_names[app->speed_idx]);
     canvas_draw_str(canvas, 65, 46, buf);
 
     /* Progress strip: played, current, still to come. */

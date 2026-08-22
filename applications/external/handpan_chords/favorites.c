@@ -18,7 +18,8 @@ static const char* const hp_fav_header = "# Handpan Chords favorites\n"
  * down -- bad lines are simply dropped. */
 static bool hp_fav_parse_line(const char* line, HpFavorite* out) {
     const char* p = line;
-    while(*p == ' ' || *p == '\t') p++;
+    while(*p == ' ' || *p == '\t')
+        p++;
     if(*p == '\0' || *p == '#') return false;
 
     char* end = NULL;
@@ -29,14 +30,16 @@ static bool hp_fav_parse_line(const char* line, HpFavorite* out) {
         if(end == p) return false;
         p = end;
         if(i < 2) {
-            while(*p == ' ' || *p == '\t') p++;
+            while(*p == ' ' || *p == '\t')
+                p++;
             if(*p != ',') return false;
             p++;
         }
     }
 
     /* Trailing junk after the third field means the line is malformed. */
-    while(*p == ' ' || *p == '\t' || *p == '\r') p++;
+    while(*p == ' ' || *p == '\t' || *p == '\r')
+        p++;
     if(*p != '\0') return false;
 
     if(values[0] < 0 || (size_t)values[0] >= hp_scale_count) return false;

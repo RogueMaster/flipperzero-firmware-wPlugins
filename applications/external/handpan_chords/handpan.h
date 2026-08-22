@@ -57,7 +57,7 @@ typedef struct {
  * would let the voicer pick whichever octave were nearest, and it almost never
  * chooses the ding. Say HP_DING when you mean the bass voice. */
 #define HP_NONE ((int8_t)127)
-#define HP_DING ((int8_t)-1)
+#define HP_DING ((int8_t) - 1)
 
 typedef struct {
     int8_t a;

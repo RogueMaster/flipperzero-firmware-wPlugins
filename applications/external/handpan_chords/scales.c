@@ -289,37 +289,16 @@ static const HpStep hp_pat_bass_melody[] =
 static const HpStep hp_pat_octave_roll[] =
     {HP_DN(0), HP_N(3), HP_N(5), HP_N(3), HP_DN(0), HP_N(7), HP_N(5), HP_N(3)};
 /* Root and fifth together, answered by single notes. */
-static const HpStep hp_pat_open_fifths[] = {
-    HP_NN(0, 7),
-    HP_N(3),
-    HP_N(5),
-    HP_NN(0, 7),
-    HP_N(7),
-    HP_N(5),
-    HP_N(3),
-    HP_NN(0, 7)};
+static const HpStep hp_pat_open_fifths[] =
+    {HP_NN(0, 7), HP_N(3), HP_N(5), HP_NN(0, 7), HP_N(7), HP_N(5), HP_N(3), HP_NN(0, 7)};
 /* Ding pedal under moving dyads: i - VII - VI - VII. */
-static const HpStep hp_pat_drone_cycle[] = {
-    HP_D,
-    HP_NN(0, 3),
-    HP_D,
-    HP_NN(10, 2),
-    HP_D,
-    HP_NN(8, 0),
-    HP_D,
-    HP_NN(10, 2)};
+static const HpStep hp_pat_drone_cycle[] =
+    {HP_D, HP_NN(0, 3), HP_D, HP_NN(10, 2), HP_D, HP_NN(8, 0), HP_D, HP_NN(10, 2)};
 /* --- major, with the ding */
 static const HpStep hp_pat_bass_walk[] =
     {HP_D, HP_N(4), HP_N(7), HP_D, HP_N(5), HP_N(4), HP_N(2), HP_N(0)};
-static const HpStep hp_pat_ding_thirds[] = {
-    HP_D,
-    HP_NN(0, 4),
-    HP_D,
-    HP_NN(2, 5),
-    HP_D,
-    HP_NN(4, 7),
-    HP_NN(2, 5),
-    HP_NN(0, 4)};
+static const HpStep hp_pat_ding_thirds[] =
+    {HP_D, HP_NN(0, 4), HP_D, HP_NN(2, 5), HP_D, HP_NN(4, 7), HP_NN(2, 5), HP_NN(0, 4)};
 
 #define HP_PAT(arr) arr, COUNT_OF(arr)
 
