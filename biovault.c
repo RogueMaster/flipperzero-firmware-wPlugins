@@ -31,8 +31,10 @@
 // --- NTAG I2C Plus 2K command set ---
 #define CMD_GET_VERSION 0x60
 #define CMD_READ 0x30
+#define CMD_WRITE 0xA2
 #define CMD_SECTOR_SELECT_1 0xC2
 #define CMD_SECTOR_SELECT_2 0xFF
+#define NTAG_ACK 0x0A // 4-bit ACK returned by WRITE / sector-select packet 1
 
 static const uint8_t NTAG_I2C_PLUS_2K_VERSION[] =
     {0x00, 0x04, 0x04, 0x05, 0x02, 0x02, 0x15, 0x03};
@@ -59,23 +61,32 @@ typedef enum {
     BvErrWrongTag,
     BvErrSectorSelect,
     BvErrRead,
+    BvErrWrite,
 } BvError;
 
 // View ids and menu indices.
 typedef enum {
     BvViewMenu,
     BvViewRead,
+    BvViewZero,
     BvViewDiag,
 } BvViewId;
 
 typedef enum {
     BvMenuRead,
+    BvMenuZero,
     BvMenuDiag,
 } BvMenuIndex;
 
 typedef enum {
-    BvCustomEventReadFinished = 1,
+    BvCustomEventPollerDone = 1,
 } BvCustomEvent;
+
+// Which NFC operation the shared poller is currently running.
+typedef enum {
+    BvOpRead,
+    BvOpZero,
+} BvOp;
 
 // Read view model (heap-allocated by the View).
 typedef struct {
@@ -88,16 +99,31 @@ typedef struct {
     uint16_t view_offset;
 } BvReadModel;
 
+typedef enum {
+    BvZeroConfirm,
+    BvZeroWriting,
+    BvZeroDone,
+    BvZeroError,
+} BvZeroState;
+
+typedef struct {
+    BvZeroState state;
+    uint16_t pages_written;
+    BvError error;
+} BvZeroModel;
+
 typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     Submenu* menu;
     View* read_view;
+    View* zero_view;
     Widget* diag;
 
     Nfc* nfc;
     NfcPoller* poller;
     bool poller_running;
+    BvOp op;
 
     bool enclave_ok;
     bool gcm_ok;
@@ -229,6 +255,60 @@ static void bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
     FURI_LOG_I(TAG, "read complete: err=%d bytes=%u", err, (unsigned)got);
 }
 
+// WRITE (0xA2) one 4-byte page. The tag replies with a 4-bit ACK (0x0A).
+static bool bv_write_page(Iso14443_3aPoller* poller, uint8_t page, const uint8_t data[4]) {
+    const uint8_t frame[6] = {CMD_WRITE, page, data[0], data[1], data[2], data[3]};
+    BitBuffer* rx = bit_buffer_alloc(16);
+    Iso14443_3aError e = bv_exchange(poller, frame, sizeof(frame), rx, FWT_NORMAL, true);
+    bool ok = (e == Iso14443_3aErrorNone) && (bit_buffer_get_size(rx) >= 4) &&
+              (bit_buffer_get_byte(rx, 0) == NTAG_ACK);
+    bit_buffer_free(rx);
+    return ok;
+}
+
+// Zero all of Sector 1 user memory (runs on the NFC worker thread).
+static void bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
+    BvError err = BvErrNone;
+    uint16_t written = 0;
+
+    Iso14443_3aData* iso_data = iso14443_3a_alloc();
+    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
+    iso14443_3a_free(iso_data);
+
+    uint8_t version[8] = {0};
+    bool version_ok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
+    bool version_match =
+        version_ok && (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
+
+    if(act != Iso14443_3aErrorNone || !version_ok) {
+        err = BvErrNoTag;
+    } else if(!version_match) {
+        err = BvErrWrongTag;
+    } else if(!bv_select_sector(poller, SECTOR1)) {
+        err = BvErrSectorSelect;
+    } else {
+        const uint8_t zero[4] = {0, 0, 0, 0};
+        for(uint32_t p = 0; p < SECTOR1_PAGES; p++) {
+            if(!bv_write_page(poller, (uint8_t)p, zero)) {
+                err = BvErrWrite;
+                break;
+            }
+            written++;
+        }
+    }
+
+    with_view_model(
+        app->zero_view,
+        BvZeroModel * m,
+        {
+            m->pages_written = written;
+            m->state = (err == BvErrNone) ? BvZeroDone : BvZeroError;
+            m->error = err;
+        },
+        true);
+    FURI_LOG_I(TAG, "zero complete: err=%d pages=%u", err, written);
+}
+
 static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
     BioVault* app = context;
     Iso14443_3aPoller* poller = event.poller;
@@ -236,14 +316,34 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
     NfcCommand cmd = NfcCommandContinue;
 
     if(nfc_event->type == NfcEventTypePollerReady) {
-        bv_do_read(app, poller);
+        if(app->op == BvOpZero) {
+            bv_do_zero(app, poller);
+        } else {
+            bv_do_read(app, poller);
+        }
         cmd = NfcCommandStop;
     }
     if(cmd == NfcCommandStop) {
         // Hand off to the main thread to reap the poller (can't free it here).
-        view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventReadFinished);
+        view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventPollerDone);
     }
     return cmd;
+}
+
+static void bv_start_op(BioVault* app, BvOp op) {
+    if(app->poller_running) return;
+    app->op = op;
+    app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_3a);
+    nfc_poller_start_ex(app->poller, bv_poller_callback, app);
+    app->poller_running = true;
+}
+
+static void bv_poller_stop(BioVault* app) {
+    if(!app->poller_running) return;
+    nfc_poller_stop(app->poller);
+    nfc_poller_free(app->poller);
+    app->poller = NULL;
+    app->poller_running = false;
 }
 
 static void bv_start_read(BioVault* app) {
@@ -256,17 +356,21 @@ static void bv_start_read(BioVault* app) {
             m->error = BvErrNone;
         },
         true);
-    app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_3a);
-    nfc_poller_start_ex(app->poller, bv_poller_callback, app);
-    app->poller_running = true;
+    bv_start_op(app, BvOpRead);
 }
 
-static void bv_stop_read(BioVault* app) {
-    if(!app->poller_running) return;
-    nfc_poller_stop(app->poller);
-    nfc_poller_free(app->poller);
-    app->poller = NULL;
-    app->poller_running = false;
+static void bv_start_zero(BioVault* app) {
+    if(app->poller_running) return;
+    with_view_model(
+        app->zero_view,
+        BvZeroModel * m,
+        {
+            m->state = BvZeroWriting;
+            m->pages_written = 0;
+            m->error = BvErrNone;
+        },
+        true);
+    bv_start_op(app, BvOpZero);
 }
 
 // --- Read view UI ---
@@ -281,6 +385,8 @@ static const char* bv_error_text(BvError e) {
         return "Sector select failed";
     case BvErrRead:
         return "Read failed";
+    case BvErrWrite:
+        return "Write failed";
     default:
         return "Unknown error";
     }
@@ -359,10 +465,82 @@ static void bv_read_enter(void* context) {
 }
 
 static void bv_read_exit(void* context) {
-    bv_stop_read((BioVault*)context);
+    bv_poller_stop((BioVault*)context);
 }
 
 static uint32_t bv_read_previous(void* context) {
+    UNUSED(context);
+    return BvViewMenu;
+}
+
+// --- Zero Sector 1 view UI ---
+
+static void bv_zero_draw(Canvas* canvas, void* model) {
+    BvZeroModel* m = model;
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Zero Sector 1");
+    canvas_set_font(canvas, FontSecondary);
+
+    char line[40];
+    switch(m->state) {
+    case BvZeroConfirm:
+        canvas_draw_str(canvas, 2, 26, "Erase ALL of Sector 1?");
+        canvas_draw_str(canvas, 2, 37, "This wipes the vault.");
+        canvas_draw_str(canvas, 2, 54, "OK: erase   Back: cancel");
+        break;
+    case BvZeroWriting:
+        canvas_draw_str(canvas, 2, 34, "Hold to implant...");
+        canvas_draw_str(canvas, 2, 46, "Erasing Sector 1");
+        break;
+    case BvZeroDone:
+        snprintf(line, sizeof(line), "Erased %u pages", m->pages_written);
+        canvas_draw_str(canvas, 2, 32, line);
+        canvas_draw_str(canvas, 2, 54, "Back: menu");
+        break;
+    case BvZeroError:
+        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
+        snprintf(line, sizeof(line), "Wrote %u pages", m->pages_written);
+        canvas_draw_str(canvas, 2, 40, line);
+        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: menu");
+        break;
+    }
+}
+
+static bool bv_zero_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort) return false;
+
+    if(event->key == InputKeyOk) {
+        BvZeroState state;
+        with_view_model(app->zero_view, BvZeroModel * m, { state = m->state; }, false);
+        if(state == BvZeroConfirm || state == BvZeroError) {
+            if(!app->poller_running) bv_start_zero(app);
+        }
+        return true;
+    }
+    return false; // Back falls through to the previous-view callback
+}
+
+static void bv_zero_enter(void* context) {
+    BioVault* app = context;
+    // Always start at the confirmation screen; never auto-write.
+    with_view_model(
+        app->zero_view,
+        BvZeroModel * m,
+        {
+            m->state = BvZeroConfirm;
+            m->pages_written = 0;
+            m->error = BvErrNone;
+        },
+        true);
+}
+
+static void bv_zero_exit(void* context) {
+    bv_poller_stop((BioVault*)context);
+}
+
+static uint32_t bv_zero_previous(void* context) {
     UNUSED(context);
     return BvViewMenu;
 }
@@ -374,6 +552,9 @@ static void bv_menu_callback(void* context, uint32_t index) {
     switch(index) {
     case BvMenuRead:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewRead);
+        break;
+    case BvMenuZero:
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewZero);
         break;
     case BvMenuDiag:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewDiag);
@@ -390,8 +571,8 @@ static uint32_t bv_diag_previous(void* context) {
 
 static bool bv_custom_event_callback(void* context, uint32_t event) {
     BioVault* app = context;
-    if(event == BvCustomEventReadFinished) {
-        bv_stop_read(app); // reap the finished poller on the main thread
+    if(event == BvCustomEventPollerDone) {
+        bv_poller_stop(app); // reap the finished poller on the main thread
         return true;
     }
     return false;
@@ -458,6 +639,7 @@ static BioVault* bv_alloc(void) {
     app->menu = submenu_alloc();
     submenu_set_header(app->menu, "BioVault");
     submenu_add_item(app->menu, "Read Implant", BvMenuRead, bv_menu_callback, app);
+    submenu_add_item(app->menu, "Zero Sector 1", BvMenuZero, bv_menu_callback, app);
     submenu_add_item(app->menu, "Diagnostics", BvMenuDiag, bv_menu_callback, app);
     view_dispatcher_add_view(app->view_dispatcher, BvViewMenu, submenu_get_view(app->menu));
 
@@ -472,6 +654,17 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(app->read_view, bv_read_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewRead, app->read_view);
 
+    // Zero Sector 1 view
+    app->zero_view = view_alloc();
+    view_allocate_model(app->zero_view, ViewModelTypeLocking, sizeof(BvZeroModel));
+    view_set_context(app->zero_view, app);
+    view_set_draw_callback(app->zero_view, bv_zero_draw);
+    view_set_input_callback(app->zero_view, bv_zero_input);
+    view_set_enter_callback(app->zero_view, bv_zero_enter);
+    view_set_exit_callback(app->zero_view, bv_zero_exit);
+    view_set_previous_callback(app->zero_view, bv_zero_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewZero, app->zero_view);
+
     // Diagnostics view
     app->diag = widget_alloc();
     bv_build_diag(app);
@@ -482,12 +675,14 @@ static BioVault* bv_alloc(void) {
 }
 
 static void bv_free(BioVault* app) {
-    bv_stop_read(app);
+    bv_poller_stop(app);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewMenu);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewRead);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewZero);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
     view_free(app->read_view);
+    view_free(app->zero_view);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
