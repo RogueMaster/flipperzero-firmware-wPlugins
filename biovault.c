@@ -26,6 +26,7 @@
 #include <nfc/helpers/iso14443_crc.h>
 
 #include "bv_crypto.h"
+#include "bv_vault.h"
 
 #define TAG "BioVault"
 
@@ -90,6 +91,7 @@ typedef struct {
     bool enclave_ok;
     bool gcm_ok;
     bool dek_ok;
+    bool vault_ok;
 } BioVault;
 
 // --- Low-level ISO14443-3A exchange helpers (run only inside poller callback) ---
@@ -352,17 +354,15 @@ static void bv_draw_callback(Canvas* canvas, void* context) {
     char line[40];
     switch(app->state) {
     case BvStateIdle:
-        snprintf(
-            line,
-            sizeof(line),
-            "Enclave KEK: %s",
-            app->enclave_ok ? "OK" : "FAIL");
-        canvas_draw_str(canvas, 2, 24, line);
+        snprintf(line, sizeof(line), "Enclave KEK: %s", app->enclave_ok ? "OK" : "FAIL");
+        canvas_draw_str(canvas, 2, 22, line);
         snprintf(line, sizeof(line), "AES-GCM KAT: %s", app->gcm_ok ? "OK" : "FAIL");
-        canvas_draw_str(canvas, 2, 33, line);
+        canvas_draw_str(canvas, 2, 31, line);
         snprintf(line, sizeof(line), "KEK/DEK wrap: %s", app->dek_ok ? "OK" : "FAIL");
-        canvas_draw_str(canvas, 2, 42, line);
-        canvas_draw_str(canvas, 2, 54, "OK: read  Back: exit");
+        canvas_draw_str(canvas, 2, 40, line);
+        snprintf(line, sizeof(line), "Vault codec: %s", app->vault_ok ? "OK" : "FAIL");
+        canvas_draw_str(canvas, 2, 49, line);
+        canvas_draw_str(canvas, 2, 60, "OK:read  Back:exit");
         break;
     case BvStateReading:
         canvas_draw_str(canvas, 2, 30, "Hold to implant...");
@@ -449,12 +449,14 @@ int32_t biovault_app(void* p) {
     app->enclave_ok = bv_crypto_enclave_selftest();
     app->gcm_ok = bv_crypto_gcm_kat();
     app->dek_ok = bv_crypto_dek_selftest();
+    app->vault_ok = bv_vault_selftest();
     FURI_LOG_I(
         TAG,
-        "crypto self-test: enclave=%d gcm=%d dek=%d",
+        "crypto self-test: enclave=%d gcm=%d dek=%d vault=%d",
         app->enclave_ok,
         app->gcm_ok,
-        app->dek_ok);
+        app->dek_ok,
+        app->vault_ok);
 
     bool running = true;
     InputEvent event;
