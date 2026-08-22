@@ -1,0 +1,30 @@
+App(
+    appid="samsung_ac_remote",
+    name="Samsung",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="ac_remote_app",
+    cdefines=["APP_SAMSUNG_AC_REMOTE"],
+    requires=[
+        "storage",
+        "gui",
+        "infrared",
+    ],
+    stack_size=1 * 2048,
+    order=90,
+    fap_description="Samsung Electric Air Conditioner remote control",
+    fap_version="1.0",
+    fap_icon="ac_remote.png",
+    fap_category="Infrared",
+    fap_author="@dappermint",
+    fap_weburl="https://github.com/dappermint/samsung-ac-remote-flipper-app",
+    fap_icon_assets="assets",
+    fap_private_libs=[
+        Lib(
+            name="hvac_samsung",
+            sources=[
+                "hvac_samsung.c",
+            ],
+        ),
+    ],
+)

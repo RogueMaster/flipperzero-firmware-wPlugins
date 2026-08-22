@@ -1,0 +1,17 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="haier_ac_remote",
+    name="Haier",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="haier_ac_remote_app",
+    stack_size=4 * 1024,
+    fap_category="Infrared",
+    fap_version="1.0",
+    fap_icon="haier_ac_remote.png",
+    fap_description="IR remote for Haier-protocol air conditioners",
+    fap_author="xMasterX",
+    fap_libs=["infrared"],
+    # tests/ holds a host-side harness built with cc, not the ARM toolchain
+    sources=["*.c*", "!tests"],
+)

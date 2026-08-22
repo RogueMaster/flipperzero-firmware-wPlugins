@@ -269,7 +269,10 @@ bool ac_remote_scene_mitsubishi_on_event(void* context, SceneManagerEvent event)
             default:
                 break;
             }
-            hvac_mitsubishi_power(ac_remote->hvac_mitsubishi_data, ac_remote->app_state.power);
+            hvac_mitsubishi_power(
+                ac_remote->hvac_mitsubishi_data,
+                ac_remote->app_state.power,
+                ac_remote->app_state.mode);
             uint32_t event = ac_remote_custom_event_pack(AC_RemoteCustomEventTypeSendCommand, 0);
             view_dispatcher_send_custom_event(ac_remote->view_dispatcher, event);
         }

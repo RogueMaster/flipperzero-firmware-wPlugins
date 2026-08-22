@@ -495,7 +495,7 @@ void ac_remote_scene_hitachi_on_enter(void* context) {
         ac_remote_scene_universal_common_item_callback,
         context);
 
-    ac_remote_panel_add_label(panel_main, 0, 6, 11, FontPrimary, "AC remote");
+    ac_remote_panel_add_label(panel_main, 0, 16, 11, FontPrimary, "Hitachi");
 
     snprintf(
         ac_remote->transient_state.temp_display,
