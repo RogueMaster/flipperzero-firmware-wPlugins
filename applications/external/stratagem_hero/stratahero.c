@@ -105,6 +105,34 @@ typedef struct {
     char quiz_hs_score_lines[HIGHSCORES_COUNT][12];
 } StrataHeroApp;
 
+static void stratahero_apply_orientation(StrataHeroApp* app, bool flipped) {
+    ViewOrientation orientation = flipped ? ViewOrientationHorizontalFlip :
+                                            ViewOrientationHorizontal;
+
+    view_set_orientation(stratahero_splash_screen_get_view(app->splash_screen), orientation);
+    view_set_orientation(submenu_get_view(app->main_menu), orientation);
+    view_set_orientation(submenu_get_view(app->play_menu), orientation);
+    view_set_orientation(submenu_get_view(app->quiz_menu), orientation);
+    view_set_orientation(stratahero_game_widget_get_view(app->game_widget), orientation);
+    view_set_orientation(
+        stratagem_types_widget_get_view(app->stratagem_types_widget), orientation);
+    view_set_orientation(stratagem_list_widget_get_view(app->stratagems_list_widget), orientation);
+    view_set_orientation(
+        stratagem_detail_widget_get_view(app->stratagem_detail_widget), orientation);
+    view_set_orientation(
+        stratagem_train_widget_get_view(app->stratagem_train_widget), orientation);
+    view_set_orientation(quiz_widget_get_settings_view(app->quiz_widget), orientation);
+    view_set_orientation(quiz_widget_get_view(app->quiz_widget), orientation);
+    view_set_orientation(stratahero_settings_widget_get_view(app->settings_widget), orientation);
+    view_set_orientation(
+        stratahero_settings_widget_get_confirmation_view(app->settings_widget), orientation);
+    view_set_orientation(widget_get_view(app->game_highscores_widget), orientation);
+    view_set_orientation(widget_get_view(app->quiz_highscores_widget), orientation);
+    view_set_orientation(widget_get_view(app->game_about_widget), orientation);
+    view_set_orientation(widget_get_view(app->quiz_about_widget), orientation);
+    view_set_orientation(text_input_get_view(app->name_entry), orientation);
+}
+
 static void stratahero_switch_view(StrataHeroApp* app, StrataHeroView view) {
     app->current_view = view;
     view_dispatcher_switch_to_view(app->view_dispatcher, view);
@@ -302,6 +330,7 @@ static void settings_widget_navigation_callback(void* context) {
 static void settings_widget_changed_callback(StrataHeroSettings* settings, void* context) {
     StrataHeroApp* app = context;
     app->settings = *settings;
+    stratahero_apply_orientation(app, settings->flipped_enabled);
     stratahero_game_widget_set_settings(app->game_widget, settings);
     stratagem_train_widget_set_settings(app->stratagem_train_widget, settings);
     quiz_widget_set_settings(app->quiz_widget, settings);
@@ -560,6 +589,8 @@ StrataHeroApp* stratahero_app_alloc() {
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, stratahero_view_dispatcher_navigation_callback);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
+
+    stratahero_apply_orientation(app, app->settings.flipped_enabled);
 
     stratahero_switch_view(app, StrataHero_View_SplashScreen);
 

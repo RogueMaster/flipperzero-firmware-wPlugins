@@ -51,6 +51,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [WashCity, Microel, MiZIP, Bip, CharlieCard, Saflok, CSC, Banapass and H World no longer present values from blocks that were never read; MiZIP no longer guesses which of its two credit blocks is current, and CharlieCard no longer picks a balance sector by comparing two unread counters (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
 - NFC: [SmartRider again parses dumps saved before the file format recorded which blocks were read, such as converted PM3 dumps, and Bambu now parses them too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
 - NFC: [the SKPPK, SevPPK and SZPPK ticket parsers no longer report a ticket as not issued when its blocks were simply never read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
+- Updated: [Stratagem Hero v1.0.1 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 
 <a name="release"></a>
 
@@ -299,7 +300,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Space Impact WIP v0.2 (By Ka3u6y6a)](https://github.com/Ka3u6y6a/flipper-zero-space-impact)
 - [Space Invaders v0.1 (By PavelZurek)](https://github.com/PavelZurek/flipperzero-space-invaders)
 - [Stack v1.0 (By bergr22)](https://github.com/bergr22/Stack)
-- [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
+- [Stratagem Hero v1.0.1 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 - [Strategem Zero v0.1 (By nymda)](https://github.com/nymda/StratagemZero)
 - [Sudoku v1.2 (By profelis)](https://github.com/profelis/fz-sudoku)
 - [SUPER-CHIP Emulator (By Milk-Cool)](https://github.com/Milk-Cool/fz-schip)
