@@ -1,17 +1,15 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
 App(
     appid="gree_ac_remote",
     name="Gree",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="gree_ac_remote_app",
     stack_size=4 * 1024,
-    fap_category="Infrared",
-    fap_version="1.0",
     fap_icon="gree_ac_remote.png",
-    fap_description="IR remote for Gree-protocol air conditioners",
-    fap_author="xMasterX",
     fap_libs=["infrared"],
-    # tests/ holds a host-side harness built with cc, not the ARM toolchain
     sources=["*.c*", "!tests"],
+    fap_category="Infrared",
+    fap_author="xMasterX",
+    fap_weburl="https://github.com/xMasterX/flipper_ac",
+    fap_version="1.0",
+    fap_description="IR remote for Gree-protocol air conditioners",
 )
