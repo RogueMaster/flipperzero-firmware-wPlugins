@@ -10,17 +10,30 @@ on disk. Hold the Flipper to the implant, unlock, read the vault.
 
 ## Status
 
-**Milestone 1 (in this commit): NFC read path.**
-`GET_VERSION` → `SECTOR SELECT 1` → read Sector 1 user memory → display hex.
-This proves the riskiest unknown — driving the NTAG I2C Plus 2K sector-select
-handshake from the Flipper's ISO14443-3A poller — before any crypto is layered on.
+**Milestone 1: NFC read path — verified on hardware.**
+`activate` (anti-collision + SELECT) → `GET_VERSION` → two-part `SECTOR SELECT 1`
+→ read Sector 1 user memory → display hex. This proved the riskiest unknown —
+driving the NTAG I2C Plus 2K sector-select handshake from the Flipper's
+ISO14443-3A poller. Confirmed against a real xSIID implant (UID `0478A5D2CD5280`):
+`GET_VERSION` matches `0004040502021503`, sector-select packet 1 returns the
+4-bit ACK `0x0A`, packet 2 is a passive-ACK (poller timeout = success), and
+Sector 1 reads back distinct from Sector 0 (page 0 zeroed, data from page 4 —
+the legacy `biovault.py` layout).
 
 Built and linked against the SDK in `~/tools/flipper` (ufbt, official firmware
 **1.4.3**, target f7, **API 87.1**).
 
+Two non-obvious things this milestone nailed down for the ISO14443-3A poller:
+- Started with `nfc_poller_start_ex` on the base `iso14443_3a` protocol, the
+  callback receives raw `NfcEvent`s; the card-ready event is
+  `NfcEventTypePollerReady`, not `Iso14443_3aPollerEventTypeReady`.
+- `PollerReady` only means a card answered the initial request — you must call
+  `iso14443_3a_poller_activate()` to SELECT it into ACTIVE state, or every
+  application command (`READ`, `GET_VERSION`) times out.
+
 ### Roadmap
 
-- [x] M1 — raw Sector 1 read + hex display (this commit)
+- [x] M1 — raw Sector 1 read + hex display (verified on hardware)
 - [ ] M2 — enclave key management (device-unique KEK in slot 11) + AES-GCM decrypt of the on-tag blob
 - [ ] M3 — write path (compress → AEAD → `WRITE`/`SECTOR SELECT` to Sector 1)
 - [ ] M4 — provisioning: `PWD_AUTH` + set `2K_PROT` / `AUTHLIM` (dev-tag-guarded, irreversible)

@@ -25,6 +25,8 @@
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
 #include <nfc/helpers/iso14443_crc.h>
 
+#define TAG "BioVault"
+
 // --- NTAG I2C Plus 2K command set (from the Lua utils script) ---
 #define CMD_GET_VERSION 0x60
 #define CMD_READ 0x30
@@ -108,7 +110,9 @@ static bool bv_get_version(Iso14443_3aPoller* poller, uint8_t out[8]) {
     BitBuffer* rx = bit_buffer_alloc(16);
     bit_buffer_append_byte(tx, CMD_GET_VERSION);
     Iso14443_3aError err = iso14443_3a_poller_send_standard_frame(poller, tx, rx, FWT_NORMAL);
-    bool ok = (err == Iso14443_3aErrorNone) && (bit_buffer_get_size_bytes(rx) >= 8);
+    size_t sz = bit_buffer_get_size_bytes(rx);
+    FURI_LOG_D(TAG, "GET_VERSION txrx: err=%d rx_bytes=%u", err, (unsigned)sz);
+    bool ok = (err == Iso14443_3aErrorNone) && (sz >= 8);
     if(ok) bit_buffer_write_bytes(rx, out, 8);
     bit_buffer_free(tx);
     bit_buffer_free(rx);
@@ -122,12 +126,19 @@ static bool bv_select_sector(Iso14443_3aPoller* poller, uint8_t sector) {
     // Packet 1: C2 FF (+CRC) -> tag returns a 4-bit ACK (0xA).
     const uint8_t p1[2] = {CMD_SECTOR_SELECT_1, CMD_SECTOR_SELECT_2};
     Iso14443_3aError e1 = bv_exchange(poller, p1, sizeof(p1), rx, FWT_NORMAL, true);
-    bool p1_ok = (e1 == Iso14443_3aErrorNone) && (bit_buffer_get_size(rx) >= 4);
+    size_t p1_bits = bit_buffer_get_size(rx);
+    uint8_t p1_b0 = (p1_bits >= 4) ? bit_buffer_get_byte(rx, 0) : 0xFF;
+    bool p1_ok = (e1 == Iso14443_3aErrorNone) && (p1_bits >= 4);
+    FURI_LOG_D(
+        TAG, "sector-select p1: err=%d rx_bits=%u b0=0x%02X", e1, (unsigned)p1_bits, p1_b0);
 
     // Packet 2: <sector> 00 00 00 (+CRC) -> PASSIVE ACK (no reply). Timeout == OK.
+    bit_buffer_reset(rx);
     const uint8_t p2[4] = {sector, 0x00, 0x00, 0x00};
     Iso14443_3aError e2 = bv_exchange(poller, p2, sizeof(p2), rx, FWT_SECTOR_ACK, true);
     bool p2_ok = (e2 == Iso14443_3aErrorTimeout) || (e2 == Iso14443_3aErrorNone);
+    FURI_LOG_D(
+        TAG, "sector-select p2: err=%d rx_bits=%u (timeout=OK)", e2, (unsigned)bit_buffer_get_size(rx));
 
     bit_buffer_free(rx);
     return p1_ok && p2_ok;
@@ -140,20 +151,83 @@ static bool bv_read_pages(Iso14443_3aPoller* poller, uint8_t page, uint8_t out[1
     bit_buffer_append_byte(tx, CMD_READ);
     bit_buffer_append_byte(tx, page);
     Iso14443_3aError err = iso14443_3a_poller_send_standard_frame(poller, tx, rx, FWT_NORMAL);
-    bool ok = (err == Iso14443_3aErrorNone) && (bit_buffer_get_size_bytes(rx) >= 16);
+    size_t sz = bit_buffer_get_size_bytes(rx);
+    bool ok = (err == Iso14443_3aErrorNone) && (sz >= 16);
+    if(page == 0x00 || !ok)
+        FURI_LOG_D(TAG, "READ page 0x%02X: err=%d rx_bytes=%u ok=%d", page, err, (unsigned)sz, ok);
     if(ok) bit_buffer_write_bytes(rx, out, 16);
     bit_buffer_free(tx);
     bit_buffer_free(rx);
     return ok;
 }
 
-// Full read sequence, executed once the card is activated (Ready event).
+// Full read sequence, executed once a card is present (PollerReady event).
 static void bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
     BvError err = BvErrNone;
+
+    // NfcEventTypePollerReady only means a card answered the initial request; it
+    // is not yet SELECTed. Run anti-collision + SELECT to bring it to ACTIVE
+    // state, otherwise it ignores READ/GET_VERSION and every command times out.
+    Iso14443_3aData* iso_data = iso14443_3a_alloc();
+    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
+    size_t uid_len = 0;
+    const uint8_t* uid = (act == Iso14443_3aErrorNone) ? iso14443_3a_get_uid(iso_data, &uid_len) : NULL;
+    FURI_LOG_I(
+        TAG,
+        "activate: err=%d uid_len=%u uid=%02X%02X%02X%02X%02X%02X%02X",
+        act,
+        (unsigned)uid_len,
+        uid && uid_len > 0 ? uid[0] : 0,
+        uid && uid_len > 1 ? uid[1] : 0,
+        uid && uid_len > 2 ? uid[2] : 0,
+        uid && uid_len > 3 ? uid[3] : 0,
+        uid && uid_len > 4 ? uid[4] : 0,
+        uid && uid_len > 5 ? uid[5] : 0,
+        uid && uid_len > 6 ? uid[6] : 0);
+    if(act != Iso14443_3aErrorNone) {
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->error = BvErrNoTag;
+        app->state = BvStateError;
+        furi_mutex_release(app->mutex);
+        iso14443_3a_free(iso_data);
+        return;
+    }
+
     uint8_t version[8] = {0};
     bool version_ok = bv_get_version(poller, version);
     bool version_match =
         version_ok && (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
+    FURI_LOG_I(
+        TAG,
+        "GET_VERSION ok=%d match=%d: %02X%02X%02X%02X%02X%02X%02X%02X",
+        version_ok,
+        version_match,
+        version[0],
+        version[1],
+        version[2],
+        version[3],
+        version[4],
+        version[5],
+        version[6],
+        version[7]);
+
+    // Cross-check: a plain READ of page 0 (works on any activated Type 2 tag,
+    // returns UID + manufacturer bytes). Tells us if ANY command works even
+    // when GET_VERSION does not.
+    uint8_t probe[16] = {0};
+    bool read0_ok = bv_read_pages(poller, 0x00, probe);
+    FURI_LOG_I(
+        TAG,
+        "probe READ0 ok=%d: %02X %02X %02X %02X %02X %02X %02X %02X",
+        read0_ok,
+        probe[0],
+        probe[1],
+        probe[2],
+        probe[3],
+        probe[4],
+        probe[5],
+        probe[6],
+        probe[7]);
 
     uint8_t buf[SECTOR1_BYTES];
     size_t got = 0;
@@ -169,8 +243,17 @@ static void bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
             uint8_t page = (uint8_t)(i * READ_PAGES_PER_CMD);
             if(!bv_read_pages(poller, page, buf + got)) {
                 err = BvErrRead;
+                FURI_LOG_I(TAG, "READ failed at page 0x%02X (got %u bytes)", page, (unsigned)got);
                 break;
             }
+            // Verify SECTOR SELECT actually switched: Sector 1 page 0 must NOT be
+            // the UID we read from Sector 0 (04 78 A5 D2 ...).
+            if(i == 0)
+                FURI_LOG_I(
+                    TAG,
+                    "sector1 p0: %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
+                    buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
+                    buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15]);
             got += 16;
         }
     }
@@ -188,23 +271,24 @@ static void bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
         app->state = BvStateError;
     }
     furi_mutex_release(app->mutex);
+    FURI_LOG_I(TAG, "read complete: err=%d bytes=%u", err, (unsigned)got);
+    iso14443_3a_free(iso_data);
 }
 
 // Extended-mode poller callback — called from the NFC worker thread.
+//
+// The iso14443_3a base protocol has no parent protocol, so start_ex delivers
+// raw NfcEvents from the Nfc instance. The card-activated event is
+// NfcEventTypePollerReady (NOT Iso14443_3aPollerEventTypeReady, which the
+// iso14443_3a poller only emits to child protocol pollers such as MfUltralight).
 static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
     BioVault* app = context;
     Iso14443_3aPoller* poller = event.poller;
-    const Iso14443_3aPollerEvent* iso_event = event.parent_event_data;
+    const NfcEvent* nfc_event = event.parent_event_data;
     NfcCommand cmd = NfcCommandContinue;
 
-    if(iso_event->type == Iso14443_3aPollerEventTypeReady) {
+    if(nfc_event->type == NfcEventTypePollerReady) {
         bv_do_read(app, poller);
-        cmd = NfcCommandStop;
-    } else if(iso_event->type == Iso14443_3aPollerEventTypeError) {
-        furi_mutex_acquire(app->mutex, FuriWaitForever);
-        app->error = BvErrNoTag;
-        app->state = BvStateError;
-        furi_mutex_release(app->mutex);
         cmd = NfcCommandStop;
     }
 
@@ -357,7 +441,7 @@ int32_t biovault_app(void* p) {
         if(furi_message_queue_get(app->input_queue, &event, 100) != FuriStatusOk) {
             continue;
         }
-        if(event.type != InputTypeShort && event.type != InputTypeRepeat) continue;
+        if(event.type != InputTypeShort) continue; // ignore Repeat to avoid restart storm
 
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         BvState state = app->state;
@@ -371,7 +455,12 @@ int32_t biovault_app(void* p) {
             break;
         case InputKeyBack:
             if(state == BvStateReading) {
-                // let the worker finish/stop naturally; ignore back while reading
+                // Cancel an in-progress read (e.g. no tag presented).
+                bv_stop_read(app);
+                app->worker_done = false;
+                furi_mutex_acquire(app->mutex, FuriWaitForever);
+                app->state = BvStateIdle;
+                furi_mutex_release(app->mutex);
             } else {
                 running = false;
             }
