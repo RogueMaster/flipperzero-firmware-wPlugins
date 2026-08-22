@@ -27,6 +27,7 @@
 
 #include "bv_crypto.h"
 #include "bv_vault.h"
+#include "bv_records.h"
 
 #define TAG "BioVault"
 
@@ -92,6 +93,7 @@ typedef struct {
     bool gcm_ok;
     bool dek_ok;
     bool vault_ok;
+    bool records_ok;
 } BioVault;
 
 // --- Low-level ISO14443-3A exchange helpers (run only inside poller callback) ---
@@ -354,15 +356,14 @@ static void bv_draw_callback(Canvas* canvas, void* context) {
     char line[40];
     switch(app->state) {
     case BvStateIdle:
-        snprintf(line, sizeof(line), "Enclave KEK: %s", app->enclave_ok ? "OK" : "FAIL");
-        canvas_draw_str(canvas, 2, 22, line);
-        snprintf(line, sizeof(line), "AES-GCM KAT: %s", app->gcm_ok ? "OK" : "FAIL");
-        canvas_draw_str(canvas, 2, 31, line);
-        snprintf(line, sizeof(line), "KEK/DEK wrap: %s", app->dek_ok ? "OK" : "FAIL");
-        canvas_draw_str(canvas, 2, 40, line);
-        snprintf(line, sizeof(line), "Vault codec: %s", app->vault_ok ? "OK" : "FAIL");
-        canvas_draw_str(canvas, 2, 49, line);
-        canvas_draw_str(canvas, 2, 60, "OK:read  Back:exit");
+        {
+            int passed = app->enclave_ok + app->gcm_ok + app->dek_ok + app->vault_ok +
+                         app->records_ok;
+            snprintf(line, sizeof(line), "Self-tests: %d/5 %s", passed, passed == 5 ? "OK" : "FAIL");
+            canvas_draw_str(canvas, 2, 30, line);
+        }
+        canvas_draw_str(canvas, 2, 44, "OK: read implant");
+        canvas_draw_str(canvas, 2, 56, "Back: exit");
         break;
     case BvStateReading:
         canvas_draw_str(canvas, 2, 30, "Hold to implant...");
@@ -450,13 +451,15 @@ int32_t biovault_app(void* p) {
     app->gcm_ok = bv_crypto_gcm_kat();
     app->dek_ok = bv_crypto_dek_selftest();
     app->vault_ok = bv_vault_selftest();
+    app->records_ok = bv_records_selftest();
     FURI_LOG_I(
         TAG,
-        "crypto self-test: enclave=%d gcm=%d dek=%d vault=%d",
+        "self-test: enclave=%d gcm=%d dek=%d vault=%d records=%d",
         app->enclave_ok,
         app->gcm_ok,
         app->dek_ok,
-        app->vault_ok);
+        app->vault_ok,
+        app->records_ok);
 
     bool running = true;
     InputEvent event;
