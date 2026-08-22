@@ -13,6 +13,7 @@
 #include <gui/view_dispatcher.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
+#include <gui/modules/text_input.h>
 #include <input/input.h>
 
 #include <nfc/nfc.h>
@@ -75,12 +76,14 @@ typedef enum {
     BvViewLoad,
     BvViewBrowser,
     BvViewDetail,
+    BvViewInput,
     BvViewZero,
     BvViewDiag,
 } BvViewId;
 
 typedef enum {
     BvMenuVault,
+    BvMenuAdd,
     BvMenuLoad,
     BvMenuRead,
     BvMenuSeed,
@@ -88,6 +91,13 @@ typedef enum {
     BvMenuZero,
     BvMenuDiag,
 } BvMenuIndex;
+
+// On-device Add Entry field being edited.
+typedef enum {
+    BvAddLabel,
+    BvAddUser,
+    BvAddSecret,
+} BvAddState;
 
 typedef enum {
     BvCustomEventPollerDone = 1,
@@ -148,8 +158,15 @@ typedef struct {
     View* load_view;
     Submenu* browser;
     View* detail_view;
+    TextInput* input;
     View* zero_view;
     Widget* diag;
+
+    // On-device Add Entry state.
+    BvAddState add_state;
+    char edit_label[BV_LABEL_CAP];
+    char edit_user[BV_USER_CAP];
+    char edit_secret[BV_SECRET_CAP];
 
     Nfc* nfc;
     NfcPoller* poller;
@@ -158,6 +175,7 @@ typedef struct {
 
     BvVaultData* vault; // in-RAM vault (heap; ~3.8KB, never on the stack)
     uint8_t selected; // entry index shown in the detail view
+    bool vault_loaded; // true once synced with the tag (or a known-empty tag)
 
     bool enclave_ok;
     bool gcm_ok;
@@ -452,7 +470,9 @@ static void bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
         if(err == BvErrNone) {
             size_t blob_len = 0;
             if(!bv_vault_framed_len(buf, SECTOR1_BYTES, &blob_len)) {
-                err = BvErrNoVault; // tag is empty/zeroed or not a vault
+                // Empty / non-vault tag: a valid fresh (empty) vault, not an error.
+                bv_records_init(app->vault);
+                count = 0;
             } else {
                 BvVaultKey key;
                 if(!bv_vault_key_open(&key)) {
@@ -475,6 +495,7 @@ static void bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
     free(pt);
     free(buf);
 
+    if(err == BvErrNone) app->vault_loaded = true;
     with_view_model(
         app->load_view,
         BvLoadModel * m,
@@ -858,11 +879,11 @@ static void bv_load_draw(Canvas* canvas, void* model) {
     case BvStateDone:
         snprintf(line, sizeof(line), "Loaded %u entries", m->count);
         canvas_draw_str(canvas, 2, 32, line);
-        canvas_draw_str(canvas, 2, 54, "OK: browse   Back: menu");
+        canvas_draw_str(canvas, 2, 54, "OK: continue");
         break;
     case BvStateError:
         canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
-        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: menu");
+        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: skip");
         break;
     default:
         canvas_draw_str(canvas, 2, 34, "Hold to implant...");
@@ -877,8 +898,7 @@ static bool bv_load_input(InputEvent* event, void* context) {
     BvState state;
     with_view_model(app->load_view, BvLoadModel * m, { state = m->state; }, false);
     if(state == BvStateDone) {
-        bv_build_browser(app);
-        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewMenu);
     } else if(state == BvStateError) {
         if(!app->poller_running) bv_start_load(app);
     }
@@ -939,6 +959,70 @@ static uint32_t bv_detail_previous(void* context) {
     return BvViewBrowser;
 }
 
+// --- On-device Add Entry (keyboard) ---
+
+static void bv_configure_input(BioVault* app);
+
+// Fired when the user confirms a field on the keyboard; advances through
+// label -> user -> secret, then appends the entry to the in-RAM vault.
+static void bv_input_result(void* context) {
+    BioVault* app = context;
+    switch(app->add_state) {
+    case BvAddLabel:
+        app->add_state = BvAddUser;
+        bv_configure_input(app);
+        break;
+    case BvAddUser:
+        app->add_state = BvAddSecret;
+        bv_configure_input(app);
+        break;
+    case BvAddSecret:
+        bv_records_add(
+            app->vault, BvEntryCred, app->edit_label, app->edit_user, app->edit_secret);
+        FURI_LOG_I(TAG, "added entry '%s' (vault now %u)", app->edit_label, app->vault->count);
+        bv_build_browser(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
+        break;
+    }
+}
+
+static void bv_configure_input(BioVault* app) {
+    switch(app->add_state) {
+    case BvAddLabel:
+        text_input_set_header_text(app->input, "Label (site or name)");
+        text_input_set_minimum_length(app->input, 1);
+        text_input_set_result_callback(
+            app->input, bv_input_result, app, app->edit_label, sizeof(app->edit_label), true);
+        break;
+    case BvAddUser:
+        text_input_set_header_text(app->input, "Username (optional)");
+        text_input_set_minimum_length(app->input, 0);
+        text_input_set_result_callback(
+            app->input, bv_input_result, app, app->edit_user, sizeof(app->edit_user), true);
+        break;
+    case BvAddSecret:
+        text_input_set_header_text(app->input, "Password / secret");
+        text_input_set_minimum_length(app->input, 0);
+        text_input_set_result_callback(
+            app->input, bv_input_result, app, app->edit_secret, sizeof(app->edit_secret), true);
+        break;
+    }
+}
+
+static void bv_add_start(BioVault* app) {
+    memset(app->edit_label, 0, sizeof(app->edit_label));
+    memset(app->edit_user, 0, sizeof(app->edit_user));
+    memset(app->edit_secret, 0, sizeof(app->edit_secret));
+    app->add_state = BvAddLabel;
+    bv_configure_input(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewInput);
+}
+
+static uint32_t bv_input_previous(void* context) {
+    UNUSED(context);
+    return BvViewMenu; // Back cancels the add flow
+}
+
 // --- Menu / dispatcher callbacks ---
 
 static void bv_menu_callback(void* context, uint32_t index) {
@@ -947,6 +1031,9 @@ static void bv_menu_callback(void* context, uint32_t index) {
     case BvMenuVault:
         bv_build_browser(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
+        break;
+    case BvMenuAdd:
+        bv_add_start(app);
         break;
     case BvMenuLoad:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
@@ -961,10 +1048,16 @@ static void bv_menu_callback(void* context, uint32_t index) {
         bv_records_add(app->vault, BvEntryCred, "example.com", "alice", "hunter2");
         bv_records_add(app->vault, BvEntryCred, "reddit.com", "bob", "s3cret,pw");
         bv_records_add(app->vault, BvEntryNote, "recovery", "", "correct horse battery");
+        app->vault_loaded = true; // seeded vault is a known state, safe to save
         FURI_LOG_I(TAG, "seeded %u test entries", app->vault->count);
         break;
     case BvMenuSave:
-        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSave);
+        // Never overwrite the tag with a vault that wasn't synced from it first.
+        if(!app->vault_loaded) {
+            view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
+        } else {
+            view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSave);
+        }
         break;
     case BvMenuZero:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewZero);
@@ -1055,6 +1148,7 @@ static BioVault* bv_alloc(void) {
     app->menu = submenu_alloc();
     submenu_set_header(app->menu, "BioVault");
     submenu_add_item(app->menu, "Vault", BvMenuVault, bv_menu_callback, app);
+    submenu_add_item(app->menu, "Add Entry", BvMenuAdd, bv_menu_callback, app);
     submenu_add_item(app->menu, "Load from Implant", BvMenuLoad, bv_menu_callback, app);
     submenu_add_item(app->menu, "Read Implant", BvMenuRead, bv_menu_callback, app);
     submenu_add_item(app->menu, "Seed Test Data", BvMenuSeed, bv_menu_callback, app);
@@ -1110,6 +1204,11 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(app->detail_view, bv_detail_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewDetail, app->detail_view);
 
+    // Add Entry keyboard view
+    app->input = text_input_alloc();
+    view_set_previous_callback(text_input_get_view(app->input), bv_input_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewInput, text_input_get_view(app->input));
+
     // Zero Sector 1 view
     app->zero_view = view_alloc();
     view_allocate_model(app->zero_view, ViewModelTypeLocking, sizeof(BvZeroModel));
@@ -1138,6 +1237,7 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewLoad);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewBrowser);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDetail);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewInput);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewZero);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
@@ -1146,6 +1246,7 @@ static void bv_free(BioVault* app) {
     view_free(app->load_view);
     submenu_free(app->browser);
     view_free(app->detail_view);
+    text_input_free(app->input);
     view_free(app->zero_view);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
@@ -1159,7 +1260,10 @@ static void bv_free(BioVault* app) {
 int32_t biovault_app(void* p) {
     UNUSED(p);
     BioVault* app = bv_alloc();
-    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewMenu);
+    // Start by loading the vault from the implant, then drop into the menu. This
+    // makes load-first the natural flow, so Save never overwrites the tag with a
+    // vault that wasn't synced from it.
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
     view_dispatcher_run(app->view_dispatcher);
     bv_free(app);
     return 0;
