@@ -64,6 +64,7 @@ typedef enum {
     BvErrWrite,
     BvErrTooBig,
     BvErrCrypto,
+    BvErrNoVault,
 } BvError;
 
 // View ids and menu indices.
@@ -71,11 +72,16 @@ typedef enum {
     BvViewMenu,
     BvViewRead,
     BvViewSave,
+    BvViewLoad,
+    BvViewBrowser,
+    BvViewDetail,
     BvViewZero,
     BvViewDiag,
 } BvViewId;
 
 typedef enum {
+    BvMenuVault,
+    BvMenuLoad,
     BvMenuRead,
     BvMenuSeed,
     BvMenuSave,
@@ -92,6 +98,7 @@ typedef enum {
     BvOpRead,
     BvOpZero,
     BvOpSave,
+    BvOpLoad,
 } BvOp;
 
 // Read view model (heap-allocated by the View).
@@ -127,11 +134,20 @@ typedef struct {
 } BvSaveModel;
 
 typedef struct {
+    BvState state; // Reading / Done / Error
+    BvError error;
+    uint8_t count;
+} BvLoadModel;
+
+typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     Submenu* menu;
     View* read_view;
     View* save_view;
+    View* load_view;
+    Submenu* browser;
+    View* detail_view;
     View* zero_view;
     Widget* diag;
 
@@ -141,6 +157,7 @@ typedef struct {
     BvOp op;
 
     BvVaultData* vault; // in-RAM vault (heap; ~3.8KB, never on the stack)
+    uint8_t selected; // entry index shown in the detail view
 
     bool enclave_ok;
     bool gcm_ok;
@@ -402,6 +419,74 @@ static void bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
     FURI_LOG_I(TAG, "save complete: err=%d bytes=%u pages=%u", err, (unsigned)blob_len, written);
 }
 
+// Read Sector 1 -> parse the vault blob -> decrypt -> populate the in-RAM vault.
+static void bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
+    BvError err = BvErrNone;
+    uint8_t count = 0;
+
+    uint8_t* buf = malloc(SECTOR1_BYTES);
+    uint8_t* pt = malloc(1024);
+
+    Iso14443_3aData* iso_data = iso14443_3a_alloc();
+    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
+    iso14443_3a_free(iso_data);
+    uint8_t version[8] = {0};
+    bool vok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
+    bool vmatch = vok && (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
+
+    if(!vok) {
+        err = BvErrNoTag;
+    } else if(!vmatch) {
+        err = BvErrWrongTag;
+    } else if(!bv_select_sector(poller, SECTOR1)) {
+        err = BvErrSectorSelect;
+    } else {
+        size_t got = 0;
+        for(uint32_t i = 0; i < READ_CMD_COUNT; i++) {
+            if(!bv_read_pages(poller, (uint8_t)(i * READ_PAGES_PER_CMD), buf + got)) {
+                err = BvErrRead;
+                break;
+            }
+            got += 16;
+        }
+        if(err == BvErrNone) {
+            size_t blob_len = 0;
+            if(!bv_vault_framed_len(buf, SECTOR1_BYTES, &blob_len)) {
+                err = BvErrNoVault; // tag is empty/zeroed or not a vault
+            } else {
+                BvVaultKey key;
+                if(!bv_vault_key_open(&key)) {
+                    err = BvErrCrypto;
+                } else {
+                    size_t pt_len = 0;
+                    if(bv_vault_decrypt(&key, buf, blob_len, pt, 1024, &pt_len) &&
+                       bv_records_parse(app->vault, pt, pt_len)) {
+                        count = app->vault->count;
+                    } else {
+                        err = BvErrCrypto; // wrong device/key, or corrupt
+                    }
+                    bv_vault_key_clear(&key);
+                }
+            }
+        }
+    }
+
+    memset(pt, 0, 1024);
+    free(pt);
+    free(buf);
+
+    with_view_model(
+        app->load_view,
+        BvLoadModel * m,
+        {
+            m->count = count;
+            m->state = (err == BvErrNone) ? BvStateDone : BvStateError;
+            m->error = err;
+        },
+        true);
+    FURI_LOG_I(TAG, "load complete: err=%d entries=%u", err, count);
+}
+
 static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
     BioVault* app = context;
     Iso14443_3aPoller* poller = event.poller;
@@ -413,6 +498,8 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
             bv_do_zero(app, poller);
         } else if(app->op == BvOpSave) {
             bv_do_save(app, poller);
+        } else if(app->op == BvOpLoad) {
+            bv_do_load(app, poller);
         } else {
             bv_do_read(app, poller);
         }
@@ -481,6 +568,33 @@ static void bv_start_save(BioVault* app) {
         },
         true);
     bv_start_op(app, BvOpSave);
+}
+
+static void bv_start_load(BioVault* app) {
+    if(app->poller_running) return;
+    with_view_model(
+        app->load_view,
+        BvLoadModel * m,
+        {
+            m->state = BvStateReading;
+            m->error = BvErrNone;
+            m->count = 0;
+        },
+        true);
+    bv_start_op(app, BvOpLoad);
+}
+
+// (Re)build the browser submenu from the current in-RAM vault.
+static void bv_menu_callback(void* context, uint32_t index);
+static void bv_browser_item_callback(void* context, uint32_t index);
+
+static void bv_build_browser(BioVault* app) {
+    submenu_reset(app->browser);
+    submenu_set_header(app->browser, "Vault");
+    for(uint8_t i = 0; i < app->vault->count; i++) {
+        submenu_add_item(
+            app->browser, app->vault->entries[i].label, i, bv_browser_item_callback, app);
+    }
 }
 
 // --- Read view UI ---
@@ -730,11 +844,113 @@ static uint32_t bv_save_previous(void* context) {
     return BvViewMenu;
 }
 
+// --- Load from implant view UI ---
+
+static void bv_load_draw(Canvas* canvas, void* model) {
+    BvLoadModel* m = model;
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Load from Implant");
+    canvas_set_font(canvas, FontSecondary);
+
+    char line[40];
+    switch(m->state) {
+    case BvStateDone:
+        snprintf(line, sizeof(line), "Loaded %u entries", m->count);
+        canvas_draw_str(canvas, 2, 32, line);
+        canvas_draw_str(canvas, 2, 54, "OK: browse   Back: menu");
+        break;
+    case BvStateError:
+        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
+        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: menu");
+        break;
+    default:
+        canvas_draw_str(canvas, 2, 34, "Hold to implant...");
+        break;
+    }
+}
+
+static bool bv_load_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort || event->key != InputKeyOk) return false;
+
+    BvState state;
+    with_view_model(app->load_view, BvLoadModel * m, { state = m->state; }, false);
+    if(state == BvStateDone) {
+        bv_build_browser(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
+    } else if(state == BvStateError) {
+        if(!app->poller_running) bv_start_load(app);
+    }
+    return true;
+}
+
+static void bv_load_enter(void* context) {
+    bv_start_load((BioVault*)context);
+}
+
+static void bv_load_exit(void* context) {
+    bv_poller_stop((BioVault*)context);
+}
+
+static uint32_t bv_load_previous(void* context) {
+    UNUSED(context);
+    return BvViewMenu;
+}
+
+// --- Vault browser + detail view UI ---
+
+static void bv_browser_item_callback(void* context, uint32_t index) {
+    BioVault* app = context;
+    app->selected = (uint8_t)index;
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewDetail);
+}
+
+static uint32_t bv_browser_previous(void* context) {
+    UNUSED(context);
+    return BvViewMenu;
+}
+
+static void bv_detail_draw(Canvas* canvas, void* model) {
+    BioVault* app = *(BioVault**)model;
+    canvas_clear(canvas);
+    if(app->selected >= app->vault->count) return;
+    const BvEntry* e = &app->vault->entries[app->selected];
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 12, e->label);
+    canvas_set_font(canvas, FontSecondary);
+
+    char line[64];
+    if(e->type == BvEntryNote) {
+        snprintf(line, sizeof(line), "Note: %s", e->secret);
+        canvas_draw_str(canvas, 2, 30, line);
+    } else {
+        snprintf(line, sizeof(line), "User: %s", e->user);
+        canvas_draw_str(canvas, 2, 28, line);
+        snprintf(line, sizeof(line), "Pass: %s", e->secret);
+        canvas_draw_str(canvas, 2, 40, line);
+    }
+    canvas_draw_str(canvas, 2, 60, "Back: list");
+}
+
+static uint32_t bv_detail_previous(void* context) {
+    UNUSED(context);
+    return BvViewBrowser;
+}
+
 // --- Menu / dispatcher callbacks ---
 
 static void bv_menu_callback(void* context, uint32_t index) {
     BioVault* app = context;
     switch(index) {
+    case BvMenuVault:
+        bv_build_browser(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
+        break;
+    case BvMenuLoad:
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
+        break;
     case BvMenuRead:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewRead);
         break;
@@ -838,6 +1054,8 @@ static BioVault* bv_alloc(void) {
     // Main menu
     app->menu = submenu_alloc();
     submenu_set_header(app->menu, "BioVault");
+    submenu_add_item(app->menu, "Vault", BvMenuVault, bv_menu_callback, app);
+    submenu_add_item(app->menu, "Load from Implant", BvMenuLoad, bv_menu_callback, app);
     submenu_add_item(app->menu, "Read Implant", BvMenuRead, bv_menu_callback, app);
     submenu_add_item(app->menu, "Seed Test Data", BvMenuSeed, bv_menu_callback, app);
     submenu_add_item(app->menu, "Save to Implant", BvMenuSave, bv_menu_callback, app);
@@ -867,6 +1085,31 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(app->save_view, bv_save_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewSave, app->save_view);
 
+    // Load from implant view
+    app->load_view = view_alloc();
+    view_allocate_model(app->load_view, ViewModelTypeLocking, sizeof(BvLoadModel));
+    view_set_context(app->load_view, app);
+    view_set_draw_callback(app->load_view, bv_load_draw);
+    view_set_input_callback(app->load_view, bv_load_input);
+    view_set_enter_callback(app->load_view, bv_load_enter);
+    view_set_exit_callback(app->load_view, bv_load_exit);
+    view_set_previous_callback(app->load_view, bv_load_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewLoad, app->load_view);
+
+    // Vault browser (submenu, rebuilt on entry)
+    app->browser = submenu_alloc();
+    view_set_previous_callback(submenu_get_view(app->browser), bv_browser_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewBrowser, submenu_get_view(app->browser));
+
+    // Entry detail view (model holds the app pointer so draw can reach the vault)
+    app->detail_view = view_alloc();
+    view_allocate_model(app->detail_view, ViewModelTypeLockFree, sizeof(BioVault*));
+    with_view_model(app->detail_view, BioVault * *m, { *m = app; }, false);
+    view_set_context(app->detail_view, app);
+    view_set_draw_callback(app->detail_view, bv_detail_draw);
+    view_set_previous_callback(app->detail_view, bv_detail_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewDetail, app->detail_view);
+
     // Zero Sector 1 view
     app->zero_view = view_alloc();
     view_allocate_model(app->zero_view, ViewModelTypeLocking, sizeof(BvZeroModel));
@@ -892,11 +1135,17 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewMenu);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewRead);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewSave);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewLoad);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewBrowser);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewDetail);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewZero);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
     view_free(app->read_view);
     view_free(app->save_view);
+    view_free(app->load_view);
+    submenu_free(app->browser);
+    view_free(app->detail_view);
     view_free(app->zero_view);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
