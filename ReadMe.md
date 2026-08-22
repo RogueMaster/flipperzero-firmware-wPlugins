@@ -48,6 +48,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Plantain no longer claims the PPK keys are installed on every 1K card; a card without the sector that carries them now reads No, and one whose key is missing reads Unknown (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
 - NFC: [A supported-card parser that declines a card no longer leaks its output into the next parser (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
 - NFC: [Social Moscow again parses dumps saved before the format carried a read mask, such as converted PM3 dumps (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
+- NFC: [WashCity, Microel, MiZIP, Bip, CharlieCard, Saflok, CSC, Banapass and H World no longer present values from blocks that were never read; MiZIP no longer guesses which of its two credit blocks is current, and CharlieCard no longer picks a balance sector by comparing two unread counters (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
+- NFC: [SmartRider again parses dumps saved before the file format recorded which blocks were read, such as converted PM3 dumps, and Bambu now parses them too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
+- NFC: [the SKPPK, SevPPK and SZPPK ticket parsers no longer report a ticket as not issued when its blocks were simply never read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
 
 <a name="release"></a>
 
