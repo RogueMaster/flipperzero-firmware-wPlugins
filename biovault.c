@@ -13,6 +13,7 @@
 #include <gui/view_dispatcher.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
+#include <gui/modules/text_box.h>
 #include <input/input.h>
 
 #include <nfc/nfc.h>
@@ -157,7 +158,8 @@ typedef struct {
     View* save_view;
     View* load_view;
     Submenu* browser;
-    View* detail_view;
+    TextBox* detail;
+    char detail_text[BV_LABEL_CAP + BV_USER_CAP + BV_SECRET_CAP + 32];
     BvTextInput* input;
     View* zero_view;
     Widget* diag;
@@ -608,6 +610,7 @@ static void bv_start_load(BioVault* app) {
 // (Re)build the browser submenu from the current in-RAM vault.
 static void bv_menu_callback(void* context, uint32_t index);
 static void bv_browser_item_callback(void* context, uint32_t index);
+static void bv_build_detail(BioVault* app);
 
 static void bv_build_browser(BioVault* app) {
     submenu_reset(app->browser);
@@ -923,6 +926,7 @@ static uint32_t bv_load_previous(void* context) {
 static void bv_browser_item_callback(void* context, uint32_t index) {
     BioVault* app = context;
     app->selected = (uint8_t)index;
+    bv_build_detail(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, BvViewDetail);
 }
 
@@ -931,27 +935,34 @@ static uint32_t bv_browser_previous(void* context) {
     return BvViewMenu;
 }
 
-static void bv_detail_draw(Canvas* canvas, void* model) {
-    BioVault* app = *(BioVault**)model;
-    canvas_clear(canvas);
-    if(app->selected >= app->vault->count) return;
-    const BvEntry* e = &app->vault->entries[app->selected];
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 12, e->label);
-    canvas_set_font(canvas, FontSecondary);
-
-    char line[64];
-    if(e->type == BvEntryNote) {
-        snprintf(line, sizeof(line), "Note: %s", e->secret);
-        canvas_draw_str(canvas, 2, 30, line);
+// Build the scrollable detail text for the selected entry. A credential shows
+// label/user/secret; a note (no username) shows label/data. Values go on their
+// own lines so the TextBox wraps and scrolls them however long they are.
+static void bv_build_detail(BioVault* app) {
+    text_box_reset(app->detail);
+    if(app->selected >= app->vault->count) {
+        app->detail_text[0] = '\0';
     } else {
-        snprintf(line, sizeof(line), "User: %s", e->user);
-        canvas_draw_str(canvas, 2, 28, line);
-        snprintf(line, sizeof(line), "Pass: %s", e->secret);
-        canvas_draw_str(canvas, 2, 40, line);
+        const BvEntry* e = &app->vault->entries[app->selected];
+        if(e->type == BvEntryNote) {
+            snprintf(
+                app->detail_text,
+                sizeof(app->detail_text),
+                "%s\n\nData:\n%s",
+                e->label,
+                e->secret);
+        } else {
+            snprintf(
+                app->detail_text,
+                sizeof(app->detail_text),
+                "%s\n\nUser:\n%s\n\nPass:\n%s",
+                e->label,
+                e->user,
+                e->secret);
+        }
     }
-    canvas_draw_str(canvas, 2, 60, "Back: list");
+    text_box_set_font(app->detail, TextBoxFontText);
+    text_box_set_text(app->detail, app->detail_text);
 }
 
 static uint32_t bv_detail_previous(void* context) {
@@ -976,13 +987,16 @@ static void bv_input_result(void* context) {
         app->add_state = BvAddSecret;
         bv_configure_input(app);
         break;
-    case BvAddSecret:
-        bv_records_add(
-            app->vault, BvEntryCred, app->edit_label, app->edit_user, app->edit_secret);
-        FURI_LOG_I(TAG, "added entry '%s' (vault now %u)", app->edit_label, app->vault->count);
+    case BvAddSecret: {
+        // No username -> it's a note/data entry, not a credential.
+        BvEntryType type = (strlen(app->edit_user) > 0) ? BvEntryCred : BvEntryNote;
+        bv_records_add(app->vault, type, app->edit_label, app->edit_user, app->edit_secret);
+        FURI_LOG_I(TAG, "added %s '%s' (vault now %u)",
+            type == BvEntryNote ? "note" : "cred", app->edit_label, app->vault->count);
         bv_build_browser(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
         break;
+    }
     }
 }
 
@@ -1195,14 +1209,11 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(submenu_get_view(app->browser), bv_browser_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewBrowser, submenu_get_view(app->browser));
 
-    // Entry detail view (model holds the app pointer so draw can reach the vault)
-    app->detail_view = view_alloc();
-    view_allocate_model(app->detail_view, ViewModelTypeLockFree, sizeof(BioVault*));
-    with_view_model(app->detail_view, BioVault * *m, { *m = app; }, false);
-    view_set_context(app->detail_view, app);
-    view_set_draw_callback(app->detail_view, bv_detail_draw);
-    view_set_previous_callback(app->detail_view, bv_detail_previous);
-    view_dispatcher_add_view(app->view_dispatcher, BvViewDetail, app->detail_view);
+    // Entry detail view (scrollable text box, rebuilt per entry)
+    app->detail = text_box_alloc();
+    view_set_previous_callback(text_box_get_view(app->detail), bv_detail_previous);
+    view_dispatcher_add_view(
+        app->view_dispatcher, BvViewDetail, text_box_get_view(app->detail));
 
     // Add Entry keyboard view
     app->input = bv_text_input_alloc();
@@ -1245,7 +1256,7 @@ static void bv_free(BioVault* app) {
     view_free(app->save_view);
     view_free(app->load_view);
     submenu_free(app->browser);
-    view_free(app->detail_view);
+    text_box_free(app->detail);
     bv_text_input_free(app->input);
     view_free(app->zero_view);
     widget_free(app->diag);
