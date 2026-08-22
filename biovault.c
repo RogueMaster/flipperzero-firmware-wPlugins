@@ -62,18 +62,23 @@ typedef enum {
     BvErrSectorSelect,
     BvErrRead,
     BvErrWrite,
+    BvErrTooBig,
+    BvErrCrypto,
 } BvError;
 
 // View ids and menu indices.
 typedef enum {
     BvViewMenu,
     BvViewRead,
+    BvViewSave,
     BvViewZero,
     BvViewDiag,
 } BvViewId;
 
 typedef enum {
     BvMenuRead,
+    BvMenuSeed,
+    BvMenuSave,
     BvMenuZero,
     BvMenuDiag,
 } BvMenuIndex;
@@ -86,6 +91,7 @@ typedef enum {
 typedef enum {
     BvOpRead,
     BvOpZero,
+    BvOpSave,
 } BvOp;
 
 // Read view model (heap-allocated by the View).
@@ -112,11 +118,20 @@ typedef struct {
     BvError error;
 } BvZeroModel;
 
+// Save reuses the confirm->writing->done/error shape of BvZeroState.
+typedef struct {
+    BvZeroState state;
+    uint16_t bytes;
+    uint16_t pages_written;
+    BvError error;
+} BvSaveModel;
+
 typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     Submenu* menu;
     View* read_view;
+    View* save_view;
     View* zero_view;
     Widget* diag;
 
@@ -124,6 +139,8 @@ typedef struct {
     NfcPoller* poller;
     bool poller_running;
     BvOp op;
+
+    BvVaultData* vault; // in-RAM vault (heap; ~3.8KB, never on the stack)
 
     bool enclave_ok;
     bool gcm_ok;
@@ -309,6 +326,82 @@ static void bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
     FURI_LOG_I(TAG, "zero complete: err=%d pages=%u", err, written);
 }
 
+// Serialize + seal the in-RAM vault, then write the blob across Sector 1 pages
+// (last page zero-padded). Runs on the NFC worker thread.
+static void bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
+    BvError err = BvErrNone;
+    uint16_t written = 0;
+    size_t blob_len = 0;
+
+    // Prepare the sealed blob (heap; these buffers are too big for the stack).
+    uint8_t* pt = malloc(4096);
+    uint8_t* blob = malloc(1088);
+    size_t pt_len = 0;
+    bool prepared = false;
+
+    if(!bv_records_serialize(app->vault, pt, 4096, &pt_len)) {
+        err = BvErrTooBig;
+    } else if(pt_len + BV_BLOB_OVERHEAD > SECTOR1_BYTES) {
+        err = BvErrTooBig;
+    } else {
+        BvVaultKey key;
+        if(bv_vault_key_open(&key)) {
+            prepared = bv_vault_encrypt(&key, pt, pt_len, blob, &blob_len);
+            bv_vault_key_clear(&key);
+            if(!prepared) err = BvErrCrypto;
+        } else {
+            err = BvErrCrypto;
+        }
+    }
+
+    if(err == BvErrNone && prepared) {
+        Iso14443_3aData* iso_data = iso14443_3a_alloc();
+        Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
+        iso14443_3a_free(iso_data);
+        uint8_t version[8] = {0};
+        bool vok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
+        bool vmatch = vok && (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
+
+        if(!vok) {
+            err = BvErrNoTag;
+        } else if(!vmatch) {
+            err = BvErrWrongTag;
+        } else if(!bv_select_sector(poller, SECTOR1)) {
+            err = BvErrSectorSelect;
+        } else {
+            uint32_t pages = (blob_len + 3) / 4;
+            for(uint32_t p = 0; p < pages; p++) {
+                uint8_t pd[4] = {0, 0, 0, 0};
+                size_t off = p * 4;
+                size_t n = (blob_len - off < 4) ? (blob_len - off) : 4;
+                memcpy(pd, blob + off, n);
+                if(!bv_write_page(poller, (uint8_t)p, pd)) {
+                    err = BvErrWrite;
+                    break;
+                }
+                written++;
+            }
+        }
+    }
+
+    memset(pt, 0, 4096);
+    memset(blob, 0, 1088);
+    free(pt);
+    free(blob);
+
+    with_view_model(
+        app->save_view,
+        BvSaveModel * m,
+        {
+            m->bytes = (uint16_t)blob_len;
+            m->pages_written = written;
+            m->state = (err == BvErrNone) ? BvZeroDone : BvZeroError;
+            m->error = err;
+        },
+        true);
+    FURI_LOG_I(TAG, "save complete: err=%d bytes=%u pages=%u", err, (unsigned)blob_len, written);
+}
+
 static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
     BioVault* app = context;
     Iso14443_3aPoller* poller = event.poller;
@@ -318,6 +411,8 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
     if(nfc_event->type == NfcEventTypePollerReady) {
         if(app->op == BvOpZero) {
             bv_do_zero(app, poller);
+        } else if(app->op == BvOpSave) {
+            bv_do_save(app, poller);
         } else {
             bv_do_read(app, poller);
         }
@@ -373,6 +468,21 @@ static void bv_start_zero(BioVault* app) {
     bv_start_op(app, BvOpZero);
 }
 
+static void bv_start_save(BioVault* app) {
+    if(app->poller_running) return;
+    with_view_model(
+        app->save_view,
+        BvSaveModel * m,
+        {
+            m->state = BvZeroWriting;
+            m->pages_written = 0;
+            m->bytes = 0;
+            m->error = BvErrNone;
+        },
+        true);
+    bv_start_op(app, BvOpSave);
+}
+
 // --- Read view UI ---
 
 static const char* bv_error_text(BvError e) {
@@ -387,6 +497,10 @@ static const char* bv_error_text(BvError e) {
         return "Read failed";
     case BvErrWrite:
         return "Write failed";
+    case BvErrTooBig:
+        return "Vault too big for tag";
+    case BvErrCrypto:
+        return "Crypto/keystore error";
     default:
         return "Unknown error";
     }
@@ -545,6 +659,77 @@ static uint32_t bv_zero_previous(void* context) {
     return BvViewMenu;
 }
 
+// --- Save to implant view UI ---
+
+static void bv_save_draw(Canvas* canvas, void* model) {
+    BvSaveModel* m = model;
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Save to Implant");
+    canvas_set_font(canvas, FontSecondary);
+
+    char line[40];
+    switch(m->state) {
+    case BvZeroConfirm:
+        canvas_draw_str(canvas, 2, 26, "Write vault to Sector 1?");
+        canvas_draw_str(canvas, 2, 37, "Overwrites its contents.");
+        canvas_draw_str(canvas, 2, 54, "OK: save   Back: cancel");
+        break;
+    case BvZeroWriting:
+        canvas_draw_str(canvas, 2, 34, "Hold to implant...");
+        canvas_draw_str(canvas, 2, 46, "Saving vault");
+        break;
+    case BvZeroDone:
+        snprintf(line, sizeof(line), "Saved %u bytes", m->bytes);
+        canvas_draw_str(canvas, 2, 30, line);
+        snprintf(line, sizeof(line), "%u pages written", m->pages_written);
+        canvas_draw_str(canvas, 2, 42, line);
+        canvas_draw_str(canvas, 2, 56, "Back: menu");
+        break;
+    case BvZeroError:
+        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
+        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: menu");
+        break;
+    }
+}
+
+static bool bv_save_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort) return false;
+    if(event->key == InputKeyOk) {
+        BvZeroState state;
+        with_view_model(app->save_view, BvSaveModel * m, { state = m->state; }, false);
+        if(state == BvZeroConfirm || state == BvZeroError) {
+            if(!app->poller_running) bv_start_save(app);
+        }
+        return true;
+    }
+    return false;
+}
+
+static void bv_save_enter(void* context) {
+    BioVault* app = context;
+    with_view_model(
+        app->save_view,
+        BvSaveModel * m,
+        {
+            m->state = BvZeroConfirm;
+            m->pages_written = 0;
+            m->bytes = 0;
+            m->error = BvErrNone;
+        },
+        true);
+}
+
+static void bv_save_exit(void* context) {
+    bv_poller_stop((BioVault*)context);
+}
+
+static uint32_t bv_save_previous(void* context) {
+    UNUSED(context);
+    return BvViewMenu;
+}
+
 // --- Menu / dispatcher callbacks ---
 
 static void bv_menu_callback(void* context, uint32_t index) {
@@ -552,6 +737,18 @@ static void bv_menu_callback(void* context, uint32_t index) {
     switch(index) {
     case BvMenuRead:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewRead);
+        break;
+    case BvMenuSeed:
+        // TEMPORARY test scaffolding until CLI / on-device entry lands: fill the
+        // in-RAM vault with sample entries so Save/Load have data to round-trip.
+        bv_records_init(app->vault);
+        bv_records_add(app->vault, BvEntryCred, "example.com", "alice", "hunter2");
+        bv_records_add(app->vault, BvEntryCred, "reddit.com", "bob", "s3cret,pw");
+        bv_records_add(app->vault, BvEntryNote, "recovery", "", "correct horse battery");
+        FURI_LOG_I(TAG, "seeded %u test entries", app->vault->count);
+        break;
+    case BvMenuSave:
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSave);
         break;
     case BvMenuZero:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewZero);
@@ -627,6 +824,9 @@ static BioVault* bv_alloc(void) {
         app->vault_ok,
         app->records_ok);
 
+    app->vault = malloc(sizeof(BvVaultData));
+    bv_records_init(app->vault);
+
     app->nfc = nfc_alloc();
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
@@ -639,6 +839,8 @@ static BioVault* bv_alloc(void) {
     app->menu = submenu_alloc();
     submenu_set_header(app->menu, "BioVault");
     submenu_add_item(app->menu, "Read Implant", BvMenuRead, bv_menu_callback, app);
+    submenu_add_item(app->menu, "Seed Test Data", BvMenuSeed, bv_menu_callback, app);
+    submenu_add_item(app->menu, "Save to Implant", BvMenuSave, bv_menu_callback, app);
     submenu_add_item(app->menu, "Zero Sector 1", BvMenuZero, bv_menu_callback, app);
     submenu_add_item(app->menu, "Diagnostics", BvMenuDiag, bv_menu_callback, app);
     view_dispatcher_add_view(app->view_dispatcher, BvViewMenu, submenu_get_view(app->menu));
@@ -653,6 +855,17 @@ static BioVault* bv_alloc(void) {
     view_set_exit_callback(app->read_view, bv_read_exit);
     view_set_previous_callback(app->read_view, bv_read_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewRead, app->read_view);
+
+    // Save to implant view
+    app->save_view = view_alloc();
+    view_allocate_model(app->save_view, ViewModelTypeLocking, sizeof(BvSaveModel));
+    view_set_context(app->save_view, app);
+    view_set_draw_callback(app->save_view, bv_save_draw);
+    view_set_input_callback(app->save_view, bv_save_input);
+    view_set_enter_callback(app->save_view, bv_save_enter);
+    view_set_exit_callback(app->save_view, bv_save_exit);
+    view_set_previous_callback(app->save_view, bv_save_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewSave, app->save_view);
 
     // Zero Sector 1 view
     app->zero_view = view_alloc();
@@ -678,15 +891,19 @@ static void bv_free(BioVault* app) {
     bv_poller_stop(app);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewMenu);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewRead);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewSave);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewZero);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
     view_free(app->read_view);
+    view_free(app->save_view);
     view_free(app->zero_view);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
     nfc_free(app->nfc);
+    bv_records_clear(app->vault);
+    free(app->vault);
     free(app);
 }
 

@@ -46,6 +46,12 @@ bool bv_vault_encrypt(
     uint8_t* blob,
     size_t* blob_len);
 
+// Given a buffer that begins with a vault blob (e.g. a raw Sector 1 read, which
+// is zero-padded past the blob), validate the magic/version and compute the full
+// framed length (header + ciphertext + tag) into `out_len`. False if the header
+// is not a valid vault blob or it would exceed `avail`.
+bool bv_vault_framed_len(const uint8_t* blob, size_t avail, size_t* out_len);
+
 // Parse and decrypt a vault blob into `pt` (capacity pt_cap). Writes plaintext
 // length to `pt_len`. Returns false on bad framing or failed authentication.
 bool bv_vault_decrypt(

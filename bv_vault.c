@@ -118,6 +118,16 @@ bool bv_vault_encrypt(
     return true;
 }
 
+bool bv_vault_framed_len(const uint8_t* blob, size_t avail, size_t* out_len) {
+    if(avail < BV_BLOB_OVERHEAD) return false;
+    if(blob[0] != BLOB_MAGIC0 || blob[1] != BLOB_MAGIC1 || blob[2] != BLOB_VER) return false;
+    size_t ct_len = (size_t)blob[OFF_CTLEN] | ((size_t)blob[OFF_CTLEN + 1] << 8);
+    size_t total = OFF_CT + ct_len + BV_GCM_TAG_SIZE;
+    if(total > avail) return false;
+    *out_len = total;
+    return true;
+}
+
 bool bv_vault_decrypt(
     const BvVaultKey* key,
     const uint8_t* blob,
