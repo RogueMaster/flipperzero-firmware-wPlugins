@@ -12,7 +12,7 @@ protocol's checksum it satisfies.
 
 ## What the stock firmware cannot do
 
-Sub-GHz Read cannot pick these sensors up. `subghz rx` loads an OOK preset
+Sub-GHz Read cannot pick these sensors up. *subghz rx* loads an OOK preset
 while most of these sensors transmit 2-FSK, and a Read RAW capture throws
 away pulses shorter than 50 us — which is exactly the chip duration these
 protocols use. This app configures the CC1101 itself and decodes on the
@@ -64,7 +64,7 @@ picked: the band and the modulation.
 - **315O** — 315 MHz, OOK
 - **Scan** — all four in turn, four seconds each
 
-The header shows which one is on air. While scanning it reads `AUTO-433f`,
+The header shows which one is on air. While scanning it reads *AUTO-433f*,
 with the prefix and a lowercase letter, because the setting moves on by
 itself. Scanning finds a sensor whose kind is not known in advance, at the
 cost of hearing any one of them a quarter of the time.
@@ -124,7 +124,7 @@ low.
 
 ## Streaming to a computer
 
-While the app is open it also offers a `tpms_rx` command on the USB CLI.
+While the app is open it also offers a *tpms_rx* command on the USB CLI.
 It prints one line of JSON per frame, carrying the parsed fields, the
 protocol name and the raw bytes, so anything can be re-derived later.
 Local reception hands the radio over on its own and takes it back when the
