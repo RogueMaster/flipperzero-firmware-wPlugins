@@ -1,191 +1,183 @@
-# BioVault (Flipper Zero)
+# BioVault
 
-A Flipper Zero FAP that reads and writes an **enclave-encrypted vault** on an
-NTAG I2C Plus 2K NFC implant — specifically the
-[xSIID](https://dangerousthings.com/product/xsiid/) (NXP NT3H2211).
+A Flipper Zero app that keeps a password vault **encrypted on an NFC implant**,
+unlocked only by the Flipper that owns it.
 
-This is a self-contained port of the original Proxmark3 workflow
-(`biovault.py` + `hf_i2c_plus_2k_utils.lua`): no laptop, no `pm3`, no temp files
-on disk. Hold the Flipper to the implant, unlock, read the vault.
+The encrypted vault lives on the implant. The key that decrypts it lives only in
+the Flipper's secure enclave and never leaves it. You need **both** the implant
+and its Flipper to read anything — either one on its own reveals nothing. Hold
+the Flipper to the implant, load the vault, and browse, edit, or type your
+credentials straight into a computer over USB. No laptop tooling, no `pm3`, no
+files left on disk.
 
-## Status
+## How it works
 
-**Milestone 1: NFC read path — verified on hardware.**
-`activate` (anti-collision + SELECT) → `GET_VERSION` → two-part `SECTOR SELECT 1`
-→ read Sector 1 user memory → display hex. This proved the riskiest unknown —
-driving the NTAG I2C Plus 2K sector-select handshake from the Flipper's
-ISO14443-3A poller. Confirmed against a real xSIID implant (UID `0478A5D2CD5280`):
-`GET_VERSION` matches `0004040502021503`, sector-select packet 1 returns the
-4-bit ACK `0x0A`, packet 2 is a passive-ACK (poller timeout = success), and
-Sector 1 reads back distinct from Sector 0 (page 0 zeroed, data from page 4 —
-the legacy `biovault.py` layout).
+BioVault splits your secrets across two things you hold:
 
-Built and linked against the SDK in `~/tools/flipper` (ufbt, official firmware
-**1.4.3**, target f7, **API 87.1**).
+- **The implant** stores the vault as one AES-256-GCM–encrypted blob in Sector 1
+  of the tag. On its own it is just ciphertext.
+- **The Flipper** holds the decryption key, wrapped by a device-unique key that
+  is generated inside the STM32WB55 secure enclave and can never be read back
+  out. On its own it has nothing to decrypt.
 
-Two non-obvious things this milestone nailed down for the ISO14443-3A poller:
-- Started with `nfc_poller_start_ex` on the base `iso14443_3a` protocol, the
-  callback receives raw `NfcEvent`s; the card-ready event is
-  `NfcEventTypePollerReady`, not `Iso14443_3aPollerEventTypeReady`.
-- `PollerReady` only means a card answered the initial request — you must call
-  `iso14443_3a_poller_activate()` to SELECT it into ACTIVE state, or every
-  application command (`READ`, `GET_VERSION`) times out.
+When you Load, the Flipper reads the blob from the implant, decrypts it in RAM,
+and shows the vault. Edits stay in RAM until you Save them back to the implant.
+Nothing is ever written to the Flipper's storage except the wrapped key.
 
-### Roadmap
+## Hardware
 
-- [x] M1 — raw Sector 1 read + hex display (verified on hardware)
-- [x] M2 — enclave key management (device-unique KEK in slot 11) + AES-GCM decrypt of the on-tag blob (verified)
-- [x] M3 — write path (compress → AEAD → `WRITE`/`SECTOR SELECT` to Sector 1); save + load round-trip verified on hardware
-- [x] M4 — provisioning: opt-in Sector 0 password/lock config from Settings — device-bound, UID-diversified PWD/PACK, `2K_PROT` on Sector 1, selectable read-protect (`NFC_PROT`) and `AUTHLIM`; PACK-verified auth; UID-gated on-device Reveal; reversible Unprotect. Verified on hardware.
-- [x] M5 — on-screen vault browser (scrollable detail view + extended keyboard); CSV parse dropped — the vault uses a length-prefixed binary format, not CSV
-- [x] CLI — `biovault list/get/add/edit/remove` + interactive subshell over the vault; `read` prints a hex+ASCII Sector 1 dump to the terminal
-- [x] USB-HID send — type an entry's username / password / data into a host as keystrokes (per-entry **Send** action), optional auto-Enter after credentials
-- [x] Settings — persisted on-device preferences (`bv_settings`), starting with the auto-Enter toggle
-- [x] Reliability hardening — bounded read/write retries (no infinite silent loop), corrupt-keystore re-key guard, header-page-last save ordering, subshell-safe teardown
+- **Dangerous Things xSIID** implant, or any **NTAG I2C Plus 2K** tag
+  (NXP NT3H2211).
+- The vault occupies **Sector 1** only. Sector 0 (UID, NDEF records) is left
+  untouched, so the tag still works as a normal NFC tag alongside the vault.
 
-All milestones are complete and hardware-verified.
+## Features
 
-## Design
+- Read, write, and browse an encrypted credential vault on the implant.
+- Add, view, edit, and remove credential and note entries on-device, with an
+  extended keyboard for symbols.
+- **Send** a username, password, or note to a computer over USB-HID — the
+  Flipper types it as if it were a keyboard — with an optional trailing Return.
+- **Optional tag password protection** (opt-in): device-bound, per-tag
+  protection of Sector 1 so the raw ciphertext can't even be read off the tag by
+  another reader. Selectable read-protection and a failed-attempt limit. Fully
+  reversible.
+- A **`biovault` USB serial CLI** that mirrors every on-device command, so you
+  can manage the vault and copy passwords from a terminal.
 
-### Why the Flipper
+## Usage
 
-The Flipper's **ST25R3916** NFC frontend speaks ISO14443-3A, and the
-**STM32WB55** MCU provides a hardware AES engine, a TRNG, and a secure key
-store ("enclave"). That's the whole stack the vault needs, on one device.
+The app opens on **Load from Implant**; hold the implant to the Flipper, then it
+drops into the main menu:
 
-### Key management — enclave only, no recovery (deliberate)
+- **Vault** — browse entries; open one to **View**, **Send** (USB-HID),
+  **Edit**, or **Remove** it.
+- **Add Entry** — add a credential (label + username + password) or a note
+  (label + text).
+- **Load / Read / Save / Wipe Implant** — sync the vault to and from the tag.
+  Load first, so Save never overwrites the tag with an unsynced vault.
+- **Settings** — USB auto-return, and opt-in tag password protection.
+- **About** and **Diagnostics** (crypto self-test results).
 
-The vault key never exists as a recoverable secret off the device:
+Edits are held in RAM until you **Save** them back to the implant.
 
-- A **device-unique key** lives in the STM32WB55 secure enclave (slot 11,
-  `FURI_HAL_CRYPTO_ENCLAVE_UNIQUE_KEY_SLOT`). It is generated on-device by the
-  TRNG on first use (`furi_hal_crypto_enclave_ensure_key`), and Flipper/NXP
-  never see it. Code can *use* it via the AES engine but cannot *read* it back.
-- This enclave key is used as a **key-encryption key (KEK)**. The actual data
-  key (DEK) that drives AES-GCM is wrapped by the KEK and stored alongside the
-  ciphertext; it exists in RAM only transiently during an unlock.
+### CLI
 
-**Consequence, accepted by design:** if this Flipper is lost, bricked, wiped, or
-has its coprocessor firmware (FUS) reflashed, the enclave key is gone and the
-implant ciphertext is **permanently unrecoverable**. There is no escrow and no
-backup. That is the intended property — the vault is bound to this one device.
-
-### Why enclave *and* a passphrase/PIN (later milestone)
-
-The enclave protects the key **at rest and against extraction/cloning** — a
-flash/SD dump yields nothing, and a wrapped blob won't decrypt on another
-Flipper. It does **not** stop someone holding the unlocked device from simply
-running an app that decrypts and displays. So the enclave is *complementary to*,
-not a *substitute for*, a user secret. M2 mixes a short PIN into the KEK-unwrap
-step so a stolen Flipper alone is not enough.
-
-Flipper's own `furi_hal_crypto.h` is blunt: *"Flipper was never designed to be
-secure… it can be easily dumped with a debugger or modified code."* The enclave
-raises the bar; the AES-GCM + auth-tag layer is what carries real confidentiality.
-
-### Authenticated encryption
-
-The original used `openssl aes-256-cbc` (unauthenticated). This port uses
-**AES-GCM** via `furi_hal_crypto_gcm_encrypt_and_tag` /
-`furi_hal_crypto_gcm_decrypt_and_verify` (hardware, authenticated). The on-tag
-blob is length-prefixed so there is no fragile carve on runs of null bytes:
+Connect over USB serial, run `biovault` to open a subshell, and use:
 
 ```
-on tag  : [magic 'BV':2][ver:1][nonce:12][ct_len:2 LE][ciphertext:ct_len][tag:16]
-keystore: [magic 'BVK1':4][wrap_iv:16][wrapped_dek:32]   (Flipper-local, not on tag)
+Vault:    list, get <label>, add <label>, edit <label>, remove <label>
+Device:   read, load, save, wipe, reveal
+Protect:  protect, unprotect        (confirmed on the Flipper)
+Config:   settings [<key> <value>]
 ```
 
-The wrapped DEK is **not** written to the implant — it lives in the Flipper's
-own app-data keystore (`/ext/apps_data/biovault/keystore.bin`), so a rotation or
-future PIN change never requires a tag write. A keystore that exists but doesn't
-parse (torn write, SD corruption) is treated as an error and refused, never
-silently re-keyed — re-keying would orphan the on-tag ciphertext forever.
+`reveal` prints the tag's password to the terminal (handy for `pm3`), but only
+after the provisioned implant authenticates — the same two-factor gate as the
+on-device reveal.
 
-### Interrupted-save safety
+## Security model
 
-Sector 1 is written header-page-**last**: page 0 (magic + nonce + length) is
-blanked first, the ciphertext pages go down, and the real header is written only
-once everything else is on the tag. A save torn mid-write (implant pulled away)
-therefore reads back on the next Load as an empty/foreign tag — never as a valid
-header framing stale ciphertext that would fail GCM auth with nothing to fall
-back to. The continuous poll-retry loop also usually just re-completes the write
-while the implant is still coupled.
+The design goal is that **your data stays safe even if you lose the Flipper**,
+because the vault is never stored on the Flipper — only on the implant.
 
-### USB-HID send
+- **Lost or stolen Flipper (even unlocked):** the finder has the *key* but not
+  your *data*. There is no vault on the Flipper to decrypt; the ciphertext is on
+  the implant, which you still have. Nothing is exposed. The cost is to you: the
+  enclave key is gone, so your vault becomes **unrecoverable**. This is a
+  recoverability loss, not a confidentiality loss.
+- **Someone reads your implant over NFC:** they get an AES-256-GCM blob that is
+  useless without your Flipper's enclave key — and the key can't be cloned to
+  another device. With tag password protection enabled, they can't even read the
+  raw blob.
+- **The only real exposure** is an adversary who holds *both* your Flipper *and*
+  NFC range to your implant at the same time and unlocks it — which is inherent
+  to any scheme where both factors are present together (that combination is
+  exactly what you use to read your own vault).
 
-Any entry can be typed into a host over USB as if from a keyboard: **Vault → an
-entry → Send (USB)**, then pick Username / Password (or Data for a note). The
-Flipper temporarily switches its USB device from CDC (the serial CLI) to HID,
-waits for the host to re-enumerate and its HID driver to settle, types the field
-via the ASCII→keycode map, then restores the previous USB mode. The typed field
-is snapshotted under the vault lock and wiped from RAM as soon as the send
-completes; it runs on a short worker thread so the UI stays responsive. With the
-**Auto-Enter** setting on, a Return is appended after a username/password (notes
-are left alone so a data dump isn't auto-submitted).
+Other properties:
 
-### Settings
+- **No escrow, no recovery, by design.** The enclave key is device-bound and
+  generated on-device by the hardware TRNG. If the Flipper is lost, wiped, or
+  has its coprocessor firmware reflashed, the key is gone and the vault with it.
+  There is no backup.
+- **Authenticated encryption.** The vault is sealed with AES-256-GCM
+  (hardware-accelerated), so tampering with the on-tag blob is detected rather
+  than silently decrypted.
+- **Tag protection is device-bound and per-tag.** When enabled, the tag password
+  is derived from the enclave key and the tag's UID, is never stored, and is
+  shown only after the provisioned implant authenticates. A configurable
+  failed-attempt limit can permanently lock the tag — the app warns before you
+  set it.
 
-`bv_settings` persists on-device preferences to
-`/ext/apps_data/biovault/settings.bin` (magic-prefixed, defaults-on-missing, so
-new fields are backward-compatible): **USB Auto-Return**, the provisioning
-parameters (**Read protect**, **Auth limit**), and the `tag_protected` flag.
+The Flipper is not a hardened secure element, and it does not need to be here:
+it never holds the plaintext vault at rest (only transiently in RAM, while the
+implant is coupled, during an unlock). The enclave and authenticated encryption
+raise the bar; keeping the data off the Flipper is what makes a lost device a
+non-event for confidentiality.
 
-### Tag provisioning (M4)
+## Tag protection (chip-side)
 
-Optional, opt-in password protection of the implant, driven entirely from
-**Settings** — nothing writes the tag's Sector 0 config unless you run **Protect
-implant** / **Unprotect implant**.
+By default the vault is protected by encryption alone — the on-tag blob is
+AES-256-GCM ciphertext, useless without your Flipper. On top of that you can
+optionally enable the NTAG I2C Plus's **own hardware protection**, so the tag
+itself refuses access to Sector 1 without the password. It is opt-in from
+**Settings → Protect implant** and fully reversible (**Unprotect implant**).
 
-- **Device-bound, UID-diversified password.** The 4-byte `PWD` and 2-byte `PACK`
-  are derived on the fly from the enclave DEK *and* the tag's UID
-  (`bv_vault_tag_password`) — never stored, unique per (Flipper, implant), and
-  recomputed each time they're needed. Losing this Flipper's enclave/keystore
-  means the tag can't be unlocked (same no-escrow property as the vault).
-- **What Protect writes** (NT3H2211, Sector 0): the derived `PWD`/`PACK`, the
-  `ACCESS` byte (`NFC_PROT` from *Read protect*, `AUTHLIM` from *Auth limit*),
-  and `2K_PROT=1` to gate Sector 1. `AUTH0` is left at its factory `0xE2`
-  (config pages stay locked); `REG_LOCK` is never touched, so provisioning is
-  always reversible. Writes go PACK → ACCESS → PT_I2C → **PWD last**, so the one
-  write that could end the authenticated session can't strand the others.
-- **Auth.** Every Sector 1 access first does a `PWD_AUTH` (the derived password)
-  and verifies the returned PACK — the tag only reveals PACK in the auth
-  response, so a clone that spoofs the UID and ACKs the password still can't
-  return the right acknowledge. Provisioning authenticates with the expected
-  password first (factory `DNGR` when unprovisioned, derived when ours), with a
-  re-activated fallback.
-- **Reveal.** *Settings → Reveal password* shows the `PWD`/`PACK` (for pm3
-  interop or a recovery backup), but only after the actual provisioned implant
-  cryptographically authenticates — so the enclave secret never leaves the
-  device without both factors present. Protect's success screen shows the same,
-  to record at provision time. Neither value is ever logged or sent over CLI.
+The NT3H2211 offers several protection mechanisms. BioVault uses them like this:
 
-The xSIID ships with `AUTH0=0xE2` + password `DNGR` guarding only its config
-pages (Sector 1 open), which is why the vault read/write path worked before
-provisioning and why Protect authenticates with `DNGR` first.
+- **Password authentication (`PWD_AUTH`).** A 32-bit password with a 16-bit
+  acknowledge (`PACK`) gates the protected memory. BioVault derives both from the
+  enclave key and the tag UID — device-bound, unique per tag, never stored — and
+  verifies the `PACK` the tag returns on every unlock, so a cloned or emulated
+  tag that merely spoofs the UID still can't authenticate.
+- **Sector 1 protection (`2K_PROT`).** Set to gate all of Sector 1 (the vault)
+  behind the password. This is the core of the feature.
+- **Read vs write protection (`NFC_PROT`).** The **Read protect** setting chooses
+  whether the password guards **writes only** (the ciphertext stays readable but
+  can't be altered or cloned) or **reads and writes** (the ciphertext can't even
+  be read off the tag).
+- **Failed-attempt lockout (`AUTHLIM`).** The **Auth limit** setting caps failed
+  unlocks; after `2^n` failures the protected area locks **permanently**. It is
+  powerful but destructive — a low value can brick the tag — so the app warns
+  before you set it, and it defaults to off.
+- **Protection start pointer (`AUTH0`).** Left at the tag's factory value
+  (`0xE2`), which keeps the tag's own configuration pages (password and access
+  bytes) behind the password, while leaving Sector 0 user memory / NDEF open.
 
-### The NFC handshake gotcha
+BioVault deliberately does **not** touch the tag's one-way locks. It never sets
+**`REG_LOCK`** (which would permanently freeze the configuration registers), the
+static / dynamic **lock bits**, or **`NFC_DIS_SEC1`** (which would cut Sector 1
+off from NFC entirely). Avoiding those is what keeps provisioning reversible —
+Unprotect always restores the tag to its factory-open state.
 
-`SECTOR SELECT` is two frames. Packet 1 (`C2 FF`) returns a 4-bit ACK.
-Packet 2 (`<sector> 00 00 00`) returns a **passive ACK** — no response at all —
-so a poller **timeout there means success**. `bv_select_sector()` handles this;
-the exact frame-wait-time may need tuning against a real tag (see the NOTE at
-the top of `biovault.c`).
+The xSIID ships pre-configured with `AUTH0 = 0xE2` and the well-known Dangerous
+Things password (`DNGR`) guarding only its configuration pages, with Sector 1
+open — which is why the vault works before provisioning. BioVault authenticates
+with that factory password the first time it protects a tag, then replaces it
+with the device-bound one.
 
-## Build & run
+## On-tag format
+
+```
+Sector 1 blob : [magic 'BV':2][ver:1][nonce:12][ct_len:2 LE][ciphertext][tag:16]
+Flipper key   : [magic 'BVK1':4][wrap_iv:16][wrapped_dek:32]   (on the Flipper, not the tag)
+```
+
+The wrapped data key lives in the Flipper's app-data storage, never on the
+implant. A keystore that exists but doesn't parse (a torn write or SD
+corruption) is refused rather than silently re-keyed, so a glitch can't orphan
+the on-tag vault.
+
+## Building
+
+Built with [uFBT](https://github.com/flipperdevices/flipperzero-ufbt):
 
 ```sh
-source ~/tools/flipper/env.sh
-cd biovault-flipper
-ufbt              # build -> dist/biovault.fap
-ufbt launch       # build, upload, and run on a connected Flipper
+ufbt            # build -> dist/biovault.fap
+ufbt launch     # build, upload, and run on a connected Flipper
 ```
 
-The app opens on **Load from Implant** (so Save never overwrites a tag with an
-un-synced vault), then drops into a menu: **Vault** (browse / view / send / edit
-/ remove entries), **Add Entry**, **Load** / **Read** / **Save** / **Wipe
-Implant**, **Settings**, and **Diagnostics** (crypto self-test results).
+## License
 
-## Credit
-
-Ports the Proxmark3 BioVault tooling by Shain Lakin.
-See the datasheet: NXP NT3H2111/NT3H2211.
+MIT — see [LICENSE](LICENSE).

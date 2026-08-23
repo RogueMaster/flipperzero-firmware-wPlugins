@@ -1,12 +1,7 @@
 /*
  * BioVault crypto — enclave key management + authenticated encryption.
- *
- * Design (M2):
- *   - A device-unique KEK lives in the STM32WB secure enclave, slot 11
- *     (FURI_HAL_CRYPTO_ENCLAVE_UNIQUE_KEY_SLOT). Generated on-device by the TRNG,
- *     never leaves the enclave, cannot be read back or cloned to another Flipper.
- *   - The KEK (AES-CBC via the enclave) wraps a random 256-bit DEK.
- *   - The DEK (in RAM only during an unlock) drives AES-256-GCM on the vault.
+ * Device-unique enclave KEK (AES-CBC) wraps a random 256-bit DEK; the DEK
+ * (RAM-only during unlock) drives AES-256-GCM on the vault.
  */
 #pragma once
 
@@ -39,8 +34,8 @@ bool bv_crypto_gcm_seal(
     uint8_t* ct,
     uint8_t tag[BV_GCM_TAG_SIZE]);
 
-// AES-256-GCM open: verify tag and decrypt `ct`(len) into `pt`(len). False if the
-// tag does not authenticate (in which case `pt` must be discarded).
+// AES-256-GCM open: verify tag and decrypt `ct`(len) into `pt`(len). False if
+// the tag does not authenticate; then `pt` must be discarded.
 bool bv_crypto_gcm_open(
     const uint8_t dek[BV_DEK_SIZE],
     const uint8_t iv[BV_GCM_IV_SIZE],
@@ -49,15 +44,13 @@ bool bv_crypto_gcm_open(
     const uint8_t tag[BV_GCM_TAG_SIZE],
     uint8_t* pt);
 
-// --- Self-tests (run at startup during M2 bring-up) ---
+// --- Self-tests ---
 
-// Bring up the slot-11 KEK and prove an AES-CBC encrypt->decrypt round-trip.
+// KEK AES-CBC encrypt->decrypt round-trip.
 bool bv_crypto_enclave_selftest(void);
 
-// AES-256-GCM known-answer test against a published vector + decrypt/verify +
-// tamper-rejection.
+// AES-256-GCM known-answer test + decrypt/verify + tamper-rejection.
 bool bv_crypto_gcm_kat(void);
 
-// Full KEK->DEK->GCM chain: random DEK, wrap/unwrap under the KEK, and prove the
-// recovered DEK decrypts GCM data sealed under the original.
+// Full KEK->DEK->GCM chain round-trip.
 bool bv_crypto_dek_selftest(void);

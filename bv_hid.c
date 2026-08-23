@@ -6,14 +6,13 @@
 
 #define TAG "BioVaultHid"
 
-#define HID_ENUM_DELAY_MS     500 // let the host re-enumerate after the mode switch
-#define HID_ATTACH_TIMEOUT_MS 3000 // how long to wait for the host to attach HID
-#define HID_SETTLE_MS         500 // let the host's HID driver come up before typing
+#define HID_ENUM_DELAY_MS     500 // host re-enumerate after mode switch
+#define HID_ATTACH_TIMEOUT_MS 3000 // wait for host to attach HID
+#define HID_SETTLE_MS         500 // let host HID driver come up before typing
 #define HID_KEY_DELAY_MS      8 // press/release dwell per key
-#define HID_DRAIN_MS          50 // let the last report flush before restoring USB
+#define HID_DRAIN_MS          50 // flush last report before restoring USB
 
-// Press then release one key (modifier bits are carried in the high byte of the
-// keycode, matching hid_asciimap's encoding).
+// Press then release one key (modifier bits in the keycode high byte).
 static void bv_hid_tap(uint16_t key) {
     furi_hal_hid_kb_press(key);
     furi_delay_ms(HID_KEY_DELAY_MS);
@@ -29,8 +28,7 @@ BvHidResult bv_hid_type(const char* text) {
         return BvHidBusy;
     }
 
-    // The mode switch is asynchronous: give the host time to re-enumerate the
-    // device as an HID keyboard before we start polling for the connection.
+    // Mode switch is async: let the host re-enumerate before polling.
     furi_delay_ms(HID_ENUM_DELAY_MS);
 
     uint32_t waited = 0;
@@ -43,9 +41,7 @@ BvHidResult bv_hid_type(const char* text) {
     if(!furi_hal_hid_is_connected()) {
         result = BvHidNoUsb;
     } else {
-        // is_connected only means the interface is configured; the host's HID
-        // driver still needs a moment before it routes keystrokes, or the first
-        // characters (or the whole short string) are dropped.
+        // Interface configured != driver ready; wait or early chars drop.
         furi_delay_ms(HID_SETTLE_MS);
         for(const char* p = text; *p; p++) {
             uint16_t key = HID_ASCII_TO_KEY(*p);
@@ -53,10 +49,10 @@ BvHidResult bv_hid_type(const char* text) {
             bv_hid_tap(key);
         }
         furi_hal_hid_kb_release_all();
-        furi_delay_ms(HID_DRAIN_MS); // flush the last report before tearing down
+        furi_delay_ms(HID_DRAIN_MS);
     }
 
-    // Restore the previous USB mode (typically CDC / the serial CLI).
+    // Restore previous USB mode (typically CDC / serial CLI).
     furi_hal_usb_set_config(prev, NULL);
     FURI_LOG_I(TAG, "type done: result=%d waited=%lu", result, (unsigned long)waited);
     return result;

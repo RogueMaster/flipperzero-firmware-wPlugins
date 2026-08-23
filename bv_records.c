@@ -56,7 +56,7 @@ bool bv_records_set(
     if(user == NULL) user = "";
     if(strlen(label) == 0) return false;
 
-    // Validate into a temp first so a too-long field leaves the entry untouched.
+    // Validate into a temp so a too-long field leaves the entry untouched.
     BvEntry tmp;
     memset(&tmp, 0, sizeof(tmp));
     tmp.type = (uint8_t)type;
@@ -158,7 +158,7 @@ bool bv_records_parse(BvVaultData* v, const uint8_t* buf, size_t len) {
 // --- Self-test ---
 
 bool bv_records_selftest(void) {
-    // BvVaultData is ~3.8 KB; keep it off the stack (heap only).
+    // BvVaultData is ~3.8 KB; keep it off the stack.
     BvVaultData* v = malloc(sizeof(BvVaultData));
     BvVaultData* v2 = malloc(sizeof(BvVaultData));
 
@@ -171,7 +171,7 @@ bool bv_records_selftest(void) {
     // find (case-insensitive) + not-found
     bool idx_ok = (bv_records_find(v, "REDDIT.COM") == 1) && (bv_records_find(v, "nope") == -1);
 
-    // serialize -> parse round-trip (v2 reused for the blob path below)
+    // serialize -> parse round-trip
     uint8_t buf[512];
     size_t buf_len = 0;
     bool ser_ok = bv_records_serialize(v, buf, sizeof(buf), &buf_len) &&
@@ -179,7 +179,7 @@ bool bv_records_selftest(void) {
                   (strcmp(v2->entries[0].secret, "p@ss,w0rd\nwith,commas") == 0) &&
                   (strcmp(v2->entries[2].label, "recovery") == 0);
 
-    // full path: serialize -> seal to vault blob -> open -> parse
+    // serialize -> seal to vault blob -> open -> parse
     BvVaultKey key;
     bool blob_ok = false;
     if(bv_vault_key_open(&key)) {

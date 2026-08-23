@@ -1,7 +1,7 @@
 #include "bv_text_input.h"
 
 #include <gui/elements.h>
-#include "biovault_icons.h" // generated from images/ (fap_icon_assets)
+#include "biovault_icons.h"
 #include <furi.h>
 
 struct BvTextInput {
@@ -89,7 +89,7 @@ static const Keyboard keyboards[] = {
 };
 
 static uint8_t get_row_size(uint8_t row_index) {
-    // Both keyboards share the same per-row key counts.
+    // Both keyboards share per-row key counts.
     switch(row_index + 1) {
     case 1:
         return COUNT_OF(keyboard_keys_row_1);
@@ -191,8 +191,7 @@ static void bv_text_input_view_draw_callback(Canvas* canvas, void* _model) {
                     ky,
                     selected ? &I_KeyBackspaceSelected_16x9 : &I_KeyBackspace_16x9);
             } else if(keys[column].text == SWITCH_KEYBOARD_KEY) {
-                // Drawn (no icon in 1.4.3): a small box labelled with the OTHER
-                // keyboard ('#' from letters, 'ab' from symbols).
+                // Box labelled with the other keyboard ('#' or 'ab').
                 canvas_set_color(canvas, ColorBlack);
                 if(selected) {
                     canvas_draw_box(canvas, kx - 1, ky, 16, 9);
@@ -223,10 +222,7 @@ static void bv_text_input_view_draw_callback(Canvas* canvas, void* _model) {
     }
 }
 
-// The ±1 shifts below keep the cursor visually aligned between horizontally
-// offset rows; they can push the column past the end of the destination row
-// (our row 3 gained the keyboard-switch key vs. the stock layout), so always
-// clamp to the row's last key.
+// Clamp column to the row's last key (±1 row shifts can overshoot).
 static void bv_clamp_column(TextInputModel* model) {
     uint8_t max_column = get_row_size(model->selected_row) - 1;
     if(model->selected_column > max_column) model->selected_column = max_column;
@@ -445,7 +441,7 @@ void bv_text_input_set_result_callback(
             model->clear_default_text = clear_default_text;
             model->selected_keyboard = 0;
             if(text_buffer && text_buffer[0] != '\0') {
-                // Focus on the Save (enter) key of the letters keyboard.
+                // Focus the Save (enter) key.
                 model->selected_row = 2;
                 model->selected_column = 9;
             } else {

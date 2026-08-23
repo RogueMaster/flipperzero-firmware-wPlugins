@@ -9,8 +9,7 @@
 
 #define KEK_SLOT FURI_HAL_CRYPTO_ENCLAVE_UNIQUE_KEY_SLOT // slot 11, device-unique
 
-// Some AEAD implementations dereference the AAD pointer even for length 0;
-// pass a valid non-null pointer to be safe.
+// Non-null AAD pointer for length-0 AAD (some AEAD impls deref it).
 static const uint8_t EMPTY_AAD[1] = {0};
 
 // --- Key hierarchy primitives ---
@@ -55,9 +54,7 @@ bool bv_crypto_gcm_open(
            FuriHalCryptoGCMStateOk;
 }
 
-// --- AES-256-GCM known-answer test vector ---
-// GCM spec (McGrew & Viega) Appendix B, Test Case 14: AES-256, 96-bit IV,
-// all-zero key/IV, single all-zero 16-byte plaintext block, no AAD.
+// AES-256-GCM known-answer test vector (McGrew & Viega App. B, Case 14).
 static const uint8_t KAT_KEY[32] = {0};
 static const uint8_t KAT_IV[12] = {0};
 static const uint8_t KAT_PT[16] = {0};
@@ -77,8 +74,8 @@ bool bv_crypto_enclave_selftest(void) {
     }
 
     uint8_t iv[BV_WRAP_IV_SIZE];
-    memset(iv, 0x24, sizeof(iv)); // fixed IV: self-consistency round-trip, not storage
-    // kek_wrap/unwrap operate on a full DEK_SIZE block, so these must be DEK_SIZE.
+    memset(iv, 0x24, sizeof(iv)); // fixed test IV
+    // kek_wrap/unwrap operate on a full DEK_SIZE block.
     const uint8_t pt[BV_DEK_SIZE] = "BioVault KEK self-test block";
     uint8_t ct[BV_DEK_SIZE] = {0};
     uint8_t pt2[BV_DEK_SIZE] = {0};
@@ -103,7 +100,7 @@ bool bv_crypto_gcm_kat(void) {
                   (memcmp(pt2, KAT_PT, sizeof(pt2)) == 0);
     FURI_LOG_I(TAG, "GCM KAT decrypt: %s", dec_ok ? "PASS" : "FAIL");
 
-    // Negative check: a corrupted tag must be rejected.
+    // Corrupted tag must be rejected.
     uint8_t bad_tag[16];
     memcpy(bad_tag, KAT_TAG, sizeof(bad_tag));
     bad_tag[0] ^= 0x01;
@@ -131,7 +128,7 @@ bool bv_crypto_dek_selftest(void) {
                    (memcmp(dek, dek2, BV_DEK_SIZE) == 0);
     FURI_LOG_I(TAG, "DEK wrap/unwrap round-trip: %s", wrap_ok ? "PASS" : "FAIL");
 
-    // Full chain: seal with the original DEK, open with the UNWRAPPED DEK.
+    // Seal with original DEK, open with unwrapped DEK.
     const uint8_t pt[24] = "biovault chain check.OK";
     uint8_t gcm_iv[BV_GCM_IV_SIZE];
     furi_hal_random_fill_buf(gcm_iv, sizeof(gcm_iv));

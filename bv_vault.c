@@ -10,7 +10,7 @@
 #define KEYSTORE_PATH APP_DATA_PATH("keystore.bin")
 #define KS_MAGIC "BVK1"
 #define KS_MAGIC_LEN 4
-#define KS_SIZE (KS_MAGIC_LEN + BV_WRAP_IV_SIZE + BV_DEK_SIZE) // 4 + 16 + 32 = 52
+#define KS_SIZE (KS_MAGIC_LEN + BV_WRAP_IV_SIZE + BV_DEK_SIZE) // 52
 
 // On-tag blob framing.
 #define BLOB_MAGIC0 'B'
@@ -24,8 +24,8 @@
 
 typedef enum {
     KsReadOk,
-    KsReadMissing, // no keystore file: safe to create a fresh one
-    KsReadBad, // file exists but is unreadable/short: must NOT re-key
+    KsReadMissing, // no keystore file
+    KsReadBad, // exists but unreadable/short; must not re-key
 } KsReadStatus;
 
 static KsReadStatus ks_read(uint8_t* buf, size_t len) {
@@ -48,7 +48,7 @@ static KsReadStatus ks_read(uint8_t* buf, size_t len) {
 
 static bool ks_write(const uint8_t* buf, size_t len) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    storage_common_mkdir(storage, APP_DATA_PATH("")); // ensure app data dir exists
+    storage_common_mkdir(storage, APP_DATA_PATH(""));
     File* file = storage_file_alloc(storage);
     bool ok = false;
     if(storage_file_open(file, KEYSTORE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
@@ -80,15 +80,12 @@ bool bv_vault_key_open(BvVaultKey* out) {
         return ok;
     }
     if(status == KsReadBad) {
-        // A keystore that exists but doesn't parse is a torn write or SD
-        // corruption, not a fresh device. Re-keying here would orphan the
-        // on-tag vault forever, so refuse instead of generating a new DEK.
+        // Refuse to re-key: would orphan the on-tag vault.
         FURI_LOG_E(TAG, "keystore present but unreadable/corrupt; refusing to re-key");
         return false;
     }
 
-    // First use (no keystore file): generate a fresh random DEK, wrap it,
-    // persist the keystore.
+    // First use: generate a fresh DEK, wrap it, persist.
     uint8_t wrap_iv[BV_WRAP_IV_SIZE];
     uint8_t wrapped[BV_DEK_SIZE];
     furi_hal_random_fill_buf(out->dek, BV_DEK_SIZE);
@@ -117,14 +114,12 @@ void bv_vault_tag_password(
     size_t uid_len,
     uint8_t pwd[4],
     uint8_t pack[2]) {
-    // Domain-separated, UID-diversified derivation: GCM-seal an 8-byte domain
-    // label followed by the UID under the DEK, and take the first 6 bytes of
-    // ciphertext. The fixed nonce is fine here because this is a one-way
-    // derivation, never used to protect stored data.
+    // UID-diversified derivation: GCM-seal domain label + UID, take first 6 CT bytes.
+    // Fixed nonce is safe: one-way derivation, never protects stored data.
     static const uint8_t deriv_iv[BV_GCM_IV_SIZE] = {0};
     uint8_t input[16] = {'B', 'V', 'T', 'A', 'G', 'P', 'W', 'D'}; // + UID, zero-padded
     if(uid && uid_len) {
-        size_t n = uid_len > 8 ? 8 : uid_len; // 8 bytes of room after the label
+        size_t n = uid_len > 8 ? 8 : uid_len;
         memcpy(input + 8, uid, n);
     }
     uint8_t ct[16] = {0};
@@ -133,8 +128,7 @@ void bv_vault_tag_password(
         memcpy(pwd, ct, 4);
         memcpy(pack, ct + 4, 2);
     } else {
-        // Derivation should not fail; fall back to the tag default so a bug can't
-        // silently set an unknown password.
+        // Fall back to tag default so a bug can't set an unknown password.
         memset(pwd, 0xFF, 4);
         memset(pack, 0x00, 2);
     }
@@ -213,7 +207,7 @@ bool bv_vault_selftest(void) {
 
     static const char sample[] =
         "d,u,p\nexample.com,alice,hunter2\nreddit.com,bob,swordfish\n";
-    const size_t pt_len = sizeof(sample) - 1; // exclude NUL
+    const size_t pt_len = sizeof(sample) - 1;
 
     uint8_t blob[128];
     size_t blob_len = 0;

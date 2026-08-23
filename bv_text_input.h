@@ -1,11 +1,7 @@
 /*
- * bv_text_input — a vendored copy of the Flipper 1.4.3 text_input keyboard,
- * extended with a symbol keyboard page (toggled by an on-screen switch key) so
- * passwords with punctuation/special characters can be typed on-device.
- *
- * Renamed from the SDK's built-in text_input to avoid a symbol collision, with
- * the validator/warning machinery stripped (unused here). The 4 keyboard icons
- * are bundled as FAP assets (see images/), so <assets_icons.h> resolves to them.
+ * bv_text_input — vendored Flipper text_input keyboard, extended with a symbol
+ * page for typing punctuation. Renamed to avoid a symbol collision; validator
+ * machinery stripped.
  */
 #pragma once
 
@@ -23,7 +19,7 @@ void bv_text_input_free(BvTextInput* text_input);
 void bv_text_input_reset(BvTextInput* text_input);
 View* bv_text_input_get_view(BvTextInput* text_input);
 
-// text_buffer is YOUR buffer; max string length is text_buffer_size - 1.
+// text_buffer is caller-owned; max string length is text_buffer_size - 1.
 void bv_text_input_set_result_callback(
     BvTextInput* text_input,
     BvTextInputCallback callback,
