@@ -7,20 +7,30 @@
 #define TAG "BioVaultSettings"
 
 #define SETTINGS_PATH APP_DATA_PATH("settings.bin")
-#define SETTINGS_MAGIC "BVS1"
+#define SETTINGS_MAGIC "BVS2"
+#define SETTINGS_MAGIC_V1 "BVS1"
 #define SETTINGS_MAGIC_LEN 4
-#define SETTINGS_SIZE (SETTINGS_MAGIC_LEN + 1) // magic + send_newline
+#define SETTINGS_SIZE_V1 (SETTINGS_MAGIC_LEN + 1) // magic + send_newline
+#define SETTINGS_SIZE (SETTINGS_MAGIC_LEN + 4) // + protect_reads + authlim + tag_protected
 
 void bv_settings_load(BvSettings* out) {
-    memset(out, 0, sizeof(*out)); // defaults: everything off
+    memset(out, 0, sizeof(*out)); // defaults: newline off, write-only, authlim off, not protected
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     uint8_t buf[SETTINGS_SIZE];
     if(storage_file_open(file, SETTINGS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        if(storage_file_read(file, buf, sizeof(buf)) == sizeof(buf) &&
-           memcmp(buf, SETTINGS_MAGIC, SETTINGS_MAGIC_LEN) == 0) {
-            out->send_newline = buf[SETTINGS_MAGIC_LEN] != 0;
+        size_t n = storage_file_read(file, buf, sizeof(buf));
+        // Accept BVS2 and any later "BVS" revision: the first 8 bytes share this
+        // layout, and later revisions only ever appended fields we now ignore.
+        bool v2plus = n >= SETTINGS_SIZE && memcmp(buf, "BVS", 3) == 0 && buf[3] >= '2';
+        if(v2plus) {
+            out->send_newline = buf[4] != 0;
+            out->protect_reads = buf[5] != 0;
+            out->authlim = buf[6] <= 7 ? buf[6] : 0;
+            out->tag_protected = buf[7] != 0;
+        } else if(n >= SETTINGS_SIZE_V1 && memcmp(buf, SETTINGS_MAGIC_V1, SETTINGS_MAGIC_LEN) == 0) {
+            out->send_newline = buf[4] != 0; // oldest file: only this field existed
         }
         storage_file_close(file);
     }
@@ -31,7 +41,10 @@ void bv_settings_load(BvSettings* out) {
 bool bv_settings_save(const BvSettings* s) {
     uint8_t buf[SETTINGS_SIZE];
     memcpy(buf, SETTINGS_MAGIC, SETTINGS_MAGIC_LEN);
-    buf[SETTINGS_MAGIC_LEN] = s->send_newline ? 1 : 0;
+    buf[4] = s->send_newline ? 1 : 0;
+    buf[5] = s->protect_reads ? 1 : 0;
+    buf[6] = s->authlim <= 7 ? s->authlim : 0;
+    buf[7] = s->tag_protected ? 1 : 0;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(storage, APP_DATA_PATH("")); // ensure app data dir exists

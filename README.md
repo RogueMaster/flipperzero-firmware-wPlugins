@@ -36,15 +36,14 @@ Two non-obvious things this milestone nailed down for the ISO14443-3A poller:
 - [x] M1 — raw Sector 1 read + hex display (verified on hardware)
 - [x] M2 — enclave key management (device-unique KEK in slot 11) + AES-GCM decrypt of the on-tag blob (verified)
 - [x] M3 — write path (compress → AEAD → `WRITE`/`SECTOR SELECT` to Sector 1); save + load round-trip verified on hardware
-- [ ] M4 — provisioning: `PWD_AUTH` + set `2K_PROT` / `AUTHLIM` (dev-tag-guarded, irreversible)
+- [x] M4 — provisioning: opt-in Sector 0 password/lock config from Settings — device-bound, UID-diversified PWD/PACK, `2K_PROT` on Sector 1, selectable read-protect (`NFC_PROT`) and `AUTHLIM`; PACK-verified auth; UID-gated on-device Reveal; reversible Unprotect. Verified on hardware.
 - [x] M5 — on-screen vault browser (scrollable detail view + extended keyboard); CSV parse dropped — the vault uses a length-prefixed binary format, not CSV
 - [x] CLI — `biovault list/get/add/edit/remove` + interactive subshell over the vault; `read` prints a hex+ASCII Sector 1 dump to the terminal
 - [x] USB-HID send — type an entry's username / password / data into a host as keystrokes (per-entry **Send** action), optional auto-Enter after credentials
 - [x] Settings — persisted on-device preferences (`bv_settings`), starting with the auto-Enter toggle
 - [x] Reliability hardening — bounded read/write retries (no infinite silent loop), corrupt-keystore re-key guard, header-page-last save ordering, subshell-safe teardown
 
-Everyday use is feature-complete; **M4 (provisioning)** is the only open milestone,
-and the riskiest — it writes irreversible password/lock config to the tag.
+All milestones are complete and hardware-verified.
 
 ## Design
 
@@ -128,8 +127,41 @@ are left alone so a data dump isn't auto-submitted).
 
 `bv_settings` persists on-device preferences to
 `/ext/apps_data/biovault/settings.bin` (magic-prefixed, defaults-on-missing, so
-new fields are backward-compatible). Currently one toggle — **Auto-Enter** — with
-room for the M4/PIN preferences to slot in as new `VariableItemList` rows.
+new fields are backward-compatible): **USB Auto-Return**, the provisioning
+parameters (**Read protect**, **Auth limit**), and the `tag_protected` flag.
+
+### Tag provisioning (M4)
+
+Optional, opt-in password protection of the implant, driven entirely from
+**Settings** — nothing writes the tag's Sector 0 config unless you run **Protect
+implant** / **Unprotect implant**.
+
+- **Device-bound, UID-diversified password.** The 4-byte `PWD` and 2-byte `PACK`
+  are derived on the fly from the enclave DEK *and* the tag's UID
+  (`bv_vault_tag_password`) — never stored, unique per (Flipper, implant), and
+  recomputed each time they're needed. Losing this Flipper's enclave/keystore
+  means the tag can't be unlocked (same no-escrow property as the vault).
+- **What Protect writes** (NT3H2211, Sector 0): the derived `PWD`/`PACK`, the
+  `ACCESS` byte (`NFC_PROT` from *Read protect*, `AUTHLIM` from *Auth limit*),
+  and `2K_PROT=1` to gate Sector 1. `AUTH0` is left at its factory `0xE2`
+  (config pages stay locked); `REG_LOCK` is never touched, so provisioning is
+  always reversible. Writes go PACK → ACCESS → PT_I2C → **PWD last**, so the one
+  write that could end the authenticated session can't strand the others.
+- **Auth.** Every Sector 1 access first does a `PWD_AUTH` (the derived password)
+  and verifies the returned PACK — the tag only reveals PACK in the auth
+  response, so a clone that spoofs the UID and ACKs the password still can't
+  return the right acknowledge. Provisioning authenticates with the expected
+  password first (factory `DNGR` when unprovisioned, derived when ours), with a
+  re-activated fallback.
+- **Reveal.** *Settings → Reveal password* shows the `PWD`/`PACK` (for pm3
+  interop or a recovery backup), but only after the actual provisioned implant
+  cryptographically authenticates — so the enclave secret never leaves the
+  device without both factors present. Protect's success screen shows the same,
+  to record at provision time. Neither value is ever logged or sent over CLI.
+
+The xSIID ships with `AUTH0=0xE2` + password `DNGR` guarding only its config
+pages (Sector 1 open), which is why the vault read/write path worked before
+provisioning and why Protect authenticates with `DNGR` first.
 
 ### The NFC handshake gotcha
 

@@ -37,6 +37,17 @@ bool bv_vault_key_open(BvVaultKey* out);
 // Wipe a BvVaultKey from memory.
 void bv_vault_key_clear(BvVaultKey* key);
 
+// Derive the NTAG PWD (4 bytes) and PACK (2 bytes) for an implant deterministically
+// from the DEK and the tag's UID, so tag access is bound to this Flipper's
+// enclave/keystore AND diversified per tag (NXP's recommendation). Same (key, uid)
+// in -> same password out; nothing extra is persisted.
+void bv_vault_tag_password(
+    const BvVaultKey* key,
+    const uint8_t* uid,
+    size_t uid_len,
+    uint8_t pwd[4],
+    uint8_t pack[2]);
+
 // Encrypt `pt`(pt_len) into a self-contained vault blob. `blob` must have room
 // for pt_len + BV_BLOB_OVERHEAD bytes. Writes the blob length to `blob_len`.
 bool bv_vault_encrypt(

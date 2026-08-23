@@ -111,6 +111,36 @@ void bv_vault_key_clear(BvVaultKey* key) {
     memset(key, 0, sizeof(*key));
 }
 
+void bv_vault_tag_password(
+    const BvVaultKey* key,
+    const uint8_t* uid,
+    size_t uid_len,
+    uint8_t pwd[4],
+    uint8_t pack[2]) {
+    // Domain-separated, UID-diversified derivation: GCM-seal an 8-byte domain
+    // label followed by the UID under the DEK, and take the first 6 bytes of
+    // ciphertext. The fixed nonce is fine here because this is a one-way
+    // derivation, never used to protect stored data.
+    static const uint8_t deriv_iv[BV_GCM_IV_SIZE] = {0};
+    uint8_t input[16] = {'B', 'V', 'T', 'A', 'G', 'P', 'W', 'D'}; // + UID, zero-padded
+    if(uid && uid_len) {
+        size_t n = uid_len > 8 ? 8 : uid_len; // 8 bytes of room after the label
+        memcpy(input + 8, uid, n);
+    }
+    uint8_t ct[16] = {0};
+    uint8_t tag[BV_GCM_TAG_SIZE] = {0};
+    if(bv_crypto_gcm_seal(key->dek, deriv_iv, input, sizeof(input), ct, tag)) {
+        memcpy(pwd, ct, 4);
+        memcpy(pack, ct + 4, 2);
+    } else {
+        // Derivation should not fail; fall back to the tag default so a bug can't
+        // silently set an unknown password.
+        memset(pwd, 0xFF, 4);
+        memset(pack, 0x00, 2);
+    }
+    memset(ct, 0, sizeof(ct));
+}
+
 // --- Vault blob codec ---
 
 bool bv_vault_encrypt(

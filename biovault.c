@@ -44,9 +44,27 @@
 #define CMD_GET_VERSION 0x60
 #define CMD_READ 0x30
 #define CMD_WRITE 0xA2
+#define CMD_PWD_AUTH 0x1B
 #define CMD_SECTOR_SELECT_1 0xC2
 #define CMD_SECTOR_SELECT_2 0xFF
 #define NTAG_ACK 0x0A // 4-bit ACK returned by WRITE / sector-select packet 1
+
+// Password & access configuration pages (Sector 0, NFC perspective; NT3H2211).
+// Only ever written by the explicit Settings provisioning action.
+#define PG_AUTH0 0xE3 // byte 3 = AUTH0
+#define PG_ACCESS 0xE4 // byte 0 = ACCESS (NFC_PROT b7, NFC_DIS_SEC1 b5, AUTHLIM b2-0)
+#define PG_PWD 0xE5 // 4-byte password
+#define PG_PACK 0xE6 // bytes 0-1 = PACK
+#define PG_PT_I2C 0xE7 // byte 0 = PT_I2C (2K_PROT b3)
+#define ACCESS_NFC_PROT 0x80 // read+write protection (vs write-only)
+#define PT_I2C_2K_PROT 0x08 // password-protect all of Sector 1
+
+// xSIID factory default password/PACK (Dangerous Things "DNGR"). The tag ships
+// with AUTH0=0xE2, so the config pages (0xE2-0xEB) are write-protected by this
+// password even though user memory and Sector 1 are open. We must authenticate
+// with it before writing config on a not-yet-provisioned tag.
+static const uint8_t XSIID_FACTORY_PWD[4] = {0x44, 0x4E, 0x47, 0x52}; // "DNGR"
+static const uint8_t XSIID_FACTORY_PACK[2] = {0x00, 0x00};
 
 static const uint8_t NTAG_I2C_PLUS_2K_VERSION[] =
     {0x00, 0x04, 0x04, 0x05, 0x02, 0x02, 0x15, 0x03};
@@ -79,6 +97,8 @@ typedef enum {
     BvErrTooBig,
     BvErrCrypto,
     BvErrNoVault,
+    BvErrAuth,
+    BvErrWrongImplant, // presented tag UID doesn't match the provisioned implant
 } BvError;
 
 // View ids and menu indices.
@@ -95,6 +115,8 @@ typedef enum {
     BvViewInput,
     BvViewZero,
     BvViewSettings,
+    BvViewProvision,
+    BvViewReveal,
     BvViewDiag,
 } BvViewId;
 
@@ -146,6 +168,8 @@ typedef enum {
     BvOpZero,
     BvOpSave,
     BvOpLoad,
+    BvOpProvision, // write Sector 0 password/lock config (protect or unprotect)
+    BvOpReveal, // read/auth the implant, then display the device-bound PWD/PACK
 } BvOp;
 
 // Read view model (heap-allocated by the View).
@@ -198,6 +222,38 @@ typedef struct {
     char field[16]; // "Username" / "Password" / "Data" — what is being typed
 } BvSendModel;
 
+typedef enum {
+    BvProvConfirm,
+    BvProvWorking,
+    BvProvDone,
+    BvProvError,
+} BvProvState;
+
+typedef struct {
+    BvProvState state;
+    bool unprotect; // false = protect (enable), true = unprotect (disable)
+    bool protect_reads; // snapshot of the setting, for the confirm summary
+    uint8_t authlim; // snapshot of the setting, for the confirm summary
+    uint8_t pwd[4]; // shown on the success screen after a Protect (record for pm3)
+    uint8_t pack[2];
+    BvError error;
+} BvProvModel;
+
+typedef enum {
+    BvRevealWorking, // waiting for the implant (UID read gates the reveal)
+    BvRevealShown,
+    BvRevealError,
+} BvRevealState;
+
+typedef struct {
+    BvRevealState state;
+    uint8_t uid[10];
+    size_t uid_len;
+    uint8_t pwd[4];
+    uint8_t pack[2];
+    BvError error;
+} BvRevealModel;
+
 typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
@@ -222,6 +278,9 @@ typedef struct {
     View* zero_view;
     VariableItemList* settings_list;
     BvSettings settings;
+    View* prov_view;
+    bool prov_unprotect; // which provisioning op the poller should run
+    View* reveal_view;
     Widget* diag;
 
     // On-device Add/Edit Entry state.
@@ -329,15 +388,20 @@ static bool bv_op_should_retry(BioVault* app, BvError e) {
     return false;
 }
 
+// Activate + fetch UID, and authenticate-then-SECTOR-SELECT-1. Defined below.
+static Iso14443_3aError bv_activate_uid(Iso14443_3aPoller* poller, uint8_t uid[10], size_t* uid_len);
+static BvError
+    bv_open_sector1(BioVault* app, Iso14443_3aPoller* poller, const uint8_t* uid, size_t uid_len);
+
 // Full read sequence (runs on the NFC worker thread). Commits into the read
 // model on success or terminal error; transient errors are not committed so the
 // "hold implant" screen stays up while polling continues.
 static BvError bv_do_read(BioVault* app, Iso14443_3aPoller* poller, bool* retry) {
     BvError err = BvErrNone;
 
-    Iso14443_3aData* iso_data = iso14443_3a_alloc();
-    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
-    iso14443_3a_free(iso_data);
+    uint8_t uid[10];
+    size_t uid_len = 0;
+    Iso14443_3aError act = bv_activate_uid(poller, uid, &uid_len);
     if(act != Iso14443_3aErrorNone) {
         *retry = true;
         return BvErrNoTag;
@@ -355,8 +419,8 @@ static BvError bv_do_read(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
         err = BvErrNoTag;
     } else if(!version_match) {
         err = BvErrWrongTag;
-    } else if(!bv_select_sector(poller, SECTOR1)) {
-        err = BvErrSectorSelect;
+    } else if((err = bv_open_sector1(app, poller, uid, uid_len)) != BvErrNone) {
+        // err set to auth / sector-select failure
     } else {
         for(uint32_t i = 0; i < READ_CMD_COUNT; i++) {
             uint8_t page = (uint8_t)(i * READ_PAGES_PER_CMD);
@@ -405,14 +469,95 @@ static bool bv_write_page(Iso14443_3aPoller* poller, uint8_t page, const uint8_t
     return ok;
 }
 
+// PWD_AUTH (0x1B): authenticate the session so a protected Sector 1 is
+// accessible. Returns the tag's PACK in pack_out (may be NULL).
+static bool bv_pwd_auth(Iso14443_3aPoller* poller, const uint8_t pwd[4], uint8_t pack_out[2]) {
+    const uint8_t frame[5] = {CMD_PWD_AUTH, pwd[0], pwd[1], pwd[2], pwd[3]};
+    BitBuffer* rx = bit_buffer_alloc(16);
+    Iso14443_3aError e = bv_exchange(poller, frame, sizeof(frame), rx, FWT_NORMAL, true);
+    bool ok = (e == Iso14443_3aErrorNone) && (bit_buffer_get_size_bytes(rx) >= 2);
+    if(ok && pack_out) {
+        pack_out[0] = bit_buffer_get_byte(rx, 0);
+        pack_out[1] = bit_buffer_get_byte(rx, 1);
+    }
+    bit_buffer_free(rx);
+    return ok;
+}
+
+// Activate the tag and extract its UID (needed by the UID-diversified password
+// derivation). Returns the activation error; uid_len is 0 if no UID was read.
+static Iso14443_3aError bv_activate_uid(Iso14443_3aPoller* poller, uint8_t uid[10], size_t* uid_len) {
+    Iso14443_3aData* iso = iso14443_3a_alloc();
+    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso);
+    *uid_len = 0;
+    if(act == Iso14443_3aErrorNone) {
+        size_t n = 0;
+        const uint8_t* u = iso14443_3a_get_uid(iso, &n);
+        if(u && n <= 10) {
+            memcpy(uid, u, n);
+            *uid_len = n;
+        }
+    }
+    iso14443_3a_free(iso);
+    return act;
+}
+
+// If the implant has been provisioned (settings flag), authenticate before any
+// Sector 1 access. No-op on an unprotected tag. The password is device-bound
+// (enclave DEK) and diversified by the tag UID, so only this Flipper can unlock
+// this specific tag.
+static BvError
+    bv_auth_if_protected(BioVault* app, Iso14443_3aPoller* poller, const uint8_t* uid, size_t uid_len) {
+    if(!app->settings.tag_protected) return BvErrNone;
+    BvVaultKey key;
+    if(!bv_vault_key_open(&key)) return BvErrCrypto;
+    uint8_t pwd[4], pack[2];
+    bv_vault_tag_password(&key, uid, uid_len, pwd, pack);
+    bv_vault_key_clear(&key);
+
+    uint8_t got[2] = {0};
+    bool ok = bv_pwd_auth(poller, pwd, got);
+    // Verify the PWD_AUTH acknowledge matches our device-bound PACK. The tag
+    // never reveals PACK on a READ, only in this auth response, so a cloned or
+    // emulated tag can ACK the password but can't return the right PACK.
+    bool pack_ok = ok && (got[0] == pack[0]) && (got[1] == pack[1]);
+    memset(pwd, 0, sizeof(pwd));
+    memset(pack, 0, sizeof(pack));
+    return pack_ok ? BvErrNone : BvErrAuth;
+}
+
+// Authenticate (if needed) then SECTOR SELECT 1 — the common gate for every
+// vault data operation. Returns BvErrAuth / BvErrSectorSelect / BvErrCrypto on
+// failure, BvErrNone when Sector 1 is ready.
+static BvError
+    bv_open_sector1(BioVault* app, Iso14443_3aPoller* poller, const uint8_t* uid, size_t uid_len) {
+    BvError err = bv_auth_if_protected(app, poller, uid, uid_len);
+    if(err != BvErrNone) return err;
+    if(!bv_select_sector(poller, SECTOR1)) return BvErrSectorSelect;
+    return BvErrNone;
+}
+
+// Authenticate for a provisioning write. Try `primary` first (the password the
+// tag is expected to hold), and only on failure re-activate and try `fallback`.
+// The re-activation matters: after a wrong PWD_AUTH the NTAG will not accept a
+// second one in the same activation, so trying two passwords back-to-back would
+// spuriously fail even when one is correct.
+static bool bv_prov_auth(Iso14443_3aPoller* poller, const uint8_t* primary, const uint8_t* fallback) {
+    if(bv_pwd_auth(poller, primary, NULL)) return true;
+    uint8_t uid[10];
+    size_t uid_len = 0;
+    if(bv_activate_uid(poller, uid, &uid_len) != Iso14443_3aErrorNone) return false;
+    return bv_pwd_auth(poller, fallback, NULL);
+}
+
 // Zero all of Sector 1 user memory (runs on the NFC worker thread).
 static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller, bool* retry) {
     BvError err = BvErrNone;
     uint16_t written = 0;
 
-    Iso14443_3aData* iso_data = iso14443_3a_alloc();
-    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
-    iso14443_3a_free(iso_data);
+    uint8_t uid[10];
+    size_t uid_len = 0;
+    Iso14443_3aError act = bv_activate_uid(poller, uid, &uid_len);
 
     uint8_t version[8] = {0};
     bool version_ok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
@@ -423,8 +568,8 @@ static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
         err = BvErrNoTag;
     } else if(!version_match) {
         err = BvErrWrongTag;
-    } else if(!bv_select_sector(poller, SECTOR1)) {
-        err = BvErrSectorSelect;
+    } else if((err = bv_open_sector1(app, poller, uid, uid_len)) != BvErrNone) {
+        // err set to auth / sector-select failure
     } else {
         const uint8_t zero[4] = {0, 0, 0, 0};
         for(uint32_t p = 0; p < SECTOR1_PAGES; p++) {
@@ -501,9 +646,9 @@ static BvError bv_do_save(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
     BvError err = BvErrNone;
     uint16_t written = 0;
 
-    Iso14443_3aData* iso_data = iso14443_3a_alloc();
-    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
-    iso14443_3a_free(iso_data);
+    uint8_t uid[10];
+    size_t uid_len = 0;
+    Iso14443_3aError act = bv_activate_uid(poller, uid, &uid_len);
     uint8_t version[8] = {0};
     bool vok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
     if(!vok) {
@@ -516,8 +661,8 @@ static BvError bv_do_save(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
         err = BvErrWrongTag;
     } else if(app->save_blob_len == 0) {
         err = BvErrCrypto; // no prepared blob (bv_start_save should prevent this)
-    } else if(!bv_select_sector(poller, SECTOR1)) {
-        err = BvErrSectorSelect;
+    } else if((err = bv_open_sector1(app, poller, uid, uid_len)) != BvErrNone) {
+        // err set to auth / sector-select failure
     } else {
         // Blank the header page first and write the real header (page 0) last:
         // a save torn mid-way then reads back as an empty tag on Load, instead
@@ -572,9 +717,9 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
     uint8_t* buf = malloc(SECTOR1_BYTES);
     uint8_t* pt = malloc(1024);
 
-    Iso14443_3aData* iso_data = iso14443_3a_alloc();
-    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
-    iso14443_3a_free(iso_data);
+    uint8_t uid[10];
+    size_t uid_len = 0;
+    Iso14443_3aError act = bv_activate_uid(poller, uid, &uid_len);
     uint8_t version[8] = {0};
     bool vok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
     bool vmatch = vok && (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
@@ -583,8 +728,8 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
         err = BvErrNoTag;
     } else if(!vmatch) {
         err = BvErrWrongTag;
-    } else if(!bv_select_sector(poller, SECTOR1)) {
-        err = BvErrSectorSelect;
+    } else if((err = bv_open_sector1(app, poller, uid, uid_len)) != BvErrNone) {
+        // err set to auth / sector-select failure
     } else {
         size_t got = 0;
         for(uint32_t i = 0; i < READ_CMD_COUNT; i++) {
@@ -646,6 +791,160 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
     return err;
 }
 
+// Write the Sector 0 password/lock configuration (protect) or restore tag
+// defaults (unprotect). Runs on the NFC worker thread. This is the ONLY path
+// that writes Sector 0, and only via the explicit Settings action.
+static BvError bv_do_provision(BioVault* app, Iso14443_3aPoller* poller, bool* retry) {
+    bool unprotect = app->prov_unprotect;
+
+    uint8_t uid[10];
+    size_t uid_len = 0;
+    Iso14443_3aError act = bv_activate_uid(poller, uid, &uid_len);
+    uint8_t version[8] = {0};
+    bool vok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
+    if(!vok) {
+        *retry = true; // let the user position the implant before any write starts
+        return BvErrNoTag;
+    }
+    *retry = false; // past this point a failure is surfaced, never silently re-run
+    if(memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) != 0) return BvErrWrongTag;
+
+    BvVaultKey key;
+    if(!bv_vault_key_open(&key)) return BvErrCrypto;
+    uint8_t pwd[4], pack[2];
+    bv_vault_tag_password(&key, uid, uid_len, pwd, pack); // diversified by this tag's UID
+    bv_vault_key_clear(&key);
+
+    BvError err = BvErrNone;
+
+    // Config pages 0xE2-0xEB are write-protected (factory AUTH0=0xE2), so every
+    // provisioning write needs a prior PWD_AUTH. Try the password the tag is
+    // expected to hold first: the factory DNGR when we have not provisioned it
+    // (or after an unprotect), our device-bound one when we have. The other is
+    // the fallback (with a re-activation) to recover a partially-applied attempt.
+    const uint8_t* primary = app->settings.tag_protected ? pwd : XSIID_FACTORY_PWD;
+    const uint8_t* fallback = app->settings.tag_protected ? XSIID_FACTORY_PWD : pwd;
+    if(!bv_prov_auth(poller, primary, fallback)) {
+        err = BvErrAuth;
+    }
+
+    if(err == BvErrNone && !unprotect) {
+        // PROTECT. Write PACK, ACCESS, and PT_I2C first (all under the current
+        // authenticated session), and change PWD to the device-bound value LAST.
+        // Rationale: the password change is the single write that could plausibly
+        // end the authenticated session, so making it last means no later write
+        // depends on the session surviving it. A torn write before PWD leaves the
+        // tag on its prior password (DNGR the first time), which the two-try auth
+        // recovers on retry; AUTH0 stays at its factory 0xE2 so the config pages
+        // remain locked behind the password throughout.
+        uint8_t pg_pwd[4] = {pwd[0], pwd[1], pwd[2], pwd[3]};
+        uint8_t pg_pack[4] = {pack[0], pack[1], 0, 0};
+        uint8_t access = (uint8_t)((app->settings.protect_reads ? ACCESS_NFC_PROT : 0) |
+                                   (app->settings.authlim & 0x07));
+        uint8_t pg_access[4] = {access, 0, 0, 0};
+        uint8_t pg_pt[4] = {PT_I2C_2K_PROT, 0, 0, 0};
+        if(!bv_write_page(poller, PG_PACK, pg_pack) ||
+           !bv_write_page(poller, PG_ACCESS, pg_access) ||
+           !bv_write_page(poller, PG_PT_I2C, pg_pt) || !bv_write_page(poller, PG_PWD, pg_pwd)) {
+            err = BvErrWrite;
+        }
+    } else if(err == BvErrNone && unprotect) {
+        // UNPROTECT. Disable Sector 1 protection and clear the access flags
+        // first, then restore the factory DNGR password/PACK (PWD written last
+        // so a torn write leaves the tag on our still-known device password).
+        // AUTH0 is left at 0xE2 (factory).
+        uint8_t zero[4] = {0, 0, 0, 0};
+        uint8_t pg_pack[4] = {XSIID_FACTORY_PACK[0], XSIID_FACTORY_PACK[1], 0, 0};
+        uint8_t pg_pwd[4] = {
+            XSIID_FACTORY_PWD[0], XSIID_FACTORY_PWD[1], XSIID_FACTORY_PWD[2], XSIID_FACTORY_PWD[3]};
+        if(!bv_write_page(poller, PG_PT_I2C, zero) || !bv_write_page(poller, PG_ACCESS, zero) ||
+           !bv_write_page(poller, PG_PACK, pg_pack) || !bv_write_page(poller, PG_PWD, pg_pwd)) {
+            err = BvErrWrite;
+        }
+    }
+
+    if(err == BvErrNone) {
+        app->settings.tag_protected = !unprotect;
+        bv_settings_save(&app->settings);
+    }
+
+    with_view_model(
+        app->prov_view,
+        BvProvModel * m,
+        {
+            m->state = (err == BvErrNone) ? BvProvDone : BvProvError;
+            m->error = err;
+            if(err == BvErrNone && !unprotect) {
+                memcpy(m->pwd, pwd, sizeof(pwd)); // display for pm3/recovery
+                memcpy(m->pack, pack, sizeof(pack));
+            }
+        },
+        true);
+    memset(pwd, 0, sizeof(pwd)); // wipe only after the display copy above
+    memset(pack, 0, sizeof(pack));
+    FURI_LOG_I(TAG, "provision(%s) complete: err=%d", unprotect ? "off" : "on", err);
+    return err;
+}
+
+// Reveal the device-bound PWD/PACK, gated on a UID read: the implant must be
+// physically present (it answers with its UID) before the derived password is
+// shown, preserving the Flipper+implant two-factor property. Runs on the NFC
+// worker thread.
+static BvError bv_do_reveal(BioVault* app, Iso14443_3aPoller* poller, bool* retry) {
+    uint8_t uid[10];
+    size_t uid_len = 0;
+    Iso14443_3aError act = bv_activate_uid(poller, uid, &uid_len);
+    if(act != Iso14443_3aErrorNone || uid_len == 0) {
+        *retry = true; // keep waiting for the implant
+        return BvErrNoTag;
+    }
+    *retry = false;
+
+    BvError err = BvErrNone;
+    uint8_t pwd[4] = {0}, pack[2] = {0};
+
+    if(!app->settings.tag_protected) {
+        err = BvErrNoVault; // nothing provisioned, nothing to reveal
+    } else {
+        BvVaultKey key;
+        if(!bv_vault_key_open(&key)) {
+            err = BvErrCrypto;
+        } else {
+            bv_vault_tag_password(&key, uid, uid_len, pwd, pack);
+            bv_vault_key_clear(&key);
+            // Cryptographic gate: authenticate against the presented tag. Only
+            // the genuine provisioned implant holds the enclave-derived PWD/PACK,
+            // so a tag that merely spoofs the UID cannot pass. UID secrecy is
+            // irrelevant — we never trust the (public, spoofable) UID as identity.
+            uint8_t got[2] = {0};
+            bool authed = bv_pwd_auth(poller, pwd, got) && (got[0] == pack[0]) &&
+                          (got[1] == pack[1]);
+            if(!authed) err = BvErrWrongImplant;
+        }
+    }
+
+    with_view_model(
+        app->reveal_view,
+        BvRevealModel * m,
+        {
+            if(err == BvErrNone) {
+                memcpy(m->uid, uid, uid_len);
+                m->uid_len = uid_len;
+                memcpy(m->pwd, pwd, sizeof(pwd));
+                memcpy(m->pack, pack, sizeof(pack));
+                m->state = BvRevealShown;
+            } else {
+                m->state = BvRevealError;
+                m->error = err;
+            }
+        },
+        true);
+    memset(pwd, 0, sizeof(pwd));
+    memset(pack, 0, sizeof(pack));
+    FURI_LOG_I(TAG, "reveal: err=%d", err);
+    return err;
+}
+
 static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
     BioVault* app = context;
     Iso14443_3aPoller* poller = event.poller;
@@ -661,6 +960,10 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
             err = bv_do_save(app, poller, &retry);
         } else if(app->op == BvOpLoad) {
             err = bv_do_load(app, poller, &retry);
+        } else if(app->op == BvOpProvision) {
+            err = bv_do_provision(app, poller, &retry);
+        } else if(app->op == BvOpReveal) {
+            err = bv_do_reveal(app, poller, &retry);
         } else {
             err = bv_do_read(app, poller, &retry);
         }
@@ -687,8 +990,9 @@ static void bv_start_op(BioVault* app, BvOp op) {
     // Blink like the stock NFC app: cyan while reading, magenta while writing.
     notification_message(
         app->notifications,
-        (op == BvOpRead || op == BvOpLoad) ? &sequence_blink_start_cyan :
-                                             &sequence_blink_start_magenta);
+        (op == BvOpRead || op == BvOpLoad || op == BvOpReveal) ?
+            &sequence_blink_start_cyan :
+            &sequence_blink_start_magenta);
     app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_3a);
     nfc_poller_start_ex(app->poller, bv_poller_callback, app);
     app->poller_running = true;
@@ -766,6 +1070,33 @@ static void bv_start_load(BioVault* app) {
     bv_start_op(app, BvOpLoad);
 }
 
+static void bv_start_provision(BioVault* app, bool unprotect) {
+    if(app->poller_running) return;
+    app->prov_unprotect = unprotect;
+    with_view_model(
+        app->prov_view,
+        BvProvModel * m,
+        {
+            m->state = BvProvWorking;
+            m->error = BvErrNone;
+        },
+        true);
+    bv_start_op(app, BvOpProvision);
+}
+
+static void bv_start_reveal(BioVault* app) {
+    if(app->poller_running) return;
+    with_view_model(
+        app->reveal_view,
+        BvRevealModel * m,
+        {
+            m->state = BvRevealWorking;
+            m->error = BvErrNone;
+        },
+        true);
+    bv_start_op(app, BvOpReveal);
+}
+
 // (Re)build the browser submenu from the current in-RAM vault.
 static void bv_menu_callback(void* context, uint32_t index);
 static void bv_browser_item_callback(void* context, uint32_t index);
@@ -800,6 +1131,12 @@ static const char* bv_error_text(BvError e) {
         return "Vault too big for tag";
     case BvErrCrypto:
         return "Crypto/keystore error";
+    case BvErrAuth:
+        return "Auth failed (wrong device?)";
+    case BvErrWrongImplant:
+        return "Not the provisioned implant";
+    case BvErrNoVault:
+        return "No provisioned implant";
     default:
         return "Unknown error";
     }
@@ -1451,6 +1788,17 @@ static uint32_t bv_input_previous(void* context) {
 // --- Settings ---
 
 static const char* const bv_toggle_text[] = {"OFF", "ON"};
+static const char* const bv_authlim_text[] = {"OFF", "2", "4", "8", "16", "32", "64", "128"};
+
+// Settings row order (indices used by the enter callback for the action rows).
+typedef enum {
+    BvSetAutoEnter,
+    BvSetReadProt,
+    BvSetAuthLim,
+    BvSetProtect,
+    BvSetUnprotect,
+    BvSetReveal,
+} BvSettingsRow;
 
 static void bv_settings_newline_changed(VariableItem* item) {
     BioVault* app = variable_item_get_context(item);
@@ -1460,18 +1808,265 @@ static void bv_settings_newline_changed(VariableItem* item) {
     bv_settings_save(&app->settings);
 }
 
+static void bv_settings_readprot_changed(VariableItem* item) {
+    BioVault* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, bv_toggle_text[idx]);
+    app->settings.protect_reads = (idx != 0);
+    bv_settings_save(&app->settings);
+}
+
+static void bv_settings_authlim_changed(VariableItem* item) {
+    BioVault* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, bv_authlim_text[idx]);
+    app->settings.authlim = idx; // 0 = off, else 2^idx attempts
+    bv_settings_save(&app->settings);
+}
+
+static void bv_prov_open(BioVault* app, bool unprotect); // defined below
+
+static void bv_settings_enter(void* context, uint32_t index) {
+    BioVault* app = context;
+    if(index == BvSetProtect) {
+        bv_prov_open(app, false);
+    } else if(index == BvSetUnprotect) {
+        bv_prov_open(app, true);
+    } else if(index == BvSetReveal) {
+        // The reveal view auto-starts the UID-gated read via its enter callback.
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewReveal);
+    }
+}
+
 static void bv_build_settings(BioVault* app) {
     variable_item_list_reset(app->settings_list);
-    VariableItem* item = variable_item_list_add(
-        app->settings_list, "Auto-Enter", 2, bv_settings_newline_changed, app);
-    uint8_t idx = app->settings.send_newline ? 1 : 0;
+    VariableItem* item;
+    uint8_t idx;
+
+    item = variable_item_list_add(
+        app->settings_list, "USB Auto-Return", 2, bv_settings_newline_changed, app);
+    idx = app->settings.send_newline ? 1 : 0;
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, bv_toggle_text[idx]);
+
+    item = variable_item_list_add(
+        app->settings_list, "Read protect", 2, bv_settings_readprot_changed, app);
+    idx = app->settings.protect_reads ? 1 : 0;
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, bv_toggle_text[idx]);
+
+    item = variable_item_list_add(
+        app->settings_list, "Auth limit", COUNT_OF(bv_authlim_text), bv_settings_authlim_changed,
+        app);
+    idx = app->settings.authlim < COUNT_OF(bv_authlim_text) ? app->settings.authlim : 0;
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, bv_authlim_text[idx]);
+
+    // Action rows (pressed with OK; handled by the enter callback). One value,
+    // shown as the tag's current protection state.
+    item = variable_item_list_add(app->settings_list, "Protect implant", 1, NULL, app);
+    variable_item_set_current_value_text(item, app->settings.tag_protected ? "ON" : "OFF");
+    item = variable_item_list_add(app->settings_list, "Unprotect implant", 1, NULL, app);
+    variable_item_set_current_value_text(item, "");
+    item = variable_item_list_add(app->settings_list, "Reveal password", 1, NULL, app);
+    variable_item_set_current_value_text(item, "");
 }
 
 static uint32_t bv_settings_previous(void* context) {
     UNUSED(context);
     return BvViewMenu;
+}
+
+// --- Provisioning confirm/progress view ---
+
+static void bv_prov_draw(Canvas* canvas, void* model) {
+    BvProvModel* m = model;
+    canvas_clear(canvas);
+    char line[44];
+    switch(m->state) {
+    case BvProvConfirm:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, m->unprotect ? "Unprotect Implant" : "Protect Implant");
+        canvas_set_font(canvas, FontSecondary);
+        if(m->unprotect) {
+            canvas_draw_str(canvas, 2, 24, "Remove tag password?");
+            canvas_draw_str(canvas, 2, 35, "Restores open access.");
+        } else {
+            snprintf(
+                line,
+                sizeof(line),
+                "%s, authlim %s",
+                m->protect_reads ? "read+write" : "write-only",
+                m->authlim ? "on" : "off");
+            canvas_draw_str(canvas, 2, 24, "Set device-bound PWD:");
+            canvas_draw_str(canvas, 2, 35, line);
+            canvas_draw_str(canvas, 2, 46, "Irreversible w/o this Flipper!");
+        }
+        canvas_draw_str(canvas, 2, 60, "OK: apply   Back: cancel");
+        break;
+    case BvProvWorking:
+        bv_draw_hold(canvas, m->unprotect ? "Unprotecting" : "Protecting");
+        break;
+    case BvProvDone:
+        if(m->unprotect) {
+            bv_draw_done(canvas, "Unprotected", "Tag password cleared", "Back: settings");
+        } else {
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str(canvas, 2, 10, "Protected!");
+            canvas_set_font(canvas, FontSecondary);
+            snprintf(
+                line, sizeof(line), "PWD  %02X %02X %02X %02X", m->pwd[0], m->pwd[1], m->pwd[2],
+                m->pwd[3]);
+            canvas_draw_str(canvas, 2, 25, line);
+            snprintf(line, sizeof(line), "PACK %02X %02X", m->pack[0], m->pack[1]);
+            canvas_draw_str(canvas, 2, 37, line);
+            canvas_draw_str(canvas, 2, 50, "Record it (pm3/recovery)");
+            canvas_draw_str(canvas, 2, 62, "Back: settings");
+        }
+        break;
+    case BvProvError:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Provisioning failed");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
+        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: settings");
+        break;
+    }
+}
+
+static bool bv_prov_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort) return false;
+    BvProvState st;
+    bool unprotect;
+    with_view_model(
+        app->prov_view,
+        BvProvModel * m,
+        {
+            st = m->state;
+            unprotect = m->unprotect;
+        },
+        false);
+    if(st == BvProvWorking) return true; // block navigation mid-write
+    if(event->key == InputKeyOk) {
+        if(st == BvProvConfirm || st == BvProvError) {
+            if(!app->poller_running) bv_start_provision(app, unprotect);
+        }
+        return true;
+    }
+    return false; // Back -> previous callback (settings)
+}
+
+static uint32_t bv_prov_previous(void* context) {
+    UNUSED(context);
+    return BvViewSettings;
+}
+
+static void bv_prov_exit(void* context) {
+    BioVault* app = context;
+    bv_poller_stop(app);
+    // Don't leave the shown password in the model after leaving the screen.
+    with_view_model(
+        app->prov_view,
+        BvProvModel * m,
+        {
+            memset(m->pwd, 0, sizeof(m->pwd));
+            memset(m->pack, 0, sizeof(m->pack));
+        },
+        false);
+}
+
+// Open the provisioning confirm screen for protect (unprotect=false) or
+// unprotect (true), snapshotting the current settings for the summary.
+static void bv_prov_open(BioVault* app, bool unprotect) {
+    with_view_model(
+        app->prov_view,
+        BvProvModel * m,
+        {
+            m->state = BvProvConfirm;
+            m->unprotect = unprotect;
+            m->protect_reads = app->settings.protect_reads;
+            m->authlim = app->settings.authlim;
+            m->error = BvErrNone;
+        },
+        true);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewProvision);
+}
+
+// --- Reveal tag password view ---
+
+static void bv_reveal_draw(Canvas* canvas, void* model) {
+    BvRevealModel* m = model;
+    canvas_clear(canvas);
+    char line[40];
+    switch(m->state) {
+    case BvRevealWorking:
+        bv_draw_hold(canvas, "Reading");
+        break;
+    case BvRevealShown: {
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Tag password");
+        canvas_set_font(canvas, FontSecondary);
+        int n = snprintf(line, sizeof(line), "UID ");
+        for(size_t i = 0; i < m->uid_len && i < 7; i++) {
+            n += snprintf(line + n, sizeof(line) - n, "%02X", m->uid[i]);
+        }
+        canvas_draw_str(canvas, 2, 24, line);
+        snprintf(
+            line, sizeof(line), "PWD  %02X %02X %02X %02X", m->pwd[0], m->pwd[1], m->pwd[2],
+            m->pwd[3]);
+        canvas_draw_str(canvas, 2, 37, line);
+        snprintf(line, sizeof(line), "PACK %02X %02X", m->pack[0], m->pack[1]);
+        canvas_draw_str(canvas, 2, 49, line);
+        canvas_draw_str(canvas, 2, 62, "Back: hide");
+        break;
+    }
+    case BvRevealError:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Reveal failed");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
+        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: settings");
+        break;
+    }
+}
+
+static bool bv_reveal_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort) return false;
+    BvRevealState st;
+    with_view_model(app->reveal_view, BvRevealModel * m, { st = m->state; }, false);
+    if(event->key == InputKeyOk && st == BvRevealError) {
+        if(!app->poller_running) bv_start_reveal(app);
+        return true;
+    }
+    return false; // Back -> previous callback (settings); exit wipes the secret
+}
+
+static void bv_reveal_enter(void* context) {
+    bv_start_reveal((BioVault*)context);
+}
+
+static void bv_reveal_exit(void* context) {
+    BioVault* app = context;
+    bv_poller_stop(app);
+    // Don't leave the shown password sitting in the view model after leaving.
+    with_view_model(
+        app->reveal_view,
+        BvRevealModel * m,
+        {
+            memset(m->pwd, 0, sizeof(m->pwd));
+            memset(m->pack, 0, sizeof(m->pack));
+            memset(m->uid, 0, sizeof(m->uid));
+            m->uid_len = 0;
+            m->state = BvRevealWorking;
+        },
+        true);
+}
+
+static uint32_t bv_reveal_previous(void* context) {
+    UNUSED(context);
+    return BvViewSettings;
 }
 
 // --- Menu / dispatcher callbacks ---
@@ -2062,10 +2657,32 @@ static BioVault* bv_alloc(void) {
     // Settings view (persisted preferences)
     bv_settings_load(&app->settings);
     app->settings_list = variable_item_list_alloc();
+    variable_item_list_set_enter_callback(app->settings_list, bv_settings_enter, app);
     view_set_previous_callback(
         variable_item_list_get_view(app->settings_list), bv_settings_previous);
     view_dispatcher_add_view(
         app->view_dispatcher, BvViewSettings, variable_item_list_get_view(app->settings_list));
+
+    // Provisioning confirm/progress view
+    app->prov_view = view_alloc();
+    view_allocate_model(app->prov_view, ViewModelTypeLocking, sizeof(BvProvModel));
+    view_set_context(app->prov_view, app);
+    view_set_draw_callback(app->prov_view, bv_prov_draw);
+    view_set_input_callback(app->prov_view, bv_prov_input);
+    view_set_exit_callback(app->prov_view, bv_prov_exit);
+    view_set_previous_callback(app->prov_view, bv_prov_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewProvision, app->prov_view);
+
+    // Reveal tag password view (UID-gated)
+    app->reveal_view = view_alloc();
+    view_allocate_model(app->reveal_view, ViewModelTypeLocking, sizeof(BvRevealModel));
+    view_set_context(app->reveal_view, app);
+    view_set_draw_callback(app->reveal_view, bv_reveal_draw);
+    view_set_input_callback(app->reveal_view, bv_reveal_input);
+    view_set_enter_callback(app->reveal_view, bv_reveal_enter);
+    view_set_exit_callback(app->reveal_view, bv_reveal_exit);
+    view_set_previous_callback(app->reveal_view, bv_reveal_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewReveal, app->reveal_view);
 
     // Diagnostics view
     app->diag = widget_alloc();
@@ -2117,6 +2734,8 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewInput);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewZero);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewSettings);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewProvision);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewReveal);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
     view_free(app->read_view);
@@ -2130,6 +2749,8 @@ static void bv_free(BioVault* app) {
     bv_text_input_free(app->input);
     view_free(app->zero_view);
     variable_item_list_free(app->settings_list);
+    view_free(app->prov_view);
+    view_free(app->reveal_view);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
