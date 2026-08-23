@@ -7,7 +7,8 @@ App(
     fap_category="NFC",
     fap_author="Shain Lakin",
     fap_version="0.1",
-    fap_description="Read/write an enclave-encrypted vault on an NTAG I2C Plus 2K NFC implant (xSIID), Sector 1. Milestone 1: raw read of Sector 1 user memory.",
+    fap_description="Read/write an enclave-encrypted vault on an NTAG I2C Plus 2K NFC implant (xSIID), Sector 1.",
     requires=["gui", "notification", "storage"],
+    fap_icon="biovault_10px.png",
     fap_icon_assets="images",
 )

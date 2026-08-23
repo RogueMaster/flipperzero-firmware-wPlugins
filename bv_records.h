@@ -56,6 +56,17 @@ bool bv_records_add(
 // Remove entry at index. Returns false if out of range.
 bool bv_records_remove(BvVaultData* v, uint8_t index);
 
+// Replace the entry at `index` in place (keeps its position). Returns false if
+// out of range or a field exceeds its cap; on failure the entry is unchanged.
+// user may be "" (makes it a note when type is BvEntryNote).
+bool bv_records_set(
+    BvVaultData* v,
+    uint8_t index,
+    BvEntryType type,
+    const char* label,
+    const char* user,
+    const char* secret);
+
 // Find the first entry whose label equals `label` (case-insensitive). Returns
 // its index, or -1 if not found.
 int bv_records_find(const BvVaultData* v, const char* label);

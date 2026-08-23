@@ -15,6 +15,8 @@
 #include <gui/modules/widget.h>
 #include <gui/modules/text_box.h>
 #include <input/input.h>
+#include <notification/notification.h>
+#include <notification/notification_messages.h>
 
 #include <nfc/nfc.h>
 #include <nfc/nfc_poller.h>
@@ -31,6 +33,7 @@
 #include "bv_vault.h"
 #include "bv_records.h"
 #include "bv_text_input.h"
+#include "biovault_icons.h" // generated from images/ (fap_icon_assets)
 
 #define TAG "BioVault"
 
@@ -80,18 +83,25 @@ typedef enum {
     BvViewSave,
     BvViewLoad,
     BvViewBrowser,
+    BvViewEntryMenu,
     BvViewDetail,
     BvViewInput,
     BvViewZero,
     BvViewDiag,
 } BvViewId;
 
+// Per-entry action menu (opened by selecting an entry in the browser).
+typedef enum {
+    BvEntryActView,
+    BvEntryActEdit,
+    BvEntryActRemove,
+} BvEntryAction;
+
 typedef enum {
     BvMenuVault,
     BvMenuAdd,
     BvMenuLoad,
     BvMenuRead,
-    BvMenuSeed,
     BvMenuSave,
     BvMenuZero,
     BvMenuDiag,
@@ -106,6 +116,11 @@ typedef enum {
 
 typedef enum {
     BvCustomEventPollerDone = 1,
+    // Posted from the CLI thread to drive the GUI screens remotely.
+    BvCustomEventCliRead,
+    BvCustomEventCliLoad,
+    BvCustomEventCliSave,
+    BvCustomEventCliZero,
 } BvCustomEvent;
 
 // Which NFC operation the shared poller is currently running.
@@ -162,14 +177,17 @@ typedef struct {
     View* save_view;
     View* load_view;
     Submenu* browser;
+    Submenu* entry_menu;
     TextBox* detail;
     char detail_text[BV_LABEL_CAP + BV_USER_CAP + BV_SECRET_CAP + 32];
     BvTextInput* input;
     View* zero_view;
     Widget* diag;
 
-    // On-device Add Entry state.
+    // On-device Add/Edit Entry state.
     BvAddState add_state;
+    bool editing; // true: keyboard flow updates entry `edit_index` in place
+    uint8_t edit_index; // entry being edited when `editing`
     char edit_label[BV_LABEL_CAP];
     char edit_user[BV_USER_CAP];
     char edit_secret[BV_SECRET_CAP];
@@ -178,6 +196,7 @@ typedef struct {
     NfcPoller* poller;
     bool poller_running;
     BvOp op;
+    NotificationApp* notifications;
 
     BvVaultData* vault; // in-RAM vault (heap; ~3.8KB, never on the stack)
     FuriMutex* vault_mutex; // guards `vault` (GUI thread vs. CLI thread)
@@ -250,24 +269,22 @@ static bool bv_read_pages(Iso14443_3aPoller* poller, uint8_t page, uint8_t out[1
     return ok;
 }
 
-// Full read sequence (runs on the NFC worker thread). Commits into the read model.
-static void bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
+// Transient tag-communication failures keep polling silently (the tag may just
+// be misaligned — common with an implant); everything else is reported.
+static bool bv_err_transient(BvError e) {
+    return e == BvErrNoTag || e == BvErrSectorSelect || e == BvErrRead || e == BvErrWrite;
+}
+
+// Full read sequence (runs on the NFC worker thread). Commits into the read
+// model on success or terminal error; transient errors are not committed so the
+// "hold implant" screen stays up while polling continues.
+static BvError bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
     BvError err = BvErrNone;
 
     Iso14443_3aData* iso_data = iso14443_3a_alloc();
     Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
     iso14443_3a_free(iso_data);
-    if(act != Iso14443_3aErrorNone) {
-        with_view_model(
-            app->read_view,
-            BvReadModel * m,
-            {
-                m->error = BvErrNoTag;
-                m->state = BvStateError;
-            },
-            true);
-        return;
-    }
+    if(act != Iso14443_3aErrorNone) return BvErrNoTag;
 
     uint8_t version[8] = {0};
     bool version_ok = bv_get_version(poller, version);
@@ -294,6 +311,8 @@ static void bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
         }
     }
 
+    if(bv_err_transient(err)) return err;
+
     with_view_model(
         app->read_view,
         BvReadModel * m,
@@ -312,6 +331,7 @@ static void bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
         },
         true);
     FURI_LOG_I(TAG, "read complete: err=%d bytes=%u", err, (unsigned)got);
+    return err;
 }
 
 // WRITE (0xA2) one 4-byte page. The tag replies with a 4-bit ACK (0x0A).
@@ -326,7 +346,7 @@ static bool bv_write_page(Iso14443_3aPoller* poller, uint8_t page, const uint8_t
 }
 
 // Zero all of Sector 1 user memory (runs on the NFC worker thread).
-static void bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
+static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
     BvError err = BvErrNone;
     uint16_t written = 0;
 
@@ -356,6 +376,18 @@ static void bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
         }
     }
 
+    if(bv_err_transient(err)) return err;
+
+    // Wipe is a full reset: on success, clear the in-RAM vault too so RAM matches
+    // the now-blank tag. vault_loaded stays true (empty + blank is a synced state)
+    // so a later save keeps the tag empty instead of rewriting stale entries.
+    if(err == BvErrNone) {
+        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+        bv_records_init(app->vault);
+        furi_mutex_release(app->vault_mutex);
+        app->vault_loaded = true;
+    }
+
     with_view_model(
         app->zero_view,
         BvZeroModel * m,
@@ -365,15 +397,27 @@ static void bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
             m->error = err;
         },
         true);
-    FURI_LOG_I(TAG, "zero complete: err=%d pages=%u", err, written);
+    FURI_LOG_I(TAG, "wipe complete: err=%d pages=%u", err, written);
+    return err;
 }
 
 // Serialize + seal the in-RAM vault, then write the blob across Sector 1 pages
 // (last page zero-padded). Runs on the NFC worker thread.
-static void bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
+static BvError bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
     BvError err = BvErrNone;
     uint16_t written = 0;
     size_t blob_len = 0;
+
+    // Check for the tag first: this path re-runs on every poll cycle while the
+    // user positions the implant, so the no-tag exit must stay cheap (no
+    // serialization, no enclave traffic).
+    Iso14443_3aData* iso_data = iso14443_3a_alloc();
+    Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
+    iso14443_3a_free(iso_data);
+    uint8_t version[8] = {0};
+    bool vok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
+    if(!vok) return BvErrNoTag;
+    bool vmatch = memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0;
 
     // Prepare the sealed blob (heap; these buffers are too big for the stack).
     uint8_t* pt = malloc(4096);
@@ -384,7 +428,9 @@ static void bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
     furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
     bool ser_ok = bv_records_serialize(app->vault, pt, 4096, &pt_len);
     furi_mutex_release(app->vault_mutex);
-    if(!ser_ok) {
+    if(!vmatch) {
+        err = BvErrWrongTag;
+    } else if(!ser_ok) {
         err = BvErrTooBig;
     } else if(pt_len + BV_BLOB_OVERHEAD > SECTOR1_BYTES) {
         err = BvErrTooBig;
@@ -400,18 +446,7 @@ static void bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
     }
 
     if(err == BvErrNone && prepared) {
-        Iso14443_3aData* iso_data = iso14443_3a_alloc();
-        Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
-        iso14443_3a_free(iso_data);
-        uint8_t version[8] = {0};
-        bool vok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
-        bool vmatch = vok && (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
-
-        if(!vok) {
-            err = BvErrNoTag;
-        } else if(!vmatch) {
-            err = BvErrWrongTag;
-        } else if(!bv_select_sector(poller, SECTOR1)) {
+        if(!bv_select_sector(poller, SECTOR1)) {
             err = BvErrSectorSelect;
         } else {
             uint32_t pages = (blob_len + 3) / 4;
@@ -434,6 +469,8 @@ static void bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
     free(pt);
     free(blob);
 
+    if(bv_err_transient(err)) return err;
+
     with_view_model(
         app->save_view,
         BvSaveModel * m,
@@ -445,10 +482,11 @@ static void bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
         },
         true);
     FURI_LOG_I(TAG, "save complete: err=%d bytes=%u pages=%u", err, (unsigned)blob_len, written);
+    return err;
 }
 
 // Read Sector 1 -> parse the vault blob -> decrypt -> populate the in-RAM vault.
-static void bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
+static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
     BvError err = BvErrNone;
     uint8_t count = 0;
 
@@ -512,6 +550,8 @@ static void bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
     free(pt);
     free(buf);
 
+    if(bv_err_transient(err)) return err;
+
     if(err == BvErrNone) app->vault_loaded = true;
     with_view_model(
         app->load_view,
@@ -523,6 +563,7 @@ static void bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
         },
         true);
     FURI_LOG_I(TAG, "load complete: err=%d entries=%u", err, count);
+    return err;
 }
 
 static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
@@ -532,16 +573,24 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
     NfcCommand cmd = NfcCommandContinue;
 
     if(nfc_event->type == NfcEventTypePollerReady) {
+        BvError err;
         if(app->op == BvOpZero) {
-            bv_do_zero(app, poller);
+            err = bv_do_zero(app, poller);
         } else if(app->op == BvOpSave) {
-            bv_do_save(app, poller);
+            err = bv_do_save(app, poller);
         } else if(app->op == BvOpLoad) {
-            bv_do_load(app, poller);
+            err = bv_do_load(app, poller);
         } else {
-            bv_do_read(app, poller);
+            err = bv_do_read(app, poller);
         }
-        cmd = NfcCommandStop;
+        if(bv_err_transient(err)) {
+            // Tag not (well) coupled yet — reset the field and keep polling.
+            cmd = NfcCommandReset;
+        } else {
+            notification_message(
+                app->notifications, err == BvErrNone ? &sequence_success : &sequence_error);
+            cmd = NfcCommandStop;
+        }
     }
     if(cmd == NfcCommandStop) {
         // Hand off to the main thread to reap the poller (can't free it here).
@@ -553,6 +602,11 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
 static void bv_start_op(BioVault* app, BvOp op) {
     if(app->poller_running) return;
     app->op = op;
+    // Blink like the stock NFC app: cyan while reading, magenta while writing.
+    notification_message(
+        app->notifications,
+        (op == BvOpRead || op == BvOpLoad) ? &sequence_blink_start_cyan :
+                                             &sequence_blink_start_magenta);
     app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_3a);
     nfc_poller_start_ex(app->poller, bv_poller_callback, app);
     app->poller_running = true;
@@ -564,6 +618,7 @@ static void bv_poller_stop(BioVault* app) {
     nfc_poller_free(app->poller);
     app->poller = NULL;
     app->poller_running = false;
+    notification_message(app->notifications, &sequence_blink_stop);
 }
 
 static void bv_start_read(BioVault* app) {
@@ -661,23 +716,47 @@ static const char* bv_error_text(BvError e) {
     }
 }
 
+// Full-screen implant-coupling prompt, in the style of the stock NFC app: art
+// on the left, "<verb> implant" centered in the space to its right.
+static void bv_draw_hold(Canvas* canvas, const char* verb) {
+    canvas_draw_icon(canvas, 0, 8, &I_NFC_manual_60x50);
+    const uint8_t cx = 94; // center of the region right of the 60px-wide art
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, cx, 30, AlignCenter, AlignCenter, verb);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, cx, 43, AlignCenter, AlignCenter, "implant");
+}
+
+// Success screen: big check mark + up to two result lines + footer hint.
+static void bv_draw_done(Canvas* canvas, const char* l1, const char* l2, const char* footer) {
+    canvas_draw_icon(canvas, 6, 16, &I_check_big_20x17);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 34, 24, l1);
+    canvas_set_font(canvas, FontSecondary);
+    if(l2) canvas_draw_str(canvas, 34, 36, l2);
+    canvas_draw_str(canvas, 2, 60, footer);
+}
+
 static void bv_read_draw(Canvas* canvas, void* model) {
     BvReadModel* m = model;
     canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, "Read Implant");
-    canvas_set_font(canvas, FontSecondary);
 
     char line[40];
     switch(m->state) {
     case BvStateReading:
-        canvas_draw_str(canvas, 2, 32, "Hold to implant...");
+        bv_draw_hold(canvas, "Reading");
         break;
     case BvStateError:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Read Implant");
+        canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
         canvas_draw_str(canvas, 2, 52, "OK: retry  Back: menu");
         break;
     case BvStateDone: {
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Read Implant");
+        canvas_set_font(canvas, FontSecondary);
         snprintf(line, sizeof(line), "Sector 1: %u bytes", (unsigned)m->sector1_len);
         canvas_draw_str(canvas, 2, 22, line);
         for(uint32_t row = 0; row < 3; row++) {
@@ -692,7 +771,7 @@ static void bv_read_draw(Canvas* canvas, void* model) {
         break;
     }
     default:
-        canvas_draw_str(canvas, 2, 32, "Reading...");
+        bv_draw_hold(canvas, "Reading");
         break;
     }
 }
@@ -747,27 +826,28 @@ static uint32_t bv_read_previous(void* context) {
 static void bv_zero_draw(Canvas* canvas, void* model) {
     BvZeroModel* m = model;
     canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, "Zero Sector 1");
-    canvas_set_font(canvas, FontSecondary);
 
     char line[40];
     switch(m->state) {
     case BvZeroConfirm:
-        canvas_draw_str(canvas, 2, 26, "Erase ALL of Sector 1?");
-        canvas_draw_str(canvas, 2, 37, "This wipes the vault.");
-        canvas_draw_str(canvas, 2, 54, "OK: erase   Back: cancel");
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Wipe Implant");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 26, "Erase tag AND vault?");
+        canvas_draw_str(canvas, 2, 37, "Clears Sector 1 + RAM.");
+        canvas_draw_str(canvas, 2, 54, "OK: wipe   Back: cancel");
         break;
     case BvZeroWriting:
-        canvas_draw_str(canvas, 2, 34, "Hold to implant...");
-        canvas_draw_str(canvas, 2, 46, "Erasing Sector 1");
+        bv_draw_hold(canvas, "Erasing");
         break;
     case BvZeroDone:
-        snprintf(line, sizeof(line), "Erased %u pages", m->pages_written);
-        canvas_draw_str(canvas, 2, 32, line);
-        canvas_draw_str(canvas, 2, 54, "Back: menu");
+        snprintf(line, sizeof(line), "%u pages cleared", m->pages_written);
+        bv_draw_done(canvas, "Wiped!", line, "Back: menu");
         break;
     case BvZeroError:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Wipe Implant");
+        canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
         snprintf(line, sizeof(line), "Wrote %u pages", m->pages_written);
         canvas_draw_str(canvas, 2, 40, line);
@@ -819,29 +899,28 @@ static uint32_t bv_zero_previous(void* context) {
 static void bv_save_draw(Canvas* canvas, void* model) {
     BvSaveModel* m = model;
     canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, "Save to Implant");
-    canvas_set_font(canvas, FontSecondary);
 
     char line[40];
     switch(m->state) {
     case BvZeroConfirm:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Save to Implant");
+        canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 26, "Write vault to Sector 1?");
         canvas_draw_str(canvas, 2, 37, "Overwrites its contents.");
         canvas_draw_str(canvas, 2, 54, "OK: save   Back: cancel");
         break;
     case BvZeroWriting:
-        canvas_draw_str(canvas, 2, 34, "Hold to implant...");
-        canvas_draw_str(canvas, 2, 46, "Saving vault");
+        bv_draw_hold(canvas, "Writing");
         break;
     case BvZeroDone:
-        snprintf(line, sizeof(line), "Saved %u bytes", m->bytes);
-        canvas_draw_str(canvas, 2, 30, line);
-        snprintf(line, sizeof(line), "%u pages written", m->pages_written);
-        canvas_draw_str(canvas, 2, 42, line);
-        canvas_draw_str(canvas, 2, 56, "Back: menu");
+        snprintf(line, sizeof(line), "%u bytes, %u pages", m->bytes, m->pages_written);
+        bv_draw_done(canvas, "Saved!", line, "Back: menu");
         break;
     case BvZeroError:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Save to Implant");
+        canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
         canvas_draw_str(canvas, 2, 54, "OK: retry   Back: menu");
         break;
@@ -890,23 +969,22 @@ static uint32_t bv_save_previous(void* context) {
 static void bv_load_draw(Canvas* canvas, void* model) {
     BvLoadModel* m = model;
     canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, "Load from Implant");
-    canvas_set_font(canvas, FontSecondary);
 
     char line[40];
     switch(m->state) {
     case BvStateDone:
-        snprintf(line, sizeof(line), "Loaded %u entries", m->count);
-        canvas_draw_str(canvas, 2, 32, line);
-        canvas_draw_str(canvas, 2, 54, "OK: continue");
+        snprintf(line, sizeof(line), "%u entries", m->count);
+        bv_draw_done(canvas, "Vault loaded!", line, "OK: continue");
         break;
     case BvStateError:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 10, "Load from Implant");
+        canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
         canvas_draw_str(canvas, 2, 54, "OK: retry   Back: skip");
         break;
     default:
-        canvas_draw_str(canvas, 2, 34, "Hold to implant...");
+        bv_draw_hold(canvas, "Reading");
         break;
     }
 }
@@ -938,13 +1016,51 @@ static uint32_t bv_load_previous(void* context) {
     return BvViewMenu;
 }
 
-// --- Vault browser + detail view UI ---
+// --- Vault browser + entry-action menu + detail view UI ---
+
+static void bv_edit_start(BioVault* app, uint8_t index);
+static void bv_entry_menu_callback(void* context, uint32_t index);
+
+// Build the per-entry action menu (View / Edit / Remove) for the selected entry.
+static void bv_build_entry_menu(BioVault* app) {
+    submenu_reset(app->entry_menu);
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    const char* label =
+        (app->selected < app->vault->count) ? app->vault->entries[app->selected].label : "Entry";
+    submenu_set_header(app->entry_menu, label);
+    furi_mutex_release(app->vault_mutex);
+    submenu_add_item(app->entry_menu, "View", BvEntryActView, bv_entry_menu_callback, app);
+    submenu_add_item(app->entry_menu, "Edit", BvEntryActEdit, bv_entry_menu_callback, app);
+    submenu_add_item(app->entry_menu, "Remove", BvEntryActRemove, bv_entry_menu_callback, app);
+}
 
 static void bv_browser_item_callback(void* context, uint32_t index) {
     BioVault* app = context;
     app->selected = (uint8_t)index;
-    bv_build_detail(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewDetail);
+    bv_build_entry_menu(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewEntryMenu);
+}
+
+static void bv_entry_menu_callback(void* context, uint32_t index) {
+    BioVault* app = context;
+    switch(index) {
+    case BvEntryActView:
+        bv_build_detail(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewDetail);
+        break;
+    case BvEntryActEdit:
+        bv_edit_start(app, app->selected);
+        break;
+    case BvEntryActRemove:
+        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+        bv_records_remove(app->vault, app->selected);
+        furi_mutex_release(app->vault_mutex);
+        bv_build_browser(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
+        break;
+    default:
+        break;
+    }
 }
 
 static uint32_t bv_browser_previous(void* context) {
@@ -952,9 +1068,14 @@ static uint32_t bv_browser_previous(void* context) {
     return BvViewMenu;
 }
 
-// Build the scrollable detail text for the selected entry. A credential shows
-// label/user/secret; a note (no username) shows label/data. Values go on their
-// own lines so the TextBox wraps and scrolls them however long they are.
+static uint32_t bv_entry_menu_previous(void* context) {
+    UNUSED(context);
+    return BvViewBrowser;
+}
+
+// Build the scrollable detail text for the selected entry. Compact layout (no
+// blank lines) to fit the small screen: label on top, then each field inline.
+// The TextBox still wraps and scrolls long values.
 static void bv_build_detail(BioVault* app) {
     text_box_reset(app->detail);
     furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
@@ -966,14 +1087,14 @@ static void bv_build_detail(BioVault* app) {
             snprintf(
                 app->detail_text,
                 sizeof(app->detail_text),
-                "%s\n\nData:\n%s",
+                "%s\nData: %s",
                 e->label,
                 e->secret);
         } else {
             snprintf(
                 app->detail_text,
                 sizeof(app->detail_text),
-                "%s\n\nUser:\n%s\n\nPass:\n%s",
+                "%s\nUser: %s\nPass: %s",
                 e->label,
                 e->user,
                 e->secret);
@@ -986,7 +1107,7 @@ static void bv_build_detail(BioVault* app) {
 
 static uint32_t bv_detail_previous(void* context) {
     UNUSED(context);
-    return BvViewBrowser;
+    return BvViewEntryMenu;
 }
 
 // --- On-device Add Entry (keyboard) ---
@@ -1010,10 +1131,19 @@ static void bv_input_result(void* context) {
         // No username -> it's a note/data entry, not a credential.
         BvEntryType type = (strlen(app->edit_user) > 0) ? BvEntryCred : BvEntryNote;
         furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-        bv_records_add(app->vault, type, app->edit_label, app->edit_user, app->edit_secret);
+        if(app->editing) {
+            if(app->edit_index < app->vault->count) {
+                bv_records_set(
+                    app->vault, app->edit_index, type, app->edit_label, app->edit_user,
+                    app->edit_secret);
+            }
+        } else {
+            bv_records_add(app->vault, type, app->edit_label, app->edit_user, app->edit_secret);
+        }
         furi_mutex_release(app->vault_mutex);
-        FURI_LOG_I(TAG, "added %s '%s' (vault now %u)",
-            type == BvEntryNote ? "note" : "cred", app->edit_label, app->vault->count);
+        FURI_LOG_I(TAG, "%s %s '%s'", app->editing ? "edited" : "added",
+            type == BvEntryNote ? "note" : "cred", app->edit_label);
+        app->editing = false;
         bv_build_browser(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
         break;
@@ -1022,32 +1152,57 @@ static void bv_input_result(void* context) {
 }
 
 static void bv_configure_input(BioVault* app) {
+    // When editing, the buffers are prefilled with the current values; keep them
+    // (clear_default_text = false) so the user modifies rather than retypes.
+    bool keep = app->editing;
     switch(app->add_state) {
     case BvAddLabel:
         bv_text_input_set_header_text(app->input, "Label (site or name)");
         bv_text_input_set_minimum_length(app->input, 1);
         bv_text_input_set_result_callback(
-            app->input, bv_input_result, app, app->edit_label, sizeof(app->edit_label), true);
+            app->input, bv_input_result, app, app->edit_label, sizeof(app->edit_label), !keep);
         break;
     case BvAddUser:
         bv_text_input_set_header_text(app->input, "Username (optional)");
         bv_text_input_set_minimum_length(app->input, 0);
         bv_text_input_set_result_callback(
-            app->input, bv_input_result, app, app->edit_user, sizeof(app->edit_user), true);
+            app->input, bv_input_result, app, app->edit_user, sizeof(app->edit_user), !keep);
         break;
     case BvAddSecret:
         bv_text_input_set_header_text(app->input, "Password / secret");
         bv_text_input_set_minimum_length(app->input, 0);
         bv_text_input_set_result_callback(
-            app->input, bv_input_result, app, app->edit_secret, sizeof(app->edit_secret), true);
+            app->input, bv_input_result, app, app->edit_secret, sizeof(app->edit_secret), !keep);
         break;
     }
 }
 
 static void bv_add_start(BioVault* app) {
+    app->editing = false;
     memset(app->edit_label, 0, sizeof(app->edit_label));
     memset(app->edit_user, 0, sizeof(app->edit_user));
     memset(app->edit_secret, 0, sizeof(app->edit_secret));
+    app->add_state = BvAddLabel;
+    bv_configure_input(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewInput);
+}
+
+// Start the keyboard flow prefilled with an existing entry's fields; on the
+// final step it updates that entry in place instead of appending a new one.
+static void bv_edit_start(BioVault* app, uint8_t index) {
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    if(index >= app->vault->count) {
+        furi_mutex_release(app->vault_mutex);
+        return;
+    }
+    const BvEntry* e = &app->vault->entries[index];
+    strlcpy(app->edit_label, e->label, sizeof(app->edit_label));
+    strlcpy(app->edit_user, e->user, sizeof(app->edit_user));
+    strlcpy(app->edit_secret, e->secret, sizeof(app->edit_secret));
+    furi_mutex_release(app->vault_mutex);
+
+    app->editing = true;
+    app->edit_index = index;
     app->add_state = BvAddLabel;
     bv_configure_input(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, BvViewInput);
@@ -1076,18 +1231,6 @@ static void bv_menu_callback(void* context, uint32_t index) {
     case BvMenuRead:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewRead);
         break;
-    case BvMenuSeed:
-        // TEMPORARY test scaffolding until CLI / on-device entry lands: fill the
-        // in-RAM vault with sample entries so Save/Load have data to round-trip.
-        furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-        bv_records_init(app->vault);
-        bv_records_add(app->vault, BvEntryCred, "example.com", "alice", "hunter2");
-        bv_records_add(app->vault, BvEntryCred, "reddit.com", "bob", "s3cret,pw");
-        bv_records_add(app->vault, BvEntryNote, "recovery", "", "correct horse battery");
-        furi_mutex_release(app->vault_mutex);
-        app->vault_loaded = true; // seeded vault is a known state, safe to save
-        FURI_LOG_I(TAG, "seeded %u test entries", app->vault->count);
-        break;
     case BvMenuSave:
         // Never overwrite the tag with a vault that wasn't synced from it first.
         if(!app->vault_loaded) {
@@ -1114,11 +1257,29 @@ static uint32_t bv_diag_previous(void* context) {
 
 static bool bv_custom_event_callback(void* context, uint32_t event) {
     BioVault* app = context;
-    if(event == BvCustomEventPollerDone) {
+    switch(event) {
+    case BvCustomEventPollerDone:
         bv_poller_stop(app); // reap the finished poller on the main thread
         return true;
+    // CLI-driven screen switches. Read/Load auto-start via their enter callbacks;
+    // Save/Zero land on their confirm screen (OK on the device commits the write).
+    case BvCustomEventCliRead:
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewRead);
+        return true;
+    case BvCustomEventCliLoad:
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
+        return true;
+    case BvCustomEventCliSave:
+        // Same guard as the menu: never save a vault that wasn't synced first.
+        view_dispatcher_switch_to_view(
+            app->view_dispatcher, app->vault_loaded ? BvViewSave : BvViewLoad);
+        return true;
+    case BvCustomEventCliZero:
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewZero);
+        return true;
+    default:
+        return false;
     }
-    return false;
 }
 
 static bool bv_navigation_callback(void* context) {
@@ -1239,7 +1400,7 @@ static void bv_cli_remove(PipeSide* pipe, FuriString* args, void* context) {
     int idx = bv_records_find(app->vault, label);
     bool ok = (idx >= 0) && bv_records_remove(app->vault, (uint8_t)idx);
     furi_mutex_release(app->vault_mutex);
-    printf(ok ? "Removed '%s'. Use Save to Implant to persist.\r\n" : "Not found: %s\r\n", label);
+    printf(ok ? "Removed '%s'. Run 'save' to persist to the implant.\r\n" : "Not found: %s\r\n", label);
 }
 
 static void bv_cli_add(PipeSide* pipe, FuriString* args, void* context) {
@@ -1265,16 +1426,121 @@ static void bv_cli_add(PipeSide* pipe, FuriString* args, void* context) {
     bool ok = bv_records_add(app->vault, type, label, user, secret);
     furi_mutex_release(app->vault_mutex);
     printf(
-        ok ? "Added '%s'. Use Save to Implant to persist.\r\n" :
+        ok ? "Added '%s'. Run 'save' to persist to the implant.\r\n" :
              "Add failed (vault full or field too long).\r\n",
         label);
 }
 
+// Edit an existing entry in place. Shows current values; a blank line keeps the
+// current value, so updating just the password is: Enter, then type the new one.
+static void bv_cli_edit(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    BioVault* app = context;
+    char label[BV_LABEL_CAP];
+    bv_cli_arg(args, label, sizeof(label));
+    if(!strlen(label)) {
+        printf("Usage: edit <label>\r\n");
+        return;
+    }
+
+    // Snapshot the current entry under the lock, then prompt without holding it.
+    char user[BV_USER_CAP] = {0};
+    char secret[BV_SECRET_CAP] = {0};
+    char cur_label[BV_LABEL_CAP] = {0};
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    int idx = bv_records_find(app->vault, label);
+    if(idx >= 0) {
+        const BvEntry* e = &app->vault->entries[idx];
+        strlcpy(cur_label, e->label, sizeof(cur_label));
+        strlcpy(user, e->user, sizeof(user));
+        strlcpy(secret, e->secret, sizeof(secret));
+    }
+    furi_mutex_release(app->vault_mutex);
+    if(idx < 0) {
+        printf("Not found: %s\r\n", label);
+        return;
+    }
+
+    char in_user[BV_USER_CAP] = {0};
+    char in_secret[BV_SECRET_CAP] = {0};
+    printf("Editing '%s' (blank line = keep current)\r\n", cur_label);
+    printf("Username [%s]: ", user);
+    fflush(stdout);
+    bv_cli_read_line(in_user, sizeof(in_user));
+    printf("Secret [%s]: ", strlen(secret) ? "********" : "");
+    fflush(stdout);
+    bv_cli_read_line(in_secret, sizeof(in_secret));
+
+    if(strlen(in_user)) strlcpy(user, in_user, sizeof(user));
+    if(strlen(in_secret)) strlcpy(secret, in_secret, sizeof(secret));
+    BvEntryType type = (strlen(user) > 0) ? BvEntryCred : BvEntryNote;
+
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    // Re-find in case the vault changed while we were prompting.
+    idx = bv_records_find(app->vault, cur_label);
+    bool ok = (idx >= 0) &&
+              bv_records_set(app->vault, (uint8_t)idx, type, cur_label, user, secret);
+    furi_mutex_release(app->vault_mutex);
+    printf(
+        ok ? "Updated '%s'. Run 'save' to persist to the implant.\r\n" :
+             "Edit failed (entry gone or field too long).\r\n",
+        cur_label);
+}
+
+// ANSI-colored, compact banner. Accents only (\e[33m yellow, \e[1;36m bold cyan,
+// \e[36m cyan; \e[0m reset); body text stays default-foreground so it's readable
+// on any terminal background. Biohazard glyph is UTF-8 U+2623 (\xe2\x98\xa3).
+// Screen-driving commands: post a custom event so the GUI thread switches to the
+// matching view. These return immediately — the operation runs on the device
+// (hold the implant to the Flipper); watch the Flipper screen for progress.
+static void bv_cli_read(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    UNUSED(args);
+    BioVault* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliRead);
+    printf("Read screen open on device. Hold the implant to the Flipper.\r\n");
+}
+
+static void bv_cli_load(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    UNUSED(args);
+    BioVault* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliLoad);
+    printf("Load screen open on device. Hold the implant to the Flipper,\r\n"
+           "then 'list' here to see the loaded entries.\r\n");
+}
+
+static void bv_cli_save(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    UNUSED(args);
+    BioVault* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliSave);
+    if(app->vault_loaded) {
+        printf("Save screen open on device. Press OK on the Flipper to write,\r\n"
+               "then hold the implant to the Flipper.\r\n");
+    } else {
+        printf("Vault not synced yet — opened the Load screen first (load before\r\n"
+               "save so the tag is never overwritten with un-synced data).\r\n");
+    }
+}
+
+static void bv_cli_wipe(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    UNUSED(args);
+    BioVault* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliZero);
+    printf("Wipe screen open on device. Press OK on the Flipper to confirm, then\r\n"
+           "hold the implant. Erases the tag AND clears the in-RAM vault.\r\n");
+}
+
 static void bv_cli_motd(void* context) {
     UNUSED(context);
-    printf("BioVault vault shell. Commands: list, get <label>, add <label>, "
-           "remove <label>, exit\r\n");
-    printf("Changes are in RAM; use 'Save to Implant' in the app to persist.\r\n");
+    printf("\r\n  \e[33m\xe2\x98\xa3\e[0m \e[1;36mBioVault\e[0m \e[36mv0.1\e[0m\r\n"
+           "  enclave-encrypted implant vault\r\n\r\n");
+    printf("\e[36mVault:\e[0m  list, get <label>, add <label>, edit <label>, remove <label>\r\n");
+    printf("\e[36mDevice:\e[0m read, load, save, wipe  (drive the on-device screens)\r\n");
+    printf("\e[36mShell:\e[0m  exit\r\n");
+    printf("Vault edits are in RAM; run 'save' to persist them to the implant.\r\n");
 }
 
 // The `biovault` command opens a subshell (biovault>:) with the vault commands,
@@ -1287,7 +1553,12 @@ static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
     cli_registry_add_command(registry, "list", CliCommandFlagParallelSafe, bv_cli_list, app);
     cli_registry_add_command(registry, "get", CliCommandFlagParallelSafe, bv_cli_get, app);
     cli_registry_add_command(registry, "add", CliCommandFlagParallelSafe, bv_cli_add, app);
+    cli_registry_add_command(registry, "edit", CliCommandFlagParallelSafe, bv_cli_edit, app);
     cli_registry_add_command(registry, "remove", CliCommandFlagParallelSafe, bv_cli_remove, app);
+    cli_registry_add_command(registry, "read", CliCommandFlagParallelSafe, bv_cli_read, app);
+    cli_registry_add_command(registry, "load", CliCommandFlagParallelSafe, bv_cli_load, app);
+    cli_registry_add_command(registry, "save", CliCommandFlagParallelSafe, bv_cli_save, app);
+    cli_registry_add_command(registry, "wipe", CliCommandFlagParallelSafe, bv_cli_wipe, app);
 
     CliShell* shell = cli_shell_alloc(bv_cli_motd, app, pipe, registry, NULL);
     cli_shell_set_prompt(shell, "biovault");
@@ -1323,6 +1594,7 @@ static BioVault* bv_alloc(void) {
     app->vault_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
     app->nfc = nfc_alloc();
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -1337,9 +1609,8 @@ static BioVault* bv_alloc(void) {
     submenu_add_item(app->menu, "Add Entry", BvMenuAdd, bv_menu_callback, app);
     submenu_add_item(app->menu, "Load from Implant", BvMenuLoad, bv_menu_callback, app);
     submenu_add_item(app->menu, "Read Implant", BvMenuRead, bv_menu_callback, app);
-    submenu_add_item(app->menu, "Seed Test Data", BvMenuSeed, bv_menu_callback, app);
     submenu_add_item(app->menu, "Save to Implant", BvMenuSave, bv_menu_callback, app);
-    submenu_add_item(app->menu, "Zero Sector 1", BvMenuZero, bv_menu_callback, app);
+    submenu_add_item(app->menu, "Wipe Implant", BvMenuZero, bv_menu_callback, app);
     submenu_add_item(app->menu, "Diagnostics", BvMenuDiag, bv_menu_callback, app);
     view_dispatcher_add_view(app->view_dispatcher, BvViewMenu, submenu_get_view(app->menu));
 
@@ -1380,6 +1651,12 @@ static BioVault* bv_alloc(void) {
     app->browser = submenu_alloc();
     view_set_previous_callback(submenu_get_view(app->browser), bv_browser_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewBrowser, submenu_get_view(app->browser));
+
+    // Per-entry action menu (View / Edit / Remove, rebuilt per selection)
+    app->entry_menu = submenu_alloc();
+    view_set_previous_callback(submenu_get_view(app->entry_menu), bv_entry_menu_previous);
+    view_dispatcher_add_view(
+        app->view_dispatcher, BvViewEntryMenu, submenu_get_view(app->entry_menu));
 
     // Entry detail view (scrollable text box, rebuilt per entry)
     app->detail = text_box_alloc();
@@ -1431,6 +1708,7 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewSave);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewLoad);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewBrowser);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewEntryMenu);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDetail);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewInput);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewZero);
@@ -1440,12 +1718,14 @@ static void bv_free(BioVault* app) {
     view_free(app->save_view);
     view_free(app->load_view);
     submenu_free(app->browser);
+    submenu_free(app->entry_menu);
     text_box_free(app->detail);
     bv_text_input_free(app->input);
     view_free(app->zero_view);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
+    furi_record_close(RECORD_NOTIFICATION);
     nfc_free(app->nfc);
     bv_records_clear(app->vault);
     free(app->vault);

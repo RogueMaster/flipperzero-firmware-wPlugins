@@ -7,6 +7,7 @@ build/
 .editorconfig
 .env
 .ufbt
+.claude
 
 # Personal implant dumps — never commit (contains your UID/NDEF; disposable)
 *.dump

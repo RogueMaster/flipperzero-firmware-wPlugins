@@ -34,10 +34,11 @@ Two non-obvious things this milestone nailed down for the ISO14443-3A poller:
 ### Roadmap
 
 - [x] M1 — raw Sector 1 read + hex display (verified on hardware)
-- [ ] M2 — enclave key management (device-unique KEK in slot 11) + AES-GCM decrypt of the on-tag blob
-- [ ] M3 — write path (compress → AEAD → `WRITE`/`SECTOR SELECT` to Sector 1)
+- [x] M2 — enclave key management (device-unique KEK in slot 11) + AES-GCM decrypt of the on-tag blob (verified)
+- [x] M3 — write path (compress → AEAD → `WRITE`/`SECTOR SELECT` to Sector 1); save + load round-trip verified on hardware
 - [ ] M4 — provisioning: `PWD_AUTH` + set `2K_PROT` / `AUTHLIM` (dev-tag-guarded, irreversible)
-- [ ] M5 — CSV parse + on-screen vault browser
+- [x] M5 — on-screen vault browser (scrollable detail view + extended keyboard); CSV parse dropped — the vault uses a length-prefixed binary format, not CSV
+- [x] CLI — `biovault list/get/add/remove` + interactive subshell over the vault
 
 ## Design
 

@@ -44,6 +44,29 @@ bool bv_records_add(
     return true;
 }
 
+bool bv_records_set(
+    BvVaultData* v,
+    uint8_t index,
+    BvEntryType type,
+    const char* label,
+    const char* user,
+    const char* secret) {
+    if(index >= v->count) return false;
+    if(label == NULL || secret == NULL) return false;
+    if(user == NULL) user = "";
+    if(strlen(label) == 0) return false;
+
+    // Validate into a temp first so a too-long field leaves the entry untouched.
+    BvEntry tmp;
+    memset(&tmp, 0, sizeof(tmp));
+    tmp.type = (uint8_t)type;
+    if(!field_set(tmp.label, BV_LABEL_CAP, label)) return false;
+    if(!field_set(tmp.user, BV_USER_CAP, user)) return false;
+    if(!field_set(tmp.secret, BV_SECRET_CAP, secret)) return false;
+    v->entries[index] = tmp;
+    return true;
+}
+
 bool bv_records_remove(BvVaultData* v, uint8_t index) {
     if(index >= v->count) return false;
     for(uint8_t i = index; i + 1 < v->count; i++) {
