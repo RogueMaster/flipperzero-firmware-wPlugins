@@ -117,6 +117,9 @@ typedef enum {
     BvViewSettings,
     BvViewProvision,
     BvViewReveal,
+    BvViewAuthWarn,
+    BvViewAuthPick,
+    BvViewAbout,
     BvViewDiag,
 } BvViewId;
 
@@ -142,6 +145,7 @@ typedef enum {
     BvMenuSave,
     BvMenuZero,
     BvMenuSettings,
+    BvMenuAbout,
     BvMenuDiag,
 } BvMenuIndex;
 
@@ -285,6 +289,9 @@ typedef struct {
     View* prov_view;
     bool prov_unprotect; // which provisioning op the poller should run
     View* reveal_view;
+    View* auth_warn; // AUTHLIM warning gate before the limit picker
+    Submenu* auth_pick; // AUTHLIM value picker
+    Widget* about;
     Widget* diag;
 
     // On-device Add/Edit Entry state.
@@ -1829,14 +1836,8 @@ static void bv_settings_readprot_changed(VariableItem* item) {
     bv_settings_save(&app->settings);
 }
 
-static void bv_settings_authlim_changed(VariableItem* item) {
-    BioVault* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, bv_authlim_text[idx]);
-    app->settings.authlim = idx; // 0 = off, else 2^idx attempts
-    bv_settings_save(&app->settings);
-}
-
+// AUTHLIM is destructive (a low value can permanently brick the tag), so it is
+// not a plain left/right toggle — OK on the row opens a warning, then a picker.
 static void bv_prov_open(BioVault* app, bool unprotect); // defined below
 
 static void bv_settings_enter(void* context, uint32_t index) {
@@ -1848,6 +1849,8 @@ static void bv_settings_enter(void* context, uint32_t index) {
     } else if(index == BvSetReveal) {
         // The reveal view auto-starts the UID-gated read via its enter callback.
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewReveal);
+    } else if(index == BvSetAuthLim) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewAuthWarn);
     }
 }
 
@@ -1868,11 +1871,10 @@ static void bv_build_settings(BioVault* app) {
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, bv_toggle_text[idx]);
 
-    item = variable_item_list_add(
-        app->settings_list, "Auth limit", COUNT_OF(bv_authlim_text), bv_settings_authlim_changed,
-        app);
+    // Auth limit is OK-gated (warning -> picker), not a left/right toggle, so it
+    // shows only its current value here.
+    item = variable_item_list_add(app->settings_list, "Auth limit", 1, NULL, app);
     idx = app->settings.authlim < COUNT_OF(bv_authlim_text) ? app->settings.authlim : 0;
-    variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, bv_authlim_text[idx]);
 
     // Action rows (pressed with OK; handled by the enter callback). One value,
@@ -1888,6 +1890,55 @@ static void bv_build_settings(BioVault* app) {
 static uint32_t bv_settings_previous(void* context) {
     UNUSED(context);
     return BvViewMenu;
+}
+
+// --- Auth limit warning + picker ---
+
+static void bv_auth_pick_callback(void* context, uint32_t index) {
+    BioVault* app = context;
+    app->settings.authlim = (uint8_t)index; // 0 = off, else 2^index attempts
+    bv_settings_save(&app->settings);
+    bv_build_settings(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSettings);
+}
+
+static void bv_build_auth_pick(BioVault* app) {
+    submenu_reset(app->auth_pick);
+    submenu_set_header(app->auth_pick, "Max failed unlocks");
+    for(uint8_t i = 0; i < COUNT_OF(bv_authlim_text); i++) {
+        submenu_add_item(app->auth_pick, bv_authlim_text[i], i, bv_auth_pick_callback, app);
+    }
+    submenu_set_selected_item(
+        app->auth_pick, app->settings.authlim < COUNT_OF(bv_authlim_text) ? app->settings.authlim : 0);
+}
+
+static void bv_auth_warn_draw(Canvas* canvas, void* model) {
+    UNUSED(model);
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "! Auth Limit !");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 22, "Failed unlocks past the limit");
+    canvas_draw_str(canvas, 2, 32, "PERMANENTLY lock the vault");
+    canvas_draw_str(canvas, 2, 42, "+ config pages. No undo.");
+    canvas_draw_str(canvas, 2, 52, "Recommend a high value.");
+    canvas_draw_str(canvas, 2, 62, "OK: choose  Back: cancel");
+}
+
+static bool bv_auth_warn_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort) return false;
+    if(event->key == InputKeyOk) {
+        bv_build_auth_pick(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewAuthPick);
+        return true;
+    }
+    return false; // Back -> previous callback (settings)
+}
+
+static uint32_t bv_auth_return_settings(void* context) {
+    UNUSED(context);
+    return BvViewSettings;
 }
 
 
@@ -2116,6 +2167,9 @@ static void bv_menu_callback(void* context, uint32_t index) {
         bv_build_settings(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSettings);
         break;
+    case BvMenuAbout:
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewAbout);
+        break;
     case BvMenuDiag:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewDiag);
         break;
@@ -2125,6 +2179,45 @@ static void bv_menu_callback(void* context, uint32_t index) {
 }
 
 static uint32_t bv_diag_previous(void* context) {
+    UNUSED(context);
+    return BvViewMenu;
+}
+
+// --- About / usage ---
+
+static void bv_build_about(BioVault* app) {
+    widget_reset(app->about);
+    widget_add_text_scroll_element(
+        app->about,
+        0,
+        0,
+        128,
+        64,
+        "\e#BioVault v0.1\n"
+        "by Shain Lakin\n"
+        "\n"
+        "Enclave-encrypted vault on an implantable NFC tag: the ciphertext lives "
+        "on the tag, the AES-256-GCM key in this Flipper's secure enclave. Neither "
+        "alone reveals the vault.\n"
+        "\n"
+        "The vault lives in Sector 1 only. Sector 0 user data is left untouched, "
+        "so the tag still works as a normal NFC tag/NDEF.\n"
+        "\n"
+        "\e#Hardware\n"
+        "Dangerous Things xSIID implant, or any NTAG I2C Plus 2K (NXP NT3H2211).\n"
+        "\n"
+        "\e#Usage\n"
+        "Load reads the vault from the tag; edits stay in RAM until Save writes "
+        "them back. Vault browses entries (view / send / edit / remove). Send types "
+        "a field to a host over USB-HID. Settings holds USB auto-return and "
+        "optional tag password protection. All commands are also exposed through "
+        "the 'biovault' CLI.\n"
+        "\n"
+        "\e#Repo\n"
+        "github.com/flamebarke/biovault-flipper\n");
+}
+
+static uint32_t bv_about_previous(void* context) {
     UNUSED(context);
     return BvViewMenu;
 }
@@ -2744,6 +2837,7 @@ static BioVault* bv_alloc(void) {
     submenu_add_item(app->menu, "Save to Implant", BvMenuSave, bv_menu_callback, app);
     submenu_add_item(app->menu, "Wipe Implant", BvMenuZero, bv_menu_callback, app);
     submenu_add_item(app->menu, "Settings", BvMenuSettings, bv_menu_callback, app);
+    submenu_add_item(app->menu, "About", BvMenuAbout, bv_menu_callback, app);
     submenu_add_item(app->menu, "Diagnostics", BvMenuDiag, bv_menu_callback, app);
     view_dispatcher_add_view(app->view_dispatcher, BvViewMenu, submenu_get_view(app->menu));
 
@@ -2858,6 +2952,24 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(app->reveal_view, bv_reveal_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewReveal, app->reveal_view);
 
+    // Auth limit warning gate + picker
+    app->auth_warn = view_alloc();
+    view_set_context(app->auth_warn, app);
+    view_set_draw_callback(app->auth_warn, bv_auth_warn_draw);
+    view_set_input_callback(app->auth_warn, bv_auth_warn_input);
+    view_set_previous_callback(app->auth_warn, bv_auth_return_settings);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewAuthWarn, app->auth_warn);
+
+    app->auth_pick = submenu_alloc();
+    view_set_previous_callback(submenu_get_view(app->auth_pick), bv_auth_return_settings);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewAuthPick, submenu_get_view(app->auth_pick));
+
+    // About / usage
+    app->about = widget_alloc();
+    bv_build_about(app);
+    view_set_previous_callback(widget_get_view(app->about), bv_about_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewAbout, widget_get_view(app->about));
+
     // Diagnostics view
     app->diag = widget_alloc();
     bv_build_diag(app);
@@ -2910,6 +3022,9 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewProvision);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewReveal);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewAuthWarn);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewAuthPick);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewAbout);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
     view_free(app->read_view);
@@ -2925,6 +3040,9 @@ static void bv_free(BioVault* app) {
     variable_item_list_free(app->settings_list);
     view_free(app->prov_view);
     view_free(app->reveal_view);
+    view_free(app->auth_warn);
+    submenu_free(app->auth_pick);
+    widget_free(app->about);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
