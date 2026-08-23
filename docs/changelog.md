@@ -1,3 +1,11 @@
+v1.2:
+- Added a settings menu with editable ping IP and internet check timer
+- Added reset behavior that restores the default IP and timer and clears remembered Wi-Fi networks
+- Added return from the monitoring screen back to Wi-Fi scanning with the Back button
+- Updated LED behavior: steady green when internet is online, 1-second red blinking while offline
+- Polished the settings screen header and selection visuals
+- Added validation for saved ping IP settings with fallback to the default target
+
 v1.1:
 - Added persistent storage for up to 16 Wi-Fi credentials
 - Added one-button connection to saved networks
