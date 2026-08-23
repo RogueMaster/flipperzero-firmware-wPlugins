@@ -509,7 +509,7 @@ static void wifi_settings_menu_draw_callback(Canvas* canvas, void* context) {
         canvas_set_color(canvas, ColorBlack);
     }
 
-    canvas_draw_str(canvas, 4, 62, "OK: open   Back: exit");
+    elements_button_center(canvas, "Open");
 }
 
 static bool wifi_settings_menu_input_callback(InputEvent* event, void* context) {
@@ -643,13 +643,7 @@ static bool wifi_timer_input_callback(InputEvent* event, void* context) {
                     }
                 }
             } else if(event->key == InputKeyBack) {
-                if(event->type == InputTypeLong) {
-                    cancel = true;
-                } else if(len > 0) {
-                    model->value[len - 1] = '\0';
-                } else {
-                    cancel = true;
-                }
+                cancel = true;
             } else {
                 consumed = false;
             }
@@ -1523,13 +1517,7 @@ static bool wifi_ip_input_callback(InputEvent* event, void* context) {
                     }
                 }
             } else if(event->key == InputKeyBack) {
-                if(event->type == InputTypeLong) {
-                    cancel = true;
-                } else if(len > 0) {
-                    model->ip[len - 1] = '\0';
-                } else {
-                    cancel = true;
-                }
+                cancel = true;
             } else {
                 consumed = false;
             }
