@@ -334,7 +334,7 @@ What is left to do by hand:
 2. Fill in `commit_sha` in `catalog/manifest.yml`.
 3. Fork the catalog, put the manifest at
    `applications/Sub-GHz/tpms_bridge/manifest.yml` on a branch named like
-   `<username>/tpms_bridge_1.0`, and validate it locally:
+   `<username>/tpms_bridge_1.1`, and validate it locally:
 
    ```sh
    python3 -m venv venv && source venv/bin/activate

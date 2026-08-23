@@ -10,5 +10,5 @@ App(
     fap_description="Reads car tyre pressure sensors: 39 protocols, pressure, temperature, signal",
     fap_author="Vishov Vladimir",
     fap_weburl="https://github.com/VishovVladimir/flipper-zero-tpms",
-    fap_version="1.0",
+    fap_version="1.1",
 )
