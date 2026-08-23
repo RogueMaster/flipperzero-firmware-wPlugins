@@ -160,6 +160,10 @@ typedef enum {
     BvCustomEventCliLoad,
     BvCustomEventCliSave,
     BvCustomEventCliZero,
+    BvCustomEventCliReveal,
+    BvCustomEventCliSettings, // CLI changed a setting; rebuild the Settings list
+    BvCustomEventCliProtect,
+    BvCustomEventCliUnprotect,
 } BvCustomEvent;
 
 // Which NFC operation the shared poller is currently running.
@@ -947,6 +951,9 @@ static BvError bv_do_reveal(BioVault* app, Iso14443_3aPoller* poller, bool* retr
         true);
     memset(pwd, 0, sizeof(pwd));
     memset(pack, 0, sizeof(pack));
+    // Wake a CLI `reveal` waiting to print the result (shared with read; the CLI
+    // only ever waits on one at a time).
+    furi_event_flag_set(app->read_done, BV_READ_DONE_FLAG);
     FURI_LOG_I(TAG, "reveal: err=%d", err);
     return err;
 }
@@ -2158,6 +2165,22 @@ static bool bv_custom_event_callback(void* context, uint32_t event) {
     case BvCustomEventCliZero:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewZero);
         return true;
+    case BvCustomEventCliReveal:
+        // Opens the reveal screen; the UID/auth gate still applies. Its enter
+        // callback auto-starts the read, and the result is shown on-device and
+        // returned to the waiting CLI `reveal` command.
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewReveal);
+        return true;
+    case BvCustomEventCliSettings:
+        bv_build_settings(app); // reflect a CLI settings change on the GUI list
+        return true;
+    case BvCustomEventCliProtect:
+        // Lands on the confirm screen; OK on the device commits the write.
+        bv_prov_open(app, false);
+        return true;
+    case BvCustomEventCliUnprotect:
+        bv_prov_open(app, true);
+        return true;
     default:
         return false;
     }
@@ -2495,12 +2518,146 @@ static void bv_cli_wipe(PipeSide* pipe, FuriString* args, void* context) {
            "hold the implant. Erases the tag AND clears the in-RAM vault.\r\n");
 }
 
+// --- Settings / reveal over CLI ---
+
+static const char* const bv_cli_authlim[] = {"off", "2", "4", "8", "16", "32", "64", "128"};
+
+static bool bv_cli_onoff(const char* v, bool* out) {
+    if(strcmp(v, "on") == 0 || strcmp(v, "1") == 0) {
+        *out = true;
+        return true;
+    }
+    if(strcmp(v, "off") == 0 || strcmp(v, "0") == 0) {
+        *out = false;
+        return true;
+    }
+    return false;
+}
+
+static void bv_cli_settings(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    BioVault* app = context;
+    char key[16] = {0};
+    char val[16] = {0};
+    sscanf(furi_string_get_cstr(args), "%15s %15s", key, val);
+
+    if(!strlen(key)) {
+        printf("Settings:\r\n");
+        printf("  autoreturn   %s\r\n", app->settings.send_newline ? "on" : "off");
+        printf("  readprotect  %s\r\n", app->settings.protect_reads ? "on" : "off");
+        printf(
+            "  authlim      %s\r\n",
+            bv_cli_authlim[app->settings.authlim < 8 ? app->settings.authlim : 0]);
+        printf("  protected    %s (status)\r\n", app->settings.tag_protected ? "yes" : "no");
+        printf("Set: settings <autoreturn|readprotect> <on|off>\r\n");
+        printf("     settings authlim <off|2|4|8|16|32|64|128>\r\n");
+        return;
+    }
+    if(!strlen(val)) {
+        printf("Usage: settings %s <value>\r\n", key);
+        return;
+    }
+
+    bool bv = false;
+    if(strcmp(key, "autoreturn") == 0 && bv_cli_onoff(val, &bv)) {
+        app->settings.send_newline = bv;
+    } else if(strcmp(key, "readprotect") == 0 && bv_cli_onoff(val, &bv)) {
+        app->settings.protect_reads = bv;
+    } else if(strcmp(key, "authlim") == 0) {
+        int idx = -1;
+        for(int i = 0; i < 8; i++)
+            if(strcmp(val, bv_cli_authlim[i]) == 0) idx = i;
+        if(idx < 0) {
+            printf("Bad authlim '%s' (off|2|4|8|16|32|64|128)\r\n", val);
+            return;
+        }
+        app->settings.authlim = (uint8_t)idx;
+    } else {
+        printf("Bad setting/value. Try 'settings' for usage.\r\n");
+        return;
+    }
+    bv_settings_save(&app->settings);
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliSettings);
+    printf("OK: %s = %s\r\n", key, val);
+}
+
+// Open the on-device Protect / Unprotect confirm screen. The write itself is
+// committed with OK on the Flipper (kept on-device: it's an irreversible Sector
+// 0 write), then hold the implant.
+static void bv_cli_protect(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    UNUSED(args);
+    BioVault* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliProtect);
+    printf("Protect screen open on device. Review 'settings', press OK on the\r\n"
+           "Flipper to confirm, then hold the implant. PWD/PACK show on-device\r\n"
+           "(or run 'reveal' after).\r\n");
+}
+
+static void bv_cli_unprotect(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    UNUSED(args);
+    BioVault* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliUnprotect);
+    printf("Unprotect screen open on device. Press OK on the Flipper to confirm,\r\n"
+           "then hold the implant.\r\n");
+}
+
+// Reveal the implant's PWD/PACK to the terminal. Drives the on-device reveal, so
+// the same gate applies: the provisioned implant must authenticate first.
+static void bv_cli_reveal(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    UNUSED(args);
+    BioVault* app = context;
+    if(!app->settings.tag_protected) {
+        printf("No provisioned implant. Protect one first.\r\n");
+        return;
+    }
+    furi_event_flag_clear(app->read_done, BV_READ_DONE_FLAG);
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliReveal);
+    printf("Hold the provisioned implant to the Flipper...\r\n");
+    fflush(stdout);
+
+    uint32_t flags =
+        furi_event_flag_wait(app->read_done, BV_READ_DONE_FLAG, FuriFlagWaitAny, 30000);
+    if(flags & FuriFlagError) {
+        printf("Timed out.\r\n");
+        return;
+    }
+
+    BvRevealState st = BvRevealError;
+    BvError err = BvErrNone;
+    uint8_t pwd[4] = {0};
+    uint8_t pack[2] = {0};
+    with_view_model(
+        app->reveal_view,
+        BvRevealModel * m,
+        {
+            st = m->state;
+            err = m->error;
+            memcpy(pwd, m->pwd, sizeof(pwd));
+            memcpy(pack, m->pack, sizeof(pack));
+        },
+        false);
+    if(st == BvRevealShown) {
+        printf("PWD  %02X%02X%02X%02X\r\n", pwd[0], pwd[1], pwd[2], pwd[3]);
+        printf("PACK %02X%02X\r\n", pack[0], pack[1]);
+        printf("pm3: hf mfu dump -k %02X%02X%02X%02X\r\n", pwd[0], pwd[1], pwd[2], pwd[3]);
+    } else {
+        printf("Reveal failed: %s\r\n", bv_error_text(err));
+    }
+    memset(pwd, 0, sizeof(pwd));
+    memset(pack, 0, sizeof(pack));
+}
+
 static void bv_cli_motd(void* context) {
     UNUSED(context);
     printf("\r\n  \e[33m\xe2\x98\xa3\e[0m \e[1;36mBioVault\e[0m \e[36mv0.1\e[0m\r\n"
            "  enclave-encrypted implant vault\r\n\r\n");
     printf("\e[36mVault:\e[0m  list, get <label>, add <label>, edit <label>, remove <label>\r\n");
-    printf("\e[36mDevice:\e[0m read, load, save, wipe  (drive the on-device screens)\r\n");
+    printf("\e[36mDevice:\e[0m read, load, save, wipe, reveal  (drive the on-device screens)\r\n");
+    printf("\e[36mProtect:\e[0m protect, unprotect  (confirm on the Flipper)\r\n");
+    printf("\e[36mConfig:\e[0m settings [<key> <value>]\r\n");
     printf("\e[36mShell:\e[0m  exit\r\n");
     printf("Vault edits are in RAM; run 'save' to persist them to the implant.\r\n");
 }
@@ -2524,6 +2681,13 @@ static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
     cli_registry_add_command(registry, "load", CliCommandFlagParallelSafe, bv_cli_load, app);
     cli_registry_add_command(registry, "save", CliCommandFlagParallelSafe, bv_cli_save, app);
     cli_registry_add_command(registry, "wipe", CliCommandFlagParallelSafe, bv_cli_wipe, app);
+    cli_registry_add_command(registry, "reveal", CliCommandFlagParallelSafe, bv_cli_reveal, app);
+    cli_registry_add_command(
+        registry, "protect", CliCommandFlagParallelSafe, bv_cli_protect, app);
+    cli_registry_add_command(
+        registry, "unprotect", CliCommandFlagParallelSafe, bv_cli_unprotect, app);
+    cli_registry_add_command(
+        registry, "settings", CliCommandFlagParallelSafe, bv_cli_settings, app);
 
     CliShell* shell = cli_shell_alloc(bv_cli_motd, app, pipe, registry, NULL);
     cli_shell_set_prompt(shell, "biovault");
