@@ -865,6 +865,12 @@ static BvError bv_do_provision(BioVault* app, Iso14443_3aPoller* poller, bool* r
 
     if(err == BvErrNone) {
         app->settings.tag_protected = !unprotect;
+        if(unprotect) {
+            // The tag is back to factory, so return the provisioning parameters
+            // to their defaults too (Read protect off, Auth limit off).
+            app->settings.protect_reads = false;
+            app->settings.authlim = 0;
+        }
         bv_settings_save(&app->settings);
     }
 
@@ -1877,6 +1883,7 @@ static uint32_t bv_settings_previous(void* context) {
     return BvViewMenu;
 }
 
+
 // --- Provisioning confirm/progress view ---
 
 static void bv_prov_draw(Canvas* canvas, void* model) {
@@ -2119,6 +2126,9 @@ static bool bv_custom_event_callback(void* context, uint32_t event) {
     BioVault* app = context;
     switch(event) {
     case BvCustomEventPollerDone:
+        // Provisioning changes tag_protected (and Unprotect resets the params),
+        // so refresh the Settings list to match before it's shown again.
+        if(app->op == BvOpProvision) bv_build_settings(app);
         bv_poller_stop(app); // reap the finished poller on the main thread
         return true;
     case BvCustomEventHidDone:
