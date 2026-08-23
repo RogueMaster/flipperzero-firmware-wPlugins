@@ -223,12 +223,22 @@ static void bv_text_input_view_draw_callback(Canvas* canvas, void* _model) {
     }
 }
 
+// The ±1 shifts below keep the cursor visually aligned between horizontally
+// offset rows; they can push the column past the end of the destination row
+// (our row 3 gained the keyboard-switch key vs. the stock layout), so always
+// clamp to the row's last key.
+static void bv_clamp_column(TextInputModel* model) {
+    uint8_t max_column = get_row_size(model->selected_row) - 1;
+    if(model->selected_column > max_column) model->selected_column = max_column;
+}
+
 static void bv_text_input_handle_up(TextInputModel* model) {
     if(model->selected_row > 0) {
         model->selected_row--;
         if(model->selected_column > get_row_size(model->selected_row) - 6) {
             model->selected_column = model->selected_column + 1;
         }
+        bv_clamp_column(model);
     }
 }
 
@@ -238,6 +248,7 @@ static void bv_text_input_handle_down(TextInputModel* model) {
         if(model->selected_column > get_row_size(model->selected_row) - 4) {
             model->selected_column = model->selected_column - 1;
         }
+        bv_clamp_column(model);
     }
 }
 

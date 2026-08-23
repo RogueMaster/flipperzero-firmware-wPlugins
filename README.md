@@ -38,7 +38,13 @@ Two non-obvious things this milestone nailed down for the ISO14443-3A poller:
 - [x] M3 — write path (compress → AEAD → `WRITE`/`SECTOR SELECT` to Sector 1); save + load round-trip verified on hardware
 - [ ] M4 — provisioning: `PWD_AUTH` + set `2K_PROT` / `AUTHLIM` (dev-tag-guarded, irreversible)
 - [x] M5 — on-screen vault browser (scrollable detail view + extended keyboard); CSV parse dropped — the vault uses a length-prefixed binary format, not CSV
-- [x] CLI — `biovault list/get/add/remove` + interactive subshell over the vault
+- [x] CLI — `biovault list/get/add/edit/remove` + interactive subshell over the vault; `read` prints a hex+ASCII Sector 1 dump to the terminal
+- [x] USB-HID send — type an entry's username / password / data into a host as keystrokes (per-entry **Send** action), optional auto-Enter after credentials
+- [x] Settings — persisted on-device preferences (`bv_settings`), starting with the auto-Enter toggle
+- [x] Reliability hardening — bounded read/write retries (no infinite silent loop), corrupt-keystore re-key guard, header-page-last save ordering, subshell-safe teardown
+
+Everyday use is feature-complete; **M4 (provisioning)** is the only open milestone,
+and the riskiest — it writes irreversible password/lock config to the tag.
 
 ## Design
 
@@ -86,8 +92,44 @@ The original used `openssl aes-256-cbc` (unauthenticated). This port uses
 blob is length-prefixed so there is no fragile carve on runs of null bytes:
 
 ```
-[magic 'BV':2][ver:1][wrapped-DEK][nonce:12][ct_len:2][ciphertext+tag]
+on tag  : [magic 'BV':2][ver:1][nonce:12][ct_len:2 LE][ciphertext:ct_len][tag:16]
+keystore: [magic 'BVK1':4][wrap_iv:16][wrapped_dek:32]   (Flipper-local, not on tag)
 ```
+
+The wrapped DEK is **not** written to the implant — it lives in the Flipper's
+own app-data keystore (`/ext/apps_data/biovault/keystore.bin`), so a rotation or
+future PIN change never requires a tag write. A keystore that exists but doesn't
+parse (torn write, SD corruption) is treated as an error and refused, never
+silently re-keyed — re-keying would orphan the on-tag ciphertext forever.
+
+### Interrupted-save safety
+
+Sector 1 is written header-page-**last**: page 0 (magic + nonce + length) is
+blanked first, the ciphertext pages go down, and the real header is written only
+once everything else is on the tag. A save torn mid-write (implant pulled away)
+therefore reads back on the next Load as an empty/foreign tag — never as a valid
+header framing stale ciphertext that would fail GCM auth with nothing to fall
+back to. The continuous poll-retry loop also usually just re-completes the write
+while the implant is still coupled.
+
+### USB-HID send
+
+Any entry can be typed into a host over USB as if from a keyboard: **Vault → an
+entry → Send (USB)**, then pick Username / Password (or Data for a note). The
+Flipper temporarily switches its USB device from CDC (the serial CLI) to HID,
+waits for the host to re-enumerate and its HID driver to settle, types the field
+via the ASCII→keycode map, then restores the previous USB mode. The typed field
+is snapshotted under the vault lock and wiped from RAM as soon as the send
+completes; it runs on a short worker thread so the UI stays responsive. With the
+**Auto-Enter** setting on, a Return is appended after a username/password (notes
+are left alone so a data dump isn't auto-submitted).
+
+### Settings
+
+`bv_settings` persists on-device preferences to
+`/ext/apps_data/biovault/settings.bin` (magic-prefixed, defaults-on-missing, so
+new fields are backward-compatible). Currently one toggle — **Auto-Enter** — with
+room for the M4/PIN preferences to slot in as new `VariableItemList` rows.
 
 ### The NFC handshake gotcha
 
@@ -106,7 +148,10 @@ ufbt              # build -> dist/biovault.fap
 ufbt launch       # build, upload, and run on a connected Flipper
 ```
 
-Milestone 1 UI: **OK** reads Sector 1, **Up/Down** scroll the hex, **Back** exits.
+The app opens on **Load from Implant** (so Save never overwrites a tag with an
+un-synced vault), then drops into a menu: **Vault** (browse / view / send / edit
+/ remove entries), **Add Entry**, **Load** / **Read** / **Save** / **Wipe
+Implant**, **Settings**, and **Diagnostics** (crypto self-test results).
 
 ## Credit
 

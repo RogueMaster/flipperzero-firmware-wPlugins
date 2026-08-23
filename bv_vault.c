@@ -22,17 +22,28 @@
 
 // --- Keystore file I/O ---
 
-static bool ks_read(uint8_t* buf, size_t len) {
+typedef enum {
+    KsReadOk,
+    KsReadMissing, // no keystore file: safe to create a fresh one
+    KsReadBad, // file exists but is unreadable/short: must NOT re-key
+} KsReadStatus;
+
+static KsReadStatus ks_read(uint8_t* buf, size_t len) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
-    bool ok = false;
+    KsReadStatus status;
     if(storage_file_open(file, KEYSTORE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        ok = storage_file_read(file, buf, len) == len;
+        status = (storage_file_read(file, buf, len) == len) ? KsReadOk : KsReadBad;
         storage_file_close(file);
+    } else {
+        FileInfo info;
+        status = (storage_common_stat(storage, KEYSTORE_PATH, &info) == FSE_NOT_EXIST) ?
+                     KsReadMissing :
+                     KsReadBad;
     }
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
-    return ok;
+    return status;
 }
 
 static bool ks_write(const uint8_t* buf, size_t len) {
@@ -58,7 +69,9 @@ bool bv_vault_key_open(BvVaultKey* out) {
     }
 
     uint8_t ks[KS_SIZE];
-    if(ks_read(ks, sizeof(ks)) && memcmp(ks, KS_MAGIC, KS_MAGIC_LEN) == 0) {
+    KsReadStatus status = ks_read(ks, sizeof(ks));
+    if(status == KsReadOk && memcmp(ks, KS_MAGIC, KS_MAGIC_LEN) != 0) status = KsReadBad;
+    if(status == KsReadOk) {
         const uint8_t* wrap_iv = ks + KS_MAGIC_LEN;
         const uint8_t* wrapped = ks + KS_MAGIC_LEN + BV_WRAP_IV_SIZE;
         bool ok = bv_crypto_kek_unwrap(wrap_iv, wrapped, out->dek);
@@ -66,8 +79,16 @@ bool bv_vault_key_open(BvVaultKey* out) {
         if(!ok) FURI_LOG_E(TAG, "DEK unwrap failed (enclave key changed?)");
         return ok;
     }
+    if(status == KsReadBad) {
+        // A keystore that exists but doesn't parse is a torn write or SD
+        // corruption, not a fresh device. Re-keying here would orphan the
+        // on-tag vault forever, so refuse instead of generating a new DEK.
+        FURI_LOG_E(TAG, "keystore present but unreadable/corrupt; refusing to re-key");
+        return false;
+    }
 
-    // First use: generate a fresh random DEK, wrap it, persist the keystore.
+    // First use (no keystore file): generate a fresh random DEK, wrap it,
+    // persist the keystore.
     uint8_t wrap_iv[BV_WRAP_IV_SIZE];
     uint8_t wrapped[BV_DEK_SIZE];
     furi_hal_random_fill_buf(out->dek, BV_DEK_SIZE);

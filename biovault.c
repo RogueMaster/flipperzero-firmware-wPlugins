@@ -14,6 +14,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/text_box.h>
+#include <gui/modules/variable_item_list.h>
 #include <input/input.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
@@ -33,6 +34,8 @@
 #include "bv_vault.h"
 #include "bv_records.h"
 #include "bv_text_input.h"
+#include "bv_hid.h"
+#include "bv_settings.h"
 #include "biovault_icons.h" // generated from images/ (fap_icon_assets)
 
 #define TAG "BioVault"
@@ -56,6 +59,8 @@ static const uint8_t NTAG_I2C_PLUS_2K_VERSION[] =
 
 #define FWT_NORMAL 60000u
 #define FWT_SECTOR_ACK 20000u
+
+#define BV_READ_DONE_FLAG (1u << 0) // set on read_done when a read terminates
 
 typedef enum {
     BvStateIdle,
@@ -85,17 +90,27 @@ typedef enum {
     BvViewBrowser,
     BvViewEntryMenu,
     BvViewDetail,
+    BvViewSendPick,
+    BvViewSendDo,
     BvViewInput,
     BvViewZero,
+    BvViewSettings,
     BvViewDiag,
 } BvViewId;
 
 // Per-entry action menu (opened by selecting an entry in the browser).
 typedef enum {
     BvEntryActView,
+    BvEntryActSend,
     BvEntryActEdit,
     BvEntryActRemove,
 } BvEntryAction;
+
+// Which field the Send picker types over USB HID.
+typedef enum {
+    BvSendUser,
+    BvSendSecret,
+} BvSendField;
 
 typedef enum {
     BvMenuVault,
@@ -104,6 +119,7 @@ typedef enum {
     BvMenuRead,
     BvMenuSave,
     BvMenuZero,
+    BvMenuSettings,
     BvMenuDiag,
 } BvMenuIndex;
 
@@ -116,6 +132,7 @@ typedef enum {
 
 typedef enum {
     BvCustomEventPollerDone = 1,
+    BvCustomEventHidDone, // HID send worker finished; reap it on the main thread
     // Posted from the CLI thread to drive the GUI screens remotely.
     BvCustomEventCliRead,
     BvCustomEventCliLoad,
@@ -169,6 +186,18 @@ typedef struct {
     uint8_t count;
 } BvLoadModel;
 
+typedef enum {
+    BvSendSending,
+    BvSendDone,
+    BvSendNoUsb,
+    BvSendBusy,
+} BvSendState;
+
+typedef struct {
+    BvSendState state;
+    char field[16]; // "Username" / "Password" / "Data" — what is being typed
+} BvSendModel;
+
 typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
@@ -178,10 +207,21 @@ typedef struct {
     View* load_view;
     Submenu* browser;
     Submenu* entry_menu;
+    Submenu* send_pick;
+    View* send_view;
     TextBox* detail;
     char detail_text[BV_LABEL_CAP + BV_USER_CAP + BV_SECRET_CAP + 32];
     BvTextInput* input;
+
+    // USB-HID send: the field text is snapshotted here so the worker thread
+    // never touches the vault while typing. Sized for the secret plus an
+    // optional trailing newline (see BvSettings.send_newline).
+    FuriThread* send_thread;
+    char send_text[BV_SECRET_CAP + 2];
+    BvHidResult send_result;
     View* zero_view;
+    VariableItemList* settings_list;
+    BvSettings settings;
     Widget* diag;
 
     // On-device Add/Edit Entry state.
@@ -196,12 +236,17 @@ typedef struct {
     NfcPoller* poller;
     bool poller_running;
     BvOp op;
+    uint8_t op_fails; // consecutive partial-coupling failures for the current op
+    uint8_t* save_blob; // sealed vault blob, prepared once per save op (heap)
+    size_t save_blob_len;
+    volatile uint32_t cli_sessions; // open `biovault` subshells (see bv_free)
     NotificationApp* notifications;
 
     BvVaultData* vault; // in-RAM vault (heap; ~3.8KB, never on the stack)
     FuriMutex* vault_mutex; // guards `vault` (GUI thread vs. CLI thread)
     uint8_t selected; // entry index shown in the detail view
     bool vault_loaded; // true once synced with the tag (or a known-empty tag)
+    FuriEventFlag* read_done; // signals a CLI `read` when the dump is ready
 
     bool enclave_ok;
     bool gcm_ok;
@@ -270,21 +315,33 @@ static bool bv_read_pages(Iso14443_3aPoller* poller, uint8_t page, uint8_t out[1
 }
 
 // Transient tag-communication failures keep polling silently (the tag may just
-// be misaligned — common with an implant); everything else is reported.
-static bool bv_err_transient(BvError e) {
-    return e == BvErrNoTag || e == BvErrSectorSelect || e == BvErrRead || e == BvErrWrite;
+// be misaligned — common with an implant). No-tag stays transient forever, but
+// partial-coupling failures (sector select / read / write) get a retry budget:
+// a fault that persists across this many attempts is a real error and must be
+// surfaced, not retried silently forever.
+#define BV_OP_MAX_FAILS 15
+
+static bool bv_op_should_retry(BioVault* app, BvError e) {
+    if(e == BvErrNoTag) return true;
+    if(e == BvErrSectorSelect || e == BvErrRead || e == BvErrWrite) {
+        return ++app->op_fails < BV_OP_MAX_FAILS;
+    }
+    return false;
 }
 
 // Full read sequence (runs on the NFC worker thread). Commits into the read
 // model on success or terminal error; transient errors are not committed so the
 // "hold implant" screen stays up while polling continues.
-static BvError bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
+static BvError bv_do_read(BioVault* app, Iso14443_3aPoller* poller, bool* retry) {
     BvError err = BvErrNone;
 
     Iso14443_3aData* iso_data = iso14443_3a_alloc();
     Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
     iso14443_3a_free(iso_data);
-    if(act != Iso14443_3aErrorNone) return BvErrNoTag;
+    if(act != Iso14443_3aErrorNone) {
+        *retry = true;
+        return BvErrNoTag;
+    }
 
     uint8_t version[8] = {0};
     bool version_ok = bv_get_version(poller, version);
@@ -311,7 +368,8 @@ static BvError bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
         }
     }
 
-    if(bv_err_transient(err)) return err;
+    *retry = bv_op_should_retry(app, err);
+    if(*retry) return err;
 
     with_view_model(
         app->read_view,
@@ -330,6 +388,8 @@ static BvError bv_do_read(BioVault* app, Iso14443_3aPoller* poller) {
             }
         },
         true);
+    // Wake any CLI `read` waiting to print the dump (harmless for GUI reads).
+    furi_event_flag_set(app->read_done, BV_READ_DONE_FLAG);
     FURI_LOG_I(TAG, "read complete: err=%d bytes=%u", err, (unsigned)got);
     return err;
 }
@@ -346,7 +406,7 @@ static bool bv_write_page(Iso14443_3aPoller* poller, uint8_t page, const uint8_t
 }
 
 // Zero all of Sector 1 user memory (runs on the NFC worker thread).
-static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
+static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller, bool* retry) {
     BvError err = BvErrNone;
     uint16_t written = 0;
 
@@ -376,7 +436,8 @@ static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
         }
     }
 
-    if(bv_err_transient(err)) return err;
+    *retry = bv_op_should_retry(app, err);
+    if(*retry) return err;
 
     // Wipe is a full reset: on success, clear the in-RAM vault too so RAM matches
     // the now-blank tag. vault_loaded stays true (empty + blank is a synced state)
@@ -401,60 +462,77 @@ static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller) {
     return err;
 }
 
-// Serialize + seal the in-RAM vault, then write the blob across Sector 1 pages
-// (last page zero-padded). Runs on the NFC worker thread.
-static BvError bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
+// Serialize + seal the in-RAM vault into app->save_blob. Runs on the GUI thread
+// once per save op (bv_start_save), so the poll-cycle retries in bv_do_save
+// never repeat the serialization/enclave/AEAD work.
+static BvError bv_prepare_save_blob(BioVault* app) {
+    if(!app->save_blob) app->save_blob = malloc(1088);
+    app->save_blob_len = 0;
+
+    uint8_t* pt = malloc(4096); // too big for the stack
+    size_t pt_len = 0;
+    BvError err = BvErrNone;
+
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    bool ser_ok = bv_records_serialize(app->vault, pt, 4096, &pt_len);
+    furi_mutex_release(app->vault_mutex);
+
+    if(!ser_ok || pt_len + BV_BLOB_OVERHEAD > SECTOR1_BYTES) {
+        err = BvErrTooBig;
+    } else {
+        BvVaultKey key;
+        if(bv_vault_key_open(&key)) {
+            if(!bv_vault_encrypt(&key, pt, pt_len, app->save_blob, &app->save_blob_len)) {
+                err = BvErrCrypto;
+            }
+            bv_vault_key_clear(&key);
+        } else {
+            err = BvErrCrypto;
+        }
+    }
+    memset(pt, 0, 4096);
+    free(pt);
+    return err;
+}
+
+// Write the prepared blob (app->save_blob) across Sector 1 pages (last page
+// zero-padded). Runs on the NFC worker thread.
+static BvError bv_do_save(BioVault* app, Iso14443_3aPoller* poller, bool* retry) {
     BvError err = BvErrNone;
     uint16_t written = 0;
-    size_t blob_len = 0;
 
-    // Check for the tag first: this path re-runs on every poll cycle while the
-    // user positions the implant, so the no-tag exit must stay cheap (no
-    // serialization, no enclave traffic).
     Iso14443_3aData* iso_data = iso14443_3a_alloc();
     Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso_data);
     iso14443_3a_free(iso_data);
     uint8_t version[8] = {0};
     bool vok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
-    if(!vok) return BvErrNoTag;
+    if(!vok) {
+        *retry = true;
+        return BvErrNoTag;
+    }
     bool vmatch = memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0;
 
-    // Prepare the sealed blob (heap; these buffers are too big for the stack).
-    uint8_t* pt = malloc(4096);
-    uint8_t* blob = malloc(1088);
-    size_t pt_len = 0;
-    bool prepared = false;
-
-    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-    bool ser_ok = bv_records_serialize(app->vault, pt, 4096, &pt_len);
-    furi_mutex_release(app->vault_mutex);
     if(!vmatch) {
         err = BvErrWrongTag;
-    } else if(!ser_ok) {
-        err = BvErrTooBig;
-    } else if(pt_len + BV_BLOB_OVERHEAD > SECTOR1_BYTES) {
-        err = BvErrTooBig;
+    } else if(app->save_blob_len == 0) {
+        err = BvErrCrypto; // no prepared blob (bv_start_save should prevent this)
+    } else if(!bv_select_sector(poller, SECTOR1)) {
+        err = BvErrSectorSelect;
     } else {
-        BvVaultKey key;
-        if(bv_vault_key_open(&key)) {
-            prepared = bv_vault_encrypt(&key, pt, pt_len, blob, &blob_len);
-            bv_vault_key_clear(&key);
-            if(!prepared) err = BvErrCrypto;
+        // Blank the header page first and write the real header (page 0) last:
+        // a save torn mid-way then reads back as an empty tag on Load, instead
+        // of a valid-looking header framing stale ciphertext.
+        static const uint8_t blank[4] = {0, 0, 0, 0};
+        uint32_t pages = (app->save_blob_len + 3) / 4;
+        if(!bv_write_page(poller, 0, blank)) {
+            err = BvErrWrite;
         } else {
-            err = BvErrCrypto;
-        }
-    }
-
-    if(err == BvErrNone && prepared) {
-        if(!bv_select_sector(poller, SECTOR1)) {
-            err = BvErrSectorSelect;
-        } else {
-            uint32_t pages = (blob_len + 3) / 4;
-            for(uint32_t p = 0; p < pages; p++) {
+            for(uint32_t i = 0; i < pages; i++) {
+                uint32_t p = (i + 1 < pages) ? (i + 1) : 0; // 1..N-1, then 0
                 uint8_t pd[4] = {0, 0, 0, 0};
                 size_t off = p * 4;
-                size_t n = (blob_len - off < 4) ? (blob_len - off) : 4;
-                memcpy(pd, blob + off, n);
+                size_t n = (app->save_blob_len - off < 4) ? (app->save_blob_len - off) : 4;
+                memcpy(pd, app->save_blob + off, n);
                 if(!bv_write_page(poller, (uint8_t)p, pd)) {
                     err = BvErrWrite;
                     break;
@@ -464,29 +542,30 @@ static BvError bv_do_save(BioVault* app, Iso14443_3aPoller* poller) {
         }
     }
 
-    memset(pt, 0, 4096);
-    memset(blob, 0, 1088);
-    free(pt);
-    free(blob);
-
-    if(bv_err_transient(err)) return err;
+    *retry = bv_op_should_retry(app, err);
+    if(*retry) return err;
 
     with_view_model(
         app->save_view,
         BvSaveModel * m,
         {
-            m->bytes = (uint16_t)blob_len;
+            m->bytes = (uint16_t)app->save_blob_len;
             m->pages_written = written;
             m->state = (err == BvErrNone) ? BvZeroDone : BvZeroError;
             m->error = err;
         },
         true);
-    FURI_LOG_I(TAG, "save complete: err=%d bytes=%u pages=%u", err, (unsigned)blob_len, written);
+    FURI_LOG_I(
+        TAG,
+        "save complete: err=%d bytes=%u pages=%u",
+        err,
+        (unsigned)app->save_blob_len,
+        written);
     return err;
 }
 
 // Read Sector 1 -> parse the vault blob -> decrypt -> populate the in-RAM vault.
-static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
+static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry) {
     BvError err = BvErrNone;
     uint8_t count = 0;
 
@@ -550,7 +629,8 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller) {
     free(pt);
     free(buf);
 
-    if(bv_err_transient(err)) return err;
+    *retry = bv_op_should_retry(app, err);
+    if(*retry) return err;
 
     if(err == BvErrNone) app->vault_loaded = true;
     with_view_model(
@@ -574,16 +654,17 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
 
     if(nfc_event->type == NfcEventTypePollerReady) {
         BvError err;
+        bool retry = false;
         if(app->op == BvOpZero) {
-            err = bv_do_zero(app, poller);
+            err = bv_do_zero(app, poller, &retry);
         } else if(app->op == BvOpSave) {
-            err = bv_do_save(app, poller);
+            err = bv_do_save(app, poller, &retry);
         } else if(app->op == BvOpLoad) {
-            err = bv_do_load(app, poller);
+            err = bv_do_load(app, poller, &retry);
         } else {
-            err = bv_do_read(app, poller);
+            err = bv_do_read(app, poller, &retry);
         }
-        if(bv_err_transient(err)) {
+        if(retry) {
             // Tag not (well) coupled yet — reset the field and keep polling.
             cmd = NfcCommandReset;
         } else {
@@ -602,6 +683,7 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
 static void bv_start_op(BioVault* app, BvOp op) {
     if(app->poller_running) return;
     app->op = op;
+    app->op_fails = 0;
     // Blink like the stock NFC app: cyan while reading, magenta while writing.
     notification_message(
         app->notifications,
@@ -650,16 +732,23 @@ static void bv_start_zero(BioVault* app) {
 
 static void bv_start_save(BioVault* app) {
     if(app->poller_running) return;
+    // Seal the vault before touching the field; a vault that can't be sealed
+    // (too big, keystore/enclave fault) errors out here without ever polling.
+    BvError prep_err = bv_prepare_save_blob(app);
     with_view_model(
         app->save_view,
         BvSaveModel * m,
         {
-            m->state = BvZeroWriting;
+            m->state = (prep_err == BvErrNone) ? BvZeroWriting : BvZeroError;
             m->pages_written = 0;
             m->bytes = 0;
-            m->error = BvErrNone;
+            m->error = prep_err;
         },
         true);
+    if(prep_err != BvErrNone) {
+        notification_message(app->notifications, &sequence_error);
+        return;
+    }
     bv_start_op(app, BvOpSave);
 }
 
@@ -1020,8 +1109,9 @@ static uint32_t bv_load_previous(void* context) {
 
 static void bv_edit_start(BioVault* app, uint8_t index);
 static void bv_entry_menu_callback(void* context, uint32_t index);
+static void bv_send_open_picker(BioVault* app);
 
-// Build the per-entry action menu (View / Edit / Remove) for the selected entry.
+// Build the per-entry action menu (View / Send / Edit / Remove) for the entry.
 static void bv_build_entry_menu(BioVault* app) {
     submenu_reset(app->entry_menu);
     furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
@@ -1030,6 +1120,7 @@ static void bv_build_entry_menu(BioVault* app) {
     submenu_set_header(app->entry_menu, label);
     furi_mutex_release(app->vault_mutex);
     submenu_add_item(app->entry_menu, "View", BvEntryActView, bv_entry_menu_callback, app);
+    submenu_add_item(app->entry_menu, "Send (USB)", BvEntryActSend, bv_entry_menu_callback, app);
     submenu_add_item(app->entry_menu, "Edit", BvEntryActEdit, bv_entry_menu_callback, app);
     submenu_add_item(app->entry_menu, "Remove", BvEntryActRemove, bv_entry_menu_callback, app);
 }
@@ -1047,6 +1138,9 @@ static void bv_entry_menu_callback(void* context, uint32_t index) {
     case BvEntryActView:
         bv_build_detail(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewDetail);
+        break;
+    case BvEntryActSend:
+        bv_send_open_picker(app);
         break;
     case BvEntryActEdit:
         bv_edit_start(app, app->selected);
@@ -1110,6 +1204,143 @@ static uint32_t bv_detail_previous(void* context) {
     return BvViewEntryMenu;
 }
 
+// --- Send field over USB HID ---
+
+// Runs on a short-lived worker thread: switch USB to HID, type the snapshotted
+// field, restore USB, then hand the thread back to the main loop to be reaped.
+static int32_t bv_send_worker(void* context) {
+    BioVault* app = context;
+    app->send_result = bv_hid_type(app->send_text);
+    BvSendState st = (app->send_result == BvHidOk)   ? BvSendDone :
+                     (app->send_result == BvHidBusy) ? BvSendBusy :
+                                                       BvSendNoUsb;
+    with_view_model(app->send_view, BvSendModel * m, { m->state = st; }, true);
+    view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventHidDone);
+    return 0;
+}
+
+static void bv_send_pick_callback(void* context, uint32_t index) {
+    BioVault* app = context;
+    if(app->send_thread) return; // a send is already in flight
+
+    BvSendField which = (BvSendField)index;
+    const char* field_name;
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    if(app->selected >= app->vault->count) {
+        furi_mutex_release(app->vault_mutex);
+        return;
+    }
+    const BvEntry* e = &app->vault->entries[app->selected];
+    bool is_note = e->type == BvEntryNote;
+    if(which == BvSendUser) {
+        strlcpy(app->send_text, e->user, sizeof(app->send_text));
+        field_name = "Username";
+    } else {
+        strlcpy(app->send_text, e->secret, sizeof(app->send_text));
+        field_name = is_note ? "Data" : "Password";
+    }
+    furi_mutex_release(app->vault_mutex);
+
+    // Optionally press Enter after a credential field (HID maps '\n' -> Return);
+    // notes are left as-is so a data dump isn't auto-submitted.
+    if(app->settings.send_newline && !is_note) {
+        strlcat(app->send_text, "\n", sizeof(app->send_text));
+    }
+
+    with_view_model(
+        app->send_view,
+        BvSendModel * m,
+        {
+            m->state = BvSendSending;
+            strlcpy(m->field, field_name, sizeof(m->field));
+        },
+        true);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSendDo);
+
+    app->send_thread = furi_thread_alloc_ex("BvHidSend", 2048, bv_send_worker, app);
+    furi_thread_start(app->send_thread);
+}
+
+// Build the "what to send" picker for the selected entry (Username/Password for
+// a credential, Data for a note) and show it.
+static void bv_send_open_picker(BioVault* app) {
+    submenu_reset(app->send_pick);
+    submenu_set_header(app->send_pick, "Send over USB");
+    furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
+    if(app->selected >= app->vault->count) {
+        furi_mutex_release(app->vault_mutex);
+        return;
+    }
+    bool is_note = app->vault->entries[app->selected].type == BvEntryNote;
+    furi_mutex_release(app->vault_mutex);
+    if(is_note) {
+        submenu_add_item(app->send_pick, "Data", BvSendSecret, bv_send_pick_callback, app);
+    } else {
+        submenu_add_item(app->send_pick, "Username", BvSendUser, bv_send_pick_callback, app);
+        submenu_add_item(app->send_pick, "Password", BvSendSecret, bv_send_pick_callback, app);
+    }
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSendPick);
+}
+
+static uint32_t bv_send_pick_previous(void* context) {
+    UNUSED(context);
+    return BvViewEntryMenu;
+}
+
+static void bv_send_draw(Canvas* canvas, void* model) {
+    BvSendModel* m = model;
+    canvas_clear(canvas);
+    char line[40];
+    switch(m->state) {
+    case BvSendSending:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 12, "Sending over USB");
+        canvas_set_font(canvas, FontSecondary);
+        snprintf(line, sizeof(line), "Typing %s...", m->field);
+        canvas_draw_str(canvas, 2, 30, line);
+        canvas_draw_str(canvas, 2, 46, "Focus the target field.");
+        break;
+    case BvSendDone:
+        snprintf(line, sizeof(line), "%s typed", m->field);
+        bv_draw_done(canvas, "Sent!", line, "Back: entry");
+        break;
+    case BvSendNoUsb:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 12, "USB not connected");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 30, "Plug into a host, then");
+        canvas_draw_str(canvas, 2, 42, "retry the send.");
+        canvas_draw_str(canvas, 2, 60, "Back: entry");
+        break;
+    case BvSendBusy:
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 12, "USB busy");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 30, "USB mode is locked by");
+        canvas_draw_str(canvas, 2, 42, "another app.");
+        canvas_draw_str(canvas, 2, 60, "Back: entry");
+        break;
+    }
+}
+
+static bool bv_send_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort) return false;
+    BvSendState st;
+    with_view_model(app->send_view, BvSendModel * m, { st = m->state; }, false);
+    if(st == BvSendSending) return true; // block navigation while typing
+    if(event->key == InputKeyOk) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewEntryMenu);
+        return true;
+    }
+    return false; // Back -> previous callback (entry menu)
+}
+
+static uint32_t bv_send_previous(void* context) {
+    UNUSED(context);
+    return BvViewEntryMenu;
+}
+
 // --- On-device Add Entry (keyboard) ---
 
 static void bv_configure_input(BioVault* app);
@@ -1130,19 +1361,23 @@ static void bv_input_result(void* context) {
     case BvAddSecret: {
         // No username -> it's a note/data entry, not a credential.
         BvEntryType type = (strlen(app->edit_user) > 0) ? BvEntryCred : BvEntryNote;
+        bool ok;
         furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
         if(app->editing) {
-            if(app->edit_index < app->vault->count) {
-                bv_records_set(
-                    app->vault, app->edit_index, type, app->edit_label, app->edit_user,
-                    app->edit_secret);
-            }
+            ok = (app->edit_index < app->vault->count) &&
+                 bv_records_set(
+                     app->vault, app->edit_index, type, app->edit_label, app->edit_user,
+                     app->edit_secret);
         } else {
-            bv_records_add(app->vault, type, app->edit_label, app->edit_user, app->edit_secret);
+            ok = bv_records_add(app->vault, type, app->edit_label, app->edit_user,
+                app->edit_secret);
         }
         furi_mutex_release(app->vault_mutex);
-        FURI_LOG_I(TAG, "%s %s '%s'", app->editing ? "edited" : "added",
-            type == BvEntryNote ? "note" : "cred", app->edit_label);
+        // A full vault (or a vanished edit target) would otherwise drop the
+        // typed entry with no sign anything went wrong.
+        if(!ok) notification_message(app->notifications, &sequence_error);
+        FURI_LOG_I(TAG, "%s %s '%s': %s", app->editing ? "edit" : "add",
+            type == BvEntryNote ? "note" : "cred", app->edit_label, ok ? "ok" : "failed");
         app->editing = false;
         bv_build_browser(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
@@ -1213,6 +1448,32 @@ static uint32_t bv_input_previous(void* context) {
     return BvViewMenu; // Back cancels the add flow
 }
 
+// --- Settings ---
+
+static const char* const bv_toggle_text[] = {"OFF", "ON"};
+
+static void bv_settings_newline_changed(VariableItem* item) {
+    BioVault* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, bv_toggle_text[idx]);
+    app->settings.send_newline = (idx != 0);
+    bv_settings_save(&app->settings);
+}
+
+static void bv_build_settings(BioVault* app) {
+    variable_item_list_reset(app->settings_list);
+    VariableItem* item = variable_item_list_add(
+        app->settings_list, "Auto-Enter", 2, bv_settings_newline_changed, app);
+    uint8_t idx = app->settings.send_newline ? 1 : 0;
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, bv_toggle_text[idx]);
+}
+
+static uint32_t bv_settings_previous(void* context) {
+    UNUSED(context);
+    return BvViewMenu;
+}
+
 // --- Menu / dispatcher callbacks ---
 
 static void bv_menu_callback(void* context, uint32_t index) {
@@ -1242,6 +1503,10 @@ static void bv_menu_callback(void* context, uint32_t index) {
     case BvMenuZero:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewZero);
         break;
+    case BvMenuSettings:
+        bv_build_settings(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSettings);
+        break;
     case BvMenuDiag:
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewDiag);
         break;
@@ -1260,6 +1525,17 @@ static bool bv_custom_event_callback(void* context, uint32_t event) {
     switch(event) {
     case BvCustomEventPollerDone:
         bv_poller_stop(app); // reap the finished poller on the main thread
+        return true;
+    case BvCustomEventHidDone:
+        if(app->send_thread) {
+            furi_thread_join(app->send_thread);
+            furi_thread_free(app->send_thread);
+            app->send_thread = NULL;
+        }
+        memset(app->send_text, 0, sizeof(app->send_text)); // don't keep the secret
+        notification_message(
+            app->notifications,
+            app->send_result == BvHidOk ? &sequence_success : &sequence_error);
         return true;
     // CLI-driven screen switches. Read/Load auto-start via their enter callbacks;
     // Save/Zero land on their confirm screen (OK on the device commits the write).
@@ -1339,27 +1615,34 @@ static void bv_cli_read_line(char* buf, size_t size) {
     printf("\r\n");
 }
 
-// Extract the first whitespace-delimited token of `args` into `out`.
+// Extract the label argument: the entire remainder of the line, trimmed, so
+// labels containing spaces (enterable on the GUI keyboard) stay addressable.
 static void bv_cli_arg(FuriString* args, char* out, size_t size) {
-    out[0] = '\0';
-    char fmt[16];
-    snprintf(fmt, sizeof(fmt), "%%%us", (unsigned)(size - 1));
-    sscanf(furi_string_get_cstr(args), fmt, out);
+    FuriString* s = furi_string_alloc_set(args);
+    furi_string_trim(s);
+    strlcpy(out, furi_string_get_cstr(s), size);
+    furi_string_free(s);
 }
 
 // --- Subshell subcommands (context = BioVault*) ---
 
+// list/get snapshot the vault under the lock and print after releasing it, so a
+// stalled host terminal can never block the GUI/NFC threads on vault_mutex.
 static void bv_cli_list(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(pipe);
     UNUSED(args);
     BioVault* app = context;
+    BvVaultData* snap = malloc(sizeof(BvVaultData));
     furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-    printf("Vault: %u entries\r\n", app->vault->count);
-    for(uint8_t i = 0; i < app->vault->count; i++) {
-        const BvEntry* e = &app->vault->entries[i];
+    *snap = *app->vault;
+    furi_mutex_release(app->vault_mutex);
+    printf("Vault: %u entries\r\n", snap->count);
+    for(uint8_t i = 0; i < snap->count; i++) {
+        const BvEntry* e = &snap->entries[i];
         printf("  [%u] %s%s\r\n", i, e->label, e->type == BvEntryNote ? "  (note)" : "");
     }
-    furi_mutex_release(app->vault_mutex);
+    bv_records_clear(snap);
+    free(snap);
 }
 
 static void bv_cli_get(PipeSide* pipe, FuriString* args, void* context) {
@@ -1371,20 +1654,22 @@ static void bv_cli_get(PipeSide* pipe, FuriString* args, void* context) {
         printf("Usage: get <label>\r\n");
         return;
     }
+    BvEntry e = {0};
     furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
     int idx = bv_records_find(app->vault, label);
+    if(idx >= 0) e = app->vault->entries[idx];
+    furi_mutex_release(app->vault_mutex);
     if(idx < 0) {
         printf("Not found: %s\r\n", label);
-    } else {
-        const BvEntry* e = &app->vault->entries[idx];
-        printf("%s\r\n", e->label);
-        if(e->type == BvEntryNote) {
-            printf("  data: %s\r\n", e->secret);
-        } else {
-            printf("  user: %s\r\n  pass: %s\r\n", e->user, e->secret);
-        }
+        return;
     }
-    furi_mutex_release(app->vault_mutex);
+    printf("%s\r\n", e.label);
+    if(e.type == BvEntryNote) {
+        printf("  data: %s\r\n", e.secret);
+    } else {
+        printf("  user: %s\r\n  pass: %s\r\n", e.user, e.secret);
+    }
+    memset(&e, 0, sizeof(e));
 }
 
 static void bv_cli_remove(PipeSide* pipe, FuriString* args, void* context) {
@@ -1493,12 +1778,84 @@ static void bv_cli_edit(PipeSide* pipe, FuriString* args, void* context) {
 // Screen-driving commands: post a custom event so the GUI thread switches to the
 // matching view. These return immediately — the operation runs on the device
 // (hold the implant to the Flipper); watch the Flipper screen for progress.
+// Render a classic hex + ASCII dump of a raw Sector 1 read.
+static void bv_cli_print_dump(const uint8_t* buf, size_t len) {
+    for(size_t off = 0; off < len; off += 16) {
+        printf("%04X  ", (unsigned)off);
+        for(size_t b = 0; b < 16; b++) {
+            if(off + b < len) {
+                printf("%02X ", buf[off + b]);
+            } else {
+                printf("   ");
+            }
+            if(b == 7) printf(" "); // gutter between the two 8-byte halves
+        }
+        printf(" |");
+        for(size_t b = 0; b < 16 && off + b < len; b++) {
+            uint8_t c = buf[off + b];
+            putchar((c >= 0x20 && c < 0x7f) ? c : '.');
+        }
+        printf("|\r\n");
+    }
+}
+
 static void bv_cli_read(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(pipe);
     UNUSED(args);
     BioVault* app = context;
+
+    furi_event_flag_clear(app->read_done, BV_READ_DONE_FLAG);
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliRead);
-    printf("Read screen open on device. Hold the implant to the Flipper.\r\n");
+    printf("Reading implant... hold it to the Flipper.\r\n");
+    fflush(stdout);
+
+    uint32_t flags =
+        furi_event_flag_wait(app->read_done, BV_READ_DONE_FLAG, FuriFlagWaitAny, 30000);
+    if(flags & FuriFlagError) {
+        printf("Timed out waiting for a read.\r\n");
+        return;
+    }
+
+    // Snapshot the read model, then render outside the model lock.
+    uint8_t* buf = malloc(SECTOR1_BYTES);
+    size_t len = 0;
+    uint8_t version[8] = {0};
+    bool version_valid = false;
+    BvState state = BvStateError;
+    BvError error = BvErrNone;
+    with_view_model(
+        app->read_view,
+        BvReadModel * m,
+        {
+            state = m->state;
+            error = m->error;
+            version_valid = m->version_valid;
+            memcpy(version, m->version, sizeof(version));
+            len = (m->sector1_len > SECTOR1_BYTES) ? SECTOR1_BYTES : m->sector1_len;
+            memcpy(buf, m->sector1, len);
+        },
+        false);
+
+    if(state != BvStateDone) {
+        printf("Read failed: %s\r\n", bv_error_text(error));
+        free(buf);
+        return;
+    }
+
+    printf("\r\nSector 1: %u bytes", (unsigned)len);
+    if(version_valid) {
+        printf("   version ");
+        for(size_t i = 0; i < sizeof(version); i++) printf("%02X", version[i]);
+    }
+    printf("\r\n");
+    size_t blob_len = 0;
+    if(bv_vault_framed_len(buf, len, &blob_len)) {
+        printf("BioVault blob detected: %u bytes framed\r\n\r\n", (unsigned)blob_len);
+    } else {
+        printf("No BioVault blob (blank or foreign tag)\r\n\r\n");
+    }
+    bv_cli_print_dump(buf, len);
+    free(buf);
 }
 
 static void bv_cli_load(PipeSide* pipe, FuriString* args, void* context) {
@@ -1549,6 +1906,9 @@ static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
 
+    // Track open subshells: bv_free must not tear down `app` while one is live.
+    __atomic_add_fetch(&app->cli_sessions, 1, __ATOMIC_SEQ_CST);
+
     CliRegistry* registry = cli_registry_alloc();
     cli_registry_add_command(registry, "list", CliCommandFlagParallelSafe, bv_cli_list, app);
     cli_registry_add_command(registry, "get", CliCommandFlagParallelSafe, bv_cli_get, app);
@@ -1566,6 +1926,8 @@ static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
     cli_shell_join(shell); // blocks until the user types `exit` or disconnects
     cli_shell_free(shell);
     cli_registry_free(registry);
+
+    __atomic_sub_fetch(&app->cli_sessions, 1, __ATOMIC_SEQ_CST);
 }
 
 // --- App lifecycle ---
@@ -1592,6 +1954,7 @@ static BioVault* bv_alloc(void) {
     app->vault = malloc(sizeof(BvVaultData));
     bv_records_init(app->vault);
     app->vault_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    app->read_done = furi_event_flag_alloc();
 
     app->nfc = nfc_alloc();
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
@@ -1611,6 +1974,7 @@ static BioVault* bv_alloc(void) {
     submenu_add_item(app->menu, "Read Implant", BvMenuRead, bv_menu_callback, app);
     submenu_add_item(app->menu, "Save to Implant", BvMenuSave, bv_menu_callback, app);
     submenu_add_item(app->menu, "Wipe Implant", BvMenuZero, bv_menu_callback, app);
+    submenu_add_item(app->menu, "Settings", BvMenuSettings, bv_menu_callback, app);
     submenu_add_item(app->menu, "Diagnostics", BvMenuDiag, bv_menu_callback, app);
     view_dispatcher_add_view(app->view_dispatcher, BvViewMenu, submenu_get_view(app->menu));
 
@@ -1664,6 +2028,21 @@ static BioVault* bv_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, BvViewDetail, text_box_get_view(app->detail));
 
+    // Send-field picker (submenu, rebuilt per entry)
+    app->send_pick = submenu_alloc();
+    view_set_previous_callback(submenu_get_view(app->send_pick), bv_send_pick_previous);
+    view_dispatcher_add_view(
+        app->view_dispatcher, BvViewSendPick, submenu_get_view(app->send_pick));
+
+    // Send progress/result view
+    app->send_view = view_alloc();
+    view_allocate_model(app->send_view, ViewModelTypeLocking, sizeof(BvSendModel));
+    view_set_context(app->send_view, app);
+    view_set_draw_callback(app->send_view, bv_send_draw);
+    view_set_input_callback(app->send_view, bv_send_input);
+    view_set_previous_callback(app->send_view, bv_send_previous);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewSendDo, app->send_view);
+
     // Add Entry keyboard view
     app->input = bv_text_input_alloc();
     view_set_previous_callback(bv_text_input_get_view(app->input), bv_input_previous);
@@ -1679,6 +2058,14 @@ static BioVault* bv_alloc(void) {
     view_set_exit_callback(app->zero_view, bv_zero_exit);
     view_set_previous_callback(app->zero_view, bv_zero_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewZero, app->zero_view);
+
+    // Settings view (persisted preferences)
+    bv_settings_load(&app->settings);
+    app->settings_list = variable_item_list_alloc();
+    view_set_previous_callback(
+        variable_item_list_get_view(app->settings_list), bv_settings_previous);
+    view_dispatcher_add_view(
+        app->view_dispatcher, BvViewSettings, variable_item_list_get_view(app->settings_list));
 
     // Diagnostics view
     app->diag = widget_alloc();
@@ -1702,6 +2089,21 @@ static void bv_free(BioVault* app) {
     cli_registry_delete_command(cli, "biovault");
     furi_record_close(RECORD_CLI);
 
+    // Deleting the registry entry does not stop a `biovault` subshell that is
+    // already open (there is no cli_shell stop API — it runs until the user
+    // types `exit`), and that subshell holds `app`. Wait it out; freeing now
+    // would leave the CLI thread on a dangling vault/mutex.
+    while(__atomic_load_n(&app->cli_sessions, __ATOMIC_SEQ_CST) > 0) {
+        furi_delay_ms(50);
+    }
+
+    // Wait out any in-flight HID send before tearing down its view/context.
+    if(app->send_thread) {
+        furi_thread_join(app->send_thread);
+        furi_thread_free(app->send_thread);
+        app->send_thread = NULL;
+    }
+
     bv_poller_stop(app);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewMenu);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewRead);
@@ -1710,8 +2112,11 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewBrowser);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewEntryMenu);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDetail);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewSendPick);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewSendDo);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewInput);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewZero);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
     view_free(app->read_view);
@@ -1719,9 +2124,12 @@ static void bv_free(BioVault* app) {
     view_free(app->load_view);
     submenu_free(app->browser);
     submenu_free(app->entry_menu);
+    submenu_free(app->send_pick);
+    view_free(app->send_view);
     text_box_free(app->detail);
     bv_text_input_free(app->input);
     view_free(app->zero_view);
+    variable_item_list_free(app->settings_list);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
@@ -1730,6 +2138,14 @@ static void bv_free(BioVault* app) {
     bv_records_clear(app->vault);
     free(app->vault);
     furi_mutex_free(app->vault_mutex);
+    furi_event_flag_free(app->read_done);
+    if(app->save_blob) {
+        memset(app->save_blob, 0, 1088);
+        free(app->save_blob);
+    }
+    // Wipes the secrets still sitting in app-owned buffers (edit_* keyboard
+    // buffers, detail_text) before the allocation is returned to the heap.
+    memset(app, 0, sizeof(*app));
     free(app);
 }
 
