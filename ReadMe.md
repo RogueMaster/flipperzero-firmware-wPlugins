@@ -71,6 +71,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [TCL AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - Added: [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - Updated: [TPMS Bridge v1.0 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
+- Updated: [Wifi Internet Watch v1.2 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -932,7 +933,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Wiegand Reader v1.4 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio)
 - [WiFi (Deauther) V2 (By Timmotools)](https://github.com/Timmotools/flipperzero_esp8266_deautherv2) `Req: ESP8266`
 - [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest)
-- [Wifi Internet Watch v1.1 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
+- [Wifi Internet Watch v1.2 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
 - [Wifi Mapping (By carvilsi)](https://github.com/carvilsi/flipper0-wifi-map/tree/main) `Req: ESP32`
 - [Wii EC Analyzer v1.1 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_WiiEC)
 - [WikiFlip v1.3 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)

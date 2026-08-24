@@ -11,8 +11,13 @@ Flipper Zero FAP application that uses an official Wi-Fi Developer Board running
 - Connects through ESP-AT
 - Checks internet availability every 60 seconds
 - Shows `ONLINE`, `OFFLINE`, or `NO WI-FI`
-- Plays a notification when the state changes from offline to online
-- Uses Back to exit
+- Keeps the LED solid green while internet is online
+- Blinks the LED red with a 1-second on/off cycle while internet is offline
+- Plays a notification and retries when Wi-Fi drops
+- Uses `1.1.1.1` as the default internet check target
+- Lets you change the ping IP and the internet check timer from the settings menu
+- Lets you reset the IP, timer, and remembered networks from the settings menu
+- Uses Back to rescan from monitoring and to exit from the network list
 
 ## Hardware
 
@@ -66,6 +71,15 @@ Copy it to:
 Saved networks are marked with `*`. Press **OK** to connect using the saved password,
 hold **OK** to edit it, or press **Right** (`Forget`) to delete it. New and updated
 passwords are saved only after ESP-AT successfully joins the network.
+
+Press **Left** in the network list to open settings, where you can edit the internet
+check IP address or timer.
+
+From the settings menu you can also change the internet check timer in seconds or reset
+the app back to defaults. Reset clears the saved IP, restores the 60-second timer, and
+removes all remembered Wi-Fi networks.
+
+On the monitoring screen, **Back** returns to Wi-Fi scanning instead of closing the app.
 
 The password screen supports lowercase and uppercase letters, digits, spaces, and common
 symbols. Select the `Aa`, `#?`, or `ab` key to switch between lowercase, uppercase, and
