@@ -1,6 +1,6 @@
 App(
     appid="tpms_bridge",
-    name="TPMS Bridge Renault",
+    name="TPMS Bridge",
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
     entry_point="tpms_bridge_app",
@@ -10,5 +10,5 @@ App(
     fap_author="Vishov Vladimir",
     fap_weburl="https://github.com/VishovVladimir/flipper-zero-tpms",
     fap_version="1.0",
-    fap_description="Reads Renault TPMS sensors: pressure, temperature, signal level",
+    fap_description="Reads car tire pressure sensors: 39 protocols, pressure, temperature, signal",
 )

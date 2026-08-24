@@ -1,4 +1,5 @@
 #include "tpms_view.h"
+#include "tpms_radio.h"
 
 #include <furi.h>
 #include <gui/elements.h>
@@ -10,9 +11,15 @@
 
 /* Columns of a list row. Exact dBm live on the detail screen: there is no
  * room for them in a row that would not be taken from the readings. */
-#define TPMS_COL_PRESSURE 38
-#define TPMS_COL_TEMP     72
+#define TPMS_COL_PRESSURE 42
+#define TPMS_COL_TEMP     78
 #define TPMS_COL_BARS     104
+
+/* Rows show the last six digits of an id. Some protocols have eight, and
+ * a row is not wide enough for all of them next to the readings; six are
+ * plenty to tell one wheel from another, and the detail screen has the
+ * whole thing. */
+#define TPMS_ROW_ID_DIGITS 6
 
 /** Bars in the signal level indicator. */
 #define TPMS_BAR_COUNT 4
@@ -54,12 +61,11 @@ static void
     }
 }
 
-/** Pressure in bar, two decimals, without floating point:
- * raw * 0.75 -> kPa, kPa / 100 -> bar. */
-static void tpms_view_format_bar(char* out, size_t size, uint16_t pressure_raw) {
-    const uint32_t bar_x100 = (uint32_t)pressure_raw * 75UL / 100UL;
-    snprintf(
-        out, size, "%lu.%02lu", (unsigned long)(bar_x100 / 100), (unsigned long)(bar_x100 % 100));
+/** Pressure in bar, two decimals. Everything is carried in hundredths of
+ * a kPa, and a bar is a hundred kPa. */
+static void tpms_view_format_bar(char* out, size_t size, int32_t pressure_kpa_x100) {
+    const int32_t bar_x100 = pressure_kpa_x100 / 100;
+    snprintf(out, size, "%ld.%02ld", (long)(bar_x100 / 100), (long)(bar_x100 % 100));
 }
 
 /** A signed value in tenths -> "-86.5". */
@@ -83,9 +89,34 @@ static void tpms_view_format_age(char* out, size_t size, uint32_t age_ticks) {
     }
 }
 
+/** Sensor id, as wide as its protocol makes it. */
+static void tpms_view_format_id(char* out, size_t size, const TpmsSensor* sensor, uint8_t digits) {
+    if(digits == 0) {
+        digits = sensor->protocol < tpms_protocol_count ?
+                     tpms_protocols[sensor->protocol].id_digits :
+                     6;
+    }
+    const uint32_t mask = digits >= 8 ? 0xFFFFFFFFUL : ((1UL << (digits * 4)) - 1);
+    snprintf(out, size, "%0*lx", (int)digits, (unsigned long)(sensor->id & mask));
+}
+
 static void tpms_view_draw_header(Canvas* canvas, TpmsBridgeApp* app) {
+    /* The radio setting takes the place a title would: which band and
+     * modulation the app is listening on is the one thing that decides
+     * whether anything can show up at all. While scanning, AUTO says the
+     * setting is about to move on by itself. */
+    const bool scanning = app->config == TpmsConfigScan;
+    const char* band = tpms_slot_frequency(app->active_slot) == tpms_frequencies[0] ? "433" :
+                                                                                      "315";
+    const char mode = tpms_slot_modulation(app->active_slot) == TpmsModulationOok ?
+                          (scanning ? 'o' : 'O') :
+                          (scanning ? 'f' : 'F');
+
+    char setting[TPMS_TEXT_MAX];
+    snprintf(setting, sizeof(setting), "%s%s%c", scanning ? "AUTO-" : "", band, mode);
+
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, TPMS_LIST_LEFT, 10, "TPMS");
+    canvas_draw_str(canvas, TPMS_LIST_LEFT, 10, setting);
 
     const char* radio = "off";
     if(app->exit_blocked) {
@@ -100,10 +131,10 @@ static void tpms_view_draw_header(Canvas* canvas, TpmsBridgeApp* app) {
     snprintf(
         status,
         sizeof(status),
-        "%u dev  %s%s",
+        "%u %s%s",
         (unsigned)app->store.count,
         radio,
-        app->auto_wake ? " W" : "");
+        app->auto_wake ? " wake" : "");
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, status);
@@ -124,15 +155,23 @@ static void tpms_view_draw_row(
     const int32_t baseline = top + 8;
     char text[TPMS_TEXT_MAX];
 
-    snprintf(text, sizeof(text), "%06lx", (unsigned long)sensor->id);
+    tpms_view_format_id(text, sizeof(text), sensor, TPMS_ROW_ID_DIGITS);
     canvas_draw_str(canvas, TPMS_LIST_LEFT, baseline, text);
 
-    char bar[16];
-    tpms_view_format_bar(bar, sizeof(bar), sensor->pressure_raw);
-    snprintf(text, sizeof(text), "%sb", bar);
+    if(sensor->have & TPMS_HAS_PRESSURE) {
+        char bar[16];
+        tpms_view_format_bar(bar, sizeof(bar), sensor->pressure_kpa_x100);
+        snprintf(text, sizeof(text), "%sb", bar);
+    } else {
+        snprintf(text, sizeof(text), "--");
+    }
     canvas_draw_str(canvas, TPMS_COL_PRESSURE, baseline, text);
 
-    snprintf(text, sizeof(text), "%dC", (int)sensor->temperature_c);
+    if(sensor->have & TPMS_HAS_TEMP) {
+        snprintf(text, sizeof(text), "%dC", (int)sensor->temperature_c);
+    } else {
+        snprintf(text, sizeof(text), "--");
+    }
     canvas_draw_str(canvas, TPMS_COL_TEMP, baseline, text);
 
     tpms_view_draw_signal(
@@ -146,8 +185,9 @@ static void tpms_view_draw_list(Canvas* canvas, TpmsBridgeApp* app) {
     canvas_set_font(canvas, FontSecondary);
 
     if(app->store.count == 0) {
-        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "Listening...");
-        canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, "Right: wake sensor");
+        canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignBottom, "Listening...");
+        canvas_draw_str_aligned(canvas, 64, 39, AlignCenter, AlignBottom, "Right: wake sensor");
+        canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignBottom, "Up/Down: band, mode");
     } else {
         const uint32_t now = furi_get_tick();
         for(uint8_t row = 0; row < TPMS_VIEW_ROWS; row++) {
@@ -188,12 +228,8 @@ static void tpms_view_draw_detail(Canvas* canvas, TpmsBridgeApp* app) {
     char right[16];
 
     canvas_set_font(canvas, FontPrimary);
-    snprintf(
-        text,
-        sizeof(text),
-        "#%u  ID %06lx",
-        (unsigned)(app->selected + 1),
-        (unsigned long)sensor->id);
+    tpms_view_format_id(left, sizeof(left), sensor, 0);
+    snprintf(text, sizeof(text), "#%u %s", (unsigned)(app->selected + 1), left);
     canvas_draw_str(canvas, TPMS_LIST_LEFT, 10, text);
 
     tpms_view_draw_signal(
@@ -207,27 +243,30 @@ static void tpms_view_draw_detail(Canvas* canvas, TpmsBridgeApp* app) {
     canvas_set_font(canvas, FontSecondary);
 
     /* Pressure is shown in all three units: bar is what most people use,
-     * PSI is printed on the sensors themselves, kPa is what the protocol
-     * carries. */
-    const uint32_t kpa_x100 = (uint32_t)sensor->pressure_raw * 75UL;
-    const uint32_t psi_x10 = kpa_x100 * 145UL / 10000UL;
+     * PSI is printed on the sensors themselves, kPa is what most of these
+     * protocols carry. */
+    if(sensor->have & TPMS_HAS_PRESSURE) {
+        const int32_t kpa_x100 = sensor->pressure_kpa_x100;
+        const int32_t psi_x10 = kpa_x100 * 1000 / 68948;
 
-    tpms_view_format_bar(left, sizeof(left), sensor->pressure_raw);
-    snprintf(text, sizeof(text), "%s bar", left);
-    canvas_draw_str(canvas, TPMS_LIST_LEFT, 22, text);
-    tpms_view_format_x10(right, sizeof(right), (int32_t)psi_x10);
-    snprintf(text, sizeof(text), "%s PSI", right);
-    canvas_draw_str_aligned(canvas, 126, 22, AlignRight, AlignBottom, text);
+        tpms_view_format_bar(left, sizeof(left), kpa_x100);
+        snprintf(text, sizeof(text), "%s bar", left);
+        canvas_draw_str(canvas, TPMS_LIST_LEFT, 22, text);
+        tpms_view_format_x10(right, sizeof(right), psi_x10);
+        snprintf(text, sizeof(text), "%s PSI", right);
+        canvas_draw_str_aligned(canvas, 126, 22, AlignRight, AlignBottom, text);
 
-    snprintf(
-        text,
-        sizeof(text),
-        "%lu.%02lu kPa",
-        (unsigned long)(kpa_x100 / 100),
-        (unsigned long)(kpa_x100 % 100));
-    canvas_draw_str(canvas, TPMS_LIST_LEFT, 32, text);
-    snprintf(text, sizeof(text), "%d C", (int)sensor->temperature_c);
-    canvas_draw_str_aligned(canvas, 126, 32, AlignRight, AlignBottom, text);
+        snprintf(
+            text, sizeof(text), "%ld.%02ld kPa", (long)(kpa_x100 / 100), (long)(kpa_x100 % 100));
+        canvas_draw_str(canvas, TPMS_LIST_LEFT, 32, text);
+    } else {
+        canvas_draw_str(canvas, TPMS_LIST_LEFT, 22, "no pressure");
+    }
+
+    if(sensor->have & TPMS_HAS_TEMP) {
+        snprintf(text, sizeof(text), "%d C", (int)sensor->temperature_c);
+        canvas_draw_str_aligned(canvas, 126, 32, AlignRight, AlignBottom, text);
+    }
 
     tpms_view_format_x10(left, sizeof(left), sensor->rssi_x10);
     snprintf(text, sizeof(text), "%s dBm", left);
@@ -243,13 +282,14 @@ static void tpms_view_draw_detail(Canvas* canvas, TpmsBridgeApp* app) {
     snprintf(text, sizeof(text), "age %s", left);
     canvas_draw_str_aligned(canvas, 126, 52, AlignRight, AlignBottom, text);
 
-    snprintf(
-        text,
-        sizeof(text),
-        "flags 0x%02x  aux %04x",
-        (unsigned)sensor->flags,
-        (unsigned)sensor->unknown);
-    canvas_draw_str(canvas, TPMS_LIST_LEFT, 62, text);
+    /* Which protocol this frame turned out to be, and its status bits. */
+    canvas_draw_str(canvas, TPMS_LIST_LEFT, 62, tpms_protocol_label(sensor->protocol));
+    if(sensor->have & TPMS_BATTERY_LOW) {
+        snprintf(text, sizeof(text), "bat %02x", (unsigned)sensor->flags);
+    } else {
+        snprintf(text, sizeof(text), "%02x", (unsigned)sensor->flags);
+    }
+    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, text);
 }
 
 void tpms_view_draw(Canvas* canvas, TpmsBridgeApp* app) {

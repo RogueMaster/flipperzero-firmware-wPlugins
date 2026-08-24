@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tpms_radio.h"
 #include "tpms_session.h"
 #include "tpms_store.h"
 
@@ -9,8 +10,7 @@
 #include <gui/view_port.h>
 #include <input/input.h>
 
-#define TPMS_CLI_COMMAND_NAME  "tpms_rx"
-#define TPMS_DEFAULT_FREQUENCY 433920000UL
+#define TPMS_CLI_COMMAND_NAME "tpms_rx"
 
 /** Stack size of the CLI command thread. */
 #define TPMS_CLI_STACK_SIZE (4 * 1024)
@@ -51,6 +51,13 @@ typedef struct {
     volatile bool wake_requested; /**< single pulse requested by a key */
     volatile bool auto_wake; /**< periodic pulses */
 
+    /* Radio configuration, changed from the keys and applied by whoever
+     * owns the radio. */
+    volatile uint8_t config; /**< TpmsConfig */
+    volatile uint8_t active_slot; /**< the combination on air right now */
+    uint8_t scan_step; /**< which combination the scan is on */
+    uint32_t scan_tick; /**< when the scan last stepped */
+
     TpmsStore store;
     TpmsScreen screen;
     uint8_t selected;
@@ -64,7 +71,11 @@ typedef struct {
 } TpmsBridgeApp;
 
 /** Store a received frame in the shared state (for the screen). */
-void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame, float rssi_dbm);
+void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsFrame* frame, float rssi_dbm);
+
+/** Keep the radio in step with the settings, and step the scan along.
+ * Called from whichever loop owns the radio. */
+void tpms_bridge_tune_radio(TpmsBridgeApp* app, TpmsSession* session);
 
 /** Implementation of the tpms_rx CLI command. */
 void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context);

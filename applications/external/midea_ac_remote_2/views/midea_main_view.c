@@ -42,9 +42,8 @@ _Static_assert(
 #define FOOTER_Y   116
 
 // Grid rows the buttons occupy, and whether the tall variant still fits
-#define BTN_ROWS ((SLOT_COUNT - SLOT_TOGGLE_0 + 1) / 2)
-#define TWO_LINE_FITS \
-    ((BTN_ROW_Y + (BTN_ROWS - 1) * BTN_ROW_H2 + BTN_H_2) <= (FOOTER_Y - 4))
+#define BTN_ROWS      ((SLOT_COUNT - SLOT_TOGGLE_0 + 1) / 2)
+#define TWO_LINE_FITS ((BTN_ROW_Y + (BTN_ROWS - 1) * BTN_ROW_H2 + BTN_H_2) <= (FOOTER_Y - 4))
 
 // Dropdown picker
 #define PICKER_ITEM_H 11
@@ -142,12 +141,8 @@ static void draw_temp_icon(Canvas* canvas, int16_t box_x, int16_t box_y, bool pl
 #define TEMP_BTN_L 2
 #define TEMP_BTN_R 48
 
-static void draw_temperature(
-    Canvas* canvas,
-    int16_t y,
-    uint8_t temp,
-    bool focus_down,
-    bool focus_up) {
+static void
+    draw_temperature(Canvas* canvas, int16_t y, uint8_t temp, bool focus_down, bool focus_up) {
     char temp_str[8];
     snprintf(temp_str, sizeof(temp_str), "%d", temp);
 
@@ -192,8 +187,7 @@ static size_t label_break(Canvas* canvas, const char* label, int16_t maxw) {
 
 /// Draw the label centred in the button, wrapping onto a second line when it
 /// does not fit and the button is tall enough to hold one.
-static void
-    draw_button_label(Canvas* canvas, int16_t x, int16_t y, int16_t h, const char* label) {
+static void draw_button_label(Canvas* canvas, int16_t x, int16_t y, int16_t h, const char* label) {
     canvas_set_font(canvas, FontSecondary);
     int16_t maxw = BTN_W - 4;
     size_t brk = (h >= BTN_H_2) ? label_break(canvas, label, maxw) : 0;
@@ -211,7 +205,8 @@ static void
     canvas_draw_str_aligned(canvas, x + BTN_W / 2, y + 1, AlignCenter, AlignTop, line);
 
     const char* rest = label + brk;
-    while(*rest == ' ') rest++;
+    while(*rest == ' ')
+        rest++;
     canvas_draw_str_aligned(canvas, x + BTN_W / 2, y + 9, AlignCenter, AlignTop, rest);
 }
 
@@ -311,7 +306,12 @@ static void midea_main_view_draw(Canvas* canvas, void* model) {
         fan_value = midea_ir_get_fan_name(MideaFanAuto);
     }
     draw_selector_button(
-        canvas, COL_X(0), 0, BTN_W, "Mode", midea_ir_get_mode_name(m->state->mode),
+        canvas,
+        COL_X(0),
+        0,
+        BTN_W,
+        "Mode",
+        midea_ir_get_mode_name(m->state->mode),
         m->focus == SLOT_MODE);
     draw_selector_button(canvas, COL_X(1), 0, BTN_W, "Fan", fan_value, m->focus == SLOT_FAN);
 
@@ -353,7 +353,12 @@ static void midea_main_view_draw(Canvas* canvas, void* model) {
         } else {
             MideaToggle t = (MideaToggle)(slot - SLOT_TOGGLE_0 + 1);
             draw_button(
-                canvas, x, y, btn_h, midea_ir_get_toggle_name(t), focused,
+                canvas,
+                x,
+                y,
+                btn_h,
+                midea_ir_get_toggle_name(t),
+                focused,
                 midea_state_toggle_active(m->state, t));
         }
     }
@@ -634,7 +639,12 @@ void midea_main_view_start_sending(MideaMainView* view) {
 
 void midea_main_view_update_sending(MideaMainView* view) {
     with_view_model(
-        view->view, MideaMainViewModel * m, { if(m->is_sending) m->send_anim_frame++; }, true);
+        view->view,
+        MideaMainViewModel * m,
+        {
+            if(m->is_sending) m->send_anim_frame++;
+        },
+        true);
 }
 
 void midea_main_view_stop_sending(MideaMainView* view) {

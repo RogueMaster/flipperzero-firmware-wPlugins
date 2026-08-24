@@ -77,12 +77,7 @@ static void midea_setup_view_draw(Canvas* canvas, void* model) {
 
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(
-            canvas,
-            32,
-            oy + 15,
-            AlignCenter,
-            AlignTop,
-            midea_ir_get_option_name(m->state->option));
+            canvas, 32, oy + 15, AlignCenter, AlignTop, midea_ir_get_option_name(m->state->option));
 
         // Arrows, so it reads as adjustable. The focus frame runs x=1..62, so
         // these sit far enough in to clear it: a glyph centred at 5 covers

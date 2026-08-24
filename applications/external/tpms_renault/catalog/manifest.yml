@@ -19,14 +19,14 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/VishovVladimir/flipper-zero-tpms.git
-    commit_sha: a93a5daf541839301aeaddbe8efa855d14e89c3c
+    commit_sha: 80c358e598ce14b76fee27d7da4c905c252f7dd1
     subdir: flipper/tpms_bridge
 
 description: "@README.md"
 changelog: "@changelog.md"
 # Order matters: the first screenshot is the app preview in the catalog.
 screenshots:
-  - screenshots/4.png
-  - screenshots/3.png
-  - screenshots/2.png
   - screenshots/1.png
+  - screenshots/2.png
+  - screenshots/3.png
+  - screenshots/4.png

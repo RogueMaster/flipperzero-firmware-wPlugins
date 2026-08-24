@@ -14,7 +14,7 @@
 /** Pause before retrying to claim the radio, ms. */
 #define TPMS_RADIO_RETRY_MS 1000
 
-void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame, float rssi_dbm) {
+void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsFrame* frame, float rssi_dbm) {
     furi_check(app);
 
     furi_mutex_acquire(app->state_mutex, FuriWaitForever);
@@ -23,6 +23,26 @@ void tpms_bridge_report_frame(TpmsBridgeApp* app, const TpmsRenaultFrame* frame,
     furi_mutex_release(app->state_mutex);
 
     if(app->view_port) view_port_update(app->view_port);
+}
+
+void tpms_bridge_tune_radio(TpmsBridgeApp* app, TpmsSession* session) {
+    furi_check(app);
+
+    uint8_t slot;
+    if(app->config == TpmsConfigScan) {
+        const uint32_t now = furi_get_tick();
+        if(app->scan_tick == 0 || now - app->scan_tick > furi_ms_to_ticks(TPMS_SCAN_PERIOD_MS)) {
+            app->scan_tick = now;
+            app->scan_step = (uint8_t)((app->scan_step + 1) % TPMS_SLOT_COUNT);
+        }
+        slot = app->scan_step;
+    } else {
+        slot = (uint8_t)(app->config % TPMS_SLOT_COUNT);
+    }
+
+    if(tpms_session_retune(session, tpms_slot_frequency(slot), tpms_slot_modulation(slot))) {
+        app->active_slot = slot;
+    }
 }
 
 static void tpms_bridge_draw_callback(Canvas* canvas, void* context) {
@@ -58,7 +78,7 @@ static bool tpms_bridge_signal_callback(uint32_t signal, void* arg, void* contex
 }
 
 static void
-    tpms_bridge_local_frame_callback(const TpmsRenaultFrame* frame, float rssi_dbm, void* context) {
+    tpms_bridge_local_frame_callback(const TpmsFrame* frame, float rssi_dbm, void* context) {
     tpms_bridge_report_frame(context, frame, rssi_dbm);
 }
 
@@ -78,7 +98,11 @@ static int32_t tpms_bridge_local_rx_thread(void* context) {
     TpmsSession* session = tpms_session_alloc();
     tpms_session_set_frame_callback(session, tpms_bridge_local_frame_callback, app);
 
-    if(tpms_session_start(session, TPMS_DEFAULT_FREQUENCY)) {
+    const uint8_t slot = app->config == TpmsConfigScan ? app->scan_step :
+                                                         (uint8_t)(app->config % TPMS_SLOT_COUNT);
+
+    if(tpms_session_start(session, tpms_slot_frequency(slot), tpms_slot_modulation(slot))) {
+        app->active_slot = slot;
         uint32_t last_wake = 0;
 
         while(app->local_rx && !app->stop_requested && !app->radio_yield_requested) {
@@ -92,6 +116,7 @@ static int32_t tpms_bridge_local_rx_thread(void* context) {
                 tpms_session_wake_pulse(session, TPMS_LF_PULSE_MS);
             }
 
+            tpms_bridge_tune_radio(app, session);
             tpms_session_pump(session, 100);
         }
         tpms_session_stop(session);
@@ -143,6 +168,26 @@ static void tpms_bridge_reconcile_radio(TpmsBridgeApp* app) {
     furi_thread_start(app->local_thread);
 }
 
+/** Step through the radio configurations.
+ *
+ * The band and the modulation are one list rather than two settings: the
+ * radio holds one of each at a time, and one ring of five entries is less
+ * to remember than two separate cycles.
+ */
+static void tpms_bridge_step_config(TpmsBridgeApp* app, int8_t delta) {
+    app->config = (uint8_t)((app->config + TpmsConfigCount + delta) % TpmsConfigCount);
+    app->scan_tick = 0;
+}
+
+static void tpms_bridge_select(TpmsBridgeApp* app, int8_t delta) {
+    if(delta < 0) {
+        if(app->selected > 0) app->selected--;
+    } else if(app->store.count > 0 && app->selected + 1 < app->store.count) {
+        app->selected++;
+    }
+    tpms_view_follow_selection(app);
+}
+
 static void tpms_bridge_wake_sensor(TpmsBridgeApp* app) {
     /* If reception is running the pulse must not stop the receiver: the
      * sensor answers right away. Decoding is driven by the session owner,
@@ -165,13 +210,28 @@ static void tpms_bridge_handle_input(TpmsBridgeApp* app, const InputEvent* event
 
     furi_mutex_acquire(app->state_mutex, FuriWaitForever);
 
-    /* Long OK clears the list: handy when moving from one car to another
-     * and the table still holds someone else's sensors. */
-    if(event->key == InputKeyOk && event->type == InputTypeLong) {
-        tpms_store_reset(&app->store);
-        app->selected = 0;
-        app->scroll = 0;
-        app->screen = TpmsScreenList;
+    if(event->type == InputTypeLong) {
+        switch(event->key) {
+        case InputKeyOk:
+            /* Clear the list: handy when moving from one car to another
+             * and the table still holds someone else's sensors. */
+            tpms_store_reset(&app->store);
+            app->selected = 0;
+            app->scroll = 0;
+            app->screen = TpmsScreenList;
+            break;
+
+        case InputKeyUp:
+        case InputKeyDown:
+            /* Up and Down step the radio configuration, so picking a row
+             * out of the list moves to holding them. */
+            tpms_bridge_select(app, event->key == InputKeyUp ? -1 : 1);
+            break;
+
+        default:
+            break;
+        }
+
         furi_mutex_release(app->state_mutex);
         return;
     }
@@ -207,14 +267,17 @@ static void tpms_bridge_handle_input(TpmsBridgeApp* app, const InputEvent* event
         break;
 
     case InputKeyUp:
-        if(app->selected > 0) app->selected--;
-        tpms_view_follow_selection(app);
+    case InputKeyDown: {
+        const int8_t delta = event->key == InputKeyUp ? -1 : 1;
+        /* On the list these step the band and the modulation; on the
+         * detail screen they walk from one sensor to the next. */
+        if(app->screen == TpmsScreenDetail) {
+            tpms_bridge_select(app, delta);
+        } else {
+            tpms_bridge_step_config(app, delta);
+        }
         break;
-
-    case InputKeyDown:
-        if(app->store.count > 0 && app->selected + 1 < app->store.count) app->selected++;
-        tpms_view_follow_selection(app);
-        break;
+    }
 
     default:
         break;

@@ -36,7 +36,7 @@
 /// IRMideaAC::stateReset(), which is a Fahrenheit frame; we rebuild in Celsius
 #define MIDEA_RESET_STATE 0xA1826FFFFFULL
 
-#define MIDEA_HEADER 0b10100
+#define MIDEA_HEADER       0b10100
 #define MIDEA_TYPE_COMMAND 0b001
 
 // Mode field
@@ -88,8 +88,8 @@ static const uint64_t EXTRA_CODES[MideaExtraCount] = {
 static const char* MODE_NAMES[MideaModeCount] = {"Off", "Cool", "Auto", "Dry", "Heat", "Fan"};
 static const char* FAN_NAMES[MideaFanCount] = {"Auto", "Low", "Med", "High"};
 static const char* TOGGLE_NAMES[MideaToggleCount] = {"Power", "Swing", "Turbo", "Light", "Econo"};
-static const char* EXTRA_NAMES[MideaExtraCount] = {
-    "Quiet on", "Quiet off", "Self clean", "8C heat"};
+static const char* EXTRA_NAMES[MideaExtraCount] =
+    {"Quiet on", "Quiet off", "Self clean", "8C heat"};
 static const char* MODEL_NAMES[MideaModelCount] = {"Standard", "Kaysun"};
 
 /// Kaysun swaps which word means vertical swing.

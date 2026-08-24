@@ -86,38 +86,63 @@ static void tpms_cli_emit_direct(PipeSide* pipe, const char* text) {
     pipe_send(pipe, text, strlen(text));
 }
 
-static void tpms_cli_print_frame(const TpmsRenaultFrame* frame, float rssi_dbm, void* context) {
+static void tpms_cli_print_frame(const TpmsFrame* frame, float rssi_dbm, void* context) {
     TpmsCliSession* cli = context;
     cli->frames++;
 
-    char raw_hex[TPMS_RENAULT_FRAME_BYTES * 2 + 1];
-    for(size_t i = 0; i < TPMS_RENAULT_FRAME_BYTES; i++) {
+    char raw_hex[TPMS_RAW_MAX * 2 + 1];
+    for(size_t i = 0; i < frame->raw_len; i++) {
         static const char digits[] = "0123456789abcdef";
         raw_hex[i * 2] = digits[frame->raw[i] >> 4];
         raw_hex[i * 2 + 1] = digits[frame->raw[i] & 0x0F];
     }
-    raw_hex[sizeof(raw_hex) - 1] = '\0';
+    raw_hex[frame->raw_len * 2] = '\0';
 
     /* Integers only: the firmware printf is not required to support %f.
-     * Pressure goes out in hundredths of a kPa (raw * 0.75 * 100 ==
-     * raw * 75), RSSI in tenths of a dBm. */
-    const int32_t rssi_x10 = (int32_t)(rssi_dbm * 10.0f);
+     * Pressure goes out in hundredths of a kPa, RSSI in tenths of a dBm.
+     * Fields the protocol does not carry are left out rather than sent
+     * as a zero. */
+    char pressure[32] = "";
+    if(frame->have & TPMS_HAS_PRESSURE) {
+        snprintf(
+            pressure,
+            sizeof(pressure),
+            ",\"pressure_kpa_x100\":%ld",
+            (long)frame->pressure_kpa_x100);
+    }
+
+    char temperature[24] = "";
+    if(frame->have & TPMS_HAS_TEMP) {
+        snprintf(temperature, sizeof(temperature), ",\"temp_c\":%d", (int)frame->temperature_c);
+    }
+
+    char battery[24] = "";
+    if(frame->have & TPMS_HAS_BATTERY) {
+        snprintf(
+            battery,
+            sizeof(battery),
+            ",\"battery_ok\":%s",
+            (frame->have & TPMS_BATTERY_LOW) ? "false" : "true");
+    }
+
+    const uint8_t digits = tpms_protocols[frame->protocol].id_digits;
 
     char line[TPMS_LINE_MAX];
     snprintf(
         line,
         sizeof(line),
-        "{\"t\":%lu,\"proto\":\"renault\",\"id\":\"%06lx\",\"raw\":\"%s\","
-        "\"pressure_kpa_x100\":%lu,\"temp_c\":%d,\"flags\":%u,\"unknown\":%u,"
-        "\"rssi_dbm_x10\":%ld}\r\n",
+        "{\"t\":%lu,\"proto\":\"%s\",\"id\":\"%0*lx\",\"raw\":\"%s\"%s%s%s,"
+        "\"flags\":%u,\"rssi_dbm_x10\":%ld}\r\n",
         (unsigned long)furi_get_tick(),
+        tpms_protocol_id(frame->protocol),
+        (int)digits,
         (unsigned long)frame->id,
         raw_hex,
-        (unsigned long)frame->pressure_raw * 75UL,
-        (int)frame->temperature_c,
+        pressure,
+        temperature,
+        battery,
         (unsigned)frame->flags,
-        (unsigned)frame->unknown,
-        (long)rssi_x10);
+        (long)(rssi_dbm * 10.0f));
 
     tpms_cli_emit(cli, line);
     tpms_bridge_report_frame(cli->app, frame, rssi_dbm);
@@ -142,7 +167,15 @@ static void tpms_cli_collect_raw(bool level, uint32_t duration, void* context) {
 void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
     TpmsBridgeApp* app = context;
 
-    uint32_t frequency = TPMS_DEFAULT_FREQUENCY;
+    const uint8_t current_slot = app->config == TpmsConfigScan ?
+                                     app->active_slot :
+                                     (uint8_t)(app->config % TPMS_SLOT_COUNT);
+
+    uint32_t frequency = tpms_slot_frequency(current_slot);
+    TpmsModulation modulation = tpms_slot_modulation(current_slot);
+    uint8_t band = (uint8_t)(current_slot / 2);
+    bool pinned_frequency = false;
+    bool scan_requested = app->config == TpmsConfigScan;
     bool raw_mode = false;
     bool wake_enabled = false;
 
@@ -153,25 +186,56 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
         const unsigned long parsed = strtoul(text, &end, 10);
         if(end == text || parsed == 0) {
             tpms_cli_emit_direct(
-                pipe, "Usage: " TPMS_CLI_COMMAND_NAME " [frequency_hz] [json|raw] [wake]\r\n");
+                pipe,
+                "Usage: " TPMS_CLI_COMMAND_NAME
+                " [frequency_hz] [json|raw] [wake] [fsk|ook|scan]\r\n");
             furi_string_free(word);
             return;
         }
         frequency = (uint32_t)parsed;
+
+        /* A frequency that is one of the bands the keys switch between
+         * keeps following those keys; any other one is pinned. */
+        pinned_frequency = true;
+        for(uint8_t i = 0; i < TPMS_FREQUENCY_COUNT; i++) {
+            if(tpms_frequencies[i] == frequency) {
+                band = i;
+                pinned_frequency = false;
+                break;
+            }
+        }
 
         while(args_read_string_and_trim(args, word)) {
             if(furi_string_equal_str(word, "raw")) {
                 raw_mode = true;
             } else if(furi_string_equal_str(word, "wake")) {
                 wake_enabled = true;
+            } else if(furi_string_equal_str(word, "fsk")) {
+                modulation = TpmsModulationFsk;
+                scan_requested = false;
+            } else if(furi_string_equal_str(word, "ook")) {
+                modulation = TpmsModulationOok;
+                scan_requested = false;
+            } else if(furi_string_equal_str(word, "scan")) {
+                scan_requested = true;
             } else if(!furi_string_equal_str(word, "json")) {
-                tpms_cli_emit_direct(pipe, "Unknown option, expected json, raw or wake\r\n");
+                tpms_cli_emit_direct(
+                    pipe, "Unknown option, expected json, raw, wake, fsk, ook or scan\r\n");
                 furi_string_free(word);
                 return;
             }
         }
     }
     furi_string_free(word);
+
+    /* Unless the frequency was pinned to something outside the two bands,
+     * the session follows the same setting the screen shows, so the keys
+     * keep working while a computer is listening. */
+    if(!pinned_frequency) {
+        app->config = scan_requested ?
+                          (uint8_t)TpmsConfigScan :
+                          (uint8_t)(band * 2 + (modulation == TpmsModulationOok ? 1 : 0));
+    }
 
     /* The radio is almost always busy with local reception — it starts on
      * its own so that the app works without a computer. Raise the flag:
@@ -203,7 +267,7 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
     tpms_session_set_frame_callback(cli.session, tpms_cli_print_frame, &cli);
     if(raw_mode) tpms_session_set_raw_callback(cli.session, tpms_cli_collect_raw, &cli);
 
-    if(!tpms_session_start(cli.session, frequency)) {
+    if(!tpms_session_start(cli.session, frequency, modulation)) {
         tpms_cli_emit_direct(pipe, "{\"error\":\"cannot start radio\"}\r\n");
         tpms_session_free(cli.session);
         furi_string_free(cli.raw_buffer);
@@ -211,6 +275,8 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
         app->radio_yield_requested = false;
         return;
     }
+    if(!pinned_frequency)
+        app->active_slot = (uint8_t)(band * 2 + (modulation == TpmsModulationOok ? 1 : 0));
 
     app->cli_sessions++;
     furi_mutex_acquire(app->state_mutex, FuriWaitForever);
@@ -221,10 +287,13 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
     snprintf(
         started,
         sizeof(started),
-        "{\"event\":\"started\",\"freq\":%lu,\"mode\":\"%s\",\"wake\":%s}\r\n",
+        "{\"event\":\"started\",\"freq\":%lu,\"mode\":\"%s\",\"wake\":%s,\"radio\":\"%s\","
+        "\"protocols\":%u}\r\n",
         (unsigned long)frequency,
         raw_mode ? "raw" : "json",
-        wake_enabled ? "true" : "false");
+        wake_enabled ? "true" : "false",
+        app->config == TpmsConfigScan ? "scan" : (modulation == TpmsModulationOok ? "ook" : "fsk"),
+        (unsigned)tpms_protocol_count);
     tpms_cli_emit(&cli, started);
 
     const char* stop_reason = "user";
@@ -257,6 +326,7 @@ void tpms_cli_command(PipeSide* pipe, FuriString* args, void* context) {
             tpms_session_wake_pulse(cli.session, TPMS_LF_PULSE_MS);
         }
 
+        if(!pinned_frequency) tpms_bridge_tune_radio(app, cli.session);
         tpms_session_pump(cli.session, 100);
     }
 
