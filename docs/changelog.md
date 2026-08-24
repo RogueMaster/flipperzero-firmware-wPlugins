@@ -12,7 +12,7 @@ v1.1:
 - Added password editing and saved-network deletion
 - Added a full lowercase, uppercase, numeric, and symbol keyboard
 - Added waiting, reconnect, and recovery notifications for internet monitoring
-- Added `1.1.1.1` as the default ping target
+- Added 1.1.1.1 as the default ping target
 
 v1.0:
 - Added ESP-AT Wi-Fi scanning and network selection
