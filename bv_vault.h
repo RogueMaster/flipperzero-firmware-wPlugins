@@ -27,9 +27,24 @@ typedef struct {
     uint8_t dek[BV_DEK_SIZE];
 } BvVaultKey;
 
+// Why bv_vault_key_status() could not hand back a usable DEK. Each value maps
+// to a distinct on-screen explanation - the user cannot read the serial log.
+typedef enum {
+    BvKeyOk,
+    BvKeyNoEnclave, // enclave unreachable / key store corrupt: no device key
+    BvKeyPinRequired, // v2 keystore, but no unlock key set this session
+    BvKeyCorrupt, // keystore present but unreadable; refusing to re-key
+    BvKeyStoreFail, // could not wrap or persist a first-use keystore
+} BvKeyStatus;
+
 // Load keystore and unwrap DEK into `out`; creates a fresh DEK on first use.
-// False on enclave/storage failure, or if a PIN is required but no unlock key
-// has been set this session.
+// Note that a v1 keystore wrapped by a *different* Flipper still returns
+// BvKeyOk here: the CBC unwrap has no integrity check, so a foreign KEK yields
+// a garbage DEK that only the vault's GCM tag can reject. Callers must treat a
+// failed bv_vault_decrypt() as the device-mismatch signal.
+BvKeyStatus bv_vault_key_status(BvVaultKey* out);
+
+// bv_vault_key_status() == BvKeyOk, for callers with nothing to explain.
 bool bv_vault_key_open(BvVaultKey* out);
 
 // --- PIN (unlock key) management ---

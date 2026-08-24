@@ -84,10 +84,10 @@ static bool ks_write(const uint8_t* buf, size_t len) {
 
 // --- Keystore ---
 
-bool bv_vault_key_open(BvVaultKey* out) {
+BvKeyStatus bv_vault_key_status(BvVaultKey* out) {
     if(!bv_crypto_kek_ensure()) {
-        FURI_LOG_E(TAG, "KEK ensure failed");
-        return false;
+        FURI_LOG_E(TAG, "no device key: enclave unavailable");
+        return BvKeyNoEnclave;
     }
 
     uint8_t ks[KS2_SIZE];
@@ -95,12 +95,15 @@ bool bv_vault_key_open(BvVaultKey* out) {
     KsReadStatus status = ks_read(ks, sizeof(ks), &ks_len);
 
     if(status == KsReadOk && ks_len == KS_SIZE && memcmp(ks, KS_MAGIC, KS_MAGIC_LEN) == 0) {
-        // v1: plain enclave wrap.
+        // v1: plain enclave wrap. This only fails when the enclave itself does:
+        // AES-CBC is unauthenticated, so a keystore written by a *different*
+        // Flipper unwraps "successfully" into a garbage DEK and is caught later
+        // by the vault's GCM tag, not here.
         bool ok =
             bv_crypto_kek_unwrap(ks + KS_MAGIC_LEN, ks + KS_MAGIC_LEN + BV_WRAP_IV_SIZE, out->dek);
         memset(ks, 0, sizeof(ks));
-        if(!ok) FURI_LOG_E(TAG, "DEK unwrap failed (enclave key changed?)");
-        return ok;
+        if(!ok) FURI_LOG_E(TAG, "v1 unwrap failed: enclave op error");
+        return ok ? BvKeyOk : BvKeyNoEnclave;
     }
     if(status == KsReadOk && ks_len == KS2_SIZE && memcmp(ks, KS_MAGIC_V2, KS_MAGIC_LEN) == 0) {
         // v2: enclave wrap over (DEK XOR unlock_key). No verifier: a wrong
@@ -108,23 +111,23 @@ bool bv_vault_key_open(BvVaultKey* out) {
         if(!s_unlock_set) {
             memset(ks, 0, sizeof(ks));
             FURI_LOG_E(TAG, "keystore needs PIN but no unlock key set");
-            return false;
+            return BvKeyPinRequired;
         }
         bool ok = bv_crypto_kek_unwrap(ks + KS2_OFF_IV, ks + KS2_OFF_WRAPPED, out->dek);
         memset(ks, 0, sizeof(ks));
         if(!ok) {
-            FURI_LOG_E(TAG, "DEK unwrap failed (enclave key changed?)");
-            return false;
+            FURI_LOG_E(TAG, "v2 unwrap failed: enclave op error");
+            return BvKeyNoEnclave;
         }
         for(size_t i = 0; i < BV_DEK_SIZE; i++)
             out->dek[i] ^= s_unlock_key[i];
-        return true;
+        return BvKeyOk;
     }
     if(status != KsReadMissing) {
         // Refuse to re-key: would orphan the on-tag vault.
         FURI_LOG_E(TAG, "keystore present but unreadable/corrupt; refusing to re-key");
         memset(ks, 0, sizeof(ks));
-        return false;
+        return BvKeyCorrupt;
     }
 
     // First use: generate a fresh DEK, wrap it, persist (v1; PIN is opt-in).
@@ -134,7 +137,7 @@ bool bv_vault_key_open(BvVaultKey* out) {
     furi_hal_random_fill_buf(wrap_iv, sizeof(wrap_iv));
     if(!bv_crypto_kek_wrap(wrap_iv, out->dek, wrapped)) {
         FURI_LOG_E(TAG, "DEK wrap failed");
-        return false;
+        return BvKeyNoEnclave;
     }
     memcpy(ks, KS_MAGIC, KS_MAGIC_LEN);
     memcpy(ks + KS_MAGIC_LEN, wrap_iv, BV_WRAP_IV_SIZE);
@@ -143,7 +146,11 @@ bool bv_vault_key_open(BvVaultKey* out) {
     memset(ks, 0, sizeof(ks));
     memset(wrapped, 0, sizeof(wrapped));
     FURI_LOG_I(TAG, "created new keystore: %s", ok ? "OK" : "FAIL");
-    return ok;
+    return ok ? BvKeyOk : BvKeyStoreFail;
+}
+
+bool bv_vault_key_open(BvVaultKey* out) {
+    return bv_vault_key_status(out) == BvKeyOk;
 }
 
 // --- PIN (unlock key) management ---

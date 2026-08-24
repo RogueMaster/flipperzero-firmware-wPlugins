@@ -93,7 +93,16 @@ typedef enum {
     BvErrNoVault,
     BvErrAuth,
     BvErrWrongImplant, // presented tag isn't the provisioned implant
+    BvErrEnclave, // no device key: enclave unreachable / key store corrupt
+    BvErrPinMissing, // keystore is PIN-wrapped but no PIN was entered
+    BvErrKeystore, // keystore.bin unreadable; re-keying would orphan the tag
+    BvErrKeystoreWrite, // could not persist a new keystore (SD gone/full)
+    BvErrForeignVault, // vault decrypts to nothing: written by another Flipper
 } BvError;
+
+// Defined with the error strings, used by the NFC ops well above them.
+static BvError bv_err_from_key(BvKeyStatus st);
+static BvError bv_err_decrypt_failed(void);
 
 // View ids and menu indices.
 typedef enum {
@@ -118,6 +127,7 @@ typedef enum {
     BvViewPinEntry,
     BvViewAbout,
     BvViewDiag,
+    BvViewNoKey, // startup gate when the device key is unavailable
 } BvViewId;
 
 // Per-entry action menu (opened by selecting an entry in the browser).
@@ -321,6 +331,7 @@ typedef struct {
     Submenu* pin_menu;
     View* pin_warn;
     View* pin_entry;
+    View* no_key; // startup gate when the device key is unavailable
 
     Nfc* nfc;
     NfcPoller* poller;
@@ -540,7 +551,8 @@ static BvError bv_auth_if_protected(
     size_t uid_len) {
     if(!app->settings.tag_protected) return BvErrNone;
     BvVaultKey key;
-    if(!bv_vault_key_open(&key)) return BvErrCrypto;
+    BvKeyStatus ks = bv_vault_key_status(&key);
+    if(ks != BvKeyOk) return bv_err_from_key(ks);
     uint8_t pwd[4], pack[2];
     bv_vault_tag_password(&key, uid, uid_len, pwd, pack);
     bv_vault_key_clear(&key);
@@ -556,7 +568,8 @@ static BvError bv_auth_if_protected(
 }
 
 // Authenticate (if needed) then SECTOR SELECT 1 - common gate for every vault
-// operation. Returns BvErrAuth/BvErrSectorSelect/BvErrCrypto, or BvErrNone.
+// operation. Returns BvErrAuth/BvErrSectorSelect, a key error from
+// bv_err_from_key(), or BvErrNone.
 static BvError
     bv_open_sector1(BioVault* app, Iso14443_3aPoller* poller, const uint8_t* uid, size_t uid_len) {
     BvError err = bv_auth_if_protected(app, poller, uid, uid_len);
@@ -656,7 +669,8 @@ static BvError bv_prepare_save_blob(BioVault* app) {
         err = BvErrTooBig;
     } else {
         BvVaultKey key;
-        if(bv_vault_key_open(&key)) {
+        BvKeyStatus ks = bv_vault_key_status(&key);
+        if(ks == BvKeyOk) {
             if(!bv_vault_encrypt(&key, pt, pt_len, app->save_blob, &app->save_blob_len)) {
                 err = BvErrCrypto;
             } else if(app->save_blob_len > SECTOR1_BYTES) {
@@ -665,7 +679,7 @@ static BvError bv_prepare_save_blob(BioVault* app) {
             }
             bv_vault_key_clear(&key);
         } else {
-            err = BvErrCrypto;
+            err = bv_err_from_key(ks);
         }
     }
     memset(pt, 0, BV_SERIALIZED_MAX);
@@ -784,8 +798,9 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
                 app->dek_verified = true;
             } else {
                 BvVaultKey key;
-                if(!bv_vault_key_open(&key)) {
-                    err = BvErrCrypto;
+                BvKeyStatus ks = bv_vault_key_status(&key);
+                if(ks != BvKeyOk) {
+                    err = bv_err_from_key(ks);
                 } else {
                     size_t pt_len = 0;
                     if(bv_vault_decrypt(&key, buf, blob_len, pt, BV_SERIALIZED_MAX, &pt_len)) {
@@ -800,7 +815,9 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
                         }
                         furi_mutex_release(app->vault_mutex);
                     } else {
-                        err = BvErrCrypto; // wrong device/key, or corrupt
+                        // The tag holds a well-framed vault this key cannot
+                        // open: a foreign Flipper's DEK, or the wrong PIN.
+                        err = bv_err_decrypt_failed();
                     }
                     bv_vault_key_clear(&key);
                 }
@@ -847,7 +864,8 @@ static BvError bv_do_provision(BioVault* app, Iso14443_3aPoller* poller, bool* r
     if(memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) != 0) return BvErrWrongTag;
 
     BvVaultKey key;
-    if(!bv_vault_key_open(&key)) return BvErrCrypto;
+    BvKeyStatus ks = bv_vault_key_status(&key);
+    if(ks != BvKeyOk) return bv_err_from_key(ks);
     uint8_t pwd[4], pack[2];
     bv_vault_tag_password(&key, uid, uid_len, pwd, pack); // UID-diversified
     bv_vault_key_clear(&key);
@@ -939,8 +957,9 @@ static BvError bv_do_reveal(BioVault* app, Iso14443_3aPoller* poller, bool* retr
         err = BvErrNoVault; // nothing provisioned, nothing to reveal
     } else {
         BvVaultKey key;
-        if(!bv_vault_key_open(&key)) {
-            err = BvErrCrypto;
+        BvKeyStatus ks = bv_vault_key_status(&key);
+        if(ks != BvKeyOk) {
+            err = bv_err_from_key(ks);
         } else {
             bv_vault_tag_password(&key, uid, uid_len, pwd, pack);
             bv_vault_key_clear(&key);
@@ -1160,16 +1179,110 @@ static const char* bv_error_text(BvError e) {
     case BvErrTooBig:
         return "Vault too big for tag";
     case BvErrCrypto:
-        return "Key error (wrong PIN?)";
+        return "Vault would not decrypt";
     case BvErrAuth:
         return "Auth failed (wrong device?)";
     case BvErrWrongImplant:
         return "Not the provisioned implant";
     case BvErrNoVault:
         return "No provisioned implant";
+    case BvErrEnclave:
+        return "No device key";
+    case BvErrPinMissing:
+        return "Vault PIN not entered";
+    case BvErrKeystore:
+        return "Keystore unreadable";
+    case BvErrKeystoreWrite:
+        return "Cannot save keystore";
+    case BvErrForeignVault:
+        return "Vault from another Flipper";
     default:
         return "Unknown error";
     }
+}
+
+// Key-related failures are the ones a user cannot diagnose from the error line
+// alone, so each carries a short "what now". NULL-terminated, at most 3 lines
+// of ~29 chars (FontSecondary at x=2). NULL when the error speaks for itself.
+static const char* const* bv_error_hint(BvError e) {
+    static const char* const enclave[] = {
+        "Flipper's secure enclave is",
+        "unreachable. Reboot; if it",
+        "persists, update firmware.",
+        NULL};
+    static const char* const pin_missing[] = {
+        "Settings > Vault PIN >", "Re-enter PIN, then retry.", NULL};
+    static const char* const keystore[] = {
+        "keystore.bin is damaged.", "Restore your backup copy;", "re-keying would lose it.", NULL};
+    static const char* const keystore_write[] = {
+        "Could not write to the SD", "card. Check it is inserted", "and has free space.", NULL};
+    static const char* const foreign[] = {
+        "Its key never left the", "Flipper that wrote it, so", "this one cannot unlock it.", NULL};
+    static const char* const crypto[] = {
+        "Wrong PIN, or the vault was", "written by another Flipper.", NULL};
+
+    switch(e) {
+    case BvErrEnclave:
+        return enclave;
+    case BvErrPinMissing:
+        return pin_missing;
+    case BvErrKeystore:
+        return keystore;
+    case BvErrKeystoreWrite:
+        return keystore_write;
+    case BvErrForeignVault:
+        return foreign;
+    case BvErrCrypto:
+        return crypto;
+    default:
+        return NULL;
+    }
+}
+
+// Map a keystore open failure to the error the user will see.
+static BvError bv_err_from_key(BvKeyStatus st) {
+    switch(st) {
+    case BvKeyNoEnclave:
+        return BvErrEnclave;
+    case BvKeyPinRequired:
+        return BvErrPinMissing;
+    case BvKeyCorrupt:
+        return BvErrKeystore;
+    case BvKeyStoreFail:
+        return BvErrKeystoreWrite;
+    default:
+        return BvErrCrypto;
+    }
+}
+
+// A vault that fails GCM auth was either sealed with a different PIN or on a
+// different Flipper. With no PIN set only the second is possible, so say so.
+static BvError bv_err_decrypt_failed(void) {
+    return bv_vault_pin_required() ? BvErrCrypto : BvErrForeignVault;
+}
+
+// Same explanation over the CLI, where there is no screen to draw it on.
+static void bv_cli_print_hint(BvError e) {
+    const char* const* hint = bv_error_hint(e);
+    for(size_t i = 0; hint && hint[i]; i++)
+        printf("  %s\r\n", hint[i]);
+}
+
+// Shared error body for the op views: the caller draws the title, this draws
+// the error line, its hint, and the footer. The optional `extra` line is
+// dropped when a hint is present; the hint is the more useful of the two.
+static void bv_draw_error(Canvas* canvas, BvError e, const char* extra, const char* footer) {
+    canvas_set_font(canvas, FontSecondary);
+    const char* const* hint = bv_error_hint(e);
+    uint8_t y = hint ? 22 : 28;
+    canvas_draw_str(canvas, 2, y, bv_error_text(e));
+    if(hint) {
+        for(size_t i = 0; hint[i]; i++)
+            canvas_draw_str(canvas, 2, (uint8_t)(y + 10 + i * 9), hint[i]);
+    } else if(extra) {
+        canvas_draw_str(canvas, 2, 40, extra);
+    }
+    canvas_draw_str(canvas, 2, 62, footer);
 }
 
 // Full-screen implant-coupling prompt: art on the left, "<verb> implant" centered.
@@ -1204,9 +1317,7 @@ static void bv_read_draw(Canvas* canvas, void* model) {
     case BvStateError:
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, "Read Implant");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
-        canvas_draw_str(canvas, 2, 52, "OK: retry  Back: menu");
+        bv_draw_error(canvas, m->error, NULL, "OK: retry  Back: menu");
         break;
     case BvStateDone: {
         canvas_set_font(canvas, FontPrimary);
@@ -1302,11 +1413,8 @@ static void bv_zero_draw(Canvas* canvas, void* model) {
     case BvZeroError:
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, "Wipe Implant");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
         snprintf(line, sizeof(line), "Wrote %u pages", m->pages_written);
-        canvas_draw_str(canvas, 2, 40, line);
-        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: menu");
+        bv_draw_error(canvas, m->error, line, "OK: retry   Back: menu");
         break;
     }
 }
@@ -1375,9 +1483,7 @@ static void bv_save_draw(Canvas* canvas, void* model) {
     case BvZeroError:
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, "Save to Implant");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
-        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: menu");
+        bv_draw_error(canvas, m->error, NULL, "OK: retry   Back: menu");
         break;
     }
 }
@@ -1434,9 +1540,7 @@ static void bv_load_draw(Canvas* canvas, void* model) {
     case BvStateError:
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, "Load from Implant");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
-        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: skip");
+        bv_draw_error(canvas, m->error, NULL, "OK: retry   Back: skip");
         break;
     default:
         bv_draw_hold(canvas, "Reading");
@@ -2273,9 +2377,7 @@ static void bv_prov_draw(Canvas* canvas, void* model) {
     case BvProvError:
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, "Provisioning failed");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
-        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: settings");
+        bv_draw_error(canvas, m->error, NULL, "OK: retry   Back: settings");
         break;
     }
 }
@@ -2374,9 +2476,7 @@ static void bv_reveal_draw(Canvas* canvas, void* model) {
     case BvRevealError:
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, "Reveal failed");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 28, bv_error_text(m->error));
-        canvas_draw_str(canvas, 2, 54, "OK: retry   Back: settings");
+        bv_draw_error(canvas, m->error, NULL, "OK: retry   Back: settings");
         break;
     }
 }
@@ -2512,6 +2612,36 @@ static uint32_t bv_about_previous(void* context) {
     return BvViewMenu;
 }
 
+// --- No-device-key gate ---
+// Shown at launch when the enclave self-test failed. Without the KEK nothing
+// can be unwrapped, so every vault operation would fail with the same opaque
+// error; say why once, up front, instead of at the end of each attempt.
+
+static void bv_no_key_draw(Canvas* canvas, void* model) {
+    UNUSED(model);
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "! No device key !");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 22, "The secure enclave on this");
+    canvas_draw_str(canvas, 2, 32, "Flipper is unreachable, so");
+    canvas_draw_str(canvas, 2, 42, "no vault key exists. Reboot");
+    canvas_draw_str(canvas, 2, 52, "or reinstall the firmware.");
+    canvas_draw_str(canvas, 2, 62, "OK: continue  Back: exit");
+}
+
+static void bv_start_flow(BioVault* app);
+
+static bool bv_no_key_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort) return false;
+    if(event->key == InputKeyOk) {
+        bv_start_flow(app); // let the user reach Diagnostics/About anyway
+        return true;
+    }
+    return false; // Back exits the app
+}
+
 static bool bv_custom_event_callback(void* context, uint32_t event) {
     BioVault* app = context;
     switch(event) {
@@ -2573,8 +2703,7 @@ static bool bv_navigation_callback(void* context) {
 
 static void bv_build_diag(BioVault* app) {
     widget_reset(app->diag);
-    widget_add_string_element(app->diag, 64, 2, AlignCenter, AlignTop, FontPrimary, "Diagnostics");
-    char line[40];
+
     const struct {
         const char* label;
         bool ok;
@@ -2586,11 +2715,56 @@ static void bv_build_diag(BioVault* app) {
         {"Records", app->records_ok},
         {"PIN KDF", app->pin_ok},
     };
-    for(size_t i = 0; i < COUNT_OF(rows); i++) {
-        snprintf(line, sizeof(line), "%s: %s", rows[i].label, rows[i].ok ? "OK" : "FAIL");
+
+    // A bare "FAIL" tells the user nothing they can act on, so a failing run
+    // scrolls the results with an explanation appended. Everything passing
+    // fits the screen, so keep that case as a plain fixed list.
+    if(app->enclave_ok && app->gcm_ok && app->dek_ok && app->vault_ok && app->records_ok &&
+       app->pin_ok) {
         widget_add_string_element(
-            app->diag, 2, 13 + i * 8, AlignLeft, AlignTop, FontSecondary, line);
+            app->diag, 64, 2, AlignCenter, AlignTop, FontPrimary, "Diagnostics");
+        char line[40];
+        for(size_t i = 0; i < COUNT_OF(rows); i++) {
+            snprintf(line, sizeof(line), "%s: OK", rows[i].label);
+            widget_add_string_element(
+                app->diag, 2, 13 + i * 8, AlignLeft, AlignTop, FontSecondary, line);
+        }
+        return;
     }
+
+    char text[1024]; // fits the rows plus both explanation blocks
+    size_t n = snprintf(text, sizeof(text), "\e#Diagnostics\n");
+    for(size_t i = 0; i < COUNT_OF(rows) && n < sizeof(text); i++) {
+        n += snprintf(
+            text + n, sizeof(text) - n, "%s: %s\n", rows[i].label, rows[i].ok ? "OK" : "FAIL");
+    }
+    if(!app->enclave_ok && n < sizeof(text)) {
+        n += snprintf(
+            text + n,
+            sizeof(text) - n,
+            "\n\e#Enclave KEK\n"
+            "The vault key is wrapped by a device-unique key held in this "
+            "Flipper's secure enclave. The enclave is unreachable, so that key "
+            "cannot be created or read and no vault can be opened on this "
+            "device.\n"
+            "\n"
+            "The key store lives on the radio core. Reboot the Flipper; if the "
+            "check still fails, reinstall the firmware (including the radio "
+            "stack) from qFlipper.\n"
+            "\n"
+            "This is not caused by a missing PIN or an unprovisioned tag, and "
+            "no other app needs to run first.\n");
+    }
+    if(n < sizeof(text) &&
+       (!app->gcm_ok || !app->dek_ok || !app->vault_ok || !app->records_ok || !app->pin_ok)) {
+        snprintf(
+            text + n,
+            sizeof(text) - n,
+            "\n\e#Self-test failed\n"
+            "A crypto or codec self-test did not pass. Do not trust this build "
+            "with a vault; reinstall BioVault and report the failing row.\n");
+    }
+    widget_add_text_scroll_element(app->diag, 0, 0, 128, 64, text);
 }
 
 // --- CLI command (registered while the app is running) ---
@@ -2836,6 +3010,7 @@ static void bv_cli_read(PipeSide* pipe, FuriString* args, void* context) {
 
     if(state != BvStateDone) {
         printf("Read failed: %s\r\n", bv_error_text(error));
+        bv_cli_print_hint(error);
         free(buf);
         return;
     }
@@ -2862,8 +3037,9 @@ static void bv_cli_load(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliLoad);
-    printf("Load screen open on device. Hold the implant to the Flipper,\r\n"
-           "then 'list' here to see the loaded entries.\r\n");
+    printf(
+        "Load screen open on device. Hold the implant to the Flipper,\r\n"
+        "then 'list' here to see the loaded entries.\r\n");
 }
 
 static void bv_cli_save(PipeSide* pipe, FuriString* args, void* context) {
@@ -2872,11 +3048,13 @@ static void bv_cli_save(PipeSide* pipe, FuriString* args, void* context) {
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliSave);
     if(app->vault_loaded) {
-        printf("Save screen open on device. Press OK on the Flipper to write,\r\n"
-               "then hold the implant to the Flipper.\r\n");
+        printf(
+            "Save screen open on device. Press OK on the Flipper to write,\r\n"
+            "then hold the implant to the Flipper.\r\n");
     } else {
-        printf("Vault not synced yet - opened the Load screen first (load before\r\n"
-               "save so the tag is never overwritten with un-synced data).\r\n");
+        printf(
+            "Vault not synced yet - opened the Load screen first (load before\r\n"
+            "save so the tag is never overwritten with un-synced data).\r\n");
     }
 }
 
@@ -2885,8 +3063,9 @@ static void bv_cli_wipe(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliZero);
-    printf("Wipe screen open on device. Press OK on the Flipper to confirm, then\r\n"
-           "hold the implant. Erases the tag AND clears the in-RAM vault.\r\n");
+    printf(
+        "Wipe screen open on device. Press OK on the Flipper to confirm, then\r\n"
+        "hold the implant. Erases the tag AND clears the in-RAM vault.\r\n");
 }
 
 // --- Settings / reveal over CLI ---
@@ -2968,9 +3147,10 @@ static void bv_cli_protect(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliProtect);
-    printf("Protect screen open on device. Review 'settings', press OK on the\r\n"
-           "Flipper to confirm, then hold the implant. PWD/PACK show on-device\r\n"
-           "(or run 'reveal' after).\r\n");
+    printf(
+        "Protect screen open on device. Review 'settings', press OK on the\r\n"
+        "Flipper to confirm, then hold the implant. PWD/PACK show on-device\r\n"
+        "(or run 'reveal' after).\r\n");
 }
 
 static void bv_cli_unprotect(PipeSide* pipe, FuriString* args, void* context) {
@@ -2978,8 +3158,9 @@ static void bv_cli_unprotect(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliUnprotect);
-    printf("Unprotect screen open on device. Press OK on the Flipper to confirm,\r\n"
-           "then hold the implant.\r\n");
+    printf(
+        "Unprotect screen open on device. Press OK on the Flipper to confirm,\r\n"
+        "then hold the implant.\r\n");
 }
 
 // Reveal the implant's PWD/PACK to the terminal. Same gate as the on-device
@@ -3024,6 +3205,7 @@ static void bv_cli_reveal(PipeSide* pipe, FuriString* args, void* context) {
         printf("pm3: hf mfu dump -k %02X%02X%02X%02X\r\n", pwd[0], pwd[1], pwd[2], pwd[3]);
     } else {
         printf("Reveal failed: %s\r\n", bv_error_text(err));
+        bv_cli_print_hint(err);
     }
     memset(pwd, 0, sizeof(pwd));
     memset(pack, 0, sizeof(pack));
@@ -3049,8 +3231,9 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
             printf("PIN already set. Remove it first (needs a verified load).\r\n");
             return;
         }
-        printf("The PIN becomes part of the vault key. A wrong PIN cannot be\r\n"
-               "detected, and a forgotten PIN means the vault is LOST.\r\n");
+        printf(
+            "The PIN becomes part of the vault key. A wrong PIN cannot be\r\n"
+            "detected, and a forgotten PIN means the vault is LOST.\r\n");
         char p1[64] = {0};
         char p2[64] = {0};
         printf("New PIN (%d digits): ", BV_PIN_LEN);
@@ -3089,9 +3272,10 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
             return;
         }
         if(!app->dek_verified) {
-            printf("Refused: load your vault first so this session's PIN is proven\r\n"
-                   "correct, then remove it. (Protects against a typo'd session\r\n"
-                   "rewrapping the key.)\r\n");
+            printf(
+                "Refused: load your vault first so this session's PIN is proven\r\n"
+                "correct, then remove it. (Protects against a typo'd session\r\n"
+                "rewrapping the key.)\r\n");
             return;
         }
         printf(bv_vault_pin_disable() ? "PIN removed.\r\n" : "Failed; PIN unchanged.\r\n");
@@ -3126,8 +3310,9 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
 
 static void bv_cli_motd(void* context) {
     UNUSED(context);
-    printf("\r\n  \e[33m\xe2\x98\xa3\e[0m \e[1;36mBioVault\e[0m \e[36mv0.1\e[0m\r\n"
-           "  enclave-encrypted implant vault\r\n\r\n");
+    printf(
+        "\r\n  \e[33m\xe2\x98\xa3\e[0m \e[1;36mBioVault\e[0m \e[36mv0.1\e[0m\r\n"
+        "  enclave-encrypted implant vault\r\n\r\n");
     printf("\e[36mVault:\e[0m  list, get <label>, add <label>, edit <label>, remove <label>\r\n");
     printf("\e[36mDevice:\e[0m read, load, save, wipe, reveal  (drive the on-device screens)\r\n");
     printf("\e[36mProtect:\e[0m protect, unprotect  (confirm on the Flipper)\r\n");
@@ -3374,6 +3559,13 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(widget_get_view(app->about), bv_about_previous);
     view_dispatcher_add_view(app->view_dispatcher, BvViewAbout, widget_get_view(app->about));
 
+    // No-device-key gate
+    app->no_key = view_alloc();
+    view_set_context(app->no_key, app);
+    view_set_draw_callback(app->no_key, bv_no_key_draw);
+    view_set_input_callback(app->no_key, bv_no_key_input);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewNoKey, app->no_key);
+
     // Diagnostics view
     app->diag = widget_alloc();
     bv_build_diag(app);
@@ -3429,6 +3621,7 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewPinEntry);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewAbout);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewNoKey);
     submenu_free(app->menu);
     view_free(app->read_view);
     view_free(app->save_view);
@@ -3448,6 +3641,7 @@ static void bv_free(BioVault* app) {
     view_free(app->pin_warn);
     submenu_free(app->pin_menu);
     view_free(app->pin_entry);
+    view_free(app->no_key);
     widget_free(app->about);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
@@ -3468,14 +3662,23 @@ static void bv_free(BioVault* app) {
     free(app);
 }
 
-int32_t biovault_app(void* p) {
-    UNUSED(p);
-    BioVault* app = bv_alloc();
+static void bv_start_flow(BioVault* app) {
     if(bv_vault_pin_required()) {
         bv_pin_entry_open(app, BvPinEntryUnlock, "Vault PIN");
     } else {
         // Load-first flow so Save never overwrites the tag with an un-synced vault.
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
+    }
+}
+
+int32_t biovault_app(void* p) {
+    UNUSED(p);
+    BioVault* app = bv_alloc();
+    if(!app->enclave_ok) {
+        // No KEK: explain once here rather than failing every operation later.
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewNoKey);
+    } else {
+        bv_start_flow(app);
     }
     view_dispatcher_run(app->view_dispatcher);
     bv_free(app);

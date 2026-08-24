@@ -1,6 +1,7 @@
 #include "bv_crypto.h"
 
 #include <furi.h>
+#include <furi_hal_bt.h>
 #include <furi_hal_crypto.h>
 #include <furi_hal_random.h>
 #include <string.h>
@@ -14,11 +15,26 @@ static const uint8_t EMPTY_AAD[1] = {0};
 
 // --- Key hierarchy primitives ---
 
+// The enclave key store is owned by core2, so nothing below works without it.
+// Guarding every entry point is not just politeness: furi_hal_crypto's
+// enclave_load_key()/store_key() acquire the crypto mutex and then bail on
+// !furi_hal_bt_is_alive() without releasing it (fw 1.4.3), so the *second*
+// enclave call on a device with a dead core2 blocks forever on a non-recursive
+// mutex. Failing fast here keeps that path unreachable.
+bool bv_crypto_enclave_available(void) {
+    return furi_hal_bt_is_alive();
+}
+
 bool bv_crypto_kek_ensure(void) {
+    if(!bv_crypto_enclave_available()) {
+        FURI_LOG_E(TAG, "enclave unreachable (core2 down); no device key");
+        return false;
+    }
     return furi_hal_crypto_enclave_ensure_key(KEK_SLOT);
 }
 
 bool bv_crypto_kek_wrap(const uint8_t iv[BV_WRAP_IV_SIZE], const uint8_t* dek, uint8_t* wrapped) {
+    if(!bv_crypto_enclave_available()) return false;
     if(!furi_hal_crypto_enclave_load_key(KEK_SLOT, iv)) return false;
     bool ok = furi_hal_crypto_encrypt(dek, wrapped, BV_DEK_SIZE);
     furi_hal_crypto_enclave_unload_key(KEK_SLOT);
@@ -26,6 +42,7 @@ bool bv_crypto_kek_wrap(const uint8_t iv[BV_WRAP_IV_SIZE], const uint8_t* dek, u
 }
 
 bool bv_crypto_kek_unwrap(const uint8_t iv[BV_WRAP_IV_SIZE], const uint8_t* wrapped, uint8_t* dek) {
+    if(!bv_crypto_enclave_available()) return false;
     if(!furi_hal_crypto_enclave_load_key(KEK_SLOT, iv)) return false;
     bool ok = furi_hal_crypto_decrypt(wrapped, dek, BV_DEK_SIZE);
     furi_hal_crypto_enclave_unload_key(KEK_SLOT);
@@ -33,6 +50,7 @@ bool bv_crypto_kek_unwrap(const uint8_t iv[BV_WRAP_IV_SIZE], const uint8_t* wrap
 }
 
 bool bv_crypto_kek_stretch(const uint8_t iv[BV_WRAP_IV_SIZE], uint8_t buf[32], uint32_t iters) {
+    if(!bv_crypto_enclave_available()) return false;
     if(!furi_hal_crypto_enclave_load_key(KEK_SLOT, iv)) return false;
     uint8_t tmp[32];
     bool ok = true;
@@ -80,7 +98,10 @@ static const uint8_t KAT_TAG[16] =
 
 bool bv_crypto_enclave_selftest(void) {
     if(!bv_crypto_kek_ensure()) {
-        FURI_LOG_E(TAG, "enclave ensure_key(slot %u) failed", KEK_SLOT);
+        FURI_LOG_E(
+            TAG,
+            "no device key: enclave slot %u unavailable (core2 down or key store corrupt)",
+            KEK_SLOT);
         return false;
     }
 

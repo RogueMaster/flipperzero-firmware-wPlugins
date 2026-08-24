@@ -16,7 +16,17 @@
 
 // --- Key hierarchy primitives ---
 
-// Ensure the slot-11 device-unique KEK exists (generated on first use). Idempotent.
+// True if the secure enclave can be reached at all. The key store lives on the
+// radio core (core2/FUS) and every enclave call is an SHCI round-trip to it, so
+// a dead core2 means no device key. Checked before every enclave op: in fw
+// 1.4.3 furi_hal_crypto_enclave_load_key()/store_key() take the crypto mutex
+// and return early WITHOUT releasing it when core2 is down, deadlocking every
+// later crypto call on the device.
+bool bv_crypto_enclave_available(void);
+
+// Ensure the slot-11 device-unique KEK exists. The firmware generates it on
+// first use, so this succeeds on a factory-fresh Flipper; it fails only when
+// the enclave is unreachable or its key store is corrupt. Idempotent.
 bool bv_crypto_kek_ensure(void);
 
 // Wrap a BV_DEK_SIZE DEK under the slot-11 KEK (AES-CBC). `wrapped` is BV_DEK_SIZE.

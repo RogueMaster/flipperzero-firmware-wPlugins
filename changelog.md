@@ -21,3 +21,7 @@ Initial release.
 - Optional tag password protection (opt-in): device-bound, UID-diversified
   PWD/PACK, selectable read-protect and auth-limit, reversible unprotect.
 - A biovault USB CLI mirroring every on-device command.
+- Key failures are explained on screen instead of only in the serial log: a
+  missing device key, a PIN that has not been entered, an unreadable keystore,
+  and a vault written by a different Flipper each get their own message and a
+  short "what to do", on the device and over the CLI.
