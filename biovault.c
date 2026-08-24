@@ -1,5 +1,5 @@
 /*
- * BioVault — Flipper Zero FAP.
+ * BioVault - Flipper Zero FAP.
  * Menu-driven NFC vault for NTAG I2C Plus 2K implants.
  * Read path: activate -> GET_VERSION -> SECTOR SELECT 1 -> READ Sector 1.
  */
@@ -38,39 +38,38 @@
 #define TAG "BioVault"
 
 // --- NTAG I2C Plus 2K command set ---
-#define CMD_GET_VERSION 0x60
-#define CMD_READ 0x30
-#define CMD_WRITE 0xA2
-#define CMD_PWD_AUTH 0x1B
+#define CMD_GET_VERSION     0x60
+#define CMD_READ            0x30
+#define CMD_WRITE           0xA2
+#define CMD_PWD_AUTH        0x1B
 #define CMD_SECTOR_SELECT_1 0xC2
 #define CMD_SECTOR_SELECT_2 0xFF
-#define NTAG_ACK 0x0A // 4-bit ACK from WRITE / sector-select packet 1
+#define NTAG_ACK            0x0A // 4-bit ACK from WRITE / sector-select packet 1
 
 // Password & access config pages (Sector 0, NFC perspective; NT3H2211).
 // Only written by the Settings provisioning action.
-#define PG_AUTH0 0xE3 // byte 3 = AUTH0
-#define PG_ACCESS 0xE4 // byte 0 = ACCESS (NFC_PROT b7, NFC_DIS_SEC1 b5, AUTHLIM b2-0)
-#define PG_PWD 0xE5 // 4-byte password
-#define PG_PACK 0xE6 // bytes 0-1 = PACK
-#define PG_PT_I2C 0xE7 // byte 0 = PT_I2C (2K_PROT b3)
+#define PG_AUTH0        0xE3 // byte 3 = AUTH0
+#define PG_ACCESS       0xE4 // byte 0 = ACCESS (NFC_PROT b7, NFC_DIS_SEC1 b5, AUTHLIM b2-0)
+#define PG_PWD          0xE5 // 4-byte password
+#define PG_PACK         0xE6 // bytes 0-1 = PACK
+#define PG_PT_I2C       0xE7 // byte 0 = PT_I2C (2K_PROT b3)
 #define ACCESS_NFC_PROT 0x80 // read+write protection (vs write-only)
-#define PT_I2C_2K_PROT 0x08 // password-protect all of Sector 1
+#define PT_I2C_2K_PROT  0x08 // password-protect all of Sector 1
 
 // xSIID factory default password/PACK (Dangerous Things "DNGR"). Tag ships with
 // AUTH0=0xE2, so config pages 0xE2-0xEB are write-protected by this password.
 static const uint8_t XSIID_FACTORY_PWD[4] = {0x44, 0x4E, 0x47, 0x52}; // "DNGR"
 static const uint8_t XSIID_FACTORY_PACK[2] = {0x00, 0x00};
 
-static const uint8_t NTAG_I2C_PLUS_2K_VERSION[] =
-    {0x00, 0x04, 0x04, 0x05, 0x02, 0x02, 0x15, 0x03};
+static const uint8_t NTAG_I2C_PLUS_2K_VERSION[] = {0x00, 0x04, 0x04, 0x05, 0x02, 0x02, 0x15, 0x03};
 
-#define SECTOR1 0x01
-#define SECTOR1_PAGES 256u
-#define SECTOR1_BYTES (SECTOR1_PAGES * 4u) // 1024
+#define SECTOR1            0x01
+#define SECTOR1_PAGES      256u
+#define SECTOR1_BYTES      (SECTOR1_PAGES * 4u) // 1024
 #define READ_PAGES_PER_CMD 4u
-#define READ_CMD_COUNT (SECTOR1_PAGES / READ_PAGES_PER_CMD) // 64
+#define READ_CMD_COUNT     (SECTOR1_PAGES / READ_PAGES_PER_CMD) // 64
 
-#define FWT_NORMAL 60000u
+#define FWT_NORMAL     60000u
 #define FWT_SECTOR_ACK 20000u
 
 #define BV_READ_DONE_FLAG (1u << 0) // set on read_done when a read terminates
@@ -238,7 +237,7 @@ typedef enum {
 
 typedef struct {
     BvSendState state;
-    char field[16]; // "Username" / "Password" / "Data" — what is being typed
+    char field[16]; // "Username" / "Password" / "Data" - what is being typed
 } BvSendModel;
 
 typedef enum {
@@ -418,7 +417,8 @@ static bool bv_op_should_retry(BioVault* app, BvError e) {
     return false;
 }
 
-static Iso14443_3aError bv_activate_uid(Iso14443_3aPoller* poller, uint8_t uid[10], size_t* uid_len);
+static Iso14443_3aError
+    bv_activate_uid(Iso14443_3aPoller* poller, uint8_t uid[10], size_t* uid_len);
 static BvError
     bv_open_sector1(BioVault* app, Iso14443_3aPoller* poller, const uint8_t* uid, size_t uid_len);
 
@@ -437,8 +437,8 @@ static BvError bv_do_read(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
 
     uint8_t version[8] = {0};
     bool version_ok = bv_get_version(poller, version);
-    bool version_match =
-        version_ok && (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
+    bool version_match = version_ok &&
+                         (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
 
     uint8_t buf[SECTOR1_BYTES];
     size_t got = 0;
@@ -514,7 +514,8 @@ static bool bv_pwd_auth(Iso14443_3aPoller* poller, const uint8_t pwd[4], uint8_t
 
 // Activate the tag and extract its UID (for UID-diversified password
 // derivation). Returns the activation error; uid_len is 0 if no UID read.
-static Iso14443_3aError bv_activate_uid(Iso14443_3aPoller* poller, uint8_t uid[10], size_t* uid_len) {
+static Iso14443_3aError
+    bv_activate_uid(Iso14443_3aPoller* poller, uint8_t uid[10], size_t* uid_len) {
     Iso14443_3aData* iso = iso14443_3a_alloc();
     Iso14443_3aError act = iso14443_3a_poller_activate(poller, iso);
     *uid_len = 0;
@@ -532,8 +533,11 @@ static Iso14443_3aError bv_activate_uid(Iso14443_3aPoller* poller, uint8_t uid[1
 
 // Authenticate before Sector 1 access if the tag is provisioned. No-op
 // otherwise. Password is device-bound (enclave DEK) and UID-diversified.
-static BvError
-    bv_auth_if_protected(BioVault* app, Iso14443_3aPoller* poller, const uint8_t* uid, size_t uid_len) {
+static BvError bv_auth_if_protected(
+    BioVault* app,
+    Iso14443_3aPoller* poller,
+    const uint8_t* uid,
+    size_t uid_len) {
     if(!app->settings.tag_protected) return BvErrNone;
     BvVaultKey key;
     if(!bv_vault_key_open(&key)) return BvErrCrypto;
@@ -551,7 +555,7 @@ static BvError
     return pack_ok ? BvErrNone : BvErrAuth;
 }
 
-// Authenticate (if needed) then SECTOR SELECT 1 — common gate for every vault
+// Authenticate (if needed) then SECTOR SELECT 1 - common gate for every vault
 // operation. Returns BvErrAuth/BvErrSectorSelect/BvErrCrypto, or BvErrNone.
 static BvError
     bv_open_sector1(BioVault* app, Iso14443_3aPoller* poller, const uint8_t* uid, size_t uid_len) {
@@ -564,7 +568,8 @@ static BvError
 // Authenticate for a provisioning write. Try `primary`, then re-activate and
 // try `fallback`. Re-activation is required: the NTAG rejects a second
 // PWD_AUTH in the same activation after a wrong one.
-static bool bv_prov_auth(Iso14443_3aPoller* poller, const uint8_t* primary, const uint8_t* fallback) {
+static bool
+    bv_prov_auth(Iso14443_3aPoller* poller, const uint8_t* primary, const uint8_t* fallback) {
     if(bv_pwd_auth(poller, primary, NULL)) return true;
     uint8_t uid[10];
     size_t uid_len = 0;
@@ -583,8 +588,8 @@ static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
 
     uint8_t version[8] = {0};
     bool version_ok = (act == Iso14443_3aErrorNone) && bv_get_version(poller, version);
-    bool version_match =
-        version_ok && (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
+    bool version_match = version_ok &&
+                         (memcmp(version, NTAG_I2C_PLUS_2K_VERSION, sizeof(version)) == 0);
 
     if(act != Iso14443_3aErrorNone || !version_ok) {
         err = BvErrNoTag;
@@ -732,11 +737,7 @@ static BvError bv_do_save(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
         },
         true);
     FURI_LOG_I(
-        TAG,
-        "save complete: err=%d bytes=%u pages=%u",
-        err,
-        (unsigned)app->save_blob_len,
-        written);
+        TAG, "save complete: err=%d bytes=%u pages=%u", err, (unsigned)app->save_blob_len, written);
     return err;
 }
 
@@ -999,7 +1000,7 @@ static NfcCommand bv_poller_callback(NfcGenericEventEx event, void* context) {
             err = bv_do_read(app, poller, &retry);
         }
         if(retry) {
-            // Tag not coupled yet — reset the field and keep polling.
+            // Tag not coupled yet - reset the field and keep polling.
             cmd = NfcCommandReset;
         } else {
             notification_message(
@@ -1021,9 +1022,8 @@ static void bv_start_op(BioVault* app, BvOp op) {
     // Cyan blink while reading, magenta while writing.
     notification_message(
         app->notifications,
-        (op == BvOpRead || op == BvOpLoad || op == BvOpReveal) ?
-            &sequence_blink_start_cyan :
-            &sequence_blink_start_magenta);
+        (op == BvOpRead || op == BvOpLoad || op == BvOpReveal) ? &sequence_blink_start_cyan :
+                                                                 &sequence_blink_start_magenta);
     app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_3a);
     nfc_poller_start_ex(app->poller, bv_poller_callback, app);
     app->poller_running = true;
@@ -1543,11 +1543,7 @@ static void bv_build_detail(BioVault* app) {
         const BvEntry* e = &app->vault->entries[app->selected];
         if(e->type == BvEntryNote) {
             snprintf(
-                app->detail_text,
-                sizeof(app->detail_text),
-                "%s\nData: %s",
-                e->label,
-                e->secret);
+                app->detail_text, sizeof(app->detail_text), "%s\nData: %s", e->label, e->secret);
         } else {
             snprintf(
                 app->detail_text,
@@ -1829,8 +1825,7 @@ static void bv_pin_entry_open(BioVault* app, BvPinEntryMode mode, const char* he
 // Derive the unlock key from the entered PIN (blocks ~3s by design). The GUI
 // thread keeps drawing, so flip the screen to its busy state first.
 static void bv_pin_unlock_finish(BioVault* app) {
-    with_view_model(
-        app->pin_entry, BvPinEntryModel * m, { m->busy = true; }, true);
+    with_view_model(app->pin_entry, BvPinEntryModel * m, { m->busy = true; }, true);
     uint8_t salt[BV_PIN_SALT_SIZE];
     uint32_t sw = 0, hw = 0;
     uint8_t key[BV_PIN_KEY_SIZE];
@@ -1850,8 +1845,7 @@ static void bv_pin_unlock_finish(BioVault* app) {
 }
 
 static void bv_pin_set_finish(BioVault* app) {
-    with_view_model(
-        app->pin_entry, BvPinEntryModel * m, { m->busy = true; }, true);
+    with_view_model(app->pin_entry, BvPinEntryModel * m, { m->busy = true; }, true);
     bool ok = bv_vault_pin_enable(app->pin_buf);
     bv_pin_wipe_bufs(app);
     notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
@@ -1866,7 +1860,8 @@ static void bv_pin_entry_confirm(BioVault* app) {
         app->pin_entry,
         BvPinEntryModel * m,
         {
-            for(uint8_t i = 0; i < BV_PIN_LEN; i++) pin[i] = (char)('0' + m->digits[i]);
+            for(uint8_t i = 0; i < BV_PIN_LEN; i++)
+                pin[i] = (char)('0' + m->digits[i]);
             memset(m->digits, 0, sizeof(m->digits));
         },
         false);
@@ -1912,19 +1907,27 @@ static void bv_input_result(void* context) {
         bool ok;
         furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
         if(app->editing) {
-            ok = (app->edit_index < app->vault->count) &&
-                 bv_records_set(
-                     app->vault, app->edit_index, type, app->edit_label, app->edit_user,
-                     app->edit_secret);
+            ok = (app->edit_index < app->vault->count) && bv_records_set(
+                                                              app->vault,
+                                                              app->edit_index,
+                                                              type,
+                                                              app->edit_label,
+                                                              app->edit_user,
+                                                              app->edit_secret);
         } else {
-            ok = bv_records_add(app->vault, type, app->edit_label, app->edit_user,
-                app->edit_secret);
+            ok = bv_records_add(
+                app->vault, type, app->edit_label, app->edit_user, app->edit_secret);
         }
         furi_mutex_release(app->vault_mutex);
         // Signal a dropped entry (full vault or vanished edit target).
         if(!ok) notification_message(app->notifications, &sequence_error);
-        FURI_LOG_I(TAG, "%s %s '%s': %s", app->editing ? "edit" : "add",
-            type == BvEntryNote ? "note" : "cred", app->edit_label, ok ? "ok" : "failed");
+        FURI_LOG_I(
+            TAG,
+            "%s %s '%s': %s",
+            app->editing ? "edit" : "add",
+            type == BvEntryNote ? "note" : "cred",
+            app->edit_label,
+            ok ? "ok" : "failed");
         app->editing = false;
         bv_build_browser(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewBrowser);
@@ -2079,8 +2082,7 @@ static void bv_pin_warn_draw(Canvas* canvas, void* model) {
 // Set the warning mode (app state + view model) and show the gate.
 static void bv_pin_warn_open(BioVault* app, BvPinWarnMode mode) {
     app->pin_warn_mode = mode;
-    with_view_model(
-        app->pin_warn, BvPinWarnMode * m, { *m = mode; }, true);
+    with_view_model(app->pin_warn, BvPinWarnMode * m, { *m = mode; }, true);
     view_dispatcher_switch_to_view(app->view_dispatcher, BvViewPinWarn);
 }
 
@@ -2183,7 +2185,8 @@ static void bv_build_auth_pick(BioVault* app) {
         submenu_add_item(app->auth_pick, bv_authlim_text[i], i, bv_auth_pick_callback, app);
     }
     submenu_set_selected_item(
-        app->auth_pick, app->settings.authlim < COUNT_OF(bv_authlim_text) ? app->settings.authlim : 0);
+        app->auth_pick,
+        app->settings.authlim < COUNT_OF(bv_authlim_text) ? app->settings.authlim : 0);
 }
 
 static void bv_auth_warn_draw(Canvas* canvas, void* model) {
@@ -2214,7 +2217,6 @@ static uint32_t bv_auth_return_settings(void* context) {
     UNUSED(context);
     return BvViewSettings;
 }
-
 
 // --- Provisioning confirm/progress view ---
 
@@ -2254,7 +2256,12 @@ static void bv_prov_draw(Canvas* canvas, void* model) {
             canvas_draw_str(canvas, 2, 10, "Protected!");
             canvas_set_font(canvas, FontSecondary);
             snprintf(
-                line, sizeof(line), "PWD  %02X %02X %02X %02X", m->pwd[0], m->pwd[1], m->pwd[2],
+                line,
+                sizeof(line),
+                "PWD  %02X %02X %02X %02X",
+                m->pwd[0],
+                m->pwd[1],
+                m->pwd[2],
                 m->pwd[3]);
             canvas_draw_str(canvas, 2, 25, line);
             snprintf(line, sizeof(line), "PACK %02X %02X", m->pack[0], m->pack[1]);
@@ -2351,7 +2358,12 @@ static void bv_reveal_draw(Canvas* canvas, void* model) {
         }
         canvas_draw_str(canvas, 2, 24, line);
         snprintf(
-            line, sizeof(line), "PWD  %02X %02X %02X %02X", m->pwd[0], m->pwd[1], m->pwd[2],
+            line,
+            sizeof(line),
+            "PWD  %02X %02X %02X %02X",
+            m->pwd[0],
+            m->pwd[1],
+            m->pwd[2],
             m->pwd[3]);
         canvas_draw_str(canvas, 2, 37, line);
         snprintf(line, sizeof(line), "PACK %02X %02X", m->pack[0], m->pack[1]);
@@ -2516,8 +2528,7 @@ static bool bv_custom_event_callback(void* context, uint32_t event) {
         }
         memset(app->send_text, 0, sizeof(app->send_text)); // wipe the secret
         notification_message(
-            app->notifications,
-            app->send_result == BvHidOk ? &sequence_success : &sequence_error);
+            app->notifications, app->send_result == BvHidOk ? &sequence_success : &sequence_error);
         return true;
     // CLI-driven screen switches.
     case BvCustomEventCliRead:
@@ -2677,7 +2688,9 @@ static void bv_cli_remove(PipeSide* pipe, FuriString* args, void* context) {
     int idx = bv_records_find(app->vault, label);
     bool ok = (idx >= 0) && bv_records_remove(app->vault, (uint8_t)idx);
     furi_mutex_release(app->vault_mutex);
-    printf(ok ? "Removed '%s'. Run 'save' to persist to the implant.\r\n" : "Not found: %s\r\n", label);
+    printf(
+        ok ? "Removed '%s'. Run 'save' to persist to the implant.\r\n" : "Not found: %s\r\n",
+        label);
 }
 
 static void bv_cli_add(PipeSide* pipe, FuriString* args, void* context) {
@@ -2830,7 +2843,8 @@ static void bv_cli_read(PipeSide* pipe, FuriString* args, void* context) {
     printf("\r\nSector 1: %u bytes", (unsigned)len);
     if(version_valid) {
         printf("   version ");
-        for(size_t i = 0; i < sizeof(version); i++) printf("%02X", version[i]);
+        for(size_t i = 0; i < sizeof(version); i++)
+            printf("%02X", version[i]);
     }
     printf("\r\n");
     size_t blob_len = 0;
@@ -2861,7 +2875,7 @@ static void bv_cli_save(PipeSide* pipe, FuriString* args, void* context) {
         printf("Save screen open on device. Press OK on the Flipper to write,\r\n"
                "then hold the implant to the Flipper.\r\n");
     } else {
-        printf("Vault not synced yet — opened the Load screen first (load before\r\n"
+        printf("Vault not synced yet - opened the Load screen first (load before\r\n"
                "save so the tag is never overwritten with un-synced data).\r\n");
     }
 }
@@ -3060,7 +3074,8 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
             uint32_t t0 = furi_get_tick();
             bool ok = bv_vault_pin_enable(p1);
             if(ok) {
-                printf("PIN set. Unlock derive takes ~%lums.\r\n",
+                printf(
+                    "PIN set. Unlock derive takes ~%lums.\r\n",
                     (unsigned long)(furi_get_tick() - t0));
             } else {
                 printf("Failed; PIN unchanged.\r\n");
@@ -3097,7 +3112,8 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
         if(ok) bv_vault_unlock_key_set(key);
         memset(key, 0, sizeof(key));
         if(ok) {
-            printf("Unlock key set (derive %lums). Load to verify it.\r\n",
+            printf(
+                "Unlock key set (derive %lums). Load to verify it.\r\n",
                 (unsigned long)(furi_get_tick() - t0));
         } else {
             printf("Derive failed.\r\n");
@@ -3139,8 +3155,7 @@ static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
     cli_registry_add_command(registry, "save", CliCommandFlagParallelSafe, bv_cli_save, app);
     cli_registry_add_command(registry, "wipe", CliCommandFlagParallelSafe, bv_cli_wipe, app);
     cli_registry_add_command(registry, "reveal", CliCommandFlagParallelSafe, bv_cli_reveal, app);
-    cli_registry_add_command(
-        registry, "protect", CliCommandFlagParallelSafe, bv_cli_protect, app);
+    cli_registry_add_command(registry, "protect", CliCommandFlagParallelSafe, bv_cli_protect, app);
     cli_registry_add_command(
         registry, "unprotect", CliCommandFlagParallelSafe, bv_cli_unprotect, app);
     cli_registry_add_command(
@@ -3255,8 +3270,7 @@ static BioVault* bv_alloc(void) {
     // Entry detail view (scrollable text box, rebuilt per entry)
     app->detail = text_box_alloc();
     view_set_previous_callback(text_box_get_view(app->detail), bv_detail_previous);
-    view_dispatcher_add_view(
-        app->view_dispatcher, BvViewDetail, text_box_get_view(app->detail));
+    view_dispatcher_add_view(app->view_dispatcher, BvViewDetail, text_box_get_view(app->detail));
 
     // Send-field picker (submenu, rebuilt per entry)
     app->send_pick = submenu_alloc();
@@ -3276,7 +3290,8 @@ static BioVault* bv_alloc(void) {
     // Add Entry keyboard view
     app->input = bv_text_input_alloc();
     view_set_previous_callback(bv_text_input_get_view(app->input), bv_input_previous);
-    view_dispatcher_add_view(app->view_dispatcher, BvViewInput, bv_text_input_get_view(app->input));
+    view_dispatcher_add_view(
+        app->view_dispatcher, BvViewInput, bv_text_input_get_view(app->input));
 
     // Zero Sector 1 view
     app->zero_view = view_alloc();
@@ -3329,7 +3344,8 @@ static BioVault* bv_alloc(void) {
 
     app->auth_pick = submenu_alloc();
     view_set_previous_callback(submenu_get_view(app->auth_pick), bv_auth_return_settings);
-    view_dispatcher_add_view(app->view_dispatcher, BvViewAuthPick, submenu_get_view(app->auth_pick));
+    view_dispatcher_add_view(
+        app->view_dispatcher, BvViewAuthPick, submenu_get_view(app->auth_pick));
 
     // Vault PIN warning gate + menu
     app->pin_warn = view_alloc();
@@ -3367,8 +3383,7 @@ static BioVault* bv_alloc(void) {
     // Register the `biovault` CLI command. ParallelSafe so it runs while the
     // app is open; the vault mutex makes it safe.
     CliRegistry* cli = furi_record_open(RECORD_CLI);
-    cli_registry_add_command(
-        cli, "biovault", CliCommandFlagParallelSafe, bv_cli_callback, app);
+    cli_registry_add_command(cli, "biovault", CliCommandFlagParallelSafe, bv_cli_callback, app);
     furi_record_close(RECORD_CLI);
 
     return app;

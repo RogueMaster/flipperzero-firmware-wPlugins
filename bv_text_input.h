@@ -1,5 +1,5 @@
 /*
- * bv_text_input — vendored Flipper text_input keyboard, extended with a symbol
+ * bv_text_input - vendored Flipper text_input keyboard, extended with a symbol
  * page for typing punctuation. Renamed to avoid a symbol collision; validator
  * machinery stripped.
  */

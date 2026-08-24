@@ -16,17 +16,16 @@ typedef struct {
 } Sha256;
 
 static const uint32_t K256[64] = {
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
-    0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-    0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
-    0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-    0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-    0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+    0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+    0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+    0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+    0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+    0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+    0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+    0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+    0xc67178f2};
 
 #define ROR(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
 
@@ -50,17 +49,35 @@ static void sha256_block(Sha256* s, const uint8_t* p) {
         uint32_t S0 = ROR(a, 2) ^ ROR(a, 13) ^ ROR(a, 22);
         uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
         uint32_t t2 = S0 + maj;
-        h = g; g = f; f = e; e = d + t1;
-        d = c; c = b; b = a; a = t1 + t2;
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
     }
-    s->state[0] += a; s->state[1] += b; s->state[2] += c; s->state[3] += d;
-    s->state[4] += e; s->state[5] += f; s->state[6] += g; s->state[7] += h;
+    s->state[0] += a;
+    s->state[1] += b;
+    s->state[2] += c;
+    s->state[3] += d;
+    s->state[4] += e;
+    s->state[5] += f;
+    s->state[6] += g;
+    s->state[7] += h;
 }
 
 static void sha256_init(Sha256* s) {
     static const uint32_t iv[8] = {
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+        0x6a09e667,
+        0xbb67ae85,
+        0x3c6ef372,
+        0xa54ff53a,
+        0x510e527f,
+        0x9b05688c,
+        0x1f83d9ab,
+        0x5be0cd19};
     memcpy(s->state, iv, sizeof(iv));
     s->bitlen = 0;
     s->buf_len = 0;
@@ -87,9 +104,11 @@ static void sha256_final(Sha256* s, uint8_t out[32]) {
     uint8_t pad = 0x80;
     sha256_update(s, &pad, 1);
     uint8_t z = 0;
-    while(s->buf_len != 56) sha256_update(s, &z, 1);
+    while(s->buf_len != 56)
+        sha256_update(s, &z, 1);
     uint8_t lb[8];
-    for(int i = 0; i < 8; i++) lb[i] = (uint8_t)(bits >> (56 - i * 8));
+    for(int i = 0; i < 8; i++)
+        lb[i] = (uint8_t)(bits >> (56 - i * 8));
     sha256_update(s, lb, 8);
     for(int i = 0; i < 8; i++) {
         out[i * 4] = (uint8_t)(s->state[i] >> 24);
@@ -121,14 +140,16 @@ static void hmac_sha256(
     uint8_t pad[64];
     Sha256 s;
     sha256_init(&s);
-    for(int i = 0; i < 64; i++) pad[i] = k[i] ^ 0x36;
+    for(int i = 0; i < 64; i++)
+        pad[i] = k[i] ^ 0x36;
     sha256_update(&s, pad, 64);
     if(msg_len) sha256_update(&s, msg, msg_len);
     if(msg2_len) sha256_update(&s, msg2, msg2_len);
     uint8_t inner[32];
     sha256_final(&s, inner);
     sha256_init(&s);
-    for(int i = 0; i < 64; i++) pad[i] = k[i] ^ 0x5c;
+    for(int i = 0; i < 64; i++)
+        pad[i] = k[i] ^ 0x5c;
     sha256_update(&s, pad, 64);
     sha256_update(&s, inner, 32);
     sha256_final(&s, out);
@@ -158,7 +179,8 @@ static void pbkdf2_sha256(
     memcpy(out, u, 32);
     for(uint32_t i = 1; i < iters; i++) {
         hmac_sha256((const uint8_t*)pass, plen, u, 32, NULL, 0, u);
-        for(int j = 0; j < 32; j++) out[j] ^= u[j];
+        for(int j = 0; j < 32; j++)
+            out[j] ^= u[j];
     }
     memset(u, 0, sizeof(u));
 }
@@ -187,10 +209,10 @@ bool bv_pin_derive(
 }
 
 // RFC 6070-style PBKDF2-HMAC-SHA256 vector (password/salt, c=1, dkLen=32).
-static const uint8_t PBKDF2_KAT[32] = {
-    0x12, 0x0f, 0xb6, 0xcf, 0xfc, 0xf8, 0xb3, 0x2c, 0x43, 0xe7, 0x22, 0x52,
-    0x56, 0xc4, 0xf8, 0x37, 0xa8, 0x65, 0x48, 0xc9, 0x2c, 0xcc, 0x35, 0x48,
-    0x08, 0x05, 0x98, 0x7c, 0xb7, 0x0b, 0xe1, 0x7b};
+static const uint8_t PBKDF2_KAT[32] = {0x12, 0x0f, 0xb6, 0xcf, 0xfc, 0xf8, 0xb3, 0x2c,
+                                       0x43, 0xe7, 0x22, 0x52, 0x56, 0xc4, 0xf8, 0x37,
+                                       0xa8, 0x65, 0x48, 0xc9, 0x2c, 0xcc, 0x35, 0x48,
+                                       0x08, 0x05, 0x98, 0x7c, 0xb7, 0x0b, 0xe1, 0x7b};
 
 bool bv_pin_selftest(void) {
     uint8_t dk[32];

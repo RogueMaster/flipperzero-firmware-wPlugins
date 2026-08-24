@@ -1,5 +1,5 @@
 /*
- * BioVault settings — persisted app preferences.
+ * BioVault settings - persisted app preferences.
  * Stored at /ext/apps_data/biovault/settings.bin:
  *   [magic 'BVS2':4][send_newline:1][protect_reads:1][authlim:1][tag_protected:1]
  * Missing/unreadable file loads defaults (never fatal). Older 'BVS1'

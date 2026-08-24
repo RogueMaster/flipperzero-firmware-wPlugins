@@ -1,5 +1,5 @@
 /*
- * BioVault records — in-memory vault data model.
+ * BioVault records - in-memory vault data model.
  * Entries are a credential (label+user+secret) or a note (label+secret).
  * Serialized as a length-prefixed blob (not CSV; secrets may contain commas):
  *   [u8 count] repeated:[u8 type][u8 llen][label][u8 ulen][user][u8 slen][secret]
@@ -11,12 +11,12 @@
 #include <stdint.h>
 
 #define BV_MAX_ENTRIES 24
-#define BV_LABEL_CAP 48
-#define BV_USER_CAP 48
+#define BV_LABEL_CAP   48
+#define BV_USER_CAP    48
 // 255 chars + NUL: the u8 length prefix caps a field at 255 bytes. Fits a
 // 24-word BIP39 seed (<=215 chars). Total vault is still bounded by the tag:
 // the compressed blob is checked against Sector 1 capacity at save time.
-#define BV_SECRET_CAP 256
+#define BV_SECRET_CAP  256
 
 // Largest possible serialized vault: count + per-entry type + 3 length
 // prefixes + max field payloads. Sizes the serialize/decrypt buffers.

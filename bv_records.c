@@ -164,10 +164,10 @@ bool bv_records_selftest(void) {
     BvVaultData* v2 = malloc(sizeof(BvVaultData));
 
     bv_records_init(v);
-    bool build_ok = bv_records_add(v, BvEntryCred, "example.com", "alice", "p@ss,w0rd\nwith,commas") &&
-                    bv_records_add(v, BvEntryCred, "reddit.com", "bob", "swordfish") &&
-                    bv_records_add(v, BvEntryNote, "recovery", "", "seed words go here") &&
-                    (v->count == 3);
+    bool build_ok =
+        bv_records_add(v, BvEntryCred, "example.com", "alice", "p@ss,w0rd\nwith,commas") &&
+        bv_records_add(v, BvEntryCred, "reddit.com", "bob", "swordfish") &&
+        bv_records_add(v, BvEntryNote, "recovery", "", "seed words go here") && (v->count == 3);
 
     // find (case-insensitive) + not-found
     bool idx_ok = (bv_records_find(v, "REDDIT.COM") == 1) && (bv_records_find(v, "nope") == -1);

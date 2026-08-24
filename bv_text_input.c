@@ -44,48 +44,103 @@ static const uint8_t keyboard_count = 2;
 
 // --- Letters keyboard ---
 static const TextInputKey keyboard_keys_row_1[] = {
-    {'q', 1, 8},   {'w', 10, 8},  {'e', 19, 8},  {'r', 28, 8}, {'t', 37, 8},
-    {'y', 46, 8},  {'u', 55, 8},  {'i', 64, 8},  {'o', 73, 8}, {'p', 82, 8},
-    {'0', 91, 8},  {'1', 100, 8}, {'2', 110, 8}, {'3', 120, 8},
+    {'q', 1, 8},
+    {'w', 10, 8},
+    {'e', 19, 8},
+    {'r', 28, 8},
+    {'t', 37, 8},
+    {'y', 46, 8},
+    {'u', 55, 8},
+    {'i', 64, 8},
+    {'o', 73, 8},
+    {'p', 82, 8},
+    {'0', 91, 8},
+    {'1', 100, 8},
+    {'2', 110, 8},
+    {'3', 120, 8},
 };
 static const TextInputKey keyboard_keys_row_2[] = {
-    {'a', 1, 20},  {'s', 10, 20}, {'d', 19, 20}, {'f', 28, 20},
-    {'g', 37, 20}, {'h', 46, 20}, {'j', 55, 20}, {'k', 64, 20},
-    {'l', 73, 20}, {BACKSPACE_KEY, 82, 12},
-    {'4', 100, 20}, {'5', 110, 20}, {'6', 120, 20},
+    {'a', 1, 20},
+    {'s', 10, 20},
+    {'d', 19, 20},
+    {'f', 28, 20},
+    {'g', 37, 20},
+    {'h', 46, 20},
+    {'j', 55, 20},
+    {'k', 64, 20},
+    {'l', 73, 20},
+    {BACKSPACE_KEY, 82, 12},
+    {'4', 100, 20},
+    {'5', 110, 20},
+    {'6', 120, 20},
 };
 static const TextInputKey keyboard_keys_row_3[] = {
     {SWITCH_KEYBOARD_KEY, 1, 23},
-    {'z', 18, 32}, {'x', 25, 32}, {'c', 32, 32}, {'v', 39, 32}, {'b', 46, 32},
-    {'n', 53, 32}, {'m', 60, 32}, {'_', 67, 32}, {ENTER_KEY, 74, 23},
-    {'7', 100, 32}, {'8', 110, 32}, {'9', 120, 32},
+    {'z', 18, 32},
+    {'x', 25, 32},
+    {'c', 32, 32},
+    {'v', 39, 32},
+    {'b', 46, 32},
+    {'n', 53, 32},
+    {'m', 60, 32},
+    {'_', 67, 32},
+    {ENTER_KEY, 74, 23},
+    {'7', 100, 32},
+    {'8', 110, 32},
+    {'9', 120, 32},
 };
 
 // --- Symbols keyboard (same grid as letters) ---
 static const TextInputKey symbol_keyboard_keys_row_1[] = {
-    {'!', 1, 8},  {'@', 10, 8},  {'#', 19, 8},  {'$', 28, 8}, {'%', 37, 8},
-    {'^', 46, 8}, {'&', 55, 8},  {'*', 64, 8},  {'(', 73, 8}, {')', 82, 8},
-    {'0', 91, 8}, {'1', 100, 8}, {'2', 110, 8}, {'3', 120, 8},
+    {'!', 1, 8},
+    {'@', 10, 8},
+    {'#', 19, 8},
+    {'$', 28, 8},
+    {'%', 37, 8},
+    {'^', 46, 8},
+    {'&', 55, 8},
+    {'*', 64, 8},
+    {'(', 73, 8},
+    {')', 82, 8},
+    {'0', 91, 8},
+    {'1', 100, 8},
+    {'2', 110, 8},
+    {'3', 120, 8},
 };
 static const TextInputKey symbol_keyboard_keys_row_2[] = {
-    {'/', 1, 20},  {'\\', 10, 20}, {'=', 19, 20}, {'+', 28, 20},
-    {'{', 37, 20}, {'}', 46, 20},  {'[', 55, 20}, {']', 64, 20},
-    {'@', 73, 20}, {BACKSPACE_KEY, 82, 12},
-    {'4', 100, 20}, {'5', 110, 20}, {'6', 120, 20},
+    {'/', 1, 20},
+    {'\\', 10, 20},
+    {'=', 19, 20},
+    {'+', 28, 20},
+    {'{', 37, 20},
+    {'}', 46, 20},
+    {'[', 55, 20},
+    {']', 64, 20},
+    {'@', 73, 20},
+    {BACKSPACE_KEY, 82, 12},
+    {'4', 100, 20},
+    {'5', 110, 20},
+    {'6', 120, 20},
 };
 static const TextInputKey symbol_keyboard_keys_row_3[] = {
     {SWITCH_KEYBOARD_KEY, 1, 23},
-    {'-', 18, 32}, {':', 25, 32}, {';', 32, 32}, {'?', 39, 32}, {'<', 46, 32},
-    {'>', 53, 32}, {',', 60, 32}, {'.', 67, 32}, {ENTER_KEY, 74, 23},
-    {'7', 100, 32}, {'8', 110, 32}, {'9', 120, 32},
+    {'-', 18, 32},
+    {':', 25, 32},
+    {';', 32, 32},
+    {'?', 39, 32},
+    {'<', 46, 32},
+    {'>', 53, 32},
+    {',', 60, 32},
+    {'.', 67, 32},
+    {ENTER_KEY, 74, 23},
+    {'7', 100, 32},
+    {'8', 110, 32},
+    {'9', 120, 32},
 };
 
 static const Keyboard keyboards[] = {
     {.rows = {keyboard_keys_row_1, keyboard_keys_row_2, keyboard_keys_row_3}},
-    {.rows =
-         {symbol_keyboard_keys_row_1,
-          symbol_keyboard_keys_row_2,
-          symbol_keyboard_keys_row_3}},
+    {.rows = {symbol_keyboard_keys_row_1, symbol_keyboard_keys_row_2, symbol_keyboard_keys_row_3}},
 };
 
 static uint8_t get_row_size(uint8_t row_index) {
@@ -186,10 +241,7 @@ static void bv_text_input_view_draw_callback(Canvas* canvas, void* _model) {
             } else if(keys[column].text == BACKSPACE_KEY) {
                 canvas_set_color(canvas, ColorBlack);
                 canvas_draw_icon(
-                    canvas,
-                    kx,
-                    ky,
-                    selected ? &I_KeyBackspaceSelected_16x9 : &I_KeyBackspace_16x9);
+                    canvas, kx, ky, selected ? &I_KeyBackspaceSelected_16x9 : &I_KeyBackspace_16x9);
             } else if(keys[column].text == SWITCH_KEYBOARD_KEY) {
                 // Box labelled with the other keyboard ('#' or 'ab').
                 canvas_set_color(canvas, ColorBlack);
@@ -222,7 +274,7 @@ static void bv_text_input_view_draw_callback(Canvas* canvas, void* _model) {
     }
 }
 
-// Clamp column to the row's last key (±1 row shifts can overshoot).
+// Clamp column to the row's last key (+/-1 row shifts can overshoot).
 static void bv_clamp_column(TextInputModel* model) {
     uint8_t max_column = get_row_size(model->selected_row) - 1;
     if(model->selected_column > max_column) model->selected_column = max_column;

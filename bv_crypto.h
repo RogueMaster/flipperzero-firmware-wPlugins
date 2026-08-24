@@ -1,5 +1,5 @@
 /*
- * BioVault crypto — enclave key management + authenticated encryption.
+ * BioVault crypto - enclave key management + authenticated encryption.
  * Device-unique enclave KEK (AES-CBC) wraps a random 256-bit DEK; the DEK
  * (RAM-only during unlock) drives AES-256-GCM on the vault.
  */
@@ -9,9 +9,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define BV_DEK_SIZE 32 // AES-256 data key
+#define BV_DEK_SIZE     32 // AES-256 data key
 #define BV_WRAP_IV_SIZE 16 // AES-CBC IV used to wrap the DEK under the KEK
-#define BV_GCM_IV_SIZE 12 // AES-GCM nonce
+#define BV_GCM_IV_SIZE  12 // AES-GCM nonce
 #define BV_GCM_TAG_SIZE 16 // AES-GCM auth tag
 
 // --- Key hierarchy primitives ---

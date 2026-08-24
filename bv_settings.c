@@ -8,13 +8,13 @@
 
 // Absolute path, NOT APP_DATA_PATH: /data resolves per calling thread, and
 // CLI `settings` writes run in the CLI shell thread (owner app "cli_vcp").
-#define BV_DATA_DIR EXT_PATH("apps_data/biovault")
-#define SETTINGS_PATH BV_DATA_DIR "/settings.bin"
-#define SETTINGS_MAGIC "BVS2"
-#define SETTINGS_MAGIC_V1 "BVS1"
+#define BV_DATA_DIR        EXT_PATH("apps_data/biovault")
+#define SETTINGS_PATH      BV_DATA_DIR "/settings.bin"
+#define SETTINGS_MAGIC     "BVS2"
+#define SETTINGS_MAGIC_V1  "BVS1"
 #define SETTINGS_MAGIC_LEN 4
-#define SETTINGS_SIZE_V1 (SETTINGS_MAGIC_LEN + 1) // magic + send_newline
-#define SETTINGS_SIZE (SETTINGS_MAGIC_LEN + 4) // + protect_reads + authlim + tag_protected
+#define SETTINGS_SIZE_V1   (SETTINGS_MAGIC_LEN + 1) // magic + send_newline
+#define SETTINGS_SIZE      (SETTINGS_MAGIC_LEN + 4) // + protect_reads + authlim + tag_protected
 
 void bv_settings_load(BvSettings* out) {
     memset(out, 0, sizeof(*out)); // defaults

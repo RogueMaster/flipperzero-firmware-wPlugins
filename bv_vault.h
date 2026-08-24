@@ -19,7 +19,7 @@
 #include "bv_crypto.h"
 
 // On-tag blob framing sizes.
-#define BV_BLOB_HEADER 17 // magic(2)+ver(1)+nonce(12)+ct_len(2)
+#define BV_BLOB_HEADER   17 // magic(2)+ver(1)+nonce(12)+ct_len(2)
 #define BV_BLOB_OVERHEAD (BV_BLOB_HEADER + BV_GCM_TAG_SIZE) // + tag
 
 // Unlocked data key, RAM only. Zero when done (bv_vault_key_clear).
@@ -45,7 +45,7 @@ void bv_vault_unlock_key_set(const uint8_t key[32]);
 void bv_vault_unlock_key_clear(void);
 
 // Rewrap the DEK under a new PIN (v1->v2 or new v2 params) / back to v1.
-// Both unwrap with the CURRENT session state first — callers must ensure the
+// Both unwrap with the CURRENT session state first - callers must ensure the
 // current unlock key is proven (a GCM-verified load) before rewrapping, or a
 // wrong-PIN session would orphan the on-tag vault.
 bool bv_vault_pin_enable(const char* pin);

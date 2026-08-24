@@ -12,32 +12,32 @@
 // Absolute path, NOT APP_DATA_PATH: /data resolves per calling thread, so the
 // CLI shell thread (owner app "cli_vcp") would silently read/write a keystore
 // in the wrong apps_data directory.
-#define BV_DATA_DIR EXT_PATH("apps_data/biovault")
-#define KEYSTORE_PATH BV_DATA_DIR "/keystore.bin"
-#define KS_MAGIC "BVK1"
-#define KS_MAGIC_V2 "BVK2"
-#define KS_MAGIC_LEN 4
-#define KS_SIZE (KS_MAGIC_LEN + BV_WRAP_IV_SIZE + BV_DEK_SIZE) // 52
+#define BV_DATA_DIR     EXT_PATH("apps_data/biovault")
+#define KEYSTORE_PATH   BV_DATA_DIR "/keystore.bin"
+#define KS_MAGIC        "BVK1"
+#define KS_MAGIC_V2     "BVK2"
+#define KS_MAGIC_LEN    4
+#define KS_SIZE         (KS_MAGIC_LEN + BV_WRAP_IV_SIZE + BV_DEK_SIZE) // 52
 // v2 layout offsets: [magic:4][salt:16][sw_iters:4][hw_iters:4][wrap_iv:16][wrapped:32]
-#define KS2_OFF_SALT KS_MAGIC_LEN
-#define KS2_OFF_SW (KS2_OFF_SALT + BV_PIN_SALT_SIZE)
-#define KS2_OFF_HW (KS2_OFF_SW + 4)
-#define KS2_OFF_IV (KS2_OFF_HW + 4)
+#define KS2_OFF_SALT    KS_MAGIC_LEN
+#define KS2_OFF_SW      (KS2_OFF_SALT + BV_PIN_SALT_SIZE)
+#define KS2_OFF_HW      (KS2_OFF_SW + 4)
+#define KS2_OFF_IV      (KS2_OFF_HW + 4)
 #define KS2_OFF_WRAPPED (KS2_OFF_IV + BV_WRAP_IV_SIZE)
-#define KS2_SIZE (KS2_OFF_WRAPPED + BV_DEK_SIZE) // 76
+#define KS2_SIZE        (KS2_OFF_WRAPPED + BV_DEK_SIZE) // 76
 
 // Session unlock key (bv_pin_derive output), RAM only.
 static uint8_t s_unlock_key[BV_PIN_KEY_SIZE];
 static bool s_unlock_set = false;
 
 // On-tag blob framing.
-#define BLOB_MAGIC0 'B'
-#define BLOB_MAGIC1 'V'
+#define BLOB_MAGIC0  'B'
+#define BLOB_MAGIC1  'V'
 #define BLOB_VER_RAW 1 // plaintext = raw serialized records (legacy, read-only)
-#define BLOB_VER_LZ 2 // plaintext = heatshrink stream (toolbox compress framing)
-#define OFF_NONCE 3
-#define OFF_CTLEN (OFF_NONCE + BV_GCM_IV_SIZE) // 15
-#define OFF_CT BV_BLOB_HEADER // 17
+#define BLOB_VER_LZ  2 // plaintext = heatshrink stream (toolbox compress framing)
+#define OFF_NONCE    3
+#define OFF_CTLEN    (OFF_NONCE + BV_GCM_IV_SIZE) // 15
+#define OFF_CT       BV_BLOB_HEADER // 17
 
 // --- Keystore file I/O ---
 
@@ -96,8 +96,8 @@ bool bv_vault_key_open(BvVaultKey* out) {
 
     if(status == KsReadOk && ks_len == KS_SIZE && memcmp(ks, KS_MAGIC, KS_MAGIC_LEN) == 0) {
         // v1: plain enclave wrap.
-        bool ok = bv_crypto_kek_unwrap(ks + KS_MAGIC_LEN, ks + KS_MAGIC_LEN + BV_WRAP_IV_SIZE,
-            out->dek);
+        bool ok =
+            bv_crypto_kek_unwrap(ks + KS_MAGIC_LEN, ks + KS_MAGIC_LEN + BV_WRAP_IV_SIZE, out->dek);
         memset(ks, 0, sizeof(ks));
         if(!ok) FURI_LOG_E(TAG, "DEK unwrap failed (enclave key changed?)");
         return ok;
@@ -116,7 +116,8 @@ bool bv_vault_key_open(BvVaultKey* out) {
             FURI_LOG_E(TAG, "DEK unwrap failed (enclave key changed?)");
             return false;
         }
-        for(size_t i = 0; i < BV_DEK_SIZE; i++) out->dek[i] ^= s_unlock_key[i];
+        for(size_t i = 0; i < BV_DEK_SIZE; i++)
+            out->dek[i] ^= s_unlock_key[i];
         return true;
     }
     if(status != KsReadMissing) {
@@ -197,14 +198,17 @@ bool bv_vault_pin_enable(const char* pin) {
         uint8_t masked[BV_DEK_SIZE];
         uint8_t wrap_iv[BV_WRAP_IV_SIZE];
         uint8_t wrapped[BV_DEK_SIZE];
-        for(size_t i = 0; i < BV_DEK_SIZE; i++) masked[i] = key.dek[i] ^ unlock[i];
+        for(size_t i = 0; i < BV_DEK_SIZE; i++)
+            masked[i] = key.dek[i] ^ unlock[i];
         furi_hal_random_fill_buf(wrap_iv, sizeof(wrap_iv));
         ok = bv_crypto_kek_wrap(wrap_iv, masked, wrapped);
         if(ok) {
             memcpy(ks, KS_MAGIC_V2, KS_MAGIC_LEN);
             memcpy(ks + KS2_OFF_SALT, salt, BV_PIN_SALT_SIZE);
-            for(int i = 0; i < 4; i++) ks[KS2_OFF_SW + i] = (uint8_t)(BV_PIN_SW_ITERS >> (8 * i));
-            for(int i = 0; i < 4; i++) ks[KS2_OFF_HW + i] = (uint8_t)(BV_PIN_HW_ITERS >> (8 * i));
+            for(int i = 0; i < 4; i++)
+                ks[KS2_OFF_SW + i] = (uint8_t)(BV_PIN_SW_ITERS >> (8 * i));
+            for(int i = 0; i < 4; i++)
+                ks[KS2_OFF_HW + i] = (uint8_t)(BV_PIN_HW_ITERS >> (8 * i));
             memcpy(ks + KS2_OFF_IV, wrap_iv, BV_WRAP_IV_SIZE);
             memcpy(ks + KS2_OFF_WRAPPED, wrapped, BV_DEK_SIZE);
             ok = ks_write(ks, KS2_SIZE);
@@ -380,8 +384,7 @@ bool bv_vault_selftest(void) {
     BvVaultKey key;
     furi_hal_random_fill_buf(key.dek, BV_DEK_SIZE);
 
-    static const char sample[] =
-        "d,u,p\nexample.com,alice,hunter2\nreddit.com,bob,swordfish\n";
+    static const char sample[] = "d,u,p\nexample.com,alice,hunter2\nreddit.com,bob,swordfish\n";
     const size_t pt_len = sizeof(sample) - 1;
 
     uint8_t blob[128];
@@ -394,7 +397,8 @@ bool bv_vault_selftest(void) {
               bv_vault_decrypt(&key, blob, blob_len, out, sizeof(out), &out_len) &&
               (out_len == pt_len) && (memcmp(out, sample, pt_len) == 0);
 
-    FURI_LOG_I(TAG, "vault codec round-trip: %s (blob=%u)", ok ? "PASS" : "FAIL", (unsigned)blob_len);
+    FURI_LOG_I(
+        TAG, "vault codec round-trip: %s (blob=%u)", ok ? "PASS" : "FAIL", (unsigned)blob_len);
 
     bv_vault_key_clear(&key);
     memset(out, 0, sizeof(out));
