@@ -48,6 +48,7 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->emergency_vehicle_detect = false;
     state->summon_unlock        = false;    // opt-in Summon EU Unlock, default OFF
     state->apmv3_branch         = 0xFF;      // opt-in AP branch/tier selector, default OFF (0xFF sentinel)
+    state->assist_tlssc_bit38   = false;    // opt-in TLSSC bit38 explicit enable, default OFF
     state->continue_on_green    = false;    // opt-in Continue on Green, default OFF
     state->assist_rhd_override  = false;    // opt-in RHD driving-side override, default OFF
     state->track_mode_inject    = false;    // Track Mode inject master opt-in, default OFF
@@ -282,6 +283,12 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
 
     // mux 0 is the authoritative "is FSD requested" mux
     if (mux == CAN_MUX_0) state->fsd_enabled = fsd_ui;
+
+    // bit38 explicit TLSSC enable on mux0 (complementary to 0x331 TLSSC Restore)
+    if (mux == CAN_MUX_0 && state->assist_tlssc_bit38 && state->fsd_enabled) {
+        set_bit(frame, SIG_AP_TLSSC_BIT38, true);
+        modified = true;
+    }
 
     // bit39 continue-on-green with lead car (ev-open-can-tools TSLLC plugin);
     // same 0x3FD mux0 frame on HW3/HW4, so apply before the HW split; pairs with TLSSC

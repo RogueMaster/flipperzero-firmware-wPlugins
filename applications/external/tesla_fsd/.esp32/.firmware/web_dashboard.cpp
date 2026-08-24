@@ -504,6 +504,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <label class="sw"><input type="checkbox" id="swCog" onchange="cmd('continue_on_green',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
+    <span class="lbl">TLSSC bit38</span>
+    <label class="sw"><input type="checkbox" id="swTlssc38" onchange="cmd('assist_tlssc_bit38',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
     <span class="lbl">Right-Hand Drive (RHD)<br><small style="color:var(--red)">RHD markets only — do NOT enable while driving on the right.</small></span>
     <label class="sw"><input type="checkbox" id="swRhd" onchange="cmd('assist_rhd_override',this.checked)"><span class="sl2"></span></label>
   </div>
@@ -834,6 +838,7 @@ function updateControlsSummary(d){
   if(d.china_mode)items.push('China');
   if(d.isa_speed_enabled&&d.suppress_speed_chime)items.push('Chime');
   if(d.tlssc_restore)items.push('TLSSC');
+  if(d.assist_tlssc_bit38)items.push('TLSSC bit38');
   if(d.display_enabled)items.push('Display');
   if(d.can_dump)items.push('CAN Dump');
   e.textContent=items.length?items.join(', '):'Expand to setup';
@@ -1008,6 +1013,7 @@ function upd(d){
   if(document.getElementById('swTlssc')) document.getElementById('swTlssc').checked=d.tlssc_restore;
   if(document.getElementById('swSummon')) document.getElementById('swSummon').checked=d.summon_unlock;
   if(document.getElementById('swCog')) document.getElementById('swCog').checked=d.continue_on_green;
+  if(document.getElementById('swTlssc38')) document.getElementById('swTlssc38').checked=d.assist_tlssc_bit38;
   if(document.getElementById('swRhd')) document.getElementById('swRhd').checked=d.assist_rhd_override;
   if(document.getElementById('swTelOff')) document.getElementById('swTelOff').checked=d.assist_telemetry_off;
   var apmv3Sel=document.getElementById('selApmv3');
@@ -1604,6 +1610,7 @@ static String build_json() {
     j += "\"tlssc_restore\":"; j += state.tlssc_restore                ? "true" : "false"; j += ',';
     j += "\"summon_unlock\":"; j += state.summon_unlock                ? "true" : "false"; j += ',';
     j += "\"continue_on_green\":"; j += state.continue_on_green         ? "true" : "false"; j += ',';
+    j += "\"assist_tlssc_bit38\":"; j += state.assist_tlssc_bit38       ? "true" : "false"; j += ',';
     j += "\"assist_rhd_override\":"; j += state.assist_rhd_override      ? "true" : "false"; j += ',';
     j += "\"assist_telemetry_off\":"; j += state.assist_telemetry_off    ? "true" : "false"; j += ',';
     j += "\"apmv3_branch\":";  j += (int)state.apmv3_branch;             j += ',';
@@ -2066,6 +2073,18 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] Continue on Green: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"assist_tlssc_bit38\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->assist_tlssc_bit38 = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] TLSSC bit38: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     } else if (strstr(buf, "\"assist_rhd_override\"")) {

@@ -36,6 +36,7 @@
 #define SIG_AP_UI_FSD_SELECTED_MASK      0x01u
 
 #define SIG_AP_FSD_ENABLE_BIT              46
+#define SIG_AP_TLSSC_BIT38                 38
 #define SIG_AP_CONTINUE_ON_GREEN_BIT       39
 #define SIG_AP_NAG_CLEAR_BIT               19
 #define SIG_AP_HW4_FSD_ENABLE_BIT          60
