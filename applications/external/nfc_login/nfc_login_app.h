@@ -78,7 +78,7 @@
 #define MAX_UID_LEN                   10
 #define MAX_PASSWORD_LEN              64
 #define MAX_LAYOUT_PATH               256
-#define SETTINGS_MENU_ITEMS           9
+#define SETTINGS_MENU_ITEMS           10
 #define SETTINGS_VISIBLE_ITEMS        3
 #define SETTINGS_HELP_Y_POS           54
 #define CREDITS_PAGES                 2
@@ -88,6 +88,7 @@
 #define NFC_COOLDOWN_DELAY_MS         50
 #define NFC_ENROLL_SCAN_DELAY_MS      150
 #define NFC_SCAN_DELAY_MS             500
+#define NFC_SCAN_PULSE_MS             1000
 #define KEY_PRESS_DELAY_MS            10
 #define KEY_RELEASE_DELAY_MS          10
 #define ENTER_PRESS_DELAY_MS          50
@@ -155,6 +156,7 @@ typedef enum {
     EventPromptPassword = 3,
     EventEditUidDone = 4,
     EventManualUidEntry = 5,
+    EventScanPulseDone = 6,
 } AppEvent;
 
 typedef struct {
@@ -182,6 +184,8 @@ typedef struct {
     uint8_t edit_uid_len;
 
     bool scanning;
+    bool active_scan; /* ON: field stays up; OFF: OK pulses field ~1s */
+    volatile bool scan_pulse; /* set by OK when active_scan is off */
     FuriThread* scan_thread;
     FuriHalUsbInterface* previous_usb_config;
 

@@ -53,6 +53,7 @@ int32_t nfc_login(void* p) {
     nfc_login_cli_clear_app_instance();
     if(app->scanning) {
         app->scanning = false;
+        app->scan_pulse = false;
         if(app->scan_thread) {
             furi_thread_join(app->scan_thread);
             furi_thread_free(app->scan_thread);

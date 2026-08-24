@@ -307,6 +307,17 @@ bool app_custom_event_callback(void* context, uint32_t event) {
             app->enrollment_card.uid_len);
         app_switch_to_view(app, ViewByteInput);
         return true;
+    case EventScanPulseDone:
+        if(app->scanning && !app->active_scan && app->widget_state == 1) {
+            widget_reset(app->widget);
+            widget_add_string_element(
+                app->widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Scan Tag");
+            widget_add_string_element(
+                app->widget, 0, 20, AlignLeft, AlignTop, FontSecondary, "Press OK to scan");
+            widget_add_string_element(
+                app->widget, 0, 40, AlignLeft, AlignTop, FontSecondary, "Back=Stop");
+        }
+        return true;
     default:
         return false;
     }

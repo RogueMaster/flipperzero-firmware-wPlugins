@@ -72,6 +72,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - Updated: [Wifi Internet Watch v1.2 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
 - Updated: [TPMS Bridge v1.1 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
+- Updated: [NFC Login v1.1.3 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
 
 <a name="release"></a>
 
@@ -724,7 +725,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NFC E-Ink Tags v1.0.4 (By RebornedBrain)](https://github.com/flipperdevices/flipperzero-good-faps/pull/245)
 - [NFC Fuzzer v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [NFC Keyboard v1.0 (By Patrick762)](https://github.com/Patrick762/flipper-nfc-keyboard)
-- [NFC Login v1.1.2 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
+- [NFC Login v1.1.3 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
 - [NFC Magic v2.1 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966)
 - [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
 - [NFC Playlist v3.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Playlist/tree/main)

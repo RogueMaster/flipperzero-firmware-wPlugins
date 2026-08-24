@@ -100,6 +100,8 @@ void app_save_settings(App* app) {
         storage_file_write(file, line, strlen(line));
         snprintf(line, sizeof(line), "vibro_enabled=%d\n", app->vibro_enabled ? 1 : 0);
         storage_file_write(file, line, strlen(line));
+        snprintf(line, sizeof(line), "active_scan=%d\n", app->active_scan ? 1 : 0);
+        storage_file_write(file, line, strlen(line));
         if(app->has_active_selection && app->active_card_index < app->card_count) {
             snprintf(line, sizeof(line), "active_card_index=%zu\n", app->active_card_index);
             storage_file_write(file, line, strlen(line));
@@ -123,6 +125,8 @@ void app_load_settings(App* app) {
     app->active_card_index = 0;
     app->sound_enabled = true;
     app->vibro_enabled = true;
+    app->active_scan = true;
+    app->scan_pulse = false;
 // passcode_disabled is now stored encrypted in cards.enc header, not in settings.txt
 // Default to USB, or force USB if BLE HID not available
 #if HAS_BLE_HID_API
@@ -241,6 +245,11 @@ void app_load_settings(App* app) {
                 while(*value_str == ' ' || *value_str == '\t')
                     value_str++;
                 app->vibro_enabled = (atoi(value_str) != 0);
+            } else if(strncmp(line, "active_scan=", 12) == 0) {
+                const char* value_str = line + 12;
+                while(*value_str == ' ' || *value_str == '\t')
+                    value_str++;
+                app->active_scan = (atoi(value_str) != 0);
             } else if(strncmp(line, "hid_mode=", 9) == 0) {
                 found_hid_mode = true;
                 const char* value_str = line + 9;

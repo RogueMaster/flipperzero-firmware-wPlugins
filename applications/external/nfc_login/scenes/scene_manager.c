@@ -98,6 +98,7 @@ static bool app_navigation_callback(void* context) {
         }
         if(app->scanning) {
             app->scanning = false;
+            app->scan_pulse = false;
             // Wait a bit for scan thread to exit HID operations
             furi_delay_ms(SCENE_DELAY_MS);
             if(app->scan_thread) {
@@ -157,6 +158,7 @@ static bool app_navigation_callback(void* context) {
         }
         if(app->scanning) {
             app->scanning = false;
+            app->scan_pulse = false;
             furi_delay_ms(100);
             if(app->scan_thread) {
                 furi_thread_join(app->scan_thread);
@@ -252,6 +254,7 @@ static void submenu_callback(void* context, uint32_t index) {
     case SubmenuStartScan:
         if(!app->scanning) {
             app->scanning = true;
+            app->scan_pulse = false;
             app->scan_thread = furi_thread_alloc();
             furi_thread_set_name(app->scan_thread, "NfcScan");
             furi_thread_set_stack_size(app->scan_thread, 4 * 1024);
@@ -261,12 +264,21 @@ static void submenu_callback(void* context, uint32_t index) {
 
             widget_reset(app->widget);
             app->widget_state = 1;
-            widget_add_string_element(
-                app->widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Scanning for NFC...");
-            widget_add_string_element(
-                app->widget, 0, 20, AlignLeft, AlignTop, FontSecondary, "Hold card to reader");
-            widget_add_string_element(
-                app->widget, 0, 40, AlignLeft, AlignTop, FontSecondary, "Press Back to stop");
+            if(app->active_scan) {
+                widget_add_string_element(
+                    app->widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Scanning for NFC...");
+                widget_add_string_element(
+                    app->widget, 0, 20, AlignLeft, AlignTop, FontSecondary, "Hold card to reader");
+                widget_add_string_element(
+                    app->widget, 0, 40, AlignLeft, AlignTop, FontSecondary, "Press Back to stop");
+            } else {
+                widget_add_string_element(
+                    app->widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Scan Tag");
+                widget_add_string_element(
+                    app->widget, 0, 20, AlignLeft, AlignTop, FontSecondary, "Press OK to scan");
+                widget_add_string_element(
+                    app->widget, 0, 40, AlignLeft, AlignTop, FontSecondary, "Back=Stop");
+            }
             app_switch_to_view(app, ViewWidget);
         }
         break;
@@ -298,6 +310,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
         if(event->key == InputKeyBack) {
             if(app->scanning) {
                 app->scanning = false;
+                app->scan_pulse = false;
                 // Wait a bit for scan thread to exit HID operations
                 furi_delay_ms(100);
                 if(app->scan_thread) {
@@ -333,6 +346,20 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                 view_dispatcher_send_custom_event(app->view_dispatcher, EventManualUidEntry);
                 return true;
             }
+        }
+        if(app->widget_state == 1 && app->scanning && !app->active_scan &&
+           event->key == InputKeyOk) {
+            if(!app->scan_pulse) {
+                app->scan_pulse = true;
+                widget_reset(app->widget);
+                widget_add_string_element(
+                    app->widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Scanning...");
+                widget_add_string_element(
+                    app->widget, 0, 20, AlignLeft, AlignTop, FontSecondary, "Hold card to reader");
+                widget_add_string_element(
+                    app->widget, 0, 40, AlignLeft, AlignTop, FontSecondary, "Back=Stop");
+            }
+            return true;
         }
         if(app->widget_state == 4) {
             if(event->key == InputKeyUp) {
@@ -371,6 +398,12 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     app_render_settings(app);
                     return true;
                 } else if(app->settings_menu_index == 4) {
+                    app->active_scan = !app->active_scan;
+                    app_save_settings(app);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
+                    app_render_settings(app);
+                    return true;
+                } else if(app->settings_menu_index == 5) {
                     app_load_cards(app);
                     size_t cards_loaded = app->card_count;
 
@@ -391,7 +424,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     app_switch_to_view(app, ViewPasscodeCanvas);
                     nfc_login_notify(app, NfcLoginNotifySuccess);
                     return true;
-                } else if(app->settings_menu_index == 5) {
+                } else if(app->settings_menu_index == 6) {
                     bool current_state = get_passcode_disabled();
                     if(set_passcode_disabled(!current_state)) {
                         app_save_settings(app);
@@ -401,19 +434,19 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     }
                     app_render_settings(app);
                     return true;
-                } else if(app->settings_menu_index == 6) {
+                } else if(app->settings_menu_index == 7) {
                     app->sound_enabled = !app->sound_enabled;
                     app_save_settings(app);
                     nfc_login_notify(app, NfcLoginNotifySuccess);
                     app_render_settings(app);
                     return true;
-                } else if(app->settings_menu_index == 7) {
+                } else if(app->settings_menu_index == 8) {
                     app->vibro_enabled = !app->vibro_enabled;
                     app_save_settings(app);
                     nfc_login_notify(app, NfcLoginNotifySuccess);
                     app_render_settings(app);
                     return true;
-                } else if(app->settings_menu_index == 8) {
+                } else if(app->settings_menu_index == 9) {
                     app->widget_state = 5;
                     app->credits_page = 0;
                     widget_reset(app->widget);
@@ -515,7 +548,11 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     app->append_enter = !app->append_enter;
                     app_save_settings(app);
                     nfc_login_notify(app, NfcLoginNotifySuccess);
-                } else if(app->settings_menu_index == 5) {
+                } else if(app->settings_menu_index == 4) {
+                    app->active_scan = !app->active_scan;
+                    app_save_settings(app);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
+                } else if(app->settings_menu_index == 6) {
                     bool current_state = get_passcode_disabled();
                     if(set_passcode_disabled(!current_state)) {
                         app_save_settings(app);
@@ -523,11 +560,11 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     } else {
                         nfc_login_notify(app, NfcLoginNotifyError);
                     }
-                } else if(app->settings_menu_index == 6) {
+                } else if(app->settings_menu_index == 7) {
                     app->sound_enabled = !app->sound_enabled;
                     app_save_settings(app);
                     nfc_login_notify(app, NfcLoginNotifySuccess);
-                } else if(app->settings_menu_index == 7) {
+                } else if(app->settings_menu_index == 8) {
                     app->vibro_enabled = !app->vibro_enabled;
                     app_save_settings(app);
                     nfc_login_notify(app, NfcLoginNotifySuccess);
