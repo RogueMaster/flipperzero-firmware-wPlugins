@@ -1739,10 +1739,7 @@ static void bv_pin_entry_draw(Canvas* canvas, void* model) {
     canvas_clear(canvas);
     if(m->busy) {
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "Deriving key...");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(
-            canvas, 64, 44, AlignCenter, AlignBottom, "Enclave stretch, ~3 sec");
+        canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignBottom, "Deriving key...");
         return;
     }
     canvas_set_font(canvas, FontPrimary);
