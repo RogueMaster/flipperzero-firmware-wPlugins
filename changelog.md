@@ -20,4 +20,4 @@ Initial release.
 - Send a username, password, or note to a host over USB-HID.
 - Optional tag password protection (opt-in): device-bound, UID-diversified
   PWD/PACK, selectable read-protect and auth-limit, reversible unprotect.
-- `biovault` USB CLI mirroring every on-device command.
+- A biovault USB CLI mirroring every on-device command.
