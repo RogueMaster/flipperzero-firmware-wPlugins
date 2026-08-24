@@ -116,6 +116,7 @@ typedef enum {
     BvViewAuthPick,
     BvViewPinWarn,
     BvViewPinMenu,
+    BvViewPinEntry,
     BvViewAbout,
     BvViewDiag,
 } BvViewId;
@@ -153,14 +154,12 @@ typedef enum {
     BvAddSecret,
 } BvAddState;
 
-// What the shared keyboard view is currently collecting.
+// What the 6-digit PIN entry screen is collecting.
 typedef enum {
-    BvInputEntry, // add/edit flow (BvAddState applies)
-    BvInputPinUnlock1, // session unlock, first entry
-    BvInputPinUnlock2, // session unlock, confirmation
-    BvInputPinNew1, // set-PIN flow, first entry
-    BvInputPinNew2, // set-PIN flow, confirmation
-} BvInputPurpose;
+    BvPinEntryUnlock, // session unlock (single entry)
+    BvPinEntrySetNew, // set flow, first entry
+    BvPinEntrySetConfirm, // set flow, confirmation
+} BvPinEntryMode;
 
 // What the PIN warning screen is gating.
 typedef enum {
@@ -314,14 +313,15 @@ typedef struct {
     char edit_secret[BV_SECRET_CAP];
 
     // Vault PIN session state.
-    BvInputPurpose input_purpose;
+    BvPinEntryMode pin_entry_mode;
     BvPinWarnMode pin_warn_mode;
-    char pin_buf[64];
-    char pin_buf2[64];
+    char pin_buf[BV_PIN_LEN + 1]; // entered PIN (set flow: first entry)
+    char pin_buf2[BV_PIN_LEN + 1]; // set flow: confirmation entry
     bool unlock_to_settings; // re-enter flow returns to Settings, not Load
     bool dek_verified; // a GCM-authenticated load/save proved the session key
     Submenu* pin_menu;
     View* pin_warn;
+    View* pin_entry;
 
     Nfc* nfc;
     NfcPoller* poller;
@@ -607,12 +607,15 @@ static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
     if(*retry) return err;
 
     // On success, clear the in-RAM vault so RAM matches the blank tag.
-    // vault_loaded stays true (empty + blank is synced).
+    // vault_loaded stays true (empty + blank is synced). The wipe also
+    // unblocks PIN remove/change: the ciphertext is gone, so there is
+    // nothing a wrong-PIN rewrap could orphan.
     if(err == BvErrNone) {
         furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
         bv_records_init(app->vault);
         furi_mutex_release(app->vault_mutex);
         app->vault_loaded = true;
+        app->dek_verified = true;
     }
 
     with_view_model(
@@ -770,11 +773,14 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
         if(err == BvErrNone) {
             size_t blob_len = 0;
             if(!bv_vault_framed_len(buf, SECTOR1_BYTES, &blob_len)) {
-                // Empty / non-vault tag: treated as a fresh empty vault.
+                // Empty / non-vault tag: treated as a fresh empty vault. This
+                // also unblocks PIN remove/change: with no ciphertext in
+                // existence there is nothing a wrong-PIN rewrap could orphan.
                 furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
                 bv_records_init(app->vault);
                 furi_mutex_release(app->vault_mutex);
                 count = 0;
+                app->dek_verified = true;
             } else {
                 BvVaultKey key;
                 if(!bv_vault_key_open(&key)) {
@@ -1704,35 +1710,23 @@ static void bv_build_settings(BioVault* app);
 static void bv_input_result(void* context);
 static uint32_t bv_input_previous(void* context);
 
-// --- Vault PIN flows (share the keyboard view with Add/Edit) ---
+// --- Vault PIN entry screen (6 digit wheels) ---
 
-static uint32_t bv_input_previous_exit(void* context) {
+typedef struct {
+    uint8_t digits[BV_PIN_LEN];
+    uint8_t pos;
+    const char* header;
+    bool busy; // derive in progress: GUI thread redraws while dispatcher blocks
+} BvPinEntryModel;
+
+static uint32_t bv_pin_entry_previous_exit(void* context) {
     UNUSED(context);
     return VIEW_NONE; // Back during startup unlock exits the app
 }
 
-static uint32_t bv_input_previous_settings(void* context) {
+static uint32_t bv_pin_entry_previous_settings(void* context) {
     UNUSED(context);
     return BvViewSettings;
-}
-
-static void bv_pin_prompt(
-    BioVault* app,
-    BvInputPurpose purpose,
-    const char* header,
-    char* buf,
-    size_t cap) {
-    app->input_purpose = purpose;
-    memset(buf, 0, cap);
-    bv_text_input_set_header_text(app->input, header);
-    bv_text_input_set_minimum_length(app->input, BV_PIN_MIN_LEN);
-    bv_text_input_set_result_callback(app->input, bv_input_result, app, buf, cap, true);
-    bool unlock = (purpose == BvInputPinUnlock1) || (purpose == BvInputPinUnlock2);
-    view_set_previous_callback(
-        bv_text_input_get_view(app->input),
-        (unlock && !app->unlock_to_settings) ? bv_input_previous_exit :
-                                               bv_input_previous_settings);
-    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewInput);
 }
 
 static void bv_pin_wipe_bufs(BioVault* app) {
@@ -1740,8 +1734,106 @@ static void bv_pin_wipe_bufs(BioVault* app) {
     memset(app->pin_buf2, 0, sizeof(app->pin_buf2));
 }
 
-// Both PIN entries matched: derive the unlock key (blocks ~1s by design).
+static void bv_pin_entry_draw(Canvas* canvas, void* model) {
+    BvPinEntryModel* m = model;
+    canvas_clear(canvas);
+    if(m->busy) {
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "Deriving key...");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(
+            canvas, 64, 44, AlignCenter, AlignBottom, "Enclave stretch, ~3 sec");
+        return;
+    }
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 11, AlignCenter, AlignBottom, m->header);
+
+    // Six digit cells, selected one inverted.
+    const uint8_t cw = 14, ch = 21, gap = 4;
+    const uint8_t x0 = (128 - (BV_PIN_LEN * cw + (BV_PIN_LEN - 1) * gap)) / 2;
+    const uint8_t y0 = 20;
+    canvas_set_font(canvas, FontBigNumbers);
+    for(uint8_t i = 0; i < BV_PIN_LEN; i++) {
+        uint8_t x = x0 + i * (cw + gap);
+        char d[2] = {(char)('0' + m->digits[i]), 0};
+        if(i == m->pos) {
+            canvas_draw_rbox(canvas, x, y0, cw, ch, 2);
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_str_aligned(canvas, x + cw / 2, y0 + ch - 3, AlignCenter, AlignBottom, d);
+            canvas_set_color(canvas, ColorBlack);
+        } else {
+            canvas_draw_rframe(canvas, x, y0, cw, ch, 2);
+            canvas_draw_str_aligned(canvas, x + cw / 2, y0 + ch - 3, AlignCenter, AlignBottom, d);
+        }
+    }
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas, 64, 62, AlignCenter, AlignBottom, "Up/Down: digit   OK: confirm");
+}
+
+static void bv_pin_entry_confirm(BioVault* app);
+
+static bool bv_pin_entry_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+    if(event->key == InputKeyBack) return false; // previous callback decides
+
+    bool confirm = false;
+    with_view_model(
+        app->pin_entry,
+        BvPinEntryModel * m,
+        {
+            switch(event->key) {
+            case InputKeyUp:
+                m->digits[m->pos] = (m->digits[m->pos] + 1) % 10;
+                break;
+            case InputKeyDown:
+                m->digits[m->pos] = (m->digits[m->pos] + 9) % 10;
+                break;
+            case InputKeyLeft:
+                m->pos = (m->pos + BV_PIN_LEN - 1) % BV_PIN_LEN;
+                break;
+            case InputKeyRight:
+                m->pos = (m->pos + 1) % BV_PIN_LEN;
+                break;
+            case InputKeyOk:
+                confirm = (event->type == InputTypeShort);
+                break;
+            default:
+                break;
+            }
+        },
+        true);
+    if(confirm) bv_pin_entry_confirm(app);
+    return true;
+}
+
+// Show the PIN screen. Digits reset to 000000; Back exits the app during the
+// startup unlock, otherwise returns to Settings.
+static void bv_pin_entry_open(BioVault* app, BvPinEntryMode mode, const char* header) {
+    app->pin_entry_mode = mode;
+    with_view_model(
+        app->pin_entry,
+        BvPinEntryModel * m,
+        {
+            memset(m->digits, 0, sizeof(m->digits));
+            m->pos = 0;
+            m->header = header;
+            m->busy = false;
+        },
+        true);
+    bool startup_unlock = (mode == BvPinEntryUnlock) && !app->unlock_to_settings;
+    view_set_previous_callback(
+        app->pin_entry,
+        startup_unlock ? bv_pin_entry_previous_exit : bv_pin_entry_previous_settings);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewPinEntry);
+}
+
+// Derive the unlock key from the entered PIN (blocks ~3s by design). The GUI
+// thread keeps drawing, so flip the screen to its busy state first.
 static void bv_pin_unlock_finish(BioVault* app) {
+    with_view_model(
+        app->pin_entry, BvPinEntryModel * m, { m->busy = true; }, true);
     uint8_t salt[BV_PIN_SALT_SIZE];
     uint32_t sw = 0, hw = 0;
     uint8_t key[BV_PIN_KEY_SIZE];
@@ -1761,6 +1853,8 @@ static void bv_pin_unlock_finish(BioVault* app) {
 }
 
 static void bv_pin_set_finish(BioVault* app) {
+    with_view_model(
+        app->pin_entry, BvPinEntryModel * m, { m->busy = true; }, true);
     bool ok = bv_vault_pin_enable(app->pin_buf);
     bv_pin_wipe_bufs(app);
     notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
@@ -1769,44 +1863,43 @@ static void bv_pin_set_finish(BioVault* app) {
     view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSettings);
 }
 
-// On keyboard confirm: advance label -> user -> secret, then commit the entry.
-static void bv_input_result(void* context) {
-    BioVault* app = context;
+static void bv_pin_entry_confirm(BioVault* app) {
+    char pin[BV_PIN_LEN + 1] = {0};
+    with_view_model(
+        app->pin_entry,
+        BvPinEntryModel * m,
+        {
+            for(uint8_t i = 0; i < BV_PIN_LEN; i++) pin[i] = (char)('0' + m->digits[i]);
+            memset(m->digits, 0, sizeof(m->digits));
+        },
+        false);
 
-    switch(app->input_purpose) {
-    case BvInputPinUnlock1:
-        bv_pin_prompt(app, BvInputPinUnlock2, "Repeat vault PIN", app->pin_buf2,
-            sizeof(app->pin_buf2));
-        return;
-    case BvInputPinUnlock2:
-        if(strcmp(app->pin_buf, app->pin_buf2) != 0) {
-            // Typos here are dangerous (no verifier), so demand a clean match.
-            notification_message(app->notifications, &sequence_error);
-            bv_pin_wipe_bufs(app);
-            bv_pin_prompt(app, BvInputPinUnlock1, "Mismatch - vault PIN", app->pin_buf,
-                sizeof(app->pin_buf));
-        } else {
-            bv_pin_unlock_finish(app);
-        }
-        return;
-    case BvInputPinNew1:
-        bv_pin_prompt(app, BvInputPinNew2, "Repeat new PIN", app->pin_buf2,
-            sizeof(app->pin_buf2));
-        return;
-    case BvInputPinNew2:
+    switch(app->pin_entry_mode) {
+    case BvPinEntryUnlock:
+        strlcpy(app->pin_buf, pin, sizeof(app->pin_buf));
+        bv_pin_unlock_finish(app);
+        break;
+    case BvPinEntrySetNew:
+        strlcpy(app->pin_buf, pin, sizeof(app->pin_buf));
+        bv_pin_entry_open(app, BvPinEntrySetConfirm, "Repeat new PIN");
+        break;
+    case BvPinEntrySetConfirm:
+        strlcpy(app->pin_buf2, pin, sizeof(app->pin_buf2));
         if(strcmp(app->pin_buf, app->pin_buf2) != 0) {
             notification_message(app->notifications, &sequence_error);
             bv_pin_wipe_bufs(app);
-            bv_pin_prompt(app, BvInputPinNew1, "Mismatch - new PIN", app->pin_buf,
-                sizeof(app->pin_buf));
+            bv_pin_entry_open(app, BvPinEntrySetNew, "Mismatch - new PIN");
         } else {
             bv_pin_set_finish(app);
         }
-        return;
-    case BvInputEntry:
         break;
     }
+    memset(pin, 0, sizeof(pin));
+}
 
+// On keyboard confirm: advance label -> user -> secret, then commit the entry.
+static void bv_input_result(void* context) {
+    BioVault* app = context;
     switch(app->add_state) {
     case BvAddLabel:
         app->add_state = BvAddUser;
@@ -1844,8 +1937,6 @@ static void bv_input_result(void* context) {
 }
 
 static void bv_configure_input(BioVault* app) {
-    app->input_purpose = BvInputEntry;
-    view_set_previous_callback(bv_text_input_get_view(app->input), bv_input_previous);
     // When editing, keep prefilled buffers so the user modifies rather than retypes.
     bool keep = app->editing;
     switch(app->add_state) {
@@ -1973,10 +2064,10 @@ static void bv_pin_warn_draw(Canvas* canvas, void* model) {
     if(*mode == BvPinWarnSetIntro) {
         canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "! Vault PIN !");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 22, "PIN becomes part of the key.");
-        canvas_draw_str(canvas, 2, 32, "A wrong PIN is undetectable;");
-        canvas_draw_str(canvas, 2, 42, "forgotten PIN = vault LOST.");
-        canvas_draw_str(canvas, 2, 52, "Prefer a long PIN / phrase.");
+        canvas_draw_str(canvas, 2, 22, "A 6-digit PIN becomes part");
+        canvas_draw_str(canvas, 2, 32, "of the vault key. A wrong PIN");
+        canvas_draw_str(canvas, 2, 42, "is undetectable, a forgotten");
+        canvas_draw_str(canvas, 2, 52, "PIN = vault LOST. No reset.");
         canvas_draw_str(canvas, 2, 62, "OK: set PIN  Back: cancel");
     } else {
         canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "PIN not verified");
@@ -2000,7 +2091,7 @@ static bool bv_pin_warn_input(InputEvent* event, void* context) {
     BioVault* app = context;
     if(event->type != InputTypeShort) return false;
     if(app->pin_warn_mode == BvPinWarnSetIntro && event->key == InputKeyOk) {
-        bv_pin_prompt(app, BvInputPinNew1, "New vault PIN", app->pin_buf, sizeof(app->pin_buf));
+        bv_pin_entry_open(app, BvPinEntrySetNew, "New vault PIN");
         return true;
     }
     if(event->key == InputKeyOk) {
@@ -2019,7 +2110,7 @@ static void bv_pin_menu_callback(void* context, uint32_t index) {
     BioVault* app = context;
     if(index == BvPinMenuReenter) {
         app->unlock_to_settings = true;
-        bv_pin_prompt(app, BvInputPinUnlock1, "Vault PIN", app->pin_buf, sizeof(app->pin_buf));
+        bv_pin_entry_open(app, BvPinEntryUnlock, "Vault PIN");
     } else if(index == BvPinMenuRemove) {
         if(!app->dek_verified) {
             bv_pin_warn_open(app, BvPinWarnNeedLoad);
@@ -2951,11 +3042,15 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
                "detected, and a forgotten PIN means the vault is LOST.\r\n");
         char p1[64] = {0};
         char p2[64] = {0};
-        printf("New PIN (min %d chars): ", BV_PIN_MIN_LEN);
+        printf("New PIN (%d digits): ", BV_PIN_LEN);
         fflush(stdout);
         bv_cli_read_line(p1, sizeof(p1));
-        if(strlen(p1) < BV_PIN_MIN_LEN) {
-            printf("Too short; PIN unchanged.\r\n");
+        bool valid = strlen(p1) == BV_PIN_LEN;
+        for(size_t i = 0; valid && i < BV_PIN_LEN; i++) {
+            valid = (p1[i] >= '0') && (p1[i] <= '9');
+        }
+        if(!valid) {
+            printf("PIN must be exactly %d digits; unchanged.\r\n", BV_PIN_LEN);
             memset(p1, 0, sizeof(p1));
             return;
         }
@@ -2994,33 +3089,23 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
             return;
         }
         char p1[64] = {0};
-        char p2[64] = {0};
         printf("PIN: ");
         fflush(stdout);
         bv_cli_read_line(p1, sizeof(p1));
-        printf("Repeat PIN: ");
-        fflush(stdout);
-        bv_cli_read_line(p2, sizeof(p2));
-        if(strcmp(p1, p2) != 0) {
-            printf("Mismatch; try again.\r\n");
+        uint8_t salt[BV_PIN_SALT_SIZE];
+        uint32_t sw = 0, hw = 0;
+        uint8_t key[BV_PIN_KEY_SIZE];
+        uint32_t t0 = furi_get_tick();
+        bool ok = bv_vault_pin_params(salt, &sw, &hw) && bv_pin_derive(p1, salt, sw, hw, key);
+        if(ok) bv_vault_unlock_key_set(key);
+        memset(key, 0, sizeof(key));
+        if(ok) {
+            printf("Unlock key set (derive %lums). Load to verify it.\r\n",
+                (unsigned long)(furi_get_tick() - t0));
         } else {
-            uint8_t salt[BV_PIN_SALT_SIZE];
-            uint32_t sw = 0, hw = 0;
-            uint8_t key[BV_PIN_KEY_SIZE];
-            uint32_t t0 = furi_get_tick();
-            bool ok = bv_vault_pin_params(salt, &sw, &hw) &&
-                      bv_pin_derive(p1, salt, sw, hw, key);
-            if(ok) bv_vault_unlock_key_set(key);
-            memset(key, 0, sizeof(key));
-            if(ok) {
-                printf("Unlock key set (derive %lums). Load to verify it.\r\n",
-                    (unsigned long)(furi_get_tick() - t0));
-            } else {
-                printf("Derive failed.\r\n");
-            }
+            printf("Derive failed.\r\n");
         }
         memset(p1, 0, sizeof(p1));
-        memset(p2, 0, sizeof(p2));
     } else {
         printf("Usage: pin <set|remove|enter>\r\n");
     }
@@ -3262,6 +3347,14 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(submenu_get_view(app->pin_menu), bv_auth_return_settings);
     view_dispatcher_add_view(app->view_dispatcher, BvViewPinMenu, submenu_get_view(app->pin_menu));
 
+    // 6-digit PIN entry screen
+    app->pin_entry = view_alloc();
+    view_allocate_model(app->pin_entry, ViewModelTypeLocking, sizeof(BvPinEntryModel));
+    view_set_context(app->pin_entry, app);
+    view_set_draw_callback(app->pin_entry, bv_pin_entry_draw);
+    view_set_input_callback(app->pin_entry, bv_pin_entry_input);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewPinEntry, app->pin_entry);
+
     // About / usage
     app->about = widget_alloc();
     bv_build_about(app);
@@ -3321,6 +3414,7 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewAuthPick);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewPinWarn);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewPinMenu);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewPinEntry);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewAbout);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
@@ -3341,6 +3435,7 @@ static void bv_free(BioVault* app) {
     submenu_free(app->auth_pick);
     view_free(app->pin_warn);
     submenu_free(app->pin_menu);
+    view_free(app->pin_entry);
     widget_free(app->about);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
@@ -3365,8 +3460,7 @@ int32_t biovault_app(void* p) {
     UNUSED(p);
     BioVault* app = bv_alloc();
     if(bv_vault_pin_required()) {
-        // PIN gate first; entered twice since a wrong PIN is undetectable.
-        bv_pin_prompt(app, BvInputPinUnlock1, "Vault PIN", app->pin_buf, sizeof(app->pin_buf));
+        bv_pin_entry_open(app, BvPinEntryUnlock, "Vault PIN");
     } else {
         // Load-first flow so Save never overwrites the tag with an un-synced vault.
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);

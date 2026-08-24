@@ -11,7 +11,7 @@
 
 #define BV_PIN_SALT_SIZE 16
 #define BV_PIN_KEY_SIZE 32
-#define BV_PIN_MIN_LEN 4
+#define BV_PIN_LEN 6 // exactly six digits
 // Defaults for new keystores; stored per-keystore so they stay tunable.
 #define BV_PIN_SW_ITERS 4096
 #define BV_PIN_HW_ITERS 16384
