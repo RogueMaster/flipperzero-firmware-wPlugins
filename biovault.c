@@ -3037,9 +3037,8 @@ static void bv_cli_load(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliLoad);
-    printf(
-        "Load screen open on device. Hold the implant to the Flipper,\r\n"
-        "then 'list' here to see the loaded entries.\r\n");
+    printf("Load screen open on device. Hold the implant to the Flipper,\r\n"
+           "then 'list' here to see the loaded entries.\r\n");
 }
 
 static void bv_cli_save(PipeSide* pipe, FuriString* args, void* context) {
@@ -3048,13 +3047,11 @@ static void bv_cli_save(PipeSide* pipe, FuriString* args, void* context) {
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliSave);
     if(app->vault_loaded) {
-        printf(
-            "Save screen open on device. Press OK on the Flipper to write,\r\n"
-            "then hold the implant to the Flipper.\r\n");
+        printf("Save screen open on device. Press OK on the Flipper to write,\r\n"
+               "then hold the implant to the Flipper.\r\n");
     } else {
-        printf(
-            "Vault not synced yet - opened the Load screen first (load before\r\n"
-            "save so the tag is never overwritten with un-synced data).\r\n");
+        printf("Vault not synced yet - opened the Load screen first (load before\r\n"
+               "save so the tag is never overwritten with un-synced data).\r\n");
     }
 }
 
@@ -3063,9 +3060,8 @@ static void bv_cli_wipe(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliZero);
-    printf(
-        "Wipe screen open on device. Press OK on the Flipper to confirm, then\r\n"
-        "hold the implant. Erases the tag AND clears the in-RAM vault.\r\n");
+    printf("Wipe screen open on device. Press OK on the Flipper to confirm, then\r\n"
+           "hold the implant. Erases the tag AND clears the in-RAM vault.\r\n");
 }
 
 // --- Settings / reveal over CLI ---
@@ -3147,10 +3143,9 @@ static void bv_cli_protect(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliProtect);
-    printf(
-        "Protect screen open on device. Review 'settings', press OK on the\r\n"
-        "Flipper to confirm, then hold the implant. PWD/PACK show on-device\r\n"
-        "(or run 'reveal' after).\r\n");
+    printf("Protect screen open on device. Review 'settings', press OK on the\r\n"
+           "Flipper to confirm, then hold the implant. PWD/PACK show on-device\r\n"
+           "(or run 'reveal' after).\r\n");
 }
 
 static void bv_cli_unprotect(PipeSide* pipe, FuriString* args, void* context) {
@@ -3158,9 +3153,8 @@ static void bv_cli_unprotect(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(args);
     BioVault* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, BvCustomEventCliUnprotect);
-    printf(
-        "Unprotect screen open on device. Press OK on the Flipper to confirm,\r\n"
-        "then hold the implant.\r\n");
+    printf("Unprotect screen open on device. Press OK on the Flipper to confirm,\r\n"
+           "then hold the implant.\r\n");
 }
 
 // Reveal the implant's PWD/PACK to the terminal. Same gate as the on-device
@@ -3231,9 +3225,8 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
             printf("PIN already set. Remove it first (needs a verified load).\r\n");
             return;
         }
-        printf(
-            "The PIN becomes part of the vault key. A wrong PIN cannot be\r\n"
-            "detected, and a forgotten PIN means the vault is LOST.\r\n");
+        printf("The PIN becomes part of the vault key. A wrong PIN cannot be\r\n"
+               "detected, and a forgotten PIN means the vault is LOST.\r\n");
         char p1[64] = {0};
         char p2[64] = {0};
         printf("New PIN (%d digits): ", BV_PIN_LEN);
@@ -3272,10 +3265,9 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
             return;
         }
         if(!app->dek_verified) {
-            printf(
-                "Refused: load your vault first so this session's PIN is proven\r\n"
-                "correct, then remove it. (Protects against a typo'd session\r\n"
-                "rewrapping the key.)\r\n");
+            printf("Refused: load your vault first so this session's PIN is proven\r\n"
+                   "correct, then remove it. (Protects against a typo'd session\r\n"
+                   "rewrapping the key.)\r\n");
             return;
         }
         printf(bv_vault_pin_disable() ? "PIN removed.\r\n" : "Failed; PIN unchanged.\r\n");
@@ -3310,9 +3302,8 @@ static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
 
 static void bv_cli_motd(void* context) {
     UNUSED(context);
-    printf(
-        "\r\n  \e[33m\xe2\x98\xa3\e[0m \e[1;36mBioVault\e[0m \e[36mv0.1\e[0m\r\n"
-        "  enclave-encrypted implant vault\r\n\r\n");
+    printf("\r\n  \e[33m\xe2\x98\xa3\e[0m \e[1;36mBioVault\e[0m \e[36mv0.1\e[0m\r\n"
+           "  enclave-encrypted implant vault\r\n\r\n");
     printf("\e[36mVault:\e[0m  list, get <label>, add <label>, edit <label>, remove <label>\r\n");
     printf("\e[36mDevice:\e[0m read, load, save, wipe, reveal  (drive the on-device screens)\r\n");
     printf("\e[36mProtect:\e[0m protect, unprotect  (confirm on the Flipper)\r\n");
