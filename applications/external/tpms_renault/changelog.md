@@ -1,3 +1,12 @@
+v1.1:
+Every protocol rtl_433 knows is now decoded, thirty-nine in all, not just
+the Renault group sensor — every one is searched for at once, and a
+reading is labelled with whichever protocol's checksum it satisfies.
+
+Band and modulation moved onto Up and Down, with a fifth setting that
+scans all four combinations in turn, four seconds each; the header reads
+*AUTO-* plus the setting currently on air while it does.
+
 v1.0:
 First release.
 

@@ -70,8 +70,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Panasonic AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - Added: [TCL AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - Added: [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Updated: [TPMS Bridge v1.0 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 - Updated: [Wifi Internet Watch v1.2 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
+- Updated: [TPMS Bridge v1.1 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 
 <a name="release"></a>
 
@@ -880,7 +880,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Tone Generator v1.0 (By GEMISIS)](https://github.com/GEMISIS/tone_gen)
 - [TonUINO Writer v2.0 (By Bastelsaal)](https://github.com/Bastelsaal/tonuino-flipper-zero)
 - [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)- [Bambu RID v0.2 (By DanTheMan827)](https://github.com/DanTheMan827/bambu-rfid-flipper)
-- [TPMS Bridge v1.0 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
+- [TPMS Bridge v1.1 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 - [TPMS Reader v1.0 (By wosk)](https://github.com/wosk/flipperzero-tpms)
 - [Tree Identification v0.0.5 (By fgreil)](https://github.com/fgreil/mitzi-tree-ident)
 - [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero) `Req: 3-in-1 ESP32 + NRF24 + CC1101`
