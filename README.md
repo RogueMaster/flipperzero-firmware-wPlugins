@@ -1,14 +1,14 @@
 # BioVault
 
-A Flipper Zero app that keeps a password vault **encrypted on an NFC implant**,
-unlocked only by the Flipper that owns it.
+BioVault keeps a password vault **encrypted on an NFC implant**,
+unlockable only by the Flipper that owns it.
 
 The encrypted vault lives on the implant. The key that decrypts it lives only in
 the Flipper's secure enclave and never leaves it. You need **both** the implant
-and its Flipper to read anything — either one on its own reveals nothing. Hold
-the Flipper to the implant, load the vault, and browse, edit, or type your
-credentials straight into a computer over USB. No laptop tooling, no `pm3`, no
-files left on disk.
+and its Flipper to read anything with possession of either one on its own revealing nothing. 
+Read the implant using the Flipper, load the vault, and browse, edit, or type your
+credentials straight into a computer over USB. No external tooling, no `proxmark`,
+everything in RAM.
 
 ## How it works
 
@@ -29,7 +29,7 @@ Nothing is ever written to the Flipper's storage except the wrapped key.
 - **Dangerous Things xSIID** implant, or any **NTAG I2C Plus 2K** tag
   (NXP NT3H2211).
 - The vault occupies **Sector 1** only. Sector 0 (UID, NDEF records) is left
-  untouched, so the tag still works as a normal NFC tag alongside the vault.
+  untouched, so the implant still works as a normal NFC tag alongside the vault.
 
 ## Features
 
@@ -42,6 +42,10 @@ Nothing is ever written to the Flipper's storage except the wrapped key.
   protection of Sector 1 so the raw ciphertext can't even be read off the tag by
   another reader. Selectable read-protection and a failed-attempt limit. Fully
   reversible.
+- **Optional vault PIN / passphrase**: the PIN is stretched into key material
+  that wraps the vault key, so it can't be bypassed by patching the app — an
+  attacker with your Flipper must brute-force it through this device's secure
+  enclave, one slow guess at a time.
 - A **`biovault` USB serial CLI** that mirrors every on-device command, so you
   can manage the vault and copy passwords from a terminal.
 
@@ -56,7 +60,8 @@ drops into the main menu:
   (label + text).
 - **Load / Read / Save / Wipe Implant** — sync the vault to and from the tag.
   Load first, so Save never overwrites the tag with an unsynced vault.
-- **Settings** — USB auto-return, and opt-in tag password protection.
+- **Settings** — USB auto-return, opt-in tag password protection, and an
+  optional vault PIN.
 - **About** and **Diagnostics** (crypto self-test results).
 
 Edits are held in RAM until you **Save** them back to the implant.
@@ -69,7 +74,7 @@ Connect over USB serial, run `biovault` to open a subshell, and use:
 Vault:    list, get <label>, add <label>, edit <label>, remove <label>
 Device:   read, load, save, wipe, reveal
 Protect:  protect, unprotect        (confirmed on the Flipper)
-Config:   settings [<key> <value>]
+Config:   settings [<key> <value>], pin <set|remove|enter>
 ```
 
 `reveal` prints the tag's password to the terminal (handy for `pm3`), but only
@@ -109,6 +114,31 @@ Other properties:
   shown only after the provisioned implant authenticates. A configurable
   failed-attempt limit can permanently lock the tag — the app warns before you
   set it.
+
+### Vault PIN (optional)
+
+Settings → **Vault PIN** (or `pin set` in the CLI) wraps the vault key under a
+PIN or passphrase. This is **key material, not a check**: there is no PIN
+verification anywhere in the code to patch out, and no verifier stored on the
+Flipper — a stolen Flipper alone gives an attacker *nothing to even test PIN
+guesses against*. If they also obtain the implant's ciphertext, every guess
+must still run a multi-second key-stretching chain through this Flipper's
+secure enclave (PBKDF2 plus ~16k enclave AES iterations, ~3 s per guess), which
+cannot be offloaded to faster hardware: a 6-digit PIN costs weeks on-device; a
+passphrase is out of reach entirely.
+
+The trade-offs of having no verifier, by design:
+
+- **A wrong PIN cannot be detected at entry.** It just derives the wrong key —
+  loads then fail authentication ("wrong PIN?"). The PIN is entered twice at
+  each unlock to guard against typos.
+- **With read-protection enabled, a wrong-PIN session presents a wrong tag
+  password**, which burns one of the tag's failed-auth attempts per load. Keep
+  the auth limit high (or off) when using a PIN.
+- **A forgotten PIN loses the vault.** There is no reset that doesn't destroy
+  the security. Removing or changing the PIN is only allowed after a
+  GCM-verified load proves the current session's PIN, so a typo'd session can
+  never rewrap the key.
 
 The Flipper is not a hardened secure element, and it does not need to be here:
 it never holds the plaintext vault at rest (only transiently in RAM, while the

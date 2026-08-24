@@ -1,4 +1,5 @@
 #include "bv_vault.h"
+#include "bv_pin.h"
 
 #include <furi.h>
 #include <furi_hal_random.h>
@@ -8,10 +9,26 @@
 
 #define TAG "BioVaultVault"
 
-#define KEYSTORE_PATH APP_DATA_PATH("keystore.bin")
+// Absolute path, NOT APP_DATA_PATH: /data resolves per calling thread, so the
+// CLI shell thread (owner app "cli_vcp") would silently read/write a keystore
+// in the wrong apps_data directory.
+#define BV_DATA_DIR EXT_PATH("apps_data/biovault")
+#define KEYSTORE_PATH BV_DATA_DIR "/keystore.bin"
 #define KS_MAGIC "BVK1"
+#define KS_MAGIC_V2 "BVK2"
 #define KS_MAGIC_LEN 4
 #define KS_SIZE (KS_MAGIC_LEN + BV_WRAP_IV_SIZE + BV_DEK_SIZE) // 52
+// v2 layout offsets: [magic:4][salt:16][sw_iters:4][hw_iters:4][wrap_iv:16][wrapped:32]
+#define KS2_OFF_SALT KS_MAGIC_LEN
+#define KS2_OFF_SW (KS2_OFF_SALT + BV_PIN_SALT_SIZE)
+#define KS2_OFF_HW (KS2_OFF_SW + 4)
+#define KS2_OFF_IV (KS2_OFF_HW + 4)
+#define KS2_OFF_WRAPPED (KS2_OFF_IV + BV_WRAP_IV_SIZE)
+#define KS2_SIZE (KS2_OFF_WRAPPED + BV_DEK_SIZE) // 76
+
+// Session unlock key (bv_pin_derive output), RAM only.
+static uint8_t s_unlock_key[BV_PIN_KEY_SIZE];
+static bool s_unlock_set = false;
 
 // On-tag blob framing.
 #define BLOB_MAGIC0 'B'
@@ -30,12 +47,15 @@ typedef enum {
     KsReadBad, // exists but unreadable/short; must not re-key
 } KsReadStatus;
 
-static KsReadStatus ks_read(uint8_t* buf, size_t len) {
+// Read the keystore (any version) into `buf` (cap bytes); `out_len` gets the
+// byte count actually read.
+static KsReadStatus ks_read(uint8_t* buf, size_t cap, size_t* out_len) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     KsReadStatus status;
     if(storage_file_open(file, KEYSTORE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        status = (storage_file_read(file, buf, len) == len) ? KsReadOk : KsReadBad;
+        *out_len = storage_file_read(file, buf, cap);
+        status = (*out_len >= KS_MAGIC_LEN) ? KsReadOk : KsReadBad;
         storage_file_close(file);
     } else {
         FileInfo info;
@@ -50,7 +70,7 @@ static KsReadStatus ks_read(uint8_t* buf, size_t len) {
 
 static bool ks_write(const uint8_t* buf, size_t len) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, BV_DATA_DIR);
     File* file = storage_file_alloc(storage);
     bool ok = false;
     if(storage_file_open(file, KEYSTORE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
@@ -70,24 +90,43 @@ bool bv_vault_key_open(BvVaultKey* out) {
         return false;
     }
 
-    uint8_t ks[KS_SIZE];
-    KsReadStatus status = ks_read(ks, sizeof(ks));
-    if(status == KsReadOk && memcmp(ks, KS_MAGIC, KS_MAGIC_LEN) != 0) status = KsReadBad;
-    if(status == KsReadOk) {
-        const uint8_t* wrap_iv = ks + KS_MAGIC_LEN;
-        const uint8_t* wrapped = ks + KS_MAGIC_LEN + BV_WRAP_IV_SIZE;
-        bool ok = bv_crypto_kek_unwrap(wrap_iv, wrapped, out->dek);
+    uint8_t ks[KS2_SIZE];
+    size_t ks_len = 0;
+    KsReadStatus status = ks_read(ks, sizeof(ks), &ks_len);
+
+    if(status == KsReadOk && ks_len == KS_SIZE && memcmp(ks, KS_MAGIC, KS_MAGIC_LEN) == 0) {
+        // v1: plain enclave wrap.
+        bool ok = bv_crypto_kek_unwrap(ks + KS_MAGIC_LEN, ks + KS_MAGIC_LEN + BV_WRAP_IV_SIZE,
+            out->dek);
         memset(ks, 0, sizeof(ks));
         if(!ok) FURI_LOG_E(TAG, "DEK unwrap failed (enclave key changed?)");
         return ok;
     }
-    if(status == KsReadBad) {
+    if(status == KsReadOk && ks_len == KS2_SIZE && memcmp(ks, KS_MAGIC_V2, KS_MAGIC_LEN) == 0) {
+        // v2: enclave wrap over (DEK XOR unlock_key). No verifier: a wrong
+        // unlock key yields a garbage DEK; only the vault's GCM tag can tell.
+        if(!s_unlock_set) {
+            memset(ks, 0, sizeof(ks));
+            FURI_LOG_E(TAG, "keystore needs PIN but no unlock key set");
+            return false;
+        }
+        bool ok = bv_crypto_kek_unwrap(ks + KS2_OFF_IV, ks + KS2_OFF_WRAPPED, out->dek);
+        memset(ks, 0, sizeof(ks));
+        if(!ok) {
+            FURI_LOG_E(TAG, "DEK unwrap failed (enclave key changed?)");
+            return false;
+        }
+        for(size_t i = 0; i < BV_DEK_SIZE; i++) out->dek[i] ^= s_unlock_key[i];
+        return true;
+    }
+    if(status != KsReadMissing) {
         // Refuse to re-key: would orphan the on-tag vault.
         FURI_LOG_E(TAG, "keystore present but unreadable/corrupt; refusing to re-key");
+        memset(ks, 0, sizeof(ks));
         return false;
     }
 
-    // First use: generate a fresh DEK, wrap it, persist.
+    // First use: generate a fresh DEK, wrap it, persist (v1; PIN is opt-in).
     uint8_t wrap_iv[BV_WRAP_IV_SIZE];
     uint8_t wrapped[BV_DEK_SIZE];
     furi_hal_random_fill_buf(out->dek, BV_DEK_SIZE);
@@ -99,10 +138,108 @@ bool bv_vault_key_open(BvVaultKey* out) {
     memcpy(ks, KS_MAGIC, KS_MAGIC_LEN);
     memcpy(ks + KS_MAGIC_LEN, wrap_iv, BV_WRAP_IV_SIZE);
     memcpy(ks + KS_MAGIC_LEN + BV_WRAP_IV_SIZE, wrapped, BV_DEK_SIZE);
-    bool ok = ks_write(ks, sizeof(ks));
+    bool ok = ks_write(ks, KS_SIZE);
     memset(ks, 0, sizeof(ks));
     memset(wrapped, 0, sizeof(wrapped));
     FURI_LOG_I(TAG, "created new keystore: %s", ok ? "OK" : "FAIL");
+    return ok;
+}
+
+// --- PIN (unlock key) management ---
+
+bool bv_vault_pin_required(void) {
+    uint8_t ks[KS2_SIZE];
+    size_t ks_len = 0;
+    bool v2 = (ks_read(ks, sizeof(ks), &ks_len) == KsReadOk) && (ks_len == KS2_SIZE) &&
+              (memcmp(ks, KS_MAGIC_V2, KS_MAGIC_LEN) == 0);
+    memset(ks, 0, sizeof(ks));
+    return v2;
+}
+
+bool bv_vault_pin_params(uint8_t salt[16], uint32_t* sw_iters, uint32_t* hw_iters) {
+    uint8_t ks[KS2_SIZE];
+    size_t ks_len = 0;
+    bool v2 = (ks_read(ks, sizeof(ks), &ks_len) == KsReadOk) && (ks_len == KS2_SIZE) &&
+              (memcmp(ks, KS_MAGIC_V2, KS_MAGIC_LEN) == 0);
+    if(v2) {
+        memcpy(salt, ks + KS2_OFF_SALT, BV_PIN_SALT_SIZE);
+        *sw_iters = (uint32_t)ks[KS2_OFF_SW] | ((uint32_t)ks[KS2_OFF_SW + 1] << 8) |
+                    ((uint32_t)ks[KS2_OFF_SW + 2] << 16) | ((uint32_t)ks[KS2_OFF_SW + 3] << 24);
+        *hw_iters = (uint32_t)ks[KS2_OFF_HW] | ((uint32_t)ks[KS2_OFF_HW + 1] << 8) |
+                    ((uint32_t)ks[KS2_OFF_HW + 2] << 16) | ((uint32_t)ks[KS2_OFF_HW + 3] << 24);
+    }
+    memset(ks, 0, sizeof(ks));
+    return v2;
+}
+
+void bv_vault_unlock_key_set(const uint8_t key[32]) {
+    memcpy(s_unlock_key, key, BV_PIN_KEY_SIZE);
+    s_unlock_set = true;
+}
+
+void bv_vault_unlock_key_clear(void) {
+    memset(s_unlock_key, 0, sizeof(s_unlock_key));
+    s_unlock_set = false;
+}
+
+bool bv_vault_pin_enable(const char* pin) {
+    // Unwrap with the current session state; the caller has proven it correct.
+    BvVaultKey key;
+    if(!bv_vault_key_open(&key)) return false;
+
+    uint8_t salt[BV_PIN_SALT_SIZE];
+    uint8_t unlock[BV_PIN_KEY_SIZE];
+    furi_hal_random_fill_buf(salt, sizeof(salt));
+    bool ok = bv_pin_derive(pin, salt, BV_PIN_SW_ITERS, BV_PIN_HW_ITERS, unlock);
+
+    uint8_t ks[KS2_SIZE];
+    if(ok) {
+        uint8_t masked[BV_DEK_SIZE];
+        uint8_t wrap_iv[BV_WRAP_IV_SIZE];
+        uint8_t wrapped[BV_DEK_SIZE];
+        for(size_t i = 0; i < BV_DEK_SIZE; i++) masked[i] = key.dek[i] ^ unlock[i];
+        furi_hal_random_fill_buf(wrap_iv, sizeof(wrap_iv));
+        ok = bv_crypto_kek_wrap(wrap_iv, masked, wrapped);
+        if(ok) {
+            memcpy(ks, KS_MAGIC_V2, KS_MAGIC_LEN);
+            memcpy(ks + KS2_OFF_SALT, salt, BV_PIN_SALT_SIZE);
+            for(int i = 0; i < 4; i++) ks[KS2_OFF_SW + i] = (uint8_t)(BV_PIN_SW_ITERS >> (8 * i));
+            for(int i = 0; i < 4; i++) ks[KS2_OFF_HW + i] = (uint8_t)(BV_PIN_HW_ITERS >> (8 * i));
+            memcpy(ks + KS2_OFF_IV, wrap_iv, BV_WRAP_IV_SIZE);
+            memcpy(ks + KS2_OFF_WRAPPED, wrapped, BV_DEK_SIZE);
+            ok = ks_write(ks, KS2_SIZE);
+        }
+        memset(masked, 0, sizeof(masked));
+        memset(wrapped, 0, sizeof(wrapped));
+    }
+    if(ok) bv_vault_unlock_key_set(unlock);
+    memset(ks, 0, sizeof(ks));
+    memset(unlock, 0, sizeof(unlock));
+    bv_vault_key_clear(&key);
+    FURI_LOG_I(TAG, "PIN enable: %s", ok ? "OK" : "FAIL");
+    return ok;
+}
+
+bool bv_vault_pin_disable(void) {
+    BvVaultKey key;
+    if(!bv_vault_key_open(&key)) return false;
+
+    uint8_t ks[KS_SIZE];
+    uint8_t wrap_iv[BV_WRAP_IV_SIZE];
+    uint8_t wrapped[BV_DEK_SIZE];
+    furi_hal_random_fill_buf(wrap_iv, sizeof(wrap_iv));
+    bool ok = bv_crypto_kek_wrap(wrap_iv, key.dek, wrapped);
+    if(ok) {
+        memcpy(ks, KS_MAGIC, KS_MAGIC_LEN);
+        memcpy(ks + KS_MAGIC_LEN, wrap_iv, BV_WRAP_IV_SIZE);
+        memcpy(ks + KS_MAGIC_LEN + BV_WRAP_IV_SIZE, wrapped, BV_DEK_SIZE);
+        ok = ks_write(ks, KS_SIZE);
+    }
+    if(ok) bv_vault_unlock_key_clear();
+    memset(ks, 0, sizeof(ks));
+    memset(wrapped, 0, sizeof(wrapped));
+    bv_vault_key_clear(&key);
+    FURI_LOG_I(TAG, "PIN disable: %s", ok ? "OK" : "FAIL");
     return ok;
 }
 
@@ -238,11 +375,10 @@ bool bv_vault_decrypt(
 // --- Self-test ---
 
 bool bv_vault_selftest(void) {
+    // Throwaway random DEK: keeps the codec test independent of keystore/PIN
+    // state (runs at startup, before any PIN is entered).
     BvVaultKey key;
-    if(!bv_vault_key_open(&key)) {
-        FURI_LOG_E(TAG, "vault selftest: key_open failed");
-        return false;
-    }
+    furi_hal_random_fill_buf(key.dek, BV_DEK_SIZE);
 
     static const char sample[] =
         "d,u,p\nexample.com,alice,hunter2\nreddit.com,bob,swordfish\n";

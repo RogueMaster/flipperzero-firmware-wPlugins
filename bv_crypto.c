@@ -32,6 +32,19 @@ bool bv_crypto_kek_unwrap(const uint8_t iv[BV_WRAP_IV_SIZE], const uint8_t* wrap
     return ok;
 }
 
+bool bv_crypto_kek_stretch(const uint8_t iv[BV_WRAP_IV_SIZE], uint8_t buf[32], uint32_t iters) {
+    if(!furi_hal_crypto_enclave_load_key(KEK_SLOT, iv)) return false;
+    uint8_t tmp[32];
+    bool ok = true;
+    for(uint32_t i = 0; i < iters && ok; i++) {
+        ok = furi_hal_crypto_encrypt(buf, tmp, sizeof(tmp));
+        memcpy(buf, tmp, sizeof(tmp));
+    }
+    memset(tmp, 0, sizeof(tmp));
+    furi_hal_crypto_enclave_unload_key(KEK_SLOT);
+    return ok;
+}
+
 bool bv_crypto_gcm_seal(
     const uint8_t dek[BV_DEK_SIZE],
     const uint8_t iv[BV_GCM_IV_SIZE],

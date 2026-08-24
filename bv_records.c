@@ -2,6 +2,7 @@
 #include "bv_vault.h"
 
 #include <furi.h>
+#include <furi_hal_random.h>
 #include <string.h>
 
 #define TAG "BioVaultRecords"
@@ -179,10 +180,12 @@ bool bv_records_selftest(void) {
                   (strcmp(v2->entries[0].secret, "p@ss,w0rd\nwith,commas") == 0) &&
                   (strcmp(v2->entries[2].label, "recovery") == 0);
 
-    // serialize -> seal to vault blob -> open -> parse
+    // serialize -> seal to vault blob -> open -> parse (throwaway random DEK:
+    // independent of keystore/PIN state at startup)
     BvVaultKey key;
-    bool blob_ok = false;
-    if(bv_vault_key_open(&key)) {
+    furi_hal_random_fill_buf(key.dek, BV_DEK_SIZE);
+    bool blob_ok;
+    {
         uint8_t blob[600];
         size_t blob_len = 0;
         uint8_t out[512];

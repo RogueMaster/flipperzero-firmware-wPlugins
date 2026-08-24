@@ -10,6 +10,9 @@ Initial release.
   phrase.
 - Vault plaintext is heatshrink-compressed before encryption to stretch the
   tag's fixed 1024-byte Sector 1.
+- Optional vault PIN/passphrase: stretched (PBKDF2 + enclave-iterated AES)
+  into key material that wraps the vault key. No verifier by design — a stolen
+  Flipper alone offers nothing to brute-force against.
 - AES-256-GCM vault sealed with a device-unique key held in the STM32WB secure
   enclave; nothing is recoverable off-device.
 - On-screen vault browser with add / view / edit / remove and an extended

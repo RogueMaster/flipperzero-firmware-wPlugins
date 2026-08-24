@@ -6,7 +6,10 @@
 
 #define TAG "BioVaultSettings"
 
-#define SETTINGS_PATH APP_DATA_PATH("settings.bin")
+// Absolute path, NOT APP_DATA_PATH: /data resolves per calling thread, and
+// CLI `settings` writes run in the CLI shell thread (owner app "cli_vcp").
+#define BV_DATA_DIR EXT_PATH("apps_data/biovault")
+#define SETTINGS_PATH BV_DATA_DIR "/settings.bin"
 #define SETTINGS_MAGIC "BVS2"
 #define SETTINGS_MAGIC_V1 "BVS1"
 #define SETTINGS_MAGIC_LEN 4
@@ -46,7 +49,7 @@ bool bv_settings_save(const BvSettings* s) {
     buf[7] = s->tag_protected ? 1 : 0;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    storage_common_mkdir(storage, APP_DATA_PATH("")); // ensure dir exists
+    storage_common_mkdir(storage, BV_DATA_DIR); // ensure dir exists
     File* file = storage_file_alloc(storage);
     bool ok = false;
     if(storage_file_open(file, SETTINGS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {

@@ -28,6 +28,7 @@
 
 #include "bv_crypto.h"
 #include "bv_vault.h"
+#include "bv_pin.h"
 #include "bv_records.h"
 #include "bv_text_input.h"
 #include "bv_hid.h"
@@ -113,6 +114,8 @@ typedef enum {
     BvViewReveal,
     BvViewAuthWarn,
     BvViewAuthPick,
+    BvViewPinWarn,
+    BvViewPinMenu,
     BvViewAbout,
     BvViewDiag,
 } BvViewId;
@@ -149,6 +152,21 @@ typedef enum {
     BvAddUser,
     BvAddSecret,
 } BvAddState;
+
+// What the shared keyboard view is currently collecting.
+typedef enum {
+    BvInputEntry, // add/edit flow (BvAddState applies)
+    BvInputPinUnlock1, // session unlock, first entry
+    BvInputPinUnlock2, // session unlock, confirmation
+    BvInputPinNew1, // set-PIN flow, first entry
+    BvInputPinNew2, // set-PIN flow, confirmation
+} BvInputPurpose;
+
+// What the PIN warning screen is gating.
+typedef enum {
+    BvPinWarnSetIntro, // consequences notice before the set-PIN flow
+    BvPinWarnNeedLoad, // change/remove refused until a verified load
+} BvPinWarnMode;
 
 typedef enum {
     BvCustomEventPollerDone = 1,
@@ -295,6 +313,16 @@ typedef struct {
     char edit_user[BV_USER_CAP];
     char edit_secret[BV_SECRET_CAP];
 
+    // Vault PIN session state.
+    BvInputPurpose input_purpose;
+    BvPinWarnMode pin_warn_mode;
+    char pin_buf[64];
+    char pin_buf2[64];
+    bool unlock_to_settings; // re-enter flow returns to Settings, not Load
+    bool dek_verified; // a GCM-authenticated load/save proved the session key
+    Submenu* pin_menu;
+    View* pin_warn;
+
     Nfc* nfc;
     NfcPoller* poller;
     bool poller_running;
@@ -316,6 +344,7 @@ typedef struct {
     bool dek_ok;
     bool vault_ok;
     bool records_ok;
+    bool pin_ok;
 } BioVault;
 
 // --- ISO14443-3A exchange helpers (only inside the poller callback) ---
@@ -685,6 +714,10 @@ static BvError bv_do_save(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
     *retry = bv_op_should_retry(app, err);
     if(*retry) return err;
 
+    // A completed save proves the session key: the tag now holds a blob
+    // sealed under it.
+    if(err == BvErrNone) app->dek_verified = true;
+
     with_view_model(
         app->save_view,
         BvSaveModel * m,
@@ -752,6 +785,9 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
                         furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
                         if(bv_records_parse(app->vault, pt, pt_len)) {
                             count = app->vault->count;
+                            // GCM authenticated: this session's key (and PIN,
+                            // if any) is proven correct.
+                            app->dek_verified = true;
                         } else {
                             err = BvErrCrypto;
                         }
@@ -1118,7 +1154,7 @@ static const char* bv_error_text(BvError e) {
     case BvErrTooBig:
         return "Vault too big for tag";
     case BvErrCrypto:
-        return "Crypto/keystore error";
+        return "Key error (wrong PIN?)";
     case BvErrAuth:
         return "Auth failed (wrong device?)";
     case BvErrWrongImplant:
@@ -1664,10 +1700,113 @@ static uint32_t bv_send_previous(void* context) {
 // --- On-device Add Entry (keyboard) ---
 
 static void bv_configure_input(BioVault* app);
+static void bv_build_settings(BioVault* app);
+static void bv_input_result(void* context);
+static uint32_t bv_input_previous(void* context);
+
+// --- Vault PIN flows (share the keyboard view with Add/Edit) ---
+
+static uint32_t bv_input_previous_exit(void* context) {
+    UNUSED(context);
+    return VIEW_NONE; // Back during startup unlock exits the app
+}
+
+static uint32_t bv_input_previous_settings(void* context) {
+    UNUSED(context);
+    return BvViewSettings;
+}
+
+static void bv_pin_prompt(
+    BioVault* app,
+    BvInputPurpose purpose,
+    const char* header,
+    char* buf,
+    size_t cap) {
+    app->input_purpose = purpose;
+    memset(buf, 0, cap);
+    bv_text_input_set_header_text(app->input, header);
+    bv_text_input_set_minimum_length(app->input, BV_PIN_MIN_LEN);
+    bv_text_input_set_result_callback(app->input, bv_input_result, app, buf, cap, true);
+    bool unlock = (purpose == BvInputPinUnlock1) || (purpose == BvInputPinUnlock2);
+    view_set_previous_callback(
+        bv_text_input_get_view(app->input),
+        (unlock && !app->unlock_to_settings) ? bv_input_previous_exit :
+                                               bv_input_previous_settings);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewInput);
+}
+
+static void bv_pin_wipe_bufs(BioVault* app) {
+    memset(app->pin_buf, 0, sizeof(app->pin_buf));
+    memset(app->pin_buf2, 0, sizeof(app->pin_buf2));
+}
+
+// Both PIN entries matched: derive the unlock key (blocks ~1s by design).
+static void bv_pin_unlock_finish(BioVault* app) {
+    uint8_t salt[BV_PIN_SALT_SIZE];
+    uint32_t sw = 0, hw = 0;
+    uint8_t key[BV_PIN_KEY_SIZE];
+    bool ok = bv_vault_pin_params(salt, &sw, &hw) &&
+              bv_pin_derive(app->pin_buf, salt, sw, hw, key);
+    if(ok) bv_vault_unlock_key_set(key);
+    memset(key, 0, sizeof(key));
+    bv_pin_wipe_bufs(app);
+    if(!ok) notification_message(app->notifications, &sequence_error);
+    if(app->unlock_to_settings) {
+        app->unlock_to_settings = false;
+        bv_build_settings(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSettings);
+    } else {
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
+    }
+}
+
+static void bv_pin_set_finish(BioVault* app) {
+    bool ok = bv_vault_pin_enable(app->pin_buf);
+    bv_pin_wipe_bufs(app);
+    notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
+    FURI_LOG_I(TAG, "PIN set: %s", ok ? "ok" : "failed");
+    bv_build_settings(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSettings);
+}
 
 // On keyboard confirm: advance label -> user -> secret, then commit the entry.
 static void bv_input_result(void* context) {
     BioVault* app = context;
+
+    switch(app->input_purpose) {
+    case BvInputPinUnlock1:
+        bv_pin_prompt(app, BvInputPinUnlock2, "Repeat vault PIN", app->pin_buf2,
+            sizeof(app->pin_buf2));
+        return;
+    case BvInputPinUnlock2:
+        if(strcmp(app->pin_buf, app->pin_buf2) != 0) {
+            // Typos here are dangerous (no verifier), so demand a clean match.
+            notification_message(app->notifications, &sequence_error);
+            bv_pin_wipe_bufs(app);
+            bv_pin_prompt(app, BvInputPinUnlock1, "Mismatch - vault PIN", app->pin_buf,
+                sizeof(app->pin_buf));
+        } else {
+            bv_pin_unlock_finish(app);
+        }
+        return;
+    case BvInputPinNew1:
+        bv_pin_prompt(app, BvInputPinNew2, "Repeat new PIN", app->pin_buf2,
+            sizeof(app->pin_buf2));
+        return;
+    case BvInputPinNew2:
+        if(strcmp(app->pin_buf, app->pin_buf2) != 0) {
+            notification_message(app->notifications, &sequence_error);
+            bv_pin_wipe_bufs(app);
+            bv_pin_prompt(app, BvInputPinNew1, "Mismatch - new PIN", app->pin_buf,
+                sizeof(app->pin_buf));
+        } else {
+            bv_pin_set_finish(app);
+        }
+        return;
+    case BvInputEntry:
+        break;
+    }
+
     switch(app->add_state) {
     case BvAddLabel:
         app->add_state = BvAddUser;
@@ -1705,6 +1844,8 @@ static void bv_input_result(void* context) {
 }
 
 static void bv_configure_input(BioVault* app) {
+    app->input_purpose = BvInputEntry;
+    view_set_previous_callback(bv_text_input_get_view(app->input), bv_input_previous);
     // When editing, keep prefilled buffers so the user modifies rather than retypes.
     bool keep = app->editing;
     switch(app->add_state) {
@@ -1777,6 +1918,7 @@ typedef enum {
     BvSetProtect,
     BvSetUnprotect,
     BvSetReveal,
+    BvSetPin,
 } BvSettingsRow;
 
 static void bv_settings_newline_changed(VariableItem* item) {
@@ -1799,6 +1941,9 @@ static void bv_settings_readprot_changed(VariableItem* item) {
 // then a picker, not a plain toggle.
 static void bv_prov_open(BioVault* app, bool unprotect); // defined below
 
+static void bv_build_pin_menu(BioVault* app);
+static void bv_pin_warn_open(BioVault* app, BvPinWarnMode mode);
+
 static void bv_settings_enter(void* context, uint32_t index) {
     BioVault* app = context;
     if(index == BvSetProtect) {
@@ -1809,7 +1954,90 @@ static void bv_settings_enter(void* context, uint32_t index) {
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewReveal);
     } else if(index == BvSetAuthLim) {
         view_dispatcher_switch_to_view(app->view_dispatcher, BvViewAuthWarn);
+    } else if(index == BvSetPin) {
+        if(!bv_vault_pin_required()) {
+            bv_pin_warn_open(app, BvPinWarnSetIntro);
+        } else {
+            bv_build_pin_menu(app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, BvViewPinMenu);
+        }
     }
+}
+
+// --- Vault PIN warning gate + menu ---
+
+static void bv_pin_warn_draw(Canvas* canvas, void* model) {
+    BvPinWarnMode* mode = model;
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    if(*mode == BvPinWarnSetIntro) {
+        canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "! Vault PIN !");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 22, "PIN becomes part of the key.");
+        canvas_draw_str(canvas, 2, 32, "A wrong PIN is undetectable;");
+        canvas_draw_str(canvas, 2, 42, "forgotten PIN = vault LOST.");
+        canvas_draw_str(canvas, 2, 52, "Prefer a long PIN / phrase.");
+        canvas_draw_str(canvas, 2, 62, "OK: set PIN  Back: cancel");
+    } else {
+        canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "PIN not verified");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 24, "Load your vault first so this");
+        canvas_draw_str(canvas, 2, 34, "session's PIN is proven, then");
+        canvas_draw_str(canvas, 2, 44, "remove the PIN.");
+        canvas_draw_str(canvas, 2, 62, "OK / Back: return");
+    }
+}
+
+// Set the warning mode (app state + view model) and show the gate.
+static void bv_pin_warn_open(BioVault* app, BvPinWarnMode mode) {
+    app->pin_warn_mode = mode;
+    with_view_model(
+        app->pin_warn, BvPinWarnMode * m, { *m = mode; }, true);
+    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewPinWarn);
+}
+
+static bool bv_pin_warn_input(InputEvent* event, void* context) {
+    BioVault* app = context;
+    if(event->type != InputTypeShort) return false;
+    if(app->pin_warn_mode == BvPinWarnSetIntro && event->key == InputKeyOk) {
+        bv_pin_prompt(app, BvInputPinNew1, "New vault PIN", app->pin_buf, sizeof(app->pin_buf));
+        return true;
+    }
+    if(event->key == InputKeyOk) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSettings);
+        return true;
+    }
+    return false; // Back falls through to the previous callback (Settings)
+}
+
+typedef enum {
+    BvPinMenuReenter,
+    BvPinMenuRemove,
+} BvPinMenuIndex;
+
+static void bv_pin_menu_callback(void* context, uint32_t index) {
+    BioVault* app = context;
+    if(index == BvPinMenuReenter) {
+        app->unlock_to_settings = true;
+        bv_pin_prompt(app, BvInputPinUnlock1, "Vault PIN", app->pin_buf, sizeof(app->pin_buf));
+    } else if(index == BvPinMenuRemove) {
+        if(!app->dek_verified) {
+            bv_pin_warn_open(app, BvPinWarnNeedLoad);
+            return;
+        }
+        bool ok = bv_vault_pin_disable();
+        notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
+        FURI_LOG_I(TAG, "PIN remove: %s", ok ? "ok" : "failed");
+        bv_build_settings(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewSettings);
+    }
+}
+
+static void bv_build_pin_menu(BioVault* app) {
+    submenu_reset(app->pin_menu);
+    submenu_set_header(app->pin_menu, "Vault PIN");
+    submenu_add_item(app->pin_menu, "Re-enter PIN", BvPinMenuReenter, bv_pin_menu_callback, app);
+    submenu_add_item(app->pin_menu, "Remove PIN", BvPinMenuRemove, bv_pin_menu_callback, app);
 }
 
 static void bv_build_settings(BioVault* app) {
@@ -1841,6 +2069,8 @@ static void bv_build_settings(BioVault* app) {
     variable_item_set_current_value_text(item, "");
     item = variable_item_list_add(app->settings_list, "Reveal password", 1, NULL, app);
     variable_item_set_current_value_text(item, "");
+    item = variable_item_list_add(app->settings_list, "Vault PIN", 1, NULL, app);
+    variable_item_set_current_value_text(item, bv_vault_pin_required() ? "SET" : "OFF");
 }
 
 static uint32_t bv_settings_previous(void* context) {
@@ -2158,6 +2388,11 @@ static void bv_build_about(BioVault* app) {
         "The vault lives in Sector 1 only. Sector 0 user data is left untouched, "
         "so the tag still works as a normal NFC tag/NDEF.\n"
         "\n"
+        "An optional vault PIN (Settings) wraps the key with PIN-derived "
+        "material stretched through the enclave: not a bypassable check, and "
+        "brute-forcing it needs this Flipper, slowly. Wrong PINs are "
+        "undetectable by design; a forgotten PIN loses the vault.\n"
+        "\n"
         "\e#Hardware\n"
         "Dangerous Things xSIID implant, or any NTAG I2C Plus 2K (NXP NT3H2211).\n"
         "\n"
@@ -2250,11 +2485,12 @@ static void bv_build_diag(BioVault* app) {
         {"KEK/DEK wrap", app->dek_ok},
         {"Vault codec", app->vault_ok},
         {"Records", app->records_ok},
+        {"PIN KDF", app->pin_ok},
     };
     for(size_t i = 0; i < COUNT_OF(rows); i++) {
         snprintf(line, sizeof(line), "%s: %s", rows[i].label, rows[i].ok ? "OK" : "FAIL");
         widget_add_string_element(
-            app->diag, 2, 16 + i * 10, AlignLeft, AlignTop, FontSecondary, line);
+            app->diag, 2, 13 + i * 8, AlignLeft, AlignTop, FontSecondary, line);
     }
 }
 
@@ -2582,6 +2818,15 @@ static void bv_cli_settings(PipeSide* pipe, FuriString* args, void* context) {
             "  authlim      %s\r\n",
             bv_cli_authlim[app->settings.authlim < 8 ? app->settings.authlim : 0]);
         printf("  protected    %s (status)\r\n", app->settings.tag_protected ? "yes" : "no");
+        printf("  pin          %s (set on device)\r\n", bv_vault_pin_required() ? "set" : "off");
+        printf(
+            "Self-test: enclave=%d gcm=%d dek=%d vault=%d records=%d pin=%d\r\n",
+            app->enclave_ok,
+            app->gcm_ok,
+            app->dek_ok,
+            app->vault_ok,
+            app->records_ok,
+            app->pin_ok);
         printf("Set: settings <autoreturn|readprotect> <on|off>\r\n");
         printf("     settings authlim <off|2|4|8|16|32|64|128>\r\n");
         return;
@@ -2682,6 +2927,105 @@ static void bv_cli_reveal(PipeSide* pipe, FuriString* args, void* context) {
     memset(pack, 0, sizeof(pack));
 }
 
+// Vault PIN over CLI. Set/enter prompt twice: a wrong PIN is undetectable by
+// design (no verifier), so a clean double entry is the only typo guard.
+static void bv_cli_pin(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
+    BioVault* app = context;
+    char sub[16] = {0};
+    sscanf(furi_string_get_cstr(args), "%15s", sub);
+    bool set = bv_vault_pin_required();
+
+    if(!strlen(sub)) {
+        printf("Vault PIN: %s\r\n", set ? "set" : "off");
+        printf("Usage: pin <set|remove|enter>\r\n");
+        return;
+    }
+
+    if(strcmp(sub, "set") == 0) {
+        if(set) {
+            printf("PIN already set. Remove it first (needs a verified load).\r\n");
+            return;
+        }
+        printf("The PIN becomes part of the vault key. A wrong PIN cannot be\r\n"
+               "detected, and a forgotten PIN means the vault is LOST.\r\n");
+        char p1[64] = {0};
+        char p2[64] = {0};
+        printf("New PIN (min %d chars): ", BV_PIN_MIN_LEN);
+        fflush(stdout);
+        bv_cli_read_line(p1, sizeof(p1));
+        if(strlen(p1) < BV_PIN_MIN_LEN) {
+            printf("Too short; PIN unchanged.\r\n");
+            memset(p1, 0, sizeof(p1));
+            return;
+        }
+        printf("Repeat PIN: ");
+        fflush(stdout);
+        bv_cli_read_line(p2, sizeof(p2));
+        if(strcmp(p1, p2) != 0) {
+            printf("Mismatch; PIN unchanged.\r\n");
+        } else {
+            uint32_t t0 = furi_get_tick();
+            bool ok = bv_vault_pin_enable(p1);
+            if(ok) {
+                printf("PIN set. Unlock derive takes ~%lums.\r\n",
+                    (unsigned long)(furi_get_tick() - t0));
+            } else {
+                printf("Failed; PIN unchanged.\r\n");
+            }
+        }
+        memset(p1, 0, sizeof(p1));
+        memset(p2, 0, sizeof(p2));
+    } else if(strcmp(sub, "remove") == 0) {
+        if(!set) {
+            printf("No PIN set.\r\n");
+            return;
+        }
+        if(!app->dek_verified) {
+            printf("Refused: load your vault first so this session's PIN is proven\r\n"
+                   "correct, then remove it. (Protects against a typo'd session\r\n"
+                   "rewrapping the key.)\r\n");
+            return;
+        }
+        printf(bv_vault_pin_disable() ? "PIN removed.\r\n" : "Failed; PIN unchanged.\r\n");
+    } else if(strcmp(sub, "enter") == 0) {
+        if(!set) {
+            printf("No PIN set.\r\n");
+            return;
+        }
+        char p1[64] = {0};
+        char p2[64] = {0};
+        printf("PIN: ");
+        fflush(stdout);
+        bv_cli_read_line(p1, sizeof(p1));
+        printf("Repeat PIN: ");
+        fflush(stdout);
+        bv_cli_read_line(p2, sizeof(p2));
+        if(strcmp(p1, p2) != 0) {
+            printf("Mismatch; try again.\r\n");
+        } else {
+            uint8_t salt[BV_PIN_SALT_SIZE];
+            uint32_t sw = 0, hw = 0;
+            uint8_t key[BV_PIN_KEY_SIZE];
+            uint32_t t0 = furi_get_tick();
+            bool ok = bv_vault_pin_params(salt, &sw, &hw) &&
+                      bv_pin_derive(p1, salt, sw, hw, key);
+            if(ok) bv_vault_unlock_key_set(key);
+            memset(key, 0, sizeof(key));
+            if(ok) {
+                printf("Unlock key set (derive %lums). Load to verify it.\r\n",
+                    (unsigned long)(furi_get_tick() - t0));
+            } else {
+                printf("Derive failed.\r\n");
+            }
+        }
+        memset(p1, 0, sizeof(p1));
+        memset(p2, 0, sizeof(p2));
+    } else {
+        printf("Usage: pin <set|remove|enter>\r\n");
+    }
+}
+
 static void bv_cli_motd(void* context) {
     UNUSED(context);
     printf("\r\n  \e[33m\xe2\x98\xa3\e[0m \e[1;36mBioVault\e[0m \e[36mv0.1\e[0m\r\n"
@@ -2689,7 +3033,7 @@ static void bv_cli_motd(void* context) {
     printf("\e[36mVault:\e[0m  list, get <label>, add <label>, edit <label>, remove <label>\r\n");
     printf("\e[36mDevice:\e[0m read, load, save, wipe, reveal  (drive the on-device screens)\r\n");
     printf("\e[36mProtect:\e[0m protect, unprotect  (confirm on the Flipper)\r\n");
-    printf("\e[36mConfig:\e[0m settings [<key> <value>]\r\n");
+    printf("\e[36mConfig:\e[0m settings [<key> <value>], pin <set|remove|enter>\r\n");
     printf("\e[36mShell:\e[0m  exit\r\n");
     printf("Vault edits are in RAM; run 'save' to persist them to the implant.\r\n");
 }
@@ -2719,6 +3063,7 @@ static void bv_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
         registry, "unprotect", CliCommandFlagParallelSafe, bv_cli_unprotect, app);
     cli_registry_add_command(
         registry, "settings", CliCommandFlagParallelSafe, bv_cli_settings, app);
+    cli_registry_add_command(registry, "pin", CliCommandFlagParallelSafe, bv_cli_pin, app);
 
     CliShell* shell = cli_shell_alloc(bv_cli_motd, app, pipe, registry, NULL);
     cli_shell_set_prompt(shell, "biovault");
@@ -2742,14 +3087,16 @@ static BioVault* bv_alloc(void) {
     app->dek_ok = bv_crypto_dek_selftest();
     app->vault_ok = bv_vault_selftest();
     app->records_ok = bv_records_selftest();
+    app->pin_ok = bv_pin_selftest();
     FURI_LOG_I(
         TAG,
-        "self-test: enclave=%d gcm=%d dek=%d vault=%d records=%d",
+        "self-test: enclave=%d gcm=%d dek=%d vault=%d records=%d pin=%d",
         app->enclave_ok,
         app->gcm_ok,
         app->dek_ok,
         app->vault_ok,
-        app->records_ok);
+        app->records_ok,
+        app->pin_ok);
 
     app->vault = malloc(sizeof(BvVaultData));
     bv_records_init(app->vault);
@@ -2902,6 +3249,19 @@ static BioVault* bv_alloc(void) {
     view_set_previous_callback(submenu_get_view(app->auth_pick), bv_auth_return_settings);
     view_dispatcher_add_view(app->view_dispatcher, BvViewAuthPick, submenu_get_view(app->auth_pick));
 
+    // Vault PIN warning gate + menu
+    app->pin_warn = view_alloc();
+    view_allocate_model(app->pin_warn, ViewModelTypeLockFree, sizeof(BvPinWarnMode));
+    view_set_context(app->pin_warn, app);
+    view_set_draw_callback(app->pin_warn, bv_pin_warn_draw);
+    view_set_input_callback(app->pin_warn, bv_pin_warn_input);
+    view_set_previous_callback(app->pin_warn, bv_auth_return_settings);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewPinWarn, app->pin_warn);
+
+    app->pin_menu = submenu_alloc();
+    view_set_previous_callback(submenu_get_view(app->pin_menu), bv_auth_return_settings);
+    view_dispatcher_add_view(app->view_dispatcher, BvViewPinMenu, submenu_get_view(app->pin_menu));
+
     // About / usage
     app->about = widget_alloc();
     bv_build_about(app);
@@ -2959,6 +3319,8 @@ static void bv_free(BioVault* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BvViewReveal);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewAuthWarn);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewAuthPick);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewPinWarn);
+    view_dispatcher_remove_view(app->view_dispatcher, BvViewPinMenu);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewAbout);
     view_dispatcher_remove_view(app->view_dispatcher, BvViewDiag);
     submenu_free(app->menu);
@@ -2977,6 +3339,8 @@ static void bv_free(BioVault* app) {
     view_free(app->reveal_view);
     view_free(app->auth_warn);
     submenu_free(app->auth_pick);
+    view_free(app->pin_warn);
+    submenu_free(app->pin_menu);
     widget_free(app->about);
     widget_free(app->diag);
     view_dispatcher_free(app->view_dispatcher);
@@ -2988,9 +3352,10 @@ static void bv_free(BioVault* app) {
     furi_mutex_free(app->vault_mutex);
     furi_event_flag_free(app->read_done);
     if(app->save_blob) {
-        memset(app->save_blob, 0, 1088);
+        memset(app->save_blob, 0, BV_SERIALIZED_MAX + 1 + BV_BLOB_OVERHEAD);
         free(app->save_blob);
     }
+    bv_vault_unlock_key_clear();
     // Wipe secrets in app-owned buffers before returning the allocation.
     memset(app, 0, sizeof(*app));
     free(app);
@@ -2999,8 +3364,13 @@ static void bv_free(BioVault* app) {
 int32_t biovault_app(void* p) {
     UNUSED(p);
     BioVault* app = bv_alloc();
-    // Load-first flow so Save never overwrites the tag with an un-synced vault.
-    view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
+    if(bv_vault_pin_required()) {
+        // PIN gate first; entered twice since a wrong PIN is undetectable.
+        bv_pin_prompt(app, BvInputPinUnlock1, "Vault PIN", app->pin_buf, sizeof(app->pin_buf));
+    } else {
+        // Load-first flow so Save never overwrites the tag with an un-synced vault.
+        view_dispatcher_switch_to_view(app->view_dispatcher, BvViewLoad);
+    }
     view_dispatcher_run(app->view_dispatcher);
     bv_free(app);
     return 0;

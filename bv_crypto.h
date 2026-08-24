@@ -25,6 +25,11 @@ bool bv_crypto_kek_wrap(const uint8_t iv[BV_WRAP_IV_SIZE], const uint8_t* dek, u
 // Unwrap a DEK wrapped by bv_crypto_kek_wrap with the same iv.
 bool bv_crypto_kek_unwrap(const uint8_t iv[BV_WRAP_IV_SIZE], const uint8_t* wrapped, uint8_t* dek);
 
+// Key stretching through the enclave: iterate buf = KEK-CBC(buf) `iters` times
+// in-place (32 bytes). Each brute-force guess must repeat this on THIS device;
+// no external hardware can accelerate it. Deterministic for a given iv/iters.
+bool bv_crypto_kek_stretch(const uint8_t iv[BV_WRAP_IV_SIZE], uint8_t buf[32], uint32_t iters);
+
 // AES-256-GCM seal: encrypt `pt`(len) into `ct`(len) and produce a BV_GCM_TAG_SIZE tag.
 bool bv_crypto_gcm_seal(
     const uint8_t dek[BV_DEK_SIZE],
