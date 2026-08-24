@@ -158,7 +158,7 @@ bool bv_records_parse(BvVaultData* v, const uint8_t* buf, size_t len) {
 // --- Self-test ---
 
 bool bv_records_selftest(void) {
-    // BvVaultData is ~3.8 KB; keep it off the stack.
+    // BvVaultData is ~8.3 KB; keep it off the stack.
     BvVaultData* v = malloc(sizeof(BvVaultData));
     BvVaultData* v2 = malloc(sizeof(BvVaultData));
 
@@ -187,7 +187,7 @@ bool bv_records_selftest(void) {
         size_t blob_len = 0;
         uint8_t out[512];
         size_t out_len = 0;
-        blob_ok = (buf_len + BV_BLOB_OVERHEAD <= sizeof(blob)) &&
+        blob_ok = (buf_len + 1 + BV_BLOB_OVERHEAD <= sizeof(blob)) &&
                   bv_vault_encrypt(&key, buf, buf_len, blob, &blob_len) &&
                   bv_vault_decrypt(&key, blob, blob_len, out, sizeof(out), &out_len) &&
                   bv_records_parse(v2, out, out_len) && (v2->count == 3) &&

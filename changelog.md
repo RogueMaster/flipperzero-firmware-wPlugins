@@ -6,6 +6,10 @@ Initial release.
 
 - Read, write, and browse an enclave-encrypted vault stored in Sector 1 of an
   NTAG I2C Plus 2K implant (Dangerous Things xSIID).
+- Secrets and notes up to 255 characters — enough for a 24-word BIP39 seed
+  phrase.
+- Vault plaintext is heatshrink-compressed before encryption to stretch the
+  tag's fixed 1024-byte Sector 1.
 - AES-256-GCM vault sealed with a device-unique key held in the STM32WB secure
   enclave; nothing is recoverable off-device.
 - On-screen vault browser with add / view / edit / remove and an extended

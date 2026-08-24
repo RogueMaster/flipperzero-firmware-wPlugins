@@ -4,6 +4,7 @@
 #include <furi_hal_random.h>
 #include <storage/storage.h>
 #include <string.h>
+#include <toolbox/compress.h>
 
 #define TAG "BioVaultVault"
 
@@ -15,7 +16,8 @@
 // On-tag blob framing.
 #define BLOB_MAGIC0 'B'
 #define BLOB_MAGIC1 'V'
-#define BLOB_VER 1
+#define BLOB_VER_RAW 1 // plaintext = raw serialized records (legacy, read-only)
+#define BLOB_VER_LZ 2 // plaintext = heatshrink stream (toolbox compress framing)
 #define OFF_NONCE 3
 #define OFF_CTLEN (OFF_NONCE + BV_GCM_IV_SIZE) // 15
 #define OFF_CT BV_BLOB_HEADER // 17
@@ -143,29 +145,47 @@ bool bv_vault_encrypt(
     size_t pt_len,
     uint8_t* blob,
     size_t* blob_len) {
-    if(pt_len > 0xFFFF) return false;
+    if(pt_len == 0 || pt_len > 0xFFFF) return false;
+
+    // Compress first (v2 blobs). compress_encode stores raw with 1 byte of
+    // framing when compression doesn't win, so z_len <= pt_len + 1.
+    size_t z_cap = pt_len + 8;
+    uint8_t* z = malloc(z_cap);
+    size_t z_len = 0;
+    Compress* comp = compress_alloc(CompressTypeHeatshrink, &compress_config_heatshrink_default);
+    bool z_ok = compress_encode(comp, (uint8_t*)pt, pt_len, z, z_cap, &z_len);
+    compress_free(comp);
+    if(!z_ok || z_len == 0 || z_len > 0xFFFF) {
+        memset(z, 0, z_cap);
+        free(z);
+        return false;
+    }
 
     uint8_t nonce[BV_GCM_IV_SIZE];
     furi_hal_random_fill_buf(nonce, sizeof(nonce));
 
     blob[0] = BLOB_MAGIC0;
     blob[1] = BLOB_MAGIC1;
-    blob[2] = BLOB_VER;
+    blob[2] = BLOB_VER_LZ;
     memcpy(blob + OFF_NONCE, nonce, BV_GCM_IV_SIZE);
-    blob[OFF_CTLEN] = (uint8_t)(pt_len & 0xFF);
-    blob[OFF_CTLEN + 1] = (uint8_t)((pt_len >> 8) & 0xFF);
+    blob[OFF_CTLEN] = (uint8_t)(z_len & 0xFF);
+    blob[OFF_CTLEN + 1] = (uint8_t)((z_len >> 8) & 0xFF);
 
     uint8_t tag[BV_GCM_TAG_SIZE];
-    if(!bv_crypto_gcm_seal(key->dek, nonce, pt, pt_len, blob + OFF_CT, tag)) return false;
-    memcpy(blob + OFF_CT + pt_len, tag, BV_GCM_TAG_SIZE);
+    bool ok = bv_crypto_gcm_seal(key->dek, nonce, z, z_len, blob + OFF_CT, tag);
+    memset(z, 0, z_cap);
+    free(z);
+    if(!ok) return false;
+    memcpy(blob + OFF_CT + z_len, tag, BV_GCM_TAG_SIZE);
 
-    *blob_len = OFF_CT + pt_len + BV_GCM_TAG_SIZE;
+    *blob_len = OFF_CT + z_len + BV_GCM_TAG_SIZE;
     return true;
 }
 
 bool bv_vault_framed_len(const uint8_t* blob, size_t avail, size_t* out_len) {
     if(avail < BV_BLOB_OVERHEAD) return false;
-    if(blob[0] != BLOB_MAGIC0 || blob[1] != BLOB_MAGIC1 || blob[2] != BLOB_VER) return false;
+    if(blob[0] != BLOB_MAGIC0 || blob[1] != BLOB_MAGIC1) return false;
+    if(blob[2] != BLOB_VER_RAW && blob[2] != BLOB_VER_LZ) return false;
     size_t ct_len = (size_t)blob[OFF_CTLEN] | ((size_t)blob[OFF_CTLEN + 1] << 8);
     size_t total = OFF_CT + ct_len + BV_GCM_TAG_SIZE;
     if(total > avail) return false;
@@ -181,19 +201,38 @@ bool bv_vault_decrypt(
     size_t pt_cap,
     size_t* pt_len) {
     if(blob_len < BV_BLOB_OVERHEAD) return false;
-    if(blob[0] != BLOB_MAGIC0 || blob[1] != BLOB_MAGIC1 || blob[2] != BLOB_VER) return false;
+    if(blob[0] != BLOB_MAGIC0 || blob[1] != BLOB_MAGIC1) return false;
+    uint8_t ver = blob[2];
+    if(ver != BLOB_VER_RAW && ver != BLOB_VER_LZ) return false;
 
     size_t ct_len = (size_t)blob[OFF_CTLEN] | ((size_t)blob[OFF_CTLEN + 1] << 8);
     if(blob_len != OFF_CT + ct_len + BV_GCM_TAG_SIZE) return false;
-    if(ct_len > pt_cap) return false;
+    if(ct_len == 0 || ct_len > pt_cap) return false;
 
     const uint8_t* nonce = blob + OFF_NONCE;
     const uint8_t* ct = blob + OFF_CT;
     const uint8_t* tag = ct + ct_len;
-    if(!bv_crypto_gcm_open(key->dek, nonce, ct, ct_len, tag, pt)) return false;
 
-    *pt_len = ct_len;
-    return true;
+    if(ver == BLOB_VER_RAW) {
+        if(!bv_crypto_gcm_open(key->dek, nonce, ct, ct_len, tag, pt)) return false;
+        *pt_len = ct_len;
+        return true;
+    }
+
+    // v2: decrypt the compressed stream, then inflate into pt (bounded by
+    // pt_cap; compress_decode fails rather than overrun). +1 slack: the
+    // toolbox raw-fallback path touches one byte past the input length.
+    uint8_t* z = malloc(ct_len + 1);
+    bool ok = bv_crypto_gcm_open(key->dek, nonce, ct, ct_len, tag, z);
+    if(ok) {
+        Compress* comp =
+            compress_alloc(CompressTypeHeatshrink, &compress_config_heatshrink_default);
+        ok = compress_decode(comp, z, ct_len, pt, pt_cap, pt_len);
+        compress_free(comp);
+    }
+    memset(z, 0, ct_len + 1);
+    free(z);
+    return ok;
 }
 
 // --- Self-test ---
@@ -214,7 +253,7 @@ bool bv_vault_selftest(void) {
     uint8_t out[128];
     size_t out_len = 0;
 
-    bool ok = (pt_len + BV_BLOB_OVERHEAD <= sizeof(blob)) &&
+    bool ok = (pt_len + 1 + BV_BLOB_OVERHEAD <= sizeof(blob)) &&
               bv_vault_encrypt(&key, (const uint8_t*)sample, pt_len, blob, &blob_len) &&
               bv_vault_decrypt(&key, blob, blob_len, out, sizeof(out), &out_len) &&
               (out_len == pt_len) && (memcmp(out, sample, pt_len) == 0);

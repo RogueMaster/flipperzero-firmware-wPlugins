@@ -305,7 +305,7 @@ typedef struct {
     volatile uint32_t cli_sessions; // open `biovault` subshells (see bv_free)
     NotificationApp* notifications;
 
-    BvVaultData* vault; // in-RAM vault (heap; ~3.8KB)
+    BvVaultData* vault; // in-RAM vault (heap; ~8.3KB)
     FuriMutex* vault_mutex; // guards `vault` (GUI vs. CLI thread)
     uint8_t selected; // entry index shown in detail view
     bool vault_loaded; // true once synced with the tag
@@ -602,31 +602,36 @@ static BvError bv_do_zero(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
 // Serialize + seal the in-RAM vault into app->save_blob. GUI thread, once per
 // save op, so poll-cycle retries never repeat the serialization/AEAD work.
 static BvError bv_prepare_save_blob(BioVault* app) {
-    if(!app->save_blob) app->save_blob = malloc(1088);
+    // Whether the vault fits is only known post-compression, so seal first
+    // into a worst-case buffer, then check against the tag's capacity.
+    if(!app->save_blob) app->save_blob = malloc(BV_SERIALIZED_MAX + 1 + BV_BLOB_OVERHEAD);
     app->save_blob_len = 0;
 
-    uint8_t* pt = malloc(4096); // too big for the stack
+    uint8_t* pt = malloc(BV_SERIALIZED_MAX); // too big for the stack
     size_t pt_len = 0;
     BvError err = BvErrNone;
 
     furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
-    bool ser_ok = bv_records_serialize(app->vault, pt, 4096, &pt_len);
+    bool ser_ok = bv_records_serialize(app->vault, pt, BV_SERIALIZED_MAX, &pt_len);
     furi_mutex_release(app->vault_mutex);
 
-    if(!ser_ok || pt_len + BV_BLOB_OVERHEAD > SECTOR1_BYTES) {
+    if(!ser_ok) {
         err = BvErrTooBig;
     } else {
         BvVaultKey key;
         if(bv_vault_key_open(&key)) {
             if(!bv_vault_encrypt(&key, pt, pt_len, app->save_blob, &app->save_blob_len)) {
                 err = BvErrCrypto;
+            } else if(app->save_blob_len > SECTOR1_BYTES) {
+                err = BvErrTooBig;
+                app->save_blob_len = 0; // never leave an unwritable blob armed
             }
             bv_vault_key_clear(&key);
         } else {
             err = BvErrCrypto;
         }
     }
-    memset(pt, 0, 4096);
+    memset(pt, 0, BV_SERIALIZED_MAX);
     free(pt);
     return err;
 }
@@ -705,7 +710,7 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
     uint8_t count = 0;
 
     uint8_t* buf = malloc(SECTOR1_BYTES);
-    uint8_t* pt = malloc(1024);
+    uint8_t* pt = malloc(BV_SERIALIZED_MAX); // v2 blobs decompress past 1KB
 
     uint8_t uid[10];
     size_t uid_len = 0;
@@ -743,7 +748,7 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
                     err = BvErrCrypto;
                 } else {
                     size_t pt_len = 0;
-                    if(bv_vault_decrypt(&key, buf, blob_len, pt, 1024, &pt_len)) {
+                    if(bv_vault_decrypt(&key, buf, blob_len, pt, BV_SERIALIZED_MAX, &pt_len)) {
                         furi_mutex_acquire(app->vault_mutex, FuriWaitForever);
                         if(bv_records_parse(app->vault, pt, pt_len)) {
                             count = app->vault->count;
@@ -760,7 +765,7 @@ static BvError bv_do_load(BioVault* app, Iso14443_3aPoller* poller, bool* retry)
         }
     }
 
-    memset(pt, 0, 1024);
+    memset(pt, 0, BV_SERIALIZED_MAX);
     free(pt);
     free(buf);
 

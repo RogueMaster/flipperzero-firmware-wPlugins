@@ -2,6 +2,8 @@
  * BioVault vault codec + keystore.
  *   Keystore: [magic 'BVK1':4][wrap_iv:16][wrapped_dek:32], DEK wrapped under enclave KEK.
  *   On-tag blob: [magic 'BV':2][ver:1][nonce:12][ct_len:2 LE][ciphertext][tag:16] (AES-256-GCM).
+ *   ver 2 plaintext is heatshrink-compressed (toolbox compress framing) to
+ *   stretch the tag's fixed capacity; ver 1 (raw plaintext) is still readable.
  */
 #pragma once
 
@@ -35,7 +37,8 @@ void bv_vault_tag_password(
     uint8_t pwd[4],
     uint8_t pack[2]);
 
-// Encrypt `pt` into a vault blob; `blob` needs pt_len + BV_BLOB_OVERHEAD bytes.
+// Compress + encrypt `pt` into a vault blob; `blob` needs pt_len + 1 +
+// BV_BLOB_OVERHEAD bytes (worst case: incompressible data stored raw).
 bool bv_vault_encrypt(
     const BvVaultKey* key,
     const uint8_t* pt,
@@ -47,8 +50,8 @@ bool bv_vault_encrypt(
 // framed length into `out_len`. False if invalid or it would exceed `avail`.
 bool bv_vault_framed_len(const uint8_t* blob, size_t avail, size_t* out_len);
 
-// Parse and decrypt a vault blob into `pt` (capacity pt_cap). False on bad
-// framing or failed authentication.
+// Parse, decrypt, and (v2) decompress a vault blob into `pt` (capacity
+// pt_cap). False on bad framing, failed authentication, or pt_cap overrun.
 bool bv_vault_decrypt(
     const BvVaultKey* key,
     const uint8_t* blob,
