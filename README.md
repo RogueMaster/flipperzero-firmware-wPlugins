@@ -4,6 +4,9 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 
 ![uhf_expansion](uhf_expansion.png)
 
+**Available in the official Flipper Apps Catalog:**
+[Install UHF Expansion](https://lab.flipper.net/apps/uhf_expansion)
+
 ## Features
 
 - **Inventory Scan** — Fast UHF tag scanning with real-time display
@@ -43,6 +46,11 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 - UCM601 — UHF RFID transceiver module
 
 ## Installation
+
+### Official Flipper Apps Catalog (recommended)
+
+Install **UHF Expansion** directly from the
+[official Flipper Apps Catalog](https://lab.flipper.net/apps/uhf_expansion).
 
 ### Using ufbt
 
