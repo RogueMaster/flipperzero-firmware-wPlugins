@@ -18,8 +18,6 @@ Tutte le modifiche rilevanti al progetto ESP32 API Caller.
 - Scan: risposta multi-riga della board (attesa della riga JSON con "networks")
 - Build: entry point allineato a `application.fam`
 
-## [0.2.0] - 2026-08-25
-
 ### Aggiunto
 - **Sprint 3 — Gestione chiamate**:
   - Struttura dati `CallEntry` (URL, protocollo HTTP/HTTPS, metodo, query, headers, body) in `src/api_caller.h`
@@ -27,6 +25,7 @@ Tutte le modifiche rilevanti al progetto ESP32 API Caller.
   - Scena "Aggiungi chiamata": form con switch protocollo, lista metodi (GET/POST/PUT/DELETE/PATCH/HEAD), campi URL/Query/Headers/Body, salvataggio con normalizzazione dello schema (`http://`/`https://` automatico)
   - Scena "Lista chiamate": submenu delle chiamate salvate, modifica (form pre-compilato) ed eliminazione
   - Back dai campi di testo ritorna al form senza uscire dalla scena
+
 
 ## [Non rilasciato]
 
