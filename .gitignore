@@ -10,3 +10,6 @@ flipper/tpms_bridge/.ufbt/
 *.csv
 
 .idea/
+.claude/
+/docs/
+**/.DS_Store
