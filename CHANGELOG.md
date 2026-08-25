@@ -80,7 +80,8 @@ ___
 ## [Unreleased]
 
 - **0.1.4**: icons, stack profiling, loaders and feedback, optimization
-  and fixes
+  and fixes, about scene
+- **0.1.5**: settings(languages, log path...)
 
 ### v0.2+
 
