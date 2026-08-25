@@ -2,8 +2,6 @@
 
 #include "../api_caller.h"
 
-#define SCENE_WIFI_SAVED_EMPTY "Nessuna rete salvata"
-
 static void api_caller_scene_wifi_saved_item_callback(void* context, uint32_t index) {
     furi_assert(context);
     AppContext* app = context;
@@ -15,12 +13,12 @@ void api_caller_scene_wifi_saved_on_enter(void* context) {
     AppContext* app = context;
 
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Reti salvate");
+    submenu_set_header(app->submenu, locale_get(app, LocKeyWifiSavedNetworks));
 
     if(app->wifi_history_count == 0) {
         submenu_add_item(
             app->submenu,
-            SCENE_WIFI_SAVED_EMPTY,
+            locale_get(app, LocKeyNoSavedNetworks),
             0,
             api_caller_scene_wifi_saved_item_callback,
             app);

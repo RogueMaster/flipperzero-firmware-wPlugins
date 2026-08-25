@@ -39,13 +39,13 @@ static void api_caller_scene_call_detail_render_menu(AppContext* app) {
     submenu_set_header(app->submenu, furi_string_get_cstr(header));
     submenu_add_item(
         app->submenu,
-        "Esegui",
+        locale_get(app, LocKeyDetailRun),
         CallDetailEventRun,
         api_caller_scene_call_detail_item_callback,
         app);
     submenu_add_item(
         app->submenu,
-        "Modifica",
+        locale_get(app, LocKeyDetailEdit),
         CallDetailEventEdit,
         api_caller_scene_call_detail_item_callback,
         app);
@@ -66,12 +66,13 @@ static void api_caller_scene_call_detail_run(AppContext* app) {
     furi_string_free(log);
 
     text_box_reset(app->text_box);
-    text_box_set_text(app->text_box, "Invio richiesta...\nPremi BACK per tornare al menu.");
+    text_box_set_text(app->text_box, locale_get(app, LocKeyDetailSending));
     app->call_progress_last_second = 0;
 
     if(!call_runner_start(app, call)) {
         // Immediate failure (no board or UART error)
-        FuriString* text = furi_string_alloc_printf("Invio fallito.\n%s", app->call_error);
+        FuriString* text =
+            furi_string_alloc_printf(locale_get(app, LocKeyDetailSendFailed), app->call_error);
         text_box_set_text(app->text_box, furi_string_get_cstr(text));
         furi_string_free(text);
 
@@ -94,20 +95,22 @@ static void api_caller_scene_call_detail_render_result(AppContext* app) {
     FuriString* log = NULL;
 
     if(app->call_error[0] != '\0') {
-        furi_string_printf(text, "Errore\n%s", app->call_error);
+        furi_string_printf(text, locale_get(app, LocKeyDetailError), app->call_error);
         log = furi_string_alloc_printf("ERROR %s", app->call_error);
     } else {
-        const char* response = app->call_response[0] != '\0' ? app->call_response :
-                                                               "(risposta vuota)";
+        const char* response = app->call_response[0] != '\0' ?
+                                   app->call_response :
+                                   locale_get(app, LocKeyDetailEmptyResponse);
         furi_string_printf(
             text,
-            "%s %s\nStatus: %d\n\nRisposta:\n%s",
+            locale_get(app, LocKeyDetailResultFmt),
             call_method_names[call->method],
             call->url,
             app->call_status_code,
             response);
         if(app->call_response_truncated) {
-            furi_string_cat_str(text, "\n\n[risposta troncata]");
+            furi_string_cat_str(text, "\n\n");
+            furi_string_cat_str(text, locale_get(app, LocKeyDetailTruncated));
         }
         log = furi_string_alloc_printf(
             "RESULT %s %s -> %d (%u bytes)",
@@ -134,8 +137,8 @@ static void api_caller_scene_call_detail_update_progress(AppContext* app) {
     }
     app->call_progress_last_second = seconds;
 
-    FuriString* text = furi_string_alloc_printf(
-        "Invio richiesta... %lus\nPremi BACK per tornare al menu.", (unsigned long)seconds);
+    FuriString* text =
+        furi_string_alloc_printf(locale_get(app, LocKeyDetailProgressFmt), (unsigned long)seconds);
     text_box_set_text(app->text_box, furi_string_get_cstr(text));
     furi_string_free(text);
 }

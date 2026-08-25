@@ -116,7 +116,8 @@ bool call_runner_start(AppContext* app, const CallEntry* call) {
     app->call_in_progress = false;
 
     if(app->fhttp == NULL) {
-        snprintf(app->call_error, sizeof(app->call_error), "ESP32 non collegato");
+        snprintf(
+            app->call_error, sizeof(app->call_error), "%s", locale_get(app, LocKeyRunnerNoBoard));
         return false;
     }
 
@@ -150,7 +151,11 @@ bool call_runner_start(AppContext* app, const CallEntry* call) {
     if(!sent) {
         app->fhttp->user_rx_line_cb = NULL;
         app->fhttp->user_callback_context = NULL;
-        snprintf(app->call_error, sizeof(app->call_error), "Invio fallito (UART)");
+        snprintf(
+            app->call_error,
+            sizeof(app->call_error),
+            "%s",
+            locale_get(app, LocKeyRunnerSendFailed));
         return false;
     }
 
@@ -196,7 +201,11 @@ bool call_runner_poll(AppContext* app) {
     // Fallback for a lost line: the board-side state machine also terminates
     if(!app->call_received && app->fhttp->state == ISSUE) {
         logger_log("POLL issue");
-        snprintf(app->call_error, sizeof(app->call_error), "Errore della board");
+        snprintf(
+            app->call_error,
+            sizeof(app->call_error),
+            "%s",
+            locale_get(app, LocKeyRunnerBoardError));
         app->call_in_progress = false;
         app->fhttp->user_rx_line_cb = NULL;
         app->fhttp->user_callback_context = NULL;
@@ -208,8 +217,10 @@ bool call_runner_poll(AppContext* app) {
         snprintf(
             app->call_error,
             sizeof(app->call_error),
-            "Timeout %s",
-            app->call_received ? "(risposta incompleta)" : "(nessuna risposta)");
+            "%s",
+            locale_get(
+                app,
+                app->call_received ? LocKeyRunnerTimeoutPartial : LocKeyRunnerTimeoutNoReply));
         app->call_in_progress = false;
         app->fhttp->user_rx_line_cb = NULL;
         app->fhttp->user_callback_context = NULL;

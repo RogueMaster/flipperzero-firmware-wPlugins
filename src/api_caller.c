@@ -153,6 +153,9 @@ static AppContext* api_caller_app_alloc(void) {
     app->call_edit_index = CALL_EDIT_INDEX_NONE;
     call_history_load(app);
 
+    // UI language (settings file, default Italian)
+    locale_init(app);
+
     // Debug log (path resolved once)
     logger_init();
     logger_log("APP start");

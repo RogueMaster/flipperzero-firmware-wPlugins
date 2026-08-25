@@ -49,6 +49,12 @@ src/
   with `storage_common_resolve_path_and_ensure_app_directory`. **Empty string
   fields are stored as `-`** and restored as empty (FlipperFormat does not
   round-trip empty values reliably).
+- **i18n**: all UI strings live in `src/utils/locale.c/h` behind stable
+  `LocKey` identifiers (the tables must keep the same order as the enum).
+  Read them with `locale_get(app, key)`; the language is persisted in
+  `/data/settings.txt` (default English, created on first launch, Italian
+  available). Adding a language means adding one table - no scene changes
+  needed. Log lines stay in English.
 - **No duplicates**: grep for existing helpers before adding new ones.
 
 ## FlipperHTTP protocol (verified, v2.2.0)

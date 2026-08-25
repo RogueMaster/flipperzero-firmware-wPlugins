@@ -19,9 +19,10 @@ void api_caller_scene_main_on_enter(void* context) {
     AppContext* app = context;
 
     variable_item_list_reset(app->var_item_list);
-    variable_item_list_add(app->var_item_list, "Connessione", 0, NULL, NULL);
-    variable_item_list_add(app->var_item_list, "Aggiungi chiamata", 0, NULL, NULL);
-    variable_item_list_add(app->var_item_list, "Lista chiamate", 0, NULL, NULL);
+    variable_item_list_add(
+        app->var_item_list, locale_get(app, LocKeyMainConnection), 0, NULL, NULL);
+    variable_item_list_add(app->var_item_list, locale_get(app, LocKeyMainAddCall), 0, NULL, NULL);
+    variable_item_list_add(app->var_item_list, locale_get(app, LocKeyMainCallList), 0, NULL, NULL);
 
     variable_item_list_set_enter_callback(
         app->var_item_list, api_caller_scene_main_item_callback, app);

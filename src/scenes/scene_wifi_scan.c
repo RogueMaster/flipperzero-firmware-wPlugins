@@ -3,11 +3,7 @@
 #include "../api_caller.h"
 #include "../wifi/wifi_manager.h"
 
-#define SCENE_WIFI_SCAN_NO_RESULTS  "Nessuna rete trovata"
-#define SCENE_WIFI_SCAN_IN_PROGRESS "Ricerca reti..."
-#define SCENE_WIFI_SCAN_RETRY       "Riprovo automaticamente..."
-#define SCENE_WIFI_SCAN_REFRESH     "Aggiornamento..."
-#define WIFI_SCAN_REFRESH_MS        8000
+#define WIFI_SCAN_REFRESH_MS 8000
 
 static void api_caller_scene_wifi_scan_item_callback(void* context, uint32_t index) {
     furi_assert(context);
@@ -58,13 +54,13 @@ static void api_caller_scene_wifi_scan_start(AppContext* app) {
         submenu_reset(app->submenu);
         submenu_add_item(
             app->submenu,
-            SCENE_WIFI_SCAN_IN_PROGRESS,
+            locale_get(app, LocKeyScanInProgress),
             0,
             api_caller_scene_wifi_scan_dummy_callback,
             app);
     } else {
         // Refresh in background: keep the list and notify via the header
-        submenu_set_header(app->submenu, SCENE_WIFI_SCAN_REFRESH);
+        submenu_set_header(app->submenu, locale_get(app, LocKeyScanRefresh));
     }
     view_dispatcher_switch_to_view(app->view_dispatcher, ApiCallerViewWifiScan);
 }
@@ -74,13 +70,17 @@ static void api_caller_scene_wifi_scan_populate(AppContext* app) {
     submenu_reset(app->submenu);
 
     if(furi_string_empty(app->wifi_ssid_list)) {
-        submenu_set_header(app->submenu, SCENE_WIFI_SCAN_NO_RESULTS);
+        submenu_set_header(app->submenu, locale_get(app, LocKeyScanNoResults));
         submenu_add_item(
-            app->submenu, SCENE_WIFI_SCAN_RETRY, 0, api_caller_scene_wifi_scan_dummy_callback, app);
+            app->submenu,
+            locale_get(app, LocKeyScanRetry),
+            0,
+            api_caller_scene_wifi_scan_dummy_callback,
+            app);
         return;
     }
 
-    submenu_set_header(app->submenu, "Reti WiFi trovate");
+    submenu_set_header(app->submenu, locale_get(app, LocKeyScanFoundHeader));
 
     uint32_t index = 0;
     char line[64];
@@ -115,7 +115,7 @@ bool api_caller_scene_wifi_scan_on_event(void* context, SceneManagerEvent event)
                 // Update the progress placeholder with the elapsed time
                 uint32_t elapsed_s = (now - app->wifi_scan_start_tick) / 1000;
                 FuriString* label = furi_string_alloc_printf(
-                    "%s %lus", SCENE_WIFI_SCAN_IN_PROGRESS, (unsigned long)elapsed_s);
+                    "%s %lus", locale_get(app, LocKeyScanInProgress), (unsigned long)elapsed_s);
                 submenu_change_item_label(app->submenu, 0, furi_string_get_cstr(label));
                 furi_string_free(label);
             }

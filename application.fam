@@ -9,7 +9,7 @@ App(
     fap_category="Tools",
     # Optional values
     # fap_version="0.1",
-    fap_icon="images/template.png",  # 10x10 1-bit PNG - DA IMPOSTARE
+    fap_icon="images/icon.png",  # 10x10 1-bit PNG - DA IMPOSTARE
     fap_description="A client that lets you easily send and schedule API call requests. A .json import is included.",
     fap_author="todotge",
     fap_weburl="https://github.com/todtge/flipper_api_caller",

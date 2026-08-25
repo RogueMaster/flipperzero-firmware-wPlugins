@@ -77,9 +77,21 @@ ___
 
 ___
 
+## [0.1.4] - 2026-08-25
+
+### Added
+
+- App icon
+- i18n system (`src/utils/locale.c/h`): stable `LocKey` string keys, Italian
+  and English translation tables, language persisted in `/data/settings.txt`
+  (default English, file created on first launch); every UI string now goes
+  through `locale_get`
+
+___
+
 ## [Unreleased]
 
-- **0.1.4**: icons, stack profiling, loaders and feedback, optimization
+- **0.1.4** (remaining): stack profiling, loaders and feedback, optimization
   and fixes, about scene
 - **0.1.5**: settings (languages, log path...) + API client usability
   - Extended custom keyboard (symbols page: `:` `/` `.` etc.) for URL,

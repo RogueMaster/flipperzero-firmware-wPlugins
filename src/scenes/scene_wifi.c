@@ -22,20 +22,24 @@ void api_caller_scene_wifi_on_enter(void* context) {
 
     variable_item_list_reset(app->var_item_list_wifi);
 
-    variable_item_list_add(app->var_item_list_wifi, "Ricerca reti", 0, NULL, NULL);
-    variable_item_list_add(app->var_item_list_wifi, "Reti salvate", 0, NULL, NULL);
+    variable_item_list_add(
+        app->var_item_list_wifi, locale_get(app, LocKeyWifiScanNetworks), 0, NULL, NULL);
+    variable_item_list_add(
+        app->var_item_list_wifi, locale_get(app, LocKeyWifiSavedNetworks), 0, NULL, NULL);
 
     bool connected = wifi_manager_is_connected(app);
-    char ssid[64] = "Disconnesso";
+    char ssid[64];
+    snprintf(ssid, sizeof(ssid), "%s", locale_get(app, LocKeyWifiDisconnected));
     if(connected) {
         wifi_manager_get_ssid(app, ssid, sizeof(ssid));
     }
-    VariableItem* item =
-        variable_item_list_add(app->var_item_list_wifi, "Connesso a", 1, NULL, NULL);
+    VariableItem* item = variable_item_list_add(
+        app->var_item_list_wifi, locale_get(app, LocKeyWifiConnectedTo), 1, NULL, NULL);
     variable_item_set_current_value_index(item, 0);
     variable_item_set_current_value_text(item, ssid);
 
-    variable_item_list_add(app->var_item_list_wifi, "Disconnetti", 0, NULL, NULL);
+    variable_item_list_add(
+        app->var_item_list_wifi, locale_get(app, LocKeyWifiDisconnect), 0, NULL, NULL);
 
     variable_item_list_set_enter_callback(
         app->var_item_list_wifi, api_caller_scene_wifi_item_callback, app);

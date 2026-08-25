@@ -69,13 +69,14 @@ static void api_caller_scene_call_add_render_form(AppContext* app) {
 
     variable_item_list_reset(app->var_item_list_call);
 
-    VariableItem* item = variable_item_list_add(app->var_item_list_call, "URL", 0, NULL, app);
+    VariableItem* item = variable_item_list_add(
+        app->var_item_list_call, locale_get(app, LocKeyFormUrl), 0, NULL, app);
     api_caller_scene_call_add_display_value(display, sizeof(display), app->call_form.url);
     variable_item_set_current_value_text(item, display);
 
     item = variable_item_list_add(
         app->var_item_list_call,
-        "Tipo",
+        locale_get(app, LocKeyFormProtocol),
         CallProtocolCount,
         api_caller_scene_call_add_protocol_change,
         app);
@@ -84,29 +85,33 @@ static void api_caller_scene_call_add_render_form(AppContext* app) {
 
     item = variable_item_list_add(
         app->var_item_list_call,
-        "Metodo",
+        locale_get(app, LocKeyFormMethod),
         CallMethodCount,
         api_caller_scene_call_add_method_change,
         app);
     variable_item_set_current_value_index(item, app->call_form.method);
     variable_item_set_current_value_text(item, call_method_names[app->call_form.method]);
 
-    item = variable_item_list_add(app->var_item_list_call, "Query", 0, NULL, app);
+    item = variable_item_list_add(
+        app->var_item_list_call, locale_get(app, LocKeyFormQuery), 0, NULL, app);
     api_caller_scene_call_add_display_value(display, sizeof(display), app->call_form.query);
     variable_item_set_current_value_text(item, display);
 
-    item = variable_item_list_add(app->var_item_list_call, "Headers", 0, NULL, app);
+    item = variable_item_list_add(
+        app->var_item_list_call, locale_get(app, LocKeyFormHeaders), 0, NULL, app);
     api_caller_scene_call_add_display_value(display, sizeof(display), app->call_form.headers);
     variable_item_set_current_value_text(item, display);
 
-    item = variable_item_list_add(app->var_item_list_call, "Body", 0, NULL, app);
+    item = variable_item_list_add(
+        app->var_item_list_call, locale_get(app, LocKeyFormBody), 0, NULL, app);
     api_caller_scene_call_add_display_value(display, sizeof(display), app->call_form.body);
     variable_item_set_current_value_text(item, display);
 
-    variable_item_list_add(app->var_item_list_call, "Salva", 0, NULL, app);
+    variable_item_list_add(app->var_item_list_call, locale_get(app, LocKeyFormSave), 0, NULL, app);
 
     if(api_caller_scene_call_add_is_edit(app)) {
-        variable_item_list_add(app->var_item_list_call, "Elimina", 0, NULL, app);
+        variable_item_list_add(
+            app->var_item_list_call, locale_get(app, LocKeyFormDelete), 0, NULL, app);
     }
 
     variable_item_list_set_enter_callback(
@@ -123,22 +128,22 @@ static void api_caller_scene_call_add_start_input(AppContext* app, CallAddState 
 
     switch(state) {
     case CallAddStateUrl:
-        header = "URL";
+        header = locale_get(app, LocKeyInputUrlHeader);
         buffer = app->call_form.url;
         buffer_size = sizeof(app->call_form.url);
         break;
     case CallAddStateQuery:
-        header = "Query parameters";
+        header = locale_get(app, LocKeyInputQueryHeader);
         buffer = app->call_form.query;
         buffer_size = sizeof(app->call_form.query);
         break;
     case CallAddStateHeaders:
-        header = "Headers (JSON)";
+        header = locale_get(app, LocKeyInputHeadersHeader);
         buffer = app->call_form.headers;
         buffer_size = sizeof(app->call_form.headers);
         break;
     case CallAddStateBody:
-        header = "Body (JSON)";
+        header = locale_get(app, LocKeyInputBodyHeader);
         buffer = app->call_form.body;
         buffer_size = sizeof(app->call_form.body);
         break;

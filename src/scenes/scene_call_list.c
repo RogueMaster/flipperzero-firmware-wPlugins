@@ -2,8 +2,6 @@
 
 #include "../api_caller.h"
 
-#define SCENE_CALL_LIST_EMPTY "Nessuna chiamata salvata"
-
 static void api_caller_scene_call_list_item_callback(void* context, uint32_t index) {
     furi_assert(context);
     AppContext* app = context;
@@ -15,11 +13,15 @@ void api_caller_scene_call_list_on_enter(void* context) {
     AppContext* app = context;
 
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Chiamate salvate");
+    submenu_set_header(app->submenu, locale_get(app, LocKeyCallListHeader));
 
     if(app->call_history_count == 0) {
         submenu_add_item(
-            app->submenu, SCENE_CALL_LIST_EMPTY, 0, api_caller_scene_call_list_item_callback, app);
+            app->submenu,
+            locale_get(app, LocKeyCallListEmpty),
+            0,
+            api_caller_scene_call_list_item_callback,
+            app);
     } else {
         for(uint8_t i = 0; i < app->call_history_count; i++) {
             FuriString* label = furi_string_alloc_printf(

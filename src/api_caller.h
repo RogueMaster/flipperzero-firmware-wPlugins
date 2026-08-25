@@ -9,6 +9,7 @@
 #include <gui/modules/variable_item_list.h>
 
 #include "api/flipper_http.h"
+#include "utils/locale.h"
 #include "utils/long_text_view.h"
 
 typedef enum {
@@ -78,10 +79,15 @@ typedef struct {
     char password[64];
 } WifiHistoryEntry;
 
-typedef struct {
+typedef struct AppContext AppContext;
+
+struct AppContext {
     Gui* gui;
     SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
+
+    // Locale
+    LocLang locale_lang;
 
     // Views
     VariableItemList* var_item_list; // Main menu
@@ -128,4 +134,4 @@ typedef struct {
     bool call_in_progress;
     uint32_t call_start_tick;
     uint32_t call_progress_last_second; // Progress screen update throttle
-} AppContext;
+};

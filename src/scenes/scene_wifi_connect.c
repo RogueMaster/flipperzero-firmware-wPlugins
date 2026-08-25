@@ -31,10 +31,10 @@ static void api_caller_scene_wifi_connect_try_connect(AppContext* app) {
 
     text_box_reset(app->text_box);
     if(ok) {
-        text_box_set_text(app->text_box, "Connesso con successo!\nPremi BACK.");
+        text_box_set_text(app->text_box, locale_get(app, LocKeyWifiConnectedOk));
     } else {
         FuriString* message = furi_string_alloc_printf(
-            "Connessione fallita.\n%s\n\nPremi BACK.", furi_string_get_cstr(reply));
+            locale_get(app, LocKeyWifiConnectFailed), furi_string_get_cstr(reply));
         text_box_set_text(app->text_box, furi_string_get_cstr(message));
         furi_string_free(message);
     }
@@ -57,7 +57,7 @@ void api_caller_scene_wifi_connect_on_enter(void* context) {
     }
 
     text_input_reset(app->text_input);
-    text_input_set_header_text(app->text_input, "Password WiFi");
+    text_input_set_header_text(app->text_input, locale_get(app, LocKeyWifiPasswordHeader));
     memset(app->password, 0, sizeof(app->password));
 
     text_input_set_result_callback(
