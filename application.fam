@@ -1,0 +1,20 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="api_caller",
+    name="ESP32 Api caller",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="api_caller",
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    # Optional values
+    # fap_version="0.1",
+    fap_icon="images/template.png",  # 10x10 1-bit PNG - DA IMPOSTARE
+    fap_description="A client then allow to send and schedule easy Api call request. Included a .json import.",
+    fap_author="todotge",
+    fap_weburl="https://github.com/todtge/esp32_api_caller",
+    fap_icon_assets="images",  # Image assets to compile for this application
+    # FlipperHTTP will be integrated in Sprint 4 by vendoring the flipper_http C SDK
+    # into the project (flipper_http.c/h), following the jblanked app pattern.
+    # requires=["flipper_http"],
+)
