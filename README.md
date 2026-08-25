@@ -1,4 +1,4 @@
-# ESP32 API CALLER
+# FLIPPER API CALLER 
 
 A client that lets you easily send and schedule API call requests. A .json import is included.
 
@@ -24,7 +24,7 @@ A client that lets you easily send and schedule API call requests. A .json impor
 
 ## STRUCTURE
 
-esp32_api_caller/
+flipper_api_caller/
 ├── application.fam          # Application Manifest
 ├── README.md                # Doc
 ├── CHANGELOG.md             # Changelog
@@ -85,8 +85,6 @@ esp32_api_caller/
 - Salvataggio su storage (SD card)
 - Scena "Lista Chiamate" con submenu per ogni chiamata salvata
 
-**Bug da fixare**: Nella risposta non è possibile scorrere in basso e leggerela
-
 ### Sprint 4: Esecuzione e Logging
 
 - Integrazione con FlipperHTTP per invio richieste
@@ -94,10 +92,12 @@ esp32_api_caller/
 - Sistema di logging su debug.log
 - Gestione errori e timeout
 
+**Bug da fixare**: Nella risposta non è possibile scorrere in basso e leggerela
+
 ## Sprint 5: Ottimizzazione e UI
 - Icone e assets
 - Profilazione stack size con top e free
-- Testing su hardware reale
+- Testing and optimizations
 - Documentazione e pubblicazione
 
 ## Risorse Ufficiali e Community

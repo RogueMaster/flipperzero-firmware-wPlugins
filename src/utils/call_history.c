@@ -17,6 +17,24 @@ const char* const call_protocol_names[CallProtocolCount] = {
     "HTTPS",
 };
 
+// Empty values do not round-trip through FlipperFormat reliably,
+// so optional fields are stored as "-" and mapped back on load.
+#define CALL_EMPTY_PLACEHOLDER "-"
+
+/** Placeholder for empty optional fields on write. */
+static const char* call_history_store_str(const char* value) {
+    return (value == NULL || value[0] == '\0') ? CALL_EMPTY_PLACEHOLDER : value;
+}
+
+/** Read an optional field, mapping the placeholder back to empty. */
+static void call_history_load_str(FuriString* value, char* out, size_t out_size) {
+    if(strcmp(furi_string_get_cstr(value), CALL_EMPTY_PLACEHOLDER) == 0) {
+        out[0] = '\0';
+    } else {
+        snprintf(out, out_size, "%s", furi_string_get_cstr(value));
+    }
+}
+
 /** Build the history file path and make sure the app data dir exists. */
 static void call_history_get_path(Storage* storage, FuriString* path) {
     furi_string_set_str(path, APP_DATA_PATH("call_history.txt"));
@@ -53,13 +71,16 @@ static bool call_history_save(AppContext* app) {
                    file, "Method", call_method_names[app->call_history[i].method])) {
                 break;
             }
-            if(!flipper_format_write_string_cstr(file, "Query", app->call_history[i].query)) {
+            if(!flipper_format_write_string_cstr(
+                   file, "Query", call_history_store_str(app->call_history[i].query))) {
                 break;
             }
-            if(!flipper_format_write_string_cstr(file, "Headers", app->call_history[i].headers)) {
+            if(!flipper_format_write_string_cstr(
+                   file, "Headers", call_history_store_str(app->call_history[i].headers))) {
                 break;
             }
-            if(!flipper_format_write_string_cstr(file, "Body", app->call_history[i].body)) {
+            if(!flipper_format_write_string_cstr(
+                   file, "Body", call_history_store_str(app->call_history[i].body))) {
                 break;
             }
         }
@@ -135,17 +156,17 @@ void call_history_load(AppContext* app) {
             if(!flipper_format_read_string(file, "Query", value)) {
                 break;
             }
-            snprintf(entry->query, sizeof(entry->query), "%s", furi_string_get_cstr(value));
+            call_history_load_str(value, entry->query, sizeof(entry->query));
 
             if(!flipper_format_read_string(file, "Headers", value)) {
                 break;
             }
-            snprintf(entry->headers, sizeof(entry->headers), "%s", furi_string_get_cstr(value));
+            call_history_load_str(value, entry->headers, sizeof(entry->headers));
 
             if(!flipper_format_read_string(file, "Body", value)) {
                 break;
             }
-            snprintf(entry->body, sizeof(entry->body), "%s", furi_string_get_cstr(value));
+            call_history_load_str(value, entry->body, sizeof(entry->body));
 
             app->call_history_count++;
         }

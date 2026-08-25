@@ -134,6 +134,13 @@ static AppContext* api_caller_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, ApiCallerViewTextBox, text_box_get_view(app->text_box));
 
+    // Scrollable view for long responses
+    app->long_text_view = long_text_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        ApiCallerViewCallResult,
+        long_text_view_get_view(app->long_text_view));
+
     // WiFi state
     app->wifi_ssid_list = furi_string_alloc();
     app->fhttp = NULL;
@@ -167,6 +174,7 @@ static void api_caller_app_free(AppContext* app) {
     view_dispatcher_remove_view(app->view_dispatcher, ApiCallerViewWifiScan);
     view_dispatcher_remove_view(app->view_dispatcher, ApiCallerViewTextInput);
     view_dispatcher_remove_view(app->view_dispatcher, ApiCallerViewTextBox);
+    view_dispatcher_remove_view(app->view_dispatcher, ApiCallerViewCallResult);
 
     variable_item_list_free(app->var_item_list);
     variable_item_list_free(app->var_item_list_wifi);
@@ -174,6 +182,7 @@ static void api_caller_app_free(AppContext* app) {
     submenu_free(app->submenu);
     text_input_free(app->text_input);
     text_box_free(app->text_box);
+    long_text_view_free(app->long_text_view);
 
     furi_string_free(app->wifi_ssid_list);
 

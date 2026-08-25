@@ -3,6 +3,24 @@
 #include <flipper_format/flipper_format.h>
 #include <storage/storage.h>
 
+// Empty values do not round-trip through FlipperFormat reliably,
+// so an empty password (open network) is stored as "-".
+#define WIFI_EMPTY_PLACEHOLDER "-"
+
+/** Placeholder for an empty password on write. */
+static const char* wifi_history_store_str(const char* value) {
+    return (value == NULL || value[0] == '\0') ? WIFI_EMPTY_PLACEHOLDER : value;
+}
+
+/** Read the password, mapping the placeholder back to empty. */
+static void wifi_history_load_str(FuriString* value, char* out, size_t out_size) {
+    if(strcmp(furi_string_get_cstr(value), WIFI_EMPTY_PLACEHOLDER) == 0) {
+        out[0] = '\0';
+    } else {
+        snprintf(out, out_size, "%s", furi_string_get_cstr(value));
+    }
+}
+
 /** Build the history file path and make sure the app data dir exists. */
 static void wifi_history_get_path(Storage* storage, FuriString* path) {
     furi_string_set_str(path, APP_DATA_PATH("wifi_history.txt"));
@@ -31,7 +49,8 @@ static bool wifi_history_save(AppContext* app) {
             if(!flipper_format_write_string_cstr(file, "SSID", app->wifi_history[i].ssid)) {
                 break;
             }
-            if(!flipper_format_write_string_cstr(file, "Password", app->wifi_history[i].password)) {
+            if(!flipper_format_write_string_cstr(
+                   file, "Password", wifi_history_store_str(app->wifi_history[i].password))) {
                 break;
             }
         }
@@ -79,11 +98,8 @@ void wifi_history_load(AppContext* app) {
             if(!flipper_format_read_string(file, "Password", password)) {
                 break;
             }
-            snprintf(
-                app->wifi_history[i].ssid,
-                sizeof(app->wifi_history[i].ssid),
-                "%s",
-                furi_string_get_cstr(ssid));
+            wifi_history_load_str(
+                password, app->wifi_history[i].password, sizeof(app->wifi_history[i].password));
             snprintf(
                 app->wifi_history[i].password,
                 sizeof(app->wifi_history[i].password),

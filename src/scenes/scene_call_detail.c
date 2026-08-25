@@ -106,6 +106,9 @@ static void api_caller_scene_call_detail_render_result(AppContext* app) {
             call->url,
             app->call_status_code,
             response);
+        if(app->call_response_truncated) {
+            furi_string_cat_str(text, "\n\n[risposta troncata]");
+        }
         log = furi_string_alloc_printf(
             "RESULT %s %s -> %d (%u bytes)",
             call_method_names[call->method],
@@ -114,13 +117,13 @@ static void api_caller_scene_call_detail_render_result(AppContext* app) {
             (unsigned int)app->call_response_len);
     }
 
-    text_box_set_text(app->text_box, furi_string_get_cstr(text));
+    long_text_view_set_text(app->long_text_view, furi_string_get_cstr(text));
     logger_log(furi_string_get_cstr(log));
 
     furi_string_free(log);
     furi_string_free(text);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, ApiCallerViewTextBox);
+    view_dispatcher_switch_to_view(app->view_dispatcher, ApiCallerViewCallResult);
 }
 
 /** Update the elapsed-seconds feedback while the request is in flight. */
@@ -209,4 +212,5 @@ void api_caller_scene_call_detail_on_exit(void* context) {
     AppContext* app = context;
     submenu_reset(app->submenu);
     text_box_reset(app->text_box);
+    long_text_view_reset(app->long_text_view);
 }

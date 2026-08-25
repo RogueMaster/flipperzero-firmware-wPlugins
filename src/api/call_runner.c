@@ -79,19 +79,27 @@ static void call_runner_rx_line_cb(const char* line, void* context) {
         }
     }
 
-    // Append the body line plus a newline, up to the buffer limit
-    if(app->call_response_len >= sizeof(app->call_response) - 1) {
-        return; // Buffer full
+    // Append the body line plus a newline, sanitizing control characters.
+    // The board sends CRLF line endings: a stray '\r' stops the TextBox
+    // renderer (u8g2), so drop it and normalize other control bytes.
+    for(const char* p = line; *p != '\0'; p++) {
+        unsigned char c = (unsigned char)*p;
+        if(c == '\r') {
+            continue;
+        }
+        if(c < 0x20 || c == 0x7F) {
+            c = ' ';
+        }
+        if(app->call_response_len >= sizeof(app->call_response) - 2) {
+            app->call_response_truncated = true;
+            break;
+        }
+        app->call_response[app->call_response_len++] = (char)c;
     }
-    size_t room = sizeof(app->call_response) - app->call_response_len - 1;
-    size_t take = strlen(line);
-    if(take > room - 1) {
-        take = room - 1; // Keep room for the newline
+    if(app->call_response_len < sizeof(app->call_response) - 2) {
+        app->call_response[app->call_response_len++] = '\n';
+        app->call_response[app->call_response_len] = '\0';
     }
-    memcpy(app->call_response + app->call_response_len, line, take);
-    app->call_response_len += take;
-    app->call_response[app->call_response_len++] = '\n';
-    app->call_response[app->call_response_len] = '\0';
 }
 
 bool call_runner_start(AppContext* app, const CallEntry* call) {
@@ -101,6 +109,7 @@ bool call_runner_start(AppContext* app, const CallEntry* call) {
     app->call_status_code = 0;
     app->call_response_len = 0;
     app->call_response[0] = '\0';
+    app->call_response_truncated = false;
     app->call_error[0] = '\0';
     app->call_received = false;
     app->call_body_done = false;

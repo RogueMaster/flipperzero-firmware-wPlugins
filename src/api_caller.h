@@ -9,6 +9,7 @@
 #include <gui/modules/variable_item_list.h>
 
 #include "api/flipper_http.h"
+#include "utils/long_text_view.h"
 
 typedef enum {
     ApiCallerSceneMain,
@@ -29,6 +30,7 @@ typedef enum {
     ApiCallerViewWifiScan,
     ApiCallerViewTextInput,
     ApiCallerViewTextBox,
+    ApiCallerViewCallResult,
 } ApiCallerView;
 
 #define WIFI_HISTORY_MAX 8
@@ -39,7 +41,7 @@ typedef enum {
 #define CALL_HEADERS_MAX     128
 #define CALL_BODY_MAX        256
 #define CALL_EDIT_INDEX_NONE 0xFF
-#define CALL_RESPONSE_MAX    8192
+#define CALL_RESPONSE_MAX    32768
 #define CALL_ERROR_MAX       160
 
 typedef enum {
@@ -87,6 +89,7 @@ typedef struct {
     VariableItemList* var_item_list_call; // Call add/edit form
     Submenu* submenu; // WiFi scan results
     TextInput* text_input; // WiFi password input
+    LongTextView* long_text_view; // Scrollable view for long responses
     TextBox* text_box; // Shared placeholder/status for stub scenes
 
     // FlipperHTTP link (owned by wifi_manager)
@@ -117,6 +120,7 @@ typedef struct {
     // In-flight API request state (written by the FlipperHTTP RX thread)
     char call_response[CALL_RESPONSE_MAX];
     volatile size_t call_response_len;
+    bool call_response_truncated; // The capture hit the buffer limit
     char call_error[CALL_ERROR_MAX];
     int call_status_code;
     bool call_received; // Success marker received from the board
