@@ -24,7 +24,9 @@ rtl_433 reports the same frame format on Renault Clio, Captur and Zoe (the
 Zoe ships with the 407004CB0B) and possibly on Dacia Sandero.
 
 **Every other protocol is verified against rtl_433, not against a
-sensor** — see [Tests](#tests) for how. Between them they cover the OEM
+sensor** — each decoder is fed a reference frame built bit by bit and its
+output has to match a real rtl_433 build (see `flipper/decoder_test/`).
+Between them they cover the OEM
 sensors of Renault, PSA, Ford, Toyota, Hyundai, Kia, Honda, BMW, Mini,
 Mercedes, Porsche, Audi, Fiat, Mazda, Chrysler, Jeep, Opel, Saab,
 Vauxhall, Chevrolet, GM, Subaru, Infiniti, Nissan and Aston Martin, plus a
@@ -243,109 +245,6 @@ Stop it with `Ctrl+C`.
   session ends by itself after 5 seconds and frees the radio.
 * Raw mode is capped at 200,000 intervals per session: FSK noise arrives as
   a solid stream and would otherwise flood the channel.
-
-## Tests
-
-```sh
-cd host && python3 -m pytest -q          # 51 tests, no hardware needed
-cd flipper/decoder_test && ./run.sh      # every protocol, on the host
-cd flipper/view_test && ./run.sh         # the firmware screens on the host
-```
-
-`decoder_test` is where the ports are held to account. For each of the 39
-protocols there is one frame built bit by bit — preamble, coding,
-checksum — in `gen_vectors.py`. That script hands the frame to a real
-`rtl_433` binary and writes down **the values rtl_433 reports** as the
-expectations in `vectors.h`; the test then feeds the very same bits to the
-firmware decoder and compares. The expectations are therefore rtl_433's,
-not ours: a decoder that reads a field from the wrong place or scales it
-wrongly fails. Every protocol is tried in both stream polarities.
-
-The Renault decoder additionally gets the cases real hardware produced: a
-sync word in normal polarity with the Manchester pairs inverted, ±15%
-timing jitter, and a corrupted frame that must be rejected. Finally a
-frame is buried between 40000 noise intervals to check that it still comes
-through, and 400000 random intervals are fed in on their own to check that
-noise does not turn into readings.
-
-`view_test` draws the app screens with the very same code as the firmware,
-only the canvas is an emulator: it prints the picture as ASCII art and
-complains if text ran past 128×64 or landed on a neighbouring column.
-Character widths are taken with headroom, so it is pickier than the real
-screen.
-
-Regenerating the vectors needs rtl_433 built from source:
-
-```sh
-cd flipper/decoder_test && RTL433=/path/to/rtl_433 ./gen_vectors.py
-```
-
-## Layout
-
-```
-LICENSE                  MIT
-flipper/tpms_bridge/     the Flipper app (C, ufbt)
-  README.md              description for the Apps Catalog page
-  changelog.md           version history for the catalog
-  catalog/manifest.yml   draft manifest for the catalog pull request
-  screenshots/           catalog screenshots (taken with qFlipper)
-  tpms_bridge.c          keys, radio ownership, CLI command
-  tpms_view.c            screens: sensor list and details
-  tpms_store.c           sensor table: latest values, signal peak
-  tpms_cli.c             the tpms_rx command: JSON and raw
-  tpms_session.c         CC1101, asynchronous reception, interval buffer
-  tpms_decoder.c         chips -> streams -> sync words -> frames
-  tpms_protocols.c       the protocol table
-  tpms_proto_*.c         one file per decoder ported from rtl_433
-  tpms_bits.c            bit and checksum helpers, as in rtl_433
-  tpms_lf.c              125 kHz field for waking the sensor
-  tpms_preset.h          CC1101 registers for FSK
-flipper/decoder_test/    every protocol, checked against rtl_433
-flipper/view_test/       the same screens run on a computer
-host/tpms/
-  decoder.py             the Renault decoder, for offline captures
-  flipper_link.py        USB CLI: command, NDJSON parsing
-  model.py               per-sensor accumulation, CSV export
-  sub_file.py            offline parsing of .sub and raw dumps
-  ui/                    window and chart
-  app.py, console.py     entry points
-host/tests/              tests
-```
-
-## Publishing to the Flipper Apps Catalog
-
-The catalog does not host source code: a pull request to
-[flipper-application-catalog](https://github.com/flipperdevices/flipper-application-catalog)
-carries a single file, `applications/Sub-GHz/tpms_bridge/manifest.yml`,
-pointing at a public repository and a commit SHA. Their CI does the build
-with ufbt.
-
-Already in place: the MIT license, `fap_author` and `fap_version` in
-`application.fam`, `flipper/tpms_bridge/README.md` (the text of the app
-page), `changelog.md` in the required format and a draft manifest in
-`flipper/tpms_bridge/catalog/`.
-
-What is left to do by hand:
-
-1. Take screenshots **with the qFlipper screenshot feature**, without
-   changing their resolution or format, and put them into
-   `flipper/tpms_bridge/screenshots/` — which shots exactly is written in
-   the README there.
-2. Fill in `commit_sha` in `catalog/manifest.yml`.
-3. Fork the catalog, put the manifest at
-   `applications/Sub-GHz/tpms_bridge/manifest.yml` on a branch named like
-   `<username>/tpms_bridge_1.1`, and validate it locally:
-
-   ```sh
-   python3 -m venv venv && source venv/bin/activate
-   pip install -r tools/requirements.txt
-   export UFBT_HOME="$PWD/venv/ufbt" && ufbt update
-   python3 tools/bundle.py --nolint \
-       applications/Sub-GHz/tpms_bridge/manifest.yml bundle.zip
-   ```
-
-4. Open the pull request. Every later update needs a new version number in
-   `application.fam`.
 
 ## License
 
