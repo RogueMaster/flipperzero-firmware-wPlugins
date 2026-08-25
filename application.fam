@@ -5,7 +5,7 @@ App(
     name="ESP32 Api caller",  # Displayed in menus
     apptype=FlipperAppType.EXTERNAL,
     entry_point="api_caller",
-    stack_size=2 * 1024,
+    stack_size=4 * 1024,
     fap_category="Tools",
     # Optional values
     # fap_version="0.1",

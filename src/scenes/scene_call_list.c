@@ -45,11 +45,10 @@ bool api_caller_scene_call_list_on_event(void* context, SceneManagerEvent event)
     if(event.type == SceneManagerEventTypeCustom) {
         uint32_t index = event.event;
         if(index < app->call_history_count) {
-            // Open the form in edit mode, pre-filled with the selected call
-            app->call_form = app->call_history[index];
+            // Open the detail scene for the selected call (execution + editing)
             app->call_edit_index = (uint8_t)index;
-            scene_manager_set_scene_state(app->scene_manager, ApiCallerSceneCallAdd, 0);
-            scene_manager_next_scene(app->scene_manager, ApiCallerSceneCallAdd);
+            scene_manager_set_scene_state(app->scene_manager, ApiCallerSceneCallDetail, 0);
+            scene_manager_next_scene(app->scene_manager, ApiCallerSceneCallDetail);
             consumed = true;
         }
     }

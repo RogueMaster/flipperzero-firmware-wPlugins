@@ -39,6 +39,8 @@ typedef enum {
 #define CALL_HEADERS_MAX     128
 #define CALL_BODY_MAX        256
 #define CALL_EDIT_INDEX_NONE 0xFF
+#define CALL_RESPONSE_MAX    8192
+#define CALL_ERROR_MAX       160
 
 typedef enum {
     CallProtocolHttp,
@@ -111,4 +113,15 @@ typedef struct {
     // Call add/edit form state
     CallEntry call_form; // Working copy shown by the form
     uint8_t call_edit_index; // CALL_EDIT_INDEX_NONE when adding a new call
+
+    // In-flight API request state (written by the FlipperHTTP RX thread)
+    char call_response[CALL_RESPONSE_MAX];
+    volatile size_t call_response_len;
+    char call_error[CALL_ERROR_MAX];
+    int call_status_code;
+    bool call_received; // Success marker received from the board
+    bool call_body_done; // End marker received from the board
+    bool call_in_progress;
+    uint32_t call_start_tick;
+    uint32_t call_progress_last_second; // Progress screen update throttle
 } AppContext;

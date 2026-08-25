@@ -133,12 +133,12 @@ static void api_caller_scene_call_add_start_input(AppContext* app, CallAddState 
         buffer_size = sizeof(app->call_form.query);
         break;
     case CallAddStateHeaders:
-        header = "Headers";
+        header = "Headers (JSON)";
         buffer = app->call_form.headers;
         buffer_size = sizeof(app->call_form.headers);
         break;
     case CallAddStateBody:
-        header = "Body";
+        header = "Body (JSON)";
         buffer = app->call_form.body;
         buffer_size = sizeof(app->call_form.body);
         break;
@@ -198,7 +198,8 @@ static void api_caller_scene_call_add_do_delete(AppContext* app) {
     if(api_caller_scene_call_add_is_edit(app)) {
         call_history_remove(app, app->call_edit_index);
     }
-    scene_manager_previous_scene(app->scene_manager);
+    // Jump to the list (the previous scene may be the detail with a dead index)
+    scene_manager_search_and_switch_to_another_scene(app->scene_manager, ApiCallerSceneCallList);
 }
 
 void api_caller_scene_call_add_on_enter(void* context) {
