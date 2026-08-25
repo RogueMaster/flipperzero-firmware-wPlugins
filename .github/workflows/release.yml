@@ -90,7 +90,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
-            --notes-file body.md \
-            dist/*.fap
+          TAG="${{ github.ref_name }}"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists: updating notes and assets"
+            gh release edit "$TAG" --title "$TAG" --notes-file body.md
+            gh release upload "$TAG" dist/*.fap --clobber
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file body.md \
+              dist/*.fap
+          fi
