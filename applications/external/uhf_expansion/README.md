@@ -4,6 +4,9 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 
 ![uhf_expansion](uhf_expansion.png)
 
+**Available in the official Flipper Apps Catalog:**
+[Install UHF Expansion](https://lab.flipper.net/apps/uhf_expansion)
+
 ## Features
 
 - **Inventory Scan** — Fast UHF tag scanning with real-time display
@@ -44,6 +47,11 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 
 ## Installation
 
+### Official Flipper Apps Catalog (recommended)
+
+Install **UHF Expansion** directly from the
+[official Flipper Apps Catalog](https://lab.flipper.net/apps/uhf_expansion).
+
 ### Using ufbt
 
 ```bash
@@ -72,6 +80,19 @@ ufbt build
 ```
 
 The compiled `.fap` will be at `build/uhf_expansion.fap`.
+
+## Publishing a New Catalog Version
+
+Normal commits only run the build workflow and do not publish a new version.
+To publish an update to the official Flipper Apps Catalog:
+
+1. Increase `fap_version` in `application.fam` using the `major.minor` format.
+2. Add a matching `vmajor.minor:` section to `CHANGELOG.md`.
+3. Commit with the exact subject `release: major.minor` and push to `master`.
+
+For example, a `release: 1.1` commit must contain `fap_version="1.1"` and a
+`v1.1:` changelog section. The release workflow builds the app, validates the
+Catalog bundle, updates the Catalog fork, and opens the upstream pull request.
 
 ## Usage
 
