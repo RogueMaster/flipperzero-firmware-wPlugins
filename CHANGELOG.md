@@ -85,12 +85,10 @@ ___
 
 ### v0.2+
 
-- Call scheduling (in-app scheduler / ESP32 autonomous scheduler / hybrid -
-  TBD)
+- Call scheduling (in-app scheduler / ESP32 autonomous scheduler / hybrid TBD)
 - Import of calls and call lists from `.json`
 - Connection details screen
-- Auto-connect to the first available saved SSID (continuous background scan;
-  no scan without a saved SSID; stops after connecting)
+- Auto-connect to the first available saved SSID (continuous background scan; no scan without a saved SSID; stops after connecting)
 - In-app run history: Call list → [Call name] → Run list
 - Per-call `.log` export
 - n8n / Activepieces nodes (text, number, bool)
