@@ -21,6 +21,7 @@ typedef enum {
     SeaderWorkerStateAPDURunner,
     SeaderWorkerStateReading,
     SeaderWorkerStateHfTeardown,
+    SeaderWorkerStateReaderEmulation,
     // Transition
     SeaderWorkerStateStop,
 } SeaderWorkerState;
@@ -42,6 +43,7 @@ typedef enum {
     SeaderWorkerEventAPDURunnerSuccess,
     SeaderWorkerEventAPDURunnerError,
     SeaderWorkerEventHfTeardownComplete,
+    SeaderWorkerEventReaderUpdate,
 } SeaderWorkerEvent;
 
 typedef enum {
