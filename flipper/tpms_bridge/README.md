@@ -114,7 +114,7 @@ Decoded protocols, by the make they are usually found on:
 - **Aftermarket and trucks** — Jansite TY02S, Jansite Solar, Jansite
   TY588, Jansite TY468, iMars T240, Airpuxem, Sefis M3 and Careud,
   EezTire and TST-507, TyreGuard 400, Gear Hive, unbranded solar truck
-  sensors, EGQ Q85
+  sensors, EGQ Q85, AVE, Steelmate
 
 Two overlaps are worth knowing about, and rtl_433 has the same ones. Jeep
 sensors put the same frame on air as Citroen with pressure at twice the
