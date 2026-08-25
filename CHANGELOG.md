@@ -81,7 +81,20 @@ ___
 
 - **0.1.4**: icons, stack profiling, loaders and feedback, optimization
   and fixes, about scene
-- **0.1.5**: settings(languages, log path...)
+- **0.1.5**: settings (languages, log path...) + API client usability
+  - Extended custom keyboard (symbols page: `:` `/` `.` etc.) for URL,
+    headers and body fields
+  - Key-value headers editor and body type selection
+    (JSON / form-urlencoded / raw)
+  - Auth helpers: Basic auth, Bearer token / API key stored per call
+  - JSON pretty-print in the response view
+  - One-tap "Run again" from the result screen
+- **0.1.6**: single-call automation
+  - Variables and templates (`{{now}}`, `{{random}}`, value prompt at run time)
+  - Extract values from the response (JSONPath) and reuse them in follow-up
+    calls (simple chains: login → token → authenticated call)
+  - Save response to file (raw text / bytes)
+  - Per-call `.log` export
 
 ### v0.2+
 
@@ -90,8 +103,9 @@ ___
 - Connection details screen
 - Auto-connect to the first available saved SSID (continuous background scan; no scan without a saved SSID; stops after connecting)
 - In-app run history: Call list → [Call name] → Run list
-- Per-call `.log` export
 - n8n / Activepieces nodes (text, number, bool)
+- Response headers exposed (firmware patch) and binary/file response support
+- Retry / rate-limit helpers
 
 ___
 
