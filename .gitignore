@@ -1,0 +1,24 @@
+# Build outputs
+build/
+dist/
+*.fap
+*.elf
+*.map
+*.bin
+
+# uFBT / Python
+.venv/
+.ufbt/
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
