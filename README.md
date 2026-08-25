@@ -1,6 +1,6 @@
 # ESP32 API CALLER
 
-A client then allow to send and schedule easy Api call request. Included a .json import.
+A client that lets you easily send and schedule API call requests. A .json import is included.
 
 ## IDEA
 - Connessione
@@ -57,7 +57,7 @@ esp32_api_caller/
 
 ## FASI PROGETTUALI (NON COMPLETO)
 
-### Sprint 1: Scheletro e Navigazione ✅ COMPLETATO
+### Sprint 1: Scheletro e Navigazione - DONE
 
 - Setup progetto con uFBT
 - Implementare application.fam
@@ -65,7 +65,7 @@ esp32_api_caller/
 - Implementare scena principale con VariableItemList
 - Navigazione tra scene (submenu)
 
-### Sprint 2: Connessione Wi-Fi ✅ COMPLETATO
+### Sprint 2: Connessione Wi-Fi - DONE
 
 - Integrazione SDK C FlipperHTTP (vendored in src/api) su ESP32-WROOM (firmware v2.2.0)
 - Scena "Ricerca rete" con scan AP asincrono (feedback + lista con aggiornamento automatico)
@@ -73,7 +73,7 @@ esp32_api_caller/
 - Storico reti salvate con password (riconnessione rapida)
 - Test con ESP32 flashato
 
-### Sprint 3: Gestione Chiamate
+### Sprint 3: Gestione Chiamate - DONE
 
 - Implementare struttura dati per chiamate salvate
 - Scena "Aggiungi chiamata" con tutti i campi:
@@ -84,6 +84,8 @@ esp32_api_caller/
 - Query parameters (input text)
 - Salvataggio su storage (SD card)
 - Scena "Lista Chiamate" con submenu per ogni chiamata salvata
+
+**Bug da fixare**: Nella risposta non è possibile scorrere in basso e leggerela
 
 ### Sprint 4: Esecuzione e Logging
 
@@ -109,4 +111,3 @@ esp32_api_caller/
     https://deepwiki.com/jblanked/FlipperHTTP
 - Wi-Fi App reference: Butwm/FlipperZero-Wifi-App
     https://github.com/Butwm/FlipperZero-Wifi-App
-- Coding Style: Segui lo standard Flipper

@@ -37,5 +37,12 @@ Tutte le modifiche rilevanti al progetto ESP32 API Caller.
   - Lista chiamate: pressione sulla voce apre il dettaglio (esecuzione + modifica)
 
 ## [Non rilasciato]
-
+- fix cisualizzare risposta completa
 - Sprint 5: icone, profilazione, testing hardware
+
+### v0.2
+- Schedule call
+- Import call/list of calls in .json format
+- Connection details
+- export .log per call
+- save run in-app with details: Call list> [Call name]> Run list
