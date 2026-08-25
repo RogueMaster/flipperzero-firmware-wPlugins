@@ -108,6 +108,13 @@ response display, `debug.log` logging, error and timeout handling.
 - In-app run history (Call list → Run list) and per-call `.log` export
 - n8n / Activepieces nodes (text, number, bool)
 
+## Documentation
+
+- [User guide](docs/USER.md): requirements, FlipperHTTP firmware setup and
+  how to use the app
+- [Developer guide](docs/DEV.md): toolchain, project conventions, protocol
+  notes and release workflow
+
 ## Resources
 
 - [Flipper Zero developer docs](https://developer.flipper.net/)
