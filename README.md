@@ -1,113 +1,117 @@
-# FLIPPER API CALLER 
+# Flipper API Caller
 
-A client that lets you easily send and schedule API call requests. A .json import is included.
+A [Flipper Zero](https://flipperzero.one/) application for saving API calls and sending them through a ESP32 FlipperHTTP-compatible Wi-Fi board.
+Call scheduling, `.json` import and per-call run history are on the roadmap.
 
-## IDEA
-- Connessione
-    - On/off
-    - Ricerca rete
-        - [Lista Nome reti]
-            - Password
-    - Connesso a
-        - Dimentica
-- Aggiungi chiamata
-    - Richiesta(tipo di richiesta se https o...)
-    - Tipo di richiesta(tutti i tipi)
-    - header(tutti i tipi)
-    - body(tutti i tipi)
-    - query (tutti i tipi)
-    - (inserisci tu altro se necessario)
-        - salva in Lista Chiamate
-- Lista Chiamate
-    - [Nome chiamata]
-        - call (e mostra il log a schermo flipper)
+## Features
 
-## STRUCTURE
+**Connection (via FlipperHTTP board)**
 
-flipper_api_caller/
-├── application.fam          # Application Manifest
-├── README.md                # Doc
-├── CHANGELOG.md             # Changelog
-├── .gitignore
-├── src/
-│   ├── api_caller.c        # Entry point (SceneManager+ViewDispatcher)
-│   ├── api_caller.h        # Header with AppContext
-│   ├── scenes/
-│   │   ├── scene_main.c/h           # Scena principale (menu impostazioni)
-│   │   ├── scene_wifi.c/h           # Scena connessione (menu WiFi) - FATTA
-│   │   ├── scene_wifi_scan.c/h      # Scena ricerca reti Wi-Fi - FATTA (scan asincrono)
-│   │   ├── scene_wifi_saved.c/h     # Scena reti salvate (storico) - FATTA
-│   │   ├── scene_wifi_connect.c/h   # Scena connessione (SSID/password) - FATTA
-│   │   ├── scene_call_add.c/h       # Scena aggiungi chiamata API - stub
-│   │   ├── scene_call_list.c/h      # Scena lista chiamate salvate - stub
-│   │   └── scene_call_detail.c/h    # Scena dettaglio chiamata con log - stub
-│   ├── api/
-│   │   ├── flipper_http.c/h         # SDK C FlipperHTTP (vendored) - FATTO
-│   │   ├── api_request.c/h          # Logica per costruire e inviare richieste
-│   │   └── api_storage.c/h          # Salvataggio/caricamento chiamate salvate
-│   ├── wifi/
-│   │   └── wifi_manager.c/h         # Gestione Wi-Fi via FlipperHTTP - FATTO
-│   └── utils/
-│       ├── wifi_history.c/h         # Storico reti salvate (SSID+password) - FATTO
-│       ├── logger.c/h               # Sistema di logging con debug.log
-│       └── json_parser.c/h          # Parsing JSON per risposte API
-└── dist/                     # Output compilato (.fap)
+- Wi-Fi scan with live, non-blocking updates (auto-refresh every 8 s)
+- Saved networks history (SSID + password, quick reconnect)
+- Connect / disconnect with status feedback
 
-**Cosa manca nella struttura** - manca tutta la parte che gestisce lo scheduling e l'import delle liste in .json
+**Saved API calls**
 
-## FASI PROGETTUALI (NON COMPLETO)
+- Add/edit form: URL, HTTP/HTTPS protocol, method
+  (GET/POST/PUT/DELETE/PATCH/HEAD), query, headers, body
+- Automatic `http://` / `https://` scheme normalization
+- Call list persisted on storage (up to 16 entries)
 
-### Sprint 1: Scheletro e Navigazione - DONE
+**Execution and logging**
 
-- Setup progetto con uFBT
-- Implementare application.fam
-- Creare AppContext e ViewDispatcher
-- Implementare scena principale con VariableItemList
-- Navigazione tra scene (submenu)
+- Non-blocking request execution, 30 s timeout, distinct error messages
+- Full response body view (up to 32 KB) in a custom scrollable view
+- Debug log at `/data/debug.log` (auto-truncated at 32 KB)
 
-### Sprint 2: Connessione Wi-Fi - DONE
+## Supported hardware
 
-- Integrazione SDK C FlipperHTTP (vendored in src/api) su ESP32-WROOM (firmware v2.2.0)
-- Scena "Ricerca rete" con scan AP asincrono (feedback + lista con aggiornamento automatico)
-- Scena "Connessione" con input SSID/password (TextInput)
-- Storico reti salvate con password (riconnessione rapida)
-- Test con ESP32 flashato
+The app only speaks the FlipperHTTP text protocol over the Flipper UART
+(TX pin 13, RX pin 14, 3v3 pin 9, GND pin 11), so it is board-agnostic:
 
-### Sprint 3: Gestione Chiamate - DONE
+- **ESP32** (WROOM/S2) running
+  [FlipperHTTP](https://github.com/jblanked/FlipperHTTP) v2.2.0
+- **BW16** (RTL8720DN) running
+  [BlackMagic](https://github.com/SkeletonMan03/FlipperZeroBlackMagic)
+  (FlipperHTTP-compatible)
+- Power: the official Wi-Fi Devboard runs from the Flipper 3v3 rail; bare
+  devkits are best powered via USB.
 
-- Implementare struttura dati per chiamate salvate
-- Scena "Aggiungi chiamata" con tutti i campi:
-- Tipo richiesta (HTTP/HTTPS) - switch
-- Metodo (GET/POST/PUT/DELETE/PATCH/HEAD) - lista
-- Headers (input text)
-- Body (input text multiline)
-- Query parameters (input text)
-- Salvataggio su storage (SD card)
-- Scena "Lista Chiamate" con submenu per ogni chiamata salvata
+## Building
 
-### Sprint 4: Esecuzione e Logging
+Builds with [uFBT](https://github.com/flipperdevices/flipperzero-ufbt).
 
-- Integrazione con FlipperHTTP per invio richieste
-- Visualizzazione risposta in TextBox
-- Sistema di logging su debug.log
-- Gestione errori e timeout
+```sh
+ufbt build    # builds dist/api_caller.fap
+ufbt format   # clang-format (run before lint)
+ufbt lint     # code style checks
+ufbt launch   # deploy and run on a connected Flipper
+```
 
-**Bug da fixare**: Nella risposta non è possibile scorrere in basso e leggerela
+## Project structure
 
-## Sprint 5: Ottimizzazione e UI
-- Icone e assets
-- Profilazione stack size con top e free
-- Testing and optimizations
-- Documentazione e pubblicazione
+```text
+.
+├── application.fam            # Application manifest
+├── CHANGELOG.md
+├── README.md
+├── images/                    # Icon assets
+└── src/
+    ├── api_caller.c/h         # Entry point: AppContext, SceneManager, ViewDispatcher
+    ├── api/
+    │   ├── flipper_http.c/h   # Vendored FlipperHTTP C SDK (v2.2.0)
+    │   └── call_runner.c/h    # Non-blocking HTTP request execution
+    ├── scenes/                # scene_main, scene_wifi_*, scene_call_*
+    ├── wifi/
+    │   └── wifi_manager.c/h   # FlipperHTTP wrapper (UART, scan, connect, status)
+    └── utils/
+        ├── wifi_history.c/h   # Saved networks (FlipperFormat)
+        ├── call_history.c/h   # Saved API calls (FlipperFormat)
+        ├── long_text_view.c/h # Custom scrollable text view
+        └── logger.c/h         # debug.log writer
+```
 
-## Risorse Ufficiali e Community
+## Roadmap
 
-- Documentazione ufficiale: developer.flipper.net
-- FAM (App Manifests): documentazione completa
-    https://developer.flipper.net/
-- Template progetto:
-    https://github.com/gemisis/flipper_zero_template
-- FlipperHTTP C API: DeepWiki
-    https://deepwiki.com/jblanked/FlipperHTTP
-- Wi-Fi App reference: Butwm/FlipperZero-Wifi-App
-    https://github.com/Butwm/FlipperZero-Wifi-App
+### 0.1.0 - Skeleton and navigation ✔️
+
+App scaffold (`AppContext`, `SceneManager` + `ViewDispatcher`), main menu and scene navigation.
+
+### 0.1.1 - Wi-Fi connection ✔️
+
+Vendored FlipperHTTP C SDK, asynchronous AP scan with live updates, SSID/password input, saved networks history.
+
+### 0.1.2 - Saved calls ✔️
+
+`CallEntry` data model, "Add call" form, call list with edit/delete, storage
+persistence.
+
+### 0.1.3 - Execution and logging ✔️
+
+FlipperHTTP request execution (GET/POST/PUT/PATCH/DELETE, HEAD mapped to GET),
+response display, `debug.log` logging, error and timeout handling.
+
+### 0.1.4 - Optimization and UI
+
+- Icons and assets
+- Stack profiling (`top`, `free`)
+- Loaders and user feedback where needed
+- Hardware testing, documentation and release
+
+### v0.2+ (planned)
+
+- Call scheduling (in-app scheduler / ESP32 autonomous scheduler / hybrid - TBD)
+- Import of calls and call lists from `.json`
+- Connection details screen
+- Auto-connect to the first available saved SSID (continuous background scan;
+  no scan without a saved SSID; stops after connecting)
+- In-app run history (Call list → Run list) and per-call `.log` export
+- n8n / Activepieces nodes (text, number, bool)
+
+## Resources
+
+- [Flipper Zero developer docs](https://developer.flipper.net/)
+- [uFBT](https://github.com/flipperdevices/flipperzero-ufbt)
+- [FlipperHTTP](https://github.com/jblanked/FlipperHTTP)
+- [BlackMagic for BW16](https://github.com/SkeletonMan03/FlipperZeroBlackMagic)
+- Project template: [flipper_zero_template](https://github.com/gemisis/flipper_zero_template)
