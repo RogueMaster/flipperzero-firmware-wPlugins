@@ -257,8 +257,6 @@ static void api_text_input_view_draw_callback(Canvas* canvas, void* _model) {
 
     char line1[64];
     char line2[64];
-    const char* tail = text;
-    uint8_t tail_offset = 0;
     bool line1_ellipsis = false;
     uint16_t line1_width = 0;
     uint16_t line2_width = 0;
@@ -266,65 +264,79 @@ static void api_text_input_view_draw_callback(Canvas* canvas, void* _model) {
     bool edit_cursor_line2 = false;
     uint16_t edit_cursor_x = 0;
 
+    // The visible window ends at the cursor in edit mode, at the end of the
+    // text otherwise. It scrolls only when the cursor leaves the window.
+    size_t window_start;
+    size_t window_cursor;
     if(edit_mode) {
-        // Edit mode: the cursor moves inside the text; the window only
-        // scrolls when the cursor leaves it (left or right edge).
-        size_t line1_end;
-        size_t line2_end;
-        bool remeasure = true;
-        while(remeasure) {
-            remeasure = false;
-            if(model->cursor_pos < model->window_start) {
-                model->window_start = model->cursor_pos;
-            }
+        window_start = model->window_start;
+        window_cursor = model->cursor_pos;
+        if(window_cursor < window_start) {
+            model->window_start = window_cursor;
+            window_start = window_cursor;
+        }
+    } else {
+        window_start = 0;
+        window_cursor = text_length;
+    }
 
-            line1_end = model->window_start;
-            line1_width = 0;
-            while(line1_end < text_length &&
-                  line1_width + canvas_glyph_width(canvas, (uint16_t)text[line1_end]) <=
-                      needed_string_width) {
-                line1_width += canvas_glyph_width(canvas, (uint16_t)text[line1_end]);
-                line1_end++;
-            }
+    size_t line1_end;
+    size_t line2_end;
+    bool remeasure = true;
+    while(remeasure) {
+        remeasure = false;
 
-            line2_end = line1_end;
-            line2_width = 0;
-            while(line2_end < text_length &&
-                  line2_width + canvas_glyph_width(canvas, (uint16_t)text[line2_end]) <=
-                      needed_string_width) {
-                line2_width += canvas_glyph_width(canvas, (uint16_t)text[line2_end]);
-                line2_end++;
-            }
-
-            if(model->cursor_pos > line2_end) {
-                // Keep the cursor at the right edge of the window
-                model->window_start += model->cursor_pos - line2_end;
-                remeasure = true;
-            }
+        line1_end = window_start;
+        line1_width = 0;
+        while(line1_end < text_length &&
+              line1_width + canvas_glyph_width(canvas, (uint16_t)text[line1_end]) <=
+                  needed_string_width) {
+            line1_width += canvas_glyph_width(canvas, (uint16_t)text[line1_end]);
+            line1_end++;
         }
 
-        line1_ellipsis = (model->window_start > 0);
-
-        size_t line1_len = line1_end - model->window_start;
-        if(line1_len >= sizeof(line1)) {
-            line1_len = sizeof(line1) - 1;
+        line2_end = line1_end;
+        line2_width = 0;
+        while(line2_end < text_length &&
+              line2_width + canvas_glyph_width(canvas, (uint16_t)text[line2_end]) <=
+                  needed_string_width) {
+            line2_width += canvas_glyph_width(canvas, (uint16_t)text[line2_end]);
+            line2_end++;
         }
-        memcpy(line1, text + model->window_start, line1_len);
-        line1[line1_len] = '\0';
 
-        size_t line2_len = line2_end - line1_end;
-        if(line2_len >= sizeof(line2)) {
-            line2_len = sizeof(line2) - 1;
+        if(window_cursor > line2_end) {
+            // Keep the cursor inside the window (at its right edge)
+            window_start += window_cursor - line2_end;
+            remeasure = true;
         }
-        memcpy(line2, text + line1_end, line2_len);
-        line2[line2_len] = '\0';
-        tail = line2;
+    }
 
+    if(edit_mode) {
+        model->window_start = window_start;
+    }
+
+    line1_ellipsis = (window_start > 0);
+
+    size_t line1_len = line1_end - window_start;
+    if(line1_len >= sizeof(line1)) {
+        line1_len = sizeof(line1) - 1;
+    }
+    memcpy(line1, text + window_start, line1_len);
+    line1[line1_len] = '\0';
+
+    size_t line2_len = line2_end - line1_end;
+    if(line2_len >= sizeof(line2)) {
+        line2_len = sizeof(line2) - 1;
+    }
+    memcpy(line2, text + line1_end, line2_len);
+    line2[line2_len] = '\0';
+
+    if(edit_mode) {
         // Cursor marker position inside the visible text
         uint16_t prefix_width = 0;
         size_t pos;
         if(model->cursor_pos <= line1_end) {
-            for(pos = model->window_start; pos < model->cursor_pos; pos++) {
+            for(pos = window_start; pos < model->cursor_pos; pos++) {
                 prefix_width += canvas_glyph_width(canvas, (uint16_t)text[pos]);
             }
             edit_cursor_x = start_pos + (line1_ellipsis ? 10 : 0) + prefix_width;
@@ -335,37 +347,14 @@ static void api_text_input_view_draw_callback(Canvas* canvas, void* _model) {
             edit_cursor_x = start_pos + prefix_width;
             edit_cursor_line2 = true;
         }
-    } else {
-        // Line 1: the buffer prefix that fits
-        while(*tail != '\0' &&
-              line1_width + canvas_glyph_width(canvas, (uint16_t)*tail) <= needed_string_width) {
-            line1_width += canvas_glyph_width(canvas, (uint16_t)*tail);
-            tail++;
-        }
-        size_t line1_len = (size_t)(tail - text);
-        if(line1_len >= sizeof(line1)) {
-            line1_len = sizeof(line1) - 1;
-        }
-        memcpy(line1, text, line1_len);
-        line1[line1_len] = '\0';
-
-        // Keep the end of the second line visible with a leading ellipsis
-        if(canvas_string_width(canvas, tail) > needed_string_width) {
-            tail_offset = 10;
-            while(*tail != '\0' &&
-                  tail_offset + canvas_string_width(canvas, tail) > needed_string_width) {
-                tail++;
-            }
-        }
     }
 
     if(model->clear_default_text && !edit_mode) {
         // Highlight the text that will be replaced by the first key press
-        elements_slightly_rounded_box(canvas, start_pos - 1, 4, line1_width + 2, 8);
-        if(*tail != '\0') {
-            uint16_t tail_width = canvas_string_width(canvas, tail);
-            elements_slightly_rounded_box(
-                canvas, start_pos - 1, 12, tail_offset + tail_width + 2, 8);
+        elements_slightly_rounded_box(
+            canvas, start_pos - 1 + (line1_ellipsis ? 10 : 0), 4, line1_width + 2, 8);
+        if(line2_len > 0) {
+            elements_slightly_rounded_box(canvas, start_pos - 1, 12, line2_width + 2, 8);
         }
         canvas_set_color(canvas, ColorWhite);
     }
@@ -376,11 +365,7 @@ static void api_text_input_view_draw_callback(Canvas* canvas, void* _model) {
     } else {
         canvas_draw_str(canvas, start_pos, 9, line1);
     }
-
-    if(tail_offset > 0) {
-        canvas_draw_str(canvas, start_pos, 18, "...");
-    }
-    canvas_draw_str(canvas, start_pos + tail_offset, 18, tail);
+    canvas_draw_str(canvas, start_pos, 18, line2);
 
     if(model->clear_default_text && !edit_mode) {
         canvas_set_color(canvas, ColorBlack);
@@ -393,15 +378,16 @@ static void api_text_input_view_draw_callback(Canvas* canvas, void* _model) {
             canvas_draw_str(canvas, edit_cursor_x, 9, "|");
             canvas_draw_str(canvas, edit_cursor_x + 1, 9, "|");
         }
-    } else if(*tail != '\0') {
-        // Cursor after the last visible character of the second line
-        uint16_t cursor_x = start_pos + tail_offset + canvas_string_width(canvas, tail);
+    } else if(line2_len > 0) {
+        // Cursor after the last visible character
+        uint16_t cursor_x = start_pos + line2_width;
         canvas_draw_str(canvas, cursor_x + 1, 18, "|");
         canvas_draw_str(canvas, cursor_x + 2, 18, "|");
     } else {
         // Everything fits on the first line
-        canvas_draw_str(canvas, start_pos + line1_width + 1, 9, "|");
-        canvas_draw_str(canvas, start_pos + line1_width + 2, 9, "|");
+        uint16_t cursor_x = start_pos + (line1_ellipsis ? 10 : 0) + line1_width;
+        canvas_draw_str(canvas, cursor_x + 1, 9, "|");
+        canvas_draw_str(canvas, cursor_x + 2, 9, "|");
     }
 
     canvas_set_font(canvas, FontKeyboard);
@@ -773,8 +759,8 @@ void api_text_input_set_result_callback(
             model->text_buffer_size = text_buffer_size;
             model->clear_default_text = clear_default_text;
             if(text_buffer && text_buffer[0] != '\0') {
-                // Set focus on Save
-                model->selected_row = 2;
+                // Set focus on the Save (ENTER) key
+                model->selected_row = 3;
                 model->selected_column = 8;
                 model->cursor_pos = strlen(text_buffer);
             }

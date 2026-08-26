@@ -114,7 +114,7 @@ ___
 
 ### v0.2+
 
-- Call scheduling (in-app scheduler / ESP32 autonomous scheduler / hybrid TBD)
+- Select text/Select all in text input edit mode - when "^ button" popup Select all - Edit, Edit mode > down + "< button" or "> button"
 - Import of calls and call lists from `.json`
 - Connection details screen
 - Auto-connect to the first available saved SSID (continuous background scan; no scan without a saved SSID; stops after connecting)
@@ -122,6 +122,7 @@ ___
 - n8n / Activepieces nodes (text, number, bool)
 - Response headers exposed (firmware patch) and binary/file response support
 - Retry / rate-limit helpers
+- Call scheduling (in-app scheduler / ESP32 autonomous scheduler / hybrid TBD)
 - Support for [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2), 
 ___
 

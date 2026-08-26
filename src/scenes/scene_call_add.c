@@ -153,8 +153,9 @@ static void api_caller_scene_call_add_start_input(AppContext* app, CallAddState 
 
     api_text_input_reset(app->text_input);
     api_text_input_set_header_text(app->text_input, header);
+    // Keep existing text editable on re-entry (no select-all replace)
     api_text_input_set_result_callback(
-        app->text_input, api_caller_scene_call_add_input_callback, app, buffer, buffer_size, true);
+        app->text_input, api_caller_scene_call_add_input_callback, app, buffer, buffer_size, false);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ApiCallerViewTextInput);
 }
