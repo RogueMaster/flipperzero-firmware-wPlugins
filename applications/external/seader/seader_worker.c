@@ -423,6 +423,10 @@ bool seader_worker_process_sam_message(Seader* seader, uint8_t* apdu, uint32_t l
         return seader_apdu_runner_response(seader, apdu, len);
     }
 
+    if(seader_worker->state == SeaderWorkerStateReaderEmulation) {
+        return seader_reader_sam_response(seader, apdu, len);
+    }
+
     SEADER_VERBOSE_HEX(FuriLogLevelInfo, TAG, "APDU", apdu, len);
     seader_trace(
         TAG,
@@ -552,6 +556,9 @@ int32_t seader_worker_task(void* context) {
     } else if(seader_worker->state == SeaderWorkerStateReading) {
         SEADER_VERBOSE_D(TAG, "Reading mode started");
         seader_worker_reading(seader);
+    } else if(seader_worker->state == SeaderWorkerStateReaderEmulation) {
+        SEADER_VERBOSE_I(TAG, "USB reader emulation started");
+        seader_reader_run(seader);
     }
     seader_worker_change_state(seader_worker, SeaderWorkerStateReady);
 
