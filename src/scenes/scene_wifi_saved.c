@@ -43,7 +43,7 @@ bool api_caller_scene_wifi_saved_on_event(void* context, SceneManagerEvent event
 
     if(event.type == SceneManagerEventTypeCustom) {
         uint32_t index = event.event;
-        if(index < app->wifi_history_count) {
+        if(index < app->wifi_history_count && app->wifi_history[index].ssid[0] != '\0') {
             snprintf(app->ssid, sizeof(app->ssid), "%s", app->wifi_history[index].ssid);
             snprintf(
                 app->password, sizeof(app->password), "%s", app->wifi_history[index].password);

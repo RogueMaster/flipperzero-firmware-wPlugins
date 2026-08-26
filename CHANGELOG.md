@@ -3,6 +3,16 @@
 All notable changes to the ESP32 API Caller project are documented in this file.
 ___
 
+## [0.1.4] - 2026-08-25
+
+### Added
+
+- App icon
+- i18n system (`src/utils/locale.c/h`): stable `LocKey` string keys, Italian
+  and English translation tables, language persisted in `/data/settings.txt`
+  (default English, file created on first launch); every UI string now goes
+  through `locale_get`
+
 ## [0.1.3] - 2026-08-25
 
 ### Added
@@ -74,19 +84,6 @@ ___
 - Scan: multi-line board replies (wait for the JSON line containing
   "networks")
 - Build: entry point aligned with `application.fam`
-
-___
-
-## [0.1.4] - 2026-08-25
-
-### Added
-
-- App icon
-- i18n system (`src/utils/locale.c/h`): stable `LocKey` string keys, Italian
-  and English translation tables, language persisted in `/data/settings.txt`
-  (default English, file created on first launch); every UI string now goes
-  through `locale_get`
-
 ___
 
 ## [Unreleased]

@@ -239,7 +239,7 @@ bool wifi_manager_save_and_connect(
     FuriString* reply) {
     furi_assert(app);
 
-    if(app->fhttp == NULL || ssid == NULL || password == NULL) {
+    if(app->fhttp == NULL || ssid == NULL || password == NULL || ssid[0] == '\0') {
         return false;
     }
 

@@ -96,15 +96,22 @@ void wifi_history_load(AppContext* app) {
                 break;
             }
             if(!flipper_format_read_string(file, "Password", password)) {
-                break;
+                // Files written before the placeholder fix may lack the key
+                // for empty passwords: fall back to an empty string.
+                furi_string_set_str(password, "");
             }
+            // Drop corrupted entries with an empty SSID (written by older buggy
+            // app versions): they show up as nameless items and cannot connect.
+            if(furi_string_empty(ssid)) {
+                continue;
+            }
+            snprintf(
+                app->wifi_history[i].ssid,
+                sizeof(app->wifi_history[i].ssid),
+                "%s",
+                furi_string_get_cstr(ssid));
             wifi_history_load_str(
                 password, app->wifi_history[i].password, sizeof(app->wifi_history[i].password));
-            snprintf(
-                app->wifi_history[i].password,
-                sizeof(app->wifi_history[i].password),
-                "%s",
-                furi_string_get_cstr(password));
             app->wifi_history_count++;
         }
     } while(false);
