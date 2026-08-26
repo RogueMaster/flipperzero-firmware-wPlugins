@@ -280,8 +280,8 @@ static void api_text_input_view_draw_callback(Canvas* canvas, void* _model) {
         window_cursor = text_length;
     }
 
-    size_t line1_end;
-    size_t line2_end;
+    size_t line1_end = 0;
+    size_t line2_end = 0;
     bool remeasure = true;
     while(remeasure) {
         remeasure = false;
