@@ -6,24 +6,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MONSTER_INDEX APP_ASSETS_PATH("monsters/index.txt")
-#define MONSTER_BLOCKS APP_ASSETS_PATH("monsters/statblocks.txt")
-#define CUSTOM_MONSTER_INDEX APP_ASSETS_PATH("monsters/custom_index.txt")
-#define CUSTOM_MONSTER_INDEX_TEMP APP_ASSETS_PATH("monsters/custom_index.tmp")
-#define CUSTOM_MONSTER_INDEX_BACKUP APP_ASSETS_PATH("monsters/custom_index.bak")
-#define CUSTOM_MONSTER_BLOCKS APP_ASSETS_PATH("monsters/custom_statblocks.txt")
-#define CUSTOM_MONSTER_BLOCKS_TEMP APP_ASSETS_PATH("monsters/custom_statblocks.tmp")
+#define MONSTER_INDEX                APP_ASSETS_PATH("monsters/index.txt")
+#define MONSTER_BLOCKS               APP_ASSETS_PATH("monsters/statblocks.txt")
+#define CUSTOM_MONSTER_INDEX         APP_ASSETS_PATH("monsters/custom_index.txt")
+#define CUSTOM_MONSTER_INDEX_TEMP    APP_ASSETS_PATH("monsters/custom_index.tmp")
+#define CUSTOM_MONSTER_INDEX_BACKUP  APP_ASSETS_PATH("monsters/custom_index.bak")
+#define CUSTOM_MONSTER_BLOCKS        APP_ASSETS_PATH("monsters/custom_statblocks.txt")
+#define CUSTOM_MONSTER_BLOCKS_TEMP   APP_ASSETS_PATH("monsters/custom_statblocks.tmp")
 #define CUSTOM_MONSTER_BLOCKS_BACKUP APP_ASSETS_PATH("monsters/custom_statblocks.bak")
-#define CUSTOM_MONSTER_TRANSACTION APP_ASSETS_PATH("monsters/custom_transaction.txt")
-#define MONSTER_LINE_LEN 768U
-#define MONSTER_READ_BUFFER 512U
+#define CUSTOM_MONSTER_TRANSACTION   APP_ASSETS_PATH("monsters/custom_transaction.txt")
+#define MONSTER_LINE_LEN             768U
+#define MONSTER_READ_BUFFER          512U
 
 static const uint16_t pocket_budget[20][3] = {
-    {50,75,100},{100,150,200},{150,225,400},{250,375,500},{500,750,1100},
-    {600,1000,1400},{750,1300,1700},{1000,1700,2100},{1300,2000,2600},
-    {1600,2300,3100},{1900,2900,4100},{2200,3700,4700},{2600,4200,5400},
-    {2900,4900,6200},{3300,5400,7800},{3800,6100,9800},{4500,7200,11700},
-    {5000,8700,14200},{5500,10700,17200},{6400,13200,22000},
+    {50, 75, 100},       {100, 150, 200},     {150, 225, 400},      {250, 375, 500},
+    {500, 750, 1100},    {600, 1000, 1400},   {750, 1300, 1700},    {1000, 1700, 2100},
+    {1300, 2000, 2600},  {1600, 2300, 3100},  {1900, 2900, 4100},   {2200, 3700, 4700},
+    {2600, 4200, 5400},  {2900, 4900, 6200},  {3300, 5400, 7800},   {3800, 6100, 9800},
+    {4500, 7200, 11700}, {5000, 8700, 14200}, {5500, 10700, 17200}, {6400, 13200, 22000},
 };
 
 static void monster_copy(char* out, size_t size, const char* value) {
@@ -50,8 +50,8 @@ static bool monster_read_line(MonsterReader* reader, char* line, size_t size) {
     bool consumed = false;
     while(!reader->eof) {
         if(reader->position >= reader->count) {
-            reader->count = (uint16_t)storage_file_read(
-                reader->file, reader->buffer, sizeof(reader->buffer));
+            reader->count =
+                (uint16_t)storage_file_read(reader->file, reader->buffer, sizeof(reader->buffer));
             reader->position = 0U;
             if(!reader->count) {
                 reader->eof = true;
@@ -90,7 +90,8 @@ static bool monster_parse_summary(char* line, PocketMonsterSummary* output) {
     output->hit_points = (uint16_t)strtoul(extended[5], NULL, 10);
     monster_copy(output->type, sizeof(output->type), extended[6]);
     monster_copy(output->environment, sizeof(output->environment), extended[7]);
-    monster_copy(output->source, sizeof(output->source), field_count > 8U ? extended[8] : "Custom");
+    monster_copy(
+        output->source, sizeof(output->source), field_count > 8U ? extended[8] : "Custom");
     monster_copy(output->role, sizeof(output->role), field_count > 9U ? extended[9] : "Any");
     return output->id[0] && output->name[0] && output->xp;
 }
@@ -190,12 +191,18 @@ static void monster_validate_paths(
             char* separator = strchr(line, '=');
             if(!separator) continue;
             *separator = '\0';
-            if(!strcmp(line, "SizeAlignment")) present_fields |= PocketMonsterFieldSize;
-            else if(!strcmp(line, "Speed")) present_fields |= PocketMonsterFieldSpeed;
-            else if(!strcmp(line, "Abilities")) present_fields |= PocketMonsterFieldAbilities;
-            else if(!strcmp(line, "Senses")) present_fields |= PocketMonsterFieldSenses;
-            else if(!strcmp(line, "Languages")) present_fields |= PocketMonsterFieldLanguages;
-            else if(!strcmp(line, "Actions")) present_fields |= PocketMonsterFieldActions;
+            if(!strcmp(line, "SizeAlignment"))
+                present_fields |= PocketMonsterFieldSize;
+            else if(!strcmp(line, "Speed"))
+                present_fields |= PocketMonsterFieldSpeed;
+            else if(!strcmp(line, "Abilities"))
+                present_fields |= PocketMonsterFieldAbilities;
+            else if(!strcmp(line, "Senses"))
+                present_fields |= PocketMonsterFieldSenses;
+            else if(!strcmp(line, "Languages"))
+                present_fields |= PocketMonsterFieldLanguages;
+            else if(!strcmp(line, "Actions"))
+                present_fields |= PocketMonsterFieldActions;
         }
         if(active) {
             ++section_total;
@@ -225,12 +232,7 @@ void pocket_monster_validate_pack(
     uint16_t custom_valid = 0U;
     uint16_t custom_invalid = 0U;
     monster_validate_paths(
-        storage,
-        MONSTER_INDEX,
-        MONSTER_BLOCKS,
-        &bundled_total,
-        &bundled_valid,
-        &bundled_invalid);
+        storage, MONSTER_INDEX, MONSTER_BLOCKS, &bundled_total, &bundled_valid, &bundled_invalid);
     monster_validate_paths(
         storage,
         CUSTOM_MONSTER_INDEX,
@@ -243,8 +245,7 @@ void pocket_monster_validate_pack(
     uint32_t combined_invalid = (uint32_t)bundled_invalid + custom_invalid;
     if(total) *total = combined_total > UINT16_MAX ? UINT16_MAX : (uint16_t)combined_total;
     if(valid) *valid = combined_valid > UINT16_MAX ? UINT16_MAX : (uint16_t)combined_valid;
-    if(invalid)
-        *invalid = combined_invalid > UINT16_MAX ? UINT16_MAX : (uint16_t)combined_invalid;
+    if(invalid) *invalid = combined_invalid > UINT16_MAX ? UINT16_MAX : (uint16_t)combined_invalid;
 }
 
 bool pocket_monster_at(Storage* storage, uint16_t index, PocketMonsterSummary* output) {
@@ -271,11 +272,9 @@ static void monster_query_path(
         monster_reader_init(&reader, file);
         while(monster_read_line(&reader, line, sizeof(line))) {
             PocketMonsterSummary summary;
-            if(!monster_parse_summary(line, &summary) ||
-               (filter && !filter(&summary, context)))
+            if(!monster_parse_summary(line, &summary) || (filter && !filter(&summary, context)))
                 continue;
-            if(*matched >= start && *loaded < capacity && output)
-                output[(*loaded)++] = summary;
+            if(*matched >= start && *loaded < capacity && output) output[(*loaded)++] = summary;
             if(*matched < UINT16_MAX) ++*matched;
             if(!count_all && *loaded >= capacity) break;
         }
@@ -336,8 +335,7 @@ static void monster_sample_path(
         monster_reader_init(&reader, file);
         while(monster_read_line(&reader, line, sizeof(line))) {
             PocketMonsterSummary summary;
-            if(!monster_parse_summary(line, &summary) ||
-               (filter && !filter(&summary, context)))
+            if(!monster_parse_summary(line, &summary) || (filter && !filter(&summary, context)))
                 continue;
             uint32_t seen = (uint32_t)(*matched) + 1U;
             if(*matched < capacity)
@@ -362,22 +360,9 @@ uint16_t pocket_monster_sample(
     uint16_t* total_matches) {
     uint16_t matched = 0U;
     if(capacity && output) {
+        monster_sample_path(storage, MONSTER_INDEX, filter, context, output, capacity, &matched);
         monster_sample_path(
-            storage,
-            MONSTER_INDEX,
-            filter,
-            context,
-            output,
-            capacity,
-            &matched);
-        monster_sample_path(
-            storage,
-            CUSTOM_MONSTER_INDEX,
-            filter,
-            context,
-            output,
-            capacity,
-            &matched);
+            storage, CUSTOM_MONSTER_INDEX, filter, context, output, capacity, &matched);
     }
     if(total_matches) *total_matches = matched;
     return matched < capacity ? matched : capacity;
@@ -409,16 +394,40 @@ static bool monster_load_section(
             char* separator = strchr(line, '=');
             if(!separator) continue;
             *separator++ = '\0';
-            if(!strcmp(line, "SizeAlignment")) { monster_copy(output->size_alignment, sizeof(output->size_alignment), separator); output->present_fields |= PocketMonsterFieldSize; }
-            else if(!strcmp(line, "Speed")) { monster_copy(output->speed, sizeof(output->speed), separator); output->present_fields |= PocketMonsterFieldSpeed; }
-            else if(!strcmp(line, "Abilities")) { if(sscanf(separator, "%hhd,%hhd,%hhd,%hhd,%hhd,%hhd", &output->abilities[0], &output->abilities[1], &output->abilities[2], &output->abilities[3], &output->abilities[4], &output->abilities[5]) == 6) output->present_fields |= PocketMonsterFieldAbilities; }
-            else if(!strcmp(line, "Skills")) monster_copy(output->skills, sizeof(output->skills), separator);
-            else if(!strcmp(line, "Defenses")) monster_copy(output->defenses, sizeof(output->defenses), separator);
-            else if(!strcmp(line, "Senses")) { monster_copy(output->senses, sizeof(output->senses), separator); output->present_fields |= PocketMonsterFieldSenses; }
-            else if(!strcmp(line, "Languages")) { monster_copy(output->languages, sizeof(output->languages), separator); output->present_fields |= PocketMonsterFieldLanguages; }
-            else if(!strcmp(line, "Traits")) monster_copy(output->traits, sizeof(output->traits), separator);
-            else if(!strcmp(line, "Actions")) { monster_copy(output->actions, sizeof(output->actions), separator); output->present_fields |= PocketMonsterFieldActions; }
-            else if(!strcmp(line, "Extra")) monster_copy(output->extra, sizeof(output->extra), separator);
+            if(!strcmp(line, "SizeAlignment")) {
+                monster_copy(output->size_alignment, sizeof(output->size_alignment), separator);
+                output->present_fields |= PocketMonsterFieldSize;
+            } else if(!strcmp(line, "Speed")) {
+                monster_copy(output->speed, sizeof(output->speed), separator);
+                output->present_fields |= PocketMonsterFieldSpeed;
+            } else if(!strcmp(line, "Abilities")) {
+                if(sscanf(
+                       separator,
+                       "%hhd,%hhd,%hhd,%hhd,%hhd,%hhd",
+                       &output->abilities[0],
+                       &output->abilities[1],
+                       &output->abilities[2],
+                       &output->abilities[3],
+                       &output->abilities[4],
+                       &output->abilities[5]) == 6)
+                    output->present_fields |= PocketMonsterFieldAbilities;
+            } else if(!strcmp(line, "Skills"))
+                monster_copy(output->skills, sizeof(output->skills), separator);
+            else if(!strcmp(line, "Defenses"))
+                monster_copy(output->defenses, sizeof(output->defenses), separator);
+            else if(!strcmp(line, "Senses")) {
+                monster_copy(output->senses, sizeof(output->senses), separator);
+                output->present_fields |= PocketMonsterFieldSenses;
+            } else if(!strcmp(line, "Languages")) {
+                monster_copy(output->languages, sizeof(output->languages), separator);
+                output->present_fields |= PocketMonsterFieldLanguages;
+            } else if(!strcmp(line, "Traits"))
+                monster_copy(output->traits, sizeof(output->traits), separator);
+            else if(!strcmp(line, "Actions")) {
+                monster_copy(output->actions, sizeof(output->actions), separator);
+                output->present_fields |= PocketMonsterFieldActions;
+            } else if(!strcmp(line, "Extra"))
+                monster_copy(output->extra, sizeof(output->extra), separator);
         }
     }
     storage_file_close(file);
@@ -449,16 +458,16 @@ void pocket_monster_pack_versions(
     bool* user_present) {
     bool bundled_present = false;
     *bundled_version = monster_pack_version_path(storage, MONSTER_INDEX, &bundled_present);
-    *user_version =
-        monster_pack_version_path(storage, CUSTOM_MONSTER_INDEX, user_present);
+    *user_version = monster_pack_version_path(storage, CUSTOM_MONSTER_INDEX, user_present);
 }
 
-bool pocket_monster_load(Storage* storage, const PocketMonsterSummary* summary, PocketMonsterDetail* output) {
+bool pocket_monster_load(
+    Storage* storage,
+    const PocketMonsterSummary* summary,
+    PocketMonsterDetail* output) {
     memset(output, 0, sizeof(*output));
     output->summary = *summary;
-    const char* path = !strcmp(summary->source, "Custom") ?
-                           CUSTOM_MONSTER_BLOCKS :
-                           MONSTER_BLOCKS;
+    const char* path = !strcmp(summary->source, "Custom") ? CUSTOM_MONSTER_BLOCKS : MONSTER_BLOCKS;
     return monster_load_section(storage, path, summary->id, output);
 }
 
@@ -477,9 +486,12 @@ static void monster_safe_id(char* output, size_t size, const char* name) {
         else if(position && output[position - 1U] != '_')
             output[position++] = '_';
     }
-    while(position && output[position - 1U] == '_') --position;
-    if(!position) monster_copy(output, size, "custom_monster");
-    else output[position] = '\0';
+    while(position && output[position - 1U] == '_')
+        --position;
+    if(!position)
+        monster_copy(output, size, "custom_monster");
+    else
+        output[position] = '\0';
 }
 
 static bool monster_exists(Storage* storage, const char* path) {
@@ -487,41 +499,64 @@ static bool monster_exists(Storage* storage, const char* path) {
     return storage_common_stat(storage, path, &info) == FSE_OK;
 }
 
-static bool monster_format_summary(
-    const PocketMonsterSummary* summary,
-    char* line,
-    size_t size) {
-    int length = snprintf(line, size, "%s|%s|%u|%lu|%u|%u|%s|%s|%s|%s",
-        summary->id, summary->name, summary->cr_eighths, (unsigned long)summary->xp,
-        summary->armor_class, summary->hit_points, summary->type, summary->environment,
-        summary->source, summary->role);
+static bool monster_format_summary(const PocketMonsterSummary* summary, char* line, size_t size) {
+    int length = snprintf(
+        line,
+        size,
+        "%s|%s|%u|%lu|%u|%u|%s|%s|%s|%s",
+        summary->id,
+        summary->name,
+        summary->cr_eighths,
+        (unsigned long)summary->xp,
+        summary->armor_class,
+        summary->hit_points,
+        summary->type,
+        summary->environment,
+        summary->source,
+        summary->role);
     return length > 0 && (size_t)length < size;
 }
 
 static bool monster_write_block_section(File* block, const PocketMonsterDetail* detail) {
     bool ok = true;
     char line[MONSTER_LINE_LEN];
-#define MONSTER_WRITE_FIELD(key, value) do { \
-    int length = snprintf(line, sizeof(line), key "=%s\n", value); \
-    if(length <= 0 || (size_t)length >= sizeof(line) || !monster_write(block, line)) ok = false; \
-} while(false)
+#define MONSTER_WRITE_FIELD(key, value)                                                  \
+    do {                                                                                 \
+        int length = snprintf(line, sizeof(line), key "=%s\n", value);                   \
+        if(length <= 0 || (size_t)length >= sizeof(line) || !monster_write(block, line)) \
+            ok = false;                                                                  \
+    } while(false)
     int header_length = snprintf(line, sizeof(line), "[%s]\n", detail->summary.id);
     ok = header_length > 0 && (size_t)header_length < sizeof(line) && monster_write(block, line);
     if(ok) MONSTER_WRITE_FIELD("Name", detail->summary.name);
     if(ok) {
-        int length = snprintf(line, sizeof(line),
-            "Summary=%u,%lu,%u,%u,%s,%s,%s,%s\n", detail->summary.cr_eighths,
-            (unsigned long)detail->summary.xp, detail->summary.armor_class,
-            detail->summary.hit_points, detail->summary.type, detail->summary.environment,
-            detail->summary.source, detail->summary.role);
+        int length = snprintf(
+            line,
+            sizeof(line),
+            "Summary=%u,%lu,%u,%u,%s,%s,%s,%s\n",
+            detail->summary.cr_eighths,
+            (unsigned long)detail->summary.xp,
+            detail->summary.armor_class,
+            detail->summary.hit_points,
+            detail->summary.type,
+            detail->summary.environment,
+            detail->summary.source,
+            detail->summary.role);
         ok = length > 0 && (size_t)length < sizeof(line) && monster_write(block, line);
     }
     if(ok) MONSTER_WRITE_FIELD("SizeAlignment", detail->size_alignment);
     if(ok) MONSTER_WRITE_FIELD("Speed", detail->speed);
     if(ok) {
-        int length = snprintf(line, sizeof(line), "Abilities=%d,%d,%d,%d,%d,%d\n",
-            detail->abilities[0], detail->abilities[1], detail->abilities[2],
-            detail->abilities[3], detail->abilities[4], detail->abilities[5]);
+        int length = snprintf(
+            line,
+            sizeof(line),
+            "Abilities=%d,%d,%d,%d,%d,%d\n",
+            detail->abilities[0],
+            detail->abilities[1],
+            detail->abilities[2],
+            detail->abilities[3],
+            detail->abilities[4],
+            detail->abilities[5]);
         ok = length > 0 && (size_t)length < sizeof(line) && monster_write(block, line);
     }
     if(ok) MONSTER_WRITE_FIELD("Skills", detail->skills);
@@ -540,9 +575,11 @@ static bool monster_rewrite_index(
     const PocketMonsterSummary* replacement,
     const char* remove_id) {
     File* output = storage_file_alloc(storage);
-    bool ok = storage_file_open(
-                  output, CUSTOM_MONSTER_INDEX_TEMP, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
-        monster_write(output, "# MonsterPack=1\n# id|name|CR eighths|XP|AC|HP|type|environment|source|role\n");
+    bool ok =
+        storage_file_open(output, CUSTOM_MONSTER_INDEX_TEMP, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+        monster_write(
+            output,
+            "# MonsterPack=1\n# id|name|CR eighths|XP|AC|HP|type|environment|source|role\n");
     bool replaced = false;
     File* input = storage_file_alloc(storage);
     if(storage_file_open(input, CUSTOM_MONSTER_INDEX, FSAM_READ, FSOM_OPEN_EXISTING)) {
@@ -581,10 +618,10 @@ static bool monster_rewrite_index(
 
 static bool monster_write_transaction(Storage* storage, const char* action, const char* value) {
     File* file = storage_file_alloc(storage);
-    bool ok = storage_file_open(
-                  file, CUSTOM_MONSTER_TRANSACTION, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
-        monster_write(file, action) && monster_write(file, "|") &&
-        monster_write(file, value) && monster_write(file, "\n");
+    bool ok =
+        storage_file_open(file, CUSTOM_MONSTER_TRANSACTION, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+        monster_write(file, action) && monster_write(file, "|") && monster_write(file, value) &&
+        monster_write(file, "\n");
     storage_file_close(file);
     storage_file_free(file);
     if(!ok) storage_common_remove(storage, CUSTOM_MONSTER_TRANSACTION);
@@ -596,12 +633,11 @@ static bool monster_rewrite_blocks(
     const PocketMonsterDetail* replacement,
     const char* remove_id) {
     File* output = storage_file_alloc(storage);
-    bool ok = storage_file_open(
-        output, CUSTOM_MONSTER_BLOCKS_TEMP, FSAM_WRITE, FSOM_CREATE_ALWAYS);
+    bool ok =
+        storage_file_open(output, CUSTOM_MONSTER_BLOCKS_TEMP, FSAM_WRITE, FSOM_CREATE_ALWAYS);
     File* input = storage_file_alloc(storage);
     bool skip = false;
-    if(ok &&
-       storage_file_open(input, CUSTOM_MONSTER_BLOCKS, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(ok && storage_file_open(input, CUSTOM_MONSTER_BLOCKS, FSAM_READ, FSOM_OPEN_EXISTING)) {
         char line[MONSTER_LINE_LEN];
         MonsterReader reader;
         monster_reader_init(&reader, input);
@@ -630,21 +666,23 @@ static bool monster_publish_pair(Storage* storage) {
     storage_common_remove(storage, CUSTOM_MONSTER_BLOCKS_BACKUP);
     bool index_existed = monster_exists(storage, CUSTOM_MONSTER_INDEX);
     bool blocks_existed = monster_exists(storage, CUSTOM_MONSTER_BLOCKS);
-    bool index_backed_up = !index_existed ||
-        storage_common_rename(
-            storage, CUSTOM_MONSTER_INDEX, CUSTOM_MONSTER_INDEX_BACKUP) == FSE_OK;
-    bool blocks_backed_up = !blocks_existed ||
-        storage_common_rename(
-            storage, CUSTOM_MONSTER_BLOCKS, CUSTOM_MONSTER_BLOCKS_BACKUP) == FSE_OK;
+    bool index_backed_up =
+        !index_existed ||
+        storage_common_rename(storage, CUSTOM_MONSTER_INDEX, CUSTOM_MONSTER_INDEX_BACKUP) ==
+            FSE_OK;
+    bool blocks_backed_up =
+        !blocks_existed ||
+        storage_common_rename(storage, CUSTOM_MONSTER_BLOCKS, CUSTOM_MONSTER_BLOCKS_BACKUP) ==
+            FSE_OK;
     bool index_published = false;
     bool blocks_published = false;
     if(index_backed_up && blocks_backed_up) {
         blocks_published =
-            storage_common_rename(
-                storage, CUSTOM_MONSTER_BLOCKS_TEMP, CUSTOM_MONSTER_BLOCKS) == FSE_OK;
+            storage_common_rename(storage, CUSTOM_MONSTER_BLOCKS_TEMP, CUSTOM_MONSTER_BLOCKS) ==
+            FSE_OK;
         index_published = blocks_published &&
-            storage_common_rename(
-                storage, CUSTOM_MONSTER_INDEX_TEMP, CUSTOM_MONSTER_INDEX) == FSE_OK;
+                          storage_common_rename(
+                              storage, CUSTOM_MONSTER_INDEX_TEMP, CUSTOM_MONSTER_INDEX) == FSE_OK;
     }
     if(index_published && blocks_published) {
         storage_common_remove(storage, CUSTOM_MONSTER_INDEX_BACKUP);
@@ -654,34 +692,34 @@ static bool monster_publish_pair(Storage* storage) {
     if(index_published) storage_common_remove(storage, CUSTOM_MONSTER_INDEX);
     if(blocks_published) storage_common_remove(storage, CUSTOM_MONSTER_BLOCKS);
     if(index_existed && index_backed_up)
-        storage_common_rename(
-            storage, CUSTOM_MONSTER_INDEX_BACKUP, CUSTOM_MONSTER_INDEX);
+        storage_common_rename(storage, CUSTOM_MONSTER_INDEX_BACKUP, CUSTOM_MONSTER_INDEX);
     if(blocks_existed && blocks_backed_up)
-        storage_common_rename(
-            storage, CUSTOM_MONSTER_BLOCKS_BACKUP, CUSTOM_MONSTER_BLOCKS);
+        storage_common_rename(storage, CUSTOM_MONSTER_BLOCKS_BACKUP, CUSTOM_MONSTER_BLOCKS);
     storage_common_remove(storage, CUSTOM_MONSTER_INDEX_TEMP);
     storage_common_remove(storage, CUSTOM_MONSTER_BLOCKS_TEMP);
     return false;
 }
 
 static void monster_sanitize_summary(PocketMonsterSummary* summary) {
-    char* fields[] = {summary->name, summary->type, summary->environment,
-                      summary->source, summary->role};
+    char* fields[] = {
+        summary->name, summary->type, summary->environment, summary->source, summary->role};
     for(size_t field = 0U; field < sizeof(fields) / sizeof(fields[0]); ++field)
         for(char* p = fields[field]; *p; ++p)
             if(*p == '|' || *p == '\n' || *p == '\r') *p = '-';
 }
 
-static bool monster_save_custom_common(
-    Storage* storage,
-    PocketMonsterDetail* detail,
-    bool preserve_id) {
+static bool
+    monster_save_custom_common(Storage* storage, PocketMonsterDetail* detail, bool preserve_id) {
     storage_common_mkdir(storage, APP_ASSETS_PATH("monsters"));
     if(!preserve_id || !detail->summary.id[0]) {
         char base[20];
         monster_safe_id(base, sizeof(base), detail->summary.name);
-        snprintf(detail->summary.id, sizeof(detail->summary.id), "%s_%04lx", base,
-                 (unsigned long)(furi_hal_random_get() & 0xFFFFU));
+        snprintf(
+            detail->summary.id,
+            sizeof(detail->summary.id),
+            "%s_%04lx",
+            base,
+            (unsigned long)(furi_hal_random_get() & 0xFFFFU));
     }
     monster_copy(detail->summary.source, sizeof(detail->summary.source), "Custom");
     if(!detail->summary.role[0])
@@ -714,16 +752,12 @@ bool pocket_monster_delete_custom(Storage* storage, const PocketMonsterSummary* 
     if(!summary || strcmp(summary->source, "Custom")) return false;
     bool ok = monster_write_transaction(storage, "DELETE", summary->id) &&
               monster_rewrite_index(storage, NULL, summary->id) &&
-              monster_rewrite_blocks(storage, NULL, summary->id) &&
-              monster_publish_pair(storage);
+              monster_rewrite_blocks(storage, NULL, summary->id) && monster_publish_pair(storage);
     storage_common_remove(storage, CUSTOM_MONSTER_TRANSACTION);
     return ok;
 }
 
-bool pocket_monster_recover_user_pack(
-    Storage* storage,
-    uint16_t* recovered,
-    uint16_t* rolled_back) {
+bool pocket_monster_recover_user_pack(Storage* storage, uint16_t* recovered, uint16_t* rolled_back) {
     *recovered = 0U;
     *rolled_back = 0U;
     bool pending = monster_exists(storage, CUSTOM_MONSTER_TRANSACTION);
@@ -731,9 +765,9 @@ bool pocket_monster_recover_user_pack(
     bool blocks_backup = monster_exists(storage, CUSTOM_MONSTER_BLOCKS_BACKUP);
     if(!pending && !index_backup && !blocks_backup) return true;
     bool publish_complete = pending && monster_exists(storage, CUSTOM_MONSTER_INDEX) &&
-        monster_exists(storage, CUSTOM_MONSTER_BLOCKS) &&
-        !monster_exists(storage, CUSTOM_MONSTER_INDEX_TEMP) &&
-        !monster_exists(storage, CUSTOM_MONSTER_BLOCKS_TEMP);
+                            monster_exists(storage, CUSTOM_MONSTER_BLOCKS) &&
+                            !monster_exists(storage, CUSTOM_MONSTER_INDEX_TEMP) &&
+                            !monster_exists(storage, CUSTOM_MONSTER_BLOCKS_TEMP);
     if(publish_complete) {
         storage_common_remove(storage, CUSTOM_MONSTER_INDEX_BACKUP);
         storage_common_remove(storage, CUSTOM_MONSTER_BLOCKS_BACKUP);
@@ -743,14 +777,14 @@ bool pocket_monster_recover_user_pack(
     }
     if(index_backup) {
         storage_common_remove(storage, CUSTOM_MONSTER_INDEX);
-        if(storage_common_rename(
-               storage, CUSTOM_MONSTER_INDEX_BACKUP, CUSTOM_MONSTER_INDEX) == FSE_OK)
+        if(storage_common_rename(storage, CUSTOM_MONSTER_INDEX_BACKUP, CUSTOM_MONSTER_INDEX) ==
+           FSE_OK)
             ++*rolled_back;
     }
     if(blocks_backup) {
         storage_common_remove(storage, CUSTOM_MONSTER_BLOCKS);
-        if(storage_common_rename(
-               storage, CUSTOM_MONSTER_BLOCKS_BACKUP, CUSTOM_MONSTER_BLOCKS) == FSE_OK)
+        if(storage_common_rename(storage, CUSTOM_MONSTER_BLOCKS_BACKUP, CUSTOM_MONSTER_BLOCKS) ==
+           FSE_OK)
             ++*rolled_back;
     }
     if(!index_backup && !monster_exists(storage, CUSTOM_MONSTER_INDEX))
@@ -770,9 +804,7 @@ typedef struct {
     const char* environment;
 } MonsterGenerateFilter;
 
-static bool monster_generate_filter(
-    const PocketMonsterSummary* candidate,
-    void* context) {
+static bool monster_generate_filter(const PocketMonsterSummary* candidate, void* context) {
     const MonsterGenerateFilter* filter = context;
     if(candidate->xp > filter->budget) return false;
     if(filter->environment && strcmp(filter->environment, "Any") &&
@@ -795,9 +827,7 @@ typedef struct {
     uint32_t spent;
 } MonsterEncounterPlan;
 
-static int8_t monster_plan_find(
-    const MonsterEncounterPlan* plan,
-    uint8_t candidate_index) {
+static int8_t monster_plan_find(const MonsterEncounterPlan* plan, uint8_t candidate_index) {
     for(uint8_t i = 0U; i < plan->count; ++i)
         if(plan->candidates[i] == candidate_index) return (int8_t)i;
     return -1;
@@ -838,7 +868,9 @@ bool pocket_monster_generate(
     PocketMonsterEncounter* output) {
     memset(output, 0, sizeof(*output));
     output->budget = pocket_monster_xp_budget(party_level, party_size, difficulty);
-    enum { MonsterCandidateWindow = 16U };
+    enum {
+        MonsterCandidateWindow = 16U
+    };
     PocketMonsterSummary* candidates =
         malloc(MonsterCandidateWindow * sizeof(PocketMonsterSummary));
     if(!candidates) return false;
@@ -883,10 +915,11 @@ bool pocket_monster_generate(
         }
         if(plan.spent > best.spent) best = plan;
     }
-    uint32_t lower_budget = difficulty > PocketEncounterLow ?
-        pocket_monster_xp_budget(
-            party_level, party_size, (PocketEncounterDifficulty)(difficulty - 1U)) :
-        0U;
+    uint32_t lower_budget =
+        difficulty > PocketEncounterLow ?
+            pocket_monster_xp_budget(
+                party_level, party_size, (PocketEncounterDifficulty)(difficulty - 1U)) :
+            0U;
     if(!best.count || (difficulty > PocketEncounterLow && best.spent <= lower_budget)) {
         free(candidates);
         return false;

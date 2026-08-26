@@ -57,26 +57,20 @@ int16_t pocket_d20_carrying_capacity(const PocketCharacter* character);
 uint8_t pocket_d20_attuned_count(const PocketCharacter* character);
 int16_t pocket_d20_calculated_armor_class(const PocketCharacter* character);
 void pocket_d20_normalize_currency(PocketCharacter* character);
-int16_t pocket_d20_feature_max_uses(const PocketCharacter* character, const PocketFeature* feature);
+int16_t
+    pocket_d20_feature_max_uses(const PocketCharacter* character, const PocketFeature* feature);
 int8_t pocket_d20_weapon_ability(const PocketCharacter* character, const PocketItem* item);
-int8_t pocket_d20_weapon_attack_modifier(
-    const PocketCharacter* character,
-    const PocketItem* item);
+int8_t pocket_d20_weapon_attack_modifier(const PocketCharacter* character, const PocketItem* item);
 
 uint16_t pocket_d20_roll_dice(uint8_t count, uint8_t sides);
-uint16_t pocket_d20_roll_dice_values(
-    uint8_t count,
-    uint8_t sides,
-    uint8_t* values,
-    uint8_t capacity);
+uint16_t
+    pocket_d20_roll_dice_values(uint8_t count, uint8_t sides, uint8_t* values, uint8_t capacity);
 PocketAttackRoll pocket_d20_roll_attack(
     const PocketCharacter* character,
     const PocketItem* item,
     PocketRollMode mode);
-PocketDamageRoll pocket_d20_roll_damage(
-    const PocketCharacter* character,
-    const PocketItem* item,
-    bool critical);
+PocketDamageRoll
+    pocket_d20_roll_damage(const PocketCharacter* character, const PocketItem* item, bool critical);
 
 void pocket_d20_short_rest(PocketCharacter* character);
 int16_t pocket_d20_spend_hit_die(PocketCharacter* character, uint8_t* die_roll);

@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <storage/storage.h>
 
-#define POCKET_MONSTER_ID_LEN 32U
-#define POCKET_MONSTER_NAME_LEN 40U
-#define POCKET_MONSTER_TEXT_LEN 192U
+#define POCKET_MONSTER_ID_LEN        32U
+#define POCKET_MONSTER_NAME_LEN      40U
+#define POCKET_MONSTER_TEXT_LEN      192U
 #define POCKET_MONSTER_ENCOUNTER_MAX 12U
-#define POCKET_MONSTER_PACK_VERSION 1U
+#define POCKET_MONSTER_PACK_VERSION  1U
 
 enum {
     PocketMonsterFieldSize = 1U << 0,
@@ -98,14 +98,14 @@ uint16_t pocket_monster_sample(
     PocketMonsterSummary* output,
     uint16_t capacity,
     uint16_t* total_matches);
-bool pocket_monster_load(Storage* storage, const PocketMonsterSummary* summary, PocketMonsterDetail* output);
+bool pocket_monster_load(
+    Storage* storage,
+    const PocketMonsterSummary* summary,
+    PocketMonsterDetail* output);
 bool pocket_monster_save_custom(Storage* storage, PocketMonsterDetail* detail);
 bool pocket_monster_update_custom(Storage* storage, PocketMonsterDetail* detail);
 bool pocket_monster_delete_custom(Storage* storage, const PocketMonsterSummary* summary);
-bool pocket_monster_recover_user_pack(
-    Storage* storage,
-    uint16_t* recovered,
-    uint16_t* rolled_back);
+bool pocket_monster_recover_user_pack(Storage* storage, uint16_t* recovered, uint16_t* rolled_back);
 void pocket_monster_pack_versions(
     Storage* storage,
     uint8_t* bundled_version,

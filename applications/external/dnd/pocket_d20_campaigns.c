@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CAMPAIGN_BUNDLED_INDEX APP_ASSETS_PATH("campaigns/index.txt")
-#define CAMPAIGN_USER_INDEX APP_ASSETS_PATH("campaigns/custom_index.txt")
+#define CAMPAIGN_BUNDLED_INDEX  APP_ASSETS_PATH("campaigns/index.txt")
+#define CAMPAIGN_USER_INDEX     APP_ASSETS_PATH("campaigns/custom_index.txt")
 #define CAMPAIGN_BUNDLED_SCENES APP_ASSETS_PATH("campaigns/%s/%s")
-#define CAMPAIGN_USER_SCENES APP_ASSETS_PATH("campaigns/custom_%s/%s")
-#define CAMPAIGN_LINE_LEN 512U
-#define CAMPAIGN_MAX_SCENES 64U
+#define CAMPAIGN_USER_SCENES    APP_ASSETS_PATH("campaigns/custom_%s/%s")
+#define CAMPAIGN_LINE_LEN       512U
+#define CAMPAIGN_MAX_SCENES     64U
 
 static void campaign_copy(char* out, size_t size, const char* value) {
     if(!size) return;
@@ -55,8 +55,7 @@ static bool campaign_parse(char* line, bool bundled, PocketCampaignSummary* outp
     campaign_copy(output->entry_scene, sizeof(output->entry_scene), fields[5]);
     campaign_copy(output->scenes_file, sizeof(output->scenes_file), fields[6]);
     output->bundled = bundled ? 1U : 0U;
-    return output->id[0] && output->name[0] && output->entry_scene[0] &&
-           output->scenes_file[0];
+    return output->id[0] && output->name[0] && output->entry_scene[0] && output->scenes_file[0];
 }
 
 static uint16_t campaign_count_path(Storage* storage, const char* path, bool bundled) {
@@ -108,8 +107,8 @@ uint16_t pocket_campaign_count(Storage* storage) {
 bool pocket_campaign_at(Storage* storage, uint16_t index, PocketCampaignSummary* output) {
     uint16_t bundled = campaign_count_path(storage, CAMPAIGN_BUNDLED_INDEX, true);
     return index < bundled ?
-        campaign_at_path(storage, CAMPAIGN_BUNDLED_INDEX, true, index, output) :
-        campaign_at_path(storage, CAMPAIGN_USER_INDEX, false, index - bundled, output);
+               campaign_at_path(storage, CAMPAIGN_BUNDLED_INDEX, true, index, output) :
+               campaign_at_path(storage, CAMPAIGN_USER_INDEX, false, index - bundled, output);
 }
 
 bool pocket_campaign_find(Storage* storage, const char* id, PocketCampaignSummary* output) {
@@ -139,8 +138,13 @@ static void campaign_progress_path(
     uint32_t profile_id,
     const char* campaign_id,
     const char* suffix) {
-    snprintf(output, size, APP_ASSETS_PATH("campaigns/custom_progress_%08lx_%s.%s"),
-             (unsigned long)profile_id, campaign_id, suffix);
+    snprintf(
+        output,
+        size,
+        APP_ASSETS_PATH("campaigns/custom_progress_%08lx_%s.%s"),
+        (unsigned long)profile_id,
+        campaign_id,
+        suffix);
 }
 
 bool pocket_campaign_progress_save(
@@ -155,17 +159,22 @@ bool pocket_campaign_progress_save(
     campaign_progress_path(backup, sizeof(backup), profile_id, campaign->id, "bak");
     File* file = storage_file_alloc(storage);
     bool ok = storage_file_open(file, temp, FSAM_WRITE, FSOM_CREATE_ALWAYS);
-#define CAMPAIGN_WRITE(...) do { \
-    int length = snprintf(line, sizeof(line), __VA_ARGS__); \
-    if(length <= 0 || (size_t)length >= sizeof(line) || \
-       storage_file_write(file, line, (size_t)length) != (size_t)length) ok = false; \
-} while(false)
+#define CAMPAIGN_WRITE(...)                                                  \
+    do {                                                                     \
+        int length = snprintf(line, sizeof(line), __VA_ARGS__);              \
+        if(length <= 0 || (size_t)length >= sizeof(line) ||                  \
+           storage_file_write(file, line, (size_t)length) != (size_t)length) \
+            ok = false;                                                      \
+    } while(false)
     if(ok) CAMPAIGN_WRITE("CampaignProgress=1\n");
     if(ok) CAMPAIGN_WRITE("Campaign=%s\n", campaign->id);
     if(ok) CAMPAIGN_WRITE("Scene=%s\n", character->adventure_scene);
     if(ok) CAMPAIGN_WRITE("Checkpoint=%s\n", character->adventure_checkpoint);
-    if(ok) CAMPAIGN_WRITE("Flags=%lu,%lu\n", (unsigned long)character->adventure_quest_flags,
-                           (unsigned long)character->adventure_achievements);
+    if(ok)
+        CAMPAIGN_WRITE(
+            "Flags=%lu,%lu\n",
+            (unsigned long)character->adventure_quest_flags,
+            (unsigned long)character->adventure_achievements);
 #undef CAMPAIGN_WRITE
     storage_file_close(file);
     storage_file_free(file);
@@ -188,9 +197,14 @@ bool pocket_campaign_progress_load(
     uint32_t profile_id,
     const PocketCampaignSummary* campaign,
     PocketCharacter* character) {
-    campaign_copy(character->adventure_campaign, sizeof(character->adventure_campaign), campaign->id);
-    campaign_copy(character->adventure_scene, sizeof(character->adventure_scene), campaign->entry_scene);
-    campaign_copy(character->adventure_checkpoint, sizeof(character->adventure_checkpoint), campaign->entry_scene);
+    campaign_copy(
+        character->adventure_campaign, sizeof(character->adventure_campaign), campaign->id);
+    campaign_copy(
+        character->adventure_scene, sizeof(character->adventure_scene), campaign->entry_scene);
+    campaign_copy(
+        character->adventure_checkpoint,
+        sizeof(character->adventure_checkpoint),
+        campaign->entry_scene);
     character->adventure_quest_flags = 0U;
     character->adventure_achievements = 0U;
     char path[192];
@@ -205,10 +219,11 @@ bool pocket_campaign_progress_load(
         char* value = strchr(line, '=');
         if(!value) continue;
         *value++ = '\0';
-        if(!strcmp(line, "Scene")) campaign_copy(character->adventure_scene,
-            sizeof(character->adventure_scene), value);
-        else if(!strcmp(line, "Checkpoint")) campaign_copy(character->adventure_checkpoint,
-            sizeof(character->adventure_checkpoint), value);
+        if(!strcmp(line, "Scene"))
+            campaign_copy(character->adventure_scene, sizeof(character->adventure_scene), value);
+        else if(!strcmp(line, "Checkpoint"))
+            campaign_copy(
+                character->adventure_checkpoint, sizeof(character->adventure_checkpoint), value);
         else if(!strcmp(line, "Flags")) {
             unsigned long quests = 0U, achievements = 0U;
             if(sscanf(value, "%lu,%lu", &quests, &achievements) == 2) {
@@ -222,16 +237,16 @@ bool pocket_campaign_progress_load(
     return true;
 }
 
-static bool campaign_scene_present(char (*ids)[POCKET_D20_SHORT_LEN], uint8_t count, const char* id) {
+static bool
+    campaign_scene_present(char (*ids)[POCKET_D20_SHORT_LEN], uint8_t count, const char* id) {
     if(!id[0] || !strcmp(id, "-")) return true;
-    for(uint8_t i = 0U; i < count; ++i) if(!strcmp(ids[i], id)) return true;
+    for(uint8_t i = 0U; i < count; ++i)
+        if(!strcmp(ids[i], id)) return true;
     return false;
 }
 
-static void campaign_note_problem(
-    PocketCampaignDiagnostics* output,
-    const char* id,
-    const char* problem) {
+static void
+    campaign_note_problem(PocketCampaignDiagnostics* output, const char* id, const char* problem) {
     if(output->problem_id[0]) return;
     campaign_copy(output->problem_id, sizeof(output->problem_id), id);
     campaign_copy(output->problem, sizeof(output->problem), problem);
@@ -305,7 +320,8 @@ void pocket_campaign_diagnose(Storage* storage, PocketCampaignDiagnostics* outpu
         }
         for(uint16_t prior = 0U; prior < i; ++prior) {
             PocketCampaignSummary previous;
-            if(pocket_campaign_at(storage, prior, &previous) && !strcmp(previous.id, campaign.id)) {
+            if(pocket_campaign_at(storage, prior, &previous) &&
+               !strcmp(previous.id, campaign.id)) {
                 ++output->duplicate_campaign_ids;
                 campaign_note_problem(output, campaign.id, "Duplicate campaign ID");
                 break;

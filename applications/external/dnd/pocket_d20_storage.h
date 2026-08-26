@@ -42,11 +42,5 @@ bool pocket_d20_storage_duplicate_profile(Storage* storage, uint32_t source, uin
 bool pocket_d20_storage_export_profile(Storage* storage, uint32_t profile);
 bool pocket_d20_storage_archive_profile(Storage* storage, uint32_t profile);
 bool pocket_d20_storage_verify_profile(Storage* storage, uint32_t profile);
-bool pocket_d20_storage_restore_backup(
-    Storage* storage,
-    uint32_t profile,
-    PocketSaveData* data);
-bool pocket_d20_storage_import_first(
-    Storage* storage,
-    uint32_t destination,
-    PocketSaveData* data);
+bool pocket_d20_storage_restore_backup(Storage* storage, uint32_t profile, PocketSaveData* data);
+bool pocket_d20_storage_import_first(Storage* storage, uint32_t destination, PocketSaveData* data);

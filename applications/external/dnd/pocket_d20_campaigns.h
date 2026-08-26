@@ -7,8 +7,8 @@
 #include <storage/storage.h>
 
 #define POCKET_CAMPAIGN_PACK_VERSION 1U
-#define POCKET_CAMPAIGN_APP_VERSION 205U
-#define POCKET_CAMPAIGN_ID_LEN 32U
+#define POCKET_CAMPAIGN_APP_VERSION  205U
+#define POCKET_CAMPAIGN_ID_LEN       32U
 
 typedef struct {
     char id[POCKET_CAMPAIGN_ID_LEN];
