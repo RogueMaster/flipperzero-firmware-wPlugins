@@ -5,10 +5,10 @@
 #include <gui/view_dispatcher.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/text_box.h>
-#include <gui/modules/text_input.h>
 #include <gui/modules/variable_item_list.h>
 
 #include "api/flipper_http.h"
+#include "utils/api_text_input.h"
 #include "utils/locale.h"
 #include "utils/long_text_view.h"
 
@@ -94,7 +94,7 @@ struct AppContext {
     VariableItemList* var_item_list_wifi; // WiFi menu
     VariableItemList* var_item_list_call; // Call add/edit form
     Submenu* submenu; // WiFi scan results
-    TextInput* text_input; // WiFi password input
+    ApiTextInput* text_input; // Text input with extended keyboard
     LongTextView* long_text_view; // Scrollable view for long responses
     TextBox* text_box; // Shared placeholder/status for stub scenes
 

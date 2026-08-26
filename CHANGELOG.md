@@ -96,11 +96,10 @@ ___
 
 ## [Unreleased]
 
-- **0.1.4** (remaining): stack profiling, loaders and feedback, optimization
-  and fixes, about scene
+- **0.1.4** (remaining): extended keyboard with symbols (based on
+  [UART Terminal](https://github.com/cool4uma/UART_Terminal), MIT), stack
+  profiling, loaders and feedback, optimization and fixes, about scene
 - **0.1.5**: settings (languages, log path...) + API client usability
-  - Extended custom keyboard (symbols page: `:` `/` `.` etc.) for URL,
-    headers and body fields
   - Key-value headers editor and body type selection
     (JSON / form-urlencoded / raw)
   - Auth helpers: Basic auth, Bearer token / API key stored per call

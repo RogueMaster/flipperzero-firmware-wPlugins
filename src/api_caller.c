@@ -10,6 +10,7 @@
 #include "scenes/scene_call_add.h"
 #include "scenes/scene_call_list.h"
 #include "scenes/scene_call_detail.h"
+#include "utils/api_text_input.h"
 #include "utils/wifi_history.h"
 #include "utils/call_history.h"
 #include "utils/logger.h"
@@ -123,10 +124,10 @@ static AppContext* api_caller_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, ApiCallerViewWifiScan, submenu_get_view(app->submenu));
 
-    // WiFi password input view
-    app->text_input = text_input_alloc();
+    // Extended keyboard text input view
+    app->text_input = api_text_input_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, ApiCallerViewTextInput, text_input_get_view(app->text_input));
+        app->view_dispatcher, ApiCallerViewTextInput, api_text_input_get_view(app->text_input));
 
     // Shared TextBox used by stub scenes
     app->text_box = text_box_alloc();
@@ -183,7 +184,7 @@ static void api_caller_app_free(AppContext* app) {
     variable_item_list_free(app->var_item_list_wifi);
     variable_item_list_free(app->var_item_list_call);
     submenu_free(app->submenu);
-    text_input_free(app->text_input);
+    api_text_input_free(app->text_input);
     text_box_free(app->text_box);
     long_text_view_free(app->long_text_view);
 

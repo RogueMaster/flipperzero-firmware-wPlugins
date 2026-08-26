@@ -62,6 +62,7 @@ ufbt launch   # deploy and run on a connected Flipper
     ├── wifi/
     │   └── wifi_manager.c/h   # FlipperHTTP wrapper (UART, scan, connect, status)
     └── utils/
+        ├── api_text_input.c/h # Extended keyboard (UART Terminal, MIT)
         ├── wifi_history.c/h   # Saved networks (FlipperFormat)
         ├── call_history.c/h   # Saved API calls (FlipperFormat)
         ├── long_text_view.c/h # Custom scrollable text view
@@ -91,6 +92,7 @@ response display, `debug.log` logging, error and timeout handling.
 ### 0.1.4 - Optimization and UI
 
 - Icons and assets
+- Extended keyboard with symbols (based on UART Terminal, MIT)
 - Stack profiling (`top`, `free`)
 - Loaders and user feedback where needed
 - Hardware testing, documentation and release
@@ -118,3 +120,10 @@ response display, `debug.log` logging, error and timeout handling.
 - [uFBT](https://github.com/flipperdevices/flipperzero-ufbt)
 - [FlipperHTTP](https://github.com/jblanked/FlipperHTTP)
 - Project template: [flipper_zero_template](https://github.com/gemisis/flipper_zero_template)
+
+## Acknowledgments
+
+- Extended keyboard (planned for 0.1.5): based on the custom keyboard of
+  [UART Terminal](https://github.com/cool4uma/UART_Terminal) by
+  [cool4uma](https://github.com/cool4uma) (MIT license) — symbols page with
+  long-press characters, derived from the stock Flipper text input.
