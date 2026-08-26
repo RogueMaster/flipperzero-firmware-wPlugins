@@ -160,7 +160,8 @@ static void subghz_scene_add_to_history_callback(
         subghz->idx_menu_chosen = subghz_view_receiver_get_idx_menu(subghz->subghz_receiver);
     }
 
-    if(subghz_history_add_to_history(history, decoder_base, &preset)) {
+    if(subghz_history_add_to_history(
+           history, decoder_base, &preset, subghz_txrx_get_air_time_ms(subghz->txrx))) {
         furi_string_reset(item_name);
         furi_string_reset(item_time);
 
@@ -194,13 +195,6 @@ static void subghz_scene_add_to_history_callback(
                     subghz_rx_key_state_set(subghz, SubGhzRxKeyStateStart);
                 }
             }
-        }
-        if(subghz_history_add_to_history(
-               history, decoder_base, &preset, subghz_txrx_get_air_time_ms(subghz->txrx))) {
-            furi_string_reset(item_name);
-            furi_string_reset(item_time);
-
-            subghz->state_notifications = SubGhzNotificationStateRxDone;
 
             subghz_history_get_text_item_menu(history, item_name, idx);
             subghz_history_get_time_item_menu(history, item_time, idx);
