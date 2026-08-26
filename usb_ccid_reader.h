@@ -17,7 +17,7 @@
 #define SEADER_CCID_MAX_RESP 272u
 // Max CCID message length (advertised as dwMaxCCIDMessageLength), both
 // directions = 10-byte header + response body.
-#define SEADER_CCID_MSG_MAX (10u + SEADER_CCID_MAX_RESP)
+#define SEADER_CCID_MSG_MAX  (10u + SEADER_CCID_MAX_RESP)
 
 typedef struct {
     uint16_t vid;
@@ -30,7 +30,8 @@ typedef struct {
 
     // Relay one APDU to the SAM. Must always fill `resp`/`*resp_len` (e.g. 6F00
     // on failure) and may block until the SAM answers. Returns true on success.
-    bool (*xfr)(void* ctx, const uint8_t* apdu, uint16_t apdu_len, uint8_t* resp, uint16_t* resp_len);
+    bool (
+        *xfr)(void* ctx, const uint8_t* apdu, uint16_t apdu_len, uint8_t* resp, uint16_t* resp_len);
 
     void* ctx;
 } SeaderCcidReaderConfig;

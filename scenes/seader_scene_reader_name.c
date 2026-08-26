@@ -44,8 +44,8 @@ bool seader_scene_reader_name_on_event(void* context, SceneManagerEvent event) {
                     seader->reader_manuf_edit,
                     seader->reader_manufacturer,
                     SEADER_READER_NAME_MAX) != 0 ||
-                strncmp(seader->reader_name_edit, seader->reader_product, SEADER_READER_NAME_MAX) !=
-                    0;
+                strncmp(
+                    seader->reader_name_edit, seader->reader_product, SEADER_READER_NAME_MAX) != 0;
             if(changed) {
                 seader->reader_pid++;
                 if(seader->reader_pid == 0) {
@@ -53,9 +53,7 @@ bool seader_scene_reader_name_on_event(void* context, SceneManagerEvent event) {
                 }
             }
             strlcpy(
-                seader->reader_manufacturer,
-                seader->reader_manuf_edit,
-                SEADER_READER_NAME_MAX);
+                seader->reader_manufacturer, seader->reader_manuf_edit, SEADER_READER_NAME_MAX);
             strlcpy(seader->reader_product, seader->reader_name_edit, SEADER_READER_NAME_MAX);
             seader_reader_settings_save(seader);
             scene_manager_search_and_switch_to_previous_scene(

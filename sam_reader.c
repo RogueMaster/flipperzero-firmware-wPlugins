@@ -26,8 +26,8 @@ static const char* seader_reader_cfg_header = "Seader USB Reader";
 static const uint32_t seader_reader_cfg_version = 1;
 
 /* Grace SAM ATR used only if the live ATR was not captured. */
-static const uint8_t SEADER_READER_FALLBACK_ATR[] = {
-    0x3b, 0x95, 0x96, 0x80, 0xb1, 0xfe, 0x55, 0x1f, 0xc7, 0x47, 0x72, 0x61, 0x63, 0x65, 0x13};
+static const uint8_t SEADER_READER_FALLBACK_ATR[] =
+    {0x3b, 0x95, 0x96, 0x80, 0xb1, 0xfe, 0x55, 0x1f, 0xc7, 0x47, 0x72, 0x61, 0x63, 0x65, 0x13};
 
 struct SeaderReader {
     SeaderReaderConfig cfg;
@@ -72,7 +72,8 @@ void seader_reader_settings_load(Seader* seader) {
            version != seader_reader_cfg_version)
             break;
         if(flipper_format_read_string(file, "Manufacturer", tmp)) {
-            strlcpy(seader->reader_manufacturer, furi_string_get_cstr(tmp), SEADER_READER_NAME_MAX);
+            strlcpy(
+                seader->reader_manufacturer, furi_string_get_cstr(tmp), SEADER_READER_NAME_MAX);
         }
         if(flipper_format_read_string(file, "Product", tmp)) {
             strlcpy(seader->reader_product, furi_string_get_cstr(tmp), SEADER_READER_NAME_MAX);
@@ -96,8 +97,7 @@ void seader_reader_settings_save(Seader* seader) {
         if(!flipper_format_write_header_cstr(
                file, seader_reader_cfg_header, seader_reader_cfg_version))
             break;
-        if(!flipper_format_write_string_cstr(
-               file, "Manufacturer", seader->reader_manufacturer))
+        if(!flipper_format_write_string_cstr(file, "Manufacturer", seader->reader_manufacturer))
             break;
         if(!flipper_format_write_string_cstr(file, "Product", seader->reader_product)) break;
         uint32_t pid = seader->reader_pid;
@@ -111,9 +111,26 @@ void seader_reader_settings_save(Seader* seader) {
 
 /* Called from the USB gadget on ICC power-on (USB thread). */
 /* Grace getSamVersion single-shot, used as a sacrificial warm-up. */
-static const uint8_t SEADER_READER_WARMUP[] = {0xA0, 0xDA, 0x02, 0x63, 0x00, 0x00, 0x0A, 0x44, 0x0A,
-                                               0x44, 0x00, 0x00, 0x00, 0xA0, 0x02, 0x82, 0x00, 0x00,
-                                               0x00};
+static const uint8_t SEADER_READER_WARMUP[] = {
+    0xA0,
+    0xDA,
+    0x02,
+    0x63,
+    0x00,
+    0x00,
+    0x0A,
+    0x44,
+    0x0A,
+    0x44,
+    0x00,
+    0x00,
+    0x00,
+    0xA0,
+    0x02,
+    0x82,
+    0x00,
+    0x00,
+    0x00};
 
 static void seader_reader_get_atr(void* ctx, uint8_t* atr, uint16_t* atr_len) {
     Seader* seader = ctx;
@@ -228,7 +245,8 @@ static bool seader_reader_relay_once(
         *out_len = n;
         ok = true;
     } else {
-        seader_trace("Reader", "SAM RX none/short st=%d len=%lu", st, (unsigned long)reader->resp_len);
+        seader_trace(
+            "Reader", "SAM RX none/short st=%d len=%lu", st, (unsigned long)reader->resp_len);
     }
     furi_mutex_release(reader->lock);
     return ok;
@@ -260,7 +278,13 @@ static bool seader_reader_xfr(
 
     uint16_t total = 0;
     if(!seader_reader_relay_once(
-           seader, reader, apdu, apdu_len, resp, SEADER_CCID_MAX_RESP, &total,
+           seader,
+           reader,
+           apdu,
+           apdu_len,
+           resp,
+           SEADER_CCID_MAX_RESP,
+           &total,
            SEADER_READER_TIMEOUT_MS)) {
         FURI_LOG_W(TAG, "SAM relay timeout/short");
         resp[0] = 0x6F;
@@ -275,7 +299,8 @@ static bool seader_reader_xfr(
     while(total >= 2 && resp[total - 2] == 0x61 && guard++ < 16) {
         uint8_t le = resp[total - 1];
         total -= 2; /* strip the 61xx SW; keep any leading data */
-        uint16_t cap = (total < SEADER_CCID_MAX_RESP) ? (uint16_t)(SEADER_CCID_MAX_RESP - total) : 0;
+        uint16_t cap = (total < SEADER_CCID_MAX_RESP) ? (uint16_t)(SEADER_CCID_MAX_RESP - total) :
+                                                        0;
         if(cap < 2) break;
         uint8_t get_response[5] = {0x00, 0xC0, 0x00, 0x00, le};
         uint16_t got = 0;

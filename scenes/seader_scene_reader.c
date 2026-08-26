@@ -9,8 +9,7 @@ static void seader_scene_reader_render(Seader* seader) {
     }
     widget_reset(widget);
 
-    widget_add_string_element(
-        widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "USB SAM Reader");
+    widget_add_string_element(widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "USB SAM Reader");
 
     char line[48];
 

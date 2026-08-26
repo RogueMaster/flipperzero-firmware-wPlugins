@@ -237,7 +237,8 @@ static void ccid_send_slot_status(uint8_t seq) {
     ccid_send(p, 10);
 }
 
-static void ccid_send_parameters(uint8_t seq, uint8_t proto, const uint8_t* params, uint8_t nparams) {
+static void
+    ccid_send_parameters(uint8_t seq, uint8_t proto, const uint8_t* params, uint8_t nparams) {
     if(nparams > 7) nparams = 7;
     uint8_t* p = g_ccid->tx_buf;
     p[0] = RDR_TO_PC_PARAMETERS; /* 0x82 */

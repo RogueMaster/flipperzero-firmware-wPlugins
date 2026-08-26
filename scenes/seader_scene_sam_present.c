@@ -92,9 +92,9 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(seader->sam_present_menu_guard_active &&
            (event.event == SubmenuIndexRead || event.event == SubmenuIndexSaved ||
-            event.event == SubmenuIndexReaderEmulation ||
-            event.event == SubmenuIndexReaderName || event.event == SubmenuIndexAPDURunner ||
-            event.event == SubmenuIndexReadConfigCard || event.event == SubmenuIndexSamInfo)) {
+            event.event == SubmenuIndexReaderEmulation || event.event == SubmenuIndexReaderName ||
+            event.event == SubmenuIndexAPDURunner || event.event == SubmenuIndexReadConfigCard ||
+            event.event == SubmenuIndexSamInfo)) {
             seader->sam_present_menu_guard_active = false;
             consumed = true;
         } else if(event.event == SubmenuIndexRead) {
