@@ -13,6 +13,14 @@ ___
   (default English, file created on first launch); every UI string now goes
   through `locale_get`
 
+### Fixed
+
+- Saved networks not shown after restart: `wifi_history_load` stopped
+  restoring the SSID into the history entries (nameless ghost items that
+  froze the UI when selected), empty passwords are now correctly mapped back
+  from the `-` placeholder, corrupted empty-SSID entries are skipped on load,
+  and connecting with an empty SSID is rejected early
+
 ## [0.1.3] - 2026-08-25
 
 ### Added
