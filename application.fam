@@ -8,7 +8,7 @@ App(
     stack_size=6 * 1024,
     fap_category="GPIO",
     # Optional values
-    fap_version="1.0",
+    fap_version="1.1",
     fap_icon="uhf_icon.png",  # 10x10 1-bit PNG
     fap_description="UHF RFID inventory reader over GPIO UART",
     fap_author="MTools Tec",

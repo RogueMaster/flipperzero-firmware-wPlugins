@@ -8,6 +8,7 @@ connecting a compatible UHF RFID module through the GPIO UART bridge.
 - Fast real-time EPC inventory with unique-tag and read-rate counters.
 - Radar, counter, and paged EPC list views.
 - Tag details with EPC, RSSI, protocol control data, and read count.
+- Read and write EPC, TID, and User memory on compatible changeable tags.
 - Reader temperature and output-power telemetry.
 - Optional audible feedback when a tag is detected.
 - CSV export to the application's data directory.
