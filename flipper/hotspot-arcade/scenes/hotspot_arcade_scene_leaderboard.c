@@ -1,10 +1,17 @@
 #include "../hotspot_arcade_i.h"
 #include "../helpers/ha_session.h"
 
-#define LB_ROWS 6
+// The screen is 64px tall and rows are 8px, so this is what actually fits under the header.
+// It used to be 6 against a roster of HA_MAX_PLAYERS, which silently dropped players 7-12
+// off the bottom of a full room with no hint that they existed.
+#define LB_ROWS 7
 
 static void ha_leaderboard_render(HotspotArcadeApp* app) {
     widget_reset(app->widget);
+    // Ranked on the EVENING (total), not the current game. Each game scores on its own
+    // scale -- a trivia session runs to five figures, a werewolf win pays 1 -- so ranking
+    // this screen on the per-game score made it a trivia leaderboard with other games'
+    // players mixed in. The game's own number still shows, dimmer, in the middle column.
     widget_add_string_element(app->widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Leaderboard");
     widget_add_line_element(app->widget, 0, 12, 127, 12);
 
@@ -24,31 +31,33 @@ static void ha_leaderboard_render(HotspotArcadeApp* app) {
     for(int r = 0; r < shown; r++) {
         int best = r;
         for(int j = r + 1; j < n; j++)
-            if(app->players[idx[j]].score > app->players[idx[best]].score) best = j;
+            if(app->players[idx[j]].total > app->players[idx[best]].total) best = j;
         int t = idx[r];
         idx[r] = idx[best];
         idx[best] = t;
 
         HaPlayer* p = &app->players[idx[r]];
         FuriString* row = furi_string_alloc();
+        int y = 15 + r * 8;
         furi_string_printf(row, "%d. %s", r + 1, p->nick);
         widget_add_string_element(
-            app->widget,
-            0,
-            15 + r * 8,
-            AlignLeft,
-            AlignTop,
-            FontSecondary,
-            furi_string_get_cstr(row));
-        furi_string_printf(row, "%ld", (long)p->score);
+            app->widget, 0, y, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(row));
+        // This game's own score, parked left of the total so the two never run together.
+        // Blank while it is zero, which is every player between games.
+        if(p->score) {
+            furi_string_printf(row, "%ld", (long)p->score);
+            widget_add_string_element(
+                app->widget,
+                100,
+                y,
+                AlignRight,
+                AlignTop,
+                FontSecondary,
+                furi_string_get_cstr(row));
+        }
+        furi_string_printf(row, "%ld", (long)p->total);
         widget_add_string_element(
-            app->widget,
-            127,
-            15 + r * 8,
-            AlignRight,
-            AlignTop,
-            FontSecondary,
-            furi_string_get_cstr(row));
+            app->widget, 127, y, AlignRight, AlignTop, FontSecondary, furi_string_get_cstr(row));
         furi_string_free(row);
     }
 }

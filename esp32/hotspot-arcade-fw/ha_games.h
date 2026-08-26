@@ -294,6 +294,9 @@ void haWsBroadcast(const String& msg); // to all connected sockets
 void haUartJoin(uint8_t pid, const char* nick);
 void haUartLeave(uint8_t pid);
 void haUartScore(uint8_t pid, int delta, const char* reason);
+// A player's cross-game tally, sent ABSOLUTE rather than as a delta so the host's copy
+// can never drift out of step with the board's (see HA_MSG_TOTAL in ha_proto.h).
+void haUartTotal(uint8_t pid, int32_t total);
 void haUartEvent(const String& json);
 void haUartRoundResult(const String& json);
 // Human-readable trace of every identity decision (see onHello): a genuinely new
@@ -324,7 +327,14 @@ struct Player {
     uint64_t deviceKey; // which phone, 0 = unknown (see onHello)
     char nick[HA_NICK_LEN];
     char avatar[8]; // emoji avatar (UTF-8), player-picked on the landing screen
+    // TWO numbers, deliberately. `score` is this game only and is wiped on every switch
+    // (selectGame -> resetScoresAll), which is what each game's own board and podium show.
+    // `total` is the evening: it survives game switches and reconnects, and only ever grows
+    // by awardContest() at a finish. Games award wildly different amounts -- a trivia
+    // session runs to ~15k, a werewolf win pays 1 -- so `score` can never be compared
+    // across games, and `total` is what a cross-game ranking is built from.
     int32_t score;
+    int32_t total;
 };
 
 // How many bot seats the testing switch may fill. Werewolf's minimum of 5 is the
@@ -333,17 +343,18 @@ struct Player {
 #define HA_BOT_MAX 4
 
 // A phone that drops out keeps its identity for the rest of the session. When the
-// socket closes the player's nick, avatar and score are parked under their device
-// key; the same phone coming back -- a WiFi blip, a locked screen, a browser
-// restart, a tab swiped away -- is handed all three back instead of arriving as a
-// stranger on zero. Ten slots is the softAP's station cap, so a full room's worth
-// of leavers fits; beyond that the stalest is evicted.
+// socket closes the player's nick, avatar, score and cross-game total are parked
+// under their device key; the same phone coming back -- a WiFi blip, a locked
+// screen, a browser restart, a tab swiped away -- is handed them all back instead
+// of arriving as a stranger on zero. Ten slots is the softAP's station cap, so a
+// full room's worth of leavers fits; beyond that the stalest is evicted.
 #define HA_PARKED_MAX 10
 struct ParkedPlayer {
     uint64_t deviceKey; // 0 = free slot
     char nick[HA_NICK_LEN];
     char avatar[8];
     int32_t score;
+    int32_t total; // the evening's tally; losing this on a blip is the whole point
     uint32_t at; // millis when parked, for evicting the stalest first
 };
 
@@ -881,6 +892,7 @@ public:
         strlcpy(_parked[slot].nick, _p[pid].nick, HA_NICK_LEN);
         strlcpy(_parked[slot].avatar, _p[pid].avatar, sizeof(_parked[slot].avatar));
         _parked[slot].score = _p[pid].score;
+        _parked[slot].total = _p[pid].total;
         _parked[slot].at = millis();
     }
 
@@ -892,6 +904,7 @@ public:
             strlcpy(_p[pid].nick, _parked[i].nick, HA_NICK_LEN);
             strlcpy(_p[pid].avatar, _parked[i].avatar, sizeof(_p[pid].avatar));
             _p[pid].score = _parked[i].score;
+            _p[pid].total = _parked[i].total;
             _parked[i] = ParkedPlayer{};
             return true;
         }
@@ -962,9 +975,10 @@ public:
             _p[pid].wsId = wsId;
             _p[pid].deviceKey = deviceKey;
             _p[pid].score = 0;
+            _p[pid].total = 0;
             // This phone played earlier and dropped out: hand back its own name,
-            // avatar and score instead of starting it over at zero. A name the
-            // player has just typed still wins over the restored one.
+            // avatar, score and cross-game total instead of starting it over at
+            // zero. A name the player has just typed still wins over the restored one.
             bool restored = unparkPlayer(deviceKey, pid);
             if(!restored || (named && nick && nick[0])) {
                 strlcpy(_p[pid].nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
@@ -973,6 +987,14 @@ public:
             if(!restored || (named && avatar && avatar[0]))
                 strlcpy(_p[pid].avatar, (avatar && avatar[0]) ? avatar : "\xF0\x9F\x99\x82", sizeof(_p[pid].avatar));
             haUartJoin(pid, _p[pid].nick);
+            // A restored player arrives on a NEW pid, so the host has just created a fresh
+            // roster row sitting on zero while we hold their real numbers. Hand both back,
+            // or the board shows a returning player as a stranger. The score goes as a delta
+            // because that is all SCORE can carry; the total goes absolute and cannot drift.
+            if(restored) {
+                if(_p[pid].score) haUartScore(pid, _p[pid].score, "restore");
+                haUartTotal(pid, _p[pid].total);
+            }
             haLogJoin(pid, deviceKey, _p[pid].nick, restored);
         } else if(!rebound || named) {
             // Re-hello from a known socket = the player changed their name/avatar in
@@ -1029,9 +1051,13 @@ public:
         pushAll();
     }
 
+    // The host asking for a reset means "start the evening over", so the cross-game tally
+    // goes with the current game's scores. A reset that left the totals standing would be
+    // the one control that cannot actually clear the board everyone is looking at.
     void resetScores() {
-        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
-            if(_p[i].used) _p[i].score = 0;
+        resetScoresAll();
+        resetTotalsAll();
+        pushTotals();
         pushAll();
     }
 
@@ -1942,6 +1968,10 @@ private:
             s += ha_json_escape(_p[pid].avatar);
             s += "\",\"score\":";
             s += _p[pid].score;
+            // The evening's tally. This roster goes out on EVERY push, whatever screen a
+            // phone is on, so it is the one place the client can always read totals from.
+            s += ",\"total\":";
+            s += _p[pid].total;
             // In a 1v1 match (playing OR still on the over screen): don't let others
             // challenge them until they return to the lobby.
             s += ",\"busy\":";
@@ -2185,6 +2215,7 @@ private:
         _t.qi++;
         if(_t.qi >= _topics[_t.topic].qcount) {
             _t.phase = 4; // final
+            awardContest(); // played to the end: the standings pay out across games
             haUartRoundResult("{\"trivia\":\"final\"}");
             pushAll();
         } else {
@@ -2241,6 +2272,8 @@ private:
             s += ha_json_escape(_p[order[i]].avatar);
             s += "\",\"score\":";
             s += _p[order[i]].score;
+            s += ",\"total\":";
+            s += _p[order[i]].total;
             s += "}";
         }
         s += "]";
@@ -2677,6 +2710,11 @@ private:
         uint8_t loser = (winnerPid == m->a) ? m->b : (winnerPid == m->b) ? m->a : 0;
         if(winnerPid) {
             _p[winnerPid].score += 300;
+            // A 1v1 win is one opponent beaten. Deliberately NOT awardContest(): _p[].score
+            // is global and several matches run at once, so a room-wide rank here would
+            // credit players sitting at other boards. A draw pays nobody.
+            _p[winnerPid].total += 1;
+            pushTotals();
             haUartScore(winnerPid, 300, "duelwin");
             haUartRoundResult(String("{\"win\":") + winnerPid + ",\"lose\":" + loser + "}");
         } else {
@@ -2919,6 +2957,7 @@ private:
         }
         if(_d.round >= _d.roundsTotal) { // played them all -> final scoreboard
             _d.phase = 3;
+            awardContest(); // played to the end: the standings pay out across games
             haUartRoundResult("{\"draw\":\"final\"}");
             pushAll();
             return;
@@ -2939,6 +2978,8 @@ private:
             return;
         }
         WordPack& dp = _dPacks[_d.pack];
+        // No awardContest() here or at any other bail-out: nothing was played, so nobody
+        // beat anybody. Handing out points for a pack that failed to load would be a lie.
         if(dp.count == 0) { // empty pack: nothing to draw, end the game
             _d.phase = 3;
             haUartRoundResult("{\"draw\":\"final\"}");
@@ -3141,6 +3182,8 @@ private:
         m->winner = winner;
         uint8_t loser = (winner == m->a) ? m->b : m->a;
         _p[winner].score += 300;
+        _p[winner].total += 1; // one opponent beaten (see duelFinish)
+        pushTotals();
         haUartScore(winner, 300, "pongwin");
         haUartRoundResult(String("{\"win\":") + winner + ",\"lose\":" + loser + "}");
     }
@@ -3314,6 +3357,50 @@ private:
             if(_p[i].used) _p[i].score = 0;
     }
 
+    // Tell the host every current total. At most HA_MAX_PLAYERS tiny frames, and only when
+    // something actually moved (a finish, a duel win, a join, a reset), so the Flipper holds
+    // a COPY rather than a running sum it has to keep in step by itself. That is the whole
+    // reason this is a separate frame from SCORE: SCORE is a delta stream, and a delta
+    // stream is what lets the two boards drift apart.
+    void pushTotals() {
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && !_p[i].bot) haUartTotal(i, _p[i].total);
+    }
+
+    // Host asked for a clean slate: the evening's tally goes too, not just this game.
+    void resetTotalsAll() {
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used) _p[i].total = 0;
+    }
+
+    // Convert a finished contest's standings into cross-game points: you gain one for
+    // every player you finished ABOVE.
+    //
+    // This is the whole answer to "a trivia session pays 15k and a werewolf win pays 1".
+    // Each game keeps its own scoring, gradients and all -- trivia's speed bonus, spectrum's
+    // proximity, kmk's hit count are the mechanics and flattening them would wreck them --
+    // and only the RANKING is carried across. So a game contributes by how many people you
+    // beat at it, which is comparable everywhere and needs no per-game tuning table.
+    //
+    // Counting strictly-lower scores gives ties the lower value for free: two players tied
+    // at the top of six each beat four, not five. A 1v1 is not run through here (see the
+    // duel/pong/battle/chess finishers) because _p[].score is global and several matches
+    // run at once, so a global rank would credit players from unrelated boards.
+    //
+    // Bots are neither counted nor credited. They only ever appear when the host flips the
+    // testing switch to pad a room to quorum, and points for beating a robot would be points
+    // for nothing.
+    void awardContest() {
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || _p[i].bot) continue;
+            int beaten = 0;
+            for(uint8_t j = 1; j <= HA_MAX_PLAYERS; j++)
+                if(_p[j].used && !_p[j].bot && _p[j].score < _p[i].score) beaten++;
+            _p[i].total += beaten;
+        }
+        pushTotals();
+    }
+
     // A join/leave can complete a vote/round or cancel a pending start.
     void partyRosterChanged() {
         if(_active == HA_GAME_WYR)
@@ -3432,6 +3519,9 @@ private:
         Party& pt = _wyr.pt;
         if(pt.round >= WYR_ROUNDS) {
             pt.phase = 4; // final
+            // A no-op today -- WYR is a poll and nobody scores, so everyone ties on 0 and
+            // beats nobody. Called anyway so it pays out by itself the day WYR does score.
+            awardContest();
             pushAll();
             return;
         }
@@ -3675,6 +3765,7 @@ private:
         Party& pt = _scr.pt;
         if(pt.round >= SCR_ROUNDS) {
             pt.phase = 4;
+            awardContest(); // played to the end: the standings pay out across games
             haUartRoundResult("{\"scramble\":\"final\"}");
             pushAll();
             return;
@@ -3840,6 +3931,7 @@ private:
         Party& pt = _react.pt;
         if(pt.round >= REACT_ROUNDS) {
             pt.phase = 4;
+            awardContest(); // played to the end: the standings pay out across games
             haUartRoundResult("{\"react\":\"final\"}");
             pushAll();
             return;
@@ -3999,6 +4091,7 @@ private:
         Party& pt = _gc.pt;
         if(pt.round >= GC_ROUNDS) {
             pt.phase = 4;
+            awardContest(); // played to the end: the standings pay out across games
             haUartRoundResult("{\"gc\":\"final\"}");
             pushAll();
             return;
@@ -4171,9 +4264,28 @@ private:
         m->winner = 0;
     }
 
+    // Scoring now copies duelFinish, which battleship's finish had simply never done (see
+    // the note on chessFinish, which spotted the omission and worked around it). A win here
+    // used to move nothing at all: no score, no cross-game total, and not a single UART
+    // frame, so the host's board and console never heard that a match had been won.
+    //
+    // The re-entry guard is new too. The other three finishers all open with one; this one
+    // leaned on its callers, which was harmless while it mutated nothing and is not now that
+    // it moves a cumulative total. It still admits the phase-0 forfeit, where someone walks
+    // out during ship placement, but that match never started so it pays nobody.
     void battleFinish(BattleMatch* m, uint8_t winner) {
+        if(m->phase == 2) return; // already finished
+        bool played = (m->phase == 1); // phase 0 = still placing ships, nothing contested yet
         m->phase = 2;
         m->winner = winner;
+        if(played && winner) {
+            uint8_t loser = (winner == m->a) ? m->b : m->a;
+            _p[winner].score += 300;
+            _p[winner].total += 1; // one opponent beaten (see duelFinish)
+            pushTotals();
+            haUartScore(winner, 300, "bswin");
+            haUartRoundResult(String("{\"win\":") + winner + ",\"lose\":" + loser + "}");
+        }
     }
 
     // Parse one base-10 int from `p`, advancing past it. Own parser (no strtol, which
@@ -4797,6 +4909,8 @@ private:
         uint8_t loser = (winnerPid == m->a) ? m->b : (winnerPid == m->b) ? m->a : 0;
         if(winnerPid) {
             _p[winnerPid].score += 300;
+            _p[winnerPid].total += 1; // one opponent beaten (see duelFinish)
+            pushTotals();
             haUartScore(winnerPid, 300, "chesswin");
             haUartRoundResult(String("{\"win\":") + winnerPid + ",\"lose\":" + loser + "}");
         } else {
@@ -5184,6 +5298,12 @@ private:
         WyrPack& pk = _specPacks[_spec.pack];
         if(pt.round >= SPECTRUM_ROUNDS || pk.count == 0) {
             pt.phase = 4; // final
+            // This one `if` is BOTH the real finish and the empty-pack bail, so the award
+            // has to tell them apart. pt.round only ever advances past 0 once a round has
+            // actually been played, and an unplayable pack ends here on the first call --
+            // so round > 0 means "we played", and it is the same test at kmk, secrets and
+            // fillblank below.
+            if(pt.round > 0) awardContest();
             pushAll();
             return;
         }
@@ -5284,6 +5404,11 @@ private:
         if(pt.phase == 1) {
             if(partyCountdownDone(pt, now)) {
                 pt.round = 0;
+                // Start every session from zero. Only selectGame() used to do this, so a
+                // second game of spectrum/kmk/secrets/fillblank/werewolf/spyfall ranked on
+                // scores carried over from the first -- invisible while nothing read the
+                // ranking, and wrong now that awardContest() pays out from it.
+                resetScoresAll();
                 _spec.pack = (uint8_t)spectrumWinningPack();
                 _spec.psychicSeq = (decltype(_spec.psychicSeq))esp_random();
                 _spec.cardSeq = (decltype(_spec.cardSeq))esp_random();
@@ -5470,6 +5595,7 @@ private:
         WordPack& pk = _kmkPacks[_kmk.pack];
         if(pt.round >= KMK_ROUNDS || pk.count < 3) {
             pt.phase = 4; // final (need at least three names to play)
+            if(pt.round > 0) awardContest(); // real finish, not the too-small-pack bail
             pushAll();
             return;
         }
@@ -5576,6 +5702,7 @@ private:
         if(pt.phase == 1) {
             if(partyCountdownDone(pt, now)) {
                 pt.round = 0;
+                resetScoresAll(); // fresh session (see spectrumTick)
                 _kmk.pack = (uint8_t)kmkWinningPack();
                 _kmk.chooserSeq = (decltype(_kmk.chooserSeq))esp_random();
                 _kmk.nameSeq = (decltype(_kmk.nameSeq))esp_random();
@@ -5763,6 +5890,7 @@ private:
         WordPack& pk = _secretsPacks[_secrets.pack];
         if(pt.round >= SECRETS_ROUNDS || pk.count == 0) {
             pt.phase = 4; // final
+            if(pt.round > 0) awardContest(); // real finish, not the empty-pack bail
             pushAll();
             return;
         }
@@ -5844,6 +5972,7 @@ private:
         if(pt.phase == 1) {
             if(partyCountdownDone(pt, now)) {
                 pt.round = 0;
+                resetScoresAll(); // fresh session (see spectrumTick)
                 _secrets.pack = (uint8_t)secretsWinningPack();
                 _secrets.qSeq = (decltype(_secrets.qSeq))esp_random();
                 secretsNextRound(now);
@@ -6230,6 +6359,7 @@ private:
         FillBlankPack& pk = _fbPacks[_fb.pack];
         if(pt.round >= FB_ROUNDS || pk.pcount == 0 || pk.acount == 0) {
             pt.phase = 4; // final (an empty pack can't be played)
+            if(pt.round > 0) awardContest(); // real finish, not the empty-pack bail
             pushAll();
             return;
         }
@@ -6413,6 +6543,7 @@ private:
         if(pt.phase == 1) {
             if(partyCountdownDone(pt, now)) {
                 pt.round = 0;
+                resetScoresAll(); // fresh session (see spectrumTick)
                 _fb.pack = (uint8_t)fillblankWinningPack();
                 _fb.czarSeq = (decltype(_fb.czarSeq))esp_random();
                 _fb.promptSeq = (decltype(_fb.promptSeq))esp_random();
@@ -6836,6 +6967,8 @@ private:
             String("{\"werewolf\":\"") + (_ww.winner == WW_WOLF ? "wolves" : "villagers") +
             " win\"}");
         _ww.pt.phase = 4;
+        // The village's survivors were scored six lines up, so the standings are final here.
+        awardContest();
         _ww.pt.deadline = now;
         pushAll();
         return true;
@@ -7003,6 +7136,7 @@ private:
         if(pt.phase == 1) {
             if(partyCountdownDone(pt, now)) {
                 pt.round = 0;
+                resetScoresAll(); // fresh session (see spectrumTick)
                 wwDeal();
                 pt.phase = 2;
                 _ww.stage = WW_S_ROLES;
@@ -7343,6 +7477,11 @@ private:
         if(pt.round >= SPYFALL_ROUNDS || pk.count == 0 ||
            connectedCount() < SPYFALL_MIN_PLAYERS) {
             pt.phase = 4; // final
+            // Spyfall is the one game that can end MID-session, when players drop below the
+            // minimum. Those rounds were really played and really paid, so they still count
+            // -- round > 0 keeps out the empty-pack bail. The headcount test only guards the
+            // degenerate case of one player left, who has beaten nobody anyway.
+            if(pt.round > 0 && connectedCount() >= 2) awardContest();
             pushAll();
             return;
         }
@@ -7645,6 +7784,7 @@ private:
         if(pt.phase == 1) {
             if(partyCountdownDone(pt, now)) {
                 pt.round = 0;
+                resetScoresAll(); // fresh session (see spectrumTick)
                 _sf.pack = (uint8_t)spyfallWinningPack();
                 _sf.spySeq = (decltype(_sf.spySeq))esp_random();
                 _sf.locSeq = (decltype(_sf.locSeq))esp_random();
@@ -8151,6 +8291,9 @@ private:
             return;
         }
         _fd.pt.phase = 4;
+        // The gallery has walked every sheet and fdTally() has counted the thumbs, so this
+        // is the podium. The seats == 0 bail in fdGalleryStart never reaches here.
+        awardContest();
         pushAll();
     }
 

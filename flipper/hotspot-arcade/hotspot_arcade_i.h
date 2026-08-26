@@ -82,12 +82,16 @@ typedef struct {
     bool gzip;
 } HaAsset;
 
-// A connected player, mirrored from the ESP (JOIN/LEAVE/SCORE).
+// A connected player, mirrored from the ESP (JOIN/LEAVE/SCORE/TOTAL).
 typedef struct {
     bool used;
     uint8_t pid;
     char nick[HA_NICK_LEN];
+    // Two numbers, as on the board. `score` is the current game only, accumulated from the
+    // SCORE delta stream. `total` is the evening across every game, and arrives absolute in
+    // a TOTAL frame precisely so this copy cannot drift from the board's.
     int32_t score;
+    int32_t total;
 } HaPlayer;
 
 // Handshake sequence at session start (driven by ESP STATUS acks).

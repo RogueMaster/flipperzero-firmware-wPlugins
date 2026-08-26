@@ -18,6 +18,10 @@
          the mute button's box so the two read as a pair. -->
     <button id="game-menu" class="game-menu hide" type="button" aria-label="Change game">🕹️</button>
     <button id="mute" class="mute" type="button" aria-label="Mute" aria-pressed="false">&#9834;</button>
+    <!-- The evening's running total for this player. Lives in the header, outside every
+         screen, because the per-game leaderboard is hidden on lobbies, countdowns and
+         finals and resets on every game switch. -->
+    <span id="hdr-total" class="hdr-total hide"></span>
     <span id="dot" class="dot warn" title="connection"></span>
     <button id="hdr-nick" class="hdr-id hide" type="button" aria-label="Change name and avatar"></button>
   </span>

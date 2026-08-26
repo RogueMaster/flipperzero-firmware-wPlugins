@@ -12,6 +12,10 @@ typedef enum {
     MenuFlashFirmware,
     MenuSettings,
     MenuAbout,
+    // Appended deliberately: the scene stores the last picked value as its state and
+    // restores it on re-entry, so inserting mid-list would change which row reopens
+    // selected. Display order is set by ha_menu_build(), not by this enum.
+    MenuResetScores,
 } MainMenuIndex;
 
 static void ha_menu_cb(void* context, uint32_t index) {
@@ -28,6 +32,19 @@ static void ha_show_message(HotspotArcadeApp* app, const char* header, const cha
     dialog_message_free(m);
 }
 
+// Same shape as ha_show_message, but the right button means yes. Used for the one menu
+// action that destroys something a room has spent an evening building.
+static bool
+    ha_confirm(HotspotArcadeApp* app, const char* header, const char* text, const char* yes) {
+    DialogMessage* m = dialog_message_alloc();
+    if(header) dialog_message_set_header(m, header, 64, 2, AlignCenter, AlignTop);
+    dialog_message_set_text(m, text, 64, 32, AlignCenter, AlignCenter);
+    dialog_message_set_buttons(m, "Cancel", NULL, yes);
+    DialogMessageButton b = dialog_message_show(app->dialogs, m);
+    dialog_message_free(m);
+    return b == DialogMessageButtonRight;
+}
+
 static void ha_menu_build(HotspotArcadeApp* app) {
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, app->session_active ? "Arcade  [ON]" : "Hotspot Arcade");
@@ -36,6 +53,7 @@ static void ha_menu_build(HotspotArcadeApp* app) {
         submenu_add_item(app->submenu, "Session Dashboard", MenuStartOrDash, ha_menu_cb, app);
         submenu_add_item(app->submenu, "Select Game", MenuSelectGame, ha_menu_cb, app);
         submenu_add_item(app->submenu, "Leaderboard", MenuLeaderboard, ha_menu_cb, app);
+        submenu_add_item(app->submenu, "Reset Scores", MenuResetScores, ha_menu_cb, app);
         submenu_add_item(app->submenu, "Console", MenuConsole, ha_menu_cb, app);
         submenu_add_item(app->submenu, "Stop Session", MenuStop, ha_menu_cb, app);
     } else {
@@ -91,6 +109,15 @@ bool hotspot_arcade_scene_main_menu_on_event(void* context, SceneManagerEvent ev
         return true;
     case MenuLeaderboard:
         scene_manager_next_scene(app->scene_manager, HaSceneLeaderboard);
+        return true;
+    case MenuResetScores:
+        // Clears the evening, not just the current game, on both ends. Worth a confirm:
+        // there is no undo, and the totals are the only thing in the app a room actually
+        // accumulates over hours.
+        if(ha_confirm(
+               app, "Reset Scores", "Clear every score and\nthe cross-game totals?", "Reset"))
+            ha_reset_scores(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, HaViewSubmenu);
         return true;
     case MenuConsole:
         scene_manager_next_scene(app->scene_manager, HaSceneTextView);

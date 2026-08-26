@@ -72,11 +72,18 @@ static void player_join(HotspotArcadeApp* app, uint8_t pid, const char* nick) {
     }
     if(idx < 0) return;
     HaPlayer* p = &app->players[idx];
+    // Zero only when this is a NEW seat. The ESP re-sends JOIN for a pid it already knows as
+    // a rename re-announce, and zeroing there wiped that player's score off the host board
+    // mid-session while the board itself kept theirs.
+    bool fresh = !p->used || p->pid != pid;
     p->used = true;
     p->pid = pid;
     strlcpy(p->nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
     nick_upper(p->nick);
-    p->score = 0;
+    if(fresh) {
+        p->score = 0;
+        p->total = 0;
+    }
 }
 
 static void player_leave(HotspotArcadeApp* app, uint8_t pid) {
@@ -87,6 +94,13 @@ static void player_leave(HotspotArcadeApp* app, uint8_t pid) {
 static void player_score(HotspotArcadeApp* app, uint8_t pid, int delta) {
     int idx = player_find(app, pid);
     if(idx >= 0) app->players[idx].score += delta;
+}
+
+// SET, not add. TOTAL carries the board's own figure, so this copy is replaced outright and
+// cannot drift the way the accumulated score does.
+static void player_total(HotspotArcadeApp* app, uint8_t pid, int32_t total) {
+    int idx = player_find(app, pid);
+    if(idx >= 0) app->players[idx].total = total;
 }
 
 static void roster_clear(HotspotArcadeApp* app) {
@@ -331,6 +345,11 @@ static void ha_content_stream_packs(HotspotArcadeApp* app) {
 // ---------------- game selection ----------------
 
 void ha_select_game(HotspotArcadeApp* app, uint8_t game) {
+    // The ESP zeroes every per-game score on SELECT_GAME and says nothing about it, so
+    // mirror that here or this side keeps showing the previous game's numbers. Totals are
+    // deliberately untouched: surviving the switch is the whole point of them.
+    for(int i = 0; i < HA_MAX_PLAYERS; i++)
+        if(app->players[i].used) app->players[i].score = 0;
     app->active_game = game;
     uint8_t g = game;
     ha_proto_send(app->uart, HA_MSG_SELECT_GAME, &g, 1);
@@ -338,7 +357,10 @@ void ha_select_game(HotspotArcadeApp* app, uint8_t game) {
 
 void ha_reset_scores(HotspotArcadeApp* app) {
     for(int i = 0; i < HA_MAX_PLAYERS; i++)
-        if(app->players[i].used) app->players[i].score = 0;
+        if(app->players[i].used) {
+            app->players[i].score = 0;
+            app->players[i].total = 0;
+        }
     ha_proto_send(app->uart, HA_MSG_RESET_SCORES, NULL, 0);
 }
 
@@ -566,6 +588,13 @@ static void dispatch_frame(HotspotArcadeApp* app) {
         if(len >= 3) {
             int16_t d = (int16_t)((uint16_t)p[1] | ((uint16_t)p[2] << 8));
             player_score(app, p[0], d);
+        }
+        break;
+    case HA_MSG_TOTAL:
+        if(len >= 5) {
+            int32_t t = (int32_t)((uint32_t)p[1] | ((uint32_t)p[2] << 8) | ((uint32_t)p[3] << 16) |
+                                  ((uint32_t)p[4] << 24));
+            player_total(app, p[0], t);
         }
         break;
     case HA_MSG_ROUND_RESULT:

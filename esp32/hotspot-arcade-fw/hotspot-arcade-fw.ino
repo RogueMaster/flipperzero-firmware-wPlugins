@@ -229,6 +229,15 @@ void haUartScore(uint8_t pid, int delta, const char* reason) {
     memcpy(buf + 3, reason, n);
     uartSend(HA_MSG_SCORE, buf, 3 + n);
 }
+void haUartTotal(uint8_t pid, int32_t total) {
+    uint8_t buf[1 + 4];
+    buf[0] = pid;
+    buf[1] = (uint8_t)(total & 0xFF);
+    buf[2] = (uint8_t)((total >> 8) & 0xFF);
+    buf[3] = (uint8_t)((total >> 16) & 0xFF);
+    buf[4] = (uint8_t)((total >> 24) & 0xFF);
+    uartSend(HA_MSG_TOTAL, buf, 5);
+}
 void haUartEvent(const String& json) {
     uartSend(HA_MSG_EVENT, (const uint8_t*)json.c_str(), json.length());
 }
