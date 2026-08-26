@@ -12,6 +12,11 @@ ___
   and English translation tables, language persisted in `/data/settings.txt`
   (default English, file created on first launch); every UI string now goes
   through `locale_get`
+- Extended keyboard (`src/utils/api_text_input.c/h`): all console symbols,
+  two-line input area, cursor editing mode (UP from the top key row,
+  LEFT/RIGHT move the cursor, OK returns to the keys) and shifted characters
+  via long-press (based on UART Terminal by cool4uma, MIT)
+- MIT license (`LICENSE.md`)
 
 ### Fixed
 
@@ -96,9 +101,8 @@ ___
 
 ## [Unreleased]
 
-- **0.1.4** (remaining): extended keyboard with symbols (based on
-  [UART Terminal](https://github.com/cool4uma/UART_Terminal), MIT), stack
-  profiling, loaders and feedback, optimization and fixes, about scene
+- **0.1.4** (remaining): stack profiling, loaders and feedback, optimization
+  and fixes, about scene
 - **0.1.5**: settings (languages, log path...) + API client usability
   - Key-value headers editor and body type selection
     (JSON / form-urlencoded / raw)
