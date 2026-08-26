@@ -12,6 +12,7 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 - **Inventory Scan** — Fast UHF tag scanning with real-time display
 - **Paged EPC List** — Browse scanned tags page by page, with truncated preview
 - **Tag Details** — View full EPC, RSSI, and PC (Protocol Control) bits for each tag
+- **Tag Memory Actions** — Read and write EPC, TID, and User Data on compatible tags
 - **Save CSV Records** — Export scanned tags to CSV file on SD card
 - **About Page** — Version info and project links
 

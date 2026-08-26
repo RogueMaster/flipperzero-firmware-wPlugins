@@ -81,6 +81,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Expansion: [Fixed an off-by-one that accepted FuriHalSerialIdMax itself as a serial id when setting an expansion module callback (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1108)
 - Added: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 - ESP Flasher: [Bump Marauder v1.15.1 +1 DAY (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/nightly_91724fd)
+- Updated: [UHF Expansion v1.1 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 
 <a name="release"></a>
 
@@ -902,7 +903,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - [UDECard v1.0.4 (By hahnworks](https://github.com/hahnworks/UDECard)
-- [UHF Expansion v1.0 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
+- [UHF Expansion v1.1 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
 - [UL-C Bruteforce Optimized v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)

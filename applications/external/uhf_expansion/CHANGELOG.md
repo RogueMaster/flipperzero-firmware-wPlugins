@@ -1,3 +1,8 @@
+v1.1:
+
+- Added tag memory actions for reading EPC, TID, and User Data.
+- Added verified EPC, TID, and User Data writes for compatible changeable tags.
+
 v1.0:
 
 - Added real-time UHF EPC inventory over the GPIO UART bridge.
