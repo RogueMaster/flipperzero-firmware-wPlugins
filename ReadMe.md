@@ -73,6 +73,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Wifi Internet Watch v1.2 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
 - Updated: [TPMS Bridge v1.1 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 - Updated: [NFC Login v1.1.3 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
+- Updated: [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader)
+- SubGHz: [Add Superrollo (GW60) roller-shutter protocol (KeeLoq HCS361) (67bit rolling code, with CRC) (with add manually support) (By rollorentner)](https://github.com/DarkFlippers/unleashed-firmware/pull/1068)
+- SubGHz: [Read no longer adds a copy of the last received signal a few seconds after it arrived - the duplicate filter now measures the gap between the signals themselves instead of the time they reached the app, so the last repeat of a burst is recognised as a repeat no matter how late the receiver reports it (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/014eeb2f85dd9a5958aee692ecb08d898d3b0e21)
+- SubGHz: [Fixed a one-past-the-end write when building a transmission (just in case) - the final level duration was stored without a bounds check (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1105)
+- NFC: [FeliCa - a saved dump claiming more blocks than the card can hold is now rejected on load, instead of being read past the end of the block array (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1106)
+- HID: [Mouse Jiggler (Stealth) - movement is now generated within the signed 8-bit range that HID mouse reports carry, instead of a +-1000 value that was truncated before it was sent (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1111)
+- Expansion: [Fixed an off-by-one that accepted FuriHalSerialIdMax itself as a serial id when setting an expansion module callback (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1108)
 
 <a name="release"></a>
 

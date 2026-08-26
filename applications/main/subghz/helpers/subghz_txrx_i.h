@@ -35,4 +35,10 @@ struct SubGhzTxRx {
     size_t tx_min_heap_required;
 
     bool debug_pin_state;
+
+    //Total duration of every sample handed to the decoders, in microseconds.
+    //This is a clock that only advances while a signal is actually being
+    //decoded, so it measures the air between two decoded frames rather than
+    //the wall time between the moments the app was told about them
+    uint64_t air_time_us;
 };
