@@ -80,6 +80,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [FeliCa - a saved dump claiming more blocks than the card can hold is now rejected on load, instead of being read past the end of the block array (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1106)
 - HID: [Mouse Jiggler (Stealth) - movement is now generated within the signed 8-bit range that HID mouse reports carry, instead of a +-1000 value that was truncated before it was sent (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1111)
 - Expansion: [Fixed an off-by-one that accepted FuriHalSerialIdMax itself as a serial id when setting an expansion module callback (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1108)
+- Added: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 
 <a name="release"></a>
 
@@ -374,6 +375,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)
 - [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
+- [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 - [APRS TX v1.3.24 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - [Argus v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero) `Req: ESP32`
 - [ASCII Table v1.0 (By x10102)](https://github.com/x10102/flipper_ascii)
