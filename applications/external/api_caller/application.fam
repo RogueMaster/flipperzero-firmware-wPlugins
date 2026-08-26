@@ -1,0 +1,20 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="api_caller",
+    name="Api caller",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="api_caller",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    # Optional values
+    # fap_version="0.1",
+    fap_icon="images/icon.png",  # 10x10 1-bit PNG - DA IMPOSTARE
+    fap_description="A client that lets you easily send and schedule API call requests. A .json import is included.",
+    fap_author="todotge",
+    fap_weburl="https://github.com/todtge/flipper_api_caller",
+    fap_icon_assets="images",  # Image assets to compile for this application
+    # FlipperHTTP will be integrated in Sprint 4 by vendoring the flipper_http C SDK
+    # into the project (flipper_http.c/h), following the jblanked app pattern.
+    # requires=["flipper_http"],
+)
