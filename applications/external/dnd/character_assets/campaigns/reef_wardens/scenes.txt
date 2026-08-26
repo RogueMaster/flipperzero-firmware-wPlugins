@@ -1,0 +1,17 @@
+# Dungeons & Dolphins sample campaign pack.
+# S|scene_id|title|body|sprite
+# C|scene_id|choice|skill_index (or -1)|dc|success|failure|reward_item|milestone|quest_flag|achievement
+S|reef_gate|Reef Gate|Silver currents hide the wardens trail.|wave
+C|reef_gate|Read the current|11|11|pearl_grotto|kelp_tangle|-|-|0|255
+C|reef_gate|Call to dolphins|1|12|pearl_grotto|kelp_tangle|-|-|0|255
+S|kelp_tangle|Kelp Tangle|A living maze closes around the party.|wave
+C|kelp_tangle|Force a passage|3|12|pearl_grotto|reef_gate|Braided Kelp Rope|-|1|255
+C|kelp_tangle|Move unseen|16|13|pearl_grotto|reef_gate|-|-|1|255
+S|pearl_grotto|Pearl Grotto|A moonlit pearl marks an ancient promise.|pearl
+C|pearl_grotto|Study the pearl|2|13|warden_shrine|kelp_tangle|Moon Pearl|-|2|255
+C|pearl_grotto|Search the grotto|8|12|warden_shrine|reef_gate|-|-|2|255
+S|warden_shrine|Warden Shrine|A spectral dolphin asks who guards the reef.|dolphin
+C|warden_shrine|Make your pledge|13|13|reef_saved|kelp_tangle|Tideglass Compass|Reef Warden|3|0
+C|warden_shrine|Offer quiet respect|-1|0|reef_saved|reef_saved|-|Reef Warden|3|0
+S|reef_saved|Reef Restored|The currents brighten. Your pledge is remembered.|dolphin
+C|reef_saved|Sail another circuit|-1|0|reef_gate|reef_gate|-|-|255|255

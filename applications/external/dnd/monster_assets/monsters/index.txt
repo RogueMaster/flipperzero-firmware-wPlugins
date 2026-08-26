@@ -1,0 +1,342 @@
+# MonsterPack=1
+# id|name|CR eighths|XP|AC|HP|type|environment|source|role
+aboleth|Aboleth|80|5900|17|150|Aberration|Aquatic|D&Dolphins|Skirmisher
+air_elemental|Air Elemental|40|1800|15|90|Elemental|Planar|D&Dolphins|Skirmisher
+animated_armor|Animated Armor|8|200|18|33|Construct|Dungeon|D&Dolphins|Skirmisher
+flying_sword|Animated Flying Sword|2|50|17|14|Construct|Dungeon|D&Dolphins|Skirmisher
+rug_smothering|Animated Rug of Smothering|16|450|12|27|Construct|Dungeon|D&Dolphins|Skirmisher
+ankheg|Ankheg|16|450|14|45|Monstrosity|Wilderness|D&Dolphins|Skirmisher
+assassin|Assassin|64|3900|16|97|Humanoid|Urban|D&Dolphins|Skirmisher
+awakened_shrub|Awakened Shrub|0|10|9|10|Plant|Wilderness|D&Dolphins|Skirmisher
+awakened_tree|Awakened Tree|16|450|13|59|Plant|Wilderness|D&Dolphins|Skirmisher
+axe_beak|Axe Beak|2|50|11|19|Monstrosity|Wilderness|D&Dolphins|Skirmisher
+reef_crab|Reef Crab|1|25|13|7|Beast|Aquatic|D&Dolphins|Skirmisher
+ember_mote|Ember Mote|2|50|14|9|Elemental|Planar|D&Dolphins|Skirmisher
+dockside_thug|Dockside Thug|4|100|12|16|Humanoid|Urban|D&Dolphins|Skirmisher
+cave_crawler|Cave Crawler|8|200|14|22|Monstrosity|Dungeon|D&Dolphins|Skirmisher
+mire_stalker|Mire Stalker|16|450|13|38|Plant|Wilderness|D&Dolphins|Skirmisher
+coral_guardian|Coral Guardian|24|700|16|52|Construct|Aquatic|D&Dolphins|Skirmisher
+rift_hound|Rift Hound|32|1100|15|68|Monstrosity|Planar|D&Dolphins|Skirmisher
+dungeon_sentinel|Dungeon Sentinel|40|1800|18|85|Construct|Dungeon|D&Dolphins|Skirmisher
+storm_corsair|Storm Corsair|48|2300|16|96|Humanoid|Aquatic|D&Dolphins|Skirmisher
+tide_leviathan|Tide Leviathan|64|3900|17|126|Monstrosity|Aquatic|D&Dolphins|Skirmisher
+azer_sentinel|Azer Sentinel|16|450|17|39|Elemental|Planar|Open Reference|Controller
+balor|Balor|152|22000|19|287|Fiend|Planar|Open Reference|Controller
+bandit|Bandit|1|25|12|11|Humanoid|Urban|Open Reference|Minion
+bandit_captain|Bandit Captain|16|450|15|52|Humanoid|Urban|Open Reference|Leader
+barbed_devil|Barbed Devil|40|1800|15|110|Fiend|Planar|Open Reference|Artillery
+basilisk|Basilisk|24|700|15|52|Monstrosity|Wilderness|Open Reference|Controller
+bearded_devil|Bearded Devil|24|700|13|58|Fiend|Planar|Open Reference|Controller
+behir|Behir|88|7200|17|168|Monstrosity|Wilderness|Open Reference|Controller
+berserker|Berserker|16|450|13|67|Humanoid|Urban|Open Reference|Controller
+black_dragon_wyrmling|Black Dragon Wyrmling|16|450|17|33|Dragon|Wilderness|Open Reference|Controller
+young_black_dragon|Young Black Dragon|56|2900|18|127|Dragon|Wilderness|Open Reference|Controller
+adult_black_dragon|Adult Black Dragon|112|11500|19|195|Dragon|Wilderness|Open Reference|Leader
+ancient_black_dragon|Ancient Black Dragon|168|33000|22|367|Dragon|Wilderness|Open Reference|Leader
+black_pudding|Black Pudding|32|1100|7|68|Ooze|Dungeon|Open Reference|Skirmisher
+blink_dog|Blink Dog|2|50|13|22|Fey|Wilderness|Open Reference|Skirmisher
+blue_dragon_wyrmling|Blue Dragon Wyrmling|24|700|17|65|Dragon|Wilderness|Open Reference|Controller
+young_blue_dragon|Young Blue Dragon|72|5000|18|152|Dragon|Wilderness|Open Reference|Controller
+adult_blue_dragon|Adult Blue Dragon|128|15000|19|212|Dragon|Wilderness|Open Reference|Leader
+ancient_blue_dragon|Ancient Blue Dragon|184|50000|22|481|Dragon|Wilderness|Open Reference|Leader
+bone_devil|Bone Devil|72|5000|16|161|Fiend|Planar|Open Reference|Controller
+brass_dragon_wyrmling|Brass Dragon Wyrmling|8|200|15|22|Dragon|Wilderness|Open Reference|Controller
+young_brass_dragon|Young Brass Dragon|48|2300|17|110|Dragon|Wilderness|Open Reference|Controller
+adult_brass_dragon|Adult Brass Dragon|104|10000|18|172|Dragon|Wilderness|Open Reference|Leader
+ancient_brass_dragon|Ancient Brass Dragon|160|25000|20|332|Dragon|Wilderness|Open Reference|Leader
+bronze_dragon_wyrmling|Bronze Dragon Wyrmling|16|450|15|39|Dragon|Wilderness|Open Reference|Controller
+young_bronze_dragon|Young Bronze Dragon|64|3900|17|142|Dragon|Wilderness|Open Reference|Controller
+adult_bronze_dragon|Adult Bronze Dragon|120|13000|18|212|Dragon|Wilderness|Open Reference|Leader
+ancient_bronze_dragon|Ancient Bronze Dragon|176|41000|22|444|Dragon|Wilderness|Open Reference|Leader
+bugbear_stalker|Bugbear Stalker|24|700|15|65|Fey|Wilderness|Open Reference|Artillery
+bugbear_warrior|Bugbear Warrior|8|200|14|33|Fey|Wilderness|Open Reference|Artillery
+bulette|Bulette|40|1800|17|94|Monstrosity|Wilderness|Open Reference|Controller
+centaur_trooper|Centaur Trooper|16|450|16|45|Fey|Wilderness|Open Reference|Artillery
+chain_devil|Chain Devil|64|3900|15|85|Fiend|Planar|Open Reference|Controller
+chimera|Chimera|48|2300|14|114|Monstrosity|Wilderness|Open Reference|Controller
+chuul|Chuul|32|1100|16|76|Aberration|Wilderness|Open Reference|Controller
+clay_golem|Clay Golem|72|5000|14|123|Construct|Dungeon|Open Reference|Controller
+cloaker|Cloaker|64|3900|14|91|Aberration|Wilderness|Open Reference|Controller
+cloud_giant|Cloud Giant|72|5000|14|200|Giant|Wilderness|Open Reference|Artillery
+cockatrice|Cockatrice|4|100|11|22|Monstrosity|Wilderness|Open Reference|Controller
+commoner|Commoner|0|10|10|4|Humanoid|Urban|Open Reference|Minion
+copper_dragon_wyrmling|Copper Dragon Wyrmling|8|200|16|22|Dragon|Wilderness|Open Reference|Controller
+young_copper_dragon|Young Copper Dragon|56|2900|17|119|Dragon|Wilderness|Open Reference|Controller
+adult_copper_dragon|Adult Copper Dragon|112|11500|18|184|Dragon|Wilderness|Open Reference|Leader
+ancient_copper_dragon|Ancient Copper Dragon|168|33000|21|367|Dragon|Wilderness|Open Reference|Leader
+couatl|Couatl|32|1100|19|60|Celestial|Planar|Open Reference|Controller
+cultist|Cultist|1|25|12|9|Humanoid|Urban|Open Reference|Minion
+cultist_fanatic|Cultist Fanatic|16|450|13|44|Humanoid|Urban|Open Reference|Controller
+darkmantle|Darkmantle|4|100|11|22|Aberration|Wilderness|Open Reference|Controller
+death_dog|Death Dog|8|200|12|39|Monstrosity|Wilderness|Open Reference|Controller
+deva|Deva|80|5900|17|229|Celestial|Planar|Open Reference|Controller
+djinni|Djinni|88|7200|17|218|Elemental|Planar|Open Reference|Artillery
+doppelganger|Doppelganger|24|700|14|52|Monstrosity|Wilderness|Open Reference|Controller
+dragon_turtle|Dragon Turtle|136|18000|20|356|Dragon|Aquatic|Open Reference|Controller
+dretch|Dretch|2|50|11|18|Fiend|Planar|Open Reference|Minion
+drider|Drider|48|2300|19|123|Monstrosity|Wilderness|Open Reference|Artillery
+druid|Druid|16|450|13|44|Humanoid|Urban|Open Reference|Artillery
+dryad|Dryad|8|200|16|22|Fey|Wilderness|Open Reference|Artillery
+earth_elemental|Earth Elemental|40|1800|17|147|Elemental|Planar|Open Reference|Artillery
+efreeti|Efreeti|88|7200|17|212|Elemental|Planar|Open Reference|Artillery
+erinyes|Erinyes|96|8400|18|178|Fiend|Planar|Open Reference|Controller
+ettercap|Ettercap|16|450|13|44|Monstrosity|Wilderness|Open Reference|Controller
+ettin|Ettin|32|1100|12|85|Giant|Wilderness|Open Reference|Skirmisher
+fire_elemental|Fire Elemental|40|1800|13|93|Elemental|Planar|Open Reference|Controller
+fire_giant|Fire Giant|72|5000|18|162|Giant|Wilderness|Open Reference|Artillery
+flesh_golem|Flesh Golem|40|1800|9|127|Construct|Dungeon|Open Reference|Controller
+frost_giant|Frost Giant|64|3900|15|149|Giant|Wilderness|Open Reference|Artillery
+shrieker_fungus|Shrieker Fungus|0|10|5|13|Plant|Wilderness|Open Reference|Minion
+violet_fungus|Violet Fungus|2|50|5|18|Plant|Wilderness|Open Reference|Skirmisher
+gargoyle|Gargoyle|16|450|15|67|Elemental|Planar|Open Reference|Skirmisher
+gelatinous_cube|Gelatinous Cube|16|450|6|63|Ooze|Dungeon|Open Reference|Controller
+ghast|Ghast|16|450|13|36|Undead|Dungeon|Open Reference|Controller
+ghost|Ghost|32|1100|11|45|Undead|Dungeon|Open Reference|Controller
+ghoul|Ghoul|8|200|12|22|Undead|Dungeon|Open Reference|Controller
+gibbering_mouther|Gibbering Mouther|16|450|9|52|Aberration|Wilderness|Open Reference|Controller
+glabrezu|Glabrezu|72|5000|17|189|Fiend|Planar|Open Reference|Controller
+gladiator|Gladiator|40|1800|16|112|Humanoid|Urban|Open Reference|Artillery
+gnoll_warrior|Gnoll Warrior|4|100|15|27|Fiend|Planar|Open Reference|Artillery
+goblin_minion|Goblin Minion|1|25|12|7|Fey|Wilderness|Open Reference|Minion
+goblin_warrior|Goblin Warrior|2|50|15|10|Fey|Wilderness|Open Reference|Artillery
+goblin_boss|Goblin Boss|8|200|17|21|Fey|Wilderness|Open Reference|Leader
+gold_dragon_wyrmling|Gold Dragon Wyrmling|24|700|17|60|Dragon|Wilderness|Open Reference|Controller
+young_gold_dragon|Young Gold Dragon|80|5900|18|178|Dragon|Wilderness|Open Reference|Controller
+adult_gold_dragon|Adult Gold Dragon|136|18000|19|243|Dragon|Wilderness|Open Reference|Leader
+ancient_gold_dragon|Ancient Gold Dragon|192|62000|22|546|Dragon|Wilderness|Open Reference|Leader
+gorgon|Gorgon|40|1800|19|114|Construct|Dungeon|Open Reference|Controller
+gray_ooze|Gray Ooze|4|100|9|22|Ooze|Dungeon|Open Reference|Skirmisher
+green_dragon_wyrmling|Green Dragon Wyrmling|16|450|17|38|Dragon|Wilderness|Open Reference|Controller
+young_green_dragon|Young Green Dragon|64|3900|18|136|Dragon|Wilderness|Open Reference|Controller
+adult_green_dragon|Adult Green Dragon|120|13000|19|207|Dragon|Wilderness|Open Reference|Leader
+ancient_green_dragon|Ancient Green Dragon|176|41000|21|402|Dragon|Wilderness|Open Reference|Leader
+green_hag|Green Hag|24|700|17|82|Fey|Wilderness|Open Reference|Controller
+grick|Grick|16|450|14|54|Aberration|Wilderness|Open Reference|Skirmisher
+griffon|Griffon|16|450|12|59|Monstrosity|Wilderness|Open Reference|Skirmisher
+grimlock|Grimlock|2|50|11|11|Aberration|Wilderness|Open Reference|Skirmisher
+guardian_naga|Guardian Naga|80|5900|18|136|Celestial|Planar|Open Reference|Controller
+guard|Guard|1|25|16|11|Humanoid|Urban|Open Reference|Minion
+guard_captain|Guard Captain|32|1100|18|75|Humanoid|Urban|Open Reference|Leader
+half_dragon|Half-Dragon|40|1800|18|105|Dragon|Wilderness|Open Reference|Controller
+harpy|Harpy|8|200|11|38|Monstrosity|Wilderness|Open Reference|Controller
+hell_hound|Hell Hound|24|700|15|58|Fiend|Planar|Open Reference|Controller
+hezrou|Hezrou|64|3900|18|157|Fiend|Planar|Open Reference|Controller
+hill_giant|Hill Giant|40|1800|13|105|Giant|Wilderness|Open Reference|Artillery
+hippogriff|Hippogriff|8|200|11|26|Monstrosity|Wilderness|Open Reference|Skirmisher
+hobgoblin_warrior|Hobgoblin Warrior|4|100|18|11|Fey|Wilderness|Open Reference|Artillery
+hobgoblin_captain|Hobgoblin Captain|24|700|17|58|Fey|Wilderness|Open Reference|Leader
+homunculus|Homunculus|0|10|13|4|Construct|Dungeon|Open Reference|Minion
+horned_devil|Horned Devil|88|7200|18|199|Fiend|Planar|Open Reference|Artillery
+hydra|Hydra|64|3900|15|184|Monstrosity|Wilderness|Open Reference|Skirmisher
+ice_devil|Ice Devil|112|11500|18|228|Fiend|Planar|Open Reference|Artillery
+imp|Imp|8|200|13|21|Fiend|Planar|Open Reference|Controller
+incubus|Incubus|32|1100|15|66|Fiend|Planar|Open Reference|Controller
+invisible_stalker|Invisible Stalker|48|2300|14|97|Elemental|Planar|Open Reference|Controller
+iron_golem|Iron Golem|128|15000|20|252|Construct|Dungeon|Open Reference|Artillery
+knight|Knight|24|700|18|52|Humanoid|Urban|Open Reference|Artillery
+kobold_warrior|Kobold Warrior|1|25|14|7|Dragon|Wilderness|Open Reference|Minion
+kraken|Kraken|184|50000|18|481|Monstrosity|Wilderness|Open Reference|Controller
+lamia|Lamia|32|1100|13|97|Fiend|Planar|Open Reference|Controller
+lemure|Lemure|0|10|9|9|Fiend|Planar|Open Reference|Minion
+lich|Lich|168|33000|20|315|Undead|Dungeon|Open Reference|Artillery
+mage|Mage|48|2300|15|81|Humanoid|Urban|Open Reference|Artillery
+archmage|Archmage|96|8000|17|170|Humanoid|Urban|Open Reference|Leader
+magmin|Magmin|4|100|14|13|Elemental|Planar|Open Reference|Controller
+manticore|Manticore|24|700|14|68|Monstrosity|Wilderness|Open Reference|Artillery
+marilith|Marilith|128|15000|16|220|Fiend|Planar|Open Reference|Controller
+medusa|Medusa|48|2300|15|127|Monstrosity|Wilderness|Open Reference|Artillery
+dust_mephit|Dust Mephit|4|100|12|17|Elemental|Planar|Open Reference|Controller
+ice_mephit|Ice Mephit|4|100|11|21|Elemental|Planar|Open Reference|Controller
+magma_mephit|Magma Mephit|4|100|11|18|Elemental|Planar|Open Reference|Controller
+steam_mephit|Steam Mephit|2|50|10|17|Elemental|Planar|Open Reference|Controller
+merfolk_skirmisher|Merfolk Skirmisher|1|25|11|11|Elemental|Aquatic|Open Reference|Minion
+merrow|Merrow|16|450|13|45|Monstrosity|Aquatic|Open Reference|Artillery
+mimic|Mimic|16|450|12|58|Monstrosity|Dungeon|Open Reference|Skirmisher
+minotaur_of_baphomet|Minotaur of Baphomet|24|700|14|85|Monstrosity|Wilderness|Open Reference|Skirmisher
+mummy|Mummy|24|700|11|58|Undead|Dungeon|Open Reference|Controller
+mummy_lord|Mummy Lord|120|13000|17|187|Undead|Dungeon|Open Reference|Leader
+nalfeshnee|Nalfeshnee|104|10000|18|184|Fiend|Planar|Open Reference|Controller
+night_hag|Night Hag|40|1800|17|112|Fiend|Planar|Open Reference|Controller
+nightmare|Nightmare|24|700|13|68|Fiend|Planar|Open Reference|Skirmisher
+noble|Noble|1|25|15|9|Humanoid|Urban|Open Reference|Minion
+ochre_jelly|Ochre Jelly|16|450|8|52|Ooze|Dungeon|Open Reference|Skirmisher
+ogre|Ogre|16|450|11|68|Giant|Wilderness|Open Reference|Artillery
+oni|Oni|56|2900|17|119|Fiend|Planar|Open Reference|Artillery
+otyugh|Otyugh|40|1800|14|104|Aberration|Wilderness|Open Reference|Controller
+owlbear|Owlbear|24|700|13|59|Monstrosity|Wilderness|Open Reference|Skirmisher
+pegasus|Pegasus|16|450|12|59|Celestial|Planar|Open Reference|Skirmisher
+phase_spider|Phase Spider|24|700|14|45|Monstrosity|Wilderness|Open Reference|Skirmisher
+pirate|Pirate|8|200|14|33|Humanoid|Urban|Open Reference|Artillery
+pirate_captain|Pirate Captain|48|2300|17|84|Humanoid|Urban|Open Reference|Leader
+pit_fiend|Pit Fiend|160|25000|21|337|Fiend|Planar|Open Reference|Controller
+planetar|Planetar|128|15000|19|262|Celestial|Planar|Open Reference|Controller
+priest_acolyte|Priest Acolyte|2|50|13|11|Humanoid|Urban|Open Reference|Leader
+priest|Priest|16|450|13|38|Humanoid|Urban|Open Reference|Leader
+pseudodragon|Pseudodragon|2|50|14|10|Dragon|Wilderness|Open Reference|Controller
+purple_worm|Purple Worm|120|13000|18|247|Monstrosity|Wilderness|Open Reference|Controller
+quasit|Quasit|8|200|13|25|Fiend|Planar|Open Reference|Controller
+rakshasa|Rakshasa|104|10000|17|221|Fiend|Planar|Open Reference|Controller
+red_dragon_wyrmling|Red Dragon Wyrmling|32|1100|17|75|Dragon|Wilderness|Open Reference|Controller
+young_red_dragon|Young Red Dragon|80|5900|18|178|Dragon|Wilderness|Open Reference|Controller
+adult_red_dragon|Adult Red Dragon|136|18000|19|256|Dragon|Wilderness|Open Reference|Leader
+ancient_red_dragon|Ancient Red Dragon|192|62000|22|507|Dragon|Wilderness|Open Reference|Leader
+remorhaz|Remorhaz|88|7200|17|195|Monstrosity|Wilderness|Open Reference|Controller
+roc|Roc|88|7200|15|248|Monstrosity|Wilderness|Open Reference|Skirmisher
+roper|Roper|40|1800|20|93|Aberration|Wilderness|Open Reference|Skirmisher
+rust_monster|Rust Monster|4|100|14|33|Monstrosity|Wilderness|Open Reference|Controller
+sahuagin_warrior|Sahuagin Warrior|4|100|12|22|Fiend|Aquatic|Open Reference|Skirmisher
+salamander|Salamander|40|1800|15|90|Elemental|Planar|Open Reference|Artillery
+satyr|Satyr|4|100|13|31|Fey|Wilderness|Open Reference|Controller
+scout|Scout|4|100|13|16|Humanoid|Urban|Open Reference|Artillery
+sea_hag|Sea Hag|16|450|14|52|Fey|Aquatic|Open Reference|Controller
+shadow|Shadow|4|100|12|27|Undead|Dungeon|Open Reference|Skirmisher
+shambling_mound|Shambling Mound|40|1800|15|110|Plant|Wilderness|Open Reference|Controller
+shield_guardian|Shield Guardian|56|2900|17|142|Construct|Dungeon|Open Reference|Controller
+silver_dragon_wyrmling|Silver Dragon Wyrmling|16|450|17|45|Dragon|Wilderness|Open Reference|Controller
+young_silver_dragon|Young Silver Dragon|72|5000|18|168|Dragon|Wilderness|Open Reference|Controller
+adult_silver_dragon|Adult Silver Dragon|128|15000|19|216|Dragon|Wilderness|Open Reference|Leader
+ancient_silver_dragon|Ancient Silver Dragon|184|50000|22|468|Dragon|Wilderness|Open Reference|Leader
+skeleton|Skeleton|2|50|14|13|Undead|Dungeon|Open Reference|Artillery
+warhorse_skeleton|Warhorse Skeleton|4|100|13|22|Undead|Dungeon|Open Reference|Skirmisher
+minotaur_skeleton|Minotaur Skeleton|16|450|12|45|Undead|Dungeon|Open Reference|Skirmisher
+solar|Solar|168|33000|21|297|Celestial|Planar|Open Reference|Artillery
+specter|Specter|8|200|12|22|Undead|Dungeon|Open Reference|Skirmisher
+sphinx_of_wonder|Sphinx of Wonder|8|200|13|24|Celestial|Planar|Open Reference|Controller
+sphinx_of_lore|Sphinx of Lore|88|7200|17|170|Celestial|Planar|Open Reference|Controller
+sphinx_of_valor|Sphinx of Valor|136|18000|17|199|Celestial|Planar|Open Reference|Controller
+spirit_naga|Spirit Naga|64|3900|17|135|Fiend|Planar|Open Reference|Artillery
+sprite|Sprite|2|50|15|10|Fey|Wilderness|Open Reference|Artillery
+spy|Spy|8|200|12|27|Humanoid|Urban|Open Reference|Artillery
+stirge|Stirge|1|25|13|5|Monstrosity|Wilderness|Open Reference|Minion
+stone_giant|Stone Giant|56|2900|17|126|Giant|Wilderness|Open Reference|Artillery
+stone_golem|Stone Golem|80|5900|18|220|Construct|Dungeon|Open Reference|Artillery
+storm_giant|Storm Giant|104|10000|16|230|Giant|Wilderness|Open Reference|Artillery
+succubus|Succubus|32|1100|15|71|Fiend|Planar|Open Reference|Controller
+tarrasque|Tarrasque|240|155000|25|697|Monstrosity|Wilderness|Open Reference|Artillery
+tough|Tough|4|100|12|32|Humanoid|Urban|Open Reference|Artillery
+tough_boss|Tough Boss|32|1100|16|82|Humanoid|Urban|Open Reference|Leader
+treant|Treant|72|5000|16|138|Plant|Wilderness|Open Reference|Artillery
+troll|Troll|40|1800|15|94|Giant|Wilderness|Open Reference|Brute
+troll_limb|Troll Limb|4|100|13|14|Giant|Wilderness|Open Reference|Brute
+unicorn|Unicorn|40|1800|12|97|Celestial|Planar|Open Reference|Controller
+vampire_familiar|Vampire Familiar|24|700|15|65|Humanoid|Urban|Open Reference|Artillery
+swarm_of_crawling_claws|Swarm of Crawling Claws|24|700|12|49|Swarm|Wilderness|Open Reference|Minion
+vampire_spawn|Vampire Spawn|40|1800|16|90|Undead|Dungeon|Open Reference|Leader
+vampire|Vampire|104|10000|16|195|Undead|Dungeon|Open Reference|Leader
+vrock|Vrock|48|2300|15|152|Fiend|Planar|Open Reference|Controller
+warrior_infantry|Warrior Infantry|1|25|13|9|Humanoid|Urban|Open Reference|Minion
+warrior_veteran|Warrior Veteran|24|700|17|65|Humanoid|Urban|Open Reference|Artillery
+water_elemental|Water Elemental|40|1800|14|114|Elemental|Planar|Open Reference|Controller
+werebear|Werebear|40|1800|15|135|Monstrosity|Wilderness|Open Reference|Artillery
+wereboar|Wereboar|32|1100|15|97|Monstrosity|Wilderness|Open Reference|Artillery
+wererat|Wererat|16|450|13|60|Monstrosity|Wilderness|Open Reference|Minion
+weretiger|Weretiger|32|1100|12|120|Monstrosity|Wilderness|Open Reference|Artillery
+werewolf|Werewolf|24|700|15|71|Monstrosity|Wilderness|Open Reference|Artillery
+white_dragon_wyrmling|White Dragon Wyrmling|16|450|16|32|Dragon|Wilderness|Open Reference|Controller
+young_white_dragon|Young White Dragon|48|2300|17|123|Dragon|Wilderness|Open Reference|Controller
+adult_white_dragon|Adult White Dragon|104|10000|18|200|Dragon|Wilderness|Open Reference|Leader
+ancient_white_dragon|Ancient White Dragon|160|25000|20|333|Dragon|Wilderness|Open Reference|Leader
+wight|Wight|24|700|14|82|Undead|Dungeon|Open Reference|Artillery
+will_o_wisp|Will-o'-Wisp|16|450|19|27|Undead|Dungeon|Open Reference|Controller
+winter_wolf|Winter Wolf|24|700|13|75|Monstrosity|Wilderness|Open Reference|Controller
+worg|Worg|4|100|13|26|Fey|Wilderness|Open Reference|Skirmisher
+wraith|Wraith|40|1800|13|67|Undead|Dungeon|Open Reference|Skirmisher
+wyvern|Wyvern|48|2300|14|127|Dragon|Wilderness|Open Reference|Brute
+xorn|Xorn|40|1800|19|84|Elemental|Planar|Open Reference|Skirmisher
+zombie|Zombie|2|50|8|15|Undead|Dungeon|Open Reference|Minion
+ogre_zombie|Ogre Zombie|16|450|8|85|Undead|Dungeon|Open Reference|Minion
+allosaurus|Allosaurus|16|450|13|51|Beast|Wilderness|Open Reference|Brute
+ankylosaurus|Ankylosaurus|24|700|15|68|Beast|Wilderness|Open Reference|Brute
+ape|Ape|4|100|12|19|Beast|Wilderness|Open Reference|Artillery
+archelon|Archelon|32|1100|17|90|Beast|Wilderness|Open Reference|Brute
+baboon|Baboon|0|10|12|3|Beast|Wilderness|Open Reference|Minion
+badger|Badger|0|10|11|5|Beast|Wilderness|Open Reference|Minion
+bat|Bat|0|10|12|1|Beast|Wilderness|Open Reference|Minion
+black_bear|Black Bear|4|100|11|19|Beast|Wilderness|Open Reference|Skirmisher
+blood_hawk|Blood Hawk|1|25|12|7|Beast|Wilderness|Open Reference|Minion
+boar|Boar|2|50|11|13|Beast|Wilderness|Open Reference|Skirmisher
+brown_bear|Brown Bear|8|200|11|22|Beast|Wilderness|Open Reference|Skirmisher
+camel|Camel|1|25|10|17|Beast|Wilderness|Open Reference|Minion
+cat|Cat|0|10|12|2|Beast|Wilderness|Open Reference|Minion
+constrictor_snake|Constrictor Snake|2|50|13|13|Beast|Wilderness|Open Reference|Controller
+crab|Crab|0|10|11|3|Beast|Aquatic|Open Reference|Minion
+crocodile|Crocodile|4|100|12|13|Beast|Aquatic|Open Reference|Skirmisher
+deer|Deer|0|10|13|4|Beast|Wilderness|Open Reference|Minion
+dire_wolf|Dire Wolf|8|200|14|22|Beast|Wilderness|Open Reference|Skirmisher
+draft_horse|Draft Horse|2|50|10|15|Beast|Wilderness|Open Reference|Brute
+eagle|Eagle|0|10|12|4|Beast|Wilderness|Open Reference|Minion
+elephant|Elephant|32|1100|12|76|Beast|Wilderness|Open Reference|Controller
+elk|Elk|2|50|10|11|Beast|Wilderness|Open Reference|Skirmisher
+flying_snake|Flying Snake|1|25|14|5|Monstrosity|Wilderness|Open Reference|Minion
+frog|Frog|0|10|11|1|Beast|Wilderness|Open Reference|Minion
+giant_ape|Giant Ape|56|2900|12|168|Beast|Wilderness|Open Reference|Controller
+giant_badger|Giant Badger|2|50|13|15|Beast|Wilderness|Open Reference|Skirmisher
+giant_bat|Giant Bat|2|50|13|22|Beast|Wilderness|Open Reference|Skirmisher
+giant_boar|Giant Boar|16|450|13|42|Beast|Wilderness|Open Reference|Skirmisher
+giant_centipede|Giant Centipede|2|50|14|9|Beast|Wilderness|Open Reference|Skirmisher
+giant_constrictor_snake|Giant Constrictor Snake|16|450|12|60|Beast|Wilderness|Open Reference|Controller
+giant_crab|Giant Crab|1|25|15|13|Beast|Aquatic|Open Reference|Minion
+giant_crocodile|Giant Crocodile|40|1800|14|85|Beast|Aquatic|Open Reference|Brute
+giant_eagle|Giant Eagle|8|200|13|26|Celestial|Planar|Open Reference|Skirmisher
+giant_elk|Giant Elk|16|450|14|42|Celestial|Planar|Open Reference|Brute
+giant_fire_beetle|Giant Fire Beetle|0|10|13|4|Beast|Wilderness|Open Reference|Minion
+giant_frog|Giant Frog|2|50|11|18|Beast|Wilderness|Open Reference|Skirmisher
+giant_goat|Giant Goat|4|100|11|19|Beast|Wilderness|Open Reference|Skirmisher
+giant_hyena|Giant Hyena|8|200|12|45|Beast|Wilderness|Open Reference|Skirmisher
+giant_lizard|Giant Lizard|2|50|12|19|Beast|Wilderness|Open Reference|Skirmisher
+giant_octopus|Giant Octopus|8|200|11|45|Beast|Aquatic|Open Reference|Skirmisher
+giant_owl|Giant Owl|2|50|12|19|Celestial|Planar|Open Reference|Controller
+giant_rat|Giant Rat|1|25|13|7|Beast|Wilderness|Open Reference|Minion
+giant_scorpion|Giant Scorpion|24|700|15|52|Beast|Wilderness|Open Reference|Skirmisher
+giant_seahorse|Giant Seahorse|4|100|14|16|Beast|Aquatic|Open Reference|Skirmisher
+giant_shark|Giant Shark|40|1800|13|92|Beast|Aquatic|Open Reference|Brute
+giant_spider|Giant Spider|8|200|14|26|Beast|Wilderness|Open Reference|Minion
+giant_toad|Giant Toad|8|200|11|39|Beast|Wilderness|Open Reference|Skirmisher
+giant_venomous_snake|Giant Venomous Snake|2|50|14|11|Beast|Wilderness|Open Reference|Skirmisher
+giant_vulture|Giant Vulture|8|200|10|25|Monstrosity|Wilderness|Open Reference|Skirmisher
+giant_wasp|Giant Wasp|4|100|13|22|Beast|Wilderness|Open Reference|Skirmisher
+giant_weasel|Giant Weasel|1|25|13|9|Beast|Wilderness|Open Reference|Minion
+giant_wolf_spider|Giant Wolf Spider|2|50|13|11|Beast|Wilderness|Open Reference|Minion
+goat|Goat|0|10|10|4|Beast|Wilderness|Open Reference|Minion
+hawk|Hawk|0|10|13|1|Beast|Wilderness|Open Reference|Minion
+hippopotamus|Hippopotamus|32|1100|14|82|Beast|Wilderness|Open Reference|Brute
+hunter_shark|Hunter Shark|16|450|12|45|Beast|Aquatic|Open Reference|Brute
+hyena|Hyena|0|10|11|5|Beast|Wilderness|Open Reference|Minion
+jackal|Jackal|0|10|12|3|Beast|Wilderness|Open Reference|Minion
+killer_whale|Killer Whale|24|700|12|90|Beast|Aquatic|Open Reference|Brute
+lion|Lion|8|200|12|22|Beast|Wilderness|Open Reference|Controller
+lizard|Lizard|0|10|10|2|Beast|Wilderness|Open Reference|Minion
+mammoth|Mammoth|48|2300|13|126|Beast|Wilderness|Open Reference|Controller
+mastiff|Mastiff|1|25|12|5|Beast|Wilderness|Open Reference|Minion
+mule|Mule|1|25|10|11|Beast|Wilderness|Open Reference|Minion
+octopus|Octopus|0|10|12|3|Beast|Aquatic|Open Reference|Minion
+owl|Owl|0|10|11|1|Beast|Wilderness|Open Reference|Minion
+panther|Panther|2|50|13|13|Beast|Wilderness|Open Reference|Skirmisher
+piranha|Piranha|0|10|13|1|Beast|Aquatic|Open Reference|Minion
+plesiosaurus|Plesiosaurus|16|450|13|68|Beast|Wilderness|Open Reference|Brute
+polar_bear|Polar Bear|16|450|12|42|Beast|Wilderness|Open Reference|Brute
+pony|Pony|1|25|10|11|Beast|Wilderness|Open Reference|Minion
+pteranodon|Pteranodon|2|50|13|13|Beast|Wilderness|Open Reference|Skirmisher
+rat|Rat|0|10|10|1|Beast|Wilderness|Open Reference|Minion
+raven|Raven|0|10|12|2|Beast|Wilderness|Open Reference|Minion
+reef_shark|Reef Shark|4|100|12|22|Beast|Aquatic|Open Reference|Skirmisher
+rhinoceros|Rhinoceros|16|450|13|45|Beast|Wilderness|Open Reference|Brute
+riding_horse|Riding Horse|2|50|11|13|Beast|Wilderness|Open Reference|Skirmisher
+saber_toothed_tiger|Saber-Toothed Tiger|16|450|13|52|Beast|Wilderness|Open Reference|Brute
+scorpion|Scorpion|0|10|11|1|Beast|Wilderness|Open Reference|Minion
+seahorse|Seahorse|0|10|12|1|Beast|Aquatic|Open Reference|Minion
+spider|Spider|0|10|12|1|Beast|Wilderness|Open Reference|Minion
+swarm_of_bats|Swarm of Bats|2|50|12|11|Swarm|Wilderness|Open Reference|Minion
+swarm_of_insects|Swarm of Insects|4|100|11|19|Swarm|Wilderness|Open Reference|Minion
+swarm_of_piranhas|Swarm of Piranhas|8|200|13|28|Swarm|Aquatic|Open Reference|Minion
+swarm_of_rats|Swarm of Rats|2|50|10|14|Swarm|Wilderness|Open Reference|Minion
+swarm_of_ravens|Swarm of Ravens|2|50|12|11|Swarm|Wilderness|Open Reference|Minion
+swarm_of_venomous_snakes|Swarm of Venomous Snakes|16|450|14|36|Swarm|Wilderness|Open Reference|Minion
+tiger|Tiger|8|200|13|30|Beast|Wilderness|Open Reference|Skirmisher
+triceratops|Triceratops|40|1800|14|114|Beast|Wilderness|Open Reference|Minion
+tyrannosaurus_rex|Tyrannosaurus Rex|64|3900|13|136|Beast|Wilderness|Open Reference|Brute
+venomous_snake|Venomous Snake|1|25|12|5|Beast|Wilderness|Open Reference|Minion
+vulture|Vulture|0|10|10|5|Beast|Wilderness|Open Reference|Minion
+warhorse|Warhorse|4|100|11|19|Beast|Wilderness|Open Reference|Brute
+weasel|Weasel|0|10|13|1|Beast|Wilderness|Open Reference|Minion
+wolf|Wolf|2|50|12|11|Beast|Wilderness|Open Reference|Skirmisher

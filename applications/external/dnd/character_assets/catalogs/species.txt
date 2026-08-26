@@ -1,0 +1,106 @@
+# Name
+Aasimar
+Black Dragonborn
+Blue Dragonborn
+Brass Dragonborn
+Bronze Dragonborn
+Copper Dragonborn
+Gold Dragonborn
+Green Dragonborn
+Red Dragonborn
+Silver Dragonborn
+White Dragonborn
+Dwarf
+Drow Elf
+High Elf
+Wood Elf
+Forest Gnome
+Rock Gnome
+Cloud Giant Goliath
+Fire Giant Goliath
+Frost Giant Goliath
+Hill Giant Goliath
+Stone Giant Goliath
+Storm Giant Goliath
+Halfling
+Human
+Orc
+Abyssal Tiefling
+Chthonic Tiefling
+Infernal Tiefling
+
+# Additional compatible species and lineage names
+Aarakocra
+Protector Aasimar
+Scourge Aasimar
+Fallen Aasimar
+Autognome
+Bugbear
+Centaur
+Changeling
+Custom Lineage
+Dhampir
+Amethyst Dragonborn
+Crystal Dragonborn
+Emerald Dragonborn
+Sapphire Dragonborn
+Topaz Dragonborn
+Hill Dwarf
+Mountain Dwarf
+Duergar Dwarf
+Eladrin Elf
+Sea Elf
+Shadar-kai Elf
+Fairy
+Firbolg
+Air Genasi
+Earth Genasi
+Fire Genasi
+Water Genasi
+Giff
+Githyanki
+Githzerai
+Deep Gnome
+Goblin
+Grung
+Hadozee
+Half-Elf
+Half-Orc
+Lightfoot Halfling
+Stout Halfling
+Ghostwise Halfling
+Harengon
+Hexblood
+Hobgoblin
+Kalashtar
+Kender
+Kenku
+Kobold
+Leonin
+Lizardfolk
+Locathah
+Loxodon
+Minotaur
+Owlin
+Plasmoid
+Reborn
+Satyr
+Shifter
+Simic Hybrid
+Tabaxi
+Thri-kreen
+Tortle
+Triton
+Vedalken
+Verdan
+Warforged
+Yuan-ti
+Asmodeus Tiefling
+Baalzebul Tiefling
+Dispater Tiefling
+Fierna Tiefling
+Glasya Tiefling
+Levistus Tiefling
+Mammon Tiefling
+Mephistopheles Tiefling
+Zariel Tiefling

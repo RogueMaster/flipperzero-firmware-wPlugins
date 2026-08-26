@@ -1,0 +1,4 @@
+# Append rows below to character_assets/metadata/options.txt.
+# stable_id|source|option_type|option_name|prerequisites|level_gained|class_associations|grant_value
+example-option|Campaign Pack|feat|Example Option|Level 4|4|Any|
+example-grant|Campaign Pack|feat|Example Option|Level 4|4|Any|feature=Example Feature

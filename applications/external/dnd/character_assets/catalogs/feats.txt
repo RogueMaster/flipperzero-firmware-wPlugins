@@ -1,0 +1,18 @@
+# Dungeons & Dolphins SRD 5.2.1 feats. Add one custom or add-on feat per line.
+Alert
+Magic Initiate
+Savage Attacker
+Skilled
+Ability Score Improvement
+Grappler
+Archery
+Defense
+Great Weapon Fighting
+Two-Weapon Fighting
+Boon of Combat Prowess
+Boon of Dimensional Travel
+Boon of Fate
+Boon of Irresistible Offense
+Boon of the Night Spirit
+Boon of Spell Recall
+Boon of Truesight

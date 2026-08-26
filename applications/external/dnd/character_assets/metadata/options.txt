@@ -1,0 +1,1302 @@
+# stable_id|source|option_type|option_name|prerequisites|level_gained|class_associations|grant_value
+class-artificer|Eberron|class|Artificer|None|0|Artificer|
+class-barbarian|Core|class|Barbarian|None|0|Barbarian|
+class-bard|Core|class|Bard|None|0|Bard|
+class-cleric|Core|class|Cleric|None|0|Cleric|
+class-druid|Core|class|Druid|None|0|Druid|
+class-fighter|Core|class|Fighter|None|0|Fighter|
+class-monk|Core|class|Monk|None|0|Monk|
+class-paladin|Core|class|Paladin|None|0|Paladin|
+class-ranger|Core|class|Ranger|None|0|Ranger|
+class-rogue|Core|class|Rogue|None|0|Rogue|
+class-sorcerer|Core|class|Sorcerer|None|0|Sorcerer|
+class-warlock|Core|class|Warlock|None|0|Warlock|
+class-wizard|Core|class|Wizard|None|0|Wizard|
+class-path-of-the-berserker|Core|class|Path of the Berserker|None|0|Path of the Berserker|
+class-college-of-lore|Core|class|College of Lore|None|0|College of Lore|
+class-life-domain|Core|class|Life Domain|None|0|Life Domain|
+class-circle-of-the-land|Core|class|Circle of the Land|None|0|Circle of the Land|
+class-champion|Core|class|Champion|None|0|Champion|
+class-warrior-of-the-open-hand|Core|class|Warrior of the Open Hand|None|0|Warrior of the Open Hand|
+class-oath-of-devotion|Core|class|Oath of Devotion|None|0|Oath of Devotion|
+class-hunter|Core|class|Hunter|None|0|Hunter|
+class-thief|Core|class|Thief|None|0|Thief|
+class-draconic-sorcery|Core|class|Draconic Sorcery|None|0|Draconic Sorcery|
+class-fiend-patron|Core|class|Fiend Patron|None|0|Fiend Patron|
+class-evoker|Core|class|Evoker|None|0|Evoker|
+class-path-of-the-wild-heart|Core|class|Path of the Wild Heart|None|0|Path of the Wild Heart|
+class-path-of-the-world-tree|Core|class|Path of the World Tree|None|0|Path of the World Tree|
+class-college-of-dance|Core|class|College of Dance|None|0|College of Dance|
+class-college-of-valor|Core|class|College of Valor|None|0|College of Valor|
+class-light-domain|Core|class|Light Domain|None|0|Light Domain|
+class-trickery-domain|Core|class|Trickery Domain|None|0|Trickery Domain|
+class-war-domain|Core|class|War Domain|None|0|War Domain|
+class-circle-of-the-moon|Core|class|Circle of the Moon|None|0|Circle of the Moon|
+class-circle-of-the-sea|Core|class|Circle of the Sea|None|0|Circle of the Sea|
+class-circle-of-the-stars|Core|class|Circle of the Stars|None|0|Circle of the Stars|
+class-battle-master|Core|class|Battle Master|None|0|Battle Master|
+class-eldritch-knight|Core|class|Eldritch Knight|None|0|Eldritch Knight|
+class-psi-warrior|Core|class|Psi Warrior|None|0|Psi Warrior|
+class-warrior-of-mercy|Core|class|Warrior of Mercy|None|0|Warrior of Mercy|
+class-warrior-of-shadow|Core|class|Warrior of Shadow|None|0|Warrior of Shadow|
+class-warrior-of-the-elements|Core|class|Warrior of the Elements|None|0|Warrior of the Elements|
+class-oath-of-glory|Core|class|Oath of Glory|None|0|Oath of Glory|
+class-oath-of-the-ancients|Core|class|Oath of the Ancients|None|0|Oath of the Ancients|
+class-oath-of-vengeance|Core|class|Oath of Vengeance|None|0|Oath of Vengeance|
+class-beast-master|Core|class|Beast Master|None|0|Beast Master|
+class-fey-wanderer|Core|class|Fey Wanderer|None|0|Fey Wanderer|
+class-arcane-trickster|Core|class|Arcane Trickster|None|0|Arcane Trickster|
+class-assassin|Core|class|Assassin|None|0|Assassin|
+class-soulknife|Core|class|Soulknife|None|0|Soulknife|
+class-aberrant-sorcery|Core|class|Aberrant Sorcery|None|0|Aberrant Sorcery|
+class-clockwork-sorcery|Core|class|Clockwork Sorcery|None|0|Clockwork Sorcery|
+class-wild-magic-sorcery|Core|class|Wild Magic Sorcery|None|0|Wild Magic Sorcery|
+class-archfey-patron|Core|class|Archfey Patron|None|0|Archfey Patron|
+class-celestial-patron|Core|class|Celestial Patron|None|0|Celestial Patron|
+class-great-old-one-patron|Core|class|Great Old One Patron|None|0|Great Old One Patron|
+class-abjurer|Core|class|Abjurer|None|0|Abjurer|
+class-diviner|Core|class|Diviner|None|0|Diviner|
+class-illusionist|Core|class|Illusionist|None|0|Illusionist|
+class-college-of-the-moon|Core|class|College of the Moon|None|0|College of the Moon|
+class-knowledge-domain|Core|class|Knowledge Domain|None|0|Knowledge Domain|
+class-banneret|Core|class|Banneret|None|0|Banneret|
+class-oath-of-the-noble-genies|Core|class|Oath of the Noble Genies|None|0|Oath of the Noble Genies|
+class-winter-walker|Core|class|Winter Walker|None|0|Winter Walker|
+class-scion-of-the-three|Core|class|Scion of the Three|None|0|Scion of the Three|
+class-spellfire-sorcery|Core|class|Spellfire Sorcery|None|0|Spellfire Sorcery|
+class-bladesinger|Core|class|Bladesinger|None|0|Bladesinger|
+class-college-of-spirits|Core|class|College of Spirits|None|0|College of Spirits|
+class-the-undead|Core|class|The Undead|None|0|The Undead|
+class-alchemist|Core|class|Alchemist|None|0|Alchemist|
+class-armorer|Core|class|Armorer|None|0|Armorer|
+class-artillerist|Core|class|Artillerist|None|0|Artillerist|
+class-battle-smith|Core|class|Battle Smith|None|0|Battle Smith|
+class-cartographer|Core|class|Cartographer|None|0|Cartographer|
+class-path-of-the-ancestral-guardian|Core|class|Path of the Ancestral Guardian|None|0|Path of the Ancestral Guardian|
+class-path-of-the-storm-herald|Core|class|Path of the Storm Herald|None|0|Path of the Storm Herald|
+class-path-of-the-zealot|Core|class|Path of the Zealot|None|0|Path of the Zealot|
+class-college-of-glamour|Core|class|College of Glamour|None|0|College of Glamour|
+class-college-of-swords|Core|class|College of Swords|None|0|College of Swords|
+class-college-of-whispers|Core|class|College of Whispers|None|0|College of Whispers|
+class-forge-domain|Core|class|Forge Domain|None|0|Forge Domain|
+class-grave-domain|Core|class|Grave Domain|None|0|Grave Domain|
+class-circle-of-dreams|Core|class|Circle of Dreams|None|0|Circle of Dreams|
+class-circle-of-the-shepherd|Core|class|Circle of the Shepherd|None|0|Circle of the Shepherd|
+class-arcane-archer|Core|class|Arcane Archer|None|0|Arcane Archer|
+class-cavalier|Core|class|Cavalier|None|0|Cavalier|
+class-samurai|Core|class|Samurai|None|0|Samurai|
+class-way-of-the-drunken-master|Core|class|Way of the Drunken Master|None|0|Way of the Drunken Master|
+class-way-of-the-kensei|Core|class|Way of the Kensei|None|0|Way of the Kensei|
+class-way-of-the-sun-soul|Core|class|Way of the Sun Soul|None|0|Way of the Sun Soul|
+class-oath-of-conquest|Core|class|Oath of Conquest|None|0|Oath of Conquest|
+class-oath-of-redemption|Core|class|Oath of Redemption|None|0|Oath of Redemption|
+class-gloom-stalker|Core|class|Gloom Stalker|None|0|Gloom Stalker|
+class-horizon-walker|Core|class|Horizon Walker|None|0|Horizon Walker|
+class-monster-slayer|Core|class|Monster Slayer|None|0|Monster Slayer|
+class-inquisitive|Core|class|Inquisitive|None|0|Inquisitive|
+class-mastermind|Core|class|Mastermind|None|0|Mastermind|
+class-scout|Core|class|Scout|None|0|Scout|
+class-swashbuckler|Core|class|Swashbuckler|None|0|Swashbuckler|
+class-divine-soul|Core|class|Divine Soul|None|0|Divine Soul|
+class-shadow-magic|Core|class|Shadow Magic|None|0|Shadow Magic|
+class-storm-sorcery|Core|class|Storm Sorcery|None|0|Storm Sorcery|
+class-the-celestial|Core|class|The Celestial|None|0|The Celestial|
+class-the-hexblade|Core|class|The Hexblade|None|0|The Hexblade|
+class-war-magic|Core|class|War Magic|None|0|War Magic|
+species-aasimar|Core|species|Aasimar|None|0|Any|
+species-dragonborn|Core|species|Dragonborn|None|0|Any|
+species-dwarf|Core|species|Dwarf|None|0|Any|
+species-elf|Core|species|Elf|None|0|Any|
+species-gnome|Core|species|Gnome|None|0|Any|
+species-goliath|Core|species|Goliath|None|0|Any|
+species-halfling|Core|species|Halfling|None|0|Any|
+species-human|Core|species|Human|None|0|Any|
+species-orc|Core|species|Orc|None|0|Any|
+species-tiefling|Core|species|Tiefling|None|0|Any|
+background-acolyte|Core|background|Acolyte|None|0|Any|
+background-artisan|Core|background|Artisan|None|0|Any|
+background-charlatan|Core|background|Charlatan|None|0|Any|
+background-criminal|Core|background|Criminal|None|0|Any|
+background-entertainer|Core|background|Entertainer|None|0|Any|
+background-farmer|Core|background|Farmer|None|0|Any|
+background-guard|Core|background|Guard|None|0|Any|
+background-guide|Core|background|Guide|None|0|Any|
+background-hermit|Core|background|Hermit|None|0|Any|
+background-merchant|Core|background|Merchant|None|0|Any|
+background-noble|Core|background|Noble|None|0|Any|
+background-sage|Core|background|Sage|None|0|Any|
+background-sailor|Core|background|Sailor|None|0|Any|
+background-scribe|Core|background|Scribe|None|0|Any|
+background-soldier|Core|background|Soldier|None|0|Any|
+background-wayfarer|Core|background|Wayfarer|None|0|Any|
+background-haunted-one|Ravenloft|background|Haunted One|None|0|Any|
+background-investigator|Ravenloft|background|Investigator|None|0|Any|
+background-chondathan-freebooter|Forgotten Realms|background|Chondathan Freebooter|None|0|Any|
+background-dead-magic-dweller|Forgotten Realms|background|Dead Magic Dweller|None|0|Any|
+background-dragon-cultist|Forgotten Realms|background|Dragon Cultist|None|0|Any|
+background-emerald-enclave-caretaker|Forgotten Realms|background|Emerald Enclave Caretaker|None|0|Any|
+background-flaming-fist-mercenary|Forgotten Realms|background|Flaming Fist Mercenary|None|0|Any|
+background-genie-touched|Forgotten Realms|background|Genie Touched|None|0|Any|
+background-harper|Forgotten Realms|background|Harper|None|0|Any|
+background-ice-fisher|Forgotten Realms|background|Ice Fisher|None|0|Any|
+background-knight-of-the-gauntlet|Forgotten Realms|background|Knight of the Gauntlet|None|0|Any|
+background-lords-alliance-vassal|Forgotten Realms|background|Lords' Alliance Vassal|None|0|Any|
+background-moonwell-pilgrim|Forgotten Realms|background|Moonwell Pilgrim|None|0|Any|
+background-mulhorandi-tomb-raider|Forgotten Realms|background|Mulhorandi Tomb Raider|None|0|Any|
+background-mythalkeeper|Forgotten Realms|background|Mythalkeeper|None|0|Any|
+background-purple-dragon-squire|Forgotten Realms|background|Purple Dragon Squire|None|0|Any|
+background-rashemi-wanderer|Forgotten Realms|background|Rashemi Wanderer|None|0|Any|
+background-shadowmasters-exile|Forgotten Realms|background|Shadowmasters Exile|None|0|Any|
+background-spellfire-initiate|Forgotten Realms|background|Spellfire Initiate|None|0|Any|
+background-zhentarim-mercenary|Forgotten Realms|background|Zhentarim Mercenary|None|0|Any|
+feat-alert|Core|feat|Alert|Catalog prerequisites|0|Any|
+feat-magic-initiate|Core|feat|Magic Initiate|Catalog prerequisites|0|Any|
+feat-savage-attacker|Core|feat|Savage Attacker|Catalog prerequisites|0|Any|
+feat-skilled|Core|feat|Skilled|Catalog prerequisites|0|Any|
+feat-ability-score-improvement|Core|feat|Ability Score Improvement|Catalog prerequisites|0|Any|
+feat-grappler|Core|feat|Grappler|Catalog prerequisites|0|Any|
+feat-archery|Core|feat|Archery|Catalog prerequisites|0|Any|
+feat-defense|Core|feat|Defense|Catalog prerequisites|0|Any|
+feat-great-weapon-fighting|Core|feat|Great Weapon Fighting|Catalog prerequisites|0|Any|
+feat-two-weapon-fighting|Core|feat|Two-Weapon Fighting|Catalog prerequisites|0|Any|
+feat-boon-of-combat-prowess|Core|feat|Boon of Combat Prowess|Catalog prerequisites|0|Any|
+feat-boon-of-dimensional-travel|Core|feat|Boon of Dimensional Travel|Catalog prerequisites|0|Any|
+feat-boon-of-fate|Core|feat|Boon of Fate|Catalog prerequisites|0|Any|
+feat-boon-of-irresistible-offense|Core|feat|Boon of Irresistible Offense|Catalog prerequisites|0|Any|
+feat-boon-of-the-night-spirit|Core|feat|Boon of the Night Spirit|Catalog prerequisites|0|Any|
+feat-boon-of-spell-recall|Core|feat|Boon of Spell Recall|Catalog prerequisites|0|Any|
+feat-boon-of-truesight|Core|feat|Boon of Truesight|Catalog prerequisites|0|Any|
+ability-action-surge|Core|ability|Action Surge|Catalog prerequisites|0|Any|
+ability-bardic-inspiration|Core|ability|Bardic Inspiration|Catalog prerequisites|0|Any|
+ability-channel-divinity|Core|ability|Channel Divinity|Catalog prerequisites|0|Any|
+ability-danger-sense|Core|ability|Danger Sense|Catalog prerequisites|0|Any|
+ability-divine-order|Core|ability|Divine Order|Catalog prerequisites|0|Any|
+ability-eldritch-invocations|Core|ability|Eldritch Invocations|Catalog prerequisites|0|Any|
+ability-expertise|Core|ability|Expertise|Catalog prerequisites|0|Any|
+ability-extra-attack|Core|ability|Extra Attack|Catalog prerequisites|0|Any|
+ability-fighting-style|Core|ability|Fighting Style|Catalog prerequisites|0|Any|
+ability-font-of-inspiration|Core|ability|Font of Inspiration|Catalog prerequisites|0|Any|
+ability-font-of-magic|Core|ability|Font of Magic|Catalog prerequisites|0|Any|
+ability-indomitable|Core|ability|Indomitable|Catalog prerequisites|0|Any|
+ability-jack-of-all-trades|Core|ability|Jack of All Trades|Catalog prerequisites|0|Any|
+ability-lay-on-hands|Core|ability|Lay on Hands|Catalog prerequisites|0|Any|
+ability-magical-secrets|Core|ability|Magical Secrets|Catalog prerequisites|0|Any|
+ability-martial-arts|Core|ability|Martial Arts|Catalog prerequisites|0|Any|
+ability-metamagic|Core|ability|Metamagic|Catalog prerequisites|0|Any|
+ability-pact-magic|Core|ability|Pact Magic|Catalog prerequisites|0|Any|
+ability-rage|Core|ability|Rage|Catalog prerequisites|0|Any|
+ability-reckless-attack|Core|ability|Reckless Attack|Catalog prerequisites|0|Any|
+ability-second-wind|Core|ability|Second Wind|Catalog prerequisites|0|Any|
+ability-sneak-attack|Core|ability|Sneak Attack|Catalog prerequisites|0|Any|
+ability-sorcery-points|Core|ability|Sorcery Points|Catalog prerequisites|0|Any|
+ability-spellcasting|Core|ability|Spellcasting|Catalog prerequisites|0|Any|
+ability-unarmored-defense|Core|ability|Unarmored Defense|Catalog prerequisites|0|Any|
+ability-weapon-mastery|Core|ability|Weapon Mastery|Catalog prerequisites|0|Any|
+ability-wild-shape|Core|ability|Wild Shape|Catalog prerequisites|0|Any|
+ability-primal-knowledge|Core|ability|Primal Knowledge|Catalog prerequisites|0|Any|
+ability-fast-movement|Core|ability|Fast Movement|Catalog prerequisites|0|Any|
+ability-feral-instinct|Core|ability|Feral Instinct|Catalog prerequisites|0|Any|
+ability-instinctive-pounce|Core|ability|Instinctive Pounce|Catalog prerequisites|0|Any|
+ability-brutal-strike|Core|ability|Brutal Strike|Catalog prerequisites|0|Any|
+ability-improved-brutal-strike|Core|ability|Improved Brutal Strike|Catalog prerequisites|0|Any|
+ability-relentless-rage|Core|ability|Relentless Rage|Catalog prerequisites|0|Any|
+ability-persistent-rage|Core|ability|Persistent Rage|Catalog prerequisites|0|Any|
+ability-indomitable-might|Core|ability|Indomitable Might|Catalog prerequisites|0|Any|
+ability-primal-champion|Core|ability|Primal Champion|Catalog prerequisites|0|Any|
+ability-words-of-creation|Core|ability|Words of Creation|Catalog prerequisites|0|Any|
+ability-countercharm|Core|ability|Countercharm|Catalog prerequisites|0|Any|
+ability-superior-inspiration|Core|ability|Superior Inspiration|Catalog prerequisites|0|Any|
+ability-blessed-strikes|Core|ability|Blessed Strikes|Catalog prerequisites|0|Any|
+ability-divine-intervention|Core|ability|Divine Intervention|Catalog prerequisites|0|Any|
+ability-sear-undead|Core|ability|Sear Undead|Catalog prerequisites|0|Any|
+ability-improved-blessed-strikes|Core|ability|Improved Blessed Strikes|Catalog prerequisites|0|Any|
+ability-greater-divine-intervention|Core|ability|Greater Divine Intervention|Catalog prerequisites|0|Any|
+ability-druidic|Core|ability|Druidic|Catalog prerequisites|0|Any|
+ability-primal-order|Core|ability|Primal Order|Catalog prerequisites|0|Any|
+ability-wild-companion|Core|ability|Wild Companion|Catalog prerequisites|0|Any|
+ability-wild-resurgence|Core|ability|Wild Resurgence|Catalog prerequisites|0|Any|
+ability-elemental-fury|Core|ability|Elemental Fury|Catalog prerequisites|0|Any|
+ability-improved-elemental-fury|Core|ability|Improved Elemental Fury|Catalog prerequisites|0|Any|
+ability-beast-spells|Core|ability|Beast Spells|Catalog prerequisites|0|Any|
+ability-archdruid|Core|ability|Archdruid|Catalog prerequisites|0|Any|
+ability-tactical-mind|Core|ability|Tactical Mind|Catalog prerequisites|0|Any|
+ability-tactical-shift|Core|ability|Tactical Shift|Catalog prerequisites|0|Any|
+ability-tactical-master|Core|ability|Tactical Master|Catalog prerequisites|0|Any|
+ability-studied-attacks|Core|ability|Studied Attacks|Catalog prerequisites|0|Any|
+ability-monk-s-focus|Core|ability|Monk's Focus|Catalog prerequisites|0|Any|
+ability-flurry-of-blows|Core|ability|Flurry of Blows|Catalog prerequisites|0|Any|
+ability-patient-defense|Core|ability|Patient Defense|Catalog prerequisites|0|Any|
+ability-step-of-the-wind|Core|ability|Step of the Wind|Catalog prerequisites|0|Any|
+ability-deflect-attacks|Core|ability|Deflect Attacks|Catalog prerequisites|0|Any|
+ability-slow-fall|Core|ability|Slow Fall|Catalog prerequisites|0|Any|
+ability-stunning-strike|Core|ability|Stunning Strike|Catalog prerequisites|0|Any|
+ability-empowered-strikes|Core|ability|Empowered Strikes|Catalog prerequisites|0|Any|
+ability-evasion|Core|ability|Evasion|Catalog prerequisites|0|Any|
+ability-acrobatic-movement|Core|ability|Acrobatic Movement|Catalog prerequisites|0|Any|
+ability-heightened-focus|Core|ability|Heightened Focus|Catalog prerequisites|0|Any|
+ability-self-restoration|Core|ability|Self-Restoration|Catalog prerequisites|0|Any|
+ability-deflect-energy|Core|ability|Deflect Energy|Catalog prerequisites|0|Any|
+ability-disciplined-survivor|Core|ability|Disciplined Survivor|Catalog prerequisites|0|Any|
+ability-perfect-focus|Core|ability|Perfect Focus|Catalog prerequisites|0|Any|
+ability-superior-defense|Core|ability|Superior Defense|Catalog prerequisites|0|Any|
+ability-body-and-mind|Core|ability|Body and Mind|Catalog prerequisites|0|Any|
+ability-paladin-s-smite|Core|ability|Paladin's Smite|Catalog prerequisites|0|Any|
+ability-divine-sense|Core|ability|Divine Sense|Catalog prerequisites|0|Any|
+ability-aura-of-protection|Core|ability|Aura of Protection|Catalog prerequisites|0|Any|
+ability-faithful-steed|Core|ability|Faithful Steed|Catalog prerequisites|0|Any|
+ability-abjure-foes|Core|ability|Abjure Foes|Catalog prerequisites|0|Any|
+ability-aura-of-courage|Core|ability|Aura of Courage|Catalog prerequisites|0|Any|
+ability-radiant-strikes|Core|ability|Radiant Strikes|Catalog prerequisites|0|Any|
+ability-restoring-touch|Core|ability|Restoring Touch|Catalog prerequisites|0|Any|
+ability-favored-enemy|Core|ability|Favored Enemy|Catalog prerequisites|0|Any|
+ability-deft-explorer|Core|ability|Deft Explorer|Catalog prerequisites|0|Any|
+ability-roving|Core|ability|Roving|Catalog prerequisites|0|Any|
+ability-tireless|Core|ability|Tireless|Catalog prerequisites|0|Any|
+ability-nature-s-veil|Core|ability|Nature's Veil|Catalog prerequisites|0|Any|
+ability-relentless-hunter|Core|ability|Relentless Hunter|Catalog prerequisites|0|Any|
+ability-precise-hunter|Core|ability|Precise Hunter|Catalog prerequisites|0|Any|
+ability-foe-slayer|Core|ability|Foe Slayer|Catalog prerequisites|0|Any|
+ability-thieves-cant|Core|ability|Thieves' Cant|Catalog prerequisites|0|Any|
+ability-cunning-action|Core|ability|Cunning Action|Catalog prerequisites|0|Any|
+ability-steady-aim|Core|ability|Steady Aim|Catalog prerequisites|0|Any|
+ability-cunning-strike|Core|ability|Cunning Strike|Catalog prerequisites|0|Any|
+ability-uncanny-dodge|Core|ability|Uncanny Dodge|Catalog prerequisites|0|Any|
+ability-reliable-talent|Core|ability|Reliable Talent|Catalog prerequisites|0|Any|
+ability-improved-cunning-strike|Core|ability|Improved Cunning Strike|Catalog prerequisites|0|Any|
+ability-slippery-mind|Core|ability|Slippery Mind|Catalog prerequisites|0|Any|
+ability-elusive|Core|ability|Elusive|Catalog prerequisites|0|Any|
+ability-stroke-of-luck|Core|ability|Stroke of Luck|Catalog prerequisites|0|Any|
+ability-innate-sorcery|Core|ability|Innate Sorcery|Catalog prerequisites|0|Any|
+ability-sorcerous-restoration|Core|ability|Sorcerous Restoration|Catalog prerequisites|0|Any|
+ability-sorcery-incarnate|Core|ability|Sorcery Incarnate|Catalog prerequisites|0|Any|
+ability-arcane-apotheosis|Core|ability|Arcane Apotheosis|Catalog prerequisites|0|Any|
+ability-magical-cunning|Core|ability|Magical Cunning|Catalog prerequisites|0|Any|
+ability-contact-patron|Core|ability|Contact Patron|Catalog prerequisites|0|Any|
+ability-mystic-arcanum|Core|ability|Mystic Arcanum|Catalog prerequisites|0|Any|
+ability-eldritch-master|Core|ability|Eldritch Master|Catalog prerequisites|0|Any|
+ability-spellbook|Core|ability|Spellbook|Catalog prerequisites|0|Any|
+ability-ritual-adept|Core|ability|Ritual Adept|Catalog prerequisites|0|Any|
+ability-arcane-recovery|Core|ability|Arcane Recovery|Catalog prerequisites|0|Any|
+ability-scholar|Core|ability|Scholar|Catalog prerequisites|0|Any|
+ability-memorize-spell|Core|ability|Memorize Spell|Catalog prerequisites|0|Any|
+ability-spell-mastery|Core|ability|Spell Mastery|Catalog prerequisites|0|Any|
+ability-signature-spells|Core|ability|Signature Spells|Catalog prerequisites|0|Any|
+ability-tinker-s-magic|Core|ability|Tinker's Magic|Catalog prerequisites|0|Any|
+ability-replicate-magic-item|Core|ability|Replicate Magic Item|Catalog prerequisites|0|Any|
+ability-right-tool-for-the-job|Core|ability|Right Tool for the Job|Catalog prerequisites|0|Any|
+ability-flash-of-genius|Core|ability|Flash of Genius|Catalog prerequisites|0|Any|
+ability-magic-item-adept|Core|ability|Magic Item Adept|Catalog prerequisites|0|Any|
+ability-magic-item-savant|Core|ability|Magic Item Savant|Catalog prerequisites|0|Any|
+ability-magic-item-master|Core|ability|Magic Item Master|Catalog prerequisites|0|Any|
+ability-soul-of-artifice|Core|ability|Soul of Artifice|Catalog prerequisites|0|Any|
+spell-acid-arrow|Core|spell|Acid Arrow|Spell level 2|2|Wizard|
+spell-acid-splash|Core|spell|Acid Splash|Spell level 0|0|Sorcerer, Wizard|
+spell-aid|Core|spell|Aid|Spell level 2|2|Bard, Cleric, Druid, Paladin, Ranger|
+spell-alarm|Core|spell|Alarm|Spell level 1|1|Ranger, Wizard|
+spell-alter-self|Core|spell|Alter Self|Spell level 2|2|Sorcerer, Wizard|
+spell-animal-friendship|Core|spell|Animal Friendship|Spell level 1|1|Bard, Druid, Ranger|
+spell-animal-messenger|Core|spell|Animal Messenger|Spell level 2|2|Bard, Druid, Ranger|
+spell-animal-shapes|Core|spell|Animal Shapes|Spell level 8|8|Druid|
+spell-animate-dead|Core|spell|Animate Dead|Spell level 3|3|Cleric, Wizard|
+spell-animate-objects|Core|spell|Animate Objects|Spell level 5|5|Bard, Sorcerer, Wizard|
+spell-antilife-shell|Core|spell|Antilife Shell|Spell level 5|5|Druid|
+spell-antimagic-field|Core|spell|Antimagic Field|Spell level 8|8|Cleric, Wizard|
+spell-antipathy-sympathy|Core|spell|Antipathy/Sympathy|Spell level 8|8|Bard, Druid, Wizard|
+spell-arcane-eye|Core|spell|Arcane Eye|Spell level 4|4|Wizard|
+spell-arcane-hand|Core|spell|Arcane Hand|Spell level 5|5|Sorcerer, Wizard|
+spell-arcane-lock|Core|spell|Arcane Lock|Spell level 2|2|Wizard|
+spell-arcane-sword|Core|spell|Arcane Sword|Spell level 7|7|Bard, Wizard|
+spell-arcanist-s-magic-aura|Core|spell|Arcanist's Magic Aura|Spell level 2|2|Wizard|
+spell-astral-projection|Core|spell|Astral Projection|Spell level 9|9|Cleric, Warlock, Wizard|
+spell-augury|Core|spell|Augury|Spell level 2|2|Cleric, Druid, Wizard|
+spell-aura-of-life|Core|spell|Aura of Life|Spell level 4|4|Cleric, Paladin|
+spell-awaken|Core|spell|Awaken|Spell level 5|5|Bard, Druid|
+spell-bane|Core|spell|Bane|Spell level 1|1|Bard, Cleric, Warlock|
+spell-banishment|Core|spell|Banishment|Spell level 4|4|Cleric, Paladin, Sorcerer, Warlock, Wizard|
+spell-barkskin|Core|spell|Barkskin|Spell level 2|2|Druid, Ranger|
+spell-beacon-of-hope|Core|spell|Beacon of Hope|Spell level 3|3|Cleric|
+spell-befuddlement|Core|spell|Befuddlement|Spell level 8|8|Bard, Druid, Warlock, Wizard|
+spell-bestow-curse|Core|spell|Bestow Curse|Spell level 3|3|Bard, Cleric, Wizard|
+spell-black-tentacles|Core|spell|Black Tentacles|Spell level 4|4|Wizard|
+spell-blade-barrier|Core|spell|Blade Barrier|Spell level 6|6|Cleric|
+spell-bless|Core|spell|Bless|Spell level 1|1|Cleric, Paladin|
+spell-blight|Core|spell|Blight|Spell level 4|4|Druid, Sorcerer, Warlock, Wizard|
+spell-blindness-deafness|Core|spell|Blindness/Deafness|Spell level 2|2|Bard, Cleric, Sorcerer, Wizard|
+spell-blink|Core|spell|Blink|Spell level 3|3|Sorcerer, Wizard|
+spell-blur|Core|spell|Blur|Spell level 2|2|Sorcerer, Wizard|
+spell-burning-hands|Core|spell|Burning Hands|Spell level 1|1|Sorcerer, Wizard|
+spell-call-lightning|Core|spell|Call Lightning|Spell level 3|3|Druid|
+spell-calm-emotions|Core|spell|Calm Emotions|Spell level 2|2|Bard, Cleric|
+spell-chain-lightning|Core|spell|Chain Lightning|Spell level 6|6|Sorcerer, Wizard|
+spell-charm-monster|Core|spell|Charm Monster|Spell level 4|4|Bard, Druid, Sorcerer, Warlock, Wizard|
+spell-charm-person|Core|spell|Charm Person|Spell level 1|1|Bard, Druid, Sorcerer, Warlock, Wizard|
+spell-chill-touch|Core|spell|Chill Touch|Spell level 0|0|Sorcerer, Warlock, Wizard|
+spell-chromatic-orb|Core|spell|Chromatic Orb|Spell level 1|1|Sorcerer, Wizard|
+spell-circle-of-death|Core|spell|Circle of Death|Spell level 6|6|Sorcerer, Warlock, Wizard|
+spell-clairvoyance|Core|spell|Clairvoyance|Spell level 3|3|Bard, Cleric, Sorcerer, Wizard|
+spell-clone|Core|spell|Clone|Spell level 8|8|Wizard|
+spell-cloudkill|Core|spell|Cloudkill|Spell level 5|5|Sorcerer, Wizard|
+spell-color-spray|Core|spell|Color Spray|Spell level 1|1|Bard, Sorcerer, Wizard|
+spell-command|Core|spell|Command|Spell level 1|1|Bard, Cleric, Paladin|
+spell-commune|Core|spell|Commune|Spell level 5|5|Cleric|
+spell-commune-with-nature|Core|spell|Commune with Nature|Spell level 5|5|Druid, Ranger|
+spell-comprehend-languages|Core|spell|Comprehend Languages|Spell level 1|1|Bard, Sorcerer, Warlock, Wizard|
+spell-compulsion|Core|spell|Compulsion|Spell level 4|4|Bard|
+spell-cone-of-cold|Core|spell|Cone of Cold|Spell level 5|5|Druid, Sorcerer, Wizard|
+spell-confusion|Core|spell|Confusion|Spell level 4|4|Bard, Druid, Sorcerer, Wizard|
+spell-conjure-animals|Core|spell|Conjure Animals|Spell level 3|3|Druid, Ranger|
+spell-conjure-celestial|Core|spell|Conjure Celestial|Spell level 7|7|Cleric|
+spell-conjure-elemental|Core|spell|Conjure Elemental|Spell level 5|5|Druid, Wizard|
+spell-conjure-fey|Core|spell|Conjure Fey|Spell level 6|6|Druid|
+spell-conjure-minor-elementals|Core|spell|Conjure Minor Elementals|Spell level 4|4|Druid, Wizard|
+spell-conjure-woodland-beings|Core|spell|Conjure Woodland Beings|Spell level 4|4|Druid, Ranger|
+spell-contact-other-plane|Core|spell|Contact Other Plane|Spell level 5|5|Warlock, Wizard|
+spell-contagion|Core|spell|Contagion|Spell level 5|5|Cleric, Druid|
+spell-contingency|Core|spell|Contingency|Spell level 6|6|Wizard|
+spell-continual-flame|Core|spell|Continual Flame|Spell level 2|2|Cleric, Druid, Wizard|
+spell-control-water|Core|spell|Control Water|Spell level 4|4|Cleric, Druid, Wizard|
+spell-control-weather|Core|spell|Control Weather|Spell level 8|8|Cleric, Druid, Wizard|
+spell-counterspell|Core|spell|Counterspell|Spell level 3|3|Sorcerer, Warlock, Wizard|
+spell-create-food-and-water|Core|spell|Create Food and Water|Spell level 3|3|Cleric, Paladin|
+spell-create-or-destroy-water|Core|spell|Create or Destroy Water|Spell level 1|1|Cleric, Druid|
+spell-create-undead|Core|spell|Create Undead|Spell level 6|6|Cleric, Warlock, Wizard|
+spell-creation|Core|spell|Creation|Spell level 5|5|Sorcerer, Wizard|
+spell-cure-wounds|Core|spell|Cure Wounds|Spell level 1|1|Bard, Cleric, Druid, Paladin, Ranger|
+spell-dancing-lights|Core|spell|Dancing Lights|Spell level 0|0|Bard, Sorcerer, Wizard|
+spell-darkness|Core|spell|Darkness|Spell level 2|2|Sorcerer, Warlock, Wizard|
+spell-darkvision|Core|spell|Darkvision|Spell level 2|2|Druid, Ranger, Sorcerer, Wizard|
+spell-daylight|Core|spell|Daylight|Spell level 3|3|Cleric, Druid, Paladin, Ranger, Sorcerer|
+spell-death-ward|Core|spell|Death Ward|Spell level 4|4|Cleric, Paladin|
+spell-delayed-blast-fireball|Core|spell|Delayed Blast Fireball|Spell level 7|7|Sorcerer, Wizard|
+spell-demiplane|Core|spell|Demiplane|Spell level 8|8|Sorcerer, Warlock, Wizard|
+spell-detect-evil-and-good|Core|spell|Detect Evil and Good|Spell level 1|1|Cleric, Paladin|
+spell-detect-magic|Core|spell|Detect Magic|Spell level 1|1|Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard|
+spell-detect-poison-and-disease|Core|spell|Detect Poison and Disease|Spell level 1|1|Cleric, Druid, Paladin, Ranger|
+spell-detect-thoughts|Core|spell|Detect Thoughts|Spell level 2|2|Bard, Sorcerer, Wizard|
+spell-dimension-door|Core|spell|Dimension Door|Spell level 4|4|Bard, Sorcerer, Warlock, Wizard|
+spell-disguise-self|Core|spell|Disguise Self|Spell level 1|1|Bard, Sorcerer, Wizard|
+spell-disintegrate|Core|spell|Disintegrate|Spell level 6|6|Sorcerer, Wizard|
+spell-dispel-evil-and-good|Core|spell|Dispel Evil and Good|Spell level 5|5|Cleric, Paladin|
+spell-dispel-magic|Core|spell|Dispel Magic|Spell level 3|3|Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard|
+spell-dissonant-whispers|Core|spell|Dissonant Whispers|Spell level 1|1|Bard|
+spell-divination|Core|spell|Divination|Spell level 4|4|Cleric, Druid, Wizard|
+spell-divine-favor|Core|spell|Divine Favor|Spell level 1|1|Paladin|
+spell-divine-smite|Core|spell|Divine Smite|Spell level 1|1|Paladin|
+spell-divine-word|Core|spell|Divine Word|Spell level 7|7|Cleric|
+spell-dominate-beast|Core|spell|Dominate Beast|Spell level 4|4|Druid, Ranger, Sorcerer|
+spell-dominate-monster|Core|spell|Dominate Monster|Spell level 8|8|Bard, Sorcerer, Warlock, Wizard|
+spell-dominate-person|Core|spell|Dominate Person|Spell level 5|5|Bard, Sorcerer, Wizard|
+spell-dragon-s-breath|Core|spell|Dragon's Breath|Spell level 2|2|Sorcerer, Wizard|
+spell-dream|Core|spell|Dream|Spell level 5|5|Bard, Warlock, Wizard|
+spell-druidcraft|Core|spell|Druidcraft|Spell level 0|0|Druid|
+spell-earthquake|Core|spell|Earthquake|Spell level 8|8|Cleric, Druid, Sorcerer|
+spell-eldritch-blast|Core|spell|Eldritch Blast|Spell level 0|0|Warlock|
+spell-elementalism|Core|spell|Elementalism|Spell level 0|0|Druid, Sorcerer, Wizard|
+spell-enhance-ability|Core|spell|Enhance Ability|Spell level 2|2|Bard, Cleric, Druid, Ranger, Sorcerer, Wizard|
+spell-enlarge-reduce|Core|spell|Enlarge/Reduce|Spell level 2|2|Bard, Druid, Sorcerer, Wizard|
+spell-ensnaring-strike|Core|spell|Ensnaring Strike|Spell level 1|1|Ranger|
+spell-entangle|Core|spell|Entangle|Spell level 1|1|Druid, Ranger|
+spell-enthrall|Core|spell|Enthrall|Spell level 2|2|Bard, Warlock|
+spell-etherealness|Core|spell|Etherealness|Spell level 7|7|Bard, Cleric, Sorcerer, Warlock, Wizard|
+spell-expeditious-retreat|Core|spell|Expeditious Retreat|Spell level 1|1|Sorcerer, Warlock, Wizard|
+spell-eyebite|Core|spell|Eyebite|Spell level 6|6|Bard, Sorcerer, Warlock, Wizard|
+spell-fabricate|Core|spell|Fabricate|Spell level 4|4|Wizard|
+spell-faerie-fire|Core|spell|Faerie Fire|Spell level 1|1|Bard, Druid|
+spell-faithful-hound|Core|spell|Faithful Hound|Spell level 4|4|Wizard|
+spell-false-life|Core|spell|False Life|Spell level 1|1|Sorcerer, Wizard|
+spell-fear|Core|spell|Fear|Spell level 3|3|Bard, Sorcerer, Warlock, Wizard|
+spell-feather-fall|Core|spell|Feather Fall|Spell level 1|1|Bard, Sorcerer, Wizard|
+spell-find-familiar|Core|spell|Find Familiar|Spell level 1|1|Wizard|
+spell-find-steed|Core|spell|Find Steed|Spell level 2|2|Paladin|
+spell-find-the-path|Core|spell|Find the Path|Spell level 6|6|Bard, Cleric, Druid|
+spell-find-traps|Core|spell|Find Traps|Spell level 2|2|Cleric, Druid, Ranger|
+spell-finger-of-death|Core|spell|Finger of Death|Spell level 7|7|Sorcerer, Warlock, Wizard|
+spell-fireball|Core|spell|Fireball|Spell level 3|3|Sorcerer, Wizard|
+spell-fire-bolt|Core|spell|Fire Bolt|Spell level 0|0|Sorcerer, Wizard|
+spell-fire-shield|Core|spell|Fire Shield|Spell level 4|4|Druid, Sorcerer, Wizard|
+spell-fire-storm|Core|spell|Fire Storm|Spell level 7|7|Cleric, Druid, Sorcerer|
+spell-flame-blade|Core|spell|Flame Blade|Spell level 2|2|Druid, Sorcerer|
+spell-flame-strike|Core|spell|Flame Strike|Spell level 5|5|Cleric|
+spell-flaming-sphere|Core|spell|Flaming Sphere|Spell level 2|2|Druid, Sorcerer, Wizard|
+spell-flesh-to-stone|Core|spell|Flesh to Stone|Spell level 6|6|Druid, Sorcerer, Wizard|
+spell-floating-disk|Core|spell|Floating Disk|Spell level 1|1|Wizard|
+spell-fly|Core|spell|Fly|Spell level 3|3|Sorcerer, Warlock, Wizard|
+spell-fog-cloud|Core|spell|Fog Cloud|Spell level 1|1|Druid, Ranger, Sorcerer, Wizard|
+spell-forbiddance|Core|spell|Forbiddance|Spell level 6|6|Cleric|
+spell-forcecage|Core|spell|Forcecage|Spell level 7|7|Bard, Warlock, Wizard|
+spell-foresight|Core|spell|Foresight|Spell level 9|9|Bard, Druid, Warlock, Wizard|
+spell-freedom-of-movement|Core|spell|Freedom of Movement|Spell level 4|4|Bard, Cleric, Druid, Ranger|
+spell-freezing-sphere|Core|spell|Freezing Sphere|Spell level 6|6|Sorcerer, Wizard|
+spell-gaseous-form|Core|spell|Gaseous Form|Spell level 3|3|Sorcerer, Warlock, Wizard|
+spell-gate|Core|spell|Gate|Spell level 9|9|Cleric, Sorcerer, Warlock, Wizard|
+spell-geas|Core|spell|Geas|Spell level 5|5|Bard, Cleric, Druid, Paladin, Wizard|
+spell-gentle-repose|Core|spell|Gentle Repose|Spell level 2|2|Cleric, Paladin, Wizard|
+spell-giant-insect|Core|spell|Giant Insect|Spell level 4|4|Druid|
+spell-glibness|Core|spell|Glibness|Spell level 8|8|Bard, Warlock|
+spell-globe-of-invulnerability|Core|spell|Globe of Invulnerability|Spell level 6|6|Sorcerer, Wizard|
+spell-glyph-of-warding|Core|spell|Glyph of Warding|Spell level 3|3|Bard, Cleric, Wizard|
+spell-goodberry|Core|spell|Goodberry|Spell level 1|1|Druid, Ranger|
+spell-grease|Core|spell|Grease|Spell level 1|1|Sorcerer, Wizard|
+spell-greater-invisibility|Core|spell|Greater Invisibility|Spell level 4|4|Bard, Sorcerer, Wizard|
+spell-greater-restoration|Core|spell|Greater Restoration|Spell level 5|5|Bard, Cleric, Druid, Paladin, Ranger|
+spell-guardian-of-faith|Core|spell|Guardian of Faith|Spell level 4|4|Cleric|
+spell-guards-and-wards|Core|spell|Guards and Wards|Spell level 6|6|Bard, Wizard|
+spell-guidance|Core|spell|Guidance|Spell level 0|0|Cleric, Druid|
+spell-guiding-bolt|Core|spell|Guiding Bolt|Spell level 1|1|Cleric|
+spell-gust-of-wind|Core|spell|Gust of Wind|Spell level 2|2|Druid, Ranger, Sorcerer, Wizard|
+spell-hallow|Core|spell|Hallow|Spell level 5|5|Cleric|
+spell-hallucinatory-terrain|Core|spell|Hallucinatory Terrain|Spell level 4|4|Bard, Druid, Warlock, Wizard|
+spell-harm|Core|spell|Harm|Spell level 6|6|Cleric|
+spell-haste|Core|spell|Haste|Spell level 3|3|Sorcerer, Wizard|
+spell-heal|Core|spell|Heal|Spell level 6|6|Cleric, Druid|
+spell-healing-word|Core|spell|Healing Word|Spell level 1|1|Bard, Cleric, Druid|
+spell-heat-metal|Core|spell|Heat Metal|Spell level 2|2|Bard, Druid|
+spell-hellish-rebuke|Core|spell|Hellish Rebuke|Spell level 1|1|Warlock|
+spell-heroes-feast|Core|spell|Heroes' Feast|Spell level 6|6|Bard, Cleric, Druid|
+spell-heroism|Core|spell|Heroism|Spell level 1|1|Bard, Paladin|
+spell-hex|Core|spell|Hex|Spell level 1|1|Warlock|
+spell-hideous-laughter|Core|spell|Hideous Laughter|Spell level 1|1|Bard, Warlock, Wizard|
+spell-hold-monster|Core|spell|Hold Monster|Spell level 5|5|Bard, Sorcerer, Warlock, Wizard|
+spell-hold-person|Core|spell|Hold Person|Spell level 2|2|Bard, Cleric, Druid, Sorcerer, Warlock, Wizard|
+spell-holy-aura|Core|spell|Holy Aura|Spell level 8|8|Cleric|
+spell-hunter-s-mark|Core|spell|Hunter's Mark|Spell level 1|1|Ranger|
+spell-hypnotic-pattern|Core|spell|Hypnotic Pattern|Spell level 3|3|Bard, Sorcerer, Warlock, Wizard|
+spell-ice-knife|Core|spell|Ice Knife|Spell level 1|1|Druid, Sorcerer, Wizard|
+spell-ice-storm|Core|spell|Ice Storm|Spell level 4|4|Druid, Sorcerer, Wizard|
+spell-identify|Core|spell|Identify|Spell level 1|1|Bard, Wizard|
+spell-illusory-script|Core|spell|Illusory Script|Spell level 1|1|Bard, Warlock, Wizard|
+spell-imprisonment|Core|spell|Imprisonment|Spell level 9|9|Warlock, Wizard|
+spell-incendiary-cloud|Core|spell|Incendiary Cloud|Spell level 8|8|Druid, Sorcerer, Wizard|
+spell-inflict-wounds|Core|spell|Inflict Wounds|Spell level 1|1|Cleric|
+spell-insect-plague|Core|spell|Insect Plague|Spell level 5|5|Cleric, Druid, Sorcerer|
+spell-instant-summons|Core|spell|Instant Summons|Spell level 6|6|Wizard|
+spell-irresistible-dance|Core|spell|Irresistible Dance|Spell level 6|6|Bard, Wizard|
+spell-invisibility|Core|spell|Invisibility|Spell level 2|2|Bard, Sorcerer, Warlock, Wizard|
+spell-jump|Core|spell|Jump|Spell level 1|1|Druid, Ranger, Sorcerer, Wizard|
+spell-knock|Core|spell|Knock|Spell level 2|2|Bard, Sorcerer, Wizard|
+spell-legend-lore|Core|spell|Legend Lore|Spell level 5|5|Bard, Cleric, Wizard|
+spell-lesser-restoration|Core|spell|Lesser Restoration|Spell level 2|2|Bard, Cleric, Druid, Paladin, Ranger|
+spell-levitate|Core|spell|Levitate|Spell level 2|2|Sorcerer, Wizard|
+spell-light|Core|spell|Light|Spell level 0|0|Bard, Cleric, Sorcerer, Wizard|
+spell-lightning-bolt|Core|spell|Lightning Bolt|Spell level 3|3|Sorcerer, Wizard|
+spell-locate-animals-or-plants|Core|spell|Locate Animals or Plants|Spell level 2|2|Bard, Druid, Ranger|
+spell-locate-creature|Core|spell|Locate Creature|Spell level 4|4|Bard, Cleric, Druid, Paladin, Ranger, Wizard|
+spell-locate-object|Core|spell|Locate Object|Spell level 2|2|Bard, Cleric, Druid, Paladin, Ranger, Wizard|
+spell-longstrider|Core|spell|Longstrider|Spell level 1|1|Bard, Druid, Ranger, Wizard|
+spell-mage-armor|Core|spell|Mage Armor|Spell level 1|1|Sorcerer, Wizard|
+spell-mage-hand|Core|spell|Mage Hand|Spell level 0|0|Bard, Sorcerer, Warlock, Wizard|
+spell-magic-circle|Core|spell|Magic Circle|Spell level 3|3|Cleric, Paladin, Warlock, Wizard|
+spell-magic-jar|Core|spell|Magic Jar|Spell level 6|6|Wizard|
+spell-magic-missile|Core|spell|Magic Missile|Spell level 1|1|Sorcerer, Wizard|
+spell-magic-mouth|Core|spell|Magic Mouth|Spell level 2|2|Bard, Wizard|
+spell-magic-weapon|Core|spell|Magic Weapon|Spell level 2|2|Paladin, Ranger, Sorcerer, Wizard|
+spell-magnificent-mansion|Core|spell|Magnificent Mansion|Spell level 7|7|Bard, Wizard|
+spell-major-image|Core|spell|Major Image|Spell level 3|3|Bard, Sorcerer, Warlock, Wizard|
+spell-mass-cure-wounds|Core|spell|Mass Cure Wounds|Spell level 5|5|Bard, Cleric, Druid|
+spell-mass-heal|Core|spell|Mass Heal|Spell level 9|9|Cleric|
+spell-mass-healing-word|Core|spell|Mass Healing Word|Spell level 3|3|Bard, Cleric|
+spell-mass-suggestion|Core|spell|Mass Suggestion|Spell level 6|6|Bard, Sorcerer, Wizard|
+spell-maze|Core|spell|Maze|Spell level 8|8|Wizard|
+spell-meld-into-stone|Core|spell|Meld into Stone|Spell level 3|3|Cleric, Druid, Ranger|
+spell-mending|Core|spell|Mending|Spell level 0|0|Bard, Cleric, Druid, Sorcerer, Wizard|
+spell-message|Core|spell|Message|Spell level 0|0|Bard, Druid, Sorcerer, Wizard|
+spell-meteor-swarm|Core|spell|Meteor Swarm|Spell level 9|9|Sorcerer, Wizard|
+spell-mind-blank|Core|spell|Mind Blank|Spell level 8|8|Bard, Wizard|
+spell-mind-spike|Core|spell|Mind Spike|Spell level 2|2|Sorcerer, Warlock, Wizard|
+spell-minor-illusion|Core|spell|Minor Illusion|Spell level 0|0|Bard, Sorcerer, Warlock, Wizard|
+spell-mirage-arcane|Core|spell|Mirage Arcane|Spell level 7|7|Bard, Druid, Wizard|
+spell-mirror-image|Core|spell|Mirror Image|Spell level 2|2|Bard, Sorcerer, Warlock, Wizard|
+spell-mislead|Core|spell|Mislead|Spell level 5|5|Bard, Warlock, Wizard|
+spell-misty-step|Core|spell|Misty Step|Spell level 2|2|Sorcerer, Warlock, Wizard|
+spell-modify-memory|Core|spell|Modify Memory|Spell level 5|5|Bard, Wizard|
+spell-moonbeam|Core|spell|Moonbeam|Spell level 2|2|Druid|
+spell-move-earth|Core|spell|Move Earth|Spell level 6|6|Druid, Sorcerer, Wizard|
+spell-nondetection|Core|spell|Nondetection|Spell level 3|3|Bard, Ranger, Wizard|
+spell-passwall|Core|spell|Passwall|Spell level 5|5|Wizard|
+spell-pass-without-trace|Core|spell|Pass without Trace|Spell level 2|2|Druid, Ranger|
+spell-phantasmal-force|Core|spell|Phantasmal Force|Spell level 2|2|Bard, Sorcerer, Wizard|
+spell-phantasmal-killer|Core|spell|Phantasmal Killer|Spell level 4|4|Bard, Wizard|
+spell-phantom-steed|Core|spell|Phantom Steed|Spell level 3|3|Wizard|
+spell-planar-ally|Core|spell|Planar Ally|Spell level 6|6|Cleric|
+spell-planar-binding|Core|spell|Planar Binding|Spell level 5|5|Bard, Cleric, Druid, Warlock, Wizard|
+spell-plane-shift|Core|spell|Plane Shift|Spell level 7|7|Cleric, Druid, Sorcerer, Warlock, Wizard|
+spell-plant-growth|Core|spell|Plant Growth|Spell level 3|3|Bard, Druid, Ranger|
+spell-poison-spray|Core|spell|Poison Spray|Spell level 0|0|Druid, Sorcerer, Warlock, Wizard|
+spell-polymorph|Core|spell|Polymorph|Spell level 4|4|Bard, Druid, Sorcerer, Wizard|
+spell-power-word-heal|Core|spell|Power Word Heal|Spell level 9|9|Bard, Cleric|
+spell-power-word-kill|Core|spell|Power Word Kill|Spell level 9|9|Bard, Sorcerer, Warlock, Wizard|
+spell-power-word-stun|Core|spell|Power Word Stun|Spell level 8|8|Bard, Sorcerer, Warlock, Wizard|
+spell-prayer-of-healing|Core|spell|Prayer of Healing|Spell level 2|2|Cleric, Paladin|
+spell-prestidigitation|Core|spell|Prestidigitation|Spell level 0|0|Bard, Sorcerer, Warlock, Wizard|
+spell-prismatic-spray|Core|spell|Prismatic Spray|Spell level 7|7|Bard, Sorcerer, Wizard|
+spell-prismatic-wall|Core|spell|Prismatic Wall|Spell level 9|9|Bard, Wizard|
+spell-private-sanctum|Core|spell|Private Sanctum|Spell level 4|4|Wizard|
+spell-produce-flame|Core|spell|Produce Flame|Spell level 0|0|Druid|
+spell-programmed-illusion|Core|spell|Programmed Illusion|Spell level 6|6|Bard, Wizard|
+spell-project-image|Core|spell|Project Image|Spell level 7|7|Bard, Wizard|
+spell-protection-from-energy|Core|spell|Protection from Energy|Spell level 3|3|Cleric, Druid, Ranger, Sorcerer, Wizard|
+spell-protection-from-evil-and-good|Core|spell|Protection from Evil and Good|Spell level 1|1|Cleric, Druid, Paladin, Warlock, Wizard|
+spell-protection-from-poison|Core|spell|Protection from Poison|Spell level 2|2|Cleric, Druid, Paladin, Ranger|
+spell-purify-food-and-drink|Core|spell|Purify Food and Drink|Spell level 1|1|Cleric, Druid, Paladin|
+spell-raise-dead|Core|spell|Raise Dead|Spell level 5|5|Bard, Cleric, Paladin|
+spell-ray-of-enfeeblement|Core|spell|Ray of Enfeeblement|Spell level 2|2|Warlock, Wizard|
+spell-ray-of-frost|Core|spell|Ray of Frost|Spell level 0|0|Sorcerer, Wizard|
+spell-regenerate|Core|spell|Regenerate|Spell level 7|7|Bard, Cleric, Druid|
+spell-ray-of-sickness|Core|spell|Ray of Sickness|Spell level 1|1|Sorcerer, Wizard|
+spell-reincarnate|Core|spell|Reincarnate|Spell level 5|5|Druid|
+spell-remove-curse|Core|spell|Remove Curse|Spell level 3|3|Cleric, Paladin, Warlock, Wizard|
+spell-resilient-sphere|Core|spell|Resilient Sphere|Spell level 4|4|Wizard|
+spell-resistance|Core|spell|Resistance|Spell level 0|0|Cleric, Druid|
+spell-resurrection|Core|spell|Resurrection|Spell level 7|7|Bard, Cleric|
+spell-reverse-gravity|Core|spell|Reverse Gravity|Spell level 7|7|Druid, Sorcerer, Wizard|
+spell-revivify|Core|spell|Revivify|Spell level 3|3|Cleric, Druid, Paladin, Ranger|
+spell-rope-trick|Core|spell|Rope Trick|Spell level 2|2|Wizard|
+spell-sacred-flame|Core|spell|Sacred Flame|Spell level 0|0|Cleric|
+spell-sanctuary|Core|spell|Sanctuary|Spell level 1|1|Cleric|
+spell-scorching-ray|Core|spell|Scorching Ray|Spell level 2|2|Sorcerer, Wizard|
+spell-scrying|Core|spell|Scrying|Spell level 5|5|Bard, Cleric, Druid, Warlock, Wizard|
+spell-searing-smite|Core|spell|Searing Smite|Spell level 1|1|Paladin|
+spell-secret-chest|Core|spell|Secret Chest|Spell level 4|4|Wizard|
+spell-see-invisibility|Core|spell|See Invisibility|Spell level 2|2|Bard, Sorcerer, Wizard|
+spell-seeming|Core|spell|Seeming|Spell level 5|5|Bard, Sorcerer, Wizard|
+spell-sending|Core|spell|Sending|Spell level 3|3|Bard, Cleric, Wizard|
+spell-sequester|Core|spell|Sequester|Spell level 7|7|Wizard|
+spell-shapechange|Core|spell|Shapechange|Spell level 9|9|Druid, Wizard|
+spell-shatter|Core|spell|Shatter|Spell level 2|2|Bard, Sorcerer, Wizard|
+spell-shield|Core|spell|Shield|Spell level 1|1|Sorcerer, Wizard|
+spell-shield-of-faith|Core|spell|Shield of Faith|Spell level 1|1|Cleric, Paladin|
+spell-shillelagh|Core|spell|Shillelagh|Spell level 0|0|Druid|
+spell-shining-smite|Core|spell|Shining Smite|Spell level 2|2|Paladin|
+spell-shocking-grasp|Core|spell|Shocking Grasp|Spell level 0|0|Sorcerer, Wizard|
+spell-silence|Core|spell|Silence|Spell level 2|2|Bard, Cleric, Ranger|
+spell-silent-image|Core|spell|Silent Image|Spell level 1|1|Bard, Sorcerer, Wizard|
+spell-simulacrum|Core|spell|Simulacrum|Spell level 7|7|Wizard|
+spell-sleep|Core|spell|Sleep|Spell level 1|1|Bard, Sorcerer, Wizard|
+spell-sleet-storm|Core|spell|Sleet Storm|Spell level 3|3|Druid, Sorcerer, Wizard|
+spell-slow|Core|spell|Slow|Spell level 3|3|Bard, Sorcerer, Wizard|
+spell-sorcerous-burst|Core|spell|Sorcerous Burst|Spell level 0|0|Sorcerer|
+spell-spare-the-dying|Core|spell|Spare the Dying|Spell level 0|0|Cleric, Druid|
+spell-speak-with-animals|Core|spell|Speak with Animals|Spell level 1|1|Bard, Druid, Ranger, Warlock|
+spell-speak-with-dead|Core|spell|Speak with Dead|Spell level 3|3|Bard, Cleric, Wizard|
+spell-speak-with-plants|Core|spell|Speak with Plants|Spell level 3|3|Bard, Druid, Ranger|
+spell-spider-climb|Core|spell|Spider Climb|Spell level 2|2|Sorcerer, Warlock, Wizard|
+spell-spike-growth|Core|spell|Spike Growth|Spell level 2|2|Druid, Ranger|
+spell-spirit-guardians|Core|spell|Spirit Guardians|Spell level 3|3|Cleric|
+spell-spiritual-weapon|Core|spell|Spiritual Weapon|Spell level 2|2|Cleric|
+spell-starry-wisp|Core|spell|Starry Wisp|Spell level 0|0|Bard, Druid|
+spell-stinking-cloud|Core|spell|Stinking Cloud|Spell level 3|3|Bard, Sorcerer, Wizard|
+spell-stone-shape|Core|spell|Stone Shape|Spell level 4|4|Cleric, Druid, Wizard|
+spell-stoneskin|Core|spell|Stoneskin|Spell level 4|4|Druid, Ranger, Sorcerer, Wizard|
+spell-storm-of-vengeance|Core|spell|Storm of Vengeance|Spell level 9|9|Druid|
+spell-suggestion|Core|spell|Suggestion|Spell level 2|2|Bard, Sorcerer, Warlock, Wizard|
+spell-summon-dragon|Core|spell|Summon Dragon|Spell level 5|5|Wizard|
+spell-sunbeam|Core|spell|Sunbeam|Spell level 6|6|Cleric, Druid, Sorcerer, Wizard|
+spell-sunburst|Core|spell|Sunburst|Spell level 8|8|Cleric, Druid, Sorcerer, Wizard|
+spell-symbol|Core|spell|Symbol|Spell level 7|7|Bard, Cleric, Druid, Wizard|
+spell-telekinesis|Core|spell|Telekinesis|Spell level 5|5|Sorcerer, Wizard|
+spell-telepathic-bond|Core|spell|Telepathic Bond|Spell level 5|5|Bard, Wizard|
+spell-teleport|Core|spell|Teleport|Spell level 7|7|Bard, Sorcerer, Wizard|
+spell-teleportation-circle|Core|spell|Teleportation Circle|Spell level 5|5|Bard, Sorcerer, Warlock, Wizard|
+spell-thaumaturgy|Core|spell|Thaumaturgy|Spell level 0|0|Cleric|
+spell-thunderwave|Core|spell|Thunderwave|Spell level 1|1|Bard, Druid, Sorcerer, Wizard|
+spell-time-stop|Core|spell|Time Stop|Spell level 9|9|Sorcerer, Wizard|
+spell-tiny-hut|Core|spell|Tiny Hut|Spell level 3|3|Bard, Wizard|
+spell-tongues|Core|spell|Tongues|Spell level 3|3|Bard, Cleric, Sorcerer, Warlock, Wizard|
+spell-transport-via-plants|Core|spell|Transport via Plants|Spell level 6|6|Druid|
+spell-tree-stride|Core|spell|Tree Stride|Spell level 5|5|Druid, Ranger|
+spell-true-polymorph|Core|spell|True Polymorph|Spell level 9|9|Bard, Warlock, Wizard|
+spell-true-resurrection|Core|spell|True Resurrection|Spell level 9|9|Cleric, Druid|
+spell-true-seeing|Core|spell|True Seeing|Spell level 6|6|Bard, Cleric, Sorcerer, Warlock, Wizard|
+spell-true-strike|Core|spell|True Strike|Spell level 0|0|Bard, Sorcerer, Warlock, Wizard|
+spell-tsunami|Core|spell|Tsunami|Spell level 8|8|Druid|
+spell-unseen-servant|Core|spell|Unseen Servant|Spell level 1|1|Bard, Warlock, Wizard|
+spell-vampiric-touch|Core|spell|Vampiric Touch|Spell level 3|3|Sorcerer, Warlock, Wizard|
+spell-vicious-mockery|Core|spell|Vicious Mockery|Spell level 0|0|Bard|
+spell-vitriolic-sphere|Core|spell|Vitriolic Sphere|Spell level 4|4|Sorcerer, Wizard|
+spell-wall-of-fire|Core|spell|Wall of Fire|Spell level 4|4|Druid, Sorcerer, Wizard|
+spell-wall-of-force|Core|spell|Wall of Force|Spell level 5|5|Wizard|
+spell-wall-of-ice|Core|spell|Wall of Ice|Spell level 6|6|Wizard|
+spell-wall-of-stone|Core|spell|Wall of Stone|Spell level 5|5|Druid, Sorcerer, Wizard|
+spell-wall-of-thorns|Core|spell|Wall of Thorns|Spell level 6|6|Druid|
+spell-warding-bond|Core|spell|Warding Bond|Spell level 2|2|Cleric, Paladin|
+spell-water-breathing|Core|spell|Water Breathing|Spell level 3|3|Druid, Ranger, Sorcerer, Wizard|
+spell-water-walk|Core|spell|Water Walk|Spell level 3|3|Cleric, Druid, Ranger, Sorcerer|
+spell-web|Core|spell|Web|Spell level 2|2|Sorcerer, Wizard|
+spell-weird|Core|spell|Weird|Spell level 9|9|Warlock, Wizard|
+spell-wind-walk|Core|spell|Wind Walk|Spell level 6|6|Druid|
+spell-wind-wall|Core|spell|Wind Wall|Spell level 3|3|Druid, Ranger|
+spell-wish|Core|spell|Wish|Spell level 9|9|Sorcerer, Wizard|
+spell-word-of-recall|Core|spell|Word of Recall|Spell level 6|6|Cleric|
+spell-zone-of-truth|Core|spell|Zone of Truth|Spell level 2|2|Bard, Cleric, Paladin|
+spell-spellfire-flare|Forgotten Realms|spell|Spellfire Flare|Spell level |||
+spell-wardaway|Forgotten Realms|spell|Wardaway|Spell level |||
+spell-death-armor|Forgotten Realms|spell|Death Armor|Spell level |||
+spell-deryan-s-helpful-homunculi|Forgotten Realms|spell|Deryan's Helpful Homunculi|Spell level |||
+spell-elminster-s-elusion|Forgotten Realms|spell|Elminster's Elusion|Spell level |||
+spell-cacophonic-shield|Forgotten Realms|spell|Cacophonic Shield|Spell level |||
+spell-conjure-constructs|Forgotten Realms|spell|Conjure Constructs|Spell level |||
+spell-laeral-s-silver-lance|Forgotten Realms|spell|Laeral's Silver Lance|Spell level |||
+spell-sylune-s-viper|Forgotten Realms|spell|Sylune's Viper|Spell level |||
+spell-backlash|Forgotten Realms|spell|Backlash|Spell level |||
+spell-doomtide|Forgotten Realms|spell|Doomtide|Spell level |||
+spell-spellfire-storm|Forgotten Realms|spell|Spellfire Storm|Spell level |||
+spell-alustriel-s-mooncloak|Forgotten Realms|spell|Alustriel's Mooncloak|Spell level |||
+spell-songol-s-elemental-suffusion|Forgotten Realms|spell|Songol's Elemental Suffusion|Spell level |||
+spell-dirge|Forgotten Realms|spell|Dirge|Spell level |||
+spell-elminster-s-effulgent-spheres|Forgotten Realms|spell|Elminster's Effulgent Spheres|Spell level |||
+spell-simbul-s-synostodweomer|Forgotten Realms|spell|Simbul's Synostodweomer|Spell level |||
+spell-holy-star-of-mystra|Forgotten Realms|spell|Holy Star of Mystra|Spell level |||
+spell-blade-of-disaster|Forgotten Realms|spell|Blade of Disaster|Spell level |||
+spell-control-flames|Xanathar|spell|Control Flames|Spell level |||
+spell-create-bonfire|Xanathar|spell|Create Bonfire|Spell level |||
+spell-frostbite|Xanathar|spell|Frostbite|Spell level |||
+spell-gust|Xanathar|spell|Gust|Spell level |||
+spell-infestation|Xanathar|spell|Infestation|Spell level |||
+spell-magic-stone|Xanathar|spell|Magic Stone|Spell level |||
+spell-mold-earth|Xanathar|spell|Mold Earth|Spell level |||
+spell-primal-savagery|Xanathar|spell|Primal Savagery|Spell level |||
+spell-shape-water|Xanathar|spell|Shape Water|Spell level |||
+spell-thunderclap|Xanathar|spell|Thunderclap|Spell level |||
+spell-toll-the-dead|Xanathar|spell|Toll the Dead|Spell level |||
+spell-word-of-radiance|Xanathar|spell|Word of Radiance|Spell level |||
+spell-absorb-elements|Xanathar|spell|Absorb Elements|Spell level |||
+spell-beast-bond|Xanathar|spell|Beast Bond|Spell level |||
+spell-catapult|Xanathar|spell|Catapult|Spell level |||
+spell-cause-fear|Xanathar|spell|Cause Fear|Spell level |||
+spell-ceremony|Xanathar|spell|Ceremony|Spell level |||
+spell-chaos-bolt|Xanathar|spell|Chaos Bolt|Spell level |||
+spell-earth-tremor|Xanathar|spell|Earth Tremor|Spell level |||
+spell-snare|Xanathar|spell|Snare|Spell level |||
+spell-zephyr-strike|Xanathar|spell|Zephyr Strike|Spell level |||
+spell-aganazzar-s-scorcher|Xanathar|spell|Aganazzar's Scorcher|Spell level |||
+spell-dust-devil|Xanathar|spell|Dust Devil|Spell level |||
+spell-earthbind|Xanathar|spell|Earthbind|Spell level |||
+spell-healing-spirit|Xanathar|spell|Healing Spirit|Spell level |||
+spell-maximilian-s-earthen-grasp|Xanathar|spell|Maximilian's Earthen Grasp|Spell level |||
+spell-pyrotechnics|Xanathar|spell|Pyrotechnics|Spell level |||
+spell-shadow-blade|Xanathar|spell|Shadow Blade|Spell level |||
+spell-skywrite|Xanathar|spell|Skywrite|Spell level |||
+spell-snilloc-s-snowball-swarm|Xanathar|spell|Snilloc's Snowball Swarm|Spell level |||
+spell-warding-wind|Xanathar|spell|Warding Wind|Spell level |||
+spell-catnap|Xanathar|spell|Catnap|Spell level |||
+spell-enemies-abound|Xanathar|spell|Enemies Abound|Spell level |||
+spell-erupting-earth|Xanathar|spell|Erupting Earth|Spell level |||
+spell-flame-arrows|Xanathar|spell|Flame Arrows|Spell level |||
+spell-life-transference|Xanathar|spell|Life Transference|Spell level |||
+spell-melf-s-minute-meteors|Xanathar|spell|Melf's Minute Meteors|Spell level |||
+spell-summon-lesser-demons|Xanathar|spell|Summon Lesser Demons|Spell level |||
+spell-thunder-step|Xanathar|spell|Thunder Step|Spell level |||
+spell-tidal-wave|Xanathar|spell|Tidal Wave|Spell level |||
+spell-tiny-servant|Xanathar|spell|Tiny Servant|Spell level |||
+spell-wall-of-sand|Xanathar|spell|Wall of Sand|Spell level |||
+spell-wall-of-water|Xanathar|spell|Wall of Water|Spell level |||
+spell-elemental-bane|Xanathar|spell|Elemental Bane|Spell level |||
+spell-find-greater-steed|Xanathar|spell|Find Greater Steed|Spell level |||
+spell-guardian-of-nature|Xanathar|spell|Guardian of Nature|Spell level |||
+spell-shadow-of-moil|Xanathar|spell|Shadow of Moil|Spell level |||
+spell-sickening-radiance|Xanathar|spell|Sickening Radiance|Spell level |||
+spell-storm-sphere|Xanathar|spell|Storm Sphere|Spell level |||
+spell-summon-greater-demon|Xanathar|spell|Summon Greater Demon|Spell level |||
+spell-watery-sphere|Xanathar|spell|Watery Sphere|Spell level |||
+spell-control-winds|Xanathar|spell|Control Winds|Spell level |||
+spell-danse-macabre|Xanathar|spell|Danse Macabre|Spell level |||
+spell-dawn|Xanathar|spell|Dawn|Spell level |||
+spell-enervation|Xanathar|spell|Enervation|Spell level |||
+spell-far-step|Xanathar|spell|Far Step|Spell level |||
+spell-holy-weapon|Xanathar|spell|Holy Weapon|Spell level |||
+spell-immolation|Xanathar|spell|Immolation|Spell level |||
+spell-infernal-calling|Xanathar|spell|Infernal Calling|Spell level |||
+spell-maelstrom|Xanathar|spell|Maelstrom|Spell level |||
+spell-negative-energy-flood|Xanathar|spell|Negative Energy Flood|Spell level |||
+spell-skill-empowerment|Xanathar|spell|Skill Empowerment|Spell level |||
+spell-steel-wind-strike|Xanathar|spell|Steel Wind Strike|Spell level |||
+spell-synaptic-static|Xanathar|spell|Synaptic Static|Spell level |||
+spell-transmute-rock|Xanathar|spell|Transmute Rock|Spell level |||
+spell-wall-of-light|Xanathar|spell|Wall of Light|Spell level |||
+spell-wrath-of-nature|Xanathar|spell|Wrath of Nature|Spell level |||
+spell-bones-of-the-earth|Xanathar|spell|Bones of the Earth|Spell level |||
+spell-create-homunculus|Xanathar|spell|Create Homunculus|Spell level |||
+spell-druid-grove|Xanathar|spell|Druid Grove|Spell level |||
+spell-investiture-of-flame|Xanathar|spell|Investiture of Flame|Spell level |||
+spell-investiture-of-ice|Xanathar|spell|Investiture of Ice|Spell level |||
+spell-investiture-of-stone|Xanathar|spell|Investiture of Stone|Spell level |||
+spell-investiture-of-wind|Xanathar|spell|Investiture of Wind|Spell level |||
+spell-mental-prison|Xanathar|spell|Mental Prison|Spell level |||
+spell-primordial-ward|Xanathar|spell|Primordial Ward|Spell level |||
+spell-scatter|Xanathar|spell|Scatter|Spell level |||
+spell-soul-cage|Xanathar|spell|Soul Cage|Spell level |||
+spell-tenser-s-transformation|Xanathar|spell|Tenser's Transformation|Spell level |||
+spell-crown-of-stars|Xanathar|spell|Crown of Stars|Spell level |||
+spell-power-word-pain|Xanathar|spell|Power Word Pain|Spell level |||
+spell-temple-of-the-gods|Xanathar|spell|Temple of the Gods|Spell level |||
+spell-whirlwind|Xanathar|spell|Whirlwind|Spell level |||
+spell-abi-dalzim-s-horrid-wilting|Xanathar|spell|Abi-Dalzim's Horrid Wilting|Spell level |||
+spell-illusory-dragon|Xanathar|spell|Illusory Dragon|Spell level |||
+spell-maddening-darkness|Xanathar|spell|Maddening Darkness|Spell level |||
+spell-mighty-fortress|Xanathar|spell|Mighty Fortress|Spell level |||
+spell-invulnerability|Xanathar|spell|Invulnerability|Spell level |||
+spell-mass-polymorph|Xanathar|spell|Mass Polymorph|Spell level |||
+spell-psychic-scream|Xanathar|spell|Psychic Scream|Spell level |||
+item-club|SRD5.2.1|item|Club|Catalog prerequisites|0|Any|
+item-dagger|SRD5.2.1|item|Dagger|Catalog prerequisites|0|Any|
+item-greatclub|SRD5.2.1|item|Greatclub|Catalog prerequisites|0|Any|
+item-handaxe|SRD5.2.1|item|Handaxe|Catalog prerequisites|0|Any|
+item-javelin|SRD5.2.1|item|Javelin|Catalog prerequisites|0|Any|
+item-light-hammer|SRD5.2.1|item|Light Hammer|Catalog prerequisites|0|Any|
+item-mace|SRD5.2.1|item|Mace|Catalog prerequisites|0|Any|
+item-quarterstaff|SRD5.2.1|item|Quarterstaff|Catalog prerequisites|0|Any|
+item-sickle|SRD5.2.1|item|Sickle|Catalog prerequisites|0|Any|
+item-spear|SRD5.2.1|item|Spear|Catalog prerequisites|0|Any|
+item-dart|SRD5.2.1|item|Dart|Catalog prerequisites|0|Any|
+item-light-crossbow|SRD5.2.1|item|Light Crossbow|Catalog prerequisites|0|Any|
+item-shortbow|SRD5.2.1|item|Shortbow|Catalog prerequisites|0|Any|
+item-sling|SRD5.2.1|item|Sling|Catalog prerequisites|0|Any|
+item-battleaxe|SRD5.2.1|item|Battleaxe|Catalog prerequisites|0|Any|
+item-flail|SRD5.2.1|item|Flail|Catalog prerequisites|0|Any|
+item-glaive|SRD5.2.1|item|Glaive|Catalog prerequisites|0|Any|
+item-greataxe|SRD5.2.1|item|Greataxe|Catalog prerequisites|0|Any|
+item-greatsword|SRD5.2.1|item|Greatsword|Catalog prerequisites|0|Any|
+item-halberd|SRD5.2.1|item|Halberd|Catalog prerequisites|0|Any|
+item-lance|SRD5.2.1|item|Lance|Catalog prerequisites|0|Any|
+item-longsword|SRD5.2.1|item|Longsword|Catalog prerequisites|0|Any|
+item-maul|SRD5.2.1|item|Maul|Catalog prerequisites|0|Any|
+item-morningstar|SRD5.2.1|item|Morningstar|Catalog prerequisites|0|Any|
+item-pike|SRD5.2.1|item|Pike|Catalog prerequisites|0|Any|
+item-rapier|SRD5.2.1|item|Rapier|Catalog prerequisites|0|Any|
+item-scimitar|SRD5.2.1|item|Scimitar|Catalog prerequisites|0|Any|
+item-shortsword|SRD5.2.1|item|Shortsword|Catalog prerequisites|0|Any|
+item-trident|SRD5.2.1|item|Trident|Catalog prerequisites|0|Any|
+item-warhammer|SRD5.2.1|item|Warhammer|Catalog prerequisites|0|Any|
+item-war-pick|SRD5.2.1|item|War Pick|Catalog prerequisites|0|Any|
+item-whip|SRD5.2.1|item|Whip|Catalog prerequisites|0|Any|
+item-blowgun|SRD5.2.1|item|Blowgun|Catalog prerequisites|0|Any|
+item-hand-crossbow|SRD5.2.1|item|Hand Crossbow|Catalog prerequisites|0|Any|
+item-heavy-crossbow|SRD5.2.1|item|Heavy Crossbow|Catalog prerequisites|0|Any|
+item-longbow|SRD5.2.1|item|Longbow|Catalog prerequisites|0|Any|
+item-musket|SRD5.2.1|item|Musket|Catalog prerequisites|0|Any|
+item-pistol|SRD5.2.1|item|Pistol|Catalog prerequisites|0|Any|
+item-padded-armor|SRD5.2.1|item|Padded Armor|Catalog prerequisites|0|Any|
+item-leather-armor|SRD5.2.1|item|Leather Armor|Catalog prerequisites|0|Any|
+item-studded-leather-armor|SRD5.2.1|item|Studded Leather Armor|Catalog prerequisites|0|Any|
+item-hide-armor|SRD5.2.1|item|Hide Armor|Catalog prerequisites|0|Any|
+item-chain-shirt|SRD5.2.1|item|Chain Shirt|Catalog prerequisites|0|Any|
+item-scale-mail|SRD5.2.1|item|Scale Mail|Catalog prerequisites|0|Any|
+item-breastplate|SRD5.2.1|item|Breastplate|Catalog prerequisites|0|Any|
+item-half-plate-armor|SRD5.2.1|item|Half Plate Armor|Catalog prerequisites|0|Any|
+item-ring-mail|SRD5.2.1|item|Ring Mail|Catalog prerequisites|0|Any|
+item-chain-mail|SRD5.2.1|item|Chain Mail|Catalog prerequisites|0|Any|
+item-splint-armor|SRD5.2.1|item|Splint Armor|Catalog prerequisites|0|Any|
+item-plate-armor|SRD5.2.1|item|Plate Armor|Catalog prerequisites|0|Any|
+item-shield|SRD5.2.1|item|Shield|Catalog prerequisites|0|Any|
+item-acid|SRD5.2.1|item|Acid|Catalog prerequisites|0|Any|
+item-alchemist-s-fire|SRD5.2.1|item|Alchemist's Fire|Catalog prerequisites|0|Any|
+item-ammunition|SRD5.2.1|item|Ammunition|Catalog prerequisites|0|Any|
+item-antitoxin|SRD5.2.1|item|Antitoxin|Catalog prerequisites|0|Any|
+item-arcane-focus|SRD5.2.1|item|Arcane Focus|Catalog prerequisites|0|Any|
+item-backpack|SRD5.2.1|item|Backpack|Catalog prerequisites|0|Any|
+item-ball-bearings|SRD5.2.1|item|Ball Bearings|Catalog prerequisites|0|Any|
+item-barrel|SRD5.2.1|item|Barrel|Catalog prerequisites|0|Any|
+item-basket|SRD5.2.1|item|Basket|Catalog prerequisites|0|Any|
+item-bedroll|SRD5.2.1|item|Bedroll|Catalog prerequisites|0|Any|
+item-bell|SRD5.2.1|item|Bell|Catalog prerequisites|0|Any|
+item-blanket|SRD5.2.1|item|Blanket|Catalog prerequisites|0|Any|
+item-block-and-tackle|SRD5.2.1|item|Block and Tackle|Catalog prerequisites|0|Any|
+item-book|SRD5.2.1|item|Book|Catalog prerequisites|0|Any|
+item-bottle-glass|SRD5.2.1|item|Bottle, Glass|Catalog prerequisites|0|Any|
+item-bucket|SRD5.2.1|item|Bucket|Catalog prerequisites|0|Any|
+item-burglar-s-pack|SRD5.2.1|item|Burglar's Pack|Catalog prerequisites|0|Any|
+item-caltrops|SRD5.2.1|item|Caltrops|Catalog prerequisites|0|Any|
+item-candle|SRD5.2.1|item|Candle|Catalog prerequisites|0|Any|
+item-case-crossbow-bolt|SRD5.2.1|item|Case, Crossbow Bolt|Catalog prerequisites|0|Any|
+item-case-map-or-scroll|SRD5.2.1|item|Case, Map or Scroll|Catalog prerequisites|0|Any|
+item-chain|SRD5.2.1|item|Chain|Catalog prerequisites|0|Any|
+item-chest|SRD5.2.1|item|Chest|Catalog prerequisites|0|Any|
+item-climber-s-kit|SRD5.2.1|item|Climber's Kit|Catalog prerequisites|0|Any|
+item-clothes-fine|SRD5.2.1|item|Clothes, Fine|Catalog prerequisites|0|Any|
+item-clothes-traveler-s|SRD5.2.1|item|Clothes, Traveler's|Catalog prerequisites|0|Any|
+item-component-pouch|SRD5.2.1|item|Component Pouch|Catalog prerequisites|0|Any|
+item-costume|SRD5.2.1|item|Costume|Catalog prerequisites|0|Any|
+item-crowbar|SRD5.2.1|item|Crowbar|Catalog prerequisites|0|Any|
+item-diplomat-s-pack|SRD5.2.1|item|Diplomat's Pack|Catalog prerequisites|0|Any|
+item-druidic-focus|SRD5.2.1|item|Druidic Focus|Catalog prerequisites|0|Any|
+item-dungeoneer-s-pack|SRD5.2.1|item|Dungeoneer's Pack|Catalog prerequisites|0|Any|
+item-entertainer-s-pack|SRD5.2.1|item|Entertainer's Pack|Catalog prerequisites|0|Any|
+item-explorer-s-pack|SRD5.2.1|item|Explorer's Pack|Catalog prerequisites|0|Any|
+item-flask|SRD5.2.1|item|Flask|Catalog prerequisites|0|Any|
+item-grappling-hook|SRD5.2.1|item|Grappling Hook|Catalog prerequisites|0|Any|
+item-healer-s-kit|SRD5.2.1|item|Healer's Kit|Catalog prerequisites|0|Any|
+item-holy-symbol|SRD5.2.1|item|Holy Symbol|Catalog prerequisites|0|Any|
+item-holy-water|SRD5.2.1|item|Holy Water|Catalog prerequisites|0|Any|
+item-hunting-trap|SRD5.2.1|item|Hunting Trap|Catalog prerequisites|0|Any|
+item-ink|SRD5.2.1|item|Ink|Catalog prerequisites|0|Any|
+item-ink-pen|SRD5.2.1|item|Ink Pen|Catalog prerequisites|0|Any|
+item-jug|SRD5.2.1|item|Jug|Catalog prerequisites|0|Any|
+item-ladder|SRD5.2.1|item|Ladder|Catalog prerequisites|0|Any|
+item-lamp|SRD5.2.1|item|Lamp|Catalog prerequisites|0|Any|
+item-lantern-bullseye|SRD5.2.1|item|Lantern, Bullseye|Catalog prerequisites|0|Any|
+item-lantern-hooded|SRD5.2.1|item|Lantern, Hooded|Catalog prerequisites|0|Any|
+item-lock|SRD5.2.1|item|Lock|Catalog prerequisites|0|Any|
+item-magnifying-glass|SRD5.2.1|item|Magnifying Glass|Catalog prerequisites|0|Any|
+item-manacles|SRD5.2.1|item|Manacles|Catalog prerequisites|0|Any|
+item-map|SRD5.2.1|item|Map|Catalog prerequisites|0|Any|
+item-mirror|SRD5.2.1|item|Mirror|Catalog prerequisites|0|Any|
+item-net|SRD5.2.1|item|Net|Catalog prerequisites|0|Any|
+item-oil|SRD5.2.1|item|Oil|Catalog prerequisites|0|Any|
+item-paper|SRD5.2.1|item|Paper|Catalog prerequisites|0|Any|
+item-parchment|SRD5.2.1|item|Parchment|Catalog prerequisites|0|Any|
+item-perfume|SRD5.2.1|item|Perfume|Catalog prerequisites|0|Any|
+item-poison-basic|SRD5.2.1|item|Poison, Basic|Catalog prerequisites|0|Any|
+item-pole|SRD5.2.1|item|Pole|Catalog prerequisites|0|Any|
+item-pot-iron|SRD5.2.1|item|Pot, Iron|Catalog prerequisites|0|Any|
+item-potion-of-healing|SRD5.2.1|item|Potion of Healing|Catalog prerequisites|0|Any|
+item-pouch|SRD5.2.1|item|Pouch|Catalog prerequisites|0|Any|
+item-priest-s-pack|SRD5.2.1|item|Priest's Pack|Catalog prerequisites|0|Any|
+item-quiver|SRD5.2.1|item|Quiver|Catalog prerequisites|0|Any|
+item-ram-portable|SRD5.2.1|item|Ram, Portable|Catalog prerequisites|0|Any|
+item-rations|SRD5.2.1|item|Rations|Catalog prerequisites|0|Any|
+item-robe|SRD5.2.1|item|Robe|Catalog prerequisites|0|Any|
+item-rope|SRD5.2.1|item|Rope|Catalog prerequisites|0|Any|
+item-sack|SRD5.2.1|item|Sack|Catalog prerequisites|0|Any|
+item-scholar-s-pack|SRD5.2.1|item|Scholar's Pack|Catalog prerequisites|0|Any|
+item-shovel|SRD5.2.1|item|Shovel|Catalog prerequisites|0|Any|
+item-signal-whistle|SRD5.2.1|item|Signal Whistle|Catalog prerequisites|0|Any|
+item-spell-scroll-cantrip|SRD5.2.1|item|Spell Scroll (Cantrip)|Catalog prerequisites|0|Any|
+item-spell-scroll-level-1|SRD5.2.1|item|Spell Scroll (Level 1)|Catalog prerequisites|0|Any|
+item-spikes-iron|SRD5.2.1|item|Spikes, Iron|Catalog prerequisites|0|Any|
+item-spyglass|SRD5.2.1|item|Spyglass|Catalog prerequisites|0|Any|
+item-string|SRD5.2.1|item|String|Catalog prerequisites|0|Any|
+item-tent|SRD5.2.1|item|Tent|Catalog prerequisites|0|Any|
+item-tinderbox|SRD5.2.1|item|Tinderbox|Catalog prerequisites|0|Any|
+item-torch|SRD5.2.1|item|Torch|Catalog prerequisites|0|Any|
+item-vial|SRD5.2.1|item|Vial|Catalog prerequisites|0|Any|
+item-waterskin|SRD5.2.1|item|Waterskin|Catalog prerequisites|0|Any|
+item-arrows|SRD5.2.1|item|Arrows|Catalog prerequisites|0|Any|
+item-bolts|SRD5.2.1|item|Bolts|Catalog prerequisites|0|Any|
+item-bullets-firearm|SRD5.2.1|item|Bullets, Firearm|Catalog prerequisites|0|Any|
+item-bullets-sling|SRD5.2.1|item|Bullets, Sling|Catalog prerequisites|0|Any|
+item-needles|SRD5.2.1|item|Needles|Catalog prerequisites|0|Any|
+item-crystal|SRD5.2.1|item|Crystal|Catalog prerequisites|0|Any|
+item-orb|SRD5.2.1|item|Orb|Catalog prerequisites|0|Any|
+item-rod|SRD5.2.1|item|Rod|Catalog prerequisites|0|Any|
+item-staff-also-a-quarterstaff|SRD5.2.1|item|Staff (also a Quarterstaff)|Catalog prerequisites|0|Any|
+item-wand|SRD5.2.1|item|Wand|Catalog prerequisites|0|Any|
+item-sprig-of-mistletoe|SRD5.2.1|item|Sprig of mistletoe|Catalog prerequisites|0|Any|
+item-wooden-staff-also-a-quarterstaff|SRD5.2.1|item|Wooden staff (also a Quarterstaff)|Catalog prerequisites|0|Any|
+item-yew-wand|SRD5.2.1|item|Yew wand|Catalog prerequisites|0|Any|
+item-amulet-worn-or-held|SRD5.2.1|item|Amulet (worn or held)|Catalog prerequisites|0|Any|
+item-emblem-borne-on-fabric-or-a-shield|SRD5.2.1|item|Emblem (borne on fabric or a Shield)|Catalog prerequisites|0|Any|
+item-reliquary-held|SRD5.2.1|item|Reliquary (held)|Catalog prerequisites|0|Any|
+item-spell-scroll|SRD5.2.1|item|Spell Scroll|Catalog prerequisites|0|Any|
+item-camel|SRD5.2.1|item|Camel|Catalog prerequisites|0|Any|
+item-elephant|SRD5.2.1|item|Elephant|Catalog prerequisites|0|Any|
+item-horse-draft|SRD5.2.1|item|Horse, Draft|Catalog prerequisites|0|Any|
+item-horse-riding|SRD5.2.1|item|Horse, Riding|Catalog prerequisites|0|Any|
+item-mastiff|SRD5.2.1|item|Mastiff|Catalog prerequisites|0|Any|
+item-mule|SRD5.2.1|item|Mule|Catalog prerequisites|0|Any|
+item-pony|SRD5.2.1|item|Pony|Catalog prerequisites|0|Any|
+item-warhorse|SRD5.2.1|item|Warhorse|Catalog prerequisites|0|Any|
+item-carriage|SRD5.2.1|item|Carriage|Catalog prerequisites|0|Any|
+item-cart|SRD5.2.1|item|Cart|Catalog prerequisites|0|Any|
+item-chariot|SRD5.2.1|item|Chariot|Catalog prerequisites|0|Any|
+item-feed-per-day|SRD5.2.1|item|Feed per day|Catalog prerequisites|0|Any|
+item-saddle|SRD5.2.1|item|Saddle|Catalog prerequisites|0|Any|
+item-exotic|SRD5.2.1|item|Exotic|Catalog prerequisites|0|Any|
+item-military|SRD5.2.1|item|Military|Catalog prerequisites|0|Any|
+item-riding|SRD5.2.1|item|Riding|Catalog prerequisites|0|Any|
+item-sled|SRD5.2.1|item|Sled|Catalog prerequisites|0|Any|
+item-stabling-per-day|SRD5.2.1|item|Stabling per day|Catalog prerequisites|0|Any|
+item-wagon|SRD5.2.1|item|Wagon|Catalog prerequisites|0|Any|
+item-airship|SRD5.2.1|item|Airship|Catalog prerequisites|0|Any|
+item-galley|SRD5.2.1|item|Galley|Catalog prerequisites|0|Any|
+item-keelboat|SRD5.2.1|item|Keelboat|Catalog prerequisites|0|Any|
+item-longship|SRD5.2.1|item|Longship|Catalog prerequisites|0|Any|
+item-rowboat|SRD5.2.1|item|Rowboat|Catalog prerequisites|0|Any|
+item-sailing-ship|SRD5.2.1|item|Sailing Ship|Catalog prerequisites|0|Any|
+item-warship|SRD5.2.1|item|Warship|Catalog prerequisites|0|Any|
+item-adamantine-armor|SRD5.2.1|item|Adamantine Armor|Catalog prerequisites|0|Any|
+item-ammunition-1-2-or-3|SRD5.2.1|item|Ammunition, +1, +2, or +3|Catalog prerequisites|0|Any|
+item-ammunition-of-slaying|SRD5.2.1|item|Ammunition of Slaying|Catalog prerequisites|0|Any|
+item-amulet-of-health|SRD5.2.1|item|Amulet of Health|Catalog prerequisites|0|Any|
+item-amulet-of-proof-against-detection-and-location|SRD5.2.1|item|Amulet of Proof against Detection and Location|Catalog prerequisites|0|Any|
+item-amulet-of-the-planes|SRD5.2.1|item|Amulet of the Planes|Catalog prerequisites|0|Any|
+item-animated-shield|SRD5.2.1|item|Animated Shield|Catalog prerequisites|0|Any|
+item-apparatus-of-the-crab|SRD5.2.1|item|Apparatus of the Crab|Catalog prerequisites|0|Any|
+item-armor-1-2-or-3|SRD5.2.1|item|Armor, +1, +2, or +3|Catalog prerequisites|0|Any|
+item-armor-of-invulnerability|SRD5.2.1|item|Armor of Invulnerability|Catalog prerequisites|0|Any|
+item-armor-of-resistance|SRD5.2.1|item|Armor of Resistance|Catalog prerequisites|0|Any|
+item-armor-of-vulnerability|SRD5.2.1|item|Armor of Vulnerability|Catalog prerequisites|0|Any|
+item-arrow-catching-shield|SRD5.2.1|item|Arrow-Catching Shield|Catalog prerequisites|0|Any|
+item-bag-of-beans|SRD5.2.1|item|Bag of Beans|Catalog prerequisites|0|Any|
+item-bag-of-devouring|SRD5.2.1|item|Bag of Devouring|Catalog prerequisites|0|Any|
+item-bag-of-holding|SRD5.2.1|item|Bag of Holding|Catalog prerequisites|0|Any|
+item-bag-of-tricks|SRD5.2.1|item|Bag of Tricks|Catalog prerequisites|0|Any|
+item-bead-of-force|SRD5.2.1|item|Bead of Force|Catalog prerequisites|0|Any|
+item-bead-of-nourishment|SRD5.2.1+XGTE|item|Bead of Nourishment|Catalog prerequisites|0|Any|
+item-belt-of-dwarvenkind|SRD5.2.1|item|Belt of Dwarvenkind|Catalog prerequisites|0|Any|
+item-belt-of-giant-strength|SRD5.2.1|item|Belt of Giant Strength|Catalog prerequisites|0|Any|
+item-berserker-axe|SRD5.2.1|item|Berserker Axe|Catalog prerequisites|0|Any|
+item-boots-of-elvenkind|SRD5.2.1|item|Boots of Elvenkind|Catalog prerequisites|0|Any|
+item-boots-of-levitation|SRD5.2.1|item|Boots of Levitation|Catalog prerequisites|0|Any|
+item-boots-of-speed|SRD5.2.1|item|Boots of Speed|Catalog prerequisites|0|Any|
+item-boots-of-striding-and-springing|SRD5.2.1|item|Boots of Striding and Springing|Catalog prerequisites|0|Any|
+item-boots-of-the-winterlands|SRD5.2.1|item|Boots of the Winterlands|Catalog prerequisites|0|Any|
+item-bowl-of-commanding-water-elementals|SRD5.2.1|item|Bowl of Commanding Water Elementals|Catalog prerequisites|0|Any|
+item-bracers-of-archery|SRD5.2.1|item|Bracers of Archery|Catalog prerequisites|0|Any|
+item-bracers-of-defense|SRD5.2.1|item|Bracers of Defense|Catalog prerequisites|0|Any|
+item-brazier-of-commanding-fire-elementals|SRD5.2.1|item|Brazier of Commanding Fire Elementals|Catalog prerequisites|0|Any|
+item-brooch-of-shielding|SRD5.2.1|item|Brooch of Shielding|Catalog prerequisites|0|Any|
+item-broom-of-flying|SRD5.2.1|item|Broom of Flying|Catalog prerequisites|0|Any|
+item-candle-of-invocation|SRD5.2.1|item|Candle of Invocation|Catalog prerequisites|0|Any|
+item-cape-of-the-mountebank|SRD5.2.1|item|Cape of the Mountebank|Catalog prerequisites|0|Any|
+item-carpet-of-flying|SRD5.2.1|item|Carpet of Flying|Catalog prerequisites|0|Any|
+item-censer-of-controlling-air-elementals|SRD5.2.1|item|Censer of Controlling Air Elementals|Catalog prerequisites|0|Any|
+item-chime-of-opening|SRD5.2.1|item|Chime of Opening|Catalog prerequisites|0|Any|
+item-circlet-of-blasting|SRD5.2.1|item|Circlet of Blasting|Catalog prerequisites|0|Any|
+item-cloak-of-arachnida|SRD5.2.1|item|Cloak of Arachnida|Catalog prerequisites|0|Any|
+item-cloak-of-displacement|SRD5.2.1|item|Cloak of Displacement|Catalog prerequisites|0|Any|
+item-cloak-of-elvenkind|SRD5.2.1|item|Cloak of Elvenkind|Catalog prerequisites|0|Any|
+item-cloak-of-invisibility|SRD5.2.1|item|Cloak of Invisibility|Catalog prerequisites|0|Any|
+item-cloak-of-protection|SRD5.2.1|item|Cloak of Protection|Catalog prerequisites|0|Any|
+item-cloak-of-the-bat|SRD5.2.1|item|Cloak of the Bat|Catalog prerequisites|0|Any|
+item-cloak-of-the-manta-ray|SRD5.2.1|item|Cloak of the Manta Ray|Catalog prerequisites|0|Any|
+item-crystal-ball|SRD5.2.1|item|Crystal Ball|Catalog prerequisites|0|Any|
+item-crystal-ball-of-mind-reading|SRD5.2.1|item|Crystal Ball of Mind Reading|Catalog prerequisites|0|Any|
+item-crystal-ball-of-telepathy|SRD5.2.1|item|Crystal Ball of Telepathy|Catalog prerequisites|0|Any|
+item-crystal-ball-of-true-seeing|SRD5.2.1|item|Crystal Ball of True Seeing|Catalog prerequisites|0|Any|
+item-cube-of-force|SRD5.2.1|item|Cube of Force|Catalog prerequisites|0|Any|
+item-cubic-gate|SRD5.2.1|item|Cubic Gate|Catalog prerequisites|0|Any|
+item-dagger-of-venom|SRD5.2.1|item|Dagger of Venom|Catalog prerequisites|0|Any|
+item-dancing-sword|SRD5.2.1|item|Dancing Sword|Catalog prerequisites|0|Any|
+item-decanter-of-endless-water|SRD5.2.1|item|Decanter of Endless Water|Catalog prerequisites|0|Any|
+item-deck-of-illusions|SRD5.2.1|item|Deck of Illusions|Catalog prerequisites|0|Any|
+item-defender|SRD5.2.1|item|Defender|Catalog prerequisites|0|Any|
+item-demon-armor|SRD5.2.1|item|Demon Armor|Catalog prerequisites|0|Any|
+item-dimensional-shackles|SRD5.2.1|item|Dimensional Shackles|Catalog prerequisites|0|Any|
+item-dragon-orb|SRD5.2.1|item|Dragon Orb|Catalog prerequisites|0|Any|
+item-dragon-scale-mail|SRD5.2.1|item|Dragon Scale Mail|Catalog prerequisites|0|Any|
+item-dragon-slayer|SRD5.2.1|item|Dragon Slayer|Catalog prerequisites|0|Any|
+item-dust-of-disappearance|SRD5.2.1|item|Dust of Disappearance|Catalog prerequisites|0|Any|
+item-dust-of-dryness|SRD5.2.1|item|Dust of Dryness|Catalog prerequisites|0|Any|
+item-dust-of-sneezing-and-choking|SRD5.2.1|item|Dust of Sneezing and Choking|Catalog prerequisites|0|Any|
+item-dwarven-plate|SRD5.2.1|item|Dwarven Plate|Catalog prerequisites|0|Any|
+item-dwarven-thrower|SRD5.2.1|item|Dwarven Thrower|Catalog prerequisites|0|Any|
+item-efficient-quiver|SRD5.2.1|item|Efficient Quiver|Catalog prerequisites|0|Any|
+item-efreeti-bottle|SRD5.2.1|item|Efreeti Bottle|Catalog prerequisites|0|Any|
+item-elemental-gem|SRD5.2.1|item|Elemental Gem|Catalog prerequisites|0|Any|
+item-elixir-of-health|SRD5.2.1|item|Elixir of Health|Catalog prerequisites|0|Any|
+item-elven-chain|SRD5.2.1|item|Elven Chain|Catalog prerequisites|0|Any|
+item-energy-bow|SRD5.2.1|item|Energy Bow|Catalog prerequisites|0|Any|
+item-eversmoking-bottle|SRD5.2.1|item|Eversmoking Bottle|Catalog prerequisites|0|Any|
+item-eyes-of-charming|SRD5.2.1|item|Eyes of Charming|Catalog prerequisites|0|Any|
+item-eyes-of-minute-seeing|SRD5.2.1|item|Eyes of Minute Seeing|Catalog prerequisites|0|Any|
+item-eyes-of-the-eagle|SRD5.2.1|item|Eyes of the Eagle|Catalog prerequisites|0|Any|
+item-feather-token|SRD5.2.1|item|Feather Token|Catalog prerequisites|0|Any|
+item-figurine-of-wondrous-power|SRD5.2.1|item|Figurine of Wondrous Power|Catalog prerequisites|0|Any|
+item-flame-tongue|SRD5.2.1|item|Flame Tongue|Catalog prerequisites|0|Any|
+item-folding-boat|SRD5.2.1|item|Folding Boat|Catalog prerequisites|0|Any|
+item-frost-brand|SRD5.2.1|item|Frost Brand|Catalog prerequisites|0|Any|
+item-gauntlets-of-ogre-power|SRD5.2.1|item|Gauntlets of Ogre Power|Catalog prerequisites|0|Any|
+item-gem-of-brightness|SRD5.2.1|item|Gem of Brightness|Catalog prerequisites|0|Any|
+item-gem-of-seeing|SRD5.2.1|item|Gem of Seeing|Catalog prerequisites|0|Any|
+item-giant-slayer|SRD5.2.1|item|Giant Slayer|Catalog prerequisites|0|Any|
+item-glamoured-studded-leather|SRD5.2.1|item|Glamoured Studded Leather|Catalog prerequisites|0|Any|
+item-gloves-of-missile-snaring|SRD5.2.1|item|Gloves of Missile Snaring|Catalog prerequisites|0|Any|
+item-gloves-of-swimming-and-climbing|SRD5.2.1|item|Gloves of Swimming and Climbing|Catalog prerequisites|0|Any|
+item-gloves-of-thievery|SRD5.2.1|item|Gloves of Thievery|Catalog prerequisites|0|Any|
+item-goggles-of-night|SRD5.2.1|item|Goggles of Night|Catalog prerequisites|0|Any|
+item-hammer-of-thunderbolts|SRD5.2.1|item|Hammer of Thunderbolts|Catalog prerequisites|0|Any|
+item-handy-haversack|SRD5.2.1|item|Handy Haversack|Catalog prerequisites|0|Any|
+item-hat-of-disguise|SRD5.2.1|item|Hat of Disguise|Catalog prerequisites|0|Any|
+item-hat-of-many-spells|SRD5.2.1|item|Hat of Many Spells|Catalog prerequisites|0|Any|
+item-headband-of-intellect|SRD5.2.1|item|Headband of Intellect|Catalog prerequisites|0|Any|
+item-helm-of-brilliance|SRD5.2.1|item|Helm of Brilliance|Catalog prerequisites|0|Any|
+item-helm-of-comprehending-languages|SRD5.2.1|item|Helm of Comprehending Languages|Catalog prerequisites|0|Any|
+item-helm-of-telepathy|SRD5.2.1|item|Helm of Telepathy|Catalog prerequisites|0|Any|
+item-helm-of-teleportation|SRD5.2.1|item|Helm of Teleportation|Catalog prerequisites|0|Any|
+item-holy-avenger|SRD5.2.1|item|Holy Avenger|Catalog prerequisites|0|Any|
+item-horn-of-blasting|SRD5.2.1|item|Horn of Blasting|Catalog prerequisites|0|Any|
+item-horn-of-valhalla|SRD5.2.1|item|Horn of Valhalla|Catalog prerequisites|0|Any|
+item-horseshoes-of-a-zephyr|SRD5.2.1|item|Horseshoes of a Zephyr|Catalog prerequisites|0|Any|
+item-horseshoes-of-speed|SRD5.2.1|item|Horseshoes of Speed|Catalog prerequisites|0|Any|
+item-immovable-rod|SRD5.2.1|item|Immovable Rod|Catalog prerequisites|0|Any|
+item-instant-fortress|SRD5.2.1|item|Instant Fortress|Catalog prerequisites|0|Any|
+item-ioun-stone|SRD5.2.1|item|Ioun Stone|Catalog prerequisites|0|Any|
+item-iron-bands|SRD5.2.1|item|Iron Bands|Catalog prerequisites|0|Any|
+item-iron-flask|SRD5.2.1|item|Iron Flask|Catalog prerequisites|0|Any|
+item-javelin-of-lightning|SRD5.2.1|item|Javelin of Lightning|Catalog prerequisites|0|Any|
+item-lantern-of-revealing|SRD5.2.1|item|Lantern of Revealing|Catalog prerequisites|0|Any|
+item-luck-blade|SRD5.2.1|item|Luck Blade|Catalog prerequisites|0|Any|
+item-mace-of-disruption|SRD5.2.1|item|Mace of Disruption|Catalog prerequisites|0|Any|
+item-mace-of-smiting|SRD5.2.1|item|Mace of Smiting|Catalog prerequisites|0|Any|
+item-mace-of-terror|SRD5.2.1|item|Mace of Terror|Catalog prerequisites|0|Any|
+item-mantle-of-spell-resistance|SRD5.2.1|item|Mantle of Spell Resistance|Catalog prerequisites|0|Any|
+item-manual-of-bodily-health|SRD5.2.1|item|Manual of Bodily Health|Catalog prerequisites|0|Any|
+item-manual-of-gainful-exercise|SRD5.2.1|item|Manual of Gainful Exercise|Catalog prerequisites|0|Any|
+item-manual-of-golems|SRD5.2.1|item|Manual of Golems|Catalog prerequisites|0|Any|
+item-manual-of-quickness-of-action|SRD5.2.1|item|Manual of Quickness of Action|Catalog prerequisites|0|Any|
+item-marvelous-pigments|SRD5.2.1|item|Marvelous Pigments|Catalog prerequisites|0|Any|
+item-medallion-of-thoughts|SRD5.2.1|item|Medallion of Thoughts|Catalog prerequisites|0|Any|
+item-mirror-of-life-trapping|SRD5.2.1|item|Mirror of Life Trapping|Catalog prerequisites|0|Any|
+item-mithral-armor|SRD5.2.1|item|Mithral Armor|Catalog prerequisites|0|Any|
+item-mysterious-deck|SRD5.2.1|item|Mysterious Deck|Catalog prerequisites|0|Any|
+item-necklace-of-adaptation|SRD5.2.1|item|Necklace of Adaptation|Catalog prerequisites|0|Any|
+item-necklace-of-fireballs|SRD5.2.1|item|Necklace of Fireballs|Catalog prerequisites|0|Any|
+item-necklace-of-prayer-beads|SRD5.2.1|item|Necklace of Prayer Beads|Catalog prerequisites|0|Any|
+item-nine-lives-stealer|SRD5.2.1|item|Nine Lives Stealer|Catalog prerequisites|0|Any|
+item-oathbow|SRD5.2.1|item|Oathbow|Catalog prerequisites|0|Any|
+item-oil-of-etherealness|SRD5.2.1|item|Oil of Etherealness|Catalog prerequisites|0|Any|
+item-oil-of-sharpness|SRD5.2.1|item|Oil of Sharpness|Catalog prerequisites|0|Any|
+item-oil-of-slipperiness|SRD5.2.1|item|Oil of Slipperiness|Catalog prerequisites|0|Any|
+item-pearl-of-power|SRD5.2.1|item|Pearl of Power|Catalog prerequisites|0|Any|
+item-periapt-of-health|SRD5.2.1|item|Periapt of Health|Catalog prerequisites|0|Any|
+item-periapt-of-proof-against-poison|SRD5.2.1|item|Periapt of Proof against Poison|Catalog prerequisites|0|Any|
+item-periapt-of-wound-closure|SRD5.2.1|item|Periapt of Wound Closure|Catalog prerequisites|0|Any|
+item-philter-of-love|SRD5.2.1|item|Philter of Love|Catalog prerequisites|0|Any|
+item-pipes-of-haunting|SRD5.2.1|item|Pipes of Haunting|Catalog prerequisites|0|Any|
+item-pipes-of-the-sewers|SRD5.2.1|item|Pipes of the Sewers|Catalog prerequisites|0|Any|
+item-plate-armor-of-etherealness|SRD5.2.1|item|Plate Armor of Etherealness|Catalog prerequisites|0|Any|
+item-portable-hole|SRD5.2.1|item|Portable Hole|Catalog prerequisites|0|Any|
+item-potion-of-animal-friendship|SRD5.2.1|item|Potion of Animal Friendship|Catalog prerequisites|0|Any|
+item-potion-of-clairvoyance|SRD5.2.1|item|Potion of Clairvoyance|Catalog prerequisites|0|Any|
+item-potion-of-climbing|SRD5.2.1|item|Potion of Climbing|Catalog prerequisites|0|Any|
+item-potion-of-diminution|SRD5.2.1|item|Potion of Diminution|Catalog prerequisites|0|Any|
+item-potion-of-flying|SRD5.2.1|item|Potion of Flying|Catalog prerequisites|0|Any|
+item-potion-of-gaseous-form|SRD5.2.1|item|Potion of Gaseous Form|Catalog prerequisites|0|Any|
+item-potion-of-giant-strength|SRD5.2.1|item|Potion of Giant Strength|Catalog prerequisites|0|Any|
+item-potion-of-growth|SRD5.2.1|item|Potion of Growth|Catalog prerequisites|0|Any|
+item-potions-of-healing|SRD5.2.1|item|Potions of Healing|Catalog prerequisites|0|Any|
+item-potion-of-heroism|SRD5.2.1|item|Potion of Heroism|Catalog prerequisites|0|Any|
+item-potion-of-invisibility|SRD5.2.1|item|Potion of Invisibility|Catalog prerequisites|0|Any|
+item-potion-of-invulnerability|SRD5.2.1|item|Potion of Invulnerability|Catalog prerequisites|0|Any|
+item-potion-of-longevity|SRD5.2.1|item|Potion of Longevity|Catalog prerequisites|0|Any|
+item-potion-of-mind-reading|SRD5.2.1|item|Potion of Mind Reading|Catalog prerequisites|0|Any|
+item-potion-of-poison|SRD5.2.1|item|Potion of Poison|Catalog prerequisites|0|Any|
+item-potion-of-resistance|SRD5.2.1|item|Potion of Resistance|Catalog prerequisites|0|Any|
+item-potion-of-speed|SRD5.2.1|item|Potion of Speed|Catalog prerequisites|0|Any|
+item-potion-of-vitality|SRD5.2.1|item|Potion of Vitality|Catalog prerequisites|0|Any|
+item-potion-of-water-breathing|SRD5.2.1|item|Potion of Water Breathing|Catalog prerequisites|0|Any|
+item-quarterstaff-of-the-acrobat|SRD5.2.1|item|Quarterstaff of the Acrobat|Catalog prerequisites|0|Any|
+item-ring-of-animal-influence|SRD5.2.1|item|Ring of Animal Influence|Catalog prerequisites|0|Any|
+item-ring-of-djinni-summoning|SRD5.2.1|item|Ring of Djinni Summoning|Catalog prerequisites|0|Any|
+item-ring-of-elemental-command|SRD5.2.1|item|Ring of Elemental Command|Catalog prerequisites|0|Any|
+item-ring-of-evasion|SRD5.2.1|item|Ring of Evasion|Catalog prerequisites|0|Any|
+item-ring-of-feather-falling|SRD5.2.1|item|Ring of Feather Falling|Catalog prerequisites|0|Any|
+item-ring-of-free-action|SRD5.2.1|item|Ring of Free Action|Catalog prerequisites|0|Any|
+item-ring-of-invisibility|SRD5.2.1|item|Ring of Invisibility|Catalog prerequisites|0|Any|
+item-ring-of-jumping|SRD5.2.1|item|Ring of Jumping|Catalog prerequisites|0|Any|
+item-ring-of-mind-shielding|SRD5.2.1|item|Ring of Mind Shielding|Catalog prerequisites|0|Any|
+item-ring-of-protection|SRD5.2.1|item|Ring of Protection|Catalog prerequisites|0|Any|
+item-ring-of-regeneration|SRD5.2.1|item|Ring of Regeneration|Catalog prerequisites|0|Any|
+item-ring-of-resistance|SRD5.2.1|item|Ring of Resistance|Catalog prerequisites|0|Any|
+item-ring-of-shooting-stars|SRD5.2.1|item|Ring of Shooting Stars|Catalog prerequisites|0|Any|
+item-ring-of-spell-storing|SRD5.2.1|item|Ring of Spell Storing|Catalog prerequisites|0|Any|
+item-ring-of-spell-turning|SRD5.2.1|item|Ring of Spell Turning|Catalog prerequisites|0|Any|
+item-ring-of-swimming|SRD5.2.1|item|Ring of Swimming|Catalog prerequisites|0|Any|
+item-ring-of-telekinesis|SRD5.2.1|item|Ring of Telekinesis|Catalog prerequisites|0|Any|
+item-ring-of-the-ram|SRD5.2.1|item|Ring of the Ram|Catalog prerequisites|0|Any|
+item-ring-of-three-wishes|SRD5.2.1|item|Ring of Three Wishes|Catalog prerequisites|0|Any|
+item-ring-of-warmth|SRD5.2.1|item|Ring of Warmth|Catalog prerequisites|0|Any|
+item-ring-of-water-walking|SRD5.2.1|item|Ring of Water Walking|Catalog prerequisites|0|Any|
+item-ring-of-x-ray-vision|SRD5.2.1|item|Ring of X-ray Vision|Catalog prerequisites|0|Any|
+item-robe-of-eyes|SRD5.2.1|item|Robe of Eyes|Catalog prerequisites|0|Any|
+item-robe-of-scintillating-colors|SRD5.2.1|item|Robe of Scintillating Colors|Catalog prerequisites|0|Any|
+item-robe-of-stars|SRD5.2.1|item|Robe of Stars|Catalog prerequisites|0|Any|
+item-robe-of-the-archmagi|SRD5.2.1|item|Robe of the Archmagi|Catalog prerequisites|0|Any|
+item-robe-of-useful-items|SRD5.2.1|item|Robe of Useful Items|Catalog prerequisites|0|Any|
+item-rod-of-absorption|SRD5.2.1|item|Rod of Absorption|Catalog prerequisites|0|Any|
+item-rod-of-alertness|SRD5.2.1|item|Rod of Alertness|Catalog prerequisites|0|Any|
+item-rod-of-lordly-might|SRD5.2.1|item|Rod of Lordly Might|Catalog prerequisites|0|Any|
+item-rod-of-resurrection|SRD5.2.1|item|Rod of Resurrection|Catalog prerequisites|0|Any|
+item-rod-of-rulership|SRD5.2.1|item|Rod of Rulership|Catalog prerequisites|0|Any|
+item-rod-of-security|SRD5.2.1|item|Rod of Security|Catalog prerequisites|0|Any|
+item-rope-of-climbing|SRD5.2.1|item|Rope of Climbing|Catalog prerequisites|0|Any|
+item-rope-of-entanglement|SRD5.2.1|item|Rope of Entanglement|Catalog prerequisites|0|Any|
+item-scarab-of-protection|SRD5.2.1|item|Scarab of Protection|Catalog prerequisites|0|Any|
+item-scimitar-of-speed|SRD5.2.1|item|Scimitar of Speed|Catalog prerequisites|0|Any|
+item-sending-stones|SRD5.2.1|item|Sending Stones|Catalog prerequisites|0|Any|
+item-sentinel-shield|SRD5.2.1|item|Sentinel Shield|Catalog prerequisites|0|Any|
+item-shield-1-2-or-3|SRD5.2.1|item|Shield, +1, +2, or +3|Catalog prerequisites|0|Any|
+item-shield-of-missile-attraction|SRD5.2.1|item|Shield of Missile Attraction|Catalog prerequisites|0|Any|
+item-shield-of-the-cavalier|SRD5.2.1|item|Shield of the Cavalier|Catalog prerequisites|0|Any|
+item-slippers-of-spider-climbing|SRD5.2.1|item|Slippers of Spider Climbing|Catalog prerequisites|0|Any|
+item-sovereign-glue|SRD5.2.1|item|Sovereign Glue|Catalog prerequisites|0|Any|
+item-spellguard-shield|SRD5.2.1|item|Spellguard Shield|Catalog prerequisites|0|Any|
+item-sphere-of-annihilation|SRD5.2.1|item|Sphere of Annihilation|Catalog prerequisites|0|Any|
+item-staff-of-charming|SRD5.2.1|item|Staff of Charming|Catalog prerequisites|0|Any|
+item-staff-of-fire|SRD5.2.1|item|Staff of Fire|Catalog prerequisites|0|Any|
+item-staff-of-frost|SRD5.2.1|item|Staff of Frost|Catalog prerequisites|0|Any|
+item-staff-of-healing|SRD5.2.1|item|Staff of Healing|Catalog prerequisites|0|Any|
+item-staff-of-power|SRD5.2.1|item|Staff of Power|Catalog prerequisites|0|Any|
+item-staff-of-striking|SRD5.2.1|item|Staff of Striking|Catalog prerequisites|0|Any|
+item-staff-of-swarming-insects|SRD5.2.1|item|Staff of Swarming Insects|Catalog prerequisites|0|Any|
+item-staff-of-the-magi|SRD5.2.1|item|Staff of the Magi|Catalog prerequisites|0|Any|
+item-staff-of-the-python|SRD5.2.1|item|Staff of the Python|Catalog prerequisites|0|Any|
+item-staff-of-the-woodlands|SRD5.2.1|item|Staff of the Woodlands|Catalog prerequisites|0|Any|
+item-staff-of-thunder-and-lightning|SRD5.2.1|item|Staff of Thunder and Lightning|Catalog prerequisites|0|Any|
+item-staff-of-withering|SRD5.2.1|item|Staff of Withering|Catalog prerequisites|0|Any|
+item-stone-of-controlling-earth-elementals|SRD5.2.1|item|Stone of Controlling Earth Elementals|Catalog prerequisites|0|Any|
+item-stone-of-good-luck-luckstone|SRD5.2.1|item|Stone of Good Luck (Luckstone)|Catalog prerequisites|0|Any|
+item-sun-blade|SRD5.2.1|item|Sun Blade|Catalog prerequisites|0|Any|
+item-sword-of-life-stealing|SRD5.2.1|item|Sword of Life Stealing|Catalog prerequisites|0|Any|
+item-sword-of-sharpness|SRD5.2.1|item|Sword of Sharpness|Catalog prerequisites|0|Any|
+item-sword-of-wounding|SRD5.2.1|item|Sword of Wounding|Catalog prerequisites|0|Any|
+item-talisman-of-pure-good|SRD5.2.1|item|Talisman of Pure Good|Catalog prerequisites|0|Any|
+item-talisman-of-the-sphere|SRD5.2.1|item|Talisman of the Sphere|Catalog prerequisites|0|Any|
+item-talisman-of-ultimate-evil|SRD5.2.1|item|Talisman of Ultimate Evil|Catalog prerequisites|0|Any|
+item-thunderous-greatclub|SRD5.2.1|item|Thunderous Greatclub|Catalog prerequisites|0|Any|
+item-tome-of-clear-thought|SRD5.2.1|item|Tome of Clear Thought|Catalog prerequisites|0|Any|
+item-tome-of-leadership-and-influence|SRD5.2.1|item|Tome of Leadership and Influence|Catalog prerequisites|0|Any|
+item-tome-of-understanding|SRD5.2.1|item|Tome of Understanding|Catalog prerequisites|0|Any|
+item-trident-of-fish-command|SRD5.2.1|item|Trident of Fish Command|Catalog prerequisites|0|Any|
+item-universal-solvent|SRD5.2.1|item|Universal Solvent|Catalog prerequisites|0|Any|
+item-vicious-weapon|SRD5.2.1|item|Vicious Weapon|Catalog prerequisites|0|Any|
+item-vorpal-sword|SRD5.2.1|item|Vorpal Sword|Catalog prerequisites|0|Any|
+item-wand-of-binding|SRD5.2.1|item|Wand of Binding|Catalog prerequisites|0|Any|
+item-wand-of-enemy-detection|SRD5.2.1|item|Wand of Enemy Detection|Catalog prerequisites|0|Any|
+item-wand-of-fear|SRD5.2.1|item|Wand of Fear|Catalog prerequisites|0|Any|
+item-wand-of-fireballs|SRD5.2.1|item|Wand of Fireballs|Catalog prerequisites|0|Any|
+item-wand-of-lightning-bolts|SRD5.2.1|item|Wand of Lightning Bolts|Catalog prerequisites|0|Any|
+item-wand-of-magic-detection|SRD5.2.1|item|Wand of Magic Detection|Catalog prerequisites|0|Any|
+item-wand-of-magic-missiles|SRD5.2.1|item|Wand of Magic Missiles|Catalog prerequisites|0|Any|
+item-wand-of-paralysis|SRD5.2.1|item|Wand of Paralysis|Catalog prerequisites|0|Any|
+item-wand-of-polymorph|SRD5.2.1|item|Wand of Polymorph|Catalog prerequisites|0|Any|
+item-wand-of-secrets|SRD5.2.1|item|Wand of Secrets|Catalog prerequisites|0|Any|
+item-wand-of-the-war-mage-1-2-or-3|SRD5.2.1|item|Wand of the War Mage, +1, +2, or +3|Catalog prerequisites|0|Any|
+item-wand-of-web|SRD5.2.1|item|Wand of Web|Catalog prerequisites|0|Any|
+item-wand-of-wonder|SRD5.2.1|item|Wand of Wonder|Catalog prerequisites|0|Any|
+item-weapon-1-2-or-3|SRD5.2.1|item|Weapon, +1, +2, or +3|Catalog prerequisites|0|Any|
+item-weapon-of-warning|SRD5.2.1|item|Weapon of Warning|Catalog prerequisites|0|Any|
+item-well-of-many-worlds|SRD5.2.1|item|Well of Many Worlds|Catalog prerequisites|0|Any|
+item-wind-fan|SRD5.2.1|item|Wind Fan|Catalog prerequisites|0|Any|
+item-winged-boots|SRD5.2.1+Eberron|item|Winged Boots|Catalog prerequisites|0|Any|
+item-wings-of-flying|SRD5.2.1|item|Wings of Flying|Catalog prerequisites|0|Any|
+item-armor-of-gleaming|XGTE|item|Armor of Gleaming|Catalog prerequisites|0|Any|
+item-bead-of-refreshment|XGTE|item|Bead of Refreshment|Catalog prerequisites|0|Any|
+item-boots-of-false-tracks|XGTE|item|Boots of False Tracks|Catalog prerequisites|0|Any|
+item-candle-of-the-deep|XGTE|item|Candle of the Deep|Catalog prerequisites|0|Any|
+item-cast-off-armor|XGTE|item|Cast-Off Armor|Catalog prerequisites|0|Any|
+item-charlatan-s-die|XGTE|item|Charlatan's Die|Catalog prerequisites|0|Any|
+item-cloak-of-billowing|XGTE|item|Cloak of Billowing|Catalog prerequisites|0|Any|
+item-cloak-of-many-fashions|XGTE|item|Cloak of Many Fashions|Catalog prerequisites|0|Any|
+item-clockwork-amulet|XGTE|item|Clockwork Amulet|Catalog prerequisites|0|Any|
+item-clothes-of-mending|XGTE|item|Clothes of Mending|Catalog prerequisites|0|Any|
+item-dark-shard-amulet|XGTE|item|Dark Shard Amulet|Catalog prerequisites|0|Any|
+item-dread-helm|XGTE|item|Dread Helm|Catalog prerequisites|0|Any|
+item-ear-horn-of-hearing|XGTE|item|Ear Horn of Hearing|Catalog prerequisites|0|Any|
+item-enduring-spellbook|XGTE|item|Enduring Spellbook|Catalog prerequisites|0|Any|
+item-ersatz-eye|XGTE|item|Ersatz Eye|Catalog prerequisites|0|Any|
+item-hat-of-vermin|XGTE|item|Hat of Vermin|Catalog prerequisites|0|Any|
+item-hat-of-wizardry|XGTE|item|Hat of Wizardry|Catalog prerequisites|0|Any|
+item-heward-s-handy-spice-pouch|XGTE|item|Heward's Handy Spice Pouch|Catalog prerequisites|0|Any|
+item-horn-of-silent-alarm|XGTE|item|Horn of Silent Alarm|Catalog prerequisites|0|Any|
+item-instrument-of-illusions|XGTE|item|Instrument of Illusions|Catalog prerequisites|0|Any|
+item-instrument-of-scribing|XGTE|item|Instrument of Scribing|Catalog prerequisites|0|Any|
+item-lock-of-trickery|XGTE|item|Lock of Trickery|Catalog prerequisites|0|Any|
+item-moon-touched-sword|XGTE|item|Moon-Touched Sword|Catalog prerequisites|0|Any|
+item-mystery-key|XGTE|item|Mystery Key|Catalog prerequisites|0|Any|
+item-orb-of-direction|XGTE|item|Orb of Direction|Catalog prerequisites|0|Any|
+item-orb-of-time|XGTE|item|Orb of Time|Catalog prerequisites|0|Any|
+item-perfume-of-bewitching|XGTE|item|Perfume of Bewitching|Catalog prerequisites|0|Any|
+item-pipe-of-smoke-monsters|XGTE|item|Pipe of Smoke Monsters|Catalog prerequisites|0|Any|
+item-pole-of-angling|XGTE|item|Pole of Angling|Catalog prerequisites|0|Any|
+item-pole-of-collapsing|XGTE|item|Pole of Collapsing|Catalog prerequisites|0|Any|
+item-pot-of-awakening|XGTE|item|Pot of Awakening|Catalog prerequisites|0|Any|
+item-rope-of-mending|XGTE|item|Rope of Mending|Catalog prerequisites|0|Any|
+item-ruby-of-the-war-mage|XGTE|item|Ruby of the War Mage|Catalog prerequisites|0|Any|
+item-shield-of-expression|XGTE|item|Shield of Expression|Catalog prerequisites|0|Any|
+item-smoldering-armor|XGTE|item|Smoldering Armor|Catalog prerequisites|0|Any|
+item-staff-of-adornment|XGTE|item|Staff of Adornment|Catalog prerequisites|0|Any|
+item-staff-of-birdcalls|XGTE|item|Staff of Birdcalls|Catalog prerequisites|0|Any|
+item-staff-of-flowers|XGTE|item|Staff of Flowers|Catalog prerequisites|0|Any|
+item-talking-doll|XGTE|item|Talking Doll|Catalog prerequisites|0|Any|
+item-tankard-of-sobriety|XGTE|item|Tankard of Sobriety|Catalog prerequisites|0|Any|
+item-unbreakable-arrow|XGTE|item|Unbreakable Arrow|Catalog prerequisites|0|Any|
+item-veteran-s-cane|XGTE|item|Veteran's Cane|Catalog prerequisites|0|Any|
+item-walloping-ammunition|XGTE|item|Walloping Ammunition|Catalog prerequisites|0|Any|
+item-wand-of-conducting|XGTE|item|Wand of Conducting|Catalog prerequisites|0|Any|
+item-wand-of-pyrotechnics|XGTE|item|Wand of Pyrotechnics|Catalog prerequisites|0|Any|
+item-wand-of-scowls|XGTE|item|Wand of Scowls|Catalog prerequisites|0|Any|
+item-wand-of-smiles|XGTE|item|Wand of Smiles|Catalog prerequisites|0|Any|
+item-holy-symbol-of-ravenkind|VRGTR|item|Holy Symbol of Ravenkind|Catalog prerequisites|0|Any|
+item-icon-of-ravenloft|VRGTR|item|Icon of Ravenloft|Catalog prerequisites|0|Any|
+item-sunsword|VRGTR|item|Sunsword|Catalog prerequisites|0|Any|
+item-tome-of-strahd|VRGTR|item|Tome of Strahd|Catalog prerequisites|0|Any|
+item-blackstaff|FRHOF|item|Blackstaff|Catalog prerequisites|0|Any|
+item-bookmark|FRHOF|item|Bookmark|Catalog prerequisites|0|Any|
+item-hazirawn|FRHOF|item|Hazirawn|Catalog prerequisites|0|Any|
+item-moonblade|FRHOF|item|Moonblade|Catalog prerequisites|0|Any|
+item-ring-of-winter|FRHOF|item|Ring of Winter|Catalog prerequisites|0|Any|
+item-staff-of-the-forgotten-one|FRHOF|item|Staff of the Forgotten One|Catalog prerequisites|0|Any|
+item-adventurer-s-atlas|Eberron|item|Adventurer's Atlas|Catalog prerequisites|0|Any|
+item-all-purpose-tool|Eberron|item|All-Purpose Tool|Catalog prerequisites|0|Any|
+item-boots-of-the-winding-path|Eberron|item|Boots of the Winding Path|Catalog prerequisites|0|Any|
+item-repeating-shot-light-crossbow|Eberron|item|Repeating Shot Light Crossbow|Catalog prerequisites|0|Any|
+item-alchemist-s-supplies|SRD5.2.1|item|Alchemist's Supplies|Catalog prerequisites|0|Any|
+item-brewer-s-supplies|SRD5.2.1|item|Brewer's Supplies|Catalog prerequisites|0|Any|
+item-calligrapher-s-supplies|SRD5.2.1|item|Calligrapher's Supplies|Catalog prerequisites|0|Any|
+item-carpenter-s-tools|SRD5.2.1|item|Carpenter's Tools|Catalog prerequisites|0|Any|
+item-cartographer-s-tools|SRD5.2.1|item|Cartographer's Tools|Catalog prerequisites|0|Any|
+item-cobbler-s-tools|SRD5.2.1|item|Cobbler's Tools|Catalog prerequisites|0|Any|
+item-cook-s-utensils|SRD5.2.1|item|Cook's Utensils|Catalog prerequisites|0|Any|
+item-glassblower-s-tools|SRD5.2.1|item|Glassblower's Tools|Catalog prerequisites|0|Any|
+item-jeweler-s-tools|SRD5.2.1|item|Jeweler's Tools|Catalog prerequisites|0|Any|
+item-leatherworker-s-tools|SRD5.2.1|item|Leatherworker's Tools|Catalog prerequisites|0|Any|
+item-mason-s-tools|SRD5.2.1|item|Mason's Tools|Catalog prerequisites|0|Any|
+item-painter-s-supplies|SRD5.2.1|item|Painter's Supplies|Catalog prerequisites|0|Any|
+item-potter-s-tools|SRD5.2.1|item|Potter's Tools|Catalog prerequisites|0|Any|
+item-smith-s-tools|SRD5.2.1|item|Smith's Tools|Catalog prerequisites|0|Any|
+item-tinker-s-tools|SRD5.2.1|item|Tinker's Tools|Catalog prerequisites|0|Any|
+item-weaver-s-tools|SRD5.2.1|item|Weaver's Tools|Catalog prerequisites|0|Any|
+item-woodcarver-s-tools|SRD5.2.1|item|Woodcarver's Tools|Catalog prerequisites|0|Any|
+item-disguise-kit|SRD5.2.1|item|Disguise Kit|Catalog prerequisites|0|Any|
+item-forgery-kit|SRD5.2.1|item|Forgery Kit|Catalog prerequisites|0|Any|
+item-gaming-set|SRD5.2.1|item|Gaming Set|Catalog prerequisites|0|Any|
+item-herbalism-kit|SRD5.2.1|item|Herbalism Kit|Catalog prerequisites|0|Any|
+item-musical-instrument|SRD5.2.1|item|Musical Instrument|Catalog prerequisites|0|Any|
+item-navigator-s-tools|SRD5.2.1|item|Navigator's Tools|Catalog prerequisites|0|Any|
+item-poisoner-s-kit|SRD5.2.1|item|Poisoner's Kit|Catalog prerequisites|0|Any|
+item-thieves-tools|SRD5.2.1|item|Thieves' Tools|Catalog prerequisites|0|Any|
+grant-human-size|Core|species|Human|None|0|Any|size=Medium
+grant-human-senses|Core|species|Human|None|0|Any|senses=Normal vision
+grant-elf-size|Core|species|Elf|None|0|Any|size=Medium
+grant-elf-senses|Core|species|Elf|None|0|Any|senses=Darkvision
+grant-dwarf-size|Core|species|Dwarf|None|0|Any|size=Medium
+grant-dwarf-senses|Core|species|Dwarf|None|0|Any|senses=Darkvision
+grant-halfling-size|Core|species|Halfling|None|0|Any|size=Small
+grant-gnome-size|Core|species|Gnome|None|0|Any|size=Small
+grant-aasimar-size|Core|species|Aasimar|None|0|Any|size=Medium
+grant-aasimar-senses|Core|species|Aasimar|None|0|Any|senses=Darkvision 60 ft.
+grant-black-dragonborn-size|Core|species|Black Dragonborn|None|0|Any|size=Medium
+grant-blue-dragonborn-size|Core|species|Blue Dragonborn|None|0|Any|size=Medium
+grant-brass-dragonborn-size|Core|species|Brass Dragonborn|None|0|Any|size=Medium
+grant-bronze-dragonborn-size|Core|species|Bronze Dragonborn|None|0|Any|size=Medium
+grant-copper-dragonborn-size|Core|species|Copper Dragonborn|None|0|Any|size=Medium
+grant-gold-dragonborn-size|Core|species|Gold Dragonborn|None|0|Any|size=Medium
+grant-green-dragonborn-size|Core|species|Green Dragonborn|None|0|Any|size=Medium
+grant-red-dragonborn-size|Core|species|Red Dragonborn|None|0|Any|size=Medium
+grant-silver-dragonborn-size|Core|species|Silver Dragonborn|None|0|Any|size=Medium
+grant-white-dragonborn-size|Core|species|White Dragonborn|None|0|Any|size=Medium
+grant-drow-elf-size|Core|species|Drow Elf|None|0|Any|size=Medium
+grant-drow-elf-senses|Core|species|Drow Elf|None|0|Any|senses=Darkvision 120 ft.
+grant-high-elf-size|Core|species|High Elf|None|0|Any|size=Medium
+grant-high-elf-senses|Core|species|High Elf|None|0|Any|senses=Darkvision 60 ft.
+grant-wood-elf-size|Core|species|Wood Elf|None|0|Any|size=Medium
+grant-wood-elf-senses|Core|species|Wood Elf|None|0|Any|senses=Darkvision 60 ft.
+grant-forest-gnome-size|Core|species|Forest Gnome|None|0|Any|size=Small
+grant-forest-gnome-senses|Core|species|Forest Gnome|None|0|Any|senses=Darkvision 60 ft.
+grant-rock-gnome-size|Core|species|Rock Gnome|None|0|Any|size=Small
+grant-rock-gnome-senses|Core|species|Rock Gnome|None|0|Any|senses=Darkvision 60 ft.
+grant-cloud-goliath-size|Core|species|Cloud Giant Goliath|None|0|Any|size=Medium
+grant-fire-goliath-size|Core|species|Fire Giant Goliath|None|0|Any|size=Medium
+grant-frost-goliath-size|Core|species|Frost Giant Goliath|None|0|Any|size=Medium
+grant-hill-goliath-size|Core|species|Hill Giant Goliath|None|0|Any|size=Medium
+grant-stone-goliath-size|Core|species|Stone Giant Goliath|None|0|Any|size=Medium
+grant-storm-goliath-size|Core|species|Storm Giant Goliath|None|0|Any|size=Medium
+grant-orc-size|Core|species|Orc|None|0|Any|size=Medium
+grant-orc-senses|Core|species|Orc|None|0|Any|senses=Darkvision 120 ft.
+grant-abyssal-tiefling-size|Core|species|Abyssal Tiefling|None|0|Any|size=Medium
+grant-abyssal-tiefling-senses|Core|species|Abyssal Tiefling|None|0|Any|senses=Darkvision 60 ft.
+grant-chthonic-tiefling-size|Core|species|Chthonic Tiefling|None|0|Any|size=Medium
+grant-chthonic-tiefling-senses|Core|species|Chthonic Tiefling|None|0|Any|senses=Darkvision 60 ft.
+grant-infernal-tiefling-size|Core|species|Infernal Tiefling|None|0|Any|size=Medium
+grant-infernal-tiefling-senses|Core|species|Infernal Tiefling|None|0|Any|senses=Darkvision 60 ft.

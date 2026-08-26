@@ -1,0 +1,40 @@
+App(
+    appid="dungeons_and_dolphins",
+    name="Dungeons & Dolphins",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pocket_d20_app",
+    stack_size=8 * 1024,
+    sources=[
+        "pocket_d20.c",
+        "pocket_d20_campaigns.c",
+        "pocket_d20_data.c",
+        "pocket_d20_rules.c",
+        "pocket_d20_storage.c",
+    ],
+    fap_icon="icon.png",
+    fap_file_assets="character_assets",
+    fap_category="Games",
+    fap_author="RogueMaster",
+    fap_weburl="https://github.com/RogueMaster/Dungeons_and_Dragons",
+    fap_version="3.0",
+    fap_description="Offline 5E-compatible character, journal, dice, and initiative tracker.",
+)
+
+App(
+    appid="dolphin_bestiary",
+    name="Dolphin Bestiary",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="dolphin_bestiary_app",
+    stack_size=6 * 1024,
+    sources=[
+        "dolphin_bestiary.c",
+        "pocket_d20_monsters.c",
+    ],
+    fap_icon="icon.png",
+    fap_file_assets="monster_assets",
+    fap_category="Games",
+    fap_author="RogueMaster",
+    fap_weburl="https://github.com/RogueMaster/Dungeons_and_Dragons",
+    fap_version="3.0",
+    fap_description="Offline monster reference and party-level encounter generator.",
+)

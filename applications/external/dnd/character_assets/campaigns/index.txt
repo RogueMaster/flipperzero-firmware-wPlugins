@@ -1,0 +1,3 @@
+# CampaignPack=1
+# id|name|pack_version|min_app|max_app|entry_scene|scenes_file
+reef_wardens|Reef Wardens|1|203|0|reef_gate|scenes.txt

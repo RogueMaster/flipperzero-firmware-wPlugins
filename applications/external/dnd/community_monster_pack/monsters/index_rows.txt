@@ -1,0 +1,2 @@
+# Append rows below to monsters/index.txt.
+sample_dolphin|Sample Dolphin|4|100|12|18|Beast|Aquatic|Custom|Skirmisher

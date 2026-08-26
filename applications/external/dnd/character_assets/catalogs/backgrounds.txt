@@ -1,0 +1,42 @@
+# Dungeons & Dolphins background catalog (names only)
+# 2024 Player's Handbook / SRD-compatible core choices
+Acolyte
+Artisan
+Charlatan
+Criminal
+Entertainer
+Farmer
+Guard
+Guide
+Hermit
+Merchant
+Noble
+Sage
+Sailor
+Scribe
+Soldier
+Wayfarer
+
+# Van Richten's Guide to Ravenloft
+Haunted One
+Investigator
+
+# Forgotten Realms: Heroes of Faerun
+Chondathan Freebooter
+Dead Magic Dweller
+Dragon Cultist
+Emerald Enclave Caretaker
+Flaming Fist Mercenary
+Genie Touched
+Harper
+Ice Fisher
+Knight of the Gauntlet
+Lords' Alliance Vassal
+Moonwell Pilgrim
+Mulhorandi Tomb Raider
+Mythalkeeper
+Purple Dragon Squire
+Rashemi Wanderer
+Shadowmasters Exile
+Spellfire Initiate
+Zhentarim Mercenary

@@ -1,0 +1,12 @@
+# Append sections below to monsters/statblocks.txt.
+[sample_dolphin]
+SizeAlignment=Medium, Unaligned
+Speed=5 ft.; Swim 60 ft.
+Abilities=14,13,13,6,12,7
+Skills=Perception +3
+Defenses=None
+Senses=Blindsight 60 ft.; Passive Perception 13
+Languages=None
+Traits=Charge; Hold Breath
+Actions=Slam +4, 5 bludgeoning
+Extra=Replace this original sample with a record you may use and redistribute

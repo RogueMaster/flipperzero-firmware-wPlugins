@@ -1,0 +1,4079 @@
+[aboleth]
+SizeAlignment=Large, Lawful Evil
+Speed=10 ft.; Swim 40 ft.
+Abilities=21,9,15,18,15,18
+Skills=History +12; Perception +10
+Defenses=None listed
+Senses=Darkvision 120 ft.; Passive Perception 20
+Languages=Deep Speech; telepathy 120 ft.
+Traits=Amphibious; Eldritch Restoration; Legendary Resistance; Mucus Cloud; Probing Telepathy
+Actions=Multiattack; Tentacle +9, 12 bludgeoning; Consume Memories DC 16; Dominate Mind DC 16 (2/day)
+Extra=3 Legendary Actions: Lash or Psychic Drain
+
+[adult_black_dragon]
+SizeAlignment=Huge Dragon (Chromatic), Chaotic Evil
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +11, Stealth +7
+Defenses=Acid
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 21
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water. Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Acid Arrow (level 3 version). Rend. Melee Attack Roll: +11, reach 10 ft. Hit: 13
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_blue_dragon]
+SizeAlignment=Huge Dragon (Chromatic), Lawful Evil
+Speed=40 ft. Burrow 30 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +12, Stealth +5
+Defenses=Lightning
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 22
+Languages=Common, Draconic
+Traits=Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Shatter. Rend. Melee Attack Roll: +12, reach 10 ft. Hit: 16 (2d8 + 7) Slashing d
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_brass_dragon]
+SizeAlignment=Huge Dragon (Metallic), Chaotic Good
+Speed=40 ft. Burrow 30 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=History +7, Perception +11, Persuasion +8, Stealth +5
+Defenses=Fire
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 21
+Languages=Common, Draconic
+Traits=Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Sleep Breath or (B) Spellcasting to cast Scorching Ray. Rend. Melee Attack Roll: +11, reach 10 ft
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_bronze_dragon]
+SizeAlignment=Huge Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Insight +7, Perception +12, Stealth +5
+Defenses=Lightning
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 22
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water. Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Repulsion Breath or (B) Spellcasting to cast Guiding Bolt (level 2 version). Rend. Melee Attack R
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_copper_dragon]
+SizeAlignment=Huge Dragon (Metallic), Chaotic Good
+Speed=40 ft. Climb 40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +9, Perception +12, Stealth +6
+Defenses=Acid
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 22
+Languages=Common, Draconic
+Traits=Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Slowing Breath or (B) Spellcasting to cast Mind Spike (level 4 version). Rend. Melee Attack Roll:
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_gold_dragon]
+SizeAlignment=Huge Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Insight +8, Perception +14, Persuasion +13, Stealth +8
+Defenses=Fire
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 24
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water. Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Spellcasting to cast Guiding Bolt (level 2 version) or (B) Weaken- ing Breath. Rend. Melee Attack
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_green_dragon]
+SizeAlignment=Huge Dragon (Chromatic), Lawful Evil
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +9, Perception +12, Persuasion +9, Stealth +6
+Defenses=Poison; Poisoned
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 22
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water. Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Mind Spike (level 3 version). Rend. Melee Attack Roll: +11, reach 10 ft. Hit: 15
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_red_dragon]
+SizeAlignment=Huge Dragon (Chromatic), Chaotic Evil
+Speed=40 ft. Climb 40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +13, Stealth +6
+Defenses=Fire
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 23
+Languages=Common, Draconic
+Traits=Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Scorching Ray. Rend. Melee Attack Roll: +14, reach 10 ft. Hit: 13 (1d10 + 8) Sla
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_silver_dragon]
+SizeAlignment=Huge Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=History +8, Perception +11, Stealth +5
+Defenses=Cold
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 21
+Languages=Common, Draconic
+Traits=Legendary Resistance (3/Day, or 4/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Paralyzing Breath or (B) Spellcasting to cast Ice Knife. Rend. Melee Attack Roll: +13, reach 10 f
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[adult_white_dragon]
+SizeAlignment=Huge Dragon
+Speed=40 ft., Burrow 30 ft., Fly 80 ft., Swim 40 ft.
+Abilities=22,10,22,8,12,12
+Skills=Perception +11, Stealth +5
+Defenses=Cold
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 21
+Languages=Common, Draconic
+Traits=Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, Difficult Terrain composed of ice or snow doesn't cost it extra movement. L
+Actions=Multiattack. The dragon makes three Rend attacks. Rend. Melee Attack Roll: +11, reach 10 ft. Hit: 13 (2d6 + 6) Slashing damage plus 4 (1d8) Cold damage. Cold Breath (Recharge 5–6). Constituti
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature's turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[air_elemental]
+SizeAlignment=Large, Neutral
+Speed=10 ft.; Fly 90 ft. (hover)
+Abilities=14,20,14,6,10,6
+Skills=None listed
+Defenses=Resist B/L/P/S and Lightning; Immune Poison, Thunder and multiple conditions
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Primordial (Auran)
+Traits=Air Form
+Actions=Multiattack; Thunderous Slam +8, 14 thunder; Whirlwind DC 13 (Recharge 4-6)
+Extra=None
+
+[allosaurus]
+SizeAlignment=Large Beast
+Speed=60 ft.
+Abilities=19,13,17,2,12,5
+Skills=Perception +5
+Defenses=None
+Senses=Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[ancient_black_dragon]
+SizeAlignment=Gargantuan Dragon (Chromatic), Chaotic Evil
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +16, Stealth +9
+Defenses=Acid
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 26
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water. Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Acid Arrow (level 4 version). Rend. Melee Attack Roll: +15, reach 15 ft. Hit: 17
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_blue_dragon]
+SizeAlignment=Gargantuan Dragon (Chromatic), Lawful Evil
+Speed=40 ft. Burrow 40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +17, Stealth +7
+Defenses=Lightning
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 27
+Languages=Common, Draconic
+Traits=Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Shatter (level 3 version). Rend. Melee Attack Roll: +16, reach 15 ft. Hit: 18 (2
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_brass_dragon]
+SizeAlignment=Gargantuan Dragon (Metallic), Chaotic Good
+Speed=40 ft. Burrow 40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=History +9, Perception +14, Persuasion +12, Stealth +6
+Defenses=Fire
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 24
+Languages=Common, Draconic
+Traits=Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Sleep Breath or (B) Spellcasting to cast Scorching Ray (level 3 version). Rend. Melee Attack Roll
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_bronze_dragon]
+SizeAlignment=Gargantuan Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Insight +10, Perception +17, Stealth +7
+Defenses=Lightning
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 27
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water. Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Repulsion Breath or (B) Spellcasting to cast Guiding Bolt (level 2 version). Rend. Melee Attack R
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_copper_dragon]
+SizeAlignment=Gargantuan Dragon (Metallic), Chaotic Good
+Speed=40 ft. Climb 40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +13, Perception +17, Stealth +8
+Defenses=Acid
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 27
+Languages=Common, Draconic
+Traits=Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Slowing Breath or (B) Spellcasting to cast Mind Spike (level 5 version). Rend. Melee Attack Roll:
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_gold_dragon]
+SizeAlignment=Gargantuan Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Insight +10, Perception +17, Persuasion +16, Stealth +9
+Defenses=Fire
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 27
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water. Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Spellcasting to cast Guiding Bolt (level 4 version) or (B) Weaken- ing Breath. Rend. Melee Attack
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_green_dragon]
+SizeAlignment=Gargantuan Dragon (Chromatic), Lawful Evil
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +13, Perception +17, Persuasion +13, Stealth +8
+Defenses=Poison; Poisoned
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 27
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water. Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Mind Spike (level 5 version). Rend. Melee Attack Roll: +15, reach 15 ft. Hit: 17
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_red_dragon]
+SizeAlignment=Gargantuan Dragon (Chromatic), Chaotic Evil
+Speed=40 ft. Climb 40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +16, Stealth +7
+Defenses=Fire
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 26
+Languages=Common, Draconic
+Traits=Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Scorching Ray (level 3 version). Rend. Melee Attack Roll: +17, reach 15 ft. Hit:
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_silver_dragon]
+SizeAlignment=Gargantuan Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=History +11, Perception +16, Stealth +7
+Defenses=Cold
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 26
+Languages=Common, Draconic
+Traits=Legendary Resistance (4/Day, or 5/Day in Lair). If the dragon fails a saving throw, it can choose to suc- ceed instead.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Paralyz- ing Breath or (B) Spellcasting to cast Ice Knife (level 2 version). Rend. Melee Attack R
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[ancient_white_dragon]
+SizeAlignment=Gargantuan Dragon
+Speed=40 ft., Burrow 40 ft., Fly 80 ft., Swim 40 ft.
+Abilities=26,10,26,10,13,18
+Skills=Perception +13, Stealth +6
+Defenses=Cold
+Senses=Blindsight 60 ft., Darkvision 120 ft.; Passive Perception 23
+Languages=Common, Draconic
+Traits=Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, Difficult Terrain composed of ice or snow doesn't cost it extra movement. L
+Actions=Multiattack. The dragon makes three Rend attacks. Rend. Melee Attack Roll: +14, reach 15 ft. Hit: 17 (2d8 + 8) Slashing damage plus 7 (2d6) Cold damage. Cold Breath (Recharge 5–6). Constituti
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature's turn, the dragon can expend a use to take one of the following actions. The dragon regains all ex
+
+[animated_armor]
+SizeAlignment=Medium, Unaligned
+Speed=25 ft.
+Abilities=14,11,13,1,3,1
+Skills=None listed
+Defenses=Immune Poison, Psychic and multiple conditions
+Senses=Blindsight 60 ft.; Passive Perception 6
+Languages=None
+Traits=None listed
+Actions=Multiattack; Slam +4, 5 bludgeoning
+Extra=None
+
+[ankheg]
+SizeAlignment=Large, Unaligned
+Speed=30 ft.; Burrow 10 ft.
+Abilities=17,11,14,1,13,6
+Skills=None listed
+Defenses=None listed
+Senses=Darkvision 60 ft.; Tremorsense 60 ft.; Passive Perception 11
+Languages=None
+Traits=Tunneler
+Actions=Bite +5, 10 slashing plus 3 acid; Acid Spray DC 12, 14 acid (Recharge 6)
+Extra=Bite can grapple a Large or smaller target (escape DC 13)
+
+[ankylosaurus]
+SizeAlignment=Huge Beast
+Speed=30 ft.
+Abilities=19,11,15,2,12,5
+Skills=None
+Defenses=None
+Senses=Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[ape]
+SizeAlignment=Medium Beast
+Speed=30 ft., Climb 30 ft.
+Abilities=16,14,14,6,12,7
+Skills=Athletics +5, Perception +3
+Defenses=None
+Senses=Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[archelon]
+SizeAlignment=Huge Beast
+Speed=20 ft., Swim 80 ft.
+Abilities=18,16,13,4,14,6
+Skills=Stealth +5
+Defenses=None
+Senses=Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[archmage]
+SizeAlignment=Medium or Small Humanoid (Wizard), Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +13, History +9, Perception +6
+Defenses=Psychic; Charmed (with Mind Blank)
+Senses=Passive Perception 16
+Languages=Common plus five other languages
+Traits=Magic Resistance. The archmage has Advantage on saving throws against spells and other magical effects.
+Actions=Multiattack. The archmage makes four Arcane Burst attacks. Arcane Burst. Melee or Ranged Attack Roll: +9, reach 5 ft. or range 150 ft. Hit: 27 (4d10 + 5) Force damage. Spellcasting. The archm
+Extra=Bonus Actions: Misty Step (3/Day). The mage casts Misty Step, using the same spellcasting ability as Spellcasting. Reactions: Protective Magic (3/Day). The archmage casts Coun- terspell or Sh
+
+[assassin]
+SizeAlignment=Medium or Small, Neutral
+Speed=30 ft.
+Abilities=11,18,14,16,11,10
+Skills=Acrobatics +7; Perception +6; Stealth +10
+Defenses=Resist Poison
+Senses=Passive Perception 16
+Languages=Common; Thieves' Cant
+Traits=Evasion
+Actions=Multiattack; Shortsword +7, 7 piercing +17 poison; Light Crossbow +7, 8 piercing +21 poison
+Extra=Cunning Action bonus action
+
+[awakened_shrub]
+SizeAlignment=Small, Neutral
+Speed=20 ft.
+Abilities=3,8,11,10,10,6
+Skills=None listed
+Defenses=Vulnerable Fire; Resist Piercing
+Senses=Passive Perception 10
+Languages=Common plus one other language
+Traits=None listed
+Actions=Rake +1, 1 slashing
+Extra=None
+
+[awakened_tree]
+SizeAlignment=Huge, Neutral
+Speed=20 ft.
+Abilities=19,6,15,10,10,7
+Skills=None listed
+Defenses=Vulnerable Fire; Resist Bludgeoning and Piercing
+Senses=Passive Perception 10
+Languages=Common plus one other language
+Traits=None listed
+Actions=Slam +6, 14 bludgeoning
+Extra=None
+
+[axe_beak]
+SizeAlignment=Large, Unaligned
+Speed=50 ft.
+Abilities=14,12,12,2,10,5
+Skills=None listed
+Defenses=None listed
+Senses=Passive Perception 10
+Languages=None
+Traits=None listed
+Actions=Beak +4, 6 slashing
+Extra=None
+
+[azer_sentinel]
+SizeAlignment=Medium Elemental, Lawful Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Fire, Poison; Poisoned
+Senses=Passive Perception 11
+Languages=Primordial (Ignan)
+Traits=Fire Aura. At the end of each of the azer’s turns, each creature of the azer’s choice in a 5-foot Emanation orig- inating from the azer takes 5 (1d10) Fire damage unless the azer has the Inca
+Actions=Burning Hammer. Melee Attack Roll: +5, reach 5 ft. Hit: 8 (1d10 + 3) Bludgeoning damage plus 3 (1d6) Fire damage. Balor
+Extra=None
+
+[baboon]
+SizeAlignment=Small Beast
+Speed=30 ft., Climb 30 ft.
+Abilities=8,14,11,4,12,6
+Skills=None
+Defenses=None
+Senses=Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[badger]
+SizeAlignment=Tiny Beast
+Speed=20 ft., Burrow 5 ft.
+Abilities=10,11,16,2,12,5
+Skills=Perception +3
+Defenses=Poison
+Senses=Darkvision 30 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[balor]
+SizeAlignment=Huge Fiend (Demon), Chaotic Evil
+Speed=40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +9
+Defenses=Cold, Lightning; Fire, Poison; Charmed, Frightened, Poisoned
+Senses=Truesight 120 ft.; Passive Perception 19
+Languages=Abyssal; telepathy 120 ft.
+Traits=Death Throes. The balor explodes when it dies. Dex- terity Saving Throw: DC 20, each creature in a 30-foot Emanation originating from the balor. Failure: 31 (9d6) Fire damage plus 31 (9d6) Fo
+Actions=Multiattack. The balor makes one Flame Whip attack and one Lightning Blade attack. Flame Whip. Melee Attack Roll: +14, reach 30 ft. Hit: 18 (3d6 + 8) Force damage plus 17 (5d6) Fire damage. I
+Extra=Bonus Actions: Teleport. The balor teleports itself or a willing demon within 10 feet of itself up to 60 feet to an unoccupied space the balor can see. Bandits
+
+[bandit]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common, Thieves’ Cant
+Traits=None
+Actions=Scimitar. Melee Attack Roll: +3, reach 5 ft. Hit: 4 (1d6 + 1) Slashing damage. Light Crossbow. Ranged Attack Roll: +3, range 80/320 ft. Hit: 5 (1d8 + 1) Piercing damage.
+Extra=None
+
+[bandit_captain]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +4, Deception +4
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common, Thieves’ Cant
+Traits=None
+Actions=Multiattack. The bandit makes two attacks, using Scim- itar and Pistol in any combination. Scimitar. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Slashing damage. Pistol. Ranged Attack
+Extra=Reactions: Parry. Trigger: The bandit is hit by a melee attack roll while holding a weapon. Response: The bandit adds 2 to its AC against that attack, possibly causing it to miss. Barbed Devi
+
+[barbed_devil]
+SizeAlignment=Medium Fiend (Devil), Lawful Evil
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +5, Insight +5, Perception +8
+Defenses=Cold; Fire, Poison; Poisoned
+Senses=Darkvision 120 ft. (unimpeded by magical Darkness); Passive Perception 18
+Languages=Infernal; telepathy 120 ft.
+Traits=Barbed Hide. At the start of each of its turns, the devil deals 5 (1d10) Piercing damage to any creature it is grappling or any creature grappling it. Diabolical Restoration. If the devil die
+Actions=Multiattack. The devil makes one Claws attack and one Tail attack, or it makes two Hurl Flame attacks. 262 System Reference Document 5.2.1 Claws. Melee Attack Roll: +6, reach 5 ft. Hit: 10 (2
+Extra=None
+
+[basilisk]
+SizeAlignment=Medium Monstrosity, Unaligned
+Speed=20 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=None
+Traits=None
+Actions=Bite. Melee Attack Roll: +5, reach 5 ft. Hit: 10 (2d6 + 3) Piercing damage plus 7 (2d6) Poison damage.
+Extra=Bonus Actions: Petrifying Gaze (Recharge 4–6). Constitution Saving Throw: DC 12, each creature in a 30-foot Cone. If the basilisk sees its reflection in the Cone, the basilisk must make this
+
+[bat]
+SizeAlignment=Tiny Beast
+Speed=5 ft., Fly 30 ft.
+Abilities=2,15,8,2,12,4
+Skills=None
+Defenses=None
+Senses=Blindsight 60 ft.; Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[bearded_devil]
+SizeAlignment=Medium Fiend (Devil), Lawful Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Cold; Fire, Poison; Frightened, Poisoned
+Senses=Darkvision 120 ft. (unimpeded by magical Darkness); Passive Perception 10
+Languages=Infernal; telepathy 120 ft.
+Traits=Magic Resistance. The devil has Advantage on saving throws against spells and other magical effects.
+Actions=Multiattack. The devil makes one Beard attack and one Infernal Glaive attack. Beard. Melee Attack Roll: +5, reach 5 ft. Hit: 7 (1d8 + 3) Piercing damage, and the target has the Poisoned condi
+Extra=None
+
+[behir]
+SizeAlignment=Huge Monstrosity, Neutral Evil
+Speed=50 ft. Climb 50 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6, Stealth +7
+Defenses=Lightning
+Senses=Darkvision 90 ft.; Passive Perception 16
+Languages=Draconic
+Traits=None
+Actions=Multiattack. The behir makes one Bite attack and uses Constrict. Bite. Melee Attack Roll: +10, reach 10 ft. Hit: 19 (2d12 + 6) Piercing damage plus 11 (2d10) Lightning damage. Constrict. Stre
+Extra=Bonus Actions: Swallow. Dexterity Saving Throw: DC 18, one Large or smaller creature Grappled by the behir (the behir can have only one creature swallowed at a time). Failure: The behir swall
+
+[berserker]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common
+Traits=Bloodied Frenzy. While Bloodied, the berserker has Advantage on attack rolls and saving throws.
+Actions=Greataxe. Melee Attack Roll: +5, reach 5 ft. Hit: 9 (1d12 + 3) Slashing damage. Black Dragons
+Extra=None
+
+[black_bear]
+SizeAlignment=Medium Beast
+Speed=30 ft., Climb 30 ft., Swim 30 ft.
+Abilities=15,12,14,2,12,7
+Skills=Perception +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[black_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Chromatic), Chaotic Evil
+Speed=30 ft. Fly 60 ft. Swim 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +4
+Defenses=Acid
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes two Rend attacks. Rend. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Slashing damage plus 2 (1d4) Acid damage. Acid Breath (Recharge 5–6). Dexterity Savin
+Extra=None
+
+[black_pudding]
+SizeAlignment=Large Ooze, Unaligned
+Speed=20 ft. Climb 20 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Acid, Cold, Lightning, Slashing; Charmed, Deafened, Exhaustion, Frightened, Grappled, Prone, Restrained
+Senses=Blindsight 60 ft.; Passive Perception 8
+Languages=None
+Traits=Amorphous. The pudding can move through a space as narrow as 1 inch without expending extra move- ment to do so. Corrosive Form. A creature that hits the pudding with a melee attack roll take
+Actions=Dissolving Pseudopod. Melee Attack Roll: +5, reach 10 ft. Hit: 17 (4d6 + 3) Acid damage. Nonmagical ar- mor worn by the target takes a −1 penalty to the AC it offers. The armor is destroyed i
+Extra=Reactions: Split. Trigger: While the pudding is Large or Medium and has 10+ Hit Points, it becomes Bloodied or is sub- jected to Lightning or Slashing damage. Response: The pudding splits int
+
+[blink_dog]
+SizeAlignment=Medium Fey, Lawful Good
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=Blink Dog; understands Elvish and Sylvan but can’t speak them
+Traits=None
+Actions=Bite. Melee Attack Roll: +5, reach 5 ft. Hit: 5 (1d4 + 3) Piercing damage.
+Extra=Bonus Actions: Teleport (Recharge 4–6). The dog teleports up to 40 feet to an unoccupied space it can see. Blue Dragons
+
+[blood_hawk]
+SizeAlignment=Small Beast
+Speed=10 ft., Fly 60 ft.
+Abilities=6,14,10,3,14,5
+Skills=Perception +6
+Defenses=None
+Senses=Passive Perception 16
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[blue_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Chromatic), Lawful Evil
+Speed=30 ft. Burrow 15 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +2
+Defenses=Lightning
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=None
+Actions=Multiattack. The dragon makes two Rend attacks. Rend. Melee Attack Roll: +5, reach 5 ft. Hit: 8 (1d10 + 3) Slashing damage plus 3 (1d6) Lightning damage. Lightning Breath (Recharge 5–6). Dext
+Extra=None
+
+[boar]
+SizeAlignment=Medium Beast
+Speed=40 ft.
+Abilities=13,11,14,2,9,5
+Skills=None
+Defenses=None
+Senses=Passive Perception 9
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[bone_devil]
+SizeAlignment=Large Fiend (Devil), Lawful Evil
+Speed=40 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +7, Insight +6
+Defenses=Cold; Fire, Poison; Poisoned
+Senses=Darkvision 120 ft. (unimpeded by magical Darkness); Passive Perception 12
+Languages=Infernal; telepathy 120 ft.
+Traits=Diabolical Restoration. If the devil dies outside the Nine Hells, its body disappears in sulfurous smoke, and it gains a new body instantly, reviving with all its Hit Points somewhere in the
+Actions=Multiattack. The devil makes two Claw attacks and one Infernal Sting attack. Claw. Melee Attack Roll: +8, reach 10 ft. Hit: 13 (2d8 + 4) Slashing damage. Infernal Sting. Melee Attack Roll: +8
+Extra=None
+
+[brass_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Metallic), Chaotic Good
+Speed=30 ft. Burrow 15 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +2
+Defenses=Fire
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=None
+Actions=Rend. Melee Attack Roll: +4, reach 5 ft. Hit: 7 (1d10 + 2) Slashing damage. Fire Breath (Recharge 5–6). Dexterity Saving Throw: DC 11, each creature in a 20-foot-long, 5-foot- wide Line. Fail
+Extra=None
+
+[bronze_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Metallic), Lawful Good
+Speed=30 ft. Fly 60 ft. Swim 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +2
+Defenses=Lightning
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes two Rend attacks. Rend. Melee Attack Roll: +5, reach 5 ft. Hit: 8 (1d10 + 3) Slashing damage. Lightning Breath (Recharge 5–6). Dexterity Saving Throw: DC 12, eac
+Extra=None
+
+[brown_bear]
+SizeAlignment=Large Beast
+Speed=40 ft., Climb 30 ft.
+Abilities=17,12,15,2,13,7
+Skills=Perception +3
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[bugbear_stalker]
+SizeAlignment=Medium Fey (Goblinoid), Chaotic Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +6, Survival +3
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Common, Goblin
+Traits=Abduct. The bugbear needn’t spend extra movement to move a creature it is grappling.
+Actions=Multiattack. The bugbear makes two Javelin or Morn- ingstar attacks. Javelin. Melee or Ranged Attack Roll: +5, reach 10 ft. or range 30/120 ft. Hit: 13 (3d6 + 3) Piercing damage. Morningstar.
+Extra=Bonus Actions: Quick Grapple. Dexterity Saving Throw: DC 13, one Medium or smaller creature the bugbear can see within 10 feet. Failure: The target has the Grappled condition (escape DC 13).
+
+[bugbear_warrior]
+SizeAlignment=Medium Fey (Goblinoid), Chaotic Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +6, Survival +2
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Common, Goblin
+Traits=Abduct. The bugbear needn’t spend extra movement to move a creature it is grappling.
+Actions=Grab. Melee Attack Roll: +4, reach 10 ft. Hit: 9 (2d6 + 2) Bludgeoning damage. If the target is a Medium or smaller creature, it has the Grappled condition (es- cape DC 12). Light Hammer. Mel
+Extra=None
+
+[bulette]
+SizeAlignment=Large Monstrosity, Unaligned
+Speed=40 ft. Burrow 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6
+Defenses=None
+Senses=Darkvision 60 ft., Tremorsense 120 ft.; Passive Perception 16
+Languages=None
+Traits=None
+Actions=Multiattack. The bulette makes two Bite attacks. Bite. Melee Attack Roll: +7, reach 5 ft. Hit: 17 (2d12 + 4) Piercing damage. Deadly Leap. The bulette spends 5 feet of movement to jump to a s
+Extra=Bonus Actions: Leap. The bulette jumps up to 30 feet by spending 10 feet of movement. Centaur
+
+[camel]
+SizeAlignment=Large Beast
+Speed=50 ft.
+Abilities=15,8,17,2,11,5
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[cat]
+SizeAlignment=Tiny Beast
+Speed=40 ft., Climb 40 ft.
+Abilities=3,15,10,3,12,7
+Skills=Perception +3, Stealth +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[cave_crawler]
+SizeAlignment=Medium, Unaligned
+Speed=30 ft.; Climb 30 ft.
+Abilities=15,14,14,3,12,5
+Skills=Perception +3; Stealth +4
+Defenses=None
+Senses=Darkvision 90 ft.; Tremorsense 20 ft.; Passive Perception 13
+Languages=None
+Traits=Spider Climb
+Actions=Bite +4, 7 piercing; Web Snare DC 12
+Extra=Original Dungeons & Dolphins creature
+
+[centaur_trooper]
+SizeAlignment=Large Fey, Neutral Good
+Speed=50 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +6, Perception +3
+Defenses=None
+Senses=Passive Perception 13
+Languages=Elvish, Sylvan
+Traits=None
+Actions=Multiattack. The centaur makes two attacks, using Pike or Longbow in any combination. Pike. Melee Attack Roll: +6, reach 10 ft. Hit: 9 (1d10 + 4) Piercing damage. Longbow. Ranged Attack Roll:
+Extra=Bonus Actions: Trampling Charge (Recharge 5–6). The centaur moves up to its Speed without provoking Opportunity Attacks and can move through the spaces of Medium or smaller creatures. Each cr
+
+[chain_devil]
+SizeAlignment=Medium Fiend (Devil), Lawful Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Bludgeoning, Cold, Piercing, Slashing; Fire, Poison; Poisoned
+Senses=Darkvision 120 ft. (unimpeded by magical Darkness); Passive Perception 11
+Languages=Infernal; telepathy 120 ft.
+Traits=Diabolical Restoration. If the devil dies outside the Nine Hells, its body disappears in sulfurous smoke, and it gains a new body instantly, reviving with all its Hit Points somewhere in the
+Actions=Multiattack. The devil makes two Chain attacks and uses Conjure Infernal Chain. Chain. Melee Attack Roll: +7, reach 10 ft. Hit: 11 (2d6 + 4) Slashing damage. If the target is a Large or small
+Extra=Reactions: Unnerving Gaze. Trigger: A creature the devil can see starts its turn within 30 feet of the devil and can see the devil. Response—Wisdom Saving Throw: DC 15, the triggering creatur
+
+[chimera]
+SizeAlignment=Large Monstrosity, Chaotic Evil
+Speed=30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +8
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 18
+Languages=Understands Draconic but can’t speak
+Traits=None
+Actions=Multiattack. The chimera makes one Ram attack, one Bite attack, and one Claw attack. It can replace the Claw attack with a use of Fire Breath if available. Bite. Melee Attack Roll: +7, reach
+Extra=None
+
+[chuul]
+SizeAlignment=Large Aberration, Chaotic Evil
+Speed=30 ft. Swim 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4
+Defenses=Poison; Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Understands Deep Speech but can’t speak
+Traits=Amphibious. The chuul can breathe air and water. Sense Magic. The chuul senses magic within 120 feet of itself. This trait otherwise works like the Detect Magic spell but isn’t itself magical
+Actions=Multiattack. The chuul makes two Pincer attacks and uses Paralyzing Tentacles. Pincer. Melee Attack Roll: +6, reach 10 ft. Hit: 9 (1d10 + 4) Bludgeoning damage. If the target is a Large or sm
+Extra=None
+
+[clay_golem]
+SizeAlignment=Large Construct, Unaligned
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Acid, Poison, Psychic; Charmed, Exhaustion, Frightened, Paralyzed, Petrified, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=Common plus one other language
+Traits=Acid Absorption. Whenever the golem is subjected to Acid damage, it takes no damage and instead regains a number of Hit Points equal to the Acid damage dealt. Berserk. Whenever the golem star
+Actions=Multiattack. The golem makes two Slam attacks, or it makes three Slam attacks if it used Hasten this turn. Slam. Melee Attack Roll: +9, reach 5 ft. Hit: 10 (1d10 + 5) Bludgeoning damage plus
+Extra=Bonus Actions: Hasten (Recharge 5–6). The golem takes the Dash and Disengage actions. 274 System Reference Document 5.2.1 Cloaker
+
+[cloaker]
+SizeAlignment=Large Aberration, Chaotic Neutral
+Speed=10 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +5
+Defenses=Frightened
+Senses=Darkvision 120 ft.; Passive Perception 12
+Languages=Deep Speech, Undercommon
+Traits=Light Sensitivity. While in Bright Light, the cloaker has Disadvantage on attack rolls.
+Actions=Multiattack. The cloaker makes one Attach attack and two Tail attacks. Attach. Melee Attack Roll: +6, reach 5 ft. Hit: 13 (3d6 + 3) Piercing damage. If the target is a Large or smaller creatu
+Extra=Bonus Actions: Moan. Wisdom Saving Throw: DC 13, each creature in a 60-foot Emanation originating from the cloaker. Failure: The target has the Frightened condition until the end of the cloak
+
+[cloud_giant]
+SizeAlignment=Huge Giant, Neutral
+Speed=40 ft. Fly 20 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=Insight +7, Perception +11
+Defenses=None
+Senses=Passive Perception 21
+Languages=Common, Giant
+Traits=None
+Actions=Multiattack. The giant makes two attacks, using Thun- derous Mace or Thundercloud in any combination. It can replace one attack with a use of Spellcasting to cast Fog Cloud. Thunderous Mace.
+Extra=Bonus Actions: Misty Step. The giant casts the Misty Step spell, using the same spellcasting ability as Spellcasting. Cockatrice
+
+[cockatrice]
+SizeAlignment=Small Monstrosity, Unaligned
+Speed=20 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Petrified
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=None
+Traits=None
+Actions=Petrifying Bite. Melee Attack Roll: +3, reach 5 ft. Hit: 3 (1d4 + 1) Piercing damage. If the target is a creature, it is subjected to the following effect. Constitution Saving Throw: DC 11. F
+Extra=None
+
+[commoner]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common
+Traits=Training. The commoner has proficiency in one skill of the GM’s choice and has Advantage whenever it makes an ability check using that skill.
+Actions=Club. Melee Attack Roll: +2, reach 5 ft. Hit: 2 (1d4) Bludgeoning damage. Copper Dragons
+Extra=None
+
+[constrictor_snake]
+SizeAlignment=Large Beast
+Speed=30 ft., Swim 30 ft.
+Abilities=15,14,12,1,10,3
+Skills=Perception +2, Stealth +4
+Defenses=None
+Senses=Blindsight 10 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[copper_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Metallic), Chaotic Good
+Speed=30 ft. Climb 30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +3
+Defenses=Acid
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=None
+Actions=Rend. Melee Attack Roll: +4, reach 5 ft. Hit: 7 (1d10 + 2) Slashing damage. Acid Breath (Recharge 5–6). Dexterity Saving Throw: DC 11, each creature in a 20-foot-long, 5-foot- wide Line. Fail
+Extra=None
+
+[coral_guardian]
+SizeAlignment=Large, Unaligned
+Speed=20 ft.; Swim 30 ft.
+Abilities=18,8,17,6,12,7
+Skills=Perception +3
+Defenses=Resist Piercing; Immune Poison
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=Understands Aquan
+Traits=Reef Camouflage
+Actions=Multiattack; Coral Fist +6, 11 bludgeoning
+Extra=Original Dungeons & Dolphins creature
+
+[couatl]
+SizeAlignment=Medium Celestial, Lawful Good
+Speed=30 ft. Fly 90 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Psychic, Radiant
+Senses=Truesight 120 ft.; Passive Perception 15
+Languages=All; telepathy 120 ft.
+Traits=Shielded Mind. The couatl’s thoughts can’t be read by any means, and other creatures can communicate with it telepathically only if it allows them.
+Actions=Bite. Melee Attack Roll: +7, reach 5 ft. Hit: 11 (1d12 + 5) Piercing damage, and the target has the Poisoned condition until the end of the couatl’s next turn. Constrict. Strength Saving Thro
+Extra=Bonus Actions: Divine Aid (2/Day). The couatl casts Bless, Lesser Res- toration, or Sanctuary, requiring no spell components and using the same spellcasting ability as Spellcasting. Crawling
+
+[crab]
+SizeAlignment=Tiny Beast
+Speed=20 ft., Swim 20 ft.
+Abilities=6,11,12,1,8,2
+Skills=Stealth +2
+Defenses=None
+Senses=Blindsight 30 ft.; Passive Perception 9
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[crocodile]
+SizeAlignment=Large Beast
+Speed=20 ft., Swim 30 ft.
+Abilities=15,10,13,2,10,5
+Skills=Stealth +2
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[cultist]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +2, Religion +2
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common
+Traits=None
+Actions=Ritual Sickle. Melee Attack Roll: +3, reach 5 ft. Hit: 3 (1d4 + 1) Slashing damage plus 1 Necrotic damage.
+Extra=None
+
+[cultist_fanatic]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +3, Persuasion +3, Religion +2
+Defenses=None
+Senses=Passive Perception 12
+Languages=Common
+Traits=None
+Actions=Pact Blade. Melee Attack Roll: +4, reach 5 ft. Hit: 6 (1d8 + 2) Slashing damage plus 7 (2d6) Ne- crotic damage. Spellcasting. The cultist casts one of the following spells, using Wisdom as th
+Extra=Bonus Actions: Spiritual Weapon (2/Day). The cultist casts the Spiritual Weapon spell, using the same spellcasting ability as Spellcasting. Darkmantle
+
+[darkmantle]
+SizeAlignment=Small Aberration, Unaligned
+Speed=10 ft. Fly 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +3
+Defenses=None
+Senses=Blindsight 60 ft.; Passive Perception 10
+Languages=None
+Traits=None
+Actions=Crush. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Bludgeoning damage, and the darkmantle attaches to the target. If the target is a Medium or smaller crea- ture and the darkmantle ha
+Extra=None
+
+[death_dog]
+SizeAlignment=Medium Monstrosity, Neutral Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5, Stealth +4
+Defenses=Blinded, Charmed, Deafened, Frightened, Stunned, Unconscious
+Senses=Darkvision 120 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=Multiattack. The death dog makes two Bite attacks. Bite. Melee Attack Roll: +4, reach 5 ft. Hit: 4 (1d4 + 2) Piercing damage. If the target is a creature, it is subjected to the following eff
+Extra=None
+
+[deer]
+SizeAlignment=Medium Beast
+Speed=50 ft.
+Abilities=11,16,11,2,14,5
+Skills=Perception +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[deva]
+SizeAlignment=Medium Celestial (Angel), Lawful Good
+Speed=30 ft. Fly 90 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=Insight +9, Perception +9
+Defenses=Radiant; Charmed, Exhaustion, Frightened
+Senses=Darkvision 120 ft.; Passive Perception 19
+Languages=All; telepathy 120 ft.
+Traits=Exalted Restoration. If the deva dies outside Mount Celestia, its body disappears, and it gains a new body instantly, reviving with all its Hit Points somewhere in Mount Celestia. Magic Resis
+Actions=Multiattack. The deva makes two Holy Mace attacks. Holy Mace. Melee Attack Roll: +8, reach 5 ft. Hit: 7 (1d6 + 4) Bludgeoning damage plus 18 (4d8) Radi- ant damage. Spellcasting. The deva cas
+Extra=Bonus Actions: Divine Aid (2/Day). The deva casts Cure Wounds, Lesser Restoration, or Remove Curse, using the same spellcasting ability as Spellcasting. Djinni
+
+[dire_wolf]
+SizeAlignment=Large Beast
+Speed=50 ft.
+Abilities=17,15,15,3,12,7
+Skills=Perception +5, Stealth +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[djinni]
+SizeAlignment=Large Elemental (Genie), Neutral
+Speed=30 ft. Fly 90 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Lightning, Thunder
+Senses=Darkvision 120 ft.; Passive Perception 13
+Languages=Primordial (Auran)
+Traits=Elemental Restoration. If the djinni dies outside the Elemental Plane of Air, its body dissolves into mist, and it gains a new body in 1d4 days, reviving with all its Hit Points somewhere on
+Actions=Multiattack. The djinni makes three attacks, using Storm Blade or Storm Bolt in any combination. Storm Blade. Melee Attack Roll: +9, reach 5 feet. Hit: 12 (2d6 + 5) Slashing damage plus 7 (2d
+Extra=None
+
+[dockside_thug]
+SizeAlignment=Medium, Neutral
+Speed=30 ft.
+Abilities=13,12,12,9,10,10
+Skills=Athletics +3; Intimidation +2
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common
+Traits=Pack Tactics
+Actions=Club +3, 4 bludgeoning; Sling +3, 3 bludgeoning
+Extra=Original Dungeons & Dolphins creature
+
+[doppelganger]
+SizeAlignment=Medium Monstrosity, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +6, Insight +3
+Defenses=Charmed
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Common plus three other languages
+Traits=None
+Actions=Multiattack. The doppelganger makes two Slam attacks and uses Unsettling Visage if available. Slam. Melee Attack Roll: +6 (with Advantage during the first round of each combat), reach 5 ft. H
+Extra=Bonus Actions: Shape-Shift. The doppelganger shape-shifts into a Me- dium or Small Humanoid, or it returns to its true form. Its game statistics, other than its size, are the same in each for
+
+[draft_horse]
+SizeAlignment=Large Beast
+Speed=40 ft.
+Abilities=18,10,15,2,11,7
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[dragon_turtle]
+SizeAlignment=Gargantuan Dragon, Neutral
+Speed=20 ft. Swim 50 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Fire
+Senses=Darkvision 120 ft.; Passive Perception 11
+Languages=Draconic, Primordial (Aquan)
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes three Bite attacks. It can replace one attack with a Tail attack. Bite. Melee Attack Roll: +13, reach 15 ft. Hit: 23 (3d10 + 7) Piercing damage plus 7 (2d6) Fire
+Extra=None
+
+[dretch]
+SizeAlignment=Small Fiend (Demon), Chaotic Evil
+Speed=20 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Cold, Fire, Lightning; Poison; Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=Abyssal; telepathy 60 ft. (works only with creatures that understand Abyssal)
+Traits=None
+Actions=Rend. Melee Attack Roll: +3, reach 5 ft. Hit: 4 (1d6 + 1) Slashing damage. Fetid Cloud (1/Day). Constitution Saving Throw: DC 11, each creature in a 10-foot Emanation originating from the dre
+Extra=None
+
+[drider]
+SizeAlignment=Large Monstrosity, Chaotic Evil
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6, Stealth +10
+Defenses=None
+Senses=Darkvision 120 ft.; Passive Perception 16
+Languages=Elvish, Undercommon
+Traits=Spider Climb. The drider can climb difficult surfaces, including along ceilings, without needing to make an ability check. Sunlight Sensitivity. While in sunlight, the drider has Disadvantage
+Actions=Multiattack. The drider makes three attacks, using Foreleg or Poison Burst in any combination. Foreleg. Melee Attack Roll: +7, reach 10 ft. Hit: 13 (2d8 + 4) Piercing damage. Poison Burst. Ra
+Extra=Bonus Actions: Magic of the Spider Queen (Recharge 5–6). The drider casts Darkness, Faerie Fire, or Web, requiring no Mate- rial components and using Wisdom as the spellcasting ability (spell
+
+[druid]
+SizeAlignment=Medium or Small Humanoid (Druid), Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Medicine +5, Nature +3, Perception +5
+Defenses=None
+Senses=Passive Perception 15
+Languages=Common, Druidic, Sylvan
+Traits=None
+Actions=Multiattack. The druid makes two attacks, using Vine Staff or Verdant Wisp in any combination. Vine Staff. Melee Attack Roll: +5, reach 5 ft. Hit: 7 (1d8 + 3) Bludgeoning damage plus 2 (1d4)
+Extra=None
+
+[dryad]
+SizeAlignment=Medium Fey, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Elvish, Sylvan
+Traits=Magic Resistance. The dryad has Advantage on saving throws against spells and other magical effects. Speak with Beasts and Plants. The dryad can com- municate with Beasts and Plants as if the
+Actions=Multiattack. The dryad makes one Vine Lash or Thorn Burst attack, and it can use Spellcasting to cast Charm Monster. Vine Lash. Melee Attack Roll: +6, reach 10 ft. Hit: 8 (1d8 + 4) Slashing d
+Extra=Bonus Actions: Tree Stride. If within 5 feet of a Large or bigger tree, the dryad teleports to an unoccupied space within 5 feet of a second Large or bigger tree that is within 60 feet of the
+
+[dungeon_sentinel]
+SizeAlignment=Large, Unaligned
+Speed=25 ft.
+Abilities=20,8,18,8,12,6
+Skills=Perception +4
+Defenses=Resist Bludgeoning, Piercing, Slashing; Immune Poison
+Senses=Darkvision 120 ft.; Passive Perception 14
+Languages=Understands creator languages
+Traits=Immutable Form; Vigilant
+Actions=Multiattack; Stone Hammer +8, 14 bludgeoning
+Extra=Original Dungeons & Dolphins creature
+
+[dust_mephit]
+SizeAlignment=Small Elemental, Neutral Evil
+Speed=30 ft. Fly 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +2, Stealth +4
+Defenses=Fire; Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=Primordial (Auran, Terran)
+Traits=Death Burst. The mephit explodes when it dies. Dex- terity Saving Throw: DC 10, each creature in a 5-foot Emanation originating from the mephit. Failure: 5 (2d4) Bludgeoning damage. Success:
+Actions=Claw. Melee Attack Roll: +4, reach 5 ft. Hit: 4 (1d4 + 2) Slashing damage. Blinding Breath (Recharge 6). Dexterity Saving Throw: DC 10, each creature in a 15-foot Cone. Failure: The target ha
+Extra=None
+
+[eagle]
+SizeAlignment=Small Beast
+Speed=10 ft., Fly 60 ft.
+Abilities=6,15,12,2,14,7
+Skills=Perception +6
+Defenses=None
+Senses=Passive Perception 16
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[earth_elemental]
+SizeAlignment=Large Elemental, Neutral
+Speed=30 ft. Burrow 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Thunder; Poison; Exhaustion, Paralyzed, Petrified, Poisoned, Unconscious
+Senses=Darkvision 60 ft., Tremorsense 60 ft.; Passive Perception 10
+Languages=Primordial (Terran)
+Traits=Earth Glide. The elemental can burrow through nonmagical, unworked earth and stone. While do- ing so, the elemental doesn’t disturb the material it moves through. Siege Monster. The elemental
+Actions=Multiattack. The elemental makes two attacks, using Slam or Rock Launch in any combination. Slam. Melee Attack Roll: +8, reach 10 ft. Hit: 14 (2d8 + 5) Bludgeoning damage. Rock Launch. Ranged
+Extra=None
+
+[efreeti]
+SizeAlignment=Large Elemental (Genie), Neutral
+Speed=40 ft. Fly 60 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Fire
+Senses=Darkvision 120 ft.; Passive Perception 12
+Languages=Primordial (Ignan)
+Traits=Elemental Restoration. If the efreeti dies outside the Elemental Plane of Fire, its body dissolves into ash, and it gains a new body in 1d4 days, reviving with all its Hit Points somewhere on
+Actions=Multiattack. The efreeti makes three attacks, using Heated Blade or Hurl Flame in any combination. Heated Blade. Melee Attack Roll: +10, reach 5 ft. Hit: 13 (2d6 + 6) Slashing damage plus 13
+Extra=None
+
+[elephant]
+SizeAlignment=Huge Beast
+Speed=40 ft.
+Abilities=22,9,17,3,11,6
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[elk]
+SizeAlignment=Large Beast
+Speed=50 ft.
+Abilities=16,10,11,2,10,6
+Skills=Perception +2
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[ember_mote]
+SizeAlignment=Tiny, Neutral
+Speed=10 ft.; Fly 40 ft. (hover)
+Abilities=4,16,10,6,12,8
+Skills=Stealth +5
+Defenses=Resist Fire; Immune Burning
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Primordial
+Traits=Illuminating Body
+Actions=Spark +5, 4 fire
+Extra=Original Dungeons & Dolphins creature
+
+[erinyes]
+SizeAlignment=Medium Fiend (Devil), Lawful Evil
+Speed=30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6, Persuasion +8
+Defenses=Cold; Fire, Poison; Poisoned
+Senses=Truesight 120 ft.; Passive Perception 16
+Languages=Infernal; telepathy 120 ft.
+Traits=Diabolical Restoration. If the erinyes dies outside the Nine Hells, its body disappears in sulfurous smoke, and it gains a new body instantly, reviving with all its Hit Points somewhere in th
+Actions=Multiattack. The erinyes makes three Withering Sword attacks and can use Entangling Rope. Withering Sword. Melee Attack Roll: +8, reach 5 ft. Hit: 13 (2d8 + 4) Slashing damage plus 11 (2d10)
+Extra=Reactions: Parry. Trigger: The erinyes is hit by a melee attack roll while holding a weapon. Response: The erinyes adds 4 to its AC against that attack, possibly causing it to miss. Ettercap
+
+[ettercap]
+SizeAlignment=Medium Monstrosity, Neutral Evil
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +3, Stealth +4, Survival +3
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=Spider Climb. The ettercap can climb difficult surfaces, including along ceilings, without needing to make an ability check. Web Walker. The ettercap ignores movement re- strictions caused by
+Actions=Multiattack. The ettercap makes one Bite attack and one Claw attack. Bite. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Piercing damage plus 2 (1d4) Poison damage, and the target has t
+Extra=Bonus Actions: Reel. The ettercap pulls one creature within 30 feet of itself that is Restrained by its Web Strand up to 25 feet straight toward itself. Ettin
+
+[ettin]
+SizeAlignment=Large Giant, Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4
+Defenses=Blinded, Charmed, Deafened, Frightened, Stunned, Unconscious
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Giant
+Traits=None
+Actions=Multiattack. The ettin makes one Battleaxe attack and one Morningstar attack. Battleaxe. Melee Attack Roll: +7, reach 5 ft. Hit: 14 (2d8 + 5) Slashing damage. If the target is a Large or smal
+Extra=None
+
+[fire_elemental]
+SizeAlignment=Large Elemental, Neutral
+Speed=50 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Fire, Poison; Exhaustion, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained, Unconscious
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Primordial (Ignan)
+Traits=Fire Aura. At the end of each of the elemental’s turns, each creature in a 10-foot Emanation originating from the elemental takes 5 (1d10) Fire damage. Creatures and flammable objects in the
+Actions=Multiattack. The elemental makes two Burn attacks. Burn. Melee Attack Roll: +6, reach 5 ft. Hit: 10 (2d6 + 3) Fire damage. If the target is a creature or a flammable object, it starts burning
+Extra=None
+
+[fire_giant]
+SizeAlignment=Huge Giant, Lawful Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +11, Perception +6
+Defenses=Fire
+Senses=Passive Perception 16
+Languages=Giant
+Traits=None
+Actions=Multiattack. The giant makes two attacks, using Flame Sword or Hammer Throw in any combination. Flame Sword. Melee Attack Roll: +11, reach 10 ft. Hit: 21 (4d6 + 7) Slashing damage plus 10 (3d
+Extra=None
+
+[flesh_golem]
+SizeAlignment=Medium Construct, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Lightning, Poison; Charmed, Exhaustion, Frightened, Paralyzed, Petrified, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Understands Common plus one other language but can’t speak
+Traits=Aversion to Fire. If the golem takes Fire damage, it has Disadvantage on attack rolls and ability checks until the end of its next turn. Berserk. Whenever the golem starts its turn Bloodied,
+Actions=Multiattack. The golem makes two Slam attacks. Slam. Melee Attack Roll: +7, reach 5 ft. Hit: 13 (2d8 + 4) Bludgeoning damage plus 4 (1d8) Lightning damage. Frost Giant
+Extra=None
+
+[flying_snake]
+SizeAlignment=Tiny Monstrosity
+Speed=30 ft., Fly 60 ft., Swim 30 ft.
+Abilities=4,15,11,2,12,5
+Skills=None
+Defenses=None
+Senses=Blindsight 10 ft.; Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[flying_sword]
+SizeAlignment=Small, Unaligned
+Speed=5 ft.; Fly 50 ft. (hover)
+Abilities=12,15,11,1,5,1
+Skills=None listed
+Defenses=Immune Poison, Psychic and multiple conditions
+Senses=Blindsight 60 ft.; Passive Perception 7
+Languages=None
+Traits=None listed
+Actions=Slash +4, 6 slashing
+Extra=None
+
+[frog]
+SizeAlignment=Tiny Beast
+Speed=20 ft., Swim 20 ft.
+Abilities=1,13,8,1,8,3
+Skills=Perception +1, Stealth +3
+Defenses=None
+Senses=Darkvision 30 ft.; Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[frost_giant]
+SizeAlignment=Huge Giant, Neutral Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +9, Perception +3
+Defenses=Cold
+Senses=Passive Perception 13
+Languages=Giant
+Traits=None
+Actions=Multiattack. The giant makes two attacks, using Frost Axe or Great Bow in any combination. Frost Axe. Melee Attack Roll: +9, reach 10 ft. Hit: 19 (2d12 + 6) Slashing damage plus 9 (2d8) Cold
+Extra=Bonus Actions: War Cry (Recharge 5–6). The giant or one creature of its choice that can see or hear it gains 16 (2d10 + 5) Temporary Hit Points and has Advantage on attack rolls until the sta
+
+[gargoyle]
+SizeAlignment=Medium Elemental, Chaotic Evil
+Speed=30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +4
+Defenses=Poison; Exhaustion, Petrified, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Primordial (Terran)
+Traits=Flyby. The gargoyle doesn’t provoke an Opportunity Attack when it flies out of an enemy’s reach.
+Actions=Multiattack. The gargoyle makes two Claw attacks. Claw. Melee Attack Roll: +4, reach 5 ft. Hit: 7 (2d4 + 2) Slashing damage. Gelatinous Cube
+Extra=None
+
+[gelatinous_cube]
+SizeAlignment=Large Ooze, Unaligned
+Speed=15 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Acid; Blinded, Charmed, Deafened, Exhaustion, Frightened, Prone
+Senses=Blindsight 60 ft.; Passive Perception 8
+Languages=None
+Traits=Ooze Cube. The cube fills its entire space and is trans- parent. Other creatures can enter that space, but a creature that does so is subjected to the cube’s Engulf and has Disadvantage on th
+Actions=Pseudopod. Melee Attack Roll: +4, reach 5 ft. Hit: 12 (3d6 + 2) Acid damage. Engulf. The cube moves up to its Speed without provoking Opportunity Attacks. The cube can move through the spaces
+Extra=None
+
+[ghast]
+SizeAlignment=Medium Undead, Chaotic Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Necrotic; Poison; Charmed, Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Common
+Traits=Stench. Constitution Saving Throw: DC 10, any creature that starts its turn in a 5-foot Emanation originating from the ghast. Failure: The target has the Poisoned condi- tion until the start
+Actions=Bite. Melee Attack Roll: +5, reach 5 ft. Hit: 7 (1d8 + 3) Piercing damage plus 9 (2d8) Necrotic damage. Claw. Melee Attack Roll: +5, reach 5 ft. Hit: 10 (2d6 + 3) Slashing damage. If the targ
+Extra=None
+
+[ghost]
+SizeAlignment=Medium Undead, Neutral
+Speed=5 ft. Fly 40 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Acid, Bludgeoning, Cold, Fire, Lightning, Piercing, Slashing, Thunder; Necrotic, Poison; Charmed, Exhaustion, Frightened, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Common plus one other language
+Traits=Ethereal Sight. The ghost can see 60 feet into the Ethe- real Plane when it is on the Material Plane. Incorporeal Movement. The ghost can move through other creatures and objects as if they w
+Actions=Multiattack. The ghost makes two Withering Touch attacks. Withering Touch. Melee Attack Roll: +5, reach 5 ft. Hit: 19 (3d10 + 3) Necrotic damage. Etherealness. The ghost casts the Etherealnes
+Extra=None
+
+[ghoul]
+SizeAlignment=Medium Undead, Chaotic Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Poison; Charmed, Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Common
+Traits=None
+Actions=Multiattack. The ghoul makes two Bite attacks. 288 System Reference Document 5.2.1 Bite. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Piercing damage plus 3 (1d6) Necrotic damage. Claw
+Extra=None
+
+[giant_ape]
+SizeAlignment=Huge Beast
+Speed=40 ft., Climb 40 ft.
+Abilities=23,14,18,5,12,7
+Skills=Athletics +9, Perception +4, Survival +4
+Defenses=None
+Senses=Passive Perception 14
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_badger]
+SizeAlignment=Medium Beast
+Speed=30 ft., Burrow 10 ft.
+Abilities=13,10,17,2,12,5
+Skills=Perception +3
+Defenses=Poison
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_bat]
+SizeAlignment=Large Beast
+Speed=10 ft., Fly 60 ft.
+Abilities=15,16,11,2,12,6
+Skills=None
+Defenses=None
+Senses=Blindsight 120 ft.; Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_boar]
+SizeAlignment=Large Beast
+Speed=40 ft.
+Abilities=17,10,16,2,7,5
+Skills=None
+Defenses=None
+Senses=Passive Perception 8
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_centipede]
+SizeAlignment=Small Beast
+Speed=30 ft., Climb 30 ft.
+Abilities=5,14,12,1,7,3
+Skills=None
+Defenses=None
+Senses=Blindsight 30 ft.; Passive Perception 8
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_constrictor_snake]
+SizeAlignment=Huge Beast
+Speed=30 ft., Swim 30 ft.
+Abilities=19,14,12,1,10,3
+Skills=Perception +2
+Defenses=None
+Senses=Blindsight 10 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_crab]
+SizeAlignment=Medium Beast
+Speed=30 ft., Swim 30 ft.
+Abilities=13,13,11,1,9,3
+Skills=Stealth +3
+Defenses=None
+Senses=Blindsight 30 ft.; Passive Perception 9
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_crocodile]
+SizeAlignment=Huge Beast
+Speed=30 ft., Swim 50 ft.
+Abilities=21,9,17,2,10,7
+Skills=Stealth +5
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_eagle]
+SizeAlignment=Large Celestial
+Speed=10 ft., Fly 80 ft.
+Abilities=16,17,13,8,14,10
+Skills=Perception +6
+Defenses=Necrotic, Radiant
+Senses=Passive Perception 16
+Languages=Celestial; understands Common and Primordial (Auran) but can't speak them
+Traits=None
+Actions=None
+Extra=None
+
+[giant_elk]
+SizeAlignment=Huge Celestial
+Speed=60 ft.
+Abilities=19,18,14,7,14,10
+Skills=Perception +4
+Defenses=Necrotic, Radiant
+Senses=Darkvision 90 ft.; Passive Perception 14
+Languages=Celestial; understands Common, Elvish, and Sylvan but can't speak them
+Traits=None
+Actions=None
+Extra=None
+
+[giant_fire_beetle]
+SizeAlignment=Small Beast
+Speed=30 ft., Climb 30 ft.
+Abilities=8,10,12,1,7,3
+Skills=None
+Defenses=Fire
+Senses=Blindsight 30 ft.; Passive Perception 8
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_frog]
+SizeAlignment=Medium Beast
+Speed=30 ft., Swim 30 ft.
+Abilities=12,13,11,2,10,3
+Skills=Perception +2, Stealth +4
+Defenses=None
+Senses=Darkvision 30 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_goat]
+SizeAlignment=Large Beast
+Speed=40 ft., Climb 30 ft.
+Abilities=17,13,12,3,12,6
+Skills=Perception +3
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_hyena]
+SizeAlignment=Large Beast
+Speed=50 ft.
+Abilities=16,14,14,2,12,7
+Skills=Perception +3
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_lizard]
+SizeAlignment=Large Beast
+Speed=40 ft., Climb 40 ft.
+Abilities=15,12,13,2,10,5
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_octopus]
+SizeAlignment=Large Beast
+Speed=10 ft., Swim 60 ft.
+Abilities=17,13,13,5,10,4
+Skills=Perception +4, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_owl]
+SizeAlignment=Large Celestial
+Speed=5 ft., Fly 60 ft.
+Abilities=13,15,12,10,14,10
+Skills=Perception +6, Stealth +6
+Defenses=Necrotic, Radiant
+Senses=Darkvision 120 ft.; Passive Perception 16
+Languages=Celestial; understands Common, Elvish, and Sylvan but can't speak them
+Traits=None
+Actions=None
+Extra=None
+
+[giant_rat]
+SizeAlignment=Small Beast
+Speed=30 ft., Climb 30 ft.
+Abilities=7,16,11,2,10,4
+Skills=Perception +2
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_scorpion]
+SizeAlignment=Large Beast
+Speed=40 ft.
+Abilities=16,13,15,1,9,3
+Skills=None
+Defenses=None
+Senses=Blindsight 60 ft.; Passive Perception 9
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_seahorse]
+SizeAlignment=Large Beast
+Speed=5 ft., Swim 40 ft.
+Abilities=15,12,11,2,12,5
+Skills=None
+Defenses=None
+Senses=Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_shark]
+SizeAlignment=Huge Beast
+Speed=5 ft., Swim 60 ft.
+Abilities=23,11,21,1,10,5
+Skills=Perception +3
+Defenses=None
+Senses=Blindsight 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_spider]
+SizeAlignment=Large Beast
+Speed=30 ft., Climb 30 ft.
+Abilities=14,16,12,2,11,4
+Skills=Perception +4, Stealth +7
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_toad]
+SizeAlignment=Large Beast
+Speed=30 ft., Swim 30 ft.
+Abilities=15,13,13,2,10,3
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_venomous_snake]
+SizeAlignment=Medium Beast
+Speed=40 ft., Swim 40 ft.
+Abilities=10,18,13,2,10,3
+Skills=Perception +2
+Defenses=None
+Senses=Blindsight 10 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_vulture]
+SizeAlignment=Large Monstrosity
+Speed=10 ft., Fly 60 ft.
+Abilities=15,10,16,6,12,7
+Skills=Perception +3
+Defenses=Necrotic
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=Understands Common but can't speak
+Traits=None
+Actions=None
+Extra=None
+
+[giant_wasp]
+SizeAlignment=Medium Beast
+Speed=10 ft., Fly 50 ft.
+Abilities=10,14,10,1,10,3
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_weasel]
+SizeAlignment=Medium Beast
+Speed=40 ft., Climb 30 ft.
+Abilities=11,17,10,4,12,5
+Skills=Acrobatics +5, Perception +3, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[giant_wolf_spider]
+SizeAlignment=Medium Beast
+Speed=40 ft., Climb 40 ft.
+Abilities=12,16,13,3,12,4
+Skills=Perception +3, Stealth +7
+Defenses=None
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[gibbering_mouther]
+SizeAlignment=Medium Aberration, Chaotic Neutral
+Speed=20 ft. Swim 20 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Prone
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=None
+Traits=Aberrant Ground. The ground in a 10-foot Emanation originating from the mouther is Difficult Terrain. Gibbering. The mouther babbles incoherently while it doesn’t have the Incapacitated condi
+Actions=Bite. Melee Attack Roll: +2, reach 5 ft. Hit: 7 (2d6) Piercing damage. If the target is a Medium or smaller creature, it has the Prone condition. The target dies if it is reduced to 0 Hit Poi
+Extra=None
+
+[glabrezu]
+SizeAlignment=Large Fiend (Demon), Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +7, Perception +7
+Defenses=Cold, Fire, Lightning; Poison; Poisoned
+Senses=Truesight 120 ft.; Passive Perception 17
+Languages=Abyssal; telepathy 120 ft.
+Traits=Demonic Restoration. If the glabrezu dies outside the Abyss, its body dissolves into ichor, and it gains a new body instantly, reviving with all its Hit Points some- where in the Abyss. Magic
+Actions=Multiattack. The glabrezu makes two Pincer attacks and uses Pummel or Spellcasting. Pincer. Melee Attack Roll: +9, reach 10 ft. Hit: 16 (2d10 + 5) Slashing damage. If the target is a Medium o
+Extra=None
+
+[gladiator]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +10, Performance +5
+Defenses=None
+Senses=Passive Perception 11
+Languages=Common
+Traits=None
+Actions=Multiattack. The gladiator makes three Spear attacks. It can replace one attack with a use of Shield Bash. Spear. Melee or Ranged Attack Roll: +7, reach 5 ft. or range 20/60 ft. Hit: 11 (2d6
+Extra=Reactions: Parry. Trigger: The gladiator is hit by a melee attack roll while holding a weapon. Response: The gladiator adds 3 to its AC against that attack, possibly causing it to miss. Gnoll
+
+[gnoll_warrior]
+SizeAlignment=Medium Fiend, Chaotic Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Gnoll
+Traits=None
+Actions=Rend. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Piercing damage. Bone Bow. Ranged Attack Roll: +3, range 150/600 ft. Hit: 6 (1d10 + 1) Piercing damage.
+Extra=Bonus Actions: Rampage (1/Day). Immediately after dealing damage to a creature that is already Bloodied, the gnoll moves up to half its Speed, and it makes one Rend attack. Goblins
+
+[goat]
+SizeAlignment=Medium Beast
+Speed=40 ft., Climb 30 ft.
+Abilities=11,10,11,2,10,5
+Skills=Perception +2
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[goblin_boss]
+SizeAlignment=Small Fey (Goblinoid), Chaotic Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +6
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=Common, Goblin
+Traits=None
+Actions=Multiattack. The goblin makes two attacks, using Scim- itar or Shortbow in any combination. Scimitar. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Slashing damage, plus 2 (1d4) Slashin
+Extra=Bonus Actions: Nimble Escape. The goblin takes the Disengage or Hide action. Reactions: Redirect Attack. Trigger: A creature the goblin can see makes an attack roll against it. Response: The
+
+[goblin_minion]
+SizeAlignment=Small Fey (Goblinoid), Chaotic Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +6
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=Common, Goblin
+Traits=None
+Actions=Dagger. Melee or Ranged Attack Roll: +4, reach 5 ft. or range 20/60 ft. Hit: 4 (1d4 + 2) Piercing damage.
+Extra=Bonus Actions: Nimble Escape. The goblin takes the Disengage or Hide action.
+
+[goblin_warrior]
+SizeAlignment=Small Fey (Goblinoid), Chaotic Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +6
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=Common, Goblin
+Traits=None
+Actions=Scimitar. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Slashing damage, plus 2 (1d4) Slashing damage if the attack roll had Advantage. Shortbow. Ranged Attack Roll: +4, range 80/320 ft
+Extra=Bonus Actions: Nimble Escape. The goblin takes the Disengage or Hide action. 290 System Reference Document 5.2.1
+
+[gold_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Metallic), Lawful Good
+Speed=30 ft. Fly 60 ft. Swim 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +4
+Defenses=Fire
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes two Rend attacks. Rend. Melee Attack Roll: +6, reach 5 ft. Hit: 9 (1d10 + 4) Slashing damage. Fire Breath (Recharge 5–6). Dexterity Saving Throw: DC 13, each cre
+Extra=None
+
+[gorgon]
+SizeAlignment=Large Construct, Unaligned
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +7
+Defenses=Exhaustion, Petrified
+Senses=Darkvision 60 ft.; Passive Perception 17
+Languages=None
+Traits=None
+Actions=Gore. Melee Attack Roll: +8, reach 5 ft. Hit: 18 (2d12 + 5) Piercing damage. If the target is a Large or smaller creature and the gorgon moved 20+ feet straight toward it immediately before t
+Extra=Bonus Actions: Trample. Dexterity Saving Throw: DC 16, one creature within 5 feet that has the Prone condition. Failure: 16 (2d10 + 5) Bludgeoning damage. Success: Half damage. Gray Ooze
+
+[gray_ooze]
+SizeAlignment=Medium Ooze, Unaligned
+Speed=10 ft. Climb 10 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +2
+Defenses=Acid, Cold, Fire; Blinded, Charmed, Deafened, Exhaustion, Frightened, Grappled, Prone, Restrained
+Senses=Blindsight 60 ft.; Passive Perception 8
+Languages=None
+Traits=Amorphous. The ooze can move through a space as narrow as 1 inch without expending extra move- ment to do so. Corrosive Form. Nonmagical ammunition is destroyed immediately after hitting the
+Actions=Pseudopod. Melee Attack Roll: +3, reach 5 ft. Hit: 10 (2d8 + 1) Acid damage. Nonmagical armor worn by the target takes a −1 penalty to the AC it offers. The armor is destroyed if the penalty
+Extra=None
+
+[green_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Chromatic), Lawful Evil
+Speed=30 ft. Fly 60 ft. Swim 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +3
+Defenses=Poison; Poisoned
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes two Rend attacks. Rend. Melee Attack Roll: +4, reach 5 ft. Hit: 7 (1d10 + 2) Slashing damage plus 3 (1d6) Poison damage. Poison Breath (Recharge 5–6). Constituti
+Extra=None
+
+[green_hag]
+SizeAlignment=Medium Fey, Neutral Evil
+Speed=30 ft. Swim 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +5, Deception +4, Perception +4, Stealth +3
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Common, Elvish, Sylvan
+Traits=Amphibious. The hag can breathe air and water. Coven Magic. While within 30 feet of at least two hag allies, the hag can cast one of the following spells, requiring no Material components, us
+Actions=Multiattack. The hag makes two Claw attacks. Claw. Melee Attack Roll: +6, reach 5 ft. Hit: 8 (1d8 + 4) Slashing damage plus 3 (1d6) Poison damage. Spellcasting. The hag casts one of the follo
+Extra=None
+
+[grick]
+SizeAlignment=Medium Aberration, Unaligned
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=Multiattack. The grick makes one Beak attack and one Tentacles attack. Beak. Melee Attack Roll: +4, reach 5 ft. Hit: 9 (2d6 + 2) Piercing damage. Tentacles. Melee Attack Roll: +4, reach 5 ft.
+Extra=None
+
+[griffon]
+SizeAlignment=Large Monstrosity, Unaligned
+Speed=30 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=Multiattack. The griffon makes two Rend attacks. Rend. Melee Attack Roll: +6, reach 5 ft. Hit: 8 (1d8 + 4) Piercing damage. If the target is a Medium or smaller creature, it has the Grappled
+Extra=None
+
+[grimlock]
+SizeAlignment=Medium Aberration, Neutral Evil
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +5, Perception +3, Stealth +5
+Defenses=None
+Senses=Blindsight 30 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=Bone Cudgel. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Bludgeoning damage plus 2 (1d4) Psy- chic damage. Guardian Naga
+Extra=None
+
+[guard]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +2
+Defenses=None
+Senses=Passive Perception 12
+Languages=Common
+Traits=None
+Actions=Spear. Melee or Ranged Attack Roll: +3, reach 5 ft. or range 20/60 ft. Hit: 4 (1d6 + 1) Piercing damage.
+Extra=None
+
+[guard_captain]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +6, Perception +4
+Defenses=None
+Senses=Passive Perception 14
+Languages=Common
+Traits=None
+Actions=Multiattack. The guard makes two attacks, using Javelin or Longsword in any combination. Javelin. Melee or Ranged Attack Roll: +6, reach 5 ft. or range 30/120 ft. Hit: 14 (3d6 + 4) Piercing d
+Extra=None
+
+[guardian_naga]
+SizeAlignment=Large Celestial, Lawful Good
+Speed=40 ft. Climb 40 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +11, History +11, Religion +11
+Defenses=Poison; Charmed, Paralyzed, Poisoned, Restrained
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Celestial, Common
+Traits=Celestial Restoration. If the naga dies, it returns to life in 1d6 days and regains all its Hit Points unless Dispel Evil and Good is cast on its remains.
+Actions=Multiattack. The naga makes two Bite attacks. It can replace any attack with a use of Poisonous Spittle. Bite. Melee Attack Roll: +8, reach 10 ft. Hit: 17 (2d12 + 4) Piercing damage plus 22 (
+Extra=None
+
+[half_dragon]
+SizeAlignment=Medium Dragon, Neutral
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +7, Perception +5, Stealth +5
+Defenses=Damage type chosen for the Draconic Origin trait below
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 15
+Languages=Common, Draconic
+Traits=Draconic Origin. The half-dragon is related to a type of dragon associated with one of the following damage types (GM’s choice): Acid, Cold, Fire, Lightning, or Poi- son. This choice affects
+Actions=Multiattack. The half-dragon makes two Claw attacks. Claw. Melee Attack Roll: +7, reach 10 ft. Hit: 6 (1d4 + 4) Slashing damage plus 7 (2d6) damage of the type chosen for the Draconic Origin
+Extra=Bonus Actions: Leap. The half-dragon jumps up to 30 feet by spending 10 feet of movement. Harpy
+
+[harpy]
+SizeAlignment=Medium Monstrosity, Chaotic Evil
+Speed=20 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common
+Traits=None
+Actions=Claw. Melee Attack Roll: +3, reach 5 ft. Hit: 6 (2d4 + 1) Slashing damage. Luring Song. The harpy sings a magical melody, which lasts until the harpy’s Concentration ends on it. Wisdom Saving
+Extra=None
+
+[hawk]
+SizeAlignment=Tiny Beast
+Speed=10 ft., Fly 60 ft.
+Abilities=5,16,8,2,14,6
+Skills=Perception +6
+Defenses=None
+Senses=Passive Perception 16
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[hell_hound]
+SizeAlignment=Medium Fiend, Lawful Evil
+Speed=50 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5
+Defenses=Fire
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=Understands Infernal but can’t speak
+Traits=Pack Tactics. The hound has Advantage on an attack roll against a creature if at least one of the hound’s al- lies is within 5 feet of the creature and the ally doesn’t have the Incapacitated
+Actions=Multiattack. The hound makes two Bite attacks. Bite. Melee Attack Roll: +5, reach 5 ft. Hit: 7 (1d8 + 3) Piercing damage plus 3 (1d6) Fire damage. Fire Breath (Recharge 5–6). Dexterity Saving
+Extra=None
+
+[hezrou]
+SizeAlignment=Large Fiend (Demon), Chaotic Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Cold, Fire, Lightning; Poison; Poisoned
+Senses=Darkvision 120 ft.; Passive Perception 11
+Languages=Abyssal; telepathy 120 ft.
+Traits=Demonic Restoration. If the hezrou dies outside the Abyss, its body dissolves into ichor, and it gains a new body instantly, reviving with all its Hit Points some- where in the Abyss. Magic R
+Actions=Multiattack. The hezrou makes three Rend attacks. Rend. Melee Attack Roll: +7, reach 5 ft. Hit: 6 (1d4 + 4) Slashing damage plus 9 (2d8) Poison damage.
+Extra=Bonus Actions: Leap. The hezrou jumps up to 30 feet by spending 10 feet of movement. Hill Giant
+
+[hill_giant]
+SizeAlignment=Huge Giant, Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +2
+Defenses=None
+Senses=Passive Perception 12
+Languages=Giant
+Traits=None
+Actions=Multiattack. The giant makes two attacks, using Tree Club or Trash Lob in any combination. Tree Club. Melee Attack Roll: +8, reach 10 ft. Hit: 18 (3d8 + 5) Bludgeoning damage. If the target i
+Extra=None
+
+[hippogriff]
+SizeAlignment=Large Monstrosity, Unaligned
+Speed=40 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5
+Defenses=None
+Senses=Passive Perception 15
+Languages=None
+Traits=Flyby. The hippogriff doesn’t provoke an Opportunity Attack when it flies out of an enemy’s reach.
+Actions=Multiattack. The hippogriff makes two Rend attacks. Rend. Melee Attack Roll: +5, reach 5 ft. Hit: 7 (1d8 + 3) Slashing damage. Hobgoblins
+Extra=None
+
+[hippopotamus]
+SizeAlignment=Large Beast
+Speed=30 ft., Swim 30 ft.
+Abilities=21,7,15,2,12,4
+Skills=Perception +3
+Defenses=None
+Senses=Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[hobgoblin_captain]
+SizeAlignment=Medium Fey (Goblinoid), Lawful Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Common, Goblin
+Traits=Aura of Authority. While in a 10-foot Emanation origi- nating from the hobgoblin, the hobgoblin and its allies have Advantage on attack rolls and saving throws, provided the hobgoblin doesn’t
+Actions=Multiattack. The hobgoblin makes two attacks, using Greatsword or Longbow in any combination. Greatsword. Melee Attack Roll: +4, reach 5 ft. Hit: 9 (2d6 + 2) Slashing damage plus 3 (1d6) Pois
+Extra=None
+
+[hobgoblin_warrior]
+SizeAlignment=Medium Fey (Goblinoid), Lawful Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Common, Goblin
+Traits=Pack Tactics. The hobgoblin has Advantage on an at- tack roll against a creature if at least one of the hobgob- lin’s allies is within 5 feet of the creature and the ally doesn’t have the Inc
+Actions=Longsword. Melee Attack Roll: +3, reach 5 ft. Hit: 12 (2d10 + 1) Slashing damage. Longbow. Ranged Attack Roll: +3, range 150/600 ft. Hit: 5 (1d8 + 1) Piercing damage plus 7 (3d4) Poi- son dam
+Extra=None
+
+[homunculus]
+SizeAlignment=Tiny Construct, Neutral
+Speed=20 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Poison; Charmed, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Understands Common plus one other language but can’t speak
+Traits=Telepathic Bond. While the homunculus is on the same plane of existence as its master, the two of them can communicate telepathically with each other.
+Actions=Bite. Melee Attack Roll: +4, reach 5 ft. Hit: 1 Piercing damage, and the target is subjected to the following effect. Constitution Saving Throw: DC 12. Failure: The target has the Poisoned co
+Extra=None
+
+[horned_devil]
+SizeAlignment=Large Fiend (Devil), Lawful Evil
+Speed=30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Cold; Fire, Poison; Poisoned
+Senses=Darkvision 150 ft. (unimpeded by magical Darkness); Passive Perception 13
+Languages=Infernal; telepathy 120 ft.
+Traits=Diabolical Restoration. If the devil dies outside the Nine Hells, its body disappears in sulfurous smoke, and it gains a new body instantly, reviving with all its Hit Points somewhere in the
+Actions=Multiattack. The devil makes three attacks, using Sear- ing Fork or Hurl Flame in any combination. It can re- place one attack with a use of Infernal Tail. Searing Fork. Melee Attack Roll: +1
+Extra=None
+
+[hunter_shark]
+SizeAlignment=Large Beast
+Speed=5 ft., Swim 40 ft.
+Abilities=18,14,15,1,10,4
+Skills=Perception +2
+Defenses=None
+Senses=Blindsight 60 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[hydra]
+SizeAlignment=Huge Monstrosity, Unaligned
+Speed=40 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6
+Defenses=Blinded, Charmed, Deafened, Frightened, Stunned, Unconscious
+Senses=Darkvision 60 ft.; Passive Perception 16
+Languages=None
+Traits=Hold Breath. The hydra can hold its breath for 1 hour. Multiple Heads. The hydra has five heads. Whenever the hydra takes 25 damage or more on a single turn, one of its heads dies. The hydra
+Actions=Multiattack. The hydra makes as many Bite attacks as it has heads. Bite. Melee Attack Roll: +8, reach 10 ft. Hit: 10 (1d10 + 5) Piercing damage. 300 System Reference Document 5.2.1 Ice Devil
+Extra=None
+
+[hyena]
+SizeAlignment=Medium Beast
+Speed=50 ft.
+Abilities=11,13,12,2,12,5
+Skills=Perception +3
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[ice_devil]
+SizeAlignment=Large Fiend (Devil), Lawful Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Insight +7, Perception +7, Persuasion +9
+Defenses=Cold, Fire, Poison; Poisoned
+Senses=Blindsight 120 ft.; Passive Perception 17
+Languages=Infernal; telepathy 120 ft.
+Traits=Diabolical Restoration. If the devil dies outside the Nine Hells, its body disappears in sulfurous smoke, and it gains a new body instantly, reviving with all its Hit Points somewhere in the
+Actions=Multiattack. The devil makes three Ice Spear attacks. It can replace one attack with a Tail attack. Ice Spear. Melee or Ranged Attack Roll: +10, reach 5 ft. or range 30/120 ft. Hit: 14 (2d8 +
+Extra=None
+
+[ice_mephit]
+SizeAlignment=Small Elemental, Neutral Evil
+Speed=30 ft. Fly 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +2, Stealth +3
+Defenses=Fire; Cold, Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=Primordial (Aquan, Auran)
+Traits=Death Burst. The mephit explodes when it dies. Consti- tution Saving Throw: DC 10, each creature in a 5-foot Emanation originating from the mephit. Failure: 5 (2d4) Cold damage. Success: Half
+Actions=Claw. Melee Attack Roll: +3, reach 5 ft. Hit: 3 (1d4 + 1) Slashing damage plus 2 (1d4) Cold damage. Fog Cloud (1/Day). The mephit casts Fog Cloud, re- quiring no spell components and using Ch
+Extra=None
+
+[imp]
+SizeAlignment=Tiny Fiend (Devil), Lawful Evil
+Speed=20 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +4, Insight +3, Stealth +5
+Defenses=Cold; Fire, Poison; Poisoned
+Senses=Darkvision 120 ft. (unimpeded by magical Darkness); Passive Perception 11
+Languages=Common, Infernal
+Traits=Magic Resistance. The imp has Advantage on saving throws against spells and other magical effects.
+Actions=Sting. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Piercing damage plus 7 (2d6) Poison damage. Invisibility. The imp casts Invisibility on itself, requiring no spell components and us
+Extra=None
+
+[incubus]
+SizeAlignment=Medium Fiend, Neutral Evil
+Speed=30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +9, Insight +5, Perception +5, Persuasion +9, Stealth +7
+Defenses=Cold, Fire, Poison, Psychic
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=Abyssal, Common, Infernal; telepathy 60 ft.
+Traits=Succubus Form. When the incubus finishes a Long Rest, it can shape-shift into a Succubus, using that stat block instead of this one. Any equipment it is wearing or carrying isn’t transformed.
+Actions=Multiattack. The incubus makes two Restless Touch attacks. 301 System Reference Document 5.2.1 Restless Touch. Melee Attack Roll: +7, reach 5 ft. Hit: 15 (3d6 + 5) Psychic damage, and the tar
+Extra=Bonus Actions: Nightmare (Recharge 6). Wisdom Saving Throw: DC 15, one creature the incubus can see within 60 feet. Failure: If the target has 20 Hit Points or fewer, it has the Unconscious c
+
+[invisible_stalker]
+SizeAlignment=Large Elemental, Neutral
+Speed=50 ft. Fly 50 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=Perception +8, Stealth +10
+Defenses=Bludgeoning, Piercing, Slashing; Poison; Exhaustion, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained, Unconscious
+Senses=Darkvision 60 ft.; Passive Perception 18
+Languages=Common, Primordial (Auran)
+Traits=Air Form. The stalker can enter an enemy’s space and stop there. It can move through a space as narrow as 1 inch without expending extra movement to do so. Invisibility. The stalker has the I
+Actions=Multiattack. The stalker makes three Wind Swipe at- tacks. It can replace one attack with a use of Vortex. Wind Swipe. Melee Attack Roll: +7, reach 5 ft. Hit: 11 (2d6 + 4) Force damage. Vorte
+Extra=None
+
+[iron_golem]
+SizeAlignment=Large Construct, Unaligned
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Fire, Poison, Psychic; Charmed, Exhaustion, Frightened, Paralyzed, Petrified, Poisoned
+Senses=Darkvision 120 ft.; Passive Perception 10
+Languages=Understands Common plus two other languages but can’t speak
+Traits=Fire Absorption. Whenever the golem is subjected to Fire damage, it regains a number of Hit Points equal to the Fire damage dealt. Immutable Form. The golem can’t shape-shift. Magic Resistanc
+Actions=Multiattack. The golem makes two attacks, using Bladed Arm or Fiery Bolt in any combination. Bladed Arm. Melee Attack Roll: +12, reach 10 ft. Hit: 20 (3d8 + 7) Slashing damage plus 10 (3d6) F
+Extra=None
+
+[jackal]
+SizeAlignment=Small Beast
+Speed=40 ft.
+Abilities=8,15,11,3,12,6
+Skills=Perception +5, Stealth +4
+Defenses=None
+Senses=Darkvision 90 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[killer_whale]
+SizeAlignment=Huge Beast
+Speed=5 ft., Swim 60 ft.
+Abilities=19,14,13,3,12,7
+Skills=Perception +3, Stealth +4
+Defenses=None
+Senses=Blindsight 120 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[knight]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Frightened
+Senses=Passive Perception 10
+Languages=Common plus one other language
+Traits=None
+Actions=Multiattack. The knight makes two attacks, using Greatsword or Heavy Crossbow in any combination. Greatsword. Melee Attack Roll: +5, reach 5 ft. Hit: 10 (2d6 + 3) Slashing damage plus 4 (1d8)
+Extra=Reactions: Parry. Trigger: The knight is hit by a melee attack roll while holding a weapon. Response: The knight adds 2 to its AC against that attack, possibly causing it to miss. Kobold
+
+[kobold_warrior]
+SizeAlignment=Small Dragon, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 8
+Languages=Common, Draconic
+Traits=Pack Tactics. The kobold has Advantage on an attack roll against a creature if at least one of the kobold’s al- lies is within 5 feet of the creature and the ally doesn’t have the Incapacitat
+Actions=Dagger. Melee or Ranged Attack Roll: +4, reach 5 ft. or range 20/60 ft. Hit: 4 (1d4 + 2) Piercing damage. Kraken
+Extra=None
+
+[kraken]
+SizeAlignment=Gargantuan Monstrosity (Titan), Chaotic Evil
+Speed=30 ft. Swim 120 ft.
+Abilities=10,10,10,10,10,10
+Skills=History +13, Perception +11
+Defenses=Cold, Lightning; Frightened, Grappled, Paralyzed, Restrained
+Senses=Truesight 120 ft.; Passive Perception 21
+Languages=Understands Abyssal, Celestial, Infernal, and Primordial but can’t speak; telepathy 120 ft.
+Traits=Amphibious. The kraken can breathe air and water. Legendary Resistance (4/Day, or 5/Day in Lair). If the kraken fails a saving throw, it can choose to suc- ceed instead. Siege Monster. The kr
+Actions=Multiattack. The kraken makes two Tentacle attacks and uses Fling, Lightning Strike, or Swallow. Tentacle. Melee Attack Roll: +17, reach 30 ft. Hit: 24 (4d6 + 10) Bludgeoning damage. The targ
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the kraken can expend a use to take one of the following actions. The kraken regains all ex
+
+[lamia]
+SizeAlignment=Large Fiend, Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +7, Insight +4, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=Abyssal, Common
+Traits=None
+Actions=Multiattack. The lamia makes two Claw attacks. It can replace one attack with a use of Corrupting Touch. Claw. Melee Attack Roll: +5, reach 5 ft. Hit: 7 (1d8 + 3) Slashing damage plus 7 (2d6)
+Extra=Bonus Actions: Leap. The lamia jumps up to 30 feet by spending 10 feet of movement. Lemure
+
+[lemure]
+SizeAlignment=Medium Fiend (Devil), Lawful Evil
+Speed=20 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Cold; Fire, Poison; Charmed, Frightened, Poisoned
+Senses=Darkvision 120 ft. (unimpeded by magical Darkness); Passive Perception 10
+Languages=Understands Infernal but can’t speak
+Traits=Hellish Restoration. If the lemure dies in the Nine Hells, it revives with all its Hit Points in 1d10 days un- less it is killed by a creature under the effects of a Bless spell or its remain
+Actions=Vile Slime. Melee Attack Roll: +2, reach 5 ft. Hit: 2 (1d4) Poison damage. Lich
+Extra=None
+
+[lich]
+SizeAlignment=Medium Undead (Wizard), Neutral Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +19, History +12, Insight +9, Perception +9
+Defenses=Cold, Lightning; Necrotic, Poison; Charmed, Exhaustion, Frightened, Paralyzed, Poisoned
+Senses=Truesight 120 ft.; Passive Perception 19
+Languages=All
+Traits=Legendary Resistance (4/Day, or 5/Day in Lair). If the lich fails a saving throw, it can choose to suc- ceed instead. 304 System Reference Document 5.2.1 Spirit Jar. If destroyed, the lich re
+Actions=Multiattack. The lich makes three attacks, using El- dritch Burst or Paralyzing Touch in any combination. Eldritch Burst. Melee or Ranged Attack Roll: +12, reach 5 ft. or range 120 ft. Hit: 3
+Extra=Reactions: Protective Magic. The lich casts Counterspell or Shield in response to the spell’s trigger, using the same spell- casting ability as Spellcasting. Legendary Actions: Legendary Acti
+
+[lion]
+SizeAlignment=Large Beast
+Speed=50 ft.
+Abilities=17,15,11,3,12,8
+Skills=Perception +3, Stealth +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[lizard]
+SizeAlignment=Tiny Beast
+Speed=20 ft., Climb 20 ft.
+Abilities=2,11,10,1,8,3
+Skills=None
+Defenses=None
+Senses=Darkvision 30 ft.; Passive Perception 9
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[mage]
+SizeAlignment=Medium or Small Humanoid (Wizard), Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +6, History +6, Perception +4
+Defenses=None
+Senses=Passive Perception 14
+Languages=Common plus three other languages
+Traits=None
+Actions=Multiattack. The mage makes three Arcane Burst attacks. Arcane Burst. Melee or Ranged Attack Roll: +6, reach 5 ft. or range 120 ft. Hit: 16 (3d8 + 3) Force damage. Spellcasting. The mage cast
+Extra=Bonus Actions: Misty Step (3/Day). The mage casts Misty Step, using the same spellcasting ability as Spellcasting. Reactions: Protective Magic (3/Day). The mage casts Counterspell or Shield i
+
+[magma_mephit]
+SizeAlignment=Small Elemental, Neutral Evil
+Speed=30 ft. Fly 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +3
+Defenses=Cold; Fire, Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Primordial (Ignan, Terran)
+Traits=Death Burst. The mephit explodes when it dies. Dex- terity Saving Throw: DC 11, each creature in a 5-foot Emanation originating from the mephit. Failure: 7 (2d6) Fire damage. Success: Half da
+Actions=Claw. Melee Attack Roll: +3, reach 5 ft. Hit: 3 (1d4 + 1) Slashing damage plus 3 (1d6) Fire damage. Fire Breath (Recharge 6). Dexterity Saving Throw: DC 11, each creature in a 15-foot Cone. F
+Extra=None
+
+[magmin]
+SizeAlignment=Small Elemental, Chaotic Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Fire
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Primordial (Ignan)
+Traits=Death Burst. The magmin explodes when it dies. Dex- terity Saving Throw: DC 11, each creature in a 10-foot Emanation originating from the magmin. Failure: 7 (2d6) Fire damage. Success: Half d
+Actions=Touch. Melee Attack Roll: +4, reach 5 ft. Hit: 7 (2d4 + 2) Fire damage. If the target is a creature or a flammable object that isn’t being worn or carried, it starts burning.
+Extra=Bonus Actions: Ignited Illumination. The magmin sets itself ablaze or extinguishes its flames. While ablaze, the magmin sheds Bright Light in a 10-foot radius and Dim Light for an additional
+
+[mammoth]
+SizeAlignment=Huge Beast
+Speed=50 ft.
+Abilities=24,9,21,3,11,6
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[manticore]
+SizeAlignment=Large Monstrosity, Lawful Evil
+Speed=30 ft. Fly 50 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Common
+Traits=None
+Actions=Multiattack. The manticore makes three attacks, using Rend or Tail Spike in any combination. Rend. Melee Attack Roll: +5, reach 5 ft. Hit: 7 (1d8 + 3) Slashing damage. Tail Spike. Ranged Atta
+Extra=None
+
+[marilith]
+SizeAlignment=Large Fiend (Demon), Chaotic Evil
+Speed=40 ft. Climb 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +8
+Defenses=Cold, Fire, Lightning; Poison; Poisoned
+Senses=Truesight 120 ft.; Passive Perception 18
+Languages=Abyssal; telepathy 120 ft.
+Traits=Demonic Restoration. If the marilith dies outside the Abyss, its body dissolves into ichor, and it gains a new body instantly, reviving with all its Hit Points some- where in the Abyss. Magic
+Actions=Multiattack. The marilith makes six Pact Blade attacks and uses Constrict. Pact Blade. Melee Attack Roll: +10, reach 5 ft. Hit: 10 (1d10 + 5) Slashing damage plus 7 (2d6) Ne- crotic damage. C
+Extra=Bonus Actions: Teleport (Recharge 5–6). The marilith teleports up to 120 feet to an unoccupied space it can see. Reactions: Parry. Trigger: The marilith is hit by a melee attack roll while ho
+
+[mastiff]
+SizeAlignment=Medium Beast
+Speed=40 ft.
+Abilities=13,14,12,3,12,7
+Skills=Perception +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[medusa]
+SizeAlignment=Medium Monstrosity, Lawful Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +5, Perception +4, Stealth +6
+Defenses=None
+Senses=Darkvision 150 ft.; Passive Perception 14
+Languages=Common plus one other language
+Traits=None
+Actions=Multiattack. The medusa makes two Claw attacks and one Snake Hair attack, or it makes three Poison Ray attacks. Claw. Melee Attack Roll: +6, reach 5 ft. Hit: 10 (2d6 + 3) Slashing damage. Sna
+Extra=Bonus Actions: Petrifying Gaze (Recharge 5–6). Constitution Saving Throw: DC 13, each creature in a 30-foot Cone. If the medusa sees its reflection in the Cone, the medusa must make this save
+
+[merfolk_skirmisher]
+SizeAlignment=Medium Elemental, Neutral
+Speed=10 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Passive Perception 12
+Languages=Common, Primordial (Aquan)
+Traits=Amphibious. The merfolk can breathe air and water. 308 System Reference Document 5.2.1
+Actions=Ocean Spear. Melee or Ranged Attack Roll: +2, reach 5 ft. or range 20/60 ft. Hit: 3 (1d6) Piercing damage plus 2 (1d4) Cold damage. If the target is a creature, its Speed decreases by 10 feet
+Extra=None
+
+[merrow]
+SizeAlignment=Large Monstrosity, Chaotic Evil
+Speed=10 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Abyssal, Primordial (Aquan)
+Traits=Amphibious. The merrow can breathe air and water.
+Actions=Multiattack. The merrow makes two attacks, using Bite, Claw, or Harpoon in any combination. Bite. Melee Attack Roll: +6, reach 5 ft. Hit: 6 (1d4 + 4) Piercing damage, and the target has the P
+Extra=None
+
+[mimic]
+SizeAlignment=Medium Monstrosity, Neutral
+Speed=20 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +5
+Defenses=Acid; Prone
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=None
+Traits=Adhesive (Object Form Only). The mimic adheres to anything that touches it. A Huge or smaller creature ad- hered to the mimic has the Grappled condition (escape DC 13). Ability checks made to
+Actions=Bite. Melee Attack Roll: +5 (with Advantage if the target is Grappled by the mimic), reach 5 ft. Hit: 7 (1d8 + 3) Piercing damage—or 12 (2d8 + 3) Piercing damage if the target is Grappled by
+Extra=Bonus Actions: Shape-Shift. The mimic shape-shifts to resemble a Me- dium or Small object while retaining its game statistics, or it returns to its true blob form. Any equipment it is wearing
+
+[minotaur_of_baphomet]
+SizeAlignment=Large Monstrosity, Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +7, Survival +7
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 17
+Languages=Abyssal
+Traits=None
+Actions=Abyssal Glaive. Melee Attack Roll: +6, reach 10 ft. Hit: 10 (1d12 + 4) Slashing damage plus 10 (3d6) Ne- crotic damage. Gore (Recharge 5–6). Melee Attack Roll: +6, reach 5 ft. Hit: 18 (4d6 +
+Extra=None
+
+[minotaur_skeleton]
+SizeAlignment=Large Undead, Lawful Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Bludgeoning; Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=Understands Abyssal but can’t speak
+Traits=None
+Actions=Gore. Melee Attack Roll: +6, reach 5 ft. Hit: 11 (2d6 + 4) Piercing damage. If the target is a Large or smaller creature and the skeleton moved 20+ feet straight toward it immediately before
+Extra=None
+
+[mire_stalker]
+SizeAlignment=Large, Unaligned
+Speed=25 ft.; Swim 25 ft.
+Abilities=17,10,16,5,13,6
+Skills=Perception +3; Stealth +2
+Defenses=Resist Poison
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=False Appearance; Swamp Stride
+Actions=Vine +5, 10 bludgeoning and grapple DC 13
+Extra=Original Dungeons & Dolphins creature
+
+[mule]
+SizeAlignment=Medium Beast
+Speed=40 ft.
+Abilities=14,10,13,2,10,5
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[mummy]
+SizeAlignment=Medium or Small Undead, Lawful Evil
+Speed=20 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Fire; Necrotic, Poison; Charmed, Exhaustion, Frightened, Paralyzed, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Common plus two other languages
+Traits=None
+Actions=Multiattack. The mummy makes two Rotting Fist at- tacks and uses Dreadful Glare. Rotting Fist. Melee Attack Roll: +5, reach 5 ft. Hit: 8 (1d10 + 3) Bludgeoning damage plus 10 (3d6) Necrotic d
+Extra=None
+
+[mummy_lord]
+SizeAlignment=Medium or Small Undead (Cleric), Lawful Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=History +5, Perception +9, Religion +5
+Defenses=Fire; Necrotic, Poison; Charmed, Exhaustion, Frightened, Paralyzed, Poisoned
+Senses=Truesight 60 ft.; Passive Perception 19
+Languages=Common plus three other languages
+Traits=Legendary Resistance (3/Day, or 4/Day in Lair). If the mummy fails a saving throw, it can choose to suc- ceed instead. Magic Resistance. The mummy has Advantage on sav- ing throws against spe
+Actions=Multiattack. The mummy makes one Rotting Fist or Channel Negative Energy attack, and it uses Dreadful Glare. Rotting Fist. Melee Attack Roll: +9, reach 5 ft. Hit: 15 (2d10 + 4) Bludgeoning da
+Extra=Reactions: Whirlwind of Sand. Trigger: The mummy is hit by an attack roll. Response: The mummy adds 2 to its AC against the attack, possibly causing the attack to miss, and the mummy teleport
+
+[nalfeshnee]
+SizeAlignment=Large Fiend (Demon), Chaotic Evil
+Speed=20 ft. Fly 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Cold, Fire, Lightning; Poison; Frightened, Poisoned
+Senses=Truesight 120 ft.; Passive Perception 11
+Languages=Abyssal; telepathy 120 ft.
+Traits=Demonic Restoration. If the nalfeshnee dies outside the Abyss, its body dissolves into ichor, and it gains a new body instantly, reviving with all its Hit Points some- where in the Abyss. Mag
+Actions=Multiattack. The nalfeshnee makes three Rend attacks. Rend. Melee Attack Roll: +10, reach 10 ft. Hit: 16 (2d10 + 5) Slashing damage plus 11 (2d10) Force damage. Teleport. The nalfeshnee telep
+Extra=Bonus Actions: Horror Nimbus (Recharge 5–6). Wisdom Saving Throw: DC 15, each creature in a 15-foot Emanation originating from the nalfeshnee. Failure: 28 (8d6) Psy- chic damage, and the targ
+
+[night_hag]
+SizeAlignment=Medium Fiend, Neutral Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +6, Insight +5, Perception +5, Stealth +5
+Defenses=Cold, Fire; Charmed
+Senses=Darkvision 120 ft.; Passive Perception 15
+Languages=Abyssal, Common, Infernal, Primordial
+Traits=Coven Magic. While within 30 feet of at least two hag allies, the hag can cast one of the following spells, requiring no Material components, using the spell’s normal casting time, and using
+Actions=Multiattack. The hag makes two Claw attacks. Claw. Melee Attack Roll: +7, reach 5 ft. Hit: 13 (2d8 + 4) Slashing damage. Nightmare Haunting (1/Day; Requires Soul Bag). While on the Ethereal P
+Extra=Bonus Actions: Shape-Shift. The hag shape-shifts into a Small or Me- dium Humanoid, or it returns to its true form. Other than its size, its game statistics are the same in each form. Any equ
+
+[nightmare]
+SizeAlignment=Large Fiend, Neutral Evil
+Speed=60 ft. Fly 90 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Fire
+Senses=Passive Perception 11
+Languages=Understands Abyssal, Common, and Infernal but can’t speak
+Traits=Confer Fire Resistance. The nightmare can grant Re- sistance to Fire damage to a rider while it is on the nightmare. Illumination. The nightmare sheds Bright Light in a 10- foot radius and Di
+Actions=Hooves. Melee Attack Roll: +6, reach 5 ft. Hit: 13 (2d8 + 4) Bludgeoning damage plus 10 (3d6) Fire damage. Ethereal Stride. The nightmare and up to three willing creatures within 5 feet of it
+Extra=None
+
+[noble]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +5, Insight +4, Persuasion +5
+Defenses=None
+Senses=Passive Perception 12
+Languages=Common plus two other languages
+Traits=None
+Actions=Rapier. Melee Attack Roll: +3, reach 5 ft. Hit: 5 (1d8 + 1) Piercing damage.
+Extra=Reactions: Parry. Trigger: The noble is hit by a melee attack roll while holding a weapon. Response: The noble adds 2 to its AC against that attack, possibly causing it to miss. Ochre Jelly
+
+[ochre_jelly]
+SizeAlignment=Large Ooze, Unaligned
+Speed=20 ft. Climb 20 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Acid; Lightning, Slashing; Charmed, Deafened, Exhaustion, Frightened, Grappled, Prone, Restrained
+Senses=Blindsight 60 ft.; Passive Perception 8
+Languages=None
+Traits=Amorphous. The jelly can move through a space as narrow as 1 inch without expending extra move- ment to do so. Spider Climb. The jelly can climb difficult surfaces, including along ceilings,
+Actions=Pseudopod. Melee Attack Roll: +4, reach 5 ft. Hit: 12 (3d6 + 2) Acid damage. 312 System Reference Document 5.2.1
+Extra=Reactions: Split. Trigger: While the jelly is Large or Medium and has 10+ Hit Points, it becomes Bloodied or is subjected to Lightning or Slashing damage. Response: The jelly splits into two
+
+[octopus]
+SizeAlignment=Small Beast
+Speed=5 ft., Swim 30 ft.
+Abilities=4,15,11,3,10,4
+Skills=Perception +2, Stealth +6
+Defenses=None
+Senses=Darkvision 30 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[ogre]
+SizeAlignment=Large Giant, Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 8
+Languages=Common, Giant
+Traits=None
+Actions=Greatclub. Melee Attack Roll: +6, reach 5 ft. Hit: 13 (2d8 + 4) Bludgeoning damage. Javelin. Melee or Ranged Attack Roll: +6, reach 5 ft. or range 30/120 ft. Hit: 11 (2d6 + 4) Piercing damage
+Extra=None
+
+[ogre_zombie]
+SizeAlignment=Large Undead
+Speed=30 ft.
+Abilities=19,6,18,3,6,5
+Skills=None
+Defenses=Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 8
+Languages=Understands Common and Giant but can't speak
+Traits=Undead Fortitude. If damage reduces the zombie to 0 Hit Points, it makes a Constitution saving throw (DC 5 plus the damage taken) unless the damage is Radiant or from a Critical Hit. On a suc
+Actions=Slam. Melee Attack Roll: +6, reach 5 ft. Hit: 13 (2d8 + 4) Bludgeoning damage.
+Extra=None
+
+[oni]
+SizeAlignment=Large Fiend, Lawful Evil
+Speed=30 ft. Fly 30 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=Arcana +5, Deception +8, Perception +4
+Defenses=Cold
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Common, Giant
+Traits=Regeneration. The oni regains 10 Hit Points at the start of each of its turns if it has at least 1 Hit Point.
+Actions=Multiattack. The oni makes two Claw or Nightmare Ray attacks. It can replace one attack with a use of Spellcasting. Claw. Melee Attack Roll: +7, reach 10 ft. Hit: 10 (1d12 + 4) Slashing damag
+Extra=Bonus Actions: Invisibility. The oni casts Invisibility on itself, requiring no spell components and using the same spellcasting ability as Spellcasting. Otyugh
+
+[otyugh]
+SizeAlignment=Large Aberration, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 120 ft.; Passive Perception 11
+Languages=Otyugh; telepathy 120 ft. (doesn’t allow the receiving creature to respond telepathically)
+Traits=None
+Actions=Multiattack. The otyugh makes one Bite attack and two Tentacle attacks. Bite. Melee Attack Roll: +6, reach 5 ft. Hit: 12 (2d8 + 3) Piercing damage, and the target has the Poisoned con- dition
+Extra=None
+
+[owl]
+SizeAlignment=Tiny Beast
+Speed=5 ft., Fly 60 ft.
+Abilities=3,13,8,2,12,7
+Skills=Perception +5, Stealth +5
+Defenses=None
+Senses=Darkvision 120 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[owlbear]
+SizeAlignment=Large Monstrosity, Unaligned
+Speed=40 ft. Climb 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=Multiattack. The owlbear makes two Rend attacks. Rend. Melee Attack Roll: +7, reach 5 ft. Hit: 14 (2d8 + 5) Slashing damage. Pegasus
+Extra=None
+
+[panther]
+SizeAlignment=Medium Beast
+Speed=50 ft., Climb 40 ft.
+Abilities=14,16,10,3,14,7
+Skills=Perception +4, Stealth +7
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[pegasus]
+SizeAlignment=Large Celestial, Chaotic Good
+Speed=60 ft. Fly 90 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6
+Defenses=None
+Senses=Passive Perception 16
+Languages=Understands Celestial, Common, Elvish, and Sylvan but can’t speak
+Traits=None
+Actions=Hooves. Melee Attack Roll: +6, reach 5 ft. Hit: 7 (1d6 + 4) Bludgeoning damage plus 5 (2d4) Radiant damage. Phase Spider
+Extra=None
+
+[phase_spider]
+SizeAlignment=Large Monstrosity, Unaligned
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +7
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=None
+Traits=Ethereal Sight. The spider can see 60 feet into the Ethe- real Plane while on the Material Plane and vice versa. Spider Climb. The spider can climb difficult surfaces, including along ceiling
+Actions=Multiattack. The spider makes two Bite attacks. Bite. Melee Attack Roll: +5, reach 5 ft. Hit: 8 (1d10 + 3) Piercing damage plus 9 (2d8) Poison damage. If this damage reduces the target to 0 H
+Extra=Bonus Actions: Ethereal Jaunt. The spider teleports from the Material Plane to the Ethereal Plane or vice versa. Pirates
+
+[piranha]
+SizeAlignment=Tiny Beast
+Speed=5 ft., Swim 40 ft.
+Abilities=2,16,9,1,7,2
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 8
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[pirate]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Passive Perception 11
+Languages=Common plus one other language
+Traits=None
+Actions=Multiattack. The pirate makes two Dagger attacks. It can replace one attack with a use of Enthrall- ing Panache. Dagger. Melee or Ranged Attack Roll: +5, reach 5 ft. or range 20/60 ft. Hit: 5
+Extra=None
+
+[pirate_captain]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Acrobatics +7, Perception +5
+Defenses=None
+Senses=Passive Perception 15
+Languages=Common plus one other language
+Traits=None
+Actions=Multiattack. The pirate makes three attacks, using Rapier or Pistol in any combination. Rapier. Melee Attack Roll: +7, reach 5 ft. Hit: 13 (2d8 + 4) Piercing damage, and the pirate has Advant
+Extra=Bonus Actions: Captain’s Charm. Wisdom Saving Throw: DC 14, one creature the pirate can see within 30 feet. Failure: The target has the Charmed condition until the start of the pirate’s next
+
+[pit_fiend]
+SizeAlignment=Large Fiend (Devil), Lawful Evil
+Speed=30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +10, Persuasion +19
+Defenses=Cold; Fire, Poison; Poisoned
+Senses=Truesight 120 ft.; Passive Perception 20
+Languages=Infernal; telepathy 120 ft.
+Traits=Diabolical Restoration. If the pit fiend dies outside the Nine Hells, its body disappears in sulfurous smoke, and it gains a new body instantly, reviving with all its Hit Points somewhere in
+Actions=Multiattack. The pit fiend makes one Bite attack, two Devilish Claw attacks, and one Fiery Mace attack. Bite. Melee Attack Roll: +14, reach 10 ft. Hit: 18 (3d6 + 8) Piercing damage. If the ta
+Extra=None
+
+[planetar]
+SizeAlignment=Large Celestial (Angel), Lawful Good
+Speed=40 ft. Fly 120 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=Perception +11
+Defenses=Radiant; Charmed, Exhaustion, Frightened
+Senses=Truesight 120 ft.; Passive Perception 21
+Languages=All; telepathy 120 ft.
+Traits=Divine Awareness. The planetar knows if it hears a lie. Exalted Restoration. If the planetar dies outside Mount Celestia, its body disappears, and it gains a new body instantly, reviving with
+Actions=Multiattack. The planetar makes three Radiant Sword attacks or uses Holy Burst twice. Radiant Sword. Melee Attack Roll: +12, reach 10 ft. Hit: 14 (2d6 + 7) Slashing damage plus 18 (4d8) Radi-
+Extra=Bonus Actions: Divine Aid (2/Day). The planetar casts Cure Wounds, Invisibility, Lesser Restoration, or Remove Curse, using the same spellcasting ability as Spellcasting. Priests
+
+[plesiosaurus]
+SizeAlignment=Large Beast
+Speed=20 ft., Swim 40 ft.
+Abilities=18,15,16,2,12,5
+Skills=Perception +3, Stealth +4
+Defenses=None
+Senses=Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[polar_bear]
+SizeAlignment=Large Beast
+Speed=40 ft., Swim 40 ft.
+Abilities=20,14,16,2,13,7
+Skills=Perception +5, Stealth +4
+Defenses=Cold
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[pony]
+SizeAlignment=Medium Beast
+Speed=40 ft.
+Abilities=15,10,13,2,11,7
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[priest]
+SizeAlignment=Medium or Small Humanoid (Cleric), Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Medicine +7, Perception +5, Religion +5
+Defenses=None
+Senses=Passive Perception 15
+Languages=Common plus one other language
+Traits=None
+Actions=Multiattack. The priest makes two attacks, using Mace or Radiant Flame in any combination. Mace. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Bludgeoning damage plus 5 (2d4) Radiant da
+Extra=Bonus Actions: Divine Aid (3/Day). The priest casts Bless, Dispel Magic, Healing Word, or Lesser Restoration, using the same spellcasting ability as Spellcasting. Pseudodragon
+
+[priest_acolyte]
+SizeAlignment=Medium or Small Humanoid (Cleric), Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Medicine +4, Religion +2
+Defenses=None
+Senses=Passive Perception 12
+Languages=Common
+Traits=None
+Actions=Mace. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Bludgeoning damage plus 2 (1d4) Radiant damage. Radiant Flame. Ranged Attack Roll: +4, range 60 ft. Hit: 7 (2d6) Radiant damage. Spel
+Extra=Bonus Actions: Divine Aid (1/Day). The priest casts Bless, Healing Word, or Sanctuary, using the same spellcasting ability as Spellcasting.
+
+[pseudodragon]
+SizeAlignment=Tiny Dragon, Neutral Good
+Speed=15 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5, Stealth +4
+Defenses=None
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 15
+Languages=Understands Common and Draconic but can’t speak
+Traits=Magic Resistance. The pseudodragon has Advan- tage on saving throws against spells and other magi- cal effects.
+Actions=Multiattack. The pseudodragon makes two Bite attacks. Bite. Melee Attack Roll: +4, reach 5 ft. Hit: 4 (1d4 + 2) Piercing damage. Sting. Constitution Saving Throw: DC 12, one creature the pseu
+Extra=None
+
+[pteranodon]
+SizeAlignment=Medium Beast
+Speed=10 ft., Fly 60 ft.
+Abilities=12,15,10,2,9,5
+Skills=Perception +1
+Defenses=None
+Senses=Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[purple_worm]
+SizeAlignment=Gargantuan Monstrosity, Unaligned
+Speed=50 ft. Burrow 50 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Blindsight 30 ft., Tremorsense 60 ft.; Passive Perception 9
+Languages=None
+Traits=Tunneler. The worm can burrow through solid rock at half its Burrow Speed and leaves a 10-foot-diameter tunnel in its wake.
+Actions=Multiattack. The worm makes one Bite attack and one Tail Stinger attack. Bite. Melee Attack Roll: +14, reach 10 ft. Hit: 22 (3d8 + 9) Piercing damage. If the target is a Large or smaller crea
+Extra=Bonus Actions: Swallow. Strength Saving Throw: DC 19, one Large or smaller creature Grappled by the worm (it can have up to three creatures swallowed at a time). Failure: The tar- get is swal
+
+[quasit]
+SizeAlignment=Tiny Fiend (Demon), Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +5
+Defenses=Cold, Fire, Lightning; Poison; Poisoned
+Senses=Darkvision 120 ft.; Passive Perception 10
+Languages=Abyssal, Common
+Traits=Magic Resistance. The quasit has Advantage on saving throws against spells and other magical effects.
+Actions=Rend. Melee Attack Roll: +5, reach 5 ft. Hit: 5 (1d4 + 3) Slashing damage, and the target has the Poisoned con- dition until the start of the quasit’s next turn. Invisibility. The quasit cast
+Extra=None
+
+[rakshasa]
+SizeAlignment=Medium Fiend, Lawful Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +10, Insight +8, Perception +8
+Defenses=Piercing damage from weapons wielded by creatures under the effect of a Bless spell; Charmed, Frightened
+Senses=Truesight 60 ft.; Passive Perception 18
+Languages=Common, Infernal
+Traits=Greater Magic Resistance. The rakshasa automatically succeeds on saving throws against spells and other magical effects, and the attack rolls of spells automat- ically miss it. Without the ra
+Actions=Multiattack. The rakshasa makes three Cursed Touch attacks. Cursed Touch. Melee Attack Roll: +10, reach 5 ft. Hit: 12 (2d6 + 5) Slashing damage plus 19 (3d12) Necrotic damage. If the target i
+Extra=None
+
+[rat]
+SizeAlignment=Tiny Beast
+Speed=20 ft., Climb 20 ft.
+Abilities=2,11,9,2,10,4
+Skills=Perception +2
+Defenses=None
+Senses=Darkvision 30 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[raven]
+SizeAlignment=Tiny Beast
+Speed=10 ft., Fly 50 ft.
+Abilities=2,14,10,5,13,6
+Skills=Perception +3
+Defenses=None
+Senses=Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[red_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Chromatic), Chaotic Evil
+Speed=30 ft. Climb 30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +2
+Defenses=Fire
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=None
+Actions=Multiattack. The dragon makes two Rend attacks. Rend. Melee Attack Roll: +6, reach 5 ft. Hit: 9 (1d10 + 4) Slashing damage plus 3 (1d6) Fire damage. 318 System Reference Document 5.2.1 Fire B
+Extra=None
+
+[reef_crab]
+SizeAlignment=Small, Unaligned
+Speed=20 ft.; Swim 30 ft.
+Abilities=8,14,12,2,10,3
+Skills=Stealth +4
+Defenses=None
+Senses=Darkvision 30 ft.; Passive Perception 10
+Languages=None
+Traits=Amphibious
+Actions=Claw +4, 4 slashing
+Extra=Original Dungeons & Dolphins creature
+
+[reef_shark]
+SizeAlignment=Medium Beast
+Speed=5 ft., Swim 30 ft.
+Abilities=14,15,13,1,10,4
+Skills=Perception +2
+Defenses=None
+Senses=Blindsight 30 ft.; Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[remorhaz]
+SizeAlignment=Huge Monstrosity, Unaligned
+Speed=40 ft. Burrow 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Cold, Fire
+Senses=Darkvision 60 ft., Tremorsense 60 ft.; Passive Perception 10
+Languages=None
+Traits=Heat Aura. At the end of each of the remorhaz’s turns, each creature in a 5-foot Emanation originating from the remorhaz takes 16 (3d10) Fire damage.
+Actions=Bite. Melee Attack Roll: +11, reach 10 ft. Hit: 18 (2d10 + 7) Piercing damage plus 14 (4d6) Fire damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC
+Extra=Bonus Actions: Swallow. Strength Saving Throw: DC 19, one Large or smaller creature Grappled by the remorhaz (it can have up to two creatures swallowed at a time). Failure: The target is swal
+
+[rhinoceros]
+SizeAlignment=Large Beast
+Speed=40 ft.
+Abilities=21,8,15,2,12,6
+Skills=None
+Defenses=None
+Senses=Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[riding_horse]
+SizeAlignment=Large Beast
+Speed=60 ft.
+Abilities=16,13,12,2,11,7
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[rift_hound]
+SizeAlignment=Large, Neutral
+Speed=50 ft.
+Abilities=18,16,16,7,14,10
+Skills=Perception +4; Stealth +5
+Defenses=Resist Force
+Senses=Darkvision 90 ft.; Passive Perception 14
+Languages=None
+Traits=Phase Step
+Actions=Bite +6, 12 piercing plus 4 force
+Extra=Original Dungeons & Dolphins creature
+
+[roc]
+SizeAlignment=Gargantuan Monstrosity, Unaligned
+Speed=20 ft. Fly 120 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +8
+Defenses=None
+Senses=Passive Perception 18
+Languages=None
+Traits=None
+Actions=Multiattack. The roc makes two Beak attacks. It can replace one attack with a Talons attack. Beak. Melee Attack Roll: +13, reach 10 ft. Hit: 28 (3d12 + 9) Piercing damage. Talons. Melee Attac
+Extra=Bonus Actions: Swoop (Recharge 5–6). If the roc has a creature Grap- pled, the roc flies up to half its Fly Speed without pro- voking Opportunity Attacks and drops that creature. Roper
+
+[roper]
+SizeAlignment=Large Aberration, Neutral Evil
+Speed=10 ft. Climb 20 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 16
+Languages=None
+Traits=Spider Climb. The roper can climb difficult surfaces, including along ceilings, without needing to make an ability check.
+Actions=Multiattack. The roper makes two Tentacle attacks, uses Reel, and makes two Bite attacks. Bite. Melee Attack Roll: +7, reach 5 ft. Hit: 17 (3d8 + 4) Piercing damage. Tentacle. Melee Attack Ro
+Extra=None
+
+[rug_smothering]
+SizeAlignment=Large, Unaligned
+Speed=10 ft.
+Abilities=17,14,10,1,3,1
+Skills=None listed
+Defenses=Immune Poison, Psychic and multiple conditions
+Senses=Blindsight 60 ft.; Passive Perception 6
+Languages=None
+Traits=None listed
+Actions=Smother +5, 10 bludgeoning; may grapple, blind, restrain and suffocate (escape DC 13)
+Extra=Shares damage while smothering a target
+
+[rust_monster]
+SizeAlignment=Medium Monstrosity, Unaligned
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=None
+Traits=Iron Scent. The rust monster can pinpoint the location of ferrous metal within 30 feet of itself.
+Actions=Multiattack. The rust monster makes one Bite attack and uses Antennae twice. Bite. Melee Attack Roll: +3, reach 5 ft. Hit: 5 (1d8 + 1) Piercing damage. Antennae. The rust monster targets one
+Extra=Reactions: Reflexive Antennae. Trigger: An attack roll hits the rust monster. Response: The rust monster uses Antennae. Sahuagin
+
+[saber_toothed_tiger]
+SizeAlignment=Large Beast
+Speed=40 ft.
+Abilities=18,17,15,3,12,8
+Skills=Perception +5, Stealth +7
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[sahuagin_warrior]
+SizeAlignment=Medium Fiend, Lawful Evil
+Speed=30 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5
+Defenses=Acid, Cold
+Senses=Darkvision 120 ft.; Passive Perception 15
+Languages=Sahuagin
+Traits=Blood Frenzy. The sahuagin has Advantage on at- tack rolls against any creature that doesn’t have all its Hit Points. Limited Amphibiousness. The sahuagin can breathe air and water, but it mu
+Actions=Multiattack. The sahuagin makes two Claw attacks. Claw. Melee Attack Roll: +3, reach 5 ft. Hit: 4 (1d6 + 1) Slashing damage.
+Extra=Bonus Actions: Aquatic Charge. The sahuagin swims up to its Swim Speed straight toward an enemy it can see. 321 System Reference Document 5.2.1 Salamander
+
+[salamander]
+SizeAlignment=Large Elemental, Neutral Evil
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Cold; Fire
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Primordial (Ignan)
+Traits=Fire Aura. At the end of each of the salamander’s turns, each creature of the salamander’s choice in a 5-foot Emanation originating from the salamander takes 7 (2d6) Fire damage.
+Actions=Multiattack. The salamander makes two Flame Spear attacks. It can replace one attack with a use of Constrict. Flame Spear. Melee or Ranged Attack Roll: +7, reach 5 ft. or range 20/60 ft. Hit:
+Extra=None
+
+[satyr]
+SizeAlignment=Medium Fey, Chaotic Neutral
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +2, Performance +6, Stealth +5
+Defenses=None
+Senses=Passive Perception 12
+Languages=Common, Elvish, Sylvan
+Traits=Magic Resistance. The satyr has Advantage on saving throws against spells and other magical effects.
+Actions=Hooves. Melee Attack Roll: +5, reach 5 ft. Hit: 5 (1d4 + 3) Bludgeoning damage. If the target is a Medium or smaller creature, the satyr pushes the target up to 10 feet straight away from its
+Extra=None
+
+[scorpion]
+SizeAlignment=Tiny Beast
+Speed=10 ft.
+Abilities=2,11,8,1,8,2
+Skills=None
+Defenses=None
+Senses=Blindsight 10 ft.; Passive Perception 9
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[scout]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Nature +4, Perception +5, Stealth +6, Survival +5
+Defenses=None
+Senses=Passive Perception 15
+Languages=Common plus one other language
+Traits=None
+Actions=Multiattack. The scout makes two attacks, using Shorts- word and Longbow in any combination. Shortsword. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Piercing damage. Longbow. Ranged A
+Extra=None
+
+[sea_hag]
+SizeAlignment=Medium Fey, Chaotic Evil
+Speed=30 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Common, Giant, Primordial (Aquan)
+Traits=Amphibious. The hag can breathe air and water. 322 System Reference Document 5.2.1 Coven Magic. While within 30 feet of at least two hag allies, the hag can cast one of the following spells,
+Actions=Claw. Melee Attack Roll: +5, reach 5 ft. Hit: 10 (2d6 + 3) Slashing damage. Death Glare (Recharge 5–6). Wisdom Saving Throw: DC 11, one Frightened creature the hag can see within 30 feet. Fai
+Extra=None
+
+[seahorse]
+SizeAlignment=Tiny Beast
+Speed=5 ft., Swim 20 ft.
+Abilities=1,12,8,1,10,2
+Skills=Perception +2, Stealth +5
+Defenses=None
+Senses=Passive Perception 12
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[shadow]
+SizeAlignment=Medium Undead, Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +6
+Defenses=Radiant; Acid, Cold, Fire, Lightning, Thunder; Necrotic, Poison; Exhaustion, Frightened, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained, Unconscious
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=None
+Traits=Amorphous. The shadow can move through a space as narrow as 1 inch without expending extra move- ment to do so. Sunlight Weakness. While in sunlight, the shadow has Disadvantage on D20 Tests.
+Actions=Draining Swipe. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Necrotic damage, and the target’s Strength score decreases by 1d4. The target dies if this reduces that score to 0. If a Hu
+Extra=Bonus Actions: Shadow Stealth. While in Dim Light or Darkness, the shadow takes the Hide action. Shambling Mound
+
+[shambling_mound]
+SizeAlignment=Large Plant, Unaligned
+Speed=30 ft. Swim 20 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +3
+Defenses=Cold, Fire; Lightning; Deafened, Exhaustion
+Senses=Blindsight 60 ft.; Passive Perception 10
+Languages=None
+Traits=Lightning Absorption. Whenever the shambling mound is subjected to Lightning damage, it regains a number of Hit Points equal to the Lightning damage dealt.
+Actions=Multiattack. The shambling mound makes three Charged Tendril attacks. It can replace one attack with a use of Engulf. Charged Tendril. Melee Attack Roll: +7, reach 10 ft. Hit: 7 (1d6 + 4) Blu
+Extra=None
+
+[shield_guardian]
+SizeAlignment=Large Construct, Unaligned
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Poison; Charmed, Exhaustion, Frightened, Paralyzed, Petrified, Poisoned
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 10
+Languages=Understands commands given in any language but can’t speak
+Traits=Bound. The guardian is magically bound to an amulet. While the guardian and its amulet are on the same plane of existence, the amulet’s wearer can telepathi- cally call the guardian to travel
+Actions=Multiattack. The guardian makes two Fist attacks. Fist. Melee Attack Roll: +7, reach 10 ft. Hit: 11 (2d6 + 4) Bludgeoning damage plus 7 (2d6) Force damage.
+Extra=Reactions: Protection. Trigger: An attack roll hits the wearer of the guardian’s amulet while the wearer is within 5 feet of the guardian. Response: The wearer gains a +5 bonus to AC, includi
+
+[shrieker_fungus]
+SizeAlignment=Medium Plant, Unaligned
+Speed=5 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Blinded, Charmed, Deafened, Frightened
+Senses=Blindsight 30 ft.; Passive Perception 6
+Languages=None
+Traits=None
+Actions=None
+Extra=Reactions: Shriek. Trigger: A creature or a source of Bright Light moves within 30 feet of the shrieker. Response: The shrieker emits a shriek audible within 300 feet of itself for 1 minute o
+
+[silver_dragon_wyrmling]
+SizeAlignment=Medium Dragon (Metallic), Lawful Good
+Speed=30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Stealth +2
+Defenses=Cold
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=None
+Actions=Multiattack. The dragon makes two Rend attacks. Rend. Melee Attack Roll: +6, reach 5 ft. Hit: 9 (1d10 + 4) Piercing damage. Cold Breath (Recharge 5–6). Constitution Saving Throw: DC 13, each
+Extra=None
+
+[skeleton]
+SizeAlignment=Medium Undead, Lawful Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Bludgeoning; Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=Understands Common plus one other language but can’t speak
+Traits=None
+Actions=Shortsword. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Piercing damage. Shortbow. Ranged Attack Roll: +5, range 80/320 ft. Hit: 6 (1d6 + 3) Piercing damage.
+Extra=None
+
+[solar]
+SizeAlignment=Large Celestial (Angel), Lawful Good
+Speed=50 ft. Fly 150 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=Perception +14
+Defenses=Poison, Radiant; Charmed, Exhaustion, Frightened, Poisoned
+Senses=Truesight 120 ft.; Passive Perception 24
+Languages=All; telepathy 120 ft.
+Traits=Divine Awareness. The solar knows if it hears a lie. Exalted Restoration. If the solar dies outside Mount Celestia, its body disappears, and it gains a new body instantly, reviving with all i
+Actions=Multiattack. The solar makes two Flying Sword attacks. It can replace one attack with a use of Slaying Bow. Flying Sword. Melee or Ranged Attack Roll: +15, reach 10 ft. or range 120 ft. Hit:
+Extra=Bonus Actions: Divine Aid (3/Day). The solar casts Cure Wounds (level 2 version), Lesser Restoration, or Remove Curse, using the same spellcasting ability as Spellcasting. Legendary Actions:
+
+[specter]
+SizeAlignment=Medium Undead, Chaotic Evil
+Speed=30 ft. Fly 50 ft. (hover)
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Acid, Bludgeoning, Cold, Fire, Lightning, Piercing, Slashing, Thunder; Necrotic, Poison; Charmed, Exhaustion, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained, Unconscious
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Understands Common plus one other language but can’t speak
+Traits=Incorporeal Movement. The specter can move through other creatures and objects as if they were Difficult Terrain. It takes 5 (1d10) Force damage if it ends its turn inside an object. Sunlight
+Actions=Life Drain. Melee Attack Roll: +4, reach 5 ft. Hit: 7 (2d6) Necrotic damage. If the target is a creature, its Hit Point maximum decreases by an amount equal to the damage taken. 327 System Re
+Extra=None
+
+[sphinx_of_lore]
+SizeAlignment=Large Celestial, Lawful Neutral
+Speed=40 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +12, History +12, Perception +8, Religion +12
+Defenses=Necrotic, Radiant; Psychic; Charmed, Frightened
+Senses=Truesight 120 ft.; Passive Perception 18
+Languages=Celestial, Common
+Traits=Inscrutable. No magic can observe the sphinx remotely or detect its thoughts without its permission. Wisdom (Insight) checks made to ascertain its intentions or sin- cerity are made with Disa
+Actions=Multiattack. The sphinx makes three Claw attacks. Claw. Melee Attack Roll: +8, reach 5 ft. Hit: 14 (3d6 + 4) Slashing damage. Mind-Rending Roar (Recharge 5–6). Wisdom Saving Throw: DC 16, eac
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the sphinx can expend a use to take one of the following actions. The sphinx regains all ex
+
+[sphinx_of_valor]
+SizeAlignment=Large Celestial, Lawful Neutral
+Speed=40 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +9, Perception +12, Religion +15
+Defenses=Necrotic, Radiant; Psychic; Charmed, Frightened
+Senses=Truesight 120 ft.; Passive Perception 22
+Languages=Celestial, Common
+Traits=Inscrutable. No magic can observe the sphinx remotely or detect its thoughts without its permission. Wisdom (Insight) checks made to ascertain its intentions or sin- cerity are made with Disa
+Actions=Multiattack. The sphinx makes two Claw attacks and uses Roar. Claw. Melee Attack Roll: +12, reach 5 ft. Hit: 20 (4d6 + 6) Slashing damage. Roar (3/Day). The sphinx emits a magical roar. When-
+Extra=Legendary Actions: Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the sphinx can expend a use to take one of the following actions. The sphinx regains all ex
+
+[sphinx_of_wonder]
+SizeAlignment=Tiny Celestial, Lawful Good
+Speed=20 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +4, Religion +4, Stealth +5
+Defenses=Necrotic, Psychic, Radiant
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Celestial, Common
+Traits=Magic Resistance. The sphinx has Advantage on saving throws against spells and other magical effects.
+Actions=Rend. Melee Attack Roll: +5, reach 5 ft. Hit: 5 (1d4 + 3) Slashing damage plus 7 (2d6) Radiant damage.
+Extra=Reactions: Burst of Ingenuity (2/Day). Trigger: The sphinx or an- other creature within 30 feet makes an ability check or a saving throw. Response: The sphinx adds 2 to the roll.
+
+[spider]
+SizeAlignment=Tiny Beast
+Speed=20 ft., Climb 20 ft.
+Abilities=2,14,8,1,10,2
+Skills=Stealth +4
+Defenses=None
+Senses=Darkvision 30 ft.; Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[spirit_naga]
+SizeAlignment=Large Fiend, Chaotic Evil
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Poison; Charmed, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=Abyssal, Common
+Traits=Fiendish Restoration. If it dies, the naga returns to life in 1d6 days and regains all its Hit Points. Only a Wish spell can prevent this trait from functioning.
+Actions=Multiattack. The naga makes three attacks, using Bite or Necrotic Ray in any combination. Bite. Melee Attack Roll: +7, reach 10 ft. Hit: 7 (1d6 + 4) Piercing damage plus 14 (4d6) Poison damag
+Extra=None
+
+[sprite]
+SizeAlignment=Tiny Fey, Neutral Good
+Speed=10 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +3, Stealth +8
+Defenses=None
+Senses=Passive Perception 13
+Languages=Common, Elvish, Sylvan
+Traits=None
+Actions=Needle Sword. Melee Attack Roll: +6, reach 5 ft. Hit: 6 (1d4 + 4) Piercing damage. Enchanting Bow. Ranged Attack Roll: +6, range 40/160 ft. Hit: 1 Piercing damage, and the target has the Char
+Extra=None
+
+[spy]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +5, Insight +4, Investigation +5, Perception +6, Sleight of Hand +4, Stealth +6
+Defenses=None
+Senses=Passive Perception 16
+Languages=Common plus one other language
+Traits=None
+Actions=Shortsword. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Piercing damage plus 7 (2d6) Poison damage. Hand Crossbow. Ranged Attack Roll: +4, range 30/120 ft. Hit: 5 (1d6 + 2) Piercing d
+Extra=Bonus Actions: Cunning Action. The spy takes the Dash, Disengage, or Hide action. Stirge
+
+[steam_mephit]
+SizeAlignment=Small Elemental, Neutral Evil
+Speed=30 ft. Fly 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Stealth +2
+Defenses=Fire, Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Primordial (Aquan, Ignan)
+Traits=Blurred Form. Attack rolls against the mephit are made with Disadvantage unless the mephit has the Incapaci- tated condition. Death Burst. The mephit explodes when it dies. Dex- terity Saving
+Actions=Claw. Melee Attack Roll: +2, reach 5 ft. Hit: 2 (1d4) Slashing damage plus 2 (1d4) Fire damage. Steam Breath (Recharge 6). Constitution Saving Throw: DC 10, each creature in a 15-foot Cone. F
+Extra=None
+
+[stirge]
+SizeAlignment=Tiny Monstrosity, Unaligned
+Speed=10 ft. Fly 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=None
+Traits=None
+Actions=Proboscis. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Piercing damage, and the stirge attaches to the target. While attached, the stirge can’t make Proboscis attacks, and the target
+Extra=None
+
+[stone_giant]
+SizeAlignment=Huge Giant, Neutral
+Speed=40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Athletics +12, Perception +4, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Giant
+Traits=None
+Actions=Multiattack. The giant makes two attacks, using Stone Club or Boulder in any combination. Stone Club. Melee Attack Roll: +9, reach 15 ft. Hit: 22 (3d10 + 6) Bludgeoning damage. Boulder. Range
+Extra=Reactions: Deflect Missile (Recharge 5–6). Trigger: The giant is hit by a ranged attack roll and takes Bludgeoning, Pierc- ing, or Slashing damage from it. Response: The giant reduces the dam
+
+[stone_golem]
+SizeAlignment=Large Construct, Unaligned
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Poison, Psychic; Charmed, Exhaustion, Frightened, Paralyzed, Petrified, Poisoned
+Senses=Darkvision 120 ft.; Passive Perception 10
+Languages=Understands Common plus two other languages but can’t speak
+Traits=Immutable Form. The golem can’t shape-shift. Magic Resistance. The golem has Advantage on saving throws against spells and other magical effects.
+Actions=Multiattack. The golem makes two attacks, using Slam or Force Bolt in any combination. Slam. Melee Attack Roll: +10, reach 5 ft. Hit: 15 (2d8 + 6) Bludgeoning damage plus 9 (2d8) Force damage
+Extra=Bonus Actions: Slow (Recharge 5–6). The golem casts the Slow spell, requiring no spell components and using Constitution as the spellcasting ability (spell save DC 17). Storm Giant
+
+[storm_corsair]
+SizeAlignment=Medium, Neutral
+Speed=30 ft.; Swim 30 ft.
+Abilities=16,18,16,13,14,15
+Skills=Acrobatics +7; Perception +5
+Defenses=Resist Lightning, Thunder
+Senses=Passive Perception 15
+Languages=Common; Primordial
+Traits=Sea Legs; Storm Step
+Actions=Multiattack; Cutlass +7, 8 slashing; Storm Bolt +7, 13 lightning
+Extra=Original Dungeons & Dolphins creature
+
+[storm_giant]
+SizeAlignment=Huge Giant, Chaotic Good
+Speed=50 ft. Fly 25 ft. (hover) Swim 50 ft.
+Abilities=10,10,10,10,10,10
+Skills=Arcana +8, Athletics +14, History +8, Perception +10
+Defenses=Cold; Lightning, Thunder
+Senses=Darkvision 120 ft., Truesight 30 ft.; Passive Perception 20
+Languages=Common, Giant
+Traits=Amphibious. The giant can breathe air and water.
+Actions=Multiattack. The giant makes two attacks, using Storm Sword or Thunderbolt in any combination. Storm Sword. Melee Attack Roll: +14, reach 10 ft. Hit: 23 (4d6 + 9) Slashing damage plus 13 (3d8
+Extra=None
+
+[succubus]
+SizeAlignment=Medium Fiend, Neutral Evil
+Speed=30 ft. Fly 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +9, Insight +5, Perception +5, Persuasion +9, Stealth +7
+Defenses=Cold, Fire, Poison, Psychic
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=Abyssal, Common, Infernal; telepathy 60 ft.
+Traits=Incubus Form. When the succubus finishes a Long Rest, it can shape-shift into an Incubus, using that stat block instead of this one.
+Actions=Multiattack. The succubus makes one Fiendish Touch attack and uses Charm or Draining Kiss. Fiendish Touch. Melee Attack Roll: +7, reach 5 ft. Hit: 16 (2d10 + 5) Psychic damage. 331 System Ref
+Extra=Bonus Actions: Shape-Shift. The succubus shape-shifts into a Medium or Small Humanoid, or it returns to its true form. Its game statistics are the same in each form, except its Fly Speed is a
+
+[swarm_of_bats]
+SizeAlignment=Large Swarm
+Speed=5 ft., Fly 30 ft.
+Abilities=5,15,10,2,12,4
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Charmed, Frightened, Grappled, Paralyzed, Petrified, Prone, Restrained, Stunned
+Senses=Blindsight 60 ft.; Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[swarm_of_crawling_claws]
+SizeAlignment=Medium Swarm
+Speed=30 ft., Climb 30 ft.
+Abilities=14,14,11,5,10,4
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Necrotic, Poison; Charmed, Exhaustion, Frightened, Grappled, Incapacitated, Paralyzed, Petrified, Poisoned, Prone, Restrained, Stunned
+Senses=Blindsight 30 ft.; Passive Perception 10
+Languages=Understands Common but can't speak
+Traits=Swarm. The swarm can occupy another creature's space and vice versa, and the swarm can move through any opening large enough for a Tiny creature. The swarm can't regain Hit Points or gain Tem
+Actions=Swarm of Grasping Hands. Melee Attack Roll: +4, reach 5 ft. Hit: 20 (4d8 + 2) Necrotic damage, or 11 (2d8 + 2) Necrotic damage if the swarm is Bloodied. If the target is a Medium or smaller c
+Extra=None
+
+[swarm_of_insects]
+SizeAlignment=Medium Swarm
+Speed=20 ft., Climb or Fly 20 ft. (GM's choice)
+Abilities=3,13,14,1,7,1
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Charmed, Frightened, Grappled, Paralyzed, Petrified, Prone, Restrained, Stunned
+Senses=Blindsight 30 ft.; Passive Perception 8
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[swarm_of_piranhas]
+SizeAlignment=Medium Swarm
+Speed=5 ft., Swim 40 ft.
+Abilities=13,16,9,1,7,2
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Charmed, Frightened, Grappled, Paralyzed, Petrified, Prone, Restrained, Stunned
+Senses=Darkvision 60 ft.; Passive Perception 8
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[swarm_of_rats]
+SizeAlignment=Medium Swarm
+Speed=30 ft., Climb 30 ft.
+Abilities=9,11,9,2,10,3
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Charmed, Frightened, Grappled, Paralyzed, Petrified, Prone, Restrained, Stunned
+Senses=Darkvision 30 ft.; Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[swarm_of_ravens]
+SizeAlignment=Medium Swarm
+Speed=10 ft., Fly 50 ft.
+Abilities=6,14,12,5,12,6
+Skills=Perception +5
+Defenses=Bludgeoning, Piercing, Slashing; Charmed, Frightened, Grappled, Paralyzed, Petrified, Prone, Restrained, Stunned
+Senses=Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[swarm_of_venomous_snakes]
+SizeAlignment=Medium Swarm
+Speed=30 ft., Swim 30 ft.
+Abilities=8,18,11,1,10,3
+Skills=None
+Defenses=Bludgeoning, Piercing, Slashing; Charmed, Frightened, Grappled, Paralyzed, Petrified, Prone, Restrained, Stunned
+Senses=Blindsight 10 ft.; Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[tarrasque]
+SizeAlignment=Gargantuan Monstrosity (Titan), Unaligned
+Speed=60 ft. Burrow 40 ft. Climb 60 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +9
+Defenses=Bludgeoning, Piercing, Slashing; Fire, Poison; Charmed, Deafened, Frightened, Paralyzed, Poisoned
+Senses=Blindsight 120 ft.; Passive Perception 19
+Languages=None
+Traits=Legendary Resistance (6/Day). If the tarrasque fails a saving throw, it can choose to succeed instead. Magic Resistance. The tarrasque has Advantage on sav- ing throws against spells and othe
+Actions=Multiattack. The tarrasque makes one Bite attack and three other attacks, using Claw or Tail in any combination. Bite. Melee Attack Roll: +19, reach 15 ft. Hit: 36 (4d12 + 10) Piercing damage
+Extra=Bonus Actions: Swallow. Strength Saving Throw: DC 27, one Large or smaller creature Grappled by the tarrasque (it can have up to six creatures swallowed at a time). Failure: The target is swa
+
+[tide_leviathan]
+SizeAlignment=Huge, Unaligned
+Speed=10 ft.; Swim 60 ft.
+Abilities=23,10,21,6,15,10
+Skills=Perception +5
+Defenses=Resist Cold
+Senses=Blindsight 60 ft.; Passive Perception 15
+Languages=None
+Traits=Amphibious; Siege Creature
+Actions=Multiattack; Bite +9, 20 piercing; Tail +9, 17 bludgeoning
+Extra=Tidal Surge DC 16 (Recharge 5-6); original Dungeons & Dolphins creature
+
+[tiger]
+SizeAlignment=Large Beast
+Speed=40 ft.
+Abilities=17,16,14,3,12,8
+Skills=Perception +3, Stealth +7
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[tough]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common
+Traits=Pack Tactics. The tough has Advantage on an attack roll against a creature if at least one of the tough’s allies is within 5 feet of the creature and the ally doesn’t have the Incapacitated c
+Actions=Mace. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Bludgeoning damage. Heavy Crossbow. Ranged Attack Roll: +3, range 100/400 ft. Hit: 6 (1d10 + 1) Piercing damage.
+Extra=None
+
+[tough_boss]
+SizeAlignment=Medium or Small Humanoid, Neutral
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common plus one other language
+Traits=Pack Tactics. The tough has Advantage on an attack roll against a creature if at least one of the tough’s allies is within 5 feet of the creature and the ally doesn’t have the Incapacitated c
+Actions=Multiattack. The tough makes two attacks, using War- hammer or Heavy Crossbow in any combination. Warhammer. Melee Attack Roll: +5, reach 5 ft. Hit: 12 (2d8 + 3) Bludgeoning damage. If the ta
+Extra=None
+
+[treant]
+SizeAlignment=Huge Plant, Chaotic Good
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Fire; Bludgeoning, Piercing
+Senses=Passive Perception 13
+Languages=Common, Druidic, Elvish, Sylvan
+Traits=Siege Monster. The treant deals double damage to ob- jects and structures.
+Actions=Multiattack. The treant makes two Slam attacks. Slam. Melee Attack Roll: +10, reach 5 ft. Hit: 16 (3d6 + 6) Bludgeoning damage. Hail of Bark. Ranged Attack Roll: +10, range 180 ft. Hit: 28 (4
+Extra=None
+
+[triceratops]
+SizeAlignment=Huge Beast
+Speed=50 ft.
+Abilities=22,9,17,2,11,5
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[troll]
+SizeAlignment=Large Giant, Chaotic Evil
+Speed=30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=Giant
+Traits=Loathsome Limbs (4/Day). If the troll ends any turn Bloodied and took 15+ Slashing damage during that turn, one of the troll’s limbs is severed, falls into the troll’s space, and becomes a Tr
+Actions=Multiattack. The troll makes three Rend attacks. Rend. Melee Attack Roll: +7, reach 10 ft. Hit: 11 (2d6 + 4) Slashing damage.
+Extra=Bonus Actions: Charge. The troll moves up to half its Speed straight toward an enemy it can see.
+
+[troll_limb]
+SizeAlignment=Small Giant, Chaotic Evil
+Speed=20 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=None
+Traits=Regeneration. The limb regains 5 Hit Points at the start of each of its turns. If the limb takes Acid or Fire dam- age, this trait doesn’t function on the limb’s next turn. The limb dies only
+Actions=Rend. Melee Attack Roll: +6, reach 5 ft. Hit: 9 (2d4 + 4) Slashing damage. Unicorn
+Extra=None
+
+[tyrannosaurus_rex]
+SizeAlignment=Huge Beast
+Speed=50 ft.
+Abilities=25,10,19,2,12,9
+Skills=Perception +4
+Defenses=None
+Senses=Passive Perception 14
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[unicorn]
+SizeAlignment=Large Celestial, Lawful Good
+Speed=50 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Poison; Charmed, Paralyzed, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=Celestial, Elvish, Sylvan; telepathy 120 ft.
+Traits=Legendary Resistance (3/Day). If the unicorn fails a sav- ing throw, it can choose to succeed instead. Magic Resistance. The unicorn has Advantage on sav- ing throws against spells and other
+Actions=Multiattack. The unicorn makes one Hooves attack and one Radiant Horn attack. Hooves. Melee Attack Roll: +7, reach 5 ft. Hit: 11 (2d6 + 4) Bludgeoning damage. Radiant Horn. Melee Attack Roll:
+Extra=Bonus Actions: Unicorn’s Blessing (3/Day). The unicorn touches an- other creature with its horn and casts Cure Wounds or Lesser Restoration on that creature, using the same spellcasting abili
+
+[vampire]
+SizeAlignment=Medium or Small Undead
+Speed=40 ft., Climb 40 ft.
+Abilities=18,18,18,17,15,18
+Skills=Perception +7, Stealth +9
+Defenses=Necrotic
+Senses=Darkvision 120 ft.; Passive Perception 17
+Languages=Common plus two other languages
+Traits=Legendary Resistance (3/Day, or 4/Day in Lair). If the vampire fails a saving throw, it can choose to succeed instead. Misty Escape. If the vampire drops to 0 Hit Points outside its resting p
+Actions=Multiattack (Vampire Form Only). The vampire makes two Grave Strike attacks and uses Bite. Grave Strike (Vampire Form Only). Melee Attack Roll: +9, reach 5 ft. Hit: 8 (1d8 + 4) Bludgeoning da
+Extra=Bonus Actions: Charm (Recharge 5–6). The vampire casts Charm Person, requiring no spell components and using Charisma as the spellcasting ability (spell save DC 17), and the duration is 24 ho
+
+[vampire_familiar]
+SizeAlignment=Medium or Small Humanoid, Neutral Evil
+Speed=30 ft. Climb 30 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +4, Persuasion +4, Stealth +7
+Defenses=Necrotic; Charmed (except from its vampire master)
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Common plus one other language
+Traits=Vampiric Connection. While the familiar and its vam- pire master are on the same plane of existence, the vampire can communicate with the familiar telepathi- cally, and the vampire can percei
+Actions=Multiattack. The familiar makes two Umbral Dag- ger attacks. Umbral Dagger. Melee or Ranged Attack Roll: +5, reach 5 ft. or range 20/60 ft. Hit: 5 (1d4 + 3) Piercing damage plus 7 (3d4) Necro
+Extra=Bonus Actions: Deathless Agility. The familiar takes the Dash or Disen- gage action.
+
+[vampire_spawn]
+SizeAlignment=Medium or Small Undead
+Speed=30 ft.
+Abilities=16,16,16,11,10,12
+Skills=Perception +3, Stealth +6
+Defenses=Necrotic
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=Common plus one other language
+Traits=Spider Climb. The vampire can climb difficult surfaces, including along ceilings, without needing to make an ability check. Vampire Weakness. The vampire has these weaknesses: Forbiddance. Th
+Actions=Multiattack. The vampire makes two Claw attacks and uses Bite. Claw. Melee Attack Roll: +6, reach 5 ft. Hit: 8 (2d4 + 3) Slashing damage. If the target is a Medium or smaller creature, it has
+Extra=Bonus Actions: Deathless Agility. The vampire takes the Dash or Disengage action.
+
+[venomous_snake]
+SizeAlignment=Tiny Beast
+Speed=30 ft., Swim 30 ft.
+Abilities=2,15,11,1,10,3
+Skills=None
+Defenses=None
+Senses=Blindsight 10 ft.; Passive Perception 10
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[violet_fungus]
+SizeAlignment=Medium Plant, Unaligned
+Speed=5 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Blinded, Charmed, Deafened, Frightened
+Senses=Blindsight 30 ft.; Passive Perception 6
+Languages=None
+Traits=None
+Actions=Multiattack. The fungus makes two Rotting Touch attacks. Rotting Touch. Melee Attack Roll: +2, reach 10 ft. Hit: 4 (1d8) Necrotic damage. Gargoyle
+Extra=None
+
+[vrock]
+SizeAlignment=Large Fiend
+Speed=40 ft., Fly 60 ft.
+Abilities=17,15,18,8,13,8
+Skills=None
+Defenses=Cold, Fire, Lightning; Poison; Poisoned
+Senses=Darkvision 120 ft.; Passive Perception 11
+Languages=Abyssal; telepathy 120 ft.
+Traits=Demonic Restoration. If the vrock dies outside the Abyss, its body dissolves into ichor, and it gains a new body instantly, reviving with all its Hit Points somewhere in the Abyss. Magic Resi
+Actions=Multiattack. The vrock makes two Shred attacks. Shred. Melee Attack Roll: +6, reach 5 ft. Hit: 10 (2d6 + 3) Piercing damage plus 10 (3d6) Poison damage. Spores (Recharge 6). Constitution Savi
+Extra=None
+
+[vulture]
+SizeAlignment=Medium Beast
+Speed=10 ft., Fly 50 ft.
+Abilities=7,10,13,2,12,4
+Skills=Perception +3
+Defenses=None
+Senses=Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[warhorse]
+SizeAlignment=Large Beast
+Speed=60 ft.
+Abilities=18,12,13,2,12,7
+Skills=None
+Defenses=None
+Senses=Passive Perception 11
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[warhorse_skeleton]
+SizeAlignment=Large Undead, Lawful Evil
+Speed=60 ft.
+Abilities=10,10,10,10,10,10
+Skills=None
+Defenses=Bludgeoning; Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 9
+Languages=None
+Traits=None
+Actions=Hooves. Melee Attack Roll: +6, reach 5 ft. Hit: 7 (1d6 + 4) Bludgeoning damage. If the target is a Large or smaller creature and the skeleton moved 20+ feet straight toward it immediately bef
+Extra=None
+
+[warrior_infantry]
+SizeAlignment=Medium or Small Humanoid
+Speed=30 ft.
+Abilities=13,11,11,8,11,8
+Skills=None
+Defenses=None
+Senses=Passive Perception 10
+Languages=Common
+Traits=Pack Tactics. The warrior has Advantage on an attack roll against a creature if at least one of the warrior's allies is within 5 feet of the creature and the ally doesn't have the Incapacitat
+Actions=Spear. Melee or Ranged Attack Roll: +3, reach 5 ft. or range 20/60 ft. Hit: 4 (1d6 + 1) Piercing damage.
+Extra=None
+
+[warrior_veteran]
+SizeAlignment=Medium or Small Humanoid
+Speed=30 ft.
+Abilities=16,13,14,10,11,10
+Skills=Athletics +5, Perception +2
+Defenses=None
+Senses=Passive Perception 12
+Languages=Common plus one other language
+Traits=None
+Actions=Multiattack. The warrior makes two Greatsword or Heavy Crossbow attacks. Greatsword. Melee Attack Roll: +5, reach 5 ft. Hit: 10 (2d6 + 3) Slashing damage. Heavy Crossbow. Ranged Attack Roll:
+Extra=Reactions: Parry. Trigger: The warrior is hit by a melee attack roll while holding a weapon. Response: The warrior adds 2 to its AC against that attack, possibly causing it to miss. ## Water
+
+[water_elemental]
+SizeAlignment=Large Elemental
+Speed=30 ft., Swim 90 ft.
+Abilities=18,14,18,5,10,8
+Skills=None
+Defenses=Acid, Fire; Poison; Exhaustion, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained, Unconscious
+Senses=Darkvision 60 ft.; Passive Perception 10
+Languages=Primordial (Aquan)
+Traits=Freeze. If the elemental takes Cold damage, its Speed decreases by 20 feet until the end of its next turn. Water Form. The elemental can enter an enemy's space and stop there. It can move thr
+Actions=Multiattack. The elemental makes two Slam attacks. Slam. Melee Attack Roll: +7, reach 5 ft. Hit: 13 (2d8 + 4) Bludgeoning damage. If the target is a Medium or smaller creature, it has the Pro
+Extra=None
+
+[weasel]
+SizeAlignment=Tiny Beast
+Speed=30 ft., Climb 30 ft.
+Abilities=3,16,8,2,12,3
+Skills=Acrobatics +5, Perception +3, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[werebear]
+SizeAlignment=Medium or Small Monstrosity
+Speed=30 ft., 40 ft. (bear form only), Climb 30 ft. (bear form only)
+Abilities=19,10,17,11,12,12
+Skills=Perception +7
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 17
+Languages=Common (can't speak in bear form)
+Traits=None
+Actions=Multiattack. The werebear makes two attacks, using Handaxe or Rend in any combination. It can replace one attack with a Bite attack. Bite (Bear or Hybrid Form Only). Melee Attack Roll: +7, re
+Extra=Bonus Actions: Shape-Shift. The werebear shape-shifts into a Large bear-humanoid hybrid form or a Large bear, or it returns to its true humanoid form. Its game statistics, other than its size
+
+[wereboar]
+SizeAlignment=Medium or Small Monstrosity
+Speed=30 ft., 40 ft. (boar form only)
+Abilities=17,10,15,10,11,8
+Skills=Perception +2
+Defenses=None
+Senses=Passive Perception 12
+Languages=Common (can't speak in boar form)
+Traits=None
+Actions=Multiattack. The wereboar makes two attacks, using Javelin or Tusk in any combination. It can replace one attack with a Gore attack. Gore (Boar or Hybrid Form Only). Melee Attack Roll: +5, re
+Extra=Bonus Actions: Shape-Shift. The wereboar shape-shifts into a Medium boar-humanoid hybrid or a Small boar, or it returns to its true humanoid form. Its game statistics, other than its size, ar
+
+[wererat]
+SizeAlignment=Medium or Small Monstrosity
+Speed=30 ft., Climb 30 ft.
+Abilities=10,16,12,11,10,8
+Skills=Perception +4, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Common (can't speak in rat form)
+Traits=None
+Actions=Multiattack. The wererat makes two attacks, using Scratch or Hand Crossbow in any combination. It can replace one attack with a Bite attack. Bite (Rat or Hybrid Form Only). Melee Attack Roll:
+Extra=Bonus Actions: Shape-Shift. The wererat shape-shifts into a Medium rat-humanoid hybrid or a Small rat, or it returns to its true humanoid form. Its game statistics, other than its size, are t
+
+[weretiger]
+SizeAlignment=Medium or Small Monstrosity
+Speed=30 ft., 40 ft. (tiger form only)
+Abilities=17,15,16,10,13,11
+Skills=Perception +5, Stealth +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=Common (can't speak in tiger form)
+Traits=None
+Actions=Multiattack. The weretiger makes two attacks, using Scratch or Longbow in any combination. It can replace one attack with a Bite attack. Bite (Tiger or Hybrid Form Only). Melee Attack Roll: +
+Extra=Bonus Actions: Prowl (Tiger or Hybrid Form Only). The weretiger moves up to its Speed without provoking Opportunity Attacks. At the end of this movement, the weretiger can take the Hide actio
+
+[werewolf]
+SizeAlignment=Medium or Small Monstrosity
+Speed=30 ft., 40 ft. (wolf form only)
+Abilities=16,14,14,10,11,10
+Skills=Perception +4, Stealth +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Common (can't speak in wolf form)
+Traits=Pack Tactics. The werewolf has Advantage on an attack roll against a creature if at least one of the werewolf's allies is within 5 feet of the creature and the ally doesn't have the Incapacit
+Actions=Multiattack. The werewolf makes two attacks, using Scratch or Longbow in any combination. It can replace one attack with a Bite attack. Bite (Wolf or Hybrid Form Only). Melee Attack Roll: +5,
+Extra=Bonus Actions: Shape-Shift. The werewolf shape-shifts into a Large wolf-humanoid hybrid or a Medium wolf, or it returns to its true humanoid form. Its game statistics, other than its size, ar
+
+[white_dragon_wyrmling]
+SizeAlignment=Medium Dragon
+Speed=30 ft., Burrow 15 ft., Fly 60 ft., Swim 30 ft.
+Abilities=14,10,14,5,10,11
+Skills=Perception +4, Stealth +2
+Defenses=Cold
+Senses=Blindsight 10 ft., Darkvision 60 ft.; Passive Perception 14
+Languages=Draconic
+Traits=Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, Difficult Terrain composed of ice or snow doesn't cost it extra movement.
+Actions=Multiattack. The dragon makes two Rend attacks. Rend. Melee Attack Roll: +4, reach 5 ft. Hit: 6 (1d8 + 2) Slashing damage plus 2 (1d4) Cold damage. Cold Breath (Recharge 5–6). Constitution Sa
+Extra=None
+
+[wight]
+SizeAlignment=Medium Undead
+Speed=30 ft.
+Abilities=15,14,16,10,13,15
+Skills=Perception +3, Stealth +4
+Defenses=Necrotic; Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=Common plus one other language
+Traits=Sunlight Sensitivity. While in sunlight, the wight has Disadvantage on ability checks and attack rolls.
+Actions=Multiattack. The wight makes two attacks, using Necrotic Sword or Necrotic Bow in any combination. It can replace one attack with a use of Life Drain. Necrotic Sword. Melee Attack Roll: +4, r
+Extra=None
+
+[will_o_wisp]
+SizeAlignment=Tiny Undead
+Speed=5 ft., Fly 50 ft. (hover)
+Abilities=10,28,10,13,14,11
+Skills=None
+Defenses=Acid, Bludgeoning, Cold, Fire, Necrotic, Piercing, Slashing; Lightning, Poison; Exhaustion, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained, Unconscious
+Senses=Darkvision 120 ft.; Passive Perception 12
+Languages=Common plus one other language
+Traits=Ephemeral. The wisp can't wear or carry anything. Illumination. The wisp sheds Bright Light in a 20-foot radius and Dim Light for an additional 20 feet. Incorporeal Movement. The wisp can mov
+Actions=Shock. Melee Attack Roll: +4, reach 5 ft. Hit: 11 (2d8 + 2) Lightning damage.
+Extra=Bonus Actions: Consume Life. Constitution Saving Throw: DC 10, one living creature the wisp can see within 5 feet that has 0 Hit Points. Failure: The target dies, and the wisp regains 10 (3d6
+
+[winter_wolf]
+SizeAlignment=Large Monstrosity
+Speed=50 ft.
+Abilities=18,13,14,7,12,8
+Skills=Perception +5, Stealth +5
+Defenses=Cold
+Senses=Passive Perception 15
+Languages=Common, Giant
+Traits=Pack Tactics. The wolf has Advantage on an attack roll against a creature if at least one of the wolf's allies is within 5 feet of the creature and the ally doesn't have the Incapacitated con
+Actions=Bite. Melee Attack Roll: +6, reach 5 ft. Hit: 11 (2d6 + 4) Piercing damage. If the target is a Large or smaller creature, it has the Prone condition. Cold Breath (Recharge 5–6). Constitution
+Extra=None
+
+[wolf]
+SizeAlignment=Medium Beast
+Speed=40 ft.
+Abilities=14,15,12,3,12,6
+Skills=Perception +5, Stealth +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=None
+Traits=None
+Actions=None
+Extra=None
+
+[worg]
+SizeAlignment=Large Fey
+Speed=50 ft.
+Abilities=16,13,13,7,11,8
+Skills=Perception +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Goblin, Worg
+Traits=None
+Actions=Bite. Melee Attack Roll: +5, reach 5 ft. Hit: 7 (1d8 + 3) Piercing damage, and the next attack roll made against the target before the start of the worg's next turn has Advantage. ## Wraith
+Extra=None
+
+[wraith]
+SizeAlignment=Medium or Small Undead
+Speed=5 ft., Fly 60 ft. (hover)
+Abilities=6,16,16,12,14,15
+Skills=None
+Defenses=Acid, Bludgeoning, Cold, Fire, Piercing, Slashing; Necrotic, Poison; Charmed, Exhaustion, Grappled, Paralyzed, Petrified, Poisoned, Prone, Restrained, Unconscious
+Senses=Darkvision 60 ft.; Passive Perception 12
+Languages=Common plus two other languages
+Traits=Incorporeal Movement. The wraith can move through other creatures and objects as if they were Difficult Terrain. It takes 5 (1d10) Force damage if it ends its turn inside an object. Sunlight
+Actions=Life Drain. Melee Attack Roll: +6, reach 5 ft. Hit: 21 (4d8 + 3) Necrotic damage. If the target is a creature, its Hit Point maximum decreases by an amount equal to the damage taken. Create S
+Extra=None
+
+[wyvern]
+SizeAlignment=Large Dragon
+Speed=30 ft., Fly 80 ft.
+Abilities=19,10,16,5,12,6
+Skills=Perception +4
+Defenses=None
+Senses=Darkvision 120 ft.; Passive Perception 14
+Languages=None
+Traits=None
+Actions=Multiattack. The wyvern makes one Bite attack and one Sting attack. Bite. Melee Attack Roll: +7, reach 5 ft. Hit: 13 (2d8 + 4) Piercing damage. Sting. Melee Attack Roll: +7, reach 10 ft. Hit:
+Extra=None
+
+[xorn]
+SizeAlignment=Medium Elemental
+Speed=20 ft., Burrow 20 ft.
+Abilities=17,10,22,11,10,11
+Skills=Perception +6, Stealth +6
+Defenses=Poison; Paralyzed, Petrified, Poisoned
+Senses=Darkvision 60 ft., Tremorsense 60 ft.; Passive Perception 16
+Languages=Primordial (Terran)
+Traits=Earth Glide. The xorn can burrow through nonmagical, unworked earth and stone. While doing so, the xorn doesn't disturb the material it moves through. Treasure Sense. The xorn can pinpoint th
+Actions=Multiattack. The xorn makes one Bite attack and three Claw attacks. Bite. Melee Attack Roll: +6, reach 5 ft. Hit: 17 (4d6 + 3) Piercing damage. Claw. Melee Attack Roll: +6, reach 5 ft. Hit: 8
+Extra=Bonus Actions: Charge. The xorn moves up to its Speed or Burrow Speed straight toward an enemy it can sense. ## Zombies
+
+[young_black_dragon]
+SizeAlignment=Large Dragon (Chromatic), Chaotic Evil
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6, Stealth +5
+Defenses=Acid
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 16
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes three Rend attacks. Rend. Melee Attack Roll: +7, reach 10 ft. Hit: 9 (2d4 + 4) Slashing damage plus 3 (1d6) Acid damage. Acid Breath (Recharge 5–6). Dexterity Sa
+Extra=None
+
+[young_blue_dragon]
+SizeAlignment=Large Dragon (Chromatic), Lawful Evil
+Speed=40 ft. Burrow 20 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +9, Stealth +4
+Defenses=Lightning
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 19
+Languages=Common, Draconic
+Traits=None
+Actions=Multiattack. The dragon makes three Rend attacks. Rend. Melee Attack Roll: +9, reach 10 ft. Hit: 12 (2d6 + 5) Slashing damage plus 5 (1d10) Lightning damage. Lightning Breath (Recharge 5–6).
+Extra=None
+
+[young_brass_dragon]
+SizeAlignment=Large Dragon (Metallic), Chaotic Good
+Speed=40 ft. Burrow 20 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +6, Persuasion +5, Stealth +3
+Defenses=Fire
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 16
+Languages=Common, Draconic
+Traits=None
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace two attacks with a use of Sleep Breath. 268 System Reference Document 5.2.1 Rend. Melee Attack Roll: +7, reach 10 ft. Hit: 15
+Extra=None
+
+[young_bronze_dragon]
+SizeAlignment=Large Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Insight +4, Perception +7, Stealth +3
+Defenses=Lightning
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 17
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Repulsion Breath. Rend. Melee Attack Roll: +8, reach 10 ft. Hit: 16 (2d10 + 5) Slashing damage. Light
+Extra=None
+
+[young_copper_dragon]
+SizeAlignment=Large Dragon (Metallic), Chaotic Good
+Speed=40 ft. Climb 40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +5, Perception +7, Stealth +4
+Defenses=Acid
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 17
+Languages=Common, Draconic
+Traits=None
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Slowing Breath. Rend. Melee Attack Roll: +7, reach 10 ft. Hit: 15 (2d10 + 4) Slashing damage. Acid Br
+Extra=None
+
+[young_gold_dragon]
+SizeAlignment=Large Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Insight +5, Perception +9, Persuasion +9, Stealth +6
+Defenses=Fire
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 19
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Weakening Breath. Rend. Melee Attack Roll: +10, reach 10 ft. Hit: 17 (2d10 + 6) Slashing damage. Fire
+Extra=None
+
+[young_green_dragon]
+SizeAlignment=Large Dragon (Chromatic), Lawful Evil
+Speed=40 ft. Fly 80 ft. Swim 40 ft.
+Abilities=10,10,10,10,10,10
+Skills=Deception +5, Perception +7, Stealth +4
+Defenses=Poison; Poisoned
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 17
+Languages=Common, Draconic
+Traits=Amphibious. The dragon can breathe air and water.
+Actions=Multiattack. The dragon makes three Rend attacks. Rend. Melee Attack Roll: +7, reach 10 ft. Hit: 11 (2d6 + 4) Slashing damage plus 7 (2d6) Poison damage. Poison Breath (Recharge 5–6). Constit
+Extra=None
+
+[young_red_dragon]
+SizeAlignment=Large Dragon (Chromatic), Chaotic Evil
+Speed=40 ft. Climb 40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=Perception +8, Stealth +4
+Defenses=Fire
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 18
+Languages=Common, Draconic
+Traits=None
+Actions=Multiattack. The dragon makes three Rend attacks. Rend. Melee Attack Roll: +10, reach 10 ft. Hit: 13 (2d6 + 6) Slashing damage plus 3 (1d6) Fire damage. Fire Breath (Recharge 5–6). Dexterity
+Extra=None
+
+[young_silver_dragon]
+SizeAlignment=Large Dragon (Metallic), Lawful Good
+Speed=40 ft. Fly 80 ft.
+Abilities=10,10,10,10,10,10
+Skills=History +6, Perception +8, Stealth +4
+Defenses=Cold
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 18
+Languages=Common, Draconic
+Traits=None
+Actions=Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Paralyzing Breath. 324 System Reference Document 5.2.1 Rend. Melee Attack Roll: +10, reach 10 ft. Hit
+Extra=None
+
+[young_white_dragon]
+SizeAlignment=Large Dragon
+Speed=40 ft., Burrow 20 ft., Fly 80 ft., Swim 40 ft.
+Abilities=18,10,18,6,11,12
+Skills=Perception +6, Stealth +3
+Defenses=Cold
+Senses=Blindsight 30 ft., Darkvision 120 ft.; Passive Perception 16
+Languages=Common, Draconic
+Traits=Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, Difficult Terrain composed of ice or snow doesn't cost it extra movement.
+Actions=Multiattack. The dragon makes three Rend attacks. Rend. Melee Attack Roll: +7, reach 10 ft. Hit: 9 (2d4 + 4) Slashing damage plus 2 (1d4) Cold damage. Cold Breath (Recharge 5–6). Constitution
+Extra=None
+
+[zombie]
+SizeAlignment=Medium Undead
+Speed=20 ft.
+Abilities=13,6,16,3,6,5
+Skills=None
+Defenses=Poison; Exhaustion, Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 8
+Languages=Understands Common plus one other language but can't speak
+Traits=Undead Fortitude. If damage reduces the zombie to 0 Hit Points, it makes a Constitution saving throw (DC 5 plus the damage taken) unless the damage is Radiant or from a Critical Hit. On a suc
+Actions=Slam. Melee Attack Roll: +3, reach 5 ft. Hit: 5 (1d8 + 1) Bludgeoning damage.
+Extra=None

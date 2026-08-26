@@ -1,0 +1,15 @@
+# Dungeons & Dolphins class names. Add one custom or add-on class per line.
+# Artificer is included as a publicly named Eberron option; mechanics are not bundled.
+Artificer
+Barbarian
+Bard
+Cleric
+Druid
+Fighter
+Monk
+Paladin
+Ranger
+Rogue
+Sorcerer
+Warlock
+Wizard

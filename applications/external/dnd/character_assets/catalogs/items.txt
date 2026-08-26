@@ -1,0 +1,522 @@
+# Dungeons & Dolphins structured item catalog.
+# Format: Name|Category|Rarity|Source
+# Expansion records contain names and catalog metadata only; add one custom record per line.
+Club|Weapon|Mundane|SRD5.2.1
+Dagger|Weapon|Mundane|SRD5.2.1
+Greatclub|Weapon|Mundane|SRD5.2.1
+Handaxe|Weapon|Mundane|SRD5.2.1
+Javelin|Weapon|Mundane|SRD5.2.1
+Light Hammer|Weapon|Mundane|SRD5.2.1
+Mace|Weapon|Mundane|SRD5.2.1
+Quarterstaff|Weapon|Mundane|SRD5.2.1
+Sickle|Weapon|Mundane|SRD5.2.1
+Spear|Weapon|Mundane|SRD5.2.1
+Dart|Weapon|Mundane|SRD5.2.1
+Light Crossbow|Weapon|Mundane|SRD5.2.1
+Shortbow|Weapon|Mundane|SRD5.2.1
+Sling|Weapon|Mundane|SRD5.2.1
+Battleaxe|Weapon|Mundane|SRD5.2.1
+Flail|Weapon|Mundane|SRD5.2.1
+Glaive|Weapon|Mundane|SRD5.2.1
+Greataxe|Weapon|Mundane|SRD5.2.1
+Greatsword|Weapon|Mundane|SRD5.2.1
+Halberd|Weapon|Mundane|SRD5.2.1
+Lance|Weapon|Mundane|SRD5.2.1
+Longsword|Weapon|Mundane|SRD5.2.1
+Maul|Weapon|Mundane|SRD5.2.1
+Morningstar|Weapon|Mundane|SRD5.2.1
+Pike|Weapon|Mundane|SRD5.2.1
+Rapier|Weapon|Mundane|SRD5.2.1
+Scimitar|Weapon|Mundane|SRD5.2.1
+Shortsword|Weapon|Mundane|SRD5.2.1
+Trident|Weapon|Mundane|SRD5.2.1
+Warhammer|Weapon|Mundane|SRD5.2.1
+War Pick|Weapon|Mundane|SRD5.2.1
+Whip|Weapon|Mundane|SRD5.2.1
+Blowgun|Weapon|Mundane|SRD5.2.1
+Hand Crossbow|Weapon|Mundane|SRD5.2.1
+Heavy Crossbow|Weapon|Mundane|SRD5.2.1
+Longbow|Weapon|Mundane|SRD5.2.1
+Musket|Weapon|Mundane|SRD5.2.1
+Pistol|Weapon|Mundane|SRD5.2.1
+Padded Armor|Armor|Mundane|SRD5.2.1
+Leather Armor|Armor|Mundane|SRD5.2.1
+Studded Leather Armor|Armor|Mundane|SRD5.2.1
+Hide Armor|Armor|Mundane|SRD5.2.1
+Chain Shirt|Armor|Mundane|SRD5.2.1
+Scale Mail|Armor|Mundane|SRD5.2.1
+Breastplate|Armor|Mundane|SRD5.2.1
+Half Plate Armor|Armor|Mundane|SRD5.2.1
+Ring Mail|Armor|Mundane|SRD5.2.1
+Chain Mail|Armor|Mundane|SRD5.2.1
+Splint Armor|Armor|Mundane|SRD5.2.1
+Plate Armor|Armor|Mundane|SRD5.2.1
+Shield|Armor|Mundane|SRD5.2.1
+Acid|Gear|Mundane|SRD5.2.1
+Alchemist's Fire|Gear|Mundane|SRD5.2.1
+Ammunition|Gear|Mundane|SRD5.2.1
+Antitoxin|Gear|Mundane|SRD5.2.1
+Arcane Focus|Gear|Mundane|SRD5.2.1
+Backpack|Gear|Mundane|SRD5.2.1
+Ball Bearings|Gear|Mundane|SRD5.2.1
+Barrel|Gear|Mundane|SRD5.2.1
+Basket|Gear|Mundane|SRD5.2.1
+Bedroll|Gear|Mundane|SRD5.2.1
+Bell|Gear|Mundane|SRD5.2.1
+Blanket|Gear|Mundane|SRD5.2.1
+Block and Tackle|Gear|Mundane|SRD5.2.1
+Book|Gear|Mundane|SRD5.2.1
+Bottle, Glass|Gear|Mundane|SRD5.2.1
+Bucket|Gear|Mundane|SRD5.2.1
+Burglar's Pack|Gear|Mundane|SRD5.2.1
+Caltrops|Gear|Mundane|SRD5.2.1
+Candle|Gear|Mundane|SRD5.2.1
+Case, Crossbow Bolt|Gear|Mundane|SRD5.2.1
+Case, Map or Scroll|Gear|Mundane|SRD5.2.1
+Chain|Gear|Mundane|SRD5.2.1
+Chest|Gear|Mundane|SRD5.2.1
+Climber's Kit|Gear|Mundane|SRD5.2.1
+Clothes, Fine|Gear|Mundane|SRD5.2.1
+Clothes, Traveler's|Gear|Mundane|SRD5.2.1
+Component Pouch|Gear|Mundane|SRD5.2.1
+Costume|Gear|Mundane|SRD5.2.1
+Crowbar|Gear|Mundane|SRD5.2.1
+Diplomat's Pack|Gear|Mundane|SRD5.2.1
+Druidic Focus|Gear|Mundane|SRD5.2.1
+Dungeoneer's Pack|Gear|Mundane|SRD5.2.1
+Entertainer's Pack|Gear|Mundane|SRD5.2.1
+Explorer's Pack|Gear|Mundane|SRD5.2.1
+Flask|Gear|Mundane|SRD5.2.1
+Grappling Hook|Gear|Mundane|SRD5.2.1
+Healer's Kit|Gear|Mundane|SRD5.2.1
+Holy Symbol|Gear|Mundane|SRD5.2.1
+Holy Water|Gear|Mundane|SRD5.2.1
+Hunting Trap|Gear|Mundane|SRD5.2.1
+Ink|Gear|Mundane|SRD5.2.1
+Ink Pen|Gear|Mundane|SRD5.2.1
+Jug|Gear|Mundane|SRD5.2.1
+Ladder|Gear|Mundane|SRD5.2.1
+Lamp|Gear|Mundane|SRD5.2.1
+Lantern, Bullseye|Gear|Mundane|SRD5.2.1
+Lantern, Hooded|Gear|Mundane|SRD5.2.1
+Lock|Gear|Mundane|SRD5.2.1
+Magnifying Glass|Gear|Mundane|SRD5.2.1
+Manacles|Gear|Mundane|SRD5.2.1
+Map|Gear|Mundane|SRD5.2.1
+Mirror|Gear|Mundane|SRD5.2.1
+Net|Gear|Mundane|SRD5.2.1
+Oil|Gear|Mundane|SRD5.2.1
+Paper|Gear|Mundane|SRD5.2.1
+Parchment|Gear|Mundane|SRD5.2.1
+Perfume|Gear|Mundane|SRD5.2.1
+Poison, Basic|Gear|Mundane|SRD5.2.1
+Pole|Gear|Mundane|SRD5.2.1
+Pot, Iron|Gear|Mundane|SRD5.2.1
+Potion of Healing|Gear|Mundane|SRD5.2.1
+Pouch|Gear|Mundane|SRD5.2.1
+Priest's Pack|Gear|Mundane|SRD5.2.1
+Quiver|Gear|Mundane|SRD5.2.1
+Ram, Portable|Gear|Mundane|SRD5.2.1
+Rations|Gear|Mundane|SRD5.2.1
+Robe|Gear|Mundane|SRD5.2.1
+Rope|Gear|Mundane|SRD5.2.1
+Sack|Gear|Mundane|SRD5.2.1
+Scholar's Pack|Gear|Mundane|SRD5.2.1
+Shovel|Gear|Mundane|SRD5.2.1
+Signal Whistle|Gear|Mundane|SRD5.2.1
+Spell Scroll (Cantrip)|Gear|Mundane|SRD5.2.1
+Spell Scroll (Level 1)|Gear|Mundane|SRD5.2.1
+Spikes, Iron|Gear|Mundane|SRD5.2.1
+Spyglass|Gear|Mundane|SRD5.2.1
+String|Gear|Mundane|SRD5.2.1
+Tent|Gear|Mundane|SRD5.2.1
+Tinderbox|Gear|Mundane|SRD5.2.1
+Torch|Gear|Mundane|SRD5.2.1
+Vial|Gear|Mundane|SRD5.2.1
+Waterskin|Gear|Mundane|SRD5.2.1
+Arrows|Gear|Mundane|SRD5.2.1
+Bolts|Gear|Mundane|SRD5.2.1
+Bullets, Firearm|Gear|Mundane|SRD5.2.1
+Bullets, Sling|Gear|Mundane|SRD5.2.1
+Needles|Gear|Mundane|SRD5.2.1
+Crystal|Gear|Mundane|SRD5.2.1
+Orb|Gear|Mundane|SRD5.2.1
+Rod|Gear|Mundane|SRD5.2.1
+Staff (also a Quarterstaff)|Gear|Mundane|SRD5.2.1
+Wand|Gear|Mundane|SRD5.2.1
+Sprig of mistletoe|Gear|Mundane|SRD5.2.1
+Wooden staff (also a Quarterstaff)|Gear|Mundane|SRD5.2.1
+Yew wand|Gear|Mundane|SRD5.2.1
+Amulet (worn or held)|Gear|Mundane|SRD5.2.1
+Emblem (borne on fabric or a Shield)|Gear|Mundane|SRD5.2.1
+Reliquary (held)|Gear|Mundane|SRD5.2.1
+Spell Scroll|Gear|Mundane|SRD5.2.1
+Camel|Mount/Vehicle|Mundane|SRD5.2.1
+Elephant|Mount/Vehicle|Mundane|SRD5.2.1
+Horse, Draft|Mount/Vehicle|Mundane|SRD5.2.1
+Horse, Riding|Mount/Vehicle|Mundane|SRD5.2.1
+Mastiff|Mount/Vehicle|Mundane|SRD5.2.1
+Mule|Mount/Vehicle|Mundane|SRD5.2.1
+Pony|Mount/Vehicle|Mundane|SRD5.2.1
+Warhorse|Mount/Vehicle|Mundane|SRD5.2.1
+Carriage|Mount/Vehicle|Mundane|SRD5.2.1
+Cart|Mount/Vehicle|Mundane|SRD5.2.1
+Chariot|Mount/Vehicle|Mundane|SRD5.2.1
+Feed per day|Mount/Vehicle|Mundane|SRD5.2.1
+Saddle|Mount/Vehicle|Mundane|SRD5.2.1
+Exotic|Mount/Vehicle|Mundane|SRD5.2.1
+Military|Mount/Vehicle|Mundane|SRD5.2.1
+Riding|Mount/Vehicle|Mundane|SRD5.2.1
+Sled|Mount/Vehicle|Mundane|SRD5.2.1
+Stabling per day|Mount/Vehicle|Mundane|SRD5.2.1
+Wagon|Mount/Vehicle|Mundane|SRD5.2.1
+Airship|Mount/Vehicle|Mundane|SRD5.2.1
+Galley|Mount/Vehicle|Mundane|SRD5.2.1
+Keelboat|Mount/Vehicle|Mundane|SRD5.2.1
+Longship|Mount/Vehicle|Mundane|SRD5.2.1
+Rowboat|Mount/Vehicle|Mundane|SRD5.2.1
+Sailing Ship|Mount/Vehicle|Mundane|SRD5.2.1
+Warship|Mount/Vehicle|Mundane|SRD5.2.1
+Adamantine Armor|Armor|Uncommon|SRD5.2.1
+Ammunition, +1, +2, or +3|Weapon|Very Rare|SRD5.2.1
+Ammunition of Slaying|Weapon|Very Rare|SRD5.2.1
+Amulet of Health|Wondrous|Rare|SRD5.2.1
+Amulet of Proof against Detection and Location|Wondrous|Uncommon|SRD5.2.1
+Amulet of the Planes|Wondrous|Very Rare|SRD5.2.1
+Animated Shield|Armor|Very Rare|SRD5.2.1
+Apparatus of the Crab|Wondrous|Legendary|SRD5.2.1
+Armor, +1, +2, or +3|Armor|Legendary|SRD5.2.1
+Armor of Invulnerability|Armor|Legendary|SRD5.2.1
+Armor of Resistance|Armor|Rare|SRD5.2.1
+Armor of Vulnerability|Armor|Rare|SRD5.2.1
+Arrow-Catching Shield|Armor|Rare|SRD5.2.1
+Bag of Beans|Wondrous|Rare|SRD5.2.1
+Bag of Devouring|Wondrous|Very Rare|SRD5.2.1
+Bag of Holding|Wondrous|Uncommon|SRD5.2.1
+Bag of Tricks|Wondrous|Uncommon|SRD5.2.1
+Bead of Force|Wondrous|Rare|SRD5.2.1
+Bead of Nourishment|Wondrous|Common|SRD5.2.1+XGTE
+Belt of Dwarvenkind|Wondrous|Rare|SRD5.2.1
+Belt of Giant Strength|Wondrous|Varies|SRD5.2.1
+Berserker Axe|Weapon|Rare|SRD5.2.1
+Boots of Elvenkind|Wondrous|Uncommon|SRD5.2.1
+Boots of Levitation|Wondrous|Rare|SRD5.2.1
+Boots of Speed|Wondrous|Rare|SRD5.2.1
+Boots of Striding and Springing|Wondrous|Uncommon|SRD5.2.1
+Boots of the Winterlands|Wondrous|Uncommon|SRD5.2.1
+Bowl of Commanding Water Elementals|Wondrous|Rare|SRD5.2.1
+Bracers of Archery|Wondrous|Uncommon|SRD5.2.1
+Bracers of Defense|Wondrous|Rare|SRD5.2.1
+Brazier of Commanding Fire Elementals|Wondrous|Rare|SRD5.2.1
+Brooch of Shielding|Wondrous|Uncommon|SRD5.2.1
+Broom of Flying|Wondrous|Uncommon|SRD5.2.1
+Candle of Invocation|Wondrous|Very Rare|SRD5.2.1
+Cape of the Mountebank|Wondrous|Rare|SRD5.2.1
+Carpet of Flying|Wondrous|Very Rare|SRD5.2.1
+Censer of Controlling Air Elementals|Wondrous|Rare|SRD5.2.1
+Chime of Opening|Wondrous|Rare|SRD5.2.1
+Circlet of Blasting|Wondrous|Uncommon|SRD5.2.1
+Cloak of Arachnida|Wondrous|Very Rare|SRD5.2.1
+Cloak of Displacement|Wondrous|Rare|SRD5.2.1
+Cloak of Elvenkind|Wondrous|Uncommon|SRD5.2.1
+Cloak of Invisibility|Wondrous|Legendary|SRD5.2.1
+Cloak of Protection|Wondrous|Uncommon|SRD5.2.1
+Cloak of the Bat|Wondrous|Rare|SRD5.2.1
+Cloak of the Manta Ray|Wondrous|Uncommon|SRD5.2.1
+Crystal Ball|Wondrous|Very Rare|SRD5.2.1
+Crystal Ball of Mind Reading|Wondrous|Legendary|SRD5.2.1
+Crystal Ball of Telepathy|Wondrous|Legendary|SRD5.2.1
+Crystal Ball of True Seeing|Wondrous|Legendary|SRD5.2.1
+Cube of Force|Wondrous|Rare|SRD5.2.1
+Cubic Gate|Wondrous|Legendary|SRD5.2.1
+Dagger of Venom|Weapon|Rare|SRD5.2.1
+Dancing Sword|Weapon|Very Rare|SRD5.2.1
+Decanter of Endless Water|Wondrous|Uncommon|SRD5.2.1
+Deck of Illusions|Wondrous|Uncommon|SRD5.2.1
+Defender|Weapon|Legendary|SRD5.2.1
+Demon Armor|Armor|Very Rare|SRD5.2.1
+Dimensional Shackles|Wondrous|Rare|SRD5.2.1
+Dragon Orb|Wondrous|Artifact|SRD5.2.1
+Dragon Scale Mail|Armor|Very Rare|SRD5.2.1
+Dragon Slayer|Weapon|Rare|SRD5.2.1
+Dust of Disappearance|Wondrous|Uncommon|SRD5.2.1
+Dust of Dryness|Wondrous|Uncommon|SRD5.2.1
+Dust of Sneezing and Choking|Wondrous|Uncommon|SRD5.2.1
+Dwarven Plate|Armor|Very Rare|SRD5.2.1
+Dwarven Thrower|Weapon|Very Rare|SRD5.2.1
+Efficient Quiver|Wondrous|Uncommon|SRD5.2.1
+Efreeti Bottle|Wondrous|Very Rare|SRD5.2.1
+Elemental Gem|Wondrous|Uncommon|SRD5.2.1
+Elixir of Health|Potion|Rare|SRD5.2.1
+Elven Chain|Armor|Rare|SRD5.2.1
+Energy Bow|Weapon|Very Rare|SRD5.2.1
+Eversmoking Bottle|Wondrous|Uncommon|SRD5.2.1
+Eyes of Charming|Wondrous|Uncommon|SRD5.2.1
+Eyes of Minute Seeing|Wondrous|Uncommon|SRD5.2.1
+Eyes of the Eagle|Wondrous|Uncommon|SRD5.2.1
+Feather Token|Wondrous|Varies|SRD5.2.1
+Figurine of Wondrous Power|Wondrous|Varies|SRD5.2.1
+Flame Tongue|Weapon|Rare|SRD5.2.1
+Folding Boat|Wondrous|Rare|SRD5.2.1
+Frost Brand|Weapon|Very Rare|SRD5.2.1
+Gauntlets of Ogre Power|Wondrous|Uncommon|SRD5.2.1
+Gem of Brightness|Wondrous|Uncommon|SRD5.2.1
+Gem of Seeing|Wondrous|Rare|SRD5.2.1
+Giant Slayer|Weapon|Rare|SRD5.2.1
+Glamoured Studded Leather|Armor|Rare|SRD5.2.1
+Gloves of Missile Snaring|Wondrous|Uncommon|SRD5.2.1
+Gloves of Swimming and Climbing|Wondrous|Uncommon|SRD5.2.1
+Gloves of Thievery|Wondrous|Uncommon|SRD5.2.1
+Goggles of Night|Wondrous|Uncommon|SRD5.2.1
+Hammer of Thunderbolts|Weapon|Legendary|SRD5.2.1
+Handy Haversack|Wondrous|Rare|SRD5.2.1
+Hat of Disguise|Wondrous|Uncommon|SRD5.2.1
+Hat of Many Spells|Wondrous|Very Rare|SRD5.2.1
+Headband of Intellect|Wondrous|Uncommon|SRD5.2.1
+Helm of Brilliance|Wondrous|Very Rare|SRD5.2.1
+Helm of Comprehending Languages|Wondrous|Uncommon|SRD5.2.1
+Helm of Telepathy|Wondrous|Uncommon|SRD5.2.1
+Helm of Teleportation|Wondrous|Rare|SRD5.2.1
+Holy Avenger|Weapon|Legendary|SRD5.2.1
+Horn of Blasting|Wondrous|Rare|SRD5.2.1
+Horn of Valhalla|Wondrous|Legendary|SRD5.2.1
+Horseshoes of a Zephyr|Wondrous|Very Rare|SRD5.2.1
+Horseshoes of Speed|Wondrous|Rare|SRD5.2.1
+Immovable Rod|Rod|Uncommon|SRD5.2.1
+Instant Fortress|Wondrous|Rare|SRD5.2.1
+Ioun Stone|Wondrous|Varies|SRD5.2.1
+Iron Bands|Wondrous|Rare|SRD5.2.1
+Iron Flask|Wondrous|Legendary|SRD5.2.1
+Javelin of Lightning|Weapon|Uncommon|SRD5.2.1
+Lantern of Revealing|Wondrous|Uncommon|SRD5.2.1
+Luck Blade|Weapon|Legendary|SRD5.2.1
+Mace of Disruption|Weapon|Rare|SRD5.2.1
+Mace of Smiting|Weapon|Rare|SRD5.2.1
+Mace of Terror|Weapon|Rare|SRD5.2.1
+Mantle of Spell Resistance|Wondrous|Rare|SRD5.2.1
+Manual of Bodily Health|Wondrous|Very Rare|SRD5.2.1
+Manual of Gainful Exercise|Wondrous|Very Rare|SRD5.2.1
+Manual of Golems|Wondrous|Very Rare|SRD5.2.1
+Manual of Quickness of Action|Wondrous|Very Rare|SRD5.2.1
+Marvelous Pigments|Wondrous|Very Rare|SRD5.2.1
+Medallion of Thoughts|Wondrous|Uncommon|SRD5.2.1
+Mirror of Life Trapping|Wondrous|Very Rare|SRD5.2.1
+Mithral Armor|Armor|Uncommon|SRD5.2.1
+Mysterious Deck|Wondrous|Legendary|SRD5.2.1
+Necklace of Adaptation|Wondrous|Uncommon|SRD5.2.1
+Necklace of Fireballs|Wondrous|Rare|SRD5.2.1
+Necklace of Prayer Beads|Wondrous|Rare|SRD5.2.1
+Nine Lives Stealer|Weapon|Very Rare|SRD5.2.1
+Oathbow|Weapon|Very Rare|SRD5.2.1
+Oil of Etherealness|Potion|Rare|SRD5.2.1
+Oil of Sharpness|Potion|Very Rare|SRD5.2.1
+Oil of Slipperiness|Potion|Uncommon|SRD5.2.1
+Pearl of Power|Wondrous|Uncommon|SRD5.2.1
+Periapt of Health|Wondrous|Uncommon|SRD5.2.1
+Periapt of Proof against Poison|Wondrous|Rare|SRD5.2.1
+Periapt of Wound Closure|Wondrous|Uncommon|SRD5.2.1
+Philter of Love|Potion|Uncommon|SRD5.2.1
+Pipes of Haunting|Wondrous|Uncommon|SRD5.2.1
+Pipes of the Sewers|Wondrous|Uncommon|SRD5.2.1
+Plate Armor of Etherealness|Armor|Legendary|SRD5.2.1
+Portable Hole|Wondrous|Rare|SRD5.2.1
+Potion of Animal Friendship|Potion|Uncommon|SRD5.2.1
+Potion of Clairvoyance|Potion|Rare|SRD5.2.1
+Potion of Climbing|Potion|Common|SRD5.2.1
+Potion of Diminution|Potion|Rare|SRD5.2.1
+Potion of Flying|Potion|Very Rare|SRD5.2.1
+Potion of Gaseous Form|Potion|Rare|SRD5.2.1
+Potion of Giant Strength|Potion|Varies|SRD5.2.1
+Potion of Growth|Potion|Uncommon|SRD5.2.1
+Potions of Healing|Potion|Varies|SRD5.2.1
+Potion of Heroism|Potion|Rare|SRD5.2.1
+Potion of Invisibility|Potion|Rare|SRD5.2.1
+Potion of Invulnerability|Potion|Rare|SRD5.2.1
+Potion of Longevity|Potion|Very Rare|SRD5.2.1
+Potion of Mind Reading|Potion|Rare|SRD5.2.1
+Potion of Poison|Potion|Uncommon|SRD5.2.1
+Potion of Resistance|Potion|Uncommon|SRD5.2.1
+Potion of Speed|Potion|Very Rare|SRD5.2.1
+Potion of Vitality|Potion|Very Rare|SRD5.2.1
+Potion of Water Breathing|Potion|Uncommon|SRD5.2.1
+Quarterstaff of the Acrobat|Weapon|Very Rare|SRD5.2.1
+Ring of Animal Influence|Ring|Rare|SRD5.2.1
+Ring of Djinni Summoning|Ring|Legendary|SRD5.2.1
+Ring of Elemental Command|Ring|Legendary|SRD5.2.1
+Ring of Evasion|Ring|Rare|SRD5.2.1
+Ring of Feather Falling|Ring|Rare|SRD5.2.1
+Ring of Free Action|Ring|Rare|SRD5.2.1
+Ring of Invisibility|Ring|Legendary|SRD5.2.1
+Ring of Jumping|Ring|Uncommon|SRD5.2.1
+Ring of Mind Shielding|Ring|Uncommon|SRD5.2.1
+Ring of Protection|Ring|Rare|SRD5.2.1
+Ring of Regeneration|Ring|Very Rare|SRD5.2.1
+Ring of Resistance|Ring|Rare|SRD5.2.1
+Ring of Shooting Stars|Ring|Very Rare|SRD5.2.1
+Ring of Spell Storing|Ring|Rare|SRD5.2.1
+Ring of Spell Turning|Ring|Legendary|SRD5.2.1
+Ring of Swimming|Ring|Uncommon|SRD5.2.1
+Ring of Telekinesis|Ring|Very Rare|SRD5.2.1
+Ring of the Ram|Ring|Rare|SRD5.2.1
+Ring of Three Wishes|Ring|Legendary|SRD5.2.1
+Ring of Warmth|Ring|Uncommon|SRD5.2.1
+Ring of Water Walking|Ring|Uncommon|SRD5.2.1
+Ring of X-ray Vision|Ring|Rare|SRD5.2.1
+Robe of Eyes|Wondrous|Rare|SRD5.2.1
+Robe of Scintillating Colors|Wondrous|Very Rare|SRD5.2.1
+Robe of Stars|Wondrous|Very Rare|SRD5.2.1
+Robe of the Archmagi|Wondrous|Legendary|SRD5.2.1
+Robe of Useful Items|Wondrous|Uncommon|SRD5.2.1
+Rod of Absorption|Rod|Very Rare|SRD5.2.1
+Rod of Alertness|Rod|Very Rare|SRD5.2.1
+Rod of Lordly Might|Rod|Legendary|SRD5.2.1
+Rod of Resurrection|Rod|Legendary|SRD5.2.1
+Rod of Rulership|Rod|Rare|SRD5.2.1
+Rod of Security|Rod|Very Rare|SRD5.2.1
+Rope of Climbing|Wondrous|Uncommon|SRD5.2.1
+Rope of Entanglement|Wondrous|Rare|SRD5.2.1
+Scarab of Protection|Wondrous|Legendary|SRD5.2.1
+Scimitar of Speed|Weapon|Very Rare|SRD5.2.1
+Sending Stones|Wondrous|Uncommon|SRD5.2.1
+Sentinel Shield|Armor|Uncommon|SRD5.2.1
+Shield, +1, +2, or +3|Armor|Very Rare|SRD5.2.1
+Shield of Missile Attraction|Armor|Rare|SRD5.2.1
+Shield of the Cavalier|Armor|Very Rare|SRD5.2.1
+Slippers of Spider Climbing|Wondrous|Uncommon|SRD5.2.1
+Sovereign Glue|Wondrous|Legendary|SRD5.2.1
+Spellguard Shield|Armor|Very Rare|SRD5.2.1
+Sphere of Annihilation|Wondrous|Legendary|SRD5.2.1
+Staff of Charming|Staff|Rare|SRD5.2.1
+Staff of Fire|Staff|Very Rare|SRD5.2.1
+Staff of Frost|Staff|Very Rare|SRD5.2.1
+Staff of Healing|Staff|Rare|SRD5.2.1
+Staff of Power|Staff|Very Rare|SRD5.2.1
+Staff of Striking|Staff|Very Rare|SRD5.2.1
+Staff of Swarming Insects|Staff|Rare|SRD5.2.1
+Staff of the Magi|Staff|Legendary|SRD5.2.1
+Staff of the Python|Staff|Uncommon|SRD5.2.1
+Staff of the Woodlands|Staff|Rare|SRD5.2.1
+Staff of Thunder and Lightning|Staff|Very Rare|SRD5.2.1
+Staff of Withering|Staff|Rare|SRD5.2.1
+Stone of Controlling Earth Elementals|Wondrous|Rare|SRD5.2.1
+Stone of Good Luck (Luckstone)|Wondrous|Uncommon|SRD5.2.1
+Sun Blade|Weapon|Rare|SRD5.2.1
+Sword of Life Stealing|Weapon|Rare|SRD5.2.1
+Sword of Sharpness|Weapon|Very Rare|SRD5.2.1
+Sword of Wounding|Weapon|Rare|SRD5.2.1
+Talisman of Pure Good|Wondrous|Legendary|SRD5.2.1
+Talisman of the Sphere|Wondrous|Legendary|SRD5.2.1
+Talisman of Ultimate Evil|Wondrous|Legendary|SRD5.2.1
+Thunderous Greatclub|Weapon|Very Rare|SRD5.2.1
+Tome of Clear Thought|Wondrous|Very Rare|SRD5.2.1
+Tome of Leadership and Influence|Wondrous|Very Rare|SRD5.2.1
+Tome of Understanding|Wondrous|Very Rare|SRD5.2.1
+Trident of Fish Command|Weapon|Uncommon|SRD5.2.1
+Universal Solvent|Wondrous|Legendary|SRD5.2.1
+Vicious Weapon|Weapon|Rare|SRD5.2.1
+Vorpal Sword|Weapon|Legendary|SRD5.2.1
+Wand of Binding|Wand|Rare|SRD5.2.1
+Wand of Enemy Detection|Wand|Rare|SRD5.2.1
+Wand of Fear|Wand|Rare|SRD5.2.1
+Wand of Fireballs|Wand|Rare|SRD5.2.1
+Wand of Lightning Bolts|Wand|Rare|SRD5.2.1
+Wand of Magic Detection|Wand|Uncommon|SRD5.2.1
+Wand of Magic Missiles|Wand|Uncommon|SRD5.2.1
+Wand of Paralysis|Wand|Rare|SRD5.2.1
+Wand of Polymorph|Wand|Very Rare|SRD5.2.1
+Wand of Secrets|Wand|Uncommon|SRD5.2.1
+Wand of the War Mage, +1, +2, or +3|Wand|Very Rare|SRD5.2.1
+Wand of Web|Wand|Uncommon|SRD5.2.1
+Wand of Wonder|Wand|Rare|SRD5.2.1
+Weapon, +1, +2, or +3|Weapon|Very Rare|SRD5.2.1
+Weapon of Warning|Weapon|Uncommon|SRD5.2.1
+Well of Many Worlds|Wondrous|Legendary|SRD5.2.1
+Wind Fan|Wondrous|Uncommon|SRD5.2.1
+Winged Boots|Wondrous|Uncommon|SRD5.2.1+Eberron
+Wings of Flying|Wondrous|Rare|SRD5.2.1
+Armor of Gleaming|Armor|Common|XGTE
+Bead of Refreshment|Wondrous|Common|XGTE
+Boots of False Tracks|Wondrous|Common|XGTE
+Candle of the Deep|Wondrous|Common|XGTE
+Cast-Off Armor|Armor|Common|XGTE
+Charlatan's Die|Wondrous|Common|XGTE
+Cloak of Billowing|Wondrous|Common|XGTE
+Cloak of Many Fashions|Wondrous|Common|XGTE
+Clockwork Amulet|Wondrous|Common|XGTE
+Clothes of Mending|Wondrous|Common|XGTE
+Dark Shard Amulet|Wondrous|Common|XGTE
+Dread Helm|Wondrous|Common|XGTE
+Ear Horn of Hearing|Wondrous|Common|XGTE
+Enduring Spellbook|Wondrous|Common|XGTE
+Ersatz Eye|Wondrous|Common|XGTE
+Hat of Vermin|Wondrous|Common|XGTE
+Hat of Wizardry|Wondrous|Common|XGTE
+Heward's Handy Spice Pouch|Wondrous|Common|XGTE
+Horn of Silent Alarm|Wondrous|Common|XGTE
+Instrument of Illusions|Wondrous|Common|XGTE
+Instrument of Scribing|Wondrous|Common|XGTE
+Lock of Trickery|Wondrous|Common|XGTE
+Moon-Touched Sword|Weapon|Common|XGTE
+Mystery Key|Wondrous|Common|XGTE
+Orb of Direction|Wondrous|Common|XGTE
+Orb of Time|Wondrous|Common|XGTE
+Perfume of Bewitching|Wondrous|Common|XGTE
+Pipe of Smoke Monsters|Wondrous|Common|XGTE
+Pole of Angling|Wondrous|Common|XGTE
+Pole of Collapsing|Wondrous|Common|XGTE
+Pot of Awakening|Wondrous|Common|XGTE
+Rope of Mending|Wondrous|Common|XGTE
+Ruby of the War Mage|Wondrous|Common|XGTE
+Shield of Expression|Armor|Common|XGTE
+Smoldering Armor|Armor|Common|XGTE
+Staff of Adornment|Staff|Common|XGTE
+Staff of Birdcalls|Staff|Common|XGTE
+Staff of Flowers|Staff|Common|XGTE
+Talking Doll|Wondrous|Common|XGTE
+Tankard of Sobriety|Wondrous|Common|XGTE
+Unbreakable Arrow|Weapon|Common|XGTE
+Veteran's Cane|Wondrous|Common|XGTE
+Walloping Ammunition|Weapon|Common|XGTE
+Wand of Conducting|Wand|Common|XGTE
+Wand of Pyrotechnics|Wand|Common|XGTE
+Wand of Scowls|Wand|Common|XGTE
+Wand of Smiles|Wand|Common|XGTE
+Holy Symbol of Ravenkind|Wondrous|Legendary|VRGTR
+Icon of Ravenloft|Wondrous|Legendary|VRGTR
+Sunsword|Weapon|Legendary|VRGTR
+Tome of Strahd|Wondrous|Artifact|VRGTR
+Blackstaff|Staff|Legendary|FRHOF
+Bookmark|Weapon|Legendary|FRHOF
+Hazirawn|Weapon|Legendary|FRHOF
+Moonblade|Weapon|Legendary|FRHOF
+Ring of Winter|Ring|Artifact|FRHOF
+Staff of the Forgotten One|Staff|Artifact|FRHOF
+Adventurer's Atlas|Wondrous|Varies|Eberron
+All-Purpose Tool|Wondrous|Varies|Eberron
+Boots of the Winding Path|Wondrous|Varies|Eberron
+Repeating Shot Light Crossbow|Weapon|Varies|Eberron
+Alchemist's Supplies|Tool|Mundane|SRD5.2.1
+Brewer's Supplies|Tool|Mundane|SRD5.2.1
+Calligrapher's Supplies|Tool|Mundane|SRD5.2.1
+Carpenter's Tools|Tool|Mundane|SRD5.2.1
+Cartographer's Tools|Tool|Mundane|SRD5.2.1
+Cobbler's Tools|Tool|Mundane|SRD5.2.1
+Cook's Utensils|Tool|Mundane|SRD5.2.1
+Glassblower's Tools|Tool|Mundane|SRD5.2.1
+Jeweler's Tools|Tool|Mundane|SRD5.2.1
+Leatherworker's Tools|Tool|Mundane|SRD5.2.1
+Mason's Tools|Tool|Mundane|SRD5.2.1
+Painter's Supplies|Tool|Mundane|SRD5.2.1
+Potter's Tools|Tool|Mundane|SRD5.2.1
+Smith's Tools|Tool|Mundane|SRD5.2.1
+Tinker's Tools|Tool|Mundane|SRD5.2.1
+Weaver's Tools|Tool|Mundane|SRD5.2.1
+Woodcarver's Tools|Tool|Mundane|SRD5.2.1
+Disguise Kit|Tool|Mundane|SRD5.2.1
+Forgery Kit|Tool|Mundane|SRD5.2.1
+Gaming Set|Tool|Mundane|SRD5.2.1
+Herbalism Kit|Tool|Mundane|SRD5.2.1
+Musical Instrument|Tool|Mundane|SRD5.2.1
+Navigator's Tools|Tool|Mundane|SRD5.2.1
+Poisoner's Kit|Tool|Mundane|SRD5.2.1
+Thieves' Tools|Tool|Mundane|SRD5.2.1

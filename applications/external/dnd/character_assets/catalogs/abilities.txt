@@ -1,0 +1,151 @@
+# Dungeons & Dolphins SRD 5.2.1 feature/ability names. These merge into the Feats & Perks picker.
+Action Surge
+Bardic Inspiration
+Channel Divinity
+Danger Sense
+Divine Order
+Eldritch Invocations
+Expertise
+Extra Attack
+Fighting Style
+Font of Inspiration
+Font of Magic
+Indomitable
+Jack of All Trades
+Lay on Hands
+Magical Secrets
+Martial Arts
+Metamagic
+Pact Magic
+Rage
+Reckless Attack
+Second Wind
+Sneak Attack
+Sorcery Points
+Spellcasting
+Unarmored Defense
+Weapon Mastery
+Wild Shape
+
+# Barbarian
+Primal Knowledge
+Fast Movement
+Feral Instinct
+Instinctive Pounce
+Brutal Strike
+Improved Brutal Strike
+Relentless Rage
+Persistent Rage
+Indomitable Might
+Primal Champion
+
+# Bard
+Words of Creation
+Countercharm
+Superior Inspiration
+
+# Cleric
+Blessed Strikes
+Divine Intervention
+Sear Undead
+Improved Blessed Strikes
+Greater Divine Intervention
+
+# Druid
+Druidic
+Primal Order
+Wild Companion
+Wild Resurgence
+Elemental Fury
+Improved Elemental Fury
+Beast Spells
+Archdruid
+
+# Fighter
+Tactical Mind
+Tactical Shift
+Tactical Master
+Studied Attacks
+
+# Monk
+Monk's Focus
+Flurry of Blows
+Patient Defense
+Step of the Wind
+Deflect Attacks
+Slow Fall
+Stunning Strike
+Empowered Strikes
+Evasion
+Acrobatic Movement
+Heightened Focus
+Self-Restoration
+Deflect Energy
+Disciplined Survivor
+Perfect Focus
+Superior Defense
+Body and Mind
+
+# Paladin
+Paladin's Smite
+Divine Sense
+Aura of Protection
+Faithful Steed
+Abjure Foes
+Aura of Courage
+Radiant Strikes
+Restoring Touch
+
+# Ranger
+Favored Enemy
+Deft Explorer
+Roving
+Tireless
+Nature's Veil
+Relentless Hunter
+Precise Hunter
+Foe Slayer
+
+# Rogue
+Thieves' Cant
+Cunning Action
+Steady Aim
+Cunning Strike
+Uncanny Dodge
+Evasion
+Reliable Talent
+Improved Cunning Strike
+Slippery Mind
+Elusive
+Stroke of Luck
+
+# Sorcerer
+Innate Sorcery
+Sorcerous Restoration
+Sorcery Incarnate
+Arcane Apotheosis
+
+# Warlock
+Magical Cunning
+Contact Patron
+Mystic Arcanum
+Eldritch Master
+
+# Wizard
+Spellbook
+Ritual Adept
+Arcane Recovery
+Scholar
+Memorize Spell
+Spell Mastery
+Signature Spells
+
+# Artificer
+Tinker's Magic
+Replicate Magic Item
+Right Tool for the Job
+Flash of Genius
+Magic Item Adept
+Magic Item Savant
+Magic Item Master
+Soul of Artifice
