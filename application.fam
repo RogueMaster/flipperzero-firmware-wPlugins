@@ -12,6 +12,7 @@ App(
         "ASN_DISABLE_XER_SUPPORT",
         "ASN_DISABLE_RANDOM_FILL",
         "ASN_DISABLE_PRINT_SUPPORT",
+        "SEADER_ENABLE_TRACE_LOG",
     ],
     requires=[
         "gui", "storage", "nfc",

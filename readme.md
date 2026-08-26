@@ -72,3 +72,40 @@ Optionally 3d print a [case designed by sean](https://www.printables.com/model/5
 - `arm-none-eabi-readelf ~/.ufbt/build/seader.fap -t`
 - `ufbt cli` -> `free_blocks`
 
+
+## 🔌 USB SAM Reader (ACR39U-style passthrough)
+
+Seader can present the attached HID SAM to a host PC as a **USB CCID contact
+smart-card reader**, so any PC/SC application can drive the SAM directly (e.g.
+the PM3 SAM host tools). The SAM appears as the card in slot 0.
+
+Menu: with a SAM detected, choose **USB SAM Reader**. Connect the Flipper to a
+PC over USB; a PC/SC reader appears (default identity: ACS / "ACR39U ICC
+Reader"). Press **Back** to stop and restore the normal USB console.
+
+- Host APDUs (`PC_TO_RDR_XfrBlock`) are relayed to the SAM over Seader's
+  existing T=1 / CCID path; the response is returned to the host verbatim.
+- The reader name is **user-editable in the app**: SAM detected → **USB Reader
+  Name** → set the **manufacturer**, then the **product** string. Both persist
+  (`usb_reader.conf`) and the USB PID auto-bumps on any change so Windows
+  re-enumerates a fresh device node instead of showing the cached old name.
+  Windows builds the PC/SC reader name as `<manufacturer> <product> <slot>`,
+  which is what name-matching host tools key on. Keep at least the manufacturer
+  non-empty: with no manufacturer string (`iManufacturer = 0`) Windows names the
+  reader from the generic driver description and PC/SC apps stop finding it.
+  Compile-time defaults / VID live in `sam_reader.h` (`SEADER_READER_DEFAULT_*`).
+  Neutral VID `0x1209` keeps the inbox CCID driver bound (avoid a real vendor's
+  VID like ACS `0x072F`, which loads the vendor driver and refuses a non-genuine
+  device).
+- Implementation: `usb_ccid_reader.{c,h}` (self-contained USB CCID gadget) +
+  `sam_reader.{c,h}` (SAM relay bridge) + `scenes/seader_scene_reader.c`, worker
+  state `SeaderWorkerStateReaderEmulation`.
+
+**Why a custom USB gadget:** the firmware's stock `usb_ccid` interface
+advertises only 2 endpoints (no interrupt IN) and `dwProtocols = T=0` only.
+Windows' WUDF usbccid driver refuses to start it ("This device cannot start.
+Code 10"), and it can't present a T=1 card. `usb_ccid_reader.c` therefore
+defines its own `FuriHalUsbInterface` with a 3-endpoint descriptor (bulk
+in/out + interrupt in) and `dwProtocols = T=0|T=1`, then bridges host APDUs to
+the SAM. Built against the f7 SDK's `libusb_stm32` (`usb_ccid.h`, `usb_std.h`,
+`usbd_core.h`) + `furi_hal_usb.h`.
