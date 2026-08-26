@@ -31,9 +31,6 @@ The app only speaks the FlipperHTTP text protocol over the Flipper UART
 
 - **ESP32** (WROOM/S2) running
   [FlipperHTTP](https://github.com/jblanked/FlipperHTTP) v2.2.0
-- **BW16** (RTL8720DN) running
-  [BlackMagic](https://github.com/SkeletonMan03/FlipperZeroBlackMagic)
-  (FlipperHTTP-compatible)
 - Power: the official Wi-Fi Devboard runs from the Flipper 3v3 rail; bare
   devkits are best powered via USB.
 
@@ -120,5 +117,4 @@ response display, `debug.log` logging, error and timeout handling.
 - [Flipper Zero developer docs](https://developer.flipper.net/)
 - [uFBT](https://github.com/flipperdevices/flipperzero-ufbt)
 - [FlipperHTTP](https://github.com/jblanked/FlipperHTTP)
-- [BlackMagic for BW16](https://github.com/SkeletonMan03/FlipperZeroBlackMagic)
 - Project template: [flipper_zero_template](https://github.com/gemisis/flipper_zero_template)

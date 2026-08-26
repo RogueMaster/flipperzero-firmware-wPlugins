@@ -8,9 +8,7 @@ Flipper Zero, how to set up the Wi-Fi board, and how to use the app today.
 - A [Flipper Zero](https://flipperzero.one/) with recent official/custom firmware
 - A Wi-Fi board that speaks the FlipperHTTP protocol:
   - **ESP32** (official Wi-Fi Devboard or a bare WROOM/S2 devkit) running
-    [FlipperHTTP](https://github.com/jblanked/FlipperHTTP) **v2.2.0**, or
-  - **BW16 - to be tested** (RTL8720DN) running
-    [BlackMagic](https://github.com/SkeletonMan03/FlipperZeroBlackMagic)
+    [FlipperHTTP](https://github.com/jblanked/FlipperHTTP) **v2.2.0**
 - The latest `.fap` from the
   [Releases](https://github.com/todotge/Flipper-api-caller/releases) page,
   copied to `apps/Tools` on the Flipper (e.g. with qFlipper)
@@ -36,7 +34,7 @@ powered from its own USB port.
 - Web flasher: <https://flipperhttp.jblanked.com/> (targets the official
   Wi-Fi Devboard)
 
-Make sure the build you flash matches your chip (ESP32-S2 Devboard build vs ESP32 WROOM build). BW16 users must flash BlackMagic instead.
+Make sure the build you flash matches your chip (ESP32-S2 Devboard build vs ESP32 WROOM build).
 
 ## Using the app
 

@@ -123,7 +123,7 @@ ___
 - n8n / Activepieces nodes (text, number, bool)
 - Response headers exposed (firmware patch) and binary/file response support
 - Retry / rate-limit helpers
-
+- Support for [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2), 
 ___
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
