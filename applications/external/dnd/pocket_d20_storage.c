@@ -8,12 +8,12 @@
 
 #define POCKET_D20_TEXT_VERSION 2U
 #define POCKET_D20_LINE_LEN     768U
-#define POCKET_D20_DATA_DIR     APP_ASSETS_PATH("profiles")
-#define POCKET_D20_EXPORT_DIR   APP_ASSETS_PATH("profiles/exports")
-#define POCKET_D20_ARCHIVE_DIR  APP_ASSETS_PATH("profiles/archive")
+#define POCKET_D20_DATA_DIR     APP_DATA_PATH("profiles")
+#define POCKET_D20_EXPORT_DIR   APP_DATA_PATH("profiles/exports")
+#define POCKET_D20_ARCHIVE_DIR  APP_DATA_PATH("profiles/archive")
 
-#define POCKET_D20_ACTIVE_PROFILE_PATH      APP_ASSETS_PATH("profiles/custom_active_profile.txt")
-#define POCKET_D20_ACTIVE_PROFILE_TEMP_PATH APP_ASSETS_PATH("profiles/custom_active_profile.tmp")
+#define POCKET_D20_ACTIVE_PROFILE_PATH      APP_DATA_PATH("profiles/custom_active_profile.txt")
+#define POCKET_D20_ACTIVE_PROFILE_TEMP_PATH APP_DATA_PATH("profiles/custom_active_profile.tmp")
 
 static void pocket_d20_copy(char* destination, size_t size, const char* source) {
     if(size == 0U) return;
