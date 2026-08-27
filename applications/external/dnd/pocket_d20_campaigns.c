@@ -1,20 +1,29 @@
 #include "pocket_d20_campaigns.h"
 
+#include <furi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define CAMPAIGN_BUNDLED_INDEX  APP_ASSETS_PATH("campaigns/index.txt")
-#define CAMPAIGN_USER_INDEX     APP_ASSETS_PATH("campaigns/custom_index.txt")
-#define CAMPAIGN_BUNDLED_SCENES APP_ASSETS_PATH("campaigns/%s/%s")
-#define CAMPAIGN_USER_SCENES    APP_ASSETS_PATH("campaigns/custom_%s/%s")
-#define CAMPAIGN_LINE_LEN       512U
-#define CAMPAIGN_MAX_SCENES     64U
+#define CAMPAIGN_BUNDLED_INDEX     APP_ASSETS_PATH("campaigns/index.txt")
+#define CAMPAIGN_USER_INDEX        APP_DATA_PATH("campaigns/custom_index.txt")
+#define CAMPAIGN_USER_INDEX_TEMP   APP_DATA_PATH("campaigns/custom_index.migrate")
+#define CAMPAIGN_USER_INDEX_BACKUP APP_DATA_PATH("campaigns/custom_index.bak")
+#define CAMPAIGN_BUNDLED_SCENES    APP_ASSETS_PATH("campaigns/%s/%s")
+#define CAMPAIGN_USER_SCENES       APP_DATA_PATH("campaigns/custom_%s/%s")
+#define CAMPAIGN_PROGRESS_DIR      APP_DATA_PATH("campaigns")
+#define CAMPAIGN_LEGACY_DIR        APP_ASSETS_PATH("campaigns")
+#define CAMPAIGN_LEGACY_USER_INDEX APP_ASSETS_PATH("campaigns/custom_index.txt")
+#define CAMPAIGN_LINE_LEN          512U
+#define CAMPAIGN_MAX_SCENES        64U
 
 static void campaign_copy(char* out, size_t size, const char* value) {
     if(!size) return;
-    strncpy(out, value ? value : "", size - 1U);
-    out[size - 1U] = '\0';
+    const char* source = value ? value : "";
+    size_t length = strlen(source);
+    if(length >= size) length = size - 1U;
+    memcpy(out, source, length);
+    out[length] = '\0';
 }
 
 static bool campaign_read_line(File* file, char* line, size_t size) {
@@ -141,10 +150,232 @@ static void campaign_progress_path(
     snprintf(
         output,
         size,
-        APP_ASSETS_PATH("campaigns/custom_progress_%08lx_%s.%s"),
+        APP_DATA_PATH("campaigns/custom_progress_%08lx_%s.%s"),
         (unsigned long)profile_id,
         campaign_id,
         suffix);
+}
+
+static bool campaign_path_exists(Storage* storage, const char* path) {
+    FileInfo info;
+    return storage_common_stat(storage, path, &info) == FSE_OK;
+}
+
+static bool campaign_copy_file(Storage* storage, const char* source, const char* destination) {
+    File* input = storage_file_alloc(storage);
+    File* output = storage_file_alloc(storage);
+    bool ok = storage_file_open(input, source, FSAM_READ, FSOM_OPEN_EXISTING) &&
+              storage_file_open(output, destination, FSAM_WRITE, FSOM_CREATE_ALWAYS);
+    uint8_t buffer[256];
+    while(ok) {
+        size_t count = storage_file_read(input, buffer, sizeof(buffer));
+        if(!count) break;
+        ok = storage_file_write(output, buffer, count) == count;
+    }
+    if(ok) ok = storage_file_get_error(input) == FSE_OK && storage_file_sync(output);
+    storage_file_close(input);
+    storage_file_close(output);
+    storage_file_free(input);
+    storage_file_free(output);
+    if(!ok) storage_common_remove(storage, destination);
+    return ok;
+}
+
+static bool campaign_relocate_file_without_replace(
+    Storage* storage,
+    const char* source,
+    const char* destination,
+    uint16_t* copied_files) {
+    if(storage_file_exists(storage, destination))
+        return storage_common_remove(storage, source) == FSE_OK;
+    char temporary[256];
+    int length = snprintf(temporary, sizeof(temporary), "%s.migrate", destination);
+    if(length < 0 || (size_t)length >= sizeof(temporary)) return false;
+    storage_common_remove(storage, temporary);
+    if(!campaign_copy_file(storage, source, temporary)) return false;
+    if(storage_file_exists(storage, destination)) {
+        storage_common_remove(storage, temporary);
+    } else if(storage_common_rename(storage, temporary, destination) != FSE_OK) {
+        storage_common_remove(storage, temporary);
+        return false;
+    }
+    if(storage_common_remove(storage, source) != FSE_OK) return false;
+    if(copied_files && *copied_files < UINT16_MAX) ++*copied_files;
+    return true;
+}
+
+static bool campaign_relocate_directory(
+    Storage* storage,
+    const char* source_directory,
+    const char* destination_directory,
+    uint8_t depth,
+    uint16_t* copied_files) {
+    if(depth > 3U) return false;
+    File* directory = storage_file_alloc(storage);
+    if(!storage_dir_open(directory, source_directory)) {
+        storage_file_free(directory);
+        return false;
+    }
+    storage_common_mkdir(storage, destination_directory);
+    FileInfo info;
+    char filename[128];
+    bool ok = true;
+    while(storage_dir_read(directory, &info, filename, sizeof(filename))) {
+        if(!filename[0] || !strcmp(filename, ".") || !strcmp(filename, "..") ||
+           strchr(filename, '/') || strchr(filename, '\\'))
+            continue;
+        char source[256];
+        char destination[256];
+        int source_length = snprintf(source, sizeof(source), "%s/%s", source_directory, filename);
+        int destination_length =
+            snprintf(destination, sizeof(destination), "%s/%s", destination_directory, filename);
+        if(source_length < 0 || (size_t)source_length >= sizeof(source) ||
+           destination_length < 0 || (size_t)destination_length >= sizeof(destination)) {
+            ok = false;
+            continue;
+        }
+        if(file_info_is_dir(&info)) {
+            if(!campaign_relocate_directory(storage, source, destination, depth + 1U, copied_files))
+                ok = false;
+        } else if(!campaign_relocate_file_without_replace(
+                      storage, source, destination, copied_files)) {
+            ok = false;
+        }
+    }
+    storage_dir_close(directory);
+    storage_file_free(directory);
+    if(ok && storage_common_remove(storage, source_directory) != FSE_OK) ok = false;
+    return ok;
+}
+
+static bool campaign_index_contains(Storage* storage, const char* path, const char* id) {
+    File* file = storage_file_alloc(storage);
+    bool found = false;
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char line[CAMPAIGN_LINE_LEN];
+        PocketCampaignSummary campaign;
+        while(campaign_read_line(file, line, sizeof(line))) {
+            if(campaign_parse(line, false, &campaign) && !strcmp(campaign.id, id)) {
+                found = true;
+                break;
+            }
+        }
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    return found;
+}
+
+static bool campaign_prepare_index_temp(Storage* storage) {
+    storage_common_remove(storage, CAMPAIGN_USER_INDEX_TEMP);
+    if(storage_file_exists(storage, CAMPAIGN_USER_INDEX))
+        return campaign_copy_file(storage, CAMPAIGN_USER_INDEX, CAMPAIGN_USER_INDEX_TEMP);
+    static const char header[] =
+        "# CampaignPack=1\n"
+        "# id|name|pack_version|min_app|max_app|entry_scene|scenes_file\n";
+    File* file = storage_file_alloc(storage);
+    bool ok = storage_file_open(file, CAMPAIGN_USER_INDEX_TEMP, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+              storage_file_write(file, header, sizeof(header) - 1U) == sizeof(header) - 1U &&
+              storage_file_sync(file);
+    storage_file_close(file);
+    storage_file_free(file);
+    if(!ok) storage_common_remove(storage, CAMPAIGN_USER_INDEX_TEMP);
+    return ok;
+}
+
+static bool campaign_merge_legacy_index(Storage* storage, uint16_t* copied_files) {
+    if(!storage_file_exists(storage, CAMPAIGN_LEGACY_USER_INDEX)) return true;
+    if(!campaign_prepare_index_temp(storage)) return false;
+    File* source = storage_file_alloc(storage);
+    bool ok = storage_file_open(source, CAMPAIGN_LEGACY_USER_INDEX, FSAM_READ, FSOM_OPEN_EXISTING);
+    char line[CAMPAIGN_LINE_LEN];
+    uint16_t appended = 0U;
+    while(ok && campaign_read_line(source, line, sizeof(line))) {
+        char original[CAMPAIGN_LINE_LEN];
+        campaign_copy(original, sizeof(original), line);
+        PocketCampaignSummary campaign;
+        if(!campaign_parse(line, false, &campaign) ||
+           campaign_index_contains(storage, CAMPAIGN_USER_INDEX_TEMP, campaign.id))
+            continue;
+        File* output = storage_file_alloc(storage);
+        ok = storage_file_open(output, CAMPAIGN_USER_INDEX_TEMP, FSAM_WRITE, FSOM_OPEN_APPEND) &&
+             storage_file_write(output, original, strlen(original)) == strlen(original) &&
+             storage_file_write(output, "\n", 1U) == 1U && storage_file_sync(output);
+        storage_file_close(output);
+        storage_file_free(output);
+        if(ok && appended < UINT16_MAX) ++appended;
+    }
+    storage_file_close(source);
+    storage_file_free(source);
+    if(!ok) {
+        storage_common_remove(storage, CAMPAIGN_USER_INDEX_TEMP);
+        return false;
+    }
+    storage_common_remove(storage, CAMPAIGN_USER_INDEX_BACKUP);
+    bool had_index =
+        storage_common_rename(storage, CAMPAIGN_USER_INDEX, CAMPAIGN_USER_INDEX_BACKUP) == FSE_OK;
+    if(storage_common_rename(storage, CAMPAIGN_USER_INDEX_TEMP, CAMPAIGN_USER_INDEX) != FSE_OK) {
+        if(had_index)
+            storage_common_rename(storage, CAMPAIGN_USER_INDEX_BACKUP, CAMPAIGN_USER_INDEX);
+        storage_common_remove(storage, CAMPAIGN_USER_INDEX_TEMP);
+        return false;
+    }
+    storage_common_remove(storage, CAMPAIGN_USER_INDEX_BACKUP);
+    if(storage_common_remove(storage, CAMPAIGN_LEGACY_USER_INDEX) != FSE_OK) return false;
+    if(copied_files) {
+        uint32_t total = (uint32_t)*copied_files + appended;
+        *copied_files = total > UINT16_MAX ? UINT16_MAX : (uint16_t)total;
+    }
+    return true;
+}
+
+bool pocket_campaign_migrate_legacy_custom(Storage* storage, uint16_t* copied_files) {
+    furi_assert(storage);
+    if(copied_files) *copied_files = 0U;
+    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, CAMPAIGN_PROGRESS_DIR);
+    File* directory = storage_file_alloc(storage);
+    if(!storage_dir_open(directory, CAMPAIGN_LEGACY_DIR)) {
+        bool absent = !campaign_path_exists(storage, CAMPAIGN_LEGACY_DIR);
+        storage_file_free(directory);
+        return absent;
+    }
+    FileInfo info;
+    char filename[128];
+    bool packs_ok = true;
+    bool progress_ok = true;
+    while(storage_dir_read(directory, &info, filename, sizeof(filename))) {
+        if(!filename[0] || !strcmp(filename, ".") || !strcmp(filename, "..") ||
+           strchr(filename, '/') || strchr(filename, '\\'))
+            continue;
+        char source[256];
+        char destination[256];
+        int source_length =
+            snprintf(source, sizeof(source), "%s/%s", CAMPAIGN_LEGACY_DIR, filename);
+        int destination_length =
+            snprintf(destination, sizeof(destination), "%s/%s", CAMPAIGN_PROGRESS_DIR, filename);
+        if(source_length < 0 || (size_t)source_length >= sizeof(source) ||
+           destination_length < 0 || (size_t)destination_length >= sizeof(destination)) {
+            if(file_info_is_dir(&info) && !strncmp(filename, "custom_", 7U))
+                packs_ok = false;
+            else if(!file_info_is_dir(&info) && !strncmp(filename, "custom_progress_", 16U))
+                progress_ok = false;
+            continue;
+        }
+        if(file_info_is_dir(&info) && !strncmp(filename, "custom_", 7U)) {
+            if(!campaign_relocate_directory(storage, source, destination, 0U, copied_files))
+                packs_ok = false;
+        } else if(!file_info_is_dir(&info) && !strncmp(filename, "custom_progress_", 16U)) {
+            size_t length = strlen(filename);
+            if(length < 5U || strcmp(filename + length - 4U, ".txt") ||
+               !campaign_relocate_file_without_replace(storage, source, destination, copied_files))
+                progress_ok = false;
+        }
+    }
+    storage_dir_close(directory);
+    storage_file_free(directory);
+    bool index_ok = packs_ok && campaign_merge_legacy_index(storage, copied_files);
+    return packs_ok && progress_ok && index_ok;
 }
 
 bool pocket_campaign_progress_save(
@@ -152,7 +383,8 @@ bool pocket_campaign_progress_save(
     uint32_t profile_id,
     const PocketCampaignSummary* campaign,
     const PocketCharacter* character) {
-    storage_common_mkdir(storage, APP_ASSETS_PATH("campaigns"));
+    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, CAMPAIGN_PROGRESS_DIR);
     char path[192], temp[192], backup[192], line[160];
     campaign_progress_path(path, sizeof(path), profile_id, campaign->id, "txt");
     campaign_progress_path(temp, sizeof(temp), profile_id, campaign->id, "tmp");

@@ -51,4 +51,5 @@ bool pocket_campaign_progress_save(
     uint32_t profile_id,
     const PocketCampaignSummary* campaign,
     const PocketCharacter* character);
+bool pocket_campaign_migrate_legacy_custom(Storage* storage, uint16_t* copied_files);
 void pocket_campaign_diagnose(Storage* storage, PocketCampaignDiagnostics* output);

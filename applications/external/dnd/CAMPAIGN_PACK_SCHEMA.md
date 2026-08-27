@@ -18,4 +18,4 @@ Scene files are line-oriented UTF-8:
 
 IDs must be unique inside their scopes. Every success and failure link must identify an existing scene or `-`. Text fields must remain on one line and cannot contain `|`. The on-device diagnostics report incompatible manifests, missing files or entry scenes, duplicate IDs, and broken links.
 
-User packs belong under `/ext/apps_assets/dungeons_and_dolphins/campaigns/`. Add their manifest records to `custom_index.txt`; bundled and user indexes are streamed together. Prefix user-maintained campaign directories with `custom_`. Progress and checkpoints are stored separately for each character profile and campaign ID.
+User packs belong under `/ext/apps_data/dungeons_and_dolphins/campaigns/`. Add their manifest records to `custom_index.txt`; the app streams that persistent user index after the bundled read-only asset index. Prefix user-maintained campaign directories with `custom_`. Progress and checkpoints are stored in the same app-data campaign directory, separately for each character profile and campaign ID.

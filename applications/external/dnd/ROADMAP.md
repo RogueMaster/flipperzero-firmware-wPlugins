@@ -28,6 +28,6 @@ This document contains planned work only. Implemented work belongs in `CHANGELOG
 
 ## 3.5 — stable pack platform
 
-- Freeze the first stable save contract with forward migration from pre-release schema 2, rollback snapshots, and host-side golden-file compatibility tests.
+- Add a version-to-version migration harness that treats schema 2 as the permanent baseline, retains rollback snapshots, and verifies golden profile files.
 - Add checksummed catalog, campaign, and monster pack manifests with transactional installation.
 - Require a release qualification gate combining host tests, RogueMaster validation, stress-test evidence, and a signed physical-device matrix.

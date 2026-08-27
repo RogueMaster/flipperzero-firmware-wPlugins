@@ -12,4 +12,4 @@ IDs must remain stable and unique. New optional fields may be added without chan
 
 On-device custom creation rewrites temporary index and stat-block files, then atomically publishes both files with rollback copies. Custom records retain source `Custom`; other records remain read-only.
 
-Packaged and user records share `/ext/apps_assets/dolphin_bestiary/monsters/index.txt` and `statblocks.txt`. Temporary transaction files are read only during an interrupted write recovery and are removed after commit or rollback.
+Packaged records use the read-only `/ext/apps_assets/dolphin_bestiary/monsters/index.txt` and `statblocks.txt`. User records use `/ext/apps_data/dolphin_bestiary/monsters/custom_index.txt` and `custom_statblocks.txt`; the app streams both layers as one Bestiary. Temporary transaction files apply only to the custom app-data pair and are removed after commit or rollback.

@@ -53,4 +53,4 @@ Rules that require a choice, copyrighted description, table ruling, or context-s
 
 - Hardware navigation and long-session heap behavior require physical-device testing.
 - Catalog metadata supplied by users should be validated on device after copying.
-- Schema 2 is the current pre-release format. Older schemas are deliberately rejected until a stable migration policy is adopted.
+- Schema 2 is the compatibility baseline. Unknown schemas are rejected without modification, and future schema changes must retain or non-destructively migrate schema 2.

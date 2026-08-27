@@ -6,11 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define POCKET_D20_TEXT_VERSION 2U
-#define POCKET_D20_LINE_LEN     768U
-#define POCKET_D20_DATA_DIR     APP_DATA_PATH("profiles")
-#define POCKET_D20_EXPORT_DIR   APP_DATA_PATH("profiles/exports")
-#define POCKET_D20_ARCHIVE_DIR  APP_DATA_PATH("profiles/archive")
+#define POCKET_D20_TEXT_VERSION                  2U
+#define POCKET_D20_OLDEST_SUPPORTED_TEXT_VERSION 2U
+#define POCKET_D20_LINE_LEN                      768U
+#define POCKET_D20_DATA_DIR                      APP_DATA_PATH("profiles")
+#define POCKET_D20_EXPORT_DIR                    APP_DATA_PATH("profiles/exports")
+#define POCKET_D20_ARCHIVE_DIR                   APP_DATA_PATH("profiles/archive")
+#define POCKET_D20_LEGACY_DATA_DIR               APP_ASSETS_PATH("profiles")
 
 #define POCKET_D20_ACTIVE_PROFILE_PATH      APP_DATA_PATH("profiles/custom_active_profile.txt")
 #define POCKET_D20_ACTIVE_PROFILE_TEMP_PATH APP_DATA_PATH("profiles/custom_active_profile.tmp")
@@ -19,6 +21,15 @@ static void pocket_d20_copy(char* destination, size_t size, const char* source) 
     if(size == 0U) return;
     strncpy(destination, source, size - 1U);
     destination[size - 1U] = '\0';
+}
+
+static bool pocket_d20_schema_supported(unsigned long schema) {
+    switch(schema) {
+    case 2U:
+        return true;
+    default:
+        return false;
+    }
 }
 
 static uint8_t pocket_d20_character_level(const PocketCharacter* character) {
@@ -571,7 +582,8 @@ static bool pocket_d20_read_character(File* file, PocketSaveData* data) {
 
     if(!pocket_d20_read_value(file, "PocketD20Character", value, sizeof(value))) return false;
     unsigned long schema = strtoul(value, NULL, 10);
-    if(schema != POCKET_D20_TEXT_VERSION) return false;
+    if(schema < POCKET_D20_OLDEST_SUPPORTED_TEXT_VERSION || !pocket_d20_schema_supported(schema))
+        return false;
     if(!pocket_d20_read_string(file, "Name", c->name, sizeof(c->name)) ||
        !pocket_d20_read_string(file, "Player", c->player, sizeof(c->player)) ||
        !pocket_d20_read_string(file, "Species", c->species, sizeof(c->species)) ||
@@ -1254,6 +1266,112 @@ static bool pocket_d20_copy_file(
         return false;
     }
     return true;
+}
+
+static bool pocket_d20_relocate_file_without_replace(
+    Storage* storage,
+    const char* source,
+    const char* destination) {
+    if(storage_file_exists(storage, destination))
+        return storage_common_remove(storage, source) == FSE_OK;
+    char temporary[224];
+    int temporary_length = snprintf(temporary, sizeof(temporary), "%s.migrate.tmp", destination);
+    if(temporary_length < 0 || (size_t)temporary_length >= sizeof(temporary)) return false;
+    storage_common_remove(storage, temporary);
+    File* input = storage_file_alloc(storage);
+    File* output = storage_file_alloc(storage);
+    bool success = storage_file_open(input, source, FSAM_READ, FSOM_OPEN_EXISTING) &&
+                   storage_file_open(output, temporary, FSAM_WRITE, FSOM_CREATE_ALWAYS);
+    uint8_t buffer[256];
+    while(success) {
+        size_t count = storage_file_read(input, buffer, sizeof(buffer));
+        if(!count) break;
+        success = storage_file_write(output, buffer, count) == count;
+    }
+    if(success) success = storage_file_get_error(input) == FSE_OK && storage_file_sync(output);
+    storage_file_close(input);
+    storage_file_close(output);
+    storage_file_free(input);
+    storage_file_free(output);
+    if(!success) {
+        storage_common_remove(storage, temporary);
+        return false;
+    }
+    if(storage_file_exists(storage, destination)) {
+        storage_common_remove(storage, temporary);
+        return storage_common_remove(storage, source) == FSE_OK;
+    }
+    if(storage_common_rename(storage, temporary, destination) != FSE_OK) {
+        storage_common_remove(storage, temporary);
+        return false;
+    }
+    return storage_common_remove(storage, source) == FSE_OK;
+}
+
+static bool pocket_d20_migrate_directory(
+    Storage* storage,
+    const char* legacy_directory,
+    const char* data_directory,
+    uint8_t depth,
+    uint16_t* copied_files) {
+    File* directory = storage_file_alloc(storage);
+    if(!storage_dir_open(directory, legacy_directory)) {
+        storage_file_free(directory);
+        return true;
+    }
+    storage_common_mkdir(storage, data_directory);
+    FileInfo info;
+    char filename[128];
+    bool success = true;
+    while(storage_dir_read(directory, &info, filename, sizeof(filename))) {
+        if(!filename[0] || !strcmp(filename, ".") || !strcmp(filename, "..") ||
+           strchr(filename, '/') || strchr(filename, '\\'))
+            continue;
+        char source[192];
+        char destination[192];
+        int source_length = snprintf(source, sizeof(source), "%s/%s", legacy_directory, filename);
+        int destination_length =
+            snprintf(destination, sizeof(destination), "%s/%s", data_directory, filename);
+        if(source_length < 0 || (size_t)source_length >= sizeof(source) ||
+           destination_length < 0 || (size_t)destination_length >= sizeof(destination)) {
+            success = false;
+            continue;
+        }
+        if(file_info_is_dir(&info)) {
+            if(depth >= 2U || !pocket_d20_migrate_directory(
+                                  storage, source, destination, depth + 1U, copied_files))
+                success = false;
+            continue;
+        }
+        if(depth == 0U) {
+            PocketProfileEntry legacy_entry;
+            char existing[128];
+            if(pocket_d20_parse_profile_filename(filename, &legacy_entry) &&
+               pocket_d20_find_profile_path(storage, legacy_entry.id, existing, sizeof(existing))) {
+                if(storage_common_remove(storage, source) != FSE_OK) success = false;
+                continue;
+            }
+        }
+        bool existed = storage_file_exists(storage, destination);
+        if(!pocket_d20_relocate_file_without_replace(storage, source, destination)) {
+            success = false;
+        } else if(!existed && copied_files && *copied_files < UINT16_MAX) {
+            ++*copied_files;
+        }
+    }
+    storage_dir_close(directory);
+    storage_file_free(directory);
+    if(success && storage_common_remove(storage, legacy_directory) != FSE_OK) success = false;
+    return success;
+}
+
+bool pocket_d20_storage_migrate_legacy_profiles(Storage* storage, uint16_t* copied_files) {
+    furi_assert(storage);
+    if(copied_files) *copied_files = 0U;
+    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, POCKET_D20_DATA_DIR);
+    return pocket_d20_migrate_directory(
+        storage, POCKET_D20_LEGACY_DATA_DIR, POCKET_D20_DATA_DIR, 0U, copied_files);
 }
 
 bool pocket_d20_storage_duplicate_profile(Storage* storage, uint32_t source, uint32_t destination) {

@@ -1,6 +1,6 @@
 # Request checklist
 
-| Requested capability | Version 3.0 status |
+| Requested capability | Version 3.0.2 status |
 |---|---|
 | Flipper FAP d20 icon | `icon.png`, 10x10 1-bit, assigned by `fap_icon` and FBT-validated |
 | Buttons and screen only | Implemented |
@@ -31,19 +31,19 @@
 | Inventory resources | Containers, carried/equipped weight, capacity, armor/shield AC, attunement, ammo groups, and charges |
 | Catalog diagnostics | Stable-ID validation, duplicate detection, required-field checks, and packaged-asset fallback |
 | Fantasy quest / choices / skill checks / achievements | Data-driven Adventure mode with branches, rewards, flags, achievements, sprite tags, and checkpoints |
-| Old save backward compatibility | Intentionally unsupported during pre-release development; no migration reader is included |
-| Stable save schema and migration | Current checksummed schema only; migration deferred until a later stable-format decision |
+| Old save backward compatibility | Schema 2 is the compatibility baseline; unknown versions are preserved without overwrite and future schema changes must retain or migrate schema 2 |
+| Stable save schema and migration | Explicit schema dispatch, checksum-first validation, non-destructive asset-to-data relocation, and no blank replacement after a failed load |
 | Profile portability | Rename, chunked duplicate/export/archive, validated import, and checksum diagnostics |
 | Recoverable prior generation | One previous successful save retained per profile with explicit restore action |
 | Translation and accessibility | Runtime translation removed for speed; documented high-contrast display and control conventions remain |
 | Separate bestiary application | Dolphin Bestiary is a separate FAP declared in the same manifest with an exclusive source list and asset namespace |
-| Monster discovery and encounter roles | 340 bundled records, 50-record windows, combinable source/environment/name/challenge/type filters, role weighting, browser and generated-encounter OK-opened details, full-screen scrollable stat-field readers, preserved return selection, and buffered diagnostics |
+| Monster discovery and encounter roles | 340 bundled records, 20-record windows, combinable source/environment/name/challenge/type filters, role weighting, browser and generated-encounter OK-opened details, full-screen scrollable stat-field readers, preserved return selection, and buffered diagnostics |
 | Custom monster lifecycle | Stable-ID edit, visible confirmed custom-only delete, and atomic rewrite/rollback in a separate custom index/stat-block layer that cannot replace packaged tables |
 | Campaign pack manager | On-device selection, per-profile/per-campaign progress, manifest diagnostics, schema, and starter template |
 | Complete structured editors | Full attack-template and grant editors with autosave |
 | Device resilience | Allocation stress runner, SD read-only fallback, unsaved warning, retry control, and published hardware matrix |
 | Direct-launch memory safety | Empty profiles allocate only their used spell, feature, item, journal, and grant records; all five groups grow on demand with checked limits; spell pages retain ten records |
-| Asset namespace | Runtime access uses only `APP_ASSETS_PATH`; character custom text is profile-local and monster custom records use isolated prefixed files |
+| Asset namespace | Packaged catalogs, campaigns, and monster tables use `APP_ASSETS_PATH`; writable profiles, custom campaigns/progress, and custom monsters use persistent `APP_DATA_PATH` with copy-verify-cleanup relocation |
 | Cross-FAP navigation | Each application ends with a menu entry that queues the other FAP and exits cleanly |
 
 The expansion catalogs intentionally contain option names and original metadata rather than proprietary descriptions or mechanics. Custom text and notes support owned books, homebrew, errata, and table rulings.

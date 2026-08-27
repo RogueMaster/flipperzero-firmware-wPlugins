@@ -6,7 +6,7 @@
 
 # Dungeons & Dolphins
 
-Dungeons & Dolphins 3.0 is an offline, 5E-compatible Flipper Zero toolkit for RogueMaster. One source tree and one `application.fam` build two independent FAPs with explicit source lists:
+Dungeons & Dolphins 3.0.2 is an offline, 5E-compatible Flipper Zero toolkit for RogueMaster. One source tree and one `application.fam` build two independent FAPs with explicit source lists:
 
 - **Dungeons & Dolphins** — character profiles, rules tracking, spells, equipment, notes, dice, combat, initiative, and campaigns.
 - **Dolphin Bestiary** — the monster stat-block browser, custom monsters, diagnostics, and party-level encounter generation.
@@ -18,12 +18,15 @@ Both applications use only the screen, buttons, and SD card. No network or exter
 ### Character profiles and saves
 
 - Dynamically indexed profiles with no fixed profile-count limit.
-- One readable, versioned, checksummed text save per character under `profiles/`.
+- One readable, versioned, checksummed text save per character in the FAP's persistent app-data `profiles/` directory.
 - Save names use `ch_{id}_{characterName}_{characterLevel}.txt`.
 - Main and newly created heroes remain visible in Characters even when the first write fails.
 - Transactional new-character creation restores the previous active character after a failed write.
 - Immediate autosave after character, stat, spell, feature, item, inventory, currency, journal, party, initiative, or resource changes.
 - Atomic temporary-file publication, retained backup generation, checksum verification, and manual backup restore.
+- First-run migration relocates legacy asset-path profiles into app data without replacing an existing profile ID or file. Each legacy source is deleted only after its app-data destination is safely present.
+- Failed, corrupt, or unsupported profile loads are preserved and cannot trigger a blank-profile overwrite.
+- Schema 2 is the compatibility baseline; future readers retain explicit older-schema branches and migrate only after a validated load.
 - Rename, switch, duplicate, export, import, archive, delete, verify, and restore profile actions.
 - Save failures show a persistent UNSAVED warning; Retry Save / Status retries SD access and otherwise confirms that autosave is current.
 
@@ -109,7 +112,7 @@ Both applications use only the screen, buttons, and SD card. No network or exter
 - Separate FAP and asset namespace, so the character tracker never loads monster tables or encounter state.
 - 340 unique packaged monster records.
 - Monster browser filters combine name, maximum challenge, creature type, source category, environment, and encounter role.
-- Browser pages hold at most 50 summaries; full stat blocks are allocated only while one is open and released on exit.
+- Browser pages hold at most 20 summaries; full stat blocks are allocated only while one is open and released on exit.
 - All packaged stat blocks share one streamed section file, reducing first-launch asset deployment and avoiding hundreds of simultaneous file entries.
 - Stat blocks show challenge, XP, Armor Class, HP, type, source, role, size, movement, abilities, skills, defenses, senses, languages, traits, actions, and extra actions.
 - Short OK on a browser result opens its complete, scrollable stat block.
@@ -120,6 +123,7 @@ Both applications use only the screen, buttons, and SD card. No network or exter
 - Custom monster creation and editing preserve stable IDs.
 - A visible Delete Custom Monster row uses two-step confirmation; packaged records are read-only.
 - Custom records use atomic `custom_index.txt` and `custom_statblocks.txt` files, while packaged `index.txt` and `statblocks.txt` remain untouched.
+- Custom records are stored under persistent app data. A legacy asset-path custom pair is relocated on first launch without replacing an existing app-data pair, and its legacy files are deleted only after the persistent pair is safely present.
 - Browser, filter, diagnostic, and encounter scans stream the packaged and custom layers together without retaining either complete table in RAM.
 - Transaction recovery, backup, rollback, and orphan cleanup apply only to the custom layer.
 - Pack diagnostics report valid/invalid records, pack versions, recovery results, and free heap using one buffered stat-block pass.
@@ -171,6 +175,22 @@ Both applications use only the screen, buttons, and SD card. No network or exter
 - Custom-monster writes are isolated from the packaged Bestiary, and custom deletion is exposed as a confirmed row on custom stat blocks.
 - Custom character option text remains profile-local and never rewrites packaged character catalogs.
 
+### Persistence and Bestiary repair in 3.0.1
+
+- Moved writable character profiles, campaign progress, and custom monster packs to persistent app data so FAP asset deployment cannot erase them.
+- Added non-overwriting legacy migration from the former asset locations while retaining the original files as recovery copies.
+- Prevented failed or unsupported character loads from being replaced with a blank character during startup, switching, restore, import, autosave, or exit.
+- Streamed packaged and custom monsters through the same complete result count with 20-record pages.
+- Added custom-stat fallback for records created by older combined packs so their stat block and custom-only edit/delete controls remain reachable.
+
+### Asset/data separation repair in 3.0.2
+
+- Kept packaged catalogs, bundled campaigns, and packaged Bestiary tables exclusively in their read-only `APP_ASSETS_PATH` namespaces.
+- Relocated only mutable legacy data: profiles, profile-owned campaign progress, complete custom campaign packs, and custom monster packs.
+- Custom campaigns now stream from `APP_DATA_PATH` alongside bundled campaigns from `APP_ASSETS_PATH`.
+- Custom monsters continue to stream as a second layer after every packaged monster, so adding a custom record never replaces or hides the bundled Bestiary.
+- Removed each legacy mutable source only after its persistent destination was safely published; existing app-data records remain authoritative and are never overwritten.
+
 ## Controls
 
 - Up/Down: move through rows.
@@ -180,14 +200,19 @@ Both applications use only the screen, buttons, and SD card. No network or exter
 - Short Back: return to the correct parent screen.
 - Long Back: return to Main; long Back on Main exits.
 
-## SD-card asset locations
+## SD-card locations
 
-All runtime files are accessed through `APP_ASSETS_PATH`; the code does not use `APP_DATA_PATH`.
+Packaged reference files remain in the read-only FAP asset namespaces:
 
-- Character assets and profiles: `/ext/apps_assets/dungeons_and_dolphins/`
-- Bestiary assets and custom monsters: `/ext/apps_assets/dolphin_bestiary/`
+- Character assets: `/ext/apps_assets/dungeons_and_dolphins/`
+- Bestiary assets: `/ext/apps_assets/dolphin_bestiary/`
 
-Catalog additions made manually on the SD card are appended to the matching normal file, such as `catalogs/spells.txt`, `catalogs/classes.txt`, or `catalogs/items.txt`. On-device custom character text remains inside its character save. Packaged monster summaries and stat blocks use `monsters/index.txt` and `monsters/statblocks.txt`; on-device custom monsters use `monsters/custom_index.txt` and `monsters/custom_statblocks.txt`. Character saves remain in the requested `ch_{id}_{name}_{level}.txt` format beneath `profiles/`.
+Writable user state uses the firmware-managed persistent app-data namespaces:
+
+- Character profiles, exports, archives, custom campaigns, and campaign progress: `/ext/apps_data/dungeons_and_dolphins/`
+- Custom monster index and stat blocks: `/ext/apps_data/dolphin_bestiary/`
+
+Catalog additions made manually on the SD card are appended to the matching normal asset file, such as `catalogs/spells.txt`, `catalogs/classes.txt`, or `catalogs/items.txt`. On-device custom character text remains inside its character save. Packaged monster summaries and stat blocks use asset files `monsters/index.txt` and `monsters/statblocks.txt`; on-device custom monsters use app-data files `monsters/custom_index.txt` and `monsters/custom_statblocks.txt`. Character saves retain the requested `ch_{id}_{name}_{level}.txt` format beneath the app-data `profiles/` directory.
 
 The FAP assets contain the ready-to-use catalog and bestiary files; no duplicate SD-card tree is required in the source release.
 

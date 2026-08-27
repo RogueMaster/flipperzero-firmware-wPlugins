@@ -8,13 +8,16 @@
 
 #define MONSTER_INDEX                APP_ASSETS_PATH("monsters/index.txt")
 #define MONSTER_BLOCKS               APP_ASSETS_PATH("monsters/statblocks.txt")
-#define CUSTOM_MONSTER_INDEX         APP_ASSETS_PATH("monsters/custom_index.txt")
-#define CUSTOM_MONSTER_INDEX_TEMP    APP_ASSETS_PATH("monsters/custom_index.tmp")
-#define CUSTOM_MONSTER_INDEX_BACKUP  APP_ASSETS_PATH("monsters/custom_index.bak")
-#define CUSTOM_MONSTER_BLOCKS        APP_ASSETS_PATH("monsters/custom_statblocks.txt")
-#define CUSTOM_MONSTER_BLOCKS_TEMP   APP_ASSETS_PATH("monsters/custom_statblocks.tmp")
-#define CUSTOM_MONSTER_BLOCKS_BACKUP APP_ASSETS_PATH("monsters/custom_statblocks.bak")
-#define CUSTOM_MONSTER_TRANSACTION   APP_ASSETS_PATH("monsters/custom_transaction.txt")
+#define CUSTOM_MONSTER_INDEX         APP_DATA_PATH("monsters/custom_index.txt")
+#define CUSTOM_MONSTER_INDEX_TEMP    APP_DATA_PATH("monsters/custom_index.tmp")
+#define CUSTOM_MONSTER_INDEX_BACKUP  APP_DATA_PATH("monsters/custom_index.bak")
+#define CUSTOM_MONSTER_BLOCKS        APP_DATA_PATH("monsters/custom_statblocks.txt")
+#define CUSTOM_MONSTER_BLOCKS_TEMP   APP_DATA_PATH("monsters/custom_statblocks.tmp")
+#define CUSTOM_MONSTER_BLOCKS_BACKUP APP_DATA_PATH("monsters/custom_statblocks.bak")
+#define CUSTOM_MONSTER_TRANSACTION   APP_DATA_PATH("monsters/custom_transaction.txt")
+#define LEGACY_CUSTOM_MONSTER_INDEX  APP_ASSETS_PATH("monsters/custom_index.txt")
+#define LEGACY_CUSTOM_MONSTER_BLOCKS APP_ASSETS_PATH("monsters/custom_statblocks.txt")
+#define CUSTOM_MONSTER_MIGRATION     APP_DATA_PATH("monsters/custom_migration.txt")
 #define MONSTER_LINE_LEN             768U
 #define MONSTER_READ_BUFFER          512U
 
@@ -467,8 +470,12 @@ bool pocket_monster_load(
     PocketMonsterDetail* output) {
     memset(output, 0, sizeof(*output));
     output->summary = *summary;
-    const char* path = !strcmp(summary->source, "Custom") ? CUSTOM_MONSTER_BLOCKS : MONSTER_BLOCKS;
-    return monster_load_section(storage, path, summary->id, output);
+    if(strcmp(summary->source, "Custom"))
+        return monster_load_section(storage, MONSTER_BLOCKS, summary->id, output);
+    if(monster_load_section(storage, CUSTOM_MONSTER_BLOCKS, summary->id, output)) return true;
+    memset(output, 0, sizeof(*output));
+    output->summary = *summary;
+    return monster_load_section(storage, MONSTER_BLOCKS, summary->id, output);
 }
 
 static bool monster_write(File* file, const char* text) {
@@ -497,6 +504,98 @@ static void monster_safe_id(char* output, size_t size, const char* name) {
 static bool monster_exists(Storage* storage, const char* path) {
     FileInfo info;
     return storage_common_stat(storage, path, &info) == FSE_OK;
+}
+
+static bool monster_remove_if_present(Storage* storage, const char* path) {
+    return !monster_exists(storage, path) || storage_common_remove(storage, path) == FSE_OK;
+}
+
+static bool monster_copy_storage_file(
+    Storage* storage,
+    const char* source,
+    const char* temporary,
+    const char* destination) {
+    File* input = storage_file_alloc(storage);
+    File* output = storage_file_alloc(storage);
+    bool ok = storage_file_open(input, source, FSAM_READ, FSOM_OPEN_EXISTING) &&
+              storage_file_open(output, temporary, FSAM_WRITE, FSOM_CREATE_ALWAYS);
+    uint8_t buffer[256];
+    while(ok) {
+        size_t count = storage_file_read(input, buffer, sizeof(buffer));
+        if(!count) break;
+        ok = storage_file_write(output, buffer, count) == count;
+    }
+    if(ok) ok = storage_file_get_error(input) == FSE_OK && storage_file_sync(output);
+    storage_file_close(input);
+    storage_file_close(output);
+    storage_file_free(input);
+    storage_file_free(output);
+    if(!ok || storage_common_rename(storage, temporary, destination) != FSE_OK) {
+        storage_common_remove(storage, temporary);
+        return false;
+    }
+    return true;
+}
+
+bool pocket_monster_migrate_legacy_custom(Storage* storage, uint16_t* copied_files) {
+    furi_assert(storage);
+    if(copied_files) *copied_files = 0U;
+    bool data_index = monster_exists(storage, CUSTOM_MONSTER_INDEX);
+    bool data_blocks = monster_exists(storage, CUSTOM_MONSTER_BLOCKS);
+    bool pending = monster_exists(storage, CUSTOM_MONSTER_MIGRATION);
+    if(data_index && data_blocks) {
+        if(pending) storage_common_remove(storage, CUSTOM_MONSTER_MIGRATION);
+        return monster_remove_if_present(storage, LEGACY_CUSTOM_MONSTER_INDEX) &&
+               monster_remove_if_present(storage, LEGACY_CUSTOM_MONSTER_BLOCKS);
+    }
+    if((data_index || data_blocks) && !pending) return false;
+    if(!monster_exists(storage, LEGACY_CUSTOM_MONSTER_INDEX) &&
+       !monster_exists(storage, LEGACY_CUSTOM_MONSTER_BLOCKS))
+        return true;
+    if(!monster_exists(storage, LEGACY_CUSTOM_MONSTER_INDEX) ||
+       !monster_exists(storage, LEGACY_CUSTOM_MONSTER_BLOCKS))
+        return false;
+    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, APP_DATA_PATH("monsters"));
+    if(!pending) {
+        File* marker = storage_file_alloc(storage);
+        bool marked =
+            storage_file_open(marker, CUSTOM_MONSTER_MIGRATION, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+            storage_file_write(marker, "MIGRATE\n", 8U) == 8U && storage_file_sync(marker);
+        storage_file_close(marker);
+        storage_file_free(marker);
+        if(!marked) {
+            storage_common_remove(storage, CUSTOM_MONSTER_MIGRATION);
+            return false;
+        }
+    }
+    const char* migration_index = APP_DATA_PATH("monsters/custom_index.migrate");
+    const char* migration_blocks = APP_DATA_PATH("monsters/custom_statblocks.migrate");
+    storage_common_remove(storage, migration_index);
+    storage_common_remove(storage, migration_blocks);
+    bool blocks_copied =
+        data_blocks ||
+        monster_copy_storage_file(
+            storage, LEGACY_CUSTOM_MONSTER_BLOCKS, migration_blocks, CUSTOM_MONSTER_BLOCKS);
+    bool index_copied =
+        data_index ||
+        (blocks_copied &&
+         monster_copy_storage_file(
+             storage, LEGACY_CUSTOM_MONSTER_INDEX, migration_index, CUSTOM_MONSTER_INDEX));
+    if(!blocks_copied || !index_copied) {
+        storage_common_remove(storage, CUSTOM_MONSTER_INDEX);
+        storage_common_remove(storage, CUSTOM_MONSTER_BLOCKS);
+        storage_common_remove(storage, migration_index);
+        storage_common_remove(storage, migration_blocks);
+        storage_common_remove(storage, CUSTOM_MONSTER_MIGRATION);
+        return false;
+    }
+    storage_common_remove(storage, CUSTOM_MONSTER_MIGRATION);
+    if(!monster_remove_if_present(storage, LEGACY_CUSTOM_MONSTER_INDEX) ||
+       !monster_remove_if_present(storage, LEGACY_CUSTOM_MONSTER_BLOCKS))
+        return false;
+    if(copied_files) *copied_files = (uint16_t)((data_index ? 0U : 1U) + (data_blocks ? 0U : 1U));
+    return true;
 }
 
 static bool monster_format_summary(const PocketMonsterSummary* summary, char* line, size_t size) {
@@ -710,7 +809,8 @@ static void monster_sanitize_summary(PocketMonsterSummary* summary) {
 
 static bool
     monster_save_custom_common(Storage* storage, PocketMonsterDetail* detail, bool preserve_id) {
-    storage_common_mkdir(storage, APP_ASSETS_PATH("monsters"));
+    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, APP_DATA_PATH("monsters"));
     if(!preserve_id || !detail->summary.id[0]) {
         char base[20];
         monster_safe_id(base, sizeof(base), detail->summary.name);

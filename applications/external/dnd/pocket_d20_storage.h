@@ -23,6 +23,7 @@ bool pocket_d20_profiles_load(Storage* storage, PocketProfileState* profiles);
 bool pocket_d20_profiles_save(Storage* storage, const PocketProfileState* profiles);
 bool pocket_d20_profiles_refresh(Storage* storage, PocketProfileState* profiles);
 uint32_t pocket_d20_profiles_next_id(const PocketProfileState* profiles);
+bool pocket_d20_storage_migrate_legacy_profiles(Storage* storage, uint16_t* copied_files);
 
 bool pocket_d20_storage_load_profile(
     Storage* storage,

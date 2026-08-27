@@ -1,5 +1,24 @@
 # Dungeons & Dolphins changelog
 
+## 3.0.2
+
+- Restricted asset-to-data migration to mutable user content: profiles, custom campaigns, campaign progress, and custom monsters.
+- Kept packaged catalogs, bundled campaign manifests/scenes, and packaged monster tables in `APP_ASSETS_PATH` without copying them into app data.
+- Moved custom campaign manifests and scene directories to `APP_DATA_PATH` and continued streaming them after bundled campaigns.
+- Preserved the combined Bestiary view: all packaged monster records are streamed first and app-data custom monsters are appended as the second layer.
+- Deleted legacy profile, custom-campaign, campaign-progress, and custom-monster files from the assets namespace only after their app-data destinations were safely present.
+- Kept existing app-data records authoritative; migration never overwrites a matching destination or profile ID.
+
+## 3.0.1
+
+- Moved mutable character profiles, exports, archives, per-character campaign progress, and custom monster packs from deployable app assets to persistent app data.
+- Added first-launch migration that copies legacy profile and custom-monster files only when the destination is absent; existing app-data records are never overwritten and legacy originals remain untouched.
+- Prevented failed, corrupt, or unsupported profile loads from creating or autosaving a blank replacement during startup, switching, import recovery, backup restore, or shutdown.
+- Established schema 2 as the backward-compatibility baseline with an explicit schema dispatch point for future migrations.
+- Reduced Bestiary result pages from 50 summaries to 20 and kept packaged and custom result layers in one complete paged result set.
+- Added a legacy combined-pack fallback when opening custom stat blocks, retaining custom-only Edit and Delete controls after the record opens.
+- Migrated custom-monster writes, atomic temporary files, backups, and transaction recovery together so packaged tables remain read-only.
+
 ## 3.0
 
 - Enabled generated-encounter drill-down: short OK on an encounter monster now opens its complete stat block, and short OK on any stat row opens that attribute in the full-screen reader.

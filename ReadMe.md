@@ -84,6 +84,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UHF Expansion v1.1 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Added: [Dungeons & Dolphins v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [Dolphin Bestiary v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [Dungeons & Dolphins v3.0.2 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [Dolphin Bestiary v3.0.2 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 
 <a name="release"></a>
 
@@ -230,11 +232,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Dice (RM) Including SEX/WAR/8BALL/WEED/DRINK DICE v2.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dice)
 - [Digital Kaleidoscope v0.1 (By JamesR555)](https://github.com/JamesR555/digital_kaleidoscope)
 - [DnD Dice v1.3 (By Ka3u6y6a)](https://github.com/Ka3u6y6a/flipper-zero-dice)
-- [Dolphin Bestiary v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [Dolphin Bestiary v3.0.2 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - [Doom v1.6 (By p4nic4ttack)](https://github.com/p4nic4ttack/doom-flipper-zero)
 - [DopeWars v0.7.9 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-dopeflipper)
 - [Drifter v0.2 (By jean-edouard)](https://github.com/jean-edouard/drifter)
-- [Dungeons & Dolphins v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [Dungeons & Dolphins v3.0.2 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - [DVD Bounce (By schaene)](https://github.com/schaene/Flipper-DVD-Bounce)
 - [DVD Screensaver v1.1 (By shantih19)](https://github.com/shantih19/flipper_dvd_screensaver)
 - [Etch-A-Sketch (By SimplyMinimal)](https://github.com/SimplyMinimal/FlipperZero-Etch-A-Sketch)

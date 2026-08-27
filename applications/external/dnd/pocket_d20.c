@@ -303,8 +303,11 @@ typedef struct {
     PocketCampaignDiagnostics campaign_diagnostics;
     int16_t adventure_last_total;
     uint8_t adventure_last_natural;
+    uint8_t active_profile_loaded;
     uint8_t storage_read_only;
     uint8_t storage_unsaved;
+    uint16_t migrated_profile_files;
+    uint16_t migrated_campaign_files;
     uint16_t storage_failure_count;
     PocketEditTarget edit_target;
     char edit_buffer[POCKET_D20_DETAIL_LEN];
@@ -921,6 +924,10 @@ static PocketProfileEntry* pocket_active_profile_entry(PocketD20App* app) {
 }
 
 static bool pocket_save(PocketD20App* app, bool report) {
+    if(!app->active_profile_loaded) {
+        if(report) pocket_set_status(app, "Profile not loaded");
+        return false;
+    }
     if(app->storage_read_only) {
         app->storage_unsaved = 1U;
         pocket_set_status(app, "UNSAVED - retry SD");
@@ -1005,7 +1012,7 @@ static void pocket_switch_profile(PocketD20App* app, uint32_t profile) {
         pocket_set_status(app, "Already active");
         return;
     }
-    if(!pocket_save(app, false)) {
+    if(app->active_profile_loaded && !pocket_save(app, false)) {
         pocket_set_status(app, "Save failed");
         return;
     }
@@ -1016,9 +1023,16 @@ static void pocket_switch_profile(PocketD20App* app, uint32_t profile) {
     bool recovered_backup = false;
     bool loaded =
         pocket_d20_storage_load_profile(app->storage, profile, &app->data, &recovered_backup);
+    app->active_profile_loaded = loaded ? 1U : 0U;
     bool character_ready = loaded;
-    if(!loaded || recovered_backup)
-        character_ready = pocket_d20_storage_save_profile(app->storage, profile, &app->data);
+    if(loaded && recovered_backup)
+        character_ready = pocket_d20_storage_restore_backup(app->storage, profile, &app->data);
+    if(!loaded) {
+        app->storage_unsaved = 0U;
+        pocket_enter_screen(app, PocketScreenHome);
+        pocket_set_status(app, "Profile preserved - load failed");
+        return;
+    }
     bool metadata_saved = pocket_d20_profiles_refresh(app->storage, &app->profiles);
     pocket_profile_include_active(app);
     metadata_saved = metadata_saved && pocket_d20_profiles_save(app->storage, &app->profiles);
@@ -1036,7 +1050,7 @@ static void pocket_switch_profile(PocketD20App* app, uint32_t profile) {
 }
 
 static void pocket_create_profile(PocketD20App* app) {
-    if(!pocket_save(app, false)) {
+    if(app->active_profile_loaded && !pocket_save(app, false)) {
         pocket_set_status(app, "Save failed");
         return;
     }
@@ -1059,7 +1073,8 @@ static void pocket_create_profile(PocketD20App* app) {
     if(!character_saved) {
         bool recovered = false;
         app->profiles.active_profile = previous_profile;
-        pocket_d20_storage_load_profile(app->storage, previous_profile, &app->data, &recovered);
+        app->active_profile_loaded = pocket_d20_storage_load_profile(
+            app->storage, previous_profile, &app->data, &recovered);
         pocket_d20_profiles_refresh(app->storage, &app->profiles);
         pocket_profile_include_active(app);
         app->saved_fingerprint = pocket_data_fingerprint(&app->data);
@@ -1069,6 +1084,7 @@ static void pocket_create_profile(PocketD20App* app) {
         pocket_set_status(app, "New character save failed");
         return;
     }
+    app->active_profile_loaded = 1U;
     app->profiles.active_profile = profile;
     bool metadata_saved = pocket_d20_profiles_refresh(app->storage, &app->profiles);
     pocket_profile_include_active(app);
@@ -5499,10 +5515,11 @@ static void pocket_handle_profile_actions(PocketD20App* app, const InputEvent* e
             uint32_t previous = app->profiles.active_profile;
             uint32_t destination = pocket_d20_profiles_next_id(&app->profiles);
             bool imported =
-                pocket_save(app, false) &&
+                (!app->active_profile_loaded || pocket_save(app, false)) &&
                 !(destination == UINT32_MAX && pocket_profile_exists(app, UINT32_MAX)) &&
                 pocket_d20_storage_import_first(app->storage, destination, &app->data);
             if(imported) {
+                app->active_profile_loaded = 1U;
                 app->profiles.active_profile = destination;
                 app->campaign_active_valid = 0U;
                 imported = pocket_d20_profiles_refresh(app->storage, &app->profiles) &&
@@ -5512,7 +5529,8 @@ static void pocket_handle_profile_actions(PocketD20App* app, const InputEvent* e
                 pocket_set_status(app, imported ? "Character imported" : "Import metadata failed");
             } else {
                 bool recovered = false;
-                pocket_d20_storage_load_profile(app->storage, previous, &app->data, &recovered);
+                app->active_profile_loaded = pocket_d20_storage_load_profile(
+                    app->storage, previous, &app->data, &recovered);
                 app->saved_fingerprint = pocket_data_fingerprint(&app->data);
                 pocket_set_status(app, "No valid export");
             }
@@ -5538,7 +5556,10 @@ static void pocket_handle_profile_actions(PocketD20App* app, const InputEvent* e
             bool restored = pocket_d20_storage_restore_backup(app->storage, profile, &app->data);
             if(!restored) {
                 bool recovered = false;
-                pocket_d20_storage_load_profile(app->storage, profile, &app->data, &recovered);
+                app->active_profile_loaded =
+                    pocket_d20_storage_load_profile(app->storage, profile, &app->data, &recovered);
+            } else {
+                app->active_profile_loaded = 1U;
             }
             pocket_d20_profiles_refresh(app->storage, &app->profiles);
             pocket_d20_profiles_save(app->storage, &app->profiles);
@@ -8929,21 +8950,36 @@ static PocketD20App* pocket_app_alloc(void) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);
+    bool profile_migration_ok =
+        pocket_d20_storage_migrate_legacy_profiles(app->storage, &app->migrated_profile_files);
+    bool campaign_migration_ok =
+        pocket_campaign_migrate_legacy_custom(app->storage, &app->migrated_campaign_files);
+    bool migration_ok = profile_migration_ok && campaign_migration_ok;
     bool profiles_loaded = pocket_d20_profiles_load(app->storage, &app->profiles);
+    bool had_profiles = app->profiles.count > 0U;
     bool recovered_backup = false;
     bool loaded = pocket_d20_storage_load_profile(
         app->storage, app->profiles.active_profile, &app->data, &recovered_backup);
-    bool character_saved = loaded && !recovered_backup;
-    if(!character_saved)
-        character_saved = pocket_d20_storage_save_profile(
+    app->active_profile_loaded = loaded ? 1U : 0U;
+    bool character_ready = loaded;
+    bool metadata_saved = true;
+    if(loaded && recovered_backup)
+        character_ready = pocket_d20_storage_restore_backup(
             app->storage, app->profiles.active_profile, &app->data);
-    bool active_included = pocket_profile_include_active(app);
-    bool metadata_saved = active_included &&
-                          pocket_d20_profiles_save(app->storage, &app->profiles);
+    if(!loaded && !had_profiles) {
+        app->active_profile_loaded = 1U;
+        character_ready = pocket_d20_storage_save_profile(
+            app->storage, app->profiles.active_profile, &app->data);
+        if(!character_ready) app->active_profile_loaded = 0U;
+    }
+    if(app->active_profile_loaded) {
+        bool active_included = pocket_profile_include_active(app);
+        metadata_saved = active_included && pocket_d20_profiles_save(app->storage, &app->profiles);
+    }
     app->saved_fingerprint = pocket_data_fingerprint(&app->data);
-    if(!character_saved || !metadata_saved) {
+    if(!migration_ok || !character_ready || !metadata_saved) {
         app->storage_read_only = 1U;
-        app->storage_unsaved = 1U;
+        app->storage_unsaved = app->active_profile_loaded ? 1U : 0U;
     }
 
     app->screen = PocketScreenHome;
@@ -8952,8 +8988,19 @@ static PocketD20App* pocket_app_alloc(void) {
     app->dice_sides = 20U;
     app->spell_filter_level = -1;
     app->spell_filter_class = UINT8_MAX;
-    if(!character_saved || !metadata_saved)
+    if(!loaded && had_profiles)
+        pocket_set_status(app, "Profile preserved - load failed");
+    else if(!migration_ok)
+        pocket_set_status(app, "User-data migration failed");
+    else if(!character_ready || !metadata_saved)
         pocket_set_status(app, "UNSAVED - retry SD");
+    else if(app->migrated_profile_files || app->migrated_campaign_files)
+        snprintf(
+            app->status,
+            sizeof(app->status),
+            "Migrated %u user files",
+            (unsigned int)app->migrated_profile_files +
+                (unsigned int)app->migrated_campaign_files);
     else if(recovered_backup)
         pocket_set_status(app, "Backup recovered");
     else if(loaded)

@@ -12,7 +12,7 @@
 #include <string.h>
 
 #define TAG                      "DolphinBestiary"
-#define BESTIARY_WINDOW          50U
+#define BESTIARY_WINDOW          20U
 #define BESTIARY_MARQUEE_EVENT   0xB357U
 #define BESTIARY_LONG_BACK_EVENT 0xB358U
 #define BESTIARY_MARQUEE_MS      350U
@@ -1353,6 +1353,12 @@ static BestiaryApp* bestiary_alloc(void) {
     app->difficulty = PocketEncounterModerate;
     app->allow_repeats = 1U;
     app->storage = furi_record_open(RECORD_STORAGE);
+    uint16_t migrated_files = 0U;
+    uint16_t recovered = 0U;
+    uint16_t rolled_back = 0U;
+    bool migration_ok = pocket_monster_migrate_legacy_custom(app->storage, &migrated_files);
+    bool recovery_ok = migration_ok &&
+                       pocket_monster_recover_user_pack(app->storage, &recovered, &rolled_back);
     app->gui = furi_record_open(RECORD_GUI);
     app->dispatcher = view_dispatcher_alloc();
     view_dispatcher_set_event_callback_context(app->dispatcher, app);
@@ -1374,6 +1380,14 @@ static BestiaryApp* bestiary_alloc(void) {
     view_dispatcher_add_view(app->dispatcher, BestiaryViewMain, app->view);
     view_dispatcher_attach_to_gui(app->dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     furi_timer_start(app->marquee_timer, furi_ms_to_ticks(BESTIARY_MARQUEE_MS));
+    if(!migration_ok)
+        bestiary_status(app, "Custom migration failed");
+    else if(!recovery_ok)
+        bestiary_status(app, "Custom recovery failed");
+    else if(migrated_files)
+        bestiary_status(app, "Custom monsters migrated");
+    else if(recovered || rolled_back)
+        bestiary_status(app, "Custom pack recovered");
     return app;
 }
 
