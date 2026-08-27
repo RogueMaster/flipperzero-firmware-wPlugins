@@ -37,35 +37,35 @@
 // bundled-assets CI job cross-checks this constant against the committed bundle.
 #define HA_FILE_MAX             (73728)
 
-#define HA_DATA_DIR    APP_DATA_PATH("hotspot_arcade")
-#define HA_LOGS_DIR    HA_DATA_DIR "/logs"
-#define HA_CONFIG_PATH HA_DATA_DIR "/config.txt"
+#define HA_DATA_DIR    APP_DATA_PATH("")
+#define HA_LOGS_DIR    HA_DATA_DIR "logs"
+#define HA_CONFIG_PATH HA_DATA_DIR "config.txt"
 // Finished Frankendraw sheets, one SVG each (see ha_art_* in helpers/ha_storage.h).
-#define HA_ART_DIR     HA_DATA_DIR "/art"
+#define HA_ART_DIR     HA_DATA_DIR "art"
 
 // Content (ESP firmware, web bundle, trivia packs) ships inside the fap via
 // fap_file_assets; the loader extracts it to apps_assets on launch, so a fresh install
 // of just the .fap is playable with no SD setup. apps_assets is re-synced from the fap
 // every launch, so anything a user drops there is lost: user content lives in apps_data
 // instead, which the loader never touches. Both are read, apps_data winning on a clash.
-#define HA_ASSETS_DIR   APP_ASSETS_PATH("hotspot_arcade")
-#define HA_FIRMWARE_DIR HA_ASSETS_DIR "/firmware"
+#define HA_ASSETS_DIR   APP_ASSETS_PATH("")
+#define HA_FIRMWARE_DIR HA_ASSETS_DIR "firmware"
 // One flash manifest per supported board; the board picker chooses which to flash.
 #define HA_OFFICIAL_FW  HA_FIRMWARE_DIR "/official_devboard/flash_official.txt"
 #define HA_WROOM_FW     HA_FIRMWARE_DIR "/wroom/flash_wroom.txt"
 // The C5 boots from 0x2000 rather than 0x1000; the offsets live in its manifest.
 #define HA_C5_FW        HA_FIRMWARE_DIR "/c5/flash_c5.txt"
 
-#define HA_BUNDLED_WEB_DIR HA_ASSETS_DIR "/web"
-#define HA_USER_WEB_DIR    HA_DATA_DIR "/web"
+#define HA_BUNDLED_WEB_DIR HA_ASSETS_DIR "web"
+#define HA_USER_WEB_DIR    HA_DATA_DIR "web"
 
-#define HA_BUNDLED_PACKS_DIR  HA_ASSETS_DIR "/packs"
-#define HA_USER_PACKS_DIR     HA_DATA_DIR "/packs"
+#define HA_BUNDLED_PACKS_DIR  HA_ASSETS_DIR "packs"
+#define HA_USER_PACKS_DIR     HA_DATA_DIR "packs"
 // Compatibility: packs used to live in a trivia-only directory. Still read so a
 // user's existing SD content does not vanish. Remove one release after the packs/
 // layout ships.
-#define HA_BUNDLED_TRIVIA_DIR HA_ASSETS_DIR "/trivia"
-#define HA_USER_TRIVIA_DIR    HA_DATA_DIR "/trivia"
+#define HA_BUNDLED_TRIVIA_DIR HA_ASSETS_DIR "trivia"
+#define HA_USER_TRIVIA_DIR    HA_DATA_DIR "trivia"
 
 typedef enum {
     HaViewSubmenu,
