@@ -800,10 +800,34 @@ static inline uint8_t chCornerBit(int sq) {
 }
 
 // Zobrist keys: 12*64 piece-square, one side-to-move, 16 castling-rights states, 8
-// en-passant files. Filled once from a fixed seed (chessZobristInit) so a key means
-// the same position on every boot, and in the sim.
-static uint32_t ZOB[12 * 64 + 1 + 16 + 8];
-static bool ZOB_READY = false;
+// en-passant files, from a fixed seed so a key means the same position on every boot
+// and in the sim.
+//
+// Built at COMPILE time and stored in flash. It used to be a mutable DRAM array filled
+// on first use, and the comment here defended that as avoiding "3 KB of flash on a
+// stored table" -- a fair trade when flash was the tight resource. On the S2 it is now
+// backwards: flash sits around a third full while internal DRAM is the thing that would
+// not fit at all, so the same splitmix32 loop runs in constexpr and the 3,172 bytes move
+// off DRAM entirely. No init call, no ready flag, and the keys are identical either way.
+#define ZOB_N (12 * 64 + 1 + 16 + 8)
+struct ZobTable {
+    uint32_t k[ZOB_N];
+};
+static constexpr ZobTable zobBuild() {
+    ZobTable t{};
+    uint32_t s = 0x9E3779B9UL;
+    for(unsigned i = 0; i < ZOB_N; i++) {
+        s += 0x9E3779B9UL;
+        uint32_t z = s;
+        z = (z ^ (z >> 16)) * 0x85EBCA6BUL;
+        z = (z ^ (z >> 13)) * 0xC2B2AE35UL;
+        t.k[i] = z ^ (z >> 16);
+    }
+    return t;
+}
+static constexpr ZobTable ZOB_T = zobBuild();
+// Keeps every use site reading ZOB[i] exactly as before.
+static constexpr const uint32_t* ZOB = ZOB_T.k;
 
 // The position identity per FIDE 9.2: placement, side to move, castling rights and
 // en-passant capturability. Everything repetition hashing has to cover, and nothing
@@ -1062,19 +1086,41 @@ public:
     }
 
     // ---- trivia content streamed from the Flipper (packs -> votable topics) ----
+    // Allocated on demand rather than living in static DRAM, the same trade Frankendraw's
+    // stroke store makes: ps_malloc prefers PSRAM (the S2) and falls back to internal heap.
+    //
+    // Placement-new, not memset: these are Strings, and zeroing them would leave every one
+    // holding a garbage pointer. Allocated lazily rather than in the constructor because a
+    // static Engine is constructed before the core has brought PSRAM up.
+    //
+    // Returns false only when neither pool has the room. Every caller that adds content
+    // gates on it, so a board that cannot afford the topics simply never has any and trivia
+    // declines to start, while every other game keeps working.
+    bool topicsEnsure() {
+        if(_topics) return true;
+        size_t bytes = sizeof(TriviaTopic) * TRIVIA_MAX_TOPICS;
+        void* mem = ps_malloc(bytes);
+        if(!mem) mem = malloc(bytes);
+        if(!mem) return false;
+        _topics = (TriviaTopic*)mem;
+        for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) new(&_topics[i]) TriviaTopic();
+        return true;
+    }
     void triviaTopicsClear() {
-        for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _topics[i] = TriviaTopic{};
+        if(_topics)
+            for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _topics[i] = TriviaTopic{};
         _topicCount = 0;
     }
     void triviaAddTopic(const char* name) {
         if(_topicCount >= TRIVIA_MAX_TOPICS) return;
+        if(!topicsEnsure()) return;
         _topics[_topicCount] = TriviaTopic{};
         _topics[_topicCount].name = name;
         _topics[_topicCount].qcount = 0;
         _topicCount++;
     }
     void triviaAddQ(const char* json) {
-        if(_topicCount == 0) return;
+        if(_topicCount == 0 || !_topics) return;
         TriviaTopic& tp = _topics[_topicCount - 1];
         if(tp.qcount >= TRIVIA_MAX_QS) return;
         TriviaQ& q = tp.qs[tp.qcount];
@@ -1648,7 +1694,11 @@ private:
     uint8_t _active = HA_GAME_NONE;
     char _lang[8] = {0}; // UI language code for the phone client, "" = English
     // ---- always-resident state (kept OUT of the per-game union below) ----
-    TriviaTopic _topics[TRIVIA_MAX_TOPICS] = {}; // trivia's content (its runtime state _t is in the union)
+    // Trivia's content, and the single biggest block of Engine state: TRIVIA_MAX_TOPICS
+    // topics of TRIVIA_MAX_QS questions, five Strings each, well over 10 KB. Held off
+    // internal DRAM (see topicsEnsure) because on the S2 it is the difference between
+    // fitting and not. Its runtime state _t is in the union; this is the content.
+    TriviaTopic* _topics = nullptr;
     uint8_t _topicCount = 0;
     uint8_t _packGame = 0; // HA_GAME_* of the pack currently being streamed, 0 = none
     // The eight content games' packs, lifted out of their state structs. They hold Strings (so
@@ -4739,21 +4789,6 @@ private:
         return knights == 0; // bishops only, and the loop proved they share a color
     }
 
-    // splitmix32 over a fixed seed: the Zobrist keys are the same on every boot without
-    // spending 3 KB of flash on a stored table.
-    static void chessZobristInit() {
-        if(ZOB_READY) return;
-        uint32_t s = 0x9E3779B9UL;
-        for(unsigned i = 0; i < sizeof(ZOB) / sizeof(ZOB[0]); i++) {
-            s += 0x9E3779B9UL;
-            uint32_t z = s;
-            z = (z ^ (z >> 16)) * 0x85EBCA6BUL;
-            z = (z ^ (z >> 13)) * 0xC2B2AE35UL;
-            ZOB[i] = z ^ (z >> 16);
-        }
-        ZOB_READY = true;
-    }
-
     // Can the side to move actually capture en passant here? FIDE 9.2 compares the
     // *possible moves*, not the bare ep square, so a hash that always folds in the ep
     // file reports two identical positions as different and repetition never triggers.
@@ -4781,7 +4816,6 @@ private:
     // Position key for repetition detection, recomputed from scratch (a 64-square scan
     // once per move; incremental updating would buy nothing at this rate).
     static uint32_t chessHash(const ChessCore& c) {
-        chessZobristInit();
         uint32_t h = 0;
         for(int i = 0; i < 64; i++)
             if(c.sq[i]) h ^= ZOB[(c.sq[i] - 1) * 64 + i];
@@ -4894,7 +4928,6 @@ private:
         m->lastStamp = millis();
         m->lastMove = -1;
         m->offerBy = 0;
-        chessZobristInit();
         m->hist[0] = chessHash(m->core);
         m->histLen = 1;
     }

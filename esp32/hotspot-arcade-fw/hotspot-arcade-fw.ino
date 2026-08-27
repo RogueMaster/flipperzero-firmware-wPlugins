@@ -400,7 +400,11 @@ static void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
         leaseForget(info.wifi_ap_stadisconnected.mac);
 }
 
-// Hand ourselves out as the DNS server (DHCP option 6).
+// Tell joining phones two things at once: who resolves names here, and where the portal
+// is. Both are DHCP options, both need the server stopped to set, so they share one restart
+// rather than bouncing it twice while a station may already be probing.
+//
+// ---- Option 6, the DNS server ----
 //
 // Without this the AP leases an address and a gateway but NO resolver: esp_netif's DHCP
 // server does not offer DNS unless it is asked to, and Arduino's softAPConfig() never asks
@@ -414,18 +418,32 @@ static void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 // iOS says exactly that and offers nothing. Typing 192.168.4.1 by hand still worked the
 // whole time, because an IP needs no lookup, which is what kept this hidden. The wildcard
 // DNSServer below was always ready to answer; nothing was telling the phones to ask it.
-static void apOfferSelfAsDns() {
+//
+// ---- Option 114, the Captive Portal API (RFC 8910) ----
+//
+// Option 6 gets the OS probe working again, which is enough to make the portal pop up by
+// itself. Option 114 is the better mechanism and the one modern in-flight WiFi uses: it
+// hands the phone the portal URL outright, so the OS marks the network captive without
+// having to be tricked by a probe response, and iOS keeps a persistent entry for it in
+// WiFi settings instead of a popup you can dismiss and never find again.
+//
+// This is why every board is on the 3.x core now: ESP_NETIF_CAPTIVEPORTAL_URI does not
+// exist in the 2.0.17 line at all, and the Arduino helper for it is gated at IDF 5.4.2.
+static void apAnnouncePortal() {
     esp_netif_t* ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
     if(!ap) return;
     esp_netif_dns_info_t dns = {};
     dns.ip.type = ESP_IPADDR_TYPE_V4;
     dns.ip.u_addr.ip4.addr = (uint32_t)apIP;
-    // The DHCP server only accepts option changes while it is stopped.
+    // Options can only be set while the server is stopped, so do all of them in one window.
     esp_netif_dhcps_stop(ap);
     esp_netif_set_dns_info(ap, ESP_NETIF_DNS_MAIN, &dns);
     uint8_t offer = OFFER_DNS;
     esp_netif_dhcps_option(ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &offer, sizeof(offer));
     esp_netif_dhcps_start(ap);
+    // Must come after the AP is up (it reads the interface address) and after the restart
+    // above, since it manages its own stop/start around the URI it copies.
+    WiFi.AP.enableDhcpCaptivePortal();
 }
 
 static void startPortal() {
@@ -434,7 +452,7 @@ static void startPortal() {
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(apName, nullptr, 1, 0, apMaxConn); // open AP, up to apMaxConn stations
     delay(100);
-    apOfferSelfAsDns(); // before any station leases, or the first joiner gets no resolver
+    apAnnouncePortal(); // before any station leases, or the first joiner gets neither
     uartStatus("ap_ok");
 
     dnsServer.start(53, "*", apIP);
@@ -470,7 +488,14 @@ static RxState rxState = RX_SYNC;
 static uint8_t rxType = 0;
 static uint16_t rxLen = 0, rxIdx = 0;
 static uint8_t rxCrc = 0;
-static uint8_t rxBuf[HA_MAX_PAYLOAD + 1];
+// The framed protocol's receive buffer, allocated once at boot and never freed.
+//
+// It is 4 KB and it used to be static, which the linker has to reserve inside the S2's
+// dram0 segment whether a session is running or not. Off the heap it costs the same RAM
+// on a board with no PSRAM, but it stops the LINK depending on it, and on the S2 it lands
+// in PSRAM and is genuinely gone from internal memory. Sized once because every frame is
+// bounded by HA_MAX_PAYLOAD, so there is nothing to grow or shrink at runtime.
+static uint8_t* rxBuf = nullptr;
 
 // FILE_BEGIN payload: flags(1) pathlen(1) path mimelen(1) mime total(4 LE)
 static void handleFileBegin(const uint8_t* p, size_t len) {
@@ -613,6 +638,7 @@ static void rxByte(uint8_t c) {
         rxState = rxLen ? RX_PAYLOAD : RX_CRC;
         break;
     case RX_PAYLOAD:
+        if(!rxBuf) { rxState = RX_SYNC; break; } // no buffer: drop the frame, stay in sync
         rxBuf[rxIdx++] = c;
         rxCrc = ha_crc8_upd(rxCrc, c);
         if(rxIdx >= rxLen) rxState = RX_CRC;
@@ -666,6 +692,13 @@ void setup() {
     // Mount the bundle store (formats the spiffs-labelled partition as LittleFS on first
     // boot) and load any bundle a previous session persisted. maxOpenFiles is raised
     // because AsyncFileResponse holds a File open per in-flight response.
+    // Before the first byte can arrive. ps_malloc prefers PSRAM (the S2) and falls back to
+    // internal heap; if even that fails there is no way to receive a frame, so say so on the
+    // wire rather than writing through a null pointer on the first byte.
+    rxBuf = (uint8_t*)ps_malloc(HA_MAX_PAYLOAD + 1);
+    if(!rxBuf) rxBuf = (uint8_t*)malloc(HA_MAX_PAYLOAD + 1);
+    if(!rxBuf) uartStatus("err_rxbuf");
+
     fsReady = LittleFS.begin(true, "/littlefs", 16);
     if(fsReady) assets.load();
     engine.reset();

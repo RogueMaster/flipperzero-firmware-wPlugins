@@ -248,7 +248,7 @@ Full commands and gotchas are in [CLAUDE.md](CLAUDE.md); the short version:
 cd web && node build.mjs        # -> web/dist/{index.html.gz, manifest.json}
 ```
 
-**2. ESP32 firmware** (arduino-cli, esp32 core 2.0.17 for S2/WROOM and 3.x for the C5,
+**2. ESP32 firmware** (arduino-cli, esp32 core 3.3.11 for every board,
 vendored libs in `esp32/libs`). One sketch, built once per supported board —
 `tools/build-fap.sh` does them all for you, or by hand:
 ```sh

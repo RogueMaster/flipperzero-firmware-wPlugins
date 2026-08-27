@@ -23,5 +23,13 @@ cd "$REPO"
 # untracked and ignored strays (a .DS_Store, the build/ output dir, a scratch file) that
 # exist in one place and not the other, so the stamp would mismatch for reasons that have
 # nothing to do with the firmware. Tracked files are the same set everywhere.
-git ls-files -z -- esp32/hotspot-arcade-fw esp32/libs |
-    LC_ALL=C sort -z | xargs -0 shasum -a 256 | shasum -a 256 | cut -d' ' -f1
+# The arduino core is an input too, and an invisible one: the same sources built on a
+# different core produce different images while every tracked file is untouched. Without
+# this the guard would sail straight past a core bump with a stale image set committed.
+CORE_VER="$(sed -n 's/^CORE_VER="\(.*\)"$/\1/p' tools/build-fap.sh | head -1)"
+
+{
+    printf 'core %s\n' "$CORE_VER"
+    git ls-files -z -- esp32/hotspot-arcade-fw esp32/libs |
+        LC_ALL=C sort -z | xargs -0 shasum -a 256
+} | shasum -a 256 | cut -d' ' -f1

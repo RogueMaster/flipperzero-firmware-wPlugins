@@ -24,21 +24,28 @@ ASSETS_FW="$REPO/flipper/hotspot-arcade/assets/firmware"
 ASSETS_WEB="$REPO/flipper/hotspot-arcade/assets/web"
 ASSETS_PACKS="$REPO/flipper/hotspot-arcade/assets/packs"
 WEB_DIST="$REPO/web/dist"
-CORE_VER="2.0.17"
-# The ESP32-C5 is not in the 2.x cores at all, so it builds against a 3.x one.
-CORE_VER_C5="${CORE_VER_C5:-3.3.11}"
+# One core for every board. The S2 and WROOM were pinned to 2.0.17 for a long time; the
+# reason was never really "different WiFi/USB behaviour on 3.x" as the old comment here
+# claimed, it was that the S2 would not LINK -- the 3.x core gives it 8 KB less dram0 and
+# the sketch overflowed it. Moving the Zobrist table into flash and the trivia topics and
+# the UART receive buffer off static DRAM fixed that (dram0 free went from -6,560 to
+# +14,304 bytes, better than the 9,960 the 2.x core left), so the split is gone and every
+# board now gets DHCP option 114, which only exists in the 3.x line.
+CORE_VER="3.3.11"
 
 # Boards to build, "<fqbn>|<assets subdir>[|<core version>]". All build from the same
 # sketch; the fap bundles one image set per board and the on-device board picker chooses
 # which to flash. Adding a board is one more line here (+ its flash_*.txt and a picker row).
 #
-# The core version is optional and defaults to CORE_VER. The C5 needs it: that chip only
-# exists in the 3.x cores, while the S2/WROOM images stay on the pinned 2.0.17 so this
-# doesn't quietly re-cut them on a core with different WiFi/USB behaviour.
+# The core version is optional and defaults to CORE_VER; no board overrides it today.
+# CDCOnBoot=default is spelled out on both native-USB parts rather than left to the board
+# default, because it is what keeps Serial on UART0 -- the pins the Flipper talks to. If it
+# ever flipped, the beacon would vanish and the app would report "Firmware needed" while
+# staring at a perfectly good board.
 BOARDS=(
-    "esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled|official_devboard"
+    "esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled,CDCOnBoot=default|official_devboard"
     "esp32:esp32:esp32|wroom"
-    "esp32:esp32:esp32c5:PartitionScheme=huge_app,CDCOnBoot=default|c5|$CORE_VER_C5"
+    "esp32:esp32:esp32c5:PartitionScheme=huge_app,CDCOnBoot=default|c5"
 )
 
 # Short tag used in the flashed filenames, per assets subdir. The Flipper shows the
@@ -115,14 +122,11 @@ for entry in "${BOARDS[@]}"; do
     out="$ASSETS_FW/$subdir"
     BOOT_APP0=""
     if [ -n "$ACLI" ]; then
-        # arduino-cli keeps ONE version of a platform installed at a time, and these
-        # boards deliberately build against different ones: the C5 exists only in the
-        # 3.x cores, while the S2/WROOM stay pinned to 2.0.17 for its WiFi/USB
-        # behaviour. So the core has to be swapped mid-run, exactly as build.yml does
-        # by hand between its two compile steps. BOARDS is grouped by core version, so
-        # this swaps at most once per run. Without it the script simply cannot produce
-        # a full image set on a dev machine: it reached the C5 with 2.0.17 installed
-        # and died looking for a boot_app0.bin that only ships with the 3.x core.
+        # arduino-cli keeps ONE version of a platform installed at a time. Every board
+        # builds against the same core now, so this never actually swaps -- but it is
+        # what makes the script work on a machine that happens to have some other esp32
+        # core installed, which is otherwise a baffling boot_app0.bin-not-found failure.
+        # It stays for that, and so a future board needing its own core just works.
         if [ "$(installed_core)" != "$board_core" ]; then
             echo "==> switching to the esp32 $board_core core (for $subdir)"
             "$ACLI" core install "esp32:esp32@$board_core"

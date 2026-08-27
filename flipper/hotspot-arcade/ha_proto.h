@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41
 #define HA_FW_MAGIC_2 0x52
 #define HA_FW_MAGIC_3 0x43
-#define HA_FW_VERSION 21 // v21: cross-game cumulative totals (TOTAL frame)
+#define HA_FW_VERSION 22 // v22: captive portal announced via DHCP (opt 6 + 114), one core
 
 // Flipper -> ESP
 #define HA_MSG_CLEAR_FILES   0x10
