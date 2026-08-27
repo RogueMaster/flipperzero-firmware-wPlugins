@@ -50,6 +50,10 @@ not a hang. Every launch after that is instant.
 Pick an emoji avatar on the way in and send emoji reactions that float up on everyone's
 screen. Everything is phone-driven: the Flipper just selects the game and keeps score.
 
+Scores carry across the whole evening, not just the current game. Finish above someone and
+you gain a point for it, so a win in a six-player round counts for more than a win at a
+two-player board, and every game contributes on the same footing however it scores inside.
+
 ## How to use
 
 1. Attach your ESP32 board (flash its firmware via **Install Firmware**, picking your board, the first time).
