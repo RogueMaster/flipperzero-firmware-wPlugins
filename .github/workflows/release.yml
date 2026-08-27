@@ -181,9 +181,11 @@ jobs:
 
             ```sh
             esptool.py --chip esp32 --before default_reset --after hard_reset write_flash 0x0 wroom-merged.bin
-
-            ESP32-C5:
-
+            ```
+            
+            **ESP32-C5:**
+            
+            ```sh
             esptool.py --chip esp32c5 --before default_reset --after hard_reset write_flash 0x0 c5-merged.bin
             ```
           files: |
