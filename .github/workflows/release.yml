@@ -159,28 +159,44 @@ jobs:
             Offline multiplayer party games hosted from a Flipper Zero + an ESP32 WiFi board (S2, WROOM, or C5).
 
             ## Install
-
-            **You only need `hotspot_arcade.fap`.** Drop it in `/ext/apps/GPIO/` on the SD card.
-            The ESP firmware, the phone game bundle, and the content packs all ship inside it, so
-            there is no SD setup and nothing else to download. Flash the board from the app itself
-            with **Install Firmware**.
-
+ 
+            Pick **one** `.fap`, not several — installing more than one just overwrites the last
+            one you copied over, since they all install as the same app. Drop it in
+            `/ext/apps/GPIO/` on the SD card. The ESP firmware, the phone game bundle, and the
+            content packs all ship inside it, so there is no SD setup and nothing else to
+            download. Flash the board from the app itself with **Install Firmware**.
+ 
+            - **Not sure which board you have, or want to keep your options open?** Use
+              `hotspot_arcade-all.fap`. It carries firmware for all three boards (S2, WROOM, C5),
+              so **Install Firmware** can flash whichever one you plug in, and you can switch
+              boards later without reinstalling.
+            - **Know your board already?** Use the matching one —
+              `hotspot_arcade-s2.fap`, `hotspot_arcade-wroom.fap`, or `hotspot_arcade-c5.fap`.
+              Each carries only that board's firmware, so it's a smaller download and a faster
+              first unpack than the combined `-all` build.
+ 
             > **First launch can take up to 3 minutes** (and again after an update). The .fap
-            > carries about 3 MB of bundled content (three board firmwares, the phone game bundle,
-            > the content packs) and the Flipper unpacks it to the SD card on first open. The
-            > hourglass is the system loader doing that, not a hang, so give it a minute or two.
-            > Every launch after that is instant.
-
+            > unpacks its bundled content (board firmware, the phone game bundle, the content
+            > packs) to the SD card on first open — more content in `-all` than in a single-board
+            > fap, so `-all` takes a bit longer. The hourglass is the system loader doing that,
+            > not a hang, so give it a minute or two. Every launch after that is instant.
+ 
             ## Assets
-
-            - `hotspot_arcade.fap`: the whole thing. This is the one you want.
+ 
+            - `hotspot_arcade-all.fap`: bundles firmware for all three boards (S2, WROOM, C5).
+              Pick this if you're unsure which board you have or want to swap boards later.
+            - `hotspot_arcade-s2.fap`: bundles firmware for the ESP32-S2 dev board only. Smaller
+              and faster to unpack than `-all` if that's the board you're flashing.
+            - `hotspot_arcade-wroom.fap`: bundles firmware for the ESP32 WROOM board only.
+            - `hotspot_arcade-c5.fap`: bundles firmware for the ESP32-C5 board only.
             - `firmware-merged.bin`: the ESP32-S2 firmware as a single image, if you'd rather flash
-              that board from a computer (optional — the fap already carries it).
-            - `wroom-merged.bin`: the same, for an ESP32 WROOM board (optional — the fap carries it too).
-            - `c5-merged.bin`: the same, for an ESP32-C5 board.
+              that board from a computer (optional — the S2 fap and the `-all` fap already carry it).
+            - `wroom-merged.bin`: the same, for an ESP32 WROOM board (optional — the WROOM fap and
+              the `-all` fap already carry it).
+            - `c5-merged.bin`: the same, for an ESP32-C5 board (optional — the C5 fap and the
+              `-all` fap already carry it).
             - `web-bundle.zip`: the phone game bundle on its own, for overriding the bundled client
               from `/ext/apps_data/hotspot_arcade/web/` (optional).
-
             ## Flash the ESP board from a computer (optional)
 
             Or skip this entirely and use **Install Firmware** on the Flipper — it flashes any of the boards.
