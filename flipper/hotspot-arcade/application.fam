@@ -54,6 +54,6 @@ App(
     fap_category="GPIO",
     fap_icon="icons/icon_10px.png",
     fap_author="Tarik Caramanico",
-    fap_version="1.8.0",
+    fap_version="1.9.0",
     fap_description="Host an offline multiplayer game hotspot on an ESP32 WiFi board (official S2 dev board, WROOM, or C5). People nearby join your WiFi and play in their phone browser, no internet needed: twenty games, from Trivia, Would You Rather, and Word Scramble to Chess, Battleship, Werewolf, Spyfall, Fill the Blank, and Draw a Monster, with emoji avatars and reactions. The Flipper shows the lobby and scoreboard, and can flash the ESP board on-device.",
 )
