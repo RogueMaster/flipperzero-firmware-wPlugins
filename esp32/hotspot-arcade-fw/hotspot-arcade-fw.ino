@@ -31,6 +31,10 @@
 #include "ha_assets.h"
 #include "ha_games.h"
 
+// Where the RFC 8908 Captive Portal API lives. Advertised in DHCP option 114 and served
+// by ArcadeHandler; deliberately not "/", which is the app itself.
+#define HA_CAPTIVE_API_PATH "/captive-api"
+
 #define WS_MSG_MAX 512
 #define AP_MAX_CONN 8
 
@@ -303,6 +307,21 @@ public:
     }
     void handleRequest(AsyncWebServerRequest* request) override {
         String url = request->url();
+        // RFC 8908 Captive Portal API. This is what DHCP option 114 points at, and it is
+        // NOT the portal page: it is a tiny JSON document describing the network's captive
+        // state, served as application/captive+json. Answering it with the app's HTML (which
+        // is what pointing option 114 at "/" did) makes the phone discard the whole
+        // mechanism and fall back to probe sniffing -- the popup still appears, but the
+        // persistent "Log In" entry in the OS network settings never does, because as far as
+        // the OS is concerned this network has no API.
+        if(url == HA_CAPTIVE_API_PATH) {
+            AsyncWebServerResponse* r = request->beginResponse(
+                200, "application/captive+json",
+                "{\"captive\":true,\"user-portal-url\":\"http://192.168.4.1/\"}");
+            r->addHeader("Cache-Control", "no-store");
+            request->send(r);
+            return;
+        }
         const Asset* a = assets.find(url.c_str());
         if(!a) a = assets.root(); // captive-detection URLs and "/" -> the app
         // Serve the ~47 KB app to real browsers -- including the iOS captive WINDOW, which is
@@ -440,10 +459,23 @@ static void apAnnouncePortal() {
     esp_netif_set_dns_info(ap, ESP_NETIF_DNS_MAIN, &dns);
     uint8_t offer = OFFER_DNS;
     esp_netif_dhcps_option(ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &offer, sizeof(offer));
+    // Option 114 goes in the SAME stopped window rather than through Arduino's
+    // WiFi.AP.enableDhcpCaptivePortal(), for two reasons. That helper hardcodes the URI to
+    // "http://<ip>", the app's own page, which is the wrong thing to advertise -- the option
+    // must point at the RFC 8908 API endpoint, not at the portal. And it bounces the DHCP
+    // server a second time, right when a station may already be probing.
+    //
+    // esp_netif keeps the POINTER we hand it rather than copying the string, so this buffer
+    // is static and outlives the call.
+    static char captiveUri[40];
+    snprintf(captiveUri, sizeof(captiveUri), "http://%s%s",
+             apIP.toString().c_str(), HA_CAPTIVE_API_PATH);
+    esp_err_t cperr = esp_netif_dhcps_option(
+        ap, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, captiveUri, strlen(captiveUri));
     esp_netif_dhcps_start(ap);
-    // Must come after the AP is up (it reads the interface address) and after the restart
-    // above, since it manages its own stop/start around the URI it copies.
-    WiFi.AP.enableDhcpCaptivePortal();
+    // Say so on the wire: whether the option went out is otherwise invisible from the host,
+    // and "the button did not appear" has too many possible causes to guess between.
+    uartStatus(cperr == ESP_OK ? "captive_api_on" : "captive_api_err");
 }
 
 static void startPortal() {
