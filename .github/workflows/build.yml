@@ -64,20 +64,20 @@ jobs:
           mkdir -p "$HOME/bin"
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR="$HOME/bin" sh
           echo "$HOME/bin" >> "$GITHUB_PATH"
-      - name: Install esp32 core 2.0.17 (S2/WROOM)
+      - name: Install esp32 core 3.3.11
         run: |
           arduino-cli config init --overwrite
           arduino-cli config set board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-cli core update-index
-          arduino-cli core install esp32:esp32@2.0.17
-      - name: Compile S2 + WROOM (core 2.0.17)
-        # These stay pinned to 2.0.17 (different WiFi/USB behaviour on 3.x). arduino-cli
-        # uses the installed core, so with only 2.0.17 present these build against it -- the
-        # C5 install below would otherwise replace it and re-cut these on 3.x. AsyncTCP +
-        # ESPAsyncWebServer are vendored in esp32/libs/; output goes to build/<board>/.
+          arduino-cli core install esp32:esp32@3.3.11
+      - name: Compile all three boards (core 3.3.11)
+        # One core for every board now. The S2/WROOM were pinned to 2.0.17 and had to build
+        # BEFORE the C5, because installing the 3.x core replaces the 2.x one -- that whole
+        # ordering dance is gone. CDCOnBoot=default keeps Serial on UART0, the pins the
+        # Flipper talks to. AsyncTCP + ESPAsyncWebServer are vendored in esp32/libs/.
         run: |
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled \
+            --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled,CDCOnBoot=default \
             --libraries esp32/libs \
             --output-dir esp32/hotspot-arcade-fw/build/official_devboard \
             esp32/hotspot-arcade-fw
@@ -86,12 +86,6 @@ jobs:
             --libraries esp32/libs \
             --output-dir esp32/hotspot-arcade-fw/build/wroom \
             esp32/hotspot-arcade-fw
-      - name: Compile C5 (core 3.3.11)
-        # The C5 only exists in the 3.x line. Installing it REPLACES 2.0.17, so this runs
-        # AFTER the S2/WROOM builds (matches release.yml). CDCOnBoot stays disabled so
-        # Serial is UART0 -- the pins the Flipper uses.
-        run: |
-          arduino-cli core install esp32:esp32@3.3.11
           arduino-cli compile \
             --fqbn esp32:esp32:esp32c5:PartitionScheme=huge_app,CDCOnBoot=default \
             --libraries esp32/libs \

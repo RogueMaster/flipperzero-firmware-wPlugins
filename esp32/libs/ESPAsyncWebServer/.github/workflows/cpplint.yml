@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Cpplint
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - release/*
+    paths-ignore:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "README.md"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "README.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpplint:
+    name: cpplint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Cache
+        uses: actions/cache@v6
+        with:
+          key: ${{ runner.os }}-cpplint
+          path: ~/.cache/pip
+
+      - name: Pyhton
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: cpplint
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade cpplint
+          cpplint \
+            --repository=. \
+            --recursive \
+            --filter=-build/c++11,-build/namespaces,-readability/braces,-readability/casting,-readability/todo,-runtime/explicit,-runtime/indentation_namespace,-runtime/int,-runtime/references,-whitespace/blank_line,,-whitespace/braces,-whitespace/comments,-whitespace/indent,-whitespace/line_length,-whitespace/newline,-whitespace/parens \
+            lib \
+            include \
+            src

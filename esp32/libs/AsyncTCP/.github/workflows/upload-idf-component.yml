@@ -1,0 +1,50 @@
+name: Publish ESP-IDF Component
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Component version (1.2.3, 1.2.3-rc1 or 1.2.3.4)'
+        required: true
+      git_ref:
+        description: 'Git ref with the source (branch, tag or commit)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  upload_components:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the release tag
+        env:
+          head_branch: ${{ inputs.tag || github.event.workflow_run.head_branch }}
+        run: |
+          # Read and sanitize the branch/tag name
+          branch=$(echo "$head_branch" | tr -cd '[:alnum:]/_.-')
+
+          if [[ $branch == refs/tags/* ]]; then
+            tag="${branch#refs/tags/}"
+          elif [[ $branch =~ ^[v]*[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+            tag=$branch
+          else
+            echo "Tag not found in $branch. Exiting..."
+            exit 1
+          fi
+
+          echo "Tag: $tag"
+          echo "RELEASE_TAG=$tag" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.git_ref || env.RELEASE_TAG }}
+          submodules: "recursive"
+
+      - name: Upload components to the component registry
+        uses: espressif/upload-components-ci-action@v2
+        with:
+          name: asynctcp
+          version: ${{ env.RELEASE_TAG }}
+          namespace: esp32async
+          api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}

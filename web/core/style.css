@@ -50,6 +50,10 @@ body{
 }
 .cur{color:var(--orange); animation:blink 1s step-end infinite}
 @keyframes blink{50%{opacity:0}}
+/* The cross-game total, beside the connection dot. Tabular figures so it does not
+   jitter the header as it climbs. */
+.hdr-total{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums;
+  white-space:nowrap}
 .hdr-right{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim);
   min-width:0}
 .dot{width:10px; height:10px; border-radius:50%; background:var(--orange); flex:none}
@@ -210,6 +214,11 @@ h3{margin:0; font-weight:600}
 .players li.self{border-left:4px solid var(--orange)}
 .players .pn{flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .players .ps{color:var(--orange); font-weight:700; font-variant-numeric:tabular-nums}
+/* Rank column, only drawn once somebody is actually ahead (see onLobby). Mirrors the
+   shared leaderboard's column so the two read as the same thing. */
+.players .r{width:20px; text-align:right; color:var(--text-dim); font-weight:700;
+  font-variant-numeric:tabular-nums; flex:none}
+.players li.self .r{color:var(--orange)}
 .players li.self .ps{background:var(--orange); color:var(--on-orange); padding:2px 8px; border-radius:2px}
 
 /* Trivia */

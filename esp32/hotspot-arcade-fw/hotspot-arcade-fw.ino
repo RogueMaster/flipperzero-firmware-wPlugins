@@ -13,6 +13,18 @@
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 #include <esp_wifi.h>
+#include <esp_netif.h>
+#include <esp_heap_caps.h>
+// dhcpserver.h sits at a different path in IDF 4.x (the pinned 2.0.17 core, S2/WROOM) and
+// IDF 5.x (the 3.x core the C5 needs), and all we want from it is one flag. Probe for it
+// rather than pick a path that only builds on one of the two boards.
+#if __has_include(<dhcpserver/dhcpserver.h>)
+#include <dhcpserver/dhcpserver.h>
+#elif __has_include(<lwip/apps/dhcpserver/dhcpserver.h>)
+#include <lwip/apps/dhcpserver/dhcpserver.h>
+#else
+#define OFFER_DNS 0x02 // DHCP server "also send option 6"; stable across both IDF lines
+#endif
 #include <lwip/etharp.h>
 
 #include "ha_proto.h"
@@ -20,9 +32,17 @@
 #include "ha_assets.h"
 #include "ha_games.h"
 
+// Where the RFC 8908 Captive Portal API lives. Advertised in DHCP option 114 and served
+// by ArcadeHandler; deliberately not "/", which is the app itself.
+#define HA_CAPTIVE_API_PATH "/captive-api"
+
 #define WS_MSG_MAX 512
 #define AP_MAX_CONN 8
 
+// Did DHCP option 114 actually go out? Reported in the beacon so the host can tell "we
+// never advertised the portal API" apart from "we did and the phone ignored it" -- two very
+// different problems that look identical from the sofa.
+static bool captiveApiOk = false;
 static DNSServer dnsServer;
 static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
@@ -229,6 +249,15 @@ void haUartScore(uint8_t pid, int delta, const char* reason) {
     memcpy(buf + 3, reason, n);
     uartSend(HA_MSG_SCORE, buf, 3 + n);
 }
+void haUartTotal(uint8_t pid, int32_t total) {
+    uint8_t buf[1 + 4];
+    buf[0] = pid;
+    buf[1] = (uint8_t)(total & 0xFF);
+    buf[2] = (uint8_t)((total >> 8) & 0xFF);
+    buf[3] = (uint8_t)((total >> 16) & 0xFF);
+    buf[4] = (uint8_t)((total >> 24) & 0xFF);
+    uartSend(HA_MSG_TOTAL, buf, 5);
+}
 void haUartEvent(const String& json) {
     uartSend(HA_MSG_EVENT, (const uint8_t*)json.c_str(), json.length());
 }
@@ -283,6 +312,21 @@ public:
     }
     void handleRequest(AsyncWebServerRequest* request) override {
         String url = request->url();
+        // RFC 8908 Captive Portal API. This is what DHCP option 114 points at, and it is
+        // NOT the portal page: it is a tiny JSON document describing the network's captive
+        // state, served as application/captive+json. Answering it with the app's HTML (which
+        // is what pointing option 114 at "/" did) makes the phone discard the whole
+        // mechanism and fall back to probe sniffing -- the popup still appears, but the
+        // persistent "Log In" entry in the OS network settings never does, because as far as
+        // the OS is concerned this network has no API.
+        if(url == HA_CAPTIVE_API_PATH) {
+            AsyncWebServerResponse* r = request->beginResponse(
+                200, "application/captive+json",
+                "{\"captive\":true,\"user-portal-url\":\"http://192.168.4.1/\"}");
+            r->addHeader("Cache-Control", "no-store");
+            request->send(r);
+            return;
+        }
         const Asset* a = assets.find(url.c_str());
         if(!a) a = assets.root(); // captive-detection URLs and "/" -> the app
         // Serve the ~47 KB app to real browsers -- including the iOS captive WINDOW, which is
@@ -380,12 +424,70 @@ static void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
         leaseForget(info.wifi_ap_stadisconnected.mac);
 }
 
+// Tell joining phones two things at once: who resolves names here, and where the portal
+// is. Both are DHCP options, both need the server stopped to set, so they share one restart
+// rather than bouncing it twice while a station may already be probing.
+//
+// ---- Option 6, the DNS server ----
+//
+// Without this the AP leases an address and a gateway but NO resolver: esp_netif's DHCP
+// server does not offer DNS unless it is asked to, and Arduino's softAPConfig() never asks
+// (set_esp_interface_ip only touches the address info). A phone then cannot resolve the
+// hostname its OS probes to decide whether a network is captive -- captive.apple.com on
+// iOS, connectivitycheck.gstatic.com on Android -- so the probe fails to resolve instead of
+// being intercepted.
+//
+// That distinction is the whole bug. A probe that is answered with the wrong page means
+// "captive" and opens the portal; a probe that cannot even resolve means "no internet", and
+// iOS says exactly that and offers nothing. Typing 192.168.4.1 by hand still worked the
+// whole time, because an IP needs no lookup, which is what kept this hidden. The wildcard
+// DNSServer below was always ready to answer; nothing was telling the phones to ask it.
+//
+// ---- Option 114, the Captive Portal API (RFC 8910) ----
+//
+// Option 6 gets the OS probe working again, which is enough to make the portal pop up by
+// itself. Option 114 is the better mechanism and the one modern in-flight WiFi uses: it
+// hands the phone the portal URL outright, so the OS marks the network captive without
+// having to be tricked by a probe response, and iOS keeps a persistent entry for it in
+// WiFi settings instead of a popup you can dismiss and never find again.
+//
+// This is why every board is on the 3.x core now: ESP_NETIF_CAPTIVEPORTAL_URI does not
+// exist in the 2.0.17 line at all, and the Arduino helper for it is gated at IDF 5.4.2.
+static void apAnnouncePortal() {
+    esp_netif_t* ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+    if(!ap) return;
+    esp_netif_dns_info_t dns = {};
+    dns.ip.type = ESP_IPADDR_TYPE_V4;
+    dns.ip.u_addr.ip4.addr = (uint32_t)apIP;
+    // Options can only be set while the server is stopped, so do all of them in one window.
+    esp_netif_dhcps_stop(ap);
+    esp_netif_set_dns_info(ap, ESP_NETIF_DNS_MAIN, &dns);
+    uint8_t offer = OFFER_DNS;
+    esp_netif_dhcps_option(ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &offer, sizeof(offer));
+    // Option 114 goes in the SAME stopped window rather than through Arduino's
+    // WiFi.AP.enableDhcpCaptivePortal(), for two reasons. That helper hardcodes the URI to
+    // "http://<ip>", the app's own page, which is the wrong thing to advertise -- the option
+    // must point at the RFC 8908 API endpoint, not at the portal. And it bounces the DHCP
+    // server a second time, right when a station may already be probing.
+    //
+    // esp_netif keeps the POINTER we hand it rather than copying the string, so this buffer
+    // is static and outlives the call.
+    static char captiveUri[40];
+    snprintf(captiveUri, sizeof(captiveUri), "http://%s%s",
+             apIP.toString().c_str(), HA_CAPTIVE_API_PATH);
+    esp_err_t cperr = esp_netif_dhcps_option(
+        ap, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, captiveUri, strlen(captiveUri));
+    esp_netif_dhcps_start(ap);
+    captiveApiOk = (cperr == ESP_OK); // reported in the PING beacon, see below
+}
+
 static void startPortal() {
     leasesClear(); // a fresh session leases fresh addresses
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(apName, nullptr, 1, 0, apMaxConn); // open AP, up to apMaxConn stations
     delay(100);
+    apAnnouncePortal(); // before any station leases, or the first joiner gets neither
     uartStatus("ap_ok");
 
     dnsServer.start(53, "*", apIP);
@@ -421,7 +523,14 @@ static RxState rxState = RX_SYNC;
 static uint8_t rxType = 0;
 static uint16_t rxLen = 0, rxIdx = 0;
 static uint8_t rxCrc = 0;
-static uint8_t rxBuf[HA_MAX_PAYLOAD + 1];
+// The framed protocol's receive buffer, allocated once at boot and never freed.
+//
+// It is 4 KB and it used to be static, which the linker has to reserve inside the S2's
+// dram0 segment whether a session is running or not. Off the heap it costs the same RAM
+// on a board with no PSRAM, but it stops the LINK depending on it, and on the S2 it lands
+// in PSRAM and is genuinely gone from internal memory. Sized once because every frame is
+// bounded by HA_MAX_PAYLOAD, so there is nothing to grow or shrink at runtime.
+static uint8_t* rxBuf = nullptr;
 
 // FILE_BEGIN payload: flags(1) pathlen(1) path mimelen(1) mime total(4 LE)
 static void handleFileBegin(const uint8_t* p, size_t len) {
@@ -564,6 +673,7 @@ static void rxByte(uint8_t c) {
         rxState = rxLen ? RX_PAYLOAD : RX_CRC;
         break;
     case RX_PAYLOAD:
+        if(!rxBuf) { rxState = RX_SYNC; break; } // no buffer: drop the frame, stay in sync
         rxBuf[rxIdx++] = c;
         rxCrc = ha_crc8_upd(rxCrc, c);
         if(rxIdx >= rxLen) rxState = RX_CRC;
@@ -606,7 +716,24 @@ static void pumpSerial() {
 
 // ---------------- Arduino entry ----------------
 
+// How big an allocation has to be before it is allowed to live in PSRAM.
+//
+// The core boots this at CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL, which the 3.x SDK ships as
+// 4096, so everything smaller than 4 KB is forced into internal RAM no matter how much
+// PSRAM is free. An async web server's per-connection allocations are nearly all smaller
+// than that, which is exactly why the board could sit on 1.9 MB of unused PSRAM while its
+// internal heap drained to 11 KB and a second phone could not finish associating.
+//
+// Dropping it to 1 KB lets PSRAM take the bulk of that traffic. Allocations that genuinely
+// must be internal -- DMA buffers, anything an ISR touches -- ask for those capabilities
+// explicitly and are unaffected by this limit; it only steers plain malloc().
+#define HA_PSRAM_MALLOC_FLOOR 1024
+
 void setup() {
+    // Before anything allocates. No-op on a board without PSRAM, where there is nowhere
+    // else for these to go and the internal heap is all there is.
+    if(ESP.getPsramSize() > 0) heap_caps_malloc_extmem_enable(HA_PSRAM_MALLOC_FLOOR);
+
     serialMutex = xSemaphoreCreateMutex();
     engineMutex = xSemaphoreCreateRecursiveMutex();
     WiFi.onEvent(onWiFiEvent, ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED);
@@ -617,6 +744,13 @@ void setup() {
     // Mount the bundle store (formats the spiffs-labelled partition as LittleFS on first
     // boot) and load any bundle a previous session persisted. maxOpenFiles is raised
     // because AsyncFileResponse holds a File open per in-flight response.
+    // Before the first byte can arrive. ps_malloc prefers PSRAM (the S2) and falls back to
+    // internal heap; if even that fails there is no way to receive a frame, so say so on the
+    // wire rather than writing through a null pointer on the first byte.
+    rxBuf = (uint8_t*)ps_malloc(HA_MAX_PAYLOAD + 1);
+    if(!rxBuf) rxBuf = (uint8_t*)malloc(HA_MAX_PAYLOAD + 1);
+    if(!rxBuf) uartStatus("err_rxbuf");
+
     fsReady = LittleFS.begin(true, "/littlefs", 16);
     if(fsReady) assets.load();
     engine.reset();
@@ -646,7 +780,12 @@ void loop() {
         uint32_t bcrc = fsReady ? assets.bundleCrc() : 0;
         uint16_t heapKb = (uint16_t)(ESP.getFreeHeap() / 1024);
         uint16_t psramKb = (uint16_t)(ESP.getFreePsram() / 1024);
-        uint8_t beacon[15] = {
+        // Free heap is a snapshot and the interesting failure is a slow drain, so send the
+        // low-water mark since boot alongside it: that is what shows a leak in a way a
+        // sampled number cannot. Older Flippers read only the bytes they know.
+        uint16_t minHeapKb = (uint16_t)(ESP.getMinFreeHeap() / 1024);
+        uint8_t flags = captiveApiOk ? 0x01 : 0x00;
+        uint8_t beacon[18] = {
             HA_FW_MAGIC_0,
             HA_FW_MAGIC_1,
             HA_FW_MAGIC_2,
@@ -661,7 +800,10 @@ void loop() {
             (uint8_t)(heapKb & 0xFF),
             (uint8_t)(heapKb >> 8),
             (uint8_t)(psramKb & 0xFF),
-            (uint8_t)(psramKb >> 8)};
+            (uint8_t)(psramKb >> 8),
+            (uint8_t)(minHeapKb & 0xFF),
+            (uint8_t)(minHeapKb >> 8),
+            flags};
         uartSend(HA_MSG_PING, beacon, sizeof(beacon));
     }
 }

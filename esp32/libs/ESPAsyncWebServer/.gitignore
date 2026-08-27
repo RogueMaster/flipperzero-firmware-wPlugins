@@ -1,5 +1,8 @@
 .DS_Store
 .lh
+/.ci
 /.pio
 /.vscode
 /logs
+/site
+/venv

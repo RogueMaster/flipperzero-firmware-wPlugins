@@ -6,6 +6,62 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-27
+
+### Added
+
+- **One score for the whole evening.** Games pay on wildly different scales -- a
+  trivia session runs to five figures while a werewolf win pays 1 -- so ranking
+  across them never meant anything. Every player now carries a second number that
+  does: at the end of a game you gain one point for every player you finished
+  above. A six-player win is worth five, a 1v1 win is worth one, and ties take the
+  lower value. Each game keeps its own scoring exactly as it was. The phone lobby
+  becomes a ranked cross-game board and a header chip keeps your own total on
+  screen through every game switch. Thanks to genkigenki for raising it.
+- **Reset Scores** on the Flipper, behind a confirmation, clearing both the current
+  game and the evening's totals. The Leaderboard now ranks on the evening, shows the
+  current game's score beside it, and fits a seventh row (it had been silently
+  hiding players seven and up).
+- The Flipper dashboard shows the board's heap **low-water mark**, not just its
+  current free heap. A slow drain is invisible in a sampled number and obvious in
+  the minimum.
+
+### Fixed
+
+- **The captive portal opens by itself again.** The access point was handing out an
+  address and a gateway but no DNS server, so phones could not resolve the address
+  their OS probes to decide whether a network is captive. A probe that cannot
+  resolve reads as "no internet"; only one that resolves and gets the wrong page
+  back reads as "captive". Typing 192.168.4.1 by hand always worked, which is why
+  this went unnoticed for so long.
+- **The hotspot holds up with several phones.** The board could exhaust its internal
+  memory during a session until the portal stopped answering and a second phone
+  could not finish connecting, all while nearly 2 MB of its extra memory sat unused.
+  Small allocations were being forced into the scarce pool regardless of how much
+  spare memory there was. They can now use it.
+- Renaming yourself mid-session no longer wipes your score from the host's board,
+  and a phone that drops and returns now has its score restored there too.
+- Winning at Battleship scores. It had never awarded anything at all, not even a
+  line in the host's console.
+- Playing Spectrum, Kiss Marry Kill, Secrets, Fill the Blank, Werewolf or Spyfall a
+  second time starts from zero instead of carrying the first game's scores.
+
+### Changed
+
+- Every board now builds on one ESP32 core (3.3.11), which is what makes the modern
+  captive-portal announcement available at all. Fitting the S2 needed its chess
+  tables moved into flash and its trivia content and receive buffer off static
+  memory, which left it with more headroom than it had before.
+- The bundled async networking libraries are current again, six minor versions
+  forward, covering a use-after-free on the connection-close path and two rounds of
+  WebSocket fixes.
+
+### Known limitation
+
+- iOS does not show its persistent "Log In" entry for the portal. The relevant
+  standard requires the portal be reached over TLS, and an access point like this
+  has no certificate a phone would trust. The portal still opens on its own.
+
 ## [1.8.0] - 2026-08-11
 
 ### Added

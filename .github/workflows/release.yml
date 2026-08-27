@@ -29,16 +29,16 @@ jobs:
           arduino-cli config init --overwrite
           arduino-cli config set board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-cli core update-index
-          arduino-cli core install esp32:esp32@2.0.17
+          arduino-cli core install esp32:esp32@3.3.11
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled \
+            --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app,PSRAM=enabled,CDCOnBoot=default \
             --libraries esp32/libs \
             --output-dir esp32/hotspot-arcade-fw/build \
             esp32/hotspot-arcade-fw
           # Merge the four flashable images into a single firmware-merged.bin
           # (flashable at 0x0), so the release ships one ESP image instead of four.
           BUILD=esp32/hotspot-arcade-fw/build
-          BOOT_APP0="$HOME/.arduino15/packages/esp32/hardware/esp32/2.0.17/tools/partitions/boot_app0.bin"
+          BOOT_APP0="$HOME/.arduino15/packages/esp32/hardware/esp32/3.3.11/tools/partitions/boot_app0.bin"
           # The core ships esptool differently per platform: a standalone binary on
           # macOS, but on Linux "esptool" is the Python *package directory*, with the
           # entry point at esptool.py beside it. Resolve both, and fail loudly rather
@@ -71,17 +71,14 @@ jobs:
             0x8000  "$WBUILD/hotspot-arcade-fw.ino.partitions.bin" \
             0xe000  "$BOOT_APP0" \
             0x10000 "$WBUILD/hotspot-arcade-fw.ino.bin"
-          # And the ESP32-C5. It needs a 3.x core (the chip does not exist in 2.0.17),
-          # so it gets its own core install, its own boot_app0, and its own bootloader
-          # offset (0x2000 on this chip, not 0x1000).
+          # And the ESP32-C5, on the same core as everything else now. It still needs its
+          # own bootloader offset (0x2000 on this chip, not 0x1000).
           #
-          # NOTE: installing the 3.x core *replaces* esp32@2.0.17 and uninstalls its
-          # esptool 4.5.1 (the one $ESPTOOL above points at), so we can no longer reuse
-          # $ESPTOOL here. Rather than re-resolve a moving esptool, merge the images
-          # ourselves: raw merge_bin is just each image placed at its flash offset with
-          # 0xFF fill between them (verified byte-identical to esptool's output). This is
-          # why the S2/WROOM merges run *before* this core install.
-          arduino-cli core install esp32:esp32@3.3.11
+          # The core install that used to sit here is gone: every board is on 3.3.11, so
+          # nothing replaces anything and the S2/WROOM merges no longer have to run first.
+          # The hand-rolled merge below stays as it is -- raw merge_bin is each image at its
+          # flash offset with 0xFF fill between, verified byte-identical to esptool's
+          # output, and there is no reason to re-cut a release artifact just to tidy it.
           CBUILD=esp32/hotspot-arcade-fw/build-c5
           C5_CORE="$HOME/.arduino15/packages/esp32/hardware/esp32/3.3.11"
           C5_BOOT_APP0="$C5_CORE/tools/partitions/boot_app0.bin"

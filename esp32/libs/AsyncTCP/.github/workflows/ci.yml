@@ -2,6 +2,9 @@ name: Async TCP CI
 
 on:
   push:
+    branches:
+      - main
+      - release/*
   pull_request:
   workflow_dispatch:
 
@@ -10,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-arduino:
+  arduino:
     name: ${{ matrix.config }}
     runs-on: ubuntu-latest
     strategy:
@@ -18,19 +21,24 @@ jobs:
       matrix:
         config: [arduino-cli.yaml, arduino-cli-dev.yaml]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: arduino/setup-arduino-cli@v1
       - name: Download board
         run: |
           arduino-cli --config-file ${{ matrix.config }} core update-index
           arduino-cli --config-file ${{ matrix.config }} board listall
           arduino-cli --config-file ${{ matrix.config }} core install esp32:esp32
-      - name: Compile Sketch
+
+      - name: Client
         run: arduino-cli --config-file ${{ matrix.config }} --library ./src/ compile --fqbn esp32:esp32:esp32 ./examples/Client/Client.ino
-      - name: Compile Sketch with IPv6
+
+      - name: Client IPv6
         env:
           LWIP_IPV6: true
         run: arduino-cli --config-file ${{ matrix.config }} --library ./src/ compile --fqbn esp32:esp32:esp32 ./examples/Client/Client.ino
+
+      - name: FetchWebsite
+        run: arduino-cli --config-file ${{ matrix.config }} --library ./src/ compile --fqbn esp32:esp32:esp32 ./examples/FetchWebsite/FetchWebsite.ino
 
   platformio:
     name: "pio:${{ matrix.env }}:${{ matrix.board }}"
@@ -47,6 +55,8 @@ jobs:
             board: esp32-s3-devkitc-1
           - env: ci-arduino-2
             board: esp32-c3-devkitc-02
+          - env: ci-arduino-2-esp-idf_log
+            board: esp32dev
 
           - env: ci-arduino-3
             board: esp32dev
@@ -58,24 +68,31 @@ jobs:
             board: esp32-c3-devkitc-02
           - env: ci-arduino-3
             board: esp32-c6-devkitc-1
-
-          - env: ci-arduino-311
+          - env: ci-arduino-3-esp-idf_log
             board: esp32dev
-          - env: ci-arduino-311
-            board: esp32-s2-saola-1
-          - env: ci-arduino-311
-            board: esp32-s3-devkitc-1
-          - env: ci-arduino-311
-            board: esp32-c3-devkitc-02
-          - env: ci-arduino-311
-            board: esp32-c6-devkitc-1
+
+          # - env: ci-arduino-rc
+          #   board: esp32dev
+          # - env: ci-arduino-rc
+          #   board: esp32-s2-saola-1
+          # - env: ci-arduino-rc
+          #   board: esp32-s3-devkitc-1
+          # - env: ci-arduino-rc
+          #   board: esp32-c3-devkitc-02
+          # - env: ci-arduino-rc
+          #   board: esp32-c6-devkitc-1
+
+          - env: ci-arduino-libretiny
+            board: generic-bk7231n-qfn32-tuya
+          - env: ci-arduino-libretiny
+            board: generic-rtl8710bn-2mb-788k
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Cache PlatformIO
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           key: ${{ runner.os }}-pio
           path: |
@@ -83,13 +100,52 @@ jobs:
             ~/.platformio
 
       - name: Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.x"
+          python-version: "3.13"
 
       - name: Build
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade platformio
+          pip install --upgrade intelhex
 
       - run: PLATFORMIO_SRC_DIR=examples/Client PIO_BOARD=${{ matrix.board }} pio run -e ${{ matrix.env }}
+      - run: PLATFORMIO_SRC_DIR=examples/FetchWebsite PIO_BOARD=${{ matrix.board }} pio run -e ${{ matrix.env }}
+
+  esp-idf:
+    name: Build with ESP-IDF ${{ matrix.idf_ver }} for ${{ matrix.idf_target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The version names here correspond to the versions of espressif/idf Docker image.
+        # See https://hub.docker.com/r/espressif/idf/tags and
+        # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/tools/idf-docker-image.html
+        # for details.
+        idf_ver: ["release-v5.4"]
+        idf_target:
+          [
+            "esp32",
+            "esp32s2",
+            "esp32s3",
+            "esp32c2",
+            "esp32c3",
+            "esp32c6",
+            # "esp32h2",
+            "esp32p4"
+          ]
+    container: espressif/idf:${{ matrix.idf_ver }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          path: components/asynctcp
+
+      - name: Build
+        env:
+          IDF_TARGET: ${{ matrix.idf_target }}
+        shell: bash
+        run: |
+          . ${IDF_PATH}/export.sh
+          idf.py -C ./components/asynctcp/idf_component_examples/client -DEXTRA_COMPONENT_DIRS=$PWD/components build

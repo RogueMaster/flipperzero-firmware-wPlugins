@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Build (Arduino Emulator)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - release/*
+    paths-ignore:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "README.md"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "README.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arduino-emulator:
+    name: Arduino Emulator (cmake, HOST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build build-essential git
+
+      - name: Clone Arduino-Emulator
+        run: |
+          git clone --depth 1 --recurse-submodules https://github.com/pschatzmann/Arduino-Emulator.git .ci/arduino-emulator
+
+      - name: Clone AsyncTCP, Arduino FS headers, lwIP and lwIP contrib
+        run: |
+          git clone --depth 1 https://github.com/MitchBradley/PosixAsyncTCP .ci/asynctcp
+
+      - name: Build with Arduino-Emulator
+        run: |
+          cmake -S examples/arduino_emulator -B .ci/arduino-emulator-build/out -G Ninja
+          cmake --build .ci/arduino-emulator-build/out --target espasyncwebserver_host --parallel
+          chmod +x .ci/arduino-emulator-build/out/espasyncwebserver_host

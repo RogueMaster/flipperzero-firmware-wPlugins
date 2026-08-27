@@ -79,11 +79,12 @@ All control messages are framed so the link can resync after noise:
 | 0x80 | STATUS       | token: `boot` `files_ok` `ap_ok` `up ip=..` `stopped` `err ..` |
 | 0x81 | JOIN         | `pid(1)` `nick` — a player joined |
 | 0x82 | LEAVE        | `pid(1)` |
-| 0x83 | SCORE        | `pid(1)` `delta(2 LE, signed)` `reason` — authoritative-persist on Flipper |
+| 0x83 | SCORE        | `pid(1)` `delta(2 LE, signed)` `reason` — the CURRENT game's score, as a delta the Flipper accumulates. Zeroed on both ends by SELECT_GAME. |
 | 0x84 | ROUND_RESULT | JSON, game-specific (trivia: `{"correct":[pid..]}`, c4: `{"win":pid,"lose":pid}` or `{"draw":[a,b]}`) |
 | 0x85 | EVENT        | JSON for host display, e.g. `{"answers":3,"total":5}` or `{"c4":"A vs B started"}` |
-| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)` + `bundleCrc(4 LE, v19+)` + `game(1, v19+)` + `heapKb(2 LE, v20+)` + `psramKb(2 LE, v20+)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. `bundleCrc` is the CRC-32/IEEE of the web bundle the ESP holds in flash (0 = none); the Flipper skips re-streaming when it equals the manifest's `crc`. `game` is the ESP's current game id (`HA_GAME_*`); while hosting the Flipper mirrors it (ignoring 0/NONE) so a phone-vote game change reflects on the dashboard reliably — the beacon always arrives, unlike a one-off EVENT. `heapKb`/`psramKb` are the board's free internal heap and free PSRAM in KB (0 = no PSRAM), shown on the dashboard. Older boards send shorter beacons; every field is length-guarded (backward-compatible). |
+| 0x86 | PING         | identity beacon ~every 2s: `magic(4)` + `version(2 LE)` + `bundleCrc(4 LE, v19+)` + `game(1, v19+)` + `heapKb(2 LE, v20+)` + `psramKb(2 LE, v20+)`. `magic` = `48 41 52 43` ("HARC"); the Flipper only treats a magic-matched PING as "our board present", and flags `version < HA_FW_VERSION` as an outdated board to update. `bundleCrc` is the CRC-32/IEEE of the web bundle the ESP holds in flash (0 = none); the Flipper skips re-streaming when it equals the manifest's `crc`. `game` is the ESP's current game id (`HA_GAME_*`); while hosting the Flipper mirrors it (ignoring 0/NONE) so a phone-vote game change reflects on the dashboard reliably — the beacon always arrives, unlike a one-off EVENT. `heapKb`/`psramKb` are the board's free internal heap and free PSRAM in KB (0 = no PSRAM), shown on the dashboard. v22 appends `minHeapKb(2 LE)` + `flags(1)`: the heap low-water mark since boot, which is what reveals a slow drain that a sampled figure hides, and a flags byte whose bit 0 means the RFC 8910 captive-portal option was accepted by the DHCP server this session. Older boards send shorter beacons; every field is length-guarded (backward-compatible). |
 | 0x87 | ART          | finished artwork, streamed: `op(1)` + JSON. `op` 0 = begin a sheet (`{"game":"frankendraw","id":n,"w0":"..","w1":"..","w2":".."}` — the three panels' drawers), 1 = one line segment (`{"p":panel,"x0":..,"y0":..,"x1":..,"y1":..}`, 0..255 sheet units), 2 = end (`{"id":n}`). One frame per segment: the picture is streamed as it is finished, so neither side ever buffers a drawing. The Flipper writes each sheet to `/ext/apps_data/hotspot_arcade/art/fd-<YYMMDD-HHMMSS>-<n>.svg`. |
+| 0x88 | TOTAL        | `pid(1)` `total(4 LE, signed)` — a player's CROSS-GAME total (v21+), sent **absolute**, not as a delta. Emitted whenever a total moves: a game finish, a 1v1 win, a rejoining player's restore, a host reset. Absolute is the point: SCORE is a delta stream and the Flipper's copy drifts from the board's (a rename re-announce zeroes it, SELECT_GAME zeroes only the ESP side, and an unparked player's score is restored without the host hearing), whereas a replaced value cannot. |
 
 ### 1.3 Raw-bulk escape (asset upload)
 
@@ -121,7 +122,7 @@ already holds (no ~47 KB re-transfer per session). A changed bundle, or an
 normally and overwrites the stored copy. Skipping is an optimization only: the ESP always
 writes+serves from flash, so an older Flipper that always streams still works.
 
-Then live: JOIN/LEAVE/SCORE/EVENT/ROUND_RESULT flow up; SELECT_GAME/QUESTION/
+Then live: JOIN/LEAVE/SCORE/TOTAL/EVENT/ROUND_RESULT flow up; SELECT_GAME/QUESTION/
 REVEAL/ROUND_END flow down as the host drives rounds. PING beacons throughout.
 
 ---
@@ -162,10 +163,21 @@ referee for scoring; the client bar is cosmetic).
 
 ### 2.3 Scoring split
 
-The ESP scores the live session (speed+correctness for trivia, win/draw for c4)
-and (a) keeps a **live mirror** it broadcasts to phones in `players[].score`, and
-(b) reports each delta to the Flipper via UART `SCORE` for the host display and
-persistent leaderboard. Both stay consistent because every delta is reported.
+Every player carries **two** numbers, and they answer different questions.
+
+`score` is the current game only. The ESP scores the live session (speed+correctness for
+trivia, win/draw for c4), broadcasts it to phones in `players[].score`, and reports each
+change to the Flipper as a `SCORE` delta. `SELECT_GAME` zeroes it on both ends, and each
+game's own board and podium rank on it.
+
+`total` is the evening across every game (v21+). Games score on wildly different scales --
+a trivia session runs to five figures, a werewolf win pays 1 -- so `score` can never be
+ranked across games. At a finish the ESP converts the standings into **opponents beaten**:
+one point per player you finished above, ties taking the lower value, so a 6-player win is
+worth 5 and a 1v1 win is worth 1. Bots are neither counted nor credited. A game that bails
+out before its first round pays nobody. `total` survives game switches and reconnects, is
+carried in `players[].total` and in each final's `board[]`, and reaches the Flipper as an
+absolute `TOTAL` frame. Only a host reset clears it.
 
 ---
 

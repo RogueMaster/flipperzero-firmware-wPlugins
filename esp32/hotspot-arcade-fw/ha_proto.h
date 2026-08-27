@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41 // 'A'
 #define HA_FW_MAGIC_2 0x52 // 'R'
 #define HA_FW_MAGIC_3 0x43 // 'C'  ("HARC" = Hotspot ARCade)
-#define HA_FW_VERSION 20 // v20: Frankendraw + ART report, atop v1.7.1 (PSRAM, caching, reconnect id)
+#define HA_FW_VERSION 22 // v22: captive portal announced via DHCP (opt 6 + 114), one core
 
 // Flipper -> ESP
 enum {
@@ -47,6 +47,12 @@ enum {
     HA_MSG_EVENT = 0x85,
     HA_MSG_PING = 0x86,
     HA_MSG_ART = 0x87, // finished artwork, streamed: op byte + JSON (see HA_ART_*)
+    // pid(1) total(4 LE, signed): a player's cross-game tally, sent ABSOLUTE.
+    // SCORE above is a delta stream, which is exactly why the Flipper's copy drifts
+    // from the board's -- a rename re-announce zeroes it, a game switch zeroes the
+    // ESP side only, and a reconnect restores a score the Flipper never hears about.
+    // An absolute value cannot drift, so the total is the one number both ends agree on.
+    HA_MSG_TOTAL = 0x88,
 };
 
 // HA_MSG_ART op byte. A completed picture is streamed as BEGIN, one STROKE per line
