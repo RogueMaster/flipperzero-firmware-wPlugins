@@ -135,14 +135,16 @@ jobs:
 
           FWDIR=flipper/hotspot-arcade/assets/firmware
           mkdir -p /tmp/firmware-full
-          cp "$FWDIR"/*.bin /tmp/firmware-full/
+          cp -r "$FWDIR"/. /tmp/firmware-full/
 
           (cd flipper/hotspot-arcade && ufbt)
           cp flipper/hotspot-arcade/dist/hotspot_arcade.fap flipper/hotspot-arcade/dist/hotspot_arcade-all.fap
 
+          declare -A dirmap=( [s2]=official_devboard [wroom]=wroom [c5]=c5 )
           for board in s2 wroom c5; do
-            rm -f "$FWDIR"/*.bin
-            cp /tmp/firmware-full/*-"$board".bin "$FWDIR"/
+            dir="${dirmap[$board]}"
+            rm -rf "$FWDIR"/*
+            cp -r "/tmp/firmware-full/$dir" "$FWDIR/$dir"
             (cd flipper/hotspot-arcade && ufbt)
             cp flipper/hotspot-arcade/dist/hotspot_arcade.fap flipper/hotspot-arcade/dist/hotspot_arcade-"$board".fap
           done
