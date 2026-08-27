@@ -37,7 +37,7 @@
 // bundled-assets CI job cross-checks this constant against the committed bundle.
 #define HA_FILE_MAX             (73728)
 
-#define HA_DATA_DIR    EXT_PATH("apps_data/hotspot_arcade")
+#define HA_DATA_DIR    APP_DATA_PATH("hotspot_arcade")
 #define HA_LOGS_DIR    HA_DATA_DIR "/logs"
 #define HA_CONFIG_PATH HA_DATA_DIR "/config.txt"
 // Finished Frankendraw sheets, one SVG each (see ha_art_* in helpers/ha_storage.h).
@@ -48,7 +48,7 @@
 // of just the .fap is playable with no SD setup. apps_assets is re-synced from the fap
 // every launch, so anything a user drops there is lost: user content lives in apps_data
 // instead, which the loader never touches. Both are read, apps_data winning on a clash.
-#define HA_ASSETS_DIR   EXT_PATH("apps_assets/hotspot_arcade")
+#define HA_ASSETS_DIR   APP_ASSETS_PATH("hotspot_arcade")
 #define HA_FIRMWARE_DIR HA_ASSETS_DIR "/firmware"
 // One flash manifest per supported board; the board picker chooses which to flash.
 #define HA_OFFICIAL_FW  HA_FIRMWARE_DIR "/official_devboard/flash_official.txt"
