@@ -128,11 +128,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build Flipper app (fap)
+      - name: Build Flipper apps (fap) — all four variants
         run: |
           pip install --upgrade ufbt
           ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --channel=release --hw-target=f7
-          cd flipper/hotspot-arcade && ufbt
+
+          FWDIR=flipper/hotspot-arcade/assets/firmware
+          mkdir -p /tmp/firmware-full
+          cp "$FWDIR"/*.bin /tmp/firmware-full/
+
+          (cd flipper/hotspot-arcade && ufbt)
+          cp flipper/hotspot-arcade/dist/hotspot_arcade.fap flipper/hotspot-arcade/dist/hotspot_arcade-all.fap
+
+          for board in s2 wroom c5; do
+            rm -f "$FWDIR"/*.bin
+            cp /tmp/firmware-full/*-"$board".bin "$FWDIR"/
+            (cd flipper/hotspot-arcade && ufbt)
+            cp flipper/hotspot-arcade/dist/hotspot_arcade.fap flipper/hotspot-arcade/dist/hotspot_arcade-"$board".fap
+          done
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -189,7 +202,10 @@ jobs:
             esptool.py --chip esp32c5 --before default_reset --after hard_reset write_flash 0x0 c5-merged.bin
             ```
           files: |
-            flipper/hotspot-arcade/dist/hotspot_arcade.fap
+            flipper/hotspot-arcade/dist/hotspot_arcade-all.fap
+            flipper/hotspot-arcade/dist/hotspot_arcade-s2.fap
+            flipper/hotspot-arcade/dist/hotspot_arcade-wroom.fap
+            flipper/hotspot-arcade/dist/hotspot_arcade-c5.fap
             web/web-bundle.zip
             esp32/hotspot-arcade-fw/build/firmware-merged.bin
             esp32/hotspot-arcade-fw/build-wroom/wroom-merged.bin
