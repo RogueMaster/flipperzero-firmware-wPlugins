@@ -13,6 +13,17 @@
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 #include <esp_wifi.h>
+#include <esp_netif.h>
+// dhcpserver.h sits at a different path in IDF 4.x (the pinned 2.0.17 core, S2/WROOM) and
+// IDF 5.x (the 3.x core the C5 needs), and all we want from it is one flag. Probe for it
+// rather than pick a path that only builds on one of the two boards.
+#if __has_include(<dhcpserver/dhcpserver.h>)
+#include <dhcpserver/dhcpserver.h>
+#elif __has_include(<lwip/apps/dhcpserver/dhcpserver.h>)
+#include <lwip/apps/dhcpserver/dhcpserver.h>
+#else
+#define OFFER_DNS 0x02 // DHCP server "also send option 6"; stable across both IDF lines
+#endif
 #include <lwip/etharp.h>
 
 #include "ha_proto.h"
@@ -389,12 +400,41 @@ static void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
         leaseForget(info.wifi_ap_stadisconnected.mac);
 }
 
+// Hand ourselves out as the DNS server (DHCP option 6).
+//
+// Without this the AP leases an address and a gateway but NO resolver: esp_netif's DHCP
+// server does not offer DNS unless it is asked to, and Arduino's softAPConfig() never asks
+// (set_esp_interface_ip only touches the address info). A phone then cannot resolve the
+// hostname its OS probes to decide whether a network is captive -- captive.apple.com on
+// iOS, connectivitycheck.gstatic.com on Android -- so the probe fails to resolve instead of
+// being intercepted.
+//
+// That distinction is the whole bug. A probe that is answered with the wrong page means
+// "captive" and opens the portal; a probe that cannot even resolve means "no internet", and
+// iOS says exactly that and offers nothing. Typing 192.168.4.1 by hand still worked the
+// whole time, because an IP needs no lookup, which is what kept this hidden. The wildcard
+// DNSServer below was always ready to answer; nothing was telling the phones to ask it.
+static void apOfferSelfAsDns() {
+    esp_netif_t* ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+    if(!ap) return;
+    esp_netif_dns_info_t dns = {};
+    dns.ip.type = ESP_IPADDR_TYPE_V4;
+    dns.ip.u_addr.ip4.addr = (uint32_t)apIP;
+    // The DHCP server only accepts option changes while it is stopped.
+    esp_netif_dhcps_stop(ap);
+    esp_netif_set_dns_info(ap, ESP_NETIF_DNS_MAIN, &dns);
+    uint8_t offer = OFFER_DNS;
+    esp_netif_dhcps_option(ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &offer, sizeof(offer));
+    esp_netif_dhcps_start(ap);
+}
+
 static void startPortal() {
     leasesClear(); // a fresh session leases fresh addresses
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(apName, nullptr, 1, 0, apMaxConn); // open AP, up to apMaxConn stations
     delay(100);
+    apOfferSelfAsDns(); // before any station leases, or the first joiner gets no resolver
     uartStatus("ap_ok");
 
     dnsServer.start(53, "*", apIP);
