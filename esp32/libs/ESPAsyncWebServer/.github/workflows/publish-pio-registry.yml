@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Publish to PlatformIO
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name of the release to publish (use 'latest' for the most recent tag)"
+        required: true
+        default: "latest"
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-tags: true
+          fetch-depth: 0  # Ensure all commits and tags are fetched
+
+      - name: Show latest tag
+        run: git tag --sort=-creatordate | head -n 1
+
+      - name: Download release zip
+        run: |
+          if [ "${{ inputs.tag_name }}" == "latest" ]; then
+            TAG_NAME=$(git tag --sort=-creatordate | head -n 1)
+            if [ -z "$TAG_NAME" ]; then
+              echo "Error: No tags found in the repository."
+              exit 1
+            fi
+          else
+            TAG_NAME="${{ inputs.tag_name }}"
+          fi
+          echo "Downloading tag: $TAG_NAME"
+          curl -L -o project.zip "https://github.com/${{ github.repository }}/archive/refs/tags/$TAG_NAME.zip"
+
+      # - name: Cache PlatformIO
+      #   uses: actions/cache@v5
+      #   with:
+      #     key: ${{ runner.os }}-pio
+      #     path: |
+      #       ~/.cache/pip
+      #       ~/.platformio
+
+      - name: Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install PlatformIO CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+
+      - name: Publish to PlatformIO
+        run: pio pkg publish --no-interactive --owner ${{ github.repository_owner }} project.zip
+        env:
+          PLATFORMIO_AUTH_TOKEN: ${{ secrets.PLATFORMIO_AUTH_TOKEN }}

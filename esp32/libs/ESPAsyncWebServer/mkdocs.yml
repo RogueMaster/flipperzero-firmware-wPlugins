@@ -1,0 +1,62 @@
+site_name: ESPAsyncWebServer
+site_url: https://ESP32Async.github.io/ESPAsyncWebServer/
+repo_url: https://github.com/ESP32Async/ESPAsyncWebServer
+repo_name: ESP32Async/ESPAsyncWebServer
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: teal
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Configuration: configuration.md
+  - Usage Concepts: concepts.md
+  - Server Setup: setup.md
+  - Routing & Matching: routing.md
+  - Requests: requests.md
+  - Responses: responses.md
+  - Middleware: middleware.md
+  - WebSockets: websockets.md
+  - Event Source (SSE): eventsource.md
+  - Serving Static Files: static-files.md
+  - Filters & Rewrites: filters.md
+  - Hosted Build (Arduino Emulator): hosted-build.md
+  - Help & Issues: help_and_issues.md
+  - Code of Conduct: code_of_conduct.md

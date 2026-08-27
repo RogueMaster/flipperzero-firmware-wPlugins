@@ -1,5 +1,11 @@
 menu "AsyncTCP Configuration"
 
+config ASYNC_TCP_STACK_SIZE
+    int "Async TCP task stack size"
+    default 8192
+    help
+        This configures stack size of the Async TCP task
+
 choice ASYNC_TCP_RUNNING_CORE
     bool "Core on which AsyncTCP's thread is running"
     default ASYNC_TCP_RUN_CORE1
@@ -27,4 +33,23 @@ config ASYNC_TCP_USE_WDT
     help
         Enable WDT for the AsyncTCP task, so it will trigger if a handler is locking the thread.
 
+config ASYNC_TCP_QUEUE_SIZE
+    int "Async TCP event queue size"
+    default 64
+    help
+        Configures the size of the Async TCP event queue. Lowering the value will reduce resource use
+        but will limit the number of events that can be processed. Increasing will allow for more
+        connections/event to be handled.
+
+config ASYNC_TCP_MAX_ACK_TIME
+    int "Async TCP max ack time"
+    default 5000
+    help
+        Configures the max time in milliseconds to wait for an ACK response.
+
+config ASYNC_TCP_PRIORITY
+    int "Async TCP task priority"
+    default 10
+    help
+        This configures the priority of the Async TCP task.
 endmenu

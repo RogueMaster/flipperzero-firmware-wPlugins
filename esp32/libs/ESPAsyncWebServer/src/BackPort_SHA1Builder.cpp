@@ -281,4 +281,4 @@ void SHA1Builder::getBytes(uint8_t *output) {
   memcpy(output, hash, SHA1_HASH_SIZE);
 }
 
-#endif // ESP_IDF_VERSION_MAJOR < 5
+#endif  // ESP_IDF_VERSION_MAJOR < 5

@@ -1,13 +1,44 @@
+# ESPAsyncWebServer
+
 ![https://avatars.githubusercontent.com/u/195753706?s=96&v=4](https://avatars.githubusercontent.com/u/195753706?s=96&v=4)
 
-# Project moved to [ESP32Async](https://github.com/organizations/ESP32Async) organization at [https://github.com/ESP32Async/ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer)
+[![Latest Release](https://img.shields.io/github/release/ESP32Async/ESPAsyncWebServer.svg)](https://GitHub.com/ESP32Async/ESPAsyncWebServer/releases/)
+[![PlatformIO Registry](https://badges.registry.platformio.org/packages/ESP32Async/library/ESPAsyncWebServer.svg)](https://registry.platformio.org/libraries/ESP32Async/ESPAsyncWebServer)
 
-Discord Server: [https://discord.gg/X7zpGdyUcY](https://discord.gg/X7zpGdyUcY)
+[![License: LGPL 3.0](https://img.shields.io/badge/License-LGPL%203.0-yellow.svg)](https://opensource.org/license/lgpl-3-0/)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
-Please see the new links:
+[![GitHub latest commit](https://badgen.net/github/last-commit/ESP32Async/ESPAsyncWebServer)](https://GitHub.com/ESP32Async/ESPAsyncWebServer/commit/)
 
-- `ESP32Async/ESPAsyncWebServer @ 3.6.0` (ESP32, ESP8266, RP2040)
-- `ESP32Async/AsyncTCP @ 3.3.2` (ESP32)
-- `ESP32Async/ESPAsyncTCP @ 2.0.0` (ESP8266)
-- `https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip` (AsyncTCP alternative for ESP32)
-- `khoih-prog/AsyncTCP_RP2040W @ 1.2.0` (RP2040)
+[![Documentation](https://img.shields.io/badge/Documentation-Visit%20Site-blue?logo=materialformkdocs)](https://esp32async.github.io/ESPAsyncWebServer/)
+
+## 📚 Documentation
+
+**[Read the Full Documentation Here 📖](https://ESP32Async.github.io/ESPAsyncWebServer/)**
+
+The documentation has been moved to a dedicated website to provide a better reading experience.
+
+## Overview
+
+Asynchronous HTTP and WebSocket Server Library for ESP32, ESP8266, RP2040, and RP2350.
+
+**Key Features:**
+
+- **Asynchronous**: Handle multiple connections simultaneously.
+- **Fast**: Optimized for performance.
+- **WebSockets**: Built-in support for real-time communication.
+- **SSE**: Server-Sent Events support.
+- **Middleware**: Flexible request processing (Authentication, CORS, Rate Limiting, etc.).
+- **File Serving**: Static file serving, File Uploads.
+- **Templating**: Simple template processing.
+- **Json & MessagePack**: Native support.
+- **Routing**: Powerful URL matching (Exact, Prefix, Regex, etc.).
+
+## Compatibility
+
+- **Chips**: ESP32, ESP8266, RP2040, RP2350
+- **Frameworks**: Arduino Core 2.x and 3.x, PlatformIO
+
+## License
+
+This project is licensed under the LGPL-3.0 License - see the [LICENSE](LICENSE) file for details.

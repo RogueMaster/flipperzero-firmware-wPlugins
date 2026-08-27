@@ -1,0 +1,9 @@
+## IDF Component Manager Manifest File
+dependencies:
+  esp32async/asynctcp:
+    version: "*"
+    override_path: "../../../"
+    pre_release: true
+  espressif/arduino-esp32:
+    version: ">=3.2.0"
+    require: public

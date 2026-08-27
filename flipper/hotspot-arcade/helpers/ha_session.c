@@ -553,6 +553,9 @@ static void dispatch_frame(HotspotArcadeApp* app) {
             // uint16 each), for the dashboard memory readout. Older boards omit them -> 0.
             app->board_heap_kb = (len >= 13) ? (uint16_t)(p[11] | ((uint16_t)p[12] << 8)) : 0;
             app->board_psram_kb = (len >= 15) ? (uint16_t)(p[13] | ((uint16_t)p[14] << 8)) : 0;
+            // v22: bytes 15-16 the heap low-water mark in KB, byte 17 a flags byte.
+            app->board_heap_min_kb = (len >= 17) ? (uint16_t)(p[15] | ((uint16_t)p[16] << 8)) : 0;
+            app->board_flags = (len >= 18) ? p[17] : 0;
         }
         return;
     }

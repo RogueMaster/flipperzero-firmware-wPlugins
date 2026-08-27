@@ -38,6 +38,10 @@
 #define WS_MSG_MAX 512
 #define AP_MAX_CONN 8
 
+// Did DHCP option 114 actually go out? Reported in the beacon so the host can tell "we
+// never advertised the portal API" apart from "we did and the phone ignored it" -- two very
+// different problems that look identical from the sofa.
+static bool captiveApiOk = false;
 static DNSServer dnsServer;
 static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
@@ -473,9 +477,7 @@ static void apAnnouncePortal() {
     esp_err_t cperr = esp_netif_dhcps_option(
         ap, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, captiveUri, strlen(captiveUri));
     esp_netif_dhcps_start(ap);
-    // Say so on the wire: whether the option went out is otherwise invisible from the host,
-    // and "the button did not appear" has too many possible causes to guess between.
-    uartStatus(cperr == ESP_OK ? "captive_api_on" : "captive_api_err");
+    captiveApiOk = (cperr == ESP_OK); // reported in the PING beacon, see below
 }
 
 static void startPortal() {
@@ -760,7 +762,12 @@ void loop() {
         uint32_t bcrc = fsReady ? assets.bundleCrc() : 0;
         uint16_t heapKb = (uint16_t)(ESP.getFreeHeap() / 1024);
         uint16_t psramKb = (uint16_t)(ESP.getFreePsram() / 1024);
-        uint8_t beacon[15] = {
+        // Free heap is a snapshot and the interesting failure is a slow drain, so send the
+        // low-water mark since boot alongside it: that is what shows a leak in a way a
+        // sampled number cannot. Older Flippers read only the bytes they know.
+        uint16_t minHeapKb = (uint16_t)(ESP.getMinFreeHeap() / 1024);
+        uint8_t flags = captiveApiOk ? 0x01 : 0x00;
+        uint8_t beacon[18] = {
             HA_FW_MAGIC_0,
             HA_FW_MAGIC_1,
             HA_FW_MAGIC_2,
@@ -775,7 +782,10 @@ void loop() {
             (uint8_t)(heapKb & 0xFF),
             (uint8_t)(heapKb >> 8),
             (uint8_t)(psramKb & 0xFF),
-            (uint8_t)(psramKb >> 8)};
+            (uint8_t)(psramKb >> 8),
+            (uint8_t)(minHeapKb & 0xFF),
+            (uint8_t)(minHeapKb >> 8),
+            flags};
         uartSend(HA_MSG_PING, beacon, sizeof(beacon));
     }
 }

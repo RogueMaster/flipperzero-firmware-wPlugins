@@ -1,33 +1,20 @@
-/*
-  Asynchronous WebServer library for Espressif MCUs
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2016-2026 Hristo Gochkov, Mathieu Carbou, Emil Muratov, Will Miles
 
-  Copyright (c) 2016 Hristo Gochkov. All rights reserved.
-  This file is part of the esp8266 core for Arduino environment.
-
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 2.1 of the License, or (at your option) any later version.
-
-  This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
 #include "ESPAsyncWebServer.h"
 #include "WebHandlerImpl.h"
+#include "AsyncWebServerLogging.h"
+
+#include <cstdio>
+#include <utility>
 
 using namespace asyncsrv;
 
-AsyncWebHandler& AsyncWebHandler::setFilter(ArRequestFilterFunction fn) {
+AsyncWebHandler &AsyncWebHandler::setFilter(ArRequestFilterFunction fn) {
   _filter = fn;
   return *this;
 }
-AsyncWebHandler& AsyncWebHandler::setAuthentication(const char* username, const char* password, AsyncAuthType authMethod) {
+AsyncWebHandler &AsyncWebHandler::setAuthentication(const char *username, const char *password, AsyncAuthType authMethod) {
   if (!_authMiddleware) {
     _authMiddleware = new AsyncAuthenticationMiddleware();
     _authMiddleware->_freeOnRemoval = true;
@@ -39,13 +26,15 @@ AsyncWebHandler& AsyncWebHandler::setAuthentication(const char* username, const 
   return *this;
 };
 
-AsyncStaticWebHandler::AsyncStaticWebHandler(const char* uri, FS& fs, const char* path, const char* cache_control)
-    : _fs(fs), _uri(uri), _path(path), _default_file(F("index.htm")), _cache_control(cache_control), _last_modified(), _callback(nullptr) {
+AsyncStaticWebHandler::AsyncStaticWebHandler(const char *uri, FS &fs, const char *path, const char *cache_control)
+  : _fs(fs), _uri(uri), _path(path), _default_file(F("index.htm")), _cache_control(cache_control), _last_modified(), _callback(nullptr) {
   // Ensure leading '/'
-  if (_uri.length() == 0 || _uri[0] != '/')
+  if (_uri.length() == 0 || _uri[0] != '/') {
     _uri = String('/') + _uri;
-  if (_path.length() == 0 || _path[0] != '/')
+  }
+  if (_path.length() == 0 || _path[0] != '/') {
     _path = String('/') + _path;
+  }
 
   // If path ends with '/' we assume a hint that this is a directory to improve performance.
   // However - if it does not end with '/' we, can't assume a file, path can still be a directory.
@@ -53,45 +42,47 @@ AsyncStaticWebHandler::AsyncStaticWebHandler(const char* uri, FS& fs, const char
 
   // Remove the trailing '/' so we can handle default file
   // Notice that root will be "" not "/"
-  if (_uri[_uri.length() - 1] == '/')
+  if (_uri[_uri.length() - 1] == '/') {
     _uri = _uri.substring(0, _uri.length() - 1);
-  if (_path[_path.length() - 1] == '/')
+  }
+  if (_path[_path.length() - 1] == '/') {
     _path = _path.substring(0, _path.length() - 1);
+  }
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setTryGzipFirst(bool value) {
+AsyncStaticWebHandler &AsyncStaticWebHandler::setTryGzipFirst(bool value) {
   _tryGzipFirst = value;
   return *this;
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setIsDir(bool isDir) {
+AsyncStaticWebHandler &AsyncStaticWebHandler::setIsDir(bool isDir) {
   _isDir = isDir;
   return *this;
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setDefaultFile(const char* filename) {
+AsyncStaticWebHandler &AsyncStaticWebHandler::setDefaultFile(const char *filename) {
   _default_file = filename;
   return *this;
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setCacheControl(const char* cache_control) {
+AsyncStaticWebHandler &AsyncStaticWebHandler::setCacheControl(const char *cache_control) {
   _cache_control = cache_control;
   return *this;
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setLastModified(const char* last_modified) {
+AsyncStaticWebHandler &AsyncStaticWebHandler::setLastModified(const char *last_modified) {
   _last_modified = last_modified;
   return *this;
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setLastModified(struct tm* last_modified) {
+AsyncStaticWebHandler &AsyncStaticWebHandler::setLastModified(struct tm *last_modified) {
   char result[30];
 #ifdef ESP8266
   auto formatP = PSTR("%a, %d %b %Y %H:%M:%S GMT");
-  char format[strlen_P(formatP) + 1];
+  char format[strlen_P(formatP) + 1];  // NOLINT(runtime/arrays)
   strcpy_P(format, formatP);
 #else
-  static constexpr const char* format = "%a, %d %b %Y %H:%M:%S GMT";
+  static constexpr const char *format = "%a, %d %b %Y %H:%M:%S GMT";
 #endif
 
   strftime(result, sizeof(result), format, last_modified);
@@ -99,22 +90,23 @@ AsyncStaticWebHandler& AsyncStaticWebHandler::setLastModified(struct tm* last_mo
   return *this;
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setLastModified(time_t last_modified) {
-  return setLastModified((struct tm*)gmtime(&last_modified));
+AsyncStaticWebHandler &AsyncStaticWebHandler::setLastModified(time_t last_modified) {
+  return setLastModified((struct tm *)gmtime(&last_modified));
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setLastModified() {
+AsyncStaticWebHandler &AsyncStaticWebHandler::setLastModified() {
   time_t last_modified;
-  if (time(&last_modified) == 0) // time is not yet set
+  if (time(&last_modified) == 0) {  // time is not yet set
     return *this;
+  }
   return setLastModified(last_modified);
 }
 
-bool AsyncStaticWebHandler::canHandle(AsyncWebServerRequest* request) const {
-  return request->isHTTP() && request->method() == HTTP_GET && request->url().startsWith(_uri) && _getFile(request);
+bool AsyncStaticWebHandler::canHandle(AsyncWebServerRequest *request) const {
+  return request->isHTTP() && request->method() == AsyncWebRequestMethod::HTTP_GET && request->url().startsWith(_uri) && _getFile(request);
 }
 
-bool AsyncStaticWebHandler::_getFile(AsyncWebServerRequest* request) const {
+bool AsyncStaticWebHandler::_getFile(AsyncWebServerRequest *request) const {
   // Remove the found uri
   String path = request->url().substring(_uri.length());
 
@@ -124,28 +116,31 @@ bool AsyncStaticWebHandler::_getFile(AsyncWebServerRequest* request) const {
   path = _path + path;
 
   // Do we have a file or .gz file
-  if (!canSkipFileCheck && const_cast<AsyncStaticWebHandler*>(this)->_searchFile(request, path))
+  if (!canSkipFileCheck && const_cast<AsyncStaticWebHandler *>(this)->_searchFile(request, path)) {
     return true;
+  }
 
   // Can't handle if not default file
-  if (_default_file.length() == 0)
+  if (_default_file.length() == 0) {
     return false;
+  }
 
-  // Try to add default file, ensure there is a trailing '/' ot the path.
-  if (path.length() == 0 || path[path.length() - 1] != '/')
+  // Try to add default file, ensure there is a trailing '/' to the path.
+  if (path.length() == 0 || path[path.length() - 1] != '/') {
     path += String('/');
+  }
   path += _default_file;
 
-  return const_cast<AsyncStaticWebHandler*>(this)->_searchFile(request, path);
+  return const_cast<AsyncStaticWebHandler *>(this)->_searchFile(request, path);
 }
 
 #ifdef ESP32
-  #define FILE_IS_REAL(f) (f == true && !f.isDirectory())
+#define FILE_IS_REAL(f) (f == true && !f.isDirectory())
 #else
-  #define FILE_IS_REAL(f) (f == true)
+#define FILE_IS_REAL(f) (f == true)
 #endif
 
-bool AsyncStaticWebHandler::_searchFile(AsyncWebServerRequest* request, const String& path) {
+bool AsyncStaticWebHandler::_searchFile(AsyncWebServerRequest *request, const String &path) {
   bool fileFound = false;
   bool gzipFound = false;
 
@@ -180,134 +175,152 @@ bool AsyncStaticWebHandler::_searchFile(AsyncWebServerRequest* request, const St
   if (found) {
     // Extract the file name from the path and keep it in _tempObject
     size_t pathLen = path.length();
-    char* _tempPath = (char*)malloc(pathLen + 1);
+    char *_tempPath = (char *)malloc(pathLen + 1);
+    if (_tempPath == NULL) {
+      async_ws_log_e("Failed to allocate");
+      request->_tempFile.close();
+      request->abort();
+      return false;
+    }
     snprintf_P(_tempPath, pathLen + 1, PSTR("%s"), path.c_str());
-    request->_tempObject = (void*)_tempPath;
+    request->_tempObject = (void *)_tempPath;
   }
 
   return found;
 }
 
-uint8_t AsyncStaticWebHandler::_countBits(const uint8_t value) const {
-  uint8_t w = value;
-  uint8_t n;
-  for (n = 0; w != 0; n++)
-    w &= w - 1;
-  return n;
-}
-
-void AsyncStaticWebHandler::handleRequest(AsyncWebServerRequest* request) {
+/**
+ * @brief Handles an incoming HTTP request for a static file.
+ *
+ * This method processes a request for serving static files asynchronously.
+ * It determines the correct ETag (entity tag) for caching, checks if the file
+ * has been modified, and prepares the appropriate response (file response or 304 Not Modified).
+ *
+ * @param request Pointer to the incoming AsyncWebServerRequest object.
+ */
+void AsyncStaticWebHandler::handleRequest(AsyncWebServerRequest *request) {
   // Get the filename from request->_tempObject and free it
-  String filename((char*)request->_tempObject);
+  String filename((char *)request->_tempObject);
   free(request->_tempObject);
-  request->_tempObject = NULL;
+  request->_tempObject = nullptr;
 
-  if (request->_tempFile != true){
+  if (request->_tempFile != true) {
     request->send(404);
     return;
   }
 
-    time_t lw = request->_tempFile.getLastWrite(); // get last file mod time (if supported by FS)
-    // set etag to lastmod timestamp if available, otherwise to size
-    String etag;
-    if (lw) {
-      setLastModified(lw);
-#if defined(TARGET_RP2040)
-      // time_t == long long int
-      constexpr size_t len = 1 + 8 * sizeof(time_t);
-      char buf[len];
-      char* ret = lltoa(lw ^ request->_tempFile.size(), buf, len, 10);
-      etag = ret ? String(ret) : String(request->_tempFile.size());
-#else
-      etag = lw ^ request->_tempFile.size();   // etag combines file size and lastmod timestamp
-#endif
-    } else {
-      etag = request->_tempFile.size();
+  // Get server ETag. If file is not GZ and we have a Template Processor, ETag is set to an empty string
+  char etag[11];
+  const char *tempFileName = request->_tempFile.name();
+  const size_t lenFilename = strlen(tempFileName);
+
+  if (lenFilename > T__GZ_LEN && memcmp(tempFileName + lenFilename - T__GZ_LEN, T__gz, T__GZ_LEN) == 0) {
+    //File is a gz, get etag from CRC in trailer
+    if (!AsyncWebServerRequest::_getEtag(request->_tempFile, etag)) {
+      // File is corrupted or invalid
+      async_ws_log_w("File is corrupted or invalid: %s", tempFileName);
+      request->send(404);
+      return;
     }
 
-    bool not_modified = false;
-
-    // if-none-match has precedence over if-modified-since
-    if (request->hasHeader(T_INM))
-      not_modified = request->header(T_INM).equals(etag);
-    else if (_last_modified.length())
-      not_modified = request->header(T_IMS).equals(_last_modified);
-
-    AsyncWebServerResponse* response;
-
-    if (not_modified){
-      request->_tempFile.close();
-      response = new AsyncBasicResponse(304); // Not modified
+    // Reset file position to the beginning so the file can be served from the start.
+    request->_tempFile.seek(0);
+  } else if (_callback == nullptr) {
+    // We don't have a Template processor
+    uint32_t etagValue;
+    time_t lastWrite = request->_tempFile.getLastWrite();
+    if (lastWrite > 0) {
+      // Use timestamp-based ETag
+      etagValue = static_cast<uint32_t>(lastWrite);
     } else {
-      response = new AsyncFileResponse(request->_tempFile, filename, emptyString, false, _callback);
+      // No timestamp available, use filesize-based ETag
+      size_t fileSize = request->_tempFile.size();
+      etagValue = static_cast<uint32_t>(fileSize);
     }
+    // RFC9110 Section-8.8.3: Value of the ETag response must be enclosed in double quotes
+    snprintf(etag, sizeof(etag), "\"%08" PRIx32 "\"", etagValue);
+  } else {
+    etag[0] = '\0';
+  }
 
-    response->addHeader(T_ETag, etag.c_str());
+  AsyncWebServerResponse *response;
 
-    if (_last_modified.length())
-      response->addHeader(T_Last_Modified, _last_modified.c_str());
-    if (_cache_control.length())
-      response->addHeader(T_Cache_Control, _cache_control.c_str());
-  
-    request->send(response);
+  bool notModified = false;
+  // 1. If the client sent If-None-Match and we have an ETag → compare
+  if (*etag != '\0' && request->header(T_INM) == etag) {
+    notModified = true;
+  }
+  // 2. Otherwise, if there is no ETag but we have Last-Modified and Last-Modified matches
+  else if (*etag == '\0' && _last_modified.length() > 0 && request->header(T_IMS) == _last_modified) {
+    async_ws_log_d("_last_modified: %s", _last_modified.c_str());
+    notModified = true;
+  }
 
+  if (notModified) {
+    request->_tempFile.close();
+    response = new AsyncBasicResponse(304);  // Not modified
+  } else {
+    response = new AsyncFileResponse(request->_tempFile, filename, asyncsrv::emptyString, false, _callback);
+  }
+
+  if (!response) {
+    async_ws_log_e("Failed to allocate");
+    request->abort();
+    return;
+  }
+
+  if (!notModified) {
+    // Set ETag header
+    if (*etag != '\0') {
+      response->addHeader(T_ETag, etag, true);
+    }
+    // Set Last-Modified header
+    if (_last_modified.length()) {
+      response->addHeader(T_Last_Modified, _last_modified.c_str(), true);
+    }
+  }
+
+  // Set cache control
+  if (_cache_control.length()) {
+    response->addHeader(T_Cache_Control, _cache_control.c_str(), false);
+  } else {
+    response->addHeader(T_Cache_Control, T_no_cache, false);
+  }
+
+  request->send(response);
 }
 
-AsyncStaticWebHandler& AsyncStaticWebHandler::setTemplateProcessor(AwsTemplateProcessor newCallback) {
+AsyncStaticWebHandler &AsyncStaticWebHandler::setTemplateProcessor(AwsTemplateProcessor newCallback) {
   _callback = newCallback;
   return *this;
 }
 
-void AsyncCallbackWebHandler::setUri(const String& uri) {
-  _uri = uri;
-  _isRegex = uri.startsWith("^") && uri.endsWith("$");
+void AsyncCallbackWebHandler::setUri(AsyncURIMatcher uri) {
+  _uri = std::move(uri);
 }
 
-bool AsyncCallbackWebHandler::canHandle(AsyncWebServerRequest* request) const {
-  if (!_onRequest || !request->isHTTP() || !(_method & request->method()))
+bool AsyncCallbackWebHandler::canHandle(AsyncWebServerRequest *request) const {
+  if (!_onRequest || !request->isHTTP() || !_method.matches(request->method())) {
     return false;
-
-#ifdef ASYNCWEBSERVER_REGEX
-  if (_isRegex) {
-    std::regex pattern(_uri.c_str());
-    std::smatch matches;
-    std::string s(request->url().c_str());
-    if (std::regex_search(s, matches, pattern)) {
-      for (size_t i = 1; i < matches.size(); ++i) { // start from 1
-        request->_addPathParam(matches[i].str().c_str());
-      }
-    } else {
-      return false;
-    }
-  } else
-#endif
-    if (_uri.length() && _uri.startsWith("/*.")) {
-    String uriTemplate = String(_uri);
-    uriTemplate = uriTemplate.substring(uriTemplate.lastIndexOf("."));
-    if (!request->url().endsWith(uriTemplate))
-      return false;
-  } else if (_uri.length() && _uri.endsWith("*")) {
-    String uriTemplate = String(_uri);
-    uriTemplate = uriTemplate.substring(0, uriTemplate.length() - 1);
-    if (!request->url().startsWith(uriTemplate))
-      return false;
-  } else if (_uri.length() && (_uri != request->url() && !request->url().startsWith(_uri + "/")))
-    return false;
-
-  return true;
+  }
+  return _uri.matches(request);
 }
 
-void AsyncCallbackWebHandler::handleRequest(AsyncWebServerRequest* request) {
-  if (_onRequest)
+void AsyncCallbackWebHandler::handleRequest(AsyncWebServerRequest *request) {
+  if (_onRequest) {
     _onRequest(request);
-  else
-    request->send(500);
+  } else {
+    request->send(404, T_text_plain, "Not found");
+  }
 }
-void AsyncCallbackWebHandler::handleUpload(AsyncWebServerRequest* request, const String& filename, size_t index, uint8_t* data, size_t len, bool final) {
-  if (_onUpload)
+void AsyncCallbackWebHandler::handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final) {
+  if (_onUpload) {
     _onUpload(request, filename, index, data, len, final);
+  }
 }
-void AsyncCallbackWebHandler::handleBody(AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
-  if (_onBody)
+void AsyncCallbackWebHandler::handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+  // ESP_LOGD("AsyncWebServer", "AsyncCallbackWebHandler::handleBody");
+  if (_onBody) {
     _onBody(request, data, len, index, total);
+  }
 }

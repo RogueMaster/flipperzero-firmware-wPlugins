@@ -1,15 +1,7 @@
-set(COMPONENT_SRCDIRS
-    "src"
+idf_component_register(
+    SRCS "src/AsyncTCP.cpp"
+    INCLUDE_DIRS "src"
+    PRIV_REQUIRES esp_timer
 )
-
-set(COMPONENT_ADD_INCLUDEDIRS
-    "src"
-)
-
-set(COMPONENT_REQUIRES
-    "arduino-esp32"
-)
-
-register_component()
 
 target_compile_options(${COMPONENT_TARGET} PRIVATE -fno-rtti)

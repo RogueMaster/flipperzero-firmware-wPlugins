@@ -168,7 +168,12 @@ typedef struct HotspotArcadeApp {
     uint16_t board_fw_version; // firmware version reported in the beacon (0 = unknown)
     uint32_t board_bundle_crc; // CRC32 of the bundle the ESP holds in flash (PING bytes 6-9)
     uint16_t board_heap_kb; // ESP free internal heap, KB (PING bytes 11-12); 0 = unknown
-    uint16_t board_psram_kb; // ESP free PSRAM, KB (PING bytes 13-14); 0 = none/unknown
+    uint16_t board_psram_kb;
+    // v22: the heap low-water mark since the board booted, and a flags byte (bit 0 = the
+    // captive-portal API option went out). The mark is what shows a slow drain; a sampled
+    // free-heap number cannot.
+    uint16_t board_heap_min_kb;
+    uint8_t board_flags; // ESP free PSRAM, KB (PING bytes 13-14); 0 = none/unknown
     bool link_lost;
     bool awaiting_board;
 
