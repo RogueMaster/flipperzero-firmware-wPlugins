@@ -1589,6 +1589,18 @@ static const char* uhf_tag_bank_name(UhfTagBank bank) {
     return "EPC";
 }
 
+static UhfTagBank uhf_next_tag_bank(UhfTagBank bank) {
+    if(bank == UhfTagBankEpc) return UhfTagBankTid;
+    if(bank == UhfTagBankTid) return UhfTagBankUser;
+    return UhfTagBankEpc;
+}
+
+static const char* uhf_tag_bank_button_name(UhfTagBank bank) {
+    if(bank == UhfTagBankTid) return "TID";
+    if(bank == UhfTagBankUser) return "User";
+    return "EPC";
+}
+
 static bool uhf_write_selected_bank(UhfApp* app, UhfTagBank bank, const char* value_hex) {
     uint8_t value[UHF_USER_HEX_MAX / 2U];
     size_t value_len = 0U;
@@ -2707,6 +2719,22 @@ static void uhf_input_callback(InputEvent* event, void* context) {
     }
 }
 
+static void uhf_draw_tag_bank_cycle_button(Canvas* canvas, UhfTagBank current_bank) {
+    const char* next_name = uhf_tag_bank_button_name(uhf_next_tag_bank(current_bank));
+    const int32_t cycle_width = canvas_string_width(canvas, "Cycle");
+    const int32_t label_width = canvas_string_width(canvas, next_name);
+    const int32_t height = canvas_height(canvas);
+
+    /* Keep the standard left button and its Cycle-sized background, then replace
+       only the label inside it with the centered name of the next bank. */
+    elements_button_left(canvas, "Cycle");
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_box(canvas, 9, height - 11, cycle_width + 2U, 11);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_str(canvas, 10 + (cycle_width - label_width) / 2, height - 3, next_name);
+    canvas_set_color(canvas, ColorBlack);
+}
+
 static void uhf_draw_callback(Canvas* canvas, void* context) {
     if(!context) return;
     UhfApp* app = context;
@@ -2831,7 +2859,7 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
             uhf_draw_centered_text(canvas, 37, compact);
         }
 
-        elements_button_left(canvas, "Cycle");
+        uhf_draw_tag_bank_cycle_button(canvas, app->tag_bank);
         elements_button_center(canvas, "Edit");
         elements_button_right(canvas, "Write");
     } else if(page == UhfPageTagActionMenu) {
@@ -3164,8 +3192,7 @@ static void uhf_switch_tag_bank(UhfApp* app, bool right) {
         app->tag_bank =
             app->tag_bank == UhfTagBankUser ? UhfTagBankTid : (UhfTagBank)(app->tag_bank + 1U);
     } else {
-        app->tag_bank =
-            app->tag_bank == UhfTagBankTid ? UhfTagBankUser : (UhfTagBank)(app->tag_bank - 1U);
+        app->tag_bank = uhf_next_tag_bank(app->tag_bank);
     }
     app->tag_data_scroll_line = 0U;
 
