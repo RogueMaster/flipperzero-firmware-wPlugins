@@ -26,8 +26,14 @@ jobs:
         if: matrix.board != 'all'
         working-directory: flipper/hotspot-arcade/assets/firmware
         run: |
-          shopt -s extglob
-          rm -f !(*-${{ matrix.board }}.bin)
+          case "${{ matrix.board }}" in
+            s2) keep=official_devboard ;;
+            *)  keep="${{ matrix.board }}" ;;
+          esac
+          for dir in */; do
+            d="${dir%/}"
+            [ "$d" = "$keep" ] || rm -rf "$d"
+          done
       - name: Build fap
         working-directory: flipper/hotspot-arcade
         run: ufbt
