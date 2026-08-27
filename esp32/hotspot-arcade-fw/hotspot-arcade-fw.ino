@@ -14,6 +14,7 @@
 #include <DNSServer.h>
 #include <esp_wifi.h>
 #include <esp_netif.h>
+#include <esp_heap_caps.h>
 // dhcpserver.h sits at a different path in IDF 4.x (the pinned 2.0.17 core, S2/WROOM) and
 // IDF 5.x (the 3.x core the C5 needs), and all we want from it is one flag. Probe for it
 // rather than pick a path that only builds on one of the two boards.
@@ -715,7 +716,24 @@ static void pumpSerial() {
 
 // ---------------- Arduino entry ----------------
 
+// How big an allocation has to be before it is allowed to live in PSRAM.
+//
+// The core boots this at CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL, which the 3.x SDK ships as
+// 4096, so everything smaller than 4 KB is forced into internal RAM no matter how much
+// PSRAM is free. An async web server's per-connection allocations are nearly all smaller
+// than that, which is exactly why the board could sit on 1.9 MB of unused PSRAM while its
+// internal heap drained to 11 KB and a second phone could not finish associating.
+//
+// Dropping it to 1 KB lets PSRAM take the bulk of that traffic. Allocations that genuinely
+// must be internal -- DMA buffers, anything an ISR touches -- ask for those capabilities
+// explicitly and are unaffected by this limit; it only steers plain malloc().
+#define HA_PSRAM_MALLOC_FLOOR 1024
+
 void setup() {
+    // Before anything allocates. No-op on a board without PSRAM, where there is nowhere
+    // else for these to go and the internal heap is all there is.
+    if(ESP.getPsramSize() > 0) heap_caps_malloc_extmem_enable(HA_PSRAM_MALLOC_FLOOR);
+
     serialMutex = xSemaphoreCreateMutex();
     engineMutex = xSemaphoreCreateRecursiveMutex();
     WiFi.onEvent(onWiFiEvent, ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED);
