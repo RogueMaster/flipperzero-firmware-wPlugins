@@ -160,8 +160,7 @@ jobs:
 
             ## Install
  
-            Pick **one** `.fap`, not several — installing more than one just overwrites the last
-            one you copied over, since they all install as the same app. Drop it in
+            Pick **one** `.fap`, not several — they all install as the same app. Drop it in
             `/ext/apps/GPIO/` on the SD card. The ESP firmware, the phone game bundle, and the
             content packs all ship inside it, so there is no SD setup and nothing else to
             download. Flash the board from the app itself with **Install Firmware**.
