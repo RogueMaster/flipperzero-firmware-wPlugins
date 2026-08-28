@@ -7,7 +7,7 @@
 #include <storage/storage.h>
 
 #define POCKET_CAMPAIGN_PACK_VERSION 1U
-#define POCKET_CAMPAIGN_APP_VERSION  205U
+#define POCKET_CAMPAIGN_APP_VERSION  301U
 #define POCKET_CAMPAIGN_ID_LEN       32U
 
 typedef struct {
@@ -53,3 +53,4 @@ bool pocket_campaign_progress_save(
     const PocketCharacter* character);
 bool pocket_campaign_migrate_legacy_custom(Storage* storage, uint16_t* copied_files);
 void pocket_campaign_diagnose(Storage* storage, PocketCampaignDiagnostics* output);
+void pocket_campaign_cache_reset(void);

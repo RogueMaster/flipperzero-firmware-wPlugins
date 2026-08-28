@@ -9,7 +9,7 @@
 | SD card present | Required for persistence | Bundled references use app assets; profiles and other mutable user state use persistent app data |
 | No SD card / removed SD | Unsupported for saves | App reports save/load failure; device behavior remains in the hardware matrix |
 | Schema 1 | Unsupported | Outside the supported compatibility baseline |
-| Schema 2 | Supported | Current checksummed text format with complete party presets |
+| Schema 2 | Supported | Readable text format with complete party presets |
 | Unknown schemas | Preserved, not loaded | Files remain untouched and cannot be replaced by a blank autosave; future versions must add an explicit migration branch |
 
 The source-only release does not bundle a compiled FAP. Build both targets using the command in `README.md`.

@@ -4,10 +4,12 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="pocket_d20_app",
     stack_size=8 * 1024,
+    flags=["UnloadAssetPacks"],
     sources=[
         "pocket_d20.c",
         "pocket_d20_campaigns.c",
         "pocket_d20_data.c",
+        "pocket_d20_packs.c",
         "pocket_d20_rules.c",
         "pocket_d20_storage.c",
     ],
@@ -16,7 +18,7 @@ App(
     fap_category="Games",
     fap_author="RogueMaster",
     fap_weburl="https://github.com/RogueMaster/Dungeons_and_Dragons",
-    fap_version="3.0.2",
+    fap_version="3.2.6",
     fap_description="Offline 5E-compatible character, journal, dice, and initiative tracker.",
 )
 
@@ -26,15 +28,18 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="dolphin_bestiary_app",
     stack_size=6 * 1024,
+    flags=["UnloadAssetPacks"],
     sources=[
         "dolphin_bestiary.c",
+        "pocket_d20_bestiary_state.c",
         "pocket_d20_monsters.c",
+        "pocket_d20_packs.c",
     ],
     fap_icon="icon.png",
     fap_file_assets="monster_assets",
     fap_category="Games",
     fap_author="RogueMaster",
     fap_weburl="https://github.com/RogueMaster/Dungeons_and_Dragons",
-    fap_version="3.0.2",
+    fap_version="3.2.6",
     fap_description="Offline monster reference and party-level encounter generator.",
 )

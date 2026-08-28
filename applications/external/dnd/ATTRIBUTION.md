@@ -14,6 +14,6 @@ The storage design was informed by established Flipper Zero application patterns
 - FlipNote: https://github.com/morty517/flipnote
 - Flipper Zero Note Application: https://github.com/AdrianN001/Flipper-Zero-Note-Application
 
-Dungeons & Dolphins' save implementation is original to this project. It uses the native Flipper Storage API with a temporary file, backup rotation, schema version, payload validation, and checksum.
+Dungeons & Dolphins' save implementation is original to this project. It uses the native Flipper Storage API with a temporary file, backup rotation, schema version, and structural payload validation.
 
 The dice animation is an original code-drawn sequence. The Flipper Zero Dice project (https://github.com/Ka3u6y6a/flipper-zero-dice) was reviewed as a behavioral reference; its GPL code and image assets were not copied.

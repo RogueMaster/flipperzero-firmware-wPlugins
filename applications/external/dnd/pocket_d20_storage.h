@@ -15,6 +15,8 @@ typedef struct {
     uint16_t count;
     uint16_t capacity;
     PocketProfileEntry* entries;
+    uint8_t character_file_seen;
+    uint8_t scan_succeeded;
 } PocketProfileState;
 
 void pocket_d20_profiles_set_defaults(PocketProfileState* profiles);
@@ -44,4 +46,8 @@ bool pocket_d20_storage_export_profile(Storage* storage, uint32_t profile);
 bool pocket_d20_storage_archive_profile(Storage* storage, uint32_t profile);
 bool pocket_d20_storage_verify_profile(Storage* storage, uint32_t profile);
 bool pocket_d20_storage_restore_backup(Storage* storage, uint32_t profile, PocketSaveData* data);
+bool pocket_d20_storage_rollback_migration(
+    Storage* storage,
+    uint32_t profile,
+    PocketSaveData* data);
 bool pocket_d20_storage_import_first(Storage* storage, uint32_t destination, PocketSaveData* data);

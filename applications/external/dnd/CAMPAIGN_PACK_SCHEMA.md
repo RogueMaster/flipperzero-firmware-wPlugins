@@ -19,3 +19,15 @@ Scene files are line-oriented UTF-8:
 IDs must be unique inside their scopes. Every success and failure link must identify an existing scene or `-`. Text fields must remain on one line and cannot contain `|`. The on-device diagnostics report incompatible manifests, missing files or entry scenes, duplicate IDs, and broken links.
 
 User packs belong under `/ext/apps_data/dungeons_and_dolphins/campaigns/`. Add their manifest records to `custom_index.txt`; the app streams that persistent user index after the bundled read-only asset index. Prefix user-maintained campaign directories with `custom_`. Progress and checkpoints are stored in the same app-data campaign directory, separately for each character profile and campaign ID.
+
+## Installed packs
+
+Version 3.1 accepts one staged campaign pack from the Dungeons & Dolphins app-data inbox:
+
+- `packs/campaign_inbox/manifest.txt`
+- `packs/campaign_inbox/index.txt`
+- `packs/campaign_inbox/scenes.txt`
+
+The manifest uses the same `PocketPack=1`, `Id`, and `Name` fields documented for monster packs. No checksum is stored or required. The index must contain exactly one schema-1 campaign row whose stable ID matches the manifest and whose scene filename is `scenes.txt`.
+
+Installation structurally validates both files before publishing, rejects IDs already present in bundled, direct-custom, or enabled installed indexes, and registers the pack transactionally. Enable/disable rebuilds only `APP_DATA_PATH("campaigns/enabled_index.txt")`; bundled manifests and scenes remain exclusively in `APP_ASSETS_PATH`.

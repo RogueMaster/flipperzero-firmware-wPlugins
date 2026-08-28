@@ -7,6 +7,7 @@
 
 #define CAMPAIGN_BUNDLED_INDEX     APP_ASSETS_PATH("campaigns/index.txt")
 #define CAMPAIGN_USER_INDEX        APP_DATA_PATH("campaigns/custom_index.txt")
+#define CAMPAIGN_ENABLED_INDEX     APP_DATA_PATH("campaigns/enabled_index.txt")
 #define CAMPAIGN_USER_INDEX_TEMP   APP_DATA_PATH("campaigns/custom_index.migrate")
 #define CAMPAIGN_USER_INDEX_BACKUP APP_DATA_PATH("campaigns/custom_index.bak")
 #define CAMPAIGN_BUNDLED_SCENES    APP_ASSETS_PATH("campaigns/%s/%s")
@@ -15,7 +16,32 @@
 #define CAMPAIGN_LEGACY_DIR        APP_ASSETS_PATH("campaigns")
 #define CAMPAIGN_LEGACY_USER_INDEX APP_ASSETS_PATH("campaigns/custom_index.txt")
 #define CAMPAIGN_LINE_LEN          512U
+#define CAMPAIGN_READ_BUFFER       512U
 #define CAMPAIGN_MAX_SCENES        64U
+
+typedef struct {
+    File* file;
+    uint8_t buffer[CAMPAIGN_READ_BUFFER];
+    uint16_t position;
+    uint16_t count;
+    uint32_t offset;
+} CampaignReader;
+
+typedef struct {
+    uint32_t* offsets;
+    uint16_t count;
+    uint16_t capacity;
+    bool valid;
+} CampaignPathCache;
+
+typedef struct {
+    Storage* owner;
+    CampaignPathCache bundled;
+    CampaignPathCache custom;
+    CampaignPathCache enabled;
+} CampaignCache;
+
+static CampaignCache campaign_cache;
 
 static void campaign_copy(char* out, size_t size, const char* value) {
     if(!size) return;
@@ -26,16 +52,38 @@ static void campaign_copy(char* out, size_t size, const char* value) {
     out[length] = '\0';
 }
 
-static bool campaign_read_line(File* file, char* line, size_t size) {
+static void campaign_reader_init(CampaignReader* reader, File* file, uint32_t offset) {
+    memset(reader, 0, sizeof(*reader));
+    reader->file = file;
+    reader->offset = offset;
+}
+
+static bool campaign_reader_next(CampaignReader* reader, char* value) {
+    if(reader->position >= reader->count) {
+        reader->count =
+            (uint16_t)storage_file_read(reader->file, reader->buffer, sizeof(reader->buffer));
+        reader->position = 0U;
+        if(!reader->count) return false;
+    }
+    *value = (char)reader->buffer[reader->position++];
+    ++reader->offset;
+    return true;
+}
+
+static bool
+    campaign_read_line(CampaignReader* reader, char* line, size_t size, uint32_t* line_offset) {
+    if(line_offset) *line_offset = reader->offset;
     size_t position = 0U;
-    char value;
-    while(position + 1U < size && storage_file_read(file, &value, 1U) == 1U) {
+    char value = '\0';
+    bool read_any = false;
+    while(campaign_reader_next(reader, &value)) {
+        read_any = true;
         if(value == '\r') continue;
         if(value == '\n') break;
-        line[position++] = value;
+        if(position + 1U < size) line[position++] = value;
     }
     line[position] = '\0';
-    return position > 0U;
+    return read_any;
 }
 
 static uint8_t campaign_split(char* line, char** fields, uint8_t capacity) {
@@ -67,40 +115,94 @@ static bool campaign_parse(char* line, bool bundled, PocketCampaignSummary* outp
     return output->id[0] && output->name[0] && output->entry_scene[0] && output->scenes_file[0];
 }
 
-static uint16_t campaign_count_path(Storage* storage, const char* path, bool bundled) {
-    File* file = storage_file_alloc(storage);
-    uint16_t count = 0U;
-    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        char line[CAMPAIGN_LINE_LEN];
-        PocketCampaignSummary campaign;
-        while(campaign_read_line(file, line, sizeof(line)))
-            if(campaign_parse(line, bundled, &campaign) && count < UINT16_MAX) ++count;
-    }
-    storage_file_close(file);
-    storage_file_free(file);
-    return count;
+static void campaign_path_cache_clear(CampaignPathCache* cache) {
+    free(cache->offsets);
+    memset(cache, 0, sizeof(*cache));
 }
 
-static bool campaign_at_path(
+void pocket_campaign_cache_reset(void) {
+    campaign_path_cache_clear(&campaign_cache.bundled);
+    campaign_path_cache_clear(&campaign_cache.custom);
+    campaign_path_cache_clear(&campaign_cache.enabled);
+    campaign_cache.owner = NULL;
+}
+
+static bool campaign_path_cache_append(CampaignPathCache* cache, uint32_t offset) {
+    if(cache->count == UINT16_MAX) return false;
+    if(cache->count == cache->capacity) {
+        uint32_t next_capacity = cache->capacity ? (uint32_t)cache->capacity * 2U : 16U;
+        if(next_capacity > UINT16_MAX) next_capacity = UINT16_MAX;
+        uint32_t* offsets = realloc(cache->offsets, next_capacity * sizeof(uint32_t));
+        if(!offsets) return false;
+        cache->offsets = offsets;
+        cache->capacity = (uint16_t)next_capacity;
+    }
+    cache->offsets[cache->count++] = offset;
+    return true;
+}
+
+static bool campaign_path_cache_build(
     Storage* storage,
     const char* path,
     bool bundled,
-    uint16_t wanted,
-    PocketCampaignSummary* output) {
+    CampaignPathCache* cache) {
+    campaign_path_cache_clear(cache);
     File* file = storage_file_alloc(storage);
-    bool found = false;
+    bool ok = true;
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        CampaignReader reader;
+        campaign_reader_init(&reader, file, 0U);
         char line[CAMPAIGN_LINE_LEN];
-        uint16_t index = 0U;
-        while(campaign_read_line(file, line, sizeof(line))) {
-            PocketCampaignSummary campaign;
-            if(!campaign_parse(line, bundled, &campaign)) continue;
-            if(index++ == wanted) {
-                *output = campaign;
-                found = true;
+        PocketCampaignSummary campaign;
+        uint32_t line_offset = 0U;
+        while(campaign_read_line(&reader, line, sizeof(line), &line_offset)) {
+            if(campaign_parse(line, bundled, &campaign) &&
+               !campaign_path_cache_append(cache, line_offset)) {
+                ok = false;
                 break;
             }
         }
+        if(storage_file_get_error(file) != FSE_OK) ok = false;
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    if(!ok) campaign_path_cache_clear(cache);
+    cache->valid = ok;
+    return ok;
+}
+
+static bool campaign_cache_ensure(Storage* storage) {
+    if(campaign_cache.owner != storage) {
+        pocket_campaign_cache_reset();
+        campaign_cache.owner = storage;
+    }
+    if(!campaign_cache.bundled.valid &&
+       !campaign_path_cache_build(storage, CAMPAIGN_BUNDLED_INDEX, true, &campaign_cache.bundled))
+        return false;
+    if(!campaign_cache.custom.valid &&
+       !campaign_path_cache_build(storage, CAMPAIGN_USER_INDEX, false, &campaign_cache.custom))
+        return false;
+    if(!campaign_cache.enabled.valid &&
+       !campaign_path_cache_build(storage, CAMPAIGN_ENABLED_INDEX, false, &campaign_cache.enabled))
+        return false;
+    return true;
+}
+
+static bool campaign_at_offset(
+    Storage* storage,
+    const char* path,
+    bool bundled,
+    uint32_t offset,
+    PocketCampaignSummary* output) {
+    File* file = storage_file_alloc(storage);
+    bool found = false;
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
+       storage_file_seek(file, offset, true)) {
+        CampaignReader reader;
+        campaign_reader_init(&reader, file, offset);
+        char line[CAMPAIGN_LINE_LEN];
+        found = campaign_read_line(&reader, line, sizeof(line), NULL) &&
+                campaign_parse(line, bundled, output);
     }
     storage_file_close(file);
     storage_file_free(file);
@@ -108,19 +210,32 @@ static bool campaign_at_path(
 }
 
 uint16_t pocket_campaign_count(Storage* storage) {
-    uint32_t count = campaign_count_path(storage, CAMPAIGN_BUNDLED_INDEX, true) +
-                     campaign_count_path(storage, CAMPAIGN_USER_INDEX, false);
+    if(!campaign_cache_ensure(storage)) return 0U;
+    uint32_t count = (uint32_t)campaign_cache.bundled.count + campaign_cache.custom.count +
+                     campaign_cache.enabled.count;
     return count > UINT16_MAX ? UINT16_MAX : (uint16_t)count;
 }
 
 bool pocket_campaign_at(Storage* storage, uint16_t index, PocketCampaignSummary* output) {
-    uint16_t bundled = campaign_count_path(storage, CAMPAIGN_BUNDLED_INDEX, true);
-    return index < bundled ?
-               campaign_at_path(storage, CAMPAIGN_BUNDLED_INDEX, true, index, output) :
-               campaign_at_path(storage, CAMPAIGN_USER_INDEX, false, index - bundled, output);
+    if(!output || !campaign_cache_ensure(storage)) return false;
+    if(index < campaign_cache.bundled.count)
+        return campaign_at_offset(
+            storage, CAMPAIGN_BUNDLED_INDEX, true, campaign_cache.bundled.offsets[index], output);
+    index -= campaign_cache.bundled.count;
+    if(index < campaign_cache.custom.count)
+        return campaign_at_offset(
+            storage, CAMPAIGN_USER_INDEX, false, campaign_cache.custom.offsets[index], output);
+    index -= campaign_cache.custom.count;
+    return index < campaign_cache.enabled.count && campaign_at_offset(
+                                                       storage,
+                                                       CAMPAIGN_ENABLED_INDEX,
+                                                       false,
+                                                       campaign_cache.enabled.offsets[index],
+                                                       output);
 }
 
 bool pocket_campaign_find(Storage* storage, const char* id, PocketCampaignSummary* output) {
+    if(!id || !output || !campaign_cache_ensure(storage)) return false;
     uint16_t total = pocket_campaign_count(storage);
     for(uint16_t i = 0U; i < total; ++i)
         if(pocket_campaign_at(storage, i, output) && !strcmp(output->id, id)) return true;
@@ -252,9 +367,11 @@ static bool campaign_index_contains(Storage* storage, const char* path, const ch
     File* file = storage_file_alloc(storage);
     bool found = false;
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        CampaignReader reader;
+        campaign_reader_init(&reader, file, 0U);
         char line[CAMPAIGN_LINE_LEN];
         PocketCampaignSummary campaign;
-        while(campaign_read_line(file, line, sizeof(line))) {
+        while(campaign_read_line(&reader, line, sizeof(line), NULL)) {
             if(campaign_parse(line, false, &campaign) && !strcmp(campaign.id, id)) {
                 found = true;
                 break;
@@ -288,9 +405,11 @@ static bool campaign_merge_legacy_index(Storage* storage, uint16_t* copied_files
     if(!campaign_prepare_index_temp(storage)) return false;
     File* source = storage_file_alloc(storage);
     bool ok = storage_file_open(source, CAMPAIGN_LEGACY_USER_INDEX, FSAM_READ, FSOM_OPEN_EXISTING);
+    CampaignReader reader;
+    campaign_reader_init(&reader, source, 0U);
     char line[CAMPAIGN_LINE_LEN];
     uint16_t appended = 0U;
-    while(ok && campaign_read_line(source, line, sizeof(line))) {
+    while(ok && campaign_read_line(&reader, line, sizeof(line), NULL)) {
         char original[CAMPAIGN_LINE_LEN];
         campaign_copy(original, sizeof(original), line);
         PocketCampaignSummary campaign;
@@ -331,6 +450,7 @@ static bool campaign_merge_legacy_index(Storage* storage, uint16_t* copied_files
 
 bool pocket_campaign_migrate_legacy_custom(Storage* storage, uint16_t* copied_files) {
     furi_assert(storage);
+    pocket_campaign_cache_reset();
     if(copied_files) *copied_files = 0U;
     storage_common_mkdir(storage, APP_DATA_PATH(""));
     storage_common_mkdir(storage, CAMPAIGN_PROGRESS_DIR);
@@ -375,6 +495,7 @@ bool pocket_campaign_migrate_legacy_custom(Storage* storage, uint16_t* copied_fi
     storage_dir_close(directory);
     storage_file_free(directory);
     bool index_ok = packs_ok && campaign_merge_legacy_index(storage, copied_files);
+    pocket_campaign_cache_reset();
     return packs_ok && progress_ok && index_ok;
 }
 
@@ -446,8 +567,10 @@ bool pocket_campaign_progress_load(
         storage_file_free(file);
         return true;
     }
+    CampaignReader reader;
+    campaign_reader_init(&reader, file, 0U);
     char line[CAMPAIGN_LINE_LEN];
-    while(campaign_read_line(file, line, sizeof(line))) {
+    while(campaign_read_line(&reader, line, sizeof(line), NULL)) {
         char* value = strchr(line, '=');
         if(!value) continue;
         *value++ = '\0';
@@ -502,8 +625,10 @@ static void campaign_validate_scenes(
     File* file = storage_file_alloc(storage);
     uint8_t scene_count = 0U;
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        CampaignReader reader;
+        campaign_reader_init(&reader, file, 0U);
         char line[CAMPAIGN_LINE_LEN];
-        while(campaign_read_line(file, line, sizeof(line))) {
+        while(campaign_read_line(&reader, line, sizeof(line), NULL)) {
             char* fields[11];
             uint8_t count = campaign_split(line, fields, 11U);
             if(count != 5U || strcmp(fields[0], "S")) continue;
@@ -521,8 +646,10 @@ static void campaign_validate_scenes(
         campaign_note_problem(output, campaign->id, "Entry scene missing");
     }
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        CampaignReader reader;
+        campaign_reader_init(&reader, file, 0U);
         char line[CAMPAIGN_LINE_LEN];
-        while(campaign_read_line(file, line, sizeof(line))) {
+        while(campaign_read_line(&reader, line, sizeof(line), NULL)) {
             char* fields[11];
             uint8_t count = campaign_split(line, fields, 11U);
             if(count != 11U || strcmp(fields[0], "C")) continue;
@@ -538,27 +665,78 @@ static void campaign_validate_scenes(
     free(scene_ids);
 }
 
-void pocket_campaign_diagnose(Storage* storage, PocketCampaignDiagnostics* output) {
-    memset(output, 0, sizeof(*output));
-    output->records = pocket_campaign_count(storage);
-    for(uint16_t i = 0U; i < output->records; ++i) {
+static bool campaign_seen_append(
+    char (**seen)[POCKET_CAMPAIGN_ID_LEN],
+    uint16_t* count,
+    uint16_t* capacity,
+    const char* id) {
+    if(*count == UINT16_MAX) return false;
+    if(*count == *capacity) {
+        uint32_t next_capacity = *capacity ? (uint32_t)*capacity * 2U : 16U;
+        if(next_capacity > UINT16_MAX) next_capacity = UINT16_MAX;
+        char(*resized)[POCKET_CAMPAIGN_ID_LEN] = realloc(*seen, next_capacity * sizeof(**seen));
+        if(!resized) return false;
+        *seen = resized;
+        *capacity = (uint16_t)next_capacity;
+    }
+    campaign_copy((*seen)[*count], POCKET_CAMPAIGN_ID_LEN, id);
+    ++*count;
+    return true;
+}
+
+static void campaign_diagnose_path(
+    Storage* storage,
+    const char* path,
+    bool bundled,
+    char (**seen)[POCKET_CAMPAIGN_ID_LEN],
+    uint16_t* seen_count,
+    uint16_t* seen_capacity,
+    PocketCampaignDiagnostics* output) {
+    File* file = storage_file_alloc(storage);
+    if(!storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_free(file);
+        return;
+    }
+    CampaignReader reader;
+    campaign_reader_init(&reader, file, 0U);
+    char line[CAMPAIGN_LINE_LEN];
+    while(campaign_read_line(&reader, line, sizeof(line), NULL)) {
         PocketCampaignSummary campaign;
-        if(!pocket_campaign_at(storage, i, &campaign)) continue;
+        if(!campaign_parse(line, bundled, &campaign)) continue;
+        if(output->records < UINT16_MAX) ++output->records;
         if(campaign.pack_version != POCKET_CAMPAIGN_PACK_VERSION ||
            campaign.minimum_app > POCKET_CAMPAIGN_APP_VERSION ||
            (campaign.maximum_app && campaign.maximum_app < POCKET_CAMPAIGN_APP_VERSION)) {
             ++output->incompatible;
             campaign_note_problem(output, campaign.id, "Incompatible manifest");
         }
-        for(uint16_t prior = 0U; prior < i; ++prior) {
-            PocketCampaignSummary previous;
-            if(pocket_campaign_at(storage, prior, &previous) &&
-               !strcmp(previous.id, campaign.id)) {
+        bool duplicate = false;
+        for(uint16_t prior = 0U; prior < *seen_count; ++prior) {
+            if(!strcmp((*seen)[prior], campaign.id)) {
                 ++output->duplicate_campaign_ids;
                 campaign_note_problem(output, campaign.id, "Duplicate campaign ID");
+                duplicate = true;
                 break;
             }
         }
+        if(!duplicate && !campaign_seen_append(seen, seen_count, seen_capacity, campaign.id))
+            campaign_note_problem(output, campaign.id, "Diagnostics memory low");
         campaign_validate_scenes(storage, &campaign, output);
     }
+    storage_file_close(file);
+    storage_file_free(file);
+}
+
+void pocket_campaign_diagnose(Storage* storage, PocketCampaignDiagnostics* output) {
+    memset(output, 0, sizeof(*output));
+    char(*seen)[POCKET_CAMPAIGN_ID_LEN] = NULL;
+    uint16_t seen_count = 0U;
+    uint16_t seen_capacity = 0U;
+    campaign_diagnose_path(
+        storage, CAMPAIGN_BUNDLED_INDEX, true, &seen, &seen_count, &seen_capacity, output);
+    campaign_diagnose_path(
+        storage, CAMPAIGN_ENABLED_INDEX, false, &seen, &seen_count, &seen_capacity, output);
+    campaign_diagnose_path(
+        storage, CAMPAIGN_USER_INDEX, false, &seen, &seen_count, &seen_capacity, output);
+    free(seen);
 }

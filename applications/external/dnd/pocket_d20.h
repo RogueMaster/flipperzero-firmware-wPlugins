@@ -16,7 +16,7 @@
 #define POCKET_D20_MAX_ITEMS             24U
 #define POCKET_D20_MAX_LANGUAGES         12U
 #define POCKET_D20_MAX_JOURNAL           24U
-#define POCKET_D20_MAX_PARTY             16U
+#define POCKET_D20_MAX_PARTY             23U
 #define POCKET_D20_MAX_INITIATIVE        24U
 #define POCKET_D20_MAX_GRANTS            24U
 #define POCKET_D20_MAX_ATTACK_TEMPLATES  8U

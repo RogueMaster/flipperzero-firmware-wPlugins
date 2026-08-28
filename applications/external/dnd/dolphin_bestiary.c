@@ -1,4 +1,7 @@
 #include "pocket_d20_monsters.h"
+#include "pocket_d20_bestiary_state.h"
+#include "pocket_d20_handoff.h"
+#include "pocket_d20_packs.h"
 
 #include <furi.h>
 #include <gui/gui.h>
@@ -12,7 +15,7 @@
 #include <string.h>
 
 #define TAG                      "DolphinBestiary"
-#define BESTIARY_WINDOW          20U
+#define BESTIARY_WINDOW          35U
 #define BESTIARY_MARQUEE_EVENT   0xB357U
 #define BESTIARY_LONG_BACK_EVENT 0xB358U
 #define BESTIARY_MARQUEE_MS      350U
@@ -28,6 +31,12 @@ typedef enum {
     BestiaryScreenDetail,
     BestiaryScreenDetailLine,
     BestiaryScreenEncounter,
+    BestiaryScreenSimulator,
+    BestiaryScreenWarnings,
+    BestiaryScreenSavedEncounters,
+    BestiaryScreenEncounterActions,
+    BestiaryScreenFilters,
+    BestiaryScreenPacks,
     BestiaryScreenDiagnostics,
     BestiaryScreenEdit,
 } BestiaryScreen;
@@ -46,7 +55,17 @@ typedef enum {
     BestiaryEditTraits,
     BestiaryEditActions,
     BestiaryEditExtra,
+    BestiaryEditFilterName,
+    BestiaryEditEncounterName,
+    BestiaryEditEncounterRename,
+    BestiaryEditEncounterDuplicate,
 } BestiaryEdit;
+
+typedef enum {
+    BestiaryListCatalog,
+    BestiaryListFavorites,
+    BestiaryListRecents,
+} BestiaryListMode;
 
 typedef struct {
     Gui* gui;
@@ -71,6 +90,13 @@ typedef struct {
     uint8_t detail_field;
     uint16_t encounter_return_selection;
     uint16_t encounter_return_scroll;
+    BestiaryListMode list_mode;
+    uint16_t state_total;
+    char state_rows[17][48];
+    PocketBestiaryFilterPreset pending_filter;
+    uint16_t encounter_action_index;
+    char encounter_name[POCKET_BESTIARY_ENCOUNTER_NAME_LEN];
+    uint8_t encounter_delete_armed;
 
     char search[POCKET_MONSTER_NAME_LEN];
     uint8_t max_cr_eighths;
@@ -94,6 +120,7 @@ typedef struct {
     PocketMonsterSummary selected;
     PocketMonsterDetail* detail;
     PocketMonsterEncounter* encounter;
+    uint8_t detail_favorite;
     uint8_t edit_existing;
     uint8_t delete_armed;
 
@@ -106,7 +133,22 @@ typedef struct {
     bool custom_present;
 } BestiaryApp;
 
+typedef struct {
+    char name[POCKET_MONSTER_NAME_LEN];
+    uint16_t hit_points;
+    uint8_t armor_class;
+    uint8_t quantity;
+} BestiaryLaunchMonster;
+
 static uint8_t bestiary_marquee_offset = 0U;
+
+static bool bestiary_launch_dnd(BestiaryApp* app, const char* launch_args);
+static bool bestiary_launch_dnd_monsters(
+    BestiaryApp* app,
+    const PocketMonsterSummary* monsters,
+    const uint8_t* quantities,
+    uint8_t count);
+static bool bestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index);
 
 static const char* const type_names[] = {
     "Any",
@@ -127,7 +169,8 @@ static const char* const type_names[] = {
     "Undead"};
 static const char* const environment_names[] =
     {"Any", "Aquatic", "Dungeon", "Planar", "Urban", "Wilderness"};
-static const char* const source_names[] = {"Any", "Open Reference", "D&Dolphins", "Custom"};
+static const char* const source_names[] =
+    {"Any", "Open Reference", "D&Dolphins", "Custom", "Custom Pack"};
 static const char* const role_names[] =
     {"Any", "Leader", "Controller", "Skirmisher", "Artillery", "Brute", "Minion"};
 static const char* const difficulty_names[] = {"Low", "Moderate", "High"};
@@ -142,10 +185,28 @@ static void bestiary_copy(char* output, size_t size, const char* value) {
 }
 
 static void bestiary_status(BestiaryApp* app, const char* value) {
+    if(!app) return;
     bestiary_copy(app->status, sizeof(app->status), value);
 }
 
+static bool bestiary_save_party_settings(BestiaryApp* app) {
+    if(!app || !app->storage) return false;
+    bool saved =
+        pocket_bestiary_party_settings_save(app->storage, app->party_level, app->party_size);
+    if(!saved) bestiary_status(app, "Party settings save failed");
+    return saved;
+}
+
+static uint8_t bestiary_warning_count(uint8_t flags) {
+    uint8_t count = 0U;
+    if(flags & PocketEncounterWarningUnsupportedLeader) ++count;
+    if(flags & PocketEncounterWarningExposedArtillery) ++count;
+    if(flags & PocketEncounterWarningMinionDensity) ++count;
+    return count;
+}
+
 static void bestiary_refresh(BestiaryApp* app) {
+    if(!app || !app->view) return;
     (void)view_get_model(app->view);
     view_commit_model(app->view, true);
 }
@@ -201,6 +262,13 @@ static bool bestiary_filter(const PocketMonsterSummary* monster, void* context) 
            bestiary_contains(monster->name, app->search);
 }
 
+static PocketMonsterFilter bestiary_active_filter(const BestiaryApp* app) {
+    return app->search[0] || app->max_cr_eighths || app->type_filter || app->source_filter ||
+                   app->environment_filter || app->role_filter ?
+               bestiary_filter :
+               NULL;
+}
+
 static void bestiary_release_window(BestiaryApp* app) {
     free(app->window);
     app->window = NULL;
@@ -220,7 +288,7 @@ static bool bestiary_load_window(BestiaryApp* app) {
     uint16_t* total_output = app->monster_total_valid ? NULL : &app->monster_total;
     app->window_count = pocket_monster_query(
         app->storage,
-        bestiary_filter,
+        bestiary_active_filter(app),
         app,
         app->page_start,
         app->window,
@@ -232,7 +300,7 @@ static bool bestiary_load_window(BestiaryApp* app) {
                           BESTIARY_WINDOW;
         app->window_count = pocket_monster_query(
             app->storage,
-            bestiary_filter,
+            bestiary_active_filter(app),
             app,
             app->page_start,
             app->window,
@@ -242,9 +310,86 @@ static bool bestiary_load_window(BestiaryApp* app) {
     return true;
 }
 
-static void bestiary_refresh_count(BestiaryApp* app) {
-    pocket_monster_query(app->storage, bestiary_filter, app, 0U, NULL, 0U, &app->monster_total);
+static bool bestiary_load_state_window(BestiaryApp* app, BestiaryListMode mode) {
+    bestiary_release_text_input(app);
+    bestiary_release_window(app);
+    app->list_mode = mode;
+    app->monster_total = mode == BestiaryListFavorites ?
+                             pocket_bestiary_favorite_count(app->storage) :
+                             pocket_bestiary_recent_count(app->storage);
     app->monster_total_valid = 1U;
+    if(app->page_start >= app->monster_total && app->page_start)
+        app->page_start = ((app->monster_total ? app->monster_total - 1U : 0U) / BESTIARY_WINDOW) *
+                          BESTIARY_WINDOW;
+    app->window = calloc(BESTIARY_WINDOW, sizeof(PocketMonsterSummary));
+    if(!app->window) {
+        bestiary_status(app, "Not enough memory");
+        return false;
+    }
+    app->window_count = 0U;
+    for(uint16_t index = app->page_start;
+        index < app->monster_total && app->window_count < BESTIARY_WINDOW;
+        ++index) {
+        char id[POCKET_MONSTER_ID_LEN];
+        bool found = mode == BestiaryListFavorites ?
+                         pocket_bestiary_favorite_at(app->storage, index, id, sizeof(id)) :
+                         pocket_bestiary_recent_at(app->storage, index, id, sizeof(id));
+        if(found && pocket_monster_find(app->storage, id, &app->window[app->window_count]))
+            ++app->window_count;
+    }
+    return true;
+}
+
+static void bestiary_refresh_count(BestiaryApp* app) {
+    pocket_monster_query(
+        app->storage, bestiary_active_filter(app), app, 0U, NULL, 0U, &app->monster_total);
+    app->monster_total_valid = 1U;
+}
+
+static void bestiary_cache_filter_rows(BestiaryApp* app) {
+    app->state_total = pocket_bestiary_filter_count(app->storage);
+    for(uint16_t index = 0U; index < app->state_total && index < 16U; ++index) {
+        PocketBestiaryFilterPreset preset;
+        if(pocket_bestiary_filter_at(app->storage, index, &preset))
+            snprintf(app->state_rows[index], sizeof(app->state_rows[index]), "%s", preset.name);
+    }
+    snprintf(
+        app->state_rows[app->state_total],
+        sizeof(app->state_rows[app->state_total]),
+        "Save Current Filter");
+}
+
+static void bestiary_cache_encounter_rows(BestiaryApp* app) {
+    app->state_total = pocket_bestiary_encounter_count(app->storage);
+    for(uint16_t index = 0U; index < app->state_total && index < 16U; ++index) {
+        PocketSavedEncounter encounter;
+        if(pocket_bestiary_encounter_at(app->storage, index, &encounter))
+            snprintf(
+                app->state_rows[index],
+                sizeof(app->state_rows[index]),
+                "%s L%u x%u",
+                encounter.name,
+                encounter.party_level,
+                encounter.party_size);
+    }
+}
+
+static void bestiary_cache_pack_rows(BestiaryApp* app) {
+    app->state_total = pocket_pack_count(app->storage, PocketPackMonster);
+    for(uint16_t index = 0U; index < app->state_total && index < 16U; ++index) {
+        PocketPackSummary pack;
+        if(pocket_pack_at(app->storage, PocketPackMonster, index, &pack))
+            snprintf(
+                app->state_rows[index],
+                sizeof(app->state_rows[index]),
+                "[%c] %s",
+                pack.enabled ? 'x' : ' ',
+                pack.name);
+    }
+    snprintf(
+        app->state_rows[app->state_total],
+        sizeof(app->state_rows[app->state_total]),
+        "Install Inbox Pack");
 }
 
 static void bestiary_release_detail(BestiaryApp* app) {
@@ -264,6 +409,20 @@ static void bestiary_release_text_input(BestiaryApp* app) {
     app->text_input = NULL;
     app->text_input_active = 0U;
     app->edit = BestiaryEditNone;
+}
+
+static void bestiary_release_monster_memory_for_launch(BestiaryApp* app) {
+    if(!app) return;
+
+    /* The deferred loader duplicates the launch path and argument string before
+       returning. Release Bestiary's large monster allocations first so that
+       duplication has the largest possible heap headroom. */
+    if(app->marquee_timer) furi_timer_stop(app->marquee_timer);
+    bestiary_release_text_input(app);
+    bestiary_release_window(app);
+    bestiary_release_detail(app);
+    bestiary_release_encounter(app);
+    pocket_monster_cache_reset();
 }
 
 static void bestiary_cr(char* output, size_t size, uint8_t eighths) {
@@ -304,16 +463,16 @@ static void bestiary_row(Canvas* canvas, uint8_t row, bool selected, const char*
     uint8_t y = 11U + row * 10U;
     char display[32];
     size_t length = strlen(text);
-    if(selected && length > 20U) {
+    if(selected && length > 25U) {
         size_t cycle = length + 4U;
         size_t start = bestiary_marquee_offset % cycle;
-        for(size_t i = 0U; i < 20U; ++i) {
+        for(size_t i = 0U; i < 25U; ++i) {
             size_t position = (start + i) % cycle;
             display[i] = position < length ? text[position] : ' ';
         }
-        display[20] = '\0';
+        display[25] = '\0';
     } else {
-        size_t copy = length > 20U ? 20U : length;
+        size_t copy = length > 25U ? 25U : length;
         memcpy(display, text, copy);
         display[copy] = '\0';
     }
@@ -392,9 +551,14 @@ static void bestiary_draw_home(Canvas* canvas, BestiaryApp* app) {
         "Generate Encounter",
         "Pack Diagnostics",
         "Create Custom Monster",
+        "Favorite Monsters",
+        "Recent Monsters",
+        "Saved Filters",
+        "Saved Encounters",
+        "Monster Pack Controls",
         "Open Dungeons & Dolphins"};
     bestiary_header(canvas, "Bestiary v" FAP_VERSION, app->status);
-    bestiary_rows(canvas, app, rows, 18U);
+    bestiary_rows(canvas, app, rows, 23U);
 }
 
 static void bestiary_draw_list(Canvas* canvas, BestiaryApp* app) {
@@ -406,7 +570,10 @@ static void bestiary_draw_list(Canvas* canvas, BestiaryApp* app) {
         "Page %u/%u <>",
         app->page_start / BESTIARY_WINDOW + 1U,
         page_count ? page_count : 1U);
-    bestiary_header(canvas, "Monster Catalog", app->status[0] ? app->status : page);
+    const char* title = app->list_mode == BestiaryListFavorites ? "Favorite Monsters" :
+                        app->list_mode == BestiaryListRecents   ? "Recent Monsters" :
+                                                                  "Monster Catalog";
+    bestiary_header(canvas, title, app->status[0] ? app->status : page);
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         uint16_t index = app->scroll + visible;
         if(index >= app->window_count) break;
@@ -421,6 +588,7 @@ static void bestiary_draw_detail(Canvas* canvas, BestiaryApp* app) {
     if(!app->detail) return;
     PocketMonsterDetail* m = app->detail;
     char cr[8], core[64], type[48], abilities[64], source[40], role[32], delete_row[32];
+    char favorite_row[32];
     bestiary_cr(cr, sizeof(cr), m->summary.cr_eighths);
     snprintf(
         core,
@@ -448,6 +616,11 @@ static void bestiary_draw_detail(Canvas* canvas, BestiaryApp* app) {
         sizeof(delete_row),
         "%s",
         app->delete_armed ? "OK again: delete custom" : "Delete Custom Monster");
+    snprintf(
+        favorite_row,
+        sizeof(favorite_row),
+        "%s",
+        app->detail_favorite ? "Remove Favorite" : "Add Favorite");
     const char* rows[] = {
         core,
         type,
@@ -463,9 +636,11 @@ static void bestiary_draw_detail(Canvas* canvas, BestiaryApp* app) {
         m->traits,
         m->actions,
         m->extra,
+        favorite_row,
+        "Add to Initiative",
         "Edit Custom Monster",
         delete_row};
-    uint8_t row_count = !strcmp(m->summary.source, "Custom") ? 16U : 14U;
+    uint8_t row_count = !strcmp(m->summary.source, "Custom") ? 18U : 16U;
     bestiary_header(canvas, m->summary.name, app->status);
     bestiary_rows(canvas, app, rows, row_count);
 }
@@ -478,7 +653,7 @@ static const char* bestiary_next_text_line(const char* cursor, char* output, siz
         output[0] = '\0';
         return NULL;
     }
-    const size_t maximum = 20U;
+    const size_t maximum = 25U;
     size_t length = 0U;
     size_t last_space = SIZE_MAX;
     while(cursor[length] && cursor[length] != '\r' && cursor[length] != '\n' && length < maximum) {
@@ -548,19 +723,149 @@ static void bestiary_draw_encounter(Canvas* canvas, BestiaryApp* app) {
         (unsigned long)app->encounter->spent,
         (unsigned long)app->encounter->budget);
     bestiary_header(canvas, title, app->status);
+    PocketEncounterComposition composition;
+    pocket_monster_analyze_composition(app->encounter, app->party_size, &composition);
+    uint8_t warning_count = bestiary_warning_count(composition.warning_flags);
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         uint16_t index = app->scroll + visible;
-        if(index >= app->encounter->count) break;
+        if(index >= app->encounter->count + 4U) break;
         char row[64], cr[8];
-        bestiary_cr(cr, sizeof(cr), app->encounter->monsters[index].cr_eighths);
-        snprintf(
-            row,
-            sizeof(row),
-            "%ux %s CR%s",
-            app->encounter->quantities[index],
-            app->encounter->monsters[index].name,
-            cr);
+        if(index < app->encounter->count) {
+            bestiary_cr(cr, sizeof(cr), app->encounter->monsters[index].cr_eighths);
+            snprintf(
+                row,
+                sizeof(row),
+                "%ux %s CR%s",
+                app->encounter->quantities[index],
+                app->encounter->monsters[index].name,
+                cr);
+        } else if(index == app->encounter->count) {
+            snprintf(row, sizeof(row), "Difficulty Simulator");
+        } else if(index == app->encounter->count + 1U) {
+            snprintf(row, sizeof(row), "Save Encounter");
+        } else if(index == app->encounter->count + 2U) {
+            if(warning_count)
+                snprintf(
+                    row,
+                    sizeof(row),
+                    "Composition: %u warning%s",
+                    warning_count,
+                    warning_count == 1U ? "" : "s");
+            else
+                snprintf(row, sizeof(row), "Composition: OK");
+        } else {
+            snprintf(row, sizeof(row), "Add to Initiative");
+        }
         bestiary_row(canvas, visible, index == app->selection, row);
+    }
+}
+
+static void bestiary_draw_simulator(Canvas* canvas, BestiaryApp* app) {
+    if(!app->encounter) return;
+    PocketEncounterSimulation simulation;
+    pocket_monster_simulate(app->encounter, app->party_level, app->party_size, &simulation);
+    char subtitle[40];
+    snprintf(
+        subtitle,
+        sizeof(subtitle),
+        "%s %lu XP",
+        difficulty_names[simulation.classification],
+        (unsigned long)simulation.spent);
+    bestiary_header(canvas, "Difficulty Simulator", subtitle);
+    for(uint8_t visible = 0U; visible < 5U; ++visible) {
+        uint16_t index = app->scroll + visible;
+        if(index >= app->encounter->count + 2U) break;
+        char row[64];
+        if(index == 0U)
+            snprintf(row, sizeof(row), "Party Level: %u", app->party_level);
+        else if(index == 1U)
+            snprintf(row, sizeof(row), "Party Size: %u", app->party_size);
+        else {
+            uint8_t monster = (uint8_t)(index - 2U);
+            snprintf(
+                row,
+                sizeof(row),
+                "%ux %s",
+                app->encounter->quantities[monster],
+                app->encounter->monsters[monster].name);
+        }
+        bestiary_row(canvas, visible, index == app->selection, row);
+    }
+}
+
+static void bestiary_draw_warnings(Canvas* canvas, BestiaryApp* app) {
+    if(!app->encounter) return;
+    PocketEncounterComposition composition;
+    pocket_monster_analyze_composition(app->encounter, app->party_size, &composition);
+    char summary[48];
+    snprintf(
+        summary,
+        sizeof(summary),
+        "Total %u L%u A%u M%u",
+        composition.total_creatures,
+        composition.leaders,
+        composition.artillery,
+        composition.minions);
+    const char* rows[4];
+    uint8_t count = 0U;
+    rows[count++] = summary;
+    if(composition.warning_flags & PocketEncounterWarningUnsupportedLeader)
+        rows[count++] = "Leader lacks support";
+    if(composition.warning_flags & PocketEncounterWarningExposedArtillery)
+        rows[count++] = "Artillery is exposed";
+    if(composition.warning_flags & PocketEncounterWarningMinionDensity)
+        rows[count++] = "Minion density is high";
+    if(count == 1U) rows[count++] = "No warnings detected";
+    bestiary_header(canvas, "Composition Warnings", "OK/Back: encounter");
+    bestiary_rows(canvas, app, rows, count);
+}
+
+static void bestiary_draw_saved_encounters(Canvas* canvas, BestiaryApp* app) {
+    bestiary_header(canvas, "Saved Encounters", app->status);
+    for(uint8_t visible = 0U; visible < 5U; ++visible) {
+        uint16_t index = app->scroll + visible;
+        if(index >= app->state_total) break;
+        bestiary_row(canvas, visible, index == app->selection, app->state_rows[index]);
+    }
+}
+
+static void bestiary_draw_encounter_actions(Canvas* canvas, BestiaryApp* app) {
+    char title[48];
+    snprintf(
+        title,
+        sizeof(title),
+        "Saved: %.32s",
+        app->encounter_name[0] ? app->encounter_name : "Encounter");
+    const char* delete_row = app->encounter_delete_armed ? "OK again: Delete" : "Delete Encounter";
+    const char* rows[] = {
+        "Resume Encounter",
+        "Add to Initiative",
+        "Rename Encounter",
+        "Duplicate Encounter",
+        "Archive Encounter",
+        delete_row,
+    };
+    bestiary_header(canvas, title, app->status);
+    bestiary_rows(canvas, app, rows, 6U);
+}
+
+static void bestiary_draw_filters(Canvas* canvas, BestiaryApp* app) {
+    bestiary_header(canvas, "Saved Filters", app->status);
+    uint16_t count = app->state_total + 1U;
+    for(uint8_t visible = 0U; visible < 5U; ++visible) {
+        uint16_t index = app->scroll + visible;
+        if(index >= count) break;
+        bestiary_row(canvas, visible, index == app->selection, app->state_rows[index]);
+    }
+}
+
+static void bestiary_draw_packs(Canvas* canvas, BestiaryApp* app) {
+    bestiary_header(canvas, "Monster Packs", app->status);
+    uint16_t count = app->state_total + 1U;
+    for(uint8_t visible = 0U; visible < 5U; ++visible) {
+        uint16_t index = app->scroll + visible;
+        if(index >= count) break;
+        bestiary_row(canvas, visible, index == app->selection, app->state_rows[index]);
     }
 }
 
@@ -644,6 +949,24 @@ static void bestiary_draw(Canvas* canvas, void* model) {
     case BestiaryScreenEncounter:
         bestiary_draw_encounter(canvas, app);
         break;
+    case BestiaryScreenSimulator:
+        bestiary_draw_simulator(canvas, app);
+        break;
+    case BestiaryScreenWarnings:
+        bestiary_draw_warnings(canvas, app);
+        break;
+    case BestiaryScreenSavedEncounters:
+        bestiary_draw_saved_encounters(canvas, app);
+        break;
+    case BestiaryScreenEncounterActions:
+        bestiary_draw_encounter_actions(canvas, app);
+        break;
+    case BestiaryScreenFilters:
+        bestiary_draw_filters(canvas, app);
+        break;
+    case BestiaryScreenPacks:
+        bestiary_draw_packs(canvas, app);
+        break;
     case BestiaryScreenDiagnostics:
         bestiary_draw_diagnostics(canvas, app);
         break;
@@ -663,6 +986,7 @@ static void bestiary_text_done(void* context) {
     BestiaryApp* app = context;
     app->text_input_active = 0U;
     PocketMonsterDetail* m = app->detail;
+    BestiaryEdit completed = app->edit;
     switch(app->edit) {
     case BestiaryEditSearch:
         bestiary_copy(app->search, sizeof(app->search), app->edit_buffer);
@@ -700,11 +1024,63 @@ static void bestiary_text_done(void* context) {
     case BestiaryEditExtra:
         if(m) bestiary_copy(m->extra, sizeof(m->extra), app->edit_buffer);
         break;
+    case BestiaryEditFilterName:
+        bestiary_copy(
+            app->pending_filter.name, sizeof(app->pending_filter.name), app->edit_buffer);
+        bestiary_status(
+            app,
+            pocket_bestiary_filter_save(app->storage, &app->pending_filter) ?
+                "Filter saved" :
+                "Filter save failed");
+        bestiary_cache_filter_rows(app);
+        break;
+    case BestiaryEditEncounterName:
+        if(app->encounter && app->edit_buffer[0]) {
+            PocketSavedEncounter saved = {0};
+            bestiary_copy(saved.name, sizeof(saved.name), app->edit_buffer);
+            saved.party_level = app->party_level;
+            saved.party_size = app->party_size;
+            saved.difficulty = app->difficulty;
+            saved.count = app->encounter->count;
+            for(uint8_t index = 0U; index < saved.count; ++index) {
+                bestiary_copy(
+                    saved.monster_ids[index],
+                    sizeof(saved.monster_ids[index]),
+                    app->encounter->monsters[index].id);
+                saved.quantities[index] = app->encounter->quantities[index];
+            }
+            bool saved_ok = pocket_bestiary_encounter_save(app->storage, &saved);
+            if(saved_ok)
+                bestiary_copy(app->encounter_name, sizeof(app->encounter_name), saved.name);
+            bestiary_status(app, saved_ok ? "Encounter saved" : "Encounter save failed");
+        }
+        break;
+    case BestiaryEditEncounterRename:
+        if(app->edit_buffer[0]) {
+            bool renamed = pocket_bestiary_encounter_rename(
+                app->storage, app->encounter_action_index, app->edit_buffer);
+            if(renamed) {
+                bestiary_copy(app->encounter_name, sizeof(app->encounter_name), app->edit_buffer);
+                bestiary_cache_encounter_rows(app);
+            }
+            bestiary_status(app, renamed ? "Encounter renamed" : "Rename failed/name used");
+        }
+        break;
+    case BestiaryEditEncounterDuplicate:
+        if(app->edit_buffer[0]) {
+            bool duplicated = pocket_bestiary_encounter_duplicate(
+                app->storage, app->encounter_action_index, app->edit_buffer);
+            if(duplicated) bestiary_cache_encounter_rows(app);
+            bestiary_status(
+                app, duplicated ? "Encounter duplicated" : "Duplicate failed/name used");
+        }
+        break;
     default:
         break;
     }
     app->edit = BestiaryEditNone;
-    if(app->screen == BestiaryScreenHome) app->monster_total_valid = 0U;
+    if(app->screen == BestiaryScreenHome || completed == BestiaryEditSearch)
+        app->monster_total_valid = 0U;
     view_dispatcher_switch_to_view(app->dispatcher, BestiaryViewMain);
     bestiary_refresh(app);
 }
@@ -751,6 +1127,8 @@ static bool bestiary_open_detail(
         return false;
     }
     app->selected = *summary;
+    pocket_bestiary_recent_add(app->storage, summary->id);
+    app->detail_favorite = pocket_bestiary_favorite_contains(app->storage, summary->id) ? 1U : 0U;
     app->return_screen = return_screen;
     app->delete_armed = 0U;
     bestiary_enter(app, BestiaryScreenDetail);
@@ -881,6 +1259,7 @@ static void bestiary_generate(BestiaryApp* app) {
         bestiary_status(app, "No encounter matched");
         return;
     }
+    bestiary_copy(app->encounter_name, sizeof(app->encounter_name), "Generated Encounter");
     bestiary_enter(app, BestiaryScreenEncounter);
 }
 
@@ -940,7 +1319,10 @@ static void bestiary_back(BestiaryApp* app) {
         BestiaryScreen destination = app->return_screen;
         bestiary_release_detail(app);
         if(destination == BestiaryScreenList) {
-            bestiary_load_window(app);
+            if(app->list_mode == BestiaryListCatalog)
+                bestiary_load_window(app);
+            else
+                bestiary_load_state_window(app, app->list_mode);
             bestiary_enter(app, BestiaryScreenList);
         } else {
             bestiary_enter(app, destination);
@@ -958,6 +1340,24 @@ static void bestiary_back(BestiaryApp* app) {
         bestiary_release_encounter(app);
         bestiary_enter(app, BestiaryScreenHome);
         break;
+    case BestiaryScreenSimulator:
+    case BestiaryScreenWarnings:
+        bestiary_enter(app, BestiaryScreenEncounter);
+        break;
+    case BestiaryScreenEncounterActions: {
+        uint16_t selected = app->encounter_action_index;
+        app->encounter_delete_armed = 0U;
+        bestiary_cache_encounter_rows(app);
+        bestiary_enter(app, BestiaryScreenSavedEncounters);
+        if(app->state_total) {
+            app->selection = selected < app->state_total ? selected : app->state_total - 1U;
+            app->scroll = app->selection > 4U ? app->selection - 4U : 0U;
+        }
+        break;
+    }
+    case BestiaryScreenSavedEncounters:
+    case BestiaryScreenFilters:
+    case BestiaryScreenPacks:
     case BestiaryScreenDiagnostics:
         bestiary_enter(app, BestiaryScreenHome);
         break;
@@ -976,9 +1376,9 @@ static void bestiary_back(BestiaryApp* app) {
 
 static void bestiary_handle_home(BestiaryApp* app, const InputEvent* event) {
     if(bestiary_move_event(event) && event->key == InputKeyUp)
-        bestiary_move(app, 18U, -1);
+        bestiary_move(app, 23U, -1);
     else if(bestiary_move_event(event) && event->key == InputKeyDown)
-        bestiary_move(app, 18U, 1);
+        bestiary_move(app, 23U, 1);
     else if(bestiary_move_event(event) && (event->key == InputKeyLeft || event->key == InputKeyRight)) {
         int8_t delta = event->key == InputKeyRight ? 1 : -1;
         if(app->selection == 2U)
@@ -1010,9 +1410,11 @@ static void bestiary_handle_home(BestiaryApp* app, const InputEvent* event) {
         } else if(app->selection == 7U) {
             int16_t value = app->party_level + delta;
             app->party_level = (uint8_t)(value < 1 ? 20 : value > 20 ? 1 : value);
+            bestiary_save_party_settings(app);
         } else if(app->selection == 8U) {
             int16_t value = app->party_size + delta;
             app->party_size = (uint8_t)(value < 1 ? 12 : value > 12 ? 1 : value);
+            bestiary_save_party_settings(app);
         } else if(app->selection == 9U) {
             int16_t value = app->difficulty + delta;
             app->difficulty = (uint8_t)(value < 0 ? 2 : value > 2 ? 0 : value);
@@ -1027,6 +1429,7 @@ static void bestiary_handle_home(BestiaryApp* app, const InputEvent* event) {
     } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         if(app->selection == 0U) {
             app->page_start = 0U;
+            app->list_mode = BestiaryListCatalog;
             if(bestiary_load_window(app)) bestiary_enter(app, BestiaryScreenList);
         } else if(app->selection == 1U) {
             bestiary_begin_text(app, BestiaryEditSearch, "Monster Search", app->search);
@@ -1036,15 +1439,22 @@ static void bestiary_handle_home(BestiaryApp* app, const InputEvent* event) {
             bestiary_diagnose(app);
         else if(app->selection == 16U)
             bestiary_new_custom(app);
-        else if(app->selection == 17U) {
-            Loader* loader = furi_record_open(RECORD_LOADER);
-            loader_enqueue_launch(
-                loader,
-                "/ext/apps/Games/dungeons_and_dolphins.fap",
-                NULL,
-                LoaderDeferredLaunchFlagGui);
-            furi_record_close(RECORD_LOADER);
-            view_dispatcher_stop(app->dispatcher);
+        else if(app->selection == 17U || app->selection == 18U) {
+            app->page_start = 0U;
+            BestiaryListMode mode = app->selection == 17U ? BestiaryListFavorites :
+                                                            BestiaryListRecents;
+            if(bestiary_load_state_window(app, mode)) bestiary_enter(app, BestiaryScreenList);
+        } else if(app->selection == 19U) {
+            bestiary_cache_filter_rows(app);
+            bestiary_enter(app, BestiaryScreenFilters);
+        } else if(app->selection == 20U) {
+            bestiary_cache_encounter_rows(app);
+            bestiary_enter(app, BestiaryScreenSavedEncounters);
+        } else if(app->selection == 21U) {
+            bestiary_cache_pack_rows(app);
+            bestiary_enter(app, BestiaryScreenPacks);
+        } else if(app->selection == 22U) {
+            bestiary_launch_dnd(app, NULL);
         }
     }
 }
@@ -1063,7 +1473,10 @@ static void bestiary_handle_list(BestiaryApp* app, const InputEvent* event) {
         if(next != app->page_start) {
             app->page_start = next;
             app->selection = app->scroll = 0U;
-            bestiary_load_window(app);
+            if(app->list_mode == BestiaryListCatalog)
+                bestiary_load_window(app);
+            else
+                bestiary_load_state_window(app, app->list_mode);
         }
     } else if(
         event->type == InputTypeShort && event->key == InputKeyOk &&
@@ -1077,7 +1490,7 @@ static void bestiary_handle_list(BestiaryApp* app, const InputEvent* event) {
 static void bestiary_handle_detail(BestiaryApp* app, const InputEvent* event) {
     if(!app->detail) return;
     bool custom = !strcmp(app->detail->summary.source, "Custom");
-    uint8_t row_count = custom ? 16U : 14U;
+    uint8_t row_count = custom ? 18U : 16U;
     if(bestiary_move_event(event) && event->key == InputKeyUp) {
         app->delete_armed = 0U;
         bestiary_move(app, row_count, -1);
@@ -1087,11 +1500,22 @@ static void bestiary_handle_detail(BestiaryApp* app, const InputEvent* event) {
     } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         if(app->selection < 14U) {
             bestiary_open_detail_line(app);
-        } else if(custom && app->selection == 14U) {
+        } else if(app->selection == 14U) {
+            bool now_favorite = false;
+            bool changed = pocket_bestiary_favorite_toggle(
+                app->storage, app->detail->summary.id, &now_favorite);
+            if(changed) app->detail_favorite = now_favorite ? 1U : 0U;
+            bestiary_status(
+                app,
+                changed ? (now_favorite ? "Favorite added" : "Favorite removed") :
+                          "Favorite update failed");
+        } else if(app->selection == 15U) {
+            bestiary_launch_dnd_monsters(app, &app->detail->summary, NULL, 1U);
+        } else if(custom && app->selection == 16U) {
             app->edit_existing = 1U;
             app->selected = app->detail->summary;
             bestiary_enter(app, BestiaryScreenEdit);
-        } else if(custom && app->selection == 15U) {
+        } else if(custom && app->selection == 17U) {
             if(!app->delete_armed) {
                 app->delete_armed = 1U;
                 bestiary_status(app, "OK again deletes custom");
@@ -1103,7 +1527,9 @@ static void bestiary_handle_detail(BestiaryApp* app, const InputEvent* event) {
                 bestiary_status(app, deleted ? "Custom monster deleted" : "Delete failed");
             }
         }
-    } else if(event->type == InputTypeLong && event->key == InputKeyOk && custom) {
+    } else if(
+        event->type == InputTypeLong && event->key == InputKeyOk && custom &&
+        app->selection == 17U) {
         if(!app->delete_armed) {
             app->delete_armed = 1U;
             bestiary_status(app, "Hold OK again delete");
@@ -1134,12 +1560,211 @@ static void bestiary_handle_detail_line(BestiaryApp* app, const InputEvent* even
     }
 }
 
+static bool bestiary_launch_dnd(BestiaryApp* app, const char* launch_args) {
+    if(!app || !app->dispatcher) return false;
+
+    Loader* loader = furi_record_open(RECORD_LOADER);
+    if(!loader) {
+        bestiary_status(app, "Loader unavailable");
+        return false;
+    }
+
+    FURI_LOG_I(TAG, "D&D launch heap before cleanup: %lu", (unsigned long)memmgr_get_free_heap());
+    bestiary_release_monster_memory_for_launch(app);
+    FURI_LOG_I(TAG, "D&D launch heap after cleanup: %lu", (unsigned long)memmgr_get_free_heap());
+    FURI_LOG_I(
+        TAG,
+        "Queue D&D FAP: %s args_len=%u",
+        POCKET_D20_APP_FAP_PATH,
+        (unsigned int)(launch_args ? strlen(launch_args) : 0U));
+    loader_enqueue_launch(
+        loader, POCKET_D20_APP_FAP_PATH, launch_args, LoaderDeferredLaunchFlagGui);
+    furi_record_close(RECORD_LOADER);
+
+    view_dispatcher_stop(app->dispatcher);
+    return true;
+}
+
+static void bestiary_launch_name_sanitize(char* output, size_t size, const char* input) {
+    if(!output || !size) return;
+    size_t written = 0U;
+    if(input) {
+        while(*input && written + 1U < size) {
+            char value = *input++;
+            if(value == ',' || value == ';' || value == '\r' || value == '\n') value = ' ';
+            output[written++] = value;
+        }
+    }
+    output[written] = '\0';
+}
+
+static bool bestiary_launch_args_append(
+    char* args,
+    size_t capacity,
+    size_t* used,
+    uint8_t* emitted,
+    const BestiaryLaunchMonster* monster) {
+    if(!args || !used || !emitted || !monster) return false;
+
+    char name[POCKET_MONSTER_NAME_LEN];
+    bestiary_launch_name_sanitize(name, sizeof(name), monster->name);
+    if(!name[0]) bestiary_copy(name, sizeof(name), "Monster");
+
+    uint16_t hp = monster->hit_points > 32767U ? 32767U : monster->hit_points;
+    for(uint8_t copy = 0U; copy < monster->quantity && *emitted < POCKET_D20_TRANSFER_MAX;
+        ++copy) {
+        int written = snprintf(
+            args + *used,
+            capacity - *used,
+            ";%s,%u,%u",
+            name,
+            (unsigned int)hp,
+            (unsigned int)monster->armor_class);
+        if(written < 0 || (size_t)written >= capacity - *used) return false;
+        *used += (size_t)written;
+        ++(*emitted);
+    }
+    return true;
+}
+
+static bool bestiary_launch_args_finish(char* args, size_t capacity, size_t* used) {
+    if(!args || !used || *used + 1U >= capacity) return false;
+    args[(*used)++] = ';';
+    args[*used] = '\0';
+    return true;
+}
+
+static bool bestiary_launch_dnd_monsters(
+    BestiaryApp* app,
+    const PocketMonsterSummary* monsters,
+    const uint8_t* quantities,
+    uint8_t count) {
+    if(!app || !monsters || !count) return false;
+
+    BestiaryLaunchMonster launch_monsters[POCKET_MONSTER_ENCOUNTER_MAX];
+    uint8_t launch_count = count < POCKET_MONSTER_ENCOUNTER_MAX ? count :
+                                                                  POCKET_MONSTER_ENCOUNTER_MAX;
+    for(uint8_t index = 0U; index < launch_count; ++index) {
+        bestiary_copy(
+            launch_monsters[index].name,
+            sizeof(launch_monsters[index].name),
+            monsters[index].name);
+        launch_monsters[index].hit_points = monsters[index].hit_points;
+        launch_monsters[index].armor_class = monsters[index].armor_class;
+        launch_monsters[index].quantity = quantities ? quantities[index] : 1U;
+    }
+
+    /* The summaries needed for the transfer are now compact locals. Free the
+       potentially multi-kilobyte browser window and monster offset caches
+       before allocating the launch-argument buffer. */
+    bestiary_release_window(app);
+    pocket_monster_cache_reset();
+
+    char* args = malloc(POCKET_D20_LAUNCH_ARGS_MAX);
+    if(!args) {
+        bestiary_status(app, "Launch args unavailable");
+        return false;
+    }
+
+    size_t used = strlen(POCKET_D20_HANDOFF_LAUNCH_ARG);
+    memcpy(args, POCKET_D20_HANDOFF_LAUNCH_ARG, used + 1U);
+    uint8_t emitted = 0U;
+    bool built = true;
+    for(uint8_t index = 0U; index < launch_count && emitted < POCKET_D20_TRANSFER_MAX; ++index) {
+        if(!launch_monsters[index].quantity) continue;
+        if(!bestiary_launch_args_append(
+               args, POCKET_D20_LAUNCH_ARGS_MAX, &used, &emitted, &launch_monsters[index])) {
+            built = false;
+            break;
+        }
+    }
+
+    if(!emitted || !bestiary_launch_args_finish(args, POCKET_D20_LAUNCH_ARGS_MAX, &used))
+        built = false;
+
+    bool launched = false;
+    if(built)
+        launched = bestiary_launch_dnd(app, args);
+    else
+        bestiary_status(app, "Initiative args too large");
+
+    free(args);
+    return launched;
+}
+
+static bool bestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index) {
+    if(!app) return false;
+    PocketSavedEncounter saved;
+    if(!pocket_bestiary_encounter_at(app->storage, index, &saved)) {
+        bestiary_status(app, "Saved encounter unavailable");
+        return false;
+    }
+
+    BestiaryLaunchMonster launch_monsters[POCKET_MONSTER_ENCOUNTER_MAX];
+    uint8_t launch_count = 0U;
+    for(uint8_t record = 0U; record < saved.count && record < POCKET_MONSTER_ENCOUNTER_MAX;
+        ++record) {
+        PocketMonsterSummary summary;
+        if(!pocket_monster_find(app->storage, saved.monster_ids[record], &summary)) {
+            bestiary_status(app, "Saved monster unavailable");
+            return false;
+        }
+        bestiary_copy(
+            launch_monsters[launch_count].name,
+            sizeof(launch_monsters[launch_count].name),
+            summary.name);
+        launch_monsters[launch_count].hit_points = summary.hit_points;
+        launch_monsters[launch_count].armor_class = summary.armor_class;
+        launch_monsters[launch_count].quantity = saved.quantities[record];
+        ++launch_count;
+    }
+
+    if(!launch_count) {
+        bestiary_status(app, "Saved encounter empty");
+        return false;
+    }
+
+    /* All required monster fields are copied now; release Bestiary's large
+       lookup caches before allocating and queuing the cross-FAP arguments. */
+    bestiary_release_window(app);
+    pocket_monster_cache_reset();
+
+    char* args = malloc(POCKET_D20_LAUNCH_ARGS_MAX);
+    if(!args) {
+        bestiary_status(app, "Launch args unavailable");
+        return false;
+    }
+
+    size_t used = strlen(POCKET_D20_HANDOFF_LAUNCH_ARG);
+    memcpy(args, POCKET_D20_HANDOFF_LAUNCH_ARG, used + 1U);
+    uint8_t emitted = 0U;
+    bool built = true;
+    for(uint8_t record = 0U; record < launch_count && emitted < POCKET_D20_TRANSFER_MAX;
+        ++record) {
+        if(!launch_monsters[record].quantity) continue;
+        if(!bestiary_launch_args_append(
+               args, POCKET_D20_LAUNCH_ARGS_MAX, &used, &emitted, &launch_monsters[record])) {
+            built = false;
+            break;
+        }
+    }
+
+    if(!emitted || !bestiary_launch_args_finish(args, POCKET_D20_LAUNCH_ARGS_MAX, &used))
+        built = false;
+
+    bool launched = built ? bestiary_launch_dnd(app, args) : false;
+    if(!built) bestiary_status(app, "Initiative args too large");
+    free(args);
+    return launched;
+}
+
 static void bestiary_handle_encounter(BestiaryApp* app, const InputEvent* event) {
     if(!app->encounter) return;
+    uint16_t count = app->encounter->count + 4U;
     if(bestiary_move_event(event) && event->key == InputKeyUp)
-        bestiary_move(app, app->encounter->count, -1);
+        bestiary_move(app, count, -1);
     else if(bestiary_move_event(event) && event->key == InputKeyDown)
-        bestiary_move(app, app->encounter->count, 1);
+        bestiary_move(app, count, 1);
     else if(
         event->type == InputTypeShort && event->key == InputKeyOk &&
         app->selection < app->encounter->count) {
@@ -1147,8 +1772,263 @@ static void bestiary_handle_encounter(BestiaryApp* app, const InputEvent* event)
         app->encounter_return_selection = app->selection;
         app->encounter_return_scroll = app->scroll;
         bestiary_open_detail(app, &summary, BestiaryScreenEncounter);
-    } else if(event->type == InputTypeLong && event->key == InputKeyOk)
+    } else if(
+        event->type == InputTypeShort && event->key == InputKeyOk &&
+        app->selection == app->encounter->count) {
+        bestiary_enter(app, BestiaryScreenSimulator);
+    } else if(
+        event->type == InputTypeShort && event->key == InputKeyOk &&
+        app->selection == app->encounter->count + 1U) {
+        bestiary_begin_text(
+            app,
+            BestiaryEditEncounterName,
+            "Encounter Name",
+            app->encounter_name[0] ? app->encounter_name : "Encounter");
+    } else if(
+        event->type == InputTypeShort && event->key == InputKeyOk &&
+        app->selection == app->encounter->count + 2U) {
+        bestiary_enter(app, BestiaryScreenWarnings);
+    } else if(
+        event->type == InputTypeShort && event->key == InputKeyOk &&
+        app->selection == app->encounter->count + 3U) {
+        bestiary_launch_dnd_monsters(
+            app, app->encounter->monsters, app->encounter->quantities, app->encounter->count);
+    } else if(event->type == InputTypeLong && event->key == InputKeyOk) {
         bestiary_generate(app);
+    }
+}
+
+static void bestiary_handle_warnings(BestiaryApp* app, const InputEvent* event) {
+    if(event->type == InputTypeShort && event->key == InputKeyOk)
+        bestiary_enter(app, BestiaryScreenEncounter);
+}
+
+static void bestiary_handle_simulator(BestiaryApp* app, const InputEvent* event) {
+    if(!app->encounter) return;
+    uint16_t count = app->encounter->count + 2U;
+    if(bestiary_move_event(event) && event->key == InputKeyUp)
+        bestiary_move(app, count, -1);
+    else if(bestiary_move_event(event) && event->key == InputKeyDown)
+        bestiary_move(app, count, 1);
+    else if(bestiary_move_event(event) && (event->key == InputKeyLeft || event->key == InputKeyRight)) {
+        int8_t delta = event->key == InputKeyRight ? 1 : -1;
+        if(app->selection == 0U) {
+            int16_t value = app->party_level + delta;
+            app->party_level = (uint8_t)(value < 1 ? 20 : value > 20 ? 1 : value);
+            bestiary_save_party_settings(app);
+        } else if(app->selection == 1U) {
+            int16_t value = app->party_size + delta;
+            app->party_size = (uint8_t)(value < 1 ? 12 : value > 12 ? 1 : value);
+            bestiary_save_party_settings(app);
+        } else {
+            uint8_t monster = (uint8_t)(app->selection - 2U);
+            int16_t quantity = app->encounter->quantities[monster] + delta;
+            app->encounter->quantities[monster] = (uint8_t)(quantity < 1  ? 1 :
+                                                            quantity > 99 ? 99 :
+                                                                            quantity);
+        }
+        PocketEncounterSimulation simulation;
+        pocket_monster_simulate(app->encounter, app->party_level, app->party_size, &simulation);
+    } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+        bestiary_enter(app, BestiaryScreenEncounter);
+    }
+}
+
+static bool bestiary_resume_saved(BestiaryApp* app, uint16_t index) {
+    PocketSavedEncounter saved;
+    if(!pocket_bestiary_encounter_at(app->storage, index, &saved)) return false;
+    bestiary_release_encounter(app);
+    app->encounter = calloc(1U, sizeof(PocketMonsterEncounter));
+    if(!app->encounter) return false;
+    app->party_level = saved.party_level;
+    app->party_size = saved.party_size;
+    bestiary_save_party_settings(app);
+    app->difficulty = saved.difficulty < PocketEncounterDifficultyCount ? saved.difficulty :
+                                                                          PocketEncounterModerate;
+    for(uint8_t record = 0U; record < saved.count; ++record) {
+        PocketMonsterSummary summary;
+        if(!pocket_monster_find(app->storage, saved.monster_ids[record], &summary)) {
+            /* A saved encounter is an atomic composition.  Never resume or hand off a
+               silently shortened encounter when one of its stable monster IDs is gone. */
+            bestiary_release_encounter(app);
+            return false;
+        }
+        uint8_t destination = app->encounter->count++;
+        app->encounter->monsters[destination] = summary;
+        app->encounter->quantities[destination] = saved.quantities[record];
+    }
+    if(app->encounter->count != saved.count) {
+        bestiary_release_encounter(app);
+        return false;
+    }
+    PocketEncounterSimulation simulation;
+    pocket_monster_simulate(app->encounter, app->party_level, app->party_size, &simulation);
+    bestiary_copy(app->encounter_name, sizeof(app->encounter_name), saved.name);
+    bestiary_enter(app, BestiaryScreenEncounter);
+    bestiary_status(app, "Encounter resumed");
+    return true;
+}
+
+static void bestiary_handle_saved_encounters(BestiaryApp* app, const InputEvent* event) {
+    if(bestiary_move_event(event) && event->key == InputKeyUp)
+        bestiary_move(app, app->state_total, -1);
+    else if(bestiary_move_event(event) && event->key == InputKeyDown)
+        bestiary_move(app, app->state_total, 1);
+    else if(
+        event->type == InputTypeShort && event->key == InputKeyOk &&
+        app->selection < app->state_total) {
+        if(!bestiary_resume_saved(app, app->selection))
+            bestiary_status(app, "Saved encounter unavailable");
+    } else if(
+        event->type == InputTypeLong && event->key == InputKeyOk &&
+        app->selection < app->state_total) {
+        PocketSavedEncounter saved;
+        if(!pocket_bestiary_encounter_at(app->storage, app->selection, &saved)) {
+            bestiary_status(app, "Saved encounter unavailable");
+            return;
+        }
+        app->encounter_action_index = app->selection;
+        app->encounter_delete_armed = 0U;
+        bestiary_copy(app->encounter_name, sizeof(app->encounter_name), saved.name);
+        bestiary_enter(app, BestiaryScreenEncounterActions);
+    }
+}
+
+static void bestiary_return_to_saved_actions(BestiaryApp* app, bool changed) {
+    uint16_t selected = app->encounter_action_index;
+    bestiary_cache_encounter_rows(app);
+    bestiary_enter(app, BestiaryScreenSavedEncounters);
+    if(app->state_total) {
+        app->selection = selected < app->state_total ? selected : app->state_total - 1U;
+        app->scroll = app->selection > 4U ? app->selection - 4U : 0U;
+    }
+    if(changed) bestiary_status(app, "Encounter list updated");
+}
+
+static void bestiary_handle_encounter_actions(BestiaryApp* app, const InputEvent* event) {
+    if(bestiary_move_event(event) && event->key == InputKeyUp) {
+        app->encounter_delete_armed = 0U;
+        bestiary_move(app, 6U, -1);
+    } else if(bestiary_move_event(event) && event->key == InputKeyDown) {
+        app->encounter_delete_armed = 0U;
+        bestiary_move(app, 6U, 1);
+    } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+        if(app->selection == 0U) {
+            if(!bestiary_resume_saved(app, app->encounter_action_index))
+                bestiary_status(app, "Saved encounter unavailable");
+        } else if(app->selection == 1U) {
+            bestiary_launch_saved_dnd(app, app->encounter_action_index);
+        } else if(app->selection == 2U) {
+            bestiary_begin_text(
+                app, BestiaryEditEncounterRename, "Rename Encounter", app->encounter_name);
+        } else if(app->selection == 3U) {
+            char copy_name[POCKET_BESTIARY_ENCOUNTER_NAME_LEN];
+            snprintf(copy_name, sizeof(copy_name), "%.25s Copy", app->encounter_name);
+            bestiary_begin_text(app, BestiaryEditEncounterDuplicate, "Duplicate As", copy_name);
+        } else if(app->selection == 4U) {
+            bool archived =
+                pocket_bestiary_encounter_archive(app->storage, app->encounter_action_index);
+            if(archived) {
+                bestiary_return_to_saved_actions(app, true);
+                bestiary_status(app, "Encounter archived");
+            } else {
+                bestiary_status(app, "Archive failed");
+            }
+        } else if(app->selection == 5U) {
+            if(!app->encounter_delete_armed) {
+                app->encounter_delete_armed = 1U;
+                bestiary_status(app, "OK again deletes encounter");
+            } else {
+                bool deleted =
+                    pocket_bestiary_encounter_delete(app->storage, app->encounter_action_index);
+                app->encounter_delete_armed = 0U;
+                if(deleted) {
+                    bestiary_return_to_saved_actions(app, true);
+                    bestiary_status(app, "Encounter deleted");
+                } else {
+                    bestiary_status(app, "Delete failed");
+                }
+            }
+        }
+    }
+}
+
+static void bestiary_handle_filters(BestiaryApp* app, const InputEvent* event) {
+    uint16_t count = app->state_total + 1U;
+    if(bestiary_move_event(event) && event->key == InputKeyUp)
+        bestiary_move(app, count, -1);
+    else if(bestiary_move_event(event) && event->key == InputKeyDown)
+        bestiary_move(app, count, 1);
+    else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+        if(app->selection == app->state_total) {
+            memset(&app->pending_filter, 0, sizeof(app->pending_filter));
+            bestiary_copy(
+                app->pending_filter.search, sizeof(app->pending_filter.search), app->search);
+            app->pending_filter.max_cr_eighths = app->max_cr_eighths;
+            app->pending_filter.type_filter = app->type_filter;
+            app->pending_filter.source_filter = app->source_filter;
+            app->pending_filter.environment_filter = app->environment_filter;
+            app->pending_filter.role_filter = app->role_filter;
+            bestiary_begin_text(app, BestiaryEditFilterName, "Filter Name", "My Filter");
+        } else {
+            PocketBestiaryFilterPreset preset;
+            if(!pocket_bestiary_filter_at(app->storage, app->selection, &preset)) return;
+            bestiary_copy(app->search, sizeof(app->search), preset.search);
+            app->max_cr_eighths = preset.max_cr_eighths;
+            app->type_filter = preset.type_filter < sizeof(type_names) / sizeof(type_names[0]) ?
+                                   preset.type_filter :
+                                   0U;
+            app->source_filter = preset.source_filter <
+                                         sizeof(source_names) / sizeof(source_names[0]) ?
+                                     preset.source_filter :
+                                     0U;
+            app->environment_filter =
+                preset.environment_filter <
+                        sizeof(environment_names) / sizeof(environment_names[0]) ?
+                    preset.environment_filter :
+                    0U;
+            app->role_filter = preset.role_filter < sizeof(role_names) / sizeof(role_names[0]) ?
+                                   preset.role_filter :
+                                   0U;
+            app->monster_total_valid = 0U;
+            app->page_start = 0U;
+            app->list_mode = BestiaryListCatalog;
+            if(bestiary_load_window(app)) bestiary_enter(app, BestiaryScreenList);
+        }
+    } else if(
+        event->type == InputTypeLong && event->key == InputKeyOk &&
+        app->selection < app->state_total) {
+        bool deleted = pocket_bestiary_filter_delete(app->storage, app->selection);
+        bestiary_cache_filter_rows(app);
+        bestiary_status(app, deleted ? "Filter deleted" : "Delete failed");
+    }
+}
+
+static void bestiary_handle_packs(BestiaryApp* app, const InputEvent* event) {
+    uint16_t count = app->state_total + 1U;
+    if(bestiary_move_event(event) && event->key == InputKeyUp)
+        bestiary_move(app, count, -1);
+    else if(bestiary_move_event(event) && event->key == InputKeyDown)
+        bestiary_move(app, count, 1);
+    else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+        bool changed = false;
+        if(app->selection == app->state_total) {
+            changed = pocket_pack_install_inbox(
+                app->storage, PocketPackMonster, app->status, sizeof(app->status));
+        } else {
+            PocketPackSummary pack;
+            if(pocket_pack_at(app->storage, PocketPackMonster, app->selection, &pack)) {
+                changed = pocket_pack_set_enabled(
+                    app->storage, PocketPackMonster, pack.id, !pack.enabled);
+                bestiary_status(app, changed ? "Pack state updated" : "Pack update failed");
+            }
+        }
+        if(changed) {
+            pocket_monster_cache_reset();
+            app->monster_total_valid = 0U;
+            bestiary_cache_pack_rows(app);
+        }
+    }
 }
 
 static void bestiary_handle_edit(BestiaryApp* app, const InputEvent* event) {
@@ -1284,6 +2164,24 @@ static bool bestiary_input(InputEvent* event, void* context) {
     case BestiaryScreenEncounter:
         bestiary_handle_encounter(app, event);
         break;
+    case BestiaryScreenSimulator:
+        bestiary_handle_simulator(app, event);
+        break;
+    case BestiaryScreenWarnings:
+        bestiary_handle_warnings(app, event);
+        break;
+    case BestiaryScreenSavedEncounters:
+        bestiary_handle_saved_encounters(app, event);
+        break;
+    case BestiaryScreenEncounterActions:
+        bestiary_handle_encounter_actions(app, event);
+        break;
+    case BestiaryScreenFilters:
+        bestiary_handle_filters(app, event);
+        break;
+    case BestiaryScreenPacks:
+        bestiary_handle_packs(app, event);
+        break;
     case BestiaryScreenDiagnostics:
         if(event->type == InputTypeShort && event->key == InputKeyOk)
             bestiary_diagnose(app);
@@ -1352,35 +2250,55 @@ static BestiaryApp* bestiary_alloc(void) {
     app->party_size = 4U;
     app->difficulty = PocketEncounterModerate;
     app->allow_repeats = 1U;
+
     app->storage = furi_record_open(RECORD_STORAGE);
+    if(!app->storage) goto fail;
+    pocket_bestiary_party_settings_load(app->storage, &app->party_level, &app->party_size);
+
     uint16_t migrated_files = 0U;
     uint16_t recovered = 0U;
     uint16_t rolled_back = 0U;
     bool migration_ok = pocket_monster_migrate_legacy_custom(app->storage, &migrated_files);
     bool recovery_ok = migration_ok &&
                        pocket_monster_recover_user_pack(app->storage, &recovered, &rolled_back);
+    bool installed_packs_ok = pocket_pack_rebuild_enabled(app->storage, PocketPackMonster);
+    pocket_monster_cache_reset();
+
     app->gui = furi_record_open(RECORD_GUI);
+    if(!app->gui) goto fail;
     app->dispatcher = view_dispatcher_alloc();
+    if(!app->dispatcher) goto fail;
     view_dispatcher_set_event_callback_context(app->dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->dispatcher, bestiary_navigation);
     view_dispatcher_set_custom_event_callback(app->dispatcher, bestiary_custom_event);
+
     app->input_events = furi_record_open(RECORD_INPUT_EVENTS);
+    if(!app->input_events) goto fail;
     app->input_subscription =
         furi_pubsub_subscribe(app->input_events, bestiary_input_events_callback, app);
+    if(!app->input_subscription) goto fail;
+
     app->view = view_alloc();
+    if(!app->view) goto fail;
     view_allocate_model(app->view, ViewModelTypeLockFree, sizeof(BestiaryApp*));
     BestiaryApp** model = view_get_model(app->view);
+    if(!model) goto fail;
     *model = app;
     view_commit_model(app->view, false);
     view_set_context(app->view, app);
     view_set_draw_callback(app->view, bestiary_draw);
     view_set_input_callback(app->view, bestiary_input);
+
     app->marquee_timer =
         furi_timer_alloc(bestiary_marquee_timer_callback, FuriTimerTypePeriodic, app);
+    if(!app->marquee_timer) goto fail;
+
     view_dispatcher_add_view(app->dispatcher, BestiaryViewMain, app->view);
     view_dispatcher_attach_to_gui(app->dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     furi_timer_start(app->marquee_timer, furi_ms_to_ticks(BESTIARY_MARQUEE_MS));
-    if(!migration_ok)
+    if(!installed_packs_ok)
+        bestiary_status(app, "Installed pack check failed");
+    else if(!migration_ok)
         bestiary_status(app, "Custom migration failed");
     else if(!recovery_ok)
         bestiary_status(app, "Custom recovery failed");
@@ -1389,25 +2307,45 @@ static BestiaryApp* bestiary_alloc(void) {
     else if(recovered || rolled_back)
         bestiary_status(app, "Custom pack recovered");
     return app;
+
+fail:
+    /* Nothing is attached to the dispatcher until all allocations above succeed,
+       so a partial startup can be unwound without touching an unregistered view. */
+    if(app->marquee_timer) furi_timer_free(app->marquee_timer);
+    if(app->view) view_free(app->view);
+    if(app->input_subscription && app->input_events)
+        furi_pubsub_unsubscribe(app->input_events, app->input_subscription);
+    if(app->input_events) furi_record_close(RECORD_INPUT_EVENTS);
+    if(app->dispatcher) view_dispatcher_free(app->dispatcher);
+    if(app->gui) furi_record_close(RECORD_GUI);
+    if(app->storage) furi_record_close(RECORD_STORAGE);
+    pocket_monster_cache_reset();
+    free(app);
+    return NULL;
 }
 
 static void bestiary_free(BestiaryApp* app) {
     if(!app) return;
+    pocket_monster_cache_reset();
     bestiary_release_window(app);
     bestiary_release_detail(app);
     bestiary_release_encounter(app);
-    if(app->text_input) view_dispatcher_remove_view(app->dispatcher, BestiaryViewText);
-    view_dispatcher_remove_view(app->dispatcher, BestiaryViewMain);
+    if(app->dispatcher && app->text_input)
+        view_dispatcher_remove_view(app->dispatcher, BestiaryViewText);
+    if(app->dispatcher && app->view)
+        view_dispatcher_remove_view(app->dispatcher, BestiaryViewMain);
     if(app->text_input) text_input_free(app->text_input);
-    furi_timer_stop(app->marquee_timer);
-    furi_timer_free(app->marquee_timer);
-    if(app->input_subscription)
+    if(app->marquee_timer) {
+        furi_timer_stop(app->marquee_timer);
+        furi_timer_free(app->marquee_timer);
+    }
+    if(app->input_subscription && app->input_events)
         furi_pubsub_unsubscribe(app->input_events, app->input_subscription);
     if(app->input_events) furi_record_close(RECORD_INPUT_EVENTS);
-    view_free(app->view);
-    view_dispatcher_free(app->dispatcher);
-    furi_record_close(RECORD_GUI);
-    furi_record_close(RECORD_STORAGE);
+    if(app->view) view_free(app->view);
+    if(app->dispatcher) view_dispatcher_free(app->dispatcher);
+    if(app->gui) furi_record_close(RECORD_GUI);
+    if(app->storage) furi_record_close(RECORD_STORAGE);
     free(app);
 }
 

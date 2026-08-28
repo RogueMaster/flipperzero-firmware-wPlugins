@@ -1,1 +1,0 @@
-# Add custom campaign manifests here.

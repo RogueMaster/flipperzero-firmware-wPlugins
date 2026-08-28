@@ -70,6 +70,29 @@ typedef struct {
     uint32_t spent;
 } PocketMonsterEncounter;
 
+typedef struct {
+    uint32_t spent;
+    uint32_t low_budget;
+    uint32_t moderate_budget;
+    uint32_t high_budget;
+    PocketEncounterDifficulty classification;
+} PocketEncounterSimulation;
+
+typedef enum {
+    PocketEncounterWarningUnsupportedLeader = 1U << 0,
+    PocketEncounterWarningExposedArtillery = 1U << 1,
+    PocketEncounterWarningMinionDensity = 1U << 2,
+} PocketEncounterWarning;
+
+typedef struct {
+    uint16_t total_creatures;
+    uint16_t leaders;
+    uint16_t artillery;
+    uint16_t frontline;
+    uint16_t minions;
+    uint8_t warning_flags;
+} PocketEncounterComposition;
+
 typedef bool (*PocketMonsterFilter)(const PocketMonsterSummary* summary, void* context);
 
 uint32_t pocket_monster_xp_budget(
@@ -83,6 +106,11 @@ void pocket_monster_validate_pack(
     uint16_t* valid,
     uint16_t* invalid);
 bool pocket_monster_at(Storage* storage, uint16_t index, PocketMonsterSummary* output);
+bool pocket_monster_find(Storage* storage, const char* id, PocketMonsterSummary* output);
+bool pocket_monster_initiative_modifier(
+    Storage* storage,
+    const PocketMonsterSummary* summary,
+    int8_t* modifier);
 uint16_t pocket_monster_query(
     Storage* storage,
     PocketMonsterFilter filter,
@@ -107,6 +135,7 @@ bool pocket_monster_update_custom(Storage* storage, PocketMonsterDetail* detail)
 bool pocket_monster_delete_custom(Storage* storage, const PocketMonsterSummary* summary);
 bool pocket_monster_migrate_legacy_custom(Storage* storage, uint16_t* copied_files);
 bool pocket_monster_recover_user_pack(Storage* storage, uint16_t* recovered, uint16_t* rolled_back);
+void pocket_monster_cache_reset(void);
 void pocket_monster_pack_versions(
     Storage* storage,
     uint8_t* bundled_version,
@@ -122,3 +151,12 @@ bool pocket_monster_generate(
     PocketEncounterTemplate template_kind,
     const char* preferred_role,
     PocketMonsterEncounter* output);
+void pocket_monster_simulate(
+    PocketMonsterEncounter* encounter,
+    uint8_t party_level,
+    uint8_t party_size,
+    PocketEncounterSimulation* output);
+void pocket_monster_analyze_composition(
+    const PocketMonsterEncounter* encounter,
+    uint8_t party_size,
+    PocketEncounterComposition* output);

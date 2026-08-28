@@ -13,3 +13,23 @@ IDs must remain stable and unique. New optional fields may be added without chan
 On-device custom creation rewrites temporary index and stat-block files, then atomically publishes both files with rollback copies. Custom records retain source `Custom`; other records remain read-only.
 
 Packaged records use the read-only `/ext/apps_assets/dolphin_bestiary/monsters/index.txt` and `statblocks.txt`. User records use `/ext/apps_data/dolphin_bestiary/monsters/custom_index.txt` and `custom_statblocks.txt`; the app streams both layers as one Bestiary. Temporary transaction files apply only to the custom app-data pair and are removed after commit or rollback.
+
+## Installed packs
+
+Version 3.1 adds a separate installed-pack inbox beneath the Dolphin Bestiary app-data directory:
+
+- `packs/monster_inbox/manifest.txt`
+- `packs/monster_inbox/index.txt`
+- `packs/monster_inbox/statblocks.txt`
+
+The manifest is:
+
+```text
+PocketPack=1
+Id=filename_safe_pack_id
+Name=Display Name
+```
+
+No checksum is stored or required, so pack text remains manually editable. Installed index rows must use source `Custom Pack`. Installation rejects malformed rows, unsafe pack IDs, duplicate record IDs, and IDs already present in packaged, directly created custom, or enabled installed records.
+
+Files are copied and published transactionally in app data, registered through a plain-text registry, and streamed through `enabled_index.txt` and `enabled_statblocks.txt`. Enable/disable rebuilds only those app-data aggregates. It never opens packaged assets for writing and never modifies the direct-custom pair.

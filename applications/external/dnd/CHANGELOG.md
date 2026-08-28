@@ -1,5 +1,41 @@
 # Dungeons & Dolphins changelog
 
+## 3.2.6
+
+- Adventure Mode skill checks now show a dedicated roll-result screen with the natural d20, modifier, total vs. DC, and pass/fail result for 3 seconds before continuing.
+
+## 3.2.5
+
+- Restored Bestiary **Save Encounter** and **Add to Initiative** actions for individual monsters, generated encounters, and saved encounters.
+- **Add to Initiative** launches `/ext/apps/Games/dungeons_and_dolphins.fap` with `initiative;Name,HP,AC;...`; Dungeons & Dolphins appends transferred monsters to the current character's Party Roster and opens Initiative.
+- Preserved existing character data during startup and recovery; a new character is initialized only when no existing or recoverable character save is available.
+- Removed stored checksum fields and checksum-based rejection so user-maintained text files remain manually editable while structural and bounds validation stays in place.
+- Expanded the saved Party Roster to 23 members and reduced Bestiary memory use before cross-FAP launch.
+- Added a low-memory Initiative launch path: RogueMaster unloads asset packs before loading D&D and campaign/pack initialization is deferred for Initiative-only launches.
+- Updated Initiative controls: Start New Combat begins with Roll for All, hold OK on a participant accepts a manual d20 roll, Back moves to the previous combat turn, and hold Back returns to the Initiative menu; removed the separate Undo Last Change row.
+- Expanded horizontally scrolling/menu text from 20 to 25 characters where the 128x64 UI can clip safely.
+- Removed the redundant **Back to Main Menu** row from Magic & Spells; the Back button returns normally.
+
+## 3.2.4
+
+- Added named saved encounters with resume, rename, duplicate, archive, delete, and Add to Initiative actions.
+- Added the encounter Difficulty Simulator and composition warnings.
+- Improved Bestiary streaming, caching, and allocation release for large monster collections and encounter workflows.
+
+## 3.1
+
+- Advanced character saves to schema 3 with verified schema-2 rollback snapshots and an on-device **Rollback Migration** action.
+- Added transactional campaign and monster pack installation with enable/disable controls and stable-ID conflict validation.
+- Added Bestiary favorites, recent monsters, named filter presets, saved encounters, and faster stable-ID lookup across packaged, custom, and enabled-pack records.
+- Added host coverage for migration rollback, pack transactions, Bestiary layers, simulator behavior, favorites, recents, filters, and saved encounters.
+
+## 3.0.3
+
+- Replaced byte-at-a-time profile, campaign, and Bestiary reads with buffered readers and reusable record-offset caches.
+- Added faster campaign and monster stable-ID lookup while keeping packaged and custom data streamed from disk.
+- Coalesced rapid character edits into delayed autosaves while preserving synchronous saves before profile changes, app switching, and exit.
+- Added heap-fragmentation and repeated app-switch stress coverage for large character and Bestiary workloads.
+
 ## 3.0.2
 
 - Restricted asset-to-data migration to mutable user content: profiles, custom campaigns, campaign progress, and custom monsters.
@@ -204,7 +240,7 @@
 
 - Declared schema 1 stable for future forward migrations.
 - Retained one prior successful save generation for every active profile.
-- Added an explicit profile backup-restore action alongside checksum verification.
+- Added an explicit profile backup-restore action alongside profile readability validation.
 - Added zero-allocation translation hooks and a community translation template.
 - Added compatibility, accessibility, catalog policy, stable schema, and reproducible-build documents.
 - Added a release verification script that runs host tests and the RogueMaster FAP target.
@@ -213,11 +249,11 @@
 ## 0.9
 
 - Froze character save schema 1 and documented its compatibility contract.
-- Replaced compiler-layout checksums with checksums over canonical serialized file bytes.
+- Replaced compiler-layout persistence with canonical serialized text files.
 - Added automatic one-time migration from the 0.8 text layout.
-- Added profile actions for rename, duplicate, export, first-valid-export import, archive, delete, and checksum verification.
+- Added profile actions for rename, duplicate, export, first-valid-export import, archive, delete, and readability validation.
 - Kept duplicate, export, and archive operations chunked so they do not require a second character-sized allocation.
-- Added host-side tests for calculations, dice bounds, catalogs, metadata IDs, parsers, checksums, migration acceptance, spell filtering, manifest fields, and release-document wording.
+- Added host-side tests for calculations, dice bounds, catalogs, metadata IDs, parsers, migration acceptance, spell filtering, manifest fields, and release-document wording.
 - Added a physical-device test matrix for hardware verification.
 
 ## 0.8
