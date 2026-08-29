@@ -165,6 +165,35 @@ void roster_update_telemetry(ZeroMeshApp* app, uint32_t node_id, uint8_t battery
     furi_mutex_release(app->lock);
 }
 
+void roster_update_position(
+    ZeroMeshApp* app,
+    uint32_t node_id,
+    int32_t latitude_i,
+    int32_t longitude_i,
+    int32_t altitude,
+    uint32_t pos_time) {
+    if(!app || node_id == 0) return;
+
+    /* A node with GPS but no fix reports 0/0. That is a real coordinate in the
+       Atlantic, so treat it as "no fix" rather than plotting it. */
+    if(latitude_i == 0 && longitude_i == 0) return;
+
+    furi_mutex_acquire(app->lock, FuriWaitForever);
+
+    for(uint8_t i = 0; i < app->roster.count; i++) {
+        if(app->roster.nodes[i].node_id == node_id) {
+            app->roster.nodes[i].latitude_i = latitude_i;
+            app->roster.nodes[i].longitude_i = longitude_i;
+            app->roster.nodes[i].altitude = altitude;
+            app->roster.nodes[i].pos_time = pos_time;
+            app->roster.nodes[i].has_position = true;
+            break;
+        }
+    }
+
+    furi_mutex_release(app->lock);
+}
+
 static void draw_roster_bubble(Canvas* canvas, int x, int y, int max_w, const char* text, bool is_tx, uint32_t phase_seed, ZeroMeshApp* app) {
     canvas_set_font(canvas, FontSecondary);
 

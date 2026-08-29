@@ -11,6 +11,8 @@
 #include "zeromesh_roster.h"
 #include "zeromesh_channel.h"
 #include "zeromesh_settings.h"
+#include "zeromesh_transport.h"
+#include "zeromesh_map.h"
 
 static const uint32_t baud_options[] = {9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
 #define BAUD_OPTIONS_COUNT (sizeof(baud_options) / sizeof(baud_options[0]))
@@ -192,7 +194,7 @@ void draw_header(Canvas* canvas, ZeroMeshApp* app, const char* title) {
     int title_max = (dot_x - 6) - title_x;
     draw_str_ellipsis(canvas, title_x, 11, title_max, title);
 
-    if(app->serial && app->rx_bytes > 0) {
+    if(transport_is_up(app) && app->rx_bytes > 0) {
         canvas_draw_disc(canvas, 120, 7, 3);
     } else {
         canvas_draw_circle(canvas, 120, 7, 3);
@@ -394,12 +396,16 @@ static void render_stats(Canvas* canvas, ZeroMeshApp* app) {
     canvas_set_font(canvas, FontSecondary);
 
     char buf[64];
-    snprintf(
-        buf,
-        sizeof(buf),
-        "Port: %s @ %lu",
-        (app->uart_id == FuriHalSerialIdUsart) ? "USART" : "LPUART",
-        (unsigned long)app->baud);
+    if(app->transport == ZmTransportBle) {
+        snprintf(buf, sizeof(buf), "Link: %s", transport_name(app));
+    } else {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "Port: %s @ %lu",
+            (app->uart_id == FuriHalSerialIdUsart) ? "USART" : "LPUART",
+            (unsigned long)app->baud);
+    }
     canvas_draw_str(canvas, 2, 24, buf);
 
     snprintf(buf, sizeof(buf), "RX: %lu bytes", (unsigned long)app->rx_bytes);
@@ -516,6 +522,14 @@ static void render_settings(Canvas* canvas, ZeroMeshApp* app) {
         char val_buf[20];
 
         switch(i) {
+        case SettingTransport:
+            label = "Transport";
+            snprintf(
+                val_buf,
+                sizeof(val_buf),
+                "%s",
+                (app->transport == ZmTransportBle) ? "BLE" : "UART");
+            break;
         case SettingUart:
             label = "UART Port";
             snprintf(
@@ -598,6 +612,9 @@ void render_cb(Canvas* canvas, void* ctx) {
     case PAGE_SETTINGS:
         render_settings(canvas, app);
         break;
+    case PAGE_MAP:
+        render_map(canvas, app);
+        break;
     default:
         app->ui_mode = PAGE_MESSAGES;
         render_messages(canvas, app);
@@ -609,6 +626,11 @@ void render_cb(Canvas* canvas, void* ctx) {
 
 static void setting_change(ZeroMeshApp* app, int direction) {
     switch(app->settings_cursor) {
+    case SettingTransport: {
+        transport_set(
+            app, (app->transport == ZmTransportBle) ? ZmTransportUart : ZmTransportBle);
+        break;
+    }
     case SettingUart: {
         FuriHalSerialId nid =
             (app->uart_id == FuriHalSerialIdUsart) ? FuriHalSerialIdLpuart : FuriHalSerialIdUsart;
@@ -689,6 +711,15 @@ void input_cb(InputEvent* e, void* ctx) {
         input_roster(e, app);
         if(deep_in_roster) return;
         if(e->key == InputKeyUp || e->key == InputKeyDown || e->key == InputKeyOk) return;
+    }
+
+    if(app->ui_mode == PAGE_MAP) {
+        bool consumed = map_wants_key(app, e->key);
+        input_map(e, app);
+        if(consumed) {
+            view_port_update(app->vp);
+            return;
+        }
     }
 
     switch(e->key) {

@@ -2,6 +2,7 @@
 #include "zeromesh_history.h"
 #include "zeromesh_notify.h"
 #include "zeromesh_roster.h"
+#include "zeromesh_transport.h"
 #include "lib/meshtastic_api/meshtastic/telemetry.pb.h"
 
 #define TAG "zeromesh_serial"
@@ -175,6 +176,21 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                         set_status(app, "New message");
                         notify_rx_message(app);
                         view_port_update(app->vp);
+                    } else if(d->portnum == meshtastic_PortNum_POSITION_APP) {
+                        meshtastic_Position pos = meshtastic_Position_init_default;
+                        pb_istream_t is_pos = pb_istream_from_buffer(cap.buf, cap.len);
+                        if(pb_decode(&is_pos, meshtastic_Position_fields, &pos)) {
+                            if(pos.has_latitude_i && pos.has_longitude_i) {
+                                roster_update_position(
+                                    app,
+                                    sender_id,
+                                    pos.latitude_i,
+                                    pos.longitude_i,
+                                    pos.has_altitude ? pos.altitude : 0,
+                                    pos.time);
+                                log_line(app, "RX: Position from %08lX", (unsigned long)sender_id);
+                            }
+                        }
                     } else if(d->portnum == meshtastic_PortNum_TELEMETRY_APP) {
                         meshtastic_Telemetry tel = meshtastic_Telemetry_init_default;
                         pb_istream_t is_tel = pb_istream_from_buffer(cap.buf, cap.len);
@@ -201,15 +217,24 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
 }
 
 static void send_frame(ZeroMeshApp* app, const uint8_t* payload, size_t len) {
-    if(!app || !app->serial) return;
-    uint8_t hdr[4] = {ZEROMESH_MAGIC0, ZEROMESH_MAGIC1, (uint8_t)((len >> 8) & 0xFF), (uint8_t)(len & 0xFF)};
-    furi_hal_serial_tx(app->serial, hdr, sizeof(hdr));
-    furi_hal_serial_tx(app->serial, payload, len);
+    if(!app || !transport_is_up(app)) return;
+    if(len > MAX_FRAME_SIZE) return;
+
+    /* Header and payload go out as one buffer so a packet transport sends one
+       notification per frame rather than a 4-byte runt followed by the body. */
+    uint8_t frame[4 + MAX_FRAME_SIZE];
+    frame[0] = ZEROMESH_MAGIC0;
+    frame[1] = ZEROMESH_MAGIC1;
+    frame[2] = (uint8_t)((len >> 8) & 0xFF);
+    frame[3] = (uint8_t)(len & 0xFF);
+    memcpy(frame + 4, payload, len);
+
+    transport_tx(app, frame, len + 4);
     app->tx_frames++;
 }
 
 void send_text_message(ZeroMeshApp* app, const char* text, uint32_t to_node) {
-    if(!app || !app->serial || !text) return;
+    if(!app || !transport_is_up(app) || !text) return;
     size_t text_len = strlen(text);
     if(text_len == 0) return;
     meshtastic_ToRadio to = meshtastic_ToRadio_init_default;
@@ -243,7 +268,7 @@ void send_text_message(ZeroMeshApp* app, const char* text, uint32_t to_node) {
 }
 
 void request_info(ZeroMeshApp* app) {
-    if(!app || !app->serial) return;
+    if(!app || !transport_is_up(app)) return;
     meshtastic_ToRadio to = meshtastic_ToRadio_init_default;
     to.which_payload_variant = meshtastic_ToRadio_want_config_id_tag;
     to.payload_variant.want_config_id = 12345;
@@ -256,7 +281,7 @@ void request_info(ZeroMeshApp* app) {
 }
 
 void send_heartbeat(ZeroMeshApp* app) {
-    if(!app || !app->serial) return;
+    if(!app || !transport_is_up(app)) return;
     meshtastic_ToRadio to = meshtastic_ToRadio_init_default;
     to.which_payload_variant = meshtastic_ToRadio_heartbeat_tag;
     uint8_t buf[32];

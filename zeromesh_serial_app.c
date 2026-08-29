@@ -1,6 +1,8 @@
 #include "zeromesh_serial.h"
 #include "zeromesh_gui.h"
 #include "zeromesh_uart.h"
+#include "zeromesh_transport.h"
+#include "zeromesh_map.h"
 #include "zeromesh_protocol.h"
 #include "zeromesh_settings.h"
 #include "zeromesh_channel.h"
@@ -54,14 +56,22 @@ int32_t zeromesh_serial_app(void* p) {
     view_port_input_callback_set(app->vp, input_cb, app);
     gui_add_view_port(app->gui, app->vp, GuiLayerFullscreen);
 
-    uart_open(app);
+    map_alloc(app);
+
+    transport_open(app);
 
     app->stop_thread = false;
     app->rx_thread = furi_thread_alloc_ex("mt_rx", 4096, rx_thread_fn, app);
     furi_thread_start(app->rx_thread);
 
     furi_delay_ms(500);
-    request_info(app);
+
+    /* Ask for node config once the link is actually carrying bytes. Over
+       serial that is immediate; over BLE it is whenever the peer dials in,
+       and again after a reconnect. */
+    bool config_requested = false;
+    uint32_t last_config_req = 0;
+    const uint32_t CONFIG_RETRY_MS = 5000;
 
     uint32_t last_render = furi_get_tick();
     uint32_t last_heartbeat = furi_get_tick();
@@ -72,6 +82,22 @@ int32_t zeromesh_serial_app(void* p) {
     };
 
     while(!app->stop_thread) {
+        if(app->ui_mode == PAGE_MAP) map_tick(app);
+
+        if(transport_is_up(app)) {
+            /* Keep asking until the radio tells us our node number. Over BLE
+               there is no dependable edge for "peer subscribed", so retry
+               rather than firing once and hoping we timed it right. */
+            if(app->my_node_num == 0 &&
+               (!config_requested ||
+                furi_get_tick() - last_config_req >= CONFIG_RETRY_MS)) {
+                request_info(app);
+                config_requested = true;
+                last_config_req = furi_get_tick();
+            }
+        } else {
+            config_requested = false;
+        }
         if(furi_get_tick() - last_heartbeat >= HEARTBEAT_INTERVAL_MS) {
             send_heartbeat(app);
             last_heartbeat = furi_get_tick();
@@ -126,7 +152,8 @@ int32_t zeromesh_serial_app(void* p) {
     furi_thread_join(app->rx_thread);
     furi_thread_free(app->rx_thread);
 
-    uart_close(app);
+    transport_close(app);
+    map_free(app);
 
     gui_remove_view_port(app->gui, app->vp);
     view_port_free(app->vp);

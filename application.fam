@@ -3,19 +3,23 @@ App(
     name="ZeroMesh",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="zeromesh_serial_app",
-    requires=["gui"],
-    stack_size=8 * 1024,
-    fap_version=(2, 1),
+    requires=["gui", "bt"],
+    stack_size=12 * 1024,
+    fap_version=(3, 0),
     fap_category="GPIO",
     fap_icon="icon.png",
     fap_author="SAMS0N1TE",
     fap_weburl="https://github.com/SAMS0N1TE/ZeroMesh",
-    fap_description="Meshtastic serial interface for Flipper Zero",
+    fap_description="Meshtastic client for Flipper Zero over serial or Bluetooth, with offline vector maps",
     fap_libs=["nanopb"],
     fap_private_libs=[
         Lib(
             name="meshtastic_api",
             sources=["meshtastic/*.pb.c"],
+        ),
+        Lib(
+            name="carto",
+            sources=["*.c"],
         ),
     ],
 )

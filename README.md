@@ -1,6 +1,6 @@
 # ZeroMesh
 
-ZeroMesh is a Meshtastic serial interface for the Flipper Zero. It connects to a node over UART and gives you a live view of the mesh: incoming messages, node roster, signal stats, and device telemetry, all from the Flipper's screen.
+ZeroMesh is a Meshtastic client for the Flipper Zero. It connects to a node over UART or Bluetooth LE and gives you a live view of the mesh: incoming messages, node roster, signal stats, device telemetry, and an offline vector map, all from the Flipper's screen.
 
 ## Power Warning
 
@@ -21,6 +21,30 @@ Notifications are fully configurable. Vibration, LED flash, and audio are all in
 Messages show the sender's node ID in !a1b2 format above each bubble. Long messages can either scroll across the screen or wrap to multiple lines depending on your preference, and the display compacts short messages so more fit on screen at once. New messages auto-scroll into view, but you can scroll back manually at any time.
 
 All settings persist to /ext/zeromesh/settings.cfg on the SD card automatically, nothing needs saving manually. UART port and baud rate are configurable, with support for both USART and LPUART.
+
+## Transports
+
+ZeroMesh can talk to a node two ways, selected by the Transport setting.
+
+UART is the default and works with stock Meshtastic firmware. Wire the node to the Flipper's expansion header and pick USART or LPUART along with a baud rate.
+
+Bluetooth LE is the second option. The Flipper's radio can only act as a peripheral, meaning it advertises and accepts connections but can never scan for or dial another device. A Meshtastic node is also a peripheral, so the two cannot connect directly. ZeroMesh therefore exposes a GATT service and waits for the node to connect to it, which requires a Meshtastic build carrying the ZeroMesh link module. With stock node firmware, use UART.
+
+Turn Bluetooth on in the Flipper's own settings before selecting the BLE transport. While ZeroMesh holds the radio the Flipper is not reachable from the Flipper mobile app; the normal profile is restored on exit. No pairing or PIN is used.
+
+## Maps
+
+The Map page draws an offline vector map and overlays roster nodes that report a GPS position.
+
+Map data is read from a PMTiles archive at /ext/zeromesh/map.pmtiles. The archive must be built with compression set to none, because the Flipper firmware has no gzip. Use tools/build_pmtiles.py to pack a directory tree of z/x/y .mvt tiles into a suitable archive:
+
+    python tools/build_pmtiles.py path/to/tiles map.pmtiles
+
+Copy the result to /ext/zeromesh/map.pmtiles on the SD card. A card reader is much faster than USB for anything beyond a handful of tiles.
+
+Without an archive present the Map page still opens and reports the missing tile, so map data is optional.
+
+On the Map page, up and down pan. A short press of OK toggles a pan lock, which switches left and right from changing page to panning. A long press of OK cycles zoom.
 
 ## Installation
 

@@ -20,6 +20,9 @@ void settings_save(ZeroMeshApp* app) {
         snprintf(line, sizeof(line), "version=%d\n", SETTINGS_VERSION);
         storage_file_write(file, line, strlen(line));
         
+        snprintf(line, sizeof(line), "transport=%d\n", (int)app->transport);
+        storage_file_write(file, line, strlen(line));
+        
         snprintf(line, sizeof(line), "uart_id=%d\n", (int)app->uart_id);
         storage_file_write(file, line, strlen(line));
         
@@ -82,7 +85,11 @@ void settings_load(ZeroMeshApp* app) {
                     char* value_str = equals + 1;
                     int value = atoi(value_str);
                     
-                    if(strcmp(key, "uart_id") == 0) {
+                    if(strcmp(key, "transport") == 0) {
+                        if(value >= 0 && value < ZmTransportCount) {
+                            app->transport = (ZmTransport)value;
+                        }
+                    } else if(strcmp(key, "uart_id") == 0) {
                         app->uart_id = (FuriHalSerialId)value;
                     } else if(strcmp(key, "baud") == 0) {
                         app->baud = (uint32_t)value;

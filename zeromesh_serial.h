@@ -15,6 +15,8 @@
 
 #include <gui/modules/text_input.h>
 #include <gui/view_dispatcher.h>
+#include <bt/bt_service/bt.h>
+#include <furi_hal_bt.h>
 
 #define ZEROMESH_MAGIC0 0x94
 #define ZEROMESH_MAGIC1 0xC3
@@ -33,7 +35,8 @@
 #define PAGE_SIGNAL    3
 #define PAGE_LOGS      4
 #define PAGE_SETTINGS  5
-#define PAGE_COUNT     6
+#define PAGE_MAP       6
+#define PAGE_COUNT     7
 
 #define MSG_HISTORY 8
 
@@ -43,6 +46,9 @@
 #define MAX_CHANNELS 8
 
 #define MAX_RINGTONE_PATH 128
+
+/* Defined in zeromesh_map.c so carto headers stay out of this header. */
+typedef struct MapState MapState;
 
 typedef enum {
     RosterStateList = 0,
@@ -58,6 +64,13 @@ typedef struct {
     uint8_t battery_level;
     float voltage;
     bool has_telemetry;
+
+    /* Position as Meshtastic sends it: degrees * 1e7, signed. */
+    int32_t latitude_i;
+    int32_t longitude_i;
+    int32_t altitude;
+    uint32_t pos_time;
+    bool has_position;
 	bool has_new_dm;
 } NodeEntry;
 
@@ -113,7 +126,14 @@ typedef enum {
 } LongMessageHandling;
 
 typedef enum {
-    SettingUart = 0,
+    ZmTransportUart = 0,
+    ZmTransportBle,
+    ZmTransportCount
+} ZmTransport;
+
+typedef enum {
+    SettingTransport = 0,
+    SettingUart,
     SettingBaud,
     SettingVibro,
     SettingLed,
@@ -132,6 +152,12 @@ typedef struct {
     FuriHalSerialId uart_id;
     uint32_t baud;
     FuriHalSerialHandle* serial;
+
+    ZmTransport transport;
+    Bt* bt;
+    FuriHalBleProfileBase* ble_profile;
+    volatile bool ble_connected;
+    bool ble_failed;
     FuriStreamBuffer* rx_stream;
 
     FuriThread* rx_thread;
@@ -203,6 +229,9 @@ typedef struct {
     TextInput* text_input;
 
     NodeRoster roster;
+
+    /* Opaque: defined in zeromesh_map.c so carto headers stay out of here. */
+    MapState* map;
 } ZeroMeshApp;
 
 int32_t zeromesh_serial_app(void* p);

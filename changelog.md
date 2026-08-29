@@ -1,3 +1,6 @@
+v3.0:
+Added a Bluetooth LE transport alongside the existing UART link, selectable from Settings. The Flipper's radio can only act as a peripheral, so the mesh node connects to the Flipper rather than the other way around, which requires a Meshtastic build carrying the ZeroMesh link module; UART remains the default and works with stock node firmware. Added a vector map page that renders Mapbox Vector Tiles from a PMTiles archive on the SD card, with panning, zoom, street and place labels, and markers for roster nodes reporting a GPS position. Position packets are now decoded into the roster instead of being discarded. Map archives must be built uncompressed because the Flipper firmware has no gzip; tools/build_pmtiles.py packs a z/x/y tile tree into a suitable archive.
+
 v2.1:
 Fixed sender IDs overlapping the previous message bubble in the Messages feed (per-message row height now matches the drawn name+bubble in both scroll and wrap modes). Added a periodic phone-API heartbeat so the node keeps forwarding live messages over the serial link instead of only delivering the initial config/node-info burst and then going quiet. Encrypted packets that can't be decoded are now logged instead of silently dropped. Verified build and operation against the latest Momentum firmware (API 87.1).
 
