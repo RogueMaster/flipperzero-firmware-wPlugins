@@ -74,12 +74,47 @@ Every run is appended to `debug.log` in the app data folder on the SD card
 (`apps_data/api_caller/debug.log`), with SEND / RESULT / ERROR entries. The
 log self-truncates at 32 KB.
 
+## Text input keyboard
+
+All text fields (URL, query, headers, body, Wi-Fi password) use the app's
+extended keyboard. The typed text is shown on **two lines** above the keys:
+when it grows longer, the view scrolls to keep the end visible with `...` on
+the left of the first line.
+
+- **OK (short press)**: type the selected character.
+- **OK (long press)**: type the shifted character (see the table below).
+- **BACK (long press)** or the backspace key: delete the character before
+the cursor.
+- **Save key** (check icon): confirm and leave the field.
+- **Edit mode**: from the top key row, press **UP** to move into the text:
+  - **LEFT / RIGHT**: move the cursor inside the text (the text scrolls only
+    when the cursor reaches the edge);
+  - **OK**: back to the keys; typed characters are inserted at the cursor.
+
+The four key rows are: symbols (`{ ( [ | @ & # ; ^ * \` " ~ ' . /`), letters
+plus digits, more letters with the backspace key, and the last letters with
+the save key and `!` `+`.
+
+### Long-press (shift) characters
+
+| Key  | Long-press OK |
+| ---- | ------------- |
+| `a`–`z` | `A`–`Z` (uppercase) |
+| `_` | (space) |
+| `(` | `)` |
+| `{` | `}` |
+| `[` | `]` |
+| `/` | `\` |
+| `;` | `:` |
+| `.` | `,` |
+| `!` | `?` |
+
+Any other key is unchanged by long-press.
+
 ## Current limitations
 
-- The Flipper's built-in keyboard has only letters, digits and `_`: URLs
-  containing `:`, `/`, `.` cannot be typed yet. Type the host and the app
-  prepends `http://` / `https://` automatically. An extended keyboard is
-  planned for version 0.1.5.
+- URLs without a scheme get `http://` / `https://` prepended automatically
+  (from the protocol setting).
 - Headers and Body must be valid JSON; `{}` is sent when the field is empty.
 - Body input is single-line.
 - Responses are shown up to 32 KB (a notice appears if truncated).

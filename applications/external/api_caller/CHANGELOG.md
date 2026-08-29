@@ -12,6 +12,11 @@ ___
   and English translation tables, language persisted in `/data/settings.txt`
   (default English, file created on first launch); every UI string now goes
   through `locale_get`
+- Extended keyboard (`src/utils/api_text_input.c/h`): all console symbols,
+  two-line input area, cursor editing mode (UP from the top key row,
+  LEFT/RIGHT move the cursor, OK returns to the keys) and shifted characters
+  via long-press (based on UART Terminal by cool4uma, MIT)
+- MIT license (`LICENSE.md`)
 
 ### Fixed
 
@@ -99,8 +104,6 @@ ___
 - **0.1.4** (remaining): stack profiling, loaders and feedback, optimization
   and fixes, about scene
 - **0.1.5**: settings (languages, log path...) + API client usability
-  - Extended custom keyboard (symbols page: `:` `/` `.` etc.) for URL,
-    headers and body fields
   - Key-value headers editor and body type selection
     (JSON / form-urlencoded / raw)
   - Auth helpers: Basic auth, Bearer token / API key stored per call
@@ -115,7 +118,7 @@ ___
 
 ### v0.2+
 
-- Call scheduling (in-app scheduler / ESP32 autonomous scheduler / hybrid TBD)
+- Select text/Select all in text input edit mode - when "^ button" popup Select all - Edit, Edit mode > down + "< button" or "> button"
 - Import of calls and call lists from `.json`
 - Connection details screen
 - Auto-connect to the first available saved SSID (continuous background scan; no scan without a saved SSID; stops after connecting)
@@ -123,6 +126,7 @@ ___
 - n8n / Activepieces nodes (text, number, bool)
 - Response headers exposed (firmware patch) and binary/file response support
 - Retry / rate-limit helpers
+- Call scheduling (in-app scheduler / ESP32 autonomous scheduler / hybrid TBD)
 - Support for [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2), 
 ___
 

@@ -56,11 +56,11 @@ void api_caller_scene_wifi_connect_on_enter(void* context) {
         return;
     }
 
-    text_input_reset(app->text_input);
-    text_input_set_header_text(app->text_input, locale_get(app, LocKeyWifiPasswordHeader));
+    api_text_input_reset(app->text_input);
+    api_text_input_set_header_text(app->text_input, locale_get(app, LocKeyWifiPasswordHeader));
     memset(app->password, 0, sizeof(app->password));
 
-    text_input_set_result_callback(
+    api_text_input_set_result_callback(
         app->text_input,
         api_caller_scene_wifi_connect_input_callback,
         app,
@@ -88,5 +88,5 @@ bool api_caller_scene_wifi_connect_on_event(void* context, SceneManagerEvent eve
 void api_caller_scene_wifi_connect_on_exit(void* context) {
     furi_assert(context);
     AppContext* app = context;
-    text_input_reset(app->text_input);
+    api_text_input_reset(app->text_input);
 }

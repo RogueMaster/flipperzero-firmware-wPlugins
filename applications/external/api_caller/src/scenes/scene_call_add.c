@@ -151,10 +151,11 @@ static void api_caller_scene_call_add_start_input(AppContext* app, CallAddState 
         furi_crash("Call add: bad text field state");
     }
 
-    text_input_reset(app->text_input);
-    text_input_set_header_text(app->text_input, header);
-    text_input_set_result_callback(
-        app->text_input, api_caller_scene_call_add_input_callback, app, buffer, buffer_size, true);
+    api_text_input_reset(app->text_input);
+    api_text_input_set_header_text(app->text_input, header);
+    // Keep existing text editable on re-entry (no select-all replace)
+    api_text_input_set_result_callback(
+        app->text_input, api_caller_scene_call_add_input_callback, app, buffer, buffer_size, false);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ApiCallerViewTextInput);
 }
@@ -297,5 +298,5 @@ void api_caller_scene_call_add_on_exit(void* context) {
     furi_assert(context);
     AppContext* app = context;
     variable_item_list_reset(app->var_item_list_call);
-    text_input_reset(app->text_input);
+    api_text_input_reset(app->text_input);
 }
