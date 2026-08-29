@@ -213,7 +213,8 @@ void Renderer::DrawWallSegment(
             {
                 // Clip vertical extents (already safe here)
                 uint8_t y1s = (w > horizon) ? 0 : (uint8_t)(horizon - w);
-                uint8_t y2s = (horizon + w > DISPLAY_HEIGHT) ? DISPLAY_HEIGHT : (uint8_t)(horizon + w);
+                uint8_t y2s = (horizon + w > DISPLAY_HEIGHT) ? DISPLAY_HEIGHT :
+                                                               (uint8_t)(horizon + w);
 
                 DrawVLine(x, y1s, y2s, sliceMask);
 
@@ -274,8 +275,10 @@ void Renderer::DrawWallSegment(
                 int16_t yA = horizon + w - 1;
                 int16_t yB = horizon - w;
 
-                if((uint16_t)yA < DISPLAY_HEIGHT) Platform::PutPixel((uint8_t)x, (uint8_t)yA, edgeColour);
-                if((uint16_t)yB < DISPLAY_HEIGHT) Platform::PutPixel((uint8_t)x, (uint8_t)yB, edgeColour);
+                if((uint16_t)yA < DISPLAY_HEIGHT)
+                    Platform::PutPixel((uint8_t)x, (uint8_t)yA, edgeColour);
+                if((uint16_t)yB < DISPLAY_HEIGHT)
+                    Platform::PutPixel((uint8_t)x, (uint8_t)yB, edgeColour);
             }
         }
 
@@ -307,11 +310,15 @@ void Renderer::DrawWallSegment(
         if(u2 < u1clip || u1 > u2clip) continue;
 
         if(u1 < u1clip) {
-            if(u2 != u1) v1 = (uint8_t)(v1 + (uint8_t)((u1clip - u1) * (int16_t)(v2 - v1) / (int16_t)(u2 - u1)));
+            if(u2 != u1)
+                v1 = (uint8_t)(v1 +
+                               (uint8_t)((u1clip - u1) * (int16_t)(v2 - v1) / (int16_t)(u2 - u1)));
             u1 = u1clip;
         }
         if(u2 > u2clip) {
-            if(u2 != u1) v2 = (uint8_t)(v2 + (uint8_t)((u2clip - u2) * (int16_t)(v1 - v2) / (int16_t)(u1 - u2)));
+            if(u2 != u1)
+                v2 = (uint8_t)(v2 +
+                               (uint8_t)((u2clip - u2) * (int16_t)(v1 - v2) / (int16_t)(u1 - u2)));
             u2 = u2clip;
         }
 
@@ -339,7 +346,6 @@ void Renderer::DrawWallSegment(
     }
 #endif
 }
-
 
 bool Renderer::isFrustrumClipped(int16_t x, int16_t y) {
     if((camera.clipCos * (x - camera.cellX) - camera.clipSin * (y - camera.cellY)) < -512)

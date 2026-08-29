@@ -83,7 +83,11 @@ class Menu {
 public:
     // Startup sequence: title screen, then the menu. The Credits item replays
     // that title screen from the menu, with the credit line under the logo.
-    enum class SplashPhase : uint8_t { Title, Done, Credits };
+    enum class SplashPhase : uint8_t {
+        Title,
+        Done,
+        Credits
+    };
 
     // main.cpp overlays the logo and the border frame while this is set
     bool ShowsTitleScreen() const {

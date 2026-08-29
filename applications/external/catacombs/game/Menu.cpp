@@ -22,16 +22,15 @@ struct ObjDesc {
 };
 
 static const ObjDesc kObjects[] = {
-    { chestSpriteData,    false, false, 0 },
-    { crownSpriteData,    false, false, 1 },
-    { scrollSpriteData,   false, false, 2 },
-    { coinsSpriteData,    false, false, 3 },
-    { skeletonSpriteData, true,  false, 4 },
-    { mageSpriteData,     true,  false, 5 },
-    { batSpriteData,      true,  true,  6 },
-    { spiderSpriteData,   true,  false, 7 },
-    { exitSpriteData,     false, false, 8 }
-};
+    {chestSpriteData, false, false, 0},
+    {crownSpriteData, false, false, 1},
+    {scrollSpriteData, false, false, 2},
+    {coinsSpriteData, false, false, 3},
+    {skeletonSpriteData, true, false, 4},
+    {mageSpriteData, true, false, 5},
+    {batSpriteData, true, true, 6},
+    {spiderSpriteData, true, false, 7},
+    {exitSpriteData, false, false, 8}};
 
 static constexpr uint8_t kObjectsCount = (uint8_t)(sizeof(kObjects) / sizeof(kObjects[0]));
 static constexpr uint8_t SHIFT_MASK = 63;
@@ -288,8 +287,8 @@ void DrawMenuRoom() {
 }
 
 void DrawTitleDecor() {
-    const uint16_t* torchSprite =
-        (Game::globalTickFrame & 4) ? torchSpriteData1 : torchSpriteData2;
+    const uint16_t* torchSprite = (Game::globalTickFrame & 4) ? torchSpriteData1 :
+                                                                torchSpriteData2;
     const int spiderFrame = ((Game::globalTickFrame & 8) == 0) ? 32 : 0;
 
     Renderer::DrawScaled(torchSprite, 4, 18, 10, 255);
@@ -301,9 +300,9 @@ void Menu::Draw() {
     DrawMenuRoom();
 
     // The logo and the border frame are drawn straight onto the canvas in main.cpp
-    if (ShowsTitleScreen()) {
+    if(ShowsTitleScreen()) {
         DrawTitleDecor();
-        if (m_splashPhase == SplashPhase::Credits) {
+        if(m_splashPhase == SplashPhase::Credits) {
             Font::PrintString("by JHHOWARD & APFXTECH", CREDIT_ROW, CREDIT_X, COLOUR_WHITE);
         }
         return;
@@ -311,9 +310,9 @@ void Menu::Draw() {
 
     Font::PrintString("CATACOMBS OF THE DAMNED", 2, 18, COLOUR_WHITE);
 
-    for (uint8_t row = 0; row < VISIBLE_ROWS; ++row) {
+    for(uint8_t row = 0; row < VISIBLE_ROWS; ++row) {
         uint8_t idx = (uint8_t)(m_topIndex + row);
-        if (idx >= MENU_ITEMS_COUNT) break;
+        if(idx >= MENU_ITEMS_COUNT) break;
         PrintItem(idx, (uint8_t)(MENU_FIRST_ROW + row));
     }
 
@@ -322,18 +321,18 @@ void Menu::Draw() {
 
     const uint16_t frame = (uint16_t)Game::globalTickFrame;
 
-    if (frame != lastFrameSeen) {
-        if ((frame & SHIFT_MASK) == 0) {
+    if(frame != lastFrameSeen) {
+        if((frame & SHIFT_MASK) == 0) {
             bubble = (uint8_t)(bubble + 2);
-            if (bubble >= kObjectsCount) bubble = (uint8_t)(bubble - kObjectsCount);
-            if (bubble >= kObjectsCount) bubble = (uint8_t)(bubble - kObjectsCount);
+            if(bubble >= kObjectsCount) bubble = (uint8_t)(bubble - kObjectsCount);
+            if(bubble >= kObjectsCount) bubble = (uint8_t)(bubble - kObjectsCount);
         }
         lastFrameSeen = frame;
     }
 
     const uint8_t num1 = bubble;
     uint8_t num2 = (uint8_t)(bubble + 1);
-    if (num2 >= kObjectsCount) num2 = 0;
+    if(num2 >= kObjectsCount) num2 = 0;
 
     const ObjDesc& sprite1 = kObjects[num1];
     const ObjDesc& sprite2 = kObjects[num2];
@@ -342,16 +341,16 @@ void Menu::Draw() {
     const int off1 = sprite1.animated ? animOffset : 0;
     const int off2 = sprite2.animated ? animOffset : 0;
 
-    const uint16_t* torchSprite =
-        (Game::globalTickFrame & 4) ? torchSpriteData1 : torchSpriteData2;
+    const uint16_t* torchSprite = (Game::globalTickFrame & 4) ? torchSpriteData1 :
+                                                                torchSpriteData2;
 
-    if (sprite1.invert) {
+    if(sprite1.invert) {
         Renderer::DrawScaled(sprite1.sprite + off1, 66, 29, 9, 255, true, COLOUR_BLACK);
     } else {
         Renderer::DrawScaled(sprite1.sprite + off1, 66, 29, 9, 255);
     }
 
-    if (sprite2.invert) {
+    if(sprite2.invert) {
         Renderer::DrawScaled(sprite2.sprite + off2, 96, 30, 9, 255, true, COLOUR_BLACK);
     } else {
         Renderer::DrawScaled(sprite2.sprite + off2, 96, 30, 9, 255);
@@ -535,7 +534,7 @@ void Menu::DrawGameOver() {
 
     if(Game::floor > 0) {
         m_save[8] = Game::floor - 1;
-    } 
+    }
 
     SetScore(finalScore);
 }
@@ -719,8 +718,10 @@ void Menu::ReadSave() {
     Platform::ReadSaveData(data);
 
     uint8_t addr = SAVE_BASE_ADDR;
-    m_score = (uint16_t)data[addr] | ((uint16_t)data[addr + 1] << 8); addr += 2;
-    m_high = (uint16_t)data[addr] | ((uint16_t)data[addr + 1] << 8);  addr += 2;
+    m_score = (uint16_t)data[addr] | ((uint16_t)data[addr + 1] << 8);
+    addr += 2;
+    m_high = (uint16_t)data[addr] | ((uint16_t)data[addr + 1] << 8);
+    addr += 2;
     m_storedHigh = m_high;
 
     for(int i = 0; i < 9; i++) {
