@@ -89,6 +89,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UHF Expansion v1.1 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
+- Added: [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
 
 <a name="release"></a>
 
@@ -406,6 +407,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [BarCode Scanner Emulator (By polarikus)](https://github.com/polarikus/flipper-zero_bc_scanner_emulator) `Uses: COM-port`
 - [Battery Checker v0.2 (By Programistich)](https://github.com/Programistich/battery_checker)
 - [Big Clock v1.3 (By Eris-Margeta)](https://github.com/Eris-Margeta/flipper-apps)
+- [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
 - [BlackJack Counter v1.0 (By grugnoymeme)](https://github.com/grugnoymeme/flipperzero-blackjack_counter-fap)
 - [BLE Clicker v1.0 (By random1st)](https://github.com/random1st/flipper-ble-clicker)
 - [BLE Killer v1.1 (By H4lo)](https://github.com/H4lo/flipper_zero_ble_killer) `Req: ESP32`
