@@ -1,7 +1,7 @@
 Dungeons & Dolphins SD-card catalogs
 
 Copy this catalogs folder to:
-/ext/apps_assets/dungeons_and_dolphins/catalogs/
+/ext/apps_assets/dndolphins/catalogs/
 
 Each file normally uses one option per line. Blank lines and lines beginning with # are ignored.
 Dungeons & Dolphins streams the selected catalog directly and does not load a second overlay.

@@ -17,6 +17,7 @@ enum {
     PocketMonsterFieldSenses = 1U << 3,
     PocketMonsterFieldLanguages = 1U << 4,
     PocketMonsterFieldActions = 1U << 5,
+    PocketMonsterFieldInitiative = 1U << 6,
     PocketMonsterRequiredFields = 0x3FU,
 };
 
@@ -52,6 +53,8 @@ typedef struct {
     char size_alignment[48];
     char speed[64];
     int8_t abilities[6];
+    int8_t initiative_modifier;
+    uint8_t initiative_present;
     char skills[POCKET_MONSTER_TEXT_LEN];
     char defenses[POCKET_MONSTER_TEXT_LEN];
     char senses[POCKET_MONSTER_TEXT_LEN];

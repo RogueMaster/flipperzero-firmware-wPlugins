@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pocket_d20_monsters.h"
+#include "dndbestiary_monsters.h"
 
 #include <stdbool.h>
 #include <stdint.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pocket_d20.h"
+#include "dndolphins.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -20,6 +20,15 @@ typedef struct {
     char scenes_file[POCKET_D20_SHORT_LEN];
     uint8_t bundled;
 } PocketCampaignSummary;
+
+
+typedef struct {
+    char campaign[POCKET_CAMPAIGN_ID_LEN];
+    char scene[POCKET_D20_SHORT_LEN];
+    char checkpoint[POCKET_D20_SHORT_LEN];
+    uint32_t quest_flags;
+    uint32_t achievements;
+} PocketCampaignProgress;
 
 typedef struct {
     uint16_t records;
@@ -41,16 +50,24 @@ bool pocket_campaign_scene_path(
     const PocketCampaignSummary* campaign,
     char* output,
     size_t size);
+bool pocket_campaign_active_load(
+    Storage* storage,
+    uint32_t profile_id,
+    char* campaign_id,
+    size_t campaign_id_size);
+bool pocket_campaign_active_save(
+    Storage* storage,
+    uint32_t profile_id,
+    const char* campaign_id);
 bool pocket_campaign_progress_load(
     Storage* storage,
     uint32_t profile_id,
     const PocketCampaignSummary* campaign,
-    PocketCharacter* character);
+    PocketCampaignProgress* progress);
 bool pocket_campaign_progress_save(
     Storage* storage,
     uint32_t profile_id,
     const PocketCampaignSummary* campaign,
-    const PocketCharacter* character);
-bool pocket_campaign_migrate_legacy_custom(Storage* storage, uint16_t* copied_files);
+    const PocketCampaignProgress* progress);
 void pocket_campaign_diagnose(Storage* storage, PocketCampaignDiagnostics* output);
 void pocket_campaign_cache_reset(void);

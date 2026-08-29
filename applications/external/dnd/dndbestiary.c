@@ -1,7 +1,7 @@
-#include "pocket_d20_monsters.h"
-#include "pocket_d20_bestiary_state.h"
-#include "pocket_d20_handoff.h"
-#include "pocket_d20_packs.h"
+#include "dndbestiary_monsters.h"
+#include "dndbestiary_state.h"
+#include "dnd_handoff.h"
+#include "dndbestiary_packs.h"
 
 #include <furi.h>
 #include <gui/gui.h>
@@ -9,13 +9,12 @@
 #include <gui/view.h>
 #include <gui/view_dispatcher.h>
 #include <input/input.h>
-#include <loader/loader.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define TAG                      "DolphinBestiary"
-#define BESTIARY_WINDOW          35U
+#define BESTIARY_WINDOW          15U
 #define BESTIARY_MARQUEE_EVENT   0xB357U
 #define BESTIARY_LONG_BACK_EVENT 0xB358U
 #define BESTIARY_MARQUEE_MS      350U
@@ -131,18 +130,23 @@ typedef struct {
     uint8_t bundled_version;
     uint8_t custom_version;
     bool custom_present;
+    char* pending_launch_args;
+    uint32_t character_id;
+    uint8_t pending_launch_initiative;
+    uint8_t pending_launch_dnd;
 } BestiaryApp;
 
 typedef struct {
     char name[POCKET_MONSTER_NAME_LEN];
     uint16_t hit_points;
     uint8_t armor_class;
+    int8_t initiative_modifier;
     uint8_t quantity;
 } BestiaryLaunchMonster;
 
 static uint8_t bestiary_marquee_offset = 0U;
 
-static bool bestiary_launch_dnd(BestiaryApp* app, const char* launch_args);
+static bool bestiary_launch_dnd(BestiaryApp* app, char* launch_args);
 static bool bestiary_launch_dnd_monsters(
     BestiaryApp* app,
     const PocketMonsterSummary* monsters,
@@ -375,10 +379,10 @@ static void bestiary_cache_encounter_rows(BestiaryApp* app) {
 }
 
 static void bestiary_cache_pack_rows(BestiaryApp* app) {
-    app->state_total = pocket_pack_count(app->storage, PocketPackMonster);
+    app->state_total = pocket_pack_count(app->storage);
     for(uint16_t index = 0U; index < app->state_total && index < 16U; ++index) {
         PocketPackSummary pack;
-        if(pocket_pack_at(app->storage, PocketPackMonster, index, &pack))
+        if(pocket_pack_at(app->storage, index, &pack))
             snprintf(
                 app->state_rows[index],
                 sizeof(app->state_rows[index]),
@@ -411,13 +415,22 @@ static void bestiary_release_text_input(BestiaryApp* app) {
     app->edit = BestiaryEditNone;
 }
 
+static void bestiary_quiesce_async(BestiaryApp* app) {
+    if(!app) return;
+    if(app->input_subscription && app->input_events) {
+        furi_pubsub_unsubscribe(app->input_events, app->input_subscription);
+        app->input_subscription = NULL;
+    }
+    if(app->marquee_timer) furi_timer_stop(app->marquee_timer);
+}
+
 static void bestiary_release_monster_memory_for_launch(BestiaryApp* app) {
     if(!app) return;
 
-    /* The deferred loader duplicates the launch path and argument string before
-       returning. Release Bestiary's large monster allocations first so that
-       duplication has the largest possible heap headroom. */
-    if(app->marquee_timer) furi_timer_stop(app->marquee_timer);
+    /* Release callbacks and large transient monster allocations as soon as a
+       handoff is chosen. The complete UI/record/app teardown still happens
+       before Loader is opened by dndbestiary_app(). */
+    bestiary_quiesce_async(app);
     bestiary_release_text_input(app);
     bestiary_release_window(app);
     bestiary_release_detail(app);
@@ -556,7 +569,7 @@ static void bestiary_draw_home(Canvas* canvas, BestiaryApp* app) {
         "Saved Filters",
         "Saved Encounters",
         "Monster Pack Controls",
-        "Open Dungeons & Dolphins"};
+        "Open DNDolphins"};
     bestiary_header(canvas, "Bestiary v" FAP_VERSION, app->status);
     bestiary_rows(canvas, app, rows, 23U);
 }
@@ -1309,7 +1322,7 @@ static void bestiary_new_custom(BestiaryApp* app) {
 static void bestiary_back(BestiaryApp* app) {
     switch(app->screen) {
     case BestiaryScreenHome:
-        view_dispatcher_stop(app->dispatcher);
+        if(!bestiary_launch_dnd(app, NULL)) view_dispatcher_stop(app->dispatcher);
         break;
     case BestiaryScreenList:
         bestiary_release_window(app);
@@ -1560,27 +1573,16 @@ static void bestiary_handle_detail_line(BestiaryApp* app, const InputEvent* even
     }
 }
 
-static bool bestiary_launch_dnd(BestiaryApp* app, const char* launch_args) {
-    if(!app || !app->dispatcher) return false;
+static bool bestiary_launch_dnd(BestiaryApp* app, char* launch_args) {
+    if(!app || !app->dispatcher || app->pending_launch_dnd) return false;
 
-    Loader* loader = furi_record_open(RECORD_LOADER);
-    if(!loader) {
-        bestiary_status(app, "Loader unavailable");
-        return false;
-    }
-
-    FURI_LOG_I(TAG, "D&D launch heap before cleanup: %lu", (unsigned long)memmgr_get_free_heap());
+    /* Do not ask Loader to start D&D while Bestiary still owns its dispatcher,
+       views, timers, records, and app state. Retain the already-built argument
+       buffer, stop the UI, free Bestiary completely, and enqueue from the app
+       entry point after teardown. */
     bestiary_release_monster_memory_for_launch(app);
-    FURI_LOG_I(TAG, "D&D launch heap after cleanup: %lu", (unsigned long)memmgr_get_free_heap());
-    FURI_LOG_I(
-        TAG,
-        "Queue D&D FAP: %s args_len=%u",
-        POCKET_D20_APP_FAP_PATH,
-        (unsigned int)(launch_args ? strlen(launch_args) : 0U));
-    loader_enqueue_launch(
-        loader, POCKET_D20_APP_FAP_PATH, launch_args, LoaderDeferredLaunchFlagGui);
-    furi_record_close(RECORD_LOADER);
-
+    app->pending_launch_args = launch_args;
+    app->pending_launch_dnd = 1U;
     view_dispatcher_stop(app->dispatcher);
     return true;
 }
@@ -1616,10 +1618,11 @@ static bool bestiary_launch_args_append(
         int written = snprintf(
             args + *used,
             capacity - *used,
-            ";%s,%u,%u",
+            ";%s,%u,%u,%d",
             name,
             (unsigned int)hp,
-            (unsigned int)monster->armor_class);
+            (unsigned int)monster->armor_class,
+            (int)monster->initiative_modifier);
         if(written < 0 || (size_t)written >= capacity - *used) return false;
         *used += (size_t)written;
         ++(*emitted);
@@ -1651,6 +1654,9 @@ static bool bestiary_launch_dnd_monsters(
             monsters[index].name);
         launch_monsters[index].hit_points = monsters[index].hit_points;
         launch_monsters[index].armor_class = monsters[index].armor_class;
+        launch_monsters[index].initiative_modifier = 0;
+        pocket_monster_initiative_modifier(
+            app->storage, &monsters[index], &launch_monsters[index].initiative_modifier);
         launch_monsters[index].quantity = quantities ? quantities[index] : 1U;
     }
 
@@ -1666,8 +1672,12 @@ static bool bestiary_launch_dnd_monsters(
         return false;
     }
 
-    size_t used = strlen(POCKET_D20_HANDOFF_LAUNCH_ARG);
-    memcpy(args, POCKET_D20_HANDOFF_LAUNCH_ARG, used + 1U);
+    int prefix = snprintf(args, POCKET_D20_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
+    if(prefix < 0 || prefix >= (int)POCKET_D20_LAUNCH_ARGS_MAX) {
+        free(args);
+        return false;
+    }
+    size_t used = (size_t)prefix;
     uint8_t emitted = 0U;
     bool built = true;
     for(uint8_t index = 0U; index < launch_count && emitted < POCKET_D20_TRANSFER_MAX; ++index) {
@@ -1683,12 +1693,14 @@ static bool bestiary_launch_dnd_monsters(
         built = false;
 
     bool launched = false;
-    if(built)
+    if(built) {
+        app->pending_launch_initiative = 1U;
         launched = bestiary_launch_dnd(app, args);
+    }
     else
         bestiary_status(app, "Initiative args too large");
 
-    free(args);
+    if(!launched) free(args);
     return launched;
 }
 
@@ -1715,6 +1727,9 @@ static bool bestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index) {
             summary.name);
         launch_monsters[launch_count].hit_points = summary.hit_points;
         launch_monsters[launch_count].armor_class = summary.armor_class;
+        launch_monsters[launch_count].initiative_modifier = 0;
+        pocket_monster_initiative_modifier(
+            app->storage, &summary, &launch_monsters[launch_count].initiative_modifier);
         launch_monsters[launch_count].quantity = saved.quantities[record];
         ++launch_count;
     }
@@ -1735,8 +1750,12 @@ static bool bestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index) {
         return false;
     }
 
-    size_t used = strlen(POCKET_D20_HANDOFF_LAUNCH_ARG);
-    memcpy(args, POCKET_D20_HANDOFF_LAUNCH_ARG, used + 1U);
+    int prefix = snprintf(args, POCKET_D20_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
+    if(prefix < 0 || prefix >= (int)POCKET_D20_LAUNCH_ARGS_MAX) {
+        free(args);
+        return false;
+    }
+    size_t used = (size_t)prefix;
     uint8_t emitted = 0U;
     bool built = true;
     for(uint8_t record = 0U; record < launch_count && emitted < POCKET_D20_TRANSFER_MAX;
@@ -1752,9 +1771,10 @@ static bool bestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index) {
     if(!emitted || !bestiary_launch_args_finish(args, POCKET_D20_LAUNCH_ARGS_MAX, &used))
         built = false;
 
+    if(built) app->pending_launch_initiative = 1U;
     bool launched = built ? bestiary_launch_dnd(app, args) : false;
     if(!built) bestiary_status(app, "Initiative args too large");
-    free(args);
+    if(!launched) free(args);
     return launched;
 }
 
@@ -2014,12 +2034,11 @@ static void bestiary_handle_packs(BestiaryApp* app, const InputEvent* event) {
         bool changed = false;
         if(app->selection == app->state_total) {
             changed = pocket_pack_install_inbox(
-                app->storage, PocketPackMonster, app->status, sizeof(app->status));
+                app->storage, app->status, sizeof(app->status));
         } else {
             PocketPackSummary pack;
-            if(pocket_pack_at(app->storage, PocketPackMonster, app->selection, &pack)) {
-                changed = pocket_pack_set_enabled(
-                    app->storage, PocketPackMonster, pack.id, !pack.enabled);
+            if(pocket_pack_at(app->storage, app->selection, &pack)) {
+                changed = pocket_pack_set_enabled(app->storage, pack.id, !pack.enabled);
                 bestiary_status(app, changed ? "Pack state updated" : "Pack update failed");
             }
         }
@@ -2133,7 +2152,7 @@ static bool bestiary_input(InputEvent* event, void* context) {
     BestiaryApp* app = context;
     if(event->type == InputTypeLong && event->key == InputKeyBack) {
         if(app->screen == BestiaryScreenHome) {
-            view_dispatcher_stop(app->dispatcher);
+            if(!bestiary_launch_dnd(app, NULL)) view_dispatcher_stop(app->dispatcher);
         } else {
             bestiary_release_window(app);
             bestiary_release_detail(app);
@@ -2243,13 +2262,17 @@ static bool bestiary_navigation(void* context) {
     return true;
 }
 
-static BestiaryApp* bestiary_alloc(void) {
+static BestiaryApp* bestiary_alloc(const char* args) {
     BestiaryApp* app = calloc(1U, sizeof(BestiaryApp));
     if(!app) return NULL;
     app->party_level = 1U;
     app->party_size = 4U;
     app->difficulty = PocketEncounterModerate;
     app->allow_repeats = 1U;
+    if(args && args[0]) {
+        unsigned long character_id = 0UL;
+        if(sscanf(args, "%lu", &character_id) == 1) app->character_id = (uint32_t)character_id;
+    }
 
     app->storage = furi_record_open(RECORD_STORAGE);
     if(!app->storage) goto fail;
@@ -2261,7 +2284,7 @@ static BestiaryApp* bestiary_alloc(void) {
     bool migration_ok = pocket_monster_migrate_legacy_custom(app->storage, &migrated_files);
     bool recovery_ok = migration_ok &&
                        pocket_monster_recover_user_pack(app->storage, &recovered, &rolled_back);
-    bool installed_packs_ok = pocket_pack_rebuild_enabled(app->storage, PocketPackMonster);
+    bool installed_packs_ok = pocket_pack_ensure_enabled(app->storage);
     pocket_monster_cache_reset();
 
     app->gui = furi_record_open(RECORD_GUI);
@@ -2293,9 +2316,11 @@ static BestiaryApp* bestiary_alloc(void) {
         furi_timer_alloc(bestiary_marquee_timer_callback, FuriTimerTypePeriodic, app);
     if(!app->marquee_timer) goto fail;
 
+    if(furi_timer_start(app->marquee_timer, furi_ms_to_ticks(BESTIARY_MARQUEE_MS)) !=
+       FuriStatusOk)
+        goto fail;
     view_dispatcher_add_view(app->dispatcher, BestiaryViewMain, app->view);
     view_dispatcher_attach_to_gui(app->dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-    furi_timer_start(app->marquee_timer, furi_ms_to_ticks(BESTIARY_MARQUEE_MS));
     if(!installed_packs_ok)
         bestiary_status(app, "Installed pack check failed");
     else if(!migration_ok)
@@ -2326,6 +2351,10 @@ fail:
 
 static void bestiary_free(BestiaryApp* app) {
     if(!app) return;
+
+    /* Quiesce asynchronous callbacks before releasing any state they can touch. */
+    bestiary_quiesce_async(app);
+
     pocket_monster_cache_reset();
     bestiary_release_window(app);
     bestiary_release_detail(app);
@@ -2335,29 +2364,37 @@ static void bestiary_free(BestiaryApp* app) {
     if(app->dispatcher && app->view)
         view_dispatcher_remove_view(app->dispatcher, BestiaryViewMain);
     if(app->text_input) text_input_free(app->text_input);
-    if(app->marquee_timer) {
-        furi_timer_stop(app->marquee_timer);
-        furi_timer_free(app->marquee_timer);
-    }
-    if(app->input_subscription && app->input_events)
-        furi_pubsub_unsubscribe(app->input_events, app->input_subscription);
+    if(app->marquee_timer) furi_timer_free(app->marquee_timer);
     if(app->input_events) furi_record_close(RECORD_INPUT_EVENTS);
     if(app->view) view_free(app->view);
     if(app->dispatcher) view_dispatcher_free(app->dispatcher);
     if(app->gui) furi_record_close(RECORD_GUI);
     if(app->storage) furi_record_close(RECORD_STORAGE);
+    free(app->pending_launch_args);
     free(app);
 }
 
-int32_t dolphin_bestiary_app(void* context) {
-    UNUSED(context);
-    BestiaryApp* app = bestiary_alloc();
+int32_t dndbestiary_app(void* context) {
+    BestiaryApp* app = bestiary_alloc(context);
     if(!app) {
         FURI_LOG_E(TAG, "Allocation failed");
         return -1;
     }
     view_dispatcher_switch_to_view(app->dispatcher, BestiaryViewMain);
     view_dispatcher_run(app->dispatcher);
+
+    uint8_t launch_dnd = app->pending_launch_dnd;
+    uint8_t launch_initiative = app->pending_launch_initiative;
+    char* launch_args = app->pending_launch_args;
+    app->pending_launch_args = NULL;
     bestiary_free(app);
+
+    if(launch_dnd) {
+        const char* launch_path =
+            launch_initiative ? DNDINITIATIVE_FAP_PATH : DNDOLPHINS_FAP_PATH;
+        bool launch_ok = dnd_handoff_launch(launch_path, launch_args);
+        free(launch_args);
+        if(!launch_ok) return -1;
+    }
     return 0;
 }

@@ -1,51 +1,54 @@
-# Request checklist
+# Dungeons & Dolphins feature checklist
 
-| Requested capability | Version 3.2.5 status |
+- [x] Missing active-character IDs advance to the next available character and wrap safely.
+- [x] Failed/unreadable profile switches restore the previously saved character instead of leaving default `New Hero` data active.
+- [x] Journal/Adventure/Initiative direct launches use persisted active character when available, then character 0.
+- [x] Bestiary launch from DNDolphins is character-independent.
+| Area | Current implementation |
 |---|---|
-| Flipper FAP d20 icon | `icon.png`, 10x10 1-bit, assigned by `fap_icon` and FBT-validated |
-| Buttons and screen only | Implemented |
-| Multiple independent characters | No fixed application limit; dynamically indexed from SD |
-| Separate readable `.txt` per character | `ch_{x}_{characterName}_{characterLvl}.txt` |
-| Autosave every character mutation | Implemented with 450 ms write coalescing, immediate screen/exit flush, and transactional backup recovery |
-| Multiclass levels and class-linked perks | Up to four classes; features store source class and gained level |
-| Character stats and 2024 proficiency formula | Implemented |
-| All six saving throws | Explicitly displayed/editable in Abilities & Saves |
-| All 18 standard skills grouped by ability | Implemented |
-| AC, initiative, passive scores, Spell Attack, Spell Save DC | Implemented and visible |
-| Known/Prepared/Always Prepared/Ritual/free-cast spells | Implemented per spell |
-| Class-and-level spell catalog default | Implemented for annotated records; hold OK for All; streamed pages retain ten records and sort by level then name |
-| Spell slots and Wizard Arcane Recovery | Implemented with Short/Long Rest rules |
-| Feature recharge cadence | Manual, turn, encounter, dawn, Short/Long, or Long |
-| Items, equipment, weapons, attack/damage rolls | Implemented; standard armor and weapon selections populate supported combat and AC fields |
-| Multi-die individual results plus sum | Implemented with paging; Guidance mode adds a visible d4 to d20 rolls |
-| Animated dice sequence | Implemented with original code-drawn frames |
-| CP/SP/EP/GP/PP | Implemented |
-| Notes, adventure notes, item notes, milestones | Implemented; milestones can level a selected class once |
-| Party initiative presets and turn tracking | Per character with preset HP/AC, Roll for All, manual d20 entry on hold OK, round/current turn, Back-to-previous-turn, negative HP, participant field editor, armed removal, conditions, and persistent Bestiary transfers into the saved roster |
-| SD catalogs and custom long-OK text | Implemented for names; Background uses short catalog/long custom |
-| Background catalog in its own SD file | `catalogs/backgrounds.txt` included |
-| Core and add-on option names | Names-only catalogs include packaged and optional add-on selections |
-| Structured rules-aware grants | Species, background, feat, class feature, subclass feature, spell, and item grants have review/apply/skip state |
-| Core class-feature assignment | Names in `abilities.txt`; assigned feature stores class, level, notes, uses, formulas, and recharge |
-| Per-class spellcasting | Shared multiclass slots, casting modes/ability, limits, spellbook, Pact slots, Arcanum, and spell points |
-| Inventory resources | Containers, carried/equipped weight, capacity, armor/shield AC, attunement, ammo groups, and charges |
-| Catalog diagnostics | Stable-ID validation, duplicate detection, required-field checks, and packaged-asset fallback |
-| Fantasy quest / choices / skill checks / achievements | Data-driven Adventure mode with branches, rewards, flags, achievements, sprite tags, and checkpoints |
-| Old save backward compatibility | Schema 3 writes, schema 2 baseline reads, retained pre-migration snapshots, verified upgrade, and automatic rollback on failed publication |
-| Stable save schema and migration | Real C migration/failure harness, schema-first dispatch, manual migration rollback, and no blank replacement after a failed load |
-| Profile portability | Rename, chunked duplicate/export/archive, parsed import, and profile readability diagnostics |
-| Recoverable prior generation | One previous successful save retained per profile with explicit restore action |
-| Translation and accessibility | Runtime translation removed for speed; documented high-contrast display and control conventions remain |
-| Separate bestiary application | Dolphin Bestiary is a separate FAP declared in the same manifest with an exclusive source list and asset namespace |
-| Monster discovery and encounter roles | 340 bundled records plus direct custom and enabled pack records, cached-offset 35-record windows, hashed summary/stat-block stable-ID lookup, favorites, recents, saved filters, role weighting, complete detail readers, and buffered diagnostics |
-| Custom monster lifecycle | Stable-ID edit, visible confirmed custom-only delete, and atomic rewrite/rollback in a separate custom index/stat-block layer that cannot replace packaged tables |
-| Campaign pack manager | On-device selection, transactional inbox install, enable/disable controls, per-profile progress, cached offsets, single-pass diagnostics, schema, and starter template |
-| Named encounter workspace | Allocation-free difficulty simulation plus editable save/replace, stable-ID resume, rename, duplicate, archive, delete, and direct initiative transfer controls |
-| Installed monster packs | Transactional inbox install, stable-ID conflict rejection, enable/disable controls, and a third app-data stream that never rewrites packaged or direct-custom records |
-| Complete structured editors | Full attack-template and grant editors with autosave |
-| Device resilience | Heap-fragmentation/peak-allocation host stress tests, allocation stress runner, SD read-only fallback, unsaved warning, retry control, and published hardware matrix |
-| Direct-launch memory safety | Empty profiles allocate only their used spell, feature, item, journal, and grant records; all five groups grow on demand with checked limits; spell pages retain ten records |
-| Asset namespace | Packaged catalogs, campaigns, and monster tables use `APP_ASSETS_PATH`; writable profiles, custom campaigns/progress, and custom monsters use persistent `APP_DATA_PATH` with copy-verify-cleanup relocation |
-| Cross-FAP navigation | Each application ends with a menu entry that queues the other FAP and exits cleanly; Bestiary launches the full Dungeons & Dolphins FAP path; Add to Initiative passes `initiative;Name,HP,AC;...`, D&D appends those monsters to the current saved Party Roster, then opens Initiative |
+| Character files | Multiple editable schema-5 core text saves directly under `/ext/apps_data/dndolphins/` |
+| Character picker | Storage-backed, ID ordered, fixed eight-record metadata cache; character count does not linearly grow picker heap |
+| Character shadows | Same-stem `.shd` per saved character/level; active-level state refreshes in place, older shadows remain, and `.shd` files are never read/scanned or used to reserve IDs |
+| Character autosave | Coalesced normal saves plus synchronous save before important handoffs/exit; character backup/recovery behavior remains DNDolphins-owned |
+| Multiclass/build | Up to four classes, subclasses, levels, Hit Dice and structured grants |
+| Ability/rules tracking | Abilities, saves, all 18 skills, proficiency/expertise, passive scores and misc modifiers |
+| Vitals | HP/temp HP, AC, speed, initiative, exhaustion, death saves, inspiration, XP/milestone leveling and minimum-XP floor on level increase |
+| Spellcasting | Known/prepared/always-prepared/ritual/free cast, multiclass slots, Pact Magic, Mystic Arcanum and spell points |
+| Owned spell storage | Per-character `ch_{id}_spellbook.txt`; independent escaped line records; up-to-eight-record cache with 1 -> 2 -> 4 -> 8 growth, page-save/page-free behavior and full release outside spell workflows |
+| Spell combat | Structured spell attack/damage/result mappings with supported cast-level scaling plus guarded Notes `XdY` fallback; combat eligibility/index discovery streams the owned spellbook sidecar directly before hydrating a selected page |
+| Combat attack mode | Shared Normal/Advantage/Disadvantage mode for weapon and spell attack d20s; weapon discovery streams the owned item sidecar into a compact logical-index map |
+| Combat draw memory | Visible Combat rows are formatted on demand instead of allocating all 22 row strings simultaneously |
+| Inventory/equipment | Quantities, containers, weight, equipped/attuned state, charges, ammo, weapons, armor/shields and currency |
+| Owned item storage | Per-character `ch_{id}_items.txt`; independent escaped line records; up-to-eight-record cache with 1 -> 2 -> 4 -> 8 growth, page-save/page-free behavior and full release outside item workflows |
+| Spell/item catalogs | Master catalogs are discovery/add sources only; owned records are self-contained and normal character load does not open the master catalogs |
+| Dice | d4/d6/d8/d10/d12/d20/d100, advantage/disadvantage, modifiers, Guidance and multi-die detail |
+| DNDAdventure | Standalone campaign runtime and sole owner of all campaign progress/state |
+| Campaign packs | Adventure-only inbox validation/install, registry and enable/disable with canonical direct writes |
+| Adventure milestones | Adventure saves its guard first, then writes a one-way milestone entry to DNDJournal |
+| DNDJournal | Standalone timestamped per-character entries with fixed eight-entry metadata cache, filename-first newest-page selection and body-on-open |
+| Journal scale | No 24-full-entry list cap; list RAM remains bounded as file count grows |
+| Journal→Adventure | Milestone entry can launch Adventure; Journal never creates/modifies Adventure progress |
+| DNDInitiative | Standalone Party Roster/combat, Roll for All, manual participant edit and previous-turn Back behavior |
+| Bestiary | Streamed monster browser/detail, filters, custom monsters, favorites, recents and diagnostics; 15-summary browse window with bounded sparse/recent lookup hints instead of full-file offset/hash heap tables |
+| Encounters | Generate/save/manage encounters and transfer monsters to DNDInitiative |
+| Monster packs | Bestiary-only pack management; campaign pack code is absent from Bestiary |
+| Cross-FAP handoff | Outgoing app quiesces callbacks, releases owned heap/views/services/static caches, then calls the shared handoff module; only `dnd_handoff.c` imports Loader and starts the destination FAP |
+| Firmware `qsort` | Not required |
+| Companion stack reservations | DNDolphins 6 KB, DNDAdventure 4 KB, DNDJournal 4 KB, DNDInitiative 4 KB and DNDBestiary 6 KB based on the current source-derived peak audit |
+| Verify Profile memory | Temporary 3,976-byte character verification state is checked transient heap, not stack; character save format is unchanged |
+| Bestiary state-reader memory | Encounter scans use one checked transient 1,288-byte heap reader/line workspace; large nested reader frames are removed |
+| Runtime memory probes | Not included; memory review is source-based |
+| Embedded spell/item migration | Intentionally absent; old embedded `Spell*` / `Item*` fields are ignored and only current sidecars define owned records |
 
-The expansion catalogs intentionally contain option names and original metadata rather than proprietary descriptions or mechanics. Custom text and notes support owned books, homebrew, errata, and table rulings.
+## Storage resilience
+
+- Best-effort character loading applies recognized fields by name regardless of declared file version or ordering.
+- Legacy `/ext/apps_data/dungeons_and_dolphins/profiles/ch*.txt` character files relocate unchanged into the current character root when no current primary with that character ID exists.
+- Journal and Initiative use named-field loaders; their old compact-row formats are intentionally not parsed.
+- `.shd` character shadows are write-only history and never participate in character discovery/recovery.
+- Character persistence has no global heap-consistency save veto; optional dynamic collections are handled independently and filename metadata protects identity during partial loads.
+
+- Core character loading deliberately clears spell/item pointers and does not hydrate their sidecars.
+- Spellbook/item dirty fingerprints are independent from the core character fingerprint, so opening/releasing a sidecar cannot create a character `.shd` update.
+- Crossing a spell/item cache boundary saves a changed outgoing eight-record page before freeing it; leaving the workflow frees the current page. Adventure item rewards scan/update the item sidecar through the same bounded eight-record window.
+- Sidecar records have no serialized count and no authoritative line-number identity.

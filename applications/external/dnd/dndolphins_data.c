@@ -1,4 +1,4 @@
-#include "pocket_d20.h"
+#include "dndolphins.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +28,33 @@ static uint8_t pocket_d20_next_capacity(uint8_t current, uint8_t required, uint8
     return capacity;
 }
 
+static bool pocket_d20_resize_records_exact(
+    void** records,
+    uint8_t* capacity,
+    uint8_t required,
+    uint8_t maximum,
+    size_t record_size) {
+    if(required > maximum) return false;
+    if(required == *capacity) return true;
+    if(required == 0U) {
+        free(*records);
+        *records = NULL;
+        *capacity = 0U;
+        return true;
+    }
+    uint8_t old_capacity = *capacity;
+    void* resized = realloc(*records, (size_t)required * record_size);
+    if(!resized) return false;
+    if(required > old_capacity)
+        memset(
+            (uint8_t*)resized + (size_t)old_capacity * record_size,
+            0,
+            (size_t)(required - old_capacity) * record_size);
+    *records = resized;
+    *capacity = required;
+    return true;
+}
+
 static bool pocket_d20_reserve_records(
     void** records,
     uint8_t* capacity,
@@ -37,14 +64,99 @@ static bool pocket_d20_reserve_records(
     if(required <= *capacity) return true;
     if(required > maximum) return false;
     uint8_t next = pocket_d20_next_capacity(*capacity, required, maximum);
-    void* resized = realloc(*records, (size_t)next * record_size);
-    if(!resized) return false;
-    memset(
-        (uint8_t*)resized + (size_t)(*capacity) * record_size,
-        0,
-        (size_t)(next - *capacity) * record_size);
-    *records = resized;
-    *capacity = next;
+    return pocket_d20_resize_records_exact(records, capacity, next, maximum, record_size);
+}
+
+static bool pocket_d20_resize_spell_storage(PocketCharacter* character, uint8_t next) {
+    if(next > POCKET_D20_MAX_SPELLS) return false;
+    if(next == character->spell_capacity) return true;
+    if(next == 0U) {
+        free(character->spell_storage);
+        character->spell_storage = NULL;
+        character->spells = NULL;
+        character->spell_known = NULL;
+        character->spell_always_prepared = NULL;
+        character->spell_free_casts_current = NULL;
+        character->spell_free_casts_max = NULL;
+        character->spell_capacity = 0U;
+        character->spell_count = 0U;
+        return true;
+    }
+
+    const uint8_t old_capacity = character->spell_capacity;
+    uint8_t count = character->spell_count;
+    if(count > old_capacity) count = old_capacity;
+    if(count > next) count = next;
+    const size_t old_spell_bytes = (size_t)old_capacity * sizeof(PocketSpell);
+    const size_t new_spell_bytes = (size_t)next * sizeof(PocketSpell);
+    const size_t new_bytes = new_spell_bytes + (size_t)next * 4U;
+    uint8_t* storage = character->spell_storage;
+
+    if(old_capacity && next < old_capacity) {
+        /* Compact state arrays into their smaller offsets before shrinking. If the
+         * allocator elects not to release the tail, the compacted allocation is still
+         * valid and the logical capacity is reduced immediately. */
+        uint8_t* old_known = storage + old_spell_bytes;
+        uint8_t* old_always = old_known + old_capacity;
+        uint8_t* old_free_current = old_always + old_capacity;
+        uint8_t* old_free_max = old_free_current + old_capacity;
+        uint8_t* new_known = storage + new_spell_bytes;
+        uint8_t* new_always = new_known + next;
+        uint8_t* new_free_current = new_always + next;
+        uint8_t* new_free_max = new_free_current + next;
+        if(count) {
+            memmove(new_known, old_known, count);
+            memmove(new_always, old_always, count);
+            memmove(new_free_current, old_free_current, count);
+            memmove(new_free_max, old_free_max, count);
+        }
+        uint8_t* shrunk = realloc(storage, new_bytes);
+        if(shrunk) storage = shrunk;
+    } else {
+        uint8_t* grown = realloc(storage, new_bytes);
+        if(!grown) return false;
+        storage = grown;
+
+        /* Growing moves the state-array offsets to the right. Relocate the live
+         * arrays from the end backwards before clearing the expanded spell region. */
+        if(old_capacity && count) {
+            uint8_t* old_known = storage + old_spell_bytes;
+            uint8_t* old_always = old_known + old_capacity;
+            uint8_t* old_free_current = old_always + old_capacity;
+            uint8_t* old_free_max = old_free_current + old_capacity;
+            uint8_t* new_known = storage + new_spell_bytes;
+            uint8_t* new_always = new_known + next;
+            uint8_t* new_free_current = new_always + next;
+            uint8_t* new_free_max = new_free_current + next;
+            memmove(new_free_max, old_free_max, count);
+            memmove(new_free_current, old_free_current, count);
+            memmove(new_always, old_always, count);
+            memmove(new_known, old_known, count);
+        }
+    }
+
+    PocketSpell* spells = (PocketSpell*)storage;
+    uint8_t* known = storage + new_spell_bytes;
+    uint8_t* always_prepared = known + next;
+    uint8_t* free_current = always_prepared + next;
+    uint8_t* free_max = free_current + next;
+
+    if(next > count) {
+        memset(&spells[count], 0, (size_t)(next - count) * sizeof(PocketSpell));
+        memset(known + count, 0, next - count);
+        memset(always_prepared + count, 0, next - count);
+        memset(free_current + count, 0, next - count);
+        memset(free_max + count, 0, next - count);
+    }
+
+    character->spell_storage = storage;
+    character->spells = spells;
+    character->spell_known = known;
+    character->spell_always_prepared = always_prepared;
+    character->spell_free_casts_current = free_current;
+    character->spell_free_casts_max = free_max;
+    character->spell_capacity = next;
+    if(character->spell_count > next) character->spell_count = next;
     return true;
 }
 
@@ -53,36 +165,29 @@ bool pocket_d20_data_reserve_spells(PocketCharacter* character, uint8_t required
     if(required > POCKET_D20_MAX_SPELLS) return false;
     uint8_t next =
         pocket_d20_next_capacity(character->spell_capacity, required, POCKET_D20_MAX_SPELLS);
-    size_t spell_bytes = (size_t)next * sizeof(PocketSpell);
-    size_t state_bytes = (size_t)next * 4U;
-    uint8_t* storage = calloc(1U, spell_bytes + state_bytes);
-    if(!storage) return false;
-    PocketSpell* spells = (PocketSpell*)storage;
-    uint8_t* known = storage + spell_bytes;
-    uint8_t* always_prepared = known + next;
-    uint8_t* free_current = always_prepared + next;
-    uint8_t* free_max = free_current + next;
-    if(character->spell_storage) {
-        uint8_t count = character->spell_count;
-        memcpy(spells, character->spells, (size_t)count * sizeof(PocketSpell));
-        memcpy(known, character->spell_known, count);
-        memcpy(always_prepared, character->spell_always_prepared, count);
-        memcpy(free_current, character->spell_free_casts_current, count);
-        memcpy(free_max, character->spell_free_casts_max, count);
-        free(character->spell_storage);
-    }
-    character->spell_storage = storage;
-    character->spells = spells;
-    character->spell_known = known;
-    character->spell_always_prepared = always_prepared;
-    character->spell_free_casts_current = free_current;
-    character->spell_free_casts_max = free_max;
-    character->spell_capacity = next;
-    return true;
+    return pocket_d20_resize_spell_storage(character, next);
+}
+
+bool pocket_d20_data_reserve_spells_exact(PocketCharacter* character, uint8_t required) {
+    return pocket_d20_resize_spell_storage(character, required);
+}
+
+void pocket_d20_data_clear_spells(PocketCharacter* character) {
+    if(!character) return;
+    pocket_d20_resize_spell_storage(character, 0U);
 }
 
 bool pocket_d20_data_reserve_features(PocketCharacter* character, uint8_t required) {
     return pocket_d20_reserve_records(
+        (void**)&character->features,
+        &character->feature_capacity,
+        required,
+        POCKET_D20_MAX_FEATURES,
+        sizeof(PocketFeature));
+}
+
+bool pocket_d20_data_reserve_features_exact(PocketCharacter* character, uint8_t required) {
+    return pocket_d20_resize_records_exact(
         (void**)&character->features,
         &character->feature_capacity,
         required,
@@ -99,17 +204,37 @@ bool pocket_d20_data_reserve_items(PocketCharacter* character, uint8_t required)
         sizeof(PocketItem));
 }
 
-bool pocket_d20_data_reserve_journal(PocketCharacter* character, uint8_t required) {
-    return pocket_d20_reserve_records(
-        (void**)&character->journal,
-        &character->journal_capacity,
+bool pocket_d20_data_reserve_items_exact(PocketCharacter* character, uint8_t required) {
+    return pocket_d20_resize_records_exact(
+        (void**)&character->items,
+        &character->item_capacity,
         required,
-        POCKET_D20_MAX_JOURNAL,
-        sizeof(PocketJournalEntry));
+        POCKET_D20_MAX_ITEMS,
+        sizeof(PocketItem));
+}
+
+void pocket_d20_data_clear_items(PocketCharacter* character) {
+    if(!character) return;
+    pocket_d20_resize_records_exact(
+        (void**)&character->items,
+        &character->item_capacity,
+        0U,
+        POCKET_D20_MAX_ITEMS,
+        sizeof(PocketItem));
+    character->item_count = 0U;
 }
 
 bool pocket_d20_data_reserve_grants(PocketCharacter* character, uint8_t required) {
     return pocket_d20_reserve_records(
+        (void**)&character->grants,
+        &character->grant_capacity,
+        required,
+        POCKET_D20_MAX_GRANTS,
+        sizeof(PocketGrant));
+}
+
+bool pocket_d20_data_reserve_grants_exact(PocketCharacter* character, uint8_t required) {
+    return pocket_d20_resize_records_exact(
         (void**)&character->grants,
         &character->grant_capacity,
         required,
@@ -122,7 +247,6 @@ void pocket_d20_data_clear(PocketSaveData* data) {
     free(data->character.spell_storage);
     free(data->character.features);
     free(data->character.items);
-    free(data->character.journal);
     free(data->character.grants);
     memset(data, 0, sizeof(*data));
 }
@@ -140,11 +264,6 @@ void pocket_d20_data_set_defaults(PocketSaveData* data) {
     character->size = PocketSizeMedium;
     pocket_d20_copy(character->senses, sizeof(character->senses), "Normal vision");
     pocket_d20_copy(character->movement_modes, sizeof(character->movement_modes), "Walk 30 ft");
-    pocket_d20_copy(
-        character->adventure_campaign, sizeof(character->adventure_campaign), "reef_wardens");
-    pocket_d20_copy(character->adventure_scene, sizeof(character->adventure_scene), "reef_gate");
-    pocket_d20_copy(
-        character->adventure_checkpoint, sizeof(character->adventure_checkpoint), "reef_gate");
     character->reaction_available = 1U;
 
     character->class_count = 1U;
@@ -175,37 +294,6 @@ void pocket_d20_data_set_defaults(PocketSaveData* data) {
     character->language_count = 1U;
     pocket_d20_copy(character->languages[0], sizeof(character->languages[0]), "Common");
 
-    if(pocket_d20_data_reserve_items(character, 1U)) {
-        character->item_count = 1U;
-        PocketItem* sword = &character->items[0];
-        pocket_d20_copy(sword->name, sizeof(sword->name), "Longsword");
-        pocket_d20_copy(sword->detail, sizeof(sword->detail), "Versatile martial melee weapon.");
-        sword->quantity = 1;
-        sword->weight_tenths = 30;
-        sword->equipped = 1U;
-        sword->is_weapon = 1U;
-        sword->attack_ability = PocketAttackAbilityAuto;
-        sword->proficient = 1U;
-        sword->damage_dice = 1U;
-        sword->damage_die = 8U;
-        sword->versatile_die = 10U;
-        sword->damage_type = PocketDamageSlashing;
-        sword->add_ability_damage = 1U;
-        sword->container_index = -1;
-        sword->armor_dex_cap = -1;
-    }
-
-    if(pocket_d20_data_reserve_journal(character, 1U)) {
-        character->journal_count = 1U;
-        PocketJournalEntry* note = &character->journal[0];
-        pocket_d20_copy(note->title, sizeof(note->title), "Welcome");
-        pocket_d20_copy(
-            note->body,
-            sizeof(note->body),
-            "Use Journal for adventure notes, item ideas, and milestones.");
-        note->category = PocketJournalQuick;
-    }
-
     character->attack_template_count = 3U;
     PocketAttackTemplate* unarmed = &character->attack_templates[0];
     pocket_d20_copy(unarmed->name, sizeof(unarmed->name), "Unarmed Strike");
@@ -227,12 +315,33 @@ void pocket_d20_data_set_defaults(PocketSaveData* data) {
     saving_throw->damage_dice = 1U;
     saving_throw->damage_die = 6U;
 
-    data->initiative.round = 1U;
+}
+
+void pocket_d20_data_add_default_items(PocketCharacter* character) {
+    if(!character) return;
+    pocket_d20_data_clear_items(character);
+    if(!pocket_d20_data_reserve_items_exact(character, 1U)) return;
+    character->item_count = 1U;
+    PocketItem* sword = &character->items[0];
+    pocket_d20_copy(sword->name, sizeof(sword->name), "Longsword");
+    pocket_d20_copy(sword->detail, sizeof(sword->detail), "Versatile martial melee weapon.");
+    sword->quantity = 1;
+    sword->weight_tenths = 30;
+    sword->equipped = 1U;
+    sword->is_weapon = 1U;
+    sword->attack_ability = PocketAttackAbilityAuto;
+    sword->proficient = 1U;
+    sword->damage_dice = 1U;
+    sword->damage_die = 8U;
+    sword->versatile_die = 10U;
+    sword->damage_type = PocketDamageSlashing;
+    sword->add_ability_damage = 1U;
+    sword->container_index = -1;
+    sword->armor_dex_cap = -1;
 }
 
 void pocket_d20_data_sanitize(PocketSaveData* data) {
     PocketCharacter* character = &data->character;
-
     character->name[sizeof(character->name) - 1U] = '\0';
     character->player[sizeof(character->player) - 1U] = '\0';
     character->species[sizeof(character->species) - 1U] = '\0';
@@ -246,20 +355,6 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
     character->armor_training[sizeof(character->armor_training) - 1U] = '\0';
     character->weapon_training[sizeof(character->weapon_training) - 1U] = '\0';
     character->senses[sizeof(character->senses) - 1U] = '\0';
-    character->adventure_campaign[sizeof(character->adventure_campaign) - 1U] = '\0';
-    character->adventure_scene[sizeof(character->adventure_scene) - 1U] = '\0';
-    character->adventure_checkpoint[sizeof(character->adventure_checkpoint) - 1U] = '\0';
-    if(!character->adventure_campaign[0])
-        pocket_d20_copy(
-            character->adventure_campaign, sizeof(character->adventure_campaign), "reef_wardens");
-    if(!character->adventure_scene[0])
-        pocket_d20_copy(
-            character->adventure_scene, sizeof(character->adventure_scene), "reef_gate");
-    if(!character->adventure_checkpoint[0])
-        pocket_d20_copy(
-            character->adventure_checkpoint,
-            sizeof(character->adventure_checkpoint),
-            character->adventure_scene);
     character->size = pocket_d20_clamp_u8(character->size, PocketSizeCount - 1U);
 
     character->class_count = pocket_d20_clamp_u8(character->class_count, POCKET_D20_MAX_CLASSES);
@@ -318,17 +413,39 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
     character->spell_save_misc = (int8_t)pocket_d20_clamp_i16(character->spell_save_misc, -20, 20);
     character->arcane_recovery_used = character->arcane_recovery_used ? 1U : 0U;
 
-    character->spell_count = pocket_d20_clamp_u8(character->spell_count, POCKET_D20_MAX_SPELLS);
-    character->feature_count =
-        pocket_d20_clamp_u8(character->feature_count, POCKET_D20_MAX_FEATURES);
-    character->item_count = pocket_d20_clamp_u8(character->item_count, POCKET_D20_MAX_ITEMS);
+    /* Dynamic character collections are optional. Sanitize each collection locally
+       so an absent allocation cannot dereference NULL or invalidate unrelated fields. */
+    if(character->spell_storage && character->spells && character->spell_known &&
+       character->spell_always_prepared && character->spell_free_casts_current &&
+       character->spell_free_casts_max) {
+        uint8_t spell_limit = pocket_d20_clamp_u8(character->spell_capacity, POCKET_D20_MAX_SPELLS);
+        character->spell_count = pocket_d20_clamp_u8(character->spell_count, spell_limit);
+    } else {
+        character->spell_count = 0U;
+    }
+    if(character->features) {
+        uint8_t feature_limit = pocket_d20_clamp_u8(character->feature_capacity, POCKET_D20_MAX_FEATURES);
+        character->feature_count = pocket_d20_clamp_u8(character->feature_count, feature_limit);
+    } else {
+        character->feature_count = 0U;
+    }
+    if(character->items) {
+        uint8_t item_limit = pocket_d20_clamp_u8(character->item_capacity, POCKET_D20_MAX_ITEMS);
+        character->item_count = pocket_d20_clamp_u8(character->item_count, item_limit);
+    } else {
+        character->item_count = 0U;
+    }
+    if(character->grants) {
+        uint8_t grant_limit = pocket_d20_clamp_u8(character->grant_capacity, POCKET_D20_MAX_GRANTS);
+        character->grant_count = pocket_d20_clamp_u8(character->grant_count, grant_limit);
+    } else {
+        character->grant_count = 0U;
+    }
     character->language_count =
         pocket_d20_clamp_u8(character->language_count, POCKET_D20_MAX_LANGUAGES);
-    character->journal_count =
-        pocket_d20_clamp_u8(character->journal_count, POCKET_D20_MAX_JOURNAL);
 
     for(uint8_t i = 0U; i < character->spell_count; ++i) {
-        character->spells[i].name[POCKET_D20_NAME_LEN - 1U] = '\0';
+        character->spells[i].name[POCKET_D20_SPELL_NAME_LEN - 1U] = '\0';
         character->spells[i].detail[POCKET_D20_DETAIL_LEN - 1U] = '\0';
         character->spells[i].level = pocket_d20_clamp_u8(character->spells[i].level, 9U);
         character->spells[i].class_index =
@@ -349,7 +466,7 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
             character->spell_free_casts_current[i], character->spell_free_casts_max[i]);
     }
     for(uint8_t i = 0U; i < character->feature_count; ++i) {
-        character->features[i].name[POCKET_D20_NAME_LEN - 1U] = '\0';
+        character->features[i].name[POCKET_D20_FEATURE_NAME_LEN - 1U] = '\0';
         character->features[i].detail[POCKET_D20_DETAIL_LEN - 1U] = '\0';
         character->features[i].class_index =
             pocket_d20_clamp_u8(character->features[i].class_index, POCKET_D20_MAX_CLASSES - 1U);
@@ -364,7 +481,7 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
     }
     for(uint8_t i = 0U; i < character->item_count; ++i) {
         PocketItem* item = &character->items[i];
-        item->name[POCKET_D20_NAME_LEN - 1U] = '\0';
+        item->name[POCKET_D20_ITEM_NAME_LEN - 1U] = '\0';
         item->detail[POCKET_D20_DETAIL_LEN - 1U] = '\0';
         item->attack_ability = pocket_d20_clamp_u8(item->attack_ability, PocketAttackAbilityBest);
         item->damage_type = pocket_d20_clamp_u8(item->damage_type, PocketDamageTypeCount - 1U);
@@ -380,14 +497,6 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
     for(uint8_t i = 0U; i < POCKET_D20_MAX_LANGUAGES; ++i) {
         character->languages[i][POCKET_D20_SHORT_LEN - 1U] = '\0';
     }
-    for(uint8_t i = 0U; i < character->journal_count; ++i) {
-        PocketJournalEntry* entry = &character->journal[i];
-        entry->title[POCKET_D20_NAME_LEN - 1U] = '\0';
-        entry->body[POCKET_D20_DETAIL_LEN - 1U] = '\0';
-        entry->category = pocket_d20_clamp_u8(entry->category, PocketJournalCategoryCount - 1U);
-        entry->class_index = pocket_d20_clamp_u8(entry->class_index, POCKET_D20_MAX_CLASSES - 1U);
-    }
-
     character->conditions[POCKET_D20_DETAIL_LEN - 1U] = '\0';
     character->concentration[POCKET_D20_NAME_LEN - 1U] = '\0';
     character->temporary_effects[POCKET_D20_DETAIL_LEN - 1U] = '\0';
@@ -396,7 +505,6 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
     character->vulnerabilities[POCKET_D20_DETAIL_LEN - 1U] = '\0';
     character->movement_modes[POCKET_D20_DETAIL_LEN - 1U] = '\0';
     character->reaction_available = character->reaction_available ? 1U : 0U;
-    character->grant_count = pocket_d20_clamp_u8(character->grant_count, POCKET_D20_MAX_GRANTS);
     for(uint8_t i = 0U; i < character->grant_count; ++i) {
         PocketGrant* grant = &character->grants[i];
         grant->stable_id[POCKET_D20_SHORT_LEN - 1U] = '\0';
@@ -425,22 +533,4 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
         attack->recharge = pocket_d20_clamp_u8(attack->recharge, PocketRechargeCount - 1U);
     }
 
-    data->party_count = pocket_d20_clamp_u8(data->party_count, POCKET_D20_MAX_PARTY);
-    for(uint8_t i = 0U; i < POCKET_D20_MAX_PARTY; ++i) {
-        data->party[i].name[POCKET_D20_SHORT_LEN - 1U] = '\0';
-    }
-    data->initiative.count =
-        pocket_d20_clamp_u8(data->initiative.count, POCKET_D20_MAX_INITIATIVE);
-    if(data->initiative.round == 0U) data->initiative.round = 1U;
-    if(data->initiative.current_turn >= data->initiative.count) data->initiative.current_turn = 0U;
-    for(uint8_t i = 0U; i < POCKET_D20_MAX_INITIATIVE; ++i) {
-        data->initiative.entries[i].name[POCKET_D20_SHORT_LEN - 1U] = '\0';
-        data->initiative.entries[i].conditions[POCKET_D20_SHORT_LEN - 1U] = '\0';
-    }
-    data->encounter_history_count =
-        pocket_d20_clamp_u8(data->encounter_history_count, POCKET_D20_MAX_ENCOUNTER_HISTORY);
-    for(uint8_t i = 0U; i < data->encounter_history_count; ++i) {
-        data->encounter_history[i].kind =
-            pocket_d20_clamp_u8(data->encounter_history[i].kind, PocketHistoryKindCount - 1U);
-    }
 }
