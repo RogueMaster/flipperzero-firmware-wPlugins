@@ -90,6 +90,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
 - Added: [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
+- Updated: [Catacombs Of The Damned! v4.0 (By apfxtech)](https://github.com/apfxtech/FlipperCatacombs)
 
 <a name="release"></a>
 
@@ -217,7 +218,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Brainy v1.1 (By deya-eldeen)](https://github.com/deya-eldeen/flipperzero-brainy)
 - [BzzBzz v0.3 (By ikiruneo)](https://github.com/ikiruneo/BzzBzz)
 - [CarJacker v1.0 (By RocketGod-git)](https://github.com/RocketGod-git/Flipper-Zero-CarJacker)
-- [Catacombs Of The Damned v2.2 (By apfxtech)](https://github.com/apfxtech/FlipperCatacombs)
+- [Catacombs Of The Damned! v4.0 (By apfxtech)](https://github.com/apfxtech/FlipperCatacombs)
 - [Cell Lab v1.1 (By PilotOfAsuka)](https://github.com/PilotOfAsuka/cell_lab_fliperzero)
 - [Checkers v1.0 (By H4W9)](https://github.com/H4W9/FlipCheckers)
 - [Chess Clock (By ihatecsv)](https://github.com/ihatecsv/flipper_chess_clock)

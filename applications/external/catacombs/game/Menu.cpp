@@ -8,12 +8,11 @@
 #include "game/Generated/SpriteTypes.h"
 #include "game/Map.h"
 #include "game/FixedMath.h"
-#include "lib/EEPROM.h"
 
 #include <stdio.h>
 #include <string.h>
 
-constexpr uint8_t EEPROM_BASE_ADDR = 0;
+constexpr uint8_t SAVE_BASE_ADDR = 0;
 
 struct ObjDesc {
     const uint16_t* sprite;
@@ -23,30 +22,33 @@ struct ObjDesc {
 };
 
 static const ObjDesc kObjects[] = {
-    {chestSpriteData, false, false, 0},
-    {crownSpriteData, false, false, 1},
-    {scrollSpriteData, false, false, 2},
-    {coinsSpriteData, false, false, 3},
-    {skeletonSpriteData, true, false, 4},
-    {mageSpriteData, true, false, 5},
-    {batSpriteData, true, true, 6},
-    {spiderSpriteData, true, false, 7},
-    {exitSpriteData, false, false, 8}};
+    { chestSpriteData,    false, false, 0 },
+    { crownSpriteData,    false, false, 1 },
+    { scrollSpriteData,   false, false, 2 },
+    { coinsSpriteData,    false, false, 3 },
+    { skeletonSpriteData, true,  false, 4 },
+    { mageSpriteData,     true,  false, 5 },
+    { batSpriteData,      true,  true,  6 },
+    { spiderSpriteData,   true,  false, 7 },
+    { exitSpriteData,     false, false, 8 }
+};
 
 static constexpr uint8_t kObjectsCount = (uint8_t)(sizeof(kObjects) / sizeof(kObjects[0]));
 static constexpr uint8_t SHIFT_MASK = 63;
 
 namespace {
-constexpr uint8_t MENU_ITEMS_COUNT = 4;
+constexpr uint8_t MENU_ITEMS_COUNT = 6;
 constexpr uint8_t VISIBLE_ROWS = 2;
 
 constexpr uint8_t MENU_FIRST_ROW = 4;
 constexpr uint8_t TEXT_X = 18;
 constexpr uint8_t CURSOR_X = 10;
 
-constexpr uint8_t SPLASH_TIME_TICKS = 45;
-static uint8_t splashTimer = 0;
-static bool splashActive = true;
+constexpr uint8_t TITLE_TIME_TICKS = 90; // ~3 s at 30 fps
+
+// "by JHHOWARD & APFXTECH" is 22 glyphs of 4 px, minus the trailing spacing
+constexpr uint8_t CREDIT_ROW = 7;
+constexpr uint8_t CREDIT_X = (DISPLAY_WIDTH - (4 * 22 - 1)) / 2;
 
 static uint8_t Wrap(int v, int n) {
     v %= n;
@@ -284,23 +286,34 @@ void DrawMenuRoom() {
 #undef MENU_SOLID_SAFE
 #undef MENU_SOLID
 }
+
+void DrawTitleDecor() {
+    const uint16_t* torchSprite =
+        (Game::globalTickFrame & 4) ? torchSpriteData1 : torchSpriteData2;
+    const int spiderFrame = ((Game::globalTickFrame & 8) == 0) ? 32 : 0;
+
+    Renderer::DrawScaled(torchSprite, 4, 18, 10, 255);
+    Renderer::DrawScaled(spiderSpriteData + spiderFrame, 102, 34, 11, 255);
+}
 }
 
 void Menu::Draw() {
     DrawMenuRoom();
 
-    if(splashActive) {
-        Font::PrintString(PSTR("FLIPPER GAME"), 2, 42, COLOUR_WHITE);
-        Font::PrintString(PSTR("JHHOWARD & APFXTECH"), 4, 26, COLOUR_WHITE);
-        Font::PrintString(PSTR("PRESENT"), 6, 52, COLOUR_WHITE);
+    // The logo and the border frame are drawn straight onto the canvas in main.cpp
+    if (ShowsTitleScreen()) {
+        DrawTitleDecor();
+        if (m_splashPhase == SplashPhase::Credits) {
+            Font::PrintString("by JHHOWARD & APFXTECH", CREDIT_ROW, CREDIT_X, COLOUR_WHITE);
+        }
         return;
     }
 
-    Font::PrintString(PSTR("CATACOMBS OF THE DAMNED"), 2, 18, COLOUR_WHITE);
+    Font::PrintString("CATACOMBS OF THE DAMNED", 2, 18, COLOUR_WHITE);
 
-    for(uint8_t row = 0; row < VISIBLE_ROWS; ++row) {
+    for (uint8_t row = 0; row < VISIBLE_ROWS; ++row) {
         uint8_t idx = (uint8_t)(m_topIndex + row);
-        if(idx >= MENU_ITEMS_COUNT) break;
+        if (idx >= MENU_ITEMS_COUNT) break;
         PrintItem(idx, (uint8_t)(MENU_FIRST_ROW + row));
     }
 
@@ -309,18 +322,18 @@ void Menu::Draw() {
 
     const uint16_t frame = (uint16_t)Game::globalTickFrame;
 
-    if(frame != lastFrameSeen) {
-        if((frame & SHIFT_MASK) == 0) {
+    if (frame != lastFrameSeen) {
+        if ((frame & SHIFT_MASK) == 0) {
             bubble = (uint8_t)(bubble + 2);
-            if(bubble >= kObjectsCount) bubble = (uint8_t)(bubble - kObjectsCount);
-            if(bubble >= kObjectsCount) bubble = (uint8_t)(bubble - kObjectsCount);
+            if (bubble >= kObjectsCount) bubble = (uint8_t)(bubble - kObjectsCount);
+            if (bubble >= kObjectsCount) bubble = (uint8_t)(bubble - kObjectsCount);
         }
         lastFrameSeen = frame;
     }
 
     const uint8_t num1 = bubble;
     uint8_t num2 = (uint8_t)(bubble + 1);
-    if(num2 >= kObjectsCount) num2 = 0;
+    if (num2 >= kObjectsCount) num2 = 0;
 
     const ObjDesc& sprite1 = kObjects[num1];
     const ObjDesc& sprite2 = kObjects[num2];
@@ -329,16 +342,16 @@ void Menu::Draw() {
     const int off1 = sprite1.animated ? animOffset : 0;
     const int off2 = sprite2.animated ? animOffset : 0;
 
-    const uint16_t* torchSprite = (Game::globalTickFrame & 4) ? torchSpriteData1 :
-                                                                torchSpriteData2;
+    const uint16_t* torchSprite =
+        (Game::globalTickFrame & 4) ? torchSpriteData1 : torchSpriteData2;
 
-    if(sprite1.invert) {
+    if (sprite1.invert) {
         Renderer::DrawScaled(sprite1.sprite + off1, 66, 29, 9, 255, true, COLOUR_BLACK);
     } else {
         Renderer::DrawScaled(sprite1.sprite + off1, 66, 29, 9, 255);
     }
 
-    if(sprite2.invert) {
+    if (sprite2.invert) {
         Renderer::DrawScaled(sprite2.sprite + off2, 96, 30, 9, 255, true, COLOUR_BLACK);
     } else {
         Renderer::DrawScaled(sprite2.sprite + off2, 96, 30, 9, 255);
@@ -350,26 +363,36 @@ void Menu::Draw() {
     Font::PrintInt(m_save[sprite1.varsIndex], MENU_FIRST_ROW + 1, 86, COLOUR_WHITE);
     Font::PrintInt(m_save[sprite2.varsIndex], MENU_FIRST_ROW + 1, 116, COLOUR_WHITE);
 
-    Font::PrintString(PSTR(">"), (uint8_t)(MENU_FIRST_ROW + m_cursorPos), CURSOR_X, COLOUR_WHITE);
+    Font::PrintString(">", (uint8_t)(MENU_FIRST_ROW + m_cursorPos), CURSOR_X, COLOUR_WHITE);
+
+    Font::PrintString("by JHHOWARD & APFXTECH", CREDIT_ROW, CREDIT_X, COLOUR_WHITE);
 }
 
 void Menu::PrintItem(uint8_t idx, uint8_t row) {
     switch(idx) {
     case 0:
-        Font::PrintString(PSTR("Play"), row, TEXT_X, COLOUR_WHITE);
+        Font::PrintString("Play", row, TEXT_X, COLOUR_WHITE);
         break;
     case 1:
-        Font::PrintString(PSTR("Sound:"), row, TEXT_X, COLOUR_WHITE);
+        Font::PrintString("Sound:", row, TEXT_X, COLOUR_WHITE);
         Font::PrintString(
-            Platform::IsAudioEnabled() ? PSTR("on") : PSTR("off"), row, TEXT_X + 28, COLOUR_WHITE);
+            Platform::IsAudioEnabled() ? "on" : "off", row, TEXT_X + 28, COLOUR_WHITE);
         break;
     case 2:
-        Font::PrintString(PSTR("Score:"), row, TEXT_X, COLOUR_WHITE);
-        Font::PrintInt(m_score, row, TEXT_X + 28, COLOUR_WHITE);
+        Font::PrintString("Light:", row, TEXT_X, COLOUR_WHITE);
+        Font::PrintString(
+            Platform::IsBacklightEnabled() ? "on" : "off", row, TEXT_X + 28, COLOUR_WHITE);
         break;
     case 3:
-        Font::PrintString(PSTR("High:"), row, TEXT_X, COLOUR_WHITE);
+        Font::PrintString("Score:", row, TEXT_X, COLOUR_WHITE);
+        Font::PrintInt(m_score, row, TEXT_X + 28, COLOUR_WHITE);
+        break;
+    case 4:
+        Font::PrintString("High:", row, TEXT_X, COLOUR_WHITE);
         Font::PrintInt(m_high, row, TEXT_X + 28, COLOUR_WHITE);
+        break;
+    case 5:
+        Font::PrintString("Credits", row, TEXT_X, COLOUR_WHITE);
         break;
     }
 }
@@ -379,13 +402,19 @@ void Menu::Init() {
     m_topIndex = 0;
     m_cursorPos = 0;
 
-    splashTimer = 0;
-    splashActive = true;
+    m_splashTimer = 0;
+    m_splashPhase = SplashPhase::Title;
+}
+
+void Menu::CloseCredits() {
+    if(m_splashPhase == SplashPhase::Credits) {
+        m_splashPhase = SplashPhase::Done;
+    }
 }
 
 void Menu::DrawEnteringLevel() {
     DrawMenuRoom();
-    Font::PrintString(PSTR("Entering floor"), 3, 30, COLOUR_BLACK);
+    Font::PrintString("Entering floor", 3, 30, COLOUR_BLACK);
     Font::PrintInt(Game::floor, 3, 90, COLOUR_BLACK);
 }
 
@@ -442,25 +471,25 @@ void Menu::DrawGameOver() {
 
     switch(Game::stats.killedBy) {
     case EnemyType::Exit:
-        Font::PrintString(PSTR("You have left the game."), 1, 18, COLOUR_BLACK);
+        Font::PrintString("You have left the game.", 1, 18, COLOUR_BLACK);
         break;
     case EnemyType::None:
-        Font::PrintString(PSTR("You escaped the catacombs!"), 1, 12, COLOUR_BLACK);
+        Font::PrintString("You escaped the catacombs!", 1, 12, COLOUR_BLACK);
         break;
     case EnemyType::Mage:
-        Font::PrintString(PSTR("Killed by a mage on level"), 1, 8, COLOUR_BLACK);
+        Font::PrintString("Killed by a mage on level", 1, 8, COLOUR_BLACK);
         Font::PrintInt(Game::floor, 1, 112, COLOUR_BLACK);
         break;
     case EnemyType::Skeleton:
-        Font::PrintString(PSTR("Killed by a knight on level"), 1, 4, COLOUR_BLACK);
+        Font::PrintString("Killed by a knight on level", 1, 4, COLOUR_BLACK);
         Font::PrintInt(Game::floor, 1, 116, COLOUR_BLACK);
         break;
     case EnemyType::Bat:
-        Font::PrintString(PSTR("Killed by a bat on level"), 1, 10, COLOUR_BLACK);
+        Font::PrintString("Killed by a bat on level", 1, 10, COLOUR_BLACK);
         Font::PrintInt(Game::floor, 1, 110, COLOUR_BLACK);
         break;
     case EnemyType::Spider:
-        Font::PrintString(PSTR("Killed by a spider on level"), 1, 4, COLOUR_BLACK);
+        Font::PrintString("Killed by a spider on level", 1, 4, COLOUR_BLACK);
         Font::PrintInt(Game::floor, 1, 116, COLOUR_BLACK);
         break;
     }
@@ -506,7 +535,7 @@ void Menu::DrawGameOver() {
 
     if(Game::floor > 0) {
         m_save[8] = Game::floor - 1;
-    }
+    } 
 
     SetScore(finalScore);
 }
@@ -515,9 +544,16 @@ void Menu::Tick() {
     static uint8_t lastInput = 0;
     uint8_t input = Platform::GetInput();
 
-    if(splashActive) {
-        if(splashTimer < SPLASH_TIME_TICKS) splashTimer++;
-        if(splashTimer >= SPLASH_TIME_TICKS) splashActive = false;
+    if(m_splashPhase != SplashPhase::Done) {
+        if(m_splashPhase == SplashPhase::Credits) {
+            // Any fresh press leaves; the button that opened the screen is still
+            // held down on the first tick here, so only a new edge counts
+            if((uint8_t)(input & ~lastInput) != 0) CloseCredits();
+        } else if(++m_splashTimer >= TITLE_TIME_TICKS) {
+            m_splashTimer = 0;
+            m_splashPhase = SplashPhase::Done;
+        }
+
         lastInput = input;
         return;
     }
@@ -587,6 +623,12 @@ void Menu::Tick() {
         case 1:
             Platform::SetAudioEnabled(!Platform::IsAudioEnabled());
             break;
+        case 2:
+            Platform::SetBacklightEnabled(!Platform::IsBacklightEnabled());
+            break;
+        case 5:
+            m_splashPhase = SplashPhase::Credits;
+            break;
         default:
             break;
         }
@@ -617,7 +659,7 @@ void Menu::TickGameOver() {
 
 static inline void DrawEraseTile8x8(int16_t x, int16_t y, const uint8_t* frame8bytes) {
     for(uint8_t row = 0; row < 8; row++) {
-        uint8_t rowMask = pgm_read_byte(frame8bytes + row);
+        uint8_t rowMask = frame8bytes[row];
         while(rowMask) {
             uint8_t b = (uint8_t)__builtin_ctz((unsigned)rowMask);
             uint8_t col = 7 - b;
@@ -628,8 +670,8 @@ static inline void DrawEraseTile8x8(int16_t x, int16_t y, const uint8_t* frame8b
 }
 
 void Menu::DrawTransitionFrame(uint8_t frameIndex) {
-    const uint8_t w = pgm_read_byte(transitionSet + 0);
-    const uint8_t h = pgm_read_byte(transitionSet + 1);
+    const uint8_t w = transitionSet[0];
+    const uint8_t h = transitionSet[1];
     (void)w;
     (void)h;
 
@@ -673,15 +715,16 @@ void Menu::FadeOut() {
 }
 
 void Menu::ReadSave() {
-    uint8_t addr = EEPROM_BASE_ADDR;
-    m_score = (uint16_t)EEPROM.read(addr) | ((uint16_t)EEPROM.read(addr + 1) << 8);
-    addr += 2;
-    m_high = (uint16_t)EEPROM.read(addr) | ((uint16_t)EEPROM.read(addr + 1) << 8);
-    addr += 2;
+    uint8_t data[SAVE_DATA_SIZE] = {0};
+    Platform::ReadSaveData(data);
+
+    uint8_t addr = SAVE_BASE_ADDR;
+    m_score = (uint16_t)data[addr] | ((uint16_t)data[addr + 1] << 8); addr += 2;
+    m_high = (uint16_t)data[addr] | ((uint16_t)data[addr + 1] << 8);  addr += 2;
     m_storedHigh = m_high;
 
     for(int i = 0; i < 9; i++) {
-        m_save[i] = EEPROM.read(addr++);
+        m_save[i] = data[addr++];
     }
 }
 
@@ -692,14 +735,18 @@ void Menu::SetScore(uint16_t score) {
 }
 
 void Menu::WriteSave() {
-    uint8_t addr = EEPROM_BASE_ADDR;
-    EEPROM.update(addr++, (uint8_t)(m_score & 0xFF));
-    EEPROM.update(addr++, (uint8_t)(m_score >> 8));
-    EEPROM.update(addr++, (uint8_t)(m_high & 0xFF));
-    EEPROM.update(addr++, (uint8_t)(m_high >> 8));
+    uint8_t data[SAVE_DATA_SIZE] = {0};
+    Platform::ReadSaveData(data);
+
+    uint8_t addr = SAVE_BASE_ADDR;
+    data[addr++] = (uint8_t)(m_score & 0xFF);
+    data[addr++] = (uint8_t)(m_score >> 8);
+    data[addr++] = (uint8_t)(m_high & 0xFF);
+    data[addr++] = (uint8_t)(m_high >> 8);
 
     for(int i = 0; i < 9; i++) {
-        EEPROM.update(addr++, m_save[i]);
+        data[addr++] = m_save[i];
     }
-    EEPROM.commit();
+
+    Platform::WriteSaveData(data);
 }

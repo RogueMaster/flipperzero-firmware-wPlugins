@@ -1,11 +1,12 @@
 #include <furi.h>
 #include <furi_hal.h>
+#include <storage/storage.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "lib/flipper.h"
+#include "game/Flipper.h"
 
 #define COLOUR_WHITE 0
 #define COLOUR_BLACK 1
@@ -16,7 +17,38 @@
 #include "game/Platform.h"
 #include "game/Defines.h"
 #include "game/Sounds.h"
-#include "lib/EEPROM.h"
+
+// ---------------- SAVE ----------------
+
+#define SAVE_PATH APP_DATA_PATH("eeprom.bin")
+
+void Platform::ReadSaveData(uint8_t* data) {
+    memset(data, 0x00, SAVE_DATA_SIZE);
+
+    Storage* storage = (Storage*)furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+
+    if(storage_file_open(file, SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_read(file, data, SAVE_DATA_SIZE);
+        storage_file_close(file);
+    }
+
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+}
+
+void Platform::WriteSaveData(const uint8_t* data) {
+    Storage* storage = (Storage*)furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+
+    if(storage_file_open(file, SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        storage_file_write(file, data, SAVE_DATA_SIZE);
+        storage_file_close(file);
+    }
+
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+}
 
 // ---------------- SOUND ----------------
 
@@ -132,6 +164,30 @@ void Platform::SetAudioEnabled(bool enabled) {
         sound_system_deinit();
 }
 
+// ---------------- BACKLIGHT ----------------
+
+// The firmware's enforce lock is a plain flag, not a counter: sending "auto"
+// without a matching "on" logs an error, so only real transitions are sent.
+static void backlight_send(const NotificationSequence* sequence) {
+    NotificationApp* notifications = (NotificationApp*)furi_record_open(RECORD_NOTIFICATION);
+    notification_message_block(notifications, sequence);
+    furi_record_close(RECORD_NOTIFICATION);
+}
+
+bool Platform::IsBacklightEnabled() {
+    return g_state && g_state->backlight_enabled;
+}
+
+void Platform::SetBacklightEnabled(bool enabled) {
+    if(!g_state) return;
+    if(g_state->backlight_enabled == enabled) return;
+
+    g_state->backlight_enabled = enabled;
+    backlight_send(
+        enabled ? &sequence_display_backlight_enforce_on :
+                  &sequence_display_backlight_enforce_auto);
+}
+
 // ---------------- INPUT ----------------
 
 uint8_t Platform::GetInput() {
@@ -150,7 +206,7 @@ static inline void set_pixel(int16_t x, int16_t y, bool color) {
     if(!g_state) return;
     if((uint16_t)x >= DISPLAY_WIDTH || (uint16_t)y >= DISPLAY_HEIGHT) return;
 
-    uint8_t* buf = g_state->back_buffer;
+    uint8_t* buf = g_state->framebuffer;
     uint16_t idx = (uint16_t)(x + (y >> 3) * DISPLAY_WIDTH);
     uint8_t mask = (uint8_t)(1u << (y & 7));
 
@@ -166,11 +222,11 @@ void Platform::PutPixel(uint8_t x, uint8_t y, uint8_t color) {
 
 void Platform::FillScreen(uint8_t color) {
     if(!g_state) return;
-    memset(g_state->back_buffer, color ? 0xFF : 0x00, BUFFER_SIZE);
+    memset(g_state->framebuffer, color ? 0xFF : 0x00, BUFFER_SIZE);
 }
 
 uint8_t* Platform::GetScreenBuffer() {
-    return g_state ? g_state->back_buffer : NULL;
+    return g_state ? g_state->framebuffer : NULL;
 }
 
 void Platform::DrawVLine(uint8_t x, int8_t y0, int8_t y1, uint8_t pattern) {
@@ -195,7 +251,7 @@ void Platform::DrawVLine(uint8_t x, int8_t y0, int8_t y1, uint8_t pattern) {
     uint8_t start_bit = (uint8_t)(top & 7);
     uint8_t end_bit = (uint8_t)(bottom & 7);
 
-    uint8_t* buf = g_state->back_buffer;
+    uint8_t* buf = g_state->framebuffer;
 
     if(start_page == end_page) {
         uint8_t clip_mask =
@@ -235,7 +291,7 @@ void Platform::DrawBitmap(int16_t x, int16_t y, const uint8_t* bmp) {
 
     const uint8_t* data = bmp + 2;
     uint8_t pages = (uint8_t)((h + 7u) >> 3);
-    uint8_t* dst = g_state->back_buffer;
+    uint8_t* dst = g_state->framebuffer;
 
     for(int16_t dx = x0; dx < x1; dx++) {
         uint8_t sx = (uint8_t)(dx - x);
@@ -280,7 +336,7 @@ void Platform::DrawSolidBitmap(int16_t x, int16_t y, const uint8_t* bmp) {
 
     const uint8_t* data = bmp + 2;
     uint8_t pages = (uint8_t)((h + 7u) >> 3);
-    uint8_t* dst = g_state->back_buffer;
+    uint8_t* dst = g_state->framebuffer;
 
     for(int16_t dx = x0; dx < x1; dx++) {
         uint8_t sx = (uint8_t)(dx - x);
@@ -329,7 +385,7 @@ void Platform::DrawSprite(int16_t x, int16_t y, const uint8_t* bmp, uint8_t fram
     uint8_t pages = (uint8_t)((h + 7u) >> 3);
     uint16_t frame_size = (uint16_t)(w * pages);
     const uint8_t* data = bmp + 2 + (uint32_t)frame * frame_size * 2u;
-    uint8_t* dst = g_state->back_buffer;
+    uint8_t* dst = g_state->framebuffer;
 
     for(int16_t dx = x0; dx < x1; dx++) {
         uint8_t sx = (uint8_t)(dx - x);

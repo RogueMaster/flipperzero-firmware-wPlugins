@@ -11,7 +11,7 @@
 #include "game/Font.h"
 
 #include "game/LUT.h"
-#include "game/Generated/spritedata_inc.h"
+#include "game/Generated/SpriteData.inc.h"
 
 #if WITH_VECTOR_TEXTURES
 #include "game/Textures.h"
@@ -31,10 +31,10 @@ uint8_t Renderer::numBufferSlicesFilled = 0;
 QueuedDrawable Renderer::queuedDrawables[MAX_QUEUED_DRAWABLES];
 uint8_t Renderer::numQueuedDrawables = 0;
 
-const uint8_t scaleDrawWriteMasks[] PROGMEM =
+const uint8_t scaleDrawWriteMasks[] =
     {(1), (1 << 1), (1 << 2), (1 << 3), (1 << 4), (1 << 5), (1 << 6), (1 << 7)};
 
-const uint16_t scaleDrawReadMasks[] PROGMEM = {
+const uint16_t scaleDrawReadMasks[] = {
     (1),
     (1 << 1),
     (1 << 2),
@@ -213,18 +213,17 @@ void Renderer::DrawWallSegment(
             {
                 // Clip vertical extents (already safe here)
                 uint8_t y1s = (w > horizon) ? 0 : (uint8_t)(horizon - w);
-                uint8_t y2s = (horizon + w > DISPLAY_HEIGHT) ? DISPLAY_HEIGHT :
-                                                               (uint8_t)(horizon + w);
+                uint8_t y2s = (horizon + w > DISPLAY_HEIGHT) ? DISPLAY_HEIGHT : (uint8_t)(horizon + w);
 
                 DrawVLine(x, y1s, y2s, sliceMask);
 
-                uint16_t textureData = pgm_read_word(&texture[u % 16]);
+                uint16_t textureData = texture[u % 16];
                 const uint16_t wallSize = (uint16_t)(w * 2);
                 uint16_t wallPos = (uint16_t)(y1s - (horizon - w));
 
                 for(uint8_t y = y1s; y < y2s; y++) {
                     uint8_t v = (uint8_t)((16u * wallPos) / wallSize);
-                    uint16_t mask = pgm_read_word(&scaleDrawReadMasks[v]);
+                    uint16_t mask = scaleDrawReadMasks[v];
 
                     if((textureData & mask) == 0) {
                         Platform::PutPixel((uint8_t)x, y, 0);
@@ -275,10 +274,8 @@ void Renderer::DrawWallSegment(
                 int16_t yA = horizon + w - 1;
                 int16_t yB = horizon - w;
 
-                if((uint16_t)yA < DISPLAY_HEIGHT)
-                    Platform::PutPixel((uint8_t)x, (uint8_t)yA, edgeColour);
-                if((uint16_t)yB < DISPLAY_HEIGHT)
-                    Platform::PutPixel((uint8_t)x, (uint8_t)yB, edgeColour);
+                if((uint16_t)yA < DISPLAY_HEIGHT) Platform::PutPixel((uint8_t)x, (uint8_t)yA, edgeColour);
+                if((uint16_t)yB < DISPLAY_HEIGHT) Platform::PutPixel((uint8_t)x, (uint8_t)yB, edgeColour);
             }
         }
 
@@ -298,27 +295,23 @@ void Renderer::DrawWallSegment(
     if(u1clip == u2clip) return;
 
     const uint8_t* texPtr = texture;
-    uint8_t numLines = pgm_read_byte(texPtr++);
+    uint8_t numLines = *texPtr++;
     while(numLines) {
         numLines--;
 
-        uint8_t u1 = pgm_read_byte(texPtr++);
-        uint8_t v1 = pgm_read_byte(texPtr++);
-        uint8_t u2 = pgm_read_byte(texPtr++);
-        uint8_t v2 = pgm_read_byte(texPtr++);
+        uint8_t u1 = *texPtr++;
+        uint8_t v1 = *texPtr++;
+        uint8_t u2 = *texPtr++;
+        uint8_t v2 = *texPtr++;
 
         if(u2 < u1clip || u1 > u2clip) continue;
 
         if(u1 < u1clip) {
-            if(u2 != u1)
-                v1 = (uint8_t)(v1 +
-                               (uint8_t)((u1clip - u1) * (int16_t)(v2 - v1) / (int16_t)(u2 - u1)));
+            if(u2 != u1) v1 = (uint8_t)(v1 + (uint8_t)((u1clip - u1) * (int16_t)(v2 - v1) / (int16_t)(u2 - u1)));
             u1 = u1clip;
         }
         if(u2 > u2clip) {
-            if(u2 != u1)
-                v2 = (uint8_t)(v2 +
-                               (uint8_t)((u2clip - u2) * (int16_t)(v1 - v2) / (int16_t)(u1 - u2)));
+            if(u2 != u1) v2 = (uint8_t)(v2 + (uint8_t)((u2clip - u2) * (int16_t)(v1 - v2) / (int16_t)(u1 - u2)));
             u2 = u2clip;
         }
 
@@ -346,6 +339,7 @@ void Renderer::DrawWallSegment(
     }
 #endif
 }
+
 
 bool Renderer::isFrustrumClipped(int16_t x, int16_t y) {
     if((camera.clipCos * (x - camera.cellX) - camera.clipSin * (y - camera.cellY)) < -512)
@@ -869,21 +863,21 @@ void DrawScaledOutline(
                     break;
                 }
             } else {
-                const uint8_t u = pgm_read_byte(&lut[i >> shiftAmount]);
+                const uint8_t u = lut[i >> shiftAmount];
 
                 if(wasVisible) {
                     leftTransparencyAndColourColumn = middleColourColumn &
                                                       middleTransparencyColumn;
                     middleColourColumn = rightColourColumn;
                     middleTransparencyColumn = rightTransparencyColumn;
-                    rightTransparencyColumn = pgm_read_word(&data[u * 2]);
-                    rightColourColumn = pgm_read_word(&data[u * 2 + 1]) ^ invertMask;
+                    rightTransparencyColumn = data[u * 2];
+                    rightColourColumn = data[u * 2 + 1] ^ invertMask;
                     leftRightOutlineColumn = leftTransparencyAndColourColumn |
                                              (rightColourColumn & rightTransparencyColumn);
                 } else {
                     leftTransparencyAndColourColumn = 0;
-                    rightTransparencyColumn = pgm_read_word(&data[u * 2]);
-                    rightColourColumn = pgm_read_word(&data[u * 2 + 1]) ^ invertMask;
+                    rightTransparencyColumn = data[u * 2];
+                    rightColourColumn = data[u * 2 + 1] ^ invertMask;
                     middleColourColumn = rightColourColumn;
                     middleTransparencyColumn = rightTransparencyColumn;
                     leftRightOutlineColumn = (rightColourColumn & rightTransparencyColumn);
@@ -894,7 +888,7 @@ void DrawScaledOutline(
             uint8_t bufferPos = (outY & 7);
             uint8_t* screenBuffer = Platform::GetScreenBuffer() + outX + ((outY & 0x38) << 4);
             uint8_t localBuffer = *screenBuffer;
-            uint8_t writeMask = pgm_read_byte(&scaleDrawWriteMasks[bufferPos]);
+            uint8_t writeMask = scaleDrawWriteMasks[bufferPos];
 
             bool upIsOpaqueAndWhite = false;
             bool middleIsOpaque = false;
@@ -915,8 +909,8 @@ void DrawScaledOutline(
                     downIsWhite = false;
                     downLeftOrRightIsOutline = false;
                 } else {
-                    uint8_t v = pgm_read_byte(&lut[j >> shiftAmount]);
-                    uint16_t mask = pgm_read_word(&scaleDrawReadMasks[v]);
+                    uint8_t v = lut[j >> shiftAmount];
+                    uint16_t mask = scaleDrawReadMasks[v];
                     downLeftOrRightIsOutline = (leftRightOutlineColumn & mask) != 0;
                     downIsOpaque = (middleTransparencyColumn & mask) != 0;
                     downIsWhite = (middleColourColumn & mask) != 0;
@@ -979,18 +973,18 @@ inline void DrawScaledNoOutline(
         const bool isVisible = Renderer::wBuffer[outX] < inverseCameraDistance;
 
         if(isVisible) {
-            const uint8_t u = pgm_read_byte(&lut[i / scaleMultiplier]);
+            const uint8_t u = lut[i / scaleMultiplier];
             int8_t outY = y >= 0 ? y : 0;
             uint8_t bufferPos = (outY & 7);
             uint8_t* screenBuffer = Platform::GetScreenBuffer() + outX + ((outY & 0x38) << 4);
             uint8_t localBuffer = *screenBuffer;
-            uint8_t writeMask = pgm_read_byte(&scaleDrawWriteMasks[bufferPos]);
-            uint16_t transparencyColumn = pgm_read_word(&data[u * 2]);
-            uint16_t colourColumn = pgm_read_word(&data[u * 2 + 1]);
+            uint8_t writeMask = scaleDrawWriteMasks[bufferPos];
+            uint16_t transparencyColumn = data[u * 2];
+            uint16_t colourColumn = data[u * 2 + 1];
 
             for(uint8_t j = j0; j < j1; j += scaleMultiplier) {
-                uint8_t v = pgm_read_byte(&lut[j / scaleMultiplier]);
-                uint16_t mask = pgm_read_word(&scaleDrawReadMasks[v]);
+                uint8_t v = lut[j / scaleMultiplier];
+                uint16_t mask = scaleDrawReadMasks[v];
 
                 for(uint8_t k = 0; k < scaleMultiplier; k++) {
                     bool isOpaque = (transparencyColumn & mask) != 0;
@@ -1263,7 +1257,7 @@ void Renderer::DrawBar(uint8_t* screenPtr, const uint8_t* iconData, uint8_t amou
     uint8_t x = 0;
 
     while(x < iconWidth) {
-        screenPtr[x] = pgm_read_byte(&iconData[x]);
+        screenPtr[x] = iconData[x];
         x++;
     }
 

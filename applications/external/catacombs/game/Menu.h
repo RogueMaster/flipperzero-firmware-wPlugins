@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 // 8x8, 8 кадров (0..7) — как в первом коде
-static const uint8_t PROGMEM transitionSet[] = {
+static const uint8_t transitionSet[] = {
     8,
     8,
     // FRAME 00
@@ -81,6 +81,21 @@ static const uint8_t PROGMEM transitionSet[] = {
 
 class Menu {
 public:
+    // Startup sequence: title screen, then the menu. The Credits item replays
+    // that title screen from the menu, with the credit line under the logo.
+    enum class SplashPhase : uint8_t { Title, Done, Credits };
+
+    // main.cpp overlays the logo and the border frame while this is set
+    bool ShowsTitleScreen() const {
+        return m_splashPhase != SplashPhase::Done;
+    }
+
+    bool InCredits() const {
+        return m_splashPhase == SplashPhase::Credits;
+    }
+
+    void CloseCredits();
+
     void Init();
     void Draw();
     void Tick();
@@ -105,6 +120,9 @@ private:
 
     void SetScore(uint16_t score);
     void PrintItem(uint8_t idx, uint8_t row);
+
+    SplashPhase m_splashPhase = SplashPhase::Title;
+    uint8_t m_splashTimer = 0;
 
     uint8_t m_selection = 0;
     uint8_t m_topIndex = 0;
