@@ -1,0 +1,26 @@
+description: "Async TCP Library for ESP32 Arduino"
+url: "https://github.com/ESP32Async/AsyncTCP"
+license: "LGPL-3.0-or-later"
+files:
+  exclude:
+    - "idf_component_examples/"
+    - "idf_component_examples/**/*"
+    - "examples/"
+    - "examples/**/*"
+    - ".gitignore"
+    - ".clang-format"
+    - ".gitpod.Dockerfile"
+    - ".gitpod.yml"
+    - ".codespellrc"
+    - ".editorconfig"
+    - ".pre-commit-config.yaml"
+    - "arduino-cli.yaml"
+    - "arduino-cli-dev.yaml"
+    - "CODE_OF_CONDUCT.md"
+    - "component.mk"
+    - "library.json"
+    - "library.properties"
+    - "platformio.ini"
+    - "pre-commit.requirements.txt"
+examples:
+  - path: ./idf_component_examples/client

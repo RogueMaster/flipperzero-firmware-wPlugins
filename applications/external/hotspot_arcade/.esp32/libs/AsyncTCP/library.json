@@ -1,6 +1,6 @@
 {
   "name": "AsyncTCP",
-  "version": "3.3.2",
+  "version": "3.5.0",
   "description": "Asynchronous TCP Library for ESP32",
   "keywords": "async,tcp",
   "repository": {

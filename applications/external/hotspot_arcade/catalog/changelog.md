@@ -1,3 +1,23 @@
+## 1.9.0
+
+- One score for the whole evening. Games pay on very different scales, so a ranking across
+  them never meant much. Now, at the end of any game, you gain a point for every player you
+  finished above: win a six-player round and that is five, win a one-on-one and that is one.
+  Each game keeps its own scoring exactly as it was. The phone lobby becomes a ranked board
+  between games and a badge keeps your running total on screen while you play. Thanks to
+  genkigenki for raising it.
+- The join page opens by itself again. The hotspot was handing out an address but never
+  telling phones where to look up names, so phones decided there was simply no internet and
+  never offered the portal. Typing 192.168.4.1 by hand always worked, which is why this
+  went unnoticed for so long.
+- Holds up with several phones. A busy session could run the board out of usable memory
+  until the page stopped loading and a second phone could not finish connecting, while
+  nearly 2 MB of the board's spare memory sat unused. It can use that memory now.
+- New Reset Scores control on the Flipper, and the Leaderboard now ranks on the evening's
+  total, shows the current game beside it, and fits one more player on screen.
+- Renaming yourself mid-game no longer wipes your score on the Flipper, a phone that drops
+  and comes back keeps it, and winning at Battleship finally scores at all.
+
 ## 1.8.0
 
 - Four new games, twenty in all. Fill the Blank: a prompt with a gap, everyone answers

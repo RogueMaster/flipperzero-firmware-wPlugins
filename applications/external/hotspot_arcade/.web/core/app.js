@@ -389,6 +389,20 @@ function setNick() {
   el.classList.toggle("hide", !A.nick);
 }
 
+/* Your cross-game total, in the header so it survives every screen change.
+   The per-game leaderboard comes and goes with the game -- it is hidden on lobbies,
+   countdowns and finals, and resets to zero on every switch -- so before this there was
+   no moment where a player could see what the evening had added up to. Hidden until you
+   are on the board, so a fresh room is not covered in zeroes. */
+A.myTotal = 0;
+function setTotal() {
+  var el = $("hdr-total");
+  if (!el) return;
+  el.textContent = "\u2605 " + A.myTotal;
+  el.title = t("lobby.your_total");
+  el.classList.toggle("hide", !A.nick || !A.myTotal);
+}
+
 /* WebSocket URL derives from the host so a local mock server also works.
    On the ESP this resolves to ws://192.168.4.1/ws. */
 function wsUrl() {
@@ -670,15 +684,30 @@ function onLobby(m) {
   if (A.joined && A.players.length > prevCount && prevCount > 0) { A.sfx("join"); A.vibe(20); }
   $("lobby-me").textContent = A.nick ? "You: " + A.nick : "";
 
+  // Ranked on the cross-game total, which is the only number that means anything here.
+  // This list used to sit in pid order showing the per-game score, and between games that
+  // is zero for everybody -- a leaderboard of nothing, right where players look to see how
+  // the evening is going.
+  var me = A.players.filter(function (p) { return p.pid === A.pid; })[0];
+  A.myTotal = me ? (me.total || 0) : 0;
+  setTotal();
+
+  var ranked = A.players.slice().sort(function (a, b) {
+    return (b.total || 0) - (a.total || 0);
+  });
   var list = $("players");
   list.innerHTML = "";
-  A.players.forEach(function (p) {
+  var anyTotal = ranked.some(function (p) { return (p.total || 0) > 0; });
+  ranked.forEach(function (p, i) {
     var li = document.createElement("li");
     if (p.pid === A.pid) li.className = "self";
     li.innerHTML =
+      // No rank column until somebody is actually ahead: a room where everyone is on zero
+      // is a roster, not a ranking, and numbering it "1. 2. 3." invents a standing.
+      (anyTotal ? '<span class="r">' + (i + 1) + "</span>" : "") +
       '<span class="av">' + esc(p.avatar || "🙂") + "</span>" +
       '<span class="pn">' + esc(p.nick) + "</span>" +
-      '<span class="ps">' + (p.score || 0) + "</span>";
+      '<span class="ps">' + (p.total || 0) + "</span>";
     list.appendChild(li);
   });
 

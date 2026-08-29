@@ -157,7 +157,14 @@ static void ha_dashboard(HotspotArcadeApp* app) {
     // clear of zero all session -- and PSRAM is shown so it's obvious the S2's extra memory
     // is doing the work.
     if(app->board_heap_kb) {
-        if(app->board_psram_kb)
+        // The low-water mark matters more than the current figure: the failure this line
+        // exists to catch is a slow drain under repeated joins, which a snapshot hides.
+        // "CP" means the captive-portal API option actually went out on this session.
+        const char* cp = (app->board_flags & 0x01) ? " CP" : "";
+        if(app->board_heap_min_kb)
+            furi_string_printf(
+                tmp, "RAM %uK min %uK%s", app->board_heap_kb, app->board_heap_min_kb, cp);
+        else if(app->board_psram_kb)
             furi_string_printf(
                 tmp,
                 "RAM %uK  PSRAM %u.%uM",

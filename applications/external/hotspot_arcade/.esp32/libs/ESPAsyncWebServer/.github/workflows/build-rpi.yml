@@ -1,0 +1,97 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Build (RPI)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - release/*
+    paths-ignore:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "README.md"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "README.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arduino-rpi:
+    name: RPI (arduino-cli)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - rpipicow
+          - rpipico2w
+
+    steps:
+      - name: Install arduino-cli
+        run: curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
+
+      - name: Update core index
+        run: arduino-cli core update-index --additional-urls https://github.com/earlephilhower/arduino-pico/releases/download/4.4.4/package_rp2040_index.json
+
+      - name: Install core
+        run: arduino-cli core install --additional-urls https://github.com/earlephilhower/arduino-pico/releases/download/4.4.4/package_rp2040_index.json rp2040:rp2040
+
+      - name: Install ArduinoJson
+        run: arduino-cli lib install ArduinoJson
+
+      - name: Install RPAsyncTCP
+        run: ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL=true arduino-cli lib install --git-url https://github.com/ayushsharma82/RPAsyncTCP#v1.3.2
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build Arduino Examples
+        run: |
+          for i in `ls examples/arduino`; do
+            echo "============================================================="
+            echo "Building examples/arduino/$i..."
+            echo "============================================================="
+            arduino-cli compile --library . --warnings none -b rp2040:rp2040:${{ matrix.board }} "examples/arduino/$i/$i.ino"
+          done
+
+  platformio-rpi:
+    name: RPI (pio)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - rpipicow
+          - rpipico2w
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+          enable-cache: false
+      - name: Install platformio
+        run: |
+          uv pip install --system -U https://github.com/pioarduino/platformio-core/archive/refs/tags/v6.1.19.zip
+
+      - name: Build Arduino Examples
+        run: |
+          for i in `ls examples/arduino`; do
+            echo "============================================================="
+            echo "Building examples/arduino/$i..."
+            echo "============================================================="
+            PLATFORMIO_SRC_DIR=examples/arduino/$i PIO_BOARD=${{ matrix.board }} pio run -e ci-raspberrypi
+          done

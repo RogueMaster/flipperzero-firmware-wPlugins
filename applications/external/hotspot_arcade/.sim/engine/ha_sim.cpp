@@ -78,6 +78,12 @@ void haUartScore(uint8_t pid, int delta, const char* reason) {
         ",\"delta\":" + std::to_string(delta) + ",\"reason\":\"" + esc(reason) + "\"}");
 }
 
+void haUartTotal(uint8_t pid, int32_t total) {
+    g_outbox.push_back(
+        "{\"to\":\"uart\",\"kind\":\"total\",\"pid\":" + std::to_string(pid) +
+        ",\"total\":" + std::to_string(total) + "}");
+}
+
 void haUartEvent(const String& json) {
     g_outbox.push_back("{\"to\":\"uart\",\"kind\":\"event\",\"json\":" + json.str() + "}");
 }

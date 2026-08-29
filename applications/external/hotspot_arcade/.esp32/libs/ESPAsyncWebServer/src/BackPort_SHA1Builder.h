@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include <Arduino.h>
 #if ESP_IDF_VERSION_MAJOR < 5
-
-#ifndef SHA1Builder_h
-#define SHA1Builder_h
 
 #include <Stream.h>
 #include <WString.h>
@@ -24,21 +23,19 @@
 #define SHA1_HASH_SIZE 20
 
 class SHA1Builder {
-  private:
-    uint32_t total[2];            /* number of bytes processed  */
-    uint32_t state[5];            /* intermediate digest state  */
-    unsigned char buffer[64];     /* data block being processed */
-    uint8_t hash[SHA1_HASH_SIZE]; /* SHA-1 result               */
+private:
+  uint32_t total[2];            /* number of bytes processed  */
+  uint32_t state[5];            /* intermediate digest state  */
+  unsigned char buffer[64];     /* data block being processed */
+  uint8_t hash[SHA1_HASH_SIZE]; /* SHA-1 result               */
 
-    void process(const uint8_t* data);
+  void process(const uint8_t *data);
 
-  public:
-    void begin();
-    void add(const uint8_t* data, size_t len);
-    void calculate();
-    void getBytes(uint8_t* output);
+public:
+  void begin();
+  void add(const uint8_t *data, size_t len);
+  void calculate();
+  void getBytes(uint8_t *output);
 };
 
-#endif // SHA1Builder_h
-
-#endif // ESP_IDF_VERSION_MAJOR < 5
+#endif  // ESP_IDF_VERSION_MAJOR < 5
