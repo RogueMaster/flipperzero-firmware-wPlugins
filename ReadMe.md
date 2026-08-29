@@ -88,6 +88,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Hotspot Arcade v1.9.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
 - Updated: [UHF Expansion v1.1 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
+- Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
 
 <a name="release"></a>
 
