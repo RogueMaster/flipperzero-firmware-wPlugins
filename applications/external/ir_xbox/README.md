@@ -6,6 +6,6 @@
 <img height="256px" alt="screenshot_3" src="https://github.com/user-attachments/assets/193c732b-e5e4-4aa1-a8d3-43399d7fa8bc" />
 
 
-## Related things
+## Related resources
 
  - IR codes for XBOX: [Lucaslhm/Flipper-IRDB/Consoles/Microsoft](https://github.com/Lucaslhm/Flipper-IRDB/tree/main/Consoles/Microsoft)
