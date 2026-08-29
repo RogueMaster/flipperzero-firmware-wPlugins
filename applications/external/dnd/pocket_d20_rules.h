@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dndolphins.h"
+#include "pocket_d20.h"
 
 typedef enum {
     PocketRollNormal,
@@ -36,11 +36,10 @@ extern const char* const pocket_d20_ability_names[POCKET_D20_ABILITY_COUNT];
 extern const char* const pocket_d20_skill_names[POCKET_D20_SKILL_COUNT];
 extern const uint8_t pocket_d20_skill_abilities[POCKET_D20_SKILL_COUNT];
 extern const char* const pocket_d20_damage_names[PocketDamageTypeCount];
+extern const char* const pocket_d20_journal_category_names[PocketJournalCategoryCount];
 
 int8_t pocket_d20_ability_modifier(int8_t score);
 uint8_t pocket_d20_total_level(const PocketCharacter* character);
-uint32_t pocket_d20_minimum_experience_for_level(uint8_t level);
-void dndolphins_apply_experience_floor(PocketCharacter* character);
 uint8_t pocket_d20_proficiency_bonus(const PocketCharacter* character);
 int8_t pocket_d20_saving_throw_modifier(const PocketCharacter* character, uint8_t ability);
 int8_t pocket_d20_skill_modifier(const PocketCharacter* character, uint8_t skill);
@@ -52,7 +51,6 @@ int8_t pocket_d20_spell_save_dc(const PocketCharacter* character);
 uint8_t pocket_d20_class_prepared_count(const PocketCharacter* character, uint8_t class_index);
 uint8_t pocket_d20_class_known_count(const PocketCharacter* character, uint8_t class_index);
 void pocket_d20_recalculate_multiclass_slots(PocketCharacter* character);
-bool pocket_d20_initialize_spell_slots_if_unset(PocketCharacter* character);
 int16_t pocket_d20_carried_weight_tenths(const PocketCharacter* character);
 int16_t pocket_d20_equipped_weight_tenths(const PocketCharacter* character);
 int16_t pocket_d20_carrying_capacity(const PocketCharacter* character);
@@ -65,7 +63,6 @@ int8_t pocket_d20_weapon_ability(const PocketCharacter* character, const PocketI
 int8_t pocket_d20_weapon_attack_modifier(const PocketCharacter* character, const PocketItem* item);
 
 uint16_t pocket_d20_roll_dice(uint8_t count, uint8_t sides);
-uint8_t pocket_d20_roll_d20_mode(PocketRollMode mode);
 uint16_t
     pocket_d20_roll_dice_values(uint8_t count, uint8_t sides, uint8_t* values, uint8_t capacity);
 PocketAttackRoll pocket_d20_roll_attack(

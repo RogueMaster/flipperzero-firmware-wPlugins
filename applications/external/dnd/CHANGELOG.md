@@ -1,124 +1,309 @@
 # Dungeons & Dolphins changelog
 
-This changelog keeps recent architecture and behavior changes that still describe the current code. Troubleshooting experiments and features later removed are intentionally omitted.
+## 3.2.6
 
-## 3.2.15
+- Adventure Mode skill checks now show a dedicated roll-result screen with the natural d20, modifier, total vs. DC, and pass/fail result for 3 seconds before continuing.
 
-- Removed the Verify Profile stack spike without changing character storage: the temporary 3,976-byte `PocketSaveData` is now checked transient heap state and is cleared/freed after the existing best-effort parser finishes.
-- Recalculated DNDolphins' largest source-visible project stack chain at **3,000 B**, down from the former Verify Profile-dominated 5,456 B path; the Verify Profile input path itself is now about **1,472 B** project-visible.
-- Reworked Bestiary encounter-state scans so the 512-byte reader and 768-byte line work area live in a checked transient 1,288-byte heap workspace instead of overlapping nested state-reader stack frames. Bestiary text formats are unchanged.
-- Replaced Bestiary's geometric full-file index offset/hash and statblock offset arrays with a bounded fixed cache: 16 sparse index checkpoints plus 8 recent index hints and 8 recent statblock hints per bundled/custom/enabled path, with streamed fallback remaining authoritative. The complete bounded cache is **616 B static RAM** and allocates no persistent lookup-cache heap.
-- Reduced the Bestiary browse working set from **35 summaries (6,020 B)** to **15 summaries (2,580 B)**, saving **3,440 B** of browse heap.
-- With the packaged 340-monster catalog, the lookup/browser refactor saves about **6,996 B** of retained project RAM before a detail lookup and about **11,092 B** versus the old state after its bundled statblock-offset cache had been built.
-- Recalculated Bestiary's largest source-visible stack chain at **4,368 B**; the former nested read path is no longer the peak. The current worst visible path is encounter named-field writing, so DNDBestiary remains at 6 KB pending hardware stress.
-- Added host validation across sparse boundaries and the final 340-monster page; ordinal lookup, ID lookup, detail loading, 15-summary windows and cache reset all passed.
-- Updated all five manifests to 3.2.15 with DNDolphins reduced to **6 KB** after the Verify Profile stack fix; DNDAdventure, DNDJournal and DNDInitiative remain at 4 KB and DNDBestiary remains at 6 KB.
-- Fixed first-entry Add failures in Spellbook and Inventory after sidecar paging: page storage no longer preallocates all eight records when only one or a few records exist. Spell/item page capacity now grows **1 -> 2 -> 4 -> 8**, and a newly appended record is adopted directly into the resident page instead of immediately rereading the sidecar.
-- Corrected the Record List failure message so `List is full` is shown only when the logical collection has actually reached its configured maximum; storage/allocation failures now report `Add failed - retry SD`.
-- Fixed Combat weapon/spell discovery after the character sidecar split. Combat now rebuilds compact logical-index maps by streaming `ch_{id}_items.txt` / `ch_{id}_spellbook.txt` directly when entering Weapon Attacks or Spell Attacks, so an empty/stale UI page cache cannot make owned combat records disappear. Only the selected/visible record page is hydrated afterward.
-- Added generic one-record-at-a-time sidecar visitors for owned items/spells. Combat keeps only up to 24 one-byte logical indexes per collection (48 bytes plus two counts in the app state) instead of using the paged collection itself as the authoritative discovery index.
+## 3.2.5
 
-## 3.2.14
+- Restored Bestiary **Save Encounter** and **Add to Initiative** actions for individual monsters, generated encounters, and saved encounters.
+- **Add to Initiative** launches `/ext/apps/Games/dungeons_and_dolphins.fap` with `initiative;Name,HP,AC;...`; Dungeons & Dolphins appends transferred monsters to the current character's Party Roster and opens Initiative.
+- Preserved existing character data during startup and recovery; a new character is initialized only when no existing or recoverable character save is available.
+- Removed stored checksum fields and checksum-based rejection so user-maintained text files remain manually editable while structural and bounds validation stays in place.
+- Expanded the saved Party Roster to 23 members and reduced Bestiary memory use before cross-FAP launch.
+- Added a low-memory Initiative launch path: RogueMaster unloads asset packs before loading D&D and campaign/pack initialization is deferred for Initiative-only launches.
+- Updated Initiative controls: Start New Combat begins with Roll for All, hold OK on a participant accepts a manual d20 roll, Back moves to the previous combat turn, and hold Back returns to the Initiative menu; removed the separate Undo Last Change row.
+- Expanded horizontally scrolling/menu text from 20 to 25 characters where the 128x64 UI can clip safely.
+- Removed the redundant **Back to Main Menu** row from Magic & Spells; the Back button returns normally.
 
-- Split owned character spells and items out of the core character save into `/ext/apps_data/dndolphins/ch_{id}_spellbook.txt` and `ch_{id}_items.txt`.
-- Replaced numbered `Spell0...SpellN` / `Item0...ItemN` persistence with one escaped line record per owned spell/item and no serialized count field.
-- Made sidecar paging count only valid parsed records; malformed/manual `S|` or `I|` lines are preserved but cannot shift later page edit/delete targets.
-- Made spellbook and inventory allocation workflow-scoped and **eight-record paged**: the core character loader keeps neither collection resident; Magic/spell and Inventory/weapon/resource workflows hold at most one aligned eight-record page and save/free it on page changes or workflow exit.
-- Updated class prepared-count display, class deletion/remapping, long rests, granted spells, spell-combat filtering, aggregate item calculations, weapon enumeration, and Adventure item rewards to walk the sidecars through the same eight-record window instead of materializing all 24 records.
-- Kept master spell/item catalogs as add/select sources only; owned records are self-contained in their character sidecar after selection.
-- Removed all reading/writing of embedded `Spell*` and `Item*` fields from the core character parser/writer. No migration or fallback path is provided for old embedded spell/item data.
-- Split dirty fingerprints so hydrating/releasing spellbook/items never marks the core character changed and sidecar-only updates never create `.shd` character history.
-- Extended duplicate/delete/archive/export/import handling so current-format spellbook/items companions follow the character ID as a logical set.
-- Refreshed all Markdown documentation for schema 5 and the bounded sidecar ownership model, and replaced the memory audit with a post-paging Cortex-M4 source audit. Maximum spell workflow collection heap is now 2,624 B (plus 1,280 B scan scratch) and maximum item workflow collection heap is 2,384 B (plus 1,280 B scan scratch).
-- Audited Adventure-style line streaming across catalogs and companion data. Character/master spell-item readers, Adventure, Journal and Bestiary already stream source files rather than loading whole files; the largest remaining Bestiary heap opportunity is its persistent full monster offset/hash caches plus 35-summary browse window, not its line reader.
-- Updated all five FAP manifests to this release. Current stack reservations are DNDolphins 8 KB, DNDAdventure 4 KB, DNDJournal 4 KB, DNDInitiative 4 KB and DNDBestiary 6 KB. Adventure and Initiative were reduced after the source-derived stack audit showed 2,768 B and 1,344 B project-visible peaks respectively; Journal remains at 4 KB with a 2,656 B project-visible peak.
+## 3.2.4
 
-## 3.2.13
+- Added named saved encounters with resume, rename, duplicate, archive, delete, and Add to Initiative actions.
+- Added the encounter Difficulty Simulator and composition warnings.
+- Improved Bestiary streaming, caching, and allocation release for large monster collections and encounter workflows.
 
-- Reworked character loading to be best-effort by recognized `Key=Value` field. The character version is informational; unknown fields, reordered fields, missing fields, and malformed individual values no longer reject the entire readable character.
-- Removed the global `pocket_d20_data_is_consistent()` load/save gate. Optional dynamic collections are protected at their point of use instead of making unrelated character fields unsavable.
-- Fixed sanitizer NULL dereferences for absent legacy party, initiative, and encounter-history arrays. Missing companion-owned arrays now sanitize as empty.
-- Restored character-only relocation from `/ext/apps_data/dungeons_and_dolphins/profiles/ch*.txt` into `/ext/apps_data/dndolphins/`. Files move unchanged, never overwrite an existing current character ID, and are interpreted afterward by the tolerant character loader.
-- Active-profile metadata now loads by scanning for a valid `Active=` field rather than requiring a fixed first-line layout.
-- Converted DNDInitiative persistence to streaming indexed named fields and removed its former 8 KB whole-file load buffer and packed-row load path.
-- Converted DNDJournal entry metadata to independent named fields; the old compact `Data=` row is intentionally no longer loaded.
-- Enforced `.shd` as write-only character history: shadows are never scanned, loaded, parsed, used for recovery, or used to reserve IDs.
-- Removed the later `pocket_data_heap_valid()` global save veto as well; no whole-character heap predicate can reject an otherwise writable character.
-- Character dirty fingerprints now hash logical character values and populated dynamic records, not heap pointer addresses or allocation capacities, so allocator churn cannot create false saves/shadow updates.
-- Readable character files with valid `ch_{id}_{name}_{level}.txt` filenames use filename name/level as fallback metadata even when the body contains only unknown/future fields, preventing synthetic `New Hero` defaults from replacing a real filename identity.
-- Wired `.shd` maintenance to actual changed-character saves, including Adventure character rewards, automatic spell-slot initialization and explicit backup restore; initial character creation/import remains shadow-free until the character is updated.
-- A failed legacy character relocation now blocks fresh-character creation for that startup so unmoved old saves are preserved for a later retry.
-- Fixed the storage-backed active-character traversal declaration/definition mismatch by using the single `pocket_d20_profiles_next_after()` implementation everywhere.
+## 3.1
 
-- Fixed DNDolphins-to-companion launches so Bestiary is no longer blocked by character load state and Journal/Adventure/Initiative can launch without a character argument when no active character is loaded. All launch targets remain explicit full `.fap` paths.
-- Added direct-launch character resolution for DNDJournal, DNDAdventure and DNDInitiative: explicit handoff ID first, persisted DNDolphins active-profile ID second, character 0 fallback last.
-- Hardened active-character recovery: a missing active ID advances to the next available character and wraps; an unreadable selected character advances through other real character files before default data can be exposed.
-- Made failed profile switches reload the previously saved character immediately. Removed global heap-consistency save vetoes; optional dynamic character collections are now sanitized and serialized independently so unrelated missing allocations cannot block the rest of the character.
-- Renamed the C source/header tree around the actual FAP ownership namespaces instead of the legacy `pocket_d20` filenames. DNDolphins-owned modules now use `dndolphins*`, DNDAdventure uses `dndadventure*`, DNDJournal uses `dndjournal.c`, DNDInitiative uses `dndinitiative.c`, and DNDBestiary uses `dndbestiary*`.
-- Renamed all five application entry-point functions to match their app IDs: `dndolphins_app`, `dndadventure_app`, `dndjournal_app`, `dndinitiative_app`, and `dndbestiary_app`.
-- Changed every cross-FAP handoff to use an explicit absolute `.fap` path under `/ext/apps/Games/`. App IDs are no longer used to derive or resolve Loader launch targets; Journal, Adventure, Initiative and Bestiary returns use the same full-path contract.
-- Isolated the firmware Loader dependency in shared `dnd_handoff.c`; only that handoff implementation includes `<loader/loader.h>`, while individual app source files call the shared launcher after teardown.
-- Renamed the DNDolphins home-menu item from `DNDBestiary` to `Bestiary`.
-- Fixed character saves so `.shd` shadow-copy failure can never fail or mark a successful primary `.txt` save read-only.
-- Audited all five FAP shutdown paths so Loader is opened only after the outgoing app has released its views, dispatcher, service records, dynamic character/campaign/monster state and static caches. DNDolphins and Bestiary now quiesce timers/pubsub callbacks as soon as a handoff is requested, and Adventure releases scene/cache allocations before returning.
-- Renamed the two cross-FAP utility headers to neutral `dnd_fs.h` and `dnd_handoff.h` names. Character/rules/storage helpers shared with Adventure remain owned by the `dndolphins*` namespace because DNDolphins owns character data.
-- Updated every manifest source reference and internal include to the renamed files without changing storage formats, save schemas, campaign ownership, paging behavior, or stack allocations.
-- Preserved the bounded eight-record character cache, bounded eight-entry Journal metadata cache/body-on-open model, and visible-row Combat formatter introduced in the previous release.
+- Advanced character saves to schema 3 with verified schema-2 rollback snapshots and an on-device **Rollback Migration** action.
+- Added transactional campaign and monster pack installation with enable/disable controls and stable-ID conflict validation.
+- Added Bestiary favorites, recent monsters, named filter presets, saved encounters, and faster stable-ID lookup across packaged, custom, and enabled-pack records.
+- Added host coverage for migration rollback, pack transactions, Bestiary layers, simulator behavior, favorites, recents, filters, and saved encounters.
 
-## 3.2.12
+## 3.0.3
 
-- Removed two dead static helpers left behind by the picker/parser refactor (`pocket_parse_i8_strict` and `pocket_split_fields`) so firmware builds remain clean under `-Werror=unused-function`.
-- Reworked the character picker into a storage-backed, ID-ordered list with a fixed eight-record metadata cache instead of a growable array containing every character. `.shd` files never participate in picker scans or profile-ID allocation.
-- Reworked DNDJournal into a storage-backed newest-first list with a fixed eight-entry metadata cache. Page selection scans timestamp filenames and hydrates metadata for only the selected eight files; entry bodies are loaded only when opened. This removes the previous 24-full-entry list cap and roughly 6.6 KB worst-case Journal entry-array heap block.
-- Replaced Journal's large encoded/value line scratch parsing with streaming key/value decoding through the existing bounded reader buffer.
-- Removed the 1,056-byte `char rows[22][48]` Combat menu block and its pointer table. The Combat screen now formats only each visible 48-byte row on demand.
-- Kept structured spell-combat metadata as the authoritative path for cast-level scaling, multiple attacks, secondary dice and special resolution. Notes `XdY` parsing remains a guarded fallback for simple unmapped cases rather than becoming the primary spell rules engine.
-- Updated the source-based memory audit and physical-device stress matrix for high character counts, Journal counts above the former cap, paging boundaries and repeated Combat drawing.
-- Refreshed all packaged Markdown documentation. App release numbers are kept in this changelog and `ROADMAP.md`; ordinary feature/schema documentation describes the current behavior without release-number labels.
+- Replaced byte-at-a-time profile, campaign, and Bestiary reads with buffered readers and reusable record-offset caches.
+- Added faster campaign and monster stable-ID lookup while keeping packaged and custom data streamed from disk.
+- Coalesced rapid character edits into delayed autosaves while preserving synchronous saves before profile changes, app switching, and exit.
+- Added heap-fragmentation and repeated app-switch stress coverage for large character and Bestiary workloads.
 
-## 3.2.11
+## 3.0.2
 
-- Added same-stem `.shd` character shadows beside character saves. The active level's shadow refreshes to the latest successful state and prior-level shadows remain as write-only history.
-- Added the shared Combat `Normal` / `Advantage` / `Disadvantage` attack mode for weapon and spell attack d20s.
-- Added minimum-XP floors when total character level rises, without reducing higher XP totals.
-- Split DNDAdventure into its own FAP and made it the sole owner of campaign state and campaign-pack code.
-- Removed Adventure fields from `PocketCharacter` and kept campaign progress under `/ext/apps_data/dndadventure/`.
-- Character files are stored directly under `/ext/apps_data/dndolphins/`.
-- Restored one-way Adventure milestone output to DNDJournal and retained teardown-before-launch companion handoffs.
-- Simplified DNDAdventure persistence to one canonical destination for its active campaign, progress, registry and enabled index.
+- Restricted asset-to-data migration to mutable user content: profiles, custom campaigns, campaign progress, and custom monsters.
+- Kept packaged catalogs, bundled campaign manifests/scenes, and packaged monster tables in `APP_ASSETS_PATH` without copying them into app data.
+- Moved custom campaign manifests and scene directories to `APP_DATA_PATH` and continued streaming them after bundled campaigns.
+- Preserved the combined Bestiary view: all packaged monster records are streamed first and app-data custom monsters are appended as the second layer.
+- Deleted legacy profile, custom-campaign, campaign-progress, and custom-monster files from the assets namespace only after their app-data destinations were safely present.
+- Kept existing app-data records authoritative; migration never overwrites a matching destination or profile ID.
 
-## 3.2.10
+## 3.0.1
 
-- Split Journal and Initiative into standalone FAPs with their own app-data namespaces and removed their resident state from DNDolphins.
-- Kept the writer on the current character schema while removing broad schema-conversion migration logic.
-- Moved Journal entries to timestamped per-character files and removed the firmware `qsort` dependency.
-- Returned DNDolphins to an 8 KB stack after the source-based OOM cleanup.
+- Moved mutable character profiles, exports, archives, per-character campaign progress, and custom monster packs from deployable app assets to persistent app data.
+- Added first-launch migration that copies legacy profile and custom-monster files only when the destination is absent; existing app-data records are never overwritten and legacy originals remain untouched.
+- Prevented failed, corrupt, or unsupported profile loads from creating or autosaving a blank replacement during startup, switching, import recovery, backup restore, or shutdown.
+- Established schema 2 as the backward-compatibility baseline with an explicit schema dispatch point for future migrations.
+- Reduced Bestiary result pages from 50 summaries to 20 and kept packaged and custom result layers in one complete paged result set.
+- Added a legacy combined-pack fallback when opening custom stat blocks, retaining custom-only Edit and Delete controls after the record opens.
+- Migrated custom-monster writes, atomic temporary files, backups, and transaction recovery together so packaged tables remain read-only.
 
-## 3.2.9
+## 3.0
 
-- Reduced stack/path/reader pressure across character, campaign and pack storage and moved large working registries to checked transient heap allocations.
-- Established timestamped per-character Journal files and removed Journal from the character payload.
-- Advanced the character writer to schema 4 and removed embedded Adventure progress from character files.
-- Made campaign startup lazy so campaign files and scene data were not loaded until Adventure was opened.
+- Enabled generated-encounter drill-down: short OK on an encounter monster now opens its complete stat block, and short OK on any stat row opens that attribute in the full-screen reader.
+- Preserved the selected encounter monster, encounter scroll position, selected stat row, and stat-block scroll position while navigating into and out of full-screen details.
+- Released the Bestiary's lazy text editor before allocating browser windows, generated encounters, diagnostics, and monster details to lower peak heap use.
+- Isolated user-created monsters in atomic `custom_index.txt` and `custom_statblocks.txt` files so creating, editing, or deleting them never rewrites the packaged Bestiary tables.
+- Streamed packaged and custom monster layers as one browser and encounter pool without loading either complete table into RAM.
+- Added a visible, custom-only Delete Monster row with two-step confirmation; packaged monsters remain read-only.
+- Kept custom spell, species, class, subclass, background, feat, and item text profile-local so assigning custom character options never rewrites a packaged catalog.
+- Reduced the spell picker from 50 retained records to ten retained records per streamed page, cutting its bounded catalog allocation by about 80 percent.
+- Sorted the packaged spell catalog by spell level and then alphabetically, with a bounded in-app page sort for catalog additions.
 
-## 3.2.8
+## 2.7.2
 
-- Reduced dynamic character-array over-allocation and spell-storage growth pressure.
-- Reduced catalog working pages and released large workflow allocations when leaving those workflows.
-- Expanded Combat > Spell Attacks mappings and added guarded `XdY`/`XDY` Notes fallback parsing.
+- Added a full-screen reader for every monster stat-block line item.
+- Added word-aware 20-character wrapping with a five-line viewport, one-line Up/Down scrolling, and Left/Right page movement.
+- Made OK and Back return from the reader to the exact previously selected stat row.
+- Kept custom-monster editing on a separate explicit row so ordinary stat lines always open for reading.
+- Replaced fixed maximum-size spell, feature, item, journal, and structured-grant arrays with grow-on-demand allocations.
+- Reduced the empty character save object from about 34.6 KB to about 6.3 KB to prevent direct-launch and first-profile memory exhaustion.
+- Preserved the existing record limits and text-save layout while adding allocation checks to every record creation and loading path.
+- Replaced unsafe unbounded UI string formatting with explicitly bounded text composition so strict RogueMaster builds no longer fail on `-Wformat-truncation`.
+- Expanded record-detail row storage so long spell, feature, item, and journal notes remain available to the horizontal scroller instead of being cut to a short display buffer.
+- Enlarged the Bestiary full-screen reader position buffer for the maximum `start-end/total` range reported by its 16-bit line counters.
 
-## 3.2.7
+## 2.7.1
 
-- Moved Dolphin Bestiary into the fixed Home menu and kept it launchable after character save failures.
-- Added Combat > Spell Attacks with tracked spell/resource selection, ritual handling and mapped spell dice.
-- Added stricter low-memory allocation checks and safer shutdown ordering.
+- Buffered catalog and structured-grant reads to eliminate hundreds or thousands of one-byte SD operations.
+- Stopped catalog scans after filling the current 50-record page and detecting one additional match.
+- Replaced nine catalog heap allocations with one bounded allocation and released it before autosave and grant lookup.
+- Made text and number input modules lazy so they consume no heap during startup or catalog browsing until first used.
+- Skipped redundant full-profile writes when the save-state fingerprint is unchanged.
+- Added automatic standard armor and weapon stat population from the selected inventory name.
+- Changed the new-character alignment default to True Neutral.
+- Removed runtime translation loading and pre-release character-save migration paths.
+- Expanded party presets with Armor Class, current HP, and maximum HP, and copied those values into new combats.
+- Added a hold-OK initiative participant editor for name, roll, modifier, Armor Class, current/maximum HP, conditions, and armed deletion.
+- Allowed negative current HP in active initiative combat and direct participant entry.
+- Replaced Bestiary one-byte reads and repeated per-monster diagnostics with buffered reads and one-pass pack validation.
+- Cached Bestiary filter totals across page changes and stopped page reads as soon as the requested window is full.
+- Added reciprocal final-menu launch entries between Dungeons & Dolphins and Dolphin Bestiary.
+- Clarified the manual save row as Retry Save / Status; ordinary changes continue to autosave.
+- Updated encounter generation to target the selected party-level/size budget without exceeding it, distinguish adjacent difficulty tiers, and cap creatures at two per party member.
+- Advanced the current pre-release character format to schema 2 for complete party presets; older schemas remain intentionally unsupported.
 
-## 3.2.5-3.2.6
+## 2.7
 
-- Restored Bestiary Save Encounter/Add to Initiative workflows and preserved existing character files on startup.
-- Removed checksum enforcement so text saves remain manually editable.
-- Added the current Roll for All / Back-to-previous-turn Initiative direction and Adventure skill-check presentation.
+- Expanded the species/lineage selector to 103 names, including ancestry-specific Dragonborn, Dwarf, Elf, Genasi, Gnome, Goliath, Halfling, and Tiefling choices.
+- Expanded the subclass catalog to 139 class-associated choices across all 13 bundled classes; the picker defaults to the selected class and retains its All view.
+- Corrected list-parent navigation so Classes returns to Character, Spells returns to Magic, and Features/Perks and Inventory return to their opening screens instead of reopening the last record.
+- Added long-Back navigation from ordinary screens to Main and long-Back exit from Main in both applications.
+- Replaced selected-row ellipses with timed horizontal scrolling while keeping unselected rows allocation-free.
+- Added short-OK numeric currency editing for Copper, Silver, Electrum, Gold, and Platinum.
+- Added a nine-option alignment picker covering every Lawful, Neutral, and Chaotic combination with Good, Neutral, and Evil.
+- Added reusable hold-OK number entry for Vitals, ability and save adjustments, skill adjustments, spell settings and slots, class and record fields, dice settings, and combat values.
+- Extended long-Back handling through text and number entry modules so it still returns directly to Main.
+- Added Guidance dice mode, which rolls and displays a d4 alongside a d20 and includes both dice in the total.
+- Removed separate character-catalog overlay scans; additional records now extend the normal class, subclass, species, background, feat, spell, item, and metadata files.
+- Consolidated 340 packaged stat blocks into one streamed section file and integrated editable custom monsters into the same index/stat-block framework with atomic two-file rollback.
+- Deferred profile, catalog, and monster scans until needed, reused known profile paths during autosave, and released large catalog/detail allocations when their screens close.
+- Reworked encounter generation into a single streaming eligibility pass with a bounded randomized candidate pool, eliminating repeated full-index scans that could stall the interface.
+- Updated the feature documentation and future-only roadmap for the performance-focused release.
 
-## Earlier releases
+## 2.6
 
-Earlier development established the character tracker, spell/inventory systems, rules helpers, streamed catalogs, custom monsters, encounter generation and pack formats. Git history remains the authoritative record for implementation details that no longer describe the current architecture.
+- Split the monster reference and encounter generator into the independent Dolphin Bestiary FAP while keeping both applications in one `application.fam` with explicit, mutually exclusive source lists.
+- Expanded the packaged bestiary from 220 to 340 unique records and retained combinable browser filters, encounter roles, custom lifecycle controls, and diagnostics.
+- Limited character catalogs and bestiary result windows to 50 records, with on-demand allocation and release when each picker, stat block, or encounter closes.
+- Moved all runtime reads and writes to each application's `APP_ASSETS_PATH` namespace and prefixed user-maintained reference files with `custom_`.
+- Fixed transactional character creation and profile-index refresh so a new Main or New Hero remains visible, while failed writes restore the prior active profile and display an unsaved warning.
+- Added a dedicated Back to Main Menu row to Magic and retained normal Back navigation from spell lists and detail screens.
+- Shortened passive-stat labels to `Pass.` without abbreviating their governing ability labels.
+- Moved attack templates and all combat-state fields into Combat, then removed the redundant Combat Sheet, Character Builder, About, and embedded monster menu entries.
+- Kept `Roll Now` stable while dice modifiers are edited and reset it only after a completed roll.
+- Replaced the launcher art with a validated 10x10, 1-bit d20 icon showing 20.
+
+## 2.5
+
+- Added another 100 redistributable open-reference monster records, bringing the bundled total to 220.
+- Added an on-device ten-cycle stress runner for catalog, campaign, monster, profile-index, and encounter allocation/release paths.
+- Added SD write-failure detection, read-only fallback, persistent unsaved warnings, failure counts, and an explicit retry-and-save control.
+- Published a case-by-case physical-device matrix covering controls, truncation, long sessions, power interruption, SD removal, and low-memory behavior without claiming unperformed hardware results.
+
+## 2.4
+
+- Added create/edit/delete controls for every attack-template field, including save actions, Mastery, damage riders, and recharge cadence.
+- Added a structured-grant editor for stable ID, source, option type/name, prerequisites, class association, gained level, payload, and status.
+- Preserved grant payloads when applying them so reviewed metadata remains editable.
+- Added optional runtime language packs for navigation and field labels with a compile-time 2 KiB heap ceiling, live heap reporting, and English fallback.
+
+## 2.3
+
+- Added an on-device campaign selector for bundled and user packs.
+- Added atomic per-profile/per-campaign progress files containing scene, checkpoint, quest flags, and achievements.
+- Added versioned manifests and diagnostics for compatibility, missing files/entries, duplicate IDs, and broken links.
+- Added a documented third-party campaign format and ready-to-copy SD-card starter template.
+
+## 2.2
+
+- Added full on-device editing for existing custom monsters while preserving stable IDs.
+- Added armed two-step custom deletion and kept bundled records read-only.
+- Added atomic user-index rewrites, transaction-journal recovery, orphan completion, and interrupted-edit rollback.
+- Expanded the custom editor to include size/alignment, role, skills, defenses, and extra actions.
+
+## 2.1
+
+- Added 100 redistributable open-reference monster records, bringing the bundled total to 120.
+- Added combinable source and environment filters to the monster browser.
+- Added optional Leader, Controller, Skirmisher, Artillery, Brute, and Minion metadata with role-aware encounter weighting.
+- Added diagnostic navigation that reports the exact record ID, stat-block filename, and first missing or invalid field.
+
+## Unreleased documentation update
+
+- Audited every completed roadmap claim against the implemented code, packaged assets, tests, and build records.
+- Consolidated completed release history in this changelog and removed it from the roadmap.
+- Replaced the roadmap with release-scoped future work containing exactly three testable features per release.
+
+## 2.0
+
+- Declared monster pack schema 1 stable and documented its compatibility contract.
+- Made custom stat-block writes interruption-resistant by publishing the block before its index record.
+- Added live free-heap and largest-block readings to Pack Diagnostics.
+- Expanded the bundled compendium to twenty creatures with ten original, freely redistributable entries.
+- Completed the five-release monster and encounter roadmap established after version 1.5.
+
+## 1.9
+
+- Added an on-device custom monster editor.
+- Added editable challenge/XP, defenses, identity, environment, movement, abilities, senses, languages, traits, and actions.
+- Added direct persistence into the versioned user monster pack with collision-resistant IDs.
+
+## 1.8
+
+- Added an explicit monster-pack format version.
+- Added field-level validation for required stat-block sections.
+- Added bundled/user version reporting and incompatible-version warnings to Pack Diagnostics.
+
+## 1.7
+
+- Added Balanced, Horde, and Elite encounter templates.
+- Added weighted environment selection so themed creatures are preferred without making small packs unusable.
+- Tuned target-budget usage and creature-count limits by template.
+
+## 1.6
+
+- Added case-insensitive monster-name search.
+- Combined name, maximum-challenge, and creature-type filters in the streaming browser.
+
+## 1.5
+
+- Added on-device monster-pack diagnostics.
+- Added checks for missing stat blocks and duplicate stable IDs.
+- Added a ready-to-copy community monster-pack template with a complete example record.
+
+## 1.4
+
+- Added environment metadata and themed encounter generation.
+- Added Aquatic, Dungeon, Planar, Urban, Wilderness, and unrestricted themes.
+- Added a composition toggle for repeated creature types versus mixed-only groups.
+
+## 1.3
+
+- Added generated-encounter transfer into Initiative.
+- Prefilled monster names, quantities, HP, Armor Class, and Dexterity-based initiative modifiers.
+- Capped transfers safely at the initiative tracker capacity.
+
+## 1.2
+
+- Added challenge-rating and creature-type filters to the monster browser.
+- Made filter changes immediately rebuild the disk-backed result count without retaining an in-memory catalog.
+
+## 1.1
+
+- Added a disk-backed monster compendium and on-device stat-block browser.
+- Added party-level, party-size, and difficulty controls for random encounters.
+- Added per-character XP budgets for Low, Moderate, and High encounters.
+- Added safety limits for above-level creatures, oversized groups, and over-budget results.
+- Added bundled monster assets and a documented SD-card extension format.
+- Kept the monster index streaming and stat blocks lazy-loaded to protect heap memory.
+- Updated the feature list, tests, roadmap, and build verification for the new release.
+
+## 1.0
+
+- Declared schema 1 stable for future forward migrations.
+- Retained one prior successful save generation for every active profile.
+- Added an explicit profile backup-restore action alongside profile readability validation.
+- Added zero-allocation translation hooks and a community translation template.
+- Added compatibility, accessibility, catalog policy, stable schema, and reproducible-build documents.
+- Added a release verification script that runs host tests and the RogueMaster FAP target.
+- Finalized source-only release packaging with no compiled FAP or `dist` directory.
+
+## 0.9
+
+- Froze character save schema 1 and documented its compatibility contract.
+- Replaced compiler-layout persistence with canonical serialized text files.
+- Added automatic one-time migration from the 0.8 text layout.
+- Added profile actions for rename, duplicate, export, first-valid-export import, archive, delete, and readability validation.
+- Kept duplicate, export, and archive operations chunked so they do not require a second character-sized allocation.
+- Added host-side tests for calculations, dice bounds, catalogs, metadata IDs, parsers, migration acceptance, spell filtering, manifest fields, and release-document wording.
+- Added a physical-device test matrix for hardware verification.
+
+## 0.8
+
+- Added a data-driven Adventure mode with compact sprite-and-text scenes.
+- Added selectable choices, character-based skill checks, and success/failure branches.
+- Added per-character story location, quest flags, achievements, and checkpoints.
+- Added adventure inventory rewards and milestone journal rewards with duplicate protection.
+- Added a bundled sample campaign and editable SD-card campaign override.
+- Kept campaign scene memory lazy and released it when Adventure mode closes.
+
+## 0.7
+
+- Changed the internal application ID and SD namespace to `dungeons_and_dolphins`.
+- Added FAP-packaged file assets for catalogs and metadata, with app-data overlays for user changes.
+- Reworked catalog memory into lazy heap allocations that grow only while a picker is open and are released on exit.
+- Replaced full-name diagnostic storage with compact hashes and removed the second full-character allocation during save.
+- Added graceful allocation failure handling and catalog-memory status reporting.
+- Added structured grants with a review/apply/skip screen.
+- Added species, Origin Feat, tool proficiency, armor training, weapon training, size, and senses fields.
+- Added annotated catalog metadata, strict import validation, and on-device catalog diagnostics.
+- Added class-specific Hit Point Dice and pools for multiclass characters.
+- Added per-class spellcasting modes, abilities, limits, spellbook size, Pact slots, Mystic Arcanum, and spell points.
+- Added multiclass shared-slot calculation and spell filters.
+- Added spell stable ID, source, school, ritual, grant type, and grant-name tracking.
+- Added conditions, concentration, reactions, temporary effects, defenses, movement modes, and attack templates.
+- Added initiative HP, Armor Class, conditions, encounter history, and undo for turn, HP, and feature-resource changes.
+- Added containers, weights, carrying capacity, Armor Class formulas, attunement warnings, ammunition groups, and charges.
+- Added resource formulas and recovery cadences beyond rests.
+- Added coin normalization and optional encumbrance tracking.
+- Counted container contents in total carried weight while retaining container organization.
+- Added a community-maintainable metadata pack and generator.
+- Updated the roadmap and full feature documentation.
+
+## 0.6
+
+- Added SD-card-limited profiles with dynamic profile indexing.
+- Added profile filenames in `ch_{id}_{characterName}_{characterLevel}.txt` format.
+- Expanded class, subclass, spell, item, background, and feature-name catalogs.
+- Added complete README and changelog documents.
+- Used the manifest version macro in the About screen.
+
+## 0.3
+
+- Added separate readable character save files, profile switching, custom catalogs, dice animation, autosave, and the 10×10 application icon.
+
+## 0.2
+
+- Added all saving throws and skills, miscellaneous modifiers, passive statistics, expanded spell states, and free-cast recovery.
+
+## 0.1
+
+- Added the initial character tracker, multiclass records, inventory, spells, journal, weapon rolls, party roster, and initiative tracker.

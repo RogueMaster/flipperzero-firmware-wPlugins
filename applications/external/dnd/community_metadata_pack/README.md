@@ -1,13 +1,13 @@
 # Community metadata pack
 
-This folder is a build-time template for extending DNDolphins option metadata without distributing proprietary descriptive text. Runtime character shadows, eight-record owned spell/item paging, storage-backed profile paging, XP floors and Combat attack mode do not alter this row format.
+This directory is a separately maintainable metadata index for Dungeons & Dolphins. It contains names and structured annotations, not descriptive rules text.
 
-Rows use:
+Each non-comment line appended to `character_assets/metadata/options.txt` uses:
 
 `stable_id|source|option_type|option_name|prerequisites|level_gained|class_associations|grant_value`
 
-Supported grant values include `origin_feat=`, `tool=`, `armor=`, `weapon=`, `size=`, `senses=`, `feature=`, and `spell=`. Leave the final field empty for catalog-only metadata.
+Supported grant values include `origin_feat=`, `tool=`, `armor=`, `weapon=`, `size=`, `senses=`, `feature=`, and `spell=`. Leave the final field empty for a catalog-only annotation.
 
-Keep stable IDs durable once published. When included in a build, rows belong in DNDolphins character metadata assets; this template is not a runtime campaign or monster pack and should not be copied into DNDAdventure/DNDBestiary data folders.
+Keep IDs stable once published. The app streams the normal metadata file and does not allocate or scan a second overlay.
 
-Only distribute metadata/text you have permission to redistribute.
+Users may populate additional records from campaign books they own. Do not distribute copied descriptive text through this pack.

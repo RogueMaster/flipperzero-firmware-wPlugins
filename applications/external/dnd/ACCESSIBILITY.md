@@ -1,14 +1,12 @@
 # Accessibility conventions
 
-- Monochrome selection uses fill, text, symbols and numeric values rather than color alone.
-- Important states never rely on sprites alone.
-- Long labels scroll or truncate predictably; stored text remains longer than compact display rows where supported.
-- Storage-backed character, **eight-record spell/item**, and Journal paging is transparent to the user: moving across a cache boundary preserves normal Up/Down list behavior and does not expose page numbers as part of the record identity.
-- Dice results always retain numeric values and individual-result review; animation can be skipped with Back.
-- Combat attack-roll mode is shown as text (`Normal`, `Advantage`, or `Disadvantage`) on the main Combat screen rather than being represented only by animation or an implicit key state.
-- Long-press actions are paired with visible menu/detail context where practical.
-- Each standalone FAP uses the same basic Up/Down/OK/Back interaction model to reduce mode switching.
-- DNDInitiative uses short Back for previous turn during combat and hold Back to return to its menu.
-- DNDJournal milestone continuation is explicit and does not silently alter Adventure state.
+- High-contrast monochrome rendering uses filled selection rows and text labels rather than color.
+- Important states use text, symbols, and numeric values; they never rely on a sprite alone.
+- Saving throws, skills, passive statistics, spell values, HP, Armor Class, and resource counts use abbreviated labels when needed to keep values visible.
+- Dice animation is short, code-drawn, and can be skipped with Back. No rapid full-screen flashing is used.
+- Every multi-die roll retains an individual-results view and a numerical sum.
+- Long-press alternatives are documented in headers, status text, README controls, or the relevant detail screen.
+- Truncation preserves the start of a name and uses an ellipsis. Full custom descriptions remain stored even when a compact list row is shortened.
+- Navigation labels are compiled directly into the FAP so accessibility does not require a runtime string table or extra heap.
 
-Physical legibility, hold timing, storage-page transitions and maximum-length text cases remain in `DEVICE_TEST_MATRIX.md` until verified on hardware.
+Physical legibility, repeat timing, and all long-name cases remain listed in `DEVICE_TEST_MATRIX.md` until tested on hardware.

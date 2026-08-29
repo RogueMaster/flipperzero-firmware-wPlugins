@@ -4,16 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define POCKET_D20_SAVE_VERSION 5U
+#define POCKET_D20_SAVE_VERSION 2U
 
 #define POCKET_D20_NAME_LEN   32U
-#define POCKET_D20_CHARACTER_NAME_LEN 25U
-#define POCKET_D20_CLASS_NAME_LEN     16U
-#define POCKET_D20_SUBCLASS_NAME_LEN  31U
-#define POCKET_D20_SPELL_NAME_LEN     31U
-#define POCKET_D20_FEATURE_NAME_LEN   31U
-#define POCKET_D20_ITEM_NAME_LEN      47U
-#define POCKET_D20_CATALOG_NAME_LEN   POCKET_D20_ITEM_NAME_LEN
 #define POCKET_D20_SHORT_LEN  24U
 #define POCKET_D20_DETAIL_LEN 192U
 
@@ -22,8 +15,12 @@
 #define POCKET_D20_MAX_FEATURES          20U
 #define POCKET_D20_MAX_ITEMS             24U
 #define POCKET_D20_MAX_LANGUAGES         12U
+#define POCKET_D20_MAX_JOURNAL           24U
+#define POCKET_D20_MAX_PARTY             23U
+#define POCKET_D20_MAX_INITIATIVE        24U
 #define POCKET_D20_MAX_GRANTS            24U
 #define POCKET_D20_MAX_ATTACK_TEMPLATES  8U
+#define POCKET_D20_MAX_ENCOUNTER_HISTORY 16U
 
 #define POCKET_D20_SKILL_COUNT   18U
 #define POCKET_D20_ABILITY_COUNT 6U
@@ -128,6 +125,14 @@ typedef enum {
     PocketDamageTypeCount,
 } PocketDamageType;
 
+typedef enum {
+    PocketJournalQuick,
+    PocketJournalAdventure,
+    PocketJournalItem,
+    PocketJournalMilestone,
+    PocketJournalCategoryCount,
+} PocketJournalCategory;
+
 enum {
     PocketWeaponFinesse = 1U << 0,
     PocketWeaponRanged = 1U << 1,
@@ -138,8 +143,8 @@ enum {
 };
 
 typedef struct {
-    char name[POCKET_D20_CLASS_NAME_LEN];
-    char subclass[POCKET_D20_SUBCLASS_NAME_LEN];
+    char name[POCKET_D20_NAME_LEN];
+    char subclass[POCKET_D20_NAME_LEN];
     uint8_t level;
     uint8_t hit_die;
     uint8_t hit_dice_current;
@@ -158,7 +163,7 @@ typedef struct {
 } PocketClassLevel;
 
 typedef struct {
-    char name[POCKET_D20_SPELL_NAME_LEN];
+    char name[POCKET_D20_NAME_LEN];
     char detail[POCKET_D20_DETAIL_LEN];
     uint8_t level;
     uint8_t class_index;
@@ -172,7 +177,7 @@ typedef struct {
 } PocketSpell;
 
 typedef struct {
-    char name[POCKET_D20_FEATURE_NAME_LEN];
+    char name[POCKET_D20_NAME_LEN];
     char detail[POCKET_D20_DETAIL_LEN];
     int16_t uses_current;
     int16_t uses_max;
@@ -184,7 +189,7 @@ typedef struct {
 } PocketFeature;
 
 typedef struct {
-    char name[POCKET_D20_ITEM_NAME_LEN];
+    char name[POCKET_D20_NAME_LEN];
     char detail[POCKET_D20_DETAIL_LEN];
     int16_t quantity;
     int16_t weight_tenths;
@@ -244,7 +249,59 @@ typedef struct {
 } PocketAttackTemplate;
 
 typedef struct {
-    char name[POCKET_D20_CHARACTER_NAME_LEN];
+    char title[POCKET_D20_NAME_LEN];
+    char body[POCKET_D20_DETAIL_LEN];
+    uint8_t category;
+    uint8_t completed;
+    uint8_t level_granted;
+    uint8_t class_index;
+} PocketJournalEntry;
+
+typedef struct {
+    char name[POCKET_D20_SHORT_LEN];
+    int8_t initiative_modifier;
+    int16_t hp_current;
+    int16_t hp_max;
+    int16_t armor_class;
+} PocketPartyMember;
+
+typedef struct {
+    char name[POCKET_D20_SHORT_LEN];
+    int8_t initiative_modifier;
+    int16_t initiative_total;
+    uint8_t is_player_character;
+    int16_t hp_current;
+    int16_t hp_max;
+    int16_t armor_class;
+    char conditions[POCKET_D20_SHORT_LEN];
+} PocketInitiativeEntry;
+
+typedef struct {
+    uint16_t round;
+    uint8_t current_turn;
+    uint8_t kind;
+    uint8_t target;
+    int16_t value_before;
+    int16_t value_after;
+} PocketEncounterHistory;
+
+typedef enum {
+    PocketHistoryTurn,
+    PocketHistoryParticipantHp,
+    PocketHistoryFeatureResource,
+    PocketHistoryKindCount,
+} PocketHistoryKind;
+
+typedef struct {
+    uint8_t active;
+    uint16_t round;
+    uint8_t current_turn;
+    uint8_t count;
+    PocketInitiativeEntry entries[POCKET_D20_MAX_INITIATIVE];
+} PocketInitiativeState;
+
+typedef struct {
+    char name[POCKET_D20_NAME_LEN];
     char player[POCKET_D20_NAME_LEN];
     char species[POCKET_D20_NAME_LEN];
     char background[POCKET_D20_NAME_LEN];
@@ -309,6 +366,10 @@ typedef struct {
     PocketItem* items;
     uint8_t language_count;
     char languages[POCKET_D20_MAX_LANGUAGES][POCKET_D20_SHORT_LEN];
+    uint8_t journal_count;
+    uint8_t journal_capacity;
+    PocketJournalEntry* journal;
+
     int8_t saving_throw_misc[POCKET_D20_ABILITY_COUNT];
     int8_t skill_misc[POCKET_D20_SKILL_COUNT];
 
@@ -329,23 +390,27 @@ typedef struct {
     uint8_t encumbrance_mode;
     int16_t carrying_capacity_override;
 
+    char adventure_campaign[POCKET_D20_SHORT_LEN];
+    char adventure_scene[POCKET_D20_SHORT_LEN];
+    char adventure_checkpoint[POCKET_D20_SHORT_LEN];
+    uint32_t adventure_quest_flags;
+    uint32_t adventure_achievements;
 } PocketCharacter;
 
 typedef struct {
     PocketCharacter character;
+    uint8_t party_count;
+    PocketPartyMember party[POCKET_D20_MAX_PARTY];
+    PocketInitiativeState initiative;
+    uint8_t encounter_history_count;
+    PocketEncounterHistory encounter_history[POCKET_D20_MAX_ENCOUNTER_HISTORY];
 } PocketSaveData;
 
 void pocket_d20_data_set_defaults(PocketSaveData* data);
-void pocket_d20_data_add_default_items(PocketCharacter* character);
 void pocket_d20_data_clear(PocketSaveData* data);
 void pocket_d20_data_sanitize(PocketSaveData* data);
 bool pocket_d20_data_reserve_spells(PocketCharacter* character, uint8_t required);
-bool pocket_d20_data_reserve_spells_exact(PocketCharacter* character, uint8_t required);
-void pocket_d20_data_clear_spells(PocketCharacter* character);
 bool pocket_d20_data_reserve_features(PocketCharacter* character, uint8_t required);
-bool pocket_d20_data_reserve_features_exact(PocketCharacter* character, uint8_t required);
 bool pocket_d20_data_reserve_items(PocketCharacter* character, uint8_t required);
-bool pocket_d20_data_reserve_items_exact(PocketCharacter* character, uint8_t required);
-void pocket_d20_data_clear_items(PocketCharacter* character);
+bool pocket_d20_data_reserve_journal(PocketCharacter* character, uint8_t required);
 bool pocket_d20_data_reserve_grants(PocketCharacter* character, uint8_t required);
-bool pocket_d20_data_reserve_grants_exact(PocketCharacter* character, uint8_t required);

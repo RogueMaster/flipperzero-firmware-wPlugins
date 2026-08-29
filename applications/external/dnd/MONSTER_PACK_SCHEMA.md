@@ -1,20 +1,28 @@
-# DNDBestiary monster pack schema
+# Monster pack schema 1
 
-Monster packs are owned only by **DNDBestiary** (`dndbestiary`). Campaign-pack handling is not compiled into Bestiary. Eight-record character spell/item paging, Journal paging and Combat changes do not alter the monster pack format.
+Monster pack schema 1 is stable as of application version 2.0. Compatible releases accept an `index.txt` beginning with `# MonsterPack=1`, followed by pipe-delimited records:
 
-## Inbox
+`id|name|challenge_eighths|xp|armor_class|hit_points|type|environment|source|role`
 
-Stage a runtime pack under:
+Each ID maps to an `[id]` section in `statblocks.txt`. Required keys are `SizeAlignment`, `Speed`, `Abilities`, `Senses`, `Languages`, and `Actions`. Optional keys are `Skills`, `Defenses`, `Traits`, and `Extra`. Values are single-line UTF-8 text and should not exceed 191 bytes. `Abilities` contains six comma-separated integers in STR, DEX, CON, INT, WIS, CHA order.
 
-`/ext/apps_data/dndbestiary/packs/monster_inbox/`
+IDs must remain stable and unique. New optional fields may be added without changing the schema. Any incompatible index or required-field change needs a new pack version and an explicit importer.
 
-with:
+`source` is a short display/filter label. `role` is optional encounter metadata and accepts `Leader`, `Controller`, `Skirmisher`, `Artillery`, `Brute`, `Minion`, or `Any`. Older schema-1 records with eight fields remain valid and receive safe defaults.
 
-- `manifest.txt`
-- `index.txt`
-- `statblocks.txt`
+On-device custom creation rewrites temporary index and stat-block files, then atomically publishes both files with rollback copies. Custom records retain source `Custom`; other records remain read-only.
 
-Manifest format:
+Packaged records use the read-only `/ext/apps_assets/dolphin_bestiary/monsters/index.txt` and `statblocks.txt`. User records use `/ext/apps_data/dolphin_bestiary/monsters/custom_index.txt` and `custom_statblocks.txt`; the app streams both layers as one Bestiary. Temporary transaction files apply only to the custom app-data pair and are removed after commit or rollback.
+
+## Installed packs
+
+Version 3.1 adds a separate installed-pack inbox beneath the Dolphin Bestiary app-data directory:
+
+- `packs/monster_inbox/manifest.txt`
+- `packs/monster_inbox/index.txt`
+- `packs/monster_inbox/statblocks.txt`
+
+The manifest is:
 
 ```text
 PocketPack=1
@@ -22,15 +30,6 @@ Id=filename_safe_pack_id
 Name=Display Name
 ```
 
-## Index row
+No checksum is stored or required, so pack text remains manually editable. Installed index rows must use source `Custom Pack`. Installation rejects malformed rows, unsafe pack IDs, duplicate record IDs, and IDs already present in packaged, directly created custom, or enabled installed records.
 
-`id|name|challenge rating in eighths|XP|AC|HP|type|environment|source|role`
-
-Each ID needs a matching `[id]` section in `statblocks.txt`. Common keys include `SizeAlignment`, `Speed`, `Abilities`, `Initiative`, `Skills`, `Defenses`, `Senses`, `Languages`, `Traits`, `Actions`, and `Extra`.
-
-IDs must be unique and filename-safe. Keep values on one line and inside parser limits. No checksum is required; text files are intentionally editable.
-
-Installed monster files, the registry and enabled index remain under DNDBestiary app data. Pack operations must not write campaign or character namespaces.
-## Runtime loading note
-
-Monster pack/index/statblock text is consumed incrementally; the storage schema does not require whole-file loading or persistent full-file offsets. Current lookup caches are an implementation detail and may be replaced by bounded/sparse caches without changing this pack format.
+Files are copied and published transactionally in app data, registered through a plain-text registry, and streamed through `enabled_index.txt` and `enabled_statblocks.txt`. Enable/disable rebuilds only those app-data aggregates. It never opens packaged assets for writing and never modifies the direct-custom pair.

@@ -1,4 +1,4 @@
-#include "dndolphins_rules.h"
+#include "pocket_d20_rules.h"
 
 #include <furi_hal_random.h>
 
@@ -63,6 +63,9 @@ const char* const pocket_d20_damage_names[PocketDamageTypeCount] = {
     "Thunder",
 };
 
+const char* const pocket_d20_journal_category_names[PocketJournalCategoryCount] =
+    {"Quick", "Adventure", "Item", "Milestone"};
+
 static uint8_t pocket_d20_roll_one(uint8_t sides) {
     if(sides < 2U) return 0U;
     return (uint8_t)((furi_hal_random_get() % sides) + 1U);
@@ -84,28 +87,11 @@ uint8_t pocket_d20_total_level(const PocketCharacter* character) {
     return level;
 }
 
-uint32_t pocket_d20_minimum_experience_for_level(uint8_t level) {
-    static const uint32_t minimum_xp[20] = {
-        0U,      300U,    900U,    2700U,   6500U,   14000U, 23000U,
-        34000U,  48000U,  64000U,  85000U,  100000U, 120000U, 140000U,
-        165000U, 195000U, 225000U, 265000U, 305000U, 355000U,
-    };
-    if(level < 1U) level = 1U;
-    if(level > 20U) level = 20U;
-    return minimum_xp[level - 1U];
-}
-
-void dndolphins_apply_experience_floor(PocketCharacter* character) {
-    if(!character) return;
-    uint32_t minimum = pocket_d20_minimum_experience_for_level(pocket_d20_total_level(character));
-    if(character->experience < minimum) character->experience = minimum;
-}
-
 uint8_t pocket_d20_proficiency_bonus(const PocketCharacter* character) {
     return (uint8_t)(2U + ((pocket_d20_total_level(character) - 1U) / 4U));
 }
 
-static int8_t dndolphins_apply_proficiency(int8_t base, uint8_t proficiency, uint8_t bonus) {
+static int8_t pocket_d20_apply_proficiency(int8_t base, uint8_t proficiency, uint8_t bonus) {
     if(proficiency == PocketProficiencyExpertise) return (int8_t)(base + (2 * bonus));
     if(proficiency == PocketProficiencyProficient) return (int8_t)(base + bonus);
     return base;
@@ -118,7 +104,7 @@ static int8_t pocket_d20_exhaustion_penalty(const PocketCharacter* character) {
 int8_t pocket_d20_saving_throw_modifier(const PocketCharacter* character, uint8_t ability) {
     if(ability >= POCKET_D20_ABILITY_COUNT) return 0;
     int8_t base = pocket_d20_ability_modifier(character->ability_scores[ability]);
-    return (int8_t)(dndolphins_apply_proficiency(
+    return (int8_t)(pocket_d20_apply_proficiency(
                         base,
                         character->saving_throw_proficiency[ability],
                         pocket_d20_proficiency_bonus(character)) +
@@ -130,7 +116,7 @@ int8_t pocket_d20_skill_base_modifier(const PocketCharacter* character, uint8_t 
     if(skill >= POCKET_D20_SKILL_COUNT) return 0;
     uint8_t ability = pocket_d20_skill_abilities[skill];
     int8_t base = pocket_d20_ability_modifier(character->ability_scores[ability]);
-    return (int8_t)(dndolphins_apply_proficiency(
+    return (int8_t)(pocket_d20_apply_proficiency(
                         base,
                         character->skill_proficiency[skill],
                         pocket_d20_proficiency_bonus(character)) +
@@ -200,7 +186,7 @@ void pocket_d20_recalculate_multiclass_slots(PocketCharacter* character) {
         if(level->spellcasting_mode == PocketSpellcastingFull)
             caster_level += level->level;
         else if(level->spellcasting_mode == PocketSpellcastingHalf)
-            caster_level += (level->level + 1U) / 2U;
+            caster_level += level->level / 2U;
         else if(level->spellcasting_mode == PocketSpellcastingThird)
             caster_level += level->level / 3U;
     }
@@ -213,56 +199,6 @@ void pocket_d20_recalculate_multiclass_slots(PocketCharacter* character) {
         if(character->spell_slots_current[level] > maximum)
             character->spell_slots_current[level] = maximum;
     }
-}
-
-bool pocket_d20_initialize_spell_slots_if_unset(PocketCharacter* character) {
-    if(!character) return false;
-    bool changed = false;
-    bool shared_unset = true;
-    bool has_shared_caster = false;
-    for(uint8_t level = 1U; level < POCKET_D20_SLOT_COUNT; ++level) {
-        if(character->spell_slots_current[level] || character->spell_slots_max[level]) {
-            shared_unset = false;
-            break;
-        }
-    }
-    for(uint8_t index = 0U; index < character->class_count; ++index) {
-        uint8_t mode = character->classes[index].spellcasting_mode;
-        if(mode == PocketSpellcastingFull || mode == PocketSpellcastingHalf ||
-           mode == PocketSpellcastingThird) {
-            has_shared_caster = true;
-            break;
-        }
-    }
-    if(shared_unset && has_shared_caster) {
-        pocket_d20_recalculate_multiclass_slots(character);
-        for(uint8_t level = 1U; level < POCKET_D20_SLOT_COUNT; ++level) {
-            character->spell_slots_current[level] = character->spell_slots_max[level];
-            if(character->spell_slots_max[level]) changed = true;
-        }
-    }
-
-    static const uint8_t pact_slots[20] = {
-        1U, 2U, 2U, 2U, 2U, 2U, 2U, 2U, 2U, 2U,
-        3U, 3U, 3U, 3U, 3U, 3U, 4U, 4U, 4U, 4U};
-    static const uint8_t pact_levels[20] = {
-        1U, 1U, 2U, 2U, 3U, 3U, 4U, 4U, 5U, 5U,
-        5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U};
-    for(uint8_t index = 0U; index < character->class_count; ++index) {
-        PocketClassLevel* class_level = &character->classes[index];
-        if(class_level->spellcasting_mode != PocketSpellcastingPact) continue;
-        if(class_level->pact_slot_level || class_level->pact_slots_current ||
-           class_level->pact_slots_max)
-            continue;
-        uint8_t level = class_level->level;
-        if(level < 1U) level = 1U;
-        if(level > 20U) level = 20U;
-        class_level->pact_slot_level = pact_levels[level - 1U];
-        class_level->pact_slots_max = pact_slots[level - 1U];
-        class_level->pact_slots_current = class_level->pact_slots_max;
-        changed = true;
-    }
-    return changed;
 }
 
 int16_t pocket_d20_carried_weight_tenths(const PocketCharacter* character) {
@@ -376,14 +312,6 @@ int8_t
 
 uint16_t pocket_d20_roll_dice(uint8_t count, uint8_t sides) {
     return pocket_d20_roll_dice_values(count, sides, NULL, 0U);
-}
-
-uint8_t pocket_d20_roll_d20_mode(PocketRollMode mode) {
-    uint8_t first = pocket_d20_roll_one(20U);
-    if(mode != PocketRollAdvantage && mode != PocketRollDisadvantage) return first;
-    uint8_t second = pocket_d20_roll_one(20U);
-    if(mode == PocketRollAdvantage) return second > first ? second : first;
-    return second < first ? second : first;
 }
 
 uint16_t
