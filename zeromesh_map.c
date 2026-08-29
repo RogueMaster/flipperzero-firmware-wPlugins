@@ -285,6 +285,8 @@ static void map_draw_nodes(Canvas* canvas, ZeroMeshApp* app) {
     MapState* m = app->map;
     if(!m) return;
 
+    canvas_set_font(canvas, FontSecondary);
+
     for(uint8_t i = 0; i < app->roster.count; i++) {
         NodeEntry* n = &app->roster.nodes[i];
         if(!n->has_position) continue;
@@ -302,8 +304,29 @@ static void map_draw_nodes(Canvas* canvas, ZeroMeshApp* app) {
         int py = (int)(fy * m->tile_px) - m->pan_y;
         if(px < 0 || py < 0 || px >= MAP_W || py >= MAP_H) continue;
 
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_disc(canvas, px, py, 4);
+        canvas_set_color(canvas, ColorBlack);
         canvas_draw_disc(canvas, px, py, 2);
-        canvas_draw_circle(canvas, px, py, 3);
+        canvas_draw_circle(canvas, px, py, 4);
+
+        const char* tag = n->has_name && n->short_name[0] ? n->short_name : NULL;
+        char idbuf[8];
+        if(!tag) {
+            snprintf(idbuf, sizeof(idbuf), "%04lx", (unsigned long)(n->node_id & 0xFFFF));
+            tag = idbuf;
+        }
+        int tw = canvas_string_width(canvas, tag);
+        int tx = px + 6;
+        if(tx + tw > MAP_W) tx = px - 6 - tw;
+        if(tx < 0) tx = 0;
+        int ty = py + 3;
+        if(ty < 8) ty = 8;
+        if(ty > MAP_H - 1) ty = MAP_H - 1;
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, tx - 1, ty - 7, tw + 2, 8);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_str(canvas, tx, ty, tag);
     }
 }
 

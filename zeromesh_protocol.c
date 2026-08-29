@@ -4,6 +4,8 @@
 #include "zeromesh_roster.h"
 #include "zeromesh_transport.h"
 #include "lib/meshtastic_api/meshtastic/telemetry.pb.h"
+#include "lib/meshtastic_api/meshtastic/admin.pb.h"
+#include "lib/meshtastic_api/meshtastic/config.pb.h"
 
 #define TAG "zeromesh_serial"
 
@@ -82,6 +84,40 @@ static bool payload_encode_cb(pb_ostream_t* stream, const pb_field_t* field, voi
     return pb_encode_string(stream, ps->buf, ps->len);
 }
 
+typedef struct {
+    char* buf;
+    size_t size;
+} StrSink;
+
+static bool str_sink_cb(pb_istream_t* stream, const pb_field_t* field, void** arg) {
+    UNUSED(field);
+    StrSink* sink = (StrSink*)(*arg);
+    size_t avail = stream->bytes_left;
+    size_t take = avail;
+    if(sink && sink->size) {
+        if(take >= sink->size) take = sink->size - 1;
+        if(!pb_read(stream, (pb_byte_t*)sink->buf, take)) return false;
+        sink->buf[take] = 0;
+    } else {
+        take = 0;
+    }
+    size_t rest = avail - take;
+    while(rest > 0) {
+        pb_byte_t skip[32];
+        size_t chunk = rest > sizeof(skip) ? sizeof(skip) : rest;
+        if(!pb_read(stream, skip, chunk)) return false;
+        rest -= chunk;
+    }
+    return true;
+}
+
+static void bind_user_names(meshtastic_User* u, StrSink* shortsink, StrSink* longsink) {
+    u->short_name.funcs.decode = str_sink_cb;
+    u->short_name.arg = shortsink;
+    u->long_name.funcs.decode = str_sink_cb;
+    u->long_name.arg = longsink;
+}
+
 static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len) {
     PayloadCapture cap = {0};
     meshtastic_FromRadio from = meshtastic_FromRadio_init_default;
@@ -118,7 +154,11 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
         roster_add_node(app, sender_id, p->rx_snr, p->rx_rssi);
         if(p->which_payload_variant == meshtastic_MeshPacket_decoded_tag) {
             const meshtastic_Data* d = &p->payload_variant.decoded;
-            if(d->portnum == meshtastic_PortNum_TEXT_MESSAGE_APP || d->portnum == meshtastic_PortNum_TELEMETRY_APP) {
+            if(d->portnum == meshtastic_PortNum_TEXT_MESSAGE_APP ||
+               d->portnum == meshtastic_PortNum_TELEMETRY_APP ||
+               d->portnum == meshtastic_PortNum_POSITION_APP ||
+               d->portnum == meshtastic_PortNum_NODEINFO_APP ||
+               d->portnum == meshtastic_PortNum_ROUTING_APP) {
                 pb_istream_t walk = pb_istream_from_buffer(frame, len);
                 bool found_payload = false;
                 while(walk.bytes_left > 0) {
@@ -176,6 +216,44 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                         set_status(app, "New message");
                         notify_rx_message(app);
                         view_port_update(app->vp);
+                    } else if(d->portnum == meshtastic_PortNum_ROUTING_APP) {
+                        meshtastic_Routing r = meshtastic_Routing_init_default;
+                        pb_istream_t is_r = pb_istream_from_buffer(cap.buf, cap.len);
+                        if(pb_decode(&is_r, meshtastic_Routing_fields, &r) &&
+                           r.which_variant == meshtastic_Routing_error_reason_tag) {
+                            bool ours = false;
+                            for(uint8_t k = 0; k < 8; k++) {
+                                if(d->request_id && app->sent_msg_ids[k] == d->request_id) {
+                                    ours = true;
+                                    break;
+                                }
+                            }
+                            if(ours) {
+                                if(r.variant.error_reason == meshtastic_Routing_Error_NONE) {
+                                    set_status(app, "Delivered");
+                                    log_line(app, "ACK from %08lX", (unsigned long)sender_id);
+                                } else {
+                                    set_status(app, "Delivery failed");
+                                    log_line(
+                                        app,
+                                        "NAK from %08lX (%d)",
+                                        (unsigned long)sender_id,
+                                        (int)r.variant.error_reason);
+                                }
+                            }
+                        }
+                    } else if(d->portnum == meshtastic_PortNum_NODEINFO_APP) {
+                        meshtastic_User u = meshtastic_User_init_default;
+                        char sn[8] = {0};
+                        char ln[24] = {0};
+                        StrSink ssink = {sn, sizeof(sn)};
+                        StrSink lsink = {ln, sizeof(ln)};
+                        bind_user_names(&u, &ssink, &lsink);
+                        pb_istream_t is_u = pb_istream_from_buffer(cap.buf, cap.len);
+                        if(pb_decode(&is_u, meshtastic_User_fields, &u)) {
+                            roster_update_name(app, sender_id, sn, ln);
+                            log_line(app, "Node %s (%08lX)", ln[0] ? ln : sn, (unsigned long)sender_id);
+                        }
                     } else if(d->portnum == meshtastic_PortNum_POSITION_APP) {
                         meshtastic_Position pos = meshtastic_Position_init_default;
                         pb_istream_t is_pos = pb_istream_from_buffer(cap.buf, cap.len);
@@ -207,6 +285,49 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
             }
         } else if(p->which_payload_variant == meshtastic_MeshPacket_encrypted_tag) {
             log_line(app, "RX encrypted from %08lX", (unsigned long)sender_id);
+        }
+    } else if(from.which_payload_variant == meshtastic_FromRadio_node_info_tag) {
+        meshtastic_NodeInfo ni = meshtastic_NodeInfo_init_default;
+        char sn[8] = {0};
+        char ln[24] = {0};
+        StrSink ssink = {sn, sizeof(sn)};
+        StrSink lsink = {ln, sizeof(ln)};
+        bind_user_names(&ni.user, &ssink, &lsink);
+
+        pb_istream_t is_ni = pb_istream_from_buffer(frame, len);
+        meshtastic_FromRadio fr2 = meshtastic_FromRadio_init_default;
+        fr2.which_payload_variant = meshtastic_FromRadio_node_info_tag;
+        bind_user_names(&fr2.payload_variant.node_info.user, &ssink, &lsink);
+        if(pb_decode(&is_ni, meshtastic_FromRadio_fields, &fr2)) {
+            const meshtastic_NodeInfo* n = &fr2.payload_variant.node_info;
+            if(n->num) {
+                roster_add_node(app, n->num, (int8_t)n->snr, 0);
+                roster_update_name(app, n->num, sn, ln);
+                if(app->my_node_num && n->num == app->my_node_num) {
+                    if(ln[0]) strncpy(app->my_long_name, ln, sizeof(app->my_long_name) - 1);
+                    if(sn[0]) strncpy(app->my_short_name, sn, sizeof(app->my_short_name) - 1);
+                }
+                if(n->has_position && n->position.has_latitude_i && n->position.has_longitude_i) {
+                    roster_update_position(
+                        app,
+                        n->num,
+                        n->position.latitude_i,
+                        n->position.longitude_i,
+                        n->position.has_altitude ? n->position.altitude : 0,
+                        n->position.time);
+                }
+                log_line(app, "Node %s (%08lX)", ln[0] ? ln : sn, (unsigned long)n->num);
+            }
+        }
+    } else if(from.which_payload_variant == meshtastic_FromRadio_config_tag) {
+        const meshtastic_Config* c = &from.payload_variant.config;
+        if(c->which_payload_variant == meshtastic_Config_lora_tag) {
+            app->cfg_region = (uint8_t)c->payload_variant.lora.region;
+            app->cfg_preset = (uint8_t)c->payload_variant.lora.modem_preset;
+            app->has_node_config = true;
+        } else if(c->which_payload_variant == meshtastic_Config_device_tag) {
+            app->cfg_role = (uint8_t)c->payload_variant.device.role;
+            app->has_node_config = true;
         }
     } else if(from.which_payload_variant == meshtastic_FromRadio_my_info_tag) {
         const meshtastic_MyNodeInfo* info = &from.payload_variant.my_info;
@@ -265,6 +386,141 @@ void send_text_message(ZeroMeshApp* app, const char* text, uint32_t to_node) {
     history_add(app, text, app->my_node_num, to_node, true);
     log_line(app, "TX: %s", text);
     set_status(app, "Sent!");
+}
+
+static void send_admin(ZeroMeshApp* app, meshtastic_AdminMessage* am) {
+    if(!app || !transport_is_up(app)) return;
+
+    uint8_t abuf[256];
+    pb_ostream_t aos = pb_ostream_from_buffer(abuf, sizeof(abuf));
+    if(!pb_encode(&aos, meshtastic_AdminMessage_fields, am)) {
+        app->tx_encode_fail++;
+        return;
+    }
+
+    meshtastic_ToRadio to = meshtastic_ToRadio_init_default;
+    to.which_payload_variant = meshtastic_ToRadio_packet_tag;
+    meshtastic_MeshPacket* p = &to.payload_variant.packet;
+    p->to = app->my_node_num;
+    p->id = (uint32_t)furi_hal_random_get();
+    p->want_ack = true;
+    p->which_payload_variant = meshtastic_MeshPacket_decoded_tag;
+
+    meshtastic_Data* d = &p->payload_variant.decoded;
+    d->portnum = meshtastic_PortNum_ADMIN_APP;
+    d->want_response = false;
+    PayloadSend ps = {.buf = abuf, .len = aos.bytes_written};
+    d->payload.funcs.encode = payload_encode_cb;
+    d->payload.arg = &ps;
+
+    uint8_t buf[MAX_FRAME_SIZE];
+    pb_ostream_t os = pb_ostream_from_buffer(buf, sizeof(buf));
+    if(!pb_encode(&os, meshtastic_ToRadio_fields, &to)) {
+        app->tx_encode_fail++;
+        return;
+    }
+    send_frame(app, buf, os.bytes_written);
+}
+
+void set_node_lora(ZeroMeshApp* app, uint8_t region, uint8_t preset) {
+    if(!app) return;
+    meshtastic_AdminMessage am = meshtastic_AdminMessage_init_default;
+    am.which_payload_variant = meshtastic_AdminMessage_set_config_tag;
+    am.payload_variant.set_config.which_payload_variant = meshtastic_Config_lora_tag;
+    meshtastic_Config_LoRaConfig* l = &am.payload_variant.set_config.payload_variant.lora;
+    l->region = (meshtastic_Config_LoRaConfig_RegionCode)region;
+    l->modem_preset = (meshtastic_Config_LoRaConfig_ModemPreset)preset;
+    l->use_preset = true;
+    l->hop_limit = 3;
+    l->tx_enabled = true;
+    send_admin(app, &am);
+    log_line(app, "LoRa config sent");
+}
+
+void set_node_role(ZeroMeshApp* app, uint8_t role) {
+    if(!app) return;
+    meshtastic_AdminMessage am = meshtastic_AdminMessage_init_default;
+    am.which_payload_variant = meshtastic_AdminMessage_set_config_tag;
+    am.payload_variant.set_config.which_payload_variant = meshtastic_Config_device_tag;
+    am.payload_variant.set_config.payload_variant.device.role =
+        (meshtastic_Config_DeviceConfig_Role)role;
+    send_admin(app, &am);
+    log_line(app, "Role sent");
+}
+
+void set_node_owner(ZeroMeshApp* app, const char* long_name, const char* short_name) {
+    if(!app) return;
+    meshtastic_AdminMessage am = meshtastic_AdminMessage_init_default;
+    am.which_payload_variant = meshtastic_AdminMessage_set_owner_tag;
+    PayloadSend lps = {.buf = (const uint8_t*)long_name, .len = long_name ? strlen(long_name) : 0};
+    PayloadSend sps = {.buf = (const uint8_t*)short_name, .len = short_name ? strlen(short_name) : 0};
+    am.payload_variant.set_owner.long_name.funcs.encode = payload_encode_cb;
+    am.payload_variant.set_owner.long_name.arg = &lps;
+    am.payload_variant.set_owner.short_name.funcs.encode = payload_encode_cb;
+    am.payload_variant.set_owner.short_name.arg = &sps;
+    send_admin(app, &am);
+    log_line(app, "Owner sent");
+}
+
+void reboot_node(ZeroMeshApp* app, int32_t seconds) {
+    if(!app) return;
+    meshtastic_AdminMessage am = meshtastic_AdminMessage_init_default;
+    am.which_payload_variant = meshtastic_AdminMessage_reboot_seconds_tag;
+    am.payload_variant.reboot_seconds = seconds;
+    send_admin(app, &am);
+    log_line(app, "Reboot in %ds", (int)seconds);
+}
+
+void request_position(ZeroMeshApp* app, uint32_t to_node) {
+    if(!app || !transport_is_up(app)) return;
+
+    meshtastic_ToRadio to = meshtastic_ToRadio_init_default;
+    to.which_payload_variant = meshtastic_ToRadio_packet_tag;
+    meshtastic_MeshPacket* p = &to.payload_variant.packet;
+    p->to = to_node;
+    p->id = (uint32_t)furi_hal_random_get();
+    p->hop_limit = 3;
+    p->want_ack = false;
+    p->which_payload_variant = meshtastic_MeshPacket_decoded_tag;
+
+    meshtastic_Data* d = &p->payload_variant.decoded;
+    d->portnum = meshtastic_PortNum_POSITION_APP;
+    d->want_response = true;
+
+    uint8_t buf[MAX_FRAME_SIZE];
+    pb_ostream_t os = pb_ostream_from_buffer(buf, sizeof(buf));
+    if(!pb_encode(&os, meshtastic_ToRadio_fields, &to)) {
+        app->tx_encode_fail++;
+        return;
+    }
+    send_frame(app, buf, os.bytes_written);
+    log_line(app, "Position requested from %08lX", (unsigned long)to_node);
+}
+
+void request_node_info(ZeroMeshApp* app, uint32_t to_node) {
+    if(!app || !transport_is_up(app)) return;
+
+    meshtastic_ToRadio to = meshtastic_ToRadio_init_default;
+    to.which_payload_variant = meshtastic_ToRadio_packet_tag;
+    meshtastic_MeshPacket* p = &to.payload_variant.packet;
+    p->to = to_node;
+    p->id = (uint32_t)furi_hal_random_get();
+    p->hop_limit = 3;
+    p->want_ack = false;
+    p->which_payload_variant = meshtastic_MeshPacket_decoded_tag;
+
+    meshtastic_Data* d = &p->payload_variant.decoded;
+    d->portnum = meshtastic_PortNum_NODEINFO_APP;
+    d->want_response = true;
+
+    uint8_t buf[MAX_FRAME_SIZE];
+    pb_ostream_t os = pb_ostream_from_buffer(buf, sizeof(buf));
+    if(!pb_encode(&os, meshtastic_ToRadio_fields, &to)) {
+        app->tx_encode_fail++;
+        return;
+    }
+    send_frame(app, buf, os.bytes_written);
+    log_line(app, "Info requested from %08lX", (unsigned long)to_node);
 }
 
 void request_info(ZeroMeshApp* app) {

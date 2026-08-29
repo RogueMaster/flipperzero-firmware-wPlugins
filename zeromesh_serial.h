@@ -36,7 +36,8 @@
 #define PAGE_LOGS      4
 #define PAGE_SETTINGS  5
 #define PAGE_MAP       6
-#define PAGE_COUNT     7
+#define PAGE_NODECFG   7
+#define PAGE_COUNT     8
 
 #define MSG_HISTORY 8
 
@@ -71,6 +72,10 @@ typedef struct {
     int32_t altitude;
     uint32_t pos_time;
     bool has_position;
+
+    char short_name[8];
+    char long_name[24];
+    bool has_name;
 	bool has_new_dm;
 } NodeEntry;
 
@@ -202,6 +207,15 @@ typedef struct {
     bool has_rx_signal_data;
     
     uint32_t my_node_num;
+
+    bool has_node_config;
+    uint8_t cfg_region;
+    uint8_t cfg_preset;
+    uint8_t cfg_role;
+    char my_long_name[24];
+    char my_short_name[8];
+    uint8_t nodecfg_cursor;
+    bool nodecfg_editing;
     
     uint32_t sent_msg_ids[8];
     uint8_t sent_msg_head;

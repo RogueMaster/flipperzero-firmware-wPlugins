@@ -13,6 +13,7 @@
 #include "zeromesh_settings.h"
 #include "zeromesh_transport.h"
 #include "zeromesh_map.h"
+#include "zeromesh_nodecfg.h"
 
 static const uint32_t baud_options[] = {9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
 #define BAUD_OPTIONS_COUNT (sizeof(baud_options) / sizeof(baud_options[0]))
@@ -615,6 +616,9 @@ void render_cb(Canvas* canvas, void* ctx) {
     case PAGE_MAP:
         render_map(canvas, app);
         break;
+    case PAGE_NODECFG:
+        render_nodecfg(canvas, app);
+        break;
     default:
         app->ui_mode = PAGE_MESSAGES;
         render_messages(canvas, app);
@@ -716,6 +720,15 @@ void input_cb(InputEvent* e, void* ctx) {
     if(app->ui_mode == PAGE_MAP) {
         bool consumed = map_wants_key(app, e->key);
         input_map(e, app);
+        if(consumed) {
+            view_port_update(app->vp);
+            return;
+        }
+    }
+
+    if(app->ui_mode == PAGE_NODECFG) {
+        bool consumed = nodecfg_wants_key(app, e->key);
+        input_nodecfg(e, app);
         if(consumed) {
             view_port_update(app->vp);
             return;

@@ -1,5 +1,7 @@
 #include "zeromesh_roster.h"
 #include "zeromesh_gui.h"
+#include "zeromesh_protocol.h"
+#include "zeromesh_history.h"
 
 #include <furi.h>
 #include <gui/canvas.h>
@@ -165,6 +167,40 @@ void roster_update_telemetry(ZeroMeshApp* app, uint32_t node_id, uint8_t battery
     furi_mutex_release(app->lock);
 }
 
+void roster_update_name(
+    ZeroMeshApp* app,
+    uint32_t node_id,
+    const char* short_name,
+    const char* long_name) {
+    if(!app || node_id == 0) return;
+    if((!short_name || !short_name[0]) && (!long_name || !long_name[0])) return;
+
+    furi_mutex_acquire(app->lock, FuriWaitForever);
+
+    for(uint8_t i = 0; i < app->roster.count; i++) {
+        if(app->roster.nodes[i].node_id == node_id) {
+            if(short_name && short_name[0]) {
+                strncpy(
+                    app->roster.nodes[i].short_name,
+                    short_name,
+                    sizeof(app->roster.nodes[i].short_name) - 1);
+                app->roster.nodes[i].short_name[sizeof(app->roster.nodes[i].short_name) - 1] = 0;
+            }
+            if(long_name && long_name[0]) {
+                strncpy(
+                    app->roster.nodes[i].long_name,
+                    long_name,
+                    sizeof(app->roster.nodes[i].long_name) - 1);
+                app->roster.nodes[i].long_name[sizeof(app->roster.nodes[i].long_name) - 1] = 0;
+            }
+            app->roster.nodes[i].has_name = true;
+            break;
+        }
+    }
+
+    furi_mutex_release(app->lock);
+}
+
 void roster_update_position(
     ZeroMeshApp* app,
     uint32_t node_id,
@@ -307,13 +343,24 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
             uint32_t now = furi_get_tick() / 1000;
             uint32_t diff = now - app->roster.nodes[idx].last_seen;
             const char* alert = app->roster.nodes[idx].has_new_dm ? "(!)" : " ";
-            snprintf(
-                line_buf,
-                sizeof(line_buf),
-                "%s %08lX %lus ago",
-                alert,
-                (unsigned long)app->roster.nodes[idx].node_id,
-                (unsigned long)diff);
+            const NodeEntry* ne = &app->roster.nodes[idx];
+            if(ne->has_name && (ne->long_name[0] || ne->short_name[0])) {
+                snprintf(
+                    line_buf,
+                    sizeof(line_buf),
+                    "%s %s %lus",
+                    alert,
+                    ne->long_name[0] ? ne->long_name : ne->short_name,
+                    (unsigned long)diff);
+            } else {
+                snprintf(
+                    line_buf,
+                    sizeof(line_buf),
+                    "%s %08lX %lus ago",
+                    alert,
+                    (unsigned long)ne->node_id,
+                    (unsigned long)diff);
+            }
             canvas_draw_str(canvas, 4, y, line_buf);
             y += 12;
         }
@@ -325,7 +372,12 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
     }
 
     if(app->roster.state == RosterStateChat) {
-        snprintf(title_buf, sizeof(title_buf), "Chat: %08lX", (unsigned long)selected->node_id);
+        if(selected->has_name && selected->short_name[0]) {
+            snprintf(title_buf, sizeof(title_buf), "Chat: %s", selected->short_name);
+        } else {
+            snprintf(
+                title_buf, sizeof(title_buf), "Chat: %08lX", (unsigned long)selected->node_id);
+        }
         draw_header(canvas, app, title_buf);
         canvas_set_color(canvas, ColorBlack);
 
@@ -413,7 +465,12 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
     }
 
     if(app->roster.state == RosterStateDetails) {
-        snprintf(title_buf, sizeof(title_buf), "Node: %08lX", (unsigned long)selected->node_id);
+        if(selected->has_name && selected->long_name[0]) {
+            snprintf(title_buf, sizeof(title_buf), "%s", selected->long_name);
+        } else {
+            snprintf(
+                title_buf, sizeof(title_buf), "Node: %08lX", (unsigned long)selected->node_id);
+        }
         draw_header(canvas, app, title_buf);
 
         canvas_set_color(canvas, ColorBlack);
@@ -491,8 +548,17 @@ void input_roster(InputEvent* e, ZeroMeshApp* app) {
     }
 
     if(app->roster.state == RosterStateDetails) {
+        NodeEntry* sel = &app->roster.nodes[app->roster.selected_idx];
         if(e->key == InputKeyBack && e->type == InputTypeShort) {
             app->roster.state = RosterStateList;
+            view_port_update(app->vp);
+        } else if(e->key == InputKeyOk && e->type == InputTypeShort) {
+            request_position(app, sel->node_id);
+            set_status(app, "Position requested");
+            view_port_update(app->vp);
+        } else if(e->key == InputKeyOk && e->type == InputTypeLong) {
+            request_node_info(app, sel->node_id);
+            set_status(app, "Info requested");
             view_port_update(app->vp);
         }
         return;
