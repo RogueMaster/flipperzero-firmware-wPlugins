@@ -81,12 +81,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Expansion: [Fixed an off-by-one that accepted FuriHalSerialIdMax itself as a serial id when setting an expansion module callback (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1108)
 - Added: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 - ESP Flasher: [Bump Marauder v1.15.1 +1 DAY (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/nightly_91724fd)
-- Updated: [UHF Expansion v1.1 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Added: [Dungeons & Dolphins v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [Dolphin Bestiary v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [Dungeons & Dolphins v3.2.6 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [Dolphin Bestiary v3.2.6 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [Hotspot Arcade v1.9.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
+- Updated: [UHF Expansion v1.1 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 
 <a name="release"></a>
 
