@@ -10,6 +10,73 @@ passive: it reads only what the scan already saw. No transmit.
 
 ### Added
 
+- **A vendor field, so the app stops calling everything a Flock camera.** Every
+  ALPR-class detection used to render as *"Flock / ALPR camera"* — including
+  competitor hardware, and including MACs that matched no table at all and were
+  scored purely on probe behaviour. The detection screen and both report exports
+  now carry a **vendor** alongside the class, re-derived on the Flipper from the
+  MAC and SSID rather than asserted by the companion. An unattributed detection
+  reads *"ALPR (unattributed)"*; only real Flock evidence prints the word Flock.
+
+- **Five competitor vendors detected: Ubicquia, Motorola Solutions, Verkada,
+  Genetec and Avigilon.** Cities dropping Flock are switching vendors, not
+  dropping ALPR — Axon's replacement products are the clearest case, and **Axon
+  Lightpost is Ubicquia hardware underneath**, a streetlight node that is a
+  tri-band Wi-Fi 6 access point and so should beacon continuously. Every prefix
+  was read out of the IEEE registry one at a time and the organisation string is
+  quoted in `flock_db.c`.
+
+  These score **Possible on any frame type, including a bare beacon** — unlike
+  the Flock table, where bare-OUI scoring was removed for reporting a T-Mobile
+  gateway. The reasoning does not transfer: `flock_ouis[]` is mostly Liteon and
+  Espressif, while `94:7b:be` is Ubicquia's own and Ubicquia makes nothing else.
+  They are never promoted above Possible — registry-verified is not
+  field-observed, and none of this hardware has been captured on the air.
+
+- **A `Gear` device class: vendor known, kind not.** One Motorola Solutions OUI
+  covers plate readers, body cameras *and* APX/MOTOTRBO hand-held radios; a
+  Ubicquia AP6 has no camera while an AP/AI carries the plate reader. Nothing on
+  the air separates them, so the app names the vendor and declines to name the
+  product.
+
+- **A misattribution denylist in the CI parity gate.** Grep the IEEE registry for
+  "motorola" and Motorola *Mobility* (Lenovo — consumer phones) comes back beside
+  Motorola *Solutions*; grep "genetec" and an unrelated Japanese company comes
+  back beside Genetec Inc. Nine such look-alike prefixes are now blocked by
+  `tools/check_oui_parity.py` and asserted absent by `test_flock_db.c`. All four
+  gate checks were verified against cases they must **block**, in a throwaway
+  tree — including a drift applied identically to both files, the shape that hid
+  `f8:a2:d6` for five releases.
+
+### Changed
+
+- **The Axon label no longer promises the device moves.** It read *"Axon
+  body/in-car kit"*, chosen so it could not be mistaken for a camera on a pole —
+  correct while Axon made only body-worn and in-car equipment. In 2026 Axon
+  launched **Outpost** and **Lightpost**, both fixed ALPR, on the *same single
+  OUI*. The label is now **"Axon: body or fixed"**, because a MAC cannot tell you
+  which. `docs/signatures.md` and `README.md` carried the old claim too and were
+  corrected.
+
+- **Reports gained a `Vendor` column** in both the sightings and evidence tables.
+
+### Notes
+
+- **New Zealand coverage is deliberately absent, not missing.** Police reach there
+  runs through **Auror** and **SaferCities vGRID/VIBE**, which are *software
+  platforms that ingest existing retail and council CCTV* — there is no Auror
+  device to detect. Covering them would mean shipping Hikvision, Dahua, Uniview
+  and Axis OUIs, which would flag every doorbell and shop camera in the country.
+  Reasoning written down in `docs/signatures.md` so it is not relitigated.
+
+- **Motorola Solutions' Bluetooth SIG company id `0x04EC`** is recorded and
+  verified in `flock_ble.h` but **not yet consumed** — wiring it up needs a new
+  BLE category in the companion sketch. It is *not* `0x0008`, which is the legacy
+  consumer-handset registration.
+
+- **This half needs a companion reflash to take effect.** The new tables score on
+  the ESP; an un-reflashed companion never reports these vendors at all.
+
 - **Attack detail screen** -- press **Left** on Net Guardian. For each live
   attack it shows what it is (deauth flood / beacon-probe-BLE spam / evil twin),
   the target BSSID and channel, how many frames over how long, a verdict

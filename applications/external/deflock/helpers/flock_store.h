@@ -91,8 +91,15 @@ typedef struct {
  * LINE, so a detection of the new class does not come back with a wrong label,
  * it does not come back at all. Adding FlockClassBodycam without raising this
  * would have silently dropped every stored Axon sighting on load.
+ *
+ * Raised to 3 in v0.77 for FlockClassGear (vendor-exclusive competitor hardware:
+ * Ubicquia, Motorola Solutions, Verkada, Genetec, Avigilon). Note the asymmetry
+ * this creates and accept it: a file written by v0.77 that contains a Gear
+ * sighting loses exactly those lines if read back by an older build. That is the
+ * documented fail-safe -- an old build refuses a class it cannot label rather
+ * than guessing "ALPR" and printing "Flock" over a Motorola radio.
  */
-#define FLOCK_STORE_MAX_DEV_CLASS 2u /* FlockClassBodycam */
+#define FLOCK_STORE_MAX_DEV_CLASS 3u /* FlockClassGear */
 
 /**
  * Format one record as a CSV line, including the trailing newline. Returns the

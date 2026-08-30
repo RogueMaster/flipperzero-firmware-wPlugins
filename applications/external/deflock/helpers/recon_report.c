@@ -131,8 +131,11 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len) {
         "Generated: %s (device RTC)\n\n"
         "Detection by OUI + probe behaviour + SSID naming. 'Possible' = OUI only\n"
         "(generic vendor prefix); treat as a lead, verify visually.\n\n"
-        "| # | Conf | Class | MAC | SSID | RSSI | Ch | Seen | Lat | Lon |\n"
-        "|---|------|-------|-----|------|------|----|------|-----|-----|\n",
+        // Vendor sits next to Class because the two answer different questions
+        // ("who made it" vs "what is it") and the pair is only honest together:
+        // Class alone says ALPR for hardware from five different companies.
+        "| # | Conf | Vendor | Class | MAC | SSID | RSSI | Ch | Seen | Lat | Lon |\n"
+        "|---|------|--------|-------|-----|------|------|----|------|-----|-----|\n",
         ts);
 
     rfile_puts(
@@ -176,9 +179,10 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len) {
         rfile_printf(
             &md,
             line,
-            "| %d | %s | %s | %s | %s | %d | %u | %lu | %s | %s |\n",
+            "| %d | %s | %s | %s | %s | %s | %d | %u | %lu | %s | %s |\n",
             marked,
             flock_confidence_str(e->confidence),
+            flock_vendor_str(flock_vendor_of(e->mac, e->ssid)),
             flock_class_str((FlockDevClass)e->dev_class),
             mac_s,
             ssid_md,
@@ -303,8 +307,8 @@ bool recon_report_save_fp(void* _app, char* out_path_md, size_t out_len) {
         "`Method` is the indicator that actually fired. A row reading `OUI` was\n"
         "flagged on a shared silicon-vendor prefix alone, which is the most\n"
         "common source of a false positive.\n\n"
-        "| # | Conf | Method | Class | OUI | SSID | Fr | Ch | RSSI | Seen | Hid | IE fp |\n"
-        "|---|------|--------|-------|-----|------|----|----|------|------|-----|-------|\n",
+        "| # | Conf | Method | Vendor | Class | OUI | SSID | Fr | Ch | RSSI | Seen | Hid | IE fp |\n"
+        "|---|------|--------|--------|-------|-----|------|----|----|------|------|-----|-------|\n",
         RECON_VERSION,
         ts);
 
@@ -343,10 +347,11 @@ bool recon_report_save_fp(void* _app, char* out_path_md, size_t out_len) {
         rfile_printf(
             &md,
             line,
-            "| %d | %s | %s | %s | %s | %s | %c | %u | %d | %lu | %s | %08lX |\n",
+            "| %d | %s | %s | %s | %s | %s | %s | %c | %u | %d | %lu | %s | %08lX |\n",
             n,
             flock_confidence_str(e->confidence),
             flock_method_str(method),
+            flock_vendor_str(flock_vendor_of(e->mac, e->ssid)),
             flock_class_str((FlockDevClass)e->dev_class),
             oui_s,
             ssid_out,

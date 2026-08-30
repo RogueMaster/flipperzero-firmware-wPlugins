@@ -90,7 +90,13 @@ static EspMsgType parse_flock(char** f, int n, EspMsg* out) {
     // add more, so unknown keys are skipped rather than treated as an error.
     //   fp=<hex32>  B1 IE-skeleton fingerprint (probe requests only)
     //   cls=a       device class: acoustic (SoundThinking).
-    //   cls=x       device class: Axon body-worn / in-car police equipment.
+    //   cls=x       device class: Axon police equipment (body, in-car OR the
+    //               fixed Outpost/Lightpost ALPR -- one OUI covers all of them).
+    //   cls=g       device class: vendor-exclusive competitor gear -- vendor
+    //               known (Ubicquia / Motorola Solutions / Verkada / Genetec /
+    //               Avigilon), KIND not determined. The vendor itself is NOT on
+    //               the wire: this side re-derives it from the MAC, so it cannot
+    //               inherit an attribution from firmware that lags the app.
     //               Absent, or a letter this build does not know, means fall
     //               back to the class implied by the MAC's own OUI.
     //   hid=1       the AP beacons but withholds its SSID.
@@ -119,6 +125,8 @@ static EspMsgType parse_flock(char** f, int n, EspMsg* out) {
                 dev_class = FlockClassAcoustic;
             else if(f[i][4] == 'x')
                 dev_class = FlockClassBodycam;
+            else if(f[i][4] == 'g')
+                dev_class = FlockClassGear;
             else if(f[i][4] == 'c')
                 dev_class = FlockClassAlpr;
         } else if(strncmp(f[i], "hid=", 4) == 0) {

@@ -96,9 +96,19 @@ static const char* fd_src_phrase(char ftype) {
 static bool fd_format(char* buf, size_t len, FdLineKind kind, const FlockEntry* e) {
     switch(kind) {
     case FdClass:
-        // What it IS. The confidence rung in the title bar says how sure we are,
-        // which is a different question.
-        snprintf(buf, len, "%s", flock_class_long_str((FlockDevClass)e->dev_class));
+        // What it IS, AND WHO MADE IT. The confidence rung in the title bar says
+        // how sure we are, which is a different question again.
+        //
+        // Vendor-aware on purpose: flock_class_long_str() answers the ALPR class
+        // with "Flock / ALPR camera", so before v0.77 this row named Flock
+        // Safety over an Axon or Ubicquia pole, and over MACs no table matched at
+        // all. This is the row an operator reads to decide what they are looking
+        // at, so it is the row that must not name the wrong company.
+        snprintf(
+            buf,
+            len,
+            "%s",
+            flock_device_long_str(flock_vendor_of(e->mac, e->ssid), (FlockDevClass)e->dev_class));
         return false;
     case FdMethod: {
         // WHY it is on the list. "Possible" states confidence but not what

@@ -37,6 +37,21 @@
  *   5 SoundThinking OUI d4:11:d6         "ST" tag, Possible/Likely
  *   6 Flock OUI, beacon, zero-length IE  "[hid]" tag, rung unchanged
  *   7 Flock OUI, beacon, all-NUL IE      "[hid]" tag, rung unchanged
+ *   8 Ubicquia OUI 94:7b:be, beacon      p Possible, vendor "Ubicquia"
+ *   9 Motorola Sol. 00:04:7d, beacon     p Possible, vendor "Motorola"
+ *  10 Motorola MOBILITY 50:16:f4         NOTHING -- must never appear
+ *
+ * Identities 8-10 cover the v0.77 vendor work, and 8 is the one that proves the
+ * companion was reflashed: a bare named beacon from a vendor-exclusive OUI
+ * scored conf=0 (i.e. was never reported) on every build before v0.77, so if it
+ * shows up at all, the new rung is live. Check the detail screen reads
+ * "Ubicquia streetlight" and NOT "Flock / ALPR camera" -- that label is the
+ * whole point of the change.
+ *
+ * Identity 10 is the attribution guard. Motorola Mobility is Lenovo's consumer
+ * phone business, a different company from Motorola Solutions, and a substring
+ * search of the IEEE registry hands you both. If it is ever listed, a phone
+ * prefix got into a table.
  *
  * Identity 4 is the important one, and it is not hypothetical: through v0.46 the
  * companion substring-matched "flock-", the Flipper took its score verbatim, and
@@ -183,6 +198,34 @@ static const WifiIdentity WIFI_IDS[] = {
      SsidAllNul,
      EmitBeacon,
      "[hid] tag, rung unchanged (all-NUL IE)"},
+    // 9-11: vendor-exclusive competitor OUIs (v0.77). A NAMED BEACON with no
+    // Flock tell anywhere -- no "flock" in the SSID, no probe behaviour, an OUI
+    // in none of the Flock tables. On the pre-v0.77 build this frame produced
+    // NOTHING AT ALL (bare-OUI beacons score conf=0), so if the Flipper lists
+    // these the new rung is live; if it does not, the companion was not
+    // reflashed. That is the single most useful thing this rig can tell you
+    // about this change.
+    {{0x94, 0x7b, 0xbe, 0x00, 0x00, 0x09},
+     "bench-street-1",
+     SsidNamed,
+     EmitBeacon,
+     "p Possible, vendor Ubicquia -- MUST NOT say Flock"},
+    {{0x00, 0x04, 0x7d, 0x00, 0x00, 0x0a},
+     "bench-moto-1",
+     SsidNamed,
+     EmitBeacon,
+     "p Possible, vendor Motorola -- MUST NOT say ALPR"},
+    // 11 is the ATTRIBUTION GUARD, and the reason it is worth a whole identity:
+    // Motorola MOBILITY (a Lenovo company) makes consumer phones and is a
+    // different company from Motorola Solutions, but a substring search of the
+    // IEEE registry returns both. If the Flipper ever lists this one, a phone
+    // prefix has been let into a table and every Moto handset in range is about
+    // to be reported as surveillance hardware.
+    {{0x50, 0x16, 0xf4, 0x00, 0x00, 0x0b},
+     "bench-phone-1",
+     SsidNamed,
+     EmitBeacon,
+     "NOTHING -- Motorola MOBILITY, must never be listed"},
 };
 #define WIFI_ID_COUNT (sizeof(WIFI_IDS) / sizeof(WIFI_IDS[0]))
 

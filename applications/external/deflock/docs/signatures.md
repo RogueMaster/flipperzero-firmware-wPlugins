@@ -161,10 +161,23 @@ behind it, this table is what that hit is resting on.
 
 ## Axon Enterprise (`AX` rows)
 
-Axon makes body-worn and in-car police equipment — Axon Body, Axon Fleet — which is
-**not fixed infrastructure**. It moves with a person or a vehicle, so an `AX` row
-says nothing about a camera on a pole, and the app labels it "Axon body/in-car kit"
-rather than anything with the word *camera* in it.
+> **Corrected 2026-08-29.** This section used to say an Axon hit could never be a
+> pole-mounted camera, because Axon made only body-worn and in-car equipment. That
+> is no longer true. In 2026 Axon launched **Outpost** and **Lightpost**, two
+> *fixed* ALPR cameras, and sold them into exactly the contracts cities were
+> cancelling with Flock — on the **same single OUI** as the body cameras. The app's
+> label changed from "Axon body/in-car kit" to **"Axon: body or fixed"** to match.
+> Nothing observable from a MAC separates the two.
+
+Axon makes body-worn and in-car police equipment (Axon Body, Axon Fleet) **and**
+fixed infrastructure ALPR (Outpost, Lightpost). One OUI covers all of it, so an
+`AX` row names the *vendor* and says nothing reliable about the form factor.
+
+**Axon Lightpost is worth knowing about separately**, because it is not Axon
+hardware underneath: it is built with **Ubicquia** and plugs into the NEMA
+photocell socket of an existing streetlight. That means the OUI you would actually
+see on the air is Ubicquia's, not Axon's — see [Vendor-exclusive
+tables](#vendor-exclusive-tables-competitor-hardware) below.
 
 Two identifiers, both taken straight from the issuing registry rather than from a
 list:
@@ -173,6 +186,8 @@ list:
 |---|---|---|
 | Wi-Fi / BLE MAC OUI | `00:25:df` | IEEE — *Axon Enterprise, Inc.* |
 | BLE company id | `0x034D` | Bluetooth SIG — *TASER International, Inc.* |
+
+Both re-verified against their registries on 2026-08-29 and both still correct.
 
 `0x034D` is filed under Axon's former name; they renamed from TASER International in
 2017 and the SIG record kept the original. That is the same pattern as Flock's
@@ -243,6 +258,104 @@ build.**
 to record that a prefix was later doubted — importing it wholesale would silently undo
 the retractions above. Only the six prefixes named in the seed table were taken from
 it, and only into this unverified file. **Do not bulk-import that list.**
+
+## Vendor-exclusive tables (competitor hardware)
+
+Cities that drop Flock are not dropping ALPR — they are switching vendors. So as of
+v0.77 the app ships five more built-in OUI tables, one per competitor, and reports a
+**vendor** alongside the class.
+
+**Why this is a different kind of evidence from the Flock table.** `flock_ouis[]` is
+29 prefixes of which 21 are LITEON; only `b4:1e:52` belongs to Flock Safety. It is a
+list of *chip vendors Flock buys from*, so a bare match there describes millions of
+ordinary consumer devices — which is why bare-OUI scoring was removed after it
+reported a T-Mobile gateway. Every prefix below is registered to the **surveillance
+vendor itself**, so "this beacon came from a Ubicquia device" is a real statement
+where "this device contains a Liteon radio" is not.
+
+| Vendor | Prefixes | IEEE organisation | Why it should emit |
+|---|---|---|---|
+| Ubicquia | `94:7b:be` | *Ubicquia LLC* | UbiHub is a tri-band **Wi-Fi 6 access point**; the AP/AI variant adds dual 4K cameras and LPR. Base hardware for **Axon Lightpost**. |
+| Motorola Solutions | `00:04:7d`, `00:18:85`, `00:1f:92`, `4c:cc:34`, `10:74:6f`, `b8:e2:8c`, `9c:86:2b` | *Motorola Solutions Inc.* ×4, *MOTOROLA SOLUTIONS MALAYSIA SDN. BHD.* ×3 | The **L6Q** plate reader has built-in LTE, Wi-Fi *and* Bluetooth, commissioned from a phone via their "LPR Mobile Companion" app. |
+| Verkada | `e0:a7:00` | *Verkada Inc* | Cameras join Wi-Fi as **clients** (so they probe); the GW31E gateway is paired over Bluetooth. |
+| Genetec | `00:bf:15`, `0c:bf:15` | *Genetec Inc.* | AutoVu. **Weakest table here** — published SharpV/SharpZ3 specs list wired Ethernet only. |
+| Avigilon | `70:1a:d5` | *Avigilon Alta* | Motorola-owned; one of the brands Motorola sells fixed ALPR under. |
+
+Also recorded but **not yet consumed**: `0x04EC`, Motorola Solutions' Bluetooth SIG
+company id (verified — *not* `0x0008`, which is the legacy consumer-handset
+registration). Wiring it up needs a new BLE category in the companion sketch, not
+just a constant.
+
+### How these score, and why they are capped
+
+A vendor-exclusive hit scores **Possible**, on any frame type including a plain
+beacon, and is never promoted beyond that.
+
+- **Any frame type**, unlike the Flock table. A Flock camera is a station that does
+  not beacon, so a Flock OUI on a beacon is by construction not a camera. A Ubicquia
+  UbiHub *is* an access point — beaconing is its normal behaviour — so demanding
+  probe-request behaviour would reject the very frames the table exists to catch.
+- **Never above Possible**, because every one of these is registry-verified and
+  **none has been captured on the air**. Embedded products routinely expose the
+  Wi-Fi *module* vendor's OUI rather than the brand owner's — the reason most Flock
+  gear appears as Liteon — so these may match every unit of a product line, or none.
+
+### Vendor known, kind **not** known
+
+These all report the class `Gear`, not `ALPR`, and that is deliberate. One Motorola
+Solutions OUI covers plate readers, body cameras **and** APX/MOTOTRBO hand-held
+radios; a UbiHub AP6 is public Wi-Fi with no camera at all while an AP/AI carries the
+plate reader. Same prefix, nothing on the air to separate them. Naming the vendor is
+honest; naming the product would not be.
+
+### Vendors with no OUI at all
+
+So nobody researches this twice: **Rekor, Vigilant, PlateSmart, Altumint, LiveView,
+RedSpeed, Verra Mobility, Getac, Digital Ally and Panasonic i-PRO hold no IEEE
+registration.** They buy their hardware. Any list claiming an OUI for them is
+fabricating it. (SoundThinking does hold one, filed under its old name ShotSpotter —
+already in the acoustic table.)
+
+### Two look-alike traps, both live
+
+The same substring trap documented for "axon" applies to two of the vendors above,
+and here it is not hypothetical:
+
+- **`motorola`** also matches *Motorola Mobility LLC, a Lenovo Company*
+  (`50:16:f4`, `c4:a0:52`, `c8:58:95`, …) — consumer **phones**, a different company
+  from Motorola Solutions. Adding one would repeat the `48:27:ea` / `a4:cf:12`
+  failure on a far larger population.
+- **`genetec`** also matches *GENETEC Corporation* (`00:0a:b1`), an unrelated
+  Japanese company, and *Netgenetech* (`d8:c0:68`).
+
+`tools/check_oui_parity.py` now blocks all of these by prefix, and
+`test_flock_db.c` asserts each resolves to no vendor. Verify at the registry by
+**organisation name** before adding anything.
+
+## Coverage outside the United States
+
+Worth stating plainly, because the gap is structural rather than something a
+signature file can fill.
+
+**New Zealand is the clearest example.** Police reach there runs through **Auror**
+and **SaferCities vGRID/VIBE** — vGRID alone hosts thousands of cameras across
+hundreds of sites. But those are **software platforms that ingest existing retail and
+council CCTV**. There is no Auror device and no vGRID device. The hardware is
+ordinary Hikvision, Dahua, Uniview, Vivotek and Axis.
+
+So FlipDeFlock deliberately does **not** ship those OUIs. Adding them would flag
+every doorbell camera, every shop camera and quite possibly the user's own house as
+surveillance infrastructure — a false-positive rate that would make the whole app
+untrustworthy, to detect a network whose distinguishing feature is that it runs on
+cameras that were already there. Precision over recall applies to whole vendors, not
+just to individual prefixes.
+
+What *does* generalise: Jenoptik (`00:04:4c`, `48:e3:c3`) ships speed and ANPR
+enforcement hardware in AU/NZ/Europe, and Tattile, Nedap, Neology, Adaptive
+Recognition and Iteris all hold real registrations. None is in a built-in table —
+there is no evidence any of them emits Wi-Fi or BLE, and an unfireable table is worse
+than an absent one because it reads like coverage. They are listed here so a field
+capture that *does* hit one can be attributed.
 
 ## Capturing an IE fingerprint (`ie_fps`)
 

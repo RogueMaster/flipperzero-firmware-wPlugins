@@ -44,8 +44,35 @@ extern "C" {
  * Vendor-exclusive, so it is a genuine tell rather than a shared silicon range --
  * but like the Axon OUI it is REGISTRY-VERIFIED AND NEVER FIELD-OBSERVED. See the
  * axon_ouis[] comment in flock_db.c.
+ *
+ * Re-verified 2026-08-29 against the SIG assigned-numbers list: 0x034D is still
+ * filed as "TASER International, Inc.", and there is no separate "Axon" entry.
  */
 #define AXON_BLE_COMPANY_ID 0x034D
+
+/**
+ * Motorola Solutions' Bluetooth SIG manufacturer id.
+ *
+ * Verified 2026-08-29 against the SIG company-identifiers list, where 0x04EC
+ * reads "Motorola Solutions" exactly.
+ *
+ * NOT 0x0008, which is plain "Motorola" -- the legacy consumer-handset
+ * registration, i.e. the SIG counterpart of the Motorola Mobility OUI trap
+ * documented in flock_db.c. Using 0x0008 would classify phones. Use only 0x04EC.
+ *
+ * WHY IT MATTERS HERE. Motorola's L6Q quick-deploy plate reader is commissioned
+ * over Bluetooth from their "LPR Mobile Companion" phone app, which is the same
+ * provisioning-radio pattern that makes Flock's own hardware findable. Like the
+ * Axon id above it is REGISTRY-VERIFIED AND NEVER FIELD-OBSERVED, and like the
+ * Motorola OUIs it names the VENDOR only -- these radios are also in APX and
+ * MOTOTRBO hand-helds, so a match must never be reported as a plate reader.
+ *
+ * DEFINED BUT NOT YET CONSUMED. The BLE classification path runs on the
+ * companion (see recon_app_ble_report), so wiring this up means teaching the
+ * sketch a new BLE category, not just adding a constant here. Kept in the header
+ * next to its sibling so the verified value is not researched a third time.
+ */
+#define MOTOROLA_BLE_COMPANY_ID 0x04EC
 
 /** Conservative Flock BLE model identification from the 0x09C8 advert + GATT. */
 typedef enum {

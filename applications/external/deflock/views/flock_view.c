@@ -616,6 +616,12 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             cls = "ST ";
         else if(r->dev_class == FlockClassBodycam)
             cls = "AX ";
+        else if(r->dev_class == FlockClassGear)
+            // Vendor-exclusive competitor kit, make unknown. Untagged would mean
+            // "ALPR camera" by the rule above, and these prefixes carry hand-held
+            // radios and building cameras as well as plate readers -- the same
+            // reason ST and AX exist. Spelled out in Help under ROW MARKS.
+            cls = "VG ";
 
         char line[48];
         if(r->ssid[0] != '\0') {
@@ -627,17 +633,44 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             snprintf(
                 line, sizeof(line), "%s[hid] %02X:%02X:%02X", cls, r->mac[3], r->mac[4], r->mac[5]);
         } else {
-            snprintf(
-                line,
-                sizeof(line),
-                "%s%02X:%02X:%02X:%02X:%02X:%02X",
-                cls,
-                r->mac[0],
-                r->mac[1],
-                r->mac[2],
-                r->mac[3],
-                r->mac[4],
-                r->mac[5]);
+            // NO SSID. This row used to be a bare 17-character MAC, which is the
+            // least readable thing on the screen and says nothing an operator can
+            // act on -- reported directly by the maintainer: "the first option
+            // that came up is a MAC address and I don't know what it means."
+            //
+            // We now know the vendor for most of these (that is what the OUI
+            // matched in the first place), so lead with it and keep only the last
+            // three bytes to tell two units of the same make apart. "Flock
+            // 00:00:02" answers the question the row is actually being read for;
+            // "B4:1E:52:00:00:02" makes the operator do the lookup themselves.
+            //
+            // Falls back to the full MAC when no vendor table matched, because
+            // then the hex genuinely IS everything we know -- printing a friendly
+            // label there would be inventing one.
+            FlockVendor ven = flock_vendor_of(r->mac, r->ssid);
+            if(ven != FlockVendorUnknown) {
+                snprintf(
+                    line,
+                    sizeof(line),
+                    "%s%s %02X:%02X:%02X",
+                    cls,
+                    flock_vendor_str(ven),
+                    r->mac[3],
+                    r->mac[4],
+                    r->mac[5]);
+            } else {
+                snprintf(
+                    line,
+                    sizeof(line),
+                    "%s%02X:%02X:%02X:%02X:%02X:%02X",
+                    cls,
+                    r->mac[0],
+                    r->mac[1],
+                    r->mac[2],
+                    r->mac[3],
+                    r->mac[4],
+                    r->mac[5]);
+            }
         }
         // Measured trim, not a hoped-for fit: the glyph cost the name ~7 px, and a
         // full 32-char SSID never fitted in the first place. Both used to be drawn

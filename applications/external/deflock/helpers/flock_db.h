@@ -45,12 +45,88 @@ typedef enum {
  * and persisted alongside the confidence rung.
  */
 typedef enum {
-    FlockClassAlpr = 0, /**< Flock Safety ALPR camera (the default / historical case). */
+    FlockClassAlpr = 0, /**< ALPR camera. The default, and NOT a claim about who
+                          *  made it -- see FlockVendor. */
     FlockClassAcoustic, /**< SoundThinking (formerly ShotSpotter) acoustic sensor. */
     FlockClassBodycam, /**< Axon body-worn / in-car law-enforcement equipment. */
+    FlockClassGear, /**< Surveillance-vendor equipment, KIND NOT DETERMINED.
+                      *  The honest bucket for a vendor-exclusive OUI whose owner
+                      *  ships several unrelated product lines: Motorola Solutions
+                      *  sells both ALPR poles and hand-held radios on one OUI, so
+                      *  calling either "ALPR" would invent a detection. The VENDOR
+                      *  is what we actually know; the kind is not. */
 } FlockDevClass;
 
+/**
+ * WHO made the device, kept strictly separate from FlockDevClass (what it is)
+ * and FlockConfidence (how sure we are).
+ *
+ * WHY THIS EXISTS. Until v0.77 the app had one ALPR class whose label read
+ * "Flock / ALPR camera", so every ALPR-class detection was announced as a FLOCK
+ * camera -- including ones nothing had tied to Flock, and including the
+ * competitor hardware now replacing Flock in cities that dropped it. That is the
+ * same over-claim the class enum itself was added to prevent, one level up: it
+ * is not enough to avoid calling a gunshot sensor a camera if we then call an
+ * Axon camera a Flock camera.
+ *
+ * DERIVED, NEVER TRANSMITTED. The vendor is re-derived on this side from the MAC
+ * and SSID we stored, exactly like flock_method_of(), and is deliberately NOT a
+ * field the companion asserts. So it cannot inherit an over-claim from firmware
+ * that lags the app, it costs nothing on the wire, and it needs no store-format
+ * change -- a record loaded from a v1 CSV re-derives its vendor for free.
+ *
+ * FlockVendorUnknown is a REAL ANSWER, not a failure: the companion scores probe
+ * behaviour on MACs outside every table, and "we saw surveillance-shaped
+ * behaviour but cannot name the vendor" is the truth in that case.
+ */
+typedef enum {
+    FlockVendorUnknown = 0, /**< no vendor table matched -- do NOT name a vendor. */
+    FlockVendorFlock, /**< Flock Safety (Falcon / Sparrow / Condor / Raven). */
+    FlockVendorSoundThinking, /**< SoundThinking, formerly ShotSpotter. */
+    FlockVendorAxon, /**< Axon Enterprise (Body / Fleet / Outpost / Lightpost). */
+    FlockVendorUbicquia, /**< Ubicquia (UbiHub / UbiCell -- Axon Lightpost's base). */
+    FlockVendorMotorola, /**< Motorola Solutions (Vigilant / L6Q / radios). */
+    FlockVendorVerkada, /**< Verkada. */
+    FlockVendorGenetec, /**< Genetec (AutoVu). */
+    FlockVendorAvigilon, /**< Avigilon Alta (Motorola-owned). */
+} FlockVendor;
+
+/**
+ * Vendor implied by a MAC's OUI alone. FlockVendorUnknown when no built-in
+ * vendor table matches.
+ *
+ * A user-supplied OUI from signatures.json NEVER names a vendor: that schema has
+ * no vendor key, so attributing one would be inventing an attribution the file
+ * never made. Those keep returning FlockVendorUnknown.
+ */
+FlockVendor flock_vendor_from_mac(const uint8_t* mac);
+
+/**
+ * Vendor from all the evidence we hold, strongest first: an SSID that matches a
+ * Flock naming pattern names Flock even when the MAC is randomized or outside
+ * every table; otherwise the MAC's OUI decides.
+ *
+ * @param mac   6-byte MAC (NULL-safe).
+ * @param ssid  SSID as stored, may be NULL/empty.
+ */
+FlockVendor flock_vendor_of(const uint8_t* mac, const char* ssid);
+
+/** Short vendor label for a list row or report column ("Flock", "Axon", "-"). */
+const char* flock_vendor_str(FlockVendor vendor);
+
+/**
+ * Vendor-aware long label for the detail screen -- the one string an operator
+ * reads to decide what they are looking at.
+ *
+ * PREFER THIS OVER flock_class_long_str(), which cannot see the vendor and so
+ * still answers "Flock / ALPR camera" for the ALPR class. Budget is 20 chars:
+ * the detail screen's 128 px row cuts anything longer, and the device identity
+ * is the last field that should ever be the one truncated.
+ */
+const char* flock_device_long_str(FlockVendor vendor, FlockDevClass cls);
+
 /** Short human-readable label for a device class ("ALPR", "Acoustic", "Axon"). */
+/* Says WHAT, not WHO. Pair it with flock_vendor_str() wherever there is room. */
 const char* flock_class_str(FlockDevClass cls);
 
 /** Long human-readable label for the detail screen. */
@@ -66,16 +142,41 @@ bool soundthinking_oui_match(const uint8_t* mac);
 /**
  * True if the first 3 bytes of `mac` are Axon Enterprise's IEEE-registered OUI.
  *
- * A DIFFERENT KIND OF DEVICE AND A DIFFERENT KIND OF EVIDENCE. Axon makes
- * body-worn and in-car police equipment, not fixed ALPR poles, so a hit here says
- * "equipment that moves with a person or a vehicle", never "a camera on that
- * pole". See flock_db.c for why this is registry-verified but field-unproven.
- * Disjoint from the other two tables.
+ * NO LONGER IMPLIES "BODY-WORN". This used to be documented as movable
+ * equipment only -- Axon made body cameras and in-car kit, not poles -- and the
+ * label said so. In 2026 Axon shipped Outpost and Lightpost, two FIXED ALPR
+ * cameras, onto the same single OUI registration. So a hit here can now be a
+ * camera on a pole OR a camera on a person, and this side cannot tell which.
+ * The label was corrected to say exactly that; see flock_db.c.
+ *
+ * Still registry-verified and never field-observed. Disjoint from the other
+ * vendor tables.
  */
 bool axon_oui_match(const uint8_t* mac);
 
-/** Device class implied by a MAC's OUI. Defaults to FlockClassAlpr. */
+/**
+ * Device class implied by a MAC's OUI. Defaults to FlockClassAlpr.
+ *
+ * Note this answers "what kind", not "made by whom" -- FlockClassAlpr does NOT
+ * mean Flock Safety. Call flock_vendor_from_mac() for the vendor.
+ */
 FlockDevClass flock_class_from_mac(const uint8_t* mac);
+
+/**
+ * True if `mac` is in one of the VENDOR-EXCLUSIVE competitor tables added in
+ * v0.77 (Ubicquia, Motorola Solutions, Verkada, Genetec, Avigilon).
+ *
+ * A STRONGER CLASS OF EVIDENCE than flock_oui_match(), and the reason it is a
+ * separate predicate. Those prefixes are registered to the surveillance vendor
+ * ITSELF, not to a chip supplier it happens to buy from, so "this beacon came
+ * from a Ubicquia device" is a real statement where "this beacon contains a
+ * Liteon radio" is not. That is what lets the companion score these on a bare
+ * beacon at "possible" -- a rung bare-OUI scoring was removed from for
+ * flock_ouis[] after it flagged a T-Mobile gateway as a possible camera.
+ *
+ * Excludes Flock, SoundThinking and Axon, which have their own matchers.
+ */
+bool vendor_exclusive_oui_match(const uint8_t* mac);
 
 /** Source of an IE-fingerprint match, so a caller can gate confidence by trust. */
 typedef enum {

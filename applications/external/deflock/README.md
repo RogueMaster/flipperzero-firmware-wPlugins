@@ -367,10 +367,11 @@ needs a companion reflash to take effect.**
 twins of that SSID feed the score. If no networks are listed yet, a **Scan for
 networks** row runs one and the list fills in place. The choice persists.
 
-Also new: **Axon Enterprise detection** as its own device class, tagged `AX` and
-labelled *body/in-car kit* rather than anything resembling a camera on a pole —
-an Axon unit moves with a person. Registry-verified (IEEE `00:25:df`, Bluetooth
-SIG `0x034D`) but never field-observed, and the docs say so.
+Also new: **Axon Enterprise detection** as its own device class, tagged `AX`.
+Registry-verified (IEEE `00:25:df`, Bluetooth SIG `0x034D`) but never
+field-observed, and the docs say so. *(The label shipped here read "body/in-car
+kit" because Axon made only equipment that moved with a person; v0.77 corrected
+it after Axon put fixed ALPR cameras on the same OUI.)*
 
 **v0.73** - **RogueMaster no longer fails at launch with `Missing Imports`.**
 Optional phone-GPS symbols are resolved only when the Phone source is used, so

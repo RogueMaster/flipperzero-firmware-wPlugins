@@ -23,6 +23,35 @@
 // looking at a mark they do not recognise, and it is usually the one stopping
 // something from working.
 #define RECON_HELP_TEXT             \
+    "ROW MARKS\n"                   \
+    "The letter is how SURE\n"      \
+    "we are, strongest first:\n"    \
+    "!   CONFIRMED by SSID\n"       \
+    "L   Likely\n"                  \
+    "F   IE-fp class match\n"       \
+    "p   OUI only. Expect\n"        \
+    "    false positives.\n \n"     \
+    "A tag before the name is\n"    \
+    "WHAT it is. No tag means\n"    \
+    "an ALPR camera:\n"             \
+    "ST  acoustic sensor\n"         \
+    "AX  Axon police kit,\n"        \
+    "    body-worn or fixed\n"      \
+    "VG  other vendor's gear.\n"    \
+    "    Vendor known, KIND\n"      \
+    "    not: these makers\n"       \
+    "    sell plate readers,\n"     \
+    "    radios and door\n"         \
+    "    cameras alike.\n \n"       \
+    "[hid] no SSID, unscored\n"     \
+    "*   you marked it\n"           \
+    "A time like 6h means a\n"      \
+    "STORED hit, not live.\n \n"    \
+    "A row with no name shows\n"    \
+    "the VENDOR and the last\n"     \
+    "3 MAC bytes. Open it\n"        \
+    "with OK for the full\n"        \
+    "make and model in words.\n \n" \
     "GPS BADGE\n"                   \
     "GPS 9  locked, 9 sats\n"       \
     "GPS    on, searching\n"        \
@@ -69,17 +98,6 @@
     "Flipper Notifications,\n"      \
     "and Alert on hit here.\n"      \
     "Settings has Test alert.\n \n" \
-    "ROW MARKS\n"                   \
-    "!   CONFIRMED by SSID\n"       \
-    "L   Likely\n"                  \
-    "F   IE-fp class match\n"       \
-    "p   OUI only. Expect\n"        \
-    "    false positives.\n"        \
-    "ST  acoustic sensor\n"         \
-    "[hid] no SSID, unscored\n"     \
-    "*   you marked it\n"           \
-    "A time like 6h means a\n"      \
-    "STORED hit, not live.\n \n"    \
     "FEW DETECTIONS?\n"             \
     "Check Board Mode fits\n"       \
     "your firmware, and that\n"     \

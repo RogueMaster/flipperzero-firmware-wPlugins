@@ -38,7 +38,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Ultralight - Amiibo/Xiaomi unlock no longer burns an AUTHLIM attempt when the password cannot be derived (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1086)
 - NFC: [Ultralight read result now says whether authentication failed or was never attempted (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1090)
 - NFC: [Ultralight - the default password is no longer tried when AUTHLIM cannot be read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1089)
-- Updated: [FlipDeFlock v0.77 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - NFC: [Social Moscow - fixed the parser rejecting most genuine cards (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1092)
 - NFC: [Social Moscow - a partially read card no longer shows an all-zero card number as if it were real (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1097)
 - NFC: [Mosgortrans - an unrecognised ticket layout is now named in the debug log, instead of the Metro/Ground section vanishing with no explanation (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1097)
@@ -91,6 +90,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
 - Added: [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
 - Updated: [Catacombs Of The Damned! v4.0 (By apfxtech)](https://github.com/apfxtech/FlipperCatacombs)
+- Updated: [FlipDeFlock v0.77 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 

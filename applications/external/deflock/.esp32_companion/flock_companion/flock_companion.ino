@@ -33,8 +33,11 @@
  *       fp  : FNV-1a uint32 (8 lower-hex) of the probe's IE skeleton (B1) --
  *             a MAC-independent device-CLASS fingerprint; trailing field,
  *             older parsers ignore it. Only emitted for probe requests.
- *       cls : device class. 'a' = SoundThinking acoustic sensor. Absent means
- *             ALPR camera, so the common case adds no bytes. Trailing.
+ *       cls : device class. 'a' = SoundThinking acoustic sensor, 'x' = Axon
+ *             police equipment, 'g' = vendor-exclusive competitor gear (vendor
+ *             known, kind not). Absent means ALPR camera, so the common case
+ *             adds no bytes. The VENDOR is never sent -- the Flipper re-derives
+ *             it from the MAC using its own copy of these tables. Trailing.
  *       hid : the AP beaconed WITHOUT an SSID (zero-length or all-NUL IE).
  *             Beacons/probe-responses only. An observation the Flipper reports
  *             but does NOT score -- hiding an SSID is also ordinary consumer
@@ -229,6 +232,72 @@ static const uint8_t AXON_OUIS[][3] = {
     {0x00, 0x25, 0xdf},
 };
 static const size_t AXON_OUI_COUNT = sizeof(AXON_OUIS) / sizeof(AXON_OUIS[0]);
+
+// ---- Vendor-exclusive competitor OUIs (12 across 5 vendors) --------------
+// Ubicquia (1), Motorola Solutions (7), Verkada (1), Genetec (2), Avigilon (1).
+// MUST stay byte-identical to ubicquia_ouis[] / motorola_ouis[] / verkada_ouis[]
+// / genetec_ouis[] / avigilon_ouis[] in helpers/flock_db.c -- same hand-sync
+// rule and the same tools/check_oui_parity.py gate as the three tables above.
+// Full provenance, the registry organisation strings, and the two live
+// substring traps (GENETEC Corporation is NOT Genetec Inc; Motorola Mobility is
+// NOT Motorola Solutions) are documented in flock_db.c. Read that before adding.
+//
+// A DIFFERENT EVIDENCE CLASS FROM FLOCK_OUIS, WHICH IS WHY THEY SCORE
+// DIFFERENTLY BELOW. FLOCK_OUIS is mostly Liteon and Espressif -- chip vendors
+// Flock buys from -- so a bare OUI hit there describes millions of consumer
+// devices and was deliberately dropped from scoring after it reported a
+// T-Mobile gateway. Every prefix here is registered to the surveillance vendor
+// ITSELF, so a bare beacon match is a real, attributable observation and earns
+// conf=1 ("possible"). It earns nothing more: registry-verified is not
+// field-observed, and none of this hardware has been captured on the air yet.
+//
+// Tagged `cls=g` on the wire (gear -- vendor known, KIND not determined). An
+// older Flipper build ignores the token and falls back to its MAC-derived class.
+static const uint8_t UBICQUIA_OUIS[][3] = {
+    {0x94, 0x7b, 0xbe},
+};
+static const size_t UBICQUIA_OUI_COUNT = sizeof(UBICQUIA_OUIS) / sizeof(UBICQUIA_OUIS[0]);
+
+static const uint8_t MOTOROLA_OUIS[][3] = {
+    {0x00, 0x04, 0x7d}, {0x00, 0x18, 0x85}, {0x00, 0x1f, 0x92}, {0x4c, 0xcc, 0x34},
+    {0x10, 0x74, 0x6f}, {0xb8, 0xe2, 0x8c}, {0x9c, 0x86, 0x2b},
+};
+static const size_t MOTOROLA_OUI_COUNT = sizeof(MOTOROLA_OUIS) / sizeof(MOTOROLA_OUIS[0]);
+
+static const uint8_t VERKADA_OUIS[][3] = {
+    {0xe0, 0xa7, 0x00},
+};
+static const size_t VERKADA_OUI_COUNT = sizeof(VERKADA_OUIS) / sizeof(VERKADA_OUIS[0]);
+
+static const uint8_t GENETEC_OUIS[][3] = {
+    {0x00, 0xbf, 0x15}, {0x0c, 0xbf, 0x15},
+};
+static const size_t GENETEC_OUI_COUNT = sizeof(GENETEC_OUIS) / sizeof(GENETEC_OUIS[0]);
+
+static const uint8_t AVIGILON_OUIS[][3] = {
+    {0x70, 0x1a, 0xd5},
+};
+static const size_t AVIGILON_OUI_COUNT = sizeof(AVIGILON_OUIS) / sizeof(AVIGILON_OUIS[0]);
+
+// One row per vendor table, so the index builder and the matcher below cannot
+// disagree about which tables exist -- adding a vendor means adding one row here
+// and nowhere else. Missing a table in the index builder would make
+// oui_first_possible() reject every frame from that vendor before the matcher
+// ever ran, and the table would look perfectly correct while detecting nothing.
+struct VendorOuiTable {
+    const uint8_t (*ouis)[3];
+    size_t count;
+};
+static const VendorOuiTable VENDOR_OUI_TABLES[] = {
+    {UBICQUIA_OUIS, UBICQUIA_OUI_COUNT},
+    {MOTOROLA_OUIS, MOTOROLA_OUI_COUNT},
+    {VERKADA_OUIS, VERKADA_OUI_COUNT},
+    {GENETEC_OUIS, GENETEC_OUI_COUNT},
+    {AVIGILON_OUIS, AVIGILON_OUI_COUNT},
+};
+static const size_t VENDOR_OUI_TABLE_COUNT =
+    sizeof(VENDOR_OUI_TABLES) / sizeof(VENDOR_OUI_TABLES[0]);
+
 
 // ---- State ---------------------------------------------------------------
 //
@@ -467,6 +536,14 @@ static const struct OuiFirstIndex {
             uint8_t b = AXON_OUIS[i][0];
             bits[b >> 3] |= (uint8_t)(1u << (b & 7));
         }
+        // And every vendor-exclusive competitor table, via the one list of them.
+        // Same trap as Axon above: a table left out here is silently undetectable.
+        for(size_t t = 0; t < VENDOR_OUI_TABLE_COUNT; t++) {
+            for(size_t i = 0; i < VENDOR_OUI_TABLES[t].count; i++) {
+                uint8_t b = VENDOR_OUI_TABLES[t].ouis[i][0];
+                bits[b >> 3] |= (uint8_t)(1u << (b & 7));
+            }
+        }
     }
 } g_oui_index;
 
@@ -506,8 +583,28 @@ static bool ax_oui_match(const uint8_t* mac) {
 
 // Any known surveillance-vendor prefix, any class. Scoring is class-agnostic;
 // the class itself rides along in the `cls=` field.
+//
+// DELIBERATELY EXCLUDES the vendor-exclusive competitor tables. This predicate
+// feeds the conf=2 ("likely") probe-request rungs below, and those rungs were
+// calibrated against upstream's Flock field test -- 11/12 cameras, 2 false
+// positives. Extending them to five vendors whose hardware has never been
+// captured on the air would be asserting a measurement nobody has taken.
+// vendor_oui_match() below gets its own, lower rung instead.
 static bool oui_match(const uint8_t* mac) {
     return flock_oui_match(mac) || st_oui_match(mac) || ax_oui_match(mac);
+}
+
+// Vendor-exclusive competitor prefixes -> conf=1 only. See the table comment.
+static bool vendor_oui_match(const uint8_t* mac) {
+    if(!oui_first_possible(mac[0])) return false; // fast reject, no table walk
+    for(size_t t = 0; t < VENDOR_OUI_TABLE_COUNT; t++) {
+        const VendorOuiTable& vt = VENDOR_OUI_TABLES[t];
+        for(size_t i = 0; i < vt.count; i++) {
+            if(mac[0] == vt.ouis[i][0] && mac[1] == vt.ouis[i][1] && mac[2] == vt.ouis[i][2])
+                return true;
+        }
+    }
+    return false;
 }
 
 static char lc(char c) {
@@ -893,6 +990,10 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     int s_score = ssid ? ssid_score(ssid, ssid_len) : 0;
     bool oui_tx = oui_match(p + 10); // addr2 = transmitter
     bool oui_rx = oui_match(p + 4); // addr1 = receiver (silent station)
+    // Vendor-exclusive competitor prefixes, tracked separately because they earn
+    // a different (lower) rung than the Flock tables -- see the ladder below.
+    bool ven_tx = vendor_oui_match(p + 10);
+    bool ven_rx = vendor_oui_match(p + 4);
     bool is_probe = (ftype == 'P');
     bool wildcard = is_probe && (ssid_len == 0); // broadcast/wildcard probe
 
@@ -923,7 +1024,36 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
                   // not transmitting at all. Narrower and rarer than the tx paths.
     else if(s_score == 2)
         conf = 2;
-    // NO conf=1 FOR A BARE OUI MATCH ANY MORE.
+    else if(ven_tx || ven_rx)
+        conf = 1; // VENDOR-EXCLUSIVE OUI, any frame type -> "possible".
+                  //
+                  // THE ONE BARE-OUI RUNG THAT SURVIVES, AND ONLY FOR THESE
+                  // TABLES. Read the next comment block first: bare-OUI scoring
+                  // was removed because FLOCK_OUIS is mostly Liteon/Espressif,
+                  // so "beacons, and has one of these OUIs" described a huge
+                  // population of ordinary consumer devices and reported a
+                  // T-Mobile gateway as a possible camera.
+                  //
+                  // That reasoning does not transfer. 94:7b:be is registered to
+                  // Ubicquia, who make streetlight nodes and nothing else;
+                  // e0:a7:00 is Verkada's own. There is no consumer population
+                  // hiding behind these prefixes to generate the false positives
+                  // that killed the Flock version of this rung.
+                  //
+                  // Nor is a beacon disqualifying here the way it is for Flock.
+                  // A Flock camera is a station that does not beacon, so an OUI
+                  // hit on a beacon is by construction not one. A Ubicquia UbiHub
+                  // IS an access point -- beaconing is its normal behaviour --
+                  // so requiring probe-request behaviour would reject the very
+                  // frames this table exists to catch.
+                  //
+                  // Capped at 1 and never promoted: registry-verified is not
+                  // field-observed, and no unit of this hardware has been seen on
+                  // the air. The Flipper names the VENDOR from the same tables,
+                  // so the operator gets "Ubicquia streetlight / Possible"
+                  // rather than a mystery -- an attributable lead to go verify by
+                  // eye, which is all a "possible" was ever meant to be.
+    // NO conf=1 FOR A BARE OUI MATCH ANY MORE -- for FLOCK_OUIS, that is.
     //
     // A Flock camera is not an access point. Flock's management AP was
     // deactivated around December 2025 and the cameras moved to station mode --
@@ -966,7 +1096,7 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
 
     // Report the Flock device's MAC: the transmitter if it matched, else the
     // silent receiver (addr1).
-    const uint8_t* mac = oui_tx ? (p + 10) : (oui_rx ? (p + 4) : (p + 10));
+    const uint8_t* mac = (oui_tx || ven_tx) ? (p + 10) : ((oui_rx || ven_rx) ? (p + 4) : (p + 10));
 
     char macstr[13];
     snprintf(
@@ -995,6 +1125,11 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     if(probe_rate) buf_appendf(line, sizeof(line), &pos, ",pr=%u", (unsigned)probe_rate);
     if(st_oui_match(mac)) buf_appendf(line, sizeof(line), &pos, ",cls=a");
     else if(ax_oui_match(mac)) buf_appendf(line, sizeof(line), &pos, ",cls=x");
+    // cls=g: vendor-exclusive competitor gear. Vendor known, KIND not -- these
+    // OUIs carry plate readers, building cameras and hand-held radios alike, so
+    // claiming "ALPR" would invent a detection. The Flipper names the vendor
+    // from its own copy of these tables.
+    else if(vendor_oui_match(mac)) buf_appendf(line, sizeof(line), &pos, ",cls=g");
     // Hidden-SSID attribute. Rides on a line we were already sending, so it adds
     // no UART traffic and needs no per-BSSID dedup of its own. Reported, NOT
     // scored: see the note in helpers/esp_parser.c.

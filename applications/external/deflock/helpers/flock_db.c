@@ -124,14 +124,19 @@ bool soundthinking_oui_match(const uint8_t* mac) {
 }
 
 /**
- * Axon Enterprise (formerly TASER International) body-worn and in-car police
- * equipment.
+ * Axon Enterprise (formerly TASER International) police equipment.
  *
- * A THIRD DEVICE CLASS, and not fixed infrastructure at all: an Axon Body camera
- * is worn by a person and an Axon Fleet unit rides in a vehicle. Both MOVE. A hit
- * here must never be read as "a camera on that pole" -- that is why it gets its
- * own class rather than joining flock_ouis[], and why the long label says
- * "body/in-car", not "camera".
+ * CORRECTED 2026-08-29 -- THIS TABLE USED TO MEAN "EQUIPMENT THAT MOVES".
+ * Until v0.77 the comment here said Axon made body-worn and in-car kit and "not
+ * fixed infrastructure at all", so a hit could never be a camera on a pole, and
+ * the label said "body/in-car" to enforce that. In 2026 Axon launched Outpost
+ * and Lightpost -- two FIXED, pole- and streetlight-mounted ALPR cameras, sold
+ * into exactly the contracts cities were cancelling with Flock -- on this same
+ * single OUI registration. The old claim is now wrong in the opposite direction.
+ *
+ * Nothing observable from a MAC separates an Axon Body camera from an Axon
+ * Outpost, so the label no longer tries: it reads "Axon: body or fixed". Do not
+ * "restore" the body/in-car wording; it is not a style choice.
  *
  * 00:25:df is Axon Enterprise's IEEE OUI registration -- the ONLY one they hold.
  * Verified directly against the IEEE registry, not taken from a list.
@@ -178,10 +183,312 @@ bool axon_oui_match(const uint8_t* mac) {
     return false;
 }
 
+/*
+ * ===========================================================================
+ * VENDOR-EXCLUSIVE OUIs (12 across 5 vendors) -- competitor surveillance kit.
+ * ===========================================================================
+ *
+ * WHY THESE ARE A DIFFERENT KIND OF EVIDENCE FROM flock_ouis[].
+ *
+ * flock_ouis[] is 29 prefixes of which 21 are LITEON and only one (b4:1e:52) is
+ * registered to Flock Safety itself. It is a list of "chip vendors Flock buys
+ * from", so a bare OUI hit there describes an enormous number of ordinary
+ * consumer devices -- which is why bare-OUI-on-a-beacon scoring was removed
+ * after it called a T-Mobile gateway a possible ALPR camera.
+ *
+ * Every prefix below is instead registered to the SURVEILLANCE VENDOR ITSELF.
+ * 94:7b:be is Ubicquia's own registration and Ubicquia makes streetlight nodes
+ * and nothing else. That is a categorically stronger signal than "this device
+ * contains a Liteon radio", and it is why these may score on a bare beacon
+ * (possible) where a flock_ouis[] hit may not. It is NOT strong enough to name
+ * a product: see the class note on each table.
+ *
+ * ALL REGISTRY-VERIFIED, NONE FIELD-OBSERVED. Every prefix was read directly out
+ * of standards-oui.ieee.org/oui/oui.txt on 2026-08-29, one at a time, and the
+ * organisation string is quoted verbatim on each table. We have no capture of
+ * any of this hardware on the air. Embedded products routinely expose the Wi-Fi
+ * MODULE's OUI rather than the brand owner's -- which is exactly why most Flock
+ * gear appears as Liteon -- so these may match every unit of a product line, or
+ * none of it. Scored accordingly: OUI-only never exceeds "possible".
+ *
+ * DO NOT ADD PREFIXES BY SUBSTRING-SEARCHING A VENDOR DATABASE. That rule is not
+ * theoretical here; two of the vendors below are live traps:
+ *   - "genetec" also matches GENETEC Corporation (00:0a:b1), an unrelated
+ *     Japanese company, and Netgenetech (d8:c0:68). Neither is Genetec Inc.
+ *   - "motorola" also matches Motorola Mobility LLC, a Lenovo Company
+ *     (50:16:f4, c4:a0:52, c8:58:95 and more) -- consumer PHONES, a different
+ *     company from Motorola Solutions. Including one would repeat the
+ *     48:27:ea / a4:cf:12 failure on a far larger population.
+ * Verify every prefix at the registry, by organisation name, before adding it.
+ *
+ * NOT ADDABLE AT ALL, so nobody re-researches this: Rekor, Vigilant, PlateSmart,
+ * Altumint, LiveView, RedSpeed, Verra Mobility, Getac, Digital Ally and
+ * Panasonic i-PRO hold NO IEEE registration -- they buy their hardware. Any list
+ * claiming an OUI for them is fabricating it. (SoundThinking does hold one, but
+ * under its old name ShotSpotter, and it is already in soundthinking_ouis[].)
+ *
+ * DUPLICATED in esp32_companion/flock_companion/flock_companion.ino, same
+ * hand-sync rule and the same tools/check_oui_parity.py gate as the three tables
+ * above -- EXACTLY four entries per row so the two files diff by eye.
+ */
+
+/**
+ * Ubicquia LLC -- registry organisation "Ubicquia LLC", their ONLY registration.
+ *
+ * THE REASON THIS TABLE EXISTS AT ALL. Axon Lightpost -- one of the two fixed
+ * ALPR cameras Axon launched in 2026 to take over contracts cities cancelled
+ * with Flock -- is built with Ubicquia and mounts in the NEMA photocell socket
+ * of an existing streetlight. The Ubicquia UbiHub it is based on is a triband
+ * Wi-Fi 6 access point (the AP/AI variant adds dual 4K cameras and LPR), so
+ * unlike a Flock camera -- which stopped beaconing around December 2025 and now
+ * only probes -- this hardware is expected to BEACON CONTINUOUSLY. If that holds
+ * in the field it is a considerably easier detection than Flock itself.
+ *
+ * CLASS IS Gear, NOT Alpr, and that is deliberate: a UbiHub AP6 is public Wi-Fi
+ * with no camera at all, while an AP/AI carries the plate reader. Same OUI, and
+ * nothing on the air separates them. Naming the vendor is honest; naming the
+ * product would not be.
+ */
+static const uint8_t ubicquia_ouis[][3] = {
+    {0x94, 0x7b, 0xbe},
+};
+
+#define UBICQUIA_OUI_COUNT (sizeof(ubicquia_ouis) / sizeof(ubicquia_ouis[0]))
+
+/**
+ * Motorola Solutions (7) -- four registered "Motorola Solutions Inc." and three
+ * "MOTOROLA SOLUTIONS MALAYSIA SDN. BHD.".
+ *
+ * Motorola sells ALPR under the Vigilant, PIPS and Avigilon brands. The L6Q
+ * quick-deploy plate reader is the interesting one: it ships built-in LTE, Wi-Fi
+ * AND Bluetooth, and is commissioned from a phone over Bluetooth or Wi-Fi via
+ * their "LPR Mobile Companion" app -- the same provisioning-radio pattern that
+ * makes Flock's Falcon detectable in the first place.
+ *
+ * CLASS IS Gear AND MUST STAY Gear. These same seven prefixes also carry APX and
+ * MOTOTRBO hand-held radios, worn by police, security guards and warehouse staff
+ * alike. An OUI hit here means "Motorola Solutions equipment", full stop.
+ * Mapping it to Alpr would announce a plate reader every time a radio walked
+ * past, which is the precision failure this project refuses.
+ *
+ * NOT Motorola Mobility (Lenovo) -- see the trap list above.
+ */
+static const uint8_t motorola_ouis[][3] = {
+    {0x00, 0x04, 0x7d},
+    {0x00, 0x18, 0x85},
+    {0x00, 0x1f, 0x92},
+    {0x4c, 0xcc, 0x34},
+    {0x10, 0x74, 0x6f},
+    {0xb8, 0xe2, 0x8c},
+    {0x9c, 0x86, 0x2b},
+};
+
+#define MOTOROLA_OUI_COUNT (sizeof(motorola_ouis) / sizeof(motorola_ouis[0]))
+
+/**
+ * Verkada Inc -- registry organisation "Verkada Inc", their only registration.
+ *
+ * Verkada cameras join Wi-Fi as CLIENTS, so they emit probe requests -- the
+ * behaviour this app is already built to catch -- and the GW31E Wi-Fi Gateway is
+ * commissioned over Bluetooth from the Command app while mounted on a pole.
+ *
+ * CLASS IS Gear. Verkada's line is mostly ordinary building-security cameras and
+ * access control; LPR is one product among many. A hit says Verkada, not ALPR.
+ */
+static const uint8_t verkada_ouis[][3] = {
+    {0xe0, 0xa7, 0x00},
+};
+
+#define VERKADA_OUI_COUNT (sizeof(verkada_ouis) / sizeof(verkada_ouis[0]))
+
+/**
+ * Genetec Inc (2) -- both registrations read "Genetec Inc." verbatim.
+ *
+ * WEAKEST TABLE HERE, AND KEPT DELIBERATELY. Genetec's AutoVu is the ALPR line
+ * widely deployed in Canada and in parking enforcement, but the published SharpV
+ * and SharpZ3 specifications list wired gigabit Ethernet ONLY -- no Wi-Fi, no
+ * Bluetooth. So there is a real chance this table never fires, and that is fine:
+ * it costs 6 bytes, it can only ever produce a correctly-named "possible", and
+ * having the prefix present means a field capture that DOES hit it gets
+ * attributed instead of landing as an unattributed mystery.
+ *
+ * NOT GENETEC Corporation (00:0a:b1) and NOT Netgenetech (d8:c0:68).
+ */
+static const uint8_t genetec_ouis[][3] = {
+    {0x00, 0xbf, 0x15},
+    {0x0c, 0xbf, 0x15},
+};
+
+#define GENETEC_OUI_COUNT (sizeof(genetec_ouis) / sizeof(genetec_ouis[0]))
+
+/**
+ * Avigilon Alta -- registry organisation "Avigilon Alta", the only Avigilon
+ * registration in the file (there is no separate "Avigilon Corporation" MA-L).
+ *
+ * Motorola-owned, and one of the brands Motorola sells fixed ALPR under. Alta is
+ * the former Openpath cloud access-control line, so like Verkada this is
+ * building security as often as it is plate reading: CLASS IS Gear.
+ */
+static const uint8_t avigilon_ouis[][3] = {
+    {0x70, 0x1a, 0xd5},
+};
+
+#define AVIGILON_OUI_COUNT (sizeof(avigilon_ouis) / sizeof(avigilon_ouis[0]))
+
+/**
+ * The one place a MAC becomes a (vendor, class) pair.
+ *
+ * A SINGLE TABLE ON PURPOSE. flock_class_from_mac() used to answer "what class"
+ * with a chain of if-statements over three separate matchers; bolting a vendor
+ * onto that shape would have meant two parallel chains that could disagree about
+ * the same MAC. Here a prefix's vendor and its class are one row, so they cannot
+ * drift apart, and adding a vendor is one table plus one row instead of an edit
+ * in four places.
+ *
+ * ORDER: flock_ouis is scanned first so historical behaviour is preserved
+ * bit-for-bit if a prefix ever appears in two tables. The vendor tables are
+ * disjoint by construction -- each is exactly one registrant.
+ */
+typedef struct {
+    const uint8_t (*ouis)[3];
+    size_t count;
+    FlockVendor vendor;
+    FlockDevClass cls;
+} FlockVendorTable;
+
+static const FlockVendorTable flock_vendor_tables[] = {
+    {flock_ouis, FLOCK_OUI_COUNT, FlockVendorFlock, FlockClassAlpr},
+    {soundthinking_ouis, SOUNDTHINKING_OUI_COUNT, FlockVendorSoundThinking, FlockClassAcoustic},
+    // Axon keeps FlockClassBodycam so stored records and the cls=x wire token
+    // keep the meaning they shipped with. The LABEL is what was corrected --
+    // see flock_device_long_str(): Axon now ships fixed ALPR on this same OUI.
+    {axon_ouis, AXON_OUI_COUNT, FlockVendorAxon, FlockClassBodycam},
+    {ubicquia_ouis, UBICQUIA_OUI_COUNT, FlockVendorUbicquia, FlockClassGear},
+    {motorola_ouis, MOTOROLA_OUI_COUNT, FlockVendorMotorola, FlockClassGear},
+    {verkada_ouis, VERKADA_OUI_COUNT, FlockVendorVerkada, FlockClassGear},
+    {genetec_ouis, GENETEC_OUI_COUNT, FlockVendorGenetec, FlockClassGear},
+    {avigilon_ouis, AVIGILON_OUI_COUNT, FlockVendorAvigilon, FlockClassGear},
+};
+
+#define FLOCK_VENDOR_TABLE_COUNT (sizeof(flock_vendor_tables) / sizeof(flock_vendor_tables[0]))
+
+/** Row whose table contains `mac`'s OUI, or NULL. Built-ins only. */
+static const FlockVendorTable* vendor_row_for_mac(const uint8_t* mac) {
+    if(!mac) return NULL;
+    for(size_t t = 0; t < FLOCK_VENDOR_TABLE_COUNT; t++) {
+        const FlockVendorTable* vt = &flock_vendor_tables[t];
+        for(size_t i = 0; i < vt->count; i++) {
+            if(mac[0] == vt->ouis[i][0] && mac[1] == vt->ouis[i][1] && mac[2] == vt->ouis[i][2]) {
+                return vt;
+            }
+        }
+    }
+    return NULL;
+}
+
+bool vendor_exclusive_oui_match(const uint8_t* mac) {
+    const FlockVendorTable* vt = vendor_row_for_mac(mac);
+    // Flock / SoundThinking / Axon are excluded on purpose: they have their own
+    // matchers and their own (weaker, shared-silicon) evidence rules. This asks
+    // only about the vendor-exclusive competitor prefixes added in v0.77.
+    return vt && vt->vendor != FlockVendorFlock && vt->vendor != FlockVendorSoundThinking &&
+           vt->vendor != FlockVendorAxon;
+}
+
+FlockVendor flock_vendor_from_mac(const uint8_t* mac) {
+    const FlockVendorTable* vt = vendor_row_for_mac(mac);
+    // Deliberately does NOT consult g_extras. A user OUI from signatures.json
+    // carries no vendor, and inventing one would attribute a detection to a
+    // company that file never named.
+    return vt ? vt->vendor : FlockVendorUnknown;
+}
+
+FlockVendor flock_vendor_of(const uint8_t* mac, const char* ssid) {
+    // SSID first: the anchored "Flock-" + 6 hex provisioning name and the
+    // test_flck CVE string are Flock's own, and they stay true when the MAC is
+    // randomized or belongs to a module vendor we have never seen.
+    if(flock_ssid_confidence(ssid) != FlockConfidenceNone) return FlockVendorFlock;
+    return flock_vendor_from_mac(mac);
+}
+
+const char* flock_vendor_str(FlockVendor vendor) {
+    switch(vendor) {
+    case FlockVendorFlock:
+        return "Flock";
+    case FlockVendorSoundThinking:
+        return "SoundThinking";
+    case FlockVendorAxon:
+        return "Axon";
+    case FlockVendorUbicquia:
+        return "Ubicquia";
+    case FlockVendorMotorola:
+        return "Motorola";
+    case FlockVendorVerkada:
+        return "Verkada";
+    case FlockVendorGenetec:
+        return "Genetec";
+    case FlockVendorAvigilon:
+        return "Avigilon";
+    case FlockVendorUnknown:
+    default:
+        // "-", never "Unknown": this lands in a narrow report column and a list
+        // row, and a dash reads as "not attributed" without implying we looked
+        // up a vendor and failed to recognise a known one.
+        return "-";
+    }
+}
+
+const char* flock_device_long_str(FlockVendor vendor, FlockDevClass cls) {
+    // 20 CHARACTERS MAX -- the detail screen's 128 px row. Longer strings are cut
+    // at draw time, and device identity must never be the field that gets cut.
+    switch(vendor) {
+    case FlockVendorFlock:
+        // The only branch entitled to print the word "Flock".
+        return (cls == FlockClassAcoustic) ? "Flock Raven acoustic" : "Flock / ALPR camera";
+    case FlockVendorSoundThinking:
+        return "SoundThinking sensor";
+    case FlockVendorAxon:
+        // WAS "Axon body/in-car kit", meaning "this moves with a person or a
+        // vehicle" -- true while Axon made only body and fleet cameras. Axon
+        // launched Outpost and Lightpost, both FIXED pole-mounted ALPR, on this
+        // same single OUI in 2026, so that label is now wrong in the opposite
+        // direction. Nothing in a MAC separates the two; say so.
+        return "Axon: body or fixed";
+    case FlockVendorUbicquia:
+        // Not "camera": the AP6 variant has none. The streetlight node is the fact.
+        return "Ubicquia streetlight";
+    case FlockVendorMotorola:
+        // Not "LPR": these prefixes carry hand-held radios too.
+        return "Motorola Solutions";
+    case FlockVendorVerkada:
+        return "Verkada camera/AC";
+    case FlockVendorGenetec:
+        return "Genetec (AutoVu)";
+    case FlockVendorAvigilon:
+        return "Avigilon (Motorola)";
+    case FlockVendorUnknown:
+    default:
+        // THE FIX THE VENDOR FIELD EXISTS FOR. This case used to fall into
+        // flock_class_long_str()'s "Flock / ALPR camera" and so named Flock
+        // Safety on evidence that never mentioned them -- an ESP probe-behaviour
+        // score against a MAC in no table at all. Name the class, name nobody.
+        switch(cls) {
+        case FlockClassAcoustic:
+            return "Acoustic sensor";
+        case FlockClassBodycam:
+            return "Body/in-car kit";
+        case FlockClassGear:
+            return "Surveillance gear";
+        case FlockClassAlpr:
+        default:
+            return "ALPR (unattributed)";
+        }
+    }
+}
+
 FlockDevClass flock_class_from_mac(const uint8_t* mac) {
-    if(soundthinking_oui_match(mac)) return FlockClassAcoustic;
-    if(axon_oui_match(mac)) return FlockClassBodycam;
-    return FlockClassAlpr;
+    const FlockVendorTable* vt = vendor_row_for_mac(mac);
+    return vt ? vt->cls : FlockClassAlpr;
 }
 
 const char* flock_class_str(FlockDevClass cls) {
@@ -190,6 +497,8 @@ const char* flock_class_str(FlockDevClass cls) {
         return "Acoustic";
     case FlockClassBodycam:
         return "Axon";
+    case FlockClassGear:
+        return "Gear";
     case FlockClassAlpr:
     default:
         return "ALPR";
@@ -197,6 +506,10 @@ const char* flock_class_str(FlockDevClass cls) {
 }
 
 const char* flock_class_long_str(FlockDevClass cls) {
+    // SUPERSEDED for anything an operator reads: this cannot see the vendor, so
+    // its ALPR answer still says "Flock" for hardware that is not Flock's. Call
+    // flock_device_long_str(vendor, cls) instead. Kept because it is the honest
+    // answer when only a class is in hand, and it is still on the ABI.
     // "SoundThinking (acoustic sensor)" was 31 characters and overran the detail
     // screen's 128 px row. Shortened rather than truncated at draw time, so the
     // device class -- the thing that stops a gunshot sensor being read as a
@@ -205,10 +518,17 @@ const char* flock_class_long_str(FlockDevClass cls) {
     case FlockClassAcoustic:
         return "SoundThinking sensor";
     case FlockClassBodycam:
-        // "body/in-car" and NOT "camera": an Axon unit moves with a person or a
-        // vehicle, so the one thing this label must not do is read like a fixed
-        // pole. 20 chars, inside the same row budget as the string above.
-        return "Axon body/in-car kit";
+        // WAS "Axon body/in-car kit", chosen so the label could not read like a
+        // fixed pole -- correct while Axon made only equipment that moved with a
+        // person or a vehicle. Axon put Outpost and Lightpost, both fixed ALPR,
+        // on the same OUI in 2026, so the label no longer promises either form
+        // factor. Kept in step with flock_device_long_str() deliberately: two
+        // labels for one class that disagree is worse than either being vague.
+        return "Axon: body or fixed";
+    case FlockClassGear:
+        // No vendor in scope here, so this cannot name one. Deliberately vaguer
+        // than the vendor-aware label -- vagueness beats a wrong attribution.
+        return "Surveillance gear";
     case FlockClassAlpr:
     default:
         return "Flock / ALPR camera";
@@ -413,10 +733,13 @@ FlockMethod flock_method_of(const uint8_t* mac, const char* ssid, char ftype, ui
     // so the label never claims more than the confidence rung does.
     if(flock_ssid_confidence(ssid) != FlockConfidenceNone) return FlockMethodSsid;
     if(flock_ie_fp_match(ie_fp) != FlockIeFpNone) return FlockMethodIeFp;
-    // Any of the three tables: a SoundThinking or Axon prefix is an OUI match too,
-    // just for another device class. Reporting it as "unclassified" would hide the
-    // one indicator we actually have for those.
-    if(flock_oui_match(mac) || soundthinking_oui_match(mac) || axon_oui_match(mac)) {
+    // ANY vendor table, not just Flock's: a SoundThinking, Axon, Ubicquia,
+    // Motorola, Verkada, Genetec or Avigilon prefix is an OUI match too, just for
+    // another vendor or device class. Reporting one as "unclassified" would hide
+    // the one indicator we actually have for it. vendor_exclusive_oui_match()
+    // covers the five competitor tables added in v0.77.
+    if(flock_oui_match(mac) || soundthinking_oui_match(mac) || axon_oui_match(mac) ||
+       vendor_exclusive_oui_match(mac)) {
         return FlockMethodOui;
     }
     // BLE is classified on the companion (mfg id 0x09C8 / Raven GATT) from advert
