@@ -25,7 +25,13 @@ typedef struct {
     void* app; /**< ReconApp* */
     int selected;
     int top;
+    int card_index; /**< row the live card points at, or -1. Written by the draw
+                      *  pass, read by OK, so the jump lands on the device that
+                      *  actually beeped rather than re-deriving it. */
 } FlockViewModel;
+
+/** How long the "what just beeped?" card stays up, in ticks (ms). */
+#define CARD_MS 3000u
 
 static char confidence_char(FlockConfidence c) {
     switch(c) {
@@ -224,6 +230,13 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
 
     app->gps_fault_active = (fault_msg != NULL);
 
+    // "What just beeped?" card, filled at the end of this locked block.
+    bool card_active = false;
+    int card_index = -1;
+    char card_rung[16] = {0};
+    char card_what[32] = {0};
+    char card_who[40] = {0};
+
     // Most-attacked BSSID + channel for the deauth header attribution.
     bool have_attr = false;
     uint8_t attr_ch = 0, attr_b3 = 0, attr_b4 = 0, attr_b5 = 0;
@@ -274,6 +287,60 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             r->archived = e->archived;
             r->seen_epoch = e->seen_epoch;
         }
+    }
+
+    // ---- "what just beeped?" card (discussion #7) -----------------------
+    // Composed here, under the lock we already hold, into fixed buffers -- the
+    // render pass below runs entirely unlocked, exactly like the row snapshots.
+    // CARD_MS is short on purpose: this is an answer to a sound that just
+    // played, not a dialog, and anything that lingers becomes something to swat
+    // away on every hit.
+    if(app->alert_card_tick &&
+       (uint32_t)(furi_get_tick() - app->alert_card_tick) < CARD_MS) {
+        for(size_t i = 0; i < app->flock_count; i++) {
+            if(memcmp(app->flock[i].mac, app->alert_card_mac, 6) != 0) continue;
+            FlockEntry* e = &app->flock[i];
+            card_active = true;
+            card_index = (int)i;
+            snprintf(card_rung, sizeof(card_rung), "%s", flock_confidence_str(e->confidence));
+            // Vendor-aware, so the card cannot announce an Axon or Ubicquia
+            // unit as a Flock camera -- the same rule as the detail screen.
+            FlockVendor ven = flock_vendor_of(e->mac, e->ssid);
+            snprintf(
+                card_what,
+                sizeof(card_what),
+                "%s",
+                flock_device_long_str(ven, (FlockDevClass)e->dev_class));
+            // The name if it has one, else whatever identifies it best.
+            if(e->ssid[0]) {
+                snprintf(card_who, sizeof(card_who), "%s", e->ssid);
+            } else if(ven != FlockVendorUnknown) {
+                snprintf(
+                    card_who,
+                    sizeof(card_who),
+                    "%s %02X:%02X:%02X",
+                    flock_vendor_str(ven),
+                    e->mac[3],
+                    e->mac[4],
+                    e->mac[5]);
+            } else {
+                snprintf(
+                    card_who,
+                    sizeof(card_who),
+                    "%02X:%02X:%02X:%02X:%02X:%02X",
+                    e->mac[0],
+                    e->mac[1],
+                    e->mac[2],
+                    e->mac[3],
+                    e->mac[4],
+                    e->mac[5]);
+            }
+            break;
+        }
+        // Fell through without a match: the device was evicted from the table
+        // between the beep and this frame. Drop the card rather than draw a
+        // stale one -- there is nothing for OK to open.
+        if(!card_active) app->alert_card_tick = 0;
     }
 
     furi_mutex_release(app->mutex);
@@ -540,6 +607,34 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
         return;
     }
 
+    // ---- "what just beeped?" card (discussion #7) -----------------------
+    // Drawn AFTER the fault panel returns above, so a GPS fault still wins the
+    // screen -- a card explaining a detection is not worth burying a message
+    // that says the scan itself is misconfigured.
+    //
+    // Deliberately a timed overlay and NOT a change to list ordering, which was
+    // the other option on the table. Sorting newest-first would move rows under
+    // a cursor whose selection is an INDEX, and Left on this screen is Delete:
+    // a row arriving while the operator reaches for it would silently retarget
+    // the delete at a different camera. The card answers the same question with
+    // no such hazard, and OK below jumps to the device so nothing is scrolled
+    // for anyway.
+    model->card_index = card_active ? card_index : -1;
+    if(card_active) {
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, 0, 26, 128, 38);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_frame(canvas, 0, 26, 128, 38);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 3, 36, card_rung);
+        canvas_set_font(canvas, FontSecondary);
+        ui_draw_str_fit(canvas, 3, 45, card_what, 125);
+        ui_draw_str_fit(canvas, 3, 53, card_who, 125);
+        canvas_draw_str(canvas, 3, 62, "OK opens - any key hides");
+        canvas_draw_line(canvas, 0, 24, 128, 24);
+        return;
+    }
+
     if(count == 0) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(
@@ -685,6 +780,42 @@ static bool flock_view_input_callback(InputEvent* event, void* context) {
     bool handled = false;
 
     if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
+        // The card owns the FIRST press while it is up. OK jumps to the device
+        // that beeped and opens it -- which is the whole point, since the row
+        // it lands on is the one that would otherwise have to be found by
+        // scrolling. Any other key just hides the card and is NOT swallowed
+        // beyond that, so a press meant for the list costs at most one tap.
+        {
+            ReconApp* app = NULL;
+            int card_idx = -1;
+            with_view_model(
+                fv->view,
+                FlockViewModel * model,
+                {
+                    app = model->app;
+                    card_idx = model->card_index;
+                },
+                false);
+            if(app && card_idx >= 0) {
+                furi_mutex_acquire(app->mutex, FuriWaitForever);
+                bool live = app->alert_card_tick != 0;
+                app->alert_card_tick = 0; // dismissed either way
+                furi_mutex_release(app->mutex);
+                if(live) {
+                    with_view_model(
+                        fv->view, FlockViewModel * model, { model->card_index = -1; }, true);
+                    if(event->key == InputKeyOk) {
+                        with_view_model(
+                            fv->view,
+                            FlockViewModel * model,
+                            { model->selected = card_idx; },
+                            true);
+                        if(fv->ok_cb) fv->ok_cb(fv->ok_ctx, card_idx);
+                    }
+                    return true;
+                }
+            }
+        }
         if(event->key == InputKeyUp) {
             with_view_model(
                 fv->view,
@@ -748,6 +879,7 @@ FlockView* flock_view_alloc(void) {
             model->app = NULL;
             model->selected = 0;
             model->top = 0;
+            model->card_index = -1;
         },
         false);
     return fv;

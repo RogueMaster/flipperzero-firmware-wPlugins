@@ -357,6 +357,19 @@ typedef struct {
     uint32_t alert_last_tick; /**< tick of the last alert fired (any device) */
     bool alert_have_fired; /**< false until the session's first alert -> cooldown is inert */
 
+    // "WHAT JUST BEEPED?" CARD (discussion #7). An alert says something was
+    // found; it cannot say WHAT, and new rows land at the BOTTOM of a list that
+    // is routinely 15 long, so the answer costs a scroll every time. Reported by
+    // @h00die, who has the largest real list of anyone: "when a new entry beeps,
+    // I need to scroll down to see what it is."
+    //
+    // Raised on exactly the same event as the beep -- not on every new row --
+    // so the card and the sound always agree about what they are announcing.
+    // Set on the ESP worker thread under the mutex, read by the GUI, same
+    // discipline as alert_pending.
+    uint8_t alert_card_mac[6]; /**< device the last alert was about */
+    uint32_t alert_card_tick; /**< tick the card was raised; 0 = no card */
+
     // Companion GPS-relay health (issue #5). Only meaningful when the GPS source
     // is the companion; the Flipper-UART path has its own busy/conflict test.
     // What the companion reported about itself (CHIP/BAND). Zeroed = not heard

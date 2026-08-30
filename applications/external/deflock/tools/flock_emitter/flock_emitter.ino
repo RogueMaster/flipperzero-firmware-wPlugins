@@ -435,14 +435,29 @@ static void apply_wifi_identity(int idx) {
     const WifiIdentity* id = &WIFI_IDS[idx];
 
     esp_wifi_scan_stop();
-    // ONLY BEACON IDENTITIES TAKE THE AP MAC. The ESP32 rejects a STA MAC that
-    // equals the AP MAC with ESP_ERR_WIFI_MAC (0x3009), so setting both to the
-    // identity made every probe identity fall back to the factory Espressif
-    // address -- which is not in any Flock table, so the detector correctly saw
-    // nothing. Beacons were unaffected because their source MAC is a field in a
-    // hand-built frame, not an interface property, which is exactly why the
-    // symptom was 'beacons detect, probes never do'.
-    if(id->kind == EmitBeacon) esp_wifi_set_mac(WIFI_IF_AP, (uint8_t*)id->mac);
+    // THE AP INTERFACE MAC IS DELIBERATELY LEFT ALONE.
+    //
+    // It used to be set to the identity for beacon rows, and that was both
+    // unnecessary and actively harmful. Unnecessary because an injected beacon
+    // carries its source in addr2/addr3 of a frame we build by hand (see
+    // send_beacon) -- the interface MAC is not consulted. Harmful because this
+    // sketch runs in APSTA mode, so the ESP32's OWN SoftAP is up and beaconing
+    // its default `ESP_xxxxxx` SSID: pointing that AP at the identity's address
+    // made the board emit a SECOND, unintended beacon from the spoofed MAC.
+    //
+    // The detector stores the FIRST SSID it sees for a MAC, so whichever beacon
+    // won the race named the row. Observed 2026-08-29: identity #9 arrived as
+    // `ESP_CFDD91` rather than `bench-moto-1`, on MAC 00:04:7d:00:00:0a. The
+    // rung was still right (the OUI is what fires it) but the name was the
+    // board's own, which makes this rig lie about the exact field an SSID
+    // identity exists to test -- and sends anyone reading the bench output
+    // hunting a false positive that is really the test rig.
+    //
+    // Left in place for probe identities, which genuinely do need it: a probe's
+    // source IS the interface MAC. That is set on WIFI_IF_STA by set_sta_mac(),
+    // and the ESP32 rejects a STA MAC equal to the AP MAC with
+    // ESP_ERR_WIFI_MAC (0x3009) -- which is why these two must stay different,
+    // and another reason not to write an identity into the AP interface.
     esp_wifi_set_channel(EMIT_CHANNEL, WIFI_SECOND_CHAN_NONE);
 
     if(id->kind == EmitProbe) start_probe_burst(id);

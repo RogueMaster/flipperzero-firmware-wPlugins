@@ -10,6 +10,19 @@ passive: it reads only what the scan already saw. No transmit.
 
 ### Added
 
+- **The app now says what just beeped.** An alert told you something was found
+  and could not tell you what, and new rows land at the bottom of the list, so
+  the answer cost a scroll every time. A card now rises on exactly the same
+  event as the beep, carrying the rung, the device and its name, and clears
+  itself after three seconds. **Pressing OK jumps straight to that device and
+  opens it**, so the row you would have hunted for is simply arrived at.
+  Requested by [@h00die](https://github.com/h00die) in discussion #7.
+
+  Sorting newest-first was the other option and was deliberately not taken: the
+  selection is a position in the list and Left is Delete, so a row arriving
+  while you reach for one would quietly retarget the delete at a different
+  camera.
+
 - **A vendor field, so the app stops calling everything a Flock camera.** Every
   ALPR-class detection used to render as *"Flock / ALPR camera"* — including
   competitor hardware, and including MACs that matched no table at all and were
@@ -59,6 +72,25 @@ passive: it reads only what the scan already saw. No transmit.
   corrected.
 
 - **Reports gained a `Vendor` column** in both the sightings and evidence tables.
+
+### Fixed
+
+- **The bench emitter was broadcasting its own SSID under a spoofed MAC.**
+  `tools/flock_emitter` runs in APSTA mode, and beacon identities also pointed
+  the ESP32's own SoftAP at the address being impersonated, so the board emitted
+  a second, unintended beacon carrying its default `ESP_xxxxxx` name from the
+  spoofed MAC. The app keeps the first SSID it sees for a MAC, so an identity
+  could be recorded under the board's name instead of its own. The rung was
+  never wrong (the OUI is what fires it), but the rig misreported the exact
+  field an SSID identity exists to test. Setting that MAC was never needed:
+  an injected beacon carries its source in the frame we build by hand.
+
+- **Nightly builds now include the companion firmware.** They were `.fap` only,
+  on the reasoning that the protocol handshake would catch a mismatch. That does
+  not cover a detection-table change like this one: the protocol is unchanged,
+  so the handshake stays silent while an old companion simply never reports the
+  new vendors. A nightly would have shipped an app whose headline feature was
+  inert with nothing telling you.
 
 ### Notes
 
@@ -110,8 +142,14 @@ work against a deauth flood (the attacker spoofs your real BSSID; a same-named A
 does not intercept that), so the honest defence is detection, evidence, and
 pointing you at PMF, which actually stops it.
 
-**Not yet verified on hardware.** Builds and host-tests pass; the on-device
-screens are checked next.
+**Hardware verification.** The vendor work, the detection card and the row and
+Help changes were all checked on a real device against `tools/flock_emitter`,
+including the before/after that proves the new vendor rung only fires with the
+v0.77 companion firmware. Net Guardian's HUD and the attack screen's "no active
+attacks" state were checked too. The one thing still host-tested only is the
+attack screen with a LIVE attack on it: that needs a real deauth flood or advert
+spam to render, and none was generated. `test_attack_triage.c` covers the
+triage logic behind it.
 
 ## v0.76
 

@@ -140,6 +140,13 @@ void recon_app_report_flock(
             app->alert_pending = true;
             app->alert_last_tick = now;
             app->alert_have_fired = true;
+            // Same event, so the card can never announce a different device
+            // from the one that just beeped. The MAC rather than the index:
+            // the table can evict an archived slot out from under an index,
+            // and pointing the card at the wrong row would be worse than
+            // showing no card at all.
+            memcpy(app->alert_card_mac, entry->mac, 6);
+            app->alert_card_tick = now;
         }
     }
 

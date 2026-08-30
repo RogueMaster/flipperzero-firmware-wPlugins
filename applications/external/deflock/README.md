@@ -350,6 +350,21 @@ the code and confirm the behavior yourself.
 
 ## What's new
 
+**v0.77** - **It stops calling everything a Flock camera.** Every ALPR-class
+detection used to render as *Flock / ALPR camera*, including competitor hardware
+and hits that nothing tied to any vendor. There is a **vendor field** now, shown
+on the detail screen and in both report exports; an unattributed hit reads
+*ALPR (unattributed)* and only real Flock evidence prints the word Flock. Five
+competitor vendors are detected: **Ubicquia, Motorola Solutions, Verkada,
+Genetec and Avigilon**, every prefix read out of the IEEE registry one at a time.
+Ubicquia matters most, because Axon Lightpost is Ubicquia hardware underneath and
+it is a Wi-Fi access point, so it beacons rather than hiding the way a Flock
+camera does. **This half needs a companion reflash.**
+
+Also: a **card that says what just beeped**, with OK to jump straight to it; a
+nameless row shows the vendor instead of a raw MAC (`Flock 00:00:02`, not
+`B4:1E:52:00:00:02`); and Help opens on the row marks rather than on GPS faults.
+
 **v0.74** - **A false positive users actually hit, and a Net Guardian you can
 point at one network.** A T-Mobile hotspot was being reported as a *Likely* ALPR
 camera. Two causes: the built-in OUI list is mostly chip vendors rather than
