@@ -11,7 +11,7 @@
 #include "game/Font.h"
 
 #include "game/LUT.h"
-#include "game/Generated/SpriteData.inc.h"
+#include "game/Generated/SpriteData_inc.h"
 
 #if WITH_VECTOR_TEXTURES
 #include "game/Textures.h"
