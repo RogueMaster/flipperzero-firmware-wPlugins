@@ -170,7 +170,9 @@ VENDOR_TABLES = TABLES[3:]
 
 VENDOR_TOTAL_CLAIMS = {
     APP: re.compile(r"VENDOR-EXCLUSIVE OUIs\s*\((\d+)\s+across\s+(\d+)\s+vendors\)"),
-    ESP: re.compile(r"Vendor-exclusive competitor OUIs\s*\((\d+)\s+across\s+(\d+)\s+vendors\)"),
+    ESP: re.compile(
+        r"Vendor-exclusive competitor OUIs\s*\((\d+)\s+across\s+(\d+)\s+vendors\)"
+    ),
 }
 
 
@@ -272,7 +274,9 @@ def main():
         mis_ok &= check_misattributed(label, APP, app_sym)
         mis_ok &= check_misattributed(label, ESP, esp_sym)
     if mis_ok:
-        print(f"  OK   none of the {len(MISATTRIBUTED)} look-alike prefixes are present")
+        print(
+            f"  OK   none of the {len(MISATTRIBUTED)} look-alike prefixes are present"
+        )
     ok &= mis_ok
 
     if not ok:

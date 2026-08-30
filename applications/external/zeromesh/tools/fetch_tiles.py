@@ -26,7 +26,9 @@ import urllib.error
 import urllib.request
 
 DEFAULT_URL = "https://tiles.versatiles.org/tiles/osm/{z}/{x}/{y}"
-USER_AGENT = "ZeroMesh-tilefetch/1.0 (Flipper Zero offline maps; +https://github.com/SAMS0N1TE)"
+USER_AGENT = (
+    "ZeroMesh-tilefetch/1.0 (Flipper Zero offline maps; +https://github.com/SAMS0N1TE)"
+)
 
 
 def xtile(lon, z):
@@ -99,12 +101,16 @@ def main():
         for x in range(x0, x1 + 1):
             for y in range(y0, y1 + 1):
                 work.append((z, x, y))
-        print("z%-3d %d x %d = %d tiles" % (z, x1 - x0 + 1, y1 - y0 + 1,
-                                            (x1 - x0 + 1) * (y1 - y0 + 1)))
+        print(
+            "z%-3d %d x %d = %d tiles"
+            % (z, x1 - x0 + 1, y1 - y0 + 1, (x1 - x0 + 1) * (y1 - y0 + 1))
+        )
 
     print()
-    print("%d tiles total, %.1f req/s -> about %.1f minutes"
-          % (len(work), args.rate, len(work) * delay / 60.0))
+    print(
+        "%d tiles total, %.1f req/s -> about %.1f minutes"
+        % (len(work), args.rate, len(work) * delay / 60.0)
+    )
     if args.dry_run:
         return
 
@@ -140,15 +146,19 @@ def main():
         if (i + 1) % 50 == 0:
             rate = (i + 1) / max(1e-9, time.time() - started)
             left = (len(work) - i - 1) / max(1e-9, rate)
-            print("  %d/%d  got %d  skip %d  empty %d  fail %d  ~%.1f min left"
-                  % (i + 1, len(work), got, skipped, empty, failed, left / 60.0),
-                  flush=True)
+            print(
+                "  %d/%d  got %d  skip %d  empty %d  fail %d  ~%.1f min left"
+                % (i + 1, len(work), got, skipped, empty, failed, left / 60.0),
+                flush=True,
+            )
 
         time.sleep(delay)
 
     print()
-    print("downloaded %d tiles (%.1f MB), %d already present, %d empty, %d failed"
-          % (got, total_bytes / 1048576.0, skipped, empty, failed))
+    print(
+        "downloaded %d tiles (%.1f MB), %d already present, %d empty, %d failed"
+        % (got, total_bytes / 1048576.0, skipped, empty, failed)
+    )
     if failed:
         print("re-run to retry the failures; existing tiles are skipped")
 

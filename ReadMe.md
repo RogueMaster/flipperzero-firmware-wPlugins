@@ -96,6 +96,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Stop the CUID dictionary pass ending one key index early (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/be559b2ee1b2bbae3eaf109a4a1b0d7337b3d8a8)
 - NFC: [Keep the CUID dictionary pass end marker out of the sector counter (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1115)
 - SubGHz: [The free/stop/yield/reset/hash/serialize handlers that were byte-identical across 57 protocols now share one implementation instead of 346 copies, freeing ~6 KB of flash (By apfxtech)](https://github.com/DarkFlippers/unleashed-firmware/commit/af2370573dd413e91e27421cdcd6828a70bf0de7)
+- Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
 
 <a name="release"></a>
 

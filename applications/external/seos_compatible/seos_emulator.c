@@ -327,7 +327,9 @@ NfcCommand seos_worker_listener_callback(NfcGenericEvent event, void* context) {
             }
         }
 #endif
-
+        if(rx_data[0]) {
+            // DONT DO ANYTHING JUST STFU WITH THE ERRORS
+        }
         size_t offset = 0;
         size_t apdu_len = 0;
         if(!emulator_apdu_bounds(seos_emulator->rx_buffer, &offset, &apdu_len)) {

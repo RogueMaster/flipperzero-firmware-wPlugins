@@ -110,13 +110,13 @@ def iter_fields(buf):
             yield fn, wt, v, None
         elif wt == 2:
             ln, i = read_varint(buf, i)
-            yield fn, wt, None, buf[i:i + ln]
+            yield fn, wt, None, buf[i : i + ln]
             i += ln
         elif wt == 5:
-            yield fn, wt, None, buf[i:i + 4]
+            yield fn, wt, None, buf[i : i + 4]
             i += 4
         elif wt == 1:
-            yield fn, wt, None, buf[i:i + 8]
+            yield fn, wt, None, buf[i : i + 8]
             i += 8
         else:
             return
@@ -418,8 +418,11 @@ def simplify(body, zoom, level=SAFE_LEVEL):
             continue
 
         if name in ROAD_LAYERS:
-            class_idx = {i for i, k in enumerate(keys)
-                         if k.decode("utf-8", "replace") in CLASS_KEYS}
+            class_idx = {
+                i
+                for i, k in enumerate(keys)
+                if k.decode("utf-8", "replace") in CLASS_KEYS
+            }
             strings = [value_string(v) for v in values]
 
             kept = []

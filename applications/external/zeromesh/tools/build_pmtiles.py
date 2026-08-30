@@ -164,7 +164,7 @@ def main():
         root_entries = []
         cursor = 0
         for i in range(0, len(entries), args.leaf_size):
-            chunk = entries[i:i + args.leaf_size]
+            chunk = entries[i : i + args.leaf_size]
             blob = serialize_directory(chunk)
             root_entries.append((chunk[0][0], cursor, len(blob), 0))
             leaf_blobs.append(blob)
