@@ -36,15 +36,23 @@ Turn Bluetooth on in the Flipper's own settings before selecting the BLE transpo
 
 The Map page draws an offline vector map and overlays roster nodes that report a GPS position.
 
-Map data is read from a PMTiles archive at /ext/zeromesh/map.pmtiles. The archive must be built with compression set to none, because the Flipper firmware has no gzip. Use tools/build_pmtiles.py to pack a directory tree of z/x/y .mvt tiles into a suitable archive:
+Map data is read from a PMTiles archive at /ext/zeromesh/map.pmtiles. The archive must be built with compression set to none, because the Flipper firmware has no gzip.
 
-    python tools/build_pmtiles.py path/to/tiles map.pmtiles
+tools/fetch_tiles.py downloads a tile tree for a bounding box. It is rate limited and skips tiles already on disk, so an interrupted run resumes:
+
+    python tools/fetch_tiles.py map --bbox -72.56,42.69,-70.70,45.31 --min-zoom 10 --max-zoom 12
+
+tools/build_pmtiles.py packs that tree into an archive:
+
+    python tools/build_pmtiles.py map map.pmtiles --simplify --max-tile-bytes 20736 --leaf-size 256
+
+Pass --simplify for anything beyond a few tiles. It removes the layers the renderer never draws, drops detail finer than one screen pixel, and holds every tile under --max-tile-bytes, which must not exceed the on-device tile buffer. --leaf-size splits the directory into leaves that are paged in from the card as needed; without it the whole directory has to fit in RAM, which puts a ceiling of a few hundred tiles on an archive.
 
 Copy the result to /ext/zeromesh/map.pmtiles on the SD card. A card reader is much faster than USB for anything beyond a handful of tiles.
 
 Without an archive present the Map page still opens and reports the missing tile, so map data is optional.
 
-On the Map page, up and down pan. A short press of OK toggles a pan lock, which switches left and right from changing page to panning. A long press of OK cycles zoom.
+The map centres on a mesh node rather than panning freely by default. Up and Down step between nodes reporting a position, OK cycles zoom, and holding OK enters a pan mode in which the D-pad pans and Back returns. A dashed border marks the edge of the archive. Down opens a toolbar with nearby place names, a label toggle, a reset to your own node, node cycling and zoom.
 
 ## Installation
 
@@ -65,6 +73,16 @@ Connect your Meshtastic node to the Flipper Zero GPIO pins:
 * **RX**: Connect to Flipper TX (Pin 13/14 depending on UART selection).
 * **GND**: Ensure a common ground between both devices.
 * **5V Optional**: Do not use the USB to power the meshtastic node if you chose to use 5V.
+
+## Node Config
+
+The Node Config page changes settings on the connected radio: LoRa region, modem preset and device role, GPS on or off, a fixed position, the primary channel key, and whether position is shared on that channel.
+
+Fixed position takes the coordinate under the map crosshair, which is how a node with no GPS fix can still appear on the map and report a location to the mesh. Set it back to Off to remove it. A fixed position overrides GPS.
+
+Setting the channel to Private generates a random 256-bit key on the Flipper. Every other node on that channel needs the same key or it will no longer hear this one, and the key is not displayed, so share the channel from a device that can show it before relying on the change. Public restores the default key that stock nodes ship with.
+
+Channel and position settings are read back from the radio before being written, so an existing channel name and unrelated position fields survive a change.
 
 ## Node Settings
 

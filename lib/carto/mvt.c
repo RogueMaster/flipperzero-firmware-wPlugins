@@ -1,7 +1,10 @@
 #include "mvt.h"
 #include <string.h>
 
-#define MVT_MAX_VALUES 4096
+/* mvt_ctx is a stack local and holds two arrays of this many entries. At
+   4096 that is a 32 KB frame, which overflows every Flipper thread stack.
+   The count resets per layer; the densest tile we pack peaks at 231. */
+#define MVT_MAX_VALUES 384
 
 typedef struct {
     carto_framebuffer *fb;
@@ -123,6 +126,8 @@ static void render_feature(mvt_ctx *m, const uint8_t *g, size_t glen,
     int lw;
     feature_colors(m, prio, &fillc, &linec, &ptc, &lw);
 
+    int stipple = (geomtype == 3 && m->category == CARTO_LAYER_WATER);
+
     if ((geomtype == 2 || geomtype == 3) && m->per_ext > 0.0f) {
         int bw, bh;
         geom_bbox_ext(g, glen, &bw, &bh);
@@ -134,6 +139,7 @@ static void render_feature(mvt_ctx *m, const uint8_t *g, size_t glen,
     size_t p = 0;
     int cx = 0, cy = 0, n = 0;
     carto_ipt *pts = m->scratch;
+    m->fb->stipple = stipple;
 
     while (p < glen) {
         uint64_t cmdint = rvarint(g, glen, &p);
@@ -170,6 +176,7 @@ static void render_feature(mvt_ctx *m, const uint8_t *g, size_t glen,
         }
     }
     if (geomtype == 2 && n >= 2) carto_polyline(m->fb, pts, n, lw, linec);
+    m->fb->stipple = 0;
 }
 
 static void feature_class(mvt_ctx *m, const uint8_t *tags, size_t taglen,
@@ -305,7 +312,7 @@ void carto_mvt_render_category(carto_framebuffer *fb, const carto_style *style,
 
     float rs = 0.125f + (zoom - 9) * 0.0625f;
     m.road_scale = rs < 0.125f ? 0.125f : (rs > 0.55f ? 0.55f : rs);
-    int mp = 18 - zoom;
+    int mp = 16 - zoom;
     m.min_road_prio = mp < 1 ? 1 : (mp > 10 ? 10 : mp);
 
     m.nvals = 0;

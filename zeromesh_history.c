@@ -23,7 +23,7 @@ void history_add(ZeroMeshApp* app, const char* text, uint32_t from, uint32_t to,
                app->history.count, app->history.head, is_tx, text);
 
     furi_mutex_release(app->lock);
-    view_port_update(app->vp);
+    app->need_render = true;
 }
 
 void log_line(ZeroMeshApp* app, const char* fmt, ...) {
@@ -60,5 +60,5 @@ void set_status(ZeroMeshApp* app, const char* fmt, ...) {
     furi_mutex_release(app->lock);
     va_end(args);
 
-    view_port_update(app->vp);
+    app->need_render = true;
 }

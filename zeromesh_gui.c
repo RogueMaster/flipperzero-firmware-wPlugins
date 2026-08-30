@@ -309,10 +309,10 @@ static int message_block_height(Canvas* canvas, ZeroMeshApp* app, const Message*
         int text_w = canvas_string_width(canvas, msg->text);
         if(text_w > MSG_FEED_INNER_W) {
             int lines = calculate_wrapped_lines(canvas, msg->text, MSG_FEED_INNER_W);
-            return lines * 9 + 14;
+            return lines * 9 + 17;
         }
     }
-    return 22;
+    return 25;
 }
 
 static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
@@ -338,7 +338,7 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
 
     if(broadcast_count == 0) {
         canvas_draw_str(canvas, 16, 34, "No mesh traffic yet");
-        canvas_draw_str(canvas, 10, 46, "Press OK to broadcast");
+        canvas_draw_str(canvas, 10, 46, "No messages yet");
         draw_footer(canvas, "", "");
         return;
     }
@@ -590,9 +590,13 @@ void render_cb(Canvas* canvas, void* ctx) {
     ZeroMeshApp* app = (ZeroMeshApp*)ctx;
     if(!app) return;
 
-    canvas_clear(canvas);
+    /* Never block here. view_port_draw() only waits 2ms for its own mutex and
+       then draws regardless, releasing a mutex it may not hold - so a draw that
+       stalls on app->lock lets input and draw callbacks run concurrently and
+       corrupts the ViewPort mutex. Skipping a frame is free; blocking is not. */
+    if(furi_mutex_acquire(app->lock, 0) != FuriStatusOk) return;
 
-    furi_mutex_acquire(app->lock, FuriWaitForever);
+    canvas_clear(canvas);
 
     switch(app->ui_mode) {
     case PAGE_MESSAGES:
@@ -721,7 +725,7 @@ void input_cb(InputEvent* e, void* ctx) {
         bool consumed = map_wants_key(app, e->key);
         input_map(e, app);
         if(consumed) {
-            view_port_update(app->vp);
+            app->need_render = true;
             return;
         }
     }
@@ -730,7 +734,7 @@ void input_cb(InputEvent* e, void* ctx) {
         bool consumed = nodecfg_wants_key(app, e->key);
         input_nodecfg(e, app);
         if(consumed) {
-            view_port_update(app->vp);
+            app->need_render = true;
             return;
         }
     }
@@ -740,7 +744,7 @@ void input_cb(InputEvent* e, void* ctx) {
         if(app->ui_mode == PAGE_SETTINGS && app->settings_editing) {
             if(e->type == InputTypeShort || e->type == InputTypeRepeat) {
                 setting_change(app, -1);
-                view_port_update(app->vp);
+                app->need_render = true;
             }
             break;
         }
@@ -749,20 +753,20 @@ void input_cb(InputEvent* e, void* ctx) {
             app->ui_mode = PAGE_COUNT - 1;
         else
             app->ui_mode--;
-        view_port_update(app->vp);
+        app->need_render = true;
         break;
 
     case InputKeyRight:
         if(app->ui_mode == PAGE_SETTINGS && app->settings_editing) {
             if(e->type == InputTypeShort || e->type == InputTypeRepeat) {
                 setting_change(app, 1);
-                view_port_update(app->vp);
+                app->need_render = true;
             }
             break;
         }
         if(e->type != InputTypeShort) break;
         app->ui_mode = (app->ui_mode + 1) % PAGE_COUNT;
-        view_port_update(app->vp);
+        app->need_render = true;
         break;
 
     case InputKeyUp:
@@ -771,22 +775,22 @@ void input_cb(InputEvent* e, void* ctx) {
             if(app->msg_scroll_offset < app->history.count) {
                 app->msg_scroll_offset++;
             }
-            view_port_update(app->vp);
+            app->need_render = true;
         } else if(app->ui_mode == PAGE_SIGNAL) {
             // Allow up/down scrolling in signal view if needed
-            view_port_update(app->vp);
+            app->need_render = true;
         } else if(app->ui_mode == PAGE_LOGS) {
             if(app->log_paused && app->log_scroll_offset < LOG_LINES - 5) {
                 app->log_scroll_offset++;
             }
-            view_port_update(app->vp);
+            app->need_render = true;
         } else if(app->ui_mode == PAGE_SETTINGS) {
             if(!app->settings_editing) {
                 if(app->settings_cursor > 0)
                     app->settings_cursor--;
                 else
                     app->settings_cursor = SETTING_COUNT - 1;
-                view_port_update(app->vp);
+                app->need_render = true;
             }
         }
         break;
@@ -797,19 +801,19 @@ void input_cb(InputEvent* e, void* ctx) {
             if(app->msg_scroll_offset > 0) {
                 app->msg_scroll_offset--;
             }
-            view_port_update(app->vp);
+            app->need_render = true;
         } else if(app->ui_mode == PAGE_SIGNAL) {
             // Allow up/down scrolling in signal view if needed
-            view_port_update(app->vp);
+            app->need_render = true;
         } else if(app->ui_mode == PAGE_LOGS) {
             if(app->log_paused && app->log_scroll_offset > 0) {
                 app->log_scroll_offset--;
             }
-            view_port_update(app->vp);
+            app->need_render = true;
         } else if(app->ui_mode == PAGE_SETTINGS) {
             if(!app->settings_editing) {
                 app->settings_cursor = (app->settings_cursor + 1) % SETTING_COUNT;
-                view_port_update(app->vp);
+                app->need_render = true;
             }
         }
         break;
@@ -818,18 +822,18 @@ void input_cb(InputEvent* e, void* ctx) {
         if(e->type == InputTypeShort) {
             if(app->ui_mode == PAGE_SETTINGS) {
                 app->settings_editing = !app->settings_editing;
-                view_port_update(app->vp);
+                app->need_render = true;
             } else if(app->ui_mode == PAGE_LOGS) {
                 app->log_paused = !app->log_paused;
                 if(!app->log_paused) app->log_scroll_offset = 0;
-                view_port_update(app->vp);
+                app->need_render = true;
             } else if(app->ui_mode == PAGE_MESSAGES) {
                 app->show_keyboard = true;
             }
         } else if(e->type == InputTypeLong) {
             if(app->ui_mode == PAGE_MESSAGES && app->num_channels > 1) {
                 channel_next(app);
-                view_port_update(app->vp);
+                app->need_render = true;
             } else {
                 request_info(app);
                 set_status(app, "Info requested");
@@ -841,7 +845,7 @@ void input_cb(InputEvent* e, void* ctx) {
         if(e->type != InputTypeShort) break;
         if(app->ui_mode == PAGE_SETTINGS && app->settings_editing) {
             app->settings_editing = false;
-            view_port_update(app->vp);
+            app->need_render = true;
         } else {
             app->stop_thread = true;
         }

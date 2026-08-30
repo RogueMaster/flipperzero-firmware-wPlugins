@@ -12,6 +12,7 @@ int carto_fb_init(carto_framebuffer *fb, int w, int h, carto_pixfmt fmt,
     fb->cell_color = NULL;
     fb->cell_cols = 0;
     fb->cell_rows = 0;
+    fb->stipple = 0;
     return 0;
 }
 

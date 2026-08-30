@@ -24,6 +24,7 @@ typedef struct {
     uint16_t    *cell_color;
     int          cell_cols;
     int          cell_rows;
+    int          stipple;
 } carto_framebuffer;
 
 static inline size_t carto_fb_row_bytes(int w, carto_pixfmt fmt) {

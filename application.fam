@@ -4,7 +4,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="zeromesh_serial_app",
     requires=["gui", "bt"],
-    stack_size=12 * 1024,
+    stack_size=8 * 1024,
     fap_version=(3, 0),
     fap_category="GPIO",
     fap_icon="icon.png",

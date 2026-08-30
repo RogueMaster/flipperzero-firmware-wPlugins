@@ -20,6 +20,10 @@ void carto_put_px(carto_framebuffer *fb, int x, int y, carto_rgb c) {
             row[x] = (uint8_t)((c.r * 30 + c.g * 59 + c.b * 11) / 100);
             return;
         case CARTO_FMT_MONO1: {
+            /* A solid fill turns a large lake or the ocean into a black slab
+               that hides everything under it. Half-tone keeps the shape
+               readable on a 1-bit screen. */
+            if (fb->stipple && ((x + y) & 1)) return;
             int lum = (c.r * 30 + c.g * 59 + c.b * 11) / 100;
 
             uint8_t mask = (uint8_t)(1 << (x & 7));

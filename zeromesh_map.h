@@ -13,6 +13,10 @@ void map_free(ZeroMeshApp* app);
 
 void map_tick(ZeroMeshApp* app);
 
+bool map_focus_node(ZeroMeshApp* app, uint32_t node_id);
+
+bool map_view_center(ZeroMeshApp* app, int32_t* lat_i, int32_t* lon_i);
+
 void render_map(Canvas* canvas, ZeroMeshApp* app);
 
 bool map_wants_key(ZeroMeshApp* app, InputKey key);

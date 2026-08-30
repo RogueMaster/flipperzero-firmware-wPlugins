@@ -9,8 +9,13 @@
 #define NODECFG_REGION 0
 #define NODECFG_PRESET 1
 #define NODECFG_ROLE   2
-#define NODECFG_REBOOT 3
-#define NODECFG_COUNT  4
+#define NODECFG_GPS    3
+#define NODECFG_FIXED  4
+#define NODECFG_CHAN   5
+#define NODECFG_CHPOS  6
+#define NODECFG_REBOOT 7
+#define NODECFG_COUNT  8
+#define NODECFG_ROWS   4
 
 static const char* const region_names[] = {
     "UNSET", "US",     "EU_433", "EU_868", "CN",     "JP",  "ANZ",  "KR",
@@ -48,10 +53,14 @@ void render_nodecfg(Canvas* canvas, ZeroMeshApp* app) {
     }
 
     char fb[8];
-    char buf[64];
     int y = 24;
 
-    for(uint8_t i = 0; i < NODECFG_COUNT; i++) {
+    int first = 0;
+    if(app->nodecfg_cursor >= NODECFG_ROWS) first = app->nodecfg_cursor - NODECFG_ROWS + 1;
+    if(first > NODECFG_COUNT - NODECFG_ROWS) first = NODECFG_COUNT - NODECFG_ROWS;
+    if(first < 0) first = 0;
+
+    for(uint8_t i = first; i < NODECFG_COUNT && i < first + NODECFG_ROWS; i++) {
         const char* label = "";
         const char* value = "";
 
@@ -68,9 +77,27 @@ void render_nodecfg(Canvas* canvas, ZeroMeshApp* app) {
             label = "Role";
             value = name_or_num(role_names, ROLE_COUNT, app->cfg_role, fb, sizeof(fb));
             break;
+        case NODECFG_GPS:
+            label = "GPS";
+            value = app->cfg_gps ? "On" : "Off";
+            break;
+        case NODECFG_FIXED:
+            label = "Fixed pos";
+            value = app->cfg_fixed ? "Map centre" : "Off";
+            break;
+        case NODECFG_CHAN:
+            label = "Channel";
+            value = app->cfg_ch_private ? (app->cfg_ch_known ? "Private" : "Private?")
+                                        : (app->cfg_ch_known ? "Public" : "Public?");
+            break;
+        case NODECFG_CHPOS:
+            label = "Share GPS";
+            value = app->cfg_ch_pos ? (app->cfg_ch_known ? "On" : "On?")
+                                    : (app->cfg_ch_known ? "Off" : "Off?");
+            break;
         case NODECFG_REBOOT:
             label = "Reboot node";
-            value = "hold OK";
+            value = "";
             break;
         default:
             break;
@@ -81,16 +108,13 @@ void render_nodecfg(Canvas* canvas, ZeroMeshApp* app) {
             canvas_set_color(canvas, ColorWhite);
         }
 
-        snprintf(buf, sizeof(buf), "%s", label);
-        canvas_draw_str(canvas, 4, y, buf);
+        canvas_draw_str(canvas, 4, y, label);
         int vw = canvas_string_width(canvas, value);
         canvas_draw_str(canvas, 124 - vw, y, value);
 
         if(i == app->nodecfg_cursor) canvas_set_color(canvas, ColorBlack);
         y += 11;
     }
-
-    canvas_draw_str(canvas, 4, 63, app->nodecfg_editing ? "OK apply, Back cancel" : "OK edit");
 }
 
 bool nodecfg_wants_key(ZeroMeshApp* app, InputKey key) {
@@ -111,7 +135,7 @@ void input_nodecfg(InputEvent* e, ZeroMeshApp* app) {
 
     if(e->key == InputKeyOk) {
         if(e->type == InputTypeLong && app->nodecfg_cursor == NODECFG_REBOOT) {
-            reboot_node(app, 5);
+            app->pending_action = PendingReboot;
             set_status(app, "Rebooting node");
             return;
         }
@@ -123,12 +147,34 @@ void input_nodecfg(InputEvent* e, ZeroMeshApp* app) {
             switch(app->nodecfg_cursor) {
             case NODECFG_REGION:
             case NODECFG_PRESET:
-                set_node_lora(app, app->cfg_region, app->cfg_preset);
+                app->pending_a = app->cfg_region;
+                app->pending_b = app->cfg_preset;
+                app->pending_action = PendingSetLora;
                 set_status(app, "LoRa config sent");
                 break;
             case NODECFG_ROLE:
-                set_node_role(app, app->cfg_role);
+                app->pending_a = app->cfg_role;
+                app->pending_action = PendingSetRole;
                 set_status(app, "Role sent");
+                break;
+            case NODECFG_GPS:
+                app->pending_action = PendingSetGps;
+                set_status(app, app->cfg_gps ? "GPS on sent" : "GPS off sent");
+                break;
+            case NODECFG_FIXED:
+                app->pending_action =
+                    app->cfg_fixed ? PendingSetFixed : PendingClearFixed;
+                set_status(app, app->cfg_fixed ? "Position set" : "Fixed pos off");
+                break;
+            case NODECFG_CHAN:
+            case NODECFG_CHPOS:
+                /* writing before the read lands would blank the channel name */
+                if(!app->cfg_ch_known) {
+                    set_status(app, "Channel not read yet");
+                } else {
+                    app->pending_action = PendingSetChannel;
+                    set_status(app, "Channel sent");
+                }
                 break;
             default:
                 break;
@@ -164,6 +210,18 @@ void input_nodecfg(InputEvent* e, ZeroMeshApp* app) {
         break;
     case NODECFG_ROLE:
         cycle(&app->cfg_role, ROLE_COUNT, dir);
+        break;
+    case NODECFG_GPS:
+        cycle(&app->cfg_gps, 2, dir);
+        break;
+    case NODECFG_FIXED:
+        cycle(&app->cfg_fixed, 2, dir);
+        break;
+    case NODECFG_CHAN:
+        cycle(&app->cfg_ch_private, 2, dir);
+        break;
+    case NODECFG_CHPOS:
+        cycle(&app->cfg_ch_pos, 2, dir);
         break;
     default:
         break;

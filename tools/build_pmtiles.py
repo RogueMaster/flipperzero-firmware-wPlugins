@@ -9,14 +9,21 @@ This writes a root-only archive (no leaf directories). That keeps the on-device
 reader simple, at the cost of a large root directory for big tile counts; add
 leaves before going statewide.
 
+Pass --simplify to strip each tile down to the layers the device actually
+draws and hold every tile under --max-tile-bytes, which must match
+MAP_TILE_MAX in zeromesh_map.c or the reader will reject the big ones.
+
 Usage:
   build_pmtiles.py <tile-dir> <out.pmtiles> [--min-zoom N] [--max-zoom N]
+                   [--simplify] [--max-tile-bytes N]
 """
 
 import argparse
 import os
 import struct
 import sys
+
+from mvtsimplify import SAFE_LEVEL, simplify_to_budget
 
 PMTILES_MAGIC = b"PMTiles"
 COMPRESSION_NONE = 1
@@ -103,6 +110,9 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--min-zoom", type=int, default=0)
     ap.add_argument("--max-zoom", type=int, default=20)
+    ap.add_argument("--simplify", action="store_true")
+    ap.add_argument("--max-tile-bytes", type=int, default=24576)
+    ap.add_argument("--leaf-size", type=int, default=256)
     args = ap.parse_args()
 
     tiles = collect_tiles(args.tiledir, args.min_zoom, args.max_zoom)
@@ -114,12 +124,26 @@ def main():
     data = bytearray()
     entries = []
     zooms = set()
+    levels = {}
+    raw_total = 0
+    biggest = 0
+    dropped = 0
 
     for z, x, y, path in tiles:
         with open(path, "rb") as fh:
             body = fh.read()
         if not body:
             continue
+        raw_total += len(body)
+
+        if args.simplify:
+            body, level = simplify_to_budget(body, z, args.max_tile_bytes)
+            levels[level] = levels.get(level, 0) + 1
+            if not body:
+                dropped += 1
+                continue
+
+        biggest = max(biggest, len(body))
         zooms.add(z)
         key = hash(body)
         if key in blobs:
@@ -131,14 +155,32 @@ def main():
         entries.append((zxy_to_tileid(z, x, y), offset, length, 1))
 
     entries.sort(key=lambda e: e[0])
-    root_dir = serialize_directory(entries)
+
+    # Past a few hundred tiles the root directory stops fitting in the
+    # device heap, so split it: the root then holds one run_length=0 entry
+    # per leaf and the reader pages leaves in from the card on demand.
+    if args.leaf_size > 0 and len(entries) > args.leaf_size:
+        leaf_blobs = []
+        root_entries = []
+        cursor = 0
+        for i in range(0, len(entries), args.leaf_size):
+            chunk = entries[i:i + args.leaf_size]
+            blob = serialize_directory(chunk)
+            root_entries.append((chunk[0][0], cursor, len(blob), 0))
+            leaf_blobs.append(blob)
+            cursor += len(blob)
+        leaf_data = b"".join(leaf_blobs)
+        root_dir = serialize_directory(root_entries)
+    else:
+        leaf_data = b""
+        root_dir = serialize_directory(entries)
 
     header_len = 127
     root_off = header_len
     meta = b"{}"
     meta_off = root_off + len(root_dir)
     leaf_off = meta_off + len(meta)
-    data_off = leaf_off  # no leaf directories
+    data_off = leaf_off + len(leaf_data)
 
     h = bytearray(header_len)
     h[0:7] = PMTILES_MAGIC
@@ -148,7 +190,7 @@ def main():
     struct.pack_into("<Q", h, 24, meta_off)
     struct.pack_into("<Q", h, 32, len(meta))
     struct.pack_into("<Q", h, 40, leaf_off)
-    struct.pack_into("<Q", h, 48, 0)
+    struct.pack_into("<Q", h, 48, len(leaf_data))
     struct.pack_into("<Q", h, 56, data_off)
     struct.pack_into("<Q", h, 64, len(data))
     struct.pack_into("<Q", h, 72, len(entries))
@@ -165,15 +207,32 @@ def main():
         fh.write(bytes(h))
         fh.write(root_dir)
         fh.write(meta)
+        fh.write(leaf_data)
         fh.write(bytes(data))
 
-    total = header_len + len(root_dir) + len(meta) + len(data)
+    total = header_len + len(root_dir) + len(meta) + len(leaf_data) + len(data)
     print(f"wrote {args.out}")
     print(f"  tiles      : {len(entries)} ({len(blobs)} unique bodies)")
     print(f"  zooms      : {min(zooms)}-{max(zooms)}")
     print(f"  root dir   : {len(root_dir)} bytes at {root_off}")
+    if leaf_data:
+        nleaf = (len(entries) + args.leaf_size - 1) // args.leaf_size
+        big = max(len(b) for b in leaf_blobs)
+        print(f"  leaves     : {nleaf} x up to {big} bytes, {len(leaf_data)} total")
     print(f"  tile data  : {len(data)} bytes at {data_off}")
+    print(f"  largest    : {biggest} bytes", end="")
+    if args.simplify and biggest > args.max_tile_bytes:
+        print(f"  OVER --max-tile-bytes ({args.max_tile_bytes})", end="")
+    print()
     print(f"  total      : {total} bytes")
+    if args.simplify:
+        shrink = 100.0 * (1.0 - len(data) / raw_total) if raw_total else 0.0
+        print(f"  simplified : {shrink:.0f}% smaller than source tiles")
+        for lvl in sorted(levels):
+            tag = " (lossless for this renderer)" if lvl == SAFE_LEVEL else ""
+            print(f"    level {lvl}: {levels[lvl]} tiles{tag}")
+        if dropped:
+            print(f"    {dropped} tiles held nothing drawable and were skipped")
 
 
 if __name__ == "__main__":

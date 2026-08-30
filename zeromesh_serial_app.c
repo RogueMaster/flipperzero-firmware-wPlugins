@@ -3,6 +3,7 @@
 #include "zeromesh_uart.h"
 #include "zeromesh_transport.h"
 #include "zeromesh_map.h"
+#include "zeromesh_notify.h"
 #include "zeromesh_protocol.h"
 #include "zeromesh_settings.h"
 #include "zeromesh_channel.h"
@@ -71,6 +72,8 @@ int32_t zeromesh_serial_app(void* p) {
        and again after a reconnect. */
     bool config_requested = false;
     uint32_t last_config_req = 0;
+    uint32_t last_chan_req = 0;
+    uint32_t last_pos_req = 0;
     const uint32_t CONFIG_RETRY_MS = 5000;
 
     uint32_t last_render = furi_get_tick();
@@ -82,7 +85,55 @@ int32_t zeromesh_serial_app(void* p) {
     };
 
     while(!app->stop_thread) {
+        if(app->pending_notify) {
+            app->pending_notify = false;
+            notify_rx_message(app);
+        }
+
+        if(app->pending_action != PendingNone) {
+            PendingAction act = app->pending_action;
+            app->pending_action = PendingNone;
+            switch(act) {
+            case PendingPosReq:
+                request_position(app, app->pending_node);
+                break;
+            case PendingInfoReq:
+                request_node_info(app, app->pending_node);
+                break;
+            case PendingSetLora:
+                set_node_lora(app, app->pending_a, app->pending_b);
+                break;
+            case PendingSetGps:
+                set_node_gps(app, app->cfg_gps != 0);
+                break;
+            case PendingGetChannel:
+                request_channel(app, 0);
+                break;
+            case PendingSetChannel:
+                set_channel_config(app, app->cfg_ch_private != 0, app->cfg_ch_pos != 0);
+                break;
+            case PendingSetFixed: {
+                int32_t lat_i = 0, lon_i = 0;
+                if(map_view_center(app, &lat_i, &lon_i))
+                    set_fixed_position(app, lat_i, lon_i);
+                break;
+            }
+            case PendingClearFixed:
+                clear_fixed_position(app);
+                break;
+            case PendingSetRole:
+                set_node_role(app, app->pending_a);
+                break;
+            case PendingReboot:
+                reboot_node(app, 5);
+                break;
+            default:
+                break;
+            }
+        }
+
         if(app->ui_mode == PAGE_MAP) map_tick(app);
+
 
         if(transport_is_up(app)) {
             /* Keep asking until the radio tells us our node number. Over BLE
@@ -95,8 +146,24 @@ int32_t zeromesh_serial_app(void* p) {
                 config_requested = true;
                 last_config_req = furi_get_tick();
             }
+
+            /* Same retry shape: the channel read is what fills in the
+               public/private and position-sharing rows. */
+            if(app->my_node_num && !app->cfg_ch_known &&
+               furi_get_tick() - last_chan_req >= CONFIG_RETRY_MS) {
+                request_channel(app, 0);
+                last_chan_req = furi_get_tick();
+            }
+
+            if(app->my_node_num && !app->cfg_pos_known &&
+               furi_get_tick() - last_pos_req >= CONFIG_RETRY_MS) {
+                request_position_config(app);
+                last_pos_req = furi_get_tick();
+            }
         } else {
             config_requested = false;
+            app->cfg_ch_known = false;
+            app->cfg_pos_known = false;
         }
         if(furi_get_tick() - last_heartbeat >= HEARTBEAT_INTERVAL_MS) {
             send_heartbeat(app);
@@ -135,8 +202,12 @@ int32_t zeromesh_serial_app(void* p) {
         } else {
             uint32_t now = furi_get_tick();
             uint32_t frame_delay = frame_delays[app->scroll_framerate - 1];
-            
-            if(now - last_render >= frame_delay) {
+
+            /* Only this thread may touch the ViewPort. view_port_update() from
+               a second thread times out against a slow draw and then releases a
+               mutex it never took, freeing the canvas mid-render. */
+            if(app->need_render || now - last_render >= frame_delay) {
+                app->need_render = false;
                 view_port_update(app->vp);
                 last_render = now;
             } else {
@@ -153,10 +224,11 @@ int32_t zeromesh_serial_app(void* p) {
     furi_thread_free(app->rx_thread);
 
     transport_close(app);
-    map_free(app);
 
     gui_remove_view_port(app->gui, app->vp);
     view_port_free(app->vp);
+
+    map_free(app);
 
     furi_record_close(RECORD_GUI);
 

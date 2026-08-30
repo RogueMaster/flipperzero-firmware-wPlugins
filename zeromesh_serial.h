@@ -11,6 +11,7 @@
 #include "lib/nanopb/pb_decode.h"
 
 #include "lib/meshtastic_api/meshtastic/mesh.pb.h"
+#include "lib/meshtastic_api/meshtastic/config.pb.h"
 #include "lib/meshtastic_api/meshtastic/portnums.pb.h"
 
 #include <gui/modules/text_input.h>
@@ -50,6 +51,20 @@
 
 /* Defined in zeromesh_map.c so carto headers stay out of this header. */
 typedef struct MapState MapState;
+
+typedef enum {
+    PendingNone = 0,
+    PendingPosReq,
+    PendingInfoReq,
+    PendingSetLora,
+    PendingSetRole,
+    PendingSetGps,
+    PendingGetChannel,
+    PendingSetChannel,
+    PendingSetFixed,
+    PendingClearFixed,
+    PendingReboot,
+} PendingAction;
 
 typedef enum {
     RosterStateList = 0,
@@ -212,10 +227,27 @@ typedef struct {
     uint8_t cfg_region;
     uint8_t cfg_preset;
     uint8_t cfg_role;
+    uint8_t cfg_gps;
+    uint8_t cfg_fixed;
+    uint8_t cfg_ch_private;
+    uint8_t cfg_ch_pos;
+    uint8_t cfg_ch_psk_len;
+    uint8_t cfg_ch_psk[32];
+    char cfg_ch_name[16];
+    bool cfg_ch_known;
+    bool cfg_pos_known;
+    meshtastic_Config_PositionConfig cfg_pos;
     char my_long_name[24];
     char my_short_name[8];
     uint8_t nodecfg_cursor;
     bool nodecfg_editing;
+
+    volatile bool need_render;
+    volatile bool pending_notify;
+    volatile PendingAction pending_action;
+    uint32_t pending_node;
+    uint8_t pending_a;
+    uint8_t pending_b;
     
     uint32_t sent_msg_ids[8];
     uint8_t sent_msg_head;
