@@ -337,8 +337,11 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
     }
 
     if(broadcast_count == 0) {
-        canvas_draw_str(canvas, 16, 34, "No mesh traffic yet");
-        canvas_draw_str(canvas, 10, 46, "No messages yet");
+        const char* l1 = "No mesh traffic yet";
+        const char* l2 = "No messages yet";
+        int w = (int)canvas_width(canvas);
+        canvas_draw_str(canvas, (w - canvas_string_width(canvas, l1)) / 2, 34, l1);
+        canvas_draw_str(canvas, (w - canvas_string_width(canvas, l2)) / 2, 46, l2);
         draw_footer(canvas, "", "");
         return;
     }
