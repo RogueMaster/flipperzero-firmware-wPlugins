@@ -45,7 +45,7 @@ void seos_scene_keys_menu_on_enter(void* context) {
     File* dir = storage_file_alloc(seos->credential->storage);
     if(storage_dir_open(dir, STORAGE_APP_DATA_PATH_PREFIX)) {
         FileInfo info;
-        char name[256];
+        char name[SEOS_FILE_NAME_MAX_LENGTH + 1];
         while(storage_dir_read(dir, &info, name, sizeof(name)) && key_file_count < MAX_KEY_FILES) {
             if(info.flags & FSF_DIRECTORY) continue;
             size_t base_len = keyset_name_length(name, strlen(name));

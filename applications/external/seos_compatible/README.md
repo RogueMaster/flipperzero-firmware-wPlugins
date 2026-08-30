@@ -22,11 +22,29 @@ Seos®, HID Global®, and ASSA ABLOY® are trademarks or registered trademarks o
 
 ## 🛠️ To do:
 
-- [ ] Fix iso14443a-4 framing
-- [ ] ASN.1 for serializing/deserializing
-- [ ] Support for larger message wrapping/unwrapping
-- [ ] When parsing incoming data, use buffer + len instead of BitBuffer so I can increment buffer pointer as I parse header(s)
-- [ ] CMAC checking where I missed it
+- [x] Fix iso14443a-4 framing
+- [x] ASN.1 for serializing/deserializing
+- [x] Support for larger message wrapping/unwrapping
+- [x] When parsing incoming data, use buffer + len instead of BitBuffer so I can increment buffer pointer as I parse header(s)
+- [x] CMAC checking where I missed it
+- [ ] Confirm the larger frame size and the block replies against a real reader
+
+## 🧪 Tests
+
+`make test-host` builds and runs the suite on this machine. `make test-asan`
+runs it again under the address and undefined behaviour sanitisers, which is
+what makes the truncation sweeps prove a parser did not read past its buffer.
+`make coverage` reports what the app's own sources have covered.
+
+## 📡 External BLE
+
+The nRF52840 dongle is off by default. Turn it on with **External BLE** in the
+main menu; the choice is saved. While it is off the dongle's stack is never
+loaded and costs nothing, the scanners are hidden, and BLE emulation uses the
+Flipper's own radio.
+
+Both BLE stacks ship inside the `.fap` as plugins and are loaded only while a
+BLE screen is open.
 
 ## 💡 Hardware for BLE support (experimental)
 

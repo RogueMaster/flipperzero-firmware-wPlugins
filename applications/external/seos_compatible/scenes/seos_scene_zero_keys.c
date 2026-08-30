@@ -1,46 +1,36 @@
-#include "../seos_i.h"
+#include "seos_scene_popup.h"
 #include <dolphin/dolphin.h>
-
-#define TAG "SeosSceneZeroKeys"
-
-void seos_scene_zero_keys_popup_callback(void* context) {
-    Seos* seos = context;
-    view_dispatcher_send_custom_event(seos->view_dispatcher, SeosCustomEventViewExit);
-}
 
 void seos_scene_zero_keys_on_enter(void* context) {
     Seos* seos = context;
     dolphin_deed(DolphinDeedNfcRead);
 
-    // Setup view
-    Popup* popup = seos->popup;
-    popup_set_header(popup, "NO KEYS", 64, 16, AlignCenter, AlignTop);
-    popup_set_text(popup, "Using all zero keys", 64, 36, AlignCenter, AlignTop);
-    popup_set_timeout(popup, 5 * 1000);
-    popup_set_context(popup, seos);
-    popup_set_callback(popup, seos_scene_zero_keys_popup_callback);
-    popup_enable_timeout(popup);
-
-    view_dispatcher_switch_to_view(seos->view_dispatcher, SeosViewPopup);
+    const SeosScenePopup config = {
+        .header = "NO KEYS",
+        .header_x = 64,
+        .header_y = 16,
+        .text = "Using all zero keys",
+        .text_x = 64,
+        .text_y = 36,
+        .horizontal = AlignCenter,
+        .vertical = AlignTop,
+        .timeout_ms = 5 * 1000,
+    };
+    seos_scene_popup_enter(seos, &config);
 }
 
+/* This one goes on to the main menu rather than back to it, so it does not
+ * use the shared event handler. */
 bool seos_scene_zero_keys_on_event(void* context, SceneManagerEvent event) {
     Seos* seos = context;
-    bool consumed = false;
 
-    if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == SeosCustomEventViewExit) {
-            scene_manager_next_scene(seos->scene_manager, SeosSceneMainMenu);
-            consumed = true;
-        }
+    if(event.type == SceneManagerEventTypeCustom && event.event == SeosCustomEventViewExit) {
+        scene_manager_next_scene(seos->scene_manager, SeosSceneMainMenu);
+        return true;
     }
-
-    return consumed;
+    return false;
 }
 
 void seos_scene_zero_keys_on_exit(void* context) {
-    Seos* seos = context;
-
-    // Clear view
-    popup_reset(seos->popup);
+    seos_scene_popup_exit(context);
 }

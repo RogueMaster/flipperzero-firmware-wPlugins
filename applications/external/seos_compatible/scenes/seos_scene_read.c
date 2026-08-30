@@ -1,5 +1,6 @@
 #include "../seos_i.h"
 #include <dolphin/dolphin.h>
+#include <seos_icons.h>
 
 #define TAG "SeosSceneRead"
 

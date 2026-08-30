@@ -1,5 +1,7 @@
 #include "../seos_i.h"
+#include "../seos_ble.h"
 #include <dolphin/dolphin.h>
+#include <seos_icons.h>
 
 #define TAG "SeosSceneBleReader"
 
@@ -16,12 +18,10 @@ void seos_scene_ble_peripheral_on_enter(void* context) {
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinSend_97x61);
     }
 
-    if(seos->has_external_ble) {
-        seos->seos_characteristic = seos_characteristic_alloc(seos);
-        seos_characteristic_start(seos->seos_characteristic, seos->flow_mode);
+    if(seos_ble_acquire_role(seos, SeosBleRolePeripheral)) {
+        seos_ble_start(seos, seos->flow_mode);
     } else {
-        seos->native_peripheral = seos_native_peripheral_alloc(seos);
-        seos_native_peripheral_start(seos->native_peripheral, seos->flow_mode);
+        popup_set_header(popup, "No BLE\nsupport", 68, 30, AlignLeft, AlignTop);
     }
 
     seos_blink_start(seos);
@@ -57,6 +57,19 @@ bool seos_scene_ble_peripheral_on_event(void* context, SceneManagerEvent event) 
         } else if(event.event == SeosCustomEventSIORequested) {
             popup_set_header(popup, "SIO\nRequested", 68, 30, AlignLeft, AlignTop);
             consumed = true;
+        } else if(event.event == SeosCustomEventSIOWritten) {
+            /* A reader stored a credential on us. Put it back where this one
+             * came from, so the change survives leaving the screen. */
+            bool saved = seos_credential_save_to_load_path(seos->credential);
+            popup_set_header(
+                popup,
+                saved ? "SIO\nWritten" : "SIO\nWritten\n(unsaved)",
+                68,
+                30,
+                AlignLeft,
+                AlignTop);
+            notification_message(seos->notifications, &sequence_success);
+            consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         if(seos->credential->sio_len > 0) {
@@ -74,16 +87,7 @@ bool seos_scene_ble_peripheral_on_event(void* context, SceneManagerEvent event) 
 void seos_scene_ble_peripheral_on_exit(void* context) {
     Seos* seos = context;
 
-    if(seos->seos_characteristic) {
-        seos_characteristic_stop(seos->seos_characteristic);
-        seos_characteristic_free(seos->seos_characteristic);
-        seos->seos_characteristic = NULL;
-    }
-    if(seos->native_peripheral) {
-        seos_native_peripheral_stop(seos->native_peripheral);
-        seos_native_peripheral_free(seos->native_peripheral);
-        seos->native_peripheral = NULL;
-    }
+    seos_ble_release(seos);
 
     // Clear view
     popup_reset(seos->popup);

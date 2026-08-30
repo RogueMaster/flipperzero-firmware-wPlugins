@@ -13,6 +13,11 @@ typedef struct {
     BitBuffer* tx_buffer;
     BitBuffer* rx_buffer;
 
+    /* Whether the handler already wrote a status word. The secure messaging
+     * answers are complete as they stand, including a chaining or error word
+     * that must not be written over. */
+    bool response_complete;
+
     AuthParameters params;
 
     SecureMessaging* secure_messaging;
@@ -25,19 +30,3 @@ NfcCommand seos_worker_listener_callback(NfcGenericEvent event, void* context);
 SeosEmulator* seos_emulator_alloc(SeosCredential* credential);
 
 void seos_emulator_free(SeosEmulator* seos_emulator);
-
-void seos_emulator_general_authenticate_1(BitBuffer* tx_buffer, AuthParameters params);
-bool seos_emulator_general_authenticate_2(
-    const uint8_t* buffer,
-    size_t buffer_len,
-    SeosCredential* credential,
-    AuthParameters* params,
-    BitBuffer* tx_buffer);
-
-void seos_emulator_select_aid(BitBuffer* tx_buffer, const uint8_t* aid, size_t aid_len);
-bool seos_emulator_select_adf(
-    const uint8_t* oid_list,
-    size_t oid_list_len,
-    AuthParameters* params,
-    SeosCredential* credential,
-    BitBuffer* tx_buffer);

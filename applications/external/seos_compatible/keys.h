@@ -1,7 +1,13 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "seos.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define SEOS_DEFAULT_KEYS_FILENAME "keys"
 
@@ -15,3 +21,7 @@ extern uint8_t SEOS_ADF1_WRITE[16];
 bool seos_load_keys_from_file(Seos* seos, const char* filename);
 void seos_reset_to_zero_keys(Seos* seos);
 bool seos_migrate_keys(Seos* seos);
+
+#ifdef __cplusplus
+}
+#endif

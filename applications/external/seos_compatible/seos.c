@@ -1,6 +1,16 @@
 #include "seos_i.h"
+#include "seos_settings.h"
+#include "seos_sm_event_ui.h"
 
 #define TAG "Seos"
+
+void seos_sm_event_to_view_dispatcher(void* context, SeosSmEvent event) {
+    Seos* seos = context;
+    uint32_t custom_event = seos_sm_event_to_custom_event(event);
+    if(custom_event != 0) {
+        view_dispatcher_send_custom_event(seos->view_dispatcher, custom_event);
+    }
+}
 
 bool seos_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -22,9 +32,9 @@ void seos_tick_event_callback(void* context) {
 
 Seos* seos_alloc() {
     Seos* seos = malloc(sizeof(Seos));
+    memset(seos, 0, sizeof(Seos));
 
     seos->has_external_ble = false;
-    furi_hal_power_enable_otg();
 
     seos->view_dispatcher = view_dispatcher_alloc();
     seos->scene_manager = scene_manager_alloc(&seos_scene_handlers, seos);
@@ -81,14 +91,13 @@ Seos* seos_alloc() {
     seos->keys_version = 0;
 
     seos_load_keys_from_file(seos, SEOS_DEFAULT_KEYS_FILENAME);
+    seos_settings_load(seos);
 
     return seos;
 }
 
 void seos_free(Seos* seos) {
     furi_assert(seos);
-
-    furi_hal_power_disable_otg();
 
     nfc_free(seos->nfc);
 

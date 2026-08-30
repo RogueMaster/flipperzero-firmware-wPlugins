@@ -1,19 +1,11 @@
 #include "../seos_i.h"
+#include "seos_scene.h"
 #include <dolphin/dolphin.h>
 
 #define TAG "SeosSceneInfo"
 
 static uint8_t empty[16] =
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-void seos_scene_info_widget_callback(GuiButtonType result, InputType type, void* context) {
-    furi_assert(context);
-    Seos* seos = context;
-
-    if(type == InputTypeShort) {
-        view_dispatcher_send_custom_event(seos->view_dispatcher, result);
-    }
-}
 
 void seos_scene_info_on_enter(void* context) {
     Seos* seos = context;

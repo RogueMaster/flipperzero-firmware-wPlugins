@@ -1,7 +1,8 @@
 #include "../seos_i.h"
-#include "../seos_central.h"
+#include "../seos_ble.h"
 #include "../seos_common.h"
 #include <dolphin/dolphin.h>
+#include <seos_icons.h>
 
 #define TAG "SeosSceneBleCentral"
 
@@ -14,8 +15,13 @@ void seos_scene_ble_central_on_enter(void* context) {
     popup_set_header(popup, "Starting...", 68, 20, AlignLeft, AlignTop);
     // popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-    seos->seos_central = seos_central_alloc(seos);
-    seos_central_start(seos->seos_central, seos->flow_mode);
+    /* Only the external dongle drives the central role, and only when the
+     * setting says to use it. */
+    if(seos_ble_acquire_role(seos, SeosBleRoleCentral)) {
+        seos_ble_start(seos, seos->flow_mode);
+    } else {
+        popup_set_header(popup, "External BLE\nis off", 68, 20, AlignLeft, AlignTop);
+    }
 
     seos_blink_start(seos);
 
@@ -54,6 +60,19 @@ bool seos_scene_ble_central_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == SeosCustomEventSIORequested) {
             popup_set_header(popup, "SIO\nRequested", 68, 20, AlignLeft, AlignTop);
             consumed = true;
+        } else if(event.event == SeosCustomEventSIOWritten) {
+            /* A reader stored a credential on us. Put it back where this one
+             * came from, so the change survives leaving the screen. */
+            bool saved = seos_credential_save_to_load_path(seos->credential);
+            popup_set_header(
+                popup,
+                saved ? "SIO\nWritten" : "SIO\nWritten\n(unsaved)",
+                68,
+                20,
+                AlignLeft,
+                AlignTop);
+            notification_message(seos->notifications, &sequence_success);
+            consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         if(seos->credential->sio_len > 0) {
@@ -71,12 +90,7 @@ bool seos_scene_ble_central_on_event(void* context, SceneManagerEvent event) {
 void seos_scene_ble_central_on_exit(void* context) {
     Seos* seos = context;
 
-    if(seos->seos_central) {
-        FURI_LOG_D(TAG, "Cleanup");
-        seos_central_stop(seos->seos_central);
-        seos_central_free(seos->seos_central);
-        seos->seos_central = NULL;
-    }
+    seos_ble_release(seos);
 
     // Clear view
     popup_reset(seos->popup);

@@ -1,15 +1,9 @@
 #include "../seos_i.h"
+#include "seos_scene.h"
 #include <dolphin/dolphin.h>
 
 static char* about =
     "This software incorporates a third-party implementation of Seos™ technology. It is not developed, authorized, licensed, or endorsed by HID Global, ASSA ABLOY, or any of their affiliates. References to Seos™ are solely for descriptive and compatibility purposes.\nNo guarantee of compatibility or functionality is made. This implementation may not work with all Seos™-enabled systems, and its performance, security, and reliability are not assured. Users assume all risks associated with its use.\nSeos™, HID Global, and ASSA ABLOY are trademarks or registered trademarks of their respective owners. This software is not associated with or sponsored by them in any way.";
-
-void seos_scene_about_widget_callback(GuiButtonType result, InputType type, void* context) {
-    Seos* seos = context;
-    if(type == InputTypeShort) {
-        view_dispatcher_send_custom_event(seos->view_dispatcher, result);
-    }
-}
 
 void seos_scene_about_on_enter(void* context) {
     Seos* seos = context;

@@ -1,3 +1,4 @@
+#include "../seos_i.h"
 #include "seos_scene.h"
 
 // Generate scene on_enter handlers array
@@ -28,3 +29,12 @@ const SceneManagerHandlers seos_scene_handlers = {
     .on_exit_handlers = seos_on_exit_handlers,
     .scene_num = SeosSceneNum,
 };
+
+void seos_scene_widget_callback(GuiButtonType result, InputType type, void* context) {
+    furi_assert(context);
+    Seos* seos = context;
+
+    if(type == InputTypeShort) {
+        view_dispatcher_send_custom_event(seos->view_dispatcher, result);
+    }
+}

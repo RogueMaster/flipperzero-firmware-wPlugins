@@ -3,39 +3,32 @@
 char* seos_file_header = "Flipper Seos Credential";
 uint32_t seos_file_version = 1;
 
+void seos_worker_random_nonce(uint8_t* nonce, size_t len) {
+    furi_hal_random_fill_buf(nonce, len);
+}
+
 void seos_log_buffer(char* TAG, char* prefix, uint8_t* buffer, size_t buffer_len) {
-    char display[SEOS_WORKER_MAX_BUFFER_SIZE * 2 + 1];
+    /* This runs on every message. Do not build the string when the log call
+     * is going to throw it away. */
+    if(furi_log_get_level() < FuriLogLevelDebug) return;
 
     size_t limit = MIN((size_t)SEOS_WORKER_MAX_BUFFER_SIZE, buffer_len);
-    memset(display, 0, sizeof(display));
-    for(uint8_t i = 0; i < limit; i++) {
-        snprintf(display + (i * 2), sizeof(display), "%02x", buffer[i]);
-    }
+
+    char display[SEOS_WORKER_MAX_BUFFER_SIZE * 2 + 1];
+    uint8_to_hex_chars(buffer, (uint8_t*)display, (int)(limit * 2));
+    display[limit * 2] = '\0';
+
     if(prefix) {
-        FURI_LOG_D(TAG, "%s %d: %s", prefix, limit, display);
+        FURI_LOG_D(TAG, "%s %d: %s", prefix, buffer_len, display);
     } else {
-        FURI_LOG_D(TAG, "Buffer %d: %s", limit, display);
+        FURI_LOG_D(TAG, "Buffer %d: %s", buffer_len, display);
     }
 }
 
 void seos_log_bitbuffer(char* TAG, char* prefix, BitBuffer* buffer) {
     furi_assert(buffer);
-
-    size_t length = bit_buffer_get_size_bytes(buffer);
-    const uint8_t* data = bit_buffer_get_data(buffer);
-
-    char display[SEOS_WORKER_MAX_BUFFER_SIZE * 2 + 1];
-
-    size_t limit = MIN((size_t)SEOS_WORKER_MAX_BUFFER_SIZE, length);
-    memset(display, 0, sizeof(display));
-    for(uint8_t i = 0; i < limit; i++) {
-        snprintf(display + (i * 2), sizeof(display), "%02x", data[i]);
-    }
-    if(prefix) {
-        FURI_LOG_D(TAG, "%s %d: %s", prefix, length, display);
-    } else {
-        FURI_LOG_D(TAG, "Buffer %d: %s", length, display);
-    }
+    seos_log_buffer(
+        TAG, prefix, (uint8_t*)bit_buffer_get_data(buffer), bit_buffer_get_size_bytes(buffer));
 }
 
 void seos_worker_diversify_key(
@@ -70,66 +63,113 @@ void seos_worker_diversify_key(
 
     aes_cmac(master_key_value, 16, buffer, index, div_key);
 
-    char display[33];
-    memset(display, 0, sizeof(display));
-    for(uint8_t i = 0; i < 16; i++) {
-        snprintf(display + (i * 2), sizeof(display), "%02x", div_key[i]);
+    /* The derived key is not logged: it is key material, and the log is not
+     * the place for it. */
+    FURI_LOG_D(TAG, "Diversified %s key", is_encryption ? "Encrypt" : "Mac");
+}
+
+/* One CBC pass from a zero IV, for either cipher. */
+static bool
+    cbc(bool aes, bool encrypt, uint8_t key[16], size_t length, const uint8_t* in, uint8_t* out) {
+    uint8_t iv[16];
+    memset(iv, 0, sizeof(iv));
+    int rtn;
+
+    if(aes) {
+        mbedtls_aes_context ctx;
+        mbedtls_aes_init(&ctx);
+        rtn = encrypt ? mbedtls_aes_setkey_enc(&ctx, key, 128) :
+                        mbedtls_aes_setkey_dec(&ctx, key, 128);
+        if(rtn == 0) {
+            rtn = mbedtls_aes_crypt_cbc(
+                &ctx, encrypt ? MBEDTLS_AES_ENCRYPT : MBEDTLS_AES_DECRYPT, length, iv, in, out);
+        }
+        mbedtls_aes_free(&ctx);
+    } else {
+        mbedtls_des3_context ctx;
+        mbedtls_des3_init(&ctx);
+        rtn = encrypt ? mbedtls_des3_set2key_enc(&ctx, key) : mbedtls_des3_set2key_dec(&ctx, key);
+        if(rtn == 0) {
+            rtn = mbedtls_des3_crypt_cbc(
+                &ctx, encrypt ? MBEDTLS_DES_ENCRYPT : MBEDTLS_DES_DECRYPT, length, iv, in, out);
+        }
+        mbedtls_des3_free(&ctx);
     }
-    FURI_LOG_I(TAG, "Diversified %s key: %s", is_encryption ? "Encrypt" : "Mac", display);
+
+    return rtn == 0;
 }
 
-void seos_worker_aes_decrypt(
+bool seos_worker_aes_decrypt(
     uint8_t key[16],
     size_t length,
     const uint8_t* encrypted,
     uint8_t* clear) {
-    uint8_t iv[16];
-    memset(iv, 0, sizeof(iv));
-    mbedtls_aes_context ctx;
-    mbedtls_aes_init(&ctx);
-    mbedtls_aes_setkey_dec(&ctx, key, 128);
-    mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_DECRYPT, length, iv, encrypted, clear);
-    mbedtls_aes_free(&ctx);
+    return cbc(true, false, key, length, encrypted, clear);
 }
 
-void seos_worker_des_decrypt(
+bool seos_worker_des_decrypt(
     uint8_t key[16],
     size_t length,
     const uint8_t* encrypted,
     uint8_t* clear) {
-    uint8_t iv[8];
-    memset(iv, 0, sizeof(iv));
-    mbedtls_des3_context ctx;
-    mbedtls_des3_init(&ctx);
-    mbedtls_des3_set2key_dec(&ctx, key);
-    mbedtls_des3_crypt_cbc(&ctx, MBEDTLS_DES_DECRYPT, length, iv, encrypted, clear);
-    mbedtls_des3_free(&ctx);
+    return cbc(false, false, key, length, encrypted, clear);
 }
 
-void seos_worker_aes_encrypt(
+bool seos_worker_aes_encrypt(
     uint8_t key[16],
     size_t length,
     const uint8_t* clear,
     uint8_t* encrypted) {
-    uint8_t iv[16];
-    memset(iv, 0, sizeof(iv));
-    mbedtls_aes_context ctx;
-    mbedtls_aes_init(&ctx);
-    mbedtls_aes_setkey_enc(&ctx, key, 128);
-    mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_ENCRYPT, length, iv, clear, encrypted);
-    mbedtls_aes_free(&ctx);
+    return cbc(true, true, key, length, clear, encrypted);
 }
 
-void seos_worker_des_encrypt(
+bool seos_worker_des_encrypt(
     uint8_t key[16],
     size_t length,
     const uint8_t* clear,
     uint8_t* encrypted) {
-    uint8_t iv[8];
-    memset(iv, 0, sizeof(iv));
-    mbedtls_des3_context ctx;
-    mbedtls_des3_init(&ctx);
-    mbedtls_des3_set2key_enc(&ctx, key);
-    mbedtls_des3_crypt_cbc(&ctx, MBEDTLS_DES_ENCRYPT, length, iv, clear, encrypted);
-    mbedtls_des3_free(&ctx);
+    return cbc(false, true, key, length, clear, encrypted);
+}
+
+size_t seos_cipher_block_size(uint8_t cipher) {
+    if(cipher == AES_128_CBC) return 16;
+    if(cipher == TWO_KEY_3DES_CBC_MODE) return 8;
+    return 0;
+}
+
+bool seos_cipher_encrypt(
+    uint8_t cipher,
+    uint8_t key[16],
+    size_t length,
+    const uint8_t* clear,
+    uint8_t* encrypted) {
+    if(cipher == AES_128_CBC) return cbc(true, true, key, length, clear, encrypted);
+    if(cipher == TWO_KEY_3DES_CBC_MODE) return cbc(false, true, key, length, clear, encrypted);
+    FURI_LOG_W("SeosCommon", "Cipher not matched (%d)", cipher);
+    return false;
+}
+
+bool seos_cipher_decrypt(
+    uint8_t cipher,
+    uint8_t key[16],
+    size_t length,
+    const uint8_t* encrypted,
+    uint8_t* clear) {
+    if(cipher == AES_128_CBC) return cbc(true, false, key, length, encrypted, clear);
+    if(cipher == TWO_KEY_3DES_CBC_MODE) return cbc(false, false, key, length, encrypted, clear);
+    FURI_LOG_W("SeosCommon", "Cipher not matched (%d)", cipher);
+    return false;
+}
+
+bool seos_cipher_cmac(
+    uint8_t cipher,
+    uint8_t* key,
+    size_t key_len,
+    uint8_t* message,
+    size_t message_len,
+    uint8_t* cmac) {
+    if(cipher == AES_128_CBC) return aes_cmac(key, key_len, message, message_len, cmac);
+    if(cipher == TWO_KEY_3DES_CBC_MODE) return des_cmac(key, key_len, message, message_len, cmac);
+    FURI_LOG_W("SeosCommon", "Cipher not matched (%d)", cipher);
+    return false;
 }

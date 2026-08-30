@@ -1,42 +1,29 @@
-#include "../seos_i.h"
+#include "seos_scene_popup.h"
 #include <dolphin/dolphin.h>
-
-void seos_scene_save_success_popup_callback(void* context) {
-    Seos* seos = context;
-    view_dispatcher_send_custom_event(seos->view_dispatcher, SeosCustomEventViewExit);
-}
+#include <seos_icons.h>
 
 void seos_scene_save_success_on_enter(void* context) {
     Seos* seos = context;
     dolphin_deed(DolphinDeedNfcSave);
 
-    // Setup view
-    Popup* popup = seos->popup;
-    popup_set_icon(popup, 32, 5, &I_DolphinNice_96x59);
-    popup_set_header(popup, "Saved!", 13, 22, AlignLeft, AlignBottom);
-    popup_set_timeout(popup, 1500);
-    popup_set_context(popup, seos);
-    popup_set_callback(popup, seos_scene_save_success_popup_callback);
-    popup_enable_timeout(popup);
-    view_dispatcher_switch_to_view(seos->view_dispatcher, SeosViewPopup);
+    const SeosScenePopup config = {
+        .icon = &I_DolphinNice_96x59,
+        .icon_x = 32,
+        .icon_y = 5,
+        .header = "Saved!",
+        .header_x = 13,
+        .header_y = 22,
+        .horizontal = AlignLeft,
+        .vertical = AlignBottom,
+        .timeout_ms = 1500,
+    };
+    seos_scene_popup_enter(seos, &config);
 }
 
 bool seos_scene_save_success_on_event(void* context, SceneManagerEvent event) {
-    Seos* seos = context;
-    bool consumed = false;
-
-    if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == SeosCustomEventViewExit) {
-            consumed = scene_manager_search_and_switch_to_previous_scene(
-                seos->scene_manager, SeosSceneMainMenu);
-        }
-    }
-    return consumed;
+    return seos_scene_popup_event(context, event, SeosSceneMainMenu);
 }
 
 void seos_scene_save_success_on_exit(void* context) {
-    Seos* seos = context;
-
-    // Clear view
-    popup_reset(seos->popup);
+    seos_scene_popup_exit(context);
 }

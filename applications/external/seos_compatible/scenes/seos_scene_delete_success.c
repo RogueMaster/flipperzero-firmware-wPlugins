@@ -1,40 +1,27 @@
-#include "../seos_i.h"
-
-void seos_scene_delete_success_popup_callback(void* context) {
-    Seos* seos = context;
-    view_dispatcher_send_custom_event(seos->view_dispatcher, SeosCustomEventViewExit);
-}
+#include "seos_scene_popup.h"
+#include <seos_icons.h>
 
 void seos_scene_delete_success_on_enter(void* context) {
     Seos* seos = context;
 
-    // Setup view
-    Popup* popup = seos->popup;
-    popup_set_icon(popup, 0, 2, &I_DolphinMafia_115x62);
-    popup_set_header(popup, "Deleted", 83, 19, AlignLeft, AlignBottom);
-    popup_set_timeout(popup, 1500);
-    popup_set_context(popup, seos);
-    popup_set_callback(popup, seos_scene_delete_success_popup_callback);
-    popup_enable_timeout(popup);
-    view_dispatcher_switch_to_view(seos->view_dispatcher, SeosViewPopup);
+    const SeosScenePopup config = {
+        .icon = &I_DolphinMafia_115x62,
+        .icon_x = 0,
+        .icon_y = 2,
+        .header = "Deleted",
+        .header_x = 83,
+        .header_y = 19,
+        .horizontal = AlignLeft,
+        .vertical = AlignBottom,
+        .timeout_ms = 1500,
+    };
+    seos_scene_popup_enter(seos, &config);
 }
 
 bool seos_scene_delete_success_on_event(void* context, SceneManagerEvent event) {
-    Seos* seos = context;
-    bool consumed = false;
-
-    if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == SeosCustomEventViewExit) {
-            consumed = scene_manager_search_and_switch_to_previous_scene(
-                seos->scene_manager, SeosSceneMainMenu);
-        }
-    }
-    return consumed;
+    return seos_scene_popup_event(context, event, SeosSceneMainMenu);
 }
 
 void seos_scene_delete_success_on_exit(void* context) {
-    Seos* seos = context;
-
-    // Clear view
-    popup_reset(seos->popup);
+    seos_scene_popup_exit(context);
 }

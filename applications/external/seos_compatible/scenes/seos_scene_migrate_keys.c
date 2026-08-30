@@ -1,16 +1,8 @@
 #include "../seos_i.h"
+#include "seos_scene.h"
 #include <dolphin/dolphin.h>
 
 #define TAG "SeosSceneMigrateKeys"
-
-void seos_scene_migrate_keys_widget_callback(GuiButtonType result, InputType type, void* context) {
-    furi_assert(context);
-    Seos* seos = context;
-
-    if(type == InputTypeShort) {
-        view_dispatcher_send_custom_event(seos->view_dispatcher, result);
-    }
-}
 
 void seos_scene_migrate_keys_on_enter(void* context) {
     Seos* seos = context;
@@ -22,10 +14,9 @@ void seos_scene_migrate_keys_on_enter(void* context) {
 
     widget_add_text_scroll_element(widget, 0, 0, 128, 52, furi_string_get_cstr(temp_str));
 
+    widget_add_button_element(widget, GuiButtonTypeLeft, "Skip", seos_scene_widget_callback, seos);
     widget_add_button_element(
-        widget, GuiButtonTypeLeft, "Skip", seos_scene_migrate_keys_widget_callback, seos);
-    widget_add_button_element(
-        widget, GuiButtonTypeRight, "Migrate", seos_scene_migrate_keys_widget_callback, seos);
+        widget, GuiButtonTypeRight, "Migrate", seos_scene_widget_callback, seos);
 
     furi_string_free(temp_str);
     view_dispatcher_switch_to_view(seos->view_dispatcher, SeosViewWidget);

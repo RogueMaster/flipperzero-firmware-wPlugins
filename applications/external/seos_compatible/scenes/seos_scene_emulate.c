@@ -1,5 +1,6 @@
 #include "../seos_i.h"
 #include <dolphin/dolphin.h>
+#include <seos_icons.h>
 
 #define TAG "SeosSceneEmulate"
 
@@ -42,6 +43,19 @@ bool seos_scene_emulate_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         } else if(event.event == SeosCustomEventSIORequested) {
             popup_set_header(popup, "SIO\nRequested", 68, 30, AlignLeft, AlignTop);
+            consumed = true;
+        } else if(event.event == SeosCustomEventSIOWritten) {
+            /* A reader stored a credential on us. Put it back where this one
+             * came from, so the change survives leaving the screen. */
+            bool saved = seos_credential_save_to_load_path(seos->credential);
+            popup_set_header(
+                popup,
+                saved ? "SIO\nWritten" : "SIO\nWritten\n(unsaved)",
+                68,
+                30,
+                AlignLeft,
+                AlignTop);
+            notification_message(seos->notifications, &sequence_success);
             consumed = true;
         }
     }

@@ -18,6 +18,7 @@ void seos_scene_saved_menu_submenu_callback(void* context, uint32_t index) {
 void seos_scene_saved_menu_on_enter(void* context) {
     Seos* seos = context;
     Submenu* submenu = seos->submenu;
+    submenu_reset(submenu);
 
     submenu_add_item(
         submenu, "NFC Emulate", SubmenuIndexEmulate, seos_scene_saved_menu_submenu_callback, seos);
@@ -44,8 +45,14 @@ void seos_scene_saved_menu_on_enter(void* context) {
     submenu_add_item(
         submenu, "Delete", SubmenuIndexDelete, seos_scene_saved_menu_submenu_callback, seos);
 
-    submenu_set_selected_item(
-        seos->submenu, scene_manager_get_scene_state(seos->scene_manager, SeosSceneSavedMenu));
+    uint32_t selected_item =
+        scene_manager_get_scene_state(seos->scene_manager, SeosSceneSavedMenu);
+    if((selected_item > SubmenuIndexInfo) ||
+       ((selected_item == SubmenuIndexBLEEmulateCentral) && !seos->has_external_ble)) {
+        selected_item = SubmenuIndexEmulate;
+        scene_manager_set_scene_state(seos->scene_manager, SeosSceneSavedMenu, selected_item);
+    }
+    submenu_set_selected_item(seos->submenu, selected_item);
 
     view_dispatcher_switch_to_view(seos->view_dispatcher, SeosViewMenu);
 }

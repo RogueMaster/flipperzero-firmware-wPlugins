@@ -1,6 +1,7 @@
 #include "../seos_i.h"
 #include "seos_scene.h"
 #include <dolphin/dolphin.h>
+#include <seos_icons.h>
 
 #define TAG "SeosSceneWrite"
 

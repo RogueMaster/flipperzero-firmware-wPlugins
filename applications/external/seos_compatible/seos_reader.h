@@ -30,16 +30,3 @@ SeosReader* seos_reader_alloc(SeosCredential* credential, Iso14443_4aPoller* iso
 void seos_reader_free(SeosReader* seos_reader);
 
 bool seos_reader_save(SeosReader* seos_reader, const char* dev_name);
-
-bool seos_reader_select_adf_response(
-    BitBuffer* rx_buffer,
-    size_t offset,
-    SeosCredential* credential,
-    AuthParameters* params);
-
-void seos_reader_generate_cryptogram(
-    SeosCredential* credential,
-    AuthParameters* params,
-    uint8_t* cryptogram);
-
-bool seos_reader_verify_cryptogram(AuthParameters* params, const uint8_t* cryptogram);

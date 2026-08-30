@@ -6,6 +6,13 @@
 - **keys.txt**: If keys.txt is present in SD Card/apps_data/seos/, it is automatically loaded at launch
 - **Additional key sets**: Other key files named *_keys.txt (e.g., work_keys.txt, home_keys.txt) can be placed in the same directory and selected via the Key Switcher in the app menu
 
+## External BLE
+
+The nRF52840 dongle is off by default. Turn it on with **External BLE** in the
+main menu; the choice is saved. While it is off the dongle's stack is never
+loaded, the scanners are hidden, and BLE emulation uses the Flipper's own
+radio.
+
 ## Note
 
 This software incorporates a third-party implementation of Seos®️  technology. It is not developed, authorized, licensed, or endorsed by HID Global, ASSA ABLOY, or any of their affiliates. References to Seos®️  are solely for descriptive and compatibility purposes.

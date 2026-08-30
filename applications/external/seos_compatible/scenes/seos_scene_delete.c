@@ -1,11 +1,5 @@
 #include "../seos_i.h"
-
-void seos_scene_delete_widget_callback(GuiButtonType result, InputType type, void* context) {
-    Seos* seos = context;
-    if(type == InputTypeShort) {
-        view_dispatcher_send_custom_event(seos->view_dispatcher, result);
-    }
-}
+#include "seos_scene.h"
 
 void seos_scene_delete_on_enter(void* context) {
     Seos* seos = context;
@@ -17,9 +11,9 @@ void seos_scene_delete_on_enter(void* context) {
     widget_add_text_box_element(
         seos->widget, 0, 0, 128, 23, AlignCenter, AlignCenter, temp_str, false);
     widget_add_button_element(
-        seos->widget, GuiButtonTypeLeft, "Back", seos_scene_delete_widget_callback, seos);
+        seos->widget, GuiButtonTypeLeft, "Back", seos_scene_widget_callback, seos);
     widget_add_button_element(
-        seos->widget, GuiButtonTypeRight, "Delete", seos_scene_delete_widget_callback, seos);
+        seos->widget, GuiButtonTypeRight, "Delete", seos_scene_widget_callback, seos);
 
     view_dispatcher_switch_to_view(seos->view_dispatcher, SeosViewWidget);
 }

@@ -1,16 +1,8 @@
 #include "../seos_i.h"
+#include "seos_scene.h"
 #include <dolphin/dolphin.h>
 
 #define TAG "SeosSceneReadCardSuccess"
-
-void seos_scene_read_success_widget_callback(GuiButtonType result, InputType type, void* context) {
-    furi_assert(context);
-    Seos* seos = context;
-
-    if(type == InputTypeShort) {
-        view_dispatcher_send_custom_event(seos->view_dispatcher, result);
-    }
-}
 
 void seos_scene_read_success_on_enter(void* context) {
     Seos* seos = context;
@@ -45,11 +37,10 @@ void seos_scene_read_success_on_enter(void* context) {
         }
     }
 
-    widget_add_button_element(
-        widget, GuiButtonTypeLeft, "Save", seos_scene_read_success_widget_callback, seos);
+    widget_add_button_element(widget, GuiButtonTypeLeft, "Save", seos_scene_widget_callback, seos);
 
     widget_add_button_element(
-        widget, GuiButtonTypeRight, "Emulate", seos_scene_read_success_widget_callback, seos);
+        widget, GuiButtonTypeRight, "Emulate", seos_scene_widget_callback, seos);
 
     widget_add_string_element(
         widget, 64, 5, AlignCenter, AlignCenter, FontPrimary, furi_string_get_cstr(primary_str));
