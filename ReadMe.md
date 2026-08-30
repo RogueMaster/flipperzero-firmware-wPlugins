@@ -91,6 +91,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
 - Updated: [Catacombs Of The Damned! v4.0 (By apfxtech)](https://github.com/apfxtech/FlipperCatacombs)
 - Updated: [FlipDeFlock v0.77 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Updated: [ZeroMesh v3.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
 <a name="release"></a>
 
@@ -970,7 +971,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max)
 - [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
-- [ZeroMesh v2.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
+- [ZeroMesh v3.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
 # Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0819-2255-b3dd8981.tgz&channel=RM0819-2255-b3dd8981&version=0.420.0&target=f7)
 

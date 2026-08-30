@@ -1,6 +1,7 @@
 #pragma once
 
 #include <furi.h>
+#include <storage/storage.h>
 #include <furi_hal.h>
 #include <gui/gui.h>
 #include <gui/view_port.h>
@@ -11,10 +12,13 @@
 #include "lib/nanopb/pb_decode.h"
 
 #include "lib/meshtastic_api/meshtastic/mesh.pb.h"
+#include "lib/meshtastic_api/meshtastic/config.pb.h"
 #include "lib/meshtastic_api/meshtastic/portnums.pb.h"
 
 #include <gui/modules/text_input.h>
 #include <gui/view_dispatcher.h>
+#include <bt/bt_service/bt.h>
+#include <furi_hal_bt.h>
 
 #define ZEROMESH_MAGIC0 0x94
 #define ZEROMESH_MAGIC1 0xC3
@@ -27,22 +31,44 @@
 
 #define PAYLOAD_CAPTURE_MAX 256
 
-#define PAGE_MESSAGES 0
-#define PAGE_ROSTER   1
-#define PAGE_STATS    2
-#define PAGE_SIGNAL   3
-#define PAGE_LOGS     4
-#define PAGE_SETTINGS 5
-#define PAGE_COUNT    6
+#define PAGE_MESSAGES  0
+#define PAGE_ROSTER    1
+#define PAGE_STATS     2
+#define PAGE_SIGNAL    3
+#define PAGE_LOGS      4
+#define PAGE_SETTINGS  5
+#define PAGE_MAP       6
+#define PAGE_NODECFG   7
+#define PAGE_COUNT     8
 
 #define MSG_HISTORY 8
 
 #define ROSTER_MAX_NODES 16
 
-#define SETTINGS_PATH "/ext/zeromesh/settings.cfg"
-#define MAX_CHANNELS  8
+/* The catalogue only permits writes to the app data directory. The old
+   location is still read so an existing install keeps its settings. */
+#define SETTINGS_PATH     APP_DATA_PATH("settings.cfg")
+#define SETTINGS_PATH_OLD "/ext/zeromesh/settings.cfg"
+#define MAX_CHANNELS 8
 
 #define MAX_RINGTONE_PATH 128
+
+/* Defined in zeromesh_map.c so carto headers stay out of this header. */
+typedef struct MapState MapState;
+
+typedef enum {
+    PendingNone = 0,
+    PendingPosReq,
+    PendingInfoReq,
+    PendingSetLora,
+    PendingSetRole,
+    PendingSetGps,
+    PendingGetChannel,
+    PendingSetChannel,
+    PendingSetFixed,
+    PendingClearFixed,
+    PendingReboot,
+} PendingAction;
 
 typedef enum {
     RosterStateList = 0,
@@ -58,7 +84,18 @@ typedef struct {
     uint8_t battery_level;
     float voltage;
     bool has_telemetry;
-    bool has_new_dm;
+
+    /* Position as Meshtastic sends it: degrees * 1e7, signed. */
+    int32_t latitude_i;
+    int32_t longitude_i;
+    int32_t altitude;
+    uint32_t pos_time;
+    bool has_position;
+
+    char short_name[8];
+    char long_name[24];
+    bool has_name;
+	bool has_new_dm;
 } NodeEntry;
 
 typedef struct {
@@ -113,7 +150,14 @@ typedef enum {
 } LongMessageHandling;
 
 typedef enum {
-    SettingUart = 0,
+    ZmTransportUart = 0,
+    ZmTransportBle,
+    ZmTransportCount
+} ZmTransport;
+
+typedef enum {
+    SettingTransport = 0,
+    SettingUart,
     SettingBaud,
     SettingVibro,
     SettingLed,
@@ -132,6 +176,12 @@ typedef struct {
     FuriHalSerialId uart_id;
     uint32_t baud;
     FuriHalSerialHandle* serial;
+
+    ZmTransport transport;
+    Bt* bt;
+    FuriHalBleProfileBase* ble_profile;
+    volatile bool ble_connected;
+    bool ble_failed;
     FuriStreamBuffer* rx_stream;
 
     FuriThread* rx_thread;
@@ -157,16 +207,16 @@ typedef struct {
     uint8_t line_head;
 
     char status[LOG_COLS];
-
+    
     MessageHistory history;
-
+    
     uint8_t ui_mode;
-
+    
     uint8_t msg_scroll_offset;
-
+    
     bool log_paused;
     uint8_t log_scroll_offset;
-
+    
     char last_rx_text[128];
     uint32_t last_rx_from;
     uint32_t last_rx_to;
@@ -174,35 +224,64 @@ typedef struct {
     int8_t last_rx_snr;
     int16_t last_rx_rssi;
     bool has_rx_signal_data;
-
+    
     uint32_t my_node_num;
 
+    bool has_node_config;
+    uint8_t cfg_region;
+    uint8_t cfg_preset;
+    uint8_t cfg_role;
+    uint8_t cfg_gps;
+    uint8_t cfg_fixed;
+    uint8_t cfg_ch_private;
+    uint8_t cfg_ch_pos;
+    uint8_t cfg_ch_psk_len;
+    uint8_t cfg_ch_psk[32];
+    char cfg_ch_name[16];
+    bool cfg_ch_known;
+    bool cfg_pos_known;
+    meshtastic_Config_PositionConfig cfg_pos;
+    char my_long_name[24];
+    char my_short_name[8];
+    uint8_t nodecfg_cursor;
+    bool nodecfg_editing;
+
+    volatile bool need_render;
+    volatile bool pending_notify;
+    volatile PendingAction pending_action;
+    uint32_t pending_node;
+    uint8_t pending_a;
+    uint8_t pending_b;
+    
     uint32_t sent_msg_ids[8];
     uint8_t sent_msg_head;
-
+    
     uint8_t settings_cursor;
     bool settings_editing;
-
+    
     bool notify_vibro;
     bool notify_led;
     RingtoneType notify_ringtone;
-
+    
     uint8_t scroll_speed;
     uint8_t scroll_framerate;
     LongMessageHandling lmh_mode;
-
+    
     uint8_t current_channel;
     uint8_t num_channels;
-
+    
     volatile bool notify_active;
     uint32_t notify_start_tick;
-
+    
     bool show_keyboard;
     char text_buffer[64];
     ViewDispatcher* kb_dispatcher;
     TextInput* text_input;
 
     NodeRoster roster;
+
+    /* Opaque: defined in zeromesh_map.c so carto headers stay out of here. */
+    MapState* map;
 } ZeroMeshApp;
 
 int32_t zeromesh_serial_app(void* p);

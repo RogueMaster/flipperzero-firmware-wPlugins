@@ -295,8 +295,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     // CARD_MS is short on purpose: this is an answer to a sound that just
     // played, not a dialog, and anything that lingers becomes something to swat
     // away on every hit.
-    if(app->alert_card_tick &&
-       (uint32_t)(furi_get_tick() - app->alert_card_tick) < CARD_MS) {
+    if(app->alert_card_tick && (uint32_t)(furi_get_tick() - app->alert_card_tick) < CARD_MS) {
         for(size_t i = 0; i < app->flock_count; i++) {
             if(memcmp(app->flock[i].mac, app->alert_card_mac, 6) != 0) continue;
             FlockEntry* e = &app->flock[i];
