@@ -12,13 +12,15 @@ Use only one power source at a time. Disconnect the Flipper 5V before connecting
 
 ## Features
 
-The app is built around a multi-page UI (Messages, Roster, Stats, Signal, Logs, and Settings) navigated with left and right. The roster tracks every node that's announced itself on the network, showing SNR, RSSI, battery percentage, and voltage. From there you can either broadcast to the primary channel or open a direct private chat with any individual node.
+The app is built around a multi-page UI (Messages, Roster, Stats, Signal, Logs, Settings, Map, and Node Config) navigated with left and right. The roster tracks every node that's announced itself on the network, showing SNR, RSSI, battery percentage, and voltage. From there you can either broadcast to the primary channel or open a direct private chat with any individual node.
 
 Multi-channel is supported. Long-pressing OK on the Messages page cycles through up to 8 configured channels, with the current channel shown in the header.
 
 Notifications are fully configurable. Vibration, LED flash, and audio are all independent toggles, with 19 built-in ringtones ranging from a short beep to Nokia, Mario, and SOS.
 
 Messages show the sender's node ID in !a1b2 format above each bubble. Long messages can either scroll across the screen or wrap to multiple lines depending on your preference, and the display compacts short messages so more fit on screen at once. New messages auto-scroll into view, but you can scroll back manually at any time.
+
+The Map page draws an offline vector map with roster nodes on it, and Node Config changes settings on the connected radio: LoRa region, modem preset, device role, GPS, a fixed position for a node with no GPS fix, and the primary channel key.
 
 All settings persist to /ext/apps_data/zeromesh/settings.cfg on the SD card automatically, nothing needs saving manually. UART port and baud rate are configurable, with support for both USART and LPUART.
 
