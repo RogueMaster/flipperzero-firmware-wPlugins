@@ -10,7 +10,7 @@ App(
     fap_icon="icon.png",
     fap_author="SAMS0N1TE",
     fap_weburl="https://github.com/SAMS0N1TE/ZeroMesh",
-    fap_description="Meshtastic client for Flipper Zero over serial or Bluetooth, with offline vector maps",
+    fap_description="Meshtastic client with offline vector maps, over serial or Bluetooth",
     fap_libs=["nanopb"],
     fap_private_libs=[
         Lib(
