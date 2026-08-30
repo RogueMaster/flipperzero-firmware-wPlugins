@@ -102,7 +102,6 @@ void transport_set(ZeroMeshApp* app, ZmTransport t) {
 bool transport_is_up(ZeroMeshApp* app) {
     if(!app) return false;
     if(app->transport == ZmTransportBle) {
-
         return app->ble_profile != NULL;
     }
     return app->serial != NULL;
@@ -119,7 +118,6 @@ void transport_tx(ZeroMeshApp* app, const uint8_t* data, size_t len) {
         while(sent < len) {
             uint16_t n = (uint16_t)((len - sent) > chunk_max ? chunk_max : (len - sent));
             if(!zeromesh_ble_profile_tx(app->ble_profile, data + sent, n)) {
-
                 FURI_LOG_W(TAG, "notify dropped (%u bytes)", n);
                 return;
             }

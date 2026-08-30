@@ -18,25 +18,43 @@
 #define NODECFG_ROWS   4
 
 static const char* const region_names[] = {
-    "UNSET", "US",     "EU_433", "EU_868", "CN",     "JP",  "ANZ",  "KR",
-    "TW",    "RU",     "IN",     "NZ_865", "TH",     "LORA_24", "UA_433", "UA_868",
-    "MY_433", "MY_919", "SG_923", "PH_433", "PH_868", "PH_915", "ANZ_433",
+    "UNSET",  "US",     "EU_433", "EU_868", "CN",     "JP",      "ANZ",     "KR",
+    "TW",     "RU",     "IN",     "NZ_865", "TH",     "LORA_24", "UA_433",  "UA_868",
+    "MY_433", "MY_919", "SG_923", "PH_433", "PH_868", "PH_915",  "ANZ_433",
 };
 #define REGION_COUNT (sizeof(region_names) / sizeof(region_names[0]))
 
 static const char* const preset_names[] = {
-    "LongFast",   "LongSlow",  "VLongSlow", "MedSlow",   "MedFast",
-    "ShortSlow",  "ShortFast", "LongMod",   "ShortTurbo", "LongTurbo",
+    "LongFast",
+    "LongSlow",
+    "VLongSlow",
+    "MedSlow",
+    "MedFast",
+    "ShortSlow",
+    "ShortFast",
+    "LongMod",
+    "ShortTurbo",
+    "LongTurbo",
 };
 #define PRESET_COUNT (sizeof(preset_names) / sizeof(preset_names[0]))
 
 static const char* const role_names[] = {
-    "Client", "ClientMute", "Router", "RouterClient", "Repeater",
-    "Tracker", "Sensor", "TAK", "ClientHidden", "LostAndFound", "TAKTracker",
+    "Client",
+    "ClientMute",
+    "Router",
+    "RouterClient",
+    "Repeater",
+    "Tracker",
+    "Sensor",
+    "TAK",
+    "ClientHidden",
+    "LostAndFound",
+    "TAKTracker",
 };
 #define ROLE_COUNT (sizeof(role_names) / sizeof(role_names[0]))
 
-static const char* name_or_num(const char* const* table, size_t count, uint8_t v, char* fallback, size_t fb_len) {
+static const char*
+    name_or_num(const char* const* table, size_t count, uint8_t v, char* fallback, size_t fb_len) {
     if(v < count) return table[v];
     snprintf(fallback, fb_len, "%u", v);
     return fallback;
@@ -87,13 +105,13 @@ void render_nodecfg(Canvas* canvas, ZeroMeshApp* app) {
             break;
         case NODECFG_CHAN:
             label = "Channel";
-            value = app->cfg_ch_private ? (app->cfg_ch_known ? "Private" : "Private?")
-                                        : (app->cfg_ch_known ? "Public" : "Public?");
+            value = app->cfg_ch_private ? (app->cfg_ch_known ? "Private" : "Private?") :
+                                          (app->cfg_ch_known ? "Public" : "Public?");
             break;
         case NODECFG_CHPOS:
             label = "Share GPS";
-            value = app->cfg_ch_pos ? (app->cfg_ch_known ? "On" : "On?")
-                                    : (app->cfg_ch_known ? "Off" : "Off?");
+            value = app->cfg_ch_pos ? (app->cfg_ch_known ? "On" : "On?") :
+                                      (app->cfg_ch_known ? "Off" : "Off?");
             break;
         case NODECFG_REBOOT:
             label = "Reboot node";
@@ -162,8 +180,7 @@ void input_nodecfg(InputEvent* e, ZeroMeshApp* app) {
                 set_status(app, app->cfg_gps ? "GPS on sent" : "GPS off sent");
                 break;
             case NODECFG_FIXED:
-                app->pending_action =
-                    app->cfg_fixed ? PendingSetFixed : PendingClearFixed;
+                app->pending_action = app->cfg_fixed ? PendingSetFixed : PendingClearFixed;
                 set_status(app, app->cfg_fixed ? "Position set" : "Fixed pos off");
                 break;
             case NODECFG_CHAN:
@@ -190,8 +207,8 @@ void input_nodecfg(InputEvent* e, ZeroMeshApp* app) {
 
     if(!app->nodecfg_editing) {
         if(e->key == InputKeyUp) {
-            app->nodecfg_cursor =
-                (app->nodecfg_cursor == 0) ? NODECFG_COUNT - 1 : app->nodecfg_cursor - 1;
+            app->nodecfg_cursor = (app->nodecfg_cursor == 0) ? NODECFG_COUNT - 1 :
+                                                               app->nodecfg_cursor - 1;
         } else if(e->key == InputKeyDown) {
             app->nodecfg_cursor = (app->nodecfg_cursor + 1) % NODECFG_COUNT;
         }

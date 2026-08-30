@@ -2,10 +2,10 @@
 
 #include "zeromesh_serial.h"
 
-#define MAP_W       128
-#define MAP_H       64
-#define MAP_MIN_Z   1
-#define MAP_MAX_Z   14
+#define MAP_W     128
+#define MAP_H     64
+#define MAP_MIN_Z 1
+#define MAP_MAX_Z 14
 
 bool map_alloc(ZeroMeshApp* app);
 

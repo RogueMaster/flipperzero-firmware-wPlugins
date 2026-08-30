@@ -652,8 +652,7 @@ void render_cb(Canvas* canvas, void* ctx) {
 static void setting_change(ZeroMeshApp* app, int direction) {
     switch(app->settings_cursor) {
     case SettingTransport: {
-        transport_set(
-            app, (app->transport == ZmTransportBle) ? ZmTransportUart : ZmTransportBle);
+        transport_set(app, (app->transport == ZmTransportBle) ? ZmTransportUart : ZmTransportBle);
         break;
     }
     case SettingUart: {

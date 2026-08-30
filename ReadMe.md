@@ -92,6 +92,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Catacombs Of The Damned! v4.0 (By apfxtech)](https://github.com/apfxtech/FlipperCatacombs)
 - Updated: [FlipDeFlock v0.77 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [ZeroMesh v3.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
+- OFW: [Update the App Development documentation section #4412 (By ellyromanova)](https://github.com/flipperdevices/flipperzero-firmware/pull/4412)
 
 <a name="release"></a>
 

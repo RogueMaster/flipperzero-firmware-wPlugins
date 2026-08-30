@@ -31,15 +31,15 @@
 
 #define PAYLOAD_CAPTURE_MAX 256
 
-#define PAGE_MESSAGES  0
-#define PAGE_ROSTER    1
-#define PAGE_STATS     2
-#define PAGE_SIGNAL    3
-#define PAGE_LOGS      4
-#define PAGE_SETTINGS  5
-#define PAGE_MAP       6
-#define PAGE_NODECFG   7
-#define PAGE_COUNT     8
+#define PAGE_MESSAGES 0
+#define PAGE_ROSTER   1
+#define PAGE_STATS    2
+#define PAGE_SIGNAL   3
+#define PAGE_LOGS     4
+#define PAGE_SETTINGS 5
+#define PAGE_MAP      6
+#define PAGE_NODECFG  7
+#define PAGE_COUNT    8
 
 #define MSG_HISTORY 8
 
@@ -49,7 +49,7 @@
    location is still read so an existing install keeps its settings. */
 #define SETTINGS_PATH     APP_DATA_PATH("settings.cfg")
 #define SETTINGS_PATH_OLD "/ext/zeromesh/settings.cfg"
-#define MAX_CHANNELS 8
+#define MAX_CHANNELS      8
 
 #define MAX_RINGTONE_PATH 128
 
@@ -95,7 +95,7 @@ typedef struct {
     char short_name[8];
     char long_name[24];
     bool has_name;
-	bool has_new_dm;
+    bool has_new_dm;
 } NodeEntry;
 
 typedef struct {
@@ -207,16 +207,16 @@ typedef struct {
     uint8_t line_head;
 
     char status[LOG_COLS];
-    
+
     MessageHistory history;
-    
+
     uint8_t ui_mode;
-    
+
     uint8_t msg_scroll_offset;
-    
+
     bool log_paused;
     uint8_t log_scroll_offset;
-    
+
     char last_rx_text[128];
     uint32_t last_rx_from;
     uint32_t last_rx_to;
@@ -224,7 +224,7 @@ typedef struct {
     int8_t last_rx_snr;
     int16_t last_rx_rssi;
     bool has_rx_signal_data;
-    
+
     uint32_t my_node_num;
 
     bool has_node_config;
@@ -252,27 +252,27 @@ typedef struct {
     uint32_t pending_node;
     uint8_t pending_a;
     uint8_t pending_b;
-    
+
     uint32_t sent_msg_ids[8];
     uint8_t sent_msg_head;
-    
+
     uint8_t settings_cursor;
     bool settings_editing;
-    
+
     bool notify_vibro;
     bool notify_led;
     RingtoneType notify_ringtone;
-    
+
     uint8_t scroll_speed;
     uint8_t scroll_framerate;
     LongMessageHandling lmh_mode;
-    
+
     uint8_t current_channel;
     uint8_t num_channels;
-    
+
     volatile bool notify_active;
     uint32_t notify_start_tick;
-    
+
     bool show_keyboard;
     char text_buffer[64];
     ViewDispatcher* kb_dispatcher;

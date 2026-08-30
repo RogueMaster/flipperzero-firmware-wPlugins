@@ -14,16 +14,16 @@
 
 #define TAG "zeromesh_map"
 
-#define MAP_DIR            APP_DATA_PATH("map")
-#define MAP_PMTILES        APP_DATA_PATH("map.pmtiles")
-#define MAP_DIR_OLD        "/ext/zeromesh/map"
-#define MAP_PMTILES_OLD    "/ext/zeromesh/map.pmtiles"
-#define MAP_TILE_MAX   24576
-#define MAP_SCRATCH_PT 384
-#define MAP_MAX_LABELS 6
-#define MAP_MAX_TOWNS  16
-#define MAP_TOOLBAR_N  5
-#define MAP_PAN_STEP   16
+#define MAP_DIR         APP_DATA_PATH("map")
+#define MAP_PMTILES     APP_DATA_PATH("map.pmtiles")
+#define MAP_DIR_OLD     "/ext/zeromesh/map"
+#define MAP_PMTILES_OLD "/ext/zeromesh/map.pmtiles"
+#define MAP_TILE_MAX    24576
+#define MAP_SCRATCH_PT  384
+#define MAP_MAX_LABELS  6
+#define MAP_MAX_TOWNS   16
+#define MAP_TOOLBAR_N   5
+#define MAP_PAN_STEP    16
 
 #define MAP_HOME_LAT 43.4443f
 #define MAP_HOME_LON (-71.6478f)
@@ -141,7 +141,10 @@ static float zm_logf(float x) {
     }
     float t = (x - 1.0f) / (x + 1.0f);
     float t2 = t * t;
-    float s = t * (2.0f + t2 * (2.0f / 3.0f + t2 * (2.0f / 5.0f + t2 * (2.0f / 7.0f + t2 * (2.0f / 9.0f + t2 * 2.0f / 11.0f)))));
+    float s =
+        t * (2.0f + t2 * (2.0f / 3.0f +
+                          t2 * (2.0f / 5.0f +
+                                t2 * (2.0f / 7.0f + t2 * (2.0f / 9.0f + t2 * 2.0f / 11.0f)))));
     return s + (float)e * 0.69314718f;
 }
 
@@ -415,63 +418,63 @@ void map_tick(ZeroMeshApp* app) {
     int drawn = 0;
 
     for(int attempt = 0; attempt < 2; attempt++) {
-    memset(m->fb_pixels, 0, (size_t)m->fb.stride * MAP_H);
-    memset(staging, 0, sizeof(staging));
-    sink.count = 0;
-    drawn = 0;
+        memset(m->fb_pixels, 0, (size_t)m->fb.stride * MAP_H);
+        memset(staging, 0, sizeof(staging));
+        sink.count = 0;
+        drawn = 0;
 
-    tx0 = m->gx / tpx;
-    tx1 = (m->gx + MAP_W - 1) / tpx;
-    ty0 = m->gy / tpx;
-    ty1 = (m->gy + MAP_H - 1) / tpx;
+        tx0 = m->gx / tpx;
+        tx1 = (m->gx + MAP_W - 1) / tpx;
+        ty0 = m->gy / tpx;
+        ty1 = (m->gy + MAP_H - 1) / tpx;
 
-    for(int ty = ty0; ty <= ty1; ty++) {
-        for(int tx = tx0; tx <= tx1; tx++) {
-            if(!map_fetch_tile(m, m->z, tx, ty)) continue;
-            drawn++;
+        for(int ty = ty0; ty <= ty1; ty++) {
+            for(int tx = tx0; tx <= tx1; tx++) {
+                if(!map_fetch_tile(m, m->z, tx, ty)) continue;
+                drawn++;
 
-            float ox = (float)(tx * tpx - m->gx);
-            float oy = (float)(ty * tpx - m->gy);
+                float ox = (float)(tx * tpx - m->gx);
+                float oy = (float)(ty * tpx - m->gy);
 
-            for(size_t i = 0; i < sizeof(order) / sizeof(order[0]); i++) {
-                carto_mvt_render_category(
-                    &m->fb,
-                    &m->style,
+                for(size_t i = 0; i < sizeof(order) / sizeof(order[0]); i++) {
+                    carto_mvt_render_category(
+                        &m->fb,
+                        &m->style,
+                        m->tile,
+                        m->tile_len,
+                        order[i],
+                        ox,
+                        oy,
+                        (float)tpx,
+                        m->z,
+                        m->scratch,
+                        m->scratch_cap);
+                }
+
+                if(!m->show_labels) continue;
+
+                sink.per = (float)tpx / (float)(m->extent ? m->extent : 4096);
+                sink.ox = ox;
+                sink.oy = oy;
+                mvt_scan_labels(
                     m->tile,
                     m->tile_len,
-                    order[i],
-                    ox,
-                    oy,
-                    (float)tpx,
-                    m->z,
-                    m->scratch,
-                    m->scratch_cap);
+                    label_layers,
+                    sizeof(label_layers) / sizeof(label_layers[0]),
+                    label_cb,
+                    &sink,
+                    &m->extent);
             }
-
-            if(!m->show_labels) continue;
-
-            sink.per = (float)tpx / (float)(m->extent ? m->extent : 4096);
-            sink.ox = ox;
-            sink.oy = oy;
-            mvt_scan_labels(
-                m->tile,
-                m->tile_len,
-                label_layers,
-                sizeof(label_layers) / sizeof(label_layers[0]),
-                label_cb,
-                &sink,
-                &m->extent);
         }
-    }
 
-    /* Panning past the edge of the archive draws nothing. Step back to the
+        /* Panning past the edge of the archive draws nothing. Step back to the
        last position that rendered and redraw inside this same tick, so the
        screen never shows a blank frame still carrying the old labels. */
-    if(drawn > 0) break;
-    if(!m->have_good) break;
-    if(m->gx == m->good_gx && m->gy == m->good_gy) break;
-    m->gx = m->good_gx;
-    m->gy = m->good_gy;
+        if(drawn > 0) break;
+        if(!m->have_good) break;
+        if(m->gx == m->good_gx && m->gy == m->good_gy) break;
+        m->gx = m->good_gx;
+        m->gy = m->good_gy;
     }
 
     if(drawn > 0) {
@@ -524,15 +527,13 @@ static bool node_layout(Canvas* canvas, MapState* m, NodeEntry* n, NodeDraw* out
     out->px = (int)(gxf * (float)m->tile_px) - m->gx;
     out->py = (int)(gyf * (float)m->tile_px) - m->gy;
 
-    if(out->px < 8 || out->py < 16 || out->px >= MAP_W - 8 || out->py >= MAP_H - 8)
-        return false;
+    if(out->px < 8 || out->py < 16 || out->px >= MAP_W - 8 || out->py >= MAP_H - 8) return false;
 
     out->halo = (n->node_id == m->focus_id) ? 7 : 4;
 
     out->tag = (n->has_name && n->short_name[0]) ? n->short_name : NULL;
     if(!out->tag) {
-        snprintf(out->idbuf, sizeof(out->idbuf), "%04lx",
-                 (unsigned long)(n->node_id & 0xFFFF));
+        snprintf(out->idbuf, sizeof(out->idbuf), "%04lx", (unsigned long)(n->node_id & 0xFFFF));
         out->tag = out->idbuf;
     }
 
@@ -744,7 +745,8 @@ static void map_draw_offscreen_focus(Canvas* canvas, ZeroMeshApp* app) {
 }
 
 static void icon_towns(Canvas* c, int x, int y) {
-    for(int i = 0; i < 3; i++) canvas_draw_line(c, x - 4, y - 2 + i * 2, x + 4, y - 2 + i * 2);
+    for(int i = 0; i < 3; i++)
+        canvas_draw_line(c, x - 4, y - 2 + i * 2, x + 4, y - 2 + i * 2);
 }
 
 static void icon_labels(Canvas* c, int x, int y) {
@@ -782,13 +784,17 @@ static const char* const TOOLBAR_NAMES[MAP_TOOLBAR_N] = {
 static void map_draw_edges(Canvas* canvas, MapState* m) {
     canvas_set_color(canvas, ColorBlack);
     if(m->edge_w)
-        for(int y = 10; y < MAP_H - 2; y += 4) map_box(canvas, 0, y, 2, 2);
+        for(int y = 10; y < MAP_H - 2; y += 4)
+            map_box(canvas, 0, y, 2, 2);
     if(m->edge_e)
-        for(int y = 10; y < MAP_H - 2; y += 4) map_box(canvas, MAP_W - 2, y, 2, 2);
+        for(int y = 10; y < MAP_H - 2; y += 4)
+            map_box(canvas, MAP_W - 2, y, 2, 2);
     if(m->edge_n)
-        for(int x = 2; x < MAP_W - 2; x += 4) map_box(canvas, x, 9, 2, 2);
+        for(int x = 2; x < MAP_W - 2; x += 4)
+            map_box(canvas, x, 9, 2, 2);
     if(m->edge_s)
-        for(int x = 2; x < MAP_W - 2; x += 4) map_box(canvas, x, MAP_H - 2, 2, 2);
+        for(int x = 2; x < MAP_W - 2; x += 4)
+            map_box(canvas, x, MAP_H - 2, 2, 2);
 }
 
 static const char* bearing8(int dx, int dy) {
@@ -865,11 +871,21 @@ static void map_draw_toolbar(Canvas* canvas, MapState* m) {
         }
 
         switch(i) {
-        case 0: icon_towns(canvas, cx, cy); break;
-        case 1: icon_labels(canvas, cx, cy); break;
-        case 2: icon_home(canvas, cx, cy); break;
-        case 3: icon_node(canvas, cx, cy); break;
-        default: icon_zoom(canvas, cx, cy); break;
+        case 0:
+            icon_towns(canvas, cx, cy);
+            break;
+        case 1:
+            icon_labels(canvas, cx, cy);
+            break;
+        case 2:
+            icon_home(canvas, cx, cy);
+            break;
+        case 3:
+            icon_node(canvas, cx, cy);
+            break;
+        default:
+            icon_zoom(canvas, cx, cy);
+            break;
         }
     }
 

@@ -55,7 +55,8 @@ static int32_t layer_name_key(const uint8_t* b, size_t len) {
     return -1;
 }
 
-static bool layer_value_str(const uint8_t* b, size_t len, uint32_t want, char* out, size_t out_sz) {
+static bool
+    layer_value_str(const uint8_t* b, size_t len, uint32_t want, char* out, size_t out_sz) {
     size_t p = 0;
     uint32_t idx = 0;
     while(p < len) {
@@ -65,7 +66,6 @@ static bool layer_value_str(const uint8_t* b, size_t len, uint32_t want, char* o
             uint64_t n = rd_varint(b, len, &p);
             if(p + n > len) return false;
             if(idx == want) {
-
                 const uint8_t* v = b + p;
                 size_t vlen = (size_t)n, q = 0;
                 while(q < vlen) {
@@ -93,12 +93,8 @@ static bool layer_value_str(const uint8_t* b, size_t len, uint32_t want, char* o
     return false;
 }
 
-static void scan_layer(
-    const uint8_t* b,
-    size_t len,
-    int32_t name_key,
-    MvtLabelCallback cb,
-    void* context) {
+static void
+    scan_layer(const uint8_t* b, size_t len, int32_t name_key, MvtLabelCallback cb, void* context) {
     size_t p = 0;
     while(p < len) {
         uint64_t key = rd_varint(b, len, &p);

@@ -34,18 +34,19 @@ int32_t zeromesh_serial_app(void* p) {
     app->notify_vibro = true;
     app->notify_led = true;
     app->notify_ringtone = RingtoneShort;
-    
+
     app->scroll_speed = 5;
     app->scroll_framerate = 5;
     app->lmh_mode = LMH_Scroll;
-    
+
     channel_init(app);
-    
+
     settings_load(app);
 
     snprintf(app->status, sizeof(app->status), "Connecting...");
 
-    for(int i = 0; i < LOG_LINES; i++) app->lines[i][0] = 0;
+    for(int i = 0; i < LOG_LINES; i++)
+        app->lines[i][0] = 0;
     app->line_head = 0;
 
     app->rx_stream = furi_stream_buffer_alloc(RX_STREAM_SIZE, 1);
@@ -79,10 +80,7 @@ int32_t zeromesh_serial_app(void* p) {
     uint32_t last_render = furi_get_tick();
     uint32_t last_heartbeat = furi_get_tick();
     const uint32_t HEARTBEAT_INTERVAL_MS = 30000;
-    const uint32_t frame_delays[] = {
-        1000, 500, 333, 250, 200,
-        166, 142, 125, 111, 100
-    };
+    const uint32_t frame_delays[] = {1000, 500, 333, 250, 200, 166, 142, 125, 111, 100};
 
     while(!app->stop_thread) {
         if(app->pending_notify) {
@@ -114,8 +112,7 @@ int32_t zeromesh_serial_app(void* p) {
                 break;
             case PendingSetFixed: {
                 int32_t lat_i = 0, lon_i = 0;
-                if(map_view_center(app, &lat_i, &lon_i))
-                    set_fixed_position(app, lat_i, lon_i);
+                if(map_view_center(app, &lat_i, &lon_i)) set_fixed_position(app, lat_i, lon_i);
                 break;
             }
             case PendingClearFixed:
@@ -134,14 +131,12 @@ int32_t zeromesh_serial_app(void* p) {
 
         if(app->ui_mode == PAGE_MAP) map_tick(app);
 
-
         if(transport_is_up(app)) {
             /* Keep asking until the radio tells us our node number. Over BLE
                there is no dependable edge for "peer subscribed", so retry
                rather than firing once and hoping we timed it right. */
             if(app->my_node_num == 0 &&
-               (!config_requested ||
-                furi_get_tick() - last_config_req >= CONFIG_RETRY_MS)) {
+               (!config_requested || furi_get_tick() - last_config_req >= CONFIG_RETRY_MS)) {
                 request_info(app);
                 config_requested = true;
                 last_config_req = furi_get_tick();
@@ -187,7 +182,8 @@ int32_t zeromesh_serial_app(void* p) {
             view_dispatcher_add_view(app->kb_dispatcher, 0, text_input_get_view(app->text_input));
             view_set_previous_callback(text_input_get_view(app->text_input), kb_back_callback);
 
-            view_dispatcher_attach_to_gui(app->kb_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+            view_dispatcher_attach_to_gui(
+                app->kb_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
             view_dispatcher_switch_to_view(app->kb_dispatcher, 0);
             view_dispatcher_run(app->kb_dispatcher);
 
@@ -217,7 +213,7 @@ int32_t zeromesh_serial_app(void* p) {
     }
 
     app->stop_thread = true;
-    
+
     settings_save(app);
 
     furi_thread_join(app->rx_thread);

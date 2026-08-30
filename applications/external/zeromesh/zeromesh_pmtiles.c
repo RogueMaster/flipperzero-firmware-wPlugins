@@ -6,7 +6,7 @@
 
 #define TAG "zeromesh_pmtiles"
 
-#define PM_HEADER_LEN     127
+#define PM_HEADER_LEN       127
 #define PM_COMPRESSION_NONE 1
 #define PM_TILETYPE_MVT     1
 
@@ -56,7 +56,6 @@ static uint64_t rd_varint(const uint8_t* b, size_t len, size_t* p) {
 }
 
 static uint64_t zxy_to_tileid(uint8_t z, uint32_t x, uint32_t y) {
-
     uint64_t acc = (((uint64_t)1 << (z * 2)) - 1) / 3;
     uint64_t d = 0;
     uint32_t tx = x, ty = y;
@@ -300,8 +299,8 @@ PmTiles* pmtiles_open(const char* path) {
     for(uint32_t i = 0; i < p->count; i++) {
         uint64_t v = rd_varint(dir, (size_t)root_len, &q);
 
-        p->offsets[i] = (v == 0) ? (i ? p->offsets[i - 1] + p->lengths[i - 1] : 0)
-                                 : (uint32_t)(v - 1);
+        p->offsets[i] = (v == 0) ? (i ? p->offsets[i - 1] + p->lengths[i - 1] : 0) :
+                                   (uint32_t)(v - 1);
     }
 
     free(dir);
@@ -344,7 +343,8 @@ void pmtiles_close(PmTiles* p) {
 
 /* Directory lookup with no tile read, so the map can ask whether a
    neighbour exists without paying for its data. */
-static bool pm_locate(PmTiles* p, uint8_t z, uint32_t x, uint32_t y, uint32_t* off, uint32_t* len) {
+static bool
+    pm_locate(PmTiles* p, uint8_t z, uint32_t x, uint32_t y, uint32_t* off, uint32_t* len) {
     if(z < p->min_zoom || z > p->max_zoom) return false;
 
     uint64_t want = zxy_to_tileid(z, x, y);

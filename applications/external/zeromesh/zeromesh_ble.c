@@ -32,11 +32,23 @@ typedef __PACKED_STRUCT {
 }
 ZmEvtBlecoreAci;
 
-#define ZM_UUID_BYTES(last)                                                       \
-    {                                                                             \
-        (last), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0x53, 0x45, 0x4d, \
-            0x4f, 0x52, 0x45, 0x5a                                                \
-    }
+#define ZM_UUID_BYTES(last) \
+    {(last),                \
+     0x00,                  \
+     0x00,                  \
+     0x00,                  \
+     0x00,                  \
+     0x00,                  \
+     0x00,                  \
+     0x00,                  \
+     0x48,                  \
+     0x53,                  \
+     0x45,                  \
+     0x4d,                  \
+     0x4f,                  \
+     0x52,                  \
+     0x45,                  \
+     0x5a}
 
 static const uint8_t zm_uuid_service[16] = ZM_UUID_BYTES(0x01);
 
@@ -145,7 +157,8 @@ static FuriHalBleProfileBase* zm_profile_start(FuriHalBleProfileParams params) {
         ble_gatt_characteristic_init(inst->svc_handle, &zm_char_templates[i], &inst->chars[i]);
     }
 
-    inst->event_handler = ble_event_dispatcher_register_svc_handler(zm_profile_event_handler, inst);
+    inst->event_handler =
+        ble_event_dispatcher_register_svc_handler(zm_profile_event_handler, inst);
 
     FURI_LOG_I(
         TAG,

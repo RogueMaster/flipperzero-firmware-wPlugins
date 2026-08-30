@@ -146,7 +146,12 @@ static void bind_user_names(meshtastic_User* u, StrSink* shortsink, StrSink* lon
     u->long_name.arg = longsink;
 }
 
-static void handle_routing(ZeroMeshApp* app, const meshtastic_Data* d, uint32_t sender_id, const uint8_t* buf, size_t buflen) {
+static void handle_routing(
+    ZeroMeshApp* app,
+    const meshtastic_Data* d,
+    uint32_t sender_id,
+    const uint8_t* buf,
+    size_t buflen) {
     meshtastic_Routing r = meshtastic_Routing_init_default;
     pb_istream_t is_r = pb_istream_from_buffer(buf, buflen);
     if(!pb_decode(&is_r, meshtastic_Routing_fields, &r)) return;
@@ -196,7 +201,8 @@ static void handle_admin(ZeroMeshApp* app, const uint8_t* buf, size_t buflen) {
             app->cfg_pos_known = true;
             app->cfg_fixed = app->cfg_pos.fixed_position ? 1 : 0;
             app->cfg_gps =
-                (app->cfg_pos.gps_mode == meshtastic_Config_PositionConfig_GpsMode_ENABLED) ? 1 : 0;
+                (app->cfg_pos.gps_mode == meshtastic_Config_PositionConfig_GpsMode_ENABLED) ? 1 :
+                                                                                              0;
             log_line(app, "Position cfg read, GPS %s", app->cfg_gps ? "on" : "off");
         }
         return;
@@ -217,7 +223,8 @@ static void handle_admin(ZeroMeshApp* app, const uint8_t* buf, size_t buflen) {
     log_line(app, "Channel 0: %s", app->cfg_ch_private ? "private" : "public");
 }
 
-static void handle_nodeinfo(ZeroMeshApp* app, uint32_t sender_id, const uint8_t* buf, size_t buflen) {
+static void
+    handle_nodeinfo(ZeroMeshApp* app, uint32_t sender_id, const uint8_t* buf, size_t buflen) {
     meshtastic_User u = meshtastic_User_init_default;
     char sn[8] = {0};
     char ln[24] = {0};
@@ -231,7 +238,8 @@ static void handle_nodeinfo(ZeroMeshApp* app, uint32_t sender_id, const uint8_t*
     }
 }
 
-static void handle_position(ZeroMeshApp* app, uint32_t sender_id, const uint8_t* buf, size_t buflen) {
+static void
+    handle_position(ZeroMeshApp* app, uint32_t sender_id, const uint8_t* buf, size_t buflen) {
     meshtastic_Position pos = meshtastic_Position_init_default;
     pb_istream_t is_pos = pb_istream_from_buffer(buf, buflen);
     if(!pb_decode(&is_pos, meshtastic_Position_fields, &pos)) return;
@@ -245,16 +253,25 @@ static void handle_position(ZeroMeshApp* app, uint32_t sender_id, const uint8_t*
         pos.time);
 }
 
-static void handle_telemetry(ZeroMeshApp* app, uint32_t sender_id, const uint8_t* buf, size_t buflen) {
+static void
+    handle_telemetry(ZeroMeshApp* app, uint32_t sender_id, const uint8_t* buf, size_t buflen) {
     meshtastic_Telemetry tel = meshtastic_Telemetry_init_default;
     pb_istream_t is_tel = pb_istream_from_buffer(buf, buflen);
     if(!pb_decode(&is_tel, meshtastic_Telemetry_fields, &tel)) return;
     if(tel.which_variant != meshtastic_Telemetry_device_metrics_tag) return;
     roster_update_telemetry(
-        app, sender_id, tel.variant.device_metrics.battery_level, tel.variant.device_metrics.voltage);
+        app,
+        sender_id,
+        tel.variant.device_metrics.battery_level,
+        tel.variant.device_metrics.voltage);
 }
 
-static void handle_text(ZeroMeshApp* app, const meshtastic_MeshPacket* p, uint32_t sender_id, const uint8_t* buf, size_t buflen) {
+static void handle_text(
+    ZeroMeshApp* app,
+    const meshtastic_MeshPacket* p,
+    uint32_t sender_id,
+    const uint8_t* buf,
+    size_t buflen) {
     size_t copy_len = buflen;
     if(copy_len >= sizeof(app->last_rx_text)) copy_len = sizeof(app->last_rx_text) - 1;
     memcpy(app->last_rx_text, buf, copy_len);
@@ -335,15 +352,18 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                             bool pkt_eof;
                             if(!pb_decode_tag(&pkt_stream, &pkt_wt, &pkt_tag, &pkt_eof)) break;
                             if(pkt_eof) break;
-                            if(pkt_tag == meshtastic_MeshPacket_decoded_tag && pkt_wt == PB_WT_STRING) {
+                            if(pkt_tag == meshtastic_MeshPacket_decoded_tag &&
+                               pkt_wt == PB_WT_STRING) {
                                 uint32_t data_len;
                                 if(!pb_decode_varint32(&pkt_stream, &data_len)) break;
                                 if(data_len > pkt_stream.bytes_left) break;
                                 meshtastic_Data data_msg = meshtastic_Data_init_default;
                                 data_msg.payload.funcs.decode = payload_decode_cb;
                                 data_msg.payload.arg = &cap;
-                                pb_istream_t data_stream = pb_istream_from_buffer(pkt_stream.state, data_len);
-                                if(pb_decode(&data_stream, meshtastic_Data_fields, &data_msg)) found_payload = true;
+                                pb_istream_t data_stream =
+                                    pb_istream_from_buffer(pkt_stream.state, data_len);
+                                if(pb_decode(&data_stream, meshtastic_Data_fields, &data_msg))
+                                    found_payload = true;
                                 break;
                             } else {
                                 if(!pb_skip_field(&pkt_stream, pkt_wt)) break;
@@ -408,7 +428,8 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                         roster_add_node(app, n.num, (int8_t)n.snr, 0);
                         roster_update_name(app, n.num, sn, ln);
                         if(app->my_node_num && n.num == app->my_node_num) {
-                            if(ln[0]) strncpy(app->my_long_name, ln, sizeof(app->my_long_name) - 1);
+                            if(ln[0])
+                                strncpy(app->my_long_name, ln, sizeof(app->my_long_name) - 1);
                             if(sn[0])
                                 strncpy(app->my_short_name, sn, sizeof(app->my_short_name) - 1);
                         }
@@ -552,8 +573,7 @@ void set_node_gps(ZeroMeshApp* app, bool enabled) {
     meshtastic_AdminMessage am = meshtastic_AdminMessage_init_default;
     am.which_payload_variant = meshtastic_AdminMessage_set_config_tag;
     am.payload_variant.set_config.which_payload_variant = meshtastic_Config_position_tag;
-    meshtastic_Config_PositionConfig* pc =
-        &am.payload_variant.set_config.payload_variant.position;
+    meshtastic_Config_PositionConfig* pc = &am.payload_variant.set_config.payload_variant.position;
 
     /* set_config replaces the whole sub-message, so anything not carried over
        here is silently reset on the radio. Start from what it reported. */
@@ -640,8 +660,7 @@ void set_channel_config(ZeroMeshApp* app, bool make_private, bool share_position
     ch->settings.psk.funcs.encode = payload_encode_cb;
     ch->settings.psk.arg = &pk;
 
-    PayloadSend nm = {.buf = (const uint8_t*)app->cfg_ch_name,
-                      .len = strlen(app->cfg_ch_name)};
+    PayloadSend nm = {.buf = (const uint8_t*)app->cfg_ch_name, .len = strlen(app->cfg_ch_name)};
     ch->settings.name.funcs.encode = payload_encode_cb;
     ch->settings.name.arg = &nm;
 
@@ -674,7 +693,8 @@ void set_node_owner(ZeroMeshApp* app, const char* long_name, const char* short_n
     meshtastic_AdminMessage am = meshtastic_AdminMessage_init_default;
     am.which_payload_variant = meshtastic_AdminMessage_set_owner_tag;
     PayloadSend lps = {.buf = (const uint8_t*)long_name, .len = long_name ? strlen(long_name) : 0};
-    PayloadSend sps = {.buf = (const uint8_t*)short_name, .len = short_name ? strlen(short_name) : 0};
+    PayloadSend sps = {
+        .buf = (const uint8_t*)short_name, .len = short_name ? strlen(short_name) : 0};
     am.payload_variant.set_owner.long_name.funcs.encode = payload_encode_cb;
     am.payload_variant.set_owner.long_name.arg = &lps;
     am.payload_variant.set_owner.short_name.funcs.encode = payload_encode_cb;

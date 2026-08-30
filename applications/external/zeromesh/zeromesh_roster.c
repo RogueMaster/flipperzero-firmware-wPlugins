@@ -19,24 +19,24 @@ static void fmt_coord(char* out, size_t cap, int32_t v) {
 
 static int calculate_wrapped_lines(Canvas* canvas, const char* text, int max_w) {
     if(!text || !text[0]) return 1;
-    
+
     char line_buf[64];
     size_t text_len = strlen(text);
     size_t pos = 0;
     int lines = 0;
-    
+
     while(pos < text_len) {
         size_t line_len = 0;
         size_t last_space = 0;
-        
+
         while(pos + line_len < text_len) {
             line_buf[line_len] = text[pos + line_len];
             line_buf[line_len + 1] = '\0';
-            
+
             if(text[pos + line_len] == ' ') {
                 last_space = line_len;
             }
-            
+
             if(canvas_string_width(canvas, line_buf) > max_w) {
                 if(last_space > 0) {
                     line_len = last_space;
@@ -45,20 +45,21 @@ static int calculate_wrapped_lines(Canvas* canvas, const char* text, int max_w) 
                 }
                 break;
             }
-            
+
             line_len++;
             if(line_len >= sizeof(line_buf) - 1) break;
         }
-        
+
         if(line_len == 0 && pos < text_len) {
             line_len = 1;
         }
-        
+
         pos += line_len;
-        while(pos < text_len && text[pos] == ' ') pos++;
+        while(pos < text_len && text[pos] == ' ')
+            pos++;
         lines++;
     }
-    
+
     return lines > 0 ? lines : 1;
 }
 
@@ -70,26 +71,26 @@ static void draw_wrapped_text_in_bubble(
     const char* text,
     Color text_col) {
     if(!text || !text[0]) return;
-    
+
     canvas_set_color(canvas, text_col);
-    
+
     char line_buf[64];
     size_t text_len = strlen(text);
     size_t pos = 0;
     int current_y = y;
-    
+
     while(pos < text_len && current_y < 64) {
         size_t line_len = 0;
         size_t last_space = 0;
-        
+
         while(pos + line_len < text_len) {
             line_buf[line_len] = text[pos + line_len];
             line_buf[line_len + 1] = '\0';
-            
+
             if(text[pos + line_len] == ' ') {
                 last_space = line_len;
             }
-            
+
             if(canvas_string_width(canvas, line_buf) > max_w) {
                 if(last_space > 0) {
                     line_len = last_space;
@@ -100,22 +101,23 @@ static void draw_wrapped_text_in_bubble(
                 }
                 break;
             }
-            
+
             line_len++;
             if(line_len >= sizeof(line_buf) - 1) break;
         }
-        
+
         if(line_len == 0 && pos < text_len) {
             line_buf[0] = text[pos];
             line_buf[1] = '\0';
             line_len = 1;
         }
-        
+
         canvas_draw_str(canvas, x, current_y, line_buf);
         pos += line_len;
-        
-        while(pos < text_len && text[pos] == ' ') pos++;
-        
+
+        while(pos < text_len && text[pos] == ' ')
+            pos++;
+
         current_y += 9;
     }
 }
@@ -158,7 +160,11 @@ void roster_add_node(ZeroMeshApp* app, uint32_t node_id, int8_t snr, int16_t rss
     furi_mutex_release(app->lock);
 }
 
-void roster_update_telemetry(ZeroMeshApp* app, uint32_t node_id, uint8_t battery_level, float voltage) {
+void roster_update_telemetry(
+    ZeroMeshApp* app,
+    uint32_t node_id,
+    uint8_t battery_level,
+    float voltage) {
     if(!app || node_id == 0) return;
 
     furi_mutex_acquire(app->lock, FuriWaitForever);
@@ -238,18 +244,26 @@ void roster_update_position(
     furi_mutex_release(app->lock);
 }
 
-static void draw_roster_bubble(Canvas* canvas, int x, int y, int max_w, const char* text, bool is_tx, uint32_t phase_seed, ZeroMeshApp* app) {
+static void draw_roster_bubble(
+    Canvas* canvas,
+    int x,
+    int y,
+    int max_w,
+    const char* text,
+    bool is_tx,
+    uint32_t phase_seed,
+    ZeroMeshApp* app) {
     canvas_set_font(canvas, FontSecondary);
 
     const char* s = text ? text : "";
     uint16_t text_w = canvas_string_width(canvas, s);
-    
+
     int pad = 4;
     int inner_w = max_w - (pad * 2);
-    
+
     int bubble_h = 12;
     int bubble_w = text_w + (pad * 2);
-    
+
     if(app->lmh_mode == LMH_Wrap && text_w > inner_w) {
         int lines = calculate_wrapped_lines(canvas, s, inner_w);
         bubble_h = 2 + (lines * 9) + 2;
@@ -257,14 +271,14 @@ static void draw_roster_bubble(Canvas* canvas, int x, int y, int max_w, const ch
     } else if(bubble_w > max_w) {
         bubble_w = max_w;
     }
-    
+
     if(bubble_w < 20) bubble_w = 20;
-    
+
     int bx = is_tx ? (x + max_w - bubble_w) : x;
-    
+
     Color bubble_bg = is_tx ? ColorBlack : ColorWhite;
     Color text_col = is_tx ? ColorWhite : ColorBlack;
-    
+
     if(is_tx) {
         canvas_set_color(canvas, ColorBlack);
         canvas_draw_rbox(canvas, bx, y, bubble_w, bubble_h, 3);
@@ -274,10 +288,10 @@ static void draw_roster_bubble(Canvas* canvas, int x, int y, int max_w, const ch
         canvas_set_color(canvas, ColorBlack);
         canvas_draw_rframe(canvas, bx, y, bubble_w, bubble_h, 3);
     }
-    
+
     int inner_x = bx + pad;
     int baseline = y + 10;
-    
+
     if(text_w <= (uint16_t)inner_w) {
         canvas_set_color(canvas, text_col);
         canvas_draw_str(canvas, inner_x, baseline, s);
@@ -290,20 +304,20 @@ static void draw_roster_bubble(Canvas* canvas, int x, int y, int max_w, const ch
         uint16_t gap = 14;
         uint16_t cycle = text_w + gap;
         uint16_t off = (uint16_t)(step % cycle);
-        
+
         int32_t x1 = (int32_t)inner_x - (int32_t)off;
         int32_t x2 = x1 + (int32_t)cycle;
-        
+
         canvas_set_color(canvas, text_col);
         canvas_draw_str(canvas, (int)x1, baseline, s);
         canvas_draw_str(canvas, (int)x2, baseline, s);
-        
+
         canvas_set_color(canvas, bubble_bg);
         if(pad > 0) {
             canvas_draw_box(canvas, bx, y, pad, bubble_h);
             canvas_draw_box(canvas, bx + bubble_w - pad, y, pad, bubble_h);
         }
-        
+
         canvas_set_color(canvas, ColorWhite);
         if(bx > 0) {
             canvas_draw_box(canvas, 0, y, bx, bubble_h);
@@ -313,7 +327,7 @@ static void draw_roster_bubble(Canvas* canvas, int x, int y, int max_w, const ch
             canvas_draw_box(canvas, rx, y, 128 - rx, bubble_h);
         }
     }
-    
+
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -411,11 +425,11 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
             int available_height = 46;
             int y = 18;
             int visible_count = 0;
-            
+
             for(int i = chat_count - 1; i >= 0; i--) {
                 uint8_t idx = chat_msgs[i];
                 Message* msg = &app->history.msgs[idx];
-                
+
                 int msg_height = 14;
                 if(app->lmh_mode == LMH_Wrap) {
                     int text_w = canvas_string_width(canvas, msg->text);
@@ -425,7 +439,7 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
                         msg_height = 4 + (lines * 9) + 2;
                     }
                 }
-                
+
                 if(y + msg_height <= available_height + 18) {
                     visible_count++;
                     y += msg_height;
@@ -433,9 +447,9 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
                     break;
                 }
             }
-            
+
             if(visible_count == 0) visible_count = 1;
-            
+
             if(chat_count <= visible_count) {
                 app->roster.chat_scroll = 0;
             } else if(app->roster.chat_scroll > chat_count - visible_count) {
@@ -449,8 +463,9 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
             for(int i = 0; i < visible_count && (start_idx + i) < chat_count; i++) {
                 uint8_t idx = chat_msgs[start_idx + i];
                 Message* msg = &app->history.msgs[idx];
-                draw_roster_bubble(canvas, 2, y, 124, msg->text, msg->is_tx, (uint32_t)idx * 977u, app);
-                
+                draw_roster_bubble(
+                    canvas, 2, y, 124, msg->text, msg->is_tx, (uint32_t)idx * 977u, app);
+
                 if(app->lmh_mode == LMH_Wrap) {
                     int text_w = canvas_string_width(canvas, msg->text);
                     int inner_w = 116;
@@ -491,7 +506,8 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
         snprintf(buf, sizeof(buf), "Last Seen: %lus ago", (unsigned long)diff);
         canvas_draw_str(canvas, 4, 24, buf);
 
-        snprintf(buf, sizeof(buf), "Signal: SNR %d / RSSI %d", selected->last_snr, selected->last_rssi);
+        snprintf(
+            buf, sizeof(buf), "Signal: SNR %d / RSSI %d", selected->last_snr, selected->last_rssi);
         canvas_draw_str(canvas, 4, 36, buf);
 
         if(selected->has_telemetry) {
@@ -526,7 +542,8 @@ void input_roster(InputEvent* e, ZeroMeshApp* app) {
             else
                 app->roster.selected_idx = app->roster.count - 1;
             app->need_render = true;
-        } else if(e->key == InputKeyDown && (e->type == InputTypeShort || e->type == InputTypeRepeat)) {
+        } else if(
+            e->key == InputKeyDown && (e->type == InputTypeShort || e->type == InputTypeRepeat)) {
             if(app->roster.selected_idx < app->roster.count - 1)
                 app->roster.selected_idx++;
             else
@@ -550,7 +567,8 @@ void input_roster(InputEvent* e, ZeroMeshApp* app) {
         if(e->key == InputKeyUp && (e->type == InputTypeShort || e->type == InputTypeRepeat)) {
             app->roster.chat_scroll++;
             app->need_render = true;
-        } else if(e->key == InputKeyDown && (e->type == InputTypeShort || e->type == InputTypeRepeat)) {
+        } else if(
+            e->key == InputKeyDown && (e->type == InputTypeShort || e->type == InputTypeRepeat)) {
             if(app->roster.chat_scroll > 0) app->roster.chat_scroll--;
             app->need_render = true;
         } else if(e->key == InputKeyOk && e->type == InputTypeShort) {
