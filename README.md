@@ -38,6 +38,12 @@ The Map page draws an offline vector map and overlays roster nodes that report a
 
 Map data is read from a PMTiles archive at /ext/zeromesh/map.pmtiles. The archive must be built with compression set to none, because the Flipper firmware has no gzip.
 
+tools/zeromesh_setup.py does the whole thing from a place name, and copies the result to the Flipper if it is plugged in:
+
+    python tools/zeromesh_setup.py --place "Concord, New Hampshire" --radius 25 --install
+
+The steps it runs are below if you would rather drive them yourself.
+
 tools/fetch_tiles.py downloads a tile tree for a bounding box. It is rate limited and skips tiles already on disk, so an interrupted run resumes:
 
     python tools/fetch_tiles.py map --bbox -72.56,42.69,-70.70,45.31 --min-zoom 10 --max-zoom 12
