@@ -65,11 +65,12 @@ const SubGhzProtocol subghz_protocol_gangqi = {
     .name = SUBGHZ_PROTOCOL_GANGQI_NAME,
     .type = SubGhzProtocolTypeStatic,
     .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM | SubGhzProtocolFlag_Decodable |
-            SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Send |
-            SubGhzProtocolFlag_Alarms,
+            SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Send,
 
     .decoder = &subghz_protocol_gangqi_decoder,
     .encoder = &subghz_protocol_gangqi_encoder,
+
+    .filter = SubGhzProtocolFilter_Alarms,
 };
 
 void* subghz_protocol_encoder_gangqi_alloc(SubGhzEnvironment* environment) {

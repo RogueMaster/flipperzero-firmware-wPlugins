@@ -77,10 +77,12 @@ const SubGhzProtocol subghz_protocol_honeywell_wdb = {
     .type = SubGhzProtocolTypeStatic,
     .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_315 | SubGhzProtocolFlag_AM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save |
-            SubGhzProtocolFlag_Send | SubGhzProtocolFlag_Sensors,
+            SubGhzProtocolFlag_Send,
 
     .decoder = &subghz_protocol_honeywell_wdb_decoder,
     .encoder = &subghz_protocol_honeywell_wdb_encoder,
+
+    .filter = SubGhzProtocolFilter_Sensors,
 };
 
 void* subghz_protocol_encoder_honeywell_wdb_alloc(SubGhzEnvironment* environment) {

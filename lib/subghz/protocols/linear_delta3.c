@@ -51,7 +51,8 @@ const SubGhzProtocolDecoder subghz_protocol_linear_delta3_decoder = {
     .feed = subghz_protocol_decoder_linear_delta3_feed,
     .reset = subghz_protocol_decoder_linear_delta3_reset,
 
-    .get_hash_data = subghz_protocol_decoder_linear_delta3_get_hash_data,
+    .get_hash_data = NULL,
+    .get_hash_data_long = subghz_protocol_decoder_linear_delta3_get_hash_data,
     .serialize = subghz_protocol_decoder_common_serialize,
     .deserialize = subghz_protocol_decoder_linear_delta3_deserialize,
     .get_string = subghz_protocol_decoder_linear_delta3_get_string,
@@ -270,10 +271,10 @@ void subghz_protocol_decoder_linear_delta3_feed(void* context, bool level, uint3
     }
 }
 
-uint8_t subghz_protocol_decoder_linear_delta3_get_hash_data(void* context) {
+uint32_t subghz_protocol_decoder_linear_delta3_get_hash_data(void* context) {
     furi_assert(context);
     SubGhzProtocolDecoderLinearDelta3* instance = context;
-    return subghz_protocol_blocks_get_hash_data(
+    return subghz_protocol_blocks_get_hash_data_long(
         &instance->decoder, (instance->decoder.decode_count_bit / 8));
 }
 
