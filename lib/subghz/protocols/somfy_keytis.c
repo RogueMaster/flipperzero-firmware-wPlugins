@@ -6,6 +6,7 @@
 #include "../blocks/encoder.h"
 #include "../blocks/generic.h"
 #include "../blocks/math.h"
+#include "common.h"
 
 #include "../blocks/custom_btn_i.h"
 
@@ -45,13 +46,13 @@ typedef enum {
 
 const SubGhzProtocolDecoder subghz_protocol_somfy_keytis_decoder = {
     .alloc = subghz_protocol_decoder_somfy_keytis_alloc,
-    .free = subghz_protocol_decoder_somfy_keytis_free,
+    .free = subghz_protocol_decoder_common_free,
 
     .feed = subghz_protocol_decoder_somfy_keytis_feed,
     .reset = subghz_protocol_decoder_somfy_keytis_reset,
 
     .get_hash_data = NULL,
-    .get_hash_data_long = subghz_protocol_decoder_somfy_keytis_get_hash_data,
+    .get_hash_data_long = subghz_protocol_decoder_common_get_hash_data,
     .serialize = subghz_protocol_decoder_somfy_keytis_serialize,
     .deserialize = subghz_protocol_decoder_somfy_keytis_deserialize,
     .get_string = subghz_protocol_decoder_somfy_keytis_get_string,
@@ -70,11 +71,11 @@ const SubGhzProtocol subghz_protocol_somfy_keytis = {
 
 const SubGhzProtocolEncoder subghz_protocol_somfy_keytis_encoder = {
     .alloc = subghz_protocol_encoder_somfy_keytis_alloc,
-    .free = subghz_protocol_encoder_somfy_keytis_free,
+    .free = subghz_protocol_encoder_common_free,
 
     .deserialize = subghz_protocol_encoder_somfy_keytis_deserialize,
-    .stop = subghz_protocol_encoder_somfy_keytis_stop,
-    .yield = subghz_protocol_encoder_somfy_keytis_yield,
+    .stop = subghz_protocol_encoder_common_stop,
+    .yield = subghz_protocol_encoder_common_yield,
 };
 
 void* subghz_protocol_encoder_somfy_keytis_alloc(SubGhzEnvironment* environment) {
@@ -99,19 +100,6 @@ void* subghz_protocol_decoder_somfy_keytis_alloc(SubGhzEnvironment* environment)
     instance->generic.protocol_name = instance->base.protocol->name;
 
     return instance;
-}
-
-void subghz_protocol_encoder_somfy_keytis_free(void* context) {
-    furi_assert(context);
-    SubGhzProtocolEncoderSomfyKeytis* instance = context;
-    free(instance->encoder.upload);
-    free(instance);
-}
-
-void subghz_protocol_decoder_somfy_keytis_free(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderSomfyKeytis* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_somfy_keytis_reset(void* context) {
@@ -166,8 +154,9 @@ static bool
     btn = subghz_protocol_somfy_keytis_get_btn_code();
 
     // override button if we change it with signal settings button editor
-    if(subghz_block_generic_global_button_override_get(&btn))
+    if(subghz_block_generic_global_button_override_get(&btn)) {
         FURI_LOG_D(TAG, "Button sucessfully changed to 0x%X", btn);
+    }
 
     // Check for OFEX (overflow experimental) mode
     if(furi_hal_subghz_get_rolling_counter_mult() != -0x7FFFFFFF) {
@@ -493,29 +482,6 @@ SubGhzProtocolStatus
     return res;
 }
 
-void subghz_protocol_encoder_somfy_keytis_stop(void* context) {
-    SubGhzProtocolEncoderSomfyKeytis* instance = context;
-    instance->encoder.is_running = false;
-}
-
-LevelDuration subghz_protocol_encoder_somfy_keytis_yield(void* context) {
-    SubGhzProtocolEncoderSomfyKeytis* instance = context;
-
-    if(instance->encoder.repeat == 0 || !instance->encoder.is_running) {
-        instance->encoder.is_running = false;
-        return level_duration_reset();
-    }
-
-    LevelDuration ret = instance->encoder.upload[instance->encoder.front];
-
-    if(++instance->encoder.front == instance->encoder.size_upload) {
-        if(!subghz_block_generic_global.endless_tx) instance->encoder.repeat--;
-        instance->encoder.front = 0;
-    }
-
-    return ret;
-}
-
 /** 
  * Сhecksum calculation.
  * @param data Вata for checksum calculation
@@ -791,13 +757,6 @@ static const char* subghz_protocol_somfy_keytis_get_name_button(uint8_t btn) {
         "0x0E",
         "0x0F"};
     return btn <= 0xf ? name_btn[btn] : name_btn[0];
-}
-
-uint32_t subghz_protocol_decoder_somfy_keytis_get_hash_data(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderSomfyKeytis* instance = context;
-    return subghz_protocol_blocks_get_hash_data_long(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
 }
 
 SubGhzProtocolStatus subghz_protocol_decoder_somfy_keytis_serialize(

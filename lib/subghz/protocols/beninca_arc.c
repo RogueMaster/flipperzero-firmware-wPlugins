@@ -4,6 +4,7 @@
 #include "../blocks/encoder.h"
 #include "../blocks/generic.h"
 #include "../blocks/math.h"
+#include "common.h"
 #include "core/log.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -48,13 +49,13 @@ struct SubGhzProtocolEncoderBenincaARC {
 
 const SubGhzProtocolDecoder subghz_protocol_beninca_arc_decoder = {
     .alloc = subghz_protocol_decoder_beninca_arc_alloc,
-    .free = subghz_protocol_decoder_beninca_arc_free,
+    .free = subghz_protocol_decoder_common_free,
 
     .feed = subghz_protocol_decoder_beninca_arc_feed,
-    .reset = subghz_protocol_decoder_beninca_arc_reset,
+    .reset = subghz_protocol_decoder_common_reset,
 
     .get_hash_data = NULL,
-    .get_hash_data_long = subghz_protocol_decoder_beninca_arc_get_hash_data,
+    .get_hash_data_long = subghz_protocol_decoder_common_get_hash_data,
     .serialize = subghz_protocol_decoder_beninca_arc_serialize,
     .deserialize = subghz_protocol_decoder_beninca_arc_deserialize,
     .get_string = subghz_protocol_decoder_beninca_arc_get_string,
@@ -63,7 +64,7 @@ const SubGhzProtocolDecoder subghz_protocol_beninca_arc_decoder = {
 
 const SubGhzProtocolEncoder subghz_protocol_beninca_arc_encoder = {
     .alloc = subghz_protocol_encoder_beninca_arc_alloc,
-    .free = subghz_protocol_encoder_beninca_arc_free,
+    .free = subghz_protocol_encoder_common_free,
 
     .deserialize = subghz_protocol_encoder_beninca_arc_deserialize,
     .stop = subghz_protocol_encoder_beninca_arc_stop,
@@ -273,13 +274,6 @@ void* subghz_protocol_encoder_beninca_arc_alloc(SubGhzEnvironment* environment) 
     return instance;
 }
 
-void subghz_protocol_encoder_beninca_arc_free(void* context) {
-    furi_assert(context);
-    SubGhzProtocolEncoderBenincaARC* instance = context;
-    free(instance->encoder.upload);
-    free(instance);
-}
-
 void subghz_protocol_encoder_beninca_arc_stop(void* context) {
     furi_assert(context);
     SubGhzProtocolEncoderBenincaARC* instance = context;
@@ -360,8 +354,9 @@ static void subghz_protocol_beninca_arc_encoder_prepare_packets(
     instance->generic.btn = subghz_protocol_beninca_arc_get_btn_code();
 
     // override button if we change it with signal settings button editor
-    if(subghz_block_generic_global_button_override_get(&instance->generic.btn))
+    if(subghz_block_generic_global_button_override_get(&instance->generic.btn)) {
         FURI_LOG_D(TAG, "Button sucessfully changed to 0x%X", instance->generic.btn);
+    }
 
     // Make 3 packets with different mini counter values - 2, 4, 6
     for(uint8_t i = 0; i < 3; i++) {
@@ -506,18 +501,6 @@ void* subghz_protocol_decoder_beninca_arc_alloc(SubGhzEnvironment* environment) 
     return instance;
 }
 
-void subghz_protocol_decoder_beninca_arc_free(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderBenincaARC* instance = context;
-    free(instance);
-}
-
-void subghz_protocol_decoder_beninca_arc_reset(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderBenincaARC* instance = context;
-    instance->decoder.parser_step = BenincaARCDecoderStart;
-}
-
 void subghz_protocol_decoder_beninca_arc_feed(void* context, bool level, uint32_t duration) {
     furi_assert(context);
     SubGhzProtocolDecoderBenincaARC* instance = context;
@@ -591,13 +574,6 @@ void subghz_protocol_decoder_beninca_arc_feed(void* context, bool level, uint32_
             break;
         }
     }
-}
-
-uint32_t subghz_protocol_decoder_beninca_arc_get_hash_data(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderBenincaARC* instance = context;
-    return subghz_protocol_blocks_get_hash_data_long(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
 }
 
 SubGhzProtocolStatus subghz_protocol_decoder_beninca_arc_serialize(

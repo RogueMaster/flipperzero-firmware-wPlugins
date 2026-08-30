@@ -4,6 +4,7 @@
 #include "../blocks/encoder.h"
 #include "../blocks/generic.h"
 #include "../blocks/math.h"
+#include "common.h"
 
 #include "../blocks/custom_btn_i.h"
 
@@ -38,14 +39,14 @@ typedef enum {
 
 const SubGhzProtocolDecoder subghz_protocol_hay21_decoder = {
     .alloc = subghz_protocol_decoder_hay21_alloc,
-    .free = subghz_protocol_decoder_hay21_free,
+    .free = subghz_protocol_decoder_common_free,
 
     .feed = subghz_protocol_decoder_hay21_feed,
-    .reset = subghz_protocol_decoder_hay21_reset,
+    .reset = subghz_protocol_decoder_common_reset,
 
     .get_hash_data = NULL,
-    .get_hash_data_long = subghz_protocol_decoder_hay21_get_hash_data,
-    .serialize = subghz_protocol_decoder_hay21_serialize,
+    .get_hash_data_long = subghz_protocol_decoder_common_get_hash_data,
+    .serialize = subghz_protocol_decoder_common_serialize,
     .deserialize = subghz_protocol_decoder_hay21_deserialize,
     .get_string = subghz_protocol_decoder_hay21_get_string,
     .get_string_brief = NULL,
@@ -53,11 +54,11 @@ const SubGhzProtocolDecoder subghz_protocol_hay21_decoder = {
 
 const SubGhzProtocolEncoder subghz_protocol_hay21_encoder = {
     .alloc = subghz_protocol_encoder_hay21_alloc,
-    .free = subghz_protocol_encoder_hay21_free,
+    .free = subghz_protocol_encoder_common_free,
 
     .deserialize = subghz_protocol_encoder_hay21_deserialize,
-    .stop = subghz_protocol_encoder_hay21_stop,
-    .yield = subghz_protocol_encoder_hay21_yield,
+    .stop = subghz_protocol_encoder_common_stop,
+    .yield = subghz_protocol_encoder_common_yield,
 };
 
 const SubGhzProtocol subghz_protocol_hay21 = {
@@ -82,13 +83,6 @@ void* subghz_protocol_encoder_hay21_alloc(SubGhzEnvironment* environment) {
     instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
     instance->encoder.is_running = false;
     return instance;
-}
-
-void subghz_protocol_encoder_hay21_free(void* context) {
-    furi_assert(context);
-    SubGhzProtocolEncoderHay21* instance = context;
-    free(instance->encoder.upload);
-    free(instance);
 }
 
 // Get custom button code
@@ -147,8 +141,9 @@ static void subghz_protocol_encoder_hay21_get_upload(SubGhzProtocolEncoderHay21*
     instance->generic.btn = subghz_protocol_hay21_get_btn_code();
 
     // override button if we change it with signal settings button editor
-    if(subghz_block_generic_global_button_override_get(&instance->generic.btn))
+    if(subghz_block_generic_global_button_override_get(&instance->generic.btn)) {
         FURI_LOG_D(TAG, "Button sucessfully changed to 0x%X", instance->generic.btn);
+    }
 
     // Counter increment
     // Check for OFEX (overflow experimental) mode
@@ -299,47 +294,12 @@ SubGhzProtocolStatus
     return ret;
 }
 
-void subghz_protocol_encoder_hay21_stop(void* context) {
-    SubGhzProtocolEncoderHay21* instance = context;
-    instance->encoder.is_running = false;
-}
-
-LevelDuration subghz_protocol_encoder_hay21_yield(void* context) {
-    SubGhzProtocolEncoderHay21* instance = context;
-
-    if(instance->encoder.repeat == 0 || !instance->encoder.is_running) {
-        instance->encoder.is_running = false;
-        return level_duration_reset();
-    }
-
-    LevelDuration ret = instance->encoder.upload[instance->encoder.front];
-
-    if(++instance->encoder.front == instance->encoder.size_upload) {
-        if(!subghz_block_generic_global.endless_tx) instance->encoder.repeat--;
-        instance->encoder.front = 0;
-    }
-
-    return ret;
-}
-
 void* subghz_protocol_decoder_hay21_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolDecoderHay21* instance = malloc(sizeof(SubGhzProtocolDecoderHay21));
     instance->base.protocol = &subghz_protocol_hay21;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
-}
-
-void subghz_protocol_decoder_hay21_free(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderHay21* instance = context;
-    free(instance);
-}
-
-void subghz_protocol_decoder_hay21_reset(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderHay21* instance = context;
-    instance->decoder.parser_step = Hay21DecoderStepReset;
 }
 
 void subghz_protocol_decoder_hay21_feed(void* context, bool level, volatile uint32_t duration) {
@@ -436,22 +396,6 @@ static const char* subghz_protocol_hay21_get_button_name(uint8_t btn) {
         break;
     }
     return btn_name;
-}
-
-uint32_t subghz_protocol_decoder_hay21_get_hash_data(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderHay21* instance = context;
-    return subghz_protocol_blocks_get_hash_data_long(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
-}
-
-SubGhzProtocolStatus subghz_protocol_decoder_hay21_serialize(
-    void* context,
-    FlipperFormat* flipper_format,
-    SubGhzRadioPreset* preset) {
-    furi_assert(context);
-    SubGhzProtocolDecoderHay21* instance = context;
-    return subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
 }
 
 SubGhzProtocolStatus

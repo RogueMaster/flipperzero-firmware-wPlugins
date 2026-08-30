@@ -6,6 +6,7 @@
 #include "../blocks/encoder.h"
 #include "../blocks/generic.h"
 #include "../blocks/math.h"
+#include "common.h"
 
 #include "../blocks/custom_btn_i.h"
 
@@ -55,13 +56,13 @@ typedef enum {
 
 const SubGhzProtocolDecoder subghz_protocol_secplus_v2_decoder = {
     .alloc = subghz_protocol_decoder_secplus_v2_alloc,
-    .free = subghz_protocol_decoder_secplus_v2_free,
+    .free = subghz_protocol_decoder_common_free,
 
     .feed = subghz_protocol_decoder_secplus_v2_feed,
     .reset = subghz_protocol_decoder_secplus_v2_reset,
 
     .get_hash_data = NULL,
-    .get_hash_data_long = subghz_protocol_decoder_secplus_v2_get_hash_data,
+    .get_hash_data_long = subghz_protocol_decoder_common_get_hash_data,
     .serialize = subghz_protocol_decoder_secplus_v2_serialize,
     .deserialize = subghz_protocol_decoder_secplus_v2_deserialize,
     .get_string = subghz_protocol_decoder_secplus_v2_get_string,
@@ -70,11 +71,11 @@ const SubGhzProtocolDecoder subghz_protocol_secplus_v2_decoder = {
 
 const SubGhzProtocolEncoder subghz_protocol_secplus_v2_encoder = {
     .alloc = subghz_protocol_encoder_secplus_v2_alloc,
-    .free = subghz_protocol_encoder_secplus_v2_free,
+    .free = subghz_protocol_encoder_common_free,
 
     .deserialize = subghz_protocol_encoder_secplus_v2_deserialize,
     .stop = subghz_protocol_encoder_secplus_v2_stop,
-    .yield = subghz_protocol_encoder_secplus_v2_yield,
+    .yield = subghz_protocol_encoder_common_yield,
 };
 
 const SubGhzProtocol subghz_protocol_secplus_v2 = {
@@ -99,13 +100,6 @@ void* subghz_protocol_encoder_secplus_v2_alloc(SubGhzEnvironment* environment) {
     instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
     instance->encoder.is_running = false;
     return instance;
-}
-
-void subghz_protocol_encoder_secplus_v2_free(void* context) {
-    furi_assert(context);
-    SubGhzProtocolEncoderSecPlus_v2* instance = context;
-    free(instance->encoder.upload);
-    free(instance);
 }
 
 static bool subghz_protocol_secplus_v2_mix_invet(uint8_t invert, uint16_t p[]) {
@@ -398,8 +392,9 @@ static void subghz_protocol_secplus_v2_encode(SubGhzProtocolEncoderSecPlus_v2* i
     instance->generic.btn = subghz_protocol_secplus_v2_get_btn_code();
 
     // override button if we change it with signal settings button editor
-    if(subghz_block_generic_global_button_override_get(&instance->generic.btn))
+    if(subghz_block_generic_global_button_override_get(&instance->generic.btn)) {
         FURI_LOG_D(TAG, "Button sucessfully changed to 0x%X", instance->generic.btn);
+    }
 
     uint32_t fixed_1[1] = {instance->generic.btn << 12 | instance->generic.serial >> 20};
     uint32_t fixed_2[1] = {instance->generic.serial & 0xFFFFF};
@@ -618,24 +613,6 @@ void subghz_protocol_encoder_secplus_v2_stop(void* context) {
     instance->encoder.front = 0; // reset position
 }
 
-LevelDuration subghz_protocol_encoder_secplus_v2_yield(void* context) {
-    SubGhzProtocolEncoderSecPlus_v2* instance = context;
-
-    if(instance->encoder.repeat == 0 || !instance->encoder.is_running) {
-        instance->encoder.is_running = false;
-        return level_duration_reset();
-    }
-
-    LevelDuration ret = instance->encoder.upload[instance->encoder.front];
-
-    if(++instance->encoder.front == instance->encoder.size_upload) {
-        if(!subghz_block_generic_global.endless_tx) instance->encoder.repeat--;
-        instance->encoder.front = 0;
-    }
-
-    return ret;
-}
-
 bool subghz_protocol_secplus_v2_create_data(
     void* context,
     FlipperFormat* flipper_format,
@@ -675,12 +652,6 @@ void* subghz_protocol_decoder_secplus_v2_alloc(SubGhzEnvironment* environment) {
     instance->generic.protocol_name = instance->base.protocol->name;
 
     return instance;
-}
-
-void subghz_protocol_decoder_secplus_v2_free(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderSecPlus_v2* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_secplus_v2_reset(void* context) {
@@ -799,13 +770,6 @@ void subghz_protocol_decoder_secplus_v2_feed(void* context, bool level, uint32_t
         }
         break;
     }
-}
-
-uint32_t subghz_protocol_decoder_secplus_v2_get_hash_data(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderSecPlus_v2* instance = context;
-    return subghz_protocol_blocks_get_hash_data_long(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
 }
 
 SubGhzProtocolStatus subghz_protocol_decoder_secplus_v2_serialize(
