@@ -1,6 +1,7 @@
 #pragma once
 
 #include <furi.h>
+#include <storage/storage.h>
 #include <furi_hal.h>
 #include <gui/gui.h>
 #include <gui/view_port.h>
@@ -44,7 +45,10 @@
 
 #define ROSTER_MAX_NODES 16
 
-#define SETTINGS_PATH "/ext/zeromesh/settings.cfg"
+/* The catalogue only permits writes to the app data directory. The old
+   location is still read so an existing install keeps its settings. */
+#define SETTINGS_PATH     APP_DATA_PATH("settings.cfg")
+#define SETTINGS_PATH_OLD "/ext/zeromesh/settings.cfg"
 #define MAX_CHANNELS 8
 
 #define MAX_RINGTONE_PATH 128

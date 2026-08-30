@@ -20,7 +20,7 @@ Notifications are fully configurable. Vibration, LED flash, and audio are all in
 
 Messages show the sender's node ID in !a1b2 format above each bubble. Long messages can either scroll across the screen or wrap to multiple lines depending on your preference, and the display compacts short messages so more fit on screen at once. New messages auto-scroll into view, but you can scroll back manually at any time.
 
-All settings persist to /ext/zeromesh/settings.cfg on the SD card automatically, nothing needs saving manually. UART port and baud rate are configurable, with support for both USART and LPUART.
+All settings persist to /ext/apps_data/zeromesh/settings.cfg on the SD card automatically, nothing needs saving manually. UART port and baud rate are configurable, with support for both USART and LPUART.
 
 ## Transports
 
@@ -36,7 +36,7 @@ Turn Bluetooth on in the Flipper's own settings before selecting the BLE transpo
 
 The Map page draws an offline vector map and overlays roster nodes that report a GPS position.
 
-Map data is read from a PMTiles archive at /ext/zeromesh/map.pmtiles. The archive must be built with compression set to none, because the Flipper firmware has no gzip.
+Map data is read from a PMTiles archive at /ext/apps_data/zeromesh/map.pmtiles. The archive must be built with compression set to none, because the Flipper firmware has no gzip.
 
 tools/zeromesh_setup.py does the whole thing from a place name, and copies the result to the Flipper if it is plugged in:
 
@@ -54,7 +54,7 @@ tools/build_pmtiles.py packs that tree into an archive:
 
 Pass --simplify for anything beyond a few tiles. It removes the layers the renderer never draws, drops detail finer than one screen pixel, and holds every tile under --max-tile-bytes, which must not exceed the on-device tile buffer. --leaf-size splits the directory into leaves that are paged in from the card as needed; without it the whole directory has to fit in RAM, which puts a ceiling of a few hundred tiles on an archive.
 
-Copy the result to /ext/zeromesh/map.pmtiles on the SD card. A card reader is much faster than USB for anything beyond a handful of tiles.
+Copy the result to /ext/apps_data/zeromesh/map.pmtiles on the SD card. A card reader is much faster than USB for anything beyond a handful of tiles.
 
 Without an archive present the Map page still opens and reports the missing tile, so map data is optional.
 
@@ -161,7 +161,7 @@ Settings automatically save when changed.
 ## Settings Not Saving
 1. Ensure SD card is inserted and mounted.
 2. Check /ext folder exists on SD card.
-3. Try deleting /ext/zeromesh/settings.cfg and restart.
+3. Try deleting /ext/apps_data/zeromesh/settings.cfg and restart.
 
 ## License
 

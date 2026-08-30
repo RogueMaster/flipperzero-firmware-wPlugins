@@ -90,7 +90,7 @@ def upload(port, local, remote):
 
     s = cli(port)
     try:
-        s.write(b'storage mkdir /ext/zeromesh\r\n')
+        s.write(b'storage mkdir /ext/apps_data/zeromesh\r\n')
         s.read_until(b'>: ')
         s.write(('storage remove "%s"\r\n' % remote).encode())
         s.read_until(b'>: ')
@@ -181,7 +181,7 @@ def main():
 
     if not args.install:
         print()
-        print('Copy %s to /ext/zeromesh/map.pmtiles on the SD card,' % args.out)
+        print('Copy %s to /ext/apps_data/zeromesh/map.pmtiles on the SD card,' % args.out)
         print('or re-run with --install to send it over USB.')
         return
 
@@ -191,7 +191,7 @@ def main():
 
     print()
     print('installing to %s' % port)
-    upload(port, args.out, '/ext/zeromesh/map.pmtiles')
+    upload(port, args.out, '/ext/apps_data/zeromesh/map.pmtiles')
     print('done. Open ZeroMesh and go to the Map page.')
 
 

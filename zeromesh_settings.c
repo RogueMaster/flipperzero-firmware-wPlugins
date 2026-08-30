@@ -10,7 +10,7 @@ void settings_save(ZeroMeshApp* app) {
     
     Storage* storage = furi_record_open(RECORD_STORAGE);
     
-    storage_common_mkdir(storage, "/ext/zeromesh");
+    storage_common_mkdir(storage, APP_DATA_PATH(""));
     
     File* file = storage_file_alloc(storage);
     
@@ -60,7 +60,10 @@ void settings_load(ZeroMeshApp* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     
-    if(storage_file_open(file, SETTINGS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    const char* path = SETTINGS_PATH;
+    if(!storage_file_exists(storage, path)) path = SETTINGS_PATH_OLD;
+
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         char buffer[256];
         uint16_t bytes_read = storage_file_read(file, buffer, sizeof(buffer) - 1);
         buffer[bytes_read] = '\0';

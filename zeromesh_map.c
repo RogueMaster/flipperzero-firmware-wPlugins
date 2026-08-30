@@ -14,8 +14,10 @@
 
 #define TAG "zeromesh_map"
 
-#define MAP_DIR        "/ext/zeromesh/map"
-#define MAP_PMTILES    "/ext/zeromesh/map.pmtiles"
+#define MAP_DIR            APP_DATA_PATH("map")
+#define MAP_PMTILES        APP_DATA_PATH("map.pmtiles")
+#define MAP_DIR_OLD        "/ext/zeromesh/map"
+#define MAP_PMTILES_OLD    "/ext/zeromesh/map.pmtiles"
 #define MAP_TILE_MAX   24576
 #define MAP_SCRATCH_PT 384
 #define MAP_MAX_LABELS 6
@@ -213,6 +215,9 @@ static bool map_fetch_tile(MapState* m, int z, int tx, int ty) {
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* f = storage_file_alloc(storage);
+
+    if(!storage_file_exists(storage, path))
+        snprintf(path, sizeof(path), MAP_DIR_OLD "/%d/%d/%d.mvt", z, tx, ty);
 
     if(storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         uint64_t sz = storage_file_size(f);
@@ -1188,6 +1193,7 @@ bool map_alloc(ZeroMeshApp* app) {
     m->scratch_cap = MAP_SCRATCH_PT;
 
     m->pm = pmtiles_open(MAP_PMTILES);
+    if(!m->pm) m->pm = pmtiles_open(MAP_PMTILES_OLD);
     size_t tile_buf = MAP_TILE_MAX;
     if(m->pm) {
         uint32_t biggest = pmtiles_max_tile_len(m->pm);
