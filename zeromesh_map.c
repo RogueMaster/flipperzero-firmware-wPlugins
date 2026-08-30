@@ -81,7 +81,7 @@ struct MapState {
     MapTown towns[MAP_MAX_TOWNS];
 
     MapLabel labels[MAP_MAX_LABELS];
-    int16_t taken[MAP_MAX_LABELS + 2][4];
+    int16_t taken[MAP_MAX_LABELS + 2 + ROSTER_MAX_NODES][4];
     uint8_t label_count;
     uint32_t extent;
 
@@ -501,7 +501,48 @@ void map_tick(ZeroMeshApp* app) {
     m->dirty = false;
 }
 
-static void map_draw_labels(Canvas* canvas, MapState* m) {
+typedef struct {
+    int px, py;
+    int tx, ty, tw;
+    int halo;
+    const char* tag;
+    char idbuf[8];
+} NodeDraw;
+
+/* Marker and tag geometry, shared so the label placer reserves precisely
+   what the markers go on to draw. */
+static bool node_layout(Canvas* canvas, MapState* m, NodeEntry* n, NodeDraw* out) {
+    if(!n->has_position) return false;
+
+    float gxf, gyf;
+    latlon_global(n->latitude_i / 1e7f, n->longitude_i / 1e7f, m->z, &gxf, &gyf);
+    out->px = (int)(gxf * (float)m->tile_px) - m->gx;
+    out->py = (int)(gyf * (float)m->tile_px) - m->gy;
+
+    if(out->px < 8 || out->py < 16 || out->px >= MAP_W - 8 || out->py >= MAP_H - 8)
+        return false;
+
+    out->halo = (n->node_id == m->focus_id) ? 7 : 4;
+
+    out->tag = (n->has_name && n->short_name[0]) ? n->short_name : NULL;
+    if(!out->tag) {
+        snprintf(out->idbuf, sizeof(out->idbuf), "%04lx",
+                 (unsigned long)(n->node_id & 0xFFFF));
+        out->tag = out->idbuf;
+    }
+
+    out->tw = canvas_string_width(canvas, out->tag);
+    out->tx = out->px + 8;
+    if(out->tx + out->tw > MAP_W) out->tx = out->px - 8 - out->tw;
+    if(out->tx < 0) out->tx = 0;
+    out->ty = out->py + 3;
+    if(out->ty < 8) out->ty = 8;
+    if(out->ty > MAP_H - 1) out->ty = MAP_H - 1;
+    return true;
+}
+
+static void map_draw_labels(Canvas* canvas, ZeroMeshApp* app) {
+    MapState* m = app->map;
     canvas_set_font(canvas, FontSecondary);
 
     int ntaken = 0;
@@ -517,6 +558,25 @@ static void map_draw_labels(Canvas* canvas, MapState* m) {
     m->taken[ntaken][2] = 52;
     m->taken[ntaken][3] = MAP_H;
     ntaken++;
+
+    for(uint8_t i = 0; i < app->roster.count; i++) {
+        NodeDraw nd;
+        if(!node_layout(canvas, m, &app->roster.nodes[i], &nd)) continue;
+        if(ntaken >= MAP_MAX_LABELS + 2 + ROSTER_MAX_NODES) break;
+
+        int x0 = nd.px - nd.halo, x1 = nd.px + nd.halo;
+        int y0 = nd.py - nd.halo, y1 = nd.py + nd.halo;
+        if(nd.tx - 1 < x0) x0 = nd.tx - 1;
+        if(nd.tx + nd.tw + 1 > x1) x1 = nd.tx + nd.tw + 1;
+        if(nd.ty - 7 < y0) y0 = nd.ty - 7;
+        if(nd.ty + 1 > y1) y1 = nd.ty + 1;
+
+        m->taken[ntaken][0] = (int16_t)x0;
+        m->taken[ntaken][1] = (int16_t)y0;
+        m->taken[ntaken][2] = (int16_t)x1;
+        m->taken[ntaken][3] = (int16_t)y1;
+        ntaken++;
+    }
 
     for(uint8_t i = 0; i < m->label_count; i++) {
         MapLabel* l = &m->labels[i];
@@ -550,7 +610,7 @@ static void map_draw_labels(Canvas* canvas, MapState* m) {
         }
         if(clash) continue;
 
-        if(ntaken < MAP_MAX_LABELS + 2) {
+        if(ntaken < MAP_MAX_LABELS + 2 + ROSTER_MAX_NODES) {
             m->taken[ntaken][0] = (int16_t)x0;
             m->taken[ntaken][1] = (int16_t)y0;
             m->taken[ntaken][2] = (int16_t)x1;
@@ -575,46 +635,26 @@ static void map_draw_nodes(Canvas* canvas, ZeroMeshApp* app) {
 
     for(uint8_t i = 0; i < app->roster.count; i++) {
         NodeEntry* n = &app->roster.nodes[i];
-        if(!n->has_position) continue;
-
-        float gxf, gyf;
-        latlon_global(n->latitude_i / 1e7f, n->longitude_i / 1e7f, m->z, &gxf, &gyf);
-
-        int px = (int)(gxf * (float)m->tile_px) - m->gx;
-        int py = (int)(gyf * (float)m->tile_px) - m->gy;
-
-        if(px < 8 || py < 16 || px >= MAP_W - 8 || py >= MAP_H - 8) continue;
+        NodeDraw nd;
+        if(!node_layout(canvas, m, n, &nd)) continue;
 
         bool focus = (n->node_id == m->focus_id);
 
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_disc(canvas, px, py, focus ? 7 : 4);
+        canvas_draw_disc(canvas, nd.px, nd.py, nd.halo);
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_circle(canvas, px, py, 4);
+        canvas_draw_circle(canvas, nd.px, nd.py, 4);
         if(focus) {
-            canvas_draw_disc(canvas, px, py, 2);
-            if(m->blink & 1) canvas_draw_circle(canvas, px, py, 6);
+            canvas_draw_disc(canvas, nd.px, nd.py, 2);
+            if(m->blink & 1) canvas_draw_circle(canvas, nd.px, nd.py, 6);
         } else {
-            canvas_draw_dot(canvas, px, py);
+            canvas_draw_dot(canvas, nd.px, nd.py);
         }
 
-        const char* tag = n->has_name && n->short_name[0] ? n->short_name : NULL;
-        char idbuf[8];
-        if(!tag) {
-            snprintf(idbuf, sizeof(idbuf), "%04lx", (unsigned long)(n->node_id & 0xFFFF));
-            tag = idbuf;
-        }
-        int tw = canvas_string_width(canvas, tag);
-        int tx = px + 8;
-        if(tx + tw > MAP_W) tx = px - 8 - tw;
-        if(tx < 0) tx = 0;
-        int ty = py + 3;
-        if(ty < 8) ty = 8;
-        if(ty > MAP_H - 1) ty = MAP_H - 1;
         canvas_set_color(canvas, ColorWhite);
-        map_box(canvas, tx - 1, ty - 7, tw + 2, 8);
+        map_box(canvas, nd.tx - 1, nd.ty - 7, nd.tw + 2, 8);
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_str(canvas, tx, ty, tag);
+        canvas_draw_str(canvas, nd.tx, nd.ty, nd.tag);
     }
 }
 
@@ -771,6 +811,7 @@ static void map_draw_focus_range(Canvas* canvas, ZeroMeshApp* app) {
         uint64_t d2 = (uint64_t)(dx * dx + dy * dy);
         if(d2 > 0xFFFFFFFFull) d2 = 0xFFFFFFFFull;
         uint32_t px = zm_isqrt((uint32_t)d2);
+        if(px < 4) return;
 
         float mpp = 156543.034f * zm_cosf(m->lat * ZM_PI / 180.0f) / (float)(1 << m->z);
         float metres = (float)px * mpp;
@@ -879,7 +920,7 @@ void render_map(Canvas* canvas, ZeroMeshApp* app) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_xbm(canvas, 0, 0, MAP_W, MAP_H, m->fb_pixels);
 
-    map_draw_labels(canvas, m);
+    map_draw_labels(canvas, app);
     map_draw_nodes(canvas, app);
     map_draw_offscreen_focus(canvas, app);
     map_draw_edges(canvas, m);
