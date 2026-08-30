@@ -26,6 +26,6 @@ Do not power the node from Flipper 5V while it is also on USB.
 
 The map is optional. Without an archive the Map page still opens and says so, and everything else works normally.
 
-Map archives are built from OpenStreetMap vector tiles and stored on the SD card. The repository includes tooling that takes a place name and a radius, downloads the tiles, packs them, and copies the archive to the Flipper. See the project page for the full setup.
+Map archives are built from OpenStreetMap vector tiles and stored on the SD card. The repository includes tooling that takes a place name and a radius, downloads the tiles, packs them, and copies the archive to the Flipper. There is a setup page at [terminalbay.com/zeromesh.html](https://terminalbay.com/zeromesh.html) that works out how big an area will be and writes the command for you.
 
 Map data comes from OpenStreetMap contributors and is licensed under the Open Database License.
