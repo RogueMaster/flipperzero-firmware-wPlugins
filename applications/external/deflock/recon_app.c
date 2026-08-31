@@ -198,8 +198,7 @@ void recon_app_esp_power_tick(ReconApp* app) {
             app->otg_attempted = true;
         } else if(!app->esp_link_wait_tick) {
             app->esp_link_wait_tick = furi_get_tick();
-        } else if(
-            (uint32_t)(furi_get_tick() - app->esp_link_wait_tick) >= ESP_LINK_GRACE_MS) {
+        } else if((uint32_t)(furi_get_tick() - app->esp_link_wait_tick) >= ESP_LINK_GRACE_MS) {
             app->otg_attempted = true; // one shot regardless of the outcome
             act = true;
         }

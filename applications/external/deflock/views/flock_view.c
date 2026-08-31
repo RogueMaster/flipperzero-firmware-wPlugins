@@ -648,11 +648,11 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             44,
             AlignCenter,
             AlignCenter,
-            connected      ? "Scanning for ALPR..." :
-            port_busy      ? "UART busy - check port" :
-            otg_failed     ? "5V refused - see Help" :
-            otg_ours       ? "5V on, waiting for ESP" :
-                             "Connect ESP32...");
+            connected  ? "Scanning for ALPR..." :
+            port_busy  ? "UART busy - check port" :
+            otg_failed ? "5V refused - see Help" :
+            otg_ours   ? "5V on, waiting for ESP" :
+                         "Connect ESP32...");
         return;
     }
 
