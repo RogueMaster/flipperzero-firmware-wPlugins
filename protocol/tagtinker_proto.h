@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include "tagtinker_color26.h"
 
 #define TAGTINKER_PROTO_DM  0x85
 #define TAGTINKER_PROTO_SEG 0x84
@@ -45,6 +46,28 @@ typedef struct {
     uint8_t pl_bit_def;
     bool known;
 } TagTinkerTagProfile;
+
+static inline bool tagtinker_profile_needs_wh_swap(const TagTinkerTagProfile* profile) {
+    return profile && tagtinker_type_needs_wh_swap(profile->type_code);
+}
+
+static inline bool tagtinker_profile_uses_ui_page(const TagTinkerTagProfile* profile) {
+    return profile && tagtinker_type_uses_ui_page(profile->type_code);
+}
+
+static inline void tagtinker_profile_glass_size(
+    const TagTinkerTagProfile* profile,
+    uint16_t* width,
+    uint16_t* height) {
+    if(!profile || !width || !height) return;
+    if(tagtinker_profile_needs_wh_swap(profile)) {
+        *width = TAGTINKER_COLOR26_GLASS_W;
+        *height = TAGTINKER_COLOR26_GLASS_H;
+        return;
+    }
+    *width = profile->width;
+    *height = profile->height;
+}
 
 bool tagtinker_is_barcode_valid(const char* barcode);
 bool tagtinker_barcode_to_plid(const char* barcode, uint8_t plid[4]);

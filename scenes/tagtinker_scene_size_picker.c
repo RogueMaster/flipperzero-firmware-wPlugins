@@ -76,10 +76,9 @@ static void setting_cb(void* ctx, uint32_t index) {
 void tagtinker_scene_size_picker_on_enter(void* ctx) {
     TagTinkerApp* app = ctx;
     app->signal_mode = TagTinkerSignalPP4;
-    if(app->selected_target >= 0 &&
-       app->selected_target < app->target_count &&
-       app->targets[app->selected_target].profile.type_code == 1626) {
-        if(app->img_page == 0U || app->img_page == 1U) app->img_page = 2U;
+    if(app->selected_target >= 0 && app->selected_target < app->target_count &&
+       tagtinker_profile_uses_ui_page(&app->targets[app->selected_target].profile)) {
+        app->img_page = tagtinker_color26_resolve_page(app->img_page);
     } else if(app->img_page == 0U) {
         app->img_page = 1U;
     }
