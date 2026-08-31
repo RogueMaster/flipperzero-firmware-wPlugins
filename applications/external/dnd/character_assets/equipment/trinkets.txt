@@ -1,0 +1,104 @@
+# Dungeons & Dolphins d100 starting trinkets.
+# Numbering follows the standard 2014 Basic Rules / PHB d100 trinket table; labels are compact paraphrases.
+# A hidden d100 is rolled only when Inventory first initializes for a character.
+# Format: Roll|I|<live item record fields>
+1|I|Goblin Hand|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+2|I|Moon Crystal|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+3|I|Coin|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+4|I|Diary|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+5|I|Untarnished Ring|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+6|I|Chessman|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+7|I|Skull Knucklebones|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+8|I|Nightmare Idol|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+9|I|Elf-Finger Necklace|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+10|I|Deed|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+11|I|Block|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+12|I|Doll|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+13|I|Tooth|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+14|I|Dragon Scale|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+15|I|Feather|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+16|I|Likeness Card|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+17|I|Smoke Orb|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+18|I|Red Egg|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+19|I|Bubble Pipe|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+20|I|Pickled Flesh|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+21|I|Childhood Musicbox|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+22|I|Smug Halfling|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+23|I|Runed Orb|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+24|I|Rainbow Disk|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+25|I|Raven Icon|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+26|I|Tooth Bag|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+27|I|Warm Obsidian|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+28|I|Dragon Talon|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+29|I|Socks|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+30|I|Unmarkable Book|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+31|I|Star Badge|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+32|I|Heirloom Knife|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+33|I|Nail Vial|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+34|I|Spark Device|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+35|I|Sequined Glove|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+36|I|Pocket Vest|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+37|I|Weightless Stone|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+38|I|Goblin Sketch|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+39|I|Perfume Vial|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+40|I|Coal Gem|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+41|I|Banner Scrap|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+42|I|Lost Insignia|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+43|I|Silent Bell|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+44|I|Canary Lamp|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+45|I|Footed Chest|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+46|I|Bottled Sprite|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+47|I|Sealed Can|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+48|I|Goldfish Orb|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+49|I|Initialed Spoon|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+50|I|Golden Whistle|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+51|I|Giant Scarab|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+52|I|Toy Soldiers|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+53|I|Button Box|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+54|I|Unlit Candle|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+55|I|Doorless Cage|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+56|I|Key|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+57|I|Cryptic Map|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+58|I|Sword Hilt|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+59|I|Rabbit Foot|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+60|I|Glass Eye|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+61|I|Hideous Cameo|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+62|I|Silver Skull|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+63|I|Alabaster Mask|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+64|I|Foul Incense|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+65|I|Dreaming Nightcap|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+66|I|Bone Caltrop|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+67|I|Empty Monocle|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+68|I|Color Cube|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+69|I|Crystal Knob|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+70|I|Pink Dust|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+71|I|Song Fragment|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+72|I|Tear Earring|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+73|I|Misery Eggshell|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+74|I|Sleeping-Cat Fan|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+75|I|Bone Pipes|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+76|I|Clover Book|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+77|I|Machine Drawing|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+78|I|Empty Scabbard|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+79|I|Murder Invitation|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+80|I|Rat Pentacle|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+81|I|Archmage Handkerchief|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+82|I|Half Floorplan|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+83|I|Folding Cap|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+84|I|Bank Receipt|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+85|I|Missing-Pages Diary|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+86|I|Dream Snuffbox|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+87|I|Unknown Holy-Symbol|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+88|I|Incomplete Hero-Book|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+89|I|Dragon Blood|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+90|I|Elven Arrow|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+91|I|Unbending Needle|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+92|I|Dwarven Brooch|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+93|I|Winery Bottle|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+94|I|Mosaic Tile|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+95|I|Petrified Mouse|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+96|I|Dragon Pirate-Flag|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+97|I|Clockwork Crab|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+98|I|Griffon Grease|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+99|I|Two-Headed Worm|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+100|I|Hero Ashes|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0

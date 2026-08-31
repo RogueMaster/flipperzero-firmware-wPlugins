@@ -1,0 +1,2 @@
+# Dungeons & Dolphins starting equipment by species/race.
+# No bundled core species rows are needed. Add Key|I|... or Key|C|cp,sp,ep,gp,pp rows for add-ons/house rules.

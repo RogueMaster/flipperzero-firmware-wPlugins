@@ -1,33 +1,42 @@
-# Campaign pack schema 1
+# DNDAdventure campaign pack schema
 
-Campaign packs are listed in `campaigns/index.txt`. Each non-comment line is:
+Campaigns are declarative DNDAdventure data.
+
+## Index
 
 `stable_id|display_name|pack_version|min_app|max_app|entry_scene|scenes_file`
 
-- `stable_id` is filename-safe and never changes after publication.
-- `pack_version` is `1` for this format.
-- App compatibility uses a three-digit value: 2.3 is `203`; `0` as `max_app` means no declared maximum.
-- `entry_scene` must identify an `S` record in the named scene file.
-- `scenes_file` is relative to `campaigns/{stable_id}/`.
+`0` for `max_app` means no declared maximum. IDs must be filename-safe and stable.
 
-Scene files are line-oriented UTF-8:
+## Scene file
 
 `S|scene_id|title|body|sprite`
 
 `C|scene_id|choice|skill_index_or_-1|dc|success|failure|reward_item|milestone|quest_flag|achievement`
 
-IDs must be unique inside their scopes. Every success and failure link must identify an existing scene or `-`. Text fields must remain on one line and cannot contain `|`. The on-device diagnostics report incompatible manifests, missing files or entry scenes, duplicate IDs, and broken links.
+- A scene supports up to four choices.
+- `skill_index=-1` with `dc=0` is an automatic choice.
+- Success/failure targets must name valid scenes.
+- `quest_flag` and `achievement` use `0..31`; `255` means none.
+- A milestone choice must be guarded by a flag or achievement to avoid intentional duplicate Journal milestone entries.
+- Text is one-line UTF-8 and cannot contain `|`.
 
-User packs belong under `/ext/apps_data/dungeons_and_dolphins/campaigns/`. Add their manifest records to `custom_index.txt`; the app streams that persistent user index after the bundled read-only asset index. Prefix user-maintained campaign directories with `custom_`. Progress and checkpoints are stored in the same app-data campaign directory, separately for each character profile and campaign ID.
+Bundled **Ghost Protocol** demonstrates Investigation, Arcana, History, Insight, Perception, Persuasion, Sleight of Hand, Stealth and Survival-style branching using this same format. It is fiction and does not encode real device attack steps.
 
-## Installed packs
+## Runtime pack inbox
 
-Version 3.1 accepts one staged campaign pack from the Dungeons & Dolphins app-data inbox:
+Stage:
 
 - `packs/campaign_inbox/manifest.txt`
 - `packs/campaign_inbox/index.txt`
 - `packs/campaign_inbox/scenes.txt`
 
-The manifest uses the same `PocketPack=1`, `Id`, and `Name` fields documented for monster packs. No checksum is stored or required. The index must contain exactly one schema-1 campaign row whose stable ID matches the manifest and whose scene filename is `scenes.txt`.
+Manifest:
 
-Installation structurally validates both files before publishing, rejects IDs already present in bundled, direct-custom, or enabled installed indexes, and registers the pack transactionally. Enable/disable rebuilds only `APP_DATA_PATH("campaigns/enabled_index.txt")`; bundled manifests and scenes remain exclusively in `APP_ASSETS_PATH`.
+```text
+PocketPack=1
+Id=filename_safe_pack_id
+Name=Display Name
+```
+
+No checksum is required. Installed content and enabled indexes stay under DNDAdventure app data.

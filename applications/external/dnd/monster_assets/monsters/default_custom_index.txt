@@ -1,0 +1,4 @@
+# MonsterPack=1
+# id|name|CR eighths|XP|AC|HP|type|environment|source|role
+dolphin|Dolphin|1|25|12|11|Beast|Aquatic|Custom|Skirmisher
+capybara|Capybara|0|10|10|7|Beast|Wetlands|Custom|Minion

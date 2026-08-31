@@ -1,0 +1,95 @@
+# Dungeons & Dolphins starting equipment by primary class.
+# Format: Key|I|<live item record fields> or Key|C|cp,sp,ep,gp,pp
+# Items are copied only when the live character inventory is absent.
+# Artificer
+Artificer|I|Scale Mail|Starting equipment||1,450,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,14,2,0
+Artificer|I|Light Crossbow|Starting equipment|bolt|1,50,0,0,1,2,1,0,1,8,0,0,1,1,0,0,34,0,0,-1,0,0,0,-1,0
+Artificer|I|Crossbow Bolts|Starting equipment|bolt|20,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Artificer|I|Thieves' Tools|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Artificer|I|Dungeoneer's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Artificer|I|Dagger|Starting equipment||2,10,0,0,1,0,1,0,1,4,0,0,1,1,0,0,21,0,0,-1,0,0,0,-1,0
+Artificer|C|0,0,0,0,0
+# Barbarian
+Barbarian|I|Greataxe|Starting equipment||1,70,1,0,1,0,1,0,1,12,0,0,2,1,0,0,8,0,0,-1,0,0,0,-1,0
+Barbarian|I|Handaxe|Starting equipment||4,20,0,0,1,0,1,0,1,6,0,0,2,1,0,0,20,0,0,-1,0,0,0,-1,0
+Barbarian|I|Explorer's Pack|Starting equipment||1,120,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Barbarian|C|0,0,0,0,0
+# Bard
+Bard|I|Leather Armor|Starting equipment||1,100,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,11,9,0
+Bard|I|Rapier|Starting equipment||1,20,1,0,1,0,1,0,1,8,0,0,1,1,0,0,1,0,0,-1,0,0,0,-1,0
+Bard|I|Dagger|Starting equipment||1,10,0,0,1,0,1,0,1,4,0,0,1,1,0,0,21,0,0,-1,0,0,0,-1,0
+Bard|I|Lute|Starting equipment||1,20,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Bard|I|Entertainer's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Bard|C|0,0,0,0,0
+# Cleric
+Cleric|I|Scale Mail|Starting equipment||1,450,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,14,2,0
+Cleric|I|Shield|Starting equipment||1,60,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,2
+Cleric|I|Mace|Starting equipment||1,40,1,0,1,0,1,0,1,6,0,0,0,1,0,0,0,0,0,-1,0,0,0,-1,0
+Cleric|I|Holy Symbol|Starting equipment||1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Cleric|I|Priest's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Cleric|C|0,0,0,0,0
+# Druid
+Druid|I|Leather Armor|Starting equipment||1,100,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,11,9,0
+Druid|I|Shield|Starting equipment||1,60,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,2
+Druid|I|Sickle|Starting equipment||1,20,1,0,1,0,1,0,1,4,0,0,2,1,0,0,4,0,0,-1,0,0,0,-1,0
+Druid|I|Druidic Focus|Starting equipment||1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Druid|I|Explorer's Pack|Starting equipment||1,120,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Druid|C|0,0,0,0,0
+# Fighter
+Fighter|I|Chain Mail|Starting equipment||1,550,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,16,0,0
+Fighter|I|Shield|Starting equipment||1,60,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,2
+Fighter|I|Longsword|Starting equipment||1,30,1,0,1,0,1,0,1,8,10,0,2,1,0,0,0,0,0,-1,0,0,0,-1,0
+Fighter|I|Light Crossbow|Starting equipment|bolt|1,50,0,0,1,2,1,0,1,8,0,0,1,1,0,0,34,0,0,-1,0,0,0,-1,0
+Fighter|I|Crossbow Bolts|Starting equipment|bolt|20,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Fighter|I|Dungeoneer's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Fighter|C|0,0,0,0,0
+# Monk
+Monk|I|Spear|Starting equipment||1,30,1,0,1,0,1,0,1,6,8,0,1,1,0,0,16,0,0,-1,0,0,0,-1,0
+Monk|I|Dart|Starting equipment||5,2,0,0,1,2,1,0,1,4,0,0,1,1,0,0,19,0,0,-1,0,0,0,-1,0
+Monk|I|Explorer's Pack|Starting equipment||1,120,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Monk|C|0,0,0,0,0
+# Paladin
+Paladin|I|Chain Mail|Starting equipment||1,550,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,16,0,0
+Paladin|I|Shield|Starting equipment||1,60,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,2
+Paladin|I|Longsword|Starting equipment||1,30,1,0,1,0,1,0,1,8,10,0,2,1,0,0,0,0,0,-1,0,0,0,-1,0
+Paladin|I|Javelin|Starting equipment||5,20,0,0,1,0,1,0,1,6,0,0,1,1,0,0,16,0,0,-1,0,0,0,-1,0
+Paladin|I|Holy Symbol|Starting equipment||1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Paladin|I|Priest's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Paladin|C|0,0,0,0,0
+# Ranger
+Ranger|I|Studded Leather|Starting equipment||1,130,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,12,9,0
+Ranger|I|Scimitar|Starting equipment||2,30,1,0,1,0,1,0,1,6,0,0,2,1,0,0,5,0,0,-1,0,0,0,-1,0
+Ranger|I|Longbow|Starting equipment|arrow|1,20,0,0,1,2,1,0,1,8,0,0,1,1,0,0,42,0,0,-1,0,0,0,-1,0
+Ranger|I|Arrows|Starting equipment|arrow|20,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Ranger|I|Explorer's Pack|Starting equipment||1,120,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Ranger|C|0,0,0,0,0
+# Rogue
+Rogue|I|Leather Armor|Starting equipment||1,100,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,11,9,0
+Rogue|I|Shortsword|Starting equipment||1,20,1,0,1,0,1,0,1,6,0,0,1,1,0,0,5,0,0,-1,0,0,0,-1,0
+Rogue|I|Dagger|Starting equipment||2,10,0,0,1,0,1,0,1,4,0,0,1,1,0,0,21,0,0,-1,0,0,0,-1,0
+Rogue|I|Shortbow|Starting equipment|arrow|1,20,0,0,1,2,1,0,1,6,0,0,1,1,0,0,34,0,0,-1,0,0,0,-1,0
+Rogue|I|Arrows|Starting equipment|arrow|20,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Rogue|I|Thieves' Tools|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Rogue|I|Burglar's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Rogue|C|0,0,0,0,0
+# Sorcerer
+Sorcerer|I|Dagger|Starting equipment||2,10,0,0,1,0,1,0,1,4,0,0,1,1,0,0,21,0,0,-1,0,0,0,-1,0
+Sorcerer|I|Light Crossbow|Starting equipment|bolt|1,50,0,0,1,2,1,0,1,8,0,0,1,1,0,0,34,0,0,-1,0,0,0,-1,0
+Sorcerer|I|Crossbow Bolts|Starting equipment|bolt|20,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sorcerer|I|Arcane Focus|Starting equipment||1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sorcerer|I|Dungeoneer's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sorcerer|C|0,0,0,0,0
+# Warlock
+Warlock|I|Leather Armor|Starting equipment||1,100,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,11,9,0
+Warlock|I|Sickle|Starting equipment||1,20,1,0,1,0,1,0,1,4,0,0,2,1,0,0,4,0,0,-1,0,0,0,-1,0
+Warlock|I|Dagger|Starting equipment||2,10,0,0,1,0,1,0,1,4,0,0,1,1,0,0,21,0,0,-1,0,0,0,-1,0
+Warlock|I|Arcane Focus|Starting equipment||1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Warlock|I|Scholar's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Warlock|C|0,0,0,0,0
+# Wizard
+Wizard|I|Quarterstaff|Starting equipment||1,40,1,0,1,0,1,0,1,6,8,0,0,1,0,0,0,0,0,-1,0,0,0,-1,0
+Wizard|I|Dagger|Starting equipment||1,10,0,0,1,0,1,0,1,4,0,0,1,1,0,0,21,0,0,-1,0,0,0,-1,0
+Wizard|I|Arcane Focus|Starting equipment||1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Wizard|I|Spellbook|Starting equipment||1,30,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Wizard|I|Scholar's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Wizard|C|0,0,0,0,0

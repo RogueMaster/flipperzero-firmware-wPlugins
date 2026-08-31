@@ -1,0 +1,83 @@
+# Dungeons & Dolphins starting equipment by background.
+# Currency is summed into the core character once; only I rows are copied to inventory.
+# Format: Key|I|<live item record fields> or Key|C|cp,sp,ep,gp,pp
+# Acolyte
+Acolyte|I|Holy Symbol|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Acolyte|I|Prayer Book|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Acolyte|I|Robe|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Acolyte|C|0,0,0,8,0
+# Artisan
+Artisan|I|Artisan's Tools|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Artisan|I|Traveler Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Artisan|I|Pouch|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Artisan|C|0,0,0,32,0
+# Charlatan
+Charlatan|I|Costume|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Charlatan|I|Fine Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Charlatan|I|Forgery Kit|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Charlatan|C|0,0,0,15,0
+# Criminal
+Criminal|I|Crowbar|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Criminal|I|Dark Common Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Criminal|I|Pouch|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Criminal|C|0,0,0,16,0
+# Entertainer
+Entertainer|I|Musical Instrument|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Entertainer|I|Costume|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Entertainer|I|Traveler Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Entertainer|C|0,0,0,11,0
+# Farmer
+Farmer|I|Sickle|Starting equipment||1,20,0,0,1,0,1,0,1,4,0,0,2,1,0,0,4,0,0,-1,0,0,0,-1,0
+Farmer|I|Carpenter Tools|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Farmer|I|Healer Kit|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Farmer|C|0,0,0,30,0
+# Guard
+Guard|I|Spear|Starting equipment||1,30,0,0,1,0,1,0,1,6,8,0,1,1,0,0,16,0,0,-1,0,0,0,-1,0
+Guard|I|Gaming Set|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Guard|I|Hooded Lantern|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Guard|C|0,0,0,12,0
+# Guide
+Guide|I|Bedroll|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Guide|I|Tent|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Guide|I|Map Case|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Guide|C|0,0,0,16,0
+# Hermit
+Hermit|I|Herbalism Kit|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Hermit|I|Bedroll|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Hermit|I|Lamp|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Hermit|C|0,0,0,16,0
+# Merchant
+Merchant|I|Abacus|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Merchant|I|Pouch|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Merchant|I|Traveler Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Merchant|C|0,0,0,22,0
+# Noble
+Noble|I|Fine Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Noble|I|Signet Ring|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Noble|I|Perfume|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Noble|C|0,0,0,29,0
+# Sage
+Sage|I|Calligrapher Supplies|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sage|I|Book|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sage|I|Parchment|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sage|C|0,0,0,8,0
+# Sailor
+Sailor|I|Rope 50 ft|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sailor|I|Fishing Tackle|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sailor|I|Traveler Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Sailor|C|0,0,0,20,0
+# Scribe
+Scribe|I|Calligrapher Supplies|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Scribe|I|Ink|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Scribe|I|Parchment|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Scribe|C|0,0,0,23,0
+# Soldier
+Soldier|I|Gaming Set|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Soldier|I|Healer Kit|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Soldier|I|Traveler Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Soldier|C|0,0,0,18,0
+# Wayfarer
+Wayfarer|I|Gaming Set|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Wayfarer|I|Bedroll|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Wayfarer|I|Traveler Clothes|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+Wayfarer|C|0,0,0,16,0

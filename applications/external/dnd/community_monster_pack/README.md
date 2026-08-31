@@ -1,11 +1,9 @@
-# Community monster record template
+# Community monster pack template
 
-Append the sample summary row to `/ext/apps_assets/dolphin_bestiary/monsters/index.txt`, then append the matching `[stable_id]` section to `statblocks.txt`. The app streams those two normal pack files and identifies editable records by source `Custom`.
+Use `monsters/index_rows.txt` for index rows and add matching `[id]` sections to `monsters/statblock_sections.txt` when preparing content for a pack.
 
-Add one index row per creature using:
+Index format:
 
-`id|name|challenge rating in eighths|XP|AC|HP|type|environment|source|role`
+`id|name|CR_eighths|XP|AC|HP|type|environment|source|role`
 
-IDs must be unique and filename-safe. A matching section can contain `SizeAlignment`, `Speed`, `Abilities`, `Skills`, `Defenses`, `Senses`, `Languages`, `Traits`, `Actions`, and `Extra` key/value lines. Keep each value on one line and within 191 characters.
-
-Use only material you have permission to redistribute. The on-device Pack Diagnostics screen reports missing sections and duplicate IDs.
+Keep IDs stable, text within parser limits and all required statblock fields present. Runtime custom monsters belong under DNDBestiary app data; do not overwrite a user's custom pack merely to add defaults.

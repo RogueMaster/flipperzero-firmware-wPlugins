@@ -1,0 +1,55 @@
+# Fictional, authorized security-audit campaign. No real exploit instructions are included.
+# S|scene_id|title|body|sprite
+# C|scene_id|choice|skill_index (or -1)|dc|success|failure|reward_item|milestone|quest_flag|achievement
+S|audit_brief|Ghost Protocol|A guild archivist hires the party to audit a sealed relay house. A Flipper Zero is issued as a pocket inspection tool; the contract permits testing only the marked systems.|flipper
+C|audit_brief|Review the scope|8|10|lobby_scan|scope_retry|Audit Scope Card|-|0|255
+C|audit_brief|Question the archivist|6|11|lobby_scan|scope_retry|-|-|0|255
+S|scope_retry|Scope Check|The archivist taps the signed boundaries. The job is defensive: identify weaknesses, record evidence, and leave every system usable.|flipper
+C|scope_retry|Map the allowed targets|8|10|lobby_scan|scope_retry|-|-|0|255
+C|scope_retry|Ask for clarification|13|10|lobby_scan|scope_retry|-|-|0|255
+S|lobby_scan|Silent Lobby|Old terminals blink behind warded glass. The Flipper reports only harmless test identifiers from the authorized beacons; something else is replaying stale credentials.|signal
+C|lobby_scan|Trace the odd pattern|8|12|token_trail|false_positive|Signal Notebook|-|1|255
+C|lobby_scan|Watch for a physical clue|11|11|token_trail|false_positive|-|-|1|255
+C|lobby_scan|Examine the ward logic|2|13|token_trail|false_positive|-|-|1|255
+S|false_positive|False Positive|A maintenance loop mimics an intrusion. The evidence is incomplete, so the party marks it as benign and returns to the lobby instead of forcing a result.|signal
+C|false_positive|Recheck the evidence|8|11|token_trail|lobby_scan|-|-|1|255
+C|false_positive|Observe another cycle|11|10|token_trail|lobby_scan|-|-|1|255
+S|token_trail|Token Trail|A discarded badge and a corrupted access log point to a service corridor. The challenge is to prove the route without disturbing the live controls.|badge
+C|token_trail|Inspect the badge safely|15|12|service_hall|badge_lockout|Test Badge|-|2|255
+C|token_trail|Read the log chronology|5|12|service_hall|badge_lockout|-|-|2|255
+C|token_trail|Follow subtle footprints|17|12|service_hall|badge_lockout|-|-|2|255
+S|badge_lockout|Badge Lockout|The badge reader rejects the test token and locks its test channel. Nothing is bypassed; the party records the failure and looks for another authorized path.|badge
+C|badge_lockout|Use the maintenance route|8|11|service_hall|token_trail|-|-|2|255
+C|badge_lockout|Ask the archivist to reset it|13|10|service_hall|token_trail|-|-|2|255
+S|service_hall|Service Hall|The corridor hums with relay boxes and exposed conduit. A watcher drone patrols the hall while the Flipper displays the approved diagnostic tag for each test fixture.|flipper
+C|service_hall|Move between patrols|16|13|relay_room|hall_spotted|Debug Cable|-|3|255
+C|service_hall|Predict the patrol rhythm|11|12|relay_room|hall_spotted|-|-|3|255
+C|service_hall|Identify the correct fixture|8|12|relay_room|hall_spotted|-|-|3|255
+S|hall_spotted|Watcher Alert|The drone notices the party and requests authorization. The correct response is procedural, not evasive; the audit can continue once the contract is verified.|drone
+C|hall_spotted|Present the contract|13|11|relay_room|service_hall|-|-|3|255
+C|hall_spotted|Explain the audit purpose|6|12|relay_room|service_hall|-|-|3|255
+S|relay_room|Relay Room|Inside the relay room, a rogue script is cycling test credentials between isolated training nodes. The party must determine whether it is a mistake or deliberate sabotage.|terminal
+C|relay_room|Correlate the logs|8|14|inside_job|script_noise|Forensic Notes|-|4|255
+C|relay_room|Interpret the strange routine|2|14|inside_job|script_noise|-|-|4|255
+C|relay_room|Spot human habits in the data|6|13|inside_job|script_noise|-|-|4|255
+S|script_noise|Noisy Script|The routine looks threatening but several entries are synthetic training data. The party separates test noise from real evidence and tries again.|terminal
+C|script_noise|Filter the timeline|8|12|inside_job|relay_room|-|-|4|255
+C|script_noise|Compare operator behavior|6|12|inside_job|relay_room|-|-|4|255
+S|inside_job|Inside Job|The evidence points to a frightened apprentice who hid an unauthorized shortcut after breaking a training node. They are still nearby, trying to erase the embarrassment.|terminal
+C|inside_job|Approach without accusation|13|13|confession|apprentice_runs|-|-|5|255
+C|inside_job|Read their intentions|6|12|confession|apprentice_runs|-|-|5|255
+C|inside_job|Block the obvious exit|16|13|confession|apprentice_runs|-|-|5|255
+S|apprentice_runs|Panic Route|The apprentice bolts into the stacks. The party avoids damaging equipment or escalating the situation and searches for a calmer way to end the chase.|drone
+C|apprentice_runs|Anticipate the hiding place|8|12|confession|inside_job|-|-|5|255
+C|apprentice_runs|Call for a peaceful stop|13|12|confession|inside_job|-|-|5|255
+S|confession|The Confession|The apprentice admits the shortcut and reveals a final hidden test node. The Flipper can verify the harmless training identifier while the party documents the real policy failure.|flipper
+C|confession|Verify the test node|8|12|final_report|report_delay|Red Team Patch|-|6|255
+C|confession|Inspect it by observation|11|12|final_report|report_delay|-|-|6|255
+C|confession|Explain the remediation|13|12|final_report|report_delay|-|-|6|255
+S|report_delay|Incomplete Report|The evidence is sound but poorly organized. The archivist asks for a clearer chain of findings before signing off.|scroll
+C|report_delay|Reconstruct the timeline|8|11|final_report|confession|-|-|6|255
+C|report_delay|Present the key facts|13|11|final_report|confession|-|-|6|255
+S|final_report|Audit Complete|The relay house remains intact, the shortcut is removed by its owner, and the guild receives a defensible report. The party earns recognition for proving the weakness without abusing it.|scroll
+C|final_report|File the final report|-1|0|audit_complete|audit_complete|-|Authorized Auditor|7|1
+S|audit_complete|Ghost Protocol Closed|The archivist seals the report and returns the Flipper Zero. A stamped patch marks the party as trusted auditors for future defensive work.|flipper
+C|audit_complete|Run another audit|-1|0|audit_brief|audit_brief|-|-|255|255

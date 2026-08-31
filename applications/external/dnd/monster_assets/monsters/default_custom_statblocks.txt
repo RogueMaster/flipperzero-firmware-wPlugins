@@ -1,0 +1,25 @@
+[dolphin]
+SizeAlignment=Medium Beast, Unaligned
+Speed=Swim 60 ft.
+Abilities=14,13,13,6,12,7
+Initiative=+1
+Skills=Perception +3
+Defenses=None listed
+Senses=Blindsight 60 ft.; Passive Perception 13
+Languages=None
+Traits=Charge; Hold Breath
+Actions=Slam. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) bludgeoning damage.
+Extra=Friendly marine mammal suitable for aquatic encounters.
+
+[capybara]
+SizeAlignment=Medium Beast, Unaligned
+Speed=30 ft.; Swim 20 ft.
+Abilities=12,10,14,2,12,7
+Initiative=+0
+Skills=Perception +3
+Defenses=None listed
+Senses=Passive Perception 13
+Languages=None
+Traits=Semi-Aquatic; Calm Herd
+Actions=Bite. Melee Attack Roll: +3, reach 5 ft. Hit: 3 (1d4 + 1) piercing damage.
+Extra=Social wetland beast; usually avoids combat unless cornered.

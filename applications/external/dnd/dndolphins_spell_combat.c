@@ -1,0 +1,396 @@
+#include "dndolphins_spell_combat.h"
+
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    const char* name;
+    uint8_t primary_dice;
+    uint8_t primary_die;
+    uint8_t secondary_dice;
+    uint8_t secondary_die;
+    int8_t flat_bonus;
+    uint8_t primary_upcast;
+    uint8_t secondary_upcast;
+    int8_t flat_upcast;
+    uint8_t cantrip_scale;
+    uint8_t add_spellcasting_modifier;
+    uint8_t resolution;
+    uint8_t attack_rolls;
+    uint8_t attack_rolls_upcast;
+    uint8_t cantrip_attack_scale;
+    int8_t secondary_flat_bonus;
+    int8_t secondary_flat_upcast;
+    uint8_t add_secondary_spellcasting_modifier;
+    uint8_t secondary_resolution;
+    uint8_t secondary_relation;
+    uint8_t roll_instances;
+    uint8_t roll_instances_upcast;
+    uint8_t derived_effect;
+} PocketSpellDamageMap;
+
+/*
+ * Combat-roll mappings for the bundled spell catalog. A row represents only dice or
+ * fixed values that can be rolled without guessing target statistics, weapon dice,
+ * summoned-creature stat blocks, forms, environmental geometry, or random tables.
+ * Distinct spell components use secondary_relation so the UI never collapses attack,
+ * save, delayed, healing, temporary-HP, or mitigation rolls into a misleading total.
+ */
+static const PocketSpellDamageMap pocket_spell_damage_map[] = {
+    {"Acid Splash", 1, 6, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Chill Touch", 1, 10, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Eldritch Blast", 1, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAttack, 1, 0, 1, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Fire Bolt", 1, 10, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Poison Spray", 1, 12, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Produce Flame", 1, 8, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Ray of Frost", 1, 8, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Sacred Flame", 1, 8, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Shocking Grasp", 1, 8, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Sorcerous Burst", 1, 8, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Starry Wisp", 1, 8, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Vicious Mockery", 1, 6, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Create Bonfire", 1, 8, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Frostbite", 1, 6, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Word of Radiance", 1, 6, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Magic Stone", 1, 6, 0, 0, 0, 0, 0, 0, 0, 1, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Primal Savagery", 1, 10, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Thunderclap", 1, 6, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Toll the Dead", 1, 8, 1, 12, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryAlternative, 0, 0, PocketSpellDerivedNone},
+    {"Infestation", 1, 6, 0, 0, 0, 0, 0, 0, 1, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Absorb Elements", 1, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Catapult", 3, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Chaos Bolt", 2, 8, 1, 6, 0, 0, 1, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Divine Favor", 1, 4, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Ensnaring Strike", 1, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Hex", 1, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Hunter's Mark", 1, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Cure Wounds", 2, 8, 0, 0, 0, 2, 0, 0, 0, 1, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"False Life", 2, 4, 0, 0, 4, 0, 0, 5, 0, 0, PocketSpellResolutionTemporaryHP, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Healing Word", 2, 4, 0, 0, 0, 2, 0, 0, 0, 1, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Burning Hands", 3, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Chromatic Orb", 3, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Dissonant Whispers", 3, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Divine Smite", 2, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Guiding Bolt", 4, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Hellish Rebuke", 2, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Ice Knife", 1, 10, 2, 6, 0, 0, 1, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryIndependent, 0, 0, PocketSpellDerivedNone},
+    {"Inflict Wounds", 2, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Magic Missile", 1, 4, 0, 0, 1, 0, 0, 0, 0, 0, PocketSpellResolutionAutomatic, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 3, 1, PocketSpellDerivedNone},
+    {"Ray of Sickness", 2, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Searing Smite", 1, 6, 1, 6, 0, 1, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryLater, 0, 0, PocketSpellDerivedNone},
+    {"Thunderwave", 2, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Earth Tremor", 1, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Spellfire Flare", 2, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAttack, 1, 1, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Wardaway", 2, 4, 0, 0, 0, 2, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Zephyr Strike", 1, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Aganazzar's Scorcher", 3, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Phantasmal Force", 2, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Death Armor", 2, 4, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Acid Arrow", 4, 4, 2, 4, 0, 1, 1, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, PocketSpellSecondaryLater, 0, 0, PocketSpellDerivedNone},
+    {"Dragon's Breath", 3, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Flame Blade", 3, 6, 0, 0, 0, 1, 0, 0, 0, 1, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Flaming Sphere", 2, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Heat Metal", 2, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionAutomatic, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Mind Spike", 3, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Moonbeam", 2, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Scorching Ray", 2, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAttack, 3, 1, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Shatter", 3, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Shining Smite", 2, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Spike Growth", 2, 4, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAutomatic, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Spiritual Weapon", 1, 8, 0, 0, 0, 1, 0, 0, 0, 1, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Dust Devil", 1, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Maximilian's Earthen Grasp", 2, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Melf's Minute Meteors", 2, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Snilloc's Snowball Swarm", 3, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Flame Arrows", 1, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Thunder Step", 3, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Prayer of Healing", 2, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Healing Spirit", 1, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Erupting Earth", 3, 12, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Call Lightning", 3, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Conjure Animals", 3, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Fireball", 8, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Glyph of Warding", 5, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Lightning Bolt", 8, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Spirit Guardians", 3, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Vampiric Touch", 3, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedHealHalfPrimary},
+    {"Wind Wall", 4, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Bestow Curse", 1, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Tidal Wave", 4, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Cacophonic Shield", 3, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Mass Healing Word", 2, 4, 0, 0, 0, 1, 0, 0, 0, 1, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Conjure Constructs", 3, 6, 1, 6, 0, 1, 1, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 1, PocketSpellResolutionTemporaryHP, PocketSpellSecondaryAlternative, 0, 0, PocketSpellDerivedNone},
+    {"Laeral's Silver Lance", 3, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Sylune's Viper", 1, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionAttack, 1, 0, 0, 15, 5, 0, PocketSpellResolutionTemporaryHP, PocketSpellSecondaryLater, 0, 0, PocketSpellDerivedNone},
+    {"Elemental Bane", 2, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Storm Sphere", 4, 6, 2, 6, 0, 1, 1, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryIndependent, 0, 0, PocketSpellDerivedNone},
+    {"Shadow of Moil", 2, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Black Tentacles", 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Blight", 8, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Conjure Minor Elementals", 2, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Conjure Woodland Beings", 5, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Faithful Hound", 4, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Fire Shield", 2, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAutomatic, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Guardian of Faith", 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Ice Storm", 2, 10, 4, 6, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Phantasmal Killer", 4, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Vitriolic Sphere", 10, 4, 5, 4, 0, 2, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, PocketSpellSecondaryLater, 0, 0, PocketSpellDerivedNone},
+    {"Wall of Fire", 5, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Sickening Radiance", 4, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Backlash", 4, 6, 4, 6, 0, 1, 1, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 1, PocketSpellResolutionMitigation, PocketSpellSecondaryIndependent, 0, 0, PocketSpellDerivedNone},
+    {"Doomtide", 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Spellfire Storm", 4, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Dream", 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Geas", 5, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Mass Cure Wounds", 5, 8, 0, 0, 0, 1, 0, 0, 0, 1, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Alustriel's Mooncloak", 4, 10, 0, 0, 0, 0, 0, 0, 0, 1, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    /* Match the bundled catalog's current Songol spelling exactly. */
+    {"Songol's Elemental Suffusion", 2, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Arcane Hand", 5, 8, 4, 6, 0, 2, 2, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 1, PocketSpellResolutionTriggered, PocketSpellSecondaryAlternative, 0, 0, PocketSpellDerivedNone},
+    {"Cloudkill", 5, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Cone of Cold", 8, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Conjure Elemental", 8, 8, 4, 8, 0, 1, 1, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryLater, 0, 0, PocketSpellDerivedNone},
+    {"Contagion", 11, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Flame Strike", 5, 6, 5, 6, 0, 1, 1, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Insect Plague", 4, 10, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Synaptic Static", 8, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Dawn", 4, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Enervation", 4, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedHealHalfPrimary},
+    {"Immolation", 8, 6, 4, 6, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryLater, 0, 0, PocketSpellDerivedNone},
+    {"Life Transference", 4, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTransfer, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedHealDoublePrimary},
+    {"Maelstrom", 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Negative Energy Flood", 5, 12, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Wall of Light", 4, 8, 4, 8, 0, 1, 1, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryAlternative, 0, 0, PocketSpellDerivedNone},
+    {"Holy Weapon", 2, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Forbiddance", 5, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Heroes' Feast", 2, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionVitality, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Soul Cage", 2, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Blade Barrier", 6, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Chain Lightning", 10, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Circle of Death", 8, 8, 0, 0, 0, 2, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Conjure Fey", 3, 12, 0, 0, 0, 1, 0, 0, 0, 1, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Disintegrate", 10, 6, 0, 0, 40, 3, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Freezing Sphere", 10, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Harm", 14, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Sunbeam", 6, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Wall of Ice", 10, 6, 5, 6, 0, 2, 1, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryLater, 0, 0, PocketSpellDerivedNone},
+    {"Wall of Thorns", 7, 8, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Mental Prison", 5, 10, 10, 10, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionTriggered, PocketSpellSecondaryLater, 0, 0, PocketSpellDerivedNone},
+    {"Dirge", 3, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Elminster's Effulgent Spheres", 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAttack, 1, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Wrath of Nature", 3, 8, 4, 6, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAttack, 1, 0, 0, 0, 0, 0, PocketSpellResolutionSave, PocketSpellSecondaryIndependent, 0, 0, PocketSpellDerivedNone},
+    {"Investiture of Flame", 4, 8, 1, 10, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAutomatic, PocketSpellSecondaryIndependent, 0, 0, PocketSpellDerivedNone},
+    {"Investiture of Ice", 4, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Investiture of Wind", 2, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Arcane Sword", 4, 12, 0, 0, 0, 0, 0, 0, 0, 1, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Regenerate", 4, 8, 0, 0, 15, 0, 0, 0, 0, 0, PocketSpellResolutionHealing, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Conjure Celestial", 6, 12, 4, 12, 0, 1, 1, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 1, PocketSpellResolutionHealing, PocketSpellSecondaryAlternative, 0, 0, PocketSpellDerivedNone},
+    {"Delayed Blast Fireball", 12, 6, 0, 0, 0, 1, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Finger of Death", 7, 8, 0, 0, 30, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Fire Storm", 7, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Crown of Stars", 4, 12, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAttack, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Steel Wind Strike", 6, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAttack, 5, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Whirlwind", 10, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Blade of Disaster", 4, 12, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionAttack, 2, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Befuddlement", 10, 12, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Incendiary Cloud", 10, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Sunburst", 12, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Tsunami", 6, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Abi-Dalzim's Horrid Wilting", 12, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Illusory Dragon", 7, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Maddening Darkness", 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+
+    {"Meteor Swarm", 20, 6, 20, 6, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Weird", 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Psychic Scream", 14, 6, 0, 0, 0, 0, 0, 0, 0, 0, PocketSpellResolutionSave, 0, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+    {"Holy Star of Mystra", 4, 10, 0, 0, 0, 0, 0, 0, 0, 1, PocketSpellResolutionAttack, 1, 0, 0, 0, 0, 0, PocketSpellResolutionNone, PocketSpellSecondaryNone, 0, 0, PocketSpellDerivedNone},
+};
+
+static uint8_t pocket_saturating_dice_count(uint16_t value) {
+    return value > 80U ? 80U : (uint8_t)value;
+}
+
+static size_t pocket_bounded_strlen(const char* text, size_t capacity) {
+    if(!text) return 0U;
+    size_t length = 0U;
+    while(length < capacity && text[length]) ++length;
+    return length;
+}
+
+static uint8_t pocket_cantrip_multiplier(uint8_t character_level) {
+    if(character_level >= 17U) return 4U;
+    if(character_level >= 11U) return 3U;
+    if(character_level >= 5U) return 2U;
+    return 1U;
+}
+
+static bool pocket_contains_ci(const char* text, const char* needle) {
+    if(!text || !needle || !*needle) return false;
+    size_t text_len = pocket_bounded_strlen(text, POCKET_D20_DETAIL_LEN);
+    size_t needle_len = strlen(needle);
+    if(!needle_len || needle_len > text_len) return false;
+    for(size_t cursor = 0U; cursor + needle_len <= text_len; ++cursor) {
+        size_t index = 0U;
+        while(index < needle_len &&
+              tolower((unsigned char)text[cursor + index]) ==
+                  tolower((unsigned char)needle[index]))
+            ++index;
+        if(index == needle_len) return true;
+    }
+    return false;
+}
+
+static bool pocket_parse_damage_dice(
+    const char* text,
+    uint8_t* dice,
+    uint8_t* die,
+    int16_t* flat_bonus) {
+    if(!text || !dice || !die || !flat_bonus) return false;
+    size_t text_len = pocket_bounded_strlen(text, POCKET_D20_DETAIL_LEN);
+    for(size_t cursor_index = 0U; cursor_index < text_len; ++cursor_index) {
+        const char* cursor = text + cursor_index;
+        if(!isdigit((unsigned char)*cursor)) continue;
+        if(cursor_index && isdigit((unsigned char)cursor[-1])) continue;
+
+        uint16_t count = 0U;
+        const char* position = cursor;
+        const char* limit = text + text_len;
+        while(position < limit && isdigit((unsigned char)*position)) {
+            uint8_t digit = (uint8_t)(*position - '0');
+            if(count > 80U / 10U || (count == 80U / 10U && digit > 80U % 10U)) {
+                count = 0U;
+                break;
+            }
+            count = (uint16_t)(count * 10U + digit);
+            ++position;
+        }
+        while(position < limit && isspace((unsigned char)*position)) ++position;
+        if(count < 1U || position >= limit || (*position != 'd' && *position != 'D'))
+            continue;
+        ++position;
+        while(position < limit && isspace((unsigned char)*position)) ++position;
+        if(position >= limit || !isdigit((unsigned char)*position)) continue;
+
+        uint16_t sides = 0U;
+        while(position < limit && isdigit((unsigned char)*position)) {
+            uint8_t digit = (uint8_t)(*position - '0');
+            if(sides > 100U / 10U || (sides == 100U / 10U && digit > 100U % 10U)) {
+                sides = 0U;
+                break;
+            }
+            sides = (uint16_t)(sides * 10U + digit);
+            ++position;
+        }
+        if(sides < 2U) continue;
+
+        int16_t bonus = 0;
+        while(position < limit && isspace((unsigned char)*position)) ++position;
+        if(position < limit && (*position == '+' || *position == '-')) {
+            int sign = *position++ == '-' ? -1 : 1;
+            while(position < limit && isspace((unsigned char)*position)) ++position;
+            if(position < limit && isdigit((unsigned char)*position)) {
+                uint16_t value = 0U;
+                while(position < limit && isdigit((unsigned char)*position)) {
+                    uint8_t digit = (uint8_t)(*position - '0');
+                    if(value > 999U / 10U ||
+                       (value == 999U / 10U && digit > 999U % 10U)) {
+                        value = 999U;
+                        while(position < limit && isdigit((unsigned char)*position)) ++position;
+                        break;
+                    }
+                    value = (uint16_t)(value * 10U + digit);
+                    ++position;
+                }
+                bonus = (int16_t)(sign * (int)value);
+            }
+        }
+
+        *dice = (uint8_t)count;
+        *die = (uint8_t)sides;
+        *flat_bonus = bonus;
+        return true;
+    }
+    return false;
+}
+
+bool pocket_d20_spell_damage_spec(
+    const PocketSpell* spell,
+    uint8_t cast_level,
+    uint8_t character_level,
+    int8_t spellcasting_modifier,
+    PocketSpellDamageSpec* output) {
+    if(!spell || !output) return false;
+    memset(output, 0, sizeof(*output));
+
+    for(size_t index = 0U; index < sizeof(pocket_spell_damage_map) / sizeof(pocket_spell_damage_map[0]);
+        ++index) {
+        const PocketSpellDamageMap* mapped = &pocket_spell_damage_map[index];
+        if(strncmp(mapped->name, spell->name, POCKET_D20_SPELL_NAME_LEN) != 0) continue;
+        uint8_t multiplier =
+            mapped->cantrip_scale ? pocket_cantrip_multiplier(character_level) : 1U;
+        uint8_t safe_cast_level = cast_level < POCKET_D20_SLOT_COUNT ? cast_level : 9U;
+        uint8_t safe_spell_level = spell->level < POCKET_D20_SLOT_COUNT ? spell->level : 9U;
+        uint8_t upcast = safe_cast_level > safe_spell_level ?
+                             (uint8_t)(safe_cast_level - safe_spell_level) :
+                             0U;
+        output->primary_dice = pocket_saturating_dice_count(
+            (uint16_t)mapped->primary_dice * multiplier +
+            (uint16_t)mapped->primary_upcast * upcast);
+        output->primary_die = mapped->primary_die;
+        output->secondary_dice = pocket_saturating_dice_count(
+            (uint16_t)mapped->secondary_dice * multiplier +
+            (uint16_t)mapped->secondary_upcast * upcast);
+        output->secondary_die = mapped->secondary_die;
+        output->flat_bonus =
+            (int16_t)mapped->flat_bonus + (int16_t)mapped->flat_upcast * upcast;
+        output->secondary_flat_bonus = (int16_t)mapped->secondary_flat_bonus +
+                                       (int16_t)mapped->secondary_flat_upcast * upcast;
+        if(mapped->add_spellcasting_modifier) output->flat_bonus += spellcasting_modifier;
+        if(mapped->add_secondary_spellcasting_modifier)
+            output->secondary_flat_bonus += spellcasting_modifier;
+        output->resolution = mapped->resolution;
+        output->secondary_resolution = mapped->secondary_resolution;
+        output->secondary_relation = mapped->secondary_relation;
+        output->derived_effect = mapped->derived_effect;
+        output->special =
+            strncmp(spell->name, "Sorcerous Burst", POCKET_D20_SPELL_NAME_LEN) == 0 ?
+                PocketSpellSpecialSorcerousBurst :
+                PocketSpellSpecialNone;
+        if(mapped->cantrip_attack_scale)
+            output->attack_rolls = pocket_cantrip_multiplier(character_level);
+        else {
+            uint16_t attacks =
+                (uint16_t)mapped->attack_rolls + (uint16_t)mapped->attack_rolls_upcast * upcast;
+            output->attack_rolls = attacks > 12U ? 12U : (uint8_t)attacks;
+        }
+        uint16_t instances =
+            (uint16_t)mapped->roll_instances + (uint16_t)mapped->roll_instances_upcast * upcast;
+        output->roll_instances = instances > 12U ? 12U : (uint8_t)instances;
+        if(output->resolution == PocketSpellResolutionAttack && !output->attack_rolls)
+            output->attack_rolls = 1U;
+        return true;
+    }
+
+    if(pocket_parse_damage_dice(
+           spell->detail, &output->primary_dice, &output->primary_die, &output->flat_bonus)) {
+        /* A plain XdY note is treated as spell-attack damage. Authors can include
+         * "save" or "DC" in the note to make the fallback use the spell save DC instead. */
+        output->resolution =
+            (pocket_contains_ci(spell->detail, "save") || pocket_contains_ci(spell->detail, "dc")) ?
+                PocketSpellResolutionSave :
+                PocketSpellResolutionAttack;
+        output->attack_rolls = output->resolution == PocketSpellResolutionAttack ? 1U : 0U;
+        output->from_notes = 1U;
+        return true;
+    }
+    return false;
+}

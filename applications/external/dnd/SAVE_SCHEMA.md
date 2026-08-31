@@ -1,34 +1,47 @@
-# Save schema 3
+# Save and storage schema
 
-Schema 3 is the current writer. Schema 2 remains the permanent compatibility baseline. Character filenames remain `ch_{id}_{characterName}_{characterLevel}.txt` and each file contains the entire independent profile.
+## Ownership
 
-## Envelope
+Primary ownership is separated by app-data root, with two intentional cross-app bridges:
 
-- The first record written by version 3.1 is `PocketD20Character=3`.
-- Records use ordered `key=value` lines.
-- Text uses percent escaping for control bytes, line breaks, carriage returns, and `%`.
-- Repeated collections use a count record followed by indexed records.
-- `End=OK` closes the canonical payload.
-- No checksum field is stored or required. Users may manually edit a file as long as its schema, ordered fields, values, counts, and closing `End=OK` remain valid.
+- DNDolphins: `/ext/apps_data/dndolphins/` — characters, active profile, spell/item sidecars, exports/archive.
+- DNDAdventure: `/ext/apps_data/dndadventure/` — active campaign, progress, direct custom campaigns and installed campaign registry/index. Adventure also updates the selected DNDolphins character for rewards and writes milestone entries into that character's DNDJournal directory.
+- DNDJournal: `/ext/apps_data/dndjournal/ch_{id}/` — per-character journal entries.
+- DNDInitiative: `/ext/apps_data/dndinitiative/ch_{id}.txt` — party/initiative state.
+  - Stores RollMode and MainCharacterName alongside roster/combat fields so automatic roll behavior persists and the profile-backed main participant remains identifiable across character renames.
+- DNDBestiary: `/ext/apps_data/dndbestiary/` — favorites, recents, filters, encounters, custom monsters and installed monster packs.
 
-## Compatibility
 
-- Readers dispatch by explicit schema number and reject unknown versions rather than guessing field meanings.
-- Schema 2 is the oldest supported version in 3.1. Future releases must retain its reader and migration harness before publishing a newer schema.
-- Schema 2 files are validated before their ordered records are parsed.
-- On first successful schema-2 load, the exact file is copied to `custom_migration_{profile}.rollback`, parsed again, and only then rewritten through the normal schema-3 transaction.
-- The published schema-3 file is reloaded and structurally validated. Any write, rename, or reload failure restores the schema-2 snapshot to the original primary path.
-- **Rollback Migration** restores the retained schema-2 snapshot transactionally and keeps the schema-3 generation as `custom_migration_{profile}.forward`.
-- A failed primary load attempts the retained backup. If neither validates and a profile file exists, the app preserves every file and refuses to autosave a blank replacement.
-- A fresh character is created only when no profile files exist.
-- Legacy asset-path profiles are relocated into persistent app data only when the destination file and profile ID are absent. Existing app-data files are authoritative and never overwritten; the legacy source is removed only after the destination is safely present.
 
-## Data groups
+### Shared profile lookup
 
-The ordered payload covers identity and builder fields; adventure state; multiclass and spellcasting data; abilities, saves, skills, and vitals; currency; spells; features and resources; inventory and weapons; languages; journal and milestones; party presets including HP and AC; active initiative; combat-sheet state; structured grants; attack templates; and encounter history.
+Companion FAPs resolve character profiles only from canonical DNDolphins files named `ch_{id}_{safeName}_{level}.txt`. Item/spellbook sidecars, work files, exports, shadows and Journal/Initiative files cannot satisfy a primary-profile lookup. Character ID `0` is valid.
 
-## Transfer folders
+`/ext/apps_data/dndolphins/custom_active_profile.txt` is read best-effort by field name. If its `Active` ID is missing or stale, companion apps fall forward to the next canonical character ID and wrap to the first canonical character, matching DNDolphins profile-selection behavior. Explicit handoff IDs are validated before use; a stale explicit ID falls back through the same resolver rather than creating orphan per-character state.
 
-- `exports/` contains user-transferable complete character files.
-- `archive/` contains profiles removed from the active list without deletion.
-- Import reads the first valid exported text file, assigns a new profile ID, and writes it through the normal atomic-save path.
+## DNDolphins
+
+Primary character files are named `ch_{id}_{safeName}_{level}.txt`. Recognized fields load independently and unknown fields are ignored. Character `.shd` files are write-only history and are never used as live input.
+
+Owned spells and items live in character-specific collection files named `spellbook_{id}.txt` and `inventory_{id}.txt`. The distinct prefixes keep collection files unambiguous from canonical `ch_{id}_{safeName}_{level}.txt` character profiles. Only one aligned page of up to eight records is resident at a time. Collection-wide operations stream the live collection file rather than allocating all records. Current-level `.swd` snapshots are write history; the live `.txt` collection files remain authoritative.
+
+Starting inventory is not a character-creation side effect. On first Inventory open, if no live item sidecar exists, the Items module requests class/species/background rows plus one hidden d100 trinket and applies any starting currency once.
+
+## Adventure
+
+Campaign progress is DNDAdventure-owned and stores campaign ID, scene/checkpoint, quest flags and achievements in its own text files. Milestones are journaled after the corresponding guard is saved so replaying a guarded reward does not intentionally duplicate it.
+
+## Bestiary custom monsters
+
+Custom monsters use:
+
+- `/ext/apps_data/dndbestiary/monsters/custom_index.txt`
+- `/ext/apps_data/dndbestiary/monsters/custom_statblocks.txt`
+
+If neither exists, Bestiary may seed both from bundled default-custom assets. If either user file already exists, the seed does nothing. Existing recovery/transaction logic remains authoritative for user custom edits.
+
+No campaign, Bestiary, Journal or Initiative state is serialized into the core character file.
+
+### Initiative participant roll mode
+
+DNDInitiative owns its `ch_{characterId}.txt` sidecar. Participant rows may include `RosterN RollMode` / `CombatN RollMode`-style named fields (serialized without spaces as `RosterNRollMode` and `CombatNRollMode`) using 0=Normal, 1=Advantage, 2=Disadvantage. Loading remains best-effort by field name, so older Initiative files without these fields default normally and remain readable.

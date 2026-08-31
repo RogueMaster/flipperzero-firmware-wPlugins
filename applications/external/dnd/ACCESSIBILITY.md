@@ -1,12 +1,8 @@
-# Accessibility conventions
+# Accessibility and text presentation
 
-- High-contrast monochrome rendering uses filled selection rows and text labels rather than color.
-- Important states use text, symbols, and numeric values; they never rely on a sprite alone.
-- Saving throws, skills, passive statistics, spell values, HP, Armor Class, and resource counts use abbreviated labels when needed to keep values visible.
-- Dice animation is short, code-drawn, and can be skipped with Back. No rapid full-screen flashing is used.
-- Every multi-die roll retains an individual-results view and a numerical sum.
-- Long-press alternatives are documented in headers, status text, README controls, or the relevant detail screen.
-- Truncation preserves the start of a name and uses an ellipsis. Full custom descriptions remain stored even when a compact list row is shortened.
-- Navigation labels are compiled directly into the FAP so accessibility does not require a runtime string table or extra heap.
-
-Physical legibility, repeat timing, and all long-name cases remain listed in `DEVICE_TEST_MATRIX.md` until tested on hardware.
+- Long values should scroll or open into a readable detail view rather than being silently truncated when practical.
+- Menu labels should be short and consistent; detailed explanations belong in secondary/detail screens.
+- Dice/check results must remain understandable without relying on animation alone.
+- Adventure failure branches should explain what happened and provide a usable continuation path.
+- Avoid color-only meaning; Flipper UI must remain legible in monochrome.
+- Preserve Back/long-Back navigation conventions consistently across FAPs.

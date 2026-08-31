@@ -1,12 +1,10 @@
 MONSTER PACK FORMAT
 
-The bundled index contains redistributable reference records. Each index row is:
+Bundled index rows use:
 id|name|challenge rating in eighths|XP|AC|HP|type|environment|source|role
 
-Examples: CR 1/4 is 2, CR 1/2 is 4, CR 1 is 8, and CR 10 is 80.
-The packaged `index.txt` and `statblocks.txt` files are read-only. The on-device editor stores user
-summaries in persistent app-data `monsters/custom_index.txt` and their matching `[stable_id]`
-sections in `monsters/custom_statblocks.txt`. Those two user files are published atomically.
+The packaged index.txt/statblocks.txt are read-only. User custom monsters use app-data monsters/custom_index.txt and monsters/custom_statblocks.txt.
 
-The app streams packaged and custom indexes as one result set, pages 20 summaries at a time, and
-loads only the selected section from the matching stat-block file.
+If neither user custom file exists, Bestiary seeds them from default_custom_index.txt and default_custom_statblocks.txt. The seed contains Dolphin and Capybara and never overwrites or merges into existing/partial user custom data.
+
+See MONSTER_PACK_SCHEMA.md for pack details.

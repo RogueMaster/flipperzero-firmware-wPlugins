@@ -17,6 +17,7 @@ enum {
     PocketMonsterFieldSenses = 1U << 3,
     PocketMonsterFieldLanguages = 1U << 4,
     PocketMonsterFieldActions = 1U << 5,
+    PocketMonsterFieldInitiative = 1U << 6,
     PocketMonsterRequiredFields = 0x3FU,
 };
 
@@ -52,6 +53,8 @@ typedef struct {
     char size_alignment[48];
     char speed[64];
     int8_t abilities[6];
+    int8_t initiative_modifier;
+    uint8_t initiative_present;
     char skills[POCKET_MONSTER_TEXT_LEN];
     char defenses[POCKET_MONSTER_TEXT_LEN];
     char senses[POCKET_MONSTER_TEXT_LEN];
@@ -99,13 +102,11 @@ uint32_t pocket_monster_xp_budget(
     uint8_t party_level,
     uint8_t party_size,
     PocketEncounterDifficulty difficulty);
-uint16_t pocket_monster_count(Storage* storage);
 void pocket_monster_validate_pack(
     Storage* storage,
     uint16_t* total,
     uint16_t* valid,
     uint16_t* invalid);
-bool pocket_monster_at(Storage* storage, uint16_t index, PocketMonsterSummary* output);
 bool pocket_monster_find(Storage* storage, const char* id, PocketMonsterSummary* output);
 bool pocket_monster_initiative_modifier(
     Storage* storage,
@@ -134,6 +135,7 @@ bool pocket_monster_save_custom(Storage* storage, PocketMonsterDetail* detail);
 bool pocket_monster_update_custom(Storage* storage, PocketMonsterDetail* detail);
 bool pocket_monster_delete_custom(Storage* storage, const PocketMonsterSummary* summary);
 bool pocket_monster_migrate_legacy_custom(Storage* storage, uint16_t* copied_files);
+bool pocket_monster_seed_default_custom(Storage* storage, uint16_t* copied_files);
 bool pocket_monster_recover_user_pack(Storage* storage, uint16_t* recovered, uint16_t* rolled_back);
 void pocket_monster_cache_reset(void);
 void pocket_monster_pack_versions(
