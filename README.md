@@ -102,7 +102,7 @@ A card reader is much faster than USB for anything beyond a handful of tiles.
 
 Changes settings on the connected radio: LoRa region, modem preset, device role, GPS, a fixed position, the primary channel key, and whether position is shared on that channel.
 
-![Settings](docs/images/settings.png)
+![Settings](docs/images/nodecfg.png)
 
 **Fixed position** takes the coordinate under the map crosshair, so a node with no GPS fix can still appear on the map and report a location to the mesh. It overrides GPS; set it back to Off to remove it.
 
