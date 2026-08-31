@@ -81,7 +81,7 @@ def cli(port):
     return s
 
 
-def upload(port, local, remote):
+def upload(port, local, remote, mkdir='/ext/apps_data/zeromesh'):
     import serial  # noqa: F401  (import checked in find_flipper)
     size = os.path.getsize(local)
     if size > SERIAL_WARN_BYTES:
@@ -90,7 +90,7 @@ def upload(port, local, remote):
 
     s = cli(port)
     try:
-        s.write(b'storage mkdir /ext/apps_data/zeromesh\r\n')
+        s.write(('storage mkdir %s\r\n' % mkdir).encode())
         s.read_until(b'>: ')
         s.write(('storage remove "%s"\r\n' % remote).encode())
         s.read_until(b'>: ')
@@ -130,6 +130,35 @@ def reset_node(port):
     print('port. Flash it from https://flasher.meshtastic.org')
 
 
+def check_rtttl(path):
+    with open(path, 'r', encoding='utf-8', errors='replace') as fh:
+        text = fh.read().strip()
+    parts = text.split(':')
+    if len(parts) < 3:
+        sys.exit('%s does not look like RTTTL (needs name:settings:notes)' % path)
+    if not parts[2].strip():
+        sys.exit('%s has no notes' % path)
+    return text
+
+
+def send_ringtone(path, port):
+    if not os.path.isfile(path):
+        sys.exit('no such file: %s' % path)
+    text = check_rtttl(path)
+    name = os.path.basename(path)
+    if not name.lower().endswith('.rtttl'):
+        name += '.rtttl'
+
+    dev = find_flipper(port)
+    if not dev:
+        sys.exit('no Flipper found. Plug it in, or pass --port')
+
+    print('%s -> %s' % (text.split(':')[0], dev))
+    upload(dev, path, '/ext/apps_data/zeromesh/ringtones/' + name,
+           mkdir='/ext/apps_data/zeromesh/ringtones')
+    print('done. Pick it in ZeroMesh under Settings.')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--place', help='place name, resolved to an area')
@@ -143,10 +172,15 @@ def main():
     ap.add_argument('--install', action='store_true', help='copy to the Flipper')
     ap.add_argument('--port', help='Flipper serial port, autodetected otherwise')
     ap.add_argument('--reset-node', metavar='PORT', help='1200 baud bootloader touch')
+    ap.add_argument('--ringtone', metavar='FILE', help='send an .rtttl to the Flipper')
     args = ap.parse_args()
 
     if args.reset_node:
         reset_node(args.reset_node)
+        return
+
+    if args.ringtone:
+        send_ringtone(args.ringtone, args.port)
         return
 
     if args.bbox:
