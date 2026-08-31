@@ -230,6 +230,12 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
 
     app->gps_fault_active = (fault_msg != NULL);
 
+    // Auto-5V state, so the operator can see that the app is powering the board
+    // (it costs battery) or that it tried and could not (which is why nothing is
+    // happening). Read here under the lock with everything else.
+    bool otg_ours = app->otg_on_by_us;
+    bool otg_failed = app->otg_failed;
+
     // "What just beeped?" card, filled at the end of this locked block.
     bool card_active = false;
     int card_index = -1;
@@ -642,9 +648,11 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             44,
             AlignCenter,
             AlignCenter,
-            connected ? "Scanning for ALPR..." :
-            port_busy ? "UART busy - check port" :
-                        "Connect ESP32...");
+            connected      ? "Scanning for ALPR..." :
+            port_busy      ? "UART busy - check port" :
+            otg_failed     ? "5V refused - see Help" :
+            otg_ours       ? "5V on, waiting for ESP" :
+                             "Connect ESP32...");
         return;
     }
 

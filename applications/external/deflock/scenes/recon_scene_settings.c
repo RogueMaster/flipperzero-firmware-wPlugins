@@ -248,6 +248,14 @@ static void save_hits_changed(VariableItem* item) {
     if(!app->settings.save_hits) recon_hits_clear(app);
 }
 
+static void esp_auto_5v_changed(VariableItem* item) {
+    ReconApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    app->settings.esp_auto_5v = (idx == 1);
+    variable_item_set_current_value_text(item, onoff_text[idx]);
+    recon_settings_save(app);
+}
+
 static void log_serials_changed(VariableItem* item) {
     ReconApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
@@ -400,6 +408,15 @@ void recon_scene_settings_on_enter(void* context) {
     // durable record of where you have been. Turning it off deletes hits.csv.
     idx = app->settings.save_hits ? 1 : 0;
     item = variable_item_list_add(list, "Save hits", 2, save_hits_changed, app);
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, onoff_text[idx]);
+
+    // Power the GPIO 5V rail for a board that never answers. ON by default,
+    // because a companion wired to the header is simply dead without it and the
+    // failure looks like a broken app rather than an unpowered board. Only ever
+    // acts on silence, so a board on its own USB is never given a second supply.
+    idx = app->settings.esp_auto_5v ? 1 : 0;
+    item = variable_item_list_add(list, "Auto 5V for ESP", 2, esp_auto_5v_changed, app);
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, onoff_text[idx]);
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (c) 2026 ReconGrunt
 #include "recon_app_i.h"
+#include <furi_hal_power.h>
 #include "helpers/esp_link.h"
 #include "helpers/esp_parser.h" // esp_hexval, for the guarded-BSSID setting
 #include "helpers/gps_link.h"
@@ -151,6 +152,134 @@ void recon_app_report_flock(
     }
 
     furi_mutex_release(app->mutex);
+}
+
+/**
+ * Grace period before we conclude the board is unpowered rather than merely
+ * slow. The companion sends its banner within a few hundred ms of coming up, so
+ * this only has to outlast a boot we did not cause. Deliberately not shorter:
+ * declaring a live board dead and switching a second supply into it is the one
+ * outcome this whole feature has to avoid.
+ */
+#define ESP_LINK_GRACE_MS 2500u
+
+void recon_app_esp_power_tick(ReconApp* app) {
+    // A rail we raised that is no longer up means the firmware's power service
+    // saw a real fault and dropped it. Report it once, rather than sitting on
+    // "waiting for ESP" forever behind a rail that is not actually on.
+    //
+    // The is_otg_enabled() read talks to the charger over I2C, so it happens
+    // between the two locks and never underneath one -- same reason the enable
+    // path below releases the mutex before touching the HAL.
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    bool watch = app->otg_on_by_us && !app->otg_failed;
+    furi_mutex_release(app->mutex);
+    if(watch && !furi_hal_power_is_otg_enabled()) {
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->otg_on_by_us = false;
+        app->otg_failed = true;
+        furi_mutex_release(app->mutex);
+    }
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+
+    bool act = false;
+    // ONLY WHILE WE ARE ACTUALLY LISTENING. app->esp is the live UART session,
+    // and it is opened by a scanning scene, not at app start. Without this gate
+    // the grace period below would expire on the MAIN MENU -- where nothing has
+    // opened the port yet, so esp_connected is false for a reason that has
+    // nothing to do with power -- and we would energise the rail under a board
+    // that is perfectly healthy on its own USB. That is precisely the case this
+    // feature is supposed to never touch.
+    if(!app->esp) app->esp_link_wait_tick = 0; // measure listening time, not wall time
+    if(app->esp && app->settings.esp_auto_5v && !app->otg_attempted) {
+        if(app->esp_connected) {
+            // It is alive on somebody else's power. Nothing to do, ever, this run.
+            app->otg_attempted = true;
+        } else if(!app->esp_link_wait_tick) {
+            app->esp_link_wait_tick = furi_get_tick();
+        } else if(
+            (uint32_t)(furi_get_tick() - app->esp_link_wait_tick) >= ESP_LINK_GRACE_MS) {
+            app->otg_attempted = true; // one shot regardless of the outcome
+            act = true;
+        }
+    }
+    furi_mutex_release(app->mutex);
+
+    if(!act) return;
+
+    // Outside the lock: these are HAL calls that talk to the charger IC over
+    // I2C, and holding the app mutex across them would stall the ESP worker.
+    // USB ATTACHED: DO NOTHING, AND SAY NOTHING.
+    //
+    // The charger cannot run the 5V boost while VBUS is being supplied by a
+    // host -- OTG and charging are mutually exclusive on this part. Found the
+    // hard way: on a tethered Flipper the enable silently does not take, and the
+    // first version of this reported "5V refused" on a perfectly healthy device.
+    // Every user who runs the app plugged into a laptop or a power bank would
+    // have seen that, every time, for a fault that does not exist.
+    //
+    // Nothing is lost by standing down here. With VBUS present the header's 5V
+    // is fed from it, so a board that needs 5V already has it. The case this
+    // feature exists for -- h00die's -- is a Flipper on battery, where the boost
+    // is the only source and does come up.
+    if(furi_hal_power_get_usb_voltage() > 4.0f) {
+        // RE-ARM rather than consume the one attempt. Standing down here is not
+        // a decision about the board, it is a decision about this moment: unplug
+        // the cable and the boost becomes available and relevant. Consuming the
+        // attempt would mean a Flipper that was charging when the app opened
+        // never powers the rail for the rest of the session, which is exactly
+        // the "plug in to top up, then unplug and go" case.
+        //
+        // Resetting the wait tick too keeps the I2C read to once per grace
+        // period rather than once per tick.
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->otg_attempted = false;
+        app->esp_link_wait_tick = 0;
+        furi_mutex_release(app->mutex);
+        return;
+    }
+
+    if(furi_hal_power_is_otg_enabled()) {
+        // The user switched it on themselves. Leave it entirely alone -- in
+        // particular do NOT set otg_on_by_us, or exiting the app would turn off
+        // a rail we never raised.
+        return;
+    }
+
+    bool ok = furi_hal_power_enable_otg();
+    // DO NOT READ THE FAULT REGISTER HERE. The first version did, reasoning that
+    // a boost which comes up and instantly faults would otherwise look healthy.
+    // On real hardware that check fired EVERY time, and the app reported
+    // "5V refused" on a device whose rail switches on perfectly from the CLI.
+    //
+    // The charger LATCHES faults and clears them on read, so the first read after
+    // any earlier toggling returns a stale bit that has nothing to do with the
+    // enable just issued. It is also read microseconds after the boost was asked
+    // to start, before it could have settled either way.
+    //
+    // A real fault is still caught, just not here. The firmware's own power
+    // service polls furi_hal_power_check_otg_status() and drops the rail when one
+    // occurs; the watchdog at the top of this function sees the rail vanish and
+    // reports it then. Fewer things for this app to second-guess the platform on.
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    if(ok) {
+        app->otg_on_by_us = true;
+    } else {
+        // Surfaced rather than retried. Retrying a boost that just faulted is
+        // how you cook a board, and the operator can see the reason on screen.
+        app->otg_failed = true;
+    }
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_esp_power_release(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    bool ours = app->otg_on_by_us;
+    app->otg_on_by_us = false; // idempotent: a second call is a no-op
+    furi_mutex_release(app->mutex);
+    if(ours) furi_hal_power_disable_otg();
 }
 
 void recon_app_alert_tick(ReconApp* app) {
@@ -1012,6 +1141,7 @@ static void recon_settings_defaults(ReconApp* app) {
     app->settings.alert_mode = ReconAlertVibro; // haptic-first, like the ELEVATED alert
     app->settings.alert_min_conf = AlertConfLikely; // precision over recall stays the default
     app->settings.flash_fast = false; // safe 115200 by default
+    app->settings.esp_auto_5v = true; // a board on the header is dead without it
     app->settings.save_hits = false; // privacy: a hit log is a record of where you have been
     app->settings.log_serials = false; // privacy: don't catalogue police asset serials by default
     app->settings.anomaly_flag = false; // off by default: higher false-positive mode
@@ -1024,7 +1154,7 @@ void recon_settings_save(ReconApp* app) {
         FuriString* s = furi_string_alloc();
         furi_string_printf(
             s,
-            "backend=%d\nesp_band=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\nguard_evidence=%d\nguard_alert=%d\n",
+            "backend=%d\nesp_band=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\nguard_evidence=%d\nguard_alert=%d\nesp_auto_5v=%d\n",
             app->settings.backend,
             app->settings.esp_band,
             app->settings.esp_uart,
@@ -1043,7 +1173,8 @@ void recon_settings_save(ReconApp* app) {
             app->settings.alert_min_conf,
             app->settings.save_hits ? 1 : 0,
             app->settings.guard_evidence ? 1 : 0,
-            app->settings.guard_alert);
+            app->settings.guard_alert,
+            app->settings.esp_auto_5v ? 1 : 0);
 
         // The guarded network, appended only when one is set, so an untargeted
         // install keeps exactly the file it has always had.
@@ -1122,6 +1253,8 @@ static void recon_settings_apply_kv(ReconApp* app, const char* key, long val, co
         app->settings.alert_min_conf = (uint8_t)val; // ditto -- range-checked, not trusted
     else if(strcmp(key, "save_hits") == 0)
         app->settings.save_hits = (val != 0);
+    else if(strcmp(key, "esp_auto_5v") == 0)
+        app->settings.esp_auto_5v = (val != 0);
     else if(strcmp(key, "guard_ssid") == 0) {
         strncpy(app->guard_ssid, raw, RECON_SSID_LEN - 1);
         app->guard_ssid[RECON_SSID_LEN - 1] = 0;
@@ -1421,6 +1554,10 @@ static void recon_tick_event_callback(void* context) {
     // because "remember to call this in every new scene" is what failed. The
     // GUI thread owns delivery either way; the ESP worker only sets the flag.
     recon_app_alert_tick(app);
+    // Bring the companion's power up if it never answered. Here for the same
+    // reason the alert tick is here: every scene gets it, and no new scene has
+    // to remember anything.
+    recon_app_esp_power_tick(app);
     // Same worker-raises / GUI-delivers split, for the same reason: the companion
     // announces itself with a banner on every boot, and the relay config has to be
     // re-sent when it does (a board still coming up misses the one the scan
@@ -1572,6 +1709,10 @@ int32_t recon_site_survey_app(void* arg) {
     // app->storage and app->mutex are still alive, and no-ops if the menu
     // already tore the session down.
     scan_session_stop(app);
+    // Same backstop reasoning as the UART: the rail is owned by the app, so the
+    // app is what must put it back. Leaving a boost converter running after exit
+    // would quietly flatten the battery of someone who never switched it on.
+    recon_app_esp_power_release(app);
 
     recon_app_free(app);
     return 0;

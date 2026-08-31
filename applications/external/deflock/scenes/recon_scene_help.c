@@ -52,6 +52,46 @@
     "3 MAC bytes. Open it\n"        \
     "with OK for the full\n"        \
     "make and model in words.\n \n" \
+    "ESP POWER\n"                   \
+    "The GPIO 5V rail is OFF\n"     \
+    "when the Flipper boots, so\n"  \
+    "a board wired to the\n"        \
+    "header has no power until\n"   \
+    "something turns it on.\n \n"   \
+    "This app does it for you.\n"   \
+    "If the companion has not\n"    \
+    "answered after a couple of\n"  \
+    "seconds it switches 5V on,\n"  \
+    "once, and switches it back\n"  \
+    "off when you exit.\n \n"       \
+    "ON USB POWER IT DOES\n"        \
+    "NOTHING, on purpose. The\n"    \
+    "charger cannot run the 5V\n"   \
+    "boost while a host is\n"       \
+    "supplying power, and the\n"    \
+    "header takes its 5V from\n"    \
+    "that host anyway. So on a\n"   \
+    "cable there is nothing to\n"   \
+    "do. It matters on\n"           \
+    "BATTERY, which is where\n"     \
+    "the boost is the only\n"       \
+    "source.\n \n"                  \
+    "It only acts on SILENCE. A\n"  \
+    "board already running on\n"    \
+    "its own USB is left alone,\n"  \
+    "so it never gets a second\n"   \
+    "supply.\n \n"                  \
+    "5V on, waiting for ESP\n"      \
+    "  we powered the rail,\n"      \
+    "  waiting for a boot.\n"       \
+    "5V refused\n"                  \
+    "  the charger would not\n"     \
+    "  hold it, or it faulted.\n"   \
+    "  Usually the board draws\n"   \
+    "  too much, or a pin is\n"     \
+    "  shorted. Not retried.\n"     \
+    "Turn it off in Settings,\n"    \
+    "Auto 5V for ESP.\n \n"         \
     "GPS BADGE\n"                   \
     "GPS 9  locked, 9 sats\n"       \
     "GPS    on, searching\n"        \

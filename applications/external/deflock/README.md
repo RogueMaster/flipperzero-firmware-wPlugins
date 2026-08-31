@@ -350,6 +350,15 @@ the code and confirm the behavior yourself.
 
 ## What's new
 
+**v0.78** - **The app powers the companion for you.** The Flipper's GPIO 5V rail
+is off at boot, so a board wired to the header stayed dead until you visited
+**GPIO -> 5V** by hand first. If the companion has not answered a couple of
+seconds into a scan, FlipDeFlock now raises the rail itself, once, and drops it
+again on exit -- but only if it was the one that raised it, and never while the
+Flipper is on USB (the charger cannot run the boost while a host supplies power).
+Toggle at **Settings -> Auto 5V for ESP**. *The power-on itself has not been
+watched on hardware yet; see the changelog.*
+
 **v0.77** - **It stops calling everything a Flock camera.** Every ALPR-class
 detection used to render as *Flock / ALPR camera*, including competitor hardware
 and hits that nothing tied to any vendor. There is a **vendor field** now, shown

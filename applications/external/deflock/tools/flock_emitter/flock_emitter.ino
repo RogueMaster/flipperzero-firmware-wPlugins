@@ -66,6 +66,10 @@
  * sketch is the only thing that ever exercises either branch.
  *
  * ---------------------------------------------------------------------------
+ * Net Guardian test (serial-toggled, OFF by default):
+ *   send "atk on" over serial  -> sustained beacon flood, Net Guardian ACTIVE
+ *   send "atk off"             -> stop. Never collides with the Flock tables.
+ *
  * BLE identities (rotates every BLE_ROTATE_MS)
  *
  *   0 mfg 0x09C8 + name "Penguin-1234567890"  FLOCK, serial decoded
@@ -542,7 +546,106 @@ void setup() {
     g_last_ble_rotate = millis();
 }
 
+// ---- Net Guardian test: sustained beacon flood ---------------------------
+//
+// Net Guardian on the Flipper triages ATTACKS the companion reports, and one of
+// those is a beacon flood -- many DISTINCT beaconing BSSIDs in one ~1 s interval
+// (Marauder/Pineapple SSID spam). Its host tests cover the triage LOGIC, but the
+// populated attack screen -- the "ACTIVE" verdict that only appears once frames
+// keep arriving across several intervals -- can only be exercised by a real
+// flood on the air. This is that flood, so the feature can be checked end to end
+// on the bench the same way the Flock identities above are.
+//
+// OFF by default, toggled over serial ("atk on" / "atk off"), so ordinary Flock
+// testing is never polluted by attack traffic. When on it sprays distinct-BSSID
+// beacons every loop, sustained, which is what pushes Net Guardian past "brief"
+// to "ACTIVE".
+//
+// The BSSIDs use the locally-administered prefix 02:00:00 with an incrementing
+// tail. That is deliberately NOT a real OUI, so a flood can never collide with a
+// Flock or vendor table and show up as a bogus camera in the detection list --
+// it is seen ONLY by the attack counters, which key on distinct BSSID.
+static bool g_attack = false;
+static uint32_t g_flood_ctr = 0;
+
+#define FLOOD_PER_LOOP 8 // distinct beacons per loop pass; >=40/interval -> flood
+
+// The companion sweeps channels, and a beacon flood is only counted within the
+// ONE interval it is seen -- so a single-channel flood is caught roughly once
+// per full sweep, which keeps the count below the "more than churn" floor and
+// leaves Net Guardian stuck on "brief" instead of ACTIVE. Spraying the three
+// non-overlapping 2.4 GHz channels means whichever one the companion dwells on,
+// it sees a full flood, so the count and the span both grow every sweep.
+static const uint8_t FLOOD_CHANS[] = {EMIT_CHANNEL}; // all flood density on the
+// channel the companion already dwells on for Flock, so every dwell sees a full
+// flood -- hopping 1/6/11 split the density three ways and undercut the count.
+
+static void send_flood_burst() {
+    for(size_t ch = 0; ch < sizeof(FLOOD_CHANS); ch++) {
+        esp_wifi_set_channel(FLOOD_CHANS[ch], WIFI_SECOND_CHAN_NONE);
+        for(int i = 0; i < FLOOD_PER_LOOP; i++) {
+            uint32_t c = g_flood_ctr++;
+            WifiIdentity f;
+            f.mac[0] = 0x02; // locally administered, cannot match a real OUI table
+            f.mac[1] = 0x00;
+            f.mac[2] = 0x00;
+            f.mac[3] = (uint8_t)(c >> 16);
+            f.mac[4] = (uint8_t)(c >> 8);
+            f.mac[5] = (uint8_t)c;
+            f.ssid = "atk-flood";
+            f.enc = SsidNamed;
+            f.kind = EmitBeacon;
+            f.expect = "";
+            send_beacon(&f);
+        }
+    }
+    // Hand the radio back to the Flock identities, which all live on EMIT_CHANNEL.
+    esp_wifi_set_channel(EMIT_CHANNEL, WIFI_SECOND_CHAN_NONE);
+}
+
+// Non-blocking one-line serial command reader. The sketch is almost all TX; this
+// is the only RX path, and it exists purely for the attack toggle above.
+static void poll_serial_cmd() {
+    static char buf[24];
+    static uint8_t len = 0;
+    while(Serial.available()) {
+        char ch = (char)Serial.read();
+        if(ch == '\n' || ch == '\r') {
+            buf[len] = '\0';
+            if(strcmp(buf, "atk on") == 0) {
+                g_attack = true;
+                Serial.println("[ATK] beacon flood ON -- Net Guardian should go ACTIVE");
+            } else if(strcmp(buf, "atk off") == 0) {
+                g_attack = false;
+                Serial.println("[ATK] beacon flood OFF");
+            } else if(len > 0) {
+                Serial.printf("[ATK] unknown cmd '%s' (use: atk on | atk off)\n", buf);
+            }
+            len = 0;
+        } else if(len < sizeof(buf) - 1) {
+            buf[len++] = ch;
+        }
+    }
+}
+
 void loop() {
+    poll_serial_cmd();
+
+    // ATTACK MODE OWNS THE RADIO. The Flock identity rotation below fights the
+    // flood for the antenna -- probe identities in particular call
+    // esp_wifi_scan_start, which hops channels for the scan and pulls the radio
+    // off whatever channel the flood just set. The result was a flood the
+    // companion saw only in bursts, so its per-second distinct count kept
+    // dropping under the threshold and Net Guardian never sustained past
+    // "brief". The Flock identities are not needed during a Net Guardian test,
+    // so give the flood the radio outright and resume on "atk off".
+    if(g_attack) {
+        send_flood_burst();
+        delay(2);
+        return;
+    }
+
+
     uint32_t now = millis();
 
     // Probe identities hold longer than beacon ones -- see PROBE_HOLD_MS.

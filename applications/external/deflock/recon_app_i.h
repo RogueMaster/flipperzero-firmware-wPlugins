@@ -211,6 +211,8 @@ typedef struct {
     uint8_t alert_mode; /**< ReconAlertMode: beep/vibro on a new Flock hit (default Vibrate) */
     uint8_t alert_min_conf; /**< AlertConfChoice: lowest rung that may alert (default Likely) */
     bool flash_fast; /**< raise the flash (write) baud to 230400 after connect */
+    bool esp_auto_5v; /**< power the GPIO 5V rail if the companion never answers.
+                        *  Default ON. See recon_app_esp_power_tick(). */
     bool save_hits; /**< persist detections to hits.csv across app restarts (default OFF:
                       *   it is a durable record of where you have been) */
     bool log_serials; /**< log Flock device serials to saved reports (default OFF) */
@@ -369,6 +371,21 @@ typedef struct {
     // discipline as alert_pending.
     uint8_t alert_card_mac[6]; /**< device the last alert was about */
     uint32_t alert_card_tick; /**< tick the card was raised; 0 = no card */
+
+    // AUTO 5V for the companion board (discussion #7). The Flipper's GPIO 5V
+    // rail is off at boot, so a board powered from the header is dead until the
+    // user visits GPIO -> 5V by hand and then comes back. Reported by @h00die:
+    // "when I start my flipper I have to go to gpio, and turn on 5v to get my
+    // esp card going. Then launch deflock."
+    //
+    // WE OWN THE RAIL ONLY IF WE TURNED IT ON. otg_on_by_us is what makes the
+    // teardown safe: leaving a boost converter running after the app exits would
+    // flatten the battery of someone who never asked for it, and turning off a
+    // rail the USER switched on for their own reasons would be equally wrong.
+    bool otg_on_by_us; /**< we enabled 5V, so we must disable it on exit */
+    bool otg_attempted; /**< one attempt per app run, success or not */
+    uint32_t esp_link_wait_tick; /**< when we started waiting for the companion */
+    bool otg_failed; /**< enable was refused or faulted -- surfaced, not retried */
 
     // Companion GPS-relay health (issue #5). Only meaningful when the GPS source
     // is the companion; the Flipper-UART path has its own busy/conflict test.
@@ -714,6 +731,27 @@ void recon_settings_save(ReconApp* app);
  * turning the setting off actually erases the trail rather than just hiding it.
  */
 void recon_hits_load(ReconApp* app);
+
+/**
+ * Power the GPIO 5V rail if the companion has not answered, once per app run.
+ *
+ * DETECT FIRST, THEN POWER -- never power unconditionally. A board that is
+ * already alive is a board powered some other way (its own USB, most often
+ * while it is being flashed), and energising the header rail underneath it
+ * would be feeding a second supply into hardware that did not ask for one. So
+ * this waits out a grace period and acts only on silence, which is also exactly
+ * what was requested: "it would see that the card isn't there and attempt to
+ * power it on before scanning".
+ *
+ * Runs from the dispatcher tick, so it covers every scene without any scene
+ * having to remember it -- the same reasoning that hoisted the alert tick there,
+ * but it only ACTS while a scan session holds the UART open. On the main menu
+ * nothing is listening, so silence there says nothing about power.
+ */
+void recon_app_esp_power_tick(ReconApp* app);
+
+/** Drop the 5V rail IF this app raised it. Safe to call more than once. */
+void recon_app_esp_power_release(ReconApp* app);
 void recon_hits_save(ReconApp* app);
 void recon_hits_clear(ReconApp* app);
 
