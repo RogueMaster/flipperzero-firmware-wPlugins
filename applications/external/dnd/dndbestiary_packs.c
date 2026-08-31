@@ -26,7 +26,6 @@
 #define MONSTER_PACKAGED_INDEX         APP_ASSETS_PATH("monsters/index.txt")
 #define MONSTER_CUSTOM_INDEX           APP_DATA_PATH("monsters/custom_index.txt")
 
-
 typedef struct {
     File* file;
     uint8_t buffer[PACK_READ_BUFFER];
@@ -59,8 +58,7 @@ static bool pack_parse_u32(const char* text, uint32_t maximum, uint32_t* output)
     for(const char* cursor = text; *cursor; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -106,7 +104,6 @@ static bool pack_safe_id(const char* id) {
     return true;
 }
 
-
 static bool pack_installed_paths(
     const char* id,
     char* index,
@@ -149,10 +146,8 @@ static bool pack_parse_record(char* line, PackRecord* output) {
     return pack_safe_id(output->summary.id) && output->summary.name[0];
 }
 
-static uint16_t pack_load_registry(
-    Storage* storage,
-    PackRecord records[PACK_MAX_RECORDS],
-    bool* valid) {
+static uint16_t
+    pack_load_registry(Storage* storage, PackRecord records[PACK_MAX_RECORDS], bool* valid) {
     *valid = true;
     File* file = storage_file_alloc(storage);
     if(!file) {
@@ -190,10 +185,7 @@ static uint16_t pack_load_registry(
     return *valid ? count : 0U;
 }
 
-static bool pack_write_registry(
-    Storage* storage,
-    const PackRecord* records,
-    uint16_t count) {
+static bool pack_write_registry(Storage* storage, const PackRecord* records, uint16_t count) {
     storage_common_mkdir(storage, APP_DATA_PATH(""));
     storage_common_mkdir(storage, APP_DATA_PATH("packs"));
     const char* temporary = MONSTER_REGISTRY_TEMP;
@@ -403,30 +395,28 @@ static bool
         storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
         return false;
     }
-    if(had_index &&
-       storage_common_rename(
-           storage, MONSTER_ENABLED_INDEX, MONSTER_ENABLED_INDEX_BACKUP) != FSE_OK) {
+    if(had_index && storage_common_rename(
+                        storage, MONSTER_ENABLED_INDEX, MONSTER_ENABLED_INDEX_BACKUP) != FSE_OK) {
         storage_common_remove(storage, MONSTER_ENABLED_INDEX_TEMP);
         storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
         return false;
     }
     if(had_content &&
-       storage_common_rename(
-           storage, MONSTER_ENABLED_CONTENT, MONSTER_ENABLED_CONTENT_BACKUP) != FSE_OK) {
+       storage_common_rename(storage, MONSTER_ENABLED_CONTENT, MONSTER_ENABLED_CONTENT_BACKUP) !=
+           FSE_OK) {
         if(had_index)
-            storage_common_rename(
-                storage, MONSTER_ENABLED_INDEX_BACKUP, MONSTER_ENABLED_INDEX);
+            storage_common_rename(storage, MONSTER_ENABLED_INDEX_BACKUP, MONSTER_ENABLED_INDEX);
         storage_common_remove(storage, MONSTER_ENABLED_INDEX_TEMP);
         storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
         return false;
     }
     bool index_published =
-        storage_common_rename(storage, MONSTER_ENABLED_INDEX_TEMP, MONSTER_ENABLED_INDEX) == FSE_OK;
-    bool content_published = index_published &&
-                             storage_common_rename(
-                                 storage,
-                                 MONSTER_ENABLED_CONTENT_TEMP,
-                                 MONSTER_ENABLED_CONTENT) == FSE_OK;
+        storage_common_rename(storage, MONSTER_ENABLED_INDEX_TEMP, MONSTER_ENABLED_INDEX) ==
+        FSE_OK;
+    bool content_published =
+        index_published &&
+        storage_common_rename(storage, MONSTER_ENABLED_CONTENT_TEMP, MONSTER_ENABLED_CONTENT) ==
+            FSE_OK;
     if(index_published && content_published) {
         storage_common_remove(storage, MONSTER_ENABLED_INDEX_BACKUP);
         storage_common_remove(storage, MONSTER_ENABLED_CONTENT_BACKUP);
@@ -442,7 +432,6 @@ static bool
     storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
     return false;
 }
-
 
 bool pocket_pack_rebuild_enabled(Storage* storage) {
     PackRecord* records = pack_records_alloc();
@@ -496,10 +485,7 @@ uint16_t pocket_pack_count(Storage* storage) {
     return valid ? count : 0U;
 }
 
-bool pocket_pack_at(
-    Storage* storage,
-    uint16_t index,
-    PocketPackSummary* output) {
+bool pocket_pack_at(Storage* storage, uint16_t index, PocketPackSummary* output) {
     if(!output) return false;
     PackRecord* records = pack_records_alloc();
     if(!records) return false;
@@ -526,8 +512,7 @@ static bool pack_read_manifest(Storage* storage, PackManifest* output) {
         *value++ = '\0';
         if(!strcmp(line, "PocketPack")) {
             /* Version is informational; recognized manifest fields remain usable. */
-        }
-        else if(!strcmp(line, "Id"))
+        } else if(!strcmp(line, "Id"))
             pack_copy(output->id, sizeof(output->id), value);
         else if(!strcmp(line, "Name"))
             pack_copy(output->name, sizeof(output->name), value);
@@ -642,10 +627,7 @@ static bool
     return true;
 }
 
-bool pocket_pack_install_inbox(
-    Storage* storage,
-    char* status,
-    size_t status_size) {
+bool pocket_pack_install_inbox(Storage* storage, char* status, size_t status_size) {
     PackManifest manifest;
     if(!pack_read_manifest(storage, &manifest)) {
         pack_status(status, status_size, "Inbox manifest invalid");

@@ -20,11 +20,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG "DndAdventure"
-#define ADVENTURE_MAX_CHOICES 4U
-#define ADVENTURE_READ_BUFFER 256U
-#define ADVENTURE_LINE_LEN 512U
-#define ADVENTURE_STATUS_LEN 40U
+#define TAG                        "DndAdventure"
+#define ADVENTURE_MAX_CHOICES      4U
+#define ADVENTURE_READ_BUFFER      256U
+#define ADVENTURE_LINE_LEN         512U
+#define ADVENTURE_STATUS_LEN       40U
 #define ADVENTURE_JOURNAL_PATH_LEN 160U
 
 typedef struct {
@@ -271,7 +271,8 @@ static bool adventure_save_progress(DndAdventureApp* app) {
 static bool adventure_save_character(DndAdventureApp* app) {
     if(!app->character_dirty) return true;
     if(!app->character_loaded) return false;
-    if(!pocket_d20_storage_save_profile_updated(app->storage, app->profile, &app->character_data)) return false;
+    if(!pocket_d20_storage_save_profile_updated(app->storage, app->profile, &app->character_data))
+        return false;
     app->character_dirty = 0U;
     return true;
 }
@@ -280,10 +281,11 @@ static bool adventure_resolve_active(DndAdventureApp* app) {
     if(app->active_campaign_valid) return true;
     char active_id[POCKET_CAMPAIGN_ID_LEN];
     PocketCampaignSummary campaign;
-    bool loaded = app->character_loaded &&
-                  pocket_campaign_active_load(
-                      app->storage, app->profile, active_id, sizeof(active_id));
-    bool found = loaded && active_id[0] && pocket_campaign_find(app->storage, active_id, &campaign);
+    bool loaded =
+        app->character_loaded &&
+        pocket_campaign_active_load(app->storage, app->profile, active_id, sizeof(active_id));
+    bool found = loaded && active_id[0] &&
+                 pocket_campaign_find(app->storage, active_id, &campaign);
     if(!found) found = pocket_campaign_at(app->storage, 0U, &campaign);
     if(!found) return false;
     app->active_campaign = campaign;
@@ -335,11 +337,7 @@ static bool adventure_select_campaign(DndAdventureApp* app, uint16_t index) {
 static void adventure_reward_item(DndAdventureApp* app, const char* name) {
     if(!app->character_loaded || !name || !name[0] || !strcmp(name, "-")) return;
     if(!pocket_d20_items_grant_reward(
-           app->storage,
-           app->profile,
-           &app->character_data.character,
-           name,
-           "Adventure reward"))
+           app->storage, app->profile, &app->character_data.character, name, "Adventure reward"))
         adventure_set_status(app, "Item reward save failed");
 }
 
@@ -428,8 +426,8 @@ static bool adventure_write_milestone_journal(DndAdventureApp* app, const char* 
                   adventure_writef(file, "Category=3\n") &&
                   adventure_writef(file, "Completed=0\n") &&
                   adventure_writef(file, "LevelGranted=0\n") &&
-                  adventure_writef(file, "ClassIndex=0\n") &&
-                  adventure_writef(file, "End=OK\n") && storage_file_sync(file);
+                  adventure_writef(file, "ClassIndex=0\n") && adventure_writef(file, "End=OK\n") &&
+                  storage_file_sync(file);
         storage_file_close(file);
         storage_file_free(file);
         if(!ok) storage_common_remove(app->storage, path);
@@ -448,7 +446,8 @@ static bool adventure_apply_choice(DndAdventureApp* app, const DndAdventureChoic
             return false;
         }
         natural = (uint8_t)pocket_d20_roll_dice(1U, 20U);
-        modifier = pocket_d20_skill_modifier(&app->character_data.character, (uint8_t)choice->skill);
+        modifier =
+            pocket_d20_skill_modifier(&app->character_data.character, (uint8_t)choice->skill);
         app->last_natural = natural;
         app->last_modifier = modifier;
         app->last_skill = choice->skill;
@@ -479,7 +478,8 @@ static bool adventure_apply_choice(DndAdventureApp* app, const DndAdventureChoic
     }
 
     const char* next = passed ? choice->success_scene : choice->failure_scene;
-    if(next[0] && strcmp(next, "-")) adventure_copy(app->progress.scene, sizeof(app->progress.scene), next);
+    if(next[0] && strcmp(next, "-"))
+        adventure_copy(app->progress.scene, sizeof(app->progress.scene), next);
     if(!adventure_load_scene(app)) {
         app->progress.quest_flags = previous_quest_flags;
         app->progress.achievements = previous_achievements;
@@ -508,8 +508,10 @@ static bool adventure_apply_choice(DndAdventureApp* app, const DndAdventureChoic
         if(!adventure_save_character(app))
             adventure_set_status(app, "Character reward save failed");
     }
-    if(choice->skill >= 0) app->screen = DndAdventureScreenResult;
-    else if(!app->status[0]) adventure_set_status(app, "Choice applied");
+    if(choice->skill >= 0)
+        app->screen = DndAdventureScreenResult;
+    else if(!app->status[0])
+        adventure_set_status(app, "Choice applied");
     return true;
 }
 
@@ -579,7 +581,9 @@ static void adventure_prepare_campaign_rows(DndAdventureApp* app) {
                     row,
                     27U,
                     "%c %.24s",
-                    app->active_campaign_valid && !strcmp(campaign.id, app->progress.campaign) ? '*' : ' ',
+                    app->active_campaign_valid && !strcmp(campaign.id, app->progress.campaign) ?
+                        '*' :
+                        ' ',
                     label);
             } else {
                 snprintf(row, 27U, "  Campaign %u", (unsigned)(index + 1U));
@@ -617,8 +621,16 @@ static void adventure_draw_scene(Canvas* canvas, DndAdventureApp* app) {
     adventure_draw_sprite(canvas, app->scene);
     char line1[24], line2[24], line3[24];
     snprintf(line1, sizeof(line1), "%.23s", app->scene->body);
-    snprintf(line2, sizeof(line2), "%.23s", strlen(app->scene->body) > 23U ? app->scene->body + 23U : "");
-    snprintf(line3, sizeof(line3), "%.23s", strlen(app->scene->body) > 46U ? app->scene->body + 46U : "");
+    snprintf(
+        line2,
+        sizeof(line2),
+        "%.23s",
+        strlen(app->scene->body) > 23U ? app->scene->body + 23U : "");
+    snprintf(
+        line3,
+        sizeof(line3),
+        "%.23s",
+        strlen(app->scene->body) > 46U ? app->scene->body + 46U : "");
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 31, 19, line1);
     canvas_draw_str(canvas, 31, 28, line2);
@@ -631,7 +643,8 @@ static void adventure_draw_scene(Canvas* canvas, DndAdventureApp* app) {
     for(uint8_t row = 0U; row < visible_count; ++row) {
         uint8_t index = (uint8_t)(app->scroll + row);
         if(index >= app->scene->choice_count) break;
-        adventure_draw_row(canvas, (uint8_t)(3U + row), index == app->selection, app->scene->choices[index].label);
+        adventure_draw_row(
+            canvas, (uint8_t)(3U + row), index == app->selection, app->scene->choices[index].label);
     }
 }
 
@@ -657,12 +670,23 @@ static void adventure_draw_diagnostics(Canvas* canvas, DndAdventureApp* app) {
     snprintf(rows[0], sizeof(rows[0]), "Manifests: %u", app->diagnostics.records);
     snprintf(rows[1], sizeof(rows[1]), "Incompatible: %u", app->diagnostics.incompatible);
     snprintf(rows[2], sizeof(rows[2]), "Missing files: %u", app->diagnostics.missing_scene_files);
-    snprintf(rows[3], sizeof(rows[3]), "Duplicate packs: %u", app->diagnostics.duplicate_campaign_ids);
-    snprintf(rows[4], sizeof(rows[4]), "Duplicate scenes: %u", app->diagnostics.duplicate_scene_ids);
-    snprintf(rows[5], sizeof(rows[5]), "Missing entries: %u", app->diagnostics.missing_entry_scenes);
+    snprintf(
+        rows[3], sizeof(rows[3]), "Duplicate packs: %u", app->diagnostics.duplicate_campaign_ids);
+    snprintf(
+        rows[4], sizeof(rows[4]), "Duplicate scenes: %u", app->diagnostics.duplicate_scene_ids);
+    snprintf(
+        rows[5], sizeof(rows[5]), "Missing entries: %u", app->diagnostics.missing_entry_scenes);
     snprintf(rows[6], sizeof(rows[6]), "Broken links: %u", app->diagnostics.broken_links);
-    snprintf(rows[7], sizeof(rows[7]), "ID: %.24s", app->diagnostics.problem_id[0] ? app->diagnostics.problem_id : "none");
-    snprintf(rows[8], sizeof(rows[8]), "Issue: %.23s", app->diagnostics.problem[0] ? app->diagnostics.problem : "none");
+    snprintf(
+        rows[7],
+        sizeof(rows[7]),
+        "ID: %.24s",
+        app->diagnostics.problem_id[0] ? app->diagnostics.problem_id : "none");
+    snprintf(
+        rows[8],
+        sizeof(rows[8]),
+        "Issue: %.23s",
+        app->diagnostics.problem[0] ? app->diagnostics.problem : "none");
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         uint16_t index = app->scroll + visible;
         if(index >= 9U) break;
@@ -676,7 +700,10 @@ static void adventure_prepare_pack_rows(DndAdventureApp* app) {
         uint16_t index = app->scroll + visible;
         if(index > app->pack_count) break;
         if(index == app->pack_count) {
-            adventure_copy(app->pack_rows[visible], sizeof(app->pack_rows[visible]), "Install Campaign Inbox");
+            adventure_copy(
+                app->pack_rows[visible],
+                sizeof(app->pack_rows[visible]),
+                "Install Campaign Inbox");
         } else {
             PocketCampaignPackSummary pack;
             if(pocket_campaign_pack_at(app->storage, index, &pack))
@@ -687,7 +714,8 @@ static void adventure_prepare_pack_rows(DndAdventureApp* app) {
                     pack.enabled ? '*' : ' ',
                     pack.name);
             else
-                adventure_copy(app->pack_rows[visible], sizeof(app->pack_rows[visible]), "Pack unavailable");
+                adventure_copy(
+                    app->pack_rows[visible], sizeof(app->pack_rows[visible]), "Pack unavailable");
         }
     }
 }
@@ -845,10 +873,14 @@ static bool adventure_input(InputEvent* event, void* context) {
         } else if(move && event->key == InputKeyDown) {
             adventure_move(app, app->scene->choice_count, 1, 2U);
         } else if(event->type == InputTypeLong && event->key == InputKeyOk) {
-            adventure_copy(app->progress.checkpoint, sizeof(app->progress.checkpoint), app->progress.scene);
-            adventure_set_status(app, adventure_save_progress(app) ? "Checkpoint saved [X]" : "Checkpoint save failed");
+            adventure_copy(
+                app->progress.checkpoint, sizeof(app->progress.checkpoint), app->progress.scene);
+            adventure_set_status(
+                app,
+                adventure_save_progress(app) ? "Checkpoint saved [X]" : "Checkpoint save failed");
         } else if(event->type == InputTypeLong && event->key == InputKeyLeft) {
-            adventure_copy(app->progress.scene, sizeof(app->progress.scene), app->progress.checkpoint);
+            adventure_copy(
+                app->progress.scene, sizeof(app->progress.scene), app->progress.checkpoint);
             if(adventure_load_scene(app)) {
                 app->selection = 0U;
                 app->scroll = 0U;
@@ -856,15 +888,19 @@ static bool adventure_input(InputEvent* event, void* context) {
                 adventure_set_status(app, "Checkpoint loaded");
             }
         } else if(event->type == InputTypeLong && event->key == InputKeyRight) {
-            adventure_copy(app->progress.scene, sizeof(app->progress.scene), app->active_campaign.entry_scene);
+            adventure_copy(
+                app->progress.scene,
+                sizeof(app->progress.scene),
+                app->active_campaign.entry_scene);
             if(adventure_load_scene(app)) {
                 app->selection = 0U;
                 app->scroll = 0U;
                 adventure_save_progress(app);
                 adventure_set_status(app, "Adventure restarted");
             }
-        } else if(event->type == InputTypeShort && event->key == InputKeyOk &&
-                  app->selection < app->scene->choice_count) {
+        } else if(
+            event->type == InputTypeShort && event->key == InputKeyOk &&
+            app->selection < app->scene->choice_count) {
             DndAdventureChoice choice = app->scene->choices[app->selection];
             app->status[0] = '\0';
             adventure_apply_choice(app, &choice);
@@ -884,7 +920,8 @@ static bool adventure_input(InputEvent* event, void* context) {
             adventure_set_status(
                 app,
                 app->diagnostics.incompatible || app->diagnostics.missing_scene_files ||
-                        app->diagnostics.duplicate_campaign_ids || app->diagnostics.duplicate_scene_ids ||
+                        app->diagnostics.duplicate_campaign_ids ||
+                        app->diagnostics.duplicate_scene_ids ||
                         app->diagnostics.missing_entry_scenes || app->diagnostics.broken_links ?
                     "Pack needs attention" :
                     "Campaign packs OK");
@@ -897,11 +934,13 @@ static bool adventure_input(InputEvent* event, void* context) {
         } else if(move && event->key == InputKeyDown) {
             adventure_move(app, rows, 1, 5U);
             adventure_prepare_pack_rows(app);
-        }
-        else if(event->type == InputTypeLong && event->key == InputKeyOk && app->selection < app->pack_count) {
+        } else if(
+            event->type == InputTypeLong && event->key == InputKeyOk &&
+            app->selection < app->pack_count) {
             PocketCampaignPackSummary pack;
             if(pocket_campaign_pack_at(app->storage, app->selection, &pack)) {
-                bool changed = pocket_campaign_pack_set_enabled(app->storage, pack.id, !pack.enabled);
+                bool changed =
+                    pocket_campaign_pack_set_enabled(app->storage, pack.id, !pack.enabled);
                 adventure_set_status(
                     app,
                     changed ? (pack.enabled ? "Pack marked inactive" : "Pack marked active") :
@@ -918,21 +957,22 @@ static bool adventure_input(InputEvent* event, void* context) {
                     adventure_prepare_pack_rows(app);
                 }
             }
-        } else if(event->type == InputTypeShort && event->key == InputKeyOk && app->selection == app->pack_count) {
-            app->inbox_preview_valid = pocket_campaign_pack_preview_inbox(
-                                           app->storage,
-                                           &app->inbox_preview,
-                                           app->status,
-                                           sizeof(app->status)) ?
-                                           1U :
-                                           0U;
+        } else if(
+            event->type == InputTypeShort && event->key == InputKeyOk &&
+            app->selection == app->pack_count) {
+            app->inbox_preview_valid =
+                pocket_campaign_pack_preview_inbox(
+                    app->storage, &app->inbox_preview, app->status, sizeof(app->status)) ?
+                    1U :
+                    0U;
             app->screen = DndAdventureScreenPackPreview;
             app->selection = 0U;
             app->scroll = 0U;
         }
     } else if(app->screen == DndAdventureScreenPackPreview) {
         if(event->type == InputTypeLong && event->key == InputKeyOk && app->inbox_preview_valid) {
-            bool changed = pocket_campaign_pack_install_inbox(app->storage, app->status, sizeof(app->status));
+            bool changed =
+                pocket_campaign_pack_install_inbox(app->storage, app->status, sizeof(app->status));
             if(changed) {
                 pocket_campaign_cache_reset();
                 app->campaign_count = pocket_campaign_count(app->storage);
@@ -969,8 +1009,7 @@ static bool adventure_load_character(DndAdventureApp* app, const char* args) {
             have_profile = true;
         }
     }
-    if(!have_profile && dnd_profile_ref_active(app->storage, &app->profile))
-        have_profile = true;
+    if(!have_profile && dnd_profile_ref_active(app->storage, &app->profile)) have_profile = true;
     if(!have_profile) app->profile = 0U;
     bool recovered = false;
     app->character_loaded = pocket_d20_storage_load_profile(
@@ -978,10 +1017,10 @@ static bool adventure_load_character(DndAdventureApp* app, const char* args) {
                                 1U :
                                 0U;
     if(app->character_loaded && recovered)
-        app->character_loaded = pocket_d20_storage_restore_backup(
-                                    app->storage, app->profile, &app->character_data) ?
-                                    1U :
-                                    0U;
+        app->character_loaded =
+            pocket_d20_storage_restore_backup(app->storage, app->profile, &app->character_data) ?
+                1U :
+                0U;
     return app->character_loaded != 0U;
 }
 

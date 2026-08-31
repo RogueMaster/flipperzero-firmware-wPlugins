@@ -18,14 +18,17 @@ static bool dnd_profile_ref_parse_u32(const char* text, uint32_t* output) {
         ++cursor;
     }
     if(cursor == text) return false;
-    while(*cursor == '\r' || *cursor == '\n' || *cursor == ' ' || *cursor == '\t') ++cursor;
+    while(*cursor == '\r' || *cursor == '\n' || *cursor == ' ' || *cursor == '\t')
+        ++cursor;
     if(*cursor) return false;
     *output = value;
     return true;
 }
 
-
-static bool dnd_profile_ref_filename_is_primary(const char* filename, const char* prefix, size_t prefix_length) {
+static bool dnd_profile_ref_filename_is_primary(
+    const char* filename,
+    const char* prefix,
+    size_t prefix_length) {
     if(!filename || !prefix) return false;
     size_t length = strlen(filename);
     if(length < prefix_length + 6U || strncmp(filename, prefix, prefix_length) != 0 ||
@@ -34,13 +37,13 @@ static bool dnd_profile_ref_filename_is_primary(const char* filename, const char
     /* Primary profile names end in _<level>.txt. Sidecars do not. */
     const char* extension = filename + length - 4U;
     const char* level = extension;
-    while(level > filename && level[-1] != '_') --level;
+    while(level > filename && level[-1] != '_')
+        --level;
     if(level <= filename || level >= extension) return false;
     for(const char* p = level; p < extension; ++p)
         if(*p < '0' || *p > '9') return false;
     return true;
 }
-
 
 static bool dnd_profile_ref_filename_id(const char* filename, uint32_t* output) {
     if(!filename || !output || strncmp(filename, "ch_", 3U) != 0) return false;
@@ -55,7 +58,8 @@ static bool dnd_profile_ref_filename_id(const char* filename, uint32_t* output) 
     return dnd_profile_ref_parse_u32(text, output);
 }
 
-static bool dnd_profile_ref_fallback(Storage* storage, uint32_t after, bool have_after, uint32_t* profile) {
+static bool
+    dnd_profile_ref_fallback(Storage* storage, uint32_t after, bool have_after, uint32_t* profile) {
     if(!storage || !profile) return false;
     File* directory = storage_file_alloc(storage);
     if(!directory) return false;
@@ -114,8 +118,10 @@ bool dnd_profile_ref_path(Storage* storage, uint32_t profile, char* output, size
         char filename[128];
         while(storage_dir_read(directory, &info, filename, sizeof(filename))) {
             if(file_info_is_dir(&info)) continue;
-            if(!dnd_profile_ref_filename_is_primary(filename, prefix, (size_t)prefix_length)) continue;
-            if(pocket_d20_child_path(output, size, POCKET_D20_CHARACTER_DATA_ROOT, NULL, filename)) {
+            if(!dnd_profile_ref_filename_is_primary(filename, prefix, (size_t)prefix_length))
+                continue;
+            if(pocket_d20_child_path(
+                   output, size, POCKET_D20_CHARACTER_DATA_ROOT, NULL, filename)) {
                 found = true;
                 break;
             }
@@ -165,8 +171,7 @@ bool dnd_profile_ref_active(Storage* storage, uint32_t* profile) {
                 if(equal) {
                     *equal++ = '\0';
                     uint32_t parsed = 0U;
-                    if(strcmp(line, "Active") == 0 &&
-                       dnd_profile_ref_parse_u32(equal, &parsed)) {
+                    if(strcmp(line, "Active") == 0 && dnd_profile_ref_parse_u32(equal, &parsed)) {
                         *profile = parsed;
                         found = true;
                     }

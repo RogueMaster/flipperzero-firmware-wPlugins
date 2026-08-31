@@ -5,18 +5,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CAMPAIGN_PACK_VERSION 1U
+#define CAMPAIGN_PACK_VERSION     1U
 #define CAMPAIGN_PACK_MAX_RECORDS 16U
-#define CAMPAIGN_PACK_LINE_LEN 768U
+#define CAMPAIGN_PACK_LINE_LEN    768U
 #define CAMPAIGN_PACK_READ_BUFFER 256U
 
-#define CAMPAIGN_REGISTRY             APP_DATA_PATH("packs/campaign_registry.txt")
-#define CAMPAIGN_INBOX_MANIFEST       APP_DATA_PATH("packs/campaign_inbox/manifest.txt")
-#define CAMPAIGN_INBOX_INDEX          APP_DATA_PATH("packs/campaign_inbox/index.txt")
-#define CAMPAIGN_INBOX_CONTENT        APP_DATA_PATH("packs/campaign_inbox/scenes.txt")
-#define CAMPAIGN_ENABLED_INDEX        APP_DATA_PATH("campaigns/enabled_index.txt")
-#define CAMPAIGN_PACKAGED_INDEX       APP_ASSETS_PATH("campaigns/index.txt")
-#define CAMPAIGN_CUSTOM_INDEX         APP_DATA_PATH("campaigns/custom_index.txt")
+#define CAMPAIGN_REGISTRY       APP_DATA_PATH("packs/campaign_registry.txt")
+#define CAMPAIGN_INBOX_MANIFEST APP_DATA_PATH("packs/campaign_inbox/manifest.txt")
+#define CAMPAIGN_INBOX_INDEX    APP_DATA_PATH("packs/campaign_inbox/index.txt")
+#define CAMPAIGN_INBOX_CONTENT  APP_DATA_PATH("packs/campaign_inbox/scenes.txt")
+#define CAMPAIGN_ENABLED_INDEX  APP_DATA_PATH("campaigns/enabled_index.txt")
+#define CAMPAIGN_PACKAGED_INDEX APP_ASSETS_PATH("campaigns/index.txt")
+#define CAMPAIGN_CUSTOM_INDEX   APP_DATA_PATH("campaigns/custom_index.txt")
 
 typedef struct {
     File* file;
@@ -83,7 +83,8 @@ static bool campaign_pack_read_line(CampaignPackReader* reader, char* line, size
     bool consumed = false;
     while(true) {
         if(reader->position >= reader->count) {
-            reader->count = (uint16_t)storage_file_read(reader->file, reader->buffer, sizeof(reader->buffer));
+            reader->count =
+                (uint16_t)storage_file_read(reader->file, reader->buffer, sizeof(reader->buffer));
             reader->position = 0U;
             if(!reader->count) break;
         }
@@ -115,7 +116,8 @@ static bool campaign_pack_parse_record(char* line, CampaignPackRecord* output) {
     char* fields[3];
     if(campaign_pack_split(line, fields, 3U) != 3U) return false;
     uint32_t enabled = 0U;
-    if(!campaign_pack_parse_u32(fields[2], 1U, &enabled) || !campaign_pack_safe_id(fields[0]) || !fields[1][0])
+    if(!campaign_pack_parse_u32(fields[2], 1U, &enabled) || !campaign_pack_safe_id(fields[0]) ||
+       !fields[1][0])
         return false;
     memset(output, 0, sizeof(*output));
     campaign_pack_copy(output->summary.id, sizeof(output->summary.id), fields[0]);
@@ -198,7 +200,8 @@ static bool campaign_pack_installed_paths(
     return a > 0 && (size_t)a < index_size && b > 0 && (size_t)b < content_size;
 }
 
-static bool campaign_pack_copy_file(Storage* storage, const char* source, const char* destination) {
+static bool
+    campaign_pack_copy_file(Storage* storage, const char* source, const char* destination) {
     if(!pocket_d20_ensure_parent_dir(storage, destination)) return false;
     File* input = storage_file_alloc(storage);
     File* output = storage_file_alloc(storage);
@@ -445,11 +448,7 @@ bool pocket_campaign_pack_install_inbox(Storage* storage, char* status, size_t s
 
     char index_path[POCKET_D20_PATH_LEN], content_path[POCKET_D20_PATH_LEN];
     if(!campaign_pack_installed_paths(
-           manifest.id,
-           index_path,
-           sizeof(index_path),
-           content_path,
-           sizeof(content_path)) ||
+           manifest.id, index_path, sizeof(index_path), content_path, sizeof(content_path)) ||
        storage_file_exists(storage, index_path) || storage_file_exists(storage, content_path)) {
         campaign_pack_status(status, status_size, "Pack path already used");
         goto done;
@@ -507,5 +506,3 @@ bool pocket_campaign_pack_set_enabled(Storage* storage, const char* id, bool ena
     free(records);
     return rebuilt;
 }
-
-

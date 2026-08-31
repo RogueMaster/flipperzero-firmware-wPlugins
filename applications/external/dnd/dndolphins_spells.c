@@ -6,7 +6,8 @@
 #include <string.h>
 
 uint8_t pocket_d20_spell_casting_ability_for(
-    const PocketCharacter* character, const PocketSpell* spell) {
+    const PocketCharacter* character,
+    const PocketSpell* spell) {
     if(spell) {
         uint8_t class_index = spell->class_index;
         if(class_index < character->class_count &&
@@ -20,15 +21,15 @@ uint8_t pocket_d20_spell_casting_ability_for(
 }
 
 int8_t pocket_d20_spell_attack_modifier_for(
-    const PocketCharacter* character, const PocketSpell* spell) {
+    const PocketCharacter* character,
+    const PocketSpell* spell) {
     uint8_t ability = pocket_d20_spell_casting_ability_for(character, spell);
     return (int8_t)(pocket_d20_ability_modifier(character->ability_scores[ability]) +
                     pocket_d20_proficiency_bonus(character) + character->spell_attack_misc +
                     pocket_d20_exhaustion_penalty(character));
 }
 
-int8_t pocket_d20_spell_save_dc_for(
-    const PocketCharacter* character, const PocketSpell* spell) {
+int8_t pocket_d20_spell_save_dc_for(const PocketCharacter* character, const PocketSpell* spell) {
     uint8_t ability = pocket_d20_spell_casting_ability_for(character, spell);
     return (int8_t)(8 + pocket_d20_ability_modifier(character->ability_scores[ability]) +
                     pocket_d20_proficiency_bonus(character) + character->spell_save_misc);
@@ -100,12 +101,10 @@ bool pocket_d20_initialize_spell_slots_if_unset(PocketCharacter* character) {
         }
     }
 
-    static const uint8_t pact_slots[20] = {
-        1U, 2U, 2U, 2U, 2U, 2U, 2U, 2U, 2U, 2U,
-        3U, 3U, 3U, 3U, 3U, 3U, 4U, 4U, 4U, 4U};
-    static const uint8_t pact_levels[20] = {
-        1U, 1U, 2U, 2U, 3U, 3U, 4U, 4U, 5U, 5U,
-        5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U};
+    static const uint8_t pact_slots[20] = {1U, 2U, 2U, 2U, 2U, 2U, 2U, 2U, 2U, 2U,
+                                           3U, 3U, 3U, 3U, 3U, 3U, 4U, 4U, 4U, 4U};
+    static const uint8_t pact_levels[20] = {1U, 1U, 2U, 2U, 3U, 3U, 4U, 4U, 5U, 5U,
+                                            5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U, 5U};
     for(uint8_t index = 0U; index < character->class_count; ++index) {
         PocketClassLevel* class_level = &character->classes[index];
         if(class_level->spellcasting_mode != PocketSpellcastingPact) continue;
@@ -134,55 +133,93 @@ bool pocket_d20_apply_level_progression(PocketCharacter* character, uint8_t clas
     if(level > 20U) level = 20U;
     bool changed = false;
 
-    if(c->hit_dice_max < level) { c->hit_dice_max = level; changed = true; }
+    if(c->hit_dice_max < level) {
+        c->hit_dice_max = level;
+        changed = true;
+    }
     if(c->hit_dice_current > c->hit_dice_max) c->hit_dice_current = c->hit_dice_max;
 
     uint8_t mode = c->spellcasting_mode;
     if(pocket_d20_class_name_is(c, "Bard") || pocket_d20_class_name_is(c, "Cleric") ||
        pocket_d20_class_name_is(c, "Druid") || pocket_d20_class_name_is(c, "Sorcerer") ||
-       pocket_d20_class_name_is(c, "Wizard")) mode = PocketSpellcastingFull;
-    else if(pocket_d20_class_name_is(c, "Artificer") || pocket_d20_class_name_is(c, "Paladin") ||
-            pocket_d20_class_name_is(c, "Ranger")) mode = PocketSpellcastingHalf;
-    else if(pocket_d20_class_name_is(c, "Warlock")) mode = PocketSpellcastingPact;
-    if(c->spellcasting_mode != mode) { c->spellcasting_mode = mode; changed = true; }
+       pocket_d20_class_name_is(c, "Wizard"))
+        mode = PocketSpellcastingFull;
+    else if(
+        pocket_d20_class_name_is(c, "Artificer") || pocket_d20_class_name_is(c, "Paladin") ||
+        pocket_d20_class_name_is(c, "Ranger"))
+        mode = PocketSpellcastingHalf;
+    else if(pocket_d20_class_name_is(c, "Warlock"))
+        mode = PocketSpellcastingPact;
+    if(c->spellcasting_mode != mode) {
+        c->spellcasting_mode = mode;
+        changed = true;
+    }
 
     uint8_t cantrips = 0U;
-    if(pocket_d20_class_name_is(c, "Wizard") || pocket_d20_class_name_is(c, "Sorcerer")) cantrips = level >= 10U ? 5U : level >= 4U ? 4U : 3U;
-    else if(pocket_d20_class_name_is(c, "Cleric") || pocket_d20_class_name_is(c, "Druid")) cantrips = level >= 10U ? 5U : level >= 4U ? 4U : 3U;
-    else if(pocket_d20_class_name_is(c, "Bard")) cantrips = level >= 10U ? 4U : level >= 4U ? 3U : 2U;
-    else if(pocket_d20_class_name_is(c, "Warlock")) cantrips = level >= 10U ? 4U : level >= 4U ? 3U : 2U;
-    if(cantrips && c->cantrip_limit < cantrips) { c->cantrip_limit = cantrips; changed = true; }
+    if(pocket_d20_class_name_is(c, "Wizard") || pocket_d20_class_name_is(c, "Sorcerer"))
+        cantrips = level >= 10U ? 5U : level >= 4U ? 4U : 3U;
+    else if(pocket_d20_class_name_is(c, "Cleric") || pocket_d20_class_name_is(c, "Druid"))
+        cantrips = level >= 10U ? 5U : level >= 4U ? 4U : 3U;
+    else if(pocket_d20_class_name_is(c, "Bard"))
+        cantrips = level >= 10U ? 4U : level >= 4U ? 3U : 2U;
+    else if(pocket_d20_class_name_is(c, "Warlock"))
+        cantrips = level >= 10U ? 4U : level >= 4U ? 3U : 2U;
+    if(cantrips && c->cantrip_limit < cantrips) {
+        c->cantrip_limit = cantrips;
+        changed = true;
+    }
 
     int16_t ability_mod = 0;
     if(c->spellcasting_ability < POCKET_D20_ABILITY_COUNT)
-        ability_mod = pocket_d20_ability_modifier(character->ability_scores[c->spellcasting_ability]);
+        ability_mod =
+            pocket_d20_ability_modifier(character->ability_scores[c->spellcasting_ability]);
     int16_t prepared = (int16_t)level + ability_mod;
     if(prepared < 1) prepared = 1;
-    if((mode == PocketSpellcastingFull || mode == PocketSpellcastingHalf) && c->prepared_limit < (uint8_t)prepared) {
-        c->prepared_limit = (uint8_t)prepared; changed = true;
+    if((mode == PocketSpellcastingFull || mode == PocketSpellcastingHalf) &&
+       c->prepared_limit < (uint8_t)prepared) {
+        c->prepared_limit = (uint8_t)prepared;
+        changed = true;
     }
 
     if(pocket_d20_class_name_is(c, "Wizard")) {
         uint16_t minimum = (uint16_t)(6U + (level > 1U ? 2U * (level - 1U) : 0U));
-        if(c->spellbook_size < minimum) { c->spellbook_size = minimum; changed = true; }
+        if(c->spellbook_size < minimum) {
+            c->spellbook_size = minimum;
+            changed = true;
+        }
     }
     if(pocket_d20_class_name_is(c, "Sorcerer")) {
         uint16_t points = level >= 2U ? level : 0U;
-        if(c->spell_points_max < points) { c->spell_points_max = points; changed = true; }
-        if(c->spell_points_current > c->spell_points_max) c->spell_points_current = c->spell_points_max;
+        if(c->spell_points_max < points) {
+            c->spell_points_max = points;
+            changed = true;
+        }
+        if(c->spell_points_current > c->spell_points_max)
+            c->spell_points_current = c->spell_points_max;
     }
     if(pocket_d20_class_name_is(c, "Warlock")) {
-        static const uint8_t pact_slots[20] = {1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4};
-        static const uint8_t pact_level[20] = {1,1,2,2,3,3,4,4,5,5,5,5,5,5,5,5,5,5,5,5};
-        if(c->pact_slots_max != pact_slots[level-1U]) { c->pact_slots_max = pact_slots[level-1U]; changed = true; }
-        if(c->pact_slot_level != pact_level[level-1U]) { c->pact_slot_level = pact_level[level-1U]; changed = true; }
+        static const uint8_t pact_slots[20] = {1, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                               3, 3, 3, 3, 3, 3, 4, 4, 4, 4};
+        static const uint8_t pact_level[20] = {1, 1, 2, 2, 3, 3, 4, 4, 5, 5,
+                                               5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
+        if(c->pact_slots_max != pact_slots[level - 1U]) {
+            c->pact_slots_max = pact_slots[level - 1U];
+            changed = true;
+        }
+        if(c->pact_slot_level != pact_level[level - 1U]) {
+            c->pact_slot_level = pact_level[level - 1U];
+            changed = true;
+        }
         if(c->pact_slots_current > c->pact_slots_max) c->pact_slots_current = c->pact_slots_max;
         uint16_t mask = 0U;
         if(level >= 11U) mask |= (uint16_t)(1U << 6U);
         if(level >= 13U) mask |= (uint16_t)(1U << 7U);
         if(level >= 15U) mask |= (uint16_t)(1U << 8U);
         if(level >= 17U) mask |= (uint16_t)(1U << 9U);
-        if((c->mystic_arcanum_mask & mask) != mask) { c->mystic_arcanum_mask |= mask; changed = true; }
+        if((c->mystic_arcanum_mask & mask) != mask) {
+            c->mystic_arcanum_mask |= mask;
+            changed = true;
+        }
     }
     pocket_d20_recalculate_multiclass_slots(character);
     return changed;
@@ -213,13 +250,11 @@ uint8_t pocket_d20_spell_point_cost(uint8_t level) {
     return level < 10U ? cost[level] : 0U;
 }
 
-bool pocket_d20_spell_is_tracked(
-    const PocketSpell* spell, uint8_t known, uint8_t always_prepared) {
+bool pocket_d20_spell_is_tracked(const PocketSpell* spell, uint8_t known, uint8_t always_prepared) {
     return spell && (known || spell->prepared || always_prepared);
 }
 
-bool pocket_d20_spell_can_ritual(
-    const PocketSpell* spell, uint8_t known, uint8_t always_prepared) {
+bool pocket_d20_spell_can_ritual(const PocketSpell* spell, uint8_t known, uint8_t always_prepared) {
     return spell && spell->ritual && pocket_d20_spell_is_tracked(spell, known, always_prepared);
 }
 
@@ -265,14 +300,14 @@ uint8_t pocket_d20_spells_build_cast_options(
     if(!character || !spell || !pocket_d20_spell_is_tracked(spell, known, always_prepared))
         return 0U;
     uint8_t count = 0U;
-#define POCKET_ADD_CAST_OPTION(lvl, kind, cls)                                                    \
-    do {                                                                                          \
-        if(options && count < capacity) {                                                         \
-            options[count].level = (lvl);                                                         \
-            options[count].resource = (kind);                                                     \
-            options[count].class_index = (cls);                                                   \
-        }                                                                                         \
-        if(count < 255U) ++count;                                                                 \
+#define POCKET_ADD_CAST_OPTION(lvl, kind, cls)  \
+    do {                                        \
+        if(options && count < capacity) {       \
+            options[count].level = (lvl);       \
+            options[count].resource = (kind);   \
+            options[count].class_index = (cls); \
+        }                                       \
+        if(count < 255U) ++count;               \
     } while(false)
 
     if(spell->level == 0U) {

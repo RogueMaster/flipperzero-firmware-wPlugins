@@ -9,22 +9,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define POCKET_D20_TEXT_VERSION                  5U
-#define POCKET_D20_VALUE_LINE_LEN                320U
-#define POCKET_D20_ENCODED_LINE_LEN              ((POCKET_D20_DETAIL_LEN * 3U) + 64U)
-#define POCKET_D20_FORMAT_LINE_LEN               256U
-#define POCKET_D20_READ_BUFFER                   256U
-#define POCKET_D20_COLLECTION_LINE_LEN           1280U
-#define POCKET_D20_ITEM_SEED_LINE_LEN              256U
-#define POCKET_D20_DATA_DIR                      POCKET_D20_CHARACTER_DATA_ROOT
-#define POCKET_D20_EXPORT_DIR                    POCKET_D20_CHARACTER_DATA_ROOT "/exports"
-#define POCKET_D20_ARCHIVE_DIR                   POCKET_D20_CHARACTER_DATA_ROOT "/archive"
+#define POCKET_D20_TEXT_VERSION        5U
+#define POCKET_D20_VALUE_LINE_LEN      320U
+#define POCKET_D20_ENCODED_LINE_LEN    ((POCKET_D20_DETAIL_LEN * 3U) + 64U)
+#define POCKET_D20_FORMAT_LINE_LEN     256U
+#define POCKET_D20_READ_BUFFER         256U
+#define POCKET_D20_COLLECTION_LINE_LEN 1280U
+#define POCKET_D20_ITEM_SEED_LINE_LEN  256U
+#define POCKET_D20_DATA_DIR            POCKET_D20_CHARACTER_DATA_ROOT
+#define POCKET_D20_EXPORT_DIR          POCKET_D20_CHARACTER_DATA_ROOT "/exports"
+#define POCKET_D20_ARCHIVE_DIR         POCKET_D20_CHARACTER_DATA_ROOT "/archive"
 
 #define POCKET_D20_LEGACY_PROFILE_DIR "/ext/apps_data/dungeons_and_dolphins/profiles"
 
-#define POCKET_D20_ACTIVE_PROFILE_PATH      POCKET_D20_CHARACTER_DATA_ROOT "/custom_active_profile.txt"
-#define POCKET_D20_ACTIVE_PROFILE_TEMP_PATH POCKET_D20_CHARACTER_DATA_ROOT "/custom_active_profile.tmp"
-#define POCKET_D20_ACTIVE_PROFILE_BACKUP_PATH POCKET_D20_CHARACTER_DATA_ROOT "/custom_active_profile.bak"
+#define POCKET_D20_ACTIVE_PROFILE_PATH POCKET_D20_CHARACTER_DATA_ROOT "/custom_active_profile.txt"
+#define POCKET_D20_ACTIVE_PROFILE_TEMP_PATH \
+    POCKET_D20_CHARACTER_DATA_ROOT "/custom_active_profile.tmp"
+#define POCKET_D20_ACTIVE_PROFILE_BACKUP_PATH \
+    POCKET_D20_CHARACTER_DATA_ROOT "/custom_active_profile.bak"
 
 static void pocket_d20_copy(char* destination, size_t size, const char* source) {
     if(size == 0U) return;
@@ -33,14 +35,16 @@ static void pocket_d20_copy(char* destination, size_t size, const char* source) 
 }
 
 static bool pocket_d20_parse_u32_span(
-    const char* begin, const char* end, uint32_t maximum, uint32_t* output) {
+    const char* begin,
+    const char* end,
+    uint32_t maximum,
+    uint32_t* output) {
     if(!begin || !end || !output || begin >= end) return false;
     uint32_t value = 0U;
     for(const char* cursor = begin; cursor < end; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -60,7 +64,8 @@ static bool pocket_d20_publish_temp(
     if(!storage || !temporary || !destination || !backup) return false;
     bool had_destination = storage_file_exists(storage, destination);
     if(had_destination) {
-        if(storage_file_exists(storage, backup) && storage_common_remove(storage, backup) != FSE_OK)
+        if(storage_file_exists(storage, backup) &&
+           storage_common_remove(storage, backup) != FSE_OK)
             return false;
         if(storage_common_rename(storage, destination, backup) != FSE_OK) return false;
     }
@@ -259,7 +264,6 @@ static bool pocket_d20_read_line(PocketD20Reader* reader, char* line, size_t siz
     return position > 0U || character == '\n';
 }
 
-
 static bool pocket_d20_parse_i32_span(const char* begin, const char* end, int32_t* output) {
     if(!begin || !end || !output || begin >= end) return false;
     bool negative = false;
@@ -273,8 +277,7 @@ static bool pocket_d20_parse_i32_span(const char* begin, const char* end, int32_
     for(const char* cursor = begin; cursor < end; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -326,30 +329,19 @@ static bool pocket_d20_indexed_key(
     return true;
 }
 
-
 static void pocket_d20_spellbook_path(char* output, size_t size, uint32_t profile) {
-    snprintf(
-        output,
-        size,
-        "%s/spellbook_%lu.txt",
-        POCKET_D20_DATA_DIR,
-        (unsigned long)profile);
+    snprintf(output, size, "%s/spellbook_%lu.txt", POCKET_D20_DATA_DIR, (unsigned long)profile);
 }
 
 static void pocket_d20_items_path(char* output, size_t size, uint32_t profile) {
-    snprintf(
-        output,
-        size,
-        "%s/inventory_%lu.txt",
-        POCKET_D20_DATA_DIR,
-        (unsigned long)profile);
+    snprintf(output, size, "%s/inventory_%lu.txt", POCKET_D20_DATA_DIR, (unsigned long)profile);
 }
 
 /* Collection files are established when their screen is opened.  Appends then
    operate only on an existing file, so Add New never depends on OPEN_ALWAYS
    semantics or a post-append reread to create its backing store. */
-static bool pocket_d20_ensure_collection_sidecar(
-    Storage* storage, const char* path, const char* header) {
+static bool
+    pocket_d20_ensure_collection_sidecar(Storage* storage, const char* path, const char* header) {
     if(!storage || !path || !header) return false;
 
     /* Match the proven character-save path used before collection sidecars:
@@ -483,8 +475,8 @@ static bool pocket_d20_close_synced_file(File* file, bool success) {
     return success;
 }
 
-static bool pocket_d20_copy_file_direct(
-    Storage* storage, const char* source, const char* destination) {
+static bool
+    pocket_d20_copy_file_direct(Storage* storage, const char* source, const char* destination) {
     if(!storage || !source || !destination) return false;
     File* input = storage_file_alloc(storage);
     File* output = storage_file_alloc(storage);
@@ -523,8 +515,7 @@ static File* pocket_d20_open_collection_snapshot(
         pocket_d20_spellbook_path(live, live_size, profile);
     else
         pocket_d20_items_path(live, live_size, profile);
-    pocket_d20_collection_snapshot_path(
-        snapshot, snapshot_size, profile, owner, collection);
+    pocket_d20_collection_snapshot_path(snapshot, snapshot_size, profile, owner, collection);
     /* The collection and its SWD snapshot both live directly in the canonical
        DNDolphins data directory. Use the same best-effort mkdir pattern as the
        working character save path instead of the recursive parent validator. */
@@ -548,7 +539,6 @@ static bool pocket_d20_publish_collection_snapshot(
     if(!success) return false;
     return pocket_d20_copy_file_direct(storage, snapshot, live);
 }
-
 
 static bool pocket_d20_copy_live_collection_to_snapshot(
     Storage* storage,
@@ -771,13 +761,12 @@ bool pocket_d20_storage_visit_spells(
         if(strncmp(line, "S|", 2U)) continue;
         PocketSpell parsed;
         uint8_t known = 0U, always = 0U, free_current = 0U, free_max = 0U;
-        if(!pocket_d20_parse_spell_record(
-               line, &parsed, &known, &always, &free_current, &free_max))
+        if(!pocket_d20_parse_spell_record(line, &parsed, &known, &always, &free_current, &free_max))
             continue;
         bool keep_scanning = true;
         if(visitor)
-            keep_scanning = visitor(
-                logical, &parsed, known, always, free_current, free_max, context);
+            keep_scanning =
+                visitor(logical, &parsed, known, always, free_current, free_max, context);
         if(logical < POCKET_D20_MAX_SPELLS) ++logical;
         if(!keep_scanning) break;
     }
@@ -861,18 +850,15 @@ bool pocket_d20_storage_load_spellbook_window(
         if(strncmp(line, "S|", 2U)) continue;
         PocketSpell parsed;
         uint8_t known = 0U, always = 0U, free_current = 0U, free_max = 0U;
-        if(!pocket_d20_parse_spell_record(
-               line, &parsed, &known, &always, &free_current, &free_max))
+        if(!pocket_d20_parse_spell_record(line, &parsed, &known, &always, &free_current, &free_max))
             continue;
-        if(logical >= start &&
-           logical < (uint8_t)(start + POCKET_D20_COLLECTION_CACHE_SIZE)) {
+        if(logical >= start && logical < (uint8_t)(start + POCKET_D20_COLLECTION_CACHE_SIZE)) {
             /* Grow only as records are actually retained. An empty or one-record
                sidecar must not pay the heap cost of an eight-record page. The
                normal reserve helper grows 1 -> 2 -> 4 -> 8 and never exceeds the
                eight-record logical window because this branch retains at most eight. */
             if(character->spell_count >= character->spell_capacity &&
-               !pocket_d20_data_reserve_spells(
-                   character, (uint8_t)(character->spell_count + 1U))) {
+               !pocket_d20_data_reserve_spells(character, (uint8_t)(character->spell_count + 1U))) {
                 success = false;
                 break;
             }
@@ -909,14 +895,7 @@ static bool pocket_d20_rewrite_spellbook(
     if(!owner) return false;
     char path[POCKET_D20_PATH_LEN], snapshot[POCKET_D20_PATH_LEN];
     File* output = pocket_d20_open_collection_snapshot(
-        storage,
-        profile,
-        owner,
-        "spellbook",
-        snapshot,
-        sizeof(snapshot),
-        path,
-        sizeof(path));
+        storage, profile, owner, "spellbook", snapshot, sizeof(snapshot), path, sizeof(path));
     if(!output) return false;
     bool success = pocket_d20_write_raw(output, "DNDSpellbook=1\n");
     File* input = NULL;
@@ -924,7 +903,8 @@ static bool pocket_d20_rewrite_spellbook(
     uint8_t logical = 0U;
     if(success && storage_file_exists(storage, path)) {
         input = storage_file_alloc(storage);
-        if(!input || !storage_file_open(input, path, FSAM_READ, FSOM_OPEN_EXISTING)) success = false;
+        if(!input || !storage_file_open(input, path, FSAM_READ, FSOM_OPEN_EXISTING))
+            success = false;
         if(success) {
             line = malloc(POCKET_D20_COLLECTION_LINE_LEN);
             if(!line) success = false;
@@ -935,7 +915,8 @@ static bool pocket_d20_rewrite_spellbook(
             while(success && pocket_d20_read_line(&reader, line, POCKET_D20_COLLECTION_LINE_LEN)) {
                 if(!strncmp(line, "DNDSpellbook=", 13U)) continue;
                 if(strncmp(line, "S|", 2U)) {
-                    success = pocket_d20_write_raw(output, line) && pocket_d20_write_raw(output, "\n");
+                    success = pocket_d20_write_raw(output, line) &&
+                              pocket_d20_write_raw(output, "\n");
                     continue;
                 }
                 /* Logical indexes are based only on valid records, exactly like the
@@ -951,7 +932,8 @@ static bool pocket_d20_rewrite_spellbook(
                        &parsed_always,
                        &parsed_free_current,
                        &parsed_free_max)) {
-                    success = pocket_d20_write_raw(output, line) && pocket_d20_write_raw(output, "\n");
+                    success = pocket_d20_write_raw(output, line) &&
+                              pocket_d20_write_raw(output, "\n");
                     continue;
                 }
                 if(delete_index >= 0 && logical == (uint8_t)delete_index) {
@@ -996,8 +978,7 @@ static bool pocket_d20_rewrite_spellbook(
     if(success && replacement) {
         uint16_t replacement_end = (uint16_t)replace_start + replacement->spell_count;
         uint16_t append_from = logical > replace_start ? logical : replace_start;
-        for(uint16_t logical_index = append_from;
-            success && logical_index < replacement_end;
+        for(uint16_t logical_index = append_from; success && logical_index < replacement_end;
             ++logical_index) {
             uint8_t local = (uint8_t)(logical_index - replace_start);
             success = pocket_d20_write_spell_record(
@@ -1064,7 +1045,10 @@ bool pocket_d20_storage_append_spell(
 }
 
 bool pocket_d20_storage_delete_spell(
-    Storage* storage, uint32_t profile, const PocketCharacter* owner, uint8_t index) {
+    Storage* storage,
+    uint32_t profile,
+    const PocketCharacter* owner,
+    uint8_t index) {
     if(!storage || !owner) return false;
     return pocket_d20_rewrite_spellbook(
         storage, profile, owner, 0U, NULL, index, NULL, 0U, 0U, 0U, 0U);
@@ -1118,8 +1102,8 @@ typedef struct {
     PocketD20ItemAggregate* aggregate;
 } PocketD20ItemAggregateContext;
 
-static bool pocket_d20_aggregate_item_record(
-    uint8_t logical_index, const PocketItem* item, void* context) {
+static bool
+    pocket_d20_aggregate_item_record(uint8_t logical_index, const PocketItem* item, void* context) {
     (void)logical_index;
     PocketD20ItemAggregateContext* aggregate_context = context;
     if(!aggregate_context || !aggregate_context->aggregate || !item) return true;
@@ -1128,12 +1112,13 @@ static bool pocket_d20_aggregate_item_record(
         int32_t weight = (int32_t)item->weight_tenths * item->quantity;
         int32_t carried = (int32_t)aggregate->carried_weight_tenths + weight;
         aggregate->carried_weight_tenths = carried > INT16_MAX ? INT16_MAX :
-                                             carried < INT16_MIN ? INT16_MIN : (int16_t)carried;
+                                           carried < INT16_MIN ? INT16_MIN :
+                                                                 (int16_t)carried;
         if(item->equipped) {
             int32_t equipped = (int32_t)aggregate->equipped_weight_tenths + weight;
             aggregate->equipped_weight_tenths = equipped > INT16_MAX ? INT16_MAX :
-                                                   equipped < INT16_MIN ? INT16_MIN :
-                                                                          (int16_t)equipped;
+                                                equipped < INT16_MIN ? INT16_MIN :
+                                                                       (int16_t)equipped;
         }
     }
     if(item->attuned && aggregate->attuned_count < UINT8_MAX) ++aggregate->attuned_count;
@@ -1268,12 +1253,7 @@ bool pocket_d20_storage_create_items_from_assets(
             break;
         }
         success = pocket_d20_compose_item_asset(
-            storage,
-            assets[index].path,
-            assets[index].match,
-            output,
-            &item_count,
-            currency);
+            storage, assets[index].path, assets[index].match, output, &item_count, currency);
     }
     if(success) success = storage_file_sync(output);
     storage_file_close(output);
@@ -1319,13 +1299,11 @@ bool pocket_d20_storage_load_items_window(
         if(strncmp(line, "I|", 2U)) continue;
         PocketItem parsed;
         if(!pocket_d20_parse_item_record(line, &parsed)) continue;
-        if(logical >= start &&
-           logical < (uint8_t)(start + POCKET_D20_COLLECTION_CACHE_SIZE)) {
+        if(logical >= start && logical < (uint8_t)(start + POCKET_D20_COLLECTION_CACHE_SIZE)) {
             /* Match spellbook paging: allocate for the records that are present,
                growing 1 -> 2 -> 4 -> 8 instead of reserving all eight up front. */
             if(character->item_count >= character->item_capacity &&
-               !pocket_d20_data_reserve_items(
-                   character, (uint8_t)(character->item_count + 1U))) {
+               !pocket_d20_data_reserve_items(character, (uint8_t)(character->item_count + 1U))) {
                 success = false;
                 break;
             }
@@ -1353,14 +1331,7 @@ static bool pocket_d20_rewrite_items(
     if(!owner) return false;
     char path[POCKET_D20_PATH_LEN], snapshot[POCKET_D20_PATH_LEN];
     File* output = pocket_d20_open_collection_snapshot(
-        storage,
-        profile,
-        owner,
-        "items",
-        snapshot,
-        sizeof(snapshot),
-        path,
-        sizeof(path));
+        storage, profile, owner, "items", snapshot, sizeof(snapshot), path, sizeof(path));
     if(!output) return false;
     bool success = pocket_d20_write_raw(output, "DNDItems=1\n");
     File* input = NULL;
@@ -1368,7 +1339,8 @@ static bool pocket_d20_rewrite_items(
     uint8_t logical = 0U;
     if(success && storage_file_exists(storage, path)) {
         input = storage_file_alloc(storage);
-        if(!input || !storage_file_open(input, path, FSAM_READ, FSOM_OPEN_EXISTING)) success = false;
+        if(!input || !storage_file_open(input, path, FSAM_READ, FSOM_OPEN_EXISTING))
+            success = false;
         if(success) {
             line = malloc(POCKET_D20_COLLECTION_LINE_LEN);
             if(!line) success = false;
@@ -1379,14 +1351,16 @@ static bool pocket_d20_rewrite_items(
             while(success && pocket_d20_read_line(&reader, line, POCKET_D20_COLLECTION_LINE_LEN)) {
                 if(!strncmp(line, "DNDItems=", 9U)) continue;
                 if(strncmp(line, "I|", 2U)) {
-                    success = pocket_d20_write_raw(output, line) && pocket_d20_write_raw(output, "\n");
+                    success = pocket_d20_write_raw(output, line) &&
+                              pocket_d20_write_raw(output, "\n");
                     continue;
                 }
                 /* Keep malformed/manual item lines, but do not count them as logical
                    records when locating a page replacement or delete target. */
                 PocketItem parsed;
                 if(!pocket_d20_parse_item_record(line, &parsed)) {
-                    success = pocket_d20_write_raw(output, line) && pocket_d20_write_raw(output, "\n");
+                    success = pocket_d20_write_raw(output, line) &&
+                              pocket_d20_write_raw(output, "\n");
                     continue;
                 }
                 if(delete_index >= 0 && logical == (uint8_t)delete_index) {
@@ -1413,8 +1387,7 @@ static bool pocket_d20_rewrite_items(
     if(success && replacement) {
         uint16_t replacement_end = (uint16_t)replace_start + replacement->item_count;
         uint16_t append_from = logical > replace_start ? logical : replace_start;
-        for(uint16_t logical_index = append_from;
-            success && logical_index < replacement_end;
+        for(uint16_t logical_index = append_from; success && logical_index < replacement_end;
             ++logical_index) {
             uint8_t local = (uint8_t)(logical_index - replace_start);
             success = pocket_d20_write_item_record(output, &replacement->items[local]);
@@ -1457,7 +1430,10 @@ bool pocket_d20_storage_append_item(
 }
 
 bool pocket_d20_storage_delete_item(
-    Storage* storage, uint32_t profile, const PocketCharacter* owner, uint8_t index) {
+    Storage* storage,
+    uint32_t profile,
+    const PocketCharacter* owner,
+    uint8_t index) {
     if(!storage || !owner) return false;
     return pocket_d20_rewrite_items(storage, profile, owner, 0U, NULL, index, NULL);
 }
@@ -1478,8 +1454,6 @@ static void pocket_d20_prepare_character_load(PocketSaveData* data) {
     c->feature_count = 0U;
     c->grant_count = 0U;
 }
-
-
 
 static bool pocket_d20_write_character(File* file, const PocketSaveData* data) {
     const PocketCharacter* c = &data->character;
@@ -1689,8 +1663,7 @@ static bool pocket_d20_read_character(
        synthetic New Hero default on the next save. The filename level is total
        character level, so it is applied only later when no class-level records
        were recovered and the character remains single-class. */
-    if(fallback_entry)
-        pocket_d20_copy(c->name, sizeof(c->name), fallback_entry->name);
+    if(fallback_entry) pocket_d20_copy(c->name, sizeof(c->name), fallback_entry->name);
     PocketD20Reader reader;
     pocket_d20_reader_init(&reader, file);
     char line[POCKET_D20_ENCODED_LINE_LEN];
@@ -1713,8 +1686,12 @@ static bool pocket_d20_read_character(
            never rejects fields that this build still recognizes. */
         if(!strcmp(key, "PocketD20Character") || !strcmp(key, "End")) continue;
 
-#define LOAD_STRING(field, name) \
-        if(!strcmp(key, name)) { pocket_d20_decode_string((field), sizeof(field), value); recognized_data = true; continue; }
+#define LOAD_STRING(field, name)                                 \
+    if(!strcmp(key, name)) {                                     \
+        pocket_d20_decode_string((field), sizeof(field), value); \
+        recognized_data = true;                                  \
+        continue;                                                \
+    }
         LOAD_STRING(c->name, "Name")
         LOAD_STRING(c->player, "Player")
         LOAD_STRING(c->species, "Species")
@@ -1736,12 +1713,16 @@ static bool pocket_d20_read_character(
 #undef LOAD_STRING
 
         if(!strcmp(key, "IdentityRules")) {
-            if(pocket_d20_parse_numbers(value, n, 1U) == 1U) { c->size = (uint8_t)n[0]; recognized_data = true; }
+            if(pocket_d20_parse_numbers(value, n, 1U) == 1U) {
+                c->size = (uint8_t)n[0];
+                recognized_data = true;
+            }
             continue;
         }
         if(!strcmp(key, "Progress")) {
             size_t count = pocket_d20_parse_numbers(value, n, 4U);
-            if(count >= 1U && n[0] > 0 && n[0] <= (int32_t)POCKET_D20_MAX_CLASSES) c->class_count = (uint8_t)n[0];
+            if(count >= 1U && n[0] > 0 && n[0] <= (int32_t)POCKET_D20_MAX_CLASSES)
+                c->class_count = (uint8_t)n[0];
             if(count >= 2U && n[1] >= 0) c->experience = (uint32_t)n[1];
             if(count >= 3U) c->milestone_leveling = n[2] ? 1U : 0U;
             if(count >= 4U) c->inspiration = n[3] ? 1U : 0U;
@@ -1749,19 +1730,26 @@ static bool pocket_d20_read_character(
             continue;
         }
         if(pocket_d20_indexed_key(key, "Class", "Name", POCKET_D20_MAX_CLASSES, &index)) {
-            pocket_d20_decode_string(c->classes[index].name, sizeof(c->classes[index].name), value);
+            pocket_d20_decode_string(
+                c->classes[index].name, sizeof(c->classes[index].name), value);
             if(c->class_count <= index) c->class_count = (uint8_t)(index + 1U);
-            recognized_data = true; continue;
+            recognized_data = true;
+            continue;
         }
         if(pocket_d20_indexed_key(key, "Class", "Subclass", POCKET_D20_MAX_CLASSES, &index)) {
-            pocket_d20_decode_string(c->classes[index].subclass, sizeof(c->classes[index].subclass), value);
+            pocket_d20_decode_string(
+                c->classes[index].subclass, sizeof(c->classes[index].subclass), value);
             if(c->class_count <= index) c->class_count = (uint8_t)(index + 1U);
-            recognized_data = true; continue;
+            recognized_data = true;
+            continue;
         }
         if(pocket_d20_indexed_key(key, "Class", "Data", POCKET_D20_MAX_CLASSES, &index)) {
             size_t count = pocket_d20_parse_numbers(value, n, 16U);
             PocketClassLevel* cl = &c->classes[index];
-            if(count >= 1U) { cl->level = (uint8_t)n[0]; class_level_seen = true; }
+            if(count >= 1U) {
+                cl->level = (uint8_t)n[0];
+                class_level_seen = true;
+            }
             if(count >= 2U) cl->hit_die = (uint8_t)n[1];
             if(count >= 3U) cl->hit_dice_current = (uint8_t)n[2];
             if(count >= 4U) cl->hit_dice_max = (uint8_t)n[3];
@@ -1776,18 +1764,26 @@ static bool pocket_d20_read_character(
             if(count >= 13U) cl->mystic_arcanum_mask = (uint16_t)n[12];
             if(count >= 14U) cl->spell_points_current = (uint16_t)n[13];
             if(count >= 15U) cl->spell_points_max = (uint16_t)n[14];
-            if(count) { if(c->class_count <= index) c->class_count = (uint8_t)(index + 1U); recognized_data = true; }
+            if(count) {
+                if(c->class_count <= index) c->class_count = (uint8_t)(index + 1U);
+                recognized_data = true;
+            }
             continue;
         }
 
-#define LOAD_ARRAY(key_name, target, expected, cast_type) \
-        if(!strcmp(key, key_name)) { \
-            size_t count = pocket_d20_parse_numbers(value, n, expected); \
-            if(count) { for(size_t i = 0U; i < count && i < expected; ++i) (target)[i] = (cast_type)n[i]; recognized_data = true; } \
-            continue; \
-        }
+#define LOAD_ARRAY(key_name, target, expected, cast_type)            \
+    if(!strcmp(key, key_name)) {                                     \
+        size_t count = pocket_d20_parse_numbers(value, n, expected); \
+        if(count) {                                                  \
+            for(size_t i = 0U; i < count && i < expected; ++i)       \
+                (target)[i] = (cast_type)n[i];                       \
+            recognized_data = true;                                  \
+        }                                                            \
+        continue;                                                    \
+    }
         LOAD_ARRAY("AbilityScores", c->ability_scores, POCKET_D20_ABILITY_COUNT, int8_t)
-        LOAD_ARRAY("SaveProficiency", c->saving_throw_proficiency, POCKET_D20_ABILITY_COUNT, uint8_t)
+        LOAD_ARRAY(
+            "SaveProficiency", c->saving_throw_proficiency, POCKET_D20_ABILITY_COUNT, uint8_t)
         LOAD_ARRAY("SaveMisc", c->saving_throw_misc, POCKET_D20_ABILITY_COUNT, int8_t)
         LOAD_ARRAY("SkillProficiency", c->skill_proficiency, POCKET_D20_SKILL_COUNT, uint8_t)
         LOAD_ARRAY("SkillMisc", c->skill_misc, POCKET_D20_SKILL_COUNT, int8_t)
@@ -1833,14 +1829,22 @@ static bool pocket_d20_read_character(
         }
 
 #define LOAD_DYNAMIC_COUNT(name, maximum, reserve_fn, count_field) \
-        if(!strcmp(key, name)) { \
-            if(pocket_d20_parse_u32_range(value, maximum, &number)) { \
-                if(number == 0U || reserve_fn(c, (uint8_t)number)) { count_field = (uint8_t)number; recognized_data = true; } \
-            } \
-            continue; \
-        }
-        LOAD_DYNAMIC_COUNT("FeatureCount", POCKET_D20_MAX_FEATURES, pocket_d20_data_reserve_features, c->feature_count)
-        LOAD_DYNAMIC_COUNT("GrantCount", POCKET_D20_MAX_GRANTS, pocket_d20_data_reserve_grants, c->grant_count)
+    if(!strcmp(key, name)) {                                       \
+        if(pocket_d20_parse_u32_range(value, maximum, &number)) {  \
+            if(number == 0U || reserve_fn(c, (uint8_t)number)) {   \
+                count_field = (uint8_t)number;                     \
+                recognized_data = true;                            \
+            }                                                      \
+        }                                                          \
+        continue;                                                  \
+    }
+        LOAD_DYNAMIC_COUNT(
+            "FeatureCount",
+            POCKET_D20_MAX_FEATURES,
+            pocket_d20_data_reserve_features,
+            c->feature_count)
+        LOAD_DYNAMIC_COUNT(
+            "GrantCount", POCKET_D20_MAX_GRANTS, pocket_d20_data_reserve_grants, c->grant_count)
 #undef LOAD_DYNAMIC_COUNT
 
         if(pocket_d20_indexed_key(key, "Feature", "Name", POCKET_D20_MAX_FEATURES, &index) ||
@@ -1851,7 +1855,8 @@ static bool pocket_d20_read_character(
             PocketFeature* feature = &c->features[index];
             if(pocket_d20_indexed_key(key, "Feature", "Name", POCKET_D20_MAX_FEATURES, &index))
                 pocket_d20_decode_string(feature->name, sizeof(feature->name), value);
-            else if(pocket_d20_indexed_key(key, "Feature", "Detail", POCKET_D20_MAX_FEATURES, &index))
+            else if(pocket_d20_indexed_key(
+                        key, "Feature", "Detail", POCKET_D20_MAX_FEATURES, &index))
                 pocket_d20_decode_string(feature->detail, sizeof(feature->detail), value);
             else {
                 size_t count = pocket_d20_parse_numbers(value, n, 7U);
@@ -1863,17 +1868,22 @@ static bool pocket_d20_read_character(
                 if(count >= 6U) feature->resource_formula = (uint8_t)n[5];
                 if(count >= 7U) feature->resource_ability = (uint8_t)n[6];
             }
-            recognized_data = true; continue;
+            recognized_data = true;
+            continue;
         }
 
         if(!strcmp(key, "LanguageCount")) {
-            if(pocket_d20_parse_u32_range(value, POCKET_D20_MAX_LANGUAGES, &number)) { c->language_count = (uint8_t)number; recognized_data = true; }
+            if(pocket_d20_parse_u32_range(value, POCKET_D20_MAX_LANGUAGES, &number)) {
+                c->language_count = (uint8_t)number;
+                recognized_data = true;
+            }
             continue;
         }
         if(pocket_d20_indexed_key(key, "Language", "", POCKET_D20_MAX_LANGUAGES, &index)) {
             pocket_d20_decode_string(c->languages[index], sizeof(c->languages[index]), value);
             if(c->language_count <= index) c->language_count = (uint8_t)(index + 1U);
-            recognized_data = true; continue;
+            recognized_data = true;
+            continue;
         }
         if(!strcmp(key, "CombatFlags")) {
             size_t count = pocket_d20_parse_numbers(value, n, 3U);
@@ -1899,8 +1909,10 @@ static bool pocket_d20_read_character(
                 pocket_d20_decode_string(grant->source, sizeof(grant->source), value);
             else if(pocket_d20_indexed_key(key, "Grant", "Option", POCKET_D20_MAX_GRANTS, &index))
                 pocket_d20_decode_string(grant->option_name, sizeof(grant->option_name), value);
-            else if(pocket_d20_indexed_key(key, "Grant", "Prerequisites", POCKET_D20_MAX_GRANTS, &index))
-                pocket_d20_decode_string(grant->prerequisites, sizeof(grant->prerequisites), value);
+            else if(pocket_d20_indexed_key(
+                        key, "Grant", "Prerequisites", POCKET_D20_MAX_GRANTS, &index))
+                pocket_d20_decode_string(
+                    grant->prerequisites, sizeof(grant->prerequisites), value);
             else if(pocket_d20_indexed_key(key, "Grant", "Value", POCKET_D20_MAX_GRANTS, &index))
                 pocket_d20_decode_string(grant->grant_value, sizeof(grant->grant_value), value);
             else {
@@ -1910,31 +1922,55 @@ static bool pocket_d20_read_character(
                 if(count >= 3U) grant->level_gained = (uint8_t)n[2];
                 if(count >= 4U) grant->status = (uint8_t)n[3];
             }
-            recognized_data = true; continue;
+            recognized_data = true;
+            continue;
         }
 
         if(!strcmp(key, "AttackTemplateCount")) {
-            if(pocket_d20_parse_u32_range(value, POCKET_D20_MAX_ATTACK_TEMPLATES, &number)) { c->attack_template_count = (uint8_t)number; recognized_data = true; }
+            if(pocket_d20_parse_u32_range(value, POCKET_D20_MAX_ATTACK_TEMPLATES, &number)) {
+                c->attack_template_count = (uint8_t)number;
+                recognized_data = true;
+            }
             continue;
         }
-        if(pocket_d20_indexed_key(key, "AttackTemplate", "Name", POCKET_D20_MAX_ATTACK_TEMPLATES, &index) ||
-           pocket_d20_indexed_key(key, "AttackTemplate", "Mastery", POCKET_D20_MAX_ATTACK_TEMPLATES, &index) ||
-           pocket_d20_indexed_key(key, "AttackTemplate", "DamageType", POCKET_D20_MAX_ATTACK_TEMPLATES, &index) ||
-           pocket_d20_indexed_key(key, "AttackTemplate", "RiderType", POCKET_D20_MAX_ATTACK_TEMPLATES, &index) ||
-           pocket_d20_indexed_key(key, "AttackTemplate", "Data", POCKET_D20_MAX_ATTACK_TEMPLATES, &index)) {
+        if(pocket_d20_indexed_key(
+               key, "AttackTemplate", "Name", POCKET_D20_MAX_ATTACK_TEMPLATES, &index) ||
+           pocket_d20_indexed_key(
+               key, "AttackTemplate", "Mastery", POCKET_D20_MAX_ATTACK_TEMPLATES, &index) ||
+           pocket_d20_indexed_key(
+               key, "AttackTemplate", "DamageType", POCKET_D20_MAX_ATTACK_TEMPLATES, &index) ||
+           pocket_d20_indexed_key(
+               key, "AttackTemplate", "RiderType", POCKET_D20_MAX_ATTACK_TEMPLATES, &index) ||
+           pocket_d20_indexed_key(
+               key, "AttackTemplate", "Data", POCKET_D20_MAX_ATTACK_TEMPLATES, &index)) {
             if(c->attack_template_count <= index) c->attack_template_count = (uint8_t)(index + 1U);
             PocketAttackTemplate* attack = &c->attack_templates[index];
-            if(pocket_d20_indexed_key(key, "AttackTemplate", "Name", POCKET_D20_MAX_ATTACK_TEMPLATES, &index))
+            if(pocket_d20_indexed_key(
+                   key, "AttackTemplate", "Name", POCKET_D20_MAX_ATTACK_TEMPLATES, &index))
                 pocket_d20_decode_string(attack->name, sizeof(attack->name), value);
-            else if(pocket_d20_indexed_key(key, "AttackTemplate", "Mastery", POCKET_D20_MAX_ATTACK_TEMPLATES, &index))
+            else if(pocket_d20_indexed_key(
+                        key, "AttackTemplate", "Mastery", POCKET_D20_MAX_ATTACK_TEMPLATES, &index))
                 pocket_d20_decode_string(attack->mastery, sizeof(attack->mastery), value);
-            else if(pocket_d20_indexed_key(key, "AttackTemplate", "DamageType", POCKET_D20_MAX_ATTACK_TEMPLATES, &index))
+            else if(pocket_d20_indexed_key(
+                        key,
+                        "AttackTemplate",
+                        "DamageType",
+                        POCKET_D20_MAX_ATTACK_TEMPLATES,
+                        &index))
                 pocket_d20_decode_string(attack->damage_type, sizeof(attack->damage_type), value);
-            else if(pocket_d20_indexed_key(key, "AttackTemplate", "RiderType", POCKET_D20_MAX_ATTACK_TEMPLATES, &index))
+            else if(pocket_d20_indexed_key(
+                        key,
+                        "AttackTemplate",
+                        "RiderType",
+                        POCKET_D20_MAX_ATTACK_TEMPLATES,
+                        &index))
                 pocket_d20_decode_string(attack->rider_type, sizeof(attack->rider_type), value);
             else {
                 size_t count = pocket_d20_parse_numbers(value, n, 9U);
-                if(count >= 1U) { attack->type = (uint8_t)n[0] & 0x07U; attack->recharge = (uint8_t)n[0] >> 3U; }
+                if(count >= 1U) {
+                    attack->type = (uint8_t)n[0] & 0x07U;
+                    attack->recharge = (uint8_t)n[0] >> 3U;
+                }
                 if(count >= 2U) attack->ability = (uint8_t)n[1];
                 if(count >= 3U) attack->save_ability = (uint8_t)n[2];
                 if(count >= 4U) attack->attack_misc = (int8_t)n[3];
@@ -1944,7 +1980,8 @@ static bool pocket_d20_read_character(
                 if(count >= 8U) attack->rider_dice = (uint8_t)n[7];
                 if(count >= 9U) attack->rider_die = (uint8_t)n[8];
             }
-            recognized_data = true; continue;
+            recognized_data = true;
+            continue;
         }
         /* Party, initiative, encounter-history and unknown fields are intentionally
            ignored. Their state belongs to companion apps and cannot invalidate a character. */
@@ -1959,10 +1996,7 @@ static bool pocket_d20_read_character(
     return io_ok && recognized_data;
 }
 
-static bool pocket_d20_load_text_path(
-    Storage* storage,
-    const char* path,
-    PocketSaveData* data) {
+static bool pocket_d20_load_text_path(Storage* storage, const char* path, PocketSaveData* data) {
     PocketProfileEntry fallback;
     const PocketProfileEntry* fallback_entry = NULL;
     const char* filename = strrchr(path, '/');
@@ -2001,8 +2035,7 @@ static bool pocket_d20_parse_profile_filename(const char* filename, PocketProfil
         --level_separator;
     if(*level_separator != '_' || level_separator <= id_end + 1U) return false;
     uint32_t level = 0U;
-    if(!pocket_d20_parse_u32_span(
-           level_separator + 1U, filename + length - 4U, UINT8_MAX, &level))
+    if(!pocket_d20_parse_u32_span(level_separator + 1U, filename + length - 4U, UINT8_MAX, &level))
         return false;
 
     entry->id = id;
@@ -2046,8 +2079,7 @@ static bool
     return found;
 }
 
-static bool pocket_d20_shadow_path(
-    char* output, size_t size, const char* character_path) {
+static bool pocket_d20_shadow_path(char* output, size_t size, const char* character_path) {
     if(!output || !size || !character_path) return false;
     size_t length = strlen(character_path);
     if(length < 5U || strcmp(character_path + length - 4U, ".txt") != 0 || length + 1U > size)
@@ -2057,8 +2089,7 @@ static bool pocket_d20_shadow_path(
     return true;
 }
 
-static bool pocket_d20_refresh_shadow(
-    Storage* storage, const char* character_path) {
+static bool pocket_d20_refresh_shadow(Storage* storage, const char* character_path) {
     char shadow_path[POCKET_D20_PATH_LEN];
     if(!storage || !pocket_d20_shadow_path(shadow_path, sizeof(shadow_path), character_path))
         return false;
@@ -2385,7 +2416,8 @@ bool pocket_d20_storage_archive_profile(Storage* storage, uint32_t profile) {
     if(storage_common_rename(storage, source_path, destination) != FSE_OK) return false;
     for(uint8_t i = 0U; i < 2U; ++i) {
         if(!collection_present[i]) continue;
-        if(storage_common_rename(storage, collection_source[i], collection_destination[i]) == FSE_OK) {
+        if(storage_common_rename(storage, collection_source[i], collection_destination[i]) ==
+           FSE_OK) {
             continue;
         }
         /* Keep archive as an all-or-nothing character set when a sidecar move fails. */
@@ -2490,8 +2522,7 @@ bool pocket_d20_storage_import_first(Storage* storage, uint32_t destination, Poc
             else
                 pocket_d20_items_path(
                     destination_collection, sizeof(destination_collection), destination);
-            if(!pocket_d20_copy_file_direct(
-                   storage, source_collection, destination_collection)) {
+            if(!pocket_d20_copy_file_direct(storage, source_collection, destination_collection)) {
                 companions_ok = false;
                 break;
             }
@@ -2529,8 +2560,8 @@ bool pocket_d20_storage_move_legacy_profiles(Storage* storage) {
         bool moved_one = false;
         while(storage_dir_read(directory, &info, filename, sizeof(filename))) {
             size_t length = strlen(filename);
-            if(file_info_is_dir(&info) || strncmp(filename, "ch_", 3U) != 0 ||
-               length < 8U || strcmp(filename + length - 4U, ".txt") != 0)
+            if(file_info_is_dir(&info) || strncmp(filename, "ch_", 3U) != 0 || length < 8U ||
+               strcmp(filename + length - 4U, ".txt") != 0)
                 continue;
             PocketProfileEntry legacy_entry;
             if(!pocket_d20_parse_profile_filename(filename, &legacy_entry)) continue;
@@ -2598,7 +2629,8 @@ static void pocket_d20_profiles_insert_largest(
     if(profiles->cache_count < POCKET_D20_PROFILE_CACHE_SIZE) {
         profiles->entries[profiles->cache_count++] = *entry;
         uint8_t position = (uint8_t)(profiles->cache_count - 1U);
-        while(position > 0U && profiles->entries[position - 1U].id > profiles->entries[position].id) {
+        while(position > 0U &&
+              profiles->entries[position - 1U].id > profiles->entries[position].id) {
             PocketProfileEntry swap = profiles->entries[position - 1U];
             profiles->entries[position - 1U] = profiles->entries[position];
             profiles->entries[position] = swap;
@@ -2648,14 +2680,13 @@ static bool pocket_d20_profiles_scan_cache(
     storage_file_free(directory);
     if(!profiles->cache_count) return false;
     profiles->cache_start = after ? cache_start :
-        (cache_start >= profiles->cache_count ? (uint16_t)(cache_start - profiles->cache_count) : 0U);
+                                    (cache_start >= profiles->cache_count ?
+                                         (uint16_t)(cache_start - profiles->cache_count) :
+                                         0U);
     return true;
 }
 
-bool pocket_d20_profiles_find(
-    Storage* storage,
-    uint32_t profile,
-    PocketProfileEntry* output) {
+bool pocket_d20_profiles_find(Storage* storage, uint32_t profile, PocketProfileEntry* output) {
     if(!storage) return false;
     File* directory = storage_file_alloc(storage);
     if(!directory || !storage_dir_open(directory, POCKET_D20_DATA_DIR)) {
@@ -2739,10 +2770,8 @@ bool pocket_d20_profiles_refresh(Storage* storage, PocketProfileState* profiles)
     return success;
 }
 
-const PocketProfileEntry* pocket_d20_profiles_entry_at(
-    Storage* storage,
-    PocketProfileState* profiles,
-    uint16_t index) {
+const PocketProfileEntry*
+    pocket_d20_profiles_entry_at(Storage* storage, PocketProfileState* profiles, uint16_t index) {
     if(!storage || !profiles || index >= profiles->count) return NULL;
     if(!profiles->cache_count && !pocket_d20_profiles_refresh(storage, profiles)) return NULL;
 
@@ -2759,7 +2788,8 @@ const PocketProfileEntry* pocket_d20_profiles_entry_at(
           profiles->cache_count && guard++ < UINT16_MAX) {
         uint32_t after = profiles->entries[profiles->cache_count - 1U].id;
         uint16_t next_start = (uint16_t)(profiles->cache_start + profiles->cache_count);
-        if(!pocket_d20_profiles_scan_cache(storage, profiles, after, true, next_start)) return NULL;
+        if(!pocket_d20_profiles_scan_cache(storage, profiles, after, true, next_start))
+            return NULL;
     }
     if(index < profiles->cache_start ||
        index >= (uint16_t)(profiles->cache_start + profiles->cache_count))
@@ -2767,10 +2797,7 @@ const PocketProfileEntry* pocket_d20_profiles_entry_at(
     return &profiles->entries[index - profiles->cache_start];
 }
 
-bool pocket_d20_profiles_window(
-    Storage* storage,
-    PocketProfileState* profiles,
-    uint16_t start) {
+bool pocket_d20_profiles_window(Storage* storage, PocketProfileState* profiles, uint16_t start) {
     if(!storage || !profiles || start >= profiles->count) return false;
     if(profiles->cache_count && profiles->cache_start == start) return true;
     if(start == 0U) {
@@ -2779,7 +2806,8 @@ bool pocket_d20_profiles_window(
         profiles->active_profile = active;
         return scanned && profiles->cache_count;
     }
-    const PocketProfileEntry* previous = pocket_d20_profiles_entry_at(storage, profiles, start - 1U);
+    const PocketProfileEntry* previous =
+        pocket_d20_profiles_entry_at(storage, profiles, start - 1U);
     if(!previous) return false;
     uint32_t boundary = previous->id;
     return pocket_d20_profiles_scan_cache(storage, profiles, boundary, true, start);
@@ -2842,7 +2870,8 @@ bool pocket_d20_profiles_load(Storage* storage, PocketProfileState* profiles) {
     /* Active-profile metadata is best-effort by field name. Missing, reordered,
        malformed, or future fields cannot prevent character discovery. */
     File* file = storage_file_alloc(storage);
-    if(file && storage_file_open(file, POCKET_D20_ACTIVE_PROFILE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(file &&
+       storage_file_open(file, POCKET_D20_ACTIVE_PROFILE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         PocketD20Reader reader;
         pocket_d20_reader_init(&reader, file);
         char line[POCKET_D20_VALUE_LINE_LEN];

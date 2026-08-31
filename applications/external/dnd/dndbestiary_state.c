@@ -121,7 +121,6 @@ static bool state_write_line(File* file, const char* body) {
            storage_file_write(file, line, (size_t)length) == (size_t)length;
 }
 
-
 static bool state_write_named(File* file, const char* key, const char* value) {
     char safe[STATE_LINE_LEN];
     state_copy(safe, sizeof(safe), value ? value : "");
@@ -408,9 +407,8 @@ static bool state_parse_filter(char* line, PocketBestiaryFilterPreset* output) {
     return output->name[0];
 }
 
-static uint16_t state_load_filters(
-    Storage* storage,
-    PocketBestiaryFilterPreset output[STATE_MAX_FILTERS]) {
+static uint16_t
+    state_load_filters(Storage* storage, PocketBestiaryFilterPreset output[STATE_MAX_FILTERS]) {
     memset(output, 0, sizeof(PocketBestiaryFilterPreset) * STATE_MAX_FILTERS);
     File* file = storage_file_alloc(storage);
     if(!file) return 0U;
@@ -435,10 +433,19 @@ static uint16_t state_load_filters(
         }
         *value++ = '\0';
         uint8_t index = 0U;
-#define FILTER_STRING(suffix, field) \
-        if(state_indexed_key(line, "Filter", suffix, STATE_MAX_FILTERS, &index)) { state_copy(output[index].field, sizeof(output[index].field), value); named_seen = true; continue; }
-#define FILTER_U8(suffix, field) \
-        if(state_indexed_key(line, "Filter", suffix, STATE_MAX_FILTERS, &index)) { uint8_t parsed = 0U; if(state_parse_u8(value, 0U, UINT8_MAX, &parsed)) output[index].field = parsed; named_seen = true; continue; }
+#define FILTER_STRING(suffix, field)                                           \
+    if(state_indexed_key(line, "Filter", suffix, STATE_MAX_FILTERS, &index)) { \
+        state_copy(output[index].field, sizeof(output[index].field), value);   \
+        named_seen = true;                                                     \
+        continue;                                                              \
+    }
+#define FILTER_U8(suffix, field)                                                        \
+    if(state_indexed_key(line, "Filter", suffix, STATE_MAX_FILTERS, &index)) {          \
+        uint8_t parsed = 0U;                                                            \
+        if(state_parse_u8(value, 0U, UINT8_MAX, &parsed)) output[index].field = parsed; \
+        named_seen = true;                                                              \
+        continue;                                                                       \
+    }
         FILTER_STRING("Name", name)
         FILTER_STRING("Search", search)
         FILTER_U8("MaxCrEighths", max_cr_eighths)
@@ -458,7 +465,8 @@ static uint16_t state_load_filters(
                 if(write != read) output[write] = output[read];
                 ++write;
             }
-        for(uint8_t i = write; i < STATE_MAX_FILTERS; ++i) memset(&output[i], 0, sizeof(output[i]));
+        for(uint8_t i = write; i < STATE_MAX_FILTERS; ++i)
+            memset(&output[i], 0, sizeof(output[i]));
         return write;
     }
     return legacy_next;
@@ -466,7 +474,8 @@ static uint16_t state_load_filters(
 
 uint16_t pocket_bestiary_filter_count(Storage* storage) {
     if(!storage) return 0U;
-    PocketBestiaryFilterPreset* filters = calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
+    PocketBestiaryFilterPreset* filters =
+        calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
     if(!filters) return 0U;
     uint16_t count = state_load_filters(storage, filters);
     free(filters);
@@ -478,7 +487,8 @@ bool pocket_bestiary_filter_at(
     uint16_t wanted,
     PocketBestiaryFilterPreset* output) {
     if(!storage || !output || wanted >= STATE_MAX_FILTERS) return false;
-    PocketBestiaryFilterPreset* filters = calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
+    PocketBestiaryFilterPreset* filters =
+        calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
     if(!filters) return false;
     uint16_t count = state_load_filters(storage, filters);
     bool found = wanted < count;
@@ -487,16 +497,20 @@ bool pocket_bestiary_filter_at(
     return found;
 }
 
-static bool state_write_filter(
-    File* file,
-    uint8_t index,
-    const PocketBestiaryFilterPreset* preset) {
+static bool
+    state_write_filter(File* file, uint8_t index, const PocketBestiaryFilterPreset* preset) {
     if(!file || !preset || index >= STATE_MAX_FILTERS) return false;
     char key[48];
-#define FILTER_WRITE_STRING(suffix, field) \
-    do { snprintf(key, sizeof(key), "Filter%u%s", index, suffix); if(!state_write_named(file, key, preset->field)) return false; } while(false)
-#define FILTER_WRITE_U8(suffix, field) \
-    do { snprintf(key, sizeof(key), "Filter%u%s", index, suffix); if(!state_write_named_u32(file, key, preset->field)) return false; } while(false)
+#define FILTER_WRITE_STRING(suffix, field)                             \
+    do {                                                               \
+        snprintf(key, sizeof(key), "Filter%u%s", index, suffix);       \
+        if(!state_write_named(file, key, preset->field)) return false; \
+    } while(false)
+#define FILTER_WRITE_U8(suffix, field)                                     \
+    do {                                                                   \
+        snprintf(key, sizeof(key), "Filter%u%s", index, suffix);           \
+        if(!state_write_named_u32(file, key, preset->field)) return false; \
+    } while(false)
     FILTER_WRITE_STRING("Name", name);
     FILTER_WRITE_STRING("Search", search);
     FILTER_WRITE_U8("MaxCrEighths", max_cr_eighths);
@@ -529,7 +543,8 @@ bool pocket_bestiary_filter_save(Storage* storage, const PocketBestiaryFilterPre
     for(uint16_t index = 0U; ok && index < count; ++index) {
         PocketBestiaryFilterPreset prior;
         if(!pocket_bestiary_filter_at(storage, index, &prior)) continue;
-        if(strcmp(prior.name, preset->name)) ok = state_write_filter(output, output_index++, &prior);
+        if(strcmp(prior.name, preset->name))
+            ok = state_write_filter(output, output_index++, &prior);
     }
     if(ok) ok = state_write_filter(output, output_index, preset) && storage_file_sync(output);
     storage_file_close(output);
@@ -727,10 +742,18 @@ static bool state_encounter_at_path(
         *value++ = '\0';
         uint8_t index = 0U;
         uint8_t parsed = 0U;
-#define ENC_STRING(suffix, field) \
-        if(state_indexed_key(workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) && index == actual) { state_copy(output->field, sizeof(output->field), value); continue; }
-#define ENC_U8(suffix, field, minv, maxv) \
-        if(state_indexed_key(workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) && index == actual) { if(state_parse_u8(value, minv, maxv, &parsed)) output->field = parsed; continue; }
+#define ENC_STRING(suffix, field)                                                               \
+    if(state_indexed_key(workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) && \
+       index == actual) {                                                                       \
+        state_copy(output->field, sizeof(output->field), value);                                \
+        continue;                                                                               \
+    }
+#define ENC_U8(suffix, field, minv, maxv)                                                       \
+    if(state_indexed_key(workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) && \
+       index == actual) {                                                                       \
+        if(state_parse_u8(value, minv, maxv, &parsed)) output->field = parsed;                  \
+        continue;                                                                               \
+    }
         ENC_STRING("Name", name)
         ENC_U8("PartyLevel", party_level, 1U, 20U)
         ENC_U8("PartySize", party_size, 1U, 12U)
@@ -742,23 +765,16 @@ static bool state_encounter_at_path(
             char suffix[32];
             snprintf(suffix, sizeof(suffix), "Monster%uId", monster);
             if(state_indexed_key(
-                   workspace->line,
-                   "Encounter",
-                   suffix,
-                   STATE_MAX_ENCOUNTERS,
-                   &index) &&
+                   workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) &&
                index == actual) {
-                state_copy(output->monster_ids[monster], sizeof(output->monster_ids[monster]), value);
+                state_copy(
+                    output->monster_ids[monster], sizeof(output->monster_ids[monster]), value);
                 if(output->count <= monster) output->count = (uint8_t)(monster + 1U);
                 break;
             }
             snprintf(suffix, sizeof(suffix), "Monster%uQuantity", monster);
             if(state_indexed_key(
-                   workspace->line,
-                   "Encounter",
-                   suffix,
-                   STATE_MAX_ENCOUNTERS,
-                   &index) &&
+                   workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) &&
                index == actual) {
                 if(state_parse_u8(value, 1U, UINT8_MAX, &parsed))
                     output->quantities[monster] = parsed;
@@ -782,22 +798,27 @@ bool pocket_bestiary_encounter_at(Storage* storage, uint16_t wanted, PocketSaved
     return storage && output && state_encounter_at_path(storage, ENCOUNTERS_PATH, wanted, output);
 }
 
-static bool state_write_encounter(
-    File* file,
-    uint8_t index,
-    const PocketSavedEncounter* encounter) {
+static bool
+    state_write_encounter(File* file, uint8_t index, const PocketSavedEncounter* encounter) {
     if(!file || !encounter || index >= STATE_MAX_ENCOUNTERS) return false;
     char key[64];
-#define ENC_WRITE_STRING(suffix, value) \
-    do { snprintf(key, sizeof(key), "Encounter%u%s", index, suffix); if(!state_write_named(file, key, value)) return false; } while(false)
-#define ENC_WRITE_U8(suffix, value) \
-    do { snprintf(key, sizeof(key), "Encounter%u%s", index, suffix); if(!state_write_named_u32(file, key, value)) return false; } while(false)
+#define ENC_WRITE_STRING(suffix, value)                             \
+    do {                                                            \
+        snprintf(key, sizeof(key), "Encounter%u%s", index, suffix); \
+        if(!state_write_named(file, key, value)) return false;      \
+    } while(false)
+#define ENC_WRITE_U8(suffix, value)                                 \
+    do {                                                            \
+        snprintf(key, sizeof(key), "Encounter%u%s", index, suffix); \
+        if(!state_write_named_u32(file, key, value)) return false;  \
+    } while(false)
     ENC_WRITE_STRING("Name", encounter->name);
     ENC_WRITE_U8("PartyLevel", encounter->party_level);
     ENC_WRITE_U8("PartySize", encounter->party_size);
     ENC_WRITE_U8("Difficulty", encounter->difficulty);
     ENC_WRITE_U8("Count", encounter->count);
-    for(uint8_t monster = 0U; monster < encounter->count && monster < POCKET_MONSTER_ENCOUNTER_MAX; ++monster) {
+    for(uint8_t monster = 0U; monster < encounter->count && monster < POCKET_MONSTER_ENCOUNTER_MAX;
+        ++monster) {
         char suffix[32];
         snprintf(suffix, sizeof(suffix), "Monster%uId", monster);
         ENC_WRITE_STRING(suffix, encounter->monster_ids[monster]);
@@ -825,7 +846,10 @@ bool pocket_bestiary_encounter_save(Storage* storage, const PocketSavedEncounter
     for(uint16_t index = 0U; ok && index < count; ++index) {
         PocketSavedEncounter prior;
         if(!pocket_bestiary_encounter_at(storage, index, &prior)) continue;
-        if(!strcmp(prior.name, normalized_name)) { replacing = true; continue; }
+        if(!strcmp(prior.name, normalized_name)) {
+            replacing = true;
+            continue;
+        }
         ok = state_write_encounter(output, out_index++, &prior);
     }
     if(!replacing && count >= STATE_MAX_ENCOUNTERS) ok = false;
@@ -836,7 +860,10 @@ bool pocket_bestiary_encounter_save(Storage* storage, const PocketSavedEncounter
     }
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) { storage_common_remove(storage, ENCOUNTERS_TEMP); return false; }
+    if(!ok) {
+        storage_common_remove(storage, ENCOUNTERS_TEMP);
+        return false;
+    }
     return state_publish(storage, ENCOUNTERS_TEMP, ENCOUNTERS_PATH);
 }
 
@@ -857,7 +884,10 @@ bool pocket_bestiary_encounter_delete(Storage* storage, uint16_t wanted) {
     if(ok) ok = storage_file_sync(output);
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) { storage_common_remove(storage, ENCOUNTERS_TEMP); return false; }
+    if(!ok) {
+        storage_common_remove(storage, ENCOUNTERS_TEMP);
+        return false;
+    }
     return state_publish(storage, ENCOUNTERS_TEMP, ENCOUNTERS_PATH);
 }
 
@@ -873,14 +903,20 @@ bool pocket_bestiary_encounter_rename(Storage* storage, uint16_t wanted, const c
     for(uint16_t index = 0U; ok && index < count; ++index) {
         PocketSavedEncounter encounter;
         if(!pocket_bestiary_encounter_at(storage, index, &encounter)) continue;
-        if(index != wanted && !strcmp(encounter.name, normalized_name)) { ok = false; break; }
+        if(index != wanted && !strcmp(encounter.name, normalized_name)) {
+            ok = false;
+            break;
+        }
         if(index == wanted) state_copy(encounter.name, sizeof(encounter.name), normalized_name);
         ok = state_write_encounter(output, (uint8_t)index, &encounter);
     }
     if(ok) ok = storage_file_sync(output);
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) { storage_common_remove(storage, ENCOUNTERS_TEMP); return false; }
+    if(!ok) {
+        storage_common_remove(storage, ENCOUNTERS_TEMP);
+        return false;
+    }
     return state_publish(storage, ENCOUNTERS_TEMP, ENCOUNTERS_PATH);
 }
 
@@ -894,7 +930,8 @@ bool pocket_bestiary_encounter_duplicate(Storage* storage, uint16_t wanted, cons
     if(!pocket_bestiary_encounter_at(storage, wanted, &duplicate)) return false;
     for(uint16_t index = 0U; index < count; ++index) {
         PocketSavedEncounter existing;
-        if(pocket_bestiary_encounter_at(storage, index, &existing) && !strcmp(existing.name, normalized_name))
+        if(pocket_bestiary_encounter_at(storage, index, &existing) &&
+           !strcmp(existing.name, normalized_name))
             return false;
     }
     File* output = state_open_temp(storage, ENCOUNTERS_TEMP);
@@ -907,11 +944,15 @@ bool pocket_bestiary_encounter_duplicate(Storage* storage, uint16_t wanted, cons
     }
     if(ok) {
         state_copy(duplicate.name, sizeof(duplicate.name), normalized_name);
-        ok = state_write_encounter(output, (uint8_t)count, &duplicate) && storage_file_sync(output);
+        ok = state_write_encounter(output, (uint8_t)count, &duplicate) &&
+             storage_file_sync(output);
     }
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) { storage_common_remove(storage, ENCOUNTERS_TEMP); return false; }
+    if(!ok) {
+        storage_common_remove(storage, ENCOUNTERS_TEMP);
+        return false;
+    }
     return state_publish(storage, ENCOUNTERS_TEMP, ENCOUNTERS_PATH);
 }
 
@@ -927,10 +968,14 @@ static bool state_archive_append(Storage* storage, const PocketSavedEncounter* e
         if(state_encounter_at_path(storage, ENCOUNTERS_ARCHIVE_PATH, index, &archived))
             ok = state_write_encounter(output, (uint8_t)index, &archived);
     }
-    if(ok) ok = state_write_encounter(output, (uint8_t)count, encounter) && storage_file_sync(output);
+    if(ok)
+        ok = state_write_encounter(output, (uint8_t)count, encounter) && storage_file_sync(output);
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) { storage_common_remove(storage, ENCOUNTERS_ARCHIVE_TEMP); return false; }
+    if(!ok) {
+        storage_common_remove(storage, ENCOUNTERS_ARCHIVE_TEMP);
+        return false;
+    }
     return state_publish(storage, ENCOUNTERS_ARCHIVE_TEMP, ENCOUNTERS_ARCHIVE_PATH);
 }
 

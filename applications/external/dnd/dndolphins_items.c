@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#define POCKET_D20_DEFAULT_CLASS_EQUIPMENT APP_ASSETS_PATH("equipment/default_class.txt")
-#define POCKET_D20_DEFAULT_RACE_EQUIPMENT APP_ASSETS_PATH("equipment/default_race.txt")
+#define POCKET_D20_DEFAULT_CLASS_EQUIPMENT      APP_ASSETS_PATH("equipment/default_class.txt")
+#define POCKET_D20_DEFAULT_RACE_EQUIPMENT       APP_ASSETS_PATH("equipment/default_race.txt")
 #define POCKET_D20_DEFAULT_BACKGROUND_EQUIPMENT APP_ASSETS_PATH("equipment/default_background.txt")
-#define POCKET_D20_DEFAULT_TRINKETS APP_ASSETS_PATH("equipment/trinkets.txt")
+#define POCKET_D20_DEFAULT_TRINKETS             APP_ASSETS_PATH("equipment/trinkets.txt")
 
 static int32_t pocket_d20_items_add_saturated(int32_t value, int32_t add) {
     int64_t total = (int64_t)value + add;
@@ -81,7 +81,8 @@ bool pocket_d20_items_grant_reward(
 
     uint8_t total = 0U;
     bool first_page = true;
-    for(uint8_t start = 0U; first_page || start < total; start += POCKET_D20_COLLECTION_CACHE_SIZE) {
+    for(uint8_t start = 0U; first_page || start < total;
+        start += POCKET_D20_COLLECTION_CACHE_SIZE) {
         first_page = false;
         if(!pocket_d20_storage_load_items_window(storage, profile, start, character, &total)) {
             pocket_d20_data_clear_items(character);
@@ -91,7 +92,8 @@ bool pocket_d20_items_grant_reward(
             if(strcmp(character->items[local].name, name)) continue;
             if(character->items[local].quantity < 999) {
                 ++character->items[local].quantity;
-                bool saved = pocket_d20_storage_save_items_window(storage, profile, start, character);
+                bool saved =
+                    pocket_d20_storage_save_items_window(storage, profile, start, character);
                 pocket_d20_data_clear_items(character);
                 return saved;
             }
@@ -237,8 +239,8 @@ typedef struct {
     uint8_t count;
 } PocketD20WeaponIndexContext;
 
-static bool pocket_d20_weapon_index_visitor(
-    uint8_t logical_index, const PocketItem* item, void* context) {
+static bool
+    pocket_d20_weapon_index_visitor(uint8_t logical_index, const PocketItem* item, void* context) {
     PocketD20WeaponIndexContext* scan = context;
     if(item->is_weapon && scan->count < scan->capacity)
         scan->indices[scan->count++] = logical_index;

@@ -86,9 +86,8 @@ uint8_t pocket_d20_total_level(const PocketCharacter* character) {
 
 uint32_t pocket_d20_minimum_experience_for_level(uint8_t level) {
     static const uint32_t minimum_xp[20] = {
-        0U,      300U,    900U,    2700U,   6500U,   14000U, 23000U,
-        34000U,  48000U,  64000U,  85000U,  100000U, 120000U, 140000U,
-        165000U, 195000U, 225000U, 265000U, 305000U, 355000U,
+        0U,     300U,    900U,    2700U,   6500U,   14000U,  23000U,  34000U,  48000U,  64000U,
+        85000U, 100000U, 120000U, 140000U, 165000U, 195000U, 225000U, 265000U, 305000U, 355000U,
     };
     if(level < 1U) level = 1U;
     if(level > 20U) level = 20U;

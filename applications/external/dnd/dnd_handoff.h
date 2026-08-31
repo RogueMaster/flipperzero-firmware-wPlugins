@@ -10,11 +10,11 @@
    CharacterId;Name,HP,AC,InitiativeMod;Name,HP,AC,InitiativeMod;... */
 #define POCKET_D20_HANDOFF_LAUNCH_ARG    "initiative"
 #define POCKET_D20_HANDOFF_LAUNCH_PREFIX "initiative;"
-#define DNDOLPHINS_FAP_PATH               "/ext/apps/Games/dndolphins.fap"
-#define DNDJOURNAL_FAP_PATH               "/ext/apps/Games/dndjournal.fap"
-#define DNDADVENTURE_FAP_PATH             "/ext/apps/Games/dndadventure.fap"
-#define DNDINITIATIVE_FAP_PATH            "/ext/apps/Games/dndinitiative.fap"
-#define DNDBESTIARY_FAP_PATH              "/ext/apps/Games/dndbestiary.fap"
+#define DNDOLPHINS_FAP_PATH              "/ext/apps/Games/dndolphins.fap"
+#define DNDJOURNAL_FAP_PATH              "/ext/apps/Games/dndjournal.fap"
+#define DNDADVENTURE_FAP_PATH            "/ext/apps/Games/dndadventure.fap"
+#define DNDINITIATIVE_FAP_PATH           "/ext/apps/Games/dndinitiative.fap"
+#define DNDBESTIARY_FAP_PATH             "/ext/apps/Games/dndbestiary.fap"
 #define POCKET_D20_LAUNCH_ARGS_MAX       1536U
 #define POCKET_D20_TRANSFER_MAX          23U
 #define POCKET_D20_CHARACTER_DATA_ROOT   "/ext/apps_data/dndolphins"

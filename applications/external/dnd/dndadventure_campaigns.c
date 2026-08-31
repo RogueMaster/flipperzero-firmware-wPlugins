@@ -6,15 +6,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CAMPAIGN_BUNDLED_INDEX     APP_ASSETS_PATH("campaigns/index.txt")
-#define CAMPAIGN_USER_INDEX        APP_DATA_PATH("campaigns/custom_index.txt")
-#define CAMPAIGN_ENABLED_INDEX     APP_DATA_PATH("campaigns/enabled_index.txt")
-#define CAMPAIGN_BUNDLED_SCENES    APP_ASSETS_PATH("campaigns/%s/%s")
-#define CAMPAIGN_USER_SCENES       APP_DATA_PATH("campaigns/custom_%s/%s")
-#define CAMPAIGN_PROGRESS_DIR      APP_DATA_PATH("campaigns")
-#define CAMPAIGN_LINE_LEN          512U
-#define CAMPAIGN_READ_BUFFER       256U
-#define CAMPAIGN_MAX_SCENES        64U
+#define CAMPAIGN_BUNDLED_INDEX  APP_ASSETS_PATH("campaigns/index.txt")
+#define CAMPAIGN_USER_INDEX     APP_DATA_PATH("campaigns/custom_index.txt")
+#define CAMPAIGN_ENABLED_INDEX  APP_DATA_PATH("campaigns/enabled_index.txt")
+#define CAMPAIGN_BUNDLED_SCENES APP_ASSETS_PATH("campaigns/%s/%s")
+#define CAMPAIGN_USER_SCENES    APP_DATA_PATH("campaigns/custom_%s/%s")
+#define CAMPAIGN_PROGRESS_DIR   APP_DATA_PATH("campaigns")
+#define CAMPAIGN_LINE_LEN       512U
+#define CAMPAIGN_READ_BUFFER    256U
+#define CAMPAIGN_MAX_SCENES     64U
 
 typedef struct {
     File* file;
@@ -51,14 +51,16 @@ static void campaign_copy(char* out, size_t size, const char* value) {
 }
 
 static bool campaign_parse_u32_span(
-    const char* begin, const char* end, uint32_t maximum, uint32_t* output) {
+    const char* begin,
+    const char* end,
+    uint32_t maximum,
+    uint32_t* output) {
     if(!begin || !end || !output || begin >= end) return false;
     uint32_t value = 0U;
     for(const char* cursor = begin; cursor < end; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -277,7 +279,8 @@ bool pocket_campaign_scene_path(
     int length = snprintf(output, size, CAMPAIGN_USER_SCENES, campaign->id, campaign->scenes_file);
     if(length > 0 && (size_t)length < size && storage_file_exists(storage, output)) return true;
     if(campaign->bundled) {
-        length = snprintf(output, size, CAMPAIGN_BUNDLED_SCENES, campaign->id, campaign->scenes_file);
+        length =
+            snprintf(output, size, CAMPAIGN_BUNDLED_SCENES, campaign->id, campaign->scenes_file);
         return length > 0 && (size_t)length < size && storage_file_exists(storage, output);
     }
     return false;
@@ -307,18 +310,15 @@ static bool campaign_id_safe(const char* id) {
     if(length >= POCKET_CAMPAIGN_ID_LEN) return false;
     for(size_t i = 0U; i < length; ++i) {
         char ch = id[i];
-        if(!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
-             (ch >= '0' && ch <= '9') || ch == '_' || ch == '-'))
+        if(!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
+             ch == '_' || ch == '-'))
             return false;
     }
     return true;
 }
 
-static bool campaign_active_path(
-    char* output,
-    size_t size,
-    uint32_t profile_id,
-    const char* suffix) {
+static bool
+    campaign_active_path(char* output, size_t size, uint32_t profile_id, const char* suffix) {
     int length = snprintf(
         output,
         size,
@@ -361,10 +361,7 @@ bool pocket_campaign_active_load(
     return io_ok && (found || !campaign_id[0]);
 }
 
-bool pocket_campaign_active_save(
-    Storage* storage,
-    uint32_t profile_id,
-    const char* campaign_id) {
+bool pocket_campaign_active_save(Storage* storage, uint32_t profile_id, const char* campaign_id) {
     if(!storage || !campaign_id || !campaign_id_safe(campaign_id)) return false;
     storage_common_mkdir(storage, APP_DATA_PATH(""));
     storage_common_mkdir(storage, CAMPAIGN_PROGRESS_DIR);
@@ -392,8 +389,7 @@ bool pocket_campaign_progress_save(
     storage_common_mkdir(storage, APP_DATA_PATH(""));
     storage_common_mkdir(storage, CAMPAIGN_PROGRESS_DIR);
     char path[POCKET_D20_PATH_LEN], line[128];
-    if(!campaign_progress_path(path, sizeof(path), profile_id, campaign->id, "txt"))
-        return false;
+    if(!campaign_progress_path(path, sizeof(path), profile_id, campaign->id, "txt")) return false;
     File* file = storage_file_alloc(storage);
     if(!file) return false;
     bool ok = storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS);
@@ -445,17 +441,14 @@ bool pocket_campaign_progress_load(
         if(!strcmp(line, "Scene"))
             campaign_copy(progress->scene, sizeof(progress->scene), value);
         else if(!strcmp(line, "Checkpoint"))
-            campaign_copy(
-                progress->checkpoint, sizeof(progress->checkpoint), value);
+            campaign_copy(progress->checkpoint, sizeof(progress->checkpoint), value);
         else if(!strcmp(line, "QuestFlags")) {
             uint32_t parsed = 0U;
             if(campaign_parse_u32(value, UINT32_MAX, &parsed)) progress->quest_flags = parsed;
-        }
-        else if(!strcmp(line, "Achievements")) {
+        } else if(!strcmp(line, "Achievements")) {
             uint32_t parsed = 0U;
             if(campaign_parse_u32(value, UINT32_MAX, &parsed)) progress->achievements = parsed;
-        }
-        else if(!strcmp(line, "Flags")) {
+        } else if(!strcmp(line, "Flags")) {
             /* Older Adventure progress may have packed these two values. Keep this
                one compatibility read while all new writes use independent fields. */
             const char* comma = strchr(value, ',');

@@ -21,7 +21,6 @@ typedef struct {
     uint8_t bundled;
 } PocketCampaignSummary;
 
-
 typedef struct {
     char campaign[POCKET_CAMPAIGN_ID_LEN];
     char scene[POCKET_D20_SHORT_LEN];
@@ -55,10 +54,7 @@ bool pocket_campaign_active_load(
     uint32_t profile_id,
     char* campaign_id,
     size_t campaign_id_size);
-bool pocket_campaign_active_save(
-    Storage* storage,
-    uint32_t profile_id,
-    const char* campaign_id);
+bool pocket_campaign_active_save(Storage* storage, uint32_t profile_id, const char* campaign_id);
 bool pocket_campaign_progress_load(
     Storage* storage,
     uint32_t profile_id,

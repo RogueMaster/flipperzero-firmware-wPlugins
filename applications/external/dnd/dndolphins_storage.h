@@ -10,7 +10,7 @@ typedef struct {
     char name[POCKET_D20_CHARACTER_NAME_LEN];
 } PocketProfileEntry;
 
-#define POCKET_D20_PROFILE_CACHE_SIZE 8U
+#define POCKET_D20_PROFILE_CACHE_SIZE    8U
 #define POCKET_D20_COLLECTION_CACHE_SIZE 8U
 
 typedef struct {
@@ -33,22 +33,11 @@ void pocket_d20_profiles_free(PocketProfileState* profiles);
 bool pocket_d20_profiles_load(Storage* storage, PocketProfileState* profiles);
 bool pocket_d20_profiles_save(Storage* storage, const PocketProfileState* profiles);
 bool pocket_d20_profiles_refresh(Storage* storage, PocketProfileState* profiles);
-const PocketProfileEntry* pocket_d20_profiles_entry_at(
-    Storage* storage,
-    PocketProfileState* profiles,
-    uint16_t index);
-bool pocket_d20_profiles_window(
-    Storage* storage,
-    PocketProfileState* profiles,
-    uint16_t start);
-bool pocket_d20_profiles_find(
-    Storage* storage,
-    uint32_t profile,
-    PocketProfileEntry* entry);
-bool pocket_d20_profiles_next_after(
-    Storage* storage,
-    uint32_t profile,
-    PocketProfileEntry* entry);
+const PocketProfileEntry*
+    pocket_d20_profiles_entry_at(Storage* storage, PocketProfileState* profiles, uint16_t index);
+bool pocket_d20_profiles_window(Storage* storage, PocketProfileState* profiles, uint16_t start);
+bool pocket_d20_profiles_find(Storage* storage, uint32_t profile, PocketProfileEntry* entry);
+bool pocket_d20_profiles_next_after(Storage* storage, uint32_t profile, PocketProfileEntry* entry);
 uint32_t pocket_d20_profiles_next_id(const PocketProfileState* profiles);
 
 /* Character-owned spell/item collections. These files are authoritative for owned
@@ -62,8 +51,8 @@ typedef bool (*PocketD20SpellRecordVisitor)(
     uint8_t free_casts_max,
     void* context);
 
-typedef bool (*PocketD20ItemRecordVisitor)(
-    uint8_t logical_index, const PocketItem* item, void* context);
+typedef bool (
+    *PocketD20ItemRecordVisitor)(uint8_t logical_index, const PocketItem* item, void* context);
 
 typedef struct {
     uint8_t known[POCKET_D20_MAX_CLASSES];

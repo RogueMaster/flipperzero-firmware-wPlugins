@@ -305,7 +305,6 @@ void pocket_d20_data_set_defaults(PocketSaveData* data) {
     saving_throw->save_ability = PocketAbilityDexterity;
     saving_throw->damage_dice = 1U;
     saving_throw->damage_die = 6U;
-
 }
 
 void pocket_d20_data_sanitize(PocketSaveData* data) {
@@ -386,13 +385,15 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
     if(character->spell_storage && character->spells && character->spell_known &&
        character->spell_always_prepared && character->spell_free_casts_current &&
        character->spell_free_casts_max) {
-        uint8_t spell_limit = pocket_d20_clamp_u8(character->spell_capacity, POCKET_D20_MAX_SPELLS);
+        uint8_t spell_limit =
+            pocket_d20_clamp_u8(character->spell_capacity, POCKET_D20_MAX_SPELLS);
         character->spell_count = pocket_d20_clamp_u8(character->spell_count, spell_limit);
     } else {
         character->spell_count = 0U;
     }
     if(character->features) {
-        uint8_t feature_limit = pocket_d20_clamp_u8(character->feature_capacity, POCKET_D20_MAX_FEATURES);
+        uint8_t feature_limit =
+            pocket_d20_clamp_u8(character->feature_capacity, POCKET_D20_MAX_FEATURES);
         character->feature_count = pocket_d20_clamp_u8(character->feature_count, feature_limit);
     } else {
         character->feature_count = 0U;
@@ -404,7 +405,8 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
         character->item_count = 0U;
     }
     if(character->grants) {
-        uint8_t grant_limit = pocket_d20_clamp_u8(character->grant_capacity, POCKET_D20_MAX_GRANTS);
+        uint8_t grant_limit =
+            pocket_d20_clamp_u8(character->grant_capacity, POCKET_D20_MAX_GRANTS);
         character->grant_count = pocket_d20_clamp_u8(character->grant_count, grant_limit);
     } else {
         character->grant_count = 0U;
@@ -500,5 +502,4 @@ void pocket_d20_data_sanitize(PocketSaveData* data) {
         attack->rider_dice = pocket_d20_clamp_u8(attack->rider_dice, 20U);
         attack->recharge = pocket_d20_clamp_u8(attack->recharge, PocketRechargeCount - 1U);
     }
-
 }

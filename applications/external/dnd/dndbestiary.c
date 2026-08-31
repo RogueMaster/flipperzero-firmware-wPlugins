@@ -1674,7 +1674,8 @@ static bool bestiary_launch_dnd_monsters(
         return false;
     }
 
-    int prefix = snprintf(args, POCKET_D20_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
+    int prefix =
+        snprintf(args, POCKET_D20_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
     if(prefix < 0 || prefix >= (int)POCKET_D20_LAUNCH_ARGS_MAX) {
         free(args);
         return false;
@@ -1698,8 +1699,7 @@ static bool bestiary_launch_dnd_monsters(
     if(built) {
         app->pending_launch_initiative = 1U;
         launched = bestiary_launch_dnd(app, args);
-    }
-    else
+    } else
         bestiary_status(app, "Initiative args too large");
 
     if(!launched) free(args);
@@ -1752,7 +1752,8 @@ static bool bestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index) {
         return false;
     }
 
-    int prefix = snprintf(args, POCKET_D20_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
+    int prefix =
+        snprintf(args, POCKET_D20_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
     if(prefix < 0 || prefix >= (int)POCKET_D20_LAUNCH_ARGS_MAX) {
         free(args);
         return false;
@@ -2041,8 +2042,7 @@ static void bestiary_handle_packs(BestiaryApp* app, const InputEvent* event) {
             changed = pocket_pack_set_enabled(app->storage, pack.id, !pack.enabled);
             bestiary_status(
                 app,
-                changed ? (pack.enabled ? "Pack inactive" : "Pack active") :
-                          "Pack update failed");
+                changed ? (pack.enabled ? "Pack inactive" : "Pack active") : "Pack update failed");
         }
         if(changed) {
             pocket_monster_cache_reset();
@@ -2052,8 +2052,7 @@ static void bestiary_handle_packs(BestiaryApp* app, const InputEvent* event) {
     } else if(
         event->type == InputTypeShort && event->key == InputKeyOk &&
         app->selection == app->state_total) {
-        bool changed = pocket_pack_install_inbox(
-            app->storage, app->status, sizeof(app->status));
+        bool changed = pocket_pack_install_inbox(app->storage, app->status, sizeof(app->status));
         if(changed) {
             pocket_monster_cache_reset();
             app->monster_total_valid = 0U;
@@ -2316,8 +2315,7 @@ static BestiaryApp* bestiary_alloc(const char* args) {
     uint16_t recovered = 0U;
     uint16_t rolled_back = 0U;
     bool migration_ok = pocket_monster_migrate_legacy_custom(app->storage, &migrated_files);
-    bool seed_ok = migration_ok &&
-                   pocket_monster_seed_default_custom(app->storage, &seeded_files);
+    bool seed_ok = migration_ok && pocket_monster_seed_default_custom(app->storage, &seeded_files);
     bool recovery_ok = seed_ok &&
                        pocket_monster_recover_user_pack(app->storage, &recovered, &rolled_back);
     bool installed_packs_ok = pocket_pack_ensure_enabled(app->storage);
@@ -2328,8 +2326,7 @@ static BestiaryApp* bestiary_alloc(const char* args) {
     app->input_subscription =
         furi_pubsub_subscribe(app->input_events, bestiary_input_events_callback, app);
     if(!app->input_subscription) goto fail;
-    if(furi_timer_start(app->marquee_timer, furi_ms_to_ticks(BESTIARY_MARQUEE_MS)) !=
-       FuriStatusOk)
+    if(furi_timer_start(app->marquee_timer, furi_ms_to_ticks(BESTIARY_MARQUEE_MS)) != FuriStatusOk)
         goto fail;
     view_dispatcher_add_view(app->dispatcher, BestiaryViewMain, app->view);
     view_dispatcher_attach_to_gui(app->dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -2406,8 +2403,7 @@ int32_t dndbestiary_app(void* context) {
     bestiary_free(app);
 
     if(launch_dnd) {
-        const char* launch_path =
-            launch_initiative ? DNDINITIATIVE_FAP_PATH : DNDOLPHINS_FAP_PATH;
+        const char* launch_path = launch_initiative ? DNDINITIATIVE_FAP_PATH : DNDOLPHINS_FAP_PATH;
         bool launch_ok = dnd_handoff_launch(launch_path, launch_args);
         free(launch_args);
         if(!launch_ok) return -1;

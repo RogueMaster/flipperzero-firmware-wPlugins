@@ -6,24 +6,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MONSTER_INDEX                APP_ASSETS_PATH("monsters/index.txt")
-#define MONSTER_BLOCKS               APP_ASSETS_PATH("monsters/statblocks.txt")
-#define CUSTOM_MONSTER_INDEX         APP_DATA_PATH("monsters/custom_index.txt")
-#define CUSTOM_MONSTER_INDEX_TEMP    APP_DATA_PATH("monsters/custom_index.tmp")
-#define CUSTOM_MONSTER_INDEX_BACKUP  APP_DATA_PATH("monsters/custom_index.bak")
-#define CUSTOM_MONSTER_BLOCKS        APP_DATA_PATH("monsters/custom_statblocks.txt")
-#define CUSTOM_MONSTER_BLOCKS_TEMP   APP_DATA_PATH("monsters/custom_statblocks.tmp")
-#define CUSTOM_MONSTER_BLOCKS_BACKUP APP_DATA_PATH("monsters/custom_statblocks.bak")
-#define CUSTOM_MONSTER_TRANSACTION   APP_DATA_PATH("monsters/custom_transaction.txt")
-#define ENABLED_MONSTER_INDEX        APP_DATA_PATH("monsters/enabled_index.txt")
-#define ENABLED_MONSTER_BLOCKS       APP_DATA_PATH("monsters/enabled_statblocks.txt")
-#define LEGACY_CUSTOM_MONSTER_INDEX  APP_ASSETS_PATH("monsters/custom_index.txt")
-#define LEGACY_CUSTOM_MONSTER_BLOCKS APP_ASSETS_PATH("monsters/custom_statblocks.txt")
-#define DEFAULT_CUSTOM_MONSTER_INDEX APP_ASSETS_PATH("monsters/default_custom_index.txt")
+#define MONSTER_INDEX                 APP_ASSETS_PATH("monsters/index.txt")
+#define MONSTER_BLOCKS                APP_ASSETS_PATH("monsters/statblocks.txt")
+#define CUSTOM_MONSTER_INDEX          APP_DATA_PATH("monsters/custom_index.txt")
+#define CUSTOM_MONSTER_INDEX_TEMP     APP_DATA_PATH("monsters/custom_index.tmp")
+#define CUSTOM_MONSTER_INDEX_BACKUP   APP_DATA_PATH("monsters/custom_index.bak")
+#define CUSTOM_MONSTER_BLOCKS         APP_DATA_PATH("monsters/custom_statblocks.txt")
+#define CUSTOM_MONSTER_BLOCKS_TEMP    APP_DATA_PATH("monsters/custom_statblocks.tmp")
+#define CUSTOM_MONSTER_BLOCKS_BACKUP  APP_DATA_PATH("monsters/custom_statblocks.bak")
+#define CUSTOM_MONSTER_TRANSACTION    APP_DATA_PATH("monsters/custom_transaction.txt")
+#define ENABLED_MONSTER_INDEX         APP_DATA_PATH("monsters/enabled_index.txt")
+#define ENABLED_MONSTER_BLOCKS        APP_DATA_PATH("monsters/enabled_statblocks.txt")
+#define LEGACY_CUSTOM_MONSTER_INDEX   APP_ASSETS_PATH("monsters/custom_index.txt")
+#define LEGACY_CUSTOM_MONSTER_BLOCKS  APP_ASSETS_PATH("monsters/custom_statblocks.txt")
+#define DEFAULT_CUSTOM_MONSTER_INDEX  APP_ASSETS_PATH("monsters/default_custom_index.txt")
 #define DEFAULT_CUSTOM_MONSTER_BLOCKS APP_ASSETS_PATH("monsters/default_custom_statblocks.txt")
-#define CUSTOM_MONSTER_MIGRATION     APP_DATA_PATH("monsters/custom_migration.txt")
-#define MONSTER_LINE_LEN             768U
-#define MONSTER_READ_BUFFER          512U
+#define CUSTOM_MONSTER_MIGRATION      APP_DATA_PATH("monsters/custom_migration.txt")
+#define MONSTER_LINE_LEN              768U
+#define MONSTER_READ_BUFFER           512U
 
 static const uint16_t pocket_budget[20][3] = {
     {50, 75, 100},       {100, 150, 200},     {150, 225, 400},      {250, 375, 500},
@@ -45,8 +45,7 @@ static bool monster_parse_u32(const char* text, uint32_t maximum, uint32_t* outp
     for(const char* cursor = text; *cursor; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -67,12 +66,11 @@ static bool monster_parse_i8(const char* text, int8_t* output) {
     for(const char* cursor = text; *cursor; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint8_t digit = (uint8_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = (uint16_t)(value * 10U + digit);
     }
-    *output = negative ? (value == 128U ? INT8_MIN : (int8_t)-(int16_t)value) : (int8_t)value;
+    *output = negative ? (value == 128U ? INT8_MIN : (int8_t) - (int16_t)value) : (int8_t)value;
     return true;
 }
 
@@ -312,20 +310,12 @@ static void monster_hint_remember(
 
 static void monster_index_hint_remember(MonsterPathCache* cache, uint32_t hash, uint32_t offset) {
     monster_hint_remember(
-        cache->recent_index,
-        &cache->recent_index_count,
-        &cache->recent_index_next,
-        hash,
-        offset);
+        cache->recent_index, &cache->recent_index_count, &cache->recent_index_next, hash, offset);
 }
 
 static void monster_block_hint_remember(MonsterPathCache* cache, uint32_t hash, uint32_t offset) {
     monster_hint_remember(
-        cache->recent_blocks,
-        &cache->recent_block_count,
-        &cache->recent_block_next,
-        hash,
-        offset);
+        cache->recent_blocks, &cache->recent_block_count, &cache->recent_block_next, hash, offset);
 }
 
 static bool
@@ -594,7 +584,8 @@ static bool monster_find_path(
 bool pocket_monster_find(Storage* storage, const char* id, PocketMonsterSummary* output) {
     if(!id || !output || !monster_cache_ensure(storage)) return false;
     if(monster_find_path(storage, MONSTER_INDEX, &monster_cache.bundled, id, output)) return true;
-    if(monster_find_path(storage, CUSTOM_MONSTER_INDEX, &monster_cache.custom, id, output)) return true;
+    if(monster_find_path(storage, CUSTOM_MONSTER_INDEX, &monster_cache.custom, id, output))
+        return true;
     return monster_find_path(storage, ENABLED_MONSTER_INDEX, &monster_cache.enabled, id, output);
 }
 
@@ -640,8 +631,8 @@ static bool monster_initiative_modifier_path(
                         if(abilities[index] != 10) all_tens = false;
                     if(!all_tens) {
                         int16_t delta = (int16_t)abilities[1] - 10;
-                        fallback_modifier =
-                            delta >= 0 ? (int8_t)(delta / 2) : (int8_t)-((1 - delta) / 2);
+                        fallback_modifier = delta >= 0 ? (int8_t)(delta / 2) :
+                                                         (int8_t) - ((1 - delta) / 2);
                         fallback_valid = true;
                     }
                 }
@@ -768,10 +759,22 @@ uint16_t pocket_monster_query(
                 storage, MONSTER_INDEX, &monster_cache.bundled, start, output, capacity, &loaded);
             if(loaded < capacity)
                 monster_query_sparse_path(
-                    storage, CUSTOM_MONSTER_INDEX, &monster_cache.custom, 0U, output, capacity, &loaded);
+                    storage,
+                    CUSTOM_MONSTER_INDEX,
+                    &monster_cache.custom,
+                    0U,
+                    output,
+                    capacity,
+                    &loaded);
             if(loaded < capacity)
                 monster_query_sparse_path(
-                    storage, ENABLED_MONSTER_INDEX, &monster_cache.enabled, 0U, output, capacity, &loaded);
+                    storage,
+                    ENABLED_MONSTER_INDEX,
+                    &monster_cache.enabled,
+                    0U,
+                    output,
+                    capacity,
+                    &loaded);
         } else {
             uint16_t custom_start = (uint16_t)(start - monster_cache.bundled.index_count);
             if(custom_start < monster_cache.custom.index_count) {
@@ -1165,8 +1168,10 @@ bool pocket_monster_seed_default_custom(Storage* storage, uint16_t* copied_files
 
     bool blocks_copied = monster_copy_storage_file(
         storage, DEFAULT_CUSTOM_MONSTER_BLOCKS, seed_blocks, CUSTOM_MONSTER_BLOCKS);
-    bool index_copied = blocks_copied && monster_copy_storage_file(
-        storage, DEFAULT_CUSTOM_MONSTER_INDEX, seed_index, CUSTOM_MONSTER_INDEX);
+    bool index_copied =
+        blocks_copied &&
+        monster_copy_storage_file(
+            storage, DEFAULT_CUSTOM_MONSTER_INDEX, seed_index, CUSTOM_MONSTER_INDEX);
 
     if(!blocks_copied || !index_copied) {
         storage_common_remove(storage, CUSTOM_MONSTER_INDEX);
@@ -1311,7 +1316,7 @@ static bool monster_write_block_section(File* block, const PocketMonsterDetail* 
         int8_t initiative = detail->initiative_modifier;
         if(!detail->initiative_present) {
             int16_t delta = (int16_t)detail->abilities[1] - 10;
-            initiative = delta >= 0 ? (int8_t)(delta / 2) : (int8_t)-((1 - delta) / 2);
+            initiative = delta >= 0 ? (int8_t)(delta / 2) : (int8_t) - ((1 - delta) / 2);
         }
         int length = snprintf(line, sizeof(line), "Initiative=%d\n", initiative);
         ok = length > 0 && (size_t)length < sizeof(line) && monster_write(block, line);
