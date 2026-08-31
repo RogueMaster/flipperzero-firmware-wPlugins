@@ -1,4 +1,4 @@
-#include "../protocol/tagtinker_color26.h"
+#include "../protocol/tagtinker_proto.h"
 #include <stdio.h>
 #include <stdlib.h>
 
