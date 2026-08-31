@@ -7,6 +7,7 @@
 #include "../views/tagtinker_font.h"
 #include <furi_hal.h>
 #include <storage/storage.h>
+#include <stdlib.h>
 
 typedef struct {
     TagTinkerApp* app;
@@ -29,6 +30,15 @@ typedef struct {
  * pixels (the most common color DM images). */
 #define TX_FULL_JOB_PIXEL_LIMIT 49152U
 
+/* Color 2.6 glass is landscape 296x152. Firmware image header is 152x296
+ * (short x long). Same pixel count, axes swapped. */
+#define TX_COLOR26_PROTO_W 152U
+#define TX_COLOR26_PROTO_H 296U
+#define TX_COLOR26_GLASS_W 296U
+#define TX_COLOR26_GLASS_H 152U
+#define TX_COLOR26_BMP_MAX 24576U
+#define TX_COLOR26_WAKE_REPEATS 400U
+
 static uint16_t tx_pick_chunk_height(uint16_t width, uint16_t height, bool second_plane);
 
 static void tx_debug_log(const char* fmt, ...) {
@@ -49,6 +59,13 @@ static TagTinkerTagColor tx_target_color(const TagTinkerApp* app) {
     return app->targets[app->selected_target].profile.color;
 }
 
+static bool tx_is_color26(const TagTinkerApp* app) {
+    if(app->selected_target < 0 || app->selected_target >= app->target_count) {
+        return false;
+    }
+    return app->targets[app->selected_target].profile.type_code == 1626;
+}
+
 static bool tx_send_frame(TagTinkerApp* app, const uint8_t* frame, size_t len, uint16_t repeats) {
     if(!app->tx_active) return false;
     return tagtinker_ir_transmit(frame, len, tx_apply_signal_mode(app, repeats), 1);
@@ -60,10 +77,57 @@ static bool tx_send_ping(TagTinkerApp* app, const uint8_t plid[4]) {
     return tx_send_frame(app, frame, len, 80);
 }
 
+static bool tx_send_wake(TagTinkerApp* app, const uint8_t plid[4], uint16_t repeats) {
+    uint8_t frame[TAGTINKER_MAX_FRAME_SIZE];
+    size_t len = tagtinker_make_wake_frame(frame, plid);
+    return tx_send_frame(app, frame, len, repeats);
+}
+
 static bool tx_send_refresh(TagTinkerApp* app, const uint8_t plid[4]) {
     uint8_t frame[TAGTINKER_MAX_FRAME_SIZE];
     size_t len = tagtinker_make_refresh_frame(frame, plid);
     return tx_send_frame(app, frame, len, 20);
+}
+
+static bool tx_send_color26_payload(TagTinkerApp* app, const TagTinkerImagePayload* payload) {
+    const TagTinkerImageTxJob* job = &app->image_tx_job;
+    uint8_t frame[TAGTINKER_MAX_FRAME_SIZE];
+    bool ok = tx_send_wake(app, job->plid, TX_COLOR26_WAKE_REPEATS);
+    if(ok) furi_delay_ms(50);
+    if(ok) {
+        size_t len = tagtinker_make_image_param_frame(
+            frame,
+            job->plid,
+            (uint16_t)payload->byte_count,
+            payload->comp_type,
+            job->page,
+            TX_COLOR26_PROTO_W,
+            TX_COLOR26_PROTO_H,
+            0,
+            0);
+        ok = tx_send_frame(app, frame, len, 1);
+    }
+    if(ok) furi_delay_ms(50);
+
+    size_t frame_count = payload->byte_count / TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME;
+    for(size_t i = 0; ok && i < frame_count; i++) {
+        size_t len = tagtinker_make_image_data_frame(
+            frame,
+            job->plid,
+            (uint16_t)i,
+            &payload->data[i * TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME]);
+        ok = tx_send_frame(app, frame, len, 1);
+        if(ok && (i + 1U) < frame_count) {
+            furi_delay_ms(50);
+        }
+    }
+
+    if(ok) furi_delay_ms(50);
+    if(ok) {
+        size_t len = tagtinker_make_refresh_frame(frame, job->plid);
+        ok = tx_send_frame(app, frame, len, 1);
+    }
+    return ok;
 }
 
 static bool tx_should_send_full_job(uint16_t width, uint16_t height, bool second_plane) {
@@ -268,7 +332,95 @@ static bool tx_send_full_text_image(TagTinkerApp* app) {
     return ok;
 }
 
+typedef struct {
+    const uint8_t* p1;
+    const uint8_t* p2;
+} TxColor26TextCtx;
+
+static uint8_t tx_color26_text_pixel(size_t idx, void* ctx) {
+    const TxColor26TextCtx* c = ctx;
+    size_t count = (size_t)TX_COLOR26_PROTO_W * (size_t)TX_COLOR26_PROTO_H;
+    uint8_t plane = 0;
+    if(idx >= count) {
+        plane = 1;
+        idx -= count;
+    }
+    uint16_t px = (uint16_t)(idx % TX_COLOR26_PROTO_W);
+    uint16_t py = (uint16_t)(idx / TX_COLOR26_PROTO_W);
+    uint16_t bx = py;
+    uint16_t by = (uint16_t)(TX_COLOR26_PROTO_W - 1U - px);
+    size_t si = (size_t)by * TX_COLOR26_GLASS_W + bx;
+    if(plane == 0) return c->p1[si];
+    if(!c->p2) return 1U;
+    return c->p2[si];
+}
+
+static bool tx_send_color26_text(TagTinkerApp* app) {
+    const TagTinkerTarget* target =
+        (app->selected_target >= 0) ? &app->targets[app->selected_target] : NULL;
+    bool accent_capable = tagtinker_target_supports_accent(target);
+    bool accent_text = accent_capable && app->color_clear;
+    TagTinkerTagColor accent_color = tx_target_color(app);
+    size_t count = (size_t)TX_COLOR26_GLASS_W * (size_t)TX_COLOR26_GLASS_H;
+    uint8_t* primary = malloc(count);
+    uint8_t* secondary = accent_text ? malloc(count) : NULL;
+    if(!primary || (accent_text && !secondary)) {
+        free(primary);
+        free(secondary);
+        return false;
+    }
+
+    if(accent_text) {
+        uint8_t bg_primary = app->invert_text ? 0 : 1;
+        uint8_t fg_primary = (accent_color == TagTinkerTagColorYellow) ? 0 : 1;
+        render_text_ex(
+            primary,
+            TX_COLOR26_GLASS_W,
+            TX_COLOR26_GLASS_H,
+            app->text_input_buf,
+            bg_primary,
+            fg_primary,
+            app->text_padding_pct);
+        render_text_ex(
+            secondary,
+            TX_COLOR26_GLASS_W,
+            TX_COLOR26_GLASS_H,
+            app->text_input_buf,
+            1,
+            0,
+            app->text_padding_pct);
+    } else {
+        render_text_ex(
+            primary,
+            TX_COLOR26_GLASS_W,
+            TX_COLOR26_GLASS_H,
+            app->text_input_buf,
+            app->invert_text ? 0 : 1,
+            app->invert_text ? 1 : 0,
+            app->text_padding_pct);
+    }
+
+    TxColor26TextCtx ctx = {.p1 = primary, .p2 = secondary};
+    TagTinkerImagePayload payload;
+    bool ok = tagtinker_encode_fn_payload(
+        tx_color26_text_pixel,
+        &ctx,
+        count * 2U,
+        TagTinkerCompressionAuto,
+        &payload);
+    free(primary);
+    free(secondary);
+    if(!ok) return false;
+
+    ok = tx_send_color26_payload(app, &payload);
+    tagtinker_free_image_payload(&payload);
+    return ok;
+}
+
 static bool tx_stream_text_image(TagTinkerApp* app) {
+    if(tx_is_color26(app)) {
+        return tx_send_color26_text(app);
+    }
     if(tx_send_full_text_image(app)) {
         return true;
     }
@@ -454,6 +606,93 @@ static inline bool bmp_read_row_at(
     } \
 } while(0)
 
+typedef struct {
+    const uint8_t* file;
+    size_t file_len;
+    const TxBmpInfo* info;
+    bool transpose;
+} TxColor26BmpCtx;
+
+static uint8_t tx_color26_bmp_bit(
+    const TxColor26BmpCtx* c,
+    uint16_t bx,
+    uint16_t by,
+    uint8_t plane) {
+    if(c->info->width == 0U || c->info->height == 0U) return 1U;
+    if(bx >= c->info->width) bx = (uint16_t)(c->info->width - 1U);
+    if(by >= c->info->height) by = (uint16_t)(c->info->height - 1U);
+    uint16_t actual_row = c->info->top_down ? by : (uint16_t)(c->info->height - 1U - by);
+    uint32_t off = c->info->data_offset +
+        ((uint32_t)actual_row + (uint32_t)plane * (uint32_t)c->info->height) * c->info->row_stride;
+    off += bx / 8U;
+    if(off >= c->file_len) return 1U;
+    uint8_t bit = (c->file[off] >> (7U - (bx % 8U))) & 1U;
+    return bit ? 0U : 1U;
+}
+
+static uint8_t tx_color26_bmp_pixel(size_t idx, void* ctx) {
+    const TxColor26BmpCtx* c = ctx;
+    size_t count = (size_t)TX_COLOR26_PROTO_W * (size_t)TX_COLOR26_PROTO_H;
+    uint8_t plane = 0;
+    if(idx >= count) {
+        plane = 1;
+        idx -= count;
+    }
+    uint16_t px = (uint16_t)(idx % TX_COLOR26_PROTO_W);
+    uint16_t py = (uint16_t)(idx / TX_COLOR26_PROTO_W);
+    uint16_t bx = px;
+    uint16_t by = py;
+    if(c->transpose) {
+        bx = py;
+        by = (uint16_t)(TX_COLOR26_PROTO_W - 1U - px);
+    }
+    if(plane && c->info->bpp != 2) return 1U;
+    return tx_color26_bmp_bit(c, bx, by, plane);
+}
+
+static bool tx_send_color26_bmp(TagTinkerApp* app, File* file, const TxBmpInfo* info) {
+    if(info->bpp != 1 && info->bpp != 2) return false;
+    uint64_t sz = storage_file_size(file);
+    if(sz < 54U || sz > TX_COLOR26_BMP_MAX) return false;
+
+    uint8_t* mem = malloc((size_t)sz);
+    if(!mem) return false;
+    storage_file_seek(file, 0, true);
+    bool loaded = storage_file_read(file, mem, (size_t)sz) == (size_t)sz;
+    if(!loaded) {
+        free(mem);
+        return false;
+    }
+
+    TxColor26BmpCtx ctx = {
+        .file = mem,
+        .file_len = (size_t)sz,
+        .info = info,
+        .transpose = (info->width == TX_COLOR26_GLASS_W && info->height == TX_COLOR26_GLASS_H),
+    };
+    TagTinkerImagePayload payload;
+    bool ok = tagtinker_encode_fn_payload(
+        tx_color26_bmp_pixel,
+        &ctx,
+        (size_t)TX_COLOR26_PROTO_W * (size_t)TX_COLOR26_PROTO_H * 2U,
+        TagTinkerCompressionAuto,
+        &payload);
+    free(mem);
+    if(!ok) return false;
+
+    tx_debug_log(
+        "Color26 BMP %ux%u bpp=%u transpose=%u bytes=%u pg=%u",
+        info->width,
+        info->height,
+        info->bpp,
+        ctx.transpose ? 1U : 0U,
+        (unsigned)payload.byte_count,
+        app->image_tx_job.page);
+    ok = tx_send_color26_payload(app, &payload);
+    tagtinker_free_image_payload(&payload);
+    return ok;
+}
+
 static bool tx_stream_bmp_image(TagTinkerApp* app) {
     const TagTinkerImageTxJob* job = &app->image_tx_job;
     tx_debug_log("BMP TX: path=%s w=%u h=%u page=%u",
@@ -471,6 +710,14 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
         storage_file_free(file);
         furi_record_close(RECORD_STORAGE);
         return false;
+    }
+
+    if(tx_is_color26(app)) {
+        bool sent = tx_send_color26_bmp(app, file, &info);
+        storage_file_close(file);
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+        return sent;
     }
 
     /* Output dims come from the target's profile; source dims come from the

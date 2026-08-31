@@ -70,6 +70,16 @@ bool tagtinker_encode_image_payload(
     bool color_clear,
     TagTinkerCompressionMode mode,
     TagTinkerImagePayload* payload);
+
+typedef uint8_t (*TagTinkerPixelAtFn)(size_t idx, void* ctx);
+
+bool tagtinker_encode_fn_payload(
+    TagTinkerPixelAtFn pixel_at,
+    void* ctx,
+    size_t total_pixels,
+    TagTinkerCompressionMode mode,
+    TagTinkerImagePayload* payload);
+
 bool tagtinker_encode_planes_payload(
     const uint8_t* primary_pixels,
     const uint8_t* secondary_pixels,
@@ -106,6 +116,8 @@ size_t tagtinker_make_addressed_frame(
 
 /* Tags need a wake ping before most addressed commands. */
 size_t tagtinker_make_ping_frame(uint8_t* buf, const uint8_t plid[4]);
+
+size_t tagtinker_make_wake_frame(uint8_t* buf, const uint8_t plid[4]);
 
 size_t tagtinker_make_refresh_frame(uint8_t* buf, const uint8_t plid[4]);
 

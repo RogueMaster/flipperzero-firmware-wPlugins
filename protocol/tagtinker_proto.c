@@ -53,6 +53,7 @@ static const TagTinkerProfileEntry profile_table[] = {
     {1370, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD L Red (2021)", 0},
     {1371, 648, 480, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD150 Red (2021)", 0},
     {1510, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono,   "SmartTag E5 M", 1},
+    {1626, 152, 296, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTAG Color 2.6", 0},
     {1627, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD L Red", 0},
     {1628, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD L Red", 0},
     {1639, 152, 152, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD S Red", 0},
@@ -147,6 +148,17 @@ size_t tagtinker_make_ping_frame(uint8_t* buf, const uint8_t plid[4]) {
     buf[p++] = 0x00;
     buf[p++] = 0x00;
     for(int i = 0; i < 20; i++) buf[p++] = 0x01;
+    return terminate(buf, p);
+}
+
+size_t tagtinker_make_wake_frame(uint8_t* buf, const uint8_t plid[4]) {
+    /* PrecIR / PriceHax wake: cmd 0x17 and 22 trailing 0x01 bytes. */
+    size_t p = raw_frame(buf, TAGTINKER_PROTO_DM, plid, 0x17);
+    buf[p++] = 0x01;
+    buf[p++] = 0x00;
+    buf[p++] = 0x00;
+    buf[p++] = 0x00;
+    for(int i = 0; i < 22; i++) buf[p++] = 0x01;
     return terminate(buf, p);
 }
 
@@ -250,6 +262,62 @@ static void tagtinker_pack_planes_rle(const uint8_t* p1, const uint8_t* p2, size
 }
 
 #define DATA_BITS_PER_FRAME (TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME * 8U)
+
+static size_t tagtinker_rle_fn_bit_length(TagTinkerPixelAtFn pixel_at, void* ctx, size_t total) {
+    if(!pixel_at || total == 0) return 0;
+    size_t bit_len = 1U;
+    uint8_t run_pixel = pixel_at(0, ctx);
+    uint32_t run_count = 1;
+    for(size_t i = 1; i < total; i++) {
+        uint8_t pix = pixel_at(i, ctx);
+        if(pix == run_pixel) run_count++;
+        else { bit_len += record_run_bit_length(run_count); run_pixel = pix; run_count = 1; }
+    }
+    if(run_count > 0U) bit_len += record_run_bit_length(run_count);
+    return bit_len;
+}
+
+static void tagtinker_pack_fn_raw(TagTinkerPixelAtFn pixel_at, void* ctx, size_t total, uint8_t* out) {
+    TagTinkerBitWriter writer = {.data = out, .bit_pos = 0};
+    for(size_t i = 0; i < total; i++) bit_writer_append(&writer, pixel_at(i, ctx));
+}
+
+static void tagtinker_pack_fn_rle(TagTinkerPixelAtFn pixel_at, void* ctx, size_t total, uint8_t* out) {
+    if(total == 0) return;
+    TagTinkerBitWriter writer = {.data = out, .bit_pos = 0};
+    uint8_t run_pixel = pixel_at(0, ctx);
+    uint32_t run_count = 1;
+    bit_writer_append(&writer, run_pixel);
+    for(size_t i = 1; i < total; i++) {
+        uint8_t pix = pixel_at(i, ctx);
+        if(pix == run_pixel) run_count++;
+        else { bit_writer_append_run(&writer, run_count); run_pixel = pix; run_count = 1; }
+    }
+    if(run_count > 0U) bit_writer_append_run(&writer, run_count);
+}
+
+bool tagtinker_encode_fn_payload(
+    TagTinkerPixelAtFn pixel_at,
+    void* ctx,
+    size_t total,
+    TagTinkerCompressionMode mode,
+    TagTinkerImagePayload* payload) {
+    if(!pixel_at || !payload || total == 0) return false;
+    memset(payload, 0, sizeof(*payload));
+    size_t comp_len = tagtinker_rle_fn_bit_length(pixel_at, ctx, total);
+    bool use_compressed = (mode == TagTinkerCompressionRle) ||
+                         (mode == TagTinkerCompressionAuto && comp_len > 0U && comp_len < total);
+    size_t src_len = use_compressed ? comp_len : total;
+    size_t padded_bits = src_len + ((DATA_BITS_PER_FRAME - (src_len % DATA_BITS_PER_FRAME)) % DATA_BITS_PER_FRAME);
+    uint8_t* data = calloc(padded_bits / 8U, 1);
+    if(!data) return false;
+    if(use_compressed) tagtinker_pack_fn_rle(pixel_at, ctx, total, data);
+    else tagtinker_pack_fn_raw(pixel_at, ctx, total, data);
+    payload->data = data;
+    payload->byte_count = padded_bits / 8U;
+    payload->comp_type = use_compressed ? 2U : 0U;
+    return true;
+}
 
 bool tagtinker_encode_planes_payload(
     const uint8_t* p1, const uint8_t* p2, size_t count, TagTinkerCompressionMode mode, TagTinkerImagePayload* payload) {
