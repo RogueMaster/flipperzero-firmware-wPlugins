@@ -851,25 +851,27 @@ static void map_draw_focus_range(Canvas* canvas, ZeroMeshApp* app) {
 }
 
 static void map_draw_gps(Canvas* canvas, ZeroMeshApp* app) {
-    char buf[24];
+    /* Top right, no frame. The left side carries the home marker and the
+       zoom readout, and place names crowd the middle. */
+    char buf[12];
     if(app->my_sats_seen) {
         snprintf(
             buf,
             sizeof(buf),
-            "GPS %u sat%s",
+            "SAT:%u%s",
             app->my_sats,
-            app->my_has_fix ? " fix" : "");
+            app->my_has_fix ? "" : "?");
     } else {
-        snprintf(buf, sizeof(buf), "GPS no data");
+        snprintf(buf, sizeof(buf), "SAT:-");
     }
 
     canvas_set_font(canvas, FontSecondary);
-    int w = canvas_string_width(canvas, buf) + 4;
+    int w = canvas_string_width(canvas, buf);
+    int x = MAP_W - w - 2;
     canvas_set_color(canvas, ColorWhite);
-    map_box(canvas, 1, 1, w, 11);
+    map_box(canvas, x - 1, 1, w + 2, 9);
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_frame(canvas, 1, 1, w, 11);
-    canvas_draw_str(canvas, 3, 9, buf);
+    canvas_draw_str(canvas, x, 8, buf);
 }
 
 static void map_draw_toolbar(Canvas* canvas, MapState* m) {

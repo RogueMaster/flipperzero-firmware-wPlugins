@@ -427,15 +427,35 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                             if(sn[0])
                                 strncpy(app->my_short_name, sn, sizeof(app->my_short_name) - 1);
                         }
-                        if(n.has_position && n.position.has_latitude_i &&
-                           n.position.has_longitude_i) {
-                            roster_update_position(
-                                app,
-                                n.num,
-                                n.position.latitude_i,
-                                n.position.longitude_i,
-                                n.position.has_altitude ? n.position.altitude : 0,
-                                n.position.time);
+                        /* The node reports its own satellites here, in the
+                           config download, not as a POSITION packet. Reading
+                           it only from packets meant a lone node never showed
+                           a count at all. */
+                        if(n.has_position) {
+                            bool nfix = n.position.has_latitude_i &&
+                                        n.position.has_longitude_i &&
+                                        !(n.position.latitude_i == 0 &&
+                                          n.position.longitude_i == 0);
+                            uint8_t nsats = n.position.sats_in_view > 255 ?
+                                                255 :
+                                                (uint8_t)n.position.sats_in_view;
+                            roster_update_sats(app, n.num, nsats, nfix);
+
+                            if(app->my_node_num && n.num == app->my_node_num) {
+                                app->my_sats = nsats;
+                                app->my_sats_seen = true;
+                                app->my_has_fix = nfix;
+                            }
+
+                            if(nfix) {
+                                roster_update_position(
+                                    app,
+                                    n.num,
+                                    n.position.latitude_i,
+                                    n.position.longitude_i,
+                                    n.position.has_altitude ? n.position.altitude : 0,
+                                    n.position.time);
+                            }
                         }
                     }
                     pb_close_string_substream(&walk, &sub);
