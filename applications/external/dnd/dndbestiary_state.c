@@ -49,8 +49,7 @@ static void dndbestiary_state_workspace_free(StateReadWorkspace* workspace) {
     free(workspace);
 }
 
-static bool
-    dndbestiary_state_parse_u8(const char* text, uint8_t minimum, uint8_t maximum, uint8_t* output);
+static bool dndbestiary_state_parse_u8(const char* text, uint8_t minimum, uint8_t maximum, uint8_t* output);
 
 static void dndbestiary_state_copy(char* output, size_t size, const char* value) {
     if(!output || !size) return;
@@ -121,6 +120,7 @@ static bool dndbestiary_state_write_line(File* file, const char* body) {
     return length > 0 && (size_t)length < sizeof(line) &&
            storage_file_write(file, line, (size_t)length) == (size_t)length;
 }
+
 
 static bool dndbestiary_state_write_named(File* file, const char* key, const char* value) {
     char safe[STATE_LINE_LEN];
@@ -223,17 +223,13 @@ bool dndbestiary_state_party_settings_load(
     return io_ok && loaded;
 }
 
-bool dndbestiary_state_party_settings_save(
-    Storage* storage,
-    uint8_t party_level,
-    uint8_t party_size) {
+bool dndbestiary_state_party_settings_save(Storage* storage, uint8_t party_level, uint8_t party_size) {
     if(!storage || party_level < 1U || party_level > 20U || party_size < 1U || party_size > 12U)
         return false;
     File* file = dndbestiary_state_open_temp(storage, PARTY_SETTINGS_TEMP);
     if(!file) return false;
     bool ok = dndbestiary_state_write_named_u32(file, "PartyLevel", party_level) &&
-              dndbestiary_state_write_named_u32(file, "PartySize", party_size) &&
-              storage_file_sync(file);
+              dndbestiary_state_write_named_u32(file, "PartySize", party_size) && storage_file_sync(file);
     storage_file_close(file);
     storage_file_free(file);
     if(!ok) {
@@ -260,12 +256,8 @@ static uint16_t dndbestiary_state_id_count(Storage* storage, const char* path, u
     return count;
 }
 
-static bool dndbestiary_state_id_at(
-    Storage* storage,
-    const char* path,
-    uint16_t wanted,
-    char* id,
-    size_t size) {
+static bool
+    dndbestiary_state_id_at(Storage* storage, const char* path, uint16_t wanted, char* id, size_t size) {
     if(!storage || !path || !id || !size) return false;
     File* file = storage_file_alloc(storage);
     if(!file) return false;
@@ -330,8 +322,7 @@ bool dndbestiary_state_favorite_toggle(Storage* storage, const char* id, bool* n
         dndbestiary_state_reader_init(&reader, input);
         char line[STATE_LINE_LEN];
         while(ok && dndbestiary_state_read_line(&reader, line, sizeof(line))) {
-            if(!dndbestiary_state_line_valid(line) || !line[0] || (remove && !strcmp(line, id)))
-                continue;
+            if(!dndbestiary_state_line_valid(line) || !line[0] || (remove && !strcmp(line, id))) continue;
             ok = dndbestiary_state_write_line(output, line);
         }
     }
@@ -365,8 +356,7 @@ bool dndbestiary_state_recent_add(Storage* storage, const char* id) {
         StateReader reader;
         dndbestiary_state_reader_init(&reader, input);
         char line[STATE_LINE_LEN];
-        while(count < STATE_MAX_RECENTS &&
-              dndbestiary_state_read_line(&reader, line, sizeof(line))) {
+        while(count < STATE_MAX_RECENTS && dndbestiary_state_read_line(&reader, line, sizeof(line))) {
             if(dndbestiary_state_line_valid(line) && line[0] && strcmp(line, id))
                 dndbestiary_state_copy(ids[count++], sizeof(ids[0]), line);
         }
@@ -445,20 +435,10 @@ static uint16_t dndbestiary_state_load_filters(
         }
         *value++ = '\0';
         uint8_t index = 0U;
-#define FILTER_STRING(suffix, field)                                                       \
-    if(dndbestiary_state_indexed_key(line, "Filter", suffix, STATE_MAX_FILTERS, &index)) { \
-        dndbestiary_state_copy(output[index].field, sizeof(output[index].field), value);   \
-        named_seen = true;                                                                 \
-        continue;                                                                          \
-    }
-#define FILTER_U8(suffix, field)                                                           \
-    if(dndbestiary_state_indexed_key(line, "Filter", suffix, STATE_MAX_FILTERS, &index)) { \
-        uint8_t parsed = 0U;                                                               \
-        if(dndbestiary_state_parse_u8(value, 0U, UINT8_MAX, &parsed))                      \
-            output[index].field = parsed;                                                  \
-        named_seen = true;                                                                 \
-        continue;                                                                          \
-    }
+#define FILTER_STRING(suffix, field) \
+        if(dndbestiary_state_indexed_key(line, "Filter", suffix, STATE_MAX_FILTERS, &index)) { dndbestiary_state_copy(output[index].field, sizeof(output[index].field), value); named_seen = true; continue; }
+#define FILTER_U8(suffix, field) \
+        if(dndbestiary_state_indexed_key(line, "Filter", suffix, STATE_MAX_FILTERS, &index)) { uint8_t parsed = 0U; if(dndbestiary_state_parse_u8(value, 0U, UINT8_MAX, &parsed)) output[index].field = parsed; named_seen = true; continue; }
         FILTER_STRING("Name", name)
         FILTER_STRING("Search", search)
         FILTER_U8("MaxCrEighths", max_cr_eighths)
@@ -478,8 +458,7 @@ static uint16_t dndbestiary_state_load_filters(
                 if(write != read) output[write] = output[read];
                 ++write;
             }
-        for(uint8_t i = write; i < STATE_MAX_FILTERS; ++i)
-            memset(&output[i], 0, sizeof(output[i]));
+        for(uint8_t i = write; i < STATE_MAX_FILTERS; ++i) memset(&output[i], 0, sizeof(output[i]));
         return write;
     }
     return legacy_next;
@@ -487,8 +466,7 @@ static uint16_t dndbestiary_state_load_filters(
 
 uint16_t dndbestiary_state_filter_count(Storage* storage) {
     if(!storage) return 0U;
-    PocketBestiaryFilterPreset* filters =
-        calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
+    PocketBestiaryFilterPreset* filters = calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
     if(!filters) return 0U;
     uint16_t count = dndbestiary_state_load_filters(storage, filters);
     free(filters);
@@ -500,8 +478,7 @@ bool dndbestiary_state_filter_at(
     uint16_t wanted,
     PocketBestiaryFilterPreset* output) {
     if(!storage || !output || wanted >= STATE_MAX_FILTERS) return false;
-    PocketBestiaryFilterPreset* filters =
-        calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
+    PocketBestiaryFilterPreset* filters = calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
     if(!filters) return false;
     uint16_t count = dndbestiary_state_load_filters(storage, filters);
     bool found = wanted < count;
@@ -516,16 +493,10 @@ static bool dndbestiary_state_write_filter(
     const PocketBestiaryFilterPreset* preset) {
     if(!file || !preset || index >= STATE_MAX_FILTERS) return false;
     char key[48];
-#define FILTER_WRITE_STRING(suffix, field)                                         \
-    do {                                                                           \
-        snprintf(key, sizeof(key), "Filter%u%s", index, suffix);                   \
-        if(!dndbestiary_state_write_named(file, key, preset->field)) return false; \
-    } while(false)
-#define FILTER_WRITE_U8(suffix, field)                                                 \
-    do {                                                                               \
-        snprintf(key, sizeof(key), "Filter%u%s", index, suffix);                       \
-        if(!dndbestiary_state_write_named_u32(file, key, preset->field)) return false; \
-    } while(false)
+#define FILTER_WRITE_STRING(suffix, field) \
+    do { snprintf(key, sizeof(key), "Filter%u%s", index, suffix); if(!dndbestiary_state_write_named(file, key, preset->field)) return false; } while(false)
+#define FILTER_WRITE_U8(suffix, field) \
+    do { snprintf(key, sizeof(key), "Filter%u%s", index, suffix); if(!dndbestiary_state_write_named_u32(file, key, preset->field)) return false; } while(false)
     FILTER_WRITE_STRING("Name", name);
     FILTER_WRITE_STRING("Search", search);
     FILTER_WRITE_U8("MaxCrEighths", max_cr_eighths);
@@ -558,12 +529,9 @@ bool dndbestiary_state_filter_save(Storage* storage, const PocketBestiaryFilterP
     for(uint16_t index = 0U; ok && index < count; ++index) {
         PocketBestiaryFilterPreset prior;
         if(!dndbestiary_state_filter_at(storage, index, &prior)) continue;
-        if(strcmp(prior.name, preset->name))
-            ok = dndbestiary_state_write_filter(output, output_index++, &prior);
+        if(strcmp(prior.name, preset->name)) ok = dndbestiary_state_write_filter(output, output_index++, &prior);
     }
-    if(ok)
-        ok = dndbestiary_state_write_filter(output, output_index, preset) &&
-             storage_file_sync(output);
+    if(ok) ok = dndbestiary_state_write_filter(output, output_index, preset) && storage_file_sync(output);
     storage_file_close(output);
     storage_file_free(output);
     return ok && dndbestiary_state_publish(storage, FILTERS_TEMP, FILTERS_PATH);
@@ -588,11 +556,7 @@ bool dndbestiary_state_filter_delete(Storage* storage, uint16_t wanted) {
     return ok && dndbestiary_state_publish(storage, FILTERS_TEMP, FILTERS_PATH);
 }
 
-static bool dndbestiary_state_parse_u8(
-    const char* text,
-    uint8_t minimum,
-    uint8_t maximum,
-    uint8_t* output) {
+static bool dndbestiary_state_parse_u8(const char* text, uint8_t minimum, uint8_t maximum, uint8_t* output) {
     if(!text || !text[0] || !output) return false;
     uint16_t value = 0U;
     for(const char* cursor = text; *cursor; ++cursor) {
@@ -626,8 +590,7 @@ static bool dndbestiary_state_parse_encounter(char* line, PocketSavedEncounter* 
     dndbestiary_state_copy(output->name, sizeof(output->name), fields[0]);
     if(!dndbestiary_state_parse_u8(fields[1], 1U, 20U, &output->party_level) ||
        !dndbestiary_state_parse_u8(fields[2], 1U, 12U, &output->party_size) ||
-       !dndbestiary_state_parse_u8(
-           fields[3], 0U, PocketEncounterDifficultyCount - 1U, &output->difficulty) ||
+       !dndbestiary_state_parse_u8(fields[3], 0U, PocketEncounterDifficultyCount - 1U, &output->difficulty) ||
        !dndbestiary_state_parse_u8(fields[4], 1U, POCKET_MONSTER_ENCOUNTER_MAX, &output->count))
         return false;
     cursor = fields[5];
@@ -637,8 +600,7 @@ static bool dndbestiary_state_parse_encounter(char* line, PocketSavedEncounter* 
         *quantity++ = '\0';
         char* next = strchr(quantity, ',');
         if(next) *next++ = '\0';
-        dndbestiary_state_copy(
-            output->monster_ids[index], sizeof(output->monster_ids[index]), cursor);
+        dndbestiary_state_copy(output->monster_ids[index], sizeof(output->monster_ids[index]), cursor);
         if(!output->monster_ids[index][0] ||
            !dndbestiary_state_parse_u8(quantity, 1U, UINT8_MAX, &output->quantities[index]))
             return false;
@@ -648,8 +610,7 @@ static bool dndbestiary_state_parse_encounter(char* line, PocketSavedEncounter* 
     return output->name[0] != '\0' && !cursor;
 }
 
-static bool
-    dndbestiary_state_encounter_named_mask(Storage* storage, const char* path, uint16_t* mask) {
+static bool dndbestiary_state_encounter_named_mask(Storage* storage, const char* path, uint16_t* mask) {
     *mask = 0U;
     File* file = storage_file_alloc(storage);
     if(!file) return false;
@@ -663,14 +624,12 @@ static bool
         storage_file_free(file);
         return false;
     }
-    while(dndbestiary_state_read_line(
-        &workspace->reader, workspace->line, sizeof(workspace->line))) {
+    while(dndbestiary_state_read_line(&workspace->reader, workspace->line, sizeof(workspace->line))) {
         char* value = strchr(workspace->line, '=');
         if(!value) continue;
         *value = '\0';
         uint8_t index = 0U;
-        if(dndbestiary_state_indexed_key(
-               workspace->line, "Encounter", "Name", STATE_MAX_ENCOUNTERS, &index))
+        if(dndbestiary_state_indexed_key(workspace->line, "Encounter", "Name", STATE_MAX_ENCOUNTERS, &index))
             *mask |= (uint16_t)(1U << index);
     }
     bool ok = storage_file_get_error(file) == FSE_OK;
@@ -697,8 +656,7 @@ static uint16_t dndbestiary_state_encounter_count_path(Storage* storage, const c
         if(workspace) {
             PocketSavedEncounter encounter;
             while(count < STATE_MAX_ENCOUNTERS &&
-                  dndbestiary_state_read_line(
-                      &workspace->reader, workspace->line, sizeof(workspace->line)))
+                  dndbestiary_state_read_line(&workspace->reader, workspace->line, sizeof(workspace->line)))
                 if(dndbestiary_state_parse_encounter(workspace->line, &encounter)) ++count;
             dndbestiary_state_workspace_free(workspace);
         }
@@ -763,27 +721,16 @@ static bool dndbestiary_state_encounter_at_path(
         storage_file_free(file);
         return false;
     }
-    while(dndbestiary_state_read_line(
-        &workspace->reader, workspace->line, sizeof(workspace->line))) {
+    while(dndbestiary_state_read_line(&workspace->reader, workspace->line, sizeof(workspace->line))) {
         char* value = strchr(workspace->line, '=');
         if(!value) continue;
         *value++ = '\0';
         uint8_t index = 0U;
         uint8_t parsed = 0U;
-#define ENC_STRING(suffix, field)                                                 \
-    if(dndbestiary_state_indexed_key(                                             \
-           workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) && \
-       index == actual) {                                                         \
-        dndbestiary_state_copy(output->field, sizeof(output->field), value);      \
-        continue;                                                                 \
-    }
-#define ENC_U8(suffix, field, minv, maxv)                                                  \
-    if(dndbestiary_state_indexed_key(                                                      \
-           workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) &&          \
-       index == actual) {                                                                  \
-        if(dndbestiary_state_parse_u8(value, minv, maxv, &parsed)) output->field = parsed; \
-        continue;                                                                          \
-    }
+#define ENC_STRING(suffix, field) \
+        if(dndbestiary_state_indexed_key(workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) && index == actual) { dndbestiary_state_copy(output->field, sizeof(output->field), value); continue; }
+#define ENC_U8(suffix, field, minv, maxv) \
+        if(dndbestiary_state_indexed_key(workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) && index == actual) { if(dndbestiary_state_parse_u8(value, minv, maxv, &parsed)) output->field = parsed; continue; }
         ENC_STRING("Name", name)
         ENC_U8("PartyLevel", party_level, 1U, 20U)
         ENC_U8("PartySize", party_size, 1U, 12U)
@@ -795,16 +742,23 @@ static bool dndbestiary_state_encounter_at_path(
             char suffix[32];
             snprintf(suffix, sizeof(suffix), "Monster%uId", monster);
             if(dndbestiary_state_indexed_key(
-                   workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) &&
+                   workspace->line,
+                   "Encounter",
+                   suffix,
+                   STATE_MAX_ENCOUNTERS,
+                   &index) &&
                index == actual) {
-                dndbestiary_state_copy(
-                    output->monster_ids[monster], sizeof(output->monster_ids[monster]), value);
+                dndbestiary_state_copy(output->monster_ids[monster], sizeof(output->monster_ids[monster]), value);
                 if(output->count <= monster) output->count = (uint8_t)(monster + 1U);
                 break;
             }
             snprintf(suffix, sizeof(suffix), "Monster%uQuantity", monster);
             if(dndbestiary_state_indexed_key(
-                   workspace->line, "Encounter", suffix, STATE_MAX_ENCOUNTERS, &index) &&
+                   workspace->line,
+                   "Encounter",
+                   suffix,
+                   STATE_MAX_ENCOUNTERS,
+                   &index) &&
                index == actual) {
                 if(dndbestiary_state_parse_u8(value, 1U, UINT8_MAX, &parsed))
                     output->quantities[monster] = parsed;
@@ -824,12 +778,8 @@ uint16_t dndbestiary_state_encounter_count(Storage* storage) {
     return storage ? dndbestiary_state_encounter_count_path(storage, ENCOUNTERS_PATH) : 0U;
 }
 
-bool dndbestiary_state_encounter_at(
-    Storage* storage,
-    uint16_t wanted,
-    PocketSavedEncounter* output) {
-    return storage && output &&
-           dndbestiary_state_encounter_at_path(storage, ENCOUNTERS_PATH, wanted, output);
+bool dndbestiary_state_encounter_at(Storage* storage, uint16_t wanted, PocketSavedEncounter* output) {
+    return storage && output && dndbestiary_state_encounter_at_path(storage, ENCOUNTERS_PATH, wanted, output);
 }
 
 static bool dndbestiary_state_write_encounter(
@@ -838,23 +788,16 @@ static bool dndbestiary_state_write_encounter(
     const PocketSavedEncounter* encounter) {
     if(!file || !encounter || index >= STATE_MAX_ENCOUNTERS) return false;
     char key[64];
-#define ENC_WRITE_STRING(suffix, value)                                    \
-    do {                                                                   \
-        snprintf(key, sizeof(key), "Encounter%u%s", index, suffix);        \
-        if(!dndbestiary_state_write_named(file, key, value)) return false; \
-    } while(false)
-#define ENC_WRITE_U8(suffix, value)                                            \
-    do {                                                                       \
-        snprintf(key, sizeof(key), "Encounter%u%s", index, suffix);            \
-        if(!dndbestiary_state_write_named_u32(file, key, value)) return false; \
-    } while(false)
+#define ENC_WRITE_STRING(suffix, value) \
+    do { snprintf(key, sizeof(key), "Encounter%u%s", index, suffix); if(!dndbestiary_state_write_named(file, key, value)) return false; } while(false)
+#define ENC_WRITE_U8(suffix, value) \
+    do { snprintf(key, sizeof(key), "Encounter%u%s", index, suffix); if(!dndbestiary_state_write_named_u32(file, key, value)) return false; } while(false)
     ENC_WRITE_STRING("Name", encounter->name);
     ENC_WRITE_U8("PartyLevel", encounter->party_level);
     ENC_WRITE_U8("PartySize", encounter->party_size);
     ENC_WRITE_U8("Difficulty", encounter->difficulty);
     ENC_WRITE_U8("Count", encounter->count);
-    for(uint8_t monster = 0U; monster < encounter->count && monster < POCKET_MONSTER_ENCOUNTER_MAX;
-        ++monster) {
+    for(uint8_t monster = 0U; monster < encounter->count && monster < POCKET_MONSTER_ENCOUNTER_MAX; ++monster) {
         char suffix[32];
         snprintf(suffix, sizeof(suffix), "Monster%uId", monster);
         ENC_WRITE_STRING(suffix, encounter->monster_ids[monster]);
@@ -882,25 +825,18 @@ bool dndbestiary_state_encounter_save(Storage* storage, const PocketSavedEncount
     for(uint16_t index = 0U; ok && index < count; ++index) {
         PocketSavedEncounter prior;
         if(!dndbestiary_state_encounter_at(storage, index, &prior)) continue;
-        if(!strcmp(prior.name, normalized_name)) {
-            replacing = true;
-            continue;
-        }
+        if(!strcmp(prior.name, normalized_name)) { replacing = true; continue; }
         ok = dndbestiary_state_write_encounter(output, out_index++, &prior);
     }
     if(!replacing && count >= STATE_MAX_ENCOUNTERS) ok = false;
     if(ok) {
         PocketSavedEncounter normalized = *encounter;
         dndbestiary_state_copy(normalized.name, sizeof(normalized.name), normalized_name);
-        ok = dndbestiary_state_write_encounter(output, out_index, &normalized) &&
-             storage_file_sync(output);
+        ok = dndbestiary_state_write_encounter(output, out_index, &normalized) && storage_file_sync(output);
     }
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) {
-        storage_common_remove(storage, ENCOUNTERS_TEMP);
-        return false;
-    }
+    if(!ok) { storage_common_remove(storage, ENCOUNTERS_TEMP); return false; }
     return dndbestiary_state_publish(storage, ENCOUNTERS_TEMP, ENCOUNTERS_PATH);
 }
 
@@ -921,10 +857,7 @@ bool dndbestiary_state_encounter_delete(Storage* storage, uint16_t wanted) {
     if(ok) ok = storage_file_sync(output);
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) {
-        storage_common_remove(storage, ENCOUNTERS_TEMP);
-        return false;
-    }
+    if(!ok) { storage_common_remove(storage, ENCOUNTERS_TEMP); return false; }
     return dndbestiary_state_publish(storage, ENCOUNTERS_TEMP, ENCOUNTERS_PATH);
 }
 
@@ -940,21 +873,14 @@ bool dndbestiary_state_encounter_rename(Storage* storage, uint16_t wanted, const
     for(uint16_t index = 0U; ok && index < count; ++index) {
         PocketSavedEncounter encounter;
         if(!dndbestiary_state_encounter_at(storage, index, &encounter)) continue;
-        if(index != wanted && !strcmp(encounter.name, normalized_name)) {
-            ok = false;
-            break;
-        }
-        if(index == wanted)
-            dndbestiary_state_copy(encounter.name, sizeof(encounter.name), normalized_name);
+        if(index != wanted && !strcmp(encounter.name, normalized_name)) { ok = false; break; }
+        if(index == wanted) dndbestiary_state_copy(encounter.name, sizeof(encounter.name), normalized_name);
         ok = dndbestiary_state_write_encounter(output, (uint8_t)index, &encounter);
     }
     if(ok) ok = storage_file_sync(output);
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) {
-        storage_common_remove(storage, ENCOUNTERS_TEMP);
-        return false;
-    }
+    if(!ok) { storage_common_remove(storage, ENCOUNTERS_TEMP); return false; }
     return dndbestiary_state_publish(storage, ENCOUNTERS_TEMP, ENCOUNTERS_PATH);
 }
 
@@ -968,8 +894,7 @@ bool dndbestiary_state_encounter_duplicate(Storage* storage, uint16_t wanted, co
     if(!dndbestiary_state_encounter_at(storage, wanted, &duplicate)) return false;
     for(uint16_t index = 0U; index < count; ++index) {
         PocketSavedEncounter existing;
-        if(dndbestiary_state_encounter_at(storage, index, &existing) &&
-           !strcmp(existing.name, normalized_name))
+        if(dndbestiary_state_encounter_at(storage, index, &existing) && !strcmp(existing.name, normalized_name))
             return false;
     }
     File* output = dndbestiary_state_open_temp(storage, ENCOUNTERS_TEMP);
@@ -982,20 +907,15 @@ bool dndbestiary_state_encounter_duplicate(Storage* storage, uint16_t wanted, co
     }
     if(ok) {
         dndbestiary_state_copy(duplicate.name, sizeof(duplicate.name), normalized_name);
-        ok = dndbestiary_state_write_encounter(output, (uint8_t)count, &duplicate) &&
-             storage_file_sync(output);
+        ok = dndbestiary_state_write_encounter(output, (uint8_t)count, &duplicate) && storage_file_sync(output);
     }
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) {
-        storage_common_remove(storage, ENCOUNTERS_TEMP);
-        return false;
-    }
+    if(!ok) { storage_common_remove(storage, ENCOUNTERS_TEMP); return false; }
     return dndbestiary_state_publish(storage, ENCOUNTERS_TEMP, ENCOUNTERS_PATH);
 }
 
-static bool
-    dndbestiary_state_archive_append(Storage* storage, const PocketSavedEncounter* encounter) {
+static bool dndbestiary_state_archive_append(Storage* storage, const PocketSavedEncounter* encounter) {
     if(!storage || !encounter) return false;
     uint16_t count = dndbestiary_state_encounter_count_path(storage, ENCOUNTERS_ARCHIVE_PATH);
     if(count >= STATE_MAX_ENCOUNTERS) return false;
@@ -1007,15 +927,10 @@ static bool
         if(dndbestiary_state_encounter_at_path(storage, ENCOUNTERS_ARCHIVE_PATH, index, &archived))
             ok = dndbestiary_state_write_encounter(output, (uint8_t)index, &archived);
     }
-    if(ok)
-        ok = dndbestiary_state_write_encounter(output, (uint8_t)count, encounter) &&
-             storage_file_sync(output);
+    if(ok) ok = dndbestiary_state_write_encounter(output, (uint8_t)count, encounter) && storage_file_sync(output);
     storage_file_close(output);
     storage_file_free(output);
-    if(!ok) {
-        storage_common_remove(storage, ENCOUNTERS_ARCHIVE_TEMP);
-        return false;
-    }
+    if(!ok) { storage_common_remove(storage, ENCOUNTERS_ARCHIVE_TEMP); return false; }
     return dndbestiary_state_publish(storage, ENCOUNTERS_ARCHIVE_TEMP, ENCOUNTERS_ARCHIVE_PATH);
 }
 

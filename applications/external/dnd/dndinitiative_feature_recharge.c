@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DND_FEATURE_PATH_LEN    96U
-#define DND_FEATURE_LINE_LEN    768U
+#define DND_FEATURE_PATH_LEN 96U
+#define DND_FEATURE_LINE_LEN 768U
 #define DND_FEATURE_READ_BUFFER 256U
 
 typedef struct {
@@ -19,14 +19,15 @@ typedef struct {
 
 static void dndinitiative_feature_recharge_path(char* out, size_t size, uint32_t profile) {
     snprintf(
-        out, size, "%s/feats_%lu.txt", POCKET_D20_CHARACTER_DATA_ROOT, (unsigned long)profile);
+        out,
+        size,
+        "%s/feats_%lu.txt",
+        POCKET_D20_CHARACTER_DATA_ROOT,
+        (unsigned long)profile);
 }
 
 static void dndinitiative_feature_recharge_work_path(
-    char* out,
-    size_t size,
-    uint32_t profile,
-    const char* suffix) {
+    char* out, size_t size, uint32_t profile, const char* suffix) {
     snprintf(
         out,
         size,
@@ -52,8 +53,7 @@ static bool dndinitiative_feature_recharge_reader_byte(DndFeatureReader* reader,
     return true;
 }
 
-static bool
-    dndinitiative_feature_recharge_read_line(DndFeatureReader* reader, char* line, size_t size) {
+static bool dndinitiative_feature_recharge_read_line(DndFeatureReader* reader, char* line, size_t size) {
     size_t used = 0U;
     char value = '\0';
     bool saw = false;
@@ -88,8 +88,7 @@ static bool dndinitiative_feature_recharge_parse_i16(const char* text, int16_t* 
     return true;
 }
 
-static bool
-    dndinitiative_feature_recharge_parse_u8(const char* text, uint8_t maximum, uint8_t* value) {
+static bool dndinitiative_feature_recharge_parse_u8(const char* text, uint8_t maximum, uint8_t* value) {
     if(!text || !*text || !value) return false;
     char* end = NULL;
     long parsed = strtol(text, &end, 10);
@@ -130,26 +129,19 @@ static bool dndinitiative_feature_recharge_rewrite_record(
     int current_length = snprintf(current, sizeof(current), "%d", uses_current);
     if(current_length <= 0 || (size_t)current_length >= sizeof(current)) return false;
 
-    if(!dndinitiative_feature_recharge_write_raw(output, "F|") ||
-       !dndinitiative_feature_recharge_write_raw(output, fields[0]) ||
-       !dndinitiative_feature_recharge_write_raw(output, "|") ||
-       !dndinitiative_feature_recharge_write_raw(output, fields[1]) ||
-       !dndinitiative_feature_recharge_write_raw(output, "|") ||
-       !dndinitiative_feature_recharge_write_raw(output, current))
+    if(!dndinitiative_feature_recharge_write_raw(output, "F|") || !dndinitiative_feature_recharge_write_raw(output, fields[0]) ||
+       !dndinitiative_feature_recharge_write_raw(output, "|") || !dndinitiative_feature_recharge_write_raw(output, fields[1]) ||
+       !dndinitiative_feature_recharge_write_raw(output, "|") || !dndinitiative_feature_recharge_write_raw(output, current))
         return false;
     for(uint8_t i = 3U; i < 9U; ++i) {
-        if(!dndinitiative_feature_recharge_write_raw(output, "|") ||
-           !dndinitiative_feature_recharge_write_raw(output, fields[i]))
+        if(!dndinitiative_feature_recharge_write_raw(output, "|") || !dndinitiative_feature_recharge_write_raw(output, fields[i]))
             return false;
     }
     return dndinitiative_feature_recharge_write_raw(output, "\n");
 }
 
 static bool dndinitiative_feature_recharge_publish(
-    Storage* storage,
-    const char* temp,
-    const char* live,
-    const char* backup) {
+    Storage* storage, const char* temp, const char* live, const char* backup) {
     bool had_live = storage_file_exists(storage, live);
     storage_common_remove(storage, backup);
     if(had_live && storage_common_rename(storage, live, backup) != FSE_OK) {

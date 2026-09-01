@@ -8,11 +8,11 @@ Shared source is retained when multiple FAPs use the same contract or when split
 - Declare a function in a header only when another translation unit calls it.
 - Keep app-only state/result types in app-owned headers.
 - Shared headers expose only cross-module contracts, shared record types/constants or canonical persistence/rule primitives.
-- Never silence `unused-function` to preserve stale wrappers; remove the wrapper after confirming the real implementation still has callers.
+- Do not suppress `unused-function` for stale wrappers; remove wrappers that are no longer part of the public/shared contract.
 
-## Shared modules retained intentionally
+## Shared modules
 
-- `dnd_profile_handoff.*`: used by **all seven FAPs**. It is the one shared contract for persisted `Active=<id>` resolution, exact canonical profile lookup/existence, common data/FAP paths, launch arguments and Loader handoff/parent-return behavior. The former profile-reference and handoff modules are intentionally consolidated here.
+- `dnd_profile_handoff.*`: used by **all seven FAPs**. It is the one shared contract for persisted `Active=<id>` resolution, exact canonical profile lookup/existence, common data/FAP paths, launch arguments and Loader handoff/parent-return behavior. This module contains the shared profile-reference and handoff contract.
 - `dnd_profile_projection.*`: linked only by **DNDInventory, DNDSpellbook and DNDAdventure**. It streams each app's required canonical fields by name without embedding the full character in resident app state. Inventory alone may transactionally patch its owned AC/encumbrance/carry-capacity fields; Spellbook and Adventure projection access is read-only.
 - `dnd_data.*`: shared character/record allocation, defaults, sanitize and load support.
 - `dnd_rules_core.c` / `dnd_rules.h`: compact rule math used across FAPs. DNDolphins-only dice state and character-display helpers stay outside this interface.
@@ -30,11 +30,11 @@ Shared source is retained when multiple FAPs use the same contract or when split
 - **DNDInitiative:** Initiative roster/combat and feature-recharge sources remain Initiative-owned.
 - **DNDBestiary:** Bestiary monster/state/pack/encounter sources remain Bestiary-owned.
 
-## Manifest rule
+## FAP source lists
 
-Each FAP lists only the sources it actually links. `sources` entries are alphabetized for audit readability; source-list ordering has no runtime semantic role in these manifests.
+Each FAP lists only the source files it links. `sources` entries are alphabetized for readability; their order has no runtime meaning.
 
-## Stability constraint
+## Refactor constraints
 
 Ownership cleanup must not change persisted schemas, collection ordering, active-profile selection, launch/return paths, lazy paging, draw-time I/O rules, grants or resource-consumption behavior. Shared code is split only when behavior remains single-source; app-specific code is moved local only when no other FAP needs that implementation.
 

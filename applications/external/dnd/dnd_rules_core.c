@@ -71,7 +71,7 @@ uint8_t dnd_rules_core_roll_die(uint8_t sides) {
 int8_t dnd_rules_core_ability_modifier(int8_t score) {
     int16_t delta = (int16_t)score - 10;
     if(delta >= 0) return (int8_t)(delta / 2);
-    return (int8_t) - (((-delta) + 1) / 2);
+    return (int8_t)-(((-delta) + 1) / 2);
 }
 
 uint8_t dnd_rules_core_total_level(const PocketCharacter* character) {

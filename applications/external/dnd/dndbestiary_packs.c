@@ -26,6 +26,7 @@
 #define MONSTER_PACKAGED_INDEX         APP_ASSETS_PATH("monsters/index.txt")
 #define MONSTER_CUSTOM_INDEX           APP_DATA_PATH("monsters/custom_index.txt")
 
+
 typedef struct {
     File* file;
     uint8_t buffer[PACK_READ_BUFFER];
@@ -58,7 +59,8 @@ static bool dndbestiary_packs_parse_u32(const char* text, uint32_t maximum, uint
     for(const char* cursor = text; *cursor; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U ||
+           (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -104,14 +106,14 @@ static bool dndbestiary_packs_safe_id(const char* id) {
     return true;
 }
 
+
 static bool dndbestiary_packs_installed_paths(
     const char* id,
     char* index,
     size_t index_size,
     char* content,
     size_t content_size) {
-    if(!dndbestiary_packs_safe_id(id) || !index || !content || index_size == 0U ||
-       content_size == 0U)
+    if(!dndbestiary_packs_safe_id(id) || !index || !content || index_size == 0U || content_size == 0U)
         return false;
     int index_length = snprintf(index, index_size, APP_DATA_PATH("packs/monster_%s.index"), id);
     int content_length =
@@ -188,8 +190,10 @@ static uint16_t dndbestiary_packs_load_registry(
     return *valid ? count : 0U;
 }
 
-static bool
-    dndbestiary_packs_write_registry(Storage* storage, const PackRecord* records, uint16_t count) {
+static bool dndbestiary_packs_write_registry(
+    Storage* storage,
+    const PackRecord* records,
+    uint16_t count) {
     storage_common_mkdir(storage, APP_DATA_PATH(""));
     storage_common_mkdir(storage, APP_DATA_PATH("packs"));
     const char* temporary = MONSTER_REGISTRY_TEMP;
@@ -325,11 +329,8 @@ static bool dndbestiary_packs_files_match(Storage* storage, const char* left, co
     return equal;
 }
 
-static bool dndbestiary_packs_append_file(
-    Storage* storage,
-    const char* source,
-    File* output,
-    bool skip_comments) {
+static bool
+    dndbestiary_packs_append_file(Storage* storage, const char* source, File* output, bool skip_comments) {
     File* input = storage_file_alloc(storage);
     if(!input) return false;
     bool ok = storage_file_open(input, source, FSAM_READ, FSOM_OPEN_EXISTING);
@@ -348,10 +349,8 @@ static bool dndbestiary_packs_append_file(
     return ok;
 }
 
-static bool dndbestiary_packs_build_enabled_monsters(
-    Storage* storage,
-    const PackRecord* records,
-    uint16_t count) {
+static bool
+    dndbestiary_packs_build_enabled_monsters(Storage* storage, const PackRecord* records, uint16_t count) {
     storage_common_mkdir(storage, APP_DATA_PATH("monsters"));
     storage_common_remove(storage, MONSTER_ENABLED_INDEX_TEMP);
     storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
@@ -404,28 +403,30 @@ static bool dndbestiary_packs_build_enabled_monsters(
         storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
         return false;
     }
-    if(had_index && storage_common_rename(
-                        storage, MONSTER_ENABLED_INDEX, MONSTER_ENABLED_INDEX_BACKUP) != FSE_OK) {
+    if(had_index &&
+       storage_common_rename(
+           storage, MONSTER_ENABLED_INDEX, MONSTER_ENABLED_INDEX_BACKUP) != FSE_OK) {
         storage_common_remove(storage, MONSTER_ENABLED_INDEX_TEMP);
         storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
         return false;
     }
     if(had_content &&
-       storage_common_rename(storage, MONSTER_ENABLED_CONTENT, MONSTER_ENABLED_CONTENT_BACKUP) !=
-           FSE_OK) {
+       storage_common_rename(
+           storage, MONSTER_ENABLED_CONTENT, MONSTER_ENABLED_CONTENT_BACKUP) != FSE_OK) {
         if(had_index)
-            storage_common_rename(storage, MONSTER_ENABLED_INDEX_BACKUP, MONSTER_ENABLED_INDEX);
+            storage_common_rename(
+                storage, MONSTER_ENABLED_INDEX_BACKUP, MONSTER_ENABLED_INDEX);
         storage_common_remove(storage, MONSTER_ENABLED_INDEX_TEMP);
         storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
         return false;
     }
     bool index_published =
-        storage_common_rename(storage, MONSTER_ENABLED_INDEX_TEMP, MONSTER_ENABLED_INDEX) ==
-        FSE_OK;
-    bool content_published =
-        index_published &&
-        storage_common_rename(storage, MONSTER_ENABLED_CONTENT_TEMP, MONSTER_ENABLED_CONTENT) ==
-            FSE_OK;
+        storage_common_rename(storage, MONSTER_ENABLED_INDEX_TEMP, MONSTER_ENABLED_INDEX) == FSE_OK;
+    bool content_published = index_published &&
+                             storage_common_rename(
+                                 storage,
+                                 MONSTER_ENABLED_CONTENT_TEMP,
+                                 MONSTER_ENABLED_CONTENT) == FSE_OK;
     if(index_published && content_published) {
         storage_common_remove(storage, MONSTER_ENABLED_INDEX_BACKUP);
         storage_common_remove(storage, MONSTER_ENABLED_CONTENT_BACKUP);
@@ -441,6 +442,7 @@ static bool dndbestiary_packs_build_enabled_monsters(
     storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
     return false;
 }
+
 
 bool dndbestiary_packs_rebuild_enabled(Storage* storage) {
     PackRecord* records = dndbestiary_packs_records_alloc();
@@ -461,8 +463,7 @@ bool dndbestiary_packs_rebuild_enabled(Storage* storage) {
     return rebuilt;
 }
 
-static bool
-    dndbestiary_packs_file_has_header(Storage* storage, const char* path, const char* header) {
+static bool dndbestiary_packs_file_has_header(Storage* storage, const char* path, const char* header) {
     if(!storage || !path || !header || !storage_file_exists(storage, path)) return false;
     File* file = storage_file_alloc(storage);
     if(!file) return false;
@@ -495,7 +496,10 @@ uint16_t dndbestiary_packs_count(Storage* storage) {
     return valid ? count : 0U;
 }
 
-bool dndbestiary_packs_at(Storage* storage, uint16_t index, PocketPackSummary* output) {
+bool dndbestiary_packs_at(
+    Storage* storage,
+    uint16_t index,
+    PocketPackSummary* output) {
     if(!output) return false;
     PackRecord* records = dndbestiary_packs_records_alloc();
     if(!records) return false;
@@ -522,7 +526,8 @@ static bool dndbestiary_packs_read_manifest(Storage* storage, PackManifest* outp
         *value++ = '\0';
         if(!strcmp(line, "PocketPack")) {
             /* Version is informational; recognized manifest fields remain usable. */
-        } else if(!strcmp(line, "Id"))
+        }
+        else if(!strcmp(line, "Id"))
             dndbestiary_packs_copy(output->id, sizeof(output->id), value);
         else if(!strcmp(line, "Name"))
             dndbestiary_packs_copy(output->name, sizeof(output->name), value);
@@ -555,8 +560,7 @@ static bool dndbestiary_packs_validate_index(Storage* storage, const char* path)
     return ok && records > 0U;
 }
 
-static bool
-    dndbestiary_packs_index_contains_id(Storage* storage, const char* path, const char* id) {
+static bool dndbestiary_packs_index_contains_id(Storage* storage, const char* path, const char* id) {
     File* file = storage_file_alloc(storage);
     if(!file) return false;
     bool found = false;
@@ -622,10 +626,8 @@ static bool dndbestiary_packs_unique_record_ids(Storage* storage, const char* ne
     return ok && count > 0U;
 }
 
-static bool dndbestiary_packs_publish_install_file(
-    Storage* storage,
-    const char* source,
-    const char* destination) {
+static bool
+    dndbestiary_packs_publish_install_file(Storage* storage, const char* source, const char* destination) {
     char temporary[POCKET_D20_LONG_PATH_LEN];
     int length = snprintf(temporary, sizeof(temporary), "%s.install", destination);
     if(length <= 0 || (size_t)length >= sizeof(temporary) ||
@@ -640,7 +642,10 @@ static bool dndbestiary_packs_publish_install_file(
     return true;
 }
 
-bool dndbestiary_packs_install_inbox(Storage* storage, char* status, size_t status_size) {
+bool dndbestiary_packs_install_inbox(
+    Storage* storage,
+    char* status,
+    size_t status_size) {
     PackManifest manifest;
     if(!dndbestiary_packs_read_manifest(storage, &manifest)) {
         dndbestiary_packs_status(status, status_size, "Inbox manifest invalid");

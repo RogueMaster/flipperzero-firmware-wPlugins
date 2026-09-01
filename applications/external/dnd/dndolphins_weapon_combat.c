@@ -58,9 +58,7 @@ typedef struct {
 } PocketD20WeaponIndexContext;
 
 static bool dndolphins_weapon_combat_index_visitor(
-    uint8_t logical_index,
-    const PocketItem* item,
-    void* context) {
+    uint8_t logical_index, const PocketItem* item, void* context) {
     PocketD20WeaponIndexContext* scan = context;
     if(item->is_weapon && scan->count < scan->capacity)
         scan->indices[scan->count++] = logical_index;

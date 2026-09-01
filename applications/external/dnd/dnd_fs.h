@@ -6,7 +6,7 @@
 #include <string.h>
 #include <storage/storage.h>
 
-#define POCKET_D20_PATH_LEN      96U
+#define POCKET_D20_PATH_LEN 96U
 #define POCKET_D20_LONG_PATH_LEN 128U
 
 /* Build a child path without relying on snprintf truncation. Prefix may be NULL. */

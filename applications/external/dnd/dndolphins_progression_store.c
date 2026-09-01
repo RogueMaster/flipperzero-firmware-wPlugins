@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DND_PROGRESS_PATH_LEN    96U
-#define DND_PROGRESS_LINE_LEN    768U
+#define DND_PROGRESS_PATH_LEN 96U
+#define DND_PROGRESS_LINE_LEN 768U
 #define DND_PROGRESS_READ_BUFFER 256U
 
 #define DND_FEATURES_HEADER "DNDFeatures=1\n"
@@ -22,8 +22,7 @@ typedef struct {
 } DndProgressReader;
 
 void dndolphins_progression_store_feature_path(char* out, size_t size, uint32_t profile) {
-    snprintf(
-        out, size, "%s/feats_%lu.txt", POCKET_D20_CHARACTER_DATA_ROOT, (unsigned long)profile);
+    snprintf(out, size, "%s/feats_%lu.txt", POCKET_D20_CHARACTER_DATA_ROOT, (unsigned long)profile);
 }
 
 void dndolphins_progression_store_applied_path(char* out, size_t size, uint32_t profile) {
@@ -36,11 +35,7 @@ void dndolphins_progression_store_applied_path(char* out, size_t size, uint32_t 
 }
 
 static void dndolphins_progression_store_work_path(
-    char* out,
-    size_t size,
-    uint32_t profile,
-    const char* kind,
-    const char* suffix) {
+    char* out, size_t size, uint32_t profile, const char* kind, const char* suffix) {
     snprintf(
         out,
         size,
@@ -72,8 +67,7 @@ static bool dndolphins_progression_store_reader_byte(DndProgressReader* reader, 
     return true;
 }
 
-static bool
-    dndolphins_progression_store_read_line(DndProgressReader* reader, char* line, size_t size) {
+static bool dndolphins_progression_store_read_line(DndProgressReader* reader, char* line, size_t size) {
     size_t used = 0U;
     char value = '\0';
     bool saw = false;
@@ -81,8 +75,7 @@ static bool
         saw = true;
         if(value == '\n') break;
         if(value == '\r') continue;
-        if(used + 1U < size)
-            line[used++] = value;
+        if(used + 1U < size) line[used++] = value;
         else {
             /* Oversize feature lines are treated as unreadable rather than
                truncated and rewritten. */
@@ -97,10 +90,7 @@ static bool
 }
 
 static bool dndolphins_progression_store_publish(
-    Storage* storage,
-    const char* temp,
-    const char* live,
-    const char* backup) {
+    Storage* storage, const char* temp, const char* live, const char* backup) {
     bool had_live = storage_file_exists(storage, live);
     storage_common_remove(storage, backup);
     if(had_live && storage_common_rename(storage, live, backup) != FSE_OK) {
@@ -168,8 +158,7 @@ static bool dndolphins_progression_store_write_feature(File* file, const PocketF
     char encoded[(POCKET_D20_DETAIL_LEN * 3U) + 1U];
     if(!dndolphins_progression_store_write_raw(file, "F|")) return false;
     if(!dndolphins_progression_store_encode(encoded, sizeof(encoded), feature->name) ||
-       !dndolphins_progression_store_write_raw(file, encoded) ||
-       !dndolphins_progression_store_write_raw(file, "|"))
+       !dndolphins_progression_store_write_raw(file, encoded) || !dndolphins_progression_store_write_raw(file, "|"))
         return false;
     if(!dndolphins_progression_store_encode(encoded, sizeof(encoded), feature->detail) ||
        !dndolphins_progression_store_write_raw(file, encoded))
@@ -190,11 +179,7 @@ static bool dndolphins_progression_store_write_feature(File* file, const PocketF
            storage_file_write(file, tail, (size_t)length) == (size_t)length;
 }
 
-static bool dndolphins_progression_store_parse_i32(
-    const char* text,
-    int32_t minimum,
-    int32_t maximum,
-    int32_t* out) {
+static bool dndolphins_progression_store_parse_i32(const char* text, int32_t minimum, int32_t maximum, int32_t* out) {
     if(!text || !*text || !out) return false;
     char* end = NULL;
     long value = strtol(text, &end, 10);
@@ -218,13 +203,10 @@ static bool dndolphins_progression_store_parse_feature(char* line, PocketFeature
     int32_t values[7];
     if(!dndolphins_progression_store_parse_i32(fields[2], INT16_MIN, INT16_MAX, &values[0]) ||
        !dndolphins_progression_store_parse_i32(fields[3], INT16_MIN, INT16_MAX, &values[1]) ||
-       !dndolphins_progression_store_parse_i32(
-           fields[4], 0, POCKET_D20_MAX_CLASSES - 1U, &values[2]) ||
+       !dndolphins_progression_store_parse_i32(fields[4], 0, POCKET_D20_MAX_CLASSES - 1U, &values[2]) ||
        !dndolphins_progression_store_parse_i32(fields[5], 0, 20, &values[3]) ||
-       !dndolphins_progression_store_parse_i32(
-           fields[6], 0, PocketRechargeCount - 1U, &values[4]) ||
-       !dndolphins_progression_store_parse_i32(
-           fields[7], 0, PocketResourceFormulaCount - 1U, &values[5]) ||
+       !dndolphins_progression_store_parse_i32(fields[6], 0, PocketRechargeCount - 1U, &values[4]) ||
+       !dndolphins_progression_store_parse_i32(fields[7], 0, PocketResourceFormulaCount - 1U, &values[5]) ||
        !dndolphins_progression_store_parse_i32(fields[8], 0, PocketAbilityCharisma, &values[6]))
         return false;
     memset(feature, 0, sizeof(*feature));
@@ -283,10 +265,7 @@ bool dndolphins_progression_store_features_exist(Storage* storage, uint32_t prof
 }
 
 static bool dndolphins_progression_store_features_create(
-    Storage* storage,
-    uint32_t profile,
-    const PocketFeature* features,
-    uint8_t count) {
+    Storage* storage, uint32_t profile, const PocketFeature* features, uint8_t count) {
     if(!storage || (count && !features)) return false;
     storage_common_mkdir(storage, POCKET_D20_CHARACTER_DATA_ROOT);
     char path[DND_PROGRESS_PATH_LEN];
@@ -303,10 +282,7 @@ static bool dndolphins_progression_store_features_create(
     return ok && storage_file_exists(storage, path);
 }
 
-bool dndolphins_progression_store_features_count(
-    Storage* storage,
-    uint32_t profile,
-    uint8_t* total_count) {
+bool dndolphins_progression_store_features_count(Storage* storage, uint32_t profile, uint8_t* total_count) {
     if(!storage || !total_count) return false;
     *total_count = 0U;
     char path[DND_PROGRESS_PATH_LEN];
@@ -338,10 +314,7 @@ bool dndolphins_progression_store_features_count(
 }
 
 bool dndolphins_progression_store_features_contains_name(
-    Storage* storage,
-    uint32_t profile,
-    const char* name,
-    bool* found) {
+    Storage* storage, uint32_t profile, const char* name, bool* found) {
     if(found) *found = false;
     if(!storage || !name || !name[0] || !found) return false;
     char path[DND_PROGRESS_PATH_LEN];
@@ -521,42 +494,32 @@ bool dndolphins_progression_store_features_save_window(
         return dndolphins_progression_store_features_create(
             storage, profile, character->features, character->feature_count);
     }
-    return dndolphins_progression_store_features_rewrite_window(
-        storage, profile, start, character, -1, NULL);
+    return dndolphins_progression_store_features_rewrite_window(storage, profile, start, character, -1, NULL);
 }
 
 bool dndolphins_progression_store_features_append(
-    Storage* storage,
-    uint32_t profile,
-    const PocketFeature* feature) {
+    Storage* storage, uint32_t profile, const PocketFeature* feature) {
     if(!storage || !feature) return false;
     char path[DND_PROGRESS_PATH_LEN];
     dndolphins_progression_store_feature_path(path, sizeof(path), profile);
     if(!storage_file_exists(storage, path))
         return dndolphins_progression_store_features_create(storage, profile, feature, 1U);
     uint8_t total = 0U;
-    if(!dndolphins_progression_store_features_count(storage, profile, &total) ||
-       total >= POCKET_D20_MAX_FEATURES)
+    if(!dndolphins_progression_store_features_count(storage, profile, &total) || total >= POCKET_D20_MAX_FEATURES)
         return false;
-    return dndolphins_progression_store_features_rewrite_window(
-        storage, profile, 0U, NULL, -1, feature);
+    return dndolphins_progression_store_features_rewrite_window(storage, profile, 0U, NULL, -1, feature);
 }
 
-bool dndolphins_progression_store_features_delete(
-    Storage* storage,
-    uint32_t profile,
-    uint8_t logical_index) {
+bool dndolphins_progression_store_features_delete(Storage* storage, uint32_t profile, uint8_t logical_index) {
     if(!storage) return false;
     char path[DND_PROGRESS_PATH_LEN];
     dndolphins_progression_store_feature_path(path, sizeof(path), profile);
     if(!storage_file_exists(storage, path)) return false;
-    return dndolphins_progression_store_features_rewrite_window(
-        storage, profile, 0U, NULL, logical_index, NULL);
+    return dndolphins_progression_store_features_rewrite_window(storage, profile, 0U, NULL, logical_index, NULL);
 }
 
 static int16_t dndolphins_progression_store_feature_max_uses(
-    const PocketCharacter* character,
-    const PocketFeature* feature) {
+    const PocketCharacter* character, const PocketFeature* feature) {
     if(!character) return feature->uses_max;
     if(feature->resource_formula == PocketResourceProficiency) {
         uint8_t level = 0U;
@@ -574,8 +537,7 @@ static int16_t dndolphins_progression_store_feature_max_uses(
     return feature->uses_max;
 }
 
-static bool
-    dndolphins_progression_store_recharge_matches(uint8_t recharge, DndFeatureRechargeEvent event) {
+static bool dndolphins_progression_store_recharge_matches(uint8_t recharge, DndFeatureRechargeEvent event) {
     switch(event) {
     case DndFeatureRechargeTurn:
         return recharge == PocketRechargeTurn;
@@ -626,8 +588,7 @@ bool dndolphins_progression_store_features_recharge(
             break;
         }
         if(dndolphins_progression_store_recharge_matches(feature.recharge, event))
-            feature.uses_current =
-                dndolphins_progression_store_feature_max_uses(character, &feature);
+            feature.uses_current = dndolphins_progression_store_feature_max_uses(character, &feature);
         ok = dndolphins_progression_store_write_feature(output, &feature);
     }
     if(ok) ok = storage_file_sync(output);
@@ -643,9 +604,7 @@ bool dndolphins_progression_store_features_recharge(
 }
 
 bool dndolphins_progression_store_features_remap_classes(
-    Storage* storage,
-    uint32_t profile,
-    uint8_t removed_class) {
+    Storage* storage, uint32_t profile, uint8_t removed_class) {
     if(!storage) return false;
     char live[DND_PROGRESS_PATH_LEN], temp[DND_PROGRESS_PATH_LEN], backup[DND_PROGRESS_PATH_LEN];
     dndolphins_progression_store_feature_path(live, sizeof(live), profile);
@@ -693,10 +652,7 @@ bool dndolphins_progression_store_features_remap_classes(
     return dndolphins_progression_store_publish(storage, temp, live, backup);
 }
 
-bool dndolphins_progression_store_applied_exists(
-    Storage* storage,
-    uint32_t profile,
-    const char* stable_id) {
+bool dndolphins_progression_store_applied_exists(Storage* storage, uint32_t profile, const char* stable_id) {
     if(!storage || !stable_id || !stable_id[0]) return false;
     char path[DND_PROGRESS_PATH_LEN];
     dndolphins_progression_store_applied_path(path, sizeof(path), profile);
@@ -724,10 +680,7 @@ bool dndolphins_progression_store_applied_exists(
     return found;
 }
 
-bool dndolphins_progression_store_mark_applied(
-    Storage* storage,
-    uint32_t profile,
-    const char* stable_id) {
+bool dndolphins_progression_store_mark_applied(Storage* storage, uint32_t profile, const char* stable_id) {
     if(!storage || !stable_id || !stable_id[0]) return false;
     char live[DND_PROGRESS_PATH_LEN], temp[DND_PROGRESS_PATH_LEN], backup[DND_PROGRESS_PATH_LEN];
     dndolphins_progression_store_applied_path(live, sizeof(live), profile);
@@ -739,8 +692,8 @@ bool dndolphins_progression_store_mark_applied(
         bool ok = dndolphins_progression_store_encode(encoded, sizeof(encoded), stable_id) &&
                   storage_file_open(file, live, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
                   dndolphins_progression_store_write_raw(file, DND_APPLIED_HEADER) &&
-                  dndolphins_progression_store_write_raw(file, encoded) &&
-                  dndolphins_progression_store_write_raw(file, "\n") && storage_file_sync(file);
+                  dndolphins_progression_store_write_raw(file, encoded) && dndolphins_progression_store_write_raw(file, "\n") &&
+                  storage_file_sync(file);
         storage_file_close(file);
         storage_file_free(file);
         return ok && storage_file_exists(storage, live);
@@ -766,14 +719,11 @@ bool dndolphins_progression_store_mark_applied(
     char line[POCKET_D20_SHORT_LEN * 3U + 8U];
     while(ok && dndolphins_progression_store_read_line(&reader, line, sizeof(line))) {
         if(!line[0] || line[0] == '#' || strncmp(line, "DNDAppliedGrants=", 17U) == 0) continue;
-        ok = dndolphins_progression_store_write_raw(output, line) &&
-             dndolphins_progression_store_write_raw(output, "\n");
+        ok = dndolphins_progression_store_write_raw(output, line) && dndolphins_progression_store_write_raw(output, "\n");
     }
     char encoded[POCKET_D20_SHORT_LEN * 3U + 1U];
-    if(ok)
-        ok = dndolphins_progression_store_encode(encoded, sizeof(encoded), stable_id) &&
-             dndolphins_progression_store_write_raw(output, encoded) &&
-             dndolphins_progression_store_write_raw(output, "\n");
+    if(ok) ok = dndolphins_progression_store_encode(encoded, sizeof(encoded), stable_id) &&
+                dndolphins_progression_store_write_raw(output, encoded) && dndolphins_progression_store_write_raw(output, "\n");
     if(ok) ok = storage_file_sync(output);
     storage_file_close(input);
     storage_file_close(output);
@@ -790,18 +740,12 @@ bool dndolphins_progression_store_delete_sidecars(Storage* storage, uint32_t pro
     if(!storage) return false;
     char path[DND_PROGRESS_PATH_LEN];
     dndolphins_progression_store_feature_path(path, sizeof(path), profile);
-    bool ok = !storage_file_exists(storage, path) ||
-              storage_common_remove(storage, path) == FSE_OK;
+    bool ok = !storage_file_exists(storage, path) || storage_common_remove(storage, path) == FSE_OK;
     dndolphins_progression_store_applied_path(path, sizeof(path), profile);
-    return (!storage_file_exists(storage, path) ||
-            storage_common_remove(storage, path) == FSE_OK) &&
-           ok;
+    return (!storage_file_exists(storage, path) || storage_common_remove(storage, path) == FSE_OK) && ok;
 }
 
-static bool dndolphins_progression_store_copy_one(
-    Storage* storage,
-    const char* source,
-    const char* destination) {
+static bool dndolphins_progression_store_copy_one(Storage* storage, const char* source, const char* destination) {
     if(!storage_file_exists(storage, source)) return true;
     File* input = storage_file_alloc(storage);
     File* output = storage_file_alloc(storage);
@@ -826,18 +770,13 @@ static bool dndolphins_progression_store_copy_one(
     return ok;
 }
 
-bool dndolphins_progression_store_copy_sidecars(
-    Storage* storage,
-    uint32_t source_profile,
-    uint32_t destination_profile) {
+bool dndolphins_progression_store_copy_sidecars(Storage* storage, uint32_t source_profile, uint32_t destination_profile) {
     if(!storage) return false;
     char source[DND_PROGRESS_PATH_LEN], destination[DND_PROGRESS_PATH_LEN];
     dndolphins_progression_store_feature_path(source, sizeof(source), source_profile);
-    dndolphins_progression_store_feature_path(
-        destination, sizeof(destination), destination_profile);
+    dndolphins_progression_store_feature_path(destination, sizeof(destination), destination_profile);
     if(!dndolphins_progression_store_copy_one(storage, source, destination)) return false;
     dndolphins_progression_store_applied_path(source, sizeof(source), source_profile);
-    dndolphins_progression_store_applied_path(
-        destination, sizeof(destination), destination_profile);
+    dndolphins_progression_store_applied_path(destination, sizeof(destination), destination_profile);
     return dndolphins_progression_store_copy_one(storage, source, destination);
 }

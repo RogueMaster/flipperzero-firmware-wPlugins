@@ -10,7 +10,7 @@ typedef struct {
     char name[POCKET_D20_CHARACTER_NAME_LEN];
 } PocketProfileEntry;
 
-#define POCKET_D20_PROFILE_CACHE_SIZE    8U
+#define POCKET_D20_PROFILE_CACHE_SIZE 8U
 #define POCKET_D20_COLLECTION_CACHE_SIZE 8U
 #define POCKET_D20_COLLECTION_PAGE_COUNT 3U
 
@@ -34,11 +34,22 @@ void dnd_storage_profiles_free(PocketProfileState* profiles);
 bool dnd_storage_profiles_load(Storage* storage, PocketProfileState* profiles);
 bool dnd_storage_profiles_save(Storage* storage, const PocketProfileState* profiles);
 bool dnd_storage_profiles_refresh(Storage* storage, PocketProfileState* profiles);
-const PocketProfileEntry*
-    dnd_storage_profiles_entry_at(Storage* storage, PocketProfileState* profiles, uint16_t index);
-bool dnd_storage_profiles_window(Storage* storage, PocketProfileState* profiles, uint16_t start);
-bool dnd_storage_profiles_find(Storage* storage, uint32_t profile, PocketProfileEntry* entry);
-bool dnd_storage_profiles_next_after(Storage* storage, uint32_t profile, PocketProfileEntry* entry);
+const PocketProfileEntry* dnd_storage_profiles_entry_at(
+    Storage* storage,
+    PocketProfileState* profiles,
+    uint16_t index);
+bool dnd_storage_profiles_window(
+    Storage* storage,
+    PocketProfileState* profiles,
+    uint16_t start);
+bool dnd_storage_profiles_find(
+    Storage* storage,
+    uint32_t profile,
+    PocketProfileEntry* entry);
+bool dnd_storage_profiles_next_after(
+    Storage* storage,
+    uint32_t profile,
+    PocketProfileEntry* entry);
 uint32_t dnd_storage_profiles_next_id(const PocketProfileState* profiles);
 
 /* Character-owned spell/item collections. These files are authoritative for owned
@@ -52,8 +63,8 @@ typedef bool (*PocketD20SpellRecordVisitor)(
     uint8_t free_casts_max,
     void* context);
 
-typedef bool (
-    *PocketD20ItemRecordVisitor)(uint8_t logical_index, const PocketItem* item, void* context);
+typedef bool (*PocketD20ItemRecordVisitor)(
+    uint8_t logical_index, const PocketItem* item, void* context);
 
 bool dnd_storage_visit_spells(
     Storage* storage,
@@ -96,8 +107,14 @@ bool dnd_storage_load_inventory_currency(
     uint32_t profile,
     int32_t currency[5],
     bool* found);
-bool dnd_storage_inventory_initial_grant_state(Storage* storage, uint32_t profile, uint8_t* state);
-bool dnd_storage_inventory_initial_granted(Storage* storage, uint32_t profile, bool* granted);
+bool dnd_storage_inventory_initial_grant_state(
+    Storage* storage,
+    uint32_t profile,
+    uint8_t* state);
+bool dnd_storage_inventory_initial_granted(
+    Storage* storage,
+    uint32_t profile,
+    bool* granted);
 bool dnd_storage_save_inventory_currency(
     Storage* storage,
     uint32_t profile,
@@ -200,7 +217,10 @@ bool dnd_storage_load_profile(
     uint32_t profile,
     PocketSaveData* data,
     bool* recovered_backup);
-bool dnd_storage_save_profile(Storage* storage, uint32_t profile, const PocketSaveData* data);
+bool dnd_storage_save_profile(
+    Storage* storage,
+    uint32_t profile,
+    const PocketSaveData* data);
 bool dnd_storage_save_profile_updated(
     Storage* storage,
     uint32_t profile,

@@ -255,7 +255,8 @@ void dnd_data_set_defaults(PocketSaveData* data) {
 
     character->class_count = 1U;
     dnd_data_copy(character->classes[0].name, sizeof(character->classes[0].name), "Fighter");
-    dnd_data_copy(character->classes[0].subclass, sizeof(character->classes[0].subclass), "None");
+    dnd_data_copy(
+        character->classes[0].subclass, sizeof(character->classes[0].subclass), "None");
     character->classes[0].level = 1U;
     character->classes[0].hit_die = 10U;
     character->classes[0].hit_dice_current = 1U;
@@ -304,6 +305,7 @@ void dnd_data_set_defaults(PocketSaveData* data) {
     saving_throw->save_ability = PocketAbilityDexterity;
     saving_throw->damage_dice = 1U;
     saving_throw->damage_die = 6U;
+
 }
 
 void dnd_data_sanitize(PocketSaveData* data) {
@@ -349,8 +351,8 @@ void dnd_data_sanitize(PocketSaveData* data) {
     for(uint8_t i = 0U; i < POCKET_D20_ABILITY_COUNT; ++i) {
         character->ability_scores[i] =
             (int8_t)dnd_data_clamp_i16(character->ability_scores[i], 1, 30);
-        character->saving_throw_proficiency[i] =
-            dnd_data_clamp_u8(character->saving_throw_proficiency[i], PocketProficiencyProficient);
+        character->saving_throw_proficiency[i] = dnd_data_clamp_u8(
+            character->saving_throw_proficiency[i], PocketProficiencyProficient);
         character->saving_throw_misc[i] =
             (int8_t)dnd_data_clamp_i16(character->saving_throw_misc[i], -20, 20);
     }
@@ -390,8 +392,7 @@ void dnd_data_sanitize(PocketSaveData* data) {
         character->spell_count = 0U;
     }
     if(character->features) {
-        uint8_t feature_limit =
-            dnd_data_clamp_u8(character->feature_capacity, POCKET_D20_MAX_FEATURES);
+        uint8_t feature_limit = dnd_data_clamp_u8(character->feature_capacity, POCKET_D20_MAX_FEATURES);
         character->feature_count = dnd_data_clamp_u8(character->feature_count, feature_limit);
     } else {
         character->feature_count = 0U;
@@ -499,4 +500,5 @@ void dnd_data_sanitize(PocketSaveData* data) {
         attack->rider_dice = dnd_data_clamp_u8(attack->rider_dice, 20U);
         attack->recharge = dnd_data_clamp_u8(attack->recharge, PocketRechargeCount - 1U);
     }
+
 }

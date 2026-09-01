@@ -2,7 +2,7 @@
 
 ### Companion profile projections
 
-The canonical character file and field names are unchanged. `dnd_profile_projection.c` is an in-memory access layer only:
+Canonical character files keep their named-field format. `dnd_profile_projection.c` is an in-memory access layer:
 
 - DNDInventory reads name/species/background/classes/abilities/AC/exhaustion/encumbrance/carry-capacity. Its only canonical write-back is transactional replacement of AC plus encumbrance/carry-capacity inside existing `Vitals=` / `CombatFlags=` lines. Currency and Items remain Inventory-sidecar owned.
 - DNDSpellbook reads only name and class/subclass spellcasting metadata. It never writes the canonical character file.
@@ -44,11 +44,11 @@ Persistent Features live in `feats_{id}.txt`. DNDolphins loads at most eight Fea
 
 Applied deterministic progression IDs live in `appliedgrants_{id}.txt`. They are scanned/streamed during progression checks and are not loaded as a resident array. Legacy embedded Feature/Grant rows in older character files are tolerated but ignored and never allocated or migrated. Existing current-format sidecars remain authoritative; when a sidecar is absent it is treated as empty and is created only on the first real Feature write or applied-grant mark.
 
-Starting inventory is not a character-creation or first-open side effect. It is granted only through **Hold Up → Inventory Tools → Grant Initial Inventory**. The Items module requests class/species/background rows and writes both equipment and starting currency into the Inventory sidecar. A successful normal Short-OK grant writes `InitialInventory=1`, which remains even if all items are later deleted. Hold OK while that state is present may deliberately regrant once: existing Item records are preserved, the starting package/currency is appended again, and a successful publish rewrites the marker as `InitialInventory=2`. State `2` means the override is consumed and neither Short nor Hold OK may duplicate the grant again. Failed regrant writes do not consume the override. A currency-only sidecar created by manual Currency editing has no grant marker and can still receive the initial grant. A d100 trinket is **not** part of a successful normal seed; it is fallback-only when the selected starting assets yield neither items nor currency.
+A truly empty Inventory with no `InitialInventory` marker receives the normal class/species/background starting package when DNDInventory opens. Equipment, starting currency and `InitialInventory=1` publish in the same synced sidecar transaction. The marker remains even if all Items are later deleted, preventing silent reseeding. **Inventory Tools → Grant Initial Inventory** exposes grant state and permits one deliberate Hold-OK regrant from state `1`; that append preserves existing Items, adds the starting package/currency again, and publishes `InitialInventory=2`. State `2` consumes the override. Failed writes do not advance the marker. A currency-only sidecar with no marker is still eligible for the normal initial grant. A d100 trinket is fallback-only when the selected starting assets yield neither Items nor currency.
 
 ## Adventure
 
-Campaign progress is DNDAdventure-owned and stores campaign ID, scene/checkpoint, quest flags and achievements in its own text files. Milestones are journaled after the corresponding guard is saved so replaying a guarded reward does not intentionally duplicate it.
+Campaign progress is DNDAdventure-owned and stores campaign ID, scene/checkpoint, quest flags and achievements in its own text files. Milestones are journaled after the corresponding guard is saved so replaying a guarded reward does not duplicate it.
 
 ## Bestiary custom monsters
 
@@ -67,7 +67,7 @@ DNDInitiative owns its `ch_{characterId}.txt` sidecar. Participant rows may incl
 
 ## Ritual Adept derivation
 
-Combat → Rituals adds no persisted field. The list is derived from existing Spellbook records: the spell must be `Known`, have `Ritual=1`, be level 1 or higher, and resolve as a Wizard spell for the active character. Preparation state is intentionally ignored for this ritual list. Ritual casting consumes no slot/Pact/points/free-cast state, so no collection rewrite is required solely for the ritual action.
+Combat → Rituals adds no persisted field. The list is derived from existing Spellbook records: the spell must be `Known`, have `Ritual=1`, be level 1 or higher, and resolve as a Wizard spell for the active character. Preparation state does not affect this ritual list. Ritual casting consumes no slot/Pact/points/free-cast state, so no collection rewrite is required solely for the ritual action.
 
 ## Spellbook record order
 

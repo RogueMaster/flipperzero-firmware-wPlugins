@@ -20,11 +20,9 @@ Spellbook catalog class filtering is independent of the character class-slot arr
 
 Wizard combat eligibility distinguishes the spellbook from the prepared list. Wizard cantrips are available as known cantrips. A level-1+ Wizard spell is eligible for the Combat → Spell Attacks list only when `prepared`, `always_prepared`, or `free_casts_current > 0`. If an unprepared Wizard spell is present only because a Free Cast remains, its combat cast-option list contains only the Free Cast; normal slots, Pact slots and spell points are not offered. Non-Wizard classes keep their existing Known/Prepared model.
 
-Wizard **Ritual Adept** is represented separately by Combat → Rituals. A level-1+ spell is listed when it is a known Wizard spellbook entry with the Ritual tag; preparation is intentionally irrelevant. Ritual casting consumes no slot, Pact slot, spell points or Free Cast and reports the additional 10-minute casting time. Wizard cantrips are excluded because they are not level-1+ spellbook entries.
+Wizard **Ritual Adept** is represented separately by Combat → Rituals. A level-1+ spell is listed when it is a known Wizard spellbook entry with the Ritual tag; preparation does not affect eligibility. Ritual casting consumes no slot, Pact slot, spell points or Free Cast and reports the additional 10-minute casting time. Wizard cantrips are excluded because they are not level-1+ spellbook entries.
 
-The structured spell-combat table now contains 168 explicit mappings. The resolver supports fixed and dice-based upcasting, multiple attack/roll instances, primary/secondary effects and derived effects while retaining Notes `XdY` fallback for unmapped custom spells. New deterministic mappings include Aid's vitality scaling and Heal's fixed healing/upcast behavior.
-
-The previous rule split was regression-checked during the refactor so moved functions retained their call sites and behavior. The Ghost Protocol/default-monster additions do not change character or combat rules.
+The structured spell-combat table contains 168 explicit mappings. The resolver supports fixed and dice-based upcasting, multiple attack/roll instances, primary/secondary effects and derived effects while retaining Notes `XdY` fallback for unmapped custom spells. Mappings include Aid vitality scaling and Heal fixed/upcast healing.
 
 ## Initiative feature mapping
 
@@ -38,7 +36,7 @@ Player-choice spell acquisition is not guessed: when cantrip/prepared allowances
 
 ## Progression feat eligibility
 
-Progression feat picks default to Allowed and may be switched to All. Bundled checks cover General/Epic level gates, Grappler STR/DEX 13+, Fighting Style Feature, Spellcasting Feature where required, and duplicate suppression for non-repeatable feats. Ability Score Improvement, Magic Initiate and Skilled remain repeatable. Allowed is conservative: unknown/custom feat/perk rows are hidden because their prerequisites cannot be validated, and duplicate checking fails closed if the Feature sidecar cannot be read; All continues to expose those rows. Manual Feature/Perk editing is unrestricted. `Ability Score Improvement` is intentionally omitted from the nested progression feat picker (Allowed and All) because the parent level-choice screen already owns the ASI +2 and +1/+1 effects. The two-ability ASI path does not mutate the first ability on its first pick; the second pick transaction applies exactly +1 to each stored baseline and rolls both back on persistence failure.
+Progression feat picks default to Allowed and may be switched to All. Bundled checks cover General/Epic level gates, Grappler STR/DEX 13+, Fighting Style Feature, Spellcasting Feature where required, and duplicate suppression for non-repeatable feats. Ability Score Improvement, Magic Initiate and Skilled remain repeatable. Allowed is conservative: unknown/custom feat/perk rows are hidden because their prerequisites are not represented in bundled metadata, and duplicate checking hides the row if the Feature sidecar cannot be read; All continues to expose those rows. Manual Feature/Perk editing is unrestricted. `Ability Score Improvement` is omitted from the nested progression feat picker (Allowed and All) because the parent level-choice screen already owns the ASI +2 and +1/+1 effects. The two-ability ASI path does not mutate the first ability on its first pick; the second pick transaction applies exactly +1 to each stored baseline and rolls both back on persistence failure.
 
 ## Deterministic subclass additions
 
@@ -46,6 +44,6 @@ Additional deterministic grants cover Path of the Berserker, College of Lore, Oa
 
 ## Spell-combat addition
 
-Heroism has a structured Temporary-HP result using the caster's spellcasting modifier. Higher-slot target count is intentionally not represented as extra HP because the combat mapping has no target-count state.
+Heroism has a structured Temporary-HP result using the caster's spellcasting modifier. Higher-slot target count is not represented as extra HP because the combat mapping has no target-count state.
 
 Journal milestone leveling uses the same fixed-average HP and Hit-Dice refresh and does not apply deterministic progression grants; those remain an explicit Character action.

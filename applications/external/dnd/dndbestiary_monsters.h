@@ -136,10 +136,7 @@ bool dndbestiary_monsters_update_custom(Storage* storage, PocketMonsterDetail* d
 bool dndbestiary_monsters_delete_custom(Storage* storage, const PocketMonsterSummary* summary);
 bool dndbestiary_monsters_migrate_legacy_custom(Storage* storage, uint16_t* copied_files);
 bool dndbestiary_monsters_seed_default_custom(Storage* storage, uint16_t* copied_files);
-bool dndbestiary_monsters_recover_user_pack(
-    Storage* storage,
-    uint16_t* recovered,
-    uint16_t* rolled_back);
+bool dndbestiary_monsters_recover_user_pack(Storage* storage, uint16_t* recovered, uint16_t* rolled_back);
 void dndbestiary_monsters_cache_reset(void);
 void dndbestiary_monsters_pack_versions(
     Storage* storage,

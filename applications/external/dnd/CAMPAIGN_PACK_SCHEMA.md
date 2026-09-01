@@ -39,4 +39,4 @@ Id=filename_safe_pack_id
 Name=Display Name
 ```
 
-No checksum is required. Before installation, the inbox preview validates the manifest, requires exactly one matching index record, checks pack/application compatibility, requires `scenes.txt`, confirms the declared entry scene exists as an `S|` record, and rejects stable-ID conflicts. Hold OK installs only after that preview validates; installation repeats the validation. Installed content and enabled indexes stay under DNDAdventure app data.
+No checksum is required. Before installation, the inbox preview checks the manifest, requires exactly one matching index record, checks pack/application compatibility, requires `scenes.txt`, requires the declared entry scene to exist as an `S|` record, and rejects stable-ID conflicts. Hold OK installs only after those checks pass; installation repeats the same checks before publishing the pack. Installed content and enabled indexes stay under DNDAdventure app data.

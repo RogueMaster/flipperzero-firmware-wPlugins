@@ -17,15 +17,9 @@ typedef enum {
 } DndFeatureRechargeEvent;
 
 bool dndolphins_progression_store_features_exist(Storage* storage, uint32_t profile);
-bool dndolphins_progression_store_features_count(
-    Storage* storage,
-    uint32_t profile,
-    uint8_t* total_count);
+bool dndolphins_progression_store_features_count(Storage* storage, uint32_t profile, uint8_t* total_count);
 bool dndolphins_progression_store_features_contains_name(
-    Storage* storage,
-    uint32_t profile,
-    const char* name,
-    bool* found);
+    Storage* storage, uint32_t profile, const char* name, bool* found);
 bool dndolphins_progression_store_features_load_window(
     Storage* storage,
     uint32_t profile,
@@ -41,10 +35,7 @@ bool dndolphins_progression_store_features_append(
     Storage* storage,
     uint32_t profile,
     const PocketFeature* feature);
-bool dndolphins_progression_store_features_delete(
-    Storage* storage,
-    uint32_t profile,
-    uint8_t logical_index);
+bool dndolphins_progression_store_features_delete(Storage* storage, uint32_t profile, uint8_t logical_index);
 bool dndolphins_progression_store_features_recharge(
     Storage* storage,
     uint32_t profile,
@@ -55,17 +46,8 @@ bool dndolphins_progression_store_features_remap_classes(
     uint32_t profile,
     uint8_t removed_class);
 
-bool dndolphins_progression_store_applied_exists(
-    Storage* storage,
-    uint32_t profile,
-    const char* stable_id);
-bool dndolphins_progression_store_mark_applied(
-    Storage* storage,
-    uint32_t profile,
-    const char* stable_id);
+bool dndolphins_progression_store_applied_exists(Storage* storage, uint32_t profile, const char* stable_id);
+bool dndolphins_progression_store_mark_applied(Storage* storage, uint32_t profile, const char* stable_id);
 
 bool dndolphins_progression_store_delete_sidecars(Storage* storage, uint32_t profile);
-bool dndolphins_progression_store_copy_sidecars(
-    Storage* storage,
-    uint32_t source_profile,
-    uint32_t destination_profile);
+bool dndolphins_progression_store_copy_sidecars(Storage* storage, uint32_t source_profile, uint32_t destination_profile);

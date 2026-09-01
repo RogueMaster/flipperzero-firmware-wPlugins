@@ -19,13 +19,9 @@ This audit separates values that are exact from project source from values that 
 | DNDInitiative | **3,072 B** | **~2,300 B** | **5,276 B** | **6,812 B** during main-character two-buffer profile sync; history save is stack-bounded and adds no resident state |
 | DNDBestiary | **6,144 B** | **~4,370 B** | **1,528 B** | **4,108 B** main monster window; **6,368 B** encounter generation |
 
-The 3.5.3 explicit-grant repair keeps the existing bounded 256-byte metadata line plus 512-byte read buffer and does not add resident grant state; it reduces repeated file scans rather than increasing memory.
+Explicit grant processing uses a bounded 256-byte metadata line plus 512-byte read buffer and retains no grant batch in app state. ASI level-choice state uses existing app-struct alignment. Spell catalog class filters reuse the existing one-byte selector, and Inventory page residency checks add no resident buffers.
 
-The 3.5.4 ASI hardening adds one signed-byte baseline field beside existing byte-sized level-choice state; it consumes the prior alignment byte before the following 16-bit field, so the audited **4,940 B** DNDolphins fixed app block is unchanged. Spell catalog ordering is performed in the bundled asset at build time, not by adding resident runtime sort storage. Inventory paging adds validation only and no resident buffers.
-
-The 3.5.5 Spellbook class-filter expansion reuses the existing one-byte `filter_class` field and static string literals; it adds no resident catalog rows, paging buffers or save-state fields. Spellbook memory bounds are therefore unchanged.
-
-The projection-based companions intentionally optimize **resident** state first. A few existing shared storage APIs still accept `PocketCharacter`, so Inventory grants, Spellbook page I/O and Adventure Item rewards create a bounded full-character adapter only for that operation. Those adapters are freed before returning and are not embedded in the app state. If hardware measurements show those transient peaks matter, the next optimization should be narrower collection-storage APIs rather than restoring a resident full character.
+The projection-based companions optimize **resident** state first. A few existing shared storage APIs still accept `PocketCharacter`, so Inventory grants, Spellbook page I/O and Adventure Item rewards create a bounded full-character adapter only for that operation. Those adapters are freed before returning and are not embedded in the app state. If hardware measurements show those transient peaks matter, the next optimization should be narrower collection-storage APIs rather than restoring a resident full character.
 
 ## Exact current ARM32 project sizes
 
@@ -42,8 +38,6 @@ The projection-based companions intentionally optimize **resident** state first.
 | `DndAdventureScene` | **865 B** |
 | `PocketCampaignSummary` | **120 B** |
 | `PocketCampaignProgress` | **88 B** |
-| `PocketCampaignDiagnostics` | **94 B** |
-| `PocketCampaignPackPreview` | **112 B** |
 | `PocketBestiaryFilterPreset` | **77 B** |
 | `PocketSavedEncounter` | **432 B** |
 | `PocketProfileState` | **308 B** |
@@ -71,7 +65,7 @@ Small rule/index records include `DndDolphinsSpellClassCounts` 8 B, `PocketAttac
 - Current 24-entry character/feat catalog block: **1,224 B**.
 - Conservative grant/catalog overlap: 4,940 + 3,552 + 1,224 = **9,716 B**.
 
-Weapon and Spell pages are not intentionally resident together. Combat section headings and level-up review presentation add no dynamic resident list.
+Weapon and Spell pages are not resident together. Combat section headings and level-up review presentation add no dynamic resident list.
 
 ### DNDInventory
 
@@ -94,9 +88,9 @@ Weapon and Spell pages are not intentionally resident together. Combat section h
 
 ### DNDAdventure
 
-- Fixed app block: **512 B** with the 72-byte profile projection resident. The removed Campaign Diagnostics and Installed Pack Controls UI state accounted for the 344-byte reduction from 856 B; ARM32 record-layout verification confirms the new 512-byte block.
+- Fixed app block: **512 B** with the 72-byte profile projection resident.
 - Active scene: **865 B**, for **1,377 B**.
-- Campaign-pack loading remains bounded and storage-backed; Adventure no longer retains diagnostics or pack-control preview/list state.
+- Campaign-pack loading is bounded and storage-backed.
 - Item reward bridging creates a transient 3,976-byte canonical adapter because the shared Inventory append/window API still uses that owner shape. When an Item page/rewrite buffer overlaps, the project peak is conservatively **~7.5–8.5 KB**; that state is action-local and freed before returning to Adventure.
 
 ### DNDJournal
@@ -111,7 +105,7 @@ Weapon and Spell pages are not intentionally resident together. Combat section h
 - Explicit main-character profile synchronization can own two **768 B** heap buffers.
 - Working set: 5,276 + 768 + 768 = **6,812 B**.
 - Completed-history publication uses bounded path/header/member buffers on stack and one storage `File*`; source review raises the conservative peak to **~2.3 KB**, still below the exact 3 KB reservation. Each record is published atomically and no history index is retained.
-- The manifest stack remains intentionally **3 KB**. Five-row roster/setup/combat/editor windows reuse existing selection/scroll fields.
+- DNDInitiative reserves a **3 KB** stack. Five-row roster/setup/combat/editor windows reuse existing selection/scroll fields.
 
 ### DNDBestiary
 
@@ -124,7 +118,7 @@ Weapon and Spell pages are not intentionally resident together. Combat section h
 
 All seven FAPs link `dnd_profile_handoff.c`. Its active-profile reader uses a fixed 96-byte stack line and does not hydrate a character or collection.
 
-Only Inventory, Spellbook and Adventure link `dnd_profile_projection.c`. It scans the canonical character by field name and leaves the canonical format unchanged. The parser/rewrite line is bounded to **640 B**, matching the canonical encoded-character line bound, and is heap-owned only during the stream operation. Inventory's projection writer patches only Vitals AC plus CombatFlags encumbrance/carry-capacity fields and transactionally publishes the rewritten canonical file. Spellbook and Adventure have no canonical-profile write API.
+Only Inventory, Spellbook and Adventure link `dnd_profile_projection.c`. It scans the canonical character by field name and reads the canonical format by field name. The parser/rewrite line is bounded to **640 B**, matching the canonical encoded-character line bound, and is heap-owned only during the stream operation. Inventory's projection writer patches only Vitals AC plus CombatFlags encumbrance/carry-capacity fields and transactionally publishes the rewritten canonical file. Spellbook and Adventure have no canonical-profile write API.
 
 A failed projection load may invoke the existing backup-restoration path with one transient **3,976 B** `PocketSaveData`; this is recovery-only, not normal resident state.
 
@@ -137,13 +131,13 @@ A failed projection load may invoke the existing backup-restoration path with on
 - Cross-FAP launches quiesce callbacks/timers and release outgoing project-owned state before Loader starts the next FAP.
 - No firmware `qsort` dependency is used.
 
-## Hardware validation priorities
+## Hardware measurement checklist
 
 1. Measure stack high-water for all seven FAPs under the exact **6/4/4/4/4/3/6 KB** reservations, especially projection save/load paths on the three 4 KB companions.
 2. Compare steady-state free heap before/after the projection change; Inventory, Spellbook and Adventure should show the reduced resident blocks above.
 3. Stress Inventory automatic first-entry initial grant/regrant, page-boundary repair, Spellbook page load/save/sort, and Adventure Item rewards while watching transient free-heap lows and fragmentation.
-4. Repeatedly enter/exit Weapon, Spell and Ritual Combat and confirm indexes/pages are released.
+4. Repeatedly enter/exit Weapon, Spell and Ritual Combat while checking that indexes/pages are released.
 5. Stress Initiative with the maximum roster through wraparound scrolling, edit, reorder, Resume, next-turn and Hold-Up previous-turn navigation.
-6. Force projection/allocation/write failures and confirm the canonical profile remains intact and project heap returns to steady state.
+6. Exercise projection/allocation/write failure paths while checking canonical-profile integrity and steady-state project heap recovery.
 
 A RogueMaster firmware build plus device free-heap, allocator-fragmentation and stack-high-water instrumentation remains the final authority for total runtime memory.

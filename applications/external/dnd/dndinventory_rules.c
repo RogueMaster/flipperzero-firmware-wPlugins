@@ -53,15 +53,9 @@ int8_t dndinventory_rules_weapon_attack_modifier(
         dnd_rules_core_ability_modifier(character->ability_scores[PocketAbilityDexterity]);
     int8_t ability = strength;
     switch(item->attack_ability) {
-    case PocketAttackAbilityStrength:
-        ability = strength;
-        break;
-    case PocketAttackAbilityDexterity:
-        ability = dexterity;
-        break;
-    case PocketAttackAbilityBest:
-        ability = strength > dexterity ? strength : dexterity;
-        break;
+    case PocketAttackAbilityStrength: ability = strength; break;
+    case PocketAttackAbilityDexterity: ability = dexterity; break;
+    case PocketAttackAbilityBest: ability = strength > dexterity ? strength : dexterity; break;
     default:
         if(item->weapon_properties & PocketWeaponRanged)
             ability = dexterity;

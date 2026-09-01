@@ -27,8 +27,8 @@ static bool dnd_projection_read_line(DndProjectionReader* reader, char* line, si
     bool consumed = false;
     while(true) {
         if(reader->position >= reader->count) {
-            reader->count =
-                (uint16_t)storage_file_read(reader->file, reader->buffer, sizeof(reader->buffer));
+            reader->count = (uint16_t)storage_file_read(
+                reader->file, reader->buffer, sizeof(reader->buffer));
             reader->position = 0U;
             if(!reader->count) break;
         }
@@ -62,7 +62,8 @@ static bool dnd_projection_parse_i32(const char* start, const char* end, int32_t
     return true;
 }
 
-static size_t dnd_projection_parse_numbers(const char* value, int32_t* numbers, size_t maximum) {
+static size_t dnd_projection_parse_numbers(
+    const char* value, int32_t* numbers, size_t maximum) {
     if(!value || !numbers || !maximum) return 0U;
     size_t count = 0U;
     const char* cursor = value;
@@ -79,11 +80,7 @@ static size_t dnd_projection_parse_numbers(const char* value, int32_t* numbers, 
 }
 
 static bool dnd_projection_indexed_key(
-    const char* key,
-    const char* prefix,
-    const char* suffix,
-    uint8_t maximum,
-    uint8_t* index) {
+    const char* key, const char* prefix, const char* suffix, uint8_t maximum, uint8_t* index) {
     if(!key || !prefix || !suffix || !index) return false;
     size_t prefix_len = strlen(prefix);
     if(strncmp(key, prefix, prefix_len)) return false;
@@ -126,11 +123,7 @@ static void dnd_projection_decode_string(char* out, size_t size, const char* val
 }
 
 static bool dnd_projection_open(
-    Storage* storage,
-    uint32_t profile,
-    File** file_out,
-    char* path,
-    size_t path_size) {
+    Storage* storage, uint32_t profile, File** file_out, char* path, size_t path_size) {
     if(!storage || !file_out || !path || !path_size) return false;
     if(!dnd_storage_find_profile_path(storage, profile, path, path_size)) return false;
     File* file = storage_file_alloc(storage);
@@ -173,12 +166,9 @@ static bool dnd_projection_load_common(
         const char* key = line;
         uint8_t index = 0U;
         if(!strcmp(key, "Name")) {
-            if(inventory)
-                dnd_projection_decode_string(inventory->name, sizeof(inventory->name), value);
-            if(spellbook)
-                dnd_projection_decode_string(spellbook->name, sizeof(spellbook->name), value);
-            if(adventure)
-                dnd_projection_decode_string(adventure->name, sizeof(adventure->name), value);
+            if(inventory) dnd_projection_decode_string(inventory->name, sizeof(inventory->name), value);
+            if(spellbook) dnd_projection_decode_string(spellbook->name, sizeof(spellbook->name), value);
+            if(adventure) dnd_projection_decode_string(adventure->name, sizeof(adventure->name), value);
             recognized = true;
             continue;
         }
@@ -188,16 +178,14 @@ static bool dnd_projection_load_common(
             continue;
         }
         if(inventory && !strcmp(key, "Background")) {
-            dnd_projection_decode_string(
-                inventory->background, sizeof(inventory->background), value);
+            dnd_projection_decode_string(inventory->background, sizeof(inventory->background), value);
             recognized = true;
             continue;
         }
         if(!strcmp(key, "Progress")) {
             size_t count = dnd_projection_parse_numbers(value, n, 4U);
             if(count) {
-                uint8_t class_count =
-                    n[0] > 0 && n[0] <= (int32_t)POCKET_D20_MAX_CLASSES ? (uint8_t)n[0] : 0U;
+                uint8_t class_count = n[0] > 0 && n[0] <= (int32_t)POCKET_D20_MAX_CLASSES ? (uint8_t)n[0] : 0U;
                 if(inventory) inventory->class_count = class_count;
                 if(spellbook) spellbook->class_count = class_count;
                 if(adventure) adventure->class_count = class_count;
@@ -206,12 +194,8 @@ static bool dnd_projection_load_common(
             continue;
         }
         if(dnd_projection_indexed_key(key, "Class", "Name", POCKET_D20_MAX_CLASSES, &index)) {
-            if(inventory)
-                dnd_projection_decode_string(
-                    inventory->classes[index].name, sizeof(inventory->classes[index].name), value);
-            if(spellbook)
-                dnd_projection_decode_string(
-                    spellbook->classes[index].name, sizeof(spellbook->classes[index].name), value);
+            if(inventory) dnd_projection_decode_string(inventory->classes[index].name, sizeof(inventory->classes[index].name), value);
+            if(spellbook) dnd_projection_decode_string(spellbook->classes[index].name, sizeof(spellbook->classes[index].name), value);
             if(inventory && inventory->class_count <= index) inventory->class_count = index + 1U;
             if(spellbook && spellbook->class_count <= index) spellbook->class_count = index + 1U;
             if(adventure && adventure->class_count <= index) adventure->class_count = index + 1U;
@@ -219,16 +203,8 @@ static bool dnd_projection_load_common(
             continue;
         }
         if(dnd_projection_indexed_key(key, "Class", "Subclass", POCKET_D20_MAX_CLASSES, &index)) {
-            if(inventory)
-                dnd_projection_decode_string(
-                    inventory->classes[index].subclass,
-                    sizeof(inventory->classes[index].subclass),
-                    value);
-            if(spellbook)
-                dnd_projection_decode_string(
-                    spellbook->classes[index].subclass,
-                    sizeof(spellbook->classes[index].subclass),
-                    value);
+            if(inventory) dnd_projection_decode_string(inventory->classes[index].subclass, sizeof(inventory->classes[index].subclass), value);
+            if(spellbook) dnd_projection_decode_string(spellbook->classes[index].subclass, sizeof(spellbook->classes[index].subclass), value);
             recognized = true;
             continue;
         }
@@ -274,15 +250,13 @@ static bool dnd_projection_load_common(
         }
         if(adventure && !strcmp(key, "SkillProficiency")) {
             size_t count = dnd_projection_parse_numbers(value, n, POCKET_D20_SKILL_COUNT);
-            for(size_t i = 0U; i < count; ++i)
-                adventure->skill_proficiency[i] = (uint8_t)n[i];
+            for(size_t i = 0U; i < count; ++i) adventure->skill_proficiency[i] = (uint8_t)n[i];
             if(count) recognized = true;
             continue;
         }
         if(adventure && !strcmp(key, "SkillMisc")) {
             size_t count = dnd_projection_parse_numbers(value, n, POCKET_D20_SKILL_COUNT);
-            for(size_t i = 0U; i < count; ++i)
-                adventure->skill_misc[i] = (int8_t)n[i];
+            for(size_t i = 0U; i < count; ++i) adventure->skill_misc[i] = (int8_t)n[i];
             if(count) recognized = true;
             continue;
         }
@@ -318,9 +292,7 @@ static bool dnd_projection_restore_backup(Storage* storage, uint32_t profile) {
 }
 
 bool dnd_profile_projection_load_inventory(
-    Storage* storage,
-    uint32_t profile,
-    DndInventoryProfileProjection* projection) {
+    Storage* storage, uint32_t profile, DndInventoryProfileProjection* projection) {
     if(!projection) return false;
     if(dnd_projection_load_common(storage, profile, projection, NULL, NULL)) return true;
     return dnd_projection_restore_backup(storage, profile) &&
@@ -328,9 +300,7 @@ bool dnd_profile_projection_load_inventory(
 }
 
 bool dnd_profile_projection_load_spellbook(
-    Storage* storage,
-    uint32_t profile,
-    DndSpellbookProfileProjection* projection) {
+    Storage* storage, uint32_t profile, DndSpellbookProfileProjection* projection) {
     if(!projection) return false;
     if(dnd_projection_load_common(storage, profile, NULL, projection, NULL)) return true;
     return dnd_projection_restore_backup(storage, profile) &&
@@ -338,14 +308,13 @@ bool dnd_profile_projection_load_spellbook(
 }
 
 bool dnd_profile_projection_load_adventure(
-    Storage* storage,
-    uint32_t profile,
-    DndAdventureProfileProjection* projection) {
+    Storage* storage, uint32_t profile, DndAdventureProfileProjection* projection) {
     if(!projection) return false;
     if(dnd_projection_load_common(storage, profile, NULL, NULL, projection)) return true;
     return dnd_projection_restore_backup(storage, profile) &&
            dnd_projection_load_common(storage, profile, NULL, NULL, projection);
 }
+
 
 static bool dnd_projection_write_line(File* file, const char* line) {
     size_t len = strlen(line);
@@ -353,10 +322,7 @@ static bool dnd_projection_write_line(File* file, const char* line) {
 }
 
 static bool dnd_projection_publish_temp(
-    Storage* storage,
-    const char* temporary,
-    const char* destination,
-    const char* backup) {
+    Storage* storage, const char* temporary, const char* destination, const char* backup) {
     if(!storage || !temporary || !destination || !backup) return false;
     bool had_destination = storage_file_exists(storage, destination);
     if(had_destination) {
@@ -375,9 +341,7 @@ static bool dnd_projection_publish_temp(
 }
 
 bool dnd_profile_projection_save_inventory_owned(
-    Storage* storage,
-    uint32_t profile,
-    const DndInventoryProfileProjection* projection) {
+    Storage* storage, uint32_t profile, const DndInventoryProfileProjection* projection) {
     if(!storage || !projection) return false;
     char live[DND_PROJECTION_PATH_LEN];
     if(!dnd_storage_find_profile_path(storage, profile, live, sizeof(live))) return false;
@@ -408,51 +372,31 @@ bool dnd_profile_projection_save_inventory_owned(
             n[3] = projection->armor_class;
             char patched[256];
             snprintf(
-                patched,
-                sizeof(patched),
+                patched, sizeof(patched),
                 "Vitals=%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld",
-                (long)n[0],
-                (long)n[1],
-                (long)n[2],
-                (long)n[3],
-                (long)n[4],
-                (long)n[5],
-                (long)n[6],
-                (long)n[7],
-                (long)n[8],
-                (long)n[9],
-                (long)n[10],
-                (long)n[11]);
+                (long)n[0], (long)n[1], (long)n[2], (long)n[3], (long)n[4], (long)n[5],
+                (long)n[6], (long)n[7], (long)n[8], (long)n[9], (long)n[10], (long)n[11]);
             ok = dnd_projection_write_line(output, patched);
             saw_vitals = true;
-        } else if(
-            !strncmp(line, "CombatFlags=", 12U) &&
-            dnd_projection_parse_numbers(line + 12U, n, 3U) == 3U) {
+        } else if(!strncmp(line, "CombatFlags=", 12U) &&
+                  dnd_projection_parse_numbers(line + 12U, n, 3U) == 3U) {
             char patched[96];
             snprintf(
-                patched,
-                sizeof(patched),
-                "CombatFlags=%ld,%u,%d",
-                (long)n[0],
-                projection->encumbrance_mode ? 1U : 0U,
-                projection->carrying_capacity_override);
+                patched, sizeof(patched), "CombatFlags=%ld,%u,%d", (long)n[0],
+                projection->encumbrance_mode ? 1U : 0U, projection->carrying_capacity_override);
             ok = dnd_projection_write_line(output, patched);
             saw_flags = true;
         } else {
             ok = dnd_projection_write_line(output, line);
         }
     }
-    if(ok)
-        ok = storage_file_get_error(input) == FSE_OK && saw_vitals && saw_flags &&
-             storage_file_sync(output);
+    if(ok) ok = storage_file_get_error(input) == FSE_OK && saw_vitals && saw_flags && storage_file_sync(output);
     free(line);
     storage_file_close(input);
     storage_file_close(output);
     storage_file_free(input);
     storage_file_free(output);
-    if(ok)
-        ok = dnd_projection_publish_temp(storage, temp, live, backup);
-    else
-        storage_common_remove(storage, temp);
+    if(ok) ok = dnd_projection_publish_temp(storage, temp, live, backup);
+    else storage_common_remove(storage, temp);
     return ok;
 }

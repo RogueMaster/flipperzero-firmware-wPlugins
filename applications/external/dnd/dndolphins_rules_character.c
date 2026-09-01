@@ -3,8 +3,9 @@
 
 uint32_t dndolphins_rules_character_minimum_experience_for_level(uint8_t level) {
     static const uint32_t minimum_xp[20] = {
-        0U,     300U,    900U,    2700U,   6500U,   14000U,  23000U,  34000U,  48000U,  64000U,
-        85000U, 100000U, 120000U, 140000U, 165000U, 195000U, 225000U, 265000U, 305000U, 355000U,
+        0U,      300U,    900U,    2700U,   6500U,   14000U, 23000U,
+        34000U,  48000U,  64000U,  85000U,  100000U, 120000U, 140000U,
+        165000U, 195000U, 225000U, 265000U, 305000U, 355000U,
     };
     if(level < 1U) level = 1U;
     if(level > 20U) level = 20U;
@@ -13,15 +14,12 @@ uint32_t dndolphins_rules_character_minimum_experience_for_level(uint8_t level) 
 
 void dndolphins_rules_character_apply_experience_floor(PocketCharacter* character) {
     if(!character) return;
-    uint32_t minimum = dndolphins_rules_character_minimum_experience_for_level(
-        dnd_rules_core_total_level(character));
+    uint32_t minimum = dndolphins_rules_character_minimum_experience_for_level(dnd_rules_core_total_level(character));
     if(character->experience < minimum) character->experience = minimum;
 }
 
 void dndolphins_rules_character_apply_level_increase(
-    PocketCharacter* character,
-    uint8_t class_index,
-    uint8_t previous_class_level) {
+    PocketCharacter* character, uint8_t class_index, uint8_t previous_class_level) {
     if(!character || class_index >= character->class_count) return;
     PocketClassLevel* class_level = &character->classes[class_index];
     if(class_level->level <= previous_class_level) return;
@@ -29,8 +27,8 @@ void dndolphins_rules_character_apply_level_increase(
     const uint8_t levels_gained = (uint8_t)(class_level->level - previous_class_level);
     uint8_t hit_die = class_level->hit_die;
     if(hit_die < 2U) hit_die = 2U;
-    const int16_t constitution_modifier =
-        dnd_rules_core_ability_modifier(character->ability_scores[PocketAbilityConstitution]);
+    const int16_t constitution_modifier = dnd_rules_core_ability_modifier(
+        character->ability_scores[PocketAbilityConstitution]);
     int16_t hp_per_level = (int16_t)(hit_die / 2U + 1U) + constitution_modifier;
     if(hp_per_level < 1) hp_per_level = 1;
 
@@ -68,8 +66,7 @@ int16_t dndolphins_rules_character_effective_speed(const PocketCharacter* charac
 }
 
 int16_t dndolphins_rules_character_feature_max_uses(
-    const PocketCharacter* character,
-    const PocketFeature* feature) {
+    const PocketCharacter* character, const PocketFeature* feature) {
     if(feature->resource_formula == PocketResourceProficiency)
         return dnd_rules_core_proficiency_bonus(character);
     if(feature->resource_formula == PocketResourceAbility &&
@@ -99,8 +96,8 @@ int16_t dndolphins_rules_character_spend_class_hit_die(
        class_level->hit_dice_current == 0U)
         return -1;
     uint8_t roll = dnd_rules_core_roll_die(class_level->hit_die);
-    int16_t healing = roll + dnd_rules_core_ability_modifier(
-                                 character->ability_scores[PocketAbilityConstitution]);
+    int16_t healing =
+        roll + dnd_rules_core_ability_modifier(character->ability_scores[PocketAbilityConstitution]);
     if(healing < 1) healing = 1;
     int16_t missing = character->hp_max - character->hp_current;
     int16_t regained = healing < missing ? healing : missing;

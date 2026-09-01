@@ -21,13 +21,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG                               "PocketD20"
-#define POCKET_D20_MAX_GENERIC_ROLLS      20U
-#define POCKET_D20_DICE_ANIMATION_FRAMES  8U
-#define POCKET_D20_LONG_BACK_EVENT        0xD121U
-#define POCKET_D20_AUTOSAVE_EVENT         0xD122U
+#define TAG                              "PocketD20"
+#define POCKET_D20_MAX_GENERIC_ROLLS     20U
+#define POCKET_D20_DICE_ANIMATION_FRAMES 8U
+#define POCKET_D20_LONG_BACK_EVENT       0xD121U
+#define POCKET_D20_AUTOSAVE_EVENT        0xD122U
 #define POCKET_D20_UI_TICK_MS             100U
-#define POCKET_D20_MAX_CATALOG_ENTRIES    24U
+#define POCKET_D20_MAX_CATALOG_ENTRIES   24U
 #define POCKET_D20_MAX_SPELL_ATTACK_ROLLS 12U
 
 typedef enum {
@@ -39,11 +39,11 @@ typedef enum {
     PocketPendingLaunchInventory,
     PocketPendingLaunchSpellbook,
 } PocketPendingLaunch;
-#define POCKET_D20_SPELL_PAGE_ENTRIES  10U
-#define POCKET_D20_MARQUEE_MS          350U
-#define POCKET_D20_AUTOSAVE_MS         450U
-#define POCKET_D20_COMBAT_VISIBLE_ROWS 5U
-#define POCKET_D20_COMBAT_ROW_LEN      64U
+#define POCKET_D20_SPELL_PAGE_ENTRIES    10U
+#define POCKET_D20_MARQUEE_MS            350U
+#define POCKET_D20_AUTOSAVE_MS           450U
+#define POCKET_D20_COMBAT_VISIBLE_ROWS   5U
+#define POCKET_D20_COMBAT_ROW_LEN        64U
 
 typedef enum {
     PocketViewMain,
@@ -434,8 +434,9 @@ static const char* const dndolphins_home_items[DndolphinsHomeCount] = {
 
 static const char* const dndolphins_home_retry_save = "Retry Save";
 
-static bool
-    dndolphins_home_index_from_return_focus(const char* args, DndolphinsHomeIndex* home_index) {
+static bool dndolphins_home_index_from_return_focus(
+    const char* args,
+    DndolphinsHomeIndex* home_index) {
     if(!args || !home_index) return false;
     if(strcmp(args, POCKET_D20_RETURN_FOCUS_INVENTORY) == 0)
         *home_index = DndolphinsHomeInventory;
@@ -508,6 +509,7 @@ typedef enum {
     PocketSpellSourceOther,
     PocketSpellSourceCount,
 } PocketSpellSource;
+
 
 /* Group the standard skills by governing ability without changing their save indexes. */
 static const uint8_t dndolphins_skill_display_order[POCKET_D20_SKILL_COUNT] = {
@@ -662,6 +664,7 @@ static const char* const dndolphins_catalog_feats[] = {
     "Boon of Truesight",
 };
 
+
 static const char* const dndolphins_bundled_catalog_paths[PocketCatalogCount] = {
     APP_ASSETS_PATH("catalogs/classes.txt"),
     APP_ASSETS_PATH("catalogs/subclasses.txt"),
@@ -671,8 +674,7 @@ static const char* const dndolphins_bundled_catalog_paths[PocketCatalogCount] = 
     APP_ASSETS_PATH("catalogs/feats.txt"),
 };
 
-static const char* const dndolphins_bundled_metadata_path =
-    APP_ASSETS_PATH("metadata/options.txt");
+static const char* const dndolphins_bundled_metadata_path = APP_ASSETS_PATH("metadata/options.txt");
 static const char* const dndolphins_bundled_catalog_abilities_path =
     APP_ASSETS_PATH("catalogs/abilities.txt");
 static const char* const dndolphins_progression_spell_metadata_path =
@@ -695,13 +697,16 @@ static bool dndolphins_parse_u32_strict(const char* text, uint32_t maximum, uint
     for(const char* cursor = text; *cursor; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U ||
+           (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
     *output = value;
     return true;
 }
+
+
 
 /*
  * Append display text without asking snprintf to prove that a persistent field
@@ -754,10 +759,10 @@ static bool dndolphins_catalog_ensure_capacity(PocketD20App* app, uint16_t neede
     const uint16_t page_limit = dndolphins_catalog_page_limit(app);
     if(needed > page_limit || app->catalog_storage) return false;
     const size_t capacity = page_limit;
-    size_t bytes = capacity * sizeof(*app->catalog_entries) +
-                   capacity * sizeof(*app->catalog_levels) +
-                   capacity * sizeof(*app->catalog_class_masks) +
-                   capacity * sizeof(*app->catalog_has_metadata);
+    size_t bytes =
+        capacity * sizeof(*app->catalog_entries) + capacity * sizeof(*app->catalog_levels) +
+        capacity * sizeof(*app->catalog_class_masks) +
+        capacity * sizeof(*app->catalog_has_metadata);
     uint8_t* cursor = malloc(bytes);
     if(!cursor) return false;
     app->catalog_storage = cursor;
@@ -922,8 +927,8 @@ static uint32_t dndolphins_data_fingerprint(const PocketSaveData* data) {
        collections. Hydrating or releasing one must not dirty the core profile. */
     const size_t stable_middle = offsetof(PocketCharacter, language_count);
     const size_t grants_begin = offsetof(PocketCharacter, grant_count);
-    hash =
-        dndolphins_hash_bytes(hash, character_bytes + stable_middle, grants_begin - stable_middle);
+    hash = dndolphins_hash_bytes(
+        hash, character_bytes + stable_middle, grants_begin - stable_middle);
     const size_t stable_tail = offsetof(PocketCharacter, attack_template_count);
     hash = dndolphins_hash_bytes(
         hash, character_bytes + stable_tail, sizeof(PocketCharacter) - stable_tail);
@@ -939,12 +944,9 @@ static uint32_t dndolphins_spellbook_fingerprint(const PocketCharacter* characte
         hash = dndolphins_hash_bytes(
             hash, character->spells, (size_t)character->spell_count * sizeof(PocketSpell));
         hash = dndolphins_hash_bytes(hash, character->spell_known, character->spell_count);
-        hash =
-            dndolphins_hash_bytes(hash, character->spell_always_prepared, character->spell_count);
-        hash = dndolphins_hash_bytes(
-            hash, character->spell_free_casts_current, character->spell_count);
-        hash =
-            dndolphins_hash_bytes(hash, character->spell_free_casts_max, character->spell_count);
+        hash = dndolphins_hash_bytes(hash, character->spell_always_prepared, character->spell_count);
+        hash = dndolphins_hash_bytes(hash, character->spell_free_casts_current, character->spell_count);
+        hash = dndolphins_hash_bytes(hash, character->spell_free_casts_max, character->spell_count);
     }
     return hash;
 }
@@ -960,8 +962,7 @@ static uint32_t dndolphins_items_fingerprint(const PocketCharacter* character) {
 
 static uint32_t dndolphins_features_fingerprint(const PocketCharacter* character) {
     uint32_t hash = 2166136261UL;
-    hash =
-        dndolphins_hash_bytes(hash, &character->feature_count, sizeof(character->feature_count));
+    hash = dndolphins_hash_bytes(hash, &character->feature_count, sizeof(character->feature_count));
     if(character->feature_count && character->features)
         hash = dndolphins_hash_bytes(
             hash, character->features, (size_t)character->feature_count * sizeof(PocketFeature));
@@ -1023,8 +1024,8 @@ static uint8_t dndolphins_feature_local_index(const PocketD20App* app, uint8_t l
     return (uint8_t)(logical_index - app->features_cache_start);
 }
 
-static PocketFeature*
-    dndolphins_feature_at(PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
+static PocketFeature* dndolphins_feature_at(
+    PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
     if(!dndolphins_feature_cache_ensure(app, logical_index)) return NULL;
     uint8_t local = dndolphins_feature_local_index(app, logical_index);
     if(local >= app->data.character.feature_count) return NULL;
@@ -1032,8 +1033,8 @@ static PocketFeature*
     return &app->data.character.features[local];
 }
 
-static PocketFeature*
-    dndolphins_feature_at_cached(PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
+static PocketFeature* dndolphins_feature_at_cached(
+    PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
     if(!app->features_loaded || logical_index < app->features_cache_start) return NULL;
     uint8_t local = (uint8_t)(logical_index - app->features_cache_start);
     if(local >= app->data.character.feature_count) return NULL;
@@ -1172,8 +1173,7 @@ static uint8_t dndolphins_item_local_index(const PocketD20App* app, uint8_t logi
     return (uint8_t)(logical_index - app->items_cache_start);
 }
 
-static PocketSpell*
-    dndolphins_spell_at(PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
+static PocketSpell* dndolphins_spell_at(PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
     if(!dndolphins_spell_cache_ensure(app, logical_index)) return NULL;
     uint8_t local = dndolphins_spell_local_index(app, logical_index);
     if(local >= app->data.character.spell_count) return NULL;
@@ -1181,8 +1181,7 @@ static PocketSpell*
     return &app->data.character.spells[local];
 }
 
-static PocketItem*
-    dndolphins_item_at(PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
+static PocketItem* dndolphins_item_at(PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
     if(!dndolphins_item_cache_ensure(app, logical_index)) return NULL;
     uint8_t local = dndolphins_item_local_index(app, logical_index);
     if(local >= app->data.character.item_count) return NULL;
@@ -1190,8 +1189,8 @@ static PocketItem*
     return &app->data.character.items[local];
 }
 
-static PocketSpell*
-    dndolphins_spell_cached_at(PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
+static PocketSpell* dndolphins_spell_cached_at(
+    PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
     if(!app || !app->spellbook_loaded || logical_index < app->spellbook_cache_start ||
        logical_index >= (uint8_t)(app->spellbook_cache_start + app->data.character.spell_count))
         return NULL;
@@ -1201,8 +1200,8 @@ static PocketSpell*
     return &app->data.character.spells[local];
 }
 
-static PocketItem*
-    dndolphins_item_cached_at(PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
+static PocketItem* dndolphins_item_cached_at(
+    PocketD20App* app, uint8_t logical_index, uint8_t* local_out) {
     if(!app || !app->items_loaded || logical_index < app->items_cache_start ||
        logical_index >= (uint8_t)(app->items_cache_start + app->data.character.item_count))
         return NULL;
@@ -1212,6 +1211,8 @@ static PocketItem*
     return &app->data.character.items[local];
 }
 
+
+
 static void dndolphins_record_list_scroll_sidecar(PocketD20App* app, uint8_t total) {
     if(app->selection == 0U || total == 0U) {
         app->scroll = 0U;
@@ -1219,8 +1220,8 @@ static void dndolphins_record_list_scroll_sidecar(PocketD20App* app, uint8_t tot
     }
 
     uint8_t logical = (uint8_t)(app->selection - 1U);
-    uint8_t page_start =
-        (uint8_t)((logical / POCKET_D20_COLLECTION_CACHE_SIZE) * POCKET_D20_COLLECTION_CACHE_SIZE);
+    uint8_t page_start = (uint8_t)(
+        (logical / POCKET_D20_COLLECTION_CACHE_SIZE) * POCKET_D20_COLLECTION_CACHE_SIZE);
     uint16_t first = (uint16_t)page_start + 1U;
     uint8_t page_records = (uint8_t)(total - page_start);
     if(page_records > POCKET_D20_COLLECTION_CACHE_SIZE)
@@ -1268,15 +1269,17 @@ static void dndolphins_record_list_focus(PocketD20App* app, uint8_t logical_inde
     }
     if(logical_index >= total) logical_index = (uint8_t)(total - 1U);
     app->selection = (uint16_t)logical_index + 1U;
-    if(!dndolphins_record_list_prepare_sidecar(app))
-        dndolphins_set_status(app, "Collection read failed");
+    if(!dndolphins_record_list_prepare_sidecar(app)) dndolphins_set_status(app, "Collection read failed");
 }
 
 static bool dndolphins_spell_class_counts_cached(PocketD20App* app) {
     if(!app->spell_class_counts_valid) {
         uint8_t total = 0U;
         if(!dndolphins_spells_class_counts(
-               app->storage, app->profiles.active_profile, &app->spell_class_counts, &total))
+               app->storage,
+               app->profiles.active_profile,
+               &app->spell_class_counts,
+               &total))
             return false;
         app->spellbook_total = total;
         app->spell_class_counts_valid = 1U;
@@ -1295,6 +1298,7 @@ static uint8_t dndolphins_class_known_count_cached(PocketD20App* app, uint8_t cl
                app->spell_class_counts.known[class_index] :
                0U;
 }
+
 
 static bool dndolphins_release_spellbook(PocketD20App* app) {
     if(!app->spellbook_loaded) return true;
@@ -1343,8 +1347,8 @@ static bool dndolphins_save_now(PocketD20App* app, bool report) {
     bool spellbook_changed = app->spellbook_loaded &&
                              spellbook_fingerprint != app->saved_spellbook_fingerprint;
     bool items_changed = app->items_loaded && items_fingerprint != app->saved_items_fingerprint;
-    bool features_changed = app->features_loaded &&
-                            features_fingerprint != app->saved_features_fingerprint;
+    bool features_changed =
+        app->features_loaded && features_fingerprint != app->saved_features_fingerprint;
     if(!main_changed && !spellbook_changed && !items_changed && !features_changed) {
         if(report) dndolphins_set_status(app, "Already saved");
         return true;
@@ -1355,10 +1359,11 @@ static bool dndolphins_save_now(PocketD20App* app, bool report) {
     if(main_changed) {
         bool active_found = app->profiles.active_entry_valid &&
                             app->profiles.active_entry.id == app->profiles.active_profile;
-        result = active_found ? dnd_storage_save_profile_known_updated(
-                                    app->storage, &app->profiles.active_entry, &app->data) :
-                                dnd_storage_save_profile_updated(
-                                    app->storage, app->profiles.active_profile, &app->data);
+        result = active_found ?
+                     dnd_storage_save_profile_known_updated(
+                         app->storage, &app->profiles.active_entry, &app->data) :
+                     dnd_storage_save_profile_updated(
+                         app->storage, app->profiles.active_profile, &app->data);
         main_write_failed = !result;
         if(result) {
             app->profiles.active_entry.id = app->profiles.active_profile;
@@ -1418,8 +1423,7 @@ static bool dndolphins_save_now(PocketD20App* app, bool report) {
         }
         if(app->storage_failure_count < UINT16_MAX) ++app->storage_failure_count;
     }
-    if(report || !result)
-        dndolphins_set_status(app, result ? "Saved" : "UNSAVED - SD unavailable");
+    if(report || !result) dndolphins_set_status(app, result ? "Saved" : "UNSAVED - SD unavailable");
     return result;
 }
 
@@ -1442,13 +1446,14 @@ static bool dndolphins_save(PocketD20App* app, bool report) {
     bool spellbook_changed = app->spellbook_loaded &&
                              dndolphins_spellbook_fingerprint(&app->data.character) !=
                                  app->saved_spellbook_fingerprint;
-    bool items_changed = app->items_loaded && dndolphins_items_fingerprint(&app->data.character) !=
-                                                  app->saved_items_fingerprint;
+    bool items_changed = app->items_loaded &&
+                         dndolphins_items_fingerprint(&app->data.character) !=
+                             app->saved_items_fingerprint;
     bool features_changed = app->features_loaded &&
                             dndolphins_features_fingerprint(&app->data.character) !=
                                 app->saved_features_fingerprint;
-    if(!app->storage_unsaved && fingerprint == app->saved_fingerprint && !spellbook_changed &&
-       !items_changed && !features_changed) {
+    if(!app->storage_unsaved && fingerprint == app->saved_fingerprint &&
+       !spellbook_changed && !items_changed && !features_changed) {
         if(app->autosave_timer) furi_timer_stop(app->autosave_timer);
         app->autosave_pending = 0U;
         return true;
@@ -1468,13 +1473,12 @@ static uint16_t dndolphins_profile_count(const PocketD20App* app) {
     return app->profiles.count;
 }
 
-static const PocketProfileEntry*
-    dndolphins_profile_entry_at(PocketD20App* app, uint16_t list_index) {
+static const PocketProfileEntry* dndolphins_profile_entry_at(PocketD20App* app, uint16_t list_index) {
     return dnd_storage_profiles_entry_at(app->storage, &app->profiles, list_index);
 }
 
-static const PocketProfileEntry*
-    dndolphins_profile_entry_cached_at(const PocketD20App* app, uint16_t list_index) {
+static const PocketProfileEntry* dndolphins_profile_entry_cached_at(
+    const PocketD20App* app, uint16_t list_index) {
     if(!app || list_index >= app->profiles.count || !app->profiles.cache_count ||
        list_index < app->profiles.cache_start ||
        list_index >= (uint16_t)(app->profiles.cache_start + app->profiles.cache_count))
@@ -1496,8 +1500,7 @@ static bool dndolphins_profile_include_active(PocketD20App* app) {
        app->profiles.active_entry.id == app->profiles.active_profile)
         return true;
     PocketProfileEntry entry;
-    if(!dnd_storage_profiles_find(app->storage, app->profiles.active_profile, &entry))
-        return false;
+    if(!dnd_storage_profiles_find(app->storage, app->profiles.active_profile, &entry)) return false;
     app->profiles.active_entry = entry;
     app->profiles.active_entry_valid = 1U;
     return true;
@@ -1530,8 +1533,7 @@ static void dndolphins_enter_screen(PocketD20App* app, PocketScreen screen) {
     if(previous == PocketScreenHome && screen != PocketScreenHome)
         app->home_return_selection = app->selection;
     /* Reclaim screen-local working memory before a pending save allocates file objects/buffers. */
-    if(previous == PocketScreenCatalog && screen != PocketScreenCatalog)
-        dndolphins_catalog_release(app);
+    if(previous == PocketScreenCatalog && screen != PocketScreenCatalog) dndolphins_catalog_release(app);
     if(previous != screen && app->autosave_pending) dndolphins_flush_save(app, false);
 
     bool needs_spellbook = dndolphins_screen_uses_spellbook(app, screen);
@@ -1586,7 +1588,8 @@ static void dndolphins_enter_screen(PocketD20App* app, PocketScreen screen) {
         dndolphins_prepare_combat_weapon_rows(app);
     if(screen == PocketScreenProfiles) {
         uint16_t count = dndolphins_profile_count(app);
-        if(count) (void)dnd_storage_profiles_window(app->storage, &app->profiles, 0U);
+        if(count)
+            (void)dnd_storage_profiles_window(app->storage, &app->profiles, 0U);
     }
     dndolphins_clear_action_ack(app);
     app->edit_modifier_mode = 0U;
@@ -1632,7 +1635,8 @@ static void dndolphins_switch_profile(PocketD20App* app, uint32_t profile) {
     app->profiles.active_profile = profile;
     app->arcane_recovery_active = 0U;
     bool recovered_backup = false;
-    bool loaded = dnd_storage_load_profile(app->storage, profile, &app->data, &recovered_backup);
+    bool loaded =
+        dnd_storage_load_profile(app->storage, profile, &app->data, &recovered_backup);
     app->active_profile_loaded = loaded ? 1U : 0U;
     bool character_ready = loaded;
     if(loaded && recovered_backup)
@@ -1643,11 +1647,13 @@ static void dndolphins_switch_profile(PocketD20App* app, uint32_t profile) {
            damaged profiles can never expose/save a synthetic New Hero over it. */
         bool previous_recovered = false;
         app->profiles.active_profile = previous_profile;
-        app->active_profile_loaded =
-            dnd_storage_load_profile(
-                app->storage, previous_profile, &app->data, &previous_recovered) ?
-                1U :
-                0U;
+        app->active_profile_loaded = dnd_storage_load_profile(
+                                         app->storage,
+                                         previous_profile,
+                                         &app->data,
+                                         &previous_recovered) ?
+                                         1U :
+                                         0U;
         if(app->active_profile_loaded && previous_recovered)
             dnd_storage_restore_backup(app->storage, previous_profile, &app->data);
         app->storage_unsaved = 0U;
@@ -1713,8 +1719,8 @@ static void dndolphins_create_profile(PocketD20App* app) {
         dnd_storage_delete_profile(app->storage, profile);
         bool recovered = false;
         app->profiles.active_profile = previous_profile;
-        app->active_profile_loaded =
-            dnd_storage_load_profile(app->storage, previous_profile, &app->data, &recovered);
+        app->active_profile_loaded = dnd_storage_load_profile(
+            app->storage, previous_profile, &app->data, &recovered);
         dnd_storage_profiles_refresh(app->storage, &app->profiles);
         dndolphins_profile_include_active(app);
         app->saved_fingerprint = dndolphins_data_fingerprint(&app->data);
@@ -1747,8 +1753,7 @@ static void dndolphins_create_profile(PocketD20App* app) {
     if(character_saved && metadata_saved)
         app->saved_fingerprint = dndolphins_data_fingerprint(&app->data);
     dndolphins_enter_screen(app, PocketScreenCharacter);
-    dndolphins_set_status(
-        app, character_saved && metadata_saved ? "New character" : "Save failed");
+    dndolphins_set_status(app, character_saved && metadata_saved ? "New character" : "Save failed");
 }
 
 static bool dndolphins_delete_profile(PocketD20App* app, uint32_t profile) {
@@ -1790,8 +1795,8 @@ static bool dndolphins_delete_profile(PocketD20App* app, uint32_t profile) {
        dnd_storage_profiles_find(app->storage, replacement.id, NULL)) {
         app->profiles.active_profile = replacement.id;
         bool recovered_backup = false;
-        bool loaded =
-            dnd_storage_load_profile(app->storage, replacement.id, &app->data, &recovered_backup);
+        bool loaded = dnd_storage_load_profile(
+            app->storage, replacement.id, &app->data, &recovered_backup);
         app->active_profile_loaded = loaded ? 1U : 0U;
         if(loaded && recovered_backup)
             loaded = dnd_storage_restore_backup(app->storage, replacement.id, &app->data);
@@ -1873,10 +1878,10 @@ static const char* dndolphins_proficiency_mark(uint8_t proficiency) {
     return "-";
 }
 
+
 static uint8_t dndolphins_cycle_die(uint8_t current, int8_t delta, bool damage_only) {
     const uint8_t* choices = damage_only ? dndolphins_damage_die_choices : dndolphins_die_choices;
-    uint8_t count = damage_only ? sizeof(dndolphins_damage_die_choices) :
-                                  sizeof(dndolphins_die_choices);
+    uint8_t count = damage_only ? sizeof(dndolphins_damage_die_choices) : sizeof(dndolphins_die_choices);
     uint8_t index = 0U;
     for(uint8_t i = 0U; i < count; ++i) {
         if(choices[i] == current) {
@@ -1934,15 +1939,17 @@ static bool
     return selected_class && (class_mask & selected_class);
 }
 
+
 static bool dndolphins_feat_is_repeatable(const char* name) {
     return name && (!strcmp(name, "Ability Score Improvement") ||
-                    !strcmp(name, "Magic Initiate") || !strcmp(name, "Skilled"));
+                    !strcmp(name, "Magic Initiate") ||
+                    !strcmp(name, "Skilled"));
 }
 
 static bool dndolphins_feat_is_fighting_style(const char* name) {
-    return name &&
-           (!strcmp(name, "Archery") || !strcmp(name, "Defense") ||
-            !strcmp(name, "Great Weapon Fighting") || !strcmp(name, "Two-Weapon Fighting"));
+    return name && (!strcmp(name, "Archery") || !strcmp(name, "Defense") ||
+                    !strcmp(name, "Great Weapon Fighting") ||
+                    !strcmp(name, "Two-Weapon Fighting"));
 }
 
 static bool dndolphins_feat_is_epic_boon(const char* name) {
@@ -1985,8 +1992,9 @@ static bool dndolphins_feat_allowed(PocketD20App* app, const char* name) {
         allowed = total_level >= 4U;
     } else if(!strcmp(name, "Grappler")) {
         recognized = true;
-        allowed = total_level >= 4U && (c->ability_scores[PocketAbilityStrength] >= 13 ||
-                                        c->ability_scores[PocketAbilityDexterity] >= 13);
+        allowed = total_level >= 4U &&
+                  (c->ability_scores[PocketAbilityStrength] >= 13 ||
+                   c->ability_scores[PocketAbilityDexterity] >= 13);
     } else if(dndolphins_feat_is_fighting_style(name)) {
         recognized = true;
         allowed = dndolphins_character_has_fighting_style_feature(c);
@@ -1995,9 +2003,8 @@ static bool dndolphins_feat_allowed(PocketD20App* app, const char* name) {
         allowed = total_level >= 19U;
         if(allowed && !strcmp(name, "Boon of Spell Recall"))
             allowed = dndolphins_character_has_spellcasting_feature(c);
-    } else if(
-        !strcmp(name, "Alert") || !strcmp(name, "Magic Initiate") ||
-        !strcmp(name, "Savage Attacker") || !strcmp(name, "Skilled")) {
+    } else if(!strcmp(name, "Alert") || !strcmp(name, "Magic Initiate") ||
+              !strcmp(name, "Savage Attacker") || !strcmp(name, "Skilled")) {
         recognized = true;
         allowed = true;
     }
@@ -2037,6 +2044,7 @@ static const char* dndolphins_catalog_title(const PocketD20App* app) {
     }
 }
 
+
 static bool dndolphins_catalog_add_metadata(
     PocketD20App* app,
     const char* name,
@@ -2053,7 +2061,8 @@ static bool dndolphins_catalog_add_metadata(
     if(app->catalog_kind == PocketCatalogFeats && app->level_choice_mode == 3U &&
        !strcmp(name, "Ability Score Improvement"))
         return true;
-    if(app->catalog_kind == PocketCatalogFeats && !dndolphins_feat_allowed(app, name)) return true;
+    if(app->catalog_kind == PocketCatalogFeats && !dndolphins_feat_allowed(app, name))
+        return true;
     if(!name[0]) return false;
     uint16_t page_limit = dndolphins_catalog_page_limit(app);
     uint16_t absolute_index = app->catalog_scan_count++;
@@ -2086,6 +2095,7 @@ static bool dndolphins_catalog_add_metadata(
     return true;
 }
 
+
 static bool dndolphins_catalog_page_complete(const PocketD20App* app) {
     return app->catalog_scan_count > app->catalog_page_start + dndolphins_catalog_page_limit(app);
 }
@@ -2093,6 +2103,9 @@ static bool dndolphins_catalog_page_complete(const PocketD20App* app) {
 static bool dndolphins_catalog_add(PocketD20App* app, const char* name) {
     return dndolphins_catalog_add_metadata(app, name, 0U, 0U, false);
 }
+
+
+
 
 static void dndolphins_catalog_add_builtins(PocketD20App* app, PocketCatalogKind kind) {
     const char* const* entries = NULL;
@@ -2222,6 +2235,7 @@ static uint8_t dndolphins_grant_source_from_text(const char* text) {
     return PocketGrantSourceCount;
 }
 
+
 static uint8_t dndolphins_split_metadata(char* line, char* fields[8]) {
     uint8_t count = 0U;
     char* cursor = line;
@@ -2235,31 +2249,25 @@ static uint8_t dndolphins_split_metadata(char* line, char* fields[8]) {
     return count;
 }
 
+
+
 static bool dndolphins_class_asi_level(const char* class_name, uint8_t level) {
     if(level == 4U || level == 8U || level == 12U || level == 16U || level == 19U) return true;
-    if(class_name && strcmp(class_name, "Fighter") == 0 && (level == 6U || level == 14U))
-        return true;
+    if(class_name && strcmp(class_name, "Fighter") == 0 && (level == 6U || level == 14U)) return true;
     if(class_name && strcmp(class_name, "Rogue") == 0 && level == 10U) return true;
     return false;
 }
 
-static void dndolphins_level_choice_id(
-    char* out,
-    size_t size,
-    const PocketCharacter* c,
-    uint8_t class_index,
-    uint8_t level) {
+static void dndolphins_level_choice_id(char* out, size_t size, const PocketCharacter* c, uint8_t class_index, uint8_t level) {
     const char* name = class_index < c->class_count ? c->classes[class_index].name : "class";
     snprintf(out, size, "asi_%.12s_%u", name, level);
-    for(char* p = out; *p; ++p)
-        if(*p == ' ') *p = '_';
+    for(char* p = out; *p; ++p) if(*p == ' ') *p = '_';
 }
 
 static bool dndolphins_level_choice_done(PocketD20App* app, uint8_t class_index, uint8_t level) {
     char id[POCKET_D20_SHORT_LEN];
     dndolphins_level_choice_id(id, sizeof(id), &app->data.character, class_index, level);
-    return dndolphins_progression_store_applied_exists(
-        app->storage, app->profiles.active_profile, id);
+    return dndolphins_progression_store_applied_exists(app->storage, app->profiles.active_profile, id);
 }
 
 static bool dndolphins_begin_next_level_choice(PocketD20App* app) {
@@ -2271,8 +2279,7 @@ static bool dndolphins_begin_next_level_choice(PocketD20App* app) {
     app->level_choice_first_score = 0;
     for(uint8_t ci = 0U; ci < c->class_count; ++ci) {
         for(uint8_t level = 1U; level <= c->classes[ci].level; ++level) {
-            if(dndolphins_class_asi_level(c->classes[ci].name, level) &&
-               !dndolphins_level_choice_done(app, ci, level)) {
+            if(dndolphins_class_asi_level(c->classes[ci].name, level) && !dndolphins_level_choice_done(app, ci, level)) {
                 app->level_choice_class_index = ci;
                 app->level_choice_level = level;
                 app->level_choice_mode = 0U;
@@ -2307,8 +2314,8 @@ static void dndolphins_begin_level_review(
     app->level_review_new_prepared = class_level->prepared_limit;
     app->level_review_slots_changed =
         memcmp(old_slots, character->spell_slots_max, POCKET_D20_SLOT_COUNT) != 0;
-    app->level_review_choose_spells = class_level->cantrip_limit > old_cantrips ||
-                                      class_level->prepared_limit > old_prepared;
+    app->level_review_choose_spells =
+        class_level->cantrip_limit > old_cantrips || class_level->prepared_limit > old_prepared;
     app->level_review_pending_choice = dndolphins_begin_next_level_choice(app) ? 1U : 0U;
     app->return_screen = PocketScreenRecordDetail;
     dndolphins_enter_screen(app, PocketScreenLevelReview);
@@ -2320,10 +2327,8 @@ static bool dndolphins_complete_level_choice(PocketD20App* app, const char* resu
     (void)result;
     PocketCharacter* c = &app->data.character;
     char id[POCKET_D20_SHORT_LEN];
-    dndolphins_level_choice_id(
-        id, sizeof(id), c, app->level_choice_class_index, app->level_choice_level);
-    return dndolphins_progression_store_mark_applied(
-        app->storage, app->profiles.active_profile, id);
+    dndolphins_level_choice_id(id, sizeof(id), c, app->level_choice_class_index, app->level_choice_level);
+    return dndolphins_progression_store_mark_applied(app->storage, app->profiles.active_profile, id);
 }
 
 typedef struct {
@@ -2371,12 +2376,10 @@ static bool dndolphins_csv_contains(const char* csv, const char* value) {
     const size_t value_len = strlen(value);
     const char* cursor = csv;
     while(*cursor) {
-        while(*cursor == ' ' || *cursor == ',')
-            ++cursor;
+        while(*cursor == ' ' || *cursor == ',') ++cursor;
         const char* end = strchr(cursor, ',');
         size_t len = end ? (size_t)(end - cursor) : strlen(cursor);
-        while(len && cursor[len - 1U] == ' ')
-            --len;
+        while(len && cursor[len - 1U] == ' ') --len;
         if(len == value_len && strncmp(cursor, value, len) == 0) return true;
         if(!end) break;
         cursor = end + 1U;
@@ -2422,9 +2425,7 @@ static bool dndolphins_grant_payload_satisfied(PocketD20App* app, const char* gr
 }
 
 static bool dndolphins_grant_stable_id_exists(
-    PocketD20App* app,
-    const char* stable_id,
-    const char* grant_value) {
+    PocketD20App* app, const char* stable_id, const char* grant_value) {
     PocketCharacter* character = &app->data.character;
     if(!stable_id || !stable_id[0]) return false;
     for(uint8_t i = 0U; i < character->grant_count; ++i)
@@ -2440,10 +2441,7 @@ static bool dndolphins_grant_stable_id_exists(
 }
 
 static uint8_t dndolphins_stage_grants_up_to(
-    PocketD20App* app,
-    uint8_t source_type,
-    const char* option,
-    uint8_t maximum_level) {
+    PocketD20App* app, uint8_t source_type, const char* option, uint8_t maximum_level) {
     PocketCharacter* character = &app->data.character;
     File* file = storage_file_alloc(app->storage);
     if(!file) return 0U;
@@ -2479,12 +2477,9 @@ static uint8_t dndolphins_stage_grants_up_to(
             uint32_t level_gained = 0U;
             if(!dndolphins_parse_u32_strict(fields[5], UINT8_MAX, &level_gained)) continue;
             if(level_gained > maximum_level) continue;
-            if(source_type == PocketGrantClassFeature ||
-               source_type == PocketGrantSubclassFeature) {
-                uint8_t class_index =
-                    app->record_index < character->class_count ? app->record_index : 0U;
-                if(level_gained == 0U || level_gained > character->classes[class_index].level)
-                    continue;
+            if(source_type == PocketGrantClassFeature || source_type == PocketGrantSubclassFeature) {
+                uint8_t class_index = app->record_index < character->class_count ? app->record_index : 0U;
+                if(level_gained == 0U || level_gained > character->classes[class_index].level) continue;
             } else if(source_type == PocketGrantSpecies) {
                 uint8_t total_level = dnd_rules_core_total_level(character);
                 if(total_level < 1U) total_level = 1U;
@@ -2499,9 +2494,8 @@ static uint8_t dndolphins_stage_grants_up_to(
             dndolphins_copy(grant->prerequisites, sizeof(grant->prerequisites), fields[4]);
             dndolphins_copy(grant->grant_value, sizeof(grant->grant_value), fields[7]);
             grant->source_type = source_type;
-            grant->class_index = source_type == PocketGrantSpecies          ? 0U :
-                                 app->record_index < character->class_count ? app->record_index :
-                                                                              0U;
+            grant->class_index = source_type == PocketGrantSpecies ? 0U :
+                                 app->record_index < character->class_count ? app->record_index : 0U;
             grant->level_gained = (uint8_t)level_gained;
             grant->status = PocketGrantPending;
             ++staged;
@@ -2512,8 +2506,8 @@ static uint8_t dndolphins_stage_grants_up_to(
     return staged;
 }
 
-static uint8_t
-    dndolphins_stage_grants(PocketD20App* app, uint8_t source_type, const char* option) {
+static uint8_t dndolphins_stage_grants(
+    PocketD20App* app, uint8_t source_type, const char* option) {
     return dndolphins_stage_grants_up_to(app, source_type, option, UINT8_MAX);
 }
 
@@ -2522,12 +2516,10 @@ static void dndolphins_append_csv_unique(char* destination, size_t size, const c
     const size_t value_len = strlen(value);
     const char* cursor = destination;
     while(*cursor) {
-        while(*cursor == ' ' || *cursor == ',')
-            ++cursor;
+        while(*cursor == ' ' || *cursor == ',') ++cursor;
         const char* end = strchr(cursor, ',');
         size_t len = end ? (size_t)(end - cursor) : strlen(cursor);
-        while(len && cursor[len - 1U] == ' ')
-            --len;
+        while(len && cursor[len - 1U] == ' ') --len;
         if(len == value_len && strncmp(cursor, value, len) == 0) return;
         if(!end) break;
         cursor = end + 1U;
@@ -2543,14 +2535,10 @@ static void dndolphins_append_csv_unique(char* destination, size_t size, const c
     memcpy(destination + used, value, value_len + 1U);
 }
 
-static bool dndolphins_lookup_bundled_spell_level(
-    PocketD20App* app,
-    const char* spell_name,
-    uint8_t* level_out) {
+static bool dndolphins_lookup_bundled_spell_level(PocketD20App* app, const char* spell_name, uint8_t* level_out) {
     if(!app || !spell_name || !spell_name[0] || !level_out) return false;
     File* file = storage_file_alloc(app->storage);
-    if(!file ||
-       !storage_file_open(
+    if(!file || !storage_file_open(
            file, dndolphins_progression_spell_metadata_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         if(file) storage_file_free(file);
         return false;
@@ -2604,8 +2592,7 @@ static void dndolphins_apply_grant(PocketD20App* app, PocketGrant* grant) {
         dndolphins_copy(character->origin_feat, sizeof(character->origin_feat), value);
         applied = true;
     } else if(strcmp(payload, "tool") == 0) {
-        dndolphins_copy(
-            character->tool_proficiencies, sizeof(character->tool_proficiencies), value);
+        dndolphins_copy(character->tool_proficiencies, sizeof(character->tool_proficiencies), value);
         applied = true;
     } else if(strcmp(payload, "armor") == 0) {
         dndolphins_copy(character->armor_training, sizeof(character->armor_training), value);
@@ -2625,8 +2612,7 @@ static void dndolphins_apply_grant(PocketD20App* app, PocketGrant* grant) {
             }
         }
     } else if(strcmp(payload, "resistance") == 0) {
-        dndolphins_append_csv_unique(
-            character->resistances, sizeof(character->resistances), value);
+        dndolphins_append_csv_unique(character->resistances, sizeof(character->resistances), value);
         applied = true;
     } else if(strcmp(payload, "speed") == 0) {
         uint32_t speed = 0U;
@@ -2656,8 +2642,7 @@ static void dndolphins_apply_grant(PocketD20App* app, PocketGrant* grant) {
             app->storage, app->profiles.active_profile, &feature);
         if(applied) {
             uint8_t total = 0U;
-            if(dndolphins_progression_store_features_count(
-                   app->storage, app->profiles.active_profile, &total))
+            if(dndolphins_progression_store_features_count(app->storage, app->profiles.active_profile, &total))
                 app->features_total = total;
         }
     } else if(strcmp(payload, "spell") == 0) {
@@ -2769,10 +2754,7 @@ static bool dndolphins_stage_character_grant_line(
 }
 
 static bool dndolphins_stage_character_grants(
-    PocketD20App* app,
-    uint8_t maximum_level,
-    bool include_background,
-    uint8_t* staged_out) {
+    PocketD20App* app, uint8_t maximum_level, bool include_background, uint8_t* staged_out) {
     if(!app) return false;
     if(app->features_loaded && !dndolphins_release_features(app)) return false;
     dndolphins_release_pending_grants(app);
@@ -2826,8 +2808,8 @@ static bool dndolphins_stage_character_grants(
     return ok;
 }
 
-static void
-    dndolphins_apply_pending_grants(PocketD20App* app, uint8_t* applied_out, uint8_t* failed_out) {
+static void dndolphins_apply_pending_grants(
+    PocketD20App* app, uint8_t* applied_out, uint8_t* failed_out) {
     uint8_t applied = 0U;
     uint8_t failed = 0U;
     PocketCharacter* character = &app->data.character;
@@ -2859,7 +2841,8 @@ static bool dndolphins_apply_character_grants(
        exceed POCKET_D20_MAX_GRANTS without requiring repeated menu presses. */
     for(uint8_t batch = 0U; batch < 8U; ++batch) {
         uint8_t staged = 0U;
-        if(!dndolphins_stage_character_grants(app, maximum_level, include_background, &staged))
+        if(!dndolphins_stage_character_grants(
+               app, maximum_level, include_background, &staged))
             return false;
         if(!staged) {
             dndolphins_release_pending_grants(app);
@@ -2881,6 +2864,7 @@ static bool dndolphins_apply_character_grants(
     if(had_candidates_out) *had_candidates_out = had_candidates;
     return true;
 }
+
 
 static void dndolphins_catalog_load_page(PocketD20App* app) {
     PocketCatalogKind kind = app->catalog_kind;
@@ -2997,32 +2981,23 @@ static void dndolphins_draw_menu_rows(
 static uint8_t dndolphins_list_count(const PocketD20App* app) {
     const PocketCharacter* character = &app->data.character;
     switch(app->list_kind) {
-    case PocketListClasses:
-        return character->class_count;
-    case PocketListFeatures:
-        return app->features_total;
-    case PocketListLanguages:
-        return character->language_count;
-    default:
-        return 0U;
+    case PocketListClasses: return character->class_count;
+    case PocketListFeatures: return app->features_total;
+    case PocketListLanguages: return character->language_count;
+    default: return 0U;
     }
 }
 
 static const char* dndolphins_list_title(PocketListKind kind) {
     switch(kind) {
-    case PocketListClasses:
-        return "Classes";
-    case PocketListFeatures:
-        return "Features / Perks";
-    case PocketListLanguages:
-        return "Languages";
-    default:
-        return "List";
+    case PocketListClasses: return "Classes";
+    case PocketListFeatures: return "Features / Perks";
+    case PocketListLanguages: return "Languages";
+    default: return "List";
     }
 }
 
-static void
-    dndolphins_format_list_entry(PocketD20App* app, uint8_t index, char* output, size_t size) {
+static void dndolphins_format_list_entry(PocketD20App* app, uint8_t index, char* output, size_t size) {
     PocketCharacter* character = &app->data.character;
     switch(app->list_kind) {
     case PocketListClasses: {
@@ -3032,10 +3007,8 @@ static void
     }
     case PocketListFeatures: {
         PocketFeature* feature = dndolphins_feature_at_cached(app, index, NULL);
-        if(!feature)
-            dndolphins_copy(output, size, "<read error>");
-        else
-            dndolphins_format_labeled_text(output, size, NULL, feature->name);
+        if(!feature) dndolphins_copy(output, size, "<read error>");
+        else dndolphins_format_labeled_text(output, size, NULL, feature->name);
         break;
     }
     case PocketListLanguages:
@@ -3113,14 +3086,10 @@ static void dndolphins_prepare_combat_weapon_rows(PocketD20App* app) {
 
 static uint8_t dndolphins_record_detail_count(const PocketD20App* app) {
     switch(app->list_kind) {
-    case PocketListClasses:
-        return 18U;
-    case PocketListFeatures:
-        return 10U;
-    case PocketListLanguages:
-        return 2U;
-    default:
-        return 0U;
+    case PocketListClasses: return 18U;
+    case PocketListFeatures: return 10U;
+    case PocketListLanguages: return 2U;
+    default: return 0U;
     }
 }
 
@@ -3159,19 +3128,13 @@ static void dndolphins_begin_text(
     text_input_reset(app->text_input);
     text_input_set_header_text(app->text_input, header);
     text_input_set_result_callback(
-        app->text_input,
-        dndolphins_text_done,
-        app,
-        app->edit_buffer,
-        sizeof(app->edit_buffer),
-        false);
+        app->text_input, dndolphins_text_done, app, app->edit_buffer, sizeof(app->edit_buffer), false);
     view_dispatcher_switch_to_view(app->dispatcher, PocketViewTextInput);
 }
 
 static uint8_t dndolphins_nearest_die(int32_t number, bool damage_only) {
     const uint8_t* choices = damage_only ? dndolphins_damage_die_choices : dndolphins_die_choices;
-    uint8_t count = damage_only ? sizeof(dndolphins_damage_die_choices) :
-                                  sizeof(dndolphins_die_choices);
+    uint8_t count = damage_only ? sizeof(dndolphins_damage_die_choices) : sizeof(dndolphins_die_choices);
     uint8_t best = choices[0];
     int32_t best_distance = abs(number - best);
     for(uint8_t i = 1U; i < count; ++i) {
@@ -3437,8 +3400,7 @@ static void dndolphins_draw_home(Canvas* canvas, PocketD20App* app) {
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         uint16_t index = app->scroll + visible;
         if(index >= count) break;
-        dndolphins_draw_row(
-            canvas, visible, index == app->selection, dndolphins_home_item_at(index));
+        dndolphins_draw_row(canvas, visible, index == app->selection, dndolphins_home_item_at(index));
     }
 }
 
@@ -3537,10 +3499,7 @@ static void dndolphins_draw_vitals(Canvas* canvas, PocketD20App* app) {
     else
         snprintf(rows[4], sizeof(rows[4]), "Speed: %d ft", character->speed);
     snprintf(
-        rows[5],
-        sizeof(rows[5]),
-        "Initiative: %+d",
-        dndolphins_rules_character_initiative_modifier(character));
+        rows[5], sizeof(rows[5]), "Initiative: %+d", dndolphins_rules_character_initiative_modifier(character));
     snprintf(rows[6], sizeof(rows[6]), "Initiative misc: %+d", character->initiative_misc);
     snprintf(rows[7], sizeof(rows[7]), "Exhaustion: %u", character->exhaustion);
     snprintf(rows[8], sizeof(rows[8]), "Death saves: %u/%u", character->death_successes, 3U);
@@ -3639,6 +3598,7 @@ static void dndolphins_draw_skills(Canvas* canvas, PocketD20App* app) {
     }
 }
 
+
 static void dndolphins_draw_grant_review(Canvas* canvas, PocketD20App* app) {
     const PocketCharacter* c = &app->data.character;
     dndolphins_draw_header(canvas, "Review grants before apply", app->status);
@@ -3665,8 +3625,7 @@ static void dndolphins_draw_grant_review(Canvas* canvas, PocketD20App* app) {
 static void dndolphins_draw_level_review(Canvas* canvas, PocketD20App* app) {
     const PocketCharacter* character = &app->data.character;
     const char* class_name = app->level_review_class_index < character->class_count ?
-                                 character->classes[app->level_review_class_index].name :
-                                 "Class";
+                                 character->classes[app->level_review_class_index].name : "Class";
     char title[48];
     snprintf(
         title,
@@ -3692,11 +3651,7 @@ static void dndolphins_draw_level_review(Canvas* canvas, PocketD20App* app) {
         app->level_review_new_cantrips,
         app->level_review_old_prepared,
         app->level_review_new_prepared);
-    snprintf(
-        rows[2],
-        sizeof(rows[2]),
-        "Spell slots: %s",
-        app->level_review_slots_changed ? "updated" : "unchanged");
+    snprintf(rows[2], sizeof(rows[2]), "Spell slots: %s", app->level_review_slots_changed ? "updated" : "unchanged");
     snprintf(rows[3], sizeof(rows[3]), "HP/HD advanced; use Apply Level Grants");
     if(app->level_review_pending_choice && app->level_review_choose_spells)
         dndolphins_copy(rows[4], sizeof(rows[4]), "Pending: spells + ASI/Feat");
@@ -3720,12 +3675,10 @@ static void dndolphins_draw_level_choice(Canvas* canvas, PocketD20App* app) {
     char title[48];
     const PocketCharacter* c = &app->data.character;
     const char* class_name = app->level_choice_class_index < c->class_count ?
-                                 c->classes[app->level_choice_class_index].name :
-                                 "Class";
+                                 c->classes[app->level_choice_class_index].name : "Class";
     snprintf(title, sizeof(title), "%.18s L%u choice", class_name, app->level_choice_level);
     dndolphins_draw_header(canvas, title, app->status);
-    static const char* const rows[] = {
-        "ASI +2 one ability", "ASI +1 two abilities", "Choose Feat", "Later"};
+    static const char* const rows[] = {"ASI +2 one ability", "ASI +1 two abilities", "Choose Feat", "Later"};
     dndolphins_draw_menu_rows(canvas, app, rows, 4U);
 }
 
@@ -3734,20 +3687,11 @@ static void dndolphins_draw_asi_ability(Canvas* canvas, PocketD20App* app) {
     char rows[POCKET_D20_ABILITY_COUNT][32];
     const char* ptrs[POCKET_D20_ABILITY_COUNT];
     for(uint8_t i = 0U; i < POCKET_D20_ABILITY_COUNT; ++i) {
-        snprintf(
-            rows[i],
-            sizeof(rows[i]),
-            "%s: %d",
-            dnd_rules_core_ability_names[i],
-            c->ability_scores[i]);
+        snprintf(rows[i], sizeof(rows[i]), "%s: %d", dnd_rules_core_ability_names[i], c->ability_scores[i]);
         ptrs[i] = rows[i];
     }
-    dndolphins_draw_header(
-        canvas,
-        app->level_choice_mode == 1U                               ? "ASI +2: choose ability" :
-        app->level_choice_first_ability < POCKET_D20_ABILITY_COUNT ? "ASI +1: second ability" :
-                                                                     "ASI +1: first ability",
-        app->status);
+    dndolphins_draw_header(canvas, app->level_choice_mode == 1U ? "ASI +2: choose ability" :
+                               app->level_choice_first_ability < POCKET_D20_ABILITY_COUNT ? "ASI +1: second ability" : "ASI +1: first ability", app->status);
     dndolphins_draw_menu_rows(canvas, app, ptrs, POCKET_D20_ABILITY_COUNT);
 }
 
@@ -3794,6 +3738,10 @@ static void dndolphins_draw_grant_edit(Canvas* canvas, PocketD20App* app) {
     dndolphins_draw_menu_rows(canvas, app, rows, 10U);
 }
 
+
+
+
+
 static void dndolphins_draw_attack_templates(Canvas* canvas, PocketD20App* app) {
     const PocketCharacter* c = &app->data.character;
     dndolphins_draw_header(canvas, "Attack Templates: OK roll", app->status);
@@ -3824,8 +3772,7 @@ static void dndolphins_draw_attack_template_edit(Canvas* canvas, PocketD20App* a
     char type[32], ability[32], save[32], attack_misc[24], dc[24], damage_dice[24], damage_die[24],
         rider_dice[24], rider_die[24], recharge[32];
     snprintf(type, sizeof(type), "Type: %s", dndolphins_attack_template_type_names[attack->type]);
-    snprintf(
-        ability, sizeof(ability), "Ability: %s", dnd_rules_core_ability_names[attack->ability]);
+    snprintf(ability, sizeof(ability), "Ability: %s", dnd_rules_core_ability_names[attack->ability]);
     snprintf(save, sizeof(save), "Save: %s", dnd_rules_core_ability_names[attack->save_ability]);
     snprintf(attack_misc, sizeof(attack_misc), "Attack misc: %+d", attack->attack_misc);
     snprintf(dc, sizeof(dc), "Save DC: %u", attack->save_dc);
@@ -3833,8 +3780,7 @@ static void dndolphins_draw_attack_template_edit(Canvas* canvas, PocketD20App* a
     snprintf(damage_die, sizeof(damage_die), "Damage die: d%u", attack->damage_die);
     snprintf(rider_dice, sizeof(rider_dice), "Rider dice: %u", attack->rider_dice);
     snprintf(rider_die, sizeof(rider_die), "Rider die: d%u", attack->rider_die);
-    snprintf(
-        recharge, sizeof(recharge), "Recharge: %s", dndolphins_recharge_names[attack->recharge]);
+    snprintf(recharge, sizeof(recharge), "Recharge: %s", dndolphins_recharge_names[attack->recharge]);
     const char* rows[] = {
         attack->name,
         type,
@@ -3906,12 +3852,12 @@ static void dndolphins_draw_magic(Canvas* canvas, PocketD20App* app) {
     dndolphins_draw_menu_rows(canvas, app, row_ptrs, 16U);
 }
 
+
 static void dndolphins_draw_catalog(Canvas* canvas, PocketD20App* app) {
     char page[24];
     uint16_t page_number = app->catalog_page_start / dndolphins_catalog_page_limit(app) + 1U;
     snprintf(page, sizeof(page), "Page %u%s <>", page_number, app->catalog_has_more ? "+" : "");
-    dndolphins_draw_header(
-        canvas, dndolphins_catalog_title(app), app->status[0] ? app->status : page);
+    dndolphins_draw_header(canvas, dndolphins_catalog_title(app), app->status[0] ? app->status : page);
     if(app->catalog_count == 0U) {
         dndolphins_draw_row(canvas, 0U, false, "Catalog is empty");
         return;
@@ -3920,7 +3866,7 @@ static void dndolphins_draw_catalog(Canvas* canvas, PocketD20App* app) {
         uint16_t index = app->scroll + visible;
         if(index >= app->catalog_count) break;
         char row[48];
-        dndolphins_copy(row, sizeof(row), app->catalog_entries[index]);
+            dndolphins_copy(row, sizeof(row), app->catalog_entries[index]);
         dndolphins_draw_row(canvas, visible, index == app->selection, row);
     }
 }
@@ -3944,108 +3890,47 @@ static void dndolphins_draw_record_list(Canvas* canvas, PocketD20App* app) {
     }
 }
 
-static void
-    dndolphins_format_record_detail(PocketD20App* app, uint8_t field, char* output, size_t size) {
+static void dndolphins_format_record_detail(PocketD20App* app, uint8_t field, char* output, size_t size) {
     PocketCharacter* character = &app->data.character;
     uint8_t index = app->record_index;
     if(app->list_kind == PocketListClasses) {
         const PocketClassLevel* c = &character->classes[index];
-        if(field == 0U)
-            dndolphins_format_labeled_text(output, size, "Name: ", c->name);
-        else if(field == 1U)
-            dndolphins_format_labeled_text(output, size, "Subclass: ", c->subclass);
-        else if(field == 2U)
-            snprintf(output, size, "Class level: %u", c->level);
-        else if(field == 3U)
-            snprintf(output, size, "Hit Point Die: d%u", c->hit_die);
-        else if(field == 4U)
-            snprintf(output, size, "Class Hit Dice: %u/%u", c->hit_dice_current, c->hit_dice_max);
-        else if(field == 5U)
-            snprintf(output, size, "Class Hit Dice max: %u", c->hit_dice_max);
-        else if(field == 6U)
-            dndolphins_format_labeled_text(
-                output,
-                size,
-                "Casting mode: ",
-                dndolphins_spellcasting_mode_names[c->spellcasting_mode]);
-        else if(field == 7U)
-            dndolphins_format_labeled_text(
-                output,
-                size,
-                "Casting ability: ",
-                dnd_rules_core_ability_names[c->spellcasting_ability]);
-        else if(field == 8U)
-            snprintf(output, size, "Cantrip limit: %u", c->cantrip_limit);
-        else if(field == 9U)
-            snprintf(
-                output,
-                size,
-                "Known %u Prep %u/%u",
-                dndolphins_class_known_count_cached(app, index),
-                dndolphins_class_prepared_count_cached(app, index),
-                c->prepared_limit);
-        else if(field == 10U)
-            snprintf(output, size, "Spellbook size: %u", c->spellbook_size);
-        else if(field == 11U)
-            snprintf(output, size, "Pact slot level: %u", c->pact_slot_level);
-        else if(field == 12U)
-            snprintf(output, size, "Pact slots: %u/%u", c->pact_slots_current, c->pact_slots_max);
-        else if(field == 13U)
-            snprintf(output, size, "Pact slots max: %u", c->pact_slots_max);
-        else if(field == 14U)
-            snprintf(output, size, "Mystic Arcanum: 0x%X", c->mystic_arcanum_mask);
-        else if(field == 15U)
-            snprintf(
-                output, size, "Spell points: %u/%u", c->spell_points_current, c->spell_points_max);
-        else if(field == 16U)
-            snprintf(output, size, "Spell points max: %u", c->spell_points_max);
-        else
-            dndolphins_copy(output, size, "Delete class");
+        if(field == 0U) dndolphins_format_labeled_text(output,size,"Name: ",c->name);
+        else if(field == 1U) dndolphins_format_labeled_text(output,size,"Subclass: ",c->subclass);
+        else if(field == 2U) snprintf(output,size,"Class level: %u",c->level);
+        else if(field == 3U) snprintf(output,size,"Hit Point Die: d%u",c->hit_die);
+        else if(field == 4U) snprintf(output,size,"Class Hit Dice: %u/%u",c->hit_dice_current,c->hit_dice_max);
+        else if(field == 5U) snprintf(output,size,"Class Hit Dice max: %u",c->hit_dice_max);
+        else if(field == 6U) dndolphins_format_labeled_text(output,size,"Casting mode: ",dndolphins_spellcasting_mode_names[c->spellcasting_mode]);
+        else if(field == 7U) dndolphins_format_labeled_text(output,size,"Casting ability: ",dnd_rules_core_ability_names[c->spellcasting_ability]);
+        else if(field == 8U) snprintf(output,size,"Cantrip limit: %u",c->cantrip_limit);
+        else if(field == 9U) snprintf(output,size,"Known %u Prep %u/%u",dndolphins_class_known_count_cached(app,index),dndolphins_class_prepared_count_cached(app,index),c->prepared_limit);
+        else if(field == 10U) snprintf(output,size,"Spellbook size: %u",c->spellbook_size);
+        else if(field == 11U) snprintf(output,size,"Pact slot level: %u",c->pact_slot_level);
+        else if(field == 12U) snprintf(output,size,"Pact slots: %u/%u",c->pact_slots_current,c->pact_slots_max);
+        else if(field == 13U) snprintf(output,size,"Pact slots max: %u",c->pact_slots_max);
+        else if(field == 14U) snprintf(output,size,"Mystic Arcanum: 0x%X",c->mystic_arcanum_mask);
+        else if(field == 15U) snprintf(output,size,"Spell points: %u/%u",c->spell_points_current,c->spell_points_max);
+        else if(field == 16U) snprintf(output,size,"Spell points max: %u",c->spell_points_max);
+        else dndolphins_copy(output,size,"Delete class");
     } else if(app->list_kind == PocketListFeatures) {
-        const PocketFeature* f = dndolphins_feature_at_cached(app, index, NULL);
-        if(!f) {
-            dndolphins_copy(output, size, "Read error");
-            return;
-        }
-        const char* cn = f->class_index < character->class_count ?
-                             character->classes[f->class_index].name :
-                             "General";
-        if(field == 0U)
-            dndolphins_format_labeled_text(output, size, "Name: ", f->name);
-        else if(field == 1U)
-            dndolphins_format_labeled_text(output, size, "Notes: ", f->detail);
-        else if(field == 2U)
-            dndolphins_format_labeled_text(output, size, "Source class: ", cn);
-        else if(field == 3U)
-            snprintf(output, size, "Gained at class L%u", f->class_level_gained);
-        else if(field == 4U)
-            snprintf(output, size, "Uses: %d/%d", f->uses_current, f->uses_max);
-        else if(field == 5U)
-            snprintf(output, size, "Maximum uses: %d", f->uses_max);
-        else if(field == 6U)
-            snprintf(output, size, "Recharge: %s", dndolphins_recharge_names[f->recharge]);
-        else if(field == 7U)
-            snprintf(
-                output,
-                size,
-                "Resource formula: %s",
-                dndolphins_resource_formula_names[f->resource_formula]);
-        else if(field == 8U)
-            snprintf(
-                output,
-                size,
-                "Resource ability: %s",
-                dnd_rules_core_ability_names[f->resource_ability]);
-        else
-            dndolphins_copy(output, size, "Delete feature");
+        const PocketFeature* f = dndolphins_feature_at_cached(app,index,NULL);
+        if(!f) { dndolphins_copy(output,size,"Read error"); return; }
+        const char* cn = f->class_index < character->class_count ? character->classes[f->class_index].name : "General";
+        if(field == 0U) dndolphins_format_labeled_text(output,size,"Name: ",f->name);
+        else if(field == 1U) dndolphins_format_labeled_text(output,size,"Notes: ",f->detail);
+        else if(field == 2U) dndolphins_format_labeled_text(output,size,"Source class: ",cn);
+        else if(field == 3U) snprintf(output,size,"Gained at class L%u",f->class_level_gained);
+        else if(field == 4U) snprintf(output,size,"Uses: %d/%d",f->uses_current,f->uses_max);
+        else if(field == 5U) snprintf(output,size,"Maximum uses: %d",f->uses_max);
+        else if(field == 6U) snprintf(output,size,"Recharge: %s",dndolphins_recharge_names[f->recharge]);
+        else if(field == 7U) snprintf(output,size,"Resource formula: %s",dndolphins_resource_formula_names[f->resource_formula]);
+        else if(field == 8U) snprintf(output,size,"Resource ability: %s",dnd_rules_core_ability_names[f->resource_ability]);
+        else dndolphins_copy(output,size,"Delete feature");
     } else if(app->list_kind == PocketListLanguages) {
-        if(field == 0U)
-            dndolphins_format_labeled_text(
-                output, size, "Language: ", character->languages[index]);
-        else
-            dndolphins_copy(output, size, "Delete language");
-    } else
-        dndolphins_copy(output, size, "Unavailable");
+        if(field == 0U) dndolphins_format_labeled_text(output,size,"Language: ",character->languages[index]);
+        else dndolphins_copy(output,size,"Delete language");
+    } else dndolphins_copy(output,size,"Unavailable");
 }
 
 static void dndolphins_draw_record_detail(Canvas* canvas, PocketD20App* app) {
@@ -4060,8 +3945,11 @@ static void dndolphins_draw_record_detail(Canvas* canvas, PocketD20App* app) {
     }
 }
 
-static void
-    dndolphins_format_combat_row(PocketD20App* app, uint8_t index, char* row, size_t size) {
+static void dndolphins_format_combat_row(
+    PocketD20App* app,
+    uint8_t index,
+    char* row,
+    size_t size) {
     PocketCharacter* character = &app->data.character;
     switch((DndolphinsCombatIndex)index) {
     case DndolphinsCombatAttackMode:
@@ -4288,6 +4176,7 @@ static void dndolphins_draw_dice_result(Canvas* canvas, PocketD20App* app) {
     }
 }
 
+
 static uint8_t dndolphins_spell_casting_ability(PocketD20App* app, uint8_t logical_index) {
     PocketSpell* spell = dndolphins_spell_at(app, logical_index, NULL);
     return dndolphins_spells_casting_ability_for(&app->data.character, spell);
@@ -4298,8 +4187,8 @@ static int8_t dndolphins_spell_attack_modifier_for(PocketD20App* app, uint8_t lo
     return dndolphins_spells_attack_modifier_for(&app->data.character, spell);
 }
 
-static int8_t
-    dndolphins_spell_attack_modifier_cached_for(PocketD20App* app, uint8_t logical_index) {
+static int8_t dndolphins_spell_attack_modifier_cached_for(
+    PocketD20App* app, uint8_t logical_index) {
     PocketSpell* spell = dndolphins_spell_cached_at(app, logical_index, NULL);
     return dndolphins_spells_attack_modifier_for(&app->data.character, spell);
 }
@@ -4486,7 +4375,12 @@ static void dndolphins_prepare_combat_spell_rows(PocketD20App* app, bool ritual_
                 spell->ritual ? " [R]" : "",
                 dice_suffix);
         else
-            snprintf(row, POCKET_D20_COMBAT_ROW_LEN, "C %s%s", spell->name, dice_suffix);
+            snprintf(
+                row,
+                POCKET_D20_COMBAT_ROW_LEN,
+                "C %s%s",
+                spell->name,
+                dice_suffix);
     }
 }
 
@@ -4560,8 +4454,9 @@ static void dndolphins_format_spell_cast_option(
     }
 }
 
-static bool
-    dndolphins_consume_spell_cast_resource(PocketD20App* app, const PocketSpellCastOption* option) {
+static bool dndolphins_consume_spell_cast_resource(
+    PocketD20App* app,
+    const PocketSpellCastOption* option) {
     PocketCharacter* character = &app->data.character;
     switch(option->resource) {
     case PocketSpellCastCantrip:
@@ -4576,8 +4471,7 @@ static bool
         return true;
     }
     case PocketSpellCastSlot:
-        if(option->level >= POCKET_D20_SLOT_COUNT ||
-           !character->spell_slots_current[option->level])
+        if(option->level >= POCKET_D20_SLOT_COUNT || !character->spell_slots_current[option->level])
             return false;
         --character->spell_slots_current[option->level];
         return true;
@@ -4590,8 +4484,7 @@ static bool
     case PocketSpellCastPoints: {
         if(option->class_index >= character->class_count) return false;
         uint8_t cost = dndolphins_spells_point_cost(option->level);
-        if(!cost || character->classes[option->class_index].spell_points_current < cost)
-            return false;
+        if(!cost || character->classes[option->class_index].spell_points_current < cost) return false;
         character->classes[option->class_index].spell_points_current -= cost;
         return true;
     }
@@ -4665,7 +4558,11 @@ static void dndolphins_cast_spell(PocketD20App* app, const PocketSpellCastOption
     int8_t ability_modifier = dnd_rules_core_ability_modifier(character->ability_scores[ability]);
     PocketSpellDamageSpec damage;
     if(dndolphins_spell_combat_damage_spec(
-           spell, option->level, dnd_rules_core_total_level(character), ability_modifier, &damage)) {
+           spell,
+           option->level,
+           dnd_rules_core_total_level(character),
+           ability_modifier,
+           &damage)) {
         app->spell_cast_primary_dice = damage.primary_dice;
         app->spell_cast_primary_die = damage.primary_die;
         app->spell_cast_secondary_dice = damage.secondary_dice;
@@ -4695,13 +4592,13 @@ static void dndolphins_cast_spell(PocketD20App* app, const PocketSpellCastOption
                             damage.primary_dice, ability_modifier, &rolled_dice);
                         if(index == 0U) app->spell_cast_primary_dice = rolled_dice;
                     } else {
-                        primary = (int16_t)dnd_rules_core_roll_dice(
-                            damage.primary_dice, damage.primary_die);
+                        primary =
+                            (int16_t)dnd_rules_core_roll_dice(damage.primary_dice, damage.primary_die);
                     }
                 }
                 if(!damage.secondary_relation && damage.secondary_dice && damage.secondary_die)
-                    secondary = (int16_t)dnd_rules_core_roll_dice(
-                        damage.secondary_dice, damage.secondary_die);
+                    secondary =
+                        (int16_t)dnd_rules_core_roll_dice(damage.secondary_dice, damage.secondary_die);
                 int16_t attack_damage = primary + secondary + damage.flat_bonus;
                 uint8_t natural = dndolphins_dice_roll_d20_mode(app->roll_mode);
                 app->spell_cast_attack_natural[index] = natural;
@@ -4746,7 +4643,8 @@ static void dndolphins_cast_spell(PocketD20App* app, const PocketSpellCastOption
         }
     }
 
-    if(option->resource == PocketSpellCastFree) (void)dndolphins_save_spellbook_if_changed(app);
+    if(option->resource == PocketSpellCastFree)
+        (void)dndolphins_save_spellbook_if_changed(app);
     dndolphins_save(app, false);
     dndolphins_enter_screen(app, PocketScreenSpellResult);
 }
@@ -4895,7 +4793,11 @@ static void dndolphins_draw_spell_result(Canvas* canvas, PocketD20App* app) {
                 app->spell_cast_attack_roll_count);
         else
             snprintf(
-                row, sizeof(row), "%s | %u attacks", resource, app->spell_cast_attack_roll_count);
+                row,
+                sizeof(row),
+                "%s | %u attacks",
+                resource,
+                app->spell_cast_attack_roll_count);
         dndolphins_draw_row(canvas, 0U, false, row);
 
         int8_t attack_modifier =
@@ -4930,8 +4832,7 @@ static void dndolphins_draw_spell_result(Canvas* canvas, PocketD20App* app) {
                 resource,
                 app->spell_cast_attack_roll_count);
         else
-            snprintf(
-                row, sizeof(row), "%s | %u rolls", resource, app->spell_cast_attack_roll_count);
+            snprintf(row, sizeof(row), "%s | %u rolls", resource, app->spell_cast_attack_roll_count);
         dndolphins_draw_row(canvas, 0U, false, row);
         for(uint8_t visible = 0U; visible < 4U; ++visible) {
             uint8_t index = (uint8_t)(app->scroll + visible);
@@ -5048,10 +4949,7 @@ static void dndolphins_draw_spell_result(Canvas* canvas, PocketD20App* app) {
                 app->spell_cast_secondary_flat_bonus);
         dndolphins_draw_row(canvas, 3U, false, row);
         dndolphins_draw_row(
-            canvas,
-            4U,
-            false,
-            dndolphins_spell_secondary_relation_label(app->spell_cast_secondary_relation));
+            canvas, 4U, false, dndolphins_spell_secondary_relation_label(app->spell_cast_secondary_relation));
     } else {
         if(app->spell_cast_primary_dice) {
             snprintf(
@@ -5094,6 +4992,7 @@ static void dndolphins_draw_spell_result(Canvas* canvas, PocketD20App* app) {
         }
         dndolphins_draw_row(canvas, 4U, false, row);
     }
+
 }
 
 static void dndolphins_draw_attack_list(Canvas* canvas, PocketD20App* app) {
@@ -5348,8 +5247,7 @@ static void dndolphins_draw_callback(Canvas* canvas, void* model) {
     }
 }
 
-static void
-    dndolphins_open_list(PocketD20App* app, PocketListKind kind, PocketScreen return_screen) {
+static void dndolphins_open_list(PocketD20App* app, PocketListKind kind, PocketScreen return_screen) {
     dndolphins_release_text_input(app);
     dndolphins_release_number_input(app);
     app->list_kind = kind;
@@ -5361,12 +5259,13 @@ static void
    saving. Preserve that lifecycle with bounded paging by first making the real
    tail page resident, then growing that page and committing it immediately. */
 
+
 static bool dndolphins_feature_prepare_append_page(PocketD20App* app) {
     if(!app->features_loaded && !dndolphins_load_features(app)) return false;
     if(app->features_total >= POCKET_D20_MAX_FEATURES) return false;
 
-    const uint8_t target_start =
-        (uint8_t)((app->features_total / DND_PROGRESS_CACHE_SIZE) * DND_PROGRESS_CACHE_SIZE);
+    const uint8_t target_start = (uint8_t)(
+        (app->features_total / DND_PROGRESS_CACHE_SIZE) * DND_PROGRESS_CACHE_SIZE);
     if(app->features_cache_start != target_start) {
         if(!dndolphins_save_features_if_changed(app)) return false;
         dnd_data_reserve_features_exact(&app->data.character, 0U);
@@ -5424,8 +5323,7 @@ static bool dndolphins_add_record(PocketD20App* app) {
         if(character->language_count >= POCKET_D20_MAX_LANGUAGES) return false;
         app->record_index = character->language_count++;
         memset(character->languages[app->record_index], 0, POCKET_D20_SHORT_LEN);
-        dndolphins_copy(
-            character->languages[app->record_index], POCKET_D20_SHORT_LEN, "New Language");
+        dndolphins_copy(character->languages[app->record_index], POCKET_D20_SHORT_LEN, "New Language");
         break;
     }
     dndolphins_save(app, false);
@@ -5462,8 +5360,7 @@ static void dndolphins_delete_record(PocketD20App* app) {
         break;
     case PocketListFeatures:
         if(index >= app->features_total || !dndolphins_save_features_if_changed(app) ||
-           !dndolphins_progression_store_features_delete(
-               app->storage, app->profiles.active_profile, index)) {
+           !dndolphins_progression_store_features_delete(app->storage, app->profiles.active_profile, index)) {
             dndolphins_set_status(app, "Feature delete failed");
             return;
         }
@@ -5473,8 +5370,7 @@ static void dndolphins_delete_record(PocketD20App* app) {
         app->features_loaded = 0U;
         app->features_cache_start = 0U;
         if(app->features_total) {
-            uint8_t target = index < app->features_total ? index :
-                                                           (uint8_t)(app->features_total - 1U);
+            uint8_t target = index < app->features_total ? index : (uint8_t)(app->features_total - 1U);
             if(!dndolphins_feature_cache_ensure(app, target)) {
                 dndolphins_set_status(app, "Features read failed");
                 return;
@@ -5493,7 +5389,8 @@ static void dndolphins_delete_record(PocketD20App* app) {
     dndolphins_save(app, false);
     dndolphins_enter_screen(app, PocketScreenRecordList);
     if(app->list_kind == PocketListFeatures && app->features_total) {
-        uint8_t target = index < app->features_total ? index : (uint8_t)(app->features_total - 1U);
+        uint8_t target =
+            index < app->features_total ? index : (uint8_t)(app->features_total - 1U);
         dndolphins_record_list_focus(app, target);
     }
 }
@@ -5550,8 +5447,7 @@ static void dndolphins_text_done(void* context) {
         dndolphins_copy(character->conditions, sizeof(character->conditions), app->edit_buffer);
         break;
     case PocketEditConcentration:
-        dndolphins_copy(
-            character->concentration, sizeof(character->concentration), app->edit_buffer);
+        dndolphins_copy(character->concentration, sizeof(character->concentration), app->edit_buffer);
         break;
     case PocketEditTemporaryEffects:
         dndolphins_copy(
@@ -5801,7 +5697,8 @@ static void dndolphins_handle_profiles(PocketD20App* app, const InputEvent* even
         dndolphins_menu_move(app, row_count, 1);
         if(app->scroll != previous_scroll && app->scroll < profile_count)
             (void)dnd_storage_profiles_window(app->storage, &app->profiles, app->scroll);
-    } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+    }
+    else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         if(app->selection == profile_count)
             dndolphins_create_profile(app);
         else
@@ -5876,12 +5773,11 @@ static void dndolphins_handle_profile_actions(PocketD20App* app, const InputEven
                            dnd_storage_profiles_save(app->storage, &app->profiles);
                 app->saved_fingerprint = dndolphins_data_fingerprint(&app->data);
                 dndolphins_enter_screen(app, PocketScreenHome);
-                dndolphins_set_status(
-                    app, imported ? "Character imported" : "Import metadata failed");
+                dndolphins_set_status(app, imported ? "Character imported" : "Import metadata failed");
             } else {
                 bool recovered = false;
-                app->active_profile_loaded =
-                    dnd_storage_load_profile(app->storage, previous, &app->data, &recovered);
+                app->active_profile_loaded = dnd_storage_load_profile(
+                    app->storage, previous, &app->data, &recovered);
                 app->spellbook_loaded = 0U;
                 app->items_loaded = 0U;
                 app->spellbook_total = 0U;
@@ -6068,8 +5964,7 @@ static void dndolphins_handle_character(PocketD20App* app, const InputEvent* eve
             dndolphins_begin_text(
                 app, PocketEditBackground, "Custom background", character->background);
         else
-            dndolphins_begin_text(
-                app, PocketEditAlignment, "Custom alignment", character->alignment);
+            dndolphins_begin_text(app, PocketEditAlignment, "Custom alignment", character->alignment);
     } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         switch(app->selection) {
         case 0:
@@ -6079,8 +5974,7 @@ static void dndolphins_handle_character(PocketD20App* app, const InputEvent* eve
             dndolphins_begin_text(app, PocketEditPlayerName, "Player name", character->player);
             break;
         case 2:
-            dndolphins_open_catalog(
-                app, PocketCatalogSpecies, PocketEditSpecies, character->species);
+            dndolphins_open_catalog(app, PocketCatalogSpecies, PocketEditSpecies, character->species);
             break;
         case 3:
             dndolphins_open_catalog(
@@ -6215,8 +6109,7 @@ static void dndolphins_handle_vitals(PocketD20App* app, const InputEvent* event)
                 character->hp_current = character->hp_max;
             break;
         case 2:
-            character->hp_temporary =
-                dndolphins_clamp_i16(character->hp_temporary + delta, 0, 999);
+            character->hp_temporary = dndolphins_clamp_i16(character->hp_temporary + delta, 0, 999);
             break;
         case 3:
             character->armor_class = dndolphins_clamp_i16(character->armor_class + delta, 0, 99);
@@ -6233,8 +6126,7 @@ static void dndolphins_handle_vitals(PocketD20App* app, const InputEvent* event)
             character->exhaustion = dndolphins_clamp_u8(character->exhaustion + delta, 6U);
             break;
         case 8:
-            character->death_successes =
-                dndolphins_clamp_u8(character->death_successes + delta, 3U);
+            character->death_successes = dndolphins_clamp_u8(character->death_successes + delta, 3U);
             break;
         case 9:
             character->death_failures = dndolphins_clamp_u8(character->death_failures + delta, 3U);
@@ -6381,8 +6273,7 @@ static void dndolphins_handle_abilities(PocketD20App* app, const InputEvent* eve
         event->type == InputTypeLong &&
         (event->key == InputKeyLeft || event->key == InputKeyRight)) {
         app->edit_modifier_mode = !app->edit_modifier_mode;
-        dndolphins_set_status(
-            app, app->edit_modifier_mode ? "Editing save misc" : "Editing scores");
+        dndolphins_set_status(app, app->edit_modifier_mode ? "Editing save misc" : "Editing scores");
     } else if(event->type == InputTypeLong && event->key == InputKeyOk) {
         uint8_t index = (uint8_t)app->selection;
         dndolphins_begin_number(
@@ -6449,6 +6340,7 @@ static void dndolphins_handle_skills(PocketD20App* app, const InputEvent* event)
     }
 }
 
+
 static void dndolphins_handle_level_review(PocketD20App* app, const InputEvent* event) {
     if(event->type != InputTypeShort || event->key != InputKeyOk) return;
     if(app->level_review_pending_choice) {
@@ -6469,10 +6361,8 @@ static void dndolphins_handle_level_choice(PocketD20App* app, const InputEvent* 
             dndolphins_enter_screen(app, app->return_screen);
         return;
     }
-    if(dndolphins_is_move_event(event) && event->key == InputKeyUp)
-        dndolphins_menu_move(app, 4U, -1);
-    else if(dndolphins_is_move_event(event) && event->key == InputKeyDown)
-        dndolphins_menu_move(app, 4U, 1);
+    if(dndolphins_is_move_event(event) && event->key == InputKeyUp) dndolphins_menu_move(app, 4U, -1);
+    else if(dndolphins_is_move_event(event) && event->key == InputKeyDown) dndolphins_menu_move(app, 4U, 1);
     else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         if(app->selection == 0U || app->selection == 1U) {
             app->level_choice_mode = app->selection == 0U ? 1U : 2U;
@@ -6513,17 +6403,12 @@ static void dndolphins_handle_level_choice(PocketD20App* app, const InputEvent* 
 
 static void dndolphins_handle_asi_ability(PocketD20App* app, const InputEvent* event) {
     PocketCharacter* c = &app->data.character;
-    if(dndolphins_is_move_event(event) && event->key == InputKeyUp)
-        dndolphins_menu_move(app, POCKET_D20_ABILITY_COUNT, -1);
-    else if(dndolphins_is_move_event(event) && event->key == InputKeyDown)
-        dndolphins_menu_move(app, POCKET_D20_ABILITY_COUNT, 1);
+    if(dndolphins_is_move_event(event) && event->key == InputKeyUp) dndolphins_menu_move(app, POCKET_D20_ABILITY_COUNT, -1);
+    else if(dndolphins_is_move_event(event) && event->key == InputKeyDown) dndolphins_menu_move(app, POCKET_D20_ABILITY_COUNT, 1);
     else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         uint8_t ability = (uint8_t)app->selection;
         if(app->level_choice_mode == 1U) {
-            if(c->ability_scores[ability] >= 20) {
-                dndolphins_set_status(app, "Ability already 20");
-                return;
-            }
+            if(c->ability_scores[ability] >= 20) { dndolphins_set_status(app, "Ability already 20"); return; }
             int8_t old_score = c->ability_scores[ability];
             int16_t next = old_score + 2;
             c->ability_scores[ability] = next > 20 ? 20 : (int8_t)next;
@@ -6533,10 +6418,7 @@ static void dndolphins_handle_asi_ability(PocketD20App* app, const InputEvent* e
                 return;
             }
         } else if(app->level_choice_mode == 2U) {
-            if(c->ability_scores[ability] >= 20) {
-                dndolphins_set_status(app, "Ability already 20");
-                return;
-            }
+            if(c->ability_scores[ability] >= 20) { dndolphins_set_status(app, "Ability already 20"); return; }
             if(app->level_choice_first_ability >= POCKET_D20_ABILITY_COUNT) {
                 /* The first pick is selection-only. Do not mutate either score
                    until the second, different ability is confirmed. */
@@ -6545,10 +6427,7 @@ static void dndolphins_handle_asi_ability(PocketD20App* app, const InputEvent* e
                 dndolphins_set_status(app, "Choose second ability");
                 return;
             }
-            if(ability == app->level_choice_first_ability) {
-                dndolphins_set_status(app, "Choose different ability");
-                return;
-            }
+            if(ability == app->level_choice_first_ability) { dndolphins_set_status(app, "Choose different ability"); return; }
             uint8_t first = app->level_choice_first_ability;
             int8_t first_old = app->level_choice_first_score;
             int8_t second_old = c->ability_scores[ability];
@@ -6568,8 +6447,7 @@ static void dndolphins_handle_asi_ability(PocketD20App* app, const InputEvent* e
                 dndolphins_set_status(app, "Could not record choice");
                 return;
             }
-        } else
-            return;
+        } else return;
         dndolphins_save(app, false);
         app->level_choice_mode = 0U;
         app->level_choice_first_ability = UINT8_MAX;
@@ -6623,8 +6501,7 @@ static void dndolphins_handle_grant_review(PocketD20App* app, const InputEvent* 
             dndolphins_copy(grant->source, sizeof(grant->source), "Custom");
             dndolphins_copy(grant->option_name, sizeof(grant->option_name), "Custom Grant");
             dndolphins_copy(grant->prerequisites, sizeof(grant->prerequisites), "None");
-            dndolphins_copy(
-                grant->grant_value, sizeof(grant->grant_value), "feature=Custom Feature");
+            dndolphins_copy(grant->grant_value, sizeof(grant->grant_value), "feature=Custom Feature");
             grant->source_type = PocketGrantFeat;
             grant->status = PocketGrantPending;
             dndolphins_save(app, false);
@@ -6661,8 +6538,7 @@ static void dndolphins_handle_grant_edit(PocketD20App* app, const InputEvent* ev
                 grant->class_index = (uint8_t)value;
             }
         } else if(app->selection == 6U)
-            grant->level_gained =
-                (uint8_t)dndolphins_clamp_i16(grant->level_gained + delta, 0, 20);
+            grant->level_gained = (uint8_t)dndolphins_clamp_i16(grant->level_gained + delta, 0, 20);
         else if(app->selection == 8U) {
             int16_t value = grant->status + delta;
             if(value < 0) value = PocketGrantSkipped;
@@ -6673,8 +6549,7 @@ static void dndolphins_handle_grant_edit(PocketD20App* app, const InputEvent* ev
         dndolphins_save(app, false);
     } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         if(app->selection == 0U)
-            dndolphins_begin_text(
-                app, PocketEditGrantStableId, "Stable grant ID", grant->stable_id);
+            dndolphins_begin_text(app, PocketEditGrantStableId, "Stable grant ID", grant->stable_id);
         else if(app->selection == 1U)
             dndolphins_begin_text(app, PocketEditGrantSource, "Source label", grant->source);
         else if(app->selection == 3U)
@@ -6696,6 +6571,10 @@ static void dndolphins_handle_grant_edit(PocketD20App* app, const InputEvent* ev
         }
     }
 }
+
+
+
+
 
 static void dndolphins_handle_attack_templates(PocketD20App* app, const InputEvent* event) {
     PocketCharacter* c = &app->data.character;
@@ -6774,13 +6653,11 @@ static void dndolphins_handle_attack_template_edit(PocketD20App* app, const Inpu
             if(value > PocketAbilityCharisma) value = PocketAbilityStrength;
             *ability = (uint8_t)value;
         } else if(app->selection == 4U)
-            attack->attack_misc =
-                (int8_t)dndolphins_clamp_i16(attack->attack_misc + delta, -20, 20);
+            attack->attack_misc = (int8_t)dndolphins_clamp_i16(attack->attack_misc + delta, -20, 20);
         else if(app->selection == 5U)
             attack->save_dc = (uint8_t)dndolphins_clamp_i16(attack->save_dc + delta, 0, 30);
         else if(app->selection == 6U)
-            attack->damage_dice =
-                (uint8_t)dndolphins_clamp_i16(attack->damage_dice + delta, 0, 20);
+            attack->damage_dice = (uint8_t)dndolphins_clamp_i16(attack->damage_dice + delta, 0, 20);
         else if(app->selection == 7U)
             attack->damage_die = dndolphins_cycle_die(attack->damage_die, delta, false);
         else if(app->selection == 10U)
@@ -6799,14 +6676,11 @@ static void dndolphins_handle_attack_template_edit(PocketD20App* app, const Inpu
         if(app->selection == 0U)
             dndolphins_begin_text(app, PocketEditAttackName, "Attack template name", attack->name);
         else if(app->selection == 8U)
-            dndolphins_begin_text(
-                app, PocketEditAttackDamageType, "Damage type", attack->damage_type);
+            dndolphins_begin_text(app, PocketEditAttackDamageType, "Damage type", attack->damage_type);
         else if(app->selection == 9U)
-            dndolphins_begin_text(
-                app, PocketEditAttackMastery, "Mastery property", attack->mastery);
+            dndolphins_begin_text(app, PocketEditAttackMastery, "Mastery property", attack->mastery);
         else if(app->selection == 12U)
-            dndolphins_begin_text(
-                app, PocketEditAttackRiderType, "Rider type", attack->rider_type);
+            dndolphins_begin_text(app, PocketEditAttackRiderType, "Rider type", attack->rider_type);
         else if(app->selection == 14U) {
             memmove(
                 &c->attack_templates[app->record_index],
@@ -6877,7 +6751,8 @@ static void dndolphins_handle_magic(PocketD20App* app, const InputEvent* event) 
             if(event->type != InputTypeShort) return;
             uint8_t level = app->selection - 6U;
             character->spell_slots_current[level] = dndolphins_clamp_u8(
-                character->spell_slots_current[level] + delta, character->spell_slots_max[level]);
+                character->spell_slots_current[level] + delta,
+                character->spell_slots_max[level]);
             dndolphins_set_status(app, "Available slots changed");
         } else {
             return;
@@ -6955,6 +6830,7 @@ static void dndolphins_handle_magic(PocketD20App* app, const InputEvent* event) 
     }
 }
 
+
 static void dndolphins_handle_record_list(PocketD20App* app, const InputEvent* event) {
     uint16_t count = dndolphins_list_count(app) + 1U;
     if(dndolphins_is_move_event(event) && event->key == InputKeyUp) {
@@ -6995,6 +6871,7 @@ static void dndolphins_handle_record_list(PocketD20App* app, const InputEvent* e
     }
 }
 
+
 static void dndolphins_adjust_record(PocketD20App* app, int8_t delta) {
     PocketCharacter* character = &app->data.character;
     uint8_t index = app->record_index;
@@ -7017,11 +6894,10 @@ static void dndolphins_adjust_record(PocketD20App* app, int8_t delta) {
         } else if(field == 3U) {
             class_level->hit_die = dndolphins_cycle_die(class_level->hit_die, delta, true);
         } else if(field == 4U) {
-            class_level->hit_dice_current = dndolphins_clamp_u8(
-                class_level->hit_dice_current + delta, class_level->hit_dice_max);
+            class_level->hit_dice_current =
+                dndolphins_clamp_u8(class_level->hit_dice_current + delta, class_level->hit_dice_max);
         } else if(field == 5U) {
-            class_level->hit_dice_max =
-                dndolphins_clamp_u8(class_level->hit_dice_max + delta, 20U);
+            class_level->hit_dice_max = dndolphins_clamp_u8(class_level->hit_dice_max + delta, 20U);
             if(class_level->hit_dice_current > class_level->hit_dice_max)
                 class_level->hit_dice_current = class_level->hit_dice_max;
         } else if(field == 6U) {
@@ -7035,8 +6911,7 @@ static void dndolphins_adjust_record(PocketD20App* app, int8_t delta) {
             if(ability > PocketAbilityCharisma) ability = PocketAbilityStrength;
             class_level->spellcasting_ability = (uint8_t)ability;
         } else if(field == 8U) {
-            class_level->cantrip_limit =
-                dndolphins_clamp_u8(class_level->cantrip_limit + delta, 30U);
+            class_level->cantrip_limit = dndolphins_clamp_u8(class_level->cantrip_limit + delta, 30U);
         } else if(field == 9U) {
             class_level->prepared_limit =
                 dndolphins_clamp_u8(class_level->prepared_limit + delta, 50U);
@@ -7050,8 +6925,7 @@ static void dndolphins_adjust_record(PocketD20App* app, int8_t delta) {
             class_level->pact_slots_current = dndolphins_clamp_u8(
                 class_level->pact_slots_current + delta, class_level->pact_slots_max);
         } else if(field == 13U) {
-            class_level->pact_slots_max =
-                dndolphins_clamp_u8(class_level->pact_slots_max + delta, 8U);
+            class_level->pact_slots_max = dndolphins_clamp_u8(class_level->pact_slots_max + delta, 8U);
             if(class_level->pact_slots_current > class_level->pact_slots_max)
                 class_level->pact_slots_current = class_level->pact_slots_max;
         } else if(field == 14U) {
@@ -7288,8 +7162,7 @@ static void dndolphins_handle_record_detail_custom_name(PocketD20App* app) {
             app, PocketEditSubclass, "Custom subclass", character->classes[index].subclass);
     else if(app->list_kind == PocketListFeatures && app->selection == 0U) {
         PocketFeature* feature = dndolphins_feature_at(app, index, NULL);
-        if(feature)
-            dndolphins_begin_text(app, PocketEditFeatureName, "Custom feat/perk", feature->name);
+        if(feature) dndolphins_begin_text(app, PocketEditFeatureName, "Custom feat/perk", feature->name);
     }
 }
 
@@ -7299,9 +7172,7 @@ static void dndolphins_handle_record_detail(PocketD20App* app, const InputEvent*
         dndolphins_menu_move(app, count, -1);
     else if(dndolphins_is_move_event(event) && event->key == InputKeyDown)
         dndolphins_menu_move(app, count, 1);
-    else if(
-        dndolphins_is_move_event(event) &&
-        (event->key == InputKeyLeft || event->key == InputKeyRight))
+    else if(dndolphins_is_move_event(event) && (event->key == InputKeyLeft || event->key == InputKeyRight))
         dndolphins_adjust_record(app, event->key == InputKeyRight ? 1 : -1);
     else if(event->type == InputTypeLong && event->key == InputKeyOk) {
         if(!dndolphins_begin_record_number(app)) dndolphins_handle_record_detail_custom_name(app);
@@ -7319,9 +7190,10 @@ static void dndolphins_apply_catalog_selection(PocketD20App* app) {
     bool save_features_after_catalog = false;
     switch(app->catalog_target) {
     case PocketEditClassName: {
-        bool newly_added_level = !strcmp(character->classes[index].name, "New Class") &&
-                                 character->classes[index].level == 1U &&
-                                 character->hit_dice_max < dnd_rules_core_total_level(character);
+        bool newly_added_level =
+            !strcmp(character->classes[index].name, "New Class") &&
+            character->classes[index].level == 1U &&
+            character->hit_dice_max < dnd_rules_core_total_level(character);
         dndolphins_copy(
             character->classes[index].name, sizeof(character->classes[index].name), selected);
         dndolphins_configure_class_defaults(&character->classes[index]);
@@ -7442,10 +7314,12 @@ static void dndolphins_handle_catalog(PocketD20App* app, const InputEvent* event
         if(app->catalog_kind == PocketCatalogFeats)
             dndolphins_set_status(app, app->catalog_show_all ? "All feats" : "Allowed feats");
         else
-            dndolphins_set_status(app, app->catalog_show_all ? "Showing all" : "Class filter");
+            dndolphins_set_status(
+                app, app->catalog_show_all ? "Showing all" : "Class filter");
     } else if(event->type == InputTypeShort && event->key == InputKeyOk)
         dndolphins_apply_catalog_selection(app);
 }
+
 
 static void dndolphins_handle_spell_attacks(PocketD20App* app, const InputEvent* event) {
     uint8_t count = dndolphins_combat_spell_count(app);
@@ -7456,7 +7330,8 @@ static void dndolphins_handle_spell_attacks(PocketD20App* app, const InputEvent*
     } else if(dndolphins_is_move_event(event) && event->key == InputKeyDown) {
         dndolphins_menu_move(app, count, 1);
         dndolphins_prepare_combat_spell_rows(app, false);
-    } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+    }
+    else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         uint8_t spell_index = dndolphins_combat_spell_index(app, app->selection);
         if(spell_index == 0xFFU) return;
         app->spell_attack_index = spell_index;
@@ -7484,7 +7359,8 @@ static void dndolphins_handle_rituals(PocketD20App* app, const InputEvent* event
     } else if(dndolphins_is_move_event(event) && event->key == InputKeyDown) {
         dndolphins_menu_move(app, count, 1);
         dndolphins_prepare_combat_spell_rows(app, true);
-    } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+    }
+    else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         uint8_t spell_index = dndolphins_combat_spell_index(app, app->selection);
         if(spell_index == 0xFFU) return;
         PocketSpell* spell = dndolphins_spell_at(app, spell_index, NULL);
@@ -7521,8 +7397,8 @@ static void dndolphins_handle_spell_cast(PocketD20App* app, const InputEvent* ev
 }
 
 static void dndolphins_handle_spell_result(PocketD20App* app, const InputEvent* event) {
-    if(app->spell_cast_resource == PocketSpellCastRitual && event->type == InputTypeShort &&
-       event->key == InputKeyOk) {
+    if(app->spell_cast_resource == PocketSpellCastRitual &&
+       event->type == InputTypeShort && event->key == InputKeyOk) {
         dndolphins_enter_screen(app, PocketScreenRituals);
         return;
     }
@@ -7570,8 +7446,7 @@ static void dndolphins_handle_combat(PocketD20App* app, const InputEvent* event)
         } else if(app->selection == DndolphinsCombatHp)
             character->hp_current = dndolphins_clamp_i16(character->hp_current + delta, 0, 999);
         else if(app->selection == DndolphinsCombatTemporaryHp)
-            character->hp_temporary =
-                dndolphins_clamp_i16(character->hp_temporary + delta, 0, 999);
+            character->hp_temporary = dndolphins_clamp_i16(character->hp_temporary + delta, 0, 999);
         else if(app->selection == DndolphinsCombatSpendHitDie) {
             int16_t class_index = app->hit_die_class_index + delta;
             if(class_index < 0) class_index = character->class_count - 1U;
@@ -7581,8 +7456,7 @@ static void dndolphins_handle_combat(PocketD20App* app, const InputEvent* event)
         } else if(app->selection == DndolphinsCombatReaction)
             character->reaction_available = !character->reaction_available;
         else if(app->selection == DndolphinsCombatDeathSuccesses)
-            character->death_successes =
-                dndolphins_clamp_u8(character->death_successes + delta, 3U);
+            character->death_successes = dndolphins_clamp_u8(character->death_successes + delta, 3U);
         else if(app->selection == DndolphinsCombatDeathFailures)
             character->death_failures = dndolphins_clamp_u8(character->death_failures + delta, 3U);
         else if(app->selection == DndolphinsCombatExhaustion)
@@ -7593,22 +7467,18 @@ static void dndolphins_handle_combat(PocketD20App* app, const InputEvent* event)
     } else if(
         event->type == InputTypeLong && event->key == InputKeyOk &&
         (app->selection == DndolphinsCombatHp || app->selection == DndolphinsCombatTemporaryHp ||
-         (app->selection >= DndolphinsCombatDeathSuccesses &&
-          app->selection <= DndolphinsCombatExhaustion))) {
-        const char* header = app->selection == DndolphinsCombatHp             ? "Current HP" :
-                             app->selection == DndolphinsCombatTemporaryHp    ? "Temporary HP" :
+         (app->selection >= DndolphinsCombatDeathSuccesses && app->selection <= DndolphinsCombatExhaustion))) {
+        const char* header = app->selection == DndolphinsCombatHp  ? "Current HP" :
+                             app->selection == DndolphinsCombatTemporaryHp  ? "Temporary HP" :
                              app->selection == DndolphinsCombatDeathSuccesses ? "Death successes" :
-                             app->selection == DndolphinsCombatDeathFailures  ? "Death failures" :
-                                                                                "Exhaustion";
-        int32_t value =
-            app->selection == DndolphinsCombatHp             ? character->hp_current :
-            app->selection == DndolphinsCombatTemporaryHp    ? character->hp_temporary :
-            app->selection == DndolphinsCombatDeathSuccesses ? character->death_successes :
-            app->selection == DndolphinsCombatDeathFailures  ? character->death_failures :
-                                                               character->exhaustion;
-        int32_t maximum = app->selection <= DndolphinsCombatTemporaryHp   ? 999 :
-                          app->selection <= DndolphinsCombatDeathFailures ? 3 :
-                                                                            6;
+                             app->selection == DndolphinsCombatDeathFailures ? "Death failures" :
+                                                     "Exhaustion";
+        int32_t value = app->selection == DndolphinsCombatHp  ? character->hp_current :
+                        app->selection == DndolphinsCombatTemporaryHp  ? character->hp_temporary :
+                        app->selection == DndolphinsCombatDeathSuccesses ? character->death_successes :
+                        app->selection == DndolphinsCombatDeathFailures ? character->death_failures :
+                                                character->exhaustion;
+        int32_t maximum = app->selection <= DndolphinsCombatTemporaryHp ? 999 : app->selection <= DndolphinsCombatDeathFailures ? 3 : 6;
         dndolphins_begin_number(
             app, PocketNumberCombat, (uint8_t)app->selection, 0U, header, value, 0, maximum);
     } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
@@ -7671,8 +7541,8 @@ static void dndolphins_handle_combat(PocketD20App* app, const InputEvent* event)
                 dndolphins_set_status(app, "No Hit Dice left");
             } else {
                 uint8_t roll = 0U;
-                int16_t healed = dndolphins_rules_character_spend_class_hit_die(
-                    character, app->hit_die_class_index, &roll);
+                int16_t healed =
+                    dndolphins_rules_character_spend_class_hit_die(character, app->hit_die_class_index, &roll);
                 int8_t constitution = dnd_rules_core_ability_modifier(
                     character->ability_scores[PocketAbilityConstitution]);
                 dndolphins_save(app, false);
@@ -7726,8 +7596,7 @@ static void dndolphins_handle_combat(PocketD20App* app, const InputEvent* event)
                 app, PocketEditTemporaryEffects, "Temporary effects", character->temporary_effects);
             break;
         case DndolphinsCombatResistances:
-            dndolphins_begin_text(
-                app, PocketEditResistances, "Resistances", character->resistances);
+            dndolphins_begin_text(app, PocketEditResistances, "Resistances", character->resistances);
             break;
         case DndolphinsCombatImmunities:
             dndolphins_begin_text(app, PocketEditImmunities, "Immunities", character->immunities);
@@ -7867,7 +7736,8 @@ static bool dndolphins_contains_case_insensitive(const char* text, const char* t
     for(const char* start = text; *start; ++start) {
         const char* left = start;
         const char* right = token;
-        while(*left && *right && dndolphins_ascii_lower(*left) == dndolphins_ascii_lower(*right)) {
+        while(*left && *right &&
+              dndolphins_ascii_lower(*left) == dndolphins_ascii_lower(*right)) {
             ++left;
             ++right;
         }
@@ -7919,15 +7789,14 @@ static const char* dndolphins_weapon_ammunition_group(const PocketItem* weapon) 
 }
 
 static bool dndolphins_ammunition_stack_visitor(
-    uint8_t logical_index,
-    const PocketItem* item,
-    void* context) {
+    uint8_t logical_index, const PocketItem* item, void* context) {
     DndDolphinsAmmunitionLookup* lookup = context;
     if(!lookup || !item || !lookup->ammunition_group) return false;
     if(!item->is_weapon && item->quantity > 0 &&
        (dndolphins_ammunition_name_matches(item->name, lookup->ammunition_group) ||
         (item->ammunition_group[0] &&
-         dndolphins_ammunition_name_matches(item->ammunition_group, lookup->ammunition_group)))) {
+         dndolphins_ammunition_name_matches(
+             item->ammunition_group, lookup->ammunition_group)))) {
         lookup->logical_index = logical_index;
         lookup->found = true;
         return false;
@@ -7936,9 +7805,7 @@ static bool dndolphins_ammunition_stack_visitor(
 }
 
 static bool dndolphins_consume_loose_ammunition(
-    PocketD20App* app,
-    uint8_t weapon_index,
-    const char* ammunition_group) {
+    PocketD20App* app, uint8_t weapon_index, const char* ammunition_group) {
     if(!app || !ammunition_group || !ammunition_group[0]) return false;
     DndDolphinsAmmunitionLookup lookup = {
         .ammunition_group = ammunition_group,
@@ -7983,7 +7850,9 @@ static void dndolphins_roll_selected_attack(PocketD20App* app) {
                 return;
             }
         } else if(!dndolphins_consume_loose_ammunition(
-                      app, app->attack_item_index, dndolphins_weapon_ammunition_group(&weapon))) {
+                      app,
+                      app->attack_item_index,
+                      dndolphins_weapon_ammunition_group(&weapon))) {
             dndolphins_set_status(app, "No ammunition");
             return;
         }
@@ -7995,8 +7864,7 @@ static void dndolphins_roll_selected_attack(PocketD20App* app) {
         }
         weapon = *item;
     }
-    app->attack_roll =
-        dndolphins_weapon_combat_roll_attack(&app->data.character, &weapon, app->roll_mode);
+    app->attack_roll = dndolphins_weapon_combat_roll_attack(&app->data.character, &weapon, app->roll_mode);
     app->attack_phase = 0U;
     dndolphins_enter_screen(app, PocketScreenAttackResult);
     dndolphins_start_dice_animation(app, app->attack_roll.second_die ? 2U : 1U, 20U);
@@ -8010,7 +7878,8 @@ static void dndolphins_handle_attack_list(PocketD20App* app, const InputEvent* e
     } else if(dndolphins_is_move_event(event) && event->key == InputKeyDown) {
         dndolphins_menu_move(app, count, 1);
         dndolphins_prepare_combat_weapon_rows(app);
-    } else if(
+    }
+    else if(
         dndolphins_is_move_event(event) &&
         (event->key == InputKeyLeft || event->key == InputKeyRight)) {
         int16_t mode = app->roll_mode + (event->key == InputKeyRight ? 1 : -1);
@@ -8027,8 +7896,8 @@ static void dndolphins_handle_attack_result(PocketD20App* app, const InputEvent*
     if(!item) return;
     if(app->attack_phase == 0U) {
         if(event->type == InputTypeShort && event->key == InputKeyOk) {
-            app->damage_roll = dndolphins_weapon_combat_roll_damage(
-                &app->data.character, item, app->attack_roll.critical);
+            app->damage_roll =
+                dndolphins_weapon_combat_roll_damage(&app->data.character, item, app->attack_roll.critical);
             app->attack_phase = 1U;
             app->damage_roll_page = 0U;
             uint8_t count = app->damage_roll.weapon_roll_count + app->damage_roll.extra_roll_count;
@@ -8039,8 +7908,7 @@ static void dndolphins_handle_attack_result(PocketD20App* app, const InputEvent*
                     item->use_versatile && item->versatile_die >= 2U ? item->versatile_die :
                                                                        item->damage_die);
         } else if(event->type == InputTypeShort && event->key == InputKeyRight) {
-            app->damage_roll =
-                dndolphins_weapon_combat_roll_damage(&app->data.character, item, true);
+            app->damage_roll = dndolphins_weapon_combat_roll_damage(&app->data.character, item, true);
             app->attack_phase = 1U;
             app->damage_roll_page = 0U;
             uint8_t count = app->damage_roll.weapon_roll_count + app->damage_roll.extra_roll_count;
@@ -8051,8 +7919,7 @@ static void dndolphins_handle_attack_result(PocketD20App* app, const InputEvent*
                     item->use_versatile && item->versatile_die >= 2U ? item->versatile_die :
                                                                        item->damage_die);
         } else if(event->type == InputTypeShort && event->key == InputKeyUp) {
-            app->attack_roll =
-                dndolphins_weapon_combat_roll_attack(&app->data.character, item, app->roll_mode);
+            app->attack_roll = dndolphins_weapon_combat_roll_attack(&app->data.character, item, app->roll_mode);
             dndolphins_start_dice_animation(app, app->attack_roll.second_die ? 2U : 1U, 20U);
         }
     } else {
@@ -8067,8 +7934,8 @@ static void dndolphins_handle_attack_result(PocketD20App* app, const InputEvent*
         } else if(event->type == InputTypeShort && event->key == InputKeyDown && page_count > 1U) {
             app->damage_roll_page = (app->damage_roll_page + 1U) % page_count;
         } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
-            app->damage_roll = dndolphins_weapon_combat_roll_damage(
-                &app->data.character, item, app->damage_roll.critical);
+            app->damage_roll =
+                dndolphins_weapon_combat_roll_damage(&app->data.character, item, app->damage_roll.critical);
             app->damage_roll_page = 0U;
             roll_count = app->damage_roll.weapon_roll_count + app->damage_roll.extra_roll_count;
             if(roll_count)
@@ -8211,6 +8078,10 @@ static bool dndolphins_navigation_callback(void* context) {
     return true;
 }
 
+
+
+
+
 static bool dndolphins_reserve_core_ui(PocketD20App* app) {
     if(!app) return false;
     app->dispatcher = view_dispatcher_alloc();
@@ -8221,8 +8092,7 @@ static bool dndolphins_reserve_core_ui(PocketD20App* app) {
     view_dispatcher_set_tick_event_callback(
         app->dispatcher, dndolphins_tick_event_callback, POCKET_D20_UI_TICK_MS);
 
-    app->autosave_timer =
-        furi_timer_alloc(dndolphins_autosave_timer_callback, FuriTimerTypeOnce, app);
+    app->autosave_timer = furi_timer_alloc(dndolphins_autosave_timer_callback, FuriTimerTypeOnce, app);
     if(!app->autosave_timer) return false;
 
     app->main_view = view_alloc();
@@ -8264,8 +8134,8 @@ static PocketD20App* dndolphins_app_alloc(void) {
     /* Only create a fresh character after a successful profile-directory scan proves
        there is no existing primary character file. A failed scan is treated
        conservatively as existing user data. Shadow files are never read or scanned. */
-    bool character_file_available = app->profiles.character_file_seen ||
-                                    !app->profiles.scan_succeeded || !legacy_move_ok;
+    bool character_file_available =
+        app->profiles.character_file_seen || !app->profiles.scan_succeeded || !legacy_move_ok;
     bool recovered_backup = false;
     bool loaded = false;
     bool recovered_next_profile = false;
@@ -8278,7 +8148,8 @@ static PocketD20App* dndolphins_app_alloc(void) {
     uint16_t attempts = app->profiles.count ? app->profiles.count : 1U;
     for(uint16_t attempt = 0U; attempt < attempts; ++attempt) {
         bool candidate_recovered = false;
-        if(dnd_storage_load_profile(app->storage, candidate, &app->data, &candidate_recovered)) {
+        if(dnd_storage_load_profile(
+               app->storage, candidate, &app->data, &candidate_recovered)) {
             loaded = true;
             recovered_backup = candidate_recovered;
             app->profiles.active_profile = candidate;
@@ -8297,8 +8168,8 @@ static PocketD20App* dndolphins_app_alloc(void) {
     bool character_ready = loaded;
     bool metadata_saved = true;
     if(loaded && recovered_backup)
-        character_ready =
-            dnd_storage_restore_backup(app->storage, app->profiles.active_profile, &app->data);
+        character_ready = dnd_storage_restore_backup(
+            app->storage, app->profiles.active_profile, &app->data);
 
     /* New Hero is created only when storage positively contains no primary
        character data. Shadow files never participate in this decision. */
@@ -8307,8 +8178,8 @@ static PocketD20App* dndolphins_app_alloc(void) {
         dnd_data_set_defaults(&app->data);
         app->profiles.active_profile = 0U;
         app->active_profile_loaded = 1U;
-        character_ready =
-            dnd_storage_save_profile(app->storage, app->profiles.active_profile, &app->data);
+        character_ready = dnd_storage_save_profile(
+            app->storage, app->profiles.active_profile, &app->data);
         dnd_data_clear_spells(&app->data.character);
         dnd_data_clear_items(&app->data.character);
         dnd_data_reserve_features_exact(&app->data.character, 0U);
@@ -8328,19 +8199,18 @@ static PocketD20App* dndolphins_app_alloc(void) {
         for(uint8_t i = 0U; i < app->data.character.class_count; ++i)
             if(dndolphins_spells_refresh_class_spellcasting(&app->data.character.classes[i]))
                 spellcasting_repaired = true;
-        spell_slots_initialized =
-            dndolphins_spells_initialize_spell_slots_if_unset(&app->data.character);
+        spell_slots_initialized = dndolphins_spells_initialize_spell_slots_if_unset(&app->data.character);
         if(spellcasting_repaired && !spell_slots_initialized)
             dndolphins_spells_recalculate_multiclass_slots(&app->data.character);
         if(spellcasting_repaired || spell_slots_initialized)
-            character_ready = character_ready &&
-                              dnd_storage_save_profile_updated(
-                                  app->storage, app->profiles.active_profile, &app->data);
+            character_ready = character_ready && dnd_storage_save_profile_updated(
+                                                   app->storage,
+                                                   app->profiles.active_profile,
+                                                   &app->data);
     }
     if(app->active_profile_loaded) {
         bool active_included = dndolphins_profile_include_active(app);
-        metadata_saved = active_included &&
-                         dnd_storage_profiles_save(app->storage, &app->profiles);
+        metadata_saved = active_included && dnd_storage_profiles_save(app->storage, &app->profiles);
     }
     app->saved_fingerprint = dndolphins_data_fingerprint(&app->data);
     if(!character_ready || !metadata_saved) {
@@ -8442,13 +8312,17 @@ int32_t dndolphins_app(void* context) {
     dndolphins_app_free(app);
 
     if(pending_launch != PocketPendingLaunchNone) {
-        const char* launch_path =
-            pending_launch == PocketPendingLaunchJournal    ? DNDJOURNAL_FAP_PATH :
-            pending_launch == PocketPendingLaunchAdventure  ? DNDADVENTURE_FAP_PATH :
-            pending_launch == PocketPendingLaunchInitiative ? DNDINITIATIVE_FAP_PATH :
-            pending_launch == PocketPendingLaunchInventory  ? DNDINVENTORY_FAP_PATH :
-            pending_launch == PocketPendingLaunchSpellbook  ? DNDSPELLBOOK_FAP_PATH :
-                                                              DNDBESTIARY_FAP_PATH;
+        const char* launch_path = pending_launch == PocketPendingLaunchJournal ?
+                                      DNDJOURNAL_FAP_PATH :
+                                  pending_launch == PocketPendingLaunchAdventure ?
+                                      DNDADVENTURE_FAP_PATH :
+                                  pending_launch == PocketPendingLaunchInitiative ?
+                                      DNDINITIATIVE_FAP_PATH :
+                                  pending_launch == PocketPendingLaunchInventory ?
+                                      DNDINVENTORY_FAP_PATH :
+                                  pending_launch == PocketPendingLaunchSpellbook ?
+                                      DNDSPELLBOOK_FAP_PATH :
+                                      DNDBESTIARY_FAP_PATH;
         if(!dnd_handoff_launch(launch_path, NULL)) return -1;
     }
     return 0;

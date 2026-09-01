@@ -30,14 +30,13 @@ typedef struct {
 } DndDolphinsSpellClassCounts;
 
 uint8_t dndolphins_spells_casting_ability_for(
-    const PocketCharacter* character,
-    const PocketSpell* spell);
+    const PocketCharacter* character, const PocketSpell* spell);
 int8_t dndolphins_spells_attack_modifier(const PocketCharacter* character);
 int8_t dndolphins_spells_save_dc(const PocketCharacter* character);
 int8_t dndolphins_spells_attack_modifier_for(
-    const PocketCharacter* character,
-    const PocketSpell* spell);
-int8_t dndolphins_spells_save_dc_for(const PocketCharacter* character, const PocketSpell* spell);
+    const PocketCharacter* character, const PocketSpell* spell);
+int8_t dndolphins_spells_save_dc_for(
+    const PocketCharacter* character, const PocketSpell* spell);
 
 void dndolphins_spells_recalculate_multiclass_slots(PocketCharacter* character);
 bool dndolphins_spells_refresh_class_spellcasting(PocketClassLevel* class_level);
@@ -45,8 +44,10 @@ bool dndolphins_spells_apply_level_progression(PocketCharacter* character, uint8
 bool dndolphins_spells_initialize_spell_slots_if_unset(PocketCharacter* character);
 uint8_t dndolphins_spells_point_cost(uint8_t level);
 
-bool dndolphins_spells_is_tracked(const PocketSpell* spell, uint8_t known, uint8_t always_prepared);
-bool dndolphins_spells_can_ritual(const PocketSpell* spell, uint8_t known, uint8_t always_prepared);
+bool dndolphins_spells_is_tracked(
+    const PocketSpell* spell, uint8_t known, uint8_t always_prepared);
+bool dndolphins_spells_can_ritual(
+    const PocketSpell* spell, uint8_t known, uint8_t always_prepared);
 bool dndolphins_spells_record_has_cast_resource(
     const PocketCharacter* character,
     const PocketSpell* spell,

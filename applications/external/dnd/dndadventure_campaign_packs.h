@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <storage/storage.h>
 
-#define POCKET_CAMPAIGN_PACK_ID_LEN    32U
-#define POCKET_CAMPAIGN_PACK_NAME_LEN  40U
+#define POCKET_CAMPAIGN_PACK_ID_LEN   32U
+#define POCKET_CAMPAIGN_PACK_NAME_LEN 40U
 #define POCKET_CAMPAIGN_PACK_ENTRY_LEN 32U
 
 typedef struct {
@@ -26,10 +26,7 @@ typedef struct {
 } PocketCampaignPackPreview;
 
 uint16_t dndadventure_campaign_packs_count(Storage* storage);
-bool dndadventure_campaign_packs_at(
-    Storage* storage,
-    uint16_t index,
-    PocketCampaignPackSummary* output);
+bool dndadventure_campaign_packs_at(Storage* storage, uint16_t index, PocketCampaignPackSummary* output);
 bool dndadventure_campaign_packs_preview_inbox(
     Storage* storage,
     PocketCampaignPackPreview* output,

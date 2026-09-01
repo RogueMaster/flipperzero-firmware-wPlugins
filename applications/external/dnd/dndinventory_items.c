@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define POCKET_D20_DEFAULT_CLASS_EQUIPMENT      APP_ASSETS_PATH("equipment/default_class.txt")
-#define POCKET_D20_DEFAULT_RACE_EQUIPMENT       APP_ASSETS_PATH("equipment/default_race.txt")
+#define POCKET_D20_DEFAULT_CLASS_EQUIPMENT APP_ASSETS_PATH("equipment/default_class.txt")
+#define POCKET_D20_DEFAULT_RACE_EQUIPMENT APP_ASSETS_PATH("equipment/default_race.txt")
 #define POCKET_D20_DEFAULT_BACKGROUND_EQUIPMENT APP_ASSETS_PATH("equipment/default_background.txt")
-#define POCKET_D20_DEFAULT_TRINKETS             APP_ASSETS_PATH("equipment/trinkets.txt")
+#define POCKET_D20_DEFAULT_TRINKETS APP_ASSETS_PATH("equipment/trinkets.txt")
 
 bool dndinventory_items_initialize_inventory(
     Storage* storage,
@@ -19,10 +19,12 @@ bool dndinventory_items_initialize_inventory(
     if(!storage || !character) return false;
     if(dnd_storage_items_exist(storage, profile)) {
         bool granted = false;
-        if(!dnd_storage_inventory_initial_granted(storage, profile, &granted)) return false;
+        if(!dnd_storage_inventory_initial_granted(storage, profile, &granted))
+            return false;
         if(granted) return true;
         uint8_t existing_items = 0U;
-        if(!dnd_storage_visit_items(storage, profile, NULL, NULL, &existing_items)) return false;
+        if(!dnd_storage_visit_items(storage, profile, NULL, NULL, &existing_items))
+            return false;
         if(existing_items) return true;
 
         /* Currency-only inventory files are valid now that Inventory owns
@@ -157,7 +159,14 @@ bool dndinventory_items_regrant_inventory_once(
     int32_t currency_total[5] = {0, 0, 0, 0, 0};
     bool applied = false;
     if(!dnd_storage_regrant_items_from_assets(
-           storage, profile, owner, assets, 3U, &fallback, currency_total, &applied)) {
+           storage,
+           profile,
+           owner,
+           assets,
+           3U,
+           &fallback,
+           currency_total,
+           &applied)) {
         free(owner);
         return false;
     }
@@ -175,3 +184,4 @@ bool dndinventory_items_regrant_inventory_once(
     free(owner);
     return true;
 }
+
