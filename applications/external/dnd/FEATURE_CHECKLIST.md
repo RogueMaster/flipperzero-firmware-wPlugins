@@ -44,9 +44,9 @@
 - [x] Full 17-field Spell editor retained, including Source Class, Level, Known/Prepared/Always Prepared/Ritual, free casts, stable ID/source/school/grant metadata and Delete.
 - [x] Hold OK on a known Spellbook row toggles Prepared/Unprepared and saves immediately; Always Prepared remains protected. List rows restore `A`/`P`/`K`/`-` state marks plus `F` for an available free cast (for example `AF`).
 - [x] Spellbook list drawing is cache-only and has no timer/pub-sub/background worker; no-op Press/Release input events do not force redraws.
-- [x] Bundled Spell Catalog contains 448 unique spells with Level, Class list, School, Ritual and Source metadata; catalog paging uses a bounded 256-byte filtered-page offset map and 128-byte buffered reader.
+- [x] Bundled Spell Catalog contains 448 unique spells with Level, Class list, School, Ritual and Source metadata, physically ordered by level ascending then case-insensitive name so filtered streaming preserves that order; catalog paging uses a bounded 256-byte filtered-page offset map and 128-byte buffered reader.
 - [x] Add Spell filters Level/Spell Class/School/Ritual/Source/Status during streaming so bounded pages remain filled with matching results; Hold Up from the Spellbook list opens this filter screen directly.
-- [x] Spell Class filtering defaults to **All Classes**, the union of currently eligible spells across every class on a multiclass character, with individual-class filtering available explicitly. `Eligibility: Allowed` remains the normal default and `Eligibility: All Spells` restores the older opt-in show-all catalog behavior.
+- [x] Spell Class filtering defaults to **Character Classes**, the union of the active character's actual spell lists, and also exposes **Any Class** plus every supported class name regardless of the character build. `Eligibility: Allowed` remains the normal default and validates real character list/level access; `Eligibility: All Spells` makes the selected class a pure catalog filter, with `Any Class + All Spells` exposing the complete catalog.
 - [x] Spell Catalog headers retain explicit `Page N <>` hints; successful quick Prepare/Unprepare restores the earlier `[X]` row acknowledgement. Successful `Spell added` is a one-shot status cleared on the next real input.
 - [x] Eldritch Knight/Arcane Trickster use the Wizard spell list for catalog eligibility.
 - [x] Add/Edit/Delete/catalog choices and free-cast changes save immediately to the canonical sidecar. Recorded spells are maintained in spell-level then case-insensitive alphabetical-name order using at most 24 compact transient sort keys, never a second full Spell collection. Sorting is owned by `dndspellbook_collection.c`; shared storage exports no Spellbook-sort function.
@@ -116,7 +116,7 @@
 
 ## Current regression additions
 
-- [x] Progression/grant feat catalog opens Allowed, Hold OK toggles All, and manual Features catalog is unrestricted.
+- [x] Progression/grant feat catalog opens conservative Allowed, Hold OK toggles All, unknown/custom rows are excluded from Allowed when prerequisites cannot be validated, duplicate eligibility fails closed on Feature-sidecar read failure, and manual Features catalog is unrestricted, and the nested progression feat picker omits the no-effect `Ability Score Improvement` Feature row because ASI uses its dedicated choices.
 - [x] Stack Qty is editable through normal Item OK numeric entry and list Hold Left/Right; persistence survives reopen.
 - [x] Deleting a container releases its children to Carried and shifts higher container indexes correctly.
 - [x] End Current Combat saves no history unless Save History is explicitly chosen; saved history includes date/rounds/party state/surviving opponents.
@@ -124,5 +124,24 @@
 - [x] All bundled Bestiary index IDs have exactly one statblock.
 
 - [x] Level increases add fixed-average Hit Die HP + Constitution modifier (minimum 1 per level), refresh class/global Hit Dice to their new maxima, and do not auto-apply progression grants; Journal milestone leveling follows the same HP/Hit-Dice rule.
-- [x] Empty never-granted Inventory auto-initializes starting equipment; stale list/page state is repaired before rendering so normal navigation does not expose `Page unavailable`.
+- [x] Empty never-granted Inventory auto-initializes starting equipment; stale/missing resident page state is reloaded before rendering, and any residual cache-mismatch placeholder is blank rather than displaying `Page unavailable`.
 - [x] Bestiary uses encounter-first home ordering, omits Monster Pack Controls, and keeps Pack Diagnostics last.
+### 3.5.3 grant/delete regression checks
+- [x] Grant Initial Traits reports `Updated` when a deterministic level-1 grant is repaired/applied and `No changes` when already satisfied.
+- [x] Apply Level Grants reports `Updated`/`No changes` using authoritative character/Feature/Spellbook state; applied-grant markers are best-effort only.
+- [x] Explicit grant actions scan bundled progression metadata in bounded batches without per-source full-file rescans.
+- [x] Character Delete supports active/profile-0 deletion, stops pending autosave before removal, selects a surviving profile when available, and reports the result after returning to Characters.
+
+
+### 3.5.4 catalog/paging/ASI regression checks
+- [x] Bundled Add Spell catalog is level ascending and case-insensitive alphabetical within each level with zero level reversals.
+- [x] Progression Feats: Allowed excludes unknown/custom perk rows; Hold OK -> All still exposes them and manual Feature/Perk editing remains unrestricted.
+- [x] Inventory validates actual resident records even when `cache_start` matches, reloads stale page zero when needed, and contains no `Page unavailable` UI string.
+- [x] ASI +1/+1 first pick is selection-only; the second different pick writes exactly one point to each baseline and rolls both back if the applied-choice marker cannot be persisted.
+
+### 3.5.5 spell class filter regression checks
+
+- [x] Spellbook initializes the class filter to `Character Classes`, not a specific character class and not `Any Class`.
+- [x] Left/Right can cycle Character Classes, Any Class and all 13 supported class labels even when the active character does not own those classes.
+- [x] A selected class always constrains catalog membership; `Allowed` additionally requires actual character access and permitted spell level.
+- [x] `Any Class + All Spells` retains complete-catalog browsing; Eldritch Knight/Arcane Trickster resolve through the Wizard list.

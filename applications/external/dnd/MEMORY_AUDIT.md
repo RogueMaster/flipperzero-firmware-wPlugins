@@ -19,6 +19,12 @@ This audit separates values that are exact from project source from values that 
 | DNDInitiative | **3,072 B** | **~2,300 B** | **5,276 B** | **6,812 B** during main-character two-buffer profile sync; history save is stack-bounded and adds no resident state |
 | DNDBestiary | **6,144 B** | **~4,370 B** | **1,528 B** | **4,108 B** main monster window; **6,368 B** encounter generation |
 
+The 3.5.3 explicit-grant repair keeps the existing bounded 256-byte metadata line plus 512-byte read buffer and does not add resident grant state; it reduces repeated file scans rather than increasing memory.
+
+The 3.5.4 ASI hardening adds one signed-byte baseline field beside existing byte-sized level-choice state; it consumes the prior alignment byte before the following 16-bit field, so the audited **4,940 B** DNDolphins fixed app block is unchanged. Spell catalog ordering is performed in the bundled asset at build time, not by adding resident runtime sort storage. Inventory paging adds validation only and no resident buffers.
+
+The 3.5.5 Spellbook class-filter expansion reuses the existing one-byte `filter_class` field and static string literals; it adds no resident catalog rows, paging buffers or save-state fields. Spellbook memory bounds are therefore unchanged.
+
 The projection-based companions intentionally optimize **resident** state first. A few existing shared storage APIs still accept `PocketCharacter`, so Inventory grants, Spellbook page I/O and Adventure Item rewards create a bounded full-character adapter only for that operation. Those adapters are freed before returning and are not embedded in the app state. If hardware measurements show those transient peaks matter, the next optimization should be narrower collection-storage APIs rather than restoring a resident full character.
 
 ## Exact current ARM32 project sizes

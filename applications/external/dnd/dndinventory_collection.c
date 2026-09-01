@@ -1128,13 +1128,24 @@ static bool
     dndinventory_collection_ensure_list_page(DndInventoryCollectionApp* app, uint16_t selection) {
     if(!app) return false;
     if(selection == 0U) {
-        if(app->total && app->cache_start != 0U) return dndinventory_collection_load_page(app, 0U);
+        /* The + Add New row still shares the first viewport with real items.
+           Re-establish page zero if the resident page is stale or unexpectedly
+           empty while the indexed collection says items exist. */
+        if(app->total && (app->cache_start != 0U || app->data.character.item_count == 0U))
+            return dndinventory_collection_load_page(app, 0U);
         return true;
     }
     uint8_t logical = (uint8_t)(selection - 1U);
     uint8_t target =
         (uint8_t)((logical / POCKET_D20_COLLECTION_CACHE_SIZE) * POCKET_D20_COLLECTION_CACHE_SIZE);
-    if(target == app->cache_start) return true;
+    if(target == app->cache_start) {
+        /* A matching page number is not enough after an external write, delete,
+           or stale return state: verify the selected logical record is actually
+           resident before drawing it. Reload the same page when it is not. */
+        if(logical >= app->cache_start &&
+           logical < (uint8_t)(app->cache_start + app->data.character.item_count))
+            return true;
+    }
     return dndinventory_collection_load_page(app, target);
 }
 
@@ -1733,7 +1744,7 @@ static void dndinventory_collection_draw_list(Canvas* canvas, DndInventoryCollec
             uint8_t logical = (uint8_t)(index - 1U);
             if(logical < app->cache_start ||
                logical >= app->cache_start + POCKET_D20_COLLECTION_CACHE_SIZE) {
-                dndinventory_collection_copy(text, sizeof(text), "Page unavailable");
+                text[0] = '\0';
             } else {
                 uint8_t local = dndinventory_collection_local(app, logical);
                 if(local < app->data.character.item_count) {

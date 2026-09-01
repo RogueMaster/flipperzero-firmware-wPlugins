@@ -68,7 +68,7 @@
 - [ ] After a successful Item/Spell save, add, catalog choice, Equip/Prepare action or grant/regrant, confirm the success notice is visible initially and clears on the next real input; force a write failure and confirm `UNSAVED`/error feedback does not clear as a routine success notice.
 - [ ] Add at least three items and three spells consecutively, close/relaunch the respective collection FAPs, and confirm every record persists.
 - [ ] Delete a middle item and middle spell, close/relaunch the respective collection FAPs, and confirm the remaining records persist in order.
-- [ ] In Spell Filters, confirm Spell Class defaults to **All Classes**; on a multiclass character it shows the union of eligible spells, and selecting a specific class restricts the catalog to that class.
+- [ ] In Spell Filters, confirm Class defaults to **Character Classes**; on a multiclass character it shows the union of the character's spell lists, and Left/Right also reaches Any Class plus every supported class even when the character does not own that class.
 - [ ] In Add Spell, exercise Level, School, Ritual and Source filters separately and in combination; confirm each page is filled from matching streamed results rather than showing sparse rows from an already-selected page.
 - [ ] Cycle Source through Core, Xanathar, Forgotten Realms, Ravenloft and Other; select a spell and confirm its Source/School/Ritual metadata is copied into the owned Spell record and survives restart.
 - [ ] Hold OK on a known Spellbook row and confirm Prepared toggles immediately, the `S|` record is already updated on SD before leaving the screen, and a second Hold OK toggles it back; Always Prepared remains unchanged.
@@ -220,8 +220,8 @@
 ### Inventory / Spellbook parity regression
 
 - Add a new Item and Spell. Confirm `Item added` / `Spell added` appears once in the editor header and clears on the next Short/Repeat/Long input without a timer or background worker; an UNSAVED/error notice must not be auto-cleared as a success notice.
-- Spellbook main list: Hold Up opens Spell Filters. Confirm `Spell Class: All Classes` is the default, Left/Right cycles All Classes and each character class, and All Classes returns the union of currently eligible multiclass spells.
-- Spell Filters: confirm `Eligibility: Allowed` is default and `All Spells` is opt-in; All Spells bypasses class/level eligibility only and still honors explicit Level/Ritual/School/Source/Status filters.
+- Spellbook main list: Hold Up opens Spell Filters. Confirm `Class: Character Classes` is the default. Left/Right must cycle Character Classes → Any Class → Artificer through Wizard regardless of the active character's classes; Character Classes returns the union of the character's actual spell lists.
+- Spell Filters: confirm `Eligibility: Allowed` is default and `All Spells` is opt-in. Allowed must require real character list/level access; All Spells must preserve the selected class as a catalog-membership filter while bypassing character eligibility. `Any Class + All Spells` should show the complete catalog before the other explicit filters.
 - Spell and Item Catalogs: confirm `Page N <>` is visible; Left/Right changes catalog pages; Item rows use unbracketed category initials, append `*` for magic entries, and leave Other entries unprefixed.
 - Hold OK on a known non-always-prepared Spell and on an Item: confirm immediate persistence and a temporary `[X]` prefix on the affected row; the acknowledgement clears on the next input.
 - Reconfirm full editor parity against the recovery baseline: 17 Spell fields and 36 Item fields, Name-field catalog, Hold-OK custom name, Delete, free-cast controls, Equip/Prepare quick actions and A/P/K/F Spell list marks.
@@ -243,3 +243,24 @@
 
 - [ ] Level HP/Hit Dice: for d6/d8/d10/d12 classes with several Constitution modifiers, increase one and multiple levels and confirm HP gains are 4/5/6/7 + CON per level (minimum 1), current HP gains the same amount without erasing prior damage, class Hit Dice current=max=class level, and global Hit Dice current=max=total level. Repeat through a Journal milestone.
 - [ ] Bestiary home menu order: Browse Monsters, Generate Encounter, Party Level, Party Size, encounter settings, Saved Encounters, browse settings/lists, Create Custom Monster, Pack Diagnostics. Confirm Monster Pack Controls is absent and Pack Diagnostics is last.
+## 3.5.3 focused hardware checks
+
+- On a fresh Human Fighter, run **Grant Initial Traits**: expect **Updated** and verify Second Wind appears; run it again: expect **No changes**.
+- On a leveled character with unapplied deterministic grants, run **Apply Level Grants**: expect **Updated** and verify new Features/species spells; rerun: expect **No changes**.
+- Delete a non-active character, an active nonzero character, and active profile 0. Confirm the row disappears, a surviving character becomes active when present, and deleting the final profile leaves only **+ New Character**.
+
+
+## 3.5.4 focused hardware checks
+
+- Open Add Spell with no level filter and page through transitions between Cantrip/1st/2nd/etc.; confirm levels never decrease and names are alphabetical within a level. Repeat with class/source/status filters and confirm the retained order is still level then name.
+- Trigger a progression feat choice. In **Allowed**, confirm bundled valid feats appear, unmet prerequisite feats and already-owned non-repeatable feats do not, and custom/ability Feature names are absent. Hold OK to **All** and confirm custom/ability Feature rows become reachable except `Ability Score Improvement`, which remains excluded from the nested feat picker because ASI uses the dedicated +2/+1+1 choices.
+- Exercise Inventory at 7/8/9 and 15/16/17 records, including delete on a page boundary and return from Item Editor. Confirm no `Page unavailable` text appears and the selected row always maps to the correct Item.
+- Choose ASI +1/+1. Record all six scores before the first pick; verify the first pick changes none. Pick a second different ability; verify exactly those two scores increase by one and the other four remain byte-for-byte unchanged. Repeat across two separate pending ASIs to confirm no prior first-pick state carries over.
+
+## 3.5.5 focused hardware checks
+
+- [ ] Open Spell Filters on a single-class character and confirm the initial class row reads `Class: Character Classes`.
+- [ ] Cycle right through Any Class and all 13 class labels; confirm classes absent from the character are still selectable.
+- [ ] With a Bard that has no Wizard access, select Wizard + Allowed and confirm no Wizard-only spells leak through; switch to Wizard + All Spells and confirm Wizard catalog rows appear.
+- [ ] On an Eldritch Knight or Arcane Trickster, select Wizard + Allowed and confirm eligible Wizard-list spells appear according to third-caster level.
+- [ ] Select Any Class + All Spells and confirm complete-catalog browsing remains available.

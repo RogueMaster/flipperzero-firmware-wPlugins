@@ -98,6 +98,23 @@ static const char* const dndspellbook_collection_school_names[] = {
     "Transmutation"};
 static const char* const dndspellbook_collection_source_names[] =
     {"Any", "Core", "Xanathar", "Forgotten Realms", "Ravenloft", "Other"};
+static const char* const dndspellbook_collection_class_names[] = {
+    "Artificer",
+    "Barbarian",
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Fighter",
+    "Monk",
+    "Paladin",
+    "Ranger",
+    "Rogue",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"};
+#define DNDSPELLBOOK_COLLECTION_CLASS_COUNT              13U
+#define DNDSPELLBOOK_COLLECTION_FILTER_CHARACTER_CLASSES UINT8_MAX
+#define DNDSPELLBOOK_COLLECTION_FILTER_ANY_CLASS         13U
 
 typedef struct {
     char name[POCKET_D20_CHARACTER_NAME_LEN];
@@ -367,6 +384,13 @@ static uint16_t dndspellbook_collection_class_mask(char* classes) {
     return mask;
 }
 
+static uint16_t dndspellbook_collection_character_class_mask(const PocketClassLevel* class_level) {
+    if(!class_level) return 0U;
+    return dndspellbook_collection_class_uses_wizard_spell_list(class_level) ?
+               DndSpellbookClassMaskWizard :
+               dndspellbook_collection_class_mask_from_name(class_level->name);
+}
+
 static bool dndspellbook_collection_class_allows(
     const DndSpellbookCharacterState* character,
     uint8_t class_index,
@@ -374,11 +398,55 @@ static bool dndspellbook_collection_class_allows(
     uint16_t mask) {
     if(!character || class_index >= character->class_count) return false;
     const PocketClassLevel* class_level = &character->classes[class_index];
-    uint16_t selected = dndspellbook_collection_class_uses_wizard_spell_list(class_level) ?
-                            DndSpellbookClassMaskWizard :
-                            dndspellbook_collection_class_mask_from_name(class_level->name);
+    uint16_t selected = dndspellbook_collection_character_class_mask(class_level);
     return selected && (mask & selected) &&
            level <= dnd_spell_eligibility_class_max_spell_level(class_level);
+}
+
+static uint16_t dndspellbook_collection_filter_class_mask(uint8_t filter_class) {
+    if(filter_class >= DNDSPELLBOOK_COLLECTION_CLASS_COUNT) return 0U;
+    return (uint16_t)(1U << filter_class);
+}
+
+static const char* dndspellbook_collection_filter_class_name(uint8_t filter_class) {
+    if(filter_class == DNDSPELLBOOK_COLLECTION_FILTER_CHARACTER_CLASSES)
+        return "Character Classes";
+    if(filter_class == DNDSPELLBOOK_COLLECTION_FILTER_ANY_CLASS) return "Any Class";
+    if(filter_class < DNDSPELLBOOK_COLLECTION_CLASS_COUNT)
+        return dndspellbook_collection_class_names[filter_class];
+    return "Character Classes";
+}
+
+static bool dndspellbook_collection_character_classes_match(
+    const DndSpellbookCharacterState* character,
+    uint8_t level,
+    uint16_t mask,
+    bool enforce_level) {
+    if(!character) return false;
+    for(uint8_t i = 0U; i < character->class_count; ++i) {
+        uint16_t selected = dndspellbook_collection_character_class_mask(&character->classes[i]);
+        if(!selected || !(mask & selected)) continue;
+        if(!enforce_level ||
+           level <= dnd_spell_eligibility_class_max_spell_level(&character->classes[i]))
+            return true;
+    }
+    return false;
+}
+
+static bool dndspellbook_collection_selected_class_allowed(
+    const DndSpellbookCharacterState* character,
+    uint8_t filter_class,
+    uint8_t level,
+    uint16_t mask) {
+    uint16_t selected_filter = dndspellbook_collection_filter_class_mask(filter_class);
+    if(!selected_filter || !(mask & selected_filter) || !character) return false;
+    for(uint8_t i = 0U; i < character->class_count; ++i) {
+        if(dndspellbook_collection_character_class_mask(&character->classes[i]) != selected_filter)
+            continue;
+        if(level <= dnd_spell_eligibility_class_max_spell_level(&character->classes[i]))
+            return true;
+    }
+    return false;
 }
 
 static bool dndspellbook_collection_spell_allowed(
@@ -386,12 +454,21 @@ static bool dndspellbook_collection_spell_allowed(
     uint8_t level,
     uint16_t mask) {
     DndSpellbookCharacterState* character = &app->data.character;
+
+    if(app->filter_class == DNDSPELLBOOK_COLLECTION_FILTER_ANY_CLASS) {
+        if(app->filter_show_all) return true;
+        return dndspellbook_collection_character_classes_match(character, level, mask, true);
+    }
+
+    if(app->filter_class == DNDSPELLBOOK_COLLECTION_FILTER_CHARACTER_CLASSES)
+        return dndspellbook_collection_character_classes_match(
+            character, level, mask, !app->filter_show_all);
+
+    uint16_t selected_filter = dndspellbook_collection_filter_class_mask(app->filter_class);
+    if(!selected_filter || !(mask & selected_filter)) return false;
     if(app->filter_show_all) return true;
-    if(app->filter_class < character->class_count)
-        return dndspellbook_collection_class_allows(character, app->filter_class, level, mask);
-    for(uint8_t i = 0U; i < character->class_count; ++i)
-        if(dndspellbook_collection_class_allows(character, i, level, mask)) return true;
-    return false;
+    return dndspellbook_collection_selected_class_allowed(
+        character, app->filter_class, level, mask);
 }
 
 static uint8_t dndspellbook_collection_resolve_class(
@@ -400,14 +477,36 @@ static uint8_t dndspellbook_collection_resolve_class(
     uint16_t mask,
     uint8_t preferred) {
     DndSpellbookCharacterState* character = &app->data.character;
-    if(app->filter_class < character->class_count &&
-       dndspellbook_collection_class_allows(character, app->filter_class, level, mask))
-        return app->filter_class;
+    uint16_t selected_filter = dndspellbook_collection_filter_class_mask(app->filter_class);
+
+    if(selected_filter) {
+        for(uint8_t i = 0U; i < character->class_count; ++i)
+            if(dndspellbook_collection_character_class_mask(&character->classes[i]) ==
+                   selected_filter &&
+               dndspellbook_collection_class_allows(character, i, level, mask))
+                return i;
+        if(app->filter_show_all)
+            for(uint8_t i = 0U; i < character->class_count; ++i)
+                if(dndspellbook_collection_character_class_mask(&character->classes[i]) ==
+                       selected_filter &&
+                   (mask & selected_filter))
+                    return i;
+    }
+
     if(preferred < character->class_count &&
        dndspellbook_collection_class_allows(character, preferred, level, mask))
         return preferred;
     for(uint8_t i = 0U; i < character->class_count; ++i)
         if(dndspellbook_collection_class_allows(character, i, level, mask)) return i;
+
+    if(app->filter_show_all) {
+        if(preferred < character->class_count &&
+           (mask & dndspellbook_collection_character_class_mask(&character->classes[preferred])))
+            return preferred;
+        for(uint8_t i = 0U; i < character->class_count; ++i)
+            if(mask & dndspellbook_collection_character_class_mask(&character->classes[i]))
+                return i;
+    }
     return preferred < character->class_count ? preferred : 0U;
 }
 
@@ -1492,9 +1591,7 @@ static void dndspellbook_collection_draw_catalog(Canvas* canvas, DndSpellbookCol
         title,
         sizeof(title),
         "Spells: %s",
-        app->filter_class < app->data.character.class_count ?
-            app->data.character.classes[app->filter_class].name :
-            "All Classes");
+        dndspellbook_collection_filter_class_name(app->filter_class));
     char page[16];
     snprintf(
         page,
@@ -1520,7 +1617,6 @@ static void dndspellbook_collection_draw_catalog(Canvas* canvas, DndSpellbookCol
 
 static void dndspellbook_collection_draw_filters(Canvas* canvas, DndSpellbookCollectionApp* app) {
     char rows[7][48];
-    DndSpellbookCharacterState* character = &app->data.character;
     if(app->filter_level < 0)
         dndspellbook_collection_copy(rows[0], sizeof(rows[0]), "Level: Any");
     else if(app->filter_level == 0)
@@ -1530,9 +1626,8 @@ static void dndspellbook_collection_draw_filters(Canvas* canvas, DndSpellbookCol
     snprintf(
         rows[1],
         sizeof(rows[1]),
-        "Spell Class: %s",
-        app->filter_class < character->class_count ? character->classes[app->filter_class].name :
-                                                     "All Classes");
+        "Class: %s",
+        dndspellbook_collection_filter_class_name(app->filter_class));
     snprintf(rows[2], sizeof(rows[2]), "Ritual: %s", app->filter_ritual ? "Only" : "Any");
     snprintf(
         rows[3],
@@ -1850,7 +1945,6 @@ static void dndspellbook_collection_detail_hold_ok(DndSpellbookCollectionApp* ap
 }
 
 static void dndspellbook_collection_filter_adjust(DndSpellbookCollectionApp* app, int8_t delta) {
-    DndSpellbookCharacterState* character = &app->data.character;
     switch(app->filter_selection) {
     case 0: {
         int16_t next = app->filter_level + delta;
@@ -1860,11 +1954,23 @@ static void dndspellbook_collection_filter_adjust(DndSpellbookCollectionApp* app
         break;
     }
     case 1: {
-        int16_t next = app->filter_class == UINT8_MAX ? -1 : app->filter_class;
+        /* Character Classes is the default, followed by Any Class and every
+           supported catalog class. This selector is intentionally independent
+           of the character's own class array. */
+        int16_t next = -1;
+        if(app->filter_class == DNDSPELLBOOK_COLLECTION_FILTER_ANY_CLASS)
+            next = 0;
+        else if(app->filter_class < DNDSPELLBOOK_COLLECTION_CLASS_COUNT)
+            next = (int16_t)app->filter_class + 1;
         next += delta;
-        if(next < -1) next = (int16_t)character->class_count - 1;
-        if(next >= (int16_t)character->class_count) next = -1;
-        app->filter_class = next < 0 ? UINT8_MAX : (uint8_t)next;
+        if(next < -1) next = DNDSPELLBOOK_COLLECTION_CLASS_COUNT;
+        if(next > (int16_t)DNDSPELLBOOK_COLLECTION_CLASS_COUNT) next = -1;
+        if(next < 0)
+            app->filter_class = DNDSPELLBOOK_COLLECTION_FILTER_CHARACTER_CLASSES;
+        else if(next == 0)
+            app->filter_class = DNDSPELLBOOK_COLLECTION_FILTER_ANY_CLASS;
+        else
+            app->filter_class = (uint8_t)(next - 1);
         break;
     }
     case 2:
@@ -2097,7 +2203,7 @@ static DndSpellbookCollectionApp* dndspellbook_collection_alloc(const char* args
     DndSpellbookCollectionApp* app = calloc(1U, sizeof(DndSpellbookCollectionApp));
     if(!app) return NULL;
     app->filter_level = -1;
-    app->filter_class = UINT8_MAX;
+    app->filter_class = DNDSPELLBOOK_COLLECTION_FILTER_CHARACTER_CLASSES;
     app->filter_return_screen = DndSpellbookCollectionScreenList;
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);

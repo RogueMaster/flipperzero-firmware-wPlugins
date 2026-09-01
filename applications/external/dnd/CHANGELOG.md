@@ -2,6 +2,30 @@
 
 Released work only. Normal releases are retained as concise summaries; closely related recovery spans may be consolidated when the individual troubleshooting chronology would obscure the released outcome.
 
+## 3.5.5 — Catalog-wide spell class filters
+
+- Changed the Spellbook catalog class selector so **Character Classes** remains the default, representing the union of the active character's actual spell lists.
+- Added **Any Class** plus explicit Artificer, Barbarian, Bard, Cleric, Druid, Fighter, Monk, Paladin, Ranger, Rogue, Sorcerer, Warlock and Wizard filter choices independent of the character's own class slots.
+- Kept class filtering separate from eligibility: `Allowed` still requires real character spell-list access and the permitted spell level, while `All Spells` lets the selected class act as a pure catalog-list filter. `Any Class + All Spells` exposes the complete catalog.
+- Eldritch Knight and Arcane Trickster continue to count as Wizard-list access for `Allowed` filtering and class assignment.
+- No save-schema, combat, Inventory or resident-buffer changes.
+
+## 3.5.4 — Spell catalog ordering, conservative feat eligibility and paging/ASI hardening
+
+- Sorted the bundled 448-spell Add Spell catalog by spell level ascending and then case-insensitive spell name, preserving the existing streamed/paged reader and filters rather than adding a resident whole-catalog sort.
+- Tightened progression **Feats: Allowed** mode so it shows only bundled feat/perk rows whose prerequisites the app can positively validate. Custom/unrecognized Feature/Perk names are now hidden in Allowed and remain reachable through **Hold OK → All**; duplicate eligibility also fails closed if the Feature sidecar cannot be verified. Manual Feature/Perk editing remains unrestricted.
+- Hardened Inventory list residency checks so a matching cache-page number is reloaded when the selected record is not actually resident, including stale first-page state. The old `Page unavailable` placeholder is now an empty string if a cache mismatch still occurs while a read failure is being reported separately.
+- Hardened two-pick ASI `+1/+1`: the first pick records only the ability and its baseline score, never changes a score, and the second pick applies exactly baseline+1 to each of two different abilities. A stale first score cancels the pair instead of compounding another +1, and failed choice persistence restores both exact original scores.
+- Preserved the working loose-ammunition name matching/combat behavior from 3.5.3 unchanged. No save-schema fields changed; the extra ASI baseline byte consumes existing app-struct alignment padding and does not increase the audited DNDolphins fixed block.
+
+## 3.5.3 — Grant persistence/status and character deletion repair
+
+- Reworked **Grant Initial Traits** and **Apply Level Grants** completion handling. Both commands now report **Updated** only when class progression or deterministic grants actually changed persisted state, and **No changes** when the character is already current. Grant failures that require review retain a visible status after the screen transition instead of having it cleared by `enter_screen()`. Core character changes are flushed immediately before success is reported.
+- Made actual character/Feature/Spellbook state authoritative for deterministic grant completion. Stale or missing `appliedgrants_*` markers can no longer suppress a missing grant, and a marker-write failure can no longer turn an already-successful Feature/Spellbook/scalar grant into a failed grant. This also prevents duplicate Features when the real Feature exists but its marker does not.
+- Reduced explicit-grant latency by scanning bundled progression metadata once per batch instead of reopening and rescanning it separately for species, background, every class and every subclass. The resident grant batch remains bounded by `POCKET_D20_MAX_GRANTS`.
+- Fixed Character **Delete** so the result survives the return to the Characters list and active characters—including profile 0—can be deleted. Deleting the active character stops pending autosave first, removes its character-owned sidecars, switches to another surviving profile when available, and leaves the Characters list empty with **+ New Character** when the last profile is deleted rather than silently recreating the deleted file.
+- No save-schema fields were added or changed.
+
 ## 3.5.2 — Explicit level grants, level-up durability and collection/menu repairs
 
 - Separated character advancement from deterministic progression grants. Raising a class level now updates level-derived rules only; **Character → Apply Level Grants** explicitly applies all currently eligible deterministic species/class/subclass grants. **Grant Initial Traits** is restricted to starting/level-1 species/background/class/subclass grants and can repair stale applied markers when the actual Feature, scalar trait or Spellbook record is missing. Feature paging is released before grant writes so a resident page cannot hide newly appended traits.

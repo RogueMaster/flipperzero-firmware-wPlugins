@@ -341,6 +341,7 @@ typedef struct {
     uint8_t level_choice_level;
     uint8_t level_choice_mode;
     uint8_t level_choice_first_ability;
+    int8_t level_choice_first_score;
 
     uint8_t action_ack_active;
     uint8_t action_ack_screen;
@@ -1750,23 +1751,73 @@ static void dndolphins_create_profile(PocketD20App* app) {
         app, character_saved && metadata_saved ? "New character" : "Save failed");
 }
 
-static void dndolphins_delete_profile(PocketD20App* app, uint32_t profile) {
-    if(profile == 0U) {
-        dndolphins_set_status(app, "Main cannot delete");
-        return;
+static bool dndolphins_delete_profile(PocketD20App* app, uint32_t profile) {
+    if(!app || !dndolphins_profile_exists(app, profile)) return false;
+
+    const bool deleting_active = profile == app->profiles.active_profile;
+    PocketProfileEntry replacement;
+    const bool have_replacement =
+        deleting_active && dnd_storage_profiles_next_after(app->storage, profile, &replacement) &&
+        replacement.id != profile;
+
+    /* An active profile may be deleted too. Stop any pending autosave before the
+       primary file disappears so a delayed callback can never recreate it. */
+    if(deleting_active) {
+        if(app->autosave_timer) furi_timer_stop(app->autosave_timer);
+        app->autosave_pending = 0U;
+        dnd_data_clear_spells(&app->data.character);
+        dnd_data_clear_items(&app->data.character);
+        dnd_data_reserve_features_exact(&app->data.character, 0U);
+        app->data.character.feature_count = 0U;
+        dndolphins_release_pending_grants(app);
+        app->spellbook_loaded = 0U;
+        app->items_loaded = 0U;
+        app->features_loaded = 0U;
+        app->spellbook_total = 0U;
+        app->items_total = 0U;
+        app->features_total = 0U;
+        app->spellbook_cache_start = 0U;
+        app->items_cache_start = 0U;
+        app->features_cache_start = 0U;
+        app->spell_class_counts_valid = 0U;
+        app->active_profile_loaded = 0U;
     }
-    if(profile == app->profiles.active_profile) {
-        dndolphins_set_status(app, "Switch before delete");
-        return;
+
+    if(!dnd_storage_delete_profile(app->storage, profile)) return false;
+    if(!dnd_storage_profiles_refresh(app->storage, &app->profiles)) return false;
+
+    if(deleting_active && have_replacement &&
+       dnd_storage_profiles_find(app->storage, replacement.id, NULL)) {
+        app->profiles.active_profile = replacement.id;
+        bool recovered_backup = false;
+        bool loaded =
+            dnd_storage_load_profile(app->storage, replacement.id, &app->data, &recovered_backup);
+        app->active_profile_loaded = loaded ? 1U : 0U;
+        if(loaded && recovered_backup)
+            loaded = dnd_storage_restore_backup(app->storage, replacement.id, &app->data);
+        if(!loaded) {
+            app->active_profile_loaded = 0U;
+            return false;
+        }
+        app->saved_fingerprint = dndolphins_data_fingerprint(&app->data);
+        dndolphins_profile_include_active(app);
+    } else if(deleting_active) {
+        /* The Characters screen is valid with zero profiles. Keep a harmless RAM
+           default for rendering, but do not persist it; + New Character remains
+           the only character row until the user explicitly creates one. */
+        app->profiles.active_profile = 0U;
+        dnd_data_clear(&app->data);
+        dnd_data_set_defaults(&app->data);
+        app->active_profile_loaded = 0U;
+        app->saved_fingerprint = dndolphins_data_fingerprint(&app->data);
     }
-    if(!dndolphins_profile_exists(app, profile)) return;
-    bool character_deleted = dnd_storage_delete_profile(app->storage, profile);
-    bool metadata_saved = dnd_storage_profiles_refresh(app->storage, &app->profiles) &&
-                          dnd_storage_profiles_save(app->storage, &app->profiles);
+
+    if(!dnd_storage_profiles_save(app->storage, &app->profiles)) return false;
+    app->storage_read_only = 0U;
+    app->storage_unsaved = 0U;
     app->selection = 0U;
     app->scroll = 0U;
-    dndolphins_set_status(
-        app, metadata_saved && character_deleted ? "Character deleted" : "Delete failed");
+    return true;
 }
 
 static uint8_t dndolphins_wizard_level(const PocketCharacter* character) {
@@ -1951,15 +2002,17 @@ static bool dndolphins_feat_allowed(PocketD20App* app, const char* name) {
         allowed = true;
     }
 
-    /* Custom/unknown feat rows remain visible in Allowed. The app cannot safely
-       infer prerequisites that are not represented by its bundled rules. */
-    if(!recognized || !allowed) return allowed;
+    /* Allowed is intentionally conservative: only rows whose prerequisites the
+       app can positively validate are shown. Custom/unrecognized feat/perk rows
+       remain available through Hold OK -> All. */
+    if(!recognized) return false;
+    if(!allowed) return false;
     if(dndolphins_feat_is_repeatable(name)) return true;
 
     bool found = false;
     if(!dndolphins_progression_store_features_contains_name(
            app->storage, app->profiles.active_profile, name, &found))
-        return true; /* Best effort: never hide a feat because the sidecar could not be scanned. */
+        return false; /* Allowed fails closed when duplicate eligibility cannot be verified. */
     return !found;
 }
 
@@ -1994,6 +2047,12 @@ static bool dndolphins_catalog_add_metadata(
        !dndolphins_subclass_allowed(app, class_mask, has_metadata)) {
         return false;
     }
+    /* ASI is already represented by the two explicit ability-score options on
+       the level-choice screen. Do not expose a no-effect ASI Feature row from
+       the nested feat picker, even in All mode. */
+    if(app->catalog_kind == PocketCatalogFeats && app->level_choice_mode == 3U &&
+       !strcmp(name, "Ability Score Improvement"))
+        return true;
     if(app->catalog_kind == PocketCatalogFeats && !dndolphins_feat_allowed(app, name)) return true;
     if(!name[0]) return false;
     uint16_t page_limit = dndolphins_catalog_page_limit(app);
@@ -2209,6 +2268,7 @@ static bool dndolphins_begin_next_level_choice(PocketD20App* app) {
     app->level_choice_level = 0U;
     app->level_choice_mode = 0U;
     app->level_choice_first_ability = UINT8_MAX;
+    app->level_choice_first_score = 0;
     for(uint8_t ci = 0U; ci < c->class_count; ++ci) {
         for(uint8_t level = 1U; level <= c->classes[ci].level; ++level) {
             if(dndolphins_class_asi_level(c->classes[ci].name, level) &&
@@ -2217,6 +2277,7 @@ static bool dndolphins_begin_next_level_choice(PocketD20App* app) {
                 app->level_choice_level = level;
                 app->level_choice_mode = 0U;
                 app->level_choice_first_ability = UINT8_MAX;
+                app->level_choice_first_score = 0;
                 return true;
             }
         }
@@ -2368,16 +2429,13 @@ static bool dndolphins_grant_stable_id_exists(
     if(!stable_id || !stable_id[0]) return false;
     for(uint8_t i = 0U; i < character->grant_count; ++i)
         if(strcmp(character->grants[i].stable_id, stable_id) == 0) return true;
-    if(grant_value && strncmp(grant_value, "spell=", 6U) == 0) {
-        /* The Spellbook sidecar is authoritative. A stale applied marker must
-           not suppress repair of a deterministic spell that is actually absent. */
+
+    /* Persisted character/collection state is authoritative. Applied-grant marker
+       files are only an audit trail and must never make a missing deterministic
+       grant look complete. This also avoids reopening/scanning appliedgrants for
+       every candidate, which made the explicit grant commands unnecessarily slow. */
+    if(grant_value && strncmp(grant_value, "spell=", 6U) == 0)
         return dndolphins_spell_stable_id_exists(app, stable_id);
-    }
-    if(!dndolphins_progression_store_applied_exists(
-           app->storage, app->profiles.active_profile, stable_id))
-        return false;
-    /* Likewise, do not trust an applied marker for a deterministic scalar or
-       Feature if the character/Feature sidecar no longer reflects that grant. */
     return dndolphins_grant_payload_satisfied(app, grant_value);
 }
 
@@ -2636,13 +2694,78 @@ static void dndolphins_apply_grant(PocketD20App* app, PocketGrant* grant) {
         }
     }
     *separator = '=';
-    if(applied && grant->stable_id[0] &&
-       !dndolphins_progression_store_mark_applied(
-           app->storage, app->profiles.active_profile, grant->stable_id)) {
-        dndolphins_collection_save_failed(app);
-        applied = false;
+    if(applied && grant->stable_id[0]) {
+        /* Marker persistence is best-effort bookkeeping only. The authoritative
+           character/Feature/Spellbook write has already succeeded, so a marker
+           write failure must not roll the grant's logical result back to failed. */
+        (void)dndolphins_progression_store_mark_applied(
+            app->storage, app->profiles.active_profile, grant->stable_id);
     }
     grant->status = applied ? PocketGrantApplied : PocketGrantSkipped;
+}
+
+static bool dndolphins_stage_character_grant_line(
+    PocketD20App* app,
+    char* line,
+    uint8_t maximum_level,
+    bool include_background,
+    uint8_t* staged) {
+    if(!app || !line || !staged || !line[0] || line[0] == '#') return true;
+    PocketCharacter* character = &app->data.character;
+    if(character->grant_count >= POCKET_D20_MAX_GRANTS) return true;
+
+    char* fields[8];
+    if(dndolphins_split_metadata(line, fields) != 8U || !fields[7][0]) return true;
+    uint8_t source_type = dndolphins_grant_source_from_text(fields[2]);
+    if(source_type != PocketGrantSpecies && source_type != PocketGrantBackground &&
+       source_type != PocketGrantClassFeature && source_type != PocketGrantSubclassFeature)
+        return true;
+
+    uint32_t level_gained_u32 = 0U;
+    if(!dndolphins_parse_u32_strict(fields[5], UINT8_MAX, &level_gained_u32)) return true;
+    uint8_t level_gained = (uint8_t)level_gained_u32;
+    if(level_gained > maximum_level) return true;
+
+    uint8_t class_index = 0U;
+    bool matches = false;
+    if(source_type == PocketGrantSpecies) {
+        uint8_t total_level = dnd_rules_core_total_level(character);
+        if(total_level < 1U) total_level = 1U;
+        matches = strcmp(fields[3], character->species) == 0 && level_gained <= total_level;
+    } else if(source_type == PocketGrantBackground) {
+        matches = include_background && strcmp(fields[3], character->background) == 0;
+    } else {
+        if(level_gained == 0U) return true;
+        for(uint8_t i = 0U; i < character->class_count; ++i) {
+            const char* option = source_type == PocketGrantClassFeature ?
+                                     character->classes[i].name :
+                                     character->classes[i].subclass;
+            if(source_type == PocketGrantSubclassFeature &&
+               (!option[0] || strcmp(option, "None") == 0))
+                continue;
+            if(strcmp(fields[3], option) == 0 && level_gained <= character->classes[i].level) {
+                class_index = i;
+                matches = true;
+                break;
+            }
+        }
+    }
+    if(!matches || dndolphins_grant_stable_id_exists(app, fields[0], fields[7])) return true;
+    if(!dnd_data_reserve_grants(character, character->grant_count + 1U)) return false;
+
+    PocketGrant* grant = &character->grants[character->grant_count++];
+    memset(grant, 0, sizeof(*grant));
+    dndolphins_copy(grant->stable_id, sizeof(grant->stable_id), fields[0]);
+    dndolphins_copy(grant->source, sizeof(grant->source), fields[1]);
+    dndolphins_copy(grant->option_name, sizeof(grant->option_name), fields[3]);
+    dndolphins_copy(grant->prerequisites, sizeof(grant->prerequisites), fields[4]);
+    dndolphins_copy(grant->grant_value, sizeof(grant->grant_value), fields[7]);
+    grant->source_type = source_type;
+    grant->class_index = class_index;
+    grant->level_gained = level_gained;
+    grant->status = PocketGrantPending;
+    ++*staged;
+    return true;
 }
 
 static bool dndolphins_stage_character_grants(
@@ -2651,30 +2774,56 @@ static bool dndolphins_stage_character_grants(
     bool include_background,
     uint8_t* staged_out) {
     if(!app) return false;
-    PocketCharacter* character = &app->data.character;
     if(app->features_loaded && !dndolphins_release_features(app)) return false;
     dndolphins_release_pending_grants(app);
 
-    uint8_t staged = 0U;
-    staged +=
-        dndolphins_stage_grants_up_to(app, PocketGrantSpecies, character->species, maximum_level);
-    if(include_background)
-        staged += dndolphins_stage_grants_up_to(
-            app, PocketGrantBackground, character->background, maximum_level);
-
-    uint8_t saved_index = app->record_index;
-    for(uint8_t i = 0U; i < character->class_count; ++i) {
-        app->record_index = i;
-        staged += dndolphins_stage_grants_up_to(
-            app, PocketGrantClassFeature, character->classes[i].name, maximum_level);
-        if(character->classes[i].subclass[0] &&
-           strcmp(character->classes[i].subclass, "None") != 0)
-            staged += dndolphins_stage_grants_up_to(
-                app, PocketGrantSubclassFeature, character->classes[i].subclass, maximum_level);
+    File* file = storage_file_alloc(app->storage);
+    if(!file) return false;
+    if(!storage_file_open(
+           file, dndolphins_active_metadata_path(app->storage), FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_free(file);
+        return false;
     }
-    app->record_index = saved_index;
+
+    uint8_t staged = 0U;
+    char line[256];
+    size_t position = 0U;
+    uint8_t buffer[512];
+    bool ok = true;
+    size_t count = 0U;
+    while(ok && app->data.character.grant_count < POCKET_D20_MAX_GRANTS &&
+          (count = storage_file_read(file, buffer, sizeof(buffer))) > 0U) {
+        for(size_t i = 0U; i < count; ++i) {
+            char byte = (char)buffer[i];
+            if(byte != '\n' && position + 1U < sizeof(line)) {
+                if(byte != '\r') line[position++] = byte;
+                continue;
+            }
+            if(byte != '\n') {
+                /* Oversize metadata lines are ignored as invalid instead of truncated. */
+                position = 0U;
+                continue;
+            }
+            line[position] = '\0';
+            position = 0U;
+            if(!dndolphins_stage_character_grant_line(
+                   app, line, maximum_level, include_background, &staged)) {
+                ok = false;
+                break;
+            }
+            if(app->data.character.grant_count >= POCKET_D20_MAX_GRANTS) break;
+        }
+    }
+    if(ok && position && app->data.character.grant_count < POCKET_D20_MAX_GRANTS) {
+        line[position] = '\0';
+        ok = dndolphins_stage_character_grant_line(
+            app, line, maximum_level, include_background, &staged);
+    }
+    if(storage_file_get_error(file) != FSE_OK) ok = false;
+    storage_file_close(file);
+    storage_file_free(file);
     if(staged_out) *staged_out = staged;
-    return true;
+    return ok;
 }
 
 static void
@@ -5591,6 +5740,7 @@ static void dndolphins_handle_back(PocketD20App* app) {
     case PocketScreenLevelChoice:
     case PocketScreenAsiAbility:
         app->level_choice_first_ability = UINT8_MAX;
+        app->level_choice_first_score = 0;
         dndolphins_enter_screen(app, app->return_screen);
         break;
     case PocketScreenSpellAttacks:
@@ -5752,8 +5902,9 @@ static void dndolphins_handle_profile_actions(PocketD20App* app, const InputEven
                 dndolphins_set_status(app, archived ? "Character archived" : "Archive failed");
             }
         } else if(app->selection == 6U) {
-            dndolphins_delete_profile(app, profile);
+            bool deleted = dndolphins_delete_profile(app, profile);
             dndolphins_profile_actions_to_list(app);
+            dndolphins_set_status(app, deleted ? "Character deleted" : "Delete failed");
         } else if(app->selection == 7U) {
             bool verified =
                 (profile != app->profiles.active_profile || dndolphins_flush_save(app, false)) &&
@@ -5973,66 +6124,68 @@ static void dndolphins_handle_character(PocketD20App* app, const InputEvent* eve
             if(!app->level_choice_level) dndolphins_set_status(app, "No pending ASI/Feat choices");
             break;
         case 13: {
+            bool progression_changed = false;
             for(uint8_t i = 0U; i < character->class_count; ++i)
-                dndolphins_spells_apply_level_progression(character, i);
+                if(dndolphins_spells_apply_level_progression(character, i))
+                    progression_changed = true;
             uint16_t applied = 0U;
             uint8_t failed = 0U;
             bool had_candidates = false;
             if(!dndolphins_apply_character_grants(
                    app, 1U, true, &applied, &failed, &had_candidates)) {
-                dndolphins_set_status(app, "Initial grant prep failed");
+                dndolphins_set_status(app, "Initial grant failed");
                 break;
             }
-            dndolphins_save(app, false);
+            UNUSED(had_candidates);
+            const bool updated = progression_changed || applied > 0U;
+            if(!dndolphins_flush_save(app, false)) {
+                dndolphins_set_status(app, "Update save failed");
+                break;
+            }
             if(failed) {
-                snprintf(
-                    app->status,
-                    sizeof(app->status),
-                    "%u granted; %u review",
-                    (unsigned)applied,
-                    failed);
                 app->return_screen = PocketScreenCharacter;
                 dndolphins_enter_screen(app, PocketScreenGrantReview);
-            } else {
                 snprintf(
                     app->status,
                     sizeof(app->status),
-                    applied        ? "%u initial traits granted" :
-                    had_candidates ? "Initial traits reviewed" :
-                                     "Initial traits current",
-                    (unsigned)applied);
+                    updated ? "Updated; %u review" : "%u grants need review",
+                    failed);
+            } else {
+                dndolphins_release_pending_grants(app);
+                dndolphins_set_status(app, updated ? "Updated" : "No changes");
             }
             break;
         }
         case 14: {
+            bool progression_changed = false;
             for(uint8_t i = 0U; i < character->class_count; ++i)
-                dndolphins_spells_apply_level_progression(character, i);
+                if(dndolphins_spells_apply_level_progression(character, i))
+                    progression_changed = true;
             uint16_t applied = 0U;
             uint8_t failed = 0U;
             bool had_candidates = false;
             if(!dndolphins_apply_character_grants(
                    app, UINT8_MAX, false, &applied, &failed, &had_candidates)) {
-                dndolphins_set_status(app, "Level grant prep failed");
+                dndolphins_set_status(app, "Level grant failed");
                 break;
             }
-            dndolphins_save(app, false);
+            UNUSED(had_candidates);
+            const bool updated = progression_changed || applied > 0U;
+            if(!dndolphins_flush_save(app, false)) {
+                dndolphins_set_status(app, "Update save failed");
+                break;
+            }
             if(failed) {
-                snprintf(
-                    app->status,
-                    sizeof(app->status),
-                    "%u applied; %u review",
-                    (unsigned)applied,
-                    failed);
                 app->return_screen = PocketScreenCharacter;
                 dndolphins_enter_screen(app, PocketScreenGrantReview);
-            } else {
                 snprintf(
                     app->status,
                     sizeof(app->status),
-                    applied        ? "%u level grants applied" :
-                    had_candidates ? "Level grants reviewed" :
-                                     "Level grants current",
-                    (unsigned)applied);
+                    updated ? "Updated; %u review" : "%u grants need review",
+                    failed);
+            } else {
+                dndolphins_release_pending_grants(app);
+                dndolphins_set_status(app, updated ? "Updated" : "No changes");
             }
             break;
         }
@@ -6324,6 +6477,7 @@ static void dndolphins_handle_level_choice(PocketD20App* app, const InputEvent* 
         if(app->selection == 0U || app->selection == 1U) {
             app->level_choice_mode = app->selection == 0U ? 1U : 2U;
             app->level_choice_first_ability = UINT8_MAX;
+            app->level_choice_first_score = 0;
             dndolphins_enter_screen(app, PocketScreenAsiAbility);
         } else if(app->selection == 2U) {
             PocketCharacter* c = &app->data.character;
@@ -6384,7 +6538,10 @@ static void dndolphins_handle_asi_ability(PocketD20App* app, const InputEvent* e
                 return;
             }
             if(app->level_choice_first_ability >= POCKET_D20_ABILITY_COUNT) {
+                /* The first pick is selection-only. Do not mutate either score
+                   until the second, different ability is confirmed. */
                 app->level_choice_first_ability = ability;
+                app->level_choice_first_score = c->ability_scores[ability];
                 dndolphins_set_status(app, "Choose second ability");
                 return;
             }
@@ -6393,11 +6550,21 @@ static void dndolphins_handle_asi_ability(PocketD20App* app, const InputEvent* e
                 return;
             }
             uint8_t first = app->level_choice_first_ability;
-            c->ability_scores[first] += 1;
-            c->ability_scores[ability] += 1;
+            int8_t first_old = app->level_choice_first_score;
+            int8_t second_old = c->ability_scores[ability];
+            /* If anything changed the first score while the two-step picker was
+               open, cancel rather than compounding a stale +1. */
+            if(c->ability_scores[first] != first_old || first_old >= 20) {
+                app->level_choice_first_ability = UINT8_MAX;
+                app->level_choice_first_score = 0;
+                dndolphins_set_status(app, "ASI changed; choose again");
+                return;
+            }
+            c->ability_scores[first] = (int8_t)(first_old + 1);
+            c->ability_scores[ability] = (int8_t)(second_old + 1);
             if(!dndolphins_complete_level_choice(app, "ASI +1/+1")) {
-                c->ability_scores[first] -= 1;
-                c->ability_scores[ability] -= 1;
+                c->ability_scores[first] = first_old;
+                c->ability_scores[ability] = second_old;
                 dndolphins_set_status(app, "Could not record choice");
                 return;
             }
@@ -6406,6 +6573,7 @@ static void dndolphins_handle_asi_ability(PocketD20App* app, const InputEvent* e
         dndolphins_save(app, false);
         app->level_choice_mode = 0U;
         app->level_choice_first_ability = UINT8_MAX;
+        app->level_choice_first_score = 0;
         dndolphins_enter_screen(app, app->return_screen);
         dndolphins_set_status(app, "Level choice applied");
     }
