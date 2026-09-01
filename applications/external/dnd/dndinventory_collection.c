@@ -363,6 +363,9 @@ static bool dndinventory_collection_load_page(DndInventoryCollectionApp* app, ui
 static bool dndinventory_collection_save_page(DndInventoryCollectionApp* app);
 static bool
     dndinventory_collection_prepare_record(DndInventoryCollectionApp* app, uint8_t logical);
+static bool
+    dndinventory_collection_ensure_list_page(DndInventoryCollectionApp* app, uint16_t selection);
+static void dndinventory_collection_list_adjust_scroll(DndInventoryCollectionApp* app);
 static PocketItem* dndinventory_collection_item(DndInventoryCollectionApp* app, uint8_t logical);
 static void dndinventory_collection_begin_text(
     DndInventoryCollectionApp* app,
@@ -527,6 +530,16 @@ static void
 
 static void dndinventory_collection_redraw(DndInventoryCollectionApp* app) {
     if(!app || !app->view) return;
+    if(app->screen == DndInventoryCollectionScreenList) {
+        /* Clamp stale selection/scroll state first (notably after delete or a
+           return from another screen), then make the matching eight-record page
+           resident. This keeps drawing storage-free and prevents a stale logical
+           index from briefly selecting the wrong cache page. */
+        dndinventory_collection_list_adjust_scroll(app);
+        if(!dndinventory_collection_ensure_list_page(app, app->selection))
+            dndinventory_collection_set_status(app, "Read failed");
+        dndinventory_collection_list_adjust_scroll(app);
+    }
     DndInventoryCollectionApp** model = view_get_model(app->view);
     if(!model) return;
     *model = app;
@@ -2564,17 +2577,22 @@ static DndInventoryCollectionApp* dndinventory_collection_alloc(const char* args
     if(app->have_profile) {
         if(!dndinventory_collection_load_currency(app))
             dndinventory_collection_set_status(app, "Currency read failed");
-        if(!app->status[0]) dndinventory_collection_set_status(app, "Hold Up: inventory tools");
-    }
-    if(app->have_profile) {
-        /* A missing Inventory sidecar is a valid empty inventory. Always enter
-           directly on the list with + Add New selected. Hold Up from this list
-           opens Inventory Tools; ordinary Up/Down remains list navigation. */
-        if(!dndinventory_collection_load_page(app, 0U))
-            dndinventory_collection_set_status(app, "Collection read failed");
+        bool collection_loaded = dndinventory_collection_load_page(app, 0U);
+        if(!collection_loaded) dndinventory_collection_set_status(app, "Collection read failed");
+
+        /* An actually empty, never-granted Inventory still gets the normal
+           one-shot starting package on entry. If InitialInventory already says
+           it was granted (even if the player later deleted every Item), do not
+           silently duplicate it; the explicit one-time regrant remains separate.
+           Never turn an actual sidecar read failure into an implicit grant write. */
+        dndinventory_collection_refresh_grant_state(app);
+        if(collection_loaded && !app->total && app->grant_state == DndInventoryGrantAvailable)
+            (void)dndinventory_collection_grant_initial_inventory(app);
+
         app->selection = 0U;
         app->scroll = 0U;
         app->screen = DndInventoryCollectionScreenList;
+        if(!app->status[0]) dndinventory_collection_set_status(app, "Hold Up: inventory tools");
     } else {
         app->screen = DndInventoryCollectionScreenNoCharacter;
     }

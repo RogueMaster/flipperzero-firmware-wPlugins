@@ -471,6 +471,12 @@ static bool dndjournal_write_line(File* file, const char* line) {
            storage_file_write(file, "\n", 1U) == 1U;
 }
 
+static int8_t dndjournal_ability_modifier(int32_t score) {
+    int32_t delta = score - 10;
+    if(delta >= 0) return (int8_t)(delta / 2);
+    return (int8_t)(-(((-delta) + 1) / 2));
+}
+
 static bool dndjournal_patch_milestone_class(JournalApp* app, uint8_t class_index) {
     if(!app || !app->storage || !app->have_profile || class_index >= JOURNAL_CLASS_MAX)
         return false;
@@ -496,6 +502,10 @@ static bool dndjournal_patch_milestone_class(JournalApp* app, uint8_t class_inde
     bool ok = storage_file_open(input, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
               storage_file_open(output, temporary, FSAM_WRITE, FSOM_CREATE_ALWAYS);
     bool class_touched = false;
+    uint8_t level_hit_die = 0U;
+    int8_t constitution_modifier = 0;
+    uint8_t total_level_after = dndjournal_total_level(app);
+    if(total_level_after < 20U) ++total_level_after;
     if(ok) {
         JournalReader reader = {.file = input};
         char target[24];
@@ -516,8 +526,11 @@ static bool dndjournal_patch_milestone_class(JournalApp* app, uint8_t class_inde
                     int32_t values[16] = {0};
                     if(dndjournal_parse_csv_i32(value, values, 16U) == 16U && values[0] < 20) {
                         ++values[0];
-                        if(values[2] < 20) ++values[2];
-                        if(values[3] < 20) ++values[3];
+                        /* A level grants one Hit Die of that class and refreshes the
+                           available class pool to the new maximum. */
+                        values[3] = values[0];
+                        values[2] = values[3];
+                        level_hit_die = (uint8_t)(values[1] < 2 ? 2 : values[1]);
                         int n = snprintf(
                             replacement,
                             sizeof(replacement),
@@ -544,10 +557,30 @@ static bool dndjournal_patch_milestone_class(JournalApp* app, uint8_t class_inde
                             class_touched = true;
                         }
                     }
+                } else if(!strcmp(parse, "AbilityScores")) {
+                    int32_t values[6] = {0};
+                    if(dndjournal_parse_csv_i32(value, values, 6U) == 6U)
+                        constitution_modifier = dndjournal_ability_modifier(values[2]);
                 } else if(!strcmp(parse, "Vitals")) {
                     int32_t values[12] = {0};
                     if(dndjournal_parse_csv_i32(value, values, 12U) == 12U) {
-                        if(values[11] < 20) ++values[11];
+                        if(class_touched) {
+                            if(level_hit_die) {
+                                int32_t hp_gain =
+                                    (int32_t)(level_hit_die / 2U + 1U) + constitution_modifier;
+                                if(hp_gain < 1) hp_gain = 1;
+                                int32_t new_max = values[1] + hp_gain;
+                                if(new_max > 999) new_max = 999;
+                                hp_gain = new_max - values[1];
+                                values[1] = new_max;
+                                if(hp_gain > 0) {
+                                    values[0] += hp_gain;
+                                    if(values[0] > values[1]) values[0] = values[1];
+                                }
+                            }
+                            values[10] = total_level_after;
+                            values[11] = total_level_after;
+                        }
                         int n = snprintf(
                             replacement,
                             sizeof(replacement),
@@ -1100,7 +1133,7 @@ static bool dndjournal_apply_milestone_level(JournalApp* app) {
     }
     dndjournal_update_cached_current(app);
     (void)dndjournal_load_classes(app);
-    dndjournal_set_status(app, "Class level increased");
+    dndjournal_set_status(app, "Level up; apply grants in DND");
     return true;
 }
 

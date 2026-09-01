@@ -61,9 +61,6 @@ typedef enum {
     DndAdventureScreenCampaigns,
     DndAdventureScreenAdventure,
     DndAdventureScreenResult,
-    DndAdventureScreenDiagnostics,
-    DndAdventureScreenPacks,
-    DndAdventureScreenPackPreview,
     DndAdventureScreenFullText,
     DndAdventureScreenRestartConfirm,
 } DndAdventureScreen;
@@ -92,12 +89,6 @@ typedef struct {
     DndAdventureScene* scene;
     uint8_t adventure_started;
     uint8_t full_text_offset;
-
-    PocketCampaignDiagnostics diagnostics;
-    uint16_t pack_count;
-    char pack_rows[5][27];
-    PocketCampaignPackPreview inbox_preview;
-    uint8_t inbox_preview_valid;
 
     int16_t last_total;
     int8_t last_modifier;
@@ -602,7 +593,7 @@ static void dndadventure_draw_sprite(Canvas* canvas, const DndAdventureScene* sc
 }
 
 static void dndadventure_prepare_campaign_rows(DndAdventureApp* app) {
-    uint16_t rows = app->campaign_count + 3U;
+    uint16_t rows = app->campaign_count + 1U;
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         char* row = app->campaign_rows[visible];
         row[0] = '\0';
@@ -623,10 +614,6 @@ static void dndadventure_prepare_campaign_rows(DndAdventureApp* app) {
             } else {
                 snprintf(row, 27U, "  Campaign %u", (unsigned)(index + 1U));
             }
-        } else if(index == app->campaign_count) {
-            dndadventure_copy(row, 27U, "Campaign Diagnostics");
-        } else if(index == app->campaign_count + 1U) {
-            dndadventure_copy(row, 27U, "Installed Pack Controls");
         } else {
             dndadventure_copy(row, 27U, "Restart Current Adventure");
         }
@@ -635,7 +622,7 @@ static void dndadventure_prepare_campaign_rows(DndAdventureApp* app) {
 
 static void dndadventure_draw_campaigns(Canvas* canvas, DndAdventureApp* app) {
     dndadventure_draw_header(canvas, app, "DNDAdventure", app->status);
-    uint16_t rows = app->campaign_count + 3U;
+    uint16_t rows = app->campaign_count + 1U;
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         uint16_t index = app->scroll + visible;
         if(index >= rows) break;
@@ -708,65 +695,6 @@ static void dndadventure_draw_result(Canvas* canvas, DndAdventureApp* app) {
     dndadventure_draw_row(canvas, 2U, false, row);
     dndadventure_draw_row(canvas, 3U, false, app->last_passed ? "PASS" : "FAIL");
     dndadventure_draw_row(canvas, 4U, true, "OK: Continue");
-}
-
-static void dndadventure_diagnostics_row(
-    const DndAdventureApp* app,
-    uint16_t index,
-    char* row,
-    size_t size) {
-    if(!app || !row || !size) return;
-    switch(index) {
-    case 0U:
-        snprintf(row, size, "Manifests: %u", app->diagnostics.records);
-        break;
-    case 1U:
-        snprintf(row, size, "Incompatible: %u", app->diagnostics.incompatible);
-        break;
-    case 2U:
-        snprintf(row, size, "Missing files: %u", app->diagnostics.missing_scene_files);
-        break;
-    case 3U:
-        snprintf(row, size, "Duplicate packs: %u", app->diagnostics.duplicate_campaign_ids);
-        break;
-    case 4U:
-        snprintf(row, size, "Duplicate scenes: %u", app->diagnostics.duplicate_scene_ids);
-        break;
-    case 5U:
-        snprintf(row, size, "Missing entries: %u", app->diagnostics.missing_entry_scenes);
-        break;
-    case 6U:
-        snprintf(row, size, "Broken links: %u", app->diagnostics.broken_links);
-        break;
-    case 7U:
-        snprintf(
-            row,
-            size,
-            "ID: %.24s",
-            app->diagnostics.problem_id[0] ? app->diagnostics.problem_id : "none");
-        break;
-    case 8U:
-        snprintf(
-            row,
-            size,
-            "Issue: %.23s",
-            app->diagnostics.problem[0] ? app->diagnostics.problem : "none");
-        break;
-    default:
-        row[0] = '\0';
-        break;
-    }
-}
-
-static void dndadventure_draw_diagnostics(Canvas* canvas, DndAdventureApp* app) {
-    dndadventure_draw_header(canvas, app, "Campaign Diagnostics", app->status);
-    char row[40];
-    for(uint8_t visible = 0U; visible < 5U; ++visible) {
-        uint16_t index = app->scroll + visible;
-        if(index >= 9U) break;
-        dndadventure_diagnostics_row(app, index, row, sizeof(row));
-        dndadventure_draw_row(canvas, visible, index == app->selection, row);
-    }
 }
 
 static const char*
@@ -847,78 +775,6 @@ static void dndadventure_draw_restart_confirm(Canvas* canvas, DndAdventureApp* a
     dndadventure_draw_row(canvas, 1U, app->selection == 1U, "Cancel");
 }
 
-static void dndadventure_prepare_pack_rows(DndAdventureApp* app) {
-    for(uint8_t visible = 0U; visible < 5U; ++visible) {
-        app->pack_rows[visible][0] = '\0';
-        uint16_t index = app->scroll + visible;
-        if(index > app->pack_count) break;
-        if(index == app->pack_count) {
-            dndadventure_copy(
-                app->pack_rows[visible],
-                sizeof(app->pack_rows[visible]),
-                "Install Campaign Inbox");
-        } else {
-            PocketCampaignPackSummary pack;
-            if(dndadventure_campaign_packs_at(app->storage, index, &pack))
-                snprintf(
-                    app->pack_rows[visible],
-                    sizeof(app->pack_rows[visible]),
-                    "%c %.23s",
-                    pack.enabled ? '*' : ' ',
-                    pack.name);
-            else
-                dndadventure_copy(
-                    app->pack_rows[visible], sizeof(app->pack_rows[visible]), "Pack unavailable");
-        }
-    }
-}
-
-static void dndadventure_draw_pack_preview(Canvas* canvas, DndAdventureApp* app) {
-    dndadventure_draw_header(canvas, app, "Campaign Inbox Preview", app->status);
-    char row[48];
-    if(app->inbox_preview.summary.id[0]) {
-        snprintf(row, sizeof(row), "Name: %.20s", app->inbox_preview.summary.name);
-        dndadventure_draw_row(canvas, 0U, false, row);
-        if(app->inbox_preview.maximum_app)
-            snprintf(
-                row,
-                sizeof(row),
-                "v%u App:%u-%u",
-                app->inbox_preview.pack_version,
-                app->inbox_preview.minimum_app,
-                app->inbox_preview.maximum_app);
-        else
-            snprintf(
-                row,
-                sizeof(row),
-                "v%u App:%u+",
-                app->inbox_preview.pack_version,
-                app->inbox_preview.minimum_app);
-        dndadventure_draw_row(canvas, 1U, false, row);
-        snprintf(row, sizeof(row), "Entry: %.19s", app->inbox_preview.entry_scene);
-        dndadventure_draw_row(canvas, 2U, false, row);
-        dndadventure_draw_row(
-            canvas,
-            3U,
-            app->inbox_preview_valid != 0U,
-            app->inbox_preview_valid ? "Validated - Hold OK" : "Validation failed");
-        dndadventure_draw_row(canvas, 4U, false, "Back: cancel");
-    } else {
-        dndadventure_draw_row(canvas, 1U, false, "Inbox pack invalid");
-        dndadventure_draw_row(canvas, 4U, false, "Back: cancel");
-    }
-}
-
-static void dndadventure_draw_packs(Canvas* canvas, DndAdventureApp* app) {
-    dndadventure_draw_header(canvas, app, "Campaign Pack Controls", app->status);
-    uint16_t rows = app->pack_count + 1U;
-    for(uint8_t visible = 0U; visible < 5U; ++visible) {
-        uint16_t index = app->scroll + visible;
-        if(index >= rows) break;
-        dndadventure_draw_row(canvas, visible, index == app->selection, app->pack_rows[visible]);
-    }
-}
-
 static void dndadventure_draw(Canvas* canvas, void* model) {
     DndAdventureApp* app = *(DndAdventureApp**)model;
     canvas_clear(canvas);
@@ -931,15 +787,6 @@ static void dndadventure_draw(Canvas* canvas, void* model) {
         break;
     case DndAdventureScreenResult:
         dndadventure_draw_result(canvas, app);
-        break;
-    case DndAdventureScreenDiagnostics:
-        dndadventure_draw_diagnostics(canvas, app);
-        break;
-    case DndAdventureScreenPacks:
-        dndadventure_draw_packs(canvas, app);
-        break;
-    case DndAdventureScreenPackPreview:
-        dndadventure_draw_pack_preview(canvas, app);
         break;
     case DndAdventureScreenFullText:
         dndadventure_draw_full_text(canvas, app);
@@ -1006,7 +853,7 @@ static void dndadventure_back(DndAdventureApp* app) {
         app->status[0] = '\0';
     } else if(app->screen == DndAdventureScreenRestartConfirm) {
         app->screen = DndAdventureScreenCampaigns;
-        app->selection = app->campaign_count + 2U;
+        app->selection = app->campaign_count;
         app->scroll = app->selection > 4U ? app->selection - 4U : 0U;
         app->status[0] = '\0';
         dndadventure_prepare_campaign_rows(app);
@@ -1017,12 +864,6 @@ static void dndadventure_back(DndAdventureApp* app) {
         app->scroll = 0U;
         app->status[0] = '\0';
         dndadventure_prepare_campaign_rows(app);
-    } else if(app->screen == DndAdventureScreenPackPreview) {
-        app->screen = DndAdventureScreenPacks;
-        app->selection = app->pack_count;
-        app->scroll = app->pack_count > 4U ? app->pack_count - 4U : 0U;
-        app->status[0] = '\0';
-        dndadventure_prepare_pack_rows(app);
     } else {
         app->screen = DndAdventureScreenCampaigns;
         app->selection = 0U;
@@ -1047,7 +888,7 @@ static bool dndadventure_input(InputEvent* event, void* context) {
 
     bool move = event->type == InputTypeShort || event->type == InputTypeRepeat;
     if(app->screen == DndAdventureScreenCampaigns) {
-        uint16_t rows = app->campaign_count + 3U;
+        uint16_t rows = app->campaign_count + 1U;
         if(move && event->key == InputKeyUp) {
             dndadventure_move(app, rows, -1, 5U);
             dndadventure_prepare_campaign_rows(app);
@@ -1057,19 +898,6 @@ static bool dndadventure_input(InputEvent* event, void* context) {
         } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
             if(app->selection < app->campaign_count) {
                 dndadventure_select_campaign(app, app->selection);
-            } else if(app->selection == app->campaign_count) {
-                dndadventure_scene_free(app);
-                memset(&app->diagnostics, 0, sizeof(app->diagnostics));
-                app->screen = DndAdventureScreenDiagnostics;
-                app->selection = 0U;
-                app->scroll = 0U;
-                dndadventure_set_status(app, "OK: Run diagnostics");
-            } else if(app->selection == app->campaign_count + 1U) {
-                app->pack_count = dndadventure_campaign_packs_count(app->storage);
-                app->screen = DndAdventureScreenPacks;
-                app->selection = 0U;
-                app->scroll = 0U;
-                dndadventure_prepare_pack_rows(app);
             } else if(app->active_campaign_valid && app->character_loaded) {
                 app->screen = DndAdventureScreenRestartConfirm;
                 app->selection = 1U;
@@ -1164,86 +992,10 @@ static bool dndadventure_input(InputEvent* event, void* context) {
                 if(!restarted) dndadventure_prepare_campaign_rows(app);
             } else {
                 app->screen = DndAdventureScreenCampaigns;
-                app->selection = app->campaign_count + 2U;
+                app->selection = app->campaign_count;
                 app->scroll = app->selection > 4U ? app->selection - 4U : 0U;
                 app->status[0] = '\0';
                 dndadventure_prepare_campaign_rows(app);
-            }
-        }
-    } else if(app->screen == DndAdventureScreenDiagnostics) {
-        if(move && event->key == InputKeyUp)
-            dndadventure_move(app, 9U, -1, 5U);
-        else if(move && event->key == InputKeyDown)
-            dndadventure_move(app, 9U, 1, 5U);
-        else if(event->type == InputTypeShort && event->key == InputKeyOk) {
-            dndadventure_campaigns_diagnose(app->storage, &app->diagnostics);
-            dndadventure_set_status(
-                app,
-                app->diagnostics.incompatible || app->diagnostics.missing_scene_files ||
-                        app->diagnostics.duplicate_campaign_ids ||
-                        app->diagnostics.duplicate_scene_ids ||
-                        app->diagnostics.missing_entry_scenes || app->diagnostics.broken_links ?
-                    "Pack needs attention" :
-                    "Campaign packs OK");
-        }
-    } else if(app->screen == DndAdventureScreenPacks) {
-        uint16_t rows = app->pack_count + 1U;
-        if(move && event->key == InputKeyUp) {
-            dndadventure_move(app, rows, -1, 5U);
-            dndadventure_prepare_pack_rows(app);
-        } else if(move && event->key == InputKeyDown) {
-            dndadventure_move(app, rows, 1, 5U);
-            dndadventure_prepare_pack_rows(app);
-        } else if(
-            event->type == InputTypeLong && event->key == InputKeyOk &&
-            app->selection < app->pack_count) {
-            PocketCampaignPackSummary pack;
-            if(dndadventure_campaign_packs_at(app->storage, app->selection, &pack)) {
-                bool changed =
-                    dndadventure_campaign_packs_set_enabled(app->storage, pack.id, !pack.enabled);
-                dndadventure_set_status(
-                    app,
-                    changed ? (pack.enabled ? "Pack marked inactive" : "Pack marked active") :
-                              "Pack update failed");
-                if(changed) {
-                    dndadventure_campaigns_cache_reset();
-                    app->campaign_count = dndadventure_campaigns_count(app->storage);
-                    app->pack_count = dndadventure_campaign_packs_count(app->storage);
-                    app->active_campaign_valid = 0U;
-                    dndadventure_scene_free(app);
-                    app->selection = 0U;
-                    app->scroll = 0U;
-                    dndadventure_prepare_campaign_rows(app);
-                    dndadventure_prepare_pack_rows(app);
-                }
-            }
-        } else if(
-            event->type == InputTypeShort && event->key == InputKeyOk &&
-            app->selection == app->pack_count) {
-            app->inbox_preview_valid =
-                dndadventure_campaign_packs_preview_inbox(
-                    app->storage, &app->inbox_preview, app->status, sizeof(app->status)) ?
-                    1U :
-                    0U;
-            app->screen = DndAdventureScreenPackPreview;
-            app->selection = 0U;
-            app->scroll = 0U;
-        }
-    } else if(app->screen == DndAdventureScreenPackPreview) {
-        if(event->type == InputTypeLong && event->key == InputKeyOk && app->inbox_preview_valid) {
-            bool changed = dndadventure_campaign_packs_install_inbox(
-                app->storage, app->status, sizeof(app->status));
-            if(changed) {
-                dndadventure_campaigns_cache_reset();
-                app->campaign_count = dndadventure_campaigns_count(app->storage);
-                app->pack_count = dndadventure_campaign_packs_count(app->storage);
-                app->active_campaign_valid = 0U;
-                dndadventure_scene_free(app);
-                app->screen = DndAdventureScreenPacks;
-                app->selection = 0U;
-                app->scroll = 0U;
-                dndadventure_prepare_campaign_rows(app);
-                dndadventure_prepare_pack_rows(app);
             }
         }
     }
@@ -1306,7 +1058,6 @@ static DndAdventureApp* dndadventure_app_alloc(const char* args) {
     if(!dndadventure_campaign_packs_ensure_enabled(app->storage))
         dndadventure_set_status(app, "Pack index rebuild failed");
     app->campaign_count = dndadventure_campaigns_count(app->storage);
-    app->pack_count = dndadventure_campaign_packs_count(app->storage);
     if(!app->campaign_count && !app->status[0])
         dndadventure_set_status(app, "No campaign manifests");
 

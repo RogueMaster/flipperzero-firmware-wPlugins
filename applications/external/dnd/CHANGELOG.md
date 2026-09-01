@@ -2,6 +2,15 @@
 
 Released work only. Normal releases are retained as concise summaries; closely related recovery spans may be consolidated when the individual troubleshooting chronology would obscure the released outcome.
 
+## 3.5.2 — Explicit level grants, level-up durability and collection/menu repairs
+
+- Separated character advancement from deterministic progression grants. Raising a class level now updates level-derived rules only; **Character → Apply Level Grants** explicitly applies all currently eligible deterministic species/class/subclass grants. **Grant Initial Traits** is restricted to starting/level-1 species/background/class/subclass grants and can repair stale applied markers when the actual Feature, scalar trait or Spellbook record is missing. Feature paging is released before grant writes so a resident page cannot hide newly appended traits.
+- Level increases now add fixed-average Hit Die HP plus Constitution modifier per gained level (minimum 1 HP per level), add the same increase to current HP while preserving damage, set the advanced class Hit Dice to its new maximum and refresh the character Hit Dice pool to total level. Journal milestone leveling follows the same HP/Hit-Dice rules and still never applies progression grants implicitly.
+- Restored first-entry Inventory initialization: a truly empty Inventory with no `InitialInventory` grant marker receives normal starting equipment automatically, while a previously granted Inventory that was later emptied is not duplicated. Repaired list page/window state before rendering so stale return/wrap state no longer produces spurious **Page unavailable** rows.
+- Made loose ammunition matching case-insensitive and name-based. A weapon requiring arrows/bolts/bullets/needles can consume an Inventory stack when that ammo token appears anywhere in the Item name, including names such as **Fire Arrow**, while preserving explicit per-weapon ammunition counters when configured.
+- Removed the broken **Campaign Diagnostics** and **Installed Pack Controls** screens from Adventure while retaining normal campaign-pack loading. Removed **Monster Pack Controls** from Bestiary, moved **Pack Diagnostics** to the final row, and reordered Bestiary around the requested encounter-first workflow: Browse Monsters; Generate Encounter; Party Level; Party Size; encounter tuning; Saved Encounters; browse filters/lists; Custom Monster; Pack Diagnostics.
+- Updated manifests, memory/rules/checklist/test documentation for 3.5.2. Save formats and centralized character-owned sidecars are unchanged.
+
 ## 3.5.1 — Level choices, deterministic grants, ammunition and Adventure controls
 
 - Fixed Character → Level Choices so it always opens: pending ASI/Feat choices show the normal choice screen, while characters with no pending choice get an explicit bounded “No pending choices” screen instead of appearing inert.

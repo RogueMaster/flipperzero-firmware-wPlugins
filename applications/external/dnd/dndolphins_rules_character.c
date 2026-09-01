@@ -18,6 +18,44 @@ void dndolphins_rules_character_apply_experience_floor(PocketCharacter* characte
     if(character->experience < minimum) character->experience = minimum;
 }
 
+void dndolphins_rules_character_apply_level_increase(
+    PocketCharacter* character,
+    uint8_t class_index,
+    uint8_t previous_class_level) {
+    if(!character || class_index >= character->class_count) return;
+    PocketClassLevel* class_level = &character->classes[class_index];
+    if(class_level->level <= previous_class_level) return;
+
+    const uint8_t levels_gained = (uint8_t)(class_level->level - previous_class_level);
+    uint8_t hit_die = class_level->hit_die;
+    if(hit_die < 2U) hit_die = 2U;
+    const int16_t constitution_modifier =
+        dnd_rules_core_ability_modifier(character->ability_scores[PocketAbilityConstitution]);
+    int16_t hp_per_level = (int16_t)(hit_die / 2U + 1U) + constitution_modifier;
+    if(hp_per_level < 1) hp_per_level = 1;
+
+    int32_t hp_gain = (int32_t)hp_per_level * levels_gained;
+    int32_t new_max = (int32_t)character->hp_max + hp_gain;
+    if(new_max > 999) new_max = 999;
+    if(new_max < 1) new_max = 1;
+    hp_gain = new_max - character->hp_max;
+    character->hp_max = (int16_t)new_max;
+    if(hp_gain > 0) {
+        int32_t new_current = (int32_t)character->hp_current + hp_gain;
+        if(new_current > character->hp_max) new_current = character->hp_max;
+        if(new_current < -999) new_current = -999;
+        character->hp_current = (int16_t)new_current;
+    }
+
+    /* One Hit Die is gained for each class level. Leveling also refreshes the
+       available pool to its new maximum, matching the requested character-sheet
+       behavior without adding any persisted progression state. */
+    class_level->hit_dice_max = class_level->level;
+    class_level->hit_dice_current = class_level->hit_dice_max;
+    character->hit_dice_max = dnd_rules_core_total_level(character);
+    character->hit_dice_current = character->hit_dice_max;
+}
+
 int8_t dndolphins_rules_character_initiative_modifier(const PocketCharacter* character) {
     return (int8_t)(dnd_rules_core_ability_modifier(
                         character->ability_scores[PocketAbilityDexterity]) +

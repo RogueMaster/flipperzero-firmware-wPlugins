@@ -14,7 +14,7 @@ This audit separates values that are exact from project source from values that 
 | DNDolphins | **6,144 B** | **~2,900 B** | **4,940 B** | **7,908 B** Spell/Ritual Combat; **7,668 B** Weapon Combat; **9,716 B** conservative grant/catalog overlap |
 | DNDInventory | **4,096 B** | **~2,500 B** | **1,500 B** | **3,884 B** normal 8-Item page; **5,164 B** ordinary sidecar rewrite; **~9,140 B** conservative regrant adapter/rewrite overlap |
 | DNDSpellbook | **4,096 B** | **~2,400 B** | **1,456 B** | **4,080 B** normal 8-Spell page; **~8,056 B** page load with transient canonical adapter; **~9,336 B** save/rewrite overlap; **6,224 B** sort-with-page |
-| DNDAdventure | **4,096 B** | **~2,300 B** | **856 B** | **1,721 B** with active scene; **3,416 B** diagnostics scan; **~8–9 KB** only during transient Inventory reward bridging |
+| DNDAdventure | **4,096 B** | **~2,300 B** | **512 B** | **1,377 B** with active scene; **~7.5–8.5 KB** only during transient Inventory reward bridging |
 | DNDJournal | **4,096 B** | **~2,660 B** | **1,352 B** | **2,888 B** during two-buffer index rewrite |
 | DNDInitiative | **3,072 B** | **~2,300 B** | **5,276 B** | **6,812 B** during main-character two-buffer profile sync; history save is stack-bounded and adds no resident state |
 | DNDBestiary | **6,144 B** | **~4,370 B** | **1,528 B** | **4,108 B** main monster window; **6,368 B** encounter generation |
@@ -53,7 +53,7 @@ Small rule/index records include `DndDolphinsSpellClassCounts` 8 B, `PocketAttac
 
 ### DNDolphins
 
-- Fixed app block: **4,940 B**. The bounded level-up review adds 13 one-byte result fields; no progression catalog is retained.
+- Fixed app block: **4,940 B**. The bounded level-up review retains only derived before/after and pending-choice flags; deterministic grant counts are no longer stored because grants are explicit actions.
 - Combat logical index: **24 B** maximum.
 - Visible Combat row cache: 5 × 64 B = **320 B**.
 - Item page: 8 × 298 B = **2,384 B**.
@@ -88,11 +88,10 @@ Weapon and Spell pages are not intentionally resident together. Combat section h
 
 ### DNDAdventure
 
-- Fixed app block: **856 B** with the 72-byte profile projection resident.
-- Active scene: **865 B**, for **1,721 B**.
-- Diagnostics releases the active scene before scanning. Its 64 × 24-byte scene-ID table is **1,536 B** and two simultaneously reachable 512-byte diagnostic line buffers are heap-owned, for a conservative project block of 856 + 1,536 + 1,024 = **3,416 B**. Moving those line buffers off the 4 KB stack and rendering one result row at a time lowers the source-estimated diagnostics stack peak.
-- A 16-entry campaign-pack summary allocation is **1,168 B**, below the diagnostics case.
-- Item reward bridging creates a transient 3,976-byte canonical adapter because the shared Inventory append/window API still uses that owner shape. When an Item page/rewrite buffer overlaps, the project peak can enter the **8–9 KB** range; that state is action-local and freed before returning to Adventure.
+- Fixed app block: **512 B** with the 72-byte profile projection resident. The removed Campaign Diagnostics and Installed Pack Controls UI state accounted for the 344-byte reduction from 856 B; ARM32 record-layout verification confirms the new 512-byte block.
+- Active scene: **865 B**, for **1,377 B**.
+- Campaign-pack loading remains bounded and storage-backed; Adventure no longer retains diagnostics or pack-control preview/list state.
+- Item reward bridging creates a transient 3,976-byte canonical adapter because the shared Inventory append/window API still uses that owner shape. When an Item page/rewrite buffer overlaps, the project peak is conservatively **~7.5–8.5 KB**; that state is action-local and freed before returning to Adventure.
 
 ### DNDJournal
 
@@ -136,7 +135,7 @@ A failed projection load may invoke the existing backup-restoration path with on
 
 1. Measure stack high-water for all seven FAPs under the exact **6/4/4/4/4/3/6 KB** reservations, especially projection save/load paths on the three 4 KB companions.
 2. Compare steady-state free heap before/after the projection change; Inventory, Spellbook and Adventure should show the reduced resident blocks above.
-3. Stress Inventory initial grant/regrant, Spellbook page load/save/sort, and Adventure Item rewards while watching transient free-heap lows and fragmentation.
+3. Stress Inventory automatic first-entry initial grant/regrant, page-boundary repair, Spellbook page load/save/sort, and Adventure Item rewards while watching transient free-heap lows and fragmentation.
 4. Repeatedly enter/exit Weapon, Spell and Ritual Combat and confirm indexes/pages are released.
 5. Stress Initiative with the maximum roster through wraparound scrolling, edit, reorder, Resume, next-turn and Hold-Up previous-turn navigation.
 6. Force projection/allocation/write failures and confirm the canonical profile remains intact and project heap returns to steady state.

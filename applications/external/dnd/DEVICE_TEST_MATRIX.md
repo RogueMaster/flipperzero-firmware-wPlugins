@@ -19,6 +19,8 @@
 - [ ] With 1, 2, 3 and 4 Items, move through every row and confirm `+ Add New` remains visible; add a fifth Item and confirm it scrolls away only when needed. Repeat the same 1–5 check in Spellbook.
 - [ ] Populate more than eight Items and Spells. Confirm the normal lists show no persistent `<>`; Up/Down Repeat remains responsive and performs storage I/O only when crossing an eight-record boundary. If using short Left/Right list page jumps, confirm each changes only one aligned eight-record page and holding does not churn through pages.
 - [ ] From a later Item/Spell page, wrap Up/Down back to `+ Add New` and confirm page zero is reloaded: first-page rows render normally with no `Page unavailable`, empty-page artifact or stale later-page data.
+- [ ] Empty never-granted Inventory: delete/no sidecar on a new character and enter Inventory; confirm normal starting equipment is granted automatically. Then delete every granted Item while retaining `InitialInventory=1`, reopen Inventory, and confirm starting equipment is **not** duplicated.
+- [ ] Inventory paging regression: repeatedly cross 8-record boundaries, wrap to `+ Add New`, open/edit/delete records and return from tools; confirm the selected row always belongs to the resident page and no normal path renders `Page unavailable`.
 - [ ] Verify Spellbook list row marks: `A` always prepared, `P` prepared, `K` known, `-` neither, and `F` appended whenever a free cast remains (including `AF`).
 - [ ] Repeat Inventory/Spellbook launch/return cycles with empty and populated sidecars; confirm no blank/undrawn main page appears after repeated launches.
 - [ ] Force a valid `Active=1` with character 1 unreadable/missing; Inventory/Spellbook must retain `[1]` on the error/no-character screen rather than resetting the displayed ID to `[0]` or choosing another character.
@@ -87,14 +89,14 @@
 - [ ] Select Grant Initial Inventory on an absent sidecar and confirm Short OK grants defaults once, returns directly to the populated Inventory list, and the same resulting `inventory_{id}.txt` contains the granted Item rows, the expected background starting `Currency=cp,sp,ep,gp,pp` total, and `InitialInventory=1`. Reopen Inventory and confirm that exact balance reloads. Re-enter Inventory Tools and confirm the row reports Granted; Short OK again must not duplicate equipment/currency. Then Hold OK on that same row once: confirm existing Items are preserved, starting equipment/currency are appended again, the file now contains the exact combined Currency total plus `InitialInventory=2`, and the UI shows that same persisted total. Hold OK a second time and confirm no additional records/currency are added. With manual Item rows but no grant marker, confirm the normal grant remains blocked rather than silently doing nothing.
 
 - [ ] Character → Level Choices: verify it always opens. At a level with no pending ASI/Feat, confirm the explicit “No pending choices” screen; at an ASI/Feat level, confirm the choice screen and Allowed feat catalog default.
-- [ ] High Elf Grant Initial Traits: on a fresh level-1 High Elf, confirm Prestidigitation is written to the Spellbook immediately; at total levels 3/5 confirm Detect Magic/Misty Step. Delete one granted spell while leaving its applied marker and re-run Grant Initial Traits; confirm the missing spell is repaired once without duplicating present species spells.
-- [ ] Weapon Combat loose ammunition: with Longbow + Arrows and Light Crossbow + Bolts using zero per-weapon ammo counters, confirm each attack decrements the matching Inventory stack and refuses only at stack quantity 0. Confirm a weapon with explicit ammo_max/current continues to consume its internal counter instead.
+- [ ] High Elf grants: on a fresh level-1 High Elf, run Grant Initial Traits and confirm Prestidigitation is written immediately. Raise total level to 3/5 and confirm Detect Magic/Misty Step are **not** auto-written; run Apply Level Grants and confirm they appear. Delete one deterministic granted spell while leaving its applied marker, re-run the appropriate grant action, and confirm the missing spell is repaired once without duplicating present species spells.
+- [ ] Weapon Combat loose ammunition: with Longbow + Arrows and Light Crossbow + Bolts using zero per-weapon ammo counters, confirm each attack decrements a matching Inventory stack and refuses only at stack quantity 0. Rename/add stacks such as Fire Arrow, Silvered Arrow and Crossbow Bolt Bundle and confirm case-insensitive token-anywhere matching works. Confirm a weapon with explicit ammo_max/current continues to consume its internal counter instead.
 
 ## Adventure
 
 - [ ] In an active scene, Hold OK opens the full-text viewer; Up/Down scroll one line, Left/Right page, Short OK/Back returns without changing the selected adventure choice. Confirm normal scene preview is 22 characters wide.
 - [ ] Hold Right saves the current scene checkpoint; move elsewhere and Hold Left loads it. From Campaigns choose Restart Current Adventure, confirm default selection is Cancel, then confirm Restart resets scene, checkpoint, quest flags and achievements only after explicit confirmation.
-- [ ] Open Campaign Diagnostics repeatedly with maximum bundled/custom/enabled campaign sets. Entry should not scan immediately; Short OK runs diagnostics without crash/OOM and repeated Up/Down scrolling should not reduce free heap monotonically.
+- [ ] Adventure Campaign menu: confirm Campaign Diagnostics and Installed Pack Controls are absent, campaign selection/restart still work, and bundled/enabled campaign content remains discoverable.
 
 - [ ] Reef Wardens loads and completes.
 - [ ] Ghost Protocol appears as bundled content and loads `audit_brief`.
@@ -119,7 +121,7 @@
 - [ ] Maximum-size encounter save/rename/delete paths.
 
 - [ ] New character starts STR 15 / DEX 14 / CON 13 / INT 12 / WIS 10 / CHA 8; existing profiles retain their saved ability scores.
-- [ ] Selecting class/species/background at level 1 does not auto-grant traits; Character > **Grant Initial Traits** applies the selected deterministic initial traits once.
+- [ ] Selecting class/species/background at level 1 does not auto-grant traits; Character > **Grant Initial Traits** applies only selected deterministic level-1/starting traits once. Raise a level and confirm no new deterministic Feature/spell appears until **Apply Level Grants** is selected.
 - [ ] Increasing a class level updates Hit Dice and applicable spell/resource progression, XP floor, and deterministic class features without rereading progression metadata outside that action.
 - [ ] Initiative Start New Combat opens setup with Roll for All, per-member roll, short/repeat left-right roll adjustment, hold-OK full participant editing, hold left/right participant reordering, + Temporary Member, and Begin Combat.
 - [ ] Change the active character's Dexterity, Initiative Misc, exhaustion, name, HP and AC in DNDolphins; launch Initiative and verify the existing main-character roster/combat entry refreshes without duplicating or changing monster/temp modifiers.
@@ -146,7 +148,7 @@
 - Give different participants Normal, Advantage and Disadvantage; verify Roll for All and single generated rolls use each participant's own mode.
 - Hold OK to open full participant editing and enter a numeric Initiative total; confirm that total is preserved until the participant is rolled again.
 - Create tied initiative totals with different modifiers and confirm the higher modifier sorts first.
-- On a fresh level-1 character, use Grant Initial Traits and confirm deterministic grants are applied immediately. If a grant cannot be applied, confirm only the failed entries remain available for review/retry.
+- On a fresh level-1 character, use Grant Initial Traits and confirm deterministic starting grants are applied immediately. If a grant cannot be applied, confirm only the failed entries remain available for review/retry. After later level increases, use Apply Level Grants for deterministic catch-up.
 - Increase a caster level across a cantrip/prepared allowance increase and confirm deterministic progression updates while the status asks the player to choose spells rather than adding arbitrary spells.
 
 ### Initiative no-character / profile resolution
@@ -238,3 +240,6 @@
 - **Containers:** create nested/container references, delete a lower unrelated item and then the container; verify indexes shift and children become Carried rather than pointing at another item.
 - **History opt-in:** End Without History creates no file. Save History creates exactly one timestamped record; verify date, round, all party states and surviving opponents, then fault the write and confirm combat remains active.
 - **Declarative content:** complete at least one branch of Torii Between Tides and Moonlit Market and inspect each new folklore-inspired monster stat screen.
+
+- [ ] Level HP/Hit Dice: for d6/d8/d10/d12 classes with several Constitution modifiers, increase one and multiple levels and confirm HP gains are 4/5/6/7 + CON per level (minimum 1), current HP gains the same amount without erasing prior damage, class Hit Dice current=max=class level, and global Hit Dice current=max=total level. Repeat through a Journal milestone.
+- [ ] Bestiary home menu order: Browse Monsters, Generate Encounter, Party Level, Party Size, encounter settings, Saved Encounters, browse settings/lists, Create Custom Monster, Pack Diagnostics. Confirm Monster Pack Controls is absent and Pack Diagnostics is last.

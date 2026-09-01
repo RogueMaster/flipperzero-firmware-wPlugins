@@ -57,7 +57,7 @@
 - [x] Routine successful save/add/catalog/Equip/Prepare/grant notices are transient; failure/UNSAVED notices remain visible.
 - [x] Shared companion Back convention: Short Back from each companion main screen returns to DNDolphins only when its FAP exists and restores focus to that companion's corresponding DNDolphins home row; Hold Back exits to firmware without a DNDolphins handoff; normal menus contain no redundant Return/Open-DNDolphins row.
 
-- [x] Adventure Hold OK opens bounded full scene text; Hold Left loads checkpoint; Hold Right saves checkpoint; restart is an explicit confirmed Campaign-menu action. Campaign Diagnostics uses bounded heap scan lines rather than large stack line buffers.
+- [x] Adventure Hold OK opens bounded full scene text; Hold Left loads checkpoint; Hold Right saves checkpoint; restart is an explicit confirmed Campaign-menu action. Broken Campaign Diagnostics and Installed Pack Controls entries are removed while normal enabled-pack loading remains intact.
 - [x] DNDAdventure declarative campaigns, checks, rewards, flags/achievements and Journal milestones; resident character access is a bounded name/class-level/ability/skill projection rather than the full character core.
 - [x] Campaign inbox preview validates compatibility, content and entry-scene availability before Hold OK installation.
 - [x] Campaign list discovery uses bounded sparse hints plus streaming ID lookup rather than retaining one heap offset per campaign.
@@ -89,9 +89,9 @@
 - [x] Initiative ties use modifier as the first tie-breaker.
 - [x] Main-character Initiative HP/AC edits synchronize back to the canonical character profile.
 - [x] Turn and Encounter feature recharge are applied at their Initiative cadence.
-- [x] Grant Initial Traits immediately applies deterministic initial grants; failed grants remain reviewable. Deterministic spell grants verify the authoritative Spellbook sidecar so stale applied markers can repair a missing species/class spell without duplicating an existing spell.
+- [x] Grant Initial Traits explicitly applies only deterministic starting/level-1 species/background/class/subclass grants; Apply Level Grants explicitly applies all currently eligible deterministic species/class/subclass grants. Missing deterministic Feature/scalar/spell payloads can be repaired despite stale applied markers without duplicating payloads that are present.
 - [x] Level progression does not auto-select arbitrary class spells and prompts when spell choices expand. A bounded Level-Up Review summarizes numeric changes, deterministic traits, spell-choice notices and pending ASI/Feat choices without retaining progression metadata.
-- [x] Supported species progression uses total character level and automatically grants deterministic species spells/features when their level gates are reached; initial deterministic species spells are also applied by Grant Initial Traits.
+- [x] Supported species progression uses total character level for eligibility but never writes level-gated grants merely because the level changed; Apply Level Grants performs that explicit catch-up. Initial level-1 species grants remain available through Grant Initial Traits.
 - [x] Verified deterministic class/subclass metadata is expanded while selection-bearing Fighting Styles, Invocations, Metamagic, subclass selection, spell selection and similar choices remain explicit.
 - [x] Applied-grant stable IDs are normalized to the stored representation and known truncation collisions use compact unique IDs.
 
@@ -102,7 +102,7 @@
 - [x] Adventure, Bestiary, Journal, Initiative, Inventory and Spellbook show `[characterId]` at the top-right of the main screen only.
 
 ### Combat parity
-- [x] Weapon Attacks still stream owned weapon records, consume ammunition from the Item sidecar, apply STR/DEX/Finesse/Ranged choice, proficiency, magic and exhaustion modifiers, support advantage/disadvantage, natural 1/20, versatile/extra damage dice and critical doubling.
+- [x] Weapon Attacks still stream owned weapon records, consume ammunition from the Item sidecar, apply STR/DEX/Finesse/Ranged choice, proficiency, magic and exhaustion modifiers, support advantage/disadvantage, natural 1/20, versatile/extra damage dice and critical doubling. Loose ammo matching is case-insensitive and accepts the required ammo token anywhere in an Item name.
 - [x] Spell Attacks still stream castable owned spells, preserve the 168-entry structured combat table plus Notes `XdY` fallback, class-specific spell attack/save modifiers, cantrip scaling/upcasting, and cantrip/slot/Pact/spell-point/free-cast/ritual resource choices.
 - [x] Structured spell combat supports fixed/dice upcasting, multiple attack/roll instances, secondary effects and vitality/healing outcomes; current additions include Aid vitality scaling and Heal fixed/upcast healing.
 - [x] Combat presentation uses named row indices and state-free Attacks/Encounter/Recovery/Status/Defenses headers; Rituals is immediately below Spell Attacks.
@@ -122,3 +122,7 @@
 - [x] End Current Combat saves no history unless Save History is explicitly chosen; saved history includes date/rounds/party state/surviving opponents.
 - [x] Torii Between Tides and Moonlit Market campaign graphs load and branch without retained full-pack state.
 - [x] All bundled Bestiary index IDs have exactly one statblock.
+
+- [x] Level increases add fixed-average Hit Die HP + Constitution modifier (minimum 1 per level), refresh class/global Hit Dice to their new maxima, and do not auto-apply progression grants; Journal milestone leveling follows the same HP/Hit-Dice rule.
+- [x] Empty never-granted Inventory auto-initializes starting equipment; stale list/page state is repaired before rendering so normal navigation does not expose `Page unavailable`.
+- [x] Bestiary uses encounter-first home ordering, omits Monster Pack Controls, and keeps Pack Diagnostics last.
