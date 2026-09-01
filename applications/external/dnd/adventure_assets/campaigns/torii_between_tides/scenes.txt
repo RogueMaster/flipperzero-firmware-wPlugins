@@ -1,0 +1,66 @@
+# A travel-fantasy campaign across Japan. Skill indexes follow the DNDolphins skill table.
+# S|scene_id|title|body|sprite
+# C|scene_id|choice|skill_index (or -1)|dc|success|failure|reward_item|milestone|quest_flag|achievement
+S|haneda_arrival|Haneda: First Tide|A paper crane marked with a silver torii waits beside the baggage carousel. Its ink shifts like water whenever you look toward Tokyo.|torii
+C|haneda_arrival|Follow the crane|11|10|asakusa_lanterns|station_mist|Railway Omamori|-|0|255
+C|haneda_arrival|Study the strange ink|2|11|asakusa_lanterns|station_mist|Blank Goshuin Book|-|0|255
+S|station_mist|Platform in the Mist|For one impossible minute the airport train map shows a station between stations. The crane taps the route to Asakusa before the phantom stop fades.|rail
+C|station_mist|Trust the marked route|8|10|asakusa_lanterns|haneda_arrival|-|-|0|255
+C|station_mist|Ask a station attendant|13|10|asakusa_lanterns|haneda_arrival|-|-|0|255
+S|asakusa_lanterns|Asakusa Lanterns|At Senso-ji, the great lantern casts two shadows for every traveler. One shadow points toward a tiny fox mask hidden among ordinary charms.|lantern
+C|asakusa_lanterns|Inspect the second shadow|11|12|sumida_echo|nakamise_detour|Fox Mask Token|-|1|255
+C|asakusa_lanterns|Read the temple signs|5|11|sumida_echo|nakamise_detour|-|-|1|255
+S|nakamise_detour|Nakamise Detour|A shopkeeper recognizes the silver torii mark and says an old pilgrim route wakes when travelers carry unfinished promises.|market
+C|nakamise_detour|Listen to the story|6|10|sumida_echo|asakusa_lanterns|-|-|1|255
+C|nakamise_detour|Search for the fox mask|8|12|sumida_echo|asakusa_lanterns|Sweet Rice Charm|-|1|255
+S|sumida_echo|Echo by the Sumida|The river reflects a moon that is not yet in the sky. The paper crane unfolds into a map pointing across Tokyo to Hachiko.|wave
+C|sumida_echo|Compare both skylines|11|12|shibuya_promise|asakusa_lanterns|-|-|2|255
+C|sumida_echo|Follow the reflected moon|-1|0|shibuya_promise|shibuya_promise|-|-|2|255
+S|shibuya_promise|The Hachiko Promise|At Shibuya the crowd parts for a heartbeat, revealing a spectral dog waiting beside the statue. It will not move until someone keeps a promise.|dog
+C|shibuya_promise|Offer a sincere promise|13|12|crossing_threads|lost_crossing|Hachiko Promise|-|3|255
+C|shibuya_promise|Understand what it waits for|6|13|crossing_threads|lost_crossing|-|-|3|255
+S|lost_crossing|Lost in the Crossing|Every scramble crossing returns you to the same corner. A different route appears only when you stop trying to outrun the crowd.|city
+C|lost_crossing|Watch the pedestrian rhythm|11|11|crossing_threads|shibuya_promise|-|-|3|255
+C|lost_crossing|Ask another traveler for help|13|10|crossing_threads|shibuya_promise|-|-|3|255
+S|crossing_threads|Threads to Hakone|The fox mask warms and a rail ticket prints itself with a destination: Hakone-Yumoto, then Lake Ashi before sunset.|rail
+C|crossing_threads|Take the mountain route|17|11|hakone_mist|shibuya_promise|Tide-Stained Ticket|-|4|255
+C|crossing_threads|Check the route carefully|8|11|hakone_mist|shibuya_promise|-|-|4|255
+S|hakone_mist|Hakone Mist|Mist erases the lake shore, but a red torii stands alone in the white. Bells answer from somewhere beyond the water.|torii
+C|hakone_mist|Navigate by the bells|11|13|ashi_crossing|owakudani_smoke|-|-|5|255
+C|hakone_mist|Read the mountain weather|17|12|ashi_crossing|owakudani_smoke|-|-|5|255
+S|owakudani_smoke|Owakudani Smoke|Sulfurous steam forms the shape of a coiled dragon. A black egg rests where no vendor placed it, warm but unbroken.|smoke
+C|owakudani_smoke|Accept the strange egg|2|12|ashi_crossing|hakone_mist|Owakudani Black Egg|-|5|255
+C|owakudani_smoke|Wait for the smoke to clear|11|10|ashi_crossing|hakone_mist|-|-|5|255
+S|ashi_crossing|Lake Ashi Crossing|On the lake, the crane becomes a tiny paper boat. It points west, toward Kyoto, and reveals a new torii drawn in vermilion ink.|wave
+C|ashi_crossing|Keep the paper boat safe|-1|0|kyoto_evening|kyoto_evening|Paper Tide Boat|-|6|255
+S|kyoto_evening|Kyoto at Blue Hour|In Gion, a lantern with no owner lights whenever the party walks toward Fushimi Inari. The fox mask now has a matching twin reflected in shop windows.|lantern
+C|kyoto_evening|Follow the ownerless lantern|16|12|fushimi_steps|gion_whisper|-|-|7|255
+C|kyoto_evening|Ask about the fox emblem|6|11|fushimi_steps|gion_whisper|-|-|7|255
+S|gion_whisper|Whisper in Gion|A quiet voice from an alley warns that the pilgrim road remembers courtesy better than bravery. The lantern dims until the party bows.|lantern
+C|gion_whisper|Offer respectful thanks|13|10|fushimi_steps|kyoto_evening|Lantern Ribbon|-|7|255
+C|gion_whisper|Listen for the hidden path|11|11|fushimi_steps|kyoto_evening|-|-|7|255
+S|fushimi_steps|Ten Thousand Gates|At Fushimi Inari, one torii bears the same silver mark as the paper crane. Beyond it, the crowds vanish and the path climbs beneath stars.|torii
+C|fushimi_steps|Enter the silver-marked gate|2|13|foxfire_choice|bamboo_return|Foxfire Lantern|-|8|255
+C|fushimi_steps|Trace the inscription|5|12|foxfire_choice|bamboo_return|-|-|8|255
+S|bamboo_return|Arashiyama Wind|The wrong turn opens into moonlit bamboo. Wind chimes ring without strings, guiding the party back toward the hidden pilgrimage.|bamboo
+C|bamboo_return|Follow the changing wind|17|12|foxfire_choice|fushimi_steps|Bamboo Wind Chime|-|8|255
+C|bamboo_return|Move quietly through the grove|16|12|foxfire_choice|fushimi_steps|-|-|8|255
+S|foxfire_choice|The Foxfire Choice|A kitsune-shaped flame offers two paths: preserve the old route exactly, or let it change with each traveler. Neither answer is presented as the only truth.|fox
+C|foxfire_choice|Protect the old route|5|13|nara_deer|fushimi_steps|Old Route Seal|-|9|255
+C|foxfire_choice|Let the route keep changing|6|13|nara_deer|fushimi_steps|New Route Seal|-|9|255
+S|nara_deer|Nara Bell Trail|A deer wearing a tiny bell leads the party away from the broad path, stopping whenever someone forgets to notice the people traveling beside them.|deer
+C|nara_deer|Follow with patience|17|11|osaka_neon|deer_loop|Sacred Deer Bell|-|10|255
+C|nara_deer|Read its body language|1|12|osaka_neon|deer_loop|-|-|10|255
+S|deer_loop|The Looping Park|Every shortcut returns to the same stone lantern. The bell-deer waits calmly for the party to stop treating the journey like a race.|deer
+C|deer_loop|Slow down and observe|11|10|osaka_neon|nara_deer|-|-|10|255
+C|deer_loop|Share food and wait|-1|0|osaka_neon|osaka_neon|-|-|10|255
+S|osaka_neon|Neon River|Dotonbori burns bright on the canal, but beneath the signs the water reflects all the earlier torii at once. The paper crane finally speaks in a borrowed voice.|city
+C|osaka_neon|Ask what the route wanted|6|12|two_tides|canal_riddle|-|-|11|255
+C|osaka_neon|Compare every collected token|8|13|two_tides|canal_riddle|-|-|11|255
+S|canal_riddle|Canal Riddle|The voice asks which place mattered most. There is no correct city; the answer is tested only for sincerity and memory.|wave
+C|canal_riddle|Answer with a remembered moment|13|11|two_tides|osaka_neon|-|-|11|255
+C|canal_riddle|Let the tokens answer|-1|0|two_tides|two_tides|-|-|11|255
+S|two_tides|Torii Between Tides|The silver marks fade from the route map. The journey remains, now recorded in the blank goshuin book as places, promises, detours, and people rather than a single solved mystery.|torii
+C|two_tides|Seal the journey|-1|0|departure_gate|departure_gate|Wayfarer's Goshuin|Wayfarer of Two Tides|12|2
+S|departure_gate|Departure Gate|At the airport, one final paper crane waits beside the window. This one is ordinary paper. That somehow makes it feel more important.|plane
+C|departure_gate|Begin another crossing|-1|0|haneda_arrival|haneda_arrival|-|-|255|255

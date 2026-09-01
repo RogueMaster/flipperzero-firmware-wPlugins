@@ -1,5 +1,15 @@
 # Save and storage schema
 
+### Companion profile projections
+
+The canonical character file and field names are unchanged. `dnd_profile_projection.c` is an in-memory access layer only:
+
+- DNDInventory reads name/species/background/classes/abilities/AC/exhaustion/encumbrance/carry-capacity. Its only canonical write-back is transactional replacement of AC plus encumbrance/carry-capacity inside existing `Vitals=` / `CombatFlags=` lines. Currency and Items remain Inventory-sidecar owned.
+- DNDSpellbook reads only name and class/subclass spellcasting metadata. It never writes the canonical character file.
+- DNDAdventure reads only name, class levels, ability scores and skill proficiency/misc values. It never writes canonical character fields.
+
+Unrecognized canonical fields are preserved byte-for-line during the Inventory-owned projection rewrite. The projection line bound matches canonical encoded character lines, and the publish step uses temporary/backup rename rollback.
+
 ## Ownership
 
 Primary ownership is separated by app-data root, with intentional shared access to the DNDolphins character root:
@@ -20,7 +30,7 @@ Primary ownership is separated by app-data root, with intentional shared access 
 
 Companion FAPs resolve character profiles only from canonical DNDolphins files named `ch_{id}_{safeName}_{level}.txt`. Item/spellbook sidecars, work files, exports, shadows and Journal/Initiative files cannot satisfy a primary-profile lookup. Character ID `0` is valid.
 
-`/ext/apps_data/dndolphins/custom_active_profile.txt` stores `Active=<id>` and is the only companion character-selection metadata. All seven FAPs use the shared `dnd_profile_handoff.c` reader/lookup contract for this metadata and exact canonical-profile references; launch arguments do not override the persisted selection and companions do not discover/fall forward to another character. Inventory/Spellbook/Adventure additionally use their normal full character loader after resolving the exact ID. Initiative and Bestiary choose ID `0` only when active-profile metadata itself is absent or unreadable. If `Active=<id>` is present but that character is missing, Initiative does not switch to 0 or another character; Bestiary keeps the persisted ID and remains usable without a character profile.
+`/ext/apps_data/dndolphins/custom_active_profile.txt` stores `Active=<id>` and is the only companion character-selection metadata. All seven FAPs use the shared `dnd_profile_handoff.c` reader/lookup contract for this metadata and exact canonical-profile references; launch arguments do not override the persisted selection and companions do not discover/fall forward to another character. Inventory, Spellbook and Adventure then stream only their required canonical fields through `dnd_profile_projection.c`; they do not keep `PocketCharacter` resident. Initiative and Bestiary choose ID `0` only when active-profile metadata itself is absent or unreadable. If `Active=<id>` is present but that character is missing, Initiative does not switch to 0 or another character; Bestiary keeps the persisted ID and remains usable without a character profile.
 
 ## DNDolphins
 
@@ -62,3 +72,18 @@ Combat → Rituals adds no persisted field. The list is derived from existing Sp
 ## Spellbook record order
 
 Spellbook ordering is not a schema field. Valid `S|` records may be rewritten in ascending spell level and then case-insensitive alphabetical name order for deterministic display/paging. The existing record fields, preparation/free-cast state and non-record metadata remain authoritative; no migration marker or checksum is introduced.
+
+## Initiative completed-encounter history
+
+History is Initiative-owned and is created only when the user explicitly chooses **End + Save History**. Each completed encounter is a separate atomic record under `/ext/apps_data/dndinitiative/history/` named `ch_<profile>_<YYYYMMDD>_<HHMMSS>_<NN>.txt`; ending without history creates no record.
+
+```text
+DNDInitiativeHistory=1
+Profile=<id>
+Ended=YYYY-MM-DD HH:MM:SS
+Rounds=<round>
+P|name|hp_current|hp_max|ac|conditions
+O|name|hp_current|hp_max|ac|conditions
+```
+
+`P` rows contain all party participants identified from the main character/saved roster, including downed members. `O` rows contain only opponents whose current HP is above zero when combat ends. History does not modify the canonical character file or Initiative live-combat schema.

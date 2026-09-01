@@ -3,9 +3,8 @@
 
 uint32_t dndolphins_rules_character_minimum_experience_for_level(uint8_t level) {
     static const uint32_t minimum_xp[20] = {
-        0U,      300U,    900U,    2700U,   6500U,   14000U, 23000U,
-        34000U,  48000U,  64000U,  85000U,  100000U, 120000U, 140000U,
-        165000U, 195000U, 225000U, 265000U, 305000U, 355000U,
+        0U,     300U,    900U,    2700U,   6500U,   14000U,  23000U,  34000U,  48000U,  64000U,
+        85000U, 100000U, 120000U, 140000U, 165000U, 195000U, 225000U, 265000U, 305000U, 355000U,
     };
     if(level < 1U) level = 1U;
     if(level > 20U) level = 20U;
@@ -14,7 +13,8 @@ uint32_t dndolphins_rules_character_minimum_experience_for_level(uint8_t level) 
 
 void dndolphins_rules_character_apply_experience_floor(PocketCharacter* character) {
     if(!character) return;
-    uint32_t minimum = dndolphins_rules_character_minimum_experience_for_level(dnd_rules_core_total_level(character));
+    uint32_t minimum = dndolphins_rules_character_minimum_experience_for_level(
+        dnd_rules_core_total_level(character));
     if(character->experience < minimum) character->experience = minimum;
 }
 
@@ -30,7 +30,8 @@ int16_t dndolphins_rules_character_effective_speed(const PocketCharacter* charac
 }
 
 int16_t dndolphins_rules_character_feature_max_uses(
-    const PocketCharacter* character, const PocketFeature* feature) {
+    const PocketCharacter* character,
+    const PocketFeature* feature) {
     if(feature->resource_formula == PocketResourceProficiency)
         return dnd_rules_core_proficiency_bonus(character);
     if(feature->resource_formula == PocketResourceAbility &&
@@ -60,8 +61,8 @@ int16_t dndolphins_rules_character_spend_class_hit_die(
        class_level->hit_dice_current == 0U)
         return -1;
     uint8_t roll = dnd_rules_core_roll_die(class_level->hit_die);
-    int16_t healing =
-        roll + dnd_rules_core_ability_modifier(character->ability_scores[PocketAbilityConstitution]);
+    int16_t healing = roll + dnd_rules_core_ability_modifier(
+                                 character->ability_scores[PocketAbilityConstitution]);
     if(healing < 1) healing = 1;
     int16_t missing = character->hp_max - character->hp_current;
     int16_t regained = healing < missing ? healing : missing;

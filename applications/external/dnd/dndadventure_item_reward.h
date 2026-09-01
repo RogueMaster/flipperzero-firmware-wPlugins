@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dnd_profile_projection.h"
 #include "dnd_storage.h"
 
 #include <stdbool.h>
@@ -10,6 +11,6 @@
 bool dndadventure_item_reward_grant_reward(
     Storage* storage,
     uint32_t profile,
-    PocketCharacter* character,
+    const DndAdventureProfileProjection* projection,
     const char* name,
     const char* detail);

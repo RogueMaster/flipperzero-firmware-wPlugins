@@ -33,7 +33,10 @@ bool dndbestiary_state_party_settings_load(
     Storage* storage,
     uint8_t* party_level,
     uint8_t* party_size);
-bool dndbestiary_state_party_settings_save(Storage* storage, uint8_t party_level, uint8_t party_size);
+bool dndbestiary_state_party_settings_save(
+    Storage* storage,
+    uint8_t party_level,
+    uint8_t party_size);
 
 bool dndbestiary_state_favorite_contains(Storage* storage, const char* id);
 bool dndbestiary_state_favorite_toggle(Storage* storage, const char* id, bool* now_favorite);

@@ -1,0 +1,32 @@
+# Short original supernatural market campaign.
+# S|scene_id|title|body|sprite
+# C|scene_id|choice|skill_index (or -1)|dc|success|failure|reward_item|milestone|quest_flag|achievement
+S|lantern_gate|Moonlit Market|A blue lantern appears in an alley that should end at a brick wall. Behind it waits a night market where merchants trade memories, names, and impossible snacks.|lantern
+C|lantern_gate|Enter politely|13|10|first_stall|alley_again|Blue Lantern Token|-|0|255
+C|lantern_gate|Inspect the threshold|2|11|first_stall|alley_again|-|-|0|255
+S|alley_again|The Same Alley|The market disappears. A chalk cat points at a handwritten sign: Guests knock once. Bargainers knock twice.|cat
+C|alley_again|Knock once|-1|0|first_stall|first_stall|-|-|0|255
+S|first_stall|The Memory Vendor|A masked merchant offers a map in exchange for one harmless memory: the taste of yesterday's breakfast.|market
+C|first_stall|Make the tiny trade|6|11|paper_bridge|bargain_detour|Memory Map|-|1|255
+C|first_stall|Find another price|13|12|paper_bridge|bargain_detour|-|-|1|255
+S|bargain_detour|Price of a Name|A second merchant offers directions if someone can invent a convincing false name for the moon.|market
+C|bargain_detour|Name the moon|3|12|paper_bridge|first_stall|-|-|1|255
+C|bargain_detour|Distract the merchant|4|13|paper_bridge|first_stall|-|-|1|255
+S|paper_bridge|Paper Bridge|A bridge of receipts stretches over a canal of black ink. Each step prints a choice the traveler almost made.|paper
+C|paper_bridge|Cross without reading them|16|12|bell_keeper|ink_fall|-|-|2|255
+C|paper_bridge|Read only one|11|11|bell_keeper|ink_fall|Unchosen Receipt|-|2|255
+S|ink_fall|Inkfall|The bridge folds. The party lands safely in a pile of discarded fortunes, each predicting a different sunrise.|paper
+C|ink_fall|Sort the fortunes|8|11|bell_keeper|paper_bridge|-|-|2|255
+S|bell_keeper|The Bell Keeper|An old tanuki guards the market's closing bell. Someone stole its clapper, and dawn cannot reach the alley until it is returned.|bell
+C|bell_keeper|Track the thief|17|12|mirror_stall|paper_bridge|-|-|3|255
+C|bell_keeper|Question the vendors|6|12|mirror_stall|paper_bridge|-|-|3|255
+S|mirror_stall|Mirror Stall|The stolen clapper hangs inside a mirror where reflections arrive a second too early.|mirror
+C|mirror_stall|Match the reflection's timing|1|13|final_bell|shattered_echo|Silver Bell Clapper|-|4|255
+C|mirror_stall|Reason out the trick|8|13|final_bell|shattered_echo|-|-|4|255
+S|shattered_echo|Shattered Echo|The mirror breaks without glass. Its echoes scatter into the market, repeating every bargain made tonight.|mirror
+C|shattered_echo|Follow the true echo|11|12|final_bell|mirror_stall|-|-|4|255
+S|final_bell|Last Bell Before Dawn|The tanuki restores the clapper. The market asks one final question: leave with a treasure, or leave remembering the way back.|bell
+C|final_bell|Choose the memory of the route|-1|0|market_closed|market_closed|Moon Market Map|Moonlit Witness|5|3
+C|final_bell|Choose a lucky charm|-1|0|market_closed|market_closed|Tanuki Lucky Coin|Moonlit Witness|5|3
+S|market_closed|Market Closed|The blue lantern goes dark as sunrise reaches the alley. A tiny bell rings once from inside your pocket.|lantern
+C|market_closed|Seek the market again|-1|0|lantern_gate|lantern_gate|-|-|255|255

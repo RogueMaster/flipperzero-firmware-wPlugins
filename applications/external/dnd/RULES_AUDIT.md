@@ -20,6 +20,8 @@ Wizard combat eligibility distinguishes the spellbook from the prepared list. Wi
 
 Wizard **Ritual Adept** is represented separately by Combat → Rituals. A level-1+ spell is listed when it is a known Wizard spellbook entry with the Ritual tag; preparation is intentionally irrelevant. Ritual casting consumes no slot, Pact slot, spell points or Free Cast and reports the additional 10-minute casting time. Wizard cantrips are excluded because they are not level-1+ spellbook entries.
 
+The structured spell-combat table now contains 168 explicit mappings. The resolver supports fixed and dice-based upcasting, multiple attack/roll instances, primary/secondary effects and derived effects while retaining Notes `XdY` fallback for unmapped custom spells. New deterministic mappings include Aid's vitality scaling and Heal's fixed healing/upcast behavior.
+
 The previous rule split was regression-checked during the refactor so moved functions retained their call sites and behavior. The Ghost Protocol/default-monster additions do not change character or combat rules.
 
 ## Initiative feature mapping
@@ -28,4 +30,18 @@ The active-character Initiative refresh recognizes the base Dexterity modifier, 
 
 ## Player-choice progression
 
-Deterministic numeric progression and fixed metadata grants may apply automatically on level increases. Player-choice spell acquisition is not guessed: when cantrip/prepared allowances increase, the UI tells the player to choose spells. Initial level-one grants are staged for review before application. **Level Choices** now handles explicit ASI/Feat opportunities: the player selects the choice, applied choices are represented by existing grant-history records, and the app never silently chooses a feat or ability increase.
+Deterministic numeric progression and verified fixed class/subclass/species metadata grants may apply automatically on level increases. The metadata set includes deterministic SRD subclass features where the class/subclass and level fully determine the result; selection-dependent Fighting Styles, Invocations, Metamagic, spells, ASIs and feats remain explicit player choices. Warlock Eldritch Invocations begins at class level 1; the app records the deterministic feature availability but does not choose an Invocation.
+
+Player-choice spell acquisition is not guessed: when cantrip/prepared allowances increase, the UI tells the player to choose spells. Initial level-one grants are staged for review before application. **Level Choices** handles explicit ASI/Feat opportunities. After a level increase, the bounded **Level-Up Review** stores only before/after rule results, deterministic-grant count and pending-choice flags; progression metadata itself is released after evaluation.
+
+## Progression feat eligibility
+
+Progression feat picks default to Allowed and may be switched to All. Bundled checks cover General/Epic level gates, Grappler STR/DEX 13+, Fighting Style Feature, Spellcasting Feature where required, and duplicate suppression for non-repeatable feats. Ability Score Improvement, Magic Initiate and Skilled remain repeatable. Unknown/custom feats remain best-effort visible rather than receiving guessed prerequisites.
+
+## Deterministic subclass additions
+
+Additional deterministic grants cover Path of the Berserker, College of Lore, Oath of Devotion, Hunter, Draconic Sorcery and Fiend Patron. Features requiring a player selection (for example Hunter option choices, Magical Discoveries, Fiendish Resilience choice and Draconic damage-type choice) remain explicit and are not auto-selected.
+
+## Spell-combat addition
+
+Heroism has a structured Temporary-HP result using the caster's spellcasting modifier. Higher-slot target count is intentionally not represented as extra HP because the combat mapping has no target-count state.

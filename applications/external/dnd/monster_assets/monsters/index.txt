@@ -340,3 +340,9 @@ vulture|Vulture|0|10|10|5|Beast|Wilderness|Open Reference|Minion
 warhorse|Warhorse|4|100|11|19|Beast|Wilderness|Open Reference|Brute
 weasel|Weasel|0|10|13|1|Beast|Wilderness|Open Reference|Minion
 wolf|Wolf|2|50|12|11|Beast|Wilderness|Open Reference|Skirmisher
+tanuki_trickster|Tanuki Trickster|8|200|14|27|Fey|Urban/Wilderness|D&Dolphins|Controller
+kappa_river_scout|Kappa River Scout|4|100|13|22|Fey|River/Wetland|D&Dolphins|Skirmisher
+tsukumogami_umbrella|Tsukumogami Umbrella|2|50|15|13|Construct|Urban|D&Dolphins|Skirmisher
+kitsune_wayfinder|Kitsune Wayfinder|16|450|15|44|Fey|Urban/Wilderness|D&Dolphins|Controller
+karasu_tengu_warden|Karasu Tengu Warden|24|700|16|60|Fey|Mountain/Forest|D&Dolphins|Skirmisher
+lantern_onryo|Lantern Onryo|32|1100|15|78|Undead|Urban/Ruins|D&Dolphins|Controller

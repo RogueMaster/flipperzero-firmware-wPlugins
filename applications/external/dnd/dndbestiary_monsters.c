@@ -6,24 +6,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MONSTER_INDEX                APP_ASSETS_PATH("monsters/index.txt")
-#define MONSTER_BLOCKS               APP_ASSETS_PATH("monsters/statblocks.txt")
-#define CUSTOM_MONSTER_INDEX         APP_DATA_PATH("monsters/custom_index.txt")
-#define CUSTOM_MONSTER_INDEX_TEMP    APP_DATA_PATH("monsters/custom_index.tmp")
-#define CUSTOM_MONSTER_INDEX_BACKUP  APP_DATA_PATH("monsters/custom_index.bak")
-#define CUSTOM_MONSTER_BLOCKS        APP_DATA_PATH("monsters/custom_statblocks.txt")
-#define CUSTOM_MONSTER_BLOCKS_TEMP   APP_DATA_PATH("monsters/custom_statblocks.tmp")
-#define CUSTOM_MONSTER_BLOCKS_BACKUP APP_DATA_PATH("monsters/custom_statblocks.bak")
-#define CUSTOM_MONSTER_TRANSACTION   APP_DATA_PATH("monsters/custom_transaction.txt")
-#define ENABLED_MONSTER_INDEX        APP_DATA_PATH("monsters/enabled_index.txt")
-#define ENABLED_MONSTER_BLOCKS       APP_DATA_PATH("monsters/enabled_statblocks.txt")
-#define LEGACY_CUSTOM_MONSTER_INDEX  APP_ASSETS_PATH("monsters/custom_index.txt")
-#define LEGACY_CUSTOM_MONSTER_BLOCKS APP_ASSETS_PATH("monsters/custom_statblocks.txt")
-#define DEFAULT_CUSTOM_MONSTER_INDEX APP_ASSETS_PATH("monsters/default_custom_index.txt")
+#define MONSTER_INDEX                 APP_ASSETS_PATH("monsters/index.txt")
+#define MONSTER_BLOCKS                APP_ASSETS_PATH("monsters/statblocks.txt")
+#define CUSTOM_MONSTER_INDEX          APP_DATA_PATH("monsters/custom_index.txt")
+#define CUSTOM_MONSTER_INDEX_TEMP     APP_DATA_PATH("monsters/custom_index.tmp")
+#define CUSTOM_MONSTER_INDEX_BACKUP   APP_DATA_PATH("monsters/custom_index.bak")
+#define CUSTOM_MONSTER_BLOCKS         APP_DATA_PATH("monsters/custom_statblocks.txt")
+#define CUSTOM_MONSTER_BLOCKS_TEMP    APP_DATA_PATH("monsters/custom_statblocks.tmp")
+#define CUSTOM_MONSTER_BLOCKS_BACKUP  APP_DATA_PATH("monsters/custom_statblocks.bak")
+#define CUSTOM_MONSTER_TRANSACTION    APP_DATA_PATH("monsters/custom_transaction.txt")
+#define ENABLED_MONSTER_INDEX         APP_DATA_PATH("monsters/enabled_index.txt")
+#define ENABLED_MONSTER_BLOCKS        APP_DATA_PATH("monsters/enabled_statblocks.txt")
+#define LEGACY_CUSTOM_MONSTER_INDEX   APP_ASSETS_PATH("monsters/custom_index.txt")
+#define LEGACY_CUSTOM_MONSTER_BLOCKS  APP_ASSETS_PATH("monsters/custom_statblocks.txt")
+#define DEFAULT_CUSTOM_MONSTER_INDEX  APP_ASSETS_PATH("monsters/default_custom_index.txt")
 #define DEFAULT_CUSTOM_MONSTER_BLOCKS APP_ASSETS_PATH("monsters/default_custom_statblocks.txt")
-#define CUSTOM_MONSTER_MIGRATION     APP_DATA_PATH("monsters/custom_migration.txt")
-#define MONSTER_LINE_LEN             768U
-#define MONSTER_READ_BUFFER          512U
+#define CUSTOM_MONSTER_MIGRATION      APP_DATA_PATH("monsters/custom_migration.txt")
+#define MONSTER_LINE_LEN              768U
+#define MONSTER_READ_BUFFER           512U
 
 static const uint16_t dndbestiary_monsters_budget[20][3] = {
     {50, 75, 100},       {100, 150, 200},     {150, 225, 400},      {250, 375, 500},
@@ -45,8 +45,7 @@ static bool dndbestiary_monsters_parse_u32(const char* text, uint32_t maximum, u
     for(const char* cursor = text; *cursor; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -67,12 +66,11 @@ static bool dndbestiary_monsters_parse_i8(const char* text, int8_t* output) {
     for(const char* cursor = text; *cursor; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint8_t digit = (uint8_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = (uint16_t)(value * 10U + digit);
     }
-    *output = negative ? (value == 128U ? INT8_MIN : (int8_t)-(int16_t)value) : (int8_t)value;
+    *output = negative ? (value == 128U ? INT8_MIN : (int8_t) - (int16_t)value) : (int8_t)value;
     return true;
 }
 
@@ -191,7 +189,8 @@ typedef struct {
 
 static MonsterCache monster_cache;
 
-static void dndbestiary_monsters_reader_init_at(MonsterReader* reader, File* file, uint32_t offset) {
+static void
+    dndbestiary_monsters_reader_init_at(MonsterReader* reader, File* file, uint32_t offset) {
     memset(reader, 0, sizeof(*reader));
     reader->file = file;
     reader->offset = offset;
@@ -201,8 +200,11 @@ static void dndbestiary_monsters_reader_init(MonsterReader* reader, File* file) 
     dndbestiary_monsters_reader_init_at(reader, file, 0U);
 }
 
-static bool
-    dndbestiary_monsters_read_line_at(MonsterReader* reader, char* line, size_t size, uint32_t* line_offset) {
+static bool dndbestiary_monsters_read_line_at(
+    MonsterReader* reader,
+    char* line,
+    size_t size,
+    uint32_t* line_offset) {
     if(line_offset) *line_offset = reader->offset;
     size_t position = 0U;
     bool consumed = false;
@@ -310,26 +312,26 @@ static void dndbestiary_monsters_hint_remember(
     *next = (uint8_t)((slot + 1U) % MONSTER_RECENT_MAX);
 }
 
-static void dndbestiary_monsters_index_hint_remember(MonsterPathCache* cache, uint32_t hash, uint32_t offset) {
+static void dndbestiary_monsters_index_hint_remember(
+    MonsterPathCache* cache,
+    uint32_t hash,
+    uint32_t offset) {
     dndbestiary_monsters_hint_remember(
-        cache->recent_index,
-        &cache->recent_index_count,
-        &cache->recent_index_next,
-        hash,
-        offset);
+        cache->recent_index, &cache->recent_index_count, &cache->recent_index_next, hash, offset);
 }
 
-static void dndbestiary_monsters_block_hint_remember(MonsterPathCache* cache, uint32_t hash, uint32_t offset) {
+static void dndbestiary_monsters_block_hint_remember(
+    MonsterPathCache* cache,
+    uint32_t hash,
+    uint32_t offset) {
     dndbestiary_monsters_hint_remember(
-        cache->recent_blocks,
-        &cache->recent_block_count,
-        &cache->recent_block_next,
-        hash,
-        offset);
+        cache->recent_blocks, &cache->recent_block_count, &cache->recent_block_next, hash, offset);
 }
 
-static bool
-    dndbestiary_monsters_build_index_cache(Storage* storage, const char* path, MonsterPathCache* cache) {
+static bool dndbestiary_monsters_build_index_cache(
+    Storage* storage,
+    const char* path,
+    MonsterPathCache* cache) {
     cache->index_count = 0U;
     cache->sparse_count = 0U;
     cache->recent_index_count = 0U;
@@ -377,10 +379,12 @@ static bool dndbestiary_monsters_cache_ensure(Storage* storage) {
        !dndbestiary_monsters_build_index_cache(storage, MONSTER_INDEX, &monster_cache.bundled))
         return false;
     if(!monster_cache.custom.index_valid &&
-       !dndbestiary_monsters_build_index_cache(storage, CUSTOM_MONSTER_INDEX, &monster_cache.custom))
+       !dndbestiary_monsters_build_index_cache(
+           storage, CUSTOM_MONSTER_INDEX, &monster_cache.custom))
         return false;
     if(!monster_cache.enabled.index_valid &&
-       !dndbestiary_monsters_build_index_cache(storage, ENABLED_MONSTER_INDEX, &monster_cache.enabled))
+       !dndbestiary_monsters_build_index_cache(
+           storage, ENABLED_MONSTER_INDEX, &monster_cache.enabled))
         return false;
     return true;
 }
@@ -579,7 +583,8 @@ static bool dndbestiary_monsters_find_path(
         uint32_t line_offset = 0U;
         while(dndbestiary_monsters_read_line_at(&reader, line, sizeof(line), &line_offset)) {
             PocketMonsterSummary summary;
-            if(!dndbestiary_monsters_parse_summary(line, &summary) || strcmp(summary.id, id)) continue;
+            if(!dndbestiary_monsters_parse_summary(line, &summary) || strcmp(summary.id, id))
+                continue;
             *output = summary;
             dndbestiary_monsters_index_hint_remember(cache, hash, line_offset);
             found = true;
@@ -593,9 +598,13 @@ static bool dndbestiary_monsters_find_path(
 
 bool dndbestiary_monsters_find(Storage* storage, const char* id, PocketMonsterSummary* output) {
     if(!id || !output || !dndbestiary_monsters_cache_ensure(storage)) return false;
-    if(dndbestiary_monsters_find_path(storage, MONSTER_INDEX, &monster_cache.bundled, id, output)) return true;
-    if(dndbestiary_monsters_find_path(storage, CUSTOM_MONSTER_INDEX, &monster_cache.custom, id, output)) return true;
-    return dndbestiary_monsters_find_path(storage, ENABLED_MONSTER_INDEX, &monster_cache.enabled, id, output);
+    if(dndbestiary_monsters_find_path(storage, MONSTER_INDEX, &monster_cache.bundled, id, output))
+        return true;
+    if(dndbestiary_monsters_find_path(
+           storage, CUSTOM_MONSTER_INDEX, &monster_cache.custom, id, output))
+        return true;
+    return dndbestiary_monsters_find_path(
+        storage, ENABLED_MONSTER_INDEX, &monster_cache.enabled, id, output);
 }
 
 static bool dndbestiary_monsters_initiative_modifier_path(
@@ -640,8 +649,8 @@ static bool dndbestiary_monsters_initiative_modifier_path(
                         if(abilities[index] != 10) all_tens = false;
                     if(!all_tens) {
                         int16_t delta = (int16_t)abilities[1] - 10;
-                        fallback_modifier =
-                            delta >= 0 ? (int8_t)(delta / 2) : (int8_t)-((1 - delta) / 2);
+                        fallback_modifier = delta >= 0 ? (int8_t)(delta / 2) :
+                                                         (int8_t) - ((1 - delta) / 2);
                         fallback_valid = true;
                     }
                 }
@@ -674,14 +683,17 @@ bool dndbestiary_monsters_initiative_modifier(
     if(!storage || !summary || !summary->id[0]) return true;
 
     if(!strcmp(summary->source, "Custom Pack")) {
-        dndbestiary_monsters_initiative_modifier_path(storage, ENABLED_MONSTER_BLOCKS, summary->id, modifier);
+        dndbestiary_monsters_initiative_modifier_path(
+            storage, ENABLED_MONSTER_BLOCKS, summary->id, modifier);
         return true;
     }
     if(strcmp(summary->source, "Custom")) {
-        dndbestiary_monsters_initiative_modifier_path(storage, MONSTER_BLOCKS, summary->id, modifier);
+        dndbestiary_monsters_initiative_modifier_path(
+            storage, MONSTER_BLOCKS, summary->id, modifier);
         return true;
     }
-    if(dndbestiary_monsters_initiative_modifier_path(storage, CUSTOM_MONSTER_BLOCKS, summary->id, modifier))
+    if(dndbestiary_monsters_initiative_modifier_path(
+           storage, CUSTOM_MONSTER_BLOCKS, summary->id, modifier))
         return true;
     dndbestiary_monsters_initiative_modifier_path(storage, MONSTER_BLOCKS, summary->id, modifier);
     return true;
@@ -706,7 +718,8 @@ static void dndbestiary_monsters_query_path(
         dndbestiary_monsters_reader_init(&reader, file);
         while(dndbestiary_monsters_read_line(&reader, line, sizeof(line))) {
             PocketMonsterSummary summary;
-            if(!dndbestiary_monsters_parse_summary(line, &summary) || (filter && !filter(&summary, context)))
+            if(!dndbestiary_monsters_parse_summary(line, &summary) ||
+               (filter && !filter(&summary, context)))
                 continue;
             if(*matched >= start && *loaded < capacity && output) output[(*loaded)++] = summary;
             if(*matched < UINT16_MAX) ++*matched;
@@ -743,7 +756,8 @@ static void dndbestiary_monsters_query_sparse_path(
             if(!dndbestiary_monsters_parse_summary(line, &summary)) continue;
             if(ordinal++ < start) continue;
             output[(*loaded)++] = summary;
-            dndbestiary_monsters_index_hint_remember(cache, dndbestiary_monsters_id_hash(summary.id), line_offset);
+            dndbestiary_monsters_index_hint_remember(
+                cache, dndbestiary_monsters_id_hash(summary.id), line_offset);
         }
     }
     storage_file_close(file);
@@ -768,10 +782,22 @@ uint16_t dndbestiary_monsters_query(
                 storage, MONSTER_INDEX, &monster_cache.bundled, start, output, capacity, &loaded);
             if(loaded < capacity)
                 dndbestiary_monsters_query_sparse_path(
-                    storage, CUSTOM_MONSTER_INDEX, &monster_cache.custom, 0U, output, capacity, &loaded);
+                    storage,
+                    CUSTOM_MONSTER_INDEX,
+                    &monster_cache.custom,
+                    0U,
+                    output,
+                    capacity,
+                    &loaded);
             if(loaded < capacity)
                 dndbestiary_monsters_query_sparse_path(
-                    storage, ENABLED_MONSTER_INDEX, &monster_cache.enabled, 0U, output, capacity, &loaded);
+                    storage,
+                    ENABLED_MONSTER_INDEX,
+                    &monster_cache.enabled,
+                    0U,
+                    output,
+                    capacity,
+                    &loaded);
         } else {
             uint16_t custom_start = (uint16_t)(start - monster_cache.bundled.index_count);
             if(custom_start < monster_cache.custom.index_count) {
@@ -862,7 +888,8 @@ static void dndbestiary_monsters_sample_path(
         dndbestiary_monsters_reader_init(&reader, file);
         while(dndbestiary_monsters_read_line(&reader, line, sizeof(line))) {
             PocketMonsterSummary summary;
-            if(!dndbestiary_monsters_parse_summary(line, &summary) || (filter && !filter(&summary, context)))
+            if(!dndbestiary_monsters_parse_summary(line, &summary) ||
+               (filter && !filter(&summary, context)))
                 continue;
             uint32_t seen = (uint32_t)(*matched) + 1U;
             if(*matched < capacity)
@@ -887,7 +914,8 @@ uint16_t dndbestiary_monsters_sample(
     uint16_t* total_matches) {
     uint16_t matched = 0U;
     if(capacity && output) {
-        dndbestiary_monsters_sample_path(storage, MONSTER_INDEX, filter, context, output, capacity, &matched);
+        dndbestiary_monsters_sample_path(
+            storage, MONSTER_INDEX, filter, context, output, capacity, &matched);
         dndbestiary_monsters_sample_path(
             storage, ENABLED_MONSTER_INDEX, filter, context, output, capacity, &matched);
         dndbestiary_monsters_sample_path(
@@ -902,7 +930,8 @@ static void dndbestiary_monsters_apply_detail_line(char* line, PocketMonsterDeta
     if(!separator) return;
     *separator++ = '\0';
     if(!strcmp(line, "SizeAlignment")) {
-        dndbestiary_monsters_copy(output->size_alignment, sizeof(output->size_alignment), separator);
+        dndbestiary_monsters_copy(
+            output->size_alignment, sizeof(output->size_alignment), separator);
         output->present_fields |= PocketMonsterFieldSize;
     } else if(!strcmp(line, "Speed")) {
         dndbestiary_monsters_copy(output->speed, sizeof(output->speed), separator);
@@ -990,7 +1019,8 @@ static bool dndbestiary_monsters_load_section_streamed(
                 active = !strcmp(line + 1U, wanted_id);
                 if(active) {
                     found = true;
-                    dndbestiary_monsters_block_hint_remember(cache, dndbestiary_monsters_id_hash(wanted_id), line_offset);
+                    dndbestiary_monsters_block_hint_remember(
+                        cache, dndbestiary_monsters_id_hash(wanted_id), line_offset);
                 }
                 continue;
             }
@@ -1019,7 +1049,8 @@ static bool dndbestiary_monsters_load_section(
     return dndbestiary_monsters_load_section_streamed(storage, path, cache, wanted_id, output);
 }
 
-static uint8_t dndbestiary_monsters_pack_version_path(Storage* storage, const char* path, bool* present) {
+static uint8_t
+    dndbestiary_monsters_pack_version_path(Storage* storage, const char* path, bool* present) {
     File* file = storage_file_alloc(storage);
     uint8_t version = 0U;
     if(!present) return 0U;
@@ -1030,7 +1061,8 @@ static uint8_t dndbestiary_monsters_pack_version_path(Storage* storage, const ch
         char line[MONSTER_LINE_LEN];
         MonsterReader reader;
         dndbestiary_monsters_reader_init(&reader, file);
-        for(uint8_t i = 0U; i < 4U && dndbestiary_monsters_read_line(&reader, line, sizeof(line)); ++i) {
+        for(uint8_t i = 0U; i < 4U && dndbestiary_monsters_read_line(&reader, line, sizeof(line));
+            ++i) {
             static const char prefix[] = "# MonsterPack=";
             if(!strncmp(line, prefix, sizeof(prefix) - 1U)) {
                 uint32_t parsed = 0U;
@@ -1051,8 +1083,10 @@ void dndbestiary_monsters_pack_versions(
     uint8_t* user_version,
     bool* user_present) {
     bool bundled_present = false;
-    *bundled_version = dndbestiary_monsters_pack_version_path(storage, MONSTER_INDEX, &bundled_present);
-    *user_version = dndbestiary_monsters_pack_version_path(storage, CUSTOM_MONSTER_INDEX, user_present);
+    *bundled_version =
+        dndbestiary_monsters_pack_version_path(storage, MONSTER_INDEX, &bundled_present);
+    *user_version =
+        dndbestiary_monsters_pack_version_path(storage, CUSTOM_MONSTER_INDEX, user_present);
 }
 
 bool dndbestiary_monsters_load(
@@ -1105,7 +1139,8 @@ static bool dndbestiary_monsters_exists(Storage* storage, const char* path) {
 }
 
 static bool dndbestiary_monsters_remove_if_present(Storage* storage, const char* path) {
-    return !dndbestiary_monsters_exists(storage, path) || storage_common_remove(storage, path) == FSE_OK;
+    return !dndbestiary_monsters_exists(storage, path) ||
+           storage_common_remove(storage, path) == FSE_OK;
 }
 
 static bool dndbestiary_monsters_copy_storage_file(
@@ -1165,8 +1200,10 @@ bool dndbestiary_monsters_seed_default_custom(Storage* storage, uint16_t* copied
 
     bool blocks_copied = dndbestiary_monsters_copy_storage_file(
         storage, DEFAULT_CUSTOM_MONSTER_BLOCKS, seed_blocks, CUSTOM_MONSTER_BLOCKS);
-    bool index_copied = blocks_copied && dndbestiary_monsters_copy_storage_file(
-        storage, DEFAULT_CUSTOM_MONSTER_INDEX, seed_index, CUSTOM_MONSTER_INDEX);
+    bool index_copied =
+        blocks_copied &&
+        dndbestiary_monsters_copy_storage_file(
+            storage, DEFAULT_CUSTOM_MONSTER_INDEX, seed_index, CUSTOM_MONSTER_INDEX);
 
     if(!blocks_copied || !index_copied) {
         storage_common_remove(storage, CUSTOM_MONSTER_INDEX);
@@ -1247,7 +1284,10 @@ bool dndbestiary_monsters_migrate_legacy_custom(Storage* storage, uint16_t* copi
     return true;
 }
 
-static bool dndbestiary_monsters_format_summary(const PocketMonsterSummary* summary, char* line, size_t size) {
+static bool dndbestiary_monsters_format_summary(
+    const PocketMonsterSummary* summary,
+    char* line,
+    size_t size) {
     int length = snprintf(
         line,
         size,
@@ -1265,17 +1305,20 @@ static bool dndbestiary_monsters_format_summary(const PocketMonsterSummary* summ
     return length > 0 && (size_t)length < size;
 }
 
-static bool dndbestiary_monsters_write_block_section(File* block, const PocketMonsterDetail* detail) {
+static bool
+    dndbestiary_monsters_write_block_section(File* block, const PocketMonsterDetail* detail) {
     bool ok = true;
     char line[MONSTER_LINE_LEN];
-#define MONSTER_WRITE_FIELD(key, value)                                                  \
-    do {                                                                                 \
-        int length = snprintf(line, sizeof(line), key "=%s\n", value);                   \
-        if(length <= 0 || (size_t)length >= sizeof(line) || !dndbestiary_monsters_write(block, line)) \
-            ok = false;                                                                  \
+#define MONSTER_WRITE_FIELD(key, value)                                \
+    do {                                                               \
+        int length = snprintf(line, sizeof(line), key "=%s\n", value); \
+        if(length <= 0 || (size_t)length >= sizeof(line) ||            \
+           !dndbestiary_monsters_write(block, line))                   \
+            ok = false;                                                \
     } while(false)
     int header_length = snprintf(line, sizeof(line), "[%s]\n", detail->summary.id);
-    ok = header_length > 0 && (size_t)header_length < sizeof(line) && dndbestiary_monsters_write(block, line);
+    ok = header_length > 0 && (size_t)header_length < sizeof(line) &&
+         dndbestiary_monsters_write(block, line);
     if(ok) MONSTER_WRITE_FIELD("Name", detail->summary.name);
     if(ok) {
         int length = snprintf(
@@ -1290,7 +1333,8 @@ static bool dndbestiary_monsters_write_block_section(File* block, const PocketMo
             detail->summary.environment,
             detail->summary.source,
             detail->summary.role);
-        ok = length > 0 && (size_t)length < sizeof(line) && dndbestiary_monsters_write(block, line);
+        ok = length > 0 && (size_t)length < sizeof(line) &&
+             dndbestiary_monsters_write(block, line);
     }
     if(ok) MONSTER_WRITE_FIELD("SizeAlignment", detail->size_alignment);
     if(ok) MONSTER_WRITE_FIELD("Speed", detail->speed);
@@ -1305,16 +1349,18 @@ static bool dndbestiary_monsters_write_block_section(File* block, const PocketMo
             detail->abilities[3],
             detail->abilities[4],
             detail->abilities[5]);
-        ok = length > 0 && (size_t)length < sizeof(line) && dndbestiary_monsters_write(block, line);
+        ok = length > 0 && (size_t)length < sizeof(line) &&
+             dndbestiary_monsters_write(block, line);
     }
     if(ok) {
         int8_t initiative = detail->initiative_modifier;
         if(!detail->initiative_present) {
             int16_t delta = (int16_t)detail->abilities[1] - 10;
-            initiative = delta >= 0 ? (int8_t)(delta / 2) : (int8_t)-((1 - delta) / 2);
+            initiative = delta >= 0 ? (int8_t)(delta / 2) : (int8_t) - ((1 - delta) / 2);
         }
         int length = snprintf(line, sizeof(line), "Initiative=%d\n", initiative);
-        ok = length > 0 && (size_t)length < sizeof(line) && dndbestiary_monsters_write(block, line);
+        ok = length > 0 && (size_t)length < sizeof(line) &&
+             dndbestiary_monsters_write(block, line);
     }
     if(ok) MONSTER_WRITE_FIELD("Skills", detail->skills);
     if(ok) MONSTER_WRITE_FIELD("Defenses", detail->defenses);
@@ -1356,11 +1402,14 @@ static bool dndbestiary_monsters_rewrite_index(
             if(remove_id && !strcmp(current.id, remove_id)) continue;
             if(replacement && !strcmp(current.id, replacement->id)) {
                 char formatted[384];
-                ok = dndbestiary_monsters_format_summary(replacement, formatted, sizeof(formatted)) &&
-                     dndbestiary_monsters_write(output, formatted) && dndbestiary_monsters_write(output, "\n");
+                ok = dndbestiary_monsters_format_summary(
+                         replacement, formatted, sizeof(formatted)) &&
+                     dndbestiary_monsters_write(output, formatted) &&
+                     dndbestiary_monsters_write(output, "\n");
                 replaced = true;
             } else {
-                ok = dndbestiary_monsters_write(output, line) && dndbestiary_monsters_write(output, "\n");
+                ok = dndbestiary_monsters_write(output, line) &&
+                     dndbestiary_monsters_write(output, "\n");
             }
         }
     }
@@ -1369,7 +1418,8 @@ static bool dndbestiary_monsters_rewrite_index(
     if(ok && replacement && !replaced) {
         char formatted[384];
         ok = dndbestiary_monsters_format_summary(replacement, formatted, sizeof(formatted)) &&
-             dndbestiary_monsters_write(output, formatted) && dndbestiary_monsters_write(output, "\n");
+             dndbestiary_monsters_write(output, formatted) &&
+             dndbestiary_monsters_write(output, "\n");
     }
     storage_file_close(output);
     storage_file_free(output);
@@ -1380,13 +1430,16 @@ static bool dndbestiary_monsters_rewrite_index(
     return true;
 }
 
-static bool dndbestiary_monsters_write_transaction(Storage* storage, const char* action, const char* value) {
+static bool dndbestiary_monsters_write_transaction(
+    Storage* storage,
+    const char* action,
+    const char* value) {
     File* file = storage_file_alloc(storage);
     if(!file) return false;
     bool ok =
         storage_file_open(file, CUSTOM_MONSTER_TRANSACTION, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
-        dndbestiary_monsters_write(file, action) && dndbestiary_monsters_write(file, "|") && dndbestiary_monsters_write(file, value) &&
-        dndbestiary_monsters_write(file, "\n");
+        dndbestiary_monsters_write(file, action) && dndbestiary_monsters_write(file, "|") &&
+        dndbestiary_monsters_write(file, value) && dndbestiary_monsters_write(file, "\n");
     storage_file_close(file);
     storage_file_free(file);
     if(!ok) storage_common_remove(storage, CUSTOM_MONSTER_TRANSACTION);
@@ -1419,13 +1472,16 @@ static bool dndbestiary_monsters_rewrite_blocks(
                 skip = remove_id && !strcmp(line + 1U, remove_id);
                 line[length - 1U] = ']';
             }
-            if(!skip) ok = dndbestiary_monsters_write(output, line) && dndbestiary_monsters_write(output, "\n");
+            if(!skip)
+                ok = dndbestiary_monsters_write(output, line) &&
+                     dndbestiary_monsters_write(output, "\n");
         }
     }
     storage_file_close(input);
     storage_file_free(input);
     if(ok && replacement)
-        ok = dndbestiary_monsters_write(output, "\n") && dndbestiary_monsters_write_block_section(output, replacement);
+        ok = dndbestiary_monsters_write(output, "\n") &&
+             dndbestiary_monsters_write_block_section(output, replacement);
     storage_file_close(output);
     storage_file_free(output);
     if(!ok) storage_common_remove(storage, CUSTOM_MONSTER_BLOCKS_TEMP);
@@ -1479,8 +1535,10 @@ static void dndbestiary_monsters_sanitize_summary(PocketMonsterSummary* summary)
             if(*p == '|' || *p == '\n' || *p == '\r') *p = '-';
 }
 
-static bool
-    dndbestiary_monsters_save_custom_common(Storage* storage, PocketMonsterDetail* detail, bool preserve_id) {
+static bool dndbestiary_monsters_save_custom_common(
+    Storage* storage,
+    PocketMonsterDetail* detail,
+    bool preserve_id) {
     dndbestiary_monsters_custom_cache_reset();
     storage_common_mkdir(storage, APP_DATA_PATH(""));
     storage_common_mkdir(storage, APP_DATA_PATH("monsters"));
@@ -1496,7 +1554,8 @@ static bool
     }
     dndbestiary_monsters_copy(detail->summary.source, sizeof(detail->summary.source), "Custom");
     if(!detail->summary.role[0])
-        dndbestiary_monsters_copy(detail->summary.role, sizeof(detail->summary.role), "Skirmisher");
+        dndbestiary_monsters_copy(
+            detail->summary.role, sizeof(detail->summary.role), "Skirmisher");
     dndbestiary_monsters_sanitize_summary(&detail->summary);
     bool ok = dndbestiary_monsters_write_transaction(storage, "UPSERT", detail->summary.id) &&
               dndbestiary_monsters_rewrite_index(storage, &detail->summary, detail->summary.id) &&
@@ -1526,12 +1585,16 @@ bool dndbestiary_monsters_delete_custom(Storage* storage, const PocketMonsterSum
     dndbestiary_monsters_custom_cache_reset();
     bool ok = dndbestiary_monsters_write_transaction(storage, "DELETE", summary->id) &&
               dndbestiary_monsters_rewrite_index(storage, NULL, summary->id) &&
-              dndbestiary_monsters_rewrite_blocks(storage, NULL, summary->id) && dndbestiary_monsters_publish_pair(storage);
+              dndbestiary_monsters_rewrite_blocks(storage, NULL, summary->id) &&
+              dndbestiary_monsters_publish_pair(storage);
     storage_common_remove(storage, CUSTOM_MONSTER_TRANSACTION);
     return ok;
 }
 
-bool dndbestiary_monsters_recover_user_pack(Storage* storage, uint16_t* recovered, uint16_t* rolled_back) {
+bool dndbestiary_monsters_recover_user_pack(
+    Storage* storage,
+    uint16_t* recovered,
+    uint16_t* rolled_back) {
     dndbestiary_monsters_custom_cache_reset();
     *recovered = 0U;
     *rolled_back = 0U;
@@ -1539,7 +1602,8 @@ bool dndbestiary_monsters_recover_user_pack(Storage* storage, uint16_t* recovere
     bool index_backup = dndbestiary_monsters_exists(storage, CUSTOM_MONSTER_INDEX_BACKUP);
     bool blocks_backup = dndbestiary_monsters_exists(storage, CUSTOM_MONSTER_BLOCKS_BACKUP);
     if(!pending && !index_backup && !blocks_backup) return true;
-    bool publish_complete = pending && dndbestiary_monsters_exists(storage, CUSTOM_MONSTER_INDEX) &&
+    bool publish_complete = pending &&
+                            dndbestiary_monsters_exists(storage, CUSTOM_MONSTER_INDEX) &&
                             dndbestiary_monsters_exists(storage, CUSTOM_MONSTER_BLOCKS) &&
                             !dndbestiary_monsters_exists(storage, CUSTOM_MONSTER_INDEX_TEMP) &&
                             !dndbestiary_monsters_exists(storage, CUSTOM_MONSTER_BLOCKS_TEMP);
@@ -1579,7 +1643,8 @@ typedef struct {
     const char* environment;
 } MonsterGenerateFilter;
 
-static bool dndbestiary_monsters_generate_filter(const PocketMonsterSummary* candidate, void* context) {
+static bool
+    dndbestiary_monsters_generate_filter(const PocketMonsterSummary* candidate, void* context) {
     const MonsterGenerateFilter* filter = context;
     if(candidate->xp > filter->budget) return false;
     if(filter->environment && strcmp(filter->environment, "Any") &&
@@ -1602,7 +1667,8 @@ typedef struct {
     uint32_t spent;
 } MonsterEncounterPlan;
 
-static int8_t dndbestiary_monsters_plan_find(const MonsterEncounterPlan* plan, uint8_t candidate_index) {
+static int8_t
+    dndbestiary_monsters_plan_find(const MonsterEncounterPlan* plan, uint8_t candidate_index) {
     for(uint8_t i = 0U; i < plan->count; ++i)
         if(plan->candidates[i] == candidate_index) return (int8_t)i;
     return -1;
@@ -1722,10 +1788,12 @@ void dndbestiary_monsters_simulate(
         else
             output->spent += record_xp;
     }
-    output->low_budget = dndbestiary_monsters_xp_budget(party_level, party_size, PocketEncounterLow);
+    output->low_budget =
+        dndbestiary_monsters_xp_budget(party_level, party_size, PocketEncounterLow);
     output->moderate_budget =
         dndbestiary_monsters_xp_budget(party_level, party_size, PocketEncounterModerate);
-    output->high_budget = dndbestiary_monsters_xp_budget(party_level, party_size, PocketEncounterHigh);
+    output->high_budget =
+        dndbestiary_monsters_xp_budget(party_level, party_size, PocketEncounterHigh);
     output->classification = PocketEncounterLow;
     if(output->spent > output->low_budget) output->classification = PocketEncounterModerate;
     if(output->spent > output->moderate_budget) output->classification = PocketEncounterHigh;

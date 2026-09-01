@@ -26,3 +26,7 @@ Spell filtering is performed while streaming the source catalog, before the boun
 ## Bounded catalog paging
 
 Inventory and Spellbook Name catalogs remain streamed from read-only assets. Each standalone collection FAP may retain a bounded filtered-page seek map (64 32-bit offsets maximum) and use a small buffered reader so repeated page navigation does not restart at byte zero or perform one storage read per character. Inventory may roll that 64-page window forward for catalogs with more than 64 filtered pages, preserving the same offset-array size while keeping sequential paging seekable. The seek map is invalidated whenever filter state changes. It is an acceleration hint only: catalog contents remain authoritative on storage and the full catalog is never materialized in heap.
+
+## Feat progression filter
+
+Progression/grant-driven feat selection defaults to **Allowed**; Hold OK toggles **Allowed / All**. Allowed uses only prerequisites represented by the bundled rules: level gates, Grappler STR/DEX, Fighting Style Feature, Spellcasting Feature, Epic Boon level and already-owned non-repeatable feats. Repeatable bundled feats remain eligible. Unknown/custom feat rows remain visible in Allowed because the app must not invent prerequisites. Manual Features & Perks catalog editing remains unrestricted.

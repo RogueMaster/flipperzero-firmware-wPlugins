@@ -7,7 +7,8 @@ void dndolphins_rules_character_apply_experience_floor(PocketCharacter* characte
 int8_t dndolphins_rules_character_initiative_modifier(const PocketCharacter* character);
 int16_t dndolphins_rules_character_effective_speed(const PocketCharacter* character);
 int16_t dndolphins_rules_character_feature_max_uses(
-    const PocketCharacter* character, const PocketFeature* feature);
+    const PocketCharacter* character,
+    const PocketFeature* feature);
 void dndolphins_rules_character_short_rest(PocketCharacter* character);
 int16_t dndolphins_rules_character_spend_class_hit_die(
     PocketCharacter* character,

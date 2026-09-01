@@ -20,8 +20,7 @@ int8_t dnd_weapon_rules_ability(const PocketCharacter* character, const PocketIt
     }
 }
 
-int8_t
-    dnd_weapon_rules_attack_modifier(const PocketCharacter* character, const PocketItem* item) {
+int8_t dnd_weapon_rules_attack_modifier(const PocketCharacter* character, const PocketItem* item) {
     int8_t result = dnd_weapon_rules_ability(character, item) + item->magic_bonus;
     if(item->proficient) result += dnd_rules_core_proficiency_bonus(character);
     result += dnd_rules_core_exhaustion_penalty(character);

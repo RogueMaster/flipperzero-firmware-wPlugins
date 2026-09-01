@@ -17,7 +17,7 @@
 
 - [x] Opens directly to the active character Inventory list with `+ Add New` selected; no intermediate screen.
 
-- [x] Uses the shared `/ext/apps_data/dndolphins/inventory_{id}.txt` sidecar; no separate DNDInventory character-data copy.
+- [x] Uses the shared `/ext/apps_data/dndolphins/inventory_{id}.txt` sidecar; no separate DNDInventory character-data copy. Required canonical fields are streamed into a bounded Inventory profile projection instead of retaining `PocketCharacter`.
 - [x] Eight-record resident paging with storage-backed whole-collection calculations; normal list has no persistent `<>` glyph, while `+ Add New` remains visible with up to four Items. The first bounded scan learns the three possible aligned sidecar offsets (0/8/16), so later page-boundary loads can seek directly.
 - [x] Short or Hold OK on **+ Add New** stages a blank Item and opens the full editor immediately.
 - [x] Full 36-field Item editor retained, including quantity/weight, equip/attune, weapon/armor values, ammunition, charges, containers and custom names/notes.
@@ -38,7 +38,7 @@
 
 - [x] Opens directly to the active character Spellbook list with `+ Add New` selected; a missing sidecar is shown as an empty list and is not created until the first save.
 
-- [x] Uses the shared `/ext/apps_data/dndolphins/spellbook_{id}.txt` sidecar; no separate DNDSpellbook character-data copy.
+- [x] Uses the shared `/ext/apps_data/dndolphins/spellbook_{id}.txt` sidecar; no separate DNDSpellbook character-data copy. Only name/classes are streamed into a bounded Spellbook profile projection instead of retaining `PocketCharacter`.
 - [x] Eight-record resident paging; normal list has no persistent `<>` glyph, while `+ Add New` remains visible with up to four Spells. The first bounded scan learns the three possible aligned sidecar offsets (0/8/16), so later page-boundary loads can seek directly.
 - [x] Short or Hold OK on **+ Add New** stages a blank Spell and opens the full editor immediately.
 - [x] Full 17-field Spell editor retained, including Source Class, Level, Known/Prepared/Always Prepared/Ritual, free casts, stable ID/source/school/grant metadata and Delete.
@@ -57,13 +57,13 @@
 - [x] Routine successful save/add/catalog/Equip/Prepare/grant notices are transient; failure/UNSAVED notices remain visible.
 - [x] Shared companion Back convention: Short Back from each companion main screen returns to DNDolphins only when its FAP exists and restores focus to that companion's corresponding DNDolphins home row; Hold Back exits to firmware without a DNDolphins handoff; normal menus contain no redundant Return/Open-DNDolphins row.
 
-- [x] DNDAdventure declarative campaigns, checks, rewards, flags/achievements and Journal milestones.
+- [x] DNDAdventure declarative campaigns, checks, rewards, flags/achievements and Journal milestones; resident character access is a bounded name/class-level/ability/skill projection rather than the full character core.
 - [x] Campaign inbox preview validates compatibility, content and entry-scene availability before Hold OK installation.
 - [x] Campaign list discovery uses bounded sparse hints plus streaming ID lookup rather than retaining one heap offset per campaign.
 - [x] Bundled Reef Wardens and Ghost Protocol campaigns.
 - [x] DNDJournal standalone per-character entries, newest first, with one-shot milestone class leveling and Item-entry inventory creation.
 - [x] Milestones remain Journal-facing; Continue active Adventure resumes the persisted active campaign/scene without creating duplicate Journal or Adventure progress.
-- [x] DNDInitiative standalone roster/combat state and Bestiary handoff, including full numeric participant editing, manual reordering, Setup quick-AC adjustment, active-combat condition controls, Short-Back return to the main menu, Hold-Up previous-turn navigation and End Current Combat; main/combat screens use the dark title bar with `[id]` on the main menu and `Round N` during combat.
+- [x] DNDInitiative standalone roster/combat state and Bestiary handoff, including full numeric participant editing, manual reordering, Setup quick-AC adjustment, active-combat condition controls, Short-Back return to the main menu, Hold-Up previous-turn navigation and End Current Combat; main/combat screens use the dark title bar with `[id]` on the main menu and compact `R# T#/#` during combat; roster/setup/combat/editor navigation keeps the selected/current row visible without increasing resident state.
 - [x] DNDBestiary bundled catalog, filters, encounters, custom monsters and installable packs.
 - [x] Default custom Dolphin/Capybara seed only when no user custom pack exists.
 
@@ -73,7 +73,7 @@
 - [x] DNDolphins internal submenu Back navigation restores the same highlighted home-menu row instead of resetting Home focus to the first row.
 - [x] Explicit full-path FAP launches.
 - [x] Outgoing-app teardown before handoff; no artificial pre-launch sleep is used because delaying the outgoing FAP delays reclamation rather than creating Loader headroom.
-- [x] Stack reservations re-audited after buffered catalog paging/sorting: DNDolphins 6 KB; DNDInventory 4 KB; DNDSpellbook 4 KB; DNDAdventure 4 KB; DNDJournal 4 KB; DNDInitiative 3 KB; DNDBestiary 6 KB. The new sort keys are heap-owned; the catalog reader adds only a 128-byte local buffer to Inventory/Spellbook catalog-load paths.
+- [x] Stack reservations re-audited: DNDolphins 6 KB; DNDInventory 4 KB; DNDSpellbook 4 KB; DNDAdventure 4 KB; DNDJournal 4 KB; DNDInitiative 3 KB; DNDBestiary 6 KB. Projection character lines are bounded 640-byte transient heap buffers rather than large stack arrays.
 - [x] Companion profile badges reject the internal `UINT32_MAX` sentinel; `[4294967295]` cannot be displayed as a character ID while valid `[0]` remains supported.
 - [x] Seven-FAP draw-path call-graph audit: project-owned draw paths perform no storage I/O, heap allocation/free, collection rewrite or storage-backed page advancement; remaining draw-time loops are bounded fixed-buffer text formatting only.
 - [x] Main DNDolphins collection UI/catalog code and full Item/Spell catalogs are no longer linked/packaged into the main FAP asset set.
@@ -89,19 +89,22 @@
 - [x] Main-character Initiative HP/AC edits synchronize back to the canonical character profile.
 - [x] Turn and Encounter feature recharge are applied at their Initiative cadence.
 - [x] Grant Initial Traits stages grants into Grant Review before application.
-- [x] Level progression does not auto-select arbitrary class spells and prompts when spell choices expand.
+- [x] Level progression does not auto-select arbitrary class spells and prompts when spell choices expand. A bounded Level-Up Review summarizes numeric changes, deterministic traits, spell-choice notices and pending ASI/Feat choices without retaining progression metadata.
 - [x] Supported species progression uses total character level and automatically grants deterministic species spells/features when their level gates are reached.
+- [x] Verified deterministic class/subclass metadata is expanded while selection-bearing Fighting Styles, Invocations, Metamagic, subclass selection, spell selection and similar choices remain explicit.
 - [x] Applied-grant stable IDs are normalized to the stored representation and known truncation collisions use compact unique IDs.
 
-- [x] Active-profile loading: companion selection comes only from `custom_active_profile.txt` (`Active=<id>`); no companion discovers another character or accepts a launch-time profile override. Inventory/Spellbook load that exact ID through the normal character loader; Journal/Adventure require that exact canonical profile. Initiative/Bestiary use ID `0` only when active-profile metadata is absent/unreadable, never when a present `Active=<id>` is merely stale.
-- [x] All seven FAPs use `dnd_profile_handoff.c` for the same persisted active-profile/exact-profile/handoff contract. FAPs link `dnd_storage.c` only when they also need full character/collection persistence, not merely to read `Active=<id>`.
+- [x] Active-profile loading: companion selection comes only from `custom_active_profile.txt` (`Active=<id>`); no companion discovers another character or accepts a launch-time profile override. Inventory/Spellbook/Adventure stream their app-specific projections from that exact canonical profile; Journal requires that exact profile. Initiative/Bestiary use ID `0` only when active-profile metadata is absent/unreadable, never when a present `Active=<id>` is merely stale.
+- [x] All seven FAPs use `dnd_profile_handoff.c` for the same persisted active-profile/exact-profile/handoff contract. Inventory/Spellbook/Adventure alone also link `dnd_profile_projection.c`; FAPs link `dnd_storage.c` only when they need canonical/collection persistence, not merely to read `Active=<id>`.
 - [x] Inventory/Spellbook reserve the dispatcher/main view before variable-size character/collection loading so low-heap collection parsing cannot strand the app without its main drawable view.
 - [x] Inventory/Spellbook main-list header reserves the top-right for `[characterId]` only; `<>` is limited to explicit catalog/name-selection paging and detail/editor/tool headers do not show the character ID.
 - [x] Adventure, Bestiary, Journal, Initiative, Inventory and Spellbook show `[characterId]` at the top-right of the main screen only.
 
 ### Combat parity
 - [x] Weapon Attacks still stream owned weapon records, consume ammunition from the Item sidecar, apply STR/DEX/Finesse/Ranged choice, proficiency, magic and exhaustion modifiers, support advantage/disadvantage, natural 1/20, versatile/extra damage dice and critical doubling.
-- [x] Spell Attacks still stream castable owned spells, preserve the 165-entry mapped combat table plus Notes `XdY` fallback, class-specific spell attack/save modifiers, cantrip scaling/upcasting, and cantrip/slot/Pact/spell-point/free-cast/ritual resource choices.
+- [x] Spell Attacks still stream castable owned spells, preserve the 168-entry structured combat table plus Notes `XdY` fallback, class-specific spell attack/save modifiers, cantrip scaling/upcasting, and cantrip/slot/Pact/spell-point/free-cast/ritual resource choices.
+- [x] Structured spell combat supports fixed/dice upcasting, multiple attack/roll instances, secondary effects and vitality/healing outcomes; current additions include Aid vitality scaling and Heal fixed/upcast healing.
+- [x] Combat presentation uses named row indices and state-free Attacks/Encounter/Recovery/Status/Defenses headers; Rituals is immediately below Spell Attacks.
 
 ## Item catalog scroll coverage
 
@@ -109,3 +112,12 @@
 - [x] Bundled generic Spell Scroll rows classify as Scroll rather than Gear.
 - [x] Bundled Spell Scroll catalog is compact: one Cantrip row plus Levels 1–9, all under the Scroll category with level-appropriate rarity; no per-spell Scroll rows are bundled.
 - [x] No fake GP value is written because the current Item/catalog schema has no cost field.
+
+## Current regression additions
+
+- [x] Progression/grant feat catalog opens Allowed, Hold OK toggles All, and manual Features catalog is unrestricted.
+- [x] Stack Qty is editable through normal Item OK numeric entry and list Hold Left/Right; persistence survives reopen.
+- [x] Deleting a container releases its children to Carried and shifts higher container indexes correctly.
+- [x] End Current Combat saves no history unless Save History is explicitly chosen; saved history includes date/rounds/party state/surviving opponents.
+- [x] Torii Between Tides and Moonlit Market campaign graphs load and branch without retained full-pack state.
+- [x] All bundled Bestiary index IDs have exactly one statblock.

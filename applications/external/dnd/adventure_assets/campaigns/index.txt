@@ -2,3 +2,5 @@
 # id|name|pack_version|min_app|max_app|entry_scene|scenes_file
 reef_wardens|Reef Wardens|1|203|0|reef_gate|scenes.txt
 ghost_protocol|Ghost Protocol|1|203|0|audit_brief|scenes.txt
+torii_between_tides|Torii Between Tides|1|203|0|haneda_arrival|scenes.txt
+moonlit_market|Moonlit Market|1|203|0|lantern_gate|scenes.txt

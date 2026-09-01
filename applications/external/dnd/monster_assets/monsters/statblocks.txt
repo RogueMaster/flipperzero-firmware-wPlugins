@@ -4077,3 +4077,75 @@ Languages=Understands Common plus one other language but can't speak
 Traits=Undead Fortitude. If damage reduces the zombie to 0 Hit Points, it makes a Constitution saving throw (DC 5 plus the damage taken) unless the damage is Radiant or from a Critical Hit. On a suc
 Actions=Slam. Melee Attack Roll: +3, reach 5 ft. Hit: 5 (1d8 + 1) Bludgeoning damage.
 Extra=None
+
+[tanuki_trickster]
+SizeAlignment=Small Fey, Chaotic Neutral
+Speed=30 ft.
+Abilities=10,16,12,14,13,16
+Skills=Deception +5, Sleight of Hand +5, Stealth +5
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Common, Sylvan
+Traits=Borrowed Face. As a Bonus Action, the tanuki can disguise itself as a Small or Medium humanoid it has seen; the disguise is visual only.
+Actions=Walking-Stick Jab. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Bludgeoning damage. Teasing Glamour. One creature within 30 ft. must succeed on a DC 13 Wisdom save or have Disadvantage on its next attack roll before the end of its next turn.
+Extra=Original Dungeons & Dolphins folklore-inspired creature.
+
+[kappa_river_scout]
+SizeAlignment=Small Fey, Neutral
+Speed=25 ft., Swim 40 ft.
+Abilities=14,14,14,10,13,9
+Skills=Athletics +4, Perception +3, Stealth +4
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 13
+Languages=Common, Sylvan
+Traits=River Grip. The kappa has Advantage on checks made to grapple while it and its target are in water.
+Actions=Claw. Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) Slashing damage. Tumble into Water. A grappled creature must succeed on a DC 12 Strength save or be moved up to 10 ft. with the kappa toward water.
+Extra=Original Dungeons & Dolphins folklore-inspired creature.
+
+[tsukumogami_umbrella]
+SizeAlignment=Small Construct, Chaotic Neutral
+Speed=20 ft., Fly 30 ft.
+Abilities=8,16,12,8,12,13
+Skills=Acrobatics +5, Stealth +5
+Defenses=Poison; Poisoned
+Senses=Darkvision 60 ft.; Passive Perception 11
+Languages=Understands Common but cannot speak
+Traits=Startling Hop. Opportunity attacks against the umbrella are made with Disadvantage.
+Actions=Handle Strike. Melee Attack Roll: +5, reach 5 ft. Hit: 5 (1d4 + 3) Bludgeoning damage. Sudden Gust. One creature within 15 ft. must succeed on a DC 12 Strength save or be pushed 10 ft.
+Extra=Original Dungeons & Dolphins folklore-inspired creature.
+
+[kitsune_wayfinder]
+SizeAlignment=Medium Fey, Neutral Good
+Speed=35 ft.
+Abilities=10,16,12,15,14,18
+Skills=Deception +6, Insight +4, Perception +4, Stealth +5
+Defenses=Charm
+Senses=Darkvision 60 ft.; Passive Perception 14
+Languages=Common, Sylvan
+Traits=Foxfire Step. As a Bonus Action, the kitsune teleports up to 20 ft. to an unoccupied space it can see.
+Actions=Foxfire. Ranged Spell Attack: +6, range 60 ft. Hit: 11 (2d6 + 4) Fire or Radiant damage. Misdirecting Lights. Creatures of the kitsune's choice within 15 ft. must succeed on a DC 14 Wisdom save or be unable to take Reactions until the start of the kitsune's next turn.
+Extra=Original Dungeons & Dolphins folklore-inspired creature.
+
+[karasu_tengu_warden]
+SizeAlignment=Medium Fey, Lawful Neutral
+Speed=35 ft., Fly 50 ft.
+Abilities=16,18,14,12,16,11
+Skills=Acrobatics +6, Perception +5, Stealth +6
+Defenses=None
+Senses=Darkvision 60 ft.; Passive Perception 15
+Languages=Common, Sylvan
+Traits=Mountain Sentinel. The tengu has Advantage on Wisdom (Perception) checks made to detect approaching creatures while outdoors.
+Actions=Multiattack. The tengu makes two Wind-Blade attacks. Wind-Blade. Melee Attack Roll: +6, reach 5 ft. Hit: 8 (1d8 + 4) Slashing damage. Wing Burst (Recharge 5-6). Creatures within 10 ft. must succeed on a DC 14 Strength save or take 9 (2d8) Thunder damage and be pushed 10 ft.
+Extra=Original Dungeons & Dolphins folklore-inspired creature.
+
+[lantern_onryo]
+SizeAlignment=Medium Undead, Neutral Evil
+Speed=0 ft., Fly 40 ft. (Hover)
+Abilities=6,16,16,12,15,18
+Skills=Perception +5, Stealth +6
+Defenses=Necrotic, Poison; Charmed, Exhaustion, Grappled, Poisoned, Prone, Restrained
+Senses=Darkvision 120 ft.; Passive Perception 15
+Languages=Common plus one language it knew in life
+Traits=Unquiet Flame. A creature that starts its turn within 5 ft. of the onryo while Frightened takes 3 (1d6) Necrotic damage.
+Actions=Lantern Lash. Ranged Spell Attack: +6, range 60 ft. Hit: 13 (2d8 + 4) Necrotic damage. Grieving Glare (Recharge 5-6). Creatures in a 30-ft. cone must make a DC 14 Wisdom save, taking 18 (4d8) Psychic damage on a failure or half on a success; a failed save also Frightens the creature until the end of its next turn.
+Extra=Original Dungeons & Dolphins folklore-inspired creature.

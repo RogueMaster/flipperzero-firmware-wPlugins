@@ -14,16 +14,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG "DndJournal"
-#define JOURNAL_NAME_LEN 32U
-#define JOURNAL_BODY_LEN 192U
-#define JOURNAL_FILE_LEN 48U
-#define JOURNAL_PATH_LEN 128U
-#define JOURNAL_CACHE_SIZE 8U
-#define JOURNAL_READ_BUFFER 256U
+#define TAG                  "DndJournal"
+#define JOURNAL_NAME_LEN     32U
+#define JOURNAL_BODY_LEN     192U
+#define JOURNAL_FILE_LEN     48U
+#define JOURNAL_PATH_LEN     128U
+#define JOURNAL_CACHE_SIZE   8U
+#define JOURNAL_READ_BUFFER  256U
 #define JOURNAL_PROFILE_PATH APP_DATA_PATH("ch_%lu")
-#define JOURNAL_CLASS_MAX 4U
-#define JOURNAL_ITEM_PATH POCKET_D20_CHARACTER_DATA_ROOT "/inventory_%lu.txt"
+#define JOURNAL_CLASS_MAX    4U
+#define JOURNAL_ITEM_PATH    POCKET_D20_CHARACTER_DATA_ROOT "/inventory_%lu.txt"
 
 typedef enum {
     JournalCategoryQuick,
@@ -119,8 +119,7 @@ static bool dndjournal_parse_u32(const char* text, uint32_t* output) {
     for(const char* p = text; *p; ++p) {
         if(*p < '0' || *p > '9') return false;
         uint32_t digit = (uint32_t)(*p - '0');
-        if(value > UINT32_MAX / 10U ||
-           (value == UINT32_MAX / 10U && digit > UINT32_MAX % 10U))
+        if(value > UINT32_MAX / 10U || (value == UINT32_MAX / 10U && digit > UINT32_MAX % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -225,10 +224,8 @@ static bool dndjournal_read_field_key(JournalReader* reader, char* key, size_t k
     return false;
 }
 
-static bool dndjournal_read_raw_field_value(
-    JournalReader* reader,
-    char* value,
-    size_t value_size) {
+static bool
+    dndjournal_read_raw_field_value(JournalReader* reader, char* value, size_t value_size) {
     if(!reader || !value || !value_size) return false;
     size_t used = 0U;
     bool overflow = false;
@@ -262,7 +259,8 @@ static bool dndjournal_read_decoded_field_value(
         if(character == '%') {
             char high_char = '\0';
             char low_char = '\0';
-            if(!dndjournal_reader_next(reader, &high_char) || !dndjournal_reader_next(reader, &low_char))
+            if(!dndjournal_reader_next(reader, &high_char) ||
+               !dndjournal_reader_next(reader, &low_char))
                 break;
             uint8_t high = dndjournal_hex_value(high_char);
             uint8_t low = dndjournal_hex_value(low_char);
@@ -387,7 +385,8 @@ static bool dndjournal_load_classes(JournalApp* app) {
 static uint8_t dndjournal_total_level(const JournalApp* app) {
     uint16_t total = 0U;
     if(!app) return 0U;
-    for(uint8_t i = 0U; i < app->class_count; ++i) total += app->class_levels[i];
+    for(uint8_t i = 0U; i < app->class_count; ++i)
+        total += app->class_levels[i];
     return (uint8_t)(total > 20U ? 20U : total);
 }
 
@@ -396,11 +395,8 @@ static bool dndjournal_profile_dir(char* output, size_t size, uint32_t profile) 
     return length > 0 && (size_t)length < size;
 }
 
-static bool dndjournal_entry_path(
-    char* output,
-    size_t size,
-    uint32_t profile,
-    const char* file_name) {
+static bool
+    dndjournal_entry_path(char* output, size_t size, uint32_t profile, const char* file_name) {
     if(!file_name || !file_name[0] || strchr(file_name, '/') || strchr(file_name, '\\'))
         return false;
     char directory[JOURNAL_PATH_LEN];
@@ -448,11 +444,7 @@ static bool dndjournal_publish_temp(
     return false;
 }
 
-static bool dndjournal_read_line(
-    JournalReader* reader,
-    char* line,
-    size_t size,
-    bool* overflow) {
+static bool dndjournal_read_line(JournalReader* reader, char* line, size_t size, bool* overflow) {
     if(!reader || !line || size < 2U) return false;
     size_t used = 0U;
     bool consumed = false;
@@ -510,7 +502,10 @@ static bool dndjournal_patch_milestone_class(JournalApp* app, uint8_t class_inde
         snprintf(target, sizeof(target), "Class%uData", class_index);
         bool overflow = false;
         while(ok && dndjournal_read_line(&reader, line, 768U, &overflow)) {
-            if(overflow) { ok = false; break; }
+            if(overflow) {
+                ok = false;
+                break;
+            }
             char replacement[256];
             const char* out_line = line;
             dndjournal_copy(parse, 768U, line);
@@ -528,10 +523,22 @@ static bool dndjournal_patch_milestone_class(JournalApp* app, uint8_t class_inde
                             sizeof(replacement),
                             "%s=%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld",
                             target,
-                            (long)values[0], (long)values[1], (long)values[2], (long)values[3],
-                            (long)values[4], (long)values[5], (long)values[6], (long)values[7],
-                            (long)values[8], (long)values[9], (long)values[10], (long)values[11],
-                            (long)values[12], (long)values[13], (long)values[14], (long)values[15]);
+                            (long)values[0],
+                            (long)values[1],
+                            (long)values[2],
+                            (long)values[3],
+                            (long)values[4],
+                            (long)values[5],
+                            (long)values[6],
+                            (long)values[7],
+                            (long)values[8],
+                            (long)values[9],
+                            (long)values[10],
+                            (long)values[11],
+                            (long)values[12],
+                            (long)values[13],
+                            (long)values[14],
+                            (long)values[15]);
                         if(n > 0 && (size_t)n < sizeof(replacement)) {
                             out_line = replacement;
                             class_touched = true;
@@ -545,9 +552,18 @@ static bool dndjournal_patch_milestone_class(JournalApp* app, uint8_t class_inde
                             replacement,
                             sizeof(replacement),
                             "Vitals=%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld",
-                            (long)values[0], (long)values[1], (long)values[2], (long)values[3],
-                            (long)values[4], (long)values[5], (long)values[6], (long)values[7],
-                            (long)values[8], (long)values[9], (long)values[10], (long)values[11]);
+                            (long)values[0],
+                            (long)values[1],
+                            (long)values[2],
+                            (long)values[3],
+                            (long)values[4],
+                            (long)values[5],
+                            (long)values[6],
+                            (long)values[7],
+                            (long)values[8],
+                            (long)values[9],
+                            (long)values[10],
+                            (long)values[11]);
                         if(n > 0 && (size_t)n < sizeof(replacement)) out_line = replacement;
                     }
                 }
@@ -637,8 +653,7 @@ static bool dndjournal_create_inventory_item(JournalApp* app) {
     if(ok) ok = dndjournal_write_collection_field(file, app->current_entry.body);
     if(ok) ok = storage_file_write(file, "||", 2U) == 2U;
     if(ok) {
-        const char* numeric =
-            "1,0,0,0,0,0,0,0,1,6,0,0,0,1,0,6,0,0,0,-1,0,0,0,-1,0\n";
+        const char* numeric = "1,0,0,0,0,0,0,0,1,6,0,0,0,1,0,6,0,0,0,-1,0,0,0,-1,0\n";
         size_t length = strlen(numeric);
         ok = storage_file_write(file, numeric, length) == length && storage_file_sync(file);
     }
@@ -676,8 +691,9 @@ static bool dndjournal_read_entry(
         } else if(!strcmp(key, "Body")) {
             if(dndjournal_read_decoded_field_value(&reader, parsed.body, sizeof(parsed.body)))
                 recognized = true;
-        } else if(!strcmp(key, "Category") || !strcmp(key, "Completed") ||
-                  !strcmp(key, "LevelGranted") || !strcmp(key, "ClassIndex")) {
+        } else if(
+            !strcmp(key, "Category") || !strcmp(key, "Completed") ||
+            !strcmp(key, "LevelGranted") || !strcmp(key, "ClassIndex")) {
             if(dndjournal_read_raw_field_value(&reader, value, sizeof(value))) {
                 uint32_t number = 0U;
                 if(dndjournal_parse_u32(value, &number)) {
@@ -736,8 +752,9 @@ static bool dndjournal_read_metadata(
                 recognized = true;
         } else if(!strcmp(key, "Body")) {
             dndjournal_skip_field_value(&reader);
-        } else if(!strcmp(key, "Category") || !strcmp(key, "Completed") ||
-                  !strcmp(key, "LevelGranted") || !strcmp(key, "ClassIndex")) {
+        } else if(
+            !strcmp(key, "Category") || !strcmp(key, "Completed") ||
+            !strcmp(key, "LevelGranted") || !strcmp(key, "ClassIndex")) {
             if(dndjournal_read_raw_field_value(&reader, value, sizeof(value))) {
                 uint32_t number = 0U;
                 if(dndjournal_parse_u32(value, &number)) {
@@ -789,7 +806,8 @@ static void dndjournal_insert_oldest(JournalApp* app, const JournalEntryMeta* en
         app->entries[app->cache_count++] = *entry;
         uint8_t position = (uint8_t)(app->cache_count - 1U);
         while(position > 0U &&
-              strcmp(app->entries[position - 1U].file_name, app->entries[position].file_name) < 0) {
+              strcmp(app->entries[position - 1U].file_name, app->entries[position].file_name) <
+                  0) {
             JournalEntryMeta swap = app->entries[position - 1U];
             app->entries[position - 1U] = app->entries[position];
             app->entries[position] = swap;
@@ -819,18 +837,17 @@ static void dndjournal_hydrate_cache(JournalApp* app) {
             app->entries[i] = parsed;
         } else {
             memset(&app->entries[i], 0, sizeof(app->entries[i]));
-            dndjournal_copy(app->entries[i].file_name, sizeof(app->entries[i].file_name), file_name);
-            dndjournal_copy(app->entries[i].title, sizeof(app->entries[i].title), "Unreadable entry");
+            dndjournal_copy(
+                app->entries[i].file_name, sizeof(app->entries[i].file_name), file_name);
+            dndjournal_copy(
+                app->entries[i].title, sizeof(app->entries[i].title), "Unreadable entry");
             app->entries[i].category = JournalCategoryQuick;
         }
     }
 }
 
-static bool dndjournal_scan_cache(
-    JournalApp* app,
-    const char* boundary,
-    bool newer,
-    uint16_t anchor) {
+static bool
+    dndjournal_scan_cache(JournalApp* app, const char* boundary, bool newer, uint16_t anchor) {
     char directory_path[JOURNAL_PATH_LEN];
     if(!dndjournal_profile_dir(directory_path, sizeof(directory_path), app->profile)) return false;
     File* directory = storage_file_alloc(app->storage);
@@ -861,9 +878,8 @@ static bool dndjournal_scan_cache(
     storage_file_free(directory);
     if(!app->cache_count) return false;
     dndjournal_hydrate_cache(app);
-    app->cache_start = newer ?
-                           (anchor >= app->cache_count ? (uint16_t)(anchor - app->cache_count) : 0U) :
-                           anchor;
+    app->cache_start =
+        newer ? (anchor >= app->cache_count ? (uint16_t)(anchor - app->cache_count) : 0U) : anchor;
     return true;
 }
 
@@ -913,8 +929,8 @@ static const JournalEntryMeta* dndjournal_entry_at(JournalApp* app, uint16_t ind
             return NULL;
     }
     guard = 0U;
-    while(index >= (uint16_t)(app->cache_start + app->cache_count) &&
-          app->cache_count && guard++ < UINT16_MAX) {
+    while(index >= (uint16_t)(app->cache_start + app->cache_count) && app->cache_count &&
+          guard++ < UINT16_MAX) {
         char boundary[JOURNAL_FILE_LEN];
         dndjournal_copy(boundary, sizeof(boundary), app->entries[app->cache_count - 1U].file_name);
         uint16_t next_start = (uint16_t)(app->cache_start + app->cache_count);
@@ -936,8 +952,7 @@ static bool dndjournal_window(JournalApp* app, uint16_t start) {
     return dndjournal_scan_cache(app, boundary, false, start);
 }
 
-static const JournalEntryMeta* dndjournal_cached_entry_at(
-    const JournalApp* app, uint16_t index) {
+static const JournalEntryMeta* dndjournal_cached_entry_at(const JournalApp* app, uint16_t index) {
     if(!app || index >= app->count || !app->cache_count || index < app->cache_start ||
        index >= (uint16_t)(app->cache_start + app->cache_count))
         return NULL;
@@ -977,7 +992,8 @@ static bool dndjournal_open_detail(JournalApp* app, uint16_t index) {
     if(!meta) return false;
     char file_name[JOURNAL_FILE_LEN];
     dndjournal_copy(file_name, sizeof(file_name), meta->file_name);
-    if(!dndjournal_read_entry(app->storage, app->profile, file_name, &app->current_entry)) return false;
+    if(!dndjournal_read_entry(app->storage, app->profile, file_name, &app->current_entry))
+        return false;
     app->selection = index;
     app->current_loaded = 1U;
     app->screen = JournalScreenDetail;
@@ -1150,8 +1166,8 @@ static void dndjournal_draw_header(Canvas* canvas, JournalApp* app, const char* 
         uint16_t id_width = canvas_string_width(canvas, profile_id);
         uint8_t id_x = id_width < 125U ? (uint8_t)(126U - id_width) : 1U;
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_box(canvas, id_x > 1U ? (uint8_t)(id_x - 1U) : 0U, 0,
-                        (uint8_t)(id_width + 2U), 10);
+        canvas_draw_box(
+            canvas, id_x > 1U ? (uint8_t)(id_x - 1U) : 0U, 0, (uint8_t)(id_width + 2U), 10);
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_str(canvas, id_x, 8, profile_id);
     }
@@ -1208,16 +1224,25 @@ static void dndjournal_draw_detail(Canvas* canvas, JournalApp* app) {
     snprintf(rows[2], sizeof(rows[2]), "Body: %.32s", entry->body);
     snprintf(rows[3], sizeof(rows[3]), "Complete: %s", entry->completed ? "Yes" : "No");
     if(entry->category == JournalCategoryMilestone) {
-        const char* class_name = entry->class_index < app->class_count && app->class_names[entry->class_index][0] ? app->class_names[entry->class_index] : "Primary";
+        const char* class_name = entry->class_index < app->class_count &&
+                                         app->class_names[entry->class_index][0] ?
+                                     app->class_names[entry->class_index] :
+                                     "Primary";
         snprintf(rows[4], sizeof(rows[4]), "Level class: %.24s", class_name);
-        dndjournal_copy(rows[5], sizeof(rows[5]), entry->level_granted ? "Level already applied" : "Apply milestone level");
+        dndjournal_copy(
+            rows[5],
+            sizeof(rows[5]),
+            entry->level_granted ? "Level already applied" : "Apply milestone level");
         dndjournal_copy(rows[7], sizeof(rows[7]), "Continue active Adventure");
     } else {
         dndjournal_copy(rows[4], sizeof(rows[4]), "Level class: --");
         dndjournal_copy(rows[5], sizeof(rows[5]), "Milestone level: --");
         dndjournal_copy(rows[7], sizeof(rows[7]), "Adventure: --");
     }
-    dndjournal_copy(rows[6], sizeof(rows[6]), entry->category == JournalCategoryItem ? "Create inventory item" : "Inventory item: --");
+    dndjournal_copy(
+        rows[6],
+        sizeof(rows[6]),
+        entry->category == JournalCategoryItem ? "Create inventory item" : "Inventory item: --");
     dndjournal_copy(rows[8], sizeof(rows[8]), "Delete Entry");
     for(uint8_t row = 0U; row < 5U; ++row) {
         uint8_t index = (uint8_t)(app->detail_scroll + row);
@@ -1318,7 +1343,8 @@ static void dndjournal_delete_current(JournalApp* app) {
 static bool dndjournal_input(InputEvent* event, void* context) {
     JournalApp* app = context;
     if((event->type == InputTypeShort || event->type == InputTypeLong ||
-        event->type == InputTypeRepeat) && !strcmp(app->status, "Saved"))
+        event->type == InputTypeRepeat) &&
+       !strcmp(app->status, "Saved"))
         app->status[0] = '\0';
     if(event->type == InputTypeLong && event->key == InputKeyBack) {
         app->return_to_dnd = 0U;
@@ -1329,8 +1355,9 @@ static bool dndjournal_input(InputEvent* event, void* context) {
         if((event->type == InputTypeShort || event->type == InputTypeRepeat) &&
            event->key == InputKeyUp)
             dndjournal_move_list(app, -1);
-        else if((event->type == InputTypeShort || event->type == InputTypeRepeat) &&
-                event->key == InputKeyDown)
+        else if(
+            (event->type == InputTypeShort || event->type == InputTypeRepeat) &&
+            event->key == InputKeyDown)
             dndjournal_move_list(app, 1);
         else if(event->type == InputTypeShort && event->key == InputKeyBack)
             dndjournal_return_to_dnd(app);
@@ -1370,17 +1397,18 @@ static bool dndjournal_input(InputEvent* event, void* context) {
         if((event->type == InputTypeShort || event->type == InputTypeRepeat) &&
            event->key == InputKeyUp) {
             app->detail_field = app->detail_field ? (uint8_t)(app->detail_field - 1U) : 8U;
-        } else if((event->type == InputTypeShort || event->type == InputTypeRepeat) &&
-                  event->key == InputKeyDown) {
+        } else if(
+            (event->type == InputTypeShort || event->type == InputTypeRepeat) &&
+            event->key == InputKeyDown) {
             app->detail_field = (uint8_t)((app->detail_field + 1U) % 9U);
         } else if(event->type == InputTypeShort && event->key == InputKeyBack) {
             app->screen = JournalScreenList;
             app->current_loaded = 0U;
             app->status[0] = '\0';
             dndjournal_prepare_list_window(app);
-        } else if((event->type == InputTypeShort || event->type == InputTypeRepeat) &&
-                  (event->key == InputKeyLeft || event->key == InputKeyRight) &&
-                  app->current_loaded) {
+        } else if(
+            (event->type == InputTypeShort || event->type == InputTypeRepeat) &&
+            (event->key == InputKeyLeft || event->key == InputKeyRight) && app->current_loaded) {
             JournalEntry* entry = &app->current_entry;
             bool changed = false;
             if(app->detail_field == 0U) {
@@ -1393,10 +1421,11 @@ static bool dndjournal_input(InputEvent* event, void* context) {
             } else if(app->detail_field == 3U) {
                 entry->completed = !entry->completed;
                 changed = true;
-            } else if(app->detail_field == 4U &&
-                      entry->category == JournalCategoryMilestone && app->class_count) {
-                int16_t index = (int16_t)entry->class_index +
-                                (event->key == InputKeyRight ? 1 : -1);
+            } else if(
+                app->detail_field == 4U && entry->category == JournalCategoryMilestone &&
+                app->class_count) {
+                int16_t index =
+                    (int16_t)entry->class_index + (event->key == InputKeyRight ? 1 : -1);
                 if(index < 0) index = (int16_t)app->class_count - 1;
                 if(index >= app->class_count) index = 0;
                 entry->class_index = (uint8_t)index;
@@ -1407,8 +1436,7 @@ static bool dndjournal_input(InputEvent* event, void* context) {
                 if(saved) dndjournal_update_cached_current(app);
                 dndjournal_set_status(app, saved ? "Saved" : "Save failed");
             }
-        } else if(event->type == InputTypeShort && event->key == InputKeyOk &&
-                  app->current_loaded) {
+        } else if(event->type == InputTypeShort && event->key == InputKeyOk && app->current_loaded) {
             JournalEntry* entry = &app->current_entry;
             if(app->detail_field == 1U) {
                 dndjournal_begin_text(app, JournalEditTitle);
@@ -1417,7 +1445,8 @@ static bool dndjournal_input(InputEvent* event, void* context) {
             } else if(app->detail_field == 0U || app->detail_field == 3U) {
                 if(app->detail_field == 0U) {
                     entry->category = (uint8_t)((entry->category + 1U) % JournalCategoryCount);
-                    if(entry->category == JournalCategoryMilestone) (void)dndjournal_load_classes(app);
+                    if(entry->category == JournalCategoryMilestone)
+                        (void)dndjournal_load_classes(app);
                 } else {
                     entry->completed = !entry->completed;
                 }
@@ -1439,7 +1468,7 @@ static bool dndjournal_input(InputEvent* event, void* context) {
                 dndjournal_set_status(
                     app,
                     dndjournal_create_inventory_item(app) ? "Inventory item created" :
-                                                         "Inventory add failed");
+                                                            "Inventory add failed");
             } else if(app->detail_field == 7U && entry->category == JournalCategoryMilestone) {
                 app->launch_adventure = 1U;
                 view_dispatcher_stop(app->dispatcher);
@@ -1526,8 +1555,7 @@ static void dndjournal_app_free(JournalApp* app) {
     if(!app) return;
     if(app->dispatcher && app->text_input)
         view_dispatcher_remove_view(app->dispatcher, JournalViewText);
-    if(app->dispatcher && app->view)
-        view_dispatcher_remove_view(app->dispatcher, JournalViewMain);
+    if(app->dispatcher && app->view) view_dispatcher_remove_view(app->dispatcher, JournalViewMain);
     if(app->text_input) text_input_free(app->text_input);
     if(app->view) view_free(app->view);
     if(app->dispatcher) view_dispatcher_free(app->dispatcher);
@@ -1558,8 +1586,7 @@ int32_t dndjournal_app(void* context) {
         if(launch_adventure) {
             if(!dnd_handoff_launch(launch_path, launch_args)) return -1;
         } else {
-            (void)dnd_handoff_launch_if_present(
-                launch_path, POCKET_D20_RETURN_FOCUS_JOURNAL);
+            (void)dnd_handoff_launch_if_present(launch_path, POCKET_D20_RETURN_FOCUS_JOURNAL);
         }
     }
     return 0;

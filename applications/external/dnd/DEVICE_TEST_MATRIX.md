@@ -2,7 +2,7 @@
 
 ## Launch and handoff
 
-- [ ] Build all seven FAPs and confirm no unresolved application symbols. In particular, Journal, Initiative and Bestiary must resolve `dnd_profile_ref_active_id()` without requiring or importing `dnd_storage_active_profile_load`.
+- [ ] Build all seven FAPs and confirm no unresolved application symbols. All seven must resolve active-profile/handoff calls from the shared `dnd_profile_handoff.*` module; apps that only need active-profile metadata must not pull in `dnd_storage.c` for that purpose.
 - [ ] Open Adventure, Bestiary, Journal, Initiative, Inventory and Spellbook with active IDs 0 and nonzero; confirm `[id]` appears at the top-right on each app's main screen only and disappears from detail/editor/tool/result screens.
 - [ ] Launch all seven FAPs directly.
 - [ ] In Adventure, Bestiary, Journal, Initiative, Inventory and Spellbook, press Short Back from the main screen and confirm DNDolphins is launched when `/ext/apps/Games/dndolphins.fap` exists. Temporarily remove/rename that FAP and confirm the same Short Back exits cleanly without a dead Loader handoff.
@@ -26,8 +26,14 @@
 - [ ] Confirm exact active-character selection, Initiative/Bestiary ID-0 fallback and teardown-before-launch behavior.
 - [ ] From a cold boot or low-free-heap state, launch DNDolphins repeatedly and confirm Loader does not show `Not enough RAM to run the app`.
 
+- [ ] DNDolphins Home focus: enter and Back out of Character, Vitals, Abilities & Saves, Skills, Features & Perks, Combat and Dice Roller; each return must restore the same named Home row rather than row 0. Repeat after returning from Inventory, Spellbook, Bestiary, Initiative, Adventure and Journal and confirm each `focus=` argument resolves to its named Home index.
+- [ ] Combat menu order: confirm Weapon Attacks, Spell Attacks, Rituals and Attack Templates are consecutive, and the state-free section header changes correctly across Attacks, Encounter, Recovery, Status and Defenses without allocating or reading storage during redraw.
+- [ ] Level-up review: level a character through a proficiency-bonus threshold, a deterministic-feature level, a spell-choice-growth level and an ASI/Feat level. Confirm the bounded review reports only the applicable before/after changes/notices and that reopening normal character screens does not retain a progression catalog in RAM.
+- [ ] Profile projections: compare steady-state free heap for Inventory, Spellbook and Adventure against the prior full-character builds. Use a canonical profile containing maximum-length percent-encoded text fields; apply Inventory AC/encumbrance/carry-capacity changes and byte-compare all unrelated canonical lines before/after. Spellbook and Adventure must never rewrite the canonical character file during ordinary use.
+
 - [ ] Launch DNDolphins on an ordinary healthy profile and confirm the home header does not persist `Loaded`; the character name is visible. Then exercise a backup recovery or forced save/read error and confirm meaningful recovery/error status still appears.
 - [ ] Weapon Combat: test STR, ranged DEX and finesse-best weapons; proficient/unproficient and magic bonuses; advantage/disadvantage; natural 1/20; ammunition decrement/persistence; versatile damage; extra dice; and critical damage-dice doubling.
+- [ ] Structured Spell Combat: verify at least one fixed-value heal, Aid at base and higher slot level, a multi-attack spell, and a spell with a secondary effect; confirm upcast deltas/roll-instance counts are deterministic and the 168-entry table still falls back to Notes `XdY` only for unmapped spells.
 - [ ] Spell Combat: test a cantrip across character-level scaling thresholds, an upcast mapped spell, a Notes-only `XdY` fallback spell, a spell attack and save spell, plus available normal slot, Pact slot, spell points, free cast and ritual options. Confirm the selected resource is consumed/preserved correctly and results use the spell's source-class casting ability. For a Wizard specifically, confirm an unprepared level-1+ spell with no Free Cast is absent; the same spell appears once Prepared/Always Prepared; and an unprepared spell with a Free Cast appears but offers **Free Cast only**. Wizard cantrips remain available without preparation.
 - [ ] Combat → Rituals / Ritual Adept: on a Wizard, add known level-1+ Wizard spells with and without the Ritual tag and with Prepared both on and off. Confirm only known Wizard Ritual entries appear, preparation does not matter, cantrips/non-Wizard rituals are excluded, selection reports `Ritual cast: +10 minutes`, and slot/Pact/points/free-cast counters do not change. Repeat with more than eight Spellbook records to exercise bounded paging.
 
@@ -192,7 +198,8 @@
 - [ ] From each companion main screen, Short Back and confirm DNDolphins opens with the corresponding home row already highlighted: Inventory, Magic & Spells for Spellbook, Journal, Adventure, Bestiary and Initiative. Repeat with Hold Back and confirm it exits to firmware instead of launching DNDolphins.
 - [ ] Confirm the DNDolphins Home menu order is Characters, Character, Vitals, Abilities & Saves, Skills, Features & Perks, Inventory, Magic & Spells, Bestiary, Initiative, Combat, Dice Roller, Adventure, Journal. Enter and return from each internal submenu and companion FAP; confirm the same named row is restored rather than a stale numeric position.
 - [ ] In DNDolphins, highlight each internal home row that opens a submenu (Profiles, Character, Vitals, Abilities, Skills, Magic, Features, Combat and Dice), enter it, then Short Back; confirm Home returns to the same highlighted row/scroll position rather than row 0.
-- [ ] Open Initiative and confirm the title bar is dark on the main menu and during Combat; `[id]` is right-aligned on the main menu and `Round N` replaces it during Combat.
+- [ ] Open Initiative and confirm the title bar is dark on the main menu and during Combat; `[id]` is right-aligned on the main menu and compact `R# T#/#` replaces it during Combat.
+- [ ] Fill Initiative to the maximum roster. In Roster, Setup, Combat and participant Edit, move through every row and wrap both directions; the selected/current participant must remain inside the visible window. Start/Resume, next turn and Hold Up previous turn must recenter the active participant without changing roster capacity or encounter state.
 - [ ] Open Item Name Catalog and compare with the established presentation: category initials are **not bracketed**, magic entries append `*`, Other entries show only their names, and the header shows `Page N <>`.
 - [ ] Page repeatedly forward/back through Item and Spell Name catalogs with restrictive and broad filters. Confirm later pages remain responsive and correct, Left/Right never skips or duplicates filtered entries, and changing a filter resets the learned page offsets safely.
 - [ ] Populate exactly 7/8/9 and 15/16/17 owned Items/Spells. Cross the 8-record boundaries repeatedly and confirm the correct records appear without blank/stale pages; after an edit/delete/rewrite, confirm the next page load remains correct after offset invalidation.
@@ -215,3 +222,11 @@
 - Page the Scroll filter beyond page 64 and back through nearby pages; confirm the rolling 64-page seek window keeps all generated Scroll pages reachable and sequential paging remains correct.
 - Confirm generated Scroll rarity presentation treats levels 0–1 as Common, 2–3 as Uncommon, 4–5 as Rare, 6–8 as Very Rare and 9 as Legendary where rarity/magic metadata is surfaced.
 - Confirm selecting a generated Scroll does not fabricate or overwrite Item weight, currency, Detail or another field with a GP price; Item value is not part of the current schema.
+
+## Feat, Inventory and Initiative-history regression
+
+- **Feat Allowed default:** trigger a progression feat choice; confirm Allowed is initial mode, Hold OK switches to All, and returning to Allowed restores prerequisite filtering. Test Grappler below/above prerequisites, Fighting Style, Epic Boon and an already-owned non-repeatable feat.
+- **Stack Quantity:** edit Stack Qty through normal Item OK entry at 0, 1 and 999; verify Hold Left/Right list shortcuts and persistence after cold reopen.
+- **Containers:** create nested/container references, delete a lower unrelated item and then the container; verify indexes shift and children become Carried rather than pointing at another item.
+- **History opt-in:** End Without History creates no file. Save History creates exactly one timestamped record; verify date, round, all party states and surviving opponents, then fault the write and confirm combat remains active.
+- **Declarative content:** complete at least one branch of Torii Between Tides and Moonlit Market and inspect each new folklore-inspired monster stat screen.

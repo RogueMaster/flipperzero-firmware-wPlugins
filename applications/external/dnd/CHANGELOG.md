@@ -2,6 +2,25 @@
 
 Released work only. Normal releases are retained as concise summaries; closely related recovery spans may be consolidated when the individual troubleshooting chronology would obscure the released outcome.
 
+## 3.5.0 — Feat eligibility, encounter history and declarative content
+
+- Added progression/grant feat Allowed/All filtering, defaulting to Allowed, with bounded prerequisite checks and no guessed restrictions for custom feats; manual Feature editing remains unrestricted.
+- Added explicit Initiative End + Save History / End Without History / Cancel. Saved encounters are separate atomic Initiative-owned records with end date/time, rounds, complete party state and surviving opponents; history is never written implicitly.
+- Improved Inventory using existing state: Stack Qty is a normal 0–999 numeric Item field plus Hold Left/Right shortcuts, container names are shown when cached, self-containment is blocked, and transactional deletion remaps logical container indexes safely.
+- Expanded deterministic subclass progression metadata without auto-selecting choice-bearing features, and added structured Heroism temporary-HP handling. Bundled metadata now validates at 1,560 records and Spell Combat at 168 unique explicit mappings.
+- Added the declarative Japan travel-fantasy campaign **Torii Between Tides** and compact supernatural **Moonlit Market** campaign. Added six original folklore-inspired Bestiary creatures; the bundled index/statblock set validates at 346/346.
+- Fixed an inherited duplicate Spell Combat map declaration and kept Inventory container remapping out of the Spellbook rewrite path. Updated documentation and regression coverage; save formats remain backward-compatible except for additive opt-in Initiative history files.
+
+## 3.4.0 — Bounded profile projections, progression review and combat navigation
+
+- Fixed DNDolphins internal Home returns so every named Home entry restores its own row instead of falling back to the top. Combat rows now use named indices, place Rituals directly below Spell Attacks, and render state-free Attacks/Encounter/Recovery/Status/Defenses section headers.
+- Added a bounded Level-Up Review that records only before/after level, proficiency/spell-limit changes, slot-change state, deterministic-trait count and pending spell/ASI/Feat notices. Expanded verified deterministic class/subclass/species progression metadata while keeping selection-dependent spells, Fighting Styles, Invocations, Metamagic, ASIs and feats explicit; corrected Warlock Eldritch Invocations availability to class level 1.
+- Added `dnd_profile_projection.*` for DNDInventory, DNDSpellbook and DNDAdventure. The canonical character file/schema is unchanged: each companion streams only the fields it needs, Spellbook/Adventure are read-only, and Inventory may transactionally patch only AC/encumbrance/carry-capacity while preserving unrelated canonical lines with the canonical 640-byte encoded-line bound.
+- Replaced the three companions' resident full-character cores with bounded projections. Compiler-checked ARM32 fixed app blocks are now 1,500 B Inventory, 1,456 B Spellbook and 856 B Adventure; DNDolphins is 4,940 B after the Level-Up Review fields. Journal, Initiative and Bestiary remain 1,352 B, 5,276 B and 1,528 B.
+- Expanded the structured Spell Combat table to 167 mappings, including additional deterministic fixed/upcast vitality/healing coverage while preserving multiple attacks/roll instances, secondary effects, cantrip/upcast rules and Notes `XdY` fallback.
+- Improved Initiative large-roster navigation without growing resident state: roster/setup/combat/editor movement keeps the selected/current participant visible; Start/Resume/next/previous-turn focus the active participant; Combat shows compact `R# T#/#` position.
+- Updated README, memory/rules/source/schema/compatibility/checklist/test documentation and future roadmap to match the implemented ownership, memory and UI behavior. All seven manifests remain alphabetized and declare 3.4.0.
+
 ## 3.3.8 — DNDolphins home-menu ordering and named focus indices
 
 - Reordered the DNDolphins Home menu into character sheet, character resources, encounter tools and campaign-play groups: Characters, Character, Vitals, Abilities & Saves, Skills, Features & Perks, Inventory, Magic & Spells, Bestiary, Initiative, Combat, Dice Roller, Adventure and Journal. The encounter workflow is intentionally Bestiary → Initiative → Combat.
