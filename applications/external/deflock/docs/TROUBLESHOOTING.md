@@ -42,11 +42,10 @@ ones:
 Check **Settings → ESP Port** and **GPS Port**. Both can run at once, but not on the
 same UART.
 
-**Nothing appears in BLE Scan, Net Guardian, or Locator.** These three screens
-require **Companion** firmware and are blocked in Marauder mode — you should see an
-explicit notice saying so. Either flash the companion firmware (**ESP32 Firmware → Flash
-a .bin**, no computer needed) or use the screens Marauder mode supports: Flock/ALPR
-Detect, Flock Map, and Reports.
+**Nothing appears in the Locator.** It requires **Companion** firmware and is
+blocked in Marauder mode — you should see an explicit notice saying so. Either flash
+the companion firmware (**ESP32 Firmware → Flash a .bin**, no computer needed) or use
+the screens Marauder mode supports: Flock/ALPR Detect, Flock Map, and Reports.
 
 **GPS never gets a fix / the badge shows `!PORT`, `!PIN` or `!FW`.** These mean the app knows a fix is
 impossible with the current settings, rather than that it is still searching. Almost

@@ -34,8 +34,6 @@ void recon_scene_flock_on_enter(void* context) {
 
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         app->esp_connected = false;
-        app->esp_deauths = 0;
-        app->deauth_count = 0;
         app->esp_frames = 0; // per-session frame/hit counters start at 0...
         app->esp_hits = 0;
         app->esp_frame_rate = -1; // no honest rate until two status lines land

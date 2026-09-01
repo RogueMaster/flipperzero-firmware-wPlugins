@@ -8,10 +8,14 @@ Works on any ESP32 with Wi-Fi: Flipper Wi-Fi Dev Board, ESP32 Marauder boards,
 ReksLab Tri-Board, bare WROOM/WROVER DevKitC, Xiao ESP32-S3, and so on. The board
 only needs its UART on the Flipper's pins 13 (TX) / 14 (RX).
 
-> Flock / ALPR detection is passive only. No deauth, injection, or jamming. The
-> companion also accepts explicit Flipper-triggered Ping and Ring actions for a
-> selected validated tracker. Use lawfully and only where you are authorized.
-> OUI-only matches are *possible*, not confirmed; verify by eye.
+> Passive only. No deauth, injection, or jamming. Use lawfully and only where you
+> are authorized. OUI-only matches are *possible*, not confirmed; verify by eye.
+>
+> **This firmware is deliberately broader than FlipDeFlock.** It is a universal
+> companion, so it still reports BLE devices and attack indicators on the wire
+> (`DA`, `ATK`, `ACT`, `BLE`). FlipDeFlock is cameras-only and ignores those
+> lines; a different host app may use them. The protocol reference below
+> documents the full wire format, not the subset any one app consumes.
 
 ## Two ways to use the Flipper app
 

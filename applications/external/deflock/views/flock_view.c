@@ -7,13 +7,12 @@
 
 #include <gui/elements.h>
 
-#define ROW_H            11
-#define LIST_TOP         27
-#define VISIBLE_ROWS     3
+#define ROW_H        11
+#define LIST_TOP     27
+#define VISIBLE_ROWS 3
 // Deauth/disassoc frames per ~1s interval needed to call it a flood. Normal
 // roaming/idle churn is 1-2/s; a real flood is many. Below this we don't alert
 // (avoids false positives on benign disassoc churn).
-#define DEAUTH_FLOOD_MIN 5
 
 struct FlockView {
     View* view;
@@ -96,7 +95,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
 
     // ---- snapshot live data under the mutex; do ALL snprintf/canvas AFTER ----
     // Holding app->mutex across the whole canvas render stalls the ESP worker
-    // every frame; copy the scalars, the deauth attribution and the <=3 visible
+    // every frame; copy the scalars and the <=3 visible
     // rows into locals (cheap, no canvas/snprintf), release, then draw. Same
     // pattern as flock_map_view.c.
     FlockRowSnap rows[VISIBLE_ROWS];
@@ -115,7 +114,6 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     uint32_t alerts = app->alert_fired;
     bool warn_dismissed = app->warn_dismissed;
     uint32_t reboots = app->esp_reboots;
-    uint32_t deauths = app->esp_deauths;
     bool proto_mismatch = app->esp_proto_mismatch;
     uint8_t proto_version = app->esp_proto_version;
     uint32_t dropped = app->esp_dropped_lines;
@@ -243,28 +241,6 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     char card_what[32] = {0};
     char card_who[40] = {0};
 
-    // Most-attacked BSSID + channel for the deauth header attribution.
-    bool have_attr = false;
-    uint8_t attr_ch = 0, attr_b3 = 0, attr_b4 = 0, attr_b5 = 0;
-    {
-        int top = -1;
-        uint32_t topc = 0;
-        for(size_t i = 0; i < app->deauth_count; i++) {
-            if(app->deauth[i].count > topc) {
-                topc = app->deauth[i].count;
-                top = (int)i;
-            }
-        }
-        if(top >= 0) {
-            DeauthTarget* t = &app->deauth[top];
-            have_attr = true;
-            attr_ch = t->channel;
-            attr_b3 = t->bssid[3];
-            attr_b4 = t->bssid[4];
-            attr_b5 = t->bssid[5];
-        }
-    }
-
     // Clamp selection/scroll (touches only the view model) then copy the visible
     // rows, so the render loop below needs no lock.
     if(count > 0) {
@@ -355,7 +331,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     uint32_t now_epoch = furi_hal_rtc_get_timestamp();
 
     // ---- render from the snapshot (no mutex held) --------------------------
-    // Header / status bar. A real deauth flood takes over the header. Compact
+    // Header / status bar. Compact
     // right-aligned status for the inverted title bar.
     //
     // EVERY COUNTER APPEARS EXACTLY ONCE across the two header lines (issue #5):
@@ -367,9 +343,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     // Channel is space-padded to a fixed 3 (1-14 / 36-165 / 6 GHz up to 233 on a
     // C5) so the right-aligned block stops jittering as the sweep hops.
     char right[16]; // fits "ch165 h999999" + NUL; snprintf truncates safely beyond
-    if(deauths >= DEAUTH_FLOOD_MIN) {
-        snprintf(right, sizeof(right), "!DEAUTH");
-    } else if(generic) {
+    if(generic) {
         snprintf(right, sizeof(right), "rx%lu", (unsigned long)lines);
     } else {
         snprintf(right, sizeof(right), "ch%3u h%lu", channel, (unsigned long)hits);
@@ -378,11 +352,11 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
 
     // Status sub-line: only what the title bar does NOT already show.
     // A wire-protocol version mismatch is the highest-priority health warning (the
-    // data may be mis-parsed), then a deauth flood. A non-zero dropped-line count
+    // data may be mis-parsed). A non-zero dropped-line count
     // (overlong RX lines) is appended as a "!dN" health suffix on the normal lines.
     char drop[16] = "";
     if(dropped) snprintf(drop, sizeof(drop), " !d%lu", (unsigned long)dropped);
-    char hdr[64]; // the non-icon variants (proto mismatch / deauth / Marauder)
+    char hdr[64]; // the non-icon variants (proto mismatch / Marauder)
     // The normal companion line is drawn as SEGMENTS, not one string, because two
     // of its fields are glyphs. Reusing the row icons rather than the letters
     // "rx" and "b" was a user's suggestion and it is strictly better: the same
@@ -395,18 +369,6 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     char tail_s[40] = ""; // a<n> + optional !r<n> + optional !d<n>
     if(proto_mismatch) {
         snprintf(hdr, sizeof(hdr), "! Companion FW proto v%u mismatch", proto_version);
-    } else if(deauths >= DEAUTH_FLOOD_MIN) {
-        if(have_attr) {
-            snprintf(
-                hdr, sizeof(hdr), "!DEAUTH ch%u %02X%02X%02X", attr_ch, attr_b3, attr_b4, attr_b5);
-        } else {
-            snprintf(
-                hdr,
-                sizeof(hdr),
-                "%s DEAUTH! x%lu",
-                connected ? "ESP" : "...",
-                (unsigned long)deauths);
-        }
     } else if(generic) {
         // Companion status counters stay 0 on a Marauder board, so the title bar
         // carries the RX heartbeat there and the detection count belongs here.
@@ -490,7 +452,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
         //          held -- change GPS Port
         //   !PIN   the companion answered and refused that pin -- change ESP GPS Pin
         //   !FW    the companion never answered at all -- reflash it
-        // The leading "!" is this app's existing warning mark (!DEAUTH, !r, !d).
+        // The leading "!" is this app's existing warning mark (!r, !d).
         //   !APP   the phone source is selected but nothing is paired
         //   !PERM  the phone denied location permission
         //   !LOC   the phone's location is off, or it has no receiver at all

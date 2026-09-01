@@ -5,8 +5,6 @@
 
 typedef enum {
     StartItemFlock,
-    StartItemGuardian,
-    StartItemBle,
     StartItemFirmware,
     StartItemReports,
     StartItemSettings,
@@ -23,40 +21,14 @@ static void recon_scene_start_submenu_cb(void* context, uint32_t index) {
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-// Surface the fused WATCHSCORE as the start-screen header, with an explainable
-// per-signal breakdown when anything is contributing. CLEAR shows the plain
-// app name so the idle screen stays calm.
-//
-// Coverage honesty: the BLE-follower, deauth and evil-twin signals only reach us
-// through our companion firmware. In Marauder/Generic mode WATCHSCORE can only
-// watch the WiFi/Flock side -- it can never reach ELEVATED, and a bare "clear"
-// would falsely imply "you are not being watched." So in that mode we tag the
-// header "(WiFi only)" and never let CLEAR read as all-clear.
+// The start-screen header. Marauder/Generic mode cannot do BLE, so it loses the
+// BLE half of Flock detection -- say so rather than let a quiet screen imply
+// full coverage.
 static void recon_scene_start_update_header(ReconApp* app) {
     bool wifi_only = (app->settings.backend != EspBackendCompanion);
-    WatchState st = (WatchState)app->watch.state;
-    if(st == WatchStateClear) {
-        submenu_set_header(
-            app->submenu,
-            wifi_only ? "FlipDeFlock " RECON_VERSION " - WiFi only" :
-                        "FlipDeFlock " RECON_VERSION);
-        return;
-    }
-    const char* bd = app->watch.breakdown;
-    const char* cov = wifi_only ? " (WiFi only)" : "";
-    if(bd[0]) {
-        snprintf(
-            app->text_store,
-            sizeof(app->text_store),
-            "WATCH: %s%s - %s",
-            watchscore_state_str(st),
-            cov,
-            bd);
-    } else {
-        snprintf(
-            app->text_store, sizeof(app->text_store), "WATCH: %s%s", watchscore_state_str(st), cov);
-    }
-    submenu_set_header(app->submenu, app->text_store);
+    submenu_set_header(
+        app->submenu,
+        wifi_only ? "FlipDeFlock " RECON_VERSION " - WiFi only" : "FlipDeFlock " RECON_VERSION);
 }
 
 void recon_scene_start_on_enter(void* context) {
@@ -77,12 +49,8 @@ void recon_scene_start_on_enter(void* context) {
     recon_scene_start_update_header(app);
     submenu_add_item(
         submenu, "Flock / ALPR Detect", StartItemFlock, recon_scene_start_submenu_cb, app);
-    submenu_add_item(
-        submenu, "Net Guardian", StartItemGuardian, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Locator", StartItemLocator, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Flock Map", StartItemFlockMap, recon_scene_start_submenu_cb, app);
-    submenu_add_item(
-        submenu, "BLE / Tracker Scan", StartItemBle, recon_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "ESP32 Firmware", StartItemFirmware, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Reports", StartItemReports, recon_scene_start_submenu_cb, app);
@@ -100,24 +68,12 @@ void recon_scene_start_on_enter(void* context) {
 bool recon_scene_start_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
     bool consumed = false;
-    if(event.type == SceneManagerEventTypeTick) {
-        // Keep the fused score decaying and the header live even while idle on
-        // the menu. Cheap: a snapshot + a little arithmetic on the 250 ms tick.
-        uint8_t prev = app->watch.state;
-        recon_app_watchscore_tick(app);
-        if(app->watch.state != prev || app->watch.state != WatchStateClear) {
-            recon_scene_start_update_header(app);
-        }
-        consumed = true;
-    } else if(event.type == SceneManagerEventTypeCustom) {
+    if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(app->scene_manager, ReconSceneStart, event.event);
         consumed = true;
         switch(event.event) {
         case StartItemFlock:
             scene_manager_next_scene(app->scene_manager, ReconSceneFlock);
-            break;
-        case StartItemGuardian:
-            scene_manager_next_scene(app->scene_manager, ReconSceneGuardian);
             break;
         case StartItemLocator:
             scene_manager_next_scene(app->scene_manager, ReconSceneLocator);
@@ -125,9 +81,6 @@ bool recon_scene_start_on_event(void* context, SceneManagerEvent event) {
         case StartItemFlockMap:
             scene_manager_next_scene(app->scene_manager, ReconSceneFlockMap);
             break;
-            break;
-        case StartItemBle:
-            scene_manager_next_scene(app->scene_manager, ReconSceneBle);
             break;
             break;
         case StartItemFirmware:

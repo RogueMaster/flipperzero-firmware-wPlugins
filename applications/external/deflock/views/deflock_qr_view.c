@@ -51,7 +51,14 @@ static void deflock_qr_view_draw_callback(Canvas* canvas, void* _model) {
     }
 
     // Left: the QR, scaled so its module grid fills the QR_AREA square. Origin is
-    // nudged so the scaled grid is centred in the area.
+    // nudged so the scaled grid is centred in the area. qr_bottom tracks where the
+    // actual rendered grid ends (NOT the nominal QR_AREA box) -- a short URI (a
+    // donation address, a lat/lng link) encodes at well under the box's max module
+    // count, and the bottom-strip text below uses this to reclaim that slack
+    // rather than always assuming the box is full. QR_AREA is the fallback when
+    // nothing was drawn, which is the same value this always used, so that case is
+    // unchanged.
+    int qr_bottom = QR_AREA;
     if(model->has_qr && model->qr_api) {
         const QrPluginApi* qr = model->qr_api;
         int size = qr->get_size(model->qr);
@@ -72,6 +79,7 @@ static void deflock_qr_view_draw_callback(Canvas* canvas, void* _model) {
                 }
             }
         }
+        qr_bottom = oy + dim;
     } else {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, QR_AREA / 2, 26, AlignCenter, AlignCenter, "QR");
@@ -97,11 +105,25 @@ static void deflock_qr_view_draw_callback(Canvas* canvas, void* _model) {
     ry += 10;
     canvas_draw_str(canvas, QR_AREA + 4, ry, model->conf);
 
-    // Bottom strip: the OSM tag summary, one line per tag. Drawn full-width below
-    // the QR area so it's readable even if the QR isn't.
-    int ty = QR_AREA + 9;
+    // Bottom strip: one line per '\n'-separated entry in `tags`, drawn full-width
+    // starting just under the rendered QR so it's readable even if the QR isn't.
+    // Was fixed at QR_AREA + 9 regardless of how small the actual QR came out --
+    // for a short URI (any of the ones either caller of this view produces) that
+    // left one, sometimes zero, full lines before hitting the canvas edge, so the
+    // "read the address by hand if the scan fails" promise a caller's comment
+    // made was never visible. qr_bottom (above) is the real edge of the drawn
+    // grid, so a small code now gets the vertical room its size actually leaves.
+    // The nominal QR_AREA is a safe UPPER bound for how tall the drawn grid could
+    // be, but the actual grid this view produces (a short donation address or a
+    // lat/lng link) always comes out well under that -- module count 29-33, not
+    // the ~49 the box is sized for -- so a fixed offset from QR_AREA left this
+    // text sitting inside empty padding while the canvas ran out of room below.
+    // qr_bottom is the real edge of what got drawn; +6 below it was the smallest
+    // gap that did not visibly touch the grid on a Flipper screen (measured:
+    // +2 and +4 both overlapped, +6 and +8 did not).
+    int ty = qr_bottom + 6;
     const char* p = model->tags;
-    while(*p && ty <= 64) {
+    while(*p && ty <= 63) {
         char line[40];
         size_t n = 0;
         while(p[n] && p[n] != '\n' && n < sizeof(line) - 1)
@@ -120,10 +142,13 @@ static bool deflock_qr_view_input_callback(InputEvent* event, void* context) {
     bool handled = false;
 
     if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
-        if(event->key == InputKeyLeft) {
+        // Up/Down are accepted as well as Left/Right: this view pages through a
+        // list (cameras, donation addresses), and on a Flipper that reads as
+        // "scroll" as much as it does "page". Both directions do the same thing.
+        if(event->key == InputKeyLeft || event->key == InputKeyUp) {
             if(qv->page_cb) qv->page_cb(qv->page_ctx, -1);
             handled = true;
-        } else if(event->key == InputKeyRight) {
+        } else if(event->key == InputKeyRight || event->key == InputKeyDown) {
             if(qv->page_cb) qv->page_cb(qv->page_ctx, 1);
             handled = true;
         }

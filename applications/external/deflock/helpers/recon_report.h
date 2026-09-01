@@ -16,12 +16,6 @@ void recon_report_ensure_dirs(void* app);
 bool recon_report_save_flock(void* app, char* out_path_md, size_t out_len);
 
 /**
- * Write a CSV + GeoJSON of the last BLE scan (all devices, with tracker
- * category and "following" flag; GeoJSON points for geotagged trackers).
- */
-bool recon_report_save_ble(void* app, char* out_path_md, size_t out_len);
-
-/**
  * Write a REDACTED Markdown report of every stored detection, for sending in
  * when the app flags something it should not have.
  *

@@ -15,22 +15,21 @@ For released work see [changelog.md](../changelog.md). For how to contribute see
 
 Automated licence-plate readers and fixed surveillance cameras are being deployed
 across public roads at scale, largely without notice to the people being recorded.
-Bluetooth trackers designed to find lost keys are routinely repurposed to follow
-people. In both cases the person being surveilled is the only party without
-visibility.
+The person being recorded is the only party without visibility into where those
+cameras are, who operates them, or how many there are.
 
 Professional counter-surveillance equipment exists, but it is priced and packaged for
 institutional buyers. There is no accessible, auditable way for an individual to
-answer a basic question: *is something watching me right now, and what is it?*
+answer a basic question: *is there a camera watching this street, and whose is it?*
 
 FlipDeFlock answers that question on hardware many people already own, using an
 approach that can be read, verified, and corrected by anyone.
 
 ## Who this serves
 
-- **People at risk of being followed.** Bluetooth tracker stalking is a documented
-  pattern in intimate-partner abuse. Detection that works offline, on a device that
-  isn't a phone, matters when the phone itself may be compromised or monitored.
+- **People who want to know what is recording them.** Detection that works offline,
+  on a device that isn't a phone, matters when the phone itself may be compromised
+  or monitored.
 - **Journalists and researchers** documenting surveillance infrastructure, who need
   defensible, exportable evidence rather than screenshots.
 - **Civic transparency efforts** mapping public-space surveillance, including the
@@ -40,15 +39,15 @@ approach that can be read, verified, and corrected by anyone.
 
 ## What exists today
 
-A Flipper Zero application paired with commodity ESP32 hardware that
-detects Flock/ALPR cameras across Wi-Fi and BLE, identifies Bluetooth trackers that
-persist across your movement, flags active Wi-Fi attacks, and exports findings as
-Markdown, GeoJSON, KML, CSV, and WiGLE.
+A Flipper Zero application paired with commodity ESP32 hardware that detects
+Flock/ALPR cameras across Wi-Fi and BLE, attributes them to a vendor where the
+evidence supports it, separates acoustic sensors and body-worn police equipment
+from fixed cameras, and exports findings as Markdown, GeoJSON, and KML.
 
 Detections carry an explicit confidence ladder — *Possible*, *Likely*, *Confirmed*,
 *Class?* — because a counter-surveillance tool that overstates certainty is worse than
 none. Correctness-critical logic is covered by a host test suite gated in CI
-(3,553 checks as of v0.70).
+(4,422 checks as of v0.79).
 
 **Stated honestly:** most work since v0.20 is verified by continuous integration
 against the compiler, not against real deployed hardware. Closing that gap is the

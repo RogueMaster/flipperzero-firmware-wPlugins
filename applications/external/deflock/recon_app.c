@@ -10,9 +10,7 @@
 #include "helpers/sig_db.h"
 #include "helpers/detect_rules.h"
 #include "helpers/flock_store.h"
-#include "helpers/tracker_rules.h"
 #include "helpers/scan_session.h"
-#include "helpers/attack_triage.h"
 #include "helpers/report_fmt.h"
 
 #include <math.h>
@@ -361,12 +359,6 @@ void recon_app_set_esp_lines(ReconApp* app, uint32_t lines) {
     furi_mutex_release(app->mutex);
 }
 
-void recon_app_set_deauths(ReconApp* app, uint32_t deauths) {
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->esp_deauths = deauths;
-    furi_mutex_release(app->mutex);
-}
-
 void recon_app_set_esp_proto(ReconApp* app, uint8_t version, bool mismatch) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->esp_proto_version = version;
@@ -467,8 +459,7 @@ void recon_app_ble_add(
     uint16_t company,
     const uint8_t* mfg,
     size_t mfg_len,
-    bool raven_gatt,
-    bool tracker_separated) {
+    bool raven_gatt) {
     // Decode the Flock 0x09C8 external-battery advert: extract the device serial
     // and a model guess. The serial/battery advert is shared Falcon/Raven and
     // stays Generic; a Raven is only asserted when the companion saw its
@@ -491,12 +482,6 @@ void recon_app_ble_add(
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->esp_ble_seen++;
     furi_mutex_release(app->mutex);
-
-    // A weak tracker advert is useful as a raw BLE observation, but not as
-    // evidence that a tracker is travelling with the operator. The companion
-    // applies the same floor; keep this guard here for older companion builds
-    // and for malformed/manual wire input.
-    if(ble_tracker_category_is_known(cat) && !ble_tracker_rssi_is_usable(rssi)) return;
 
     char serial[RECON_BLE_SERIAL_LEN] = "";
     uint8_t model = FlockBleModelUnknown;
@@ -523,11 +508,6 @@ void recon_app_ble_add(
         e->first_lon = app->gps_valid ? app->gps_lon : NAN;
         e->first_tick = now;
         e->last_tick = now;
-        // First counted waypoint is wherever we are now (NAN until we get a fix).
-        e->last_wp_lat = app->gps_valid ? app->gps_lat : NAN;
-        e->last_wp_lon = app->gps_valid ? app->gps_lon : NAN;
-        e->inrange_wp_count = app->gps_valid ? 1 : 0;
-        e->max_span_m = 0.0f;
     }
     if(e) {
         e->count++;
@@ -542,7 +522,6 @@ void recon_app_ble_add(
         e->last_tick = now;
         if(cat) e->cat = cat;
         e->company = company;
-        if(ble_tracker_category_is_known(cat)) e->tracker_separated = tracker_separated;
         if(name && name[0] && e->name[0] == '\0') {
             strncpy(e->name, name, RECON_SSID_LEN - 1);
             e->name[RECON_SSID_LEN - 1] = '\0';
@@ -555,33 +534,6 @@ void recon_app_ble_add(
         if(app->gps_valid) {
             e->last_lat = app->gps_lat;
             e->last_lon = app->gps_lon;
-            // Fold this fix into the waypoint/span track (pure rule; the first fix
-            // may arrive after a no-GPS creation, so the track seeds itself lazily).
-            BleTrack track = {
-                .first_lat = e->first_lat,
-                .first_lon = e->first_lon,
-                .last_wp_lat = e->last_wp_lat,
-                .last_wp_lon = e->last_wp_lon,
-                .waypoints = e->inrange_wp_count,
-                .max_span_m = e->max_span_m,
-            };
-            ble_track_fold_fix(&track, app->gps_lat, app->gps_lon);
-            e->last_wp_lat = track.last_wp_lat;
-            e->last_wp_lon = track.last_wp_lon;
-            e->inrange_wp_count = track.waypoints;
-            e->max_span_m = track.max_span_m;
-            // "Following": the anti-stalking coincidence gate -- seen across many
-            // scans, over a real time window, at several distinct waypoints,
-            // spanning real ground (all four, latched). See detect_rules.h.
-            // Only an identified tracker can raise the anti-stalking signal.
-            // Flock hardware, Flippers, and unnamed BLE devices may move with
-            // us, but labeling them "following" would turn an indicator into
-            // an accusation.
-            if(ble_tracker_category_is_known(e->cat) && ble_tracker_rssi_is_usable(e->rssi) &&
-               ble_following_gate(
-                   e->count, now - e->first_tick, e->inrange_wp_count, e->max_span_m)) {
-                e->following = true;
-            }
         }
     }
     furi_mutex_release(app->mutex);
@@ -618,30 +570,6 @@ void recon_app_ble_end(ReconApp* app) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->ble_scanning = false;
     app->ble_done = true;
-    furi_mutex_release(app->mutex);
-}
-
-void recon_app_add_deauth_target(ReconApp* app, const uint8_t bssid[6], uint8_t channel) {
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    uint32_t now = furi_get_tick();
-    DeauthTarget* t = NULL;
-    for(size_t i = 0; i < app->deauth_count; i++) {
-        if(memcmp(app->deauth[i].bssid, bssid, 6) == 0) {
-            t = &app->deauth[i];
-            break;
-        }
-    }
-    if(!t && app->deauth_count < RECON_DEAUTH_MAX) {
-        t = &app->deauth[app->deauth_count++];
-        memset(t, 0, sizeof(DeauthTarget));
-        memcpy(t->bssid, bssid, 6);
-        t->first_tick = now; // span starts here (attack_triage_status reads it)
-    }
-    if(t) {
-        t->count++;
-        if(channel) t->channel = channel;
-        t->last_tick = now;
-    }
     furi_mutex_release(app->mutex);
 }
 
@@ -683,94 +611,9 @@ void recon_app_wifi_add(
 
 void recon_app_wifi_end(ReconApp* app) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
-    // Evil-twin pass: the same SSID on >1 distinct BSSID is a duplicate (could be
-    // a legit mesh/extender -> "dup"); if those clones run *different* security
-    // that's a strong rogue/evil-twin signal -> "rogue". Computed here, at scan
-    // completion, rather than only in the WiFi Audit screen, so Net Guardian's
-    // WATCHSCORE actually sees evil-twins during its sweep too.
-    size_t n = app->wifi_count;
-    for(size_t i = 0; i < n; i++) {
-        app->wifi[i].dup = false;
-        app->wifi[i].rogue = false;
-    }
-    for(size_t i = 0; i < n; i++) {
-        if(app->wifi[i].ssid[0] == '\0') continue;
-        for(size_t j = i + 1; j < n; j++) {
-            if(strcmp(app->wifi[i].ssid, app->wifi[j].ssid) == 0 &&
-               memcmp(app->wifi[i].bssid, app->wifi[j].bssid, 6) != 0) {
-                app->wifi[i].dup = true;
-                app->wifi[j].dup = true;
-                // Only a security DOWNGRADE is evil-twin shaped. Any auth-mode
-                // difference used to qualify, which fires on WPA2/WPA3
-                // transition mode -- an ordinary modern network -- and told the
-                // operator they were under attack. See wifi_rogue_pair().
-                if(wifi_rogue_pair(app->wifi[i].authmode, app->wifi[j].authmode)) {
-                    app->wifi[i].rogue = true;
-                    app->wifi[j].rogue = true;
-                }
-            }
-        }
-    }
     app->wifi_scanning = false;
     app->wifi_done = true;
     furi_mutex_release(app->mutex);
-}
-
-// ---- WATCHSCORE: fuse the already-validated signals (C1) ------------------
-
-// Fresh-signal windows used while snapshotting (kept here next to the call
-// site; the scoring model's own tunables live in helpers/watchscore.c).
-#define WATCH_FLOCK_FRESH_MS   60000
-#define WATCH_DEAUTH_FRESH_MS  30000
-#define WATCH_FLOCK_NEAR_M     120.0f
-// A single deauth/disassoc frame is normal WiFi churn; only a *flood* is an
-// attack signal. Match the live Flock-view banner's threshold (DEAUTH_FLOOD_MIN)
-// so the fused score never alarms on one benign frame.
-#define WATCH_DEAUTH_FLOOD_MIN 5
-// How long a Flipper sighting stays "near" (a touch over one full sweep rotation,
-// so it doesn't blink out between BLE phases) and how long an attack-tool ATK
-// line stays "active" (these are bursty, so a short window).
-#define WATCH_BLE_FRESH_MS     90000
-#define WATCH_ATTACK_FRESH_MS  15000
-// Opt-in anomaly: an UNNAMED, unidentified (no mfg id, no recognized service)
-// device, transmitting strongly (close) and seen repeatedly = "something is on
-// you and won't say what it is." Kept tight so even when enabled it rarely fires.
-#define WATCH_ANOMALY_RSSI_MIN (-55)
-#define WATCH_ANOMALY_MIN_SEEN 3
-
-void recon_app_set_attack(ReconApp* app, const char* kind, uint32_t value) {
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    uint32_t now = furi_get_tick();
-    // A gap longer than the freshness window means the previous episode ended;
-    // start a new span (and re-arm the evidence log) rather than stretching it.
-    if(app->esp_attack_tick == 0 || (now - app->esp_attack_tick) > WATCH_ATTACK_FRESH_MS) {
-        app->esp_attack_first_tick = now;
-        app->esp_attack_logged = false;
-    }
-    app->esp_attack_tick = now;
-    app->esp_attack_value = value;
-    // BLE-spam is the one BLE-borne signature; beacon/probe floods are Wi-Fi.
-    app->esp_attack_ble = (strncmp(kind, "ble", 3) == 0 || strncmp(kind, "BLE", 3) == 0);
-    // Map the wire kind to a short, screen-friendly label for the breakdown.
-    const char* label = "attack tool";
-    if(strstr(kind, "ble") || strstr(kind, "BLE"))
-        label = "BLE-spam";
-    else if(strstr(kind, "beacon"))
-        label = "beacon flood";
-    else if(strstr(kind, "probe"))
-        label = "probe flood";
-    strncpy(app->esp_attack_kind, label, sizeof(app->esp_attack_kind) - 1);
-    app->esp_attack_kind[sizeof(app->esp_attack_kind) - 1] = '\0';
-    app->esp_connected = true;
-    furi_mutex_release(app->mutex);
-}
-
-bool recon_ble_is_anomaly(const BleDevice* e, uint32_t now) {
-    // Unnamed + no manufacturer id + no recognized category + strong + repeatedly
-    // seen + fresh. Shared by the scorer and the Guardian sus-list so they agree.
-    return e->cat == BleCatUnknown && e->name[0] == '\0' && e->company == 0xFFFF &&
-           e->rssi >= WATCH_ANOMALY_RSSI_MIN && e->count >= WATCH_ANOMALY_MIN_SEEN &&
-           (now - e->last_tick) <= WATCH_BLE_FRESH_MS;
 }
 
 #define LOCATE_TREND_DB 2 /**< dB vs the smoothed average before we call it warmer/colder */
@@ -807,322 +650,6 @@ void recon_app_set_locate_rssi(ReconApp* app, int8_t rssi) {
     furi_mutex_release(app->mutex);
 }
 
-void recon_app_ble_action_begin(ReconApp* app, BleActionKind kind) {
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->ble_action_kind = (uint8_t)kind;
-    app->ble_action_pending = true;
-    app->ble_action_done = false;
-    app->ble_action_have_rssi = false;
-    app->ble_action_rssi = 0;
-    app->ble_action_tick = furi_get_tick();
-    app->ble_action_seq++;
-    if(app->ble_action_seq == 0) app->ble_action_seq = 1;
-    strncpy(app->ble_action_status, "sending", sizeof(app->ble_action_status) - 1);
-    app->ble_action_status[sizeof(app->ble_action_status) - 1] = '\0';
-    furi_mutex_release(app->mutex);
-}
-
-void recon_app_set_ble_action(
-    ReconApp* app,
-    BleActionKind kind,
-    const char* status,
-    bool have_rssi,
-    int8_t rssi) {
-    if(kind == BleActionNone) return;
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->ble_action_kind = (uint8_t)kind;
-    app->ble_action_pending = false;
-    app->ble_action_done = true;
-    app->ble_action_have_rssi = have_rssi;
-    app->ble_action_rssi = rssi;
-    app->ble_action_tick = furi_get_tick();
-    app->ble_action_seq++;
-    if(app->ble_action_seq == 0) app->ble_action_seq = 1;
-    strncpy(
-        app->ble_action_status, status ? status : "unknown", sizeof(app->ble_action_status) - 1);
-    app->ble_action_status[sizeof(app->ble_action_status) - 1] = '\0';
-    app->esp_connected = true;
-    furi_mutex_release(app->mutex);
-}
-
-// How often Net Guardian re-buzzes while an attack stays active, in persistent
-// alert mode. Slow enough not to be maddening, fast enough to notice.
-#define GUARD_ALERT_REPEAT_MS 20000u
-
-/** Append one attack record to attacks.csv (best-effort; a failed write is not
- *  fatal to the scan). Header is written when the file is first created. */
-static void recon_attack_log_line(ReconApp* app, const char* line) {
-    if(!app->storage) return;
-    File* f = storage_file_alloc(app->storage);
-    if(storage_file_open(f, RECON_ATTACKS_PATH, FSAM_WRITE, FSOM_OPEN_APPEND)) {
-        if(storage_file_size(f) == 0) {
-            const char* hdr = "# FlipDeFlock attacks v1\nepoch,kind,target,channel,count,dur_s\n";
-            storage_file_write(f, hdr, strlen(hdr));
-        }
-        storage_file_write(f, line, strlen(line));
-    }
-    storage_file_close(f);
-    storage_file_free(f);
-}
-
-/**
- * Per-tick Net Guardian attack handling: count the ACTIVE (triaged, not just
- * counted) attacks, write any newly-active ones to the evidence log once, and
- * drive the escalated alert. Called from recon_app_watchscore_tick after the
- * fused-score alert. Returns nothing; publishes the active count on the app.
- *
- * The evidence log is the operator's record that "my network was attacked at
- * this time" -- defensive, not a movement trail, so unlike hits.csv it defaults
- * ON. Still a toggle (guard_evidence) for anyone who wants nothing written.
- */
-static void recon_app_guard_attacks(ReconApp* app) {
-    // Snapshot + mark-logged under the lock; write files and buzz outside it.
-    struct {
-        char line[96];
-    } pending[RECON_DEAUTH_MAX + 1];
-    unsigned n_pending = 0, active = 0;
-
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    uint32_t now = furi_get_tick();
-    bool log_on = app->settings.guard_evidence;
-    uint32_t epoch = furi_hal_rtc_get_timestamp();
-
-    for(size_t i = 0; i < app->deauth_count; i++) {
-        DeauthTarget* d = &app->deauth[i];
-        AttackStatus st =
-            attack_triage_status(d->count, d->first_tick, d->last_tick, now, 0, 0, 0);
-        if(st != AttackStatusActive) {
-            if(st == AttackStatusEnded) d->logged = false; // re-arm for a future episode
-            continue;
-        }
-        active++;
-        if(log_on && !d->logged && n_pending < RECON_DEAUTH_MAX) {
-            char mac[18];
-            fmt_mac(mac, sizeof(mac), d->bssid);
-            uint32_t secs = (d->last_tick - d->first_tick) / 1000;
-            snprintf(
-                pending[n_pending].line,
-                sizeof(pending[n_pending].line),
-                "%lu,deauth,%s,%u,%lu,%lu\n",
-                (unsigned long)epoch,
-                mac,
-                d->channel,
-                (unsigned long)d->count,
-                (unsigned long)secs);
-            n_pending++;
-            d->logged = true;
-            app->guard_evidence_n++;
-        }
-    }
-
-    if(app->esp_attack_tick) {
-        AttackStatus st = attack_triage_status(
-            app->esp_attack_value, app->esp_attack_first_tick, app->esp_attack_tick, now, 1, 0, 0);
-        if(st == AttackStatusActive) {
-            active++;
-            if(log_on && !app->esp_attack_logged && n_pending <= RECON_DEAUTH_MAX) {
-                uint32_t secs = (app->esp_attack_tick - app->esp_attack_first_tick) / 1000;
-                char kind[16];
-                strncpy(kind, app->esp_attack_kind, sizeof(kind) - 1);
-                kind[sizeof(kind) - 1] = '\0';
-                snprintf(
-                    pending[n_pending].line,
-                    sizeof(pending[n_pending].line),
-                    "%lu,%s,-,0,%lu,%lu\n",
-                    (unsigned long)epoch,
-                    kind,
-                    (unsigned long)app->esp_attack_value,
-                    (unsigned long)secs);
-                n_pending++;
-                app->esp_attack_logged = true;
-                app->guard_evidence_n++;
-            }
-        }
-    }
-
-    uint8_t alert_mode = app->settings.guard_alert;
-    uint32_t last_alert = app->guard_alert_tick;
-    // Update the alert clock under the lock so the read/modify is atomic.
-    bool buzz = false;
-    if(active > 0) {
-        if(last_alert == 0) {
-            buzz = (alert_mode != GuardAlertOff); // rising edge into an active attack
-            app->guard_alert_tick = now;
-        } else if(alert_mode == GuardAlertPersistent && (now - last_alert) >= GUARD_ALERT_REPEAT_MS) {
-            buzz = true;
-            app->guard_alert_tick = now;
-        }
-    } else {
-        app->guard_alert_tick = 0; // cleared; next attack re-arms the edge
-    }
-    app->guard_active_atk = (uint8_t)(active > 255 ? 255 : active);
-    furi_mutex_release(app->mutex);
-
-    for(unsigned i = 0; i < n_pending; i++)
-        recon_attack_log_line(app, pending[i].line);
-
-    if(buzz && app->notifications) {
-        notification_message(app->notifications, &sequence_double_vibro);
-        if(app->settings.sound) notification_message(app->notifications, &sequence_error);
-    }
-}
-
-void recon_app_watchscore_tick(ReconApp* app) {
-    WatchInputs in;
-    memset(&in, 0, sizeof(in));
-    in.flock_dist_m = NAN;
-
-    // --- snapshot the shared arrays under the lock; decide AFTER release -----
-    // (same discipline as the map/report code: the ESP worker writes these.)
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    uint32_t now = furi_get_tick();
-    bool gps_valid = app->gps_valid;
-    float gps_lat = app->gps_lat;
-    float gps_lon = app->gps_lon;
-
-    // (1) A CONFIRMED Flock seen recently. If we have a fix and it's geotagged,
-    // also test co-location. ftype 'L' marks a BLE-sourced Flock = a genuinely
-    // independent radio for the coincidence gate.
-    float best_dist = NAN;
-    for(size_t i = 0; i < app->flock_count; i++) {
-        const FlockEntry* e = &app->flock[i];
-        if(e->confidence < FlockConfidenceConfirmed) continue;
-        // An archived (restored-from-disk) hit is NOT a live sighting. Its
-        // last_tick is 0, so the freshness test below reduces to `now > 60000`
-        // -- false for the first minute after a reboot, which would make a hit
-        // from days ago read as a camera watching you right now. Gate on the
-        // flag; never age an archived entry with tick arithmetic.
-        if(e->archived) continue;
-        if((now - e->last_tick) > WATCH_FLOCK_FRESH_MS) continue;
-        in.flock_confirmed = true;
-        if(e->ftype == 'L') in.flock_via_ble = true;
-        if(gps_valid && !isnan(e->lat)) {
-            float d = detect_dist_m(e->lat, e->lon, gps_lat, gps_lon);
-            if(isnan(best_dist) || d < best_dist) best_dist = d;
-        }
-    }
-    if(!isnan(best_dist) && best_dist <= WATCH_FLOCK_NEAR_M) {
-        in.flock_near = true;
-        in.flock_dist_m = best_dist;
-    }
-
-    // (2) A BLE tracker that latched the multi-condition anti-stalking gate.
-    for(size_t i = 0; i < app->ble_count; i++) {
-        const BleDevice* e = &app->ble[i];
-        if(!e->following || !ble_tracker_category_is_known(e->cat)) continue;
-        in.ble_following = true;
-        uint32_t mins = (now - e->first_tick) / 60000;
-        if(mins > in.ble_follow_min) in.ble_follow_min = mins;
-    }
-
-    // (3) An attributed deauth/disassoc *flood* active right now. The companion
-    // emits a DA attribution line for even a single deauth/disassoc frame, and a
-    // lone frame is normal WiFi churn (roaming, idle timeout, an AP reboot) -- so
-    // requiring only a fresh DA target falsely raised WATCHFUL on benign traffic.
-    // Gate on the per-interval rate clearing the flood threshold (the same bar
-    // the live banner uses); the DA target then supplies recency + attribution.
-    //
-    // WITH A GUARDED NETWORK SET, only a flood aimed at THAT BSSID counts. In a
-    // flat or an office most deauth traffic in range is somebody else's, and a
-    // Guardian that lights up for the neighbours is one the operator learns to
-    // ignore -- the alert fatigue this fused score exists to remove.
-    if(app->esp_deauths >= WATCH_DEAUTH_FLOOD_MIN) {
-        for(size_t i = 0; i < app->deauth_count; i++) {
-            if((now - app->deauth[i].last_tick) > WATCH_DEAUTH_FRESH_MS) continue;
-            if(app->guard_active && memcmp(app->deauth[i].bssid, app->guard_bssid, 6) != 0) {
-                continue;
-            }
-            in.deauth_active = true;
-            break;
-        }
-    }
-
-    // (4) An evil-twin / rogue AP (same SSID, mismatched security) of a network.
-    //
-    // Matched on SSID, not BSSID, and that is the point: a clone announces the
-    // guarded network's NAME from a different address. Comparing addresses would
-    // never fire, because a twin sharing the BSSID would not be a twin. A target
-    // with no name simply never contributes this signal -- deauth attribution
-    // still works for it.
-    for(size_t i = 0; i < app->wifi_count; i++) {
-        if(!app->wifi[i].rogue) continue;
-        if(app->guard_active &&
-           (app->guard_ssid[0] == 0 || strcmp(app->wifi[i].ssid, app->guard_ssid) != 0)) {
-            continue;
-        }
-        in.rogue_ap = true;
-        break;
-    }
-
-    // (5) An active attack-tool signature the companion reported recently
-    // (BLE-spam advert flood / beacon-spam / probe-request flood). Bursty, so a
-    // short freshness window; the kind picks the breakdown label + radio class.
-    if(app->esp_attack_tick && (now - app->esp_attack_tick) <= WATCH_ATTACK_FRESH_MS) {
-        in.attack_active = true;
-        in.attack_via_ble = app->esp_attack_ble;
-        strncpy(in.attack_label, app->esp_attack_kind, sizeof(in.attack_label) - 1);
-        in.attack_label[sizeof(in.attack_label) - 1] = '\0';
-    }
-
-    // (6) A Flipper Zero advertising nearby (BLE name "Flipper ..."), seen this
-    // sweep's freshness window. A recon multitool -> WATCHFUL on its own.
-    // (7) Opt-in anomaly: an unnamed, unidentified (no mfg id, no recognized
-    // category), strong, repeatedly-seen BLE device -- "something is on you and
-    // won't identify itself." Off by default; deliberately strict to limit FPs.
-    //
-    // Plus the Guardian HUD's Flipper tally, cached under this same lock so
-    // guardian_view can read its own snapshot instead of re-acquiring the mutex
-    // and re-walking this array twice per frame. Mirrors recon_app_flipper_count.
-    //
-    // All THREE used to walk ble[] separately while holding the mutex, which
-    // blocks the ESP worker and the GUI for the duration. Same results, one pass.
-    // Note flipper_near and flip_n share a predicate: flip_n > 0 IS flipper_near,
-    // so deriving one from the other also removes a chance for them to disagree.
-    uint8_t flip_n = 0;
-    bool check_anomaly = app->settings.anomaly_flag;
-    for(size_t i = 0; i < app->ble_count; i++) {
-        const BleDevice* d = &app->ble[i];
-        if(d->cat == BleCatFlipper && (now - d->last_tick) <= WATCH_BLE_FRESH_MS) {
-            if(flip_n < UINT8_MAX) flip_n++;
-        }
-        if(check_anomaly && !in.anomaly && recon_ble_is_anomaly(d, now)) {
-            in.anomaly = true;
-        }
-    }
-    in.flipper_near = (flip_n > 0);
-
-    uint8_t atk_n = 0;
-    for(size_t i = 0; i < app->deauth_count; i++) {
-        if(app->deauth[i].count >= WATCH_DEAUTH_FLOOD_MIN) atk_n++;
-    }
-    if(app->esp_attack_tick && (now - app->esp_attack_tick) <= WATCH_ATTACK_FRESH_MS) atk_n++;
-    app->guardian_flip_n = flip_n;
-    app->guardian_atk_n = atk_n;
-
-    furi_mutex_release(app->mutex);
-
-    // --- evaluate the scorer (pure logic on the snapshot) -------------------
-    // Re-take the lock only to publish the result: the Net Guardian view reads
-    // app->watch (state + breakdown) from the GUI thread.
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    watchscore_eval(&app->watch, &in);
-    bool just_elevated = app->watch.just_elevated;
-    furi_mutex_release(app->mutex);
-
-    // Fire EXACTLY ONE haptic alert on the transition INTO ELEVATED, carrying
-    // the per-signal breakdown for the next screen to show. Haptic-only keeps
-    // it discreet (personal-safety) and respects the app's sound setting.
-    if(just_elevated && app->notifications) {
-        notification_message(app->notifications, &sequence_double_vibro);
-        if(app->settings.sound) {
-            notification_message(app->notifications, &sequence_error);
-        }
-    }
-
-    // Attack triage, evidence log and escalated alert (Net Guardian, passive).
-    recon_app_guard_attacks(app);
-}
-
 // ---- settings ------------------------------------------------------------
 
 static void recon_settings_defaults(ReconApp* app) {
@@ -1143,7 +670,6 @@ static void recon_settings_defaults(ReconApp* app) {
     app->settings.esp_auto_5v = true; // a board on the header is dead without it
     app->settings.save_hits = false; // privacy: a hit log is a record of where you have been
     app->settings.log_serials = false; // privacy: don't catalogue police asset serials by default
-    app->settings.anomaly_flag = false; // off by default: higher false-positive mode
 }
 
 void recon_settings_save(ReconApp* app) {
@@ -1153,7 +679,7 @@ void recon_settings_save(ReconApp* app) {
         FuriString* s = furi_string_alloc();
         furi_string_printf(
             s,
-            "backend=%d\nesp_band=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\nguard_evidence=%d\nguard_alert=%d\nesp_auto_5v=%d\n",
+            "backend=%d\nesp_band=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\nesp_auto_5v=%d\n",
             app->settings.backend,
             app->settings.esp_band,
             app->settings.esp_uart,
@@ -1167,37 +693,11 @@ void recon_settings_save(ReconApp* app) {
             app->settings.sound ? 1 : 0,
             app->settings.flash_fast ? 1 : 0,
             app->settings.log_serials ? 1 : 0,
-            app->settings.anomaly_flag ? 1 : 0,
             app->settings.alert_mode,
             app->settings.alert_min_conf,
             app->settings.save_hits ? 1 : 0,
-            app->settings.guard_evidence ? 1 : 0,
-            app->settings.guard_alert,
             app->settings.esp_auto_5v ? 1 : 0);
 
-        // The guarded network, appended only when one is set, so an untargeted
-        // install keeps exactly the file it has always had.
-        //
-        // A newline inside an SSID would corrupt the whole file, so such a target
-        // persists as BSSID-only: deauth attribution survives the restart and
-        // evil-twin matching resumes once it is re-picked. Losing one signal
-        // beats truncating the settings file. ('=' is fine -- the loader splits
-        // on the first one.)
-        if(app->guard_active) {
-            furi_string_cat_printf(
-                s,
-                "guard_bssid=%02x%02x%02x%02x%02x%02x\n",
-                app->guard_bssid[0],
-                app->guard_bssid[1],
-                app->guard_bssid[2],
-                app->guard_bssid[3],
-                app->guard_bssid[4],
-                app->guard_bssid[5]);
-            if(app->guard_ssid[0] && !strchr(app->guard_ssid, '\n') &&
-               !strchr(app->guard_ssid, '\r')) {
-                furi_string_cat_printf(s, "guard_ssid=%s\n", app->guard_ssid);
-            }
-        }
         storage_file_write(file, furi_string_get_cstr(s), furi_string_size(s));
         furi_string_free(s);
     }
@@ -1211,6 +711,7 @@ void recon_settings_save(ReconApp* app) {
  *             first '=' is what lets an SSID legally containing '=' round-trip.
  */
 static void recon_settings_apply_kv(ReconApp* app, const char* key, long val, const char* raw) {
+    (void)raw; // cameras-only: the only string-valued key (guard_ssid) was removed
     if(strcmp(key, "backend") == 0)
         app->settings.backend = (val == EspBackendGeneric) ? EspBackendGeneric :
                                                              EspBackendCompanion;
@@ -1240,12 +741,6 @@ static void recon_settings_apply_kv(ReconApp* app, const char* key, long val, co
         app->settings.flash_fast = (val != 0);
     else if(strcmp(key, "log_serials") == 0)
         app->settings.log_serials = (val != 0);
-    else if(strcmp(key, "anomaly_flag") == 0)
-        app->settings.anomaly_flag = (val != 0);
-    else if(strcmp(key, "guard_evidence") == 0)
-        app->settings.guard_evidence = (val != 0);
-    else if(strcmp(key, "guard_alert") == 0 && val >= 0 && val < GuardAlertCount)
-        app->settings.guard_alert = (uint8_t)val;
     else if(strcmp(key, "alert_mode") == 0 && val >= 0 && val < ReconAlertModeCount)
         app->settings.alert_mode = (uint8_t)val; // corrupt value -> keep the default
     else if(strcmp(key, "alert_min_conf") == 0 && val >= 0 && val < AlertConfCount)
@@ -1254,27 +749,6 @@ static void recon_settings_apply_kv(ReconApp* app, const char* key, long val, co
         app->settings.save_hits = (val != 0);
     else if(strcmp(key, "esp_auto_5v") == 0)
         app->settings.esp_auto_5v = (val != 0);
-    else if(strcmp(key, "guard_ssid") == 0) {
-        strncpy(app->guard_ssid, raw, RECON_SSID_LEN - 1);
-        app->guard_ssid[RECON_SSID_LEN - 1] = 0;
-    } else if(strcmp(key, "guard_bssid") == 0) {
-        // 12 hex chars, no separators. Anything else leaves the target INACTIVE
-        // rather than half-applied: guarding an address we misparsed would
-        // silently watch the wrong network, which is worse than watching all.
-        uint8_t b[6];
-        bool ok = strlen(raw) >= 12;
-        for(int i = 0; ok && i < 6; i++) {
-            int hi = esp_hexval(raw[i * 2]), lo = esp_hexval(raw[i * 2 + 1]);
-            if(hi < 0 || lo < 0)
-                ok = false;
-            else
-                b[i] = (uint8_t)((hi << 4) | lo);
-        }
-        if(ok) {
-            memcpy(app->guard_bssid, b, 6);
-            app->guard_active = true;
-        }
-    }
 }
 
 void recon_settings_load(ReconApp* app) {
@@ -1580,7 +1054,6 @@ static ReconApp* recon_app_alloc(void) {
 
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     app->fw_log = furi_string_alloc();
-    watchscore_init(&app->watch);
     app->gps_lat = NAN;
     app->gps_lon = NAN;
     app->gps_course = NAN;
@@ -1620,10 +1093,6 @@ static ReconApp* recon_app_alloc(void) {
     flock_map_view_set_app(app->flock_map_view, app);
     app->deflock_qr_view = deflock_qr_view_alloc();
     deflock_qr_view_set_app(app->deflock_qr_view, app);
-    app->guardian_view = guardian_view_alloc();
-    guardian_view_set_app(app->guardian_view, app);
-    app->ble_list_view = ble_list_view_alloc();
-    ble_list_view_set_app(app->ble_list_view, app);
     app->locator_view = locator_view_alloc();
     locator_view_set_app(app->locator_view, app);
 
@@ -1646,10 +1115,6 @@ static ReconApp* recon_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, ReconViewDeflockQr, deflock_qr_view_get_view(app->deflock_qr_view));
     view_dispatcher_add_view(
-        app->view_dispatcher, ReconViewGuardian, guardian_view_get_view(app->guardian_view));
-    view_dispatcher_add_view(
-        app->view_dispatcher, ReconViewBleList, ble_list_view_get_view(app->ble_list_view));
-    view_dispatcher_add_view(
         app->view_dispatcher, ReconViewLocator, locator_view_get_view(app->locator_view));
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -1666,8 +1131,6 @@ static void recon_app_free(ReconApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewFlockDetail);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewFlockMap);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewDeflockQr);
-    view_dispatcher_remove_view(app->view_dispatcher, ReconViewGuardian);
-    view_dispatcher_remove_view(app->view_dispatcher, ReconViewBleList);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewLocator);
 
     submenu_free(app->submenu);
@@ -1678,8 +1141,6 @@ static void recon_app_free(ReconApp* app) {
     flock_detail_view_free(app->flock_detail_view);
     flock_map_view_free(app->flock_map_view);
     deflock_qr_view_free(app->deflock_qr_view);
-    guardian_view_free(app->guardian_view);
-    ble_list_view_free(app->ble_list_view);
     locator_view_free(app->locator_view);
 
     scene_manager_free(app->scene_manager);

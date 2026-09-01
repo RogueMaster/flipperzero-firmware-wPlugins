@@ -264,34 +264,6 @@ static void log_serials_changed(VariableItem* item) {
     recon_settings_save(app);
 }
 
-static void anomaly_flag_changed(VariableItem* item) {
-    ReconApp* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    app->settings.anomaly_flag = (idx == 1);
-    variable_item_set_current_value_text(item, onoff_text[idx]);
-    recon_settings_save(app);
-}
-
-// Net Guardian: write confirmed attacks to attacks.csv (defensive record).
-static void guard_evidence_changed(VariableItem* item) {
-    ReconApp* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    app->settings.guard_evidence = (idx == 1);
-    variable_item_set_current_value_text(item, onoff_text[idx]);
-    recon_settings_save(app);
-}
-
-// Net Guardian: how an ACTIVE (triaged) attack sounds. Index-aligned GuardAlertMode.
-static const char* const guard_alert_text[] = {"Off", "Once", "Repeat"};
-static void guard_alert_changed(VariableItem* item) {
-    ReconApp* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    if(idx >= GuardAlertCount) idx = GuardAlertOnce;
-    app->settings.guard_alert = idx;
-    variable_item_set_current_value_text(item, guard_alert_text[idx]);
-    recon_settings_save(app);
-}
-
 void recon_scene_settings_on_enter(void* context) {
     ReconApp* app = context;
     VariableItemList* list = app->var_item_list;
@@ -424,26 +396,6 @@ void recon_scene_settings_on_enter(void* context) {
     item = variable_item_list_add(list, "Log Flock serials", 2, log_serials_changed, app);
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, onoff_text[idx]);
-
-    // Net Guardian: flag unidentified strong/persistent BLE devices as suspicious.
-    // Off by default -- it trades a higher false-positive rate for more coverage.
-    idx = app->settings.anomaly_flag ? 1 : 0;
-    item = variable_item_list_add(list, "Anomaly flag", 2, anomaly_flag_changed, app);
-    variable_item_set_current_value_index(item, idx);
-    variable_item_set_current_value_text(item, onoff_text[idx]);
-
-    // Net Guardian evidence log (attacks.csv). On by default -- it is a record
-    // of attacks AGAINST you, not a movement trail, so it is safe to keep.
-    idx = app->settings.guard_evidence ? 1 : 0;
-    item = variable_item_list_add(list, "Attack log", 2, guard_evidence_changed, app);
-    variable_item_set_current_value_index(item, idx);
-    variable_item_set_current_value_text(item, onoff_text[idx]);
-
-    // How an active attack sounds: Off / one buzz / repeat while it lasts.
-    idx = app->settings.guard_alert < GuardAlertCount ? app->settings.guard_alert : GuardAlertOnce;
-    item = variable_item_list_add(list, "Attack alert", GuardAlertCount, guard_alert_changed, app);
-    variable_item_set_current_value_index(item, idx);
-    variable_item_set_current_value_text(item, guard_alert_text[idx]);
 
     // Fire the REAL alert, with the operator's real settings, on demand.
     //

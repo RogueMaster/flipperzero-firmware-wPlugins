@@ -21,22 +21,30 @@
 #include "helpers/detect_rules.h" // AlertConfChoice for the settings scene
 #include "helpers/flock_db.h"
 #include "helpers/flock_ble.h"
-#include "helpers/watchscore.h"
 #include "views/flock_view.h"
 #include "views/flock_detail_view.h"
 #include "views/flock_map_view.h"
 #include "views/deflock_qr_view.h"
-#include "views/guardian_view.h"
-#include "views/ble_list_view.h"
 #include "views/locator_view.h"
 
-#define RECON_FLOCK_MAX   64
-#define RECON_WIFI_MAX    48
-#define RECON_DEAUTH_MAX  16
-#define RECON_BLE_MAX     48
-#define RECON_TEXT_STORE  160
-#define RECON_SSID_LEN    33
-#define RECON_VERSION     FAP_VERSION
+#define RECON_FLOCK_MAX  64
+#define RECON_WIFI_MAX   48
+#define RECON_BLE_MAX    48
+#define RECON_TEXT_STORE 160
+#define RECON_SSID_LEN   33
+/** Shown on the main menu and About, so a bug report can name the build.
+ *
+ *  DEFINED BY THE BUILD, from FAP_VERSION in application.fam -- the same value
+ *  stamped into the .fap. It was a hand-maintained literal here until v0.64,
+ *  which meant two edits in two files with nothing checking they agreed; the
+ *  failure mode is silent and shows a confidently wrong version to exactly the
+ *  person trying to report a bug against a known build.
+ *
+ *  The fallback only appears if someone compiles this outside ufbt/fbt, and says
+ *  so rather than inventing a number. */
+#ifndef RECON_VERSION
+#define RECON_VERSION "v?.??"
+#endif
 /** Most GPS-capable pins any supported part exposes (classic ESP32 has ~34). */
 #define RECON_GPS_PIN_MAX 40
 
@@ -53,29 +61,10 @@ typedef enum {
     BleCatAxon = 7, /**< Axon body-worn / in-car police kit (SIG company id 0x034D) */
 } BleCat;
 
-/** How Net Guardian escalates when an attack is ACTIVE (not a blip).
- *  Order is persisted in settings.txt as an integer -- append only. */
-typedef enum {
-    GuardAlertOff = 0, /**< no sound/haptic for attacks (the score still shows) */
-    GuardAlertOnce, /**< one buzz on the rising edge into an active attack (default) */
-    GuardAlertPersistent, /**< re-buzz every GUARD_ALERT_REPEAT_MS while it stays active */
-    GuardAlertCount,
-} GuardAlertMode;
-
-/** Explicit, user-triggered actions for a validated BLE tracker. */
-typedef enum {
-    BleActionNone = 0,
-    BleActionPing,
-    BleActionRing,
-} BleActionKind;
-
-#define RECON_BLE_ACTION_STATUS_LEN 24
-
-#define RECON_APP_FOLDER    APP_DATA_PATH("")
+#define RECON_APP_FOLDER    EXT_PATH("apps_data/flipdeflock")
 #define RECON_REPORT_FOLDER RECON_APP_FOLDER "/reports"
 #define RECON_SETTINGS_PATH RECON_APP_FOLDER "/settings.txt"
 #define RECON_HITS_PATH     RECON_APP_FOLDER "/hits.csv"
-#define RECON_ATTACKS_PATH  RECON_APP_FOLDER "/attacks.csv"
 
 /** ViewDispatcher view indexes. */
 typedef enum {
@@ -87,8 +76,6 @@ typedef enum {
     ReconViewFlockDetail,
     ReconViewFlockMap,
     ReconViewDeflockQr,
-    ReconViewGuardian,
-    ReconViewBleList,
     ReconViewLocator,
 } ReconView;
 
@@ -216,9 +203,6 @@ typedef struct {
     bool save_hits; /**< persist detections to hits.csv across app restarts (default OFF:
                       *   it is a durable record of where you have been) */
     bool log_serials; /**< log Flock device serials to saved reports (default OFF) */
-    bool anomaly_flag; /**< Net Guardian: flag unidentified strong/persistent devices (default OFF, higher FP) */
-    bool guard_evidence; /**< Net Guardian: append confirmed attacks to attacks.csv (default ON) */
-    uint8_t guard_alert; /**< GuardAlertMode: how Net Guardian sounds an active attack */
 } ReconSettings;
 
 /**
@@ -249,7 +233,7 @@ typedef struct {
     bool alerted; /**< the detection alert has already fired for this device (latch) */
     bool archived; /**< restored from hits.csv, not seen yet this session. first_tick/
                      *   last_tick are 0 and MEANINGLESS -- never age-test an archived
-                     *   entry with tick arithmetic (see recon_app_watchscore_tick). */
+                     *   entry with tick arithmetic. */
     uint32_t ie_fp; /**< probe IE-skeleton fingerprint of this detection (0=none);
                       *   shown on the detail screen so it can be seeded into
                       *   signatures.json to catch MAC-randomized siblings. */
@@ -271,22 +255,11 @@ typedef struct {
     uint8_t authmode; /**< esp wifi_auth_mode_t */
     uint8_t pairwise; /**< esp wifi_cipher_type_t (pairwise) */
     bool wps;
-    bool dup; /**< SSID seen on >1 BSSID -> possible evil twin (or mesh) */
-    bool rogue; /**< same SSID with mismatched security -> strong evil-twin signal */
     bool marked; /**< user-tagged for the report */
 } WifiAp;
 
 /** A BSSID observed being deauthenticated/disassociated (attack target). */
-typedef struct {
-    uint8_t bssid[6];
-    uint8_t channel;
-    uint32_t count;
-    uint32_t first_tick; /**< tick this BSSID was first seen under attack (for span) */
-    uint32_t last_tick;
-    bool logged; /**< already written to attacks.csv this episode (dedup) */
-} DeauthTarget;
-
-/** A BLE device sighting (anti-tracker / BLE-Flock). */
+/** A BLE device sighting (BLE-sourced Flock detection). */
 #define RECON_BLE_SERIAL_LEN 24 /**< "TN72023022000771" is 16 chars; room to spare */
 
 /** Same size-driven field ordering as FlockEntry, for the same reason: 48 of
@@ -299,10 +272,7 @@ typedef struct {
     int8_t rssi;
     uint8_t cat; /**< BleCat */
     uint8_t model; /**< FlockBleModel: conservative Falcon/Raven guess */
-    uint8_t inrange_wp_count; /**< distinct observer waypoints (>=50 m apart) seen at */
-    bool following; /**< multi-condition anti-stalking signal (latched) */
     bool marked; /**< user-tagged for the report */
-    bool tracker_separated; /**< Find My tracker advert reported separated state */
     uint16_t company; /**< BLE company id, 0xFFFF if none */
     uint32_t count; /**< times seen across rescans */
     float first_lat; /**< GPS at first sighting (NAN if none) */
@@ -311,9 +281,6 @@ typedef struct {
     float last_lon;
     uint32_t first_tick; /**< tick at first sighting */
     uint32_t last_tick; /**< tick at latest sighting */
-    float last_wp_lat; /**< last counted waypoint (NAN if none) */
-    float last_wp_lon;
-    float max_span_m; /**< running max distance between counted waypoints */
 } BleDevice;
 
 typedef struct EspLink EspLink;
@@ -336,8 +303,6 @@ typedef struct {
     FlockDetailView* flock_detail_view;
     FlockMapView* flock_map_view;
     DeflockQrView* deflock_qr_view;
-    GuardianView* guardian_view;
-    BleListView* ble_list_view;
     LocatorView* locator_view;
 
     ReconSettings settings;
@@ -460,72 +425,26 @@ typedef struct {
                             *  v0.56: a user reported the count "ticking back to 0" on
                             *  long drives as a cosmetic annoyance, when it was the ESP
                             *  resetting and dropping detections. */
-    uint32_t esp_deauths; /**< deauth/disassoc frames seen (attack indicator) */
     uint8_t esp_proto_version; /**< companion wire-protocol version (FLOCKCO banner; 0 = unknown) */
     bool esp_proto_mismatch; /**< companion speaks a different protocol version than the app */
     uint32_t esp_dropped_lines; /**< overlong RX lines dropped whole (wire-protocol health metric) */
     uint8_t esp_link_state; /**< EspLinkState: Stopped / Running / PortBusy (R6 error surface) */
 
-    // Active attack-tool signature reported by the companion (ATK line): BLE-spam
-    // advert flood, beacon-spam (Marauder / Pineapple), or probe-request flood.
-    uint32_t esp_attack_tick; /**< furi tick of the last ATK line (0 = none this session) */
-    uint32_t esp_attack_first_tick; /**< tick the current ATK episode began */
-    bool esp_attack_logged; /**< current ATK episode already in attacks.csv */
-    uint32_t guard_evidence_n; /**< attacks written to attacks.csv this session */
-    uint32_t guard_alert_tick; /**< last time an active-attack alert fired (persistent mode) */
-    uint8_t guard_active_atk; /**< TRIAGED active attacks right now (for the HUD hint) */
-    uint32_t esp_attack_value; /**< the count/rate the companion reported with it */
-    char esp_attack_kind[16]; /**< short kind from the ATK line, e.g. "BLE-spam" */
-    bool esp_attack_ble; /**< true if the signature is BLE-borne (BLE-spam) vs Wi-Fi */
-
-    /* The WiFi Audit SCREEN was removed, but this table stays: Net Guardian's
-     * rotating sweep still runs `wifiscan`, and the evil-twin/rogue pass in
-     * recon_app.c is what raises watchscore's rogue_ap input. Dropping it would
-     * silently cost the Guardian one of the two independent radios it needs to
-     * agree before it may reach ELEVATED. */
+    /* The WiFi Audit SCREEN was removed, but this table stays: the Locator
+     * builds its target list from it, so a marked camera can be hunted by
+     * BSSID after a sweep. */
     WifiAp wifi[RECON_WIFI_MAX]; /**< results of the last WiFi sweep */
     size_t wifi_count;
     bool wifi_scanning; /**< true between WBEGIN and WEND */
     bool wifi_done; /**< a scan has completed at least once */
     uint8_t saved_backend; /**< backend to restore after the WiFi-audit scene */
 
-    DeauthTarget deauth[RECON_DEAUTH_MAX]; /**< BSSIDs seen under deauth attack */
-    size_t deauth_count;
-
-    /**
-     * Net Guardian's GUARDED NETWORK, or "everything in range" when unset.
-     *
-     * Untargeted, the Guardian answers "is anything around me under attack?",
-     * which in a busy building is somebody else's problem most of the time. With
-     * a target set it answers "is MY network under attack?" -- only deauths aimed
-     * at this BSSID and evil twins of this SSID feed the score. Everything else
-     * (Flock, trackers, Flipper, attack tools) is unchanged: those are about the
-     * operator, not the network, and filtering them on a BSSID would be nonsense.
-     *
-     * The SSID is kept alongside the BSSID because an evil twin BY DEFINITION
-     * has a different BSSID -- matching a clone needs the name, and matching a
-     * deauth needs the address. Storing only one cannot express both.
-     */
-    uint8_t guard_bssid[6];
-    char guard_ssid[RECON_SSID_LEN];
-    bool guard_active; /**< false = guard everything in range (the default) */
-
     BleDevice ble[RECON_BLE_MAX]; /**< BLE devices / trackers */
     size_t ble_count;
     bool ble_scanning;
     bool ble_done;
     int ble_selected;
-    uint8_t ble_action_kind; /**< BleActionKind currently shown in the detail view */
-    bool ble_action_pending; /**< companion is processing the explicit action */
-    bool ble_action_done; /**< a companion result or local rejection is available */
-    bool ble_action_have_rssi;
-    int8_t ble_action_rssi;
-    uint32_t ble_action_tick; /**< timeout clock for the in-flight action */
-    uint32_t ble_action_seq; /**< changes whenever the action status changes */
-    uint32_t ble_action_render_seq; /**< GUI-side rendered sequence */
-    char ble_action_status[RECON_BLE_ACTION_STATUS_LEN];
 
-    WatchScore watch; /**< fused "am I being watched?" scorer (C1) */
     uint32_t guardian_since; /**< tick the Net Guardian session started (uptime) */
     uint8_t guardian_phase; /**< current rotating-sweep phase (0=flockcombo,1=ble,2=wifi) */
     // Scan-scene UI state, moved out of per-scene file-scope statics (R4-tail) so
@@ -540,9 +459,6 @@ typedef struct {
     uint32_t ble_mark; /**< ble: tick of the last state transition */
     bool ble_blocked; /**< ble: opened in Marauder mode -> guard screen */
     bool locator_blocked; /**< locator: opened in Marauder mode -> guard screen */
-    uint8_t guardian_flip_n; /**< cached nearby-Flipper count for the HUD (set each
-                              *   watchscore tick, so the view needn't re-lock). */
-    uint8_t guardian_atk_n; /**< cached active-attack count for the HUD. */
 
     // Locator: hunt down one marked device by live signal strength (hot/cold).
     uint8_t locate_mac[6]; /**< target MAC/BSSID/BLE addr */
@@ -601,7 +517,6 @@ void recon_app_set_esp_status(
 void recon_app_set_esp_lines(ReconApp* app, uint32_t lines);
 
 /** Update the deauth/disassoc frame counter (thread-safe). */
-void recon_app_set_deauths(ReconApp* app, uint32_t deauths);
 
 /** Record the companion's announced wire-protocol version + whether it mismatches
  *  what this app speaks (thread-safe). See ESP_PROTO_VERSION in esp_parser.h. */
@@ -640,16 +555,6 @@ void recon_app_request_gps_cfg(ReconApp* app);
 /** GUI-tick side: send the relay config if the worker asked for it. */
 void recon_app_gps_cfg_tick(ReconApp* app);
 
-/** Record a deauth attack target BSSID (thread-safe); dedups by BSSID. */
-void recon_app_add_deauth_target(ReconApp* app, const uint8_t bssid[6], uint8_t channel);
-
-/** Record an active attack-tool signature from the companion ATK line (thread-safe). */
-void recon_app_set_attack(ReconApp* app, const char* kind, uint32_t value);
-
-// Net Guardian HUD tallies (nearby Flippers / active attacks) are cached in
-// app->guardian_flip_n / guardian_atk_n by recon_app_watchscore_tick each tick,
-// so the view reads them from its own snapshot without re-acquiring the mutex.
-
 /**
  * Opt-in "anomaly": an unnamed, unidentified (no mfg id / no recognized category),
  * strong, repeatedly-seen BLE device -- the closest passive proxy for "an unknown
@@ -676,20 +581,8 @@ void recon_app_ble_add(
     uint16_t company,
     const uint8_t* mfg, /**< raw mfg-data bytes (Flock 0x09C8), NULL if none */
     size_t mfg_len,
-    bool raven_gatt, /**< companion saw Raven-specific GATT services (0x3100-0x3500) */
-    bool tracker_separated); /**< Find My advert was in separated state */
+    bool raven_gatt); /**< companion saw Raven-specific GATT services (0x3100-0x3500) */
 void recon_app_ble_end(ReconApp* app);
-
-/** Start an explicit tracker action; called only from a GUI button handler. */
-void recon_app_ble_action_begin(ReconApp* app, BleActionKind kind);
-
-/** Record a companion action result (ACT line), or a local rejection. */
-void recon_app_set_ble_action(
-    ReconApp* app,
-    BleActionKind kind,
-    const char* status,
-    bool have_rssi,
-    int8_t rssi);
 
 /** WiFi security scan results (thread-safe; called from the ESP worker). */
 void recon_app_wifi_begin(ReconApp* app);
@@ -709,7 +602,6 @@ void recon_app_wifi_end(ReconApp* app);
  * app->mutex, evaluates the scorer after release, and fires exactly one
  * notification on the transition INTO ELEVATED. Safe to call from the GUI tick.
  */
-void recon_app_watchscore_tick(ReconApp* app);
 
 /**
  * Announce any pending detection alert (issue #1). Reads and clears

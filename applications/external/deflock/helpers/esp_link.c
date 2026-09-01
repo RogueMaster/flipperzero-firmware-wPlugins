@@ -110,8 +110,7 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
             m->u.ble.company,
             m->u.ble.mfg_len ? m->u.ble.mfg : NULL,
             m->u.ble.mfg_len,
-            m->u.ble.raven_gatt,
-            m->u.ble.tracker_separated);
+            m->u.ble.raven_gatt);
         break;
     case EspMsgFlock:
         recon_app_report_flock(
@@ -127,27 +126,18 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
             m->u.flock.hidden);
         break;
     case EspMsgDeauthTarget:
-        recon_app_add_deauth_target(app, m->u.deauth.bssid, m->u.deauth.channel);
-        break;
     case EspMsgAttack:
-        recon_app_set_attack(app, m->u.attack.kind, m->u.attack.value);
+        // Attack detection moved to Aegis. The universal companion still reports
+        // DA/ATK lines; FlipDeFlock (cameras only) ignores them.
         break;
     case EspMsgLocate:
         recon_app_set_locate_rssi(app, m->u.locate.rssi);
         break;
-    case EspMsgAction: {
-        BleActionKind kind = BleActionNone;
-        if(strcmp(m->u.action.op, "PING") == 0) {
-            kind = BleActionPing;
-        } else if(strcmp(m->u.action.op, "RING") == 0) {
-            kind = BleActionRing;
-        }
-        if(kind != BleActionNone) {
-            recon_app_set_ble_action(
-                app, kind, m->u.action.status, m->u.action.have_rssi, m->u.action.rssi);
-        }
+    case EspMsgAction:
+        // Ping / Ring went with the tracker screen; FlipDeFlock transmits
+        // nothing at all now. The companion can still answer an ACT, so parse
+        // it and drop it rather than treating it as an unknown line.
         break;
-    }
     case EspMsgGpsNmea:
         // Only when the operator actually selected the companion as the GPS
         // source. A board that relays NMEA must not be able to override a GPS
@@ -181,7 +171,6 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
     case EspMsgStatus:
         recon_app_set_esp_status(
             app, m->u.status.frames, m->u.status.hits, m->u.status.channel, true);
-        if(m->u.status.have_deauths) recon_app_set_deauths(app, m->u.status.deauths);
         break;
     case EspMsgIgnore:
     default:

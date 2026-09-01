@@ -35,6 +35,5 @@ typedef enum {
  * dropped but the vibro still fires, so the one global mute switch stays honest
  * instead of two settings disagreeing. Every mode also raises the backlight --
  * a hit is worth noticing on a device sitting in a pocket or a cupholder, and
- * Net Guardian already does the same on its ELEVATED transition.
  */
 void recon_alert_fire(NotificationApp* notifications, uint8_t mode, bool sound_enabled);

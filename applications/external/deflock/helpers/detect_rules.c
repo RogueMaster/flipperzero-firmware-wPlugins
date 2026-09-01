@@ -27,30 +27,6 @@ bool flock_geotag_should_update(
     return have_fix && (!already_tagged || rssi > geotag_rssi + 6);
 }
 
-void ble_track_fold_fix(BleTrack* t, float lat, float lon) {
-    if(isnan(t->last_wp_lat)) {
-        // First counted waypoint is wherever we are now.
-        t->last_wp_lat = lat;
-        t->last_wp_lon = lon;
-        if(t->waypoints == 0) t->waypoints = 1;
-    } else if(detect_dist_m(t->last_wp_lat, t->last_wp_lon, lat, lon) >= WAYPOINT_GAP_M) {
-        // Moved a fresh waypoint's distance and the device is still in range:
-        // count it, advance the marker, grow the track span.
-        t->waypoints++;
-        t->last_wp_lat = lat;
-        t->last_wp_lon = lon;
-        if(!isnan(t->first_lat)) {
-            float span = detect_dist_m(t->first_lat, t->first_lon, lat, lon);
-            if(span > t->max_span_m) t->max_span_m = span;
-        }
-    }
-}
-
-bool ble_following_gate(uint32_t count, uint32_t elapsed_ms, uint32_t waypoints, float span_m) {
-    return count >= FOLLOW_MIN_COUNT && elapsed_ms >= FOLLOW_MIN_MS &&
-           waypoints >= FOLLOW_MIN_WAYPOINTS && span_m >= FOLLOW_MIN_SPAN_M;
-}
-
 uint8_t flock_alert_min_conf_rung(uint8_t choice) {
     switch(choice) {
     case AlertConfPossible:
@@ -101,13 +77,4 @@ int32_t esp_frames_rate(uint32_t prev_frames, uint32_t now_frames, uint32_t elap
     uint64_t r = ((uint64_t)delta * 1000u) / elapsed_ms;
     if(r > 99999u) r = 99999u; // clamp so the header can never be blown open
     return (int32_t)r;
-}
-
-bool wifi_rogue_pair(uint8_t auth_a, uint8_t auth_b) {
-    bool a_weak = (auth_a == WIFI_AUTH_MODE_OPEN || auth_a == WIFI_AUTH_MODE_WEP);
-    bool b_weak = (auth_b == WIFI_AUTH_MODE_OPEN || auth_b == WIFI_AUTH_MODE_WEP);
-    // Exactly one side weak. Both weak is a badly configured network, not a
-    // clone standing in for a secured one; neither weak is transition mode or a
-    // mixed mesh, which is the benign case this rule exists to stop shouting at.
-    return a_weak != b_weak;
 }

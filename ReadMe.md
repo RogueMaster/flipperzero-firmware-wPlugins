@@ -97,7 +97,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DNDAdventure v3.2.31 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDInitiative v3.2.31 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDJournal v3.2.31 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [FlipDeFlock v0.78 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [DNDolphins v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDBestiary v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDAdventure v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
@@ -105,6 +104,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DNDJournal v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDInventory v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDSpellbook v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [FlipDeFlock v0.80 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -551,7 +551,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipBoard Simon v1.10 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipCrypt v0.6 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 - [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck)
-- [FlipDeFlock v0.78 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- [FlipDeFlock v0.80 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [FlipDownloader v1.3.5 (By jblanked)](https://github.com/jblanked/FlipStore) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
 - [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)

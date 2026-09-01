@@ -128,8 +128,7 @@
     "bt -       no BLE scan yet\n"  \
     "a2         alerts sent\n"      \
     "!r1        ESP reset\n"        \
-    "!d3        RX lines lost\n"    \
-    "!DEAUTH    flood nearby\n \n"  \
+    "!d3        RX lines lost\n \n" \
     "NO BEEP?\n"                    \
     "If a2 climbs but you\n"        \
     "hear nothing, the app\n"       \
