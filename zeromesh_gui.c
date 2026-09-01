@@ -430,32 +430,76 @@ static void render_stats(Canvas* canvas, ZeroMeshApp* app) {
     draw_footer(canvas, "", "");
 }
 
+static void meter(Canvas* canvas, int x, int y, int w, int pct) {
+    canvas_draw_frame(canvas, x, y, w, 7);
+    if(pct < 0) pct = 0;
+    if(pct > 100) pct = 100;
+    int fill = (w - 2) * pct / 100;
+    if(fill > 0) canvas_draw_box(canvas, x + 1, y + 1, fill, 5);
+
+    /* Quarter ticks, so a bar can be read as a rough number at a glance. */
+    for(int i = 1; i < 4; i++) {
+        int tx = x + (w - 1) * i / 4;
+        canvas_draw_dot(canvas, tx, y - 1);
+    }
+}
+
+static void meter_row(
+    Canvas* canvas,
+    int y,
+    const char* label,
+    int pct,
+    bool known,
+    const char* value) {
+    canvas_draw_str(canvas, 2, y + 6, label);
+    if(known) {
+        meter(canvas, 26, y, 58, pct);
+        canvas_draw_str(canvas, 88, y + 6, value);
+    } else {
+        canvas_draw_str(canvas, 26, y + 6, "no data");
+    }
+}
+
 static void render_signal(Canvas* canvas, ZeroMeshApp* app) {
     draw_header(canvas, app, "Signal Info");
     canvas_set_font(canvas, FontSecondary);
 
-    char buf[64];
+    char buf[32];
 
     if(app->my_node_num != 0) {
-        snprintf(buf, sizeof(buf), "My Node: %08lX", (unsigned long)app->my_node_num);
-        canvas_draw_str(canvas, 2, 24, buf);
+        snprintf(buf, sizeof(buf), "%08lX", (unsigned long)app->my_node_num);
+    } else {
+        snprintf(buf, sizeof(buf), "no node yet");
     }
+    canvas_draw_str(canvas, 2, 24, buf);
 
     if(app->last_rx_from != 0) {
-        snprintf(buf, sizeof(buf), "Last From: %08lX", (unsigned long)app->last_rx_from);
-        canvas_draw_str(canvas, 2, 34, buf);
-
-        if(app->has_rx_signal_data) {
-            snprintf(buf, sizeof(buf), "RSSI: %d dBm", (int)app->last_rx_rssi);
-            canvas_draw_str(canvas, 2, 44, buf);
-
-            int snr_tenths = ((int)app->last_rx_snr * 10) / 4;
-            snprintf(buf, sizeof(buf), "SNR: %d.%d dB", snr_tenths / 10, snr_tenths % 10);
-            canvas_draw_str(canvas, 2, 54, buf);
-        }
-    } else {
-        canvas_draw_str(canvas, 2, 34, "No messages yet");
+        snprintf(buf, sizeof(buf), "<%08lX", (unsigned long)app->last_rx_from);
+        int w = canvas_string_width(canvas, buf);
+        canvas_draw_str(canvas, 126 - w, 24, buf);
     }
+    canvas_draw_line(canvas, 2, 26, 125, 26);
+
+    bool sig = app->last_rx_from != 0 && app->has_rx_signal_data;
+
+    /* Useful RSSI runs about -120 at the floor to -30 pinned. */
+    int rssi = (int)app->last_rx_rssi;
+    snprintf(buf, sizeof(buf), "%d", rssi);
+    meter_row(canvas, 30, "RSSI", (rssi + 120) * 100 / 90, sig, buf);
+
+    /* Raw SNR is quarter dB. Anything past +10 is as good as it gets. */
+    int snr10 = ((int)app->last_rx_snr * 10) / 4;
+    char sign = snr10 < 0 ? 0x2D : 0x20;
+    int a10 = snr10 < 0 ? -snr10 : snr10;
+    snprintf(buf, sizeof(buf), "%c%d.%d", sign, a10 / 10, a10 % 10);
+    meter_row(canvas, 41, "SNR", (snr10 + 200) * 100 / 300, sig, buf);
+
+    if(app->my_sats_seen) {
+        snprintf(buf, sizeof(buf), "%u%s", app->my_sats, app->my_has_fix ? " fix" : "");
+    } else {
+        buf[0] = 0;
+    }
+    meter_row(canvas, 52, "GPS", app->my_sats * 100 / 12, app->my_sats_seen, buf);
 
     draw_footer(canvas, "", "");
 }

@@ -102,6 +102,7 @@ typedef struct {
     bool has_position;
     uint8_t sats;
     bool sats_seen;
+    bool has_fix;
 
     char short_name[8];
     char long_name[24];
@@ -235,6 +236,10 @@ typedef struct {
     int8_t last_rx_snr;
     int16_t last_rx_rssi;
     bool has_rx_signal_data;
+
+    uint8_t my_sats;
+    bool my_sats_seen;
+    bool my_has_fix;
     
     uint32_t my_node_num;
 
