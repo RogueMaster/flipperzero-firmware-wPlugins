@@ -237,11 +237,20 @@ static void handle_position(ZeroMeshApp* app, uint32_t sender_id, const uint8_t*
     if(!pb_decode(&is_pos, meshtastic_Position_fields, &pos)) return;
 
     /* Recorded before the fix check on purpose. A node still searching sends
-       a count with no coordinates, and that is exactly when it is worth seeing. */
-    if(pos.sats_in_view)
-        roster_update_sats(app, sender_id, pos.sats_in_view > 255 ? 255 : (uint8_t)pos.sats_in_view);
+       a count with no coordinates, and zero satellites is itself the answer
+       to "is the GPS doing anything", so it is not filtered out. */
+    bool fix = pos.has_latitude_i && pos.has_longitude_i &&
+               !(pos.latitude_i == 0 && pos.longitude_i == 0);
+    uint8_t sats = pos.sats_in_view > 255 ? 255 : (uint8_t)pos.sats_in_view;
+    roster_update_sats(app, sender_id, sats, fix);
 
-    if(!pos.has_latitude_i || !pos.has_longitude_i) return;
+    if(app->my_node_num && sender_id == app->my_node_num) {
+        app->my_sats = sats;
+        app->my_sats_seen = true;
+        app->my_has_fix = fix;
+    }
+
+    if(!fix) return;
     roster_update_position(
         app,
         sender_id,

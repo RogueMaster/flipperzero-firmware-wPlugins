@@ -209,7 +209,7 @@ void roster_update_name(
     furi_mutex_release(app->lock);
 }
 
-void roster_update_sats(ZeroMeshApp* app, uint32_t node_id, uint8_t sats) {
+void roster_update_sats(ZeroMeshApp* app, uint32_t node_id, uint8_t sats, bool fix) {
     if(!app || node_id == 0) return;
 
     furi_mutex_acquire(app->lock, FuriWaitForever);
@@ -218,6 +218,7 @@ void roster_update_sats(ZeroMeshApp* app, uint32_t node_id, uint8_t sats) {
         if(app->roster.nodes[i].node_id == node_id) {
             app->roster.nodes[i].sats = sats;
             app->roster.nodes[i].sats_seen = true;
+            app->roster.nodes[i].has_fix = fix;
             break;
         }
     }
