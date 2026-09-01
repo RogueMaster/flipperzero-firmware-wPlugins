@@ -202,17 +202,30 @@ the games stay in sync.
 
 ## Install
 
-**You only need `hotspot_arcade.fap`.** Grab it from the
+**You need one `.fap`, and only one.** Grab it from the
 [latest release](https://github.com/tarikbc/hotspot-arcade/releases/latest) and drop it in
 `/ext/apps/GPIO/` on the SD card (qFlipper, or the Flipper's own file manager). No SD
 setup, no separate downloads: the ESP firmware, the phone game bundle, and the content
-packs all ship inside the .fap.
+packs all ship inside it.
 
-> **First launch can take up to 3 minutes.** The .fap carries about 3 MB of bundled
-> content (three board firmwares, the web bundle, the packs) and the Flipper unpacks it to
-> the SD card the first time you open the app (and again after an update). The hourglass is
-> the system loader doing that, not a hang, so give it a minute or two. Every launch after
-> that is instant.
+Which one depends on whether you know your board:
+
+- **`hotspot_arcade-all.fap`** carries firmware for all three boards, so **Install Firmware**
+  can flash whichever one you plug in and you can switch boards later. Pick this if you are
+  not sure.
+- **`hotspot_arcade-s2.fap`**, **`-wroom.fap`** or **`-c5.fap`** carry only that board's
+  firmware. Much smaller, and a much faster first launch. The board picker only offers the
+  board that is actually in the download.
+
+Do not install more than one. They are the same app, so they share one folder on the SD
+card and would re-unpack over each other on every launch.
+
+> **First launch takes a while**, and longer for `-all`. The .fap carries its bundled
+> content (board firmware, the web bundle, the packs) and the Flipper unpacks it to the SD
+> card the first time you open the app, and again after an update. `-all` carries about 3 MB
+> of it and can sit on the hourglass for a couple of minutes; a single-board build is a
+> third of that. It is the system loader working, not a hang. Every launch after that is
+> instant.
 
 Then, on the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
 
