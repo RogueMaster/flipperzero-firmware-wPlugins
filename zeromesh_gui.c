@@ -461,13 +461,14 @@ static void meter_row(
     const char* label,
     int pct,
     bool known,
-    const char* value) {
+    const char* value,
+    const char* empty) {
     canvas_draw_str(canvas, 2, y + 6, label);
     if(known) {
         meter(canvas, 26, y, 58, pct);
         canvas_draw_str(canvas, 88, y + 6, value);
     } else {
-        canvas_draw_str(canvas, 26, y + 6, "no data");
+        canvas_draw_str(canvas, 26, y + 6, empty);
     }
 }
 
@@ -496,21 +497,22 @@ static void render_signal(Canvas* canvas, ZeroMeshApp* app) {
     /* Useful RSSI runs about -120 at the floor to -30 pinned. */
     int rssi = (int)app->last_rx_rssi;
     snprintf(buf, sizeof(buf), "%d", rssi);
-    meter_row(canvas, 30, "RSSI", (rssi + 120) * 100 / 90, sig, buf);
+    meter_row(canvas, 30, "RSSI", (rssi + 120) * 100 / 90, sig, buf, "no packets yet");
 
     /* Raw SNR is quarter dB. Anything past +10 is as good as it gets. */
     int snr10 = ((int)app->last_rx_snr * 10) / 4;
     char sign = snr10 < 0 ? 0x2D : 0x20;
     int a10 = snr10 < 0 ? -snr10 : snr10;
     snprintf(buf, sizeof(buf), "%c%d.%d", sign, a10 / 10, a10 % 10);
-    meter_row(canvas, 41, "SNR", (snr10 + 200) * 100 / 300, sig, buf);
+    meter_row(canvas, 41, "SNR", (snr10 + 200) * 100 / 300, sig, buf, "no packets yet");
 
     if(app->my_sats_seen) {
         snprintf(buf, sizeof(buf), "%u%s", app->my_sats, app->my_has_fix ? " fix" : "");
     } else {
         buf[0] = 0;
     }
-    meter_row(canvas, 52, "GPS", app->my_sats * 100 / 12, app->my_sats_seen, buf);
+    meter_row(
+        canvas, 52, "GPS", app->my_sats * 100 / 12, app->my_sats_seen, buf, "no fix data");
 
     draw_footer(canvas, "", "");
 }
