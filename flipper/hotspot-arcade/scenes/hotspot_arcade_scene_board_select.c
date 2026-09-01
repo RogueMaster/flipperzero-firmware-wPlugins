@@ -4,6 +4,12 @@
 // firmware is bundled in the fap (assets/firmware/<board>/), so this is a pure selector
 // with no file picker. Adding a board is one more submenu row + one asset folder.
 //
+// Which boards are actually IN the fap varies now: release.yml builds a per-board .fap as
+// well as the combined one, and a single-board build carries only its own firmware. So the
+// rows are built from what is on disk rather than from a fixed list -- offering a board the
+// download does not contain, then failing with "Can't read manifest" once the user has
+// already committed to it, is the wrong end of the process to find out.
+//
 // The scene is transient: when the flasher returns here (previous_scene) it pops
 // straight back to whoever opened the picker (the menu, or the lobby's no-board
 // prompt), so flashing still feels like a single step. Scene state 1 marks "sent to
@@ -18,7 +24,13 @@ typedef enum {
     BoardWroom,
     BoardC5Boot,
     BoardC5,
+    BoardNone, // nothing bundled; shown only so the menu is never empty
 } BoardIndex;
+
+// Is this board's firmware actually bundled in the fap we are running?
+static bool ha_board_bundled(Storage* storage, const char* manifest) {
+    return storage_common_stat(storage, manifest, NULL) == FSE_OK;
+}
 
 static void ha_board_cb(void* context, uint32_t index) {
     HotspotArcadeApp* app = context;
@@ -33,13 +45,39 @@ void hotspot_arcade_scene_board_select_on_enter(void* context) {
         scene_manager_previous_scene(app->scene_manager);
         return;
     }
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    bool s2 = ha_board_bundled(storage, HA_OFFICIAL_FW);
+    bool wroom = ha_board_bundled(storage, HA_WROOM_FW);
+    bool c5 = ha_board_bundled(storage, HA_C5_FW);
+    furi_record_close(RECORD_STORAGE);
+
+    // A single-board build has one board and nothing to choose between, so skip the menu
+    // and go straight to flashing it. The auto-boot variants are not offered here: without
+    // a list to compare against there is nothing to tell the user the two rows apart, and
+    // manual is the one that works on every board.
+    if(s2 + wroom + c5 == 1) {
+        furi_string_set(app->flash_manifest, s2 ? HA_OFFICIAL_FW : wroom ? HA_WROOM_FW : HA_C5_FW);
+        app->flash_auto_boot = false;
+        scene_manager_set_scene_state(app->scene_manager, HaSceneBoardSelect, 1);
+        scene_manager_next_scene(app->scene_manager, HaSceneFlasher);
+        return;
+    }
+
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Select your board");
-    submenu_add_item(app->submenu, "Official Dev Board", BoardOfficial, ha_board_cb, app);
-    submenu_add_item(app->submenu, "WROOM (auto boot)", BoardWroomBoot, ha_board_cb, app);
-    submenu_add_item(app->submenu, "ESP32 WROOM", BoardWroom, ha_board_cb, app);
-    submenu_add_item(app->submenu, "C5 (auto boot)", BoardC5Boot, ha_board_cb, app);
-    submenu_add_item(app->submenu, "ESP32 C5", BoardC5, ha_board_cb, app);
+    if(s2) submenu_add_item(app->submenu, "Official Dev Board", BoardOfficial, ha_board_cb, app);
+    if(wroom) {
+        submenu_add_item(app->submenu, "WROOM (auto boot)", BoardWroomBoot, ha_board_cb, app);
+        submenu_add_item(app->submenu, "ESP32 WROOM", BoardWroom, ha_board_cb, app);
+    }
+    if(c5) {
+        submenu_add_item(app->submenu, "C5 (auto boot)", BoardC5Boot, ha_board_cb, app);
+        submenu_add_item(app->submenu, "ESP32 C5", BoardC5, ha_board_cb, app);
+    }
+    // Nothing bundled at all should not happen, but an empty submenu is a dead end with no
+    // way back, so say what is wrong instead of drawing one.
+    if(!s2 && !wroom && !c5)
+        submenu_add_item(app->submenu, "No firmware bundled", BoardNone, ha_board_cb, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, HaViewSubmenu);
 }
 
@@ -64,6 +102,8 @@ bool hotspot_arcade_scene_board_select_on_event(void* context, SceneManagerEvent
     case BoardC5:
         manifest = HA_C5_FW;
         break;
+    case BoardNone:
+        return true; // informational row, nothing to flash
     default:
         return false;
     }
