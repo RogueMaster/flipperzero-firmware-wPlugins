@@ -87,7 +87,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
 - Added: [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
 - Updated: [Catacombs Of The Damned! v4.0 (By apfxtech)](https://github.com/apfxtech/FlipperCatacombs)
-- Updated: [ZeroMesh v3.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 - OFW: [Update the App Development documentation section #4412 (By ellyromanova)](https://github.com/flipperdevices/flipperzero-firmware/pull/4412)
 - NFC: [Stop the CUID dictionary pass ending one key index early (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/be559b2ee1b2bbae3eaf109a4a1b0d7337b3d8a8)
 - NFC: [Keep the CUID dictionary pass end marker out of the sector counter (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1115)
@@ -108,6 +107,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DNDJournal v3.5 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDInventory v3.5 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDSpellbook v3.5 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
 <a name="release"></a>
 
@@ -992,7 +992,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max)
 - [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
-- [ZeroMesh v3.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
+- [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
 # Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0819-2255-b3dd8981.tgz&channel=RM0819-2255-b3dd8981&version=0.420.0&target=f7)
 

@@ -1,4 +1,5 @@
 #include "zeromesh_notify.h"
+#include "zeromesh_rtttl.h"
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 
@@ -169,6 +170,12 @@ void play_ringtone(ZeroMeshApp* app) {
     if(app->notify_ringtone == RingtoneNone) return;
 
     if(!furi_hal_speaker_acquire(1000)) return;
+
+    if(app->notify_ringtone >= RINGTONE_COUNT) {
+        rtttl_play_custom(app, app->notify_ringtone);
+        furi_hal_speaker_release();
+        return;
+    }
 
     switch(app->notify_ringtone) {
     case RingtoneShort:

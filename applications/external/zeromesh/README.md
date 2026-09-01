@@ -2,6 +2,8 @@
 
 A Meshtastic client for the Flipper Zero. Connects to a node over UART or Bluetooth LE and shows the mesh on the Flipper screen: messages, node roster, signal stats, telemetry, and an offline vector map.
 
+![Map](docs/images/map.png)
+
 ## Power warning
 
 The Flipper 5V pin is an output. Do not power a node from USB, a battery, or any other supply while it is connected to that pin. Multiple sources on the same rail back-feed and can damage the Flipper, the node's regulator, or the USB port. Use one supply at a time.
@@ -16,11 +18,19 @@ Notifications are independent toggles for vibration, LED and audio, with 19 ring
 
 Settings persist to /ext/apps_data/zeromesh/settings.cfg automatically.
 
+![Messages](docs/images/messages.png)
+
+![Roster](docs/images/roster.png)
+
+![Chat](docs/images/chat.png)
+
 ## Transports
 
 Selected by the Transport setting.
 
 **UART** is the default and works with stock Meshtastic firmware. Wire the node to the expansion header and pick USART or LPUART with a baud rate.
+
+![Statistics](docs/images/stats.png)
 
 **Bluetooth LE** requires a Meshtastic build carrying the ZeroMesh link module. The Flipper radio can only act as a peripheral: it advertises and accepts connections but never dials out. A Meshtastic node is also a peripheral, so the two cannot meet directly. ZeroMesh instead publishes a GATT service and waits for the node to connect to it. Turn Bluetooth on in the Flipper settings first. While ZeroMesh holds the radio the Flipper is not reachable from the Flipper mobile app; the normal profile is restored on exit. No pairing or PIN.
 
@@ -31,6 +41,8 @@ Selected by the Transport setting.
 | TX | RX (pin 13 or 14, depending on UART) |
 | RX | TX (pin 13 or 14, depending on UART) |
 | GND | GND |
+
+![Pinout](docs/images/pinout.png)
 
 The node also needs its serial module enabled, mode set to PROTO, and baud 115200.
 
@@ -65,6 +77,8 @@ Settings save when changed.
 
 The Map page draws an offline vector map and overlays roster nodes reporting a GPS position. It centres on a node rather than panning freely, and a dashed border marks the edge of the archive. Map data is optional; without it the page still opens and says so.
 
+![Map toolbar](docs/images/map_toolbar.png)
+
 Archives are read from /ext/apps_data/zeromesh/map.pmtiles and must be built uncompressed, because the Flipper firmware has no gzip.
 
 One command does everything, and copies the result to a plugged-in Flipper:
@@ -87,6 +101,8 @@ A card reader is much faster than USB for anything beyond a handful of tiles.
 ## Node Config
 
 Changes settings on the connected radio: LoRa region, modem preset, device role, GPS, a fixed position, the primary channel key, and whether position is shared on that channel.
+
+![Settings](docs/images/nodecfg.png)
 
 **Fixed position** takes the coordinate under the map crosshair, so a node with no GPS fix can still appear on the map and report a location to the mesh. It overrides GPS; set it back to Off to remove it.
 

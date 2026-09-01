@@ -20,5 +20,6 @@ void roster_update_position(
     int32_t longitude_i,
     int32_t altitude,
     uint32_t pos_time);
+void roster_update_sats(ZeroMeshApp* app, uint32_t node_id, uint8_t sats, bool fix);
 void render_roster(Canvas* canvas, ZeroMeshApp* app);
 void input_roster(InputEvent* e, ZeroMeshApp* app);

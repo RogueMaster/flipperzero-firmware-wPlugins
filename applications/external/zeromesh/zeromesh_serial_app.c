@@ -6,6 +6,7 @@
 #include "zeromesh_notify.h"
 #include "zeromesh_protocol.h"
 #include "zeromesh_settings.h"
+#include "zeromesh_rtttl.h"
 #include "zeromesh_channel.h"
 
 #include <furi.h>
@@ -41,6 +42,8 @@ int32_t zeromesh_serial_app(void* p) {
 
     channel_init(app);
 
+    /* Before the settings load, which resolves a saved custom tone by name. */
+    ringtones_scan(app);
     settings_load(app);
 
     snprintf(app->status, sizeof(app->status), "Connecting...");
@@ -123,6 +126,16 @@ int32_t zeromesh_serial_app(void* p) {
                 break;
             case PendingReboot:
                 reboot_node(app, 5);
+                break;
+            case PendingInfoAll:
+                request_info(app);
+                break;
+            case PendingSendText:
+                send_text_message(app, app->pending_text, app->pending_node);
+                app->pending_text[0] = '\0';
+                break;
+            case PendingPlayTone:
+                play_ringtone(app);
                 break;
             default:
                 break;

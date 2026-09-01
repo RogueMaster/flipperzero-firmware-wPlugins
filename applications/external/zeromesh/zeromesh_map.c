@@ -22,7 +22,7 @@
 #define MAP_SCRATCH_PT  384
 #define MAP_MAX_LABELS  6
 #define MAP_MAX_TOWNS   16
-#define MAP_TOOLBAR_N   5
+#define MAP_TOOLBAR_N   6
 #define MAP_PAN_STEP    16
 
 #define MAP_HOME_LAT 43.4443f
@@ -76,6 +76,7 @@ struct MapState {
 
     bool ui_toolbar;
     bool ui_towns;
+    bool ui_gps;
     bool want_towns;
     int8_t toolbar_sel;
     int8_t town_sel;
@@ -773,12 +774,20 @@ static void icon_zoom(Canvas* c, int x, int y) {
     canvas_draw_line(c, x + 1, y + 1, x + 4, y + 4);
 }
 
+static void icon_gps(Canvas* c, int x, int y) {
+    canvas_draw_dot(c, x - 3, y + 3);
+    canvas_draw_line(c, x - 2, y + 2, x - 1, y + 3);
+    canvas_draw_line(c, x - 1, y, x + 2, y + 3);
+    canvas_draw_line(c, x, y - 2, x + 3, y + 1);
+}
+
 static const char* const TOOLBAR_NAMES[MAP_TOOLBAR_N] = {
     "Towns",
     "Names",
     "Home",
     "Node",
     "Zoom",
+    "GPS",
 };
 
 static void map_draw_edges(Canvas* canvas, MapState* m) {
@@ -847,6 +856,25 @@ static void map_draw_focus_range(Canvas* canvas, ZeroMeshApp* app) {
     }
 }
 
+static void map_draw_gps(Canvas* canvas, ZeroMeshApp* app) {
+    /* Top right, no frame. The left side carries the home marker and the
+       zoom readout, and place names crowd the middle. */
+    char buf[12];
+    if(app->my_sats_seen) {
+        snprintf(buf, sizeof(buf), "SAT:%u%s", app->my_sats, app->my_has_fix ? "" : "?");
+    } else {
+        snprintf(buf, sizeof(buf), "SAT:-");
+    }
+
+    canvas_set_font(canvas, FontSecondary);
+    int w = canvas_string_width(canvas, buf);
+    int x = MAP_W - w - 2;
+    canvas_set_color(canvas, ColorWhite);
+    map_box(canvas, x - 1, 1, w + 2, 9);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_str(canvas, x, 8, buf);
+}
+
 static void map_draw_toolbar(Canvas* canvas, MapState* m) {
     const int h = 15;
     const int top = MAP_H - h;
@@ -883,8 +911,11 @@ static void map_draw_toolbar(Canvas* canvas, MapState* m) {
         case 3:
             icon_node(canvas, cx, cy);
             break;
-        default:
+        case 4:
             icon_zoom(canvas, cx, cy);
+            break;
+        default:
+            icon_gps(canvas, cx, cy);
             break;
         }
     }
@@ -960,6 +991,7 @@ void render_map(Canvas* canvas, ZeroMeshApp* app) {
         map_draw_towns(canvas, m);
         return;
     }
+    if(m->ui_gps) map_draw_gps(canvas, app);
     if(m->ui_toolbar) map_draw_toolbar(canvas, m);
 
     if(m->pan_active) {
@@ -1109,8 +1141,11 @@ static void toolbar_activate(ZeroMeshApp* app) {
     case 3:
         map_cycle_focus(app, 1);
         break;
-    default:
+    case 4:
         map_set_zoom(m, m->z + 1 > m->zoom_max ? m->zoom_min : m->z + 1);
+        break;
+    default:
+        m->ui_gps = !m->ui_gps;
         break;
     }
 }

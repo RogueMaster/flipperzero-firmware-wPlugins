@@ -19,6 +19,6 @@ App(
     fap_category="GPIO",
     fap_author="SAMS0N1TE",
     fap_weburl="https://github.com/SAMS0N1TE/ZeroMesh",
-    fap_version="3.0",
+    fap_version="3.1",
     fap_description="Meshtastic client with offline vector maps, over serial or Bluetooth",
 )

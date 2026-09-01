@@ -53,6 +53,12 @@
 
 #define MAX_RINGTONE_PATH 128
 
+/* Custom tones live beside the map data. The cap is small on purpose: the
+   names sit in the app struct and the list is cycled one step at a time. */
+#define RINGTONE_DIR        APP_DATA_PATH("ringtones")
+#define RINGTONE_CUSTOM_MAX 8
+#define RINGTONE_NAME_MAX   32
+
 /* Defined in zeromesh_map.c so carto headers stay out of this header. */
 typedef struct MapState MapState;
 
@@ -68,6 +74,9 @@ typedef enum {
     PendingSetFixed,
     PendingClearFixed,
     PendingReboot,
+    PendingInfoAll,
+    PendingSendText,
+    PendingPlayTone,
 } PendingAction;
 
 typedef enum {
@@ -91,6 +100,9 @@ typedef struct {
     int32_t altitude;
     uint32_t pos_time;
     bool has_position;
+    uint8_t sats;
+    bool sats_seen;
+    bool has_fix;
 
     char short_name[8];
     char long_name[24];
@@ -225,6 +237,10 @@ typedef struct {
     int16_t last_rx_rssi;
     bool has_rx_signal_data;
 
+    uint8_t my_sats;
+    bool my_sats_seen;
+    bool my_has_fix;
+
     uint32_t my_node_num;
 
     bool has_node_config;
@@ -252,6 +268,7 @@ typedef struct {
     uint32_t pending_node;
     uint8_t pending_a;
     uint8_t pending_b;
+    char pending_text[64];
 
     uint32_t sent_msg_ids[8];
     uint8_t sent_msg_head;
@@ -261,7 +278,9 @@ typedef struct {
 
     bool notify_vibro;
     bool notify_led;
-    RingtoneType notify_ringtone;
+    uint16_t notify_ringtone;
+    char custom_files[RINGTONE_CUSTOM_MAX][RINGTONE_NAME_MAX];
+    uint8_t custom_count;
 
     uint8_t scroll_speed;
     uint8_t scroll_framerate;

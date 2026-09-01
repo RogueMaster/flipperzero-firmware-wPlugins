@@ -5,6 +5,7 @@
 #include <gui/modules/text_input.h>
 
 #include "zeromesh_notify.h"
+#include "zeromesh_rtttl.h"
 #include "zeromesh_uart.h"
 #include "zeromesh_protocol.h"
 #include "zeromesh_history.h"
@@ -185,6 +186,10 @@ static void draw_wrapped_text_in_bubble(
     }
 }
 
+/* The indicator track runs from the title to the link dot at x=120. */
+#define PAGE_IND_W 38
+_Static_assert(PAGE_COUNT * 2 <= PAGE_IND_W, "too many pages for the header indicator");
+
 void draw_header(Canvas* canvas, ZeroMeshApp* app, const char* title) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_box(canvas, 0, 0, 128, 14);
@@ -203,11 +208,18 @@ void draw_header(Canvas* canvas, ZeroMeshApp* app, const char* title) {
         canvas_draw_circle(canvas, 120, 7, 3);
     }
 
+    /* Bars rather than dots. Dots at 7px spacing ran into the link
+       indicator once there were more than six pages. The step is derived
+       so another page shrinks the bars instead of drawing off-screen. */
+    const int step = PAGE_IND_W / PAGE_COUNT;
+    const int bar_w = step > 2 ? step - 1 : 1;
+
     for(int i = 0; i < PAGE_COUNT; i++) {
+        int x = dot_x + i * step;
         if(i == (int)app->ui_mode) {
-            canvas_draw_disc(canvas, dot_x + i * 7, 7, 2);
+            canvas_draw_box(canvas, x, 4, bar_w, 7);
         } else {
-            canvas_draw_circle(canvas, dot_x + i * 7, 7, 1);
+            canvas_draw_line(canvas, x, 7, x + bar_w - 1, 7);
         }
     }
 
@@ -442,32 +454,77 @@ static void render_stats(Canvas* canvas, ZeroMeshApp* app) {
     draw_footer(canvas, "", "");
 }
 
+static void meter(Canvas* canvas, int x, int y, int w, int pct) {
+    canvas_draw_frame(canvas, x, y, w, 7);
+    if(pct < 0) pct = 0;
+    if(pct > 100) pct = 100;
+    int fill = (w - 2) * pct / 100;
+    if(fill > 0) canvas_draw_box(canvas, x + 1, y + 1, fill, 5);
+
+    /* Quarter ticks, so a bar can be read as a rough number at a glance. */
+    for(int i = 1; i < 4; i++) {
+        int tx = x + (w - 1) * i / 4;
+        canvas_draw_dot(canvas, tx, y - 1);
+    }
+}
+
+static void meter_row(
+    Canvas* canvas,
+    int y,
+    const char* label,
+    int pct,
+    bool known,
+    const char* value,
+    const char* empty) {
+    canvas_draw_str(canvas, 2, y + 6, label);
+    if(known) {
+        meter(canvas, 26, y, 58, pct);
+        canvas_draw_str(canvas, 88, y + 6, value);
+    } else {
+        canvas_draw_str(canvas, 26, y + 6, empty);
+    }
+}
+
 static void render_signal(Canvas* canvas, ZeroMeshApp* app) {
     draw_header(canvas, app, "Signal Info");
     canvas_set_font(canvas, FontSecondary);
 
-    char buf[64];
+    char buf[32];
 
     if(app->my_node_num != 0) {
-        snprintf(buf, sizeof(buf), "My Node: %08lX", (unsigned long)app->my_node_num);
-        canvas_draw_str(canvas, 2, 24, buf);
+        snprintf(buf, sizeof(buf), "%08lX", (unsigned long)app->my_node_num);
+    } else {
+        snprintf(buf, sizeof(buf), "no node yet");
     }
+    canvas_draw_str(canvas, 2, 24, buf);
 
     if(app->last_rx_from != 0) {
-        snprintf(buf, sizeof(buf), "Last From: %08lX", (unsigned long)app->last_rx_from);
-        canvas_draw_str(canvas, 2, 34, buf);
-
-        if(app->has_rx_signal_data) {
-            snprintf(buf, sizeof(buf), "RSSI: %d dBm", (int)app->last_rx_rssi);
-            canvas_draw_str(canvas, 2, 44, buf);
-
-            int snr_tenths = ((int)app->last_rx_snr * 10) / 4;
-            snprintf(buf, sizeof(buf), "SNR: %d.%d dB", snr_tenths / 10, snr_tenths % 10);
-            canvas_draw_str(canvas, 2, 54, buf);
-        }
-    } else {
-        canvas_draw_str(canvas, 2, 34, "No messages yet");
+        snprintf(buf, sizeof(buf), "<%08lX", (unsigned long)app->last_rx_from);
+        int w = canvas_string_width(canvas, buf);
+        canvas_draw_str(canvas, 126 - w, 24, buf);
     }
+    canvas_draw_line(canvas, 2, 26, 125, 26);
+
+    bool sig = app->last_rx_from != 0 && app->has_rx_signal_data;
+
+    /* Useful RSSI runs about -120 at the floor to -30 pinned. */
+    int rssi = (int)app->last_rx_rssi;
+    snprintf(buf, sizeof(buf), "%d", rssi);
+    meter_row(canvas, 30, "RSSI", (rssi + 120) * 100 / 90, sig, buf, "no packets yet");
+
+    /* Raw SNR is quarter dB. Anything past +10 is as good as it gets. */
+    int snr10 = ((int)app->last_rx_snr * 10) / 4;
+    char sign = snr10 < 0 ? 0x2D : 0x20;
+    int a10 = snr10 < 0 ? -snr10 : snr10;
+    snprintf(buf, sizeof(buf), "%c%d.%d", sign, a10 / 10, a10 % 10);
+    meter_row(canvas, 41, "SNR", (snr10 + 200) * 100 / 300, sig, buf, "no packets yet");
+
+    if(app->my_sats_seen) {
+        snprintf(buf, sizeof(buf), "%u%s", app->my_sats, app->my_has_fix ? " fix" : "");
+    } else {
+        buf[0] = 0;
+    }
+    meter_row(canvas, 52, "GPS", app->my_sats * 100 / 12, app->my_sats_seen, buf, "no fix data");
 
     draw_footer(canvas, "", "");
 }
@@ -570,7 +627,7 @@ static void render_settings(Canvas* canvas, ZeroMeshApp* app) {
             break;
         case SettingRingtone:
             label = "Ringtone";
-            snprintf(val_buf, sizeof(val_buf), "%s", ringtone_names[app->notify_ringtone]);
+            ringtone_label(app, app->notify_ringtone, val_buf, sizeof(val_buf));
             break;
         case SettingScrollSpeed:
             label = "Scroll Speed";
@@ -677,12 +734,13 @@ static void setting_change(ZeroMeshApp* app, int direction) {
         app->notify_led = !app->notify_led;
         break;
     case SettingRingtone: {
+        int total = (int)ringtone_total(app);
         int r = (int)app->notify_ringtone + direction;
-        if(r < 0) r = RINGTONE_COUNT - 1;
-        if(r >= RINGTONE_COUNT) r = 0;
-        app->notify_ringtone = (RingtoneType)r;
+        if(r < 0) r = total - 1;
+        if(r >= total) r = 0;
+        app->notify_ringtone = (uint16_t)r;
         if(app->notify_ringtone != RingtoneNone) {
-            play_ringtone(app);
+            app->pending_action = PendingPlayTone;
         }
         break;
     }
@@ -715,11 +773,12 @@ void text_input_callback(void* ctx) {
     ZeroMeshApp* app = ctx;
     if(strlen(app->text_buffer) > 0) {
         if(app->ui_mode == PAGE_ROSTER && app->roster.state == RosterStateChat) {
-            uint32_t to_node = app->roster.nodes[app->roster.selected_idx].node_id;
-            send_text_message(app, app->text_buffer, to_node);
+            app->pending_node = app->roster.nodes[app->roster.selected_idx].node_id;
         } else {
-            send_text_message(app, app->text_buffer, 0xFFFFFFFF);
+            app->pending_node = 0xFFFFFFFF;
         }
+        strlcpy(app->pending_text, app->text_buffer, sizeof(app->pending_text));
+        app->pending_action = PendingSendText;
         app->text_buffer[0] = '\0';
     }
     view_dispatcher_stop(app->kb_dispatcher);
@@ -851,7 +910,7 @@ void input_cb(InputEvent* e, void* ctx) {
                 channel_next(app);
                 app->need_render = true;
             } else {
-                request_info(app);
+                app->pending_action = PendingInfoAll;
                 set_status(app, "Info requested");
             }
         }
