@@ -702,11 +702,12 @@ void text_input_callback(void* ctx) {
     ZeroMeshApp* app = ctx;
     if(strlen(app->text_buffer) > 0) {
         if(app->ui_mode == PAGE_ROSTER && app->roster.state == RosterStateChat) {
-            uint32_t to_node = app->roster.nodes[app->roster.selected_idx].node_id;
-            send_text_message(app, app->text_buffer, to_node);
+            app->pending_node = app->roster.nodes[app->roster.selected_idx].node_id;
         } else {
-            send_text_message(app, app->text_buffer, 0xFFFFFFFF);
+            app->pending_node = 0xFFFFFFFF;
         }
+        strlcpy(app->pending_text, app->text_buffer, sizeof(app->pending_text));
+        app->pending_action = PendingSendText;
         app->text_buffer[0] = '\0';
     }
     view_dispatcher_stop(app->kb_dispatcher);
@@ -838,7 +839,7 @@ void input_cb(InputEvent* e, void* ctx) {
                 channel_next(app);
                 app->need_render = true;
             } else {
-                request_info(app);
+                app->pending_action = PendingInfoAll;
                 set_status(app, "Info requested");
             }
         }

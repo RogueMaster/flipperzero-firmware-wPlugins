@@ -209,6 +209,22 @@ void roster_update_name(
     furi_mutex_release(app->lock);
 }
 
+void roster_update_sats(ZeroMeshApp* app, uint32_t node_id, uint8_t sats) {
+    if(!app || node_id == 0) return;
+
+    furi_mutex_acquire(app->lock, FuriWaitForever);
+
+    for(uint8_t i = 0; i < app->roster.count; i++) {
+        if(app->roster.nodes[i].node_id == node_id) {
+            app->roster.nodes[i].sats = sats;
+            app->roster.nodes[i].sats_seen = true;
+            break;
+        }
+    }
+
+    furi_mutex_release(app->lock);
+}
+
 void roster_update_position(
     ZeroMeshApp* app,
     uint32_t node_id,
@@ -497,8 +513,17 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
         if(selected->has_telemetry) {
             int v_int = (int)selected->voltage;
             int v_dec = (int)(selected->voltage * 100) % 100;
-            snprintf(
-                buf, sizeof(buf), "Batt %u%%  %d.%02dV", selected->battery_level, v_int, v_dec);
+            if(selected->sats_seen) {
+                snprintf(
+                    buf, sizeof(buf), "Batt %u%% %d.%02dV %u sat",
+                    selected->battery_level, v_int, v_dec, selected->sats);
+            } else {
+                snprintf(
+                    buf, sizeof(buf), "Batt %u%%  %d.%02dV", selected->battery_level, v_int, v_dec);
+            }
+            canvas_draw_str(canvas, 4, 48, buf);
+        } else if(selected->sats_seen) {
+            snprintf(buf, sizeof(buf), "Satellites: %u", selected->sats);
             canvas_draw_str(canvas, 4, 48, buf);
         } else {
             canvas_draw_str(canvas, 4, 48, "No telemetry data yet");
@@ -511,6 +536,8 @@ void render_roster(Canvas* canvas, ZeroMeshApp* app) {
             snprintf(buf, sizeof(buf), "%s,%s", la, lo);
             canvas_draw_str(canvas, 4, 60, buf);
             canvas_draw_str(canvas, 96, 60, "Up: Map");
+        } else if(selected->sats_seen) {
+            canvas_draw_str(canvas, 4, 60, "No GPS fix yet");
         }
         return;
     }
