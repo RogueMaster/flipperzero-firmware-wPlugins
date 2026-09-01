@@ -14,7 +14,7 @@ This audit separates values that are exact from project source from values that 
 | DNDolphins | **6,144 B** | **~2,900 B** | **4,940 B** | **7,908 B** Spell/Ritual Combat; **7,668 B** Weapon Combat; **9,716 B** conservative grant/catalog overlap |
 | DNDInventory | **4,096 B** | **~2,500 B** | **1,500 B** | **3,884 B** normal 8-Item page; **5,164 B** ordinary sidecar rewrite; **~9,140 B** conservative regrant adapter/rewrite overlap |
 | DNDSpellbook | **4,096 B** | **~2,400 B** | **1,456 B** | **4,080 B** normal 8-Spell page; **~8,056 B** page load with transient canonical adapter; **~9,336 B** save/rewrite overlap; **6,224 B** sort-with-page |
-| DNDAdventure | **4,096 B** | **~2,900 B** | **856 B** | **1,721 B** with active scene; **2,392 B** diagnostics scene-ID table; **~8–9 KB** only during transient Inventory reward bridging |
+| DNDAdventure | **4,096 B** | **~2,300 B** | **856 B** | **1,721 B** with active scene; **3,416 B** diagnostics scan; **~8–9 KB** only during transient Inventory reward bridging |
 | DNDJournal | **4,096 B** | **~2,660 B** | **1,352 B** | **2,888 B** during two-buffer index rewrite |
 | DNDInitiative | **3,072 B** | **~2,300 B** | **5,276 B** | **6,812 B** during main-character two-buffer profile sync; history save is stack-bounded and adds no resident state |
 | DNDBestiary | **6,144 B** | **~4,370 B** | **1,528 B** | **4,108 B** main monster window; **6,368 B** encounter generation |
@@ -90,7 +90,7 @@ Weapon and Spell pages are not intentionally resident together. Combat section h
 
 - Fixed app block: **856 B** with the 72-byte profile projection resident.
 - Active scene: **865 B**, for **1,721 B**.
-- Largest documented diagnostics table: 64 × 24-byte scene IDs = **1,536 B**, for **2,392 B** with the fixed app block.
+- Diagnostics releases the active scene before scanning. Its 64 × 24-byte scene-ID table is **1,536 B** and two simultaneously reachable 512-byte diagnostic line buffers are heap-owned, for a conservative project block of 856 + 1,536 + 1,024 = **3,416 B**. Moving those line buffers off the 4 KB stack and rendering one result row at a time lowers the source-estimated diagnostics stack peak.
 - A 16-entry campaign-pack summary allocation is **1,168 B**, below the diagnostics case.
 - Item reward bridging creates a transient 3,976-byte canonical adapter because the shared Inventory append/window API still uses that owner shape. When an Item page/rewrite buffer overlaps, the project peak can enter the **8–9 KB** range; that state is action-local and freed before returning to Adventure.
 

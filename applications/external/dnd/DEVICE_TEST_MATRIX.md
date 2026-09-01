@@ -41,7 +41,7 @@
 
 - [ ] Build with allocator/free-heap instrumentation if available. Repeatedly enter/exit Profiles, Journal, Inventory, Spellbook, Weapon Attacks, Spell Attacks, Rituals, Adventure and Bestiary screens while forcing redraw/scroll. Confirm free heap returns to the same steady-state range after leaving each screen and does not decrease monotonically across cycles.
 - [ ] Confirm redraw alone does not cause SD activity: hold/move through screens that only redraw resident data and verify storage reads occur on screen entry, explicit input/cache boundaries or writes—not from the canvas callback.
-- [ ] Stress the source-derived project-owned working-set bounds from `MEMORY_AUDIT.md`: DNDolphins Spell/Ritual Combat 7,892 B project blocks, Inventory normal/save 7,456/8,736 B, Spellbook normal/ordinary-save/sort-with-page 7,736/9,016/9,880 B, Adventure+scene 5,625 B, Journal transient rewrite 2,888 B, Initiative fixed 5,276 B (6,812 B during profile sync) and Bestiary main window 4,108 B, remembering firmware/framework allocations are additional.
+- [ ] Stress the source-derived project-owned working-set bounds from `MEMORY_AUDIT.md`: DNDolphins Spell/Ritual Combat 7,908 B project blocks, Inventory normal/save 3,884/5,164 B, Spellbook normal/load/save/sort-with-page 4,080/8,056/9,336/6,224 B, Adventure active-scene/diagnostics 1,721/3,416 B, Journal transient rewrite 2,888 B, Initiative fixed 5,276 B (6,812 B during profile sync) and Bestiary main window 4,108 B, remembering firmware/framework allocations are additional.
 - [ ] Repeat Bestiary allocation-failure tests at startup/window/detail/encounter creation and confirm partially allocated project blocks are released without a later cumulative heap loss.
 - [ ] Run stack high-water checks under the manifest reservations (6/4/4/4/4/3/6 KB) and compare with the source-derived estimates rather than shrinking a stack solely to reduce Loader pressure.
 
@@ -86,7 +86,15 @@
 - [ ] Exercise Inventory Resources: encumbrance toggle, capacity override, armor/shield AC application and coin normalization.
 - [ ] Select Grant Initial Inventory on an absent sidecar and confirm Short OK grants defaults once, returns directly to the populated Inventory list, and the same resulting `inventory_{id}.txt` contains the granted Item rows, the expected background starting `Currency=cp,sp,ep,gp,pp` total, and `InitialInventory=1`. Reopen Inventory and confirm that exact balance reloads. Re-enter Inventory Tools and confirm the row reports Granted; Short OK again must not duplicate equipment/currency. Then Hold OK on that same row once: confirm existing Items are preserved, starting equipment/currency are appended again, the file now contains the exact combined Currency total plus `InitialInventory=2`, and the UI shows that same persisted total. Hold OK a second time and confirm no additional records/currency are added. With manual Item rows but no grant marker, confirm the normal grant remains blocked rather than silently doing nothing.
 
+- [ ] Character → Level Choices: verify it always opens. At a level with no pending ASI/Feat, confirm the explicit “No pending choices” screen; at an ASI/Feat level, confirm the choice screen and Allowed feat catalog default.
+- [ ] High Elf Grant Initial Traits: on a fresh level-1 High Elf, confirm Prestidigitation is written to the Spellbook immediately; at total levels 3/5 confirm Detect Magic/Misty Step. Delete one granted spell while leaving its applied marker and re-run Grant Initial Traits; confirm the missing spell is repaired once without duplicating present species spells.
+- [ ] Weapon Combat loose ammunition: with Longbow + Arrows and Light Crossbow + Bolts using zero per-weapon ammo counters, confirm each attack decrements the matching Inventory stack and refuses only at stack quantity 0. Confirm a weapon with explicit ammo_max/current continues to consume its internal counter instead.
+
 ## Adventure
+
+- [ ] In an active scene, Hold OK opens the full-text viewer; Up/Down scroll one line, Left/Right page, Short OK/Back returns without changing the selected adventure choice. Confirm normal scene preview is 22 characters wide.
+- [ ] Hold Right saves the current scene checkpoint; move elsewhere and Hold Left loads it. From Campaigns choose Restart Current Adventure, confirm default selection is Cancel, then confirm Restart resets scene, checkpoint, quest flags and achievements only after explicit confirmation.
+- [ ] Open Campaign Diagnostics repeatedly with maximum bundled/custom/enabled campaign sets. Entry should not scan immediately; Short OK runs diagnostics without crash/OOM and repeated Up/Down scrolling should not reduce free heap monotonically.
 
 - [ ] Reef Wardens loads and completes.
 - [ ] Ghost Protocol appears as bundled content and loads `audit_brief`.
@@ -138,7 +146,7 @@
 - Give different participants Normal, Advantage and Disadvantage; verify Roll for All and single generated rolls use each participant's own mode.
 - Hold OK to open full participant editing and enter a numeric Initiative total; confirm that total is preserved until the participant is rolled again.
 - Create tied initiative totals with different modifiers and confirm the higher modifier sorts first.
-- On a fresh level-1 character, use Grant Initial Traits and confirm Grant Review appears before any pending initial grants are applied.
+- On a fresh level-1 character, use Grant Initial Traits and confirm deterministic grants are applied immediately. If a grant cannot be applied, confirm only the failed entries remain available for review/retry.
 - Increase a caster level across a cantrip/prepared allowance increase and confirm deterministic progression updates while the status asks the player to choose spells rather than adding arbitrary spells.
 
 ### Initiative no-character / profile resolution

@@ -2,6 +2,14 @@
 
 Released work only. Normal releases are retained as concise summaries; closely related recovery spans may be consolidated when the individual troubleshooting chronology would obscure the released outcome.
 
+## 3.5.1 — Level choices, deterministic grants, ammunition and Adventure controls
+
+- Fixed Character → Level Choices so it always opens: pending ASI/Feat choices show the normal choice screen, while characters with no pending choice get an explicit bounded “No pending choices” screen instead of appearing inert.
+- Made Grant Initial Traits actually apply deterministic initial grants when selected. Species/class/background/subclass spell grants are written immediately; spell-grant stable IDs are verified against the authoritative Spellbook sidecar so stale applied markers can repair missing High Elf and other deterministic species spells without duplicating existing records.
+- Fixed Weapon Combat ammunition detection for bows/crossbows and similar weapons whose own ammo counter is intentionally zero: Combat now consumes one matching loose Inventory ammunition stack by ammunition group, while weapons with explicit per-weapon counters keep using those counters.
+- Reworked Adventure long-press controls: Hold OK opens a Bestiary-style full-text scene viewer, Hold Left loads the checkpoint, Hold Right saves it, and restart moved to an explicit confirmed Campaign-menu action that resets scene/checkpoint/flags/achievements. Normal Adventure preview text is one character narrower.
+- Hardened Campaign Diagnostics on the 4 KB Adventure stack by moving 512-byte scan lines to bounded temporary heap storage, rendering one diagnostics row at a time, releasing the unused active scene before diagnostics, and opening the diagnostics screen before the explicit OK scan.
+
 ## 3.5.0 — Feat eligibility, encounter history and declarative content
 
 - Added progression/grant feat Allowed/All filtering, defaulting to Allowed, with bounded prerequisite checks and no guessed restrictions for custom feats; manual Feature editing remains unrestricted.

@@ -8,7 +8,7 @@ Save structures are frozen by default. Do not change a schema merely for write s
 
 Preserve explicit full-path FAP handoffs, teardown-before-launch, combat-only lazy eight-record Inventory/Spellbook paging, eight-record Feature paging, storage-backed Journal/profile paging, write-only character shadows, explicit DNDInventory-only starting-equipment grant, explicit Grant Initial Traits gating, lazy/no-hash progression metadata reads, and bounded Bestiary/campaign access. Character-owned Inventory, Spellbook, Feature and applied-grant sidecars remain centralized under `/ext/apps_data/dndolphins/` even though Inventory and Spellbook have their own FAPs.
 
-## 3.5.1 — Hardware validation and bounded refinements
+## 3.5.2 — Hardware validation and bounded refinements
 
 - Hardware-validate feat filtering, Inventory container remapping/quantity edits and opt-in Initiative history under fault injection and repeated cold launches.
 - Measure stack high-water/free heap during Initiative history publication and maximum Inventory/Spellbook/Adventure projection adapter overlap; optimize only from measured pressure.

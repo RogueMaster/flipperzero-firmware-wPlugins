@@ -560,12 +560,18 @@ static void dndadventure_campaigns_validate_scenes(
         dndadventure_campaigns_note_problem(output, campaign->id, "Diagnostics memory low");
         return;
     }
+    char* line = malloc(CAMPAIGN_LINE_LEN);
+    if(!line) {
+        storage_file_free(file);
+        free(scene_ids);
+        dndadventure_campaigns_note_problem(output, campaign->id, "Diagnostics memory low");
+        return;
+    }
     uint8_t scene_count = 0U;
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         CampaignReader reader;
         dndadventure_campaigns_reader_init(&reader, file, 0U);
-        char line[CAMPAIGN_LINE_LEN];
-        while(dndadventure_campaigns_read_line(&reader, line, sizeof(line), NULL)) {
+        while(dndadventure_campaigns_read_line(&reader, line, CAMPAIGN_LINE_LEN, NULL)) {
             char* fields[11];
             uint8_t count = dndadventure_campaigns_split(line, fields, 11U);
             if(count != 5U || strcmp(fields[0], "S")) continue;
@@ -586,8 +592,7 @@ static void dndadventure_campaigns_validate_scenes(
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         CampaignReader reader;
         dndadventure_campaigns_reader_init(&reader, file, 0U);
-        char line[CAMPAIGN_LINE_LEN];
-        while(dndadventure_campaigns_read_line(&reader, line, sizeof(line), NULL)) {
+        while(dndadventure_campaigns_read_line(&reader, line, CAMPAIGN_LINE_LEN, NULL)) {
             char* fields[11];
             uint8_t count = dndadventure_campaigns_split(line, fields, 11U);
             if(count != 11U || strcmp(fields[0], "C")) continue;
@@ -600,6 +605,7 @@ static void dndadventure_campaigns_validate_scenes(
     }
     storage_file_close(file);
     storage_file_free(file);
+    free(line);
     free(scene_ids);
 }
 
@@ -612,14 +618,18 @@ static bool dndadventure_campaigns_path_has_id_before(
     if(!storage || !path || !id || !id[0] || !record_limit) return false;
     File* file = storage_file_alloc(storage);
     if(!file) return false;
+    char* line = malloc(CAMPAIGN_LINE_LEN);
+    if(!line) {
+        storage_file_free(file);
+        return false;
+    }
     bool found = false;
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         CampaignReader reader;
         dndadventure_campaigns_reader_init(&reader, file, 0U);
-        char line[CAMPAIGN_LINE_LEN];
         uint16_t records = 0U;
         while(records < record_limit &&
-              dndadventure_campaigns_read_line(&reader, line, sizeof(line), NULL)) {
+              dndadventure_campaigns_read_line(&reader, line, CAMPAIGN_LINE_LEN, NULL)) {
             PocketCampaignSummary campaign;
             if(!dndadventure_campaigns_parse(line, bundled, &campaign)) continue;
             if(!strcmp(campaign.id, id)) {
@@ -630,6 +640,7 @@ static bool dndadventure_campaigns_path_has_id_before(
         }
         storage_file_close(file);
     }
+    free(line);
     storage_file_free(file);
     return found;
 }
@@ -666,11 +677,17 @@ static void dndadventure_campaigns_diagnose_path(
         storage_file_free(file);
         return;
     }
+    char* line = malloc(CAMPAIGN_LINE_LEN);
+    if(!line) {
+        storage_file_close(file);
+        storage_file_free(file);
+        dndadventure_campaigns_note_problem(output, "diagnostics", "Diagnostics memory low");
+        return;
+    }
     CampaignReader reader;
     dndadventure_campaigns_reader_init(&reader, file, 0U);
-    char line[CAMPAIGN_LINE_LEN];
     uint16_t prior_records = 0U;
-    while(dndadventure_campaigns_read_line(&reader, line, sizeof(line), NULL)) {
+    while(dndadventure_campaigns_read_line(&reader, line, CAMPAIGN_LINE_LEN, NULL)) {
         PocketCampaignSummary campaign;
         if(!dndadventure_campaigns_parse(line, bundled, &campaign)) continue;
         if(output->records < UINT16_MAX) ++output->records;
@@ -690,10 +707,16 @@ static void dndadventure_campaigns_diagnose_path(
     }
     storage_file_close(file);
     storage_file_free(file);
+    free(line);
 }
 
 void dndadventure_campaigns_diagnose(Storage* storage, PocketCampaignDiagnostics* output) {
+    if(!output) return;
     memset(output, 0, sizeof(*output));
+    if(!storage) {
+        dndadventure_campaigns_note_problem(output, "diagnostics", "Storage unavailable");
+        return;
+    }
     dndadventure_campaigns_diagnose_path(storage, CAMPAIGN_BUNDLED_INDEX, true, 0U, output);
     dndadventure_campaigns_diagnose_path(storage, CAMPAIGN_ENABLED_INDEX, false, 1U, output);
     dndadventure_campaigns_diagnose_path(storage, CAMPAIGN_USER_INDEX, false, 2U, output);

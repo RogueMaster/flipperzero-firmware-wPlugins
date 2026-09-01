@@ -26,6 +26,8 @@
 #define ADVENTURE_LINE_LEN         512U
 #define ADVENTURE_STATUS_LEN       40U
 #define ADVENTURE_JOURNAL_PATH_LEN 160U
+#define ADVENTURE_PREVIEW_WIDTH    22U
+#define ADVENTURE_FULL_TEXT_WIDTH  26U
 
 typedef struct {
     char label[POCKET_D20_NAME_LEN];
@@ -62,6 +64,8 @@ typedef enum {
     DndAdventureScreenDiagnostics,
     DndAdventureScreenPacks,
     DndAdventureScreenPackPreview,
+    DndAdventureScreenFullText,
+    DndAdventureScreenRestartConfirm,
 } DndAdventureScreen;
 
 typedef struct {
@@ -87,6 +91,7 @@ typedef struct {
     uint8_t active_campaign_valid;
     DndAdventureScene* scene;
     uint8_t adventure_started;
+    uint8_t full_text_offset;
 
     PocketCampaignDiagnostics diagnostics;
     uint16_t pack_count;
@@ -597,7 +602,7 @@ static void dndadventure_draw_sprite(Canvas* canvas, const DndAdventureScene* sc
 }
 
 static void dndadventure_prepare_campaign_rows(DndAdventureApp* app) {
-    uint16_t rows = app->campaign_count + 2U;
+    uint16_t rows = app->campaign_count + 3U;
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         char* row = app->campaign_rows[visible];
         row[0] = '\0';
@@ -620,15 +625,17 @@ static void dndadventure_prepare_campaign_rows(DndAdventureApp* app) {
             }
         } else if(index == app->campaign_count) {
             dndadventure_copy(row, 27U, "Campaign Diagnostics");
-        } else {
+        } else if(index == app->campaign_count + 1U) {
             dndadventure_copy(row, 27U, "Installed Pack Controls");
+        } else {
+            dndadventure_copy(row, 27U, "Restart Current Adventure");
         }
     }
 }
 
 static void dndadventure_draw_campaigns(Canvas* canvas, DndAdventureApp* app) {
     dndadventure_draw_header(canvas, app, "DNDAdventure", app->status);
-    uint16_t rows = app->campaign_count + 2U;
+    uint16_t rows = app->campaign_count + 3U;
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         uint16_t index = app->scroll + visible;
         if(index >= rows) break;
@@ -649,18 +656,26 @@ static void dndadventure_draw_scene(Canvas* canvas, DndAdventureApp* app) {
     snprintf(title, sizeof(title), "Adventure: %.24s", app->scene->title);
     dndadventure_draw_header(canvas, app, title, app->status);
     dndadventure_draw_sprite(canvas, app->scene);
-    char line1[24], line2[24], line3[24];
-    snprintf(line1, sizeof(line1), "%.23s", app->scene->body);
+    char line1[ADVENTURE_PREVIEW_WIDTH + 1U];
+    char line2[ADVENTURE_PREVIEW_WIDTH + 1U];
+    char line3[ADVENTURE_PREVIEW_WIDTH + 1U];
+    snprintf(line1, sizeof(line1), "%.*s", (int)ADVENTURE_PREVIEW_WIDTH, app->scene->body);
     snprintf(
         line2,
         sizeof(line2),
-        "%.23s",
-        strlen(app->scene->body) > 23U ? app->scene->body + 23U : "");
+        "%.*s",
+        (int)ADVENTURE_PREVIEW_WIDTH,
+        strlen(app->scene->body) > ADVENTURE_PREVIEW_WIDTH ?
+            app->scene->body + ADVENTURE_PREVIEW_WIDTH :
+            "");
     snprintf(
         line3,
         sizeof(line3),
-        "%.23s",
-        strlen(app->scene->body) > 46U ? app->scene->body + 46U : "");
+        "%.*s",
+        (int)ADVENTURE_PREVIEW_WIDTH,
+        strlen(app->scene->body) > ADVENTURE_PREVIEW_WIDTH * 2U ?
+            app->scene->body + ADVENTURE_PREVIEW_WIDTH * 2U :
+            "");
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 31, 19, line1);
     canvas_draw_str(canvas, 31, 28, line2);
@@ -695,34 +710,141 @@ static void dndadventure_draw_result(Canvas* canvas, DndAdventureApp* app) {
     dndadventure_draw_row(canvas, 4U, true, "OK: Continue");
 }
 
+static void dndadventure_diagnostics_row(
+    const DndAdventureApp* app,
+    uint16_t index,
+    char* row,
+    size_t size) {
+    if(!app || !row || !size) return;
+    switch(index) {
+    case 0U:
+        snprintf(row, size, "Manifests: %u", app->diagnostics.records);
+        break;
+    case 1U:
+        snprintf(row, size, "Incompatible: %u", app->diagnostics.incompatible);
+        break;
+    case 2U:
+        snprintf(row, size, "Missing files: %u", app->diagnostics.missing_scene_files);
+        break;
+    case 3U:
+        snprintf(row, size, "Duplicate packs: %u", app->diagnostics.duplicate_campaign_ids);
+        break;
+    case 4U:
+        snprintf(row, size, "Duplicate scenes: %u", app->diagnostics.duplicate_scene_ids);
+        break;
+    case 5U:
+        snprintf(row, size, "Missing entries: %u", app->diagnostics.missing_entry_scenes);
+        break;
+    case 6U:
+        snprintf(row, size, "Broken links: %u", app->diagnostics.broken_links);
+        break;
+    case 7U:
+        snprintf(
+            row,
+            size,
+            "ID: %.24s",
+            app->diagnostics.problem_id[0] ? app->diagnostics.problem_id : "none");
+        break;
+    case 8U:
+        snprintf(
+            row,
+            size,
+            "Issue: %.23s",
+            app->diagnostics.problem[0] ? app->diagnostics.problem : "none");
+        break;
+    default:
+        row[0] = '\0';
+        break;
+    }
+}
+
 static void dndadventure_draw_diagnostics(Canvas* canvas, DndAdventureApp* app) {
     dndadventure_draw_header(canvas, app, "Campaign Diagnostics", app->status);
-    char rows[9][40];
-    snprintf(rows[0], sizeof(rows[0]), "Manifests: %u", app->diagnostics.records);
-    snprintf(rows[1], sizeof(rows[1]), "Incompatible: %u", app->diagnostics.incompatible);
-    snprintf(rows[2], sizeof(rows[2]), "Missing files: %u", app->diagnostics.missing_scene_files);
-    snprintf(
-        rows[3], sizeof(rows[3]), "Duplicate packs: %u", app->diagnostics.duplicate_campaign_ids);
-    snprintf(
-        rows[4], sizeof(rows[4]), "Duplicate scenes: %u", app->diagnostics.duplicate_scene_ids);
-    snprintf(
-        rows[5], sizeof(rows[5]), "Missing entries: %u", app->diagnostics.missing_entry_scenes);
-    snprintf(rows[6], sizeof(rows[6]), "Broken links: %u", app->diagnostics.broken_links);
-    snprintf(
-        rows[7],
-        sizeof(rows[7]),
-        "ID: %.24s",
-        app->diagnostics.problem_id[0] ? app->diagnostics.problem_id : "none");
-    snprintf(
-        rows[8],
-        sizeof(rows[8]),
-        "Issue: %.23s",
-        app->diagnostics.problem[0] ? app->diagnostics.problem : "none");
+    char row[40];
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         uint16_t index = app->scroll + visible;
         if(index >= 9U) break;
-        dndadventure_draw_row(canvas, visible, index == app->selection, rows[index]);
+        dndadventure_diagnostics_row(app, index, row, sizeof(row));
+        dndadventure_draw_row(canvas, visible, index == app->selection, row);
     }
+}
+
+static const char*
+    dndadventure_next_full_text_line(const char* cursor, char* output, size_t output_size) {
+    if(!cursor || !output || output_size < 2U) return NULL;
+    while(*cursor == ' ' || *cursor == '\r' || *cursor == '\n')
+        ++cursor;
+    if(!*cursor) {
+        output[0] = '\0';
+        return cursor;
+    }
+    size_t length = 0U;
+    size_t last_space = SIZE_MAX;
+    while(cursor[length] && cursor[length] != '\r' && cursor[length] != '\n' &&
+          length < ADVENTURE_FULL_TEXT_WIDTH) {
+        if(cursor[length] == ' ') last_space = length;
+        ++length;
+    }
+    if(length == ADVENTURE_FULL_TEXT_WIDTH && cursor[length] && cursor[length] != ' ' &&
+       cursor[length] != '\r' && cursor[length] != '\n' && last_space != SIZE_MAX)
+        length = last_space;
+    if(length >= output_size) length = output_size - 1U;
+    memcpy(output, cursor, length);
+    while(length && output[length - 1U] == ' ')
+        --length;
+    output[length] = '\0';
+    cursor += length;
+    while(*cursor == ' ' || *cursor == '\r' || *cursor == '\n')
+        ++cursor;
+    return cursor;
+}
+
+static uint8_t dndadventure_full_text_line_count(const char* text) {
+    uint8_t count = 0U;
+    char line[ADVENTURE_FULL_TEXT_WIDTH + 1U];
+    const char* cursor = text;
+    while(cursor && *cursor && count < UINT8_MAX) {
+        const char* next = dndadventure_next_full_text_line(cursor, line, sizeof(line));
+        if(!next || next == cursor) break;
+        ++count;
+        cursor = next;
+    }
+    return count ? count : 1U;
+}
+
+static void dndadventure_draw_full_text(Canvas* canvas, DndAdventureApp* app) {
+    if(!app->scene) {
+        dndadventure_draw_header(canvas, app, "Adventure Text", "No scene");
+        return;
+    }
+    uint8_t line_count = dndadventure_full_text_line_count(app->scene->body);
+    uint8_t last_line = (uint8_t)(app->full_text_offset + 5U);
+    if(last_line > line_count) last_line = line_count;
+    char position[16];
+    snprintf(
+        position,
+        sizeof(position),
+        "%u-%u/%u",
+        (unsigned)(app->full_text_offset + 1U),
+        (unsigned)last_line,
+        (unsigned)line_count);
+    dndadventure_draw_header(canvas, app, app->scene->title, position);
+    canvas_draw_frame(canvas, 0, 10, 128, 54);
+    canvas_set_font(canvas, FontSecondary);
+    const char* cursor = app->scene->body;
+    char line[ADVENTURE_FULL_TEXT_WIDTH + 1U];
+    for(uint8_t skip = 0U; skip < app->full_text_offset && cursor && *cursor; ++skip)
+        cursor = dndadventure_next_full_text_line(cursor, line, sizeof(line));
+    for(uint8_t row = 0U; row < 5U && cursor && *cursor; ++row) {
+        cursor = dndadventure_next_full_text_line(cursor, line, sizeof(line));
+        canvas_draw_str(canvas, 4, (uint8_t)(20U + row * 10U), line);
+    }
+}
+
+static void dndadventure_draw_restart_confirm(Canvas* canvas, DndAdventureApp* app) {
+    dndadventure_draw_header(canvas, app, "Restart Adventure?", "Resets progress");
+    dndadventure_draw_row(canvas, 0U, app->selection == 0U, "Restart Adventure");
+    dndadventure_draw_row(canvas, 1U, app->selection == 1U, "Cancel");
 }
 
 static void dndadventure_prepare_pack_rows(DndAdventureApp* app) {
@@ -819,6 +941,12 @@ static void dndadventure_draw(Canvas* canvas, void* model) {
     case DndAdventureScreenPackPreview:
         dndadventure_draw_pack_preview(canvas, app);
         break;
+    case DndAdventureScreenFullText:
+        dndadventure_draw_full_text(canvas, app);
+        break;
+    case DndAdventureScreenRestartConfirm:
+        dndadventure_draw_restart_confirm(canvas, app);
+        break;
     }
 }
 
@@ -837,6 +965,28 @@ static void
     if(app->selection >= app->scroll + visible) app->scroll = app->selection - visible + 1U;
 }
 
+static bool dndadventure_restart_current(DndAdventureApp* app) {
+    if(!app || !app->active_campaign_valid || !app->character_loaded) return false;
+    PocketCampaignProgress restarted;
+    memset(&restarted, 0, sizeof(restarted));
+    dndadventure_copy(restarted.campaign, sizeof(restarted.campaign), app->active_campaign.id);
+    dndadventure_copy(restarted.scene, sizeof(restarted.scene), app->active_campaign.entry_scene);
+    dndadventure_copy(
+        restarted.checkpoint, sizeof(restarted.checkpoint), app->active_campaign.entry_scene);
+    PocketCampaignProgress previous = app->progress;
+    app->progress = restarted;
+    if(!dndadventure_load_scene(app) || !dndadventure_save_progress(app)) {
+        app->progress = previous;
+        (void)dndadventure_load_scene(app);
+        return false;
+    }
+    app->adventure_started = 0U;
+    app->selection = 0U;
+    app->scroll = 0U;
+    app->full_text_offset = 0U;
+    return true;
+}
+
 static void dndadventure_return_to_dnd(DndAdventureApp* app) {
     app->return_to_dnd = 1U;
     /* Scene/cache allocations are not needed for the return handoff. Release
@@ -850,6 +1000,16 @@ static void dndadventure_return_to_dnd(DndAdventureApp* app) {
 static void dndadventure_back(DndAdventureApp* app) {
     if(app->screen == DndAdventureScreenCampaigns) {
         dndadventure_return_to_dnd(app);
+    } else if(app->screen == DndAdventureScreenFullText) {
+        app->screen = DndAdventureScreenAdventure;
+        app->full_text_offset = 0U;
+        app->status[0] = '\0';
+    } else if(app->screen == DndAdventureScreenRestartConfirm) {
+        app->screen = DndAdventureScreenCampaigns;
+        app->selection = app->campaign_count + 2U;
+        app->scroll = app->selection > 4U ? app->selection - 4U : 0U;
+        app->status[0] = '\0';
+        dndadventure_prepare_campaign_rows(app);
     } else if(app->screen == DndAdventureScreenAdventure || app->screen == DndAdventureScreenResult) {
         dndadventure_save_progress(app);
         app->screen = DndAdventureScreenCampaigns;
@@ -887,7 +1047,7 @@ static bool dndadventure_input(InputEvent* event, void* context) {
 
     bool move = event->type == InputTypeShort || event->type == InputTypeRepeat;
     if(app->screen == DndAdventureScreenCampaigns) {
-        uint16_t rows = app->campaign_count + 2U;
+        uint16_t rows = app->campaign_count + 3U;
         if(move && event->key == InputKeyUp) {
             dndadventure_move(app, rows, -1, 5U);
             dndadventure_prepare_campaign_rows(app);
@@ -898,16 +1058,25 @@ static bool dndadventure_input(InputEvent* event, void* context) {
             if(app->selection < app->campaign_count) {
                 dndadventure_select_campaign(app, app->selection);
             } else if(app->selection == app->campaign_count) {
-                dndadventure_campaigns_diagnose(app->storage, &app->diagnostics);
+                dndadventure_scene_free(app);
+                memset(&app->diagnostics, 0, sizeof(app->diagnostics));
                 app->screen = DndAdventureScreenDiagnostics;
                 app->selection = 0U;
                 app->scroll = 0U;
-            } else {
+                dndadventure_set_status(app, "OK: Run diagnostics");
+            } else if(app->selection == app->campaign_count + 1U) {
                 app->pack_count = dndadventure_campaign_packs_count(app->storage);
                 app->screen = DndAdventureScreenPacks;
                 app->selection = 0U;
                 app->scroll = 0U;
                 dndadventure_prepare_pack_rows(app);
+            } else if(app->active_campaign_valid && app->character_loaded) {
+                app->screen = DndAdventureScreenRestartConfirm;
+                app->selection = 1U;
+                app->scroll = 0U;
+                app->status[0] = '\0';
+            } else {
+                dndadventure_set_status(app, "No active adventure");
             }
         }
     } else if(app->screen == DndAdventureScreenAdventure) {
@@ -925,32 +1094,35 @@ static bool dndadventure_input(InputEvent* event, void* context) {
         } else if(move && event->key == InputKeyDown) {
             dndadventure_move(app, app->scene->choice_count, 1, 2U);
         } else if(event->type == InputTypeLong && event->key == InputKeyOk) {
+            app->full_text_offset = 0U;
+            app->screen = DndAdventureScreenFullText;
+            app->status[0] = '\0';
+        } else if(event->type == InputTypeLong && event->key == InputKeyLeft) {
+            if(!app->progress.checkpoint[0]) {
+                dndadventure_set_status(app, "No checkpoint saved");
+            } else {
+                char previous_scene[POCKET_D20_SHORT_LEN];
+                dndadventure_copy(previous_scene, sizeof(previous_scene), app->progress.scene);
+                dndadventure_copy(
+                    app->progress.scene, sizeof(app->progress.scene), app->progress.checkpoint);
+                if(dndadventure_load_scene(app)) {
+                    app->selection = 0U;
+                    app->scroll = 0U;
+                    dndadventure_save_progress(app);
+                    dndadventure_set_status(app, "Checkpoint loaded");
+                } else {
+                    dndadventure_copy(
+                        app->progress.scene, sizeof(app->progress.scene), previous_scene);
+                    dndadventure_set_status(app, "Checkpoint unavailable");
+                }
+            }
+        } else if(event->type == InputTypeLong && event->key == InputKeyRight) {
             dndadventure_copy(
                 app->progress.checkpoint, sizeof(app->progress.checkpoint), app->progress.scene);
             dndadventure_set_status(
                 app,
                 dndadventure_save_progress(app) ? "Checkpoint saved [X]" :
                                                   "Checkpoint save failed");
-        } else if(event->type == InputTypeLong && event->key == InputKeyLeft) {
-            dndadventure_copy(
-                app->progress.scene, sizeof(app->progress.scene), app->progress.checkpoint);
-            if(dndadventure_load_scene(app)) {
-                app->selection = 0U;
-                app->scroll = 0U;
-                dndadventure_save_progress(app);
-                dndadventure_set_status(app, "Checkpoint loaded");
-            }
-        } else if(event->type == InputTypeLong && event->key == InputKeyRight) {
-            dndadventure_copy(
-                app->progress.scene,
-                sizeof(app->progress.scene),
-                app->active_campaign.entry_scene);
-            if(dndadventure_load_scene(app)) {
-                app->selection = 0U;
-                app->scroll = 0U;
-                dndadventure_save_progress(app);
-                dndadventure_set_status(app, "Adventure restarted");
-            }
         } else if(
             event->type == InputTypeShort && event->key == InputKeyOk &&
             app->selection < app->scene->choice_count) {
@@ -962,6 +1134,41 @@ static bool dndadventure_input(InputEvent* event, void* context) {
         if(event->type == InputTypeShort && event->key == InputKeyOk) {
             app->screen = DndAdventureScreenAdventure;
             app->status[0] = '\0';
+        }
+    } else if(app->screen == DndAdventureScreenFullText) {
+        uint8_t line_count = app->scene ? dndadventure_full_text_line_count(app->scene->body) : 1U;
+        uint8_t maximum = line_count > 5U ? (uint8_t)(line_count - 5U) : 0U;
+        if(move && event->key == InputKeyUp) {
+            if(app->full_text_offset) --app->full_text_offset;
+        } else if(move && event->key == InputKeyDown) {
+            if(app->full_text_offset < maximum) ++app->full_text_offset;
+        } else if(move && event->key == InputKeyLeft) {
+            app->full_text_offset =
+                app->full_text_offset > 5U ? (uint8_t)(app->full_text_offset - 5U) : 0U;
+        } else if(move && event->key == InputKeyRight) {
+            uint16_t next = (uint16_t)app->full_text_offset + 5U;
+            app->full_text_offset = next < maximum ? (uint8_t)next : maximum;
+        } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+            app->screen = DndAdventureScreenAdventure;
+            app->full_text_offset = 0U;
+        }
+    } else if(app->screen == DndAdventureScreenRestartConfirm) {
+        if(move && (event->key == InputKeyUp || event->key == InputKeyDown))
+            app->selection = app->selection ? 0U : 1U;
+        else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+            if(app->selection == 0U) {
+                bool restarted = dndadventure_restart_current(app);
+                app->screen = restarted ? DndAdventureScreenAdventure :
+                                          DndAdventureScreenCampaigns;
+                dndadventure_set_status(app, restarted ? "Adventure restarted" : "Restart failed");
+                if(!restarted) dndadventure_prepare_campaign_rows(app);
+            } else {
+                app->screen = DndAdventureScreenCampaigns;
+                app->selection = app->campaign_count + 2U;
+                app->scroll = app->selection > 4U ? app->selection - 4U : 0U;
+                app->status[0] = '\0';
+                dndadventure_prepare_campaign_rows(app);
+            }
         }
     } else if(app->screen == DndAdventureScreenDiagnostics) {
         if(move && event->key == InputKeyUp)

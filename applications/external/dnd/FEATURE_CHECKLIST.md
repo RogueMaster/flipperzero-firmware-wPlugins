@@ -57,6 +57,7 @@
 - [x] Routine successful save/add/catalog/Equip/Prepare/grant notices are transient; failure/UNSAVED notices remain visible.
 - [x] Shared companion Back convention: Short Back from each companion main screen returns to DNDolphins only when its FAP exists and restores focus to that companion's corresponding DNDolphins home row; Hold Back exits to firmware without a DNDolphins handoff; normal menus contain no redundant Return/Open-DNDolphins row.
 
+- [x] Adventure Hold OK opens bounded full scene text; Hold Left loads checkpoint; Hold Right saves checkpoint; restart is an explicit confirmed Campaign-menu action. Campaign Diagnostics uses bounded heap scan lines rather than large stack line buffers.
 - [x] DNDAdventure declarative campaigns, checks, rewards, flags/achievements and Journal milestones; resident character access is a bounded name/class-level/ability/skill projection rather than the full character core.
 - [x] Campaign inbox preview validates compatibility, content and entry-scene availability before Hold OK installation.
 - [x] Campaign list discovery uses bounded sparse hints plus streaming ID lookup rather than retaining one heap offset per campaign.
@@ -88,9 +89,9 @@
 - [x] Initiative ties use modifier as the first tie-breaker.
 - [x] Main-character Initiative HP/AC edits synchronize back to the canonical character profile.
 - [x] Turn and Encounter feature recharge are applied at their Initiative cadence.
-- [x] Grant Initial Traits stages grants into Grant Review before application.
+- [x] Grant Initial Traits immediately applies deterministic initial grants; failed grants remain reviewable. Deterministic spell grants verify the authoritative Spellbook sidecar so stale applied markers can repair a missing species/class spell without duplicating an existing spell.
 - [x] Level progression does not auto-select arbitrary class spells and prompts when spell choices expand. A bounded Level-Up Review summarizes numeric changes, deterministic traits, spell-choice notices and pending ASI/Feat choices without retaining progression metadata.
-- [x] Supported species progression uses total character level and automatically grants deterministic species spells/features when their level gates are reached.
+- [x] Supported species progression uses total character level and automatically grants deterministic species spells/features when their level gates are reached; initial deterministic species spells are also applied by Grant Initial Traits.
 - [x] Verified deterministic class/subclass metadata is expanded while selection-bearing Fighting Styles, Invocations, Metamagic, subclass selection, spell selection and similar choices remain explicit.
 - [x] Applied-grant stable IDs are normalized to the stored representation and known truncation collisions use compact unique IDs.
 

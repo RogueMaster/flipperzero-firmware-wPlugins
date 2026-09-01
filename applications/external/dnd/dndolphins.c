@@ -2206,6 +2206,10 @@ static bool dndolphins_level_choice_done(PocketD20App* app, uint8_t class_index,
 
 static bool dndolphins_begin_next_level_choice(PocketD20App* app) {
     PocketCharacter* c = &app->data.character;
+    app->level_choice_class_index = 0U;
+    app->level_choice_level = 0U;
+    app->level_choice_mode = 0U;
+    app->level_choice_first_ability = UINT8_MAX;
     for(uint8_t ci = 0U; ci < c->class_count; ++ci) {
         for(uint8_t level = 1U; level <= c->classes[ci].level; ++level) {
             if(dndolphins_class_asi_level(c->classes[ci].name, level) &&
@@ -2264,11 +2268,59 @@ static bool dndolphins_complete_level_choice(PocketD20App* app, const char* resu
         app->storage, app->profiles.active_profile, id);
 }
 
-static bool dndolphins_grant_stable_id_exists(PocketD20App* app, const char* stable_id) {
+typedef struct {
+    const char* stable_id;
+    bool found;
+} DndDolphinsSpellStableIdLookup;
+
+static bool dndolphins_spell_stable_id_visitor(
+    uint8_t logical_index,
+    const PocketSpell* spell,
+    uint8_t known,
+    uint8_t always_prepared,
+    uint8_t free_casts_current,
+    uint8_t free_casts_max,
+    void* context) {
+    UNUSED(logical_index);
+    UNUSED(known);
+    UNUSED(always_prepared);
+    UNUSED(free_casts_current);
+    UNUSED(free_casts_max);
+    DndDolphinsSpellStableIdLookup* lookup = context;
+    if(!lookup || !spell || !lookup->stable_id) return false;
+    if(spell->stable_id[0] && strcmp(spell->stable_id, lookup->stable_id) == 0) {
+        lookup->found = true;
+        return false;
+    }
+    return true;
+}
+
+static bool dndolphins_spell_stable_id_exists(PocketD20App* app, const char* stable_id) {
+    if(!app || !stable_id || !stable_id[0]) return false;
+    DndDolphinsSpellStableIdLookup lookup = {.stable_id = stable_id, .found = false};
+    if(!dnd_storage_visit_spells(
+           app->storage,
+           app->profiles.active_profile,
+           dndolphins_spell_stable_id_visitor,
+           &lookup,
+           NULL))
+        return false;
+    return lookup.found;
+}
+
+static bool
+    dndolphins_grant_stable_id_exists(PocketD20App* app, const char* stable_id, bool spell_grant) {
     PocketCharacter* character = &app->data.character;
     if(!stable_id || !stable_id[0]) return false;
     for(uint8_t i = 0U; i < character->grant_count; ++i)
         if(strcmp(character->grants[i].stable_id, stable_id) == 0) return true;
+    if(spell_grant) {
+        /* Spell sidecars are authoritative for granted spells. If an older build
+           recorded the applied marker but the spell record is absent, allow the
+           deterministic grant to be staged again as a repair instead of trusting
+           stale applied-grant metadata. */
+        return dndolphins_spell_stable_id_exists(app, stable_id);
+    }
     return dndolphins_progression_store_applied_exists(
         app->storage, app->profiles.active_profile, stable_id);
 }
@@ -2306,7 +2358,8 @@ static uint8_t
                 continue;
             char stable_id[POCKET_D20_SHORT_LEN];
             dndolphins_copy(stable_id, sizeof(stable_id), fields[0]);
-            if(dndolphins_grant_stable_id_exists(app, stable_id)) continue;
+            bool spell_grant = strncmp(fields[7], "spell=", 6U) == 0;
+            if(dndolphins_grant_stable_id_exists(app, stable_id, spell_grant)) continue;
             uint32_t level_gained = 0U;
             if(!dndolphins_parse_u32_strict(fields[5], UINT8_MAX, &level_gained)) continue;
             if(source_type == PocketGrantClassFeature ||
@@ -3380,6 +3433,12 @@ static void dndolphins_draw_level_review(Canvas* canvas, PocketD20App* app) {
 }
 
 static void dndolphins_draw_level_choice(Canvas* canvas, PocketD20App* app) {
+    if(!app->level_choice_level) {
+        dndolphins_draw_header(canvas, "Level Choices", app->status);
+        dndolphins_draw_row(canvas, 0U, true, "No pending choices");
+        dndolphins_draw_row(canvas, 1U, false, "OK: Back");
+        return;
+    }
     char title[48];
     const PocketCharacter* c = &app->data.character;
     const char* class_name = app->level_choice_class_index < c->class_count ?
@@ -5777,12 +5836,12 @@ static void dndolphins_handle_character(PocketD20App* app, const InputEvent* eve
             dndolphins_save(app, false);
             break;
         case 12:
-            if(dndolphins_begin_next_level_choice(app)) {
-                app->return_screen = PocketScreenCharacter;
-                dndolphins_enter_screen(app, PocketScreenLevelChoice);
-            } else {
-                dndolphins_set_status(app, "No pending level choices");
-            }
+            (void)dndolphins_begin_next_level_choice(app);
+            app->return_screen = PocketScreenCharacter;
+            dndolphins_enter_screen(app, PocketScreenLevelChoice);
+            app->selection = 0U;
+            app->scroll = 0U;
+            if(!app->level_choice_level) dndolphins_set_status(app, "No pending ASI/Feat choices");
             break;
         case 13: {
             dndolphins_release_pending_grants(app);
@@ -5799,18 +5858,30 @@ static void dndolphins_handle_character(PocketD20App* app, const InputEvent* eve
                         app, PocketGrantSubclassFeature, character->classes[i].subclass);
             }
             app->record_index = saved_index;
+
+            uint8_t applied = 0U;
+            uint8_t failed = 0U;
+            for(uint8_t i = 0U; i < character->grant_count; ++i) {
+                if(character->grants[i].status != PocketGrantPending) continue;
+                dndolphins_apply_grant(app, &character->grants[i]);
+                if(character->grants[i].status == PocketGrantApplied)
+                    ++applied;
+                else
+                    ++failed;
+            }
             dndolphins_save(app, false);
-            uint8_t pending = 0U;
-            for(uint8_t i = 0U; i < character->grant_count; ++i)
-                if(character->grants[i].status == PocketGrantPending) ++pending;
-            snprintf(
-                app->status,
-                sizeof(app->status),
-                pending ? "%u traits: review/apply" : "Initial traits current",
-                pending);
-            if(pending) {
+            if(failed) {
+                snprintf(
+                    app->status, sizeof(app->status), "%u granted; %u review", applied, failed);
                 app->return_screen = PocketScreenCharacter;
                 dndolphins_enter_screen(app, PocketScreenGrantReview);
+            } else {
+                dndolphins_release_pending_grants(app);
+                snprintf(
+                    app->status,
+                    sizeof(app->status),
+                    applied ? "%u initial traits granted" : "Initial traits current",
+                    applied);
             }
             break;
         }
@@ -6089,6 +6160,11 @@ static void dndolphins_handle_level_review(PocketD20App* app, const InputEvent* 
 }
 
 static void dndolphins_handle_level_choice(PocketD20App* app, const InputEvent* event) {
+    if(!app->level_choice_level) {
+        if(event->type == InputTypeShort && event->key == InputKeyOk)
+            dndolphins_enter_screen(app, app->return_screen);
+        return;
+    }
     if(dndolphins_is_move_event(event) && event->key == InputKeyUp)
         dndolphins_menu_move(app, 4U, -1);
     else if(dndolphins_is_move_event(event) && event->key == InputKeyDown)
@@ -7448,6 +7524,55 @@ static void dndolphins_handle_dice_result(PocketD20App* app, const InputEvent* e
     if(event->type == InputTypeShort && event->key == InputKeyOk) dndolphins_roll_generic(app);
 }
 
+typedef struct {
+    const char* ammunition_group;
+    uint8_t logical_index;
+    bool found;
+} DndDolphinsAmmunitionLookup;
+
+static bool dndolphins_ammunition_stack_visitor(
+    uint8_t logical_index,
+    const PocketItem* item,
+    void* context) {
+    DndDolphinsAmmunitionLookup* lookup = context;
+    if(!lookup || !item || !lookup->ammunition_group) return false;
+    if(!item->is_weapon && item->quantity > 0 && item->ammunition_group[0] &&
+       strcmp(item->ammunition_group, lookup->ammunition_group) == 0) {
+        lookup->logical_index = logical_index;
+        lookup->found = true;
+        return false;
+    }
+    return true;
+}
+
+static bool dndolphins_consume_loose_ammunition(
+    PocketD20App* app,
+    uint8_t weapon_index,
+    const char* ammunition_group) {
+    if(!app || !ammunition_group || !ammunition_group[0]) return false;
+    DndDolphinsAmmunitionLookup lookup = {
+        .ammunition_group = ammunition_group,
+        .logical_index = 0U,
+        .found = false,
+    };
+    if(!dnd_storage_visit_items(
+           app->storage,
+           app->profiles.active_profile,
+           dndolphins_ammunition_stack_visitor,
+           &lookup,
+           NULL) ||
+       !lookup.found)
+        return false;
+    if(!dndolphins_item_cache_ensure(app, lookup.logical_index)) return false;
+    PocketItem* ammunition = dndolphins_item_cached_at(app, lookup.logical_index, NULL);
+    if(!ammunition || ammunition->quantity <= 0) return false;
+    --ammunition->quantity;
+    if(!dndolphins_save_items_if_changed(app)) return false;
+    /* Attack/result screens expect the weapon page to be resident. Restore it
+       after touching a loose-ammunition stack that may live on another page. */
+    return dndolphins_item_cache_ensure(app, weapon_index);
+}
+
 static void dndolphins_roll_selected_attack(PocketD20App* app) {
     uint8_t count = dndolphins_weapon_count(app);
     if(count == 0U) return;
@@ -7455,17 +7580,33 @@ static void dndolphins_roll_selected_attack(PocketD20App* app) {
     if(app->attack_item_index == 0xFFU) return;
     PocketItem* item = dndolphins_item_at(app, app->attack_item_index, NULL);
     if(!item) return;
-    if((item->weapon_properties & PocketWeaponAmmunition) && item->ammo_current <= 0) {
-        dndolphins_set_status(app, "No ammunition");
-        return;
-    }
+    PocketItem weapon = *item;
     if(item->weapon_properties & PocketWeaponAmmunition) {
-        --item->ammo_current;
-        (void)dndolphins_save_items_if_changed(app);
+        if(item->ammo_max > 0 || item->ammo_current > 0) {
+            if(item->ammo_current <= 0) {
+                dndolphins_set_status(app, "No ammunition");
+                return;
+            }
+            --item->ammo_current;
+            if(!dndolphins_save_items_if_changed(app)) {
+                dndolphins_set_status(app, "Ammo save failed");
+                return;
+            }
+        } else if(!dndolphins_consume_loose_ammunition(
+                      app, app->attack_item_index, weapon.ammunition_group)) {
+            dndolphins_set_status(app, "No ammunition");
+            return;
+        }
         dndolphins_save(app, false);
+        item = dndolphins_item_cached_at(app, app->attack_item_index, NULL);
+        if(!item) {
+            dndolphins_set_status(app, "Weapon reload failed");
+            return;
+        }
+        weapon = *item;
     }
     app->attack_roll =
-        dndolphins_weapon_combat_roll_attack(&app->data.character, item, app->roll_mode);
+        dndolphins_weapon_combat_roll_attack(&app->data.character, &weapon, app->roll_mode);
     app->attack_phase = 0U;
     dndolphins_enter_screen(app, PocketScreenAttackResult);
     dndolphins_start_dice_animation(app, app->attack_roll.second_die ? 2U : 1U, 20U);
