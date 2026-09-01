@@ -1,198 +1,107 @@
 # Dungeons & Dolphins changelog
 
-Released work only. Each released revision is retained as a concise summary; troubleshooting experiments and changes removed before a release are not expanded here.
+Released work only. Normal releases are retained as concise summaries; closely related recovery spans may be consolidated when the individual troubleshooting chronology would obscure the released outcome.
 
-## 3.2.31
-- Added Record List Hold OK quick toggles for both sidecar collections: Spellbook toggles Prepared/Unprepared and Inventory toggles Equipped/Unequipped on the selected record. Always-prepared spells remain protected from manual unprepare.
-- Quick prepare/equip changes immediately commit the active Spellbook/Inventory sidecar before showing the success acknowledgement; a collection write failure keeps the existing UNSAVED retry status instead of falsely confirming persistence.
+## 3.3.8 — DNDolphins home-menu ordering and named focus indices
 
-## 3.2.30
-- Corrected the Inventory/Spellbook tail-page state used after starting equipment or any existing collection. Add New now loads/prepares the actual final eight-record page, grows that resident page in RAM, increments the logical count, and immediately rewrites the live collection instead of manufacturing a one-record tail cache.
-- Fixed the post-editor list focus bug that selected the newly added record while leaving the list scrolled to row zero. Returning from an Item/Spell editor now keeps the new record visible and keeps the five-row viewport inside one resident collection page.
-- Removed collection page changes, SD reads/writes and item/spell buffer reallocations from Record List drawing. Page transitions now occur in input/screen-transition handling before the canvas callback, preventing render-time cache churn across eight-record boundaries.
-- Item/Spell catalog memory is released before the completed catalog choice is committed to its collection, reducing peak heap overlap between the catalog page, the resident Item/Spell page and collection rewrite buffers.
-- User edits to Item/Spell catalog choices, text fields, numeric fields and left/right adjustments now commit their collection immediately. Add New still writes immediately after staging the blank record; completed catalog population writes again with the final record contents. Quick spell preparation, free-cast consumption, spell casting with a free cast, and weapon-ammunition consumption also commit their sidecar immediately instead of waiting on the core autosave timer.
-- Rechecked source stack frames for the affected paths: the collection item rewrite and item-page load remain well below the DNDolphins stack reservation, so the repeated-add MPU investigation is focused on page/cache/heap behavior rather than a single oversized local frame.
+- Reordered the DNDolphins Home menu into character sheet, character resources, encounter tools and campaign-play groups: Characters, Character, Vitals, Abilities & Saves, Skills, Features & Perks, Inventory, Magic & Spells, Bestiary, Initiative, Combat, Dice Roller, Adventure and Journal. The encounter workflow is intentionally Bestiary → Initiative → Combat.
+- Replaced raw numeric Home-menu cases and companion-return focus positions with the `DndolphinsHomeIndex` enum. Home dispatch now uses named cases, and companion return arguments translate to the matching named index before selection/scroll restoration.
+- Preserved same-row return from DNDolphins submenus and cross-FAP return focus while making future menu reordering resistant to index drift.
 
-## 3.2.29
-- Rebased manual Spellbook/Inventory **Add New** persistence on the proven pre-sidecar lifecycle: grow the resident record/count first, then write it, and advance the saved-state fingerprint only after the collection write actually succeeds.
-- Removed the collection hot path's recursive parent-directory validation and now establishes `/ext/apps_data/dndolphins` with the same best-effort `storage_common_mkdir()` pattern used by the proven character save path before opening Inventory/Spellbook files. Starting-inventory creation and Journal Item creation use the same root-directory pattern.
-- Consecutive adds no longer demand a successful save before every new record. Up to the resident eight-record page can grow in RAM while writes are retried; crossing to the next page requires the previous page to persist first. This restores the old 0→1→2 add/count behavior without abandoning bounded eight-record paging.
-- Add New now immediately attempts the ordinary page rewrite after staging instead of running a separate pre-create/append transaction. The live `inventory_{characterId}.txt` / `spellbook_{characterId}.txt` file is verified to exist before a collection creation/copy operation is considered successful.
-- Kept collection delete/edit paths on the same authoritative live files, so once the first page is published, subsequent edits, deletes, app-close flushes and catalog-loaded record changes share one save state instead of competing append and fingerprint states.
+## 3.3.7 — Documentation, profile handoff ownership and manifest audit
 
-## 3.2.28
-- Attempted to fix the remaining collection-file creation failure by replacing `FSOM_CREATE_NEW` with `FSOM_CREATE_ALWAYS`; device testing showed file creation still did not occur because the broader collection save state/path remained broken.
-- Renamed live collection files to `inventory_{characterId}.txt` and `spellbook_{characterId}.txt`, making them structurally impossible to confuse with canonical `ch_{id}_{name}_{level}.txt` character profiles. Journal Item-entry creation now targets the same Inventory filename.
-- Kept collection-local write failures retryable instead of permanently setting the whole DNDolphins session read-only; device testing showed repeated Add/Delete persistence was still blocked because the first collection file was not actually being published.
-- Restored the Spellbook **All Classes** filter as the multiclass default. It now represents the union of spells currently eligible for every class on the character; choosing an individual class narrows the catalog to that class. Catalog selection resolves Source Class to the selected eligible class, or preserves/chooses an eligible class when All Classes is active.
-- Added device-test coverage for first file creation, three consecutive adds, deletion, relaunch persistence, multiclass All Classes filtering, and retry-after-write-failure behavior.
+- Consolidated the suite-wide active-profile reference and cross-FAP Loader handoff contracts into `dnd_profile_handoff.*`, linked by all seven FAPs. Removed the duplicate `Active=` parser from shared storage so active-character metadata has one implementation while full profile/sidecar persistence remains in `dnd_storage.*`.
+- Alphabetized every FAP manifest `sources` list for auditability without changing runtime behavior or link ownership.
+- Rebuilt README as an app-by-app feature inventory covering DNDolphins, Inventory, Spellbook, Adventure, Journal, Initiative and Bestiary, with suite-wide behavior kept in a separate shared section.
+- Recalculated current ARM32 project memory documentation from the actual app structs/manifests. Correct fixed app blocks are 4,924 B DNDolphins, 5,072 B Inventory, 5,112 B Spellbook, 4,760 B Adventure, 1,352 B Journal, 5,276 B Initiative and 1,528 B Bestiary; stack reservations remain 6/4/4/4/4/3/6 KB. Updated derived working-set arithmetic and clearly separated exact project sizes from source-estimated stack peaks and firmware/framework overhead.
+- Tightened compatibility, save-schema, feature, source-ownership and device-test documentation to match the unified profile/handoff contract and current memory figures.
 
-## 3.2.27
-- Fixed the remaining on-device Spellbook/Inventory **+ Add New** failure by restoring the proven editor-first interaction: a blank spell/item is staged in the resident collection window before storage I/O, so short or hold OK can enter the full editor even if the first persistence attempt fails.
-- Replaced in-place `FSAM_READ_WRITE` collection appends with a synchronized snapshot/copy append path that uses ordinary read and write handles and a bounded 256-byte copy buffer. This also hardens progression/reward spell and item grants that share the append helpers.
-- Extended paged collection window saves so a staged spell/item that lies beyond the current live end-of-file is appended correctly, including the first record, a partially filled page, and an eight-record page boundary.
-- Kept the existing character schema, eight-record paging, header-only sidecar creation, and editor catalog workflow unchanged.
+## 3.3.6 — Inventory currency grants and navigation focus
 
-## 3.2.26
-- Reworked the Spellbook and Inventory **+ Add New** path around header-only sidecars and direct editor-cache adoption; hardware testing subsequently showed the remaining storage-first transition still prevented Add New from opening on-device.
-- Removed the post-append reread from Add New. The new spell/item is adopted directly into the resident editor cache, including an empty collection or an eight-record page boundary, avoiding the high-memory reader path immediately after append.
-- Kept progression/reward spell and item appends resilient by ensuring the collection sidecar before writing and retaining rollback-to-original-length behavior on append failure.
-- Restored Initiative full numeric editing for initiative total/modifier/AC/current HP/maximum HP, setup and active-combat participant editing, manual participant reordering, quick AC/condition controls, active-combat AC display, and explicit **End Current Combat**.
-- Restored main-character HP/AC synchronization from Initiative to the canonical character file and automatic Turn/Encounter feature recharge. Character rewrites preserve unknown fields and abort rather than truncate an oversized line.
-- Restored Journal milestone class selection, one-shot milestone level application, and Item-entry inventory creation while preserving Continue Adventure behavior.
-- Kept character save structures unchanged; the restored companion features use existing character fields and app-owned sidecars.
+- Made normal **Grant Initial Inventory** persist the existing balance plus class/species/background starting currency in the same synced `inventory_{id}.txt` creation as the granted Item records and `InitialInventory=1`, removing the second metadata rewrite that previously separated Item creation from final currency persistence. The exact committed balance is mirrored back into the Inventory app state.
+- Made the one-time Inventory regrant return the exact combined `Currency=` balance committed by its transactional sidecar rewrite, so the UI no longer derives the displayed result from potentially stale in-memory currency after the regrant. Existing Items and the one-time `InitialInventory=2` protection remain unchanged.
+- Changed active Initiative Combat navigation so **Short Back** returns to the Initiative main menu without ending the active encounter; Resume returns to that combat. **Hold Up** now moves the current turn backward, including crossing to the previous round's last participant when applicable.
+- Preserved the Initiative quick-AC shortcut by making Hold Up on a selected participant in the pre-combat Setup list raise AC; active Combat retains short Left/Right HP changes, Hold Down condition editing, Hold Left/Right reordering and Hold OK full participant editing.
+- DNDolphins now remembers the selected home-menu row when entering an internal submenu and restores that same row/scroll position when Back returns Home instead of resetting focus to the first option. The added `uint16_t` focus field consumes existing ARM32 alignment padding, so the measured fixed DNDolphins app-state size remains unchanged.
 
-## 3.2.25
-- Storage/profile audit: verified the app-data roots for DNDolphins, Adventure, Journal, Initiative and Bestiary and documented the intentional Adventure-to-character/Journal bridges.
-- Shared companion profile lookup now accepts only canonical `ch_<id>_<name>_<level>.txt` character files; sidecars and other `ch_*` files cannot be selected as profiles.
-- If `custom_active_profile.txt` is missing or points to a deleted character, companion apps now fall forward to the next canonical character ID and wrap to the first, matching DNDolphins behavior.
-- Journal and Adventure validate explicit handoff character IDs before using them. Journal no longer creates an orphan `ch_0` journal when no character exists.
-- Initiative now falls back to the active/next canonical character when a stale explicit handoff ID is received, including Bestiary direct-launch transfers.
-- Adventure can still browse/play campaigns without a character, but character progress, rewards and milestone Journal writes are not persisted until a real character is loaded.
-- No save paths or save schemas were changed.
+## 3.3.5 — Return focus, bounded paging, catalog filtering and Spellbook ordering
 
-## 3.2.24
-- Adventure campaign inbox installation now has a validation/details preview. Short OK on the inbox row validates the manifest/index and shows the campaign name/ID; Hold OK from the preview performs installation, and Back cancels without changing storage.
-- Campaign installation remains non-destructive with respect to existing installed campaign content and preserves inactive registry entries.
-- Progression and level-choice behavior remains explicit for player-selected spells, proficiencies, ASIs and feats; no automatic arbitrary choices or new persisted progression cache were added.
-- Campaign pack controls retain cached rendering and transactional Active/Inactive toggles from the reliability pass.
+- Companion Short Back returns to DNDolphins with the corresponding home-menu row focused: Inventory, Magic & Spells for Spellbook, Journal, Adventure, Bestiary or Initiative. Hold Back remains a force-exit to firmware and never requests a parent handoff.
+- Restored DNDInitiative's dark title bar while keeping `[characterId]` main-menu-only and reserving the combat title-bar right side for the round counter. The `UINT32_MAX` profile sentinel remains guarded so it cannot render as `[4294967295]`; valid character ID `0` remains supported.
+- Restored Item Name-catalog presentation to the established compact format: category initial without brackets, `*` for magic entries, bare names for Other items, and `Page N <>` only in explicit catalog paging. Spell Name catalog uses the same explicit `Page N <>` convention; normal owned lists remain free of persistent paging glyphs.
+- Accelerated Inventory/Spellbook sidecar paging with three cached 32-bit aligned page offsets per collection at the 24-record cap. After the initial bounded scan, page changes can seek directly to records 0/8/16 instead of rescanning from byte zero.
+- Accelerated Item/Spell Name catalogs with a bounded rolling 64-page (256-byte) filtered offset map plus a 128-byte buffered reader. This reduces repeated SD rescans/single-byte reads without loading either catalog into RAM.
+- Recorded Spellbook entries are kept in deterministic **spell level, then case-insensitive alphabetical name** order. Sorting uses at most 24 compact transient keys and rewrites the sidecar only when it is actually out of order; it does not retain a second full Spell collection. The sorter is owned directly by `dndspellbook_collection.c`; shared `dnd_storage.c` no longer contains or exports Spellbook-only sorting code, preventing unrelated FAPs that link shared storage from carrying that implementation.
+- Expanded the Item Name-catalog Hold-OK filter cycle to All, Weapons, Armor, Ammunition, Gear, Tools, Mounts/Vehicles, Potions, Rings, Rods, Scrolls, Staffs, Wands, Wondrous and Magic. The broad Magic option remains an aggregate non-Mundane filter without increasing the catalog cache size.
+- Bundled a compact generic Spell Scroll set under the Scroll category: **Spell Scroll (Cantrip)** and **Spell Scroll (Level 1)** through **Spell Scroll (Level 9)**, with `SRD5.2.1` source metadata and level-appropriate rarity (Common L0–1, Uncommon L2–3, Rare L4–5, Very Rare L6–8, Legendary L9).
+- Re-audited stack and project-owned heap after the paging/sort changes. Existing stack reservations remain appropriate; Inventory/Spellbook fixed app state rises only for the bounded offset maps, and the memory audit includes the transient Spellbook sort peak.
+- Completed a follow-up source-ownership/header pass without changing save formats or behavior. DNDolphins-only roll-mode/value-recording dice moved out of shared rules into `dndolphins_dice.*`; Initiative/effective-speed helpers moved into `dndolphins_rules_character.*`; spell class-count derivation moved into `dndolphins_spells.*`; Inventory equipped/weight aggregation moved into `dndinventory_collection.c`; the Eldritch Knight/Arcane Trickster Wizard-list alias test moved into Spellbook; and sidecar-creation helpers that never leave `dnd_storage.c` are now private. Shared transactional sidecar/profile parsing stays centralized where splitting it would duplicate parsers or rewrite logic.
+- Removed the stale DNDolphins spell-save-DC wrapper left behind by the ownership cleanup, fixing the `-Werror=unused-function` build failure while retaining the active save-DC implementation in `dndolphins_spells.c`.
 
-## 3.2.23
-- Reliability audit fixes: campaign pack Active/Inactive changes now roll back the registry if the enabled-campaign index rebuild fails.
-- Campaign Pack Controls now cache visible rows outside the draw callback; rendering performs no registry reads or temporary pack-list allocations.
-- Character Profiles refresh their storage window on screen entry/scroll changes rather than from the draw callback.
-- Inventory Resources refreshes its aggregate on screen entry and renders from the cached aggregate instead of streaming the item sidecar during drawing.
-- Bestiary filter/encounter/monster-pack row caches are bounded to their fixed buffers, preventing out-of-bounds writes when registries exceed the visible cache capacity.
-- Campaign and monster pack controls remain non-destructive: Hold OK toggles Active/Inactive, installed content and registry entries are preserved.
+## 3.3.4 — Ritual Adept and stability audit
 
-## 3.2.22
+- Added **Combat → Rituals** for Wizard Ritual Adept. The list is built from the active character's known Wizard spellbook entries that have the Ritual tag; preparation is not required. Ritual casting uses the existing spell result flow, consumes no spell slot/Pact slot/spell points/free cast, and reports the additional 10-minute ritual casting time.
+- Hardened companion character-ID headers so the internal `UINT32_MAX` sentinel can never render as `[4294967295]`; valid ID `0` remains supported.
+- Completed a render-path stability pass across all seven FAPs. Canvas drawing now uses resident RAM state only: profile windows, class spell counts, Journal windows and Combat Item/Spell rows are prepared from screen-entry/input paths instead of performing storage reads or allocations from draw callbacks. Unrelated row preparation was also removed from Attack Templates navigation.
+- Re-audited project-owned allocation ownership and failure cleanup. Collection pages, combat indexes, Bestiary windows/details/encounters, Adventure scenes, Journal scan buffers and shared storage temporaries remain bounded and have matched release paths; Bestiary startup failure cleanup now also releases any partially created dynamic blocks.
+- Recomputed the app-state/collection memory audit for that release; the current audit later replaced those early layout figures with compiler-checked ARM32 sizes and derived working sets.
+- Updated all seven FAP manifests to release version 3.3.4 and refreshed rules, compatibility, feature, test, accessibility, save-schema, roadmap and memory documentation for the retained behavior.
 
-- Matched Bestiary monster-pack controls to Adventure campaign packs: Hold OK toggles an existing pack Active/Inactive, short OK is a no-op on existing rows, and the inbox/install row keeps short OK. Pack registry entries and installed monster content are preserved when toggling state.
-- Refined Adventure campaign-pack controls: Hold OK now toggles an existing pack Active/Inactive; short OK is intentionally a no-op on existing pack rows. The inbox/install row still uses short OK. Campaign registry entries and content files are never removed.
-- Added a persistent **Level Choices** workflow that detects unclaimed ASI/Feat opportunities from current class levels without adding a new character save field.
-- Added standard ASI choices: +2 to one ability or +1 to two different abilities, enforcing the normal score cap of 20.
-- Added class-level ASI scheduling for the common levels 4/8/12/16/19 plus Fighter 6/14 and Rogue 10; completed choices are recorded through existing applied grant records so multi-level jumps and restarts remain recoverable.
-- Added Feat selection through the existing Feats & Perks catalog; backing out cleans up the temporary feature record and leaves the level choice pending.
-- Level-up status now prioritizes an outstanding ASI/Feat choice when one becomes available while continuing to report spell-choice and deterministic progression updates.
-- Expanded verified deterministic SRD 5.2.1 progression metadata for Fighter, Barbarian, Bard, Rogue, and Wizard features while leaving choice-bearing proficiencies/masteries/spells for player selection.
-- Changed Adventure campaign-pack management to be non-destructive. Campaign packs are never mark inactiveed or deleted by Adventure. Pack controls only mark a registry entry active/inactive; the registry entry and installed campaign content are retained, including files left by an interrupted/failed pack copy.
-- Preserved lazy progression metadata reads, bounded campaign access, existing character save schema, and current FAP stack reservations.
+## 3.3.3 — Combat spell eligibility, one-time inventory regrant and UI consistency
 
-## 3.2.21
+- Corrected Combat → Spell Attacks for Wizard characters. Wizard cantrips remain normally available; level-1+ Wizard spells appear only when Prepared/Always Prepared or when a Free Cast remains. An unprepared Wizard spell exposed solely by a Free Cast offers only that Free Cast and cannot spend ordinary slots, Pact slots or spell points from the combat picker. Other classes retain their existing Known/Prepared rules, and the existing combat damage mappings, scaling, upcasting and resource consumption remain intact.
+- Added a deliberate one-time override for **Grant Initial Inventory**. Short OK keeps the normal one-shot protections. Hold OK on an already granted Inventory appends the starting class/species/background package again, adds its starting currency again, preserves existing Items, and changes the Inventory marker from `InitialInventory=1` to `InitialInventory=2`. A successful override cannot be repeated.
+- Made routine successful collection/save feedback transient. `Saved`, catalog-save, add, Equip/Prepare and grant/regrant confirmations clear on the next real input, while failures such as `UNSAVED` remain visible. DNDolphins likewise clears ordinary `Saved`/`Already saved`/catalog-save notices on the next real input.
+- Kept the companion navigation contract consistent across Adventure, Bestiary, Journal, Initiative, Inventory and Spellbook: Short Back from a companion main screen returns to DNDolphins when present; Hold Back exits to firmware without launching DNDolphins. Sub-screen Short Back remains local navigation, with Initiative combat retaining its Short-Back previous-turn behavior.
+- Updated all seven FAP manifests to release version 3.3.3 and refreshed documentation/test coverage for the retained behavior.
 
-- Hardened companion profile resolution so only canonical `ch_<id>_<name>_<level>.txt` character files qualify; Inventory and Spellbook sidecars can no longer be mistaken for a character profile.
-- Kept character ID 0 fully valid by separating profile existence from the numeric ID value.
-- Initiative now shows a dedicated no-character screen with **Launch DNDolphins** and **Exit Initiative** instead of entering combat state without a valid character.
-- Initiative does not load or create an Initiative sidecar when no character exists, and unchanged main-character refreshes no longer cause an unnecessary SD-card rewrite.
-- Bestiary now reserves its fixed UI/runtime allocations before migration, seed, recovery, and pack-index work; input subscription and marquee timer start only after storage initialization completes.
-- Adventure now reserves its fixed dispatcher/view before variable-sized character/campaign cache work, reducing startup fragmentation risk.
-- Re-audited the changed startup/failure/teardown paths without introducing a character-save schema change.
+## 3.3.2 — Independent Inventory/Spellbook collections and companion profile handling
 
-## 3.2.20
+- Finalized standalone DNDInventory and DNDSpellbook collection UIs with independent source/assets ownership, direct entry to `+ Add New`, full 36-field Item and 17-field Spell editors, immediate persistence, Delete, custom-name editing, Hold-OK Equip/Prepare, A/P/K/F spell state marks and bounded eight-record collection paging.
+- Restored collection/catalog parity: Item and Spell Name catalogs retain explicit `P# <>` paging, Item Catalog marks magic entries with `*`, Spell Class defaults to **All Classes** across a multiclass character, and the separate opt-in **All Spells** eligibility override remains available. Normal Inventory/Spellbook lists do not show persistent `<>` hints.
+- Standardized active-character lookup on `/ext/apps_data/dndolphins/custom_active_profile.txt` (`Active=<id>`). Companion FAPs do not accept launch arguments as character selectors or discover a substitute character. Adventure/Journal require the exact persisted profile; Inventory/Spellbook load that exact ID through normal character storage; Bestiary/Initiative use ID `0` only when active-profile metadata itself is absent/unreadable.
+- Added `[characterId]` at the top-right of the six companion **main screens only**. Detail/editor/tool/combat/result screens retain their own headers.
+- Optimized Inventory/Spellbook startup and list interaction for constrained memory: fixed UI state is reserved before variable collection loading, drawing is cache-only, no timer/background worker runs during scrolling, no-op input events avoid redundant redraws, and storage reads occur only at startup, real cache-page boundaries, explicit catalog paging, edits and tool actions.
+- Preserved DNDolphins Combat access to character-owned Inventory/Spellbook sidecars. Weapon Combat retains attack/damage/ammunition behavior; Spell Combat retains the mapped spell-damage table, Notes `XdY` fallback, cantrip scaling, upcasting and class-specific casting modifiers.
+- Normal DNDolphins profile load no longer displays a redundant persistent `Loaded` notice.
+- Standardized companion main-menu navigation so Short Back returns to DNDolphins when present and Hold Back exits without a parent handoff; redundant normal-menu Return/Open-DNDolphins rows were removed while no-character recovery prompts remain available.
 
-- Initiative roll behavior is participant-specific: each roster/combat member can use Normal, Advantage, or Disadvantage while the menu Roll setting remains the default for newly created members.
-- Roll for All and individual generated rolls honor each participant's roll mode; direct numeric d20 entry remains exactly the entered die result plus that member's modifier.
-- Main-character initiative refresh recognizes current Dexterity, Initiative Misc, exhaustion, the Alert origin/feature bonus, and Jack of All Trades when present.
-- Initiative ties now use initiative modifier as the first deterministic tie-breaker while preserving stable order beyond that.
-- Initiative editor exposes per-member roll mode and keeps monster/temp modifiers independent from the refreshed main character.
-- Grant Initial Traits now stages species, background, class, and subclass grants into Grant Review before applying them, reducing accidental initial-build grants.
-- Level-up progression continues to apply deterministic numeric/class progression, but reports when spell/cantrip allowances increase so the player chooses spells rather than receiving arbitrary spell selections.
-- Level-up status reports newly applied deterministic traits or numeric rules refreshes.
-- Removed a duplicate Initiative save call found during the 3.2.20 audit.
-- No DNDolphins character-save schema revision was introduced; Initiative adds tolerant per-member RollMode fields to its app-owned sidecar.
+## 3.3.1 — Inventory ownership, bounded campaign discovery and Journal continuation
 
-## 3.2.19
+- Moved Currency, encumbrance/carrying resources and starting-equipment controls into DNDInventory. Inventory is the sole normal owner of `Currency=` metadata; other Item appenders preserve that metadata and never synthesize it.
+- Replaced automatic first-open equipment seeding with explicit **Grant Initial Inventory**. An absent Inventory stays absent until a real Inventory write/grant; a currency-only sidecar can still receive the normal grant; existing manual Items block the normal grant. Class/species/background assets remain the primary seed and a random d100 trinket is fallback-only when the normal seed yields no equipment/currency.
+- Kept character-owned Inventory, Spellbook, Feature and applied-grant state centralized under `/ext/apps_data/dndolphins/` while allowing the companion FAPs to own their interfaces and asset packs.
+- Added bounded campaign discovery/index handling and preserved install/activation controls without loading the full campaign catalog into memory.
+- Journal → Adventure continuation now passes only continuation intent; Adventure resolves the persisted active character and resumes that character's stored campaign progress itself.
+- Completed source-ownership/API cleanup so app-specific functions stay under their owning module and shared rules/storage interfaces remain neutral.
+- Retained 4 KB stacks for Inventory/Spellbook after full character parsing showed the smaller reservation lacked safe margin; Initiative remains 3 KB.
 
-- Promoted the corrected recovery build after a full source/asset consistency audit.
-- Fixed Adventure campaign selection labels by preparing the five visible rows outside the draw callback, eliminating filesystem reads during rendering and preventing blank campaign names on-device.
-- Fixed a duplicated Campaign Pack control branch introduced during recovery that could prevent a clean compile.
-- Hardened progression grant application so unsupported or failed grants remain skipped instead of being incorrectly recorded as applied.
-- Guarded proficiency-bonus calculation against malformed zero-level character data while preserving normal level-based scaling.
-- Revalidated bundled campaign scene links, metadata row shapes/stable IDs, class progression references, Initiative restored controls, standard-array defaults, and bounded/lazy progression behavior without changing save schemas.
-- Refreshed the main character's Initiative roster/combat modifier from the current character profile on Initiative launch using Dexterity + Initiative Misc - exhaustion penalty, while also refreshing that character's name, HP and AC without altering monster/temporary-member modifiers.
-- Added persistent Initiative roll mode (Normal / Advantage / Disadvantage). Roll for All and individual automatic rolls honor the mode; hold-OK numeric d20 entry remains a direct entered die result plus the character modifier and is not rerolled or transformed.
-- Added persistent main-character identity to Initiative state so character renames update the same roster/combat participant instead of creating a duplicate.
-- Removed a duplicated Initiative helper declaration left by recovery reconstruction.
+## 3.3 — Inventory/Spellbook FAP split and loader-memory reduction
 
-## 3.2.18
+- Split Inventory and Spellbook out of DNDolphins into standalone FAPs while retaining DNDolphins' lightweight streamed access needed by Combat, progression and cross-feature integration.
+- Preserved the recovered collection feature set: eight-record paging, Add New, full Item/Spell editors, immediate Add/Edit/Delete persistence, Equip/Prepare quick actions, custom names, catalogs, free-cast state, multiclass **All Classes**, and spell metadata filtering.
+- Moved Item Catalog/starting-equipment assets to DNDInventory and the full Spell Catalog to DNDSpellbook; neither app loads the other collection's assets.
+- Kept `inventory_{charID}.txt` and `spellbook_{charID}.txt` in the shared DNDolphins character-data root so all FAPs see the same authoritative records.
+- Reduced DNDolphins loader/runtime pressure by removing the collection-heavy UIs from the main FAP without shrinking its 6 KB stack.
 
-- Recovered the post-baseline progression and UI work: standard-array new characters, explicit Grant Initial Traits gating, deterministic level synchronization/grants, restored Initiative setup/edit controls, Adventure campaign-name display cleanup, and 26-character Bestiary full-line wrapping.
+## 3.2.32–3.2.35 — Progression, multiclass casting and spell-catalog update
 
-- Fixed the long-standing Spellbook/Inventory add flow: short OK on **+ Add New** now opens the relevant catalog and appends the selected complete record directly; hold OK keeps the blank/custom-entry workflow.
-- Replaced whole-sidecar rewrites for simple spell/item appends with rollback-safe in-place appends that restore the original file length on write/sync failure, reducing temporary memory and SD write work.
-- Fixed Inventory first-open behavior so default-equipment initialization writes the missing live sidecar directly and Inventory still opens if default seeding fails, allowing retry/manual recovery instead of appearing unresponsive.
+- Moved persistent Features and applied progression history from the core character file into lazy `feats_{charID}.txt` and `appliedgrants_{charID}.txt` sidecars. Features use bounded eight-record paging; applied-grant IDs are streamed during progression checks.
+- Added deterministic supported species progression by total character level and normalized one-shot grant IDs. Ordinary player-selected class spell choices remain explicit rather than being auto-selected.
+- Added Item Catalog filtering for All, Weapons, Armor, Ammunition, Gear, Tools and Magic while preserving Inventory-list Hold OK as Equip/Unequip.
+- Corrected Eldritch Knight and Arcane Trickster casting to use Third-caster progression, Intelligence and Wizard-list eligibility, including correct multiclass slot contribution while Pact Magic remains separate.
+- Completed the bundled streamed Spell Catalog metadata contract with Level/Class/School/Ritual/Source/Status filtering and bounded matching pages.
+- Reduced progression memory pressure by removing continuously resident Feature/Grant collections and avoiding allocation for missing/empty progression sidecars.
 
-## 3.2.17
+## 3.2.6–3.2.31 — Inventory/Spellbook regression and recovery period
 
-- Added the bundled **Ghost Protocol** fictional authorized-security-audit campaign using existing Adventure checks, branching, rewards, flags, achievement and milestone support.
-- Added bundled default custom monsters **Dolphin** and **Capybara**; Bestiary seeds them only when neither user custom file exists and never overwrites existing/partial custom data.
-- Kept the five-FAP save structures, paging model and stack reservations unchanged.
-
-## 3.2.16
-
-- Split inventory/equipment/weapon behavior into `dndolphins_items.*` and spellcasting/resource behavior into `dndolphins_spells.*`, keeping shared character/dice mechanics in `dndolphins_rules.*`.
-- Reconnected and regression-checked moved rule functions; made Inventory the only normal starting-inventory initializer and added the hidden d100 trinket.
-- Removed Adventure's duplicate starting-equipment assets/initialization while preserving sidecar formats and bounded paging.
-
-## 3.2.15
-
-- Finalized declarative class/species/background starting equipment, direct live sidecars plus level/name `.swd` history snapshots, and streamed whole-collection spell/resource calculations.
-- Fixed low-count eight-record page growth and Combat discovery from sidecars; renamed Bestiary `Difficulty Simulator` consistently to **Difficulty**.
-- Reduced DNDolphins stack pressure by moving Verify Profile temporary state off stack and replaced Bestiary full-file lookup/browse caches with bounded sparse/recent caches and a smaller working page.
-
-## 3.2.14
-
-- Split owned spells/items into per-character sidecars with one escaped record per line and eight-record workflow paging; embedded spell/item fields stopped being read or written.
-- Updated class/spell/item/combat/rest/Adventure workflows to stream or page the sidecars and separated core-character dirty tracking from sidecar-only changes.
-- Preserved self-contained owned records while reducing resident collection memory and tightening companion-app stack reservations.
-
-## 3.2.13
-
-- Made character loading best-effort by recognized field name, removed whole-character consistency/heap vetoes and restored non-overwriting relocation of legacy character files.
-- Enforced `.shd` as write-only history and tied shadow updates to actual changed-character saves.
-- Hardened direct-launch active-character fallback, renamed source/entry-point ownership around the five FAPs, and standardized explicit absolute `.fap` handoff paths.
-
-## 3.2.12
-
-- Reworked the character picker and Journal into storage-backed bounded metadata caches; Journal bodies load only when opened and are no longer limited by a full-entry resident array.
-- Removed the large resident Combat row block and formatted only visible rows on demand.
-- Kept structured spell-combat mappings authoritative with guarded Notes dice fallback and removed dead helpers for strict firmware builds.
-
-## 3.2.11
-
-- Added same-stem write-only character shadows, shared Combat Normal/Advantage/Disadvantage attack mode and minimum-XP floors on level increases.
-- Split DNDAdventure into its own FAP and made it sole owner of campaign state/progress while keeping one-way milestone output to Journal.
-- Kept character files directly under the DNDolphins app-data root and preserved teardown-before-launch handoffs.
-
-## 3.2.10
-
-- Split Journal and Initiative into standalone FAPs with independent app-data namespaces and removed their resident state from DNDolphins.
-- Moved Journal entries to timestamped per-character files, restored newest-first ordering without firmware `qsort`, and removed broad old-schema conversion code.
-- Returned DNDolphins to an 8 KB stack after the source-based OOM cleanup.
-
-## 3.2.9
-
-- Reduced DNDolphins to an 8 KB stack through bounded paths/readers, lazy Adventure/Journal ownership and tighter shutdown/startup memory handling.
-- Added automatic spell-slot/Pact initialization, direct slot editing and completed a large structured Combat Spell Attacks mapping pass with multi-part/healing/special dice handling.
-- Kept Notes `XdY` fallback bounded while hardening malformed spell/dice input and reducing startup/transition heap fragmentation.
-
-## 3.2.8
-
-- Reduced dynamic character-array and spell-storage growth pressure, reduced catalog working pages and released workflow allocations when leaving those workflows.
-- Removed full-character duplicate allocations from verification/migration paths.
-- Expanded structured Spell Attacks mappings and added guarded `XdY`/`XDY` Notes fallback for otherwise unmapped spells.
-
-## 3.2.7
-
-- Moved Bestiary into the fixed Home menu and added Combat > Spell Attacks with slot/Pact/point/free/ritual resource handling and mapped spell rolls.
-- Hardened low-memory startup/shutdown, publication rollback and manually editable numeric parsing; set the main app stack to 9 KB.
-- Extended Bestiary initiative handoff metadata and fixed low-memory monster-cache/migration recovery paths.
-
-## 3.2.6
-
-- Added the dedicated Adventure skill-check result screen showing natural d20, modifier, total, DC and pass/fail until OK is pressed.
-- Added explicit **Start Adventure**, expanded the scene-text layout and made Retry Save visible only after a save failure.
+- This range is intentionally summarized as one extended recovery period. Inventory and Spellbook Add/Edit/Delete persistence regressed after 3.2.5/3.2.6-era changes and remained unreliable across many intermediate builds while the app was simultaneously being split into companion FAPs, converted to sidecar storage, and optimized for Flipper memory limits.
+- Adventure, Bestiary, Journal and Initiative were progressively separated/hardened during this period, including standalone Journal/Initiative/Adventure FAPs, cross-FAP handoffs, bounded readers/caches, character best-effort loading, write-only shadows, saved encounters, spell-combat support, campaign/monster packs and the restored Initiative/Journal gameplay controls.
+- Inventory and Spellbook moved from embedded character arrays to per-character sidecars with bounded eight-record paging. Multiple intermediate append/create/fingerprint/cache approaches were attempted; device testing showed that several builds could enter a blank editor but still failed to create/publish the collection file, expose newly added records in-session, support repeated adds/deletes, or safely cross an eight-record page boundary.
+- The recovery ultimately returned Add New to a RAM-first lifecycle: stage/grow the resident collection first, enter the editor independent of storage success, then immediately rewrite the authoritative sidecar and only mark state saved after the write succeeds. Live files became `inventory_{characterId}.txt` and `spellbook_{characterId}.txt`.
+- Final recovery work removed render-time SD I/O/cache mutation, kept the newly added record visible after editing, made user edits/catalog selections/deletes commit immediately, released catalog memory before collection rewrites, and fixed repeated-add/page-boundary behavior. Starting equipment again seeds only an empty Inventory, and Spellbook regained the multiclass **All Classes** filter.
+- Hold OK quick actions were restored by the end of the period: Spellbook toggles Prepared/Unprepared and Inventory toggles Equipped/Unequipped, with immediate sidecar persistence and protected always-prepared spells.
+- The same period also restored/expanded class progression, proficiency/slot/resource updates, item/spell catalog workflows, spell-attack mappings and related low-memory behavior. The detailed troubleshooting chronology for the broken Inventory/Spellbook path is intentionally not repeated per intermediate revision here because it spanned 3.2.6 through 3.2.31.
 
 ## 3.2.5
 

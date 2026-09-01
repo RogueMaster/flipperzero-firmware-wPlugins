@@ -1,6 +1,6 @@
 # Dungeons & Dolphins starting equipment by primary class.
 # Format: Key|I|<live item record fields> or Key|C|cp,sp,ep,gp,pp
-# Items are copied only when the live character inventory is absent.
+# Items are granted only while InitialInventory=1 is absent and no Item records already exist.
 # Artificer
 Artificer|I|Scale Mail|Starting equipment||1,450,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,14,2,0
 Artificer|I|Light Crossbow|Starting equipment|bolt|1,50,0,0,1,2,1,0,1,8,0,0,1,1,0,0,34,0,0,-1,0,0,0,-1,0

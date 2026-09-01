@@ -1,0 +1,453 @@
+# Dungeons & Dolphins spell catalog.
+# Format: Spell|Level|Class, Class|School|Ritual|Source
+# School, Ritual, and Source remain parser-optional for compatible custom catalogs.
+# Bundled rows are fully populated so Add Spell filters can use every metadata field.
+# Core = SRD 5.2.1; bundled expansion metadata is tagged Xanathar or Forgotten Realms.
+Acid Splash|0|Sorcerer, Wizard|Evocation|No|Core
+Chill Touch|0|Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Dancing Lights|0|Bard, Sorcerer, Wizard|Illusion|No|Core
+Druidcraft|0|Druid|Transmutation|No|Core
+Eldritch Blast|0|Warlock|Evocation|No|Core
+Elementalism|0|Druid, Sorcerer, Wizard|Transmutation|No|Core
+Fire Bolt|0|Sorcerer, Wizard|Evocation|No|Core
+Guidance|0|Cleric, Druid|Divination|No|Core
+Light|0|Bard, Cleric, Sorcerer, Wizard|Evocation|No|Core
+Mage Hand|0|Bard, Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Mending|0|Bard, Cleric, Druid, Sorcerer, Wizard|Transmutation|No|Core
+Message|0|Bard, Druid, Sorcerer, Wizard|Transmutation|No|Core
+Minor Illusion|0|Bard, Sorcerer, Warlock, Wizard|Illusion|No|Core
+Poison Spray|0|Druid, Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Prestidigitation|0|Bard, Sorcerer, Warlock, Wizard|Transmutation|No|Core
+Produce Flame|0|Druid|Conjuration|No|Core
+Ray of Frost|0|Sorcerer, Wizard|Evocation|No|Core
+Resistance|0|Cleric, Druid|Abjuration|No|Core
+Sacred Flame|0|Cleric|Evocation|No|Core
+Shillelagh|0|Druid|Transmutation|No|Core
+Shocking Grasp|0|Sorcerer, Wizard|Evocation|No|Core
+Sorcerous Burst|0|Sorcerer|Evocation|No|Core
+Spare the Dying|0|Cleric, Druid|Necromancy|No|Core
+Starry Wisp|0|Bard, Druid|Evocation|No|Core
+Thaumaturgy|0|Cleric|Transmutation|No|Core
+True Strike|0|Bard, Sorcerer, Warlock, Wizard|Divination|No|Core
+Vicious Mockery|0|Bard|Enchantment|No|Core
+Alarm|1|Ranger, Wizard|Abjuration|Yes|Core
+Animal Friendship|1|Bard, Druid, Ranger|Enchantment|No|Core
+Bane|1|Bard, Cleric, Warlock|Enchantment|No|Core
+Bless|1|Cleric, Paladin|Enchantment|No|Core
+Burning Hands|1|Sorcerer, Wizard|Evocation|No|Core
+Charm Person|1|Bard, Druid, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Chromatic Orb|1|Sorcerer, Wizard|Evocation|No|Core
+Color Spray|1|Bard, Sorcerer, Wizard|Illusion|No|Core
+Command|1|Bard, Cleric, Paladin|Enchantment|No|Core
+Comprehend Languages|1|Bard, Sorcerer, Warlock, Wizard|Divination|Yes|Core
+Create or Destroy Water|1|Cleric, Druid|Transmutation|No|Core
+Cure Wounds|1|Bard, Cleric, Druid, Paladin, Ranger|Abjuration|No|Core
+Detect Evil and Good|1|Cleric, Paladin|Divination|No|Core
+Detect Magic|1|Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard|Divination|Yes|Core
+Detect Poison and Disease|1|Cleric, Druid, Paladin, Ranger|Divination|Yes|Core
+Disguise Self|1|Bard, Sorcerer, Wizard|Illusion|No|Core
+Dissonant Whispers|1|Bard|Enchantment|No|Core
+Divine Favor|1|Paladin|Transmutation|No|Core
+Divine Smite|1|Paladin|Evocation|No|Core
+Ensnaring Strike|1|Ranger|Conjuration|No|Core
+Entangle|1|Druid, Ranger|Conjuration|No|Core
+Expeditious Retreat|1|Sorcerer, Warlock, Wizard|Transmutation|No|Core
+Faerie Fire|1|Bard, Druid|Evocation|No|Core
+False Life|1|Sorcerer, Wizard|Necromancy|No|Core
+Feather Fall|1|Bard, Sorcerer, Wizard|Transmutation|No|Core
+Find Familiar|1|Wizard|Conjuration|Yes|Core
+Floating Disk|1|Wizard|Conjuration|Yes|Core
+Fog Cloud|1|Druid, Ranger, Sorcerer, Wizard|Conjuration|No|Core
+Goodberry|1|Druid, Ranger|Conjuration|No|Core
+Grease|1|Sorcerer, Wizard|Conjuration|No|Core
+Guiding Bolt|1|Cleric|Evocation|No|Core
+Healing Word|1|Bard, Cleric, Druid|Abjuration|No|Core
+Hellish Rebuke|1|Warlock|Evocation|No|Core
+Heroism|1|Bard, Paladin|Enchantment|No|Core
+Hex|1|Warlock|Enchantment|No|Core
+Hideous Laughter|1|Bard, Warlock, Wizard|Enchantment|No|Core
+Hunter's Mark|1|Ranger|Divination|No|Core
+Ice Knife|1|Druid, Sorcerer, Wizard|Conjuration|No|Core
+Identify|1|Bard, Wizard|Divination|Yes|Core
+Illusory Script|1|Bard, Warlock, Wizard|Illusion|Yes|Core
+Inflict Wounds|1|Cleric|Necromancy|No|Core
+Jump|1|Druid, Ranger, Sorcerer, Wizard|Transmutation|No|Core
+Longstrider|1|Bard, Druid, Ranger, Wizard|Transmutation|No|Core
+Mage Armor|1|Sorcerer, Wizard|Abjuration|No|Core
+Magic Missile|1|Sorcerer, Wizard|Evocation|No|Core
+Protection from Evil and Good|1|Cleric, Druid, Paladin, Warlock, Wizard|Abjuration|No|Core
+Purify Food and Drink|1|Cleric, Druid, Paladin|Transmutation|Yes|Core
+Ray of Sickness|1|Sorcerer, Wizard|Necromancy|No|Core
+Sanctuary|1|Cleric|Abjuration|No|Core
+Searing Smite|1|Paladin|Evocation|No|Core
+Shield|1|Sorcerer, Wizard|Abjuration|No|Core
+Shield of Faith|1|Cleric, Paladin|Abjuration|No|Core
+Silent Image|1|Bard, Sorcerer, Wizard|Illusion|No|Core
+Sleep|1|Bard, Sorcerer, Wizard|Enchantment|No|Core
+Speak with Animals|1|Bard, Druid, Ranger, Warlock|Divination|Yes|Core
+Thunderwave|1|Bard, Druid, Sorcerer, Wizard|Evocation|No|Core
+Unseen Servant|1|Bard, Warlock, Wizard|Conjuration|Yes|Core
+Acid Arrow|2|Wizard|Evocation|No|Core
+Aid|2|Bard, Cleric, Druid, Paladin, Ranger|Abjuration|No|Core
+Alter Self|2|Sorcerer, Wizard|Transmutation|No|Core
+Animal Messenger|2|Bard, Druid, Ranger|Enchantment|Yes|Core
+Arcane Lock|2|Wizard|Abjuration|No|Core
+Arcanist's Magic Aura|2|Wizard|Illusion|No|Core
+Augury|2|Cleric, Druid, Wizard|Divination|Yes|Core
+Barkskin|2|Druid, Ranger|Transmutation|No|Core
+Blindness/Deafness|2|Bard, Cleric, Sorcerer, Wizard|Transmutation|No|Core
+Blur|2|Sorcerer, Wizard|Illusion|No|Core
+Calm Emotions|2|Bard, Cleric|Enchantment|No|Core
+Continual Flame|2|Cleric, Druid, Wizard|Evocation|No|Core
+Darkness|2|Sorcerer, Warlock, Wizard|Evocation|No|Core
+Darkvision|2|Druid, Ranger, Sorcerer, Wizard|Transmutation|No|Core
+Detect Thoughts|2|Bard, Sorcerer, Wizard|Divination|No|Core
+Dragon's Breath|2|Sorcerer, Wizard|Transmutation|No|Core
+Enhance Ability|2|Bard, Cleric, Druid, Ranger, Sorcerer, Wizard|Transmutation|No|Core
+Enlarge/Reduce|2|Bard, Druid, Sorcerer, Wizard|Transmutation|No|Core
+Enthrall|2|Bard, Warlock|Enchantment|No|Core
+Find Steed|2|Paladin|Conjuration|No|Core
+Find Traps|2|Cleric, Druid, Ranger|Divination|No|Core
+Flame Blade|2|Druid, Sorcerer|Evocation|No|Core
+Flaming Sphere|2|Druid, Sorcerer, Wizard|Conjuration|No|Core
+Gentle Repose|2|Cleric, Paladin, Wizard|Necromancy|Yes|Core
+Gust of Wind|2|Druid, Ranger, Sorcerer, Wizard|Evocation|No|Core
+Heat Metal|2|Bard, Druid|Transmutation|No|Core
+Hold Person|2|Bard, Cleric, Druid, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Invisibility|2|Bard, Sorcerer, Warlock, Wizard|Illusion|No|Core
+Knock|2|Bard, Sorcerer, Wizard|Transmutation|No|Core
+Lesser Restoration|2|Bard, Cleric, Druid, Paladin, Ranger|Abjuration|No|Core
+Levitate|2|Sorcerer, Wizard|Transmutation|No|Core
+Locate Animals or Plants|2|Bard, Druid, Ranger|Divination|Yes|Core
+Locate Object|2|Bard, Cleric, Druid, Paladin, Ranger, Wizard|Divination|No|Core
+Magic Mouth|2|Bard, Wizard|Illusion|Yes|Core
+Magic Weapon|2|Paladin, Ranger, Sorcerer, Wizard|Transmutation|No|Core
+Mind Spike|2|Sorcerer, Warlock, Wizard|Divination|No|Core
+Mirror Image|2|Bard, Sorcerer, Warlock, Wizard|Illusion|No|Core
+Misty Step|2|Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Moonbeam|2|Druid|Evocation|No|Core
+Pass without Trace|2|Druid, Ranger|Abjuration|No|Core
+Phantasmal Force|2|Bard, Sorcerer, Wizard|Illusion|No|Core
+Prayer of Healing|2|Cleric, Paladin|Abjuration|No|Core
+Protection from Poison|2|Cleric, Druid, Paladin, Ranger|Abjuration|No|Core
+Ray of Enfeeblement|2|Warlock, Wizard|Necromancy|No|Core
+Rope Trick|2|Wizard|Transmutation|No|Core
+Scorching Ray|2|Sorcerer, Wizard|Evocation|No|Core
+See Invisibility|2|Bard, Sorcerer, Wizard|Divination|No|Core
+Shatter|2|Bard, Sorcerer, Wizard|Evocation|No|Core
+Shining Smite|2|Paladin|Transmutation|No|Core
+Silence|2|Bard, Cleric, Ranger|Illusion|Yes|Core
+Spider Climb|2|Sorcerer, Warlock, Wizard|Transmutation|No|Core
+Spike Growth|2|Druid, Ranger|Transmutation|No|Core
+Spiritual Weapon|2|Cleric|Evocation|No|Core
+Suggestion|2|Bard, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Warding Bond|2|Cleric, Paladin|Abjuration|No|Core
+Web|2|Sorcerer, Wizard|Conjuration|No|Core
+Zone of Truth|2|Bard, Cleric, Paladin|Enchantment|No|Core
+Animate Dead|3|Cleric, Wizard|Necromancy|No|Core
+Beacon of Hope|3|Cleric|Abjuration|No|Core
+Bestow Curse|3|Bard, Cleric, Wizard|Necromancy|No|Core
+Blink|3|Sorcerer, Wizard|Transmutation|No|Core
+Call Lightning|3|Druid|Conjuration|No|Core
+Clairvoyance|3|Bard, Cleric, Sorcerer, Wizard|Divination|No|Core
+Conjure Animals|3|Druid, Ranger|Conjuration|No|Core
+Counterspell|3|Sorcerer, Warlock, Wizard|Abjuration|No|Core
+Create Food and Water|3|Cleric, Paladin|Conjuration|No|Core
+Daylight|3|Cleric, Druid, Paladin, Ranger, Sorcerer|Evocation|No|Core
+Dispel Magic|3|Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard|Abjuration|No|Core
+Fear|3|Bard, Sorcerer, Warlock, Wizard|Illusion|No|Core
+Fireball|3|Sorcerer, Wizard|Evocation|No|Core
+Fly|3|Sorcerer, Warlock, Wizard|Transmutation|No|Core
+Gaseous Form|3|Sorcerer, Warlock, Wizard|Transmutation|No|Core
+Glyph of Warding|3|Bard, Cleric, Wizard|Abjuration|No|Core
+Haste|3|Sorcerer, Wizard|Transmutation|No|Core
+Hypnotic Pattern|3|Bard, Sorcerer, Warlock, Wizard|Illusion|No|Core
+Lightning Bolt|3|Sorcerer, Wizard|Evocation|No|Core
+Magic Circle|3|Cleric, Paladin, Warlock, Wizard|Abjuration|No|Core
+Major Image|3|Bard, Sorcerer, Warlock, Wizard|Illusion|No|Core
+Mass Healing Word|3|Bard, Cleric|Abjuration|No|Core
+Meld into Stone|3|Cleric, Druid, Ranger|Transmutation|Yes|Core
+Nondetection|3|Bard, Ranger, Wizard|Abjuration|No|Core
+Phantom Steed|3|Wizard|Illusion|Yes|Core
+Plant Growth|3|Bard, Druid, Ranger|Transmutation|No|Core
+Protection from Energy|3|Cleric, Druid, Ranger, Sorcerer, Wizard|Abjuration|No|Core
+Remove Curse|3|Cleric, Paladin, Warlock, Wizard|Abjuration|No|Core
+Revivify|3|Cleric, Druid, Paladin, Ranger|Necromancy|No|Core
+Sending|3|Bard, Cleric, Wizard|Divination|No|Core
+Sleet Storm|3|Druid, Sorcerer, Wizard|Conjuration|No|Core
+Slow|3|Bard, Sorcerer, Wizard|Transmutation|No|Core
+Speak with Dead|3|Bard, Cleric, Wizard|Necromancy|No|Core
+Speak with Plants|3|Bard, Druid, Ranger|Transmutation|No|Core
+Spirit Guardians|3|Cleric|Conjuration|No|Core
+Stinking Cloud|3|Bard, Sorcerer, Wizard|Conjuration|No|Core
+Tiny Hut|3|Bard, Wizard|Evocation|Yes|Core
+Tongues|3|Bard, Cleric, Sorcerer, Warlock, Wizard|Divination|No|Core
+Vampiric Touch|3|Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Water Breathing|3|Druid, Ranger, Sorcerer, Wizard|Transmutation|Yes|Core
+Water Walk|3|Cleric, Druid, Ranger, Sorcerer|Transmutation|Yes|Core
+Wind Wall|3|Druid, Ranger|Evocation|No|Core
+Arcane Eye|4|Wizard|Divination|No|Core
+Aura of Life|4|Cleric, Paladin|Abjuration|No|Core
+Banishment|4|Cleric, Paladin, Sorcerer, Warlock, Wizard|Abjuration|No|Core
+Black Tentacles|4|Wizard|Conjuration|No|Core
+Blight|4|Druid, Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Charm Monster|4|Bard, Druid, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Compulsion|4|Bard|Enchantment|No|Core
+Confusion|4|Bard, Druid, Sorcerer, Wizard|Enchantment|No|Core
+Conjure Minor Elementals|4|Druid, Wizard|Conjuration|No|Core
+Conjure Woodland Beings|4|Druid, Ranger|Conjuration|No|Core
+Control Water|4|Cleric, Druid, Wizard|Transmutation|No|Core
+Death Ward|4|Cleric, Paladin|Abjuration|No|Core
+Dimension Door|4|Bard, Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Divination|4|Cleric, Druid, Wizard|Divination|Yes|Core
+Dominate Beast|4|Druid, Ranger, Sorcerer|Enchantment|No|Core
+Fabricate|4|Wizard|Transmutation|No|Core
+Faithful Hound|4|Wizard|Conjuration|No|Core
+Fire Shield|4|Druid, Sorcerer, Wizard|Evocation|No|Core
+Freedom of Movement|4|Bard, Cleric, Druid, Ranger|Abjuration|No|Core
+Giant Insect|4|Druid|Conjuration|No|Core
+Greater Invisibility|4|Bard, Sorcerer, Wizard|Illusion|No|Core
+Guardian of Faith|4|Cleric|Conjuration|No|Core
+Hallucinatory Terrain|4|Bard, Druid, Warlock, Wizard|Illusion|No|Core
+Ice Storm|4|Druid, Sorcerer, Wizard|Evocation|No|Core
+Locate Creature|4|Bard, Cleric, Druid, Paladin, Ranger, Wizard|Divination|No|Core
+Phantasmal Killer|4|Bard, Wizard|Illusion|No|Core
+Polymorph|4|Bard, Druid, Sorcerer, Wizard|Transmutation|No|Core
+Private Sanctum|4|Wizard|Abjuration|No|Core
+Resilient Sphere|4|Wizard|Abjuration|No|Core
+Secret Chest|4|Wizard|Conjuration|No|Core
+Stone Shape|4|Cleric, Druid, Wizard|Transmutation|No|Core
+Stoneskin|4|Druid, Ranger, Sorcerer, Wizard|Transmutation|No|Core
+Vitriolic Sphere|4|Sorcerer, Wizard|Evocation|No|Core
+Wall of Fire|4|Druid, Sorcerer, Wizard|Evocation|No|Core
+Animate Objects|5|Bard, Sorcerer, Wizard|Transmutation|No|Core
+Antilife Shell|5|Druid|Abjuration|No|Core
+Arcane Hand|5|Sorcerer, Wizard|Evocation|No|Core
+Awaken|5|Bard, Druid|Transmutation|No|Core
+Cloudkill|5|Sorcerer, Wizard|Conjuration|No|Core
+Commune|5|Cleric|Divination|Yes|Core
+Commune with Nature|5|Druid, Ranger|Divination|Yes|Core
+Cone of Cold|5|Druid, Sorcerer, Wizard|Evocation|No|Core
+Conjure Elemental|5|Druid, Wizard|Conjuration|No|Core
+Contact Other Plane|5|Warlock, Wizard|Divination|Yes|Core
+Contagion|5|Cleric, Druid|Necromancy|No|Core
+Creation|5|Sorcerer, Wizard|Illusion|No|Core
+Dispel Evil and Good|5|Cleric, Paladin|Abjuration|No|Core
+Dominate Person|5|Bard, Sorcerer, Wizard|Enchantment|No|Core
+Dream|5|Bard, Warlock, Wizard|Illusion|No|Core
+Flame Strike|5|Cleric|Evocation|No|Core
+Geas|5|Bard, Cleric, Druid, Paladin, Wizard|Enchantment|No|Core
+Greater Restoration|5|Bard, Cleric, Druid, Paladin, Ranger|Abjuration|No|Core
+Hallow|5|Cleric|Abjuration|No|Core
+Hold Monster|5|Bard, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Insect Plague|5|Cleric, Druid, Sorcerer|Conjuration|No|Core
+Legend Lore|5|Bard, Cleric, Wizard|Divination|No|Core
+Mass Cure Wounds|5|Bard, Cleric, Druid|Abjuration|No|Core
+Mislead|5|Bard, Warlock, Wizard|Illusion|No|Core
+Modify Memory|5|Bard, Wizard|Enchantment|No|Core
+Passwall|5|Wizard|Transmutation|No|Core
+Planar Binding|5|Bard, Cleric, Druid, Warlock, Wizard|Abjuration|No|Core
+Raise Dead|5|Bard, Cleric, Paladin|Necromancy|No|Core
+Reincarnate|5|Druid|Necromancy|No|Core
+Scrying|5|Bard, Cleric, Druid, Warlock, Wizard|Divination|No|Core
+Seeming|5|Bard, Sorcerer, Wizard|Illusion|No|Core
+Summon Dragon|5|Wizard|Conjuration|No|Core
+Telekinesis|5|Sorcerer, Wizard|Transmutation|No|Core
+Telepathic Bond|5|Bard, Wizard|Divination|Yes|Core
+Teleportation Circle|5|Bard, Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Tree Stride|5|Druid, Ranger|Conjuration|No|Core
+Wall of Force|5|Wizard|Evocation|No|Core
+Wall of Stone|5|Druid, Sorcerer, Wizard|Evocation|No|Core
+Blade Barrier|6|Cleric|Evocation|No|Core
+Chain Lightning|6|Sorcerer, Wizard|Evocation|No|Core
+Circle of Death|6|Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Conjure Fey|6|Druid|Conjuration|No|Core
+Contingency|6|Wizard|Abjuration|No|Core
+Create Undead|6|Cleric, Warlock, Wizard|Necromancy|No|Core
+Disintegrate|6|Sorcerer, Wizard|Transmutation|No|Core
+Eyebite|6|Bard, Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Find the Path|6|Bard, Cleric, Druid|Divination|No|Core
+Flesh to Stone|6|Druid, Sorcerer, Wizard|Transmutation|No|Core
+Forbiddance|6|Cleric|Abjuration|Yes|Core
+Freezing Sphere|6|Sorcerer, Wizard|Evocation|No|Core
+Globe of Invulnerability|6|Sorcerer, Wizard|Abjuration|No|Core
+Guards and Wards|6|Bard, Wizard|Abjuration|No|Core
+Harm|6|Cleric|Necromancy|No|Core
+Heal|6|Cleric, Druid|Abjuration|No|Core
+Heroes' Feast|6|Bard, Cleric, Druid|Conjuration|No|Core
+Instant Summons|6|Wizard|Conjuration|Yes|Core
+Irresistible Dance|6|Bard, Wizard|Enchantment|No|Core
+Magic Jar|6|Wizard|Necromancy|No|Core
+Mass Suggestion|6|Bard, Sorcerer, Wizard|Enchantment|No|Core
+Move Earth|6|Druid, Sorcerer, Wizard|Transmutation|No|Core
+Planar Ally|6|Cleric|Conjuration|No|Core
+Programmed Illusion|6|Bard, Wizard|Illusion|No|Core
+Sunbeam|6|Cleric, Druid, Sorcerer, Wizard|Evocation|No|Core
+Transport via Plants|6|Druid|Conjuration|No|Core
+True Seeing|6|Bard, Cleric, Sorcerer, Warlock, Wizard|Divination|No|Core
+Wall of Ice|6|Wizard|Evocation|No|Core
+Wall of Thorns|6|Druid|Conjuration|No|Core
+Wind Walk|6|Druid|Transmutation|No|Core
+Word of Recall|6|Cleric|Conjuration|No|Core
+Arcane Sword|7|Bard, Wizard|Evocation|No|Core
+Conjure Celestial|7|Cleric|Conjuration|No|Core
+Delayed Blast Fireball|7|Sorcerer, Wizard|Evocation|No|Core
+Divine Word|7|Cleric|Evocation|No|Core
+Etherealness|7|Bard, Cleric, Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Finger of Death|7|Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Fire Storm|7|Cleric, Druid, Sorcerer|Evocation|No|Core
+Forcecage|7|Bard, Warlock, Wizard|Evocation|No|Core
+Magnificent Mansion|7|Bard, Wizard|Conjuration|No|Core
+Mirage Arcane|7|Bard, Druid, Wizard|Illusion|No|Core
+Plane Shift|7|Cleric, Druid, Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Prismatic Spray|7|Bard, Sorcerer, Wizard|Evocation|No|Core
+Project Image|7|Bard, Wizard|Illusion|No|Core
+Regenerate|7|Bard, Cleric, Druid|Transmutation|No|Core
+Resurrection|7|Bard, Cleric|Necromancy|No|Core
+Reverse Gravity|7|Druid, Sorcerer, Wizard|Transmutation|No|Core
+Sequester|7|Wizard|Transmutation|No|Core
+Simulacrum|7|Wizard|Illusion|No|Core
+Symbol|7|Bard, Cleric, Druid, Wizard|Abjuration|No|Core
+Teleport|7|Bard, Sorcerer, Wizard|Conjuration|No|Core
+Animal Shapes|8|Druid|Transmutation|No|Core
+Antimagic Field|8|Cleric, Wizard|Abjuration|No|Core
+Antipathy/Sympathy|8|Bard, Druid, Wizard|Enchantment|No|Core
+Befuddlement|8|Bard, Druid, Warlock, Wizard|Enchantment|No|Core
+Clone|8|Wizard|Necromancy|No|Core
+Control Weather|8|Cleric, Druid, Wizard|Transmutation|No|Core
+Demiplane|8|Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Dominate Monster|8|Bard, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Earthquake|8|Cleric, Druid, Sorcerer|Transmutation|No|Core
+Glibness|8|Bard, Warlock|Enchantment|No|Core
+Holy Aura|8|Cleric|Abjuration|No|Core
+Incendiary Cloud|8|Druid, Sorcerer, Wizard|Conjuration|No|Core
+Maze|8|Wizard|Conjuration|No|Core
+Mind Blank|8|Bard, Wizard|Abjuration|No|Core
+Power Word Stun|8|Bard, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Sunburst|8|Cleric, Druid, Sorcerer, Wizard|Evocation|No|Core
+Tsunami|8|Druid|Conjuration|No|Core
+Astral Projection|9|Cleric, Warlock, Wizard|Necromancy|No|Core
+Foresight|9|Bard, Druid, Warlock, Wizard|Divination|No|Core
+Gate|9|Cleric, Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Imprisonment|9|Warlock, Wizard|Abjuration|No|Core
+Mass Heal|9|Cleric|Abjuration|No|Core
+Meteor Swarm|9|Sorcerer, Wizard|Evocation|No|Core
+Power Word Heal|9|Bard, Cleric|Enchantment|No|Core
+Power Word Kill|9|Bard, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Prismatic Wall|9|Bard, Wizard|Abjuration|No|Core
+Shapechange|9|Druid, Wizard|Transmutation|No|Core
+Storm of Vengeance|9|Druid|Conjuration|No|Core
+Time Stop|9|Sorcerer, Wizard|Transmutation|No|Core
+True Polymorph|9|Bard, Warlock, Wizard|Transmutation|No|Core
+True Resurrection|9|Cleric, Druid|Necromancy|No|Core
+Weird|9|Warlock, Wizard|Illusion|No|Core
+Wish|9|Sorcerer, Wizard|Conjuration|No|Core
+Abi-Dalzim's Horrid Wilting|8|Sorcerer, Wizard|Necromancy|No|Xanathar
+Absorb Elements|1|Druid, Ranger, Sorcerer, Wizard|Abjuration|No|Xanathar
+Aganazzar's Scorcher|2|Sorcerer, Wizard|Evocation|No|Xanathar
+Beast Bond|1|Druid, Ranger|Divination|No|Xanathar
+Bones of the Earth|6|Druid|Transmutation|No|Xanathar
+Catapult|1|Sorcerer, Wizard|Transmutation|No|Xanathar
+Catnap|3|Bard, Sorcerer, Wizard|Enchantment|No|Xanathar
+Cause Fear|1|Warlock, Wizard|Necromancy|No|Xanathar
+Ceremony|1|Cleric, Paladin|Abjuration|Yes|Xanathar
+Chaos Bolt|1|Sorcerer|Evocation|No|Xanathar
+Control Flames|0|Druid, Sorcerer, Wizard|Transmutation|No|Xanathar
+Control Winds|5|Druid, Sorcerer, Wizard|Transmutation|No|Xanathar
+Create Bonfire|0|Druid, Sorcerer, Warlock, Wizard|Conjuration|No|Xanathar
+Create Homunculus|6|Wizard|Transmutation|No|Xanathar
+Crown of Stars|7|Sorcerer, Warlock, Wizard|Evocation|No|Xanathar
+Danse Macabre|5|Warlock, Wizard|Necromancy|No|Xanathar
+Dawn|5|Cleric, Wizard|Evocation|No|Xanathar
+Druid Grove|6|Druid|Abjuration|No|Xanathar
+Dust Devil|2|Druid, Sorcerer, Wizard|Conjuration|No|Xanathar
+Earth Tremor|1|Bard, Druid, Sorcerer, Wizard|Evocation|No|Xanathar
+Earthbind|2|Druid, Sorcerer, Warlock, Wizard|Transmutation|No|Xanathar
+Elemental Bane|4|Druid, Warlock, Wizard|Transmutation|No|Xanathar
+Enemies Abound|3|Bard, Sorcerer, Warlock, Wizard|Enchantment|No|Xanathar
+Enervation|5|Sorcerer, Warlock, Wizard|Necromancy|No|Xanathar
+Erupting Earth|3|Druid, Sorcerer, Wizard|Transmutation|No|Xanathar
+Far Step|5|Sorcerer, Warlock, Wizard|Conjuration|No|Xanathar
+Find Greater Steed|4|Paladin|Conjuration|No|Xanathar
+Flame Arrows|3|Druid, Ranger, Sorcerer, Wizard|Transmutation|No|Xanathar
+Frostbite|0|Druid, Sorcerer, Warlock, Wizard|Evocation|No|Xanathar
+Guardian of Nature|4|Druid, Ranger|Transmutation|No|Xanathar
+Gust|0|Druid, Sorcerer, Wizard|Transmutation|No|Xanathar
+Healing Spirit|2|Druid, Ranger|Conjuration|No|Xanathar
+Holy Weapon|5|Cleric, Paladin|Evocation|No|Xanathar
+Illusory Dragon|8|Wizard|Illusion|No|Xanathar
+Immolation|5|Sorcerer, Wizard|Evocation|No|Xanathar
+Infernal Calling|5|Warlock, Wizard|Conjuration|No|Xanathar
+Infestation|0|Druid, Sorcerer, Warlock, Wizard|Conjuration|No|Xanathar
+Investiture of Flame|6|Druid, Sorcerer, Warlock, Wizard|Transmutation|No|Xanathar
+Investiture of Ice|6|Druid, Sorcerer, Warlock, Wizard|Transmutation|No|Xanathar
+Investiture of Stone|6|Druid, Sorcerer, Warlock, Wizard|Transmutation|No|Xanathar
+Investiture of Wind|6|Druid, Sorcerer, Warlock, Wizard|Transmutation|No|Xanathar
+Invulnerability|9|Wizard|Abjuration|No|Xanathar
+Life Transference|3|Cleric, Wizard|Necromancy|No|Xanathar
+Maddening Darkness|8|Warlock, Wizard|Evocation|No|Xanathar
+Maelstrom|5|Druid|Evocation|No|Xanathar
+Magic Stone|0|Druid, Warlock|Transmutation|No|Xanathar
+Mass Polymorph|9|Bard, Sorcerer, Wizard|Transmutation|No|Xanathar
+Maximilian's Earthen Grasp|2|Sorcerer, Wizard|Transmutation|No|Xanathar
+Melf's Minute Meteors|3|Sorcerer, Wizard|Evocation|No|Xanathar
+Mental Prison|6|Sorcerer, Warlock, Wizard|Illusion|No|Xanathar
+Mighty Fortress|8|Wizard|Conjuration|No|Xanathar
+Mold Earth|0|Druid, Sorcerer, Wizard|Transmutation|No|Xanathar
+Negative Energy Flood|5|Warlock, Wizard|Necromancy|No|Xanathar
+Power Word Pain|7|Sorcerer, Warlock, Wizard|Enchantment|No|Xanathar
+Primal Savagery|0|Druid|Transmutation|No|Xanathar
+Primordial Ward|6|Druid|Abjuration|No|Xanathar
+Psychic Scream|9|Bard, Sorcerer, Warlock, Wizard|Enchantment|No|Xanathar
+Pyrotechnics|2|Bard, Sorcerer, Wizard|Transmutation|No|Xanathar
+Scatter|6|Sorcerer, Warlock, Wizard|Conjuration|No|Xanathar
+Shadow Blade|2|Sorcerer, Warlock, Wizard|Illusion|No|Xanathar
+Shadow of Moil|4|Warlock|Necromancy|No|Xanathar
+Shape Water|0|Druid, Sorcerer, Wizard|Transmutation|No|Xanathar
+Sickening Radiance|4|Sorcerer, Warlock, Wizard|Evocation|No|Xanathar
+Skill Empowerment|5|Bard, Sorcerer, Wizard|Transmutation|No|Xanathar
+Skywrite|2|Bard, Druid, Wizard|Transmutation|Yes|Xanathar
+Snare|1|Druid, Ranger, Wizard|Abjuration|No|Xanathar
+Snilloc's Snowball Swarm|2|Sorcerer, Wizard|Evocation|No|Xanathar
+Soul Cage|6|Warlock, Wizard|Necromancy|No|Xanathar
+Steel Wind Strike|5|Ranger, Wizard|Conjuration|No|Xanathar
+Storm Sphere|4|Sorcerer, Wizard|Evocation|No|Xanathar
+Summon Greater Demon|4|Warlock, Wizard|Conjuration|No|Xanathar
+Summon Lesser Demons|3|Warlock, Wizard|Conjuration|No|Xanathar
+Synaptic Static|5|Bard, Sorcerer, Warlock, Wizard|Enchantment|No|Xanathar
+Temple of the Gods|7|Cleric|Conjuration|No|Xanathar
+Tenser's Transformation|6|Wizard|Transmutation|No|Xanathar
+Thunder Step|3|Sorcerer, Warlock, Wizard|Conjuration|No|Xanathar
+Thunderclap|0|Bard, Druid, Sorcerer, Warlock, Wizard|Evocation|No|Xanathar
+Tidal Wave|3|Druid, Sorcerer, Wizard|Conjuration|No|Xanathar
+Tiny Servant|3|Wizard|Transmutation|No|Xanathar
+Toll the Dead|0|Cleric, Warlock, Wizard|Necromancy|No|Xanathar
+Transmute Rock|5|Druid, Wizard|Transmutation|No|Xanathar
+Wall of Light|5|Sorcerer, Warlock, Wizard|Evocation|No|Xanathar
+Wall of Sand|3|Wizard|Evocation|No|Xanathar
+Wall of Water|3|Druid, Sorcerer, Wizard|Evocation|No|Xanathar
+Warding Wind|2|Bard, Druid, Sorcerer, Wizard|Evocation|No|Xanathar
+Watery Sphere|4|Druid, Sorcerer, Wizard|Conjuration|No|Xanathar
+Whirlwind|7|Druid, Sorcerer, Wizard|Evocation|No|Xanathar
+Word of Radiance|0|Cleric|Evocation|No|Xanathar
+Wrath of Nature|5|Druid|Evocation|No|Xanathar
+Zephyr Strike|1|Ranger|Transmutation|No|Xanathar
+Alustriel's Mooncloak|5|Bard, Druid, Ranger, Wizard|Abjuration|No|Forgotten Realms
+Backlash|4|Bard, Sorcerer, Warlock, Wizard|Abjuration|No|Forgotten Realms
+Blade of Disaster|9|Sorcerer, Warlock, Wizard|Conjuration|No|Forgotten Realms
+Cacophonic Shield|3|Bard, Sorcerer, Wizard|Evocation|No|Forgotten Realms
+Conjure Constructs|3|Wizard|Conjuration|No|Forgotten Realms
+Death Armor|2|Sorcerer, Wizard|Necromancy|No|Forgotten Realms
+Deryan's Helpful Homunculi|2|Cleric, Wizard|Conjuration|Yes|Forgotten Realms
+Dirge|6|Bard, Cleric|Enchantment|No|Forgotten Realms
+Doomtide|4|Bard, Cleric, Warlock|Conjuration|No|Forgotten Realms
+Elminster's Effulgent Spheres|6|Druid, Sorcerer, Wizard|Evocation|No|Forgotten Realms
+Elminster's Elusion|2|Wizard|Abjuration|No|Forgotten Realms
+Holy Star of Mystra|8|Cleric, Wizard|Evocation|No|Forgotten Realms
+Laeral's Silver Lance|3|Cleric, Sorcerer, Wizard|Evocation|No|Forgotten Realms
+Simbul's Synostodweomer|7|Sorcerer, Wizard|Transmutation|No|Forgotten Realms
+Songol's Elemental Suffusion|5|Druid, Sorcerer, Wizard|Transmutation|No|Forgotten Realms
+Spellfire Flare|1|Sorcerer, Wizard|Evocation|No|Forgotten Realms
+Spellfire Storm|4|Sorcerer, Wizard|Evocation|No|Forgotten Realms
+Sylune's Viper|3|Druid, Wizard|Conjuration|No|Forgotten Realms
+Wardaway|1|Bard, Cleric, Paladin, Wizard|Abjuration|No|Forgotten Realms

@@ -124,8 +124,16 @@ Sack|Gear|Mundane|SRD5.2.1
 Scholar's Pack|Gear|Mundane|SRD5.2.1
 Shovel|Gear|Mundane|SRD5.2.1
 Signal Whistle|Gear|Mundane|SRD5.2.1
-Spell Scroll (Cantrip)|Gear|Mundane|SRD5.2.1
-Spell Scroll (Level 1)|Gear|Mundane|SRD5.2.1
+Spell Scroll (Cantrip)|Scroll|Common|SRD5.2.1
+Spell Scroll (Level 1)|Scroll|Common|SRD5.2.1
+Spell Scroll (Level 2)|Scroll|Uncommon|SRD5.2.1
+Spell Scroll (Level 3)|Scroll|Uncommon|SRD5.2.1
+Spell Scroll (Level 4)|Scroll|Rare|SRD5.2.1
+Spell Scroll (Level 5)|Scroll|Rare|SRD5.2.1
+Spell Scroll (Level 6)|Scroll|Very Rare|SRD5.2.1
+Spell Scroll (Level 7)|Scroll|Very Rare|SRD5.2.1
+Spell Scroll (Level 8)|Scroll|Very Rare|SRD5.2.1
+Spell Scroll (Level 9)|Scroll|Legendary|SRD5.2.1
 Spikes, Iron|Gear|Mundane|SRD5.2.1
 Spyglass|Gear|Mundane|SRD5.2.1
 String|Gear|Mundane|SRD5.2.1
@@ -150,7 +158,6 @@ Yew wand|Gear|Mundane|SRD5.2.1
 Amulet (worn or held)|Gear|Mundane|SRD5.2.1
 Emblem (borne on fabric or a Shield)|Gear|Mundane|SRD5.2.1
 Reliquary (held)|Gear|Mundane|SRD5.2.1
-Spell Scroll|Gear|Mundane|SRD5.2.1
 Camel|Mount/Vehicle|Mundane|SRD5.2.1
 Elephant|Mount/Vehicle|Mundane|SRD5.2.1
 Horse, Draft|Mount/Vehicle|Mundane|SRD5.2.1

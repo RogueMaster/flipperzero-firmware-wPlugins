@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dndolphins.h"
+#include "dnd_data.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -53,7 +53,7 @@ typedef struct {
     uint8_t special;
 } PocketSpellDamageSpec;
 
-bool pocket_d20_spell_damage_spec(
+bool dndolphins_spell_combat_damage_spec(
     const PocketSpell* spell,
     uint8_t cast_level,
     uint8_t character_level,

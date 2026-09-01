@@ -1,0 +1,23 @@
+# Spell metadata used only for automatic progression grants.
+# Name|Level|Classes|School|Ritual|Source
+Chill Touch|0|Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Dancing Lights|0|Bard, Sorcerer, Wizard|Illusion|No|Core
+Darkness|2|Sorcerer, Warlock, Wizard|Evocation|No|Core
+Detect Magic|1|Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard|Divination|Yes|Core
+Druidcraft|0|Druid|Transmutation|No|Core
+Faerie Fire|1|Bard, Druid|Evocation|No|Core
+False Life|1|Sorcerer, Wizard|Necromancy|No|Core
+Fire Bolt|0|Sorcerer, Wizard|Evocation|No|Core
+Hellish Rebuke|1|Warlock|Evocation|No|Core
+Hold Person|2|Bard, Cleric, Druid, Sorcerer, Warlock, Wizard|Enchantment|No|Core
+Light|0|Bard, Cleric, Sorcerer, Wizard|Evocation|No|Core
+Longstrider|1|Bard, Druid, Ranger, Wizard|Transmutation|No|Core
+Mending|0|Bard, Cleric, Druid, Sorcerer, Wizard|Transmutation|No|Core
+Minor Illusion|0|Bard, Sorcerer, Warlock, Wizard|Illusion|No|Core
+Misty Step|2|Sorcerer, Warlock, Wizard|Conjuration|No|Core
+Pass without Trace|2|Druid, Ranger|Abjuration|No|Core
+Poison Spray|0|Druid, Sorcerer, Warlock, Wizard|Necromancy|No|Core
+Prestidigitation|0|Bard, Sorcerer, Warlock, Wizard|Transmutation|No|Core
+Ray of Enfeeblement|2|Warlock, Wizard|Necromancy|No|Core
+Ray of Sickness|1|Sorcerer, Wizard|Necromancy|No|Core
+Thaumaturgy|0|Cleric|Transmutation|No|Core

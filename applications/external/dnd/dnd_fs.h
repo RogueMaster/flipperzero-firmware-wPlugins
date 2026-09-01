@@ -6,11 +6,11 @@
 #include <string.h>
 #include <storage/storage.h>
 
-#define POCKET_D20_PATH_LEN      96U
+#define POCKET_D20_PATH_LEN 96U
 #define POCKET_D20_LONG_PATH_LEN 128U
 
 /* Build a child path without relying on snprintf truncation. Prefix may be NULL. */
-static inline bool pocket_d20_child_path(
+static inline bool dnd_fs_child_path(
     char* output,
     size_t size,
     const char* directory,
@@ -32,21 +32,21 @@ static inline bool pocket_d20_child_path(
     return true;
 }
 
-static inline bool pocket_d20_directory_exists(Storage* storage, const char* path) {
+static inline bool dnd_fs_directory_exists(Storage* storage, const char* path) {
     if(!storage || !path || !path[0]) return false;
     FileInfo info;
     return storage_common_stat(storage, path, &info) == FSE_OK && file_info_is_dir(&info);
 }
 
-static inline bool pocket_d20_ensure_directory(Storage* storage, const char* path) {
+static inline bool dnd_fs_ensure_directory(Storage* storage, const char* path) {
     if(!storage || !path || path[0] != '/') return false;
-    if(pocket_d20_directory_exists(storage, path)) return true;
+    if(dnd_fs_directory_exists(storage, path)) return true;
     storage_common_mkdir(storage, path);
-    return pocket_d20_directory_exists(storage, path);
+    return dnd_fs_directory_exists(storage, path);
 }
 
 /* Create every parent component before opening a writable file. */
-static inline bool pocket_d20_ensure_parent_dir(Storage* storage, const char* path) {
+static inline bool dnd_fs_ensure_parent_dir(Storage* storage, const char* path) {
     if(!storage || !path || path[0] != '/') return false;
     size_t length = strlen(path);
     if(length < 2U || length >= POCKET_D20_LONG_PATH_LEN) return false;
@@ -60,8 +60,8 @@ static inline bool pocket_d20_ensure_parent_dir(Storage* storage, const char* pa
     for(char* cursor = directory + 1U; *cursor; ++cursor) {
         if(*cursor != '/') continue;
         *cursor = '\0';
-        if(!pocket_d20_ensure_directory(storage, directory)) return false;
+        if(!dnd_fs_ensure_directory(storage, directory)) return false;
         *cursor = '/';
     }
-    return pocket_d20_ensure_directory(storage, directory);
+    return dnd_fs_ensure_directory(storage, directory);
 }

@@ -14,9 +14,9 @@ typedef struct {
     uint8_t enabled;
 } PocketPackSummary;
 
-uint16_t pocket_pack_count(Storage* storage);
-bool pocket_pack_at(Storage* storage, uint16_t index, PocketPackSummary* output);
-bool pocket_pack_install_inbox(Storage* storage, char* status, size_t status_size);
-bool pocket_pack_set_enabled(Storage* storage, const char* id, bool enabled);
-bool pocket_pack_rebuild_enabled(Storage* storage);
-bool pocket_pack_ensure_enabled(Storage* storage);
+uint16_t dndbestiary_packs_count(Storage* storage);
+bool dndbestiary_packs_at(Storage* storage, uint16_t index, PocketPackSummary* output);
+bool dndbestiary_packs_install_inbox(Storage* storage, char* status, size_t status_size);
+bool dndbestiary_packs_set_enabled(Storage* storage, const char* id, bool enabled);
+bool dndbestiary_packs_rebuild_enabled(Storage* storage);
+bool dndbestiary_packs_ensure_enabled(Storage* storage);

@@ -98,21 +98,21 @@ typedef struct {
 
 typedef bool (*PocketMonsterFilter)(const PocketMonsterSummary* summary, void* context);
 
-uint32_t pocket_monster_xp_budget(
+uint32_t dndbestiary_monsters_xp_budget(
     uint8_t party_level,
     uint8_t party_size,
     PocketEncounterDifficulty difficulty);
-void pocket_monster_validate_pack(
+void dndbestiary_monsters_validate_pack(
     Storage* storage,
     uint16_t* total,
     uint16_t* valid,
     uint16_t* invalid);
-bool pocket_monster_find(Storage* storage, const char* id, PocketMonsterSummary* output);
-bool pocket_monster_initiative_modifier(
+bool dndbestiary_monsters_find(Storage* storage, const char* id, PocketMonsterSummary* output);
+bool dndbestiary_monsters_initiative_modifier(
     Storage* storage,
     const PocketMonsterSummary* summary,
     int8_t* modifier);
-uint16_t pocket_monster_query(
+uint16_t dndbestiary_monsters_query(
     Storage* storage,
     PocketMonsterFilter filter,
     void* context,
@@ -120,30 +120,30 @@ uint16_t pocket_monster_query(
     PocketMonsterSummary* output,
     uint16_t capacity,
     uint16_t* total_matches);
-uint16_t pocket_monster_sample(
+uint16_t dndbestiary_monsters_sample(
     Storage* storage,
     PocketMonsterFilter filter,
     void* context,
     PocketMonsterSummary* output,
     uint16_t capacity,
     uint16_t* total_matches);
-bool pocket_monster_load(
+bool dndbestiary_monsters_load(
     Storage* storage,
     const PocketMonsterSummary* summary,
     PocketMonsterDetail* output);
-bool pocket_monster_save_custom(Storage* storage, PocketMonsterDetail* detail);
-bool pocket_monster_update_custom(Storage* storage, PocketMonsterDetail* detail);
-bool pocket_monster_delete_custom(Storage* storage, const PocketMonsterSummary* summary);
-bool pocket_monster_migrate_legacy_custom(Storage* storage, uint16_t* copied_files);
-bool pocket_monster_seed_default_custom(Storage* storage, uint16_t* copied_files);
-bool pocket_monster_recover_user_pack(Storage* storage, uint16_t* recovered, uint16_t* rolled_back);
-void pocket_monster_cache_reset(void);
-void pocket_monster_pack_versions(
+bool dndbestiary_monsters_save_custom(Storage* storage, PocketMonsterDetail* detail);
+bool dndbestiary_monsters_update_custom(Storage* storage, PocketMonsterDetail* detail);
+bool dndbestiary_monsters_delete_custom(Storage* storage, const PocketMonsterSummary* summary);
+bool dndbestiary_monsters_migrate_legacy_custom(Storage* storage, uint16_t* copied_files);
+bool dndbestiary_monsters_seed_default_custom(Storage* storage, uint16_t* copied_files);
+bool dndbestiary_monsters_recover_user_pack(Storage* storage, uint16_t* recovered, uint16_t* rolled_back);
+void dndbestiary_monsters_cache_reset(void);
+void dndbestiary_monsters_pack_versions(
     Storage* storage,
     uint8_t* bundled_version,
     uint8_t* user_version,
     bool* user_present);
-bool pocket_monster_generate(
+bool dndbestiary_monsters_generate(
     Storage* storage,
     uint8_t party_level,
     uint8_t party_size,
@@ -153,12 +153,12 @@ bool pocket_monster_generate(
     PocketEncounterTemplate template_kind,
     const char* preferred_role,
     PocketMonsterEncounter* output);
-void pocket_monster_simulate(
+void dndbestiary_monsters_simulate(
     PocketMonsterEncounter* encounter,
     uint8_t party_level,
     uint8_t party_size,
     PocketEncounterSimulation* output);
-void pocket_monster_analyze_composition(
+void dndbestiary_monsters_analyze_composition(
     const PocketMonsterEncounter* encounter,
     uint8_t party_size,
     PocketEncounterComposition* output);

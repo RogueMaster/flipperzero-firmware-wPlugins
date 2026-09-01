@@ -1,5 +1,5 @@
 # Dungeons & Dolphins starting equipment by background.
-# Currency is summed into the core character once; only I rows are copied to inventory.
+# Currency is granted into the Inventory sidecar together with starting equipment; I rows become Item records.
 # Format: Key|I|<live item record fields> or Key|C|cp,sp,ep,gp,pp
 # Acolyte
 Acolyte|I|Holy Symbol|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
