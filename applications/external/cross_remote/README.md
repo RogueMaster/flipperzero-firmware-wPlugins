@@ -66,6 +66,7 @@ From the start screen on flipper press down to enter the favorites menu. Navigat
 - [Roguemaster](https://github.com/RogueMaster/flipperzero-firmware-wPlugins) for distributing in Roguemaster Firmware
 - [Miccayo](https://github.com/miccayo) for contributing the loop transmit feature
 - [jxc](https://github.com/jxc) for providing a great upgrade to the pause timer
+- [NickMoebius](https://github.com/NickMoebius) for making pause timers re-editable and making items movable in a chain
 
 ## Licensing
 This code is open-source and may be used for whatever you want to do with it. 

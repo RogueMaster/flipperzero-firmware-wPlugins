@@ -31,17 +31,24 @@ bool xremote_scene_pause_set_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
             break;
         case XRemoteCustomEventPauseSetBack:
-            if(!scene_manager_search_and_switch_to_previous_scene(
-                   app->scene_manager, XRemoteSceneCreateAdd)) {
+            if(app->pause_edit_mode) {
+                // Editing an existing Pause item's timing: return to the Edit/Delete menu.
+                scene_manager_previous_scene(app->scene_manager);
+            } else if(!scene_manager_search_and_switch_to_previous_scene(
+                          app->scene_manager, XRemoteSceneCreateAdd)) {
                 scene_manager_stop(app->scene_manager);
                 view_dispatcher_stop(app->view_dispatcher);
             }
             consumed = true;
             break;
         case XRemoteCustomEventPauseSetOk:
-            //xremote_cross_remote_add_pause(app->cross_remote, time);
-            scene_manager_search_and_switch_to_previous_scene(
-                app->scene_manager, XRemoteSceneCreate);
+            if(app->pause_edit_mode) {
+                // Editing an existing Pause item's timing: return to the Edit/Delete menu.
+                scene_manager_previous_scene(app->scene_manager);
+            } else {
+                scene_manager_search_and_switch_to_previous_scene(
+                    app->scene_manager, XRemoteSceneCreate);
+            }
             consumed = true;
             break;
         }
@@ -50,5 +57,6 @@ bool xremote_scene_pause_set_on_event(void* context, SceneManagerEvent event) {
 }
 
 void xremote_scene_pause_set_on_exit(void* context) {
-    UNUSED(context);
+    XRemote* app = context;
+    app->pause_edit_mode = false;
 }

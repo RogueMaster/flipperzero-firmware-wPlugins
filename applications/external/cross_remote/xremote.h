@@ -46,6 +46,7 @@ typedef struct {
     uint32_t save_settings;
     uint32_t loop_transmit;
     uint32_t edit_item;
+    bool pause_edit_mode; // true while XRemoteScenePauseSet edits an existing Pause item's timing
     uint32_t ir_timing;
     char* ir_timing_char;
     uint32_t sg_timing;

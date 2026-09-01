@@ -54,6 +54,7 @@ XRemote* xremote_app_alloc() {
     app->loop_transmit = 0;
     app->transmit_item = 0;
     app->loadFavorite = false;
+    app->pause_edit_mode = false;
 
     // Load configs
     xremote_read_settings(app);

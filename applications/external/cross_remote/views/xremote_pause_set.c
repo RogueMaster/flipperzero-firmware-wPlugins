@@ -11,12 +11,14 @@ typedef struct {
     const char* name;
     int time; // total pause duration in SECONDS (0..XREMOTE_PAUSE_MAX_SECONDS)
     int field; // which field Up/Down edits: minutes or seconds
+    bool edit_mode; // true when editing an existing Pause item's timing instead of adding a new one
 } XRemotePauseSetModel;
 
 static void xremote_pause_set_model_init(XRemotePauseSetModel* const model) {
     model->type = XRemoteRemoteItemTypePause;
     model->time = 1;
     model->field = XREMOTE_PAUSE_FIELD_SECONDS;
+    model->edit_mode = false;
 }
 
 // Adjust the active field by `dir` (+1/-1) steps. Held keys (InputTypeRepeat)
@@ -75,7 +77,7 @@ void xremote_pause_set_draw(Canvas* canvas, XRemotePauseSetModel* model) {
     // Left/Right arrows flank the time to hint at field selection.
     canvas_draw_icon(canvas, 30, 31, &I_ButtonLeft_4x7);
     canvas_draw_icon(canvas, 94, 31, &I_ButtonRight_4x7);
-    elements_button_center(canvas, "Add");
+    elements_button_center(canvas, model->edit_mode ? "Set" : "Add");
 }
 
 bool xremote_pause_set_input(InputEvent* event, void* context) {
@@ -124,7 +126,12 @@ bool xremote_pause_set_input(InputEvent* event, void* context) {
             XRemotePauseSetModel * model,
             {
                 XRemote* app = instance->context;
-                xremote_cross_remote_add_pause(app->cross_remote, model->time);
+                if(model->edit_mode) {
+                    xremote_cross_remote_set_pause_time(
+                        app->cross_remote, app->edit_item, model->time);
+                } else {
+                    xremote_cross_remote_add_pause(app->cross_remote, model->time);
+                }
             },
             true);
 
@@ -159,10 +166,19 @@ XRemotePauseSet* xremote_pause_set_alloc() {
 void xremote_pause_set_enter(void* context) {
     furi_assert(context);
     XRemotePauseSet* instance = (XRemotePauseSet*)context;
+    XRemote* app = instance->context;
     with_view_model(
         instance->view,
         XRemotePauseSetModel * model,
-        { xremote_pause_set_model_init(model); },
+        {
+            xremote_pause_set_model_init(model);
+            if(app->pause_edit_mode) {
+                CrossRemoteItem* item =
+                    xremote_cross_remote_get_item(app->cross_remote, app->edit_item);
+                model->time = (int)xremote_cross_remote_item_get_time(item);
+                model->edit_mode = true;
+            }
+        },
         true);
 }
 

@@ -116,6 +116,16 @@ bool xremote_cross_remote_add_pause(CrossRemote* remote, int time) {
     return true;
 }
 
+void xremote_cross_remote_set_pause_time(CrossRemote* remote, size_t index, int time) {
+    CrossRemoteItem* item = xremote_cross_remote_get_item(remote, index);
+    // Oversized for the compiler's worst-case int range (format-truncation);
+    // at runtime `time` is clamped to <= 3600 (60:00).
+    char name[32];
+    snprintf(name, sizeof(name), CROSS_REMOTE_PAUSE_NAME, time / 60, time % 60);
+    xremote_cross_remote_item_set_name(item, name);
+    xremote_cross_remote_item_set_time(item, time);
+}
+
 bool xremote_cross_remote_add_subghz(CrossRemote* remote, SubGhzRemote* subghz) {
     CrossRemoteItem* item = xremote_cross_remote_item_alloc();
     xremote_cross_remote_item_set_type(item, XRemoteRemoteItemTypeSubGhz);
@@ -139,6 +149,24 @@ CrossRemoteItem* xremote_cross_remote_get_item(CrossRemote* remote, size_t index
 
 void xremote_cross_remote_remove_item(CrossRemote* remote, size_t index) {
     CrossRemoteItemArray_erase(remote->items, index);
+}
+
+static void xremote_cross_remote_swap_items(CrossRemote* remote, size_t index_a, size_t index_b) {
+    CrossRemoteItem** a = CrossRemoteItemArray_get(remote->items, index_a);
+    CrossRemoteItem** b = CrossRemoteItemArray_get(remote->items, index_b);
+    CrossRemoteItem* tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+void xremote_cross_remote_move_item_up(CrossRemote* remote, size_t index) {
+    if(index == 0 || index >= CrossRemoteItemArray_size(remote->items)) return;
+    xremote_cross_remote_swap_items(remote, index, index - 1);
+}
+
+void xremote_cross_remote_move_item_down(CrossRemote* remote, size_t index) {
+    if(index + 1 >= CrossRemoteItemArray_size(remote->items)) return;
+    xremote_cross_remote_swap_items(remote, index, index + 1);
 }
 
 void xremote_cross_remote_rename_item(CrossRemote* remote, size_t index, const char* name) {

@@ -105,6 +105,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DNDSpellbook v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [FlipDeFlock v0.80 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Hotspot Arcade v1.9.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
+- Updated: [Cross Remote v3.5 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
 
 <a name="release"></a>
 
@@ -485,7 +486,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Coolix AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Count Down Timer v1.5 (By 0w0mewo)](https://github.com/0w0mewo/fpz_cntdown_timer)
 - [Counter v1.5 (By Krulknul & TEXploder)](https://github.com/TEXploder/TEX-Counter)
-- [Cross Remote v3.4 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
+- [Cross Remote v3.5 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
 - [Crypto Dictionary v0.1 (By armixz)](https://github.com/armixz/Flipper-Zero-Crypto-Dictionary)
 - [Cyborg Detector v1.1 (By RocketGod-Git)](https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector)
 - [Dab Timer v2.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)

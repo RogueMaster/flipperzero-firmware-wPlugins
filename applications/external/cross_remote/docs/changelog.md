@@ -1,3 +1,7 @@
+## 3.5
+- Pause timers can now be edited (Thanks to NickMoebius)
+- Positions of Items in a chain can now be switched (Thanks to NickMoebius)
+
 ## 3.4
 - Added contributed feature for an improved pause timer (Thanks to jxc)
 

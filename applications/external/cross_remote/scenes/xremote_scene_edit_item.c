@@ -5,6 +5,8 @@ enum SubmenuIndexEdit {
     SubmenuIndexRename = 10,
     SubmenuIndexTiming,
     SubmenuIndexDelete,
+    SubmenuIndexMoveUp,
+    SubmenuIndexMoveDown,
 };
 
 void xremote_scene_edit_item_submenu_callback(void* context, uint32_t index) {
@@ -17,8 +19,8 @@ void xremote_scene_edit_item_on_enter(void* context) {
     submenu_add_item(
         app->editmenu, "Rename", SubmenuIndexRename, xremote_scene_edit_item_submenu_callback, app);
 
-    if(xremote_cross_remote_get_item_type(app->cross_remote, app->edit_item) ==
-       XRemoteRemoteItemTypeInfrared) {
+    int16_t item_type = xremote_cross_remote_get_item_type(app->cross_remote, app->edit_item);
+    if(item_type == XRemoteRemoteItemTypeInfrared || item_type == XRemoteRemoteItemTypePause) {
         submenu_add_item(
             app->editmenu,
             "Set Timing",
@@ -29,6 +31,24 @@ void xremote_scene_edit_item_on_enter(void* context) {
 
     submenu_add_item(
         app->editmenu, "Delete", SubmenuIndexDelete, xremote_scene_edit_item_submenu_callback, app);
+
+    size_t item_count = xremote_cross_remote_get_item_count(app->cross_remote);
+    if(app->edit_item > 0) {
+        submenu_add_item(
+            app->editmenu,
+            "Move Up",
+            SubmenuIndexMoveUp,
+            xremote_scene_edit_item_submenu_callback,
+            app);
+    }
+    if(app->edit_item + 1 < item_count) {
+        submenu_add_item(
+            app->editmenu,
+            "Move Down",
+            SubmenuIndexMoveDown,
+            xremote_scene_edit_item_submenu_callback,
+            app);
+    }
 
     submenu_set_selected_item(
         app->editmenu, scene_manager_get_scene_state(app->scene_manager, XRemoteSceneMenu));
@@ -45,12 +65,22 @@ bool xremote_scene_edit_item_on_event(void* context, SceneManagerEvent event) {
     } else if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == SubmenuIndexDelete) {
             xremote_cross_remote_remove_item(app->cross_remote, app->edit_item);
+        } else if(event.event == SubmenuIndexMoveUp) {
+            xremote_cross_remote_move_item_up(app->cross_remote, app->edit_item);
+        } else if(event.event == SubmenuIndexMoveDown) {
+            xremote_cross_remote_move_item_down(app->cross_remote, app->edit_item);
         } else if(event.event == SubmenuIndexRename) {
             scene_manager_next_scene(app->scene_manager, XRemoteSceneSaveRemoteItem);
             //scene_manager_next_scene(app->scene_manager, XRemoteSceneWip);
             return 0;
         } else if(event.event == SubmenuIndexTiming) {
-            scene_manager_next_scene(app->scene_manager, XRemoteSceneIrTimer);
+            if(xremote_cross_remote_get_item_type(app->cross_remote, app->edit_item) ==
+               XRemoteRemoteItemTypePause) {
+                app->pause_edit_mode = true;
+                scene_manager_next_scene(app->scene_manager, XRemoteScenePauseSet);
+            } else {
+                scene_manager_next_scene(app->scene_manager, XRemoteSceneIrTimer);
+            }
             return 0;
         }
         scene_manager_next_scene(app->scene_manager, XRemoteSceneCreate);
