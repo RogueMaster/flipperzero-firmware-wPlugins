@@ -10,6 +10,9 @@ jobs:
   flipper-app:
     name: Build Flipper app (fap)
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        board: [s2, wroom, c5, all]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,13 +22,27 @@ jobs:
         run: pip install --upgrade ufbt
       - name: Fetch Momentum SDK
         run: ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --channel=release --hw-target=f7
+      - name: Keep only ${{ matrix.board }} firmware
+        if: matrix.board != 'all'
+        working-directory: flipper/hotspot-arcade/assets/firmware
+        run: |
+          case "${{ matrix.board }}" in
+            s2) keep=official_devboard ;;
+            *)  keep="${{ matrix.board }}" ;;
+          esac
+          for dir in */; do
+            d="${dir%/}"
+            [ "$d" = "$keep" ] || rm -rf "$d"
+          done
       - name: Build fap
         working-directory: flipper/hotspot-arcade
         run: ufbt
+      - name: Rename output
+        run: mv flipper/hotspot-arcade/dist/hotspot_arcade.fap flipper/hotspot-arcade/dist/hotspot_arcade-${{ matrix.board }}.fap
       - uses: actions/upload-artifact@v4
         with:
-          name: hotspot-arcade-fap
-          path: flipper/hotspot-arcade/dist/hotspot_arcade.fap
+          name: hotspot-arcade-fap-${{ matrix.board }}
+          path: flipper/hotspot-arcade/dist/hotspot_arcade-${{ matrix.board }}.fap
 
   web-bundle:
     name: Build web bundle
