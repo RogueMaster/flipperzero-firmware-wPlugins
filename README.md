@@ -76,7 +76,7 @@ the right one depends on what you are actually trying to find out:
 | 🔬 **Fingerprint** | *What kind of thing is it?* | You have found an emitter and want to know how it behaves |
 | 🗺️ **Site Survey** | *Is this room clean?* | You want one verdict for a whole space, hands-free |
 | 🛰️ **Watch Mode** | *Did one appear while I was away?* | You are leaving the Flipper somewhere to stand guard |
-| 📖 **Logbook** | *What did I find, and when?* | You are writing it up, or comparing today with last week |
+| 📖 **Logbook** | *What did I find, and when?* | You are writing it up, or comparing today with last week — filter by finding type |
 
 ---
 

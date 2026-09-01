@@ -186,7 +186,7 @@ def render(path, W, H, layout="wide"):
     px, py = x0 + title_w + u(22), title_y + title_px - u(46)
     pw, ph = u(84), u(38)
     td.rounded_rectangle([px, py, px + pw, py + ph], radius=u(10), fill=MAG)
-    td.text((px + pw / 2, py + ph / 2), "v2.7", font=f_ver, fill=BG_TOP, anchor="mm")
+    td.text((px + pw / 2, py + ph / 2), "v2.8", font=f_ver, fill=BG_TOP, anchor="mm")
 
     # tagline + subtitle
     tag_y = title_y + title_px + u(14)

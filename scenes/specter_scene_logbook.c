@@ -1,4 +1,5 @@
 #include "../specter_i.h"
+#include "../helpers/log_filter.h"
 #include <stdio.h>
 
 /* The logbook, straight off the SD card. Newest entries are at the bottom, which
@@ -11,7 +12,27 @@ void specter_scene_logbook_on_enter(void* context) {
     text_box_reset(app->text_box);
     furi_string_reset(app->text_box_store);
 
+    uint32_t filter_index =
+        scene_manager_get_scene_state(app->scene_manager, SpecterSceneLogbook);
+    const char* filter_type = specter_log_filter_type(filter_index);
+
     if(specter_log_read_tail(app->text_box_store)) {
+        if(filter_type) {
+            /* The filtered copy can only ever be shorter than the source. */
+            size_t cap = furi_string_size(app->text_box_store) + 1u;
+            char* filtered = malloc(cap);
+            size_t kept =
+                specter_log_filter(furi_string_get_cstr(app->text_box_store), filter_type, filtered, cap);
+            if(kept) {
+                furi_string_set(app->text_box_store, filtered);
+            } else {
+                furi_string_printf(
+                    app->text_box_store,
+                    "No entries of this kind yet.\n\n\"%s\" matched nothing in the\nrecent logbook.\n\nBack up a screen to see\neverything.",
+                    specter_log_filter_label(filter_index));
+            }
+            free(filtered);
+        }
         text_box_set_font(app->text_box, TextBoxFontText);
         text_box_set_focus(app->text_box, TextBoxFocusEnd);
     } else {

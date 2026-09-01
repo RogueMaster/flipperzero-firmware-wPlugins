@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "ema.h"
 #include "emitter_classify.h"
 #include "field_scale.h"
 #include "present_hold.h"

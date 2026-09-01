@@ -83,22 +83,20 @@ static void watch_view_draw(Canvas* canvas, void* model) {
     /* ---------- status band ---------- */
     bool alarm = m->present;
     if(alarm) {
-        /* The band stays solidly inverted. It used to alternate between filled
-         * and outlined on every tick, which at a 100 ms tick is a 5 Hz strobe
-         * across the full width of the screen - unpleasant to look at, hard to
-         * read, and no more attention-grabbing than a steady block.
+        /* Nothing on this band animates. It began as a full-width invert that
+         * alternated every tick - a 5 Hz strobe - and was then softened to a
+         * pair of markers pulsing at 1 Hz, which still read as flashing to
+         * anyone actually watching the screen.
          *
-         * The "this is live, not frozen" cue is a single small marker pulsing
-         * at about 1 Hz instead. Same job, none of the flicker. */
+         * An alarm does not need to move to be noticed: a solid inverted block
+         * against an otherwise light screen is already the loudest thing on it.
+         * Liveness is carried by the readouts that genuinely change - NOW %,
+         * the hit count, the LAST timer - not by blinking the alarm itself. */
         canvas_draw_box(canvas, 0, STATUS_Y - 1, 128, STATUS_H);
         canvas_set_color(canvas, ColorWhite);
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(
             canvas, 64, STATUS_Y + 9, AlignCenter, AlignBottom, "READER PRESENT");
-        if((m->anim / 5u) & 1u) {
-            canvas_draw_disc(canvas, 6, STATUS_Y + 5, 2);
-            canvas_draw_disc(canvas, 121, STATUS_Y + 5, 2);
-        }
         canvas_set_color(canvas, ColorBlack);
     } else {
         canvas_set_font(canvas, FontPrimary);

@@ -63,7 +63,7 @@ bool specter_scene_start_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
             break;
         case StartIndexLogbook:
-            scene_manager_next_scene(app->scene_manager, SpecterSceneLogbook);
+            scene_manager_next_scene(app->scene_manager, SpecterSceneLogFilter);
             consumed = true;
             break;
         case StartIndexSettings:

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.8
+
+- **Fix: the field meter could never reach 100%, even resting on a reader.** The strength smoother was `ema = (ema * 3 + duty) / 4`, and integer division discards the remainder on every update, so the filter cannot converge on its own input — fed a steady 31% it settles at 28 and stays there. That is a permanent ~3-point under-read of raw duty, about ten points of displayed field. Keeping the smoother's state at 1/16 resolution fixes it: on a real terminal the meter now pegs at `100% MAX` as it always should have.
+- **Fix: the Watch alarm band still read as flashing.** The strobe was toned down in 2.7 to a pair of markers pulsing at 1 Hz, which was still movement on the one part of the screen you are staring at. Nothing on that band animates now — a solid inverted block is already the loudest thing on a light screen, and liveness is carried by the readouts that genuinely change.
+- **New: filter the logbook by type.** Opening the Logbook now asks what you want to see — everything, sweep readings, readers found, site surveys, or watch contacts. Filtering keeps both lines of a matched entry, because a finding without its timestamp is not evidence.
+- The demo animation is now generated from the app's own C rather than from numbers chosen by hand. The old one was quietly impossible: it showed an 81% field while still claiming to be `SCANNING` with zero contacts, when anything over the noise floor latches presence and flips to the alarm strip immediately. `tools_gif_data.c` links the real smoother, presence latch, meter scaling, proximity vocabulary, trend rule, classifier and survey verdict, and prints what the device would actually display.
+- The proximity vocabulary and the warmer/colder trend moved out of the view into the shared pure layer, so they are host-tested and the demo generator reaches the same words and arrows the device shows.
+- Host suite is now **437 checks** across seven pure modules.
+
 ## 2.7
 
 - **Releases now ship two builds.** A `.fap`'s API version is fixed when it is compiled, and the loader warns when it trails the firmware's (`APP:87 < FW:88 — This app might not work`). Official firmware tracks API 87 while Unleashed / RogueMaster / Momentum track 88, so one build cannot satisfy both. Releases now carry `specter.fap` for official firmware and `specter-fw-dev.fap` for the newer line. Reported by @drdelaney in [#1](https://github.com/at0m-b0mb/Specter-FlipperZero/issues/1).

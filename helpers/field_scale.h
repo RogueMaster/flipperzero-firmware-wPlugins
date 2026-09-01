@@ -54,6 +54,28 @@
  * meter. Pure and total - host-tested in test/. */
 uint8_t field_scale_apply(uint8_t raw_duty, uint8_t full_scale);
 
+/* The proximity vocabulary shown beside the alarm strip.
+ *
+ * Lives here rather than in the view because it is a statement about the
+ * measurement, not about drawing: it needs to be host-testable, and the demo
+ * animation generator has to be able to reach the exact same words the device
+ * shows, or the demo is a drawing of the app rather than a picture of it.
+ *
+ * Takes the SCALED reading, not raw duty - against raw duty a polling reader
+ * could never exceed ~30 and the top of the vocabulary was unreachable. */
+const char* field_proximity_word(uint8_t shown, bool saturated);
+
+/* Warmer or colder: compares the newest readings in a history ring against the
+ * ones just before them. Returns +1 climbing, -1 falling, 0 steady.
+ *
+ * When you are hunting by hand this matters more than the absolute number - it
+ * answers "did that last movement take me toward it or away from it?". Shared
+ * rather than living in the view so the demo animation shows the same arrow the
+ * device would. */
+#define SPECTER_TREND_SPAN     5
+#define SPECTER_TREND_DEADBAND 3
+int field_trend(const uint8_t* history, uint8_t head, uint8_t len);
+
 /* True when this reading is at or above the full-scale point, i.e. the meter is
  * pegged and getting closer will not move it. Lets the UI say so honestly
  * instead of the user wondering why 100% stopped responding. */
