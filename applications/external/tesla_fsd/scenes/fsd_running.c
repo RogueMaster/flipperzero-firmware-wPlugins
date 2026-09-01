@@ -184,6 +184,9 @@ static int32_t fsd_running_worker(void* context) {
     state.assist_show_lane_graph = app->assist_show_lane_graph;
     state.assist_tlssc_bit38 = app->assist_tlssc_bit38;
     state.assist_telemetry_off = app->assist_telemetry_off;
+    // DAS AP/hands-on read location preset (fsd_state_init cleared cfg_* on HW
+    // select, so re-apply the chosen mapping here).
+    signal_map_apply(&state, app->signal_map);
     furi_mutex_release(app->mutex);
 
     // Listen-only mode → MCP2515 hardware listen-only register
@@ -490,6 +493,13 @@ static int32_t fsd_running_worker(void* context) {
                         send_can_frame(mcp, &frame);
                     }
                 }
+
+                // Signal Map override: when a non-Auto preset is selected, relocate
+                // the DAS AP/hands-on read to the configured byte (per-car 0x39B/0x399
+                // layouts). No-op when cfg_das_id == 0. Runs after the standard
+                // parsers so the override wins; stamps das_ctx_seen_ms for the
+                // nag killer's freshness gate on the worker clock.
+                fsd_apply_signal_config(&state, &frame, now);
 
                 if((now - last_display) >= furi_ms_to_ticks(FSD_DISPLAY_REFRESH_MS)) {
                     furi_mutex_acquire(app->mutex, FuriWaitForever);

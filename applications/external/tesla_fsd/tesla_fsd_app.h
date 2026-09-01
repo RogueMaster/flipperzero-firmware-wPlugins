@@ -16,7 +16,7 @@
 
 #define FSD_SEND_MAX_STEPS 48
 
-#define TESLA_FSD_VERSION FAP_VERSION
+#define TESLA_FSD_VERSION "2.16.1"
 
 typedef enum {
     TeslaFSDSceneMainMenu,
@@ -84,6 +84,7 @@ typedef struct {
     bool precondition; // periodic 0x082 inject for battery preheat
     OpMode op_mode; // Active / ListenOnly / Service
     uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz
+    uint8_t signal_map; // DAS AP/hands-on read location preset (see signal_map_apply)
     bool gtw_shield; // 0x7FF GTW Config Replay — replay learned-healthy frames
     bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
     bool ap_first; // 2026.14.x: delay injection until AP is engaged
@@ -123,3 +124,51 @@ typedef struct {
 TeslaFSDApp* tesla_fsd_app_alloc(void);
 void tesla_fsd_app_free(TeslaFSDApp* app);
 int32_t tesla_fsd_main(void* p);
+
+// Signal Map presets — where the nag/AP logic reads DAS_autopilotState and
+// DAS_handsOnState. Some cars carry the live state in a non-standard byte of
+// 0x39B/0x399, so let the owner relocate the read without a firmware fallback.
+// The configurable-mapping mechanism itself lives in the shared core
+// (cfg_das_id + fsd_apply_signal_config); this only picks a position.
+//   0 Auto           — cfg_das_id = 0, auto-detect (default)
+//   1 0x39B b0 (HW4) — live DAS state in byte0 low nibble (Juniper-style)
+//   2 0x39B b1 (HW4) — standard HW4 byte1 high nibble
+//   3 0x399 b0 (HW3) — HW3 / Legacy byte0 low nibble
+#define SIGNAL_MAP_COUNT 4
+
+static inline void signal_map_apply(FSDState* state, uint8_t idx) {
+    // handsOnState is byte5[5:2] low nibble on both 0x39B and 0x399.
+    state->cfg_handson_byte = 5;
+    state->cfg_handson_shift = 2;
+    state->cfg_handson_mask = 0x0F;
+    switch(idx) {
+    case 1: // 0x39B byte0 low nibble (live state on some HW4 cars)
+        state->cfg_das_id = 0x39B;
+        state->cfg_apstate_byte = 0;
+        state->cfg_apstate_shift = 0;
+        state->cfg_apstate_mask = 0x0F;
+        break;
+    case 2: // 0x39B byte1 high nibble (standard HW4)
+        state->cfg_das_id = 0x39B;
+        state->cfg_apstate_byte = 1;
+        state->cfg_apstate_shift = 4;
+        state->cfg_apstate_mask = 0x0F;
+        break;
+    case 3: // 0x399 byte0 low nibble (HW3 / Legacy)
+        state->cfg_das_id = 0x399;
+        state->cfg_apstate_byte = 0;
+        state->cfg_apstate_shift = 0;
+        state->cfg_apstate_mask = 0x0F;
+        break;
+    default: // 0 = Auto: cfg_das_id == 0 disables the override
+        state->cfg_das_id = 0;
+        state->cfg_apstate_byte = 0;
+        state->cfg_apstate_shift = 0;
+        state->cfg_apstate_mask = 0x0F;
+        state->cfg_handson_byte = 0;
+        state->cfg_handson_shift = 0;
+        state->cfg_handson_mask = 0x0F;
+        break;
+    }
+    // cfg_steer_* stay on auto (untouched) for every preset.
+}

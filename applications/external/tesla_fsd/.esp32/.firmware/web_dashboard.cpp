@@ -1056,7 +1056,7 @@ function upd(d){
   if(document.getElementById('httpLogBuf'))
     document.getElementById('httpLogBuf').textContent=((d.http_can_stream&&d.http_can_stream.buffered)||0)+' frames';
   if(document.getElementById('httpLogDrop'))
-    document.getElementById('httpLogDrop').textContent=((d.http_can_stream&&d.http_can_stream.dropped)||0)+' frames';
+    document.getElementById('httpLogDrop').textContent=((d.http_can_stream&&d.http_can_stream.dropped)||0)+' frames / rx-missed '+((d.http_can_stream&&d.http_can_stream.rx_missed)||0);
   if(document.getElementById('httpLogFiltered'))
     document.getElementById('httpLogFiltered').textContent=((d.http_can_stream&&d.http_can_stream.filtered)||0)+' frames';
 
@@ -1652,6 +1652,7 @@ static String build_json() {
     j += "\"active\":";       j += http_can_stream_active()           ? "true" : "false"; j += ',';
     j += "\"sent\":";         j += http_can_stream_frames_sent();      j += ',';
     j += "\"dropped\":";      j += http_can_stream_frames_dropped();   j += ',';
+    j += "\"rx_missed\":";    j += http_can_stream_rx_missed();        j += ',';
     j += "\"filtered\":";     j += http_can_stream_frames_filtered();  j += ',';
     j += "\"buffered\":";     j += http_can_stream_buffered_frames();  j += "},";
     j += "\"ota_partition\":"; j += ota_part;

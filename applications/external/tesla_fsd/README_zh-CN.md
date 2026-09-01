@@ -87,6 +87,7 @@
 - 悲观默认：大多数 14.x 固件用户要到自动转向在行驶中脱离时才知道自己受影响。这个警告会在他们启用任何 TX 功能之前先提醒到。
 - 可通过 **On 14.x?** 设置开关（Flipper）或横幅上的 **Dismiss** 按钮（ESP32，存在 NVS）退出。若你确定是 pre-14.x 固件就可关闭。
 - 地区注意：执法强度因市场而异。部分地区（没有 Tesla 直营的市场）似乎执法较不积极。14.x / 2026.20 的实时追踪见 [#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)。
+- **「2026.14.x / .20 / .26.x 还能解锁 FSD 吗？」** 简短答案：不行——激活 preflight 加上链外区域锁挡住了,但 nag killer / TLSSC / Summon EU / 抓包仍可用。完整说明见置顶的 [FSD-on-14.x FAQ (#168)](https://github.com/hypery11/flipper-tesla-fsd/discussions/168),frame 级证明见 [#163](https://github.com/hypery11/flipper-tesla-fsd/discussions/163)。
 
 ### 诊断（只读，不需要 FSD）
 - BMS 实时仪表板：电池组电压、电流、SoC、温度范围、**能耗（Wh/km）**
@@ -365,7 +366,7 @@ ESP32 更便宜（$14 vs $200+），有 WiFi 仪表板、NVS 保存与深度睡�
 - [ElectronicCats/flipper-MCP2515-CANBUS](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) — Flipper 用 MCP2515 驱动
 - 社区贡献者 — 本项目赖以运作的实车测试、抓包与研究：
   - **协议、nag killer 与 2026.14.x：** @jewelrylin（T-2CAN 双总线抓包、frame-content preflight 测试、X179 Service Mode 针脚图）、@DrStrangeglovebox（`0x370` 参考抓包 + HW4 双 CAN 数据 + 安全发现）、@ssw0209-sys（Mode-C 转向扭力参考 + HW4 14.x 测试）、@0xAccretion（HW4 Highland 中规 MIC DAS 布局发现，#116/#117）、@dunckencn（国行 HW3 start-after-AP 验证、steer-jerk 与 bus-off 报告）、@kristopf007（HW4 14.x 实车测试）
-  - **功能、抓包与 PR：** @JakNo（ScrollPress AP / `0x3C2`）、@vrs11（Continuous AP）、@sqladm1n（RTC 抓包日志 PR + 总线/接线排查）、@DmitroPanteliuk（全速率 `0x229` 抓包）、@se7en7777777（`0x485` / Highland / 校验和分析）、@RoyRakete（TLSSC 封禁车组合）、@mamixsystem（post-SOP10 连接器参考）、@p0sixturtle（Summon / tier-selector 线索，#139）、@dahua910（RHD 需求，#66）、@HamzaObaidat（剧院模式 `0x118` 研究，#149）、@fboulegue（EU / 新线束 Juniper 报告，#143/#109/#110）、@densen2014（ESP32 HW 选择器建议，#110）
+  - **功能、抓包与 PR：** @JakNo（ScrollPress AP / `0x3C2`）、@vrs11（Continuous AP）、@sqladm1n（RTC 抓包日志 PR + 总线/接线排查）、@DmitroPanteliuk（全速率 `0x229` 抓包）、@se7en7777777（`0x485` / Highland / 校验和分析）、@RoyRakete（TLSSC 封禁车组合）、@mamixsystem（post-SOP10 连接器参考;frame 级 14.x FSD-engage 决定性调查，#163）、@p0sixturtle（Summon / tier-selector 线索，#139）、@dahua910（RHD 需求，#66）、@HamzaObaidat（剧院模式 `0x118` 研究，#149）、@fboulegue（EU / 新线束 Juniper 报告，#143/#109/#110）、@densen2014（ESP32 HW 选择器建议 #110、TLSSC bit38 开关 PR #159、Summon 行驶中安全防护建议 #160）
   - **封禁研究、平台测试、ESP32、bug 修复：** @THER4iN、@MiniCS、@kp43h8、@gauner1986、@dmagyar、@ViPiMP、@marcobellinoroci-source、@danpadure、@bruvv、@Symness、@hkloudou、@nagotti、@patatman、@JordanzhaoD
 - `Starmixcraft/tesla-fsd-can-mod` — 原始 CanFeather FSD 研究（GitLab repo 已被移除；镜像在 [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod)）
 

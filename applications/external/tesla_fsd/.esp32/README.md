@@ -340,6 +340,45 @@ pio device monitor -b 115200
 5. REST API available at `http://192.168.4.1/api/status`
 6. Raw CAN stream endpoint: `http://192.168.4.1:82/stream`
 
+### Capture fidelity — the two drop metrics
+
+A downloaded capture is only useful if you know whether it saw every frame. The
+stream reports two independent drop counters:
+
+- **`dropped`** (stream-ring) — frames the device received but could not push to
+  the WiFi client fast enough, so they fell out of the outbound ring buffer.
+- **`rx_missed`** (controller) — frames the CAN controller itself discarded
+  because its hardware RX queue was full before firmware ever read them. This is
+  the real *silent decimation* on a busy bus and is invisible in the frame data.
+
+Both appear in `GET /api/status` under `http_can_stream` and on the dashboard;
+`rx_missed` is a per-capture delta that resets when a new stream starts.
+
+Full-rate vs. decimated:
+
+- **All-ID capture** (`/stream`, no `?ids=`) — accept-all; on a busy bus the
+  controller RX queue overflows and the capture is **decimated**. Expect a
+  rising `rx_missed`.
+- **Single-ID capture** (`/stream?ids=<one id>`) — installs a **hardware
+  acceptance filter** for that id, so the controller only queues matching
+  frames = **full-rate** for that id. `?ids=` also accepts a comma list, and
+  `?bus=can0|can1` scopes to one controller.
+
+Self-labeling captures (`?meta=1`):
+
+Add `?meta=1` (e.g. `/stream?ids=39B&meta=1`) to bracket the capture with two
+`#`-prefixed comment lines that candump/SavvyCAN importers ignore:
+
+```
+# capture ids=39B bus=all mode=single-id-hwfilter rx_missed_at_start=0
+(0.001234) can0 39B#DEADBEEF...
+# end sent=1024 dropped=0 filtered=0 rx_missed_delta=0
+```
+
+`mode` is `single-id-hwfilter` when exactly one id filter is active, otherwise
+`all-id-decimated`. Without `?meta=1` the stream body is byte-for-byte identical
+to before, so existing tooling is unaffected.
+
 ---
 
 ## Safety

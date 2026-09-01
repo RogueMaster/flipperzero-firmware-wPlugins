@@ -31,6 +31,9 @@ static uint32_t   g_filter_ids[HTTP_CAN_STREAM_MAX_FILTER_IDS];
 static uint8_t    g_filter_count = 0;
 static bool       g_bus_filter_enabled = false;
 static CanBusId   g_bus_filter = CAN_BUS_PRIMARY;
+static bool       g_meta_enabled = false;
+static uint32_t   g_rx_missed_now = 0;   // latest fed-in controller total
+static uint32_t   g_rx_missed_base = 0;  // snapshot at capture start
 
 static uint16_t ring_next(uint16_t index) {
     return (uint16_t)((index + 1u) % HTTP_CAN_STREAM_RING_SIZE);
@@ -62,6 +65,7 @@ static void stream_filter_reset() {
     g_filter_count = 0;
     g_bus_filter_enabled = false;
     g_bus_filter = CAN_BUS_PRIMARY;
+    g_meta_enabled = false;
 }
 
 static bool filter_matches(uint32_t id) {
@@ -185,6 +189,9 @@ static bool configure_filter_from_path(char *path) {
             if (!parse_filter(param + 4)) return false;
         } else if (strncmp(param, "bus=", 4) == 0) {
             if (!parse_bus_filter(param + 4)) return false;
+        } else if (strncmp(param, "meta=", 5) == 0) {
+            const char *v = param + 5;
+            g_meta_enabled = (strcmp(v, "1") == 0 || strcmp(v, "true") == 0);
         }
         param = next;
     }
@@ -192,6 +199,16 @@ static bool configure_filter_from_path(char *path) {
 }
 
 static void close_stream() {
+    // Opt-in (?meta=1) self-labeling footer — best-effort, before the socket is
+    // torn down and only while the client is still attached. #-prefixed so
+    // importers skip it. Ignore any write failure.
+    if (g_active && g_meta_enabled && g_client && g_client.connected()) {
+        g_client.printf("# end sent=%lu dropped=%lu filtered=%lu rx_missed_delta=%lu\r\n",
+                        (unsigned long)g_sent,
+                        (unsigned long)g_dropped,
+                        (unsigned long)g_filtered,
+                        (unsigned long)http_can_stream_rx_missed());
+    }
     if (g_client) {
         g_client.flush();
         g_client.stop();
@@ -233,10 +250,31 @@ static void begin_stream(WiFiClient &client) {
     g_client.print("X-Content-Type-Options: nosniff\r\n");
     g_client.print("Connection: close\r\n\r\n");
     g_active = true;
-    Serial.printf("[HTTP-CAN] Stream started on :%u/stream filter_ids=%u bus=%s\n",
+    g_rx_missed_base = g_rx_missed_now;
+
+    // Opt-in (?meta=1) self-labeling header. Emitted as a #-prefixed comment so
+    // candump/SavvyCAN importers skip it; the default path stays byte-identical.
+    if (g_meta_enabled) {
+        g_client.print("# capture ids=");
+        if (g_filter_count == 0) {
+            g_client.print("all");
+        } else {
+            for (uint8_t i = 0; i < g_filter_count; i++) {
+                if (i) g_client.print(",");
+                g_client.printf("%lX", (unsigned long)g_filter_ids[i]);
+            }
+        }
+        g_client.printf(" bus=%s mode=%s rx_missed_at_start=%lu\r\n",
+                        g_bus_filter_enabled ? can_bus_name(g_bus_filter) : "all",
+                        g_filter_count == 1 ? "single-id-hwfilter" : "all-id-decimated",
+                        (unsigned long)g_rx_missed_now);
+    }
+
+    Serial.printf("[HTTP-CAN] Stream started on :%u/stream filter_ids=%u bus=%s meta=%d\n",
                   HTTP_CAN_STREAM_PORT,
                   g_filter_count,
-                  g_bus_filter_enabled ? can_bus_name(g_bus_filter) : "all");
+                  g_bus_filter_enabled ? can_bus_name(g_bus_filter) : "all",
+                  g_meta_enabled ? 1 : 0);
 }
 
 static bool parse_request_path(WiFiClient &client, char *path, size_t path_len) {
@@ -286,12 +324,14 @@ static void accept_client() {
     memcpy(old_filter_ids, g_filter_ids, sizeof(old_filter_ids));
     bool old_bus_filter_enabled = g_bus_filter_enabled;
     CanBusId old_bus_filter = g_bus_filter;
+    bool old_meta_enabled = g_meta_enabled;
 
     if (!configure_filter_from_path(path)) {
         g_filter_count = old_filter_count;
         memcpy(g_filter_ids, old_filter_ids, sizeof(g_filter_ids));
         g_bus_filter_enabled = old_bus_filter_enabled;
         g_bus_filter = old_bus_filter;
+        g_meta_enabled = old_meta_enabled;
         send_response(incoming, 400, "Bad Request", "Invalid stream filter\n");
         return;
     }
@@ -301,6 +341,7 @@ static void accept_client() {
         memcpy(g_filter_ids, old_filter_ids, sizeof(g_filter_ids));
         g_bus_filter_enabled = old_bus_filter_enabled;
         g_bus_filter = old_bus_filter;
+        g_meta_enabled = old_meta_enabled;
         send_response(incoming, 404, "Not Found", "Not Found\n");
         return;
     }
@@ -455,4 +496,18 @@ uint32_t http_can_stream_frames_filtered() {
 
 uint16_t http_can_stream_buffered_frames() {
     return ring_count();
+}
+
+void http_can_stream_note_rx_missed(uint32_t total_rx_missed) {
+    g_rx_missed_now = total_rx_missed;
+}
+
+uint32_t http_can_stream_rx_missed(void) {
+    if (g_rx_missed_now < g_rx_missed_base) {
+        // Counter reset (e.g. driver reinstall after bus-off) — rebase and
+        // report 0 rather than underflowing the unsigned subtraction.
+        g_rx_missed_base = g_rx_missed_now;
+        return 0;
+    }
+    return g_rx_missed_now - g_rx_missed_base;
 }

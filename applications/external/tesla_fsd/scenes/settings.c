@@ -166,6 +166,18 @@ static void telemetry_off_changed(VariableItem* item) {
     app->assist_telemetry_off = (idx == 1);
 }
 
+// DAS AP/hands-on read location. Order matches signal_map_apply() in the header.
+static const char* const signal_map_text[] =
+    {"Auto", "0x39B b0 (HW4)", "0x39B b1 (HW4)", "0x399 b0 (HW3)"};
+static void signal_map_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, signal_map_text[idx]);
+    app->signal_map = idx;
+    // Reflect the choice in the live state so a re-entry shows the right value.
+    signal_map_apply(&app->fsd_state, idx);
+}
+
 static const char* const clock_text[] = {"16 MHz", "8 MHz", "12 MHz"};
 static void clock_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
@@ -214,6 +226,12 @@ void tesla_fsd_scene_settings_on_enter(void* context) {
     ADD_TOGGLE("Instant Engage (exp.)", ap_first_edge_changed, ap_first_edge)
     ADD_TOGGLE("Minimal Inject (exp.)", ap_first_minimal_changed, ap_first_minimal)
     ADD_TOGGLE("Soft Engage", soft_engage_changed, soft_engage)
+
+    // DAS AP/hands-on read location (per-car 0x39B/0x399 variants)
+    item = variable_item_list_add(list, "Signal Map", SIGNAL_MAP_COUNT, signal_map_changed, app);
+    variable_item_set_current_value_index(item, app->signal_map);
+    variable_item_set_current_value_text(item, signal_map_text[app->signal_map]);
+
     ADD_TOGGLE("Nag Burst (14.x)", nag_burst_changed, nag_burst)
     ADD_TOGGLE("On 14.x?", warning_14x_changed, firmware_14x_warning)
     ADD_TOGGLE("GTW Cfg Replay", shield_changed, gtw_shield)

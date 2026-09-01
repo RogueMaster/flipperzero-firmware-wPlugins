@@ -40,6 +40,11 @@ public:
     /** Cumulative count of frames received from the bus. */
     virtual uint32_t rxCount() = 0;
 
+    /** Cumulative count of frames the CONTROLLER dropped because its RX queue
+     *  overflowed (silent decimation of a busy bus). TWAI: twai_status_info_t
+     *  .rx_missed_count. Drivers without the metric return 0. */
+    virtual uint32_t rxMissedCount() { return 0; }
+
     /** Switch between listen-only and normal TX mode at runtime.
      *  Implementations must reinitialise the hardware as needed. */
     virtual void setListenOnly(bool enable) = 0;

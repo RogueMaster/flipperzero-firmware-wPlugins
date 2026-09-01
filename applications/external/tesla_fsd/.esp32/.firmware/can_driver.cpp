@@ -159,6 +159,12 @@ public:
 
     uint32_t rxCount() override { return rx_count_; }
 
+    uint32_t rxMissedCount() override {
+        twai_status_info_t info;
+        if (twai_get_status_info(&info) != ESP_OK) return 0;
+        return info.rx_missed_count;
+    }
+
     void setListenOnly(bool enable) override {
 #ifdef SNIFFER_ONLY
         (void)enable;   // sniffer build is permanently Listen-Only; ignore mode switches
@@ -346,6 +352,9 @@ public:
     uint32_t txCount() override { return tx_count_; }
 
     uint32_t rxCount() override { return rx_count_; }
+
+    // rxMissedCount(): use the CanDriver default (0). The MCP2515 overflow flag
+    // would need an extra SPI read on the hot path, so it is not surfaced here.
 
     void setListenOnly(bool enable) override {
         if (!installed_ || listen_only_ == enable) return;

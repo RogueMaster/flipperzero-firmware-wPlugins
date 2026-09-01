@@ -1662,6 +1662,7 @@ void loop() {
     serial_command_tick();
 
     // Drain all available CAN frames in one shot
+    uint32_t rx_missed_total = 0;
     for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
         if (!g_can_ok[i] || !g_can[i]) continue;
         CanBusId bus = bus_id_from_index(i);
@@ -1673,7 +1674,12 @@ void loop() {
         g_can[i]->serviceHealth();
         // Bus-off just fired → arm a black-box capture via the event-core (#124).
         if (g_can[i]->busOffEvent()) blackbox_busoff(now);
+        // Controller-level silent-decimation counter for capture-fidelity labels.
+        rx_missed_total += g_can[i]->rxMissedCount();
     }
+    // Feed the summed controller RX-missed total to the web stream so a capture
+    // can self-report how many frames the hardware dropped while it ran.
+    http_can_stream_note_rx_missed(rx_missed_total);
 
     // ── Periodic error counter refresh (~every 250 ms) ────────────────────────
     static uint32_t last_err_ms = 0;
