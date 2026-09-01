@@ -33,10 +33,18 @@ typedef struct {
 } DndAdventureProfileProjection;
 
 bool dnd_profile_projection_load_inventory(
-    Storage* storage, uint32_t profile, DndInventoryProfileProjection* projection);
+    Storage* storage,
+    uint32_t profile,
+    DndInventoryProfileProjection* projection);
 bool dnd_profile_projection_save_inventory_owned(
-    Storage* storage, uint32_t profile, const DndInventoryProfileProjection* projection);
+    Storage* storage,
+    uint32_t profile,
+    const DndInventoryProfileProjection* projection);
 bool dnd_profile_projection_load_spellbook(
-    Storage* storage, uint32_t profile, DndSpellbookProfileProjection* projection);
+    Storage* storage,
+    uint32_t profile,
+    DndSpellbookProfileProjection* projection);
 bool dnd_profile_projection_load_adventure(
-    Storage* storage, uint32_t profile, DndAdventureProfileProjection* projection);
+    Storage* storage,
+    uint32_t profile,
+    DndAdventureProfileProjection* projection);

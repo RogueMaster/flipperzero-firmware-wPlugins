@@ -24,7 +24,8 @@ bool dndadventure_item_reward_grant_reward(
     bool result = false;
     uint8_t total = 0U;
     bool first_page = true;
-    for(uint8_t start = 0U; first_page || start < total; start += POCKET_D20_COLLECTION_CACHE_SIZE) {
+    for(uint8_t start = 0U; first_page || start < total;
+        start += POCKET_D20_COLLECTION_CACHE_SIZE) {
         first_page = false;
         if(!dnd_storage_load_items_window(storage, profile, start, character, &total)) goto done;
         for(uint8_t local = 0U; local < character->item_count; ++local) {

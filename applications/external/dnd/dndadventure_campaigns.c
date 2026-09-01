@@ -6,17 +6,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CAMPAIGN_BUNDLED_INDEX     APP_ASSETS_PATH("campaigns/index.txt")
-#define CAMPAIGN_USER_INDEX        APP_DATA_PATH("campaigns/custom_index.txt")
-#define CAMPAIGN_ENABLED_INDEX     APP_DATA_PATH("campaigns/enabled_index.txt")
-#define CAMPAIGN_BUNDLED_SCENES    APP_ASSETS_PATH("campaigns/%s/%s")
-#define CAMPAIGN_USER_SCENES       APP_DATA_PATH("campaigns/custom_%s/%s")
-#define CAMPAIGN_PROGRESS_DIR      APP_DATA_PATH("campaigns")
-#define CAMPAIGN_LINE_LEN          512U
-#define CAMPAIGN_READ_BUFFER       256U
-#define CAMPAIGN_MAX_SCENES        64U
-#define CAMPAIGN_HINT_STRIDE       8U
-#define CAMPAIGN_HINT_MAX          8U
+#define CAMPAIGN_BUNDLED_INDEX  APP_ASSETS_PATH("campaigns/index.txt")
+#define CAMPAIGN_USER_INDEX     APP_DATA_PATH("campaigns/custom_index.txt")
+#define CAMPAIGN_ENABLED_INDEX  APP_DATA_PATH("campaigns/enabled_index.txt")
+#define CAMPAIGN_BUNDLED_SCENES APP_ASSETS_PATH("campaigns/%s/%s")
+#define CAMPAIGN_USER_SCENES    APP_DATA_PATH("campaigns/custom_%s/%s")
+#define CAMPAIGN_PROGRESS_DIR   APP_DATA_PATH("campaigns")
+#define CAMPAIGN_LINE_LEN       512U
+#define CAMPAIGN_READ_BUFFER    256U
+#define CAMPAIGN_MAX_SCENES     64U
+#define CAMPAIGN_HINT_STRIDE    8U
+#define CAMPAIGN_HINT_MAX       8U
 
 typedef struct {
     File* file;
@@ -53,14 +53,16 @@ static void dndadventure_campaigns_copy(char* out, size_t size, const char* valu
 }
 
 static bool dndadventure_campaigns_parse_u32_span(
-    const char* begin, const char* end, uint32_t maximum, uint32_t* output) {
+    const char* begin,
+    const char* end,
+    uint32_t maximum,
+    uint32_t* output) {
     if(!begin || !end || !output || begin >= end) return false;
     uint32_t value = 0U;
     for(const char* cursor = begin; cursor < end; ++cursor) {
         if(*cursor < '0' || *cursor > '9') return false;
         uint32_t digit = (uint32_t)(*cursor - '0');
-        if(value > maximum / 10U ||
-           (value == maximum / 10U && digit > maximum % 10U))
+        if(value > maximum / 10U || (value == maximum / 10U && digit > maximum % 10U))
             return false;
         value = value * 10U + digit;
     }
@@ -68,11 +70,14 @@ static bool dndadventure_campaigns_parse_u32_span(
     return true;
 }
 
-static bool dndadventure_campaigns_parse_u32(const char* text, uint32_t maximum, uint32_t* output) {
-    return text && dndadventure_campaigns_parse_u32_span(text, text + strlen(text), maximum, output);
+static bool
+    dndadventure_campaigns_parse_u32(const char* text, uint32_t maximum, uint32_t* output) {
+    return text &&
+           dndadventure_campaigns_parse_u32_span(text, text + strlen(text), maximum, output);
 }
 
-static void dndadventure_campaigns_reader_init(CampaignReader* reader, File* file, uint32_t offset) {
+static void
+    dndadventure_campaigns_reader_init(CampaignReader* reader, File* file, uint32_t offset) {
     memset(reader, 0, sizeof(*reader));
     reader->file = file;
     reader->offset = offset;
@@ -90,8 +95,11 @@ static bool dndadventure_campaigns_reader_next(CampaignReader* reader, char* val
     return true;
 }
 
-static bool
-    dndadventure_campaigns_read_line(CampaignReader* reader, char* line, size_t size, uint32_t* line_offset) {
+static bool dndadventure_campaigns_read_line(
+    CampaignReader* reader,
+    char* line,
+    size_t size,
+    uint32_t* line_offset) {
     if(line_offset) *line_offset = reader->offset;
     size_t position = 0U;
     char value = '\0';
@@ -153,8 +161,7 @@ void dndadventure_campaigns_cache_reset(void) {
 
 static void dndadventure_campaigns_path_cache_record(CampaignPathCache* cache, uint32_t offset) {
     if(!cache || cache->count == UINT16_MAX) return;
-    if((cache->count % CAMPAIGN_HINT_STRIDE) == 0U &&
-       cache->hint_count < CAMPAIGN_HINT_MAX)
+    if((cache->count % CAMPAIGN_HINT_STRIDE) == 0U && cache->hint_count < CAMPAIGN_HINT_MAX)
         cache->hints[cache->hint_count++] = offset;
     ++cache->count;
 }
@@ -193,13 +200,16 @@ static bool dndadventure_campaigns_cache_ensure(Storage* storage) {
         campaign_cache.owner = storage;
     }
     if(!campaign_cache.bundled.valid &&
-       !dndadventure_campaigns_path_cache_build(storage, CAMPAIGN_BUNDLED_INDEX, true, &campaign_cache.bundled))
+       !dndadventure_campaigns_path_cache_build(
+           storage, CAMPAIGN_BUNDLED_INDEX, true, &campaign_cache.bundled))
         return false;
     if(!campaign_cache.custom.valid &&
-       !dndadventure_campaigns_path_cache_build(storage, CAMPAIGN_USER_INDEX, false, &campaign_cache.custom))
+       !dndadventure_campaigns_path_cache_build(
+           storage, CAMPAIGN_USER_INDEX, false, &campaign_cache.custom))
         return false;
     if(!campaign_cache.enabled.valid &&
-       !dndadventure_campaigns_path_cache_build(storage, CAMPAIGN_ENABLED_INDEX, false, &campaign_cache.enabled))
+       !dndadventure_campaigns_path_cache_build(
+           storage, CAMPAIGN_ENABLED_INDEX, false, &campaign_cache.enabled))
         return false;
     return true;
 }
@@ -279,7 +289,8 @@ static bool dndadventure_campaigns_find_path(
         char line[CAMPAIGN_LINE_LEN];
         while(dndadventure_campaigns_read_line(&reader, line, sizeof(line), NULL)) {
             PocketCampaignSummary campaign;
-            if(!dndadventure_campaigns_parse(line, bundled, &campaign) || strcmp(campaign.id, id)) continue;
+            if(!dndadventure_campaigns_parse(line, bundled, &campaign) || strcmp(campaign.id, id))
+                continue;
             *output = campaign;
             found = true;
             break;
@@ -303,12 +314,14 @@ bool dndadventure_campaigns_scene_path(
     const PocketCampaignSummary* campaign,
     char* output,
     size_t size) {
-    if(!storage || !campaign || !output || size == 0U || !dndadventure_campaigns_id_safe(campaign->id))
+    if(!storage || !campaign || !output || size == 0U ||
+       !dndadventure_campaigns_id_safe(campaign->id))
         return false;
     int length = snprintf(output, size, CAMPAIGN_USER_SCENES, campaign->id, campaign->scenes_file);
     if(length > 0 && (size_t)length < size && storage_file_exists(storage, output)) return true;
     if(campaign->bundled) {
-        length = snprintf(output, size, CAMPAIGN_BUNDLED_SCENES, campaign->id, campaign->scenes_file);
+        length =
+            snprintf(output, size, CAMPAIGN_BUNDLED_SCENES, campaign->id, campaign->scenes_file);
         return length > 0 && (size_t)length < size && storage_file_exists(storage, output);
     }
     return false;
@@ -320,7 +333,8 @@ static bool dndadventure_campaigns_progress_path(
     uint32_t profile_id,
     const char* campaign_id,
     const char* suffix) {
-    if(!output || size == 0U || !dndadventure_campaigns_id_safe(campaign_id) || !suffix || !suffix[0])
+    if(!output || size == 0U || !dndadventure_campaigns_id_safe(campaign_id) || !suffix ||
+       !suffix[0])
         return false;
     int length = snprintf(
         output,
@@ -338,8 +352,8 @@ static bool dndadventure_campaigns_id_safe(const char* id) {
     if(length >= POCKET_CAMPAIGN_ID_LEN) return false;
     for(size_t i = 0U; i < length; ++i) {
         char ch = id[i];
-        if(!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
-             (ch >= '0' && ch <= '9') || ch == '_' || ch == '-'))
+        if(!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
+             ch == '_' || ch == '-'))
             return false;
     }
     return true;
@@ -457,9 +471,11 @@ bool dndadventure_campaigns_progress_load(
     memset(progress, 0, sizeof(*progress));
     dndadventure_campaigns_copy(progress->campaign, sizeof(progress->campaign), campaign->id);
     dndadventure_campaigns_copy(progress->scene, sizeof(progress->scene), campaign->entry_scene);
-    dndadventure_campaigns_copy(progress->checkpoint, sizeof(progress->checkpoint), campaign->entry_scene);
+    dndadventure_campaigns_copy(
+        progress->checkpoint, sizeof(progress->checkpoint), campaign->entry_scene);
     char path[POCKET_D20_PATH_LEN];
-    if(!dndadventure_campaigns_progress_path(path, sizeof(path), profile_id, campaign->id, "txt")) return false;
+    if(!dndadventure_campaigns_progress_path(path, sizeof(path), profile_id, campaign->id, "txt"))
+        return false;
     File* file = storage_file_alloc(storage);
     if(!file) return false;
     if(!storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
@@ -476,17 +492,16 @@ bool dndadventure_campaigns_progress_load(
         if(!strcmp(line, "Scene"))
             dndadventure_campaigns_copy(progress->scene, sizeof(progress->scene), value);
         else if(!strcmp(line, "Checkpoint"))
-            dndadventure_campaigns_copy(
-                progress->checkpoint, sizeof(progress->checkpoint), value);
+            dndadventure_campaigns_copy(progress->checkpoint, sizeof(progress->checkpoint), value);
         else if(!strcmp(line, "QuestFlags")) {
             uint32_t parsed = 0U;
-            if(dndadventure_campaigns_parse_u32(value, UINT32_MAX, &parsed)) progress->quest_flags = parsed;
-        }
-        else if(!strcmp(line, "Achievements")) {
+            if(dndadventure_campaigns_parse_u32(value, UINT32_MAX, &parsed))
+                progress->quest_flags = parsed;
+        } else if(!strcmp(line, "Achievements")) {
             uint32_t parsed = 0U;
-            if(dndadventure_campaigns_parse_u32(value, UINT32_MAX, &parsed)) progress->achievements = parsed;
-        }
-        else if(!strcmp(line, "Flags")) {
+            if(dndadventure_campaigns_parse_u32(value, UINT32_MAX, &parsed))
+                progress->achievements = parsed;
+        } else if(!strcmp(line, "Flags")) {
             /* Older Adventure progress may have packed these two values. Keep this
                one compatibility read while all new writes use independent fields. */
             const char* comma = strchr(value, ',');
@@ -505,16 +520,20 @@ bool dndadventure_campaigns_progress_load(
     return io_ok;
 }
 
-static bool
-    dndadventure_campaigns_scene_present(char (*ids)[POCKET_D20_SHORT_LEN], uint8_t count, const char* id) {
+static bool dndadventure_campaigns_scene_present(
+    char (*ids)[POCKET_D20_SHORT_LEN],
+    uint8_t count,
+    const char* id) {
     if(!id[0] || !strcmp(id, "-")) return true;
     for(uint8_t i = 0U; i < count; ++i)
         if(!strcmp(ids[i], id)) return true;
     return false;
 }
 
-static void
-    dndadventure_campaigns_note_problem(PocketCampaignDiagnostics* output, const char* id, const char* problem) {
+static void dndadventure_campaigns_note_problem(
+    PocketCampaignDiagnostics* output,
+    const char* id,
+    const char* problem) {
     if(output->problem_id[0]) return;
     dndadventure_campaigns_copy(output->problem_id, sizeof(output->problem_id), id);
     dndadventure_campaigns_copy(output->problem, sizeof(output->problem), problem);
@@ -560,7 +579,8 @@ static void dndadventure_campaigns_validate_scenes(
                 ++output->duplicate_scene_ids;
                 dndadventure_campaigns_note_problem(output, campaign->id, "Duplicate scene ID");
             } else if(scene_count < CAMPAIGN_MAX_SCENES) {
-                dndadventure_campaigns_copy(scene_ids[scene_count++], POCKET_D20_SHORT_LEN, fields[1]);
+                dndadventure_campaigns_copy(
+                    scene_ids[scene_count++], POCKET_D20_SHORT_LEN, fields[1]);
             }
         }
     }
@@ -635,13 +655,11 @@ static bool dndadventure_campaigns_id_seen_before(
     /* Diagnostics is an explicit maintenance action, so prefer bounded heap over
        retaining one campaign ID per manifest. Re-scan earlier records instead.
        Rank order is bundled -> enabled -> user. */
-    if(path_rank > 0U &&
-       dndadventure_campaigns_path_has_id_before(
-           storage, CAMPAIGN_BUNDLED_INDEX, true, id, UINT16_MAX))
+    if(path_rank > 0U && dndadventure_campaigns_path_has_id_before(
+                             storage, CAMPAIGN_BUNDLED_INDEX, true, id, UINT16_MAX))
         return true;
-    if(path_rank > 1U &&
-       dndadventure_campaigns_path_has_id_before(
-           storage, CAMPAIGN_ENABLED_INDEX, false, id, UINT16_MAX))
+    if(path_rank > 1U && dndadventure_campaigns_path_has_id_before(
+                             storage, CAMPAIGN_ENABLED_INDEX, false, id, UINT16_MAX))
         return true;
     return dndadventure_campaigns_path_has_id_before(
         storage, current_path, current_bundled, id, prior_records);
@@ -699,10 +717,7 @@ void dndadventure_campaigns_diagnose(Storage* storage, PocketCampaignDiagnostics
         dndadventure_campaigns_note_problem(output, "diagnostics", "Storage unavailable");
         return;
     }
-    dndadventure_campaigns_diagnose_path(
-        storage, CAMPAIGN_BUNDLED_INDEX, true, 0U, output);
-    dndadventure_campaigns_diagnose_path(
-        storage, CAMPAIGN_ENABLED_INDEX, false, 1U, output);
-    dndadventure_campaigns_diagnose_path(
-        storage, CAMPAIGN_USER_INDEX, false, 2U, output);
+    dndadventure_campaigns_diagnose_path(storage, CAMPAIGN_BUNDLED_INDEX, true, 0U, output);
+    dndadventure_campaigns_diagnose_path(storage, CAMPAIGN_ENABLED_INDEX, false, 1U, output);
+    dndadventure_campaigns_diagnose_path(storage, CAMPAIGN_USER_INDEX, false, 2U, output);
 }
