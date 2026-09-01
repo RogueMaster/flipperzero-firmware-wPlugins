@@ -5,6 +5,7 @@
 #include <gui/modules/text_input.h>
 
 #include "zeromesh_notify.h"
+#include "zeromesh_rtttl.h"
 #include "zeromesh_uart.h"
 #include "zeromesh_protocol.h"
 #include "zeromesh_history.h"
@@ -556,7 +557,7 @@ static void render_settings(Canvas* canvas, ZeroMeshApp* app) {
             break;
         case SettingRingtone:
             label = "Ringtone";
-            snprintf(val_buf, sizeof(val_buf), "%s", ringtone_names[app->notify_ringtone]);
+            ringtone_label(app, app->notify_ringtone, val_buf, sizeof(val_buf));
             break;
         case SettingScrollSpeed:
             label = "Scroll Speed";
@@ -664,12 +665,13 @@ static void setting_change(ZeroMeshApp* app, int direction) {
         app->notify_led = !app->notify_led;
         break;
     case SettingRingtone: {
+        int total = (int)ringtone_total(app);
         int r = (int)app->notify_ringtone + direction;
-        if(r < 0) r = RINGTONE_COUNT - 1;
-        if(r >= RINGTONE_COUNT) r = 0;
-        app->notify_ringtone = (RingtoneType)r;
+        if(r < 0) r = total - 1;
+        if(r >= total) r = 0;
+        app->notify_ringtone = (uint16_t)r;
         if(app->notify_ringtone != RingtoneNone) {
-            play_ringtone(app);
+            app->pending_action = PendingPlayTone;
         }
         break;
     }

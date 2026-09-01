@@ -1,42 +1,55 @@
 # ZeroMesh RTTTL Ringtone Files
 
-These RTTTL files correspond to the built-in ringtones in ZeroMesh.
+These are the built-in ringtones written out in RTTTL, plus the format notes
+you need to write your own.
 
-## Usage
+## Using your own
 
-These files are for reference and testing. All ringtones are built directly into the ZeroMesh firmware, so you don't need to copy these files to your Flipper Zero.
+ZeroMesh 3.1 and newer reads `.rtttl` files from the SD card. Put them in:
 
-## Testing RTTTL Files
+```
+/ext/apps_data/zeromesh/ringtones/
+```
 
-You can test these files using:
-- Online RTTTL players: https://adamonsoon.github.io/rtttl-play/
-- Arduino RTTTL libraries
-- Other RTTTL-compatible players
+They appear in Settings after the built-in tones, listed by filename without
+the extension. Up to 8 are picked up.
 
-## File Format
+The setup script will copy one across for you:
 
-RTTTL format: `name:settings:notes`
+```
+python tools/zeromesh_setup.py --ringtone mytone.rtttl
+```
+
+Or compose one in the browser at https://terminalbay.com/?m=ringtone and
+download it.
+
+The files in this directory are the built-ins. You do not need to copy them,
+they are already in the app, but they are useful as starting points.
+
+## Format
+
+`name:settings:notes`
 
 Settings:
-- d = default duration (1,2,4,8,16,32)
-- o = default octave (4-7)
+- d = default note length (1, 2, 4, 8, 16, 32)
+- o = default octave (3 to 8)
 - b = tempo in BPM
 
-Notes:
-- Format: duration+note+octave
-- p = pause/rest
-- # = sharp
+Notes, comma separated:
+- `[length][note][#][octave][.]`
+- note is a to g, or p for a rest
+- `#` makes it sharp, a trailing `.` makes it half again as long
+- length and octave both fall back to the defaults
 
-Example: `8c6` = eighth note, C, octave 6
+`8c6` is an eighth note, C, octave 6.
 
-## Creating Custom Ringtones
+Example: `Custom:d=8,o=5,b=160:g#,p,c6`
 
-1. Compose your melody in RTTTL format
-2. Keep it under 2 seconds for notifications
-3. Test with an online player
-4. Add the code to zeromesh_notify.c
-5. Update zeromesh_serial.h enum
-6. Update ringtone_names[] array
-7. Recompile firmware
+## Limits
 
-All ringtones should use frequencies between 300Hz - 1200Hz for best Flipper Zero speaker performance.
+A tone stops after 12 seconds or 192 notes, whichever comes first. Keep
+notification tones under about two seconds.
+
+The Flipper speaker is a buzzer, so it plays one note at a time. Short and
+distinctive beats long and musical. Frequencies between 300 Hz and 1200 Hz
+carry best.
