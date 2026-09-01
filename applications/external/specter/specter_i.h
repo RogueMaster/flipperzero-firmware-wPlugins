@@ -25,7 +25,7 @@
 #include "views/watch_view.h"
 #include "scenes/specter_scene.h"
 
-#define SPECTER_VERSION "2.7"
+#define SPECTER_VERSION "2.8"
 
 /* How long the noise-floor calibration listens for, in milliseconds. */
 #define SPECTER_CALIBRATE_MS 3000u
@@ -93,6 +93,10 @@ void specter_notify_wake(SpecterApp* app); // pull the backlight on (watch mode)
  * Flipper does not glow while you are the one doing the looking. */
 void specter_stealth_enter(SpecterApp* app);
 void specter_stealth_exit(SpecterApp* app);
+
+/* Logbook filtering (defined in specter_scene_logfilter.c). */
+const char* specter_log_filter_type(uint32_t index); // NULL = show everything
+const char* specter_log_filter_label(uint32_t index);
 
 /* Apply the current sensitivity setting to the detector. */
 void specter_apply_threshold(SpecterApp* app);

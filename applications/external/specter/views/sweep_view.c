@@ -44,47 +44,12 @@ typedef struct {
     char flash_msg[12];
 } SweepModel;
 
-/* Reads against the scaled meter (field_scale.h), so the whole vocabulary is
- * actually reachable - on raw duty a polling reader could never exceed ~30 and
- * the top two words were dead. MAX means the meter is pegged: you are as close
- * as this measurement can tell you, and moving nearer will not change it. */
-static const char* proximity_word(uint8_t s, bool saturated) {
-    if(saturated) return "MAX";
-    if(s >= 70) return "STRONG";
-    if(s >= 45) return "CLOSE";
-    if(s >= 20) return "NEAR";
-    return "FAINT";
-}
-
 /* value 0..100 -> point on the top semicircle (0% = left, 50% = up, 100% = right) */
 static void gauge_point(uint8_t value, float radius, int* x, int* y) {
     if(value > 100) value = 100;
     float a = (float)M_PI * (1.0f - (float)value / 100.0f);
     *x = PCX + (int)(cosf(a) * radius);
     *y = PCY - (int)(sinf(a) * radius);
-}
-
-/* Warmer or colder? Compare the newest few readings with the ones just before
- * them. When you are hunting by hand this is the thing you actually want to
- * know - the absolute number matters far less than whether the last half second
- * of movement took you toward the source or away from it. */
-#define TREND_SPAN     5
-#define TREND_DEADBAND 3
-
-static int sweep_trend(const uint8_t* hist, uint8_t head) {
-    int recent = 0, older = 0;
-    for(int k = 0; k < TREND_SPAN; k++) {
-        int i = (head - k + 2 * (int)SPECTER_HISTORY_LEN) % (int)SPECTER_HISTORY_LEN;
-        recent += hist[i];
-    }
-    for(int k = TREND_SPAN; k < 2 * TREND_SPAN; k++) {
-        int i = (head - k + 2 * (int)SPECTER_HISTORY_LEN) % (int)SPECTER_HISTORY_LEN;
-        older += hist[i];
-    }
-    int delta = (recent - older) / TREND_SPAN;
-    if(delta >= TREND_DEADBAND) return 1;
-    if(delta <= -TREND_DEADBAND) return -1;
-    return 0;
 }
 
 /* Drawn from explicit lines rather than a glyph so the shape is identical on
@@ -198,7 +163,7 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
 
     /* Warmer/colder arrow, tucked beside the FIELD label. */
     if(m->armed && !m->calibrating) {
-        draw_trend(canvas, 120, 14, sweep_trend(m->history, m->history_head));
+        draw_trend(canvas, 120, 14, field_trend(m->history, m->history_head, SPECTER_HISTORY_LEN));
     }
 
     /* The big number's glyphs are ~19px tall and hang down to their baseline, so
@@ -242,7 +207,12 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
          * these strings. */
         canvas_draw_str(canvas, 9, 61, "ACTIVE READER");
         canvas_draw_str_aligned(
-            canvas, 125, 61, AlignRight, AlignBottom, proximity_word(m->strength, m->saturated));
+            canvas,
+            125,
+            61,
+            AlignRight,
+            AlignBottom,
+            field_proximity_word(m->strength, m->saturated));
         canvas_set_color(canvas, ColorBlack);
         /* alarm frame */
         canvas_draw_frame(canvas, 0, 0, 128, 64);

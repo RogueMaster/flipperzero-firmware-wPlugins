@@ -1,63 +1,91 @@
 #!/usr/bin/env python3
 """Render the animated demo GIF for the README.
 
-Reuses the drawing primitives from tools_gen_mockups so the animation is built
-from the same layout constants as the real views - if a screen is wrong here it
-is wrong on the device too.
+Every value on screen comes from the app's own C, not from numbers chosen to
+look good: tools_gif_data.c links the real helpers - the same smoother, the same
+presence latch, the same meter scaling, the same proximity vocabulary, the same
+trend rule, the same classifier and survey verdict - and prints what the device
+would display for a plausible physical trajectory (walk up to a terminal, rest
+on it, walk away).
 
-The sequence tells the actual story of using the app: sweeping a quiet room,
-closing in on something, locking onto it, fingerprinting what it is, then a
-survey verdict. Roughly ten seconds, then it loops.
+The first version of this animation was drawn by hand and was quietly
+impossible: it showed a field of 81% while still claiming to be SCANNING with
+zero contacts, when in reality anything over the noise floor latches presence
+and flips the screen to the alarm strip straight away.
+
+Drawing comes from tools_gen_mockups, which carries the views' own layout
+constants. So the GIF is 1:1 with the app in both what it shows and how.
 
     python3 tools_gen_gif.py
 """
 import os
+import subprocess
+import tempfile
+
 import tools_gen_mockups as m
 
-OUT = os.path.join(os.path.dirname(__file__), "images")
-FRAME_MS = 100  # matches the app's own 100 ms UI tick
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(HERE, "images")
+FRAME_MS = 100  # the app's own UI tick
+SENS = "Custom"  # what the sweep strip shows after a calibration
 
 
-def sweep_frame(
-    strength,
-    peak,
-    contacts,
-    present,
-    state,
-    history,
-    anim,
-    sens="Custom",
-    saturated=False,
-    trend=None,
-):
+def engine_frames():
+    """Compile and run the real logic, and parse what it says to display."""
+    src = os.path.join(HERE, "tools_gif_data.c")
+    helpers = [
+        os.path.join(HERE, "helpers", f)
+        for f in ("field_scale.c", "emitter_classify.c", "survey_verdict.c")
+    ]
+    with tempfile.TemporaryDirectory() as td:
+        exe = os.path.join(td, "gifdata")
+        subprocess.run(
+            ["cc", "-std=c11", "-Wall", "-Wextra", "-I", os.path.join(HERE, "helpers"),
+             "-o", exe, src] + helpers,
+            check=True,
+        )
+        out = subprocess.run([exe], check=True, capture_output=True, text=True).stdout
+
+    rows, fp, sv = [], None, None
+    for line in out.splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        if line.startswith("FP "):
+            fp = line[3:].split("|")
+        elif line.startswith("SV "):
+            sv = line[3:].split("|")
+        else:
+            raw, ema, shown, peak, present, sat, contacts, trend, word = line.split()
+            rows.append(dict(
+                raw=int(raw), ema=int(ema), shown=int(shown), peak=int(peak),
+                present=bool(int(present)), sat=bool(int(sat)),
+                contacts=int(contacts), trend=int(trend), word=word,
+            ))
+    return rows, fp, sv
+
+
+def sweep_frame(r, hist, anim):
     img, d = m.canvas()
-    m.draw_header(d, "SPECTER", state, present)
-    m.draw_gauge(d, strength, peak, present, anim)
-    m.draw_readout(d, strength, peak, contacts, trend)
+    state = "READER" if r["present"] else "SCANNING"
+    m.draw_header(d, "SPECTER", state, r["present"])
+    m.draw_gauge(d, r["shown"], r["peak"], r["present"], anim)
+    m.draw_readout(d, r["shown"], r["peak"], r["contacts"], r["trend"])
     m.line(d, 0, 52, 127, 52)
-    if present:
+    if r["present"]:
         m.box(d, 0, 53, 128, 11)
         m.disc(d, 4, 58, 1, m.BG)
         m.tb(d, 9, 61, "ACTIVE READER", m.f_sec, m.BG)
-        m.tb(
-            d,
-            125,
-            61,
-            m.proximity_word(strength, saturated),
-            m.f_sec,
-            m.BG,
-            anchor="rs",
-        )
+        m.tb(d, 125, 61, r["word"], m.f_sec, m.BG, anchor="rs")
         m.frame(d, 0, 0, 127, 63, m.FG, lw=2)
     else:
-        label = f"S:{sens}"
+        label = f"S:{SENS}"
         m.tb(d, 2, 62, label, m.f_sec)
         wave_left = 2 + int(d.textlength(label, font=m.f_sec) / m.S) + 4
         for k in range(62):
             x = 126 - k * 2
             if x < wave_left:
                 break
-            v = history[(len(history) - 1 - k) % len(history)]
+            v = hist[-1 - k] if k < len(hist) else 0
             y = 63 - (v * 9) // 100
             if y < 63:
                 m.line(d, x, 63, x, y, m.FG, w=m.S)
@@ -66,102 +94,93 @@ def sweep_frame(
     return img
 
 
-def fingerprint_frame(conf, period, burst, jitter, duty, shift):
+def fingerprint_frame(fp, conf, shift):
+    klass, blurb, _c, period, burst, jitter, duty, reliable = fp
+    period, burst, jitter, duty = int(period), int(burst), int(jitter), int(duty)
+    approx = "" if int(reliable) else "~"
     img, d = m.canvas()
     m.draw_header(d, "FINGERPRINT", "LISTENING", True)
-    m.tb(d, 2, m.FP_CLASS, "POLLING", m.f_pri)
+    m.tb(d, 2, m.FP_CLASS, klass, m.f_pri)
     m.frame(d, m.CONF_X, m.CONF_Y, m.CONF_W, m.CONF_H)
     fill = (conf * (m.CONF_W - 2)) // 100
     if fill:
         m.box(d, m.CONF_X + 1, m.CONF_Y + 1, fill, m.CONF_H - 2)
-    m.tb(d, 2, m.FP_BLURB, "Fixed poll cycle", m.f_sec)
+    m.tb(d, 2, m.FP_BLURB, blurb, m.f_sec)
     m.tb(d, 126, m.FP_BLURB, f"{conf}%", m.f_sec, anchor="rs")
-    m.tb(d, 2, m.FP_STAT1, f"PER {period}ms", m.f_sec)
-    m.tb(d, m.FP_COL_R, m.FP_STAT1, f"BST {burst}ms", m.f_sec)
-    m.tb(d, 2, m.FP_STAT2, f"JIT {jitter}ms", m.f_sec)
+    m.tb(d, 2, m.FP_STAT1, f"PER {approx}{period}ms", m.f_sec)
+    m.tb(d, m.FP_COL_R, m.FP_STAT1, f"BST {approx}{burst}ms", m.f_sec)
+    m.tb(d, 2, m.FP_STAT2, f"JIT {approx}{jitter}ms", m.f_sec)
     m.tb(d, m.FP_COL_R, m.FP_STAT2, f"DUTY {duty}%", m.f_sec)
     m.line(d, 0, m.FP_DIV, 127, m.FP_DIV)
     bits = m.pulse_train(period, burst)
-    m.draw_trace(d, bits[shift:] + bits[:shift])  # scroll the carrier trace
+    m.draw_trace(d, bits[shift:] + bits[:shift])
     return img
 
 
-def verdict_frame():
+def verdict_frame(sv):
+    verdict, advice, mx, av, field, hits = sv
     img, d = m.canvas()
     m.tb(d, 2, 9, "SITE SURVEY", m.f_sec)
     m.tb(d, 126, 9, "OK=again", m.f_sec, anchor="rs")
     m.line(d, 0, 11, 127, 11)
-    m.box(d, m.BANNER_X, m.BANNER_Y, m.BANNER_W, m.BANNER_H)
-    m.tb(d, 64, m.DONE_V, "ACTIVE READER", m.f_pri, m.BG, anchor="ms")
-    m.tb(d, 64, m.DONE_A, "Fingerprint it", m.f_sec, anchor="ms")
+    alarm = verdict == "ACTIVE READER"
+    if alarm:
+        m.box(d, m.BANNER_X, m.BANNER_Y, m.BANNER_W, m.BANNER_H)
+    else:
+        m.frame(d, m.BANNER_X, m.BANNER_Y, m.BANNER_W, m.BANNER_H)
+    m.tb(d, 64, m.DONE_V, verdict, m.f_pri, m.BG if alarm else m.FG, anchor="ms")
+    m.tb(d, 64, m.DONE_A, advice, m.f_sec, anchor="ms")
     m.line(d, 0, m.DONE_A + 3, 127, m.DONE_A + 3)
-    m.tb(d, 2, m.DONE_S1, "MAX 100%", m.f_sec)
-    m.tb(d, m.SV_COL_R, m.DONE_S1, "AVG 34%", m.f_sec)
-    m.tb(d, 2, m.DONE_S2, "HITS 3", m.f_sec)
-    m.tb(d, m.SV_COL_R, m.DONE_S2, "FIELD 41%", m.f_sec)
-    m.frame(d, 0, 0, 127, 63, m.FG, lw=2)
+    m.tb(d, 2, m.DONE_S1, f"MAX {mx}%", m.f_sec)
+    m.tb(d, m.SV_COL_R, m.DONE_S1, f"AVG {av}%", m.f_sec)
+    m.tb(d, 2, m.DONE_S2, f"HITS {hits}", m.f_sec)
+    m.tb(d, m.SV_COL_R, m.DONE_S2, f"FIELD {field}%", m.f_sec)
+    if alarm:
+        m.frame(d, 0, 0, 127, 63, m.FG, lw=2)
     return img
 
 
 def build():
+    rows, fp, sv = engine_frames()
     frames, delays = [], []
 
     def add(img, ms=FRAME_MS):
-        # Hold time is expressed as duration, never as repeated identical
-        # frames - Pillow's optimiser collapses duplicates and the pause would
-        # silently vanish.
+        # Holds are durations, never repeated frames: Pillow's optimiser
+        # collapses duplicates and the pause would silently disappear.
         frames.append(img)
         delays.append(ms)
 
-    hist = [3, 5, 2, 6, 4, 2, 7, 3, 5, 2, 8, 4, 3, 6, 2, 5, 3, 7, 4, 2] * 4
-    anim = 0
-
-    # 1. a quiet room - needle low, waveform flat
-    for i in range(12):
+    hist, anim = [], 0
+    for i, r in enumerate(rows):
         anim += 1
-        add(sweep_frame(4 + (i % 3), 9, 0, False, "SCANNING", hist, anim, trend=0))
+        hist.append(r["shown"])
+        # linger on the moment it pegs, and on the last frame before we cut away
+        ms = FRAME_MS
+        if r["sat"]:
+            ms = 260
+        if i == len(rows) - 1:
+            ms = 700
+        add(sweep_frame(r, hist, anim), ms=ms)
 
-    # 2. closing in - the needle climbs and the trend arrow points up
-    for s in (11, 19, 28, 38, 49, 58, 67, 74, 81, 88):
-        anim += 1
-        hist = hist[1:] + [s]
-        add(
-            sweep_frame(s, max(s, 9), 0, False, "SCANNING", hist, anim, trend=1), ms=170
-        )
+    conf_final = int(fp[2])
+    for i in range(16):
+        conf = min(conf_final, 18 + i * 7)
+        add(fingerprint_frame(fp, conf, (i * 5) % 128),
+            ms=(1100 if i == 15 else FRAME_MS))
 
-    # 3. locked on - alarm border, pegged meter
-    for i in range(14):
-        anim += 1
-        add(
-            sweep_frame(100, 100, 1, True, "READER", hist, anim, saturated=True),
-            ms=(600 if i == 13 else FRAME_MS),
-        )
-
-    # 4. what is it? the carrier's rhythm, scrolling
-    for i in range(18):
-        conf = min(88, 20 + i * 6)
-        add(
-            fingerprint_frame(conf, 204, 24, 2, 11, (i * 5) % 128),
-            ms=(900 if i == 17 else FRAME_MS),
-        )
-
-    # 5. the verdict
-    add(verdict_frame(), ms=1900)
+    add(verdict_frame(sv), ms=2000)
 
     path = os.path.join(OUT, "demo.gif")
-    frames[0].save(
-        path,
-        save_all=True,
-        append_images=frames[1:],
-        duration=delays,
-        loop=0,
-        optimize=True,
-        # the screen is two colours; say so and the file stays tiny
-        palette=1,
-        colors=2,
-    )
-    kb = os.path.getsize(path) // 1024
-    print(f"wrote {path}  ({len(frames)} frames, {kb} KB)")
+    # Full frames, not deltas. Pillow's optimiser writes only changed pixels and
+    # assumes the previous frame stays underneath, so when a right-aligned string
+    # gets shorter - STRONG -> MAX - the tail of the old word is left on screen.
+    # The device redraws the whole canvas every tick; the GIF must too, or it
+    # shows artefacts the app never produces. Two colours keeps it cheap anyway.
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=delays,
+                   loop=0, optimize=False, disposal=1, palette=1, colors=2)
+    total = sum(delays) / 1000.0
+    print(f"wrote {path}  ({len(frames)} frames, {total:.1f}s, "
+          f"{os.path.getsize(path) // 1024} KB)")
 
 
 if __name__ == "__main__":
