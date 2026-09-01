@@ -68,6 +68,8 @@ typedef enum {
     PendingSetFixed,
     PendingClearFixed,
     PendingReboot,
+    PendingInfoAll,
+    PendingSendText,
 } PendingAction;
 
 typedef enum {
@@ -91,6 +93,8 @@ typedef struct {
     int32_t altitude;
     uint32_t pos_time;
     bool has_position;
+    uint8_t sats;
+    bool sats_seen;
 
     char short_name[8];
     char long_name[24];
@@ -252,6 +256,7 @@ typedef struct {
     uint32_t pending_node;
     uint8_t pending_a;
     uint8_t pending_b;
+    char pending_text[64];
     
     uint32_t sent_msg_ids[8];
     uint8_t sent_msg_head;

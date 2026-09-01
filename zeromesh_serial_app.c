@@ -127,6 +127,13 @@ int32_t zeromesh_serial_app(void* p) {
             case PendingReboot:
                 reboot_node(app, 5);
                 break;
+            case PendingInfoAll:
+                request_info(app);
+                break;
+            case PendingSendText:
+                send_text_message(app, app->pending_text, app->pending_node);
+                app->pending_text[0] = '\0';
+                break;
             default:
                 break;
             }

@@ -235,6 +235,12 @@ static void handle_position(ZeroMeshApp* app, uint32_t sender_id, const uint8_t*
     meshtastic_Position pos = meshtastic_Position_init_default;
     pb_istream_t is_pos = pb_istream_from_buffer(buf, buflen);
     if(!pb_decode(&is_pos, meshtastic_Position_fields, &pos)) return;
+
+    /* Recorded before the fix check on purpose. A node still searching sends
+       a count with no coordinates, and that is exactly when it is worth seeing. */
+    if(pos.sats_in_view)
+        roster_update_sats(app, sender_id, pos.sats_in_view > 255 ? 255 : (uint8_t)pos.sats_in_view);
+
     if(!pos.has_latitude_i || !pos.has_longitude_i) return;
     roster_update_position(
         app,
