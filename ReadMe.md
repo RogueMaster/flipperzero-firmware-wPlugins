@@ -110,6 +110,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DNDInventory v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDSpellbook v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
+- Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 
 <a name="release"></a>
 

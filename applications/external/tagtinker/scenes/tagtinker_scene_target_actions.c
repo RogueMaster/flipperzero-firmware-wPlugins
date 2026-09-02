@@ -33,6 +33,9 @@ static void show_target_details(TagTinkerApp* app, const TagTinkerTarget* target
     text_box_set_focus(app->text_box, TextBoxFocusStart);
 
     static char details_buf[256];
+    uint16_t size_w = target->profile.width;
+    uint16_t size_h = target->profile.height;
+    tagtinker_profile_glass_size(&target->profile, &size_w, &size_h);
     snprintf(
         details_buf,
         sizeof(details_buf),
@@ -45,8 +48,8 @@ static void show_target_details(TagTinkerApp* app, const TagTinkerTarget* target
         target->profile.model_name ? target->profile.model_name : "Unknown",
         target->profile.type_code,
         tagtinker_profile_kind_label(target->profile.kind),
-        target->profile.width,
-        target->profile.height,
+        size_w,
+        size_h,
         tagtinker_profile_color_label(target->profile.color),
         target->barcode);
 
