@@ -185,8 +185,6 @@ static void draw_wrapped_text_in_bubble(
         current_y += 9;
     }
 }
-
-/* The indicator track runs from the title to the link dot at x=120. */
 #define PAGE_IND_W 38
 _Static_assert(PAGE_COUNT * 2 <= PAGE_IND_W, "too many pages for the header indicator");
 
@@ -208,9 +206,6 @@ void draw_header(Canvas* canvas, ZeroMeshApp* app, const char* title) {
         canvas_draw_circle(canvas, 120, 7, 3);
     }
 
-    /* Bars rather than dots. Dots at 7px spacing ran into the link
-       indicator once there were more than six pages. The step is derived
-       so another page shrinks the bars instead of drawing off-screen. */
     const int step = PAGE_IND_W / PAGE_COUNT;
     const int bar_w = step > 2 ? step - 1 : 1;
 
@@ -461,7 +456,6 @@ static void meter(Canvas* canvas, int x, int y, int w, int pct) {
     int fill = (w - 2) * pct / 100;
     if(fill > 0) canvas_draw_box(canvas, x + 1, y + 1, fill, 5);
 
-    /* Quarter ticks, so a bar can be read as a rough number at a glance. */
     for(int i = 1; i < 4; i++) {
         int tx = x + (w - 1) * i / 4;
         canvas_draw_dot(canvas, tx, y - 1);

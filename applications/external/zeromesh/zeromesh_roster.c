@@ -232,6 +232,22 @@ void roster_update_sats(ZeroMeshApp* app, uint32_t node_id, uint8_t sats, bool f
     furi_mutex_release(app->lock);
 }
 
+/* node_info proves a fix but always reports zero satellites. */
+void roster_update_fix(ZeroMeshApp* app, uint32_t node_id, bool fix) {
+    if(!app || node_id == 0) return;
+
+    furi_mutex_acquire(app->lock, FuriWaitForever);
+
+    for(uint8_t i = 0; i < app->roster.count; i++) {
+        if(app->roster.nodes[i].node_id == node_id) {
+            app->roster.nodes[i].has_fix = fix;
+            break;
+        }
+    }
+
+    furi_mutex_release(app->lock);
+}
+
 void roster_update_position(
     ZeroMeshApp* app,
     uint32_t node_id,

@@ -10,8 +10,7 @@
 #define RTTTL_MAX_NOTES    192
 #define RTTTL_MAX_TOTAL_MS 12000
 
-/* Equal temperament, octave 4. Every other octave is a power of two away, so
-   the whole table is two multiplies instead of powf, which faults from a FAP. */
+/* powf faults from a FAP, so octaves are powers of two off a table. */
 static const float note_hz[12] = {
     261.63f,
     277.18f,
@@ -92,8 +91,6 @@ static bool rtttl_play_string(const char* s) {
         if(sec < end) sec++;
     }
 
-    /* A whole note is four beats. Clamped so a silly tempo cannot divide by
-       zero or hold the speaker for a minute. */
     if(b < 8) b = 8;
     if(b > 900) b = 900;
     uint32_t whole_ms = 240000u / (uint32_t)b;
@@ -151,7 +148,6 @@ static bool rtttl_play_string(const char* s) {
         if(ms < 10) ms = 10;
         if(ms > 2000) ms = 2000;
 
-        /* A short gap keeps repeated notes from running into one tone. */
         uint32_t gap = ms > 40 ? 15 : 5;
 
         if(note >= 0) {

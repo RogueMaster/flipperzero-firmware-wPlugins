@@ -857,8 +857,6 @@ static void map_draw_focus_range(Canvas* canvas, ZeroMeshApp* app) {
 }
 
 static void map_draw_gps(Canvas* canvas, ZeroMeshApp* app) {
-    /* Top right, no frame. The left side carries the home marker and the
-       zoom readout, and place names crowd the middle. */
     char buf[12];
     if(app->my_sats_seen) {
         snprintf(buf, sizeof(buf), "SAT:%u%s", app->my_sats, app->my_has_fix ? "" : "?");

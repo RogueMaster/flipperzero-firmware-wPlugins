@@ -244,9 +244,6 @@ static void
     pb_istream_t is_pos = pb_istream_from_buffer(buf, buflen);
     if(!pb_decode(&is_pos, meshtastic_Position_fields, &pos)) return;
 
-    /* Recorded before the fix check on purpose. A node still searching sends
-       a count with no coordinates, and zero satellites is itself the answer
-       to "is the GPS doing anything", so it is not filtered out. */
     bool fix = pos.has_latitude_i && pos.has_longitude_i &&
                !(pos.latitude_i == 0 && pos.longitude_i == 0);
     uint8_t sats = pos.sats_in_view > 255 ? 255 : (uint8_t)pos.sats_in_view;
@@ -448,22 +445,15 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                             if(sn[0])
                                 strncpy(app->my_short_name, sn, sizeof(app->my_short_name) - 1);
                         }
-                        /* The node reports its own satellites here, in the
-                           config download, not as a POSITION packet. Reading
-                           it only from packets meant a lone node never showed
-                           a count at all. */
+                        /* PositionLite drops sats_in_view, so this is always 0.
+                           A POSITION packet is the only source. */
                         if(n.has_position) {
                             bool nfix =
                                 n.position.has_latitude_i && n.position.has_longitude_i &&
                                 !(n.position.latitude_i == 0 && n.position.longitude_i == 0);
-                            uint8_t nsats = n.position.sats_in_view > 255 ?
-                                                255 :
-                                                (uint8_t)n.position.sats_in_view;
-                            roster_update_sats(app, n.num, nsats, nfix);
+                            roster_update_fix(app, n.num, nfix);
 
                             if(app->my_node_num && n.num == app->my_node_num) {
-                                app->my_sats = nsats;
-                                app->my_sats_seen = true;
                                 app->my_has_fix = nfix;
                             }
 
@@ -769,7 +759,8 @@ void request_position(ZeroMeshApp* app, uint32_t to_node) {
         return;
     }
     send_frame(app, buf, os.bytes_written);
-    log_line(app, "Position requested from %08lX", (unsigned long)to_node);
+    if(to_node != app->my_node_num)
+        log_line(app, "Position requested from %08lX", (unsigned long)to_node);
 }
 
 void request_node_info(ZeroMeshApp* app, uint32_t to_node) {

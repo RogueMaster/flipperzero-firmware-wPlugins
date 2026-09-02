@@ -51,10 +51,7 @@
 #define SETTINGS_PATH_OLD "/ext/zeromesh/settings.cfg"
 #define MAX_CHANNELS      8
 
-#define MAX_RINGTONE_PATH 128
-
-/* Custom tones live beside the map data. The cap is small on purpose: the
-   names sit in the app struct and the list is cycled one step at a time. */
+#define MAX_RINGTONE_PATH   128
 #define RINGTONE_DIR        APP_DATA_PATH("ringtones")
 #define RINGTONE_CUSTOM_MAX 8
 #define RINGTONE_NAME_MAX   32
