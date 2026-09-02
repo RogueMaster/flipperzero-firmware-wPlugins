@@ -53,6 +53,8 @@ static const TagTinkerProfileEntry profile_table[] = {
     {1370, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD L Red (2021)", 0},
     {1371, 648, 480, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD150 Red (2021)", 0},
     {1510, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono,   "SmartTag E5 M", 1},
+    {TAGTINKER_TYPE_SMARTAG_COLOR_26, TAGTINKER_COLOR26_WIRE_W, TAGTINKER_COLOR26_WIRE_H,
+     TagTinkerTagKindDotMatrix, TagTinkerTagColorRed, "SmartTAG Color 2.6", 0},
     {1627, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD L Red", 0},
     {1628, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD L Red", 0},
     {1639, 152, 152, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed,    "SmartTag HD S Red", 0},
@@ -150,6 +152,17 @@ size_t tagtinker_make_ping_frame(uint8_t* buf, const uint8_t plid[4]) {
     return terminate(buf, p);
 }
 
+size_t tagtinker_make_wake_frame(uint8_t* buf, const uint8_t plid[4]) {
+    /* PrecIR / PriceHax wake: cmd 0x17 and 22 trailing 0x01 bytes. */
+    size_t p = raw_frame(buf, TAGTINKER_PROTO_DM, plid, 0x17);
+    buf[p++] = 0x01;
+    buf[p++] = 0x00;
+    buf[p++] = 0x00;
+    buf[p++] = 0x00;
+    for(int i = 0; i < 22; i++) buf[p++] = 0x01;
+    return terminate(buf, p);
+}
+
 size_t tagtinker_make_refresh_frame(uint8_t* buf, const uint8_t plid[4]) {
     size_t p = mcu_frame(buf, plid, 0x01);
     for(int i = 0; i < 18; i++) buf[p++] = 0x00;
@@ -212,15 +225,15 @@ static inline uint8_t plane_pixel_at(const uint8_t* p1, const uint8_t* p2, size_
     return (idx < count) ? p1[idx] : p2[idx - count];
 }
 
-static size_t tagtinker_rle_planes_bit_length(const uint8_t* p1, const uint8_t* p2, size_t count) {
-    if(!p1) return 0;
-    size_t total = p2 ? (count * 2U) : count;
-    if(total == 0) return 0;
+#define DATA_BITS_PER_FRAME (TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME * 8U)
+
+static size_t tagtinker_rle_fn_bit_length(TagTinkerPixelAtFn pixel_at, void* ctx, size_t total) {
+    if(!pixel_at || total == 0) return 0;
     size_t bit_len = 1U;
-    uint8_t run_pixel = plane_pixel_at(p1, p2, count, 0);
+    uint8_t run_pixel = pixel_at(0, ctx);
     uint32_t run_count = 1;
     for(size_t i = 1; i < total; i++) {
-        uint8_t pix = plane_pixel_at(p1, p2, count, i);
+        uint8_t pix = pixel_at(i, ctx);
         if(pix == run_pixel) run_count++;
         else { bit_len += record_run_bit_length(run_count); run_pixel = pix; run_count = 1; }
     }
@@ -228,46 +241,65 @@ static size_t tagtinker_rle_planes_bit_length(const uint8_t* p1, const uint8_t* 
     return bit_len;
 }
 
-static void tagtinker_pack_planes_raw(const uint8_t* p1, const uint8_t* p2, size_t count, uint8_t* out) {
-    size_t total = p2 ? (count * 2U) : count;
+static void tagtinker_pack_fn_raw(TagTinkerPixelAtFn pixel_at, void* ctx, size_t total, uint8_t* out) {
     TagTinkerBitWriter writer = {.data = out, .bit_pos = 0};
-    for(size_t i = 0; i < total; i++) bit_writer_append(&writer, plane_pixel_at(p1, p2, count, i));
+    for(size_t i = 0; i < total; i++) bit_writer_append(&writer, pixel_at(i, ctx));
 }
 
-static void tagtinker_pack_planes_rle(const uint8_t* p1, const uint8_t* p2, size_t count, uint8_t* out) {
-    size_t total = p2 ? (count * 2U) : count;
+static void tagtinker_pack_fn_rle(TagTinkerPixelAtFn pixel_at, void* ctx, size_t total, uint8_t* out) {
     if(total == 0) return;
     TagTinkerBitWriter writer = {.data = out, .bit_pos = 0};
-    uint8_t run_pixel = plane_pixel_at(p1, p2, count, 0);
+    uint8_t run_pixel = pixel_at(0, ctx);
     uint32_t run_count = 1;
     bit_writer_append(&writer, run_pixel);
     for(size_t i = 1; i < total; i++) {
-        uint8_t pix = plane_pixel_at(p1, p2, count, i);
+        uint8_t pix = pixel_at(i, ctx);
         if(pix == run_pixel) run_count++;
         else { bit_writer_append_run(&writer, run_count); run_pixel = pix; run_count = 1; }
     }
     if(run_count > 0U) bit_writer_append_run(&writer, run_count);
 }
 
-#define DATA_BITS_PER_FRAME (TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME * 8U)
-
-bool tagtinker_encode_planes_payload(
-    const uint8_t* p1, const uint8_t* p2, size_t count, TagTinkerCompressionMode mode, TagTinkerImagePayload* payload) {
-    if(!p1 || !payload) return false;
+bool tagtinker_encode_fn_payload(
+    TagTinkerPixelAtFn pixel_at,
+    void* ctx,
+    size_t total,
+    TagTinkerCompressionMode mode,
+    TagTinkerImagePayload* payload) {
+    if(!pixel_at || !payload || total == 0) return false;
     memset(payload, 0, sizeof(*payload));
-    size_t total = p2 ? (count * 2U) : count;
-    size_t comp_len = tagtinker_rle_planes_bit_length(p1, p2, count);
-    bool use_compressed = (mode == TagTinkerCompressionRle) || 
+    size_t comp_len = tagtinker_rle_fn_bit_length(pixel_at, ctx, total);
+    bool use_compressed = (mode == TagTinkerCompressionRle) ||
                          (mode == TagTinkerCompressionAuto && comp_len > 0U && comp_len < total);
     size_t src_len = use_compressed ? comp_len : total;
     size_t padded_bits = src_len + ((DATA_BITS_PER_FRAME - (src_len % DATA_BITS_PER_FRAME)) % DATA_BITS_PER_FRAME);
     uint8_t* data = calloc(padded_bits / 8U, 1);
     if(!data) return false;
-    if(use_compressed) tagtinker_pack_planes_rle(p1, p2, count, data);
-    else tagtinker_pack_planes_raw(p1, p2, count, data);
-    payload->data = data; payload->byte_count = padded_bits / 8U;
+    if(use_compressed) tagtinker_pack_fn_rle(pixel_at, ctx, total, data);
+    else tagtinker_pack_fn_raw(pixel_at, ctx, total, data);
+    payload->data = data;
+    payload->byte_count = padded_bits / 8U;
     payload->comp_type = use_compressed ? 2U : 0U;
     return true;
+}
+
+typedef struct {
+    const uint8_t* p1;
+    const uint8_t* p2;
+    size_t count;
+} TagTinkerPlaneCtx;
+
+static uint8_t tagtinker_plane_pixel_cb(size_t idx, void* ctx) {
+    const TagTinkerPlaneCtx* c = ctx;
+    return plane_pixel_at(c->p1, c->p2, c->count, idx);
+}
+
+bool tagtinker_encode_planes_payload(
+    const uint8_t* p1, const uint8_t* p2, size_t count, TagTinkerCompressionMode mode, TagTinkerImagePayload* payload) {
+    if(!p1 || !payload) return false;
+    TagTinkerPlaneCtx ctx = {.p1 = p1, .p2 = p2, .count = count};
+    size_t total = p2 ? (count * 2U) : count;
+    return tagtinker_encode_fn_payload(tagtinker_plane_pixel_cb, &ctx, total, mode, payload);
 }
 
 bool tagtinker_encode_image_payload(

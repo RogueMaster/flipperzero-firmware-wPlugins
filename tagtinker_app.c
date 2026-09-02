@@ -354,7 +354,19 @@ void tagtinker_prepare_text_tx(TagTinkerApp* app, const uint8_t plid[4]) {
     memset(&app->image_tx_job, 0, sizeof(app->image_tx_job));
     app->image_tx_job.mode = TagTinkerTxModeTextImage;
     memcpy(app->image_tx_job.plid, plid, sizeof(app->image_tx_job.plid));
-    app->image_tx_job.page = (app->img_page > 0U) ? (uint8_t)(app->img_page - 1U) : 0U;
+    /* HD tags map UI page 1-8 to protocol 0-7. Color 2.6 uses the UI page
+     * number on the wire. Unspecified 0/1 become page 2 (image slot). */
+    {
+        const TagTinkerTagProfile* profile = NULL;
+        if(app->selected_target >= 0 && app->selected_target < app->target_count) {
+            profile = &app->targets[app->selected_target].profile;
+        }
+        if(tagtinker_profile_uses_ui_page(profile)) {
+            app->image_tx_job.page = tagtinker_color26_resolve_page(app->img_page);
+        } else {
+            app->image_tx_job.page = (app->img_page > 0U) ? (uint8_t)(app->img_page - 1U) : 0U;
+        }
+    }
     if(app->image_tx_job.page > 7U) app->image_tx_job.page = 7U;
     app->image_tx_job.width = app->esl_width;
     app->image_tx_job.height = app->esl_height;
@@ -382,6 +394,10 @@ void tagtinker_prepare_bmp_tx(
     app->image_tx_job.mode = TagTinkerTxModeBmpImage;
     memcpy(app->image_tx_job.plid, plid, sizeof(app->image_tx_job.plid));
     app->image_tx_job.page = page;
+    if(app->selected_target >= 0 && app->selected_target < app->target_count &&
+       tagtinker_profile_uses_ui_page(&app->targets[app->selected_target].profile)) {
+        app->image_tx_job.page = tagtinker_color26_resolve_page(page);
+    }
     app->image_tx_job.width = width;
     app->image_tx_job.height = height;
     app->image_tx_job.pos_x = app->draw_x;
