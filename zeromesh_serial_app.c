@@ -42,7 +42,6 @@ int32_t zeromesh_serial_app(void* p) {
     
     channel_init(app);
     
-    /* Before the settings load, which resolves a saved custom tone by name. */
     ringtones_scan(app);
     settings_load(app);
 

@@ -226,9 +226,7 @@ void roster_update_sats(ZeroMeshApp* app, uint32_t node_id, uint8_t sats, bool f
     furi_mutex_release(app->lock);
 }
 
-/* Fix state without touching the count. node_info proves a node has a fix,
-   because it carries coordinates, but it can never carry satellites. Writing
-   a zero there would wipe a count a POSITION packet had already given us. */
+/* node_info proves a fix but always reports zero satellites. */
 void roster_update_fix(ZeroMeshApp* app, uint32_t node_id, bool fix) {
     if(!app || node_id == 0) return;
 

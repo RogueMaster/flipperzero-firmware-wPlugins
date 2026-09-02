@@ -236,9 +236,6 @@ static void handle_position(ZeroMeshApp* app, uint32_t sender_id, const uint8_t*
     pb_istream_t is_pos = pb_istream_from_buffer(buf, buflen);
     if(!pb_decode(&is_pos, meshtastic_Position_fields, &pos)) return;
 
-    /* Recorded before the fix check on purpose. A node still searching sends
-       a count with no coordinates, and zero satellites is itself the answer
-       to "is the GPS doing anything", so it is not filtered out. */
     bool fix = pos.has_latitude_i && pos.has_longitude_i &&
                !(pos.latitude_i == 0 && pos.longitude_i == 0);
     uint8_t sats = pos.sats_in_view > 255 ? 255 : (uint8_t)pos.sats_in_view;
@@ -427,17 +424,8 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                             if(sn[0])
                                 strncpy(app->my_short_name, sn, sizeof(app->my_short_name) - 1);
                         }
-                        /* Satellites are NOT here, however much it looks like
-                           they should be. The node keeps every position in its
-                           database as a PositionLite, which holds only lat,
-                           lon, altitude, time and source. sats_in_view is
-                           dropped on the way in and cannot be restored on the
-                           way out, so n.position.sats_in_view is always zero
-                           on every node. A POSITION packet is the only source;
-                           see the self poll in zeromesh_serial_app.c.
-
-                           Coordinates are real here, so a fix is still worth
-                           recording. The count is deliberately left alone. */
+                        /* PositionLite drops sats_in_view, so this is always 0.
+                           A POSITION packet is the only source. */
                         if(n.has_position) {
                             bool nfix = n.position.has_latitude_i &&
                                         n.position.has_longitude_i &&
@@ -752,8 +740,6 @@ void request_position(ZeroMeshApp* app, uint32_t to_node) {
         return;
     }
     send_frame(app, buf, os.bytes_written);
-    /* The GPS poll asks our own node once a minute. Logging that would bury
-       everything else, so it stays quiet, as the heartbeat does. */
     if(to_node != app->my_node_num)
         log_line(app, "Position requested from %08lX", (unsigned long)to_node);
 }
