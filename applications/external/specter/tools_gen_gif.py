@@ -40,8 +40,18 @@ def engine_frames():
     with tempfile.TemporaryDirectory() as td:
         exe = os.path.join(td, "gifdata")
         subprocess.run(
-            ["cc", "-std=c11", "-Wall", "-Wextra", "-I", os.path.join(HERE, "helpers"),
-             "-o", exe, src] + helpers,
+            [
+                "cc",
+                "-std=c11",
+                "-Wall",
+                "-Wextra",
+                "-I",
+                os.path.join(HERE, "helpers"),
+                "-o",
+                exe,
+                src,
+            ]
+            + helpers,
             check=True,
         )
         out = subprocess.run([exe], check=True, capture_output=True, text=True).stdout
@@ -56,11 +66,19 @@ def engine_frames():
             sv = line[3:].split("|")
         else:
             raw, ema, shown, peak, present, sat, contacts, trend, word = line.split()
-            rows.append(dict(
-                raw=int(raw), ema=int(ema), shown=int(shown), peak=int(peak),
-                present=bool(int(present)), sat=bool(int(sat)),
-                contacts=int(contacts), trend=int(trend), word=word,
-            ))
+            rows.append(
+                dict(
+                    raw=int(raw),
+                    ema=int(ema),
+                    shown=int(shown),
+                    peak=int(peak),
+                    present=bool(int(present)),
+                    sat=bool(int(sat)),
+                    contacts=int(contacts),
+                    trend=int(trend),
+                    word=word,
+                )
+            )
     return rows, fp, sv
 
 
@@ -165,8 +183,10 @@ def build():
     conf_final = int(fp[2])
     for i in range(16):
         conf = min(conf_final, 18 + i * 7)
-        add(fingerprint_frame(fp, conf, (i * 5) % 128),
-            ms=(1100 if i == 15 else FRAME_MS))
+        add(
+            fingerprint_frame(fp, conf, (i * 5) % 128),
+            ms=(1100 if i == 15 else FRAME_MS),
+        )
 
     add(verdict_frame(sv), ms=2000)
 
@@ -176,11 +196,22 @@ def build():
     # gets shorter - STRONG -> MAX - the tail of the old word is left on screen.
     # The device redraws the whole canvas every tick; the GIF must too, or it
     # shows artefacts the app never produces. Two colours keeps it cheap anyway.
-    frames[0].save(path, save_all=True, append_images=frames[1:], duration=delays,
-                   loop=0, optimize=False, disposal=1, palette=1, colors=2)
+    frames[0].save(
+        path,
+        save_all=True,
+        append_images=frames[1:],
+        duration=delays,
+        loop=0,
+        optimize=False,
+        disposal=1,
+        palette=1,
+        colors=2,
+    )
     total = sum(delays) / 1000.0
-    print(f"wrote {path}  ({len(frames)} frames, {total:.1f}s, "
-          f"{os.path.getsize(path) // 1024} KB)")
+    print(
+        f"wrote {path}  ({len(frames)} frames, {total:.1f}s, "
+        f"{os.path.getsize(path) // 1024} KB)"
+    )
 
 
 if __name__ == "__main__":

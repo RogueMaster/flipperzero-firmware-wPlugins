@@ -26,7 +26,6 @@ Spellcasting
 Unarmored Defense
 Weapon Mastery
 Wild Shape
-
 # Barbarian
 Primal Knowledge
 Fast Movement
@@ -38,19 +37,16 @@ Relentless Rage
 Persistent Rage
 Indomitable Might
 Primal Champion
-
 # Bard
 Words of Creation
 Countercharm
 Superior Inspiration
-
 # Cleric
 Blessed Strikes
 Divine Intervention
 Sear Undead
 Improved Blessed Strikes
 Greater Divine Intervention
-
 # Druid
 Druidic
 Primal Order
@@ -60,13 +56,11 @@ Elemental Fury
 Improved Elemental Fury
 Beast Spells
 Archdruid
-
 # Fighter
 Tactical Mind
 Tactical Shift
 Tactical Master
 Studied Attacks
-
 # Monk
 Monk's Focus
 Flurry of Blows
@@ -85,7 +79,6 @@ Disciplined Survivor
 Perfect Focus
 Superior Defense
 Body and Mind
-
 # Paladin
 Paladin's Smite
 Divine Sense
@@ -95,7 +88,6 @@ Abjure Foes
 Aura of Courage
 Radiant Strikes
 Restoring Touch
-
 # Ranger
 Favored Enemy
 Deft Explorer
@@ -105,7 +97,6 @@ Nature's Veil
 Relentless Hunter
 Precise Hunter
 Foe Slayer
-
 # Rogue
 Thieves' Cant
 Cunning Action
@@ -118,19 +109,16 @@ Improved Cunning Strike
 Slippery Mind
 Elusive
 Stroke of Luck
-
 # Sorcerer
 Innate Sorcery
 Sorcerous Restoration
 Sorcery Incarnate
 Arcane Apotheosis
-
 # Warlock
 Magical Cunning
 Contact Patron
 Mystic Arcanum
 Eldritch Master
-
 # Wizard
 Spellbook
 Ritual Adept
@@ -139,13 +127,3 @@ Scholar
 Memorize Spell
 Spell Mastery
 Signature Spells
-
-# Artificer
-Tinker's Magic
-Replicate Magic Item
-Right Tool for the Job
-Flash of Genius
-Magic Item Adept
-Magic Item Savant
-Magic Item Master
-Soul of Artifice

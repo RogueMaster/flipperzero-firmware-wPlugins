@@ -1,5 +1,5 @@
 # Dungeons & Dolphins d100 starting trinkets.
-# Numbering follows the standard 2014 Basic Rules / PHB d100 trinket table; labels are compact paraphrases.
+# Numbering follows the SRD 5.2.1 d100 trinket table; labels are compact paraphrases.
 # A hidden d100 is rolled only when Inventory first initializes for a character.
 # Format: Roll|I|<live item record fields>
 1|I|Goblin Hand|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
@@ -10,7 +10,7 @@
 6|I|Chessman|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
 7|I|Skull Knucklebones|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
 8|I|Nightmare Idol|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
-9|I|Elf-Finger Necklace|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
+9|I|Lock of Hair|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
 10|I|Deed|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
 11|I|Block|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
 12|I|Doll|Starting trinket||1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0

@@ -1,6 +1,4 @@
-# Dungeons & Dolphins class names. Add one custom or add-on class per line.
-# Artificer is included as a publicly named Eberron option; mechanics are not bundled.
-Artificer
+# Dungeons & Dolphins SRD 5.2.1 class names.
 Barbarian
 Bard
 Cleric

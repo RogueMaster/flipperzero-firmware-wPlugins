@@ -1,0 +1,77 @@
+# Dungeons & Dolphins SRD 5.2.1 streamed equipment-training/proficiency catalog.
+# Official non-SRD class associations are stored only in proficiencies_All.txt.
+# Format: Type|Name|Classes shown by the default Allowed filter.
+# Hold OK in the catalog switches Allowed <-> All.
+Armor|Heavy Armor|Fighter,Paladin
+Armor|Light Armor|Barbarian,Bard,Cleric,Druid,Fighter,Paladin,Ranger,Rogue,Warlock
+Armor|Medium Armor|Barbarian,Cleric,Fighter,Paladin,Ranger
+Armor|Shields|Barbarian,Cleric,Druid,Fighter,Paladin,Ranger
+Weapon|Battleaxe|Barbarian,Fighter,Paladin,Ranger
+Weapon|Blowgun|Barbarian,Fighter,Paladin,Ranger
+Weapon|Club|All
+Weapon|Dagger|All
+Weapon|Dart|All
+Weapon|Flail|Barbarian,Fighter,Paladin,Ranger
+Weapon|Glaive|Barbarian,Fighter,Paladin,Ranger
+Weapon|Greataxe|Barbarian,Fighter,Paladin,Ranger
+Weapon|Greatclub|All
+Weapon|Greatsword|Barbarian,Fighter,Paladin,Ranger
+Weapon|Halberd|Barbarian,Fighter,Paladin,Ranger
+Weapon|Hand Crossbow|Barbarian,Fighter,Paladin,Ranger,Monk,Rogue
+Weapon|Handaxe|All
+Weapon|Heavy Crossbow|Barbarian,Fighter,Paladin,Ranger
+Weapon|Javelin|All
+Weapon|Lance|Barbarian,Fighter,Paladin,Ranger
+Weapon|Light Crossbow|All
+Weapon|Light Hammer|All
+Weapon|Longbow|Barbarian,Fighter,Paladin,Ranger
+Weapon|Longsword|Barbarian,Fighter,Paladin,Ranger
+Weapon|Mace|All
+Weapon|Martial Finesse/Light|Rogue
+Weapon|Martial Light Weapons|Monk
+Weapon|Martial Weapons|Barbarian,Fighter,Paladin,Ranger
+Weapon|Maul|Barbarian,Fighter,Paladin,Ranger
+Weapon|Morningstar|Barbarian,Fighter,Paladin,Ranger
+Weapon|Musket|Barbarian,Fighter,Paladin,Ranger
+Weapon|Pike|Barbarian,Fighter,Paladin,Ranger
+Weapon|Pistol|Barbarian,Fighter,Paladin,Ranger
+Weapon|Quarterstaff|All
+Weapon|Rapier|Barbarian,Fighter,Paladin,Ranger,Rogue
+Weapon|Scimitar|Barbarian,Fighter,Paladin,Ranger,Monk,Rogue
+Weapon|Shortbow|All
+Weapon|Shortsword|Barbarian,Fighter,Paladin,Ranger,Monk,Rogue
+Weapon|Sickle|All
+Weapon|Simple Weapons|All
+Weapon|Sling|All
+Weapon|Spear|All
+Weapon|Trident|Barbarian,Fighter,Paladin,Ranger
+Weapon|War Pick|Barbarian,Fighter,Paladin,Ranger
+Weapon|Warhammer|Barbarian,Fighter,Paladin,Ranger
+Weapon|Whip|Barbarian,Fighter,Paladin,Ranger,Rogue
+Tool|Alchemist's Supplies|Monk
+Tool|Brewer's Supplies|Monk
+Tool|Calligrapher's Supplies|Monk
+Tool|Carpenter's Tools|Monk
+Tool|Cartographer's Tools|Monk
+Tool|Cobbler's Tools|Monk
+Tool|Cook's Utensils|Monk
+Tool|Disguise Kit|None
+Tool|Forgery Kit|None
+Tool|Gaming Set|None
+Tool|Glassblower's Tools|Monk
+Tool|Herbalism Kit|Druid
+Tool|Jeweler's Tools|Monk
+Tool|Leatherworker's Tools|Monk
+Tool|Mason's Tools|Monk
+Tool|Musical Instrument|Bard,Monk
+Tool|Navigator's Tools|None
+Tool|Painter's Supplies|Monk
+Tool|Poisoner's Kit|None
+Tool|Potter's Tools|Monk
+Tool|Smith's Tools|Monk
+Tool|Thieves' Tools|Rogue
+Tool|Tinker's Tools|None
+Tool|Vehicles (Land)|None
+Tool|Vehicles (Water)|None
+Tool|Weaver's Tools|Monk
+Tool|Woodcarver's Tools|Monk

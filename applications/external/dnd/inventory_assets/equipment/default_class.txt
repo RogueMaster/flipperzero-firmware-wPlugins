@@ -1,14 +1,7 @@
-# Dungeons & Dolphins starting equipment by primary class.
+# Dungeons & Dolphins SRD 5.2.1 starting equipment by primary class.
+# Catalog: SRD reads this file; official non-SRD roots are stored only in the matching _All file.
 # Format: Key|I|<live item record fields> or Key|C|cp,sp,ep,gp,pp
 # Items are granted only while InitialInventory=1 is absent and no Item records already exist.
-# Artificer
-Artificer|I|Scale Mail|Starting equipment||1,450,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,14,2,0
-Artificer|I|Light Crossbow|Starting equipment|bolt|1,50,0,0,1,2,1,0,1,8,0,0,1,1,0,0,34,0,0,-1,0,0,0,-1,0
-Artificer|I|Crossbow Bolts|Starting equipment|bolt|20,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
-Artificer|I|Thieves' Tools|Starting equipment||1,10,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
-Artificer|I|Dungeoneer's Pack|Starting equipment||1,100,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,-1,0
-Artificer|I|Dagger|Starting equipment||2,10,0,0,1,0,1,0,1,4,0,0,1,1,0,0,21,0,0,-1,0,0,0,-1,0
-Artificer|C|0,0,0,0,0
 # Barbarian
 Barbarian|I|Greataxe|Starting equipment||1,70,1,0,1,0,1,0,1,12,0,0,2,1,0,0,8,0,0,-1,0,0,0,-1,0
 Barbarian|I|Handaxe|Starting equipment||4,20,0,0,1,0,1,0,1,6,0,0,2,1,0,0,20,0,0,-1,0,0,0,-1,0

@@ -1,0 +1,25 @@
+# Dungeons & Dolphins streamed language catalog.
+# One language per line. The catalog is page-streamed; character selections live in languages_<id>.txt.
+Common
+Common Sign Language
+Draconic
+Dwarvish
+Elvish
+Giant
+Gnomish
+Goblin
+Halfling
+Orc
+Abyssal
+Celestial
+Deep Speech
+Druidic
+Infernal
+Primordial
+Aquan
+Auran
+Ignan
+Terran
+Sylvan
+Thieves' Cant
+Undercommon

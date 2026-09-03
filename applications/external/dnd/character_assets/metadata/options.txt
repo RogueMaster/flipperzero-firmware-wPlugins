@@ -1,5 +1,5 @@
+# SRD 5.2.1 metadata/grants. All mode directly opens options_All.txt.
 # stable_id|source|option_type|option_name|prerequisites|level_gained|class_associations|grant_value
-class-artificer|Eberron|class|Artificer|None|0|Artificer|
 class-barbarian|Core|class|Barbarian|None|0|Barbarian|
 class-bard|Core|class|Bard|None|0|Bard|
 class-cleric|Core|class|Cleric|None|0|Cleric|
@@ -24,133 +24,15 @@ class-thief|Core|class|Thief|None|0|Thief|
 class-draconic-sorcery|Core|class|Draconic Sorcery|None|0|Draconic Sorcery|
 class-fiend-patron|Core|class|Fiend Patron|None|0|Fiend Patron|
 class-evoker|Core|class|Evoker|None|0|Evoker|
-class-path-of-the-wild-heart|Core|class|Path of the Wild Heart|None|0|Path of the Wild Heart|
-class-path-of-the-world-tree|Core|class|Path of the World Tree|None|0|Path of the World Tree|
-class-college-of-dance|Core|class|College of Dance|None|0|College of Dance|
-class-college-of-valor|Core|class|College of Valor|None|0|College of Valor|
-class-light-domain|Core|class|Light Domain|None|0|Light Domain|
-class-trickery-domain|Core|class|Trickery Domain|None|0|Trickery Domain|
-class-war-domain|Core|class|War Domain|None|0|War Domain|
-class-circle-of-the-moon|Core|class|Circle of the Moon|None|0|Circle of the Moon|
-class-circle-of-the-sea|Core|class|Circle of the Sea|None|0|Circle of the Sea|
-class-circle-of-the-stars|Core|class|Circle of the Stars|None|0|Circle of the Stars|
-class-battle-master|Core|class|Battle Master|None|0|Battle Master|
-class-eldritch-knight|Core|class|Eldritch Knight|None|0|Eldritch Knight|
-class-psi-warrior|Core|class|Psi Warrior|None|0|Psi Warrior|
-class-warrior-of-mercy|Core|class|Warrior of Mercy|None|0|Warrior of Mercy|
-class-warrior-of-shadow|Core|class|Warrior of Shadow|None|0|Warrior of Shadow|
-class-warrior-of-the-elements|Core|class|Warrior of the Elements|None|0|Warrior of the Elements|
-class-oath-of-glory|Core|class|Oath of Glory|None|0|Oath of Glory|
-class-oath-of-the-ancients|Core|class|Oath of the Ancients|None|0|Oath of the Ancients|
-class-oath-of-vengeance|Core|class|Oath of Vengeance|None|0|Oath of Vengeance|
-class-beast-master|Core|class|Beast Master|None|0|Beast Master|
-class-fey-wanderer|Core|class|Fey Wanderer|None|0|Fey Wanderer|
-class-arcane-trickster|Core|class|Arcane Trickster|None|0|Arcane Trickster|
-class-assassin|Core|class|Assassin|None|0|Assassin|
-class-soulknife|Core|class|Soulknife|None|0|Soulknife|
-class-aberrant-sorcery|Core|class|Aberrant Sorcery|None|0|Aberrant Sorcery|
-class-clockwork-sorcery|Core|class|Clockwork Sorcery|None|0|Clockwork Sorcery|
-class-wild-magic-sorcery|Core|class|Wild Magic Sorcery|None|0|Wild Magic Sorcery|
-class-archfey-patron|Core|class|Archfey Patron|None|0|Archfey Patron|
-class-celestial-patron|Core|class|Celestial Patron|None|0|Celestial Patron|
-class-great-old-one-patron|Core|class|Great Old One Patron|None|0|Great Old One Patron|
-class-abjurer|Core|class|Abjurer|None|0|Abjurer|
-class-diviner|Core|class|Diviner|None|0|Diviner|
-class-illusionist|Core|class|Illusionist|None|0|Illusionist|
-class-college-of-the-moon|Core|class|College of the Moon|None|0|College of the Moon|
-class-knowledge-domain|Core|class|Knowledge Domain|None|0|Knowledge Domain|
-class-banneret|Core|class|Banneret|None|0|Banneret|
-class-oath-of-the-noble-genies|Core|class|Oath of the Noble Genies|None|0|Oath of the Noble Genies|
-class-winter-walker|Core|class|Winter Walker|None|0|Winter Walker|
-class-scion-of-the-three|Core|class|Scion of the Three|None|0|Scion of the Three|
-class-spellfire-sorcery|Core|class|Spellfire Sorcery|None|0|Spellfire Sorcery|
-class-bladesinger|Core|class|Bladesinger|None|0|Bladesinger|
-class-college-of-spirits|Core|class|College of Spirits|None|0|College of Spirits|
-class-the-undead|Core|class|The Undead|None|0|The Undead|
-class-alchemist|Core|class|Alchemist|None|0|Alchemist|
-class-armorer|Core|class|Armorer|None|0|Armorer|
-class-artillerist|Core|class|Artillerist|None|0|Artillerist|
-class-battle-smith|Core|class|Battle Smith|None|0|Battle Smith|
-class-cartographer|Core|class|Cartographer|None|0|Cartographer|
-class-path-of-the-ancestral-guardian|Core|class|Path of the Ancestral Guardian|None|0|Path of the Ancestral Guardian|
-class-path-of-the-storm-herald|Core|class|Path of the Storm Herald|None|0|Path of the Storm Herald|
-class-path-of-the-zealot|Core|class|Path of the Zealot|None|0|Path of the Zealot|
-class-college-of-glamour|Core|class|College of Glamour|None|0|College of Glamour|
-class-college-of-swords|Core|class|College of Swords|None|0|College of Swords|
-class-college-of-whispers|Core|class|College of Whispers|None|0|College of Whispers|
-class-forge-domain|Core|class|Forge Domain|None|0|Forge Domain|
-class-grave-domain|Core|class|Grave Domain|None|0|Grave Domain|
-class-circle-of-dreams|Core|class|Circle of Dreams|None|0|Circle of Dreams|
-class-circle-of-the-shepherd|Core|class|Circle of the Shepherd|None|0|Circle of the Shepherd|
-class-arcane-archer|Core|class|Arcane Archer|None|0|Arcane Archer|
-class-cavalier|Core|class|Cavalier|None|0|Cavalier|
-class-samurai|Core|class|Samurai|None|0|Samurai|
-class-way-of-the-drunken-master|Core|class|Way of the Drunken Master|None|0|Way of the Drunken Master|
-class-way-of-the-kensei|Core|class|Way of the Kensei|None|0|Way of the Kensei|
-class-way-of-the-sun-soul|Core|class|Way of the Sun Soul|None|0|Way of the Sun Soul|
-class-oath-of-conquest|Core|class|Oath of Conquest|None|0|Oath of Conquest|
-class-oath-of-redemption|Core|class|Oath of Redemption|None|0|Oath of Redemption|
-class-gloom-stalker|Core|class|Gloom Stalker|None|0|Gloom Stalker|
-class-horizon-walker|Core|class|Horizon Walker|None|0|Horizon Walker|
-class-monster-slayer|Core|class|Monster Slayer|None|0|Monster Slayer|
-class-inquisitive|Core|class|Inquisitive|None|0|Inquisitive|
-class-mastermind|Core|class|Mastermind|None|0|Mastermind|
-class-scout|Core|class|Scout|None|0|Scout|
-class-swashbuckler|Core|class|Swashbuckler|None|0|Swashbuckler|
-class-divine-soul|Core|class|Divine Soul|None|0|Divine Soul|
-class-shadow-magic|Core|class|Shadow Magic|None|0|Shadow Magic|
-class-storm-sorcery|Core|class|Storm Sorcery|None|0|Storm Sorcery|
-class-the-celestial|Core|class|The Celestial|None|0|The Celestial|
-class-the-hexblade|Core|class|The Hexblade|None|0|The Hexblade|
-class-war-magic|Core|class|War Magic|None|0|War Magic|
-species-aasimar|Core|species|Aasimar|None|0|Any|
-species-dragonborn|Core|species|Dragonborn|None|0|Any|
 species-dwarf|Core|species|Dwarf|None|0|Any|
-species-elf|Core|species|Elf|None|0|Any|
-species-gnome|Core|species|Gnome|None|0|Any|
-species-goliath|Core|species|Goliath|None|0|Any|
 species-halfling|Core|species|Halfling|None|0|Any|
 species-human|Core|species|Human|None|0|Any|
 species-orc|Core|species|Orc|None|0|Any|
-species-tiefling|Core|species|Tiefling|None|0|Any|
 background-acolyte|Core|background|Acolyte|None|0|Any|
-background-artisan|Core|background|Artisan|None|0|Any|
-background-charlatan|Core|background|Charlatan|None|0|Any|
 background-criminal|Core|background|Criminal|None|0|Any|
-background-entertainer|Core|background|Entertainer|None|0|Any|
-background-farmer|Core|background|Farmer|None|0|Any|
-background-guard|Core|background|Guard|None|0|Any|
-background-guide|Core|background|Guide|None|0|Any|
-background-hermit|Core|background|Hermit|None|0|Any|
-background-merchant|Core|background|Merchant|None|0|Any|
-background-noble|Core|background|Noble|None|0|Any|
 background-sage|Core|background|Sage|None|0|Any|
-background-sailor|Core|background|Sailor|None|0|Any|
-background-scribe|Core|background|Scribe|None|0|Any|
 background-soldier|Core|background|Soldier|None|0|Any|
-background-wayfarer|Core|background|Wayfarer|None|0|Any|
-background-haunted-one|Ravenloft|background|Haunted One|None|0|Any|
-background-investigator|Ravenloft|background|Investigator|None|0|Any|
-background-chondathan-freebooter|Forgotten Realms|background|Chondathan Freebooter|None|0|Any|
-background-dead-magic-dweller|Forgotten Realms|background|Dead Magic Dweller|None|0|Any|
-background-dragon-cultist|Forgotten Realms|background|Dragon Cultist|None|0|Any|
-background-emerald-enclave-caretaker|Forgotten Realms|background|Emerald Enclave Caretaker|None|0|Any|
-background-flaming-fist-mercenary|Forgotten Realms|background|Flaming Fist Mercenary|None|0|Any|
-background-genie-touched|Forgotten Realms|background|Genie Touched|None|0|Any|
-background-harper|Forgotten Realms|background|Harper|None|0|Any|
-background-ice-fisher|Forgotten Realms|background|Ice Fisher|None|0|Any|
-background-knight-of-the-gauntlet|Forgotten Realms|background|Knight of the Gauntlet|None|0|Any|
-background-lords-alliance-vassal|Forgotten Realms|background|Lords' Alliance Vassal|None|0|Any|
-background-moonwell-pilgrim|Forgotten Realms|background|Moonwell Pilgrim|None|0|Any|
-background-mulhorandi-tomb-raider|Forgotten Realms|background|Mulhorandi Tomb Raider|None|0|Any|
-background-mythalkeeper|Forgotten Realms|background|Mythalkeeper|None|0|Any|
-background-purple-dragon-squire|Forgotten Realms|background|Purple Dragon Squire|None|0|Any|
-background-rashemi-wanderer|Forgotten Realms|background|Rashemi Wanderer|None|0|Any|
-background-shadowmasters-exile|Forgotten Realms|background|Shadowmasters Exile|None|0|Any|
-background-spellfire-initiate|Forgotten Realms|background|Spellfire Initiate|None|0|Any|
-background-zhentarim-mercenary|Forgotten Realms|background|Zhentarim Mercenary|None|0|Any|
 feat-alert|Core|feat|Alert|Catalog prerequisites|0|Any|
-feat-magic-initiate|Core|feat|Magic Initiate|Catalog prerequisites|0|Any|
 feat-savage-attacker|Core|feat|Savage Attacker|Catalog prerequisites|0|Any|
 feat-skilled|Core|feat|Skilled|Catalog prerequisites|0|Any|
 feat-ability-score-improvement|Core|feat|Ability Score Improvement|Catalog prerequisites|0|Any|
@@ -281,14 +163,6 @@ ability-scholar|Core|ability|Scholar|Catalog prerequisites|0|Any|
 ability-memorize-spell|Core|ability|Memorize Spell|Catalog prerequisites|0|Any|
 ability-spell-mastery|Core|ability|Spell Mastery|Catalog prerequisites|0|Any|
 ability-signature-spells|Core|ability|Signature Spells|Catalog prerequisites|0|Any|
-ability-tinker-s-magic|Core|ability|Tinker's Magic|Catalog prerequisites|0|Any|
-ability-replicate-magic-item|Core|ability|Replicate Magic Item|Catalog prerequisites|0|Any|
-ability-right-tool-for-the-job|Core|ability|Right Tool for the Job|Catalog prerequisites|0|Any|
-ability-flash-of-genius|Core|ability|Flash of Genius|Catalog prerequisites|0|Any|
-ability-magic-item-adept|Core|ability|Magic Item Adept|Catalog prerequisites|0|Any|
-ability-magic-item-savant|Core|ability|Magic Item Savant|Catalog prerequisites|0|Any|
-ability-magic-item-master|Core|ability|Magic Item Master|Catalog prerequisites|0|Any|
-ability-soul-of-artifice|Core|ability|Soul of Artifice|Catalog prerequisites|0|Any|
 spell-acid-arrow|Core|spell|Acid Arrow|Spell level 2|2|Wizard|
 spell-acid-splash|Core|spell|Acid Splash|Spell level 0|0|Sorcerer, Wizard|
 spell-aid|Core|spell|Aid|Spell level 2|2|Bard, Cleric, Druid, Paladin, Ranger|
@@ -628,115 +502,6 @@ spell-wind-wall|Core|spell|Wind Wall|Spell level 3|3|Druid, Ranger|
 spell-wish|Core|spell|Wish|Spell level 9|9|Sorcerer, Wizard|
 spell-word-of-recall|Core|spell|Word of Recall|Spell level 6|6|Cleric|
 spell-zone-of-truth|Core|spell|Zone of Truth|Spell level 2|2|Bard, Cleric, Paladin|
-spell-spellfire-flare|Forgotten Realms|spell|Spellfire Flare|Spell level |||
-spell-wardaway|Forgotten Realms|spell|Wardaway|Spell level |||
-spell-death-armor|Forgotten Realms|spell|Death Armor|Spell level |||
-spell-deryan-s-helpful-homunculi|Forgotten Realms|spell|Deryan's Helpful Homunculi|Spell level |||
-spell-elminster-s-elusion|Forgotten Realms|spell|Elminster's Elusion|Spell level |||
-spell-cacophonic-shield|Forgotten Realms|spell|Cacophonic Shield|Spell level |||
-spell-conjure-constructs|Forgotten Realms|spell|Conjure Constructs|Spell level |||
-spell-laeral-s-silver-lance|Forgotten Realms|spell|Laeral's Silver Lance|Spell level |||
-spell-sylune-s-viper|Forgotten Realms|spell|Sylune's Viper|Spell level |||
-spell-backlash|Forgotten Realms|spell|Backlash|Spell level |||
-spell-doomtide|Forgotten Realms|spell|Doomtide|Spell level |||
-spell-spellfire-storm|Forgotten Realms|spell|Spellfire Storm|Spell level |||
-spell-alustriel-s-mooncloak|Forgotten Realms|spell|Alustriel's Mooncloak|Spell level |||
-spell-songol-s-elemental-suffusion|Forgotten Realms|spell|Songol's Elemental Suffusion|Spell level |||
-spell-dirge|Forgotten Realms|spell|Dirge|Spell level |||
-spell-elminster-s-effulgent-spheres|Forgotten Realms|spell|Elminster's Effulgent Spheres|Spell level |||
-spell-simbul-s-synostodweomer|Forgotten Realms|spell|Simbul's Synostodweomer|Spell level |||
-spell-holy-star-of-mystra|Forgotten Realms|spell|Holy Star of Mystra|Spell level |||
-spell-blade-of-disaster|Forgotten Realms|spell|Blade of Disaster|Spell level |||
-spell-control-flames|Xanathar|spell|Control Flames|Spell level |||
-spell-create-bonfire|Xanathar|spell|Create Bonfire|Spell level |||
-spell-frostbite|Xanathar|spell|Frostbite|Spell level |||
-spell-gust|Xanathar|spell|Gust|Spell level |||
-spell-infestation|Xanathar|spell|Infestation|Spell level |||
-spell-magic-stone|Xanathar|spell|Magic Stone|Spell level |||
-spell-mold-earth|Xanathar|spell|Mold Earth|Spell level |||
-spell-primal-savagery|Xanathar|spell|Primal Savagery|Spell level |||
-spell-shape-water|Xanathar|spell|Shape Water|Spell level |||
-spell-thunderclap|Xanathar|spell|Thunderclap|Spell level |||
-spell-toll-the-dead|Xanathar|spell|Toll the Dead|Spell level |||
-spell-word-of-radiance|Xanathar|spell|Word of Radiance|Spell level |||
-spell-absorb-elements|Xanathar|spell|Absorb Elements|Spell level |||
-spell-beast-bond|Xanathar|spell|Beast Bond|Spell level |||
-spell-catapult|Xanathar|spell|Catapult|Spell level |||
-spell-cause-fear|Xanathar|spell|Cause Fear|Spell level |||
-spell-ceremony|Xanathar|spell|Ceremony|Spell level |||
-spell-chaos-bolt|Xanathar|spell|Chaos Bolt|Spell level |||
-spell-earth-tremor|Xanathar|spell|Earth Tremor|Spell level |||
-spell-snare|Xanathar|spell|Snare|Spell level |||
-spell-zephyr-strike|Xanathar|spell|Zephyr Strike|Spell level |||
-spell-aganazzar-s-scorcher|Xanathar|spell|Aganazzar's Scorcher|Spell level |||
-spell-dust-devil|Xanathar|spell|Dust Devil|Spell level |||
-spell-earthbind|Xanathar|spell|Earthbind|Spell level |||
-spell-healing-spirit|Xanathar|spell|Healing Spirit|Spell level |||
-spell-maximilian-s-earthen-grasp|Xanathar|spell|Maximilian's Earthen Grasp|Spell level |||
-spell-pyrotechnics|Xanathar|spell|Pyrotechnics|Spell level |||
-spell-shadow-blade|Xanathar|spell|Shadow Blade|Spell level |||
-spell-skywrite|Xanathar|spell|Skywrite|Spell level |||
-spell-snilloc-s-snowball-swarm|Xanathar|spell|Snilloc's Snowball Swarm|Spell level |||
-spell-warding-wind|Xanathar|spell|Warding Wind|Spell level |||
-spell-catnap|Xanathar|spell|Catnap|Spell level |||
-spell-enemies-abound|Xanathar|spell|Enemies Abound|Spell level |||
-spell-erupting-earth|Xanathar|spell|Erupting Earth|Spell level |||
-spell-flame-arrows|Xanathar|spell|Flame Arrows|Spell level |||
-spell-life-transference|Xanathar|spell|Life Transference|Spell level |||
-spell-melf-s-minute-meteors|Xanathar|spell|Melf's Minute Meteors|Spell level |||
-spell-summon-lesser-demons|Xanathar|spell|Summon Lesser Demons|Spell level |||
-spell-thunder-step|Xanathar|spell|Thunder Step|Spell level |||
-spell-tidal-wave|Xanathar|spell|Tidal Wave|Spell level |||
-spell-tiny-servant|Xanathar|spell|Tiny Servant|Spell level |||
-spell-wall-of-sand|Xanathar|spell|Wall of Sand|Spell level |||
-spell-wall-of-water|Xanathar|spell|Wall of Water|Spell level |||
-spell-elemental-bane|Xanathar|spell|Elemental Bane|Spell level |||
-spell-find-greater-steed|Xanathar|spell|Find Greater Steed|Spell level |||
-spell-guardian-of-nature|Xanathar|spell|Guardian of Nature|Spell level |||
-spell-shadow-of-moil|Xanathar|spell|Shadow of Moil|Spell level |||
-spell-sickening-radiance|Xanathar|spell|Sickening Radiance|Spell level |||
-spell-storm-sphere|Xanathar|spell|Storm Sphere|Spell level |||
-spell-summon-greater-demon|Xanathar|spell|Summon Greater Demon|Spell level |||
-spell-watery-sphere|Xanathar|spell|Watery Sphere|Spell level |||
-spell-control-winds|Xanathar|spell|Control Winds|Spell level |||
-spell-danse-macabre|Xanathar|spell|Danse Macabre|Spell level |||
-spell-dawn|Xanathar|spell|Dawn|Spell level |||
-spell-enervation|Xanathar|spell|Enervation|Spell level |||
-spell-far-step|Xanathar|spell|Far Step|Spell level |||
-spell-holy-weapon|Xanathar|spell|Holy Weapon|Spell level |||
-spell-immolation|Xanathar|spell|Immolation|Spell level |||
-spell-infernal-calling|Xanathar|spell|Infernal Calling|Spell level |||
-spell-maelstrom|Xanathar|spell|Maelstrom|Spell level |||
-spell-negative-energy-flood|Xanathar|spell|Negative Energy Flood|Spell level |||
-spell-skill-empowerment|Xanathar|spell|Skill Empowerment|Spell level |||
-spell-steel-wind-strike|Xanathar|spell|Steel Wind Strike|Spell level |||
-spell-synaptic-static|Xanathar|spell|Synaptic Static|Spell level |||
-spell-transmute-rock|Xanathar|spell|Transmute Rock|Spell level |||
-spell-wall-of-light|Xanathar|spell|Wall of Light|Spell level |||
-spell-wrath-of-nature|Xanathar|spell|Wrath of Nature|Spell level |||
-spell-bones-of-the-earth|Xanathar|spell|Bones of the Earth|Spell level |||
-spell-create-homunculus|Xanathar|spell|Create Homunculus|Spell level |||
-spell-druid-grove|Xanathar|spell|Druid Grove|Spell level |||
-spell-investiture-of-flame|Xanathar|spell|Investiture of Flame|Spell level |||
-spell-investiture-of-ice|Xanathar|spell|Investiture of Ice|Spell level |||
-spell-investiture-of-stone|Xanathar|spell|Investiture of Stone|Spell level |||
-spell-investiture-of-wind|Xanathar|spell|Investiture of Wind|Spell level |||
-spell-mental-prison|Xanathar|spell|Mental Prison|Spell level |||
-spell-primordial-ward|Xanathar|spell|Primordial Ward|Spell level |||
-spell-scatter|Xanathar|spell|Scatter|Spell level |||
-spell-soul-cage|Xanathar|spell|Soul Cage|Spell level |||
-spell-tenser-s-transformation|Xanathar|spell|Tenser's Transformation|Spell level |||
-spell-crown-of-stars|Xanathar|spell|Crown of Stars|Spell level |||
-spell-power-word-pain|Xanathar|spell|Power Word Pain|Spell level |||
-spell-temple-of-the-gods|Xanathar|spell|Temple of the Gods|Spell level |||
-spell-whirlwind|Xanathar|spell|Whirlwind|Spell level |||
-spell-abi-dalzim-s-horrid-wilting|Xanathar|spell|Abi-Dalzim's Horrid Wilting|Spell level |||
-spell-illusory-dragon|Xanathar|spell|Illusory Dragon|Spell level |||
-spell-maddening-darkness|Xanathar|spell|Maddening Darkness|Spell level |||
-spell-mighty-fortress|Xanathar|spell|Mighty Fortress|Spell level |||
-spell-invulnerability|Xanathar|spell|Invulnerability|Spell level |||
-spell-mass-polymorph|Xanathar|spell|Mass Polymorph|Spell level |||
-spell-psychic-scream|Xanathar|spell|Psychic Scream|Spell level |||
 item-club|SRD5.2.1|item|Club|Catalog prerequisites|0|Any|
 item-dagger|SRD5.2.1|item|Dagger|Catalog prerequisites|0|Any|
 item-greatclub|SRD5.2.1|item|Greatclub|Catalog prerequisites|0|Any|
@@ -886,7 +651,6 @@ item-yew-wand|SRD5.2.1|item|Yew wand|Catalog prerequisites|0|Any|
 item-amulet-worn-or-held|SRD5.2.1|item|Amulet (worn or held)|Catalog prerequisites|0|Any|
 item-emblem-borne-on-fabric-or-a-shield|SRD5.2.1|item|Emblem (borne on fabric or a Shield)|Catalog prerequisites|0|Any|
 item-reliquary-held|SRD5.2.1|item|Reliquary (held)|Catalog prerequisites|0|Any|
-item-spell-scroll|SRD5.2.1|item|Spell Scroll|Catalog prerequisites|0|Any|
 item-camel|SRD5.2.1|item|Camel|Catalog prerequisites|0|Any|
 item-elephant|SRD5.2.1|item|Elephant|Catalog prerequisites|0|Any|
 item-horse-draft|SRD5.2.1|item|Horse, Draft|Catalog prerequisites|0|Any|
@@ -1170,67 +934,6 @@ item-well-of-many-worlds|SRD5.2.1|item|Well of Many Worlds|Catalog prerequisites
 item-wind-fan|SRD5.2.1|item|Wind Fan|Catalog prerequisites|0|Any|
 item-winged-boots|SRD5.2.1+Eberron|item|Winged Boots|Catalog prerequisites|0|Any|
 item-wings-of-flying|SRD5.2.1|item|Wings of Flying|Catalog prerequisites|0|Any|
-item-armor-of-gleaming|XGTE|item|Armor of Gleaming|Catalog prerequisites|0|Any|
-item-bead-of-refreshment|XGTE|item|Bead of Refreshment|Catalog prerequisites|0|Any|
-item-boots-of-false-tracks|XGTE|item|Boots of False Tracks|Catalog prerequisites|0|Any|
-item-candle-of-the-deep|XGTE|item|Candle of the Deep|Catalog prerequisites|0|Any|
-item-cast-off-armor|XGTE|item|Cast-Off Armor|Catalog prerequisites|0|Any|
-item-charlatan-s-die|XGTE|item|Charlatan's Die|Catalog prerequisites|0|Any|
-item-cloak-of-billowing|XGTE|item|Cloak of Billowing|Catalog prerequisites|0|Any|
-item-cloak-of-many-fashions|XGTE|item|Cloak of Many Fashions|Catalog prerequisites|0|Any|
-item-clockwork-amulet|XGTE|item|Clockwork Amulet|Catalog prerequisites|0|Any|
-item-clothes-of-mending|XGTE|item|Clothes of Mending|Catalog prerequisites|0|Any|
-item-dark-shard-amulet|XGTE|item|Dark Shard Amulet|Catalog prerequisites|0|Any|
-item-dread-helm|XGTE|item|Dread Helm|Catalog prerequisites|0|Any|
-item-ear-horn-of-hearing|XGTE|item|Ear Horn of Hearing|Catalog prerequisites|0|Any|
-item-enduring-spellbook|XGTE|item|Enduring Spellbook|Catalog prerequisites|0|Any|
-item-ersatz-eye|XGTE|item|Ersatz Eye|Catalog prerequisites|0|Any|
-item-hat-of-vermin|XGTE|item|Hat of Vermin|Catalog prerequisites|0|Any|
-item-hat-of-wizardry|XGTE|item|Hat of Wizardry|Catalog prerequisites|0|Any|
-item-heward-s-handy-spice-pouch|XGTE|item|Heward's Handy Spice Pouch|Catalog prerequisites|0|Any|
-item-horn-of-silent-alarm|XGTE|item|Horn of Silent Alarm|Catalog prerequisites|0|Any|
-item-instrument-of-illusions|XGTE|item|Instrument of Illusions|Catalog prerequisites|0|Any|
-item-instrument-of-scribing|XGTE|item|Instrument of Scribing|Catalog prerequisites|0|Any|
-item-lock-of-trickery|XGTE|item|Lock of Trickery|Catalog prerequisites|0|Any|
-item-moon-touched-sword|XGTE|item|Moon-Touched Sword|Catalog prerequisites|0|Any|
-item-mystery-key|XGTE|item|Mystery Key|Catalog prerequisites|0|Any|
-item-orb-of-direction|XGTE|item|Orb of Direction|Catalog prerequisites|0|Any|
-item-orb-of-time|XGTE|item|Orb of Time|Catalog prerequisites|0|Any|
-item-perfume-of-bewitching|XGTE|item|Perfume of Bewitching|Catalog prerequisites|0|Any|
-item-pipe-of-smoke-monsters|XGTE|item|Pipe of Smoke Monsters|Catalog prerequisites|0|Any|
-item-pole-of-angling|XGTE|item|Pole of Angling|Catalog prerequisites|0|Any|
-item-pole-of-collapsing|XGTE|item|Pole of Collapsing|Catalog prerequisites|0|Any|
-item-pot-of-awakening|XGTE|item|Pot of Awakening|Catalog prerequisites|0|Any|
-item-rope-of-mending|XGTE|item|Rope of Mending|Catalog prerequisites|0|Any|
-item-ruby-of-the-war-mage|XGTE|item|Ruby of the War Mage|Catalog prerequisites|0|Any|
-item-shield-of-expression|XGTE|item|Shield of Expression|Catalog prerequisites|0|Any|
-item-smoldering-armor|XGTE|item|Smoldering Armor|Catalog prerequisites|0|Any|
-item-staff-of-adornment|XGTE|item|Staff of Adornment|Catalog prerequisites|0|Any|
-item-staff-of-birdcalls|XGTE|item|Staff of Birdcalls|Catalog prerequisites|0|Any|
-item-staff-of-flowers|XGTE|item|Staff of Flowers|Catalog prerequisites|0|Any|
-item-talking-doll|XGTE|item|Talking Doll|Catalog prerequisites|0|Any|
-item-tankard-of-sobriety|XGTE|item|Tankard of Sobriety|Catalog prerequisites|0|Any|
-item-unbreakable-arrow|XGTE|item|Unbreakable Arrow|Catalog prerequisites|0|Any|
-item-veteran-s-cane|XGTE|item|Veteran's Cane|Catalog prerequisites|0|Any|
-item-walloping-ammunition|XGTE|item|Walloping Ammunition|Catalog prerequisites|0|Any|
-item-wand-of-conducting|XGTE|item|Wand of Conducting|Catalog prerequisites|0|Any|
-item-wand-of-pyrotechnics|XGTE|item|Wand of Pyrotechnics|Catalog prerequisites|0|Any|
-item-wand-of-scowls|XGTE|item|Wand of Scowls|Catalog prerequisites|0|Any|
-item-wand-of-smiles|XGTE|item|Wand of Smiles|Catalog prerequisites|0|Any|
-item-holy-symbol-of-ravenkind|VRGTR|item|Holy Symbol of Ravenkind|Catalog prerequisites|0|Any|
-item-icon-of-ravenloft|VRGTR|item|Icon of Ravenloft|Catalog prerequisites|0|Any|
-item-sunsword|VRGTR|item|Sunsword|Catalog prerequisites|0|Any|
-item-tome-of-strahd|VRGTR|item|Tome of Strahd|Catalog prerequisites|0|Any|
-item-blackstaff|FRHOF|item|Blackstaff|Catalog prerequisites|0|Any|
-item-bookmark|FRHOF|item|Bookmark|Catalog prerequisites|0|Any|
-item-hazirawn|FRHOF|item|Hazirawn|Catalog prerequisites|0|Any|
-item-moonblade|FRHOF|item|Moonblade|Catalog prerequisites|0|Any|
-item-ring-of-winter|FRHOF|item|Ring of Winter|Catalog prerequisites|0|Any|
-item-staff-of-the-forgotten-one|FRHOF|item|Staff of the Forgotten One|Catalog prerequisites|0|Any|
-item-adventurer-s-atlas|Eberron|item|Adventurer's Atlas|Catalog prerequisites|0|Any|
-item-all-purpose-tool|Eberron|item|All-Purpose Tool|Catalog prerequisites|0|Any|
-item-boots-of-the-winding-path|Eberron|item|Boots of the Winding Path|Catalog prerequisites|0|Any|
-item-repeating-shot-light-crossbow|Eberron|item|Repeating Shot Light Crossbow|Catalog prerequisites|0|Any|
 item-alchemist-s-supplies|SRD5.2.1|item|Alchemist's Supplies|Catalog prerequisites|0|Any|
 item-brewer-s-supplies|SRD5.2.1|item|Brewer's Supplies|Catalog prerequisites|0|Any|
 item-calligrapher-s-supplies|SRD5.2.1|item|Calligrapher's Supplies|Catalog prerequisites|0|Any|
@@ -1256,16 +959,14 @@ item-musical-instrument|SRD5.2.1|item|Musical Instrument|Catalog prerequisites|0
 item-navigator-s-tools|SRD5.2.1|item|Navigator's Tools|Catalog prerequisites|0|Any|
 item-poisoner-s-kit|SRD5.2.1|item|Poisoner's Kit|Catalog prerequisites|0|Any|
 item-thieves-tools|SRD5.2.1|item|Thieves' Tools|Catalog prerequisites|0|Any|
-grant-human-size|Core|species|Human|None|0|Any|size=Medium
+grant-human-size|Core|species|Human|Small or Medium|0|Any|size=Freepick Size
 grant-human-senses|Core|species|Human|None|0|Any|senses=Normal vision
-grant-elf-size|Core|species|Elf|None|0|Any|size=Medium
-grant-elf-senses|Core|species|Elf|None|0|Any|senses=Darkvision
+grant-human-resource|Core|species|Human|None|0|Any|feature=Resourceful
+grant-human-skill|Core|species|Human|Choose any skill|0|Any|skill=Freepick Skill
+grant-human-versatile|Core|species|Human|Choose an Origin feat|0|Any|feat=Freepick Feat
 grant-dwarf-size|Core|species|Dwarf|None|0|Any|size=Medium
 grant-dwarf-senses|Core|species|Dwarf|None|0|Any|senses=Darkvision
 grant-halfling-size|Core|species|Halfling|None|0|Any|size=Small
-grant-gnome-size|Core|species|Gnome|None|0|Any|size=Small
-grant-aasimar-size|Core|species|Aasimar|None|0|Any|size=Medium
-grant-aasimar-senses|Core|species|Aasimar|None|0|Any|senses=Darkvision 60 ft.
 grant-black-dragonborn-size|Core|species|Black Dragonborn|None|0|Any|size=Medium
 grant-blue-dragonborn-size|Core|species|Blue Dragonborn|None|0|Any|size=Medium
 grant-brass-dragonborn-size|Core|species|Brass Dragonborn|None|0|Any|size=Medium
@@ -1300,8 +1001,6 @@ sp-tcht-x0|Core|species|Chthonic Tiefling|None|0|Any|size=Medium
 sp-tcht-sense|Core|species|Chthonic Tiefling|None|0|Any|senses=Darkvision 60 ft.
 sp-tinf-x0|Core|species|Infernal Tiefling|None|0|Any|size=Medium
 sp-tinf-sense|Core|species|Infernal Tiefling|None|0|Any|senses=Darkvision 60 ft.
-
-# 2024 species progression grants. Level values use total character level.
 sp-drow-dl|Core|species|Drow Elf|None|1|Any|spell=Dancing Lights
 sp-drow-ff|Core|species|Drow Elf|None|3|Any|spell=Faerie Fire
 sp-drow-dark|Core|species|Drow Elf|None|5|Any|spell=Darkness
@@ -1326,13 +1025,6 @@ sp-tinf-fbolt|Core|species|Infernal Tiefling|None|1|Any|spell=Fire Bolt
 sp-tinf-res|Core|species|Infernal Tiefling|None|1|Any|resistance=Fire
 sp-tinf-hrebu|Core|species|Infernal Tiefling|None|3|Any|spell=Hellish Rebuke
 sp-tinf-dark|Core|species|Infernal Tiefling|None|5|Any|spell=Darkness
-
-# Additional 2024 species traits that fit the app's existing feature/resource model.
-sp-aas-necres|Core|species|Aasimar|None|1|Any|resistance=Necrotic
-sp-aas-radres|Core|species|Aasimar|None|1|Any|resistance=Radiant
-sp-aas-light|Core|species|Aasimar|None|1|Any|spell=Light
-sp-aas-heal|Core|species|Aasimar|None|1|Any|feat_long=Healing Hands
-sp-aas-celrev|Core|species|Aasimar|None|3|Any|feat_long=Celestial Revelation
 sp-dwf-res|Core|species|Dwarf|None|1|Any|resistance=Poison
 sp-dwf-stone|Core|species|Dwarf|None|1|Any|feat_pb=Stonecunning
 sp-gfor-mill|Core|species|Forest Gnome|None|1|Any|spell=Minor Illusion
@@ -1396,8 +1088,6 @@ sp-gsto-large|Core|species|Stone Giant Goliath|None|5|Any|feat_long=Large Form
 sp-gstr-spd|Core|species|Storm Giant Goliath|None|1|Any|speed=35
 sp-gstr-anc|Core|species|Storm Giant Goliath|None|1|Any|feat_pb=Storm's Thunder
 sp-gstr-large|Core|species|Storm Giant Goliath|None|5|Any|feat_long=Large Form
-
-# Deterministic class progression grants. Choice-bearing features remain catalog/manual.
 progression-fighter-second-wind|Core|class_feature|Fighter|None|1|Fighter|feature=Second Wind
 progression-fighter-action-surge|Core|class_feature|Fighter|None|2|Fighter|feature=Action Surge
 progression-fighter-extra-attack|Core|class_feature|Fighter|None|5|Fighter|feature=Extra Attack
@@ -1430,9 +1120,6 @@ progression-sorcerer-metamagic|Core|class_feature|Sorcerer|None|2|Sorcerer|featu
 progression-warlock-pact-magic|Core|class_feature|Warlock|None|1|Warlock|feature=Pact Magic
 progression-warlock-invocations|Core|class_feature|Warlock|None|1|Warlock|feature=Eldritch Invocations
 progression-wizard-spellcasting|Core|class_feature|Wizard|None|1|Wizard|feature=Spellcasting
-progression-artificer-spellcasting|Eberron|class_feature|Artificer|None|1|Artificer|feature=Spellcasting
-
-# Additional deterministic SRD 5.2.1 class progression coverage. Choice-bearing proficiencies/masteries remain explicit.
 progression-fighter-tactical-mind|Core|class_feature|Fighter|None|2|Fighter|feature=Tactical Mind
 prog-ftr-tacshift|Core|class_feature|Fighter|None|5|Fighter|feature=Tactical Shift
 prog-ftr-tacmaster|Core|class_feature|Fighter|None|9|Fighter|feature=Tactical Master
@@ -1469,8 +1156,6 @@ progression-wizard-arcane-recovery|Core|class_feature|Wizard|None|1|Wizard|featu
 progression-wizard-memorize-spell|Core|class_feature|Wizard|None|5|Wizard|feature=Memorize Spell
 prog-wiz-spellmaster|Core|class_feature|Wizard|None|18|Wizard|feature=Spell Mastery
 progression-wizard-signature-spells|Core|class_feature|Wizard|None|20|Wizard|feature=Signature Spells
-
-# Expanded verified deterministic 2024 class progression. Choice-bearing selections remain explicit.
 prog-cleric-spellcasting|Core|class_feature|Cleric|None|1|Cleric|feature=Spellcasting
 prog-cleric-sear-undead|Core|class_feature|Cleric|None|5|Cleric|feature=Sear Undead
 prog-cleric-improved-blessed|Core|class_feature|Cleric|None|14|Cleric|feature=Improved Blessed Strikes
@@ -1524,8 +1209,6 @@ prog-warlock-magical-cunning|Core|class_feature|Warlock|None|2|Warlock|feature=M
 prog-warlock-contact-patron|Core|class_feature|Warlock|None|9|Warlock|feature=Contact Patron
 prog-warlock-eldritch-master|Core|class_feature|Warlock|None|20|Warlock|feature=Eldritch Master
 prog-wizard-scholar|Core|class_feature|Wizard|None|2|Wizard|feature=Scholar
-
-# Verified deterministic SRD subclass features; subclass and feature choices remain manual.
 prog-champion-improved-critical|Core|subclass_feature|Champion|None|3|Fighter|feature=Improved Critical
 prog-champion-remarkable-athlete|Core|subclass_feature|Champion|None|3|Fighter|feature=Remarkable Athlete
 prog-champion-heroic-warrior|Core|subclass_feature|Champion|None|10|Fighter|feature=Heroic Warrior
@@ -1571,3 +1254,324 @@ prog-draconic-companion|Core|subclass_feature|Draconic Sorcery|None|18|Sorcerer|
 prog-fiend-blessing|Core|subclass_feature|Fiend Patron|None|3|Warlock|feature=Dark One's Blessing
 prog-fiend-luck|Core|subclass_feature|Fiend Patron|None|6|Warlock|feature=Dark One's Own Luck
 prog-fiend-hurl-through-hell|Core|subclass_feature|Fiend Patron|None|14|Warlock|feature=Hurl Through Hell
+b-aco-feat|Core|background|Acolyte|Origin feat|0|Any|origin_feat=Magic Initiate (Cleric)
+b-aco-sk1|Core|background|Acolyte|Background skill|0|Any|skill=Insight
+b-aco-sk2|Core|background|Acolyte|Background skill|0|Any|skill=Religion
+b-aco-tool|Core|background|Acolyte|Tool proficiency|0|Any|tool=Calligrapher's Supplies
+b-cri-feat|Core|background|Criminal|Origin feat|0|Any|origin_feat=Alert
+b-cri-sk1|Core|background|Criminal|Background skill|0|Any|skill=Sleight of Hand
+b-cri-sk2|Core|background|Criminal|Background skill|0|Any|skill=Stealth
+b-cri-tool|Core|background|Criminal|Tool proficiency|0|Any|tool=Thieves' Tools
+b-sag-feat|Core|background|Sage|Origin feat|0|Any|origin_feat=Magic Initiate (Wizard)
+b-sag-sk1|Core|background|Sage|Background skill|0|Any|skill=Arcana
+b-sag-sk2|Core|background|Sage|Background skill|0|Any|skill=History
+b-sag-tool|Core|background|Sage|Tool proficiency|0|Any|tool=Calligrapher's Supplies
+b-sol-feat|Core|background|Soldier|Origin feat|0|Any|origin_feat=Savage Attacker
+b-sol-sk1|Core|background|Soldier|Background skill|0|Any|skill=Athletics
+b-sol-sk2|Core|background|Soldier|Background skill|0|Any|skill=Intimidation
+b-sol-tool|Core|background|Soldier|Gaming Set|0|Any|tool=Freepick
+f-alert-fx|Core|feat|Alert|None|0|Any|feature=Alert
+f-savage-fx|Core|feat|Savage Attacker|None|0|Any|feature=Savage Attacker
+f-skilled-fx|Core|feat|Skilled|None|0|Any|feature=Skilled
+f-skilled-pr1|Core|feat|Skilled|Choose skill or tool|0|Any|proficiency=Freepick Skill/Tool
+f-skilled-pr2|Core|feat|Skilled|Choose skill or tool|0|Any|proficiency=Freepick Skill/Tool
+f-skilled-pr3|Core|feat|Skilled|Choose skill or tool|0|Any|proficiency=Freepick Skill/Tool
+mi-clr-fx|Core|feat|Magic Initiate (Cleric)|None|0|Any|feature=Magic Initiate (Cleric)
+mi-clr-cantrip1|Core|feat|Magic Initiate (Cleric)|Cleric cantrip|0|Any|spell=Freepick Spell
+mi-clr-cantrip2|Core|feat|Magic Initiate (Cleric)|Cleric cantrip|0|Any|spell=Freepick Spell
+mi-clr-lvl1|Core|feat|Magic Initiate (Cleric)|Cleric level 1|0|Any|spell=Freepick Spell
+mi-dru-fx|Core|feat|Magic Initiate (Druid)|None|0|Any|feature=Magic Initiate (Druid)
+mi-dru-cantrip1|Core|feat|Magic Initiate (Druid)|Druid cantrip|0|Any|spell=Freepick Spell
+mi-dru-cantrip2|Core|feat|Magic Initiate (Druid)|Druid cantrip|0|Any|spell=Freepick Spell
+mi-dru-lvl1|Core|feat|Magic Initiate (Druid)|Druid level 1|0|Any|spell=Freepick Spell
+mi-wiz-fx|Core|feat|Magic Initiate (Wizard)|None|0|Any|feature=Magic Initiate (Wizard)
+mi-wiz-cantrip1|Core|feat|Magic Initiate (Wizard)|Wizard cantrip|0|Any|spell=Freepick Spell
+mi-wiz-cantrip2|Core|feat|Magic Initiate (Wizard)|Wizard cantrip|0|Any|spell=Freepick Spell
+mi-wiz-lvl1|Core|feat|Magic Initiate (Wizard)|Wizard level 1|0|Any|spell=Freepick Spell
+wiz-l1-sp1|Core|class_feature|Wizard|Wizard spell up to L1|1|Wizard|spell=Freepick Spell
+wiz-l1-sp2|Core|class_feature|Wizard|Wizard spell up to L1|1|Wizard|spell=Freepick Spell
+wiz-l1-sp3|Core|class_feature|Wizard|Wizard spell up to L1|1|Wizard|spell=Freepick Spell
+wiz-l1-sp4|Core|class_feature|Wizard|Wizard spell up to L1|1|Wizard|spell=Freepick Spell
+wiz-l1-sp5|Core|class_feature|Wizard|Wizard spell up to L1|1|Wizard|spell=Freepick Spell
+wiz-l1-sp6|Core|class_feature|Wizard|Wizard spell up to L1|1|Wizard|spell=Freepick Spell
+wiz-l2-sp1|Core|class_feature|Wizard|Choose Wizard spell|2|Wizard|spell=Freepick Spell
+wiz-l2-sp2|Core|class_feature|Wizard|Choose Wizard spell|2|Wizard|spell=Freepick Spell
+wiz-l3-sp1|Core|class_feature|Wizard|Choose Wizard spell|3|Wizard|spell=Freepick Spell
+wiz-l3-sp2|Core|class_feature|Wizard|Choose Wizard spell|3|Wizard|spell=Freepick Spell
+wiz-l4-sp1|Core|class_feature|Wizard|Choose Wizard spell|4|Wizard|spell=Freepick Spell
+wiz-l4-sp2|Core|class_feature|Wizard|Choose Wizard spell|4|Wizard|spell=Freepick Spell
+wiz-l5-sp1|Core|class_feature|Wizard|Choose Wizard spell|5|Wizard|spell=Freepick Spell
+wiz-l5-sp2|Core|class_feature|Wizard|Choose Wizard spell|5|Wizard|spell=Freepick Spell
+wiz-l6-sp1|Core|class_feature|Wizard|Choose Wizard spell|6|Wizard|spell=Freepick Spell
+wiz-l6-sp2|Core|class_feature|Wizard|Choose Wizard spell|6|Wizard|spell=Freepick Spell
+wiz-l7-sp1|Core|class_feature|Wizard|Choose Wizard spell|7|Wizard|spell=Freepick Spell
+wiz-l7-sp2|Core|class_feature|Wizard|Choose Wizard spell|7|Wizard|spell=Freepick Spell
+wiz-l8-sp1|Core|class_feature|Wizard|Choose Wizard spell|8|Wizard|spell=Freepick Spell
+wiz-l8-sp2|Core|class_feature|Wizard|Choose Wizard spell|8|Wizard|spell=Freepick Spell
+wiz-l9-sp1|Core|class_feature|Wizard|Choose Wizard spell|9|Wizard|spell=Freepick Spell
+wiz-l9-sp2|Core|class_feature|Wizard|Choose Wizard spell|9|Wizard|spell=Freepick Spell
+wiz-l10-sp1|Core|class_feature|Wizard|Choose Wizard spell|10|Wizard|spell=Freepick Spell
+wiz-l10-sp2|Core|class_feature|Wizard|Choose Wizard spell|10|Wizard|spell=Freepick Spell
+wiz-l11-sp1|Core|class_feature|Wizard|Choose Wizard spell|11|Wizard|spell=Freepick Spell
+wiz-l11-sp2|Core|class_feature|Wizard|Choose Wizard spell|11|Wizard|spell=Freepick Spell
+wiz-l12-sp1|Core|class_feature|Wizard|Choose Wizard spell|12|Wizard|spell=Freepick Spell
+wiz-l12-sp2|Core|class_feature|Wizard|Choose Wizard spell|12|Wizard|spell=Freepick Spell
+wiz-l13-sp1|Core|class_feature|Wizard|Choose Wizard spell|13|Wizard|spell=Freepick Spell
+wiz-l13-sp2|Core|class_feature|Wizard|Choose Wizard spell|13|Wizard|spell=Freepick Spell
+wiz-l14-sp1|Core|class_feature|Wizard|Choose Wizard spell|14|Wizard|spell=Freepick Spell
+wiz-l14-sp2|Core|class_feature|Wizard|Choose Wizard spell|14|Wizard|spell=Freepick Spell
+wiz-l15-sp1|Core|class_feature|Wizard|Choose Wizard spell|15|Wizard|spell=Freepick Spell
+wiz-l15-sp2|Core|class_feature|Wizard|Choose Wizard spell|15|Wizard|spell=Freepick Spell
+wiz-l16-sp1|Core|class_feature|Wizard|Choose Wizard spell|16|Wizard|spell=Freepick Spell
+wiz-l16-sp2|Core|class_feature|Wizard|Choose Wizard spell|16|Wizard|spell=Freepick Spell
+wiz-l17-sp1|Core|class_feature|Wizard|Choose Wizard spell|17|Wizard|spell=Freepick Spell
+wiz-l17-sp2|Core|class_feature|Wizard|Choose Wizard spell|17|Wizard|spell=Freepick Spell
+wiz-l18-sp1|Core|class_feature|Wizard|Choose Wizard spell|18|Wizard|spell=Freepick Spell
+wiz-l18-sp2|Core|class_feature|Wizard|Choose Wizard spell|18|Wizard|spell=Freepick Spell
+wiz-l19-sp1|Core|class_feature|Wizard|Choose Wizard spell|19|Wizard|spell=Freepick Spell
+wiz-l19-sp2|Core|class_feature|Wizard|Choose Wizard spell|19|Wizard|spell=Freepick Spell
+wiz-l20-sp1|Core|class_feature|Wizard|Choose Wizard spell|20|Wizard|spell=Freepick Spell
+wiz-l20-sp2|Core|class_feature|Wizard|Choose Wizard spell|20|Wizard|spell=Freepick Spell
+evo-savant-fx|Core|subclass_feature|Evoker|None|3|Wizard|feature=Evocation Savant
+evo-sav-l3-1|Core|subclass_feature|Evoker|Evocation spell up to L2|3|Wizard|spell=Freepick Spell
+evo-sav-l3-2|Core|subclass_feature|Evoker|Evocation spell up to L2|3|Wizard|spell=Freepick Spell
+evo-sav-l5|Core|subclass_feature|Evoker|Evocation spell|5|Wizard|spell=Freepick Spell
+evo-sav-l7|Core|subclass_feature|Evoker|Evocation spell|7|Wizard|spell=Freepick Spell
+evo-sav-l9|Core|subclass_feature|Evoker|Evocation spell|9|Wizard|spell=Freepick Spell
+evo-sav-l11|Core|subclass_feature|Evoker|Evocation spell|11|Wizard|spell=Freepick Spell
+evo-sav-l13|Core|subclass_feature|Evoker|Evocation spell|13|Wizard|spell=Freepick Spell
+evo-sav-l15|Core|subclass_feature|Evoker|Evocation spell|15|Wizard|spell=Freepick Spell
+evo-sav-l17|Core|subclass_feature|Evoker|Evocation spell|17|Wizard|spell=Freepick Spell
+rogue-slip-wis|Core|class_feature|Rogue|Slippery Mind|15|Rogue|save=Wisdom
+monk-ds-str|Core|class_feature|Monk|Disciplined Survivor|14|Monk|save=Strength
+monk-ds-dex|Core|class_feature|Monk|Disciplined Survivor|14|Monk|save=Dexterity
+monk-ds-con|Core|class_feature|Monk|Disciplined Survivor|14|Monk|save=Constitution
+monk-ds-int|Core|class_feature|Monk|Disciplined Survivor|14|Monk|save=Intelligence
+monk-ds-wis|Core|class_feature|Monk|Disciplined Survivor|14|Monk|save=Wisdom
+monk-ds-cha|Core|class_feature|Monk|Disciplined Survivor|14|Monk|save=Charisma
+cls-barb-save1|Core|class_feature|Barbarian|Primary class|1|Barbarian|save=Strength
+cls-barb-save2|Core|class_feature|Barbarian|Primary class|1|Barbarian|save=Constitution
+cls-barb-skill1|Core|class_feature|Barbarian|Primary class|1|Barbarian|skill=Freepick Skill
+cls-barb-skill2|Core|class_feature|Barbarian|Primary class|1|Barbarian|skill=Freepick Skill
+cls-barb-weap1|Core|class_feature|Barbarian|Primary class|1|Barbarian|weapon=Simple Weapons
+cls-barb-weap2|Core|class_feature|Barbarian|Primary class|1|Barbarian|weapon=Martial Weapons
+cls-barb-arm1|Core|class_feature|Barbarian|Primary class|1|Barbarian|armor=Light Armor
+cls-barb-arm2|Core|class_feature|Barbarian|Primary class|1|Barbarian|armor=Medium Armor
+cls-barb-arm3|Core|class_feature|Barbarian|Primary class|1|Barbarian|armor=Shields
+cls-bard-save1|Core|class_feature|Bard|Primary class|1|Bard|save=Dexterity
+cls-bard-save2|Core|class_feature|Bard|Primary class|1|Bard|save=Charisma
+cls-bard-skill1|Core|class_feature|Bard|Primary class|1|Bard|skill=Freepick Skill
+cls-bard-skill2|Core|class_feature|Bard|Primary class|1|Bard|skill=Freepick Skill
+cls-bard-skill3|Core|class_feature|Bard|Primary class|1|Bard|skill=Freepick Skill
+cls-bard-weap1|Core|class_feature|Bard|Primary class|1|Bard|weapon=Simple Weapons
+cls-bard-arm1|Core|class_feature|Bard|Primary class|1|Bard|armor=Light Armor
+cls-bard-tool1|Core|class_feature|Bard|Primary Musical Instrument|1|Bard|tool=Freepick
+cls-bard-tool2|Core|class_feature|Bard|Primary Musical Instrument|1|Bard|tool=Freepick
+cls-bard-tool3|Core|class_feature|Bard|Primary Musical Instrument|1|Bard|tool=Freepick
+cls-cler-save1|Core|class_feature|Cleric|Primary class|1|Cleric|save=Wisdom
+cls-cler-save2|Core|class_feature|Cleric|Primary class|1|Cleric|save=Charisma
+cls-cler-skill1|Core|class_feature|Cleric|Primary class|1|Cleric|skill=Freepick Skill
+cls-cler-skill2|Core|class_feature|Cleric|Primary class|1|Cleric|skill=Freepick Skill
+cls-cler-weap1|Core|class_feature|Cleric|Primary class|1|Cleric|weapon=Simple Weapons
+cls-cler-arm1|Core|class_feature|Cleric|Primary class|1|Cleric|armor=Light Armor
+cls-cler-arm2|Core|class_feature|Cleric|Primary class|1|Cleric|armor=Medium Armor
+cls-cler-arm3|Core|class_feature|Cleric|Primary class|1|Cleric|armor=Shields
+cls-dru-save1|Core|class_feature|Druid|Primary class|1|Druid|save=Intelligence
+cls-dru-save2|Core|class_feature|Druid|Primary class|1|Druid|save=Wisdom
+cls-dru-skill1|Core|class_feature|Druid|Primary class|1|Druid|skill=Freepick Skill
+cls-dru-skill2|Core|class_feature|Druid|Primary class|1|Druid|skill=Freepick Skill
+cls-dru-weap1|Core|class_feature|Druid|Primary class|1|Druid|weapon=Simple Weapons
+cls-dru-arm1|Core|class_feature|Druid|Primary class|1|Druid|armor=Light Armor
+cls-dru-arm2|Core|class_feature|Druid|Primary class|1|Druid|armor=Shields
+cls-dru-tool1|Core|class_feature|Druid|Primary class|1|Druid|tool=Herbalism Kit
+cls-ftr-save1|Core|class_feature|Fighter|Primary class|1|Fighter|save=Strength
+cls-ftr-save2|Core|class_feature|Fighter|Primary class|1|Fighter|save=Constitution
+cls-ftr-skill1|Core|class_feature|Fighter|Primary class|1|Fighter|skill=Freepick Skill
+cls-ftr-skill2|Core|class_feature|Fighter|Primary class|1|Fighter|skill=Freepick Skill
+cls-ftr-weap1|Core|class_feature|Fighter|Primary class|1|Fighter|weapon=Simple Weapons
+cls-ftr-weap2|Core|class_feature|Fighter|Primary class|1|Fighter|weapon=Martial Weapons
+cls-ftr-arm1|Core|class_feature|Fighter|Primary class|1|Fighter|armor=Light Armor
+cls-ftr-arm2|Core|class_feature|Fighter|Primary class|1|Fighter|armor=Medium Armor
+cls-ftr-arm3|Core|class_feature|Fighter|Primary class|1|Fighter|armor=Heavy Armor
+cls-ftr-arm4|Core|class_feature|Fighter|Primary class|1|Fighter|armor=Shields
+cls-mnk-save1|Core|class_feature|Monk|Primary class|1|Monk|save=Strength
+cls-mnk-save2|Core|class_feature|Monk|Primary class|1|Monk|save=Dexterity
+cls-mnk-skill1|Core|class_feature|Monk|Primary class|1|Monk|skill=Freepick Skill
+cls-mnk-skill2|Core|class_feature|Monk|Primary class|1|Monk|skill=Freepick Skill
+cls-mnk-weap1|Core|class_feature|Monk|Primary class|1|Monk|weapon=Simple Weapons
+cls-mnk-weap2|Core|class_feature|Monk|Primary class|1|Monk|weapon=Martial Light Weapons
+cls-mnk-tool1|Core|class_feature|Monk|Primary Artisan or Musical|1|Monk|tool=Freepick
+cls-pal-save1|Core|class_feature|Paladin|Primary class|1|Paladin|save=Wisdom
+cls-pal-save2|Core|class_feature|Paladin|Primary class|1|Paladin|save=Charisma
+cls-pal-skill1|Core|class_feature|Paladin|Primary class|1|Paladin|skill=Freepick Skill
+cls-pal-skill2|Core|class_feature|Paladin|Primary class|1|Paladin|skill=Freepick Skill
+cls-pal-weap1|Core|class_feature|Paladin|Primary class|1|Paladin|weapon=Simple Weapons
+cls-pal-weap2|Core|class_feature|Paladin|Primary class|1|Paladin|weapon=Martial Weapons
+cls-pal-arm1|Core|class_feature|Paladin|Primary class|1|Paladin|armor=Light Armor
+cls-pal-arm2|Core|class_feature|Paladin|Primary class|1|Paladin|armor=Medium Armor
+cls-pal-arm3|Core|class_feature|Paladin|Primary class|1|Paladin|armor=Heavy Armor
+cls-pal-arm4|Core|class_feature|Paladin|Primary class|1|Paladin|armor=Shields
+cls-rng-save1|Core|class_feature|Ranger|Primary class|1|Ranger|save=Strength
+cls-rng-save2|Core|class_feature|Ranger|Primary class|1|Ranger|save=Dexterity
+cls-rng-skill1|Core|class_feature|Ranger|Primary class|1|Ranger|skill=Freepick Skill
+cls-rng-skill2|Core|class_feature|Ranger|Primary class|1|Ranger|skill=Freepick Skill
+cls-rng-skill3|Core|class_feature|Ranger|Primary class|1|Ranger|skill=Freepick Skill
+cls-rng-weap1|Core|class_feature|Ranger|Primary class|1|Ranger|weapon=Simple Weapons
+cls-rng-weap2|Core|class_feature|Ranger|Primary class|1|Ranger|weapon=Martial Weapons
+cls-rng-arm1|Core|class_feature|Ranger|Primary class|1|Ranger|armor=Light Armor
+cls-rng-arm2|Core|class_feature|Ranger|Primary class|1|Ranger|armor=Medium Armor
+cls-rng-arm3|Core|class_feature|Ranger|Primary class|1|Ranger|armor=Shields
+cls-rog-save1|Core|class_feature|Rogue|Primary class|1|Rogue|save=Dexterity
+cls-rog-save2|Core|class_feature|Rogue|Primary class|1|Rogue|save=Intelligence
+cls-rog-skill1|Core|class_feature|Rogue|Primary class|1|Rogue|skill=Freepick Skill
+cls-rog-skill2|Core|class_feature|Rogue|Primary class|1|Rogue|skill=Freepick Skill
+cls-rog-skill3|Core|class_feature|Rogue|Primary class|1|Rogue|skill=Freepick Skill
+cls-rog-skill4|Core|class_feature|Rogue|Primary class|1|Rogue|skill=Freepick Skill
+cls-rog-weap1|Core|class_feature|Rogue|Primary class|1|Rogue|weapon=Simple Weapons
+cls-rog-weap2|Core|class_feature|Rogue|Primary class|1|Rogue|weapon=Martial Finesse/Light
+cls-rog-arm1|Core|class_feature|Rogue|Primary class|1|Rogue|armor=Light Armor
+cls-rog-tool1|Core|class_feature|Rogue|Primary class|1|Rogue|tool=Thieves' Tools
+cls-sor-save1|Core|class_feature|Sorcerer|Primary class|1|Sorcerer|save=Constitution
+cls-sor-save2|Core|class_feature|Sorcerer|Primary class|1|Sorcerer|save=Charisma
+cls-sor-skill1|Core|class_feature|Sorcerer|Primary class|1|Sorcerer|skill=Freepick Skill
+cls-sor-skill2|Core|class_feature|Sorcerer|Primary class|1|Sorcerer|skill=Freepick Skill
+cls-sor-weap1|Core|class_feature|Sorcerer|Primary class|1|Sorcerer|weapon=Simple Weapons
+cls-wlk-save1|Core|class_feature|Warlock|Primary class|1|Warlock|save=Wisdom
+cls-wlk-save2|Core|class_feature|Warlock|Primary class|1|Warlock|save=Charisma
+cls-wlk-skill1|Core|class_feature|Warlock|Primary class|1|Warlock|skill=Freepick Skill
+cls-wlk-skill2|Core|class_feature|Warlock|Primary class|1|Warlock|skill=Freepick Skill
+cls-wlk-weap1|Core|class_feature|Warlock|Primary class|1|Warlock|weapon=Simple Weapons
+cls-wlk-arm1|Core|class_feature|Warlock|Primary class|1|Warlock|armor=Light Armor
+cls-wiz-save1|Core|class_feature|Wizard|Primary class|1|Wizard|save=Intelligence
+cls-wiz-save2|Core|class_feature|Wizard|Primary class|1|Wizard|save=Wisdom
+cls-wiz-skill1|Core|class_feature|Wizard|Primary class|1|Wizard|skill=Freepick Skill
+cls-wiz-skill2|Core|class_feature|Wizard|Primary class|1|Wizard|skill=Freepick Skill
+cls-wiz-weap1|Core|class_feature|Wizard|Primary class|1|Wizard|weapon=Simple Weapons
+cls-barb-mcw1|Core|class_feature|Barbarian|Multiclass|1|Barbarian|weapon=Martial Weapons
+cls-barb-mca1|Core|class_feature|Barbarian|Multiclass|1|Barbarian|armor=Shields
+cls-bard-mcsk1|Core|class_feature|Bard|Multiclass|1|Bard|skill=Freepick Skill
+cls-bard-mca1|Core|class_feature|Bard|Multiclass|1|Bard|armor=Light Armor
+cls-bard-mct1|Core|class_feature|Bard|Multiclass Musical Instrument|1|Bard|tool=Freepick
+cls-cler-mca1|Core|class_feature|Cleric|Multiclass|1|Cleric|armor=Light Armor
+cls-cler-mca2|Core|class_feature|Cleric|Multiclass|1|Cleric|armor=Medium Armor
+cls-cler-mca3|Core|class_feature|Cleric|Multiclass|1|Cleric|armor=Shields
+cls-dru-mca1|Core|class_feature|Druid|Multiclass|1|Druid|armor=Light Armor
+cls-dru-mca2|Core|class_feature|Druid|Multiclass|1|Druid|armor=Shields
+cls-ftr-mcw1|Core|class_feature|Fighter|Multiclass|1|Fighter|weapon=Martial Weapons
+cls-ftr-mca1|Core|class_feature|Fighter|Multiclass|1|Fighter|armor=Light Armor
+cls-ftr-mca2|Core|class_feature|Fighter|Multiclass|1|Fighter|armor=Medium Armor
+cls-ftr-mca3|Core|class_feature|Fighter|Multiclass|1|Fighter|armor=Shields
+cls-pal-mcw1|Core|class_feature|Paladin|Multiclass|1|Paladin|weapon=Martial Weapons
+cls-pal-mca1|Core|class_feature|Paladin|Multiclass|1|Paladin|armor=Light Armor
+cls-pal-mca2|Core|class_feature|Paladin|Multiclass|1|Paladin|armor=Medium Armor
+cls-pal-mca3|Core|class_feature|Paladin|Multiclass|1|Paladin|armor=Shields
+cls-rng-mcsk1|Core|class_feature|Ranger|Multiclass|1|Ranger|skill=Freepick Skill
+cls-rng-mcw1|Core|class_feature|Ranger|Multiclass|1|Ranger|weapon=Martial Weapons
+cls-rng-mca1|Core|class_feature|Ranger|Multiclass|1|Ranger|armor=Light Armor
+cls-rng-mca2|Core|class_feature|Ranger|Multiclass|1|Ranger|armor=Medium Armor
+cls-rng-mca3|Core|class_feature|Ranger|Multiclass|1|Ranger|armor=Shields
+cls-rog-mcsk1|Core|class_feature|Rogue|Multiclass|1|Rogue|skill=Freepick Skill
+cls-rog-mca1|Core|class_feature|Rogue|Multiclass|1|Rogue|armor=Light Armor
+cls-rog-mct1|Core|class_feature|Rogue|Multiclass|1|Rogue|tool=Thieves' Tools
+cls-wlk-mca1|Core|class_feature|Warlock|Multiclass|1|Warlock|armor=Light Armor
+bard-exp-l2-1|Core|class_feature|Bard|Expertise|2|Bard|expertise=Freepick Skill
+bard-exp-l2-2|Core|class_feature|Bard|Expertise|2|Bard|expertise=Freepick Skill
+bard-exp-l9-1|Core|class_feature|Bard|Expertise|9|Bard|expertise=Freepick Skill
+bard-exp-l9-2|Core|class_feature|Bard|Expertise|9|Bard|expertise=Freepick Skill
+rog-exp-l1-1|Core|class_feature|Rogue|Expertise|1|Rogue|expertise=Freepick Skill
+rog-exp-l1-2|Core|class_feature|Rogue|Expertise|1|Rogue|expertise=Freepick Skill
+rog-exp-l6-1|Core|class_feature|Rogue|Expertise|6|Rogue|expertise=Freepick Skill
+rog-exp-l6-2|Core|class_feature|Rogue|Expertise|6|Rogue|expertise=Freepick Skill
+rog-cant-lang|Core|class_feature|Rogue|Thieves' Cant|1|Rogue|language=Thieves' Cant
+rog-cant-choice|Core|class_feature|Rogue|Thieves' Cant|1|Rogue|language=Freepick
+rng-deft-exp|Core|class_feature|Ranger|Deft Explorer|2|Ranger|expertise=Freepick Skill
+rng-deft-lang1|Core|class_feature|Ranger|Deft Explorer|2|Ranger|language=Freepick
+rng-deft-lang2|Core|class_feature|Ranger|Deft Explorer|2|Ranger|language=Freepick
+rng-exp-l9-1|Core|class_feature|Ranger|Expertise|9|Ranger|expertise=Freepick Skill
+rng-exp-l9-2|Core|class_feature|Ranger|Expertise|9|Ranger|expertise=Freepick Skill
+wiz-scholar-exp|Core|class_feature|Wizard|Scholar skills|2|Wizard|expertise=Freepick Skill
+cleric-order-choice|Core|class_feature|Cleric|Divine Order|1|Cleric|feature=Freepick
+cleric-prot-weap|Core|feat|Protector|Divine Order|0|Cleric|weapon=Martial Weapons
+cleric-prot-arm|Core|feat|Protector|Divine Order|0|Cleric|armor=Heavy Armor
+cleric-thaum-cantrip|Core|feat|Thaumaturge|Cleric cantrip|0|Cleric|spell=Freepick Spell
+druid-order-choice|Core|class_feature|Druid|Primal Order|1|Druid|feature=Freepick
+druid-warden-weap|Core|feat|Warden|Primal Order|0|Druid|weapon=Martial Weapons
+druid-warden-arm|Core|feat|Warden|Primal Order|0|Druid|armor=Medium Armor
+druid-mag-cantrip|Core|feat|Magician|Druid cantrip|0|Druid|spell=Freepick Spell
+ftr-fstyle-feature|Core|class_feature|Fighter|Fighting Style|1|Fighter|feature=Fighting Style Feature
+ftr-fstyle-choice|Core|class_feature|Fighter|Fighting Style|1|Fighter|feat=Freepick Feat
+pal-fstyle-route|Core|class_feature|Paladin|Fighting Style|2|Paladin|feature=Freepick
+rng-fstyle-route|Core|class_feature|Ranger|Fighting Style|2|Ranger|feature=Freepick
+style-feat-feature|Core|feat|Fighting Style Feat|Fighting Style|0|Any|feature=Fighting Style Feature
+style-feat-choice|Core|feat|Fighting Style Feat|Fighting Style|0|Any|feat=Freepick Feat
+bless-cantrip1|Core|feat|Blessed Warrior|Cleric cantrip|0|Paladin|spell=Freepick Spell
+bless-cantrip2|Core|feat|Blessed Warrior|Cleric cantrip|0|Paladin|spell=Freepick Spell
+druid-cantrip1|Core|feat|Druidic Warrior|Druid cantrip|0|Ranger|spell=Freepick Spell
+druid-cantrip2|Core|feat|Druidic Warrior|Druid cantrip|0|Ranger|spell=Freepick Spell
+druid-druidic-lang|Core|class_feature|Druid|Druidic|1|Druid|language=Druidic
+druid-druidic-spell|Core|class_feature|Druid|Druidic|1|Druid|spell=Speak with Animals
+pal-smite-spell|Core|class_feature|Paladin|Paladin's Smite Free cast|2|Paladin|spell=Divine Smite
+pal-steed-spell|Core|class_feature|Paladin|Faithful Steed Free cast|5|Paladin|spell=Find Steed
+wlk-contact-spell|Core|class_feature|Warlock|Contact Patron Free cast|9|Warlock|spell=Contact Other Plane
+wlk-arcanum6|Core|class_feature|Warlock|Mystic Arcanum L6|11|Warlock|spell=Freepick Spell
+wlk-arcanum7|Core|class_feature|Warlock|Mystic Arcanum L7|13|Warlock|spell=Freepick Spell
+wlk-arcanum8|Core|class_feature|Warlock|Mystic Arcanum L8|15|Warlock|spell=Freepick Spell
+wlk-arcanum9|Core|class_feature|Warlock|Mystic Arcanum L9|17|Warlock|spell=Freepick Spell
+sc-002-f01|Core|subclass_feature|College of Lore|None|3|Bard|feature=Bonus Proficiencies
+sc-002-f03|Core|subclass_feature|College of Lore|None|6|Bard|feature=Magical Discoveries
+sc-004-f01|Core|subclass_feature|Circle of the Land|None|3|Druid|feature=Lands Aid
+sc-004-f03|Core|subclass_feature|Circle of the Land|None|10|Druid|feature=Natures Ward
+sc-004-f04|Core|subclass_feature|Circle of the Land|None|14|Druid|feature=Natures Sanctuary
+sc-005-f03|Core|subclass_feature|Champion|None|7|Fighter|feature=Additional Fighting Style
+sc-008-f01|Core|subclass_feature|Hunter|None|3|Ranger|feature=Hunters Lore
+sc-008-f02|Core|subclass_feature|Hunter|None|11|Ranger|feature=Superior Hunters Prey
+sc-008-f03|Core|subclass_feature|Hunter|None|15|Ranger|feature=Superior Hunters Defense
+sc-009-f05|Core|subclass_feature|Thief|None|17|Rogue|feature=Thiefs Reflexes
+sc-011-f01|Core|subclass_feature|Fiend Patron|None|3|Warlock|feature=Dark Ones Blessing
+sc-011-f02|Core|subclass_feature|Fiend Patron|None|6|Warlock|feature=Dark Ones Own Luck
+sc-011-f03|Core|subclass_feature|Fiend Patron|None|10|Warlock|feature=Fiendish Resilience
+sg-e3f44f1722|Core|subclass_feature|Life Domain|Always prepared|3|Cleric|spell=Aid
+sg-422c961172|Core|subclass_feature|Life Domain|Always prepared|3|Cleric|spell=Bless
+sg-7fae6ca988|Core|subclass_feature|Life Domain|Always prepared|3|Cleric|spell=Cure Wounds
+sg-e7294becb7|Core|subclass_feature|Life Domain|Always prepared|3|Cleric|spell=Lesser Restoration
+sg-c418d22c29|Core|subclass_feature|Life Domain|Always prepared|5|Cleric|spell=Mass Healing Word
+sg-2b2e586a77|Core|subclass_feature|Life Domain|Always prepared|5|Cleric|spell=Revivify
+sg-f980462d44|Core|subclass_feature|Life Domain|Always prepared|7|Cleric|spell=Aura of Life
+sg-0ddf09ac5e|Core|subclass_feature|Life Domain|Always prepared|7|Cleric|spell=Death Ward
+sg-47a0bb6176|Core|subclass_feature|Life Domain|Always prepared|9|Cleric|spell=Greater Restoration
+sg-0e42783bb0|Core|subclass_feature|Life Domain|Always prepared|9|Cleric|spell=Mass Cure Wounds
+sg-fcf0be5cb9|Core|subclass_feature|Oath of Devotion|Always prepared|3|Paladin|spell=Protection from Evil and Good
+sg-3739de0f57|Core|subclass_feature|Oath of Devotion|Always prepared|3|Paladin|spell=Shield of Faith
+sg-75bcc8f99c|Core|subclass_feature|Oath of Devotion|Always prepared|5|Paladin|spell=Aid
+sg-642888d8a3|Core|subclass_feature|Oath of Devotion|Always prepared|5|Paladin|spell=Zone of Truth
+sg-d5988900cb|Core|subclass_feature|Oath of Devotion|Always prepared|9|Paladin|spell=Beacon of Hope
+sg-646c70a1fd|Core|subclass_feature|Oath of Devotion|Always prepared|9|Paladin|spell=Dispel Magic
+sg-3a86d3d3c3|Core|subclass_feature|Oath of Devotion|Always prepared|13|Paladin|spell=Freedom of Movement
+sg-e27e475166|Core|subclass_feature|Oath of Devotion|Always prepared|13|Paladin|spell=Guardian of Faith
+sg-a882f85928|Core|subclass_feature|Oath of Devotion|Always prepared|17|Paladin|spell=Commune
+sg-78ced26e0e|Core|subclass_feature|Oath of Devotion|Always prepared|17|Paladin|spell=Flame Strike
+sg-9d5874490b|Core|subclass_feature|Draconic Sorcery|Always prepared|3|Sorcerer|spell=Alter Self
+sg-79cc37a1ac|Core|subclass_feature|Draconic Sorcery|Always prepared|3|Sorcerer|spell=Chromatic Orb
+sg-5e4eb1fbaa|Core|subclass_feature|Draconic Sorcery|Always prepared|3|Sorcerer|spell=Command
+sg-a4193dc0fe|Core|subclass_feature|Draconic Sorcery|Always prepared|3|Sorcerer|spell=Dragon's Breath
+sg-3d3e18c79b|Core|subclass_feature|Draconic Sorcery|Always prepared|5|Sorcerer|spell=Fear
+sg-3526b467e8|Core|subclass_feature|Draconic Sorcery|Always prepared|5|Sorcerer|spell=Fly
+sg-033e2f9151|Core|subclass_feature|Draconic Sorcery|Always prepared|7|Sorcerer|spell=Arcane Eye
+sg-d806291543|Core|subclass_feature|Draconic Sorcery|Always prepared|7|Sorcerer|spell=Charm Monster
+sg-5d730cf683|Core|subclass_feature|Draconic Sorcery|Always prepared|9|Sorcerer|spell=Legend Lore
+sg-7cf971edb9|Core|subclass_feature|Draconic Sorcery|Always prepared|9|Sorcerer|spell=Summon Dragon
+sg-e6a65045fc|Core|subclass_feature|Fiend Patron|Always prepared|3|Warlock|spell=Burning Hands
+sg-3fa4bd8b5d|Core|subclass_feature|Fiend Patron|Always prepared|3|Warlock|spell=Command
+sg-f86622dfd2|Core|subclass_feature|Fiend Patron|Always prepared|3|Warlock|spell=Scorching Ray
+sg-bd23a276c3|Core|subclass_feature|Fiend Patron|Always prepared|3|Warlock|spell=Suggestion
+sg-d81446b0e4|Core|subclass_feature|Fiend Patron|Always prepared|5|Warlock|spell=Fireball
+sg-db5a36b5c3|Core|subclass_feature|Fiend Patron|Always prepared|5|Warlock|spell=Stinking Cloud
+sg-fda2bc3fb7|Core|subclass_feature|Fiend Patron|Always prepared|7|Warlock|spell=Fire Shield
+sg-08e9ea1112|Core|subclass_feature|Fiend Patron|Always prepared|7|Warlock|spell=Wall of Fire
+sg-db546b588b|Core|subclass_feature|Fiend Patron|Always prepared|9|Warlock|spell=Geas
+sg-be2f2b8d46|Core|subclass_feature|Fiend Patron|Always prepared|9|Warlock|spell=Insect Plague
+lore-skill3-1|Core|subclass_feature|College of Lore|Any skill|3|Bard|skill=Freepick
+lore-skill3-2|Core|subclass_feature|College of Lore|Any skill|3|Bard|skill=Freepick
+lore-skill3-3|Core|subclass_feature|College of Lore|Any skill|3|Bard|skill=Freepick
+lore-magic6-1|Core|subclass_feature|College of Lore|Cleric, Druid, Wizard|6|Bard|spell=Freepick Spell
+lore-magic6-2|Core|subclass_feature|College of Lore|Cleric, Druid, Wizard|6|Bard|spell=Freepick Spell
