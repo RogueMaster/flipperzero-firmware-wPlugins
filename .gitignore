@@ -1,0 +1,10 @@
+.DS_Store
+.build-tests/
+.ufbt-venv/
+**/.build/
+**/.build-*/
+**/.swiftpm-cache/
+**/.swiftpm/
+**/__pycache__/
+*.pyc
+DerivedData/
