@@ -41,12 +41,13 @@ outside the MVP.
 - **Weather** — searches Open-Meteo locations and shows the current forecast
 - **National Today** — displays the daily National Today description
 - **Where is the ISS?** — shows current coordinates, altitude, speed, and visibility
+- **Internet Radio** — finds MP3 stations by country and plays them on the Flipper speaker
 - **Custom URL Request** — accepts an HTTPS URL up to 384 bytes
 - **Connection Info** — shows USB, helper, permission, device, and protocol state
 
 The sample text is displayed only; it is not saved to the microSD card. Response
 bodies arrive in 192-byte protocol chunks. The Flipper retains only a bounded
-1,536-byte screen preview, while the total response limit is 16 KiB.
+1,536-byte screen preview, while the total response limit is 4 MiB.
 
 Weather searches accept ASCII input. Open-Meteo performs case- and
 diacritic-insensitive matching and returns at most three choices. The result

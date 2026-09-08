@@ -8,3 +8,5 @@
 **/__pycache__/
 *.pyc
 DerivedData/
+.vscode/compile_commands.json
+dist/debug/

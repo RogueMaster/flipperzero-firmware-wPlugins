@@ -15,5 +15,7 @@ App(
     fap_icon="app.png",
     fap_category="USB",
     fap_description="HTTPS bridge over USB CDC",
-    fap_version="0.2.0",
+    fap_version="0.2",
+    fap_author="mete888",
+    fap_weburl="https://github.com/mete888/flipper_usb_to_wifi",
 )
