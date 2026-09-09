@@ -6,6 +6,7 @@ enum {
     BtMenuIndexSpam,
     BtMenuIndexDetectors,
     BtMenuIndexTracker,
+    BtMenuIndexRecon,
 };
 
 static const MarauderMenuItem marauder_bt_menu_items[] = {
@@ -21,6 +22,10 @@ static const MarauderMenuItem marauder_bt_menu_items[] = {
      "AirTag/Tracker Finder",
      "Yakindaki AirTag/Find My cihazlarini bulur; birini secip ses caldirabilir veya kimligini taklit edebilirsin (spoof).",
      "Finds nearby AirTag/Find My devices; pick one to play a sound or spoof its identity."},
+    {"BLE Kesif",
+     "BLE Recon",
+     "BLE kesif gorevini baslatir (Marauder v1.16.0) ve bulunan cihazlari canli listeler.",
+     "Starts the BLE recon mission (Marauder v1.16.0) and live-lists the devices it finds."},
 };
 
 void marauder_gui_scene_bt_menu_on_enter(void* context) {
@@ -45,6 +50,9 @@ bool marauder_gui_scene_bt_menu_on_event(void* context, SceneManagerEvent event)
             consumed = true;
         } else if(event.event == BtMenuIndexDetectors) {
             scene_manager_next_scene(app->scene_manager, MarauderGuiSceneBtDetectorMenu);
+            consumed = true;
+        } else if(event.event == BtMenuIndexRecon) {
+            scene_manager_next_scene(app->scene_manager, MarauderGuiSceneBtRecon);
             consumed = true;
         }
     }

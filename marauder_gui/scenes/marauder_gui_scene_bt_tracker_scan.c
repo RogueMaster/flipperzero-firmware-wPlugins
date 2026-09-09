@@ -7,7 +7,7 @@
    Reuses the app's shared list-view state (ap_list/ap_count/wifi_list_*) and the WifiList
    custom View - see marauder_gui_scene_wifi_scanning.c for that view's implementation. */
 #define BT_TRACKER_SCAN_REFRESH_TICKS 15 /* ~1.5s at the app's 100ms tick period */
-#define BT_TRACKER_MARQUEE_TICKS 2
+#define BT_TRACKER_MARQUEE_TICKS 3
 #define BT_TRACKER_MARQUEE_DELAY_TICKS 30 /* ~3s pause before a highlighted row starts scrolling */
 
 /* Marauder prints tracker entries as "[<index>]MAC: <mac>" (see CommandLine.cpp's "list -t"
@@ -60,8 +60,9 @@ void marauder_gui_scene_bt_tracker_scan_on_enter(void* context) {
     app->wifi_list_marquee_tick = 0;
     app->wifi_list_marquee_hold = 0;
     app->wifi_list_marquee_delay = BT_TRACKER_MARQUEE_DELAY_TICKS;
-    app->wifi_list_scanning_label = marauder_gui_text(app, "Araniyor... (Geri:Dur)", "Searching... (Back:Stop)");
-    app->wifi_list_empty_label = marauder_gui_text(app, "AirTag/tracker araniyor...", "Searching AirTag/tracker...");
+    app->wifi_list_scanning_label = marauder_gui_text(app, "Araniyor...", "Searching...");
+    app->wifi_list_empty_label =
+        marauder_gui_text(app, "AirTag/tracker araniyor...", "Searching AirTag/tracker...");
 
     app->uart_line_handler = marauder_gui_scene_bt_tracker_scan_uart_line;
     app->tick_handler = marauder_gui_scene_bt_tracker_scan_tick;

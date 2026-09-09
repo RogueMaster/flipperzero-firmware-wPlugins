@@ -12,8 +12,9 @@ static void marauder_gui_scene_wifi_join_password_callback(void* context) {
 void marauder_gui_scene_wifi_join_password_on_enter(void* context) {
     MarauderGuiApp* app = context;
 
-    text_input_set_header_text(app->text_input, marauder_gui_text(app, "WiFi Sifresi", "WiFi Password"));
-    text_input_set_result_callback(
+    marauder_text_input_set_header_text(
+        app->text_input, marauder_gui_text(app, "WiFi Sifresi", "WiFi Password"));
+    marauder_text_input_set_result_callback(
         app->text_input,
         marauder_gui_scene_wifi_join_password_callback,
         app,
@@ -39,5 +40,5 @@ bool marauder_gui_scene_wifi_join_password_on_event(void* context, SceneManagerE
 
 void marauder_gui_scene_wifi_join_password_on_exit(void* context) {
     MarauderGuiApp* app = context;
-    text_input_reset(app->text_input);
+    marauder_text_input_reset(app->text_input);
 }

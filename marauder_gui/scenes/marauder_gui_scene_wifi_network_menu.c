@@ -52,7 +52,10 @@ void marauder_gui_scene_wifi_network_menu_on_enter(void* context) {
             marauder_wifi_network_menu_header,
             sizeof(marauder_wifi_network_menu_header),
             "%s",
-            marauder_gui_text(app, "Ag Araclari (Bagli degil)", "Network Tools (Not connected)"));
+            /* Kept short: the header is one FontPrimary line and the full
+               "Network Tools (Not connected)" ran past the 128px edge. You reach this screen
+               through a row literally called "Network Tools", so the state is the useful half. */
+            marauder_gui_text(app, "Bagli degil", "Not connected"));
     }
 
     marauder_gui_menu_set_items(

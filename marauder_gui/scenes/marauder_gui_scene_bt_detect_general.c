@@ -7,7 +7,7 @@ void marauder_gui_scene_bt_detect_general_on_enter(void* context) {
         app,
         "sniffbt",
         "list -b",
-        marauder_gui_text(app, "BLE Taraniyor.. (Geri:Dur)", "Scanning BLE.. (Back:Stop)"),
+        marauder_gui_text(app, "BLE Taraniyor..", "Scanning BLE.."),
         marauder_gui_text(app, "BLE cihazi bulunamadi...", "No BLE device found..."));
 }
 

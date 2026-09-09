@@ -9,11 +9,12 @@
    sends a custom event with the selected index, same as Submenu's callback did, so scenes only
    need to change on_enter/on_exit, not on_event. */
 
-#define MARAUDER_MENU_ROW_HEIGHT 13
+#define MARAUDER_MENU_ROW_HEIGHT    13
 #define MARAUDER_MENU_HEADER_HEIGHT 13
-#define MARAUDER_MENU_VISIBLE_ROWS 4
-#define MARAUDER_MENU_MARQUEE_TICKS 2
-#define MARAUDER_MENU_MARQUEE_DELAY_TICKS 30 /* ~3s pause before a highlighted row starts scrolling */
+#define MARAUDER_MENU_VISIBLE_ROWS  4
+#define MARAUDER_MENU_MARQUEE_TICKS 3
+#define MARAUDER_MENU_MARQUEE_DELAY_TICKS \
+    30 /* ~3s pause before a highlighted row starts scrolling */
 
 void marauder_gui_menu_redraw(MarauderGuiApp* app) {
     with_view_model(app->menu_view, MarauderGuiApp * *model, { UNUSED(model); }, true);
@@ -44,11 +45,13 @@ static void marauder_gui_menu_wrap(
     int32_t total = 0;
 
     while(*p) {
-        while(*p == ' ') p++;
+        while(*p == ' ')
+            p++;
         if(!*p) break;
 
         const char* word_start = p;
-        while(*p && *p != ' ') p++;
+        while(*p && *p != ' ')
+            p++;
         int word_len = (int)(p - word_start);
         if(word_len > 100) word_len = 100;
 
@@ -99,8 +102,16 @@ static void marauder_gui_menu_draw_description(Canvas* canvas, MarauderGuiApp* a
     const char* description = marauder_gui_menu_item_description(app, item);
     int32_t total_lines = 0;
     marauder_gui_menu_wrap(
-        canvas, 2, text_y, canvas_width(canvas) - 4, line_height, visible_rows, 0,
-        description, &total_lines, false);
+        canvas,
+        2,
+        text_y,
+        canvas_width(canvas) - 4,
+        line_height,
+        visible_rows,
+        0,
+        description,
+        &total_lines,
+        false);
 
     int32_t max_scroll = total_lines - visible_rows;
     if(max_scroll < 0) max_scroll = 0;
@@ -143,8 +154,13 @@ static void marauder_gui_menu_draw_callback(Canvas* canvas, void* model) {
         return;
     }
 
+    /* Headers can be built at runtime (e.g. "Connected: <long ssid>"), so draw them the way the
+       description view draws its title: elements_scrollable_text_line truncates with an ellipsis
+       instead of running off the right edge like a plain canvas_draw_str does. */
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 9, app->menu_header);
+    FuriString* header = furi_string_alloc_set_str(app->menu_header);
+    elements_scrollable_text_line(canvas, 2, 9, canvas_width(canvas) - 4, header, 0, false);
+    furi_string_free(header);
     canvas_draw_line(canvas, 0, 11, canvas_width(canvas), 11);
 
     canvas_set_font(canvas, FontSecondary);
@@ -166,15 +182,16 @@ static void marauder_gui_menu_draw_callback(Canvas* canvas, void* model) {
                 MARAUDER_MENU_ROW_HEIGHT);
             canvas_set_color(canvas, ColorWhite);
 
-            FuriString* text =
-                furi_string_alloc_set_str(marauder_gui_menu_item_label(app, &app->menu_items[idx]));
+            FuriString* text = furi_string_alloc_set_str(
+                marauder_gui_menu_item_label(app, &app->menu_items[idx]));
             elements_scrollable_text_line(
                 canvas, 2, y, canvas_width(canvas) - 4, text, app->menu_marquee_tick, false);
             furi_string_free(text);
 
             canvas_set_color(canvas, ColorBlack);
         } else {
-            canvas_draw_str(canvas, 2, y, marauder_gui_menu_item_label(app, &app->menu_items[idx]));
+            canvas_draw_str(
+                canvas, 2, y, marauder_gui_menu_item_label(app, &app->menu_items[idx]));
         }
     }
 
@@ -221,8 +238,8 @@ static bool marauder_gui_menu_input_callback(InputEvent* event, void* context) {
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
 
     if(event->key == InputKeyUp) {
-        app->menu_selected =
-            (app->menu_selected == 0) ? app->menu_item_count - 1 : app->menu_selected - 1;
+        app->menu_selected = (app->menu_selected == 0) ? app->menu_item_count - 1 :
+                                                         app->menu_selected - 1;
         app->menu_marquee_tick = 0;
         app->menu_marquee_hold = 0;
         app->menu_marquee_delay = MARAUDER_MENU_MARQUEE_DELAY_TICKS;

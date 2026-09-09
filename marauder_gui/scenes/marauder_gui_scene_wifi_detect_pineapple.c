@@ -7,7 +7,7 @@ void marauder_gui_scene_wifi_detect_pineapple_on_enter(void* context) {
         app,
         "sniffpinescan",
         "list -x",
-        marauder_gui_text(app, "Pineapple Araniyor.. (Geri:Dur)", "Searching Pineapple.. (Back:Stop)"),
+        marauder_gui_text(app, "Pineapple Araniyor..", "Searching Pineapple.."),
         marauder_gui_text(app, "Pineapple bulunamadi...", "No Pineapple found..."));
 }
 

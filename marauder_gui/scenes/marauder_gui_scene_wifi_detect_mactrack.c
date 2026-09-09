@@ -12,7 +12,7 @@
    "Frames:"/"Last Seen:" wording) - reusing the indexed WifiList view instead turns each entry
    into its own row (marquee-scrollable when selected, like a long AP SSID) rather than a wall of
    repeating text, and the existing freeze/resume convention applies for free. */
-#define MACTRACK_MARQUEE_TICKS 2
+#define MACTRACK_MARQUEE_TICKS 3
 #define MACTRACK_MARQUEE_DELAY_TICKS 30 /* ~3s pause before a highlighted row starts scrolling */
 
 static void marauder_gui_scene_wifi_detect_mactrack_uart_line(MarauderGuiApp* app, const char* line) {
@@ -77,9 +77,9 @@ void marauder_gui_scene_wifi_detect_mactrack_on_enter(void* context) {
     app->wifi_list_marquee_tick = 0;
     app->wifi_list_marquee_hold = 0;
     app->wifi_list_marquee_delay = MACTRACK_MARQUEE_DELAY_TICKS;
-    app->wifi_list_scanning_label =
-        marauder_gui_text(app, "MAC Monitor (Geri:Dur)", "MAC Monitor (Back:Stop)");
-    app->wifi_list_empty_label = marauder_gui_text(app, "Cihaz araniyor...", "Searching for devices...");
+    app->wifi_list_scanning_label = marauder_gui_text(app, "MAC Monitor", "MAC Monitor");
+    app->wifi_list_empty_label =
+        marauder_gui_text(app, "Cihaz araniyor...", "Searching for devices...");
 
     app->uart_line_handler = marauder_gui_scene_wifi_detect_mactrack_uart_line;
     app->tick_handler = marauder_gui_scene_wifi_detect_mactrack_tick;

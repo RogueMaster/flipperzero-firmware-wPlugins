@@ -7,7 +7,7 @@ void marauder_gui_scene_wifi_detect_multissid_on_enter(void* context) {
         app,
         "sniffmultissid",
         "list -m",
-        marauder_gui_text(app, "MultiSSID Araniyor.. (Geri:Dur)", "Searching MultiSSID.. (Back:Stop)"),
+        marauder_gui_text(app, "MultiSSID Araniyor..", "Searching MultiSSID.."),
         marauder_gui_text(app, "MultiSSID bulunamadi...", "No MultiSSID found..."));
 }
 

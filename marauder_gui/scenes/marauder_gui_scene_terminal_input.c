@@ -12,8 +12,9 @@ static void marauder_gui_scene_terminal_input_callback(void* context) {
 void marauder_gui_scene_terminal_input_on_enter(void* context) {
     MarauderGuiApp* app = context;
 
-    text_input_set_header_text(app->text_input, marauder_gui_text(app, "Marauder komutu", "Marauder command"));
-    text_input_set_result_callback(
+    marauder_text_input_set_header_text(
+        app->text_input, marauder_gui_text(app, "Marauder komutu", "Marauder command"));
+    marauder_text_input_set_result_callback(
         app->text_input,
         marauder_gui_scene_terminal_input_callback,
         app,
@@ -40,5 +41,5 @@ bool marauder_gui_scene_terminal_input_on_event(void* context, SceneManagerEvent
 
 void marauder_gui_scene_terminal_input_on_exit(void* context) {
     MarauderGuiApp* app = context;
-    text_input_reset(app->text_input);
+    marauder_text_input_reset(app->text_input);
 }

@@ -41,18 +41,21 @@ static void marauder_gui_log_scan_resume_button_callback(
 void marauder_gui_log_scan_redraw(MarauderGuiApp* app, const char* title) {
     app->log_scan_title = title;
 
-    char header[48];
-    snprintf(
-        header,
-        sizeof(header),
-        "%s %s",
-        title,
-        app->wifi_scan_frozen ? marauder_gui_text(app, "(Durdu)", "(Stopped)") :
-                                 marauder_gui_text(app, "(Geri:Dur)", "(Back:Stop)"));
-
+    /* Header is just the title - the "(Back:Stop)" hint that used to be appended here overflowed
+       the 128px width on the longer titles. The frozen state is already shown by the "Resume"
+       button that appears below when stopped. */
     widget_reset(app->widget);
-    widget_add_string_element(app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary, header);
-    widget_add_text_scroll_element(app->widget, 0, 13, 128, 40, app->terminal_log);
+    widget_add_string_element(app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary, title);
+    /* Show a placeholder until Marauder's first line arrives, so a quiet detector (no traffic
+       yet) still shows it's running instead of a blank screen. */
+    widget_add_text_scroll_element(
+        app->widget,
+        0,
+        13,
+        128,
+        40,
+        app->terminal_log_len > 0 ? app->terminal_log :
+                                    marauder_gui_text(app, "Dinleniyor...", "Listening..."));
     if(app->wifi_scan_frozen) {
         widget_add_button_element(
             app->widget,

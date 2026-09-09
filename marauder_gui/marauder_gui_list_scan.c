@@ -10,7 +10,7 @@
    reusing those scenes' own copies. */
 
 #define LIST_SCAN_REFRESH_TICKS 15 /* ~1.5s at the app's 100ms tick period */
-#define LIST_SCAN_MARQUEE_TICKS 2
+#define LIST_SCAN_MARQUEE_TICKS 3
 #define LIST_SCAN_MARQUEE_DELAY_TICKS 30 /* ~3s pause before a highlighted row starts scrolling */
 
 static void marauder_gui_list_scan_uart_line(MarauderGuiApp* app, const char* line) {

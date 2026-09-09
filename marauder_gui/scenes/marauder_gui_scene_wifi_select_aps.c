@@ -19,7 +19,7 @@
    next menu already attacks all of them, no per-AP looping needed on our end. */
 
 #define WIFI_SELECT_APS_REFRESH_TICKS 15 /* ~1.5s at the app's 100ms tick period */
-#define WIFI_SELECT_APS_MARQUEE_TICKS 2
+#define WIFI_SELECT_APS_MARQUEE_TICKS 3
 #define WIFI_SELECT_APS_MARQUEE_DELAY_TICKS 30
 
 static void marauder_gui_scene_wifi_select_aps_uart_line(MarauderGuiApp* app, const char* line) {

@@ -3,6 +3,7 @@
 enum {
     MainMenuIndexWifi,
     MainMenuIndexBt,
+    MainMenuIndexGps,
     MainMenuIndexDevice,
     MainMenuIndexTerminal,
 };
@@ -16,6 +17,10 @@ static const MarauderMenuItem marauder_main_menu_items[] = {
      "Bluetooth>",
      "Bluetooth spam, tracker bulma ve BLE dedektor ozellikleri.",
      "Bluetooth spam, tracker finding and BLE detector features."},
+    {"GPS>",
+     "GPS>",
+     "GPS verisi, NMEA akisi, takip ve POI - ESP32'ye bagli bir GPS modulu gerektirir.",
+     "GPS data, NMEA stream, tracker and POI - needs a GPS module wired to the ESP32."},
     {"Cihaz>",
      "Device>",
      "Cihaz bilgisi, Marauder ayarlari (Force PMKID, Channel Hop, vb.) ve Reboot.",
@@ -45,6 +50,9 @@ bool marauder_gui_scene_main_menu_on_event(void* context, SceneManagerEvent even
             consumed = true;
         } else if(event.event == MainMenuIndexBt) {
             scene_manager_next_scene(app->scene_manager, MarauderGuiSceneBtMenu);
+            consumed = true;
+        } else if(event.event == MainMenuIndexGps) {
+            scene_manager_next_scene(app->scene_manager, MarauderGuiSceneGpsMenu);
             consumed = true;
         } else if(event.event == MainMenuIndexDevice) {
             scene_manager_next_scene(app->scene_manager, MarauderGuiSceneDeviceMenu);

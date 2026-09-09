@@ -10,6 +10,7 @@ enum {
     WifiExtraMenuIndexPacketCount,
     WifiExtraMenuIndexApFoxHunt,
     WifiExtraMenuIndexStationFoxHunt,
+    WifiExtraMenuIndexRecon,
 };
 
 static const MarauderMenuItem marauder_wifi_extra_menu_items[] = {
@@ -37,6 +38,10 @@ static const MarauderMenuItem marauder_wifi_extra_menu_items[] = {
      "Client Fox Hunt",
      "Bir AP altindaki bir istemciyi secip o cihazin sinyal gucunu (RSSI) canli izler.",
      "Pick a client under an AP and watch that device's live signal strength (RSSI)."},
+    {"WiFi Kesif",
+     "WiFi Recon",
+     "WiFi kesif gorevini baslatir (Marauder v1.16.0) ve bulunan AP'leri canli listeler.",
+     "Starts the WiFi recon mission (Marauder v1.16.0) and live-lists the APs it finds."},
 };
 
 void marauder_gui_scene_wifi_extra_menu_on_enter(void* context) {
@@ -74,6 +79,9 @@ bool marauder_gui_scene_wifi_extra_menu_on_event(void* context, SceneManagerEven
         } else if(event.event == WifiExtraMenuIndexStationFoxHunt) {
             app->wifi_ap_attack_type = 15;
             scene_manager_next_scene(app->scene_manager, MarauderGuiSceneWifiScanning);
+            consumed = true;
+        } else if(event.event == WifiExtraMenuIndexRecon) {
+            scene_manager_next_scene(app->scene_manager, MarauderGuiSceneWifiRecon);
             consumed = true;
         }
     }

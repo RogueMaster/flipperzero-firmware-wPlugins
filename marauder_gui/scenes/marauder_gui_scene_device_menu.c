@@ -2,6 +2,7 @@
 
 enum {
     DeviceMenuIndexSettings,
+    DeviceMenuIndexTools,
     DeviceMenuIndexInfo,
     DeviceMenuIndexReboot,
     DeviceMenuIndexLanguage,
@@ -13,6 +14,10 @@ static const MarauderMenuItem marauder_device_menu_items[] = {
      "Settings>",
      "Force PMKID, Force Probe, Save Pcap, Enable LED, EP Deauth, Channel Hop ayarlarini ac/kapa.",
      "Toggle Force PMKID, Force Probe, Save Pcap, Enable LED, EP Deauth, Channel Hop settings."},
+    {"Araclar>",
+     "Tools>",
+     "SD listele, firmware guncelle, wardrive yukle, yardim ve WiFi'yi kapat.",
+     "List SD, update firmware, upload wardrive, help and shutdown WiFi."},
     {"Cihaz Bilgisi",
      "Device Info",
      "Marauder surumu, donanim, MAC adresleri ve baglantiysa ag bilgisi.",
@@ -25,10 +30,7 @@ static const MarauderMenuItem marauder_device_menu_items[] = {
      "Language",
      "Uygulama dilini Turkce/Ingilizce olarak degistir.",
      "Change the app's language between Turkish/English."},
-    {"Hakkinda",
-     "About",
-     "Bu uygulama hakkinda bilgi.",
-     "Information about this app."},
+    {"Hakkinda", "About", "Bu uygulama hakkinda bilgi.", "Information about this app."},
 };
 
 void marauder_gui_scene_device_menu_on_enter(void* context) {
@@ -47,6 +49,9 @@ bool marauder_gui_scene_device_menu_on_event(void* context, SceneManagerEvent ev
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == DeviceMenuIndexSettings) {
             scene_manager_next_scene(app->scene_manager, MarauderGuiSceneDeviceSettings);
+            consumed = true;
+        } else if(event.event == DeviceMenuIndexTools) {
+            scene_manager_next_scene(app->scene_manager, MarauderGuiSceneToolsMenu);
             consumed = true;
         } else if(event.event == DeviceMenuIndexInfo) {
             scene_manager_next_scene(app->scene_manager, MarauderGuiSceneDeviceInfo);

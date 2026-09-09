@@ -7,7 +7,7 @@ void marauder_gui_scene_bt_detect_flipper_on_enter(void* context) {
         app,
         "sniffbt -t flipper",
         "list -f",
-        marauder_gui_text(app, "Flipper Araniyor.. (Geri:Dur)", "Searching Flipper.. (Back:Stop)"),
+        marauder_gui_text(app, "Flipper Araniyor..", "Searching Flipper.."),
         marauder_gui_text(app, "Flipper bulunamadi...", "No Flipper found..."));
 }
 

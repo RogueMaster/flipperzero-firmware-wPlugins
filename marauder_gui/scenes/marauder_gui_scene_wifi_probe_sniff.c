@@ -9,7 +9,7 @@
    Selecting an entry here feeds Karma ("karma -p <index>" needs the same probe_req_ssids
    index), which needs an index.html on the device's SD card to actually serve a page. */
 #define WIFI_PROBE_SNIFF_REFRESH_TICKS 15 /* ~1.5s at the app's 100ms tick period */
-#define WIFI_PROBE_MARQUEE_TICKS 2
+#define WIFI_PROBE_MARQUEE_TICKS 3
 #define WIFI_PROBE_MARQUEE_DELAY_TICKS 30 /* ~3s pause before a highlighted row starts scrolling */
 
 /* Marauder prints probe request entries as "[<index>] <ssid>" (see CommandLine.cpp's "list -p"
@@ -62,8 +62,10 @@ void marauder_gui_scene_wifi_probe_sniff_on_enter(void* context) {
     app->wifi_list_marquee_tick = 0;
     app->wifi_list_marquee_hold = 0;
     app->wifi_list_marquee_delay = WIFI_PROBE_MARQUEE_DELAY_TICKS;
-    app->wifi_list_scanning_label = marauder_gui_text(app, "Probe Dinleniyor.. (Geri:Dur)", "Listening Probes.. (Back:Stop)");
-    app->wifi_list_empty_label = marauder_gui_text(app, "Probe istegi araniyor...", "Searching for probe requests...");
+    app->wifi_list_scanning_label =
+        marauder_gui_text(app, "Probe Dinleniyor..", "Listening Probes..");
+    app->wifi_list_empty_label =
+        marauder_gui_text(app, "Probe istegi araniyor...", "Searching for probe requests...");
 
     app->uart_line_handler = marauder_gui_scene_wifi_probe_sniff_uart_line;
     app->tick_handler = marauder_gui_scene_wifi_probe_sniff_tick;

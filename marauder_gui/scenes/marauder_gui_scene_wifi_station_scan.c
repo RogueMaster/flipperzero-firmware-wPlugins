@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define WIFI_STATION_SCAN_REFRESH_TICKS 15 /* ~1.5s at the app's 100ms tick period */
-#define WIFI_STATION_MARQUEE_TICKS 2
+#define WIFI_STATION_MARQUEE_TICKS 3
 #define WIFI_STATION_MARQUEE_DELAY_TICKS 30 /* ~3s pause before a highlighted row starts scrolling */
 
 static bool marauder_gui_scene_wifi_station_scan_have_index(MarauderGuiApp* app, long global_index) {
@@ -79,8 +79,10 @@ void marauder_gui_scene_wifi_station_scan_on_enter(void* context) {
     app->wifi_list_marquee_tick = 0;
     app->wifi_list_marquee_hold = 0;
     app->wifi_list_marquee_delay = WIFI_STATION_MARQUEE_DELAY_TICKS;
-    app->wifi_list_scanning_label = marauder_gui_text(app, "Istemci Araniyor.. (Geri:Dur)", "Searching Client.. (Back:Stop)");
-    app->wifi_list_empty_label = marauder_gui_text(app, "Istemci bulunamadi...", "No client found...");
+    app->wifi_list_scanning_label =
+        marauder_gui_text(app, "Istemci Araniyor..", "Searching Client..");
+    app->wifi_list_empty_label =
+        marauder_gui_text(app, "Istemci bulunamadi...", "No client found...");
 
     app->uart_line_handler = marauder_gui_scene_wifi_station_scan_uart_line;
     app->tick_handler = marauder_gui_scene_wifi_station_scan_tick;

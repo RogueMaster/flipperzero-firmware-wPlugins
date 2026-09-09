@@ -7,7 +7,7 @@
 /* Marauder's "list -a" only reads its internal AP list, it doesn't touch scan state, so we can
    poll it periodically while "scanall" keeps running to build the list live. */
 #define WIFI_SCAN_REFRESH_TICKS 15 /* ~1.5s at the app's 100ms tick period */
-#define WIFI_LIST_MARQUEE_TICKS 2 /* advance the marquee once every N ticks - "slowly" */
+#define WIFI_LIST_MARQUEE_TICKS 3 /* advance the marquee once every N ticks - "slowly" */
 #define WIFI_LIST_MARQUEE_DELAY_TICKS 30 /* ~3s pause on a newly-highlighted row before it scrolls */
 #define WIFI_LIST_ROW_HEIGHT 12
 #define WIFI_LIST_HEADER_HEIGHT 11
@@ -57,9 +57,8 @@ static void marauder_gui_wifi_list_draw_callback(Canvas* canvas, void* model) {
         2,
         9,
         app->wifi_scan_frozen ?
-            (app->wifi_list_frozen_label ?
-                 app->wifi_list_frozen_label :
-                 marauder_gui_text(app, "Durduruldu (Geri:Menu)", "Stopped (Back:Menu)")) :
+            (app->wifi_list_frozen_label ? app->wifi_list_frozen_label :
+                                           marauder_gui_text(app, "Durduruldu", "Stopped")) :
             app->wifi_list_scanning_label);
 
     if(app->wifi_list_show_selected_count) {
@@ -227,7 +226,7 @@ void marauder_gui_scene_wifi_scanning_on_enter(void* context) {
     app->wifi_list_marquee_tick = 0;
     app->wifi_list_marquee_hold = 0;
     app->wifi_list_marquee_delay = WIFI_LIST_MARQUEE_DELAY_TICKS;
-    app->wifi_list_scanning_label = marauder_gui_text(app, "Taraniyor... (Geri:Dur)", "Scanning... (Back:Stop)");
+    app->wifi_list_scanning_label = marauder_gui_text(app, "Taraniyor...", "Scanning...");
     app->wifi_list_empty_label = marauder_gui_text(app, "AP araniyor...", "Searching for AP...");
 
     app->uart_line_handler = marauder_gui_scene_wifi_scanning_uart_line;
@@ -262,6 +261,8 @@ bool marauder_gui_scene_wifi_scanning_on_event(void* context, SceneManagerEvent 
                 scene_manager_next_scene(app->scene_manager, MarauderGuiSceneWifiPacketCount);
             } else if(app->wifi_ap_attack_type == 14) {
                 scene_manager_next_scene(app->scene_manager, MarauderGuiSceneWifiFoxHunt);
+            } else if(app->wifi_ap_attack_type == 20) {
+                scene_manager_next_scene(app->scene_manager, MarauderGuiScenePcapSniff);
             } else {
                 scene_manager_next_scene(app->scene_manager, MarauderGuiSceneWifiAttack);
             }

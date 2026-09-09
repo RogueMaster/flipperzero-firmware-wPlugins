@@ -91,8 +91,14 @@ Donanım kısıtları: **GPS yok**, **SD kart yok** (ESP32-S3-N16R8 çıplak dev
 
 ### 7. Kapsam Dışı (donanım eksik, atlanacak)
 - GPS/Wardrive özellikleri (GPS modülü yok)
-- SD gerektiren özellikler: Raw Capture, EAPOL/PMKID kaydı, Save/Load Files, Update Firmware, Delete SD Files, WiGLE/WDGWars log yükleme
+- SD gerektiren, `-serial` ile de çözülemeyen özellikler: Save/Load Files, Update Firmware, Delete SD Files, WiGLE/WDGWars log yükleme (GPS'e bağımlı zaten), SPIFFS backup/restore (`migrateSPIFFS`, saf SD↔SPIFFS kopyalama, serial fallback'i yok)
 - SAE Commit Sniff (niş, düşük öncelik — SAE Commit Flood'la karıştırılmasın)
+
+### 8. Paket Yakalama (2026-09-05, SD kart olmadan çözüldü)
+- [x] Ham Paket Yakala (`sniffraw -serial`) — WiFi > Analiz&Araclar/Paket Yakalama/
+- [x] EAPOL/PMKID Yakala (`sniffpmkid -serial`) — WiFi > Analiz&Araclar/Paket Yakalama/
+
+**Bulgu:** Marauder firmware'i her tarama/saldırı komutuna eklenebilen global bir `-serial` bayrağına sahip (`CommandLine.cpp`, `wifi_scan_obj.save_serial`) — bu bayrak açıkken `Buffer` sınıfı (`Buffer.cpp`) PCAP/log/GPX verisini SD yerine (veya SD ile birlikte) doğrudan ana Serial hattına, `[BUF/BEGIN]...[BUF/CLOSE]` işaretleriyle sarılmış ham baytlar olarak akıtıyor (`Buffer::saveSerial()`) — firmware'in kendi yorum satırı bile "kullanıcı arayüzü bu işaretleri yok saymalı" diyor. Bu mekanizma Raw Capture, EAPOL/PMKID, Pineapple/MultiSSID/Pwnagotchi pcap'leri, Ping/ARP/Port/SSH/Telnet/SMTP/DNS/HTTP/HTTPS/RDP logları, Airtags/APs/SSIDs logları ve Evil Portal logunu kapsıyor — yani SD'ye bağımlı özelliklerin neredeyse tamamını, **hiçbir firmware (C++) değişikliği gerekmeden**. Flipper tarafında yapılan iş: `marauder_gui_serial_capture.c` adında paylaşılan bir modül, gelen her ham baytı (satır bazlı ayrıştırmadan ÖNCE, çünkü veri `\r`/`\n`/`\0` içerebilir) `[BUF/BEGIN]`/`[BUF/CLOSE]` işaretlerine karşı arka planda eşleştiriyor ve aradaki baytları doğrudan Flipper'ın kendi SD kartındaki bir `.pcap` dosyasına (`/ext/apps_data/marauder_gui/captures/`) yazıyor. Şu an sadece hedefsiz (no-target) iki tip eklendi; ileride diğer log/pcap türleri de aynı `marauder_gui_serial_capture_start(app, prefix, ext)` çağrısıyla kolayca eklenebilir.
 
 ---
 
