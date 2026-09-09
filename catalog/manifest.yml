@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/mel4mi/Marauder-GUI-Flipper.git
-    commit_sha: 6ea741c7dca7f1afb9e48aa6df40b585cd1e04e7
+    commit_sha: e9202a82e635c34b2564e016a9f5b654a0293a16
     subdir: marauder_gui
 
 description: "@README.md"
