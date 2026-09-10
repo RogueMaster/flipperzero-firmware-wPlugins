@@ -1,0 +1,308 @@
+/* Host-side check of the game loop: what you press, what it pays, and
+   what a mistake costs. A whole run plays out in a loop here because the
+   engine takes its time from bb_tick() and nothing else. */
+#define BB_HOST_TEST 1
+#include <stdio.h>
+#include <string.h>
+#include "beepback.h"
+#include "../beepback_rules.c"
+#include "../beepback_nav.c"
+#include "../beepback_game.c"
+
+static int fails = 0;
+static void check(const char* name, int ok, const char* extra) {
+    printf("%s %s%s%s\n", ok ? "ok  " : "FAIL", name, extra && *extra ? "  -> " : "", extra ? extra : "");
+    if(!ok) fails++;
+}
+
+static InputKey key_of(uint8_t btn) {
+    switch(btn) {
+    case BbBtnUp:
+        return InputKeyUp;
+    case BbBtnDown:
+        return InputKeyDown;
+    case BbBtnLeft:
+        return InputKeyLeft;
+    case BbBtnRight:
+        return InputKeyRight;
+    default:
+        return InputKeyOk;
+    }
+}
+
+/* Start a run the way a player does: through the setup screen. */
+static void start(BeepbackApp* app, BbMode mode, uint8_t diff, uint8_t speed, uint8_t assist) {
+    bb_app_init(app);
+    app->seed = 0x5EEDC0DEu;
+    app->set.diff = diff;
+    app->set.speed = speed;
+    app->set.assist = assist;
+    app->run.mode = mode;
+    bb_go(app, BbSceneSetup);
+    app->setup_cur = 2;
+    bb_input(app, InputKeyOk);
+}
+
+/* Run the clock until the engine is waiting for a press, or the run ends. */
+static bool wait_input(BeepbackApp* app) {
+    for(int i = 0; i < 8000; i++) {
+        if(app->run.phase == BbPhaseInput) return true;
+        if(app->run.phase == BbPhaseOver) return false;
+        bb_tick(app, BB_TICK_MS);
+    }
+    return false;
+}
+
+static void wait_phase_change(BeepbackApp* app, BbPhase from) {
+    for(int i = 0; i < 8000 && app->run.phase == from; i++) bb_tick(app, BB_TICK_MS);
+}
+
+static void play_stage(BeepbackApp* app) {
+    uint8_t n = app->run.press.len;
+    for(uint8_t i = 0; i < n; i++) bb_input(app, key_of(app->run.press.press[i]));
+}
+
+static void miss_stage(BeepbackApp* app) {
+    uint8_t want = app->run.press.press[app->run.idx];
+    bb_input(app, key_of((uint8_t)((want + 1) % BbBtnCount)));
+}
+
+int main(void) {
+    char msg[200];
+    int p2;
+    BeepbackApp app;
+
+    /* ---- one stage, one award, and the award is what went in ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    check("a run opens on its first stage", app.run.shown == 1 && app.run.target == BB_START_LEN, "");
+    check("with three lives", app.run.lives == BB_LIVES, "");
+    check("and its multiplier captured", app.run.mult == bb_multiplier(BbModeClassic, 1, 1), "");
+    check("classic plays back exactly what it played", !bb_run_has_rule(BbModeClassic), "");
+
+    wait_input(&app);
+    check("the first stage is one press long", app.run.press.len == 1, "");
+    play_stage(&app);
+    wait_phase_change(&app, BbPhaseHold);
+    sprintf(msg, "score %lu award %lu", (unsigned long)app.run.score, (unsigned long)app.run.award);
+    check("a stage of one pays ten at x1.00", app.run.score == 10 && app.run.award == 10, msg);
+    check("and the amount shown is the amount banked", app.run.score == app.run.award, "");
+
+    /* ---- a whole round, against the formulas ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    for(int stage = 0; stage < BB_START_LEN; stage++) {
+        if(!wait_input(&app)) break;
+        play_stage(&app);
+        wait_phase_change(&app, BbPhaseHold);
+    }
+    sprintf(msg, "%lu", (unsigned long)app.run.score);
+    check("round one at x1.00 pays 10+20+30+40 and 50", app.run.score == 150, msg);
+    check("its round bonus is separate from the stage award", app.run.bonus == 50 && app.run.award == 40, "");
+    wait_phase_change(&app, BbPhaseRound);
+    check("clearing a round starts the next", app.run.round == 2, "");
+    sprintf(msg, "target %u", app.run.target);
+    check("and generates a longer sequence", app.run.target == BB_START_LEN + 1, msg);
+    check("built one step at a time again", app.run.shown == 1, "");
+
+    /* the same round with a multiplier, to catch a flat award slipping in */
+    start(&app, BbModeClassic, 2, 1, BbAssistShapes); /* HARD, x1.55 */
+    check("hard on normal is x1.55", app.run.mult == 155, "");
+    for(int stage = 0; stage < BB_START_LEN; stage++) {
+        if(!wait_input(&app)) break;
+        play_stage(&app);
+        wait_phase_change(&app, BbPhaseHold);
+    }
+    sprintf(msg, "%lu", (unsigned long)app.run.score);
+    check("the same round at x1.55 pays 16+31+47+62 and 78", app.run.score == 234, msg);
+
+    /* ---- a mistake replays the same sequence at the same stage ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    for(int stage = 0; stage < 2; stage++) {
+        wait_input(&app);
+        play_stage(&app);
+        wait_phase_change(&app, BbPhaseHold);
+    }
+    wait_input(&app);
+    BbSeq before = app.run.seq;
+    uint8_t shown_before = app.run.shown;
+    uint32_t score_before = app.run.score;
+    miss_stage(&app);
+    check("a wrong button is wrong straight away", app.run.phase == BbPhaseWrong, "");
+    check("and costs a life", app.run.lives == BB_LIVES - 1, "");
+    wait_input(&app);
+    check("the retry replays the same sequence",
+          memcmp(before.step, app.run.seq.step, before.len) == 0 && before.len == app.run.seq.len, "");
+    check("at the same stage", app.run.shown == shown_before, "");
+    check("with the score untouched", app.run.score == score_before, "");
+    check("and the presses counted from the start again", app.run.idx == 0, "");
+
+    /* ---- three mistakes end it ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    for(int life = 0; life < BB_LIVES; life++) {
+        if(!wait_input(&app)) break;
+        miss_stage(&app);
+        wait_phase_change(&app, BbPhaseWrong);
+    }
+    check("three mistakes end the run", app.run.phase == BbPhaseOver, "");
+    check("which takes you to the game over screen", app.scene == BbSceneOver, "");
+    check("not counted as a quit", !app.run.quit, "");
+
+    /* ---- running out of time is a mistake too ---- */
+    start(&app, BbModeClassic, 3, 1, BbAssistShapes); /* INSANE, 2000ms */
+    wait_input(&app);
+    check("the window is the one TIME asked for", app.run.win_ms == bb_window_ms(BbModeClassic, 3), "");
+    for(int i = 0; i < 200 && app.run.phase == BbPhaseInput; i++) bb_tick(&app, BB_TICK_MS);
+    check("letting the window empty costs a life", app.run.phase == BbPhaseWrong && app.run.lives == BB_LIVES - 1, "");
+
+    /* ---- presses outside the window are not heard ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    bb_tick(&app, BB_TICK_MS);
+    check("the run opens in listen", app.run.phase == BbPhaseListen, "");
+    bb_input(&app, InputKeyUp);
+    bb_input(&app, InputKeyDown);
+    check("mashing during playback does nothing", app.run.phase != BbPhaseWrong && app.run.lives == BB_LIVES, "");
+
+    /* ---- rules really does change what you press ---- */
+    /* The browser build announced a rule and then played the sequence
+       straight, so the check that matters is that the press list the
+       engine hands the player is the rule's output, in every ruled mode
+       and at every stage - not just that it looks different once. */
+    {
+        int applied = 0, checked = 0, transformed = 0;
+        int bites[BB_RULE_COUNT] = {0};
+        static const BbMode ruled[3] = {BbModeRules, BbModeChallenge, BbModeDaily};
+        for(uint32_t s = 1; s <= 40; s++) {
+            for(int m = 0; m < 3; m++) {
+                bb_app_init(&app);
+                app.seed = s * 2654435761u;
+                app.rule_cur = (uint8_t)(s % (BB_RULE_COUNT + 1));
+                app.run.mode = ruled[m];
+                bb_go(&app, BbSceneSetup);
+                app.setup_cur = 2;
+                bb_input(&app, InputKeyOk);
+                for(int stage = 0; stage < 3; stage++) {
+                    BbSeq shown;
+                    shown.len = app.run.shown;
+                    memcpy(shown.step, app.run.seq.step, shown.len);
+                    BbPresses want;
+                    bb_apply_rule(&shown, app.run.rule, app.run.ra, app.run.rb, &want);
+                    checked++;
+                    if(want.len == app.run.press.len &&
+                       memcmp(want.press, app.run.press.press, want.len) == 0)
+                        applied++;
+                    if(want.len != shown.len ||
+                       memcmp(want.press, shown.step, want.len) != 0) {
+                        transformed++;
+                        bites[app.run.rule]++;
+                    }
+                    if(!wait_input(&app)) break;
+                    play_stage(&app);
+                    wait_phase_change(&app, BbPhaseHold);
+                    wait_input(&app);
+                }
+            }
+        }
+        sprintf(msg, "%d of %d stages", applied, checked);
+        check("every ruled mode presses the rule's output, not the sequence",
+              applied == checked && checked > 300, msg);
+        /* A rule can honestly be a no-op on a given sequence - SKIP of a
+           button that never came up - so the sharp check is that every
+           one of the seven is seen to bite in real play, not that each
+           individual stage differs. */
+        int mute = 0;
+        p2 = 0;
+        msg[0] = 0;
+        for(int r = 0; r < BB_RULE_COUNT; r++) {
+            if(!bites[r]) mute++;
+            p2 += sprintf(msg + p2, "%d ", bites[r]);
+        }
+        check("all seven rules are seen changing the presses in real runs", mute == 0, msg);
+        sprintf(msg, "%d of %d stages", transformed, checked);
+        check("which is most stages, the short ones aside", transformed * 5 > checked * 2, msg);
+    }
+
+    /* every rule, given a sequence it has something to say about */
+    {
+        BbSeq s2 = {{BbBtnUp, BbBtnOk, BbBtnOk, BbBtnLeft, BbBtnUp}, 5};
+        int silent = 0;
+        for(int rule = 0; rule < BB_RULE_COUNT; rule++) {
+            BbPresses out;
+            bb_apply_rule(&s2, (BbRule)rule, BbBtnOk, BbBtnRight, &out);
+            if(out.len == s2.len && memcmp(out.press, s2.step, out.len) == 0) silent++;
+        }
+        sprintf(msg, "%d silent", silent);
+        check("all seven rules change that sequence", silent == 0, msg);
+    }
+
+    /* the guard the browser build got wrong: challenge has a rule too */
+    check("classic has no rule", !bb_run_has_rule(BbModeClassic), "");
+    check("rules has one", bb_run_has_rule(BbModeRules), "");
+    check("challenge has one", bb_run_has_rule(BbModeChallenge), "");
+    check("and so does the daily", bb_run_has_rule(BbModeDaily), "");
+
+    /* ---- a dial moved mid-run cannot revalue what is already earned ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    wait_input(&app);
+    play_stage(&app);
+    wait_phase_change(&app, BbPhaseHold);
+    uint32_t earned = app.run.score;
+    app.set.diff = 3; /* the player fiddles with settings from the pause screen */
+    app.set.speed = 2;
+    check("the captured multiplier does not move", app.run.mult == 100, "");
+    wait_input(&app);
+    play_stage(&app);
+    wait_phase_change(&app, BbPhaseHold);
+    sprintf(msg, "%lu then %lu", (unsigned long)earned, (unsigned long)app.run.score);
+    check("so the next award is still at the run's rate", app.run.score == earned + 20, msg);
+
+    /* ---- the record is written when the run ends ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    wait_input(&app);
+    play_stage(&app);
+    wait_phase_change(&app, BbPhaseHold);
+    bb_run_end(&app, false);
+    check("a finished run writes its best", app.rec.best[BbModeClassic][1][1][BbAssistShapes] == 10, "");
+    check("and knows it was one", app.run.record, "");
+    app.rec.best[BbModeClassic][1][1][BbAssistShapes] = 5000;
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    app.rec.best[BbModeClassic][1][1][BbAssistShapes] = 5000;
+    bb_run_end(&app, false);
+    check("a worse run leaves the best alone", app.rec.best[BbModeClassic][1][1][BbAssistShapes] == 5000, "");
+    check("and says so", !app.run.record, "");
+
+    /* each assist keeps its own */
+    bb_app_init(&app);
+    app.rec.best[BbModeClassic][1][1][BbAssistOff] = 700;
+    app.rec.best[BbModeClassic][3][2][BbAssistArrows] = 900;
+    check("the board takes the best across time and speed",
+          bb_best_of_mode(&app, BbModeClassic, BbAssistArrows) == 900, "");
+    check("without mixing the assists up",
+          bb_best_of_mode(&app, BbModeClassic, BbAssistOff) == 700, "");
+    check("and reports nothing where nothing was played",
+          bb_best_of_mode(&app, BbModeClassic, BbAssistLed) == 0, "");
+
+    /* ---- speed changes how long playback takes ---- */
+    uint32_t took[BB_SPEED_COUNT];
+    for(uint8_t sp = 0; sp < BB_SPEED_COUNT; sp++) {
+        start(&app, BbModeClassic, 1, sp, BbAssistOff);
+        wait_phase_change(&app, BbPhaseListen);
+        uint32_t t0 = app.now;
+        wait_phase_change(&app, BbPhasePlayback);
+        took[sp] = app.now - t0;
+    }
+    sprintf(msg, "%lu %lu %lu ms", (unsigned long)took[0], (unsigned long)took[1], (unsigned long)took[2]);
+    check("slow plays back slower than fast", took[0] > took[1] && took[1] > took[2], msg);
+
+    start(&app, BbModeClassic, 1, 1, BbAssistOff);
+    wait_phase_change(&app, BbPhaseListen);
+    uint32_t t0 = app.now;
+    wait_phase_change(&app, BbPhasePlayback);
+    uint32_t ears = app.now - t0;
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    wait_phase_change(&app, BbPhaseListen);
+    t0 = app.now;
+    wait_phase_change(&app, BbPhasePlayback);
+    check("a one-step stage is one tone either way", app.now - t0 == ears, "");
+
+    printf(fails ? "\n%d FAILURES\n" : "\nall game loop checks passed\n", fails);
+    return fails ? 1 : 0;
+}

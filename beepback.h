@@ -327,7 +327,8 @@ typedef struct {
     uint8_t idx; /* how many presses are in so far */
 
     uint32_t score;
-    uint32_t award; /* the last award, already multiplied */
+    uint32_t award; /* the last stage award, already multiplied */
+    uint32_t bonus; /* the round bonus that went with it, also multiplied */
     uint32_t hits; /* reflex cues taken */
 
     BbPhase phase;

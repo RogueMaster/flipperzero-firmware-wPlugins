@@ -306,6 +306,71 @@ static void bb_playback_tick(BeepbackApp* app) {
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Resolving a stage                                                    */
+/* ------------------------------------------------------------------ */
+
+/* Both awards are multiplied here, once, and stored as the exact amount
+   that went into the score. The browser build showed the flat award and
+   banked the multiplied one, so a +40 arrived as +76 and nobody could
+   reconcile the total. */
+static void bb_stage_clear(BeepbackApp* app) {
+    BbRun* run = &app->run;
+    run->award = bb_apply_mult(10u * run->shown, run->mult);
+    run->bonus = 0;
+    run->score += run->award;
+
+    if(bb_is_challenge(run->mode)) {
+        bb_phase(app, BbPhaseSuccess, BB_SUCCESS_MS); /* no rounds to clear */
+        return;
+    }
+    if(run->shown >= run->target) {
+        run->bonus = bb_apply_mult(50u * run->round, run->mult);
+        run->score += run->bonus;
+        bb_phase(app, BbPhaseRound, BB_ROUND_MS);
+    } else {
+        bb_phase(app, BbPhaseSuccess, BB_SUCCESS_MS);
+    }
+}
+
+static void bb_next_stage(BeepbackApp* app) {
+    BbRun* run = &app->run;
+    if(bb_is_challenge(run->mode)) {
+        bb_run_grow(run); /* one longer, forever, guarded by the rule */
+    } else {
+        if(run->shown < run->seq.len) run->shown++;
+        bb_run_build_presses(run);
+    }
+    run->idx = 0;
+    bb_phase(app, BbPhaseListen, BB_LISTEN_MS);
+}
+
+static void bb_next_round(BeepbackApp* app) {
+    BbRun* run = &app->run;
+    run->round++;
+    /* RULES changes the rule every round; the card announces the new one */
+    if(run->mode == BbModeRules) {
+        run->rule = (BbRule)bb_rng_below(&run->rng, BB_RULE_COUNT);
+        bb_roll_rule_params(run);
+    }
+    /* round r builds to 3 + r, which is BB_START_LEN on the first */
+    bb_run_new_round(run, (uint8_t)(BB_START_LEN + run->round - 1));
+    if(bb_run_has_rule(run->mode)) {
+        bb_phase(app, BbPhaseRuleCard, BB_RULECARD_MS);
+    } else {
+        bb_phase(app, BbPhaseListen, BB_LISTEN_MS);
+    }
+}
+
+static void bb_wrong(BeepbackApp* app) {
+    BbRun* run = &app->run;
+    if(run->lives) run->lives--;
+    run->flash_end = 0;
+    app->tone_hz = 0;
+    app->led = BbLedRed; /* every mistake is red, in every mode */
+    bb_phase(app, BbPhaseWrong, BB_WRONG_MS);
+}
+
 void bb_run_tick(BeepbackApp* app) {
     BbRun* run = &app->run;
     if(run->phase == BbPhaseOver) return;
@@ -331,6 +396,28 @@ void bb_run_tick(BeepbackApp* app) {
     case BbPhaseGo:
         bb_begin_input(app);
         break;
+    case BbPhaseInput:
+        /* the window ran out, which costs the same as a wrong button */
+        bb_wrong(app);
+        break;
+    case BbPhaseHold:
+        bb_stage_clear(app);
+        break;
+    case BbPhaseSuccess:
+        bb_next_stage(app);
+        break;
+    case BbPhaseRound:
+        bb_next_round(app);
+        break;
+    case BbPhaseWrong:
+        if(run->lives == 0) {
+            bb_run_end(app, false);
+        } else {
+            /* the same sequence, the same stage: nothing is regenerated */
+            bb_silence(app);
+            bb_phase(app, BbPhaseRetry, BB_RETRY_MS);
+        }
+        break;
     case BbPhaseRetry:
         bb_begin_playback(app);
         break;
@@ -340,7 +427,26 @@ void bb_run_tick(BeepbackApp* app) {
 }
 
 void bb_run_press(BeepbackApp* app, BbButton btn) {
-    UNUSED(app);
-    UNUSED(btn);
-    /* resolution lands with the game loop */
+    BbRun* run = &app->run;
+    if(btn >= BbBtnCount) return;
+    /* anything pressed outside the response window is simply not heard */
+    if(run->phase != BbPhaseInput) return;
+    if(run->idx >= run->press.len) return;
+
+    if(btn != run->press.press[run->idx]) {
+        bb_wrong(app);
+        return;
+    }
+
+    run->idx++;
+    run->flash_btn = btn;
+    run->flash_end = app->now + BB_PRESS_LED_MS;
+    app->tone_hz = bb_button_hz[btn];
+    app->led = bb_button_led[btn];
+
+    if(run->idx >= run->press.len) {
+        /* let the last press ring before the stage resolves */
+        bb_phase(app, BbPhaseHold, BB_PRESS_LED_MS);
+    }
 }
+
