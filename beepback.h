@@ -443,3 +443,21 @@ uint32_t bb_best_of_mode(const BeepbackApp* app, BbMode mode, uint8_t assist);
 void bb_daily_refresh(BeepbackApp* app, uint32_t today);
 /* rules, challenge and the daily transform what you press; classic does not */
 bool bb_run_has_rule(BbMode mode);
+
+/* ------------------------------------------------------------------ */
+/* Screens (beepback_draw.c)                                           */
+/* ------------------------------------------------------------------ */
+
+extern const char* const bb_mode_name[BB_MODE_COUNT];
+extern const char* const bb_rule_name[BB_RULE_COUNT];
+extern const char* const bb_assist_name[BB_ASSIST_COUNT];
+extern const char* const bb_time_name[BB_DIFF_COUNT];
+extern const char* const bb_speed_name[BB_SPEED_COUNT];
+extern const char* const bb_praise[BB_PRAISE_COUNT];
+
+/* the rule in one line, with its buttons filled in */
+void bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n);
+/* "x1.55", from a multiplier in hundredths */
+void bb_mult_str(uint16_t mult, char* out, size_t n);
+/* every screen, all 128x64 of it */
+void bb_draw(Canvas* canvas, BeepbackApp* app);

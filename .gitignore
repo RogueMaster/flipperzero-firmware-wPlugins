@@ -7,3 +7,4 @@ test/test_save
 test/*.dSYM
 dist/
 .ufbt/
+test/san_*
