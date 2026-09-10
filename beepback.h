@@ -17,6 +17,7 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <notification/notification_messages.h>
+#include <storage/storage.h>
 
 #define BB_W 128
 #define BB_H 64
@@ -461,3 +462,21 @@ void bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n);
 void bb_mult_str(uint16_t mult, char* out, size_t n);
 /* every screen, all 128x64 of it */
 void bb_draw(Canvas* canvas, BeepbackApp* app);
+
+/* ------------------------------------------------------------------ */
+/* The save file (beepback_save.c)                                     */
+/* ------------------------------------------------------------------ */
+
+#define BB_SAVE_DIR  EXT_PATH("apps_data/beepback")
+#define BB_SAVE_PATH BB_SAVE_DIR "/beepback.save"
+/* v3 kept a different record layout, so the version is what makes an old
+   file get discarded instead of read as nonsense */
+#define BB_SAVE_VERSION 4
+#define BB_SAVE_BYTES   723
+
+/* the settings and every record, as a flat little-endian block */
+size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n);
+/* false, and nothing touched, if it is not one of ours or not intact */
+bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n);
+void bb_save_load(BeepbackApp* app);
+void bb_save_store(BeepbackApp* app);
