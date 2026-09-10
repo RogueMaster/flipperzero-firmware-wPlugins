@@ -42,14 +42,6 @@ static const NotificationSequence* const bb_led_seq[BbLedCount] = {
     &bb_seq_violet,
 };
 
-const uint8_t bb_button_led[BbBtnCount] = {
-    BbLedViolet, /* UP    - highest tone */
-    BbLedRed, /* DOWN  - lowest tone  */
-    BbLedYellow, /* LEFT  */
-    BbLedBlue, /* RIGHT */
-    BbLedGreen, /* OK    */
-};
-
 void bb_led_apply(BeepbackApp* app, BbLedColor color) {
     if(color >= BbLedCount) color = BbLedOff;
     notification_message(app->notifications, bb_led_seq[color]);
