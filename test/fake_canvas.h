@@ -16,6 +16,7 @@
 
 typedef struct {
     uint32_t ops;
+    uint32_t discs; /* filled circles, which is what a wheel car is */
     uint32_t out_of_bounds;
     uint32_t too_wide;
     char worst[64]; /* the widest string that did not fit */
@@ -144,5 +145,6 @@ void canvas_draw_circle(Canvas* c, int32_t x, int32_t y, size_t r) {
 }
 void canvas_draw_disc(Canvas* c, int32_t x, int32_t y, size_t r) {
     UNUSED(c);
+    fake.discs++;
     fc_rect(x - (int32_t)r, y - (int32_t)r, (int32_t)r * 2 + 1, (int32_t)r * 2 + 1);
 }

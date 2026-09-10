@@ -120,25 +120,32 @@ bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n) {
 #ifndef BB_HOST_TEST
 
 void bb_save_load(BeepbackApp* app) {
-    uint8_t buf[BB_SAVE_BYTES];
+    /* 723 bytes is most of a 4K stack, so the block goes on the heap */
+    uint8_t* buf = malloc(BB_SAVE_BYTES);
+    if(!buf) return;
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     if(storage_file_open(file, BB_SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        uint16_t got = storage_file_read(file, buf, (uint16_t)sizeof(buf));
+        uint16_t got = storage_file_read(file, buf, (uint16_t)BB_SAVE_BYTES);
         storage_file_close(file);
         /* anything that is not exactly ours leaves the defaults standing */
         bb_save_unpack(app, buf, got);
     }
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
+    free(buf);
     /* the daily belongs to a date, and this may be a different one */
     bb_daily_refresh(app, bb_today_seed());
 }
 
 void bb_save_store(BeepbackApp* app) {
-    uint8_t buf[BB_SAVE_BYTES];
-    size_t n = bb_save_pack(app, buf, sizeof(buf));
-    if(n == 0) return;
+    uint8_t* buf = malloc(BB_SAVE_BYTES);
+    if(!buf) return;
+    size_t n = bb_save_pack(app, buf, BB_SAVE_BYTES);
+    if(n == 0) {
+        free(buf);
+        return;
+    }
     Storage* storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(storage, BB_SAVE_DIR);
     File* file = storage_file_alloc(storage);
@@ -148,6 +155,7 @@ void bb_save_store(BeepbackApp* app) {
     }
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
+    free(buf);
 }
 
 #endif

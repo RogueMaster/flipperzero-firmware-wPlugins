@@ -415,14 +415,6 @@ static void bb_draw_launcher(Canvas* c) {
     canvas_draw_str_aligned(c, BB_W / 2, 42, AlignCenter, AlignCenter, "PRESS A BUTTON TO PLAY");
 }
 
-/* The intro proper is ported last; until then the splash holds the
-   wordmark for its own duration and any key still skips it. */
-static void bb_draw_splash(Canvas* c, const BeepbackApp* app) {
-    UNUSED(app);
-    canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, BB_W / 2, 32, AlignCenter, AlignCenter, "BEEPBACK");
-}
-
 static void bb_draw_menu(Canvas* c, const BeepbackApp* app) {
     static const char* const item[3] = {"PLAY", "HOW TO PLAY", "SETTINGS"};
     bb_title(c, "BEEPBACK");

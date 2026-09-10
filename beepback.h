@@ -412,6 +412,9 @@ void bb_app_init(BeepbackApp* app);
 /* EARS with the sound off leaves nothing to go on, so force SHAPES */
 uint8_t bb_effective_assist(const BeepbackApp* app);
 
+/* light the LED for a button colour (beepback_led.c) */
+void bb_led_apply(BeepbackApp* app, BbLedColor color);
+
 /* how many entries each list has, so no cursor can run off its end */
 uint8_t bb_list_count(const BeepbackApp* app, BbScene scene);
 /* would a left or right press on this screen change anything? the screens
@@ -480,3 +483,10 @@ size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n);
 bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n);
 void bb_save_load(BeepbackApp* app);
 void bb_save_store(BeepbackApp* app);
+
+/* ------------------------------------------------------------------ */
+/* The intro (beepback_intro.c)                                        */
+/* ------------------------------------------------------------------ */
+
+/* brain, dither, ferris wheel, flash, wipe - and any key skips it */
+void bb_draw_splash(Canvas* canvas, const BeepbackApp* app);

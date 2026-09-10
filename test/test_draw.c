@@ -10,6 +10,7 @@
 #include "../beepback_game.c"
 #include "fake_canvas.h"
 #include "../beepback_draw.c"
+#include "../beepback_intro.c"
 
 static int fails = 0;
 static void check(const char* name, int ok, const char* extra) {
@@ -231,6 +232,60 @@ int main(void) {
     app.now += BB_OVER_LOCK / 2;
     frame(&app);
     check("and halfway down is still on screen", fake.out_of_bounds == 0, "");
+
+    /* ---- the intro, every tick of it ---- */
+    {
+        uint32_t oob = 0, wide = 0, blank = 0;
+        uint32_t total = BB_SP_HOLD + BB_SP_FADE + BB_SP_GLIDE + BB_SP_FLASH + BB_SP_WIPE;
+        /* did each of the five stages actually draw something? */
+        uint32_t stage_ops[5] = {0};
+        const uint32_t edge[5] = {
+            BB_SP_HOLD,
+            BB_SP_HOLD + BB_SP_FADE,
+            BB_SP_HOLD + BB_SP_FADE + BB_SP_GLIDE,
+            BB_SP_HOLD + BB_SP_FADE + BB_SP_GLIDE + BB_SP_FLASH,
+            total};
+        bb_app_init(&app);
+        bb_go(&app, BbSceneSplash);
+        for(uint32_t t2 = 0; t2 <= total + 200; t2 += BB_TICK_MS) {
+            app.now = app.scene_at + t2;
+            frame(&app);
+            oob += fake.out_of_bounds;
+            wide += fake.too_wide;
+            /* the flash whites the screen out on purpose, so a blank
+               frame is only a fault outside that stage */
+            if(fake.ops <= 1 && t2 < total && !(t2 >= edge[2] && t2 < edge[3])) blank++;
+            for(int st = 0; st < 5; st++)
+                if(t2 < edge[st]) {
+                    stage_ops[st] += fake.ops;
+                    break;
+                }
+        }
+        sprintf(msg, "%lu off screen, %lu wide", (unsigned long)oob, (unsigned long)wide);
+        check("the intro never draws outside the screen", oob == 0 && wide == 0, msg);
+        sprintf(msg, "%lu %lu %lu %lu %lu ops", (unsigned long)stage_ops[0],
+                (unsigned long)stage_ops[1], (unsigned long)stage_ops[2],
+                (unsigned long)stage_ops[3], (unsigned long)stage_ops[4]);
+        check("and all five of its stages draw something",
+              stage_ops[0] && stage_ops[1] && stage_ops[2] && stage_ops[3] && stage_ops[4], msg);
+        sprintf(msg, "%lu frames", (unsigned long)blank);
+        check("with no dead frame outside the flash", blank == 0, msg);
+
+        /* The wheel is wider than the screen, so most of it is never
+           seen. What matters is that cars keep riding through: each one
+           is a filled disc, which the rim never draws. */
+        uint32_t frames = 0, carrying = 0, most = 0;
+        for(uint32_t t2 = edge[1]; t2 < edge[2]; t2 += BB_TICK_MS) {
+            app.now = app.scene_at + t2;
+            frame(&app);
+            frames++;
+            if(fake.discs) carrying++;
+            if(fake.discs > most) most = fake.discs;
+        }
+        sprintf(msg, "%lu of %lu frames, up to %lu at once", (unsigned long)carrying,
+                (unsigned long)frames, (unsigned long)most);
+        check("the wheel carries cars through the frame", carrying * 2 > frames && most >= 2, msg);
+    }
 
     /* ---- a long walk, drawing every frame ---- */
     {

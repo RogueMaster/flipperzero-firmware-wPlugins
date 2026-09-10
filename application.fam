@@ -4,6 +4,16 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="beepback_app",
     requires=["gui", "notification", "storage"],
+    sources=[
+        "beepback_app.c",  # the only file that talks to the device
+        "beepback_nav.c",  # scenes, cursors and input
+        "beepback_game.c",  # runs, from start to game over
+        "beepback_rules.c",  # the seven rules and the score maths
+        "beepback_draw.c",  # every screen
+        "beepback_intro.c",  # the splash
+        "beepback_save.c",  # the save file
+        "beepback_led.c",  # the five button colours
+    ],
     stack_size=4 * 1024,
     fap_category="Games",
     fap_icon="beepback_10px.png",
