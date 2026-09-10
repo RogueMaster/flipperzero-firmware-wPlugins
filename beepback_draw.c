@@ -102,7 +102,7 @@ static void bb_footer(Canvas* c, const char* text) {
 /* Three rows fit between the bands. Keep the cursor in the middle of the
    window where the list is long enough to allow it. */
 #define BB_ROWS 3
-static const uint8_t bb_row_y[BB_ROWS] = {19, 32, 45};
+static const uint8_t bb_row_y[BB_ROWS] = {BB_BODY_Y - 13, BB_BODY_Y, BB_BODY_Y + 13};
 
 static uint8_t bb_window_first(uint8_t cur, uint8_t count, uint8_t rows) {
     if(count <= rows) return 0;
@@ -193,7 +193,7 @@ static void bb_heart(Canvas* c, int32_t x, int32_t y) {
     canvas_draw_line(c, x, y + 2, x + 6, y + 2);
     canvas_draw_line(c, x + 1, y + 3, x + 5, y + 3);
     canvas_draw_line(c, x + 2, y + 4, x + 4, y + 4);
-    canvas_draw_dot(c, x + 3, y + 5);
+    canvas_draw_dot(c, x + 3, y + BB_HEART_H - 1);
 }
 
 /* Filled polygons by scanline, so the star comes out solid without any
@@ -375,14 +375,14 @@ static const BbPage* bb_howto_pageset(uint8_t topic) {
 
 static void bb_draw_page(Canvas* c, const BbPage* page, uint8_t at, uint8_t count) {
     char buf[12];
-    static const uint8_t y[3] = {20, 32, 44};
+    static const uint8_t y[3] = {BB_BODY_Y - 12, BB_BODY_Y, BB_BODY_Y + 12};
     canvas_set_font(c, FontSecondary);
     for(uint8_t i = 0; i < 3; i++)
         if(page->line[i])
             canvas_draw_str_aligned(c, BB_W / 2, y[i], AlignCenter, AlignCenter, page->line[i]);
     /* arrows only where there is another page to reach */
-    if(at > 0) bb_left_arrow(c, 32);
-    if(at + 1 < count) bb_right_arrow(c, 32);
+    if(at > 0) bb_left_arrow(c, BB_BODY_Y);
+    if(at + 1 < count) bb_right_arrow(c, BB_BODY_Y);
     snprintf(buf, sizeof(buf), "%u/%u", at + 1, count);
     bb_footer(c, buf);
 }
@@ -410,9 +410,11 @@ static void bb_assist_block(Canvas* c, const uint32_t* best, uint8_t label_y, ui
 
 static void bb_draw_launcher(Canvas* c) {
     canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, BB_W / 2, 26, AlignCenter, AlignCenter, "BEEPBACK");
+    /* no footer here, so the pair centres on the taller body line */
+    canvas_draw_str_aligned(c, BB_W / 2, BB_BODY_Y2 - 8, AlignCenter, AlignCenter, "BEEPBACK");
     canvas_set_font(c, FontSecondary);
-    canvas_draw_str_aligned(c, BB_W / 2, 42, AlignCenter, AlignCenter, "PRESS A BUTTON TO PLAY");
+    canvas_draw_str_aligned(
+        c, BB_W / 2, BB_BODY_Y2 + 8, AlignCenter, AlignCenter, "PRESS A BUTTON TO PLAY");
 }
 
 static void bb_draw_menu(Canvas* c, const BeepbackApp* app) {
@@ -420,7 +422,7 @@ static void bb_draw_menu(Canvas* c, const BeepbackApp* app) {
     bb_title(c, "BEEPBACK");
     for(uint8_t i = 0; i < 3; i++) bb_row(c, bb_row_y[i], item[i], NULL, app->menu_cur == i);
     /* the boards are one press to the right, and only that way */
-    bb_right_arrow(c, 32);
+    bb_right_arrow(c, BB_BODY_Y);
     bb_footer(c, "BOARDS >");
 }
 
@@ -472,11 +474,11 @@ static void bb_draw_setup(Canvas* c, const BeepbackApp* app) {
         bb_row(c, 48, spent ? "PLAYED TODAY" : "START", NULL, !spent);
     } else {
         bb_adj_row(
-            c, 20, "TIME", bb_time_name[bb_clamp(app->set.diff, BB_DIFF_COUNT)], app->setup_cur == 0,
-            app->set.diff > 0, app->set.diff + 1 < BB_DIFF_COUNT);
+            c, 20, "TIME", bb_time_name[bb_clamp(app->set.diff, BB_DIFF_COUNT)],
+            app->setup_cur == 0, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         bb_adj_row(
-            c, 32, "SPEED", bb_speed_name[bb_clamp(app->set.speed, BB_SPEED_COUNT)], app->setup_cur == 1,
-            app->set.speed > 0, app->set.speed + 1 < BB_SPEED_COUNT);
+            c, 32, "SPEED", bb_speed_name[bb_clamp(app->set.speed, BB_SPEED_COUNT)],
+            app->setup_cur == 1, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         bb_row(c, 44, "START", NULL, app->setup_cur == 2);
     }
 
@@ -649,11 +651,10 @@ static void bb_draw_settings(Canvas* c, const BeepbackApp* app) {
         bool sel = app->settings_cur == at;
         if(at == 0) {
             snprintf(vol, sizeof(vol), "%u", app->set.volume);
-            bb_adj_row(c, y, "VOLUME", vol, sel, app->set.volume > 0,
-                       app->set.volume + 1 < BB_VOL_COUNT);
+            bb_adj_row(c, y, "VOLUME", vol, sel, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         } else if(at == 1) {
-            bb_adj_row(c, y, "ASSIST", bb_assist_name[bb_clamp(app->set.assist, BB_ASSIST_COUNT)], sel,
-                       app->set.assist > 0, app->set.assist + 1 < BB_ASSIST_COUNT);
+            bb_adj_row(c, y, "ASSIST", bb_assist_name[bb_clamp(app->set.assist, BB_ASSIST_COUNT)],
+                       sel, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         } else {
             bb_row(c, y, tail[bb_clamp((uint8_t)(at - 2), 3)], ">", sel);
         }
@@ -696,11 +697,11 @@ static void bb_draw_detail(Canvas* c, const BeepbackApp* app) {
     uint32_t across[BB_ASSIST_COUNT];
     bb_title(c, "BEST");
 
-    bb_adj_row(c, 18, "MODE", bb_mode_name[mode], app->det_cur == 0, mode > 0,
-               mode + 1 < BB_MODE_COUNT);
+    bb_adj_row(c, 18, "MODE", bb_mode_name[mode], app->det_cur == 0, bb_can_adjust(app, -1),
+               bb_can_adjust(app, 1));
     if(mode == BbModeChallenge) {
         bb_adj_row(c, 30, "RULE", bb_rule_name[app->rule_cur % BB_RULE_COUNT], app->det_cur == 1,
-                   app->rule_cur > 0, app->rule_cur + 1 < BB_RULE_COUNT);
+                   bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         best = app->rec.ch_best[app->rule_cur % BB_RULE_COUNT];
     } else if(mode == BbModeDaily) {
         char date[16];
@@ -708,10 +709,10 @@ static void bb_draw_detail(Canvas* c, const BeepbackApp* app) {
         bb_row(c, 30, "DATE", date, false);
         best = app->rec.daily_best;
     } else {
-        bb_adj_row(c, 27, "TIME", bb_time_name[bb_clamp(app->det_diff, BB_DIFF_COUNT)], app->det_cur == 1,
-                   app->det_diff > 0, app->det_diff + 1 < BB_DIFF_COUNT);
-        bb_adj_row(c, 36, "SPEED", bb_speed_name[bb_clamp(app->det_speed, BB_SPEED_COUNT)], app->det_cur == 2,
-                   app->det_speed > 0, app->det_speed + 1 < BB_SPEED_COUNT);
+        bb_adj_row(c, 27, "TIME", bb_time_name[bb_clamp(app->det_diff, BB_DIFF_COUNT)],
+                   app->det_cur == 1, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
+        bb_adj_row(c, 36, "SPEED", bb_speed_name[bb_clamp(app->det_speed, BB_SPEED_COUNT)],
+                   app->det_cur == 2, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
             across[a] = app->rec.best[bb_clamp(mode, BB_LADDER_MODES)]
                                      [bb_clamp(app->det_diff, BB_DIFF_COUNT)]
@@ -735,8 +736,8 @@ static void bb_draw_boardpick(Canvas* c, const BeepbackApp* app) {
         uint8_t at = (uint8_t)(first + i);
         bb_row(c, bb_row_y[i], bb_mode_name[bb_clamp(at, BB_MODE_COUNT)], NULL, app->board_cur == at);
     }
-    bb_left_arrow(c, 32);
-    bb_right_arrow(c, 32);
+    bb_left_arrow(c, BB_BODY_Y);
+    bb_right_arrow(c, BB_BODY_Y);
     bb_footer(c, "< MENU   CREDITS >");
 }
 
@@ -749,7 +750,7 @@ static void bb_draw_board(Canvas* c, const BeepbackApp* app) {
     canvas_set_font(c, FontSecondary);
     canvas_draw_str_aligned(c, BB_W / 2, 22, AlignCenter, AlignCenter, "BEST BY ASSIST");
     bb_assist_block(c, best, 36, 47);
-    bb_left_arrow(c, 32);
+    bb_left_arrow(c, BB_BODY_Y);
     bb_footer(c, "< BOARDS");
 }
 
@@ -759,7 +760,7 @@ static void bb_draw_credits(Canvas* c) {
     canvas_draw_str_aligned(c, BB_W / 2, 24, AlignCenter, AlignCenter, "BEEPBACK v4");
     canvas_draw_str_aligned(c, BB_W / 2, 36, AlignCenter, AlignCenter, "BY TIJNV50");
     canvas_draw_str_aligned(c, BB_W / 2, 46, AlignCenter, AlignCenter, "WITH CLAUDE");
-    bb_left_arrow(c, 32);
+    bb_left_arrow(c, BB_BODY_Y);
     bb_footer(c, "< BOARDS");
 }
 

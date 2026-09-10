@@ -185,6 +185,9 @@ void bb_go(BeepbackApp* app, BbScene scene) {
     case BbSceneSetup:
         /* the daily pins the cursor to START; nothing else on it moves */
         app->setup_cur = (app->run.mode == BbModeDaily) ? 2 : 0;
+        /* and it belongs to a date, which may have turned over since the
+           save was read - a session left open past midnight is a new day */
+        if(app->run.mode == BbModeDaily) bb_daily_refresh(app, bb_today_seed());
         break;
     default:
         break;
@@ -206,39 +209,74 @@ void bb_app_init(BeepbackApp* app) {
 /* Input                                                               */
 /* ------------------------------------------------------------------ */
 
-/* Rows on the settings and setup screens that a left/right press edits. */
-static bool bb_adjust(BeepbackApp* app, int8_t d) {
+/* Which value a left or right press on this screen edits, and how many
+   steps it has. One place decides it, so the screens can ask the same
+   question the input handler answers and no arrow is ever offered where
+   there is nothing to reach. */
+static uint8_t* bb_adjust_target(BeepbackApp* app, uint8_t* count) {
     switch(app->scene) {
     case BbSceneSetup:
-        if(app->run.mode == BbModeDaily) return false; /* locked to NORMAL */
-        if(app->setup_cur == 0) return bb_list_move(&app->set.diff, BB_DIFF_COUNT, d);
-        if(app->setup_cur == 1) return bb_list_move(&app->set.speed, BB_SPEED_COUNT, d);
-        return false;
+        if(app->run.mode == BbModeDaily) return NULL; /* the day picks these */
+        if(app->setup_cur == 0) {
+            *count = BB_DIFF_COUNT;
+            return &app->set.diff;
+        }
+        if(app->setup_cur == 1) {
+            *count = BB_SPEED_COUNT;
+            return &app->set.speed;
+        }
+        return NULL;
     case BbSceneSettings:
-        if(app->settings_cur == 0) return bb_list_move(&app->set.volume, BB_VOL_COUNT, d);
-        if(app->settings_cur == 1) return bb_list_move(&app->set.assist, BB_ASSIST_COUNT, d);
-        return false;
+        if(app->settings_cur == 0) {
+            *count = BB_VOL_COUNT;
+            return &app->set.volume;
+        }
+        if(app->settings_cur == 1) {
+            *count = BB_ASSIST_COUNT;
+            return &app->set.assist;
+        }
+        return NULL;
     case BbSceneScoreDetail:
         if(app->det_cur == 0) {
-            if(!bb_list_move(&app->det_mode, BB_MODE_COUNT, d)) return false;
-            /* the dials differ per mode, so the cursor may no longer exist */
-            if(app->det_cur >= bb_detail_dials(app->det_mode))
-                app->det_cur = bb_detail_dials(app->det_mode) - 1;
-            return true;
+            *count = BB_MODE_COUNT;
+            return &app->det_mode;
         }
-        if(app->det_mode == BbModeChallenge) return bb_list_move(&app->rule_cur, BB_RULE_COUNT, d);
-        if(app->det_cur == 1) return bb_list_move(&app->det_diff, BB_DIFF_COUNT, d);
-        return bb_list_move(&app->det_speed, BB_SPEED_COUNT, d);
+        if(app->det_mode == BbModeChallenge) {
+            *count = BB_RULE_COUNT;
+            return &app->rule_cur;
+        }
+        if(app->det_mode == BbModeDaily) return NULL; /* the daily has no dials */
+        if(app->det_cur == 1) {
+            *count = BB_DIFF_COUNT;
+            return &app->det_diff;
+        }
+        *count = BB_SPEED_COUNT;
+        return &app->det_speed;
     default:
-        return false;
+        return NULL;
     }
 }
 
-/* True when a left/right press on this screen would change something, so
-   the screens can draw an arrow only where the player can actually go. */
+static bool bb_adjust(BeepbackApp* app, int8_t d) {
+    uint8_t count = 0;
+    uint8_t* value = bb_adjust_target(app, &count);
+    if(!value || !bb_list_move(value, count, d)) return false;
+    /* changing the mode on the detail screen changes which dials exist */
+    if(app->scene == BbSceneScoreDetail && app->det_cur == 0) {
+        uint8_t dials = bb_detail_dials(app->det_mode);
+        if(app->det_cur >= dials) app->det_cur = (uint8_t)(dials - 1);
+    }
+    return true;
+}
+
 bool bb_can_adjust(const BeepbackApp* app, int8_t d) {
-    BeepbackApp copy = *app;
-    return bb_adjust(&copy, d);
+    uint8_t count = 0;
+    /* read-only: bb_adjust_target hands back a pointer into the app, and
+       nothing here writes through it */
+    uint8_t* value = bb_adjust_target((BeepbackApp*)(uintptr_t)app, &count);
+    if(!value) return false;
+    int16_t next = (int16_t)*value + d;
+    return next >= 0 && next < (int16_t)count;
 }
 
 static void bb_confirm(BeepbackApp* app) {
@@ -276,8 +314,6 @@ static void bb_setup_ok(BeepbackApp* app) {
         return; /* one attempt a day */
     bb_run_start(app, app->run.mode);
     bb_go(app, BbSceneGame);
-    /* bb_go clears the run's first phase deadline, so re-arm it */
-    bb_run_tick(app);
 }
 
 static void bb_settings_ok(BeepbackApp* app) {

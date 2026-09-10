@@ -6,12 +6,15 @@ set -e
 SUITES="rules nav game challenge reflex draw save"
 CFLAGS="-std=gnu11 -Wall -Wextra -Werror -I stubs -I .."
 
-# The device-only paths never link on a host, but they still have to
-# compile clean, so check them before anything else.
-for f in ../beepback_led.c ../beepback_save.c ../beepback_app.c ../beepback_intro.c; do
-    [ -f "$f" ] || continue
-    gcc $CFLAGS -c -o /dev/null "$f"
-done
+# First the half of a build the host tests cannot see: every source file
+# compiled on its device path, with no BB_HOST_TEST, and linked together
+# against do-nothing hardware. One definition of everything, two of
+# nothing.
+gcc $CFLAGS -o link_check link_check.c ../beepback_app.c ../beepback_nav.c \
+    ../beepback_game.c ../beepback_rules.c ../beepback_draw.c ../beepback_intro.c \
+    ../beepback_save.c ../beepback_led.c -lm
+./link_check
+echo
 
 for t in $SUITES; do
     gcc $CFLAGS -o "test_$t" "test_$t.c" -lm

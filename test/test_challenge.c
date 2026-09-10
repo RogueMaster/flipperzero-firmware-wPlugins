@@ -211,6 +211,18 @@ int main(void) {
     bb_input(&app, InputKeyOk);
     check("a second attempt the same day does not start", app.scene == BbSceneSetup, "");
 
+    /* opening the daily setup checks the date itself, so a session left
+       running past midnight does not keep yesterday's attempt spent */
+    app.rec.daily_date = bb_today_seed() - 1;
+    app.rec.daily_done = true;
+    app.rec.daily_best[BbAssistShapes] = 4321;
+    bb_go(&app, BbSceneSetup);
+    check("opening the daily past midnight rolls it over",
+          !app.rec.daily_done && app.rec.daily_best[BbAssistShapes] == 0, "");
+    bb_input(&app, InputKeyOk);
+    check("and the new day's attempt starts", app.scene == BbSceneGame, "");
+    bb_run_end(&app, true);
+
     /* a new day clears the day's records and gives the attempt back */
     app.rec.daily_best[BbAssistShapes] = 4321;
     bb_daily_refresh(&app, bb_today_seed() + 1);
