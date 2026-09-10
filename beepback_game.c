@@ -307,6 +307,56 @@ static void bb_playback_tick(BeepbackApp* app) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Reflex                                                              */
+/*                                                                     */
+/* No memory and no second chance. One cue at a time, a window that     */
+/* tightens with every hit, and a single miss - including a press in    */
+/* the gap between cues - ends the run. There is no pause: freezing a   */
+/* live cue would be a cheat, so BACK ends it too, which the ready      */
+/* screen says before the first cue goes up.                            */
+/* ------------------------------------------------------------------ */
+
+static void bb_rx_wait(BeepbackApp* app) {
+    BbRun* run = &app->run;
+    bb_silence(app);
+    /* the gap is the beat, and the beat is what SPEED sets */
+    bb_phase(app, BbPhaseRxWait, bb_rx_gap[run->speed < BB_SPEED_COUNT ? run->speed : 1]);
+}
+
+static void bb_rx_cue(BeepbackApp* app) {
+    BbRun* run = &app->run;
+    run->rx_cue = bb_rng_below(&run->rng, BbBtnCount);
+    bb_show_step(app, run->rx_cue);
+    /* the bar the screen draws is the same deadline the engine judges by */
+    run->win_ms = run->rx_win;
+    run->win_end = app->now + run->rx_win;
+    bb_phase(app, BbPhaseRxCue, run->rx_win);
+}
+
+static void bb_rx_hit(BeepbackApp* app) {
+    BbRun* run = &app->run;
+    /* paid at the window it was taken at, then the window tightens */
+    run->award = bb_apply_mult(bb_rx_hit_value(run->rx_win), run->mult);
+    run->bonus = 0;
+    run->score += run->award;
+    run->hits++;
+
+    uint16_t shrink = bb_rx_shrink[run->diff < BB_DIFF_COUNT ? run->diff : 1];
+    run->rx_win = (run->rx_win > BB_RX_FLOOR + shrink) ? (uint16_t)(run->rx_win - shrink) :
+                                                         BB_RX_FLOOR;
+    run->flash_btn = run->rx_cue;
+    run->flash_end = app->now + BB_PRESS_LED_MS;
+    bb_rx_wait(app);
+}
+
+static void bb_rx_miss(BeepbackApp* app) {
+    app->run.lives = 0;
+    app->tone_hz = 0;
+    app->led = BbLedRed;
+    bb_run_end(app, false);
+}
+
+/* ------------------------------------------------------------------ */
 /* Resolving a stage                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -421,6 +471,15 @@ void bb_run_tick(BeepbackApp* app) {
     case BbPhaseRetry:
         bb_begin_playback(app);
         break;
+    case BbPhaseRxReady:
+        bb_rx_wait(app);
+        break;
+    case BbPhaseRxWait:
+        bb_rx_cue(app);
+        break;
+    case BbPhaseRxCue:
+        bb_rx_miss(app); /* the window emptied */
+        break;
     default:
         break;
     }
@@ -429,6 +488,20 @@ void bb_run_tick(BeepbackApp* app) {
 void bb_run_press(BeepbackApp* app, BbButton btn) {
     BbRun* run = &app->run;
     if(btn >= BbBtnCount) return;
+
+    if(run->mode == BbModeReflex) {
+        if(run->phase == BbPhaseRxCue) {
+            if(btn == run->rx_cue) {
+                bb_rx_hit(app);
+            } else {
+                bb_rx_miss(app);
+            }
+        } else if(run->phase == BbPhaseRxWait) {
+            bb_rx_miss(app); /* jumping the gap is a miss, not a free go */
+        }
+        return;
+    }
+
     /* anything pressed outside the response window is simply not heard */
     if(run->phase != BbPhaseInput) return;
     if(run->idx >= run->press.len) return;
