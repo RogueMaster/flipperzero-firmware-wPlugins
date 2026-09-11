@@ -385,6 +385,47 @@ int main(void) {
     bb_input(&app, InputKeyBack);
     check("but BACK still leaves for the menu", app.scene == BbSceneMenu, "");
 
+    /* ---- pausing stops the clock, it does not rewind the stage ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    wait_input(&app);
+    play_stage(&app);
+    wait_phase_change(&app, BbPhaseHold);
+    wait_input(&app);
+    {
+        uint32_t left_before = app.run.win_end - app.now;
+        BbSeq seq_before = app.run.seq;
+        uint8_t shown_before = app.run.shown;
+        bb_input(&app, InputKeyBack);
+        check("BACK pauses the run", app.scene == BbScenePause, "");
+        for(int i = 0; i < 100; i++) bb_tick(&app, BB_TICK_MS); /* two seconds held */
+        check("and the window does not drain while it is held",
+              app.run.phase == BbPhaseInput, "");
+        bb_input(&app, InputKeyOk);
+        check("OK resumes straight into the same stage", app.scene == BbSceneGame, "");
+        check("in the same phase, not a replay", app.run.phase == BbPhaseInput, "");
+        sprintf(msg, "%lu ms left, was %lu", (unsigned long)(app.run.win_end - app.now),
+                (unsigned long)left_before);
+        check("with the response window it had", app.run.win_end - app.now == left_before, msg);
+        check("and the same sequence", app.run.shown == shown_before &&
+              memcmp(app.run.seq.step, seq_before.step, shown_before) == 0, "");
+        play_stage(&app);
+        wait_phase_change(&app, BbPhaseHold);
+        check("and the stage can still be cleared", app.run.score > 10, "");
+    }
+
+    /* ---- pressing on GO is being ready, not a mistake ---- */
+    start(&app, BbModeClassic, 1, 1, BbAssistShapes);
+    for(int i = 0; i < 4000 && app.run.phase != BbPhaseGo; i++) bb_tick(&app, BB_TICK_MS);
+    check("the run reaches its GO banner", app.run.phase == BbPhaseGo, "");
+    {
+        BbPresses want = app.run.press;
+        bb_input(&app, key_of(want.press[0]));
+        sprintf(msg, "phase %d, idx %u", app.run.phase, app.run.idx);
+        check("a press during GO counts rather than being dropped",
+              app.run.idx == 1 || app.run.phase == BbPhaseHold, msg);
+        check("and is never counted as a miss", app.run.lives == BB_LIVES, msg);
+    }
+
     /* ---- the record is written when the run ends ---- */
     start(&app, BbModeClassic, 1, 1, BbAssistShapes);
     wait_input(&app);

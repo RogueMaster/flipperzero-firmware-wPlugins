@@ -360,6 +360,7 @@ void bb_input(BeepbackApp* app, InputKey key) {
                 bb_run_end(app, true);
                 bb_go(app, BbSceneOver);
             } else {
+                app->pause_at = app->now;
                 bb_go(app, BbScenePause);
             }
             return;
@@ -411,8 +412,12 @@ void bb_input(BeepbackApp* app, InputKey key) {
     case BbSceneModeSelect:
         if(key == InputKeyUp) bb_list_move(&app->mode_row, bb_list_count(app, app->scene), -1);
         if(key == InputKeyDown) bb_list_move(&app->mode_row, bb_list_count(app, app->scene), 1);
-        if(key == InputKeyLeft) bb_list_move(&app->mode_page, BB_MODE_PAGES, -1);
-        if(key == InputKeyRight) bb_list_move(&app->mode_page, BB_MODE_PAGES, 1);
+        /* a page change lands on that page's first mode, so the cursor is
+           never left pointing at a row the new page does not have */
+        if(key == InputKeyLeft && bb_list_move(&app->mode_page, BB_MODE_PAGES, -1))
+            app->mode_row = 0;
+        if(key == InputKeyRight && bb_list_move(&app->mode_page, BB_MODE_PAGES, 1))
+            app->mode_row = 0;
         /* the last page holds one mode, so a row from a full page may be gone */
         if(app->mode_row >= bb_list_count(app, app->scene))
             app->mode_row = bb_list_count(app, app->scene) - 1;
@@ -436,6 +441,12 @@ void bb_input(BeepbackApp* app, InputKey key) {
         return;
 
     case BbSceneGame:
+        /* pressing during GO! is not a mistake, it is being ready: skip the
+           banner and count the press */
+        if(app->run.phase == BbPhaseGo && key != InputKeyBack) {
+            app->run.phase_end = app->now;
+            bb_run_tick(app);
+        }
         switch(key) {
         case InputKeyUp:
             bb_run_press(app, BbBtnUp);
@@ -458,9 +469,11 @@ void bb_input(BeepbackApp* app, InputKey key) {
 
     case BbScenePause:
         if(key == InputKeyOk) {
+            /* every deadline moves on by however long the pause lasted, so
+               the run picks up exactly where it stopped */
+            uint32_t held = app->now > app->pause_at ? app->now - app->pause_at : 0;
             bb_go(app, BbSceneGame);
-            app->run.phase = BbPhaseRetry; /* count you back in */
-            app->run.phase_end = app->now + BB_RETRY_MS;
+            bb_run_shift(app, held);
         }
         return;
 

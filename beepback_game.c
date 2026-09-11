@@ -21,6 +21,15 @@ static void bb_phase(BeepbackApp* app, BbPhase phase, uint32_t ms) {
     app->run.phase_end = app->now + ms;
 }
 
+void bb_run_shift(BeepbackApp* app, uint32_t ms) {
+    BbRun* run = &app->run;
+    if(!ms) return;
+    run->phase_end += ms;
+    run->win_end += ms;
+    run->rx_at += ms;
+    if(run->flash_end) run->flash_end += ms;
+}
+
 static void bb_silence(BeepbackApp* app) {
     app->tone_hz = 0;
     app->led = BbLedOff;
@@ -122,7 +131,7 @@ void bb_run_new_round(BbRun* run, uint8_t target) {
     bool ok = !ruled;
     /* Re-roll the sequence, never the rule: the rule is what the round
        announced and what the player is being asked to hold. */
-    for(uint8_t tries = 0; tries < 32 && !ok; tries++) {
+    for(uint8_t tries = 0; tries < 60 && !ok; tries++) {
         run->seq.len = target;
         for(uint8_t i = 0; i < target; i++)
             run->seq.step[i] = bb_no_triple(run, i, bb_rng_below(&run->rng, BbBtnCount));
@@ -133,7 +142,12 @@ void bb_run_new_round(BbRun* run, uint8_t target) {
         for(uint8_t i = 0; i < target; i++)
             run->seq.step[i] = bb_no_triple(run, i, bb_rng_below(&run->rng, BbBtnCount));
     } else if(!ok) {
-        bb_repair(&run->seq, run->rule, run->ra, run->rb);
+        /* sixty sequences and the rule would not take any of them, so fall
+           back to the one rule that fits anything: NO DOUBLES needs only a
+           repeat somewhere, and bb_repair guarantees the rest */
+        run->rule = BbRuleNoDoubles;
+        if(!bb_rule_fits(&run->seq, run->rule, run->ra, run->rb))
+            bb_repair(&run->seq, run->rule, run->ra, run->rb);
     }
     /* one step at a time, from one: check 1 of bb_rule_fits() has already
        guaranteed no stage along the way leaves nothing to press */
@@ -351,6 +365,7 @@ static void bb_rx_wait(BeepbackApp* app) {
 static void bb_rx_cue(BeepbackApp* app) {
     BbRun* run = &app->run;
     run->rx_cue = bb_rng_below(&run->rng, BbBtnCount);
+    run->rx_at = app->now;
     bb_show_step(app, run->rx_cue);
     /* the bar the screen draws is the same deadline the engine judges by */
     run->win_ms = run->rx_win;
@@ -360,6 +375,12 @@ static void bb_rx_cue(BeepbackApp* app) {
 
 static void bb_rx_hit(BeepbackApp* app) {
     BbRun* run = &app->run;
+    /* floored at 1ms: zero would read as "no reaction recorded yet" and
+       never be beaten */
+    uint32_t reaction = app->now > run->rx_at ? app->now - run->rx_at : 1;
+    if(reaction > 0xFFFFu) reaction = 0xFFFFu;
+    if(!run->rx_fastest || reaction < run->rx_fastest)
+        run->rx_fastest = (uint16_t)reaction;
     /* paid at the window it was taken at, then the window tightens */
     run->award = bb_apply_mult(bb_rx_hit_value(run->rx_win), run->mult);
     run->bonus = 0;
@@ -377,6 +398,7 @@ static void bb_rx_hit(BeepbackApp* app) {
 
 static void bb_rx_miss(BeepbackApp* app) {
     app->run.lives = 0;
+    app->run.longest = 0; /* reflex measures itself in hits and milliseconds */
     app->tone_hz = 0;
     app->led = BbLedRed;
     bb_run_end(app, false);
@@ -393,6 +415,9 @@ static void bb_rx_miss(BeepbackApp* app) {
 static void bb_stage_clear(BeepbackApp* app) {
     BbRun* run = &app->run;
     if(run->shown > run->longest) run->longest = run->shown;
+    /* deliberately not run->rng: the daily's sequence must not depend on
+       which line of praise came up */
+    app->praise = (uint8_t)((app->praise + 1 + (app->now >> 5)) % BB_PRAISE_COUNT);
     run->award = bb_apply_mult(10u * run->shown, run->mult);
     run->bonus = 0;
     run->score += run->award;

@@ -121,6 +121,27 @@ int main(void) {
         check("and a tighter one pays more", app.run.score - first >= first, msg);
     }
 
+    /* ---- reflex measures how fast, not just how many ---- */
+    start(&app, 1, 1);
+    wait_for(&app, BbPhaseRxCue);
+    for(int i = 0; i < 6; i++) bb_tick(&app, BB_TICK_MS); /* take a beat, then hit */
+    bb_input(&app, key_of(app.run.rx_cue));
+    sprintf(msg, "%u ms", app.run.rx_fastest);
+    check("a hit records the reaction time", app.run.rx_fastest > 0, msg);
+    check("and it is the time actually taken", app.run.rx_fastest >= 100, msg);
+    {
+        uint16_t slow = app.run.rx_fastest;
+        wait_for(&app, BbPhaseRxCue);
+        bb_input(&app, key_of(app.run.rx_cue)); /* instantly */
+        sprintf(msg, "%u then %u", slow, app.run.rx_fastest);
+        check("a quicker one replaces it", app.run.rx_fastest < slow, msg);
+        wait_for(&app, BbPhaseRxCue);
+        for(int i = 0; i < 10; i++) bb_tick(&app, BB_TICK_MS);
+        uint16_t best = app.run.rx_fastest;
+        bb_input(&app, key_of(app.run.rx_cue));
+        check("but a slower one does not", app.run.rx_fastest == best, "");
+    }
+
     /* ---- one miss and it is over ---- */
     start(&app, 1, 1);
     wait_for(&app, BbPhaseRxCue);

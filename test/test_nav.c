@@ -217,7 +217,13 @@ int main(void) {
     boot(&app);
     bb_go(&app, BbSceneModeSelect);
     bb_input(&app, InputKeyDown); /* RULES */
-    bb_input(&app, InputKeyRight); /* page 2, row 1 is CHALLENGE */
+    bb_input(&app, InputKeyRight); /* a page change lands on that page's first */
+    check("changing page lands on the first mode of it", app.mode_row == 0, "");
+    bb_input(&app, InputKeyOk);
+    check("which on page two is reflex", app.run.mode == BbModeReflex, "");
+    bb_go(&app, BbSceneModeSelect);
+    app.mode_page = 1;
+    bb_input(&app, InputKeyDown); /* and the row below it is challenge */
     bb_input(&app, InputKeyOk);
     check("page two row two is challenge", app.run.mode == BbModeChallenge, "");
     check("which asks for a rule first", app.scene == BbSceneRulePick, scene_name[app.scene]);

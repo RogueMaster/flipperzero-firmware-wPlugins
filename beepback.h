@@ -340,6 +340,8 @@ typedef struct {
     uint32_t award; /* the last stage award, already multiplied */
     uint32_t bonus; /* the round bonus that went with it, also multiplied */
     uint32_t hits; /* reflex cues taken */
+    uint32_t rx_at; /* when the live cue went up, for the reaction time */
+    uint16_t rx_fastest; /* the quickest reaction of the run, in ms */
     uint8_t longest; /* the longest stage this run reached */
     uint32_t prev_best; /* the record this run was trying to beat */
 
@@ -403,6 +405,8 @@ typedef struct {
     uint8_t det_cur;
     uint8_t sound_btn; /* the sound test cursor */
     uint8_t over_page; /* game over has a second page of run settings */
+    uint32_t pause_at; /* when the pause began, so resuming can shift the clock */
+    uint8_t praise; /* which line of praise this stage drew */
     uint32_t flash_at; /* a transient confirmation was shown at this time */
 } BeepbackApp;
 
@@ -445,6 +449,9 @@ void bb_run_start(BeepbackApp* app, BbMode mode);
 void bb_run_tick(BeepbackApp* app);
 void bb_run_press(BeepbackApp* app, BbButton btn);
 void bb_run_end(BeepbackApp* app, bool quit);
+/* move every deadline on by the time spent paused, so resuming picks the
+   run up exactly where it stopped rather than replaying the stage */
+void bb_run_shift(BeepbackApp* app, uint32_t ms);
 /* build the presses for the stage now on screen */
 void bb_run_build_presses(BbRun* run);
 /* the sequence for a fresh round, re-rolled until the rule can live with it */
@@ -468,7 +475,8 @@ bool bb_run_has_rule(BbMode mode);
 
 extern const char* const bb_mode_name[BB_MODE_COUNT];
 extern const char* const bb_rule_name[BB_RULE_COUNT];
-extern const char* const bb_assist_name[BB_ASSIST_COUNT];
+extern const char* const bb_assist_name[BB_ASSIST_COUNT]; /* boards: EARS.. */
+extern const char* const bb_assist_setting[BB_ASSIST_COUNT]; /* settings: OFF.. */
 extern const char* const bb_time_name[BB_DIFF_COUNT];
 extern const char* const bb_speed_name[BB_SPEED_COUNT];
 extern const char* const bb_praise[BB_PRAISE_COUNT];

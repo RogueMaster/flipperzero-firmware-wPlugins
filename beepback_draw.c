@@ -20,11 +20,14 @@ const char* const bb_mode_name[BB_MODE_COUNT] =
     {"CLASSIC", "RULES", "REFLEX", "CHALLENGE", "DAILY"};
 const char* const bb_rule_name[BB_RULE_COUNT] =
     {"SKIP", "DOUBLE", "NO DOUBLES", "EVERY OTHER", "LAST TWICE", "X IS Y", "BACKWARDS"};
+/* The boards say EARS because that is how you played; the settings row
+   says OFF because that is what the assist is set to. */
 const char* const bb_assist_name[BB_ASSIST_COUNT] = {"EARS", "LED", "SHAPES", "ARROWS"};
+const char* const bb_assist_setting[BB_ASSIST_COUNT] = {"OFF", "LED", "SHAPES", "ARROWS"};
 const char* const bb_time_name[BB_DIFF_COUNT] = {"EASY", "NORMAL", "HARD", "INSANE"};
 const char* const bb_speed_name[BB_SPEED_COUNT] = {"SLOW", "NORMAL", "FAST"};
 const char* const bb_praise[BB_PRAISE_COUNT] =
-    {"NICE", "SHARP", "CLEAN", "GOOD EAR", "LOCKED IN", "SMOOTH", "DIALLED"};
+    {"LET'S GO!", "NICE!", "PERFECT!", "GOOD!", "CLEAN!", "YOU GOT IT!", "SICK!"};
 
 /* Mode select is the only place the game says what the modes are, so the
    footer carries a line about whichever one the cursor is on. */
@@ -155,15 +158,6 @@ static void bb_row(Canvas* c, uint8_t y, const char* label, const char* value, b
     if(sel) canvas_set_color(c, ColorBlack);
 }
 
-/* An action rather than a setting: same inverted row, bigger type. */
-static void bb_big_row(Canvas* c, uint8_t y, const char* label, bool sel) {
-    if(sel) bb_select(c, y);
-    canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, BB_W / 2, y, AlignCenter, AlignCenter, label);
-    canvas_set_color(c, ColorBlack);
-    canvas_set_font(c, FontSecondary);
-}
-
 /* Arrows sit at the row edges and appear only where a press would move
    something, so the arrow itself says whether there is anything left
    that way. */
@@ -228,14 +222,29 @@ static void bb_dots(Canvas* c, uint8_t done, uint8_t total, uint8_t y) {
     for(uint8_t i = 0; i < total; i++) bb_dot(c, x + i * 7, y, i < done);
 }
 
-static void bb_heart(Canvas* c, int32_t x, int32_t y) {
-    canvas_draw_line(c, x + 1, y, x + 2, y);
-    canvas_draw_line(c, x + 4, y, x + 5, y);
-    canvas_draw_line(c, x, y + 1, x + 6, y + 1);
-    canvas_draw_line(c, x, y + 2, x + 6, y + 2);
-    canvas_draw_line(c, x + 1, y + 3, x + 5, y + 3);
-    canvas_draw_line(c, x + 2, y + 4, x + 4, y + 4);
-    canvas_draw_dot(c, x + 3, y + BB_HEART_H - 1);
+/* Pixel art, and both states are drawn: three hearts always, hollow where
+   a life has gone, so the row does not change width as you lose them. */
+static const char* const BB_HEART_FULL[BB_HEART_H] =
+    {".##.##.", "#######", "#######", ".#####.", "..###..", "...#..."};
+static const char* const BB_HEART_EMPTY[BB_HEART_H] =
+    {".##.##.", "#..#..#", "#.....#", ".#...#.", "..#.#..", "...#..."};
+
+static void bb_heart(Canvas* c, int32_t x, int32_t y, bool full, int32_t scale) {
+    const char* const* art = full ? BB_HEART_FULL : BB_HEART_EMPTY;
+    for(int32_t r = 0; r < BB_HEART_H; r++)
+        for(int32_t col = 0; col < BB_HEART_W; col++) {
+            if(art[r][col] != '#') continue;
+            if(scale <= 1) {
+                canvas_draw_dot(c, x + col, y + r);
+            } else {
+                canvas_draw_box(c, x + col * scale, y + r * scale, (size_t)scale, (size_t)scale);
+            }
+        }
+}
+
+static void bb_lives(Canvas* c, int32_t x, int32_t y, uint8_t n, int32_t scale) {
+    for(int32_t i = 0; i < BB_LIVES; i++)
+        bb_heart(c, x + i * 8 * scale, y, i < (int32_t)n, scale);
 }
 
 /* Filled polygons by scanline, so the star comes out solid without any
@@ -545,59 +554,113 @@ static void bb_draw_rulepick(Canvas* c, const BeepbackApp* app) {
     bb_footer(c, buf);
 }
 
+/* Each mode sets up differently, so each names its own rows. Reflex has
+   no sequence window to pick, it has a ramp; the daily picks everything
+   itself and only shows you what it picked. */
 static void bb_draw_setup(Canvas* c, const BeepbackApp* app) {
-    char buf[24];
+    /* Labels and most values are constants, so they are pointed at rather
+       than copied: at -Os a parameterless snprintf becomes a strcpy, and a
+       .fap may only call what the firmware exports. */
+    const char* label[4] = {0};
+    const char* value[4] = {0};
+    char time_buf[20] = {0}, speed_buf[20] = {0};
+    uint8_t rows = 0;
     bool daily = (app->run.mode == BbModeDaily);
+    uint8_t diff = bb_clamp(app->set.diff, BB_DIFF_COUNT);
+    uint8_t speed = bb_clamp(app->set.speed, BB_SPEED_COUNT);
+
     bb_title(c, bb_mode_name[bb_clamp(app->run.mode, BB_MODE_COUNT)]);
 
     if(daily) {
-        /* plain rows: the day picks these, so there is nothing to move */
-        char date[16];
-        snprintf(date, sizeof(date), "%lu", (unsigned long)bb_today_seed());
-        bb_row(c, 18, "TODAY", date, false);
-        bb_row(c, 28, "TIME", bb_time_name[1], false);
-        bb_row(c, 38, "SPEED", bb_speed_name[1], false);
-        bool ready = bb_can_start(app, BbModeDaily);
-        bb_row(c, 48, ready ? "START" : "PLAYED TODAY", NULL, ready);
+        BbRun probe;
+        memset(&probe, 0, sizeof(probe));
+        probe.mode = BbModeDaily;
+        bb_daily_setup(&probe, bb_today_seed());
+        snprintf(time_buf, sizeof(time_buf), "%s %uS", bb_time_name[1], bb_time_ms[1] / 1000u);
+        label[rows] = "TODAY";
+        value[rows++] = bb_rule_name[bb_clamp(probe.rule, BB_RULE_COUNT)];
+        label[rows] = "TIME";
+        value[rows++] = time_buf;
+        label[rows] = "SPEED";
+        value[rows++] = bb_speed_name[1];
+        label[rows++] = bb_can_start(app, BbModeDaily) ? "START" : "PLAYED";
+    } else if(app->run.mode == BbModeReflex) {
+        /* reflex has no sequence window to set, it has a ramp */
+        snprintf(time_buf, sizeof(time_buf), "%s %uMS", bb_time_name[diff], bb_rx_shrink[diff]);
+        snprintf(speed_buf, sizeof(speed_buf), "%s %uMS", bb_speed_name[speed], bb_rx_gap[speed]);
+        label[rows] = "RAMP";
+        value[rows++] = time_buf;
+        label[rows] = "SPEED";
+        value[rows++] = speed_buf;
+        label[rows++] = "START";
     } else {
-        char time_v[20];
-        uint8_t diff = bb_clamp(app->set.diff, BB_DIFF_COUNT);
-        /* the window in seconds, because "HARD" on its own says nothing */
-        snprintf(time_v, sizeof(time_v), "%s %uS", bb_time_name[diff], bb_time_ms[diff] / 1000u);
-        bb_adj_row(c, 23, "TIME", time_v, app->setup_cur == 0, bb_can_adjust(app, -1),
-                   bb_can_adjust(app, 1));
-        bb_adj_row(c, 33, "SPEED", bb_speed_name[bb_clamp(app->set.speed, BB_SPEED_COUNT)],
-                   app->setup_cur == 1, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
-        bb_big_row(c, 43, "START", app->setup_cur == 2);
+        snprintf(time_buf, sizeof(time_buf), "%s %uS", bb_time_name[diff], bb_time_ms[diff] / 1000u);
+        label[rows] = "TIME";
+        value[rows++] = time_buf;
+        label[rows] = "SPEED";
+        value[rows++] = bb_speed_name[speed];
+        label[rows++] = "START";
     }
 
-    /* the multiplier moves as the dials do, so you can see what it costs */
-    uint8_t d = daily ? 1 : bb_clamp(app->set.diff, BB_DIFF_COUNT);
-    uint8_t s = daily ? 1 : bb_clamp(app->set.speed, BB_SPEED_COUNT);
-    char mult[12];
-    bb_mult_str(bb_multiplier(app->run.mode, d, s), mult, sizeof(mult));
-    snprintf(buf, sizeof(buf), "SCORE  %s", mult);
-    bb_footer(c, buf);
+    /* the daily has no multiplier to show, so it gets the footer's height */
+    bool has_foot = !daily;
+    uint8_t row_h = has_foot ? 10 : 12;
+    uint8_t bottom = has_foot ? 52 : 63;
+    uint8_t top0 = (uint8_t)(13 + ((bottom - 12) - rows * row_h) / 2);
+    uint8_t last = (uint8_t)(rows - 1);
+
+    for(uint8_t i = 0; i < rows; i++) {
+        uint8_t top = (uint8_t)(top0 + i * row_h);
+        uint8_t mid = (uint8_t)(top + row_h / 2);
+        bool sel = (app->setup_cur == i);
+        if(sel) {
+            canvas_set_color(c, ColorBlack);
+            canvas_draw_rbox(c, 2, top, 124, row_h, 2);
+            canvas_set_color(c, ColorWhite);
+        }
+        canvas_set_font(c, i == last ? FontPrimary : FontSecondary);
+        if(i == last) {
+            canvas_draw_str_aligned(c, BB_W / 2, mid, AlignCenter, AlignCenter, label[i]);
+        } else {
+            canvas_draw_str_aligned(c, BB_ROW_L, mid, AlignLeft, AlignCenter, label[i]);
+        }
+        if(value[i]) {
+            canvas_set_font(c, FontSecondary);
+            canvas_draw_str_aligned(
+                c, sel ? BB_ROW_VR : BB_ROW_R, mid, AlignRight, AlignCenter, value[i]);
+        }
+        canvas_set_color(c, ColorBlack);
+        if(sel && bb_can_adjust(app, -1)) bb_left_arrow(c, mid);
+        if(sel && bb_can_adjust(app, 1)) bb_right_arrow(c, mid);
+    }
+
+    if(has_foot) {
+        char foot[24], mult[12];
+        bb_mult_str(bb_multiplier(app->run.mode, diff, speed), mult, sizeof(mult));
+        snprintf(foot, sizeof(foot), "SCORE  %s", mult);
+        bb_footer(c, foot);
+    }
 }
 
 static void bb_draw_hud(Canvas* c, const BeepbackApp* app) {
     const BbRun* run = &app->run;
     char buf[24];
     canvas_set_font(c, FontSecondary);
-    for(uint8_t i = 0; i < run->lives && i < BB_LIVES; i++)
-        bb_heart(c, 1 + i * (BB_HEART_W + 1), 1);
-    if(run->mode == BbModeReflex) {
-        snprintf(buf, sizeof(buf), "x%lu", (unsigned long)run->hits);
-    } else if(bb_is_challenge(run->mode)) {
-        /* challenge has no target, so it must not print one */
+    if(bb_is_challenge(run->mode)) {
+        /* no rounds and no target, so the space goes to the score instead */
         snprintf(buf, sizeof(buf), "LEN %u", run->shown);
+        canvas_draw_str_aligned(c, 2, 1, AlignLeft, AlignTop, buf);
+        snprintf(buf, sizeof(buf), "%lu", (unsigned long)run->score);
+        canvas_draw_str_aligned(c, BB_W / 2, 1, AlignCenter, AlignTop, buf);
     } else {
-        snprintf(buf, sizeof(buf), "R%u %u/%u", run->round, run->shown, run->target);
+        snprintf(buf, sizeof(buf), "R%u", run->round);
+        canvas_draw_str_aligned(c, 2, 1, AlignLeft, AlignTop, buf);
+        snprintf(buf, sizeof(buf), "%u/%u", run->shown, run->target);
+        canvas_draw_str_aligned(c, BB_W / 2, 1, AlignCenter, AlignTop, buf);
     }
-    canvas_draw_str_aligned(c, 30, 5, AlignLeft, AlignCenter, buf);
-    snprintf(buf, sizeof(buf), "%lu", (unsigned long)run->score);
-    canvas_draw_str_aligned(c, BB_W - 1, 5, AlignRight, AlignCenter, buf);
+    bb_lives(c, 103, 1, run->lives, 1);
 }
+
 
 static void bb_draw_game(Canvas* c, const BeepbackApp* app) {
     const BbRun* run = &app->run;
@@ -639,7 +702,7 @@ static void bb_draw_game(Canvas* c, const BeepbackApp* app) {
         break;
 
     case BbPhaseSuccess:
-        bb_banner(c, bb_praise[run->shown % BB_PRAISE_COUNT], 26);
+        bb_banner(c, bb_praise[app->praise % BB_PRAISE_COUNT], 26);
         snprintf(buf, sizeof(buf), "+%lu", (unsigned long)run->award);
         canvas_draw_str_aligned(c, BB_W / 2, 42, AlignCenter, AlignCenter, buf);
         break;
@@ -652,9 +715,9 @@ static void bb_draw_game(Canvas* c, const BeepbackApp* app) {
         break;
 
     case BbPhaseWrong:
-        bb_banner(c, "MISS", 28);
-        snprintf(buf, sizeof(buf), run->lives == 1 ? "%u LIFE LEFT" : "%u LIVES LEFT", run->lives);
-        canvas_draw_str_aligned(c, BB_W / 2, 42, AlignCenter, AlignCenter, buf);
+        /* no HUD here: the hearts are the message, drawn big */
+        bb_banner(c, "WRONG!", 16);
+        bb_lives(c, 41, 30, run->lives, 2);
         break;
 
     case BbPhaseRetry:
@@ -725,8 +788,7 @@ static void bb_draw_pause(Canvas* c, const BeepbackApp* app) {
     }
     canvas_draw_str_aligned(c, 8, 26, AlignLeft, AlignCenter, left);
     canvas_draw_str_aligned(c, BB_W / 2, 26, AlignCenter, AlignCenter, mid);
-    for(uint8_t i = 0; i < run->lives && i < BB_LIVES; i++)
-        bb_heart(c, 96 + i * 8, 22);
+    bb_lives(c, 96, 22, run->lives, 1);
 
     /* the rule, with the buttons it names set in chips */
     if(bb_run_has_rule(run->mode)) {
@@ -799,7 +861,7 @@ static void bb_draw_over(Canvas* c, const BeepbackApp* app) {
         bb_right_arrow(c, BB_BODY_Y);
     } else {
         bb_row(c, 21, "MODE", bb_mode_name[bb_clamp(run->mode, BB_MODE_COUNT)], false);
-        bb_row(c, 32, "ASSIST", bb_assist_name[bb_clamp(run->assist, BB_ASSIST_COUNT)], false);
+        bb_row(c, 32, "ASSIST", bb_assist_setting[bb_clamp(run->assist, BB_ASSIST_COUNT)], false);
         if(run->mode == BbModeChallenge) {
             bb_row(c, 43, "RULE", bb_rule_name[bb_clamp(run->rule, BB_RULE_COUNT)], false);
         } else {
@@ -845,13 +907,14 @@ static void bb_draw_settings(Canvas* c, const BeepbackApp* app) {
             bb_adj_row(c, y, "VOLUME", bb_volume_name[bb_clamp(app->set.volume, BB_VOL_COUNT)],
                        sel, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         } else if(at == 1) {
-            /* silence with ears only leaves nothing to play by, and the
-               row says so, since this screen has no footer to say it in */
+            /* silence with the assist off leaves nothing to play by, so the
+               value says what the game is actually doing, with a mark to
+               show the setting did not choose it */
             bool forced = bb_effective_assist(app) != app->set.assist;
-            uint8_t shown = forced ? bb_effective_assist(app) : app->set.assist;
-            bb_adj_row(c, y, forced ? "ASSIST (SILENT)" : "ASSIST",
-                       bb_assist_name[bb_clamp(shown, BB_ASSIST_COUNT)], sel,
-                       bb_can_adjust(app, -1), bb_can_adjust(app, 1));
+            bb_adj_row(c, y, "ASSIST",
+                       forced ? "SHAPES!" :
+                                bb_assist_setting[bb_clamp(app->set.assist, BB_ASSIST_COUNT)],
+                       sel, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         } else {
             bb_row(c, y, tail[bb_clamp((uint8_t)(at - 2), 3)], NULL, sel);
         }

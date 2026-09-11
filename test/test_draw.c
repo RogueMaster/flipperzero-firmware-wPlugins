@@ -358,8 +358,12 @@ int main(void) {
         app.set.volume = 0;
         app.set.assist = BbAssistOff;
         frame(&app);
-        check("and silence with ears only says what it fell back to",
-              fc_saw("ASSIST (SILENT)") && fc_saw("SHAPES"), "");
+        check("and silence with the assist off says what it fell back to",
+              fc_saw("ASSIST") && fc_saw("SHAPES!"), "");
+        app.set.volume = 2;
+        frame(&app);
+        check("while a normal assist is named by its setting, not its effect",
+              fc_saw("OFF") && !fc_saw("SHAPES!"), "");
     }
 
     /* An adjustable row shows an arrow only where a press would move. */
