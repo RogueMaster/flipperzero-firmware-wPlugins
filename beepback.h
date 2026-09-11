@@ -183,6 +183,10 @@ uint32_t bb_rng_next(BbRng* r);
 uint8_t bb_rng_below(BbRng* r, uint8_t n);
 /* today as YYYYMMDD, from the Flipper's clock */
 uint32_t bb_today_seed(void);
+/* a date for bb_today_seed() to hand back instead of the clock's, so a
+   test can name the day it is pinning; zero is the clock, and the
+   firmware never sets it */
+extern uint32_t bb_seed_override;
 
 /* ------------------------------------------------------------------ */
 /* Presentation tables                                                 */

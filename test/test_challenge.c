@@ -189,17 +189,19 @@ int main(void) {
     /* This is the whole of what a date produces: the rule, its two
        buttons, and the sequence the run grows. It is the only thing
        standing between the device and the browser generating the same
-       daily, and the twelve-value generator test would not notice it
+       daily, and the twelve-value generator test would not catch it
        drifting, because the generator can be identical while the
        procedure built on it is not.
      *
-     * PROVISIONAL. These are this build's values. The browser build
-     * reports rule EVERY OTHER and 033221042032412034102302402014 for
-     * the same date, which this build cannot reproduce at any offset,
-     * under any rule, with either correction variant. Until the two
-     * agree, this pin catches drift on our side only - it does not
-     * certify parity. */
+     * CONFIRMED against the browser build, on two dates:
+     *   2026-09-10  NO DOUBLES   a=2 b=0  10211433440031423103004022143..
+     *   2026-09-11  EVERY OTHER  a=2 b=0  03322104203241203410230240201..
+     * Both agree character for character.
+     *
+     * The date is named here rather than read from bb_today_seed(), so
+     * this asserts against a date and not against the clock. */
     {
+        bb_seed_override = 20260910u;
         bb_app_init(&app);
         app.seed = 1;
         bb_run_start(&app, BbModeDaily);
@@ -211,9 +213,9 @@ int main(void) {
         got[at] = 0;
 
         sprintf(msg, "rule %u, %u becomes %u", app.run.rule, app.run.ra, app.run.rb);
-        check("the daily for 2026-09-10 picks the rule it always has",
+        check("2026-09-10 picks the rule the browser build picks",
               app.run.rule == BbRuleNoDoubles && app.run.ra == 2 && app.run.rb == 0, msg);
-        check("and grows the sequence it always has",
+        check("and grows the sequence the browser build grows",
               strcmp(got, "102114334400314231030040221432") == 0, got);
 
         /* the same date twice is the same run, procedure and all */
@@ -225,6 +227,63 @@ int main(void) {
         check("and the hardware seed cannot touch any of it",
               again.run.rule == app.run.rule && again.run.ra == app.run.ra &&
                   memcmp(again.run.seq.step, app.run.seq.step, 30) == 0, "");
+
+        /* the day after, pinned the same way and confirmed the same way */
+        bb_seed_override = 20260911u;
+        bb_app_init(&again);
+        again.seed = 1;
+        bb_run_start(&again, BbModeDaily);
+        for(int i = 0; i < 29; i++) bb_run_grow(&again.run);
+        at = 0;
+        for(uint8_t i = 0; i < 30 && i < again.run.seq.len; i++)
+            at += sprintf(got + at, "%u", again.run.seq.step[i]);
+        got[at] = 0;
+        sprintf(msg, "rule %u, %u becomes %u", again.run.rule, again.run.ra, again.run.rb);
+        check("2026-09-11 picks the rule the browser build picks",
+              again.run.rule == BbRuleEveryOther && again.run.ra == 2 && again.run.rb == 0, msg);
+        check("and grows that day's sequence too",
+              strcmp(got, "033221042032412034102302402014") == 0, got);
+        check("which is a different run from the day before",
+              again.run.rule != app.run.rule, "");
+        bb_seed_override = 0;
+    }
+
+    /* ---- the override is a test fixture and must not leak ---- */
+    {
+        uint32_t real = bb_today_seed();
+        bb_seed_override = 19700101u;
+        check("an override is what the game then calls today", bb_today_seed() == 19700101u, "");
+        bb_seed_override = 0;
+        sprintf(msg, "%lu", (unsigned long)bb_today_seed());
+        check("and clearing it gives the real date back", bb_today_seed() == real, msg);
+        check("which is what the firmware always runs with", bb_seed_override == 0, "");
+    }
+
+    /* a daily played on one date does not stay spent on the next, and
+       this goes through bb_today_seed() the way the game does */
+    {
+        bb_seed_override = 20260910u;
+        bb_app_init(&app);
+        app.seed = 1;
+        bb_daily_refresh(&app, bb_today_seed());
+        app.run.mode = BbModeDaily;
+        bb_go(&app, BbSceneSetup);
+        bb_input(&app, InputKeyOk);
+        check("the daily starts on its own date", app.scene == BbSceneGame, "");
+        app.run.score = 4242;
+        bb_run_end(&app, false);
+        check("and is spent for that date", app.rec.daily_done && app.rec.daily_date == 20260910u, "");
+        bb_go(&app, BbSceneSetup);
+        bb_input(&app, InputKeyOk);
+        check("with no second attempt that day", app.scene == BbSceneSetup, "");
+
+        bb_seed_override = 20260911u;
+        bb_go(&app, BbSceneSetup);
+        check("the next day hands the attempt back", !app.rec.daily_done, "");
+        check("and clears the day before's best", app.rec.daily_best[bb_effective_assist(&app)] == 0, "");
+        bb_input(&app, InputKeyOk);
+        check("so tomorrow's run starts", app.scene == BbSceneGame, "");
+        bb_seed_override = 0;
     }
 
     /* every date has to produce a rule whose buttons make sense */

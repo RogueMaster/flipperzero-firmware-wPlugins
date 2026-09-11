@@ -171,7 +171,15 @@ uint8_t bb_rng_below(BbRng* r, uint8_t n) {
     return (uint8_t)(((uint64_t)bb_rng_next(r) * n) >> 32);
 }
 
+/* A test that pins the daily has to name the date it is pinning, or it
+   is asserting against the clock: it passes all day and fails at
+   midnight with no code change, which is the worst kind of failure
+   because it arrives detached from its cause. Zero means "use the real
+   date", which is what the firmware always runs with. */
+uint32_t bb_seed_override = 0;
+
 uint32_t bb_today_seed(void) {
+    if(bb_seed_override) return bb_seed_override;
 #ifdef BB_HOST_TEST
     return 20260910u;
 #else
