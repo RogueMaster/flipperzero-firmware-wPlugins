@@ -48,6 +48,17 @@ if command -v $ARMCC > /dev/null 2>&1; then
         exit 1
     fi
     echo "ok   builds clean for Cortex-M4F and asks the firmware for nothing unexpected"
+    # and the stronger version of the same question, against the real table
+    rc=0
+    arm-none-eabi-nm -u armobj/beepback.o | awk '{print $2}' |
+        python3 ../tools/check_api.py > /tmp/bb_api.log 2>&1 || rc=$?
+    case $rc in
+        0) echo "ok   $(cat /tmp/bb_api.log)" ;;
+        1) echo "FAIL a symbol this app needs is not in the firmware's API table"
+           cat /tmp/bb_api.log
+           exit 1 ;;
+        *) echo "--   could not reach the API table, skipping the export check" ;;
+    esac
     arm-none-eabi-size -t armobj/beepback_*.o | tail -1 | \
         awk '{print "ok   " $1 " bytes of code, " $2 " of data, " $3 " of bss"}'
     echo

@@ -1,11 +1,14 @@
 #!/bin/sh
-# Build the .fap. Needs ufbt and the Flipper SDK, which this repo does
-# not vendor:
+# Build the .fap.
 #
-#   pip install ufbt && ufbt update
+#   pip install ufbt
+#   ufbt update          # fetches the SDK from update.flipperzero.one
+#   ./build.sh
 #
-# ufbt fetches the SDK from update.flipperzero.one on first run, so the
-# machine doing this has to be able to reach it.
+# The SDK is not vendored here and cannot be, so the machine running this
+# has to reach update.flipperzero.one once. Everything before that step -
+# the logic, the target build, and whether the firmware exports every
+# symbol this app needs - test/run_tests.sh checks without it.
 set -e
 cd "$(dirname "$0")"
 ./test/run_tests.sh
