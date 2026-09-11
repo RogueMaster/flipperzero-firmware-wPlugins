@@ -224,22 +224,22 @@ bool storage_file_close(File* f) {
     UNUSED(f);
     return true;
 }
-uint16_t storage_file_read(File* f, void* b, uint16_t n) {
+size_t storage_file_read(File* f, void* b, size_t n) {
     UNUSED(f);
     UNUSED(b);
     UNUSED(n);
     return 0;
 }
-uint16_t storage_file_write(File* f, const void* b, uint16_t n) {
+size_t storage_file_write(File* f, const void* b, size_t n) {
     UNUSED(f);
     UNUSED(b);
     UNUSED(n);
     return n;
 }
-bool storage_common_mkdir(Storage* s, const char* p) {
+FS_Error storage_common_mkdir(Storage* s, const char* p) {
     UNUSED(s);
     UNUSED(p);
-    return true;
+    return FSE_OK;
 }
 
 int32_t beepback_app(void* p);

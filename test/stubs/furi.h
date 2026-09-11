@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 #define UNUSED(x) (void)(x)
+/* the real furi/core/common_defines.h carries these, and -Werror means
+   ignoring a FURI_WARN_UNUSED result fails the device build */
+#define FURI_WARN_UNUSED __attribute__((warn_unused_result))
+#define FURI_RETURNS_NONNULL __attribute__((returns_nonnull))
 #define COUNT_OF(x) (sizeof(x) / sizeof((x)[0]))
 #define FuriWaitForever 0xFFFFFFFFU
 typedef enum { FuriStatusOk = 0, FuriStatusError = -1 } FuriStatus;
@@ -22,5 +26,5 @@ FuriMessageQueue* furi_message_queue_alloc(uint32_t capacity, uint32_t size);
 void furi_message_queue_free(FuriMessageQueue* q);
 FuriStatus furi_message_queue_put(FuriMessageQueue* q, const void* msg, uint32_t timeout);
 FuriStatus furi_message_queue_get(FuriMessageQueue* q, void* msg, uint32_t timeout);
-void* furi_record_open(const char* name);
+FURI_RETURNS_NONNULL void* furi_record_open(const char* name);
 void furi_record_close(const char* name);

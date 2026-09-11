@@ -12,6 +12,24 @@ CFLAGS="-std=gnu11 -Wall -Wextra -Werror -I stubs -I .."
 # undefined symbols it leaves are exactly what a .fap asks the firmware
 # for at load time - so anything in that list beyond the Flipper API and
 # a little libc is a symbol the app might not find on the device.
+# The stubs only do their job while they say what the device's headers
+# say. A drifted stub compiles perfectly here and then fails under ufbt -
+# or worse, compiles there and behaves differently, the way an FS_Error
+# read as a bool inverts every success test. Needs the network, so a
+# failure to fetch is a skip and only a real mismatch is a failure.
+# set -e would kill the script on a non-zero exit before the case below
+# could report it, so take the status without tripping it
+rc=0
+python3 ../tools/check_stubs.py > /tmp/bb_stubs.log 2>&1 || rc=$?
+case $rc in
+    0) echo "ok   $(grep "shared signatures" /tmp/bb_stubs.log)" ;;
+    1) echo "FAIL the stubs have drifted from the device headers"
+       cat /tmp/bb_stubs.log
+       exit 1 ;;
+    *) echo "--   could not reach the firmware headers, skipping the stub check" ;;
+esac
+echo
+
 ARMCC=arm-none-eabi-gcc
 if command -v $ARMCC > /dev/null 2>&1; then
     ARMFLAGS="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \

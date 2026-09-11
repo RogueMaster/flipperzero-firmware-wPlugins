@@ -126,9 +126,10 @@ void bb_save_load(BeepbackApp* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     if(storage_file_open(file, BB_SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        uint16_t got = storage_file_read(file, buf, (uint16_t)BB_SAVE_BYTES);
+        size_t got = storage_file_read(file, buf, BB_SAVE_BYTES);
         storage_file_close(file);
-        /* anything that is not exactly ours leaves the defaults standing */
+        /* anything that is not exactly ours leaves the defaults standing,
+           a short read included */
         bb_save_unpack(app, buf, got);
     }
     storage_file_free(file);
@@ -147,13 +148,21 @@ void bb_save_store(BeepbackApp* app) {
         return;
     }
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    storage_common_mkdir(storage, BB_SAVE_DIR);
-    File* file = storage_file_alloc(storage);
-    if(storage_file_open(file, BB_SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        storage_file_write(file, buf, (uint16_t)n);
-        storage_file_close(file);
+    /* storage_common_mkdir answers with an FS_Error, and FSE_OK is zero,
+       so this is a comparison and never a truthiness test. A directory
+       that is already there is the normal case, not a failure. */
+    FS_Error made = storage_common_mkdir(storage, BB_SAVE_DIR);
+    if(made == FSE_OK || made == FSE_EXIST) {
+        File* file = storage_file_alloc(storage);
+        if(storage_file_open(file, BB_SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+            /* a short write leaves a file the checksum will reject, which
+               is the right outcome: last session's records beat half of
+               this session's */
+            storage_file_write(file, buf, n);
+            storage_file_close(file);
+        }
+        storage_file_free(file);
     }
-    storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
     free(buf);
 }
