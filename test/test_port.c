@@ -420,6 +420,175 @@ int main(void) {
     check("a paused rules run carries its rule", fake.ops > 20, "");
     check("and says what the buttons do", fc_saw("OK: RESUME") && fc_saw("BACK: QUIT"), "");
 
+    /* ---- every control that looks adjustable actually adjusts ---- */
+    /* The setup rows for classic and rules did nothing for a while: the
+       rows were built without saying what they were for, so LEFT and
+       RIGHT fell through. Nothing here is spot-checked any more. */
+    {
+        int dead = 0, p2 = 0;
+        msg[0] = 0;
+        for(uint8_t m = 0; m < BB_MODE_COUNT; m++) {
+            if(m == BbModeDaily) continue; /* the day picks those, on purpose */
+            boot(&app);
+            app.mode = m;
+            app.ch_idx = 0;
+            bb_enter(&app, BbSceneSetup);
+            uint8_t rows = 0;
+            {
+                const char* l[4];
+                const char* v[4];
+                uint8_t k[4];
+                char a[24], b[24];
+                rows = bb_setup_rows(&app, l, v, k, a, b, sizeof(a));
+            }
+            for(uint8_t r = 0; r + 1 < rows; r++) { /* the last row is the action */
+                app.setup_idx = r;
+                app.set.diff = 1;
+                app.set.speed = 1;
+                uint8_t d0 = app.set.diff, s0 = app.set.speed;
+                bb_press(&app, InputKeyRight);
+                if(app.set.diff == d0 && app.set.speed == s0) {
+                    dead++;
+                    p2 += sprintf(msg + p2, "%s row %u ", bb_mode_name[m], r);
+                }
+            }
+        }
+        sprintf(msg + p2, "| %d dead", dead);
+        check("every setup row in every mode responds to LEFT and RIGHT", dead == 0, msg);
+
+        /* the daily is locked, and that is not the same as broken */
+        bb_seed_override = 20260910u;
+        boot(&app);
+        app.mode = BbModeDaily;
+        bb_enter(&app, BbSceneSetup);
+        uint8_t d0 = app.set.diff;
+        for(uint8_t r = 0; r < 4; r++) {
+            app.setup_idx = r;
+            bb_press(&app, InputKeyRight);
+            bb_press(&app, InputKeyLeft);
+        }
+        check("but the daily's rows stay where the day put them",
+              app.set.diff == d0 && app.setup_idx == 3, "");
+        bb_seed_override = 0;
+    }
+
+    /* settings, and the scores detail, the same way */
+    {
+        boot(&app);
+        bb_enter(&app, BbSceneSettings);
+        app.set_idx = 0;
+        app.set.volume = 1;
+        bb_press(&app, InputKeyRight);
+        check("VOLUME moves", app.set.volume == 2, "");
+        bb_press(&app, InputKeyLeft);
+        check("and back", app.set.volume == 1, "");
+        app.set_idx = 1;
+        app.set.assist = 1;
+        bb_press(&app, InputKeyRight);
+        check("ASSIST moves", app.set.assist == 2, "");
+        for(int i = 0; i < 9; i++) bb_press(&app, InputKeyRight);
+        check("and stops at the last one", app.set.assist == BB_ASSIST_COUNT - 1, "");
+
+        bb_enter(&app, BbSceneDetail);
+        app.det_row = 0;
+        bb_press(&app, InputKeyRight);
+        check("the scores detail changes mode", app.det_mode == 1, "");
+        app.det_row = 1;
+        bb_press(&app, InputKeyRight);
+        check("and time", app.det_time == 2, "");
+        app.det_row = 2;
+        bb_press(&app, InputKeyRight);
+        check("and speed", app.det_speed == 2, "");
+
+        bb_enter(&app, BbSceneChPick);
+        app.ch_idx = 0;
+        for(int i = 0; i < 9; i++) bb_press(&app, InputKeyDown);
+        sprintf(msg, "at %u of %u, scrolled to %u", app.ch_idx, BB_RULE_COUNT + 1, app.ch_scroll);
+        check("the rule picker walks all eight and stops",
+              app.ch_idx == BB_RULE_COUNT && app.ch_scroll == BB_RULE_COUNT + 1 - 4, msg);
+    }
+
+    /* ---- the tutorial is a first-launch thing, once ---- */
+    {
+        boot(&app);
+        check("a fresh install has not seen the tutorial", !app.set.tutorial_done, "");
+        bb_splash_done(&app);
+        check("the first launch opens it", app.scene == BbSceneTutorial, scene_name[app.scene]);
+        check("and records that it did", app.set.tutorial_done, "");
+
+        /* what the save carries is what decides the next launch */
+        uint8_t buf[BB_SAVE_BYTES];
+        bb_save_pack(&app, buf, sizeof(buf));
+        BeepbackApp next;
+        boot(&next);
+        bb_save_unpack(&next, buf, BB_SAVE_BYTES);
+        check("so a later launch does not", !next.first_run, "");
+        bb_splash_done(&next);
+        check("and goes straight to the menu", next.scene == BbSceneMenu, scene_name[next.scene]);
+
+        /* until RESET / TUTORIAL asks for it back */
+        bb_enter(&next, BbSceneReset);
+        next.reset_idx = 1;
+        bb_press(&next, InputKeyOk);
+        check("RESET TUTORIAL asks for it again", next.first_run && !next.set.tutorial_done, "");
+        check("and quits so the next launch shows it", !next.running, "");
+    }
+
+    /* ---- the daily is one run, and it borrows your settings ---- */
+    {
+        bb_seed_override = 20260910u;
+        boot(&app);
+        app.set.diff = 3;
+        app.set.speed = 2;
+        bb_daily_refresh(&app, bb_daily_seed());
+        app.mode = BbModeDaily;
+        bb_enter(&app, BbSceneSetup);
+        bb_press(&app, InputKeyOk);
+        check("the daily runs at NORMAL whatever you had set",
+              app.set.diff == 1 && app.set.speed == 1, "");
+        bb_enter(&app, BbSceneGameOver);
+        sprintf(msg, "diff %u speed %u", app.set.diff, app.set.speed);
+        check("and gives your own settings back when it ends",
+              app.set.diff == 3 && app.set.speed == 2, msg);
+
+        app.now += BB_OVER_LOCK + 1;
+        bb_press(&app, InputKeyOk);
+        check("OK on its game over does not hand it back for another go",
+              app.scene == BbSceneGameOver, scene_name[app.scene]);
+        bb_enter(&app, BbSceneSetup);
+        bb_press(&app, InputKeyOk);
+        check("and neither does the setup screen", app.scene == BbSceneSetup, "");
+
+        /* while any other mode plays again from there, as it should */
+        boot(&app);
+        app.mode = BbModeClassic;
+        bb_start_game(&app);
+        bb_enter(&app, BbSceneGameOver);
+        app.now += BB_OVER_LOCK + 1;
+        bb_press(&app, InputKeyOk);
+        check("but classic does play again from its game over",
+              bb_in_game(app.scene), scene_name[app.scene]);
+        bb_seed_override = 0;
+    }
+
+    /* ---- the volume is worth something on this speaker ---- */
+    check("silence is silent", bb_vol_gain[0] == 0, "");
+    sprintf(msg, "%u %u %u %u", bb_vol_gain[0], bb_vol_gain[1], bb_vol_gain[2], bb_vol_gain[3]);
+    check("and the loudest step drives the speaker fully", bb_vol_gain[BB_VOL_COUNT - 1] == 100, msg);
+    check("with every step louder than the last",
+          bb_vol_gain[1] < bb_vol_gain[2] && bb_vol_gain[2] < bb_vol_gain[3], msg);
+
+    /* ---- a flash always reaches the LED ---- */
+    {
+        boot(&app);
+        bb_led_flash(&app, BbLedGreen, 100);
+        uint8_t gen = app.led_gen;
+        bb_led_flash(&app, BbLedGreen, 100);
+        check("the same colour twice is two flashes, not one", app.led_gen != gen, "");
+        bb_tick(&app, 200);
+        check("and it goes out on its own", app.led == BbLedOff, "");
+    }
+
     /* ---- the save file still round-trips ---- */
     {
         uint8_t buf[BB_SAVE_BYTES];

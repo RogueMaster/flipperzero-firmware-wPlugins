@@ -13,6 +13,7 @@
 /* Device-side state, which the game logic has no business knowing. */
 static uint16_t bb_tone_playing;
 static uint8_t bb_led_shown = BbLedCount; /* nothing applied yet */
+static uint8_t bb_led_gen_shown;
 static bool bb_speaker_ours;
 
 static void bb_draw_cb(Canvas* canvas, void* ctx) {
@@ -31,42 +32,55 @@ static void bb_input_cb(InputEvent* event, void* ctx) {
 /* Hardware, driven from what the logic asked for                      */
 /* ------------------------------------------------------------------ */
 
+/* The speaker is taken once and held for as long as the app is in the
+ * foreground. Acquiring it per tone meant a handful of acquire/release
+ * pairs a second during playback, each of which can fail if anything
+ * else wants the speaker, and a failed one is a note that simply does
+ * not sound. A game that is asking you to listen cannot drop notes. */
 static void bb_audio_apply(BeepbackApp* app) {
     uint16_t want = app->set.volume ? app->tone_hz : 0; /* volume 0 is silent */
     if(want == bb_tone_playing) return;
 
-    if(want == 0) {
-        if(bb_speaker_ours) {
-            furi_hal_speaker_stop();
-            furi_hal_speaker_release();
-            bb_speaker_ours = false;
-        }
-        bb_tone_playing = 0;
-        return;
-    }
-
     if(!bb_speaker_ours) {
-        if(!furi_hal_speaker_acquire(20)) return; /* someone else has it */
+        if(want == 0) {
+            bb_tone_playing = 0;
+            return;
+        }
+        if(!furi_hal_speaker_acquire(100)) return; /* someone else has it */
         bb_speaker_ours = true;
     }
-    /* VOL_GAIN, as the browser's oscillator gain; the only float in the
-       build that gameplay can see, and it stops here */
-    float level = (float)bb_vol_gain[app->set.volume % BB_VOL_COUNT] / 100.0f;
-    furi_hal_speaker_start((float)want, level);
+
+    if(want == 0) {
+        furi_hal_speaker_stop();
+    } else {
+        /* VOL_GAIN, calibrated for this speaker; the only float in the
+           build that gameplay can see, and it stops here */
+        float level = (float)bb_vol_gain[app->set.volume % BB_VOL_COUNT] / 100.0f;
+        furi_hal_speaker_start((float)want, level);
+    }
     bb_tone_playing = want;
 }
 
 static void bb_led_apply_changed(BeepbackApp* app) {
-    if(app->led == bb_led_shown) return;
+    /* colour alone is not enough: two flashes of the same colour back to
+       back have to reach the LED as two */
+    if(app->led == bb_led_shown && app->led_gen == bb_led_gen_shown) return;
     bb_led_shown = app->led;
+    bb_led_gen_shown = app->led_gen;
     bb_led_apply(app, (BbLedColor)app->led);
 }
 
 static void bb_hardware_off(BeepbackApp* app) {
     app->tone_hz = 0;
     app->led = BbLedOff;
+    app->led_gen++;
     bb_audio_apply(app);
     bb_led_apply_changed(app);
+    /* and hand the speaker back on the way out */
+    if(bb_speaker_ours) {
+        furi_hal_speaker_release();
+        bb_speaker_ours = false;
+    }
 }
 
 

@@ -385,6 +385,10 @@ typedef struct {
     uint8_t run_mode; /* the assist the run was played on */
     uint8_t run_game_mode, run_diff, run_speed;
     uint32_t run_mult;
+    /* the daily runs at NORMAL whatever you had set, so what you had set
+       is put aside for the length of the run rather than overwritten */
+    uint8_t held_diff, held_speed;
+    bool holding;
     uint32_t led_warn;
     int8_t sweep_idx;
     uint32_t lock_until;
@@ -430,6 +434,7 @@ typedef struct {
     /* what the hardware is being asked to do */
     uint8_t led;
     uint32_t led_until;
+    uint8_t led_gen; /* bumped per flash, so a repeat of one colour still shows */
     uint16_t tone_hz;
     const BbNote* tune;
     uint8_t tune_n, tune_i;

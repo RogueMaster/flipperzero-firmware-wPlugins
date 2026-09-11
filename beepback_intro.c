@@ -69,6 +69,9 @@ static uint32_t ease_out(uint32_t t1000) {
 void bb_splash_done(BeepbackApp* app) {
     if(app->first_run) {
         app->first_run = false;
+        /* and remember it: this flag is what the save file carries, and
+           without it the guide opened itself on every single launch */
+        app->set.tutorial_done = true;
         app->tut_page = 0;
         app->help_from = BbSceneMenu;
         bb_enter(app, BbSceneTutorial);

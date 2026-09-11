@@ -91,10 +91,13 @@ uint8_t bb_setup_rows(
         return n;
     }
     snprintf(buf_a, bufn, "%s %uS", bb_diff_name[diff], bb_time_ms[diff] / 1000u);
+    kind[n] = BbRowTime;
     label[n] = "TIME";
     value[n++] = buf_a;
+    kind[n] = BbRowSpeed;
     label[n] = "SPEED";
     value[n++] = bb_speed_name[speed];
+    kind[n] = BbRowStart;
     label[n++] = "START";
     return n;
 }
@@ -421,7 +424,15 @@ void bb_press(BeepbackApp* app, InputKey key) {
         break;
 
     case BbSceneGameOver:
-        if(key == InputKeyOk) bb_start_game(app);
+        /* One attempt a day, from here as much as from the setup screen.
+           The browser guards this on setup only, so its game over hands
+           the daily back for as many goes as you like. */
+        if(key == InputKeyOk) {
+            if(app->mode == BbModeDaily && app->rec.daily_date == bb_daily_seed() &&
+               app->rec.daily_done)
+                break;
+            bb_start_game(app);
+        }
         if(key == InputKeyRight) app->go_page = 1;
         if(key == InputKeyLeft) app->go_page = 0;
         break;

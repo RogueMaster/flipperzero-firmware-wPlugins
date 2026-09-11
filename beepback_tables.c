@@ -59,8 +59,12 @@ const char* const bb_rule_help[BB_RULE_COUNT][3] = {
 };
 
 /* SPEED_SET lives in beepback_rules.c with the other frozen tables */
-/* VOL_GAIN as percent, since the firmware has no float to spare */
-const uint8_t bb_vol_gain[BB_VOL_COUNT] = {0, 5, 10, 18};
+/* VOL_GAIN, but calibrated for this speaker rather than copied.
+   The browser's 0.05 to 0.18 is a gain into a laptop's amplifier; the
+   Flipper drives a small piezo directly off the same 0..1 scale, so the
+   same numbers come out barely audible. The four steps are the browser's
+   four steps; what each one is worth is hardware. */
+const uint8_t bb_vol_gain[BB_VOL_COUNT] = {0, 30, 65, 100};
 
 const BbNote bb_jingle_go[3] = {{196, 60}, {0, 40}, {294, 80}};
 const BbNote bb_jingle_win[3] = {{659, 70}, {880, 70}, {1175, 150}};

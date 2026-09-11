@@ -105,6 +105,7 @@ void bb_tone(BeepbackApp* app, uint16_t hz, uint16_t ms) {
 void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms) {
     app->led = color;
     app->led_until = app->now + ms;
+    app->led_gen++; /* the same colour twice running is still two flashes */
 }
 
 static void bb_tune_tick(BeepbackApp* app) {
@@ -281,6 +282,11 @@ void bb_start_challenge(BeepbackApp* app) {
            generates the identical run. No server involved. */
         bb_rng_seed(&app->rng, bb_daily_seed());
         app->rng_seeded = true;
+        if(!app->holding) {
+            app->held_diff = app->set.diff;
+            app->held_speed = app->set.speed;
+            app->holding = true;
+        }
         app->set.diff = 1;
         app->set.speed = 1; /* locked, or nobody is comparable */
         app->ch_rule = bb_rng_below(&app->rng, BB_RULE_COUNT);
@@ -366,6 +372,13 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
         if(bb_led_mode(app)) bb_led_flash(app, bb_button_led[app->rx_cue], ring);
     }
     if(scene == BbSceneGameOver) {
+        /* the daily's lock lasts as long as the daily does; the settings
+           you chose are yours again the moment it is over */
+        if(app->holding) {
+            app->set.diff = app->held_diff;
+            app->set.speed = app->held_speed;
+            app->holding = false;
+        }
         app->go_page = 0;
         app->lock_until = app->now + BB_OVER_LOCK; /* a press in flight must not retry */
         app->prev_best = bb_best_for(app, app->run_game_mode, app->run_mode);
@@ -576,6 +589,7 @@ void bb_tick(BeepbackApp* app, uint32_t dt_ms) {
     if(app->led_until && app->now >= app->led_until) {
         app->led_until = 0;
         app->led = BbLedOff;
+        app->led_gen++;
     }
 }
 
