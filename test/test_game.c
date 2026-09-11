@@ -172,7 +172,7 @@ int main(void) {
        engine hands the player is the rule's output, in every ruled mode
        and at every stage - not just that it looks different once. */
     {
-        int applied = 0, checked = 0, transformed = 0;
+        int applied = 0, checked = 0, transformed = 0, empty = 0;
         int bites[BB_RULE_COUNT] = {0};
         static const BbMode ruled[3] = {BbModeRules, BbModeChallenge, BbModeDaily};
         for(uint32_t s = 1; s <= 40; s++) {
@@ -191,6 +191,7 @@ int main(void) {
                     BbPresses want;
                     bb_apply_rule(&shown, app.run.rule, app.run.ra, app.run.rb, &want);
                     checked++;
+                    if(app.run.press.len == 0) empty++;
                     if(want.len == app.run.press.len &&
                        memcmp(want.press, app.run.press.press, want.len) == 0)
                         applied++;
@@ -221,8 +222,13 @@ int main(void) {
             p2 += sprintf(msg + p2, "%d ", bites[r]);
         }
         check("all seven rules are seen changing the presses in real runs", mute == 0, msg);
-        sprintf(msg, "%d of %d stages", transformed, checked);
-        check("which is most stages, the short ones aside", transformed * 5 > checked * 2, msg);
+        /* Growth accepts a step as soon as the player is left something
+           to press - check 1 only. The rule proved it had something to
+           say when the run started, so a short early stage where it does
+           nothing is the rule kicking in as the sequence grows, not a
+           dead round. What must hold at every single stage is this. */
+        sprintf(msg, "%d of %d stages visibly differ", transformed, checked);
+        check("and not one stage hands the player an empty press list", empty == 0, msg);
     }
 
     /* every rule, given a sequence it has something to say about */

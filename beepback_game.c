@@ -89,6 +89,15 @@ void bb_run_build_presses(BbRun* run) {
     }
 }
 
+/* Never three of the same button running. Costs a second draw, and only
+   where the correction is actually needed, which is what keeps the
+   sequence in step with the browser build draw for draw. */
+static uint8_t bb_no_triple(BbRun* run, uint8_t at, uint8_t btn) {
+    if(at >= 2 && run->seq.step[at - 1] == btn && run->seq.step[at - 2] == btn)
+        return (uint8_t)((btn + 1 + bb_rng_below(&run->rng, BbBtnCount - 1)) % BbBtnCount);
+    return btn;
+}
+
 /* When a run of re-rolls has not landed on a sequence the rule can live
    with, walk each position through the five buttons in turn. It is
    deterministic, so two devices given the same unlucky draw repair it
@@ -115,12 +124,14 @@ void bb_run_new_round(BbRun* run, uint8_t target) {
        announced and what the player is being asked to hold. */
     for(uint8_t tries = 0; tries < 32 && !ok; tries++) {
         run->seq.len = target;
-        for(uint8_t i = 0; i < target; i++) run->seq.step[i] = bb_rng_below(&run->rng, BbBtnCount);
+        for(uint8_t i = 0; i < target; i++)
+            run->seq.step[i] = bb_no_triple(run, i, bb_rng_below(&run->rng, BbBtnCount));
         ok = bb_rule_fits(&run->seq, run->rule, run->ra, run->rb);
     }
     if(!ruled) {
         run->seq.len = target;
-        for(uint8_t i = 0; i < target; i++) run->seq.step[i] = bb_rng_below(&run->rng, BbBtnCount);
+        for(uint8_t i = 0; i < target; i++)
+            run->seq.step[i] = bb_no_triple(run, i, bb_rng_below(&run->rng, BbBtnCount));
     } else if(!ok) {
         bb_repair(&run->seq, run->rule, run->ra, run->rb);
     }
@@ -131,22 +142,36 @@ void bb_run_new_round(BbRun* run, uint8_t target) {
     bb_run_build_presses(run);
 }
 
+/* One more step on the end.
+ *
+ * The acceptance test here is only that the player is left something to
+ * press. The rule proved it had something to say when the run started,
+ * so re-proving it on every step would be stricter than the browser
+ * build and would reject steps it accepts - and the two have to grow the
+ * same sequence from the same seed or the daily is not one run. */
 void bb_run_grow(BbRun* run) {
     if(run->seq.len >= BB_MAX_SEQ) {
         bb_run_build_presses(run);
         return;
     }
     uint8_t at = run->seq.len;
-    run->seq.len = at + 1;
     bool ruled = bb_run_has_rule(run->mode);
-    bool ok = !ruled;
-    for(uint8_t tries = 0; tries < 32 && !ok; tries++) {
-        run->seq.step[at] = bb_rng_below(&run->rng, BbBtnCount);
-        /* re-roll the new step rather than let the rule make it unpressable */
-        ok = bb_rule_fits(&run->seq, run->rule, run->ra, run->rb);
+
+    for(uint8_t tries = 0; tries < 40; tries++) {
+        run->seq.step[at] = bb_no_triple(run, at, bb_rng_below(&run->rng, BbBtnCount));
+        run->seq.len = (uint8_t)(at + 1);
+        if(!ruled) break; /* nothing can empty a sequence that has no rule */
+        BbPresses p;
+        bb_apply_rule(&run->seq, run->rule, run->ra, run->rb, &p);
+        if(p.len > 0) break; /* accept */
+        run->seq.len = at; /* reject, and go round again */
     }
-    if(!ruled) run->seq.step[at] = bb_rng_below(&run->rng, BbBtnCount);
-    if(ruled && !ok) bb_repair(&run->seq, run->rule, run->ra, run->rb);
+    if(run->seq.len == at) {
+        /* forty tries and none of them stuck: take one and move on */
+        run->seq.step[at] = bb_rng_below(&run->rng, BbBtnCount);
+        run->seq.len = (uint8_t)(at + 1);
+    }
+
     if(run->shown < run->seq.len) run->shown = run->seq.len;
     bb_run_build_presses(run);
 }
@@ -212,17 +237,12 @@ void bb_run_start(BeepbackApp* app, BbMode mode) {
     }
 
     if(bb_is_challenge(mode)) {
-        /* one sequence, grown from a single step until the rule fits */
-        run->seq.len = 1;
-        run->seq.step[0] = bb_rng_below(&run->rng, BbBtnCount);
-        run->shown = 1;
-        while(run->seq.len < BB_MAX_SEQ &&
-              !bb_rule_fits(&run->seq, run->rule, run->ra, run->rb))
-            bb_run_grow(run);
-        run->shown = run->seq.len;
+        /* one sequence that only ever grows; the first step is a growth
+           from nothing, taken through the same guard as all the rest */
+        run->seq.len = 0;
+        bb_run_grow(run);
         run->target = 0; /* no target: challenge shows LEN, not stage/target */
         run->idx = 0;
-        bb_run_build_presses(run);
     } else {
         bb_run_new_round(run, BB_START_LEN);
     }

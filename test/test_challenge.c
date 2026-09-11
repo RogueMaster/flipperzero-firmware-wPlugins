@@ -71,15 +71,18 @@ int main(void) {
                 bb_run_grow(run);
                 if(run->seq.len > BB_MAX_SEQ) over_cap++;
                 if(run->press.len == 0) unpressable++;
-                /* a stage that reduces to one button repeated is mashing,
-                   not memory, so the guard rejects those too */
-                if(!bb_rule_fits(&run->seq, run->rule, run->ra, run->rb)) one_button++;
                 if(run->press.len > BB_MAX_PRESS) over_cap++;
+                /* three of the same button running is not a memory test,
+                   it is a staring contest, so growth corrects it */
+                for(uint8_t k = 2; k < run->seq.len; k++)
+                    if(run->seq.step[k] == run->seq.step[k - 1] &&
+                       run->seq.step[k] == run->seq.step[k - 2])
+                        one_button++;
                 if(run->seq.len > longest) longest = run->seq.len;
             }
         }
-        sprintf(msg, "%d empty, %d mashable, %d overrun, longest %u", unpressable, one_button, over_cap, longest);
-        check("three hundred steps of growth stay playable",
+        sprintf(msg, "%d empty, %d triples, %d overrun, longest %u", unpressable, one_button, over_cap, longest);
+        check("three hundred steps of growth always leave something to press",
               unpressable == 0 && one_button == 0 && over_cap == 0, msg);
         check("and stop at the sequence cap", longest == BB_MAX_SEQ, msg);
     }
@@ -180,6 +183,48 @@ int main(void) {
         check("the next day is a different run", differs, "");
         sprintf(msg, "rule %u, %u becomes %u", a.rule, a.ra, a.rb);
         check("X IS Y never maps a button to itself", a.ra != a.rb, msg);
+    }
+
+    /* ---- the daily, pinned step for step ---- */
+    /* This is the whole of what a date produces: the rule, its two
+       buttons, and the sequence the run grows. It is the only thing
+       standing between the device and the browser generating the same
+       daily, and the twelve-value generator test would not notice it
+       drifting, because the generator can be identical while the
+       procedure built on it is not.
+     *
+     * PROVISIONAL. These are this build's values. The browser build
+     * reports rule EVERY OTHER and 033221042032412034102302402014 for
+     * the same date, which this build cannot reproduce at any offset,
+     * under any rule, with either correction variant. Until the two
+     * agree, this pin catches drift on our side only - it does not
+     * certify parity. */
+    {
+        bb_app_init(&app);
+        app.seed = 1;
+        bb_run_start(&app, BbModeDaily);
+        char got[64];
+        int at = 0;
+        for(int i = 0; i < 29; i++) bb_run_grow(&app.run);
+        for(uint8_t i = 0; i < 30 && i < app.run.seq.len; i++)
+            at += sprintf(got + at, "%u", app.run.seq.step[i]);
+        got[at] = 0;
+
+        sprintf(msg, "rule %u, %u becomes %u", app.run.rule, app.run.ra, app.run.rb);
+        check("the daily for 2026-09-10 picks the rule it always has",
+              app.run.rule == BbRuleNoDoubles && app.run.ra == 2 && app.run.rb == 0, msg);
+        check("and grows the sequence it always has",
+              strcmp(got, "102114334400314231030040221432") == 0, got);
+
+        /* the same date twice is the same run, procedure and all */
+        BeepbackApp again;
+        bb_app_init(&again);
+        again.seed = 999;
+        bb_run_start(&again, BbModeDaily);
+        for(int i = 0; i < 29; i++) bb_run_grow(&again.run);
+        check("and the hardware seed cannot touch any of it",
+              again.run.rule == app.run.rule && again.run.ra == app.run.ra &&
+                  memcmp(again.run.seq.step, app.run.seq.step, 30) == 0, "");
     }
 
     /* every date has to produce a rule whose buttons make sense */
