@@ -221,8 +221,14 @@ int main(void) {
         app.mode = BbModeClassic;
         bb_start_game(&app);
         wait_scene(&app, BbSceneInput, 8000);
+        /* something has to be sounding, or the next check proves nothing */
+        bb_tone(&app, bb_button_hz[BbBtnOk], 5000);
+        check("a long note is sounding", app.tone_hz != 0, "");
         bb_input_event(&app, InputKeyBack, InputTypePress);
         check("BACK going down pauses", app.paused, "");
+        check("and the note stops with it", app.tone_hz == 0, "");
+        bb_tick(&app, BB_TICK_MS);
+        check("and stays stopped while it is held", app.tone_hz == 0, "");
         bb_input_event(&app, InputKeyBack, InputTypeShort);
         check("and BACK coming up does not also quit", app.paused, "");
         check("so the run is still there", bb_in_game(app.scene), scene_name[app.scene]);

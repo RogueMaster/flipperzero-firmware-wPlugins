@@ -484,6 +484,8 @@ bool bb_is_challenge_mode(uint8_t mode);
 void bb_play(BeepbackApp* app, const BbNote* notes, uint8_t n);
 void bb_tone(BeepbackApp* app, uint16_t hz, uint16_t ms);
 void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms);
+/* drop whatever is sounding or lit, right now */
+void bb_hush(BeepbackApp* app);
 
 /* ------------------------------------------------------------------ */
 /* Input (beepback_nav.c) - the browser's press()                      */

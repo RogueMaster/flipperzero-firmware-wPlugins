@@ -194,6 +194,7 @@ void bb_press(BeepbackApp* app, InputKey key) {
             }
             app->paused = true;
             app->pause_at = app->now;
+            bb_hush(app); /* nothing should still be sounding behind it */
             return;
         }
         bb_enter(app, BbSceneMenu);

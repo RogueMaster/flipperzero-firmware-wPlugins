@@ -108,6 +108,15 @@ void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms) {
     app->led_gen++; /* the same colour twice running is still two flashes */
 }
 
+void bb_hush(BeepbackApp* app) {
+    app->tune = NULL;
+    app->tune_n = 0;
+    app->tone_hz = 0;
+    app->led = BbLedOff;
+    app->led_until = 0;
+    app->led_gen++;
+}
+
 static void bb_tune_tick(BeepbackApp* app) {
     if(!app->tune) return;
     while(app->tune && app->now >= app->tune_next) {
@@ -585,7 +594,15 @@ void bb_tick(BeepbackApp* app, uint32_t dt_ms) {
     } else {
         bb_update(app);
     }
-    if(!app->paused) bb_tune_tick(app);
+    if(app->paused) {
+        /* A note is only silenced by the tune advancing past it, and a
+           paused tune does not advance. Without this the note that was
+           sounding when you pressed BACK holds on the speaker for as
+           long as the pause lasts. */
+        if(app->tone_hz) bb_hush(app);
+    } else {
+        bb_tune_tick(app);
+    }
     if(app->led_until && app->now >= app->led_until) {
         app->led_until = 0;
         app->led = BbLedOff;
