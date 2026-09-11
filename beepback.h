@@ -464,8 +464,10 @@ extern const char* const bb_time_name[BB_DIFF_COUNT];
 extern const char* const bb_speed_name[BB_SPEED_COUNT];
 extern const char* const bb_praise[BB_PRAISE_COUNT];
 
-/* the rule in one line, with its buttons filled in */
-void bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n);
+/* the rule in one line, with its buttons filled in. Returns the line:
+   either `out`, or a constant where the rule names no buttons, so the
+   common cases copy nothing. */
+const char* bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n);
 /* "x1.55", from a multiplier in hundredths */
 void bb_mult_str(uint16_t mult, char* out, size_t n);
 /* every screen, all 128x64 of it */

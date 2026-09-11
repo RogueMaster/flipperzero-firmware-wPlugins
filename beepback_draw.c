@@ -35,42 +35,52 @@ static uint8_t bb_clamp(uint8_t v, uint8_t count) {
 
 /* Scores share a 32px column four ways, so past five digits they go to
    thousands rather than run into the neighbour. */
-static void bb_score_short(uint32_t v, char* out, size_t n) {
+static const char* bb_score_short(uint32_t v, char* out, size_t n) {
     if(v < 100000u) {
         snprintf(out, n, "%lu", (unsigned long)v);
-    } else if(v < 100000000u) {
-        snprintf(out, n, "%luk", (unsigned long)(v / 1000u));
-    } else {
-        snprintf(out, n, "99999k");
+        return out;
     }
+    if(v < 100000000u) {
+        snprintf(out, n, "%luk", (unsigned long)(v / 1000u));
+        return out;
+    }
+    return "99999k"; /* nobody has scored this, but the column still fits */
 }
 
-void bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n) {
+/* Four of the seven rules say the same thing whatever buttons they were
+   given, so they are handed back as they are rather than copied into a
+   buffer. That is not only cheaper: at -Os the compiler turns a
+   parameterless snprintf into a strcpy, which a .fap can only call if
+   the firmware happens to export it, and this app now asks the firmware
+   for nothing it does not obviously need. */
+static const char* const bb_rule_flat[BB_RULE_COUNT] = {
+    NULL, /* SKIP names a button      */
+    NULL, /* DOUBLE names a button    */
+    "A REPEAT IS ONE PRESS",
+    "1ST, 3RD, 5TH ONLY",
+    "PRESS THE LAST TWICE",
+    NULL, /* X IS Y names two buttons */
+    "LAST STEP FIRST",
+};
+
+const char* bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n) {
     const char* na = bb_button_name[a < BbBtnCount ? a : 0];
     const char* nb = bb_button_name[b < BbBtnCount ? b : 0];
     switch(rule) {
     case BbRuleSkip:
         snprintf(out, n, "NEVER PRESS %s", na);
-        break;
+        return out;
     case BbRuleDouble:
         snprintf(out, n, "PRESS %s TWICE", na);
-        break;
-    case BbRuleNoDoubles:
-        snprintf(out, n, "A REPEAT IS ONE PRESS");
-        break;
-    case BbRuleEveryOther:
-        snprintf(out, n, "1ST, 3RD, 5TH ONLY");
-        break;
-    case BbRuleLastTwice:
-        snprintf(out, n, "PRESS THE LAST TWICE");
-        break;
+        return out;
     case BbRuleSwap:
         snprintf(out, n, "%s MEANS %s", na, nb);
-        break;
+        return out;
     default:
-        snprintf(out, n, "LAST STEP FIRST");
         break;
     }
+    const char* flat = bb_rule_flat[rule < BB_RULE_COUNT ? rule : BB_RULE_COUNT - 1];
+    return flat ? flat : "";
 }
 
 void bb_mult_str(uint16_t mult, char* out, size_t n) {
@@ -422,8 +432,8 @@ static void bb_assist_block(Canvas* c, const uint32_t* best, uint8_t label_y, ui
     for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) {
         int32_t cx = 16 + a * 32;
         canvas_draw_str_aligned(c, cx, label_y, AlignCenter, AlignCenter, bb_assist_short[a]);
-        bb_score_short(best[a], buf, sizeof(buf));
-        canvas_draw_str_aligned(c, cx, value_y, AlignCenter, AlignCenter, buf);
+        canvas_draw_str_aligned(
+            c, cx, value_y, AlignCenter, AlignCenter, bb_score_short(best[a], buf, sizeof(buf)));
     }
 }
 
@@ -542,8 +552,9 @@ static void bb_draw_game(Canvas* c, const BeepbackApp* app) {
     switch(run->phase) {
     case BbPhaseRuleCard:
         bb_banner(c, bb_rule_name[bb_clamp(run->rule, BB_RULE_COUNT)], 24);
-        bb_rule_line(run->rule, run->ra, run->rb, buf, sizeof(buf));
-        canvas_draw_str_aligned(c, BB_W / 2, 40, AlignCenter, AlignCenter, buf);
+        canvas_draw_str_aligned(
+            c, BB_W / 2, 40, AlignCenter, AlignCenter,
+            bb_rule_line(run->rule, run->ra, run->rb, buf, sizeof(buf)));
         break;
 
     case BbPhaseListen:

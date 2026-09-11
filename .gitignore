@@ -9,3 +9,4 @@ dist/
 .ufbt/
 test/san_*
 test/link_check
+test/armobj/
