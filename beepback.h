@@ -321,7 +321,6 @@ typedef struct {
     BbSeq seq;
     BbPresses press;
     uint8_t shown; /* steps of seq currently in play */
-    uint8_t start_len; /* the shortest stage the rule can survive */
     uint8_t target; /* the length that clears the round */
     uint8_t round; /* 1-based; challenge has no rounds */
     uint8_t lives;
@@ -422,6 +421,8 @@ uint8_t bb_list_count(const BeepbackApp* app, BbScene scene);
 bool bb_can_adjust(const BeepbackApp* app, int8_t delta);
 /* how many pages the how-to has for a topic */
 uint8_t bb_howto_pages(uint8_t topic);
+/* can this mode be started right now? the daily has one attempt a day */
+bool bb_can_start(const BeepbackApp* app, BbMode mode);
 
 /* ------------------------------------------------------------------ */
 /* Runs (beepback_game.c)                                              */

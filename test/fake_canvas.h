@@ -17,6 +17,7 @@
 typedef struct {
     uint32_t ops;
     uint32_t discs; /* filled circles, which is what a wheel car is */
+    uint32_t whites; /* switches to white ink, which is what inverting is */
     uint32_t out_of_bounds;
     uint32_t too_wide;
     char worst[64]; /* the widest string that did not fit */
@@ -91,6 +92,7 @@ void canvas_clear(Canvas* c) {
 }
 void canvas_set_color(Canvas* c, Color color) {
     UNUSED(c);
+    if(color == ColorWhite) fake.whites++;
     fake.color = color;
 }
 void canvas_set_font(Canvas* c, Font font) {

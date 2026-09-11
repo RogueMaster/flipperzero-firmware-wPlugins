@@ -106,15 +106,41 @@ void bb_apply_rule(const BbSeq* seq, BbRule rule, uint8_t a, uint8_t b, BbPresse
 }
 
 bool bb_rule_fits(const BbSeq* seq, BbRule rule, uint8_t a, uint8_t b) {
+    if(seq->len == 0) return false;
+    BbSeq prefix;
     BbPresses p;
-    bb_apply_rule(seq, rule, a, b, &p);
-    if(p.len == 0) return false;
 
-    /* Two distinct buttons minimum. A round that reduces to one button
-       repeated is not a memory test, it is mashing. */
-    uint8_t first = p.press[0];
-    for(uint8_t i = 1; i < p.len; i++)
-        if(p.press[i] != first) return true;
+    /* 1. No prefix may leave the player nothing to press. The round is
+       built one step at a time, so every length along the way is a stage
+       somebody has to play, and this is what makes starting at one safe. */
+    for(uint8_t n = 1; n <= seq->len; n++) {
+        prefix.len = n;
+        memcpy(prefix.step, seq->step, n);
+        bb_apply_rule(&prefix, rule, a, b, &p);
+        if(p.len == 0) return false;
+    }
+
+    bb_apply_rule(seq, rule, a, b, &p);
+
+    /* 2. A press list of one button repeated is mashing, not a round. */
+    if(seq->len >= 3) {
+        uint8_t first = p.press[0];
+        bool two = false;
+        for(uint8_t i = 1; i < p.len; i++)
+            if(p.press[i] != first) {
+                two = true;
+                break;
+            }
+        if(!two) return false;
+    }
+
+    /* 3. The rule has to actually change the full sequence. A round that
+       announces SKIP DOWN and never plays a DOWN is a dead round, and
+       from the player's side it looks exactly like the rule being
+       ignored - which is a bug this game has had once already. */
+    if(p.len != seq->len) return true;
+    for(uint8_t i = 0; i < seq->len; i++)
+        if(p.press[i] != seq->step[i]) return true;
     return false;
 }
 

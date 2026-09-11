@@ -233,6 +233,95 @@ int main(void) {
     frame(&app);
     check("and halfway down is still on screen", fake.out_of_bounds == 0, "");
 
+    /* ---- the pop-in on a playback cue ---- */
+    /* A cue is drawn inverted for the first BB_FLASH_MS of its step, so
+       it lands rather than fades in and two of the same button running
+       read as two hits. Playback only, and only where something is
+       drawn at all. */
+    {
+        static const uint8_t assists[4] = {BbAssistOff, BbAssistLed, BbAssistShapes, BbAssistArrows};
+        uint32_t early[4], late[4];
+        for(int i = 0; i < 4; i++) {
+            bb_app_init(&app);
+            app.seed = 11;
+            app.set.assist = assists[i];
+            bb_run_start(&app, BbModeClassic);
+            app.scene = BbSceneGame;
+            app.now = 40000;
+            app.run.phase = BbPhasePlayback;
+            app.run.play_on = true;
+            app.run.play_i = 0;
+            uint16_t tone = bb_speed_tone[app.run.speed];
+
+            app.run.phase_end = app.now + tone; /* the step has just begun */
+            frame(&app);
+            early[i] = fake.whites;
+            uint32_t oob_early = fake.out_of_bounds;
+
+            app.run.phase_end = app.now + tone - BB_FLASH_MS - 1; /* past the pop */
+            frame(&app);
+            late[i] = fake.whites;
+            sprintf(msg, "%s", bb_assist_name[assists[i]]);
+            check("the pop-in never draws off screen", oob_early == 0 && fake.out_of_bounds == 0, msg);
+        }
+        sprintf(msg, "shapes %lu then %lu, arrows %lu then %lu", (unsigned long)early[2],
+                (unsigned long)late[2], (unsigned long)early[3], (unsigned long)late[3]);
+        check("a shape cue starts inverted and stops", early[2] > late[2] && late[2] == 0, msg);
+        check("and so does an arrow", early[3] > late[3] && late[3] == 0, msg);
+        sprintf(msg, "ears %lu, led %lu", (unsigned long)early[0], (unsigned long)early[1]);
+        check("with nothing to invert in EARS or LED", early[0] == 0 && early[1] == 0, msg);
+    }
+
+    /* the player's own presses do not pop, and neither does a reflex cue */
+    {
+        bb_app_init(&app);
+        app.seed = 11;
+        app.set.assist = BbAssistShapes;
+        bb_run_start(&app, BbModeClassic);
+        app.scene = BbSceneGame;
+        app.now = 40000;
+        app.run.phase = BbPhaseInput;
+        app.run.flash_end = app.now + BB_PRESS_LED_MS;
+        app.run.phase_end = app.now + 10;
+        frame(&app);
+        check("a press of your own is not inverted", fake.whites == 0, "");
+
+        bb_app_init(&app);
+        app.seed = 11;
+        app.set.assist = BbAssistShapes;
+        bb_run_start(&app, BbModeReflex);
+        app.scene = BbSceneGame;
+        app.now = 40000;
+        app.run.phase = BbPhaseRxCue;
+        app.run.phase_end = app.now + app.run.rx_win;
+        app.run.win_ms = app.run.rx_win;
+        app.run.win_end = app.now + app.run.rx_win;
+        frame(&app);
+        check("nor a reflex cue, which is not playback", fake.whites == 0, "");
+    }
+
+    /* ---- game over offers another go, and the daily does not ---- */
+    {
+        bb_app_init(&app);
+        app.seed = 4;
+        bb_run_start(&app, BbModeClassic);
+        bb_go(&app, BbSceneOver);
+        app.now += BB_OVER_LOCK;
+        frame(&app);
+        check("game over says OK plays again", fc_saw("OK: AGAIN"), "");
+
+        bb_app_init(&app);
+        app.seed = 4;
+        bb_daily_refresh(&app, bb_today_seed());
+        bb_run_start(&app, BbModeDaily);
+        bb_run_end(&app, false);
+        bb_go(&app, BbSceneOver);
+        app.now += BB_OVER_LOCK;
+        frame(&app);
+        check("but a spent daily does not pretend to", !fc_saw("OK: AGAIN"), "");
+        check("and offers the menu instead", fc_saw("BACK: MENU"), "");
+    }
+
     /* ---- the intro, every tick of it ---- */
     {
         uint32_t oob = 0, wide = 0, blank = 0;

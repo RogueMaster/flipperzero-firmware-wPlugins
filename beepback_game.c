@@ -89,34 +89,44 @@ void bb_run_build_presses(BbRun* run) {
     }
 }
 
-/* The shortest stage this rule can survive. SKIP can empty a short
-   sequence out and EVERY OTHER can reduce it to one button, neither of
-   which can be played, so the ladder starts above that. Adding a step
-   never removes a distinct button from the press list, so every longer
-   stage in the round is safe once this one is. */
-static uint8_t bb_start_len(const BbRun* run) {
-    if(!bb_run_has_rule(run->mode)) return 1;
-    BbSeq p;
-    for(uint8_t len = 1; len <= run->seq.len; len++) {
-        p.len = len;
-        memcpy(p.step, run->seq.step, len);
-        if(bb_rule_fits(&p, run->rule, run->ra, run->rb)) return len;
+/* When a run of re-rolls has not landed on a sequence the rule can live
+   with, walk each position through the five buttons in turn. It is
+   deterministic, so two devices given the same unlucky draw repair it
+   the same way, and it converges where thirty-two random tries did not. */
+static bool bb_repair(BbSeq* seq, BbRule rule, uint8_t a, uint8_t b) {
+    for(uint8_t at = seq->len; at-- > 0;) {
+        uint8_t was = seq->step[at];
+        for(uint8_t btn = 0; btn < BbBtnCount; btn++) {
+            seq->step[at] = btn;
+            if(bb_rule_fits(seq, rule, a, b)) return true;
+        }
+        seq->step[at] = was;
     }
-    return run->seq.len;
+    return false;
 }
 
 void bb_run_new_round(BbRun* run, uint8_t target) {
     if(target > BB_MAX_SEQ) target = BB_MAX_SEQ;
     if(target == 0) target = 1;
     run->target = target;
-    for(uint8_t tries = 0; tries < 32; tries++) {
+    bool ruled = bb_run_has_rule(run->mode);
+    bool ok = !ruled;
+    /* Re-roll the sequence, never the rule: the rule is what the round
+       announced and what the player is being asked to hold. */
+    for(uint8_t tries = 0; tries < 32 && !ok; tries++) {
         run->seq.len = target;
         for(uint8_t i = 0; i < target; i++) run->seq.step[i] = bb_rng_below(&run->rng, BbBtnCount);
-        if(!bb_run_has_rule(run->mode)) break;
-        if(bb_rule_fits(&run->seq, run->rule, run->ra, run->rb)) break;
+        ok = bb_rule_fits(&run->seq, run->rule, run->ra, run->rb);
     }
-    run->start_len = bb_start_len(run);
-    run->shown = run->start_len;
+    if(!ruled) {
+        run->seq.len = target;
+        for(uint8_t i = 0; i < target; i++) run->seq.step[i] = bb_rng_below(&run->rng, BbBtnCount);
+    } else if(!ok) {
+        bb_repair(&run->seq, run->rule, run->ra, run->rb);
+    }
+    /* one step at a time, from one: check 1 of bb_rule_fits() has already
+       guaranteed no stage along the way leaves nothing to press */
+    run->shown = 1;
     run->idx = 0;
     bb_run_build_presses(run);
 }
@@ -129,20 +139,14 @@ void bb_run_grow(BbRun* run) {
     uint8_t at = run->seq.len;
     run->seq.len = at + 1;
     bool ruled = bb_run_has_rule(run->mode);
-    for(uint8_t tries = 0; tries < 32; tries++) {
+    bool ok = !ruled;
+    for(uint8_t tries = 0; tries < 32 && !ok; tries++) {
         run->seq.step[at] = bb_rng_below(&run->rng, BbBtnCount);
         /* re-roll the new step rather than let the rule make it unpressable */
-        if(!ruled || bb_rule_fits(&run->seq, run->rule, run->ra, run->rb)) {
-            if(run->shown < run->seq.len) run->shown = run->seq.len;
-            bb_run_build_presses(run);
-            return;
-        }
+        ok = bb_rule_fits(&run->seq, run->rule, run->ra, run->rb);
     }
-    /* a run this unlucky still has to be playable, so walk the five */
-    for(uint8_t b = 0; b < BbBtnCount; b++) {
-        run->seq.step[at] = b;
-        if(bb_rule_fits(&run->seq, run->rule, run->ra, run->rb)) break;
-    }
+    if(!ruled) run->seq.step[at] = bb_rng_below(&run->rng, BbBtnCount);
+    if(ruled && !ok) bb_repair(&run->seq, run->rule, run->ra, run->rb);
     if(run->shown < run->seq.len) run->shown = run->seq.len;
     bb_run_build_presses(run);
 }
@@ -215,7 +219,6 @@ void bb_run_start(BeepbackApp* app, BbMode mode) {
         while(run->seq.len < BB_MAX_SEQ &&
               !bb_rule_fits(&run->seq, run->rule, run->ra, run->rb))
             bb_run_grow(run);
-        run->start_len = run->seq.len;
         run->shown = run->seq.len;
         run->target = 0; /* no target: challenge shows LEN, not stage/target */
         run->idx = 0;

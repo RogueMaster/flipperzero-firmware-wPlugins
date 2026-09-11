@@ -307,13 +307,22 @@ static void bb_mode_ok(BeepbackApp* app) {
     }
 }
 
+bool bb_can_start(const BeepbackApp* app, BbMode mode) {
+    if(mode != BbModeDaily) return true;
+    return !(app->rec.daily_done && app->rec.daily_date == bb_today_seed());
+}
+
+/* The one way into a run. bb_run_start() clears the run, so the mode has
+   to arrive as an argument rather than be read back out of it. */
+static void bb_begin_run(BeepbackApp* app, BbMode mode) {
+    if(!bb_can_start(app, mode)) return;
+    bb_run_start(app, mode);
+    bb_go(app, BbSceneGame);
+}
+
 static void bb_setup_ok(BeepbackApp* app) {
     if(app->setup_cur != 2) return; /* only START starts */
-    if(app->run.mode == BbModeDaily && app->rec.daily_done &&
-       app->rec.daily_date == bb_today_seed())
-        return; /* one attempt a day */
-    bb_run_start(app, app->run.mode);
-    bb_go(app, BbSceneGame);
+    bb_begin_run(app, app->run.mode);
 }
 
 static void bb_settings_ok(BeepbackApp* app) {
@@ -456,7 +465,9 @@ void bb_input(BeepbackApp* app, InputKey key) {
 
     case BbSceneOver:
         if(app->now - app->scene_at < BB_OVER_LOCK) return;
-        if(key == InputKeyOk) bb_go(app, BbSceneSetup); /* straight to another go */
+        /* same mode, same settings, straight into another run - not back
+           out to the setup screen to press START again */
+        if(key == InputKeyOk) bb_begin_run(app, app->run.mode);
         return;
 
     case BbSceneHowToPick:

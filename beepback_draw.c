@@ -306,15 +306,38 @@ static void bb_arrow(Canvas* c, int32_t cx, int32_t cy, uint8_t btn) {
     }
 }
 
+/* Is this playback step still in its first BB_FLASH_MS? A cue drawn
+   inverted for that long lands rather than fades in, and it is what
+   makes the same button twice running read as two hits and not one long
+   one. */
+static bool bb_cue_popping(const BeepbackApp* app) {
+    const BbRun* run = &app->run;
+    uint16_t tone = bb_speed_tone[run->speed < BB_SPEED_COUNT ? run->speed : 1];
+    if(tone <= BB_FLASH_MS) return false;
+    uint32_t left = run->phase_end > app->now ? run->phase_end - app->now : 0;
+    return left > (uint32_t)(tone - BB_FLASH_MS);
+}
+
 /* What the player is shown for a button, per assist. EARS and LED both
-   leave the screen alone: the point of them is that it is not there. */
-static void bb_cue(Canvas* c, const BbRun* run, uint8_t btn, int32_t cy) {
+   leave the screen alone: the point of them is that it is not there, so
+   the pop-in has nothing to apply to either. */
+#define BB_CUE_HALF 21 /* covers the tallest shape at BB_SHAPE_R */
+
+static void bb_cue(Canvas* c, const BbRun* run, uint8_t btn, int32_t cy, bool pop) {
     if(btn >= BbBtnCount) return;
+    if(run->assist != BbAssistShapes && run->assist != BbAssistArrows) return;
+    if(pop) {
+        canvas_set_color(c, ColorBlack);
+        canvas_draw_box(
+            c, BB_W / 2 - BB_CUE_HALF, cy - BB_CUE_HALF, BB_CUE_HALF * 2, BB_CUE_HALF * 2);
+        canvas_set_color(c, ColorWhite);
+    }
     if(run->assist == BbAssistShapes) {
         bb_shape(c, BB_W / 2, cy, bb_button_shape[btn], BB_SHAPE_R, true);
-    } else if(run->assist == BbAssistArrows) {
+    } else {
         bb_arrow(c, BB_W / 2, cy, btn);
     }
+    if(pop) canvas_set_color(c, ColorBlack);
 }
 
 static void bb_banner(Canvas* c, const char* text, int32_t y) {
@@ -470,8 +493,8 @@ static void bb_draw_setup(Canvas* c, const BeepbackApp* app) {
         bb_row(c, 18, "TODAY", date, false);
         bb_row(c, 28, "TIME", bb_time_name[1], false);
         bb_row(c, 38, "SPEED", bb_speed_name[1], false);
-        bool spent = app->rec.daily_done && app->rec.daily_date == bb_today_seed();
-        bb_row(c, 48, spent ? "PLAYED TODAY" : "START", NULL, !spent);
+        bool ready = bb_can_start(app, BbModeDaily);
+        bb_row(c, 48, ready ? "START" : "PLAYED TODAY", NULL, ready);
     } else {
         bb_adj_row(
             c, 20, "TIME", bb_time_name[bb_clamp(app->set.diff, BB_DIFF_COUNT)],
@@ -528,7 +551,8 @@ static void bb_draw_game(Canvas* c, const BeepbackApp* app) {
         break;
 
     case BbPhasePlayback:
-        if(run->play_on) bb_cue(c, run, run->seq.step[run->play_i], 32);
+        if(run->play_on)
+            bb_cue(c, run, run->seq.step[run->play_i], BB_BODY_Y, bb_cue_popping(app));
         bb_dots(c, (uint8_t)(run->play_i + (run->play_on ? 1 : 0)), run->shown, 57);
         break;
 
@@ -582,7 +606,7 @@ static void bb_draw_game(Canvas* c, const BeepbackApp* app) {
         break;
 
     case BbPhaseRxCue:
-        bb_cue(c, run, run->rx_cue, 30);
+        bb_cue(c, run, run->rx_cue, 30, false);
         if(run->assist == BbAssistOff || run->assist == BbAssistLed)
             bb_banner(c, "NOW", 30);
         bb_bar(c, run->win_end > app->now ? run->win_end - app->now : 0, run->win_ms, 56);
@@ -620,7 +644,9 @@ static void bb_draw_over(Canvas* c, const BeepbackApp* app) {
         snprintf(buf, sizeof(buf), "ROUND %u  %s", run->round, mult);
     }
     canvas_draw_str_aligned(c, BB_W / 2, 42, AlignCenter, AlignCenter, buf);
-    bb_footer(c, "OK PLAYS AGAIN");
+    /* OK goes straight back in on the same settings; the daily has no
+       second attempt to offer, so it does not pretend otherwise */
+    bb_footer(c, bb_can_start(app, run->mode) ? "OK: AGAIN   BACK: MENU" : "BACK: MENU");
 
     /* the screen wipes down from the top while the input is locked */
     uint32_t since = app->now - app->scene_at;

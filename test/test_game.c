@@ -15,6 +15,11 @@ static void check(const char* name, int ok, const char* extra) {
     if(!ok) fails++;
 }
 
+/* the rule names, kept here rather than dragging the whole canvas in
+   for a printf */
+static const char* const rule_label[BB_RULE_COUNT] =
+    {"SKIP", "DOUBLE", "NODBL", "EVERY2", "LAST2", "XISY", "BACK"};
+
 static InputKey key_of(uint8_t btn) {
     switch(btn) {
     case BbBtnUp:
@@ -233,6 +238,86 @@ int main(void) {
         check("all seven rules change that sequence", silent == 0, msg);
     }
 
+    /* ---- the guard, over four thousand generated rounds ---- */
+    /* A round whose rule leaves the full sequence untouched is a dead
+       round, and from the player's side it is indistinguishable from the
+       rule being ignored. bb_rule_fits() is what stops one being dealt:
+       check 1 keeps every stage of the ladder pressable, so the ladder
+       can start at one, and check 3 makes the rule bite by the last
+       stage. It is meant to do nothing on some early stages - that is
+       the rule kicking in as the sequence grows. */
+    {
+        const int rounds = 4000;
+        int dead = 0, empty = 0;
+        int bite[BB_START_LEN] = {0};
+        int rule_bite[BB_RULE_COUNT] = {0};
+        int rule_seen[BB_RULE_COUNT] = {0};
+        for(int i = 0; i < rounds; i++) {
+            BbRun run;
+            memset(&run, 0, sizeof(run));
+            run.mode = BbModeRules;
+            bb_rng_seed(&run.rng, (uint32_t)(i + 1) * 2654435761u);
+            run.rule = (BbRule)bb_rng_below(&run.rng, BB_RULE_COUNT);
+            run.ra = bb_rng_below(&run.rng, BbBtnCount);
+            run.rb = (uint8_t)((run.ra + 1 + bb_rng_below(&run.rng, BbBtnCount - 1)) % BbBtnCount);
+            bb_run_new_round(&run, BB_START_LEN);
+
+            if(run.shown != 1) dead++; /* the ladder must start at one */
+            for(uint8_t n = 1; n <= BB_START_LEN; n++) {
+                run.shown = n;
+                bb_run_build_presses(&run);
+                if(run.press.len == 0) empty++;
+                BbSeq shown;
+                shown.len = n;
+                memcpy(shown.step, run.seq.step, n);
+                if(run.press.len != n || memcmp(run.press.press, shown.step, n) != 0) {
+                    bite[n - 1]++;
+                    if(n == 1) rule_bite[run.rule]++;
+                }
+                if(n == 1) rule_seen[run.rule]++;
+            }
+            if(bite[BB_START_LEN - 1] != i + 1) dead++; /* the last stage always bites */
+        }
+        sprintf(msg, "%d dead rounds", dead);
+        check("no generated round leaves its rule with nothing to do", dead == 0, msg);
+        sprintf(msg, "%d empty press lists", empty);
+        check("and no stage of one hands the player nothing to press", empty == 0, msg);
+        sprintf(msg, "%d %d %d %d of %d", bite[0], bite[1], bite[2], bite[3], rounds);
+        check("the rule kicks in as the sequence grows",
+              bite[0] < bite[3] && bite[3] == rounds, msg);
+
+        /* Broken down per rule, so the stage-one rate can be compared
+           against the browser build a rule at a time rather than as one
+           number. Only three rules can say anything about a one-step
+           sequence: LAST TWICE always, DOUBLE and X IS Y when the step
+           happens to be the button the rule names. */
+        p2 = 0;
+        msg[0] = 0;
+        for(int r = 0; r < BB_RULE_COUNT; r++)
+            p2 += sprintf(msg + p2, "%s %d/%d ", rule_label[r], rule_bite[r], rule_seen[r]);
+        check("and only three rules can bite a one-step stage at all",
+              rule_bite[BbRuleSkip] == 0 && rule_bite[BbRuleNoDoubles] == 0 &&
+                  rule_bite[BbRuleEveryOther] == 0 && rule_bite[BbRuleBackwards] == 0 &&
+                  rule_bite[BbRuleLastTwice] == rule_seen[BbRuleLastTwice],
+              msg);
+    }
+
+    /* the ladder starts at one now, in every ruled mode */
+    {
+        int late = 0;
+        for(uint32_t s = 1; s <= 200; s++) {
+            bb_app_init(&app);
+            app.seed = s * 40503u;
+            app.run.mode = BbModeRules;
+            bb_go(&app, BbSceneSetup);
+            app.setup_cur = 2;
+            bb_input(&app, InputKeyOk);
+            if(app.run.shown != 1) late++;
+        }
+        sprintf(msg, "%d starting late", late);
+        check("a ruled ladder starts at one step, like a classic one", late == 0, msg);
+    }
+
     /* the guard the browser build got wrong: challenge has a rule too */
     check("classic has no rule", !bb_run_has_rule(BbModeClassic), "");
     check("rules has one", bb_run_has_rule(BbModeRules), "");
@@ -253,6 +338,46 @@ int main(void) {
     wait_phase_change(&app, BbPhaseHold);
     sprintf(msg, "%lu then %lu", (unsigned long)earned, (unsigned long)app.run.score);
     check("so the next award is still at the run's rate", app.run.score == earned + 20, msg);
+
+    /* ---- game over goes straight back in ---- */
+    start(&app, BbModeClassic, 2, 0, BbAssistArrows);
+    wait_input(&app);
+    play_stage(&app);
+    wait_phase_change(&app, BbPhaseHold);
+    {
+        uint32_t earned = app.run.score;
+        uint16_t mult = app.run.mult;
+        bb_run_end(&app, false);
+        bb_go(&app, BbSceneOver);
+        bb_input(&app, InputKeyOk);
+        check("game over ignores OK during the wipe", app.scene == BbSceneOver, "");
+        bb_tick(&app, BB_OVER_LOCK);
+        bb_input(&app, InputKeyOk);
+        check("and then OK starts another run there and then", app.scene == BbSceneGame,
+              app.scene == BbSceneSetup ? "went back to setup" : "");
+        check("on the same mode", app.run.mode == BbModeClassic, "");
+        sprintf(msg, "time %u speed %u", app.run.diff, app.run.speed);
+        check("with the same settings", app.run.diff == 2 && app.run.speed == 0, msg);
+        check("and the same multiplier", app.run.mult == mult, "");
+        sprintf(msg, "%lu", (unsigned long)app.run.score);
+        check("but a fresh score and fresh lives",
+              app.run.score == 0 && app.run.lives == BB_LIVES && earned > 0, msg);
+    }
+
+    /* the daily has no second attempt to offer */
+    bb_app_init(&app);
+    app.seed = 9;
+    bb_daily_refresh(&app, bb_today_seed());
+    app.run.mode = BbModeDaily;
+    bb_go(&app, BbSceneSetup);
+    bb_input(&app, InputKeyOk);
+    bb_run_end(&app, true);
+    bb_go(&app, BbSceneOver);
+    bb_tick(&app, BB_OVER_LOCK);
+    bb_input(&app, InputKeyOk);
+    check("OK on a spent daily's game over starts nothing", app.scene == BbSceneOver, "");
+    bb_input(&app, InputKeyBack);
+    check("but BACK still leaves for the menu", app.scene == BbSceneMenu, "");
 
     /* ---- the record is written when the run ends ---- */
     start(&app, BbModeClassic, 1, 1, BbAssistShapes);
