@@ -9,6 +9,8 @@
 # has to reach update.flipperzero.one once. Everything before that step -
 # the logic, the target build, and whether the firmware exports every
 # symbol this app needs - test/run_tests.sh checks without it.
+#
+# Built and verified against SDK 1.4.3, firmware API 87.1, target 7.
 set -e
 cd "$(dirname "$0")"
 ./test/run_tests.sh
