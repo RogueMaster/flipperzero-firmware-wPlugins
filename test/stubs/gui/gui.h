@@ -23,6 +23,7 @@ void canvas_clear(Canvas* c);
 void canvas_set_color(Canvas* c, Color color);
 void canvas_set_font(Canvas* c, Font font);
 void canvas_draw_str(Canvas* c, int32_t x, int32_t y, const char* str);
+uint16_t canvas_string_width(Canvas* c, const char* str);
 void canvas_draw_str_aligned(Canvas* c, int32_t x, int32_t y, Align h, Align v, const char* str);
 void canvas_draw_dot(Canvas* c, int32_t x, int32_t y);
 void canvas_draw_box(Canvas* c, int32_t x, int32_t y, size_t w, size_t h);

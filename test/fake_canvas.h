@@ -17,6 +17,7 @@
 typedef struct {
     uint32_t ops;
     uint32_t discs; /* filled circles, which is what a wheel car is */
+    uint32_t rboxes; /* rounded fills, which is what a selected row is */
     uint32_t whites; /* switches to white ink, which is what inverting is */
     uint32_t out_of_bounds;
     uint32_t too_wide;
@@ -99,6 +100,10 @@ void canvas_set_font(Canvas* c, Font font) {
     UNUSED(c);
     fake.font = font;
 }
+uint16_t canvas_string_width(Canvas* c, const char* str) {
+    UNUSED(c);
+    return (uint16_t)fc_str_w(str, fake.font);
+}
 void canvas_draw_str(Canvas* c, int32_t x, int32_t y, const char* str) {
     UNUSED(c);
     fc_text(x, y - FC_ASCENT, str);
@@ -125,6 +130,7 @@ void canvas_draw_box(Canvas* c, int32_t x, int32_t y, size_t w, size_t h) {
 void canvas_draw_rbox(Canvas* c, int32_t x, int32_t y, size_t w, size_t h, size_t r) {
     UNUSED(c);
     UNUSED(r);
+    fake.rboxes++;
     fc_rect(x, y, (int32_t)w, (int32_t)h);
 }
 void canvas_draw_frame(Canvas* c, int32_t x, int32_t y, size_t w, size_t h) {

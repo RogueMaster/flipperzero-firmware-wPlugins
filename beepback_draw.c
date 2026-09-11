@@ -26,6 +26,18 @@ const char* const bb_speed_name[BB_SPEED_COUNT] = {"SLOW", "NORMAL", "FAST"};
 const char* const bb_praise[BB_PRAISE_COUNT] =
     {"NICE", "SHARP", "CLEAN", "GOOD EAR", "LOCKED IN", "SMOOTH", "DIALLED"};
 
+/* Mode select is the only place the game says what the modes are, so the
+   footer carries a line about whichever one the cursor is on. */
+const char* const bb_mode_blurb[BB_MODE_COUNT] = {
+    "REPEAT WHAT YOU HEAR",
+    "ONE RULE PER ROUND",
+    "ONE CUE, NO MEMORY",
+    "ONE RULE, NO ROUNDS",
+    "SAME RUN FOR EVERYONE",
+};
+
+const char* const bb_volume_name[BB_VOL_COUNT] = {"OFF", "LOW", "MID", "HIGH", "MAX"};
+
 /* Screens read cursors, and a cursor is only ever as trustworthy as the
    code that moved it. Clamping here costs nothing and means a screen can
    never walk off the end of a name table. */
@@ -84,7 +96,9 @@ const char* bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n)
 }
 
 void bb_mult_str(uint16_t mult, char* out, size_t n) {
-    snprintf(out, n, "x%u.%02u", mult / 100u, mult % 100u);
+    /* two decimals, not one: at one decimal x1.55 and x1.45 both render
+       as "x1.5" and two different settings look identical */
+    snprintf(out, n, "X%u.%02u", mult / 100u, mult % 100u);
 }
 
 /* ------------------------------------------------------------------ */
@@ -122,28 +136,43 @@ static uint8_t bb_window_first(uint8_t cur, uint8_t count, uint8_t rows) {
     return (uint8_t)first;
 }
 
-static void bb_cursor(Canvas* c, uint8_t y) {
-    /* a filled marker rather than a caret, which reads at this size */
-    canvas_draw_box(c, 4, y - 2, 5, 5);
+/* The selected row is inverted, which is the Flipper's own menu idiom and
+   far easier to find at a glance than a bullet in the margin. */
+static void bb_select(Canvas* c, uint8_t y) {
+    canvas_set_color(c, ColorBlack);
+    canvas_draw_rbox(c, 2, y - 5, 124, 10, 2);
+    canvas_set_color(c, ColorWhite);
 }
 
 /* A plain label and value row: label at ROW_L, value ending at ROW_R. */
 static void bb_row(Canvas* c, uint8_t y, const char* label, const char* value, bool sel) {
     canvas_set_font(c, FontSecondary);
-    if(sel) bb_cursor(c, y);
+    if(sel) bb_select(c, y);
     canvas_draw_str_aligned(c, BB_ROW_L, y, AlignLeft, AlignCenter, label);
     if(value) canvas_draw_str_aligned(c, BB_ROW_R, y, AlignRight, AlignCenter, value);
+    if(sel) canvas_set_color(c, ColorBlack);
 }
 
-/* Arrows sit at the row edges and only appear where you can go. */
+/* An action rather than a setting: same inverted row, bigger type. */
+static void bb_big_row(Canvas* c, uint8_t y, const char* label, bool sel) {
+    if(sel) bb_select(c, y);
+    canvas_set_font(c, FontPrimary);
+    canvas_draw_str_aligned(c, BB_W / 2, y, AlignCenter, AlignCenter, label);
+    canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontSecondary);
+}
+
+/* Arrows sit at the row edges and appear only where a press would move
+   something, so the arrow itself says whether there is anything left
+   that way. */
 static void bb_left_arrow(Canvas* c, uint8_t y) {
-    canvas_draw_line(c, BB_ROW_AL + 3, y - 3, BB_ROW_AL, y);
-    canvas_draw_line(c, BB_ROW_AL, y, BB_ROW_AL + 3, y + 3);
+    canvas_set_font(c, FontSecondary);
+    canvas_draw_str_aligned(c, BB_ROW_AL, y, AlignLeft, AlignCenter, "<");
 }
 
 static void bb_right_arrow(Canvas* c, uint8_t y) {
-    canvas_draw_line(c, BB_ROW_AR, y - 3, BB_ROW_AR + 3, y);
-    canvas_draw_line(c, BB_ROW_AR + 3, y, BB_ROW_AR, y + 3);
+    canvas_set_font(c, FontSecondary);
+    canvas_draw_str_aligned(c, BB_ROW_AR, y, AlignLeft, AlignCenter, ">");
 }
 
 static void bb_adj_row(
@@ -155,9 +184,10 @@ static void bb_adj_row(
     bool left,
     bool right) {
     canvas_set_font(c, FontSecondary);
-    if(sel) canvas_draw_str_aligned(c, BB_ROW_L - 3, y, AlignLeft, AlignCenter, ">");
-    canvas_draw_str_aligned(c, BB_ROW_L + 4, y, AlignLeft, AlignCenter, label);
-    canvas_draw_str_aligned(c, BB_ROW_VR, y, AlignRight, AlignCenter, value);
+    if(sel) bb_select(c, y);
+    canvas_draw_str_aligned(c, BB_ROW_L, y, AlignLeft, AlignCenter, label);
+    canvas_draw_str_aligned(c, BB_ROW_R, y, AlignRight, AlignCenter, value);
+    if(sel) canvas_set_color(c, ColorBlack);
     if(sel && left) bb_left_arrow(c, y);
     if(sel && right) bb_right_arrow(c, y);
 }
@@ -373,7 +403,7 @@ typedef struct {
     const char* line[3];
 } BbPage;
 
-static const BbPage bb_tut_page[4] = {
+static const BbPage bb_tut_page[BB_TUT_PAGES] = {
     {{"BEEPBACK", "REPEAT WHAT", "YOU JUST HEARD"}},
     {{"FIVE BUTTONS", "EACH ONE HAS", "ITS OWN TONE"}},
     {{"THREE LIVES", "A MISTAKE REPLAYS", "THE SAME ROUND"}},
@@ -426,7 +456,10 @@ static void bb_draw_page(Canvas* c, const BbPage* page, uint8_t at, uint8_t coun
 
 static const char* const bb_assist_short[BB_ASSIST_COUNT] = {"EAR", "LED", "SHP", "ARR"};
 
-static void bb_assist_block(Canvas* c, const uint32_t* best, uint8_t label_y, uint8_t value_y) {
+/* The scores detail screen carries three dials above its bests, which
+   leaves one row's worth of height for four numbers, so there they stay
+   in columns. */
+static void bb_assist_columns(Canvas* c, const uint32_t* best, uint8_t label_y, uint8_t value_y) {
     char buf[12];
     canvas_set_font(c, FontSecondary);
     for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) {
@@ -434,6 +467,20 @@ static void bb_assist_block(Canvas* c, const uint32_t* best, uint8_t label_y, ui
         canvas_draw_str_aligned(c, cx, label_y, AlignCenter, AlignCenter, bb_assist_short[a]);
         canvas_draw_str_aligned(
             c, cx, value_y, AlignCenter, AlignCenter, bb_score_short(best[a], buf, sizeof(buf)));
+    }
+}
+
+/* The board has the screen to itself, so four labelled rows: label left,
+   value right, the same shape as every other list, and the numbers land
+   in a column you can read down. */
+static void bb_assist_block(Canvas* c, const uint32_t* best, uint8_t first_y, uint8_t step) {
+    char buf[12];
+    canvas_set_font(c, FontSecondary);
+    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) {
+        uint8_t y = (uint8_t)(first_y + a * step);
+        canvas_draw_str_aligned(c, BB_ROW_L, y, AlignLeft, AlignCenter, bb_assist_name[a]);
+        canvas_draw_str_aligned(
+            c, BB_ROW_R, y, AlignRight, AlignCenter, bb_score_short(best[a], buf, sizeof(buf)));
     }
 }
 
@@ -461,20 +508,25 @@ static void bb_draw_menu(Canvas* c, const BeepbackApp* app) {
 
 static void bb_draw_modeselect(Canvas* c, const BeepbackApp* app) {
     uint8_t rows = bb_list_count(app, BbSceneModeSelect);
-    bb_title(c, "PLAY");
-    canvas_set_font(c, FontPrimary);
+    static const uint8_t slot_y[2] = {27, 43};
+    bb_title(c, "MODE");
     for(uint8_t i = 0; i < rows; i++) {
         uint8_t mode = bb_clamp((uint8_t)(app->mode_page * 2 + i), BB_MODE_COUNT);
-        uint8_t y = (uint8_t)(rows == 1 ? 32 : 24 + i * 16);
-        if(app->mode_row == i) bb_cursor(c, y);
-        canvas_draw_str_aligned(c, BB_ROW_L, y, AlignLeft, AlignCenter, bb_mode_name[mode]);
+        uint8_t y = slot_y[i];
+        if(app->mode_row == i) {
+            canvas_set_color(c, ColorBlack);
+            canvas_draw_rbox(c, 12, (uint8_t)(y - 7), 104, 14, 3);
+            canvas_set_color(c, ColorWhite);
+        }
+        canvas_set_font(c, FontPrimary);
+        canvas_draw_str_aligned(c, BB_W / 2, y, AlignCenter, AlignCenter, bb_mode_name[mode]);
+        canvas_set_color(c, ColorBlack);
     }
-    canvas_set_font(c, FontSecondary);
-    if(app->mode_page > 0) bb_left_arrow(c, 46);
-    if(app->mode_page + 1 < 3) bb_right_arrow(c, 46);
-    char buf[12];
-    snprintf(buf, sizeof(buf), "PAGE %u/3", app->mode_page + 1);
-    bb_footer(c, buf);
+    if(app->mode_page > 0) bb_left_arrow(c, BB_BODY_Y);
+    if(app->mode_page + 1 < BB_MODE_PAGES) bb_right_arrow(c, BB_BODY_Y);
+    /* the only place the game explains what the modes are */
+    uint8_t sel = bb_clamp((uint8_t)(app->mode_page * 2 + app->mode_row), BB_MODE_COUNT);
+    bb_footer(c, bb_mode_blurb[sel]);
 }
 
 static void bb_draw_rulepick(Canvas* c, const BeepbackApp* app) {
@@ -506,13 +558,15 @@ static void bb_draw_setup(Canvas* c, const BeepbackApp* app) {
         bool ready = bb_can_start(app, BbModeDaily);
         bb_row(c, 48, ready ? "START" : "PLAYED TODAY", NULL, ready);
     } else {
-        bb_adj_row(
-            c, 20, "TIME", bb_time_name[bb_clamp(app->set.diff, BB_DIFF_COUNT)],
-            app->setup_cur == 0, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
-        bb_adj_row(
-            c, 32, "SPEED", bb_speed_name[bb_clamp(app->set.speed, BB_SPEED_COUNT)],
-            app->setup_cur == 1, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
-        bb_row(c, 44, "START", NULL, app->setup_cur == 2);
+        char time_v[20];
+        uint8_t diff = bb_clamp(app->set.diff, BB_DIFF_COUNT);
+        /* the window in seconds, because "HARD" on its own says nothing */
+        snprintf(time_v, sizeof(time_v), "%s %uS", bb_time_name[diff], bb_time_ms[diff] / 1000u);
+        bb_adj_row(c, 23, "TIME", time_v, app->setup_cur == 0, bb_can_adjust(app, -1),
+                   bb_can_adjust(app, 1));
+        bb_adj_row(c, 33, "SPEED", bb_speed_name[bb_clamp(app->set.speed, BB_SPEED_COUNT)],
+                   app->setup_cur == 1, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
+        bb_big_row(c, 43, "START", app->setup_cur == 2);
     }
 
     /* the multiplier moves as the dials do, so you can see what it costs */
@@ -520,7 +574,7 @@ static void bb_draw_setup(Canvas* c, const BeepbackApp* app) {
     uint8_t s = daily ? 1 : bb_clamp(app->set.speed, BB_SPEED_COUNT);
     char mult[12];
     bb_mult_str(bb_multiplier(app->run.mode, d, s), mult, sizeof(mult));
-    snprintf(buf, sizeof(buf), "score %s", mult);
+    snprintf(buf, sizeof(buf), "SCORE  %s", mult);
     bb_footer(c, buf);
 }
 
@@ -628,36 +682,134 @@ static void bb_draw_game(Canvas* c, const BeepbackApp* app) {
     }
 }
 
-static void bb_draw_pause(Canvas* c, const BeepbackApp* app) {
-    char buf[24];
-    bb_title(c, "PAUSED");
+/* One button in a chip, the way the rule card names it. */
+static int32_t bb_chip_w(Canvas* c, const char* name) {
     canvas_set_font(c, FontSecondary);
-    snprintf(buf, sizeof(buf), "SCORE %lu", (unsigned long)app->run.score);
-    canvas_draw_str_aligned(c, BB_W / 2, 26, AlignCenter, AlignCenter, buf);
-    canvas_draw_str_aligned(c, BB_W / 2, 38, AlignCenter, AlignCenter, "OK RESUMES");
-    bb_footer(c, "BACK QUITS THE RUN");
+    return canvas_string_width(c, name) + 8;
 }
 
+static void bb_chip(Canvas* c, int32_t x, uint8_t y, const char* name, int32_t w) {
+    canvas_set_color(c, ColorWhite);
+    canvas_draw_rbox(c, x, (int32_t)y - 6, (size_t)w, 11, 2);
+    canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontSecondary);
+    canvas_draw_str_aligned(c, x + w / 2, y, AlignCenter, AlignCenter, name);
+    canvas_set_color(c, ColorWhite);
+}
+
+/* Pausing is exactly when you have forgotten what you are obeying, so
+   the pause screen carries the rule, the round, the stage and the lives.
+   It is inverted, which is what makes it read as a stopped game rather
+   than another menu. */
+static void bb_draw_pause(Canvas* c, const BeepbackApp* app) {
+    const BbRun* run = &app->run;
+    char left[24], mid[20];
+
+    canvas_set_color(c, ColorBlack);
+    canvas_draw_box(c, 0, 0, BB_W, BB_H);
+    canvas_set_color(c, ColorWhite);
+
+    canvas_set_font(c, FontPrimary);
+    canvas_draw_str_aligned(c, BB_W / 2, 9, AlignCenter, AlignCenter, "PAUSED");
+    canvas_draw_box(c, 8, 17, 112, 1);
+
+    canvas_set_font(c, FontSecondary);
+    if(bb_is_challenge(run->mode)) {
+        snprintf(left, sizeof(left), "%s", bb_mode_name[bb_clamp(run->mode, BB_MODE_COUNT)]);
+        snprintf(mid, sizeof(mid), "LEN %u", run->shown);
+    } else {
+        snprintf(left, sizeof(left), "ROUND %u", run->round);
+        snprintf(mid, sizeof(mid), "%u/%u", run->shown, run->target);
+    }
+    canvas_draw_str_aligned(c, 8, 26, AlignLeft, AlignCenter, left);
+    canvas_draw_str_aligned(c, BB_W / 2, 26, AlignCenter, AlignCenter, mid);
+    for(uint8_t i = 0; i < run->lives && i < BB_LIVES; i++)
+        bb_heart(c, 96 + i * 8, 22);
+
+    /* the rule, with the buttons it names set in chips */
+    if(bb_run_has_rule(run->mode)) {
+        const char* name = bb_rule_name[bb_clamp(run->rule, BB_RULE_COUNT)];
+        const char* one = NULL;
+        const char* two = NULL;
+        if(run->rule == BbRuleSkip || run->rule == BbRuleDouble) {
+            one = bb_button_name[bb_clamp(run->ra, BbBtnCount)];
+        } else if(run->rule == BbRuleSwap) {
+            one = bb_button_name[bb_clamp(run->ra, BbBtnCount)];
+            two = bb_button_name[bb_clamp(run->rb, BbBtnCount)];
+        }
+        canvas_set_font(c, FontSecondary);
+        int32_t nw = canvas_string_width(c, name);
+        int32_t w1 = one ? bb_chip_w(c, one) : 0;
+        int32_t w2 = two ? bb_chip_w(c, two) : 0;
+        int32_t gap = 2;
+        int32_t total = nw + (one ? gap + w1 : 0) + (two ? gap + w2 : 0);
+        int32_t x = (BB_W - total) / 2;
+        if(x < 2) x = 2;
+        canvas_draw_str_aligned(c, x + nw / 2, 39, AlignCenter, AlignCenter, name);
+        x += nw;
+        if(one) {
+            x += gap;
+            bb_chip(c, x, 39, one, w1);
+            x += w1;
+        }
+        if(two) {
+            x += gap;
+            bb_chip(c, x, 39, two, w2);
+        }
+    } else {
+        canvas_set_font(c, FontSecondary);
+        canvas_draw_str_aligned(
+            c, BB_W / 2, 39, AlignCenter, AlignCenter,
+            bb_mode_name[bb_clamp(run->mode, BB_MODE_COUNT)]);
+    }
+
+    canvas_set_font(c, FontSecondary);
+    canvas_draw_str_aligned(c, 6, 55, AlignLeft, AlignCenter, "OK: RESUME");
+    canvas_draw_str_aligned(c, 122, 55, AlignRight, AlignCenter, "BACK: QUIT");
+    canvas_set_color(c, ColorBlack);
+}
+
+
+/* Three labelled rows, and a second page behind the chevron holding the
+   settings the run was played on - because a record only means something
+   later if you can see what it was set to. The multiplier is printed
+   before the number, which is how it was asked for. */
 static void bb_draw_over(Canvas* c, const BeepbackApp* app) {
     const BbRun* run = &app->run;
-    char buf[40], mult[12];
-    bb_title(c, run->record ? "NEW BEST" : "GAME OVER");
-    canvas_set_font(c, FontPrimary);
-    snprintf(buf, sizeof(buf), "%lu", (unsigned long)run->score);
-    canvas_draw_str_aligned(c, BB_W / 2, 28, AlignCenter, AlignCenter, buf);
-    canvas_set_font(c, FontSecondary);
+    char buf[40], mult[12], num[16];
+
+    bb_title(c, run->record ? "NEW BEST!" : "GAME OVER");
     bb_mult_str(run->mult, mult, sizeof(mult));
-    if(run->mode == BbModeReflex) {
-        snprintf(buf, sizeof(buf), "%lu HITS  %s", (unsigned long)run->hits, mult);
-    } else if(bb_is_challenge(run->mode)) {
-        snprintf(buf, sizeof(buf), "LEN %u  %s", run->shown, mult);
+
+    if(app->over_page == 0) {
+        snprintf(buf, sizeof(buf), "%s  %lu", mult, (unsigned long)run->score);
+        bb_row(c, 21, "SCORE", buf, false);
+
+        if(run->mode == BbModeReflex) {
+            snprintf(num, sizeof(num), "%lu", (unsigned long)run->hits);
+            bb_row(c, 32, "HITS", num, false);
+        } else {
+            snprintf(num, sizeof(num), "%u", run->longest);
+            bb_row(c, 32, "LONGEST", num, false);
+        }
+
+        bb_row(c, 43, "PREVIOUS BEST", bb_score_short(run->prev_best, num, sizeof(num)), false);
+        bb_right_arrow(c, BB_BODY_Y);
     } else {
-        snprintf(buf, sizeof(buf), "ROUND %u  %s", run->round, mult);
+        bb_row(c, 21, "MODE", bb_mode_name[bb_clamp(run->mode, BB_MODE_COUNT)], false);
+        bb_row(c, 32, "ASSIST", bb_assist_name[bb_clamp(run->assist, BB_ASSIST_COUNT)], false);
+        if(run->mode == BbModeChallenge) {
+            bb_row(c, 43, "RULE", bb_rule_name[bb_clamp(run->rule, BB_RULE_COUNT)], false);
+        } else {
+            bb_row(c, 43, "TIME", bb_time_name[bb_clamp(run->diff, BB_DIFF_COUNT)], false);
+        }
+        bb_row(c, 54, "SPEED", bb_speed_name[bb_clamp(run->speed, BB_SPEED_COUNT)], false);
+        bb_left_arrow(c, BB_BODY_Y);
     }
-    canvas_draw_str_aligned(c, BB_W / 2, 42, AlignCenter, AlignCenter, buf);
-    /* OK goes straight back in on the same settings; the daily has no
-       second attempt to offer, so it does not pretend otherwise */
-    bb_footer(c, bb_can_start(app, run->mode) ? "OK: AGAIN   BACK: MENU" : "BACK: MENU");
+
+    if(app->over_page == 0)
+        bb_footer(
+            c, bb_can_start(app, run->mode) ? "OK: AGAIN    BACK: MENU" : "BACK: MENU");
 
     /* the screen wipes down from the top while the input is locked */
     uint32_t since = app->now - app->scene_at;
@@ -670,6 +822,7 @@ static void bb_draw_over(Canvas* c, const BeepbackApp* app) {
     }
 }
 
+
 static void bb_draw_howtopick(Canvas* c, const BeepbackApp* app) {
     static const char* const topic[3] = {"CLASSIC", "RULES", "REFLEX"};
     bb_title(c, "HOW TO PLAY");
@@ -677,32 +830,32 @@ static void bb_draw_howtopick(Canvas* c, const BeepbackApp* app) {
     bb_footer(c, "OK READS IT");
 }
 
+/* All five rows fit between the title bar and the bottom edge, so this
+   screen has no footer and never scrolls. */
 static void bb_draw_settings(Canvas* c, const BeepbackApp* app) {
-    char vol[12];
     static const char* const tail[3] = {"SOUNDS", "SCORES", "RESET"};
-    uint8_t first = bb_window_first(app->settings_cur, 5, BB_ROWS);
+    static const uint8_t row_y[5] = {19, 29, 39, 49, 59};
     bb_title(c, "SETTINGS");
-    for(uint8_t i = 0; i < BB_ROWS; i++) {
-        uint8_t at = (uint8_t)(first + i);
-        uint8_t y = bb_row_y[i];
+    for(uint8_t at = 0; at < 5; at++) {
+        uint8_t y = row_y[at];
         bool sel = app->settings_cur == at;
         if(at == 0) {
-            snprintf(vol, sizeof(vol), "%u", app->set.volume);
-            bb_adj_row(c, y, "VOLUME", vol, sel, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
-        } else if(at == 1) {
-            bb_adj_row(c, y, "ASSIST", bb_assist_name[bb_clamp(app->set.assist, BB_ASSIST_COUNT)],
+            bb_adj_row(c, y, "VOLUME", bb_volume_name[bb_clamp(app->set.volume, BB_VOL_COUNT)],
                        sel, bb_can_adjust(app, -1), bb_can_adjust(app, 1));
+        } else if(at == 1) {
+            /* silence with ears only leaves nothing to play by, and the
+               row says so, since this screen has no footer to say it in */
+            bool forced = bb_effective_assist(app) != app->set.assist;
+            uint8_t shown = forced ? bb_effective_assist(app) : app->set.assist;
+            bb_adj_row(c, y, forced ? "ASSIST (SILENT)" : "ASSIST",
+                       bb_assist_name[bb_clamp(shown, BB_ASSIST_COUNT)], sel,
+                       bb_can_adjust(app, -1), bb_can_adjust(app, 1));
         } else {
-            bb_row(c, y, tail[bb_clamp((uint8_t)(at - 2), 3)], ">", sel);
+            bb_row(c, y, tail[bb_clamp((uint8_t)(at - 2), 3)], NULL, sel);
         }
     }
-    /* silence with ears only leaves nothing to play by, so say what happens */
-    if(app->set.volume == 0 && app->set.assist == BbAssistOff) {
-        bb_footer(c, "SILENT: USING SHAPES");
-    } else {
-        bb_footer(c, bb_assist_name[bb_effective_assist(app)]);
-    }
 }
+
 
 static void bb_draw_sounds(Canvas* c, const BeepbackApp* app, uint8_t cur, const char* title) {
     char buf[16];
@@ -756,7 +909,7 @@ static void bb_draw_detail(Canvas* c, const BeepbackApp* app) {
                                      [bb_clamp(app->det_speed, BB_SPEED_COUNT)][a];
         best = across;
     }
-    bb_assist_block(c, best, 47, 58);
+    bb_assist_columns(c, best, 47, 58);
 }
 
 static void bb_draw_reset(Canvas* c, const BeepbackApp* app) {
@@ -785,8 +938,7 @@ static void bb_draw_board(Canvas* c, const BeepbackApp* app) {
     for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
         best[a] = bb_best_of_mode(app, (BbMode)mode, a);
     canvas_set_font(c, FontSecondary);
-    canvas_draw_str_aligned(c, BB_W / 2, 22, AlignCenter, AlignCenter, "BEST BY ASSIST");
-    bb_assist_block(c, best, 36, 47);
+    bb_assist_block(c, best, 19, 9); /* four rows, clear of the footer band */
     bb_left_arrow(c, BB_BODY_Y);
     bb_footer(c, "< BOARDS");
 }
@@ -817,7 +969,9 @@ void bb_draw(Canvas* canvas, BeepbackApp* app) {
         break;
     case BbSceneTutorial:
         bb_title(canvas, "HOW IT WORKS");
-        bb_draw_page(canvas, &bb_tut_page[bb_clamp(app->tut_page, 4)], bb_clamp(app->tut_page, 4), 4);
+        bb_draw_page(
+            canvas, &bb_tut_page[bb_clamp(app->tut_page, BB_TUT_PAGES)],
+            bb_clamp(app->tut_page, BB_TUT_PAGES), BB_TUT_PAGES);
         break;
     case BbSceneMenu:
         bb_draw_menu(canvas, app);

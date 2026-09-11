@@ -102,8 +102,6 @@ uint8_t bb_list_count(const BeepbackApp* app, BbScene scene) {
 uint8_t bb_howto_pages(uint8_t topic) {
     return topic == 2 ? 3 : 4; /* reflex has less to explain */
 }
-#define BB_TUT_PAGES 4
-#define BB_MODE_PAGES 3
 
 uint8_t bb_effective_assist(const BeepbackApp* app) {
     /* Sound off and ears only leaves nothing to go on. */
@@ -181,6 +179,9 @@ void bb_go(BeepbackApp* app, BbScene scene) {
         break;
     case BbSceneScoreDetail:
         app->det_cur = 0;
+        break;
+    case BbSceneOver:
+        app->over_page = 0;
         break;
     case BbSceneSetup:
         /* the daily pins the cursor to START; nothing else on it moves */
@@ -465,6 +466,9 @@ void bb_input(BeepbackApp* app, InputKey key) {
 
     case BbSceneOver:
         if(app->now - app->scene_at < BB_OVER_LOCK) return;
+        /* a second page holds the settings the run was played on */
+        if(key == InputKeyRight) app->over_page = 1;
+        if(key == InputKeyLeft) app->over_page = 0;
         /* same mode, same settings, straight into another run - not back
            out to the setup screen to press START again */
         if(key == InputKeyOk) bb_begin_run(app, app->run.mode);

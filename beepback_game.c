@@ -263,6 +263,8 @@ void bb_run_end(BeepbackApp* app, bool quit) {
     bb_silence(app);
 
     uint32_t* slot = bb_record_slot(app, run);
+    /* what the run was trying to beat, captured before it is overwritten */
+    run->prev_best = slot ? *slot : 0;
     if(slot && run->score > *slot) {
         *slot = run->score;
         run->record = true;
@@ -363,6 +365,7 @@ static void bb_rx_hit(BeepbackApp* app) {
     run->bonus = 0;
     run->score += run->award;
     run->hits++;
+    if(run->hits < 0xFFu) run->longest = (uint8_t)run->hits;
 
     uint16_t shrink = bb_rx_shrink[run->diff < BB_DIFF_COUNT ? run->diff : 1];
     run->rx_win = (run->rx_win > BB_RX_FLOOR + shrink) ? (uint16_t)(run->rx_win - shrink) :
@@ -389,6 +392,7 @@ static void bb_rx_miss(BeepbackApp* app) {
    reconcile the total. */
 static void bb_stage_clear(BeepbackApp* app) {
     BbRun* run = &app->run;
+    if(run->shown > run->longest) run->longest = run->shown;
     run->award = bb_apply_mult(10u * run->shown, run->mult);
     run->bonus = 0;
     run->score += run->award;

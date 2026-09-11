@@ -123,6 +123,11 @@ void canvas_set_font(Canvas* c, Font f) {
     UNUSED(c);
     UNUSED(f);
 }
+uint16_t canvas_string_width(Canvas* c, const char* s) {
+    UNUSED(c);
+    UNUSED(s);
+    return 10;
+}
 void canvas_draw_str(Canvas* c, int32_t x, int32_t y, const char* s) {
     UNUSED(c);
     UNUSED(x);

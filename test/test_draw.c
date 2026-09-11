@@ -193,10 +193,10 @@ int main(void) {
     app.set.speed = 1;
     bb_go(&app, BbSceneSetup);
     frame(&app);
-    check("the setup footer shows what the run is worth", fc_saw("score x1.55"), "");
+    check("the setup footer shows what the run is worth", fc_saw("SCORE  X1.55"), "");
     app.set.diff = 1;
     frame(&app);
-    check("and follows the dials", fc_saw("score x1.00"), "");
+    check("and follows the dials", fc_saw("SCORE  X1.00"), "");
 
     /* ---- what game over reports is what was banked ---- */
     bb_app_init(&app);
@@ -209,7 +209,7 @@ int main(void) {
     app.now += BB_OVER_LOCK;
     frame(&app);
     check("game over prints the score", fc_saw("1234"), "");
-    check("with the multiplier beside it", fc_saw("x1.55"), "");
+    check("with the multiplier beside it", fc_saw("X1.55"), "");
     check("and says when it was a best", fc_saw("NEW BEST"), "");
 
     /* ---- arrows appear only where you can go ---- */
@@ -232,6 +232,152 @@ int main(void) {
     app.now += BB_OVER_LOCK / 2;
     frame(&app);
     check("and halfway down is still on screen", fake.out_of_bounds == 0, "");
+
+    /* ---- the screens the browser build argued over ---- */
+
+    /* Pausing is when you have forgotten what you are obeying, so the
+       pause screen carries the rule, and the progress the HUD was
+       showing, and the lives. */
+    {
+        bb_app_init(&app);
+        app.seed = 5;
+        bb_run_start(&app, BbModeRules);
+        app.run.rule = BbRuleSkip;
+        app.run.ra = BbBtnOk;
+        app.run.round = 3;
+        app.run.shown = 2;
+        app.run.target = 6;
+        app.run.lives = 3;
+        bb_go(&app, BbScenePause);
+        frame(&app);
+        check("pause names the rule", fc_saw("SKIP"), "");
+        check("and the button the rule is about", fc_saw("OK"), "");
+        check("and the round", fc_saw("ROUND 3"), "");
+        check("and the stage out of its target", fc_saw("2/6"), "");
+        check("and says what the buttons do", fc_saw("OK: RESUME") && fc_saw("BACK: QUIT"), "");
+        sprintf(msg, "%lu ops", (unsigned long)fake.ops);
+        check("with nothing off screen", fake.out_of_bounds == 0 && fake.too_wide == 0, msg);
+
+        /* a challenge has no rounds, so it says what it does have */
+        bb_app_init(&app);
+        app.seed = 5;
+        bb_run_start(&app, BbModeChallenge);
+        bb_go(&app, BbScenePause);
+        frame(&app);
+        check("a paused challenge shows its length, not a round", fc_saw("LEN"), "");
+        check("and no stage out of a target it has not got", !fc_saw("/"), "");
+
+        /* classic has no rule to show */
+        bb_app_init(&app);
+        app.seed = 5;
+        bb_run_start(&app, BbModeClassic);
+        bb_go(&app, BbScenePause);
+        frame(&app);
+        check("a paused classic names the mode instead", fc_saw("CLASSIC"), "");
+    }
+
+    /* Game over keeps the run's settings on a second page, because a
+       record only means something later if you can see what it was set
+       to. */
+    {
+        bb_app_init(&app);
+        app.seed = 4;
+        bb_run_start(&app, BbModeClassic);
+        app.run.score = 1240;
+        app.run.mult = 155;
+        app.run.longest = 7;
+        app.run.prev_best = 980;
+        bb_go(&app, BbSceneOver);
+        app.now += BB_OVER_LOCK;
+        frame(&app);
+        check("game over leads with the multiplier, then the score",
+              fc_saw("X1.55  1240"), "");
+        check("and says how far the run got", fc_saw("LONGEST") && fc_saw("7"), "");
+        check("and what it was trying to beat", fc_saw("PREVIOUS BEST") && fc_saw("980"), "");
+
+        bb_input(&app, InputKeyRight);
+        frame(&app);
+        check("a right press opens the second page", app.over_page == 1, "");
+        check("which carries the mode", fc_saw("MODE") && fc_saw("CLASSIC"), "");
+        check("and the assist", fc_saw("ASSIST"), "");
+        check("and the time and speed", fc_saw("TIME") && fc_saw("SPEED"), "");
+        check("with the score nowhere on it", !fc_saw("1240"), "");
+        check("and nothing off screen", fake.out_of_bounds == 0 && fake.too_wide == 0, "");
+        bb_input(&app, InputKeyLeft);
+        check("and a left press comes back", app.over_page == 0, "");
+        bb_go(&app, BbSceneOver);
+        check("opening it fresh starts on the first page", app.over_page == 0, "");
+
+        /* reflex counts hits, not sequence length */
+        bb_app_init(&app);
+        app.seed = 4;
+        bb_run_start(&app, BbModeReflex);
+        app.run.hits = 23;
+        bb_go(&app, BbSceneOver);
+        app.now += BB_OVER_LOCK;
+        frame(&app);
+        check("a reflex game over counts hits", fc_saw("HITS") && fc_saw("23"), "");
+        check("and never claims a longest sequence", !fc_saw("LONGEST"), "");
+    }
+
+    /* Mode select is the only place the game explains the modes. */
+    {
+        bb_app_init(&app);
+        bb_go(&app, BbSceneModeSelect);
+        app.mode_page = 1;
+        app.mode_row = 1;
+        frame(&app);
+        check("mode select is titled MODE", fc_saw("MODE"), "");
+        check("and says what the highlighted mode is", fc_saw("ONE RULE, NO ROUNDS"), "");
+        check("with the selection inverted rather than bulleted", fake.rboxes == 1, "");
+        int blurbs = 0;
+        for(uint8_t m = 0; m < BB_MODE_COUNT; m++) {
+            app.mode_page = (uint8_t)(m / 2);
+            app.mode_row = (uint8_t)(m % 2);
+            frame(&app);
+            if(fc_saw(bb_mode_blurb[m])) blurbs++;
+        }
+        sprintf(msg, "%d of %d", blurbs, BB_MODE_COUNT);
+        check("every mode has a line of its own", blurbs == BB_MODE_COUNT, msg);
+    }
+
+    /* Settings fits all five rows, so it has no footer and never scrolls. */
+    {
+        bb_app_init(&app);
+        app.set.volume = 2;
+        bb_go(&app, BbSceneSettings);
+        frame(&app);
+        int rows = fc_saw("VOLUME") + fc_saw("ASSIST") + fc_saw("SOUNDS") + fc_saw("SCORES") +
+                   fc_saw("RESET");
+        sprintf(msg, "%d of 5 rows", rows);
+        check("settings shows all five rows at once", rows == 5, msg);
+        check("with the volume named, not numbered", fc_saw("MID") && !fc_saw("2"), "");
+        app.set.volume = 0;
+        app.set.assist = BbAssistOff;
+        frame(&app);
+        check("and silence with ears only says what it fell back to",
+              fc_saw("ASSIST (SILENT)") && fc_saw("SHAPES"), "");
+    }
+
+    /* An adjustable row shows an arrow only where a press would move. */
+    {
+        bb_app_init(&app);
+        app.run.mode = BbModeClassic;
+        bb_go(&app, BbSceneSetup);
+        app.setup_cur = 0;
+        app.set.diff = 0;
+        frame(&app);
+        check("at the bottom of a range there is no left arrow", !fc_saw("<"), "");
+        check("but there is a right one", fc_saw(">"), "");
+        app.set.diff = BB_DIFF_COUNT - 1;
+        frame(&app);
+        check("and at the top the right one is gone", !fc_saw(">"), "");
+        check("with the left one there", fc_saw("<"), "");
+        app.set.diff = 1;
+        frame(&app);
+        check("in the middle both are offered", fc_saw("<") && fc_saw(">"), "");
+        check("and the row carries its window in seconds", fc_saw("NORMAL 4S"), "");
+    }
 
     /* ---- the pop-in on a playback cue ---- */
     /* A cue is drawn inverted for the first BB_FLASH_MS of its step, so

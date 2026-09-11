@@ -232,6 +232,8 @@ extern const uint8_t bb_button_led[BbBtnCount];
 #define BB_BODY_Y  32 /* body centre with a footer                     */
 #define BB_BODY_Y2 38 /* body centre without one                       */
 #define BB_DOT_MAX 14 /* past this many steps the dots become a count  */
+#define BB_MODE_PAGES 3 /* mode select, two to a page                   */
+#define BB_TUT_PAGES 4 /* the first-run tutorial                        */
 
 /* ------------------------------------------------------------------ */
 /* Scenes                                                              */
@@ -334,6 +336,8 @@ typedef struct {
     uint32_t award; /* the last stage award, already multiplied */
     uint32_t bonus; /* the round bonus that went with it, also multiplied */
     uint32_t hits; /* reflex cues taken */
+    uint8_t longest; /* the longest stage this run reached */
+    uint32_t prev_best; /* the record this run was trying to beat */
 
     BbPhase phase;
     uint32_t phase_end; /* app->now when the phase is up */
@@ -394,6 +398,7 @@ typedef struct {
     uint8_t det_speed;
     uint8_t det_cur;
     uint8_t sound_btn; /* the sound test cursor */
+    uint8_t over_page; /* game over has a second page of run settings */
     uint32_t flash_at; /* a transient confirmation was shown at this time */
 } BeepbackApp;
 
@@ -463,6 +468,8 @@ extern const char* const bb_assist_name[BB_ASSIST_COUNT];
 extern const char* const bb_time_name[BB_DIFF_COUNT];
 extern const char* const bb_speed_name[BB_SPEED_COUNT];
 extern const char* const bb_praise[BB_PRAISE_COUNT];
+extern const char* const bb_mode_blurb[BB_MODE_COUNT];
+extern const char* const bb_volume_name[BB_VOL_COUNT];
 
 /* the rule in one line, with its buttons filled in. Returns the line:
    either `out`, or a constant where the rule names no buttons, so the
