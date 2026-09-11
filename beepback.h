@@ -72,6 +72,7 @@
 #define BB_RULE_COUNT   7
 #define BB_MODE_COUNT   5
 #define BB_PRAISE_COUNT 7
+#define BB_VOL_COUNT    4 /* OFF LOW MID HIGH */
 
 #define BB_HEART_W 7
 #define BB_HEART_H 6
@@ -161,9 +162,10 @@ uint32_t bb_multiplier(BbMode mode, uint8_t diff, uint8_t speed);
 /* value * mult / 10000, rounded the way the browser's Math.round rounds */
 uint32_t bb_apply_mult(uint32_t base, uint32_t mult);
 /* points for one reflex hit at the given window */
-uint32_t bb_rx_hit_value(uint16_t window_ms);
 /* response window including the rule allowance */
 uint16_t bb_window_ms(BbMode mode, uint8_t diff);
+/* points for one reflex hit at the given window */
+uint32_t bb_rx_hit_value(uint16_t window_ms);
 
 /* ------------------------------------------------------------------ */
 /* Rules                                                               */
@@ -192,16 +194,38 @@ uint32_t bb_today_seed(void);
    firmware never sets it */
 extern uint32_t bb_seed_override;
 
+/* ==================================================================== */
+/* Everything below is a port of the browser build, screen for screen   */
+/* and scene for scene. Where the two could differ they do not: the     */
+/* names, the layout numbers and the order of the switch statements all */
+/* follow beepback.html, because that is the game and this is a second  */
+/* way of running it.                                                   */
+/* ==================================================================== */
+
 /* ------------------------------------------------------------------ */
 /* Presentation tables                                                 */
 /* ------------------------------------------------------------------ */
 
-/* tone in Hz per button, low to high: DOWN LEFT OK RIGHT UP */
-extern const uint16_t bb_button_hz[BbBtnCount];
-/* BbShape per button, in the same low-to-high order */
-extern const uint8_t bb_button_shape[BbBtnCount];
-/* one-word name per button, for the tutorial and the rule cards */
-extern const char* const bb_button_name[BbBtnCount];
+extern const uint16_t bb_button_hz[BbBtnCount]; /* FREQ  */
+extern const char* const bb_button_name[BbBtnCount]; /* NAME  */
+extern const char* const bb_button_short[BbBtnCount]; /* SHORT */
+extern const uint8_t bb_button_shape[BbBtnCount]; /* SHAPE */
+
+extern const char* const bb_diff_name[BB_DIFF_COUNT]; /* DIFF_NAME  */
+extern const char* const bb_speed_name[BB_SPEED_COUNT]; /* SPEED_NAME */
+extern const char* const bb_mode_name[BB_MODE_COUNT]; /* MODE_NAME  */
+extern const char* const bb_mode_blurb[BB_MODE_COUNT];
+extern const char* const bb_vol_name[BB_VOL_COUNT]; /* VOL_NAME    */
+extern const char* const bb_assist_name[BB_ASSIST_COUNT]; /* ASSIST_NAME */
+extern const char* const bb_mode_label[BB_ASSIST_COUNT]; /* MODE_LABEL  */
+extern const char* const bb_praise[BB_PRAISE_COUNT]; /* PRAISE */
+extern const char* const bb_led_name[BbBtnCount]; /* LED_NAME */
+extern const char* const bb_rule_label[BB_RULE_COUNT]; /* RULES[].label */
+extern const char* const bb_rule_tip[BB_RULE_COUNT]; /* RULES[].tip   */
+extern const char* const bb_rule_help[BB_RULE_COUNT][3]; /* RULES[].help */
+
+/* SPEED_SET lives with the other frozen tables above */
+extern const uint8_t bb_vol_gain[BB_VOL_COUNT]; /* VOL_GAIN, percent */
 
 typedef enum {
     BbLedOff = 0,
@@ -213,155 +237,112 @@ typedef enum {
     BbLedCount,
 } BbLedColor;
 
-/* BbLedColor per button, following the tone ladder */
-extern const uint8_t bb_button_led[BbBtnCount];
+extern const uint8_t bb_button_led[BbBtnCount]; /* LED_BTN */
 
 /* ------------------------------------------------------------------ */
-/* Layout                                                              */
+/* Tunes                                                               */
 /*                                                                     */
-/* Every screen is 128x64 and nothing may be drawn outside it. These    */
-/* are the numbers the browser build settled on; two of its bugs were   */
-/* arrows drawn past the bottom edge, so the footer band is the last    */
-/* thing on the screen and nothing is centred below it.                 */
+/* JINGLE in the browser is a list of notes played on a timeline. Here  */
+/* it is a list the main loop steps through, which is the same thing    */
+/* with the scheduler written out.                                     */
 /* ------------------------------------------------------------------ */
-#define BB_ROW_L  14 /* list row label, left edge                     */
-#define BB_ROW_R  114 /* list row value, right edge for plain rows     */
-#define BB_ROW_AL 4 /* left arrow of an adjustable row                */
-#define BB_ROW_AR 118 /* right arrow of an adjustable row              */
-#define BB_ROW_VR 112 /* adjustable value, right-aligned here          */
-#define BB_TITLE_H 13 /* title bar fills y = 0..12                     */
-#define BB_TITLE_Y 6 /* title text centred here                        */
-#define BB_FOOT_Y0 53 /* footer strip fills y = 53..63                 */
-#define BB_FOOT_Y  58 /* footer text centred here                      */
-#define BB_BODY_Y  32 /* body centre with a footer                     */
-#define BB_BODY_Y2 38 /* body centre without one                       */
-#define BB_DOT_MAX 14 /* past this many steps the dots become a count  */
-#define BB_MODE_PAGES 3 /* mode select, two to a page                   */
-#define BB_TUT_PAGES 4 /* the first-run tutorial                        */
+
+typedef struct {
+    uint16_t f; /* Hz, 0 for a rest */
+    uint16_t ms;
+} BbNote;
+
+extern const BbNote bb_jingle_go[3];
+extern const BbNote bb_jingle_win[3];
+extern const BbNote bb_jingle_round[4];
+extern const BbNote bb_jingle_fail[3];
+extern const BbNote bb_jingle_over[4];
 
 /* ------------------------------------------------------------------ */
-/* Scenes                                                              */
+/* Layout, all of it straight off the browser's screens                */
+/* ------------------------------------------------------------------ */
+#define BB_ROW_L  14 /* list row label   */
+#define BB_ROW_R  114 /* list row value   */
+#define BB_CHEV_L 2 /* screen-edge chevrons */
+#define BB_CHEV_R 121
+#define BB_ROW_VAL 112 /* an adjustable row's value */
+#define BB_ROW_AL 4 /* and its two arrows        */
+#define BB_ROW_AR 118
+#define BB_DOT_MAX 14 /* past this the step dots become a count */
+
+/* ------------------------------------------------------------------ */
+/* Scenes, named as the browser names them                             */
 /* ------------------------------------------------------------------ */
 
 typedef enum {
     BbSceneLauncher = 0,
     BbSceneSplash,
-    BbSceneTutorial,
     BbSceneMenu,
-    BbSceneModeSelect,
-    BbSceneRulePick,
+    BbSceneMode,
+    BbSceneChPick,
     BbSceneSetup,
-    BbSceneGame,
-    BbScenePause,
-    BbSceneOver,
-    BbSceneHowToPick,
-    BbSceneHowTo,
-    BbSceneSoundTest,
+    BbSceneRuleCard,
+    BbSceneListen,
+    BbScenePlayback,
+    BbSceneGo,
+    BbSceneInput,
+    BbSceneHold,
+    BbSceneSuccess,
+    BbSceneRoundClear,
+    BbSceneWrong,
+    BbSceneRetry,
+    BbSceneReflexGap,
+    BbSceneReflexCue,
+    BbSceneGameOver,
     BbSceneSettings,
-    BbSceneSounds,
-    BbSceneScores,
-    BbSceneScoreDetail,
+    BbSceneDetail,
     BbSceneReset,
-    BbSceneBoardPick,
-    BbSceneBoard,
+    BbSceneHelp,
+    BbSceneTutorial,
+    BbSceneRulesGuide,
+    BbSceneRuleList,
+    BbSceneRuleInfo,
+    BbSceneReflexGuide,
+    BbSceneSoundTest,
+    BbSceneScorePick,
+    BbSceneScores,
     BbSceneCredits,
     BbSceneCount,
 } BbScene;
 
-/* ------------------------------------------------------------------ */
-/* Stored state                                                        */
-/* ------------------------------------------------------------------ */
+/* GAME_SCENES: the scenes BACK pauses rather than leaves */
+bool bb_in_game(BbScene scene);
 
-#define BB_VOL_COUNT 4 /* OFF, LOW, MID, HIGH */
+/* ------------------------------------------------------------------ */
+/* Settings and records                                                */
+/* ------------------------------------------------------------------ */
 
 typedef struct {
-    uint8_t volume; /* 0..BB_VOL_COUNT-1 */
-    uint8_t assist; /* BbAssist */
-    uint8_t diff; /* TIME, index into bb_time_ms */
-    uint8_t speed; /* index into bb_speed_tone */
-    bool tutorial_done;
+    uint8_t volume; /* SET.volume, 0..3 */
+    uint8_t assist; /* SET.assist, 0..3 */
+    uint8_t speed; /* SET.speed,  0..2 */
+    uint8_t diff; /* S.diff,     0..3 */
+    bool tutorial_done; /* the browser's firstRun, inverted */
 } BbSettings;
 
-/* classic, rules and reflex keep a best per setting; challenge keeps one
-   per rule; the daily keeps one for the day it belongs to. */
 #define BB_LADDER_MODES 3
 
 typedef struct {
     uint32_t best[BB_LADDER_MODES][BB_DIFF_COUNT][BB_SPEED_COUNT][BB_ASSIST_COUNT];
     uint32_t ch_best[BB_RULE_COUNT][BB_ASSIST_COUNT];
     uint32_t daily_best[BB_ASSIST_COUNT];
-    uint32_t daily_date; /* YYYYMMDD the daily records belong to */
-    bool daily_done; /* the one attempt for that date is spent */
+    uint32_t daily_date;
+    bool daily_done;
 } BbRecords;
 
-/* ------------------------------------------------------------------ */
-/* A run in progress                                                   */
-/* ------------------------------------------------------------------ */
-
-typedef enum {
-    BbPhaseRuleCard = 0, /* rules and challenge announce the rule first */
-    BbPhaseListen,
-    BbPhasePlayback,
-    BbPhaseGo,
-    BbPhaseInput,
-    BbPhaseHold, /* the last press rings before the stage resolves */
-    BbPhaseSuccess,
-    BbPhaseRound,
-    BbPhaseWrong,
-    BbPhaseRetry,
-    BbPhaseRxReady, /* reflex says its piece before the first cue */
-    BbPhaseRxWait, /* the gap between cues                        */
-    BbPhaseRxCue, /* a cue is up and the bar is draining          */
-    BbPhaseOver,
-    BbPhaseCount,
-} BbPhase;
-
+/* one segment of a rule line: a word, or a button drawn in a chip */
 typedef struct {
-    BbMode mode;
-    uint8_t diff;
-    uint8_t speed;
-    uint8_t assist; /* captured, so settings cannot move a live run */
-    uint32_t mult; /* captured once, in ten-thousandths */
-    BbRule rule;
-    uint8_t ra; /* the button the rule talks about */
-    uint8_t rb; /* and the one it becomes, for X IS Y */
-    bool rule_random; /* challenge picked RANDOM, so it rolled one */
-    BbRng rng;
-
-    BbSeq seq;
-    BbPresses press;
-    uint8_t shown; /* steps of seq currently in play */
-    uint8_t target; /* the length that clears the round */
-    uint8_t round; /* 1-based; challenge has no rounds */
-    uint8_t lives;
-    uint8_t idx; /* how many presses are in so far */
-
-    uint32_t score;
-    uint32_t award; /* the last stage award, already multiplied */
-    uint32_t bonus; /* the round bonus that went with it, also multiplied */
-    uint32_t hits; /* reflex cues taken */
-    uint32_t rx_at; /* when the live cue went up, for the reaction time */
-    uint16_t rx_fastest; /* the quickest reaction of the run, in ms */
-    uint8_t longest; /* the longest stage this run reached */
-    uint32_t prev_best; /* the record this run was trying to beat */
-
-    BbPhase phase;
-    uint32_t phase_end; /* app->now when the phase is up */
-    uint8_t play_i; /* playback cursor */
-    bool play_on; /* a tone is sounding this playback slot */
-    uint32_t win_end; /* the response deadline */
-    uint16_t win_ms; /* and how long it was, for the bar */
-    uint32_t flash_end; /* a pressed button is lit until here */
-    uint8_t flash_btn;
-
-    uint16_t rx_win; /* reflex: the current window */
-    uint8_t rx_cue;
-    bool quit; /* the run was ended from the pause screen */
-    bool record; /* it beat the stored best */
-} BbRun;
+    const char* text;
+    int8_t btn; /* < 0 when this segment is a word */
+} BbSeg;
 
 /* ------------------------------------------------------------------ */
-/* The application                                                     */
+/* The application, which is the browser's S and SET side by side      */
 /* ------------------------------------------------------------------ */
 
 typedef struct {
@@ -373,146 +354,165 @@ typedef struct {
     bool running;
     uint32_t seed; /* the hardware draw a non-daily run is built from */
 
-    uint32_t now; /* ms since launch, advanced only by bb_tick */
+    uint32_t now;
     BbScene scene;
-    uint32_t scene_at; /* app->now when this scene opened */
+    bool paused;
+    uint32_t pause_at;
+    uint32_t phase; /* S.phase: when the current scene is up */
 
     BbSettings set;
     BbRecords rec;
-    BbRun run;
 
-    /* what the logic wants the hardware to do; the app loop applies it */
-    uint8_t led; /* BbLedColor */
-    uint16_t tone_hz; /* 0 is silence */
+    /* the run */
+    BbSeq base;
+    BbPresses expected;
+    uint8_t stage, target;
+    uint8_t play_idx;
+    bool tone_on;
+    uint32_t step_start;
+    uint8_t input_idx;
+    uint32_t input_start, input_end;
+    uint8_t lives, round;
+    uint32_t score, run_best, prev_best;
+    uint8_t praise;
+    int8_t last_press;
+    uint32_t press_flash;
+    bool new_best;
+    uint8_t run_mode; /* the assist the run was played on */
+    uint8_t run_game_mode, run_diff, run_speed;
+    uint32_t run_mult;
+    uint32_t led_warn;
+    int8_t sweep_idx;
+    uint32_t lock_until;
+    uint8_t go_page;
 
-    /* cursors, one per list, so backing out and returning keeps your place */
-    uint8_t menu_cur;
-    uint8_t mode_page;
-    uint8_t mode_row;
-    uint8_t rule_cur; /* BB_RULE_COUNT means RANDOM */
-    uint8_t setup_cur;
-    uint8_t settings_cur;
-    uint8_t sounds_cur;
-    uint8_t scores_cur;
-    uint8_t reset_cur;
-    uint8_t board_cur;
-    uint8_t howto_cur;
-    uint8_t howto_page;
-    uint8_t tut_page;
-    uint8_t det_mode; /* the scores detail dials */
-    uint8_t det_diff;
-    uint8_t det_speed;
-    uint8_t det_cur;
-    uint8_t sound_btn; /* the sound test cursor */
-    uint8_t over_page; /* game over has a second page of run settings */
-    uint32_t pause_at; /* when the pause began, so resuming can shift the clock */
-    uint8_t praise; /* which line of praise this stage drew */
-    uint32_t flash_at; /* a transient confirmation was shown at this time */
+    /* rules */
+    int8_t rule_idx;
+    uint8_t rule_a, rule_b;
+    BbSeg rule_segs[3];
+    uint8_t rule_seg_n;
+    BbRng rng;
+    bool rng_seeded; /* the daily runs on a seeded generator */
+
+    /* reflex */
+    uint32_t rx_hits;
+    uint16_t rx_window;
+    uint8_t rx_cue;
+    uint32_t rx_at;
+    uint16_t rx_fastest;
+
+    /* modes and menus */
+    uint8_t mode, mode_idx;
+    uint8_t menu_idx, set_idx, setup_idx, reset_idx, score_mode;
+    uint8_t help_idx, tut_page, rule_sel, rule_scroll;
+    uint8_t ch_idx, ch_rule, ch_scroll;
+    uint8_t det_row, det_mode, det_time, det_speed;
+    int8_t test_btn;
+    BbScene test_from, help_from;
+    uint32_t set_flash;
+    bool first_run;
+
+    /* splash */
+    uint32_t sp_start;
+    uint8_t sp_phase;
+    int8_t sp_flash_idx;
+
+    /* what the hardware is being asked to do */
+    uint8_t led;
+    uint32_t led_until;
+    uint16_t tone_hz;
+    const BbNote* tune;
+    uint8_t tune_n, tune_i;
+    uint32_t tune_next;
 } BeepbackApp;
 
 /* ------------------------------------------------------------------ */
-/* State machine (beepback_nav.c)                                      */
+/* The game (beepback_game.c) - enter(), update() and their helpers    */
 /* ------------------------------------------------------------------ */
 
-/* clamp a cursor without wrapping; true when it actually moved */
-bool bb_list_move(uint8_t* cur, uint8_t count, int8_t delta);
-/* where BACK goes from here; BbSceneCount means "leave the app" */
-BbScene bb_back_target(const BeepbackApp* app);
-/* enter a scene, resetting whatever that scene owns */
-void bb_go(BeepbackApp* app, BbScene scene);
-/* one short press */
-void bb_input(BeepbackApp* app, InputKey key);
-/* advance the clock; every timed transition happens in here */
-void bb_tick(BeepbackApp* app, uint32_t dt_ms);
 void bb_app_init(BeepbackApp* app);
-/* EARS with the sound off leaves nothing to go on, so force SHAPES */
-uint8_t bb_effective_assist(const BeepbackApp* app);
+void bb_enter(BeepbackApp* app, BbScene scene);
+void bb_update(BeepbackApp* app);
+void bb_tick(BeepbackApp* app, uint32_t dt_ms);
+void bb_start_game(BeepbackApp* app);
+void bb_take_press(BeepbackApp* app, uint8_t btn);
+void bb_reflex_hit(BeepbackApp* app, uint8_t btn);
+void bb_reflex_miss(BeepbackApp* app);
+void bb_pause_shift(BeepbackApp* app, uint32_t ms);
+void bb_new_base(BeepbackApp* app, uint8_t len);
+void bb_set_stage(BeepbackApp* app, uint8_t n);
+void bb_apply_run_rule(const BeepbackApp* app, const BbSeq* seq, BbPresses* out);
+bool bb_rule_fits_run(const BeepbackApp* app);
+void bb_pick_rule(BeepbackApp* app);
+void bb_new_round(BeepbackApp* app);
+void bb_challenge_grow(BeepbackApp* app);
+void bb_start_challenge(BeepbackApp* app);
+uint8_t bb_daily_rule(void);
+uint32_t bb_daily_seed(void);
+uint8_t bb_rand_button(BeepbackApp* app);
 
-/* light the LED for a button colour (beepback_led.c) */
-void bb_led_apply(BeepbackApp* app, BbLedColor color);
+/* the browser's derived getters, kept as functions of the same name */
+uint8_t bb_assist(const BeepbackApp* app);
+bool bb_audio_on(const BeepbackApp* app);
+bool bb_led_mode(const BeepbackApp* app);
+bool bb_shapes_on(const BeepbackApp* app);
+bool bb_arrows_on(const BeepbackApp* app);
+bool bb_cue_on(const BeepbackApp* app);
+bool bb_visual_on(const BeepbackApp* app);
+uint16_t bb_tone_ms(const BeepbackApp* app);
+uint16_t bb_gap_ms(const BeepbackApp* app);
+uint32_t bb_multiplier_for(const BeepbackApp* app);
+uint32_t bb_best_for(const BeepbackApp* app, uint8_t mode, uint8_t assist);
+bool bb_is_challenge_mode(uint8_t mode);
 
-/* how many entries each list has, so no cursor can run off its end */
-uint8_t bb_list_count(const BeepbackApp* app, BbScene scene);
-/* would a left or right press on this screen change anything? the screens
-   draw an arrow only where this says yes */
-bool bb_can_adjust(const BeepbackApp* app, int8_t delta);
-/* how many pages the how-to has for a topic */
-uint8_t bb_howto_pages(uint8_t topic);
-/* can this mode be started right now? the daily has one attempt a day */
-bool bb_can_start(const BeepbackApp* app, BbMode mode);
-
-/* ------------------------------------------------------------------ */
-/* Runs (beepback_game.c)                                              */
-/* ------------------------------------------------------------------ */
-
-void bb_run_start(BeepbackApp* app, BbMode mode);
-void bb_run_tick(BeepbackApp* app);
-void bb_run_press(BeepbackApp* app, BbButton btn);
-void bb_run_end(BeepbackApp* app, bool quit);
-/* move every deadline on by the time spent paused, so resuming picks the
-   run up exactly where it stopped rather than replaying the stage */
-void bb_run_shift(BeepbackApp* app, uint32_t ms);
-/* build the presses for the stage now on screen */
-void bb_run_build_presses(BbRun* run);
-/* the sequence for a fresh round, re-rolled until the rule can live with it */
-void bb_run_new_round(BbRun* run, uint8_t target);
-/* one more step on the end of a challenge sequence, guarded the same way */
-void bb_run_grow(BbRun* run);
-/* the rule, its buttons and the run's settings, all from one seed */
-void bb_daily_setup(BbRun* run, uint32_t seed);
-/* the stored best for a finished run, and where it is kept */
-uint32_t* bb_record_slot(BeepbackApp* app, const BbRun* run);
-/* the board's headline: the best across time and speed for a mode */
-uint32_t bb_best_of_mode(const BeepbackApp* app, BbMode mode, uint8_t assist);
-/* the daily records belong to one date; a new day clears them */
-void bb_daily_refresh(BeepbackApp* app, uint32_t today);
-/* rules, challenge and the daily transform what you press; classic does not */
-bool bb_run_has_rule(BbMode mode);
+/* sound and light, requested here and applied by the app loop */
+void bb_play(BeepbackApp* app, const BbNote* notes, uint8_t n);
+void bb_tone(BeepbackApp* app, uint16_t hz, uint16_t ms);
+void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms);
 
 /* ------------------------------------------------------------------ */
-/* Screens (beepback_draw.c)                                           */
+/* Input (beepback_nav.c) - the browser's press()                      */
 /* ------------------------------------------------------------------ */
+void bb_press(BeepbackApp* app, InputKey key);
+/* what a setup row is, so nothing has to compare its label as a string */
+typedef enum {
+    BbRowToday = 0,
+    BbRowTime,
+    BbRowRamp,
+    BbRowSpeed,
+    BbRowStart,
+} BbRowKind;
 
-extern const char* const bb_mode_name[BB_MODE_COUNT];
-extern const char* const bb_rule_name[BB_RULE_COUNT];
-extern const char* const bb_assist_name[BB_ASSIST_COUNT]; /* boards: EARS.. */
-extern const char* const bb_assist_setting[BB_ASSIST_COUNT]; /* settings: OFF.. */
-extern const char* const bb_time_name[BB_DIFF_COUNT];
-extern const char* const bb_speed_name[BB_SPEED_COUNT];
-extern const char* const bb_praise[BB_PRAISE_COUNT];
-extern const char* const bb_mode_blurb[BB_MODE_COUNT];
-extern const char* const bb_volume_name[BB_VOL_COUNT];
+uint8_t bb_setup_rows(const BeepbackApp* app, const char* label[4], const char* value[4],
+                      uint8_t kind[4], char* buf_a, char* buf_b, size_t bufn);
 
-/* the rule in one line, with its buttons filled in. Returns the line:
-   either `out`, or a constant where the rule names no buttons, so the
-   common cases copy nothing. */
-const char* bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n);
-/* "X2.25", from a multiplier in ten-thousandths */
-void bb_mult_str(uint32_t mult, char* out, size_t n);
-/* every screen, all 128x64 of it */
+/* ------------------------------------------------------------------ */
+/* Screens (beepback_draw.c / beepback_intro.c)                        */
+/* ------------------------------------------------------------------ */
 void bb_draw(Canvas* canvas, BeepbackApp* app);
+void bb_draw_splash(Canvas* canvas, BeepbackApp* app);
+/* the splash borrows three things from the screens: a filled shape, a
+   shape that can be drawn inverted, and whatever the wipe uncovers */
+void bb_shape_public(Canvas* c, int32_t cx, int32_t cy, int32_t r, uint8_t kind);
+void bb_shape_flash(Canvas* c, int32_t cx, int32_t cy, int32_t r, uint8_t kind, bool invert);
+void bb_draw_under_wipe(Canvas* c, BeepbackApp* app);
+void bb_update_splash(BeepbackApp* app);
+void bb_splash_done(BeepbackApp* app);
+void bb_mult_text(uint32_t mult, char* out, size_t n);
 
 /* ------------------------------------------------------------------ */
 /* The save file (beepback_save.c)                                     */
 /* ------------------------------------------------------------------ */
-
 #define BB_SAVE_DIR  EXT_PATH("apps_data/beepback")
 #define BB_SAVE_PATH BB_SAVE_DIR "/beepback.save"
-/* v3 kept a different record layout, so the version is what makes an old
-   file get discarded instead of read as nonsense */
-#define BB_SAVE_VERSION 4
+#define BB_SAVE_VERSION 5
 #define BB_SAVE_BYTES   723
 
-/* the settings and every record, as a flat little-endian block */
 size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n);
-/* false, and nothing touched, if it is not one of ours or not intact */
 bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n);
 void bb_save_load(BeepbackApp* app);
 void bb_save_store(BeepbackApp* app);
+void bb_daily_refresh(BeepbackApp* app, uint32_t today);
 
-/* ------------------------------------------------------------------ */
-/* The intro (beepback_intro.c)                                        */
-/* ------------------------------------------------------------------ */
-
-/* brain, dither, ferris wheel, flash, wipe - and any key skips it */
-void bb_draw_splash(Canvas* canvas, const BeepbackApp* app);
+/* light the LED for a colour (beepback_led.c) */
+void bb_led_apply(BeepbackApp* app, BbLedColor color);

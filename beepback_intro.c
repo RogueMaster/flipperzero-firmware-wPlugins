@@ -1,177 +1,159 @@
 /*
- * BEEPBACK - the intro.
+ * BEEPBACK - the intro, ported from the browser build's splash.
  *
- * A brain, held and then dithered away; five buttons riding a ferris
- * wheel through the screen; a flash; a wipe. It is the most code in the
- * project for the least behaviour, which is why it was ported last and
- * why every key skips it.
- *
- * The wheel is bigger than the display on purpose: at BB_SP_RING the
- * cars ride in from one edge and out of the other, and only the ones
- * actually on the glass are drawn. Nothing here may reach outside
- * 128x64 any more than a menu may.
+ * Brain, dither, ferris wheel, flash, wipe. The lobe and groove tables
+ * are the browser's, the ordered dither is the browser's Bayer matrix,
+ * and the wheel contracts inward on the same easeOut curve. Every key
+ * skips it.
  */
 #include "beepback.h"
 #include "beepback_tables.h"
 
-#define BB_SP_T1 (BB_SP_HOLD)
-#define BB_SP_T2 (BB_SP_T1 + BB_SP_FADE)
-#define BB_SP_T3 (BB_SP_T2 + BB_SP_GLIDE)
-#define BB_SP_T4 (BB_SP_T3 + BB_SP_FLASH)
-#define BB_SP_T5 (BB_SP_T4 + BB_SP_WIPE)
+#define SP_T1 (BB_SP_HOLD)
+#define SP_T2 (SP_T1 + BB_SP_FADE)
+#define SP_T3 (SP_T2 + BB_SP_GLIDE)
+#define SP_T4 (SP_T3 + BB_SP_FLASH)
+#define SP_T5 (SP_T4 + BB_SP_WIPE)
 
-static bool bb_onscreen(int32_t x, int32_t y, int32_t margin) {
-    return x - margin >= 0 && x + margin < BB_W && y - margin >= 0 && y + margin < BB_H;
-}
+/* BRAIN_LOBES: x, y, r */
+static const int8_t BRAIN_LOBES[7][3] = {
+    {14, 14, 11}, {24, 11, 10}, {33, 15, 10}, {19, 22, 10}, {29, 23, 10}, {11, 20, 8}, {37, 22, 7}};
+/* BRAIN_GROOVES: polylines, terminated by a -1 x */
+static const int8_t BRAIN_GROOVES[7][5][2] = {
+    {{24, 4}, {24, 30}, {-1, -1}, {-1, -1}, {-1, -1}},
+    {{8, 14}, {14, 11}, {18, 15}, {13, 18}, {-1, -1}},
+    {{9, 24}, {15, 21}, {19, 25}, {14, 28}, {-1, -1}},
+    {{30, 12}, {36, 10}, {39, 15}, {34, 17}, {-1, -1}},
+    {{31, 24}, {37, 21}, {41, 25}, {35, 27}, {-1, -1}},
+    {{18, 7}, {22, 5}, {-1, -1}, {-1, -1}, {-1, -1}},
+    {{27, 6}, {32, 7}, {-1, -1}, {-1, -1}, {-1, -1}}};
 
-/* ------------------------------------------------------------------ */
-/* The brain                                                           */
-/* ------------------------------------------------------------------ */
-
-static void bb_brain(Canvas* c, int32_t cx, int32_t cy) {
-    /* an outline with a stem down the middle and four folds a side,
-       which is as much brain as 44x30 pixels will carry */
-    canvas_draw_rframe(c, cx - 22, cy - 15, 44, 26, 11);
-    canvas_draw_line(c, cx, cy - 15, cx, cy + 11);
-    canvas_draw_line(c, cx - 2, cy + 11, cx - 2, cy + 15);
-    canvas_draw_line(c, cx + 2, cy + 11, cx + 2, cy + 15);
-    canvas_draw_line(c, cx - 2, cy + 15, cx + 2, cy + 15);
-    for(int32_t i = 0; i < 3; i++) {
-        int32_t y = cy - 9 + i * 8;
-        canvas_draw_line(c, cx - 17, y, cx - 8, y);
-        canvas_draw_line(c, cx - 8, y, cx - 11, y + 4);
-        canvas_draw_line(c, cx + 17, y, cx + 8, y);
-        canvas_draw_line(c, cx + 8, y, cx + 11, y + 4);
+static void bb_brain(Canvas* c, int32_t ox, int32_t oy) {
+    canvas_set_color(c, ColorBlack);
+    for(uint8_t i = 0; i < 7; i++)
+        canvas_draw_disc(c, ox + BRAIN_LOBES[i][0], oy + BRAIN_LOBES[i][1],
+                         (size_t)BRAIN_LOBES[i][2]);
+    /* the stem */
+    for(int32_t y = 31; y <= 36; y++) {
+        int32_t inset = (y - 31) / 3;
+        canvas_draw_line(c, ox + 22 + inset, oy + y, ox + 30 - inset, oy + y);
     }
-}
-
-/* An ordered dither over 2x2 blocks: level runs 0 to 16 and says how
-   much of the box has been punched back out to white. */
-static void bb_dither(Canvas* c, int32_t x0, int32_t y0, int32_t w, int32_t h, uint8_t level) {
-    static const uint8_t bayer[16] = {0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5};
+    /* the grooves are knocked back out in white */
     canvas_set_color(c, ColorWhite);
-    for(int32_t y = 0; y < h; y += 2) {
-        for(int32_t x = 0; x < w; x += 2) {
-            uint8_t cell = bayer[(((y / 2) & 3) * 4) + (((x / 2) & 3))];
-            if(cell >= level) continue;
-            int32_t px = x0 + x, py = y0 + y;
-            if(px < 0 || py < 0 || px + 2 > BB_W || py + 2 > BB_H) continue;
-            canvas_draw_box(c, px, py, 2, 2);
+    for(uint8_t g = 0; g < 7; g++)
+        for(uint8_t p = 0; p + 1 < 5; p++) {
+            if(BRAIN_GROOVES[g][p + 1][0] < 0) break;
+            canvas_draw_line(c, ox + BRAIN_GROOVES[g][p][0], oy + BRAIN_GROOVES[g][p][1],
+                             ox + BRAIN_GROOVES[g][p + 1][0], oy + BRAIN_GROOVES[g][p + 1][1]);
         }
-    }
     canvas_set_color(c, ColorBlack);
 }
 
-/* ------------------------------------------------------------------ */
-/* The wheel                                                           */
-/* ------------------------------------------------------------------ */
+/* ordered dither: the only honest way to fade on a 1-bit screen */
+static const uint8_t BAYER[4][4] = {{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}};
 
-/* The five buttons ride the rim in their tone order, so the intro is
-   the ladder the whole game is built on, going past once. */
-static void bb_wheel(Canvas* c, float turns) {
-    const int32_t cx = BB_W / 2, cy = 100; /* the hub sits below the glass */
-    const float r = BB_SP_RING;
-    float base = turns * 64.0f;
+static void bb_dither_erase(Canvas* c, int32_t x, int32_t y, int32_t w, int32_t h, uint8_t level) {
+    canvas_set_color(c, ColorWhite);
+    for(int32_t py = y; py < y + h; py++)
+        for(int32_t px = x; px < x + w; px++)
+            if(BAYER[py & 3][px & 3] < level) canvas_draw_dot(c, px, py);
+    canvas_set_color(c, ColorBlack);
+}
 
-    /* the rim, one dot at a time, and only where there is screen */
-    for(int32_t i = 0; i < 64; i++) {
-        int32_t x = cx + (int32_t)(r * BB_SIN[i]);
-        int32_t y = cy - (int32_t)(r * BB_SIN[(i + 16) & 63]);
-        if(bb_onscreen(x, y, 0)) canvas_draw_dot(c, x, y);
+/* easeOut: 1 - (1-t)^3, on a 0..1000 scale to stay clear of floats here */
+static uint32_t ease_out(uint32_t t1000) {
+    uint32_t inv = 1000 - (t1000 > 1000 ? 1000 : t1000);
+    return 1000 - (inv * inv / 1000) * inv / 1000;
+}
+
+void bb_splash_done(BeepbackApp* app) {
+    if(app->first_run) {
+        app->first_run = false;
+        app->tut_page = 0;
+        app->help_from = BbSceneMenu;
+        bb_enter(app, BbSceneTutorial);
+    } else {
+        bb_enter(app, BbSceneMenu);
     }
+}
 
+void bb_update_splash(BeepbackApp* app) {
+    static const uint32_t ph[5] = {BB_SP_HOLD, BB_SP_FADE, BB_SP_GLIDE, BB_SP_FLASH, BB_SP_WIPE};
     static const uint8_t order[BbBtnCount] = {BbBtnDown, BbBtnLeft, BbBtnOk, BbBtnRight, BbBtnUp};
-    for(uint8_t car = 0; car < BbBtnCount; car++) {
-        int32_t idx = (int32_t)(base + (float)car * 64.0f / (float)BbBtnCount) & 63;
-        int32_t x = cx + (int32_t)(r * BB_SIN[idx]);
-        int32_t y = cy - (int32_t)(r * BB_SIN[(idx + 16) & 63]);
-        if(!bb_onscreen(x, y, 9)) continue;
-        /* a stub of spoke, kept short so it cannot leave with the car */
-        canvas_draw_line(c, x, y, x + (cx - x) / 8, y + (cy - y) / 8);
-        canvas_set_color(c, ColorWhite);
-        canvas_draw_disc(c, x, y, 8);
-        canvas_set_color(c, ColorBlack);
-        canvas_draw_circle(c, x, y, 8);
-        uint8_t btn = order[car];
-        switch(bb_button_shape[btn]) {
-        case BbShapeCircle:
-            canvas_draw_disc(c, x, y, 4);
-            break;
-        case BbShapeTriangle:
-            canvas_draw_line(c, x, y - 4, x - 4, y + 3);
-            canvas_draw_line(c, x, y - 4, x + 4, y + 3);
-            canvas_draw_line(c, x - 4, y + 3, x + 4, y + 3);
-            break;
-        case BbShapeSquare:
-            canvas_draw_box(c, x - 3, y - 3, 7, 7);
-            break;
-        case BbShapePentagon:
-            canvas_draw_line(c, x, y - 4, x + 4, y - 1);
-            canvas_draw_line(c, x + 4, y - 1, x + 2, y + 4);
-            canvas_draw_line(c, x + 2, y + 4, x - 2, y + 4);
-            canvas_draw_line(c, x - 2, y + 4, x - 4, y - 1);
-            canvas_draw_line(c, x - 4, y - 1, x, y - 4);
-            break;
-        default:
-            canvas_draw_line(c, x - 4, y, x + 4, y);
-            canvas_draw_line(c, x, y - 4, x, y + 4);
-            canvas_draw_line(c, x - 3, y - 3, x + 3, y + 3);
-            canvas_draw_line(c, x - 3, y + 3, x + 3, y - 3);
-            break;
+    if(!app->sp_start) app->sp_start = app->now;
+    uint32_t t = app->now - app->sp_start;
+    uint8_t i = 0;
+    while(i < 5 && t >= ph[i]) {
+        t -= ph[i];
+        i++;
+    }
+    if(i >= 5) {
+        bb_splash_done(app);
+        return;
+    }
+    app->sp_phase = i;
+
+    if(i == 3) { /* one tone per shape as they flash past */
+        int8_t idx = (int8_t)(t * 5 / (ph[3] ? ph[3] : 1));
+        if(idx > 4) idx = 4;
+        if(idx != app->sp_flash_idx) {
+            app->sp_flash_idx = idx;
+            bb_tone(app, bb_button_hz[order[idx]], 90);
+            bb_led_flash(app, bb_button_led[order[idx]], 130);
         }
     }
 }
 
-/* ------------------------------------------------------------------ */
+/* 0..1000 through the current phase */
+static uint32_t sp_t(const BeepbackApp* app) {
+    static const uint32_t ph[5] = {BB_SP_HOLD, BB_SP_FADE, BB_SP_GLIDE, BB_SP_FLASH, BB_SP_WIPE};
+    uint32_t t = app->now - app->sp_start;
+    for(uint8_t i = 0; i < app->sp_phase && i < 5; i++) t -= ph[i];
+    uint32_t len = ph[app->sp_phase < 5 ? app->sp_phase : 4];
+    return len ? (t * 1000 / len) : 1000;
+}
 
-void bb_draw_splash(Canvas* c, const BeepbackApp* app) {
-    uint32_t t = app->now - app->scene_at;
+void bb_draw_splash(Canvas* c, BeepbackApp* app) {
+    static const uint8_t order[BbBtnCount] = {BbBtnDown, BbBtnLeft, BbBtnOk, BbBtnRight, BbBtnUp};
+    uint8_t ph = app->sp_phase;
+    uint32_t t = sp_t(app);
 
-    if(t < BB_SP_T1) {
-        bb_brain(c, BB_W / 2, 30);
-        canvas_set_font(c, FontSecondary);
-        canvas_draw_str_aligned(c, BB_W / 2, BB_H - 6, AlignCenter, AlignCenter, "BEEPBACK");
-        return;
-    }
-
-    if(t < BB_SP_T2) {
-        uint32_t into = t - BB_SP_T1;
-        bb_brain(c, BB_W / 2, 30);
-        canvas_set_font(c, FontSecondary);
-        canvas_draw_str_aligned(c, BB_W / 2, BB_H - 6, AlignCenter, AlignCenter, "BEEPBACK");
-        bb_dither(c, BB_W / 2 - 24, 12, 48, 40, (uint8_t)(1 + into * 16 / BB_SP_FADE));
-        return;
-    }
-
-    if(t < BB_SP_T3) {
-        uint32_t into = t - BB_SP_T2;
-        bb_wheel(c, BB_SP_TURNS * (float)into / (float)BB_SP_GLIDE);
-        return;
-    }
-
-    if(t < BB_SP_T4) {
-        uint32_t into = t - BB_SP_T3;
-        /* white out, then the wordmark arrives out of the glare */
-        if(into * 4 < BB_SP_FLASH) return;
+    if(ph == 0 || ph == 1) {
+        bb_brain(c, 6, 14);
         canvas_set_color(c, ColorBlack);
-        canvas_draw_box(c, 0, 0, BB_W, BB_H);
-        canvas_set_color(c, ColorWhite);
         canvas_set_font(c, FontPrimary);
-        canvas_draw_str_aligned(c, BB_W / 2, 32, AlignCenter, AlignCenter, "BEEPBACK");
-        canvas_set_color(c, ColorBlack);
+        canvas_draw_str_aligned(c, 94, 33, AlignCenter, AlignCenter, "BEEPBACK");
+        if(ph == 1) bb_dither_erase(c, 0, 0, BB_W, BB_H, (uint8_t)(t * 17 / 1000));
         return;
     }
-
-    /* the wipe hands the screen over, top down */
-    uint32_t into = t < BB_SP_T5 ? t - BB_SP_T4 : BB_SP_WIPE;
-    uint32_t cut = BB_H * into / BB_SP_WIPE;
-    if(cut > BB_H) cut = BB_H;
-    if(cut < BB_H) {
-        canvas_set_color(c, ColorBlack);
-        canvas_draw_box(c, 0, (int32_t)cut, BB_W, (size_t)(BB_H - cut));
-        canvas_set_color(c, ColorWhite);
-        canvas_set_font(c, FontPrimary);
-        canvas_draw_str_aligned(c, BB_W / 2, 32, AlignCenter, AlignCenter, "BEEPBACK");
-        canvas_set_color(c, ColorBlack);
+    if(ph == 2) {
+        /* the ring turns and closes in; the shapes stay upright */
+        uint32_t e = ease_out(t);
+        int32_t rad = (int32_t)(78 * (1000 - e) / 1000);
+        int32_t r = 7 + (int32_t)(5 * e / 1000);
+        /* BB_SP_TURNS turns, in 64ths of a circle for the sine table */
+        int32_t spin = (int32_t)((uint32_t)(BB_SP_TURNS * 64.0f) * e / 1000);
+        for(uint8_t k = 0; k < BbBtnCount; k++) {
+            int32_t idx = (spin + k * 64 / BbBtnCount) & 63;
+            /* -90 degrees is index 48, which is where the browser starts */
+            int32_t cx = 64 + (int32_t)(rad * BB_SIN[(idx + 48) & 63]);
+            int32_t cy = 32 + (int32_t)(rad * BB_SIN[idx]);
+            if(cx - r < 0 || cx + r >= BB_W || cy - r < 0 || cy + r >= BB_H) continue;
+            canvas_set_color(c, ColorBlack);
+            bb_shape_public(c, cx, cy, r, bb_button_shape[order[k]]);
+        }
+        return;
     }
+    if(ph == 3) {
+        int32_t idx = (int32_t)(t * 5 / 1000);
+        if(idx > 4) idx = 4;
+        bool inv = ((t * 5) % 1000) < 350;
+        bb_shape_flash(c, 64, 32, BB_SHAPE_R, bb_button_shape[order[idx]], inv);
+        return;
+    }
+    /* the wipe hands the screen over, top down, with the menu underneath */
+    bb_draw_under_wipe(c, app);
+    canvas_set_color(c, ColorWhite);
+    canvas_draw_box(c, 0, (int32_t)(t * BB_H / 1000), BB_W, BB_H);
+    canvas_set_color(c, ColorBlack);
 }

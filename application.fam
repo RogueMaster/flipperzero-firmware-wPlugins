@@ -6,7 +6,8 @@ App(
     requires=["gui", "notification", "storage"],
     sources=[
         "beepback_app.c",  # the only file that talks to the device
-        "beepback_nav.c",  # scenes, cursors and input
+        "beepback_nav.c",  # input, the browser's press()
+        "beepback_tables.c",  # every table the browser build defines
         "beepback_game.c",  # runs, from start to game over
         "beepback_rules.c",  # the seven rules and the score maths
         "beepback_draw.c",  # every screen

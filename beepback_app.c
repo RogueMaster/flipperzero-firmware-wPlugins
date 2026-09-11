@@ -49,8 +49,9 @@ static void bb_audio_apply(BeepbackApp* app) {
         if(!furi_hal_speaker_acquire(20)) return; /* someone else has it */
         bb_speaker_ours = true;
     }
-    /* the only float in the build that gameplay can see, and it stops here */
-    float level = (float)app->set.volume / (float)(BB_VOL_COUNT - 1);
+    /* VOL_GAIN, as the browser's oscillator gain; the only float in the
+       build that gameplay can see, and it stops here */
+    float level = (float)bb_vol_gain[app->set.volume % BB_VOL_COUNT] / 100.0f;
     furi_hal_speaker_start((float)want, level);
     bb_tone_playing = want;
 }
@@ -75,17 +76,17 @@ static void bb_hardware_off(BeepbackApp* app) {
 static void bb_handle(BeepbackApp* app, const InputEvent* event) {
     if(event->key >= InputKeyMAX) return;
 
-    if(app->scene == BbSceneGame) {
+    if(bb_in_game(app->scene) && !app->paused) {
         /* in game the press is the event: waiting for the release would
            cost the player a slice of a window they are being judged on */
-        if(event->type == InputTypePress) bb_input(app, event->key);
+        if(event->type == InputTypePress) bb_press(app, event->key);
         return;
     }
     if(event->type == InputTypeShort) {
-        bb_input(app, event->key);
+        bb_press(app, event->key);
     } else if(event->type == InputTypeRepeat) {
         /* holding a direction walks a list, but never repeats an action */
-        if(event->key != InputKeyOk && event->key != InputKeyBack) bb_input(app, event->key);
+        if(event->key != InputKeyOk && event->key != InputKeyBack) bb_press(app, event->key);
     }
 }
 

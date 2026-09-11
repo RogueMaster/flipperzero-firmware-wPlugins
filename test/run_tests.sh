@@ -3,8 +3,8 @@
 cd "$(dirname "$0")"
 set -e
 
-SUITES="rules nav game challenge reflex draw save"
-CFLAGS="-std=gnu11 -Wall -Wextra -Werror -I stubs -I .."
+SUITES="rules port"
+CFLAGS="-std=gnu11 -Wall -Wextra -Werror -Wredundant-decls -I stubs -I .."
 
 # The device is a Cortex-M4F and the host is not, so where a bare-metal
 # ARM compiler is available, build for the real target first. It is the
@@ -72,7 +72,7 @@ fi
 # against do-nothing hardware. One definition of everything, two of
 # nothing.
 gcc $CFLAGS -o link_check link_check.c ../beepback_app.c ../beepback_nav.c \
-    ../beepback_game.c ../beepback_rules.c ../beepback_draw.c ../beepback_intro.c \
+    ../beepback_game.c ../beepback_rules.c ../beepback_tables.c ../beepback_draw.c ../beepback_intro.c \
     ../beepback_save.c ../beepback_led.c -lm
 ./link_check
 echo

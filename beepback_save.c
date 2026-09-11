@@ -97,6 +97,8 @@ bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n) {
     if(set.diff >= BB_DIFF_COUNT) set.diff = 1;
     if(set.speed >= BB_SPEED_COUNT) set.speed = 1;
     app->set = set;
+    /* the browser's firstRun is this flag, the other way up */
+    app->first_run = !set.tutorial_done;
 
     for(uint8_t m = 0; m < BB_LADDER_MODES; m++)
         for(uint8_t d = 0; d < BB_DIFF_COUNT; d++)

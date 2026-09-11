@@ -1,600 +1,463 @@
 /*
- * BEEPBACK - scenes, cursors and input.
+ * BEEPBACK - input, ported from the browser build's press().
  *
- * The whole state machine lives here and touches no Flipper API: time
- * arrives through bb_tick() and hardware leaves through app->led and
- * app->tone_hz, which the app loop applies. That keeps every transition
- * reachable from a host test.
- *
- * Two rules run through all of it. Nothing wraps: every cursor and every
- * value clamps at its ends, and the screens draw an arrow only where
- * bb_list_move() would actually have moved. And BACK is defined in one
- * place, bb_back_target(), so the navigation map is a table rather than a
- * habit spread over twenty switch statements.
+ * Same scenes in the same order, same clamps, same BACK table. Pause is
+ * a flag over whatever scene is running rather than a scene of its own,
+ * exactly as it is in the browser.
  */
 #include "beepback.h"
+#include <stdio.h>
 
-/* ------------------------------------------------------------------ */
-/* Presentation tables                                                 */
-/*                                                                     */
-/* Tone, colour and shape all climb together, so a player who learns    */
-/* one ladder has learned the other two.                                */
-/* ------------------------------------------------------------------ */
-
-const uint16_t bb_button_hz[BbBtnCount] = {
-    1397, /* UP    F6 */
-    440, /* DOWN  A4 */
-    587, /* LEFT  D5 */
-    1047, /* RIGHT C6 */
-    784, /* OK    G5 */
-};
-
-const uint8_t bb_button_shape[BbBtnCount] = {
-    BbShapeStar, /* UP    */
-    BbShapeCircle, /* DOWN  */
-    BbShapeTriangle, /* LEFT  */
-    BbShapePentagon, /* RIGHT */
-    BbShapeSquare, /* OK    */
-};
-
-const char* const bb_button_name[BbBtnCount] = {"UP", "DOWN", "LEFT", "RIGHT", "OK"};
-
-/* Moved here from beepback_led.c, which keeps the notification sequences:
-   the mapping is presentation, and the host tests need to link it. */
-const uint8_t bb_button_led[BbBtnCount] = {
-    BbLedViolet, /* UP    - highest tone */
-    BbLedRed, /* DOWN  - lowest tone  */
-    BbLedYellow, /* LEFT  */
-    BbLedBlue, /* RIGHT */
-    BbLedGreen, /* OK    */
-};
-
-/* ------------------------------------------------------------------ */
-/* Cursors                                                             */
-/* ------------------------------------------------------------------ */
-
-bool bb_list_move(uint8_t* cur, uint8_t count, int8_t delta) {
-    if(count == 0) return false;
-    int16_t next = (int16_t)*cur + delta;
-    if(next < 0 || next >= (int16_t)count) return false; /* clamp, never wrap */
-    *cur = (uint8_t)next;
-    return true;
+static uint8_t clamp8(int16_t v, int16_t lo, int16_t hi) {
+    if(v < lo) return (uint8_t)lo;
+    if(v > hi) return (uint8_t)hi;
+    return (uint8_t)v;
 }
 
-/* The scores detail screen shows a different set of dials per mode,
-   because challenge is keyed by rule and the daily by nothing at all. */
-static uint8_t bb_detail_dials(uint8_t mode) {
-    if(mode == BbModeChallenge) return 2; /* MODE, RULE  */
-    if(mode == BbModeDaily) return 1; /* MODE        */
-    return 3; /* MODE, TIME, SPEED */
-}
-
-uint8_t bb_list_count(const BeepbackApp* app, BbScene scene) {
-    switch(scene) {
-    case BbSceneMenu:
-        return 3;
-    case BbSceneModeSelect:
-        return app->mode_page == 2 ? 1 : 2;
-    case BbSceneRulePick:
-        return BB_RULE_COUNT + 1; /* the seven, then RANDOM */
-    case BbSceneSetup:
-        return 3; /* TIME, SPEED, START */
-    case BbSceneSettings:
-        return 5;
-    case BbSceneSounds:
-    case BbSceneSoundTest:
-        return BbBtnCount;
-    case BbSceneScores:
-    case BbSceneBoardPick:
-        return BB_MODE_COUNT;
-    case BbSceneScoreDetail:
-        return bb_detail_dials(app->det_mode);
-    case BbSceneReset:
-        return 2; /* SCORES, TUTORIAL */
-    case BbSceneHowToPick:
-        return 3; /* CLASSIC, RULES, REFLEX */
+/* which of the five buttons this key is, or -1 for BACK */
+static int8_t btn_of(InputKey key) {
+    switch(key) {
+    case InputKeyUp:
+        return BbBtnUp;
+    case InputKeyDown:
+        return BbBtnDown;
+    case InputKeyLeft:
+        return BbBtnLeft;
+    case InputKeyRight:
+        return BbBtnRight;
+    case InputKeyOk:
+        return BbBtnOk;
     default:
-        return 0;
+        return -1;
     }
 }
 
-/* Page counts for the screens that read left to right instead. */
-uint8_t bb_howto_pages(uint8_t topic) {
-    return topic == 2 ? 3 : 4; /* reflex has less to explain */
-}
+/* setupRows(): each mode names its own rows. The caller owns the two
+   scratch buffers, because two of the values are built at draw time. */
+uint8_t bb_setup_rows(
+    const BeepbackApp* app,
+    const char* label[4],
+    const char* value[4],
+    uint8_t kind[4],
+    char* buf_a,
+    char* buf_b,
+    size_t bufn) {
+    uint8_t n = 0;
+    uint8_t diff = app->set.diff < BB_DIFF_COUNT ? app->set.diff : 1;
+    uint8_t speed = app->set.speed < BB_SPEED_COUNT ? app->set.speed : 1;
+    label[0] = label[1] = label[2] = label[3] = NULL;
+    value[0] = value[1] = value[2] = value[3] = NULL;
+    kind[0] = kind[1] = kind[2] = kind[3] = BbRowStart;
 
-uint8_t bb_effective_assist(const BeepbackApp* app) {
-    /* Sound off and ears only leaves nothing to go on. */
-    if(app->set.volume == 0 && app->set.assist == BbAssistOff) return BbAssistShapes;
-    return app->set.assist;
-}
-
-/* ------------------------------------------------------------------ */
-/* The navigation map                                                  */
-/* ------------------------------------------------------------------ */
-
-BbScene bb_back_target(const BeepbackApp* app) {
-    switch(app->scene) {
-    case BbSceneLauncher:
-        return BbSceneCount; /* leaves the app */
-    case BbSceneSplash:
-        return app->set.tutorial_done ? BbSceneMenu : BbSceneTutorial;
-    case BbSceneTutorial:
-        return BbSceneMenu;
-    case BbSceneMenu:
-        return BbSceneLauncher; /* the save is written on the way out */
-    case BbSceneModeSelect:
-        return BbSceneMenu;
-    case BbSceneRulePick:
-        return BbSceneModeSelect;
-    case BbSceneSetup:
-        /* challenge came through the rule picker, so that is where back goes */
-        return app->run.mode == BbModeChallenge ? BbSceneRulePick : BbSceneModeSelect;
-    case BbSceneGame:
-        /* reflex cannot pause: freezing a live cue would be a cheat */
-        return app->run.mode == BbModeReflex ? BbSceneOver : BbScenePause;
-    case BbScenePause:
-        return BbSceneOver; /* backing out of a pause quits the run */
-    case BbSceneOver:
-        return BbSceneMenu;
-    case BbSceneHowToPick:
-        return BbSceneMenu;
-    case BbSceneHowTo:
-    case BbSceneSoundTest:
-        return BbSceneHowToPick;
-    case BbSceneSettings:
-        return BbSceneMenu;
-    case BbSceneSounds:
-    case BbSceneScores:
-    case BbSceneReset:
-        return BbSceneSettings;
-    case BbSceneScoreDetail:
-        return BbSceneScores;
-    case BbSceneBoardPick:
-        return BbSceneMenu;
-    case BbSceneBoard:
-    case BbSceneCredits:
-        return BbSceneBoardPick;
-    default:
-        return BbSceneMenu;
+    if(app->mode == BbModeDaily) {
+        bool played = (app->rec.daily_date == bb_daily_seed()) && app->rec.daily_done;
+        snprintf(buf_a, bufn, "%s %uS", bb_diff_name[1], bb_time_ms[1] / 1000u);
+        kind[n] = BbRowToday;
+        label[n] = "TODAY";
+        value[n++] = bb_rule_label[bb_daily_rule()];
+        kind[n] = BbRowTime;
+        label[n] = "TIME";
+        value[n++] = buf_a;
+        kind[n] = BbRowSpeed;
+        label[n] = "SPEED";
+        value[n++] = bb_speed_name[1];
+        kind[n] = BbRowStart;
+        label[n++] = played ? "PLAYED" : "START";
+        return n;
     }
+    if(app->mode == BbModeChallenge) {
+        snprintf(buf_a, bufn, "%s %uS", bb_diff_name[diff], bb_time_ms[diff] / 1000u);
+        kind[n] = BbRowTime;
+        label[n] = "TIME";
+        value[n++] = buf_a;
+        kind[n] = BbRowSpeed;
+        label[n] = "SPEED";
+        value[n++] = bb_speed_name[speed];
+        kind[n] = BbRowStart;
+        label[n++] = "START";
+        return n;
+    }
+    if(app->mode == BbModeReflex) {
+        snprintf(buf_a, bufn, "%s %uMS", bb_diff_name[diff], bb_rx_shrink[diff]);
+        snprintf(buf_b, bufn, "%s %uMS", bb_speed_name[speed], bb_rx_gap[speed]);
+        kind[n] = BbRowRamp;
+        label[n] = "RAMP";
+        value[n++] = buf_a;
+        kind[n] = BbRowSpeed;
+        label[n] = "SPEED";
+        value[n++] = buf_b;
+        kind[n] = BbRowStart;
+        label[n++] = "START";
+        return n;
+    }
+    snprintf(buf_a, bufn, "%s %uS", bb_diff_name[diff], bb_time_ms[diff] / 1000u);
+    label[n] = "TIME";
+    value[n++] = buf_a;
+    label[n] = "SPEED";
+    value[n++] = bb_speed_name[speed];
+    label[n++] = "START";
+    return n;
 }
 
-void bb_go(BeepbackApp* app, BbScene scene) {
-    if(scene >= BbSceneCount) {
-        app->running = false;
+static uint8_t setup_row_count(const BeepbackApp* app) {
+    const char* l[4];
+    const char* v[4];
+    uint8_t k[4];
+    char a[24], b[24];
+    return bb_setup_rows(app, l, v, k, a, b, sizeof(a));
+}
+
+/* what the row the cursor is on is for, which is what LEFT and RIGHT act
+   upon. A kind rather than a label, so nothing compares strings. */
+static uint8_t setup_row_kind(const BeepbackApp* app) {
+    const char* l[4];
+    const char* v[4];
+    uint8_t k[4];
+    char a[24], b[24];
+    uint8_t n = bb_setup_rows(app, l, v, k, a, b, sizeof(a));
+    return app->setup_idx < n ? k[app->setup_idx] : BbRowStart;
+}
+
+void bb_press(BeepbackApp* app, InputKey key) {
+    if(app->scene == BbSceneGameOver && app->now < app->lock_until) return;
+    int8_t btn = btn_of(key);
+    bool in_game = bb_in_game(app->scene);
+
+    if(app->scene == BbSceneLauncher) {
+        app->sp_start = 0;
+        app->sp_phase = 0;
+        app->sp_flash_idx = -1;
+        bb_enter(app, BbSceneSplash);
         return;
     }
-    app->scene = scene;
-    app->scene_at = app->now;
-    app->led = BbLedOff;
-    app->tone_hz = 0;
-
-    switch(scene) {
-    case BbSceneTutorial:
-        app->tut_page = 0;
-        break;
-    case BbSceneHowTo:
-        app->howto_page = 0;
-        break;
-    case BbSceneScoreDetail:
-        app->det_cur = 0;
-        break;
-    case BbSceneOver:
-        app->over_page = 0;
-        break;
-    case BbSceneSetup:
-        /* the daily pins the cursor to START; nothing else on it moves */
-        app->setup_cur = (app->run.mode == BbModeDaily) ? 2 : 0;
-        /* and it belongs to a date, which may have turned over since the
-           save was read - a session left open past midnight is a new day */
-        if(app->run.mode == BbModeDaily) bb_daily_refresh(app, bb_today_seed());
-        break;
-    default:
-        break;
+    if(app->scene == BbSceneSplash) {
+        bb_splash_done(app); /* skippable */
+        return;
     }
-}
 
-void bb_app_init(BeepbackApp* app) {
-    memset(app, 0, sizeof(*app));
-    app->running = true;
-    app->set.volume = 3;
-    app->set.assist = BbAssistShapes;
-    app->set.diff = 1; /* NORMAL */
-    app->set.speed = 1; /* NORMAL */
-    app->rule_cur = BB_RULE_COUNT; /* RANDOM, the friendlier default */
-    app->scene = BbSceneLauncher;
-}
-
-/* ------------------------------------------------------------------ */
-/* Input                                                               */
-/* ------------------------------------------------------------------ */
-
-/* Which value a left or right press on this screen edits, and how many
-   steps it has. One place decides it, so the screens can ask the same
-   question the input handler answers and no arrow is ever offered where
-   there is nothing to reach. */
-static uint8_t* bb_adjust_target(BeepbackApp* app, uint8_t* count) {
-    switch(app->scene) {
-    case BbSceneSetup:
-        if(app->run.mode == BbModeDaily) return NULL; /* the day picks these */
-        if(app->setup_cur == 0) {
-            *count = BB_DIFF_COUNT;
-            return &app->set.diff;
+    if(app->paused) {
+        if(key == InputKeyOk) {
+            app->paused = false;
+            bb_pause_shift(app, app->now - app->pause_at);
         }
-        if(app->setup_cur == 1) {
-            *count = BB_SPEED_COUNT;
-            return &app->set.speed;
+        if(key == InputKeyBack) {
+            app->paused = false;
+            bb_enter(app, BbSceneMenu);
         }
-        return NULL;
-    case BbSceneSettings:
-        if(app->settings_cur == 0) {
-            *count = BB_VOL_COUNT;
-            return &app->set.volume;
-        }
-        if(app->settings_cur == 1) {
-            *count = BB_ASSIST_COUNT;
-            return &app->set.assist;
-        }
-        return NULL;
-    case BbSceneScoreDetail:
-        if(app->det_cur == 0) {
-            *count = BB_MODE_COUNT;
-            return &app->det_mode;
-        }
-        if(app->det_mode == BbModeChallenge) {
-            *count = BB_RULE_COUNT;
-            return &app->rule_cur;
-        }
-        if(app->det_mode == BbModeDaily) return NULL; /* the daily has no dials */
-        if(app->det_cur == 1) {
-            *count = BB_DIFF_COUNT;
-            return &app->det_diff;
-        }
-        *count = BB_SPEED_COUNT;
-        return &app->det_speed;
-    default:
-        return NULL;
+        return;
     }
-}
 
-static bool bb_adjust(BeepbackApp* app, int8_t d) {
-    uint8_t count = 0;
-    uint8_t* value = bb_adjust_target(app, &count);
-    if(!value || !bb_list_move(value, count, d)) return false;
-    /* changing the mode on the detail screen changes which dials exist */
-    if(app->scene == BbSceneScoreDetail && app->det_cur == 0) {
-        uint8_t dials = bb_detail_dials(app->det_mode);
-        if(app->det_cur >= dials) app->det_cur = (uint8_t)(dials - 1);
-    }
-    return true;
-}
-
-bool bb_can_adjust(const BeepbackApp* app, int8_t d) {
-    uint8_t count = 0;
-    /* read-only: bb_adjust_target hands back a pointer into the app, and
-       nothing here writes through it */
-    uint8_t* value = bb_adjust_target((BeepbackApp*)(uintptr_t)app, &count);
-    if(!value) return false;
-    int16_t next = (int16_t)*value + d;
-    return next >= 0 && next < (int16_t)count;
-}
-
-static void bb_confirm(BeepbackApp* app) {
-    app->flash_at = app->now;
-}
-
-static void bb_menu_ok(BeepbackApp* app) {
-    switch(app->menu_cur) {
-    case 0:
-        bb_go(app, BbSceneModeSelect);
-        break;
-    case 1:
-        bb_go(app, BbSceneHowToPick);
-        break;
-    default:
-        bb_go(app, BbSceneSettings);
-        break;
-    }
-}
-
-static void bb_mode_ok(BeepbackApp* app) {
-    BbMode mode = (BbMode)(app->mode_page * 2 + app->mode_row);
-    app->run.mode = mode; /* setup and back both need to know it */
-    if(mode == BbModeChallenge) {
-        bb_go(app, BbSceneRulePick);
-    } else {
-        bb_go(app, BbSceneSetup);
-    }
-}
-
-bool bb_can_start(const BeepbackApp* app, BbMode mode) {
-    if(mode != BbModeDaily) return true;
-    return !(app->rec.daily_done && app->rec.daily_date == bb_today_seed());
-}
-
-/* The one way into a run. bb_run_start() clears the run, so the mode has
-   to arrive as an argument rather than be read back out of it. */
-static void bb_begin_run(BeepbackApp* app, BbMode mode) {
-    if(!bb_can_start(app, mode)) return;
-    bb_run_start(app, mode);
-    bb_go(app, BbSceneGame);
-}
-
-static void bb_setup_ok(BeepbackApp* app) {
-    if(app->setup_cur != 2) return; /* only START starts */
-    bb_begin_run(app, app->run.mode);
-}
-
-static void bb_settings_ok(BeepbackApp* app) {
-    switch(app->settings_cur) {
-    case 2:
-        bb_go(app, BbSceneSounds);
-        break;
-    case 3:
-        bb_go(app, BbSceneScores);
-        break;
-    case 4:
-        bb_go(app, BbSceneReset);
-        break;
-    default:
-        break; /* volume and assist are edited in place */
-    }
-}
-
-static void bb_reset_ok(BeepbackApp* app) {
-    if(app->reset_cur == 0) {
-        memset(&app->rec, 0, sizeof(app->rec));
-    } else {
-        app->set.tutorial_done = false;
-    }
-    bb_confirm(app);
-}
-
-void bb_input(BeepbackApp* app, InputKey key) {
     if(key == InputKeyBack) {
+        /* leaving the game drops you back in the apps list, which is where
+           the firmware writes settings and scores to the SD card */
         switch(app->scene) {
-        case BbSceneGame:
-            /* reflex ends instead of pausing; anything else freezes */
-            if(app->run.mode == BbModeReflex) {
-                bb_run_end(app, true);
-                bb_go(app, BbSceneOver);
-            } else {
-                app->pause_at = app->now;
-                bb_go(app, BbScenePause);
-            }
+        case BbSceneMenu:
+            bb_enter(app, BbSceneLauncher);
             return;
-        case BbScenePause:
-            bb_run_end(app, true);
-            bb_go(app, BbSceneOver);
+        case BbSceneCredits:
+        case BbSceneScores:
+            bb_enter(app, BbSceneScorePick);
             return;
-        case BbSceneOver:
-            if(app->now - app->scene_at < BB_OVER_LOCK) return; /* the wipe owns the screen */
-            break;
+        case BbSceneSetup:
+            bb_enter(app, app->mode == BbModeChallenge ? BbSceneChPick : BbSceneMode);
+            return;
+        case BbSceneChPick:
+            bb_enter(app, BbSceneMode);
+            return;
+        case BbSceneReset:
+        case BbSceneDetail:
+            bb_enter(app, BbSceneSettings);
+            return;
+        case BbSceneSoundTest:
+            bb_enter(app, app->test_from);
+            return;
         case BbSceneTutorial:
-            app->set.tutorial_done = true;
-            break;
+            bb_enter(app, app->help_from);
+            return;
+        case BbSceneRulesGuide:
+        case BbSceneReflexGuide:
+            bb_enter(app, BbSceneHelp);
+            return;
+        case BbSceneRuleList:
+            bb_enter(app, BbSceneRulesGuide);
+            return;
+        case BbSceneRuleInfo:
+            bb_enter(app, BbSceneRuleList);
+            return;
         default:
             break;
         }
-        bb_go(app, bb_back_target(app));
+        if(in_game) {
+            /* No pausing a reaction test: freezing a live cue would let you
+               take all the time you like and then answer. BACK ends the run
+               instead, which is what a miss does, so the score still stands. */
+            if(app->mode == BbModeReflex) {
+                bb_reflex_miss(app);
+                return;
+            }
+            app->paused = true;
+            app->pause_at = app->now;
+            return;
+        }
+        bb_enter(app, BbSceneMenu);
         return;
     }
 
     switch(app->scene) {
-    case BbSceneLauncher:
-        bb_go(app, BbSceneSplash);
-        return;
-
-    case BbSceneSplash:
-        /* skippable, and every key skips it */
-        bb_go(app, app->set.tutorial_done ? BbSceneMenu : BbSceneTutorial);
-        return;
-
-    case BbSceneTutorial:
-        if(key == InputKeyLeft) bb_list_move(&app->tut_page, BB_TUT_PAGES, -1);
-        if(key == InputKeyRight) bb_list_move(&app->tut_page, BB_TUT_PAGES, 1);
+    case BbSceneMenu:
+        if(key == InputKeyUp) app->menu_idx = clamp8((int16_t)app->menu_idx - 1, 0, 2);
+        if(key == InputKeyDown) app->menu_idx = clamp8((int16_t)app->menu_idx + 1, 0, 2);
+        if(key == InputKeyRight) bb_enter(app, BbSceneScorePick);
         if(key == InputKeyOk) {
-            if(!bb_list_move(&app->tut_page, BB_TUT_PAGES, 1)) {
-                app->set.tutorial_done = true;
-                bb_go(app, BbSceneMenu);
+            if(app->menu_idx == 0) {
+                bb_enter(app, BbSceneMode);
+            } else if(app->menu_idx == 1) {
+                app->help_idx = 0;
+                bb_enter(app, BbSceneHelp);
+            } else {
+                app->set_idx = 0;
+                bb_enter(app, BbSceneSettings);
             }
         }
-        return;
+        break;
 
-    case BbSceneMenu:
-        if(key == InputKeyUp) bb_list_move(&app->menu_cur, 3, -1);
-        if(key == InputKeyDown) bb_list_move(&app->menu_cur, 3, 1);
-        if(key == InputKeyRight) bb_go(app, BbSceneBoardPick);
-        if(key == InputKeyOk) bb_menu_ok(app);
-        return;
-
-    case BbSceneModeSelect:
-        if(key == InputKeyUp) bb_list_move(&app->mode_row, bb_list_count(app, app->scene), -1);
-        if(key == InputKeyDown) bb_list_move(&app->mode_row, bb_list_count(app, app->scene), 1);
-        /* a page change lands on that page's first mode, so the cursor is
-           never left pointing at a row the new page does not have */
-        if(key == InputKeyLeft && bb_list_move(&app->mode_page, BB_MODE_PAGES, -1))
-            app->mode_row = 0;
-        if(key == InputKeyRight && bb_list_move(&app->mode_page, BB_MODE_PAGES, 1))
-            app->mode_row = 0;
-        /* the last page holds one mode, so a row from a full page may be gone */
-        if(app->mode_row >= bb_list_count(app, app->scene))
-            app->mode_row = bb_list_count(app, app->scene) - 1;
-        if(key == InputKeyOk) bb_mode_ok(app);
-        return;
-
-    case BbSceneRulePick:
-        if(key == InputKeyUp) bb_list_move(&app->rule_cur, BB_RULE_COUNT + 1, -1);
-        if(key == InputKeyDown) bb_list_move(&app->rule_cur, BB_RULE_COUNT + 1, 1);
-        if(key == InputKeyOk) bb_go(app, BbSceneSetup);
-        return;
-
-    case BbSceneSetup:
-        if(app->run.mode != BbModeDaily) {
-            if(key == InputKeyUp) bb_list_move(&app->setup_cur, 3, -1);
-            if(key == InputKeyDown) bb_list_move(&app->setup_cur, 3, 1);
-        }
-        if(key == InputKeyLeft) bb_adjust(app, -1);
-        if(key == InputKeyRight) bb_adjust(app, 1);
-        if(key == InputKeyOk) bb_setup_ok(app);
-        return;
-
-    case BbSceneGame:
-        /* pressing during GO! is not a mistake, it is being ready: skip the
-           banner and count the press */
-        if(app->run.phase == BbPhaseGo && key != InputKeyBack) {
-            app->run.phase_end = app->now;
-            bb_run_tick(app);
-        }
-        switch(key) {
-        case InputKeyUp:
-            bb_run_press(app, BbBtnUp);
-            break;
-        case InputKeyDown:
-            bb_run_press(app, BbBtnDown);
-            break;
-        case InputKeyLeft:
-            bb_run_press(app, BbBtnLeft);
-            break;
-        case InputKeyRight:
-            bb_run_press(app, BbBtnRight);
-            break;
-        default:
-            bb_run_press(app, BbBtnOk);
-            break;
-        }
-        if(app->run.phase == BbPhaseOver) bb_go(app, BbSceneOver);
-        return;
-
-    case BbScenePause:
+    case BbSceneMode: {
+        /* three pages: classic and rules, reflex and challenge, then daily */
+        uint8_t page = (uint8_t)(app->mode_idx >> 1);
+        int16_t first = page * 2;
+        int16_t last = first + 1 < BB_MODE_COUNT ? first + 1 : BB_MODE_COUNT - 1;
+        if(key == InputKeyUp) app->mode_idx = clamp8((int16_t)app->mode_idx - 1, first, last);
+        if(key == InputKeyDown) app->mode_idx = clamp8((int16_t)app->mode_idx + 1, first, last);
+        if(key == InputKeyLeft && page > 0) app->mode_idx = (uint8_t)((page - 1) * 2);
+        if(key == InputKeyRight && page < 2) app->mode_idx = (uint8_t)((page + 1) * 2);
         if(key == InputKeyOk) {
-            /* every deadline moves on by however long the pause lasted, so
-               the run picks up exactly where it stopped */
-            uint32_t held = app->now > app->pause_at ? app->now - app->pause_at : 0;
-            bb_go(app, BbSceneGame);
-            bb_run_shift(app, held);
+            app->mode = app->mode_idx;
+            if(app->mode == BbModeChallenge) {
+                bb_enter(app, BbSceneChPick); /* pick the rule on its own screen */
+                break;
+            }
+            app->setup_idx = (uint8_t)(setup_row_count(app) - 1);
+            bb_enter(app, BbSceneSetup);
         }
-        return;
-
-    case BbSceneOver:
-        if(app->now - app->scene_at < BB_OVER_LOCK) return;
-        /* a second page holds the settings the run was played on */
-        if(key == InputKeyRight) app->over_page = 1;
-        if(key == InputKeyLeft) app->over_page = 0;
-        /* same mode, same settings, straight into another run - not back
-           out to the setup screen to press START again */
-        if(key == InputKeyOk) bb_begin_run(app, app->run.mode);
-        return;
-
-    case BbSceneHowToPick:
-        if(key == InputKeyUp) bb_list_move(&app->howto_cur, 3, -1);
-        if(key == InputKeyDown) bb_list_move(&app->howto_cur, 3, 1);
-        if(key == InputKeyOk) bb_go(app, BbSceneHowTo);
-        return;
-
-    case BbSceneHowTo: {
-        uint8_t pages = bb_howto_pages(app->howto_cur);
-        if(key == InputKeyLeft) bb_list_move(&app->howto_page, pages, -1);
-        if(key == InputKeyRight) bb_list_move(&app->howto_page, pages, 1);
-        if(key == InputKeyOk) {
-            /* the last page hands you to the sound test */
-            if(!bb_list_move(&app->howto_page, pages, 1)) bb_go(app, BbSceneSoundTest);
-        }
-        return;
+        break;
     }
 
-    case BbSceneSoundTest:
-    case BbSceneSounds: {
-        uint8_t* cur = (app->scene == BbSceneSounds) ? &app->sounds_cur : &app->sound_btn;
-        if(key == InputKeyUp) bb_list_move(cur, BbBtnCount, -1);
-        if(key == InputKeyDown) bb_list_move(cur, BbBtnCount, 1);
-        if(key == InputKeyOk) {
-            app->tone_hz = bb_button_hz[*cur];
-            app->led = bb_button_led[*cur];
-            app->flash_at = app->now;
+    case BbSceneChPick: {
+        const uint8_t n = BB_RULE_COUNT + 1, VIS = 4;
+        if(key == InputKeyUp) app->ch_idx = clamp8((int16_t)app->ch_idx - 1, 0, n - 1);
+        if(key == InputKeyDown) app->ch_idx = clamp8((int16_t)app->ch_idx + 1, 0, n - 1);
+        if(app->ch_idx < app->ch_scroll) app->ch_scroll = app->ch_idx;
+        if(app->ch_idx > app->ch_scroll + VIS - 1)
+            app->ch_scroll = (uint8_t)(app->ch_idx - VIS + 1);
+        if(key == InputKeyOk || key == InputKeyRight) {
+            app->setup_idx = (uint8_t)(setup_row_count(app) - 1);
+            bb_enter(app, BbSceneSetup);
         }
-        return;
+        break;
     }
 
-    case BbSceneSettings:
-        if(key == InputKeyUp) bb_list_move(&app->settings_cur, 5, -1);
-        if(key == InputKeyDown) bb_list_move(&app->settings_cur, 5, 1);
-        if(key == InputKeyLeft) bb_adjust(app, -1);
-        if(key == InputKeyRight) bb_adjust(app, 1);
-        if(key == InputKeyOk) bb_settings_ok(app);
-        return;
-
-    case BbSceneScores:
-        if(key == InputKeyUp) bb_list_move(&app->scores_cur, BB_MODE_COUNT, -1);
-        if(key == InputKeyDown) bb_list_move(&app->scores_cur, BB_MODE_COUNT, 1);
-        if(key == InputKeyOk) {
-            app->det_mode = app->scores_cur;
-            bb_go(app, BbSceneScoreDetail);
+    case BbSceneSetup: {
+        uint8_t n = setup_row_count(app);
+        uint8_t last = (uint8_t)(n - 1);
+        if(app->mode == BbModeDaily)
+            app->setup_idx = last; /* nothing else on the daily is yours to change */
+        if(key == InputKeyUp) app->setup_idx = clamp8((int16_t)app->setup_idx - 1, 0, n - 1);
+        if(key == InputKeyDown) app->setup_idx = clamp8((int16_t)app->setup_idx + 1, 0, n - 1);
+        if(app->mode == BbModeDaily) app->setup_idx = last;
+        int8_t d = key == InputKeyRight ? 1 : key == InputKeyLeft ? -1 : 0;
+        uint8_t row = setup_row_kind(app);
+        if(d) {
+            if(row == BbRowTime || row == BbRowRamp)
+                app->set.diff = clamp8((int16_t)app->set.diff + d, 0, BB_DIFF_COUNT - 1);
+            if(row == BbRowSpeed)
+                app->set.speed = clamp8((int16_t)app->set.speed + d, 0, BB_SPEED_COUNT - 1);
         }
-        return;
+        if(key == InputKeyOk && app->setup_idx == last) {
+            if(app->mode == BbModeDaily && app->rec.daily_date == bb_daily_seed() &&
+               app->rec.daily_done)
+                break; /* one a day */
+            bb_start_game(app);
+        }
+        break;
+    }
 
-    case BbSceneScoreDetail: {
-        uint8_t dials = bb_detail_dials(app->det_mode);
-        if(key == InputKeyUp) bb_list_move(&app->det_cur, dials, -1);
-        if(key == InputKeyDown) bb_list_move(&app->det_cur, dials, 1);
-        if(key == InputKeyLeft) bb_adjust(app, -1);
-        if(key == InputKeyRight) bb_adjust(app, 1);
-        return;
+    case BbSceneSettings: {
+        if(key == InputKeyUp) app->set_idx = clamp8((int16_t)app->set_idx - 1, 0, 4);
+        if(key == InputKeyDown) app->set_idx = clamp8((int16_t)app->set_idx + 1, 0, 4);
+        int8_t step = key == InputKeyRight ? 1 : key == InputKeyLeft ? -1 : 0;
+        if(app->set_idx == 0 && step) {
+            app->set.volume = clamp8((int16_t)app->set.volume + step, 0, BB_VOL_COUNT - 1);
+            if(app->set.volume > 0) bb_tone(app, bb_button_hz[BbBtnOk], 140);
+        }
+        if(app->set_idx == 1 && step)
+            app->set.assist = clamp8((int16_t)app->set.assist + step, 0, BB_ASSIST_COUNT - 1);
+        if(app->set_idx == 2 && (key == InputKeyOk || key == InputKeyRight)) {
+            app->test_from = BbSceneSettings;
+            bb_enter(app, BbSceneSoundTest);
+        }
+        if(app->set_idx == 3 && (key == InputKeyOk || key == InputKeyRight)) {
+            app->det_row = 0;
+            bb_enter(app, BbSceneDetail);
+        }
+        if(app->set_idx == 4 && (key == InputKeyOk || key == InputKeyRight)) {
+            app->reset_idx = 0;
+            bb_enter(app, BbSceneReset);
+        }
+        break;
+    }
+
+    case BbSceneDetail: {
+        if(key == InputKeyUp) app->det_row = clamp8((int16_t)app->det_row - 1, 0, 2);
+        if(key == InputKeyDown) app->det_row = clamp8((int16_t)app->det_row + 1, 0, 2);
+        int8_t d = key == InputKeyRight ? 1 : key == InputKeyLeft ? -1 : 0;
+        if(d) {
+            if(app->det_row == 0) app->det_mode = clamp8((int16_t)app->det_mode + d, 0, 2);
+            if(app->det_row == 1) app->det_time = clamp8((int16_t)app->det_time + d, 0, 3);
+            if(app->det_row == 2) app->det_speed = clamp8((int16_t)app->det_speed + d, 0, 2);
+        }
+        break;
     }
 
     case BbSceneReset:
-        if(key == InputKeyUp) bb_list_move(&app->reset_cur, 2, -1);
-        if(key == InputKeyDown) bb_list_move(&app->reset_cur, 2, 1);
-        if(key == InputKeyOk) bb_reset_ok(app);
-        return;
-
-    case BbSceneBoardPick:
-        if(key == InputKeyUp) bb_list_move(&app->board_cur, BB_MODE_COUNT, -1);
-        if(key == InputKeyDown) bb_list_move(&app->board_cur, BB_MODE_COUNT, 1);
-        if(key == InputKeyLeft) bb_go(app, BbSceneMenu);
-        if(key == InputKeyRight) bb_go(app, BbSceneCredits);
-        if(key == InputKeyOk) bb_go(app, BbSceneBoard);
-        return;
-
-    case BbSceneBoard:
-    case BbSceneCredits:
-        if(key == InputKeyLeft) bb_go(app, BbSceneBoardPick);
-        return;
-
-    default:
-        return;
-    }
-}
-
-/* ------------------------------------------------------------------ */
-/* Time                                                                */
-/* ------------------------------------------------------------------ */
-
-#define BB_SPLASH_MS (BB_SP_HOLD + BB_SP_FADE + BB_SP_GLIDE + BB_SP_FLASH + BB_SP_WIPE)
-
-void bb_tick(BeepbackApp* app, uint32_t dt_ms) {
-    app->now += dt_ms;
-
-    switch(app->scene) {
-    case BbSceneSplash:
-        if(app->now - app->scene_at >= BB_SPLASH_MS)
-            bb_go(app, app->set.tutorial_done ? BbSceneMenu : BbSceneTutorial);
-        break;
-    case BbSceneGame:
-        bb_run_tick(app);
-        if(app->run.phase == BbPhaseOver) bb_go(app, BbSceneOver);
-        break;
-    default:
-        break;
-    }
-
-    /* a flash of confirmation, and any tone the menus started, are brief */
-    if(app->flash_at && app->now - app->flash_at >= BB_TONE_MS) {
-        app->flash_at = 0;
-        if(app->scene != BbSceneGame) {
-            app->tone_hz = 0;
-            app->led = BbLedOff;
+        if(key == InputKeyUp) app->reset_idx = clamp8((int16_t)app->reset_idx - 1, 0, 1);
+        if(key == InputKeyDown) app->reset_idx = clamp8((int16_t)app->reset_idx + 1, 0, 1);
+        if(key == InputKeyLeft) bb_enter(app, BbSceneSettings);
+        if(key == InputKeyOk) {
+            if(app->reset_idx == 0) {
+                memset(&app->rec, 0, sizeof(app->rec));
+                app->set_flash = app->now + 900;
+            } else {
+                /* the guide opens itself on the next launch; scores are
+                   deliberately untouched, that is the other row */
+                app->first_run = true;
+                app->set.tutorial_done = false;
+                bb_enter(app, BbSceneLauncher);
+            }
         }
+        break;
+
+    case BbSceneHelp:
+        if(key == InputKeyUp) app->help_idx = clamp8((int16_t)app->help_idx - 1, 0, 2);
+        if(key == InputKeyDown) app->help_idx = clamp8((int16_t)app->help_idx + 1, 0, 2);
+        if(key == InputKeyOk) {
+            app->tut_page = 0;
+            app->help_from = BbSceneHelp;
+            bb_enter(app, app->help_idx == 0 ? BbSceneTutorial :
+                          app->help_idx == 1 ? BbSceneRulesGuide :
+                                               BbSceneReflexGuide);
+        }
+        break;
+
+    case BbSceneReflexGuide:
+        if(key == InputKeyRight || key == InputKeyOk) {
+            if(app->tut_page + 1 < 2) {
+                app->tut_page++;
+            } else {
+                app->test_from = BbSceneHelp;
+                bb_enter(app, BbSceneSoundTest);
+            }
+        }
+        if(key == InputKeyLeft && app->tut_page > 0) app->tut_page--;
+        break;
+
+    case BbSceneRulesGuide:
+        if(key == InputKeyRight || key == InputKeyOk) {
+            if(app->tut_page + 1 < 2) {
+                app->tut_page++;
+            } else {
+                app->rule_sel = 0;
+                app->rule_scroll = 0;
+                bb_enter(app, BbSceneRuleList);
+            }
+        }
+        if(key == InputKeyLeft && app->tut_page > 0) app->tut_page--;
+        break;
+
+    case BbSceneTutorial: {
+        uint8_t total = (uint8_t)(4 + (bb_visual_on(app) ? 1 : 0));
+        if(key == InputKeyRight || key == InputKeyOk) {
+            if(app->tut_page + 1 < total) {
+                app->tut_page++;
+            } else {
+                app->test_from = app->help_from;
+                bb_enter(app, BbSceneSoundTest);
+            }
+        }
+        if(key == InputKeyLeft && app->tut_page > 0) app->tut_page--;
+        break;
+    }
+
+    case BbSceneRuleList: {
+        const uint8_t VIS = 4;
+        if(key == InputKeyUp) app->rule_sel = clamp8((int16_t)app->rule_sel - 1, 0, BB_RULE_COUNT - 1);
+        if(key == InputKeyDown) app->rule_sel = clamp8((int16_t)app->rule_sel + 1, 0, BB_RULE_COUNT - 1);
+        if(app->rule_sel < app->rule_scroll) app->rule_scroll = app->rule_sel;
+        if(app->rule_sel > app->rule_scroll + VIS - 1)
+            app->rule_scroll = (uint8_t)(app->rule_sel - VIS + 1);
+        if(key == InputKeyOk || key == InputKeyRight) bb_enter(app, BbSceneRuleInfo);
+        break;
+    }
+
+    case BbSceneRuleInfo:
+        if(key == InputKeyLeft) bb_enter(app, BbSceneRuleList);
+        if(key == InputKeyDown) app->rule_sel = clamp8((int16_t)app->rule_sel + 1, 0, BB_RULE_COUNT - 1);
+        if(key == InputKeyUp) app->rule_sel = clamp8((int16_t)app->rule_sel - 1, 0, BB_RULE_COUNT - 1);
+        break;
+
+    case BbSceneSoundTest:
+        if(btn >= 0) {
+            app->test_btn = btn;
+            bb_tone(app, bb_button_hz[btn], bb_tone_ms(app));
+            bb_led_flash(app, bb_button_led[btn], bb_tone_ms(app));
+        }
+        break;
+
+    case BbSceneScorePick:
+        if(key == InputKeyUp) app->score_mode = clamp8((int16_t)app->score_mode - 1, 0, BB_MODE_COUNT - 1);
+        if(key == InputKeyDown) app->score_mode = clamp8((int16_t)app->score_mode + 1, 0, BB_MODE_COUNT - 1);
+        if(key == InputKeyOk) bb_enter(app, BbSceneScores);
+        if(key == InputKeyLeft) bb_enter(app, BbSceneMenu);
+        if(key == InputKeyRight) bb_enter(app, BbSceneCredits);
+        break;
+
+    case BbSceneScores:
+    case BbSceneCredits:
+        if(key == InputKeyLeft) bb_enter(app, BbSceneScorePick);
+        break;
+
+    case BbSceneGameOver:
+        if(key == InputKeyOk) bb_start_game(app);
+        if(key == InputKeyRight) app->go_page = 1;
+        if(key == InputKeyLeft) app->go_page = 0;
+        break;
+
+    case BbSceneGo:
+        /* jumping the gun is allowed: skip the banner and count the press */
+        if(btn < 0) return;
+        bb_enter(app, BbSceneInput);
+        bb_take_press(app, (uint8_t)btn);
+        break;
+
+    case BbSceneInput:
+        if(btn < 0) return;
+        bb_take_press(app, (uint8_t)btn);
+        break;
+
+    case BbSceneReflexGap:
+        if(btn < 0) return;
+        bb_reflex_miss(app); /* pressing before the cue is a miss */
+        break;
+
+    case BbSceneReflexCue:
+        if(btn < 0) return;
+        if(btn == (int8_t)app->rx_cue) {
+            bb_reflex_hit(app, (uint8_t)btn);
+        } else {
+            bb_reflex_miss(app);
+        }
+        break;
+
+    default:
+        break;
     }
 }
