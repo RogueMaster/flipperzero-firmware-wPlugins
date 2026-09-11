@@ -319,15 +319,6 @@ static void bb_sel_rbox(Canvas* c, int32_t x, int32_t top, int32_t w, int32_t h,
     canvas_set_color(c, ColorWhite);
 }
 
-static void bb_draw_launcher(Canvas* c, const BeepbackApp* app) {
-    /* On hardware the Flipper's own apps browser does this job, so this
-       just says how to start. Slow blink: waiting, not stuck. */
-    if((app->now % 1200) < 800) {
-        bb_font(c, false);
-        bb_str(c, 64, 32, AlignCenter, AlignCenter, "press a button to play");
-    }
-}
-
 static void bb_draw_menu(Canvas* c, const BeepbackApp* app) {
     static const char* const items[3] = {"PLAY", "HOW TO PLAY", "SETTINGS"};
     bb_title(c, "BEEPBACK");
@@ -951,9 +942,6 @@ void bb_draw(Canvas* canvas, BeepbackApp* app) {
     bb_font(canvas, false);
 
     switch(app->scene) {
-    case BbSceneLauncher:
-        bb_draw_launcher(canvas, app);
-        break;
     case BbSceneSplash:
         bb_draw_splash(canvas, app);
         break;

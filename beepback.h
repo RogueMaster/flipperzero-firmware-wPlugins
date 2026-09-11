@@ -275,8 +275,12 @@ extern const BbNote bb_jingle_over[4];
 /* ------------------------------------------------------------------ */
 
 typedef enum {
-    BbSceneLauncher = 0,
-    BbSceneSplash,
+    /* No launcher scene. The browser needs a "press to play" screen
+       because a page cannot make a sound until someone has touched it,
+       and because a web page has nothing to quit back to. The Flipper's
+       own apps browser has already done both jobs by the time this runs,
+       so the intro starts immediately and BACK on the menu leaves. */
+    BbSceneSplash = 0,
     BbSceneMenu,
     BbSceneMode,
     BbSceneChPick,
@@ -417,6 +421,12 @@ typedef struct {
     uint8_t sp_phase;
     int8_t sp_flash_idx;
 
+    /* One physical press arrives as more than one event. The latch
+       remembers which keys were already acted on at InputTypePress, so
+       the InputTypeShort that follows the same press is swallowed rather
+       than acted on twice. */
+    uint8_t press_latch;
+
     /* what the hardware is being asked to do */
     uint8_t led;
     uint32_t led_until;
@@ -474,6 +484,8 @@ void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms);
 /* Input (beepback_nav.c) - the browser's press()                      */
 /* ------------------------------------------------------------------ */
 void bb_press(BeepbackApp* app, InputKey key);
+/* one event from the device, turned into at most one bb_press() */
+void bb_input_event(BeepbackApp* app, InputKey key, InputType type);
 /* what a setup row is, so nothing has to compare its label as a string */
 typedef enum {
     BbRowToday = 0,

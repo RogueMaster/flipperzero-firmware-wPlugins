@@ -20,9 +20,9 @@ static void check(const char* name, int ok, const char* extra) {
 }
 
 static const char* const scene_name[BbSceneCount] = {
-    "launcher", "splash",    "menu",       "mode",     "chpick",   "setup",     "rulecard",
-    "listen",   "playback",  "go",         "input",    "hold",     "success",   "roundclear",
-    "wrong",    "retry",     "reflexgap",  "reflexcue", "gameover", "settings", "detail",
+    "splash",   "menu",      "mode",       "chpick",   "setup",     "rulecard",
+    "listen",   "playback",  "go",         "input",    "hold",      "success",   "roundclear",
+    "wrong",    "retry",     "reflexgap",  "reflexcue", "gameover", "settings",  "detail",
     "reset",    "help",      "tutorial",   "rulesguide", "rulelist", "ruleinfo", "reflexguide",
     "soundtest", "scorepick", "scores",    "credits",
 };
@@ -64,9 +64,9 @@ int main(void) {
     BeepbackApp app;
 
     /* ---- the scene set is the browser's ---- */
-    check("there are as many scenes as the browser has", BbSceneCount == 32, "");
+    check("the scene set is the browser's, less its launcher", BbSceneCount == 31, "");
     boot(&app);
-    check("a cold start is the launcher", app.scene == BbSceneLauncher, "");
+    check("a cold start goes straight into the intro", app.scene == BbSceneSplash, "");
     check("with the browser's defaults",
           app.set.volume == 2 && app.set.assist == 2 && app.set.speed == 1 && app.set.diff == 1, "");
     check("and a first run pending", app.first_run, "");
@@ -80,6 +80,10 @@ int main(void) {
         BbRng rng;
         bb_rng_seed(&rng, 4242u);
         for(uint32_t i = 0; i < 400000; i++) {
+            if(!app.running) { /* BACK off the menu leaves; come back in */
+                app.running = true;
+                bb_enter(&app, BbSceneMenu);
+            }
             bb_tick(&app, BB_TICK_MS);
             seen[app.scene] = true;
             /* not every tick: a press on every one of them means the input
@@ -129,7 +133,7 @@ int main(void) {
                 p += sprintf(msg + p, "%s ", scene_name[s]);
             }
         check("every scene can be reached by pressing buttons", missing == 0,
-              missing ? msg : "all 32");
+              missing ? msg : "all 31");
     }
 
     /* ---- the daily, pinned against the browser build ---- */
@@ -204,6 +208,60 @@ int main(void) {
         bb_press(&app, InputKeyBack);
         bb_press(&app, InputKeyBack);
         check("BACK twice quits to the menu", app.scene == BbSceneMenu, scene_name[app.scene]);
+        bb_press(&app, InputKeyBack);
+        check("and BACK on the menu leaves the app", !app.running, "");
+    }
+
+    /* ---- one physical press is one action ---- */
+    /* The device reports a press twice, down and up. A press that
+       changes which of those two counts - BACK in a running game, which
+       pauses - used to be read by both, so it paused and then quit. */
+    {
+        boot(&app);
+        app.mode = BbModeClassic;
+        bb_start_game(&app);
+        wait_scene(&app, BbSceneInput, 8000);
+        bb_input_event(&app, InputKeyBack, InputTypePress);
+        check("BACK going down pauses", app.paused, "");
+        bb_input_event(&app, InputKeyBack, InputTypeShort);
+        check("and BACK coming up does not also quit", app.paused, "");
+        check("so the run is still there", bb_in_game(app.scene), scene_name[app.scene]);
+        bb_input_event(&app, InputKeyOk, InputTypeShort);
+        check("OK then resumes it", !app.paused, "");
+
+        /* a hold long enough that no Short ever arrives: the release has
+           to clear the latch, or the next press is swallowed */
+        bb_input_event(&app, InputKeyBack, InputTypePress);
+        check("a held BACK still pauses", app.paused, "");
+        bb_input_event(&app, InputKeyBack, InputTypeRelease);
+        check("and holding it does not also quit", app.paused, "");
+        check("with the latch clear again", app.press_latch == 0, "");
+        /* now a second, separate press, which is what quitting takes */
+        bb_input_event(&app, InputKeyBack, InputTypePress);
+        bb_input_event(&app, InputKeyBack, InputTypeShort);
+        check("a second BACK quits the paused run", !app.paused, "");
+        check("to the menu", app.scene == BbSceneMenu, scene_name[app.scene]);
+
+        /* a game button is acted on going down, not twice */
+        boot(&app);
+        app.mode = BbModeClassic;
+        bb_start_game(&app);
+        wait_scene(&app, BbSceneInput, 8000);
+        uint8_t want = app.expected.press[0];
+        bb_input_event(&app, key_of(want), InputTypePress);
+        uint8_t after = app.input_idx;
+        bb_input_event(&app, key_of(want), InputTypeShort);
+        sprintf(msg, "%u then %u", after, app.input_idx);
+        check("a game press counts once, on the way down",
+              after == 1 && app.input_idx == 1, msg);
+
+        /* and in a menu it is the release that counts, once */
+        boot(&app);
+        bb_enter(&app, BbSceneMenu);
+        bb_input_event(&app, InputKeyDown, InputTypePress);
+        check("a menu press does nothing going down", app.menu_idx == 0, "");
+        bb_input_event(&app, InputKeyDown, InputTypeShort);
+        check("and moves one row coming up", app.menu_idx == 1, "");
     }
 
     /* ---- reflex ---- */

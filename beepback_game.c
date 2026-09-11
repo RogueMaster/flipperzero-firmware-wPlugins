@@ -596,7 +596,7 @@ void bb_app_init(BeepbackApp* app) {
     app->lives = BB_LIVES;
     app->round = 1;
     app->run_mult = 10000;
-    app->scene = BbSceneLauncher;
+    app->scene = BbSceneSplash;
     app->test_from = BbSceneMenu;
     app->help_from = BbSceneHelp;
 }

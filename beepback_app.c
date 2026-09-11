@@ -69,26 +69,6 @@ static void bb_hardware_off(BeepbackApp* app) {
     bb_led_apply_changed(app);
 }
 
-/* ------------------------------------------------------------------ */
-/* Input                                                               */
-/* ------------------------------------------------------------------ */
-
-static void bb_handle(BeepbackApp* app, const InputEvent* event) {
-    if(event->key >= InputKeyMAX) return;
-
-    if(bb_in_game(app->scene) && !app->paused) {
-        /* in game the press is the event: waiting for the release would
-           cost the player a slice of a window they are being judged on */
-        if(event->type == InputTypePress) bb_press(app, event->key);
-        return;
-    }
-    if(event->type == InputTypeShort) {
-        bb_press(app, event->key);
-    } else if(event->type == InputTypeRepeat) {
-        /* holding a direction walks a list, but never repeats an action */
-        if(event->key != InputKeyOk && event->key != InputKeyBack) bb_press(app, event->key);
-    }
-}
 
 /* ------------------------------------------------------------------ */
 
@@ -129,12 +109,12 @@ int32_t beepback_app(void* p) {
         last = now;
         if(dt) bb_tick(app, dt);
 
-        if(status == FuriStatusOk) bb_handle(app, &event);
+        if(status == FuriStatusOk) bb_input_event(app, event.key, event.type);
 
-        /* the menu is the last thing before the launcher, and the
-           launcher is where the save is written */
+        /* the records are worth keeping the moment a run is over, not
+           only when the app closes, so the menu writes them too */
         if(app->scene != was) {
-            if(app->scene == BbSceneLauncher) bb_save_store(app);
+            if(app->scene == BbSceneMenu) bb_save_store(app);
             was = app->scene;
         }
 

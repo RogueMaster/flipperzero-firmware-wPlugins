@@ -123,13 +123,6 @@ void bb_press(BeepbackApp* app, InputKey key) {
     int8_t btn = btn_of(key);
     bool in_game = bb_in_game(app->scene);
 
-    if(app->scene == BbSceneLauncher) {
-        app->sp_start = 0;
-        app->sp_phase = 0;
-        app->sp_flash_idx = -1;
-        bb_enter(app, BbSceneSplash);
-        return;
-    }
     if(app->scene == BbSceneSplash) {
         bb_splash_done(app); /* skippable */
         return;
@@ -152,7 +145,8 @@ void bb_press(BeepbackApp* app, InputKey key) {
            the firmware writes settings and scores to the SD card */
         switch(app->scene) {
         case BbSceneMenu:
-            bb_enter(app, BbSceneLauncher);
+            /* the way out of the app, and where the save is written */
+            app->running = false;
             return;
         case BbSceneCredits:
         case BbSceneScores:
@@ -327,11 +321,12 @@ void bb_press(BeepbackApp* app, InputKey key) {
                 memset(&app->rec, 0, sizeof(app->rec));
                 app->set_flash = app->now + 900;
             } else {
-                /* the guide opens itself on the next launch; scores are
-                   deliberately untouched, that is the other row */
+                /* the guide opens itself on the next launch, so this
+                   saves the flag and quits; scores are deliberately
+                   untouched, that is the other row */
                 app->first_run = true;
                 app->set.tutorial_done = false;
-                bb_enter(app, BbSceneLauncher);
+                app->running = false;
             }
         }
         break;
@@ -459,5 +454,56 @@ void bb_press(BeepbackApp* app, InputKey key) {
 
     default:
         break;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* One press, one action                                               */
+/*                                                                     */
+/* The device reports a press twice: InputTypePress when it goes down,
+ * then InputTypeShort when it comes back up. In the game the first is
+ * what counts, because waiting for the release would cost the player a
+ * slice of a window they are being judged on. Everywhere else the
+ * release is what counts, so holding a key does not fire it.
+ *
+ * The two rules meet badly when a press changes which of them applies.
+ * BACK in a running game is exactly that: the press pauses, and then the
+ * release arrives at a screen where BACK means quit, so one press paused
+ * and left. The latch below is what stops a press being read twice.
+ * ------------------------------------------------------------------ */
+void bb_input_event(BeepbackApp* app, InputKey key, InputType type) {
+    if(key >= InputKeyMAX) return;
+    uint8_t bit = (uint8_t)(1u << key);
+
+    switch(type) {
+    case InputTypePress:
+        if(bb_in_game(app->scene) && !app->paused) {
+            app->press_latch |= bit;
+            bb_press(app, key);
+        }
+        return;
+
+    case InputTypeShort:
+        /* the second half of a press already acted on */
+        if(app->press_latch & bit) {
+            app->press_latch &= (uint8_t)~bit;
+            return;
+        }
+        bb_press(app, key);
+        return;
+
+    case InputTypeRelease:
+        /* a long hold never sends Short, so the latch clears here too */
+        app->press_latch &= (uint8_t)~bit;
+        return;
+
+    case InputTypeRepeat:
+        /* holding a direction walks a list, but never repeats an action */
+        if(key != InputKeyOk && key != InputKeyBack && !bb_in_game(app->scene))
+            bb_press(app, key);
+        return;
+
+    default:
+        return;
     }
 }
