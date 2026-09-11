@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
         app.seed = 3;
         bb_run_start(&app, BbModeClassic);
         app.run.score = 1240;
-        app.run.mult = 155;
+        app.run.mult = 15500;
         app.run.record = true;
         app.run.round = 3;
         app.run.longest = 7;

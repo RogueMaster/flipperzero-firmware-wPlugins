@@ -29,14 +29,14 @@ const char* const bb_praise[BB_PRAISE_COUNT] =
 /* Mode select is the only place the game says what the modes are, so the
    footer carries a line about whichever one the cursor is on. */
 const char* const bb_mode_blurb[BB_MODE_COUNT] = {
-    "REPEAT WHAT YOU HEAR",
-    "ONE RULE PER ROUND",
-    "ONE CUE, NO MEMORY",
+    "REPEAT THE SEQUENCE", /* not "what you hear": in shapes and arrows */
+    "ONE RULE PER ROUND", /* there is nothing to hear                  */
+    "HIT IT BEFORE IT GOES",
     "ONE RULE, NO ROUNDS",
     "SAME RUN FOR EVERYONE",
 };
 
-const char* const bb_volume_name[BB_VOL_COUNT] = {"OFF", "LOW", "MID", "HIGH", "MAX"};
+const char* const bb_volume_name[BB_VOL_COUNT] = {"OFF", "LOW", "MID", "HIGH"};
 
 /* Screens read cursors, and a cursor is only ever as trustworthy as the
    code that moved it. Clamping here costs nothing and means a screen can
@@ -95,10 +95,12 @@ const char* bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n)
     return flat ? flat : "";
 }
 
-void bb_mult_str(uint16_t mult, char* out, size_t n) {
-    /* two decimals, not one: at one decimal x1.55 and x1.45 both render
-       as "x1.5" and two different settings look identical */
-    snprintf(out, n, "X%u.%02u", mult / 100u, mult % 100u);
+void bb_mult_str(uint32_t mult, char* out, size_t n) {
+    /* ten-thousandths rounded to hundredths, then two decimals - not
+       one: at one decimal x1.55 and x1.45 both render as "x1.5" and two
+       different settings look identical. */
+    uint32_t h = (mult + 50u) / 100u;
+    snprintf(out, n, "X%lu.%02lu", (unsigned long)(h / 100u), (unsigned long)(h % 100u));
 }
 
 /* ------------------------------------------------------------------ */

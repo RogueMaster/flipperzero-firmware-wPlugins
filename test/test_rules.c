@@ -20,13 +20,60 @@ int main(void) {
     char msg[160];
 
     /* ---- the multipliers the simulation settled on ---- */
-    check("normal on normal is exactly x1", bb_multiplier(BbModeClassic, 1, 1) == 100, "");
-    sprintf(msg, "x%u.%02u", bb_multiplier(BbModeClassic, 3, 2) / 100, bb_multiplier(BbModeClassic, 3, 2) % 100);
-    check("insane and fast is x8.70", bb_multiplier(BbModeClassic, 3, 2) == 870, msg);
-    check("easy and slow is a discount", bb_multiplier(BbModeClassic, 0, 0) < 100, "");
-    check("reflex has its own time table", bb_multiplier(BbModeReflex, 3, 1) == 230, "");
-    check("a stage of 4 at x1.55 pays 62", bb_apply_mult(40, 155) == 62, "");
-    check("and pays 40 flat at x1.00", bb_apply_mult(40, 100) == 40, "");
+    /* The multiplier is two hundredths multiplied together, so it is in
+       ten-thousandths: x1.00 is 10000. Keeping the product whole is what
+       stops 155 x 145 = 22475 losing its .75, which is a scoring
+       difference and not a rounding one. */
+    check("normal on normal is exactly x1", bb_multiplier(BbModeClassic, 1, 1) == 10000, "");
+    sprintf(msg, "%lu", (unsigned long)bb_multiplier(BbModeClassic, 3, 2));
+    check("insane and fast is x8.70", bb_multiplier(BbModeClassic, 3, 2) == 87000, msg);
+    check("easy and slow is a discount", bb_multiplier(BbModeClassic, 0, 0) < 10000, "");
+    check("reflex has its own time table", bb_multiplier(BbModeReflex, 3, 1) == 23000, "");
+    check("a stage of 4 at x1.55 pays 62", bb_apply_mult(40, 15500) == 62, "");
+    check("and pays 40 flat at x1.00", bb_apply_mult(40, 10000) == 40, "");
+
+    /* the four corners, against the browser build's own table */
+    sprintf(msg, "%lu", (unsigned long)bb_multiplier(BbModeClassic, 0, 0));
+    check("easy and slow is 5250, paying 53 on 100",
+          bb_multiplier(BbModeClassic, 0, 0) == 5250 && bb_apply_mult(100, 5250) == 53, msg);
+    sprintf(msg, "%lu", (unsigned long)bb_multiplier(BbModeClassic, 2, 2));
+    check("hard and fast is 22475, paying 225 on 100",
+          bb_multiplier(BbModeClassic, 2, 2) == 22475 && bb_apply_mult(100, 22475) == 225, msg);
+    check("normal on normal pays exactly what it was given",
+          bb_apply_mult(100, 10000) == 100, "");
+    check("insane and fast pays 870 on 100", bb_apply_mult(100, 87000) == 870, "");
+
+    /* the pairs that were being truncated before */
+    check("easy and fast is x1.02, not x1.01", bb_multiplier(BbModeClassic, 0, 2) == 10150, "");
+    check("hard and slow is x1.16", bb_multiplier(BbModeClassic, 2, 0) == 11625, "");
+    check("reflex hard and fast is x2.18", bb_multiplier(BbModeReflex, 2, 2) == 21750, "");
+
+    /* the arithmetic stays in 32 bits, so the worst case has to fit */
+    {
+        uint32_t worst_base = 50u * 255u; /* the biggest round bonus there is */
+        uint32_t worst_mult = bb_multiplier(BbModeClassic, 3, 2);
+        sprintf(msg, "%lu x %lu", (unsigned long)worst_base, (unsigned long)worst_mult);
+        check("the largest award times the largest multiplier still fits",
+              worst_base < 0xFFFFFFFFu / worst_mult, msg);
+        check("and comes out right", bb_apply_mult(worst_base, worst_mult) == 110925, "");
+    }
+
+    /* no two settings may share a label, or the dials lie */
+    {
+        char seen[BB_DIFF_COUNT * BB_SPEED_COUNT][16];
+        int n = 0, clash = 0;
+        for(uint8_t d = 0; d < BB_DIFF_COUNT; d++)
+            for(uint8_t s = 0; s < BB_SPEED_COUNT; s++) {
+                uint32_t m = bb_multiplier(BbModeClassic, d, s);
+                uint32_t h = (m + 50u) / 100u;
+                sprintf(seen[n], "x%lu.%02lu", (unsigned long)(h / 100u), (unsigned long)(h % 100u));
+                for(int i = 0; i < n; i++)
+                    if(strcmp(seen[i], seen[n]) == 0) clash++;
+                n++;
+            }
+        sprintf(msg, "%d labels, %d clashes", n, clash);
+        check("every time and speed pair reads as a different multiplier", clash == 0, msg);
+    }
 
     /* ---- reflex hit values ---- */
     check("a hit at the start is worth 10", bb_rx_hit_value(1000) == 10, "");

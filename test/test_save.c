@@ -18,7 +18,7 @@ static void check(const char* name, int ok, const char* extra) {
 /* Fill every record store with something distinguishable. */
 static void populate(BeepbackApp* app) {
     bb_app_init(app);
-    app->set.volume = 4;
+    app->set.volume = BB_VOL_COUNT - 1;
     app->set.assist = BbAssistArrows;
     app->set.diff = 3;
     app->set.speed = 0;

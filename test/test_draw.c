@@ -203,7 +203,7 @@ int main(void) {
     app.seed = 3;
     bb_run_start(&app, BbModeClassic);
     app.run.score = 1234;
-    app.run.mult = 155;
+    app.run.mult = 15500;
     app.run.record = true;
     bb_go(&app, BbSceneOver);
     app.now += BB_OVER_LOCK;
@@ -284,7 +284,7 @@ int main(void) {
         app.seed = 4;
         bb_run_start(&app, BbModeClassic);
         app.run.score = 1240;
-        app.run.mult = 155;
+        app.run.mult = 15500;
         app.run.longest = 7;
         app.run.prev_best = 980;
         bb_go(&app, BbSceneOver);
@@ -352,6 +352,9 @@ int main(void) {
         sprintf(msg, "%d of 5 rows", rows);
         check("settings shows all five rows at once", rows == 5, msg);
         check("with the volume named, not numbered", fc_saw("MID") && !fc_saw("2"), "");
+        app.set.volume = BB_VOL_COUNT - 1;
+        frame(&app);
+        check("and the loudest step is HIGH, not a fifth level", fc_saw("HIGH"), "");
         app.set.volume = 0;
         app.set.assist = BbAssistOff;
         frame(&app);

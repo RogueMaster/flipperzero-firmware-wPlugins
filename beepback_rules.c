@@ -26,17 +26,27 @@ const uint16_t bb_speed_gap[BB_SPEED_COUNT] = {180, 110, 75};
 /* Score maths                                                         */
 /* ------------------------------------------------------------------ */
 
-uint16_t bb_multiplier(BbMode mode, uint8_t diff, uint8_t speed) {
+uint32_t bb_multiplier(BbMode mode, uint8_t diff, uint8_t speed) {
     if(diff >= BB_DIFF_COUNT) diff = 1;
     if(speed >= BB_SPEED_COUNT) speed = 1;
     const uint16_t* table = (mode == BbModeReflex) ? bb_mult_time_rx : bb_mult_time;
-    /* two hundredths multiplied together make ten-thousandths */
-    return (uint16_t)((uint32_t)table[diff] * bb_mult_speed[speed] / 100);
+    /* Two hundredths multiplied together make ten-thousandths, and that
+       is where the product stays. Folding it back to hundredths here
+       threw away the .75 of 155 x 145 = 22475, which is a scoring
+       difference and not a rounding one. */
+    return (uint32_t)table[diff] * bb_mult_speed[speed];
 }
 
-uint32_t bb_apply_mult(uint32_t base, uint16_t mult) {
-    /* +50 so it rounds to nearest, matching Math.round in the browser */
-    return (base * (uint32_t)mult + 50) / 100;
+uint32_t bb_apply_mult(uint32_t base, uint32_t mult) {
+    /* +5000 so it rounds to nearest, matching Math.round in the browser.
+     *
+     * 32-bit throughout, deliberately: a 64-bit divide on a Cortex-M4
+     * is a call to __aeabi_uldivmod, and a .fap may only call what the
+     * firmware exports. It is exact here because the product cannot
+     * overflow. The largest award this is ever handed is a round bonus
+     * of 50 x 255, and the largest multiplier is 600 x 145 = 87000, so
+     * the worst case is 12750 x 87000, a quarter of what fits. */
+    return (base * mult + 5000u) / 10000u;
 }
 
 uint32_t bb_rx_hit_value(uint16_t window_ms) {

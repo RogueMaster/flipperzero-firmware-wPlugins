@@ -152,10 +152,14 @@ extern const uint16_t bb_rx_gap[BB_SPEED_COUNT]; /* wait between cues */
 extern const uint16_t bb_speed_tone[BB_SPEED_COUNT];
 extern const uint16_t bb_speed_gap[BB_SPEED_COUNT];
 
-/* multiplier in hundredths, so 155 means x1.55 */
-uint16_t bb_multiplier(BbMode mode, uint8_t diff, uint8_t speed);
-/* value * mult / 100, rounded the same way the browser build rounds */
-uint32_t bb_apply_mult(uint32_t base, uint16_t mult);
+/* The multiplier is the product of two hundredths, so it comes back in
+   ten-thousandths: 22475 means x2.25. Keeping the product whole rather
+   than folding it back to hundredths is what stops 155 x 145 losing its
+   .75 to truncation, and 600 x 145 is 87000, which is why it is not a
+   uint16_t. */
+uint32_t bb_multiplier(BbMode mode, uint8_t diff, uint8_t speed);
+/* value * mult / 10000, rounded the way the browser's Math.round rounds */
+uint32_t bb_apply_mult(uint32_t base, uint32_t mult);
 /* points for one reflex hit at the given window */
 uint32_t bb_rx_hit_value(uint16_t window_ms);
 /* response window including the rule allowance */
@@ -268,7 +272,7 @@ typedef enum {
 /* Stored state                                                        */
 /* ------------------------------------------------------------------ */
 
-#define BB_VOL_COUNT 5 /* 0..4, and 0 means silent */
+#define BB_VOL_COUNT 4 /* OFF, LOW, MID, HIGH */
 
 typedef struct {
     uint8_t volume; /* 0..BB_VOL_COUNT-1 */
@@ -317,7 +321,7 @@ typedef struct {
     uint8_t diff;
     uint8_t speed;
     uint8_t assist; /* captured, so settings cannot move a live run */
-    uint16_t mult; /* captured once, in hundredths */
+    uint32_t mult; /* captured once, in ten-thousandths */
     BbRule rule;
     uint8_t ra; /* the button the rule talks about */
     uint8_t rb; /* and the one it becomes, for X IS Y */
@@ -475,8 +479,8 @@ extern const char* const bb_volume_name[BB_VOL_COUNT];
    either `out`, or a constant where the rule names no buttons, so the
    common cases copy nothing. */
 const char* bb_rule_line(BbRule rule, uint8_t a, uint8_t b, char* out, size_t n);
-/* "x1.55", from a multiplier in hundredths */
-void bb_mult_str(uint16_t mult, char* out, size_t n);
+/* "X2.25", from a multiplier in ten-thousandths */
+void bb_mult_str(uint32_t mult, char* out, size_t n);
 /* every screen, all 128x64 of it */
 void bb_draw(Canvas* canvas, BeepbackApp* app);
 

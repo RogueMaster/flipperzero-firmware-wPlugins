@@ -5,6 +5,15 @@
  * against the other by running tests, because a test can only say a
  * layout is in bounds, never that it is the agreed layout. A trace can:
  * dump both builds in this format and diff them.
+ *
+ * One thing a cross-build diff will always show, and it is not a bug.
+ * Anything centred from a measured string can land a pixel or two off
+ * between the two traces, because the width table below only
+ * approximates the device font and the browser has its own metrics. The
+ * pause screen's rule chip is the clearest case: it measures with
+ * canvas_string_width and centres the result, so it self-corrects on
+ * whatever font it actually renders in. Compare the shape of a trace,
+ * not the last pixel of a centred x.
  */
 #pragma once
 #include <stdio.h>

@@ -110,7 +110,7 @@ int main(void) {
 
     /* the same round with a multiplier, to catch a flat award slipping in */
     start(&app, BbModeClassic, 2, 1, BbAssistShapes); /* HARD, x1.55 */
-    check("hard on normal is x1.55", app.run.mult == 155, "");
+    check("hard on normal is x1.55", app.run.mult == 15500, "");
     for(int stage = 0; stage < BB_START_LEN; stage++) {
         if(!wait_input(&app)) break;
         play_stage(&app);
@@ -338,7 +338,7 @@ int main(void) {
     uint32_t earned = app.run.score;
     app.set.diff = 3; /* the player fiddles with settings from the pause screen */
     app.set.speed = 2;
-    check("the captured multiplier does not move", app.run.mult == 100, "");
+    check("the captured multiplier does not move", app.run.mult == 10000, "");
     wait_input(&app);
     play_stage(&app);
     wait_phase_change(&app, BbPhaseHold);
