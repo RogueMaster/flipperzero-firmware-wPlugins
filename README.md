@@ -9,6 +9,7 @@ FlipCrypt is a Flipper Zero app that provides a collection of classic cipher alg
 - Atbash
 - Baconian
 - Beaufort
+- Bifid
 - Caesar
 - Playfair
 - Polybius Square
