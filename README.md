@@ -18,6 +18,7 @@ FlipCrypt is a Flipper Zero app that provides a collection of classic cipher alg
 - RC4
 - ROT-13
 - Scytale
+- Trifid
 - Vigenère
 
 ## Hashing Algorithms
