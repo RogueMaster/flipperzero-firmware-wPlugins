@@ -10,6 +10,7 @@ typedef enum {
     ExportCsv,
     ExportJson,
     ExportBackup,
+    ExportRestore,
     ExportClear,
 } ExportIndex;
 
@@ -52,6 +53,8 @@ static void timeclock_scene_export_show_menu(TimeClock* app) {
         submenu, tc_str(StrExportJson), ExportJson, timeclock_scene_export_submenu_callback, app);
     submenu_add_item(
         submenu, tc_str(StrBackup), ExportBackup, timeclock_scene_export_submenu_callback, app);
+    submenu_add_item(
+        submenu, tc_str(StrRestore), ExportRestore, timeclock_scene_export_submenu_callback, app);
     submenu_add_item(
         submenu, tc_str(StrClearHistory), ExportClear, timeclock_scene_export_submenu_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewSubmenu);
@@ -112,6 +115,9 @@ bool timeclock_scene_export_on_event(void* context, SceneManagerEvent event) {
                 snprintf(export_msg, sizeof(export_msg), "%s", tc_str(StrNothingExport));
                 timeclock_scene_export_show_popup(app, tc_str(StrExportJson));
             }
+            break;
+        case ExportRestore:
+            scene_manager_next_scene(app->scene_manager, TimeClockSceneRestore);
             break;
         case ExportClear: {
             // Ask for confirmation with a Yes/No widget.

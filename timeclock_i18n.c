@@ -156,6 +156,18 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrBackup] = {"Backup", "Backup", "Copia seg.", "Sauvegarde", "Backup"},
     [StrBackupDone] =
         {"Backup saved", "Backup salvato", "Copia guardada", "Sauvegarde OK", "Backup fertig"},
+    [StrRestore] =
+        {"Restore", "Ripristina", "Restaurar", "Restaurer", "Wiederherstellen"},
+    [StrRestoreDone] =
+        {"Restored", "Ripristinato", "Restaurado", "Restaure", "Wiederhergestellt"},
+    [StrNoBackups] =
+        {"No backups", "Nessun backup", "Sin copias", "Aucune sauvegarde", "Keine Backups"},
+    [StrRestoreConfirm] =
+        {"Restore this backup?\nReplaces current data.",
+         "Ripristinare?\nSostituisce i dati.",
+         "Restaurar?\nReemplaza los datos.",
+         "Restaurer?\nRemplace les donnees.",
+         "Wiederherstellen?\nErsetzt die Daten."},
     // ---- Settings (label words; value appended with a literal format) ----
     [StrReader] = {"Reader", "Lettore", "Lector", "Lecteur", "Leser"},
     [StrSound] = {"Sound", "Suono", "Sonido", "Son", "Ton"},

@@ -86,6 +86,10 @@ typedef enum {
     StrNothingExport,
     StrBackup,
     StrBackupDone,
+    StrRestore,
+    StrRestoreDone,
+    StrNoBackups,
+    StrRestoreConfirm,
     // Settings
     StrReader,
     StrSound,

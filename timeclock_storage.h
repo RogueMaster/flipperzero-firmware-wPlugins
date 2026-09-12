@@ -141,3 +141,11 @@ bool tc_export_csv_dated(char* out_name, size_t out_size);
 // Copy badges.csv and punches.csv into a timestamped backup under backup/.
 // out receives a short label. Returns true if at least one file was copied.
 bool tc_backup_all(char* out, size_t out_size);
+
+// List backup timestamps (from backup/badges-<ts>.csv) into out[][24], newest
+// first not guaranteed. Returns the number found (up to max).
+size_t tc_backup_list(char out[][24], size_t max);
+
+// Restore badges + punches from the backup with the given timestamp. Returns
+// true if at least one file was restored.
+bool tc_backup_restore(const char* stamp);

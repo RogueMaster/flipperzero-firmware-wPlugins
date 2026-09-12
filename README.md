@@ -59,7 +59,8 @@ Flipper-style mockups of the main screens (128x64):
   Badges), a **Today** summary (first in, last out, worked total and break time)
   and a **This week** summary (worked time per day + weekly total).
 - **Storage on microSD** as plain CSV, plus **JSON export**, **dated CSV
-  snapshots** and a **Backup** (timestamped copy of badges + punches).
+  snapshots**, a **Backup** (timestamped copy of badges + punches) and
+  **Restore** (reload badges + punches from a saved backup).
 - **Protected mode (PIN)**: optional 4-step **arrow-sequence** code (Up / Down /
   Left / Right - fast to enter) that gates leaving the app; you are offered to
   set it on first launch, or later in Settings.
@@ -186,7 +187,7 @@ timeclock/
 ## Roadmap
 
 - **v1.1 / v1.2** - weekly summary, break calculation and history filters (done).
-- **v2.0** - Bluetooth sync, companion app, backup, advanced badge management.
+- **v2.0** - backup & restore (done); next: Bluetooth sync, companion app, import.
 
 ## Contributing
 

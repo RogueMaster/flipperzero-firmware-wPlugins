@@ -543,3 +543,46 @@ bool tc_backup_all(char* out, size_t out_size) {
     if(out) snprintf(out, out_size, "backup/%s", ts);
     return be == FSE_OK || pe == FSE_OK;
 }
+
+size_t tc_backup_list(char out[][24], size_t max) {
+    size_t count = 0;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* dir = storage_file_alloc(storage);
+    if(storage_dir_open(dir, TC_DIR_PATH "/backup")) {
+        FileInfo info;
+        char name[128];
+        while(count < max && storage_dir_read(dir, &info, name, sizeof(name))) {
+            if(info.flags & FSF_DIRECTORY) continue;
+            // Match "badges-<ts>.csv" and extract <ts>.
+            if(strncmp(name, "badges-", 7) != 0) continue;
+            const char* start = name + 7;
+            const char* dot = strstr(start, ".csv");
+            if(!dot) continue;
+            size_t len = (size_t)(dot - start);
+            if(len == 0 || len >= 24) continue;
+            memcpy(out[count], start, len);
+            out[count][len] = '\0';
+            count++;
+        }
+        storage_dir_close(dir);
+    }
+    storage_file_free(dir);
+    furi_record_close(RECORD_STORAGE);
+    return count;
+}
+
+bool tc_backup_restore(const char* stamp) {
+    char bpath[160];
+    char ppath[160];
+    snprintf(bpath, sizeof(bpath), "%s/backup/badges-%s.csv", TC_DIR_PATH, stamp);
+    snprintf(ppath, sizeof(ppath), "%s/backup/punches-%s.csv", TC_DIR_PATH, stamp);
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_common_remove(storage, TC_BADGES_PATH);
+    FS_Error be = storage_common_copy(storage, bpath, TC_BADGES_PATH);
+    storage_common_remove(storage, TC_HISTORY_PATH);
+    FS_Error pe = storage_common_copy(storage, ppath, TC_HISTORY_PATH);
+    furi_record_close(RECORD_STORAGE);
+
+    return be == FSE_OK || pe == FSE_OK;
+}
