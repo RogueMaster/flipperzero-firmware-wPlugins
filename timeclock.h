@@ -106,6 +106,7 @@ typedef struct {
     char scanned_tech[TC_TECH_MAX];
     int found_index; // index of the recognized badge, -1 if none
     int selected_index; // badge selected from the list
+    int replace_index; // collaborator whose chip is being reassigned, -1 if none
 
     // Name input buffer
     char name_buf[TC_NAME_MAX];

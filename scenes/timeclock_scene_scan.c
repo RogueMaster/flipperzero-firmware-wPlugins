@@ -151,17 +151,23 @@ void timeclock_scene_scan_on_enter(void* context) {
     ctx->app = app;
     scene_manager_set_scene_state(app->scene_manager, TimeClockSceneScan, (uint32_t)(uintptr_t)ctx);
 
+    bool replacing = app->replace_index >= 0;
     Popup* popup = app->popup;
     popup_reset(popup);
     popup_set_header(
         popup,
-        app->config.use_lf ? "Reading RFID" : "Reading NFC",
+        replacing ? "New chip" : (app->config.use_lf ? "Reading RFID" : "Reading NFC"),
         64,
         10,
         AlignCenter,
         AlignTop);
     popup_set_text(
-        popup, "Hold the badge\nnear the Flipper", 64, 34, AlignCenter, AlignTop);
+        popup,
+        replacing ? "Tap the new chip\nfor this person" : "Hold the badge\nnear the Flipper",
+        64,
+        34,
+        AlignCenter,
+        AlignTop);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewPopup);
 
     if(app->config.use_lf) {
@@ -174,6 +180,30 @@ void timeclock_scene_scan_on_enter(void* context) {
 bool timeclock_scene_scan_on_event(void* context, SceneManagerEvent event) {
     TimeClock* app = context;
     bool consumed = false;
+
+    // Replace-chip mode: a scanned chip is reassigned to the selected
+    // collaborator (keeping their name and history) instead of punching.
+    if(event.type == SceneManagerEventTypeCustom && app->replace_index >= 0 &&
+       (event.event == TimeClockCustomEventBadgeFound ||
+        event.event == TimeClockCustomEventBadgeUnknown)) {
+        int tgt = app->replace_index;
+        if(app->found_index >= 0 && app->found_index != tgt) {
+            // The chip already belongs to another collaborator: refuse.
+            timeclock_notify_error(app);
+        } else {
+            Badge* b = &app->badges[tgt];
+            strncpy(b->uid, app->scanned_uid, TC_UID_STR_MAX - 1);
+            b->uid[TC_UID_STR_MAX - 1] = '\0';
+            strncpy(b->tech, app->scanned_tech, TC_TECH_MAX - 1);
+            b->tech[TC_TECH_MAX - 1] = '\0';
+            tc_badges_save(app->badges, app->badge_count);
+            timeclock_notify_success(app);
+        }
+        app->replace_index = -1;
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, TimeClockSceneBadgeDetail);
+        return true;
+    }
 
     if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {
@@ -209,5 +239,7 @@ void timeclock_scene_scan_on_exit(void* context) {
         free(ctx);
         scene_manager_set_scene_state(app->scene_manager, TimeClockSceneScan, 0);
     }
+    // Abort any pending chip replacement if the user left without scanning.
+    app->replace_index = -1;
     popup_reset(app->popup);
 }

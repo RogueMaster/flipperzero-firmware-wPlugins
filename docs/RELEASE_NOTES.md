@@ -26,4 +26,6 @@ then open **Apps -> Tools -> Time Clock**.
   automatic IN/OUT.
 - **History** and **daily totals**; **CSV** and **JSON** export.
 - **PIN-protected** exit so collaborators cannot leave or tamper with the app.
+- Each collaborator is bound to their chip; if a chip is lost, reassign a new one
+  from **Badges -> (person) -> Replace chip** (name and history are kept).
 - Data is saved to the microSD on every punch - nothing is lost.

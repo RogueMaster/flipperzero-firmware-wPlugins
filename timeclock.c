@@ -71,6 +71,7 @@ static TimeClock* timeclock_app_alloc(void) {
 
     app->found_index = -1;
     app->selected_index = -1;
+    app->replace_index = -1;
 
     app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);

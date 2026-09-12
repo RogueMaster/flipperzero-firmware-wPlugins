@@ -44,9 +44,11 @@ Flipper-style mockups of the main screens (128x64):
 - **Reader choice** in Settings: **NFC** (13.56 MHz) or **LF RFID** (125 kHz).
   The reader auto-detects whatever protocols the Flipper firmware supports.
 - **Register a collaborator** the first time their blank badge is tapped, with a
-  custom name.
-- **Manage collaborators (badges)**: rename, view per-person history, delete
-  (history is kept).
+  custom name. Each person is bound to that specific chip (its UID): every punch
+  references that chip.
+- **Manage collaborators (badges)**: rename, **replace the chip** if it is lost
+  (keeps the person's name and history, only the chip changes), view per-person
+  history, delete (history is kept).
 - **Manual or automatic** IN/OUT - auto mode preselects the opposite of the last
   punch, and you can still correct it.
 - **History** and a **Today** summary (first in, last out, total worked time).
@@ -54,6 +56,14 @@ Flipper-style mockups of the main screens (128x64):
 - **Protected mode (PIN)**: optional 4-digit PIN that gates leaving the app.
 
 See [ROADMAP](#roadmap) for v1.1 / v2.0 ideas.
+
+### One chip per person (and losing a chip)
+
+Each collaborator is identified by their chip's **UID**, so assign one chip per
+person and keep it as their reference - all of their punches point to that chip.
+If someone **loses their chip**, open **Badges -> (person) -> Replace chip** and
+tap a new blank chip: their name and past punches are kept, only the reference
+chip is updated.
 
 ## Data files
 

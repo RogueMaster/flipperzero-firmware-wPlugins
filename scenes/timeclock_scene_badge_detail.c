@@ -8,6 +8,7 @@
 typedef enum {
     DetailUse,
     DetailRename,
+    DetailReplace,
     DetailHistory,
     DetailDelete,
 } DetailIndex;
@@ -32,6 +33,8 @@ void timeclock_scene_badge_detail_on_enter(void* context) {
     submenu_add_item(
         submenu, "Rename", DetailRename, timeclock_scene_badge_detail_submenu_callback, app);
     submenu_add_item(
+        submenu, "Replace chip", DetailReplace, timeclock_scene_badge_detail_submenu_callback, app);
+    submenu_add_item(
         submenu, "View history", DetailHistory, timeclock_scene_badge_detail_submenu_callback, app);
     submenu_add_item(
         submenu, "Delete badge", DetailDelete, timeclock_scene_badge_detail_submenu_callback, app);
@@ -55,6 +58,11 @@ bool timeclock_scene_badge_detail_on_event(void* context, SceneManagerEvent even
             // 1 = rename in the name-input scene.
             scene_manager_set_scene_state(app->scene_manager, TimeClockSceneNameInput, 1);
             scene_manager_next_scene(app->scene_manager, TimeClockSceneNameInput);
+            break;
+        case DetailReplace:
+            // Bind a new chip to this collaborator (keeps name and history).
+            app->replace_index = app->selected_index;
+            scene_manager_next_scene(app->scene_manager, TimeClockSceneScan);
             break;
         case DetailHistory:
             // 1 = filter the history by the selected badge.

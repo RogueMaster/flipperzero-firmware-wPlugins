@@ -69,6 +69,7 @@ bool timeclock_scene_pin_unlock_on_event(void* context, SceneManagerEvent event)
             }
             timeclock_scene_pin_unlock_setup(app, unlock_msg);
         }
+        memset(code, 0, sizeof(code));
     } else if(event.type == SceneManagerEventTypeBack) {
         // Block leaving the app from the unlock screen.
         consumed = true;

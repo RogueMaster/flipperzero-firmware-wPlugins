@@ -56,6 +56,8 @@ static void timeclock_scene_pin_finalize_enable(TimeClock* app) {
     app->config.pin_enabled = true;
     app->config.attempts = 0;
     tc_config_save(&app->config);
+    // The plaintext PIN is no longer needed: wipe it from RAM.
+    memset(app->pin_new, 0, sizeof(app->pin_new));
 }
 
 void timeclock_scene_pin_set_on_enter(void* context) {
@@ -89,6 +91,7 @@ bool timeclock_scene_pin_set_on_event(void* context, SceneManagerEvent event) {
                 scene_manager_previous_scene(app->scene_manager);
             } else {
                 timeclock_notify_error(app);
+                memset(app->pin_new, 0, sizeof(app->pin_new));
                 app->pin_mode = TcPinModeSetNew;
                 timeclock_scene_pin_set_setup(app, "Mismatch, retry");
             }
@@ -169,6 +172,9 @@ bool timeclock_scene_pin_set_on_event(void* context, SceneManagerEvent event) {
         default:
             break;
         }
+
+        // Do not keep the entered digits in RAM longer than needed.
+        memset(code, 0, sizeof(code));
     }
 
     return consumed;
