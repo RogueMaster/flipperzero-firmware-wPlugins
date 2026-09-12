@@ -127,6 +127,13 @@ const PRAISE = ["LET'S GO!","NICE!","PERFECT!","GOOD!","CLEAN!","YOU GOT IT!","S
 const VOL_NAME = ["OFF","LOW","MID","HIGH"];
 const VOL_GAIN = [0, 0.05, 0.10, 0.18];
 const SPEED_NAME = ["SLOW","NORMAL","FAST"];
+/* Four characters, for the rows and cells that carry a number as well:
+   NORMAL plus a millisecond count is wider than the row it sits in. */
+const DIFF_SHORT  = ["EASY","NORM","HARD","INSN"];
+const SPEED_SHORT = ["SLOW","NORM","FAST"];
+const RESET_ROWS  = ["RECORDS","STATS","TUTORIAL","EVERYTHING"];
+/* a reset asks once and listens for a second */
+const CONFIRM_MS  = 1000;
 const SPEED_SET = [[290,180],[220,110],[160,75]];
 const MODE_NAME = ["CLASSIC","RULES","REFLEX","CHALLENGE","DAILY"];
 /* Every rule is a transform from what plays to what you press, so the
@@ -170,8 +177,9 @@ function todaySeed(){
   return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
 }
 let rng = Math.random;   /* swapped for a seeded one during the daily */
-const ASSIST_NAME = ["OFF","LED","SHAPES","ARROWS"];
-const MODE_LABEL  = ["EARS","LED","SHAPES","ARROWS"];
+/* EARS, not OFF: you are not switching the assist off, you are choosing
+   to play by ear. The records screens have always called it that. */
+const ASSIST_NAME = ["EARS","LED","SHAPES","ARROWS"];
 /* the led ladder follows the pitch ladder, low tone = long wavelength */
 const LED_BTN   = ["#b45cff","#ff3b30","#ffd23f","#3d9bff","#3fd65a"]; /* UP DOWN LEFT RIGHT OK */
 const LED_NAME  = ["VIOLET","RED","YELLOW","BLUE","GREEN"];
@@ -203,7 +211,6 @@ const RX_START  = 1000;
 const RX_SHRINK = [4, 6, 9, 14];
 /* points per hit rise with the square of how tight it has got, so getting
    deeper is worth much more than lasting longer */
-const rxHitValue = w => Math.round(10 * Math.pow(RX_START / w, 2));
 /* speed is the wait before the next cue, nothing to do with the window */
 const RX_GAP = [900, 650, 420];
 /* classic and rules key their scores by playback speed; reflex has no
@@ -218,26 +225,65 @@ const RX_GAP = [900, 650, 420];
    firmware cannot carry a float, so neither does this: a product of two
    hundredths is ten-thousandths, and 1.55 x 1.45 is exactly 22475 rather
    than a binary approximation of 2.2475. */
-const MULT_TIME  = [70, 100, 155, 600];
-/* reflex pays in proportion to how fast the ramp steepens */
-const MULT_TIME_RX = [70, 100, 150, 230];
-const MULT_SPEED = [75, 100, 145];
-/* ten-thousandths: 22475 means x2.2475 */
-const multiplier = () => (S.mode===2 ? MULT_TIME_RX : MULT_TIME)[S.diff] * MULT_SPEED[SET.speed];
-/* base * mult, rounded to nearest, with no float anywhere */
-const applyMult = (base, mult) => Math.round(base * mult / 10000);
-/* Two decimals: at one, x1.55 and x1.45 both print as "x1.5" and two
-   different settings look identical on the setup footer. */
-/* two decimals, rounded from ten-thousandths the way the firmware does it */
-const multText = m => { const h = Math.round(m/100); return "x" + (h/100).toFixed(2); };
+/* Ten points a note, a hundred for clearing a round, and nothing else.
+   There is no multiplier: TIME and SPEED change how hard a run is, not
+   what it pays, so the number on screen is always one you could have
+   worked out yourself. Records are clamped to SCORE_MAX on the way in,
+   which is what lets a table be laid out for a width that is always
+   enough. */
+const NOTE_POINTS = 10;
+const ROUND_BONUS = 100;
+const SCORE_MAX   = 99999;
+const clamp = (v,lo,hi) => v < lo ? lo : v > hi ? hi : v;
+const clampScore = v => Math.min(SCORE_MAX, Math.max(0, v|0));
 /* One window for the whole sequence, the same however long it is. */
 const windowMs = () => diffMs()[S.diff] + (S.mode===1 || isChallenge() ? T.ruleBonus : 0);
 const secs = ms => (ms%1000 ? (ms/1000).toFixed(1) : String(ms/1000)) + "S";
 
 /* assist: 0 off, 1 led, 2 shapes, 3 arrows. Shapes are the default. */
-const SET = { volume:2, assist:2, speed:1 };
+const SET = { volume:2, assist:2, speed:1, haptic:false };
+
+/* The browser build kept nothing between visits, which makes a records
+   table and a stats page pointless. Version the blob so a layout change
+   discards an old one rather than misreading it, the way the firmware's
+   save file does. */
+/* the guide opens itself once and never again, on either build */
+let firstRun = true;
+const SAVE_KEY = "beepback.save.v7";
+function save(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      set:SET, diff:S.diff, best:S.best, chBest:S.chBest,
+      daily:S.daily, stats:S.stats, tutorialDone:!firstRun
+    }));
+  }catch(e){ /* private window, or storage full: play on without it */ }
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(d.set){
+      SET.volume = clamp(d.set.volume|0, 0, 3);
+      SET.assist = clamp(d.set.assist|0, 0, 3);
+      SET.speed  = clamp(d.set.speed|0, 0, 2);
+      SET.haptic = !!d.set.haptic;
+      T.toneMs = SPEED_SET[SET.speed][0]; T.gapMs = SPEED_SET[SET.speed][1];
+    }
+    if(Number.isInteger(d.diff)) S.diff = clamp(d.diff, 0, 3);
+    if(d.best)   S.best   = d.best.map(m => m.map(t => t.map(sp => sp.map(clampScore))));
+    if(d.chBest) S.chBest = d.chBest.map(r => r.map(clampScore));
+    if(d.daily)  S.daily  = d.daily;
+    if(d.stats)  S.stats  = Object.assign(emptyStats(), d.stats);
+    if(d.tutorialDone) firstRun = false;
+  }catch(e){ /* anything unreadable leaves the defaults standing */ }
+}
 const audioOn  = () => SET.volume > 0;
-const assist   = () => (SET.volume === 0 && SET.assist === 0) ? 2 : SET.assist;
+/* The assist you chose, always. Silence with no cues used to be quietly
+   turned into SHAPES, which meant the row did not say what the game
+   would do; you are warned on the way out of SETTINGS instead. */
+const assist   = () => SET.assist;
+const noCue    = () => SET.volume === 0 && SET.assist === 0;
 const ledMode  = () => assist() === 1;
 const shapesOn = () => assist() === 2;
 const arrowsOn = () => assist() === 3;
@@ -398,7 +444,27 @@ function armAudio(){
     if(actx.state === "suspended") actx.resume();
   }catch(e){ /* no audio available, carry on silently */ }
 }
+/* Web Audio schedules a whole jingle ahead of the clock, so pausing has
+   to reach back and stop what was already queued - on the Flipper a note
+   is silenced by the tune failing to advance, and a paused tune does not
+   advance. Same outcome, different machinery. */
+let live = [], buzzTimers = [];
+function hushAudio(){
+  for(const o of live){ try{ o.stop(); }catch(e){} }
+  live = [];
+  for(const t of buzzTimers) clearTimeout(t);
+  buzzTimers = [];
+  hush();
+}
 function playNotes(notes){
+  /* The pattern reaches the hand whether or not it reaches the ear: the
+     motor is traced from the same note list, and silence changes the
+     speaker rather than the clock. */
+  let at = 0;
+  for(const n of notes){
+    if(n.f > 0) buzzTimers.push(window.setTimeout(() => buzzFor(n.ms), at));
+    at += n.ms;
+  }
   if(!audioOn()) return;
   if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
   if(actx.state === "suspended") actx.resume();
@@ -415,6 +481,8 @@ function playNotes(notes){
       g.gain.linearRampToValueAtTime(0, t+dur);
       osc.connect(g).connect(actx.destination);
       osc.start(t); osc.stop(t+dur+0.02);
+      live.push(osc);
+      osc.onended = () => { const i = live.indexOf(osc); if(i>=0) live.splice(i,1); };
     }
     t += dur;
   }
@@ -425,6 +493,23 @@ const tone = (f,ms) => playNotes([{f:f,ms:ms}]);
 const ledEl = document.getElementById("led");
 let ledColor = null, ledUntil = 0;
 function ledFlash(color, ms){ ledColor = color; ledUntil = now + ms; }
+
+/* The motor traces the notes: one pulse a note, as long as the note is,
+   less a gap so two notes running are two taps and not one buzz, and
+   capped because past this it is felt as on rather than as a beat. A
+   rest gets nothing, which is what makes a rhythm a rhythm. On the
+   Flipper this is the vibro motor; here it is navigator.vibrate, which
+   phones have and most desktops quietly ignore. */
+const BUZZ_GAP = 25, BUZZ_MAX = 110, BUZZ_MIN = 25, BUZZ_HELLO = 180;
+/* Phones have a motor and most desktops do not. Where there is none the
+   row says so rather than offering a setting that does nothing. */
+const canBuzz = () => typeof navigator !== "undefined" && !!navigator.vibrate;
+function buzzFor(ms){
+  if(!SET.haptic || !navigator.vibrate) return;
+  navigator.vibrate(Math.max(BUZZ_MIN, Math.min(BUZZ_MAX, ms - BUZZ_GAP)));
+}
+function buzz(){ if(SET.haptic && navigator.vibrate) navigator.vibrate(BUZZ_HELLO); }
+function hush(){ if(navigator.vibrate) navigator.vibrate(0); }
 function ledRender(){
   if(!ledEl) return;
   const on = now < ledUntil && ledColor;
@@ -438,15 +523,31 @@ const LED_GREEN = "#4ade5b", LED_RED = "#ff4a3d", LED_BLUE = "#4aa8ff";
 /* ---------------------------------------------------------------- */
 const emptyBest = () => [0,1,2].map(()=>[0,1,2,3].map(()=>[0,1,2].map(()=>[0,0,0,0])));
 /* the headline board is your best in that mode and assist, whatever you set */
-function bestFor(mode, assist){
-  let m = 0;
-  if(mode===4) return S.daily.best[assist];
-  if(mode===3){
-    for(let r=0;r<RULES.length;r++) m = Math.max(m, S.chBest[r][assist]);
-    return m;
-  }
-  for(let t=0;t<4;t++) for(let sp=0;sp<3;sp++) m = Math.max(m, S.best[mode][t][sp][assist]);
-  return m;
+/* The one record a finished run competes for. NEW BEST is measured
+   against this and nothing else. It used to be judged against the best
+   across every time and speed, which meant a good INSANE run was
+   silently held up against an easy EASY one and almost never won. */
+function slotBest(){
+  if(S.runGameMode===4) return S.daily.best[S.runMode];
+  if(S.runGameMode===3) return S.chBest[S.chRule][S.runMode];
+  return S.best[S.runGameMode][S.runDiff][S.runSpeed][S.runMode];
+}
+function slotStore(v){
+  if(S.runGameMode===4) S.daily.best[S.runMode] = v;
+  else if(S.runGameMode===3) S.chBest[S.chRule][S.runMode] = v;
+  else S.best[S.runGameMode][S.runDiff][S.runSpeed][S.runMode] = v;
+}
+
+/* what you have done, as opposed to how well; reset separately on purpose */
+function emptyStats(){
+  return {playMs:0, runs:0, notes:0, rounds:0, bestEver:0, longest:0,
+          byMode:[0,0,0,0,0], byAssist:[0,0,0,0]};
+}
+/* the entry with the most runs, or -1 while nothing has been played */
+function favourite(counts){
+  let best = -1, high = 0;
+  counts.forEach((c,i) => { if(c > high){ high = c; best = i; } });
+  return best;
 }
 
 const S = {
@@ -459,12 +560,13 @@ const S = {
   lastPress:-1, pressFlash:0, newBest:false, prevBest:0, runMode:2, ledWarn:0, sweepIdx:-1,
   scoreSpeed:1, runSpeed:1, goPage:0,
   mode:0, runGameMode:0, modeIdx:0, setupIdx:2, resetIdx:0, scoreMode:0,
-  rxHits:0, rxWindow:700, rxCue:0, rxAt:0, rxFastest:0, runMult:10000, runDiff:1, lockUntil:0,
+  rxHits:0, rxWindow:700, rxCue:0, rxAt:0, rxFastest:0, runDiff:1, lockUntil:0,
   helpIdx:0, helpFrom:"help", ruleSel:0, ruleScroll:0, testFrom:"menu",
   ruleIdx:-1, ruleA:0, ruleB:0, ruleText:"", ruleSegs:[], expected:[],
   /* [mode][speed][assist] - classic/rules x slow/normal/fast x ears/led/shapes/arrows */
-  detRow:0, detMode:0, detTime:1, detSpeed:1, detRule:0,
   chIdx:0, chRule:0, chScroll:0, modePage:0,
+  stats: emptyStats(),
+  confirmUntil:0, confirmRow:0, statScroll:0, tblAssist:0, tblScroll:0,
   daily:{date:0, done:false, best:[0,0,0,0]},
   /* [rule][assist] - challenge keeps a record per rule, so you can see which
      ones you are actually good at */
@@ -475,11 +577,17 @@ const S = {
 };
 let now = 0;
 const expired = t => now >= t;
+/* The four screens that sit side by side, with the menu in the middle of
+   them: what you have done to its left, what you have beaten and who made
+   it to its right. LEFT and RIGHT walk along them, and the arrows at the
+   screen edges are drawn from this same table. */
+const CHAIN = ["stats","menu","scorepick","credits"];
+const STAT_ROWS = 8, STAT_VIS = 5;
 const GAME_SCENES = ["reflexgap","reflexcue","rulecard","listen","playback","go","input","hold","success","roundclear","wrong","retry"];
 
 const TUT_REFLEX = [
   ["One cue at a time.", "Hit the matching button", "before the bar empties."],
-  ["The window shrinks with", "every hit. A miss ends", "the run, and so does BACK."]
+  ["The window shrinks", "with every hit. One", "miss ends the run."]
 ];
 const TUT_RULES = [
   ["Same game as classic,", "but every round hands", "you a rule to obey."],
@@ -600,14 +708,17 @@ function enter(scene){
   }
   if(scene==="hold") S.phase = now + T.toneMs + gapMs();  /* let the last press ring out */
   if(scene==="success"){
-    S.praise = Math.floor(Math.random()*PRAISE.length);
-    S.score += applyMult(10*S.seq.length, S.runMult);
+    /* not the run's generator: the daily must not depend on praise */
+    S.praise = (S.praise + 1 + (Math.floor(now) >> 5)) % PRAISE.length;
+    S.score += NOTE_POINTS * S.expected.length;
+    S.stats.notes += S.expected.length;
     if(S.seq.length > S.runBest) S.runBest = S.seq.length;
     S.phase = now + T.successMs; playNotes(JINGLE.win); ledFlash(LED_GREEN,220);
   }
   if(scene==="roundclear"){
     S.sweepIdx = -1;
-    S.score += applyMult(50*S.round, S.runMult);
+    S.score += ROUND_BONUS;
+    S.stats.rounds++;
     S.phase = now + T.roundMs; playNotes(JINGLE.round); ledFlash(LED_GREEN,600);
   }
   if(scene==="wrong"){
@@ -630,17 +741,13 @@ function enter(scene){
   if(scene==="gameover"){
     S.goPage = 0;
     S.lockUntil = now + T.overLock;   /* a press already in flight must not retry */
-    S.prevBest = bestFor(S.runGameMode, S.runMode);
+    S.prevBest = slotBest();
     S.newBest = S.score > S.prevBest;
-    if(S.runGameMode===4){
-      if(S.score > S.daily.best[S.runMode]) S.daily.best[S.runMode] = S.score;
-      S.daily.done = true;                       /* one a day, and that was it */
-    } else if(S.runGameMode===3){
-      if(S.score > S.chBest[S.chRule][S.runMode]) S.chBest[S.chRule][S.runMode] = S.score;
-    } else {
-      const cell = S.best[S.runGameMode][S.runDiff][S.runSpeed][S.runMode];
-      if(S.score > cell) S.best[S.runGameMode][S.runDiff][S.runSpeed][S.runMode] = S.score;
-    }
+    if(S.newBest) slotStore(clampScore(S.score));
+    if(S.score > S.stats.bestEver) S.stats.bestEver = clampScore(S.score);
+    if(S.runGameMode!==2 && S.runBest > S.stats.longest) S.stats.longest = S.runBest;
+    if(S.runGameMode===4) S.daily.done = true;    /* one a day, and that was it */
+    save();
     playNotes(JINGLE.over); ledFlash(LED_RED,900);
   }
 
@@ -648,9 +755,12 @@ function enter(scene){
   if(scene==="soundtest") S.testBtn = -1;
 }
 function startGame(){
+  S.stats.runs++;
+  S.stats.byMode[S.mode]++;
+  S.stats.byAssist[assist()]++;
   S.lives=3; S.score=0; S.round=1; S.runBest=0; S.newBest=false;
   S.runMode = assist(); S.runSpeed = SET.speed; S.runGameMode = S.mode;
-  S.runMult = multiplier(); S.runDiff = S.diff;
+  S.runDiff = S.diff;
   if(S.mode===2){
     S.rxHits = 0; S.rxFastest = 0;
     S.rxWindow = RX_START;
@@ -758,7 +868,8 @@ function reflexHit(btn){
   const reaction = Math.max(1, Math.round(now - S.rxAt));
   if(!S.rxFastest || reaction < S.rxFastest) S.rxFastest = reaction;
   S.rxHits++;
-  S.score += applyMult(rxHitValue(S.rxWindow), S.runMult);
+  S.score += NOTE_POINTS;   /* a hit pays what a note pays */
+  S.stats.notes++;
   /* no floor: the ramp has to end for everyone, however quick they are */
   S.rxWindow = Math.max(40, S.rxWindow - RX_SHRINK[S.diff]);
   ledFlash(LED_BTN[btn], 90);
@@ -787,12 +898,30 @@ function press(key){
     if(key==="BACK"){ S.paused=false; enter("menu"); }
     return;
   }
+  /* One step along the top row, from the same table the arrows are drawn
+     from, so an arrow can never point at a move that does not happen. */
+  if(key==="LEFT" || key==="RIGHT"){
+    const at = CHAIN.indexOf(S.scene);
+    if(at >= 0){
+      const to = at + (key==="RIGHT" ? 1 : -1);
+      if(to >= 0 && to < CHAIN.length){
+        if(S.scene==="settings"){ /* unreachable, listed for clarity */ }
+        enter(CHAIN[to]);
+        return;
+      }
+      return;
+    }
+  }
   if(key==="BACK"){
     /* leaving the game drops you back in the apps list, which is where the
        Flipper build writes settings and scores to the SD card */
-    if(S.scene==="menu"){ enter("launcher"); return; }
+    if(S.scene==="settings" && noCue()){ enter("nocue"); return; }
+    if(S.scene==="menu"){ save(); enter("launcher"); return; }
+    if(S.scene==="stats"){ enter("menu"); return; }
     if(S.scene==="credits"){ enter("scorepick"); return; }
-    if(S.scene==="scores"){ enter("scorepick"); return; }
+    if(S.scene==="scorepick"){ enter("menu"); return; }
+    if(S.scene==="table"){ enter("scorepick"); return; }
+    if(S.scene==="nocue"){ enter("settings"); return; }
     if(S.scene==="setup"){ enter(S.mode===3 ? "chpick" : "mode"); return; }
     if(S.scene==="chpick"){ enter("mode"); return; }
     if(S.scene==="reset"){ enter("settings"); return; }
@@ -808,7 +937,9 @@ function press(key){
          all the time you like and then answer. Back ends the run instead,
          which is exactly what a miss does, so the score still stands. */
       if(S.mode===2){ reflexMiss(); return; }
-      S.paused = true; S.pauseAt = now; return;
+      S.paused = true; S.pauseAt = now;
+      hushAudio();          /* nothing should still be sounding behind it */
+      return;
     }
     enter("menu");
     return;
@@ -818,7 +949,6 @@ function press(key){
     case "menu":
       if(key==="UP")    S.menuIdx = clamp(S.menuIdx-1,0,2);
       if(key==="DOWN")  S.menuIdx = clamp(S.menuIdx+1,0,2);
-      if(key==="RIGHT") enter("scorepick");
       if(key==="OK"){
         if(S.menuIdx===0) enter("mode");
         else if(S.menuIdx===1){ S.helpIdx=0; enter("help"); }
@@ -885,41 +1015,45 @@ function press(key){
         if(SET.volume>0) tone(FREQ[OK], 140);
       }
       if(S.setIdx===1 && step) SET.assist = clamp(SET.assist+step,0,3);
-      if(S.setIdx===2 && (key==="OK" || key==="RIGHT")){ S.testFrom="settings"; enter("soundtest"); }
-      if(S.setIdx===3 && (key==="OK" || key==="RIGHT")){ S.detRow = 0; enter("detail"); }
-      if(S.setIdx===4 && (key==="OK" || key==="RIGHT")){ S.resetIdx = 0; enter("reset"); }
+      if(S.setIdx===2 && step && canBuzz()){
+        SET.haptic = step > 0;
+        if(SET.haptic) buzz();           /* feel it as you turn it on */
+      }
+      if(step) save();
+      if(S.setIdx===3 && (key==="OK" || key==="RIGHT")){ S.testFrom="settings"; enter("soundtest"); }
+      if(S.setIdx===4 && (key==="OK" || key==="RIGHT")){ S.resetIdx = 0; S.confirmUntil = 0; enter("reset"); }
       break;
     }
 
-    case "detail": {
-      if(key==="UP")   S.detRow = clamp(S.detRow-1,0,2);
-      if(key==="DOWN") S.detRow = clamp(S.detRow+1,0,2);
-      const d = key==="RIGHT" ? 1 : key==="LEFT" ? -1 : 0;
-      if(d){
-        if(S.detRow===0) S.detMode  = clamp(S.detMode+d,0,2);
-        if(S.detRow===1) S.detTime  = clamp(S.detTime+d,0,3);
-        if(S.detRow===2) S.detSpeed = clamp(S.detSpeed+d,0,2);
+    case "reset": {
+      const move = key==="UP" ? -1 : key==="DOWN" ? 1 : 0;
+      if(move){
+        S.resetIdx = clamp(S.resetIdx+move, 0, RESET_ROWS.length-1);
+        S.confirmUntil = 0;              /* moving off a row disarms it */
       }
+      if(key!=="OK") break;
+      /* Ask once, then listen for a second. A single press is never a
+         reset, and an armed row cannot be left armed. */
+      const armed = S.confirmUntil && now < S.confirmUntil && S.confirmRow === S.resetIdx;
+      if(!armed){ S.confirmRow = S.resetIdx; S.confirmUntil = now + CONFIRM_MS; break; }
+      S.confirmUntil = 0;
+      if(S.resetIdx===0){ S.best = emptyBest(); S.chBest = RULES.map(()=>[0,0,0,0]); S.daily.best=[0,0,0,0]; }
+      else if(S.resetIdx===1) S.stats = emptyStats();
+      else if(S.resetIdx===2) firstRun = true;
+      else {
+        /* everything, and out: the Flipper closes the app here, and the
+           browser has a launcher to fall back to */
+        S.best = emptyBest(); S.chBest = RULES.map(()=>[0,0,0,0]);
+        S.daily = {date:0, done:false, best:[0,0,0,0]};
+        S.stats = emptyStats();
+        SET.volume = 2; SET.assist = 2; SET.speed = 1; SET.haptic = false;
+        S.diff = 1; firstRun = true;
+        save(); enter("launcher"); break;
+      }
+      S.setFlash = now + 900;            /* the row says DONE for a moment */
+      save();
       break;
     }
-
-    case "reset":
-      if(key==="UP")   S.resetIdx = clamp(S.resetIdx-1,0,1);
-      if(key==="DOWN") S.resetIdx = clamp(S.resetIdx+1,0,1);
-      if(key==="LEFT") enter("settings");
-      if(key==="OK"){
-        if(S.resetIdx===0){
-          S.best=emptyBest();
-          S.setFlash = now+900;
-        } else {
-          /* On the Flipper this saves the flag and quits, so the guide opens
-             on next launch. Nothing to close here, so relaunch instead.
-             Scores are deliberately untouched: that is the other row. */
-          firstRun = true;
-          enter("launcher");
-        }
-      }
-      break;
 
     case "help":
       if(key==="UP")   S.helpIdx = clamp(S.helpIdx-1,0,2);
@@ -977,20 +1111,37 @@ function press(key){
       if(btn!==undefined){ S.testBtn = btn; tone(FREQ[btn], T.toneMs); ledFlash(LED_BTN[btn], T.toneMs); }
       break;
 
+    case "stats": {
+      const VIS = STAT_VIS;
+      if(key==="DOWN" && S.statScroll + VIS < STAT_ROWS) S.statScroll++;
+      if(key==="UP"   && S.statScroll > 0) S.statScroll--;
+      break;
+    }
+
     case "scorepick":
       if(key==="UP")    S.scoreMode = clamp(S.scoreMode-1,0,MODE_NAME.length-1);
       if(key==="DOWN")  S.scoreMode = clamp(S.scoreMode+1,0,MODE_NAME.length-1);
-      if(key==="OK")    enter("scores");
-      if(key==="LEFT")  enter("menu");
-      if(key==="RIGHT") enter("credits");
+      if(key==="OK"){ S.tblAssist = 0; S.tblScroll = 0; enter("table"); }
       break;
 
-    case "scores":
-      if(key==="LEFT") enter("scorepick");
+    case "table": {
+      /* OK turns the table to the next assist, whatever shape it is. UP
+         and DOWN are free on the grids and scroll the rules on challenge. */
+      if(key==="OK") S.tblAssist = (S.tblAssist + 1) % 4;
+      if(S.scoreMode===3){
+        const VIS = 5;
+        if(key==="DOWN" && S.tblScroll + VIS < RULES.length) S.tblScroll++;
+        if(key==="UP"   && S.tblScroll > 0) S.tblScroll--;
+      }
+      break;
+    }
+
+    case "nocue":
+      /* OK keeps them: the warning is a warning, not a veto */
+      if(key==="OK") enter("menu");
       break;
 
     case "credits":
-      if(key==="LEFT") enter("scorepick");
       break;
 
     case "gameover":
@@ -1026,9 +1177,6 @@ function press(key){
 /* ---------------------------------------------------------------- */
 /* launcher                                                          */
 /* ---------------------------------------------------------------- */
-/* On the Flipper this flag lives on the SD card, so the guide opens itself
-   once and never again. In the browser it is per page load. */
-let firstRun = true;
 
 const BAYER = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
 /* ordered dither: the only honest way to fade on a 1-bit screen */
@@ -1065,7 +1213,7 @@ const easeOut = t => 1 - Math.pow(1-t, 3);
 const SP_PHASES = () => [T.spHold, T.spFade, T.spGlide, T.spFlash, T.spWipe];
 
 function splashDone(){
-  if(firstRun){ firstRun = false; S.tutPage = 0; S.helpFrom = "menu"; enter("tutorial"); }
+  if(firstRun){ firstRun = false; save(); S.tutPage = 0; S.helpFrom = "menu"; enter("tutorial"); }
   else enter("menu");
 }
 function updateSplash(){
@@ -1141,8 +1289,25 @@ function adjustable(y,text,canLeft,canRight){
   if(canLeft)  chevronL(ROW_AL,y);
   if(canRight) chevronR(ROW_AR,y);
 }
-function chevronU(x,y){ C.line(x-3,y+2,x,y-2); C.line(x,y-2,x+3,y+2); }
-function chevronD(x,y){ C.line(x-3,y-2,x,y+2); C.line(x,y+2,x+3,y-2); }
+function chevronU(x,y){
+  C.line(x-4,y+2,x,y-2); C.line(x,y-2,x+4,y+2);
+  C.line(x-4,y+3,x,y-1); C.line(x,y-1,x+4,y+3);
+}
+function chevronD(x,y){
+  C.line(x-4,y-2,x,y+2); C.line(x,y+2,x+4,y-2);
+  C.line(x-4,y-3,x,y+1); C.line(x,y+1,x+4,y-3);
+}
+
+/* A list that does not fit says so the way everything else here says it:
+   an arrow at the end you can still travel towards, and none at the end
+   you cannot. It was a bar on three screens and arrows on a fourth,
+   because the bar wanted the same strip of screen as the arrow to the
+   next screen and lost - two ways of saying one thing. */
+const SCROLL_X = 122;
+function scrollbar(top, track, vis, n, scroll){
+  if(scroll > 0) chevronU(SCROLL_X, top + 3);
+  if(scroll + vis < n) chevronD(SCROLL_X, top + track - 4);
+}
 /* 2px thick so it reads as an arrow, not a scratch */
 function chevronL(x,y){
   C.line(x+4,y-4,x,y);   C.line(x,y,x+4,y+4);
@@ -1182,7 +1347,6 @@ function pageDot(cx,cy,full){
 const ROW_L = 14, ROW_R = 114, CHEV_L = 2, CHEV_R = 121;
 /* adjustable rows put their arrows at the row edges, clear of the label */
 const ROW_VAL = 112, ROW_AL = 4, ROW_AR = 118;
-const clamp = (v,lo,hi) => v < lo ? lo : v > hi ? hi : v;
 function title(text){
   C.black(); C.box(0,0,W,13); C.white(); C.font(true);
   C.str(64,6,"c","c",text); C.black();
@@ -1216,31 +1380,15 @@ function drawMenu(){
   }
   chevronR(CHEV_R,36);   /* scores are that way */
 }
-function drawScorePick(){
-  title("BEST SCORES");
-  for(let i=0;i<MODE_NAME.length;i++){
-    const top = 14 + i*10;
-    if(S.scoreMode===i){ C.black(); C.rbox(12,top,104,10,3); C.white(); }
-    C.font(false); C.str(64,top+5,"c","c",MODE_NAME[i]); C.black();
-  }
-  chevronR(CHEV_R,36);
-}
-function drawScores(){
-  title(MODE_NAME[S.scoreMode] + " SCORES");
-  C.font(false);
-  for(let i=0;i<4;i++){
-    const y = 21 + i*11;
-    C.str(ROW_L,y,"l","c",MODE_LABEL[i]);
-    C.str(ROW_R,y,"r","c",String(bestFor(S.scoreMode, i)));
-  }
-  chevronL(CHEV_L,36);
-}
 function drawCredits(){
   title("CREDITS");
-  C.font(false); C.str(64,26,"c","c","made by");
-  C.font(true);  C.str(64,38,"c","c","TIJNV50");
-  C.font(false); C.str(64,52,"c","c","with Claude (Opus 5)");
-  chevronL(CHEV_L,36);
+  C.font(false); C.str(64,22,"c","c","made by");
+  C.font(true);  C.str(64,33,"c","c","TIJNV50");
+  C.font(false); C.str(64,45,"c","c","with Claude (Opus 5)");
+  /* This build is the Flipper one, screen for screen. What it cannot be
+     is a Flipper: no RGB light under the buttons, and no motor unless
+     the browser has one. */
+  footer("also on flipper zero");
 }
 function drawMode(){
   title("MODE");
@@ -1290,19 +1438,15 @@ function drawChPick(){
     if(idx===S.chIdx) chevronR(104,top+5);
     C.black();
   }
-  const trackH = VIS*rowH;
-  C.frame(122, top0, 4, trackH);
-  const thumb = Math.max(6, Math.round(trackH*VIS/n));
-  const y = top0 + Math.round((trackH-thumb) * S.chScroll / (n-VIS));
-  C.box(123, y+1, 2, thumb-2);
+  scrollbar(top0, VIS*rowH, VIS, n, S.chScroll);
 }
 function drawSetup(){
   title(MODE_NAME[S.mode]);
   const rows = setupRows();
   const last = rows.length-1;
-  const hasFoot = S.mode!==4;              /* daily never has a multiplier to show */
-  const rowH = hasFoot ? 10 : 12;
-  const bottom = hasFoot ? 52 : 63;
+  /* no multiplier to promise any more, so the rows get the whole panel */
+  const rowH = 12;
+  const bottom = 63;
   const top0 = 13 + Math.round(((bottom - 12) - rows.length*rowH)/2);
   for(let i=0;i<rows.length;i++){
     const top = top0 + i*rowH;
@@ -1319,7 +1463,6 @@ function drawSetup(){
     }
     C.black();
   }
-  if(hasFoot) footer("score  " + multText(multiplier()));
 }
 /* "DOUBLE DOWN" reads as the idiom. Boxing the button name splits it into
    an instruction and a button, which is what it actually is. */
@@ -1350,50 +1493,131 @@ function drawRuleCard(){
   drawRuleLine(64,30,true,false);
   C.font(false); C.str(64,46,"c","c", S.ruleIdx>=0 ? RULES[S.ruleIdx].tip : "");
 }
-function drawDetail(){
-  title("SCORES");
-  const rows = [["MODE",  MODE_NAME[S.detMode],  S.detMode,  2],
-                ["TIME",  DIFF_NAME[S.detTime],  S.detTime,  3],
-                ["SPEED", SPEED_NAME[S.detSpeed],S.detSpeed, 2]];
-  for(let i=0;i<3;i++){
+function drawScorePick(){
+  title("RECORDS");
+  for(let i=0;i<MODE_NAME.length;i++){
     const top = 14 + i*10;
-    if(S.detRow===i){ C.black(); C.rbox(2,top,124,10,2); C.white(); }
-    C.font(false);
-    C.str(ROW_L,top+5,"l","c",rows[i][0]);
-    if(S.detRow===i) adjustable(top+5, rows[i][1], rows[i][2]>0, rows[i][2]<rows[i][3]);
-    else C.str(ROW_R,top+5,"r","c",rows[i][1]);
-    C.black();
+    if(S.scoreMode===i){ C.black(); C.rbox(12,top,104,10,3); C.white(); }
+    C.font(false); C.str(64,top+5,"c","c",MODE_NAME[i]); C.black();
   }
-  const cell = S.best[S.detMode][S.detTime][S.detSpeed];
-  const tag = ["EAR","LED","SHP","ARR"];   /* short, so five digits still fit */
+}
+
+/* h:mm over an hour, m:ss under it, so the number means something at a
+   glance however long you have played */
+function playtime(ms){
+  const t = Math.floor(ms/1000);
+  return t >= 3600 ? Math.floor(t/3600)+"H "+Math.floor((t%3600)/60)+"M"
+                   : Math.floor(t/60)+"M "+(t%60)+"S";
+}
+function statRow(i){
+  const st = S.stats;
+  switch(i){
+    case 0: return ["RUNS",   String(st.runs)];
+    case 1: return ["PLAYED", playtime(st.playMs)];
+    case 2: return ["ROUNDS", String(st.rounds)];
+    case 3: return ["NOTES",  String(st.notes)];
+    case 4: return ["BEST EVER", String(st.bestEver)];
+    case 5: return ["LONGEST",   String(st.longest)];
+    case 6: { const f = favourite(st.byMode);
+              return ["FAV MODE",  f<0 ? "-" : MODE_NAME[f]]; }
+    default:{ const f = favourite(st.byAssist);
+              return ["FAV ASSIST", f<0 ? "-" : ASSIST_NAME[f]]; }
+  }
+}
+function drawStats(){
+  const VIS = STAT_VIS;
+  let top = Math.min(S.statScroll, STAT_ROWS - VIS);
+  title("STATS");
   C.font(false);
-  for(let i=0;i<4;i++){
-    const left = (i%2===0), y = 49 + (i<2 ? 0 : 9);
-    C.str(left?6:68, y, "l","c", tag[i]);
-    C.str(left?60:122, y, "r","c", String(cell[i]));
+  /* the rows give up both edges: the screen has a neighbour each way and
+     a list going down, so it has to show all three */
+  for(let i=0;i<VIS;i++){
+    const row = statRow(top+i), y = 18 + i*10;
+    C.str(11, y, "l","c", row[0]);
+    C.str(116, y, "r","c", row[1]);
   }
+  scrollbar(14, VIS*10, VIS, STAT_ROWS, top);
+}
+
+/* A number in a table cell. A record nobody has set yet is a dash and not
+   a nought, because nought reads as a score somebody scored. */
+function cell(x,y,v){ C.str(x,y,"r","c", v ? String(v) : "-"); }
+
+/* The title bar of a table carries two things, so the mode goes left
+   rather than centre and the assist sits beside it with the key that
+   changes it. The body has no room to say it: a title, a header row, four
+   rows of records and a footer is 45px of text in 40px of screen. */
+function tableTitle(mode, assist){
+  const tag = ["EAR","LED","SHP","ARR"];
+  C.black(); C.box(0,0,W,13); C.white();
+  C.font(true);  C.str(4,6,"l","c",mode);
+  if(assist >= 0){ C.font(false); C.str(124,6,"r","c","OK: "+tag[assist]); }
+  C.black();
+}
+function drawTable(){
+  const m = S.scoreMode, as = S.tblAssist;
+  tableTitle(MODE_NAME[m], m===4 ? -1 : as);
+  C.font(false);
+  if(m===4){
+    /* one number a day, so all four assists fit and none is cycled */
+    for(let i=0;i<4;i++){
+      const y = 20 + i*10;
+      C.str(ROW_L,y,"l","c",ASSIST_NAME[i]);
+      cell(ROW_R,y,S.daily.best[i]);
+    }
+    return;
+  }
+  if(m===3){
+    const VIS = 5;
+    let top = Math.min(S.tblScroll, RULES.length - VIS);
+    for(let i=0;i<VIS;i++){
+      const r = top+i, y = 18 + i*9;
+      C.str(2,y,"l","c",RULES[r].label);
+      cell(118,y,S.chBest[r][as]);
+    }
+    scrollbar(14, VIS*9, VIS, RULES.length, top);
+    return;
+  }
+  /* classic, rules and reflex: every time against every speed at once,
+     which is the whole point of the screen - no dial to spin */
+  const col = [60, 92, 124];
+  for(let sp=0;sp<3;sp++) C.str(col[sp],16,"r","c",SPEED_SHORT[sp]);
+  for(let t=0;t<4;t++){
+    const y = 24 + t*9;
+    C.str(2,y,"l","c",DIFF_SHORT[t]);
+    for(let sp=0;sp<3;sp++) cell(col[sp], y, S.best[m][t][sp][as]);
+  }
+}
+function drawNoCue(){
+  title("IMPOSSIBLE");
+  C.font(false);
+  ["No sound and no cues:","nothing will tell you","the sequence."]
+    .forEach((l,i) => C.str(64, 20+i*11, "c","c", l));
+  footer("OK: anyway   BACK: fix");
 }
 function drawReset(){
   title("RESET");
-  const rows = [["SCORES", now < S.setFlash ? "CLEARED" : "OK"],
-                ["TUTORIAL", "OK"]];
-  for(let i=0;i<2;i++){
-    const top = 25 + i*13;
-    if(S.resetIdx===i){ C.black(); C.rbox(2,top,124,13,2); C.white(); }
+  const at = S.resetIdx;
+  for(let i=0;i<RESET_ROWS.length;i++){
+    /* EVERYTHING sits a row lower than the rest, because it is not one of
+       the rest: it takes the others with it and closes the app */
+    const top = 15 + i*10 + (i===3 ? 4 : 0);
+    const sel = at===i;
+    const armed = sel && S.confirmUntil && now < S.confirmUntil && S.confirmRow===i;
+    if(sel){ C.black(); C.rbox(2,top,124,10,2); C.white(); }
     C.font(false);
-    C.str(ROW_L,top+6,"l","c",rows[i][0]);
-    C.str(ROW_R,top+6,"r","c",rows[i][1]);
+    C.str(ROW_L,top+5,"l","c",RESET_ROWS[i]);
+    C.str(ROW_R,top+5,"r","c", armed ? "SURE?" : (sel && now < S.setFlash) ? "DONE" : "OK");
     C.black();
   }
 }
 function drawSettings(){
   title("SETTINGS");
-  const autoAssist = SET.volume===0 && SET.assist===0;
   const rows = [
     ["VOLUME", VOL_NAME[SET.volume], true],
-    ["ASSIST", autoAssist ? "SHAPES!" : ASSIST_NAME[SET.assist], true],
+    ["ASSIST", ASSIST_NAME[SET.assist], true],
+    ["HAPTIC", canBuzz() ? (SET.haptic ? "ON" : "OFF") : "NO MOTOR", canBuzz()],
     ["SOUNDS", ">", false],
-    ["SCORES", ">", false],
     ["RESET",  ">", false]
   ];
   for(let i=0;i<5;i++){
@@ -1402,8 +1626,9 @@ function drawSettings(){
     C.font(false);
     C.str(ROW_L,top+5,"l","c",rows[i][0]);
     if(rows[i][2] && S.setIdx===i){
-      const v = i===0 ? SET.volume : SET.assist;
-      adjustable(top+5, rows[i][1], v>0, v<3);
+      const v = i===0 ? SET.volume : i===1 ? SET.assist : (SET.haptic?1:0);
+      const hi = i===0 ? 3 : i===1 ? 3 : 1;
+      adjustable(top+5, rows[i][1], v>0, v<hi);
     }
     else if(rows[i][1]===">") chevronR(ROW_AR,top+5);
     else C.str(ROW_R,top+5,"r","c",rows[i][1]);
@@ -1446,13 +1671,7 @@ function drawRuleList(){
     if(idx===S.ruleSel) chevronR(104,top+5);
     C.black();
   }
-  /* scrollbar: seven rules do not fit, so show where you are */
-  const trackTop = top0, trackH = VIS*rowH;
-  C.frame(122, trackTop, 4, trackH);
-  const thumb = Math.max(6, Math.round(trackH*VIS/RULES.length));
-  const room  = trackH - thumb;
-  const y = trackTop + Math.round(room * S.ruleScroll / (RULES.length - VIS));
-  C.box(123, y+1, 2, thumb-2);
+  scrollbar(top0, VIS*rowH, VIS, RULES.length, S.ruleScroll);
 }
 function drawRuleInfo(){
   const r = RULES[S.ruleSel];
@@ -1555,12 +1774,12 @@ function drawReflex(){
 function drawSuccess(){
   hud();
   C.font(true); C.str(64,30,"c","c",PRAISE[S.praise]);
-  C.font(false); C.str(64,47,"c","c","+"+applyMult(10*S.seq.length, S.runMult));
+  C.font(false); C.str(64,47,"c","c","+"+(NOTE_POINTS*S.expected.length));
 }
 function drawRoundClear(){
   hud();
   C.font(true); C.str(64,28,"c","c","ROUND "+S.round+" CLEAR");
-  C.font(false); C.str(64,45,"c","c","+"+applyMult(50*S.round, S.runMult));
+  C.font(false); C.str(64,45,"c","c","+"+ROUND_BONUS);
 }
 function drawWrong(){
   C.font(true); C.str(64,16,"c","c","WRONG!");
@@ -1615,7 +1834,7 @@ function drawGameOver(){
     chevronL(CHEV_L,33);
   } else {
     const isRx = S.runGameMode===2;
-    const rows = [["SCORE", multText(S.runMult) + "  " + String(S.score)],
+    const rows = [["SCORE", String(S.score)],
                   [isRx ? "HITS" : "LONGEST", isRx ? String(S.rxHits) : String(S.runBest)],
                   [isRx ? "FASTEST" : (S.newBest ? "PREVIOUS BEST" : "BEST"),
                    isRx ? S.runBest+"MS" : String(S.prevBest)]];
@@ -1643,19 +1862,30 @@ const SCENES = {
   playback:drawPlayback, go:drawGo, input:drawInput, hold:drawInput,
   success:drawSuccess, roundclear:drawRoundClear, wrong:drawWrong,
   retry:drawRetry, gameover:drawGameOver, launcher:drawLauncher, splash:drawSplash,
-  scores:drawScores, credits:drawCredits,
+  stats:drawStats, table:drawTable, nocue:drawNoCue, credits:drawCredits,
   mode:drawMode, setup:drawSetup, chpick:drawChPick, rulecard:drawRuleCard, reset:drawReset,
-  scorepick:drawScorePick, detail:drawDetail,
+  scorepick:drawScorePick,
   reflexgap:drawReflex, reflexcue:drawReflex,
   help:drawHelp, rulesguide:drawRulesGuide, rulelist:drawRuleList, ruleinfo:drawRuleInfo,
   reflexguide:drawReflexGuide
 };
 
+let lastFrame = 0;
 function frame(ts){
+  const dt = lastFrame ? Math.min(100, ts - lastFrame) : 0;
+  lastFrame = ts;
   now = ts;
+  /* playtime is time a run is running, not time the page is open */
+  if(!S.paused && GAME_SCENES.includes(S.scene)) S.stats.playMs += dt;
   if(S.scene === "splash") updateSplash(); else update();
   C.clear();
   (SCENES[S.scene] || drawMenu)();
+  /* the row of screens says which way it runs, from the same table */
+  {
+    const at = CHAIN.indexOf(S.scene);
+    if(at > 0) chevronL(CHEV_L, 36);
+    if(at >= 0 && at < CHAIN.length-1) chevronR(CHEV_R, 36);
+  }
   if(S.paused) drawPause();
   present();
   ledRender();

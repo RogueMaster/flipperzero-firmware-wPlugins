@@ -46,6 +46,24 @@ if command -v ufbt > /dev/null 2>&1; then
     echo
 fi
 
+# BEEPBACK exists twice and the two have to be the same game. Everything
+# above checks the firmware against itself; this drives the browser build
+# in a real browser and holds it to the same numbers.
+rc=0
+python3 parity.py > /tmp/bb_parity.log 2>&1 || rc=$?
+if [ $rc -eq 0 ]; then
+    if grep -q "^--" /tmp/bb_parity.log; then
+        sed -n 's/^--/--  /p' /tmp/bb_parity.log
+    else
+        echo "ok   $(grep -c '^ok' /tmp/bb_parity.log) checks against the browser build"
+    fi
+else
+    echo "FAIL the browser build and the firmware disagree"
+    grep -A 2 "^FAIL" /tmp/bb_parity.log | sed 's/^/       /'
+    exit 1
+fi
+echo
+
 ARMCC=arm-none-eabi-gcc
 if command -v $ARMCC > /dev/null 2>&1; then
     ARMFLAGS="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
