@@ -1,3 +1,8 @@
+## Unreleased
+- Major under the hood refactoring
+- Add ADFGVX, Bifid, Trifid ciphers.
+- Add Base16 encoding.
+
 ## V0.6
 - Decreased RAM usage.
 - Add Porta cipher.

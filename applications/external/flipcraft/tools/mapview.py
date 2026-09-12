@@ -52,6 +52,7 @@ def water_color(depth, level):
         rgb = [c + 18 + 4 * level for c in rgb]
     return tuple(clamp(c, 0, 255) for c in rgb)
 
+
 DIGITS = {
     "-": ("000", "000", "111", "000", "000"),
     "0": ("111", "101", "101", "101", "111"),
@@ -100,9 +101,9 @@ def load_world(path):
         wz = meta["chunks_z"] * meta["chunk_z"]
         surf = [[0] * wx for _ in range(wz)]
         heights = [[-1] * wx for _ in range(wz)]
-        depth = [[0] * wx for _ in range(wz)]      # water blocks in the column
-        wsurf = [[-1] * wx for _ in range(wz)]     # y of the topmost water block
-        wlevel = [[0] * wx for _ in range(wz)]     # its flow level, 0 = source
+        depth = [[0] * wx for _ in range(wz)]  # water blocks in the column
+        wsurf = [[-1] * wx for _ in range(wz)]  # y of the topmost water block
+        wlevel = [[0] * wx for _ in range(wz)]  # its flow level, 0 = source
         chunk_bytes = meta["chunk_x"] * meta["height"] * meta["chunk_z"] * meta["bpb"]
         for cz in range(meta["chunks_z"]):
             for cx in range(meta["chunks_x"]):
@@ -130,7 +131,7 @@ def load_world(path):
                                 top = y
                         x = cx * meta["chunk_x"] + lx
                         z = cz * meta["chunk_z"] + lz
-                        surf[z][x] = bid      # the ground under the water, if any
+                        surf[z][x] = bid  # the ground under the water, if any
                         heights[z][x] = top
                         depth[z][x] = wet
                         wsurf[z][x] = wtop
@@ -187,7 +188,8 @@ def main():
     pg.init()
     screen = pg.display.set_mode((1100, 850), pg.RESIZABLE)
     pg.display.set_caption(
-        f"Flipcraft map - {wx}x{wz} blocks, {wet_columns} water columns")
+        f"Flipcraft map - {wx}x{wz} blocks, {wet_columns} water columns"
+    )
     clock = pg.time.Clock()
 
     tile = clamp(args.tile, MIN_TILE, MAX_TILE)
@@ -276,7 +278,9 @@ def main():
                 wet = depth[z][x]
                 if wet:
                     # blue by depth, shaded by the height of the surface itself
-                    color = shade(water_color(wet, wlevel[z][x]), wsurf[z][x], meta["height"])
+                    color = shade(
+                        water_color(wet, wlevel[z][x]), wsurf[z][x], meta["height"]
+                    )
                 else:
                     color = shade(COLORS.get(surf[z][x], UNKNOWN), h, meta["height"])
                 pg.draw.rect(screen, color, (px, py, tile + 1, tile + 1))

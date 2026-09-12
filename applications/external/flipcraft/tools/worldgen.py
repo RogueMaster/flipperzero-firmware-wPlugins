@@ -59,7 +59,7 @@ CHUNK = 8
 HEIGHT = 16
 TILE_CHUNKS = 16
 TILE_W = TILE_CHUNKS * CHUNK  # 128 blocks
-MAX_CHUNKS = 128              # 1024 blocks
+MAX_CHUNKS = 128  # 1024 blocks
 CHUNK_BYTES = CHUNK * HEIGHT * CHUNK
 BLOCKSIZE = 16
 HEADER_SIZE = 64
@@ -68,8 +68,12 @@ VERSION = 3
 
 # Terrain presets (plugin_api.h FlipcraftWorldType)
 TYPE_NORMAL, TYPE_FLAT, TYPE_SUPERFLAT, TYPE_WOODS = 0, 1, 2, 3
-TYPE_NAMES = {"normal": TYPE_NORMAL, "flat": TYPE_FLAT,
-              "superflat": TYPE_SUPERFLAT, "woods": TYPE_WOODS}
+TYPE_NAMES = {
+    "normal": TYPE_NORMAL,
+    "flat": TYPE_FLAT,
+    "superflat": TYPE_SUPERFLAT,
+    "woods": TYPE_WOODS,
+}
 FLAT_TOP = 4
 
 # Block ids (flipcraft.h enum Block); water = source level
@@ -103,8 +107,8 @@ g_type = TYPE_NORMAL
 g_worldW = 0
 g_tileX0 = g_tileZ0 = 0
 g_tileW = TILE_W
-g_col = None      # uint8 [tileW][tileW], numpy
-g_col_l = None    # the same map as lists of ints, for the feature passes
+g_col = None  # uint8 [tileW][tileW], numpy
+g_col_l = None  # the same map as lists of ints, for the feature passes
 
 
 def resolve_output_path(out):
@@ -116,12 +120,15 @@ def resolve_output_path(out):
 
 # world-hash / noise: the C core's whash and its 256-entry gradient table.
 
+
 def whash(x, z, salt):
     """Vectorised whash; x and z are integer arrays."""
     s = (salt + g_seed * 1013904223) & MASK32
-    h = (np.asarray(x, dtype=np.int64).astype(U32) * U32(374761393) +
-         np.asarray(z, dtype=np.int64).astype(U32) * U32(668265263) +
-         U32((s * 362437) & MASK32))
+    h = (
+        np.asarray(x, dtype=np.int64).astype(U32) * U32(374761393)
+        + np.asarray(z, dtype=np.int64).astype(U32) * U32(668265263)
+        + U32((s * 362437) & MASK32)
+    )
     h = (h ^ (h >> U32(13))) * U32(1274126177)
     return h ^ (h >> U32(16))
 
@@ -227,24 +234,41 @@ def compute_columns(xs, zs):
 
     valley = ridged(px * F32(3.0) + F32(2.5), pz * F32(3.0) - F32(1.5), 4, 4)
     valley_gate = smoothstepf(
-        0.04, 0.38, fbm(px * F32(1.5) + F32(4.0), pz * F32(1.5) - F32(6.0), 5, 3))
-    ravine_depth = (smoothstepf(0.72, 0.92, valley) * valley_gate * F32(4.0)
-                    + F32(0.5)).astype(np.int32)
+        0.04, 0.38, fbm(px * F32(1.5) + F32(4.0), pz * F32(1.5) - F32(6.0), 5, 3)
+    )
+    ravine_depth = (
+        smoothstepf(0.72, 0.92, valley) * valley_gate * F32(4.0) + F32(0.5)
+    ).astype(np.int32)
 
     moisture = fbm(px * F32(2.4) - F32(8.0), pz * F32(2.4) + F32(19.0), 6, 5)
-    temperature = (fbm(px * F32(1.8) + F32(31.0), pz * F32(1.8) - F32(17.0), 7, 4) +
-                   (xf / F32(g_worldW) - F32(0.5)) * F32(0.35))
-    desert_score = (temperature * F32(0.68) - moisture * F32(0.72) +
-                    fbm(px * F32(5.0), pz * F32(5.0), 8, 3) * F32(0.24))
-    desert = ((g_type != TYPE_WOODS) & (desert_score > F32(0.18)) & (ravine_depth < 3))
+    temperature = fbm(px * F32(1.8) + F32(31.0), pz * F32(1.8) - F32(17.0), 7, 4) + (
+        xf / F32(g_worldW) - F32(0.5)
+    ) * F32(0.35)
+    desert_score = (
+        temperature * F32(0.68)
+        - moisture * F32(0.72)
+        + fbm(px * F32(5.0), pz * F32(5.0), 8, 3) * F32(0.24)
+    )
+    desert = (g_type != TYPE_WOODS) & (desert_score > F32(0.18)) & (ravine_depth < 3)
 
-    forest_score = (moisture * F32(0.78) - np.abs(temperature) * F32(0.22) +
-                    fbm(px * F32(6.0) + F32(5.0), pz * F32(6.0), 9, 3) * F32(0.18))
-    forest = ((ravine_depth == 0) & ~desert &
-              ((g_type == TYPE_WOODS) | (forest_score > F32(0.02))))
+    forest_score = (
+        moisture * F32(0.78)
+        - np.abs(temperature) * F32(0.22)
+        + fbm(px * F32(6.0) + F32(5.0), pz * F32(6.0), 9, 3) * F32(0.18)
+    )
+    forest = (
+        (ravine_depth == 0)
+        & ~desert
+        & ((g_type == TYPE_WOODS) | (forest_score > F32(0.02)))
+    )
 
-    top_f = (F32(4.4) + continent * F32(1.6) + detail + hill -
-             ravine_depth.astype(np.float32))
+    top_f = (
+        F32(4.4)
+        + continent * F32(1.6)
+        + detail
+        + hill
+        - ravine_depth.astype(np.float32)
+    )
     top = (top_f + F32(0.5)).astype(np.int32)
     top = np.clip(top, 1, 10)
 
@@ -254,14 +278,17 @@ def compute_columns(xs, zs):
     river = (ravine_depth > 0) & (top <= bed + 2)
     top = np.where(river, bed, top)
 
-    return (top.astype(np.uint8) |
-            np.where(desert, np.uint8(COL_DESERT), np.uint8(0)) |
-            np.where(ravine_depth > 0, np.uint8(COL_RAVINE), np.uint8(0)) |
-            np.where(forest, np.uint8(COL_FOREST), np.uint8(0)) |
-            np.where(river, np.uint8(COL_RIVER), np.uint8(0)))
+    return (
+        top.astype(np.uint8)
+        | np.where(desert, np.uint8(COL_DESERT), np.uint8(0))
+        | np.where(ravine_depth > 0, np.uint8(COL_RAVINE), np.uint8(0))
+        | np.where(forest, np.uint8(COL_FOREST), np.uint8(0))
+        | np.where(river, np.uint8(COL_RIVER), np.uint8(0))
+    )
 
 
 # Per-tile column map and the feature passes.
+
 
 def col_at(x, z):
     return g_col_l[z - g_tileZ0][x - g_tileX0]
@@ -334,7 +361,9 @@ def tile_score(salt_a, mul, off_x, off_z, octaves, extra_salt=None, extra_div=0.
     xf, zf = xg.astype(np.float32), zg.astype(np.float32)
     s = fbm(xf * F32(mul) + F32(off_x), zf * F32(mul) + F32(off_z), salt_a, octaves)
     if extra_salt is not None:
-        s = s + (whash(xg, zg, extra_salt) & U32(255)).astype(np.float32) / F32(extra_div)
+        s = s + (whash(xg, zg, extra_salt) & U32(255)).astype(np.float32) / F32(
+            extra_div
+        )
     return s
 
 
@@ -356,8 +385,11 @@ def tree_fits(x, z):
 
 def clear_ground_eligible(x, z):
     c = col_at(x, z)
-    return (not (c & (COL_DESERT | COL_RAVINE)) and (c & COL_TOP) >= SEA_LEVEL
-            and local_slope(x, z) <= 1)
+    return (
+        not (c & (COL_DESERT | COL_RAVINE))
+        and (c & COL_TOP) >= SEA_LEVEL
+        and local_slope(x, z) <= 1
+    )
 
 
 def fallen_fits(x, z):
@@ -396,14 +428,17 @@ def place_features(allow_house):
     woods = g_type == TYPE_WOODS
 
     trees_score = tile_score(62, 0.19, 4.0, -9.0, 3, extra_salt=63, extra_div=512.0)
-    cands = collect_cell_maxima(4, 3, w - 4, F32(-1e29) if woods else F32(0.23),
-                                tree_eligible, trees_score)
+    cands = collect_cell_maxima(
+        4, 3, w - 4, F32(-1e29) if woods else F32(0.23), tree_eligible, trees_score
+    )
     tree_cap = w * w // 80 if woods else w * w // 190
     tree_cap = max(24, min(tree_cap, MAX_TREES))
     trees = greedy_place(cands, tree_cap, 16 if woods else 36, tree_fits)
 
     fallen_s = tile_score(70, 0.11, 0.0, 0.0, 3, extra_salt=71, extra_div=700.0)
-    cands = collect_cell_maxima(8, 4, w - 5, F32(-1e29), clear_ground_eligible, fallen_s)
+    cands = collect_cell_maxima(
+        8, 4, w - 5, F32(-1e29), clear_ground_eligible, fallen_s
+    )
     fallen = greedy_place(cands, 5, 225, fallen_fits)
 
     pile_s = tile_score(80, 0.13, 11.0, -3.0, 3)
@@ -431,6 +466,7 @@ def place_features(allow_house):
 
 # Terrain and feature stamps, written into one tile-sized [y][z][x] buffer.
 
+
 def fill_terrain(tile):
     col = g_col
     top = (col & COL_TOP).astype(np.int32)
@@ -438,15 +474,25 @@ def fill_terrain(tile):
     ground = y <= top
 
     if g_type in (TYPE_FLAT, TYPE_SUPERFLAT):
-        ids = np.where(y == top, np.uint8(GRASS),
-                       np.where(y == top - 1, np.uint8(DIRT), np.uint8(STONE)))
+        ids = np.where(
+            y == top,
+            np.uint8(GRASS),
+            np.where(y == top - 1, np.uint8(DIRT), np.uint8(STONE)),
+        )
     else:
         xs = np.arange(g_tileW, dtype=np.int32) + g_tileX0
         zs = np.arange(g_tileW, dtype=np.int32) + g_tileZ0
         xg, zg = np.meshgrid(xs, zs)
-        r = whash(xg[None, :, :] * np.int32(17) + y, np.broadcast_to(zg, (HEIGHT,) + zg.shape), 40)
-        stone = np.where(r % U32(47) == 0, np.uint8(COALORE),
-                         np.where(r % U32(67) == 0, np.uint8(IRONORE), np.uint8(STONE)))
+        r = whash(
+            xg[None, :, :] * np.int32(17) + y,
+            np.broadcast_to(zg, (HEIGHT,) + zg.shape),
+            40,
+        )
+        stone = np.where(
+            r % U32(47) == 0,
+            np.uint8(COALORE),
+            np.where(r % U32(67) == 0, np.uint8(IRONORE), np.uint8(STONE)),
+        )
         sand = ((col & (COL_DESERT | COL_RAVINE)) != 0) | (top <= 2)
         surface = np.where(sand, np.uint8(SAND), np.uint8(GRASS))
         subsoil = np.where(sand, np.uint8(SAND), np.uint8(DIRT))
@@ -509,8 +555,13 @@ def stamp_fallen(tile, x, z):
 
 
 def stamp_pile(tile, x, z):
-    for dx, dz, bid in ((0, 0, STONE), (1, 0, COBBLE), (-1, 0, COBBLE),
-                        (0, 1, COBBLE), (0, -1, STONE)):
+    for dx, dz, bid in (
+        (0, 0, STONE),
+        (1, 0, COBBLE),
+        (-1, 0, COBBLE),
+        (0, 1, COBBLE),
+        (0, -1, STONE),
+    ):
         tx, tz = x + dx, z + dz
         ch_set(tile, tx, top_at(tx, tz) + 1, tz, bid, ALLOW_ANY)
     ch_set(tile, x, top_at(x, z) + 2, z, COBBLE, ALLOW_ANY)
@@ -568,8 +619,10 @@ def generate(chunks, seed, flags, wtype, progress=None):
     if chunks < 1 or chunks > MAX_CHUNKS:
         raise ValueError("chunks must be 1..%d" % MAX_CHUNKS)
     if chunks > TILE_CHUNKS and chunks % TILE_CHUNKS:
-        raise ValueError("above %d chunks the size must be a multiple of %d"
-                         % (TILE_CHUNKS, TILE_CHUNKS))
+        raise ValueError(
+            "above %d chunks the size must be a multiple of %d"
+            % (TILE_CHUNKS, TILE_CHUNKS)
+        )
     g_seed = seed & MASK32
     g_type = wtype if wtype <= TYPE_WOODS else TYPE_NORMAL
     g_worldW = chunks * CHUNK
@@ -582,14 +635,27 @@ def generate(chunks, seed, flags, wtype, progress=None):
     sbx = sbz = g_worldW // 2
     g_tileX0 = g_tileZ0 = 0  # compute_columns is tile-independent
     spawn_top = int(compute_columns(np.array([sbx]), np.array([sbz]))[0] & COL_TOP)
-    struct.pack_into("<IHHHBBBBI", out, 0,
-                     MAGIC, VERSION, chunks, chunks, CHUNK, HEIGHT, CHUNK, 1, HEADER_SIZE)
-    struct.pack_into("<iii", out, 18,
-                     sbx * BLOCKSIZE, (spawn_top + 1) * BLOCKSIZE, sbz * BLOCKSIZE)
+    struct.pack_into(
+        "<IHHHBBBBI",
+        out,
+        0,
+        MAGIC,
+        VERSION,
+        chunks,
+        chunks,
+        CHUNK,
+        HEIGHT,
+        CHUNK,
+        1,
+        HEADER_SIZE,
+    )
+    struct.pack_into(
+        "<iii", out, 18, sbx * BLOCKSIZE, (spawn_top + 1) * BLOCKSIZE, sbz * BLOCKSIZE
+    )
     out[30] = 0x08
     struct.pack_into("<I", out, 32, g_seed)
-    out[36] = flags & 0xFF     # per-world settings (plugin_api.h)
-    out[37] = g_type           # terrain preset, generation-time only
+    out[36] = flags & 0xFF  # per-world settings (plugin_api.h)
+    out[37] = g_type  # terrain preset, generation-time only
 
     tiles = (chunks + TILE_CHUNKS - 1) // TILE_CHUNKS
     tile_chunks = min(chunks, TILE_CHUNKS)
@@ -600,9 +666,12 @@ def generate(chunks, seed, flags, wtype, progress=None):
     grid = np.arange(0, g_worldW - 4, 8, dtype=np.int32)
     xg, zg = np.meshgrid(grid, grid)
     biome_ok = (compute_columns(xg + 2, zg + 2) & (COL_DESERT | COL_RAVINE)) == 0
-    hs = (fbm(xg.astype(np.float32) * F32(0.08) + F32(19.0),
-              zg.astype(np.float32) * F32(0.08) - F32(7.0), 90, 3) +
-          (whash(xg, zg, 91) & U32(255)).astype(np.float32) / F32(900.0))
+    hs = fbm(
+        xg.astype(np.float32) * F32(0.08) + F32(19.0),
+        zg.astype(np.float32) * F32(0.08) - F32(7.0),
+        90,
+        3,
+    ) + (whash(xg, zg, 91) & U32(255)).astype(np.float32) / F32(900.0)
     hs = np.where(biome_ok, hs, F32(-1e30))
     house_tx = house_tz = 0
     if biome_ok.any():
@@ -629,7 +698,8 @@ def generate(chunks, seed, flags, wtype, progress=None):
                 progress((tile_idx * 100 + 60) // tile_total)
 
             trees, fallen, piles, houses = place_features(
-                tx == house_tx and tz == house_tz)
+                tx == house_tx and tz == house_tz
+            )
             stats["trees"] += len(trees)
             stats["fallen"] += len(fallen)
             stats["piles"] += len(piles)
@@ -638,7 +708,7 @@ def generate(chunks, seed, flags, wtype, progress=None):
             for lx, lz, aux in houses:
                 s = house_slots(g_tileX0 + lx, g_tileZ0 + lz, aux + 1)
                 off = slot0 + slots_used * SLOT_SIZE
-                out[off:off + len(s)] = s
+                out[off : off + len(s)] = s
                 slots_used += 2
 
             fill_terrain(tile)
@@ -647,10 +717,13 @@ def generate(chunks, seed, flags, wtype, progress=None):
             for lcz in range(tile_chunks):
                 for lcx in range(tile_chunks):
                     ccx, ccz = tx * TILE_CHUNKS + lcx, tz * TILE_CHUNKS + lcz
-                    payload = tile[:, lcz * CHUNK:(lcz + 1) * CHUNK,
-                                   lcx * CHUNK:(lcx + 1) * CHUNK]
+                    payload = tile[
+                        :,
+                        lcz * CHUNK : (lcz + 1) * CHUNK,
+                        lcx * CHUNK : (lcx + 1) * CHUNK,
+                    ]
                     off = HEADER_SIZE + (ccz * chunks + ccx) * CHUNK_BYTES
-                    out[off:off + CHUNK_BYTES] = payload.tobytes()
+                    out[off : off + CHUNK_BYTES] = payload.tobytes()
             tile_idx += 1
             if progress:
                 progress(tile_idx * 100 // tile_total)
@@ -675,15 +748,34 @@ def world_type(text):
 
 def main():
     ap = argparse.ArgumentParser(description="Generate a Flipcraft world asset")
-    ap.add_argument("-o", "--out", default=DEFAULT_WORLD_NAME,
-                    help="output file name in assets/worlds, or an explicit path")
-    ap.add_argument("--chunks", type=int, default=16,
-                    help="world size in chunks per side: 16, 32, 64 or 128")
-    ap.add_argument("--seed", type=lambda s: int(s, 0), help="world seed; random if omitted")
-    ap.add_argument("--flags", type=lambda s: int(s, 0), default=0,
-                    help="header settings byte (plugin_api.h FlipcraftFlag*)")
-    ap.add_argument("--type", type=world_type, default=TYPE_NORMAL, dest="wtype",
-                    help="terrain preset: normal, flat, superflat or woods")
+    ap.add_argument(
+        "-o",
+        "--out",
+        default=DEFAULT_WORLD_NAME,
+        help="output file name in assets/worlds, or an explicit path",
+    )
+    ap.add_argument(
+        "--chunks",
+        type=int,
+        default=16,
+        help="world size in chunks per side: 16, 32, 64 or 128",
+    )
+    ap.add_argument(
+        "--seed", type=lambda s: int(s, 0), help="world seed; random if omitted"
+    )
+    ap.add_argument(
+        "--flags",
+        type=lambda s: int(s, 0),
+        default=0,
+        help="header settings byte (plugin_api.h FlipcraftFlag*)",
+    )
+    ap.add_argument(
+        "--type",
+        type=world_type,
+        default=TYPE_NORMAL,
+        dest="wtype",
+        help="terrain preset: normal, flat, superflat or woods",
+    )
     args = ap.parse_args()
 
     seed = (args.seed if args.seed is not None else secrets.randbits(32)) & MASK32
@@ -699,11 +791,15 @@ def main():
     out_path.write_bytes(data)
 
     name = next(k for k, v in TYPE_NAMES.items() if v == args.wtype)
-    print(f"Wrote {out_path}: {args.chunks}x{args.chunks} chunks "
-          f"({args.chunks * CHUNK} blocks per side), {len(data)} bytes")
-    print(f"terrain seed={seed} type={name} flags={args.flags} "
-          f"trees={stats['trees']} fallen={stats['fallen']} piles={stats['piles']} "
-          f"houses={stats['houses']}")
+    print(
+        f"Wrote {out_path}: {args.chunks}x{args.chunks} chunks "
+        f"({args.chunks * CHUNK} blocks per side), {len(data)} bytes"
+    )
+    print(
+        f"terrain seed={seed} type={name} flags={args.flags} "
+        f"trees={stats['trees']} fallen={stats['fallen']} piles={stats['piles']} "
+        f"houses={stats['houses']}"
+    )
 
 
 if __name__ == "__main__":

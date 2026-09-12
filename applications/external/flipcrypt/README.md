@@ -3,11 +3,13 @@
 FlipCrypt is a Flipper Zero app that provides a collection of classic cipher algorithms, cryptographic hash functions, and some text encoding methods to explore and learn about. You can emulate the result using NFC, generate a QR code, or save it to a .txt file on the Flipper.
 
 ## Ciphers
+- ADFGVX
 - AES-128
 - Affine
 - Atbash
 - Baconian
 - Beaufort
+- Bifid
 - Caesar
 - Playfair
 - Polybius Square
@@ -16,6 +18,7 @@ FlipCrypt is a Flipper Zero app that provides a collection of classic cipher alg
 - RC4
 - ROT-13
 - Scytale
+- Trifid
 - Vigenère
 
 ## Hashing Algorithms
@@ -33,6 +36,7 @@ FlipCrypt is a Flipper Zero app that provides a collection of classic cipher alg
 - XXHash64
 
 ## Other
+- Base16 (Hexadecimals)
 - Base32
 - Base58
 - Base64
@@ -64,4 +68,10 @@ Any licenses for the cipher / hash function implementations I included is at the
 
 ## 
 Feel free to leave a Github issue / PR with a feature you'd like to see.
+
+To add a cipher: 
+- Add the appropriate .c and .h files in `ciphers/`, `hashes/`, or `encoders/`
+- #include your new header file (`cipher_registry.c`)
+- Add appropriate encode and decode `CipherResult` functions (`cipher_registry.c`)
+- Add in an entry in `CipherDef kCiphers[]` (`cipher_registry.c`)
 ##

@@ -362,7 +362,6 @@ def check_version_parity():
     return True
 
 
-
 def check_sv_wire_format():
     """The SV line's field count, on both sides of the wire.
 
@@ -407,7 +406,9 @@ def check_sv_wire_format():
         return False
     parsed = int(m2.group(1))
     if emitted != parsed:
-        print("  FAIL SV: companion emits %d fields, parser splits %d" % (emitted, parsed))
+        print(
+            "  FAIL SV: companion emits %d fields, parser splits %d" % (emitted, parsed)
+        )
         print("       format: %s" % fmt)
         print("       Extend BOTH. The signature must stay LAST, because it is")
         print("       the only field allowed to contain commas.")
