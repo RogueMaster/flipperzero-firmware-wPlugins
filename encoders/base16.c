@@ -23,7 +23,14 @@ char* base16_encode(const char* input) {
     return hex_str;
 }
 
-char* base16_decode(const char* input) {
+#include "base16.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+char* base16_decode(const char* input, size_t* out_len) {
     if (input == NULL) return "no input provided";
 
     size_t len = strlen(input);
@@ -50,6 +57,10 @@ char* base16_decode(const char* input) {
     }
 
     decoded[len / 2] = '\0';
+
+    if (out_len != NULL) {
+        *out_len = len / 2;
+    }
 
     return decoded;
 }
