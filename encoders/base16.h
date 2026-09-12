@@ -1,3 +1,4 @@
 #pragma once
 
-char* string_to_base16(const char* input);
+char* base16_encode(const char* input);
+char* base16_decode(const char* input);
