@@ -28,13 +28,25 @@ void timeclock_scene_badge_detail_on_enter(void* context) {
         submenu_set_header(submenu, "Badge");
     }
     submenu_add_item(
-        submenu, "Rename", DetailRename, timeclock_scene_badge_detail_submenu_callback, app);
+        submenu, tc_str(StrRename), DetailRename, timeclock_scene_badge_detail_submenu_callback, app);
     submenu_add_item(
-        submenu, "Replace chip", DetailReplace, timeclock_scene_badge_detail_submenu_callback, app);
+        submenu,
+        tc_str(StrReplaceChip),
+        DetailReplace,
+        timeclock_scene_badge_detail_submenu_callback,
+        app);
     submenu_add_item(
-        submenu, "View history", DetailHistory, timeclock_scene_badge_detail_submenu_callback, app);
+        submenu,
+        tc_str(StrViewHistory),
+        DetailHistory,
+        timeclock_scene_badge_detail_submenu_callback,
+        app);
     submenu_add_item(
-        submenu, "Delete badge", DetailDelete, timeclock_scene_badge_detail_submenu_callback, app);
+        submenu,
+        tc_str(StrDeleteBadge),
+        DetailDelete,
+        timeclock_scene_badge_detail_submenu_callback,
+        app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewSubmenu);
 }

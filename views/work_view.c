@@ -14,6 +14,7 @@ typedef struct {
     char date[12];
     char time[12];
     char greeting[40];
+    char footer[24];
     bool has_greeting;
 } WorkViewModel;
 
@@ -37,7 +38,8 @@ static void work_view_draw_callback(Canvas* canvas, void* _model) {
 
     // Footer hint
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "PIN to exit");
+    canvas_draw_str_aligned(
+        canvas, 64, 62, AlignCenter, AlignBottom, model->footer[0] ? model->footer : "PIN to exit");
 }
 
 static bool work_view_input_callback(InputEvent* event, void* context) {
@@ -104,6 +106,18 @@ void work_view_set_greeting(WorkView* work_view, const char* greeting) {
                 model->greeting[0] = '\0';
                 model->has_greeting = false;
             }
+        },
+        true);
+}
+
+void work_view_set_footer(WorkView* work_view, const char* footer) {
+    furi_assert(work_view);
+    with_view_model(
+        work_view->view,
+        WorkViewModel * model,
+        {
+            strncpy(model->footer, footer ? footer : "", sizeof(model->footer) - 1);
+            model->footer[sizeof(model->footer) - 1] = '\0';
         },
         true);
 }

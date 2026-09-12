@@ -18,22 +18,20 @@ static void timeclock_scene_pin_set_callback(void* context) {
 }
 
 static void timeclock_scene_pin_set_setup(TimeClock* app, const char* message) {
-    const char* title = "PIN";
+    const char* title = tc_str(StrSetPin);
     switch(app->pin_mode) {
     case TcPinModeSetNew:
-        title = "Set PIN";
+        title = tc_str(StrSetPin);
         break;
     case TcPinModeConfirmNew:
-        title = "Confirm PIN";
+        title = tc_str(StrConfirmPin);
         break;
     case TcPinModeVerifyOld:
-        title = "Current PIN";
+        title = tc_str(StrCurrentPin);
         break;
     case TcPinModeVerifyExit:
-        title = "PIN to exit";
-        break;
     case TcPinModeVerifyExitWork:
-        title = "PIN to exit";
+        title = tc_str(StrPinToExit);
         break;
     default:
         break;
@@ -41,7 +39,7 @@ static void timeclock_scene_pin_set_setup(TimeClock* app, const char* message) {
 
     pin_view_reset(app->pin_view, title);
     pin_view_set_callback(app->pin_view, timeclock_scene_pin_set_callback, app);
-    if(message) pin_view_set_message(app->pin_view, message);
+    pin_view_set_message(app->pin_view, message ? message : tc_str(StrPinHint));
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewPin);
 }
 
@@ -93,7 +91,7 @@ bool timeclock_scene_pin_set_on_event(void* context, SceneManagerEvent event) {
                 timeclock_notify_error(app);
                 memset(app->pin_new, 0, sizeof(app->pin_new));
                 app->pin_mode = TcPinModeSetNew;
-                timeclock_scene_pin_set_setup(app, "Mismatch, retry");
+                timeclock_scene_pin_set_setup(app, tc_str(StrMismatch));
             }
             break;
 
@@ -122,7 +120,8 @@ bool timeclock_scene_pin_set_on_event(void* context, SceneManagerEvent event) {
                 snprintf(
                     pin_msg,
                     sizeof(pin_msg),
-                    "Wrong PIN %lu/%u",
+                    "%s %lu/%u",
+                    tc_str(StrWrongPin),
                     (unsigned long)app->config.attempts,
                     TC_MAX_PIN_ATTEMPTS);
                 timeclock_scene_pin_set_setup(app, pin_msg);
@@ -141,7 +140,8 @@ bool timeclock_scene_pin_set_on_event(void* context, SceneManagerEvent event) {
                 snprintf(
                     pin_msg,
                     sizeof(pin_msg),
-                    "Wrong PIN %lu/%u",
+                    "%s %lu/%u",
+                    tc_str(StrWrongPin),
                     (unsigned long)app->config.attempts,
                     TC_MAX_PIN_ATTEMPTS);
                 timeclock_scene_pin_set_setup(app, pin_msg);
@@ -162,7 +162,8 @@ bool timeclock_scene_pin_set_on_event(void* context, SceneManagerEvent event) {
                 snprintf(
                     pin_msg,
                     sizeof(pin_msg),
-                    "Wrong PIN %lu/%u",
+                    "%s %lu/%u",
+                    tc_str(StrWrongPin),
                     (unsigned long)app->config.attempts,
                     TC_MAX_PIN_ATTEMPTS);
                 timeclock_scene_pin_set_setup(app, pin_msg);

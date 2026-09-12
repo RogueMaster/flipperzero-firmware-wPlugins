@@ -62,6 +62,8 @@ Flipper-style mockups of the main screens (128x64):
 - **Protected mode (PIN)**: optional 4-step **arrow-sequence** code (Up / Down /
   Left / Right - fast to enter) that gates leaving the app; you are offered to
   set it on first launch, or later in Settings.
+- **Languages**: English, Italian, Spanish, French, German - selectable in
+  Settings (the official firmware exposes no system language to auto-detect).
 
 See [ROADMAP](#roadmap) for v1.1 / v2.0 ideas.
 

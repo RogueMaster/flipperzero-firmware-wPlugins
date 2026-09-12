@@ -46,7 +46,11 @@ void timeclock_scene_week_on_enter(void* context) {
     }
 
     furi_string_cat_printf(
-        s, "\nWeek total: %02lu:%02lu", (unsigned long)(total / 60), (unsigned long)(total % 60));
+        s,
+        "\n%s: %02lu:%02lu",
+        tc_str(StrWeekTotal),
+        (unsigned long)(total / 60),
+        (unsigned long)(total % 60));
 
     TextBox* text_box = app->text_box;
     text_box_reset(text_box);

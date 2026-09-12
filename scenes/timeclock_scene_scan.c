@@ -63,11 +63,14 @@ static void timeclock_scene_scan_on_uid(const char* uid_hex, const char* tech, v
     if(app->scan_purpose == TcScanReplace) {
         int tgt = app->replace_index;
         if(tgt < 0) {
-            timeclock_scene_scan_result(app, ctx, "Chip", "Nothing selected", TimeClockSceneMenu);
+            timeclock_scene_scan_result(
+                app, ctx, tc_str(StrChip), tc_str(StrUnknownBadge), TimeClockSceneMenu);
         } else if(found >= 0 && found != tgt) {
             timeclock_notify_error(app);
-            snprintf(scan_msg, sizeof(scan_msg), "Chip already\nused by %s", app->badges[found].name);
-            timeclock_scene_scan_result(app, ctx, "Chip", scan_msg, TimeClockSceneBadgeDetail);
+            snprintf(
+                scan_msg, sizeof(scan_msg), "%s\n%s", tc_str(StrChipUsed), app->badges[found].name);
+            timeclock_scene_scan_result(
+                app, ctx, tc_str(StrChip), scan_msg, TimeClockSceneBadgeDetail);
         } else {
             Badge* b = &app->badges[tgt];
             strncpy(b->uid, app->scanned_uid, TC_UID_STR_MAX - 1);
@@ -76,8 +79,9 @@ static void timeclock_scene_scan_on_uid(const char* uid_hex, const char* tech, v
             b->tech[TC_TECH_MAX - 1] = '\0';
             tc_badges_save(app->badges, app->badge_count);
             timeclock_notify_success(app);
-            snprintf(scan_msg, sizeof(scan_msg), "New chip set\nfor %s", b->name);
-            timeclock_scene_scan_result(app, ctx, "Chip", scan_msg, TimeClockSceneBadgeDetail);
+            snprintf(scan_msg, sizeof(scan_msg), "%s\n%s", tc_str(StrChipSet), b->name);
+            timeclock_scene_scan_result(
+                app, ctx, tc_str(StrChip), scan_msg, TimeClockSceneBadgeDetail);
         }
         app->replace_index = -1;
         return;
@@ -86,8 +90,10 @@ static void timeclock_scene_scan_on_uid(const char* uid_hex, const char* tech, v
     if(app->scan_purpose == TcScanRegister) {
         if(found >= 0) {
             timeclock_notify_error(app);
-            snprintf(scan_msg, sizeof(scan_msg), "Already yours:\n%s", app->badges[found].name);
-            timeclock_scene_scan_result(app, ctx, "Badge", scan_msg, TimeClockSceneBadgeList);
+            snprintf(
+                scan_msg, sizeof(scan_msg), "%s\n%s", tc_str(StrAlreadyReg), app->badges[found].name);
+            timeclock_scene_scan_result(
+                app, ctx, tc_str(StrBadge), scan_msg, TimeClockSceneBadgeList);
         } else {
             // New chip: go straight to name entry (no punch).
             scene_manager_set_scene_state(app->scene_manager, TimeClockSceneNameInput, 0);
@@ -102,12 +108,18 @@ static void timeclock_scene_scan_on_uid(const char* uid_hex, const char* tech, v
         char t[8];
         tc_now_time(t, sizeof(t));
         snprintf(
-            scan_msg, sizeof(scan_msg), "%s\n%s at %s", app->badges[found].name, tc_event_str(type), t);
-        timeclock_scene_scan_result(app, ctx, "Saved", scan_msg, TimeClockSceneMenu);
+            scan_msg,
+            sizeof(scan_msg),
+            "%s\n%s at %s",
+            app->badges[found].name,
+            tc_event_str(type),
+            t);
+        timeclock_scene_scan_result(app, ctx, tc_str(StrSaved), scan_msg, TimeClockSceneMenu);
     } else {
         timeclock_notify_error(app);
-        snprintf(scan_msg, sizeof(scan_msg), "Badge not\nregistered");
-        timeclock_scene_scan_result(app, ctx, "Unknown badge", scan_msg, TimeClockSceneMenu);
+        snprintf(scan_msg, sizeof(scan_msg), "%s", tc_str(StrNotRegistered));
+        timeclock_scene_scan_result(
+            app, ctx, tc_str(StrUnknownBadge), scan_msg, TimeClockSceneMenu);
     }
 }
 
@@ -123,14 +135,14 @@ void timeclock_scene_scan_on_enter(void* context) {
     const char* header;
     const char* text;
     if(app->scan_purpose == TcScanReplace) {
-        header = "New chip";
-        text = "Tap the new chip\nfor this person";
+        header = tc_str(StrNewChip);
+        text = tc_str(StrTapNewChip);
     } else if(app->scan_purpose == TcScanRegister) {
-        header = "New badge";
-        text = "Tap the chip\nto register";
+        header = tc_str(StrNewBadge);
+        text = tc_str(StrTapRegister);
     } else {
-        header = app->config.use_lf ? "Reading RFID" : "Reading NFC";
-        text = "Hold the badge\nnear the Flipper";
+        header = app->config.use_lf ? tc_str(StrReadingRfid) : tc_str(StrReadingNfc);
+        text = tc_str(StrHoldBadge);
     }
 
     Popup* popup = app->popup;

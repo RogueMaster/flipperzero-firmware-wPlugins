@@ -8,32 +8,9 @@
 void timeclock_scene_about_on_enter(void* context) {
     TimeClock* app = context;
 
-    furi_string_set(
-        app->text_store,
-        "Time Clock\n"
-        "Staff time-clock for Flipper Zero.\n"
-        "\n"
-        "How it works:\n"
-        "- Badges: register a person on a\n"
-        "  blank chip (name only).\n"
-        "- Punch: tap the chip. It logs IN,\n"
-        "  then OUT, then IN... automatically.\n"
-        "- Work mode: kiosk clock; greets\n"
-        "  Welcome/Goodbye. Exit needs PIN.\n"
-        "- PIN: a fast 4-arrow sequence\n"
-        "  (set at first launch or Settings).\n"
-        "- Today / This week: worked time\n"
-        "  and breaks.\n"
-        "- Export: CSV/JSON on the SD card.\n"
-        "- A person is tied to the chip UID;\n"
-        "  lost chip -> Badges > Replace chip.\n"
-        "\n"
-        "Only the chip UID is read - no\n"
-        "writing, no emulation.\n"
-        "\n"
-        "Copyright (C) 2026 Vladyslav\n"
-        "Pereverzyev\n"
-        "License: GPL-3.0-or-later\n");
+    furi_string_set(app->text_store, tc_str(StrAboutText));
+    furi_string_cat_str(
+        app->text_store, "\nCopyright (C) 2026 Vladyslav Pereverzyev\nGPL-3.0-or-later\n");
 
     TextBox* text_box = app->text_box;
     text_box_reset(text_box);

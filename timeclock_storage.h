@@ -53,6 +53,7 @@ typedef struct {
     uint32_t pin_salt; // random salt used for the hash
     uint32_t attempts; // consecutive wrong PIN attempts
     bool onboarded; // first-launch onboarding already shown
+    uint32_t language; // UI language index (see TcLang)
 } TcConfig;
 
 // ---- File paths ------------------------------------------------------------

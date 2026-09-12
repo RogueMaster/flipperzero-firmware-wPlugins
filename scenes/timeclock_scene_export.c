@@ -44,13 +44,13 @@ static void timeclock_scene_export_button_callback(
 static void timeclock_scene_export_show_menu(TimeClock* app) {
     Submenu* submenu = app->submenu;
     submenu_reset(submenu);
-    submenu_set_header(submenu, "Export");
+    submenu_set_header(submenu, tc_str(StrExport));
     submenu_add_item(
-        submenu, "Export CSV", ExportCsv, timeclock_scene_export_submenu_callback, app);
+        submenu, tc_str(StrExportCsv), ExportCsv, timeclock_scene_export_submenu_callback, app);
     submenu_add_item(
-        submenu, "Export JSON", ExportJson, timeclock_scene_export_submenu_callback, app);
+        submenu, tc_str(StrExportJson), ExportJson, timeclock_scene_export_submenu_callback, app);
     submenu_add_item(
-        submenu, "Clear history", ExportClear, timeclock_scene_export_submenu_callback, app);
+        submenu, tc_str(StrClearHistory), ExportClear, timeclock_scene_export_submenu_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewSubmenu);
 }
 
@@ -81,7 +81,7 @@ bool timeclock_scene_export_on_event(void* context, SceneManagerEvent event) {
         case ExportCsv:
             snprintf(
                 export_msg, sizeof(export_msg), "CSV file:\napps_data/timeclock/punches.csv");
-            timeclock_scene_export_show_popup(app, "Export CSV");
+            timeclock_scene_export_show_popup(app, tc_str(StrExportCsv));
             break;
         case ExportJson:
             if(tc_history_export_json()) {
@@ -89,10 +89,10 @@ bool timeclock_scene_export_on_event(void* context, SceneManagerEvent event) {
                     export_msg,
                     sizeof(export_msg),
                     "Saved:\napps_data/timeclock/export.json");
-                timeclock_scene_export_show_popup(app, "Export JSON");
+                timeclock_scene_export_show_popup(app, tc_str(StrExportJson));
             } else {
-                snprintf(export_msg, sizeof(export_msg), "Nothing to export");
-                timeclock_scene_export_show_popup(app, "Export JSON");
+                snprintf(export_msg, sizeof(export_msg), "%s", tc_str(StrNothingExport));
+                timeclock_scene_export_show_popup(app, tc_str(StrExportJson));
             }
             break;
         case ExportClear: {
@@ -100,24 +100,26 @@ bool timeclock_scene_export_on_event(void* context, SceneManagerEvent event) {
             Widget* widget = app->widget;
             widget_reset(widget);
             widget_add_string_multiline_element(
+                widget, 64, 14, AlignCenter, AlignTop, FontSecondary, tc_str(StrClearConfirm));
+            widget_add_button_element(
                 widget,
-                64,
-                14,
-                AlignCenter,
-                AlignTop,
-                FontSecondary,
-                "Clear all history?\nThis cannot be undone.");
+                GuiButtonTypeLeft,
+                tc_str(StrNo),
+                timeclock_scene_export_button_callback,
+                app);
             widget_add_button_element(
-                widget, GuiButtonTypeLeft, "No", timeclock_scene_export_button_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Yes", timeclock_scene_export_button_callback, app);
+                widget,
+                GuiButtonTypeRight,
+                tc_str(StrYes),
+                timeclock_scene_export_button_callback,
+                app);
             view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWidget);
             break;
         }
         case CLEAR_YES:
             tc_history_clear();
-            snprintf(export_msg, sizeof(export_msg), "History cleared");
-            timeclock_scene_export_show_popup(app, "Done");
+            snprintf(export_msg, sizeof(export_msg), "%s", tc_str(StrHistoryCleared));
+            timeclock_scene_export_show_popup(app, tc_str(StrDone));
             break;
         case CLEAR_NO:
             timeclock_scene_export_show_menu(app);

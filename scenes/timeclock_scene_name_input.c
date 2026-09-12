@@ -29,7 +29,7 @@ void timeclock_scene_name_input_on_enter(void* context) {
     }
 
     text_input_reset(text_input);
-    text_input_set_header_text(text_input, "Badge name");
+    text_input_set_header_text(text_input, tc_str(StrBadgeName));
     text_input_set_result_callback(
         text_input,
         timeclock_scene_name_input_callback,

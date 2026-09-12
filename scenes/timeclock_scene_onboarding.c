@@ -8,6 +8,7 @@
 
 #define ONB_SKIP 270u
 #define ONB_SETPIN 271u
+#define ONB_DONE 272u
 
 static void timeclock_scene_onboarding_button_callback(
     GuiButtonType result,
@@ -25,9 +26,10 @@ static void timeclock_scene_onboarding_button_callback(
 void timeclock_scene_onboarding_on_enter(void* context) {
     TimeClock* app = context;
 
-    // If the PIN was just set during onboarding, we're done: go to the menu.
+    // If the PIN was just set during onboarding, we're done: pop to the menu.
+    // Defer via a custom event (do not manipulate the stack inside on_enter).
     if(app->config.pin_enabled) {
-        scene_manager_previous_scene(app->scene_manager);
+        view_dispatcher_send_custom_event(app->view_dispatcher, ONB_DONE);
         return;
     }
 
@@ -35,17 +37,15 @@ void timeclock_scene_onboarding_on_enter(void* context) {
     widget_reset(widget);
     widget_add_string_element(widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "Time Clock");
     widget_add_string_multiline_element(
+        widget, 64, 20, AlignCenter, AlignTop, FontSecondary, tc_str(StrOnbText));
+    widget_add_button_element(
+        widget, GuiButtonTypeLeft, tc_str(StrSkip), timeclock_scene_onboarding_button_callback, app);
+    widget_add_button_element(
         widget,
-        64,
-        20,
-        AlignCenter,
-        AlignTop,
-        FontSecondary,
-        "Set an arrow PIN to protect\nthe app: nobody leaves Work\nmode or the app without it.\nYou can also set it later\nin Settings.");
-    widget_add_button_element(
-        widget, GuiButtonTypeLeft, "Skip", timeclock_scene_onboarding_button_callback, app);
-    widget_add_button_element(
-        widget, GuiButtonTypeRight, "Set PIN", timeclock_scene_onboarding_button_callback, app);
+        GuiButtonTypeRight,
+        tc_str(StrSetPin),
+        timeclock_scene_onboarding_button_callback,
+        app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWidget);
 }
@@ -65,6 +65,9 @@ bool timeclock_scene_onboarding_on_event(void* context, SceneManagerEvent event)
             tc_config_save(&app->config);
             app->pin_mode = TcPinModeSetNew;
             scene_manager_next_scene(app->scene_manager, TimeClockScenePinSet);
+            consumed = true;
+        } else if(event.event == ONB_DONE) {
+            scene_manager_previous_scene(app->scene_manager); // -> menu
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {

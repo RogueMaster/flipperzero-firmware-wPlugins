@@ -3,25 +3,25 @@
 
 #include "../timeclock.h"
 
-// Settings: toggle auto mode and reader type, manage the PIN, and exit the app
-// (protected by the PIN when one is set).
+// Settings: reader type, sound/vibro/LED, language, PIN management and exit.
 
 typedef enum {
-    ActionAuto = 0,
-    ActionReader = 1,
-    ActionSound = 2,
-    ActionVibro = 3,
-    ActionLed = 4,
-    ActionSetPin = 5,
-    ActionChangePin = 6,
-    ActionDisablePin = 7,
-    ActionExit = 8,
+    ActionReader = 0,
+    ActionSound,
+    ActionVibro,
+    ActionLed,
+    ActionLanguage,
+    ActionSetPin,
+    ActionChangePin,
+    ActionDisablePin,
+    ActionExit,
 } SettingsAction;
 
-static char reader_lbl[24];
-static char sound_lbl[24];
-static char vibro_lbl[24];
-static char led_lbl[24];
+static char reader_lbl[28];
+static char sound_lbl[28];
+static char vibro_lbl[28];
+static char led_lbl[28];
+static char lang_lbl[28];
 
 static void timeclock_scene_settings_submenu_callback(void* context, uint32_t index) {
     TimeClock* app = context;
@@ -31,12 +31,23 @@ static void timeclock_scene_settings_submenu_callback(void* context, uint32_t in
 static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
     Submenu* submenu = app->submenu;
     submenu_reset(submenu);
-    submenu_set_header(submenu, "Settings");
+    submenu_set_header(submenu, tc_str(StrSettings));
 
-    snprintf(reader_lbl, sizeof(reader_lbl), "Reader: %s", app->config.use_lf ? "RFID" : "NFC");
-    snprintf(sound_lbl, sizeof(sound_lbl), "Sound: %s", app->config.sound_enabled ? "On" : "Off");
-    snprintf(vibro_lbl, sizeof(vibro_lbl), "Vibro: %s", app->config.vibro_enabled ? "On" : "Off");
-    snprintf(led_lbl, sizeof(led_lbl), "LED: %s", app->config.led_enabled ? "On" : "Off");
+    const char* on = tc_str(StrOn);
+    const char* off = tc_str(StrOff);
+    snprintf(
+        reader_lbl, sizeof(reader_lbl), "%s: %s", tc_str(StrReader), app->config.use_lf ? "RFID" : "NFC");
+    snprintf(
+        sound_lbl, sizeof(sound_lbl), "%s: %s", tc_str(StrSound), app->config.sound_enabled ? on : off);
+    snprintf(
+        vibro_lbl, sizeof(vibro_lbl), "%s: %s", tc_str(StrVibro), app->config.vibro_enabled ? on : off);
+    snprintf(led_lbl, sizeof(led_lbl), "%s: %s", tc_str(StrLed), app->config.led_enabled ? on : off);
+    snprintf(
+        lang_lbl,
+        sizeof(lang_lbl),
+        "%s: %s",
+        tc_str(StrLanguage),
+        tc_lang_name((TcLang)app->config.language));
 
     submenu_add_item(
         submenu, reader_lbl, ActionReader, timeclock_scene_settings_submenu_callback, app);
@@ -44,29 +55,30 @@ static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
         submenu, sound_lbl, ActionSound, timeclock_scene_settings_submenu_callback, app);
     submenu_add_item(
         submenu, vibro_lbl, ActionVibro, timeclock_scene_settings_submenu_callback, app);
+    submenu_add_item(submenu, led_lbl, ActionLed, timeclock_scene_settings_submenu_callback, app);
     submenu_add_item(
-        submenu, led_lbl, ActionLed, timeclock_scene_settings_submenu_callback, app);
+        submenu, lang_lbl, ActionLanguage, timeclock_scene_settings_submenu_callback, app);
 
     if(!app->config.pin_enabled) {
         submenu_add_item(
-            submenu, "Set PIN", ActionSetPin, timeclock_scene_settings_submenu_callback, app);
+            submenu, tc_str(StrSetPin), ActionSetPin, timeclock_scene_settings_submenu_callback, app);
     } else {
         submenu_add_item(
             submenu,
-            "Change PIN",
+            tc_str(StrChangePin),
             ActionChangePin,
             timeclock_scene_settings_submenu_callback,
             app);
         submenu_add_item(
             submenu,
-            "Disable PIN",
+            tc_str(StrDisablePin),
             ActionDisablePin,
             timeclock_scene_settings_submenu_callback,
             app);
     }
 
     submenu_add_item(
-        submenu, "Exit app", ActionExit, timeclock_scene_settings_submenu_callback, app);
+        submenu, tc_str(StrExitApp), ActionExit, timeclock_scene_settings_submenu_callback, app);
 
     submenu_set_selected_item(submenu, sel_pos);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewSubmenu);
@@ -103,6 +115,12 @@ bool timeclock_scene_settings_on_event(void* context, SceneManagerEvent event) {
             app->config.led_enabled = !app->config.led_enabled;
             tc_config_save(&app->config);
             timeclock_scene_settings_build(app, 3);
+            break;
+        case ActionLanguage:
+            app->config.language = (app->config.language + 1) % TcLangCount;
+            tc_lang_set((TcLang)app->config.language);
+            tc_config_save(&app->config);
+            timeclock_scene_settings_build(app, 4);
             break;
         case ActionSetPin:
             app->pin_mode = TcPinModeSetNew;

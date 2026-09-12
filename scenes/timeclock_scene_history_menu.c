@@ -17,10 +17,11 @@ void timeclock_scene_history_menu_on_enter(void* context) {
     Submenu* submenu = app->submenu;
 
     submenu_reset(submenu);
-    submenu_set_header(submenu, "History");
-    submenu_add_item(submenu, "All", 0, timeclock_scene_history_menu_submenu_callback, app);
-    submenu_add_item(submenu, "Today", 2, timeclock_scene_history_menu_submenu_callback, app);
-    submenu_add_item(submenu, "This week", 3, timeclock_scene_history_menu_submenu_callback, app);
+    submenu_set_header(submenu, tc_str(StrHistory));
+    submenu_add_item(submenu, tc_str(StrAll), 0, timeclock_scene_history_menu_submenu_callback, app);
+    submenu_add_item(submenu, tc_str(StrToday), 2, timeclock_scene_history_menu_submenu_callback, app);
+    submenu_add_item(
+        submenu, tc_str(StrThisWeek), 3, timeclock_scene_history_menu_submenu_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewSubmenu);
 }

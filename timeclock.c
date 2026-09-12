@@ -205,6 +205,7 @@ static TimeClock* timeclock_app_alloc(void) {
     // Persistence
     tc_storage_init();
     tc_config_load(&app->config);
+    tc_lang_set((TcLang)app->config.language);
     timeclock_reload_badges(app);
 
     return app;

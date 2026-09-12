@@ -30,7 +30,7 @@ void timeclock_scene_confirm_delete_on_enter(void* context) {
 
     widget_reset(widget);
     widget_add_string_element(
-        widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "Delete badge?");
+        widget, 64, 6, AlignCenter, AlignTop, FontPrimary, tc_str(StrDeleteQ));
 
     if(app->selected_index >= 0) {
         Badge* b = &app->badges[app->selected_index];
@@ -42,9 +42,17 @@ void timeclock_scene_confirm_delete_on_enter(void* context) {
         widget, 64, 26, AlignCenter, AlignTop, FontSecondary, detail_line);
 
     widget_add_button_element(
-        widget, GuiButtonTypeLeft, "No", timeclock_scene_confirm_delete_button_callback, app);
+        widget,
+        GuiButtonTypeLeft,
+        tc_str(StrNo),
+        timeclock_scene_confirm_delete_button_callback,
+        app);
     widget_add_button_element(
-        widget, GuiButtonTypeRight, "Yes", timeclock_scene_confirm_delete_button_callback, app);
+        widget,
+        GuiButtonTypeRight,
+        tc_str(StrYes),
+        timeclock_scene_confirm_delete_button_callback,
+        app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWidget);
 }

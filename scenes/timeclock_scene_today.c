@@ -41,11 +41,15 @@ void timeclock_scene_today_on_enter(void* context) {
 
     furi_string_cat_printf(
         app->text_store,
-        "\nFirst in: %s\nLast out: %s\nTotal: %02lu:%02lu\nBreak: %02lu:%02lu\n",
+        "\n%s: %s\n%s: %s\n%s: %02lu:%02lu\n%s: %02lu:%02lu\n",
+        tc_str(StrFirstIn),
         first_in[0] ? first_in : "-",
+        tc_str(StrLastOut),
         last_out[0] ? last_out : "-",
+        tc_str(StrTotal),
         (unsigned long)h,
         (unsigned long)m,
+        tc_str(StrBreak),
         (unsigned long)(brk / 60),
         (unsigned long)(brk % 60));
 

@@ -43,17 +43,17 @@ static void work_on_uid(const char* uid_hex, const char* tech, void* context) {
     ctx->last_uid[sizeof(ctx->last_uid) - 1] = '\0';
 
     int idx = timeclock_find_badge(app, uid_hex);
-    char msg[40];
+    char msg[56];
     if(idx >= 0) {
         TcEventType type = timeclock_record_punch(app, idx);
         snprintf(
             msg,
             sizeof(msg),
             "%s, %s",
-            (type == TcEventIn) ? "Welcome" : "Goodbye",
+            (type == TcEventIn) ? tc_str(StrWelcome) : tc_str(StrGoodbye),
             app->badges[idx].name);
     } else {
-        snprintf(msg, sizeof(msg), "Not registered");
+        snprintf(msg, sizeof(msg), "%s", tc_str(StrUnknownBadge));
         timeclock_notify_error(app);
     }
     work_view_set_greeting(app->work_view, msg);
@@ -89,11 +89,10 @@ void timeclock_scene_work_on_enter(void* context) {
         if(app->badge_count == 0 || !app->config.pin_enabled) {
             Popup* popup = app->popup;
             popup_reset(popup);
-            popup_set_header(popup, "Work mode", 64, 8, AlignCenter, AlignTop);
+            popup_set_header(popup, tc_str(StrWorkMode), 64, 8, AlignCenter, AlignTop);
             popup_set_text(
                 popup,
-                app->badge_count == 0 ? "Register a\ncollaborator first" :
-                                        "Set a PIN first\n(Settings)",
+                app->badge_count == 0 ? tc_str(StrRegisterFirst) : tc_str(StrSetPinFirst),
                 64,
                 30,
                 AlignCenter,
@@ -116,6 +115,7 @@ void timeclock_scene_work_on_enter(void* context) {
     }
 
     work_view_set_exit_callback(app->work_view, work_view_exit_cb, app);
+    work_view_set_footer(app->work_view, tc_str(StrPinToExit));
     work_view_set_greeting(app->work_view, NULL);
     work_update_clock(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWork);

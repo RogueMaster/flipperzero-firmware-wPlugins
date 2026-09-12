@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Vladyslav Pereverzyev
 
 #include "timeclock_storage.h"
+#include "timeclock_i18n.h"
 
 #include <furi_hal_rtc.h>
 #include <toolbox/stream/stream.h>
@@ -138,6 +139,7 @@ void tc_config_load(TcConfig* config) {
     config->pin_salt = 0;
     config->attempts = 0;
     config->onboarded = false;
+    config->language = 0;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     Stream* stream = file_stream_alloc(storage);
@@ -167,6 +169,8 @@ void tc_config_load(TcConfig* config) {
                 config->attempts = (uint32_t)v;
             } else if(sscanf(s, "onboarded=%lu", &v) == 1) {
                 config->onboarded = v != 0;
+            } else if(sscanf(s, "language=%lu", &v) == 1) {
+                config->language = (uint32_t)v;
             }
         }
         furi_string_free(line);
@@ -190,6 +194,7 @@ void tc_config_save(const TcConfig* config) {
         stream_write_format(stream, "pin_salt=%lu\n", (unsigned long)config->pin_salt);
         stream_write_format(stream, "attempts=%lu\n", (unsigned long)config->attempts);
         stream_write_format(stream, "onboarded=%u\n", config->onboarded ? 1 : 0);
+        stream_write_format(stream, "language=%lu\n", (unsigned long)config->language);
     }
     file_stream_close(stream);
     stream_free(stream);
@@ -340,7 +345,7 @@ void tc_history_read_range(
     furi_record_close(RECORD_STORAGE);
 
     if(shown == 0) {
-        furi_string_set(out, "No punches yet.");
+        furi_string_set(out, tc_str(StrNoPunches));
     }
 }
 

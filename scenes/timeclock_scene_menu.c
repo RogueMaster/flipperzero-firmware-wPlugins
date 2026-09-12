@@ -27,23 +27,23 @@ void timeclock_scene_menu_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "Time Clock");
     submenu_add_item(
-        submenu, "Punch", MenuIndexPunch, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrPunch), MenuIndexPunch, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, "Work mode", MenuIndexWork, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrWorkMode), MenuIndexWork, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, "Badges", MenuIndexBadges, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrBadges), MenuIndexBadges, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, "History", MenuIndexHistory, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrHistory), MenuIndexHistory, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, "Today", MenuIndexToday, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrToday), MenuIndexToday, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, "This week", MenuIndexWeek, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrThisWeek), MenuIndexWeek, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, "Export", MenuIndexExport, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrExport), MenuIndexExport, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, "Settings", MenuIndexSettings, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrSettings), MenuIndexSettings, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, "About", MenuIndexAbout, timeclock_scene_menu_submenu_callback, app);
+        submenu, tc_str(StrAbout), MenuIndexAbout, timeclock_scene_menu_submenu_callback, app);
 
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, TimeClockSceneMenu));

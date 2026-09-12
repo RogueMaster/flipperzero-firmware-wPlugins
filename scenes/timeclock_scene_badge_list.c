@@ -15,7 +15,7 @@ void timeclock_scene_badge_list_on_enter(void* context) {
     Submenu* submenu = app->submenu;
 
     submenu_reset(submenu);
-    submenu_set_header(submenu, "Badges");
+    submenu_set_header(submenu, tc_str(StrBadges));
 
     for(size_t i = 0; i < app->badge_count; i++) {
         submenu_add_item(
@@ -28,7 +28,7 @@ void timeclock_scene_badge_list_on_enter(void* context) {
     // "New badge" uses the index just past the last badge.
     submenu_add_item(
         submenu,
-        "+ New badge",
+        tc_str(StrNewBadgeItem),
         (uint32_t)app->badge_count,
         timeclock_scene_badge_list_submenu_callback,
         app);

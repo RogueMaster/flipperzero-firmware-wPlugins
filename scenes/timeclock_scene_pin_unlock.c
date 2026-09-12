@@ -14,7 +14,7 @@ static void timeclock_scene_pin_unlock_callback(void* context) {
 }
 
 static void timeclock_scene_pin_unlock_setup(TimeClock* app, const char* message) {
-    pin_view_reset(app->pin_view, "Enter PIN");
+    pin_view_reset(app->pin_view, tc_str(StrEnterPin));
     pin_view_set_callback(app->pin_view, timeclock_scene_pin_unlock_callback, app);
     if(message) {
         pin_view_set_message(app->pin_view, message);
@@ -22,10 +22,13 @@ static void timeclock_scene_pin_unlock_setup(TimeClock* app, const char* message
         snprintf(
             unlock_msg,
             sizeof(unlock_msg),
-            "Attempts %lu/%u",
+            "%s %lu/%u",
+            tc_str(StrAttempts),
             (unsigned long)app->config.attempts,
             TC_MAX_PIN_ATTEMPTS);
         pin_view_set_message(app->pin_view, unlock_msg);
+    } else {
+        pin_view_set_message(app->pin_view, tc_str(StrPinHint));
     }
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewPin);
 }
@@ -59,7 +62,8 @@ bool timeclock_scene_pin_unlock_on_event(void* context, SceneManagerEvent event)
             snprintf(
                 unlock_msg,
                 sizeof(unlock_msg),
-                "Wrong PIN %lu/%u",
+                "%s %lu/%u",
+                tc_str(StrWrongPin),
                 (unsigned long)app->config.attempts,
                 TC_MAX_PIN_ATTEMPTS);
 
