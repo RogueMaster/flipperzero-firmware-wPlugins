@@ -431,6 +431,15 @@ int main(void) {
                 app.score_mode = app.help_idx = app.test_btn = (int8_t)cur;
                 app.ch_idx = app.ch_scroll = app.rule_sel = app.rule_scroll = (uint8_t)cur;
                 app.stat_scroll = (uint8_t)(cur % BB_STAT_ROWS);
+                /* the widest the stats screen ever gets: the longest mode
+                   name and the longest assist name, both against a label
+                   that has to say which kind of favourite it is */
+                app.stats.by_mode[BbModeChallenge] = 99;
+                app.stats.by_assist[BbAssistArrows] = 99;
+                app.stats.play_ms = 359999000u;
+                app.stats.runs = app.stats.notes = app.stats.rounds = BB_SCORE_MAX;
+                app.stats.best_ever = BB_SCORE_MAX;
+                app.stats.longest = 255;
                 app.tbl_assist = (uint8_t)(cur % BB_ASSIST_COUNT);
                 app.tbl_scroll = (uint8_t)(cur % BB_RULE_COUNT);
                 app.score_mode = (uint8_t)(cur % BB_MODE_COUNT);

@@ -344,27 +344,15 @@ static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
 }
 
 /* seven rules do not fit, so show where you are */
-static void bb_scrollbar_at(
-    Canvas* c,
-    int32_t x,
-    int32_t top,
-    int32_t track,
-    uint8_t vis,
-    uint8_t n,
-    uint8_t scroll) {
+static void
+    bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n, uint8_t scroll) {
     if(n > vis && scroll > n - vis) scroll = (uint8_t)(n - vis);
-    canvas_draw_frame(c, x, top, 4, (size_t)track);
+    canvas_draw_frame(c, 122, top, 4, (size_t)track);
     int32_t thumb = track * vis / n;
     if(thumb < 6) thumb = 6;
     int32_t room = track - thumb;
     int32_t y = top + (n > vis ? room * scroll / (n - vis) : 0);
-    canvas_draw_box(c, x + 1, y + 1, 2, (size_t)(thumb - 2));
-}
-
-/* the usual place, hard against the right edge */
-static void
-    bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n, uint8_t scroll) {
-    bb_scrollbar_at(c, 122, top, track, vis, n, scroll);
+    canvas_draw_box(c, 123, y + 1, 2, (size_t)(thumb - 2));
 }
 
 /* h:mm for anything over an hour, m:ss below it, so the number always
@@ -436,13 +424,13 @@ static void bb_stat_row(
            strcpy at -Os, and a .fap may only call what the firmware
            exports, which strcpy is not */
         int8_t f = bb_favourite(st->by_mode, BB_MODE_COUNT);
-        *label = "MODE";
+        *label = "FAV MODE";
         *value = f < 0 ? "-" : bb_mode_name[f];
         break;
     }
     default: {
         int8_t f = bb_favourite(st->by_assist, BB_ASSIST_COUNT);
-        *label = "ASSIST";
+        *label = "FAV ASSIST";
         *value = f < 0 ? "-" : bb_assist_name[f];
         break;
     }
@@ -465,9 +453,13 @@ static void bb_draw_stats(Canvas* c, const BeepbackApp* app) {
         int32_t y = 18 + i * 10;
         bb_stat_row(app, (uint8_t)(top + i), &label, &value, buf, sizeof(buf));
         bb_str(c, 11, y, AlignLeft, AlignCenter, label);
-        bb_str(c, 106, y, AlignRight, AlignCenter, value ? value : buf);
+        bb_str(c, 116, y, AlignRight, AlignCenter, value ? value : buf);
     }
-    bb_scrollbar_at(c, 110, 14, VIS * 10, VIS, BB_STAT_ROWS, top);
+    /* Up and down where the list goes, rather than a scrollbar: the bar
+       wanted the same strip of screen as the arrow to the next screen,
+       and "FAV MODE" beside "CHALLENGE" wanted the rest of it. */
+    if(top > 0) bb_chev_u(c, 123, 17);
+    if(top + VIS < BB_STAT_ROWS) bb_chev_d(c, 123, 59);
 }
 
 /* A number in a table cell. A record nobody has set yet is a dash and not

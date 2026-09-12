@@ -148,5 +148,9 @@ int main(int argc, char** argv) {
     app.scene = BbSceneStats;
     frame("ss5");
 
+    /* 6: the bottom of the stats list, where the favourites are */
+    app.stat_scroll = BB_STAT_ROWS;
+    frame("ss6");
+
     return 0;
 }
