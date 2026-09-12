@@ -79,3 +79,9 @@ hardware leaves through plain fields — so it runs on a host machine under a
 test suite of 253 checks in `test/`, which includes a fake canvas that fails
 the build if any screen draws outside 128x64, if a string is wider than the
 screen, or if one string is drawn through another.
+
+# Reviewer Checklist (Don't fill this out, and don't remove it from the template)
+
+- [ ] Bundle is valid
+- [ ] There are no obvious issues with the source code
+- [ ] I've ran this application and verified its functionality
