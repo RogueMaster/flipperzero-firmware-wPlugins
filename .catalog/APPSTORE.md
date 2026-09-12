@@ -28,7 +28,7 @@ Cities are saved to the SD card and reloaded from the Save/Load menu, so a city 
 - **Arrows** - move the tile cursor; the view scrolls to follow it
 - **OK** - build with the selected tool, or confirm a menu choice
 - **Back short** - open the toolbar, or back out of a menu
-- **Back long** - quit to the Flipper menu
+- **Back long** - leave the city and return to the title menu; press and hold again there to quit the app
 
 In the toolbar, **Left** and **Right** cycle through the tools and **OK** picks one. In the budget screen, **Left** and **Right** set the tax rate.
 

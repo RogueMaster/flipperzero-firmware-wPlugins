@@ -204,8 +204,14 @@ extern "C" int32_t microcity_app(void* p) {
 
         if(app->back_long) {
             app->back_long = false;
-            app->running = false;
-            break;
+            if(UIState.state == StartScreen) {
+                app->running = false;
+                break;
+            }
+            UIState.state = StartScreen;
+            UIState.selection = 0;
+            app->held = 0;
+            app->latched = 0;
         }
 
         app->input = (uint8_t)(app->held | app->latched);
