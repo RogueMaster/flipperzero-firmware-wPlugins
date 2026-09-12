@@ -36,6 +36,7 @@ FlipCrypt is a Flipper Zero app that provides a collection of classic cipher alg
 - XXHash64
 
 ## Other
+- Base16 (Hexadecimals)
 - Base32
 - Base58
 - Base64
