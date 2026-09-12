@@ -103,7 +103,8 @@ static void bb_footer_pages(Canvas* c, uint8_t total, uint8_t at, const char* la
     canvas_draw_box(c, 0, 53, BB_W, 11);
     canvas_set_color(c, ColorWhite);
     bb_font(c, false);
-    for(uint8_t i = 0; i < total; i++) bb_page_dot(c, BB_ROW_L + i * 7, 58, i == at);
+    for(uint8_t i = 0; i < total; i++)
+        bb_page_dot(c, BB_ROW_L + i * 7, 58, i == at);
     bb_str(c, 108, 58, AlignRight, AlignCenter, label);
     bb_chev_r(c, 112, 58);
     canvas_set_color(c, ColorBlack);
@@ -139,7 +140,8 @@ static void bb_heart(Canvas* c, int32_t x, int32_t y, bool full, int32_t s) {
         }
 }
 static void bb_lives(Canvas* c, int32_t x, int32_t y, uint8_t n, int32_t s) {
-    for(int32_t i = 0; i < BB_LIVES; i++) bb_heart(c, x + i * 8 * s, y, i < (int32_t)n, s);
+    for(int32_t i = 0; i < BB_LIVES; i++)
+        bb_heart(c, x + i * 8 * s, y, i < (int32_t)n, s);
 }
 
 static void bb_steps(Canvas* c, int32_t y, uint8_t total, uint8_t done) {
@@ -154,7 +156,8 @@ static void bb_steps(Canvas* c, int32_t y, uint8_t total, uint8_t done) {
     int32_t sp = 8;
     if(total * sp > 120) sp = 120 / total;
     int32_t start = 64 - ((total - 1) * sp) / 2;
-    for(uint8_t i = 0; i < total; i++) bb_page_dot(c, start + i * sp, y, i < done);
+    for(uint8_t i = 0; i < total; i++)
+        bb_page_dot(c, start + i * sp, y, i < done);
 }
 
 /* ------------------------------------------------------------------ */
@@ -197,7 +200,8 @@ static void bb_poly(
             }
             at[b + 1] = v;
         }
-        for(uint8_t a = 0; a + 1 < hits; a += 2) canvas_draw_line(c, at[a], y, at[a + 1], y);
+        for(uint8_t a = 0; a + 1 < hits; a += 2)
+            canvas_draw_line(c, at[a], y, at[a + 1], y);
     }
 }
 
@@ -240,13 +244,17 @@ static void bb_shape(Canvas* c, int32_t cx, int32_t cy, int32_t r, uint8_t kind,
 static void bb_glyph(Canvas* c, int32_t cx, int32_t cy, uint8_t btn, int32_t s) {
     int32_t q = s / 2;
     if(btn == BbBtnUp)
-        for(int32_t i = 0; i <= s; i++) canvas_draw_line(c, cx - i, cy - s + i + q, cx + i, cy - s + i + q);
+        for(int32_t i = 0; i <= s; i++)
+            canvas_draw_line(c, cx - i, cy - s + i + q, cx + i, cy - s + i + q);
     if(btn == BbBtnDown)
-        for(int32_t i = 0; i <= s; i++) canvas_draw_line(c, cx - i, cy + s - i - q, cx + i, cy + s - i - q);
+        for(int32_t i = 0; i <= s; i++)
+            canvas_draw_line(c, cx - i, cy + s - i - q, cx + i, cy + s - i - q);
     if(btn == BbBtnLeft)
-        for(int32_t i = 0; i <= s; i++) canvas_draw_line(c, cx - s + i + q, cy - i, cx - s + i + q, cy + i);
+        for(int32_t i = 0; i <= s; i++)
+            canvas_draw_line(c, cx - s + i + q, cy - i, cx - s + i + q, cy + i);
     if(btn == BbBtnRight)
-        for(int32_t i = 0; i <= s; i++) canvas_draw_line(c, cx + s - i - q, cy - i, cx + s - i - q, cy + i);
+        for(int32_t i = 0; i <= s; i++)
+            canvas_draw_line(c, cx + s - i - q, cy - i, cx + s - i - q, cy + i);
     if(btn == BbBtnOk) canvas_draw_disc(c, cx, cy, (size_t)(s - 2 > 1 ? s - 2 : 1));
 }
 
@@ -274,8 +282,8 @@ static void bb_cue(
 
 /* "DOUBLE DOWN" reads as the idiom. Boxing the button name splits it into
    an instruction and a button, which is what it actually is. */
-static void bb_rule_line(Canvas* c, const BeepbackApp* app, int32_t cx, int32_t cy, bool primary,
-                         bool inv) {
+static void
+    bb_rule_line(Canvas* c, const BeepbackApp* app, int32_t cx, int32_t cy, bool primary, bool inv) {
     bb_font(c, primary);
     int32_t h = bb_font_h(), gap = 4, total = 0, w[3];
     uint8_t n = app->rule_seg_n ? app->rule_seg_n : 1;
@@ -336,8 +344,14 @@ static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
 }
 
 /* seven rules do not fit, so show where you are */
-static void bb_scrollbar_at(Canvas* c, int32_t x, int32_t top, int32_t track, uint8_t vis,
-                            uint8_t n, uint8_t scroll) {
+static void bb_scrollbar_at(
+    Canvas* c,
+    int32_t x,
+    int32_t top,
+    int32_t track,
+    uint8_t vis,
+    uint8_t n,
+    uint8_t scroll) {
     if(n > vis && scroll > n - vis) scroll = (uint8_t)(n - vis);
     canvas_draw_frame(c, x, top, 4, (size_t)track);
     int32_t thumb = track * vis / n;
@@ -348,8 +362,8 @@ static void bb_scrollbar_at(Canvas* c, int32_t x, int32_t top, int32_t track, ui
 }
 
 /* the usual place, hard against the right edge */
-static void bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n,
-                         uint8_t scroll) {
+static void
+    bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n, uint8_t scroll) {
     bb_scrollbar_at(c, 122, top, track, vis, n, scroll);
 }
 
@@ -358,11 +372,14 @@ static void bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uin
 static void bb_playtime(uint32_t ms, char* out, size_t n) {
     uint32_t total = ms / 1000u;
     if(total >= 3600u)
-        snprintf(out, n, "%luH %luM", (unsigned long)(total / 3600u),
-                 (unsigned long)((total % 3600u) / 60u));
+        snprintf(
+            out,
+            n,
+            "%luH %luM",
+            (unsigned long)(total / 3600u),
+            (unsigned long)((total % 3600u) / 60u));
     else
-        snprintf(out, n, "%luM %luS", (unsigned long)(total / 60u),
-                 (unsigned long)(total % 60u));
+        snprintf(out, n, "%luM %luS", (unsigned long)(total / 60u), (unsigned long)(total % 60u));
 }
 
 /* the entry with the most runs, or -1 while nothing has been played */
@@ -380,8 +397,13 @@ static int8_t bb_favourite(const uint32_t* counts, uint8_t n) {
 /* One list, scrolled, rather than pages: a stat you want is found by
    holding DOWN instead of counting pages, and a new one can be added to
    the end without deciding which page it belongs on. */
-static void bb_stat_row(const BeepbackApp* app, uint8_t i, const char** label,
-                        const char** value, char* buf, size_t n) {
+static void bb_stat_row(
+    const BeepbackApp* app,
+    uint8_t i,
+    const char** label,
+    const char** value,
+    char* buf,
+    size_t n) {
     const BbStats* st = &app->stats;
     *value = NULL;
     switch(i) {
@@ -560,7 +582,6 @@ static void bb_draw_mode(Canvas* c, const BeepbackApp* app) {
     bb_footer(c, bb_mode_blurb[app->mode_idx < BB_MODE_COUNT ? app->mode_idx : 0]);
 }
 
-
 static const char* bb_ch_name(uint8_t i) {
     return i >= BB_RULE_COUNT ? "RANDOM" : bb_rule_label[i];
 }
@@ -598,16 +619,21 @@ static void bb_draw_setup(Canvas* c, const BeepbackApp* app) {
         bool sel = (app->setup_idx == i);
         if(sel) bb_sel_rbox(c, 2, top, 124, rowH, 2);
         bb_font(c, i == last);
-        bb_str(c, i == last ? 64 : BB_ROW_L, mid, i == last ? AlignCenter : AlignLeft,
-               AlignCenter, label[i]);
+        bb_str(
+            c,
+            i == last ? 64 : BB_ROW_L,
+            mid,
+            i == last ? AlignCenter : AlignLeft,
+            AlignCenter,
+            label[i]);
         if(value[i]) {
             if(sel) {
                 uint8_t v = (kind[i] == BbRowSpeed) ? app->set.speed : app->set.diff;
                 uint8_t hi = (kind[i] == BbRowSpeed) ? BB_SPEED_COUNT - 1 : BB_DIFF_COUNT - 1;
                 /* the daily's rows are the day's, so they offer no arrows */
-                bool live = (kind[i] == BbRowTime || kind[i] == BbRowRamp ||
-                             kind[i] == BbRowSpeed) &&
-                            app->mode != BbModeDaily;
+                bool live =
+                    (kind[i] == BbRowTime || kind[i] == BbRowRamp || kind[i] == BbRowSpeed) &&
+                    app->mode != BbModeDaily;
                 bb_adjustable(c, mid, value[i], live && v > 0, live && v < hi);
             } else {
                 bb_font(c, false);
@@ -622,13 +648,12 @@ static void bb_draw_rule_card(Canvas* c, const BeepbackApp* app) {
     bb_title(c, "RULE");
     bb_rule_line(c, app, 64, 30, true, false);
     bb_font(c, false);
-    bb_str(c, 64, 46, AlignCenter, AlignCenter,
-           app->rule_idx >= 0 ? bb_rule_tip[app->rule_idx] : "");
+    bb_str(
+        c, 64, 46, AlignCenter, AlignCenter, app->rule_idx >= 0 ? bb_rule_tip[app->rule_idx] : "");
 }
 
 static void bb_draw_reset(Canvas* c, const BeepbackApp* app) {
-    static const char* const rows[BB_RESET_ROWS] = {"RECORDS", "STATS", "TUTORIAL",
-                                                    "EVERYTHING"};
+    static const char* const rows[BB_RESET_ROWS] = {"RECORDS", "STATS", "TUTORIAL", "EVERYTHING"};
     uint8_t at = app->reset_idx < BB_RESET_ROWS ? app->reset_idx : 0;
     bb_title(c, "RESET");
     for(uint8_t i = 0; i < BB_RESET_ROWS; i++) {
@@ -641,10 +666,15 @@ static void bb_draw_reset(Canvas* c, const BeepbackApp* app) {
         if(sel) bb_sel_rbox(c, 2, top, 124, 10, 2);
         bb_font(c, false);
         bb_str(c, BB_ROW_L, top + 5, AlignLeft, AlignCenter, rows[i]);
-        bb_str(c, BB_ROW_R, top + 5, AlignRight, AlignCenter,
-               armed             ? "SURE?" :
-               (sel && app->now < app->set_flash) ? "DONE" :
-                                   "OK");
+        bb_str(
+            c,
+            BB_ROW_R,
+            top + 5,
+            AlignRight,
+            AlignCenter,
+            armed                              ? "SURE?" :
+            (sel && app->now < app->set_flash) ? "DONE" :
+                                                 "OK");
         canvas_set_color(c, ColorBlack);
     }
 }
@@ -706,8 +736,12 @@ static void bb_draw_help(Canvas* c, const BeepbackApp* app) {
     bb_footer(c, blurb[app->help_idx < 3 ? app->help_idx : 0]);
 }
 
-static void bb_draw_pages(Canvas* c, const char* const page[3], uint8_t total, uint8_t at,
-                          const char* last_label) {
+static void bb_draw_pages(
+    Canvas* c,
+    const char* const page[3],
+    uint8_t total,
+    uint8_t at,
+    const char* last_label) {
     bb_font(c, false);
     for(uint8_t i = 0; i < 3; i++)
         if(page[i]) bb_str(c, 64, 21 + i * 11, AlignCenter, AlignCenter, page[i]);
@@ -769,13 +803,19 @@ static void bb_draw_tutorial(Canvas* c, const BeepbackApp* app) {
     } else if(bb_led_mode(app)) {
         bb_font(c, false);
         for(uint8_t b = 0; b < BbBtnCount; b++) {
-            snprintf(buf, sizeof(buf), "%s = %s", bb_button_short[order[b]], bb_led_name[order[b]]);
+            snprintf(
+                buf, sizeof(buf), "%s = %s", bb_button_short[order[b]], bb_led_name[order[b]]);
             bb_str(c, 64, 16 + b * 8, AlignCenter, AlignCenter, buf);
         }
     } else {
         bb_font(c, false);
-        bb_str(c, 64, 18, AlignCenter, AlignCenter,
-               bb_shapes_on(app) ? "one shape per sound" : "one arrow per sound");
+        bb_str(
+            c,
+            64,
+            18,
+            AlignCenter,
+            AlignCenter,
+            bb_shapes_on(app) ? "one shape per sound" : "one arrow per sound");
         for(uint8_t b = 0; b < BbBtnCount; b++) {
             bb_cue(c, app, 13 + b * 25, 32, order[b], 7, false);
             bb_font(c, false);
@@ -851,8 +891,14 @@ static void bb_draw_playback(Canvas* c, const BeepbackApp* app) {
     uint8_t done = (uint8_t)(app->play_idx + 1);
     if(bb_cue_on(app)) {
         if(app->tone_on)
-            bb_cue(c, app, 64, 33, app->base.step[app->play_idx], BB_SHAPE_R,
-                   app->now < app->step_start + BB_FLASH_MS);
+            bb_cue(
+                c,
+                app,
+                64,
+                33,
+                app->base.step[app->play_idx],
+                BB_SHAPE_R,
+                app->now < app->step_start + BB_FLASH_MS);
         bb_steps(c, 58, app->stage, done);
     } else {
         bb_font(c, false);

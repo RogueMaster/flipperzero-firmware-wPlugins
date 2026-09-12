@@ -8,22 +8,15 @@
  */
 #include "beepback.h"
 
-#define BB_LED_MSG(name, r, g, b)                                                        \
-    static const NotificationMessage bb_msg_##name##_r = {                               \
-        .type = NotificationMessageTypeLedRed,                                           \
-        .data.led.value = (r)};                                                          \
-    static const NotificationMessage bb_msg_##name##_g = {                               \
-        .type = NotificationMessageTypeLedGreen,                                         \
-        .data.led.value = (g)};                                                          \
-    static const NotificationMessage bb_msg_##name##_b = {                               \
-        .type = NotificationMessageTypeLedBlue,                                          \
-        .data.led.value = (b)};                                                          \
-    static const NotificationSequence bb_seq_##name = {                                  \
-        &bb_msg_##name##_r,                                                              \
-        &bb_msg_##name##_g,                                                              \
-        &bb_msg_##name##_b,                                                              \
-        &message_do_not_reset,                                                           \
-        NULL};
+#define BB_LED_MSG(name, r, g, b)                                        \
+    static const NotificationMessage bb_msg_##name##_r = {               \
+        .type = NotificationMessageTypeLedRed, .data.led.value = (r)};   \
+    static const NotificationMessage bb_msg_##name##_g = {               \
+        .type = NotificationMessageTypeLedGreen, .data.led.value = (g)}; \
+    static const NotificationMessage bb_msg_##name##_b = {               \
+        .type = NotificationMessageTypeLedBlue, .data.led.value = (b)};  \
+    static const NotificationSequence bb_seq_##name = {                  \
+        &bb_msg_##name##_r, &bb_msg_##name##_g, &bb_msg_##name##_b, &message_do_not_reset, NULL};
 
 /* The ladder follows pitch: low note, long wavelength. */
 BB_LED_MSG(off, 0, 0, 0)
@@ -51,15 +44,22 @@ void bb_led_apply(BeepbackApp* app, BbLedColor color) {
    running until the main loop decides the tap is over. The stock
    sequence_single_vibro has a length of its own, which would fight the
    one the game asked for. */
-static const NotificationSequence bb_seq_buzz_on = {
-    &message_vibro_on,
-    &message_do_not_reset,
-    NULL};
+/* force_vibro_setting_on first: the firmware has its own vibro switch in
+   Settings > Notifications, and with that off the motor ignores a plain
+   message_vibro_on. Somebody who turned HAPTIC on in this app has said
+   what they want, so this asks for it regardless of the system setting
+   rather than failing silently and looking like a broken feature. */
+static const NotificationSequence bb_seq_buzz_on =
+    {&message_force_vibro_setting_on, &message_vibro_on, &message_do_not_reset, NULL};
 static const NotificationSequence bb_seq_buzz_off = {
     &message_vibro_off,
     &message_do_not_reset,
     NULL};
 
 void bb_buzz_apply(BeepbackApp* app, bool on) {
-    notification_message(app->notifications, on ? &bb_seq_buzz_on : &bb_seq_buzz_off);
+    if(on) {
+        notification_message(app->notifications, &bb_seq_buzz_on);
+    } else {
+        notification_message(app->notifications, &bb_seq_buzz_off);
+    }
 }

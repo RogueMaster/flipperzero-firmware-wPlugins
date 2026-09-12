@@ -129,7 +129,8 @@ void bb_buzz_for(BeepbackApp* app, uint16_t note_ms) {
 }
 
 void bb_buzz(BeepbackApp* app) {
-    bb_buzz_for(app, BB_BUZZ_MIN);
+    if(!app->set.haptic) return;
+    app->buzz_until = app->now + BB_BUZZ_HELLO;
 }
 
 void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms) {
@@ -257,7 +258,8 @@ void bb_pick_rule(BeepbackApp* app) {
        ever saw: the fussy ones got replaced instead of retried. */
     app->rule_idx = (int8_t)bb_rng_below(&app->rng, BB_RULE_COUNT);
     app->rule_a = bb_rand_button(app);
-    app->rule_b = (uint8_t)((app->rule_a + 1 + bb_rng_below(&app->rng, BbBtnCount - 1)) % BbBtnCount);
+    app->rule_b =
+        (uint8_t)((app->rule_a + 1 + bb_rng_below(&app->rng, BbBtnCount - 1)) % BbBtnCount);
     for(uint8_t tries = 0; tries < 60; tries++) {
         bb_new_base(app, app->target);
         if(bb_rule_fits_run(app)) {
@@ -337,13 +339,13 @@ void bb_start_challenge(BeepbackApp* app) {
         bb_rng_seed(&app->rng, app->seed);
         app->seed = bb_rng_next(&app->rng);
         app->rng_seeded = false;
-        app->ch_rule = (app->ch_idx == BB_RULE_COUNT) ?
-                           bb_rng_below(&app->rng, BB_RULE_COUNT) :
-                           app->ch_idx;
+        app->ch_rule = (app->ch_idx == BB_RULE_COUNT) ? bb_rng_below(&app->rng, BB_RULE_COUNT) :
+                                                        app->ch_idx;
     }
     app->rule_idx = (int8_t)app->ch_rule;
     app->rule_a = bb_rand_button(app);
-    app->rule_b = (uint8_t)((app->rule_a + 1 + bb_rng_below(&app->rng, BbBtnCount - 1)) % BbBtnCount);
+    app->rule_b =
+        (uint8_t)((app->rule_a + 1 + bb_rng_below(&app->rng, BbBtnCount - 1)) % BbBtnCount);
     bb_rule_segs(app);
     app->base.len = 0;
     bb_challenge_grow(app);
@@ -353,7 +355,8 @@ void bb_start_challenge(BeepbackApp* app) {
 /* enter()                                                             */
 /* ------------------------------------------------------------------ */
 
-static const uint8_t BB_LED_ORDER[BbBtnCount] = {BbBtnDown, BbBtnLeft, BbBtnOk, BbBtnRight, BbBtnUp};
+static const uint8_t BB_LED_ORDER[BbBtnCount] =
+    {BbBtnDown, BbBtnLeft, BbBtnOk, BbBtnRight, BbBtnUp};
 
 void bb_enter(BeepbackApp* app, BbScene scene) {
     app->scene = scene;
@@ -561,8 +564,8 @@ void bb_update(BeepbackApp* app) {
                 app->phase = now + bb_tone_ms(app);
                 bb_tone(app, bb_button_hz[app->base.step[app->play_idx]], bb_tone_ms(app));
                 if(bb_led_mode(app))
-                    bb_led_flash(app, bb_button_led[app->base.step[app->play_idx]],
-                                 bb_tone_ms(app));
+                    bb_led_flash(
+                        app, bb_button_led[app->base.step[app->play_idx]], bb_tone_ms(app));
             }
         }
     } else if(app->scene == BbSceneGo && now >= app->phase) {
@@ -581,9 +584,10 @@ void bb_update(BeepbackApp* app) {
         }
     } else if(app->scene == BbSceneHold && now >= app->phase) {
         /* a challenge has no rounds to clear, it just keeps growing */
-        bb_enter(app, (bb_is_challenge_mode(app->mode) || app->stage < app->target) ?
-                          BbSceneSuccess :
-                          BbSceneRoundClear);
+        bb_enter(
+            app,
+            (bb_is_challenge_mode(app->mode) || app->stage < app->target) ? BbSceneSuccess :
+                                                                            BbSceneRoundClear);
     } else if(app->scene == BbSceneSuccess && now >= app->phase) {
         if(bb_is_challenge_mode(app->mode)) {
             bb_challenge_grow(app);

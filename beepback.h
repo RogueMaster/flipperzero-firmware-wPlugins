@@ -25,7 +25,7 @@
 /* ------------------------------------------------------------------ */
 /* Gameplay tunables                                                    */
 /* ------------------------------------------------------------------ */
-#define BB_MAX_SEQ  64 /* a challenge grows until you fail; this is the cap */
+#define BB_MAX_SEQ   64 /* a challenge grows until you fail; this is the cap */
 #define BB_MAX_PRESS 96 /* DOUBLE and LAST TWICE make more presses than steps */
 #define BB_LIVES     3
 #define BB_START_LEN 4 /* round 1 builds to this, +1 each round */
@@ -144,21 +144,25 @@ typedef struct {
 /* run is, not what it pays, so the number on screen is always one you  */
 /* could have worked out yourself.                                      */
 /* ------------------------------------------------------------------ */
-#define BB_STAT_ROWS  8 /* the stats screen, scrolled four at a time */
+#define BB_STAT_ROWS   8 /* the stats screen, scrolled four at a time */
 /* A reset asks once and listens for a second. Long enough to read SURE?
    and answer it, short enough that it cannot be left armed. */
-#define BB_CONFIRM_MS 1000
+#define BB_CONFIRM_MS  1000
 /* The motor traces the notes: one pulse a note, as long as the note is,
    less a gap so two notes running are two taps and not one buzz, and
    capped because past this the motor is felt as on rather than as a
    beat. A rest gets nothing, which is what makes a rhythm a rhythm. */
-#define BB_BUZZ_GAP 25
-#define BB_BUZZ_MAX 110
-#define BB_BUZZ_MIN 25
+#define BB_BUZZ_GAP    25
+#define BB_BUZZ_MAX    110
+#define BB_BUZZ_MIN    25
+/* Switching HAPTIC on answers with a pulse of its own, longer than any
+   a note asks for: the whole point is that you feel it before you have
+   played anything. */
+#define BB_BUZZ_HELLO  180
 /* Records are clamped to this on the way in, the way settings are. It is
    far past anything a run can reach, and it is what lets a table be laid
    out for a width that is always enough. */
-#define BB_SCORE_MAX 99999u
+#define BB_SCORE_MAX   99999u
 #define BB_NOTE_POINTS 10 /* one note played back right */
 #define BB_ROUND_BONUS 100 /* clearing a round, instead of a stage award */
 
@@ -267,13 +271,13 @@ extern const BbNote bb_jingle_over[4];
 /* ------------------------------------------------------------------ */
 /* Layout, all of it straight off the browser's screens                */
 /* ------------------------------------------------------------------ */
-#define BB_ROW_L  14 /* list row label   */
-#define BB_ROW_R  114 /* list row value   */
-#define BB_CHEV_L 2 /* screen-edge chevrons */
-#define BB_CHEV_R 121
+#define BB_ROW_L   14 /* list row label   */
+#define BB_ROW_R   114 /* list row value   */
+#define BB_CHEV_L  2 /* screen-edge chevrons */
+#define BB_CHEV_R  121
 #define BB_ROW_VAL 112 /* an adjustable row's value */
-#define BB_ROW_AL 4 /* and its two arrows        */
-#define BB_ROW_AR 118
+#define BB_ROW_AL  4 /* and its two arrows        */
+#define BB_ROW_AR  118
 #define BB_DOT_MAX 14 /* past this the step dots become a count */
 
 /* ------------------------------------------------------------------ */
@@ -549,8 +553,14 @@ typedef enum {
     BB_RESET_ROWS,
 } BbResetRow;
 
-uint8_t bb_setup_rows(const BeepbackApp* app, const char* label[4], const char* value[4],
-                      uint8_t kind[4], char* buf_a, char* buf_b, size_t bufn);
+uint8_t bb_setup_rows(
+    const BeepbackApp* app,
+    const char* label[4],
+    const char* value[4],
+    uint8_t kind[4],
+    char* buf_a,
+    char* buf_b,
+    size_t bufn);
 
 /* ------------------------------------------------------------------ */
 /* Screens (beepback_draw.c / beepback_intro.c)                        */
@@ -568,8 +578,8 @@ void bb_splash_done(BeepbackApp* app);
 /* ------------------------------------------------------------------ */
 /* The save file (beepback_save.c)                                     */
 /* ------------------------------------------------------------------ */
-#define BB_SAVE_DIR  EXT_PATH("apps_data/beepback")
-#define BB_SAVE_PATH BB_SAVE_DIR "/beepback.save"
+#define BB_SAVE_DIR     EXT_PATH("apps_data/beepback")
+#define BB_SAVE_PATH    BB_SAVE_DIR "/beepback.save"
 #define BB_SAVE_VERSION 7
 #define BB_SAVE_BYTES   797
 /* Zeroed spare bytes at the end of the settings. A setting added later

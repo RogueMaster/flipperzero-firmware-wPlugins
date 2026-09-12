@@ -49,7 +49,9 @@ void canvas_set_font(Canvas* c, Font f) {
     UNUSED(c);
     tc_flush_dots();
     tc_font = f;
-    printf("font %s\n", f == FontPrimary ? "primary" : (f == FontBigNumbers ? "bignum" : "secondary"));
+    printf(
+        "font %s\n",
+        f == FontPrimary ? "primary" : (f == FontBigNumbers ? "bignum" : "secondary"));
 }
 uint16_t canvas_string_width(Canvas* c, const char* s) {
     UNUSED(c);
@@ -57,11 +59,16 @@ uint16_t canvas_string_width(Canvas* c, const char* s) {
     uint16_t w = 0;
     bool big = (tc_font == FontPrimary || tc_font == FontBigNumbers);
     for(; *s; s++) {
-        if(tc_font == FontBigNumbers) w = (uint16_t)(w + 12);
-        else if(*s == ' ') w = (uint16_t)(w + 3);
-        else if(strchr("Iil1.,:;'|!", *s)) w = (uint16_t)(w + (big ? 3 : 2));
-        else if(*s >= 'a' && *s <= 'z') w = (uint16_t)(w + (big ? 6 : 4));
-        else w = (uint16_t)(w + (big ? 7 : 5));
+        if(tc_font == FontBigNumbers)
+            w = (uint16_t)(w + 12);
+        else if(*s == ' ')
+            w = (uint16_t)(w + 3);
+        else if(strchr("Iil1.,:;'|!", *s))
+            w = (uint16_t)(w + (big ? 3 : 2));
+        else if(*s >= 'a' && *s <= 'z')
+            w = (uint16_t)(w + (big ? 6 : 4));
+        else
+            w = (uint16_t)(w + (big ? 7 : 5));
     }
     return w;
 }
@@ -89,8 +96,13 @@ void canvas_draw_box(Canvas* c, int32_t x, int32_t y, size_t w, size_t h) {
 void canvas_draw_rbox(Canvas* c, int32_t x, int32_t y, size_t w, size_t h, size_t r) {
     UNUSED(c);
     tc_flush_dots();
-    printf("rbox %ld %ld %lu %lu %lu\n", (long)x, (long)y, (unsigned long)w, (unsigned long)h,
-           (unsigned long)r);
+    printf(
+        "rbox %ld %ld %lu %lu %lu\n",
+        (long)x,
+        (long)y,
+        (unsigned long)w,
+        (unsigned long)h,
+        (unsigned long)r);
 }
 void canvas_draw_frame(Canvas* c, int32_t x, int32_t y, size_t w, size_t h) {
     UNUSED(c);
@@ -100,8 +112,13 @@ void canvas_draw_frame(Canvas* c, int32_t x, int32_t y, size_t w, size_t h) {
 void canvas_draw_rframe(Canvas* c, int32_t x, int32_t y, size_t w, size_t h, size_t r) {
     UNUSED(c);
     tc_flush_dots();
-    printf("rframe %ld %ld %lu %lu %lu\n", (long)x, (long)y, (unsigned long)w, (unsigned long)h,
-           (unsigned long)r);
+    printf(
+        "rframe %ld %ld %lu %lu %lu\n",
+        (long)x,
+        (long)y,
+        (unsigned long)w,
+        (unsigned long)h,
+        (unsigned long)r);
 }
 void canvas_draw_line(Canvas* c, int32_t a, int32_t b, int32_t x, int32_t y) {
     UNUSED(c);

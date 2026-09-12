@@ -134,13 +134,7 @@ void canvas_draw_str(Canvas* c, int32_t x, int32_t y, const char* s) {
     UNUSED(y);
     UNUSED(s);
 }
-void canvas_draw_str_aligned(
-    Canvas* c,
-    int32_t x,
-    int32_t y,
-    Align h,
-    Align v,
-    const char* s) {
+void canvas_draw_str_aligned(Canvas* c, int32_t x, int32_t y, Align h, Align v, const char* s) {
     UNUSED(c);
     UNUSED(x);
     UNUSED(y);
@@ -205,6 +199,7 @@ void canvas_draw_disc(Canvas* c, int32_t x, int32_t y, size_t r) {
 const NotificationMessage message_do_not_reset = {NotificationMessageTypeDoNotReset, {{0}}};
 const NotificationMessage message_vibro_on = {NotificationMessageTypeVibro, {{0}}};
 const NotificationMessage message_vibro_off = {NotificationMessageTypeVibro, {{0}}};
+const NotificationMessage message_force_vibro_setting_on = {NotificationMessageTypeVibro, {{0}}};
 const NotificationSequence sequence_blink_red_100 = {NULL};
 const NotificationSequence sequence_blink_green_100 = {NULL};
 const NotificationSequence sequence_display_backlight_enforce_on = {NULL};

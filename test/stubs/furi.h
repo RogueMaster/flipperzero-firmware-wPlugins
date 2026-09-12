@@ -4,15 +4,21 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#define UNUSED(x) (void)(x)
+#define UNUSED(x)            (void)(x)
 /* the real furi/core/common_defines.h carries these, and -Werror means
    ignoring a FURI_WARN_UNUSED result fails the device build */
-#define FURI_WARN_UNUSED __attribute__((warn_unused_result))
+#define FURI_WARN_UNUSED     __attribute__((warn_unused_result))
 #define FURI_RETURNS_NONNULL __attribute__((returns_nonnull))
-#define COUNT_OF(x) (sizeof(x) / sizeof((x)[0]))
-#define FuriWaitForever 0xFFFFFFFFU
-typedef enum { FuriStatusOk = 0, FuriStatusError = -1 } FuriStatus;
-typedef enum { FuriMutexTypeNormal = 0, FuriMutexTypeRecursive } FuriMutexType;
+#define COUNT_OF(x)          (sizeof(x) / sizeof((x)[0]))
+#define FuriWaitForever      0xFFFFFFFFU
+typedef enum {
+    FuriStatusOk = 0,
+    FuriStatusError = -1
+} FuriStatus;
+typedef enum {
+    FuriMutexTypeNormal = 0,
+    FuriMutexTypeRecursive
+} FuriMutexType;
 typedef struct FuriMutex FuriMutex;
 typedef struct FuriMessageQueue FuriMessageQueue;
 uint32_t furi_get_tick(void);

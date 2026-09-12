@@ -34,9 +34,9 @@ typedef struct {
 static FakeCanvas fake;
 
 /* Ascent above and descent below the baseline, and the full line box. */
-#define FC_ASCENT 7
+#define FC_ASCENT  7
 #define FC_DESCENT 2
-#define FC_LINE 9
+#define FC_LINE    9
 
 /* Measured against the device, not guessed. The secondary font was being
    counted at 5px a capital when it draws 6, which is how a table that
@@ -52,7 +52,8 @@ static uint8_t fc_char_w(char ch, Font font) {
 
 static int16_t fc_str_w(const char* s, Font font) {
     int16_t w = 0;
-    for(; *s; s++) w = (int16_t)(w + fc_char_w(*s, font));
+    for(; *s; s++)
+        w = (int16_t)(w + fc_char_w(*s, font));
     return w;
 }
 
@@ -60,7 +61,8 @@ static void fc_rect(int32_t x, int32_t y, int32_t w, int32_t h) {
     fake.ops++;
     if(x < 0 || y < 0 || x + w > BB_W || y + h > BB_H) fake.out_of_bounds++;
     for(int32_t j = y > 0 ? y : 0; j < y + h && j < BB_H; j++)
-        for(int32_t i = x > 0 ? x : 0; i < x + w && i < BB_W; i++) fake.ink[j][i] = 1;
+        for(int32_t i = x > 0 ? x : 0; i < x + w && i < BB_W; i++)
+            fake.ink[j][i] = 1;
 }
 
 static void fc_text(int32_t x, int32_t y, const char* s) {
@@ -104,8 +106,7 @@ static uint8_t fc_collisions(char* worst, size_t n) {
         if(!fake.text[i][0] || !fake.tw[i]) continue;
         for(uint8_t j = (uint8_t)(i + 1); j < fake.texts; j++) {
             if(!fake.text[j][0] || !fake.tw[j]) continue;
-            if(fake.ty[i] + FC_LINE <= fake.ty[j] || fake.ty[j] + FC_LINE <= fake.ty[i])
-                continue;
+            if(fake.ty[i] + FC_LINE <= fake.ty[j] || fake.ty[j] + FC_LINE <= fake.ty[i]) continue;
             if(fake.tx[i] + fake.tw[i] <= fake.tx[j] || fake.tx[j] + fake.tw[j] <= fake.tx[i])
                 continue;
             if(!hits && worst) snprintf(worst, n, "%s / %s", fake.text[i], fake.text[j]);

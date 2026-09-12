@@ -12,12 +12,12 @@
 const uint16_t bb_button_hz[BbBtnCount] = {1397, 440, 587, 1047, 784};
 const char* const bb_button_name[BbBtnCount] = {"UP", "DOWN", "LEFT", "RIGHT", "OK"};
 const char* const bb_button_short[BbBtnCount] = {"UP", "DN", "LF", "RT", "OK"};
-const uint8_t bb_button_shape[BbBtnCount] = {
-    BbShapeStar, BbShapeCircle, BbShapeTriangle, BbShapePentagon, BbShapeSquare};
+const uint8_t bb_button_shape[BbBtnCount] =
+    {BbShapeStar, BbShapeCircle, BbShapeTriangle, BbShapePentagon, BbShapeSquare};
 
 /* the led ladder follows the pitch ladder, low tone = long wavelength */
-const uint8_t bb_button_led[BbBtnCount] = {
-    BbLedViolet, BbLedRed, BbLedYellow, BbLedBlue, BbLedGreen};
+const uint8_t bb_button_led[BbBtnCount] =
+    {BbLedViolet, BbLedRed, BbLedYellow, BbLedBlue, BbLedGreen};
 const char* const bb_led_name[BbBtnCount] = {"VIOLET", "RED", "YELLOW", "BLUE", "GREEN"};
 
 const char* const bb_diff_name[BB_DIFF_COUNT] = {"EASY", "NORMAL", "HARD", "INSANE"};

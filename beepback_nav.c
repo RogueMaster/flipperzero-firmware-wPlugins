@@ -129,8 +129,7 @@ static uint8_t setup_row_kind(const BeepbackApp* app) {
    what you have beaten, and who made it. LEFT and RIGHT walk along them
    and the arrows at the screen edges are drawn from this same answer, so
    an arrow can never point at a move that does not happen. */
-static const BbScene bb_chain[] = {BbSceneMenu, BbSceneStats, BbSceneScorePick,
-                                   BbSceneCredits};
+static const BbScene bb_chain[] = {BbSceneMenu, BbSceneStats, BbSceneScorePick, BbSceneCredits};
 #define BB_CHAIN_N ((uint8_t)(sizeof(bb_chain) / sizeof(bb_chain[0])))
 
 BbScene bb_chain_step(const BeepbackApp* app, int8_t dir) {
@@ -349,8 +348,7 @@ void bb_press(BeepbackApp* app, InputKey key) {
     case BbSceneReset: {
         int8_t move = key == InputKeyUp ? -1 : key == InputKeyDown ? 1 : 0;
         if(move) {
-            app->reset_idx =
-                clamp8((int16_t)app->reset_idx + move, 0, BB_RESET_ROWS - 1);
+            app->reset_idx = clamp8((int16_t)app->reset_idx + move, 0, BB_RESET_ROWS - 1);
             app->confirm_until = 0; /* moving off a row disarms it */
         }
         if(key != InputKeyOk) break;
@@ -400,9 +398,11 @@ void bb_press(BeepbackApp* app, InputKey key) {
         if(key == InputKeyOk) {
             app->tut_page = 0;
             app->help_from = BbSceneHelp;
-            bb_enter(app, app->help_idx == 0 ? BbSceneTutorial :
-                          app->help_idx == 1 ? BbSceneRulesGuide :
-                                               BbSceneReflexGuide);
+            bb_enter(
+                app,
+                app->help_idx == 0 ? BbSceneTutorial :
+                app->help_idx == 1 ? BbSceneRulesGuide :
+                                     BbSceneReflexGuide);
         }
         break;
 
@@ -447,8 +447,10 @@ void bb_press(BeepbackApp* app, InputKey key) {
 
     case BbSceneRuleList: {
         const uint8_t VIS = 4;
-        if(key == InputKeyUp) app->rule_sel = clamp8((int16_t)app->rule_sel - 1, 0, BB_RULE_COUNT - 1);
-        if(key == InputKeyDown) app->rule_sel = clamp8((int16_t)app->rule_sel + 1, 0, BB_RULE_COUNT - 1);
+        if(key == InputKeyUp)
+            app->rule_sel = clamp8((int16_t)app->rule_sel - 1, 0, BB_RULE_COUNT - 1);
+        if(key == InputKeyDown)
+            app->rule_sel = clamp8((int16_t)app->rule_sel + 1, 0, BB_RULE_COUNT - 1);
         if(app->rule_sel < app->rule_scroll) app->rule_scroll = app->rule_sel;
         if(app->rule_sel > app->rule_scroll + VIS - 1)
             app->rule_scroll = (uint8_t)(app->rule_sel - VIS + 1);
@@ -457,8 +459,10 @@ void bb_press(BeepbackApp* app, InputKey key) {
     }
 
     case BbSceneRuleInfo:
-        if(key == InputKeyDown) app->rule_sel = clamp8((int16_t)app->rule_sel + 1, 0, BB_RULE_COUNT - 1);
-        if(key == InputKeyUp) app->rule_sel = clamp8((int16_t)app->rule_sel - 1, 0, BB_RULE_COUNT - 1);
+        if(key == InputKeyDown)
+            app->rule_sel = clamp8((int16_t)app->rule_sel + 1, 0, BB_RULE_COUNT - 1);
+        if(key == InputKeyUp)
+            app->rule_sel = clamp8((int16_t)app->rule_sel - 1, 0, BB_RULE_COUNT - 1);
         break;
 
     case BbSceneSoundTest:
@@ -482,8 +486,10 @@ void bb_press(BeepbackApp* app, InputKey key) {
     }
 
     case BbSceneScorePick:
-        if(key == InputKeyUp) app->score_mode = clamp8((int16_t)app->score_mode - 1, 0, BB_MODE_COUNT - 1);
-        if(key == InputKeyDown) app->score_mode = clamp8((int16_t)app->score_mode + 1, 0, BB_MODE_COUNT - 1);
+        if(key == InputKeyUp)
+            app->score_mode = clamp8((int16_t)app->score_mode - 1, 0, BB_MODE_COUNT - 1);
+        if(key == InputKeyDown)
+            app->score_mode = clamp8((int16_t)app->score_mode + 1, 0, BB_MODE_COUNT - 1);
         if(key == InputKeyOk) {
             app->tbl_assist = 0;
             app->tbl_scroll = 0;
@@ -495,8 +501,7 @@ void bb_press(BeepbackApp* app, InputKey key) {
         /* OK turns the table to the next assist, whatever shape it is. UP
            and DOWN are free on the grids and scroll the rules on
            challenge. */
-        if(key == InputKeyOk)
-            app->tbl_assist = (uint8_t)((app->tbl_assist + 1) % BB_ASSIST_COUNT);
+        if(key == InputKeyOk) app->tbl_assist = (uint8_t)((app->tbl_assist + 1) % BB_ASSIST_COUNT);
         if(app->score_mode == BbModeChallenge) {
             const uint8_t VIS = 5;
             if(key == InputKeyDown && app->tbl_scroll + VIS < BB_RULE_COUNT) app->tbl_scroll++;
@@ -595,8 +600,7 @@ void bb_input_event(BeepbackApp* app, InputKey key, InputType type) {
 
     case InputTypeRepeat:
         /* holding a direction walks a list, but never repeats an action */
-        if(key != InputKeyOk && key != InputKeyBack && !bb_in_game(app->scene))
-            bb_press(app, key);
+        if(key != InputKeyOk && key != InputKeyBack && !bb_in_game(app->scene)) bb_press(app, key);
         return;
 
     default:

@@ -7,13 +7,21 @@
 
 static int fails = 0;
 static void check(const char* name, int ok, const char* extra) {
-    printf("%s %s%s%s\n", ok ? "ok  " : "FAIL", name, extra && *extra ? "  -> " : "", extra ? extra : "");
+    printf(
+        "%s %s%s%s\n",
+        ok ? "ok  " : "FAIL",
+        name,
+        extra && *extra ? "  -> " : "",
+        extra ? extra : "");
     if(!ok) fails++;
 }
 static const char* seqstr(const uint8_t* v, uint8_t n) {
-    static char buf[128]; int p = 0;
-    for(uint8_t i = 0; i < n && p < 120; i++) p += sprintf(buf + p, "%u", v[i]);
-    buf[p] = 0; return buf;
+    static char buf[128];
+    int p = 0;
+    for(uint8_t i = 0; i < n && p < 120; i++)
+        p += sprintf(buf + p, "%u", v[i]);
+    buf[p] = 0;
+    return buf;
 }
 
 int main(void) {
@@ -34,33 +42,57 @@ int main(void) {
     check("daily as well", bb_window_ms(BbModeDaily, 1) == 5000, "");
 
     /* ---- every rule, against a known sequence ---- */
-    BbSeq s = {{BbBtnUp, BbBtnOk, BbBtnOk, BbBtnLeft, BbBtnUp}, 5};   /* 0 4 4 2 0 */
+    BbSeq s = {{BbBtnUp, BbBtnOk, BbBtnOk, BbBtnLeft, BbBtnUp}, 5}; /* 0 4 4 2 0 */
     BbPresses p;
 
     bb_apply_rule(&s, BbRuleSkip, BbBtnOk, 0, &p);
-    check("SKIP drops every one of them", strcmp(seqstr(p.press, p.len), "020") == 0, seqstr(p.press, p.len));
+    check(
+        "SKIP drops every one of them",
+        strcmp(seqstr(p.press, p.len), "020") == 0,
+        seqstr(p.press, p.len));
 
     bb_apply_rule(&s, BbRuleDouble, BbBtnUp, 0, &p);
-    check("DOUBLE repeats each appearance", strcmp(seqstr(p.press, p.len), "0044200") == 0, seqstr(p.press, p.len));
+    check(
+        "DOUBLE repeats each appearance",
+        strcmp(seqstr(p.press, p.len), "0044200") == 0,
+        seqstr(p.press, p.len));
 
     bb_apply_rule(&s, BbRuleNoDoubles, 0, 0, &p);
-    check("NO DOUBLES collapses the pair", strcmp(seqstr(p.press, p.len), "0420") == 0, seqstr(p.press, p.len));
+    check(
+        "NO DOUBLES collapses the pair",
+        strcmp(seqstr(p.press, p.len), "0420") == 0,
+        seqstr(p.press, p.len));
 
     bb_apply_rule(&s, BbRuleEveryOther, 0, 0, &p);
-    check("EVERY OTHER takes 1st, 3rd, 5th", strcmp(seqstr(p.press, p.len), "040") == 0, seqstr(p.press, p.len));
+    check(
+        "EVERY OTHER takes 1st, 3rd, 5th",
+        strcmp(seqstr(p.press, p.len), "040") == 0,
+        seqstr(p.press, p.len));
 
     bb_apply_rule(&s, BbRuleLastTwice, 0, 0, &p);
-    check("LAST TWICE adds one at the end", strcmp(seqstr(p.press, p.len), "044200") == 0, seqstr(p.press, p.len));
+    check(
+        "LAST TWICE adds one at the end",
+        strcmp(seqstr(p.press, p.len), "044200") == 0,
+        seqstr(p.press, p.len));
 
     bb_apply_rule(&s, BbRuleSwap, BbBtnUp, BbBtnRight, &p);
-    check("X IS Y swaps every one", strcmp(seqstr(p.press, p.len), "34423") == 0, seqstr(p.press, p.len));
+    check(
+        "X IS Y swaps every one",
+        strcmp(seqstr(p.press, p.len), "34423") == 0,
+        seqstr(p.press, p.len));
 
     bb_apply_rule(&s, BbRuleBackwards, 0, 0, &p);
-    check("BACKWARDS reverses it", strcmp(seqstr(p.press, p.len), "02440") == 0, seqstr(p.press, p.len));
+    check(
+        "BACKWARDS reverses it",
+        strcmp(seqstr(p.press, p.len), "02440") == 0,
+        seqstr(p.press, p.len));
 
     /* ---- the guard against unplayable rounds ---- */
     BbSeq only = {{BbBtnOk, BbBtnOk, BbBtnOk}, 3};
-    check("a sequence that empties out is rejected", !bb_rule_fits(&only, BbRuleSkip, BbBtnOk, 0), "");
+    check(
+        "a sequence that empties out is rejected",
+        !bb_rule_fits(&only, BbRuleSkip, BbBtnOk, 0),
+        "");
     check("one button mashed is rejected too", !bb_rule_fits(&only, BbRuleDouble, BbBtnOk, 0), "");
     check("a real sequence is accepted", bb_rule_fits(&s, BbRuleSkip, BbBtnOk, 0), "");
 
@@ -81,7 +113,8 @@ int main(void) {
     BbRng r;
     bb_rng_seed(&r, 12345u);
     int hist[BbBtnCount] = {0};
-    for(int i = 0; i < 5000; i++) hist[bb_rng_below(&r, BbBtnCount)]++;
+    for(int i = 0; i < 5000; i++)
+        hist[bb_rng_below(&r, BbBtnCount)]++;
     int lo = hist[0], hi = hist[0];
     for(int i = 1; i < BbBtnCount; i++) {
         if(hist[i] < lo) lo = hist[i];
@@ -94,7 +127,8 @@ int main(void) {
     BbSeq big;
     big.len = BB_MAX_SEQ;
     bb_rng_seed(&r, 7u);
-    for(uint8_t i = 0; i < big.len; i++) big.step[i] = bb_rng_below(&r, BbBtnCount);
+    for(uint8_t i = 0; i < big.len; i++)
+        big.step[i] = bb_rng_below(&r, BbBtnCount);
     int overflow = 0;
     for(int rule = 0; rule < BB_RULE_COUNT; rule++) {
         bb_apply_rule(&big, (BbRule)rule, BbBtnOk, BbBtnUp, &p);
@@ -102,7 +136,6 @@ int main(void) {
     }
     sprintf(msg, "%u steps, worst case %u presses", big.len, p.len);
     check("a full sequence never overruns the buffer", !overflow, msg);
-
 
     /* ---- the daily must be identical on the device and in the browser ---- */
     {

@@ -19,6 +19,7 @@ App(
     fap_category="Games",
     fap_icon="beepback_10px.png",
     fap_author="Tijnv50",
-    fap_version="4.0",
-    fap_description="Five modes of memory and reaction, including a daily run every device shares.",
+    fap_version="1.0",
+    fap_description="Simon-style memory game: five modes, changing rules, and a daily run every Flipper in the world plays the same.",
+    fap_weburl="https://github.com/h4sw5q2wr9-byte/BEEPBACK",
 )

@@ -17,7 +17,13 @@
 
 /* BRAIN_LOBES: x, y, r */
 static const int8_t BRAIN_LOBES[7][3] = {
-    {14, 14, 11}, {24, 11, 10}, {33, 15, 10}, {19, 22, 10}, {29, 23, 10}, {11, 20, 8}, {37, 22, 7}};
+    {14, 14, 11},
+    {24, 11, 10},
+    {33, 15, 10},
+    {19, 22, 10},
+    {29, 23, 10},
+    {11, 20, 8},
+    {37, 22, 7}};
 /* BRAIN_GROOVES: polylines, terminated by a -1 x */
 static const int8_t BRAIN_GROOVES[7][5][2] = {
     {{24, 4}, {24, 30}, {-1, -1}, {-1, -1}, {-1, -1}},
@@ -31,8 +37,8 @@ static const int8_t BRAIN_GROOVES[7][5][2] = {
 static void bb_brain(Canvas* c, int32_t ox, int32_t oy) {
     canvas_set_color(c, ColorBlack);
     for(uint8_t i = 0; i < 7; i++)
-        canvas_draw_disc(c, ox + BRAIN_LOBES[i][0], oy + BRAIN_LOBES[i][1],
-                         (size_t)BRAIN_LOBES[i][2]);
+        canvas_draw_disc(
+            c, ox + BRAIN_LOBES[i][0], oy + BRAIN_LOBES[i][1], (size_t)BRAIN_LOBES[i][2]);
     /* the stem */
     for(int32_t y = 31; y <= 36; y++) {
         int32_t inset = (y - 31) / 3;
@@ -43,8 +49,12 @@ static void bb_brain(Canvas* c, int32_t ox, int32_t oy) {
     for(uint8_t g = 0; g < 7; g++)
         for(uint8_t p = 0; p + 1 < 5; p++) {
             if(BRAIN_GROOVES[g][p + 1][0] < 0) break;
-            canvas_draw_line(c, ox + BRAIN_GROOVES[g][p][0], oy + BRAIN_GROOVES[g][p][1],
-                             ox + BRAIN_GROOVES[g][p + 1][0], oy + BRAIN_GROOVES[g][p + 1][1]);
+            canvas_draw_line(
+                c,
+                ox + BRAIN_GROOVES[g][p][0],
+                oy + BRAIN_GROOVES[g][p][1],
+                ox + BRAIN_GROOVES[g][p + 1][0],
+                oy + BRAIN_GROOVES[g][p + 1][1]);
         }
     canvas_set_color(c, ColorBlack);
 }
@@ -111,7 +121,8 @@ void bb_update_splash(BeepbackApp* app) {
 static uint32_t sp_t(const BeepbackApp* app) {
     static const uint32_t ph[5] = {BB_SP_HOLD, BB_SP_FADE, BB_SP_GLIDE, BB_SP_FLASH, BB_SP_WIPE};
     uint32_t t = app->now - app->sp_start;
-    for(uint8_t i = 0; i < app->sp_phase && i < 5; i++) t -= ph[i];
+    for(uint8_t i = 0; i < app->sp_phase && i < 5; i++)
+        t -= ph[i];
     uint32_t len = ph[app->sp_phase < 5 ? app->sp_phase : 4];
     return len ? (t * 1000 / len) : 1000;
 }

@@ -1,0 +1,32 @@
+# The Apps Catalog manifest for BEEPBACK.
+#
+# This file does NOT belong in this repository - it is kept here so it is
+# version-controlled alongside the thing it describes. To publish, copy it
+# into a fork of flipperdevices/flipper-application-catalog at
+#
+#     applications/Games/beepback/manifest.yml
+#
+# and open a pull request from there. See catalog/PUBLISHING.md.
+#
+# Everything the catalog can read from application.fam is deliberately left
+# out of this file: name, id, author, category, icon, version and the short
+# description all come from there, and the bundler fails if a value given in
+# both disagrees.
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/h4sw5q2wr9-byte/BEEPBACK.git
+    # FILL THIS IN LAST. It must be the SHA of a commit that already
+    # contains the screenshots, because the paths below are resolved
+    # inside the repository at this exact commit.
+    commit_sha: 0000000000000000000000000000000000000000
+
+description: "@README.md"
+changelog: "@changelog.md"
+
+screenshots:
+  - screenshots/ss0.png
+  - screenshots/ss1.png
+  - screenshots/ss2.png
+  - screenshots/ss3.png

@@ -43,7 +43,8 @@ static uint32_t bb_clamp_score(uint32_t v) {
 /* Enough to notice a truncated or half-written file. Not a hash. */
 static uint32_t bb_checksum(const uint8_t* buf, size_t n) {
     uint32_t sum = 0x9E3779B9u;
-    for(size_t i = 0; i < n; i++) sum = (sum << 3) ^ (sum >> 29) ^ buf[i];
+    for(size_t i = 0; i < n; i++)
+        sum = (sum << 3) ^ (sum >> 29) ^ buf[i];
     return sum;
 }
 
@@ -73,9 +74,11 @@ size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n) {
                     bb_put32(buf, &at, app->rec.best[m][d][s][a]);
 
     for(uint8_t r = 0; r < BB_RULE_COUNT; r++)
-        for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) bb_put32(buf, &at, app->rec.ch_best[r][a]);
+        for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
+            bb_put32(buf, &at, app->rec.ch_best[r][a]);
 
-    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) bb_put32(buf, &at, app->rec.daily_best[a]);
+    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
+        bb_put32(buf, &at, app->rec.daily_best[a]);
     bb_put32(buf, &at, app->rec.daily_date);
     buf[at++] = app->rec.daily_done ? 1u : 0u;
 
@@ -84,8 +87,10 @@ size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n) {
     bb_put32(buf, &at, app->stats.notes);
     bb_put32(buf, &at, app->stats.rounds);
     bb_put32(buf, &at, app->stats.best_ever);
-    for(uint8_t m = 0; m < BB_MODE_COUNT; m++) bb_put32(buf, &at, app->stats.by_mode[m]);
-    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) bb_put32(buf, &at, app->stats.by_assist[a]);
+    for(uint8_t m = 0; m < BB_MODE_COUNT; m++)
+        bb_put32(buf, &at, app->stats.by_mode[m]);
+    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
+        bb_put32(buf, &at, app->stats.by_assist[a]);
     buf[at++] = app->stats.longest;
 
     bb_put32(buf, &at, bb_checksum(buf, at));
@@ -145,8 +150,10 @@ bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n) {
     app->stats.notes = bb_get32(buf, &at);
     app->stats.rounds = bb_get32(buf, &at);
     app->stats.best_ever = bb_clamp_score(bb_get32(buf, &at));
-    for(uint8_t m = 0; m < BB_MODE_COUNT; m++) app->stats.by_mode[m] = bb_get32(buf, &at);
-    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) app->stats.by_assist[a] = bb_get32(buf, &at);
+    for(uint8_t m = 0; m < BB_MODE_COUNT; m++)
+        app->stats.by_mode[m] = bb_get32(buf, &at);
+    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
+        app->stats.by_assist[a] = bb_get32(buf, &at);
     app->stats.longest = buf[at++];
     return true;
 }

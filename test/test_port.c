@@ -15,28 +15,37 @@
 
 static int fails = 0;
 static void check(const char* name, int ok, const char* extra) {
-    printf("%s %s%s%s\n", ok ? "ok  " : "FAIL", name, extra && *extra ? "  -> " : "", extra ? extra : "");
+    printf(
+        "%s %s%s%s\n",
+        ok ? "ok  " : "FAIL",
+        name,
+        extra && *extra ? "  -> " : "",
+        extra ? extra : "");
     if(!ok) fails++;
 }
 
 static const char* const scene_name[BbSceneCount] = {
-    "splash",    "menu",       "mode",        "chpick",    "setup",     "rulecard",
-    "listen",    "playback",   "go",          "input",     "hold",      "success",
-    "roundclear", "wrong",     "retry",       "reflexgap", "reflexcue", "gameover",
-    "settings",  "reset",      "help",        "tutorial",  "rulesguide", "rulelist",
-    "ruleinfo",  "reflexguide", "soundtest",  "scorepick", "credits",   "stats",
-    "table",     "nocue",
+    "splash",   "menu",       "mode",      "chpick",   "setup",       "rulecard",   "listen",
+    "playback", "go",         "input",     "hold",     "success",     "roundclear", "wrong",
+    "retry",    "reflexgap",  "reflexcue", "gameover", "settings",    "reset",      "help",
+    "tutorial", "rulesguide", "rulelist",  "ruleinfo", "reflexguide", "soundtest",  "scorepick",
+    "credits",  "stats",      "table",     "nocue",
 };
-static const InputKey keys[6] = {
-    InputKeyUp, InputKeyDown, InputKeyLeft, InputKeyRight, InputKeyOk, InputKeyBack};
+static const InputKey keys[6] =
+    {InputKeyUp, InputKeyDown, InputKeyLeft, InputKeyRight, InputKeyOk, InputKeyBack};
 
 static InputKey key_of(uint8_t b) {
     switch(b) {
-    case BbBtnUp: return InputKeyUp;
-    case BbBtnDown: return InputKeyDown;
-    case BbBtnLeft: return InputKeyLeft;
-    case BbBtnRight: return InputKeyRight;
-    default: return InputKeyOk;
+    case BbBtnUp:
+        return InputKeyUp;
+    case BbBtnDown:
+        return InputKeyDown;
+    case BbBtnLeft:
+        return InputKeyLeft;
+    case BbBtnRight:
+        return InputKeyRight;
+    default:
+        return InputKeyOk;
     }
 }
 static void boot(BeepbackApp* app) {
@@ -57,7 +66,8 @@ static bool wait_scene(BeepbackApp* app, BbScene want, int max) {
 }
 static void play_stage(BeepbackApp* app) {
     uint8_t n = app->expected.len;
-    for(uint8_t i = 0; i < n; i++) bb_press(app, key_of(app->expected.press[i]));
+    for(uint8_t i = 0; i < n; i++)
+        bb_press(app, key_of(app->expected.press[i]));
 }
 
 int main(void) {
@@ -65,13 +75,17 @@ int main(void) {
     BeepbackApp app;
 
     /* ---- the scene set is the browser's ---- */
-    check("the scene set is the browser's, less its launcher and its two dead"
-          " score screens, plus stats, the table and the warning",
-          BbSceneCount == 32, "");
+    check(
+        "the scene set is the browser's, less its launcher and its two dead"
+        " score screens, plus stats, the table and the warning",
+        BbSceneCount == 32,
+        "");
     boot(&app);
     check("a cold start goes straight into the intro", app.scene == BbSceneSplash, "");
-    check("with the browser's defaults",
-          app.set.volume == 2 && app.set.assist == 2 && app.set.speed == 1 && app.set.diff == 1, "");
+    check(
+        "with the browser's defaults",
+        app.set.volume == 2 && app.set.assist == 2 && app.set.speed == 1 && app.set.diff == 1,
+        "");
     check("and a first run pending", app.first_run, "");
 
     /* ---- every scene is reachable ---- */
@@ -112,8 +126,7 @@ int main(void) {
             seen[app.scene] = true;
             /* only until the next stage starts: ticking on past that would
                sit in the input window until it timed out */
-            for(int i = 0; i < 400 && app.scene != BbSceneListen &&
-                           app.scene != BbSceneRuleCard;
+            for(int i = 0; i < 400 && app.scene != BbSceneListen && app.scene != BbSceneRuleCard;
                 i++) {
                 bb_tick(&app, BB_TICK_MS);
                 seen[app.scene] = true;
@@ -135,8 +148,10 @@ int main(void) {
                 missing++;
                 p += sprintf(msg + p, "%s ", scene_name[s]);
             }
-        check("every scene can be reached by pressing buttons", missing == 0,
-              missing ? msg : "all 31");
+        check(
+            "every scene can be reached by pressing buttons",
+            missing == 0,
+            missing ? msg : "all 31");
     }
 
     /* ---- the daily, pinned against the browser build ---- */
@@ -145,31 +160,38 @@ int main(void) {
         boot(&app);
         app.mode = BbModeDaily;
         bb_start_game(&app);
-        for(int i = 0; i < 29; i++) bb_challenge_grow(&app);
+        for(int i = 0; i < 29; i++)
+            bb_challenge_grow(&app);
         char got[64];
         int at = 0;
         for(uint8_t i = 0; i < 30 && i < app.base.len; i++)
             at += sprintf(got + at, "%u", app.base.step[i]);
         got[at] = 0;
         sprintf(msg, "rule %d, %u/%u", app.rule_idx, app.rule_a, app.rule_b);
-        check("2026-09-10 picks the rule the browser picks",
-              app.rule_idx == BbRuleNoDoubles && app.rule_a == 2 && app.rule_b == 0, msg);
-        check("and grows the sequence the browser grows",
-              strcmp(got, "102114334400314231030040221432") == 0, got);
+        check(
+            "2026-09-10 picks the rule the browser picks",
+            app.rule_idx == BbRuleNoDoubles && app.rule_a == 2 && app.rule_b == 0,
+            msg);
+        check(
+            "and grows the sequence the browser grows",
+            strcmp(got, "102114334400314231030040221432") == 0,
+            got);
         check("with time and speed locked to normal", app.set.diff == 1 && app.set.speed == 1, "");
 
         bb_seed_override = 20260911u;
         boot(&app);
         app.mode = BbModeDaily;
         bb_start_game(&app);
-        for(int i = 0; i < 29; i++) bb_challenge_grow(&app);
+        for(int i = 0; i < 29; i++)
+            bb_challenge_grow(&app);
         at = 0;
         for(uint8_t i = 0; i < 30 && i < app.base.len; i++)
             at += sprintf(got + at, "%u", app.base.step[i]);
         got[at] = 0;
-        check("2026-09-11 is the browser's other pinned day",
-              app.rule_idx == BbRuleEveryOther &&
-                  strcmp(got, "033221042032412034102302402014") == 0, got);
+        check(
+            "2026-09-11 is the browser's other pinned day",
+            app.rule_idx == BbRuleEveryOther && strcmp(got, "033221042032412034102302402014") == 0,
+            got);
         bb_seed_override = 0;
     }
 
@@ -224,15 +246,13 @@ int main(void) {
        BEST used to be judged and why it almost never appeared. */
     check("400 on insane beats nothing on insane, so it is a new best", app.new_best, "");
     sprintf(msg, "%lu", (unsigned long)app.rec.best[BbModeClassic][3][2][2]);
-    check("and it lands in that setting's slot",
-          app.rec.best[BbModeClassic][3][2][2] == 400, msg);
-    check("leaving the easy record where it was",
-          app.rec.best[BbModeClassic][0][0][2] == 5000, "");
+    check("and it lands in that setting's slot", app.rec.best[BbModeClassic][3][2][2] == 400, msg);
+    check(
+        "leaving the easy record where it was", app.rec.best[BbModeClassic][0][0][2] == 5000, "");
     app.score = 300;
     bb_enter(&app, BbSceneGameOver);
     check("a worse run on the same setting is not a new best", !app.new_best, "");
-    check("and does not lower the record",
-          app.rec.best[BbModeClassic][3][2][2] == 400, "");
+    check("and does not lower the record", app.rec.best[BbModeClassic][3][2][2] == 400, "");
     sprintf(msg, "%lu", (unsigned long)app.prev_best);
     check("what it is measured against is that slot", app.prev_best == 400, msg);
 
@@ -245,12 +265,15 @@ int main(void) {
         uint32_t left = app.input_end - app.now;
         bb_press(&app, InputKeyBack);
         check("BACK pauses rather than leaving", app.paused && bb_in_game(app.scene), "");
-        for(int i = 0; i < 100; i++) bb_tick(&app, BB_TICK_MS);
+        for(int i = 0; i < 100; i++)
+            bb_tick(&app, BB_TICK_MS);
         check("and the window does not drain", app.scene == BbSceneInput, "");
         bb_press(&app, InputKeyOk);
         sprintf(msg, "%lu vs %lu", (unsigned long)(app.input_end - app.now), (unsigned long)left);
-        check("OK resumes with the window it had",
-              !app.paused && app.input_end - app.now == left, msg);
+        check(
+            "OK resumes with the window it had",
+            !app.paused && app.input_end - app.now == left,
+            msg);
         bb_press(&app, InputKeyBack);
         bb_press(&app, InputKeyBack);
         check("BACK twice quits to the menu", app.scene == BbSceneMenu, scene_name[app.scene]);
@@ -304,8 +327,7 @@ int main(void) {
         uint8_t after = app.input_idx;
         bb_input_event(&app, key_of(want), InputTypeShort);
         sprintf(msg, "%u then %u", after, app.input_idx);
-        check("a game press counts once, on the way down",
-              after == 1 && app.input_idx == 1, msg);
+        check("a game press counts once, on the way down", after == 1 && app.input_idx == 1, msg);
 
         /* and in a menu it is the release that counts, once */
         boot(&app);
@@ -323,13 +345,16 @@ int main(void) {
     check("reflex gets one life", app.lives == 1, "");
     check("and starts at the shared window", app.rx_window == BB_RX_START, "");
     wait_scene(&app, BbSceneReflexCue, 4000);
-    for(int i = 0; i < 6; i++) bb_tick(&app, BB_TICK_MS);
+    for(int i = 0; i < 6; i++)
+        bb_tick(&app, BB_TICK_MS);
     bb_press(&app, key_of(app.rx_cue));
     sprintf(msg, "%u ms", app.rx_fastest);
     check("a hit records its reaction time", app.rx_fastest >= 100, msg);
     sprintf(msg, "%lu vs %u hits", (unsigned long)app.score, app.rx_hits);
-    check("and is worth what a note is worth, whatever the window",
-          app.score == BB_NOTE_POINTS * app.rx_hits, msg);
+    check(
+        "and is worth what a note is worth, whatever the window",
+        app.score == BB_NOTE_POINTS * app.rx_hits,
+        msg);
     wait_scene(&app, BbSceneReflexCue, 4000);
     bb_press(&app, key_of((uint8_t)((app.rx_cue + 1) % BbBtnCount)));
     check("a wrong button ends the run", app.scene == BbSceneGameOver, scene_name[app.scene]);
@@ -345,18 +370,23 @@ int main(void) {
     app.mode = BbModeReflex;
     bb_start_game(&app);
     bb_press(&app, InputKeyBack);
-    check("and BACK ends it rather than pausing",
-          app.scene == BbSceneGameOver && !app.paused, "");
+    check("and BACK ends it rather than pausing", app.scene == BbSceneGameOver && !app.paused, "");
 
     /* ---- the guides exist and lead where the browser says ---- */
     boot(&app);
     bb_enter(&app, BbSceneHelp);
     app.help_idx = 1;
     bb_press(&app, InputKeyOk);
-    check("HOW TO PLAY / RULES opens the rules guide", app.scene == BbSceneRulesGuide, scene_name[app.scene]);
+    check(
+        "HOW TO PLAY / RULES opens the rules guide",
+        app.scene == BbSceneRulesGuide,
+        scene_name[app.scene]);
     bb_press(&app, InputKeyOk);
     bb_press(&app, InputKeyOk);
-    check("whose last page opens the rule list", app.scene == BbSceneRuleList, scene_name[app.scene]);
+    check(
+        "whose last page opens the rule list",
+        app.scene == BbSceneRuleList,
+        scene_name[app.scene]);
     bb_press(&app, InputKeyOk);
     check("and a rule opens its own page", app.scene == BbSceneRuleInfo, scene_name[app.scene]);
     bb_press(&app, InputKeyDown);
@@ -369,7 +399,10 @@ int main(void) {
     bb_press(&app, InputKeyOk);
     bb_press(&app, InputKeyOk);
     bb_press(&app, InputKeyOk);
-    check("the reflex guide ends at the sound test", app.scene == BbSceneSoundTest, scene_name[app.scene]);
+    check(
+        "the reflex guide ends at the sound test",
+        app.scene == BbSceneSoundTest,
+        scene_name[app.scene]);
 
     /* ---- every screen, every cursor, inside 128x64 ---- */
     {
@@ -442,8 +475,13 @@ int main(void) {
                     }
                 }
             }
-        sprintf(msg + p, "| %lu off screen, %lu wide, %lu overlapping %s",
-                (unsigned long)oob, (unsigned long)wide, (unsigned long)over, worst);
+        sprintf(
+            msg + p,
+            "| %lu off screen, %lu wide, %lu overlapping %s",
+            (unsigned long)oob,
+            (unsigned long)wide,
+            (unsigned long)over,
+            worst);
         check("no screen draws outside 128x64", oob == 0, msg);
         check("and no string is wider than the screen", wide == 0, msg);
         check("and no string is drawn through another", over == 0, msg);
@@ -523,14 +561,15 @@ int main(void) {
     bb_enter(&app, BbSceneScorePick);
     frame(&app);
 
-
     boot(&app);
     bb_enter(&app, BbSceneSettings);
     app.set_idx = 0;
     app.set.volume = 3;
     bb_press(&app, InputKeyLeft);
-    check("LEFT turns the volume down, which is all it does in SETTINGS",
-          app.scene == BbSceneSettings && app.set.volume == 2, "");
+    check(
+        "LEFT turns the volume down, which is all it does in SETTINGS",
+        app.scene == BbSceneSettings && app.set.volume == 2,
+        "");
 
     boot(&app);
     app.set.assist = 0; /* the hardest way to play, with the sound still on */
@@ -547,8 +586,7 @@ int main(void) {
     bb_enter(&app, BbSceneSettings);
     app.set_idx = 1;
     frame(&app);
-    check("the assist row says what you actually chose",
-          fc_saw("EARS") && !fc_saw("SHAPES"), "");
+    check("the assist row says what you actually chose", fc_saw("EARS") && !fc_saw("SHAPES"), "");
     check("and the game does not quietly pick another one", bb_assist(&app) == 0, "");
     bb_press(&app, InputKeyBack);
     check("leaving warns first", app.scene == BbSceneNoCue, scene_name[app.scene]);
@@ -559,13 +597,17 @@ int main(void) {
     bb_press(&app, InputKeyBack);
     bb_press(&app, InputKeyOk);
     check("and OK plays it anyway", app.scene == BbSceneMenu, scene_name[app.scene]);
-    check("with the settings left exactly as chosen",
-          app.set.volume == 0 && app.set.assist == 0, "");
+    check(
+        "with the settings left exactly as chosen",
+        app.set.volume == 0 && app.set.assist == 0,
+        "");
     app.set.volume = 2;
     bb_enter(&app, BbSceneSettings);
     bb_press(&app, InputKeyBack);
-    check("turning the sound back on makes the way out plain again",
-          app.scene == BbSceneMenu, scene_name[app.scene]);
+    check(
+        "turning the sound back on makes the way out plain again",
+        app.scene == BbSceneMenu,
+        scene_name[app.scene]);
 
     boot(&app);
     app.mode = BbModeRules;
@@ -622,8 +664,10 @@ int main(void) {
             bb_press(&app, InputKeyRight);
             bb_press(&app, InputKeyLeft);
         }
-        check("but the daily's rows stay where the day put them",
-              app.set.diff == d0 && app.setup_idx == 3, "");
+        check(
+            "but the daily's rows stay where the day put them",
+            app.set.diff == d0 && app.setup_idx == 3,
+            "");
         bb_seed_override = 0;
     }
 
@@ -641,22 +685,25 @@ int main(void) {
         app.set.assist = 1;
         bb_press(&app, InputKeyRight);
         check("ASSIST moves", app.set.assist == 2, "");
-        for(int i = 0; i < 9; i++) bb_press(&app, InputKeyRight);
+        for(int i = 0; i < 9; i++)
+            bb_press(&app, InputKeyRight);
         check("and stops at the last one", app.set.assist == BB_ASSIST_COUNT - 1, "");
 
         bb_enter(&app, BbSceneScorePick);
         bb_press(&app, InputKeyDown);
         check("the records list walks the modes", app.score_mode == 1, "");
         bb_press(&app, InputKeyOk);
-        check("and OK opens that mode's table", app.scene == BbSceneTable,
-              scene_name[app.scene]);
+        check("and OK opens that mode's table", app.scene == BbSceneTable, scene_name[app.scene]);
 
         bb_enter(&app, BbSceneChPick);
         app.ch_idx = 0;
-        for(int i = 0; i < 9; i++) bb_press(&app, InputKeyDown);
+        for(int i = 0; i < 9; i++)
+            bb_press(&app, InputKeyDown);
         sprintf(msg, "at %u of %u, scrolled to %u", app.ch_idx, BB_RULE_COUNT + 1, app.ch_scroll);
-        check("the rule picker walks all eight and stops",
-              app.ch_idx == BB_RULE_COUNT && app.ch_scroll == BB_RULE_COUNT + 1 - 4, msg);
+        check(
+            "the rule picker walks all eight and stops",
+            app.ch_idx == BB_RULE_COUNT && app.ch_scroll == BB_RULE_COUNT + 1 - 4,
+            msg);
     }
 
     /* ---- the tutorial is a first-launch thing, once ---- */
@@ -681,8 +728,10 @@ int main(void) {
         bb_enter(&next, BbSceneReset);
         next.reset_idx = BbResetTutorial;
         bb_press(&next, InputKeyOk);
-        check("one press on a reset does nothing at all",
-              !next.first_run && next.set.tutorial_done, "");
+        check(
+            "one press on a reset does nothing at all",
+            !next.first_run && next.set.tutorial_done,
+            "");
         bb_press(&next, InputKeyOk);
         check("RESET TUTORIAL asks for it again", next.first_run && !next.set.tutorial_done, "");
         check("and stays in the app, because only EVERYTHING leaves", next.running, "");
@@ -698,17 +747,23 @@ int main(void) {
         app.mode = BbModeDaily;
         bb_enter(&app, BbSceneSetup);
         bb_press(&app, InputKeyOk);
-        check("the daily runs at NORMAL whatever you had set",
-              app.set.diff == 1 && app.set.speed == 1, "");
+        check(
+            "the daily runs at NORMAL whatever you had set",
+            app.set.diff == 1 && app.set.speed == 1,
+            "");
         bb_enter(&app, BbSceneGameOver);
         sprintf(msg, "diff %u speed %u", app.set.diff, app.set.speed);
-        check("and gives your own settings back when it ends",
-              app.set.diff == 3 && app.set.speed == 2, msg);
+        check(
+            "and gives your own settings back when it ends",
+            app.set.diff == 3 && app.set.speed == 2,
+            msg);
 
         app.now += BB_OVER_LOCK + 1;
         bb_press(&app, InputKeyOk);
-        check("OK on its game over does not hand it back for another go",
-              app.scene == BbSceneGameOver, scene_name[app.scene]);
+        check(
+            "OK on its game over does not hand it back for another go",
+            app.scene == BbSceneGameOver,
+            scene_name[app.scene]);
         bb_enter(&app, BbSceneSetup);
         bb_press(&app, InputKeyOk);
         check("and neither does the setup screen", app.scene == BbSceneSetup, "");
@@ -720,17 +775,24 @@ int main(void) {
         bb_enter(&app, BbSceneGameOver);
         app.now += BB_OVER_LOCK + 1;
         bb_press(&app, InputKeyOk);
-        check("but classic does play again from its game over",
-              bb_in_game(app.scene), scene_name[app.scene]);
+        check(
+            "but classic does play again from its game over",
+            bb_in_game(app.scene),
+            scene_name[app.scene]);
         bb_seed_override = 0;
     }
 
     /* ---- the volume is worth something on this speaker ---- */
     check("silence is silent", bb_vol_gain[0] == 0, "");
     sprintf(msg, "%u %u %u %u", bb_vol_gain[0], bb_vol_gain[1], bb_vol_gain[2], bb_vol_gain[3]);
-    check("and the loudest step drives the speaker fully", bb_vol_gain[BB_VOL_COUNT - 1] == 100, msg);
-    check("with every step louder than the last",
-          bb_vol_gain[1] < bb_vol_gain[2] && bb_vol_gain[2] < bb_vol_gain[3], msg);
+    check(
+        "and the loudest step drives the speaker fully",
+        bb_vol_gain[BB_VOL_COUNT - 1] == 100,
+        msg);
+    check(
+        "with every step louder than the last",
+        bb_vol_gain[1] < bb_vol_gain[2] && bb_vol_gain[2] < bb_vol_gain[3],
+        msg);
 
     /* ---- a flash always reaches the LED ---- */
     {
@@ -751,14 +813,17 @@ int main(void) {
     app.set.haptic = true;
     bb_tone(&app, 440, 90);
     sprintf(msg, "%lu ms", (unsigned long)(app.buzz_until - app.now));
-    check("switched on, a note pulses for as long as the note, less a gap",
-          app.buzz_until == app.now + (90 - BB_BUZZ_GAP), msg);
+    check(
+        "switched on, a note pulses for as long as the note, less a gap",
+        app.buzz_until == app.now + (90 - BB_BUZZ_GAP),
+        msg);
     bb_tone(&app, 440, 900);
-    check("and a very long note is capped rather than held on",
-          app.buzz_until == app.now + BB_BUZZ_MAX, "");
+    check(
+        "and a very long note is capped rather than held on",
+        app.buzz_until == app.now + BB_BUZZ_MAX,
+        "");
     bb_tone(&app, 440, 10);
-    check("a very short one still reaches the motor", app.buzz_until == app.now + BB_BUZZ_MIN,
-          "");
+    check("a very short one still reaches the motor", app.buzz_until == app.now + BB_BUZZ_MIN, "");
 
     /* A pattern is its rhythm. One pulse at the start of GAME OVER tells
        you as much as one beep would: the whole of it has to arrive. */
@@ -815,12 +880,33 @@ int main(void) {
         check("but the whole pattern still reaches the hand", felt == 4, msg);
     }
 
+    /* the sound test is five buttons and nothing else, so the motor is
+       half of what it has to say */
+    boot(&app);
+    app.set.haptic = true;
+    bb_enter(&app, BbSceneSoundTest);
+    for(uint8_t b = 0; b < 5; b++) {
+        app.buzz_until = 0;
+        bb_press(&app, keys[b]);
+        sprintf(msg, "%s", bb_button_name[app.test_btn < 0 ? 0 : app.test_btn]);
+        check("every button of TRY THE SOUNDS reaches the motor", app.buzz_until != 0, msg);
+    }
+    app.set.volume = 0;
+    app.buzz_until = 0;
+    bb_press(&app, InputKeyOk);
+    check(
+        "and still does with the sound off, which is when it matters most",
+        app.buzz_until != 0,
+        "");
+
     boot(&app);
     app.set.haptic = true;
     bb_play(&app, bb_jingle_over, 4);
     bb_hush(&app);
-    check("and everything stops together when the game is hushed",
-          app.buzz_until == 0 && app.tune == NULL && app.tone_hz == 0, "");
+    check(
+        "and everything stops together when the game is hushed",
+        app.buzz_until == 0 && app.tune == NULL && app.tone_hz == 0,
+        "");
 
     boot(&app);
     bb_enter(&app, BbSceneSettings);
@@ -829,7 +915,10 @@ int main(void) {
     check("there is a row for it", fc_saw("HAPTIC"), "");
     bb_press(&app, InputKeyRight);
     check("RIGHT turns it on", app.set.haptic, "");
-    check("and buzzes once so you feel what you turned on", app.buzz_until != 0, "");
+    check(
+        "and buzzes long enough to be felt, before you have played a note",
+        app.buzz_until == app.now + BB_BUZZ_HELLO,
+        "");
     bb_press(&app, InputKeyLeft);
     check("LEFT turns it off again", !app.set.haptic, "");
 
@@ -840,15 +929,15 @@ int main(void) {
     bb_enter(&app, BbSceneReset);
     app.reset_idx = BbResetRecords;
     bb_press(&app, InputKeyOk);
-    check("one press arms it and wipes nothing",
-          app.rec.best[BbModeClassic][1][1][2] == 500, "");
+    check("one press arms it and wipes nothing", app.rec.best[BbModeClassic][1][1][2] == 500, "");
     frame(&app);
     check("and says so", fc_saw("SURE?"), "");
     bb_press(&app, InputKeyOk);
-    check("the second press inside the second does it",
-          app.rec.best[BbModeClassic][1][1][2] == 0, "");
-    check("and leaves the stats alone, which are the other row",
-          app.stats.runs == 9, "");
+    check(
+        "the second press inside the second does it",
+        app.rec.best[BbModeClassic][1][1][2] == 0,
+        "");
+    check("and leaves the stats alone, which are the other row", app.stats.runs == 9, "");
     frame(&app);
     check("the row says it is done", fc_saw("DONE") && !fc_saw("SURE?"), "");
 
@@ -857,10 +946,10 @@ int main(void) {
     bb_enter(&app, BbSceneReset);
     app.reset_idx = BbResetStats;
     bb_press(&app, InputKeyOk);
-    for(int i = 0; i < 60; i++) bb_tick(&app, BB_TICK_MS); /* well past a second */
+    for(int i = 0; i < 60; i++)
+        bb_tick(&app, BB_TICK_MS); /* well past a second */
     bb_press(&app, InputKeyOk);
-    check("a second press too late arms it again rather than firing",
-          app.stats.runs == 9, "");
+    check("a second press too late arms it again rather than firing", app.stats.runs == 9, "");
     bb_press(&app, InputKeyOk);
     check("and the one after that clears the stats", app.stats.runs == 0, "");
 
@@ -871,8 +960,7 @@ int main(void) {
     bb_press(&app, InputKeyOk);
     bb_press(&app, InputKeyDown);
     bb_press(&app, InputKeyOk);
-    check("moving to another row disarms the one you left",
-          app.rec.daily_best[1] == 70, "");
+    check("moving to another row disarms the one you left", app.rec.daily_best[1] == 70, "");
 
     boot(&app);
     app.stats.runs = 3;
@@ -892,21 +980,21 @@ int main(void) {
     app.first_run = false;
     bb_enter(&app, BbSceneMenu);
     bb_press(&app, InputKeyRight);
-    check("RIGHT off the menu opens the stats", app.scene == BbSceneStats,
-          scene_name[app.scene]);
+    check("RIGHT off the menu opens the stats", app.scene == BbSceneStats, scene_name[app.scene]);
     frame(&app);
     check("which counts what you have done", fc_saw("RUNS") && fc_saw("PLAYED"), "");
     bb_press(&app, InputKeyDown);
     check("DOWN scrolls it", app.stat_scroll == 1, "");
     frame(&app);
-    check("bringing the next stat into view",
-          fc_saw("BEST EVER") && !fc_saw("RUNS"), "");
-    for(int i = 0; i < 10; i++) bb_press(&app, InputKeyDown);
+    check("bringing the next stat into view", fc_saw("BEST EVER") && !fc_saw("RUNS"), "");
+    for(int i = 0; i < 10; i++)
+        bb_press(&app, InputKeyDown);
     check("and stops at the bottom", app.stat_scroll == BB_STAT_ROWS - 4, "");
     frame(&app);
     check("which is where the favourites are", fc_saw("MODE") && fc_saw("ASSIST"), "");
     check("saying nothing rather than nought before you have played", fc_saw("-"), "");
-    for(int i = 0; i < 10; i++) bb_press(&app, InputKeyUp);
+    for(int i = 0; i < 10; i++)
+        bb_press(&app, InputKeyUp);
     check("UP goes back to the top", app.stat_scroll == 0, "");
     /* the four screens in a row, walked both ways, with an arrow at every
        end that has somewhere to go and none at the two that do not */
@@ -922,8 +1010,10 @@ int main(void) {
         bb_press(&app, InputKeyRight);
         check("and stops at the credits", app.scene == BbSceneCredits, "");
         frame(&app);
-        check("which point back and nowhere on",
-              fc_ink_in(0, 30, 8, 42) && !fc_ink_in(119, 30, 127, 42), "");
+        check(
+            "which point back and nowhere on",
+            fc_ink_in(0, 30, 8, 42) && !fc_ink_in(119, 30, 127, 42),
+            "");
         for(uint8_t i = 3; i > 0; i--) {
             bb_press(&app, InputKeyLeft);
             check("LEFT walks back along it", app.scene == row[i - 1], scene_name[app.scene]);
@@ -931,45 +1021,51 @@ int main(void) {
         bb_press(&app, InputKeyLeft);
         check("and stops at the menu", app.scene == BbSceneMenu, "");
         frame(&app);
-        check("which points on and nowhere back",
-              fc_ink_in(119, 30, 127, 42) && !fc_ink_in(0, 30, 8, 42), "");
+        check(
+            "which points on and nowhere back",
+            fc_ink_in(119, 30, 127, 42) && !fc_ink_in(0, 30, 8, 42),
+            "");
         bb_enter(&app, BbSceneStats);
         frame(&app);
-        check("and the screens between point both ways",
-              fc_ink_in(0, 30, 8, 42) && fc_ink_in(119, 30, 127, 42), "");
+        check(
+            "and the screens between point both ways",
+            fc_ink_in(0, 30, 8, 42) && fc_ink_in(119, 30, 127, 42),
+            "");
     }
 
     boot(&app);
     app.rec.best[BbModeClassic][2][2][1] = 880; /* hard, fast, led */
     bb_enter(&app, BbSceneStats);
     bb_press(&app, InputKeyRight);
-    check("the records are the next screen along", app.scene == BbSceneScorePick,
-          scene_name[app.scene]);
+    check(
+        "the records are the next screen along",
+        app.scene == BbSceneScorePick,
+        scene_name[app.scene]);
     bb_press(&app, InputKeyOk);
     check("and a mode opens its table", app.scene == BbSceneTable, scene_name[app.scene]);
     frame(&app);
-    check("which is every time against every speed at once",
-          fc_saw("EASY") && fc_saw("INSN") && fc_saw("SLOW") && fc_saw("FAST"), "");
+    check(
+        "which is every time against every speed at once",
+        fc_saw("EASY") && fc_saw("INSN") && fc_saw("SLOW") && fc_saw("FAST"),
+        "");
     check("on the first assist to begin with, and says which", fc_saw("EAR"), "");
-    check("where nothing has been set, so every cell is a dash",
-          !fc_saw("880"), "");
+    check("where nothing has been set, so every cell is a dash", !fc_saw("880"), "");
     bb_press(&app, InputKeyOk);
     frame(&app);
     check("OK turns it to the next assist", fc_saw("LED"), "");
     check("and there is the hard and fast record", fc_saw("880"), "");
-    for(int i = 0; i < BB_ASSIST_COUNT; i++) bb_press(&app, InputKeyOk);
+    for(int i = 0; i < BB_ASSIST_COUNT; i++)
+        bb_press(&app, InputKeyOk);
     check("and it comes back round rather than stopping", app.tbl_assist == 1, "");
     bb_press(&app, InputKeyBack);
-    check("BACK goes back to the mode list", app.scene == BbSceneScorePick,
-          scene_name[app.scene]);
+    check("BACK goes back to the mode list", app.scene == BbSceneScorePick, scene_name[app.scene]);
 
     boot(&app);
     app.score_mode = BbModeChallenge;
     app.rec.ch_best[0][0] = 640;
     bb_enter(&app, BbSceneTable);
     frame(&app);
-    check("challenge lists its rules instead of a grid",
-          fc_saw("SKIP") && fc_saw("640"), "");
+    check("challenge lists its rules instead of a grid", fc_saw("SKIP") && fc_saw("640"), "");
     bb_press(&app, InputKeyDown);
     check("and scrolls them", app.tbl_scroll == 1, "");
     boot(&app);
@@ -977,8 +1073,10 @@ int main(void) {
     app.rec.daily_best[2] = 310;
     bb_enter(&app, BbSceneTable);
     frame(&app);
-    check("the daily is one number an assist, all four at once",
-          fc_saw("SHAPES") && fc_saw("310"), "");
+    check(
+        "the daily is one number an assist, all four at once",
+        fc_saw("SHAPES") && fc_saw("310"),
+        "");
 
     /* the counters behind the stats pages */
     boot(&app);
@@ -993,15 +1091,19 @@ int main(void) {
         if(!wait_scene(&app, BbSceneSuccess, 400) && app.scene != BbSceneRoundClear)
             wait_scene(&app, BbSceneRoundClear, 400);
     }
-    sprintf(msg, "%lu notes, %lu rounds", (unsigned long)app.stats.notes,
-            (unsigned long)app.stats.rounds);
+    sprintf(
+        msg,
+        "%lu notes, %lu rounds",
+        (unsigned long)app.stats.notes,
+        (unsigned long)app.stats.rounds);
     check("every note played back right is counted", app.stats.notes == 6, msg);
     check("and every round cleared", app.stats.rounds == 1, msg);
     check("playtime is the time a run was running", app.stats.play_ms > 0, "");
     {
         uint32_t held = app.stats.play_ms;
         bb_enter(&app, BbSceneMenu);
-        for(int i = 0; i < 40; i++) bb_tick(&app, BB_TICK_MS);
+        for(int i = 0; i < 40; i++)
+            bb_tick(&app, BB_TICK_MS);
         check("and not the time the menu was open", app.stats.play_ms == held, "");
     }
 
@@ -1025,16 +1127,17 @@ int main(void) {
         boot(&b);
         check("the save block is the size the header says", n == BB_SAVE_BYTES, "");
         check("and reads back", bb_save_unpack(&b, buf, n), "");
-        check("with the settings intact",
-              b.set.volume == 1 && b.set.assist == 3 && b.set.tutorial_done &&
-                  b.set.haptic,
-              "");
+        check(
+            "with the settings intact",
+            b.set.volume == 1 && b.set.assist == 3 && b.set.tutorial_done && b.set.haptic,
+            "");
         check("and the records", b.rec.ch_best[3][2] == 4321, "");
-        check("and the stats, which are their own thing",
-              b.stats.runs == 77 && b.stats.play_ms == 1234567 && b.stats.notes == 9001 &&
-                  b.stats.longest == 19 && b.stats.by_mode[BbModeRules] == 40 &&
-                  b.stats.by_assist[1] == 31,
-              "");
+        check(
+            "and the stats, which are their own thing",
+            b.stats.runs == 77 && b.stats.play_ms == 1234567 && b.stats.notes == 9001 &&
+                b.stats.longest == 19 && b.stats.by_mode[BbModeRules] == 40 &&
+                b.stats.by_assist[1] == 31,
+            "");
         check("and firstRun is the tutorial flag inverted", !b.first_run, "");
         buf[4] = 4;
         boot(&b);

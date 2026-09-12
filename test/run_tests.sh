@@ -30,6 +30,22 @@ case $rc in
 esac
 echo
 
+# The Apps Catalog runs "ufbt lint" over the whole repository before it
+# will build a submission, and it is clang-format, so a passing build
+# says nothing about whether it will be accepted.
+if command -v ufbt > /dev/null 2>&1; then
+    rc=0
+    (cd .. && ufbt lint) > /tmp/bb_lint.log 2>&1 || rc=$?
+    if [ $rc -eq 0 ]; then
+        echo "ok   formatted the way the Apps Catalog insists on"
+    else
+        echo "FAIL ufbt lint rejects this tree; run 'ufbt format'"
+        grep -oE "^/[a-zA-Z0-9_/.-]+\.[ch]" /tmp/bb_lint.log | sort -u | sed 's/^/       /'
+        exit 1
+    fi
+    echo
+fi
+
 ARMCC=arm-none-eabi-gcc
 if command -v $ARMCC > /dev/null 2>&1; then
     ARMFLAGS="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \

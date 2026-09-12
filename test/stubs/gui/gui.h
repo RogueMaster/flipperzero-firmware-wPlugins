@@ -5,10 +5,31 @@
 typedef struct Gui Gui;
 typedef struct ViewPort ViewPort;
 typedef struct Canvas Canvas;
-typedef enum { ColorWhite, ColorBlack, ColorXOR } Color;
-typedef enum { FontPrimary, FontSecondary, FontKeyboard, FontBigNumbers } Font;
-typedef enum { AlignLeft, AlignRight, AlignTop, AlignBottom, AlignCenter } Align;
-typedef enum { GuiLayerDesktop, GuiLayerWindow, GuiLayerStatusBarLeft, GuiLayerStatusBarRight, GuiLayerFullscreen } GuiLayer;
+typedef enum {
+    ColorWhite,
+    ColorBlack,
+    ColorXOR
+} Color;
+typedef enum {
+    FontPrimary,
+    FontSecondary,
+    FontKeyboard,
+    FontBigNumbers
+} Font;
+typedef enum {
+    AlignLeft,
+    AlignRight,
+    AlignTop,
+    AlignBottom,
+    AlignCenter
+} Align;
+typedef enum {
+    GuiLayerDesktop,
+    GuiLayerWindow,
+    GuiLayerStatusBarLeft,
+    GuiLayerStatusBarRight,
+    GuiLayerFullscreen
+} GuiLayer;
 typedef void (*ViewPortDrawCallback)(Canvas* canvas, void* context);
 typedef void (*ViewPortInputCallback)(InputEvent* event, void* context);
 ViewPort* view_port_alloc(void);

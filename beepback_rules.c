@@ -52,7 +52,8 @@ void bb_apply_rule(const BbSeq* seq, BbRule rule, uint8_t a, uint8_t b, BbPresse
         break;
 
     case BbRuleEveryOther:
-        for(uint8_t i = 0; i < seq->len; i += 2) out->press[out->len++] = seq->step[i];
+        for(uint8_t i = 0; i < seq->len; i += 2)
+            out->press[out->len++] = seq->step[i];
         break;
 
     case BbRuleLastTwice:
@@ -67,11 +68,13 @@ void bb_apply_rule(const BbSeq* seq, BbRule rule, uint8_t a, uint8_t b, BbPresse
         break;
 
     case BbRuleBackwards:
-        for(int16_t i = seq->len - 1; i >= 0; i--) out->press[out->len++] = seq->step[i];
+        for(int16_t i = seq->len - 1; i >= 0; i--)
+            out->press[out->len++] = seq->step[i];
         break;
 
     default:
-        for(uint8_t i = 0; i < seq->len; i++) out->press[out->len++] = seq->step[i];
+        for(uint8_t i = 0; i < seq->len; i++)
+            out->press[out->len++] = seq->step[i];
         break;
     }
 }

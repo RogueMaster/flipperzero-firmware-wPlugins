@@ -95,7 +95,6 @@ static void bb_hardware_off(BeepbackApp* app) {
     }
 }
 
-
 /* ------------------------------------------------------------------ */
 
 int32_t beepback_app(void* p) {
