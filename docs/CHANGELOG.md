@@ -1,4 +1,5 @@
 ## Unreleased
+- Major under the hood refactoring
 - Add ADFGVX, Bifid, Trifid ciphers.
 - Add Base16 encoding.
 
