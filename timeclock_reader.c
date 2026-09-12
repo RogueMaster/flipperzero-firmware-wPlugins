@@ -100,7 +100,9 @@ static void reader_lf_callback(LFRFIDWorkerReadResult result, ProtocolId protoco
 
 // ---- Start / stop helpers --------------------------------------------------
 static void reader_start_nfc_scan(TimeclockReader* reader) {
-    reader->nfc = nfc_alloc();
+    // Reuse the existing Nfc instance when re-arming (continuous mode): only
+    // allocate it the first time, otherwise each punch would leak an Nfc.
+    if(!reader->nfc) reader->nfc = nfc_alloc();
     reader->scanner = nfc_scanner_alloc(reader->nfc);
     nfc_scanner_start(reader->scanner, reader_scanner_callback, reader);
 }
