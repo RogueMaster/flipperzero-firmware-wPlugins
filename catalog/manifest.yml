@@ -22,7 +22,10 @@ sourcecode:
     # inside the repository at this exact commit.
     commit_sha: b8522fabbdaac1c61b3ab917715443eb1e39f10c
 
-description: "@README.md"
+# README.md is the GitHub landing page and has images and tables in it,
+# neither of which the catalog's markdown filter allows. This is the same
+# text written to that subset.
+description: "@catalog/description.md"
 changelog: "@changelog.md"
 
 # Rendered by tools/shoot, which draws the app's own screens through the
