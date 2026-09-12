@@ -20,6 +20,7 @@
 #include "ciphers/rc4.h"
 #include "ciphers/rot13.h"
 #include "ciphers/scytale.h"
+#include "ciphers/trifid.h"
 #include "ciphers/vigenere.h"
 
 #include "hashes/blake2.h"
@@ -232,6 +233,18 @@ static CipherResult scytale_decode(const char* input, int32_t a, int32_t b, cons
     UNUSED(b);
     UNUSED(k);
     return ok_result(strdup(scytale_decrypt((char*)input, a)));
+}
+
+static CipherResult trifid_encode(const char* input, int32_t a, int32_t b, const char* key) {
+    UNUSED(a);
+    UNUSED(b);
+    return ok_result(trifid_encrypt(input, key));
+}
+
+static CipherResult trifid_decode(const char* input, int32_t a, int32_t b, const char* key) {
+    UNUSED(a);
+    UNUSED(b);
+    return ok_result(trifid_decrypt(input, key));
 }
 
 static CipherResult rc4_encode(const char* input, int32_t a, int32_t b, const char* key) {
@@ -719,6 +732,26 @@ const CipherDef kCiphers[] = {
             "on the secrecy of the rod's diameter. Although simple and easy to use, the Scytale "
             "cipher offers almost no security by modern standards and just of historical "
             "interest.",
+    },
+    {
+        .name = "Trifid Cipher",
+        .file_key = "trifid",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = trifid_encode,
+        .decode = trifid_decode,
+        .key_a_prompt = "Enter keyword",
+        .learn_text =
+            "The Trifid cipher, invented by Felix Delastelle in 1901 as an extension of "
+            "his earlier Bifid cipher, plots letters into a 3x3x3 cube of 27 cells (the 26 "
+            "letters plus a period) instead of a flat 5x5 square. Each letter is converted "
+            "into three coordinates: layer, row, and column. All the layer values are written "
+            "out first, then all the row values, then all the column values, and this "
+            "combined sequence is read off in new groups of three and converted back into "
+            "letters using the cube. Because each ciphertext letter can depend on the "
+            "coordinates of up to three different plaintext letters, Trifid spreads "
+            "information even further than Bifid, making it noticeably more resistant to "
+            "frequency analysis while still doable by hand.",
     },
     {
         .name = "Vigenere Cipher",
