@@ -49,8 +49,8 @@ Flipper-style mockups of the main screens (128x64):
 - **Manage collaborators (badges)**: rename, **replace the chip** if it is lost
   (keeps the person's name and history, only the chip changes), view per-person
   history, delete (history is kept).
-- **Manual or automatic** IN/OUT - auto mode preselects the opposite of the last
-  punch, and you can still correct it.
+- **Automatic IN/OUT**: tapping a badge alternates automatically (first tap IN,
+  then OUT, then IN, ...) - no manual choice, the punch is logged instantly.
 - **Feedback on punch**: distinct **sound**, **vibration** and **LED** for IN vs
   OUT (ascending tone + 1 buzz + green for IN; descending tone + 2 buzzes + blue
   for OUT), so a tap tells you which one it was. Each is toggleable in Settings
