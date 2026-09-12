@@ -20,6 +20,8 @@ void timeclock_scene_about_on_enter(void* context) {
         "  then OUT, then IN... automatically.\n"
         "- Work mode: kiosk clock; greets\n"
         "  Welcome/Goodbye. Exit needs PIN.\n"
+        "- PIN: a fast 4-arrow sequence\n"
+        "  (set at first launch or Settings).\n"
         "- Today / This week: worked time\n"
         "  and breaks.\n"
         "- Export: CSV/JSON on the SD card.\n"

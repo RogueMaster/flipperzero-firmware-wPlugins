@@ -254,6 +254,10 @@ int32_t timeclock_app(void* p) {
         scene_manager_next_scene(app->scene_manager, TimeClockScenePinUnlock);
     } else {
         scene_manager_next_scene(app->scene_manager, TimeClockSceneMenu);
+        if(!app->config.onboarded) {
+            // First launch: offer to set the protection PIN (on top of the menu).
+            scene_manager_next_scene(app->scene_manager, TimeClockSceneOnboarding);
+        }
     }
 
     view_dispatcher_run(app->view_dispatcher);

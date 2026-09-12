@@ -137,6 +137,7 @@ void tc_config_load(TcConfig* config) {
     config->pin_hash = 0;
     config->pin_salt = 0;
     config->attempts = 0;
+    config->onboarded = false;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     Stream* stream = file_stream_alloc(storage);
@@ -164,6 +165,8 @@ void tc_config_load(TcConfig* config) {
                 config->pin_salt = (uint32_t)v;
             } else if(sscanf(s, "attempts=%lu", &v) == 1) {
                 config->attempts = (uint32_t)v;
+            } else if(sscanf(s, "onboarded=%lu", &v) == 1) {
+                config->onboarded = v != 0;
             }
         }
         furi_string_free(line);
@@ -186,6 +189,7 @@ void tc_config_save(const TcConfig* config) {
         stream_write_format(stream, "pin_hash=%lu\n", (unsigned long)config->pin_hash);
         stream_write_format(stream, "pin_salt=%lu\n", (unsigned long)config->pin_salt);
         stream_write_format(stream, "attempts=%lu\n", (unsigned long)config->attempts);
+        stream_write_format(stream, "onboarded=%u\n", config->onboarded ? 1 : 0);
     }
     file_stream_close(stream);
     stream_free(stream);

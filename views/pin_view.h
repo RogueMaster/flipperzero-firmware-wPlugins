@@ -4,11 +4,12 @@
 #pragma once
 
 // =============================================================================
-// PinView - a small custom view for 4-digit PIN entry.
+// PinView - a fast 4-step arrow-sequence "PIN".
 //
-// Controls: Up/Down change the active digit, Left/Right move between digits,
-// OK advances (and submits on the last digit). Digits are masked with '*';
-// only the digit being edited is shown, so the full PIN is never displayed.
+// The code is a sequence of 4 directions (Up/Down/Left/Right). Each arrow press
+// adds one step; after the 4th it auto-submits. OK clears the entry to restart.
+// Entries are masked (filled dots), so the sequence is never shown on screen.
+// get_code() returns the sequence as a string of 'U'/'D'/'L'/'R'.
 // =============================================================================
 
 #include <gui/view.h>

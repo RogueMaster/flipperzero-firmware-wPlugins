@@ -59,7 +59,9 @@ Flipper-style mockups of the main screens (128x64):
   Badges), a **Today** summary (first in, last out, worked total and break time)
   and a **This week** summary (worked time per day + weekly total).
 - **Storage on microSD** as plain CSV, plus **JSON export**.
-- **Protected mode (PIN)**: optional 4-digit PIN that gates leaving the app.
+- **Protected mode (PIN)**: optional 4-step **arrow-sequence** code (Up / Down /
+  Left / Right - fast to enter) that gates leaving the app; you are offered to
+  set it on first launch, or later in Settings.
 
 See [ROADMAP](#roadmap) for v1.1 / v2.0 ideas.
 
@@ -144,18 +146,20 @@ APIs and is written to be portable across firmwares.
 
 ## Protected mode & PIN - what it can and cannot do
 
-When a PIN is set (*Settings -> Set PIN*), the app starts locked and **Back no
-longer leaves the app**; the only software way out is *Settings -> Exit app*,
-which asks for the PIN. The PIN is stored only as a **salted hash**.
+The PIN is a fast **4-step arrow sequence** (e.g. Up, Up, Left, Right). You are
+offered to set it on first launch, or any time from *Settings -> Set PIN*. When
+set, the app starts locked and **Back no longer leaves the app**; the only
+software way out is *Settings -> Exit app* (or Work mode -> Back), which asks for
+the sequence. It is stored only as a **salted hash**, never in clear text.
 
 **Honest limits (by design):**
 
 - No app can stop a **hardware** power-off or a firmware-level force-quit
   (e.g. holding `Left` + `Back` to reboot, or removing power). Protected mode
   covers only the actions the app/firmware expose to software.
-- The PIN hash (FNV-1a) prevents storing the PIN in clear text and gates the
+- The PIN hash (FNV-1a) prevents storing the code in clear text and gates the
   on-device UI. It is **not** a strong defense against an attacker with physical
-  access to the SD card who brute-forces 4 digits offline.
+  access to the SD card who brute-forces a short arrow sequence offline.
 - There is intentionally **no hidden PIN bypass**. Deleting
   `config.txt` on the SD card resets settings (and the PIN).
 

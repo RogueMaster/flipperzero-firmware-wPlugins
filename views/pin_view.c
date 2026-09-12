@@ -4,7 +4,7 @@
 #include "pin_view.h"
 #include <furi.h>
 
-#define PIN_DIGITS 4
+#define PIN_STEPS 4
 
 struct PinView {
     View* view;
@@ -15,107 +15,86 @@ struct PinView {
 typedef struct {
     char title[32];
     char message[32];
-    uint8_t digits[PIN_DIGITS];
-    uint8_t pos;
+    char seq[PIN_STEPS + 1]; // 'U' 'D' 'L' 'R'
+    uint8_t len;
 } PinViewModel;
 
 static void pin_view_draw_callback(Canvas* canvas, void* _model) {
     PinViewModel* model = _model;
-
     canvas_clear(canvas);
 
-    // Title
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignCenter, model->title);
 
-    // Digit boxes
-    const int box_w = 18;
-    const int box_h = 22;
-    const int gap = 6;
-    const int total_w = PIN_DIGITS * box_w + (PIN_DIGITS - 1) * gap;
-    int x0 = (128 - total_w) / 2;
-    int y0 = 20;
-
-    canvas_set_font(canvas, FontBigNumbers);
-    for(int i = 0; i < PIN_DIGITS; i++) {
-        int x = x0 + i * (box_w + gap);
-        canvas_draw_rframe(canvas, x, y0, box_w, box_h, 3);
-        // Highlight the active box.
-        if(i == model->pos) {
-            canvas_draw_rframe(canvas, x - 1, y0 - 1, box_w + 2, box_h + 2, 3);
+    // Progress boxes: filled for each entered step (masked).
+    const int box = 16;
+    const int gap = 8;
+    const int total = PIN_STEPS * box + (PIN_STEPS - 1) * gap;
+    int x0 = (128 - total) / 2;
+    int y0 = 22;
+    for(int i = 0; i < PIN_STEPS; i++) {
+        int x = x0 + i * (box + gap);
+        canvas_draw_rframe(canvas, x, y0, box, box, 3);
+        if(i < model->len) {
+            canvas_draw_disc(canvas, x + box / 2, y0 + box / 2, 4);
         }
-
-        char ch[2] = {0, 0};
-        if(i == model->pos) {
-            ch[0] = '0' + model->digits[i]; // show the digit being edited
-        } else {
-            ch[0] = '*'; // mask the others
-        }
-        canvas_draw_str_aligned(
-            canvas, x + box_w / 2, y0 + box_h / 2, AlignCenter, AlignCenter, ch);
     }
 
-    // Message / hint
     canvas_set_font(canvas, FontSecondary);
     if(model->message[0] != '\0') {
-        canvas_draw_str_aligned(canvas, 64, 56, AlignCenter, AlignCenter, model->message);
+        canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignCenter, model->message);
     } else {
-        canvas_draw_str_aligned(
-            canvas, 64, 56, AlignCenter, AlignCenter, "Up/Down: digit  OK: next");
+        canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignCenter, "Arrows  |  OK=clear");
     }
 }
 
 static bool pin_view_input_callback(InputEvent* event, void* context) {
     PinView* pin_view = context;
-    bool handled = false;
 
-    if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
-        return false;
+    if(event->type != InputTypeShort) return false;
+
+    char dir = 0;
+    bool clear = false;
+    switch(event->key) {
+    case InputKeyUp:
+        dir = 'U';
+        break;
+    case InputKeyDown:
+        dir = 'D';
+        break;
+    case InputKeyLeft:
+        dir = 'L';
+        break;
+    case InputKeyRight:
+        dir = 'R';
+        break;
+    case InputKeyOk:
+        clear = true;
+        break;
+    default:
+        return false; // let Back propagate to the scene
     }
 
     bool submit = false;
-
     with_view_model(
         pin_view->view,
         PinViewModel * model,
         {
-            switch(event->key) {
-            case InputKeyUp:
-                model->digits[model->pos] = (model->digits[model->pos] + 1) % 10;
-                handled = true;
-                break;
-            case InputKeyDown:
-                model->digits[model->pos] = (model->digits[model->pos] + 9) % 10;
-                handled = true;
-                break;
-            case InputKeyLeft:
-                if(model->pos > 0) model->pos--;
-                handled = true;
-                break;
-            case InputKeyRight:
-                if(model->pos < PIN_DIGITS - 1) model->pos++;
-                handled = true;
-                break;
-            case InputKeyOk:
-                if(model->pos < PIN_DIGITS - 1) {
-                    model->pos++;
-                } else {
-                    submit = true;
-                }
-                handled = true;
-                break;
-            default:
-                break;
+            if(clear) {
+                model->len = 0;
+                model->seq[0] = '\0';
+            } else if(model->len < PIN_STEPS) {
+                model->seq[model->len++] = dir;
+                model->seq[model->len] = '\0';
+                if(model->len == PIN_STEPS) submit = true;
             }
         },
         true);
 
-    // Fire the callback outside the model lock to keep it re-entrant-safe.
     if(submit && pin_view->callback) {
         pin_view->callback(pin_view->context);
     }
-
-    return handled;
+    return true;
 }
 
 PinView* pin_view_alloc(void) {
@@ -128,7 +107,6 @@ PinView* pin_view_alloc(void) {
     view_set_context(pin_view->view, pin_view);
     view_set_draw_callback(pin_view->view, pin_view_draw_callback);
     view_set_input_callback(pin_view->view, pin_view_input_callback);
-
     return pin_view;
 }
 
@@ -152,8 +130,8 @@ void pin_view_reset(PinView* pin_view, const char* title) {
             strncpy(model->title, title ? title : "", sizeof(model->title) - 1);
             model->title[sizeof(model->title) - 1] = '\0';
             model->message[0] = '\0';
-            model->pos = 0;
-            for(int i = 0; i < PIN_DIGITS; i++) model->digits[i] = 0;
+            model->len = 0;
+            model->seq[0] = '\0';
         },
         true);
 }
@@ -164,11 +142,8 @@ void pin_view_get_code(PinView* pin_view, char* out, size_t out_size) {
         pin_view->view,
         PinViewModel * model,
         {
-            size_t n = 0;
-            for(int i = 0; i < PIN_DIGITS && n < out_size - 1; i++) {
-                out[n++] = '0' + model->digits[i];
-            }
-            out[n] = '\0';
+            strncpy(out, model->seq, out_size - 1);
+            out[out_size - 1] = '\0';
         },
         false);
 }

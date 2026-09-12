@@ -52,6 +52,7 @@ typedef struct {
     uint32_t pin_hash; // PIN hash (never stored in clear text)
     uint32_t pin_salt; // random salt used for the hash
     uint32_t attempts; // consecutive wrong PIN attempts
+    bool onboarded; // first-launch onboarding already shown
 } TcConfig;
 
 // ---- File paths ------------------------------------------------------------
