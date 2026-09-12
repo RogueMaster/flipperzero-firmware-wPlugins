@@ -472,6 +472,9 @@ void bb_app_init(BeepbackApp* app);
 void bb_enter(BeepbackApp* app, BbScene scene);
 /* where leaving this screen goes, or BbSceneCount for nowhere */
 BbScene bb_back_target(const BeepbackApp* app);
+/* the screen one step left (-1) or right (+1) along the top row, or
+   BbSceneCount where the row ends */
+BbScene bb_chain_step(const BeepbackApp* app, int8_t dir);
 void bb_update(BeepbackApp* app);
 void bb_tick(BeepbackApp* app, uint32_t dt_ms);
 void bb_start_game(BeepbackApp* app);

@@ -509,11 +509,6 @@ int main(void) {
     /* the screens where LEFT still means something say so with an arrow
        or a row of dots; nowhere else may answer to it */
     boot(&app);
-    bb_enter(&app, BbSceneScorePick);
-    bb_press(&app, InputKeyLeft);
-    check("LEFT is not a second way out of the records",
-          app.scene == BbSceneScorePick, scene_name[app.scene]);
-    boot(&app);
     bb_enter(&app, BbSceneReset);
     bb_press(&app, InputKeyLeft);
     check("nor of the reset screen", app.scene == BbSceneReset, scene_name[app.scene]);
@@ -527,9 +522,7 @@ int main(void) {
     boot(&app);
     bb_enter(&app, BbSceneScorePick);
     frame(&app);
-    frame(&app);
-    check("the records list points right, to its table",
-          fc_ink_in(119, 28, 127, 44), "");
+
 
     boot(&app);
     bb_enter(&app, BbSceneSettings);
@@ -850,24 +843,47 @@ int main(void) {
     for(int i = 0; i < 10; i++) bb_press(&app, InputKeyDown);
     check("and stops at the bottom", app.stat_scroll == BB_STAT_ROWS - 4, "");
     frame(&app);
-    check("which is where the favourites are",
-          fc_saw("FAVOURITE") && fc_saw("PLAYED BY"), "");
+    check("which is where the favourites are", fc_saw("MODE") && fc_saw("ASSIST"), "");
     check("saying nothing rather than nought before you have played", fc_saw("-"), "");
     for(int i = 0; i < 10; i++) bb_press(&app, InputKeyUp);
     check("UP goes back to the top", app.stat_scroll == 0, "");
-    bb_press(&app, InputKeyRight);
-    check("RIGHT is the credits, where it always was", app.scene == BbSceneCredits,
-          scene_name[app.scene]);
-    bb_press(&app, InputKeyBack);
-    check("and BACK returns to the stats", app.scene == BbSceneStats, scene_name[app.scene]);
-    bb_press(&app, InputKeyBack);
-    check("and again to the menu", app.scene == BbSceneMenu, scene_name[app.scene]);
+    /* the four screens in a row, walked both ways, with an arrow at every
+       end that has somewhere to go and none at the two that do not */
+    {
+        const BbScene row[4] = {BbSceneMenu, BbSceneStats, BbSceneScorePick, BbSceneCredits};
+        boot(&app);
+        app.first_run = false;
+        bb_enter(&app, BbSceneMenu);
+        for(uint8_t i = 1; i < 4; i++) {
+            bb_press(&app, InputKeyRight);
+            check("RIGHT walks along the row", app.scene == row[i], scene_name[app.scene]);
+        }
+        bb_press(&app, InputKeyRight);
+        check("and stops at the credits", app.scene == BbSceneCredits, "");
+        frame(&app);
+        check("which point back and nowhere on",
+              fc_ink_in(0, 30, 8, 42) && !fc_ink_in(119, 30, 127, 42), "");
+        for(uint8_t i = 3; i > 0; i--) {
+            bb_press(&app, InputKeyLeft);
+            check("LEFT walks back along it", app.scene == row[i - 1], scene_name[app.scene]);
+        }
+        bb_press(&app, InputKeyLeft);
+        check("and stops at the menu", app.scene == BbSceneMenu, "");
+        frame(&app);
+        check("which points on and nowhere back",
+              fc_ink_in(119, 30, 127, 42) && !fc_ink_in(0, 30, 8, 42), "");
+        bb_enter(&app, BbSceneStats);
+        frame(&app);
+        check("and the screens between point both ways",
+              fc_ink_in(0, 30, 8, 42) && fc_ink_in(119, 30, 127, 42), "");
+    }
 
     boot(&app);
     app.rec.best[BbModeClassic][2][2][1] = 880; /* hard, fast, led */
     bb_enter(&app, BbSceneStats);
-    bb_press(&app, InputKeyOk);
-    check("OK opens the records", app.scene == BbSceneScorePick, scene_name[app.scene]);
+    bb_press(&app, InputKeyRight);
+    check("the records are the next screen along", app.scene == BbSceneScorePick,
+          scene_name[app.scene]);
     bb_press(&app, InputKeyOk);
     check("and a mode opens its table", app.scene == BbSceneTable, scene_name[app.scene]);
     frame(&app);

@@ -322,7 +322,6 @@ static void bb_draw_menu(Canvas* c, const BeepbackApp* app) {
         bb_str(c, 64, top + 7, AlignCenter, AlignCenter, items[i]);
         canvas_set_color(c, ColorBlack);
     }
-    bb_chev_r(c, BB_CHEV_R, 36); /* scores are that way */
 }
 
 static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
@@ -334,19 +333,24 @@ static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
         bb_str(c, 64, top + 5, AlignCenter, AlignCenter, bb_mode_name[i]);
         canvas_set_color(c, ColorBlack);
     }
-    bb_chev_r(c, BB_CHEV_R, 36);
 }
 
 /* seven rules do not fit, so show where you are */
-static void bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n,
-                         uint8_t scroll) {
+static void bb_scrollbar_at(Canvas* c, int32_t x, int32_t top, int32_t track, uint8_t vis,
+                            uint8_t n, uint8_t scroll) {
     if(n > vis && scroll > n - vis) scroll = (uint8_t)(n - vis);
-    canvas_draw_frame(c, 122, top, 4, (size_t)track);
+    canvas_draw_frame(c, x, top, 4, (size_t)track);
     int32_t thumb = track * vis / n;
     if(thumb < 6) thumb = 6;
     int32_t room = track - thumb;
     int32_t y = top + (n > vis ? room * scroll / (n - vis) : 0);
-    canvas_draw_box(c, 123, y + 1, 2, (size_t)(thumb - 2));
+    canvas_draw_box(c, x + 1, y + 1, 2, (size_t)(thumb - 2));
+}
+
+/* the usual place, hard against the right edge */
+static void bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n,
+                         uint8_t scroll) {
+    bb_scrollbar_at(c, 122, top, track, vis, n, scroll);
 }
 
 /* h:mm for anything over an hour, m:ss below it, so the number always
@@ -410,13 +414,13 @@ static void bb_stat_row(const BeepbackApp* app, uint8_t i, const char** label,
            strcpy at -Os, and a .fap may only call what the firmware
            exports, which strcpy is not */
         int8_t f = bb_favourite(st->by_mode, BB_MODE_COUNT);
-        *label = "FAVOURITE";
+        *label = "MODE";
         *value = f < 0 ? "-" : bb_mode_name[f];
         break;
     }
     default: {
         int8_t f = bb_favourite(st->by_assist, BB_ASSIST_COUNT);
-        *label = "PLAYED BY";
+        *label = "ASSIST";
         *value = f < 0 ? "-" : bb_assist_name[f];
         break;
     }
@@ -424,23 +428,24 @@ static void bb_stat_row(const BeepbackApp* app, uint8_t i, const char** label,
 }
 
 static void bb_draw_stats(Canvas* c, const BeepbackApp* app) {
-    const uint8_t VIS = 4;
+    const uint8_t VIS = 5;
     uint8_t top = app->stat_scroll;
     char buf[20];
 
     if(top + VIS > BB_STAT_ROWS) top = BB_STAT_ROWS - VIS;
     bb_title(c, "STATS");
     bb_font(c, false);
+    /* the rows give up both edges: the screen has a neighbour each way and
+       a list going down, so it has to show all three */
     for(uint8_t i = 0; i < VIS; i++) {
         const char* label;
         const char* value;
-        int32_t y = 19 + i * 10;
+        int32_t y = 18 + i * 10;
         bb_stat_row(app, (uint8_t)(top + i), &label, &value, buf, sizeof(buf));
-        bb_str(c, BB_ROW_L, y, AlignLeft, AlignCenter, label);
-        bb_str(c, 116, y, AlignRight, AlignCenter, value ? value : buf);
+        bb_str(c, 9, y, AlignLeft, AlignCenter, label);
+        bb_str(c, 108, y, AlignRight, AlignCenter, value ? value : buf);
     }
-    bb_scrollbar(c, 15, VIS * 10, VIS, BB_STAT_ROWS, top);
-    bb_footer(c, "OK: records");
+    bb_scrollbar_at(c, 112, 14, VIS * 10, VIS, BB_STAT_ROWS, top);
 }
 
 /* A number in a table cell. A record nobody has set yet is a dash and not
@@ -455,15 +460,24 @@ static void bb_cell(Canvas* c, int32_t x, int32_t y, uint32_t v) {
     bb_str(c, x, y, AlignRight, AlignCenter, buf);
 }
 
-/* The assist the table is showing, in the corner of the title bar. It
-   lives there because the body has no room to spare: a title, a header
-   row, four rows of records and a footer is 45px of text in 40px of
-   screen, and the footer is the part the table can do without. */
-static void bb_table_tag(Canvas* c, uint8_t assist) {
+/* The title bar of a table carries two things, so the mode goes left
+   rather than centre and the assist sits beside it with the key that
+   changes it. The body has no room to say it: a title, a header row,
+   four rows of records and a footer is 45px of text in 40px of screen,
+   and the footer is the part a table can do without. */
+static void bb_table_title(Canvas* c, const char* mode, int8_t assist) {
     static const char* const tag[BB_ASSIST_COUNT] = {"EAR", "LED", "SHP", "ARR"};
+    char buf[12];
+    canvas_set_color(c, ColorBlack);
+    canvas_draw_box(c, 0, 0, BB_W, 13);
     canvas_set_color(c, ColorWhite);
-    bb_font(c, false);
-    bb_str(c, 124, 6, AlignRight, AlignCenter, tag[assist % BB_ASSIST_COUNT]);
+    bb_font(c, true);
+    bb_str(c, 4, 6, AlignLeft, AlignCenter, mode);
+    if(assist >= 0) {
+        bb_font(c, false);
+        snprintf(buf, sizeof(buf), "OK: %s", tag[assist % BB_ASSIST_COUNT]);
+        bb_str(c, 124, 6, AlignRight, AlignCenter, buf);
+    }
     canvas_set_color(c, ColorBlack);
 }
 
@@ -471,7 +485,7 @@ static void bb_draw_table(Canvas* c, const BeepbackApp* app) {
     uint8_t m = app->score_mode < BB_MODE_COUNT ? app->score_mode : 0;
     uint8_t as = app->tbl_assist < BB_ASSIST_COUNT ? app->tbl_assist : 0;
 
-    bb_title(c, bb_mode_name[m]);
+    bb_table_title(c, bb_mode_name[m], m == BbModeDaily ? -1 : (int8_t)as);
     bb_font(c, false);
 
     if(m == BbModeDaily) {
@@ -483,8 +497,6 @@ static void bb_draw_table(Canvas* c, const BeepbackApp* app) {
         }
         return;
     }
-
-    bb_table_tag(c, as);
 
     if(m == BbModeChallenge) {
         const uint8_t VIS = 5;
@@ -1144,6 +1156,11 @@ void bb_draw(Canvas* canvas, BeepbackApp* app) {
         bb_draw_menu(canvas, app);
         break;
     }
+
+    /* the row of screens says which way it runs, in one place, from the
+       same table the input layer steps along */
+    if(bb_chain_step(app, -1) != BbSceneCount) bb_chev_l(canvas, BB_CHEV_L, 36);
+    if(bb_chain_step(app, 1) != BbSceneCount) bb_chev_r(canvas, BB_CHEV_R, 36);
 
     if(app->paused) bb_draw_pause(canvas, app);
 }

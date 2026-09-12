@@ -125,6 +125,24 @@ static uint8_t setup_row_kind(const BeepbackApp* app) {
    that has nowhere to go (the menu, and anything mid-run). BACK and LEFT
    both read this, and so does the arrow that says LEFT will work, so the
    three cannot drift apart. */
+/* The four screens that sit side by side: the menu, what you have done,
+   what you have beaten, and who made it. LEFT and RIGHT walk along them
+   and the arrows at the screen edges are drawn from this same answer, so
+   an arrow can never point at a move that does not happen. */
+static const BbScene bb_chain[] = {BbSceneMenu, BbSceneStats, BbSceneScorePick,
+                                   BbSceneCredits};
+#define BB_CHAIN_N ((uint8_t)(sizeof(bb_chain) / sizeof(bb_chain[0])))
+
+BbScene bb_chain_step(const BeepbackApp* app, int8_t dir) {
+    for(uint8_t i = 0; i < BB_CHAIN_N; i++) {
+        if(bb_chain[i] != app->scene) continue;
+        int16_t to = (int16_t)i + dir;
+        if(to < 0 || to >= BB_CHAIN_N) return BbSceneCount;
+        return bb_chain[to];
+    }
+    return BbSceneCount;
+}
+
 BbScene bb_back_target(const BeepbackApp* app) {
     switch(app->scene) {
     case BbSceneMenu:
@@ -216,11 +234,19 @@ void bb_press(BeepbackApp* app, InputKey key) {
         return;
     }
 
+    /* one step along the row, from the table the arrows are drawn from */
+    if(key == InputKeyLeft || key == InputKeyRight) {
+        BbScene to = bb_chain_step(app, key == InputKeyRight ? 1 : -1);
+        if(to != BbSceneCount) {
+            bb_enter(app, to);
+            return;
+        }
+    }
+
     switch(app->scene) {
     case BbSceneMenu:
         if(key == InputKeyUp) app->menu_idx = clamp8((int16_t)app->menu_idx - 1, 0, 2);
         if(key == InputKeyDown) app->menu_idx = clamp8((int16_t)app->menu_idx + 1, 0, 2);
-        if(key == InputKeyRight) bb_enter(app, BbSceneStats);
         if(key == InputKeyOk) {
             if(app->menu_idx == 0) {
                 bb_enter(app, BbSceneMode);
@@ -452,11 +478,6 @@ void bb_press(BeepbackApp* app, InputKey key) {
         const uint8_t VIS = 4;
         if(key == InputKeyDown && app->stat_scroll + VIS < BB_STAT_ROWS) app->stat_scroll++;
         if(key == InputKeyUp && app->stat_scroll > 0) app->stat_scroll--;
-        if(key == InputKeyOk) {
-            app->score_mode = 0;
-            bb_enter(app, BbSceneScorePick);
-        }
-        if(key == InputKeyRight) bb_enter(app, BbSceneCredits);
         break;
     }
 

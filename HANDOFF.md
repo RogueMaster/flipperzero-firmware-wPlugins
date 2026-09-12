@@ -122,12 +122,18 @@ SETTINGS: VOLUME / ASSIST / HAPTIC / SOUNDS > / RESET >
     every row asks first: one OK arms it and says SURE?, a second OK
     within BB_CONFIRM_MS does it, moving off the row disarms it
     EVERYTHING is the only one that closes the app
-MENU, RIGHT -> STATS (BB_STAT_ROWS rows, four visible, scrolled)
-  OK -> RECORDS (pick a mode) -> OK -> that mode's table, OK cycles assist
+A row of four screens, walked with LEFT and RIGHT, with a chevron at
+each end that has somewhere to go:
+  MENU <-> STATS <-> RECORDS <-> CREDITS
+  bb_chain_step() is the one table; the arrows are drawn from it too, so
+  an arrow can never point at a move that does not happen
+  STATS: BB_STAT_ROWS rows, five visible, scrolled with UP and DOWN
+  RECORDS: pick a mode, OK opens that mode's table
     classic, rules, reflex: TIME down, SPEED across, all twelve at once
     challenge: the seven rules, scrolled with UP and DOWN
     daily: one number per assist, all four at once
-  RIGHT -> CREDITS
+    OK cycles the assist, and the title bar says so: the mode is
+    left-aligned and "OK: ARR" sits beside it
 
 in game: BACK pauses (reflex: ends the run). OK resumes, BACK quits.
 game over: input locked 800ms while the screen wipes down from the top.
