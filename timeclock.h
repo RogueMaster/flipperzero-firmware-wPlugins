@@ -125,3 +125,7 @@ int timeclock_find_badge(TimeClock* app, const char* uid);
 // Short feedback notifications (haptic/LED).
 void timeclock_notify_success(TimeClock* app);
 void timeclock_notify_error(TimeClock* app);
+
+// Punch feedback: distinct sound/vibro/LED for IN vs OUT, each honoring its
+// own on/off setting (config.sound_enabled / vibro_enabled / led_enabled).
+void timeclock_notify_punch(TimeClock* app, TcEventType type);

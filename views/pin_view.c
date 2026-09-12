@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Vladyslav Pereverzyev
 
 #include "pin_view.h"
-#include <gui/elements.h>
 #include <furi.h>
 
 #define PIN_DIGITS 4

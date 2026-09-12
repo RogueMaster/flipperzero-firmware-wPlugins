@@ -34,7 +34,7 @@ Flipper-style mockups of the main screens (128x64):
   </tr>
   <tr>
     <td align="center"><img src="docs/img/pin.svg" width="240" alt="PIN lock"><br><b>PIN lock</b><br>Protects exit from the app</td>
-    <td></td>
+    <td align="center"><img src="docs/img/settings.svg" width="240" alt="Settings"><br><b>Settings</b><br>Sound / Vibro / LED, PIN</td>
   </tr>
 </table>
 
@@ -51,6 +51,10 @@ Flipper-style mockups of the main screens (128x64):
   history, delete (history is kept).
 - **Manual or automatic** IN/OUT - auto mode preselects the opposite of the last
   punch, and you can still correct it.
+- **Feedback on punch**: distinct **sound**, **vibration** and **LED** for IN vs
+  OUT (ascending tone + 1 buzz + green for IN; descending tone + 2 buzzes + blue
+  for OUT), so a tap tells you which one it was. Each is toggleable in Settings
+  (all on by default).
 - **History** and a **Today** summary (first in, last out, total worked time).
 - **Storage on microSD** as plain CSV, plus **JSON export**.
 - **Protected mode (PIN)**: optional 4-digit PIN that gates leaving the app.

@@ -130,6 +130,9 @@ void tc_config_load(TcConfig* config) {
     // Defaults
     config->auto_mode = false;
     config->use_lf = false;
+    config->sound_enabled = true; // on by default
+    config->vibro_enabled = true; // on by default
+    config->led_enabled = true; // on by default
     config->pin_enabled = false;
     config->pin_hash = 0;
     config->pin_salt = 0;
@@ -147,6 +150,12 @@ void tc_config_load(TcConfig* config) {
                 config->auto_mode = v != 0;
             } else if(sscanf(s, "use_lf=%lu", &v) == 1) {
                 config->use_lf = v != 0;
+            } else if(sscanf(s, "sound_enabled=%lu", &v) == 1) {
+                config->sound_enabled = v != 0;
+            } else if(sscanf(s, "vibro_enabled=%lu", &v) == 1) {
+                config->vibro_enabled = v != 0;
+            } else if(sscanf(s, "led_enabled=%lu", &v) == 1) {
+                config->led_enabled = v != 0;
             } else if(sscanf(s, "pin_enabled=%lu", &v) == 1) {
                 config->pin_enabled = v != 0;
             } else if(sscanf(s, "pin_hash=%lu", &v) == 1) {
@@ -170,6 +179,9 @@ void tc_config_save(const TcConfig* config) {
     if(file_stream_open(stream, TC_CONFIG_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         stream_write_format(stream, "auto_mode=%u\n", config->auto_mode ? 1 : 0);
         stream_write_format(stream, "use_lf=%u\n", config->use_lf ? 1 : 0);
+        stream_write_format(stream, "sound_enabled=%u\n", config->sound_enabled ? 1 : 0);
+        stream_write_format(stream, "vibro_enabled=%u\n", config->vibro_enabled ? 1 : 0);
+        stream_write_format(stream, "led_enabled=%u\n", config->led_enabled ? 1 : 0);
         stream_write_format(stream, "pin_enabled=%u\n", config->pin_enabled ? 1 : 0);
         stream_write_format(stream, "pin_hash=%lu\n", (unsigned long)config->pin_hash);
         stream_write_format(stream, "pin_salt=%lu\n", (unsigned long)config->pin_salt);

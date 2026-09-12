@@ -44,7 +44,7 @@ static void timeclock_scene_badge_action_record(TimeClock* app, TcEventType type
     b->last_used[sizeof(b->last_used) - 1] = '\0';
     tc_badges_save(app->badges, app->badge_count);
 
-    timeclock_notify_success(app);
+    timeclock_notify_punch(app, type);
 
     snprintf(confirm_msg, sizeof(confirm_msg), "%s\n%s at %s", b->name, tc_event_str(type), time);
 

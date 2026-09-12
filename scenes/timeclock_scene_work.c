@@ -232,7 +232,7 @@ bool timeclock_scene_work_on_event(void* context, SceneManagerEvent event) {
                     "%s, %s",
                     (type == TcEventIn) ? "Welcome" : "Goodbye",
                     b->name);
-                timeclock_notify_success(app);
+                timeclock_notify_punch(app, type);
             } else {
                 snprintf(msg, sizeof(msg), "Unknown badge");
                 timeclock_notify_error(app);

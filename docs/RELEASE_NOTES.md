@@ -24,6 +24,8 @@ then open **Apps -> Tools -> Time Clock**.
 
 - **Work mode**: a locked kiosk clock; tap a badge for Welcome / Goodbye with
   automatic IN/OUT.
+- **Sound / vibration / LED feedback** on each punch, distinct for IN vs OUT
+  (toggle each in Settings; on by default).
 - **History** and **daily totals**; **CSV** and **JSON** export.
 - **PIN-protected** exit so collaborators cannot leave or tamper with the app.
 - Each collaborator is bound to their chip; if a chip is lost, reassign a new one

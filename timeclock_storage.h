@@ -45,6 +45,9 @@ typedef struct {
 typedef struct {
     bool auto_mode; // true = automatic IN/OUT
     bool use_lf; // false = NFC (13.56 MHz), true = LF RFID (125 kHz)
+    bool sound_enabled; // true = play distinct IN/OUT sounds on punch
+    bool vibro_enabled; // true = vibrate on punch (1 pulse IN, 2 pulses OUT)
+    bool led_enabled; // true = blink LED on punch (green IN, blue OUT)
     bool pin_enabled; // true = protected mode active
     uint32_t pin_hash; // PIN hash (never stored in clear text)
     uint32_t pin_salt; // random salt used for the hash

@@ -39,6 +39,73 @@ void timeclock_notify_error(TimeClock* app) {
     notification_message(app->notifications, &sequence_error);
 }
 
+// IN: ascending tones. OUT: descending tones. (sound only)
+static const NotificationSequence timeclock_seq_in_sound = {
+    &message_note_c5,
+    &message_delay_100,
+    &message_note_e5,
+    &message_delay_100,
+    &message_note_g5,
+    &message_delay_100,
+    &message_sound_off,
+    NULL,
+};
+static const NotificationSequence timeclock_seq_out_sound = {
+    &message_note_g5,
+    &message_delay_100,
+    &message_note_e5,
+    &message_delay_100,
+    &message_note_c5,
+    &message_delay_100,
+    &message_sound_off,
+    NULL,
+};
+
+// IN: one vibro pulse. OUT: two vibro pulses. (vibro only)
+static const NotificationSequence timeclock_seq_in_vibro = {
+    &message_vibro_on,
+    &message_delay_100,
+    &message_vibro_off,
+    NULL,
+};
+static const NotificationSequence timeclock_seq_out_vibro = {
+    &message_vibro_on,
+    &message_delay_100,
+    &message_vibro_off,
+    &message_delay_100,
+    &message_vibro_on,
+    &message_delay_100,
+    &message_vibro_off,
+    NULL,
+};
+
+void timeclock_notify_punch(TimeClock* app, TcEventType type) {
+    bool in = (type == TcEventIn);
+    // if/else (not a ternary) because the IN/OUT sequences differ in length,
+    // so &seq_in and &seq_out are different pointer-to-array types.
+    if(app->config.sound_enabled) {
+        if(in) {
+            notification_message(app->notifications, &timeclock_seq_in_sound);
+        } else {
+            notification_message(app->notifications, &timeclock_seq_out_sound);
+        }
+    }
+    if(app->config.vibro_enabled) {
+        if(in) {
+            notification_message(app->notifications, &timeclock_seq_in_vibro);
+        } else {
+            notification_message(app->notifications, &timeclock_seq_out_vibro);
+        }
+    }
+    if(app->config.led_enabled) {
+        if(in) {
+            notification_message(app->notifications, &sequence_blink_green_100);
+        } else {
+            notification_message(app->notifications, &sequence_blink_blue_100);
+        }
+    }
+}
+
 // -----------------------------------------------------------------------------
 // ViewDispatcher navigation callbacks
 // -----------------------------------------------------------------------------

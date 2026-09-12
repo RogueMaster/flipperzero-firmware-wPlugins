@@ -9,14 +9,20 @@
 typedef enum {
     ActionAuto = 0,
     ActionReader = 1,
-    ActionSetPin = 2,
-    ActionChangePin = 3,
-    ActionDisablePin = 4,
-    ActionExit = 5,
+    ActionSound = 2,
+    ActionVibro = 3,
+    ActionLed = 4,
+    ActionSetPin = 5,
+    ActionChangePin = 6,
+    ActionDisablePin = 7,
+    ActionExit = 8,
 } SettingsAction;
 
 static char auto_lbl[24];
 static char reader_lbl[24];
+static char sound_lbl[24];
+static char vibro_lbl[24];
+static char led_lbl[24];
 
 static void timeclock_scene_settings_submenu_callback(void* context, uint32_t index) {
     TimeClock* app = context;
@@ -30,11 +36,20 @@ static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
 
     snprintf(auto_lbl, sizeof(auto_lbl), "Auto mode: %s", app->config.auto_mode ? "On" : "Off");
     snprintf(reader_lbl, sizeof(reader_lbl), "Reader: %s", app->config.use_lf ? "RFID" : "NFC");
+    snprintf(sound_lbl, sizeof(sound_lbl), "Sound: %s", app->config.sound_enabled ? "On" : "Off");
+    snprintf(vibro_lbl, sizeof(vibro_lbl), "Vibro: %s", app->config.vibro_enabled ? "On" : "Off");
+    snprintf(led_lbl, sizeof(led_lbl), "LED: %s", app->config.led_enabled ? "On" : "Off");
 
     submenu_add_item(
         submenu, auto_lbl, ActionAuto, timeclock_scene_settings_submenu_callback, app);
     submenu_add_item(
         submenu, reader_lbl, ActionReader, timeclock_scene_settings_submenu_callback, app);
+    submenu_add_item(
+        submenu, sound_lbl, ActionSound, timeclock_scene_settings_submenu_callback, app);
+    submenu_add_item(
+        submenu, vibro_lbl, ActionVibro, timeclock_scene_settings_submenu_callback, app);
+    submenu_add_item(
+        submenu, led_lbl, ActionLed, timeclock_scene_settings_submenu_callback, app);
 
     if(!app->config.pin_enabled) {
         submenu_add_item(
@@ -82,6 +97,21 @@ bool timeclock_scene_settings_on_event(void* context, SceneManagerEvent event) {
             app->config.use_lf = !app->config.use_lf;
             tc_config_save(&app->config);
             timeclock_scene_settings_build(app, 1);
+            break;
+        case ActionSound:
+            app->config.sound_enabled = !app->config.sound_enabled;
+            tc_config_save(&app->config);
+            timeclock_scene_settings_build(app, 2);
+            break;
+        case ActionVibro:
+            app->config.vibro_enabled = !app->config.vibro_enabled;
+            tc_config_save(&app->config);
+            timeclock_scene_settings_build(app, 3);
+            break;
+        case ActionLed:
+            app->config.led_enabled = !app->config.led_enabled;
+            tc_config_save(&app->config);
+            timeclock_scene_settings_build(app, 4);
             break;
         case ActionSetPin:
             app->pin_mode = TcPinModeSetNew;
