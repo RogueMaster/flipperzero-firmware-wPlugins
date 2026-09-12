@@ -464,10 +464,10 @@ static void bb_draw_stats(Canvas* c, const BeepbackApp* app) {
         const char* value;
         int32_t y = 18 + i * 10;
         bb_stat_row(app, (uint8_t)(top + i), &label, &value, buf, sizeof(buf));
-        bb_str(c, 9, y, AlignLeft, AlignCenter, label);
-        bb_str(c, 108, y, AlignRight, AlignCenter, value ? value : buf);
+        bb_str(c, 11, y, AlignLeft, AlignCenter, label);
+        bb_str(c, 106, y, AlignRight, AlignCenter, value ? value : buf);
     }
-    bb_scrollbar_at(c, 112, 14, VIS * 10, VIS, BB_STAT_ROWS, top);
+    bb_scrollbar_at(c, 110, 14, VIS * 10, VIS, BB_STAT_ROWS, top);
 }
 
 /* A number in a table cell. A record nobody has set yet is a dash and not

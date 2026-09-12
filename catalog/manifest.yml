@@ -25,8 +25,13 @@ sourcecode:
 description: "@README.md"
 changelog: "@changelog.md"
 
+# Rendered by tools/shoot, which draws the app's own screens through the
+# firmware's u8g2 and the firmware's two fonts. See catalog/PUBLISHING.md
+# on why these are not qFlipper captures and what to do about it.
 screenshots:
   - screenshots/ss0.png
   - screenshots/ss1.png
-  - screenshots/ss2.png
   - screenshots/ss3.png
+  - screenshots/ss2.png
+  - screenshots/ss5.png
+  - screenshots/ss4.png
