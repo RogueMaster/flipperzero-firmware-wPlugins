@@ -300,6 +300,7 @@ typedef enum {
     BbSceneScorePick,
     BbSceneScores,
     BbSceneCredits,
+    BbSceneNoCue, /* not the browser's: warns before silence with no cues */
     BbSceneCount,
 } BbScene;
 
@@ -435,6 +436,10 @@ typedef struct {
 
 void bb_app_init(BeepbackApp* app);
 void bb_enter(BeepbackApp* app, BbScene scene);
+/* where leaving this screen goes, or BbSceneCount for nowhere */
+BbScene bb_back_target(const BeepbackApp* app);
+/* whether LEFT leaves this screen, which is also when the arrow is drawn */
+bool bb_left_is_back(const BeepbackApp* app);
 void bb_update(BeepbackApp* app);
 void bb_tick(BeepbackApp* app, uint32_t dt_ms);
 void bb_start_game(BeepbackApp* app);
@@ -456,6 +461,8 @@ uint8_t bb_rand_button(BeepbackApp* app);
 
 /* the browser's derived getters, kept as functions of the same name */
 uint8_t bb_assist(const BeepbackApp* app);
+/* silence with no cues at all: nothing can tell you the sequence */
+bool bb_no_cue(const BeepbackApp* app);
 bool bb_audio_on(const BeepbackApp* app);
 bool bb_led_mode(const BeepbackApp* app);
 bool bb_shapes_on(const BeepbackApp* app);

@@ -45,6 +45,18 @@ static int32_t bb_text_w(Canvas* c, const char* t) {
 /* ------------------------------------------------------------------ */
 
 /* 2px thick so it reads as an arrow, not a scratch */
+/* The way back, in the title bar. It goes there and not at the screen
+   edge because most of these screens are rows the full width of the
+   display, and an arrow beside one would be drawn over it. */
+static void bb_back_chev(Canvas* c) {
+    canvas_set_color(c, ColorWhite);
+    canvas_draw_line(c, 7, 2, 3, 6);
+    canvas_draw_line(c, 3, 6, 7, 10);
+    canvas_draw_line(c, 8, 2, 4, 6);
+    canvas_draw_line(c, 4, 6, 8, 10);
+    canvas_set_color(c, ColorBlack);
+}
+
 static void bb_chev_l(Canvas* c, int32_t x, int32_t y) {
     canvas_draw_line(c, x + 4, y - 4, x, y);
     canvas_draw_line(c, x, y, x + 4, y + 4);
@@ -334,9 +346,6 @@ static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
         bb_str(c, 64, top + 5, AlignCenter, AlignCenter, bb_mode_name[i]);
         canvas_set_color(c, ColorBlack);
     }
-    /* LEFT has always gone back to the menu from here; the arrow saying so
-       was the one that was missing, which reads as no way out but BACK */
-    bb_chev_l(c, BB_CHEV_L, 36);
     bb_chev_r(c, BB_CHEV_R, 36);
 }
 
@@ -352,7 +361,16 @@ static void bb_draw_scores(Canvas* c, const BeepbackApp* app) {
         snprintf(buf, sizeof(buf), "%lu", (unsigned long)bb_best_for(app, m, i));
         bb_str(c, BB_ROW_R, y, AlignRight, AlignCenter, buf);
     }
-    bb_chev_l(c, BB_CHEV_L, 36);
+}
+
+static void bb_draw_no_cue(Canvas* c) {
+    static const char* const line[3] = {
+        "No sound and no cues:", "nothing will tell you", "the sequence."};
+    bb_title(c, "IMPOSSIBLE");
+    bb_font(c, false);
+    for(uint8_t i = 0; i < 3; i++)
+        bb_str(c, 64, 20 + i * 11, AlignCenter, AlignCenter, line[i]);
+    bb_footer(c, "OK: anyway   BACK: fix");
 }
 
 static void bb_draw_credits(Canvas* c) {
@@ -363,7 +381,6 @@ static void bb_draw_credits(Canvas* c) {
     bb_str(c, 64, 38, AlignCenter, AlignCenter, "TIJNV50");
     bb_font(c, false);
     bb_str(c, 64, 52, AlignCenter, AlignCenter, "with Claude (Opus 5)");
-    bb_chev_l(c, BB_CHEV_L, 36);
 }
 
 static void bb_draw_mode(Canvas* c, const BeepbackApp* app) {
@@ -515,7 +532,6 @@ static void bb_draw_reset(Canvas* c, const BeepbackApp* app) {
 
 static void bb_draw_settings(Canvas* c, const BeepbackApp* app) {
     static const char* const name[5] = {"VOLUME", "ASSIST", "SOUNDS", "SCORES", "RESET"};
-    bool autoAssist = (app->set.volume == 0 && app->set.assist == 0);
     bb_title(c, "SETTINGS");
     for(uint8_t i = 0; i < 5; i++) {
         int32_t top = 14 + i * 10;
@@ -526,15 +542,14 @@ static void bb_draw_settings(Canvas* c, const BeepbackApp* app) {
         if(i <= 1 && sel) {
             uint8_t v = (i == 0) ? app->set.volume : app->set.assist;
             uint8_t hi = (i == 0) ? BB_VOL_COUNT - 1 : BB_ASSIST_COUNT - 1;
-            const char* text = (i == 0) ? bb_vol_name[app->set.volume % BB_VOL_COUNT] :
-                                          (autoAssist ? "SHAPES!" :
-                                                        bb_assist_name[app->set.assist % BB_ASSIST_COUNT]);
+            const char* text = (i == 0) ?
+                                   bb_vol_name[app->set.volume % BB_VOL_COUNT] :
+                                   bb_assist_name[app->set.assist % BB_ASSIST_COUNT];
             bb_adjustable(c, top + 5, text, v > 0, v < hi);
         } else if(i <= 1) {
             bb_str(c, BB_ROW_R, top + 5, AlignRight, AlignCenter,
                    (i == 0) ? bb_vol_name[app->set.volume % BB_VOL_COUNT] :
-                              (autoAssist ? "SHAPES!" :
-                                            bb_assist_name[app->set.assist % BB_ASSIST_COUNT]));
+                              bb_assist_name[app->set.assist % BB_ASSIST_COUNT]);
         } else {
             bb_chev_r(c, BB_ROW_AR, top + 5);
         }
@@ -1017,10 +1032,17 @@ void bb_draw(Canvas* canvas, BeepbackApp* app) {
     case BbSceneCredits:
         bb_draw_credits(canvas);
         break;
+    case BbSceneNoCue:
+        bb_draw_no_cue(canvas);
+        break;
     default:
         bb_draw_menu(canvas, app);
         break;
     }
+
+    /* Last, so it sits on the title bar every screen just drew. One place
+       decides it, from the same answer the input layer acts on. */
+    if(bb_left_is_back(app)) bb_back_chev(canvas);
 
     if(app->paused) bb_draw_pause(canvas, app);
 }

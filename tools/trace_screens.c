@@ -23,7 +23,7 @@ static const char* const scene_name[BbSceneCount] = {
     "roundclear", "wrong",    "retry",     "reflexgap",  "reflexcue", "gameover",
     "settings",   "detail",   "reset",     "help",       "tutorial",  "rulesguide",
     "rulelist",   "ruleinfo", "reflexguide", "soundtest", "scorepick", "scores",
-    "credits",
+    "credits",    "nocue",
 };
 
 /* One run, mid-flight, so every in-game screen has something to draw. */

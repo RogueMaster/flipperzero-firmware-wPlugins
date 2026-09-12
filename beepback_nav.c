@@ -121,6 +121,71 @@ static uint8_t setup_row_kind(const BeepbackApp* app) {
     return app->setup_idx < n ? k[app->setup_idx] : BbRowStart;
 }
 
+/* Where this screen goes when you leave it, or BbSceneCount for a screen
+   that has nowhere to go (the menu, and anything mid-run). BACK and LEFT
+   both read this, and so does the arrow that says LEFT will work, so the
+   three cannot drift apart. */
+BbScene bb_back_target(const BeepbackApp* app) {
+    switch(app->scene) {
+    case BbSceneMenu:
+        return BbSceneCount; /* the root: BACK leaves the app entirely */
+    case BbSceneCredits:
+    case BbSceneScores:
+        return BbSceneScorePick;
+    case BbSceneSetup:
+        return app->mode == BbModeChallenge ? BbSceneChPick : BbSceneMode;
+    case BbSceneChPick:
+        return BbSceneMode;
+    case BbSceneReset:
+    case BbSceneDetail:
+    case BbSceneNoCue: /* BACK is "let me fix it", so back to the rows */
+        return BbSceneSettings;
+    case BbSceneSoundTest:
+        return app->test_from;
+    case BbSceneTutorial:
+        return app->help_from;
+    case BbSceneRulesGuide:
+    case BbSceneReflexGuide:
+        return BbSceneHelp;
+    case BbSceneRuleList:
+        return BbSceneRulesGuide;
+    case BbSceneRuleInfo:
+        return BbSceneRuleList;
+    default:
+        return bb_in_game(app->scene) ? BbSceneCount : BbSceneMenu;
+    }
+}
+
+/* Does LEFT leave this screen? It does wherever LEFT is not already
+   spoken for, which is what lets the whole app be walked with the d-pad
+   alone. Where it is spoken for the row's own arrows say so instead, so
+   every screen still shows what LEFT will do. */
+bool bb_left_is_back(const BeepbackApp* app) {
+    if(app->paused || bb_in_game(app->scene)) return false;
+    if(bb_back_target(app) == BbSceneCount) return false;
+    switch(app->scene) {
+    case BbSceneSplash:
+    case BbSceneGameOver: /* LEFT is the page it already has */
+        return false;
+    case BbSceneSoundTest:
+        return false; /* LEFT is one of the five buttons here */
+    case BbSceneDetail:
+        return false; /* LEFT is a dial */
+    case BbSceneMode:
+        return (app->mode_idx >> 1) == 0; /* otherwise it pages */
+    case BbSceneSetup:
+        return setup_row_kind(app) == BbRowStart;
+    case BbSceneSettings:
+        return app->set_idx >= 2; /* VOLUME and ASSIST are adjusted with it */
+    case BbSceneTutorial:
+    case BbSceneRulesGuide:
+    case BbSceneReflexGuide:
+        return app->tut_page == 0; /* otherwise it is the page before */
+    default:
+        return true;
+    }
+}
+
 void bb_press(BeepbackApp* app, InputKey key) {
     if(app->scene == BbSceneGameOver && app->now < app->lock_until) return;
     int8_t btn = btn_of(key);
@@ -143,47 +208,24 @@ void bb_press(BeepbackApp* app, InputKey key) {
         return;
     }
 
-    if(key == InputKeyBack) {
-        /* leaving the game drops you back in the apps list, which is where
-           the firmware writes settings and scores to the SD card */
-        switch(app->scene) {
-        case BbSceneMenu:
+    if(key == InputKeyBack || (key == InputKeyLeft && bb_left_is_back(app))) {
+        /* You may play deaf and blind if you mean to, but not by accident:
+           leaving SETTINGS that way says so once and asks. */
+        if(app->scene == BbSceneSettings && bb_no_cue(app)) {
+            bb_enter(app, BbSceneNoCue);
+            return;
+        }
+        BbScene to = bb_back_target(app);
+        if(to != BbSceneCount) {
+            bb_enter(app, to);
+            return;
+        }
+        if(app->scene == BbSceneMenu) {
             /* the way out of the app, and where the save is written */
             app->running = false;
             return;
-        case BbSceneCredits:
-        case BbSceneScores:
-            bb_enter(app, BbSceneScorePick);
-            return;
-        case BbSceneSetup:
-            bb_enter(app, app->mode == BbModeChallenge ? BbSceneChPick : BbSceneMode);
-            return;
-        case BbSceneChPick:
-            bb_enter(app, BbSceneMode);
-            return;
-        case BbSceneReset:
-        case BbSceneDetail:
-            bb_enter(app, BbSceneSettings);
-            return;
-        case BbSceneSoundTest:
-            bb_enter(app, app->test_from);
-            return;
-        case BbSceneTutorial:
-            bb_enter(app, app->help_from);
-            return;
-        case BbSceneRulesGuide:
-        case BbSceneReflexGuide:
-            bb_enter(app, BbSceneHelp);
-            return;
-        case BbSceneRuleList:
-            bb_enter(app, BbSceneRulesGuide);
-            return;
-        case BbSceneRuleInfo:
-            bb_enter(app, BbSceneRuleList);
-            return;
-        default:
-            break;
         }
+        if(key == InputKeyLeft) return; /* LEFT never ends a run */
         if(in_game) {
             /* No pausing a reaction test: freezing a live cue would let you
                take all the time you like and then answer. BACK ends the run
@@ -319,7 +361,6 @@ void bb_press(BeepbackApp* app, InputKey key) {
     case BbSceneReset:
         if(key == InputKeyUp) app->reset_idx = clamp8((int16_t)app->reset_idx - 1, 0, 1);
         if(key == InputKeyDown) app->reset_idx = clamp8((int16_t)app->reset_idx + 1, 0, 1);
-        if(key == InputKeyLeft) bb_enter(app, BbSceneSettings);
         if(key == InputKeyOk) {
             if(app->reset_idx == 0) {
                 memset(&app->rec, 0, sizeof(app->rec));
@@ -398,7 +439,6 @@ void bb_press(BeepbackApp* app, InputKey key) {
     }
 
     case BbSceneRuleInfo:
-        if(key == InputKeyLeft) bb_enter(app, BbSceneRuleList);
         if(key == InputKeyDown) app->rule_sel = clamp8((int16_t)app->rule_sel + 1, 0, BB_RULE_COUNT - 1);
         if(key == InputKeyUp) app->rule_sel = clamp8((int16_t)app->rule_sel - 1, 0, BB_RULE_COUNT - 1);
         break;
@@ -411,17 +451,20 @@ void bb_press(BeepbackApp* app, InputKey key) {
         }
         break;
 
+    case BbSceneNoCue:
+        /* OK keeps them: the warning is a warning, not a veto */
+        if(key == InputKeyOk) bb_enter(app, BbSceneMenu);
+        break;
+
     case BbSceneScorePick:
         if(key == InputKeyUp) app->score_mode = clamp8((int16_t)app->score_mode - 1, 0, BB_MODE_COUNT - 1);
         if(key == InputKeyDown) app->score_mode = clamp8((int16_t)app->score_mode + 1, 0, BB_MODE_COUNT - 1);
         if(key == InputKeyOk) bb_enter(app, BbSceneScores);
-        if(key == InputKeyLeft) bb_enter(app, BbSceneMenu);
         if(key == InputKeyRight) bb_enter(app, BbSceneCredits);
         break;
 
     case BbSceneScores:
     case BbSceneCredits:
-        if(key == InputKeyLeft) bb_enter(app, BbSceneScorePick);
         break;
 
     case BbSceneGameOver:

@@ -17,9 +17,16 @@ bool bb_is_challenge_mode(uint8_t mode) {
 bool bb_audio_on(const BeepbackApp* app) {
     return app->set.volume > 0;
 }
-/* volume off and assist off leaves nothing to play by, so force shapes */
+/* The assist you chose, always. Silence with no cues used to be quietly
+   turned into SHAPES, which meant the row did not say what the game would
+   do; you are warned on the way out of SETTINGS instead. */
 uint8_t bb_assist(const BeepbackApp* app) {
-    return (app->set.volume == 0 && app->set.assist == 0) ? 2 : app->set.assist;
+    return app->set.assist;
+}
+
+/* nothing to hear and nothing to see: the sequence cannot reach you */
+bool bb_no_cue(const BeepbackApp* app) {
+    return app->set.volume == 0 && app->set.assist == 0;
 }
 bool bb_led_mode(const BeepbackApp* app) {
     return bb_assist(app) == 1;

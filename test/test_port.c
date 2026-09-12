@@ -24,7 +24,7 @@ static const char* const scene_name[BbSceneCount] = {
     "listen",   "playback",  "go",         "input",    "hold",      "success",   "roundclear",
     "wrong",    "retry",     "reflexgap",  "reflexcue", "gameover", "settings",  "detail",
     "reset",    "help",      "tutorial",   "rulesguide", "rulelist", "ruleinfo", "reflexguide",
-    "soundtest", "scorepick", "scores",    "credits",
+    "soundtest", "scorepick", "scores",    "credits",   "nocue",
 };
 static const InputKey keys[6] = {
     InputKeyUp, InputKeyDown, InputKeyLeft, InputKeyRight, InputKeyOk, InputKeyBack};
@@ -64,7 +64,8 @@ int main(void) {
     BeepbackApp app;
 
     /* ---- the scene set is the browser's ---- */
-    check("the scene set is the browser's, less its launcher", BbSceneCount == 31, "");
+    check("the scene set is the browser's, less its launcher, plus the warning",
+          BbSceneCount == 32, "");
     boot(&app);
     check("a cold start goes straight into the intro", app.scene == BbSceneSplash, "");
     check("with the browser's defaults",
@@ -456,17 +457,52 @@ int main(void) {
     check("and classic sets a time in seconds", fc_saw("HARD 3S"), "");
     check("and promises no multiplier for it", !fc_saw("X2.25") && !fc_saw("SCORE"), "");
 
-    /* Every direction that goes somewhere has to say so. BEST SCORES had
-       LEFT wired to the menu and drew no arrow for it, which reads as a
-       screen you can only leave with BACK. */
+    /* Every direction that goes somewhere has to say so, and the way back
+       is the one that was missing: BEST SCORES had LEFT wired to the menu
+       and drew no arrow for it. This walks every screen and holds the
+       drawing to what the input layer will actually do. */
+    {
+        uint8_t said = 0, silent = 0, wrong = 0;
+        int p = 0;
+        msg[0] = 0;
+        for(uint8_t sc = 0; sc < BbSceneCount; sc++) {
+            boot(&app);
+            app.first_run = false;
+            app.scene = (BbScene)sc;
+            if(bb_in_game((BbScene)sc) || sc == BbSceneSplash) continue;
+            frame(&app);
+            bool drawn = fc_back_arrow();
+            bool acts = bb_left_is_back(&app);
+            if(acts && drawn) said++;
+            if(acts && !drawn) {
+                silent++;
+                if(p < 150) p += sprintf(msg + p, "%s ", scene_name[sc]);
+            }
+            if(!acts && drawn) wrong++;
+            if(acts) {
+                BbScene to = bb_back_target(&app);
+                bb_press(&app, InputKeyLeft);
+                if(app.scene != to) wrong++;
+            }
+        }
+        sprintf(msg + p, "| %u signposted", said);
+        check("every screen LEFT leaves draws the way back", silent == 0, msg);
+        check("and no screen draws it where LEFT does something else", wrong == 0, msg);
+        check("with more than a couple of screens covered", said >= 8, msg);
+    }
+
+    /* SETTINGS is the one the arrow has to come and go on: LEFT adjusts
+       VOLUME and ASSIST, so it can only mean back further down the list. */
     boot(&app);
-    bb_enter(&app, BbSceneScorePick);
+    bb_enter(&app, BbSceneSettings);
+    app.set_idx = 0;
     frame(&app);
-    check("BEST SCORES points left, where LEFT actually goes",
-          fc_ink_in(0, 28, 8, 44), "");
-    check("and right, to the credits", fc_ink_in(119, 28, 127, 44), "");
+    check("no way back while LEFT is turning the volume down", !fc_back_arrow(), "");
+    app.set_idx = 2;
+    frame(&app);
+    check("but there is one on a row LEFT does nothing to", fc_back_arrow(), "");
     bb_press(&app, InputKeyLeft);
-    check("and LEFT is the menu", app.scene == BbSceneMenu, scene_name[app.scene]);
+    check("and it goes to the menu", app.scene == BbSceneMenu, scene_name[app.scene]);
 
     boot(&app);
     app.set.assist = 0; /* the hardest way to play, with the sound still on */
@@ -476,12 +512,36 @@ int main(void) {
     check("the quietest assist is called EARS, not OFF",
           fc_saw("EARS") && !fc_saw("OFF"), "");
 
+    /* Silence with no cues is playable by nobody, but it is allowed: the
+       row says what you picked and the way out of SETTINGS asks once. */
     boot(&app);
     app.set.volume = 0;
     app.set.assist = 0;
     bb_enter(&app, BbSceneSettings);
+    app.set_idx = 1;
     frame(&app);
-    check("silence with the assist off says SHAPES!", fc_saw("SHAPES!"), "");
+    check("the assist row says what you actually chose",
+          fc_saw("EARS") && !fc_saw("SHAPES"), "");
+    check("and the game does not quietly pick another one", bb_assist(&app) == 0, "");
+    app.set_idx = 2; /* a row LEFT does not adjust, so LEFT is the way out */
+    bb_press(&app, InputKeyLeft);
+    check("leaving says so first", app.scene == BbSceneNoCue, scene_name[app.scene]);
+    frame(&app);
+    check("in as many words", fc_saw("IMPOSSIBLE") && fc_saw("NOTHING WILL TELL YOU"), "");
+    bb_press(&app, InputKeyBack);
+    check("BACK goes back to fix it", app.scene == BbSceneSettings, scene_name[app.scene]);
+    app.set_idx = 2;
+    bb_press(&app, InputKeyLeft);
+    bb_press(&app, InputKeyOk);
+    check("and OK plays it anyway", app.scene == BbSceneMenu, scene_name[app.scene]);
+    check("with the settings left exactly as chosen",
+          app.set.volume == 0 && app.set.assist == 0, "");
+    app.set.volume = 2;
+    bb_enter(&app, BbSceneSettings);
+    app.set_idx = 2;
+    bb_press(&app, InputKeyLeft);
+    check("turning the sound back on makes the way out plain again",
+          app.scene == BbSceneMenu, scene_name[app.scene]);
 
     boot(&app);
     app.mode = BbModeRules;
