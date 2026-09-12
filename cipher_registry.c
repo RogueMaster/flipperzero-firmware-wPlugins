@@ -429,11 +429,12 @@ static CipherResult base16_encode_wrap(const char* input, int32_t a, int32_t b, 
     return ok_result(strdup(base16_encode(input)));
 }
 
-static CipherResult base16_encode_wrap(const char* input, int32_t a, int32_t b, const char* k) {
+static CipherResult base16_decode_wrap(const char* input, int32_t a, int32_t b, const char* k) {
     UNUSED(a);
     UNUSED(b);
     UNUSED(k);
-    return ok_result(strdup(base16_decode(input)));
+    size_t out_len;
+    return ok_result(strdup(base16_decode(input, out_len)));
 }
 
 static CipherResult base32_encode_wrap(const char* input, int32_t a, int32_t b, const char* k) {
