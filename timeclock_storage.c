@@ -578,11 +578,18 @@ bool tc_backup_restore(const char* stamp) {
     snprintf(ppath, sizeof(ppath), "%s/backup/punches-%s.csv", TC_DIR_PATH, stamp);
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    storage_common_remove(storage, TC_BADGES_PATH);
-    FS_Error be = storage_common_copy(storage, bpath, TC_BADGES_PATH);
-    storage_common_remove(storage, TC_HISTORY_PATH);
-    FS_Error pe = storage_common_copy(storage, ppath, TC_HISTORY_PATH);
+    bool ok = false;
+    // Only replace a destination if the backup source actually exists, so a
+    // partial backup can never wipe current data without a replacement.
+    if(storage_file_exists(storage, bpath)) {
+        storage_common_remove(storage, TC_BADGES_PATH);
+        if(storage_common_copy(storage, bpath, TC_BADGES_PATH) == FSE_OK) ok = true;
+    }
+    if(storage_file_exists(storage, ppath)) {
+        storage_common_remove(storage, TC_HISTORY_PATH);
+        if(storage_common_copy(storage, ppath, TC_HISTORY_PATH) == FSE_OK) ok = true;
+    }
     furi_record_close(RECORD_STORAGE);
 
-    return be == FSE_OK || pe == FSE_OK;
+    return ok;
 }
