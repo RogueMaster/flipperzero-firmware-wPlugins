@@ -66,7 +66,7 @@ bool timeclock_scene_menu_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(app->scene_manager, TimeClockSceneBadgeList);
             break;
         case MenuIndexHistory:
-            scene_manager_next_scene(app->scene_manager, TimeClockSceneHistory);
+            scene_manager_next_scene(app->scene_manager, TimeClockSceneHistoryMenu);
             break;
         case MenuIndexToday:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneToday);

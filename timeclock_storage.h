@@ -95,6 +95,15 @@ bool tc_history_append(
 // If today_only == true only today's date is shown.
 void tc_history_read(FuriString* out, const char* filter_uid, bool today_only);
 
+// Load history rows whose date is within [from_date, to_date] (inclusive,
+// "YYYY-MM-DD"; NULL = unbounded on that side), optionally filtered by UID.
+// Date strings compare chronologically, so string bounds work directly.
+void tc_history_read_range(
+    FuriString* out,
+    const char* filter_uid,
+    const char* from_date,
+    const char* to_date);
+
 // Compute minutes worked on the given date "YYYY-MM-DD" (sum of IN/OUT pairs)
 // for the given badge (or all badges if filter_uid == NULL). Also fills
 // first-in and last-out if the pointers are not NULL.

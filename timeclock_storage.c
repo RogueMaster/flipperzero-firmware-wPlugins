@@ -292,11 +292,12 @@ bool tc_history_append(
     return ok;
 }
 
-void tc_history_read(FuriString* out, const char* filter_uid, bool today_only) {
+void tc_history_read_range(
+    FuriString* out,
+    const char* filter_uid,
+    const char* from_date,
+    const char* to_date) {
     furi_string_reset(out);
-
-    char today[TC_DT_MAX];
-    tc_now_date(today, sizeof(today));
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     Stream* stream = file_stream_alloc(storage);
@@ -320,7 +321,8 @@ void tc_history_read(FuriString* out, const char* filter_uid, bool today_only) {
             tc_csv_field(s, 3, uid, sizeof(uid));
             tc_csv_field(s, 4, type, sizeof(type));
 
-            if(today_only && strcmp(date, today) != 0) continue;
+            if(from_date && strcmp(date, from_date) < 0) continue;
+            if(to_date && strcmp(date, to_date) > 0) continue;
             if(filter_uid && strcmp(uid, filter_uid) != 0) continue;
 
             // Formatted row: "date time name TYPE"
@@ -335,6 +337,16 @@ void tc_history_read(FuriString* out, const char* filter_uid, bool today_only) {
 
     if(shown == 0) {
         furi_string_set(out, "No punches yet.");
+    }
+}
+
+void tc_history_read(FuriString* out, const char* filter_uid, bool today_only) {
+    if(today_only) {
+        char today[TC_DT_MAX];
+        tc_now_date(today, sizeof(today));
+        tc_history_read_range(out, filter_uid, today, today);
+    } else {
+        tc_history_read_range(out, filter_uid, NULL, NULL);
     }
 }
 
