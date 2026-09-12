@@ -4,6 +4,9 @@
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-timeclock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-timeclock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Languages](https://img.shields.io/badge/lang-EN%20%7C%20IT%20%7C%20ES%20%7C%20FR%20%7C%20DE-blue)](#)
+
+**English** | [Italiano](README.it.md) | [Espanol](README.es.md) | [Francais](README.fr.md) | [Deutsch](README.de.md)
 
 A **staff time-clock** app for the [Flipper Zero](https://flipperzero.one/). Use it
 to register your collaborators and log their clock in/out times: assign each
