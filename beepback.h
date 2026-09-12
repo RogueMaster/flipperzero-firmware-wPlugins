@@ -144,6 +144,10 @@ typedef struct {
 /* run is, not what it pays, so the number on screen is always one you  */
 /* could have worked out yourself.                                      */
 /* ------------------------------------------------------------------ */
+#define BB_STAT_PAGES 2 /* the stats screen, in pages */
+/* A reset asks once and listens for a second. Long enough to read SURE?
+   and answer it, short enough that it cannot be left armed. */
+#define BB_CONFIRM_MS 1000
 #define BB_NOTE_POINTS 10 /* one note played back right */
 #define BB_ROUND_BONUS 100 /* clearing a round, instead of a stage award */
 
@@ -288,7 +292,6 @@ typedef enum {
     BbSceneReflexCue,
     BbSceneGameOver,
     BbSceneSettings,
-    BbSceneDetail,
     BbSceneReset,
     BbSceneHelp,
     BbSceneTutorial,
@@ -298,8 +301,9 @@ typedef enum {
     BbSceneReflexGuide,
     BbSceneSoundTest,
     BbSceneScorePick,
-    BbSceneScores,
     BbSceneCredits,
+    BbSceneStats, /* what you have done, the way into the records */
+    BbSceneTable, /* one mode's records, laid out per mode */
     BbSceneNoCue, /* not the browser's: warns before silence with no cues */
     BbSceneCount,
 } BbScene;
@@ -320,6 +324,20 @@ typedef struct {
 } BbSettings;
 
 #define BB_LADDER_MODES 3
+
+/* What you have done, as opposed to how well. Counted for the stats
+   pages, and deliberately separate from the records so one can be reset
+   without the other. */
+typedef struct {
+    uint32_t play_ms; /* time with a run actually running */
+    uint32_t runs; /* runs started */
+    uint32_t notes; /* notes played back right, all time */
+    uint32_t rounds; /* rounds cleared */
+    uint32_t best_ever; /* the highest score in any mode */
+    uint32_t by_mode[BB_MODE_COUNT]; /* runs, for the favourite */
+    uint32_t by_assist[BB_ASSIST_COUNT];
+    uint8_t longest; /* longest sequence ever played back */
+} BbStats;
 
 typedef struct {
     uint32_t best[BB_LADDER_MODES][BB_DIFF_COUNT][BB_SPEED_COUNT][BB_ASSIST_COUNT];
@@ -356,6 +374,7 @@ typedef struct {
 
     BbSettings set;
     BbRecords rec;
+    BbStats stats;
 
     /* the run */
     BbSeq base;
@@ -401,9 +420,11 @@ typedef struct {
     /* modes and menus */
     uint8_t mode, mode_idx;
     uint8_t menu_idx, set_idx, setup_idx, reset_idx, score_mode;
+    uint8_t stat_page, tbl_assist, tbl_scroll;
+    uint32_t confirm_until; /* a reset is armed until this moment */
+    uint8_t confirm_row;
     uint8_t help_idx, tut_page, rule_sel, rule_scroll;
     uint8_t ch_idx, ch_rule, ch_scroll;
-    uint8_t det_row, det_mode, det_time, det_speed;
     int8_t test_btn;
     BbScene test_from, help_from;
     uint32_t set_flash;
@@ -471,7 +492,6 @@ bool bb_cue_on(const BeepbackApp* app);
 bool bb_visual_on(const BeepbackApp* app);
 uint16_t bb_tone_ms(const BeepbackApp* app);
 uint16_t bb_gap_ms(const BeepbackApp* app);
-uint32_t bb_best_for(const BeepbackApp* app, uint8_t mode, uint8_t assist);
 /* the one record the finished run competes for */
 uint32_t* bb_slot_cell(BeepbackApp* app);
 bool bb_is_challenge_mode(uint8_t mode);
@@ -498,6 +518,15 @@ typedef enum {
     BbRowStart,
 } BbRowKind;
 
+/* the rows of the RESET screen, in the order they are drawn */
+typedef enum {
+    BbResetRecords = 0,
+    BbResetStats,
+    BbResetTutorial,
+    BbResetAll, /* everything, and out of the app */
+    BB_RESET_ROWS,
+} BbResetRow;
+
 uint8_t bb_setup_rows(const BeepbackApp* app, const char* label[4], const char* value[4],
                       uint8_t kind[4], char* buf_a, char* buf_b, size_t bufn);
 
@@ -519,8 +548,8 @@ void bb_splash_done(BeepbackApp* app);
 /* ------------------------------------------------------------------ */
 #define BB_SAVE_DIR  EXT_PATH("apps_data/beepback")
 #define BB_SAVE_PATH BB_SAVE_DIR "/beepback.save"
-#define BB_SAVE_VERSION 5
-#define BB_SAVE_BYTES   723
+#define BB_SAVE_VERSION 6
+#define BB_SAVE_BYTES   780
 
 size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n);
 bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n);

@@ -111,9 +111,16 @@ PLAY -> mode select, three pages of two:
 
 HOW TO PLAY -> chooser (CLASSIC / RULES / REFLEX) -> pages -> sound test
 
-SETTINGS: VOLUME / ASSIST / SOUNDS > / SCORES > / RESET >
-  SCORES -> detail screen: MODE, TIME, SPEED dials with four assist bests
-  RESET -> SCORES / TUTORIAL
+SETTINGS: VOLUME / ASSIST / SOUNDS > / RESET >
+  RESET -> RECORDS / STATS / TUTORIAL, then EVERYTHING set apart below
+    every row asks first: one OK arms it and says SURE?, a second OK
+    within BB_CONFIRM_MS does it, moving off the row disarms it
+    EVERYTHING is the only one that closes the app
+MENU, RIGHT -> STATS (BB_STAT_PAGES pages) -> OK -> RECORDS (pick a mode)
+  -> OK -> that mode's table, RIGHT cycles the assist
+    classic, rules, reflex: TIME down, SPEED across, all twelve at once
+    challenge: the seven rules, scrolled with UP and DOWN
+    daily: one number per assist, all four at once
 
 in game: BACK pauses (reflex: ends the run). OK resumes, BACK quits.
 game over: input locked 800ms while the screen wipes down from the top.
@@ -158,15 +165,17 @@ clear, and pay 10 a hit in reflex.
 
 Records:
 
-- classic, rules, reflex: `best[mode][time][speed][assist]`, and the board shows
-  the best across time and speed for that mode and assist
+- classic, rules, reflex: `best[mode][time][speed][assist]`, shown as a grid
 - challenge: `chBest[rule][assist]`, so you can see which rules you're good at
 - daily: `daily.best[assist]` plus the date and a done flag
 
 **NEW BEST is judged against the slot you played** (`bb_slot_cell`), never
-against the board. The board is the maximum across every time and speed, so
-measuring against it meant a strong INSANE run lost to an old EASY one and the
-banner almost never appeared.
+against a maximum across settings: measuring that way meant a strong INSANE run
+lost to an old EASY one and the banner almost never appeared.
+
+`BbStats` is what you have done rather than how well - playtime, runs, notes,
+rounds, the run counts behind the favourites - and is saved and reset
+separately from the records on purpose.
 
 ## What's left, in order
 
@@ -184,9 +193,8 @@ banner almost never appeared.
 5. **Screens.** Menus, setup, boards, tutorial, sound test, pause, game over.
    Check every string fits 128px before you commit to it.
 6. **Save file.** `/ext/apps_data/beepback/beepback.save`. Magic, version,
-   settings, all three record stores, the daily date and flag. Bump the version
-   so an old file is discarded rather than misread — the record layout has
-   changed since v3.
+   settings, all three record stores, the daily date and flag, then the stats
+   block. Bump the version so an old file is discarded rather than misread.
 7. **The intro.** Port last. It's the most code for the least behaviour, and
    it's skippable, so nothing else depends on it.
 

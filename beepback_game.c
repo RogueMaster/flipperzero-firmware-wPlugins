@@ -58,27 +58,10 @@ bool bb_in_game(BbScene s) {
            s == BbSceneWrong || s == BbSceneRetry;
 }
 
-/* the headline board is your best in that mode and assist, whatever you set */
-uint32_t bb_best_for(const BeepbackApp* app, uint8_t mode, uint8_t assist) {
-    uint32_t m = 0;
-    if(assist >= BB_ASSIST_COUNT) assist = 0;
-    if(mode == BbModeDaily) return app->rec.daily_best[assist];
-    if(mode == BbModeChallenge) {
-        for(uint8_t r = 0; r < BB_RULE_COUNT; r++)
-            if(app->rec.ch_best[r][assist] > m) m = app->rec.ch_best[r][assist];
-        return m;
-    }
-    if(mode >= BB_LADDER_MODES) return 0;
-    for(uint8_t t = 0; t < BB_DIFF_COUNT; t++)
-        for(uint8_t sp = 0; sp < BB_SPEED_COUNT; sp++)
-            if(app->rec.best[mode][t][sp][assist] > m) m = app->rec.best[mode][t][sp][assist];
-    return m;
-}
-
 /* The record the finished run is actually competing for. NEW BEST is
-   measured against this and nothing else: bb_best_for() is the headline
-   across every setting, so comparing against it meant a good INSANE run
-   was silently judged against an easy EASY one and almost never won. */
+   measured against this and nothing else. It used to be judged against
+   the best across every time and speed, which meant a good INSANE run
+   was silently held up against an easy EASY one and almost never won. */
 uint32_t* bb_slot_cell(BeepbackApp* app) {
     uint8_t assist = app->run_mode < BB_ASSIST_COUNT ? app->run_mode : 0;
     if(app->run_game_mode == BbModeDaily) return &app->rec.daily_best[assist];
@@ -370,6 +353,7 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
         app->praise = (uint8_t)((app->praise + 1 + (app->now >> 5)) % BB_PRAISE_COUNT);
         /* ten a note: the score is what you got right, counted in tens */
         app->score += BB_NOTE_POINTS * app->expected.len;
+        app->stats.notes += app->expected.len;
         if(app->stage > app->run_best) app->run_best = app->stage;
         app->phase = app->now + BB_SUCCESS_MS;
         bb_play(app, bb_jingle_win, 3);
@@ -378,6 +362,7 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
     if(scene == BbSceneRoundClear) {
         app->sweep_idx = -1;
         app->score += BB_ROUND_BONUS;
+        app->stats.rounds++;
         app->phase = app->now + BB_ROUND_MS;
         bb_play(app, bb_jingle_round, 4);
         bb_led_flash(app, BbLedGreen, 600);
@@ -413,6 +398,9 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
         app->prev_best = *bb_slot_cell(app);
         app->new_best = app->score > app->prev_best;
         if(app->score > app->prev_best) *bb_slot_cell(app) = app->score;
+        if(app->score > app->stats.best_ever) app->stats.best_ever = app->score;
+        if(app->run_game_mode != BbModeReflex && app->run_best > app->stats.longest)
+            app->stats.longest = (uint8_t)app->run_best;
         if(app->run_game_mode == BbModeDaily) {
             app->rec.daily_date = bb_daily_seed();
             app->rec.daily_done = true; /* one a day, and that was it */
@@ -425,6 +413,9 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
 }
 
 void bb_start_game(BeepbackApp* app) {
+    app->stats.runs++;
+    app->stats.by_mode[app->mode % BB_MODE_COUNT]++;
+    app->stats.by_assist[bb_assist(app) % BB_ASSIST_COUNT]++;
     app->lives = BB_LIVES;
     app->score = 0;
     app->round = 1;
@@ -491,6 +482,7 @@ void bb_reflex_hit(BeepbackApp* app, uint8_t btn) {
     if(!app->rx_fastest || reaction < app->rx_fastest) app->rx_fastest = (uint16_t)reaction;
     app->rx_hits++;
     app->score += BB_NOTE_POINTS; /* a hit pays what a note pays */
+    app->stats.notes++;
     /* no real floor: the ramp has to end for everyone, however quick */
     uint16_t shrink = bb_rx_shrink[app->set.diff < BB_DIFF_COUNT ? app->set.diff : 1];
     app->rx_window = (app->rx_window > BB_RX_FLOOR + shrink) ?
@@ -598,6 +590,8 @@ void bb_update(BeepbackApp* app) {
 
 void bb_tick(BeepbackApp* app, uint32_t dt_ms) {
     app->now += dt_ms;
+    /* playtime is time a run is running, not time the app is open */
+    if(!app->paused && bb_in_game(app->scene)) app->stats.play_ms += dt_ms;
     if(app->scene == BbSceneSplash) {
         bb_update_splash(app);
     } else {
@@ -629,8 +623,6 @@ void bb_app_init(BeepbackApp* app) {
     app->first_run = true;
     app->rule_idx = -1;
     app->test_btn = -1;
-    app->det_time = 1;
-    app->det_speed = 1;
     app->target = BB_START_LEN;
     app->stage = 1;
     app->lives = BB_LIVES;

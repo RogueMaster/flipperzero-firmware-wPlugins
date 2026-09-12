@@ -45,18 +45,6 @@ static int32_t bb_text_w(Canvas* c, const char* t) {
 /* ------------------------------------------------------------------ */
 
 /* 2px thick so it reads as an arrow, not a scratch */
-/* The way back, in the title bar. It goes there and not at the screen
-   edge because most of these screens are rows the full width of the
-   display, and an arrow beside one would be drawn over it. */
-static void bb_back_chev(Canvas* c) {
-    canvas_set_color(c, ColorWhite);
-    canvas_draw_line(c, 7, 2, 3, 6);
-    canvas_draw_line(c, 3, 6, 7, 10);
-    canvas_draw_line(c, 8, 2, 4, 6);
-    canvas_draw_line(c, 4, 6, 8, 10);
-    canvas_set_color(c, ColorBlack);
-}
-
 static void bb_chev_l(Canvas* c, int32_t x, int32_t y) {
     canvas_draw_line(c, x + 4, y - 4, x, y);
     canvas_draw_line(c, x, y, x + 4, y + 4);
@@ -338,7 +326,7 @@ static void bb_draw_menu(Canvas* c, const BeepbackApp* app) {
 }
 
 static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
-    bb_title(c, "BEST SCORES");
+    bb_title(c, "RECORDS");
     for(uint8_t i = 0; i < BB_MODE_COUNT; i++) {
         int32_t top = 14 + i * 10;
         if(app->score_mode == i) bb_sel_rbox(c, 12, top, 104, 10, 3);
@@ -349,18 +337,152 @@ static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
     bb_chev_r(c, BB_CHEV_R, 36);
 }
 
-static void bb_draw_scores(Canvas* c, const BeepbackApp* app) {
-    char buf[40];
-    uint8_t m = app->score_mode < BB_MODE_COUNT ? app->score_mode : 0;
-    snprintf(buf, sizeof(buf), "%s SCORES", bb_mode_name[m]);
-    bb_title(c, buf);
-    bb_font(c, false);
-    for(uint8_t i = 0; i < BB_ASSIST_COUNT; i++) {
-        int32_t y = 21 + i * 11;
-        bb_str(c, BB_ROW_L, y, AlignLeft, AlignCenter, bb_mode_label[i]);
-        snprintf(buf, sizeof(buf), "%lu", (unsigned long)bb_best_for(app, m, i));
-        bb_str(c, BB_ROW_R, y, AlignRight, AlignCenter, buf);
+/* seven rules do not fit, so show where you are */
+static void bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n,
+                         uint8_t scroll) {
+    if(n > vis && scroll > n - vis) scroll = (uint8_t)(n - vis);
+    canvas_draw_frame(c, 122, top, 4, (size_t)track);
+    int32_t thumb = track * vis / n;
+    if(thumb < 6) thumb = 6;
+    int32_t room = track - thumb;
+    int32_t y = top + (n > vis ? room * scroll / (n - vis) : 0);
+    canvas_draw_box(c, 123, y + 1, 2, (size_t)(thumb - 2));
+}
+
+/* h:mm for anything over an hour, m:ss below it, so the number always
+   means something at a glance however long you have played */
+static void bb_playtime(uint32_t ms, char* out, size_t n) {
+    uint32_t total = ms / 1000u;
+    if(total >= 3600u)
+        snprintf(out, n, "%luH %luM", (unsigned long)(total / 3600u),
+                 (unsigned long)((total % 3600u) / 60u));
+    else
+        snprintf(out, n, "%luM %luS", (unsigned long)(total / 60u),
+                 (unsigned long)(total % 60u));
+}
+
+/* the entry with the most runs, or -1 while nothing has been played */
+static int8_t bb_favourite(const uint32_t* counts, uint8_t n) {
+    int8_t best = -1;
+    uint32_t high = 0;
+    for(uint8_t i = 0; i < n; i++)
+        if(counts[i] > high) {
+            high = counts[i];
+            best = (int8_t)i;
+        }
+    return best;
+}
+
+static void bb_draw_stats(Canvas* c, const BeepbackApp* app) {
+    const BbStats* st = &app->stats;
+    const char* label[4];
+    char v[4][20];
+    const char* value[4] = {NULL, NULL, NULL, NULL};
+    uint8_t n = 0;
+    uint8_t page = app->stat_page < BB_STAT_PAGES ? app->stat_page : 0;
+
+    bb_title(c, "STATS");
+    if(page == 0) {
+        label[n] = "RUNS";
+        snprintf(v[n], sizeof(v[0]), "%lu", (unsigned long)st->runs);
+        n++;
+        label[n] = "PLAYED";
+        bb_playtime(st->play_ms, v[n], sizeof(v[0]));
+        n++;
+        label[n] = "ROUNDS";
+        snprintf(v[n], sizeof(v[0]), "%lu", (unsigned long)st->rounds);
+        n++;
+        label[n] = "NOTES";
+        snprintf(v[n], sizeof(v[0]), "%lu", (unsigned long)st->notes);
+        n++;
+    } else {
+        int8_t fm = bb_favourite(st->by_mode, BB_MODE_COUNT);
+        int8_t fa = bb_favourite(st->by_assist, BB_ASSIST_COUNT);
+        label[n] = "BEST EVER";
+        snprintf(v[n], sizeof(v[0]), "%lu", (unsigned long)st->best_ever);
+        n++;
+        label[n] = "LONGEST";
+        snprintf(v[n], sizeof(v[0]), "%u", st->longest);
+        n++;
+        /* by pointer, not copied: snprintf of a bare string becomes a
+           strcpy at -Os, and a .fap may only call what the firmware
+           exports - which strcpy is not. */
+        label[n] = "FAVOURITE";
+        value[n++] = fm < 0 ? "-" : bb_mode_name[fm];
+        label[n] = "PLAYED BY";
+        value[n++] = fa < 0 ? "-" : bb_assist_name[fa];
     }
+    bb_font(c, false);
+    for(uint8_t i = 0; i < n; i++) {
+        if(!value[i]) value[i] = v[i];
+        int32_t y = 19 + i * 10;
+        bb_str(c, BB_ROW_L, y, AlignLeft, AlignCenter, label[i]);
+        bb_str(c, BB_ROW_R, y, AlignRight, AlignCenter, value[i]);
+    }
+    bb_footer_pages(c, BB_STAT_PAGES, page, "OK: records");
+}
+
+/* A number in a table cell. A record nobody has set yet is a dash and not
+   a nought, because nought reads as a score somebody scored. */
+static void bb_cell(Canvas* c, int32_t x, int32_t y, uint32_t v) {
+    char buf[12];
+    if(!v) {
+        bb_str(c, x, y, AlignRight, AlignCenter, "-");
+        return;
+    }
+    snprintf(buf, sizeof(buf), "%lu", (unsigned long)v);
+    bb_str(c, x, y, AlignRight, AlignCenter, buf);
+}
+
+static void bb_draw_table(Canvas* c, const BeepbackApp* app) {
+    uint8_t m = app->score_mode < BB_MODE_COUNT ? app->score_mode : 0;
+    uint8_t as = app->tbl_assist < BB_ASSIST_COUNT ? app->tbl_assist : 0;
+    char foot[32];
+
+    bb_title(c, bb_mode_name[m]);
+    bb_font(c, false);
+
+    if(m == BbModeDaily) {
+        /* one number a day, so the whole board fits and nothing is cycled */
+        for(uint8_t i = 0; i < BB_ASSIST_COUNT; i++) {
+            int32_t y = 20 + i * 10;
+            bb_str(c, BB_ROW_L, y, AlignLeft, AlignCenter, bb_assist_name[i]);
+            bb_cell(c, BB_ROW_R, y, app->rec.daily_best[i]);
+        }
+        return;
+    }
+
+    if(m == BbModeChallenge) {
+        const uint8_t VIS = 4;
+        uint8_t top = app->tbl_scroll;
+        if(top + VIS > BB_RULE_COUNT) top = (uint8_t)(BB_RULE_COUNT - VIS);
+        for(uint8_t i = 0; i < VIS; i++) {
+            uint8_t r = (uint8_t)(top + i);
+            int32_t y = 19 + i * 9;
+            bb_str(c, BB_ROW_L, y, AlignLeft, AlignCenter, bb_rule_label[r]);
+            bb_cell(c, 112, y, app->rec.ch_best[r][as]);
+        }
+        bb_scrollbar(c, 14, VIS * 9, VIS, BB_RULE_COUNT, top);
+        snprintf(foot, sizeof(foot), "%s  right: assist", bb_assist_name[as]);
+        bb_footer(c, foot);
+        return;
+    }
+
+    /* classic, rules and reflex: every time against every speed at once,
+       which is the whole point of the screen - no dial to spin */
+    static const char* const tshort[BB_DIFF_COUNT] = {"EASY", "NORM", "HARD", "INSN"};
+    static const char* const sshort[BB_SPEED_COUNT] = {"SLOW", "NORM", "FAST"};
+    const int32_t col[BB_SPEED_COUNT] = {66, 92, 120};
+    for(uint8_t sp = 0; sp < BB_SPEED_COUNT; sp++)
+        bb_str(c, col[sp], 16, AlignRight, AlignCenter, sshort[sp]);
+    for(uint8_t t = 0; t < BB_DIFF_COUNT; t++) {
+        int32_t y = 24 + t * 8;
+        bb_str(c, 4, y, AlignLeft, AlignCenter, tshort[t]);
+        for(uint8_t sp = 0; sp < BB_SPEED_COUNT; sp++)
+            bb_cell(c, col[sp], y, app->rec.best[m % BB_LADDER_MODES][t][sp][as]);
+    }
+    snprintf(foot, sizeof(foot), "%s  right: assist", bb_assist_name[as]);
+    bb_footer(c, foot);
 }
 
 static void bb_draw_no_cue(Canvas* c) {
@@ -398,17 +520,6 @@ static void bb_draw_mode(Canvas* c, const BeepbackApp* app) {
     bb_footer(c, bb_mode_blurb[app->mode_idx < BB_MODE_COUNT ? app->mode_idx : 0]);
 }
 
-/* seven rules do not fit, so show where you are */
-static void bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n,
-                         uint8_t scroll) {
-    if(n > vis && scroll > n - vis) scroll = (uint8_t)(n - vis);
-    canvas_draw_frame(c, 122, top, 4, (size_t)track);
-    int32_t thumb = track * vis / n;
-    if(thumb < 6) thumb = 6;
-    int32_t room = track - thumb;
-    int32_t y = top + (n > vis ? room * scroll / (n - vis) : 0);
-    canvas_draw_box(c, 123, y + 1, 2, (size_t)(thumb - 2));
-}
 
 static const char* bb_ch_name(uint8_t i) {
     return i >= BB_RULE_COUNT ? "RANDOM" : bb_rule_label[i];
@@ -475,66 +586,34 @@ static void bb_draw_rule_card(Canvas* c, const BeepbackApp* app) {
            app->rule_idx >= 0 ? bb_rule_tip[app->rule_idx] : "");
 }
 
-static void bb_draw_detail(Canvas* c, const BeepbackApp* app) {
-    static const char* const tag[BB_ASSIST_COUNT] = {"EAR", "LED", "SHP", "ARR"};
-    const char* val[3];
-    uint8_t at[3], hi[3];
-    char buf[16];
-    bb_title(c, "SCORES");
-    val[0] = bb_mode_name[app->det_mode % BB_MODE_COUNT];
-    at[0] = app->det_mode;
-    hi[0] = 2;
-    val[1] = bb_diff_name[app->det_time % BB_DIFF_COUNT];
-    at[1] = app->det_time;
-    hi[1] = 3;
-    val[2] = bb_speed_name[app->det_speed % BB_SPEED_COUNT];
-    at[2] = app->det_speed;
-    hi[2] = 2;
-    static const char* const rowname[3] = {"MODE", "TIME", "SPEED"};
-    for(uint8_t i = 0; i < 3; i++) {
-        int32_t top = 14 + i * 10;
-        if(app->det_row == i) bb_sel_rbox(c, 2, top, 124, 10, 2);
-        bb_font(c, false);
-        bb_str(c, BB_ROW_L, top + 5, AlignLeft, AlignCenter, rowname[i]);
-        if(app->det_row == i) {
-            bb_adjustable(c, top + 5, val[i], at[i] > 0, at[i] < hi[i]);
-        } else {
-            bb_str(c, BB_ROW_R, top + 5, AlignRight, AlignCenter, val[i]);
-        }
-        canvas_set_color(c, ColorBlack);
-    }
-    const uint32_t* cell = app->rec.best[app->det_mode % BB_LADDER_MODES]
-                                        [app->det_time % BB_DIFF_COUNT]
-                                        [app->det_speed % BB_SPEED_COUNT];
-    bb_font(c, false);
-    for(uint8_t i = 0; i < BB_ASSIST_COUNT; i++) {
-        bool left = (i % 2) == 0;
-        int32_t y = 49 + (i < 2 ? 0 : 9);
-        bb_str(c, left ? 6 : 68, y, AlignLeft, AlignCenter, tag[i]);
-        snprintf(buf, sizeof(buf), "%lu", (unsigned long)cell[i]);
-        bb_str(c, left ? 60 : 122, y, AlignRight, AlignCenter, buf);
-    }
-}
-
 static void bb_draw_reset(Canvas* c, const BeepbackApp* app) {
-    static const char* const rows[2] = {"SCORES", "TUTORIAL"};
+    static const char* const rows[BB_RESET_ROWS] = {"RECORDS", "STATS", "TUTORIAL",
+                                                    "EVERYTHING"};
+    uint8_t at = app->reset_idx < BB_RESET_ROWS ? app->reset_idx : 0;
     bb_title(c, "RESET");
-    for(uint8_t i = 0; i < 2; i++) {
-        int32_t top = 25 + i * 13;
-        if(app->reset_idx == i) bb_sel_rbox(c, 2, top, 124, 13, 2);
+    for(uint8_t i = 0; i < BB_RESET_ROWS; i++) {
+        /* EVERYTHING sits a row lower than the rest, because it is not one
+           of the rest: it takes the others with it and closes the app */
+        int32_t top = 15 + i * 10 + (i == BbResetAll ? 4 : 0);
+        bool sel = (at == i);
+        bool armed = sel && app->confirm_until && app->now < app->confirm_until &&
+                     app->confirm_row == i;
+        if(sel) bb_sel_rbox(c, 2, top, 124, 10, 2);
         bb_font(c, false);
-        bb_str(c, BB_ROW_L, top + 6, AlignLeft, AlignCenter, rows[i]);
-        bb_str(c, BB_ROW_R, top + 6, AlignRight, AlignCenter,
-               (i == 0 && app->now < app->set_flash) ? "CLEARED" : "OK");
+        bb_str(c, BB_ROW_L, top + 5, AlignLeft, AlignCenter, rows[i]);
+        bb_str(c, BB_ROW_R, top + 5, AlignRight, AlignCenter,
+               armed             ? "SURE?" :
+               (sel && app->now < app->set_flash) ? "DONE" :
+                                   "OK");
         canvas_set_color(c, ColorBlack);
     }
 }
 
 static void bb_draw_settings(Canvas* c, const BeepbackApp* app) {
-    static const char* const name[5] = {"VOLUME", "ASSIST", "SOUNDS", "SCORES", "RESET"};
+    static const char* const name[4] = {"VOLUME", "ASSIST", "SOUNDS", "RESET"};
     bb_title(c, "SETTINGS");
-    for(uint8_t i = 0; i < 5; i++) {
-        int32_t top = 14 + i * 10;
+    for(uint8_t i = 0; i < 4; i++) {
+        int32_t top = 16 + i * 11;
         bool sel = (app->set_idx == i);
         if(sel) bb_sel_rbox(c, 2, top, 124, 10, 2);
         bb_font(c, false);
@@ -996,9 +1075,6 @@ void bb_draw(Canvas* canvas, BeepbackApp* app) {
     case BbSceneSettings:
         bb_draw_settings(canvas, app);
         break;
-    case BbSceneDetail:
-        bb_draw_detail(canvas, app);
-        break;
     case BbSceneReset:
         bb_draw_reset(canvas, app);
         break;
@@ -1026,8 +1102,11 @@ void bb_draw(Canvas* canvas, BeepbackApp* app) {
     case BbSceneScorePick:
         bb_draw_score_pick(canvas, app);
         break;
-    case BbSceneScores:
-        bb_draw_scores(canvas, app);
+    case BbSceneStats:
+        bb_draw_stats(canvas, app);
+        break;
+    case BbSceneTable:
+        bb_draw_table(canvas, app);
         break;
     case BbSceneCredits:
         bb_draw_credits(canvas);
@@ -1039,10 +1118,6 @@ void bb_draw(Canvas* canvas, BeepbackApp* app) {
         bb_draw_menu(canvas, app);
         break;
     }
-
-    /* Last, so it sits on the title bar every screen just drew. One place
-       decides it, from the same answer the input layer acts on. */
-    if(bb_left_is_back(app)) bb_back_chev(canvas);
 
     if(app->paused) bb_draw_pause(canvas, app);
 }

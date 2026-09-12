@@ -129,15 +129,16 @@ BbScene bb_back_target(const BeepbackApp* app) {
     switch(app->scene) {
     case BbSceneMenu:
         return BbSceneCount; /* the root: BACK leaves the app entirely */
+    case BbSceneScorePick:
+        return BbSceneStats; /* the stats page is the front of this section */
     case BbSceneCredits:
-    case BbSceneScores:
+    case BbSceneTable:
         return BbSceneScorePick;
     case BbSceneSetup:
         return app->mode == BbModeChallenge ? BbSceneChPick : BbSceneMode;
     case BbSceneChPick:
         return BbSceneMode;
     case BbSceneReset:
-    case BbSceneDetail:
     case BbSceneNoCue: /* BACK is "let me fix it", so back to the rows */
         return BbSceneSettings;
     case BbSceneSoundTest:
@@ -169,8 +170,6 @@ bool bb_left_is_back(const BeepbackApp* app) {
         return false;
     case BbSceneSoundTest:
         return false; /* LEFT is one of the five buttons here */
-    case BbSceneDetail:
-        return false; /* LEFT is a dial */
     case BbSceneMode:
         return (app->mode_idx >> 1) == 0; /* otherwise it pages */
     case BbSceneSetup:
@@ -181,6 +180,8 @@ bool bb_left_is_back(const BeepbackApp* app) {
     case BbSceneRulesGuide:
     case BbSceneReflexGuide:
         return app->tut_page == 0; /* otherwise it is the page before */
+    case BbSceneStats:
+        return app->stat_page == 0;
     default:
         return true;
     }
@@ -247,7 +248,7 @@ void bb_press(BeepbackApp* app, InputKey key) {
     case BbSceneMenu:
         if(key == InputKeyUp) app->menu_idx = clamp8((int16_t)app->menu_idx - 1, 0, 2);
         if(key == InputKeyDown) app->menu_idx = clamp8((int16_t)app->menu_idx + 1, 0, 2);
-        if(key == InputKeyRight) bb_enter(app, BbSceneScorePick);
+        if(key == InputKeyRight) bb_enter(app, BbSceneStats);
         if(key == InputKeyOk) {
             if(app->menu_idx == 0) {
                 bb_enter(app, BbSceneMode);
@@ -322,8 +323,8 @@ void bb_press(BeepbackApp* app, InputKey key) {
     }
 
     case BbSceneSettings: {
-        if(key == InputKeyUp) app->set_idx = clamp8((int16_t)app->set_idx - 1, 0, 4);
-        if(key == InputKeyDown) app->set_idx = clamp8((int16_t)app->set_idx + 1, 0, 4);
+        if(key == InputKeyUp) app->set_idx = clamp8((int16_t)app->set_idx - 1, 0, 3);
+        if(key == InputKeyDown) app->set_idx = clamp8((int16_t)app->set_idx + 1, 0, 3);
         int8_t step = key == InputKeyRight ? 1 : key == InputKeyLeft ? -1 : 0;
         if(app->set_idx == 0 && step) {
             app->set.volume = clamp8((int16_t)app->set.volume + step, 0, BB_VOL_COUNT - 1);
@@ -336,45 +337,60 @@ void bb_press(BeepbackApp* app, InputKey key) {
             bb_enter(app, BbSceneSoundTest);
         }
         if(app->set_idx == 3 && (key == InputKeyOk || key == InputKeyRight)) {
-            app->det_row = 0;
-            bb_enter(app, BbSceneDetail);
-        }
-        if(app->set_idx == 4 && (key == InputKeyOk || key == InputKeyRight)) {
+            app->confirm_until = 0;
             app->reset_idx = 0;
             bb_enter(app, BbSceneReset);
         }
         break;
     }
 
-    case BbSceneDetail: {
-        if(key == InputKeyUp) app->det_row = clamp8((int16_t)app->det_row - 1, 0, 2);
-        if(key == InputKeyDown) app->det_row = clamp8((int16_t)app->det_row + 1, 0, 2);
-        int8_t d = key == InputKeyRight ? 1 : key == InputKeyLeft ? -1 : 0;
-        if(d) {
-            if(app->det_row == 0) app->det_mode = clamp8((int16_t)app->det_mode + d, 0, 2);
-            if(app->det_row == 1) app->det_time = clamp8((int16_t)app->det_time + d, 0, 3);
-            if(app->det_row == 2) app->det_speed = clamp8((int16_t)app->det_speed + d, 0, 2);
+    case BbSceneReset: {
+        int8_t move = key == InputKeyUp ? -1 : key == InputKeyDown ? 1 : 0;
+        if(move) {
+            app->reset_idx =
+                clamp8((int16_t)app->reset_idx + move, 0, BB_RESET_ROWS - 1);
+            app->confirm_until = 0; /* moving off a row disarms it */
         }
+        if(key != InputKeyOk) break;
+
+        /* Ask once, then listen for a second. A single press is never a
+           reset, and an armed row cannot be left armed. */
+        bool armed = app->confirm_until && app->now < app->confirm_until &&
+                     app->confirm_row == app->reset_idx;
+        if(!armed) {
+            app->confirm_row = app->reset_idx;
+            app->confirm_until = app->now + BB_CONFIRM_MS;
+            break;
+        }
+        app->confirm_until = 0;
+        switch(app->reset_idx) {
+        case BbResetRecords:
+            memset(&app->rec, 0, sizeof(app->rec));
+            break;
+        case BbResetStats:
+            memset(&app->stats, 0, sizeof(app->stats));
+            break;
+        case BbResetTutorial:
+            app->first_run = true;
+            app->set.tutorial_done = false;
+            break;
+        default:
+            /* everything, and out: the save is written on the way past the
+               menu, so a fresh file is what the next launch reads */
+            memset(&app->rec, 0, sizeof(app->rec));
+            memset(&app->stats, 0, sizeof(app->stats));
+            app->set.volume = 2;
+            app->set.assist = 2;
+            app->set.speed = 1;
+            app->set.diff = 1;
+            app->first_run = true;
+            app->set.tutorial_done = false;
+            app->running = false;
+            return;
+        }
+        app->set_flash = app->now + 900; /* the row says DONE for a moment */
         break;
     }
-
-    case BbSceneReset:
-        if(key == InputKeyUp) app->reset_idx = clamp8((int16_t)app->reset_idx - 1, 0, 1);
-        if(key == InputKeyDown) app->reset_idx = clamp8((int16_t)app->reset_idx + 1, 0, 1);
-        if(key == InputKeyOk) {
-            if(app->reset_idx == 0) {
-                memset(&app->rec, 0, sizeof(app->rec));
-                app->set_flash = app->now + 900;
-            } else {
-                /* the guide opens itself on the next launch, so this
-                   saves the flag and quits; scores are deliberately
-                   untouched, that is the other row */
-                app->first_run = true;
-                app->set.tutorial_done = false;
-                app->running = false;
-            }
-        }
-        break;
 
     case BbSceneHelp:
         if(key == InputKeyUp) app->help_idx = clamp8((int16_t)app->help_idx - 1, 0, 2);
@@ -456,14 +472,41 @@ void bb_press(BeepbackApp* app, InputKey key) {
         if(key == InputKeyOk) bb_enter(app, BbSceneMenu);
         break;
 
+    case BbSceneStats: {
+        const uint8_t total = BB_STAT_PAGES;
+        if(key == InputKeyRight && app->stat_page + 1 < total) app->stat_page++;
+        if(key == InputKeyLeft && app->stat_page > 0) app->stat_page--;
+        if(key == InputKeyOk) {
+            app->score_mode = 0;
+            bb_enter(app, BbSceneScorePick);
+        }
+        break;
+    }
+
     case BbSceneScorePick:
         if(key == InputKeyUp) app->score_mode = clamp8((int16_t)app->score_mode - 1, 0, BB_MODE_COUNT - 1);
         if(key == InputKeyDown) app->score_mode = clamp8((int16_t)app->score_mode + 1, 0, BB_MODE_COUNT - 1);
-        if(key == InputKeyOk) bb_enter(app, BbSceneScores);
+        if(key == InputKeyOk) {
+            app->tbl_assist = 0;
+            app->tbl_scroll = 0;
+            bb_enter(app, BbSceneTable);
+        }
         if(key == InputKeyRight) bb_enter(app, BbSceneCredits);
         break;
 
-    case BbSceneScores:
+    case BbSceneTable: {
+        /* RIGHT is the assist, always, whatever shape the table is. UP and
+           DOWN are free on the grids and scroll the rules on challenge. */
+        if(key == InputKeyRight)
+            app->tbl_assist = (uint8_t)((app->tbl_assist + 1) % BB_ASSIST_COUNT);
+        if(app->score_mode == BbModeChallenge) {
+            const uint8_t VIS = 4;
+            if(key == InputKeyDown && app->tbl_scroll + VIS < BB_RULE_COUNT) app->tbl_scroll++;
+            if(key == InputKeyUp && app->tbl_scroll > 0) app->tbl_scroll--;
+        }
+        break;
+    }
+
     case BbSceneCredits:
         break;
 

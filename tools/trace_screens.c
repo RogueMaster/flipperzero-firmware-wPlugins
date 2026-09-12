@@ -18,12 +18,12 @@
 static BeepbackApp app;
 
 static const char* const scene_name[BbSceneCount] = {
-    "splash",     "menu",     "mode",      "chpick",     "setup",     "rulecard",
-    "listen",     "playback", "go",        "input",      "hold",      "success",
-    "roundclear", "wrong",    "retry",     "reflexgap",  "reflexcue", "gameover",
-    "settings",   "detail",   "reset",     "help",       "tutorial",  "rulesguide",
-    "rulelist",   "ruleinfo", "reflexguide", "soundtest", "scorepick", "scores",
-    "credits",    "nocue",
+    "splash",    "menu",       "mode",        "chpick",    "setup",     "rulecard",
+    "listen",    "playback",   "go",          "input",     "hold",      "success",
+    "roundclear", "wrong",     "retry",       "reflexgap", "reflexcue", "gameover",
+    "settings",  "reset",      "help",        "tutorial",  "rulesguide", "rulelist",
+    "ruleinfo",  "reflexguide", "soundtest",  "scorepick", "credits",   "stats",
+    "table",     "nocue",
 };
 
 /* One run, mid-flight, so every in-game screen has something to draw. */

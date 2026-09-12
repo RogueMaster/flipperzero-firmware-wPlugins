@@ -10,6 +10,9 @@
  * record layout, and a v3 file read as a v4 one would look like a set
  * of very good scores nobody earned. Anything that is not this exact
  * version, length and checksum is discarded and the defaults stand.
+ * v6 added the stats block, so a v5 file is discarded on first launch
+ * and its records with it - there is nowhere to put a run count that
+ * was never counted.
  */
 #include "beepback.h"
 
@@ -68,6 +71,15 @@ size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n) {
     bb_put32(buf, &at, app->rec.daily_date);
     buf[at++] = app->rec.daily_done ? 1u : 0u;
 
+    bb_put32(buf, &at, app->stats.play_ms);
+    bb_put32(buf, &at, app->stats.runs);
+    bb_put32(buf, &at, app->stats.notes);
+    bb_put32(buf, &at, app->stats.rounds);
+    bb_put32(buf, &at, app->stats.best_ever);
+    for(uint8_t m = 0; m < BB_MODE_COUNT; m++) bb_put32(buf, &at, app->stats.by_mode[m]);
+    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) bb_put32(buf, &at, app->stats.by_assist[a]);
+    buf[at++] = app->stats.longest;
+
     bb_put32(buf, &at, bb_checksum(buf, at));
     return at;
 }
@@ -112,6 +124,15 @@ bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n) {
     for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) app->rec.daily_best[a] = bb_get32(buf, &at);
     app->rec.daily_date = bb_get32(buf, &at);
     app->rec.daily_done = buf[at++] != 0;
+
+    app->stats.play_ms = bb_get32(buf, &at);
+    app->stats.runs = bb_get32(buf, &at);
+    app->stats.notes = bb_get32(buf, &at);
+    app->stats.rounds = bb_get32(buf, &at);
+    app->stats.best_ever = bb_get32(buf, &at);
+    for(uint8_t m = 0; m < BB_MODE_COUNT; m++) app->stats.by_mode[m] = bb_get32(buf, &at);
+    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) app->stats.by_assist[a] = bb_get32(buf, &at);
+    app->stats.longest = buf[at++];
     return true;
 }
 
@@ -122,7 +143,7 @@ bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n) {
 #ifndef BB_HOST_TEST
 
 void bb_save_load(BeepbackApp* app) {
-    /* 723 bytes is most of a 4K stack, so the block goes on the heap */
+    /* the block is most of a 4K stack, so it goes on the heap */
     uint8_t* buf = malloc(BB_SAVE_BYTES);
     if(!buf) return;
     Storage* storage = furi_record_open(RECORD_STORAGE);
