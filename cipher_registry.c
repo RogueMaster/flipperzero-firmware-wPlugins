@@ -33,6 +33,7 @@
 #include "hashes/siphash.h"
 #include "hashes/xxhash.h"
 
+#include "encoders/base16.h"
 #include "encoders/base32.h"
 #include "encoders/base58.h"
 #include "encoders/base64.h"
@@ -419,6 +420,21 @@ static CipherResult xxhash_hash(const char* input, int32_t a, int32_t b, const c
     char str[17];
     snprintf(str, sizeof(str), "%016llX", (unsigned long long)hash);
     return ok_result(strdup(str));
+}
+
+static CipherResult base16_encode_wrap(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+    UNUSED(k);
+    return ok_result(strdup(base16_encode(input)));
+}
+
+static CipherResult base16_encode_wrap(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+    UNUSED(k);
+    size_t out_len;
+    return ok_result(strdup(base16_decode(input)));
 }
 
 static CipherResult base32_encode_wrap(const char* input, int32_t a, int32_t b, const char* k) {
