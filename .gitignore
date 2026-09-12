@@ -11,3 +11,5 @@ test/san_*
 test/link_check
 test/armobj/
 tools/trace_screens
+test/test_port
+.vscode/

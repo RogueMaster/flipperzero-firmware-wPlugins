@@ -251,7 +251,7 @@ int32_t beepback_app(void* p);
 
 int main(void) {
     /* never run: the point is that it links */
-    if(bb_multiplier(BbModeClassic, 1, 1) == 0) return (int)beepback_app(NULL);
+    if(bb_window_ms(BbModeClassic, 1) == 0) return (int)beepback_app(NULL);
     printf("ok   the whole firmware links as one binary\n");
     return 0;
 }

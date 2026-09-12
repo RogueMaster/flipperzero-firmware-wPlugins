@@ -137,35 +137,23 @@ typedef struct {
 } BbPresses;
 
 /* ------------------------------------------------------------------ */
-/* Score maths                                                         */
+/* Score                                                               */
 /*                                                                     */
-/* Difficulty pays instead of splitting the leaderboard. Normal is the  */
-/* baseline; the numbers came out of simulating four skill levels       */
-/* against every setting, not out of taste. Multipliers are stored as   */
-/* hundredths so the firmware never needs a float.                      */
+/* A point for every note you play back right, ten more for clearing a  */
+/* round. No multiplier: TIME and SPEED change how hard the run is, not */
+/* what it pays, so the number on screen is always something you could  */
+/* have counted yourself.                                              */
 /* ------------------------------------------------------------------ */
-extern const uint16_t bb_mult_time[BB_DIFF_COUNT]; /* 70, 100, 155, 600 */
-extern const uint16_t bb_mult_time_rx[BB_DIFF_COUNT]; /* 70, 100, 150, 230 */
-extern const uint16_t bb_mult_speed[BB_SPEED_COUNT]; /* 75, 100, 145 */
+#define BB_ROUND_BONUS 10 /* clearing a round, on top of the notes */
+
 extern const uint16_t bb_time_ms[BB_DIFF_COUNT];
 extern const uint16_t bb_rx_shrink[BB_DIFF_COUNT]; /* ms tighter per hit */
 extern const uint16_t bb_rx_gap[BB_SPEED_COUNT]; /* wait between cues */
 extern const uint16_t bb_speed_tone[BB_SPEED_COUNT];
 extern const uint16_t bb_speed_gap[BB_SPEED_COUNT];
 
-/* The multiplier is the product of two hundredths, so it comes back in
-   ten-thousandths: 22475 means x2.25. Keeping the product whole rather
-   than folding it back to hundredths is what stops 155 x 145 losing its
-   .75 to truncation, and 600 x 145 is 87000, which is why it is not a
-   uint16_t. */
-uint32_t bb_multiplier(BbMode mode, uint8_t diff, uint8_t speed);
-/* value * mult / 10000, rounded the way the browser's Math.round rounds */
-uint32_t bb_apply_mult(uint32_t base, uint32_t mult);
-/* points for one reflex hit at the given window */
 /* response window including the rule allowance */
 uint16_t bb_window_ms(BbMode mode, uint8_t diff);
-/* points for one reflex hit at the given window */
-uint32_t bb_rx_hit_value(uint16_t window_ms);
 
 /* ------------------------------------------------------------------ */
 /* Rules                                                               */
@@ -384,7 +372,6 @@ typedef struct {
     bool new_best;
     uint8_t run_mode; /* the assist the run was played on */
     uint8_t run_game_mode, run_diff, run_speed;
-    uint32_t run_mult;
     /* the daily runs at NORMAL whatever you had set, so what you had set
        is put aside for the length of the run rather than overwritten */
     uint8_t held_diff, held_speed;
@@ -476,8 +463,9 @@ bool bb_cue_on(const BeepbackApp* app);
 bool bb_visual_on(const BeepbackApp* app);
 uint16_t bb_tone_ms(const BeepbackApp* app);
 uint16_t bb_gap_ms(const BeepbackApp* app);
-uint32_t bb_multiplier_for(const BeepbackApp* app);
 uint32_t bb_best_for(const BeepbackApp* app, uint8_t mode, uint8_t assist);
+/* the one record the finished run competes for */
+uint32_t* bb_slot_cell(BeepbackApp* app);
 bool bb_is_challenge_mode(uint8_t mode);
 
 /* sound and light, requested here and applied by the app loop */
@@ -517,7 +505,6 @@ void bb_shape_flash(Canvas* c, int32_t cx, int32_t cy, int32_t r, uint8_t kind, 
 void bb_draw_under_wipe(Canvas* c, BeepbackApp* app);
 void bb_update_splash(BeepbackApp* app);
 void bb_splash_done(BeepbackApp* app);
-void bb_mult_text(uint32_t mult, char* out, size_t n);
 
 /* ------------------------------------------------------------------ */
 /* The save file (beepback_save.c)                                     */

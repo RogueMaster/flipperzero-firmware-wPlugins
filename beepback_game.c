@@ -43,9 +43,6 @@ uint16_t bb_gap_ms(const BeepbackApp* app) {
     uint16_t g = bb_speed_gap[app->set.speed < BB_SPEED_COUNT ? app->set.speed : 1];
     return (uint16_t)(g + (bb_visual_on(app) ? BB_ASSIST_GAP : 0));
 }
-uint32_t bb_multiplier_for(const BeepbackApp* app) {
-    return bb_multiplier((BbMode)app->mode, app->set.diff, app->set.speed);
-}
 
 bool bb_in_game(BbScene s) {
     return s == BbSceneReflexGap || s == BbSceneReflexCue || s == BbSceneRuleCard ||
@@ -69,6 +66,21 @@ uint32_t bb_best_for(const BeepbackApp* app, uint8_t mode, uint8_t assist) {
         for(uint8_t sp = 0; sp < BB_SPEED_COUNT; sp++)
             if(app->rec.best[mode][t][sp][assist] > m) m = app->rec.best[mode][t][sp][assist];
     return m;
+}
+
+/* The record the finished run is actually competing for. NEW BEST is
+   measured against this and nothing else: bb_best_for() is the headline
+   across every setting, so comparing against it meant a good INSANE run
+   was silently judged against an easy EASY one and almost never won. */
+uint32_t* bb_slot_cell(BeepbackApp* app) {
+    uint8_t assist = app->run_mode < BB_ASSIST_COUNT ? app->run_mode : 0;
+    if(app->run_game_mode == BbModeDaily) return &app->rec.daily_best[assist];
+    if(app->run_game_mode == BbModeChallenge)
+        return &app->rec.ch_best[app->ch_rule % BB_RULE_COUNT][assist];
+    uint8_t mode = app->run_game_mode % BB_LADDER_MODES;
+    uint8_t diff = app->run_diff < BB_DIFF_COUNT ? app->run_diff : 1;
+    uint8_t speed = app->run_speed < BB_SPEED_COUNT ? app->run_speed : 1;
+    return &app->rec.best[mode][diff][speed][assist];
 }
 
 void bb_daily_refresh(BeepbackApp* app, uint32_t today) {
@@ -349,7 +361,8 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
     if(scene == BbSceneSuccess) {
         /* not the run's generator: the daily must not depend on praise */
         app->praise = (uint8_t)((app->praise + 1 + (app->now >> 5)) % BB_PRAISE_COUNT);
-        app->score += bb_apply_mult(10u * app->stage, app->run_mult);
+        /* a point a note: the score is the count of what you got right */
+        app->score += app->expected.len;
         if(app->stage > app->run_best) app->run_best = app->stage;
         app->phase = app->now + BB_SUCCESS_MS;
         bb_play(app, bb_jingle_win, 3);
@@ -357,7 +370,7 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
     }
     if(scene == BbSceneRoundClear) {
         app->sweep_idx = -1;
-        app->score += bb_apply_mult(50u * app->round, app->run_mult);
+        app->score += BB_ROUND_BONUS;
         app->phase = app->now + BB_ROUND_MS;
         bb_play(app, bb_jingle_round, 4);
         bb_led_flash(app, BbLedGreen, 600);
@@ -390,21 +403,12 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
         }
         app->go_page = 0;
         app->lock_until = app->now + BB_OVER_LOCK; /* a press in flight must not retry */
-        app->prev_best = bb_best_for(app, app->run_game_mode, app->run_mode);
+        app->prev_best = *bb_slot_cell(app);
         app->new_best = app->score > app->prev_best;
+        if(app->score > app->prev_best) *bb_slot_cell(app) = app->score;
         if(app->run_game_mode == BbModeDaily) {
-            if(app->score > app->rec.daily_best[app->run_mode])
-                app->rec.daily_best[app->run_mode] = app->score;
             app->rec.daily_date = bb_daily_seed();
             app->rec.daily_done = true; /* one a day, and that was it */
-        } else if(app->run_game_mode == BbModeChallenge) {
-            uint8_t r = app->ch_rule % BB_RULE_COUNT;
-            if(app->score > app->rec.ch_best[r][app->run_mode])
-                app->rec.ch_best[r][app->run_mode] = app->score;
-        } else {
-            uint32_t* cell =
-                &app->rec.best[app->run_game_mode][app->run_diff][app->run_speed][app->run_mode];
-            if(app->score > *cell) *cell = app->score;
         }
         bb_play(app, bb_jingle_over, 4);
         bb_led_flash(app, BbLedRed, 900);
@@ -422,7 +426,6 @@ void bb_start_game(BeepbackApp* app) {
     app->run_mode = bb_assist(app);
     app->run_speed = app->set.speed;
     app->run_game_mode = app->mode;
-    app->run_mult = bb_multiplier_for(app);
     app->run_diff = app->set.diff;
 
     if(app->mode == BbModeReflex) {
@@ -435,8 +438,7 @@ void bb_start_game(BeepbackApp* app) {
     }
     if(bb_is_challenge_mode(app->mode)) {
         bb_start_challenge(app);
-        /* the daily locks time and speed, so the multiplier is recaptured */
-        app->run_mult = bb_multiplier_for(app);
+        /* the daily locks time and speed, so the run's settings are recaptured */
         app->run_diff = app->set.diff;
         app->run_speed = app->set.speed;
         bb_enter(app, BbSceneRuleCard);
@@ -481,7 +483,7 @@ void bb_reflex_hit(BeepbackApp* app, uint8_t btn) {
     if(reaction > 0xFFFFu) reaction = 0xFFFFu;
     if(!app->rx_fastest || reaction < app->rx_fastest) app->rx_fastest = (uint16_t)reaction;
     app->rx_hits++;
-    app->score += bb_apply_mult(bb_rx_hit_value(app->rx_window), app->run_mult);
+    app->score++; /* a point a hit, same as a point a note */
     /* no real floor: the ramp has to end for everyone, however quick */
     uint16_t shrink = bb_rx_shrink[app->set.diff < BB_DIFF_COUNT ? app->set.diff : 1];
     app->rx_window = (app->rx_window > BB_RX_FLOOR + shrink) ?
@@ -626,7 +628,6 @@ void bb_app_init(BeepbackApp* app) {
     app->stage = 1;
     app->lives = BB_LIVES;
     app->round = 1;
-    app->run_mult = 10000;
     app->scene = BbSceneSplash;
     app->test_from = BbSceneMenu;
     app->help_from = BbSceneHelp;

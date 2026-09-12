@@ -176,7 +176,6 @@ int main(void) {
     bb_start_game(&app);
     check("a run opens on stage one of four", app.stage == 1 && app.target == BB_START_LEN, "");
     check("with three lives", app.lives == BB_LIVES, "");
-    check("and x1.00 captured", app.run_mult == 10000, "");
     for(int stage = 0; stage < BB_START_LEN; stage++) {
         if(!wait_scene(&app, BbSceneInput, 8000)) break;
         play_stage(&app);
@@ -184,11 +183,55 @@ int main(void) {
             wait_scene(&app, BbSceneRoundClear, 400);
     }
     sprintf(msg, "%lu", (unsigned long)app.score);
-    /* The stage that clears the round pays the round bonus and not a
-       stage award: hold goes to roundclear rather than success, and only
-       success pays 10 a step. 10+20+30 then 50. */
-    check("round one at x1.00 pays 10+20+30 and a 50 bonus", app.score == 110, msg);
+    /* A point a note, and ten for the round. The stage that clears the
+       round pays the bonus and not a stage award: hold goes to roundclear
+       rather than success, and only success pays per note. 1+2+3 then 10.
+       No multiplier is involved at any point, which is the whole idea. */
+    check("round one pays 1+2+3 and a 10 bonus", app.score == 16, msg);
     check("and the round bonus replaced the last stage award", app.round == 2, "");
+
+    /* Play the same round on the hardest setting there is. The score has
+       to come out identical: difficulty is how hard the run is, not what
+       it pays, and the whole point of dropping the multiplier was that
+       the number on screen is one the player could have counted. */
+    boot(&app);
+    app.mode = BbModeClassic;
+    app.set.diff = 3;
+    app.set.speed = 2;
+    bb_start_game(&app);
+    for(int stage = 0; stage < BB_START_LEN; stage++) {
+        if(!wait_scene(&app, BbSceneInput, 8000)) break;
+        play_stage(&app);
+        if(!wait_scene(&app, BbSceneSuccess, 400) && app.scene != BbSceneRoundClear)
+            wait_scene(&app, BbSceneRoundClear, 400);
+    }
+    sprintf(msg, "%lu", (unsigned long)app.score);
+    check("insane and fast pays exactly the same 16", app.score == 16, msg);
+
+    /* ---- a best is a best at the setting you played ---- */
+    boot(&app);
+    app.rec.best[BbModeClassic][0][0][2] = 500; /* an old easy and slow run */
+    app.run_game_mode = BbModeClassic;
+    app.run_mode = 2;
+    app.run_diff = 3;
+    app.run_speed = 2;
+    app.score = 40;
+    bb_enter(&app, BbSceneGameOver);
+    /* 40 would lose to the 500 on the headline board, which is how NEW
+       BEST used to be judged and why it almost never appeared. */
+    check("40 on insane beats nothing on insane, so it is a new best", app.new_best, "");
+    sprintf(msg, "%lu", (unsigned long)app.rec.best[BbModeClassic][3][2][2]);
+    check("and it lands in that setting's slot",
+          app.rec.best[BbModeClassic][3][2][2] == 40, msg);
+    check("leaving the easy record where it was",
+          app.rec.best[BbModeClassic][0][0][2] == 500, "");
+    app.score = 30;
+    bb_enter(&app, BbSceneGameOver);
+    check("a worse run on the same setting is not a new best", !app.new_best, "");
+    check("and does not lower the record",
+          app.rec.best[BbModeClassic][3][2][2] == 40, "");
+    sprintf(msg, "%lu", (unsigned long)app.prev_best);
+    check("what it is measured against is that slot", app.prev_best == 40, msg);
 
     /* ---- pausing stops the clock ---- */
     boot(&app);
@@ -281,6 +324,8 @@ int main(void) {
     bb_press(&app, key_of(app.rx_cue));
     sprintf(msg, "%u ms", app.rx_fastest);
     check("a hit records its reaction time", app.rx_fastest >= 100, msg);
+    sprintf(msg, "%lu vs %u hits", (unsigned long)app.score, app.rx_hits);
+    check("and is worth one point, whatever the window", app.score == app.rx_hits, msg);
     wait_scene(&app, BbSceneReflexCue, 4000);
     bb_press(&app, key_of((uint8_t)((app.rx_cue + 1) % BbBtnCount)));
     check("a wrong button ends the run", app.scene == BbSceneGameOver, scene_name[app.scene]);
@@ -356,7 +401,6 @@ int main(void) {
                 app.score = 123456;
                 app.rx_hits = 99;
                 app.rx_window = 400;
-                app.run_mult = 22475;
                 app.run_game_mode = (uint8_t)(cur % BB_MODE_COUNT);
                 app.go_page = (uint8_t)(cur & 1);
                 app.base.len = (uint8_t)(1 + cur);
@@ -409,7 +453,7 @@ int main(void) {
     bb_enter(&app, BbSceneSetup);
     frame(&app);
     check("and classic sets a time in seconds", fc_saw("HARD 3S"), "");
-    check("with the multiplier in the footer", fc_saw("SCORE  X2.25"), "");
+    check("and promises no multiplier for it", !fc_saw("X2.25") && !fc_saw("SCORE"), "");
 
     boot(&app);
     app.set.volume = 0;

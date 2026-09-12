@@ -9,10 +9,6 @@
 /* Tables                                                              */
 /* ------------------------------------------------------------------ */
 
-const uint16_t bb_mult_time[BB_DIFF_COUNT] = {70, 100, 155, 600};
-const uint16_t bb_mult_time_rx[BB_DIFF_COUNT] = {70, 100, 150, 230};
-const uint16_t bb_mult_speed[BB_SPEED_COUNT] = {75, 100, 145};
-
 const uint16_t bb_time_ms[BB_DIFF_COUNT] =
     {BB_TIME_EASY, BB_TIME_NORMAL, BB_TIME_HARD, BB_TIME_INSANE};
 
@@ -21,41 +17,6 @@ const uint16_t bb_rx_gap[BB_SPEED_COUNT] = {900, 650, 420};
 
 const uint16_t bb_speed_tone[BB_SPEED_COUNT] = {290, 220, 160};
 const uint16_t bb_speed_gap[BB_SPEED_COUNT] = {180, 110, 75};
-
-/* ------------------------------------------------------------------ */
-/* Score maths                                                         */
-/* ------------------------------------------------------------------ */
-
-uint32_t bb_multiplier(BbMode mode, uint8_t diff, uint8_t speed) {
-    if(diff >= BB_DIFF_COUNT) diff = 1;
-    if(speed >= BB_SPEED_COUNT) speed = 1;
-    const uint16_t* table = (mode == BbModeReflex) ? bb_mult_time_rx : bb_mult_time;
-    /* Two hundredths multiplied together make ten-thousandths, and that
-       is where the product stays. Folding it back to hundredths here
-       threw away the .75 of 155 x 145 = 22475, which is a scoring
-       difference and not a rounding one. */
-    return (uint32_t)table[diff] * bb_mult_speed[speed];
-}
-
-uint32_t bb_apply_mult(uint32_t base, uint32_t mult) {
-    /* +5000 so it rounds to nearest, matching Math.round in the browser.
-     *
-     * 32-bit throughout, deliberately: a 64-bit divide on a Cortex-M4
-     * is a call to __aeabi_uldivmod, and a .fap may only call what the
-     * firmware exports. It is exact here because the product cannot
-     * overflow. The largest award this is ever handed is a round bonus
-     * of 50 x 255, and the largest multiplier is 600 x 145 = 87000, so
-     * the worst case is 12750 x 87000, a quarter of what fits. */
-    return (base * mult + 5000u) / 10000u;
-}
-
-uint32_t bb_rx_hit_value(uint16_t window_ms) {
-    if(window_ms == 0) window_ms = 1;
-    /* 10 * (start/window)^2, kept in integers: a hit at 250ms is worth 160 */
-    uint32_t num = 10u * BB_RX_START * BB_RX_START;
-    uint32_t den = (uint32_t)window_ms * window_ms;
-    return (num + den / 2) / den;
-}
 
 uint16_t bb_window_ms(BbMode mode, uint8_t diff) {
     if(diff >= BB_DIFF_COUNT) diff = 1;

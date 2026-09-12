@@ -27,7 +27,7 @@ build and simulated for balance. **Treat the constants as fixed.**
 | file | state |
 |---|---|
 | `beepback.h` | done — all types, tunables, function declarations |
-| `beepback_rules.c` | done — the seven rules, score maths, seeded generator |
+| `beepback_rules.c` | done — the seven rules, the windows, seeded generator |
 | `test/test_rules.c` | done — 28 host tests, all passing |
 | `test/run_tests.sh` | done — compiles with `-Werror` and runs the tests |
 | `test/stubs/` | done — fake Flipper headers so tests build on a host |
@@ -40,8 +40,8 @@ needs no device.
 
 ## Hard rules
 
-1. **No floats in gameplay code.** Multipliers are hundredths: `155` is x1.55.
-   Use `bb_apply_mult()`, which rounds the way the browser's `Math.round` does.
+1. **No floats in gameplay code.** There is no multiplier left to round, and
+   nothing else in the game needs a fraction. Keep it that way.
 2. **Don't touch the generator.** `bb_rng_below` uses a multiply-and-shift
    because a modulo produces a different sequence from the browser, which would
    make the daily a different run on each device. There's a test pinning twelve
@@ -137,12 +137,25 @@ game over: input locked 800ms while the screen wipes down from the top.
 
 ## Scoring
 
-`bb_multiplier(mode, diff, speed)` returns hundredths. Capture it once when the
-run starts and use that value all the way through, so changing a setting
-mid-run can't alter a score already earned.
+The score is a count of what you got right, and nothing else:
 
-Show the multiplier in two places: the setup footer as `score x1.55`, live as
-the dials move, and on game over next to the score.
+- **one point a note.** Clearing a stage pays one point per press in that
+  stage, so a stage of six pays six.
+- **ten for a round.** `BB_ROUND_BONUS`. The stage that clears the round pays
+  the bonus instead of a stage award, not as well as one.
+- **one point a reflex hit.** In reflex the score and the hit count are the
+  same number, which is why the game over screen shows it once.
+
+There is no multiplier. TIME and SPEED change how hard the run is, not what it
+pays, so the number on screen is always one the player could have counted. A
+first round comes out at 16 on every setting; a good classic run lands in the
+low hundreds.
+
+This replaced a system of twelve multipliers in ten-thousandths, a 10x stage
+award and a 50x round bonus. Both builds have to agree, so the browser build
+needs the same change: drop `MULT_TIME`, `MULT_TIME_RX`, `MULT_SPEED` and the
+`score x1.55` footer, pay `expected.length` on success and 10 on round clear,
+and pay 1 a hit in reflex.
 
 Records:
 
@@ -150,6 +163,11 @@ Records:
   the best across time and speed for that mode and assist
 - challenge: `chBest[rule][assist]`, so you can see which rules you're good at
 - daily: `daily.best[assist]` plus the date and a done flag
+
+**NEW BEST is judged against the slot you played** (`bb_slot_cell`), never
+against the board. The board is the maximum across every time and speed, so
+measuring against it meant a strong INSANE run lost to an old EASY one and the
+banner almost never appeared.
 
 ## What's left, in order
 
@@ -187,4 +205,4 @@ Worth knowing, because the same traps are here.
 - Arrows drawn at `y = 62` ran off the bottom. Anything 9px tall centred below
   y=58 is off-screen.
 - The score display showed the unmultiplied award while adding the multiplied
-  one, so `+40` went in as `+76`.
+  one, so `+40` went in as `+76`. Both are gone now: there is no multiplier.

@@ -302,13 +302,6 @@ static void bb_rule_line(Canvas* c, const BeepbackApp* app, int32_t cx, int32_t 
     }
 }
 
-void bb_mult_text(uint32_t mult, char* out, size_t n) {
-    /* ten-thousandths rounded to hundredths, then two decimals: at one,
-       x1.55 and x1.45 both print as "x1.5" and two settings look alike */
-    uint32_t h = (mult + 50u) / 100u;
-    snprintf(out, n, "x%lu.%02lu", (unsigned long)(h / 100u), (unsigned long)(h % 100u));
-}
-
 /* ------------------------------------------------------------------ */
 /* Menus                                                               */
 /* ------------------------------------------------------------------ */
@@ -422,13 +415,11 @@ static void bb_draw_setup(Canvas* c, const BeepbackApp* app) {
     const char* label[4];
     const char* value[4];
     uint8_t kind[4];
-    char a[24], b[24], foot[28], mult[12];
+    char a[24], b[24];
     uint8_t rows = bb_setup_rows(app, label, value, kind, a, b, sizeof(a));
     uint8_t last = (uint8_t)(rows - 1);
-    bool has_foot = (app->mode != BbModeDaily); /* the daily has no multiplier */
-    int32_t rowH = has_foot ? 10 : 12;
-    int32_t bottom = has_foot ? 52 : 63;
-    int32_t top0 = 13 + ((bottom - 12) - rows * rowH) / 2;
+    const int32_t rowH = 12;
+    int32_t top0 = 13 + (51 - rows * rowH) / 2;
 
     bb_title(c, bb_mode_name[app->mode < BB_MODE_COUNT ? app->mode : 0]);
     for(uint8_t i = 0; i < rows; i++) {
@@ -453,11 +444,6 @@ static void bb_draw_setup(Canvas* c, const BeepbackApp* app) {
             }
         }
         canvas_set_color(c, ColorBlack);
-    }
-    if(has_foot) {
-        bb_mult_text(bb_multiplier_for(app), mult, sizeof(mult));
-        snprintf(foot, sizeof(foot), "score  %s", mult);
-        bb_footer(c, foot);
     }
 }
 
@@ -801,8 +787,7 @@ static void bb_draw_success(Canvas* c, const BeepbackApp* app) {
     bb_font(c, true);
     bb_str(c, 64, 30, AlignCenter, AlignCenter, bb_praise[app->praise % BB_PRAISE_COUNT]);
     bb_font(c, false);
-    snprintf(buf, sizeof(buf), "+%lu",
-             (unsigned long)bb_apply_mult(10u * app->stage, app->run_mult));
+    snprintf(buf, sizeof(buf), "+%u", app->expected.len);
     bb_str(c, 64, 47, AlignCenter, AlignCenter, buf);
 }
 
@@ -813,8 +798,7 @@ static void bb_draw_round_clear(Canvas* c, const BeepbackApp* app) {
     snprintf(buf, sizeof(buf), "ROUND %u CLEAR", app->round);
     bb_str(c, 64, 28, AlignCenter, AlignCenter, buf);
     bb_font(c, false);
-    snprintf(buf, sizeof(buf), "+%lu",
-             (unsigned long)bb_apply_mult(50u * app->round, app->run_mult));
+    snprintf(buf, sizeof(buf), "+%u", BB_ROUND_BONUS);
     bb_str(c, 64, 45, AlignCenter, AlignCenter, buf);
 }
 
@@ -869,7 +853,7 @@ static void bb_draw_pause(Canvas* c, const BeepbackApp* app) {
 }
 
 static void bb_draw_game_over(Canvas* c, const BeepbackApp* app) {
-    char va[24], vb[24], vc[24], vd[24], mult[12];
+    char va[24], vb[24], vc[24];
     const char* la[4];
     const char* lb[4];
     uint8_t n = 0;
@@ -895,26 +879,23 @@ static void bb_draw_game_over(Canvas* c, const BeepbackApp* app) {
         }
         bb_chev_l(c, BB_CHEV_L, 33);
     } else {
-        bb_mult_text(app->run_mult, mult, sizeof(mult));
-        snprintf(va, sizeof(va), "%s  %lu", mult, (unsigned long)app->score);
+        snprintf(va, sizeof(va), "%lu", (unsigned long)app->score);
         la[n] = "SCORE";
         lb[n++] = va;
-        snprintf(vb, sizeof(vb), "%lu", (unsigned long)(rx ? app->rx_hits : app->run_best));
-        la[n] = rx ? "HITS" : "LONGEST";
-        lb[n++] = vb;
+        /* in reflex the score is the hit count, so a HITS row would say it
+           twice; what reflex has instead of a longest run is a best time */
         if(rx) {
-            snprintf(vc, sizeof(vc), "%luMS", (unsigned long)app->run_best);
+            snprintf(vb, sizeof(vb), "%luMS", (unsigned long)app->run_best);
             la[n] = "FASTEST";
-            lb[n++] = vc;
-            snprintf(vd, sizeof(vd), "%lu", (unsigned long)app->prev_best);
-            la[n] = app->new_best ? "PREVIOUS BEST" : "BEST";
-            lb[n++] = vd;
         } else {
-            snprintf(vc, sizeof(vc), "%lu", (unsigned long)app->prev_best);
-            la[n] = app->new_best ? "PREVIOUS BEST" : "BEST";
-            lb[n++] = vc;
+            snprintf(vb, sizeof(vb), "%lu", (unsigned long)app->run_best);
+            la[n] = "LONGEST";
         }
-        int32_t y0 = (n == 4) ? 18 : 21, step = (n == 4) ? 10 : 11;
+        lb[n++] = vb;
+        snprintf(vc, sizeof(vc), "%lu", (unsigned long)app->prev_best);
+        la[n] = app->new_best ? "PREVIOUS BEST" : "BEST";
+        lb[n++] = vc;
+        const int32_t y0 = 21, step = 11;
         for(uint8_t i = 0; i < n; i++) {
             bb_str(c, BB_ROW_L, y0 + i * step, AlignLeft, AlignCenter, la[i]);
             bb_str(c, BB_ROW_R, y0 + i * step, AlignRight, AlignCenter, lb[i]);

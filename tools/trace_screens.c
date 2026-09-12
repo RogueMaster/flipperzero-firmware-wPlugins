@@ -1,5 +1,9 @@
 /* Dump every draw call the firmware makes, screen by screen, so the two
-   builds can be diffed rather than described. */
+   builds can be diffed rather than described. See reference/README.md.
+
+   With no argument it traces every scene; with one it traces the scenes
+   whose name contains that word, which is what you want when chasing a
+   single screen. */
 #define BB_HOST_TEST 1
 #include <stdio.h>
 #include <string.h>
@@ -13,89 +17,52 @@
 
 static BeepbackApp app;
 
-static void head(const char* name) {
-    printf("\n=== firmware: %s ===\n", name);
+static const char* const scene_name[BbSceneCount] = {
+    "splash",     "menu",     "mode",      "chpick",     "setup",     "rulecard",
+    "listen",     "playback", "go",        "input",      "hold",      "success",
+    "roundclear", "wrong",    "retry",     "reflexgap",  "reflexcue", "gameover",
+    "settings",   "detail",   "reset",     "help",       "tutorial",  "rulesguide",
+    "rulelist",   "ruleinfo", "reflexguide", "soundtest", "scorepick", "scores",
+    "credits",
+};
+
+/* One run, mid-flight, so every in-game screen has something to draw. */
+static void stage_a_run(uint8_t mode) {
+    bb_app_init(&app);
+    app.first_run = false;
+    app.set.diff = 2;
+    app.set.speed = 2;
+    app.seed = 3;
+    app.mode = mode;
+    bb_start_game(&app);
+    app.round = 3;
+    app.target = 6;
+    app.stage = 4;
+    app.lives = 2;
+    app.score = 148;
+    app.run_best = 7;
+    app.prev_best = 120;
+    app.new_best = true;
+    app.run_game_mode = mode;
+    app.run_diff = 2;
+    app.run_speed = 2;
+    app.rx_hits = 21;
+    app.rx_window = 400;
+    app.base.len = 6;
+    app.expected.len = 6;
+    app.rule_idx = BbRuleSkip;
+    app.rule_a = BbBtnOk;
+    app.rule_b = BbBtnUp;
+    app.now += BB_OVER_LOCK; /* past the game over wipe */
 }
 
 int main(int argc, char** argv) {
     const char* only = argc > 1 ? argv[1] : NULL;
-#define WANT(n) (!only || strcmp(only, (n)) == 0)
-
-    if(WANT("over")) {
-        bb_app_init(&app);
-        app.seed = 3;
-        bb_run_start(&app, BbModeClassic);
-        app.run.score = 1240;
-        app.run.mult = 15500;
-        app.run.record = true;
-        app.run.round = 3;
-        app.run.longest = 7;
-        app.run.prev_best = 980;
-        bb_go(&app, BbSceneOver);
-        app.now += BB_OVER_LOCK;
-        head("game over");
-        bb_draw((Canvas*)&app, &app);
-        app.over_page = 1;
-        head("game over page 2");
-        bb_draw((Canvas*)&app, &app);
-    }
-
-    if(WANT("modesel")) {
-        bb_app_init(&app);
-        bb_go(&app, BbSceneModeSelect);
-        app.mode_page = 1;
-        app.mode_row = 1;
-        head("mode select page 2");
-        bb_draw((Canvas*)&app, &app);
-    }
-
-    if(WANT("setup")) {
-        bb_app_init(&app);
-        app.run.mode = BbModeClassic;
-        app.set.diff = 2;
-        app.set.speed = 2;
-        bb_go(&app, BbSceneSetup);
-        app.setup_cur = 2;
-        head("setup");
-        bb_draw((Canvas*)&app, &app);
-    }
-
-    if(WANT("settings")) {
-        bb_app_init(&app);
-        app.set.volume = 2;
-        app.set.assist = BbAssistShapes;
-        bb_go(&app, BbSceneSettings);
-        app.settings_cur = 3;
-        head("settings");
-        bb_draw((Canvas*)&app, &app);
-    }
-
-    if(WANT("pause")) {
-        bb_app_init(&app);
-        app.seed = 5;
-        bb_run_start(&app, BbModeRules);
-        app.run.rule = BbRuleSkip;
-        app.run.ra = BbBtnOk;
-        app.run.round = 3;
-        app.run.shown = 2;
-        app.run.target = 6;
-        app.run.lives = 3;
-        bb_go(&app, BbScenePause);
-        head("pause");
-        bb_draw((Canvas*)&app, &app);
-    }
-
-    if(WANT("board")) {
-        bb_app_init(&app);
-        bb_go(&app, BbSceneBoard);
-        head("board");
-        bb_draw((Canvas*)&app, &app);
-    }
-
-    if(WANT("menu")) {
-        bb_app_init(&app);
-        bb_go(&app, BbSceneMenu);
-        head("menu");
+    for(uint8_t s = 0; s < BbSceneCount; s++) {
+        if(only && !strstr(scene_name[s], only)) continue;
+        stage_a_run(bb_in_game((BbScene)s) ? BbModeRules : BbModeClassic);
+        app.scene = (BbScene)s;
+        printf("\n=== firmware: %s ===\n", scene_name[s]);
         bb_draw((Canvas*)&app, &app);
     }
     tc_flush_dots();
