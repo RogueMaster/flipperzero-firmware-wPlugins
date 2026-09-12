@@ -20,7 +20,7 @@ sourcecode:
     # FILL THIS IN LAST. It must be the SHA of a commit that already
     # contains the screenshots, because the paths below are resolved
     # inside the repository at this exact commit.
-    commit_sha: 0000000000000000000000000000000000000000
+    commit_sha: b8522fabbdaac1c61b3ab917715443eb1e39f10c
 
 description: "@README.md"
 changelog: "@changelog.md"

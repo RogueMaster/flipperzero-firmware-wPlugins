@@ -4,37 +4,42 @@ Everything in this repository is ready except the screenshots, which have to
 come off a real device, and the commit SHA, which cannot exist until the
 screenshots are committed. This is the order to do it in.
 
-## 1. Take the screenshots (only you can do this)
+## 1. The screenshots
 
-The catalog is explicit: *"Screenshots must be created using the qFlipper
-screenshot feature. Please don't change their resolution or format."*
-qFlipper writes a 512x256 PNG, which is the device's 128x64 screen at 4x. The
-bundler rejects any other size, so do not crop, scale or re-encode them.
+They are already in `screenshots/`, rendered rather than photographed.
+`tools/shoot/shoot.sh` sets up the firmware's own copy of u8g2 with the two
+fonts `canvas_set_font()` picks, points it at a 128x64 buffer, and calls the
+app's real `bb_draw()`. The canvas layer it draws through is copied from
+`applications/services/gui/canvas.c`, alignment arithmetic included. So the
+content is what the device shows, pixel for pixel.
 
-In qFlipper, connect the Flipper and use the screenshot button above the
-screen preview. Save four, in this order — the first one is what people see
-on the app card, so it should be the game actually being played:
+**They are not qFlipper captures, and the catalog asks for qFlipper captures.**
+Its bundler only checks that a screenshot is exactly 4x or 8x of 128x64, which
+these are, so it accepts them - but the guideline is theirs, and the honest
+move is either to say so or to replace them.
 
-- `screenshots/ss0.png` — a CLASSIC round mid-playback, with the shapes cue
-  and the HUD showing round and stage
-- `screenshots/ss1.png` — a RULE card, so the rules mode is visible at a
-  glance (SKIP DOWN or similar)
-- `screenshots/ss2.png` — the RECORDS table for CLASSIC, with some scores in
-  it rather than a grid of dashes
-- `screenshots/ss3.png` — REFLEX with a live cue and the bar draining
+Replacing them takes about five minutes and needs a device: in qFlipper, use
+the screenshot button above the screen preview, save six PNGs over the ones in
+`screenshots/` keeping the same names, and do not crop or re-encode them. The
+screens, in the order the manifest lists them:
 
-Put them in `screenshots/` with exactly those names, or change the names in
-`catalog/manifest.yml` to match.
+- `ss0.png` - a CLASSIC round mid-playback, shapes assist, HUD showing the
+  round and stage. This is the app card preview, so it matters most
+- `ss1.png` - a RULE card
+- `ss3.png` - REFLEX with a cue live and the bar draining
+- `ss2.png` - the RECORDS table for CLASSIC, with scores in it
+- `ss5.png` - the STATS screen
+- `ss4.png` - the menu
 
 ## 2. Commit and push
 
-Commit the screenshots. Then take the SHA of that commit:
+Commit whatever is in `screenshots/`. Then take the SHA of that commit:
 
     git rev-parse HEAD
 
 Put it in the `commit_sha` field of `catalog/manifest.yml`, commit that too,
-and push. The SHA in the manifest points at the commit with the screenshots —
-it does not need to be the newest commit, and it must not be a branch name.
+and push. The SHA points at the commit holding the screenshots - it does not
+need to be the newest commit, and it must not be a branch name.
 
 ## 3. Check the manifest before submitting
 
@@ -51,6 +56,11 @@ Run it *without* `--nolint`. The lint step is `ufbt lint`, which is
 clang-format over the whole tree, and it is a hard failure in their CI.
 `./test/run_tests.sh` in this repository runs the same check, so if the tests
 pass the lint will too.
+
+This has already been run end to end against commit
+`b8522fabbdaac1c61b3ab917715443eb1e39f10c` and passed every stage: clone,
+lint, build, manifest sync from `application.fam`, the markdown filter, the
+icon check and all six screenshots.
 
 ## 4. Open the pull request
 
