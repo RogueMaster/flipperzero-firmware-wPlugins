@@ -144,10 +144,17 @@ typedef struct {
 /* run is, not what it pays, so the number on screen is always one you  */
 /* could have worked out yourself.                                      */
 /* ------------------------------------------------------------------ */
-#define BB_STAT_PAGES 2 /* the stats screen, in pages */
+#define BB_STAT_ROWS  8 /* the stats screen, scrolled four at a time */
 /* A reset asks once and listens for a second. Long enough to read SURE?
    and answer it, short enough that it cannot be left armed. */
 #define BB_CONFIRM_MS 1000
+/* A tap, not a rumble: long enough to feel under a note, short enough
+   that a fast sequence is separate taps rather than one long buzz. */
+#define BB_BUZZ_MS 40
+/* Records are clamped to this on the way in, the way settings are. It is
+   far past anything a run can reach, and it is what lets a table be laid
+   out for a width that is always enough. */
+#define BB_SCORE_MAX 99999u
 #define BB_NOTE_POINTS 10 /* one note played back right */
 #define BB_ROUND_BONUS 100 /* clearing a round, instead of a stage award */
 
@@ -205,7 +212,9 @@ extern const char* const bb_button_short[BbBtnCount]; /* SHORT */
 extern const uint8_t bb_button_shape[BbBtnCount]; /* SHAPE */
 
 extern const char* const bb_diff_name[BB_DIFF_COUNT]; /* DIFF_NAME  */
-extern const char* const bb_speed_name[BB_SPEED_COUNT]; /* SPEED_NAME */
+extern const char* const bb_speed_name[BB_SPEED_COUNT];
+extern const char* const bb_diff_short[BB_DIFF_COUNT]; /* four characters */
+extern const char* const bb_speed_short[BB_SPEED_COUNT]; /* SPEED_NAME */
 extern const char* const bb_mode_name[BB_MODE_COUNT]; /* MODE_NAME  */
 extern const char* const bb_mode_blurb[BB_MODE_COUNT];
 extern const char* const bb_vol_name[BB_VOL_COUNT]; /* VOL_NAME    */
@@ -318,6 +327,7 @@ bool bb_in_game(BbScene scene);
 typedef struct {
     uint8_t volume; /* SET.volume, 0..3 */
     uint8_t assist; /* SET.assist, 0..3 */
+    bool haptic; /* the motor buzzes with the notes */
     uint8_t speed; /* SET.speed,  0..2 */
     uint8_t diff; /* S.diff,     0..3 */
     bool tutorial_done; /* the browser's firstRun, inverted */
@@ -420,7 +430,7 @@ typedef struct {
     /* modes and menus */
     uint8_t mode, mode_idx;
     uint8_t menu_idx, set_idx, setup_idx, reset_idx, score_mode;
-    uint8_t stat_page, tbl_assist, tbl_scroll;
+    uint8_t stat_scroll, tbl_assist, tbl_scroll;
     uint32_t confirm_until; /* a reset is armed until this moment */
     uint8_t confirm_row;
     uint8_t help_idx, tut_page, rule_sel, rule_scroll;
@@ -445,6 +455,9 @@ typedef struct {
     uint8_t led;
     uint32_t led_until;
     uint8_t led_gen; /* bumped per flash, so a repeat of one colour still shows */
+    /* The motor, requested the way the LED is: the logic says buzz until
+       this moment and the device layer is what actually shakes. */
+    uint32_t buzz_until;
     uint16_t tone_hz;
     const BbNote* tune;
     uint8_t tune_n, tune_i;
@@ -459,8 +472,6 @@ void bb_app_init(BeepbackApp* app);
 void bb_enter(BeepbackApp* app, BbScene scene);
 /* where leaving this screen goes, or BbSceneCount for nowhere */
 BbScene bb_back_target(const BeepbackApp* app);
-/* whether LEFT leaves this screen, which is also when the arrow is drawn */
-bool bb_left_is_back(const BeepbackApp* app);
 void bb_update(BeepbackApp* app);
 void bb_tick(BeepbackApp* app, uint32_t dt_ms);
 void bb_start_game(BeepbackApp* app);
@@ -500,6 +511,8 @@ bool bb_is_challenge_mode(uint8_t mode);
 void bb_play(BeepbackApp* app, const BbNote* notes, uint8_t n);
 void bb_tone(BeepbackApp* app, uint16_t hz, uint16_t ms);
 void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms);
+/* ask the motor for one tap, if the setting allows it */
+void bb_buzz(BeepbackApp* app);
 /* drop whatever is sounding or lit, right now */
 void bb_hush(BeepbackApp* app);
 
@@ -548,8 +561,12 @@ void bb_splash_done(BeepbackApp* app);
 /* ------------------------------------------------------------------ */
 #define BB_SAVE_DIR  EXT_PATH("apps_data/beepback")
 #define BB_SAVE_PATH BB_SAVE_DIR "/beepback.save"
-#define BB_SAVE_VERSION 6
-#define BB_SAVE_BYTES   780
+#define BB_SAVE_VERSION 7
+#define BB_SAVE_BYTES   797
+/* Zeroed spare bytes at the end of the settings. A setting added later
+   reads one of these and gets 0, which every setting here treats as its
+   default, so the next one costs nobody their records. */
+#define BB_SAVE_SPARE   16
 
 size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n);
 bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n);
@@ -559,3 +576,4 @@ void bb_daily_refresh(BeepbackApp* app, uint32_t today);
 
 /* light the LED for a colour (beepback_led.c) */
 void bb_led_apply(BeepbackApp* app, BbLedColor color);
+void bb_buzz_apply(BeepbackApp* app, bool on);

@@ -85,6 +85,7 @@ void bb_daily_refresh(BeepbackApp* app, uint32_t today) {
 /* ------------------------------------------------------------------ */
 
 void bb_play(BeepbackApp* app, const BbNote* notes, uint8_t n) {
+    bb_buzz(app); /* the motor answers the jingle even with the sound off */
     if(!bb_audio_on(app) || !n) {
         app->tune = NULL;
         app->tone_hz = 0;
@@ -104,6 +105,13 @@ void bb_tone(BeepbackApp* app, uint16_t hz, uint16_t ms) {
     bb_play(app, &one, 1);
 }
 
+/* Every note and every press asks for a tap. It is the sound's shadow,
+   so it is requested where the sound is and switched off with it. */
+void bb_buzz(BeepbackApp* app) {
+    if(!app->set.haptic) return;
+    app->buzz_until = app->now + BB_BUZZ_MS;
+}
+
 void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms) {
     app->led = color;
     app->led_until = app->now + ms;
@@ -114,6 +122,7 @@ void bb_hush(BeepbackApp* app) {
     app->tune = NULL;
     app->tune_n = 0;
     app->tone_hz = 0;
+    app->buzz_until = 0;
     app->led = BbLedOff;
     app->led_until = 0;
     app->led_gen++;
@@ -397,7 +406,8 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
         app->lock_until = app->now + BB_OVER_LOCK; /* a press in flight must not retry */
         app->prev_best = *bb_slot_cell(app);
         app->new_best = app->score > app->prev_best;
-        if(app->score > app->prev_best) *bb_slot_cell(app) = app->score;
+        if(app->score > app->prev_best)
+            *bb_slot_cell(app) = app->score > BB_SCORE_MAX ? BB_SCORE_MAX : app->score;
         if(app->score > app->stats.best_ever) app->stats.best_ever = app->score;
         if(app->run_game_mode != BbModeReflex && app->run_best > app->stats.longest)
             app->stats.longest = (uint8_t)app->run_best;
@@ -606,6 +616,7 @@ void bb_tick(BeepbackApp* app, uint32_t dt_ms) {
     } else {
         bb_tune_tick(app);
     }
+    if(app->buzz_until && app->now >= app->buzz_until) app->buzz_until = 0;
     if(app->led_until && app->now >= app->led_until) {
         app->led_until = 0;
         app->led = BbLedOff;

@@ -78,8 +78,8 @@ uint8_t bb_setup_rows(
         return n;
     }
     if(app->mode == BbModeReflex) {
-        snprintf(buf_a, bufn, "%s %uMS", bb_diff_name[diff], bb_rx_shrink[diff]);
-        snprintf(buf_b, bufn, "%s %uMS", bb_speed_name[speed], bb_rx_gap[speed]);
+        snprintf(buf_a, bufn, "%s %uMS", bb_diff_short[diff], bb_rx_shrink[diff]);
+        snprintf(buf_b, bufn, "%s %uMS", bb_speed_short[speed], bb_rx_gap[speed]);
         kind[n] = BbRowRamp;
         label[n] = "RAMP";
         value[n++] = buf_a;
@@ -130,8 +130,8 @@ BbScene bb_back_target(const BeepbackApp* app) {
     case BbSceneMenu:
         return BbSceneCount; /* the root: BACK leaves the app entirely */
     case BbSceneScorePick:
-        return BbSceneStats; /* the stats page is the front of this section */
     case BbSceneCredits:
+        return BbSceneStats; /* the stats screen is the front of this section */
     case BbSceneTable:
         return BbSceneScorePick;
     case BbSceneSetup:
@@ -157,36 +157,6 @@ BbScene bb_back_target(const BeepbackApp* app) {
     }
 }
 
-/* Does LEFT leave this screen? It does wherever LEFT is not already
-   spoken for, which is what lets the whole app be walked with the d-pad
-   alone. Where it is spoken for the row's own arrows say so instead, so
-   every screen still shows what LEFT will do. */
-bool bb_left_is_back(const BeepbackApp* app) {
-    if(app->paused || bb_in_game(app->scene)) return false;
-    if(bb_back_target(app) == BbSceneCount) return false;
-    switch(app->scene) {
-    case BbSceneSplash:
-    case BbSceneGameOver: /* LEFT is the page it already has */
-        return false;
-    case BbSceneSoundTest:
-        return false; /* LEFT is one of the five buttons here */
-    case BbSceneMode:
-        return (app->mode_idx >> 1) == 0; /* otherwise it pages */
-    case BbSceneSetup:
-        return setup_row_kind(app) == BbRowStart;
-    case BbSceneSettings:
-        return app->set_idx >= 2; /* VOLUME and ASSIST are adjusted with it */
-    case BbSceneTutorial:
-    case BbSceneRulesGuide:
-    case BbSceneReflexGuide:
-        return app->tut_page == 0; /* otherwise it is the page before */
-    case BbSceneStats:
-        return app->stat_page == 0;
-    default:
-        return true;
-    }
-}
-
 void bb_press(BeepbackApp* app, InputKey key) {
     if(app->scene == BbSceneGameOver && app->now < app->lock_until) return;
     int8_t btn = btn_of(key);
@@ -209,7 +179,10 @@ void bb_press(BeepbackApp* app, InputKey key) {
         return;
     }
 
-    if(key == InputKeyBack || (key == InputKeyLeft && bb_left_is_back(app))) {
+    /* BACK is the only way back. LEFT means whatever the screen says it
+       means and nothing where a screen says nothing, because an exit
+       nothing points at is one you find by accident. */
+    if(key == InputKeyBack) {
         /* You may play deaf and blind if you mean to, but not by accident:
            leaving SETTINGS that way says so once and asks. */
         if(app->scene == BbSceneSettings && bb_no_cue(app)) {
@@ -226,7 +199,6 @@ void bb_press(BeepbackApp* app, InputKey key) {
             app->running = false;
             return;
         }
-        if(key == InputKeyLeft) return; /* LEFT never ends a run */
         if(in_game) {
             /* No pausing a reaction test: freezing a live cue would let you
                take all the time you like and then answer. BACK ends the run
@@ -323,8 +295,8 @@ void bb_press(BeepbackApp* app, InputKey key) {
     }
 
     case BbSceneSettings: {
-        if(key == InputKeyUp) app->set_idx = clamp8((int16_t)app->set_idx - 1, 0, 3);
-        if(key == InputKeyDown) app->set_idx = clamp8((int16_t)app->set_idx + 1, 0, 3);
+        if(key == InputKeyUp) app->set_idx = clamp8((int16_t)app->set_idx - 1, 0, 4);
+        if(key == InputKeyDown) app->set_idx = clamp8((int16_t)app->set_idx + 1, 0, 4);
         int8_t step = key == InputKeyRight ? 1 : key == InputKeyLeft ? -1 : 0;
         if(app->set_idx == 0 && step) {
             app->set.volume = clamp8((int16_t)app->set.volume + step, 0, BB_VOL_COUNT - 1);
@@ -332,11 +304,15 @@ void bb_press(BeepbackApp* app, InputKey key) {
         }
         if(app->set_idx == 1 && step)
             app->set.assist = clamp8((int16_t)app->set.assist + step, 0, BB_ASSIST_COUNT - 1);
-        if(app->set_idx == 2 && (key == InputKeyOk || key == InputKeyRight)) {
+        if(app->set_idx == 2 && step) {
+            app->set.haptic = step > 0;
+            if(app->set.haptic) bb_buzz(app); /* feel it as you turn it on */
+        }
+        if(app->set_idx == 3 && (key == InputKeyOk || key == InputKeyRight)) {
             app->test_from = BbSceneSettings;
             bb_enter(app, BbSceneSoundTest);
         }
-        if(app->set_idx == 3 && (key == InputKeyOk || key == InputKeyRight)) {
+        if(app->set_idx == 4 && (key == InputKeyOk || key == InputKeyRight)) {
             app->confirm_until = 0;
             app->reset_idx = 0;
             bb_enter(app, BbSceneReset);
@@ -473,13 +449,14 @@ void bb_press(BeepbackApp* app, InputKey key) {
         break;
 
     case BbSceneStats: {
-        const uint8_t total = BB_STAT_PAGES;
-        if(key == InputKeyRight && app->stat_page + 1 < total) app->stat_page++;
-        if(key == InputKeyLeft && app->stat_page > 0) app->stat_page--;
+        const uint8_t VIS = 4;
+        if(key == InputKeyDown && app->stat_scroll + VIS < BB_STAT_ROWS) app->stat_scroll++;
+        if(key == InputKeyUp && app->stat_scroll > 0) app->stat_scroll--;
         if(key == InputKeyOk) {
             app->score_mode = 0;
             bb_enter(app, BbSceneScorePick);
         }
+        if(key == InputKeyRight) bb_enter(app, BbSceneCredits);
         break;
     }
 
@@ -491,16 +468,16 @@ void bb_press(BeepbackApp* app, InputKey key) {
             app->tbl_scroll = 0;
             bb_enter(app, BbSceneTable);
         }
-        if(key == InputKeyRight) bb_enter(app, BbSceneCredits);
         break;
 
     case BbSceneTable: {
-        /* RIGHT is the assist, always, whatever shape the table is. UP and
-           DOWN are free on the grids and scroll the rules on challenge. */
-        if(key == InputKeyRight)
+        /* OK turns the table to the next assist, whatever shape it is. UP
+           and DOWN are free on the grids and scroll the rules on
+           challenge. */
+        if(key == InputKeyOk)
             app->tbl_assist = (uint8_t)((app->tbl_assist + 1) % BB_ASSIST_COUNT);
         if(app->score_mode == BbModeChallenge) {
-            const uint8_t VIS = 4;
+            const uint8_t VIS = 5;
             if(key == InputKeyDown && app->tbl_scroll + VIS < BB_RULE_COUNT) app->tbl_scroll++;
             if(key == InputKeyUp && app->tbl_scroll > 0) app->tbl_scroll--;
         }

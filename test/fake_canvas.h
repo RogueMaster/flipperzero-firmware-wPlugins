@@ -24,6 +24,7 @@ typedef struct {
     char worst[64]; /* the widest string that did not fit */
     int16_t worst_w;
     char text[48][40]; /* everything the frame said, for the content checks */
+    int16_t tx[48], ty[48], tw[48]; /* and where it said it, to catch collisions */
     uint8_t texts;
     uint8_t ink[BB_H][BB_W]; /* every pixel drawn on, for "is it there" */
     Font font;
@@ -37,13 +38,16 @@ static FakeCanvas fake;
 #define FC_DESCENT 2
 #define FC_LINE 9
 
+/* Measured against the device, not guessed. The secondary font was being
+   counted at 5px a capital when it draws 6, which is how a table that
+   every test called comfortable came out with its columns touching. */
 static uint8_t fc_char_w(char ch, Font font) {
     bool big = (font == FontPrimary || font == FontBigNumbers);
     if(font == FontBigNumbers) return 12;
-    if(ch == ' ') return 3;
-    if(strchr("Iil1.,:;'|!", ch)) return big ? 3 : 2;
-    if(ch >= 'a' && ch <= 'z') return big ? 6 : 4;
-    return big ? 7 : 5; /* capitals, digits and the rest */
+    if(ch == ' ') return big ? 4 : 4;
+    if(strchr("Iil1.,:;'|!", ch)) return big ? 4 : 3;
+    if(ch >= 'a' && ch <= 'z') return big ? 7 : 5;
+    return big ? 8 : 6; /* capitals, digits and the rest */
 }
 
 static int16_t fc_str_w(const char* s, Font font) {
@@ -64,6 +68,9 @@ static void fc_text(int32_t x, int32_t y, const char* s) {
     if(fake.texts < 48) {
         strncpy(fake.text[fake.texts], s, sizeof(fake.text[0]) - 1);
         fake.text[fake.texts][sizeof(fake.text[0]) - 1] = 0;
+        fake.tx[fake.texts] = (int16_t)x;
+        fake.ty[fake.texts] = (int16_t)y;
+        fake.tw[fake.texts] = w;
         fake.texts++;
     }
     if(w > BB_W) {
@@ -85,6 +92,27 @@ static bool fc_ink_in(int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
         for(int32_t i = x0 > 0 ? x0 : 0; i <= x1 && i < BB_W; i++)
             if(fake.ink[j][i]) return true;
     return false;
+}
+
+/* Two strings drawn on top of each other. A width check cannot see this:
+   every cell of a table can fit the screen on its own and still be drawn
+   through its neighbour, which is exactly what happened to the records
+   grid. Blank strings are skipped, and so is a string against itself. */
+static uint8_t fc_collisions(char* worst, size_t n) {
+    uint8_t hits = 0;
+    for(uint8_t i = 0; i < fake.texts; i++) {
+        if(!fake.text[i][0] || !fake.tw[i]) continue;
+        for(uint8_t j = (uint8_t)(i + 1); j < fake.texts; j++) {
+            if(!fake.text[j][0] || !fake.tw[j]) continue;
+            if(fake.ty[i] + FC_LINE <= fake.ty[j] || fake.ty[j] + FC_LINE <= fake.ty[i])
+                continue;
+            if(fake.tx[i] + fake.tw[i] <= fake.tx[j] || fake.tx[j] + fake.tw[j] <= fake.tx[i])
+                continue;
+            if(!hits && worst) snprintf(worst, n, "%s / %s", fake.text[i], fake.text[j]);
+            hits++;
+        }
+    }
+    return hits;
 }
 
 /* did this frame print something containing that? */

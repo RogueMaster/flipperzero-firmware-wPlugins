@@ -41,7 +41,7 @@ if command -v $ARMCC > /dev/null 2>&1; then
     done
     arm-none-eabi-ld -r -o armobj/beepback.o armobj/beepback_*.o
     extra=$(arm-none-eabi-nm -u armobj/beepback.o | awk '{print $2}' | grep -vE \
-        '^(canvas_|furi_|gui_|view_port_|storage_|sequence_)|^(notification_message|message_do_not_reset|malloc|free|memcpy|memset|snprintf)$' || true)
+        '^(canvas_|furi_|gui_|view_port_|storage_|sequence_|message_)|^(notification_message|malloc|free|memcpy|memset|snprintf)$' || true)
     if [ -n "$extra" ]; then
         echo "FAIL the app wants symbols beyond the Flipper API:"
         echo "$extra" | sed 's/^/       /'

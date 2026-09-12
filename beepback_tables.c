@@ -22,6 +22,10 @@ const char* const bb_led_name[BbBtnCount] = {"VIOLET", "RED", "YELLOW", "BLUE", 
 
 const char* const bb_diff_name[BB_DIFF_COUNT] = {"EASY", "NORMAL", "HARD", "INSANE"};
 const char* const bb_speed_name[BB_SPEED_COUNT] = {"SLOW", "NORMAL", "FAST"};
+/* Four characters, for the rows and cells that carry a number as well.
+   NORMAL plus a millisecond count is wider than the row it sits in. */
+const char* const bb_diff_short[BB_DIFF_COUNT] = {"EASY", "NORM", "HARD", "INSN"};
+const char* const bb_speed_short[BB_SPEED_COUNT] = {"SLOW", "NORM", "FAST"};
 const char* const bb_mode_name[BB_MODE_COUNT] =
     {"CLASSIC", "RULES", "REFLEX", "CHALLENGE", "DAILY"};
 const char* const bb_mode_blurb[BB_MODE_COUNT] = {

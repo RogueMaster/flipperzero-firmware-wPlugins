@@ -70,8 +70,20 @@ static void bb_led_apply_changed(BeepbackApp* app) {
     bb_led_apply(app, (BbLedColor)app->led);
 }
 
+/* the motor, switched only when it actually changes */
+static bool bb_buzzing;
+
+static void bb_buzz_apply_changed(BeepbackApp* app) {
+    bool want = app->buzz_until != 0;
+    if(want == bb_buzzing) return;
+    bb_buzzing = want;
+    bb_buzz_apply(app, want);
+}
+
 static void bb_hardware_off(BeepbackApp* app) {
     app->tone_hz = 0;
+    app->buzz_until = 0;
+    bb_buzz_apply_changed(app);
     app->led = BbLedOff;
     app->led_gen++;
     bb_audio_apply(app);
@@ -134,6 +146,7 @@ int32_t beepback_app(void* p) {
 
         bb_audio_apply(app);
         bb_led_apply_changed(app);
+        bb_buzz_apply_changed(app);
 
         furi_mutex_release(app->mutex);
         view_port_update(app->view_port);

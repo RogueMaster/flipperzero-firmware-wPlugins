@@ -1,5 +1,5 @@
 /*
- * BEEPBACK - LED colours.
+ * BEEPBACK - LED colours and the motor.
  *
  * The stock notification sequences only cover a few fixed colours, so
  * the five button hues are defined here as custom messages. Each
@@ -45,4 +45,21 @@ static const NotificationSequence* const bb_led_seq[BbLedCount] = {
 void bb_led_apply(BeepbackApp* app, BbLedColor color) {
     if(color >= BbLedCount) color = BbLedOff;
     notification_message(app->notifications, bb_led_seq[color]);
+}
+
+/* The motor, held on the same way the LED is: do_not_reset leaves it
+   running until the main loop decides the tap is over. The stock
+   sequence_single_vibro has a length of its own, which would fight the
+   one the game asked for. */
+static const NotificationSequence bb_seq_buzz_on = {
+    &message_vibro_on,
+    &message_do_not_reset,
+    NULL};
+static const NotificationSequence bb_seq_buzz_off = {
+    &message_vibro_off,
+    &message_do_not_reset,
+    NULL};
+
+void bb_buzz_apply(BeepbackApp* app, bool on) {
+    notification_message(app->notifications, on ? &bb_seq_buzz_on : &bb_seq_buzz_off);
 }

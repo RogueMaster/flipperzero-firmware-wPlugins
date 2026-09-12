@@ -47,9 +47,15 @@ needs no device.
    make the daily a different run on each device. There's a test pinning twelve
    values; keep it passing.
 3. **Every screen is 128x64, 1-bit.** Nothing may be drawn outside it. The
-   browser build had two bugs from arrows drawn past the bottom edge.
-4. **`-Werror` stays on.**
-5. Add tests as you go. The browser build has 324 checks across sixteen suites
+   browser build had two bugs from arrows drawn past the bottom edge. The
+   fake canvas measures the secondary font at 6px a capital and 9px a line,
+   which is what the device draws - it was counting 5 and passing layouts
+   whose columns touched.
+4. **BACK is the only way back.** LEFT means whatever a screen shows it
+   means - a page, a value, a rule - and nothing at all where a screen
+   shows nothing. An exit nothing points at is one you find by accident.
+5. **`-Werror` stays on.**
+6. Add tests as you go. The browser build has 324 checks across sixteen suites
    and they caught roughly a dozen real bugs, several of which were invisible
    by eye.
 
@@ -111,16 +117,17 @@ PLAY -> mode select, three pages of two:
 
 HOW TO PLAY -> chooser (CLASSIC / RULES / REFLEX) -> pages -> sound test
 
-SETTINGS: VOLUME / ASSIST / SOUNDS > / RESET >
+SETTINGS: VOLUME / ASSIST / HAPTIC / SOUNDS > / RESET >
   RESET -> RECORDS / STATS / TUTORIAL, then EVERYTHING set apart below
     every row asks first: one OK arms it and says SURE?, a second OK
     within BB_CONFIRM_MS does it, moving off the row disarms it
     EVERYTHING is the only one that closes the app
-MENU, RIGHT -> STATS (BB_STAT_PAGES pages) -> OK -> RECORDS (pick a mode)
-  -> OK -> that mode's table, RIGHT cycles the assist
+MENU, RIGHT -> STATS (BB_STAT_ROWS rows, four visible, scrolled)
+  OK -> RECORDS (pick a mode) -> OK -> that mode's table, OK cycles assist
     classic, rules, reflex: TIME down, SPEED across, all twelve at once
     challenge: the seven rules, scrolled with UP and DOWN
     daily: one number per assist, all four at once
+  RIGHT -> CREDITS
 
 in game: BACK pauses (reflex: ends the run). OK resumes, BACK quits.
 game over: input locked 800ms while the screen wipes down from the top.

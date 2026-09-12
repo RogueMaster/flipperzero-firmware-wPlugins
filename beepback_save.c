@@ -12,7 +12,9 @@
  * version, length and checksum is discarded and the defaults stand.
  * v6 added the stats block, so a v5 file is discarded on first launch
  * and its records with it - there is nowhere to put a run count that
- * was never counted.
+ * was never counted. v7 added the haptic flag and BB_SAVE_SPARE zeroed
+ * bytes behind it, so the setting after that one can be read out of the
+ * spare and cost nobody their records.
  */
 #include "beepback.h"
 
@@ -32,6 +34,10 @@ static uint32_t bb_get32(const uint8_t* buf, size_t* at) {
                  ((uint32_t)buf[*at + 2] << 16) | ((uint32_t)buf[*at + 3] << 24);
     *at += 4;
     return v;
+}
+
+static uint32_t bb_clamp_score(uint32_t v) {
+    return v > BB_SCORE_MAX ? BB_SCORE_MAX : v;
 }
 
 /* Enough to notice a truncated or half-written file. Not a hash. */
@@ -57,6 +63,8 @@ size_t bb_save_pack(const BeepbackApp* app, uint8_t* buf, size_t n) {
     buf[at++] = app->set.diff;
     buf[at++] = app->set.speed;
     buf[at++] = app->set.tutorial_done ? 1u : 0u;
+    buf[at++] = app->set.haptic ? 1u : 0u;
+    at += BB_SAVE_SPARE; /* already zeroed, and read back as defaults */
 
     for(uint8_t m = 0; m < BB_LADDER_MODES; m++)
         for(uint8_t d = 0; d < BB_DIFF_COUNT; d++)
@@ -101,6 +109,8 @@ bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n) {
     set.diff = buf[at++];
     set.speed = buf[at++];
     set.tutorial_done = buf[at++] != 0;
+    set.haptic = buf[at++] != 0;
+    at += BB_SAVE_SPARE;
 
     /* A file can pass its checksum and still hold a value this build has
        no room for, so every setting is clamped on the way in. */
@@ -112,16 +122,21 @@ bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n) {
     /* the browser's firstRun is this flag, the other way up */
     app->first_run = !set.tutorial_done;
 
+    /* Records are clamped like the settings are: a file can pass its
+       checksum and still hold a number no run produced, and a table laid
+       out for five digits has to be handed at most five digits. */
     for(uint8_t m = 0; m < BB_LADDER_MODES; m++)
         for(uint8_t d = 0; d < BB_DIFF_COUNT; d++)
             for(uint8_t s = 0; s < BB_SPEED_COUNT; s++)
                 for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
-                    app->rec.best[m][d][s][a] = bb_get32(buf, &at);
+                    app->rec.best[m][d][s][a] = bb_clamp_score(bb_get32(buf, &at));
 
     for(uint8_t r = 0; r < BB_RULE_COUNT; r++)
-        for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) app->rec.ch_best[r][a] = bb_get32(buf, &at);
+        for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
+            app->rec.ch_best[r][a] = bb_clamp_score(bb_get32(buf, &at));
 
-    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) app->rec.daily_best[a] = bb_get32(buf, &at);
+    for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++)
+        app->rec.daily_best[a] = bb_clamp_score(bb_get32(buf, &at));
     app->rec.daily_date = bb_get32(buf, &at);
     app->rec.daily_done = buf[at++] != 0;
 
@@ -129,7 +144,7 @@ bool bb_save_unpack(BeepbackApp* app, const uint8_t* buf, size_t n) {
     app->stats.runs = bb_get32(buf, &at);
     app->stats.notes = bb_get32(buf, &at);
     app->stats.rounds = bb_get32(buf, &at);
-    app->stats.best_ever = bb_get32(buf, &at);
+    app->stats.best_ever = bb_clamp_score(bb_get32(buf, &at));
     for(uint8_t m = 0; m < BB_MODE_COUNT; m++) app->stats.by_mode[m] = bb_get32(buf, &at);
     for(uint8_t a = 0; a < BB_ASSIST_COUNT; a++) app->stats.by_assist[a] = bb_get32(buf, &at);
     app->stats.longest = buf[at++];

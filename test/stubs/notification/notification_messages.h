@@ -8,16 +8,20 @@ typedef enum {
     NotificationMessageTypeLedBlue,
     NotificationMessageTypeDelay,
     NotificationMessageTypeDoNotReset,
+    NotificationMessageTypeVibro,
 } NotificationMessageType;
 typedef struct {
     NotificationMessageType type;
     union {
         struct { uint8_t value; } led;
         struct { uint32_t length; } delay;
+        struct { bool on; } vibro;
     } data;
 } NotificationMessage;
 typedef const NotificationMessage* NotificationSequence[];
 extern const NotificationMessage message_do_not_reset;
+extern const NotificationMessage message_vibro_on;
+extern const NotificationMessage message_vibro_off;
 extern const NotificationSequence sequence_blink_red_100;
 extern const NotificationSequence sequence_blink_green_100;
 extern const NotificationSequence sequence_display_backlight_enforce_on;
