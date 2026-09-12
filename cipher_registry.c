@@ -434,7 +434,7 @@ static CipherResult base16_decode_wrap(const char* input, int32_t a, int32_t b, 
     UNUSED(b);
     UNUSED(k);
     size_t out_len;
-    return ok_result(strdup(base16_decode(input, out_len)));
+    return ok_result(strdup(base16_decode(input, &out_len)));
 }
 
 static CipherResult base32_encode_wrap(const char* input, int32_t a, int32_t b, const char* k) {
