@@ -206,7 +206,7 @@ Wenn dir Time Clock nuetzlich ist, kannst du die Entwicklung unterstuetzen:
 
 ## Lizenz
 
-Copyright (C) 2026 Vladyslav Pereverzyev.
+Copyright © 2026 Vladyslav Pereverzyev.
 
 Lizenziert unter **GNU General Public License v3.0 oder spaeter** - siehe
 [LICENSE](LICENSE). Die Quelldateien tragen den Header

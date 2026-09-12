@@ -206,7 +206,7 @@ If Time Clock is useful to you, you can support development:
 
 ## License
 
-Copyright (C) 2026 Vladyslav Pereverzyev.
+Copyright © 2026 Vladyslav Pereverzyev.
 
 Licensed under the **GNU General Public License v3.0 or later** - see
 [LICENSE](LICENSE). Source files carry an `SPDX-License-Identifier: GPL-3.0-or-later`

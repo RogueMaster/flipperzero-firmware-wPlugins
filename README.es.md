@@ -204,7 +204,7 @@ Si Time Clock te resulta util, puedes apoyar el desarrollo:
 
 ## Licencia
 
-Copyright (C) 2026 Vladyslav Pereverzyev.
+Copyright © 2026 Vladyslav Pereverzyev.
 
 Distribuido bajo **GNU General Public License v3.0 o posterior** - ver
 [LICENSE](LICENSE). Los archivos fuente llevan la cabecera

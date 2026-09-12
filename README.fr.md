@@ -207,7 +207,7 @@ Si Time Clock vous est utile, vous pouvez soutenir le developpement:
 
 ## Licence
 
-Copyright (C) 2026 Vladyslav Pereverzyev.
+Copyright © 2026 Vladyslav Pereverzyev.
 
 Distribue sous **GNU General Public License v3.0 ou ulterieure** - voir
 [LICENSE](LICENSE). Les fichiers source portent l'en-tete
