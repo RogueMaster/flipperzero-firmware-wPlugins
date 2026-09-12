@@ -148,9 +148,13 @@ typedef struct {
 /* A reset asks once and listens for a second. Long enough to read SURE?
    and answer it, short enough that it cannot be left armed. */
 #define BB_CONFIRM_MS 1000
-/* A tap, not a rumble: long enough to feel under a note, short enough
-   that a fast sequence is separate taps rather than one long buzz. */
-#define BB_BUZZ_MS 40
+/* The motor traces the notes: one pulse a note, as long as the note is,
+   less a gap so two notes running are two taps and not one buzz, and
+   capped because past this the motor is felt as on rather than as a
+   beat. A rest gets nothing, which is what makes a rhythm a rhythm. */
+#define BB_BUZZ_GAP 25
+#define BB_BUZZ_MAX 110
+#define BB_BUZZ_MIN 25
 /* Records are clamped to this on the way in, the way settings are. It is
    far past anything a run can reach, and it is what lets a table be laid
    out for a width that is always enough. */
@@ -516,6 +520,8 @@ void bb_tone(BeepbackApp* app, uint16_t hz, uint16_t ms);
 void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms);
 /* ask the motor for one tap, if the setting allows it */
 void bb_buzz(BeepbackApp* app);
+/* and one shaped like a note of that length */
+void bb_buzz_for(BeepbackApp* app, uint16_t note_ms);
 /* drop whatever is sounding or lit, right now */
 void bb_hush(BeepbackApp* app);
 

@@ -118,6 +118,11 @@ PLAY -> mode select, three pages of two:
 HOW TO PLAY -> chooser (CLASSIC / RULES / REFLEX) -> pages -> sound test
 
 SETTINGS: VOLUME / ASSIST / HAPTIC / SOUNDS > / RESET >
+  HAPTIC pulses the motor once per note of every pattern, for the note's
+  own length less BB_BUZZ_GAP, capped at BB_BUZZ_MAX. Rests get nothing.
+  The tune runs whether or not it is audible, so a pattern reaches the
+  hand in full with the sound off - bb_play() sets tone_hz to 0 rather
+  than dropping the tune.
   RESET -> RECORDS / STATS / TUTORIAL, then EVERYTHING set apart below
     every row asks first: one OK arms it and says SURE?, a second OK
     within BB_CONFIRM_MS does it, moving off the row disarms it

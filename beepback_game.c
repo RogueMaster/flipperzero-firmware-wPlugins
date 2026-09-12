@@ -84,18 +84,28 @@ void bb_daily_refresh(BeepbackApp* app, uint32_t today) {
 /* Sound and light, requested rather than performed                    */
 /* ------------------------------------------------------------------ */
 
+/* A rest is silent to the hand as well, or every pattern feels the same. */
+static void bb_buzz_note(BeepbackApp* app, const BbNote* note) {
+    if(note->f) bb_buzz_for(app, note->ms);
+}
+
 void bb_play(BeepbackApp* app, const BbNote* notes, uint8_t n) {
-    bb_buzz(app); /* the motor answers the jingle even with the sound off */
-    if(!bb_audio_on(app) || !n) {
+    if(!n) {
         app->tune = NULL;
+        app->tune_n = 0;
         app->tone_hz = 0;
         return;
     }
+    /* The tune runs whether or not it is audible. It used to stop here
+       with the sound off, which left the motor with only the first note
+       of a pattern to play - and a pattern's whole point is the rest of
+       it. What silence changes is the speaker, not the clock. */
     app->tune = notes;
     app->tune_n = n;
     app->tune_i = 0;
-    app->tone_hz = notes[0].f;
+    app->tone_hz = bb_audio_on(app) ? notes[0].f : 0;
     app->tune_next = app->now + notes[0].ms;
+    bb_buzz_note(app, &notes[0]);
 }
 
 void bb_tone(BeepbackApp* app, uint16_t hz, uint16_t ms) {
@@ -105,11 +115,21 @@ void bb_tone(BeepbackApp* app, uint16_t hz, uint16_t ms) {
     bb_play(app, &one, 1);
 }
 
-/* Every note and every press asks for a tap. It is the sound's shadow,
-   so it is requested where the sound is and switched off with it. */
-void bb_buzz(BeepbackApp* app) {
+/* Every note of every pattern asks for a pulse, and the pulse is the
+   note's own length: that is what makes the game over drone feel unlike
+   the round clear run of four, and what lets a sequence be played back
+   by feel alone. The sound's shadow, so it is requested where the sound
+   is and switched off with it. */
+void bb_buzz_for(BeepbackApp* app, uint16_t note_ms) {
     if(!app->set.haptic) return;
-    app->buzz_until = app->now + BB_BUZZ_MS;
+    uint32_t len = note_ms > BB_BUZZ_GAP ? (uint32_t)note_ms - BB_BUZZ_GAP : note_ms;
+    if(len > BB_BUZZ_MAX) len = BB_BUZZ_MAX;
+    if(len < BB_BUZZ_MIN) len = BB_BUZZ_MIN;
+    app->buzz_until = app->now + len;
+}
+
+void bb_buzz(BeepbackApp* app) {
+    bb_buzz_for(app, BB_BUZZ_MIN);
 }
 
 void bb_led_flash(BeepbackApp* app, uint8_t color, uint32_t ms) {
@@ -137,8 +157,10 @@ static void bb_tune_tick(BeepbackApp* app) {
             app->tone_hz = 0;
             return;
         }
-        app->tone_hz = app->tune[app->tune_i].f;
-        app->tune_next += app->tune[app->tune_i].ms;
+        const BbNote* note = &app->tune[app->tune_i];
+        app->tone_hz = bb_audio_on(app) ? note->f : 0;
+        app->tune_next += note->ms;
+        bb_buzz_note(app, note);
     }
 }
 
@@ -610,9 +632,10 @@ void bb_tick(BeepbackApp* app, uint32_t dt_ms) {
     if(app->paused) {
         /* A note is only silenced by the tune advancing past it, and a
            paused tune does not advance. Without this the note that was
-           sounding when you pressed BACK holds on the speaker for as
+           sounding when you pressed BACK holds on the speaker - or on
+           the motor, which runs even when the speaker does not - for as
            long as the pause lasts. */
-        if(app->tone_hz) bb_hush(app);
+        if(app->tone_hz || app->tune || app->buzz_until) bb_hush(app);
     } else {
         bb_tune_tick(app);
     }

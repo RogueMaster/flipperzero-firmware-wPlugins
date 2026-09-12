@@ -746,20 +746,81 @@ int main(void) {
     /* ---- the motor answers the notes ---- */
     boot(&app);
     app.set.haptic = false;
-    bb_tone(&app, 440, 200);
-    check("silent by default: no motor unless it is switched on",
-          app.buzz_until == 0, "");
+    bb_tone(&app, 440, 90);
+    check("silent by default: no motor unless it is switched on", app.buzz_until == 0, "");
     app.set.haptic = true;
-    bb_tone(&app, 440, 200);
-    check("switched on, a note taps", app.buzz_until == app.now + BB_BUZZ_MS, "");
-    for(int i = 0; i < 4; i++) bb_tick(&app, BB_TICK_MS);
-    check("and the tap is over long before the note is", app.buzz_until == 0, "");
-    app.set.volume = 0;
-    bb_tone(&app, 440, 200);
-    check("it answers the note even with the sound off", app.buzz_until != 0, "");
+    bb_tone(&app, 440, 90);
+    sprintf(msg, "%lu ms", (unsigned long)(app.buzz_until - app.now));
+    check("switched on, a note pulses for as long as the note, less a gap",
+          app.buzz_until == app.now + (90 - BB_BUZZ_GAP), msg);
+    bb_tone(&app, 440, 900);
+    check("and a very long note is capped rather than held on",
+          app.buzz_until == app.now + BB_BUZZ_MAX, "");
+    bb_tone(&app, 440, 10);
+    check("a very short one still reaches the motor", app.buzz_until == app.now + BB_BUZZ_MIN,
+          "");
+
+    /* A pattern is its rhythm. One pulse at the start of GAME OVER tells
+       you as much as one beep would: the whole of it has to arrive. */
+    {
+        uint32_t felt = 0, last = 0;
+        boot(&app);
+        app.set.haptic = true;
+        bb_play(&app, bb_jingle_over, 4);
+        for(int i = 0; i < 60; i++) {
+            if(app.buzz_until && app.buzz_until != last) {
+                felt++;
+                last = app.buzz_until;
+            }
+            bb_tick(&app, BB_TICK_MS);
+        }
+        sprintf(msg, "%lu of 4", (unsigned long)felt);
+        check("every note of GAME OVER is felt, not just its first", felt == 4, msg);
+    }
+    {
+        /* the two jingles with a rest in them: a rest the hand can feel
+           is not a rest, and every pattern would end up the same shape */
+        uint32_t felt = 0, last = 0;
+        boot(&app);
+        app.set.haptic = true;
+        bb_play(&app, bb_jingle_go, 3);
+        for(int i = 0; i < 40; i++) {
+            if(app.buzz_until && app.buzz_until != last) {
+                felt++;
+                last = app.buzz_until;
+            }
+            bb_tick(&app, BB_TICK_MS);
+        }
+        sprintf(msg, "%lu of 2", (unsigned long)felt);
+        check("GO is two pulses across three notes, because one is a rest", felt == 2, msg);
+    }
+    {
+        /* with the sound off the tune used to stop before it started, so
+           the motor got the first note of a pattern and nothing after */
+        uint32_t felt = 0, last = 0;
+        boot(&app);
+        app.set.haptic = true;
+        app.set.volume = 0;
+        bb_play(&app, bb_jingle_round, 4);
+        check("a muted tune makes no sound", app.tone_hz == 0, "");
+        for(int i = 0; i < 40; i++) {
+            if(app.buzz_until && app.buzz_until != last) {
+                felt++;
+                last = app.buzz_until;
+            }
+            bb_tick(&app, BB_TICK_MS);
+            check("and stays silent all the way through", app.tone_hz == 0, "");
+        }
+        sprintf(msg, "%lu of 4", (unsigned long)felt);
+        check("but the whole pattern still reaches the hand", felt == 4, msg);
+    }
+
+    boot(&app);
+    app.set.haptic = true;
+    bb_play(&app, bb_jingle_over, 4);
     bb_hush(&app);
-    check("and stops with everything else when the game is paused",
-          app.buzz_until == 0, "");
+    check("and everything stops together when the game is hushed",
+          app.buzz_until == 0 && app.tune == NULL && app.tone_hz == 0, "");
 
     boot(&app);
     bb_enter(&app, BbSceneSettings);
