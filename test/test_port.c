@@ -456,6 +456,26 @@ int main(void) {
     check("and classic sets a time in seconds", fc_saw("HARD 3S"), "");
     check("and promises no multiplier for it", !fc_saw("X2.25") && !fc_saw("SCORE"), "");
 
+    /* Every direction that goes somewhere has to say so. BEST SCORES had
+       LEFT wired to the menu and drew no arrow for it, which reads as a
+       screen you can only leave with BACK. */
+    boot(&app);
+    bb_enter(&app, BbSceneScorePick);
+    frame(&app);
+    check("BEST SCORES points left, where LEFT actually goes",
+          fc_ink_in(0, 28, 8, 44), "");
+    check("and right, to the credits", fc_ink_in(119, 28, 127, 44), "");
+    bb_press(&app, InputKeyLeft);
+    check("and LEFT is the menu", app.scene == BbSceneMenu, scene_name[app.scene]);
+
+    boot(&app);
+    app.set.assist = 0; /* the hardest way to play, with the sound still on */
+    bb_enter(&app, BbSceneSettings);
+    app.set_idx = 1;
+    frame(&app);
+    check("the quietest assist is called EARS, not OFF",
+          fc_saw("EARS") && !fc_saw("OFF"), "");
+
     boot(&app);
     app.set.volume = 0;
     app.set.assist = 0;

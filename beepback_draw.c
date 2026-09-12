@@ -334,6 +334,9 @@ static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
         bb_str(c, 64, top + 5, AlignCenter, AlignCenter, bb_mode_name[i]);
         canvas_set_color(c, ColorBlack);
     }
+    /* LEFT has always gone back to the menu from here; the arrow saying so
+       was the one that was missing, which reads as no way out but BACK */
+    bb_chev_l(c, BB_CHEV_L, 36);
     bb_chev_r(c, BB_CHEV_R, 36);
 }
 

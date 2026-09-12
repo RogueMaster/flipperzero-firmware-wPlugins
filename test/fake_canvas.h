@@ -25,6 +25,7 @@ typedef struct {
     int16_t worst_w;
     char text[48][40]; /* everything the frame said, for the content checks */
     uint8_t texts;
+    uint8_t ink[BB_H][BB_W]; /* every pixel touched, for "is the arrow there" */
     Font font;
     Color color;
 } FakeCanvas;
@@ -54,6 +55,8 @@ static int16_t fc_str_w(const char* s, Font font) {
 static void fc_rect(int32_t x, int32_t y, int32_t w, int32_t h) {
     fake.ops++;
     if(x < 0 || y < 0 || x + w > BB_W || y + h > BB_H) fake.out_of_bounds++;
+    for(int32_t j = y > 0 ? y : 0; j < y + h && j < BB_H; j++)
+        for(int32_t i = x > 0 ? x : 0; i < x + w && i < BB_W; i++) fake.ink[j][i] = 1;
 }
 
 static void fc_text(int32_t x, int32_t y, const char* s) {
@@ -72,6 +75,16 @@ static void fc_text(int32_t x, int32_t y, const char* s) {
         }
     }
     fc_rect(x, y, w, FC_LINE);
+}
+
+/* did this frame draw anything inside that box? A screen-edge chevron is
+   the only thing this app puts beside a row, so this is how a test asks
+   whether the way out of a screen is signposted. */
+static bool fc_ink_in(int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
+    for(int32_t j = y0 > 0 ? y0 : 0; j <= y1 && j < BB_H; j++)
+        for(int32_t i = x0 > 0 ? x0 : 0; i <= x1 && i < BB_W; i++)
+            if(fake.ink[j][i]) return true;
+    return false;
 }
 
 /* did this frame print something containing that? */

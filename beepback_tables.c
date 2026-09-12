@@ -32,7 +32,9 @@ const char* const bb_mode_blurb[BB_MODE_COUNT] = {
     "same run for everyone",
 };
 const char* const bb_vol_name[BB_VOL_COUNT] = {"OFF", "LOW", "MID", "HIGH"};
-const char* const bb_assist_name[BB_ASSIST_COUNT] = {"OFF", "LED", "SHAPES", "ARROWS"};
+/* EARS, not OFF: you are not switching the assist off, you are choosing to
+   play by ear. The scores screens have always called it that. */
+const char* const bb_assist_name[BB_ASSIST_COUNT] = {"EARS", "LED", "SHAPES", "ARROWS"};
 const char* const bb_mode_label[BB_ASSIST_COUNT] = {"EARS", "LED", "SHAPES", "ARROWS"};
 const char* const bb_praise[BB_PRAISE_COUNT] =
     {"LET'S GO!", "NICE!", "PERFECT!", "GOOD!", "CLEAN!", "YOU GOT IT!", "SICK!"};
