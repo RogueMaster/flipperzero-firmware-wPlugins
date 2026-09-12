@@ -13,9 +13,7 @@ char* base16_encode(const char* input) {
     if (hex_str == NULL) return "malloc failed"; 
 
     for (size_t i = 0; i < len; i++) {
-        // %02x formats the character as a 2-digit lowercase hex number
-        // (unsigned char) cast prevents sign extension issues
-        sprintf(&hex_str[i * 2], "%02x", (unsigned char)input[i]);
+        snprintf(&hex_str[i * 2], 3, "%02x", (unsigned char)input[i]);
     }
 
     hex_str[len * 2] = '\0'; 
