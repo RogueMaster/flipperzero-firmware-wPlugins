@@ -116,10 +116,11 @@ ufbt launch
 The built `.fap` lands in `dist/`. You can also copy it to
 `SD Card/apps/Tools/` via qFlipper and run it from **Apps -> Tools -> Time Clock**.
 
-> **Firmware note.** The radio layer in `scenes/timeclock_scene_scan.c` (NFC
-> ISO14443-3A poller and the LF RFID worker) is the part most sensitive to
-> firmware API changes. If a symbol name differs on your firmware/version, the
-> fix is localized to that one file - the rest of the app does not depend on it.
+> **Firmware note.** The radio layer lives in `timeclock_reader.c` (NFC via
+> `NfcScanner` for full protocol coverage - ISO14443-A/B, FeliCa, ISO15693/NFC-V
+> - plus the LF RFID worker). It is the part most sensitive to firmware API
+> changes; if a symbol differs on your firmware/version, the fix is localized to
+> that one file - the rest of the app does not depend on it.
 
 ## Compatibility
 

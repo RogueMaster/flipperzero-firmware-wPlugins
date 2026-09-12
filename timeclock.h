@@ -31,6 +31,7 @@
 
 #include "timeclock_storage.h"
 #include "timeclock_pin.h"
+#include "timeclock_reader.h"
 #include "views/pin_view.h"
 #include "views/work_view.h"
 #include "scenes/timeclock_scene.h"

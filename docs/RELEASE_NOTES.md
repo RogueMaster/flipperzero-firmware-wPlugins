@@ -26,6 +26,8 @@ then open **Apps -> Tools -> Time Clock**.
   automatic IN/OUT.
 - **Sound / vibration / LED feedback** on each punch, distinct for IN vs OUT
   (toggle each in Settings; on by default).
+- **Full NFC coverage**: any 13.56 MHz card (ISO14443-A/B, FeliCa, NFC-V) is
+  recognized via NfcScanner; LF RFID (125 kHz) via the RFID worker.
 - **History** and **daily totals**; **CSV** and **JSON** export.
 - **PIN-protected** exit so collaborators cannot leave or tamper with the app.
 - Each collaborator is bound to their chip; if a chip is lost, reassign a new one
