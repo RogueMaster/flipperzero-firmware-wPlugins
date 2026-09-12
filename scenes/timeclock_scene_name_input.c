@@ -77,16 +77,18 @@ bool timeclock_scene_name_input_on_event(void* context, SceneManagerEvent event)
                 strncpy(b->last_used, dt, TC_DT_MAX - 1);
                 b->last_event = TcEventNone;
 
-                app->found_index = (int)app->badge_count;
                 app->badge_count++;
                 tc_badges_save(app->badges, app->badge_count);
+                timeclock_notify_success(app);
 
-                // Proceed to choose IN / OUT for the freshly registered badge.
-                scene_manager_next_scene(app->scene_manager, TimeClockSceneBadgeAction);
+                // Registration only: no punch here. The first punch happens the
+                // next time the chip is tapped from Punch / Work mode.
+                scene_manager_search_and_switch_to_previous_scene(
+                    app->scene_manager, TimeClockSceneBadgeList);
             } else {
                 timeclock_notify_error(app);
                 scene_manager_search_and_switch_to_previous_scene(
-                    app->scene_manager, TimeClockSceneMenu);
+                    app->scene_manager, TimeClockSceneBadgeList);
             }
         }
     }

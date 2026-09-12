@@ -50,7 +50,8 @@ bool timeclock_scene_badge_list_on_event(void* context, SceneManagerEvent event)
             app->selected_index = (int)event.event;
             scene_manager_next_scene(app->scene_manager, TimeClockSceneBadgeDetail);
         } else {
-            // Register a new badge via a scan.
+            // Register a new collaborator via a scan (no punch).
+            app->scan_purpose = TcScanRegister;
             scene_manager_next_scene(app->scene_manager, TimeClockSceneScan);
         }
     }

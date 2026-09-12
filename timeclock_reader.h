@@ -6,11 +6,10 @@
 // =============================================================================
 // Shared badge reader.
 //
-// NFC (13.56 MHz): uses NfcScanner to detect ANY supported protocol, then a
-// poller to read the card, extracting the UID generically via NfcDevice. This
-// covers ISO14443-A/B, FeliCa, ISO15693 (NFC-V) and anything else the firmware
-// supports.
-// LF RFID (125 kHz): the lfrfid worker in auto mode.
+// NFC (13.56 MHz): ISO14443-3A poller - reads the UID of MIFARE Classic/
+// Ultralight, NTAG, DESFire and other ISO14443-A cards (the blank badges people
+// actually use). This is the stable, proven path.
+// LF RFID (125 kHz): the lfrfid worker in auto mode (EM4100, HID, Indala, ...).
 //
 // Thread-safety: radio callbacks only post ViewDispatcher custom events; every
 // start/stop of the radio happens on the GUI thread inside

@@ -6,7 +6,6 @@
 // Actions for a selected badge.
 
 typedef enum {
-    DetailUse,
     DetailRename,
     DetailReplace,
     DetailHistory,
@@ -29,8 +28,6 @@ void timeclock_scene_badge_detail_on_enter(void* context) {
         submenu_set_header(submenu, "Badge");
     }
     submenu_add_item(
-        submenu, "Use badge", DetailUse, timeclock_scene_badge_detail_submenu_callback, app);
-    submenu_add_item(
         submenu, "Rename", DetailRename, timeclock_scene_badge_detail_submenu_callback, app);
     submenu_add_item(
         submenu, "Replace chip", DetailReplace, timeclock_scene_badge_detail_submenu_callback, app);
@@ -49,11 +46,6 @@ bool timeclock_scene_badge_detail_on_event(void* context, SceneManagerEvent even
     if(event.type == SceneManagerEventTypeCustom) {
         consumed = true;
         switch(event.event) {
-        case DetailUse:
-            // Punch this badge directly.
-            app->found_index = app->selected_index;
-            scene_manager_next_scene(app->scene_manager, TimeClockSceneBadgeAction);
-            break;
         case DetailRename:
             // 1 = rename in the name-input scene.
             scene_manager_set_scene_state(app->scene_manager, TimeClockSceneNameInput, 1);
@@ -62,6 +54,7 @@ bool timeclock_scene_badge_detail_on_event(void* context, SceneManagerEvent even
         case DetailReplace:
             // Bind a new chip to this collaborator (keeps name and history).
             app->replace_index = app->selected_index;
+            app->scan_purpose = TcScanReplace;
             scene_manager_next_scene(app->scene_manager, TimeClockSceneScan);
             break;
         case DetailHistory:

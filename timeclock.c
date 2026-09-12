@@ -106,6 +106,27 @@ void timeclock_notify_punch(TimeClock* app, TcEventType type) {
     }
 }
 
+TcEventType timeclock_record_punch(TimeClock* app, int badge_index) {
+    Badge* b = &app->badges[badge_index];
+    TcEventType type = (b->last_event == TcEventIn) ? TcEventOut : TcEventIn;
+
+    char date[TC_DT_MAX];
+    char time[8];
+    char dt[TC_DT_MAX];
+    tc_now_date(date, sizeof(date));
+    tc_now_time(time, sizeof(time));
+    tc_now_datetime(dt, sizeof(dt));
+
+    tc_history_append(date, time, b->name, b->uid, type);
+    b->last_event = type;
+    strncpy(b->last_used, dt, sizeof(b->last_used) - 1);
+    b->last_used[sizeof(b->last_used) - 1] = '\0';
+    tc_badges_save(app->badges, app->badge_count);
+
+    timeclock_notify_punch(app, type);
+    return type;
+}
+
 // -----------------------------------------------------------------------------
 // ViewDispatcher navigation callbacks
 // -----------------------------------------------------------------------------
@@ -139,6 +160,7 @@ static TimeClock* timeclock_app_alloc(void) {
     app->found_index = -1;
     app->selected_index = -1;
     app->replace_index = -1;
+    app->scan_purpose = TcScanPunch;
 
     app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);

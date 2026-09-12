@@ -26,8 +26,10 @@ then open **Apps -> Tools -> Time Clock**.
   automatic IN/OUT.
 - **Sound / vibration / LED feedback** on each punch, distinct for IN vs OUT
   (toggle each in Settings; on by default).
-- **Full NFC coverage**: any 13.56 MHz card (ISO14443-A/B, FeliCa, NFC-V) is
-  recognized via NfcScanner; LF RFID (125 kHz) via the RFID worker.
+- **NFC** (ISO14443-A: MIFARE/NTAG/DESFire) and **LF RFID** (125 kHz) reading -
+  stable path. The chip's UID is read only (no writing, no emulation).
+- **Automatic** punching (tap = IN, then OUT, ...); unknown chips show
+  "Not registered". Register people in Badges; lost chip -> Replace chip.
 - **This week** summary: worked time per day of the current week plus the total.
 - **History filters**: view all punches, only today, only this week, or a single
   collaborator's history.

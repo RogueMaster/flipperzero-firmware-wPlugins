@@ -45,24 +45,15 @@ static void work_on_uid(const char* uid_hex, const char* tech, void* context) {
     int idx = timeclock_find_badge(app, uid_hex);
     char msg[40];
     if(idx >= 0) {
-        Badge* b = &app->badges[idx];
-        TcEventType type = (b->last_event == TcEventIn) ? TcEventOut : TcEventIn;
-
-        char date[TC_DT_MAX], time[8], dt[TC_DT_MAX];
-        tc_now_date(date, sizeof(date));
-        tc_now_time(time, sizeof(time));
-        tc_now_datetime(dt, sizeof(dt));
-        tc_history_append(date, time, b->name, b->uid, type);
-        b->last_event = type;
-        strncpy(b->last_used, dt, sizeof(b->last_used) - 1);
-        b->last_used[sizeof(b->last_used) - 1] = '\0';
-        tc_badges_save(app->badges, app->badge_count);
-
+        TcEventType type = timeclock_record_punch(app, idx);
         snprintf(
-            msg, sizeof(msg), "%s, %s", (type == TcEventIn) ? "Welcome" : "Goodbye", b->name);
-        timeclock_notify_punch(app, type);
+            msg,
+            sizeof(msg),
+            "%s, %s",
+            (type == TcEventIn) ? "Welcome" : "Goodbye",
+            app->badges[idx].name);
     } else {
-        snprintf(msg, sizeof(msg), "Unknown badge");
+        snprintf(msg, sizeof(msg), "Not registered");
         timeclock_notify_error(app);
     }
     work_view_set_greeting(app->work_view, msg);

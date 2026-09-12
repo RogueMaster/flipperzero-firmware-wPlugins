@@ -76,6 +76,13 @@ typedef enum {
     TcPinModeVerifyExitWork, // protected exit from Work mode back to the menu
 } TcPinMode;
 
+// ---- Purpose of a scan -----------------------------------------------------
+typedef enum {
+    TcScanPunch, // clock in/out an existing collaborator
+    TcScanRegister, // register a new collaborator (name only, no punch)
+    TcScanReplace, // reassign a new chip to an existing collaborator
+} TcScanPurpose;
+
 // ---- Application state -----------------------------------------------------
 typedef struct {
     Gui* gui;
@@ -108,6 +115,7 @@ typedef struct {
     int found_index; // index of the recognized badge, -1 if none
     int selected_index; // badge selected from the list
     int replace_index; // collaborator whose chip is being reassigned, -1 if none
+    TcScanPurpose scan_purpose; // what the current scan is for
 
     // Name input buffer
     char name_buf[TC_NAME_MAX];
@@ -130,3 +138,8 @@ void timeclock_notify_error(TimeClock* app);
 // Punch feedback: distinct sound/vibro/LED for IN vs OUT, each honoring its
 // own on/off setting (config.sound_enabled / vibro_enabled / led_enabled).
 void timeclock_notify_punch(TimeClock* app, TcEventType type);
+
+// Record an automatic alternating punch (IN if last was OUT/none, else OUT) for
+// the badge at index, append it to history, persist, and play feedback.
+// Returns the recorded event type.
+TcEventType timeclock_record_punch(TimeClock* app, int badge_index);
