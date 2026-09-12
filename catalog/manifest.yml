@@ -20,7 +20,7 @@ sourcecode:
     # FILL THIS IN LAST. It must be the SHA of a commit that already
     # contains the screenshots, because the paths below are resolved
     # inside the repository at this exact commit.
-    commit_sha: 66d0183b101b4846221cf69f90e0119542fe5942
+    commit_sha: 56f14f4a8cae9b722889fba15e5f55d03ca9425f
 
 # README.md is the GitHub landing page and has images and tables in it,
 # neither of which the catalog's markdown filter allows. This is the same
