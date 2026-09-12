@@ -1,7 +1,6 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "../lib/Arduino.h"
 #include "globals.h"
 //#include "levels.h"
 #include "vec2.h"
@@ -36,20 +35,20 @@ struct Players
     vec2 pos;
     vec2 actualpos;
     vec2 speed;
-    boolean isActive;
-    boolean isImune;
-    boolean direction;
-    boolean isWalking;
-    boolean isJumping;
-    boolean isLanding;
-    boolean isBalloon;
-    boolean jumpLetGo;
-    boolean isSucking;
-    byte imuneTimer;
-    byte jumpTimer;
-    byte frame;
-    byte balloons;
-    byte balloonOffset;
+    bool isActive;
+    bool isImune;
+    bool direction;
+    bool isWalking;
+    bool isJumping;
+    bool isLanding;
+    bool isBalloon;
+    bool jumpLetGo;
+    bool isSucking;
+    uint8_t imuneTimer;
+    uint8_t jumpTimer;
+    uint8_t frame;
+    uint8_t balloons;
+    uint8_t balloonOffset;
     vec2 particles[PLAYER_PARTICLES];
 };
 
@@ -79,15 +78,15 @@ void setKid()
   kid.balloons = 3;
   #endif
   kid.balloonOffset = 0;
-  for (byte i = 0; i < PLAYER_PARTICLES; ++i)
-    kid.particles[i] = vec2(random(16), random(16));
+  for (uint8_t i = 0; i < PLAYER_PARTICLES; ++i)
+    kid.particles[i] = vec2(randomOf(16), randomOf(16));
 }
 
 void checkKid()
 {
   if (kid.isImune)
   {
-    if (arduboy.everyXFrames(2)) kid.isActive = !kid.isActive;
+    if (everyXFrames(2)) kid.isActive = !kid.isActive;
     kid.imuneTimer++;
     if (kid.imuneTimer > 60)
     {
@@ -99,11 +98,11 @@ void checkKid()
 
   if (kid.isWalking || kid.isSucking)
   {
-    if (arduboy.everyXFrames(8))
+    if (everyXFrames(8))
     {
       kid.frame = (kid.frame + 1) % 4;
       if (kid.frame % 2 == 0)
-        sound.tone(150, 20);
+        playTone(150, 20);
     }
   }
   else
@@ -131,15 +130,15 @@ void checkKid()
   // -Solid checking
   int tx = (kid.pos.x + 6) >> 4;
   int ty = (kid.pos.y + 8) >> 4;
-  boolean solidbelow = gridGetSolid(tx, (kid.pos.y + 16) >> 4);
-  //boolean solidabove = gridGetSolid(tx, (kid.pos.y - 1) >> 4);
-  //boolean solidleft = gridGetSolid((kid.pos.x - 1) >> 4, ty);
-  //boolean solidright = gridGetSolid((kid.pos.x + 13) >> 4, ty);
+  bool solidbelow = gridGetSolid(tx, (kid.pos.y + 16) >> 4);
+  //bool solidabove = gridGetSolid(tx, (kid.pos.y - 1) >> 4);
+  //bool solidleft = gridGetSolid((kid.pos.x - 1) >> 4, ty);
+  //bool solidright = gridGetSolid((kid.pos.x + 13) >> 4, ty);
   int tx2 = (((kid.actualpos.x + kid.speed.x) >> FIXED_POINT) - 1 + (kid.speed.x > 0) * 14) >> 4;
-  boolean solidH = gridGetSolid(tx2, (kid.pos.y + 2) >> 4)
+  bool solidH = gridGetSolid(tx2, (kid.pos.y + 2) >> 4)
                    || gridGetSolid(tx2, (kid.pos.y + 13) >> 4);
   int ty2 = (((kid.actualpos.y - kid.speed.y) >> FIXED_POINT) + (kid.speed.y < 0) * 17) >> 4;
-  boolean solidV = gridGetSolid((kid.pos.x + 2) >> 4, ty2)
+  bool solidV = gridGetSolid((kid.pos.x + 2) >> 4, ty2)
                    || gridGetSolid((kid.pos.x + 10) >> 4, ty2);
 
   // Gravity
@@ -154,8 +153,8 @@ void checkKid()
         kid.balloonOffset -= 2;
       else
       {
-        //kid.speed.y = max(-((8 / kid.balloons) >> 1), kid.speed.y);
-        kid.speed.y = max(kid.balloons - 5, kid.speed.y);
+        //kid.speed.y = maxOf(-((8 / kid.balloons) >> 1), kid.speed.y);
+        kid.speed.y = maxOf(kid.balloons - 5, kid.speed.y);
       }
     }
   }
@@ -163,7 +162,7 @@ void checkKid()
   // Kid on ground
   if (kid.balloons > 0 && kid.speed.y <= 0 && (solidV || solidbelow))
   {
-    if (kid.isLanding) sound.tone(80, 30);
+    if (kid.isLanding) playTone(80, 30);
     kid.speed.y = 0;
     kid.speed.x = 0;
     kid.isLanding = false;
@@ -175,8 +174,8 @@ void checkKid()
 
     // Fall off edge
     //if (abs(((kid.pos.x + 6) % 16) - 8) >= 4)
-    //if (!arduboy.pressed(RIGHT_BUTTON) && !arduboy.pressed(LEFT_BUTTON))
-    if (!arduboy.pressed(RIGHT_BUTTON | LEFT_BUTTON))
+    //if (!pressed(MYBL_RIGHT) && !pressed(MYBL_LEFT))
+    if (!pressed(MYBL_RIGHT | MYBL_LEFT))
     {
       int yy = (kid.pos.y + 16) >> 4;
       bool sl = gridGetSolid((kid.pos.x + 4) >> 4, yy);
@@ -192,7 +191,7 @@ void checkKid()
     // Friction in air
     if (abs(kid.speed.x) > FRICTION)
     {
-      if (arduboy.everyXFrames(4))
+      if (everyXFrames(4))
       {
         if (kid.speed.x > 0) kid.speed.x -= FRICTION;
         else if (kid.speed.x < 0) kid.speed.x += FRICTION;
@@ -223,7 +222,7 @@ void checkKid()
     {
       kid.actualpos.y = ((kid.pos.y + 8) >> 4) << (FIXED_POINT + 4);
       kid.speed.y = 0;
-      sound.tone(80, 30);
+      playTone(80, 30);
     }
   }
 
@@ -244,7 +243,7 @@ void checkKid()
 
   kid.pos = (kid.actualpos >> FIXED_POINT);
 
-  if (kid.isSucking) windNoise();//sound.tone(300 + random(10), 20);
+  if (kid.isSucking) windNoise();//playTone(300 + randomOf(10), 20);
 }
 
 /*  updateCamera()
@@ -271,7 +270,7 @@ void updateCamera()
   V = V >> 2;
 
   cam.pos += V;
-  cam.pos.y = min(320, cam.pos.y);
+  cam.pos.y = minOf(320, cam.pos.y);
 }
 
 void drawKid()
@@ -300,21 +299,21 @@ void drawKid()
       int commony = kidcam.y + kid.balloonOffset;
       if (kid.balloons > 1)
       {
-        sprites.drawPlusMask(commonx + 1, commony - 11, balloon_plus_mask, 0);
-        if (kid.balloons > 2) sprites.drawPlusMask(commonx + 7, commony - 12, balloon_plus_mask, 0);
+        gfx_sprite_plus_mask(commonx + 1, commony - 11, balloon_plus_mask, 0);
+        if (kid.balloons > 2) gfx_sprite_plus_mask(commonx + 7, commony - 12, balloon_plus_mask, 0);
       }
-      sprites.drawPlusMask(commonx + 4, commony - 9, balloon_plus_mask, 0);
+      gfx_sprite_plus_mask(commonx + 4, commony - 9, balloon_plus_mask, 0);
     }
     if (!kid.isSucking)
     {
-      sprites.drawSelfMasked(kidcam.x, kidcam.y, kidSprite, 12 + kid.direction);
-      sprites.drawErase(kidcam.x, kidcam.y, kidSprite, kid.frame + 6 * kid.direction + ((kid.isJumping << 2) + 5 * (kid.isLanding || kid.isBalloon)) * !kid.isSucking);
+      gfx_sprite_self_masked(kidcam.x, kidcam.y, kidSprite, 12 + kid.direction);
+      gfx_sprite_erase(kidcam.x, kidcam.y, kidSprite, kid.frame + 6 * kid.direction + ((kid.isJumping << 2) + 5 * (kid.isLanding || kid.isBalloon)) * !kid.isSucking);
     }
 
     else
     {
-      sprites.drawPlusMask(kidcam.x - 2, kidcam.y, kidSpriteSuck_plus_mask, walkerFrame + 2*kid.direction); //kidSpriteSuck
-      for (byte i = 0; i < PLAYER_PARTICLES; ++i)
+      gfx_sprite_plus_mask(kidcam.x - 2, kidcam.y, kidSpriteSuck_plus_mask, walkerFrame + 2*kid.direction); //kidSpriteSuck
+      for (uint8_t i = 0; i < PLAYER_PARTICLES; ++i)
       {
         // Update
         if (kid.particles[i].y > 2) --kid.particles[i].y;
@@ -323,14 +322,14 @@ void drawKid()
         if (kid.particles[i].x < 0)
         {
           kid.particles[i].x = 16;
-          kid.particles[i].y = -4 + random(13);
+          kid.particles[i].y = -4 + randomOf(13);
         }
 
         // Draw
         if (kid.direction)
-          sprites.drawErase(kidcam.x - kid.particles[i].x, kidcam.y + 10 + kid.particles[i].y, particle , 0);
+          gfx_sprite_erase(kidcam.x - kid.particles[i].x, kidcam.y + 10 + kid.particles[i].y, particle , 0);
         else
-          sprites.drawErase(kidcam.x + 15 + kid.particles[i].x, kidcam.y + 10 + kid.particles[i].y, particle , 0);
+          gfx_sprite_erase(kidcam.x + 15 + kid.particles[i].x, kidcam.y + 10 + kid.particles[i].y, particle , 0);
       }
     }
   }

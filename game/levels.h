@@ -1,7 +1,6 @@
 #ifndef LEVELS_H
 #define LEVELS_H
 
-#include "../lib/Arduino.h"
 #include "globals.h"
 #include "enemies.h"
 //#include "Point.h"
@@ -17,7 +16,7 @@
 
 
 //char gameGrid[LEVEL_ARRAY_SIZE]; // grid with cell information
-// upper byte tile xxxx ____
+// upper uint8_t tile xxxx ____
 // LSB solid ____ ___x
 
 
@@ -30,17 +29,17 @@ bool gridGetSolid(int8_t x, int8_t y) {
     return 0;
 
   const uint8_t *lvl = levels[level];
-  byte b = pgm_read_byte(lvl + (x >> 3) + (y * (LEVEL_WIDTH_CELLS >> 3)));
+  uint8_t b = *(lvl + (x >> 3) + (y * (LEVEL_WIDTH_CELLS >> 3)));
   return ((b >> (x % 8)) & 0x01);
 }
 
-byte gridGetTile(int8_t x, int8_t y) {
+uint8_t gridGetTile(int8_t x, int8_t y) {
   //if (!gridGetSolid(x, y)) return 0;
   if (!gridGetSolid(x, y)) return 16;
   //if (x < 0 || x >= LEVEL_WIDTH || y < 0 || y >= LEVEL_HEIGHT || !gridGetSolid(x, y))
   //return 0;
   //return gameGrid[x + (y * LEVEL_WIDTH_CELLS)] >> 4;
-  byte l, r, t, b, f;
+  uint8_t l, r, t, b, f;
   l = gridGetSolid(x - 1, y);
   t = gridGetSolid(x, y - 1);
   r = gridGetSolid(x + 1, y);
@@ -75,16 +74,16 @@ byte gridGetTile(int8_t x, int8_t y) {
 
 
 void levelLoad(const uint8_t *lvl) {
-  byte i = 0;
+  uint8_t i = 0;
   lvl += LEVEL_ARRAY_SIZE >> 3;
 
-  byte b = pgm_read_byte(lvl);
+  uint8_t b = *(lvl);
   while (b != 0xFF)
   {
-    byte id, x, y;
-    id = pgm_read_byte(lvl + i) & 0xE0;
-    y = (pgm_read_byte(lvl + i++) & 0x1F);
-    x = pgm_read_byte(lvl + i++) & 0x1F;
+    uint8_t id, x, y;
+    id = *(lvl + i) & 0xE0;
+    y = (*(lvl + i++) & 0x1F);
+    x = *(lvl + i++) & 0x1F;
     switch ( id )
     {
       case LSTART:
@@ -113,7 +112,7 @@ void levelLoad(const uint8_t *lvl) {
       case LFAN:
         {
           // Fan
-          byte t = pgm_read_byte(lvl + i++);
+          uint8_t t = *(lvl + i++);
           if (t < 64)
             fansCreate(vec2(x, y), t);
           else if (t < 192)
@@ -125,7 +124,7 @@ void levelLoad(const uint8_t *lvl) {
       case LSPIKES:
         {
           // Spikes
-          spikesCreate(vec2(x, y), pgm_read_byte(lvl + (i - 1)) >> 5);
+          spikesCreate(vec2(x, y), *(lvl + (i - 1)) >> 5);
         }
         break;
       case LCOIN:
@@ -144,7 +143,7 @@ void levelLoad(const uint8_t *lvl) {
         //break;
     }
 
-    b = pgm_read_byte(lvl + i);
+    b = *(lvl + i);
   }
 }
 
@@ -153,12 +152,12 @@ void drawGrid() {
   int spacing = 16;
   //for (int x = 0; x < 9; ++x) {
       //for (int y = 0; y < 5; ++y) {
-  for (byte x = 8; x < 9; --x)
+  for (uint8_t x = 8; x < 9; --x)
   {
-      for (byte y = 5; y < 6; --y)
+      for (uint8_t y = 5; y < 6; --y)
       {
-            //sprites.drawSelfMasked(x * spacing - (cam.pos.x >> 2) % spacing, (int)y * spacing - (cam.pos.y >> 2) % spacing, tileSetTwo, 16);
-            sprites.drawSelfMasked(x * spacing - (cam.pos.x >> 2) % spacing, (int)y * spacing - ((cam.pos.y + 64) >> 2) % spacing, tileSetTwo, 16);
+            //gfx_sprite_self_masked(x * spacing - (cam.pos.x >> 2) % spacing, (int)y * spacing - (cam.pos.y >> 2) % spacing, tileSetTwo, 16);
+            gfx_sprite_self_masked(x * spacing - (cam.pos.x >> 2) % spacing, (int)y * spacing - ((cam.pos.y + 64) >> 2) % spacing, tileSetTwo, 16);
       }
   }
   for ( int x = (cam.pos.x >> 4); x <= (cam.pos.x >> 4) + 8; ++x)
@@ -178,27 +177,27 @@ void drawGrid() {
         //        Serial.print(" Tile: ");
         //        Serial.print(gridGetTile(x, y));
         //        Serial.print("\n");
-        byte tile = gridGetTile(x, y);
+        uint8_t tile = gridGetTile(x, y);
         if (tile != 16)
-          sprites.drawOverwrite((x << 4) - cam.pos.x, (y << 4) - cam.pos.y, tileSetTwo, tile);
+          gfx_sprite_overwrite((x << 4) - cam.pos.x, (y << 4) - cam.pos.y, tileSetTwo, tile);
       }
     }
   }
-  //sprites.drawPlusMask(levelExit.x - cam.pos.x, levelExit.y - cam.pos.y, sprDoor, walkerFrame);
-  //byte frame = 0;
+  //gfx_sprite_plus_mask(levelExit.x - cam.pos.x, levelExit.y - cam.pos.y, sprDoor, walkerFrame);
+  //uint8_t frame = 0;
   //if (key.haveKey) frame = walkerFrame + 1;
-  //sprites.drawPlusMask(levelExit.x - cam.pos.x, levelExit.y - cam.pos.y, sprDoor, (walkerFrame + 1) * (key.haveKey));
+  //gfx_sprite_plus_mask(levelExit.x - cam.pos.x, levelExit.y - cam.pos.y, sprDoor, (walkerFrame + 1) * (key.haveKey));
   int commonx = levelExit.x - cam.pos.x;
   int commony = levelExit.y - cam.pos.y;
-  //sprites.drawSelfMasked(commonx, commony, largeMask, 0);
-  //sprites.drawErase(commonx, commony, sprDoor, (walkerFrame + 1) * (key.haveKey));
-  sprites.drawOverwrite(commonx, commony, door, (key.haveKey));
+  //gfx_sprite_self_masked(commonx, commony, largeMask, 0);
+  //gfx_sprite_erase(commonx, commony, sprDoor, (walkerFrame + 1) * (key.haveKey));
+  gfx_sprite_overwrite(commonx, commony, door, (key.haveKey));
   //Serial.println("End of tile drawing");
 }
 
 void windNoise()
 {
-  if (arduboy.everyXFrames(2)) sound.tone(320 + random(20), 30);
+  if (everyXFrames(2)) playTone(320 + randomOf(20), 30);
 }
 
 void kidHurt()
@@ -214,7 +213,7 @@ void kidHurt()
   {*/
     kid.isBalloon = false;
     kid.balloons--;
-    sound.tone(420, 100);
+    playTone(420, 100);
     kid.isImune = true;
     kid.imuneTimer = 0;
   //}
@@ -234,12 +233,12 @@ void checkCollisions()
   {
     key.active = false;
     key.haveKey = true;
-    sound.tone(420, 200);
+    playTone(420, 200);
   }
 
   // Level exit
   HighRect exitRect = {.x = levelExit.x + 4, .y = levelExit.y, .width = 8, .height = 16};
-  if (collide(exitRect, playerRect) && arduboy.justPressed(UP_BUTTON) && key.haveKey)
+  if (collide(exitRect, playerRect) && justPressed(MYBL_UP) && key.haveKey)
   {
     balloonsLeft = kid.balloons;
     scoreIsVisible = true;
@@ -249,8 +248,8 @@ void checkCollisions()
   }
 
   // Enemies and objects
-  //for (byte i = 0; i < MAX_PER_TYPE; ++i)
-  for (byte i = MAX_PER_TYPE-1; i < MAX_PER_TYPE; --i)
+  //for (uint8_t i = 0; i < MAX_PER_TYPE; ++i)
+  for (uint8_t i = MAX_PER_TYPE-1; i < MAX_PER_TYPE; --i)
   {
     // Coins
     if (coins[i].active)
@@ -271,7 +270,7 @@ void checkCollisions()
         --coinsActive;
         ++coinsCollected;
         ++totalCoins;
-        sound.tone(400, 200);
+        playTone(400, 200);
         if (coinsActive == 0)
         {
           #ifndef HARD_MODE
@@ -279,7 +278,7 @@ void checkCollisions()
           #else
           scorePlayer += 1000;
           #endif
-          //sound.tone(400, 200);
+          //playTone(400, 200);
         }
         else
         {
@@ -288,7 +287,7 @@ void checkCollisions()
           #else
           scorePlayer += 400;
           #endif
-          //sound.tone(370, 200);
+          //playTone(370, 200);
         }
       }
     }
@@ -312,7 +311,7 @@ void checkCollisions()
               if (kid.balloons < 3) ++kid.balloons;
               else scorePlayer += 100;
               scorePlayer += 50;
-              sound.tone(200, 100);
+              playTone(200, 100);
             }
           }
           else
@@ -324,7 +323,7 @@ void checkCollisions()
               if (kid.balloons < 3) ++kid.balloons;
               else scorePlayer += 100;
               scorePlayer += 50;
-              sound.tone(200, 100);
+              playTone(200, 100);
             }
           }
         }
@@ -337,7 +336,7 @@ void checkCollisions()
       {
         kidHurt();
         kid.speed.y = PLAYER_JUMP_VELOCITY;
-        kid.speed.x = max(min((kid.pos.x - walkers[i].pos.x - 2), 3), -3) << FIXED_POINT;
+        kid.speed.x = maxOf(minOf((kid.pos.x - walkers[i].pos.x - 2), 3), -3) << FIXED_POINT;
       }
     }
     // Fans
@@ -372,16 +371,16 @@ void checkCollisions()
         switch (fans[i].dir)
         {
           case FAN_UP:
-          kid.speed.y = min(kid.speed.y + FAN_POWER, MAX_YSPEED);
+          kid.speed.y = minOf(kid.speed.y + FAN_POWER, MAX_YSPEED);
           break;
           case FAN_RIGHT:
-          kid.speed.x = min(kid.speed.x + FAN_POWER, MAX_XSPEED_FAN);
+          kid.speed.x = minOf(kid.speed.x + FAN_POWER, MAX_XSPEED_FAN);
           break;
           default:
-          kid.speed.x = max(kid.speed.x - FAN_POWER, -MAX_XSPEED_FAN);
+          kid.speed.x = maxOf(kid.speed.x - FAN_POWER, -MAX_XSPEED_FAN);
         }
-        //kid.speed.y = min(kid.speed.y + FAN_POWER, MAX_YSPEED);
-        //if (arduboy.everyXFrames(3)) sound.tone(330 + random(20), 30);
+        //kid.speed.y = minOf(kid.speed.y + FAN_POWER, MAX_YSPEED);
+        //if (everyXFrames(3)) playTone(330 + randomOf(20), 30);
         windNoise();
         //kid.actualpos.y -= FAN_POWER;
       }
@@ -398,15 +397,15 @@ void checkCollisions()
 
 void drawHUD()
 {
-  //for (byte i = 0; i < 16; i++)
-  for (byte i = 15; i < 16; --i)
+  //for (uint8_t i = 0; i < 16; i++)
+  for (uint8_t i = 15; i < 16; --i)
   {
-    sprites.drawSelfMasked(i * 8, 0, smallMask, 0);
+    gfx_sprite_self_masked(i * 8, 0, smallMask, 0);
   }
   drawBalloonLives();
   drawNumbers(91, 0, FONT_SMALL, DATA_SCORE);
   //if (coinsCollected < 6 || walkerFrame == 0)
   drawCoinHUD();
-  if (key.haveKey) sprites.drawOverwrite(28, 0, elementsHUD, 13);
+  if (key.haveKey) gfx_sprite_overwrite(28, 0, elementsHUD, 13);
 }
 #endif

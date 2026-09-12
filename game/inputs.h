@@ -1,36 +1,10 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include "../lib/Arduino.h"
 #include "globals.h"
 #include "player.h"
-#include "enemies.h"
 
 #define TIMER_AMOUNT 48
-
-static bool attack_hold_latched = false;
-
-static bool isWalkerVisibleForAttack() {
-  const int16_t view_left = cam.pos.x;
-  const int16_t view_top = cam.pos.y;
-  const int16_t view_right = cam.pos.x + 127;
-  const int16_t view_bottom = cam.pos.y + 63;
-
-  for (byte i = 0; i < MAX_PER_TYPE; ++i) {
-    if (!walkers[i].active || walkers[i].HP <= 0) continue;
-
-    const int16_t enemy_left = walkers[i].pos.x;
-    const int16_t enemy_top = walkers[i].pos.y;
-    const int16_t enemy_right = walkers[i].pos.x + 7;
-    const int16_t enemy_bottom = walkers[i].pos.y + 7;
-
-    const bool intersects = !(enemy_left > view_right || enemy_right < view_left ||
-                              enemy_top > view_bottom || enemy_bottom < view_top);
-    if (intersects) return true;
-  }
-
-  return false;
-}
 
 void checkInputs()
 {
@@ -40,17 +14,17 @@ void checkInputs()
     
   cam.offset = vec2(0, 0);
   kid.isWalking = false;
-  if (arduboy.pressed(DOWN_BUTTON))
+  if (pressed(MYBL_DOWN))
   {
     cam.offset.y = -CAMERA_OFFSET;
   }
-  else if (arduboy.pressed(UP_BUTTON))
+  else if (pressed(MYBL_UP))
   {
     cam.offset.y = CAMERA_OFFSET;
   }
   if (!kid.isSucking) 
   {
-    if (arduboy.pressed(LEFT_BUTTON))
+    if (pressed(MYBL_LEFT))
     {
       mapTimer = TIMER_AMOUNT;
       cam.offset.x = CAMERA_OFFSET;
@@ -64,12 +38,12 @@ void checkInputs()
       }
       else
       {
-        //kid.speed.x = max(kid.speed.x - PLAYER_SPEED_AIR, -MAX_XSPEED);
+        //kid.speed.x = maxOf(kid.speed.x - PLAYER_SPEED_AIR, -MAX_XSPEED);
         if (kid.speed.x > -MAX_XSPEED)
           kid.speed.x -= PLAYER_SPEED_AIR;
       }
     }
-    else if (arduboy.pressed(RIGHT_BUTTON))
+    else if (pressed(MYBL_RIGHT))
     {
       //mapTimer = TIMER_AMOUNT;
       cam.offset.x = -CAMERA_OFFSET;
@@ -83,29 +57,25 @@ void checkInputs()
       }
       else
       {
-        //kid.speed.x = min(kid.speed.x + PLAYER_SPEED_AIR, MAX_XSPEED);
+        //kid.speed.x = minOf(kid.speed.x + PLAYER_SPEED_AIR, MAX_XSPEED);
         if (kid.speed.x < MAX_XSPEED)
           kid.speed.x += PLAYER_SPEED_AIR;
       }
     }
   }
   kid.isSucking = false;
-  if (!arduboy.pressed(A_BUTTON))
-    attack_hold_latched = false;
-
-  if (arduboy.pressed(A_BUTTON))
+  if (pressed(MYBL_BACK))
   {
-    if (arduboy.pressed(DOWN_BUTTON))
-      gameState = STATE_MENU_INTRO;
-    else if (isWalkerVisibleForAttack() || attack_hold_latched)
+    if (pressed(MYBL_DOWN))
+      gameState = STATE_GAME_PAUSE;
+    else //if (!kid.isBalloon)
     {
       kid.isBalloon = false;
       kid.isSucking = true;
-      attack_hold_latched = true;
     }
   }
-  /*if (arduboy.pressed(A_BUTTON + DOWN_BUTTON))  gameState = STATE_GAME_PAUSE;
-  if (arduboy.pressed(A_BUTTON) && !kid.isBalloon)
+  /*if (pressed(MYBL_BACK + MYBL_DOWN))  gameState = STATE_GAME_PAUSE;
+  if (pressed(MYBL_BACK) && !kid.isBalloon)
   {
     kid.isSucking = true;
   }
@@ -113,18 +83,18 @@ void checkInputs()
     kid.isSucking = false;*/
 
   // Jump Button
-  if (arduboy.justPressed(B_BUTTON))
+  if (justPressed(MYBL_OK))
   {
     if (kid.speed.y == 0 && kid.isJumping == false && kid.isLanding == false)
     {
-      sound.tone(200, 100);
+      playTone(200, 100);
       kid.isWalking = false;
       kid.isJumping = true;
       kid.jumpLetGo = false;
       kid.jumpTimer = PLAYER_JUMP_TIME;
       kid.speed.y = PLAYER_JUMP_VELOCITY;
-      if (arduboy.pressed(RIGHT_BUTTON)) kid.speed.x = MAX_XSPEED;
-      else if (arduboy.pressed(LEFT_BUTTON)) kid.speed.x = -MAX_XSPEED;
+      if (pressed(MYBL_RIGHT)) kid.speed.x = MAX_XSPEED;
+      else if (pressed(MYBL_LEFT)) kid.speed.x = -MAX_XSPEED;
     }
     else
     {
@@ -137,7 +107,7 @@ void checkInputs()
       }
     }
   }
-  if (!arduboy.pressed(B_BUTTON))
+  if (!pressed(MYBL_OK))
   {
     kid.isBalloon = false;
     if (kid.isJumping) kid.jumpLetGo = true;

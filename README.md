@@ -18,6 +18,17 @@ The game features a **save system** that stores unlocked levels and scores, allo
 
 **Mystic Balloon** combines simple controls, gradually increasing difficulty, and tactical gameplay that rewards careful and thoughtful play.
 
+## Controls
+
+| Button | In game | In menu |
+| ------ | ------- | ------- |
+| **Left / Right** | Walk, steer in the air | — |
+| **Up** | Look up, enter the door | Move the selector |
+| **Down** | Look down | Move the selector |
+| **OK** | Jump, hold to hover on a balloon | Confirm |
+| **Back** | Hold to suck in coins and enemies | Cancel, exit on the main screen |
+| **Back + Down** | Pause | — |
+
 ## Screenshots
 |                                             |                                             |
 | ------------------------------------------- | ------------------------------------------- |
