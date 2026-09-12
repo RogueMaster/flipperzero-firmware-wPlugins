@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char* string_to_base16(const char* input) {
+char* base16_encode(const char* input) {
     if (input == NULL) return "no input provided";
 
     size_t len = strlen(input);
@@ -21,4 +21,35 @@ char* string_to_base16(const char* input) {
     hex_str[len * 2] = '\0'; 
 
     return hex_str;
+}
+
+char* base16_decode(const char* input) {
+    if (input == NULL) return "no input provided";
+
+    size_t len = strlen(input);
+
+    // A valid hex string must have an even number of characters
+    if (len % 2 != 0) return "invalid input length";
+
+    char* decoded = (char*)malloc((len / 2) + 1);
+    if (decoded == NULL) return "malloc failed";
+
+    for (size_t i = 0; i < len / 2; i++) {
+        char high = input[i * 2];
+        char low  = input[i * 2 + 1];
+
+        if (!isxdigit((unsigned char)high) || !isxdigit((unsigned char)low)) {
+            free(decoded);
+            return "invalid hex character";
+        }
+
+        // sscanf reads two hex chars into one byte
+        unsigned int byte;
+        sscanf(&input[i * 2], "%2x", &byte);
+        decoded[i] = (char)byte;
+    }
+
+    decoded[len / 2] = '\0';
+
+    return decoded;
 }
