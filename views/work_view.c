@@ -15,7 +15,6 @@ typedef struct {
     char time[12];
     char greeting[40];
     bool has_greeting;
-    uint8_t frame; // animation frame counter
 } WorkViewModel;
 
 static void work_view_draw_callback(Canvas* canvas, void* _model) {
@@ -87,7 +86,6 @@ void work_view_set_clock(WorkView* work_view, const char* date, const char* time
             model->date[sizeof(model->date) - 1] = '\0';
             strncpy(model->time, time ? time : "", sizeof(model->time) - 1);
             model->time[sizeof(model->time) - 1] = '\0';
-            model->frame++; // advance the mascot animation each update
         },
         true);
 }
