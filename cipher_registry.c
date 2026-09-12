@@ -11,6 +11,7 @@
 #include "ciphers/atbash.h"
 #include "ciphers/baconian.h"
 #include "ciphers/beaufort.h"
+#include "ciphers/bifid.h"
 #include "ciphers/caesar.h"
 #include "ciphers/playfair.h"
 #include "ciphers/polybius.h"
@@ -165,6 +166,18 @@ static CipherResult beaufort_transform(const char* input, int32_t a, int32_t b, 
     UNUSED(a);
     UNUSED(b);
     return ok_result(strdup(beaufort_cipher_encrypt_and_decrypt((char*)input, (char*)key)));
+}
+
+static CipherResult bifid_encode(const char* input, int32_t a, int32_t b, const char* key) {
+    UNUSED(a);
+    UNUSED(b);
+    return ok_result(bifid_encrypt(input, key));
+}
+
+static CipherResult bifid_decode(const char* input, int32_t a, int32_t b, const char* key) {
+    UNUSED(a);
+    UNUSED(b);
+    return ok_result(bifid_decrypt(input, key));
 }
 
 static CipherResult porta_transform(const char* input, int32_t a, int32_t b, const char* key) {
@@ -547,6 +560,26 @@ const CipherDef kCiphers[] = {
             "decryption. The cipher was named after Sir Francis Beaufort and was historically used "
             "in applications like encrypting naval signals. While more secure than simple ciphers "
             "like Caesar, it is still vulnerable to modern cryptanalysis techniques.",
+    },
+    {
+        .name = "Bifid Cipher",
+        .file_key = "bifid",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = bifid_encode,
+        .decode = bifid_decode,
+        .key_a_prompt = "Enter keyword",
+        .learn_text =
+            "The Bifid cipher, invented around 1901 by French cryptographer Felix Delastelle, "
+            "combines a Polybius square with a fractionation and transposition step to "
+            "encrypt letters based on both their position and the position of surrounding "
+            "letters. Each letter is first converted to a pair of coordinates using a 5x5 "
+            "grid (with I and J sharing a cell). All the row coordinates are then written "
+            "out, followed by all the column coordinates, and this combined sequence is read "
+            "off in new pairs and converted back into letters using the same square. Because "
+            "each ciphertext letter depends on the coordinates of two different plaintext "
+            "letters, Bifid diffuses information across the message more than simple "
+            "substitution ciphers, making frequency analysis considerably harder.",
     },
     {
         .name = "Caesar Cipher",
