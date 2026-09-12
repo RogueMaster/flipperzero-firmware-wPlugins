@@ -144,7 +144,11 @@ typedef struct {
 /* run is, not what it pays, so the number on screen is always one you  */
 /* could have worked out yourself.                                      */
 /* ------------------------------------------------------------------ */
-#define BB_STAT_ROWS   8 /* the stats screen, scrolled four at a time */
+#define BB_STAT_ROWS   8 /* the stats screen, scrolled */
+/* and how many fit at once. Both the drawing and the scrolling need this,
+   and they had drifted: one showed five rows while the other let you
+   scroll past four, so the last press down moved nothing anybody saw. */
+#define BB_STAT_VIS    5
 /* A reset asks once and listens for a second. Long enough to read SURE?
    and answer it, short enough that it cannot be left armed. */
 #define BB_CONFIRM_MS  1000
@@ -271,14 +275,15 @@ extern const BbNote bb_jingle_over[4];
 /* ------------------------------------------------------------------ */
 /* Layout, all of it straight off the browser's screens                */
 /* ------------------------------------------------------------------ */
-#define BB_ROW_L   14 /* list row label   */
-#define BB_ROW_R   114 /* list row value   */
-#define BB_CHEV_L  2 /* screen-edge chevrons */
-#define BB_CHEV_R  121
-#define BB_ROW_VAL 112 /* an adjustable row's value */
-#define BB_ROW_AL  4 /* and its two arrows        */
-#define BB_ROW_AR  118
-#define BB_DOT_MAX 14 /* past this the step dots become a count */
+#define BB_ROW_L    14 /* list row label   */
+#define BB_ROW_R    114 /* list row value   */
+#define BB_CHEV_L   2 /* screen-edge chevrons */
+#define BB_CHEV_R   121
+#define BB_SCROLL_X 122 /* where a list says there is more of it */
+#define BB_ROW_VAL  112 /* an adjustable row's value */
+#define BB_ROW_AL   4 /* and its two arrows        */
+#define BB_ROW_AR   118
+#define BB_DOT_MAX  14 /* past this the step dots become a count */
 
 /* ------------------------------------------------------------------ */
 /* Scenes, named as the browser names them                             */

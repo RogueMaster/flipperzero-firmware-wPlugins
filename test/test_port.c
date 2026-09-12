@@ -988,8 +988,8 @@ int main(void) {
     boot(&app);
     app.first_run = false;
     bb_enter(&app, BbSceneMenu);
-    bb_press(&app, InputKeyRight);
-    check("RIGHT off the menu opens the stats", app.scene == BbSceneStats, scene_name[app.scene]);
+    bb_press(&app, InputKeyLeft);
+    check("LEFT off the menu opens the stats", app.scene == BbSceneStats, scene_name[app.scene]);
     frame(&app);
     check("which counts what you have done", fc_saw("RUNS") && fc_saw("PLAYED"), "");
     bb_press(&app, InputKeyDown);
@@ -998,7 +998,22 @@ int main(void) {
     check("bringing the next stat into view", fc_saw("BEST EVER") && !fc_saw("RUNS"), "");
     for(int i = 0; i < 10; i++)
         bb_press(&app, InputKeyDown);
-    check("and stops at the bottom", app.stat_scroll == BB_STAT_ROWS - 4, "");
+    check("and stops at the bottom", app.stat_scroll == BB_STAT_ROWS - BB_STAT_VIS, "");
+    {
+        /* the drawing and the scrolling have to agree about how many rows
+           fit, or the last press down moves a cursor nothing follows */
+        const char* first;
+        const char* last;
+        const char* v;
+        char b[20];
+        bb_stat_row(&app, app.stat_scroll, &first, &v, b, sizeof(b));
+        bb_stat_row(&app, BB_STAT_ROWS - 1, &last, &v, b, sizeof(b));
+        frame(&app);
+        check(
+            "and the bottom of the list is what is drawn there",
+            fc_saw(first) && fc_saw(last),
+            last);
+    }
     frame(&app);
     check("which is where the favourites are", fc_saw("MODE") && fc_saw("ASSIST"), "");
     check("saying nothing rather than nought before you have played", fc_saw("-"), "");
@@ -1008,10 +1023,10 @@ int main(void) {
     /* the four screens in a row, walked both ways, with an arrow at every
        end that has somewhere to go and none at the two that do not */
     {
-        const BbScene row[4] = {BbSceneMenu, BbSceneStats, BbSceneScorePick, BbSceneCredits};
+        const BbScene row[4] = {BbSceneStats, BbSceneMenu, BbSceneScorePick, BbSceneCredits};
         boot(&app);
         app.first_run = false;
-        bb_enter(&app, BbSceneMenu);
+        bb_enter(&app, BbSceneStats);
         for(uint8_t i = 1; i < 4; i++) {
             bb_press(&app, InputKeyRight);
             check("RIGHT walks along the row", app.scene == row[i], scene_name[app.scene]);
@@ -1028,13 +1043,13 @@ int main(void) {
             check("LEFT walks back along it", app.scene == row[i - 1], scene_name[app.scene]);
         }
         bb_press(&app, InputKeyLeft);
-        check("and stops at the menu", app.scene == BbSceneMenu, "");
+        check("and stops at the stats", app.scene == BbSceneStats, "");
         frame(&app);
         check(
             "which points on and nowhere back",
             fc_ink_in(119, 30, 127, 42) && !fc_ink_in(0, 30, 8, 42),
             "");
-        bb_enter(&app, BbSceneStats);
+        bb_enter(&app, BbSceneMenu);
         frame(&app);
         check(
             "and the screens between point both ways",
@@ -1046,8 +1061,9 @@ int main(void) {
     app.rec.best[BbModeClassic][2][2][1] = 880; /* hard, fast, led */
     bb_enter(&app, BbSceneStats);
     bb_press(&app, InputKeyRight);
+    bb_press(&app, InputKeyRight);
     check(
-        "the records are the next screen along",
+        "the records are two screens along, past the menu",
         app.scene == BbSceneScorePick,
         scene_name[app.scene]);
     bb_press(&app, InputKeyOk);

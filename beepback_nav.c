@@ -129,7 +129,7 @@ static uint8_t setup_row_kind(const BeepbackApp* app) {
    what you have beaten, and who made it. LEFT and RIGHT walk along them
    and the arrows at the screen edges are drawn from this same answer, so
    an arrow can never point at a move that does not happen. */
-static const BbScene bb_chain[] = {BbSceneMenu, BbSceneStats, BbSceneScorePick, BbSceneCredits};
+static const BbScene bb_chain[] = {BbSceneStats, BbSceneMenu, BbSceneScorePick, BbSceneCredits};
 #define BB_CHAIN_N ((uint8_t)(sizeof(bb_chain) / sizeof(bb_chain[0])))
 
 BbScene bb_chain_step(const BeepbackApp* app, int8_t dir) {
@@ -146,9 +146,11 @@ BbScene bb_back_target(const BeepbackApp* app) {
     switch(app->scene) {
     case BbSceneMenu:
         return BbSceneCount; /* the root: BACK leaves the app entirely */
+    case BbSceneStats:
     case BbSceneScorePick:
+        return BbSceneMenu; /* the menu is the middle of the row */
     case BbSceneCredits:
-        return BbSceneStats; /* the stats screen is the front of this section */
+        return BbSceneScorePick;
     case BbSceneTable:
         return BbSceneScorePick;
     case BbSceneSetup:
@@ -479,7 +481,7 @@ void bb_press(BeepbackApp* app, InputKey key) {
         break;
 
     case BbSceneStats: {
-        const uint8_t VIS = 4;
+        const uint8_t VIS = BB_STAT_VIS;
         if(key == InputKeyDown && app->stat_scroll + VIS < BB_STAT_ROWS) app->stat_scroll++;
         if(key == InputKeyUp && app->stat_scroll > 0) app->stat_scroll--;
         break;

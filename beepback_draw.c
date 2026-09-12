@@ -57,13 +57,20 @@ static void bb_chev_r(Canvas* c, int32_t x, int32_t y) {
     canvas_draw_line(c, x + 1, y - 4, x + 5, y);
     canvas_draw_line(c, x + 5, y, x + 1, y + 4);
 }
+/* Up and down carry the same weight as left and right: two strokes, four
+   pixels of rise. They were a single thin stroke, which read as a
+   different kind of thing from the arrows either side of them. */
 static void bb_chev_u(Canvas* c, int32_t x, int32_t y) {
-    canvas_draw_line(c, x - 3, y + 2, x, y - 2);
-    canvas_draw_line(c, x, y - 2, x + 3, y + 2);
+    canvas_draw_line(c, x - 4, y + 2, x, y - 2);
+    canvas_draw_line(c, x, y - 2, x + 4, y + 2);
+    canvas_draw_line(c, x - 4, y + 3, x, y - 1);
+    canvas_draw_line(c, x, y - 1, x + 4, y + 3);
 }
 static void bb_chev_d(Canvas* c, int32_t x, int32_t y) {
-    canvas_draw_line(c, x - 3, y - 2, x, y + 2);
-    canvas_draw_line(c, x, y + 2, x + 3, y - 2);
+    canvas_draw_line(c, x - 4, y - 2, x, y + 2);
+    canvas_draw_line(c, x, y + 2, x + 4, y - 2);
+    canvas_draw_line(c, x - 4, y - 3, x, y + 1);
+    canvas_draw_line(c, x, y + 1, x + 4, y - 3);
 }
 
 static void bb_title(Canvas* c, const char* text) {
@@ -343,16 +350,17 @@ static void bb_draw_score_pick(Canvas* c, const BeepbackApp* app) {
     }
 }
 
-/* seven rules do not fit, so show where you are */
+/* A list that does not fit says so the way everything else in this app
+   says it: an arrow at the end you can still travel towards, and no
+   arrow at the end you cannot. It was a bar on three screens and a pair
+   of arrows on the fourth, because the bar wanted the same strip of
+   screen as the arrow to the next screen and lost - which left the app
+   with two ways of saying one thing. This is the other way. */
 static void
     bb_scrollbar(Canvas* c, int32_t top, int32_t track, uint8_t vis, uint8_t n, uint8_t scroll) {
     if(n > vis && scroll > n - vis) scroll = (uint8_t)(n - vis);
-    canvas_draw_frame(c, 122, top, 4, (size_t)track);
-    int32_t thumb = track * vis / n;
-    if(thumb < 6) thumb = 6;
-    int32_t room = track - thumb;
-    int32_t y = top + (n > vis ? room * scroll / (n - vis) : 0);
-    canvas_draw_box(c, 123, y + 1, 2, (size_t)(thumb - 2));
+    if(scroll > 0) bb_chev_u(c, BB_SCROLL_X, top + 3);
+    if(scroll + vis < n) bb_chev_d(c, BB_SCROLL_X, top + track - 4);
 }
 
 /* h:mm for anything over an hour, m:ss below it, so the number always
@@ -438,7 +446,7 @@ static void bb_stat_row(
 }
 
 static void bb_draw_stats(Canvas* c, const BeepbackApp* app) {
-    const uint8_t VIS = 5;
+    const uint8_t VIS = BB_STAT_VIS;
     uint8_t top = app->stat_scroll;
     char buf[20];
 
@@ -455,11 +463,7 @@ static void bb_draw_stats(Canvas* c, const BeepbackApp* app) {
         bb_str(c, 11, y, AlignLeft, AlignCenter, label);
         bb_str(c, 116, y, AlignRight, AlignCenter, value ? value : buf);
     }
-    /* Up and down where the list goes, rather than a scrollbar: the bar
-       wanted the same strip of screen as the arrow to the next screen,
-       and "FAV MODE" beside "CHALLENGE" wanted the rest of it. */
-    if(top > 0) bb_chev_u(c, 123, 17);
-    if(top + VIS < BB_STAT_ROWS) bb_chev_d(c, 123, 59);
+    bb_scrollbar(c, 14, VIS * 10, VIS, BB_STAT_ROWS, top);
 }
 
 /* A number in a table cell. A record nobody has set yet is a dash and not
