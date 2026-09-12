@@ -2,35 +2,27 @@
 #
 # This file does NOT belong in this repository - it is kept here so it is
 # version-controlled alongside the thing it describes. To publish, copy it
-# into a fork of flipperdevices/flipper-application-catalog at
+# into flipperdevices/flipper-application-catalog at
 #
 #     applications/Games/beepback/manifest.yml
 #
-# and open a pull request from there. See catalog/PUBLISHING.md.
+# and open a pull request. See catalog/PUBLISHING.md.
 #
 # Everything the catalog can read from application.fam is deliberately left
-# out of this file: name, id, author, category, icon, version and the short
-# description all come from there, and the bundler fails if a value given in
-# both disagrees.
+# out: name, id, author, category, icon, version and the short description
+# all come from there, and the bundler fails if a value given in both
+# disagrees. Keep the block below - from "sourcecode:" down - as the whole
+# of what gets submitted.
 
 sourcecode:
   type: git
   location:
     origin: https://github.com/h4sw5q2wr9-byte/BEEPBACK.git
-    # FILL THIS IN LAST. It must be the SHA of a commit that already
-    # contains the screenshots, because the paths below are resolved
-    # inside the repository at this exact commit.
-    commit_sha: 56f14f4a8cae9b722889fba15e5f55d03ca9425f
+    commit_sha: bdf19aa85d3f2796fb274d906de9da7f063dc8e8
 
-# README.md is the GitHub landing page and has images and tables in it,
-# neither of which the catalog's markdown filter allows. This is the same
-# text written to that subset.
 description: "@catalog/description.md"
 changelog: "@changelog.md"
 
-# Rendered by tools/shoot, which draws the app's own screens through the
-# firmware's u8g2 and the firmware's two fonts. See catalog/PUBLISHING.md
-# on why these are not qFlipper captures and what to do about it.
 screenshots:
   - screenshots/ss0.png
   - screenshots/ss1.png
