@@ -9,6 +9,7 @@ typedef enum {
     MenuIndexBadges,
     MenuIndexHistory,
     MenuIndexToday,
+    MenuIndexWeek,
     MenuIndexExport,
     MenuIndexSettings,
 } MenuIndex;
@@ -34,6 +35,8 @@ void timeclock_scene_menu_on_enter(void* context) {
         submenu, "History", MenuIndexHistory, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
         submenu, "Today", MenuIndexToday, timeclock_scene_menu_submenu_callback, app);
+    submenu_add_item(
+        submenu, "This week", MenuIndexWeek, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
         submenu, "Export", MenuIndexExport, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(

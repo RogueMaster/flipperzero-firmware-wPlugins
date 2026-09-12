@@ -95,9 +95,18 @@ bool tc_history_append(
 // If today_only == true only today's date is shown.
 void tc_history_read(FuriString* out, const char* filter_uid, bool today_only);
 
-// Compute minutes worked today (sum of IN/OUT pairs) for the given badge
-// (or all badges if filter_uid == NULL). Also fills first-in and last-out if
-// the pointers are not NULL.
+// Compute minutes worked on the given date "YYYY-MM-DD" (sum of IN/OUT pairs)
+// for the given badge (or all badges if filter_uid == NULL). Also fills
+// first-in and last-out if the pointers are not NULL.
+uint32_t tc_history_minutes_for_date(
+    const char* date_filter,
+    const char* filter_uid,
+    char* first_in,
+    size_t first_in_size,
+    char* last_out,
+    size_t last_out_size);
+
+// Convenience wrapper: same as above for today's date.
 uint32_t tc_history_today_minutes(
     const char* filter_uid,
     char* first_in,

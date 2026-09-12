@@ -28,6 +28,7 @@ then open **Apps -> Tools -> Time Clock**.
   (toggle each in Settings; on by default).
 - **Full NFC coverage**: any 13.56 MHz card (ISO14443-A/B, FeliCa, NFC-V) is
   recognized via NfcScanner; LF RFID (125 kHz) via the RFID worker.
+- **This week** summary: worked time per day of the current week plus the total.
 - **History** and **daily totals**; **CSV** and **JSON** export.
 - **PIN-protected** exit so collaborators cannot leave or tamper with the app.
 - Each collaborator is bound to their chip; if a chip is lost, reassign a new one

@@ -55,7 +55,8 @@ Flipper-style mockups of the main screens (128x64):
   OUT (ascending tone + 1 buzz + green for IN; descending tone + 2 buzzes + blue
   for OUT), so a tap tells you which one it was. Each is toggleable in Settings
   (all on by default).
-- **History** and a **Today** summary (first in, last out, total worked time).
+- **History**, a **Today** summary (first in, last out, total) and a **This week**
+  summary (worked time per day + weekly total).
 - **Storage on microSD** as plain CSV, plus **JSON export**.
 - **Protected mode (PIN)**: optional 4-digit PIN that gates leaving the app.
 
@@ -174,7 +175,7 @@ timeclock/
 
 ## Roadmap
 
-- **v1.1** - weekly summary, break calculation, richer history filters.
+- **v1.1** - weekly summary (done); next: break calculation, richer history filters.
 - **v2.0** - Bluetooth sync, companion app, backup, advanced badge management.
 
 ## Contributing

@@ -58,14 +58,21 @@ jobs:
       - name: Build FAP
         run: ufbt
 
-      - name: Rename FAP per firmware
-        run: cp dist/timeclock.fap "timeclock-${{ matrix.firmware }}.fap"
+      - name: Rename FAP per firmware and version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VER="$GITHUB_REF_NAME"
+          else
+            VER="dev-${GITHUB_SHA::7}"
+          fi
+          cp dist/timeclock.fap "timeclock-${{ matrix.firmware }}-${VER}.fap"
+          echo "Produced timeclock-${{ matrix.firmware }}-${VER}.fap"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: fap-${{ matrix.firmware }}
-          path: timeclock-${{ matrix.firmware }}.fap
+          path: timeclock-${{ matrix.firmware }}-*.fap
           if-no-files-found: error
 
   release:

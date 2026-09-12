@@ -338,7 +338,8 @@ void tc_history_read(FuriString* out, const char* filter_uid, bool today_only) {
     }
 }
 
-uint32_t tc_history_today_minutes(
+uint32_t tc_history_minutes_for_date(
+    const char* date_filter,
     const char* filter_uid,
     char* first_in,
     size_t first_in_size,
@@ -346,9 +347,6 @@ uint32_t tc_history_today_minutes(
     size_t last_out_size) {
     if(first_in && first_in_size) first_in[0] = '\0';
     if(last_out && last_out_size) last_out[0] = '\0';
-
-    char today[TC_DT_MAX];
-    tc_now_date(today, sizeof(today));
 
     uint32_t total = 0;
     int open_in = -1; // minutes of the last IN without a matching OUT
@@ -374,7 +372,7 @@ uint32_t tc_history_today_minutes(
             tc_csv_field(s, 3, uid, sizeof(uid));
             tc_csv_field(s, 4, type, sizeof(type));
 
-            if(strcmp(date, today) != 0) continue;
+            if(strcmp(date, date_filter) != 0) continue;
             if(filter_uid && strcmp(uid, filter_uid) != 0) continue;
 
             int minutes = tc_hhmm_to_minutes(time);
@@ -405,6 +403,18 @@ uint32_t tc_history_today_minutes(
     furi_record_close(RECORD_STORAGE);
 
     return total;
+}
+
+uint32_t tc_history_today_minutes(
+    const char* filter_uid,
+    char* first_in,
+    size_t first_in_size,
+    char* last_out,
+    size_t last_out_size) {
+    char today[TC_DT_MAX];
+    tc_now_date(today, sizeof(today));
+    return tc_history_minutes_for_date(
+        today, filter_uid, first_in, first_in_size, last_out, last_out_size);
 }
 
 bool tc_history_clear(void) {
