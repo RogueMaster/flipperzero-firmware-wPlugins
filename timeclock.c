@@ -1,0 +1,173 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Vladyslav Pereverzyev
+
+#include "timeclock.h"
+
+// -----------------------------------------------------------------------------
+// Shared helpers
+// -----------------------------------------------------------------------------
+
+const char* tc_event_str(TcEventType type) {
+    switch(type) {
+    case TcEventIn:
+        return "IN";
+    case TcEventOut:
+        return "OUT";
+    default:
+        return "-";
+    }
+}
+
+void timeclock_reload_badges(TimeClock* app) {
+    app->badge_count = tc_badges_load(app->badges, TC_MAX_BADGES);
+}
+
+int timeclock_find_badge(TimeClock* app, const char* uid) {
+    for(size_t i = 0; i < app->badge_count; i++) {
+        if(strcmp(app->badges[i].uid, uid) == 0) {
+            return (int)i;
+        }
+    }
+    return -1;
+}
+
+void timeclock_notify_success(TimeClock* app) {
+    notification_message(app->notifications, &sequence_success);
+}
+
+void timeclock_notify_error(TimeClock* app) {
+    notification_message(app->notifications, &sequence_error);
+}
+
+// -----------------------------------------------------------------------------
+// ViewDispatcher navigation callbacks
+// -----------------------------------------------------------------------------
+
+static bool timeclock_custom_event_callback(void* context, uint32_t event) {
+    furi_assert(context);
+    TimeClock* app = context;
+    return scene_manager_handle_custom_event(app->scene_manager, event);
+}
+
+static bool timeclock_back_event_callback(void* context) {
+    furi_assert(context);
+    TimeClock* app = context;
+    return scene_manager_handle_back_event(app->scene_manager);
+}
+
+static void timeclock_tick_event_callback(void* context) {
+    furi_assert(context);
+    TimeClock* app = context;
+    scene_manager_handle_tick_event(app->scene_manager);
+}
+
+// -----------------------------------------------------------------------------
+// Alloc / free
+// -----------------------------------------------------------------------------
+
+static TimeClock* timeclock_app_alloc(void) {
+    TimeClock* app = malloc(sizeof(TimeClock));
+    memset(app, 0, sizeof(TimeClock));
+
+    app->found_index = -1;
+    app->selected_index = -1;
+
+    app->gui = furi_record_open(RECORD_GUI);
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
+
+    app->view_dispatcher = view_dispatcher_alloc();
+    app->scene_manager = scene_manager_alloc(&timeclock_scene_handlers, app);
+
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
+    view_dispatcher_set_custom_event_callback(
+        app->view_dispatcher, timeclock_custom_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, timeclock_back_event_callback);
+    view_dispatcher_set_tick_event_callback(
+        app->view_dispatcher, timeclock_tick_event_callback, 500);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+
+    app->text_store = furi_string_alloc();
+
+    // GUI modules
+    app->submenu = submenu_alloc();
+    app->text_input = text_input_alloc();
+    app->text_box = text_box_alloc();
+    app->widget = widget_alloc();
+    app->popup = popup_alloc();
+    app->pin_view = pin_view_alloc();
+    app->work_view = work_view_alloc();
+
+    view_dispatcher_add_view(
+        app->view_dispatcher, TimeClockViewSubmenu, submenu_get_view(app->submenu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, TimeClockViewTextInput, text_input_get_view(app->text_input));
+    view_dispatcher_add_view(
+        app->view_dispatcher, TimeClockViewTextBox, text_box_get_view(app->text_box));
+    view_dispatcher_add_view(
+        app->view_dispatcher, TimeClockViewWidget, widget_get_view(app->widget));
+    view_dispatcher_add_view(app->view_dispatcher, TimeClockViewPopup, popup_get_view(app->popup));
+    view_dispatcher_add_view(
+        app->view_dispatcher, TimeClockViewPin, pin_view_get_view(app->pin_view));
+    view_dispatcher_add_view(
+        app->view_dispatcher, TimeClockViewWork, work_view_get_view(app->work_view));
+
+    // Persistence
+    tc_storage_init();
+    tc_config_load(&app->config);
+    timeclock_reload_badges(app);
+
+    return app;
+}
+
+static void timeclock_app_free(TimeClock* app) {
+    furi_assert(app);
+
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewSubmenu);
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewTextInput);
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewTextBox);
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewWidget);
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewPopup);
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewPin);
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewWork);
+
+    submenu_free(app->submenu);
+    text_input_free(app->text_input);
+    text_box_free(app->text_box);
+    widget_free(app->widget);
+    popup_free(app->popup);
+    pin_view_free(app->pin_view);
+    work_view_free(app->work_view);
+
+    scene_manager_free(app->scene_manager);
+    view_dispatcher_free(app->view_dispatcher);
+
+    furi_string_free(app->text_store);
+
+    furi_record_close(RECORD_NOTIFICATION);
+    furi_record_close(RECORD_GUI);
+
+    free(app);
+}
+
+// -----------------------------------------------------------------------------
+// Entry point
+// -----------------------------------------------------------------------------
+
+int32_t timeclock_app(void* p) {
+    UNUSED(p);
+    TimeClock* app = timeclock_app_alloc();
+
+    // If a PIN is configured, start locked; otherwise go straight to the menu.
+    if(app->config.pin_enabled) {
+        app->pin_mode = TcPinModeUnlock;
+        scene_manager_next_scene(app->scene_manager, TimeClockScenePinUnlock);
+    } else {
+        scene_manager_next_scene(app->scene_manager, TimeClockSceneMenu);
+    }
+
+    view_dispatcher_run(app->view_dispatcher);
+
+    timeclock_app_free(app);
+    return 0;
+}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128" font-family="'Courier New',monospace">
+  <rect x="2" y="2" width="252" height="124" rx="10" fill="#FF8200" stroke="#111" stroke-width="3"/>
+  <text x="128" y="22" text-anchor="middle" font-size="15" font-weight="bold" fill="#111">Enter PIN</text>
+  <!-- 4 digit boxes: first active (thick), others masked -->
+  <rect x="50" y="40" width="30" height="42" rx="5" fill="none" stroke="#111" stroke-width="3"/>
+  <rect x="92" y="40" width="30" height="42" rx="5" fill="none" stroke="#111" stroke-width="1.5"/>
+  <rect x="134" y="40" width="30" height="42" rx="5" fill="none" stroke="#111" stroke-width="1.5"/>
+  <rect x="176" y="40" width="30" height="42" rx="5" fill="none" stroke="#111" stroke-width="1.5"/>
+  <text x="65" y="70" text-anchor="middle" font-size="24" font-weight="bold" fill="#111">1</text>
+  <text x="107" y="72" text-anchor="middle" font-size="24" font-weight="bold" fill="#111">*</text>
+  <text x="149" y="72" text-anchor="middle" font-size="24" font-weight="bold" fill="#111">*</text>
+  <text x="191" y="72" text-anchor="middle" font-size="24" font-weight="bold" fill="#111">*</text>
+  <text x="128" y="108" text-anchor="middle" font-size="11" fill="#111">Up/Down: digit   OK: next</text>
+</svg>

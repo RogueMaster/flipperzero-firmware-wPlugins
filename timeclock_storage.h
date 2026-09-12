@@ -1,0 +1,109 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Vladyslav Pereverzyev
+
+#pragma once
+
+// =============================================================================
+// microSD persistence (path /ext/apps_data/timeclock/).
+//
+//   badges.csv   -> registered badges
+//   punches.csv  -> punch history (date,time,name,uid,type)
+//   config.txt   -> configuration (auto mode, PIN hash/salt, ...)
+//   export.json  -> JSON export of the history (generated on demand)
+//
+// The data model lives here because storage is what serializes/deserializes it.
+// =============================================================================
+
+#include <furi.h>
+#include <storage/storage.h>
+
+// ---- Limits ----------------------------------------------------------------
+#define TC_MAX_BADGES  64
+#define TC_NAME_MAX    33 // 32 chars + terminator
+#define TC_UID_STR_MAX 41 // up to 20 bytes in hex + terminator
+#define TC_TECH_MAX    6 // "NFC" / "RFID"
+#define TC_DT_MAX      20 // "YYYY-MM-DD HH:MM"
+
+// ---- Event types -----------------------------------------------------------
+typedef enum {
+    TcEventNone = 0,
+    TcEventIn = 1, // clock in
+    TcEventOut = 2, // clock out
+} TcEventType;
+
+// ---- Badge model -----------------------------------------------------------
+typedef struct {
+    char uid[TC_UID_STR_MAX];
+    char name[TC_NAME_MAX];
+    char tech[TC_TECH_MAX];
+    char created[TC_DT_MAX]; // registration date
+    char last_used[TC_DT_MAX]; // last use
+    TcEventType last_event; // last recorded punch
+} Badge;
+
+// ---- Persistent configuration ----------------------------------------------
+typedef struct {
+    bool auto_mode; // true = automatic IN/OUT
+    bool use_lf; // false = NFC (13.56 MHz), true = LF RFID (125 kHz)
+    bool pin_enabled; // true = protected mode active
+    uint32_t pin_hash; // PIN hash (never stored in clear text)
+    uint32_t pin_salt; // random salt used for the hash
+    uint32_t attempts; // consecutive wrong PIN attempts
+} TcConfig;
+
+// ---- File paths ------------------------------------------------------------
+#define TC_DIR_PATH     EXT_PATH("apps_data/timeclock")
+#define TC_BADGES_PATH  TC_DIR_PATH "/badges.csv"
+#define TC_HISTORY_PATH TC_DIR_PATH "/punches.csv"
+#define TC_CONFIG_PATH  TC_DIR_PATH "/config.txt"
+#define TC_EXPORT_PATH  TC_DIR_PATH "/export.json"
+
+// ---- Initialization --------------------------------------------------------
+// Create the data folder if missing. Call once at startup.
+void tc_storage_init(void);
+
+// ---- Current date/time (RTC) -----------------------------------------------
+void tc_now_date(char* out, size_t out_size); // "YYYY-MM-DD"
+void tc_now_time(char* out, size_t out_size); // "HH:MM"
+void tc_now_datetime(char* out, size_t out_size); // "YYYY-MM-DD HH:MM"
+
+// ---- Config ----------------------------------------------------------------
+void tc_config_load(TcConfig* config);
+void tc_config_save(const TcConfig* config);
+
+// ---- Badges ----------------------------------------------------------------
+// Load badges from badges.csv into out_badges (max TC_MAX_BADGES).
+// Returns the number of badges loaded.
+size_t tc_badges_load(Badge* out_badges, size_t max);
+// Rewrite badges.csv entirely with the provided array.
+bool tc_badges_save(const Badge* badges, size_t count);
+
+// ---- History ---------------------------------------------------------------
+// Append a row to punches.csv (writes the header if needed).
+bool tc_history_append(
+    const char* date,
+    const char* time,
+    const char* name,
+    const char* uid,
+    TcEventType type);
+
+// Load the whole history, formatted, into "out" for display.
+// If filter_uid != NULL only that badge's rows are shown.
+// If today_only == true only today's date is shown.
+void tc_history_read(FuriString* out, const char* filter_uid, bool today_only);
+
+// Compute minutes worked today (sum of IN/OUT pairs) for the given badge
+// (or all badges if filter_uid == NULL). Also fills first-in and last-out if
+// the pointers are not NULL.
+uint32_t tc_history_today_minutes(
+    const char* filter_uid,
+    char* first_in,
+    size_t first_in_size,
+    char* last_out,
+    size_t last_out_size);
+
+// Clear the history (keeps only the header).
+bool tc_history_clear(void);
+
+// Export the history to export.json. Returns true on success.
+bool tc_history_export_json(void);

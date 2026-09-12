@@ -1,0 +1,29 @@
+## Time Clock
+
+Standalone staff time-clock for Flipper Zero. Register collaborators on **blank**
+NFC/RFID badges and log clock IN/OUT to a CSV timesheet. Fully offline and
+PIN-protected. Identification only - no badge emulation, no authentication bypass.
+
+### Which file do I download?
+
+Pick the `.fap` that matches your firmware:
+
+| Firmware    | Asset                       |
+|-------------|-----------------------------|
+| Official    | `timeclock-official.fap`    |
+| Momentum    | `timeclock-momentum.fap`    |
+| Unleashed   | `timeclock-unleashed.fap`   |
+| RogueMaster | `timeclock-roguemaster.fap` |
+
+### Install
+
+Copy the matching `.fap` to your microSD under `apps/Tools/` (via qFlipper),
+then open **Apps -> Tools -> Time Clock**.
+
+### Highlights
+
+- **Work mode**: a locked kiosk clock; tap a badge for Welcome / Goodbye with
+  automatic IN/OUT.
+- **History** and **daily totals**; **CSV** and **JSON** export.
+- **PIN-protected** exit so collaborators cannot leave or tamper with the app.
+- Data is saved to the microSD on every punch - nothing is lost.
