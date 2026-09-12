@@ -3,7 +3,7 @@
 #include "Connectivity.h"
 #include "Draw.h"
 
-const BuildingInfo BuildingMetaData[] PROGMEM =
+const BuildingInfo BuildingMetaData[] =
 {
 	// None,
 	{ 0, 0, 0, 0 },
@@ -77,8 +77,8 @@ bool PlaceBuilding(uint8_t buildingType, uint8_t x, uint8_t y)
 
 	// Internally building space is represented as power lines to correctly flood fill etc
 	const BuildingInfo* metadata = GetBuildingInfo(buildingType);
-	uint8_t width = pgm_read_byte(&metadata->width);
-	uint8_t height = pgm_read_byte(&metadata->height);
+	uint8_t width = metadata->width;
+	uint8_t height = metadata->height;
 	uint8_t connectionMask = buildingType == Park ? 0 : PowerlineMask;
 
 	for (int i = x; i < x + width; i++)
@@ -97,8 +97,8 @@ bool PlaceBuilding(uint8_t buildingType, uint8_t x, uint8_t y)
 		if (IsRubble(building->type))
 		{
 			const BuildingInfo* otherMetadata = GetBuildingInfo(building->type);
-			uint8_t otherWidth = pgm_read_byte(&otherMetadata->width);
-			uint8_t otherHeight = pgm_read_byte(&otherMetadata->height);
+			uint8_t otherWidth = otherMetadata->width;
+			uint8_t otherHeight = otherMetadata->height;
 
 			if (x + width > building->x && x < building->x + otherWidth
 				&& y + height > building->y && y < building->y + otherHeight)
@@ -116,8 +116,8 @@ bool PlaceBuilding(uint8_t buildingType, uint8_t x, uint8_t y)
 bool CanPlaceBuilding(uint8_t buildingType, uint8_t x, uint8_t y)
 {
 	const BuildingInfo* metadata = GetBuildingInfo(buildingType);
-	uint8_t width = pgm_read_byte(&metadata->width);
-	uint8_t height = pgm_read_byte(&metadata->height);
+	uint8_t width = metadata->width;
+	uint8_t height = metadata->height;
 
 	if (x + width > MAP_WIDTH)
 		return false;
@@ -146,8 +146,8 @@ bool CanPlaceBuilding(uint8_t buildingType, uint8_t x, uint8_t y)
 		if (building->type && !IsRubble(building->type))
 		{
 			const BuildingInfo* otherMetadata = GetBuildingInfo(building->type);
-			uint8_t otherWidth = pgm_read_byte(&otherMetadata->width);
-			uint8_t otherHeight = pgm_read_byte(&otherMetadata->height);
+			uint8_t otherWidth = otherMetadata->width;
+			uint8_t otherHeight = otherMetadata->height;
 
 			if (x + width > building->x && x < building->x + otherWidth
 				&& y + height > building->y && y < building->y + otherHeight)
@@ -170,8 +170,8 @@ Building* GetBuilding(uint8_t x, uint8_t y)
 		if (building->type)
 		{
 			const BuildingInfo* metadata = GetBuildingInfo(building->type);
-			uint8_t width = pgm_read_byte(&metadata->width);
-			uint8_t height = pgm_read_byte(&metadata->height);
+			uint8_t width = metadata->width;
+			uint8_t height = metadata->height;
 
 			if (x >= building->x && x < building->x + width && y >= building->y && y < building->y + height)
 			{
@@ -186,8 +186,8 @@ Building* GetBuilding(uint8_t x, uint8_t y)
 void DestroyBuilding(Building* building)
 {
 	const BuildingInfo* info = GetBuildingInfo(building->type);
-	uint8_t width = pgm_read_byte(&info->width);
-	uint8_t height = pgm_read_byte(&info->height);
+	uint8_t width = info->width;
+	uint8_t height = info->height;
 
 	for (int y = building->y; y < building->y + height; y++)
 	{

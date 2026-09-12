@@ -1,20 +1,20 @@
 #include "Defines.h"
 
-const char BulldozerStr[] PROGMEM = "Bulldozer";
-const char RoadStr[] PROGMEM = "Road";
-const char PowerlineStr[] PROGMEM = "Powerline";
-const char ResidentialStr[] PROGMEM = "Residential";
-const char CommericalStr[] PROGMEM = "Commercial";
-const char IndustrialStr[] PROGMEM = "Industrial";
-const char PowerplantStr[] PROGMEM = "Powerplant";
-const char ParkStr[] PROGMEM = "Park";
-const char PoliceDeptStr[] PROGMEM = "Police Dept";
-const char FireDeptStr[] PROGMEM = "Fire Dept";
-const char StadiumStr[] PROGMEM = "Stadium";
-const char SaveLoadStr[] PROGMEM = "Save/Load";
-const char BudgetStr[] PROGMEM = "Budget";
+const char BulldozerStr[] = "Bulldozer";
+const char RoadStr[] = "Road";
+const char PowerlineStr[] = "Powerline";
+const char ResidentialStr[] = "Residential";
+const char CommericalStr[] = "Commercial";
+const char IndustrialStr[] = "Industrial";
+const char PowerplantStr[] = "Powerplant";
+const char ParkStr[] = "Park";
+const char PoliceDeptStr[] = "Police Dept";
+const char FireDeptStr[] = "Fire Dept";
+const char StadiumStr[] = "Stadium";
+const char SaveLoadStr[] = "Save/Load";
+const char BudgetStr[] = "Budget";
 
-const char* const ToolbarStrings[] PROGMEM =
+const char* const ToolbarStrings[] =
 {
 	BulldozerStr,
 	RoadStr,
@@ -33,23 +33,23 @@ const char* const ToolbarStrings[] PROGMEM =
 
 const char* GetToolbarString(int index)
 {
-	return (const char*)pgm_read_ptr(&ToolbarStrings[index]);
+	return ToolbarStrings[index];
 }
 
-const char JanStr[] PROGMEM = "Jan";
-const char FebStr[] PROGMEM = "Feb";
-const char MarStr[] PROGMEM = "Mar";
-const char AprStr[] PROGMEM = "Apr";
-const char MayStr[] PROGMEM = "May";
-const char JunStr[] PROGMEM = "Jun";
-const char JulStr[] PROGMEM = "Jul";
-const char AugStr[] PROGMEM = "Aug";
-const char SepStr[] PROGMEM = "Sep";
-const char OctStr[] PROGMEM = "Oct";
-const char NovStr[] PROGMEM = "Nov";
-const char DecStr[] PROGMEM = "Dec";
+const char JanStr[] = "Jan";
+const char FebStr[] = "Feb";
+const char MarStr[] = "Mar";
+const char AprStr[] = "Apr";
+const char MayStr[] = "May";
+const char JunStr[] = "Jun";
+const char JulStr[] = "Jul";
+const char AugStr[] = "Aug";
+const char SepStr[] = "Sep";
+const char OctStr[] = "Oct";
+const char NovStr[] = "Nov";
+const char DecStr[] = "Dec";
 
-const char* const MonthStrings[] PROGMEM =
+const char* const MonthStrings[] =
 {
 	JanStr,
 	FebStr,
@@ -67,7 +67,7 @@ const char* const MonthStrings[] PROGMEM =
 
 const char* GetMonthString(int index)
 {
-	return (const char*)pgm_read_ptr(&MonthStrings[index]);
+	return MonthStrings[index];
 }
 
 

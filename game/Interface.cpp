@@ -31,8 +31,8 @@ void UpdateInterface()
 void GetBuildingBrushLocation(BuildingType buildingType, uint8_t* outX, uint8_t* outY)
 {
 	const BuildingInfo* buildingInfo = GetBuildingInfo(buildingType);
-	uint8_t width = pgm_read_byte(&buildingInfo->width);
-	uint8_t height = pgm_read_byte(&buildingInfo->height);
+	uint8_t width = buildingInfo->width;
+	uint8_t height = buildingInfo->height;
 
 	if (UIState.selectX > 0)
 	{
@@ -242,8 +242,8 @@ void HandleInput(uint8_t input)
 				if (building && !IsRubble(building->type))
 				{
 					const BuildingInfo* buildingInfo = GetBuildingInfo(building->type);
-					uint8_t width = pgm_read_byte(&buildingInfo->width);
-					uint8_t height = pgm_read_byte(&buildingInfo->height);
+					uint8_t width = buildingInfo->width;
+					uint8_t height = buildingInfo->height;
 					int cost = width * height * BULLDOZER_COST;
 
 					if (State.money >= cost)
@@ -328,7 +328,7 @@ void HandleInput(uint8_t input)
 				const BuildingInfo* buildingInfo = GetBuildingInfo(buildingType);
 				uint8_t placeX, placeY;
 				GetBuildingBrushLocation(buildingType, &placeX, &placeY);
-				uint16_t cost = pgm_read_word(&buildingInfo->cost);
+				uint16_t cost = buildingInfo->cost;
 
 				if (CanPlaceBuilding(buildingType, placeX, placeY))
 				{

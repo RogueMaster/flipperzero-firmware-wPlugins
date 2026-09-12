@@ -1,8 +1,5 @@
 #pragma once
 
-#ifdef _WIN32
-#include <stdio.h>
-#endif
 #include <stdint.h>
 #include "Defines.h"
 #include "Building.h"

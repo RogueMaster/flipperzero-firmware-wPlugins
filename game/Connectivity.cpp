@@ -30,7 +30,7 @@ void SetConnections(int x, int y, uint8_t newVal)
 	}
 }
 
-const uint8_t TileVariants[] PROGMEM =
+const uint8_t TileVariants[] =
 {
 	0, 1, 0, 5, 1, 1, 2, 9, 0, 4, 0, 8, 3, 7, 6, 10
 };
@@ -107,7 +107,7 @@ int GetConnectivityTileVariant(int x, int y, uint8_t mask)
 {
 	uint8_t neighbours = GetNeighbouringConnectivity(x, y, mask);
 
-	return pgm_read_byte(&TileVariants[neighbours]);
+	return TileVariants[neighbours];
 }
 
 inline bool IsTilePowered(uint8_t x, uint8_t y)

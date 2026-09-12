@@ -1,4 +1,4 @@
-unsigned char const LogoBitmap[] PROGMEM =
+unsigned char const LogoBitmap[] =
 {
   // 72, 40
   0x00, 0xfe, 0x02, 0xfa, 0x0a, 0xea, 0xea, 0xea, 

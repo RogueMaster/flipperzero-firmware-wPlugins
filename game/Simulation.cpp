@@ -12,11 +12,7 @@ enum SimulationSteps
 	SimulateNextMonth
 };
 
-#ifdef _WIN32
-void DebugBuildingScore(Building* building, int score, int crime, int pollution, int localInfluence, int populationEffect, int randomEffect);
-#else
 inline void DebugBuildingScore(Building*, int, int, int, int, int, int) {}
-#endif
 
 #define SIM_INCREMENT_POP_THRESHOLD 20				// Score must be more than this to grow
 #define SIM_DECREMENT_POP_THRESHOLD -30				// Score must be less than this to shrink
@@ -50,8 +46,8 @@ inline void DebugBuildingScore(Building*, int, int, int, int, int, int) {}
 uint8_t GetNumRoadConnections(Building* building)
 {
 	const BuildingInfo* info = GetBuildingInfo(building->type);
-	uint8_t width = pgm_read_byte(&info->width);
-	uint8_t height = pgm_read_byte(&info->height);
+	uint8_t width = info->width;
+	uint8_t height = info->height;
 	uint8_t count = 0;
 
 	if(building->y > 0)
@@ -149,14 +145,6 @@ void DoBudget()
 	State.roadBudget = (numRoadTiles * ROAD_MAINTENANCE_COST) / 100;
 	State.money -= State.roadBudget;
 
-#ifdef _WIN32
-	printf("Budget for %d:\n", State.year + 1899);
-	printf("Population: %d\n", totalPopulation);
-	printf("Taxes collected: $%d\n", State.taxesCollected);
-	printf("Police cost: %d x $%d = $%d\n", numPoliceDept, FIRE_AND_POLICE_MAINTENANCE_COST, FIRE_AND_POLICE_MAINTENANCE_COST * numPoliceDept);
-	printf("Fire cost: %d x $%d = $%d\n", numFireDept, FIRE_AND_POLICE_MAINTENANCE_COST, FIRE_AND_POLICE_MAINTENANCE_COST * numFireDept);
-	printf("Road maintenance: %d tiles = $%d\n", numRoadTiles, State.roadBudget);
-#endif
 
 	int32_t cashFlow = State.taxesCollected - State.roadBudget - State.policeBudget * FIRE_AND_POLICE_MAINTENANCE_COST - State.fireBudget * FIRE_AND_POLICE_MAINTENANCE_COST;
 	if (!UIState.autoBudget || cashFlow <= 0 || State.money <= 0)
@@ -169,8 +157,8 @@ void DoBudget()
 bool SpreadFire(Building* building)
 {
 	const BuildingInfo* info = GetBuildingInfo(building->type);
-	uint8_t width = pgm_read_byte(&info->width);
-	uint8_t height = pgm_read_byte(&info->height);
+	uint8_t width = info->width;
+	uint8_t height = info->height;
 	uint8_t x1 = building->x > 1 ? building->x - 2 : building->x;
 	uint8_t y1 = building->y > 1 ? building->y - 2 : building->y;
 	uint8_t x2 = building->x + width + 2;
@@ -412,9 +400,6 @@ void SimulateBuilding(Building* building)
 				if (pollution > SIM_MAX_POLLUTION)
 					pollution = SIM_MAX_POLLUTION;
 				score -= pollution * SIM_POLLUTION_INFLUENCE;
-#if defined(_WIN32)
-//				printf("Pollution: %d\n", pollution * SIM_POLLUTION_INFLUENCE);
-#endif
 			}
 			
 			// simulate crime based on how far the closest police station is and how populated the area is
