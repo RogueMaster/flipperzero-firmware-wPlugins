@@ -1,14 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128" font-family="'Courier New',monospace">
   <rect x="2" y="2" width="252" height="124" rx="10" fill="#FF8200" stroke="#111" stroke-width="3"/>
-  <text x="128" y="19" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">Today</text>
-  <line x1="12" y1="25" x2="244" y2="25" stroke="#111" stroke-width="1"/>
-  <g font-size="13" fill="#111">
-    <text x="14" y="42">08:02</text><text x="96" y="42">Mario</text><text x="206" y="42">IN</text>
-    <text x="14" y="58">12:31</text><text x="96" y="58">Mario</text><text x="200" y="58">OUT</text>
-    <text x="14" y="74">13:27</text><text x="96" y="74">Mario</text><text x="206" y="74">IN</text>
-    <text x="14" y="90">17:46</text><text x="96" y="90">Mario</text><text x="200" y="90">OUT</text>
+  <text x="128" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#111">Today</text>
+  <line x1="12" y1="24" x2="244" y2="24" stroke="#111" stroke-width="1"/>
+  <g font-size="12" fill="#111">
+    <text x="14" y="38">08:02</text><text x="92" y="38">Mario</text><text x="206" y="38">IN</text>
+    <text x="14" y="52">12:31</text><text x="92" y="52">Mario</text><text x="200" y="52">OUT</text>
+    <text x="14" y="66">13:27</text><text x="92" y="66">Mario</text><text x="206" y="66">IN</text>
   </g>
-  <line x1="12" y1="98" x2="244" y2="98" stroke="#111" stroke-width="1"/>
-  <text x="14" y="116" font-size="14" font-weight="bold" fill="#111">Total:</text>
-  <text x="120" y="116" font-size="14" font-weight="bold" fill="#111">08:48</text>
+  <line x1="12" y1="72" x2="244" y2="72" stroke="#111" stroke-width="1"/>
+  <text x="14" y="90" font-size="13" font-weight="bold" fill="#111">Total: 08:48</text>
+  <text x="14" y="108" font-size="13" font-weight="bold" fill="#111">Break: 00:56</text>
 </svg>

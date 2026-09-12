@@ -9,7 +9,7 @@ App(
     stack_size=4 * 1024,
     fap_category="Tools",
     fap_author="Vladyslav Pereverzyev",
-    fap_version="1.1.1",
+    fap_version="1.1.2",
     fap_description="Staff time-clock for Flipper Zero (official and custom firmwares): register collaborators on blank NFC/RFID badges and log clock in/out to a CSV timesheet. Identification only: no badge emulation, no authentication bypass.",
     # No icon for now: the icon is optional. To add one later:
     #   fap_icon="timeclock.png",  (10x10 px, 1-bit)

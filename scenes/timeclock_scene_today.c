@@ -3,7 +3,16 @@
 
 #include "../timeclock.h"
 
-// Daily summary: today's punches plus first-in, last-out and total worked time.
+// Daily summary: today's punches plus first-in, last-out, total worked time and
+// total break time (idle time between the first IN and the last OUT).
+
+static int today_hhmm_to_minutes(const char* s) {
+    if(strlen(s) < 5) return -1;
+    int h = (s[0] - '0') * 10 + (s[1] - '0');
+    int m = (s[3] - '0') * 10 + (s[4] - '0');
+    if(h < 0 || h > 23 || m < 0 || m > 59) return -1;
+    return h * 60 + m;
+}
 
 void timeclock_scene_today_on_enter(void* context) {
     TimeClock* app = context;
@@ -19,13 +28,26 @@ void timeclock_scene_today_on_enter(void* context) {
     uint32_t h = minutes / 60;
     uint32_t m = minutes % 60;
 
+    // Break time = span (first in -> last out) minus worked minutes.
+    uint32_t brk = 0;
+    if(first_in[0] && last_out[0]) {
+        int fi = today_hhmm_to_minutes(first_in);
+        int lo = today_hhmm_to_minutes(last_out);
+        if(fi >= 0 && lo >= fi) {
+            int b = (lo - fi) - (int)minutes;
+            if(b > 0) brk = (uint32_t)b;
+        }
+    }
+
     furi_string_cat_printf(
         app->text_store,
-        "\nFirst in: %s\nLast out: %s\nTotal: %02lu:%02lu\n",
+        "\nFirst in: %s\nLast out: %s\nTotal: %02lu:%02lu\nBreak: %02lu:%02lu\n",
         first_in[0] ? first_in : "-",
         last_out[0] ? last_out : "-",
         (unsigned long)h,
-        (unsigned long)m);
+        (unsigned long)m,
+        (unsigned long)(brk / 60),
+        (unsigned long)(brk % 60));
 
     text_box_reset(text_box);
     text_box_set_font(text_box, TextBoxFontText);
