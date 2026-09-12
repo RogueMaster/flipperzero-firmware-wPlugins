@@ -31,15 +31,26 @@ screens, in the order the manifest lists them:
 - `ss5.png` - the STATS screen
 - `ss4.png` - the menu
 
-## 2. Commit and push
+## 2. The commit SHA
 
-Commit whatever is in `screenshots/`. Then take the SHA of that commit:
+Already filled in. `catalog/manifest.yml` points at the commit holding the
+screenshots and `catalog/description.md`. If you replace the screenshots,
+commit them, run `git rev-parse HEAD`, and put that SHA in instead — it must be
+a SHA, never a branch name.
 
-    git rev-parse HEAD
+## 2b. Two things only the repo owner can change
 
-Put it in the `commit_sha` field of `catalog/manifest.yml`, commit that too,
-and push. The SHA points at the commit holding the screenshots - it does not
-need to be the newest commit, and it must not be a branch name.
+Writes to repository settings are blocked for this session, so these are yours:
+
+- **Settings, General, Default branch** — switch it to `main`. The branch is
+  pushed and identical; the default is still the old `claude/...` name, which is
+  what a moderator sees first. The manifest pins a SHA, so nothing breaks either
+  way. Afterwards the old branch can be deleted.
+- **The repo page, the gear beside About** — description and topics. Suggested
+  description: *A memory game for Flipper Zero. Five modes, changing rules, and
+  a daily run every Flipper in the world plays the same.* Topics:
+  `flipperzero`, `flipper-zero`, `flipperzero-app`, `fap`, `game`, `memory-game`,
+  `embedded`, `c`.
 
 ## 3. Check the manifest before submitting
 
