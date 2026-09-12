@@ -130,3 +130,14 @@ bool tc_history_clear(void);
 
 // Export the history to export.json. Returns true on success.
 bool tc_history_export_json(void);
+
+// Filename-safe timestamp "YYYY-MM-DD_HHMM".
+void tc_now_stamp(char* out, size_t out_size);
+
+// Copy punches.csv to a dated snapshot punches-YYYY-MM-DD.csv. On success,
+// out_name receives the file name. Returns true on success.
+bool tc_export_csv_dated(char* out_name, size_t out_size);
+
+// Copy badges.csv and punches.csv into a timestamped backup under backup/.
+// out receives a short label. Returns true if at least one file was copied.
+bool tc_backup_all(char* out, size_t out_size);

@@ -153,6 +153,9 @@ static const char* const S[TcStrCount][TcLangCount] = {
          "Nada que exportar",
          "Rien a exporter",
          "Nichts zu exportieren"},
+    [StrBackup] = {"Backup", "Backup", "Copia seg.", "Sauvegarde", "Backup"},
+    [StrBackupDone] =
+        {"Backup saved", "Backup salvato", "Copia guardada", "Sauvegarde OK", "Backup fertig"},
     // ---- Settings (label words; value appended with a literal format) ----
     [StrReader] = {"Reader", "Lettore", "Lector", "Lecteur", "Leser"},
     [StrSound] = {"Sound", "Suono", "Sonido", "Son", "Ton"},

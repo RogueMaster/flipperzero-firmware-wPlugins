@@ -9,6 +9,7 @@
 typedef enum {
     ExportCsv,
     ExportJson,
+    ExportBackup,
     ExportClear,
 } ExportIndex;
 
@@ -50,6 +51,8 @@ static void timeclock_scene_export_show_menu(TimeClock* app) {
     submenu_add_item(
         submenu, tc_str(StrExportJson), ExportJson, timeclock_scene_export_submenu_callback, app);
     submenu_add_item(
+        submenu, tc_str(StrBackup), ExportBackup, timeclock_scene_export_submenu_callback, app);
+    submenu_add_item(
         submenu, tc_str(StrClearHistory), ExportClear, timeclock_scene_export_submenu_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewSubmenu);
 }
@@ -78,11 +81,26 @@ bool timeclock_scene_export_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         consumed = true;
         switch(event.event) {
-        case ExportCsv:
-            snprintf(
-                export_msg, sizeof(export_msg), "CSV file:\napps_data/timeclock/punches.csv");
+        case ExportCsv: {
+            char name[40];
+            if(tc_export_csv_dated(name, sizeof(name))) {
+                snprintf(export_msg, sizeof(export_msg), "%s\n(apps_data/timeclock)", name);
+            } else {
+                snprintf(export_msg, sizeof(export_msg), "%s", tc_str(StrNothingExport));
+            }
             timeclock_scene_export_show_popup(app, tc_str(StrExportCsv));
             break;
+        }
+        case ExportBackup: {
+            char loc[40];
+            if(tc_backup_all(loc, sizeof(loc))) {
+                snprintf(export_msg, sizeof(export_msg), "%s\n%s", tc_str(StrBackupDone), loc);
+            } else {
+                snprintf(export_msg, sizeof(export_msg), "%s", tc_str(StrNothingExport));
+            }
+            timeclock_scene_export_show_popup(app, tc_str(StrBackup));
+            break;
+        }
         case ExportJson:
             if(tc_history_export_json()) {
                 snprintf(

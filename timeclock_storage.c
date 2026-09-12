@@ -502,3 +502,44 @@ bool tc_history_export_json(void) {
     furi_record_close(RECORD_STORAGE);
     return ok;
 }
+
+void tc_now_stamp(char* out, size_t out_size) {
+    DateTime dt;
+    furi_hal_rtc_get_datetime(&dt);
+    snprintf(
+        out, out_size, "%04u-%02u-%02u_%02u%02u", dt.year, dt.month, dt.day, dt.hour, dt.minute);
+}
+
+bool tc_export_csv_dated(char* out_name, size_t out_size) {
+    char date[TC_DT_MAX];
+    tc_now_date(date, sizeof(date));
+    char path[128];
+    snprintf(path, sizeof(path), "%s/punches-%s.csv", TC_DIR_PATH, date);
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_common_remove(storage, path); // overwrite a same-day snapshot
+    FS_Error err = storage_common_copy(storage, TC_HISTORY_PATH, path);
+    furi_record_close(RECORD_STORAGE);
+
+    if(out_name) snprintf(out_name, out_size, "punches-%s.csv", date);
+    return err == FSE_OK;
+}
+
+bool tc_backup_all(char* out, size_t out_size) {
+    char ts[24];
+    tc_now_stamp(ts, sizeof(ts));
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_simply_mkdir(storage, TC_DIR_PATH "/backup");
+
+    char bpath[160];
+    char ppath[160];
+    snprintf(bpath, sizeof(bpath), "%s/backup/badges-%s.csv", TC_DIR_PATH, ts);
+    snprintf(ppath, sizeof(ppath), "%s/backup/punches-%s.csv", TC_DIR_PATH, ts);
+    FS_Error be = storage_common_copy(storage, TC_BADGES_PATH, bpath);
+    FS_Error pe = storage_common_copy(storage, TC_HISTORY_PATH, ppath);
+    furi_record_close(RECORD_STORAGE);
+
+    if(out) snprintf(out, out_size, "backup/%s", ts);
+    return be == FSE_OK || pe == FSE_OK;
+}

@@ -15,7 +15,9 @@ void timeclock_scene_badge_list_on_enter(void* context) {
     Submenu* submenu = app->submenu;
 
     submenu_reset(submenu);
-    submenu_set_header(submenu, tc_str(StrBadges));
+    char hdr[24];
+    snprintf(hdr, sizeof(hdr), "%s (%u)", tc_str(StrBadges), (unsigned)app->badge_count);
+    submenu_set_header(submenu, hdr);
 
     char label[TC_NAME_MAX + 8];
     for(size_t i = 0; i < app->badge_count; i++) {
