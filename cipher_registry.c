@@ -433,7 +433,6 @@ static CipherResult base16_encode_wrap(const char* input, int32_t a, int32_t b, 
     UNUSED(a);
     UNUSED(b);
     UNUSED(k);
-    size_t out_len;
     return ok_result(strdup(base16_decode(input)));
 }
 
@@ -985,6 +984,23 @@ const CipherDef kCiphers[] = {
             "cryptographic purposes due to its lack of security guarantees, it is widely used in "
             "performance-critical applications like databases, file systems, and compression "
             "tools.",
+    },
+    {
+        .name = "Base16 Encoding",
+        .file_key = "base16",
+        .category = CipherCategoryEncoder,
+        .key_kind = CipherKeyNone,
+        .encode = base16_encode_wrap,
+        .decode = base16_decode_wrap,
+        .learn_text =
+            "Base16, also known as hexadecimal encoding, is an encoding scheme that converts "
+            "binary data into a set of 16 ASCII characters, using the digits 0-9 and letters "
+            "A-F. It is commonly used for representing binary data in a human-readable format, "
+            "such as displaying byte values, memory addresses, checksums, or color codes in "
+            "web design. Each Base16 character represents exactly 4 bits of data, making it "
+            "less space-efficient than Base32 or Base64 but simple to read and reason about, "
+            "since each byte maps cleanly to exactly two hex characters. Unlike encryption or "
+            "hashing, Base16 is not secure - it's simply a reversible way to encode data.",
     },
     {
         .name = "Base32 Encoding",
