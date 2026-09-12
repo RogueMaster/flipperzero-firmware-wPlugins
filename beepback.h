@@ -139,12 +139,13 @@ typedef struct {
 /* ------------------------------------------------------------------ */
 /* Score                                                               */
 /*                                                                     */
-/* A point for every note you play back right, ten more for clearing a  */
-/* round. No multiplier: TIME and SPEED change how hard the run is, not */
-/* what it pays, so the number on screen is always something you could  */
-/* have counted yourself.                                              */
+/* Ten points for every note you play back right, a hundred for        */
+/* clearing a round. No multiplier: TIME and SPEED change how hard the  */
+/* run is, not what it pays, so the number on screen is always one you  */
+/* could have worked out yourself.                                      */
 /* ------------------------------------------------------------------ */
-#define BB_ROUND_BONUS 10 /* clearing a round, on top of the notes */
+#define BB_NOTE_POINTS 10 /* one note played back right */
+#define BB_ROUND_BONUS 100 /* clearing a round, instead of a stage award */
 
 extern const uint16_t bb_time_ms[BB_DIFF_COUNT];
 extern const uint16_t bb_rx_shrink[BB_DIFF_COUNT]; /* ms tighter per hit */

@@ -361,8 +361,8 @@ void bb_enter(BeepbackApp* app, BbScene scene) {
     if(scene == BbSceneSuccess) {
         /* not the run's generator: the daily must not depend on praise */
         app->praise = (uint8_t)((app->praise + 1 + (app->now >> 5)) % BB_PRAISE_COUNT);
-        /* a point a note: the score is the count of what you got right */
-        app->score += app->expected.len;
+        /* ten a note: the score is what you got right, counted in tens */
+        app->score += BB_NOTE_POINTS * app->expected.len;
         if(app->stage > app->run_best) app->run_best = app->stage;
         app->phase = app->now + BB_SUCCESS_MS;
         bb_play(app, bb_jingle_win, 3);
@@ -483,7 +483,7 @@ void bb_reflex_hit(BeepbackApp* app, uint8_t btn) {
     if(reaction > 0xFFFFu) reaction = 0xFFFFu;
     if(!app->rx_fastest || reaction < app->rx_fastest) app->rx_fastest = (uint16_t)reaction;
     app->rx_hits++;
-    app->score++; /* a point a hit, same as a point a note */
+    app->score += BB_NOTE_POINTS; /* a hit pays what a note pays */
     /* no real floor: the ramp has to end for everyone, however quick */
     uint16_t shrink = bb_rx_shrink[app->set.diff < BB_DIFF_COUNT ? app->set.diff : 1];
     app->rx_window = (app->rx_window > BB_RX_FLOOR + shrink) ?

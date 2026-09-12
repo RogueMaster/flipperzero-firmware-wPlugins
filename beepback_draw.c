@@ -787,7 +787,7 @@ static void bb_draw_success(Canvas* c, const BeepbackApp* app) {
     bb_font(c, true);
     bb_str(c, 64, 30, AlignCenter, AlignCenter, bb_praise[app->praise % BB_PRAISE_COUNT]);
     bb_font(c, false);
-    snprintf(buf, sizeof(buf), "+%u", app->expected.len);
+    snprintf(buf, sizeof(buf), "+%u", BB_NOTE_POINTS * app->expected.len);
     bb_str(c, 64, 47, AlignCenter, AlignCenter, buf);
 }
 
@@ -853,7 +853,7 @@ static void bb_draw_pause(Canvas* c, const BeepbackApp* app) {
 }
 
 static void bb_draw_game_over(Canvas* c, const BeepbackApp* app) {
-    char va[24], vb[24], vc[24];
+    char va[24], vb[24], vc[24], vd[24];
     const char* la[4];
     const char* lb[4];
     uint8_t n = 0;
@@ -882,20 +882,22 @@ static void bb_draw_game_over(Canvas* c, const BeepbackApp* app) {
         snprintf(va, sizeof(va), "%lu", (unsigned long)app->score);
         la[n] = "SCORE";
         lb[n++] = va;
-        /* in reflex the score is the hit count, so a HITS row would say it
-           twice; what reflex has instead of a longest run is a best time */
-        if(rx) {
-            snprintf(vb, sizeof(vb), "%luMS", (unsigned long)app->run_best);
-            la[n] = "FASTEST";
-        } else {
-            snprintf(vb, sizeof(vb), "%lu", (unsigned long)app->run_best);
-            la[n] = "LONGEST";
-        }
+        snprintf(vb, sizeof(vb), "%lu", (unsigned long)(rx ? app->rx_hits : app->run_best));
+        la[n] = rx ? "HITS" : "LONGEST";
         lb[n++] = vb;
-        snprintf(vc, sizeof(vc), "%lu", (unsigned long)app->prev_best);
-        la[n] = app->new_best ? "PREVIOUS BEST" : "BEST";
-        lb[n++] = vc;
-        const int32_t y0 = 21, step = 11;
+        if(rx) {
+            snprintf(vc, sizeof(vc), "%luMS", (unsigned long)app->run_best);
+            la[n] = "FASTEST";
+            lb[n++] = vc;
+            snprintf(vd, sizeof(vd), "%lu", (unsigned long)app->prev_best);
+            la[n] = app->new_best ? "PREVIOUS BEST" : "BEST";
+            lb[n++] = vd;
+        } else {
+            snprintf(vc, sizeof(vc), "%lu", (unsigned long)app->prev_best);
+            la[n] = app->new_best ? "PREVIOUS BEST" : "BEST";
+            lb[n++] = vc;
+        }
+        int32_t y0 = (n == 4) ? 18 : 21, step = (n == 4) ? 10 : 11;
         for(uint8_t i = 0; i < n; i++) {
             bb_str(c, BB_ROW_L, y0 + i * step, AlignLeft, AlignCenter, la[i]);
             bb_str(c, BB_ROW_R, y0 + i * step, AlignRight, AlignCenter, lb[i]);

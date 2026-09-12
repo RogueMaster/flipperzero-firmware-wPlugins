@@ -139,23 +139,22 @@ game over: input locked 800ms while the screen wipes down from the top.
 
 The score is a count of what you got right, and nothing else:
 
-- **one point a note.** Clearing a stage pays one point per press in that
-  stage, so a stage of six pays six.
-- **ten for a round.** `BB_ROUND_BONUS`. The stage that clears the round pays
-  the bonus instead of a stage award, not as well as one.
-- **one point a reflex hit.** In reflex the score and the hit count are the
-  same number, which is why the game over screen shows it once.
+- **ten a note.** `BB_NOTE_POINTS`. Clearing a stage pays ten per press in that
+  stage, so a stage of six pays 60.
+- **a hundred for a round.** `BB_ROUND_BONUS`, ten notes' worth. The stage that
+  clears the round pays the bonus instead of a stage award, not as well as one.
+- **ten a reflex hit.** A hit pays what a note pays.
 
 There is no multiplier. TIME and SPEED change how hard the run is, not what it
 pays, so the number on screen is always one the player could have counted. A
-first round comes out at 16 on every setting; a good classic run lands in the
-low hundreds.
+first round comes out at 160 on every setting; a good classic run lands in the
+low thousands.
 
 This replaced a system of twelve multipliers in ten-thousandths, a 10x stage
 award and a 50x round bonus. Both builds have to agree, so the browser build
 needs the same change: drop `MULT_TIME`, `MULT_TIME_RX`, `MULT_SPEED` and the
-`score x1.55` footer, pay `expected.length` on success and 10 on round clear,
-and pay 1 a hit in reflex.
+`score x1.55` footer, pay `10 * expected.length` on success and 100 on round
+clear, and pay 10 a hit in reflex.
 
 Records:
 

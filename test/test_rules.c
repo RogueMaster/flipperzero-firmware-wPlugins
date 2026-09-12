@@ -24,7 +24,8 @@ int main(void) {
        something the player could have counted: a point a note, ten for a
        round. This is here so that a multiplier cannot creep back in
        without a test going red. */
-    check("a round is worth ten", BB_ROUND_BONUS == 10, "");
+    check("a note is worth ten", BB_NOTE_POINTS == 10, "");
+    check("and a round is worth ten notes", BB_ROUND_BONUS == 10 * BB_NOTE_POINTS, "");
 
     /* ---- windows ---- */
     check("classic insane is 2000ms", bb_window_ms(BbModeClassic, 3) == 2000, "");

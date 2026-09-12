@@ -185,9 +185,9 @@ int main(void) {
     sprintf(msg, "%lu", (unsigned long)app.score);
     /* A point a note, and ten for the round. The stage that clears the
        round pays the bonus and not a stage award: hold goes to roundclear
-       rather than success, and only success pays per note. 1+2+3 then 10.
+       rather than success, and only success pays per note. 10+20+30 then 100.
        No multiplier is involved at any point, which is the whole idea. */
-    check("round one pays 1+2+3 and a 10 bonus", app.score == 16, msg);
+    check("round one pays 10+20+30 and a 100 bonus", app.score == 160, msg);
     check("and the round bonus replaced the last stage award", app.round == 2, "");
 
     /* Play the same round on the hardest setting there is. The score has
@@ -206,32 +206,32 @@ int main(void) {
             wait_scene(&app, BbSceneRoundClear, 400);
     }
     sprintf(msg, "%lu", (unsigned long)app.score);
-    check("insane and fast pays exactly the same 16", app.score == 16, msg);
+    check("insane and fast pays exactly the same 160", app.score == 160, msg);
 
     /* ---- a best is a best at the setting you played ---- */
     boot(&app);
-    app.rec.best[BbModeClassic][0][0][2] = 500; /* an old easy and slow run */
+    app.rec.best[BbModeClassic][0][0][2] = 5000; /* an old easy and slow run */
     app.run_game_mode = BbModeClassic;
     app.run_mode = 2;
     app.run_diff = 3;
     app.run_speed = 2;
-    app.score = 40;
+    app.score = 400;
     bb_enter(&app, BbSceneGameOver);
-    /* 40 would lose to the 500 on the headline board, which is how NEW
+    /* 400 would lose to the 5000 on the headline board, which is how NEW
        BEST used to be judged and why it almost never appeared. */
-    check("40 on insane beats nothing on insane, so it is a new best", app.new_best, "");
+    check("400 on insane beats nothing on insane, so it is a new best", app.new_best, "");
     sprintf(msg, "%lu", (unsigned long)app.rec.best[BbModeClassic][3][2][2]);
     check("and it lands in that setting's slot",
-          app.rec.best[BbModeClassic][3][2][2] == 40, msg);
+          app.rec.best[BbModeClassic][3][2][2] == 400, msg);
     check("leaving the easy record where it was",
-          app.rec.best[BbModeClassic][0][0][2] == 500, "");
-    app.score = 30;
+          app.rec.best[BbModeClassic][0][0][2] == 5000, "");
+    app.score = 300;
     bb_enter(&app, BbSceneGameOver);
     check("a worse run on the same setting is not a new best", !app.new_best, "");
     check("and does not lower the record",
-          app.rec.best[BbModeClassic][3][2][2] == 40, "");
+          app.rec.best[BbModeClassic][3][2][2] == 400, "");
     sprintf(msg, "%lu", (unsigned long)app.prev_best);
-    check("what it is measured against is that slot", app.prev_best == 40, msg);
+    check("what it is measured against is that slot", app.prev_best == 400, msg);
 
     /* ---- pausing stops the clock ---- */
     boot(&app);
@@ -325,7 +325,8 @@ int main(void) {
     sprintf(msg, "%u ms", app.rx_fastest);
     check("a hit records its reaction time", app.rx_fastest >= 100, msg);
     sprintf(msg, "%lu vs %u hits", (unsigned long)app.score, app.rx_hits);
-    check("and is worth one point, whatever the window", app.score == app.rx_hits, msg);
+    check("and is worth what a note is worth, whatever the window",
+          app.score == BB_NOTE_POINTS * app.rx_hits, msg);
     wait_scene(&app, BbSceneReflexCue, 4000);
     bb_press(&app, key_of((uint8_t)((app.rx_cue + 1) % BbBtnCount)));
     check("a wrong button ends the run", app.scene == BbSceneGameOver, scene_name[app.scene]);
