@@ -17,13 +17,16 @@ void timeclock_scene_badge_list_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, tc_str(StrBadges));
 
+    char label[TC_NAME_MAX + 8];
     for(size_t i = 0; i < app->badge_count; i++) {
+        // Mark collaborators currently clocked in.
+        if(app->badges[i].last_event == TcEventIn) {
+            snprintf(label, sizeof(label), "%s  IN", app->badges[i].name);
+        } else {
+            snprintf(label, sizeof(label), "%s", app->badges[i].name);
+        }
         submenu_add_item(
-            submenu,
-            app->badges[i].name,
-            (uint32_t)i,
-            timeclock_scene_badge_list_submenu_callback,
-            app);
+            submenu, label, (uint32_t)i, timeclock_scene_badge_list_submenu_callback, app);
     }
     // "New badge" uses the index just past the last badge.
     submenu_add_item(

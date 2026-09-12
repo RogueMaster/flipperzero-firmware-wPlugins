@@ -107,6 +107,14 @@ typedef enum {
     StrSkip,
     // About
     StrAboutText,
+    // Weekday abbreviations (Monday..Sunday)
+    StrDowMon,
+    StrDowTue,
+    StrDowWed,
+    StrDowThu,
+    StrDowFri,
+    StrDowSat,
+    StrDowSun,
 
     TcStrCount,
 } TcStr;

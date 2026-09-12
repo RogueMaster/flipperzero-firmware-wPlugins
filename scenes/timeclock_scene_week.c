@@ -23,7 +23,6 @@ void timeclock_scene_week_on_enter(void* context) {
     int since_monday = (dow + 6) % 7; // 0 if today is Monday
     uint32_t monday_ts = now_ts - (uint32_t)since_monday * 86400u;
 
-    static const char* const names[7] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
     uint32_t total = 0;
 
     for(int i = 0; i < 7; i++) {
@@ -38,7 +37,7 @@ void timeclock_scene_week_on_enter(void* context) {
         furi_string_cat_printf(
             s,
             "%s %02u/%02u  %02lu:%02lu\n",
-            names[i],
+            tc_str((TcStr)(StrDowMon + i)),
             d.day,
             d.month,
             (unsigned long)(mins / 60),
