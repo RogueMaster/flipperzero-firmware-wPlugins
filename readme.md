@@ -28,8 +28,8 @@
 ## Screenshots
 | | |
 |---|---|
-| ![s1](package/screenshots/1.png) | ![s2](package/screenshots/2.png) |
-| ![s3](package/screenshots/3.png) | ![s4](package/screenshots/4.png) |
+| ![s1](.catalog/screenshots/1.png) | ![s2](.catalog/screenshots/2.png) |
+| ![s3](.catalog/screenshots/3.png) | ![s4](.catalog/screenshots/4.png) |
 
 ## Original (Arduboy)
 **James Howard**
