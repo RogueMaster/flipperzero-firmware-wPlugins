@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.11
+
+- Fixed a device freeze on tap: the NFC poller was never told its own
+  worker thread should stop on a read (a regression from the reader
+  rewrite in 2.9/2.10), so the GUI thread's teardown raced an actively
+  running poller thread. NFC taps in Scan and Work mode both froze the
+  device solid. RFID and iButton were unaffected. Restored the exact
+  v1.3.0 shutdown signaling.
+- Replaced the on-screen "<"/">" button labels and "< NFC >" bracket
+  text with a minimal V-shaped chevron drawn at each screen edge, and
+  moved the active technology name to the same spot (bottom center) on
+  both the Scan and Work mode screens.
+
 ## 2.10
 
 - Manual technology selection extended to Punch, register and replace-chip:
