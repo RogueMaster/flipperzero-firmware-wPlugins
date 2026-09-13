@@ -239,8 +239,12 @@ Se Staff Time Clock ti e utile, puoi sostenere lo sviluppo:
 
 ## Licenza
 
-Copyright © 2026 Vladyslav Pereverzyev
+Staff Time Clock e **open source**, con licenza
+[GNU General Public License v3.0 o successiva](LICENSE).
 
-Distribuito sotto **GNU General Public License v3.0 o successiva** - vedi
-[LICENSE](LICENSE). I sorgenti riportano l'header
-`SPDX-License-Identifier: GPL-3.0-or-later`.
+- **Usala, modificala e ridistribuiscila liberamente** - per timbrature
+  personali o commerciali, su quanti Flipper vuoi.
+- **Se ridistribuisci una versione modificata**, deve restare sotto la
+  stessa licenza e il codice sorgente deve essere reso disponibile.
+- Copyright © 2026 Vladyslav Pereverzyev. I sorgenti riportano l'header
+  `SPDX-License-Identifier: GPL-3.0-or-later`.

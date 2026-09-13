@@ -245,8 +245,12 @@ Wenn dir Staff Time Clock nuetzlich ist, kannst du die Entwicklung unterstuetzen
 
 ## Lizenz
 
-Copyright © 2026 Vladyslav Pereverzyev
+Staff Time Clock ist **Open Source**, lizenziert unter der
+[GNU General Public License v3.0 oder spaeter](LICENSE).
 
-Lizenziert unter **GNU General Public License v3.0 oder spaeter** - siehe
-[LICENSE](LICENSE). Die Quelldateien tragen den Header
-`SPDX-License-Identifier: GPL-3.0-or-later`.
+- **Nutze, aendere und verbreite sie frei** - fuer private oder
+  kommerzielle Zeiterfassung, auf so vielen Flippern wie du willst.
+- **Wenn du eine geaenderte Version weitergibst**, muss sie unter derselben
+  Lizenz bleiben und ihr Quellcode verfuegbar sein.
+- Copyright © 2026 Vladyslav Pereverzyev. Die Quelldateien tragen den
+  Header `SPDX-License-Identifier: GPL-3.0-or-later`.
