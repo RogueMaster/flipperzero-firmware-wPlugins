@@ -68,16 +68,20 @@ Maquetas estilo Flipper de las pantallas principales (128x64):
   Cada persona esta ligada a ese chip (su UID): cada fichaje apunta a ese chip.
 - **Gestiona colaboradores (tarjetas)**: renombrar, **cambiar el chip** si se
   pierde (conserva nombre e historial, solo cambia el chip), ver el historial de
-  la persona, borrar (el historial se conserva).
+  la persona, **deshacer el ultimo fichaje** (corrige un error), borrar (el
+  historial se conserva).
 - **IN/OUT automatico**: al acercar una tarjeta alterna solo (primero IN, luego
   OUT, luego IN...) - sin eleccion manual, el fichaje es instantaneo.
 - **Feedback al fichar**: **sonido**, **vibracion** y **LED** distintos para IN y
   OUT (tono ascendente + 1 vibracion + verde para IN; tono descendente + 2
   vibraciones + azul para OUT). Cada uno desactivable en Ajustes (activados por
   defecto).
-- **Historial** con filtros (todos / hoy / semana, o por colaborador desde
-  Tarjetas), resumen **Hoy** (primera entrada, ultima salida, horas y pausas) y
-  **Semana** (horas por dia + total).
+- **Resumen**: pantalla rapida por colaborador (horas de hoy / semana / mes y
+  la pausa de hoy), Izquierda/Derecha para cambiar de persona.
+- **Historial** (un solo boton en el menu) con el registro completo (todos /
+  hoy / semana, o por colaborador desde Tarjetas), resumen **Hoy** (primera
+  entrada, ultima salida, horas y pausas), **Semana** (horas por dia + total) y
+  **Mes** (horas por colaborador).
 - **Guardado en microSD** en CSV, mas **exportar JSON**, **CSV con fecha**, una
   **Copia** (copia fechada de tarjetas + historial) y **Restaurar** (recargar
   tarjetas + historial desde una copia).
@@ -108,6 +112,7 @@ Todo se guarda en la microSD en `/ext/apps_data/timeclock/`:
 | `config.txt`  | Ajustes + **hash** del PIN y salt (nunca el PIN en claro)       |
 | `export.json` | Exportacion JSON del historial (*Export -> Export JSON*)        |
 | `punches-YYYY-MM-DD.csv` | Copia CSV con fecha (*Export -> Export CSV*)         |
+| `punches-YYYY-MM.csv` | Exportacion CSV del mes (*Export -> Export mes*)        |
 | `backup/`     | Copias fechadas de tarjetas + historial (*Export -> Backup*)    |
 
 `punches.csv` es la hoja de fichajes interna: cada entrada/salida de cada
@@ -207,6 +212,18 @@ timeclock/
 - **v1.1 / v1.2** - resumen semanal, calculo de pausas y filtros (hechos).
 - **v2.0** - copia y restauracion (hechas); luego: sync Bluetooth, app companion, import.
 
+## Flipper App Catalog
+
+Un manifest listo para el catalogo esta en [catalog/manifest.yml](catalog/manifest.yml)
+y el historial de versiones en [changelog.md](changelog.md). Para publicar en
+[apps.flipper.net](https://apps.flipper.net): haz un fork de
+[flipper-application-catalog](https://github.com/flipperdevices/flipper-application-catalog),
+copia el manifest a `applications/Tools/timeclock/manifest.yml`, pon su
+`commit_sha` en el commit de la release etiquetada, anade capturas reales
+tomadas con qFlipper (ver [screenshots/README.md](screenshots/README.md)) y
+abre un pull request. La app compila con la ultima Release SDK de `ufbt`
+(target f7).
+
 ## Contribuir
 
 Las contribuciones son bienvenidas - ver [CONTRIBUTING.md](CONTRIBUTING.md) y el
@@ -221,7 +238,7 @@ Si Staff Time Clock te resulta util, puedes apoyar el desarrollo:
 
 ## Licencia
 
-Copyright © 2026 Vladyslav Pereverzyev.
+Copyright © 2026 Vladyslav Pereverzyev
 
 Distribuido bajo **GNU General Public License v3.0 o posterior** - ver
 [LICENSE](LICENSE). Los archivos fuente llevan la cabecera

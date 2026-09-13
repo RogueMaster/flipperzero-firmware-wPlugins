@@ -70,16 +70,20 @@ Maquettes facon Flipper des ecrans principaux (128x64):
   puce.
 - **Gerer les collaborateurs (badges)**: renommer, **remplacer la puce** si perdue
   (garde le nom et l'historique, seule la puce change), voir l'historique de la
-  personne, supprimer (l'historique reste).
+  personne, **annuler le dernier pointage** (corriger une erreur), supprimer
+  (l'historique reste).
 - **IN/OUT automatique**: approcher un badge alterne tout seul (d'abord IN, puis
   OUT, puis IN...) - aucun choix manuel, le pointage est instantane.
 - **Retour au pointage**: **son**, **vibration** et **LED** distincts pour IN et
   OUT (tonalite montante + 1 vibration + vert pour IN; tonalite descendante + 2
   vibrations + bleu pour OUT). Chacun desactivable dans Reglages (actifs par
   defaut).
-- **Historique** avec filtres (tous / aujourd'hui / semaine, ou par collaborateur
-  depuis Badges), resume **Aujourd'hui** (premiere entree, derniere sortie, heures
-  et pauses) et **Semaine** (heures par jour + total).
+- **Apercu**: ecran rapide par collaborateur (heures du jour / semaine / mois et
+  la pause du jour), Gauche/Droite pour changer de personne.
+- **Historique** (un seul bouton du menu) avec le journal complet (tous /
+  aujourd'hui / semaine, ou par collaborateur depuis Badges), resume
+  **Aujourd'hui** (premiere entree, derniere sortie, heures et pauses),
+  **Semaine** (heures par jour + total) et **Mois** (heures par collaborateur).
 - **Stockage sur microSD** en CSV, plus **export JSON**, **CSV date**, une
   **Sauvegarde** (copie datee des badges + pointages) et **Restauration**
   (recharger badges + pointages depuis une sauvegarde).
@@ -110,6 +114,7 @@ Tout est enregistre sur la microSD dans `/ext/apps_data/timeclock/`:
 | `config.txt`  | Reglages + **hash** du PIN et sel (jamais le PIN en clair)      |
 | `export.json` | Export JSON de l'historique (*Export -> Export JSON*)           |
 | `punches-YYYY-MM-DD.csv` | Instantane CSV date (*Export -> Export CSV*)        |
+| `punches-YYYY-MM.csv` | Export CSV du mois (*Export -> Export mois*)            |
 | `backup/`     | Copies datees des badges + pointages (*Export -> Backup*)       |
 
 `punches.csv` est la feuille de pointage interne: chaque entree/sortie de chaque
@@ -212,6 +217,18 @@ timeclock/
 - **v1.1 / v1.2** - resume hebdomadaire, calcul des pauses et filtres (faits).
 - **v2.0** - sauvegarde et restauration (faites); ensuite: sync Bluetooth, app companion, import.
 
+## Flipper App Catalog
+
+Un manifest pret pour le catalogue se trouve dans [catalog/manifest.yml](catalog/manifest.yml)
+et l'historique des versions dans [changelog.md](changelog.md). Pour publier sur
+[apps.flipper.net](https://apps.flipper.net): forkez
+[flipper-application-catalog](https://github.com/flipperdevices/flipper-application-catalog),
+copiez le manifest dans `applications/Tools/timeclock/manifest.yml`, definissez
+son `commit_sha` sur le commit de la release taguee, ajoutez de vraies captures
+prises avec qFlipper (voir [screenshots/README.md](screenshots/README.md)) et
+ouvrez une pull request. L'app compile avec le dernier Release SDK `ufbt`
+(cible f7).
+
 ## Contribuer
 
 Les contributions sont bienvenues - voir [CONTRIBUTING.md](CONTRIBUTING.md) et le
@@ -226,7 +243,7 @@ Si Staff Time Clock vous est utile, vous pouvez soutenir le developpement:
 
 ## Licence
 
-Copyright © 2026 Vladyslav Pereverzyev.
+Copyright © 2026 Vladyslav Pereverzyev
 
 Distribue sous **GNU General Public License v3.0 ou ulterieure** - voir
 [LICENSE](LICENSE). Les fichiers source portent l'en-tete

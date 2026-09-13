@@ -8,13 +8,22 @@
 #      submitting (a full 40-char hash on the public repo).
 #   2. Add real screenshots captured with qFlipper (PNG, unaltered resolution)
 #      under screenshots/ in this repo and list them below. The first one is
-#      used as the catalog preview. See screenshots/README.md.
+#      used as the catalog preview. See screenshots/README.md. None exist yet
+#      as of this commit - the catalog will reject the submission without them.
 #   3. Ensure the app builds with the latest uFBT Release SDK (it does: f7,
 #      API 87.1).
+#   4. Validate this file with the catalog repo's tools/bundle.py before
+#      opening the PR (see documentation/Manifest.md#validating-manifest in
+#      the catalog repo).
 #
 # name, id, category and version are read from application.fam
 # (name="Staff Time Clock", appid="timeclock", fap_category="Tools",
-# fap_version="2.4.0").
+# fap_version="2.4").
+#
+# description below is written by hand for the catalog, not pulled from
+# README.md: the catalog only renders a small Markdown subset (headers 1-2,
+# bold/italic, lists, links - no images, no HTML, no tables, no blockquotes),
+# and README.md uses all of those for the GitHub page.
 
 sourcecode:
   type: git
@@ -24,7 +33,32 @@ sourcecode:
 
 short_description: Staff time-clock using NFC, RFID or iButton badges, logging to a CSV timesheet.
 
-description: "@README.md"
+description: |
+  Staff Time Clock is a standalone staff time-clock for the Flipper Zero.
+  Register collaborators on NFC, RFID or iButton badges and log clock IN/OUT
+  to a CSV timesheet, fully offline. Identification only - no badge
+  emulation, no authentication bypass.
+
+  ## Features
+
+  - Automatic multi-technology reader: NFC, RFID and iButton scanned in
+    rotation, one at a time, with no manual selection.
+  - Works with existing cards: only the UID is read, never written, so a
+    card already used elsewhere can be registered without being changed.
+  - Automatic IN/OUT punching, with distinct sound, vibration and LED
+    feedback for each.
+  - Work mode: a locked kiosk clock; tapping a badge logs the punch and
+    greets the person by name.
+  - Overview screen: today, week and month worked time plus today's break,
+    per collaborator, switch people with Left/Right.
+  - History with filters, daily/weekly/monthly summaries, an optional daily
+    target with overtime shown.
+  - CSV and JSON export, dated and monthly CSV snapshots, backup and
+    restore.
+  - PIN-protected exit with a 4-step arrow sequence, five UI languages.
+
+  Full documentation, including data file formats and firmware
+  compatibility notes, is in the project README linked below.
 
 changelog: "@changelog.md"
 

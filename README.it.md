@@ -69,16 +69,20 @@ Mockup in stile Flipper delle schermate principali (128x64):
   riferimento a quel chip.
 - **Gestisci i collaboratori (badge)**: rinomina, **sostituisci il chip** se
   perso (mantiene nome e storico, cambia solo il chip), vedi lo storico della
-  persona, elimina (lo storico resta).
+  persona, **annulla l'ultima timbratura** (correggi un errore), elimina (lo
+  storico resta).
 - **IN/OUT automatico**: avvicinando un badge si alterna da solo (prima IN, poi
   OUT, poi IN...) - nessuna scelta manuale, la timbratura e istantanea.
 - **Feedback alla timbratura**: **suono**, **vibrazione** e **LED** distinti per
   IN e OUT (tono ascendente + 1 vibrazione + verde per IN; tono discendente + 2
   vibrazioni + blu per OUT). Ognuno disattivabile in Impostazioni (di default
   attivi).
-- **Storico** con filtri (tutti / oggi / settimana, o per collaboratore dai
-  Badge), riepilogo **Oggi** (prima entrata, ultima uscita, ore e pause) e
-  **Settimana** (ore per giorno + totale).
+- **Panoramica**: schermata rapida per collaboratore (ore di oggi / settimana /
+  mese e la pausa di oggi), Sinistra/Destra per cambiare persona.
+- **Storico** (un solo pulsante nel menu) con il registro completo (tutti /
+  oggi / settimana, o per collaboratore dai Badge), riepilogo **Oggi** (prima
+  entrata, ultima uscita, ore e pause), **Settimana** (ore per giorno + totale)
+  e **Mese** (ore per collaboratore).
 - **Salvataggio su microSD** in CSV, piu **export JSON**, **CSV datato**, un
   **Backup** (copia datata di badge + storico) e **Ripristino** (ricarica badge +
   storico da un backup).
@@ -109,6 +113,7 @@ Tutto e salvato sulla microSD in `/ext/apps_data/timeclock/`:
 | `config.txt`  | Impostazioni + **hash** del PIN e salt (mai il PIN in chiaro)   |
 | `export.json` | Export JSON dello storico (*Export -> Export JSON*)             |
 | `punches-YYYY-MM-DD.csv` | Snapshot CSV datato (*Export -> Export CSV*)         |
+| `punches-YYYY-MM.csv` | Export CSV del mese (*Export -> Export mese*)           |
 | `backup/`     | Copie datate di badge + storico (*Export -> Backup*)            |
 
 `punches.csv` e il foglio presenze interno: ogni entrata/uscita di ogni
@@ -209,6 +214,17 @@ timeclock/
 - **v1.1 / v1.2** - riepilogo settimanale, calcolo pause e filtri storico (fatti).
 - **v2.0** - backup e ripristino (fatti); poi: sync Bluetooth, app companion, import.
 
+## Flipper App Catalog
+
+Un manifest pronto per il catalogo si trova in [catalog/manifest.yml](catalog/manifest.yml)
+e lo storico versioni in [changelog.md](changelog.md). Per pubblicare su
+[apps.flipper.net](https://apps.flipper.net): fai un fork di
+[flipper-application-catalog](https://github.com/flipperdevices/flipper-application-catalog),
+copia il manifest in `applications/Tools/timeclock/manifest.yml`, imposta il suo
+`commit_sha` sul commit della release taggata, aggiungi screenshot reali presi
+con qFlipper (vedi [screenshots/README.md](screenshots/README.md)) e apri una
+pull request. L'app compila con l'ultima Release SDK di `ufbt` (target f7).
+
 ## Contribuire
 
 I contributi sono benvenuti - vedi [CONTRIBUTING.md](CONTRIBUTING.md) e il
@@ -223,7 +239,7 @@ Se Staff Time Clock ti e utile, puoi sostenere lo sviluppo:
 
 ## Licenza
 
-Copyright © 2026 Vladyslav Pereverzyev.
+Copyright © 2026 Vladyslav Pereverzyev
 
 Distribuito sotto **GNU General Public License v3.0 o successiva** - vedi
 [LICENSE](LICENSE). I sorgenti riportano l'header

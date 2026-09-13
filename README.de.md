@@ -74,16 +74,20 @@ Flipper-artige Mockups der Hauptbildschirme (128x64):
   auf diesen Chip.
 - **Mitarbeiter (Ausweise) verwalten**: umbenennen, **Chip ersetzen** bei Verlust
   (Name und Verlauf bleiben, nur der Chip aendert sich), Verlauf der Person
-  ansehen, loeschen (Verlauf bleibt).
+  ansehen, **letzte Stempelung rueckgaengig machen** (Fehler korrigieren),
+  loeschen (Verlauf bleibt).
 - **Automatisches IN/OUT**: Anhalten wechselt selbst (erst IN, dann OUT, dann
   IN...) - keine manuelle Wahl, sofort gebucht.
 - **Rueckmeldung beim Stempeln**: getrennter **Ton**, **Vibration** und **LED**
   fuer IN und OUT (aufsteigender Ton + 1 Vibration + gruen fuer IN; absteigender
   Ton + 2 Vibrationen + blau fuer OUT). Jeweils in den Einstellungen abschaltbar
   (standardmaessig an).
-- **Verlauf** mit Filtern (alle / heute / Woche, oder je Mitarbeiter aus
-  Ausweise), **Heute**-Uebersicht (erstes Kommen, letztes Gehen, Stunden und
-  Pausen) und **Woche** (Stunden pro Tag + Wochensumme).
+- **Uebersicht**: schneller Bildschirm pro Mitarbeiter (Stunden heute / Woche /
+  Monat und die heutige Pause), Links/Rechts zum Wechseln der Person.
+- **Verlauf** (ein einziger Menuepunkt) mit dem vollstaendigen Protokoll (alle /
+  heute / Woche, oder je Mitarbeiter aus Ausweise), **Heute**-Uebersicht (erstes
+  Kommen, letztes Gehen, Stunden und Pausen), **Woche** (Stunden pro Tag +
+  Wochensumme) und **Monat** (Stunden pro Mitarbeiter).
 - **Speicherung auf microSD** als CSV, plus **JSON-Export**, **datiertes CSV**,
   ein **Backup** (datierte Kopie von Ausweisen + Stempeln) und
   **Wiederherstellen** (Ausweise + Stempel aus einem Backup laden).
@@ -114,6 +118,7 @@ Alles wird auf der microSD unter `/ext/apps_data/timeclock/` gespeichert:
 | `config.txt`  | Einstellungen + PIN-**Hash** und Salt (nie der PIN im Klartext) |
 | `export.json` | JSON-Export des Verlaufs (*Export -> Export JSON*)              |
 | `punches-YYYY-MM-DD.csv` | Datierter CSV-Schnappschuss (*Export -> Export CSV*) |
+| `punches-YYYY-MM.csv` | Monatlicher CSV-Export (*Export -> Export Monat*)       |
 | `backup/`     | Datierte Kopien von Ausweisen + Stempeln (*Export -> Backup*)   |
 
 `punches.csv` ist die interne Stempelliste: jedes Kommen/Gehen jedes Mitarbeiters
@@ -179,7 +184,7 @@ Standard-APIs und ist portabel.
 Der PIN ist eine schnelle **Folge aus 4 Pfeilen** (z. B. Hoch, Hoch, Links,
 Rechts). Er wird beim ersten Start angeboten oder jederzeit ueber *Einstellungen
 -> PIN setzen*. Wenn gesetzt, startet die App gesperrt und **Back verlaesst die
-App nicht mehr**; der einzige Software-Weg ist *Einstellungen -> App beenden*
+App nicht mehr**; der einzige Software-Weg ist *Einstellungen -> Beenden*
 (oder Work mode -> Back), der die Folge abfragt. Gespeichert wird nur ein
 **gesalzener Hash**, nie im Klartext.
 
@@ -214,6 +219,18 @@ timeclock/
 - **v1.1 / v1.2** - Wochenuebersicht, Pausenberechnung und Filter (fertig).
 - **v2.0** - Backup und Wiederherstellung (fertig); dann: Bluetooth-Sync, Companion-App, Import.
 
+## Flipper App Catalog
+
+Ein einreichfertiges Manifest liegt in [catalog/manifest.yml](catalog/manifest.yml)
+und die Versionsgeschichte in [changelog.md](changelog.md). Zum
+Veroeffentlichen auf [apps.flipper.net](https://apps.flipper.net): forke
+[flipper-application-catalog](https://github.com/flipperdevices/flipper-application-catalog),
+kopiere das Manifest nach `applications/Tools/timeclock/manifest.yml`, setze
+dessen `commit_sha` auf den Commit der getaggten Release, fuege echte, mit
+qFlipper aufgenommene Screenshots hinzu (siehe
+[screenshots/README.md](screenshots/README.md)) und eroeffne einen Pull
+Request. Die App baut mit dem neuesten `ufbt` Release SDK (Ziel f7).
+
 ## Mitwirken
 
 Beitraege sind willkommen - siehe [CONTRIBUTING.md](CONTRIBUTING.md) und den
@@ -228,7 +245,7 @@ Wenn dir Staff Time Clock nuetzlich ist, kannst du die Entwicklung unterstuetzen
 
 ## Lizenz
 
-Copyright © 2026 Vladyslav Pereverzyev.
+Copyright © 2026 Vladyslav Pereverzyev
 
 Lizenziert unter **GNU General Public License v3.0 oder spaeter** - siehe
 [LICENSE](LICENSE). Die Quelldateien tragen den Header
