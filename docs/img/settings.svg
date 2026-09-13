@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128" font-family="'Courier New',monospace">
   <rect x="2" y="2" width="252" height="124" rx="10" fill="#FF8200" stroke="#111" stroke-width="3"/>
-  <text x="128" y="19" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">Settings</text>
-  <line x1="12" y1="25" x2="244" y2="25" stroke="#111" stroke-width="1"/>
-  <text x="16" y="42" font-size="13" fill="#111">Reader: NFC</text>
-  <rect x="8" y="47" width="230" height="18" rx="6" fill="#111"/>
-  <text x="16" y="60" font-size="13" fill="#FF8200">Sound: On</text>
-  <text x="16" y="78" font-size="13" fill="#111">Vibro: On</text>
-  <text x="16" y="95" font-size="13" fill="#111">LED: On</text>
-  <text x="16" y="112" font-size="13" fill="#111">Set PIN</text>
-  <rect x="246" y="30" width="4" height="90" rx="2" fill="#111" opacity="0.25"/>
-  <rect x="246" y="38" width="4" height="30" rx="2" fill="#111"/>
+  <text x="128" y="18" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">Settings</text>
+  <line x1="12" y1="24" x2="244" y2="24" stroke="#111" stroke-width="1"/>
+  <text x="16" y="40" font-size="12" fill="#111">Reader: NFC</text>
+  <rect x="8" y="45" width="230" height="17" rx="6" fill="#111"/>
+  <text x="16" y="57" font-size="12" fill="#FF8200">Sound: On</text>
+  <text x="16" y="75" font-size="12" fill="#111">Vibro: On</text>
+  <text x="16" y="92" font-size="12" fill="#111">LED: On</text>
+  <text x="16" y="109" font-size="12" fill="#111">Language: EN</text>
+  <rect x="246" y="30" width="4" height="92" rx="2" fill="#111" opacity="0.25"/>
+  <rect x="246" y="36" width="4" height="28" rx="2" fill="#111"/>
 </svg>
