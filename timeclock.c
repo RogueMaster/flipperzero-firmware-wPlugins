@@ -214,6 +214,7 @@ static TimeClock* timeclock_app_alloc(void) {
     app->pin_view = pin_view_alloc();
     app->work_view = work_view_alloc();
     app->overview_view = overview_view_alloc();
+    app->scan_view = scan_view_alloc();
 
     view_dispatcher_add_view(
         app->view_dispatcher, TimeClockViewSubmenu, submenu_get_view(app->submenu));
@@ -232,6 +233,8 @@ static TimeClock* timeclock_app_alloc(void) {
         app->view_dispatcher,
         TimeClockViewOverview,
         overview_view_get_view(app->overview_view));
+    view_dispatcher_add_view(
+        app->view_dispatcher, TimeClockViewScan, scan_view_get_view(app->scan_view));
 
     // Persistence
     tc_storage_init();
@@ -253,6 +256,7 @@ static void timeclock_app_free(TimeClock* app) {
     view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewPin);
     view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewWork);
     view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewOverview);
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewScan);
 
     submenu_free(app->submenu);
     text_input_free(app->text_input);
@@ -262,6 +266,7 @@ static void timeclock_app_free(TimeClock* app) {
     pin_view_free(app->pin_view);
     work_view_free(app->work_view);
     overview_view_free(app->overview_view);
+    scan_view_free(app->scan_view);
 
     scene_manager_free(app->scene_manager);
     view_dispatcher_free(app->view_dispatcher);

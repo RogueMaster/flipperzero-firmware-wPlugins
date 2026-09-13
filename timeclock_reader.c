@@ -48,6 +48,15 @@ struct TimeclockReader {
     void* context;
 
     bool running;
+    // Only affects the NFC poller (see reader_poller_callback): whether it
+    // should signal its own internal loop to stop as soon as a card is read,
+    // or keep hunting for the next one. This isn't optional bookkeeping -
+    // freeing a poller with nfc_poller_stop()/_free() from the GUI thread
+    // while its own worker thread hasn't wound down (because it was never
+    // told to via this NfcCommand) is a real GUI-thread-vs-worker-thread
+    // race that hangs the device. Restored from the original v1.3.0 reader,
+    // which never had this problem.
+    bool continuous;
     ReaderRadio active;
 
     // Only the currently active radio's handles are non-NULL.
@@ -95,6 +104,7 @@ static NfcCommand reader_poller_callback(NfcGenericEvent event, void* context) {
         if(uid && uid_len > 0) {
             reader_format_uid(reader, uid, uid_len, "NFC");
             view_dispatcher_send_custom_event(reader->vd, READER_EVENT_UID);
+            if(!reader->continuous) command = NfcCommandStop;
         }
     }
     return command;
@@ -237,10 +247,11 @@ void timeclock_reader_set_callback(
 // ReaderRadio and TimeclockReaderTech share the same ordinal values (both
 // Nfc=0, Rfid=1, IButton=2) by design, so a tech can be assigned to `active`
 // directly.
-void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech) {
+void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech, bool continuous) {
     furi_assert(reader);
     timeclock_reader_stop(reader); // idempotent: never leak a previous session
 
+    reader->continuous = continuous;
     reader->running = true;
     reader->active = (ReaderRadio)tech;
     reader_start_active(reader);

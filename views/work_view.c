@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Vladyslav Pereverzyev
 
 #include "work_view.h"
+#include "tc_chevron.h"
 #include <furi.h>
 
 struct WorkView {
@@ -37,10 +38,14 @@ static void work_view_draw_callback(Canvas* canvas, void* _model) {
         canvas_draw_str_aligned(canvas, 70, 32, AlignCenter, AlignCenter, model->time);
     }
 
-    // Footer hint
+    // Footer hint (active reader technology, or the PIN/Back exit hint)
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(
         canvas, 64, 62, AlignCenter, AlignBottom, model->footer[0] ? model->footer : "PIN to exit");
+
+    // Left/Right chevrons, hinting the technology picker.
+    tc_draw_chevron_left(canvas, 2, 32);
+    tc_draw_chevron_right(canvas, 122, 32);
 }
 
 static bool work_view_input_callback(InputEvent* event, void* context) {

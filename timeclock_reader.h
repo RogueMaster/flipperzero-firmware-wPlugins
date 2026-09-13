@@ -62,10 +62,14 @@ void timeclock_reader_set_callback(
     void* context);
 
 // Start reading using only the given technology; the same radio stays
-// allocated until stop() is called. Safe to call again after stop(), and
-// safe to call directly to switch technology without stopping first (it
-// stops the previous radio itself).
-void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech);
+// allocated until stop() is called. continuous keeps reading after each UID
+// (Work mode) instead of stopping after the first (single scan: Punch,
+// register, replace chip) - for the NFC poller specifically this controls
+// whether it is told to stop its own internal loop on a read, which matters
+// for a clean shutdown (see timeclock_reader.c). Safe to call again after
+// stop(), and safe to call directly to switch technology without stopping
+// first (it stops the previous radio itself).
+void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech, bool continuous);
 
 // Stop and release the radio (the reader object itself stays valid).
 void timeclock_reader_stop(TimeclockReader* reader);

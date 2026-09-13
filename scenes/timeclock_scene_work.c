@@ -43,9 +43,9 @@ typedef struct {
 } WorkCtx;
 
 static void work_update_footer(TimeClock* app, WorkCtx* ctx) {
-    char footer[24];
-    snprintf(footer, sizeof(footer), "< %s >", timeclock_reader_tech_label(ctx->tech));
-    work_view_set_footer(app->work_view, footer);
+    // The Left/Right chevrons at the screen edges are the "this is
+    // switchable" hint; the footer just names the active technology.
+    work_view_set_footer(app->work_view, timeclock_reader_tech_label(ctx->tech));
 }
 
 // Reader callback (GUI thread): debounce, then log the punch and greet.
@@ -95,7 +95,7 @@ static void work_view_nav_cb(int direction, void* context) {
     int next = ((int)ctx->tech + direction + TimeclockReaderTechCount) % TimeclockReaderTechCount;
     ctx->tech = (TimeclockReaderTech)next;
     ctx->last_uid[0] = '\0'; // fresh technology, fresh debounce state
-    timeclock_reader_start_fixed(ctx->reader, ctx->tech);
+    timeclock_reader_start_fixed(ctx->reader, ctx->tech, true);
     work_update_footer(app, ctx);
 
     // Remember the choice across Work mode sessions (and app restarts).
@@ -158,7 +158,7 @@ void timeclock_scene_work_on_enter(void* context) {
     work_update_clock(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWork);
 
-    timeclock_reader_start_fixed(ctx->reader, ctx->tech);
+    timeclock_reader_start_fixed(ctx->reader, ctx->tech, true);
 }
 
 bool timeclock_scene_work_on_event(void* context, SceneManagerEvent event) {

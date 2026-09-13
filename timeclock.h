@@ -35,6 +35,7 @@
 #include "views/pin_view.h"
 #include "views/work_view.h"
 #include "views/overview_view.h"
+#include "views/scan_view.h"
 #include "scenes/timeclock_scene.h"
 
 #define TC_TAG "TimeClock"
@@ -57,6 +58,7 @@ typedef enum {
     TimeClockViewPin,
     TimeClockViewWork,
     TimeClockViewOverview,
+    TimeClockViewScan,
 } TimeClockView;
 
 // ---- ViewDispatcher custom events ------------------------------------------
@@ -101,6 +103,7 @@ typedef struct {
     PinView* pin_view;
     WorkView* work_view;
     OverviewView* overview_view;
+    ScanView* scan_view;
 
     // Content buffer for the TextBox (history / today)
     FuriString* text_store;

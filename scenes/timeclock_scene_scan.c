@@ -22,8 +22,6 @@
 // =============================================================================
 
 #define SCAN_POPUP_DONE 205u
-#define SCAN_NAV_LEFT   206u
-#define SCAN_NAV_RIGHT  207u
 
 typedef struct {
     TimeclockReader* reader;
@@ -33,24 +31,10 @@ typedef struct {
 } ScanCtx;
 
 static char scan_msg[64];
-static char scan_tech_footer[16];
 
 static void timeclock_scene_scan_popup_callback(void* context) {
     TimeClock* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, SCAN_POPUP_DONE);
-}
-
-static void timeclock_scene_scan_nav_button_callback(
-    GuiButtonType result,
-    InputType type,
-    void* context) {
-    TimeClock* app = context;
-    if(type != InputTypeShort) return;
-    if(result == GuiButtonTypeLeft) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, SCAN_NAV_LEFT);
-    } else if(result == GuiButtonTypeRight) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, SCAN_NAV_RIGHT);
-    }
 }
 
 // The "waiting for a tap" screen: header/hint depend on scan_purpose, plus
@@ -69,20 +53,28 @@ static void timeclock_scene_scan_show_reading(TimeClock* app, ScanCtx* ctx) {
         header = tc_str(StrReadingBadge);
         text = tc_str(StrHoldBadge);
     }
-    snprintf(
-        scan_tech_footer, sizeof(scan_tech_footer), "%s", timeclock_reader_tech_label(ctx->tech));
+    scan_view_set_content(app->scan_view, header, text, timeclock_reader_tech_label(ctx->tech));
+    view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewScan);
+}
 
-    Widget* widget = app->widget;
-    widget_reset(widget);
-    widget_add_string_element(widget, 64, 4, AlignCenter, AlignTop, FontPrimary, header);
-    widget_add_string_multiline_element(widget, 64, 18, AlignCenter, AlignTop, FontSecondary, text);
-    widget_add_string_element(
-        widget, 64, 42, AlignCenter, AlignTop, FontSecondary, scan_tech_footer);
-    widget_add_button_element(
-        widget, GuiButtonTypeLeft, "<", timeclock_scene_scan_nav_button_callback, app);
-    widget_add_button_element(
-        widget, GuiButtonTypeRight, ">", timeclock_scene_scan_nav_button_callback, app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWidget);
+// Left/Right (GUI thread, via the view's input callback): switch technology.
+static void timeclock_scene_scan_nav_cb(int direction, void* context) {
+    TimeClock* app = context;
+    ScanCtx* ctx =
+        (ScanCtx*)(uintptr_t)scene_manager_get_scene_state(app->scene_manager, TimeClockSceneScan);
+    // Ignore once a UID has already been consumed (result screen is about to
+    // take over, or already has).
+    if(!ctx || ctx->handled) return;
+
+    int next =
+        ((int)ctx->tech + direction + TimeclockReaderTechCount) % TimeclockReaderTechCount;
+    ctx->tech = (TimeclockReaderTech)next;
+    timeclock_reader_start_fixed(ctx->reader, ctx->tech, false);
+    timeclock_scene_scan_show_reading(app, ctx);
+
+    // Remember the choice - shared with Work mode - across sessions.
+    app->config.work_tech = (uint32_t)ctx->tech;
+    tc_config_save(&app->config);
 }
 
 static void timeclock_scene_scan_result(
@@ -199,8 +191,9 @@ void timeclock_scene_scan_on_enter(void* context) {
     timeclock_reader_set_callback(ctx->reader, timeclock_scene_scan_on_uid, app);
     scene_manager_set_scene_state(app->scene_manager, TimeClockSceneScan, (uint32_t)(uintptr_t)ctx);
 
+    scan_view_set_nav_callback(app->scan_view, timeclock_scene_scan_nav_cb, app);
     timeclock_scene_scan_show_reading(app, ctx);
-    timeclock_reader_start_fixed(ctx->reader, ctx->tech);
+    timeclock_reader_start_fixed(ctx->reader, ctx->tech, false);
 }
 
 bool timeclock_scene_scan_on_event(void* context, SceneManagerEvent event) {
@@ -211,21 +204,6 @@ bool timeclock_scene_scan_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom && ctx) {
         if(event.event == SCAN_POPUP_DONE) {
             scene_manager_search_and_switch_to_previous_scene(app->scene_manager, ctx->result_scene);
-            return true;
-        }
-        if(event.event == SCAN_NAV_LEFT || event.event == SCAN_NAV_RIGHT) {
-            // Ignore once a UID has already been consumed (result screen is
-            // about to take over, or already has).
-            if(!ctx->handled) {
-                int dir = (event.event == SCAN_NAV_RIGHT) ? 1 : -1;
-                int next = ((int)ctx->tech + dir + TimeclockReaderTechCount) %
-                            TimeclockReaderTechCount;
-                ctx->tech = (TimeclockReaderTech)next;
-                timeclock_reader_start_fixed(ctx->reader, ctx->tech);
-                timeclock_scene_scan_show_reading(app, ctx);
-                app->config.work_tech = (uint32_t)ctx->tech;
-                tc_config_save(&app->config);
-            }
             return true;
         }
         return timeclock_reader_handle_event(ctx->reader, event.event);
@@ -244,5 +222,4 @@ void timeclock_scene_scan_on_exit(void* context) {
     }
     app->replace_index = -1;
     popup_reset(app->popup);
-    widget_reset(app->widget);
 }
