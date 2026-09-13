@@ -16,8 +16,9 @@
 #include <ibutton/ibutton_key.h>
 #include <ibutton/ibutton_protocols.h>
 
-// Private custom-event id (kept well above the scenes' event ranges).
-#define READER_EVENT_UID 401u
+// Private custom-event ids (kept well above the scenes' event ranges).
+#define READER_EVENT_UID    401u
+#define READER_EVENT_ROTATE 402u
 
 // Length of each scan slice, in ms. One radio is active per slice and a timer
 // rotates NFC -> RFID -> iButton, so a full sweep takes 3 slices.
@@ -37,9 +38,12 @@ typedef enum {
 // held for about a full sweep (~1.5 s) is always caught. Only the UID is read;
 // nothing is written or emulated, so a card issued elsewhere works too.
 //
-// Thread-safety: the rotation timer runs on the timer service task while
-// timeclock_reader_start/stop run on the GUI thread; a mutex serializes all
-// radio alloc/start/stop/free so the timer can never touch a freed radio.
+// Thread-safety: the rotation timer runs on the timer service task, which has
+// a small stack and must never block or touch hardware directly (allocating
+// an NFC/LFRFID/iButton worker there can hard-fault the device). So the timer
+// callback only posts a custom event; the actual radio stop/start happens on
+// the GUI thread inside timeclock_reader_handle_event(), same as the UID
+// events, which serializes everything on a single thread and needs no lock.
 struct TimeclockReader {
     ViewDispatcher* vd;
     TimeclockReaderCallback callback;
@@ -49,7 +53,6 @@ struct TimeclockReader {
     bool running;
     ReaderRadio active;
     FuriTimer* timer;
-    FuriMutex* lock;
 
     // Only the currently active radio's handles are non-NULL.
     Nfc* nfc;
@@ -214,23 +217,19 @@ static void reader_start_active(TimeclockReader* reader) {
     }
 }
 
-// Timer callback (timer service task): rotate to the next radio.
+// Timer callback (timer service task): just request a rotation. No hardware
+// access here - the small timer-service stack can't safely carry an NFC/
+// LFRFID/iButton worker alloc, and view_dispatcher_send_custom_event only
+// pushes to a queue, so this is cheap and safe to call from any thread.
 static void reader_rotate(void* context) {
     TimeclockReader* reader = context;
-    furi_mutex_acquire(reader->lock, FuriWaitForever);
-    if(reader->running) {
-        reader_stop_active(reader);
-        reader->active = (reader->active + 1) % ReaderRadioCount;
-        reader_start_active(reader);
-    }
-    furi_mutex_release(reader->lock);
+    view_dispatcher_send_custom_event(reader->vd, READER_EVENT_ROTATE);
 }
 
 TimeclockReader* timeclock_reader_alloc(ViewDispatcher* view_dispatcher) {
     TimeclockReader* reader = malloc(sizeof(TimeclockReader));
     memset(reader, 0, sizeof(TimeclockReader));
     reader->vd = view_dispatcher;
-    reader->lock = furi_mutex_alloc(FuriMutexTypeNormal);
     reader->timer = furi_timer_alloc(reader_rotate, FuriTimerTypePeriodic, reader);
     return reader;
 }
@@ -239,7 +238,6 @@ void timeclock_reader_free(TimeclockReader* reader) {
     furi_assert(reader);
     timeclock_reader_stop(reader);
     furi_timer_free(reader->timer);
-    furi_mutex_free(reader->lock);
     free(reader);
 }
 
@@ -257,23 +255,18 @@ void timeclock_reader_start(TimeclockReader* reader, bool continuous) {
     timeclock_reader_stop(reader); // idempotent: never leak a previous session
 
     reader->continuous = continuous;
-
-    furi_mutex_acquire(reader->lock, FuriWaitForever);
     reader->running = true;
     reader->active = ReaderRadioNfc;
     reader_start_active(reader);
-    furi_mutex_release(reader->lock);
 
     furi_timer_start(reader->timer, furi_ms_to_ticks(READER_SLICE_MS));
 }
 
 void timeclock_reader_stop(TimeclockReader* reader) {
     furi_assert(reader);
-    furi_timer_stop(reader->timer); // no further rotations will start
-    furi_mutex_acquire(reader->lock, FuriWaitForever); // wait out an in-flight rotation
+    furi_timer_stop(reader->timer); // no further rotations will be requested
     reader->running = false;
     reader_stop_active(reader);
-    furi_mutex_release(reader->lock);
 }
 
 bool timeclock_reader_handle_event(TimeclockReader* reader, uint32_t event) {
@@ -281,6 +274,16 @@ bool timeclock_reader_handle_event(TimeclockReader* reader, uint32_t event) {
     if(event == READER_EVENT_UID) {
         if(reader->callback) {
             reader->callback(reader->uid, reader->tech, reader->context);
+        }
+        return true;
+    }
+    if(event == READER_EVENT_ROTATE) {
+        // A rotation queued right before stop() may still arrive after it;
+        // running guards against touching an already-freed radio.
+        if(reader->running) {
+            reader_stop_active(reader);
+            reader->active = (reader->active + 1) % ReaderRadioCount;
+            reader_start_active(reader);
         }
         return true;
     }
