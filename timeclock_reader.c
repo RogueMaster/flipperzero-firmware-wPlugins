@@ -16,24 +16,8 @@
 #include <ibutton/ibutton_key.h>
 #include <ibutton/ibutton_protocols.h>
 
-// Private custom-event ids (kept well above the scenes' event ranges).
-#define READER_EVENT_UID    401u
-#define READER_EVENT_ROTATE 402u
-
-// Length of each scan slice, in ms. One radio is active per slice and a timer
-// rotates NFC -> RFID -> iButton, so a full sweep takes 3 slices.
-//
-// Single-shot scans (Punch, register, replace chip) use the fast slice: they
-// run for at most a few sweeps before stopping. Work mode's continuous scan
-// can stay open for hours, and every rotation fully tears down and recreates
-// the active radio - for LF RFID and iButton that means stopping and
-// restarting their own worker thread. Doing that twice a second, forever, is
-// enough sustained alloc/free and thread churn to fragment the heap and
-// eventually wedge the device (observed: Work mode locks up after a while and
-// needs a hard reset). The continuous slice is much longer to keep that
-// churn rare; a badge still only needs to be held for one slice to be read.
-#define READER_SLICE_MS            500u
-#define READER_SLICE_CONTINUOUS_MS 4000u
+// Private custom-event id (kept well above the scenes' event ranges).
+#define READER_EVENT_UID 401u
 
 typedef enum {
     ReaderRadioNfc = 0,
@@ -42,28 +26,29 @@ typedef enum {
     ReaderRadioCount,
 } ReaderRadio;
 
-// Instead of powering all three radios at once (heavy on RAM and the RF front
-// end), the reader time-slices them: only one radio is allocated and scanning
-// at any moment, and a periodic timer rotates to the next. The user still never
-// selects a technology - NFC, RFID and iButton badges all work - and a badge
-// held for about a full sweep (~1.5 s) is always caught. Only the UID is read;
-// nothing is written or emulated, so a card issued elsewhere works too.
+// Only one radio is ever allocated at a time, and only the caller (via
+// timeclock_reader_start_fixed) decides which - there is no automatic
+// rotation between technologies. An earlier version rotated NFC/RFID/iButton
+// on a timer to avoid a manual picker, but every variant of that (fast,
+// slow, paused after each read) eventually wedged the device on a long-running
+// scan (Work mode): repeatedly tearing down and recreating a radio - LF RFID
+// and iButton each spin up their own worker thread - is enough alloc/free
+// churn to eventually fail even at a slow rate. The pre-rotation
+// implementation (a single radio, allocated once, never touched by a timer)
+// was never reported unstable, so that is what this is again.
 //
-// Thread-safety: the rotation timer runs on the timer service task, which has
-// a small stack and must never block or touch hardware directly (allocating
-// an NFC/LFRFID/iButton worker there can hard-fault the device). So the timer
-// callback only posts a custom event; the actual radio stop/start happens on
-// the GUI thread inside timeclock_reader_handle_event(), same as the UID
-// events, which serializes everything on a single thread and needs no lock.
+// Thread-safety: everything - alloc, start, stop - happens on the GUI thread,
+// called directly by the scene. Radio worker threads only ever post a
+// ViewDispatcher custom event back (READER_EVENT_UID); they never touch
+// TimeclockReader state themselves. Scenes must forward their custom events
+// to timeclock_reader_handle_event().
 struct TimeclockReader {
     ViewDispatcher* vd;
     TimeclockReaderCallback callback;
     void* context;
 
-    bool continuous;
     bool running;
     ReaderRadio active;
-    FuriTimer* timer;
 
     // Only the currently active radio's handles are non-NULL.
     Nfc* nfc;
@@ -110,7 +95,6 @@ static NfcCommand reader_poller_callback(NfcGenericEvent event, void* context) {
         if(uid && uid_len > 0) {
             reader_format_uid(reader, uid, uid_len, "NFC");
             view_dispatcher_send_custom_event(reader->vd, READER_EVENT_UID);
-            if(!reader->continuous) command = NfcCommandStop;
         }
     }
     return command;
@@ -139,7 +123,7 @@ static void reader_ibutton_callback(void* context) {
     }
 }
 
-// ---- Per-radio start/stop (call under reader->lock) ------------------------
+// ---- Per-radio start/stop (GUI thread only) ---------------------------------
 static void reader_start_nfc(TimeclockReader* reader) {
     reader->nfc = nfc_alloc();
     reader->poller = nfc_poller_alloc(reader->nfc, NfcProtocolIso14443_3a);
@@ -228,27 +212,16 @@ static void reader_start_active(TimeclockReader* reader) {
     }
 }
 
-// Timer callback (timer service task): just request a rotation. No hardware
-// access here - the small timer-service stack can't safely carry an NFC/
-// LFRFID/iButton worker alloc, and view_dispatcher_send_custom_event only
-// pushes to a queue, so this is cheap and safe to call from any thread.
-static void reader_rotate(void* context) {
-    TimeclockReader* reader = context;
-    view_dispatcher_send_custom_event(reader->vd, READER_EVENT_ROTATE);
-}
-
 TimeclockReader* timeclock_reader_alloc(ViewDispatcher* view_dispatcher) {
     TimeclockReader* reader = malloc(sizeof(TimeclockReader));
     memset(reader, 0, sizeof(TimeclockReader));
     reader->vd = view_dispatcher;
-    reader->timer = furi_timer_alloc(reader_rotate, FuriTimerTypePeriodic, reader);
     return reader;
 }
 
 void timeclock_reader_free(TimeclockReader* reader) {
     furi_assert(reader);
     timeclock_reader_stop(reader);
-    furi_timer_free(reader->timer);
     free(reader);
 }
 
@@ -261,19 +234,6 @@ void timeclock_reader_set_callback(
     reader->context = context;
 }
 
-void timeclock_reader_start(TimeclockReader* reader, bool continuous) {
-    furi_assert(reader);
-    timeclock_reader_stop(reader); // idempotent: never leak a previous session
-
-    reader->continuous = continuous;
-    reader->running = true;
-    reader->active = ReaderRadioNfc;
-    reader_start_active(reader);
-
-    uint32_t slice_ms = continuous ? READER_SLICE_CONTINUOUS_MS : READER_SLICE_MS;
-    furi_timer_start(reader->timer, furi_ms_to_ticks(slice_ms));
-}
-
 // ReaderRadio and TimeclockReaderTech share the same ordinal values (both
 // Nfc=0, Rfid=1, IButton=2) by design, so a tech can be assigned to `active`
 // directly.
@@ -281,12 +241,9 @@ void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech t
     furi_assert(reader);
     timeclock_reader_stop(reader); // idempotent: never leak a previous session
 
-    reader->continuous = true;
     reader->running = true;
     reader->active = (ReaderRadio)tech;
     reader_start_active(reader);
-    // No furi_timer_start(): this radio stays active until stop() or the
-    // next start_fixed(), never rotated away automatically.
 }
 
 const char* timeclock_reader_tech_label(TimeclockReaderTech tech) {
@@ -304,7 +261,6 @@ const char* timeclock_reader_tech_label(TimeclockReaderTech tech) {
 
 void timeclock_reader_stop(TimeclockReader* reader) {
     furi_assert(reader);
-    furi_timer_stop(reader->timer); // no further rotations will be requested
     reader->running = false;
     reader_stop_active(reader);
 }
@@ -314,16 +270,6 @@ bool timeclock_reader_handle_event(TimeclockReader* reader, uint32_t event) {
     if(event == READER_EVENT_UID) {
         if(reader->callback) {
             reader->callback(reader->uid, reader->tech, reader->context);
-        }
-        return true;
-    }
-    if(event == READER_EVENT_ROTATE) {
-        // A rotation queued right before stop() may still arrive after it;
-        // running guards against touching an already-freed radio.
-        if(reader->running) {
-            reader_stop_active(reader);
-            reader->active = (reader->active + 1) % ReaderRadioCount;
-            reader_start_active(reader);
         }
         return true;
     }

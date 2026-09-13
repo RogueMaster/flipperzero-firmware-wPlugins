@@ -6,29 +6,30 @@
 // =============================================================================
 // Shared badge reader.
 //
-// Three technologies are supported:
+// Three technologies are supported, one at a time, picked by the caller:
 //   NFC (13.56 MHz): ISO14443-3A poller (MIFARE Classic/Ultralight, NTAG, ...).
 //   LF RFID (125 kHz): the lfrfid worker in auto mode (EM4100, HID, Indala, ...).
 //   iButton (1-Wire): the ibutton worker (DS1990A / Dallas keys, ...).
 //
-// timeclock_reader_start() round-robins all three on a timer (one radio at a
-// time, lighter on RAM/RF than all three at once) for short single-shot scans
-// (Punch, register, replace chip), where a session lasts a few seconds at
-// most. timeclock_reader_start_fixed() instead runs exactly one technology,
-// picked by the caller, with no rotation timer at all - meant for a scan that
-// stays open for a long time (Work mode). Rotating forever there proved
-// fragile in practice (the repeated radio alloc/free eventually wedged the
-// device even at a slow rate), so the long-running case trades automatic
-// technology detection for a Left/Right technology picker in the UI instead.
+// There is no automatic rotation between technologies and no timer involved
+// anywhere in this file. An earlier version rotated all three on a timer so
+// the user never had to pick one; every variant of that (fast, slow, paused
+// after each read) eventually wedged the device on a long-running scan (Work
+// mode) - repeatedly tearing down and recreating a radio (LF RFID and
+// iButton each spin up their own worker thread) is enough alloc/free churn
+// to eventually fail even at a slow rate. This is back to the original,
+// never-reported-unstable design: the scene picks a TimeclockReaderTech
+// (Left/Right in the UI) and the reader stays on it until told otherwise.
 //
 // The reader only reads the identifier (UID); it never writes to or emulates a
 // card. Any existing badge works as an identity token - even one already used
 // by another company - because nothing on it is modified.
 //
-// Thread-safety: radio callbacks only post ViewDispatcher custom events; every
-// start/stop of the radio happens on the GUI thread inside
-// timeclock_reader_handle_event(). Scenes must forward their custom events to
-// that function.
+// Thread-safety: radio worker threads only post a ViewDispatcher custom event
+// back (READER_EVENT_UID); starting and stopping a radio always happens on
+// the GUI thread, called directly by the scene (timeclock_reader_start_fixed
+// / timeclock_reader_stop). Scenes must forward their custom events to
+// timeclock_reader_handle_event().
 // =============================================================================
 
 #include <furi.h>
@@ -60,25 +61,15 @@ void timeclock_reader_set_callback(
     TimeclockReaderCallback callback,
     void* context);
 
-// Start reading. NFC, LF RFID and iButton are scanned in rotation (one per
-// slice) with no manual reader selection, so all three badge types work side by
-// side in the same deployment. continuous keeps reading after each UID (Work
-// mode) instead of stopping after the first (single punch); it also uses a
-// much longer slice, since Work mode can stay open for hours and rotating
-// fast forever wedges the device (see timeclock_reader.c). Safe to call again
-// after stop().
-void timeclock_reader_start(TimeclockReader* reader, bool continuous);
-
-// Start reading using only the given technology - no rotation, no timer, the
-// same radio stays allocated until stop() is called. Always continuous (the
-// caller keeps scanning until it decides to leave). Safe to call again after
-// stop(), and safe to call directly to switch technology without stopping
-// first (it stops the previous radio itself).
+// Start reading using only the given technology; the same radio stays
+// allocated until stop() is called. Safe to call again after stop(), and
+// safe to call directly to switch technology without stopping first (it
+// stops the previous radio itself).
 void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech);
 
 // Stop and release the radio (the reader object itself stays valid).
 void timeclock_reader_stop(TimeclockReader* reader);
 
 // Forward a ViewDispatcher custom event. Returns true if the reader handled it
-// (protocol detected -> start poll; UID read -> invoke callback).
+// (a UID was read -> invoke the callback).
 bool timeclock_reader_handle_event(TimeclockReader* reader, uint32_t event);
