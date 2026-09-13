@@ -1,14 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 64" width="128" height="64" font-family="Arial,Helvetica,sans-serif" text-rendering="geometricPrecision">
-  <rect x="0" y="0" width="128" height="64" fill="#FF8200"/>
-  <rect x="0.5" y="0.5" width="127" height="63" fill="none" stroke="#111" stroke-width="1" shape-rendering="crispEdges"/>
-  <text x="64" y="8" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="bold" fill="#111">Enter PIN</text>
-  <g fill="none" stroke="#111" stroke-width="1">
-    <rect x="20" y="22" width="16" height="16" rx="3"/>
-    <rect x="44" y="22" width="16" height="16" rx="3"/>
-    <rect x="68" y="22" width="16" height="16" rx="3"/>
-    <rect x="92" y="22" width="16" height="16" rx="3"/>
-  </g>
-  <circle cx="28" cy="30" r="4" fill="#111"/>
-  <circle cx="52" cy="30" r="4" fill="#111"/>
-  <text x="64" y="54" text-anchor="middle" dominant-baseline="central" font-size="8" fill="#111">Arrows  |  OK=clear</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128" font-family="'Courier New',monospace">
+  <rect x="2" y="2" width="252" height="124" rx="10" fill="#FF8200" stroke="#111" stroke-width="3"/>
+  <text x="128" y="22" text-anchor="middle" font-size="15" font-weight="bold" fill="#111">Enter PIN</text>
+  <!-- 4-step sequence: filled dots for entered steps (masked) -->
+  <rect x="58" y="42" width="26" height="26" rx="5" fill="none" stroke="#111" stroke-width="2"/>
+  <rect x="96" y="42" width="26" height="26" rx="5" fill="none" stroke="#111" stroke-width="2"/>
+  <rect x="134" y="42" width="26" height="26" rx="5" fill="none" stroke="#111" stroke-width="2"/>
+  <rect x="172" y="42" width="26" height="26" rx="5" fill="none" stroke="#111" stroke-width="2"/>
+  <circle cx="71" cy="55" r="6" fill="#111"/>
+  <circle cx="109" cy="55" r="6" fill="#111"/>
+  <text x="128" y="100" text-anchor="middle" font-size="12" fill="#111">Arrows  |  OK=clear</text>
 </svg>

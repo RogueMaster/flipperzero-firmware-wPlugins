@@ -41,16 +41,16 @@ Maquetas estilo Flipper de las pantallas principales (128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg?v=2" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Fichar, Work mode, Tarjetas, Historial...</td>
-    <td align="center"><img src="docs/img/work-clock.svg?v=2" width="240" alt="Work mode"><br><b>Work mode</b><br>Reloj, fichas con el chip</td>
+    <td align="center"><img src="docs/img/menu.svg?v=3" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Fichar, Work mode, Tarjetas, Historial...</td>
+    <td align="center"><img src="docs/img/work-clock.svg?v=3" width="240" alt="Work mode"><br><b>Work mode</b><br>Reloj, fichas con el chip</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg?v=2" width="240" alt="Saludo"><br><b>Pasa la tarjeta</b><br>Bienvenido / Adios por nombre</td>
-    <td align="center"><img src="docs/img/today.svg?v=2" width="240" alt="Resumen diario"><br><b>Hoy</b><br>Fichajes + horas totales</td>
+    <td align="center"><img src="docs/img/greeting.svg?v=3" width="240" alt="Saludo"><br><b>Pasa la tarjeta</b><br>Bienvenido / Adios por nombre</td>
+    <td align="center"><img src="docs/img/today.svg?v=3" width="240" alt="Resumen diario"><br><b>Hoy</b><br>Fichajes + horas totales</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg?v=2" width="240" alt="Bloqueo PIN"><br><b>Bloqueo PIN</b><br>Protege la salida de la app</td>
-    <td align="center"><img src="docs/img/settings.svg?v=2" width="240" alt="Ajustes"><br><b>Ajustes</b><br>Sonido / Vibra / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.svg?v=3" width="240" alt="Bloqueo PIN"><br><b>Bloqueo PIN</b><br>Protege la salida de la app</td>
+    <td align="center"><img src="docs/img/settings.svg?v=3" width="240" alt="Ajustes"><br><b>Ajustes</b><br>Sonido / Vibra / LED, PIN</td>
   </tr>
 </table>
 
