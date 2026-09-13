@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.16
+
+- Documentation only: replaced the SVG screen mockups with real device
+  screenshots, refreshed the README (screen set now shows Overview and Export,
+  tidier Roadmap and project layout, no stale version labels), and removed the
+  unused app-catalog scaffolding (catalog/ and screenshots/). No app changes
+  since 2.15.
+
 ## 2.15
 
 - Main menu simplified: the standalone "Punch" entry was removed (Work mode
