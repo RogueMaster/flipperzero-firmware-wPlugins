@@ -4,9 +4,11 @@
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Languages](https://img.shields.io/badge/lang-EN%20%7C%20IT%20%7C%20ES%20%7C%20FR%20%7C%20DE-blue)](#)
-
-[English](README.md) | [Italiano](README.it.md) | **Espanol** | [Francais](README.fr.md) | [Deutsch](README.de.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
+[![it](https://img.shields.io/badge/lang-it-green.svg)](./README.it.md)
+[![es](https://img.shields.io/badge/lang-es-yellow.svg)](./README.es.md)
+[![fr](https://img.shields.io/badge/lang-fr-blue.svg)](./README.fr.md)
+[![de](https://img.shields.io/badge/lang-de-lightgrey.svg)](./README.de.md)
 
 App de **control de fichajes** para el [Flipper Zero](https://flipperzero.one/).
 Sirve para registrar a tus colaboradores y sus entradas/salidas: asigna a cada
