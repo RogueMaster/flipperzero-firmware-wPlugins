@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.9
+
+- Work mode freeze fixed for real: every attempt at automatically rotating
+  NFC/RFID/iButton in Work mode (fast, slow, with a pause after each read)
+  eventually froze the device. Checked the pre-rotation v1.3.0 reader,
+  which never used a timer and was never reported unstable - Work mode now
+  works the same way: it locks onto one technology at a time, switched with
+  Left/Right (shown as "< NFC >" etc. in the footer instead of the exit
+  hint), and remembers your last choice across sessions and restarts.
+- License section in all five READMEs restyled: a short "what this means in
+  practice" bullet list instead of a plain paragraph.
+
 ## 2.8
 
 - Reverted 2.7's fix: stopping and restarting the reader after every read in
