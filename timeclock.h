@@ -138,6 +138,11 @@ int timeclock_find_badge(TimeClock* app, const char* uid);
 void timeclock_notify_success(TimeClock* app);
 void timeclock_notify_error(TimeClock* app);
 
+// Chip-detected cue for registration: a tap on a new (unregistered) chip is
+// otherwise silent since it doesn't punch anything. Honors the same
+// sound/vibro/LED toggles as punch feedback.
+void timeclock_notify_detected(TimeClock* app);
+
 // Punch feedback: distinct sound/vibro/LED for IN vs OUT, each honoring its
 // own on/off setting (config.sound_enabled / vibro_enabled / led_enabled).
 void timeclock_notify_punch(TimeClock* app, TcEventType type);

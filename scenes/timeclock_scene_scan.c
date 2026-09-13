@@ -103,7 +103,8 @@ static void timeclock_scene_scan_on_uid(const char* uid_hex, const char* tech, v
             timeclock_scene_scan_result(
                 app, ctx, tc_str(StrBadge), scan_msg, TimeClockSceneBadgeList);
         } else {
-            // New chip: go straight to name entry (no punch).
+            // New chip: confirm it was read, then go straight to name entry.
+            timeclock_notify_detected(app);
             scene_manager_set_scene_state(app->scene_manager, TimeClockSceneNameInput, 0);
             scene_manager_next_scene(app->scene_manager, TimeClockSceneNameInput);
         }

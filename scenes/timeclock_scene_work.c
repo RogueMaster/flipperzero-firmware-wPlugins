@@ -18,19 +18,20 @@
 // =============================================================================
 
 #define WORK_GREETING_MS 3000
-// Belt-and-suspenders same-badge guard on top of the hard pause below: if a
-// badge is still there when scanning resumes, this stops it from punching
-// again immediately. Real double-taps (same person clocking in then out) are
-// minutes apart, not seconds, so this can be generous.
+// The real anti-loop guard: while the same badge keeps being read (it sits
+// in the field, or the radio keeps re-reporting it), this blocks a repeat
+// punch. It can be generous - a genuine double-tap (same person clocking in
+// then out) is minutes away, not seconds - since it only ever blocks the
+// same UID, never a different badge.
 #define WORK_COOLDOWN_MS 60000
-// After any read (punch or unknown badge), the reader is fully stopped - not
-// just debounced - for this long before scanning resumes. No radio is
-// allocated and no poller is running during the pause, so nothing can
-// produce another read event, no matter what causes it (a badge still in the
-// field, or a spurious/stale report from the radio itself). This is the
-// actual fix for the runaway IN/OUT/IN/OUT loop: a time-based debounce alone
-// only ever narrows the window for a repeat trigger, it can't close it.
-#define WORK_PAUSE_MS 5000
+// The reader is fully stopped (no radio allocated, no poller running) for
+// this long right after a read, so the tail end of the same physical tap
+// can't immediately re-trigger a second event before WORK_COOLDOWN_MS even
+// gets a chance to apply. This is deliberately short: it is not what stops
+// the IN/OUT loop (WORK_COOLDOWN_MS is), it just keeps the kiosk from going
+// silent for seconds after every tap. A different badge is read normally as
+// soon as this elapses.
+#define WORK_PAUSE_MS 1200
 #define WORK_BOUNCE   260
 
 typedef struct {

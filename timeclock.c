@@ -79,6 +79,27 @@ static const NotificationSequence timeclock_seq_out_vibro = {
     NULL,
 };
 
+// Single short cue for "a chip is here" (registration), distinct from the
+// IN/OUT punch cues. Sound only.
+static const NotificationSequence timeclock_seq_detected_sound = {
+    &message_note_a5,
+    &message_delay_100,
+    &message_sound_off,
+    NULL,
+};
+
+void timeclock_notify_detected(TimeClock* app) {
+    if(app->config.sound_enabled) {
+        notification_message(app->notifications, &timeclock_seq_detected_sound);
+    }
+    if(app->config.vibro_enabled) {
+        notification_message(app->notifications, &sequence_single_vibro);
+    }
+    if(app->config.led_enabled) {
+        notification_message(app->notifications, &sequence_blink_white_100);
+    }
+}
+
 void timeclock_notify_punch(TimeClock* app, TcEventType type) {
     bool in = (type == TcEventIn);
     // if/else (not a ternary) because the IN/OUT sequences differ in length,
