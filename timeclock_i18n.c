@@ -14,6 +14,8 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrWorkMode] = {"Work mode", "Modalita lavoro", "Modo trabajo", "Mode travail", "Arbeitsmodus"},
     [StrBadges] = {"Badges", "Badge", "Tarjetas", "Badges", "Ausweise"},
     [StrHistory] = {"History", "Storico", "Historial", "Historique", "Verlauf"},
+    [StrOverview] =
+        {"Overview", "Panoramica", "Resumen", "Apercu", "Ubersicht"},
     [StrToday] = {"Today", "Oggi", "Hoy", "Aujourd'hui", "Heute"},
     [StrThisWeek] = {"This week", "Settimana", "Esta semana", "Cette semaine", "Diese Woche"},
     [StrExport] = {"Export", "Esporta", "Exportar", "Exporter", "Export"},
@@ -185,7 +187,7 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrSetPin] = {"Set PIN", "Imposta PIN", "Definir PIN", "Definir PIN", "PIN setzen"},
     [StrChangePin] = {"Change PIN", "Cambia PIN", "Cambiar PIN", "Changer PIN", "PIN aendern"},
     [StrDisablePin] = {"Disable PIN", "Disattiva PIN", "Quitar PIN", "Desactiver PIN", "PIN aus"},
-    [StrExitApp] = {"Exit app", "Esci dall'app", "Salir", "Quitter", "App beenden"},
+    [StrExitApp] = {"Exit", "Esci", "Salir", "Quitter", "Beenden"},
     // ---- PIN ----
     [StrEnterPin] =
         {"Enter PIN", "Inserisci PIN", "Introduce PIN", "Entrez le PIN", "PIN eingeben"},
@@ -203,21 +205,29 @@ static const char* const S[TcStrCount][TcLangCount] = {
          "Flechas | OK=borrar",
          "Fleches | OK=effacer",
          "Pfeile | OK=leeren"},
+    [StrPinSaved] =
+        {"PIN saved", "PIN salvato", "PIN guardado", "PIN enregistre", "PIN gespeichert"},
+    [StrPinDisabled] =
+        {"PIN disabled",
+         "PIN disattivato",
+         "PIN desactivado",
+         "PIN desactive",
+         "PIN deaktiviert"},
     // ---- Onboarding ----
     [StrOnbText] =
-        {"Set an arrow PIN to protect\nthe app: nobody leaves Work\nmode without it.\nAlso later in Settings.",
-         "Imposta un PIN a frecce per\nproteggere l'app: senza, non\nsi esce dal Work mode.\nAnche dopo in Impostazioni.",
-         "Define un PIN de flechas\npara proteger la app: sin el\nno se sale del Work mode.\nTambien en Ajustes.",
-         "Definir un PIN a fleches\npour proteger l'app: sans, on\nne quitte pas le Work mode.\nAussi dans Reglages.",
-         "Pfeil-PIN zum Schutz der\nApp: ohne ihn kein Verlassen\ndes Arbeitsmodus.\nAuch spaeter in Einstellungen."},
+        {"Protect the app with\nan arrow PIN - needed\nto exit Work mode.",
+         "Proteggi l'app con un\nPIN a frecce: serve per\nuscire dal Work mode.",
+         "Protege la app con un\nPIN de flechas: hace falta\npara salir del Work mode.",
+         "Protegez l'app avec un\nPIN a fleches: necessaire\npour quitter le Work mode.",
+         "Schuetze die App mit\neinem Pfeil-PIN: noetig fuer\nden Arbeitsmodus-Ausgang."},
     [StrSkip] = {"Skip", "Salta", "Omitir", "Passer", "Ueberspringen"},
     // ---- About (how-it-works block; copyright appended by the scene) ----
     [StrAboutText] =
-        {"Staff Time Clock\nStaff time-clock.\n\n- Reads NFC, RFID and iButton\n  automatically (no selecting).\n- Any card works, even one from\n  another company: UID only.\n- Badges: register a person on\n  a chip (name only).\n- Punch: tap the chip. Logs IN,\n  then OUT, then IN...\n- Work mode: kiosk clock; exit\n  needs the arrow PIN.\n- Today / This week: worked\n  time and breaks.\n- Export CSV/JSON on the SD.\n- Lost chip: Badges > Replace.\n\nOnly the chip UID is read - no\nwriting, no emulation.\n",
-         "Staff Time Clock\nTimbrature del personale.\n\n- Legge NFC, RFID e iButton in\n  automatico (nessuna scelta).\n- Va bene ogni tessera, anche\n  di un'altra azienda: solo UID.\n- Badge: registra una persona\n  su un chip (nome).\n- Timbra: passa il chip. Segna\n  IN, poi OUT, poi IN...\n- Work mode: orologio; per\n  uscire serve il PIN a frecce.\n- Oggi / Settimana: ore e pause.\n- Esporta CSV/JSON su SD.\n- Chip perso: Badge > Sostituisci.\n\nSi legge solo l'UID del chip -\nniente scrittura o emulazione.\n",
-         "Staff Time Clock\nControl de fichajes.\n\n- Lee NFC, RFID e iButton en\n  automatico (sin elegir).\n- Sirve cualquier tarjeta, aun\n  de otra empresa: solo UID.\n- Tarjetas: registra a alguien\n  en un chip (nombre).\n- Fichar: pasa el chip. Marca\n  IN, luego OUT, luego IN...\n- Work mode: reloj; para salir\n  hace falta el PIN de flechas.\n- Hoy / Semana: horas y pausas.\n- Exportar CSV/JSON en la SD.\n- Chip perdido: Tarjetas > Cambiar.\n\nSolo se lee el UID del chip -\nsin escritura ni emulacion.\n",
-         "Staff Time Clock\nPointage du personnel.\n\n- Lit NFC, RFID et iButton en\n  automatique (sans choisir).\n- Toute carte convient, meme\n  d'une autre entreprise: UID.\n- Badges: enregistrer une\n  personne sur une puce (nom).\n- Pointer: scannez la puce. IN,\n  puis OUT, puis IN...\n- Work mode: horloge; sortir\n  demande le PIN a fleches.\n- Aujourd'hui / Semaine: heures\n  et pauses.\n- Export CSV/JSON sur la SD.\n- Puce perdue: Badges > Remplacer.\n\nSeul l'UID de la puce est lu -\naucune ecriture ni emulation.\n",
-         "Staff Time Clock\nZeiterfassung.\n\n- Liest NFC, RFID und iButton\n  automatisch (keine Auswahl).\n- Jede Karte geht, auch die\n  einer anderen Firma: nur UID.\n- Ausweise: Person auf einem\n  Chip anlegen (Name).\n- Stempeln: Chip scannen. IN,\n  dann OUT, dann IN...\n- Arbeitsmodus: Uhr; Beenden\n  braucht den Pfeil-PIN.\n- Heute / Woche: Zeit und Pausen.\n- CSV/JSON auf SD exportieren.\n- Chip verloren: Ausweise > Ersetzen.\n\nNur die Chip-UID wird gelesen -\nkein Schreiben, keine Emulation.\n"},
+        {"Staff Time Clock\n\nNFC/RFID/iButton time clock\nfor teams. Tap a badge to\nclock in or out.\n\ngithub.com/vladpereverzyev/\nflipper-staff-time-clock\n",
+         "Staff Time Clock\n\nTimbratrice NFC/RFID/iButton\nper il personale. Avvicina\nil badge per timbrare.\n\ngithub.com/vladpereverzyev/\nflipper-staff-time-clock\n",
+         "Staff Time Clock\n\nFichaje NFC/RFID/iButton\npara equipos. Acerca la\ntarjeta para fichar.\n\ngithub.com/vladpereverzyev/\nflipper-staff-time-clock\n",
+         "Staff Time Clock\n\nPointeuse NFC/RFID/iButton\npour equipes. Scannez le\nbadge pour pointer.\n\ngithub.com/vladpereverzyev/\nflipper-staff-time-clock\n",
+         "Staff Time Clock\n\nNFC/RFID/iButton-Zeiterfassung\nfuers Team. Ausweis zum\nStempeln halten.\n\ngithub.com/vladpereverzyev/\nflipper-staff-time-clock\n"},
     // ---- Extra (v2.1) ----
     [StrThisMonth] = {"This month", "Mese", "Este mes", "Ce mois", "Dieser Monat"},
     [StrUndoLast] =
@@ -243,6 +253,13 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrTarget] = {"Target", "Obiettivo", "Objetivo", "Objectif", "Ziel"},
     [StrOvertime] =
         {"Overtime", "Straordinario", "Horas extra", "Heures sup", "Ueberstunden"},
+    // ---- Extra (v2.4) ----
+    [StrDateWrongText] =
+        {"The date looks wrong.\nPunches may be logged\nwith the wrong date.",
+         "La data sembra errata.\nLe timbrature potrebbero\navere la data sbagliata.",
+         "La fecha parece mal.\nLos fichajes pueden\ntener fecha equivocada.",
+         "La date semble fausse.\nLes pointages peuvent\navoir la mauvaise date.",
+         "Das Datum scheint falsch.\nStempel koennten das\nfalsche Datum haben."},
     // ---- Weekday abbreviations (Mon..Sun) ----
     [StrDowMon] = {"Mon", "Lun", "Lun", "Lun", "Mo"},
     [StrDowTue] = {"Tue", "Mar", "Mar", "Mar", "Di"},

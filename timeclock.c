@@ -192,6 +192,7 @@ static TimeClock* timeclock_app_alloc(void) {
     app->popup = popup_alloc();
     app->pin_view = pin_view_alloc();
     app->work_view = work_view_alloc();
+    app->overview_view = overview_view_alloc();
 
     view_dispatcher_add_view(
         app->view_dispatcher, TimeClockViewSubmenu, submenu_get_view(app->submenu));
@@ -206,6 +207,10 @@ static TimeClock* timeclock_app_alloc(void) {
         app->view_dispatcher, TimeClockViewPin, pin_view_get_view(app->pin_view));
     view_dispatcher_add_view(
         app->view_dispatcher, TimeClockViewWork, work_view_get_view(app->work_view));
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        TimeClockViewOverview,
+        overview_view_get_view(app->overview_view));
 
     // Persistence
     tc_storage_init();
@@ -226,6 +231,7 @@ static void timeclock_app_free(TimeClock* app) {
     view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewPopup);
     view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewPin);
     view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewWork);
+    view_dispatcher_remove_view(app->view_dispatcher, TimeClockViewOverview);
 
     submenu_free(app->submenu);
     text_input_free(app->text_input);
@@ -234,6 +240,7 @@ static void timeclock_app_free(TimeClock* app) {
     popup_free(app->popup);
     pin_view_free(app->pin_view);
     work_view_free(app->work_view);
+    overview_view_free(app->overview_view);
 
     scene_manager_free(app->scene_manager);
     view_dispatcher_free(app->view_dispatcher);
@@ -264,6 +271,10 @@ int32_t timeclock_app(void* p) {
             // First launch: offer to set the protection PIN (on top of the menu).
             scene_manager_next_scene(app->scene_manager, TimeClockSceneOnboarding);
         }
+    }
+    if(!tc_date_is_valid()) {
+        // On top of everything else, so a wrong clock can never be missed.
+        scene_manager_next_scene(app->scene_manager, TimeClockSceneDateWarning);
     }
 
     view_dispatcher_run(app->view_dispatcher);

@@ -13,9 +13,7 @@ void timeclock_scene_month_on_enter(void* context) {
 
     char date[TC_DT_MAX];
     tc_now_date(date, sizeof(date)); // YYYY-MM-DD
-    int year = (date[0] - '0') * 1000 + (date[1] - '0') * 100 + (date[2] - '0') * 10 +
-               (date[3] - '0');
-    if(year < 2020) {
+    if(!tc_date_is_valid()) {
         furi_string_cat_printf(s, "! %s\n\n", tc_str(StrClockNotSet));
     }
 

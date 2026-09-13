@@ -5,7 +5,26 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline and PIN-protected. Identification only - no badge emulation, no
 authentication bypass.
 
-**New in v2.3**
+**New in v2.4**
+
+- **Crash fix**: the round-robin badge reader now switches radios on the GUI
+  thread instead of the timer service thread. That mismatch could hard-fault
+  the device on almost any scan or punch - if the app used to freeze or reset
+  the Flipper, this is the fix.
+- **Overview**: a new per-collaborator screen - name in the middle, today /
+  week / month worked time and today's break underneath, Left/Right to switch
+  between people. No menus, just a glance per person.
+- **Fewer menu buttons**: Today / This week / This month moved under History.
+- **Clearer About screen**: a short description, the repo link and the
+  copyright notice, instead of a wall of text.
+- **PIN fixes**: disabling the PIN now shows a clear confirmation instead of
+  returning silently; "Exit app" renamed to "Exit"; the onboarding PIN screen
+  text was shortened so it always fits on screen.
+- **Clock sanity check**: a startup warning if the Flipper's date looks wrong
+  (older than this release), so punches are never silently misdated.
+- **New icon**: the app icon's clock hands now read 10:10.
+
+**Earlier (v2.3)**
 
 - **Overnight shifts** are now counted correctly: an OUT after midnight closes
   the IN from the evening before (the time counts on the shift's start day).
@@ -16,12 +35,6 @@ authentication bypass.
   overtime (or shortfall).
 - **Reader reworked** to scan NFC, RFID and iButton **in rotation** (one radio at
   a time) - lighter on memory, still no manual selection.
-
-**Earlier (v2.2)**
-
-- **iButton** support: 1-Wire Dallas keys work as badges alongside NFC and RFID.
-- **Use existing cards**: only the UID is read (never written), so a card already
-  used with another company can be registered and used without being changed.
 
 ### Which file do I download?
 
@@ -52,12 +65,14 @@ then open **Apps -> Tools -> Staff Time Clock**.
   "Not registered". Register people in Badges; lost chip -> Replace chip.
 - **Manual correction**: add a missing IN/OUT from Badges, and **Undo last punch**
   per collaborator, to fix a mistaken or forgotten tap.
+- **Overview**: a per-collaborator dashboard (today / week / month worked time
+  and today's break); Left/Right switches between people.
+- **History**: all punches, today, this week or this month, all reachable from
+  one menu button.
 - **This week** summary: worked time per day of the current week plus the total.
 - **This month** summary: worked time per collaborator for the current month.
 - **Daily target** hours with overtime shown on the Today screen (optional).
-- **History filters**: view all punches, only today, only this week, or a single
-  collaborator's history.
-- **History** and **daily totals**; **CSV** and **JSON** export.
+- **CSV** and **JSON** export.
 - **PIN-protected** exit so collaborators cannot leave or tamper with the app.
   The PIN is a fast **4-step arrow sequence**, offered on first launch.
 - **Languages**: English, Italian, Spanish, French, German (Settings).

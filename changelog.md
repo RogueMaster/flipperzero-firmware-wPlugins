@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.4
+
+- Fixed a crash: the round-robin badge reader now switches radios on the GUI
+  thread instead of the timer service thread, which could hard-fault the
+  device on almost any scan or punch.
+- Today / This week / This month moved under History, so the main menu has
+  fewer buttons.
+- New Overview screen: a per-collaborator dashboard (today / week / month
+  worked time and today's break); Left/Right switches between people.
+- About screen shortened to a quick description, the repo link and the
+  copyright notice.
+- Settings: disabling the PIN now shows a clear confirmation instead of
+  returning silently; "Exit app" renamed to "Exit".
+- Onboarding PIN screen text shortened so it always fits on screen.
+- Startup warning if the Flipper's clock looks wrong (older than this
+  release), so punches are never silently misdated.
+- App icon redrawn with the clock hands at 10:10.
+
 ## 2.3
 
 - Correct worked-time totals for shifts that cross midnight (an OUT on the next

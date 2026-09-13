@@ -7,10 +7,8 @@ typedef enum {
     MenuIndexPunch,
     MenuIndexWork,
     MenuIndexBadges,
+    MenuIndexOverview,
     MenuIndexHistory,
-    MenuIndexToday,
-    MenuIndexWeek,
-    MenuIndexMonth,
     MenuIndexExport,
     MenuIndexSettings,
     MenuIndexAbout,
@@ -34,13 +32,13 @@ void timeclock_scene_menu_on_enter(void* context) {
     submenu_add_item(
         submenu, tc_str(StrBadges), MenuIndexBadges, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
+        submenu,
+        tc_str(StrOverview),
+        MenuIndexOverview,
+        timeclock_scene_menu_submenu_callback,
+        app);
+    submenu_add_item(
         submenu, tc_str(StrHistory), MenuIndexHistory, timeclock_scene_menu_submenu_callback, app);
-    submenu_add_item(
-        submenu, tc_str(StrToday), MenuIndexToday, timeclock_scene_menu_submenu_callback, app);
-    submenu_add_item(
-        submenu, tc_str(StrThisWeek), MenuIndexWeek, timeclock_scene_menu_submenu_callback, app);
-    submenu_add_item(
-        submenu, tc_str(StrThisMonth), MenuIndexMonth, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
         submenu, tc_str(StrExport), MenuIndexExport, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
@@ -72,17 +70,11 @@ bool timeclock_scene_menu_on_event(void* context, SceneManagerEvent event) {
         case MenuIndexBadges:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneBadgeList);
             break;
+        case MenuIndexOverview:
+            scene_manager_next_scene(app->scene_manager, TimeClockSceneOverview);
+            break;
         case MenuIndexHistory:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneHistoryMenu);
-            break;
-        case MenuIndexToday:
-            scene_manager_next_scene(app->scene_manager, TimeClockSceneToday);
-            break;
-        case MenuIndexWeek:
-            scene_manager_next_scene(app->scene_manager, TimeClockSceneWeek);
-            break;
-        case MenuIndexMonth:
-            scene_manager_next_scene(app->scene_manager, TimeClockSceneMonth);
             break;
         case MenuIndexExport:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneExport);

@@ -79,10 +79,12 @@ Flipper-style mockups of the main screens (128x64):
   OUT (ascending tone + 1 buzz + green for IN; descending tone + 2 buzzes + blue
   for OUT), so a tap tells you which one it was. Each is toggleable in Settings
   (all on by default).
-- **History** with filters (all / today / this week, or per collaborator from
-  Badges), a **Today** summary (first in, last out, worked total and break time)
-  a **This week** summary (worked time per day + weekly total) and a **This
-  month** summary (worked time per collaborator).
+- **Overview**: a quick per-collaborator screen (today / week / month worked
+  time and today's break), Left/Right to switch between people.
+- **History** (one menu button) with the raw log (all / today / this week, or
+  per collaborator from Badges), a **Today** summary (first in, last out,
+  worked total and break time), a **This week** summary (worked time per day +
+  weekly total) and a **This month** summary (worked time per collaborator).
 - **Storage on microSD** as plain CSV, plus **JSON export**, **dated CSV
   snapshots**, **monthly CSV export** (`punches-YYYY-MM.csv`), a **Backup**
   (timestamped copy of badges + punches) and **Restore** (reload from a backup).
@@ -181,7 +183,7 @@ APIs and is written to be portable across firmwares.
 The PIN is a fast **4-step arrow sequence** (e.g. Up, Up, Left, Right). You are
 offered to set it on first launch, or any time from *Settings -> Set PIN*. When
 set, the app starts locked and **Back no longer leaves the app**; the only
-software way out is *Settings -> Exit app* (or Work mode -> Back), which asks for
+software way out is *Settings -> Exit* (or Work mode -> Back), which asks for
 the sequence. It is stored only as a **salted hash**, never in clear text.
 
 **Honest limits (by design):**

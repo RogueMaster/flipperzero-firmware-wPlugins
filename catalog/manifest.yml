@@ -14,7 +14,7 @@
 #
 # name, id, category and version are read from application.fam
 # (name="Staff Time Clock", appid="timeclock", fap_category="Tools",
-# fap_version="2.3.0").
+# fap_version="2.4.0").
 
 sourcecode:
   type: git

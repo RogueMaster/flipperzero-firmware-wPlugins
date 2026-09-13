@@ -27,6 +27,7 @@ typedef enum {
     StrWorkMode,
     StrBadges,
     StrHistory,
+    StrOverview,
     StrToday,
     StrThisWeek,
     StrExport,
@@ -110,6 +111,8 @@ typedef enum {
     StrWrongPin, // followed by " x/y" appended by caller
     StrAttempts, // "Attempts" + " x/y"
     StrPinHint,
+    StrPinSaved,
+    StrPinDisabled,
     // Onboarding
     StrOnbText,
     StrSkip,
@@ -127,6 +130,8 @@ typedef enum {
     StrExportMonth,
     StrTarget, // expected daily worked time
     StrOvertime, // worked minus target (can be negative)
+    // Extra (v2.4)
+    StrDateWrongText, // body text under StrClockNotSet on the startup warning
     // Weekday abbreviations (Monday..Sunday)
     StrDowMon,
     StrDowTue,

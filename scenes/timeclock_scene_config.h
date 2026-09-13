@@ -4,6 +4,7 @@
 // X-macro list of scenes. Each ADD_SCENE(prefix, name, id) expands into an
 // enum entry and the three handler-table slots, keeping them all in sync.
 ADD_SCENE(timeclock, pin_unlock, PinUnlock)
+ADD_SCENE(timeclock, date_warning, DateWarning)
 ADD_SCENE(timeclock, onboarding, Onboarding)
 ADD_SCENE(timeclock, menu, Menu)
 ADD_SCENE(timeclock, work, Work)
@@ -12,6 +13,7 @@ ADD_SCENE(timeclock, name_input, NameInput)
 ADD_SCENE(timeclock, badge_list, BadgeList)
 ADD_SCENE(timeclock, badge_detail, BadgeDetail)
 ADD_SCENE(timeclock, confirm_delete, ConfirmDelete)
+ADD_SCENE(timeclock, overview, Overview)
 ADD_SCENE(timeclock, history_menu, HistoryMenu)
 ADD_SCENE(timeclock, history, History)
 ADD_SCENE(timeclock, today, Today)

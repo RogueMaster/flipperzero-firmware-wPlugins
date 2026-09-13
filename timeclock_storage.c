@@ -148,6 +148,14 @@ void tc_now_datetime(char* out, size_t out_size) {
         out, out_size, "%04u-%02u-%02u %02u:%02u", dt.year, dt.month, dt.day, dt.hour, dt.minute);
 }
 
+bool tc_date_is_valid(void) {
+    char today[TC_DT_MAX];
+    tc_now_date(today, sizeof(today));
+    // "YYYY-MM-DD" strings compare chronologically, same trick used for the
+    // history date-range filters below.
+    return strcmp(today, TC_RELEASE_DATE) >= 0;
+}
+
 // -----------------------------------------------------------------------------
 // Config (simple key=value format)
 // -----------------------------------------------------------------------------

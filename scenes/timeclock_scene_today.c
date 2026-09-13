@@ -70,10 +70,7 @@ void timeclock_scene_today_on_enter(void* context) {
     }
 
     // Warn if the Flipper clock is not set (dates/times would be wrong).
-    char d[TC_DT_MAX];
-    tc_now_date(d, sizeof(d));
-    int year = (d[0] - '0') * 1000 + (d[1] - '0') * 100 + (d[2] - '0') * 10 + (d[3] - '0');
-    if(year < 2020) {
+    if(!tc_date_is_valid()) {
         furi_string_cat_printf(app->text_store, "\n! %s", tc_str(StrClockNotSet));
     }
 

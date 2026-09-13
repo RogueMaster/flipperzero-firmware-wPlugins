@@ -24,6 +24,11 @@
 #define TC_TECH_MAX    6 // "NFC" / "RFID" / "iBTN"
 #define TC_DT_MAX      20 // "YYYY-MM-DD HH:MM"
 
+// Release date of this build. If the Flipper's clock reads earlier than this,
+// it was never set (or reset after a dead battery) and every timestamp this
+// app writes would be wrong, so tc_date_is_valid() flags it for a warning.
+#define TC_RELEASE_DATE "2026-09-13"
+
 // ---- Event types -----------------------------------------------------------
 typedef enum {
     TcEventNone = 0,
@@ -71,6 +76,10 @@ void tc_storage_init(void);
 void tc_now_date(char* out, size_t out_size); // "YYYY-MM-DD"
 void tc_now_time(char* out, size_t out_size); // "HH:MM"
 void tc_now_datetime(char* out, size_t out_size); // "YYYY-MM-DD HH:MM"
+
+// False if the Flipper's RTC date is before TC_RELEASE_DATE (clock never set
+// or reset). Every date/time this app records depends on the RTC being right.
+bool tc_date_is_valid(void);
 
 // ---- Config ----------------------------------------------------------------
 void tc_config_load(TcConfig* config);
