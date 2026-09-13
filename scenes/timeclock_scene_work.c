@@ -97,6 +97,10 @@ static void work_view_nav_cb(int direction, void* context) {
     ctx->last_uid[0] = '\0'; // fresh technology, fresh debounce state
     timeclock_reader_start_fixed(ctx->reader, ctx->tech);
     work_update_footer(app, ctx);
+
+    // Remember the choice across Work mode sessions (and app restarts).
+    app->config.work_tech = (uint32_t)ctx->tech;
+    tc_config_save(&app->config);
 }
 
 static void work_bounce_popup_cb(void* context) {
@@ -136,7 +140,11 @@ void timeclock_scene_work_on_enter(void* context) {
         ctx = malloc(sizeof(WorkCtx));
         memset(ctx, 0, sizeof(WorkCtx));
         ctx->app = app;
-        ctx->tech = TimeclockReaderTechNfc;
+        // Resume on whichever technology was last selected (persisted), so
+        // it doesn't reset to NFC every time Work mode is entered.
+        ctx->tech = (app->config.work_tech < TimeclockReaderTechCount) ?
+                        (TimeclockReaderTech)app->config.work_tech :
+                        TimeclockReaderTechNfc;
         ctx->reader = timeclock_reader_alloc(app->view_dispatcher);
         timeclock_reader_set_callback(ctx->reader, work_on_uid, ctx);
         scene_manager_set_scene_state(

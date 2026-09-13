@@ -59,6 +59,7 @@ typedef struct {
     bool onboarded; // first-launch onboarding already shown
     uint32_t language; // UI language index (see TcLang)
     uint32_t daily_target; // expected minutes worked per day (0 = off/no target)
+    uint32_t work_tech; // last Work mode reader technology (see TimeclockReaderTech)
 } TcConfig;
 
 // ---- File paths ------------------------------------------------------------

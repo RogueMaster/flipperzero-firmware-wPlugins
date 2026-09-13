@@ -173,6 +173,7 @@ void tc_config_load(TcConfig* config) {
     config->onboarded = false;
     config->language = 0;
     config->daily_target = 0; // no target by default
+    config->work_tech = 0; // NFC by default
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     Stream* stream = file_stream_alloc(storage);
@@ -204,6 +205,8 @@ void tc_config_load(TcConfig* config) {
                 config->language = (uint32_t)v;
             } else if(sscanf(s, "daily_target=%lu", &v) == 1) {
                 config->daily_target = (uint32_t)v;
+            } else if(sscanf(s, "work_tech=%lu", &v) == 1) {
+                config->work_tech = (uint32_t)v;
             }
         }
         furi_string_free(line);
@@ -228,6 +231,7 @@ void tc_config_save(const TcConfig* config) {
         stream_write_format(stream, "onboarded=%u\n", config->onboarded ? 1 : 0);
         stream_write_format(stream, "language=%lu\n", (unsigned long)config->language);
         stream_write_format(stream, "daily_target=%lu\n", (unsigned long)config->daily_target);
+        stream_write_format(stream, "work_tech=%lu\n", (unsigned long)config->work_tech);
     }
     file_stream_close(stream);
     stream_free(stream);
