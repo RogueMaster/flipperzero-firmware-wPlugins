@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.12
+
+- Fixed another Work mode freeze, right after the first IN: the NFC poller
+  in continuous mode never stopped itself on a read, so a badge still in
+  the field kept re-triggering it as fast as the radio could re-detect it,
+  flooding the event queue faster than the GUI thread could drain it. The
+  poller now always stops itself on a read; continuous mode re-arms it
+  explicitly afterward, paced by actual reads instead of the radio's raw
+  poll rate. LF RFID and iButton are unaffected (no per-read stop signal
+  to begin with).
+- Left/Right chevrons moved from screen-center height to the same row as
+  the NFC/RFID/iBTN label at the bottom, on both the Scan and Work mode
+  screens.
+
 ## 2.11
 
 - Fixed a device freeze on tap: the NFC poller was never told its own

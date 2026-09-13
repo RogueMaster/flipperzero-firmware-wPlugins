@@ -5,25 +5,26 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline, with an optional PIN lock. Identification only - no badge emulation,
 no authentication bypass.
 
-**New in v2.11**
+**New in v2.12**
+
+- **Work mode freeze fixed, right after the first IN**: the NFC poller in
+  continuous mode never stopped itself on a read, so a badge still in the
+  field kept re-triggering it as fast as the radio could re-detect it,
+  flooding the event queue faster than the GUI thread could drain it. The
+  poller now always stops itself on a read; continuous mode re-arms it
+  explicitly afterward, paced by actual reads instead of the radio's raw
+  poll rate.
+- **Chevrons moved** to the same row as the NFC/RFID/iBTN label at the
+  bottom, on both the Scan and Work mode screens.
+
+**Earlier (v2.11)**
 
 - **Freeze on tap fixed**: the NFC poller was never told its own worker
-  thread should stop on a read (a regression from the reader rewrite in
-  2.9/2.10), so the GUI thread's teardown raced an actively running poller
-  thread and froze the device solid the moment an NFC badge was read, in
-  Scan and Work mode alike. RFID and iButton were unaffected. Restored the
-  exact v1.3.0 shutdown signaling.
+  thread should stop on a read, so the GUI thread's teardown raced an
+  actively running poller thread and froze the device solid. RFID and
+  iButton were unaffected.
 - **Chevron hints**: the "<"/">" button labels and "< NFC >" bracket text
-  are now a minimal V-shaped chevron at each screen edge, with the active
-  technology name in the same spot (bottom center) on both the Scan and
-  Work mode screens.
-
-**Earlier (v2.10)**
-
-- **Manual technology selection everywhere**: the round-robin rotation
-  between NFC/RFID/iButton is gone from the whole app - Punch, register,
-  replace-chip and Work mode all show the active technology with
-  Left/Right to change it, shared and remembered across restarts.
+  became a minimal V-shaped chevron at each screen edge.
 
 ### Which file do I download?
 
