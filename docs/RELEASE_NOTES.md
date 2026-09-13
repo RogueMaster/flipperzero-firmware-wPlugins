@@ -5,7 +5,7 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline and PIN-protected. Identification only - no badge emulation, no
 authentication bypass.
 
-**New in v2.2.0**
+**New in v2.2**
 
 - **iButton** support: 1-Wire Dallas keys work as badges alongside NFC and RFID.
 - **Automatic multi-technology reader**: NFC, RFID and iButton are read at the

@@ -89,8 +89,8 @@ Ver la [Roadmap](#roadmap) para las ideas v1.1 / v2.0.
 Cada colaborador se identifica por el **UID** del chip: asigna un chip por
 persona y mantenlo como referencia - todos sus fichajes apuntan a ese chip. Si
 alguien **pierde su chip**, abre **Tarjetas -> (persona) -> Cambiar chip** y pasa
-un chip nuevo en blanco: se conservan nombre y fichajes, solo cambia el chip de
-referencia.
+un chip nuevo (en blanco o uno que ya tenga): se conservan nombre y fichajes,
+solo cambia el chip de referencia.
 
 ## Archivos de datos
 

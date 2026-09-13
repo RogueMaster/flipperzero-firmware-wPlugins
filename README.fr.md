@@ -92,8 +92,8 @@ Voir la [Roadmap](#roadmap) pour les idees v1.1 / v2.0.
 Chaque collaborateur est identifie par l'**UID** de sa puce: attribuez une puce
 par personne et gardez-la comme reference - tous ses pointages renvoient a cette
 puce. Si quelqu'un **perd sa puce**, ouvrez **Badges -> (personne) -> Remplacer
-puce** et passez une nouvelle puce vierge: nom et pointages passes sont gardes,
-seule la puce de reference change.
+puce** et passez une nouvelle puce (vierge ou une qu'elle possede deja): nom et
+pointages passes sont gardes, seule la puce de reference change.
 
 ## Fichiers de donnees
 

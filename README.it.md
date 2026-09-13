@@ -91,8 +91,8 @@ Vedi la [Roadmap](#roadmap) per le idee v1.1 / v2.0.
 Ogni collaboratore e identificato dall'**UID** del chip: assegna un chip a testa
 e tienilo come riferimento - tutte le sue timbrature puntano a quel chip. Se
 qualcuno **perde il chip**, apri **Badge -> (persona) -> Sostituisci chip** e
-passa un nuovo chip vergine: nome e timbrature passate restano, cambia solo il
-chip di riferimento.
+passa un nuovo chip (vergine o uno che la persona ha gia): nome e timbrature
+passate restano, cambia solo il chip di riferimento.
 
 ## File dei dati
 

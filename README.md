@@ -92,8 +92,8 @@ See [ROADMAP](#roadmap) for v1.1 / v2.0 ideas.
 Each collaborator is identified by their chip's **UID**, so assign one chip per
 person and keep it as their reference - all of their punches point to that chip.
 If someone **loses their chip**, open **Badges -> (person) -> Replace chip** and
-tap a new blank chip: their name and past punches are kept, only the reference
-chip is updated.
+tap a new chip (blank or one they already carry): their name and past punches are
+kept, only the reference chip is updated.
 
 ## Data files
 

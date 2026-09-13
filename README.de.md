@@ -95,8 +95,8 @@ Siehe die [Roadmap](#roadmap) fuer v1.1 / v2.0.
 Jeder Mitarbeiter wird ueber die **UID** seines Chips erkannt: weise einen Chip
 pro Person zu und behalte ihn als Referenz - alle Stempel verweisen auf diesen
 Chip. Verliert jemand seinen Chip, oeffne **Ausweise -> (Person) -> Chip
-ersetzen** und halte einen neuen leeren Chip an: Name und bisherige Stempel
-bleiben, nur der Referenzchip aendert sich.
+ersetzen** und halte einen neuen Chip an (leer oder einen, den die Person schon
+hat): Name und bisherige Stempel bleiben, nur der Referenzchip aendert sich.
 
 ## Datendateien
 
