@@ -1,7 +1,6 @@
 #ifndef ELEMENTS_H
 #define ELEMENTS_H
 
-#include "../lib/Arduino.h"
 #include "globals.h"
 
 #define FONT_TINY  0
@@ -13,58 +12,71 @@
 #define DATA_LEVEL 2
 
 void drawBalloonLives() {
-    for(byte i = 0; i < kid.balloons; ++i) {
-        sprites.drawOverwrite((i * 7) + 2, 0, elementsHUD, 10);
+    for(uint8_t i = 0; i < kid.balloons; ++i) {
+        gfx_sprite_overwrite((i * 7) + 2, 0, elementsHUD, 10);
     }
 }
 
 void drawCoinHUD() {
-    //for (byte i = 0; i < MAX_PER_TYPE; ++i)
-    for(byte i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
+    //for (uint8_t i = 0; i < MAX_PER_TYPE; ++i)
+    for(uint8_t i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
         if(i >= MAX_PER_TYPE - coinsActive)
-            sprites.drawOverwrite(40 + (i * 6), 0, elementsHUD, 11);
+            gfx_sprite_overwrite(40 + (i * 6), 0, elementsHUD, 11);
         else
-            sprites.drawOverwrite(40 + (i * 6), 0, elementsHUD, 12);
+            gfx_sprite_overwrite(40 + (i * 6), 0, elementsHUD, 12);
     }
 }
 
-void drawNumbers(byte numbersX, byte numbersY, byte fontType, byte data) {
+uint8_t numberToDigits(unsigned long value, char* out) {
+    char reversed[10];
+    uint8_t length = 0;
+
+    do {
+        reversed[length++] = (char)('0' + (value % 10));
+        value /= 10;
+    } while(value > 0 && length < sizeof(reversed));
+
+    for(uint8_t i = 0; i < length; i++)
+        out[i] = reversed[length - 1 - i];
+
+    return length;
+}
+
+void drawNumbers(uint8_t numbersX, uint8_t numbersY, uint8_t fontType, uint8_t data) {
     char buf[10];
     char charLen = 0;
     char pad = 0;
 
     switch(data) {
     case DATA_SCORE:
-        snprintf(buf, sizeof(buf), "%lu", (unsigned long)scorePlayer);
-        charLen = strlen(buf);
+        charLen = (char)numberToDigits(scorePlayer, buf);
         pad = 6 - charLen;
-        sprites.drawSelfMasked(numbersX - 2, numbersY - 2, numbersBigMask, 0);
-        //for (byte i = 0; i < 6; i++)
-        for(byte i = 5; i <= 5; --i)
-            sprites.drawSelfMasked(numbersX + (7 * i), numbersY - 2, numbersBigMask01, 0);
-        sprites.drawSelfMasked(numbersX + 41, numbersY - 2, numbersBigMask, 1);
+        gfx_sprite_self_masked(numbersX - 2, numbersY - 2, numbersBigMask, 0);
+        //for (uint8_t i = 0; i < 6; i++)
+        for(uint8_t i = 5; i <= 5; --i)
+            gfx_sprite_self_masked(numbersX + (7 * i), numbersY - 2, numbersBigMask01, 0);
+        gfx_sprite_self_masked(numbersX + 41, numbersY - 2, numbersBigMask, 1);
         break;
     case DATA_LEVEL:
-        itoa(level + 1, buf, 10);
-        charLen = strlen(buf);
+        charLen = (char)numberToDigits((unsigned long)(level + 1), buf);
         pad = 2 - charLen;
-        sprites.drawSelfMasked(numbersX - 2, numbersY - 9, badgeLevel, 0);
+        gfx_sprite_self_masked(numbersX - 2, numbersY - 9, badgeLevel, 0);
         break;
     }
 
     //draw 0 padding
-    for(byte i = 0; i < pad; i++) {
+    for(uint8_t i = 0; i < pad; i++) {
         switch(fontType) {
         case FONT_SMALL:
-            sprites.drawOverwrite(numbersX + (6 * i), numbersY, elementsHUD, 0);
+            gfx_sprite_overwrite(numbersX + (6 * i), numbersY, elementsHUD, 0);
             break;
         case FONT_BIG:
-            sprites.drawSelfMasked(numbersX + (7 * i), numbersY, numbersBig, 0);
+            gfx_sprite_self_masked(numbersX + (7 * i), numbersY, numbersBig, 0);
             break;
         }
     }
 
-    for(byte i = 0; i < charLen; i++) {
+    for(uint8_t i = 0; i < charLen; i++) {
         char digit = buf[i];
         if(digit <= 48) {
             digit = 0;
@@ -74,10 +86,10 @@ void drawNumbers(byte numbersX, byte numbersY, byte fontType, byte data) {
         }
         switch(fontType) {
         case FONT_SMALL:
-            sprites.drawOverwrite(numbersX + (pad * 6) + (6 * i), numbersY, elementsHUD, digit);
+            gfx_sprite_overwrite(numbersX + (pad * 6) + (6 * i), numbersY, elementsHUD, digit);
             break;
         case FONT_BIG:
-            sprites.drawSelfMasked(numbersX + (pad * 7) + (7 * i), numbersY, numbersBig, digit);
+            gfx_sprite_self_masked(numbersX + (pad * 7) + (7 * i), numbersY, numbersBig, digit);
             break;
         }
     }

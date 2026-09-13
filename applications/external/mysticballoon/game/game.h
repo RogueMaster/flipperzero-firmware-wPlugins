@@ -1,7 +1,6 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "../lib/Arduino.h"
 #include "globals.h"
 #include "inputs.h"
 #include "player.h"
@@ -10,7 +9,7 @@
 #include "levels.h"
 
 #define TOTAL_TONES 10
-PROGMEM const byte tones[] = {
+static const uint8_t tones[] = {
     //200, 100, 250, 125, 300, 150, 350, 400, 425, 475
     131,
     145,
@@ -23,7 +22,7 @@ PROGMEM const byte tones[] = {
     213,
     255};
 
-byte toneindex = 0;
+uint8_t toneindex = 0;
 
 void stateMenuPlayNew() {
     level = LEVEL_TO_START_WITH - 1;
@@ -40,12 +39,12 @@ void stateMenuPlayNew() {
 }
 
 void stateMenuPlayContinue() {
-    level = EEPROM.read(OFFSET_LEVEL);
-    totalCoins = EEPROM.read(OFFSET_COINS);
+    level = save.level;
+    totalCoins = save.coins;
     coinsCollected = 0;
     balloonsLeft = 0;
     //scorePlayer = 0;
-    EEPROM.get(OFFSET_SCORE, scorePlayer);
+    scorePlayer = save.score;
     globalCounter = 0;
     kid.balloons = 3;
     gameState = STATE_GAME_NEXT_LEVEL;
@@ -57,22 +56,22 @@ void stateMenuPlayContinue() {
 void stateGameNextLevel() {
     //if (level < TOTAL_LEVELS)
     //{
-    if(arduboy.everyXFrames(20)) {
+    if(everyXFrames(20)) {
         canPressButton = false;
         if(coinsCollected > 0) {
             coinsCollected--;
             scorePlayer += 20;
-            sound.tone(pgm_read_byte(tones + toneindex++), 150);
+            playTone(*(tones + toneindex++), 150);
         } else if(balloonsLeft > 0) {
             balloonsLeft--;
             scorePlayer += 30;
-            sound.tone(pgm_read_byte(tones + toneindex++), 150);
+            playTone(*(tones + toneindex++), 150);
         } else {
             canPressButton = true;
             scoreIsVisible = false;
             pressKeyIsVisible = !pressKeyIsVisible;
             if(toneindex < TOTAL_TONES) {
-                sound.tone(pgm_read_byte(tones + toneindex++), 200);
+                playTone(*(tones + toneindex++), 200);
                 toneindex = TOTAL_TONES;
             }
             if(level >= TOTAL_LEVELS) gameState = STATE_GAME_OVER;
@@ -85,41 +84,40 @@ void stateGameNextLevel() {
     return;
   }*/
 
-    // Update EEPROM
-    EEPROM.put(OFFSET_LEVEL, level);
-    EEPROM.put(OFFSET_COINS, totalCoins);
-    EEPROM.put(OFFSET_SCORE, scorePlayer);
-    EEPROM.commit();
+    // Update the save slot
+    saveByte(save.level, level);
+    saveByte(save.coins, totalCoins);
+    saveLong(save.score, scorePlayer);
 
     //if (nextLevelIsVisible)
     //{
     if(level < TOTAL_LEVELS) {
-        sprites.drawSelfMasked(35, 4, badgeNextLevel, 0);
+        gfx_sprite_self_masked(35, 4, badgeNextLevel, 0);
         drawNumbers(78, 13, FONT_BIG, DATA_LEVEL);
     } else {
-        EEPROM.put(OFFSET_LEVEL, (byte)LEVEL_TO_START_WITH - 1);
+        saveByte(save.level, (uint8_t)LEVEL_TO_START_WITH - 1);
         // Score remains after completing game? (no)
-        EEPROM.put(OFFSET_SCORE, (unsigned long)0);
+        saveLong(save.score, 0);
     }
     drawNumbers(43, 49, FONT_BIG, DATA_SCORE);
     //}
 
     if(scoreIsVisible) {
-        byte totalBadges = coinsCollected + balloonsLeft;
+        uint8_t totalBadges = coinsCollected + balloonsLeft;
 
-        for(byte i = 0; i < totalBadges; ++i) {
+        for(uint8_t i = 0; i < totalBadges; ++i) {
             if(i < coinsCollected)
-                sprites.drawOverwrite(65 - (7 * totalBadges) + (i * 14), 27, badgeElements, 0);
+                gfx_sprite_overwrite(65 - (7 * totalBadges) + (i * 14), 27, badgeElements, 0);
             else
-                sprites.drawOverwrite(65 - (7 * totalBadges) + (i * 14), 27, badgeElements, 1);
+                gfx_sprite_overwrite(65 - (7 * totalBadges) + (i * 14), 27, badgeElements, 1);
         }
     }
 
     if(canPressButton) {
-        if(pressKeyIsVisible) sprites.drawOverwrite(38, 29, badgePressKey, 0);
-        if(arduboy.justPressed(A_BUTTON | B_BUTTON)) {
+        if(pressKeyIsVisible) gfx_sprite_overwrite(38, 29, badgePressKey, 0);
+        if(justPressed(MYBL_BACK | MYBL_OK)) {
             toneindex = 0;
-            sound.tone(425, 20);
+            playTone(425, 20);
             setKid();
             //cam.pos = vec2(0, 0);
             cam.pos = vec2(0, LEVEL_HEIGHT - 64);
@@ -146,29 +144,30 @@ void stateGamePlaying() {
 }
 
 void stateGamePause() {
-    sprites.drawSelfMasked(47, 17, badgePause, 0);
-    if(arduboy.justPressed(A_BUTTON | B_BUTTON)) {
+    gfx_sprite_self_masked(47, 17, badgePause, 0);
+    if(justPressed(MYBL_OK)) {
         gameState = STATE_GAME_PLAYING;
+    }
+    if(justPressed(MYBL_BACK)) {
+        gameState = STATE_MENU_MAIN;
     }
 }
 
 void stateGameOver() {
-    byte x = 35 + 12;
+    uint8_t x = 35 + 12;
     if(level < TOTAL_LEVELS) {
         drawNumbers(78, 26, FONT_BIG, DATA_LEVEL);
         x -= 12;
     }
-    sprites.drawSelfMasked(x, 17, badgeGameOver, 0);
+    gfx_sprite_self_masked(x, 17, badgeGameOver, 0);
     drawNumbers(43, 49, FONT_BIG, DATA_SCORE);
 
-    unsigned long highscore = 0;
-    EEPROM.get(OFFSET_HSCORE, highscore);
-    if(scorePlayer > highscore) {
-        EEPROM.put(OFFSET_COINSHS, totalCoins);
-        EEPROM.put(OFFSET_HSCORE, scorePlayer);
+    if(scorePlayer > save.highscore) {
+        saveByte(save.coinsHighscore, totalCoins);
+        saveLong(save.highscore, scorePlayer);
     }
 
-    if(arduboy.justPressed(A_BUTTON | B_BUTTON)) {
+    if(justPressed(MYBL_BACK | MYBL_OK)) {
         gameState = STATE_MENU_MAIN;
     }
 }

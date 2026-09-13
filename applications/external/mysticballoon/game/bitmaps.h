@@ -2,267 +2,8 @@
 #define BITMAPS_H
 
 #include <stdint.h>
-typedef uint8_t byte;
 
-#define B00000000 0x00
-#define B00000001 0x01
-#define B00000010 0x02
-#define B00000011 0x03
-#define B00000100 0x04
-#define B00000101 0x05
-#define B00000110 0x06
-#define B00000111 0x07
-#define B00001000 0x08
-#define B00001001 0x09
-#define B00001010 0x0A
-#define B00001011 0x0B
-#define B00001100 0x0C
-#define B00001101 0x0D
-#define B00001110 0x0E
-#define B00001111 0x0F
-#define B00010000 0x10
-#define B00010001 0x11
-#define B00010010 0x12
-#define B00010011 0x13
-#define B00010100 0x14
-#define B00010101 0x15
-#define B00010110 0x16
-#define B00010111 0x17
-#define B00011000 0x18
-#define B00011001 0x19
-#define B00011010 0x1A
-#define B00011011 0x1B
-#define B00011100 0x1C
-#define B00011101 0x1D
-#define B00011110 0x1E
-#define B00011111 0x1F
-#define B00100000 0x20
-#define B00100001 0x21
-#define B00100010 0x22
-#define B00100011 0x23
-#define B00100100 0x24
-#define B00100101 0x25
-#define B00100110 0x26
-#define B00100111 0x27
-#define B00101000 0x28
-#define B00101001 0x29
-#define B00101010 0x2A
-#define B00101011 0x2B
-#define B00101100 0x2C
-#define B00101101 0x2D
-#define B00101110 0x2E
-#define B00101111 0x2F
-#define B00110000 0x30
-#define B00110001 0x31
-#define B00110010 0x32
-#define B00110011 0x33
-#define B00110100 0x34
-#define B00110101 0x35
-#define B00110110 0x36
-#define B00110111 0x37
-#define B00111000 0x38
-#define B00111001 0x39
-#define B00111010 0x3A
-#define B00111011 0x3B
-#define B00111100 0x3C
-#define B00111101 0x3D
-#define B00111110 0x3E
-#define B00111111 0x3F
-#define B01000000 0x40
-#define B01000001 0x41
-#define B01000010 0x42
-#define B01000011 0x43
-#define B01000100 0x44
-#define B01000101 0x45
-#define B01000110 0x46
-#define B01000111 0x47
-#define B01001000 0x48
-#define B01001001 0x49
-#define B01001010 0x4A
-#define B01001011 0x4B
-#define B01001100 0x4C
-#define B01001101 0x5D
-#define B01001110 0x4E
-#define B01001111 0x4F
-#define B01010000 0x50
-#define B01010001 0x51
-#define B01010010 0x52
-#define B01010011 0x53
-#define B01010100 0x54
-#define B01010101 0x55
-#define B01010110 0x56
-#define B01010111 0x57
-#define B01011000 0x58
-#define B01011001 0x59
-#define B01011010 0x5A
-#define B01011011 0x5B
-#define B01011100 0x5C
-#define B01011101 0x5D
-#define B01011110 0x5E
-#define B01011111 0x5F
-#define B01100000 0x60
-#define B01100001 0x61
-#define B01100010 0x62
-#define B01100011 0x63
-#define B01100100 0x64
-#define B01100101 0x65
-#define B01100110 0x66
-#define B01100111 0x67
-#define B01101000 0x68
-#define B01101001 0x69
-#define B01101010 0x6A
-#define B01101011 0x6B
-#define B01101100 0x6C
-#define B01101101 0x6D
-#define B01101110 0x6E
-#define B01101111 0x6F
-#define B01110000 0x70
-#define B01110001 0x71
-#define B01110010 0x72
-#define B01110011 0x73
-#define B01110100 0x74
-#define B01110101 0x75
-#define B01110110 0x76
-#define B01110111 0x77
-#define B01111000 0x78
-#define B01111001 0x79
-#define B01111010 0x7A
-#define B01111011 0x7B
-#define B01111100 0x7C
-#define B01111101 0x7D
-#define B01111110 0x7E
-#define B01111111 0x7F
-#define B10000000 0x80
-#define B10000001 0x81
-#define B10000010 0x82
-#define B10000011 0x83
-#define B10000100 0x84
-#define B10000101 0x85
-#define B10000110 0x86
-#define B10000111 0x87
-#define B10001000 0x88
-#define B10001001 0x89
-#define B10001010 0x8A
-#define B10001011 0x8B
-#define B10001100 0x8C
-#define B10001101 0x8D
-#define B10001110 0x8E
-#define B10001111 0x8F
-#define B10010000 0x90
-#define B10010001 0x91
-#define B10010010 0x92
-#define B10010011 0x93
-#define B10010100 0x94
-#define B10010101 0x95
-#define B10010110 0x96
-#define B10010111 0x97
-#define B10011000 0x98
-#define B10011001 0x99
-#define B10011010 0x9A
-#define B10011011 0x9B
-#define B10011100 0x9C
-#define B10011101 0x9D
-#define B10011110 0x9E
-#define B10011111 0x9F
-#define B10100000 0xA0
-#define B10100001 0xA1
-#define B10100010 0xA2
-#define B10100011 0xA3
-#define B10100100 0xA4
-#define B10100101 0xA5
-#define B10100110 0xA6
-#define B10100111 0xA7
-#define B10101000 0xA8
-#define B10101001 0xA9
-#define B10101010 0xAA
-#define B10101011 0xAB
-#define B10101100 0xAC
-#define B10101101 0xAD
-#define B10101110 0xAE
-#define B10101111 0xAF
-#define B10110000 0xB0
-#define B10110001 0xB1
-#define B10110010 0xB2
-#define B10110011 0xB3
-#define B10110100 0xB4
-#define B10110101 0xB5
-#define B10110110 0xB6
-#define B10110111 0xB7
-#define B10111000 0xB8
-#define B10111001 0xB9
-#define B10111010 0xBA
-#define B10111011 0xBB
-#define B10111100 0xBC
-#define B10111101 0xBD
-#define B10111110 0xBE
-#define B10111111 0xBF
-#define B11000000 0xC0
-#define B11000001 0xC1
-#define B11000010 0xC2
-#define B11000011 0xC3
-#define B11000100 0xC4
-#define B11000101 0xC5
-#define B11000110 0xC6
-#define B11000111 0xC7
-#define B11001000 0xC8
-#define B11001001 0xC9
-#define B11001010 0xCA
-#define B11001011 0xCB
-#define B11001100 0xCC
-#define B11001101 0xCD
-#define B11001110 0xCE
-#define B11001111 0xCF
-#define B11010000 0xD0
-#define B11010001 0xD1
-#define B11010010 0xD2
-#define B11010011 0xD3
-#define B11010100 0xD4
-#define B11010101 0xD5
-#define B11010110 0xD6
-#define B11010111 0xD7
-#define B11011000 0xD8
-#define B11011001 0xD9
-#define B11011010 0xDA
-#define B11011011 0xDB
-#define B11011100 0xDC
-#define B11011101 0xDD
-#define B11011110 0xDE
-#define B11011111 0xDF
-#define B11100000 0xE0
-#define B11100001 0xE1
-#define B11100010 0xE2
-#define B11100011 0xE3
-#define B11100100 0xE4
-#define B11100101 0xE5
-#define B11100110 0xE6
-#define B11100111 0xE7
-#define B11101000 0xE8
-#define B11101001 0xE9
-#define B11101010 0xEA
-#define B11101011 0xEB
-#define B11101100 0xEC
-#define B11101101 0xED
-#define B11101110 0xEE
-#define B11101111 0xEF
-#define B11110000 0xF0
-#define B11110001 0xF1
-#define B11110010 0xF2
-#define B11110011 0xF3
-#define B11110100 0xF4
-#define B11110101 0xF5
-#define B11110110 0xF6
-#define B11110111 0xF7
-#define B11111000 0xF8
-#define B11111001 0xF9
-#define B11111010 0xFA
-#define B11111011 0xFB
-#define B11111100 0xFC
-#define B11111101 0xFD
-#define B11111110 0xFE
-#define B11111111 0xFF
-#define PROGMEM
-
-const unsigned char PROGMEM T_arg[] = {
+static const uint8_t T_arg[] = {
     60,   56,   0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xF8, 0xFE, 0x0F, 0xE3, 0xFB, 0x1B, 0x0B, 0x0B,
     0x8B, 0xFB, 0xF3, 0xF7, 0xF6, 0xF6, 0xF6, 0x06, 0x06, 0xEC, 0xEC, 0xEC, 0xEC, 0xEC, 0xEC, 0xEC,
     0xEC, 0xEC, 0xEC, 0xEC, 0xEC, 0xEC, 0xEC, 0xEE, 0xE6, 0xF6, 0xF6, 0xF6, 0xF7, 0xF3, 0xFB, 0xFB,
@@ -291,7 +32,7 @@ const unsigned char PROGMEM T_arg[] = {
     0x20, 0x38, 0x1E, 0x07, 0x01, 0x00, 0x00, 0x06, 0x06, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-PROGMEM const unsigned char titleScreen[] = {
+static const uint8_t titleScreen[] = {
     // width, height
     32,
     64,
@@ -1325,7 +1066,7 @@ PROGMEM const unsigned char titleScreen[] = {
     0x00,
 };
 
-PROGMEM const unsigned char mainMenu[] = {
+static const uint8_t mainMenu[] = {
     // width, height
     27,   40,   0x01, 0xFC, 0xFE, 0x02, 0xFA, 0x22, 0x22, 0xFA, 0x02, 0xFA, 0xAA, 0xAA, 0x8A, 0x02,
     0xFA, 0x82, 0xBE, 0xBE, 0x02, 0xFA, 0x2A, 0xAA, 0xBA, 0x82, 0xFE, 0xFC, 0x01, 0x00, 0xFF, 0xFF,
@@ -1337,7 +1078,7 @@ PROGMEM const unsigned char mainMenu[] = {
     0x9F, 0x90, 0x17, 0x14, 0x15, 0x15, 0x10, 0x17, 0x14, 0x54, 0x57, 0x50, 0x57, 0xD0, 0xD1, 0xD7,
     0xD0, 0xD7, 0xD1, 0x5D, 0x5C, 0x5F, 0x1F, 0x0F, 0x00};
 
-PROGMEM const unsigned char soundMenu[] = {
+static const uint8_t soundMenu[] = {
     // width, height
     35,   32,   0x01, 0xFC, 0xFE, 0x02, 0xBA, 0xAA, 0xAA, 0xEA, 0x02, 0xFA, 0x2A, 0xAA, 0x8A, 0x02,
     0x8A, 0xDA, 0x72, 0xDA, 0x8A, 0x22, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFC, 0x01, 0x80, 0xC0, 0x0F,
@@ -1349,7 +1090,7 @@ PROGMEM const unsigned char soundMenu[] = {
     0x71, 0x01, 0x1F, 0x30, 0x27, 0x0F, 0x8F, 0x8F, 0xCF, 0x6F, 0x0F, 0xE8, 0xEB, 0xEA, 0xEA, 0xEB,
     0xE8, 0xEB, 0xE8, 0xEC, 0xE9, 0xEB, 0xE8, 0xEF, 0xEF, 0xEF, 0xEF, 0xEF, 0xE7, 0xF0};
 
-PROGMEM const unsigned char continueMenu[] = {
+static const uint8_t continueMenu[] = {
     // Bitmap Image. No transparency
     // Width: 27 Height: 24
     27,   24,   0x01, 0xFC, 0xFE, 0x02, 0xFA, 0x82, 0xBE, 0xBE, 0x02, 0xFA, 0x8A, 0x8A,
@@ -1360,7 +1101,7 @@ PROGMEM const unsigned char continueMenu[] = {
     0xF4, 0xF5, 0xF5, 0xF4, 0xF5, 0xF5, 0xF6, 0xF7, 0xF7, 0xF7, 0xF7, 0xF3, 0xF0,
 };
 
-PROGMEM const unsigned char selector_plus_mask[] = {
+static const uint8_t selector_plus_mask[] = {
     // width, height
     33,   16,   0x00, 0xF8, 0xF0, 0xFC, 0xF8, 0xFC, 0xE8, 0xFC, 0xC8, 0xFC, 0xF0, 0xFC, 0x00,
     0xFB, 0x02, 0x03, 0x02, 0x03, 0x02, 0x03, 0x02, 0x03, 0x02, 0x03, 0x02, 0x03, 0x02, 0x03,
@@ -1373,7 +1114,7 @@ PROGMEM const unsigned char selector_plus_mask[] = {
     0x02, 0x0E, 0x02, 0x0E, 0x02, 0x0E, 0x02, 0x0E, 0x03, 0x0F, 0x01, 0x0F, 0x00, 0x07,
 };
 
-PROGMEM const unsigned char stars[] = {
+static const uint8_t stars[] = {
     // width, height
     7,
     16,
@@ -1454,14 +1195,14 @@ PROGMEM const unsigned char stars[] = {
     0x00,
 };
 
-PROGMEM const byte blinkingEyesLeftGuy[] = {
+static const uint8_t blinkingEyesLeftGuy[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 4, 4, 1,
 };
-PROGMEM const byte blinkingEyesRightGuy[] = {
+static const uint8_t blinkingEyesRightGuy[] = {
     0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 3, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 3, 3, 2, 0, 0, 0,
 };
 
-PROGMEM const unsigned char leftGuyLeftEye[] = {
+static const uint8_t leftGuyLeftEye[] = {
     // width, height
     5,
     8,
@@ -1497,7 +1238,7 @@ PROGMEM const unsigned char leftGuyLeftEye[] = {
     0x00,
 };
 
-PROGMEM const unsigned char leftGuyRightEye[] = {
+static const uint8_t leftGuyRightEye[] = {
     // width, height
     6,
     8,
@@ -1538,7 +1279,7 @@ PROGMEM const unsigned char leftGuyRightEye[] = {
     0x00,
 };
 
-PROGMEM const unsigned char rightGuyEyes[] = {
+static const uint8_t rightGuyEyes[] = {
     // width, height
     16,
     8,
@@ -1612,7 +1353,7 @@ PROGMEM const unsigned char rightGuyEyes[] = {
     0x00,
 };
 
-PROGMEM const unsigned char madeBy[] = {
+static const uint8_t madeBy[] = {
     // width, height
     48,   16,   0x86, 0x4D, 0x49, 0xCB, 0xC3, 0x00, 0x00, 0xCF, 0x49, 0x4D, 0x4D, 0x00,
     0xCF, 0x45, 0x45, 0xCF, 0x00, 0xC7, 0xC8, 0x48, 0x47, 0x00, 0x4F, 0xCB, 0x4B, 0x09,
@@ -1624,7 +1365,7 @@ PROGMEM const unsigned char madeBy[] = {
 
 ///////////////// Badge bitmaps ///////////////////
 ///////////////////////////////////////////////////
-PROGMEM const unsigned char badgeMysticBalloon[] = {
+static const uint8_t badgeMysticBalloon[] = {
     // width, height
     42,   24,   0xFE, 0x03, 0xF9, 0xFD, 0x0D, 0xFD, 0xF9, 0x0D, 0xFD, 0xF9, 0xC3, 0xD9, 0xDD,
     0xDD, 0xD1, 0xF1, 0xFD, 0x7D, 0x01, 0xC9, 0xDD, 0xDD, 0xED, 0xED, 0xED, 0x41, 0x0D, 0x0D,
@@ -1636,7 +1377,7 @@ PROGMEM const unsigned char badgeMysticBalloon[] = {
     0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x02,
     0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x01};
 
-PROGMEM const unsigned char badgeNextLevel[] = {
+static const uint8_t badgeNextLevel[] = {
     // width, height
     36,   24,   0xFE, 0x03, 0xF9, 0xFD, 0x0D, 0xFD, 0xF9, 0x03, 0x79, 0xFD, 0xFD, 0xD5, 0xD5, 0xDD,
     0xD9, 0xC3, 0xC1, 0xED, 0x7D, 0x39, 0x7D, 0xED, 0xC1, 0x0D, 0x0D, 0xFD, 0xFD, 0x0D, 0xED, 0xE1,
@@ -1646,7 +1387,7 @@ PROGMEM const unsigned char badgeNextLevel[] = {
     0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02,
     0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x01, 0x00, 0x00};
 
-PROGMEM const unsigned char badgeGameOver[] = {
+static const uint8_t badgeGameOver[] = {
     // width, height
     34,   24,   0xFE, 0x03, 0x79, 0xFD, 0xFD, 0x85, 0xB5, 0xF5, 0x71, 0x03, 0xF9, 0xFD, 0x35,
     0x35, 0xFD, 0xF9, 0x03, 0xF9, 0xFD, 0x0D, 0xFD, 0xF9, 0x0D, 0xFD, 0xF9, 0x03, 0x79, 0xFD,
@@ -1656,14 +1397,14 @@ PROGMEM const unsigned char badgeGameOver[] = {
     0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02,
     0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x03, 0x01};
 
-PROGMEM const unsigned char badgeLevel[] = {
+static const uint8_t badgeLevel[] = {
     // width, height
     17,   24,   0xFE, 0xFF, 0x01, 0xFD, 0xFD, 0xC1, 0xC3, 0xC1, 0x1D, 0x7D, 0xE1, 0xE1,
     0x7D, 0x3D, 0x81, 0xFF, 0xFE, 0xFF, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x01, 0x03, 0x02, 0x02, 0x02, 0x02,
     0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x01};
 
-PROGMEM const unsigned char badgePause[] = {
+static const uint8_t badgePause[] = {
     // width, height
     34,   24,   0xFE, 0x03, 0x79, 0xFD, 0xFD, 0x85, 0xB5, 0xF5, 0x71, 0x03, 0xF9, 0xFD, 0x35,
     0x35, 0xFD, 0xF9, 0x03, 0xF9, 0xFD, 0x0D, 0xFD, 0xF9, 0x0D, 0xFD, 0xF9, 0x03, 0x79, 0xFD,
@@ -1673,7 +1414,7 @@ PROGMEM const unsigned char badgePause[] = {
     0x03, 0x03, 0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x03,
     0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x01};
 
-PROGMEM const unsigned char badgePressKey[] = {
+static const uint8_t badgePressKey[] = {
     // width, height
     52,   16,   0xFE, 0x01, 0xFD, 0xFD, 0x35, 0x35, 0x3D, 0xD9, 0xE5, 0x3D, 0x75, 0xFD, 0xD9, 0x21,
     0xFD, 0xF5, 0xD5, 0xDD, 0x59, 0x81, 0xDD, 0xDD, 0xED, 0xED, 0x41, 0x9D, 0xDD, 0xED, 0xED, 0x41,
@@ -1683,7 +1424,7 @@ PROGMEM const unsigned char badgePressKey[] = {
     0x04, 0x04, 0x04, 0x04, 0x06, 0x04, 0x04, 0x04, 0x06, 0x04, 0x04, 0x04, 0x06, 0x04, 0x04, 0x04,
     0x04, 0x06, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x06, 0x03};
 
-PROGMEM const unsigned char badgeElements[] = {
+static const uint8_t badgeElements[] = {
     // width, height
     12,
     16,
@@ -1739,13 +1480,13 @@ PROGMEM const unsigned char badgeElements[] = {
     0x7F,
 };
 
-PROGMEM const unsigned char badgeHighScore[] = {
+static const uint8_t badgeHighScore[] = {
     // width, height
     15,   16,   0xFD, 0xFD, 0x31, 0x31, 0xFD, 0xFD, 0x01, 0xC9, 0xDD,
     0xDD, 0xED, 0xED, 0x4D, 0x01, 0xFE, 0x04, 0x04, 0x06, 0x06, 0x04,
     0x04, 0x06, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x06, 0x03};
 
-PROGMEM const unsigned char badgeBorder[] = {
+static const uint8_t badgeBorder[] = {
     // width, height
     2,
     16,
@@ -1754,14 +1495,14 @@ PROGMEM const unsigned char badgeBorder[] = {
     0x03,
     0x06};
 
-PROGMEM const unsigned char badgeSuper[] = {
+static const uint8_t badgeSuper[] = {
     // width, height
     9,    16,   0xFE, 0x01, 0xC9, 0xDD, 0xDD, 0xED, 0xED, 0x4D,
     0x01, 0x03, 0x06, 0x04, 0x04, 0x04, 0x04, 0x04, 0x06, 0x06};
 
 ///////////////// player bitmaps //////////////////
 ///////////////////////////////////////////////////
-PROGMEM const unsigned char kidSprite[] = {
+static const uint8_t kidSprite[] = {
     // width, height
     12,
     16,
@@ -2117,7 +1858,7 @@ PROGMEM const unsigned char kidSprite[] = {
     0x6C,
 };
 
-PROGMEM const unsigned char kidSpriteSuck_plus_mask[] = {
+static const uint8_t kidSpriteSuck_plus_mask[] = {
     // width, height
     16,
     16,
@@ -2383,13 +2124,13 @@ PROGMEM const unsigned char kidSpriteSuck_plus_mask[] = {
     0x7F,
 };
 
-PROGMEM const unsigned char particle[] = {
+static const uint8_t particle[] = {
     // width, height
     1,
     8,
     0x03};
 
-PROGMEM const unsigned char balloon_plus_mask[] = {
+static const uint8_t balloon_plus_mask[] = {
     // width, height
     10,   16,   0x00, 0xF8, 0xF8, 0xFC, 0xFC, 0xFE, 0xFE, 0xFF, 0xFE, 0xFF, 0xFE, 0xFF,
     0xFA, 0xFF, 0xC4, 0xFE, 0xF8, 0xFC, 0x00, 0xF8, 0x00, 0x00, 0x00, 0x01, 0x01, 0x03,
@@ -2398,7 +2139,7 @@ PROGMEM const unsigned char balloon_plus_mask[] = {
 
 ///////////////// enemy bitmaps //////////////////
 //////////////////////////////////////////////////
-PROGMEM const unsigned char walkerSprite[] = {
+static const uint8_t walkerSprite[] = {
     // width, height
     8,
     8,
@@ -2440,7 +2181,7 @@ PROGMEM const unsigned char walkerSprite[] = {
     0x84,
 };
 
-PROGMEM const unsigned char fan[] = {
+static const uint8_t fan[] = {
     // Bitmap Image. No transparency
     // Width: 16 Height: 16
     16,
@@ -2744,7 +2485,7 @@ PROGMEM const unsigned char fan[] = {
     0xC0,
 };
 
-PROGMEM const unsigned char sprSpikes[] = {
+static const uint8_t sprSpikes[] = {
     // Bitmap Image. No transparency
     // Width: 8 Height: 8
     8,
@@ -2787,7 +2528,7 @@ PROGMEM const unsigned char sprSpikes[] = {
     0xFE,
 };
 
-PROGMEM const unsigned char tileSetTwo[] = {
+static const uint8_t tileSetTwo[] = {
     // Bitmap Image. No transparency
     // Width: 16 Height: 16
     16,
@@ -3355,7 +3096,7 @@ PROGMEM const unsigned char tileSetTwo[] = {
     0xFF,
 };
 
-/*PROGMEM const unsigned char tileSetTwo[] = {
+/*static const uint8_t tileSetTwo[] = {
   // width, height
   16, 16,
   // Frame 0
@@ -3393,7 +3134,7 @@ PROGMEM const unsigned char tileSetTwo[] = {
   0x00, 0x3A, 0x6E, 0x3B, 0x6E, 0x3A, 0x6E, 0x3B, 0x6E, 0x3A, 0x6E, 0x3B, 0x6E, 0x3A, 0x6E, 0x00,
 };*/
 
-PROGMEM const unsigned char elementsHUD[] = {
+static const uint8_t elementsHUD[] = {
     // width, height
     5,
     8,
@@ -3483,7 +3224,7 @@ PROGMEM const unsigned char elementsHUD[] = {
     0xF1,
 };
 
-PROGMEM const unsigned char smallMask[] = {
+static const uint8_t smallMask[] = {
     // width, height
     8,
     8,
@@ -3496,7 +3237,7 @@ PROGMEM const unsigned char smallMask[] = {
     0xFF,
     0xFF};
 
-PROGMEM const unsigned char numbersBig[] = {
+static const uint8_t numbersBig[] = {
     // width, height
     7,
     8,
@@ -3582,7 +3323,7 @@ PROGMEM const unsigned char numbersBig[] = {
     0x80,
 };
 
-PROGMEM const unsigned char numbersBigMask[] = {
+static const uint8_t numbersBigMask[] = {
     // width, height
     2,
     16,
@@ -3597,7 +3338,7 @@ PROGMEM const unsigned char numbersBigMask[] = {
     0x06,
     0x03};
 
-PROGMEM const unsigned char numbersBigMask01[] = {
+static const uint8_t numbersBigMask01[] = {
     // width, height
     7,
     16,
@@ -3617,7 +3358,7 @@ PROGMEM const unsigned char numbersBigMask01[] = {
     0x04,
     0x04};
 
-PROGMEM const unsigned char door[] = {
+static const uint8_t door[] = {
     // width, height
     16,
     16,
@@ -3690,7 +3431,7 @@ PROGMEM const unsigned char door[] = {
 
 };
 
-PROGMEM const unsigned char elements[] = {
+static const uint8_t elements[] = {
     // width, height
     10,
     16,
@@ -3804,7 +3545,7 @@ PROGMEM const unsigned char elements[] = {
 //################ LEVELS ###########################
 //###################################################
 
-const uint8_t testhfan[] PROGMEM = {
+static const uint8_t testhfan[] = {
     // Tiles
     0x00,
     0x00,
@@ -3879,41 +3620,41 @@ const uint8_t testhfan[] PROGMEM = {
     0xFF,
     0xFF,
     // Objects
-    B00110101,
-    B00010110,
-    B01110101,
-    B00010011,
-    B11000011,
-    B01110101,
-    B00001101,
-    B00000011,
-    B01110101,
-    B00000111,
-    B10000011,
-    B10010101,
-    B00100101,
-    B00010101,
-    B00000001,
-    B10110011,
-    B00001011,
-    B10110011,
-    B00001010,
-    B10110011,
-    B00001001,
-    B10110011,
-    B00001000,
-    B10110011,
-    B00000111,
-    B10110011,
-    B00000110,
-    B10010001,
-    B00110011,
-    B11010001,
-    B00001101,
+    0x35,
+    0x16,
+    0x75,
+    0x13,
+    0xC3,
+    0x75,
+    0x0D,
+    0x03,
+    0x75,
+    0x07,
+    0x83,
+    0x95,
+    0x25,
+    0x15,
+    0x01,
+    0xB3,
+    0x0B,
+    0xB3,
+    0x0A,
+    0xB3,
+    0x09,
+    0xB3,
+    0x08,
+    0xB3,
+    0x07,
+    0xB3,
+    0x06,
+    0x91,
+    0x33,
+    0xD1,
+    0x0D,
     // EoL
     0xFF};
 
-const uint8_t level1[] PROGMEM = {
+static const uint8_t level1[] = {
     // Tiles
     0x00,
     0x00,
@@ -4015,7 +3756,7 @@ const uint8_t level1[] PROGMEM = {
     // EoL
     0xFF};
 
-/*const uint8_t level1[] PROGMEM = {
+/*static const uint8_t level1[] = {
     // Tiles
     0x00, 0x00, 0x00, 0x00, 0xE0, 0x01, 0xF7, 0xE6, 0x01, 
     0x30, 0x06, 0x00, 0x30, 0x06, 0x00, 0x30, 0x26, 0x00, 
@@ -4034,7 +3775,7 @@ const uint8_t level1[] PROGMEM = {
     0xFF
 };*/
 
-const uint8_t level2[] PROGMEM = {
+static const uint8_t level2[] = {
     // Tiles
     0x00,
     0x00,
@@ -4150,7 +3891,7 @@ const uint8_t level2[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level3[] PROGMEM = {
+static const uint8_t level3[] = {
     // Tiles
     0x60,
     0xFE,
@@ -4277,7 +4018,7 @@ const uint8_t level3[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level4[] PROGMEM = {
+static const uint8_t level4[] = {
     // Tiles
     0xC0,
     0xC1,
@@ -4398,7 +4139,7 @@ const uint8_t level4[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level5[] PROGMEM = {
+static const uint8_t level5[] = {
     // Tiles
     0x00,
     0x18,
@@ -4514,7 +4255,7 @@ const uint8_t level5[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level6[] PROGMEM = {
+static const uint8_t level6[] = {
     // Tiles
     0x01,
     0x67,
@@ -4648,7 +4389,7 @@ const uint8_t level6[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level7[] PROGMEM = {
+static const uint8_t level7[] = {
     // Tiles
     0x80,
     0x7F,
@@ -4781,7 +4522,7 @@ const uint8_t level7[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level8[] PROGMEM = {
+static const uint8_t level8[] = {
     // Tiles
     0x00,
     0x00,
@@ -4894,7 +4635,7 @@ const uint8_t level8[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level9[] PROGMEM = {
+static const uint8_t level9[] = {
     // Tiles
     0xFF,
     0x01,
@@ -5004,7 +4745,7 @@ const uint8_t level9[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level10[] PROGMEM = {
+static const uint8_t level10[] = {
     // Tiles
     0x00,
     0x3C,
@@ -5143,7 +4884,7 @@ const uint8_t level10[] PROGMEM = {
     0xFF};
 
 #ifndef HARD_MODE
-const uint8_t level11[] PROGMEM = {
+static const uint8_t level11[] = {
     // Tiles
     0x70,
     0x00,
@@ -5273,7 +5014,7 @@ const uint8_t level11[] PROGMEM = {
     // EoL
     0xFF};
 #else
-const uint8_t level11[] PROGMEM = { // hard mode level 11
+static const uint8_t level11[] = { // hard mode level 11
     // Tiles
     0x70,
     0x00,
@@ -5410,7 +5151,7 @@ const uint8_t level11[] PROGMEM = { // hard mode level 11
     0xFF};
 #endif
 
-const uint8_t level12[] PROGMEM = {
+static const uint8_t level12[] = {
     // Tiles
     0xE0,
     0x03,
@@ -5540,7 +5281,7 @@ const uint8_t level12[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level13[] PROGMEM = {
+static const uint8_t level13[] = {
     // Tiles
     0x00,
     0x00,
@@ -5672,7 +5413,7 @@ const uint8_t level13[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level14[] PROGMEM = {
+static const uint8_t level14[] = {
     // Tiles
     0xC4,
     0x00,
@@ -5782,7 +5523,7 @@ const uint8_t level14[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level15[] PROGMEM = {
+static const uint8_t level15[] = {
     // Tiles
     0x00,
     0x03,
@@ -5896,7 +5637,7 @@ const uint8_t level15[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level16[] PROGMEM = {
+static const uint8_t level16[] = {
     // Tiles
     0x02,
     0x00,
@@ -6015,7 +5756,7 @@ const uint8_t level16[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level17[] PROGMEM = {
+static const uint8_t level17[] = {
     // Tiles
     0xE0,
     0x01,
@@ -6145,7 +5886,7 @@ const uint8_t level17[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level18[] PROGMEM = {
+static const uint8_t level18[] = {
     // Tiles
     0x00,
     0x00,
@@ -6277,7 +6018,7 @@ const uint8_t level18[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level19[] PROGMEM = {
+static const uint8_t level19[] = {
     // Tiles
     0x81,
     0xFF,
@@ -6415,7 +6156,7 @@ const uint8_t level19[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level20[] PROGMEM = {
+static const uint8_t level20[] = {
     // Tiles
     0x30,
     0x00,
@@ -6544,7 +6285,7 @@ const uint8_t level20[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level21[] PROGMEM = {
+static const uint8_t level21[] = {
     // Tiles
     0x00,
     0x00,
@@ -6670,7 +6411,7 @@ const uint8_t level21[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level22[] PROGMEM = {
+static const uint8_t level22[] = {
     // Tiles
     0x00,
     0x00,
@@ -6791,7 +6532,7 @@ const uint8_t level22[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level23[] PROGMEM = {
+static const uint8_t level23[] = {
     // Tiles
     0x00,
     0x00,
@@ -6924,7 +6665,7 @@ const uint8_t level23[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level24[] PROGMEM = {
+static const uint8_t level24[] = {
     // Tiles
     0x00,
     0xFC,
@@ -7057,7 +6798,7 @@ const uint8_t level24[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level25[] PROGMEM = {
+static const uint8_t level25[] = {
     // Tiles
     0xFF,
     0xFF,
@@ -7180,7 +6921,7 @@ const uint8_t level25[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level26[] PROGMEM = {
+static const uint8_t level26[] = {
     // Tiles
     0x00,
     0x00,
@@ -7309,7 +7050,7 @@ const uint8_t level26[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level27[] PROGMEM = {
+static const uint8_t level27[] = {
     // Tiles
     0xDC,
     0x1D,
@@ -7436,7 +7177,7 @@ const uint8_t level27[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level28[] PROGMEM = {
+static const uint8_t level28[] = {
     // Tiles
     0xFE,
     0x8F,
@@ -7574,7 +7315,7 @@ const uint8_t level28[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level29[] PROGMEM = {
+static const uint8_t level29[] = {
     // Tiles
     0xFD,
     0xFF,
@@ -7699,7 +7440,7 @@ const uint8_t level29[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level30[] PROGMEM = {
+static const uint8_t level30[] = {
     // Tiles
     0x1F,
     0x03,
@@ -7822,7 +7563,7 @@ const uint8_t level30[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level31[] PROGMEM = {
+static const uint8_t level31[] = {
     // Tiles
     0xE0,
     0x1F,
@@ -7949,7 +7690,7 @@ const uint8_t level31[] PROGMEM = {
 
 /*  Obstacle desgin by Jace (Martian220)
  */
-const uint8_t jace[] PROGMEM = {
+static const uint8_t jace[] = {
     // Tiles
     0x00,
     0x06,
@@ -8083,7 +7824,7 @@ const uint8_t jace[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level32[] PROGMEM = {
+static const uint8_t level32[] = {
     // Tiles
     0x86,
     0x7F,
@@ -8204,7 +7945,7 @@ const uint8_t level32[] PROGMEM = {
     // EoL
     0xFF};
 
-const uint8_t level33[] PROGMEM = {
+static const uint8_t level33[] = {
     // Tiles
     0x00,
     0x00,
@@ -8279,58 +8020,58 @@ const uint8_t level33[] PROGMEM = {
     0xF7,
     0x61,
     // Objects
-    B10110110,
-    B00001100,
-    B01010101,
-    B00001101,
-    B01010100,
-    B00010000,
-    B00010100,
-    B00000001,
-    B01110010,
-    B00010000,
-    B10000101,
-    B01110010,
-    B00000000,
-    B10001101,
-    B01110001,
-    B00010000,
-    B10000101,
-    B10110001,
-    B00000101,
-    B10110001,
-    B00000100,
-    B01110001,
-    B00000000,
-    B10001101,
-    B01110000,
-    B00010111,
-    B00001100,
-    B10110000,
-    B00010011,
-    B11001110,
-    B00001110,
-    B10001001,
-    B01001110,
-    B10001001,
-    B00101010,
-    B10101001,
-    B00001001,
-    B10001001,
-    B00100111,
-    B00101001,
-    B00000001,
-    B01100111,
-    B00000000,
-    B10010100,
-    B01000001,
-    B00010110,
-    B10100001,
-    B00010101,
+    0xB6,
+    0x0C,
+    0x55,
+    0x0D,
+    0x54,
+    0x10,
+    0x14,
+    0x01,
+    0x72,
+    0x10,
+    0x85,
+    0x72,
+    0x00,
+    0x8D,
+    0x71,
+    0x10,
+    0x85,
+    0xB1,
+    0x05,
+    0xB1,
+    0x04,
+    0x71,
+    0x00,
+    0x8D,
+    0x70,
+    0x17,
+    0x0C,
+    0xB0,
+    0x13,
+    0xCE,
+    0x0E,
+    0x89,
+    0x4E,
+    0x89,
+    0x2A,
+    0xA9,
+    0x09,
+    0x89,
+    0x27,
+    0x29,
+    0x01,
+    0x67,
+    0x00,
+    0x94,
+    0x41,
+    0x16,
+    0xA1,
+    0x15,
     // EoL
     0xFF};
 
-const uint8_t level34[] PROGMEM = {
+static const uint8_t level34[] = {
     // Tiles
     0xFF,
     0xFF,
@@ -8405,62 +8146,62 @@ const uint8_t level34[] PROGMEM = {
     0xF0,
     0x00,
     // Objects
-    B01110111,
-    B00001101,
-    B00010111,
-    B01110111,
-    B00001100,
-    B00010111,
-    B01110101,
-    B00010110,
-    B00001100,
-    B01010100,
-    B00010110,
-    B10110100,
-    B00001000,
-    B01010001,
-    B00010011,
-    B10110000,
-    B00000011,
-    B10101100,
-    B00010100,
-    B01001100,
-    B00001011,
-    B01001100,
-    B00001010,
-    B01001100,
-    B00001001,
-    B10001100,
-    B01000100,
-    B01101100,
-    B00000000,
-    B10010110,
-    B01101011,
-    B00000000,
-    B10010110,
-    B10001010,
-    B01010111,
-    B10101010,
-    B00000001,
-    B01101010,
-    B00000000,
-    B10010110,
-    B00100111,
-    B00010110,
-    B10100110,
-    B00000101,
-    B01000011,
-    B00010000,
-    B00000010,
-    B00000000,
-    B10100001,
-    B00010001,
-    B11000001,
-    B00000101,
+    0x77,
+    0x0D,
+    0x17,
+    0x77,
+    0x0C,
+    0x17,
+    0x75,
+    0x16,
+    0x0C,
+    0x54,
+    0x16,
+    0xB4,
+    0x08,
+    0x51,
+    0x13,
+    0xB0,
+    0x03,
+    0xAC,
+    0x14,
+    0x4C,
+    0x0B,
+    0x4C,
+    0x0A,
+    0x4C,
+    0x09,
+    0x8C,
+    0x44,
+    0x6C,
+    0x00,
+    0x96,
+    0x6B,
+    0x00,
+    0x96,
+    0x8A,
+    0x57,
+    0xAA,
+    0x01,
+    0x6A,
+    0x00,
+    0x96,
+    0x27,
+    0x16,
+    0xA6,
+    0x05,
+    0x43,
+    0x10,
+    0x02,
+    0x00,
+    0xA1,
+    0x11,
+    0xC1,
+    0x05,
     // EoL
     0xFF};
 
-const uint8_t level35[] PROGMEM = {
+static const uint8_t level35[] = {
     // Tiles
     0xFF,
     0xFF,
@@ -8535,70 +8276,70 @@ const uint8_t level35[] PROGMEM = {
     0xFE,
     0x07,
     // Objects
-    B01110101,
-    B00001010,
-    B00010010,
-    B01110101,
-    B00000100,
-    B00010000,
-    B01110101,
-    B00000011,
-    B00010000,
-    B01010100,
-    B00000111,
-    B01010100,
-    B00000100,
-    B01010100,
-    B00000011,
-    B10110011,
-    B00000111,
-    B01110000,
-    B00001000,
-    B10000011,
-    B10101011,
-    B00010111,
-    B10001011,
-    B01101111,
-    B01101011,
-    B00001000,
-    B10000011,
-    B10101011,
-    B00000111,
-    B01101010,
-    B00010110,
-    B11000101,
-    B10101010,
-    B00001101,
-    B10100111,
-    B00000001,
-    B10000110,
-    B11001011,
-    B10000110,
-    B11100100,
-    B10000110,
-    B11100011,
-    B11000101,
-    B00000011,
-    B00100011,
-    B00010111,
-    B10000011,
-    B11100001,
-    B10000011,
-    B11100000,
-    B01000010,
-    B00010000,
-    B01000010,
-    B00001111,
-    B01000010,
-    B00001110,
-    B10100010,
-    B00001100,
-    B00000010,
-    B00000110,
+    0x75,
+    0x0A,
+    0x12,
+    0x75,
+    0x04,
+    0x10,
+    0x75,
+    0x03,
+    0x10,
+    0x54,
+    0x07,
+    0x54,
+    0x04,
+    0x54,
+    0x03,
+    0xB3,
+    0x07,
+    0x70,
+    0x08,
+    0x83,
+    0xAB,
+    0x17,
+    0x8B,
+    0x6F,
+    0x6B,
+    0x08,
+    0x83,
+    0xAB,
+    0x07,
+    0x6A,
+    0x16,
+    0xC5,
+    0xAA,
+    0x0D,
+    0xA7,
+    0x01,
+    0x86,
+    0xCB,
+    0x86,
+    0xE4,
+    0x86,
+    0xE3,
+    0xC5,
+    0x03,
+    0x23,
+    0x17,
+    0x83,
+    0xE1,
+    0x83,
+    0xE0,
+    0x42,
+    0x10,
+    0x42,
+    0x0F,
+    0x42,
+    0x0E,
+    0xA2,
+    0x0C,
+    0x02,
+    0x06,
     // EoL
     0xFF};
 
-const uint8_t level36[] PROGMEM = {
+static const uint8_t level36[] = {
     // Tiles
     0xF0,
     0xFF,
@@ -8673,68 +8414,68 @@ const uint8_t level36[] PROGMEM = {
     0x97,
     0xEB,
     // Objects
-    B01010110,
-    B00010000,
-    B01110110,
-    B00001001,
-    B00010010,
-    B01110110,
-    B00001000,
-    B00010010,
-    B01110110,
-    B00000111,
-    B00010010,
-    B01010001,
-    B00001111,
-    B10010001,
-    B00100111,
-    B10110000,
-    B00000111,
-    B10101111,
-    B00001110,
-    B10001111,
-    B00101000,
-    B10001101,
-    B00101000,
-    B10101100,
-    B00001100,
-    B10001011,
-    B00100111,
-    B11001001,
-    B00010000,
-    B01001001,
-    B00001000,
-    B10101001,
-    B00000111,
-    B01101000,
-    B00001110,
-    B10000100,
-    B01100111,
-    B00010100,
-    B11000100,
-    B10000111,
-    B00101000,
-    B01100110,
-    B00001110,
-    B10000100,
-    B10000101,
-    B00101000,
-    B10100011,
-    B00010100,
-    B01000011,
-    B00010000,
-    B00100011,
-    B00001100,
-    B01000011,
-    B00001010,
-    B10100011,
-    B00000110,
-    B00000001,
-    B00000001,
+    0x56,
+    0x10,
+    0x76,
+    0x09,
+    0x12,
+    0x76,
+    0x08,
+    0x12,
+    0x76,
+    0x07,
+    0x12,
+    0x51,
+    0x0F,
+    0x91,
+    0x27,
+    0xB0,
+    0x07,
+    0xAF,
+    0x0E,
+    0x8F,
+    0x28,
+    0x8D,
+    0x28,
+    0xAC,
+    0x0C,
+    0x8B,
+    0x27,
+    0xC9,
+    0x10,
+    0x49,
+    0x08,
+    0xA9,
+    0x07,
+    0x68,
+    0x0E,
+    0x84,
+    0x67,
+    0x14,
+    0xC4,
+    0x87,
+    0x28,
+    0x66,
+    0x0E,
+    0x84,
+    0x85,
+    0x28,
+    0xA3,
+    0x14,
+    0x43,
+    0x10,
+    0x23,
+    0x0C,
+    0x43,
+    0x0A,
+    0xA3,
+    0x06,
+    0x01,
+    0x01,
     // EoL
     0xFF};
 
-const uint8_t level37[] PROGMEM = {
+static const uint8_t level37[] = {
     // Tiles
     0x00,
     0x60,
@@ -8809,70 +8550,70 @@ const uint8_t level37[] PROGMEM = {
     0xFF,
     0x0F,
     // Objects
-    B01110111,
-    B00001011,
-    B00010100,
-    B01110111,
-    B00001010,
-    B00010100,
-    B01010101,
-    B00001110,
-    B01010101,
-    B00001100,
-    B00010101,
-    B00000010,
-    B10110000,
-    B00001001,
-    B01110000,
-    B00001000,
-    B10001101,
-    B01001110,
-    B00010011,
-    B10101101,
-    B00001100,
-    B10001011,
-    B00110001,
-    B10101001,
-    B00001110,
-    B01101001,
-    B00001000,
-    B10001101,
-    B10001001,
-    B01100010,
-    B10001000,
-    B11101100,
-    B01101000,
-    B00000000,
-    B10000101,
-    B10100111,
-    B00001001,
-    B10000111,
-    B01100010,
-    B00100100,
-    B00010001,
-    B10000100,
-    B11101001,
-    B01000100,
-    B00000110,
-    B01000100,
-    B00000101,
-    B11000100,
-    B00000100,
-    B01000100,
-    B00000010,
-    B10100011,
-    B00010110,
-    B01100011,
-    B00001101,
-    B11000011,
-    B10100010,
-    B00001000,
-    B10000010,
-    B00100111,
+    0x77,
+    0x0B,
+    0x14,
+    0x77,
+    0x0A,
+    0x14,
+    0x55,
+    0x0E,
+    0x55,
+    0x0C,
+    0x15,
+    0x02,
+    0xB0,
+    0x09,
+    0x70,
+    0x08,
+    0x8D,
+    0x4E,
+    0x13,
+    0xAD,
+    0x0C,
+    0x8B,
+    0x31,
+    0xA9,
+    0x0E,
+    0x69,
+    0x08,
+    0x8D,
+    0x89,
+    0x62,
+    0x88,
+    0xEC,
+    0x68,
+    0x00,
+    0x85,
+    0xA7,
+    0x09,
+    0x87,
+    0x62,
+    0x24,
+    0x11,
+    0x84,
+    0xE9,
+    0x44,
+    0x06,
+    0x44,
+    0x05,
+    0xC4,
+    0x04,
+    0x44,
+    0x02,
+    0xA3,
+    0x16,
+    0x63,
+    0x0D,
+    0xC3,
+    0xA2,
+    0x08,
+    0x82,
+    0x27,
     // EoL
     0xFF};
 
-const uint8_t levelNarrowWalls[] PROGMEM = {
+static const uint8_t levelNarrowWalls[] = {
     // Tiles
     0x00,
     0x00,
@@ -8947,62 +8688,62 @@ const uint8_t levelNarrowWalls[] PROGMEM = {
     0xC4,
     0xF8,
     // Objects
-    B00010110,
-    B00000001,
-    B01110101,
-    B00010111,
-    B11010100,
-    B10110010,
-    B00010011,
-    B10110000,
-    B00001010,
-    B10010000,
-    B00001001,
-    B10001111,
-    B00110111,
-    B10101111,
-    B00010110,
-    B01001101,
-    B00001100,
-    B01001101,
-    B00001010,
-    B01001101,
-    B00001000,
-    B01001101,
-    B00000110,
-    B01001101,
-    B00000100,
-    B01101100,
-    B00000000,
-    B10010111,
-    B10001011,
-    B00110011,
-    B10001000,
-    B01010001,
-    B00101000,
-    B00000101,
-    B10101000,
-    B00000001,
-    B01101000,
-    B00000000,
-    B10010111,
-    B10000111,
-    B00110111,
-    B10100101,
-    B00010010,
-    B10000011,
-    B01001000,
-    B01000010,
-    B00001100,
-    B11000010,
-    B00000001,
-    B10100001,
-    B00001111,
+    0x16,
+    0x01,
+    0x75,
+    0x17,
+    0xD4,
+    0xB2,
+    0x13,
+    0xB0,
+    0x0A,
+    0x90,
+    0x09,
+    0x8F,
+    0x37,
+    0xAF,
+    0x16,
+    0x4D,
+    0x0C,
+    0x4D,
+    0x0A,
+    0x4D,
+    0x08,
+    0x4D,
+    0x06,
+    0x4D,
+    0x04,
+    0x6C,
+    0x00,
+    0x97,
+    0x8B,
+    0x33,
+    0x88,
+    0x51,
+    0x28,
+    0x05,
+    0xA8,
+    0x01,
+    0x68,
+    0x00,
+    0x97,
+    0x87,
+    0x37,
+    0xA5,
+    0x12,
+    0x83,
+    0x48,
+    0x42,
+    0x0C,
+    0xC2,
+    0x01,
+    0xA1,
+    0x0F,
 
     // EoL
     0xFF};
 
-const uint8_t level38[] PROGMEM = {
+static const uint8_t level38[] = {
     // Tiles
     0x00,
     0x7C,
@@ -9077,65 +8818,65 @@ const uint8_t level38[] PROGMEM = {
     0x00,
     0x00,
     // Objects
-    B00010101,
-    B00000001,
-    B10010100,
-    B01100011,
-    B10110011,
-    B00000101,
-    B01110011,
-    B00000000,
-    B10001011,
-    B10010010,
-    B01100011,
-    B01101111,
-    B00010000,
-    B11001010,
-    B10101110,
-    B00010000,
-    B10101000,
-    B00000101,
-    B01100111,
-    B00001001,
-    B00000011,
-    B01100111,
-    B00001000,
-    B00000011,
-    B10000110,
-    B11100110,
-    B01100110,
-    B00000001,
-    B10001101,
-    B01000101,
-    B00010111,
-    B01000101,
-    B00010101,
-    B10000101,
-    B00100110,
-    B01100101,
-    B00000001,
-    B10010100,
-    B11000101,
-    B00000000,
-    B10100100,
-    B00010011,
-    B10100011,
-    B00001111,
-    B10000011,
-    B00001101,
-    B10100010,
-    B00001101,
-    B10000010,
-    B10001010,
-    B00100001,
-    B00000001,
-    B01000000,
-    B00010010,
+    0x15,
+    0x01,
+    0x94,
+    0x63,
+    0xB3,
+    0x05,
+    0x73,
+    0x00,
+    0x8B,
+    0x92,
+    0x63,
+    0x6F,
+    0x10,
+    0xCA,
+    0xAE,
+    0x10,
+    0xA8,
+    0x05,
+    0x67,
+    0x09,
+    0x03,
+    0x67,
+    0x08,
+    0x03,
+    0x86,
+    0xE6,
+    0x66,
+    0x01,
+    0x8D,
+    0x45,
+    0x17,
+    0x45,
+    0x15,
+    0x85,
+    0x26,
+    0x65,
+    0x01,
+    0x94,
+    0xC5,
+    0x00,
+    0xA4,
+    0x13,
+    0xA3,
+    0x0F,
+    0x83,
+    0x0D,
+    0xA2,
+    0x0D,
+    0x82,
+    0x8A,
+    0x21,
+    0x01,
+    0x40,
+    0x12,
 
     // EoL
     0xFF};
 
-const uint8_t level39[] PROGMEM = {
+static const uint8_t level39[] = {
     // Tiles
     0x9E,
     0xFF,
@@ -9210,67 +8951,67 @@ const uint8_t level39[] PROGMEM = {
     0xE0,
     0xFF,
     // Objects
-    B01110111,
-    B00010111,
-    B00010100,
-    B01110111,
-    B00000100,
-    B00000011,
-    B10110101,
-    B00000111,
-    B10110100,
-    B00000001,
-    B00110001,
-    B00010010,
-    B01010001,
-    B00001010,
-    B01010001,
-    B00000110,
-    B01010000,
-    B00001110,
-    B01101111,
-    B00010100,
-    B11010100,
-    B10001100,
-    B10101100,
-    B10101100,
-    B00001010,
-    B10001100,
-    B10100011,
-    B01101011,
-    B00010100,
-    B11010010,
-    B10001011,
-    B00000011,
-    B01101010,
-    B00010100,
-    B11010010,
-    B10001010,
-    B00001101,
-    B10101001,
-    B00000001,
-    B01000111,
-    B00001110,
-    B01000111,
-    B00001101,
-    B10100111,
-    B00001100,
-    B00000111,
-    B00000000,
-    B10000110,
-    B00100101,
-    B10000101,
-    B00001011,
-    B01000011,
-    B00000010,
-    B11000001,
-    B00010111,
-    B10100000,
-    B00000000,
+    0x77,
+    0x17,
+    0x14,
+    0x77,
+    0x04,
+    0x03,
+    0xB5,
+    0x07,
+    0xB4,
+    0x01,
+    0x31,
+    0x12,
+    0x51,
+    0x0A,
+    0x51,
+    0x06,
+    0x50,
+    0x0E,
+    0x6F,
+    0x14,
+    0xD4,
+    0x8C,
+    0xAC,
+    0xAC,
+    0x0A,
+    0x8C,
+    0xA3,
+    0x6B,
+    0x14,
+    0xD2,
+    0x8B,
+    0x03,
+    0x6A,
+    0x14,
+    0xD2,
+    0x8A,
+    0x0D,
+    0xA9,
+    0x01,
+    0x47,
+    0x0E,
+    0x47,
+    0x0D,
+    0xA7,
+    0x0C,
+    0x07,
+    0x00,
+    0x86,
+    0x25,
+    0x85,
+    0x0B,
+    0x43,
+    0x02,
+    0xC1,
+    0x17,
+    0xA0,
+    0x00,
     // EoL
     0xFF};
 
-const uint8_t level40[] PROGMEM = {
+static const uint8_t level40[] = {
     // Tiles
     0x00,
     0x08,
@@ -9345,66 +9086,66 @@ const uint8_t level40[] PROGMEM = {
     0x0E,
     0x30,
     // Objects
-    B01110110,
-    B00000010,
-    B10010010,
-    B10010101,
-    B00010000,
-    B10110101,
-    B00000101,
-    B10010101,
-    B00000100,
-    B01110101,
-    B00000010,
-    B10010010,
-    B00110100,
-    B00010111,
-    B10110100,
-    B00010001,
-    B10010010,
-    B10010000,
-    B00010001,
-    B00000001,
-    B01110000,
-    B00001111,
-    B10000101,
-    B01010000,
-    B00001010,
-    B01010000,
-    B00001001,
-    B01101111,
-    B00001111,
-    B10000101,
-    B10101110,
-    B00010001,
-    B10101100,
-    B00001000,
-    B01001100,
-    B00000011,
-    B01101011,
-    B00001000,
-    B00000111,
-    B01101011,
-    B00000000,
-    B00000111,
-    B10101010,
-    B00000000,
-    B01001000,
-    B00001101,
-    B10000111,
-    B01100010,
-    B10000011,
-    B00000110,
-    B10100001,
-    B00010010,
-    B10000000,
-    B01010001,
-    B11000000,
-    B00000000,
+    0x76,
+    0x02,
+    0x92,
+    0x95,
+    0x10,
+    0xB5,
+    0x05,
+    0x95,
+    0x04,
+    0x75,
+    0x02,
+    0x92,
+    0x34,
+    0x17,
+    0xB4,
+    0x11,
+    0x92,
+    0x90,
+    0x11,
+    0x01,
+    0x70,
+    0x0F,
+    0x85,
+    0x50,
+    0x0A,
+    0x50,
+    0x09,
+    0x6F,
+    0x0F,
+    0x85,
+    0xAE,
+    0x11,
+    0xAC,
+    0x08,
+    0x4C,
+    0x03,
+    0x6B,
+    0x08,
+    0x07,
+    0x6B,
+    0x00,
+    0x07,
+    0xAA,
+    0x00,
+    0x48,
+    0x0D,
+    0x87,
+    0x62,
+    0x83,
+    0x06,
+    0xA1,
+    0x12,
+    0x80,
+    0x51,
+    0xC0,
+    0x00,
     // EoL
     0xFF};
 
-const uint8_t* levels[] = {
+static const uint8_t* levels[] = {
     level1,
     level2,
     level3,

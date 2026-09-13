@@ -11,21 +11,13 @@
   ----------------------------*/
 //#define HARD_MODE
 
-#include "../lib/Arduboy2.h"
-#include "../lib/Arduboy2.h"
-#include "../lib/ArduboyTones.h"
-#include "save_layout.h"
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "mystic_balloon.h"
+#include "render.h"
 #include "vec2.h"
 #include "bitmaps.h"
-
-// EEPROM - change this address offset from the arduboy starting address if desired
-#define OFFSET_MYBL_START MyblSave::kStart
-#define OFFSET_LEVEL      MyblSave::kLevel
-#define OFFSET_COINS      MyblSave::kCoins
-#define OFFSET_COINSHS    MyblSave::kCoinsHs
-#define OFFSET_SCORE      MyblSave::kScore
-#define OFFSET_HSCORE     MyblSave::kHScore
-#define OFFSET_MYBL_END   MyblSave::kEnd
 
 //define menu states (on main menu)
 #define STATE_MENU_INTRO   0
@@ -61,9 +53,10 @@
 
 #define PLAYER_JUMP_TIME 11
 
-#ifndef bitRead
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01u)
-#endif
+#define randomOf(range)     ((int)(rand() % (range)))
+#define minOf(a, b)         ((a) < (b) ? (a) : (b))
+#define maxOf(a, b)         ((a) > (b) ? (a) : (b))
 
 // This is a replacement for struct Rect in the Arduboy2 library.
 // It defines height as an int instead of a uint8_t to allow a higher rectangle.
@@ -75,42 +68,66 @@ public:
     int height;
 };
 
-Arduboy2Base arduboy;
-Sprites sprites;
-ArduboyTones sound(arduboy.audio.enabled());
+MyblSave save;
+bool saveDirty = false;
+bool soundEnabled = true;
+bool exitRequested = false;
+uint32_t frameCounter = 0;
+uint8_t buttonsHeld = 0;
+uint8_t buttonsPressed = 0;
 
-byte gameState = STATE_MENU_INTRO; // start the game with the TEAM a.r.g. logo
-byte menuSelection = STATE_MENU_PLAY; // PLAY menu item is pre-selected
-byte globalCounter = 0;
-byte level;
+uint8_t gameState = STATE_MENU_INTRO; // start the game with the TEAM a.r.g. logo
+uint8_t menuSelection = STATE_MENU_PLAY; // PLAY menu item is pre-selected
+uint8_t globalCounter = 0;
+uint8_t level;
 unsigned long scorePlayer;
-byte coinsCollected = 0;
-byte totalCoins = 0;
-byte balloonsLeft;
+uint8_t coinsCollected = 0;
+uint8_t totalCoins = 0;
+uint8_t balloonsLeft;
 
-boolean nextLevelIsVisible;
-boolean scoreIsVisible;
-boolean canPressButton;
-boolean pressKeyIsVisible;
+bool nextLevelIsVisible;
+bool scoreIsVisible;
+bool canPressButton;
+bool pressKeyIsVisible;
 
-byte walkerFrame = 0;
-byte fanFrame = 0;
-byte coinFrame = 0;
-byte coinsActive = 0;
+uint8_t walkerFrame = 0;
+uint8_t fanFrame = 0;
+uint8_t coinFrame = 0;
+uint8_t coinsActive = 0;
 vec2 levelExit = vec2(0, 0);
 vec2 startPos;
-byte mapTimer = 10;
+uint8_t mapTimer = 10;
 
-void loadSetEEPROM() {
-    if((EEPROM.read(OFFSET_MYBL_START) != GAME_ID) && (EEPROM.read(OFFSET_MYBL_END) != GAME_ID)) {
-        EEPROM.put(OFFSET_MYBL_START, (byte)GAME_ID); // game id
-        EEPROM.put(OFFSET_LEVEL, (byte)LEVEL_TO_START_WITH - 1); // beginning level
-        EEPROM.put(OFFSET_COINS, (byte)0); // coins current run
-        EEPROM.put(OFFSET_COINSHS, (byte)0); // coins highscore run
-        EEPROM.put(OFFSET_SCORE, (unsigned long)0); // clear score
-        EEPROM.put(OFFSET_HSCORE, (unsigned long)0); // clear high score
-        EEPROM.put(OFFSET_MYBL_END, (byte)GAME_ID); // game id
-    }
+bool pressed(uint8_t mask) {
+    return (buttonsHeld & mask) != 0;
+}
+
+bool justPressed(uint8_t mask) {
+    return (buttonsPressed & mask) != 0;
+}
+
+bool everyXFrames(uint8_t frames) {
+    return (frameCounter % frames) == 0;
+}
+
+void playTone(uint16_t frequency, uint16_t duration_ms) {
+    if(!soundEnabled) return;
+
+    platform_tone(frequency, duration_ms);
+}
+
+void saveByte(uint8_t& field, uint8_t value) {
+    if(field == value) return;
+
+    field = value;
+    saveDirty = true;
+}
+
+void saveLong(uint32_t& field, uint32_t value) {
+    if(field == value) return;
+
+    field = value;
+    saveDirty = true;
 }
 
 // This is a replacement for the collide() function in the Arduboy2 library.

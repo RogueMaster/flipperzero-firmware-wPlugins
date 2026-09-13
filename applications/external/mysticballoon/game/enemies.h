@@ -1,7 +1,6 @@
 #ifndef ENEMIES_H
 #define ENEMIES_H
 
-#include "../lib/Arduino.h"
 #include "globals.h"
 //#include "vec2.h"
 
@@ -43,7 +42,7 @@ Walker walkers[MAX_PER_TYPE];
 
 struct Spike {
     HighRect pos;
-    byte characteristics; //B00000000;   //this byte holds all the enemies characteristics
+    uint8_t characteristics; //0x00;   //this uint8_t holds all the enemies characteristics
     //                      ||||||||
     //                      |||||||└->  0 \ these 2 bits are used to determine the spike type
     //                      ||||||└-->  1 /
@@ -64,12 +63,12 @@ Fan fans[MAX_PER_TYPE];
 
 void enemiesInit() {
     coinsActive = 0;
-    //for (byte i = 0; i < MAX_PER_TYPE; ++i)
-    for(byte i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
+    //for (uint8_t i = 0; i < MAX_PER_TYPE; ++i)
+    for(uint8_t i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
         // Fans
         fans[i].pos = vec2(0, 0);
-        for(byte a = 0; a < MAX_FAN_PARTICLES; ++a)
-            fans[i].particles[a] = vec2(random(16), random(16));
+        for(uint8_t a = 0; a < MAX_FAN_PARTICLES; ++a)
+            fans[i].particles[a] = vec2(randomOf(16), randomOf(16));
         fans[i].height = 0;
         fans[i].active = false;
         fans[i].dir = FAN_UP;
@@ -98,8 +97,8 @@ void enemiesInit() {
 }
 
 void coinsCreate(vec2 pos) {
-    //for (byte i = 0; i < MAX_PER_TYPE; ++i)
-    for(byte i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
+    //for (uint8_t i = 0; i < MAX_PER_TYPE; ++i)
+    for(uint8_t i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
         if(!coins[i].active) {
             ++coinsActive;
             coins[i].pos = pos << 4;
@@ -117,8 +116,8 @@ void keyCreate(vec2 pos) {
 }
 
 void walkersCreate(vec2 pos) {
-    for(byte i = 0; i < MAX_PER_TYPE; ++i)
-    //for (byte i = MAX_PER_TYPE-1; i < MAX_PER_TYPE; --i)
+    for(uint8_t i = 0; i < MAX_PER_TYPE; ++i)
+    //for (uint8_t i = MAX_PER_TYPE-1; i < MAX_PER_TYPE; --i)
     {
         if(!walkers[i].active) {
             walkers[i].pos = pos << 4;
@@ -129,34 +128,34 @@ void walkersCreate(vec2 pos) {
     }
 }
 
-void spikesCreate(vec2 pos, byte l) {
-    for(byte i = 0; i < MAX_PER_TYPE; ++i) {
+void spikesCreate(vec2 pos, uint8_t l) {
+    for(uint8_t i = 0; i < MAX_PER_TYPE; ++i) {
         if(!bitRead(spikes[i].characteristics, 2)) {
             int len = 16 * (l + 1);
             spikes[i].pos.x = pos.x << 4;
             spikes[i].pos.y = pos.y << 4;
             // Solid above
             if(gridGetSolid(pos.x, pos.y - 1)) {
-                spikes[i].characteristics = B00000111;
+                spikes[i].characteristics = 0x07;
                 spikes[i].pos.width = len;
                 spikes[i].pos.height = 8;
             }
             // Solid below
             else if(gridGetSolid(pos.x, pos.y + 1)) {
-                spikes[i].characteristics = B00000101;
+                spikes[i].characteristics = 0x05;
                 spikes[i].pos.width = len;
                 spikes[i].pos.height = 8;
                 spikes[i].pos.y += 8;
             }
             // Solid left
             else if(gridGetSolid(pos.x - 1, pos.y)) {
-                spikes[i].characteristics = B00000100;
+                spikes[i].characteristics = 0x04;
                 spikes[i].pos.width = 8;
                 spikes[i].pos.height = len;
             }
             // Solid right
             else if(gridGetSolid(pos.x + 1, pos.y)) {
-                spikes[i].characteristics = B00000110;
+                spikes[i].characteristics = 0x06;
                 spikes[i].pos.width = 8;
                 spikes[i].pos.height = len;
                 spikes[i].pos.x += 8;
@@ -166,9 +165,9 @@ void spikesCreate(vec2 pos, byte l) {
     }
 }
 
-void fansCreate(vec2 pos, byte height, uint8_t dir = FAN_UP) {
-    //for (byte i = 0; i < MAX_PER_TYPE; ++i)
-    for(byte i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
+void fansCreate(vec2 pos, uint8_t height, uint8_t dir = FAN_UP) {
+    //for (uint8_t i = 0; i < MAX_PER_TYPE; ++i)
+    for(uint8_t i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
         if(!fans[i].active) {
             fans[i].pos = pos << 4;
             fans[i].height = height << 4;
@@ -180,7 +179,7 @@ void fansCreate(vec2 pos, byte height, uint8_t dir = FAN_UP) {
 }
 
 void enemiesUpdate() {
-    if(arduboy.everyXFrames(8)) {
+    if(everyXFrames(8)) {
         walkerFrame = (walkerFrame + 1) % 2;
         coinFrame = (coinFrame + 1) % 4;
     }
@@ -188,60 +187,59 @@ void enemiesUpdate() {
     if(key.active) {
         int commonx = key.pos.x - cam.pos.x;
         int commony = key.pos.y - cam.pos.y;
-        sprites.drawOverwrite(commonx, commony, elements, 4);
+        gfx_sprite_overwrite(commonx, commony, elements, 4);
     }
 
     // Draw spikes first
-    //for (byte i = 0; i < MAX_PER_TYPE; ++i)
-    for(byte i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
+    //for (uint8_t i = 0; i < MAX_PER_TYPE; ++i)
+    for(uint8_t i = MAX_PER_TYPE - 1; i < MAX_PER_TYPE; --i) {
         if(bitRead(spikes[i].characteristics, 2)) // spike active
         {
             int commonx = spikes[i].pos.x - cam.pos.x;
             int commony = spikes[i].pos.y - cam.pos.y;
-            sprites.drawOverwrite(
-                commonx, commony, sprSpikes, spikes[i].characteristics & B00000011);
+            gfx_sprite_overwrite(commonx, commony, sprSpikes, spikes[i].characteristics & 0x03);
             if(!bitRead(spikes[i].characteristics, 0)) {
                 for(int l = 8; l < spikes[i].pos.height; l += 8)
-                    sprites.drawOverwrite(
-                        commonx, commony + l, sprSpikes, spikes[i].characteristics & B00000011);
+                    gfx_sprite_overwrite(
+                        commonx, commony + l, sprSpikes, spikes[i].characteristics & 0x03);
             } else {
                 for(int l = 8; l < spikes[i].pos.width; l += 8)
-                    sprites.drawOverwrite(
-                        commonx + l, commony, sprSpikes, spikes[i].characteristics & B00000011);
+                    gfx_sprite_overwrite(
+                        commonx + l, commony, sprSpikes, spikes[i].characteristics & 0x03);
             }
         }
     }
 
-    if(arduboy.everyXFrames(4)) fanFrame = (fanFrame + 1) % 3;
-    for(byte i = 0; i < MAX_PER_TYPE; ++i) {
+    if(everyXFrames(4)) fanFrame = (fanFrame + 1) % 3;
+    for(uint8_t i = 0; i < MAX_PER_TYPE; ++i) {
         // Fans
         if(fans[i].active) {
             // Update
-            if(arduboy.everyXFrames(2))
-                for(byte a = 0; a < MAX_FAN_PARTICLES; ++a) {
+            if(everyXFrames(2))
+                for(uint8_t a = 0; a < MAX_FAN_PARTICLES; ++a) {
                     // Update Particles
                     fans[i].particles[a].y = (fans[i].particles[a].y < (fans[i].height)) ?
                                                  fans[i].particles[a].y + 6 :
-                                                 random((fans[i].height) >> 2);
+                                                 randomOf((fans[i].height) >> 2);
 
                     // Draw particles
                     switch(fans[i].dir) {
                     case FAN_UP:
-                        sprites.drawErase(
+                        gfx_sprite_erase(
                             fans[i].pos.x + fans[i].particles[a].x - cam.pos.x,
                             fans[i].pos.y - fans[i].particles[a].y - cam.pos.y,
                             particle,
                             0);
                         break;
                     case FAN_RIGHT:
-                        sprites.drawErase(
+                        gfx_sprite_erase(
                             fans[i].pos.x + 16 + fans[i].particles[a].y - cam.pos.x,
                             fans[i].pos.y + 16 - fans[i].particles[a].x - cam.pos.y,
                             particle,
                             0);
                         break;
                     default:
-                        sprites.drawErase(
+                        gfx_sprite_erase(
                             fans[i].pos.x - fans[i].particles[a].y - cam.pos.x,
                             fans[i].pos.y + 16 - fans[i].particles[a].x - cam.pos.y,
                             particle,
@@ -255,12 +253,12 @@ void enemiesUpdate() {
             uint8_t foff = 3 * fans[i].dir;
             //if (fans[i].dir > FAN_UP) foff += 3;
             //else if (fans[i].dir > FAN_RIGHT) foff += 6;
-            sprites.drawOverwrite(_x, _y, fan, fanFrame + foff);
+            gfx_sprite_overwrite(_x, _y, fan, fanFrame + foff);
         }
 
         // Walkers
         if(walkers[i].active) {
-            if(arduboy.everyXFrames(2) && walkers[i].HP > 0 && !walkers[i].hurt) {
+            if(everyXFrames(2) && walkers[i].HP > 0 && !walkers[i].hurt) {
                 if(!gridGetSolid(
                        (walkers[i].pos.x + 4 + (walkers[i].direction * 5)) >> 4,
                        walkers[i].pos.y >> 4) &&
@@ -273,7 +271,7 @@ void enemiesUpdate() {
                 }
             }
 
-            sprites.drawOverwrite(
+            gfx_sprite_overwrite(
                 walkers[i].pos.x - cam.pos.x,
                 walkers[i].pos.y - cam.pos.y,
                 walkerSprite,
@@ -282,7 +280,7 @@ void enemiesUpdate() {
 
         // Coins
         if(coins[i].active) {
-            sprites.drawOverwrite(
+            gfx_sprite_overwrite(
                 coins[i].pos.x - cam.pos.x, coins[i].pos.y - cam.pos.y, elements, coinFrame);
         }
     }
