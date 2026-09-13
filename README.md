@@ -11,6 +11,8 @@ FlipCrypt is a Flipper Zero app that provides a collection of classic cipher alg
 - Beaufort
 - Bifid
 - Caesar
+- DES
+- 3DES
 - Playfair
 - Polybius Square
 - Porta
