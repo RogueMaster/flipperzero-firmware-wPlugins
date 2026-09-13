@@ -37,20 +37,20 @@ remembers its UID alongside the others.
 
 ## Screens
 
-Flipper-style mockups of the main screens (128x64):
+Real screenshots from the app (Flipper Zero, 128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg?v=4" width="240" alt="Main menu"><br><b>Main menu</b><br>Punch, Work mode, Badges, History...</td>
-    <td align="center"><img src="docs/img/work-clock.svg?v=4" width="240" alt="Work mode clock"><br><b>Work mode</b><br>Live clock, tap to punch</td>
+    <td align="center"><img src="docs/img/menu.png" width="240" alt="Main menu"><br><b>Main menu</b><br>Work mode, Overview, Badges, History...</td>
+    <td align="center"><img src="docs/img/work-clock.png" width="240" alt="Work mode clock"><br><b>Work mode</b><br>Live clock, tap to punch</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg?v=4" width="240" alt="Greeting"><br><b>Tap a badge</b><br>Welcome / Goodbye by name</td>
-    <td align="center"><img src="docs/img/today.svg?v=4" width="240" alt="Daily summary"><br><b>Today</b><br>Punches + total worked time</td>
+    <td align="center"><img src="docs/img/greeting.png" width="240" alt="Greeting"><br><b>Tap a badge</b><br>Welcome / Goodbye by name</td>
+    <td align="center"><img src="docs/img/overview.png" width="240" alt="Overview"><br><b>Overview</b><br>Per-person today / week / month + break</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg?v=4" width="240" alt="PIN lock"><br><b>PIN lock</b><br>Protects exit from the app</td>
-    <td align="center"><img src="docs/img/settings.svg?v=4" width="240" alt="Settings"><br><b>Settings</b><br>Sound / Vibro / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.png" width="240" alt="PIN lock"><br><b>PIN lock</b><br>Protects exit from the app</td>
+    <td align="center"><img src="docs/img/export.png" width="240" alt="Export"><br><b>Export</b><br>CSV, monthly CSV, JSON</td>
   </tr>
 </table>
 

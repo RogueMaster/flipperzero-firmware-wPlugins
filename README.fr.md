@@ -38,20 +38,20 @@ d'aucune facon - le systeme retient simplement son UID parmi les autres.
 
 ## Ecrans
 
-Maquettes facon Flipper des ecrans principaux (128x64):
+Vraies captures de l'app (Flipper Zero, 128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg?v=4" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Pointer, Work mode, Badges, Historique...</td>
-    <td align="center"><img src="docs/img/work-clock.svg?v=4" width="240" alt="Work mode"><br><b>Work mode</b><br>Horloge, pointage a la puce</td>
+    <td align="center"><img src="docs/img/menu.png" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Work mode, Apercu, Badges, Historique...</td>
+    <td align="center"><img src="docs/img/work-clock.png" width="240" alt="Work mode"><br><b>Work mode</b><br>Horloge, pointage a la puce</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg?v=4" width="240" alt="Message"><br><b>Passez le badge</b><br>Bienvenue / Au revoir par nom</td>
-    <td align="center"><img src="docs/img/today.svg?v=4" width="240" alt="Resume du jour"><br><b>Aujourd'hui</b><br>Pointages + heures totales</td>
+    <td align="center"><img src="docs/img/greeting.png" width="240" alt="Message"><br><b>Passez le badge</b><br>Bienvenue / Au revoir par nom</td>
+    <td align="center"><img src="docs/img/overview.png" width="240" alt="Apercu"><br><b>Apercu</b><br>Par personne: jour / semaine / mois + pause</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg?v=4" width="240" alt="Verrou PIN"><br><b>Verrou PIN</b><br>Protege la sortie de l'app</td>
-    <td align="center"><img src="docs/img/settings.svg?v=4" width="240" alt="Reglages"><br><b>Reglages</b><br>Son / Vibration / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.png" width="240" alt="Verrou PIN"><br><b>Verrou PIN</b><br>Protege la sortie de l'app</td>
+    <td align="center"><img src="docs/img/export.png" width="240" alt="Export"><br><b>Export</b><br>CSV, CSV du mois, JSON</td>
   </tr>
 </table>
 

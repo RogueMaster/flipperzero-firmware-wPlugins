@@ -37,20 +37,20 @@ modo - il sistema memorizza semplicemente il suo UID insieme agli altri.
 
 ## Schermate
 
-Mockup in stile Flipper delle schermate principali (128x64):
+Screenshot reali dall'app (Flipper Zero, 128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg?v=4" width="240" alt="Menu principale"><br><b>Menu principale</b><br>Timbra, Work mode, Badge, Storico...</td>
-    <td align="center"><img src="docs/img/work-clock.svg?v=4" width="240" alt="Work mode"><br><b>Work mode</b><br>Orologio, timbri col chip</td>
+    <td align="center"><img src="docs/img/menu.png" width="240" alt="Menu principale"><br><b>Menu principale</b><br>Work mode, Panoramica, Badge, Storico...</td>
+    <td align="center"><img src="docs/img/work-clock.png" width="240" alt="Work mode"><br><b>Work mode</b><br>Orologio, timbri col chip</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg?v=4" width="240" alt="Saluto"><br><b>Passa il badge</b><br>Benvenuto / Arrivederci col nome</td>
-    <td align="center"><img src="docs/img/today.svg?v=4" width="240" alt="Riepilogo giornaliero"><br><b>Oggi</b><br>Timbrature + ore totali</td>
+    <td align="center"><img src="docs/img/greeting.png" width="240" alt="Saluto"><br><b>Passa il badge</b><br>Benvenuto / Arrivederci col nome</td>
+    <td align="center"><img src="docs/img/overview.png" width="240" alt="Panoramica"><br><b>Panoramica</b><br>Per persona: oggi / settimana / mese + pausa</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg?v=4" width="240" alt="Blocco PIN"><br><b>Blocco PIN</b><br>Protegge l'uscita dall'app</td>
-    <td align="center"><img src="docs/img/settings.svg?v=4" width="240" alt="Impostazioni"><br><b>Impostazioni</b><br>Suono / Vibro / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.png" width="240" alt="Blocco PIN"><br><b>Blocco PIN</b><br>Protegge l'uscita dall'app</td>
+    <td align="center"><img src="docs/img/export.png" width="240" alt="Esporta"><br><b>Esporta</b><br>CSV, CSV del mese, JSON</td>
   </tr>
 </table>
 
