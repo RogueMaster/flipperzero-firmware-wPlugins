@@ -10,17 +10,29 @@
 
 **Zeiterfassungs-App** fuer den [Flipper Zero](https://flipperzero.one/). Damit
 erfasst du deine Mitarbeiter und ihre Kommen-/Gehen-Zeiten: weise jeder Person
-einen dedizierten **leeren** NFC- oder RFID-Ausweis zu, halte ihn an das Geraet,
-die App waehlt selbst **IN** oder **OUT**, und jede Stempelung wird mit Datum und
-Uhrzeit auf der microSD als CSV gespeichert, das du in Excel oeffnen kannst.
-Laeuft eigenstaendig, ohne Telefon oder PC.
+einen Ausweis zu - **NFC**, **RFID** oder **iButton** - halte ihn an das Geraet,
+und jede Stempelung wird mit Datum und Uhrzeit auf der microSD als CSV
+gespeichert, das du in Excel oeffnen kannst. Laeuft eigenstaendig, ohne Telefon
+oder PC.
 
-> **Nutze leere/dedizierte Ausweise - nur autorisierte Nutzung.** Die App ist fuer
-> **leere Ausweise** gedacht, die du deinen Mitarbeitern zuweist. Sie liest **nur
-> die UID** des Ausweises, um Personen zu unterscheiden: sie ist **nicht** zum
-> Lesen fremder Zugangsausweise gedacht, sie **emuliert** keine Ausweise und
-> **umgeht** kein Authentifizierungssystem. Nutze nur Ausweise und Systeme, fuer
-> die du berechtigt bist. Siehe [SECURITY.md](SECURITY.md).
+Der Leser ist **vollautomatisch**: NFC, RFID und iButton werden gleichzeitig
+gelesen, du waehlst also nie eine Technologie. Im selben Betrieb kann eine Person
+einen NFC-Ausweis tragen, eine andere einen RFID-Anhaenger und eine weitere einen
+iButton - alle funktionieren.
+
+**Auch eine Karte, die die Person schon hat, geht.** Da die App **nur die UID**
+liest und nichts auf die Karte schreibt, kann ein bereits bei einer anderen Firma
+genutzter Ausweis (Buero-Zutrittskarte, Fitnessstudio-Anhaenger, Fahrkarte...)
+hier registriert und genutzt werden, ohne in irgendeiner Weise veraendert oder
+ueberschrieben zu werden - das System merkt sich einfach seine UID neben den
+anderen.
+
+> **Nur Identifikation - nur autorisierte Nutzung.** Die App liest die UID des
+> Ausweises, um Personen zu unterscheiden. Sie **schreibt** nicht und **emuliert**
+> keine Ausweise und **umgeht** kein Authentifizierungssystem; eine hier
+> registrierte Karte wird davon, wo sie sonst genutzt wird, nicht beeinflusst.
+> Nutze nur mit Personen und Ausweisen, fuer die du berechtigt bist. Siehe
+> [SECURITY.md](SECURITY.md).
 
 ## Bildschirme
 
@@ -45,11 +57,16 @@ Flipper-artige Mockups der Hauptbildschirme (128x64):
 
 - **Stempeln** durch Anhalten eines Ausweises - bekannte Ausweise werden per UID
   erkannt.
-- **Leserwahl** in den Einstellungen: **NFC** (13.56 MHz) oder **RFID LF**
-  (125 kHz). Der Leser erkennt die von der Firmware unterstuetzten Protokolle.
-- **Mitarbeiter registrieren** beim ersten Anhalten des leeren Ausweises, mit
-  Namen. Jede Person ist an diesen Chip (seine UID) gebunden: jede Stempelung
-  verweist auf diesen Chip.
+- **Automatischer Multi-Technologie-Leser**: **NFC** (13.56 MHz), **RFID LF**
+  (125 kHz) und **iButton** (1-Wire Dallas-Keys) werden gleichzeitig gelesen.
+  **Keine Leser-Einstellung** - wer den Ausweis zuerst erkennt, gewinnt, also
+  arbeiten NFC, RFID und iButton in derselben Installation nebeneinander.
+- **Funktioniert mit vorhandenen Karten**: da nur die UID gelesen (nie
+  geschrieben) wird, kann eine bereits anderswo - auch bei einer anderen Firma -
+  genutzte Karte ohne Veraenderung registriert und genutzt werden.
+- **Mitarbeiter registrieren** beim ersten Anhalten des Ausweises, mit Namen.
+  Jede Person ist an diesen Chip (seine UID) gebunden: jede Stempelung verweist
+  auf diesen Chip.
 - **Mitarbeiter (Ausweise) verwalten**: umbenennen, **Chip ersetzen** bei Verlust
   (Name und Verlauf bleiben, nur der Chip aendert sich), Verlauf der Person
   ansehen, loeschen (Verlauf bleibt).
@@ -87,7 +104,7 @@ Alles wird auf der microSD unter `/ext/apps_data/timeclock/` gespeichert:
 
 | Datei         | Inhalt                                                          |
 |---------------|-----------------------------------------------------------------|
-| `badges.csv`  | Ausweise: `uid,name,tech,created,last_used,last_event`          |
+| `badges.csv`  | Ausweise: `uid,name,tech,created,last_used,last_event` (`tech`: `NFC`/`RFID`/`iBTN`) |
 | `punches.csv` | Verlauf: `date,time,name,uid,type` (`IN`/`OUT`)                 |
 | `config.txt`  | Einstellungen + PIN-**Hash** und Salt (nie der PIN im Klartext) |
 | `export.json` | JSON-Export des Verlaufs (*Export -> Export JSON*)              |
@@ -130,10 +147,10 @@ Die gebaute `.fap` liegt in `dist/`. Du kannst sie auch per qFlipper nach
 `SD Card/apps/Tools/` kopieren und ueber **Apps -> Tools -> Time Clock** starten.
 
 > **Firmware-Hinweis.** Die Funkschicht liegt in `timeclock_reader.c` (NFC ueber
-> den ISO14443-3A-Poller - MIFARE Classic/Ultralight, NTAG, DESFire, die leeren
-> Ausweise, die du wirklich nutzt - plus der LF-RFID-Worker fuer 125 kHz). Sie ist
-> am empfindlichsten gegenueber API-Aenderungen; aendert sich ein Symbol, ist der
-> Fix auf diese eine Datei beschraenkt.
+> den ISO14443-3A-Poller - MIFARE Classic/Ultralight, NTAG, DESFire - der
+> LF-RFID-Worker fuer 125 kHz und der iButton-Worker fuer 1-Wire Dallas-Keys,
+> zusammen gestartet). Sie ist am empfindlichsten gegenueber API-Aenderungen;
+> aendert sich ein Symbol, ist der Fix auf diese eine Datei beschraenkt.
 
 ## Kompatibilitaet
 

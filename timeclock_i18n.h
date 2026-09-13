@@ -42,6 +42,8 @@ typedef enum {
     // Scan
     StrReadingNfc,
     StrReadingRfid,
+    StrReadingIButton,
+    StrReadingBadge, // generic header: reader auto-detects NFC/RFID/iButton
     StrNewBadge,
     StrNewChip,
     StrHoldBadge,

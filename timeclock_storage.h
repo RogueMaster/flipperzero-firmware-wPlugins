@@ -21,7 +21,7 @@
 #define TC_MAX_BADGES  64
 #define TC_NAME_MAX    33 // 32 chars + terminator
 #define TC_UID_STR_MAX 41 // up to 20 bytes in hex + terminator
-#define TC_TECH_MAX    6 // "NFC" / "RFID"
+#define TC_TECH_MAX    6 // "NFC" / "RFID" / "iBTN"
 #define TC_DT_MAX      20 // "YYYY-MM-DD HH:MM"
 
 // ---- Event types -----------------------------------------------------------
@@ -44,7 +44,6 @@ typedef struct {
 // ---- Persistent configuration ----------------------------------------------
 typedef struct {
     bool auto_mode; // true = automatic IN/OUT
-    bool use_lf; // false = NFC (13.56 MHz), true = LF RFID (125 kHz)
     bool sound_enabled; // true = play distinct IN/OUT sounds on punch
     bool vibro_enabled; // true = vibrate on punch (1 pulse IN, 2 pulses OUT)
     bool led_enabled; // true = blink LED on punch (green IN, blue OUT)

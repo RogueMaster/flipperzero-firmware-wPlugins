@@ -1,8 +1,18 @@
 ## Time Clock
 
-Standalone staff time-clock for Flipper Zero. Register collaborators on **blank**
-NFC/RFID badges and log clock IN/OUT to a CSV timesheet. Fully offline and
-PIN-protected. Identification only - no badge emulation, no authentication bypass.
+Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
+**RFID** or **iButton** badges and log clock IN/OUT to a CSV timesheet. Fully
+offline and PIN-protected. Identification only - no badge emulation, no
+authentication bypass.
+
+**New in v2.2.0**
+
+- **iButton** support: 1-Wire Dallas keys work as badges alongside NFC and RFID.
+- **Automatic multi-technology reader**: NFC, RFID and iButton are read at the
+  same time - no reader setting, whichever detects the badge first wins. Mix all
+  three in one workplace.
+- **Use existing cards**: only the UID is read (never written), so a card already
+  used with another company can be registered and used without being changed.
 
 ### Which file do I download?
 
@@ -26,8 +36,9 @@ then open **Apps -> Tools -> Time Clock**.
   automatic IN/OUT.
 - **Sound / vibration / LED feedback** on each punch, distinct for IN vs OUT
   (toggle each in Settings; on by default).
-- **NFC** (ISO14443-A: MIFARE/NTAG/DESFire) and **LF RFID** (125 kHz) reading -
-  stable path. The chip's UID is read only (no writing, no emulation).
+- **NFC** (ISO14443-A: MIFARE/NTAG/DESFire), **LF RFID** (125 kHz) and **iButton**
+  (1-Wire Dallas keys) - all read at once, no manual selection. The chip's UID is
+  read only (no writing, no emulation).
 - **Automatic** punching (tap = IN, then OUT, ...); unknown chips show
   "Not registered". Register people in Badges; lost chip -> Replace chip.
 - **This week** summary: worked time per day of the current week plus the total.

@@ -12,26 +12,37 @@
 #include <lfrfid/protocols/lfrfid_protocols.h>
 #include <toolbox/protocols/protocol_dict.h>
 
+#include <ibutton/ibutton_worker.h>
+#include <ibutton/ibutton_key.h>
+#include <ibutton/ibutton_protocols.h>
+
 // Private custom-event id (kept well above the scenes' event ranges).
 #define READER_EVENT_UID 401u
 
+// All three radios (NFC, LF RFID, iButton) run simultaneously; whichever
+// detects a badge first posts the UID. There is no manual reader selection, so
+// a workplace can mix NFC, RFID and iButton badges freely. Only the UID is read
+// - nothing is written to or emulated onto the card, so badges already issued
+// by another company work as identity tokens too.
 struct TimeclockReader {
     ViewDispatcher* vd;
     TimeclockReaderCallback callback;
     void* context;
 
-    bool use_lf;
     bool continuous;
 
-    // NFC (ISO14443-3A poller: reads MIFARE Classic/Ultralight, NTAG, DESFire
-    // and other ISO14443-A cards - the badges you actually use). This is the
-    // stable, proven path; it does not use the multi-protocol scanner.
+    // NFC (ISO14443-3A poller: MIFARE Classic/Ultralight, NTAG, DESFire, ...).
     Nfc* nfc;
     NfcPoller* poller;
 
-    // LF RFID (auto: EM4100, HID, Indala, ... whatever the firmware supports)
+    // LF RFID (auto: EM4100, HID, Indala, ... whatever the firmware supports).
     ProtocolDict* lf_dict;
     LFRFIDWorker* lf_worker;
+
+    // iButton / 1-Wire (DS1990A and other Dallas keys).
+    iButtonProtocols* ib_protocols;
+    iButtonKey* ib_key;
+    iButtonWorker* ib_worker;
 
     char uid[TC_UID_STR_MAX];
     char tech[TC_TECH_MAX];
@@ -85,6 +96,17 @@ static void reader_lf_callback(LFRFIDWorkerReadResult result, ProtocolId protoco
     view_dispatcher_send_custom_event(reader->vd, READER_EVENT_UID);
 }
 
+// ---- iButton read callback (worker thread) ---------------------------------
+static void reader_ibutton_callback(void* context) {
+    TimeclockReader* reader = context;
+    iButtonEditableData editable = {0};
+    ibutton_protocols_get_editable_data(reader->ib_protocols, reader->ib_key, &editable);
+    if(editable.ptr && editable.size > 0) {
+        reader_format_uid(reader, editable.ptr, editable.size, "iBTN");
+        view_dispatcher_send_custom_event(reader->vd, READER_EVENT_UID);
+    }
+}
+
 static void reader_stop_nfc(TimeclockReader* reader) {
     if(reader->poller) {
         nfc_poller_stop(reader->poller);
@@ -110,6 +132,23 @@ static void reader_stop_lf(TimeclockReader* reader) {
     }
 }
 
+static void reader_stop_ibutton(TimeclockReader* reader) {
+    if(reader->ib_worker) {
+        ibutton_worker_stop(reader->ib_worker);
+        ibutton_worker_stop_thread(reader->ib_worker);
+        ibutton_worker_free(reader->ib_worker);
+        reader->ib_worker = NULL;
+    }
+    if(reader->ib_key) {
+        ibutton_key_free(reader->ib_key);
+        reader->ib_key = NULL;
+    }
+    if(reader->ib_protocols) {
+        ibutton_protocols_free(reader->ib_protocols);
+        reader->ib_protocols = NULL;
+    }
+}
+
 TimeclockReader* timeclock_reader_alloc(ViewDispatcher* view_dispatcher) {
     TimeclockReader* reader = malloc(sizeof(TimeclockReader));
     memset(reader, 0, sizeof(TimeclockReader));
@@ -132,30 +171,38 @@ void timeclock_reader_set_callback(
     reader->context = context;
 }
 
-void timeclock_reader_start(TimeclockReader* reader, bool use_lf, bool continuous) {
+void timeclock_reader_start(TimeclockReader* reader, bool continuous) {
     furi_assert(reader);
     timeclock_reader_stop(reader); // idempotent: never leak a previous session
 
-    reader->use_lf = use_lf;
     reader->continuous = continuous;
 
-    if(use_lf) {
-        reader->lf_dict = protocol_dict_alloc(lfrfid_protocols, LFRFIDProtocolMax);
-        reader->lf_worker = lfrfid_worker_alloc(reader->lf_dict);
-        lfrfid_worker_start_thread(reader->lf_worker);
-        lfrfid_worker_read_start(
-            reader->lf_worker, LFRFIDWorkerReadTypeAuto, reader_lf_callback, reader);
-    } else {
-        reader->nfc = nfc_alloc();
-        reader->poller = nfc_poller_alloc(reader->nfc, NfcProtocolIso14443_3a);
-        nfc_poller_start(reader->poller, reader_poller_callback, reader);
-    }
+    // NFC (13.56 MHz)
+    reader->nfc = nfc_alloc();
+    reader->poller = nfc_poller_alloc(reader->nfc, NfcProtocolIso14443_3a);
+    nfc_poller_start(reader->poller, reader_poller_callback, reader);
+
+    // LF RFID (125 kHz)
+    reader->lf_dict = protocol_dict_alloc(lfrfid_protocols, LFRFIDProtocolMax);
+    reader->lf_worker = lfrfid_worker_alloc(reader->lf_dict);
+    lfrfid_worker_start_thread(reader->lf_worker);
+    lfrfid_worker_read_start(
+        reader->lf_worker, LFRFIDWorkerReadTypeAuto, reader_lf_callback, reader);
+
+    // iButton (1-Wire)
+    reader->ib_protocols = ibutton_protocols_alloc();
+    reader->ib_key = ibutton_key_alloc(ibutton_protocols_get_max_data_size(reader->ib_protocols));
+    reader->ib_worker = ibutton_worker_alloc(reader->ib_protocols);
+    ibutton_worker_start_thread(reader->ib_worker);
+    ibutton_worker_read_set_callback(reader->ib_worker, reader_ibutton_callback, reader);
+    ibutton_worker_read_start(reader->ib_worker, reader->ib_key);
 }
 
 void timeclock_reader_stop(TimeclockReader* reader) {
     furi_assert(reader);
     reader_stop_nfc(reader);
     reader_stop_lf(reader);
+    reader_stop_ibutton(reader);
 }
 
 bool timeclock_reader_handle_event(TimeclockReader* reader, uint32_t event) {

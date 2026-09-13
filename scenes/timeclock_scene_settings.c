@@ -3,11 +3,11 @@
 
 #include "../timeclock.h"
 
-// Settings: reader type, sound/vibro/LED, language, PIN management and exit.
+// Settings: sound/vibro/LED, language, PIN management and exit. The reader is
+// fully automatic (NFC + RFID + iButton at once), so there is nothing to pick.
 
 typedef enum {
-    ActionReader = 0,
-    ActionSound,
+    ActionSound = 0,
     ActionVibro,
     ActionLed,
     ActionLanguage,
@@ -17,7 +17,6 @@ typedef enum {
     ActionExit,
 } SettingsAction;
 
-static char reader_lbl[28];
 static char sound_lbl[28];
 static char vibro_lbl[28];
 static char led_lbl[28];
@@ -36,8 +35,6 @@ static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
     const char* on = tc_str(StrOn);
     const char* off = tc_str(StrOff);
     snprintf(
-        reader_lbl, sizeof(reader_lbl), "%s: %s", tc_str(StrReader), app->config.use_lf ? "RFID" : "NFC");
-    snprintf(
         sound_lbl, sizeof(sound_lbl), "%s: %s", tc_str(StrSound), app->config.sound_enabled ? on : off);
     snprintf(
         vibro_lbl, sizeof(vibro_lbl), "%s: %s", tc_str(StrVibro), app->config.vibro_enabled ? on : off);
@@ -49,8 +46,6 @@ static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
         tc_str(StrLanguage),
         tc_lang_name((TcLang)app->config.language));
 
-    submenu_add_item(
-        submenu, reader_lbl, ActionReader, timeclock_scene_settings_submenu_callback, app);
     submenu_add_item(
         submenu, sound_lbl, ActionSound, timeclock_scene_settings_submenu_callback, app);
     submenu_add_item(
@@ -96,31 +91,26 @@ bool timeclock_scene_settings_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         consumed = true;
         switch(event.event) {
-        case ActionReader:
-            app->config.use_lf = !app->config.use_lf;
-            tc_config_save(&app->config);
-            timeclock_scene_settings_build(app, 0);
-            break;
         case ActionSound:
             app->config.sound_enabled = !app->config.sound_enabled;
             tc_config_save(&app->config);
-            timeclock_scene_settings_build(app, 1);
+            timeclock_scene_settings_build(app, 0);
             break;
         case ActionVibro:
             app->config.vibro_enabled = !app->config.vibro_enabled;
             tc_config_save(&app->config);
-            timeclock_scene_settings_build(app, 2);
+            timeclock_scene_settings_build(app, 1);
             break;
         case ActionLed:
             app->config.led_enabled = !app->config.led_enabled;
             tc_config_save(&app->config);
-            timeclock_scene_settings_build(app, 3);
+            timeclock_scene_settings_build(app, 2);
             break;
         case ActionLanguage:
             app->config.language = (app->config.language + 1) % TcLangCount;
             tc_lang_set((TcLang)app->config.language);
             tc_config_save(&app->config);
-            timeclock_scene_settings_build(app, 4);
+            timeclock_scene_settings_build(app, 3);
             break;
         case ActionSetPin:
             app->pin_mode = TcPinModeSetNew;

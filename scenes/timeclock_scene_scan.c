@@ -20,6 +20,7 @@
 typedef struct {
     TimeclockReader* reader;
     uint32_t result_scene; // scene to return to after the result popup
+    bool handled; // first UID consumed (guards against a double punch)
 } ScanCtx;
 
 static char scan_msg[64];
@@ -53,6 +54,13 @@ static void timeclock_scene_scan_on_uid(const char* uid_hex, const char* tech, v
     ScanCtx* ctx =
         (ScanCtx*)(uintptr_t)scene_manager_get_scene_state(app->scene_manager, TimeClockSceneScan);
     if(!ctx) return;
+
+    // Single-shot: all three radios run at once, so a second UID can already be
+    // queued. Consume only the first and stop every radio immediately, so the
+    // same tap can never be recorded twice.
+    if(ctx->handled) return;
+    ctx->handled = true;
+    timeclock_reader_stop(ctx->reader);
 
     strncpy(app->scanned_uid, uid_hex, TC_UID_STR_MAX - 1);
     app->scanned_uid[TC_UID_STR_MAX - 1] = '\0';
@@ -141,7 +149,7 @@ void timeclock_scene_scan_on_enter(void* context) {
         header = tc_str(StrNewBadge);
         text = tc_str(StrTapRegister);
     } else {
-        header = app->config.use_lf ? tc_str(StrReadingRfid) : tc_str(StrReadingNfc);
+        header = tc_str(StrReadingBadge);
         text = tc_str(StrHoldBadge);
     }
 
@@ -151,7 +159,7 @@ void timeclock_scene_scan_on_enter(void* context) {
     popup_set_text(popup, text, 64, 34, AlignCenter, AlignTop);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewPopup);
 
-    timeclock_reader_start(ctx->reader, app->config.use_lf, false);
+    timeclock_reader_start(ctx->reader, false);
 }
 
 bool timeclock_scene_scan_on_event(void* context, SceneManagerEvent event) {

@@ -130,7 +130,6 @@ void tc_now_datetime(char* out, size_t out_size) {
 void tc_config_load(TcConfig* config) {
     // Defaults
     config->auto_mode = false;
-    config->use_lf = false;
     config->sound_enabled = true; // on by default
     config->vibro_enabled = true; // on by default
     config->led_enabled = true; // on by default
@@ -151,8 +150,6 @@ void tc_config_load(TcConfig* config) {
             unsigned long v = 0;
             if(sscanf(s, "auto_mode=%lu", &v) == 1) {
                 config->auto_mode = v != 0;
-            } else if(sscanf(s, "use_lf=%lu", &v) == 1) {
-                config->use_lf = v != 0;
             } else if(sscanf(s, "sound_enabled=%lu", &v) == 1) {
                 config->sound_enabled = v != 0;
             } else if(sscanf(s, "vibro_enabled=%lu", &v) == 1) {
@@ -185,7 +182,6 @@ void tc_config_save(const TcConfig* config) {
     Stream* stream = file_stream_alloc(storage);
     if(file_stream_open(stream, TC_CONFIG_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         stream_write_format(stream, "auto_mode=%u\n", config->auto_mode ? 1 : 0);
-        stream_write_format(stream, "use_lf=%u\n", config->use_lf ? 1 : 0);
         stream_write_format(stream, "sound_enabled=%u\n", config->sound_enabled ? 1 : 0);
         stream_write_format(stream, "vibro_enabled=%u\n", config->vibro_enabled ? 1 : 0);
         stream_write_format(stream, "led_enabled=%u\n", config->led_enabled ? 1 : 0);

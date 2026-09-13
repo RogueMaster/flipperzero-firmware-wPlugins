@@ -7,9 +7,14 @@
 // Shared badge reader.
 //
 // NFC (13.56 MHz): ISO14443-3A poller - reads the UID of MIFARE Classic/
-// Ultralight, NTAG, DESFire and other ISO14443-A cards (the blank badges people
-// actually use). This is the stable, proven path.
+// Ultralight, NTAG, DESFire and other ISO14443-A cards. This is the stable,
+// proven path.
 // LF RFID (125 kHz): the lfrfid worker in auto mode (EM4100, HID, Indala, ...).
+// iButton (1-Wire): the ibutton worker (DS1990A / Dallas keys, ...).
+//
+// The reader only reads the identifier (UID); it never writes to or emulates a
+// card. Any existing badge works as an identity token - even one already used
+// by another company - because nothing on it is modified.
 //
 // Thread-safety: radio callbacks only post ViewDispatcher custom events; every
 // start/stop of the radio happens on the GUI thread inside
@@ -24,7 +29,7 @@
 typedef struct TimeclockReader TimeclockReader;
 
 // Invoked (on the GUI thread) when a UID has been read. uid_hex is uppercase
-// hex ("04A1B2C3D4"); tech is "NFC" or "RFID".
+// hex ("04A1B2C3D4"); tech is "NFC", "RFID" or "iBTN" (whichever detected it).
 typedef void (*TimeclockReaderCallback)(const char* uid_hex, const char* tech, void* context);
 
 TimeclockReader* timeclock_reader_alloc(ViewDispatcher* view_dispatcher);
@@ -35,10 +40,12 @@ void timeclock_reader_set_callback(
     TimeclockReaderCallback callback,
     void* context);
 
-// Start reading. use_lf selects LF RFID vs NFC; continuous keeps reading after
-// each UID (Work mode) instead of stopping after the first (single punch).
-// Safe to call again after stop().
-void timeclock_reader_start(TimeclockReader* reader, bool use_lf, bool continuous);
+// Start reading. All three radios (NFC, LF RFID, iButton) run at once and the
+// first one to detect a badge wins - no manual reader selection, so NFC, RFID
+// and iButton badges all work side by side in the same deployment. continuous
+// keeps reading after each UID (Work mode) instead of stopping after the first
+// (single punch). Safe to call again after stop().
+void timeclock_reader_start(TimeclockReader* reader, bool continuous);
 
 // Stop and release the radio (the reader object itself stays valid).
 void timeclock_reader_stop(TimeclockReader* reader);

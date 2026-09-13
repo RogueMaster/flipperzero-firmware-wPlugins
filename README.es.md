@@ -10,17 +10,25 @@
 
 App de **control de fichajes** para el [Flipper Zero](https://flipperzero.one/).
 Sirve para registrar a tus colaboradores y sus entradas/salidas: asigna a cada
-persona una tarjeta **en blanco** dedicada NFC o RFID, la acercas, la app elige
-sola **IN** o **OUT**, y cada fichaje se guarda con fecha y hora en la microSD
-como hoja CSV que puedes abrir en Excel. Funciona de forma autonoma, sin telefono
-ni PC.
+persona una tarjeta - **NFC**, **RFID** o **iButton** - la acercas, y cada fichaje
+se guarda con fecha y hora en la microSD como hoja CSV que puedes abrir en Excel.
+Funciona de forma autonoma, sin telefono ni PC.
 
-> **Usa tarjetas en blanco/dedicadas - solo uso autorizado.** La app esta pensada
-> para **tarjetas en blanco** que asignas a tus colaboradores. Solo lee el **UID**
-> de la tarjeta para distinguir a una persona de otra: **no** sirve para leer
-> tarjetas de control de acceso ajenas, **no** emula tarjetas y **no** elude
-> ningun sistema de autenticacion. Usa solo tarjetas y sistemas autorizados. Ver
-> [SECURITY.md](SECURITY.md).
+El lector es **totalmente automatico**: NFC, RFID e iButton se leen a la vez, asi
+que nunca eliges la tecnologia. En la misma empresa una persona puede llevar una
+tarjeta NFC, otra un llavero RFID y otra un iButton, y todos funcionan.
+
+**Tambien sirve una tarjeta que la persona ya tenga.** Como la app **solo lee el
+UID** y no escribe nada en la tarjeta, un carnet ya usado con otra empresa (tarjeta
+de acceso de oficina, llavero del gimnasio, tarjeta de transporte...) puede
+registrarse y usarse aqui sin modificarlo ni sobrescribirlo de ninguna forma - el
+sistema solo recuerda su UID junto a los demas.
+
+> **Solo identificacion - solo uso autorizado.** La app lee el UID de la tarjeta
+> para distinguir a una persona de otra. **No** escribe ni emula tarjetas y **no**
+> elude ningun sistema de autenticacion; registrar aqui una tarjeta no afecta a
+> donde mas se use. Usa solo con personas y tarjetas que estas autorizado a
+> gestionar. Ver [SECURITY.md](SECURITY.md).
 
 ## Pantallas
 
@@ -44,11 +52,15 @@ Maquetas estilo Flipper de las pantallas principales (128x64):
 ## Funciones
 
 - **Fichar** acercando una tarjeta - las tarjetas conocidas se reconocen por UID.
-- **Eleccion de lector** en Ajustes: **NFC** (13.56 MHz) o **RFID LF** (125 kHz).
-  El lector detecta los protocolos que soporta el firmware.
-- **Registra un colaborador** la primera vez que pasas su tarjeta en blanco, con
-  un nombre. Cada persona esta ligada a ese chip (su UID): cada fichaje apunta a
-  ese chip.
+- **Lector multi-tecnologia automatico**: **NFC** (13.56 MHz), **RFID LF**
+  (125 kHz) e **iButton** (llaves Dallas 1-Wire) se leen a la vez. **Sin ajuste
+  de lector** - gana el primero que detecta la tarjeta, asi NFC, RFID e iButton
+  conviven en la misma instalacion.
+- **Sirve con tarjetas existentes**: al leer solo el UID (nunca escribir), una
+  tarjeta ya usada en otro sitio - incluso de otra empresa - puede registrarse y
+  usarse sin alterarla.
+- **Registra un colaborador** la primera vez que pasas su tarjeta, con un nombre.
+  Cada persona esta ligada a ese chip (su UID): cada fichaje apunta a ese chip.
 - **Gestiona colaboradores (tarjetas)**: renombrar, **cambiar el chip** si se
   pierde (conserva nombre e historial, solo cambia el chip), ver el historial de
   la persona, borrar (el historial se conserva).
@@ -86,7 +98,7 @@ Todo se guarda en la microSD en `/ext/apps_data/timeclock/`:
 
 | Archivo       | Contenido                                                       |
 |---------------|-----------------------------------------------------------------|
-| `badges.csv`  | Tarjetas: `uid,name,tech,created,last_used,last_event`          |
+| `badges.csv`  | Tarjetas: `uid,name,tech,created,last_used,last_event` (`tech`: `NFC`/`RFID`/`iBTN`) |
 | `punches.csv` | Historial: `date,time,name,uid,type` (`IN`/`OUT`)               |
 | `config.txt`  | Ajustes + **hash** del PIN y salt (nunca el PIN en claro)       |
 | `export.json` | Exportacion JSON del historial (*Export -> Export JSON*)        |
@@ -129,10 +141,10 @@ El `.fap` compilado queda en `dist/`. Tambien puedes copiarlo a
 `SD Card/apps/Tools/` con qFlipper y abrirlo en **Apps -> Tools -> Time Clock**.
 
 > **Nota de firmware.** La capa de radio esta en `timeclock_reader.c` (NFC con el
-> poller ISO14443-3A - MIFARE Classic/Ultralight, NTAG, DESFire, las tarjetas en
-> blanco que usas - mas el worker LF RFID de 125 kHz). Es la parte mas sensible a
-> los cambios de API; si un simbolo cambia, la correccion esta en ese unico
-> archivo.
+> poller ISO14443-3A - MIFARE Classic/Ultralight, NTAG, DESFire - el worker LF
+> RFID de 125 kHz y el worker iButton para las llaves Dallas 1-Wire, arrancados
+> juntos). Es la parte mas sensible a los cambios de API; si un simbolo cambia, la
+> correccion esta en ese unico archivo.
 
 ## Compatibilidad
 

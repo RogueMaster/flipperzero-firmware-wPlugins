@@ -10,17 +10,27 @@
 
 Application de **pointage du personnel** pour le [Flipper Zero](https://flipperzero.one/).
 Elle sert a enregistrer vos collaborateurs et leurs entrees/sorties: attribuez a
-chaque personne un badge **vierge** dedie NFC ou RFID, approchez-le, l'app choisit
-seule **IN** ou **OUT**, et chaque pointage est enregistre avec date et heure sur
-la microSD au format CSV ouvrable dans Excel. Fonctionne en autonomie, sans
-telephone ni PC.
+chaque personne un badge - **NFC**, **RFID** ou **iButton** - approchez-le, et
+chaque pointage est enregistre avec date et heure sur la microSD au format CSV
+ouvrable dans Excel. Fonctionne en autonomie, sans telephone ni PC.
 
-> **Utilisez des badges vierges/dedies - usage autorise uniquement.** L'app est
-> concue pour des **badges vierges** que vous attribuez a vos collaborateurs.
-> Elle lit **seulement l'UID** du badge pour distinguer les personnes: elle
-> n'est **pas** faite pour lire les badges d'acces d'autrui, n'**emule** pas les
-> badges et ne **contourne** aucun systeme d'authentification. Utilisez seulement
-> des badges et systemes autorises. Voir [SECURITY.md](SECURITY.md).
+Le lecteur est **entierement automatique**: NFC, RFID et iButton sont lus en meme
+temps, vous ne choisissez jamais la technologie. Dans une meme entreprise une
+personne peut avoir un badge NFC, une autre un porte-cles RFID et une autre un
+iButton, et tout fonctionne.
+
+**Une carte que la personne possede deja convient aussi.** Comme l'app **lit
+seulement l'UID** et n'ecrit rien sur la carte, un badge deja utilise dans une
+autre entreprise (carte d'acces de bureau, porte-cles de salle de sport, carte de
+transport...) peut etre enregistre et utilise ici sans etre modifie ni ecrase
+d'aucune facon - le systeme retient simplement son UID parmi les autres.
+
+> **Identification seulement - usage autorise uniquement.** L'app lit l'UID du
+> badge pour distinguer les personnes. Elle n'**ecrit** pas et n'**emule** pas les
+> badges et ne **contourne** aucun systeme d'authentification; enregistrer une
+> carte ici n'a aucun effet la ou elle sert par ailleurs. Utilisez seulement avec
+> des personnes et badges que vous etes autorise a gerer. Voir
+> [SECURITY.md](SECURITY.md).
 
 ## Ecrans
 
@@ -44,11 +54,16 @@ Maquettes facon Flipper des ecrans principaux (128x64):
 ## Fonctions
 
 - **Pointer** en approchant un badge - les badges connus sont reconnus par UID.
-- **Choix du lecteur** dans Reglages: **NFC** (13.56 MHz) ou **RFID LF** (125 kHz).
-  Le lecteur detecte les protocoles pris en charge par le firmware.
-- **Enregistrer un collaborateur** au premier passage de son badge vierge, avec un
-  nom. Chaque personne est liee a cette puce (son UID): chaque pointage renvoie a
-  cette puce.
+- **Lecteur multi-technologie automatique**: **NFC** (13.56 MHz), **RFID LF**
+  (125 kHz) et **iButton** (cles Dallas 1-Wire) sont lus en meme temps. **Aucun
+  reglage de lecteur** - le premier qui detecte le badge gagne, donc NFC, RFID et
+  iButton coexistent dans la meme installation.
+- **Fonctionne avec des cartes existantes**: en ne lisant que l'UID (jamais
+  d'ecriture), une carte deja utilisee ailleurs - meme d'une autre entreprise -
+  peut etre enregistree et utilisee sans la modifier.
+- **Enregistrer un collaborateur** au premier passage de son badge, avec un nom.
+  Chaque personne est liee a cette puce (son UID): chaque pointage renvoie a cette
+  puce.
 - **Gerer les collaborateurs (badges)**: renommer, **remplacer la puce** si perdue
   (garde le nom et l'historique, seule la puce change), voir l'historique de la
   personne, supprimer (l'historique reste).
@@ -86,7 +101,7 @@ Tout est enregistre sur la microSD dans `/ext/apps_data/timeclock/`:
 
 | Fichier       | Contenu                                                         |
 |---------------|-----------------------------------------------------------------|
-| `badges.csv`  | Badges: `uid,name,tech,created,last_used,last_event`            |
+| `badges.csv`  | Badges: `uid,name,tech,created,last_used,last_event` (`tech`: `NFC`/`RFID`/`iBTN`) |
 | `punches.csv` | Historique: `date,time,name,uid,type` (`IN`/`OUT`)              |
 | `config.txt`  | Reglages + **hash** du PIN et sel (jamais le PIN en clair)      |
 | `export.json` | Export JSON de l'historique (*Export -> Export JSON*)           |
@@ -131,10 +146,10 @@ Le `.fap` compile arrive dans `dist/`. Vous pouvez aussi le copier dans
 Clock**.
 
 > **Note firmware.** La couche radio est dans `timeclock_reader.c` (NFC via le
-> poller ISO14443-3A - MIFARE Classic/Ultralight, NTAG, DESFire, les badges
-> vierges que vous utilisez - plus le worker LF RFID 125 kHz). C'est la partie la
-> plus sensible aux changements d'API; si un symbole change, le correctif est
-> dans ce seul fichier.
+> poller ISO14443-3A - MIFARE Classic/Ultralight, NTAG, DESFire - le worker LF
+> RFID 125 kHz et le worker iButton pour les cles Dallas 1-Wire, demarres
+> ensemble). C'est la partie la plus sensible aux changements d'API; si un symbole
+> change, le correctif est dans ce seul fichier.
 
 ## Compatibilite
 

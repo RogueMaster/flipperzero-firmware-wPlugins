@@ -30,6 +30,14 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrReadingNfc] = {"Reading NFC", "Lettura NFC", "Leyendo NFC", "Lecture NFC", "NFC lesen"},
     [StrReadingRfid] =
         {"Reading RFID", "Lettura RFID", "Leyendo RFID", "Lecture RFID", "RFID lesen"},
+    [StrReadingIButton] =
+        {"Reading iButton",
+         "Lettura iButton",
+         "Leyendo iButton",
+         "Lecture iButton",
+         "iButton lesen"},
+    [StrReadingBadge] =
+        {"Reading badge", "Lettura badge", "Leyendo tarjeta", "Lecture badge", "Ausweis lesen"},
     [StrNewBadge] = {"New badge", "Nuovo badge", "Nueva tarjeta", "Nouveau badge", "Neuer Ausweis"},
     [StrNewChip] = {"New chip", "Nuovo chip", "Nuevo chip", "Nouvelle puce", "Neuer Chip"},
     [StrHoldBadge] =
@@ -205,11 +213,11 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrSkip] = {"Skip", "Salta", "Omitir", "Passer", "Ueberspringen"},
     // ---- About (how-it-works block; copyright appended by the scene) ----
     [StrAboutText] =
-        {"Time Clock\nStaff time-clock.\n\n- Badges: register a person on\n  a blank chip (name only).\n- Punch: tap the chip. Logs IN,\n  then OUT, then IN...\n- Work mode: kiosk clock; exit\n  needs the arrow PIN.\n- Today / This week: worked\n  time and breaks.\n- Export CSV/JSON on the SD.\n- Lost chip: Badges > Replace.\n\nOnly the chip UID is read - no\nwriting, no emulation.\n",
-         "Time Clock\nTimbrature del personale.\n\n- Badge: registra una persona\n  su un chip vergine (nome).\n- Timbra: passa il chip. Segna\n  IN, poi OUT, poi IN...\n- Work mode: orologio; per\n  uscire serve il PIN a frecce.\n- Oggi / Settimana: ore e pause.\n- Esporta CSV/JSON su SD.\n- Chip perso: Badge > Sostituisci.\n\nSi legge solo l'UID del chip -\nniente scrittura o emulazione.\n",
-         "Time Clock\nControl de fichajes.\n\n- Tarjetas: registra a alguien\n  en un chip vacio (nombre).\n- Fichar: pasa el chip. Marca\n  IN, luego OUT, luego IN...\n- Work mode: reloj; para salir\n  hace falta el PIN de flechas.\n- Hoy / Semana: horas y pausas.\n- Exportar CSV/JSON en la SD.\n- Chip perdido: Tarjetas > Cambiar.\n\nSolo se lee el UID del chip -\nsin escritura ni emulacion.\n",
-         "Time Clock\nPointage du personnel.\n\n- Badges: enregistrer une\n  personne sur une puce (nom).\n- Pointer: scannez la puce. IN,\n  puis OUT, puis IN...\n- Work mode: horloge; sortir\n  demande le PIN a fleches.\n- Aujourd'hui / Semaine: heures\n  et pauses.\n- Export CSV/JSON sur la SD.\n- Puce perdue: Badges > Remplacer.\n\nSeul l'UID de la puce est lu -\naucune ecriture ni emulation.\n",
-         "Time Clock\nZeiterfassung.\n\n- Ausweise: Person auf einem\n  leeren Chip anlegen (Name).\n- Stempeln: Chip scannen. IN,\n  dann OUT, dann IN...\n- Arbeitsmodus: Uhr; Beenden\n  braucht den Pfeil-PIN.\n- Heute / Woche: Zeit und Pausen.\n- CSV/JSON auf SD exportieren.\n- Chip verloren: Ausweise > Ersetzen.\n\nNur die Chip-UID wird gelesen -\nkein Schreiben, keine Emulation.\n"},
+        {"Time Clock\nStaff time-clock.\n\n- Reads NFC, RFID and iButton\n  automatically (no selecting).\n- Any card works, even one from\n  another company: UID only.\n- Badges: register a person on\n  a chip (name only).\n- Punch: tap the chip. Logs IN,\n  then OUT, then IN...\n- Work mode: kiosk clock; exit\n  needs the arrow PIN.\n- Today / This week: worked\n  time and breaks.\n- Export CSV/JSON on the SD.\n- Lost chip: Badges > Replace.\n\nOnly the chip UID is read - no\nwriting, no emulation.\n",
+         "Time Clock\nTimbrature del personale.\n\n- Legge NFC, RFID e iButton in\n  automatico (nessuna scelta).\n- Va bene ogni tessera, anche\n  di un'altra azienda: solo UID.\n- Badge: registra una persona\n  su un chip (nome).\n- Timbra: passa il chip. Segna\n  IN, poi OUT, poi IN...\n- Work mode: orologio; per\n  uscire serve il PIN a frecce.\n- Oggi / Settimana: ore e pause.\n- Esporta CSV/JSON su SD.\n- Chip perso: Badge > Sostituisci.\n\nSi legge solo l'UID del chip -\nniente scrittura o emulazione.\n",
+         "Time Clock\nControl de fichajes.\n\n- Lee NFC, RFID e iButton en\n  automatico (sin elegir).\n- Sirve cualquier tarjeta, aun\n  de otra empresa: solo UID.\n- Tarjetas: registra a alguien\n  en un chip (nombre).\n- Fichar: pasa el chip. Marca\n  IN, luego OUT, luego IN...\n- Work mode: reloj; para salir\n  hace falta el PIN de flechas.\n- Hoy / Semana: horas y pausas.\n- Exportar CSV/JSON en la SD.\n- Chip perdido: Tarjetas > Cambiar.\n\nSolo se lee el UID del chip -\nsin escritura ni emulacion.\n",
+         "Time Clock\nPointage du personnel.\n\n- Lit NFC, RFID et iButton en\n  automatique (sans choisir).\n- Toute carte convient, meme\n  d'une autre entreprise: UID.\n- Badges: enregistrer une\n  personne sur une puce (nom).\n- Pointer: scannez la puce. IN,\n  puis OUT, puis IN...\n- Work mode: horloge; sortir\n  demande le PIN a fleches.\n- Aujourd'hui / Semaine: heures\n  et pauses.\n- Export CSV/JSON sur la SD.\n- Puce perdue: Badges > Remplacer.\n\nSeul l'UID de la puce est lu -\naucune ecriture ni emulation.\n",
+         "Time Clock\nZeiterfassung.\n\n- Liest NFC, RFID und iButton\n  automatisch (keine Auswahl).\n- Jede Karte geht, auch die\n  einer anderen Firma: nur UID.\n- Ausweise: Person auf einem\n  Chip anlegen (Name).\n- Stempeln: Chip scannen. IN,\n  dann OUT, dann IN...\n- Arbeitsmodus: Uhr; Beenden\n  braucht den Pfeil-PIN.\n- Heute / Woche: Zeit und Pausen.\n- CSV/JSON auf SD exportieren.\n- Chip verloren: Ausweise > Ersetzen.\n\nNur die Chip-UID wird gelesen -\nkein Schreiben, keine Emulation.\n"},
     // ---- Extra (v2.1) ----
     [StrThisMonth] = {"This month", "Mese", "Este mes", "Ce mois", "Dieser Monat"},
     [StrUndoLast] =

@@ -120,7 +120,7 @@ void timeclock_scene_work_on_enter(void* context) {
     work_update_clock(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWork);
 
-    timeclock_reader_start(ctx->reader, app->config.use_lf, true);
+    timeclock_reader_start(ctx->reader, true);
 }
 
 bool timeclock_scene_work_on_event(void* context, SceneManagerEvent event) {

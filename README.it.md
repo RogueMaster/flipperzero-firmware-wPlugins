@@ -10,17 +10,26 @@
 
 App di **timbratura del personale** per il [Flipper Zero](https://flipperzero.one/).
 Serve a registrare i tuoi collaboratori e le loro entrate/uscite: assegna a ogni
-persona un badge **vergine** dedicato NFC o RFID, lo avvicini, l'app sceglie da
-sola **IN** o **OUT**, e ogni timbratura viene salvata con data e ora sulla
-microSD come foglio CSV apribile in Excel. Funziona in totale autonomia, senza
-telefono ne PC.
+persona un badge - **NFC**, **RFID** o **iButton** - lo avvicini, e ogni
+timbratura viene salvata con data e ora sulla microSD come foglio CSV apribile in
+Excel. Funziona in totale autonomia, senza telefono ne PC.
 
-> **Usa badge vergini/dedicati - solo uso autorizzato.** L'app e pensata per
-> **badge vergini** che assegni ai tuoi collaboratori. Legge **solo l'UID** del
-> badge per distinguere una persona dall'altra: **non** serve a leggere i badge
-> di controllo accessi altrui, **non** emula i badge e **non** aggira alcun
-> sistema di autenticazione. Usa solo badge e sistemi per cui hai
-> l'autorizzazione. Vedi [SECURITY.md](SECURITY.md).
+Il lettore e **completamente automatico**: NFC, RFID e iButton vengono letti tutti
+insieme, non devi mai scegliere la tecnologia. Nella stessa azienda una persona
+puo avere un badge NFC, un'altra un portachiavi RFID e un'altra un iButton, e
+funzionano tutti.
+
+**Va bene anche una tessera che la persona ha gia.** Poiche l'app **legge solo
+l'UID** e non scrive nulla sulla tessera, un badge gia usato con un'altra azienda
+(tessera di accesso ufficio, portachiavi della palestra, tessera dei trasporti...)
+puo essere registrato e usato qui senza essere modificato o sovrascritto in alcun
+modo - il sistema memorizza semplicemente il suo UID insieme agli altri.
+
+> **Solo identificazione - solo uso autorizzato.** L'app legge l'UID del badge per
+> distinguere una persona dall'altra. **Non** scrive ne emula i badge e **non**
+> aggira alcun sistema di autenticazione; registrare qui una tessera non ha effetto
+> su dove altro viene usata. Usa solo con persone e badge che sei autorizzato a
+> gestire. Vedi [SECURITY.md](SECURITY.md).
 
 ## Schermate
 
@@ -44,10 +53,15 @@ Mockup in stile Flipper delle schermate principali (128x64):
 ## Funzioni
 
 - **Timbra** avvicinando un badge - i badge noti sono riconosciuti tramite UID.
-- **Scelta lettore** in Impostazioni: **NFC** (13.56 MHz) o **RFID LF** (125 kHz).
-  Il lettore rileva i protocolli supportati dal firmware.
-- **Registra un collaboratore** la prima volta che passi il suo badge vergine, con
-  un nome. Ogni persona e legata a quel chip (il suo UID): ogni timbratura fa
+- **Lettore multi-tecnologia automatico**: **NFC** (13.56 MHz), **RFID LF**
+  (125 kHz) e **iButton** (chiavi Dallas 1-Wire) vengono letti tutti insieme.
+  **Nessuna impostazione del lettore** - vince il primo che rileva il badge,
+  quindi NFC, RFID e iButton convivono nella stessa installazione.
+- **Funziona con tessere esistenti**: leggendo solo l'UID (mai scrivendo), una
+  tessera gia usata altrove - anche di un'altra azienda - puo essere registrata e
+  usata senza alterarla.
+- **Registra un collaboratore** la prima volta che passi il suo badge, con un
+  nome. Ogni persona e legata a quel chip (il suo UID): ogni timbratura fa
   riferimento a quel chip.
 - **Gestisci i collaboratori (badge)**: rinomina, **sostituisci il chip** se
   perso (mantiene nome e storico, cambia solo il chip), vedi lo storico della
@@ -86,7 +100,7 @@ Tutto e salvato sulla microSD in `/ext/apps_data/timeclock/`:
 
 | File          | Contenuto                                                       |
 |---------------|-----------------------------------------------------------------|
-| `badges.csv`  | Badge registrati: `uid,name,tech,created,last_used,last_event`  |
+| `badges.csv`  | Badge registrati: `uid,name,tech,created,last_used,last_event` (`tech`: `NFC`/`RFID`/`iBTN`) |
 | `punches.csv` | Storico timbrature: `date,time,name,uid,type` (`IN`/`OUT`)      |
 | `config.txt`  | Impostazioni + **hash** del PIN e salt (mai il PIN in chiaro)   |
 | `export.json` | Export JSON dello storico (*Export -> Export JSON*)             |
@@ -130,10 +144,10 @@ Il `.fap` compilato finisce in `dist/`. Puoi anche copiarlo in
 `SD Card/apps/Tools/` con qFlipper e avviarlo da **Apps -> Tools -> Time Clock**.
 
 > **Nota firmware.** Il layer radio e in `timeclock_reader.c` (NFC col poller
-> ISO14443-3A - MIFARE Classic/Ultralight, NTAG, DESFire, i badge vergini che
-> usi davvero - piu il worker LF RFID a 125 kHz). E la parte piu sensibile ai
-> cambi di API del firmware; se un simbolo cambia, la correzione e in quel solo
-> file.
+> ISO14443-3A - MIFARE Classic/Ultralight, NTAG, DESFire - il worker LF RFID a
+> 125 kHz e il worker iButton per le chiavi Dallas 1-Wire, avviati insieme). E la
+> parte piu sensibile ai cambi di API del firmware; se un simbolo cambia, la
+> correzione e in quel solo file.
 
 ## Compatibilita
 
