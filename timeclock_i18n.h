@@ -113,6 +113,11 @@ typedef enum {
     StrSkip,
     // About
     StrAboutText,
+    // Extra (v2.1)
+    StrThisMonth,
+    StrUndoLast,
+    StrUndone,
+    StrClockNotSet,
     // Weekday abbreviations (Monday..Sunday)
     StrDowMon,
     StrDowTue,

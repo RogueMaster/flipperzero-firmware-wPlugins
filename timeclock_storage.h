@@ -125,6 +125,16 @@ uint32_t tc_history_today_minutes(
     char* last_out,
     size_t last_out_size);
 
+// Minutes worked in the given month "YYYY-MM" for a badge (or all if NULL),
+// summed per day (same pairing as the daily total). Call per collaborator to
+// avoid mixing different people's IN/OUT.
+uint32_t tc_history_month_minutes(const char* month_prefix, const char* filter_uid);
+
+// Remove the most recent punch of the given badge from the history. On success
+// *new_last receives the badge's resulting last event (TcEventNone if none is
+// left). Returns true if a punch was removed.
+bool tc_history_undo_last(const char* uid, TcEventType* new_last);
+
 // Clear the history (keeps only the header).
 bool tc_history_clear(void);
 

@@ -51,7 +51,7 @@ Flipper-style mockups of the main screens (128x64):
   references that chip.
 - **Manage collaborators (badges)**: rename, **replace the chip** if it is lost
   (keeps the person's name and history, only the chip changes), view per-person
-  history, delete (history is kept).
+  history, **undo the last punch** (fix a mistake), delete (history is kept).
 - **Automatic IN/OUT**: tapping a badge alternates automatically (first tap IN,
   then OUT, then IN, ...) - no manual choice, the punch is logged instantly.
 - **Feedback on punch**: distinct **sound**, **vibration** and **LED** for IN vs
@@ -60,7 +60,8 @@ Flipper-style mockups of the main screens (128x64):
   (all on by default).
 - **History** with filters (all / today / this week, or per collaborator from
   Badges), a **Today** summary (first in, last out, worked total and break time)
-  and a **This week** summary (worked time per day + weekly total).
+  a **This week** summary (worked time per day + weekly total) and a **This
+  month** summary (worked time per collaborator).
 - **Storage on microSD** as plain CSV, plus **JSON export**, **dated CSV
   snapshots**, a **Backup** (timestamped copy of badges + punches) and
   **Restore** (reload badges + punches from a saved backup).

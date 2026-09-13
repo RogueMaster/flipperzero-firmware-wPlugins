@@ -438,6 +438,146 @@ uint32_t tc_history_today_minutes(
         today, filter_uid, first_in, first_in_size, last_out, last_out_size);
 }
 
+uint32_t tc_history_month_minutes(const char* month_prefix, const char* filter_uid) {
+    uint32_t total = 0;
+    int open_in = -1;
+    char cur_date[TC_DT_MAX] = "";
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    Stream* stream = file_stream_alloc(storage);
+    if(file_stream_open(stream, TC_HISTORY_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        FuriString* line = furi_string_alloc();
+        bool first = true;
+        char date[TC_DT_MAX], time[8], name[TC_NAME_MAX], uid[TC_UID_STR_MAX], type[TC_NAME_MAX];
+        while(stream_read_line(stream, line)) {
+            tc_trim_eol(line);
+            const char* s = furi_string_get_cstr(line);
+            if(first) {
+                first = false;
+                if(strncmp(s, "date,", 5) == 0) continue;
+            }
+            if(furi_string_size(line) == 0) continue;
+
+            tc_csv_field(s, 0, date, sizeof(date));
+            tc_csv_field(s, 1, time, sizeof(time));
+            tc_csv_field(s, 2, name, sizeof(name));
+            tc_csv_field(s, 3, uid, sizeof(uid));
+            tc_csv_field(s, 4, type, sizeof(type));
+
+            if(strncmp(date, month_prefix, 7) != 0) continue;
+            if(filter_uid && strcmp(uid, filter_uid) != 0) continue;
+            if(strcmp(date, cur_date) != 0) {
+                open_in = -1; // reset pairing at each new day
+                strncpy(cur_date, date, sizeof(cur_date) - 1);
+                cur_date[sizeof(cur_date) - 1] = '\0';
+            }
+
+            int minutes = tc_hhmm_to_minutes(time);
+            if(minutes < 0) continue;
+            TcEventType t = tc_event_from_str(type);
+            if(t == TcEventIn) {
+                open_in = minutes;
+            } else if(t == TcEventOut && open_in >= 0 && minutes >= open_in) {
+                total += (uint32_t)(minutes - open_in);
+                open_in = -1;
+            }
+        }
+        furi_string_free(line);
+    }
+    file_stream_close(stream);
+    stream_free(stream);
+    furi_record_close(RECORD_STORAGE);
+    return total;
+}
+
+bool tc_history_undo_last(const char* uid, TcEventType* new_last) {
+    if(new_last) *new_last = TcEventNone;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+
+    // Pass 1: find the index of the last data row matching uid, and the event
+    // type of the matching row before it (what the last event becomes).
+    int target = -1;
+    int idx = -1;
+    TcEventType prev = TcEventNone;
+    TcEventType lastmatch = TcEventNone;
+    Stream* in = file_stream_alloc(storage);
+    if(file_stream_open(in, TC_HISTORY_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        FuriString* line = furi_string_alloc();
+        bool first = true;
+        char u[TC_UID_STR_MAX], ty[TC_NAME_MAX];
+        while(stream_read_line(in, line)) {
+            tc_trim_eol(line);
+            const char* s = furi_string_get_cstr(line);
+            if(first) {
+                first = false;
+                if(strncmp(s, "date,", 5) == 0) continue;
+            }
+            if(furi_string_size(line) == 0) continue;
+            idx++;
+            tc_csv_field(s, 3, u, sizeof(u));
+            if(strcmp(u, uid) != 0) continue;
+            tc_csv_field(s, 4, ty, sizeof(ty));
+            prev = lastmatch;
+            lastmatch = tc_event_from_str(ty);
+            target = idx;
+        }
+        furi_string_free(line);
+    }
+    file_stream_close(in);
+    stream_free(in);
+
+    if(target < 0) {
+        furi_record_close(RECORD_STORAGE);
+        return false; // nothing to undo for this badge
+    }
+
+    // Pass 2: rewrite to a temp file, skipping the target data row.
+    const char* tmp = TC_DIR_PATH "/punches.tmp";
+    Stream* rin = file_stream_alloc(storage);
+    Stream* out = file_stream_alloc(storage);
+    bool ok = false;
+    if(file_stream_open(rin, TC_HISTORY_PATH, FSAM_READ, FSOM_OPEN_EXISTING) &&
+       file_stream_open(out, tmp, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        FuriString* line = furi_string_alloc();
+        bool first = true;
+        int j = -1;
+        while(stream_read_line(rin, line)) {
+            const char* s = furi_string_get_cstr(line);
+            if(first) {
+                first = false;
+                if(strncmp(s, "date,", 5) == 0) {
+                    stream_write_string(out, line);
+                    continue;
+                }
+            }
+            FuriString* trimmed = furi_string_alloc_set(line);
+            tc_trim_eol(trimmed);
+            bool empty = furi_string_size(trimmed) == 0;
+            furi_string_free(trimmed);
+            if(empty) continue;
+            j++;
+            if(j == target) continue; // drop the removed punch
+            stream_write_string(out, line);
+        }
+        furi_string_free(line);
+        ok = true;
+    }
+    file_stream_close(rin);
+    file_stream_close(out);
+    stream_free(rin);
+    stream_free(out);
+
+    if(ok) {
+        storage_common_remove(storage, TC_HISTORY_PATH);
+        storage_common_rename(storage, tmp, TC_HISTORY_PATH);
+        if(new_last) *new_last = prev;
+    } else {
+        storage_common_remove(storage, tmp);
+    }
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
 bool tc_history_clear(void) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     Stream* stream = file_stream_alloc(storage);

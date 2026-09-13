@@ -9,6 +9,7 @@ typedef enum {
     DetailRename,
     DetailReplace,
     DetailHistory,
+    DetailUndo,
     DetailDelete,
 } DetailIndex;
 
@@ -39,6 +40,12 @@ void timeclock_scene_badge_detail_on_enter(void* context) {
         submenu,
         tc_str(StrViewHistory),
         DetailHistory,
+        timeclock_scene_badge_detail_submenu_callback,
+        app);
+    submenu_add_item(
+        submenu,
+        tc_str(StrUndoLast),
+        DetailUndo,
         timeclock_scene_badge_detail_submenu_callback,
         app);
     submenu_add_item(
@@ -74,6 +81,21 @@ bool timeclock_scene_badge_detail_on_event(void* context, SceneManagerEvent even
             scene_manager_set_scene_state(app->scene_manager, TimeClockSceneHistory, 1);
             scene_manager_next_scene(app->scene_manager, TimeClockSceneHistory);
             break;
+        case DetailUndo: {
+            // Remove this collaborator's most recent punch (fix a mistake).
+            TcEventType nl = TcEventNone;
+            if(app->selected_index >= 0 &&
+               tc_history_undo_last(app->badges[app->selected_index].uid, &nl)) {
+                app->badges[app->selected_index].last_event = nl;
+                tc_badges_save(app->badges, app->badge_count);
+                timeclock_notify_success(app);
+            } else {
+                timeclock_notify_error(app);
+            }
+            scene_manager_search_and_switch_to_previous_scene(
+                app->scene_manager, TimeClockSceneBadgeList);
+            break;
+        }
         case DetailDelete:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneConfirmDelete);
             break;

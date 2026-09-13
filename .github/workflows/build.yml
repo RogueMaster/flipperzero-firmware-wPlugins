@@ -47,6 +47,12 @@ jobs:
       - name: Install ufbt
         run: pip install --upgrade ufbt
 
+      - name: Cache ufbt SDK
+        uses: actions/cache@v4
+        with:
+          path: ~/.ufbt
+          key: ufbt-${{ matrix.firmware }}-v1
+
       - name: Select firmware SDK (${{ matrix.firmware }})
         run: |
           if [ -z "${{ matrix.index }}" ]; then

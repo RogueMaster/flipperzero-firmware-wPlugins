@@ -10,6 +10,7 @@ typedef enum {
     MenuIndexHistory,
     MenuIndexToday,
     MenuIndexWeek,
+    MenuIndexMonth,
     MenuIndexExport,
     MenuIndexSettings,
     MenuIndexAbout,
@@ -38,6 +39,8 @@ void timeclock_scene_menu_on_enter(void* context) {
         submenu, tc_str(StrToday), MenuIndexToday, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
         submenu, tc_str(StrThisWeek), MenuIndexWeek, timeclock_scene_menu_submenu_callback, app);
+    submenu_add_item(
+        submenu, tc_str(StrThisMonth), MenuIndexMonth, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
         submenu, tc_str(StrExport), MenuIndexExport, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
@@ -77,6 +80,9 @@ bool timeclock_scene_menu_on_event(void* context, SceneManagerEvent event) {
             break;
         case MenuIndexWeek:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneWeek);
+            break;
+        case MenuIndexMonth:
+            scene_manager_next_scene(app->scene_manager, TimeClockSceneMonth);
             break;
         case MenuIndexExport:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneExport);

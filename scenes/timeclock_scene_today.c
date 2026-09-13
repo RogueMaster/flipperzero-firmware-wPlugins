@@ -53,6 +53,14 @@ void timeclock_scene_today_on_enter(void* context) {
         (unsigned long)(brk / 60),
         (unsigned long)(brk % 60));
 
+    // Warn if the Flipper clock is not set (dates/times would be wrong).
+    char d[TC_DT_MAX];
+    tc_now_date(d, sizeof(d));
+    int year = (d[0] - '0') * 1000 + (d[1] - '0') * 100 + (d[2] - '0') * 10 + (d[3] - '0');
+    if(year < 2020) {
+        furi_string_cat_printf(app->text_store, "\n! %s", tc_str(StrClockNotSet));
+    }
+
     text_box_reset(text_box);
     text_box_set_font(text_box, TextBoxFontText);
     text_box_set_text(text_box, furi_string_get_cstr(app->text_store));

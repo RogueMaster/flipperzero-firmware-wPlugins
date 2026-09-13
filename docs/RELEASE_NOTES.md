@@ -31,6 +31,8 @@ then open **Apps -> Tools -> Time Clock**.
 - **Automatic** punching (tap = IN, then OUT, ...); unknown chips show
   "Not registered". Register people in Badges; lost chip -> Replace chip.
 - **This week** summary: worked time per day of the current week plus the total.
+- **This month** summary: worked time per collaborator for the current month.
+- **Undo last punch** per collaborator (Badges), to fix a mistaken tap.
 - **History filters**: view all punches, only today, only this week, or a single
   collaborator's history.
 - **History** and **daily totals**; **CSV** and **JSON** export.

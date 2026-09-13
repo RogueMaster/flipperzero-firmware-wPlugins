@@ -210,6 +210,21 @@ static const char* const S[TcStrCount][TcLangCount] = {
          "Time Clock\nControl de fichajes.\n\n- Tarjetas: registra a alguien\n  en un chip vacio (nombre).\n- Fichar: pasa el chip. Marca\n  IN, luego OUT, luego IN...\n- Work mode: reloj; para salir\n  hace falta el PIN de flechas.\n- Hoy / Semana: horas y pausas.\n- Exportar CSV/JSON en la SD.\n- Chip perdido: Tarjetas > Cambiar.\n\nSolo se lee el UID del chip -\nsin escritura ni emulacion.\n",
          "Time Clock\nPointage du personnel.\n\n- Badges: enregistrer une\n  personne sur une puce (nom).\n- Pointer: scannez la puce. IN,\n  puis OUT, puis IN...\n- Work mode: horloge; sortir\n  demande le PIN a fleches.\n- Aujourd'hui / Semaine: heures\n  et pauses.\n- Export CSV/JSON sur la SD.\n- Puce perdue: Badges > Remplacer.\n\nSeul l'UID de la puce est lu -\naucune ecriture ni emulation.\n",
          "Time Clock\nZeiterfassung.\n\n- Ausweise: Person auf einem\n  leeren Chip anlegen (Name).\n- Stempeln: Chip scannen. IN,\n  dann OUT, dann IN...\n- Arbeitsmodus: Uhr; Beenden\n  braucht den Pfeil-PIN.\n- Heute / Woche: Zeit und Pausen.\n- CSV/JSON auf SD exportieren.\n- Chip verloren: Ausweise > Ersetzen.\n\nNur die Chip-UID wird gelesen -\nkein Schreiben, keine Emulation.\n"},
+    // ---- Extra (v2.1) ----
+    [StrThisMonth] = {"This month", "Mese", "Este mes", "Ce mois", "Dieser Monat"},
+    [StrUndoLast] =
+        {"Undo last punch",
+         "Annulla ultima",
+         "Deshacer ultimo",
+         "Annuler dernier",
+         "Letzte zurueck"},
+    [StrUndone] = {"Undone", "Annullata", "Deshecho", "Annule", "Rueckgaengig"},
+    [StrClockNotSet] =
+        {"Set the Flipper clock",
+         "Imposta l'orologio",
+         "Ajusta el reloj",
+         "Regle l'horloge",
+         "Uhr einstellen"},
     // ---- Weekday abbreviations (Mon..Sun) ----
     [StrDowMon] = {"Mon", "Lun", "Lun", "Lun", "Mo"},
     [StrDowTue] = {"Tue", "Mar", "Mar", "Mar", "Di"},
