@@ -862,8 +862,8 @@ const CipherDef kCiphers[] = {
         .key_kind = CipherKeyNumberSingle,
         .encode = null_encode,
         .decode = null_decode,
-        .key_a_min = 1, .key_a_max = 10,
-        .key_a_prompt = "Enter a num (1-10)",
+        .key_a_min = 2, .key_a_max = 10,
+        .key_a_prompt = "Enter a num (2-10)",
         .learn_text =
             "A null cipher hides a real message by mixing it in with meaningless "
             "filler, rather than scrambling it like most ciphers do. In this version, "
