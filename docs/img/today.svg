@@ -1,16 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128" font-family="'Courier New',monospace">
   <rect x="2" y="2" width="252" height="124" rx="10" fill="#FF8200" stroke="#111" stroke-width="3"/>
-  <text x="128" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#111">Today</text>
-  <line x1="12" y1="24" x2="244" y2="24" stroke="#111" stroke-width="1"/>
-  <g font-size="12" fill="#111">
-    <text x="14" y="38">08:02</text><text x="92" y="38">Mario</text><text x="206" y="38">IN</text>
-    <text x="14" y="52">12:31</text><text x="92" y="52">Mario</text><text x="200" y="52">OUT</text>
-    <text x="14" y="66">17:46</text><text x="92" y="66">Mario</text><text x="200" y="66">OUT</text>
+  <g font-size="11" fill="#111">
+    <text x="14" y="22">2026-09-13 08:02 Mario IN</text>
+    <text x="14" y="40">2026-09-13 12:31 Mario OUT</text>
+    <text x="14" y="58">2026-09-13 17:46 Mario OUT</text>
+    <text x="14" y="94">First in: 08:02</text>
+    <text x="14" y="112">Last out: 17:46</text>
   </g>
-  <line x1="12" y1="72" x2="244" y2="72" stroke="#111" stroke-width="1"/>
-  <g font-size="12" fill="#111">
-    <text x="14" y="88">First in: 08:02</text><text x="140" y="88">Last out: 17:46</text>
-  </g>
-  <text x="14" y="108" font-size="13" font-weight="bold" fill="#111">Total: 08:48</text>
-  <text x="140" y="108" font-size="13" font-weight="bold" fill="#111">Break: 00:56</text>
+  <rect x="242" y="8" width="6" height="112" rx="2" fill="#111" opacity="0.25"/>
+  <rect x="242" y="8" width="6" height="84" rx="2" fill="#111"/>
 </svg>

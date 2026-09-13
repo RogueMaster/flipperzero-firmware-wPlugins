@@ -44,16 +44,16 @@ Flipper-artige Mockups der Hauptbildschirme (128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg?v=3" width="240" alt="Hauptmenue"><br><b>Hauptmenue</b><br>Stempeln, Work mode, Ausweise, Verlauf...</td>
-    <td align="center"><img src="docs/img/work-clock.svg?v=3" width="240" alt="Work mode"><br><b>Work mode</b><br>Uhr, Stempeln per Chip</td>
+    <td align="center"><img src="docs/img/menu.svg?v=4" width="240" alt="Hauptmenue"><br><b>Hauptmenue</b><br>Stempeln, Work mode, Ausweise, Verlauf...</td>
+    <td align="center"><img src="docs/img/work-clock.svg?v=4" width="240" alt="Work mode"><br><b>Work mode</b><br>Uhr, Stempeln per Chip</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg?v=3" width="240" alt="Gruss"><br><b>Chip anhalten</b><br>Willkommen / Tschuess mit Name</td>
-    <td align="center"><img src="docs/img/today.svg?v=3" width="240" alt="Tagesuebersicht"><br><b>Heute</b><br>Stempel + Gesamtstunden</td>
+    <td align="center"><img src="docs/img/greeting.svg?v=4" width="240" alt="Gruss"><br><b>Chip anhalten</b><br>Willkommen / Tschuess mit Name</td>
+    <td align="center"><img src="docs/img/today.svg?v=4" width="240" alt="Tagesuebersicht"><br><b>Heute</b><br>Stempel + Gesamtstunden</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg?v=3" width="240" alt="PIN-Sperre"><br><b>PIN-Sperre</b><br>Schuetzt das Verlassen der App</td>
-    <td align="center"><img src="docs/img/settings.svg?v=3" width="240" alt="Einstellungen"><br><b>Einstellungen</b><br>Ton / Vibration / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.svg?v=4" width="240" alt="PIN-Sperre"><br><b>PIN-Sperre</b><br>Schuetzt das Verlassen der App</td>
+    <td align="center"><img src="docs/img/settings.svg?v=4" width="240" alt="Einstellungen"><br><b>Einstellungen</b><br>Ton / Vibration / LED, PIN</td>
   </tr>
 </table>
 
