@@ -31,11 +31,11 @@ static void work_view_draw_callback(Canvas* canvas, void* _model) {
     if(model->has_greeting) {
         // Greeting takes over the center
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 70, 32, AlignCenter, AlignCenter, model->greeting);
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, model->greeting);
     } else {
         // Big clock
         canvas_set_font(canvas, FontBigNumbers);
-        canvas_draw_str_aligned(canvas, 70, 32, AlignCenter, AlignCenter, model->time);
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, model->time);
     }
 
     // Footer hint (active reader technology, or the PIN/Back exit hint)
