@@ -75,6 +75,9 @@ bool timeclock_scene_menu_on_event(void* context, SceneManagerEvent event) {
         case MenuIndexToday:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneToday);
             break;
+        case MenuIndexWeek:
+            scene_manager_next_scene(app->scene_manager, TimeClockSceneWeek);
+            break;
         case MenuIndexExport:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneExport);
             break;
