@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Vladyslav Pereverzyev
 
 #include "overview_view.h"
+#include "tc_chevron.h"
 #include <furi.h>
 
 struct OverviewView {
@@ -42,10 +43,10 @@ static void overview_view_draw_callback(Canvas* canvas, void* _model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignTop, model->name);
 
-    // Left/Right hint arrows, flanking the content vertically centered.
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 2, 34, AlignLeft, AlignCenter, "<");
-    canvas_draw_str_aligned(canvas, 126, 34, AlignRight, AlignCenter, ">");
+    // Left/Right hint chevrons, same shape/size as Work mode, flanking the
+    // content vertically centered.
+    tc_draw_chevron_left(canvas, 2, 34);
+    tc_draw_chevron_right(canvas, 122, 34);
 
     // Stat lines.
     int y = 27;
