@@ -13,6 +13,7 @@ FlipCrypt is a Flipper Zero app that provides a collection of classic cipher alg
 - Caesar
 - DES
 - 3DES
+- Null
 - Playfair
 - Polybius Square
 - Porta
