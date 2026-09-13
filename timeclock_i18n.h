@@ -59,8 +59,8 @@ typedef enum {
     StrChipUsed, // "Chip already used"
     // Work
     StrRegisterFirst,
-    StrSetPinFirst,
     StrPinToExit,
+    StrBackToExit,
     StrWelcome,
     StrGoodbye,
     // Badge management
@@ -100,6 +100,7 @@ typedef enum {
     StrLed,
     StrLanguage,
     StrSetPin,
+    StrEnablePin,
     StrChangePin,
     StrDisablePin,
     StrExitApp,

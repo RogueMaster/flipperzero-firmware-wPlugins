@@ -22,7 +22,18 @@
 
 // Length of each scan slice, in ms. One radio is active per slice and a timer
 // rotates NFC -> RFID -> iButton, so a full sweep takes 3 slices.
-#define READER_SLICE_MS 500u
+//
+// Single-shot scans (Punch, register, replace chip) use the fast slice: they
+// run for at most a few sweeps before stopping. Work mode's continuous scan
+// can stay open for hours, and every rotation fully tears down and recreates
+// the active radio - for LF RFID and iButton that means stopping and
+// restarting their own worker thread. Doing that twice a second, forever, is
+// enough sustained alloc/free and thread churn to fragment the heap and
+// eventually wedge the device (observed: Work mode locks up after a while and
+// needs a hard reset). The continuous slice is much longer to keep that
+// churn rare; a badge still only needs to be held for one slice to be read.
+#define READER_SLICE_MS            500u
+#define READER_SLICE_CONTINUOUS_MS 4000u
 
 typedef enum {
     ReaderRadioNfc = 0,
@@ -259,7 +270,8 @@ void timeclock_reader_start(TimeclockReader* reader, bool continuous) {
     reader->active = ReaderRadioNfc;
     reader_start_active(reader);
 
-    furi_timer_start(reader->timer, furi_ms_to_ticks(READER_SLICE_MS));
+    uint32_t slice_ms = continuous ? READER_SLICE_CONTINUOUS_MS : READER_SLICE_MS;
+    furi_timer_start(reader->timer, furi_ms_to_ticks(slice_ms));
 }
 
 void timeclock_reader_stop(TimeclockReader* reader) {

@@ -45,7 +45,9 @@ void timeclock_reader_set_callback(
 // Start reading. NFC, LF RFID and iButton are scanned in rotation (one per
 // slice) with no manual reader selection, so all three badge types work side by
 // side in the same deployment. continuous keeps reading after each UID (Work
-// mode) instead of stopping after the first (single punch). Safe to call again
+// mode) instead of stopping after the first (single punch); it also uses a
+// much longer slice, since Work mode can stay open for hours and rotating
+// fast forever wedges the device (see timeclock_reader.c). Safe to call again
 // after stop().
 void timeclock_reader_start(TimeclockReader* reader, bool continuous);
 

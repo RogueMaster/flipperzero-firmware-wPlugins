@@ -4,9 +4,9 @@
 #include "../timeclock.h"
 
 typedef enum {
-    MenuIndexPunch,
     MenuIndexWork,
     MenuIndexBadges,
+    MenuIndexPunch,
     MenuIndexOverview,
     MenuIndexHistory,
     MenuIndexExport,
@@ -26,11 +26,11 @@ void timeclock_scene_menu_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "Staff Time Clock");
     submenu_add_item(
-        submenu, tc_str(StrPunch), MenuIndexPunch, timeclock_scene_menu_submenu_callback, app);
-    submenu_add_item(
         submenu, tc_str(StrWorkMode), MenuIndexWork, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
         submenu, tc_str(StrBadges), MenuIndexBadges, timeclock_scene_menu_submenu_callback, app);
+    submenu_add_item(
+        submenu, tc_str(StrPunch), MenuIndexPunch, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
         submenu,
         tc_str(StrOverview),
@@ -90,11 +90,13 @@ bool timeclock_scene_menu_on_event(void* context, SceneManagerEvent event) {
             break;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        // Protected mode: Back must not leave the app. The only way out is
-        // Settings -> Exit, which requires the PIN. When no PIN is set, Back
-        // exits normally.
+        // Back at the menu always tries to leave the app: if a PIN is set it
+        // asks for it first (same flow as Settings -> Exit), otherwise it
+        // closes immediately.
         if(app->config.pin_enabled) {
-            consumed = true; // block exit
+            app->pin_mode = TcPinModeVerifyExit;
+            scene_manager_next_scene(app->scene_manager, TimeClockScenePinSet);
+            consumed = true;
         } else {
             consumed = false; // allow the app to close
         }

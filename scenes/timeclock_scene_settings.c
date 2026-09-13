@@ -82,7 +82,11 @@ static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
 
     if(!app->config.pin_enabled) {
         submenu_add_item(
-            submenu, tc_str(StrSetPin), ActionSetPin, timeclock_scene_settings_submenu_callback, app);
+            submenu,
+            tc_str(StrEnablePin),
+            ActionSetPin,
+            timeclock_scene_settings_submenu_callback,
+            app);
     } else {
         submenu_add_item(
             submenu,

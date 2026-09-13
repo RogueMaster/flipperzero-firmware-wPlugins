@@ -13,7 +13,8 @@
 // Reading is done by the shared TimeclockReader in continuous mode, rotating
 // through NFC, LF RFID and iButton (one at a time, no manual reader selection).
 //
-// Requires: at least one registered collaborator AND a configured PIN.
+// Requires: at least one registered collaborator. A PIN is optional - if one
+// is set, leaving Work mode asks for it; if not, Back leaves immediately.
 // =============================================================================
 
 #define WORK_GREETING_MS 3000
@@ -86,17 +87,11 @@ void timeclock_scene_work_on_enter(void* context) {
 
     if(!ctx) {
         // Fresh entry: validate prerequisites first.
-        if(app->badge_count == 0 || !app->config.pin_enabled) {
+        if(app->badge_count == 0) {
             Popup* popup = app->popup;
             popup_reset(popup);
             popup_set_header(popup, tc_str(StrWorkMode), 64, 8, AlignCenter, AlignTop);
-            popup_set_text(
-                popup,
-                app->badge_count == 0 ? tc_str(StrRegisterFirst) : tc_str(StrSetPinFirst),
-                64,
-                30,
-                AlignCenter,
-                AlignTop);
+            popup_set_text(popup, tc_str(StrRegisterFirst), 64, 30, AlignCenter, AlignTop);
             popup_set_callback(popup, work_bounce_popup_cb);
             popup_set_context(popup, app);
             popup_set_timeout(popup, 2500);
@@ -115,7 +110,8 @@ void timeclock_scene_work_on_enter(void* context) {
     }
 
     work_view_set_exit_callback(app->work_view, work_view_exit_cb, app);
-    work_view_set_footer(app->work_view, tc_str(StrPinToExit));
+    work_view_set_footer(
+        app->work_view, app->config.pin_enabled ? tc_str(StrPinToExit) : tc_str(StrBackToExit));
     work_view_set_greeting(app->work_view, NULL);
     work_update_clock(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWork);
@@ -138,10 +134,16 @@ bool timeclock_scene_work_on_event(void* context, SceneManagerEvent event) {
         }
     } else if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == TimeClockCustomEventWorkExit) {
-            // Stop the radio while the PIN is entered, then ask for the PIN.
             if(ctx) timeclock_reader_stop(ctx->reader);
-            app->pin_mode = TcPinModeVerifyExitWork;
-            scene_manager_next_scene(app->scene_manager, TimeClockScenePinSet);
+            if(app->config.pin_enabled) {
+                // Ask for the PIN before leaving.
+                app->pin_mode = TcPinModeVerifyExitWork;
+                scene_manager_next_scene(app->scene_manager, TimeClockScenePinSet);
+            } else {
+                // No PIN configured: Back leaves immediately.
+                scene_manager_search_and_switch_to_previous_scene(
+                    app->scene_manager, TimeClockSceneMenu);
+            }
             consumed = true;
         } else if(event.event == WORK_BOUNCE) {
             scene_manager_previous_scene(app->scene_manager);

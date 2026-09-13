@@ -91,13 +91,9 @@ static const char* const S[TcStrCount][TcLangCount] = {
          "Registra antes\nun colaborador",
          "Enregistrez\nune personne",
          "Erst Person\nregistrieren"},
-    [StrSetPinFirst] =
-        {"Set a PIN first\n(Settings)",
-         "Imposta un PIN\n(Impostazioni)",
-         "Define un PIN\n(Ajustes)",
-         "Definir un PIN\n(Reglages)",
-         "Erst PIN setzen\n(Einstellungen)"},
     [StrPinToExit] = {"PIN to exit", "PIN per uscire", "PIN para salir", "PIN pour sortir", "PIN zum Ende"},
+    [StrBackToExit] =
+        {"Back to exit", "Back per uscire", "Back para salir", "Back pour sortir", "Back zum Ende"},
     [StrWelcome] = {"Welcome", "Benvenuto", "Bienvenido", "Bienvenue", "Willkommen"},
     [StrGoodbye] = {"Goodbye", "Arrivederci", "Adios", "Au revoir", "Tschuess"},
     // ---- Badge management ----
@@ -185,6 +181,7 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrLed] = {"LED", "LED", "LED", "LED", "LED"},
     [StrLanguage] = {"Language", "Lingua", "Idioma", "Langue", "Sprache"},
     [StrSetPin] = {"Set PIN", "Imposta PIN", "Definir PIN", "Definir PIN", "PIN setzen"},
+    [StrEnablePin] = {"Enable PIN", "Attiva PIN", "Activar PIN", "Activer PIN", "PIN an"},
     [StrChangePin] = {"Change PIN", "Cambia PIN", "Cambiar PIN", "Changer PIN", "PIN aendern"},
     [StrDisablePin] = {"Disable PIN", "Disattiva PIN", "Quitar PIN", "Desactiver PIN", "PIN aus"},
     [StrExitApp] = {"Exit", "Esci", "Salir", "Quitter", "Beenden"},
@@ -215,11 +212,11 @@ static const char* const S[TcStrCount][TcLangCount] = {
          "PIN deaktiviert"},
     // ---- Onboarding ----
     [StrOnbText] =
-        {"Protect the app with\nan arrow PIN - needed\nto exit Work mode.",
-         "Proteggi l'app con un\nPIN a frecce: serve per\nuscire dal Work mode.",
-         "Protege la app con un\nPIN de flechas: hace falta\npara salir del Work mode.",
-         "Protegez l'app avec un\nPIN a fleches: necessaire\npour quitter le Work mode.",
-         "Schuetze die App mit\neinem Pfeil-PIN: noetig fuer\nden Arbeitsmodus-Ausgang."},
+        {"Set an arrow PIN to\nprotect the app - it's\noptional, off by default.",
+         "Imposta un PIN a frecce\nper proteggere l'app -\nopzionale, off di default.",
+         "Define un PIN de flechas\npara proteger la app -\nopcional, desactivado por defecto.",
+         "Definir un PIN a fleches\npour proteger l'app -\noptionnel, off par defaut.",
+         "Pfeil-PIN zum Schutz\nder App - optional,\nstandardmaessig aus."},
     [StrSkip] = {"Skip", "Salta", "Omitir", "Passer", "Ueberspringen"},
     // ---- About (how-it-works block; copyright appended by the scene) ----
     [StrAboutText] =
