@@ -21,16 +21,17 @@
 // =============================================================================
 
 #define WORK_GREETING_MS 3000
-// The anti-loop guard: while the same badge keeps being read (it sits in the
-// field, or the radio keeps re-reporting it), this blocks a repeat punch. It
-// can be generous - a genuine double-tap (same person clocking in then out)
-// is minutes away, not seconds - since it only ever blocks the same UID,
-// never a different badge. Deliberately does NOT stop/restart the reader:
-// that was tried and made things worse (the extra alloc/free churn on top of
-// the already-delicate radio rotation could wedge Work mode until the app
-// was restarted). This is a pure "ignore, don't record" check - the reader
-// keeps running exactly as it does the rest of the time.
-#define WORK_COOLDOWN_MS 60000
+// Guards only against reading the *same physical tap* twice (the reader is
+// re-armed right after a read - see timeclock_reader.c - and a badge that's
+// still sitting in the field at that instant would otherwise count again
+// immediately). It must stay short: this used to be 60s, back when a
+// lingering badge could flood the event queue and the cooldown was the only
+// thing standing between one tap and a runaway loop. That flood is fixed at
+// the reader level now (each re-arm only ever produces one more read, paced
+// by real hardware, not a firehose), so the cooldown's job is narrow again -
+// long enough to swallow a single tap's duplicate, short enough that a
+// deliberate OUT a few seconds after IN still registers.
+#define WORK_COOLDOWN_MS 2000
 #define WORK_BOUNCE      260
 
 typedef struct {
