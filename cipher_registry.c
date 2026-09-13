@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "ciphers/adfgvx.h"
+#include "ciphers/adfgx.h"
 #include "ciphers/aes.h"
 #include "ciphers/affine.h"
 #include "ciphers/atbash.h"
@@ -101,6 +102,18 @@ static uint8_t* hex_to_bytes(const char* hex, size_t* out_len) {
         UNUSED(k); \
         return ok_result(strdup(underlying_fn((char*)input))); \
     }
+
+static CipherResult adfgx_encode(const char* input, int32_t a, int32_t b, const char* key) {
+    UNUSED(a);
+    UNUSED(b);
+    return ok_result(adfgx_encrypt(input, key));
+}
+
+static CipherResult adfgx_decode(const char* input, int32_t a, int32_t b, const char* key) {
+    UNUSED(a);
+    UNUSED(b);
+    return ok_result(adfgx_decrypt(input, key));
+}
 
 static CipherResult adfgvx_encode(const char* input, int32_t a, int32_t b, const char* key) {
     UNUSED(a);
@@ -758,6 +771,27 @@ const CipherDef kCiphers[] = {
             "considerably harder to break than earlier field ciphers, though French "
             "cryptanalyst Georges Painvin famously broke it during the war, a notable early "
             "victory in modern cryptanalysis.",
+    },
+    {
+        .name = "ADFGX Cipher",
+        .file_key = "adfgx",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = adfgx_encode,
+        .decode = adfgx_decode,
+        .key_a_prompt = "Enter keyword",
+        .learn_text =
+            "The ADFGX cipher was used by the German Army during World War I to secure "
+            "radio communications. It works in two stages: first, each letter is "
+            "converted into a pair of letters from the set A, D, F, G, X using a 5x5 grid, "
+            "a process called fractionation (the letters I and J share a cell, so no "
+            "digits are supported). Second, the resulting stream of letters is "
+            "rearranged using a keyed columnar transposition, scrambling the order based on "
+            "a secret keyword. The combination of substitution and transposition made ADFGX "
+            "considerably harder to break than earlier field ciphers, though French "
+            "cryptanalyst Georges Painvin famously broke it during the war, a notable early "
+            "victory in modern cryptanalysis. The Germans later extended it to ADFGVX, adding "
+            "a sixth letter and a 6x6 grid to support digits as well.",
     },
     {
         .name = "AES-128 Cipher",
