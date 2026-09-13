@@ -4,6 +4,7 @@
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
 [![it](https://img.shields.io/badge/lang-it-green.svg)](./README.it.md)
 [![es](https://img.shields.io/badge/lang-es-yellow.svg)](./README.es.md)
@@ -43,16 +44,16 @@ Flipper-artige Mockups der Hauptbildschirme (128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg" width="240" alt="Hauptmenue"><br><b>Hauptmenue</b><br>Stempeln, Work mode, Ausweise, Verlauf...</td>
-    <td align="center"><img src="docs/img/work-clock.svg" width="240" alt="Work mode"><br><b>Work mode</b><br>Uhr, Stempeln per Chip</td>
+    <td align="center"><img src="docs/img/menu.svg?v=2" width="240" alt="Hauptmenue"><br><b>Hauptmenue</b><br>Stempeln, Work mode, Ausweise, Verlauf...</td>
+    <td align="center"><img src="docs/img/work-clock.svg?v=2" width="240" alt="Work mode"><br><b>Work mode</b><br>Uhr, Stempeln per Chip</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg" width="240" alt="Gruss"><br><b>Chip anhalten</b><br>Willkommen / Tschuess mit Name</td>
-    <td align="center"><img src="docs/img/today.svg" width="240" alt="Tagesuebersicht"><br><b>Heute</b><br>Stempel + Gesamtstunden</td>
+    <td align="center"><img src="docs/img/greeting.svg?v=2" width="240" alt="Gruss"><br><b>Chip anhalten</b><br>Willkommen / Tschuess mit Name</td>
+    <td align="center"><img src="docs/img/today.svg?v=2" width="240" alt="Tagesuebersicht"><br><b>Heute</b><br>Stempel + Gesamtstunden</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg" width="240" alt="PIN-Sperre"><br><b>PIN-Sperre</b><br>Schuetzt das Verlassen der App</td>
-    <td align="center"><img src="docs/img/settings.svg" width="240" alt="Einstellungen"><br><b>Einstellungen</b><br>Ton / Vibration / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.svg?v=2" width="240" alt="PIN-Sperre"><br><b>PIN-Sperre</b><br>Schuetzt das Verlassen der App</td>
+    <td align="center"><img src="docs/img/settings.svg?v=2" width="240" alt="Einstellungen"><br><b>Einstellungen</b><br>Ton / Vibration / LED, PIN</td>
   </tr>
 </table>
 

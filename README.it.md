@@ -4,6 +4,7 @@
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
 [![it](https://img.shields.io/badge/lang-it-green.svg)](./README.it.md)
 [![es](https://img.shields.io/badge/lang-es-yellow.svg)](./README.es.md)
@@ -40,16 +41,16 @@ Mockup in stile Flipper delle schermate principali (128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg" width="240" alt="Menu principale"><br><b>Menu principale</b><br>Timbra, Work mode, Badge, Storico...</td>
-    <td align="center"><img src="docs/img/work-clock.svg" width="240" alt="Work mode"><br><b>Work mode</b><br>Orologio, timbri col chip</td>
+    <td align="center"><img src="docs/img/menu.svg?v=2" width="240" alt="Menu principale"><br><b>Menu principale</b><br>Timbra, Work mode, Badge, Storico...</td>
+    <td align="center"><img src="docs/img/work-clock.svg?v=2" width="240" alt="Work mode"><br><b>Work mode</b><br>Orologio, timbri col chip</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg" width="240" alt="Saluto"><br><b>Passa il badge</b><br>Benvenuto / Arrivederci col nome</td>
-    <td align="center"><img src="docs/img/today.svg" width="240" alt="Riepilogo giornaliero"><br><b>Oggi</b><br>Timbrature + ore totali</td>
+    <td align="center"><img src="docs/img/greeting.svg?v=2" width="240" alt="Saluto"><br><b>Passa il badge</b><br>Benvenuto / Arrivederci col nome</td>
+    <td align="center"><img src="docs/img/today.svg?v=2" width="240" alt="Riepilogo giornaliero"><br><b>Oggi</b><br>Timbrature + ore totali</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg" width="240" alt="Blocco PIN"><br><b>Blocco PIN</b><br>Protegge l'uscita dall'app</td>
-    <td align="center"><img src="docs/img/settings.svg" width="240" alt="Impostazioni"><br><b>Impostazioni</b><br>Suono / Vibro / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.svg?v=2" width="240" alt="Blocco PIN"><br><b>Blocco PIN</b><br>Protegge l'uscita dall'app</td>
+    <td align="center"><img src="docs/img/settings.svg?v=2" width="240" alt="Impostazioni"><br><b>Impostazioni</b><br>Suono / Vibro / LED, PIN</td>
   </tr>
 </table>
 

@@ -4,6 +4,7 @@
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
 [![it](https://img.shields.io/badge/lang-it-green.svg)](./README.it.md)
 [![es](https://img.shields.io/badge/lang-es-yellow.svg)](./README.es.md)
@@ -41,16 +42,16 @@ Maquettes facon Flipper des ecrans principaux (128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Pointer, Work mode, Badges, Historique...</td>
-    <td align="center"><img src="docs/img/work-clock.svg" width="240" alt="Work mode"><br><b>Work mode</b><br>Horloge, pointage a la puce</td>
+    <td align="center"><img src="docs/img/menu.svg?v=2" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Pointer, Work mode, Badges, Historique...</td>
+    <td align="center"><img src="docs/img/work-clock.svg?v=2" width="240" alt="Work mode"><br><b>Work mode</b><br>Horloge, pointage a la puce</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg" width="240" alt="Message"><br><b>Passez le badge</b><br>Bienvenue / Au revoir par nom</td>
-    <td align="center"><img src="docs/img/today.svg" width="240" alt="Resume du jour"><br><b>Aujourd'hui</b><br>Pointages + heures totales</td>
+    <td align="center"><img src="docs/img/greeting.svg?v=2" width="240" alt="Message"><br><b>Passez le badge</b><br>Bienvenue / Au revoir par nom</td>
+    <td align="center"><img src="docs/img/today.svg?v=2" width="240" alt="Resume du jour"><br><b>Aujourd'hui</b><br>Pointages + heures totales</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg" width="240" alt="Verrou PIN"><br><b>Verrou PIN</b><br>Protege la sortie de l'app</td>
-    <td align="center"><img src="docs/img/settings.svg" width="240" alt="Reglages"><br><b>Reglages</b><br>Son / Vibration / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.svg?v=2" width="240" alt="Verrou PIN"><br><b>Verrou PIN</b><br>Protege la sortie de l'app</td>
+    <td align="center"><img src="docs/img/settings.svg?v=2" width="240" alt="Reglages"><br><b>Reglages</b><br>Son / Vibration / LED, PIN</td>
   </tr>
 </table>
 

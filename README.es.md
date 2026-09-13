@@ -4,6 +4,7 @@
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
 [![it](https://img.shields.io/badge/lang-it-green.svg)](./README.it.md)
 [![es](https://img.shields.io/badge/lang-es-yellow.svg)](./README.es.md)
@@ -40,16 +41,16 @@ Maquetas estilo Flipper de las pantallas principales (128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.svg" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Fichar, Work mode, Tarjetas, Historial...</td>
-    <td align="center"><img src="docs/img/work-clock.svg" width="240" alt="Work mode"><br><b>Work mode</b><br>Reloj, fichas con el chip</td>
+    <td align="center"><img src="docs/img/menu.svg?v=2" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Fichar, Work mode, Tarjetas, Historial...</td>
+    <td align="center"><img src="docs/img/work-clock.svg?v=2" width="240" alt="Work mode"><br><b>Work mode</b><br>Reloj, fichas con el chip</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.svg" width="240" alt="Saludo"><br><b>Pasa la tarjeta</b><br>Bienvenido / Adios por nombre</td>
-    <td align="center"><img src="docs/img/today.svg" width="240" alt="Resumen diario"><br><b>Hoy</b><br>Fichajes + horas totales</td>
+    <td align="center"><img src="docs/img/greeting.svg?v=2" width="240" alt="Saludo"><br><b>Pasa la tarjeta</b><br>Bienvenido / Adios por nombre</td>
+    <td align="center"><img src="docs/img/today.svg?v=2" width="240" alt="Resumen diario"><br><b>Hoy</b><br>Fichajes + horas totales</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.svg" width="240" alt="Bloqueo PIN"><br><b>Bloqueo PIN</b><br>Protege la salida de la app</td>
-    <td align="center"><img src="docs/img/settings.svg" width="240" alt="Ajustes"><br><b>Ajustes</b><br>Sonido / Vibra / LED, PIN</td>
+    <td align="center"><img src="docs/img/pin.svg?v=2" width="240" alt="Bloqueo PIN"><br><b>Bloqueo PIN</b><br>Protege la salida de la app</td>
+    <td align="center"><img src="docs/img/settings.svg?v=2" width="240" alt="Ajustes"><br><b>Ajustes</b><br>Sonido / Vibra / LED, PIN</td>
   </tr>
 </table>
 
