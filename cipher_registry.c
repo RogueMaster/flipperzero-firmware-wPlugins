@@ -13,6 +13,7 @@
 #include "ciphers/beaufort.h"
 #include "ciphers/bifid.h"
 #include "ciphers/caesar.h"
+#include "ciphers/des.h"
 #include "ciphers/playfair.h"
 #include "ciphers/polybius.h"
 #include "ciphers/porta.h"
@@ -62,6 +63,32 @@ static char* bytes_to_hex(const uint8_t* bytes, size_t len) {
         out[i * 2 + 1] = kHexChars[bytes[i] & 0xF];
     }
     out[len * 2] = '\0';
+    return out;
+}
+
+static uint8_t hex_char_to_nibble(char c) {
+    if(c >= '0' && c <= '9') return (uint8_t)(c - '0');
+    if(c >= 'a' && c <= 'f') return (uint8_t)(c - 'a' + 10);
+    if(c >= 'A' && c <= 'F') return (uint8_t)(c - 'A' + 10);
+    furi_assert(false); // invalid hex character
+    return 0;
+}
+
+static uint8_t* hex_to_bytes(const char* hex, size_t* out_len) {
+    size_t hex_len = strlen(hex);
+    furi_assert(hex_len % 2 == 0);
+
+    size_t len = hex_len / 2;
+    uint8_t* out = malloc(len);
+    furi_assert(out);
+
+    for(size_t i = 0; i < len; i++) {
+        char hi = hex[i * 2];
+        char lo = hex[i * 2 + 1];
+        out[i] = (uint8_t)((hex_char_to_nibble(hi) << 4) | hex_char_to_nibble(lo));
+    }
+
+    *out_len = len;
     return out;
 }
 
@@ -198,6 +225,152 @@ static CipherResult caesar_decode(const char* input, int32_t a, int32_t b, const
     UNUSED(b);
     UNUSED(k);
     return ok_result(strdup(decode_caesar((char*)input, a)));
+}
+
+static CipherResult des_encode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    // Build 8-byte key from k (zero-padded/truncated)
+    BYTE key[DES_BLOCK_SIZE] = {0};
+    size_t klen = strlen(k);
+    memcpy(key, k, klen < DES_BLOCK_SIZE ? klen : DES_BLOCK_SIZE);
+
+    BYTE schedule[16][6];
+    des_key_setup(key, schedule, DES_ENCRYPT);
+
+    // PKCS#7 pad the input to a multiple of DES_BLOCK_SIZE
+    size_t inlen = strlen(input);
+    size_t pad = DES_BLOCK_SIZE - (inlen % DES_BLOCK_SIZE);
+    size_t padded_len = inlen + pad;
+
+    BYTE* buf = malloc(padded_len);
+    memcpy(buf, input, inlen);
+    memset(buf + inlen, (int)pad, pad); // PKCS#7: pad bytes = pad value
+
+    // Encrypt block by block
+    BYTE* out = malloc(padded_len);
+    for (size_t i = 0; i < padded_len; i += DES_BLOCK_SIZE) {
+        des_crypt(buf + i, out + i, schedule);
+    }
+
+    // Encode raw bytes to a printable string
+    char* hex = bytes_to_hex(out, padded_len);
+
+    free(buf);
+    free(out);
+    return ok_result(hex);
+}
+
+static CipherResult des_decode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    BYTE key[DES_BLOCK_SIZE] = {0};
+    size_t klen = strlen(k);
+    memcpy(key, k, klen < DES_BLOCK_SIZE ? klen : DES_BLOCK_SIZE);
+
+    BYTE schedule[16][6];
+    des_key_setup(key, schedule, DES_DECRYPT);
+
+    // Hex-decode the ciphertext back to raw bytes
+    size_t clen = 0;
+    BYTE* cipher = hex_to_bytes(input, &clen);
+    if (!cipher || clen % DES_BLOCK_SIZE != 0) {
+        free(cipher);
+        return err_result(strdup("Invalid ciphertext length"));
+    }
+
+    // Decrypt block by block
+    BYTE* out = malloc(clen);
+    for (size_t i = 0; i < clen; i += DES_BLOCK_SIZE) {
+        des_crypt(cipher + i, out + i, schedule);
+    }
+
+    // Strip PKCS#7 padding
+    BYTE pad = out[clen - 1];
+    size_t plainlen = (pad <= DES_BLOCK_SIZE) ? clen - pad : clen;
+
+    char* result = malloc(plainlen + 1);
+    memcpy(result, out, plainlen);
+    result[plainlen] = '\0';
+
+    free(cipher);
+    free(out);
+    return ok_result(result);
+}
+
+static CipherResult triple_des_encode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    // Build 24-byte key from k, repeating it to fill K1/K2/K3
+    BYTE key[24] = {0};
+    size_t klen = strlen(k);
+    for(size_t i = 0; i < 24; i++) {
+        key[i] = (BYTE)k[i % klen];
+    }
+
+    BYTE schedule[16][16][6];
+    three_des_key_setup(key, schedule, DES_ENCRYPT);
+
+    // PKCS#7 pad the input to a multiple of DES_BLOCK_SIZE
+    size_t inlen = strlen(input);
+    size_t pad = DES_BLOCK_SIZE - (inlen % DES_BLOCK_SIZE);
+    size_t padded_len = inlen + pad;
+
+    BYTE* buf = malloc(padded_len);
+    memcpy(buf, input, inlen);
+    memset(buf + inlen, (int)pad, pad);
+
+    // Encrypt block by block
+    BYTE* out = malloc(padded_len);
+    for(size_t i = 0; i < padded_len; i += DES_BLOCK_SIZE) {
+        three_des_crypt(buf + i, out + i, schedule);
+    }
+
+    char* hex = bytes_to_hex(out, padded_len);
+
+    free(buf);
+    free(out);
+    return ok_result(hex);
+}
+
+static CipherResult triple_des_decode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    BYTE key[24] = {0};
+    size_t klen = strlen(k);
+    for(size_t i = 0; i < 24; i++) {
+        key[i] = (BYTE)k[i % klen];
+    }
+
+    BYTE schedule[16][16][6];
+    three_des_key_setup(key, schedule, DES_DECRYPT);
+
+    size_t clen = 0;
+    uint8_t* cipher = hex_to_bytes(input, &clen);
+    if(!cipher || clen % DES_BLOCK_SIZE != 0) {
+        free(cipher);
+        return err_result(strdup("Invalid ciphertext length"));
+    }
+
+    BYTE* out = malloc(clen);
+    for(size_t i = 0; i < clen; i += DES_BLOCK_SIZE) {
+        three_des_crypt(cipher + i, out + i, schedule);
+    }
+
+    BYTE pad = out[clen - 1];
+    size_t plainlen = (pad <= DES_BLOCK_SIZE) ? clen - pad : clen;
+
+    char* result = malloc(plainlen + 1);
+    memcpy(result, out, plainlen);
+    result[plainlen] = '\0';
+
+    free(cipher);
+    free(out);
+    return ok_result(result);
 }
 
 static CipherResult playfair_encode(const char* input, int32_t a, int32_t b, const char* keyword) {
@@ -626,6 +799,38 @@ const CipherDef kCiphers[] = {
             "example, with a shift of 3, 'A' becomes 'D', 'B' becomes 'E', and so on. After 'Z', "
             "the cipher wraps around to the beginning of the alphabet. While easy to understand "
             "and implement, the Caesar cipher is also extremely easy to break.",
+    },
+    {
+        .name = "DES Cipher",
+        .file_key = "des",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = des_encode,
+        .decode = des_decode,
+        .key_a_prompt = "Enter key",
+        .learn_text =
+            "The Data Encryption Standard (DES) is a symmetric block cipher developed in the 1970s "
+            "and adopted as a US government standard in 1977. It encrypts data in fixed 64-bit blocks "
+            "using a 56-bit key, applying 16 rounds of substitution and permutation to scramble the "
+            "input. DES was widely used for decades, but its short key length makes it vulnerable to "
+            "brute-force attacks with modern hardware, and it has since been retired in favor of "
+            "stronger ciphers like AES.",
+    },
+    {
+        .name = "3DES Cipher",
+        .file_key = "triple_des",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = triple_des_encode,
+        .decode = triple_des_decode,
+        .key_a_prompt = "Enter 3x consec. 8 char keys",
+        .learn_text =
+            "Triple DES (3DES) was designed to extend the life of the original DES algorithm without "
+            "requiring a completely new cipher. It works by applying the DES algorithm three times to "
+            "each block of data, typically encrypting with one key, decrypting with a second, then "
+            "encrypting again with a third, an approach known as EDE. This effectively increases the "
+            "key strength and makes brute-force attacks far less practical. While more secure than "
+            "plain DES, 3DES is slower and has also been phased out in favor of modern ciphers like AES.",
     },
     {
         .name = "Playfair Cipher",
