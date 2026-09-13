@@ -44,8 +44,8 @@ static void work_view_draw_callback(Canvas* canvas, void* _model) {
         canvas, 64, 62, AlignCenter, AlignBottom, model->footer[0] ? model->footer : "PIN to exit");
 
     // Left/Right chevrons, hinting the technology picker.
-    tc_draw_chevron_left(canvas, 2, 32);
-    tc_draw_chevron_right(canvas, 122, 32);
+    tc_draw_chevron_left(canvas, 2, 58);
+    tc_draw_chevron_right(canvas, 122, 58);
 }
 
 static bool work_view_input_callback(InputEvent* event, void* context) {

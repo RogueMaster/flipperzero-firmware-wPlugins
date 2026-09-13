@@ -104,7 +104,16 @@ static NfcCommand reader_poller_callback(NfcGenericEvent event, void* context) {
         if(uid && uid_len > 0) {
             reader_format_uid(reader, uid, uid_len, "NFC");
             view_dispatcher_send_custom_event(reader->vd, READER_EVENT_UID);
-            if(!reader->continuous) command = NfcCommandStop;
+            // Always signal the poller's own loop to stop here, continuous
+            // mode or not. If a card stays in the field, letting the poller
+            // keep running would fire this callback again immediately,
+            // flooding the ViewDispatcher event queue faster than the GUI
+            // thread can keep up - which looks exactly like a frozen device.
+            // Continuous mode gets its "keep watching for the next tap" back
+            // via an explicit re-arm in timeclock_reader_handle_event()
+            // instead, which is paced by actual reads, not by the radio's
+            // own poll rate.
+            command = NfcCommandStop;
         }
     }
     return command;
@@ -281,6 +290,18 @@ bool timeclock_reader_handle_event(TimeclockReader* reader, uint32_t event) {
     if(event == READER_EVENT_UID) {
         if(reader->callback) {
             reader->callback(reader->uid, reader->tech, reader->context);
+        }
+        // NFC always stops its own poller loop on a read (see
+        // reader_poller_callback), so in continuous mode (Work mode) it must
+        // be explicitly re-armed to keep watching for the next tap - paced
+        // by actual reads, not a timer. LF RFID and iButton have no such
+        // per-read stop signal and already keep reading on their own once
+        // started (the original, never-reported-unstable behavior), so they
+        // are deliberately left alone here. callback() may have called
+        // stop() itself (e.g. leaving Work mode), so check running first.
+        if(reader->running && reader->continuous && reader->active == ReaderRadioNfc) {
+            reader_stop_active(reader);
+            reader_start_active(reader);
         }
         return true;
     }
