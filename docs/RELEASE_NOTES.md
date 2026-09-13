@@ -5,7 +5,18 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline, with an optional PIN lock. Identification only - no badge emulation,
 no authentication bypass.
 
-**New in v2.5**
+**New in v2.6**
+
+- **Work mode punch loop fixed**: the same-badge debounce was only 3.5s, and
+  the reader keeps re-reporting a badge for as long as it sits in the field,
+  so a badge left near the Flipper too long kept re-triggering punches every
+  3.5s, alternating IN/OUT indefinitely until pulled away. Raised to 60s.
+- **About screen**: no longer shows the "GPL-3.0-or-later" line under the
+  copyright notice.
+- **Icon fix**: bolder, wider hands so the 10:10 shape reads clearly instead
+  of blending into the rim.
+
+**Earlier (v2.5)**
 
 - **Work mode hang fixed**: the continuous badge scan used to rotate
   NFC/RFID/iButton every 500ms for as long as Work mode stayed open, tearing
@@ -23,32 +34,6 @@ no authentication bypass.
   Export, Settings, About.
 - **Icon fix**: the clock hands read closer to 11:05 than 10:10; they now
   spread out more horizontally toward the 10 and 2 positions.
-
-**Earlier (v2.4)**
-
-- **Crash fix**: the round-robin badge reader now switches radios on the GUI
-  thread instead of the timer service thread. That mismatch could hard-fault
-  the device on almost any scan or punch.
-- **Overview**: a per-collaborator screen - name in the middle, today / week /
-  month worked time and today's break underneath, Left/Right to switch
-  between people.
-- **Fewer menu buttons**: Today / This week / This month moved under History.
-- **Clearer About screen**: a short description, the repo link and the
-  copyright notice, instead of a wall of text.
-- **Clock sanity check**: a startup warning if the Flipper's date looks wrong,
-  so punches are never silently misdated.
-
-**Earlier (v2.3)**
-
-- **Overnight shifts** are now counted correctly: an OUT after midnight closes
-  the IN from the evening before (the time counts on the shift's start day).
-- **Manual correction**: add a missing IN or OUT at the current time from
-  **Badges -> (person) -> Add IN / Add OUT**, to fix a forgotten tap.
-- **Export month**: save the current month's punches to their own CSV.
-- **Daily target hours** (Settings): the Today screen shows the target and the
-  overtime (or shortfall).
-- **Reader reworked** to scan NFC, RFID and iButton **in rotation** (one radio at
-  a time) - lighter on memory, still no manual selection.
 
 ### Which file do I download?
 

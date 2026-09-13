@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.6
+
+- Fixed a runaway IN/OUT loop in Work mode: the same-badge debounce was only
+  3.5s, and the reader keeps re-reporting a badge for as long as it sits in
+  the field, so a badge left near the Flipper too long kept re-triggering
+  punches every 3.5s, alternating IN/OUT indefinitely until pulled away.
+  Raised to 60s.
+- About screen no longer shows the "GPL-3.0-or-later" line under the
+  copyright notice.
+- App icon redrawn again with bolder, wider hands so the 10:10 shape reads
+  clearly instead of blending into the rim.
+
 ## 2.5
 
 - Fixed a hang: Work mode's continuous badge scan rotated NFC/RFID/iButton
