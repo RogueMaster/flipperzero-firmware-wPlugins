@@ -48,7 +48,8 @@ static void overview_view_draw_callback(Canvas* canvas, void* _model) {
     tc_draw_chevron_left(canvas, 2, 34);
     tc_draw_chevron_right(canvas, 122, 34);
 
-    // Stat lines.
+    // Stat lines - regular weight, only the name above is bold.
+    canvas_set_font(canvas, FontSecondary);
     int y = 27;
     for(int i = 0; i < 4; i++) {
         if(model->lines[i][0] != '\0') {

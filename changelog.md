@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.14
+
+- Overview page now shows only the collaborator name in bold; the stat lines
+  below (today/week/month/break) are drawn in regular weight. The font was
+  never switched back after the bold name, so every line rendered bold.
+
 ## 2.13
 
 - Work mode cooldown lowered from 60s to 2s: the 60s debounce was a leftover

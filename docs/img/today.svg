@@ -5,9 +5,12 @@
   <g font-size="12" fill="#111">
     <text x="14" y="38">08:02</text><text x="92" y="38">Mario</text><text x="206" y="38">IN</text>
     <text x="14" y="52">12:31</text><text x="92" y="52">Mario</text><text x="200" y="52">OUT</text>
-    <text x="14" y="66">13:27</text><text x="92" y="66">Mario</text><text x="206" y="66">IN</text>
+    <text x="14" y="66">17:46</text><text x="92" y="66">Mario</text><text x="200" y="66">OUT</text>
   </g>
   <line x1="12" y1="72" x2="244" y2="72" stroke="#111" stroke-width="1"/>
-  <text x="14" y="90" font-size="13" font-weight="bold" fill="#111">Total: 08:48</text>
-  <text x="14" y="108" font-size="13" font-weight="bold" fill="#111">Break: 00:56</text>
+  <g font-size="12" fill="#111">
+    <text x="14" y="88">First in: 08:02</text><text x="140" y="88">Last out: 17:46</text>
+  </g>
+  <text x="14" y="108" font-size="13" font-weight="bold" fill="#111">Total: 08:48</text>
+  <text x="140" y="108" font-size="13" font-weight="bold" fill="#111">Break: 00:56</text>
 </svg>

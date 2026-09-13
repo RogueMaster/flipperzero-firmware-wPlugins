@@ -5,7 +5,13 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline, with an optional PIN lock. Identification only - no badge emulation,
 no authentication bypass.
 
-**New in v2.13**
+**New in v2.14**
+
+- **Overview page weights fixed**: only the collaborator name is bold now.
+  The today/week/month/break stat lines below it are back to regular weight
+  - the font was never reset after the bold name, so every line was bold.
+
+**Earlier (v2.13)**
 
 - **Work mode cooldown lowered** from 60s to 2s: a real OUT tap a few
   seconds after IN now registers instead of being silently ignored. The
