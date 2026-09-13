@@ -57,7 +57,8 @@ Vraies captures de l'app (Flipper Zero, 128x64):
 
 ## Fonctions
 
-- **Pointer** en approchant un badge - les badges connus sont reconnus par UID.
+- **Entree/sortie** en approchant un badge en Work mode - les badges connus
+  sont reconnus par UID.
 - **Lecteur multi-technologie**: **NFC** (13.56 MHz), **RFID LF** (125 kHz)
   et **iButton** (cles Dallas 1-Wire). Gauche/Droite sur l'ecran de lecture
   choisit lequel utiliser (retenu entre les sessions), donc NFC, RFID et
@@ -97,7 +98,7 @@ Vraies captures de l'app (Flipper Zero, 128x64):
 - **Langues**: anglais, italien, espagnol, francais, allemand - au choix dans
   Reglages (le firmware officiel n'expose pas de langue systeme).
 
-Voir la [Roadmap](#roadmap) pour les idees v1.1 / v2.0.
+Voir la [Roadmap](#roadmap) pour la suite prevue.
 
 ### Une puce par personne (et puce perdue)
 
@@ -208,9 +209,10 @@ timeclock/
 |-- application.fam            # manifeste de l'app
 |-- timeclock.h / .c           # cycle de vie, entry point, helpers
 |-- timeclock_storage.h / .c   # persistance microSD + modele de donnees
+|-- timeclock_reader.h / .c    # lecteur NFC / RFID / iButton
 |-- timeclock_pin.h / .c       # hash du PIN avec sel
-|-- views/
-|   `-- pin_view.h / .c        # vue personnalisee du PIN
+|-- timeclock_i18n.h / .c      # textes UI et traductions
+|-- views/                     # vues personnalisees: work, scan, overview, PIN
 `-- scenes/
     |-- timeclock_scene*.{h,c} # scene manager (X-macro)
     `-- timeclock_scene_*.c    # un fichier par ecran
@@ -218,8 +220,9 @@ timeclock/
 
 ## Roadmap
 
-- **v1.1 / v1.2** - resume hebdomadaire, calcul des pauses et filtres (faits).
-- **v2.0** - sauvegarde et restauration (faites); ensuite: sync Bluetooth, app companion, import.
+- **Fait**: resumes hebdomadaires et mensuels, calcul des pauses, filtres,
+  sauvegarde et restauration.
+- **Idees**: sync Bluetooth, app companion, import CSV.
 
 ## Contribuer
 

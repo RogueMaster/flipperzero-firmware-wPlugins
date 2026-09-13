@@ -56,7 +56,8 @@ Capturas reales de la app (Flipper Zero, 128x64):
 
 ## Funciones
 
-- **Fichar** acercando una tarjeta - las tarjetas conocidas se reconocen por UID.
+- **Entrada/salida** acercando una tarjeta en Work mode - las tarjetas
+  conocidas se reconocen por UID.
 - **Lector multi-tecnologia**: **NFC** (13.56 MHz), **RFID LF** (125 kHz) e
   **iButton** (llaves Dallas 1-Wire). Izquierda/Derecha en la pantalla de
   lectura elige cual usar (recordado entre sesiones), asi NFC, RFID e
@@ -95,7 +96,7 @@ Capturas reales de la app (Flipper Zero, 128x64):
 - **Idiomas**: ingles, italiano, espanol, frances, aleman - seleccionables en
   Ajustes (el firmware oficial no expone un idioma de sistema).
 
-Ver la [Roadmap](#roadmap) para las ideas v1.1 / v2.0.
+Ver la [Roadmap](#roadmap) para lo que esta previsto.
 
 ### Un chip por persona (y perdida del chip)
 
@@ -203,9 +204,10 @@ timeclock/
 |-- application.fam            # manifiesto de la app
 |-- timeclock.h / .c           # ciclo de vida, entry point, helpers
 |-- timeclock_storage.h / .c   # persistencia microSD + modelo de datos
+|-- timeclock_reader.h / .c    # lector NFC / RFID / iButton
 |-- timeclock_pin.h / .c       # hash del PIN con salt
-|-- views/
-|   `-- pin_view.h / .c        # vista personalizada del PIN
+|-- timeclock_i18n.h / .c      # textos de UI y traducciones
+|-- views/                     # vistas personalizadas: work, scan, overview, PIN
 `-- scenes/
     |-- timeclock_scene*.{h,c} # scene manager (X-macro)
     `-- timeclock_scene_*.c    # un archivo por pantalla
@@ -213,8 +215,9 @@ timeclock/
 
 ## Roadmap
 
-- **v1.1 / v1.2** - resumen semanal, calculo de pausas y filtros (hechos).
-- **v2.0** - copia y restauracion (hechas); luego: sync Bluetooth, app companion, import.
+- **Hecho**: resumenes semanales y mensuales, calculo de pausas, filtros,
+  copia y restauracion.
+- **Ideas**: sync Bluetooth, app companion, import CSV.
 
 ## Contribuir
 

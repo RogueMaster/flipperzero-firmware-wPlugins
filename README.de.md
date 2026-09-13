@@ -59,8 +59,8 @@ Echte Screenshots aus der App (Flipper Zero, 128x64):
 
 ## Funktionen
 
-- **Stempeln** durch Anhalten eines Ausweises - bekannte Ausweise werden per UID
-  erkannt.
+- **Kommen/Gehen** durch Anhalten eines Ausweises im Work mode - bekannte
+  Ausweise werden per UID erkannt.
 - **Multi-Technologie-Leser**: **NFC** (13.56 MHz), **RFID LF** (125 kHz) und
   **iButton** (1-Wire Dallas-Keys). Links/Rechts auf dem Lesebildschirm waehlt,
   welche aktiv ist (zwischen Sitzungen gemerkt), also arbeiten NFC, RFID und
@@ -100,7 +100,7 @@ Echte Screenshots aus der App (Flipper Zero, 128x64):
 - **Sprachen**: Englisch, Italienisch, Spanisch, Franzoesisch, Deutsch - in den
   Einstellungen waehlbar (die offizielle Firmware bietet keine Systemsprache).
 
-Siehe die [Roadmap](#roadmap) fuer v1.1 / v2.0.
+Siehe die [Roadmap](#roadmap) fuer die naechsten Plaene.
 
 ### Ein Chip pro Person (und verlorener Chip)
 
@@ -209,9 +209,10 @@ timeclock/
 |-- application.fam            # App-Manifest
 |-- timeclock.h / .c           # Lebenszyklus, Entry Point, Helfer
 |-- timeclock_storage.h / .c   # microSD-Persistenz + Datenmodell
+|-- timeclock_reader.h / .c    # NFC- / RFID- / iButton-Leser
 |-- timeclock_pin.h / .c       # gesalzener PIN-Hash
-|-- views/
-|   `-- pin_view.h / .c        # eigene PIN-Ansicht
+|-- timeclock_i18n.h / .c      # UI-Texte und Uebersetzungen
+|-- views/                     # eigene Views: work, scan, overview, PIN
 `-- scenes/
     |-- timeclock_scene*.{h,c} # Scene Manager (X-Macro)
     `-- timeclock_scene_*.c    # eine Datei pro Bildschirm
@@ -219,8 +220,9 @@ timeclock/
 
 ## Roadmap
 
-- **v1.1 / v1.2** - Wochenuebersicht, Pausenberechnung und Filter (fertig).
-- **v2.0** - Backup und Wiederherstellung (fertig); dann: Bluetooth-Sync, Companion-App, Import.
+- **Fertig**: Wochen- und Monatsuebersichten, Pausenberechnung, Filter,
+  Backup und Wiederherstellung.
+- **Ideen**: Bluetooth-Sync, Companion-App, CSV-Import.
 
 ## Mitwirken
 
