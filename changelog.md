@@ -5,6 +5,10 @@
 - Overview page now shows only the collaborator name in bold; the stat lines
   below (today/week/month/break) are drawn in regular weight. The font was
   never switched back after the bold name, so every line rendered bold.
+- Docs screenshots rebuilt at the real 128x64 screen resolution to match the
+  app faithfully: the actual submenu look (header, inverted selection bar,
+  scrollbar, no divider line), the Work/Scan chevrons and technology footer,
+  the single-line greeting, and the Today text box with date-prefixed punches.
 
 ## 2.13
 

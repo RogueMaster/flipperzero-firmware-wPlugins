@@ -1,8 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128" font-family="'Courier New',monospace">
-  <rect x="2" y="2" width="252" height="124" rx="10" fill="#FF8200" stroke="#111" stroke-width="3"/>
-  <text x="128" y="26" text-anchor="middle" font-size="13" fill="#111">2026-09-13</text>
-  <text x="128" y="82" text-anchor="middle" font-size="46" font-weight="bold" fill="#111">08:02</text>
-  <text x="128" y="118" text-anchor="middle" font-size="13" fill="#111">NFC</text>
-  <polyline points="24,102 14,112 24,122" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <polyline points="232,102 242,112 232,122" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 64" width="128" height="64" font-family="Arial,Helvetica,sans-serif" text-rendering="geometricPrecision">
+  <rect x="0" y="0" width="128" height="64" fill="#FF8200"/>
+  <rect x="0.5" y="0.5" width="127" height="63" fill="none" stroke="#111" stroke-width="1" shape-rendering="crispEdges"/>
+  <text x="64" y="11" text-anchor="middle" font-size="8" fill="#111">2026-09-13</text>
+  <text x="64" y="32" text-anchor="middle" dominant-baseline="central" font-size="24" font-weight="bold" font-family="'Courier New',monospace" fill="#111">08:02</text>
+  <text x="64" y="62" text-anchor="middle" font-size="8" fill="#111">NFC</text>
+  <polyline points="6,54 2,58 6,62" fill="none" stroke="#111" stroke-width="1" shape-rendering="crispEdges"/>
+  <polyline points="122,54 126,58 122,62" fill="none" stroke="#111" stroke-width="1" shape-rendering="crispEdges"/>
 </svg>

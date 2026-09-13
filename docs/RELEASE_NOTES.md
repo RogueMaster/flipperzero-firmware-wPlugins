@@ -10,6 +10,9 @@ no authentication bypass.
 - **Overview page weights fixed**: only the collaborator name is bold now.
   The today/week/month/break stat lines below it are back to regular weight
   - the font was never reset after the bold name, so every line was bold.
+- **Docs screenshots rebuilt** at the real 128x64 screen resolution so they
+  match the app: the true submenu look, the Work/Scan chevrons and technology
+  footer, the single-line greeting, and the Today text box.
 
 **Earlier (v2.13)**
 

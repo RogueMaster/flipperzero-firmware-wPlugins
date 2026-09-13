@@ -1,13 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128" font-family="'Courier New',monospace">
-  <rect x="2" y="2" width="252" height="124" rx="10" fill="#FF8200" stroke="#111" stroke-width="3"/>
-  <text x="128" y="18" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">Settings</text>
-  <line x1="12" y1="24" x2="244" y2="24" stroke="#111" stroke-width="1"/>
-  <rect x="8" y="29" width="230" height="17" rx="6" fill="#111"/>
-  <text x="16" y="41" font-size="12" fill="#FF8200">Sound: On</text>
-  <text x="16" y="59" font-size="12" fill="#111">Vibro: On</text>
-  <text x="16" y="76" font-size="12" fill="#111">LED: On</text>
-  <text x="16" y="93" font-size="12" fill="#111">Language: EN</text>
-  <text x="16" y="110" font-size="12" fill="#111">Target: Off</text>
-  <rect x="246" y="30" width="4" height="92" rx="2" fill="#111" opacity="0.25"/>
-  <rect x="246" y="30" width="4" height="28" rx="2" fill="#111"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 64" width="128" height="64" font-family="Arial,Helvetica,sans-serif" text-rendering="geometricPrecision">
+  <rect x="0" y="0" width="128" height="64" fill="#FF8200"/>
+  <rect x="0.5" y="0.5" width="127" height="63" fill="none" stroke="#111" stroke-width="1" shape-rendering="crispEdges"/>
+  <text x="64" y="11" text-anchor="middle" font-size="9" font-weight="bold" fill="#111">Settings</text>
+  <rect x="2" y="17" width="119" height="14" rx="2" fill="#111"/>
+  <text x="6" y="27" font-size="8" fill="#FF8200">Sound: On</text>
+  <text x="6" y="43" font-size="8" fill="#111">Vibro: On</text>
+  <text x="6" y="59" font-size="8" fill="#111">LED: On</text>
+  <rect x="124" y="16" width="3" height="48" fill="#111" opacity="0.2" shape-rendering="crispEdges"/>
+  <rect x="124" y="16" width="3" height="21" fill="#111" shape-rendering="crispEdges"/>
 </svg>
