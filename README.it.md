@@ -218,17 +218,6 @@ timeclock/
 - **v1.1 / v1.2** - riepilogo settimanale, calcolo pause e filtri storico (fatti).
 - **v2.0** - backup e ripristino (fatti); poi: sync Bluetooth, app companion, import.
 
-## Flipper App Catalog
-
-Un manifest pronto per il catalogo si trova in [catalog/manifest.yml](catalog/manifest.yml)
-e lo storico versioni in [changelog.md](changelog.md). Per pubblicare su
-[apps.flipper.net](https://apps.flipper.net): fai un fork di
-[flipper-application-catalog](https://github.com/flipperdevices/flipper-application-catalog),
-copia il manifest in `applications/Tools/timeclock/manifest.yml`, imposta il suo
-`commit_sha` sul commit della release taggata, aggiungi screenshot reali presi
-con qFlipper (vedi [screenshots/README.md](screenshots/README.md)) e apri una
-pull request. L'app compila con l'ultima Release SDK di `ufbt` (target f7).
-
 ## Contribuire
 
 I contributi sono benvenuti - vedi [CONTRIBUTING.md](CONTRIBUTING.md) e il

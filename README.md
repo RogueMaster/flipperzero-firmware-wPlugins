@@ -220,17 +220,6 @@ timeclock/
 - **v1.1 / v1.2** - weekly summary, break calculation and history filters (done).
 - **v2.0** - backup & restore (done); next: Bluetooth sync, companion app, import.
 
-## Flipper App Catalog
-
-A ready-to-submit catalog manifest lives in [catalog/manifest.yml](catalog/manifest.yml)
-and the version history in [changelog.md](changelog.md). To publish on
-[apps.flipper.net](https://apps.flipper.net): fork the
-[flipper-application-catalog](https://github.com/flipperdevices/flipper-application-catalog),
-copy the manifest to `applications/Tools/timeclock/manifest.yml`, set its
-`commit_sha` to the tagged release commit, add real qFlipper screenshots (see
-[screenshots/README.md](screenshots/README.md)), and open a pull request. The app
-builds with the latest `ufbt` Release SDK (target f7).
-
 ## Contributing
 
 Contributions are welcome - see [CONTRIBUTING.md](CONTRIBUTING.md) and the
