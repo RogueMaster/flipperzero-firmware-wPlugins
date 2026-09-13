@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.7
+
+- The 2.6 debounce fix was not enough: Work mode could still loop IN/OUT
+  after a punch even with the badge already pulled away, which meant
+  something besides a lingering badge was re-triggering reads. Work mode now
+  fully stops the reader (no radio allocated, no poller running) for 5s
+  after every read, punch or unknown badge alike, instead of only debouncing
+  by time; the scene resumes scanning once the pause elapses. Nothing can
+  produce a read event while the reader is stopped, regardless of cause.
+
 ## 2.6
 
 - Fixed a runaway IN/OUT loop in Work mode: the same-badge debounce was only

@@ -5,35 +5,21 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline, with an optional PIN lock. Identification only - no badge emulation,
 no authentication bypass.
 
-**New in v2.6**
+**New in v2.7**
 
-- **Work mode punch loop fixed**: the same-badge debounce was only 3.5s, and
-  the reader keeps re-reporting a badge for as long as it sits in the field,
-  so a badge left near the Flipper too long kept re-triggering punches every
-  3.5s, alternating IN/OUT indefinitely until pulled away. Raised to 60s.
+- **Work mode punch loop fixed for real this time**: 2.6's debounce fix
+  narrowed the window for a repeat trigger but didn't close it - Work mode
+  could still loop IN/OUT after a punch even with the badge already pulled
+  away. Work mode now fully stops the reader (no radio allocated, no poller
+  running) for 5s after every read, instead of only debouncing by time, and
+  resumes scanning once the pause elapses.
+
+**Earlier (v2.6)**
+
 - **About screen**: no longer shows the "GPL-3.0-or-later" line under the
   copyright notice.
 - **Icon fix**: bolder, wider hands so the 10:10 shape reads clearly instead
   of blending into the rim.
-
-**Earlier (v2.5)**
-
-- **Work mode hang fixed**: the continuous badge scan used to rotate
-  NFC/RFID/iButton every 500ms for as long as Work mode stayed open, tearing
-  down and recreating each radio (including a dedicated worker thread for LF
-  RFID and iButton) every time. Left running a while, that churn could wedge
-  the device and force a hard reset. The continuous slice is now 4s instead
-  of 500ms; single-shot scans (Punch, register, replace chip) are unaffected.
-- **PIN is now fully optional**: Work mode no longer requires one to be set,
-  only at least one registered collaborator. Leaving Work mode or the app
-  from the main menu asks for the PIN if one is set, and exits immediately
-  if not.
-- **Settings**: the button shown when no PIN is set is now "Enable PIN"
-  (was "Set PIN"), to read as the counterpart to "Disable PIN".
-- **Main menu reordered**: Work mode, Badges, Punch, then Overview, History,
-  Export, Settings, About.
-- **Icon fix**: the clock hands read closer to 11:05 than 10:10; they now
-  spread out more horizontally toward the 10 and 2 positions.
 
 ### Which file do I download?
 
