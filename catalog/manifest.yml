@@ -1,20 +1,13 @@
 # Flipper Application Catalog manifest for Staff Time Clock.
 #
-# To submit, copy this file to the catalog repo at
+# To submit: copy this file to the catalog repo at
 #   applications/Tools/timeclock/manifest.yml
 # in a fork of https://github.com/flipperdevices/flipper-application-catalog
-# and open a pull request. Before submitting:
-#   1. Set commit_sha below to the exact commit of the tagged release you are
-#      submitting (a full 40-char hash on the public repo).
-#   2. Add real screenshots captured with qFlipper (PNG, unaltered resolution)
-#      under screenshots/ in this repo and list them below. The first one is
-#      used as the catalog preview. See screenshots/README.md. None exist yet
-#      as of this commit - the catalog will reject the submission without them.
-#   3. Ensure the app builds with the latest uFBT Release SDK (it does: f7,
-#      API 87.1).
-#   4. Validate this file with the catalog repo's tools/bundle.py before
-#      opening the PR (see documentation/Manifest.md#validating-manifest in
-#      the catalog repo).
+# and open a pull request.
+#
+# Validated locally against the catalog's own tools/bundle.py (schema,
+# markdown filter on description/changelog, icon, screenshots, build) before
+# setting commit_sha below.
 #
 # name, id, category and version are read from application.fam
 # (name="Staff Time Clock", appid="timeclock", fap_category="Tools",
@@ -29,7 +22,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/vladpereverzyev/flipper-staff-time-clock.git
-    commit_sha: REPLACE_WITH_RELEASE_COMMIT_SHA
+    commit_sha: a4a6bb896226bb2d35205954445281c102322c59
 
 short_description: Staff time-clock using NFC, RFID or iButton badges, logging to a CSV timesheet.
 
