@@ -3,7 +3,7 @@ App(
     name="FlipCrypt",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flip_crypt_app",
-    stack_size=4 * 1024,
+    stack_size=8 * 1024,
     fap_category="Tools",
     fap_version="0.6",
     fap_icon="icon.png",
