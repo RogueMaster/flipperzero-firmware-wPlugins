@@ -60,7 +60,6 @@ typedef enum {
     // Work
     StrRegisterFirst,
     StrPinToExit,
-    StrBackToExit,
     StrWelcome,
     StrGoodbye,
     // Badge management

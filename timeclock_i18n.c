@@ -92,8 +92,6 @@ static const char* const S[TcStrCount][TcLangCount] = {
          "Enregistrez\nune personne",
          "Erst Person\nregistrieren"},
     [StrPinToExit] = {"PIN to exit", "PIN per uscire", "PIN para salir", "PIN pour sortir", "PIN zum Ende"},
-    [StrBackToExit] =
-        {"Back to exit", "Back per uscire", "Back para salir", "Back pour sortir", "Back zum Ende"},
     [StrWelcome] = {"Welcome", "Benvenuto", "Bienvenido", "Bienvenue", "Willkommen"},
     [StrGoodbye] = {"Goodbye", "Arrivederci", "Adios", "Au revoir", "Tschuess"},
     // ---- Badge management ----

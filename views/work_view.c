@@ -7,6 +7,7 @@
 struct WorkView {
     View* view;
     WorkViewExitCallback exit_cb;
+    WorkViewNavCallback nav_cb;
     void* context;
 };
 
@@ -45,11 +46,17 @@ static void work_view_draw_callback(Canvas* canvas, void* _model) {
 static bool work_view_input_callback(InputEvent* event, void* context) {
     WorkView* work_view = context;
 
-    // Back triggers the PIN-protected exit; every other key is swallowed so a
-    // collaborator cannot navigate away.
-    if(event->type == InputTypeShort && event->key == InputKeyBack) {
-        if(work_view->exit_cb) work_view->exit_cb(work_view->context);
-        return true;
+    // Back triggers the PIN-protected exit; Left/Right switch the reader
+    // technology; every other key is swallowed so a collaborator cannot
+    // navigate away.
+    if(event->type == InputTypeShort) {
+        if(event->key == InputKeyBack) {
+            if(work_view->exit_cb) work_view->exit_cb(work_view->context);
+        } else if(event->key == InputKeyLeft) {
+            if(work_view->nav_cb) work_view->nav_cb(-1, work_view->context);
+        } else if(event->key == InputKeyRight) {
+            if(work_view->nav_cb) work_view->nav_cb(1, work_view->context);
+        }
     }
     return true; // consume all input
 }
@@ -58,6 +65,7 @@ WorkView* work_view_alloc(void) {
     WorkView* work_view = malloc(sizeof(WorkView));
     work_view->view = view_alloc();
     work_view->exit_cb = NULL;
+    work_view->nav_cb = NULL;
     work_view->context = NULL;
 
     view_allocate_model(work_view->view, ViewModelTypeLocking, sizeof(WorkViewModel));
@@ -125,5 +133,11 @@ void work_view_set_footer(WorkView* work_view, const char* footer) {
 void work_view_set_exit_callback(WorkView* work_view, WorkViewExitCallback cb, void* context) {
     furi_assert(work_view);
     work_view->exit_cb = cb;
+    work_view->context = context;
+}
+
+void work_view_set_nav_callback(WorkView* work_view, WorkViewNavCallback cb, void* context) {
+    furi_assert(work_view);
+    work_view->nav_cb = cb;
     work_view->context = context;
 }

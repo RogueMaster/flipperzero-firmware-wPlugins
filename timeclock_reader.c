@@ -274,6 +274,34 @@ void timeclock_reader_start(TimeclockReader* reader, bool continuous) {
     furi_timer_start(reader->timer, furi_ms_to_ticks(slice_ms));
 }
 
+// ReaderRadio and TimeclockReaderTech share the same ordinal values (both
+// Nfc=0, Rfid=1, IButton=2) by design, so a tech can be assigned to `active`
+// directly.
+void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech) {
+    furi_assert(reader);
+    timeclock_reader_stop(reader); // idempotent: never leak a previous session
+
+    reader->continuous = true;
+    reader->running = true;
+    reader->active = (ReaderRadio)tech;
+    reader_start_active(reader);
+    // No furi_timer_start(): this radio stays active until stop() or the
+    // next start_fixed(), never rotated away automatically.
+}
+
+const char* timeclock_reader_tech_label(TimeclockReaderTech tech) {
+    switch(tech) {
+    case TimeclockReaderTechNfc:
+        return "NFC";
+    case TimeclockReaderTechRfid:
+        return "RFID";
+    case TimeclockReaderTechIButton:
+        return "iBTN";
+    default:
+        return "";
+    }
+}
+
 void timeclock_reader_stop(TimeclockReader* reader) {
     furi_assert(reader);
     furi_timer_stop(reader->timer); // no further rotations will be requested

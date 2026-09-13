@@ -13,6 +13,8 @@
 
 typedef struct WorkView WorkView;
 typedef void (*WorkViewExitCallback)(void* context);
+// direction: -1 = Left, +1 = Right.
+typedef void (*WorkViewNavCallback)(int direction, void* context);
 
 WorkView* work_view_alloc(void);
 void work_view_free(WorkView* work_view);
@@ -29,3 +31,7 @@ void work_view_set_footer(WorkView* work_view, const char* footer);
 
 // Callback invoked when the user presses Back (used to trigger PIN exit).
 void work_view_set_exit_callback(WorkView* work_view, WorkViewExitCallback cb, void* context);
+
+// Callback invoked when the user presses Left/Right (used to switch the
+// active reader technology).
+void work_view_set_nav_callback(WorkView* work_view, WorkViewNavCallback cb, void* context);

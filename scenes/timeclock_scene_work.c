@@ -10,8 +10,11 @@
 // captured and leaving Work mode requires the PIN. Every punch is appended to
 // punches.csv immediately (nothing lost).
 //
-// Reading is done by the shared TimeclockReader in continuous mode, rotating
-// through NFC, LF RFID and iButton (one at a time, no manual reader selection).
+// Reading is done by the shared TimeclockReader locked to one technology at a
+// time (Left/Right to switch NFC/RFID/iButton) instead of rotating through
+// all three automatically - a long-running automatic rotation proved fragile
+// in practice (see timeclock_reader.h/.c), so here the operator just picks
+// whichever technology their badges use, same as the very first releases.
 //
 // Requires: at least one registered collaborator. A PIN is optional - if one
 // is set, leaving Work mode asks for it; if not, Back leaves immediately.
@@ -33,10 +36,17 @@
 typedef struct {
     TimeClock* app;
     TimeclockReader* reader;
+    TimeclockReaderTech tech;
     uint32_t last_punch_tick;
     uint32_t greeting_until;
     char last_uid[TC_UID_STR_MAX];
 } WorkCtx;
+
+static void work_update_footer(TimeClock* app, WorkCtx* ctx) {
+    char footer[24];
+    snprintf(footer, sizeof(footer), "< %s >", timeclock_reader_tech_label(ctx->tech));
+    work_view_set_footer(app->work_view, footer);
+}
 
 // Reader callback (GUI thread): debounce, then log the punch and greet.
 static void work_on_uid(const char* uid_hex, const char* tech, void* context) {
@@ -73,6 +83,20 @@ static void work_on_uid(const char* uid_hex, const char* tech, void* context) {
 static void work_view_exit_cb(void* context) {
     TimeClock* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, TimeClockCustomEventWorkExit);
+}
+
+// Left/Right (GUI thread, via the view's input callback): switch technology.
+static void work_view_nav_cb(int direction, void* context) {
+    TimeClock* app = context;
+    WorkCtx* ctx =
+        (WorkCtx*)(uintptr_t)scene_manager_get_scene_state(app->scene_manager, TimeClockSceneWork);
+    if(!ctx) return;
+
+    int next = ((int)ctx->tech + direction + TimeclockReaderTechCount) % TimeclockReaderTechCount;
+    ctx->tech = (TimeclockReaderTech)next;
+    ctx->last_uid[0] = '\0'; // fresh technology, fresh debounce state
+    timeclock_reader_start_fixed(ctx->reader, ctx->tech);
+    work_update_footer(app, ctx);
 }
 
 static void work_bounce_popup_cb(void* context) {
@@ -112,6 +136,7 @@ void timeclock_scene_work_on_enter(void* context) {
         ctx = malloc(sizeof(WorkCtx));
         memset(ctx, 0, sizeof(WorkCtx));
         ctx->app = app;
+        ctx->tech = TimeclockReaderTechNfc;
         ctx->reader = timeclock_reader_alloc(app->view_dispatcher);
         timeclock_reader_set_callback(ctx->reader, work_on_uid, ctx);
         scene_manager_set_scene_state(
@@ -119,13 +144,13 @@ void timeclock_scene_work_on_enter(void* context) {
     }
 
     work_view_set_exit_callback(app->work_view, work_view_exit_cb, app);
-    work_view_set_footer(
-        app->work_view, app->config.pin_enabled ? tc_str(StrPinToExit) : tc_str(StrBackToExit));
+    work_view_set_nav_callback(app->work_view, work_view_nav_cb, app);
+    work_update_footer(app, ctx);
     work_view_set_greeting(app->work_view, NULL);
     work_update_clock(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewWork);
 
-    timeclock_reader_start(ctx->reader, true);
+    timeclock_reader_start_fixed(ctx->reader, ctx->tech);
 }
 
 bool timeclock_scene_work_on_event(void* context, SceneManagerEvent event) {

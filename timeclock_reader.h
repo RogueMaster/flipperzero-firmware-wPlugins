@@ -6,13 +6,20 @@
 // =============================================================================
 // Shared badge reader.
 //
-// The three technologies are scanned in a round-robin: one radio is active per
-// time slice and a timer rotates NFC -> RFID -> iButton, so only one radio is
-// powered at a time (light on RAM and the RF front end) while all three still
-// work with no manual selection.
+// Three technologies are supported:
 //   NFC (13.56 MHz): ISO14443-3A poller (MIFARE Classic/Ultralight, NTAG, ...).
 //   LF RFID (125 kHz): the lfrfid worker in auto mode (EM4100, HID, Indala, ...).
 //   iButton (1-Wire): the ibutton worker (DS1990A / Dallas keys, ...).
+//
+// timeclock_reader_start() round-robins all three on a timer (one radio at a
+// time, lighter on RAM/RF than all three at once) for short single-shot scans
+// (Punch, register, replace chip), where a session lasts a few seconds at
+// most. timeclock_reader_start_fixed() instead runs exactly one technology,
+// picked by the caller, with no rotation timer at all - meant for a scan that
+// stays open for a long time (Work mode). Rotating forever there proved
+// fragile in practice (the repeated radio alloc/free eventually wedged the
+// device even at a slow rate), so the long-running case trades automatic
+// technology detection for a Left/Right technology picker in the UI instead.
 //
 // The reader only reads the identifier (UID); it never writes to or emulates a
 // card. Any existing badge works as an identity token - even one already used
@@ -29,6 +36,17 @@
 #include "timeclock_storage.h" // TC_UID_STR_MAX, TC_TECH_MAX
 
 typedef struct TimeclockReader TimeclockReader;
+
+// A single radio technology, for timeclock_reader_start_fixed().
+typedef enum {
+    TimeclockReaderTechNfc = 0,
+    TimeclockReaderTechRfid,
+    TimeclockReaderTechIButton,
+    TimeclockReaderTechCount,
+} TimeclockReaderTech;
+
+// Short display label for a technology ("NFC" / "RFID" / "iBTN").
+const char* timeclock_reader_tech_label(TimeclockReaderTech tech);
 
 // Invoked (on the GUI thread) when a UID has been read. uid_hex is uppercase
 // hex ("04A1B2C3D4"); tech is "NFC", "RFID" or "iBTN" (whichever detected it).
@@ -50,6 +68,13 @@ void timeclock_reader_set_callback(
 // fast forever wedges the device (see timeclock_reader.c). Safe to call again
 // after stop().
 void timeclock_reader_start(TimeclockReader* reader, bool continuous);
+
+// Start reading using only the given technology - no rotation, no timer, the
+// same radio stays allocated until stop() is called. Always continuous (the
+// caller keeps scanning until it decides to leave). Safe to call again after
+// stop(), and safe to call directly to switch technology without stopping
+// first (it stops the previous radio itself).
+void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech);
 
 // Stop and release the radio (the reader object itself stays valid).
 void timeclock_reader_stop(TimeclockReader* reader);
