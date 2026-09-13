@@ -1,6 +1,6 @@
-# Contributing to Time Clock
+# Contributing to Staff Time Clock
 
-Thanks for your interest in improving Time Clock! This document explains how to
+Thanks for your interest in improving Staff Time Clock! This document explains how to
 build the app, the conventions we follow, and how to propose changes.
 
 ## Ground rules

@@ -1,8 +1,8 @@
-# Time Clock - Flipper Zero
+# Staff Time Clock - Flipper Zero
 
-[![Build & Release](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-timeclock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
-[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-timeclock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
+[![Build & Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
+[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Languages](https://img.shields.io/badge/lang-EN%20%7C%20IT%20%7C%20ES%20%7C%20FR%20%7C%20DE-blue)](#)
 
@@ -15,10 +15,11 @@ und jede Stempelung wird mit Datum und Uhrzeit auf der microSD als CSV
 gespeichert, das du in Excel oeffnen kannst. Laeuft eigenstaendig, ohne Telefon
 oder PC.
 
-Der Leser ist **vollautomatisch**: NFC, RFID und iButton werden gleichzeitig
-gelesen, du waehlst also nie eine Technologie. Im selben Betrieb kann eine Person
-einen NFC-Ausweis tragen, eine andere einen RFID-Anhaenger und eine weitere einen
-iButton - alle funktionieren.
+Der Leser ist **vollautomatisch**: er liest NFC, RFID und iButton **abwechselnd**
+(einen nach dem anderen), du waehlst also nie eine Technologie. Im selben Betrieb
+kann eine Person einen NFC-Ausweis tragen, eine andere einen RFID-Anhaenger und
+eine weitere einen iButton - alle funktionieren; halte den Ausweis etwa eine
+Sekunde daran.
 
 **Auch eine Karte, die die Person schon hat, geht.** Da die App **nur die UID**
 liest und nichts auf die Karte schreibt, kann ein bereits bei einer anderen Firma
@@ -58,9 +59,13 @@ Flipper-artige Mockups der Hauptbildschirme (128x64):
 - **Stempeln** durch Anhalten eines Ausweises - bekannte Ausweise werden per UID
   erkannt.
 - **Automatischer Multi-Technologie-Leser**: **NFC** (13.56 MHz), **RFID LF**
-  (125 kHz) und **iButton** (1-Wire Dallas-Keys) werden gleichzeitig gelesen.
-  **Keine Leser-Einstellung** - wer den Ausweis zuerst erkennt, gewinnt, also
+  (125 kHz) und **iButton** (1-Wire Dallas-Keys) **abwechselnd** gelesen (einer
+  nach dem anderen, schont den Speicher). **Keine Leser-Einstellung**, also
   arbeiten NFC, RFID und iButton in derselben Installation nebeneinander.
+- **Manuelle Korrektur**: **IN hinzu** / **OUT hinzu** beim Ausweis einer Person
+  fuegt einen fehlenden Stempel zur aktuellen Zeit hinzu.
+- **Schichten ueber Mitternacht** korrekt gezaehlt; optionales **Tagesziel** mit
+  **Ueberstunden** in Heute; **Monat als CSV exportieren**.
 - **Funktioniert mit vorhandenen Karten**: da nur die UID gelesen (nie
   geschrieben) wird, kann eine bereits anderswo - auch bei einer anderen Firma -
   genutzte Karte ohne Veraenderung registriert und genutzt werden.
@@ -144,7 +149,7 @@ ufbt launch
 ```
 
 Die gebaute `.fap` liegt in `dist/`. Du kannst sie auch per qFlipper nach
-`SD Card/apps/Tools/` kopieren und ueber **Apps -> Tools -> Time Clock** starten.
+`SD Card/apps/Tools/` kopieren und ueber **Apps -> Tools -> Staff Time Clock** starten.
 
 > **Firmware-Hinweis.** Die Funkschicht liegt in `timeclock_reader.c` (NFC ueber
 > den ISO14443-3A-Poller - MIFARE Classic/Ultralight, NTAG, DESFire - der
@@ -154,7 +159,7 @@ Die gebaute `.fap` liegt in `dist/`. Du kannst sie auch per qFlipper nach
 
 ## Kompatibilitaet
 
-Time Clock laeuft auf der **offiziellen** Flipper-Zero-Firmware und den beliebten
+Staff Time Clock laeuft auf der **offiziellen** Flipper-Zero-Firmware und den beliebten
 Custom-Firmwares. Eine FAP wird gegen die API einer bestimmten Firmware gebaut,
 daher liefert jede Release **eine `.fap` pro Firmware** - lade die passende:
 
@@ -216,7 +221,7 @@ Beitraege sind willkommen - siehe [CONTRIBUTING.md](CONTRIBUTING.md) und den
 
 ## Unterstuetzen
 
-Wenn dir Time Clock nuetzlich ist, kannst du die Entwicklung unterstuetzen:
+Wenn dir Staff Time Clock nuetzlich ist, kannst du die Entwicklung unterstuetzen:
 
 [![Auf GitHub sponsern](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/vladpereverzyev)
 [![Auf Ko-fi unterstuetzen](https://img.shields.io/badge/Ko--fi-Kaffee%20spendieren-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/vladpereverzyev)

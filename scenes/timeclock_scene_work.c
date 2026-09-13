@@ -10,8 +10,8 @@
 // captured and leaving Work mode requires the PIN. Every punch is appended to
 // punches.csv immediately (nothing lost).
 //
-// Reading is done by the shared TimeclockReader in continuous mode, with NFC,
-// LF RFID and iButton all active at once (no manual reader selection).
+// Reading is done by the shared TimeclockReader in continuous mode, rotating
+// through NFC, LF RFID and iButton (one at a time, no manual reader selection).
 //
 // Requires: at least one registered collaborator AND a configured PIN.
 // =============================================================================

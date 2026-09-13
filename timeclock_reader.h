@@ -6,11 +6,13 @@
 // =============================================================================
 // Shared badge reader.
 //
-// NFC (13.56 MHz): ISO14443-3A poller - reads the UID of MIFARE Classic/
-// Ultralight, NTAG, DESFire and other ISO14443-A cards. This is the stable,
-// proven path.
-// LF RFID (125 kHz): the lfrfid worker in auto mode (EM4100, HID, Indala, ...).
-// iButton (1-Wire): the ibutton worker (DS1990A / Dallas keys, ...).
+// The three technologies are scanned in a round-robin: one radio is active per
+// time slice and a timer rotates NFC -> RFID -> iButton, so only one radio is
+// powered at a time (light on RAM and the RF front end) while all three still
+// work with no manual selection.
+//   NFC (13.56 MHz): ISO14443-3A poller (MIFARE Classic/Ultralight, NTAG, ...).
+//   LF RFID (125 kHz): the lfrfid worker in auto mode (EM4100, HID, Indala, ...).
+//   iButton (1-Wire): the ibutton worker (DS1990A / Dallas keys, ...).
 //
 // The reader only reads the identifier (UID); it never writes to or emulates a
 // card. Any existing badge works as an identity token - even one already used
@@ -40,11 +42,11 @@ void timeclock_reader_set_callback(
     TimeclockReaderCallback callback,
     void* context);
 
-// Start reading. All three radios (NFC, LF RFID, iButton) run at once and the
-// first one to detect a badge wins - no manual reader selection, so NFC, RFID
-// and iButton badges all work side by side in the same deployment. continuous
-// keeps reading after each UID (Work mode) instead of stopping after the first
-// (single punch). Safe to call again after stop().
+// Start reading. NFC, LF RFID and iButton are scanned in rotation (one per
+// slice) with no manual reader selection, so all three badge types work side by
+// side in the same deployment. continuous keeps reading after each UID (Work
+// mode) instead of stopping after the first (single punch). Safe to call again
+// after stop().
 void timeclock_reader_start(TimeclockReader* reader, bool continuous);
 
 // Stop and release the radio (the reader object itself stays valid).

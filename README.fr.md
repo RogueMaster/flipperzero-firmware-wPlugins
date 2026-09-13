@@ -1,8 +1,8 @@
-# Time Clock - Flipper Zero
+# Staff Time Clock - Flipper Zero
 
-[![Build & Release](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-timeclock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
-[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-timeclock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
+[![Build & Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
+[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Languages](https://img.shields.io/badge/lang-EN%20%7C%20IT%20%7C%20ES%20%7C%20FR%20%7C%20DE-blue)](#)
 
@@ -14,10 +14,10 @@ chaque personne un badge - **NFC**, **RFID** ou **iButton** - approchez-le, et
 chaque pointage est enregistre avec date et heure sur la microSD au format CSV
 ouvrable dans Excel. Fonctionne en autonomie, sans telephone ni PC.
 
-Le lecteur est **entierement automatique**: NFC, RFID et iButton sont lus en meme
-temps, vous ne choisissez jamais la technologie. Dans une meme entreprise une
-personne peut avoir un badge NFC, une autre un porte-cles RFID et une autre un
-iButton, et tout fonctionne.
+Le lecteur est **entierement automatique**: il lit NFC, RFID et iButton **a tour
+de role** (un a la fois), vous ne choisissez jamais la technologie. Dans une meme
+entreprise une personne peut avoir un badge NFC, une autre un porte-cles RFID et
+une autre un iButton, et tout fonctionne - approchez le badge environ une seconde.
 
 **Une carte que la personne possede deja convient aussi.** Comme l'app **lit
 seulement l'UID** et n'ecrit rien sur la carte, un badge deja utilise dans une
@@ -55,9 +55,13 @@ Maquettes facon Flipper des ecrans principaux (128x64):
 
 - **Pointer** en approchant un badge - les badges connus sont reconnus par UID.
 - **Lecteur multi-technologie automatique**: **NFC** (13.56 MHz), **RFID LF**
-  (125 kHz) et **iButton** (cles Dallas 1-Wire) sont lus en meme temps. **Aucun
-  reglage de lecteur** - le premier qui detecte le badge gagne, donc NFC, RFID et
+  (125 kHz) et **iButton** (cles Dallas 1-Wire) lus **a tour de role** (un a la
+  fois, plus leger en memoire). **Aucun reglage de lecteur**, donc NFC, RFID et
   iButton coexistent dans la meme installation.
+- **Correction manuelle**: **Ajouter IN** / **Ajouter OUT** depuis le badge d'une
+  personne ajoute un pointage manquant a l'heure actuelle.
+- **Postes passant minuit** bien comptes; **objectif journalier** optionnel avec
+  **heures sup** dans Aujourd'hui; **export du mois** en CSV.
 - **Fonctionne avec des cartes existantes**: en ne lisant que l'UID (jamais
   d'ecriture), une carte deja utilisee ailleurs - meme d'une autre entreprise -
   peut etre enregistree et utilisee sans la modifier.
@@ -153,7 +157,7 @@ Clock**.
 
 ## Compatibilite
 
-Time Clock fonctionne sur le firmware **officiel** du Flipper Zero et sur les fork
+Staff Time Clock fonctionne sur le firmware **officiel** du Flipper Zero et sur les fork
 populaires. Un FAP est compile pour l'API d'un firmware precis, donc chaque
 Release fournit **un `.fap` par firmware** - telechargez celui qui correspond:
 
@@ -215,7 +219,7 @@ Les contributions sont bienvenues - voir [CONTRIBUTING.md](CONTRIBUTING.md) et l
 
 ## Soutenir
 
-Si Time Clock vous est utile, vous pouvez soutenir le developpement:
+Si Staff Time Clock vous est utile, vous pouvez soutenir le developpement:
 
 [![Sponsor sur GitHub](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/vladpereverzyev)
 [![Offrir un cafe sur Ko-fi](https://img.shields.io/badge/Ko--fi-Offrir%20un%20cafe-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/vladpereverzyev)

@@ -1,8 +1,8 @@
-# Time Clock - Flipper Zero
+# Staff Time Clock - Flipper Zero
 
-[![Build & Release](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-timeclock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
-[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-timeclock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
+[![Build & Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
+[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Languages](https://img.shields.io/badge/lang-EN%20%7C%20IT%20%7C%20ES%20%7C%20FR%20%7C%20DE-blue)](#)
 
@@ -14,9 +14,10 @@ person a badge - **NFC**, **RFID** or **iButton** - tap it, and every punch is
 timestamped and stored on the microSD card as a CSV timesheet you can open in
 Excel. It works fully standalone - no phone or PC required.
 
-The reader is **fully automatic**: NFC, RFID and iButton are all read at the same
-time, so you never pick a technology. In one workplace one person can carry an NFC
-badge, another an RFID fob and another an iButton key, and they all just work.
+The reader is **fully automatic**: it scans NFC, RFID and iButton **in rotation**
+(one at a time), so you never pick a technology. In one workplace one person can
+carry an NFC badge, another an RFID fob and another an iButton key, and they all
+just work - hold a badge for about a second and it is caught.
 
 **Any card the person already has works too.** Because the app only **reads the
 UID** and never writes anything to the card, a badge already in use with another
@@ -54,8 +55,8 @@ Flipper-style mockups of the main screens (128x64):
 
 - **Punch** by tapping a badge - recognized badges are matched by UID.
 - **Automatic multi-technology reader**: **NFC** (13.56 MHz), **LF RFID**
-  (125 kHz) and **iButton** (1-Wire Dallas keys) are all read at once. There is
-  **no reader setting** - whichever one detects the badge first wins, so NFC,
+  (125 kHz) and **iButton** (1-Wire Dallas keys) are scanned **in rotation** (one
+  radio at a time - lighter on memory). There is **no reader setting**, so NFC,
   RFID and iButton badges work side by side in the same deployment.
 - **Works with existing cards**: since only the UID is read (never written), a
   card already used elsewhere - even one issued by another company - can be
@@ -66,8 +67,14 @@ Flipper-style mockups of the main screens (128x64):
 - **Manage collaborators (badges)**: rename, **replace the chip** if it is lost
   (keeps the person's name and history, only the chip changes), view per-person
   history, **undo the last punch** (fix a mistake), delete (history is kept).
+- **Manual correction**: **Add IN** / **Add OUT** from a person's badge adds a
+  missing punch at the current time, to fix a forgotten tap or a wrong state.
 - **Automatic IN/OUT**: tapping a badge alternates automatically (first tap IN,
   then OUT, then IN, ...) - no manual choice, the punch is logged instantly.
+- **Overnight shifts** are counted correctly: an OUT after midnight closes the
+  IN from the previous evening, and the worked time counts on the start day.
+- **Daily target hours** (optional, in Settings): the Today summary then shows
+  the target and the **overtime** or shortfall.
 - **Feedback on punch**: distinct **sound**, **vibration** and **LED** for IN vs
   OUT (ascending tone + 1 buzz + green for IN; descending tone + 2 buzzes + blue
   for OUT), so a tap tells you which one it was. Each is toggleable in Settings
@@ -77,8 +84,8 @@ Flipper-style mockups of the main screens (128x64):
   a **This week** summary (worked time per day + weekly total) and a **This
   month** summary (worked time per collaborator).
 - **Storage on microSD** as plain CSV, plus **JSON export**, **dated CSV
-  snapshots**, a **Backup** (timestamped copy of badges + punches) and
-  **Restore** (reload badges + punches from a saved backup).
+  snapshots**, **monthly CSV export** (`punches-YYYY-MM.csv`), a **Backup**
+  (timestamped copy of badges + punches) and **Restore** (reload from a backup).
 - **Protected mode (PIN)**: optional 4-step **arrow-sequence** code (Up / Down /
   Left / Right - fast to enter) that gates leaving the app; you are offered to
   set it on first launch, or later in Settings.
@@ -106,6 +113,7 @@ Everything is stored on the microSD under `/ext/apps_data/timeclock/`:
 | `config.txt`  | Settings + PIN **hash** and salt (never the PIN itself)         |
 | `export.json` | JSON export of the history (generated by *Export -> Export JSON*) |
 | `punches-YYYY-MM-DD.csv` | Dated CSV snapshot (*Export -> Export CSV*)          |
+| `punches-YYYY-MM.csv` | Monthly CSV export (*Export -> Export month*)          |
 | `backup/`     | Timestamped copies of badges + punches (*Export -> Backup*)     |
 
 `punches.csv` is the internal timesheet: every clock in/out for every
@@ -142,7 +150,7 @@ ufbt launch
 ```
 
 The built `.fap` lands in `dist/`. You can also copy it to
-`SD Card/apps/Tools/` via qFlipper and run it from **Apps -> Tools -> Time Clock**.
+`SD Card/apps/Tools/` via qFlipper and run it from **Apps -> Tools -> Staff Time Clock**.
 
 > **Firmware note.** The radio layer lives in `timeclock_reader.c` (NFC via the
 > ISO14443-3A poller - MIFARE Classic/Ultralight, NTAG, DESFire - the LF RFID
@@ -152,7 +160,7 @@ The built `.fap` lands in `dist/`. You can also copy it to
 
 ## Compatibility
 
-Time Clock works on the **official** Flipper Zero firmware and on the popular
+Staff Time Clock works on the **official** Flipper Zero firmware and on the popular
 custom firmwares. A FAP is compiled against a specific firmware API, so each
 GitHub Release ships **one `.fap` per firmware** - just download the one that
 matches what you run:
@@ -207,6 +215,17 @@ timeclock/
 - **v1.1 / v1.2** - weekly summary, break calculation and history filters (done).
 - **v2.0** - backup & restore (done); next: Bluetooth sync, companion app, import.
 
+## Flipper App Catalog
+
+A ready-to-submit catalog manifest lives in [catalog/manifest.yml](catalog/manifest.yml)
+and the version history in [changelog.md](changelog.md). To publish on
+[apps.flipper.net](https://apps.flipper.net): fork the
+[flipper-application-catalog](https://github.com/flipperdevices/flipper-application-catalog),
+copy the manifest to `applications/Tools/timeclock/manifest.yml`, set its
+`commit_sha` to the tagged release commit, add real qFlipper screenshots (see
+[screenshots/README.md](screenshots/README.md)), and open a pull request. The app
+builds with the latest `ufbt` Release SDK (target f7).
+
 ## Contributing
 
 Contributions are welcome - see [CONTRIBUTING.md](CONTRIBUTING.md) and the
@@ -214,7 +233,7 @@ Contributions are welcome - see [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 ## Support
 
-If Time Clock is useful to you, you can support development:
+If Staff Time Clock is useful to you, you can support development:
 
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/vladpereverzyev)
 [![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/vladpereverzyev)

@@ -106,9 +106,8 @@ void timeclock_notify_punch(TimeClock* app, TcEventType type) {
     }
 }
 
-TcEventType timeclock_record_punch(TimeClock* app, int badge_index) {
+void timeclock_record_punch_type(TimeClock* app, int badge_index, TcEventType type) {
     Badge* b = &app->badges[badge_index];
-    TcEventType type = (b->last_event == TcEventIn) ? TcEventOut : TcEventIn;
 
     char date[TC_DT_MAX];
     char time[8];
@@ -124,6 +123,12 @@ TcEventType timeclock_record_punch(TimeClock* app, int badge_index) {
     tc_badges_save(app->badges, app->badge_count);
 
     timeclock_notify_punch(app, type);
+}
+
+TcEventType timeclock_record_punch(TimeClock* app, int badge_index) {
+    Badge* b = &app->badges[badge_index];
+    TcEventType type = (b->last_event == TcEventIn) ? TcEventOut : TcEventIn;
+    timeclock_record_punch_type(app, badge_index, type);
     return type;
 }
 

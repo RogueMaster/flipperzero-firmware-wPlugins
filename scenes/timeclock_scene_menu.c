@@ -26,7 +26,7 @@ void timeclock_scene_menu_on_enter(void* context) {
     Submenu* submenu = app->submenu;
 
     submenu_reset(submenu);
-    submenu_set_header(submenu, "Time Clock");
+    submenu_set_header(submenu, "Staff Time Clock");
     submenu_add_item(
         submenu, tc_str(StrPunch), MenuIndexPunch, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(

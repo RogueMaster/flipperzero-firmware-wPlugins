@@ -11,16 +11,29 @@ typedef enum {
     ActionVibro,
     ActionLed,
     ActionLanguage,
+    ActionTarget,
     ActionSetPin,
     ActionChangePin,
     ActionDisablePin,
     ActionExit,
 } SettingsAction;
 
+// Selectable daily target presets in minutes (0 = off), cycled on tap.
+static const uint32_t TARGET_PRESETS[] = {0, 360, 420, 480, 510, 540};
+#define TARGET_PRESET_COUNT (sizeof(TARGET_PRESETS) / sizeof(TARGET_PRESETS[0]))
+
+static uint32_t settings_next_target(uint32_t current) {
+    for(size_t i = 0; i < TARGET_PRESET_COUNT; i++) {
+        if(TARGET_PRESETS[i] == current) return TARGET_PRESETS[(i + 1) % TARGET_PRESET_COUNT];
+    }
+    return TARGET_PRESETS[0];
+}
+
 static char sound_lbl[28];
 static char vibro_lbl[28];
 static char led_lbl[28];
 static char lang_lbl[28];
+static char target_lbl[28];
 
 static void timeclock_scene_settings_submenu_callback(void* context, uint32_t index) {
     TimeClock* app = context;
@@ -45,6 +58,17 @@ static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
         "%s: %s",
         tc_str(StrLanguage),
         tc_lang_name((TcLang)app->config.language));
+    if(app->config.daily_target == 0) {
+        snprintf(target_lbl, sizeof(target_lbl), "%s: %s", tc_str(StrTarget), off);
+    } else {
+        snprintf(
+            target_lbl,
+            sizeof(target_lbl),
+            "%s: %lu:%02lu",
+            tc_str(StrTarget),
+            (unsigned long)(app->config.daily_target / 60),
+            (unsigned long)(app->config.daily_target % 60));
+    }
 
     submenu_add_item(
         submenu, sound_lbl, ActionSound, timeclock_scene_settings_submenu_callback, app);
@@ -53,6 +77,8 @@ static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
     submenu_add_item(submenu, led_lbl, ActionLed, timeclock_scene_settings_submenu_callback, app);
     submenu_add_item(
         submenu, lang_lbl, ActionLanguage, timeclock_scene_settings_submenu_callback, app);
+    submenu_add_item(
+        submenu, target_lbl, ActionTarget, timeclock_scene_settings_submenu_callback, app);
 
     if(!app->config.pin_enabled) {
         submenu_add_item(
@@ -111,6 +137,11 @@ bool timeclock_scene_settings_on_event(void* context, SceneManagerEvent event) {
             tc_lang_set((TcLang)app->config.language);
             tc_config_save(&app->config);
             timeclock_scene_settings_build(app, 3);
+            break;
+        case ActionTarget:
+            app->config.daily_target = settings_next_target(app->config.daily_target);
+            tc_config_save(&app->config);
+            timeclock_scene_settings_build(app, 4);
             break;
         case ActionSetPin:
             app->pin_mode = TcPinModeSetNew;

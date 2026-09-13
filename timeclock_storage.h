@@ -53,6 +53,7 @@ typedef struct {
     uint32_t attempts; // consecutive wrong PIN attempts
     bool onboarded; // first-launch onboarding already shown
     uint32_t language; // UI language index (see TcLang)
+    uint32_t daily_target; // expected minutes worked per day (0 = off/no target)
 } TcConfig;
 
 // ---- File paths ------------------------------------------------------------
@@ -146,6 +147,10 @@ void tc_now_stamp(char* out, size_t out_size);
 // Copy punches.csv to a dated snapshot punches-YYYY-MM-DD.csv. On success,
 // out_name receives the file name. Returns true on success.
 bool tc_export_csv_dated(char* out_name, size_t out_size);
+
+// Copy only the current month's rows to punches-YYYY-MM.csv. On success out_name
+// receives the file name. Returns true if at least one row was written.
+bool tc_export_month_csv(char* out_name, size_t out_size);
 
 // Copy badges.csv and punches.csv into a timestamped backup under backup/.
 // out receives a short label. Returns true if at least one file was copied.

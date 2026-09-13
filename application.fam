@@ -3,14 +3,15 @@
 
 App(
     appid="timeclock",
-    name="Time Clock",
+    name="Staff Time Clock",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="timeclock_app",
     stack_size=4 * 1024,
     fap_category="Tools",
     fap_author="Vladyslav Pereverzyev",
-    fap_version="2.2.1",
-    fap_description="Staff time-clock for Flipper Zero (official and custom firmwares): register collaborators on NFC, RFID or iButton badges and log clock in/out to a CSV timesheet. The reader auto-detects all three at once (no selecting), and any existing card works - even one from another company - since only the UID is read. Identification only: no badge emulation, no authentication bypass.",
+    fap_version="2.3.0",
+    fap_description="Staff time-clock for Flipper Zero (official and custom firmwares): register collaborators on NFC, RFID or iButton badges and log clock in/out to a CSV timesheet. The reader auto-detects all three (no selecting), and any existing card works - even one from another company - since only the UID is read. Identification only: no badge emulation, no authentication bypass.",
+    fap_weburl="https://github.com/vladpereverzyev/flipper-staff-time-clock",
     fap_icon="timeclock_10px.png", # 10x10 px, 1-bit clock icon
     requires=[
         "gui",

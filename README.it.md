@@ -1,8 +1,8 @@
-# Time Clock - Flipper Zero
+# Staff Time Clock - Flipper Zero
 
-[![Build & Release](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-timeclock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
-[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-timeclock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
+[![Build & Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
+[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Languages](https://img.shields.io/badge/lang-EN%20%7C%20IT%20%7C%20ES%20%7C%20FR%20%7C%20DE-blue)](#)
 
@@ -14,10 +14,10 @@ persona un badge - **NFC**, **RFID** o **iButton** - lo avvicini, e ogni
 timbratura viene salvata con data e ora sulla microSD come foglio CSV apribile in
 Excel. Funziona in totale autonomia, senza telefono ne PC.
 
-Il lettore e **completamente automatico**: NFC, RFID e iButton vengono letti tutti
-insieme, non devi mai scegliere la tecnologia. Nella stessa azienda una persona
-puo avere un badge NFC, un'altra un portachiavi RFID e un'altra un iButton, e
-funzionano tutti.
+Il lettore e **completamente automatico**: legge NFC, RFID e iButton **a
+rotazione** (uno alla volta), non devi mai scegliere la tecnologia. Nella stessa
+azienda una persona puo avere un badge NFC, un'altra un portachiavi RFID e
+un'altra un iButton, e funzionano tutti - tieni il badge vicino circa un secondo.
 
 **Va bene anche una tessera che la persona ha gia.** Poiche l'app **legge solo
 l'UID** e non scrive nulla sulla tessera, un badge gia usato con un'altra azienda
@@ -54,9 +54,13 @@ Mockup in stile Flipper delle schermate principali (128x64):
 
 - **Timbra** avvicinando un badge - i badge noti sono riconosciuti tramite UID.
 - **Lettore multi-tecnologia automatico**: **NFC** (13.56 MHz), **RFID LF**
-  (125 kHz) e **iButton** (chiavi Dallas 1-Wire) vengono letti tutti insieme.
-  **Nessuna impostazione del lettore** - vince il primo che rileva il badge,
-  quindi NFC, RFID e iButton convivono nella stessa installazione.
+  (125 kHz) e **iButton** (chiavi Dallas 1-Wire) letti **a rotazione** (uno alla
+  volta, piu leggero sulla memoria). **Nessuna impostazione del lettore**, quindi
+  NFC, RFID e iButton convivono nella stessa installazione.
+- **Correzione manuale**: **Aggiungi IN** / **Aggiungi OUT** dal badge di una
+  persona aggiunge una timbratura mancante all'ora attuale.
+- **Turni oltre la mezzanotte** contati bene; **obiettivo ore giornaliero**
+  opzionale con **straordinario** mostrato in Oggi; **esporta il mese** in CSV.
 - **Funziona con tessere esistenti**: leggendo solo l'UID (mai scrivendo), una
   tessera gia usata altrove - anche di un'altra azienda - puo essere registrata e
   usata senza alterarla.
@@ -141,7 +145,7 @@ ufbt launch
 ```
 
 Il `.fap` compilato finisce in `dist/`. Puoi anche copiarlo in
-`SD Card/apps/Tools/` con qFlipper e avviarlo da **Apps -> Tools -> Time Clock**.
+`SD Card/apps/Tools/` con qFlipper e avviarlo da **Apps -> Tools -> Staff Time Clock**.
 
 > **Nota firmware.** Il layer radio e in `timeclock_reader.c` (NFC col poller
 > ISO14443-3A - MIFARE Classic/Ultralight, NTAG, DESFire - il worker LF RFID a
@@ -151,7 +155,7 @@ Il `.fap` compilato finisce in `dist/`. Puoi anche copiarlo in
 
 ## Compatibilita
 
-Time Clock funziona sul firmware **ufficiale** del Flipper Zero e sui fork piu
+Staff Time Clock funziona sul firmware **ufficiale** del Flipper Zero e sui fork piu
 diffusi. Un FAP e compilato per l'API di uno specifico firmware, quindi ogni
 Release fornisce **un `.fap` per firmware** - scarica quello adatto al tuo:
 
@@ -212,7 +216,7 @@ I contributi sono benvenuti - vedi [CONTRIBUTING.md](CONTRIBUTING.md) e il
 
 ## Sostieni
 
-Se Time Clock ti e utile, puoi sostenere lo sviluppo:
+Se Staff Time Clock ti e utile, puoi sostenere lo sviluppo:
 
 [![Sponsor su GitHub](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/vladpereverzyev)
 [![Offri un caffe su Ko-fi](https://img.shields.io/badge/Ko--fi-Offri%20un%20caffe-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/vladpereverzyev)

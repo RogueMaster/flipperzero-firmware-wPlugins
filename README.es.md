@@ -1,8 +1,8 @@
-# Time Clock - Flipper Zero
+# Staff Time Clock - Flipper Zero
 
-[![Build & Release](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-timeclock/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-timeclock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
-[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-timeclock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-timeclock/releases)
+[![Build & Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
+[![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Languages](https://img.shields.io/badge/lang-EN%20%7C%20IT%20%7C%20ES%20%7C%20FR%20%7C%20DE-blue)](#)
 
@@ -14,9 +14,10 @@ persona una tarjeta - **NFC**, **RFID** o **iButton** - la acercas, y cada ficha
 se guarda con fecha y hora en la microSD como hoja CSV que puedes abrir en Excel.
 Funciona de forma autonoma, sin telefono ni PC.
 
-El lector es **totalmente automatico**: NFC, RFID e iButton se leen a la vez, asi
-que nunca eliges la tecnologia. En la misma empresa una persona puede llevar una
-tarjeta NFC, otra un llavero RFID y otra un iButton, y todos funcionan.
+El lector es **totalmente automatico**: lee NFC, RFID e iButton **por turnos**
+(uno a la vez), asi que nunca eliges la tecnologia. En la misma empresa una
+persona puede llevar una tarjeta NFC, otra un llavero RFID y otra un iButton, y
+todos funcionan - acerca la tarjeta cerca de un segundo.
 
 **Tambien sirve una tarjeta que la persona ya tenga.** Como la app **solo lee el
 UID** y no escribe nada en la tarjeta, un carnet ya usado con otra empresa (tarjeta
@@ -53,9 +54,13 @@ Maquetas estilo Flipper de las pantallas principales (128x64):
 
 - **Fichar** acercando una tarjeta - las tarjetas conocidas se reconocen por UID.
 - **Lector multi-tecnologia automatico**: **NFC** (13.56 MHz), **RFID LF**
-  (125 kHz) e **iButton** (llaves Dallas 1-Wire) se leen a la vez. **Sin ajuste
-  de lector** - gana el primero que detecta la tarjeta, asi NFC, RFID e iButton
+  (125 kHz) e **iButton** (llaves Dallas 1-Wire) leidos **por turnos** (uno a la
+  vez, mas ligero en memoria). **Sin ajuste de lector**, asi NFC, RFID e iButton
   conviven en la misma instalacion.
+- **Correccion manual**: **Anadir IN** / **Anadir OUT** desde la tarjeta de una
+  persona anade un fichaje que falta a la hora actual.
+- **Turnos pasada la medianoche** bien contados; **objetivo diario** opcional con
+  **horas extra** en Hoy; **exportar el mes** en CSV.
 - **Sirve con tarjetas existentes**: al leer solo el UID (nunca escribir), una
   tarjeta ya usada en otro sitio - incluso de otra empresa - puede registrarse y
   usarse sin alterarla.
@@ -138,7 +143,7 @@ ufbt launch
 ```
 
 El `.fap` compilado queda en `dist/`. Tambien puedes copiarlo a
-`SD Card/apps/Tools/` con qFlipper y abrirlo en **Apps -> Tools -> Time Clock**.
+`SD Card/apps/Tools/` con qFlipper y abrirlo en **Apps -> Tools -> Staff Time Clock**.
 
 > **Nota de firmware.** La capa de radio esta en `timeclock_reader.c` (NFC con el
 > poller ISO14443-3A - MIFARE Classic/Ultralight, NTAG, DESFire - el worker LF
@@ -148,7 +153,7 @@ El `.fap` compilado queda en `dist/`. Tambien puedes copiarlo a
 
 ## Compatibilidad
 
-Time Clock funciona en el firmware **oficial** del Flipper Zero y en los fork mas
+Staff Time Clock funciona en el firmware **oficial** del Flipper Zero y en los fork mas
 populares. Un FAP se compila para la API de un firmware concreto, asi que cada
 Release trae **un `.fap` por firmware** - descarga el que corresponda:
 
@@ -209,7 +214,7 @@ Las contribuciones son bienvenidas - ver [CONTRIBUTING.md](CONTRIBUTING.md) y el
 
 ## Apoyar
 
-Si Time Clock te resulta util, puedes apoyar el desarrollo:
+Si Staff Time Clock te resulta util, puedes apoyar el desarrollo:
 
 [![Sponsor en GitHub](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/vladpereverzyev)
 [![Invitar un cafe en Ko-fi](https://img.shields.io/badge/Ko--fi-Invitar%20un%20cafe-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/vladpereverzyev)

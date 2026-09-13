@@ -120,6 +120,13 @@ typedef enum {
     StrUndoLast,
     StrUndone,
     StrClockNotSet,
+    // Extra (v2.3)
+    StrAddIn, // manual correction: add a missing IN at the current time
+    StrAddOut, // manual correction: add a missing OUT at the current time
+    StrPunchAdded,
+    StrExportMonth,
+    StrTarget, // expected daily worked time
+    StrOvertime, // worked minus target (can be negative)
     // Weekday abbreviations (Monday..Sunday)
     StrDowMon,
     StrDowTue,

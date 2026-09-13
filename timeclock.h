@@ -4,14 +4,13 @@
 #pragma once
 
 // =============================================================================
-// Time Clock - Flipper Zero app for personal work time tracking using NFC/RFID
-// badge identification.
+// Staff Time Clock - Flipper Zero app for staff work time tracking using
+// NFC/RFID/iButton badge identification.
 //
-// The user chooses the reader (NFC or LF RFID) in Settings. The app auto-detects
-// whatever the chosen radio supports and identifies a badge by its UID. It only
-// reads the identifier: it does not emulate badges and does not try to bypass
-// any authentication system. Use only with badges/systems you are authorized to
-// use.
+// The reader scans NFC, LF RFID and iButton in rotation (no manual selection)
+// and identifies a badge by its UID. It only reads the identifier: it does not
+// write to or emulate badges and does not try to bypass any authentication
+// system. Use only with badges/systems you are authorized to use.
 // =============================================================================
 
 #include <furi.h>
@@ -144,3 +143,7 @@ void timeclock_notify_punch(TimeClock* app, TcEventType type);
 // the badge at index, append it to history, persist, and play feedback.
 // Returns the recorded event type.
 TcEventType timeclock_record_punch(TimeClock* app, int badge_index);
+
+// Record a punch of an explicit type (manual correction: add a missing IN/OUT
+// at the current time), append it to history, persist, and play feedback.
+void timeclock_record_punch_type(TimeClock* app, int badge_index, TcEventType type);

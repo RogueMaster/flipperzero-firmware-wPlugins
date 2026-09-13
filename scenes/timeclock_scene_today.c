@@ -53,6 +53,22 @@ void timeclock_scene_today_on_enter(void* context) {
         (unsigned long)(brk / 60),
         (unsigned long)(brk % 60));
 
+    // Expected daily hours and overtime (only if a target is configured).
+    if(app->config.daily_target > 0) {
+        int diff = (int)minutes - (int)app->config.daily_target;
+        int adiff = diff < 0 ? -diff : diff;
+        furi_string_cat_printf(
+            app->text_store,
+            "%s: %02lu:%02lu\n%s: %s%d:%02d\n",
+            tc_str(StrTarget),
+            (unsigned long)(app->config.daily_target / 60),
+            (unsigned long)(app->config.daily_target % 60),
+            tc_str(StrOvertime),
+            diff < 0 ? "-" : "+",
+            adiff / 60,
+            adiff % 60);
+    }
+
     // Warn if the Flipper clock is not set (dates/times would be wrong).
     char d[TC_DT_MAX];
     tc_now_date(d, sizeof(d));

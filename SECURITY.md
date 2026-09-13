@@ -2,7 +2,7 @@
 
 ## Intended use
 
-Time Clock performs **badge identification only**: it reads a badge's UID to
+Staff Time Clock performs **badge identification only**: it reads a badge's UID to
 recognize it for personal time tracking. It does **not** emulate badges, clone
 them, or attempt to bypass any access-control or authentication system. Only use
 it with badges and systems you are authorized to use.

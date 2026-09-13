@@ -8,6 +8,7 @@
 
 typedef enum {
     ExportCsv,
+    ExportMonth,
     ExportJson,
     ExportBackup,
     ExportRestore,
@@ -49,6 +50,8 @@ static void timeclock_scene_export_show_menu(TimeClock* app) {
     submenu_set_header(submenu, tc_str(StrExport));
     submenu_add_item(
         submenu, tc_str(StrExportCsv), ExportCsv, timeclock_scene_export_submenu_callback, app);
+    submenu_add_item(
+        submenu, tc_str(StrExportMonth), ExportMonth, timeclock_scene_export_submenu_callback, app);
     submenu_add_item(
         submenu, tc_str(StrExportJson), ExportJson, timeclock_scene_export_submenu_callback, app);
     submenu_add_item(
@@ -92,6 +95,16 @@ bool timeclock_scene_export_on_event(void* context, SceneManagerEvent event) {
                 snprintf(export_msg, sizeof(export_msg), "%s", tc_str(StrNothingExport));
             }
             timeclock_scene_export_show_popup(app, tc_str(StrExportCsv));
+            break;
+        }
+        case ExportMonth: {
+            char name[40];
+            if(tc_export_month_csv(name, sizeof(name))) {
+                snprintf(export_msg, sizeof(export_msg), "%s\n(apps_data/timeclock)", name);
+            } else {
+                snprintf(export_msg, sizeof(export_msg), "%s", tc_str(StrNothingExport));
+            }
+            timeclock_scene_export_show_popup(app, tc_str(StrExportMonth));
             break;
         }
         case ExportBackup: {

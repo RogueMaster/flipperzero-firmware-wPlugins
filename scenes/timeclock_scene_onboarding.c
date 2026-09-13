@@ -35,7 +35,8 @@ void timeclock_scene_onboarding_on_enter(void* context) {
 
     Widget* widget = app->widget;
     widget_reset(widget);
-    widget_add_string_element(widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "Time Clock");
+    widget_add_string_element(
+        widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "Staff Time Clock");
     widget_add_string_multiline_element(
         widget, 64, 20, AlignCenter, AlignTop, FontSecondary, tc_str(StrOnbText));
     widget_add_button_element(

@@ -19,27 +19,45 @@
 // Private custom-event id (kept well above the scenes' event ranges).
 #define READER_EVENT_UID 401u
 
-// All three radios (NFC, LF RFID, iButton) run simultaneously; whichever
-// detects a badge first posts the UID. There is no manual reader selection, so
-// a workplace can mix NFC, RFID and iButton badges freely. Only the UID is read
-// - nothing is written to or emulated onto the card, so badges already issued
-// by another company work as identity tokens too.
+// Length of each scan slice, in ms. One radio is active per slice and a timer
+// rotates NFC -> RFID -> iButton, so a full sweep takes 3 slices.
+#define READER_SLICE_MS 500u
+
+typedef enum {
+    ReaderRadioNfc = 0,
+    ReaderRadioRfid,
+    ReaderRadioIButton,
+    ReaderRadioCount,
+} ReaderRadio;
+
+// Instead of powering all three radios at once (heavy on RAM and the RF front
+// end), the reader time-slices them: only one radio is allocated and scanning
+// at any moment, and a periodic timer rotates to the next. The user still never
+// selects a technology - NFC, RFID and iButton badges all work - and a badge
+// held for about a full sweep (~1.5 s) is always caught. Only the UID is read;
+// nothing is written or emulated, so a card issued elsewhere works too.
+//
+// Thread-safety: the rotation timer runs on the timer service task while
+// timeclock_reader_start/stop run on the GUI thread; a mutex serializes all
+// radio alloc/start/stop/free so the timer can never touch a freed radio.
 struct TimeclockReader {
     ViewDispatcher* vd;
     TimeclockReaderCallback callback;
     void* context;
 
     bool continuous;
+    bool running;
+    ReaderRadio active;
+    FuriTimer* timer;
+    FuriMutex* lock;
 
-    // NFC (ISO14443-3A poller: MIFARE Classic/Ultralight, NTAG, DESFire, ...).
+    // Only the currently active radio's handles are non-NULL.
     Nfc* nfc;
     NfcPoller* poller;
 
-    // LF RFID (auto: EM4100, HID, Indala, ... whatever the firmware supports).
     ProtocolDict* lf_dict;
     LFRFIDWorker* lf_worker;
 
-    // iButton / 1-Wire (DS1990A and other Dallas keys).
     iButtonProtocols* ib_protocols;
     iButtonKey* ib_key;
     iButtonWorker* ib_worker;
@@ -107,6 +125,13 @@ static void reader_ibutton_callback(void* context) {
     }
 }
 
+// ---- Per-radio start/stop (call under reader->lock) ------------------------
+static void reader_start_nfc(TimeclockReader* reader) {
+    reader->nfc = nfc_alloc();
+    reader->poller = nfc_poller_alloc(reader->nfc, NfcProtocolIso14443_3a);
+    nfc_poller_start(reader->poller, reader_poller_callback, reader);
+}
+
 static void reader_stop_nfc(TimeclockReader* reader) {
     if(reader->poller) {
         nfc_poller_stop(reader->poller);
@@ -117,6 +142,14 @@ static void reader_stop_nfc(TimeclockReader* reader) {
         nfc_free(reader->nfc);
         reader->nfc = NULL;
     }
+}
+
+static void reader_start_lf(TimeclockReader* reader) {
+    reader->lf_dict = protocol_dict_alloc(lfrfid_protocols, LFRFIDProtocolMax);
+    reader->lf_worker = lfrfid_worker_alloc(reader->lf_dict);
+    lfrfid_worker_start_thread(reader->lf_worker);
+    lfrfid_worker_read_start(
+        reader->lf_worker, LFRFIDWorkerReadTypeAuto, reader_lf_callback, reader);
 }
 
 static void reader_stop_lf(TimeclockReader* reader) {
@@ -130,6 +163,15 @@ static void reader_stop_lf(TimeclockReader* reader) {
         protocol_dict_free(reader->lf_dict);
         reader->lf_dict = NULL;
     }
+}
+
+static void reader_start_ibutton(TimeclockReader* reader) {
+    reader->ib_protocols = ibutton_protocols_alloc();
+    reader->ib_key = ibutton_key_alloc(ibutton_protocols_get_max_data_size(reader->ib_protocols));
+    reader->ib_worker = ibutton_worker_alloc(reader->ib_protocols);
+    ibutton_worker_start_thread(reader->ib_worker);
+    ibutton_worker_read_set_callback(reader->ib_worker, reader_ibutton_callback, reader);
+    ibutton_worker_read_start(reader->ib_worker, reader->ib_key);
 }
 
 static void reader_stop_ibutton(TimeclockReader* reader) {
@@ -149,16 +191,55 @@ static void reader_stop_ibutton(TimeclockReader* reader) {
     }
 }
 
+// Stop and free whichever radio is currently active (idempotent).
+static void reader_stop_active(TimeclockReader* reader) {
+    reader_stop_nfc(reader);
+    reader_stop_lf(reader);
+    reader_stop_ibutton(reader);
+}
+
+static void reader_start_active(TimeclockReader* reader) {
+    switch(reader->active) {
+    case ReaderRadioNfc:
+        reader_start_nfc(reader);
+        break;
+    case ReaderRadioRfid:
+        reader_start_lf(reader);
+        break;
+    case ReaderRadioIButton:
+        reader_start_ibutton(reader);
+        break;
+    default:
+        break;
+    }
+}
+
+// Timer callback (timer service task): rotate to the next radio.
+static void reader_rotate(void* context) {
+    TimeclockReader* reader = context;
+    furi_mutex_acquire(reader->lock, FuriWaitForever);
+    if(reader->running) {
+        reader_stop_active(reader);
+        reader->active = (reader->active + 1) % ReaderRadioCount;
+        reader_start_active(reader);
+    }
+    furi_mutex_release(reader->lock);
+}
+
 TimeclockReader* timeclock_reader_alloc(ViewDispatcher* view_dispatcher) {
     TimeclockReader* reader = malloc(sizeof(TimeclockReader));
     memset(reader, 0, sizeof(TimeclockReader));
     reader->vd = view_dispatcher;
+    reader->lock = furi_mutex_alloc(FuriMutexTypeNormal);
+    reader->timer = furi_timer_alloc(reader_rotate, FuriTimerTypePeriodic, reader);
     return reader;
 }
 
 void timeclock_reader_free(TimeclockReader* reader) {
     furi_assert(reader);
     timeclock_reader_stop(reader);
+    furi_timer_free(reader->timer);
+    furi_mutex_free(reader->lock);
     free(reader);
 }
 
@@ -177,32 +258,22 @@ void timeclock_reader_start(TimeclockReader* reader, bool continuous) {
 
     reader->continuous = continuous;
 
-    // NFC (13.56 MHz)
-    reader->nfc = nfc_alloc();
-    reader->poller = nfc_poller_alloc(reader->nfc, NfcProtocolIso14443_3a);
-    nfc_poller_start(reader->poller, reader_poller_callback, reader);
+    furi_mutex_acquire(reader->lock, FuriWaitForever);
+    reader->running = true;
+    reader->active = ReaderRadioNfc;
+    reader_start_active(reader);
+    furi_mutex_release(reader->lock);
 
-    // LF RFID (125 kHz)
-    reader->lf_dict = protocol_dict_alloc(lfrfid_protocols, LFRFIDProtocolMax);
-    reader->lf_worker = lfrfid_worker_alloc(reader->lf_dict);
-    lfrfid_worker_start_thread(reader->lf_worker);
-    lfrfid_worker_read_start(
-        reader->lf_worker, LFRFIDWorkerReadTypeAuto, reader_lf_callback, reader);
-
-    // iButton (1-Wire)
-    reader->ib_protocols = ibutton_protocols_alloc();
-    reader->ib_key = ibutton_key_alloc(ibutton_protocols_get_max_data_size(reader->ib_protocols));
-    reader->ib_worker = ibutton_worker_alloc(reader->ib_protocols);
-    ibutton_worker_start_thread(reader->ib_worker);
-    ibutton_worker_read_set_callback(reader->ib_worker, reader_ibutton_callback, reader);
-    ibutton_worker_read_start(reader->ib_worker, reader->ib_key);
+    furi_timer_start(reader->timer, furi_ms_to_ticks(READER_SLICE_MS));
 }
 
 void timeclock_reader_stop(TimeclockReader* reader) {
     furi_assert(reader);
-    reader_stop_nfc(reader);
-    reader_stop_lf(reader);
-    reader_stop_ibutton(reader);
+    furi_timer_stop(reader->timer); // no further rotations will start
+    furi_mutex_acquire(reader->lock, FuriWaitForever); // wait out an in-flight rotation
+    reader->running = false;
+    reader_stop_active(reader);
+    furi_mutex_release(reader->lock);
 }
 
 bool timeclock_reader_handle_event(TimeclockReader* reader, uint32_t event) {
