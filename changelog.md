@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.8
+
+- Reverted 2.7's fix: stopping and restarting the reader after every read in
+  Work mode froze the device solid (no input worked at all, needed a hard
+  reset) instead of fixing the IN/OUT loop - the extra alloc/free cycle on
+  top of the already-delicate radio rotation is the more likely trigger for
+  that class of hang. Work mode no longer touches the reader after a read;
+  the 60s same-badge cooldown (2.6) already blocks a repeat punch on its
+  own, without needing to stop anything.
+- App icon redrawn again: the hands no longer touch the outer ring, and the
+  two hands are now clearly different lengths (short hour, long minute).
+- Registering a new chip now plays a sound/vibro/LED cue (honoring the
+  Settings toggles) the moment it's read, instead of staying silent until
+  the chip is saved with a name.
+
 ## 2.7
 
 - The 2.6 debounce fix was not enough: Work mode could still loop IN/OUT

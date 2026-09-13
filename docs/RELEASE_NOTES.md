@@ -5,21 +5,26 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline, with an optional PIN lock. Identification only - no badge emulation,
 no authentication bypass.
 
-**New in v2.7**
+**New in v2.8**
 
-- **Work mode punch loop fixed for real this time**: 2.6's debounce fix
-  narrowed the window for a repeat trigger but didn't close it - Work mode
-  could still loop IN/OUT after a punch even with the badge already pulled
-  away. Work mode now fully stops the reader (no radio allocated, no poller
-  running) for 5s after every read, instead of only debouncing by time, and
-  resumes scanning once the pause elapses.
+- **Work mode freeze fixed**: 2.7 tried to stop the IN/OUT loop by stopping
+  and restarting the reader after every badge read, but that froze the
+  device solid instead (no input worked at all, needed a hard reset).
+  Reverted - Work mode no longer touches the reader after a read; the 60s
+  same-badge cooldown from 2.6 already blocks a repeat punch on its own.
+- **Icon fix**: the hands no longer touch the outer ring, and the two hands
+  are now clearly different lengths (short hour, long minute).
+- **Registering a badge**: a sound/vibro/LED cue (honoring the Settings
+  toggles) now plays the moment a new chip is read, instead of staying
+  silent until it's saved with a name.
 
 **Earlier (v2.6)**
 
+- **Work mode punch loop fixed**: the same-badge debounce was only 3.5s,
+  allowing a badge left near the Flipper too long to re-trigger punches
+  repeatedly. Raised to 60s.
 - **About screen**: no longer shows the "GPL-3.0-or-later" line under the
   copyright notice.
-- **Icon fix**: bolder, wider hands so the 10:10 shape reads clearly instead
-  of blending into the rim.
 
 ### Which file do I download?
 
