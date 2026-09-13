@@ -10,7 +10,6 @@ static TcLang g_lang = TcLangEn;
 
 static const char* const S[TcStrCount][TcLangCount] = {
     // ---- Menu ----
-    [StrPunch] = {"Punch", "Timbra", "Fichar", "Pointer", "Stempeln"},
     [StrWorkMode] = {"Work mode", "Modalita lavoro", "Modo trabajo", "Mode travail", "Arbeitsmodus"},
     [StrBadges] = {"Badges", "Badge", "Tarjetas", "Badges", "Ausweise"},
     [StrHistory] = {"History", "Storico", "Historial", "Historique", "Verlauf"},

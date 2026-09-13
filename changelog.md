@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.15
+
+- Main menu simplified: the standalone "Punch" entry was removed (Work mode
+  already handles clock in/out), and "Overview" now sits right under "Work
+  mode". New order: Work mode, Overview, Badges, History, Export, Settings,
+  About.
+- Dead code removed with it: the unused MenuIndexPunch entry and its handler,
+  and the now-unused "Punch" menu string in all five languages.
+
 ## 2.14
 
 - Overview page now shows only the collaborator name in bold; the stat lines

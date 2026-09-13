@@ -5,9 +5,8 @@
 
 typedef enum {
     MenuIndexWork,
-    MenuIndexBadges,
-    MenuIndexPunch,
     MenuIndexOverview,
+    MenuIndexBadges,
     MenuIndexHistory,
     MenuIndexExport,
     MenuIndexSettings,
@@ -28,15 +27,13 @@ void timeclock_scene_menu_on_enter(void* context) {
     submenu_add_item(
         submenu, tc_str(StrWorkMode), MenuIndexWork, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, tc_str(StrBadges), MenuIndexBadges, timeclock_scene_menu_submenu_callback, app);
-    submenu_add_item(
-        submenu, tc_str(StrPunch), MenuIndexPunch, timeclock_scene_menu_submenu_callback, app);
-    submenu_add_item(
         submenu,
         tc_str(StrOverview),
         MenuIndexOverview,
         timeclock_scene_menu_submenu_callback,
         app);
+    submenu_add_item(
+        submenu, tc_str(StrBadges), MenuIndexBadges, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
         submenu, tc_str(StrHistory), MenuIndexHistory, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
@@ -60,10 +57,6 @@ bool timeclock_scene_menu_on_event(void* context, SceneManagerEvent event) {
         scene_manager_set_scene_state(app->scene_manager, TimeClockSceneMenu, event.event);
         consumed = true;
         switch(event.event) {
-        case MenuIndexPunch:
-            app->scan_purpose = TcScanPunch;
-            scene_manager_next_scene(app->scene_manager, TimeClockSceneScan);
-            break;
         case MenuIndexWork:
             scene_manager_next_scene(app->scene_manager, TimeClockSceneWork);
             break;

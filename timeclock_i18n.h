@@ -23,7 +23,6 @@ typedef enum {
 
 typedef enum {
     // Menu
-    StrPunch,
     StrWorkMode,
     StrBadges,
     StrHistory,

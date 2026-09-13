@@ -5,7 +5,14 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline, with an optional PIN lock. Identification only - no badge emulation,
 no authentication bypass.
 
-**New in v2.14**
+**New in v2.15**
+
+- **Simpler main menu**: the standalone **Punch** entry is gone (Work mode
+  already clocks people in and out), and **Overview** now sits directly under
+  **Work mode**. New order: Work mode, Overview, Badges, History, Export,
+  Settings, About.
+
+**Earlier (v2.14)**
 
 - **Overview page weights fixed**: only the collaborator name is bold now.
   The today/week/month/break stat lines below it are back to regular weight
