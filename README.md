@@ -17,6 +17,10 @@ person a badge - **NFC**, **RFID** or **iButton** - tap it, and every punch is
 timestamped and stored on the microSD card as a CSV timesheet you can open in
 Excel. It works fully standalone - no phone or PC required.
 
+**Download**: grab the ready-to-flash `.fap` for your firmware from the
+[latest release](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases/latest)
+(see [Compatibility](#compatibility) for which file to pick).
+
 The reader supports **NFC**, **RFID** and **iButton**; pick which one is active
 with Left/Right on the scan screen (the app remembers your last choice). In one
 workplace one person can carry an NFC badge, another an RFID fob and another an
