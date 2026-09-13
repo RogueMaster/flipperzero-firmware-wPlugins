@@ -12,6 +12,7 @@
 #include "ciphers/baconian.h"
 #include "ciphers/beaufort.h"
 #include "ciphers/bifid.h"
+#include "ciphers/blowfish.h"
 #include "ciphers/caesar.h"
 #include "ciphers/des.h"
 #include "ciphers/null.h"
@@ -208,6 +209,67 @@ static CipherResult bifid_decode(const char* input, int32_t a, int32_t b, const 
     UNUSED(a);
     UNUSED(b);
     return ok_result(bifid_decrypt(input, key));
+}
+
+static CipherResult blowfish_encode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    // Build key schedule from k
+    BLOWFISH_KEY keystruct;
+    blowfish_key_setup((const BYTE*)k, &keystruct, strlen(k));
+
+    // PKCS#7 pad the input to a multiple of BLOWFISH_BLOCK_SIZE
+    size_t inlen = strlen(input);
+    size_t pad = BLOWFISH_BLOCK_SIZE - (inlen % BLOWFISH_BLOCK_SIZE);
+    size_t padded_len = inlen + pad;
+
+    BYTE* buf = malloc(padded_len);
+    memcpy(buf, input, inlen);
+    memset(buf + inlen, (int)pad, pad);
+
+    // Encrypt block by block
+    BYTE* out = malloc(padded_len);
+    for(size_t i = 0; i < padded_len; i += BLOWFISH_BLOCK_SIZE) {
+        blowfish_encrypt(buf + i, out + i, &keystruct);
+    }
+
+    char* hex = bytes_to_hex(out, padded_len);
+
+    free(buf);
+    free(out);
+    return ok_result(hex);
+}
+
+static CipherResult blowfish_decode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    BLOWFISH_KEY keystruct;
+    blowfish_key_setup((const BYTE*)k, &keystruct, strlen(k));
+
+    size_t clen = 0;
+    uint8_t* cipher = hex_to_bytes(input, &clen);
+    if(!cipher || clen % BLOWFISH_BLOCK_SIZE != 0) {
+        free(cipher);
+        return err_result(strdup("Invalid ciphertext length"));
+    }
+
+    BYTE* out = malloc(clen);
+    for(size_t i = 0; i < clen; i += BLOWFISH_BLOCK_SIZE) {
+        blowfish_decrypt(cipher + i, out + i, &keystruct);
+    }
+
+    BYTE pad = out[clen - 1];
+    size_t plainlen = (pad <= BLOWFISH_BLOCK_SIZE) ? clen - pad : clen;
+
+    char* result = malloc(plainlen + 1);
+    memcpy(result, out, plainlen);
+    result[plainlen] = '\0';
+
+    free(cipher);
+    free(out);
+    return ok_result(result);
 }
 
 static CipherResult porta_transform(const char* input, int32_t a, int32_t b, const char* key) {
@@ -805,6 +867,25 @@ const CipherDef kCiphers[] = {
             "each ciphertext letter depends on the coordinates of two different plaintext "
             "letters, Bifid diffuses information across the message more than simple "
             "substitution ciphers, making frequency analysis considerably harder.",
+    },
+    {
+        .name = "Blowfish Cipher",
+        .file_key = "blowfish",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = blowfish_encode,
+        .decode = blowfish_decode,
+        .key_a_prompt = "Enter keyword",
+        .learn_text =
+            "Blowfish is a symmetric block cipher designed by Bruce Schneier in "
+            "1993 as a fast alternative to older ciphers like DES. It "
+            "encrypts data in 64-bit blocks and supports variable key lengths from "
+            "32 up to 448 bits, giving it far more flexibility than DES's fixed "
+            "56-bit key. Blowfish works by running each block through 16 rounds of "
+            "a Feistel network, using key-dependent substitution boxes that are "
+            "generated during setup. It remains considered pretty secure today, though its "
+            "small 64-bit block size has led modern applications to favor newer "
+            "ciphers like AES for encrypting large amounts of data.",
     },
     {
         .name = "Caesar Cipher",
