@@ -14,6 +14,7 @@
 #include "ciphers/bifid.h"
 #include "ciphers/caesar.h"
 #include "ciphers/des.h"
+#include "ciphers/null.h"
 #include "ciphers/playfair.h"
 #include "ciphers/polybius.h"
 #include "ciphers/porta.h"
@@ -370,6 +371,28 @@ static CipherResult triple_des_decode(const char* input, int32_t a, int32_t b, c
 
     free(cipher);
     free(out);
+    return ok_result(result);
+}
+
+static CipherResult null_encode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(b);
+    UNUSED(k);
+
+    char* result = null_encrypt(input, a);
+    if(!result) {
+        return err_result(strdup("Null cipher requires n >= 1"));
+    }
+    return ok_result(result);
+}
+
+static CipherResult null_decode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(b);
+    UNUSED(k);
+
+    char* result = null_decrypt(input, a);
+    if(!result) {
+        return err_result(strdup("Invalid ciphertext length for given n"));
+    }
     return ok_result(result);
 }
 
@@ -831,6 +854,26 @@ const CipherDef kCiphers[] = {
             "encrypting again with a third, an approach known as EDE. This effectively increases the "
             "key strength and makes brute-force attacks far less practical. While more secure than "
             "plain DES, 3DES is slower and has also been phased out in favor of modern ciphers like AES.",
+    },
+    {
+        .name = "Null Cipher",
+        .file_key = "null",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyNumberSingle,
+        .encode = null_encode,
+        .decode = null_decode,
+        .key_a_min = 1, .key_a_max = 10,
+        .key_a_prompt = "Enter a num (1-10)",
+        .learn_text =
+            "A null cipher hides a real message by mixing it in with meaningless "
+            "filler, rather than scrambling it like most ciphers do. In this version, "
+            "only every nth character of the text carries meaning, and the rest are "
+            "random letters inserted to disguise it. Historically, null ciphers "
+            "worked by hiding words within an ordinary-looking letter, so the message "
+            "was invisible unless you knew where to look. Because there's no "
+            "mathematical scrambling involved, a null cipher is only as strong as "
+            "its hiding place, once someone knows the pattern, the message is "
+            "trivial to recover.",
     },
     {
         .name = "Playfair Cipher",
