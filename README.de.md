@@ -15,11 +15,11 @@ und jede Stempelung wird mit Datum und Uhrzeit auf der microSD als CSV
 gespeichert, das du in Excel oeffnen kannst. Laeuft eigenstaendig, ohne Telefon
 oder PC.
 
-Der Leser ist **vollautomatisch**: er liest NFC, RFID und iButton **abwechselnd**
-(einen nach dem anderen), du waehlst also nie eine Technologie. Im selben Betrieb
-kann eine Person einen NFC-Ausweis tragen, eine andere einen RFID-Anhaenger und
-eine weitere einen iButton - alle funktionieren; halte den Ausweis etwa eine
-Sekunde daran.
+Der Leser liest **NFC**, **RFID** und **iButton**: waehle mit Links/Rechts auf
+dem Lesebildschirm, welche aktiv ist (die App merkt sich die letzte Wahl). Im
+selben Betrieb kann eine Person einen NFC-Ausweis tragen, eine andere einen
+RFID-Anhaenger und eine weitere einen iButton - jeder waehlt einfach seine
+Technologie vor dem Stempeln.
 
 **Auch eine Karte, die die Person schon hat, geht.** Da die App **nur die UID**
 liest und nichts auf die Karte schreibt, kann ein bereits bei einer anderen Firma
@@ -58,10 +58,10 @@ Flipper-artige Mockups der Hauptbildschirme (128x64):
 
 - **Stempeln** durch Anhalten eines Ausweises - bekannte Ausweise werden per UID
   erkannt.
-- **Automatischer Multi-Technologie-Leser**: **NFC** (13.56 MHz), **RFID LF**
-  (125 kHz) und **iButton** (1-Wire Dallas-Keys) **abwechselnd** gelesen (einer
-  nach dem anderen, schont den Speicher). **Keine Leser-Einstellung**, also
-  arbeiten NFC, RFID und iButton in derselben Installation nebeneinander.
+- **Multi-Technologie-Leser**: **NFC** (13.56 MHz), **RFID LF** (125 kHz) und
+  **iButton** (1-Wire Dallas-Keys). Links/Rechts auf dem Lesebildschirm waehlt,
+  welche aktiv ist (zwischen Sitzungen gemerkt), also arbeiten NFC, RFID und
+  iButton in derselben Installation nebeneinander.
 - **Manuelle Korrektur**: **IN hinzu** / **OUT hinzu** beim Ausweis einer Person
   fuegt einen fehlenden Stempel zur aktuellen Zeit hinzu.
 - **Schichten ueber Mitternacht** korrekt gezaehlt; optionales **Tagesziel** mit

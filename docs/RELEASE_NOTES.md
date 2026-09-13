@@ -5,24 +5,21 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline, with an optional PIN lock. Identification only - no badge emulation,
 no authentication bypass.
 
-**New in v2.9**
+**New in v2.10**
 
-- **Work mode freeze fixed for real**: every attempt at automatically
-  rotating NFC/RFID/iButton in Work mode eventually froze the device. The
-  pre-rotation v1.3.0 reader never used a timer and was never reported
-  unstable, so Work mode now works the same way: it locks onto one
-  technology at a time, switched with Left/Right (shown as "< NFC >" in the
-  footer), and remembers your last choice across sessions and restarts.
+- **Manual technology selection everywhere**: the round-robin rotation
+  between NFC/RFID/iButton is gone from the whole app now, not just Work
+  mode - Punch, register and replace-chip all show the active technology
+  with Left/Right to change it. The choice is shared and remembered across
+  restarts. Every version of automatic rotation eventually froze the
+  device on a long-running scan; the pre-rotation design (pick one
+  technology, no timer) was never reported unstable, so that's what this
+  is again, everywhere reading happens.
+
+**Earlier (v2.9)**
+
 - **License section** in all five READMEs restyled as a short bullet list
   instead of a plain paragraph.
-
-**Earlier (v2.8)**
-
-- **Icon fix**: the hands no longer touch the outer ring, and the two hands
-  are now clearly different lengths (short hour, long minute).
-- **Registering a badge**: a sound/vibro/LED cue (honoring the Settings
-  toggles) now plays the moment a new chip is read, instead of staying
-  silent until it's saved with a name.
 
 ### Which file do I download?
 

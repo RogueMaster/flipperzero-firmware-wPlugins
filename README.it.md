@@ -14,10 +14,11 @@ persona un badge - **NFC**, **RFID** o **iButton** - lo avvicini, e ogni
 timbratura viene salvata con data e ora sulla microSD come foglio CSV apribile in
 Excel. Funziona in totale autonomia, senza telefono ne PC.
 
-Il lettore e **completamente automatico**: legge NFC, RFID e iButton **a
-rotazione** (uno alla volta), non devi mai scegliere la tecnologia. Nella stessa
-azienda una persona puo avere un badge NFC, un'altra un portachiavi RFID e
-un'altra un iButton, e funzionano tutti - tieni il badge vicino circa un secondo.
+Il lettore legge **NFC**, **RFID** e **iButton**: scegli quale usare con
+Sinistra/Destra nella schermata di lettura (l'app ricorda l'ultima scelta).
+Nella stessa azienda una persona puo avere un badge NFC, un'altra un
+portachiavi RFID e un'altra un iButton - basta selezionare la propria
+tecnologia prima di timbrare.
 
 **Va bene anche una tessera che la persona ha gia.** Poiche l'app **legge solo
 l'UID** e non scrive nulla sulla tessera, un badge gia usato con un'altra azienda
@@ -53,10 +54,10 @@ Mockup in stile Flipper delle schermate principali (128x64):
 ## Funzioni
 
 - **Timbra** avvicinando un badge - i badge noti sono riconosciuti tramite UID.
-- **Lettore multi-tecnologia automatico**: **NFC** (13.56 MHz), **RFID LF**
-  (125 kHz) e **iButton** (chiavi Dallas 1-Wire) letti **a rotazione** (uno alla
-  volta, piu leggero sulla memoria). **Nessuna impostazione del lettore**, quindi
-  NFC, RFID e iButton convivono nella stessa installazione.
+- **Lettore multi-tecnologia**: **NFC** (13.56 MHz), **RFID LF** (125 kHz) e
+  **iButton** (chiavi Dallas 1-Wire). Sinistra/Destra nella schermata di
+  lettura sceglie quale usare (ricordato tra le sessioni), cosi NFC, RFID e
+  iButton convivono nella stessa installazione.
 - **Correzione manuale**: **Aggiungi IN** / **Aggiungi OUT** dal badge di una
   persona aggiunge una timbratura mancante all'ora attuale.
 - **Turni oltre la mezzanotte** contati bene; **obiettivo ore giornaliero**

@@ -14,10 +14,11 @@ chaque personne un badge - **NFC**, **RFID** ou **iButton** - approchez-le, et
 chaque pointage est enregistre avec date et heure sur la microSD au format CSV
 ouvrable dans Excel. Fonctionne en autonomie, sans telephone ni PC.
 
-Le lecteur est **entierement automatique**: il lit NFC, RFID et iButton **a tour
-de role** (un a la fois), vous ne choisissez jamais la technologie. Dans une meme
-entreprise une personne peut avoir un badge NFC, une autre un porte-cles RFID et
-une autre un iButton, et tout fonctionne - approchez le badge environ une seconde.
+Le lecteur lit **NFC**, **RFID** et **iButton**: choisissez lequel utiliser
+avec Gauche/Droite sur l'ecran de lecture (l'app retient votre dernier
+choix). Dans une meme entreprise une personne peut avoir un badge NFC, une
+autre un porte-cles RFID et une autre un iButton - chacun choisit juste sa
+technologie avant de pointer.
 
 **Une carte que la personne possede deja convient aussi.** Comme l'app **lit
 seulement l'UID** et n'ecrit rien sur la carte, un badge deja utilise dans une
@@ -54,9 +55,9 @@ Maquettes facon Flipper des ecrans principaux (128x64):
 ## Fonctions
 
 - **Pointer** en approchant un badge - les badges connus sont reconnus par UID.
-- **Lecteur multi-technologie automatique**: **NFC** (13.56 MHz), **RFID LF**
-  (125 kHz) et **iButton** (cles Dallas 1-Wire) lus **a tour de role** (un a la
-  fois, plus leger en memoire). **Aucun reglage de lecteur**, donc NFC, RFID et
+- **Lecteur multi-technologie**: **NFC** (13.56 MHz), **RFID LF** (125 kHz)
+  et **iButton** (cles Dallas 1-Wire). Gauche/Droite sur l'ecran de lecture
+  choisit lequel utiliser (retenu entre les sessions), donc NFC, RFID et
   iButton coexistent dans la meme installation.
 - **Correction manuelle**: **Ajouter IN** / **Ajouter OUT** depuis le badge d'une
   personne ajoute un pointage manquant a l'heure actuelle.

@@ -34,8 +34,8 @@ description: |
 
   ## Features
 
-  - Automatic multi-technology reader: NFC, RFID and iButton scanned in
-    rotation, one at a time, with no manual selection.
+  - Multi-technology reader: NFC, RFID and iButton, picked with Left/Right on
+    the scan screen (remembered across sessions).
   - Works with existing cards: only the UID is read, never written, so a
     card already used elsewhere can be registered without being changed.
   - Automatic IN/OUT punching, with distinct sound, vibration and LED

@@ -14,10 +14,10 @@ person a badge - **NFC**, **RFID** or **iButton** - tap it, and every punch is
 timestamped and stored on the microSD card as a CSV timesheet you can open in
 Excel. It works fully standalone - no phone or PC required.
 
-The reader is **fully automatic**: it scans NFC, RFID and iButton **in rotation**
-(one at a time), so you never pick a technology. In one workplace one person can
-carry an NFC badge, another an RFID fob and another an iButton key, and they all
-just work - hold a badge for about a second and it is caught.
+The reader supports **NFC**, **RFID** and **iButton**; pick which one is active
+with Left/Right on the scan screen (the app remembers your last choice). In one
+workplace one person can carry an NFC badge, another an RFID fob and another an
+iButton key - each just switches to their technology before tapping.
 
 **Any card the person already has works too.** Because the app only **reads the
 UID** and never writes anything to the card, a badge already in use with another
@@ -54,10 +54,10 @@ Flipper-style mockups of the main screens (128x64):
 ## Features (v1.0)
 
 - **Punch** by tapping a badge - recognized badges are matched by UID.
-- **Automatic multi-technology reader**: **NFC** (13.56 MHz), **LF RFID**
-  (125 kHz) and **iButton** (1-Wire Dallas keys) are scanned **in rotation** (one
-  radio at a time - lighter on memory). There is **no reader setting**, so NFC,
-  RFID and iButton badges work side by side in the same deployment.
+- **Multi-technology reader**: **NFC** (13.56 MHz), **LF RFID** (125 kHz) and
+  **iButton** (1-Wire Dallas keys) are all supported. Left/Right on the scan
+  screen picks which one is active (remembered across sessions), so NFC, RFID
+  and iButton badges all work in the same deployment.
 - **Works with existing cards**: since only the UID is read (never written), a
   card already used elsewhere - even one issued by another company - can be
   registered and used without altering it.

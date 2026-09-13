@@ -14,10 +14,11 @@ persona una tarjeta - **NFC**, **RFID** o **iButton** - la acercas, y cada ficha
 se guarda con fecha y hora en la microSD como hoja CSV que puedes abrir en Excel.
 Funciona de forma autonoma, sin telefono ni PC.
 
-El lector es **totalmente automatico**: lee NFC, RFID e iButton **por turnos**
-(uno a la vez), asi que nunca eliges la tecnologia. En la misma empresa una
-persona puede llevar una tarjeta NFC, otra un llavero RFID y otra un iButton, y
-todos funcionan - acerca la tarjeta cerca de un segundo.
+El lector lee **NFC**, **RFID** e **iButton**: elige cual usar con
+Izquierda/Derecha en la pantalla de lectura (la app recuerda la ultima
+eleccion). En la misma empresa una persona puede llevar una tarjeta NFC, otra
+un llavero RFID y otra un iButton - solo hay que elegir su tecnologia antes
+de fichar.
 
 **Tambien sirve una tarjeta que la persona ya tenga.** Como la app **solo lee el
 UID** y no escribe nada en la tarjeta, un carnet ya usado con otra empresa (tarjeta
@@ -53,10 +54,10 @@ Maquetas estilo Flipper de las pantallas principales (128x64):
 ## Funciones
 
 - **Fichar** acercando una tarjeta - las tarjetas conocidas se reconocen por UID.
-- **Lector multi-tecnologia automatico**: **NFC** (13.56 MHz), **RFID LF**
-  (125 kHz) e **iButton** (llaves Dallas 1-Wire) leidos **por turnos** (uno a la
-  vez, mas ligero en memoria). **Sin ajuste de lector**, asi NFC, RFID e iButton
-  conviven en la misma instalacion.
+- **Lector multi-tecnologia**: **NFC** (13.56 MHz), **RFID LF** (125 kHz) e
+  **iButton** (llaves Dallas 1-Wire). Izquierda/Derecha en la pantalla de
+  lectura elige cual usar (recordado entre sesiones), asi NFC, RFID e
+  iButton conviven en la misma instalacion.
 - **Correccion manual**: **Anadir IN** / **Anadir OUT** desde la tarjeta de una
   persona anade un fichaje que falta a la hora actual.
 - **Turnos pasada la medianoche** bien contados; **objetivo diario** opcional con

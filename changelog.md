@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.10
+
+- Manual technology selection extended to Punch, register and replace-chip:
+  the round-robin rotation is now gone from the app entirely (not just
+  Work mode), and the "waiting for a tap" screen shows the active
+  technology with Left/Right to change it, same as Work mode. The choice
+  is shared between both screens and remembered across restarts.
+
 ## 2.9
 
 - Work mode freeze fixed for real: every attempt at automatically rotating
