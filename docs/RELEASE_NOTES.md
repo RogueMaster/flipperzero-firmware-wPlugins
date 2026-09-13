@@ -5,7 +5,17 @@ Standalone staff time-clock for Flipper Zero. Register collaborators on **NFC**,
 offline, with an optional PIN lock. Identification only - no badge emulation,
 no authentication bypass.
 
-**New in v2.12**
+**New in v2.13**
+
+- **Work mode cooldown lowered** from 60s to 2s: a real OUT tap a few
+  seconds after IN now registers instead of being silently ignored. The
+  long cooldown was a leftover from before 2.12's reader-level flood fix.
+- **Work mode text centered**: the clock/greeting was off-center relative
+  to the date and technology label; all three now line up on the same
+  center.
+- **Overview arrows** now match Work mode's chevron style and size.
+
+**Earlier (v2.12)**
 
 - **Work mode freeze fixed, right after the first IN**: the NFC poller in
   continuous mode never stopped itself on a read, so a badge still in the
@@ -16,15 +26,6 @@ no authentication bypass.
   poll rate.
 - **Chevrons moved** to the same row as the NFC/RFID/iBTN label at the
   bottom, on both the Scan and Work mode screens.
-
-**Earlier (v2.11)**
-
-- **Freeze on tap fixed**: the NFC poller was never told its own worker
-  thread should stop on a read, so the GUI thread's teardown raced an
-  actively running poller thread and froze the device solid. RFID and
-  iButton were unaffected.
-- **Chevron hints**: the "<"/">" button labels and "< NFC >" bracket text
-  became a minimal V-shaped chevron at each screen edge.
 
 ### Which file do I download?
 

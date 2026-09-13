@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.13
+
+- Work mode cooldown lowered from 60s to 2s: the 60s debounce was a leftover
+  from before the reader-level flood fix (2.12) and made a real OUT punch a
+  few seconds after IN not register at all. The reader itself now guards
+  against a lingering badge re-triggering, so the cooldown only needs to
+  swallow one physical tap's duplicate.
+- Work mode clock/greeting text was drawn off-center (x=70) while the date
+  and technology label used x=64; all three now share x=64 so nothing looks
+  misaligned.
+- Overview page's Left/Right hint arrows now use the same minimal chevron
+  shape and size as Work mode and Scan, instead of plain "<"/">" text.
+
 ## 2.12
 
 - Fixed another Work mode freeze, right after the first IN: the NFC poller
