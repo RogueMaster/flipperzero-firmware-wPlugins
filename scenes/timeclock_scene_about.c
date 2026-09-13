@@ -9,8 +9,7 @@ void timeclock_scene_about_on_enter(void* context) {
     TimeClock* app = context;
 
     furi_string_set(app->text_store, tc_str(StrAboutText));
-    furi_string_cat_str(
-        app->text_store, "\nCopyright (C) 2026 Vladyslav Pereverzyev\nGPL-3.0-or-later\n");
+    furi_string_cat_str(app->text_store, "\nCopyright (C) 2026 Vladyslav Pereverzyev\n");
 
     TextBox* text_box = app->text_box;
     text_box_reset(text_box);

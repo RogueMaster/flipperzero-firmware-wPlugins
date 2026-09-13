@@ -18,7 +18,14 @@
 // =============================================================================
 
 #define WORK_GREETING_MS 3000
-#define WORK_COOLDOWN_MS 3500
+// While a badge sits in the field, the NFC poller keeps re-reporting it
+// (continuous mode never stops it), so a short cooldown here isn't a "ignore
+// this one extra event" guard - it is the only thing standing between one tap
+// and a runaway IN/OUT/IN/OUT loop for as long as the badge lingers near the
+// reader. A few seconds is not enough margin for someone who is slow to pull
+// their badge away, so this is deliberately long: real double-taps (same
+// person clocking in then out) are minutes apart, not sub-minute.
+#define WORK_COOLDOWN_MS 60000
 #define WORK_BOUNCE 260
 
 typedef struct {
