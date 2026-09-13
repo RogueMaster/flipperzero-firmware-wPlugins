@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.5
+
+- Fixed a hang: Work mode's continuous badge scan rotated NFC/RFID/iButton
+  every 500ms forever, tearing down and recreating each radio (including a
+  dedicated worker thread for LF RFID and iButton) every time. Left running
+  for a while, that churn could wedge the device and force a hard reset. The
+  continuous slice is now 4s instead of 500ms; single-shot scans are
+  unaffected.
+- PIN is now fully optional everywhere: Work mode no longer requires one to
+  be set, only at least one registered collaborator. Leaving Work mode or
+  the app from the main menu asks for the PIN if one is set, and exits
+  immediately if not.
+- Settings: the button shown when no PIN is set is now "Enable PIN" instead
+  of "Set PIN", to read as the counterpart to "Disable PIN".
+- Main menu reordered: Work mode, Badges, Punch, then Overview, History,
+  Export, Settings, About.
+- App icon redrawn again: the clock hands read closer to 11:05 than 10:10;
+  they now spread out more horizontally toward the 10 and 2 positions.
+
 ## 2.4
 
 - Fixed a crash: the round-robin badge reader now switches radios on the GUI
