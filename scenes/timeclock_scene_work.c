@@ -18,28 +18,23 @@
 // =============================================================================
 
 #define WORK_GREETING_MS 3000
-// The real anti-loop guard: while the same badge keeps being read (it sits
-// in the field, or the radio keeps re-reporting it), this blocks a repeat
-// punch. It can be generous - a genuine double-tap (same person clocking in
-// then out) is minutes away, not seconds - since it only ever blocks the
-// same UID, never a different badge.
+// The anti-loop guard: while the same badge keeps being read (it sits in the
+// field, or the radio keeps re-reporting it), this blocks a repeat punch. It
+// can be generous - a genuine double-tap (same person clocking in then out)
+// is minutes away, not seconds - since it only ever blocks the same UID,
+// never a different badge. Deliberately does NOT stop/restart the reader:
+// that was tried and made things worse (the extra alloc/free churn on top of
+// the already-delicate radio rotation could wedge Work mode until the app
+// was restarted). This is a pure "ignore, don't record" check - the reader
+// keeps running exactly as it does the rest of the time.
 #define WORK_COOLDOWN_MS 60000
-// The reader is fully stopped (no radio allocated, no poller running) for
-// this long right after a read, so the tail end of the same physical tap
-// can't immediately re-trigger a second event before WORK_COOLDOWN_MS even
-// gets a chance to apply. This is deliberately short: it is not what stops
-// the IN/OUT loop (WORK_COOLDOWN_MS is), it just keeps the kiosk from going
-// silent for seconds after every tap. A different badge is read normally as
-// soon as this elapses.
-#define WORK_PAUSE_MS 1200
-#define WORK_BOUNCE   260
+#define WORK_BOUNCE      260
 
 typedef struct {
     TimeClock* app;
     TimeclockReader* reader;
     uint32_t last_punch_tick;
     uint32_t greeting_until;
-    uint32_t resume_at; // 0 = reader is running; otherwise furi_get_tick() deadline
     char last_uid[TC_UID_STR_MAX];
 } WorkCtx;
 
@@ -73,10 +68,6 @@ static void work_on_uid(const char* uid_hex, const char* tech, void* context) {
     }
     work_view_set_greeting(app->work_view, msg);
     ctx->greeting_until = now + WORK_GREETING_MS;
-
-    // Stop scanning entirely for a moment; the tick handler restarts it.
-    timeclock_reader_stop(ctx->reader);
-    ctx->resume_at = now + WORK_PAUSE_MS;
 }
 
 static void work_view_exit_cb(void* context) {
@@ -149,10 +140,6 @@ bool timeclock_scene_work_on_event(void* context, SceneManagerEvent event) {
         if(ctx && ctx->greeting_until != 0 && furi_get_tick() > ctx->greeting_until) {
             ctx->greeting_until = 0;
             work_view_set_greeting(app->work_view, NULL);
-        }
-        if(ctx && ctx->resume_at != 0 && furi_get_tick() >= ctx->resume_at) {
-            ctx->resume_at = 0;
-            timeclock_reader_start(ctx->reader, true);
         }
     } else if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == TimeClockCustomEventWorkExit) {
