@@ -6,7 +6,7 @@
 Explore essential chemical and physical data for all 119 elements directly on your Flipper Zero.  
 Designed for quick reference, study, laboratory notes, educational use, and science-focused hardware projects.
 
-**Author:** Siarhei Besarab (aka steanlab)
+**Author:** [Siarhei Besarab](https://en.wikipedia.org/wiki/Siarhei_Besarab) (aka steanlab)
 
 ## Features
 
