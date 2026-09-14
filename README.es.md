@@ -41,16 +41,16 @@ Capturas reales de la app (Flipper Zero, 128x64):
 
 <table>
   <tr>
-    <td align="center" valign="top"><img src="docs/img/menu.png" width="240" alt="Menu principal"><br><b>Menu principal</b><br>Work mode, Resumen, Tarjetas, Historial...</td>
-    <td align="center" valign="top"><img src="docs/img/work-clock.png" width="240" alt="Work mode"><br><b>Work mode</b><br>Reloj, fichas con el chip</td>
+    <td align="center" valign="top"><img src="docs/img/menu.png" width="100%" alt="Menu principal"><br><b>Menu principal</b><br>Work mode, Resumen, Tarjetas, Historial...</td>
+    <td align="center" valign="top"><img src="docs/img/work-clock.png" width="100%" alt="Work mode"><br><b>Work mode</b><br>Reloj, fichas con el chip</td>
   </tr>
   <tr>
-    <td align="center" valign="top"><img src="docs/img/greeting.png" width="240" alt="Saludo"><br><b>Pasa la tarjeta</b><br>Bienvenido / Adios por nombre</td>
-    <td align="center" valign="top"><img src="docs/img/overview.png" width="240" alt="Resumen"><br><b>Resumen</b><br>Por persona: hoy / semana / mes + pausa</td>
+    <td align="center" valign="top"><img src="docs/img/greeting.png" width="100%" alt="Saludo"><br><b>Pasa la tarjeta</b><br>Bienvenido / Adios por nombre</td>
+    <td align="center" valign="top"><img src="docs/img/overview.png" width="100%" alt="Resumen"><br><b>Resumen</b><br>Por persona: hoy / semana / mes + pausa</td>
   </tr>
   <tr>
-    <td align="center" valign="top"><img src="docs/img/pin.png" width="240" alt="Bloqueo PIN"><br><b>Bloqueo PIN</b><br>Protege la salida de la app</td>
-    <td align="center" valign="top"><img src="docs/img/export.png" width="240" alt="Exportar"><br><b>Exportar</b><br>CSV, CSV del mes, JSON</td>
+    <td align="center" valign="top"><img src="docs/img/pin.png" width="100%" alt="Bloqueo PIN"><br><b>Bloqueo PIN</b><br>Protege la salida de la app</td>
+    <td align="center" valign="top"><img src="docs/img/export.png" width="100%" alt="Exportar"><br><b>Exportar</b><br>CSV, CSV del mes, JSON</td>
   </tr>
 </table>
 

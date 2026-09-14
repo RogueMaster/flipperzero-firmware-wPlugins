@@ -41,16 +41,16 @@ Screenshot reali dall'app (Flipper Zero, 128x64):
 
 <table>
   <tr>
-    <td align="center" valign="top"><img src="docs/img/menu.png" width="240" alt="Menu principale"><br><b>Menu principale</b><br>Work mode, Panoramica, Badge, Storico...</td>
-    <td align="center" valign="top"><img src="docs/img/work-clock.png" width="240" alt="Work mode"><br><b>Work mode</b><br>Orologio, timbri col chip</td>
+    <td align="center" valign="top"><img src="docs/img/menu.png" width="100%" alt="Menu principale"><br><b>Menu principale</b><br>Work mode, Panoramica, Badge, Storico...</td>
+    <td align="center" valign="top"><img src="docs/img/work-clock.png" width="100%" alt="Work mode"><br><b>Work mode</b><br>Orologio, timbri col chip</td>
   </tr>
   <tr>
-    <td align="center" valign="top"><img src="docs/img/greeting.png" width="240" alt="Saluto"><br><b>Passa il badge</b><br>Benvenuto / Arrivederci col nome</td>
-    <td align="center" valign="top"><img src="docs/img/overview.png" width="240" alt="Panoramica"><br><b>Panoramica</b><br>Per persona: oggi / settimana / mese + pausa</td>
+    <td align="center" valign="top"><img src="docs/img/greeting.png" width="100%" alt="Saluto"><br><b>Passa il badge</b><br>Benvenuto / Arrivederci col nome</td>
+    <td align="center" valign="top"><img src="docs/img/overview.png" width="100%" alt="Panoramica"><br><b>Panoramica</b><br>Per persona: oggi / settimana / mese + pausa</td>
   </tr>
   <tr>
-    <td align="center" valign="top"><img src="docs/img/pin.png" width="240" alt="Blocco PIN"><br><b>Blocco PIN</b><br>Protegge l'uscita dall'app</td>
-    <td align="center" valign="top"><img src="docs/img/export.png" width="240" alt="Esporta"><br><b>Esporta</b><br>CSV, CSV del mese, JSON</td>
+    <td align="center" valign="top"><img src="docs/img/pin.png" width="100%" alt="Blocco PIN"><br><b>Blocco PIN</b><br>Protegge l'uscita dall'app</td>
+    <td align="center" valign="top"><img src="docs/img/export.png" width="100%" alt="Esporta"><br><b>Esporta</b><br>CSV, CSV del mese, JSON</td>
   </tr>
 </table>
 
