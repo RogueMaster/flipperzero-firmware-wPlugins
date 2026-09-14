@@ -78,5 +78,5 @@ To add a cipher:
 - Add the appropriate .c and .h files in ciphers/, hashes/, or encoders/
 - #include your new header file (cipher_registry.c)
 - Add appropriate encode and decode CipherResult functions (cipher_registry.c)
-- Add in an entry in CipherDef kCiphers[] (cipher_registry.c)
+- Add in an entry in CipherDef kCiphers (cipher_registry.c)
 ##
