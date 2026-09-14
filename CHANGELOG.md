@@ -1,3 +1,24 @@
+Unreleased:
+
+- Added a standalone Tag Control tool after EPC Fuzzing, with EPC-filtered reversible lock and unlock actions for EPC, TID, and User banks.
+- Added guarded erase-by-zero for writable EPC and User banks inside Tag Control.
+- Added a separate Access Keys tool with four persistent Access Password slots used by write, erase, lock, and unlock operations.
+- Restored the original three-row, two-column main-menu tile size with vertical scrolling.
+- Prevented locking with a zero Access Password and added a zero-password recovery action for initializing the tag key.
+- Required one unique EPC to remain stable before Tag Control permits tag operations.
+- Replaced the oversized Tag Control `Scanning` button label with actionable `Stop` / `Scan` labels.
+- Kept cleared EPC tags recoverable and visible, using a minimal non-zero EPC placeholder for future clears.
+- Added Access Passwords to protected reads and verification after setting a tag access key.
+- Moved Erase to the Tag Control right-button action and kept the Actions menu to three items.
+- Left-aligned multi-line tag memory data and added a right-side scrollbar for content longer than three rows.
+- Separated the Access Keys cursor from the active slot: Up/Down browse, center selects, and Right edits, with an aligned radio marker on the active slot.
+- Added a timed two-press Back confirmation popup before exiting from the main menu.
+- Added wraparound main-menu navigation across each two-item row and between the top and bottom rows.
+- Hid the Tag Control Erase button while the read-only TID bank is selected.
+- Added an Access Key submenu for setting a key from zero or restoring the tag password to zero after banks are unlocked.
+- Clarified Access Key actions with explicit `00000000` labels and shortened the reset warning to fit the display.
+- Removed the crowded Access Key warning line and changed reset-to-zero into a long-press action.
+
 v1.3:
 
 - Refined the feature menu, icons, About page, and compact UHF data layouts.

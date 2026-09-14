@@ -17,6 +17,8 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 - **Paged EPC List** — Browse scanned tags page by page, with truncated preview
 - **Tag Details** — View full EPC, RSSI, and PC (Protocol Control) bits for each tag
 - **Tag Memory Actions** — Read and write EPC, TID, and User Data on compatible tags
+- **Tag Protection Actions** — Erase writable banks and reversibly lock or unlock EPC, TID, and User memory
+- **Access Keys** — Keep four reusable 32-bit access-password slots in the app data directory
 - **Save CSV Records** — Export scanned tags to CSV file on SD card
 - **About Page** — Version info and project links
 
@@ -108,6 +110,13 @@ Catalog bundle, updates the Catalog fork, and opens the upstream pull request.
 5. Navigate the tag list with **Up/Down**
 6. Press **OK** on a tag to view details
 7. Use the submenu to save or clear tag records
+8. Open **Tag Control** after EPC Fuzzing to erase, lock, or unlock one presented tag
+9. Open the separate **Access Keys** tool to select or edit an Access Password slot
+
+> **Key storage:** Access-password slots are stored locally on the SD card for
+> convenience. They are masked in the UI but are not hardware-backed secrets.
+> Set a non-zero Access Password on the tag before locking. The Tag Control
+> recovery action can initialize it on tags whose current password is zero.
 
 ## Protocol
 
