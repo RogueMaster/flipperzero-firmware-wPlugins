@@ -9,6 +9,6 @@ App(
     fap_icon="icon.png",
     fap_icon_assets="assets",
     fap_description="Encrypt, decrypt, and hash text using a wide variety of classic and modern crypto tools.",
-    fap_author="Tyl3rA",
+    fap_author="@Tyl3rA",
     fap_weburl="https://github.com/Tyl3rA/FlipCrypt",
 )
