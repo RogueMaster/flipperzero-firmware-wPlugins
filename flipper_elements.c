@@ -292,7 +292,7 @@ static bool main_ev(void* ctx, uint32_t ev) {
     if (ev == EVENT_START_APP) { view_dispatcher_switch_to_view(a->disp, VIEW_GRID); return true; }
     if (ev == EVENT_FINAL_CLOSE) { view_dispatcher_stop(a->disp); return true; }
     
-    // ОКНО СВОЙСТВ! Формат C printf-buffer для всего этого потока данных.
+    // ОКНО СВОЙСТВ
     if (ev == EVENT_SHOW_DETAILS) {
         uint8_t x=0, y=0;
         with_view_model(a->v_grid, ViewModel* m, { x=m->cur_x; y=m->cur_y; }, false);
@@ -333,10 +333,10 @@ static bool main_ev(void* ctx, uint32_t ev) {
         } return true;
     }
     
-    // ABOUT ОКНО - Форматирование не съезжающее (Раньше тут терялся патреон из-за переносов)
+    // ABOUT ОКНО 
     if (ev == EVENT_SHOW_ABOUT) {
         snprintf(a->buf, sizeof(a->buf), 
-                 "Flipper Elements v1.0\n"
+                 "Flipper Elements v1.4\n"
                  "\n"
                  "Periodic Table of Elements\n"
                  "for Flipper Zero.\n"
