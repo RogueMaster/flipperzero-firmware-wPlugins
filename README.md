@@ -67,5 +67,6 @@ If this database tool is useful for your academic, educational, laboratory, or h
 * [Revolut](https://revolut.me/steanlab)
 * [GitHub Sponsors](https://github.com/sponsors/steanlab)
 * [Donorbox](https://donorbox.org/donations-for-lab-66)
+* Crypto Bitcoin (BTC): bc1qe5dmykh247nnycz8tjlfp3te67kftsmc8uxz5k, Ethereum (ETH): 0x3Aa313FA17444db70536A0ec5493F3aaA49C9CBf, Z-CASH (ZEC): t1LrYwjGn84gG4fWRs3ajaHZdaK2VWi5gFk
 
 *Thank you for supporting independent science and open-source tools.*
