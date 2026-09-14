@@ -1,24 +1,24 @@
-## V0.7
+## v0.7
 - Under the hood refactoring.
 - Add ADFGVX, ADFGX, Bifid, Blowfish, DES, 3DES, Null, and Trifid ciphers.
 - Add Base16 encoding.
 
-## V0.6
+## v0.6
 - Decreased RAM usage.
 - Add Porta cipher.
 
-## V0.5
+## v0.5
 - Updated widget text, fixed some typos.
 
-## V0.4
+## v0.4
 - Fixed NFC emulation issue.
 
-## V0.3
+## v0.3
 - Added ROT-13 cipher.
 - Added MD2 hash.
 - Large under the hood improvements regarding storage.
 
-## V0.2
+## v0.2
 - Fixed typos.
 - Added menu to select between tool categories on main menu.
 - Added NFC emulation, QR code generation, and save to file options for output.
@@ -27,5 +27,5 @@
 - Added Base32, Base58, and Base64 encoding.
 - Updated screenshots.
 
-## V0.1
+## v0.1
 - Initial release.
