@@ -45,16 +45,16 @@ Real screenshots from the app (Flipper Zero, 128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.png" width="240" alt="Main menu"><br><b>Main menu</b><br>Work mode, Overview, Badges, History...</td>
-    <td align="center"><img src="docs/img/work-clock.png" width="240" alt="Work mode clock"><br><b>Work mode</b><br>Live clock, tap to punch</td>
+    <td align="center" valign="top"><img src="docs/img/menu.png" width="240" alt="Main menu"><br><b>Main menu</b><br>Work mode, Overview, Badges, History...</td>
+    <td align="center" valign="top"><img src="docs/img/work-clock.png" width="240" alt="Work mode clock"><br><b>Work mode</b><br>Live clock, tap to punch</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.png" width="240" alt="Greeting"><br><b>Tap a badge</b><br>Welcome / Goodbye by name</td>
-    <td align="center"><img src="docs/img/overview.png" width="240" alt="Overview"><br><b>Overview</b><br>Per-person today / week / month + break</td>
+    <td align="center" valign="top"><img src="docs/img/greeting.png" width="240" alt="Greeting"><br><b>Tap a badge</b><br>Welcome / Goodbye by name</td>
+    <td align="center" valign="top"><img src="docs/img/overview.png" width="240" alt="Overview"><br><b>Overview</b><br>Per-person today / week / month + break</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.png" width="240" alt="PIN lock"><br><b>PIN lock</b><br>Protects exit from the app</td>
-    <td align="center"><img src="docs/img/export.png" width="240" alt="Export"><br><b>Export</b><br>CSV, monthly CSV, JSON</td>
+    <td align="center" valign="top"><img src="docs/img/pin.png" width="240" alt="PIN lock"><br><b>PIN lock</b><br>Protects exit from the app</td>
+    <td align="center" valign="top"><img src="docs/img/export.png" width="240" alt="Export"><br><b>Export</b><br>CSV, monthly CSV, JSON</td>
   </tr>
 </table>
 

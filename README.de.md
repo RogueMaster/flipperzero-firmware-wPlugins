@@ -44,16 +44,16 @@ Echte Screenshots aus der App (Flipper Zero, 128x64):
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/menu.png" width="240" alt="Hauptmenue"><br><b>Hauptmenue</b><br>Work mode, Uebersicht, Ausweise, Verlauf...</td>
-    <td align="center"><img src="docs/img/work-clock.png" width="240" alt="Work mode"><br><b>Work mode</b><br>Uhr, Stempeln per Chip</td>
+    <td align="center" valign="top"><img src="docs/img/menu.png" width="240" alt="Hauptmenue"><br><b>Hauptmenue</b><br>Work mode, Uebersicht, Ausweise, Verlauf...</td>
+    <td align="center" valign="top"><img src="docs/img/work-clock.png" width="240" alt="Work mode"><br><b>Work mode</b><br>Uhr, Stempeln per Chip</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/greeting.png" width="240" alt="Gruss"><br><b>Chip anhalten</b><br>Willkommen / Tschuess mit Name</td>
-    <td align="center"><img src="docs/img/overview.png" width="240" alt="Uebersicht"><br><b>Uebersicht</b><br>Pro Person: heute / Woche / Monat + Pause</td>
+    <td align="center" valign="top"><img src="docs/img/greeting.png" width="240" alt="Gruss"><br><b>Chip anhalten</b><br>Willkommen / Tschuess mit Name</td>
+    <td align="center" valign="top"><img src="docs/img/overview.png" width="240" alt="Uebersicht"><br><b>Uebersicht</b><br>Pro Person: heute / Woche / Monat + Pause</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/pin.png" width="240" alt="PIN-Sperre"><br><b>PIN-Sperre</b><br>Schuetzt das Verlassen der App</td>
-    <td align="center"><img src="docs/img/export.png" width="240" alt="Export"><br><b>Export</b><br>CSV, Monats-CSV, JSON</td>
+    <td align="center" valign="top"><img src="docs/img/pin.png" width="240" alt="PIN-Sperre"><br><b>PIN-Sperre</b><br>Schuetzt das Verlassen der App</td>
+    <td align="center" valign="top"><img src="docs/img/export.png" width="240" alt="Export"><br><b>Export</b><br>CSV, Monats-CSV, JSON</td>
   </tr>
 </table>
 
