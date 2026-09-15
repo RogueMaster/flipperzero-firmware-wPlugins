@@ -32,8 +32,22 @@ jobs:
         run: python -m unittest discover -s tests
       - if: runner.os == 'Windows'
         run: python -m unittest tests.test_fibp_codec tests.test_host_network tests.test_host_permissions tests.test_host_session tests.test_host_transforms
-      - run: pyinstaller --onefile --name fib-bridge-${{ matrix.asset }} host/fib_bridge_entry.py
+      - if: runner.os == 'Windows'
+        run: pyinstaller --onefile --icon host/assets/fib-bridge.ico --name fib-bridge-${{ matrix.asset }} host/fib_bridge_entry.py
+      - if: runner.os == 'Linux'
+        run: |
+          pyinstaller --onefile --name fib-bridge-${{ matrix.asset }} host/fib_bridge_entry.py
+          mkdir -p dist/fib-bridge-linux-x86_64-package
+          cp dist/fib-bridge-linux-x86_64 dist/fib-bridge-linux-x86_64-package/fib-bridge
+          cp host/assets/fib-bridge.png dist/fib-bridge-linux-x86_64-package/fib-bridge.png
+          cp host/linux/install.sh host/linux/uninstall.sh host/README.md dist/fib-bridge-linux-x86_64-package/
+          chmod +x dist/fib-bridge-linux-x86_64-package/fib-bridge
+          chmod +x dist/fib-bridge-linux-x86_64-package/install.sh
+          chmod +x dist/fib-bridge-linux-x86_64-package/uninstall.sh
+          tar -C dist -czf dist/fib-bridge-linux-x86_64.tar.gz fib-bridge-linux-x86_64-package
       - uses: actions/upload-artifact@v7
         with:
           name: fib-bridge-${{ matrix.asset }}
-          path: dist/fib-bridge-${{ matrix.asset }}*
+          path: |
+            dist/fib-bridge-${{ matrix.asset }}.exe
+            dist/fib-bridge-${{ matrix.asset }}.tar.gz

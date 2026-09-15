@@ -1,9 +1,11 @@
-## v0.3.0-rc.1 (2026-09-15)
+## v0.3.0-rc.2 (2026-09-15)
 
 - Added a source-level Flipper Bridge Client SDK for other FAP applications.
 - Added a cross-platform Windows/Linux/macOS command-line host.
 - Added direct TLS, DNS/redirect SSRF checks, terminal permission prompts, and hashed persistent grants to the cross-platform host.
 - Added automated Windows and Linux binary packaging.
+- Added the macOS application icon to the Windows executable and a no-root
+  Linux desktop launcher package with the same icon.
 
 ## v0.2
 

@@ -60,9 +60,16 @@ Windows PowerShell:
 Linux:
 
 ```sh
-chmod +x fib-bridge-linux-x86_64
-./fib-bridge-linux-x86_64
+tar -xzf fib-bridge-linux-x86_64.tar.gz
+cd fib-bridge-linux-x86_64-package
+./install.sh
 ```
+
+The Linux installer places the binary and icon under the current user's XDG
+data directory and adds a **Flipper USB Internet Bridge** launcher to the
+desktop application menu. It does not use `sudo`. Run `./uninstall.sh` from the
+extracted package to remove those files. The Windows executable contains the
+same icon as its native executable resource.
 
 The binaries are currently unsigned. Windows SmartScreen or Linux desktop
 policy may therefore ask for confirmation. The release candidate has automated
