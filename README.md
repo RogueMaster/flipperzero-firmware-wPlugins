@@ -38,6 +38,7 @@ outside the MVP.
 ## Flipper menu
 
 - **Test Connection** — sends a PING and waits for PONG
+- **Markets** — shows BTC/USDT, ETH/USDT, or gold in USD per troy ounce
 - **Get Sample Text** — fetches and displays a short message
 - **Get Date and Time** — retrieves a short UTC response
 - **Search Wikipedia** — displays a short English Wikipedia result
@@ -360,6 +361,11 @@ clang -std=c11 -Wall -Wextra -Werror -pedantic -I. \
   bridge_protocol.c tests/test_bridge_protocol.c \
   -o .build-tests/test_bridge_protocol
 ./.build-tests/test_bridge_protocol
+
+clang -std=c11 -Wall -Wextra -Werror -pedantic -I. \
+  markets.c tests/test_markets.c \
+  -o .build-tests/test_markets
+./.build-tests/test_markets
 ```
 
 Python codec and simulator:
@@ -381,8 +387,9 @@ Flipper build validation:
 ../../venv/bin/ufbt
 ```
 
-The current suite includes 36 Python tests, the portable C protocol test, and 63
-Swift tests. It covers frame encoding, fragmentation and resynchronization, CRC,
+The current suite includes 36 Python tests, portable C protocol and market
+parser tests, and 63 Swift tests. It covers frame encoding, fragmentation and
+resynchronization, CRC,
 invalid lengths, handshake/version negotiation, permission decisions, request
 IDs and sequences, SSRF policy, redirects, timeout, response limits,
 cancellation, USB loss, and National Today extraction.

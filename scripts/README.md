@@ -1,5 +1,12 @@
 # FIBP hardware-free simulator
 
+`build_sdk_example.sh` stages and builds the standalone SDK consumer without
+overwriting the main `application.fam`:
+
+```sh
+UFBT=/path/to/ufbt ./scripts/build_sdk_example.sh
+```
+
 `fibp_simulator.py` creates a raw pseudo-terminal, prints its slave path on
 stdout, and emulates one FIBP endpoint. It does not make a real network request.
 All diagnostics are written to stderr.

@@ -6,6 +6,7 @@ App(
     stack_size=4 * 1024,
     sources=[
         "usb_internet_bridge.c",
+        "markets.c",
         "usb_transport.c",
         "bridge_session.c",
         "bridge_protocol.c",
@@ -16,7 +17,7 @@ App(
     fap_icon="app.png",
     fap_category="USB",
     fap_description="HTTPS bridge over USB CDC",
-    fap_version="0.3",
+    fap_version="0.4.0",
     fap_author="mete888",
     fap_weburl="https://github.com/mete888/flipper_usb_to_wifi",
 )
