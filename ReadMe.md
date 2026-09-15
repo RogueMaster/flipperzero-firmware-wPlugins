@@ -126,9 +126,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [Disable license expiration check in PVS options & update PR template- #4445 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4445)
 - Updated: [FlipDeFlock v0.97 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Flipcraft v2.8 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
-- Updated: [Mystic Balloon v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
 - Updated: [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 - Updated: [ProtoPirate v3.3 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- Updated: [Mystic Balloon v3.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
 
 <a name="release"></a>
 
@@ -341,7 +341,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Morse Master v1.1 (By w84death)](https://github.com/w84death/morse-master)
 - [MTP WIP v1.0 (By Alex4386)](https://github.com/Alex4386/f0-mtp)
 - [Multi Counter v1.1 (By JadePossible)](https://github.com/JadePossible/Flipper-Multi-Counter)
-- [Mystic Balloon v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
+- [Mystic Balloon v3.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
 - [Nah 2 da Nah Nah Nah v0.2 (By DigiMancer3D)](https://github.com/DigiMancer3D/nah2nah3)
 - [Network Defender v1.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Nu Pogodi! (Ну, погоди!) v1.3 (By sionyx)](https://github.com/sionyx/flipper_nupogodi)
