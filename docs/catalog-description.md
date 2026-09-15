@@ -7,6 +7,7 @@ The Flipper app sends bounded requests over USB CDC. A desktop host validates th
 ## Features
 
 - Test the USB bridge connection
+- View BTC/USDT, ETH/USDT, and gold prices in one Markets menu
 - Fetch sample text and the current date and time
 - Search English Wikipedia
 - Check weather by location
@@ -22,7 +23,7 @@ The Flipper app sends bounded requests over USB CDC. A desktop host validates th
 - A companion desktop host from the [project repository](https://github.com/mete888/flipper_usb_to_wifi)
 - A data-capable USB cable
 
-The helper does not require administrator access. Internet access is disabled until the user chooses **Allow Once** or **Always Allow** on the Mac.
+The helper does not require administrator access. Internet access is disabled until the user chooses **Allow Once** or **Always Allow** on the desktop host.
 
 ## Security
 

@@ -28,7 +28,16 @@ Return `false` from that callback to stop a response when the consumer's own
 limit is reached. Call `fib_bridge_client_cancel()` before leaving a screen with
 an active request, and always call `fib_bridge_client_free()` during shutdown.
 
-See `examples/flipper_bridge_client/example_app.c` for the complete lifecycle.
+`examples/flipper_bridge_client/` is a complete standalone FAP using only the
+public client API. Build it without modifying the main application manifest:
+
+```sh
+UFBT=/path/to/ufbt ./scripts/build_sdk_example.sh
+```
+
+The script prints the generated `fib_sdk_example.fap` path. The example displays
+connection state, performs a bounded HTTPS GET, pages through its preview, and
+cancels active work during exit.
 
 ## Constraints
 

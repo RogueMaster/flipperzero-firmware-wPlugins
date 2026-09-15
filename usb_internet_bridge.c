@@ -1,4 +1,5 @@
 #include "bridge_session.h"
+#include "markets.h"
 #include "radio_player.h"
 
 #include <furi.h>
@@ -40,6 +41,7 @@
 
 typedef enum {
     FibViewMenu,
+    FibViewMarkets,
     FibViewStatus,
     FibViewUrlInput,
     FibViewWeatherResults,
@@ -48,6 +50,7 @@ typedef enum {
 
 typedef enum {
     FibMenuTestConnection,
+    FibMenuMarkets,
     FibMenuDownloadSample,
     FibMenuGetDateTime,
     FibMenuInformationSearch,
@@ -65,6 +68,7 @@ typedef enum {
 
 typedef enum {
     FibRequestModeNormal,
+    FibRequestModeMarkets,
     FibRequestModeWikipedia,
     FibRequestModeWeatherSearch,
     FibRequestModeWeatherForecast,
@@ -78,6 +82,7 @@ typedef enum {
 typedef enum {
     FibPendingActionNone,
     FibPendingActionSample,
+    FibPendingActionMarkets,
     FibPendingActionDateTime,
     FibPendingActionWikipediaInput,
     FibPendingActionWeatherInput,
@@ -103,6 +108,8 @@ typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     Submenu* menu;
+    Submenu* markets;
+    unsigned market_index;
     Submenu* weather_results;
     Submenu* radio_stations;
     Widget* status_widget;
@@ -723,6 +730,11 @@ static const char* fib_permission_text(BridgePermission permission) {
 static void fib_app_cancel_button(GuiButtonType button, InputType input_type, void* context) {
     FibApp* app = context;
     if(!app || button != GuiButtonTypeCenter || input_type != InputTypeShort) return;
+    if(app->request_mode == FibRequestModeMarkets && !bridge_session_has_active_request(app->session)) {
+        fib_app_request_or_wait(app, markets_url(app->market_index));
+        fib_app_render_status(app);
+        return;
+    }
     if(app->request_mode == FibRequestModeRadioPlaying) {
         fib_app_stop_radio(app);
         fib_app_render_status(app);
@@ -753,7 +765,16 @@ static void fib_app_render_status(FibApp* app) {
     bridge_session_get_snapshot(app->session, &app->snapshot);
     furi_string_reset(app->status_text);
 
-    if(app->request_mode == FibRequestModeWikipedia && app->snapshot.state == BridgeSessionStateComplete) {
+    if(app->request_mode == FibRequestModeMarkets && app->snapshot.state == BridgeSessionStateComplete) {
+        furi_string_cat_printf(app->status_text, "\e#%s\n", markets_name(app->market_index));
+        if(app->snapshot.http_status != 200U) {
+            furi_string_cat_printf(app->status_text, "Price service: HTTP %u\nTry again later.", app->snapshot.http_status);
+        } else if(markets_format(app->market_index, app->snapshot.preview, app->search_result, sizeof(app->search_result))) {
+            furi_string_cat_str(app->status_text, app->search_result);
+        } else {
+            furi_string_cat_str(app->status_text, "Price data unavailable.\nPlease refresh.");
+        }
+    } else if(app->request_mode == FibRequestModeWikipedia && app->snapshot.state == BridgeSessionStateComplete) {
         furi_string_cat_printf(app->status_text, "\e#%s\n", app->input_buffer);
         if(app->snapshot.http_status == 200U &&
            fib_app_extract_search_result(
@@ -889,7 +910,7 @@ static void fib_app_render_status(FibApp* app) {
         const uint8_t text_height =
             (app->request_mode == FibRequestModeRadioPlaying ||
              app->request_mode == FibRequestModeRadioStopped) ? 44U :
-                                    app->snapshot.active_request ? 52U : 64U;
+                                    (app->snapshot.active_request || app->request_mode == FibRequestModeMarkets) ? 52U : 64U;
         widget_add_text_scroll_element(
             app->status_widget,
             0U,
@@ -915,6 +936,8 @@ static void fib_app_render_status(FibApp* app) {
     } else if(app->snapshot.active_request) {
         widget_add_button_element(
             app->status_widget, GuiButtonTypeCenter, "Cancel", fib_app_cancel_button, app);
+    } else if(app->request_mode == FibRequestModeMarkets && app->pending_action == FibPendingActionNone) {
+        widget_add_button_element(app->status_widget, GuiButtonTypeCenter, "Refresh", fib_app_cancel_button, app);
     }
 }
 
@@ -1061,6 +1084,13 @@ static uint32_t fib_app_back_to_menu(void* context) {
 static uint32_t fib_app_back_from_status(void* context) {
     UNUSED(context);
     FibApp* app = fib_app_active;
+    if(app && app->request_mode == FibRequestModeMarkets) {
+        bridge_session_cancel(app->session);
+        app->pending_action = FibPendingActionNone;
+        app->request_waiting_for_ready = false;
+        app->current_view = FibViewMarkets;
+        return FibViewMarkets;
+    }
     if(app && (app->request_mode == FibRequestModeRadioPlaying ||
                app->request_mode == FibRequestModeRadioStopped)) {
         fib_app_stop_radio(app);
@@ -1166,6 +1196,10 @@ static void fib_app_continue_pending_action(FibApp* app, FibPendingAction action
     if(!app) return;
 
     switch(action) {
+    case FibPendingActionMarkets:
+        app->current_view = FibViewMarkets;
+        view_dispatcher_switch_to_view(app->view_dispatcher, FibViewMarkets);
+        break;
     case FibPendingActionSample:
         app->request_mode = FibRequestModeNormal;
         fib_app_request_or_wait(app, FIB_SAMPLE_URL);
@@ -1311,11 +1345,23 @@ static void fib_app_radio_selected(void* context, uint32_t index) {
     fib_app_show_status(app, false);
 }
 
+static void fib_app_market_selected(void* context, uint32_t index) {
+    FibApp* app = context;
+    if(!app || index >= MARKETS_COUNT) return;
+    app->market_index = index;
+    app->request_mode = FibRequestModeMarkets;
+    fib_app_request_or_wait(app, markets_url(index));
+    fib_app_show_status(app, false);
+}
+
 static void fib_app_menu_selected(void* context, uint32_t index) {
     FibApp* app = context;
     if(!app) return;
 
     switch(index) {
+    case FibMenuMarkets:
+        fib_app_start_when_ready(app, FibPendingActionMarkets, FibRequestModeMarkets);
+        break;
     case FibMenuTestConnection:
         app->request_mode = FibRequestModeNormal;
         bridge_session_ping(app->session);
@@ -1371,12 +1417,13 @@ static FibApp* fib_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
     app->menu = submenu_alloc();
+    app->markets = submenu_alloc();
     app->weather_results = submenu_alloc();
     app->radio_stations = submenu_alloc();
     app->status_widget = widget_alloc();
     app->url_input = text_input_alloc();
     app->status_text = furi_string_alloc();
-    if(!app->gui || !app->view_dispatcher || !app->menu || !app->weather_results ||
+    if(!app->gui || !app->view_dispatcher || !app->menu || !app->markets || !app->weather_results ||
        !app->radio_stations || !app->status_widget ||
        !app->url_input || !app->status_text) {
         return app;
@@ -1388,6 +1435,12 @@ static FibApp* fib_app_alloc(void) {
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, fib_app_tick, FIB_UI_TICK_MS);
 
     submenu_set_header(app->menu, "USB Internet Bridge");
+    submenu_add_item(app->menu, "Markets", FibMenuMarkets, fib_app_menu_selected, app);
+    submenu_set_header(app->markets, "Markets");
+    for(unsigned i = 0; i < MARKETS_COUNT; ++i) {
+        submenu_add_item(app->markets, markets_name(i), i, fib_app_market_selected, app);
+    }
+    view_set_previous_callback(submenu_get_view(app->markets), fib_app_back_to_menu);
     submenu_add_item(
         app->menu, "Test Connection", FibMenuTestConnection, fib_app_menu_selected, app);
     submenu_add_item(
@@ -1431,6 +1484,7 @@ static FibApp* fib_app_alloc(void) {
     view_set_previous_callback(text_input_get_view(app->url_input), fib_app_back_to_menu);
 
     view_dispatcher_add_view(app->view_dispatcher, FibViewMenu, submenu_get_view(app->menu));
+    view_dispatcher_add_view(app->view_dispatcher, FibViewMarkets, submenu_get_view(app->markets));
     view_dispatcher_add_view(
         app->view_dispatcher, FibViewStatus, widget_get_view(app->status_widget));
     view_dispatcher_add_view(
@@ -1451,7 +1505,7 @@ static FibApp* fib_app_alloc(void) {
 }
 
 static bool fib_app_is_complete(const FibApp* app) {
-    return app && app->gui && app->view_dispatcher && app->menu && app->status_widget &&
+    return app && app->gui && app->view_dispatcher && app->menu && app->markets && app->status_widget &&
            app->weather_results && app->radio_stations && app->url_input &&
            app->status_text && app->session && app->radio_player;
 }
@@ -1465,6 +1519,7 @@ static void fib_app_free(FibApp* app) {
     if(app->view_dispatcher) {
         if(app->views_added) {
             view_dispatcher_remove_view(app->view_dispatcher, FibViewMenu);
+            view_dispatcher_remove_view(app->view_dispatcher, FibViewMarkets);
             view_dispatcher_remove_view(app->view_dispatcher, FibViewStatus);
             view_dispatcher_remove_view(app->view_dispatcher, FibViewUrlInput);
             view_dispatcher_remove_view(app->view_dispatcher, FibViewWeatherResults);
@@ -1477,6 +1532,7 @@ static void fib_app_free(FibApp* app) {
     if(app->radio_stations) submenu_free(app->radio_stations);
     if(app->status_widget) widget_free(app->status_widget);
     if(app->menu) submenu_free(app->menu);
+    if(app->markets) submenu_free(app->markets);
     if(app->status_text) furi_string_free(app->status_text);
     if(app->gui) furi_record_close(RECORD_GUI);
     free(app);

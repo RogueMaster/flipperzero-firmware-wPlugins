@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Test portable market parser
+        run: cc -std=c11 -Wall -Wextra -Werror -pedantic -I. markets.c tests/test_markets.c -o /tmp/test_markets && /tmp/test_markets
       - name: Build with ufbt
         uses: flipperdevices/flipperzero-ufbt-action@v0.1
         id: build-app

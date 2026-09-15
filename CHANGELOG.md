@@ -1,3 +1,9 @@
+## v0.4.0 (unreleased)
+
+- Added a single Markets menu with BTC/USDT, ETH/USDT, and gold in USD per
+  troy ounce, including refresh and bounded response validation.
+- Added a complete, independently buildable client SDK example FAP.
+
 ## v0.3.0-rc.2 (2026-09-15)
 
 - Added a source-level Flipper Bridge Client SDK for other FAP applications.
