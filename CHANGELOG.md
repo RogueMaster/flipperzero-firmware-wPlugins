@@ -1,4 +1,4 @@
-## v0.3 (unreleased)
+## v0.3.0-rc.1 (2026-09-15)
 
 - Added a source-level Flipper Bridge Client SDK for other FAP applications.
 - Added a cross-platform Windows/Linux/macOS command-line host.
