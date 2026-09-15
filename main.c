@@ -31,8 +31,6 @@
 #include "storage.h"
 #include "cipher_registry.h"
 
-#define FLIP_CRYPT_DATA_DIR EXT_PATH("apps_data/flip_crypt")
-
 #define FLIP_CRYPT_SCENES(X) \
     X(MainMenu, flip_crypt_main_menu_scene_on_enter, flip_crypt_generic_event_handler, flip_crypt_main_menu_scene_on_exit) \
     X(CipherCategoryMenu, category_menu_scene_on_enter, flip_crypt_generic_event_handler, flip_crypt_generic_on_exit) \
