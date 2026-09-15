@@ -10,6 +10,6 @@ App(
     fap_icon=".catalog/icon_10px.png",
     fap_author="@apfxtech",
     fap_weburl="https://github.com/apfxtech/FlipperMysticBalloon.git",
-    fap_version="2.0",
+    fap_version="3.0",
     fap_description="Mystic Balloon game ported from Arduboy.",
 )
