@@ -215,13 +215,16 @@ final class BridgeCoordinatorTests: XCTestCase {
     }
 
     func testOversizedResponseIsTruncatedAtNegotiatedLimit() throws {
+        let negotiatedLimit = 4_096
         let harness = Harness()
         defer { harness.stop() }
-        try harness.readyConnection()
+        try harness.readyConnection(hello: Harness.makeHello(
+            maximumResponseBytes: UInt32(negotiatedLimit)
+        ))
         harness.sendGET(requestID: 120)
         XCTAssertTrue(waitUntil { harness.http.executeCount == 1 })
         harness.http.respond(status: 200)
-        harness.http.send(Data(repeating: 0x42, count: BridgeConfiguration.maximumResponseBytes + 1))
+        harness.http.send(Data(repeating: 0x42, count: negotiatedLimit + 1))
         XCTAssertTrue(waitUntil { harness.http.cancelCount > 0 })
         harness.http.complete(.failure(.cancelled))
 
@@ -231,7 +234,7 @@ final class BridgeCoordinatorTests: XCTestCase {
         let frames = harness.transport.frames.filter { $0.requestID == 120 }
         let bodyBytes = frames.filter { $0.messageType == .responseBodyChunk }
             .reduce(0) { $0 + $1.payload.count }
-        XCTAssertEqual(bodyBytes, BridgeConfiguration.maximumResponseBytes)
+        XCTAssertEqual(bodyBytes, negotiatedLimit)
         let end = frames.last { $0.messageType == .responseEnd }
         XCTAssertEqual(end?.payload.first, 1)
         XCTAssertTrue(end?.flags.contains(.truncated) == true)
@@ -698,12 +701,13 @@ private final class Harness {
     )
     static func makeHello(
         capabilities: FIBPCapabilities = .helperSupported,
-        maximumReceivePayload: UInt16 = UInt16(BridgeConfiguration.maximumWirePayload)
+        maximumReceivePayload: UInt16 = UInt16(BridgeConfiguration.maximumWirePayload),
+        maximumResponseBytes: UInt32 = UInt32(BridgeConfiguration.maximumResponseBytes)
     ) -> FIBPHello {
         FIBPHello(
         capabilities: capabilities,
         maximumReceivePayload: maximumReceivePayload,
-        maximumResponseBytes: UInt32(BridgeConfiguration.maximumResponseBytes),
+        maximumResponseBytes: maximumResponseBytes,
         clientNonce: 0x0102_0304_0506_0708,
         model: "Flipper Zero",
         name: "Miço",

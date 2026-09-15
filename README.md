@@ -381,7 +381,7 @@ Flipper build validation:
 ../../venv/bin/ufbt
 ```
 
-The current suite includes 35 Python tests, the portable C protocol test, and 61
+The current suite includes 36 Python tests, the portable C protocol test, and 63
 Swift tests. It covers frame encoding, fragmentation and resynchronization, CRC,
 invalid lengths, handshake/version negotiation, permission decisions, request
 IDs and sequences, SSRF policy, redirects, timeout, response limits,
