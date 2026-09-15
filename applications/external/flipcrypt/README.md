@@ -4,13 +4,18 @@ FlipCrypt is a Flipper Zero app that provides a collection of classic cipher alg
 
 ## Ciphers
 - ADFGVX
+- ADFGX
 - AES-128
 - Affine
 - Atbash
 - Baconian
 - Beaufort
 - Bifid
+- Blowfish
 - Caesar
+- DES
+- 3DES
+- Null
 - Playfair
 - Polybius Square
 - Porta

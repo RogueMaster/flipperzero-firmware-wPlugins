@@ -1,6 +1,6 @@
-## Unreleased
-- Major under the hood refactoring
-- Add ADFGVX, Bifid, Trifid ciphers.
+## V0.7
+- Under the hood refactoring.
+- Add ADFGVX, ADFGX, Bifid, Blowfish, DES, 3DES, Null, and Trifid ciphers.
 - Add Base16 encoding.
 
 ## V0.6

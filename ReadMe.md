@@ -126,8 +126,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [Disable license expiration check in PVS options & update PR template- #4445 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4445)
 - Updated: [FlipDeFlock v0.97 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Flipcraft v2.8 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
-- Updated: [FlipCrypt v0.6 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 - Updated: [Mystic Balloon v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
+- Updated: [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 
 <a name="release"></a>
 
@@ -572,7 +572,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipBoard Keyboard v3.9 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBoard Signal v3.12 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBoard Simon v1.10 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
-- [FlipCrypt v0.6 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
+- [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 - [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck)
 - [FlipDeFlock v0.97 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [FlipDownloader v1.3.5 (By jblanked)](https://github.com/jblanked/FlipStore) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)

@@ -6,13 +6,17 @@
 #include <string.h>
 
 #include "ciphers/adfgvx.h"
+#include "ciphers/adfgx.h"
 #include "ciphers/aes.h"
 #include "ciphers/affine.h"
 #include "ciphers/atbash.h"
 #include "ciphers/baconian.h"
 #include "ciphers/beaufort.h"
 #include "ciphers/bifid.h"
+#include "ciphers/blowfish.h"
 #include "ciphers/caesar.h"
+#include "ciphers/des.h"
+#include "ciphers/null.h"
 #include "ciphers/playfair.h"
 #include "ciphers/polybius.h"
 #include "ciphers/porta.h"
@@ -65,6 +69,32 @@ static char* bytes_to_hex(const uint8_t* bytes, size_t len) {
     return out;
 }
 
+static uint8_t hex_char_to_nibble(char c) {
+    if(c >= '0' && c <= '9') return (uint8_t)(c - '0');
+    if(c >= 'a' && c <= 'f') return (uint8_t)(c - 'a' + 10);
+    if(c >= 'A' && c <= 'F') return (uint8_t)(c - 'A' + 10);
+    furi_assert(false); // invalid hex character
+    return 0;
+}
+
+static uint8_t* hex_to_bytes(const char* hex, size_t* out_len) {
+    size_t hex_len = strlen(hex);
+    furi_assert(hex_len % 2 == 0);
+
+    size_t len = hex_len / 2;
+    uint8_t* out = malloc(len);
+    furi_assert(out);
+
+    for(size_t i = 0; i < len; i++) {
+        char hi = hex[i * 2];
+        char lo = hex[i * 2 + 1];
+        out[i] = (uint8_t)((hex_char_to_nibble(hi) << 4) | hex_char_to_nibble(lo));
+    }
+
+    *out_len = len;
+    return out;
+}
+
 #define SIMPLE_TRANSFORM_WRAPPER(fn_name, underlying_fn)                                  \
     static CipherResult fn_name(const char* input, int32_t a, int32_t b, const char* k) { \
         UNUSED(a);                                                                        \
@@ -72,6 +102,18 @@ static char* bytes_to_hex(const uint8_t* bytes, size_t len) {
         UNUSED(k);                                                                        \
         return ok_result(strdup(underlying_fn((char*)input)));                            \
     }
+
+static CipherResult adfgx_encode(const char* input, int32_t a, int32_t b, const char* key) {
+    UNUSED(a);
+    UNUSED(b);
+    return ok_result(adfgx_encrypt(input, key));
+}
+
+static CipherResult adfgx_decode(const char* input, int32_t a, int32_t b, const char* key) {
+    UNUSED(a);
+    UNUSED(b);
+    return ok_result(adfgx_decrypt(input, key));
+}
 
 static CipherResult adfgvx_encode(const char* input, int32_t a, int32_t b, const char* key) {
     UNUSED(a);
@@ -182,6 +224,67 @@ static CipherResult bifid_decode(const char* input, int32_t a, int32_t b, const 
     return ok_result(bifid_decrypt(input, key));
 }
 
+static CipherResult blowfish_encode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    // Build key schedule from k
+    BLOWFISH_KEY keystruct;
+    blowfish_key_setup((const BYTE*)k, &keystruct, strlen(k));
+
+    // PKCS#7 pad the input to a multiple of BLOWFISH_BLOCK_SIZE
+    size_t inlen = strlen(input);
+    size_t pad = BLOWFISH_BLOCK_SIZE - (inlen % BLOWFISH_BLOCK_SIZE);
+    size_t padded_len = inlen + pad;
+
+    BYTE* buf = malloc(padded_len);
+    memcpy(buf, input, inlen);
+    memset(buf + inlen, (int)pad, pad);
+
+    // Encrypt block by block
+    BYTE* out = malloc(padded_len);
+    for(size_t i = 0; i < padded_len; i += BLOWFISH_BLOCK_SIZE) {
+        blowfish_encrypt(buf + i, out + i, &keystruct);
+    }
+
+    char* hex = bytes_to_hex(out, padded_len);
+
+    free(buf);
+    free(out);
+    return ok_result(hex);
+}
+
+static CipherResult blowfish_decode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    BLOWFISH_KEY keystruct;
+    blowfish_key_setup((const BYTE*)k, &keystruct, strlen(k));
+
+    size_t clen = 0;
+    uint8_t* cipher = hex_to_bytes(input, &clen);
+    if(!cipher || clen % BLOWFISH_BLOCK_SIZE != 0) {
+        free(cipher);
+        return err_result(strdup("Invalid ciphertext length"));
+    }
+
+    BYTE* out = malloc(clen);
+    for(size_t i = 0; i < clen; i += BLOWFISH_BLOCK_SIZE) {
+        blowfish_decrypt(cipher + i, out + i, &keystruct);
+    }
+
+    BYTE pad = out[clen - 1];
+    size_t plainlen = (pad <= BLOWFISH_BLOCK_SIZE) ? clen - pad : clen;
+
+    char* result = malloc(plainlen + 1);
+    memcpy(result, out, plainlen);
+    result[plainlen] = '\0';
+
+    free(cipher);
+    free(out);
+    return ok_result(result);
+}
+
 static CipherResult porta_transform(const char* input, int32_t a, int32_t b, const char* key) {
     UNUSED(a);
     UNUSED(b);
@@ -198,6 +301,174 @@ static CipherResult caesar_decode(const char* input, int32_t a, int32_t b, const
     UNUSED(b);
     UNUSED(k);
     return ok_result(strdup(decode_caesar((char*)input, a)));
+}
+
+static CipherResult des_encode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    // Build 8-byte key from k (zero-padded/truncated)
+    BYTE key[DES_BLOCK_SIZE] = {0};
+    size_t klen = strlen(k);
+    memcpy(key, k, klen < DES_BLOCK_SIZE ? klen : DES_BLOCK_SIZE);
+
+    BYTE schedule[16][6];
+    des_key_setup(key, schedule, DES_ENCRYPT);
+
+    // PKCS#7 pad the input to a multiple of DES_BLOCK_SIZE
+    size_t inlen = strlen(input);
+    size_t pad = DES_BLOCK_SIZE - (inlen % DES_BLOCK_SIZE);
+    size_t padded_len = inlen + pad;
+
+    BYTE* buf = malloc(padded_len);
+    memcpy(buf, input, inlen);
+    memset(buf + inlen, (int)pad, pad); // PKCS#7: pad bytes = pad value
+
+    // Encrypt block by block
+    BYTE* out = malloc(padded_len);
+    for(size_t i = 0; i < padded_len; i += DES_BLOCK_SIZE) {
+        des_crypt(buf + i, out + i, schedule);
+    }
+
+    // Encode raw bytes to a printable string
+    char* hex = bytes_to_hex(out, padded_len);
+
+    free(buf);
+    free(out);
+    return ok_result(hex);
+}
+
+static CipherResult des_decode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    BYTE key[DES_BLOCK_SIZE] = {0};
+    size_t klen = strlen(k);
+    memcpy(key, k, klen < DES_BLOCK_SIZE ? klen : DES_BLOCK_SIZE);
+
+    BYTE schedule[16][6];
+    des_key_setup(key, schedule, DES_DECRYPT);
+
+    // Hex-decode the ciphertext back to raw bytes
+    size_t clen = 0;
+    BYTE* cipher = hex_to_bytes(input, &clen);
+    if(!cipher || clen % DES_BLOCK_SIZE != 0) {
+        free(cipher);
+        return err_result(strdup("Invalid ciphertext length"));
+    }
+
+    // Decrypt block by block
+    BYTE* out = malloc(clen);
+    for(size_t i = 0; i < clen; i += DES_BLOCK_SIZE) {
+        des_crypt(cipher + i, out + i, schedule);
+    }
+
+    // Strip PKCS#7 padding
+    BYTE pad = out[clen - 1];
+    size_t plainlen = (pad <= DES_BLOCK_SIZE) ? clen - pad : clen;
+
+    char* result = malloc(plainlen + 1);
+    memcpy(result, out, plainlen);
+    result[plainlen] = '\0';
+
+    free(cipher);
+    free(out);
+    return ok_result(result);
+}
+
+static CipherResult triple_des_encode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    // Build 24-byte key from k, repeating it to fill K1/K2/K3
+    BYTE key[24] = {0};
+    size_t klen = strlen(k);
+    for(size_t i = 0; i < 24; i++) {
+        key[i] = (BYTE)k[i % klen];
+    }
+
+    BYTE schedule[16][16][6];
+    three_des_key_setup(key, schedule, DES_ENCRYPT);
+
+    // PKCS#7 pad the input to a multiple of DES_BLOCK_SIZE
+    size_t inlen = strlen(input);
+    size_t pad = DES_BLOCK_SIZE - (inlen % DES_BLOCK_SIZE);
+    size_t padded_len = inlen + pad;
+
+    BYTE* buf = malloc(padded_len);
+    memcpy(buf, input, inlen);
+    memset(buf + inlen, (int)pad, pad);
+
+    // Encrypt block by block
+    BYTE* out = malloc(padded_len);
+    for(size_t i = 0; i < padded_len; i += DES_BLOCK_SIZE) {
+        three_des_crypt(buf + i, out + i, schedule);
+    }
+
+    char* hex = bytes_to_hex(out, padded_len);
+
+    free(buf);
+    free(out);
+    return ok_result(hex);
+}
+
+static CipherResult triple_des_decode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(a);
+    UNUSED(b);
+
+    BYTE key[24] = {0};
+    size_t klen = strlen(k);
+    for(size_t i = 0; i < 24; i++) {
+        key[i] = (BYTE)k[i % klen];
+    }
+
+    BYTE schedule[16][16][6];
+    three_des_key_setup(key, schedule, DES_DECRYPT);
+
+    size_t clen = 0;
+    uint8_t* cipher = hex_to_bytes(input, &clen);
+    if(!cipher || clen % DES_BLOCK_SIZE != 0) {
+        free(cipher);
+        return err_result(strdup("Invalid ciphertext length"));
+    }
+
+    BYTE* out = malloc(clen);
+    for(size_t i = 0; i < clen; i += DES_BLOCK_SIZE) {
+        three_des_crypt(cipher + i, out + i, schedule);
+    }
+
+    BYTE pad = out[clen - 1];
+    size_t plainlen = (pad <= DES_BLOCK_SIZE) ? clen - pad : clen;
+
+    char* result = malloc(plainlen + 1);
+    memcpy(result, out, plainlen);
+    result[plainlen] = '\0';
+
+    free(cipher);
+    free(out);
+    return ok_result(result);
+}
+
+static CipherResult null_encode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(b);
+    UNUSED(k);
+
+    char* result = null_encrypt(input, a);
+    if(!result) {
+        return err_result(strdup("Null cipher requires n >= 1"));
+    }
+    return ok_result(result);
+}
+
+static CipherResult null_decode(const char* input, int32_t a, int32_t b, const char* k) {
+    UNUSED(b);
+    UNUSED(k);
+
+    char* result = null_decrypt(input, a);
+    if(!result) {
+        return err_result(strdup("Invalid ciphertext length for given n"));
+    }
+    return ok_result(result);
 }
 
 static CipherResult playfair_encode(const char* input, int32_t a, int32_t b, const char* keyword) {
@@ -502,6 +773,27 @@ const CipherDef kCiphers[] = {
             "victory in modern cryptanalysis.",
     },
     {
+        .name = "ADFGX Cipher",
+        .file_key = "adfgx",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = adfgx_encode,
+        .decode = adfgx_decode,
+        .key_a_prompt = "Enter keyword",
+        .learn_text =
+            "The ADFGX cipher was used by the German Army during World War I to secure "
+            "radio communications. It works in two stages: first, each letter is "
+            "converted into a pair of letters from the set A, D, F, G, X using a 5x5 grid, "
+            "a process called fractionation (the letters I and J share a cell, so no "
+            "digits are supported). Second, the resulting stream of letters is "
+            "rearranged using a keyed columnar transposition, scrambling the order based on "
+            "a secret keyword. The combination of substitution and transposition made ADFGX "
+            "considerably harder to break than earlier field ciphers, though French "
+            "cryptanalyst Georges Painvin famously broke it during the war, a notable early "
+            "victory in modern cryptanalysis. The Germans later extended it to ADFGVX, adding "
+            "a sixth letter and a 6x6 grid to support digits as well.",
+    },
+    {
         .name = "AES-128 Cipher",
         .file_key = "aes",
         .category = CipherCategoryCipher,
@@ -613,6 +905,25 @@ const CipherDef kCiphers[] = {
             "substitution ciphers, making frequency analysis considerably harder.",
     },
     {
+        .name = "Blowfish Cipher",
+        .file_key = "blowfish",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = blowfish_encode,
+        .decode = blowfish_decode,
+        .key_a_prompt = "Enter keyword",
+        .learn_text =
+            "Blowfish is a symmetric block cipher designed by Bruce Schneier in "
+            "1993 as a fast alternative to older ciphers like DES. It "
+            "encrypts data in 64-bit blocks and supports variable key lengths from "
+            "32 up to 448 bits, giving it far more flexibility than DES's fixed "
+            "56-bit key. Blowfish works by running each block through 16 rounds of "
+            "a Feistel network, using key-dependent substitution boxes that are "
+            "generated during setup. It remains considered pretty secure today, though its "
+            "small 64-bit block size has led modern applications to favor newer "
+            "ciphers like AES for encrypting large amounts of data.",
+    },
+    {
         .name = "Caesar Cipher",
         .file_key = "caesar",
         .category = CipherCategoryCipher,
@@ -629,6 +940,58 @@ const CipherDef kCiphers[] = {
             "example, with a shift of 3, 'A' becomes 'D', 'B' becomes 'E', and so on. After 'Z', "
             "the cipher wraps around to the beginning of the alphabet. While easy to understand "
             "and implement, the Caesar cipher is also extremely easy to break.",
+    },
+    {
+        .name = "DES Cipher",
+        .file_key = "des",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = des_encode,
+        .decode = des_decode,
+        .key_a_prompt = "Enter key",
+        .learn_text =
+            "The Data Encryption Standard (DES) is a symmetric block cipher developed in the 1970s "
+            "and adopted as a US government standard in 1977. It encrypts data in fixed 64-bit blocks "
+            "using a 56-bit key, applying 16 rounds of substitution and permutation to scramble the "
+            "input. DES was widely used for decades, but its short key length makes it vulnerable to "
+            "brute-force attacks with modern hardware, and it has since been retired in favor of "
+            "stronger ciphers like AES.",
+    },
+    {
+        .name = "3DES Cipher",
+        .file_key = "triple_des",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyText,
+        .encode = triple_des_encode,
+        .decode = triple_des_decode,
+        .key_a_prompt = "Enter 3x consec. 8 char keys",
+        .learn_text =
+            "Triple DES (3DES) was designed to extend the life of the original DES algorithm without "
+            "requiring a completely new cipher. It works by applying the DES algorithm three times to "
+            "each block of data, typically encrypting with one key, decrypting with a second, then "
+            "encrypting again with a third, an approach known as EDE. This effectively increases the "
+            "key strength and makes brute-force attacks far less practical. While more secure than "
+            "plain DES, 3DES is slower and has also been phased out in favor of modern ciphers like AES.",
+    },
+    {
+        .name = "Null Cipher",
+        .file_key = "null",
+        .category = CipherCategoryCipher,
+        .key_kind = CipherKeyNumberSingle,
+        .encode = null_encode,
+        .decode = null_decode,
+        .key_a_min = 2,
+        .key_a_max = 10,
+        .key_a_prompt = "Enter a num (2-10)",
+        .learn_text = "A null cipher hides a real message by mixing it in with meaningless "
+                      "filler, rather than scrambling it like most ciphers do. In this version, "
+                      "only every nth character of the text carries meaning, and the rest are "
+                      "random letters inserted to disguise it. Historically, null ciphers "
+                      "worked by hiding words within an ordinary-looking letter, so the message "
+                      "was invisible unless you knew where to look. Because there's no "
+                      "mathematical scrambling involved, a null cipher is only as strong as "
+                      "its hiding place, once someone knows the pattern, the message is "
+                      "trivial to recover.",
     },
     {
         .name = "Playfair Cipher",
