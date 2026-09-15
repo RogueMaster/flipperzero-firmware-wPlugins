@@ -1,4 +1,5 @@
 #include <storage/storage.h>
+#include "storage.h"
 
 // callback for saving from output screen
 void save_result(const char* text, char* file_name) {
