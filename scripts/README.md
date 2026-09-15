@@ -4,7 +4,7 @@
 stdout, and emulates one FIBP endpoint. It does not make a real network request.
 All diagnostics are written to stderr.
 
-Run a simulated Flipper for a macOS helper that accepts a manual serial path:
+Run a simulated Flipper for a desktop helper that accepts a manual serial path:
 
 ```sh
 python3 scripts/fibp_simulator.py \

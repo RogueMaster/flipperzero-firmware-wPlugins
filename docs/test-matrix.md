@@ -42,7 +42,7 @@ Donanım testi simülatör başarısıyla eşitlenmez.
 | Eksik frame | Swift parser timeout testi + Python partial-frame codec testi | Bounded tampon; Swift/FAP'te 1 s reset, Python'da explicit partial-frame raporu |
 | Eksik mantıksal request | Swift coordinator | 5 s sonra aktif slot serbest ve TIMEOUT |
 | Yanlış payload uzunluğu | C, Swift ve Python codec | Büyük allocation/bekleme olmadan reddedilir |
-| Fazla büyük response | Swift mock HTTP/coordinator | 16 KiB sınırında truncate/cancel terminal sonucu |
+| Fazla büyük response | Swift mock HTTP/coordinator | 4 MiB sınırında truncate/cancel terminal sonucu |
 | Düz HTTP | Swift URL policy | URLSession'dan önce `SECURITY_BLOCKED` |
 | localhost | Swift URL policy | DNS/connect öncesi engellenir |
 | Private/link-local/ULA/CGNAT IP | Swift address policy | Public olmayan IPv4/IPv6 reddedilir |

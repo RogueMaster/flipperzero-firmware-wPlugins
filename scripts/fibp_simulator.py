@@ -380,7 +380,7 @@ class MacRoleEngine:
 
 
 class FlipperRoleEngine:
-    """A small Flipper-side demo client for exercising the macOS helper."""
+    """A small Flipper-side demo client for exercising a desktop host."""
 
     def __init__(
         self,
@@ -424,7 +424,7 @@ class FlipperRoleEngine:
             name="FIBP Simulator",
             id_type=1,
             device_id=bytes.fromhex("0102030405060708"),
-            app_version="0.1.0",
+            app_version="0.3",
         )
         return [Frame(MessageType.HELLO, encode_hello(hello), sequence=0)]
 
@@ -547,7 +547,7 @@ class FlipperRoleEngine:
                         raise PayloadDecodeError("response chunk exceeds 192 bytes")
                     self.response_body.extend(frame.payload)
                     if len(self.response_body) > MAX_RESPONSE_BODY_BYTES:
-                        raise PayloadDecodeError("response exceeds 16 KiB")
+                        raise PayloadDecodeError("response exceeds 4 MiB")
                     return []
 
                 if not (frame.flags & FrameFlags.FINAL):

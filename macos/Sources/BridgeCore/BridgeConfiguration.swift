@@ -29,7 +29,7 @@ public enum BridgeConfiguration {
     public static let maximumErrorDetailBytes = 128
     // HELLO_ACK is the largest mandatory pre-negotiation payload (28 bytes).
     public static let minimumAdvertisedReceivePayload = 28
-    public static let fixedUserAgent = "FlipperUSBInternetBridge/0.1"
+    public static let fixedUserAgent = "FlipperUSBInternetBridge/0.3"
     // USB CDC ignores the nominal baud rate and can otherwise overrun Flipper's
     // small receive queue when a server delivers a large body in one burst.
     public static let serialWriteChunkSize = 64

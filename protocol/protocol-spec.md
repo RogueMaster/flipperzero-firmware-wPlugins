@@ -7,7 +7,7 @@ Byte order: little endian for every multi-byte integer
 ## 1. Scope
 
 FIBP carries bounded application-layer HTTPS requests between a Flipper Zero FAP
-and a user-space macOS helper. It is not an IP tunnel and exposes no Ethernet,
+and a user-space desktop host. It is not an IP tunnel and exposes no Ethernet,
 socket, shell, filesystem, DNS, or Wi-Fi credential API to the Flipper.
 
 The CDC transport is an arbitrary byte stream: a USB transfer can contain a
@@ -58,18 +58,18 @@ the claimed body.
 
 | Value | Name | Direction |
 | ---: | --- | --- |
-| `0x01` | `HELLO` | Flipper to Mac |
-| `0x02` | `HELLO_ACK` | Mac to Flipper |
-| `0x03` | `PERMISSION_STATUS` | Mac to Flipper |
-| `0x04` | `PERMISSION_REQUIRED` | Mac to Flipper |
-| `0x10` | `REQUEST_START` | Flipper to Mac |
-| `0x11` | `REQUEST_HEADER` | Flipper to Mac |
-| `0x12` | `REQUEST_BODY_CHUNK` | Flipper to Mac |
-| `0x13` | `REQUEST_END` | Flipper to Mac |
-| `0x20` | `RESPONSE_START` | Mac to Flipper |
-| `0x21` | `RESPONSE_HEADER` | Mac to Flipper |
-| `0x22` | `RESPONSE_BODY_CHUNK` | Mac to Flipper |
-| `0x23` | `RESPONSE_END` | Mac to Flipper |
+| `0x01` | `HELLO` | Flipper to host |
+| `0x02` | `HELLO_ACK` | Host to Flipper |
+| `0x03` | `PERMISSION_STATUS` | Host to Flipper |
+| `0x04` | `PERMISSION_REQUIRED` | Host to Flipper |
+| `0x10` | `REQUEST_START` | Flipper to host |
+| `0x11` | `REQUEST_HEADER` | Flipper to host |
+| `0x12` | `REQUEST_BODY_CHUNK` | Flipper to host |
+| `0x13` | `REQUEST_END` | Flipper to host |
+| `0x20` | `RESPONSE_START` | Host to Flipper |
+| `0x21` | `RESPONSE_HEADER` | Host to Flipper |
+| `0x22` | `RESPONSE_BODY_CHUNK` | Host to Flipper |
+| `0x23` | `RESPONSE_END` | Host to Flipper |
 | `0x30` | `CANCEL` | Either direction |
 | `0x31` | `PING` | Either direction |
 | `0x32` | `PONG` | Reply to PING |
@@ -212,8 +212,8 @@ headers. It never forwards `set-cookie`.
 ### 6.11 RESPONSE_BODY_CHUNK
 
 Payload is raw body data, emitted in chunks no larger than 192 bytes. The helper
-sends at most 16 KiB. Flipper processes chunks incrementally and keeps only a
-fixed 768-byte screen preview.
+sends at most 4 MiB. Flipper processes chunks incrementally and keeps only a
+fixed 1,536-byte screen preview.
 
 ### 6.12 RESPONSE_END
 
@@ -231,8 +231,8 @@ u8 reason                    # 0 user, 1 timeout, 2 disconnect, 3 policy
 ```
 
 Cancellation is idempotent. Its non-zero request ID selects the work.
-Its sequence belongs to the HTTP direction in which it travels: a Flipper-to-Mac
-CANCEL uses the next request-stream sequence; a Mac-to-Flipper CANCEL uses the
+Its sequence belongs to the HTTP direction in which it travels: a Flipper-to-host
+CANCEL uses the next request-stream sequence; a host-to-Flipper CANCEL uses the
 next response-stream sequence. A CANCEL with a duplicate or gapped sequence has
 no cancellation side effect. A malformed CANCEL payload likewise has no
 cancellation side effect and does not consume a request/response sequence.
@@ -339,7 +339,7 @@ any state + USB loss -> DISCONNECTED
   it whether or not its payload is valid; only a valid payload may affect its
   scope. Malformed payload is then ignored. Duplicate or gapped ERROR input is
   dropped without consuming a sequence, and no ERROR case receives an ERROR reply.
-- For a non-zero ID, Flipper-to-Mac request and Mac-to-Flipper response are
+- For a non-zero ID, Flipper-to-host request and host-to-Flipper response are
   independent streams beginning at sequence 0.
 - A sequence lower than expected is a duplicate and MUST NOT repeat a side
   effect. Except for the explicit CANCEL and ERROR no-side-effect rules above,
@@ -362,7 +362,7 @@ Before a request and again for every redirect, the helper MUST enforce:
 - reject authentication challenges other than default server trust;
 - request-header allow-list; never forward `Authorization`, `Cookie`,
   `Proxy-Authorization`, `Host`, or connection-control headers;
-- request body at most 4 KiB and response at most 16 KiB;
+- request body at most 4 KiB and response at most 4 MiB;
 - serial loss or permission revocation immediately cancels network work.
 
 DNS pre-validation plus redirect validation reduces SSRF, but URLSession resolves
@@ -382,7 +382,7 @@ threat model.
 | Header name/value | 64 B / 256 B |
 | Aggregate request headers | 1024 B |
 | POST body | 4 KiB |
-| Response body | 16 KiB |
+| Response body | 4 MiB |
 | Flipper display preview | 768 B |
 | Redirects | 3 |
 | Request timeout | default 15 s, maximum 30 s |

@@ -20,13 +20,13 @@ portable C codec + streaming parser
     | bytes
 USB CDC transport
 ================ USB cable ================
-POSIX serial port + candidate monitor
+desktop serial candidate monitor
     | bytes
-Swift codec + bridge session state machine
+FIBP host session state machine
     | validated request model
 permission store ---- secure HTTP policy/client
     |                         |
-SwiftUI menu/UI          ephemeral URLSession
+SwiftUI/terminal UI      URLSession or direct TLS
 ```
 
 The FAP manifest compiles only the bridge sources. No Wi-Fi credential path is
@@ -38,6 +38,7 @@ present in or linked into the FAP.
 - `usb_transport.[ch]`: CDC channel 1 ownership, worker, RX buffering, bounded TX
 - `bridge_protocol.[ch]`: portable frame encoder, CRC32 and streaming parser
 - `bridge_session.[ch]`: handshake, permissions, one-request state machine
+- `sdk/flipper`: stable streaming GET/status/cancel API for consumer FAPs
 - `config.h`: all memory, timeout and payload limits
 
 ## macOS modules
@@ -52,6 +53,15 @@ present in or linked into the FAP.
 The core library has no SwiftUI dependency and accepts transport, permission,
 and HTTP interfaces, allowing deterministic tests.
 
+## Cross-platform host modules
+
+- `host/fibp_host/serial_ports.py`: pyserial discovery and CDC transport
+- `host/fibp_host/session.py`: HELLO, permission and request state machine
+- `host/fibp_host/network.py`: direct TLS, pinned resolved IP and redirect policy
+- `host/fibp_host/permissions.py`: hashed per-user persistent grants
+- `host/fibp_host/transforms.py`: bounded National Today and radio responses
+- `host/fibp_host/cli.py`: permission prompt, reconnect loop and worker lifecycle
+
 ## Delivery phases
 
 1. Freeze protocol, limits, threats, and test vectors.
@@ -61,3 +71,4 @@ and HTTP interfaces, allowing deterministic tests.
 5. Add DNS/redirect SSRF checks, cancellation, timeouts and disconnect cleanup.
 6. Run portable C and Swift tests, build the FAP/helper, and document hardware
    validation separately from simulator validation.
+7. Publish the source client SDK and CI-built Windows/Linux terminal hosts.

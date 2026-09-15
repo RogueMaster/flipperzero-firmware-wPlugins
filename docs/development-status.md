@@ -110,7 +110,7 @@ Değişen/eklenen dosyalar:
 - Dağıtılan FAP HTTPS GET gönderir; capability negotiated eden istemciler için
   helper POST, güvenli request header ve body chunk destekler.
 - HTTP status, allow-list response header, 192 B body chunk ve terminal result.
-- Mac en çok 16 KiB aktarır; Flipper yalnız ilk 768 B preview'ı tutar.
+- Host en çok 4 MiB aktarır; Flipper yalnız ilk 1,536 B preview'ı tutar.
 - Flipper menüsünde bağlantı testi, örnek metin, UTC zaman, özel URL ve bağlantı
   bilgileri; aktif istek ekranındaki merkez **İptal** düğmesiyle CANCEL.
 - Aynı anda tek aktif request; monoton non-zero ID ve exact directional sequence.

@@ -1,21 +1,22 @@
 # Flipper USB Internet Bridge
 
 Flipper USB Internet Bridge lets a Flipper Zero make explicitly authorized,
-restricted HTTPS requests through a Mac's existing internet connection. The
-Flipper does not join Wi-Fi. A macOS menu bar helper acts as a user-space
-application proxy.
+restricted HTTPS requests through a desktop computer's existing internet
+connection. The Flipper does not join Wi-Fi. A desktop host acts as a
+user-space application proxy.
 
 ```text
 Flipper Zero FAP
       ↕  FIBP v1 binary frames
 USB CDC ACM — second CDC channel only
       ↕
-macOS menu bar helper
-      ↕  ephemeral URLSession + standard TLS validation
+desktop host
+(native macOS app or Windows/Linux/macOS CLI)
+      ↕  isolated URLSession or direct validated TLS
 HTTPS internet destination
 ```
 
-This is not a USB Ethernet adapter. CDC-ECM, RNDIS, NCM, lwIP, macOS Internet
+This is not a USB Ethernet adapter. CDC-ECM, RNDIS, NCM, lwIP, operating-system Internet
 Sharing, system Wi-Fi changes, and Wi-Fi password transfer are intentionally
 outside the MVP.
 
@@ -23,6 +24,8 @@ outside the MVP.
 
 - Standard Flipper SDK/uFBT `.fap` application
 - Native Swift and SwiftUI macOS 13+ menu bar helper
+- Installable Windows/Linux/macOS command-line host
+- Source-level client SDK that other Flipper FAPs can compile into their apps
 - Versioned binary protocol with explicit frame boundaries and two CRC32 checks
 - Device- and protocol-bound one-time or persistent permission
 - HTTPS GET with response headers, streamed body chunks, timeout, and cancellation
@@ -55,7 +58,7 @@ shows temperature, apparent temperature, humidity, wind, daily high/low, and
 precipitation probability. No API key is required for the public endpoint used
 by this feature.
 
-The National Today page is too large for the Flipper. The Mac helper therefore
+The National Today page is too large for the Flipper. Each desktop host therefore
 downloads it into a bounded temporary buffer, extracts only the
 `single-date-header-content` paragraph, removes HTML, and sends the compact text
 to the Flipper. Bold holiday names are rendered as bold heading lines. If the
@@ -73,6 +76,9 @@ returning unrelated page content.
 ├── bridge_protocol.[ch]         portable C frame codec and parser
 ├── config.h                     Flipper and wire limits
 ├── macos/                       SwiftPM helper, core, resources, and tests
+├── host/                        cross-platform Python host and CLI
+├── sdk/flipper/                 reusable source SDK for other FAPs
+├── examples/                    minimal SDK integration example
 ├── protocol/                    normative protocol documentation and vectors
 ├── scripts/                     simulator and packaging utilities
 ├── tests/                       portable C/Python tests
@@ -90,9 +96,9 @@ Additional documentation:
 
 ## Security model
 
-For the first valid HELLO, the Mac validates the USB VID/PID, expected interface
-when available, protocol version range, bounded identity fields, Flipper Zero
-model, and hardware UID. A valid HELLO is not permission to access the internet.
+For the first valid HELLO, the desktop host checks available USB identity
+metadata, protocol version range, bounded identity fields, Flipper Zero model,
+and hardware UID. A valid HELLO is not permission to access the internet.
 Before any network request, the user must choose:
 
 - Deny
@@ -105,7 +111,7 @@ the user revokes it, or application data is reset. The UID is an association
 key, not cryptographic attestation; a malicious physical USB device may imitate
 it.
 
-The macOS helper:
+Every desktop host:
 
 - accepts only `https` URLs;
 - rejects embedded usernames and passwords;
@@ -113,10 +119,10 @@ The macOS helper:
   CGNAT, multicast, reserved, and other non-global destinations;
 - validates every DNS answer and revalidates every redirect destination;
 - rejects `file:`, `ftp:`, `smb:`, and every non-HTTPS scheme;
-- uses an ephemeral URLSession without shared cookies, cache, or credentials;
+- uses an isolated request implementation without shared cookies, cache, or credentials;
 - drops authentication, cookie, host, and hop-by-hop headers;
-- never disables Apple's normal TLS certificate validation;
-- cancels active URLSession work immediately when USB disconnects.
+- never disables normal TLS certificate validation;
+- cancels active network work immediately when USB disconnects.
 
 The protocol never transfers the Wi-Fi password, Mac username, Safari history,
 Keychain contents, filesystem data, or a local-network device list. Diagnostics
@@ -141,6 +147,13 @@ do not record response bodies, query strings, header values, or the full UID.
 The packaged `.app` and `.dmg` do not require Xcode or Swift on the destination
 Mac. The Swift code uses Apple Foundation, SwiftUI, AppKit, IOKit, CryptoKit,
 and POSIX APIs. The simulator uses only the Python standard library.
+
+### Windows/Linux cross-platform host
+
+- Windows 10/11 or a current Linux distribution
+- Python 3.10 or later when installing from source
+- No administrator/root access
+- `pyserial`, installed automatically with the host package
 
 ## Build the Flipper FAP
 
@@ -203,6 +216,57 @@ The helper appears in the menu bar. Closing the diagnostics window does not stop
 the bridge. Choosing **Quit Application** deliberately stops the helper and all
 Flipper internet access.
 
+## Run the Windows/Linux host
+
+The same CLI also runs on macOS as an alternative to the native menu bar app.
+From the repository root:
+
+```sh
+python3 -m venv .host-venv
+. .host-venv/bin/activate
+python -m pip install .
+fib-bridge
+```
+
+Windows PowerShell activation and startup:
+
+```powershell
+python -m venv .host-venv
+.host-venv\Scripts\Activate.ps1
+python -m pip install .
+fib-bridge
+```
+
+Use `fib-bridge --list-ports` to inspect detection or `fib-bridge --port PORT`
+to select a port explicitly. The first device connection asks for Deny, Allow
+Once, or Always Allow in the terminal. See [host/README.md](host/README.md) for
+security and packaging details.
+
+## Use the bridge from another Flipper app
+
+Flipper OS does not keep one FAP running as a background service while another
+FAP is open. Consumer apps therefore compile the small source SDK into their own
+FAP and talk directly to the desktop host:
+
+```c
+#include "sdk/flipper/fib_bridge_client.h"
+
+FibBridgeClientConfig config = {.app_version = "1.0"};
+FibBridgeClientCallbacks callbacks = {
+    .on_status = on_bridge_status,
+    .on_body = on_response_chunk,
+    .context = app,
+};
+FibBridgeClient* client = fib_bridge_client_alloc(&config, &callbacks);
+fib_bridge_client_start(client);
+```
+
+Call `fib_bridge_client_tick()` from the app event loop, wait for
+`FibBridgeStateReady`, then use `fib_bridge_client_get()`. Responses arrive in
+bounded chunks through `on_body`; the SDK never allocates a complete response.
+Integration instructions and lifecycle constraints are in
+[sdk/flipper/README.md](sdk/flipper/README.md).
+
 ## Build the `.app` and `.dmg`
 
 On a development Mac with full Xcode installed:
@@ -228,13 +292,13 @@ that runs the script.
 ## Install and connect
 
 1. Copy `dist/usb_internet_bridge.fap` to `/ext/apps/USB/` with qFlipper.
-2. Install and start the macOS helper.
+2. Install and start either the native macOS helper or the cross-platform host.
 3. Open **Apps → USB → USB Internet Bridge** on the Flipper.
 4. The FAP saves the current USB configuration, enables `usb_cdc_dual`, and owns
    only the second CDC channel. The first channel remains available to the CLI.
 5. The helper discovers candidates through IOKit and waits for a valid binary
    HELLO before showing any permission prompt.
-6. Choose **Allow Once** or **Always Allow** on the Mac.
+6. Choose **Allow Once** or **Always Allow** on the desktop host.
 7. The Flipper displays **Internet access ready**.
 8. Use **Test Connection** or **Get Sample Text** to verify the bridge.
 
@@ -317,7 +381,7 @@ Flipper build validation:
 ../../venv/bin/ufbt
 ```
 
-The current suite includes 19 Python tests, the portable C protocol test, and 61
+The current suite includes 35 Python tests, the portable C protocol test, and 61
 Swift tests. It covers frame encoding, fragmentation and resynchronization, CRC,
 invalid lengths, handshake/version negotiation, permission decisions, request
 IDs and sequences, SSRF policy, redirects, timeout, response limits,
@@ -336,7 +400,7 @@ Normative wire values are documented in
 | URL | 384 B |
 | Request headers | 8, 1,024 B aggregate |
 | POST body | 4 KiB |
-| Response body | 16 KiB |
+| Response body | 4 MiB |
 | Redirects | 3 |
 | Request timeout | 25 s default, 30 s maximum |
 | Frame / logical request assembly | 1 s / 5 s |
@@ -346,7 +410,7 @@ Normative wire values are documented in
 
 ## Troubleshooting
 
-### The Mac does not detect the Flipper
+### The desktop host does not detect the Flipper
 
 ```sh
 ls -l /dev/cu.usbmodem* 2>/dev/null
@@ -384,9 +448,9 @@ needed, then run `swift test` again.
 
 ### The Flipper remains at `Waiting for permission`
 
-Confirm that the menu bar helper is running and that its permission alert is not
-behind another window. The prompt appears only after a valid CRC-protected HELLO
-and device identity have been received.
+Confirm that the native menu bar helper or `fib-bridge` CLI is running. The
+prompt appears only after a valid CRC-protected HELLO and device identity have
+been received.
 
 ### A request is blocked for security
 
@@ -399,7 +463,7 @@ from a public host to a private address are deliberately blocked.
 - Only one HTTP request can be active at a time.
 - The shipped FAP sends GET requests. POST and custom request headers exist in
   the protocol/helper test path but have no Flipper menu UI.
-- The URL limit is 384 B; request body 4 KiB; response body 16 KiB.
+- The URL limit is 384 B; request body 4 KiB; response body 4 MiB.
 - The Flipper shows a bounded preview and does not save downloads to microSD.
 - No WebSocket, streaming upload, arbitrary HTTP methods, or custom TLS roots.
 - UID-based permission is not cryptographic device authentication.
@@ -410,11 +474,13 @@ from a public host to a private address are deliberately blocked.
 - The menu bar helper is ad-hoc signed, not Developer ID signed or notarized.
 - App Sandbox behavior and all dual-CDC port naming variants require continued
   hardware testing.
+- Windows and Linux binaries are CI-built and logic-tested, but still need
+  physical USB testing on those operating systems before a stable release.
 - Third-party demo endpoints and HTML structures may change.
 
 ## Future research
 
 CDC-ECM/NCM, custom firmware, a lightweight on-device TCP/IP stack, concurrent
-requests, WebSockets, SD-card downloads, a shared bridge API for multiple FAPs,
-Windows/Linux helpers, and signed/notarized macOS distribution remain separate
-research topics. See [future-research.md](docs/future-research.md).
+requests, WebSockets, SD-card downloads, a protocol-level application identity,
+graphical Windows/Linux frontends, and signed/notarized macOS distribution
+remain separate research topics. See [future-research.md](docs/future-research.md).

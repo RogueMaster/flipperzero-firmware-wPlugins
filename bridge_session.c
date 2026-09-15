@@ -88,6 +88,7 @@ struct BridgeSession {
 
     char device_name[33];
     char uid_suffix[9];
+    char app_version[17];
     char detail[FIB_MAX_ERROR_DETAIL + 1U];
 };
 
@@ -125,7 +126,7 @@ static void bridge_session_restore_permission_state_locked(
         bridge_session_set_detail_locked(session, "Internet permission denied");
     } else {
         session->state = BridgeSessionStatePermissionPending;
-        bridge_session_set_detail_locked(session, "Waiting for permission on Mac");
+        bridge_session_set_detail_locked(session, "Waiting for host permission");
     }
 }
 
@@ -333,10 +334,10 @@ static bool bridge_session_send_hello(BridgeSession* session) {
         used += uid_length;
     }
 
-    size_t version_length = strlen(FIB_APP_VERSION);
+    size_t version_length = strlen(session->app_version);
     if(version_length > 16U) version_length = 16U;
     payload[used++] = (uint8_t)version_length;
-    memcpy(payload + used, FIB_APP_VERSION, version_length);
+    memcpy(payload + used, session->app_version, version_length);
     used += version_length;
 
     return bridge_session_send_frame(session, FibMessageHello, 0U, 0U, 0U, payload, used);
@@ -438,7 +439,7 @@ static void bridge_session_handle_hello_ack(BridgeSession* session, const FibFra
     session->expected_control_sequence = 1U;
     session->state = BridgeSessionStatePermissionPending;
     session->permission = BridgePermissionPending;
-    bridge_session_set_detail_locked(session, "Waiting for Mac permission status");
+    bridge_session_set_detail_locked(session, "Waiting for host permission status");
     furi_mutex_release(session->state_mutex);
     bridge_session_notify(session);
 }
@@ -466,7 +467,7 @@ static void
     session->ping_pending = false;
     session->permission = BridgePermissionPending;
     session->state = BridgeSessionStatePermissionPending;
-    bridge_session_set_detail_locked(session, "Waiting for permission on Mac");
+    bridge_session_set_detail_locked(session, "Waiting for host permission");
     furi_mutex_release(session->state_mutex);
     if(send_cancel) {
         bridge_session_send_cancel(session, request_id, request_sequence, 3U);
@@ -1005,7 +1006,7 @@ static void bridge_session_handle_cancel(BridgeSession* session, const FibFrame*
     if(error == 0U) {
         session->active_request = false;
         session->state = BridgeSessionStateCancelled;
-        bridge_session_set_detail_locked(session, "Request cancelled by Mac");
+        bridge_session_set_detail_locked(session, "Request cancelled by host");
     } else if(
         error != FibErrorDuplicateSequence && error != FibErrorSequenceGap &&
         belongs_to_active_request) {
@@ -1040,7 +1041,7 @@ static void bridge_session_handle_disconnect(BridgeSession* session, const FibFr
     session->negotiated_response_bytes = 0U;
     session->state = session->usb_connected ? BridgeSessionStateWaitingForHelper :
                                               BridgeSessionStateDisconnected;
-    bridge_session_set_detail_locked(session, "Mac helper closed the connection");
+    bridge_session_set_detail_locked(session, "Desktop host closed the connection");
     furi_mutex_release(session->state_mutex);
     bridge_session_notify(session);
 }
@@ -1248,7 +1249,7 @@ static void bridge_session_begin_handshake(BridgeSession* session) {
     session->response_started = false;
     session->state = BridgeSessionStateWaitingForHelloAck;
     session->last_activity_tick = furi_get_tick();
-    bridge_session_set_detail_locked(session, "Connecting to Mac helper");
+    bridge_session_set_detail_locked(session, "Connecting to desktop host");
     furi_mutex_release(session->state_mutex);
     bridge_session_notify(session);
 
@@ -1287,7 +1288,7 @@ static void bridge_session_on_transport_event(UsbTransportEvent event, void* con
         session->usb_connected = true;
         if(!session->helper_present) {
             session->state = BridgeSessionStateWaitingForHelper;
-            bridge_session_set_detail_locked(session, "Waiting for Mac helper");
+            bridge_session_set_detail_locked(session, "Waiting for desktop host");
         }
         furi_mutex_release(session->state_mutex);
         bridge_session_notify(session);
@@ -1303,7 +1304,7 @@ static void bridge_session_on_transport_event(UsbTransportEvent event, void* con
         bridge_session_transport_lost(
             session,
             connected,
-            connected ? "Mac helper not found" : "USB disconnected");
+            connected ? "Desktop host not found" : "USB disconnected");
     } break;
     case UsbTransportEventRxOverflow:
         bridge_session_reset_parser(session);
@@ -1338,8 +1339,10 @@ static void bridge_session_init_identity(BridgeSession* session) {
     }
 }
 
-BridgeSession*
-    bridge_session_alloc(BridgeSessionUpdateCallback update_callback, void* update_context) {
+BridgeSession* bridge_session_alloc_with_version(
+    BridgeSessionUpdateCallback update_callback,
+    void* update_context,
+    const char* app_version) {
     BridgeSession* session = malloc(sizeof(BridgeSession));
     if(!session) return NULL;
     memset(session, 0, sizeof(*session));
@@ -1352,6 +1355,11 @@ BridgeSession*
     session->state = BridgeSessionStateDisconnected;
     session->permission = BridgePermissionUnknown;
     session->declared_response_bytes = FIB_UNKNOWN_BODY_LENGTH;
+    snprintf(
+        session->app_version,
+        sizeof(session->app_version),
+        "%s",
+        (app_version && app_version[0] != '\0') ? app_version : FIB_APP_VERSION);
     session->next_request_id = furi_hal_random_get();
     if(session->next_request_id == 0U) session->next_request_id = 1U;
     bridge_session_set_detail_locked(session, "Waiting for USB connection");
@@ -1369,6 +1377,11 @@ BridgeSession*
     return session;
 }
 
+BridgeSession*
+    bridge_session_alloc(BridgeSessionUpdateCallback update_callback, void* update_context) {
+    return bridge_session_alloc_with_version(update_callback, update_context, FIB_APP_VERSION);
+}
+
 bool bridge_session_start(BridgeSession* session) {
     if(!session) return false;
     if(!usb_transport_start(session->transport)) {
@@ -1383,7 +1396,7 @@ bool bridge_session_start(BridgeSession* session) {
     session->state = connected ? BridgeSessionStateWaitingForHelper :
                                  BridgeSessionStateDisconnected;
     bridge_session_set_detail_locked(
-        session, connected ? "Waiting for Mac helper" : "Waiting for USB connection");
+        session, connected ? "Waiting for desktop host" : "Waiting for USB connection");
     furi_mutex_release(session->state_mutex);
     bridge_session_notify(session);
     return true;
@@ -1409,7 +1422,7 @@ bool bridge_session_ping(BridgeSession* session) {
         if(!session->usb_connected) {
             bridge_session_set_detail_locked(session, "No USB connection");
         } else if(!session->helper_present) {
-            bridge_session_set_detail_locked(session, "Mac helper not found");
+            bridge_session_set_detail_locked(session, "Desktop host not found");
         } else if(!bridge_session_permission_is_allowed(session->permission)) {
             bridge_session_set_detail_locked(session, "Internet permission not granted");
         } else {
@@ -1507,7 +1520,7 @@ static bool bridge_session_request_get_internal(
         if(!session->usb_connected) {
             bridge_session_set_detail_locked(session, "No USB connection");
         } else if(!session->helper_present) {
-            bridge_session_set_detail_locked(session, "Mac helper not found");
+            bridge_session_set_detail_locked(session, "Desktop host not found");
         } else if(session->selected_major == 0U) {
             bridge_session_set_detail_locked(session, "Waiting for protocol handshake");
         } else if(!bridge_session_permission_is_allowed(session->permission)) {
@@ -1515,7 +1528,7 @@ static bool bridge_session_request_get_internal(
         } else if(!payload_fits) {
             bridge_session_set_detail_locked(session, "URL exceeds the packet size limit");
         } else if(!headers_supported) {
-            bridge_session_set_detail_locked(session, "Mac helper is too old for radio streaming");
+            bridge_session_set_detail_locked(session, "Desktop host is too old for radio streaming");
         } else if(!request_id_available) {
             bridge_session_set_detail_locked(
                 session, "Request IDs exhausted; restart the app");
@@ -1731,6 +1744,26 @@ void bridge_session_get_snapshot(BridgeSession* session, BridgeSessionSnapshot* 
     memcpy(snapshot->uid_suffix, session->uid_suffix, sizeof(snapshot->uid_suffix));
     memcpy(snapshot->detail, session->detail, sizeof(snapshot->detail));
     memcpy(snapshot->preview, session->preview, sizeof(snapshot->preview));
+    furi_mutex_release(session->state_mutex);
+}
+
+void bridge_session_get_status(BridgeSession* session, BridgeSessionStatus* status) {
+    if(!session || !status) return;
+    furi_mutex_acquire(session->state_mutex, FuriWaitForever);
+    memset(status, 0, sizeof(*status));
+    status->state = session->state;
+    status->permission = session->permission;
+    status->usb_connected = session->usb_connected;
+    status->helper_present = session->helper_present;
+    status->active_request = session->active_request;
+    status->response_truncated = session->response_truncated;
+    status->selected_major = session->selected_major;
+    status->selected_minor = session->selected_minor;
+    status->http_status = session->http_status;
+    status->active_request_id = session->active_request_id;
+    status->response_bytes = session->response_bytes;
+    status->declared_response_bytes = session->declared_response_bytes;
+    memcpy(status->detail, session->detail, sizeof(status->detail));
     furi_mutex_release(session->state_mutex);
 }
 

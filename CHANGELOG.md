@@ -1,3 +1,10 @@
+## v0.3 (unreleased)
+
+- Added a source-level Flipper Bridge Client SDK for other FAP applications.
+- Added a cross-platform Windows/Linux/macOS command-line host.
+- Added direct TLS, DNS/redirect SSRF checks, terminal permission prompts, and hashed persistent grants to the cross-platform host.
+- Added automated Windows and Linux binary packaging.
+
 ## v0.2
 
 - Initial Apps Catalog release.

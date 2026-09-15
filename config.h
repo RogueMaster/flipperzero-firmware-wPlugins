@@ -23,7 +23,7 @@
 #define FIB_IDLE_TIMEOUT_MS            30000U
 #define FIB_MAX_ERROR_DETAIL           128U
 
-#define FIB_APP_VERSION            "0.2"
+#define FIB_APP_VERSION            "0.3"
 #define FIB_CDC_INTERFACE          1U
 #define FIB_CDC_RX_STREAM_SIZE     4096U
 #define FIB_TRANSPORT_WORKER_STACK 1536U

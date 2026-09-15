@@ -675,7 +675,7 @@ static const char* fib_state_text(BridgeSessionState state) {
     case BridgeSessionStateDisconnected:
         return "Disconnected";
     case BridgeSessionStateWaitingForHelper:
-        return "Waiting for Mac";
+        return "Waiting for host";
     case BridgeSessionStateWaitingForHelloAck:
         return "Connecting to helper";
     case BridgeSessionStateHelperNotFound:
@@ -831,7 +831,7 @@ static void fib_app_render_status(FibApp* app) {
         furi_string_cat_printf(app->status_text, "\e#Connection Info\n");
         furi_string_cat_printf(
             app->status_text,
-            "USB: %s\nMac: %s\nPermission: %s\n",
+            "USB: %s\nHost: %s\nPermission: %s\n",
             app->snapshot.usb_connected ? "Connected" : "Disconnected",
             app->snapshot.helper_present ? "Found" : "Waiting",
             fib_permission_text(app->snapshot.permission));
@@ -869,7 +869,7 @@ static void fib_app_render_status(FibApp* app) {
             app->snapshot.state == BridgeSessionStateWaitingForHelper ||
             app->snapshot.state == BridgeSessionStateDisconnected) {
             furi_string_cat_printf(
-                app->status_text, "Check the USB cable and Mac helper.");
+                app->status_text, "Check the USB cable and desktop host.");
         }
     }
 
