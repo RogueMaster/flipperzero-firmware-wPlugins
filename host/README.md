@@ -48,5 +48,24 @@ while retaining the original hostname for SNI and certificate validation.
 ## Prebuilt binaries
 
 The `host-binaries.yml` GitHub Actions workflow builds one-file Windows and
-Linux artifacts with PyInstaller. These CI artifacts still require USB hardware
-testing on their target operating system before being promoted to a release.
+Linux artifacts with PyInstaller. Release candidates are published on the
+[GitHub Releases](https://github.com/mete888/flipper_usb_to_wifi/releases) page.
+
+Windows PowerShell:
+
+```powershell
+.\fib-bridge-windows-x86_64.exe
+```
+
+Linux:
+
+```sh
+chmod +x fib-bridge-linux-x86_64
+./fib-bridge-linux-x86_64
+```
+
+The binaries are currently unsigned. Windows SmartScreen or Linux desktop
+policy may therefore ask for confirmation. The release candidate has automated
+Windows/Linux tests and a POSIX virtual-serial integration test, but still needs
+physical Flipper USB testing on both target operating systems before a stable
+release.

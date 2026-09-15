@@ -240,7 +240,7 @@ fib-bridge
 Use `fib-bridge --list-ports` to inspect detection or `fib-bridge --port PORT`
 to select a port explicitly. The first device connection asks for Deny, Allow
 Once, or Always Allow in the terminal. See [host/README.md](host/README.md) for
-security and packaging details.
+prebuilt release-candidate binaries, security, and packaging details.
 
 ## Use the bridge from another Flipper app
 
