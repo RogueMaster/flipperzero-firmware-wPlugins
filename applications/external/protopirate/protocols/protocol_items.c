@@ -55,10 +55,9 @@ static const ProtoPirateProtocolCatalogEntry protopirate_protocol_catalog[] = {
     {"Kia V7", ProtoPirateProtocolCatalogRouteFMDefault, PROTOPIRATE_TX_KEY("kia_v7")},
     {"Honda V2", ProtoPirateProtocolCatalogRouteFMF4, PROTOPIRATE_TX_KEY("honda_v2")},
     {"Mazda V0", ProtoPirateProtocolCatalogRouteByModulation, PROTOPIRATE_TX_KEY("mazda_v0")},
-    {"Mitsubishi V0", ProtoPirateProtocolCatalogRouteFMDefault, NULL},
-    {"Porsche Touareg", ProtoPirateProtocolCatalogRouteAMDefault, NULL},
     {"PSA", ProtoPirateProtocolCatalogRouteByModulation, PROTOPIRATE_TX_KEY("psa")},
     {"Renault V0", ProtoPirateProtocolCatalogRouteAMDefault, PROTOPIRATE_TX_KEY("renault_v0")},
+    {"Renault V1", ProtoPirateProtocolCatalogRouteByModulation, PROTOPIRATE_TX_KEY("renault_v1")},
     {"Scher-Khan", ProtoPirateProtocolCatalogRouteFMDefault, NULL},
     {"Star Line", ProtoPirateProtocolCatalogRouteAMDefault, PROTOPIRATE_TX_KEY("star_line")},
     {"Subaru", ProtoPirateProtocolCatalogRouteAMDefault, PROTOPIRATE_TX_KEY("subaru")},
@@ -74,6 +73,10 @@ static const ProtoPirateProtocolCatalogAlias protopirate_protocol_catalog_aliase
     {"Suzuki", "Kia V0"},
     {"Suzuki V0", "Kia V0"},
     {"Honda V0", "Kia V0"},
+    {"Mitsu V0", "Kia V0"},
+    {"Mitsu v0", "Kia V0"},
+    {"Mitsubishi V0", "Kia V0"},
+    {"Mitsubishi v0", "Kia V0"},
     {"Land Rover V0", "Honda V2"},
     {"VW", "VAG"},
 };
@@ -162,6 +165,12 @@ bool protopirate_protocol_catalog_can_tx(const char* protocol_name) {
     return protopirate_protocol_catalog_tx_key(protocol_name) != NULL;
 }
 
+bool protopirate_protocol_catalog_offers_bruteforce(const char* protocol_name) {
+    const char* canonical = protopirate_protocol_catalog_canonical_name(protocol_name);
+    return protopirate_catalog_string_equal(canonical, "PSA") ||
+           protopirate_catalog_string_equal(canonical, "Renault V1");
+}
+
 const char* protopirate_protocol_catalog_tx_key(const char* protocol_name) {
     const ProtoPirateProtocolCatalogEntry* entry =
         protopirate_protocol_catalog_find(protocol_name);
@@ -181,6 +190,12 @@ const char*
     if(protopirate_catalog_string_equal(protocol_name, "Honda V0")) {
         return "Honda V0";
     }
+    if(protopirate_catalog_string_equal(protocol_name, "Mitsu V0") ||
+       protopirate_catalog_string_equal(protocol_name, "Mitsu v0") ||
+       protopirate_catalog_string_equal(protocol_name, "Mitsubishi V0") ||
+       protopirate_catalog_string_equal(protocol_name, "Mitsubishi v0")) {
+        return "Mitsubishi V0";
+    }
 
     const char* canonical_name = protopirate_protocol_catalog_canonical_name(protocol_name);
     if(protopirate_catalog_string_equal(canonical_name, "Kia V0")) {
@@ -189,6 +204,9 @@ const char*
         }
         if(protocol_type == 3U) {
             return "Honda V0";
+        }
+        if(protocol_type == 4U) {
+            return "Mitsubishi V0";
         }
     }
 

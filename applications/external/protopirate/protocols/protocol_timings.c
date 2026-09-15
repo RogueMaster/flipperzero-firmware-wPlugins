@@ -131,6 +131,13 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .min_count_bit = 82,
     },
     {
+        .name = "Renault V1",
+        .te_short = 125,
+        .te_long = 250,
+        .te_delta = 50,
+        .min_count_bit = 88,
+    },
+    {
         .name = "Mazda V0",
         .te_short = 250,
         .te_long = 500,
@@ -143,13 +150,6 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_long = 500,
         .te_delta = 100,
         .min_count_bit = 81,
-    },
-    {
-        .name = "Porsche Touareg",
-        .te_short = 1680,
-        .te_long = 3370,
-        .te_delta = 500,
-        .min_count_bit = 64,
     },
     {
         .name = "Subaru",
@@ -206,6 +206,8 @@ const ProtoPirateProtocolTiming* protopirate_get_protocol_timing(const char* pro
     } aliases[] = {
         {"Honda V0", "Kia V0"},
         {"Land Rover V0", "Honda V2"},
+        {"Mitsu", "Kia V0"},
+        {"Mitsubishi V0", "Kia V0"},
         {"Suzuki", "Kia V0"},
         {"V3", "Kia V3/V4"},
         {"V4", "Kia V3/V4"},

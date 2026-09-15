@@ -7,8 +7,8 @@
 #include "../kia_v6.h"
 #include "../kia_v7.h"
 #include "../mazda_v0.h"
-#include "../mitsubishi_v0.h"
 #include "../psa.h"
+#include "../renault_v1.h"
 
 static const SubGhzProtocol* const protopirate_protocol_registry_fm_items[] = {
     &subghz_protocol_scher_khan,
@@ -17,9 +17,9 @@ static const SubGhzProtocol* const protopirate_protocol_registry_fm_items[] = {
     &kia_protocol_v5,
     &kia_protocol_v6,
     &mazda_v0_protocol,
-    &mitsubishi_v0_protocol,
     &kia_protocol_v7,
     &psa_protocol,
+    &renault_v1_protocol,
 };
 
 static const SubGhzProtocolRegistry protopirate_protocol_registry_fm = {

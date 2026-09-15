@@ -9,9 +9,9 @@
 #include "../kia_v1.h"
 #include "../kia_v2.h"
 #include "../mazda_v0.h"
-#include "../porsche_touareg.h"
 #include "../psa.h"
 #include "../renault_v0.h"
+#include "../renault_v1.h"
 #include "../subaru.h"
 #include "../star_line.h"
 #include "../honda_v1.h"
@@ -27,9 +27,9 @@ static const SubGhzProtocol* const protopirate_protocol_registry_am_items[] = {
     &kia_protocol_v1,
     &kia_protocol_v2,
     &mazda_v0_protocol,
-    &porsche_touareg_protocol,
     &psa_protocol,
     &renault_v0_protocol,
+    &renault_v1_protocol,
     &subaru_protocol,
     &subghz_protocol_star_line,
 };

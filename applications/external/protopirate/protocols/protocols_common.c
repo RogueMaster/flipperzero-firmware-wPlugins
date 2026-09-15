@@ -196,17 +196,17 @@ SubGhzProtocolStatus pp_serialize_fields(
     uint32_t type) {
     if(!ff) return SubGhzProtocolStatusError;
 
-    if((field_mask & PP_FIELD_SERIAL) && !flipper_format_write_uint32(ff, FF_SERIAL, &serial, 1)) {
-        return SubGhzProtocolStatusErrorParserOthers;
+    if(field_mask & PP_FIELD_SERIAL) {
+        pp_flipper_update_or_insert_u32(ff, FF_SERIAL, serial);
     }
-    if((field_mask & PP_FIELD_BTN) && !flipper_format_write_uint32(ff, FF_BTN, &btn, 1)) {
-        return SubGhzProtocolStatusErrorParserOthers;
+    if(field_mask & PP_FIELD_BTN) {
+        pp_flipper_update_or_insert_u32(ff, FF_BTN, btn);
     }
-    if((field_mask & PP_FIELD_CNT) && !flipper_format_write_uint32(ff, FF_CNT, &cnt, 1)) {
-        return SubGhzProtocolStatusErrorParserOthers;
+    if(field_mask & PP_FIELD_CNT) {
+        pp_flipper_update_or_insert_u32(ff, FF_CNT, cnt);
     }
-    if((field_mask & PP_FIELD_TYPE) && !flipper_format_write_uint32(ff, FF_TYPE, &type, 1)) {
-        return SubGhzProtocolStatusErrorParserOthers;
+    if(field_mask & PP_FIELD_TYPE) {
+        pp_flipper_update_or_insert_u32(ff, FF_TYPE, type);
     }
     return SubGhzProtocolStatusOk;
 }
@@ -221,8 +221,9 @@ SubGhzProtocolStatus
         return SubGhzProtocolStatusError;
     }
     furi_string_printf(display, "%s - %s", protocol_name, suffix);
+    flipper_format_rewind(ff);
     SubGhzProtocolStatus status =
-        flipper_format_write_string_cstr(ff, "Disp", furi_string_get_cstr(display)) ?
+        flipper_format_insert_or_update_string_cstr(ff, "Disp", furi_string_get_cstr(display)) ?
             SubGhzProtocolStatusOk :
             SubGhzProtocolStatusErrorParserOthers;
     furi_string_free(display);

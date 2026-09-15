@@ -2,6 +2,7 @@
 
 #include "../../defines.h"
 #include "../../protocols/psa_bf_core.h"
+#include "../../protocols/renault_v1.h"
 #include "../../protocols/protocols_common.h"
 #include "../../helpers/protopirate_types.h"
 
@@ -18,14 +19,68 @@
 #define PSA_BF_PROGRESS_BAR_Y 24
 #define PSA_BF_PROGRESS_BAR_H 8
 
+typedef enum {
+    ProtoPirateBfKindNone = 0,
+    ProtoPirateBfKindPsa,
+    ProtoPirateBfKindHitag2,
+} ProtoPirateBfKind;
+
 static const ProtoPiratePsaBfHostApi* g_host_api = NULL;
 
+static ProtoPirateBfKind g_bf_kind = ProtoPirateBfKindNone;
 static PsaBfState* g_bf_state = NULL;
+static Hitag2BfState* g_hitag2_state = NULL;
 static FuriThread* g_bf_thread = NULL;
 static ProtoPiratePsaBfContext g_active_ctx = ProtoPiratePsaBfContextReceiverInfo;
 
 static void show_bf_result(void* app, uint8_t status, ButtonCallback callback);
 static void bf_finish_and_show_result(void* app, ButtonCallback result_callback);
+
+static uint8_t bf_status(void) {
+    if(g_bf_kind == ProtoPirateBfKindHitag2 && g_hitag2_state) {
+        return g_hitag2_state->status;
+    }
+    if(g_bf_state) {
+        return g_bf_state->status;
+    }
+    return PSA_BF_STATUS_IDLE;
+}
+
+static void bf_progress_values(uint32_t* cur, uint32_t* total) {
+    if(g_bf_kind == ProtoPirateBfKindHitag2 && g_hitag2_state) {
+        *cur = g_hitag2_state->progress_current;
+        *total = g_hitag2_state->progress_total;
+        return;
+    }
+    if(g_bf_state) {
+        *cur = g_bf_state->progress_current;
+        *total = g_bf_state->progress_total;
+        return;
+    }
+    *cur = 0;
+    *total = 0;
+}
+
+static void bf_set_cancel(void) {
+    if(g_hitag2_state) {
+        g_hitag2_state->cancel = 1;
+    }
+    if(g_bf_state) {
+        g_bf_state->cancel = 1;
+    }
+}
+
+static void bf_free_states(void) {
+    if(g_bf_state) {
+        free(g_bf_state);
+        g_bf_state = NULL;
+    }
+    if(g_hitag2_state) {
+        free(g_hitag2_state);
+        g_hitag2_state = NULL;
+    }
+    g_bf_kind = ProtoPirateBfKindNone;
+}
 
 static bool item_needs_bruteforce_from_ff(FlipperFormat* ff, bool require_psa_protocol) {
     if(!ff) return false;
@@ -52,46 +107,78 @@ static bool item_needs_bruteforce_from_ff(FlipperFormat* ff, bool require_psa_pr
 
 static void show_bf_progress(void* app) {
     Widget* widget = g_host_api->get_widget(app);
-    if(!widget || !g_bf_state) return;
+    if(!widget || (!g_bf_state && !g_hitag2_state)) return;
 
     widget_reset(widget);
     widget_add_icon_element(widget, 0, 5, &I_DolphinWait_59x54);
-    widget_add_string_element(widget, 62, 0, AlignLeft, AlignTop, FontPrimary, "Bruteforcing...");
 
-    uint32_t cur = g_bf_state->progress_current;
-    uint32_t total = g_bf_state->progress_total;
+    uint32_t cur = 0;
+    uint32_t total = 0;
+    bf_progress_values(&cur, &total);
     uint32_t pct_tenths = total ? (uint32_t)((uint64_t)cur * 1000 / total) : 0;
     if(pct_tenths > 1000) pct_tenths = 1000;
+
+    if(g_bf_kind == ProtoPirateBfKindHitag2) {
+        widget_add_string_element(widget, 62, 0, AlignLeft, AlignTop, FontPrimary, "Recover Key");
+        widget_add_string_element(widget, 62, 12, AlignLeft, AlignTop, FontSecondary, "Max ETA:");
+        widget_add_string_element(
+            widget, 62, 22, AlignLeft, AlignTop, FontSecondary, "60 seconds");
+    } else {
+        widget_add_string_element(
+            widget, 62, 0, AlignLeft, AlignTop, FontPrimary, "Bruteforcing...");
+    }
 
     FuriString* pct_str =
         furi_string_alloc_printf("%lu.%u%%", pct_tenths / 10, (unsigned)(pct_tenths % 10));
     widget_add_string_element(
-        widget, 62, 12, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(pct_str));
+        widget,
+        62,
+        (g_bf_kind == ProtoPirateBfKindHitag2) ? 34 : 12,
+        AlignLeft,
+        AlignTop,
+        FontSecondary,
+        furi_string_get_cstr(pct_str));
     furi_string_free(pct_str);
 
+    const uint8_t bar_y = (g_bf_kind == ProtoPirateBfKindHitag2) ? 46 : PSA_BF_PROGRESS_BAR_Y;
     widget_add_rect_element(
         widget,
         PSA_BF_PROGRESS_BAR_X,
-        PSA_BF_PROGRESS_BAR_Y,
+        bar_y,
         PSA_BF_PROGRESS_BAR_W,
         PSA_BF_PROGRESS_BAR_H,
         2,
         false);
-    static uint16_t bf_frame = 0;
-    bf_frame++;
+
     uint8_t inner_w = PSA_BF_PROGRESS_BAR_W - 4;
-    uint8_t block_w = 16;
-    uint8_t travel = inner_w - block_w;
-    uint16_t phase = (bf_frame * 2) % (uint16_t)(2 * travel);
-    uint8_t block_x = (phase <= travel) ? (uint8_t)phase : (uint8_t)(2 * travel - phase);
-    widget_add_rect_element(
-        widget,
-        PSA_BF_PROGRESS_BAR_X + 2 + block_x,
-        PSA_BF_PROGRESS_BAR_Y + 2,
-        block_w,
-        PSA_BF_PROGRESS_BAR_H - 4,
-        0,
-        true);
+    if(g_bf_kind == ProtoPirateBfKindHitag2) {
+        uint8_t fill_w = total ? (uint8_t)(((uint64_t)cur * inner_w) / total) : 0;
+        if(fill_w > 0) {
+            widget_add_rect_element(
+                widget,
+                PSA_BF_PROGRESS_BAR_X + 2,
+                bar_y + 2,
+                fill_w,
+                PSA_BF_PROGRESS_BAR_H - 4,
+                0,
+                true);
+        }
+    } else {
+        static uint16_t bf_frame = 0;
+        bf_frame++;
+        uint8_t block_w = 16;
+        uint8_t travel = inner_w - block_w;
+        uint16_t phase = (bf_frame * 2) % (uint16_t)(2 * travel);
+        uint8_t block_x = (phase <= travel) ? (uint8_t)phase : (uint8_t)(2 * travel - phase);
+        widget_add_rect_element(
+            widget,
+            PSA_BF_PROGRESS_BAR_X + 2 + block_x,
+            bar_y + 2,
+            block_w,
+            PSA_BF_PROGRESS_BAR_H - 4,
+            0,
+            true);
+    }
 }
 
 static void bf_result_ok_callback(GuiButtonType result, InputType type, void* context) {
@@ -125,9 +212,32 @@ static void show_bf_result(void* app, uint8_t status, ButtonCallback callback) {
     }
 }
 
-static void apply_success_to_history(void* app, PsaBfState* s) {
+static void hitag2_refresh_history_text(void* app, FlipperFormat* ff) {
+    if(!app || !ff || !g_host_api || !g_host_api->history_set_item_str) {
+        return;
+    }
+    FuriString* text = furi_string_alloc();
+    if(hitag2_flipper_format_get_string(ff, text)) {
+        g_host_api->history_set_item_str(
+            app, g_host_api->get_history_index(app), furi_string_get_cstr(text));
+    }
+    furi_string_free(text);
+}
+
+static void apply_success_to_history(void* app) {
     FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
     uint16_t idx = g_host_api->get_history_index(app);
+    if(g_bf_kind == ProtoPirateBfKindHitag2 && g_hitag2_state) {
+        if(ff) {
+            hitag2_bf_patch_flipper_format_on_success(ff, g_hitag2_state);
+            hitag2_refresh_history_text(app, ff);
+        }
+        return;
+    }
+    if(!g_bf_state) {
+        return;
+    }
+    PsaBfState* s = g_bf_state;
     if(ff) {
         g_host_api->patch_flipper_format_on_success(ff, s);
     }
@@ -153,10 +263,9 @@ static void apply_success_to_history(void* app, PsaBfState* s) {
 }
 
 static void bf_finish_and_show_result(void* app, ButtonCallback result_callback) {
-    if(!g_bf_state) return;
+    if(!g_bf_state && !g_hitag2_state) return;
 
-    PsaBfState* s = g_bf_state;
-    uint8_t status = s->status;
+    uint8_t status = bf_status();
 
     if(g_bf_thread) {
         furi_thread_join(g_bf_thread);
@@ -165,7 +274,7 @@ static void bf_finish_and_show_result(void* app, ButtonCallback result_callback)
     }
 
     if(status == PSA_BF_STATUS_FOUND) {
-        apply_success_to_history(app, s);
+        apply_success_to_history(app);
         if(g_active_ctx == ProtoPiratePsaBfContextSubDecode) {
             g_host_api->notification_success(app);
         }
@@ -175,28 +284,32 @@ static void bf_finish_and_show_result(void* app, ButtonCallback result_callback)
         }
         show_bf_result(app, status, ok_cb);
     } else {
-        free(g_bf_state);
-        g_bf_state = NULL;
+        if(status == PSA_BF_STATUS_NOT_FOUND && g_bf_kind == ProtoPirateBfKindHitag2) {
+            FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
+            if(ff) {
+                hitag2_bf_patch_flipper_format_on_miss(ff);
+                hitag2_refresh_history_text(app, ff);
+            }
+        }
+        bf_free_states();
         show_bf_result(app, status, NULL);
     }
 }
 
 static void bf_cancel_thread(void) {
     if(g_bf_thread) {
-        if(g_bf_state) g_bf_state->cancel = 1;
+        bf_set_cancel();
         furi_thread_join(g_bf_thread);
         furi_thread_free(g_bf_thread);
         g_bf_thread = NULL;
     }
-    if(g_bf_state) {
-        free(g_bf_state);
-        g_bf_state = NULL;
-    }
+    bf_free_states();
 }
 
 static bool plugin_needs_bruteforce(void* app, ProtoPiratePsaBfContext ctx) {
     FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
-    return item_needs_bruteforce_from_ff(ff, ctx == ProtoPiratePsaBfContextReceiverInfo);
+    const bool require = ctx == ProtoPiratePsaBfContextReceiverInfo;
+    return item_needs_bruteforce_from_ff(ff, require) || hitag2_bf_needs_bruteforce(ff, require);
 }
 
 static bool plugin_is_running(void* app) {
@@ -206,11 +319,11 @@ static bool plugin_is_running(void* app) {
 
 static void plugin_on_scene_enter(void* app, ProtoPiratePsaBfContext ctx) {
     g_active_ctx = ctx;
-    if(g_bf_thread && g_bf_state) {
-        if(g_bf_state->status == PSA_BF_STATUS_RUNNING) {
+    if(g_bf_thread && (g_bf_state || g_hitag2_state)) {
+        if(bf_status() == PSA_BF_STATUS_RUNNING) {
             show_bf_progress(app);
         } else {
-            show_bf_result(app, g_bf_state->status, NULL);
+            show_bf_result(app, bf_status(), NULL);
         }
     }
 }
@@ -221,23 +334,46 @@ static bool start_bruteforce(void* app) {
     FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
     if(!ff || !plugin_needs_bruteforce(app, g_active_ctx)) return false;
 
-    PsaBfState* state = malloc(sizeof(PsaBfState));
-    if(!state) {
-        g_host_api->notification_error(app);
+    const bool require = g_active_ctx == ProtoPiratePsaBfContextReceiverInfo;
+    if(item_needs_bruteforce_from_ff(ff, require)) {
+        PsaBfState* state = malloc(sizeof(PsaBfState));
+        if(!state) {
+            g_host_api->notification_error(app);
+            return false;
+        }
+        if(!psa_bf_state_from_flipper_format(state, ff)) {
+            free(state);
+            g_host_api->notification_error(app);
+            return false;
+        }
+        state->on_done = NULL;
+        state->on_done_ctx = NULL;
+        g_bf_state = state;
+        g_bf_kind = ProtoPirateBfKindPsa;
+        g_bf_thread = furi_thread_alloc_ex("PsaBf", 2048, psa_brute_force_thread_entry, state);
+    } else if(hitag2_bf_needs_bruteforce(ff, require)) {
+        Hitag2BfState* state = malloc(sizeof(Hitag2BfState));
+        if(!state) {
+            g_host_api->notification_error(app);
+            return false;
+        }
+        if(!hitag2_bf_state_from_flipper_format(state, ff)) {
+            free(state);
+            g_host_api->notification_error(app);
+            return false;
+        }
+        state->on_done = NULL;
+        state->on_done_ctx = NULL;
+        g_hitag2_state = state;
+        g_bf_kind = ProtoPirateBfKindHitag2;
+        g_bf_thread =
+            furi_thread_alloc_ex("Hitag2Bf", 2048, hitag2_brute_force_thread_entry, state);
+    } else {
         return false;
     }
-    if(!psa_bf_state_from_flipper_format(state, ff)) {
-        free(state);
-        g_host_api->notification_error(app);
-        return false;
-    }
-    state->on_done = NULL;
-    state->on_done_ctx = NULL;
-    g_bf_state = state;
-    g_bf_thread = furi_thread_alloc_ex("PsaBf", 2048, psa_brute_force_thread_entry, state);
+
     if(!g_bf_thread) {
-        free(state);
-        g_bf_state = NULL;
+        bf_free_states();
         g_host_api->notification_error(app);
         return false;
     }
@@ -251,24 +387,23 @@ static bool
     g_active_ctx = ctx;
 
     if(event.type == SceneManagerEventTypeBack) {
-        if(g_bf_state && g_bf_state->status == PSA_BF_STATUS_FOUND) {
+        if(bf_status() == PSA_BF_STATUS_FOUND) {
             if(ctx == ProtoPiratePsaBfContextReceiverInfo) {
                 g_host_api->receiver_info_rebuild_widget(app);
             }
-            free(g_bf_state);
-            g_bf_state = NULL;
+            bf_free_states();
             return true;
         }
-        if(g_bf_thread && g_bf_state && g_bf_state->status == PSA_BF_STATUS_RUNNING) {
-            g_bf_state->cancel = 1;
+        if(g_bf_thread && bf_status() == PSA_BF_STATUS_RUNNING) {
+            bf_set_cancel();
             return true;
         }
         return false;
     }
 
     if(event.type == SceneManagerEventTypeTick) {
-        if(g_bf_thread && g_bf_state) {
-            uint8_t bfst = g_bf_state->status;
+        if(g_bf_thread && (g_bf_state || g_hitag2_state)) {
+            uint8_t bfst = bf_status();
             if(bfst == PSA_BF_STATUS_IDLE || bfst == PSA_BF_STATUS_RUNNING) {
                 show_bf_progress(app);
             } else {
@@ -289,7 +424,7 @@ static bool
     }
 
     if(event.event == ProtoPirateCustomEventPsaBruteforceComplete) {
-        if(g_bf_state) {
+        if(g_bf_state || g_hitag2_state) {
             bf_finish_and_show_result(app, NULL);
             if(g_active_ctx == ProtoPiratePsaBfContextSubDecode) {
                 g_host_api->subdecode_signal_info_refresh(app);
@@ -303,14 +438,13 @@ static bool
             return start_bruteforce(app);
         }
         if(event.event == ProtoPirateCustomEventReceiverInfoBruteforceCancel) {
-            if(g_bf_state && g_bf_state->status == PSA_BF_STATUS_FOUND) {
+            if(bf_status() == PSA_BF_STATUS_FOUND) {
                 g_host_api->receiver_info_rebuild_widget(app);
-                free(g_bf_state);
-                g_bf_state = NULL;
-            } else if(g_bf_state && g_bf_state->status == PSA_BF_STATUS_RUNNING) {
-                g_bf_state->cancel = 1;
+                bf_free_states();
+            } else if(bf_status() == PSA_BF_STATUS_RUNNING) {
+                bf_set_cancel();
             } else {
-                if(g_bf_state) {
+                if(g_bf_state || g_hitag2_state) {
                     bf_finish_and_show_result(app, NULL);
                 }
                 g_host_api->scene_previous(app);

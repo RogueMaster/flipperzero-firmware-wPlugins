@@ -34,6 +34,8 @@ const char* protopirate_protocol_catalog_canonical_name(const char* protocol_nam
 
 bool protopirate_protocol_catalog_can_tx(const char* protocol_name);
 
+bool protopirate_protocol_catalog_offers_bruteforce(const char* protocol_name);
+
 const char* protopirate_protocol_catalog_tx_key(const char* protocol_name);
 
 const char*

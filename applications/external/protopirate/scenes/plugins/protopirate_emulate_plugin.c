@@ -15,6 +15,7 @@
 #include "../../protocols/kia_v7.h"
 #include "../../protocols/psa.h"
 #include "../../protocols/renault_v0.h"
+#include "../../protocols/renault_v1.h"
 
 #include <input/input.h>
 #include <gui/canvas.h>
@@ -46,7 +47,8 @@
 #define EMU_PRESET_KEY_HITAG2_KEY   "Hitag2 Key"
 #define EMU_PRESET_KEY_HITAG2_EPOCH "Hitag2 Epoch"
 #define EMU_CUSTOM_PRESET_KEY       "Custom_preset_data"
-#define EMU_FIAT_V1_KEY_TEXT_LEN    12U
+#define EMU_HITAG2_KEY_TEXT_LEN     12U
+#define EMU_HITAG2_RECOVERED_YES    1U
 
 typedef struct {
     uint32_t original_counter;
@@ -63,7 +65,7 @@ typedef struct {
     bool flag_stop_called;
     bool replay_only;
     Storage* storage;
-    char hitag2_key_text[EMU_FIAT_V1_KEY_TEXT_LEN + 1U];
+    char hitag2_key_text[EMU_HITAG2_KEY_TEXT_LEN + 1U];
 } EmulateContext;
 
 typedef struct {
@@ -75,32 +77,57 @@ typedef struct {
 static EmulateContext* emulate_context = NULL;
 static const ProtoPirateEmulateHostApi* g_host_api = NULL;
 
-static bool emulate_hex_nibble(char c, uint8_t* nibble) {
-    if(c >= '0' && c <= '9') {
-        *nibble = (uint8_t)(c - '0');
-        return true;
-    }
-    if(c >= 'A' && c <= 'F') {
-        *nibble = (uint8_t)(c - 'A' + 10);
-        return true;
-    }
-    if(c >= 'a' && c <= 'f') {
-        *nibble = (uint8_t)(c - 'a' + 10);
-        return true;
+static bool emulate_hitag2_key_nonzero(const uint8_t key[6]) {
+    for(size_t i = 0; i < 6U; i++) {
+        if(key[i]) {
+            return true;
+        }
     }
     return false;
 }
 
+static bool emulate_has_hitag2_key(FlipperFormat* flipper_format) {
+    if(!flipper_format) return false;
+    uint8_t key[6] = {0};
+    flipper_format_rewind(flipper_format);
+    return flipper_format_read_hex(flipper_format, EMU_PRESET_KEY_HITAG2_KEY, key, sizeof(key));
+}
+
+static bool emulate_has_nonzero_hitag2_key(FlipperFormat* flipper_format) {
+    if(!flipper_format) return false;
+    uint8_t key[6] = {0};
+    flipper_format_rewind(flipper_format);
+    if(!flipper_format_read_hex(flipper_format, EMU_PRESET_KEY_HITAG2_KEY, key, sizeof(key))) {
+        return false;
+    }
+    return emulate_hitag2_key_nonzero(key);
+}
+
 static bool emulate_parse_hitag2_key_text(const char* text, uint8_t key[6]) {
-    if(!text || !key) return false;
+    if(!text || !key) {
+        return false;
+    }
+
     uint8_t hex_count = 0U;
     uint8_t high_nibble = 0U;
-
     for(size_t i = 0U; text[i] != '\0'; i++) {
-        if(text[i] == ' ') continue;
+        const char c = text[i];
+        if(c == ' ') {
+            continue;
+        }
 
         uint8_t nibble = 0U;
-        if(!emulate_hex_nibble(text[i], &nibble) || hex_count >= EMU_FIAT_V1_KEY_TEXT_LEN) {
+        if(c >= '0' && c <= '9') {
+            nibble = (uint8_t)(c - '0');
+        } else if(c >= 'A' && c <= 'F') {
+            nibble = (uint8_t)(c - 'A' + 10);
+        } else if(c >= 'a' && c <= 'f') {
+            nibble = (uint8_t)(c - 'a' + 10);
+        } else {
+            return false;
+        }
+
+        if(hex_count >= 12U) {
             return false;
         }
         if((hex_count & 1U) == 0U) {
@@ -110,15 +137,45 @@ static bool emulate_parse_hitag2_key_text(const char* text, uint8_t key[6]) {
         }
         hex_count++;
     }
-
-    return hex_count == EMU_FIAT_V1_KEY_TEXT_LEN;
+    return hex_count == 12U;
 }
 
-static bool emulate_has_hitag2_key(FlipperFormat* flipper_format) {
-    if(!flipper_format) return false;
-    uint8_t key[6] = {0};
+static bool emulate_write_hitag2_key(FlipperFormat* flipper_format, const uint8_t key[6]) {
+    if(!flipper_format || !key) {
+        return false;
+    }
     flipper_format_rewind(flipper_format);
-    return flipper_format_read_hex(flipper_format, EMU_PRESET_KEY_HITAG2_KEY, key, sizeof(key));
+    if(!flipper_format_insert_or_update_hex(flipper_format, EMU_PRESET_KEY_HITAG2_KEY, key, 6U)) {
+        return false;
+    }
+    uint32_t epoch = 0U;
+    flipper_format_rewind(flipper_format);
+    if(!flipper_format_read_uint32(flipper_format, EMU_PRESET_KEY_HITAG2_EPOCH, &epoch, 1U)) {
+        flipper_format_rewind(flipper_format);
+        flipper_format_insert_or_update_uint32(
+            flipper_format, EMU_PRESET_KEY_HITAG2_EPOCH, &epoch, 1U);
+    }
+    flipper_format_rewind(flipper_format);
+    return true;
+}
+
+static bool emulate_hitag2_recovered_yes(FlipperFormat* flipper_format) {
+    if(!flipper_format) {
+        return false;
+    }
+
+    uint8_t recovered_hex = 0;
+    flipper_format_rewind(flipper_format);
+    if(flipper_format_read_hex(flipper_format, "Recovered", &recovered_hex, 1)) {
+        return recovered_hex == EMU_HITAG2_RECOVERED_YES;
+    }
+
+    uint32_t recovered_u32 = 0;
+    flipper_format_rewind(flipper_format);
+    if(flipper_format_read_uint32(flipper_format, "Recovered", &recovered_u32, 1)) {
+        return (uint8_t)recovered_u32 == EMU_HITAG2_RECOVERED_YES;
+    }
+    return false;
 }
 
 static void emulate_request_nav_pop(ProtoPirateApp* app) {
@@ -133,9 +190,9 @@ static void emulate_request_nav_after_exit(ProtoPirateApp* app) {
     }
 }
 
-static bool emulate_prompt_fiat_v1_key(ProtoPirateApp* app, EmulateContext* ctx);
+static bool emulate_prompt_hitag2_key(ProtoPirateApp* app, EmulateContext* ctx);
 
-static void emulate_fiat_v1_key_input_callback(void* context) {
+static void emulate_hitag2_key_input_callback(void* context) {
     ProtoPirateApp* app = context;
     EmulateContext* ctx = emulate_context;
     uint8_t key[6] = {0};
@@ -146,25 +203,15 @@ static void emulate_fiat_v1_key_input_callback(void* context) {
             notification_message(app->notifications, &sequence_error);
         }
         if(app && ctx) {
-            (void)emulate_prompt_fiat_v1_key(app, ctx);
+            (void)emulate_prompt_hitag2_key(app, ctx);
         }
         return;
     }
 
-    flipper_format_rewind(ctx->flipper_format);
-    if(!flipper_format_insert_or_update_hex(
-           ctx->flipper_format, EMU_PRESET_KEY_HITAG2_KEY, key, sizeof(key))) {
+    if(!emulate_write_hitag2_key(ctx->flipper_format, key)) {
         notification_message(app->notifications, &sequence_error);
         emulate_request_nav_pop(app);
         return;
-    }
-
-    uint32_t epoch = 0U;
-    flipper_format_rewind(ctx->flipper_format);
-    if(!flipper_format_read_uint32(ctx->flipper_format, EMU_PRESET_KEY_HITAG2_EPOCH, &epoch, 1U)) {
-        flipper_format_rewind(ctx->flipper_format);
-        flipper_format_insert_or_update_uint32(
-            ctx->flipper_format, EMU_PRESET_KEY_HITAG2_EPOCH, &epoch, 1U);
     }
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewAbout);
@@ -173,7 +220,7 @@ static void emulate_fiat_v1_key_input_callback(void* context) {
     }
 }
 
-static bool emulate_prompt_fiat_v1_key(ProtoPirateApp* app, EmulateContext* ctx) {
+static bool emulate_prompt_hitag2_key(ProtoPirateApp* app, EmulateContext* ctx) {
     furi_check(app);
     furi_check(ctx);
 
@@ -186,13 +233,29 @@ static bool emulate_prompt_fiat_v1_key(ProtoPirateApp* app, EmulateContext* ctx)
     text_input_set_header_text(app->text_input, "HITAG2 key (12 hex):");
     text_input_set_result_callback(
         app->text_input,
-        emulate_fiat_v1_key_input_callback,
+        emulate_hitag2_key_input_callback,
         app,
         ctx->hitag2_key_text,
         sizeof(ctx->hitag2_key_text),
         true);
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewTextInput);
     return true;
+}
+
+static bool emulate_needs_hitag2_prompt(EmulateContext* ctx) {
+    if(!ctx || !ctx->flipper_format) {
+        return false;
+    }
+    if(furi_string_equal(ctx->protocol_name, FIAT_V1_PROTOCOL_NAME)) {
+        return !emulate_has_hitag2_key(ctx->flipper_format);
+    }
+    if(furi_string_equal(ctx->protocol_name, RENAULT_PROTOCOL_V1_NAME)) {
+        if(emulate_hitag2_recovered_yes(ctx->flipper_format)) {
+            return false;
+        }
+        return !emulate_has_nonzero_hitag2_key(ctx->flipper_format);
+    }
+    return false;
 }
 
 static bool emu_preset_name_is_custom_marker(const char* preset_name) {
@@ -784,9 +847,33 @@ static uint8_t emu_button_for_protocol(
         default:
             return original;
         }
+    } else if(strstr(protocol, RENAULT_PROTOCOL_V1_NAME)) {
+        switch(key) {
+        case InputKeyUp:
+            return 0x1; // Lock
+        case InputKeyOk:
+            return 0x2; // Unlock
+        case InputKeyDown:
+            return 0x2; // Unlock
+        case InputKeyLeft:
+            return 0x4; // Trunk
+        case InputKeyRight:
+            return 0x8; // Panic
+        default:
+            return original;
+        }
+    } else if(strstr(protocol, RENAULT_PROTOCOL_V0_NAME)) {
+        switch(key) {
+        case InputKeyOk:
+            return 0x06; // Lock
+        case InputKeyUp:
+            return 0x0A; // Unlock
+        case InputKeyDown:
+            return 0x05; // Trunk
+        default:
+            return original;
+        }
     } else if(strstr(protocol, "Fiat")) {
-        return original;
-    } else if(strstr(protocol, "Porsche")) {
         return original;
     } else if(strstr(protocol, "Scher")) {
         return original;
@@ -794,19 +881,6 @@ static uint8_t emu_button_for_protocol(
         return original;
     }
     return original;
-}
-
-static bool emulate_renault_is_rolling(FlipperFormat* ff) {
-    if(!ff) {
-        return false;
-    }
-
-    uint32_t rolling = 0U;
-    flipper_format_rewind(ff);
-    if(flipper_format_read_uint32(ff, "Rolling", &rolling, 1)) {
-        return rolling != 0U;
-    }
-    return false;
 }
 
 static bool emulate_update_data(EmulateContext* ctx, uint8_t button) {
@@ -1115,14 +1189,23 @@ static void plugin_on_enter(void* context) {
         furi_string_set(ctx->protocol_name, "Unknown");
     }
 
-    ctx->replay_only = furi_string_equal(ctx->protocol_name, RENAULT_PROTOCOL_V0_NAME) &&
-                       !emulate_renault_is_rolling(ctx->flipper_format);
+    ctx->replay_only = false;
 
-    // Standalone Suzuki/Honda V0 captures: merged into Kia V0
+    // Standalone Suzuki/Honda/Mitsubishi V0 captures: merged into Kia V0
     if(furi_string_equal(ctx->protocol_name, "Suzuki") ||
        furi_string_equal(ctx->protocol_name, "Suzuki V0") ||
-       furi_string_equal(ctx->protocol_name, "Honda V0")) {
-        uint32_t kia_v0_type = furi_string_equal(ctx->protocol_name, "Honda V0") ? 3U : 2U;
+       furi_string_equal(ctx->protocol_name, "Honda V0") ||
+       furi_string_equal(ctx->protocol_name, "Mitsu V0") ||
+       furi_string_equal(ctx->protocol_name, "Mitsu v0") ||
+       furi_string_equal(ctx->protocol_name, "Mitsubishi V0") ||
+       furi_string_equal(ctx->protocol_name, "Mitsubishi v0")) {
+        uint32_t kia_v0_type = furi_string_equal(ctx->protocol_name, "Honda V0") ? 3U :
+                               (furi_string_equal(ctx->protocol_name, "Mitsu V0") ||
+                                furi_string_equal(ctx->protocol_name, "Mitsu v0") ||
+                                furi_string_equal(ctx->protocol_name, "Mitsubishi V0") ||
+                                furi_string_equal(ctx->protocol_name, "Mitsubishi v0")) ?
+                                                                                   4U :
+                                                                                   2U;
         furi_string_set(ctx->protocol_name, KIA_PROTOCOL_V0_NAME);
         flipper_format_rewind(ctx->flipper_format);
         flipper_format_insert_or_update_string_cstr(
@@ -1166,15 +1249,60 @@ static void plugin_on_enter(void* context) {
         ctx->current_counter = ctx->original_counter;
     }
 
+    if(furi_string_equal(ctx->protocol_name, FIAT_V1_PROTOCOL_NAME)) {
+        uint8_t raw[13] = {0};
+        bool have_raw = false;
+        flipper_format_rewind(ctx->flipper_format);
+        if(flipper_format_read_hex(ctx->flipper_format, "Raw", raw, sizeof(raw)) &&
+           raw[0] == 0x00U && raw[1] == 0x01U) {
+            have_raw = true;
+        }
+
+        if(ctx->serial == 0U) {
+            if(have_raw) {
+                ctx->serial = ((uint32_t)raw[2] << 24U) | ((uint32_t)raw[3] << 16U) |
+                              ((uint32_t)raw[4] << 8U) | raw[5];
+            } else {
+                uint8_t key_bytes[8] = {0};
+                flipper_format_rewind(ctx->flipper_format);
+                if(flipper_format_read_hex(
+                       ctx->flipper_format, "Key", key_bytes, sizeof(key_bytes))) {
+                    ctx->serial = ((uint32_t)key_bytes[0] << 24U) |
+                                  ((uint32_t)key_bytes[1] << 16U) |
+                                  ((uint32_t)key_bytes[2] << 8U) | key_bytes[3];
+                }
+            }
+            if(ctx->serial != 0U) {
+                flipper_format_rewind(ctx->flipper_format);
+                flipper_format_insert_or_update_uint32(
+                    ctx->flipper_format, EMU_PRESET_KEY_SERIAL, &ctx->serial, 1);
+            }
+        }
+        if(have_raw && (ctx->current_counter > 0x3FFU || ctx->original_counter > 0x3FFU)) {
+            const uint32_t ctrl = ((uint32_t)(raw[6] & 0x0FU) << 6U) | ((uint32_t)raw[7] >> 2U);
+            ctx->original_counter = ctrl;
+            ctx->current_counter = ctrl;
+            flipper_format_rewind(ctx->flipper_format);
+            flipper_format_insert_or_update_uint32(
+                ctx->flipper_format, EMU_PRESET_KEY_CNT, &ctrl, 1);
+            if(ctx->original_button == 0U) {
+                ctx->original_button = (uint8_t)(raw[6] >> 4U);
+                uint32_t btn = ctx->original_button;
+                flipper_format_rewind(ctx->flipper_format);
+                flipper_format_insert_or_update_uint32(
+                    ctx->flipper_format, EMU_PRESET_KEY_BTN, &btn, 1);
+            }
+        }
+    }
+
     view_set_draw_callback(app->view_about, emulate_draw_callback);
     view_set_input_callback(app->view_about, emulate_input_callback);
     view_set_context(app->view_about, app);
     view_set_previous_callback(app->view_about, NULL);
 
-    if(furi_string_equal(ctx->protocol_name, FIAT_V1_PROTOCOL_NAME) &&
-       !emulate_has_hitag2_key(ctx->flipper_format)) {
-        if(!emulate_prompt_fiat_v1_key(app, ctx)) {
-            FURI_LOG_E(TAG, "Failed to show Fiat V1 HITAG2 key input");
+    if(emulate_needs_hitag2_prompt(ctx)) {
+        if(!emulate_prompt_hitag2_key(app, ctx)) {
+            FURI_LOG_E(TAG, "Failed to show HITAG2 key input");
             notification_message(app->notifications, &sequence_error);
             emulate_context_free();
             emulate_request_nav_pop(app);

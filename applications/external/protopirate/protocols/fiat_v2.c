@@ -347,19 +347,18 @@ SubGhzProtocolStatus subghz_protocol_decoder_fiat_v2_serialize(
     }
 
     flipper_format_rewind(flipper_format);
-    flipper_format_insert_or_update_hex(
-        flipper_format, FIAT_V2_RAW_FIELD, instance->raw_data, FIAT_V2_WIRE_BYTES);
-
-    uint32_t hop = instance->hop;
-    uint32_t button = instance->button;
-    if(!flipper_format_write_uint32(flipper_format, FIAT_V2_HOP_FIELD, &hop, 1) ||
-       !flipper_format_write_uint32(flipper_format, FIAT_V2_BTN_FIELD, &button, 1)) {
-        return SubGhzProtocolStatusErrorParserOthers;
-    }
+    flipper_format_delete_key(flipper_format, FIAT_V2_RAW_FIELD);
 
     pp_flipper_update_or_insert_u32(flipper_format, FF_SERIAL, instance->generic.serial);
     pp_flipper_update_or_insert_u32(flipper_format, FF_BTN, instance->generic.btn);
     pp_flipper_update_or_insert_u32(flipper_format, FF_CNT, instance->generic.cnt);
+    pp_flipper_update_or_insert_u32(flipper_format, FIAT_V2_HOP_FIELD, instance->hop);
+    pp_flipper_update_or_insert_u32(flipper_format, FIAT_V2_BTN_FIELD, instance->button);
+
+    if(!flipper_format_insert_or_update_hex(
+           flipper_format, FIAT_V2_RAW_FIELD, instance->raw_data, FIAT_V2_WIRE_BYTES)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
     return SubGhzProtocolStatusOk;
 }
 

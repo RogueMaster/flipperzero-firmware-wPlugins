@@ -16,8 +16,6 @@
 
 extern const SubGhzProtocol renault_v0_protocol;
 
-bool renault_v0_flipper_is_rolling(FlipperFormat* flipper_format);
-
 void* subghz_protocol_decoder_renault_v0_alloc(SubGhzEnvironment* environment);
 void subghz_protocol_decoder_renault_v0_reset(void* context);
 void subghz_protocol_decoder_renault_v0_feed(void* context, bool level, uint32_t duration);

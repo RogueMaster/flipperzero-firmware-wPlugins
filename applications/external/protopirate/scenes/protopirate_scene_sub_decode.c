@@ -1212,7 +1212,8 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                     FuriString* proto_str = furi_string_alloc();
                     flipper_format_rewind(ff);
                     bool have_proto = flipper_format_read_string(ff, FF_PROTOCOL, proto_str);
-                    bool is_psa = have_proto && furi_string_cmp_str(proto_str, "PSA") == 0;
+                    bool offers_bf = have_proto && protopirate_protocol_catalog_offers_bruteforce(
+                                                       furi_string_get_cstr(proto_str));
 
                     if(have_proto) {
                         const char* protocol_name = furi_string_get_cstr(proto_str);
@@ -1222,7 +1223,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                         app->emulate_disabled_for_loaded = true;
                     }
                     furi_string_free(proto_str);
-                    if(is_psa) {
+                    if(offers_bf) {
                         app->txrx->idx_menu_chosen = ctx->selected_history_index;
                         bool needs_bf = false;
                         if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin) {
@@ -1233,7 +1234,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                             widget_add_button_element(
                                 app->widget,
                                 GuiButtonTypeLeft,
-                                "Brute force",
+                                "BF",
                                 protopirate_scene_sub_decode_widget_callback,
                                 app);
 #ifdef ENABLE_EMULATE_FEATURE
