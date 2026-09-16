@@ -19,6 +19,7 @@ typedef struct {
     bool emulate_feature_enabled;
     bool check_saved;
     bool datetime_filenames;
+    uint16_t car_model_index;
 } ProtoPirateSettings;
 
 void protopirate_settings_load(ProtoPirateSettings* settings);

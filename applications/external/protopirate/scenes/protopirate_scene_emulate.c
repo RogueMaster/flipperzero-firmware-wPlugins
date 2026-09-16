@@ -94,14 +94,14 @@ static void emulate_plugin_unload(ProtoPirateApp* app) {
 
     app->emulate_plugin = NULL;
 
-    if(app->emulate_plugin_manager) {
-        plugin_manager_free(app->emulate_plugin_manager);
-        app->emulate_plugin_manager = NULL;
+    if(app->plugin_manager) {
+        plugin_manager_free(app->plugin_manager);
+        app->plugin_manager = NULL;
     }
 
-    if(app->emulate_plugin_resolver) {
-        composite_api_resolver_free(app->emulate_plugin_resolver);
-        app->emulate_plugin_resolver = NULL;
+    if(app->plugin_resolver) {
+        composite_api_resolver_free(app->plugin_resolver);
+        app->plugin_resolver = NULL;
     }
 }
 
@@ -110,7 +110,7 @@ static bool emulate_plugin_load(ProtoPirateApp* app) {
 
     if(app->emulate_plugin) return true;
 
-    if(app->emulate_plugin_manager || app->emulate_plugin_resolver) {
+    if(app->plugin_manager || app->plugin_resolver) {
         emulate_plugin_unload(app);
     }
 
@@ -148,8 +148,8 @@ static bool emulate_plugin_load(ProtoPirateApp* app) {
         return false;
     }
 
-    app->emulate_plugin_resolver = resolver;
-    app->emulate_plugin_manager = manager;
+    app->plugin_resolver = resolver;
+    app->plugin_manager = manager;
     app->emulate_plugin = plugin;
 
     plugin->set_host_api(&protopirate_emulate_host_api);

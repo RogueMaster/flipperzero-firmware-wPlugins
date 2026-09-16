@@ -12,6 +12,73 @@
 
 #define TAG "ProtoPirateApp"
 
+// -----------------------------------------------------------------------------
+// Plugin load / unload
+// -----------------------------------------------------------------------------
+void config_plugin_unload(ProtoPirateApp* app) {
+    furi_check(app);
+
+    app->config_plugin = NULL;
+
+    if(app->plugin_manager) {
+        plugin_manager_free(app->plugin_manager);
+        app->plugin_manager = NULL;
+    }
+
+    if(app->plugin_resolver) {
+        composite_api_resolver_free(app->plugin_resolver);
+        app->plugin_resolver = NULL;
+    }
+}
+
+bool config_plugin_load(ProtoPirateApp* app) {
+    furi_check(app);
+
+    if(app->config_plugin) return true;
+
+    if(app->plugin_manager || app->plugin_resolver) {
+        config_plugin_unload(app);
+    }
+
+    CompositeApiResolver* resolver = composite_api_resolver_alloc();
+    if(!resolver) {
+        FURI_LOG_E(TAG, "Failed to allocate config plugin resolver");
+        return false;
+    }
+    composite_api_resolver_add(resolver, firmware_api_interface);
+
+    PluginManager* manager = plugin_manager_alloc(
+        PROTOPIRATE_CONFIG_PLUGIN_APP_ID,
+        PROTOPIRATE_CONFIG_PLUGIN_API_VERSION,
+        composite_api_resolver_get(resolver));
+    if(!manager) {
+        FURI_LOG_E(TAG, "Failed to allocate config plugin manager");
+        composite_api_resolver_free(resolver);
+        return false;
+    }
+
+    PluginManagerError error = plugin_manager_load_single(manager, CONFIG_PLUGIN_PATH);
+    if(error != PluginManagerErrorNone) {
+        FURI_LOG_E(TAG, "Failed to load config plugin %s: %d", CONFIG_PLUGIN_PATH, (int)error);
+        plugin_manager_free(manager);
+        composite_api_resolver_free(resolver);
+        return false;
+    }
+
+    const ProtoPirateConfigPlugin* plugin = plugin_manager_get_ep(manager, 0U);
+    if(!plugin || !plugin->on_enter || !plugin->on_exit) {
+        FURI_LOG_E(TAG, "Config plugin entry point is invalid");
+        plugin_manager_free(manager);
+        composite_api_resolver_free(resolver);
+        return false;
+    }
+
+    app->plugin_resolver = resolver;
+    app->plugin_manager = manager;
+    app->config_plugin = plugin;
+    return true;
+}
+
 static bool protopirate_app_custom_event_callback(void* context, uint32_t event) {
     furi_check(context);
     ProtoPirateApp* app = context;
@@ -151,7 +218,33 @@ ProtoPirateApp* protopirate_app_alloc() {
         settings.auto_save,
         settings.hopping_enabled);
 
-    protopirate_preset_init(app, preset_name, frequency, preset_data, preset_data_size);
+    config_plugin_load(app);
+    app->car_models_count = app->config_plugin->car_model_get_count();
+    app->selected_model = malloc(sizeof(ProtoPirateCarModel));
+    app->selected_model->name = furi_string_alloc();
+    app->selected_model->preset = NULL; // important initialization
+    app->selected_model->index = 0; // optional but clean
+    app->variable_item_list = NULL;
+
+    //Grab selected car model.
+    if(settings.car_model_index) {
+        app->config_plugin->car_model_get_by_index(
+            app->selected_model, settings.car_model_index, app->car_models_count, app->setting);
+        app->selected_model->last_preset_index = settings.preset_index;
+
+        protopirate_preset_init(
+            app,
+            furi_string_get_cstr(app->selected_model->preset->name),
+            app->selected_model->preset->frequency,
+            app->selected_model->preset->data,
+            app->selected_model->preset->data_size);
+    } else {
+        app->config_plugin->car_model_get_by_index(
+            app->selected_model, 0, app->car_models_count, app->setting);
+
+        protopirate_preset_init(app, preset_name, frequency, preset_data, preset_data_size);
+    }
+    config_plugin_unload(app);
 
     // Apply hopping state from settings
     app->txrx->hopper_state = settings.hopping_enabled ? ProtoPirateHopperStateRunning :
@@ -186,15 +279,47 @@ void protopirate_app_free(ProtoPirateApp* app) {
     settings.emulate_feature_enabled = false;
 #endif
 
-    // Find current preset index
-    settings.preset_index = 0;
-    const char* current_preset = furi_string_get_cstr(app->txrx->preset->name);
-    for(uint8_t i = 0; i < subghz_setting_get_preset_count(app->setting); i++) {
-        if(strcmp(subghz_setting_get_preset_name(app->setting, i), current_preset) == 0) {
-            settings.preset_index = i;
-            break;
+    //Get the selected Model, and get the preset to save.
+    if(app->selected_model && app->selected_model->index) {
+        //Get Preset Index before model was selected.
+        settings.car_model_index = app->selected_model->index;
+        settings.preset_index = app->selected_model->last_preset_index;
+    } else {
+        // Find current preset index
+        settings.car_model_index = 0; //Clear the selected model.
+        settings.preset_index = 0;
+        const char* current_preset = furi_string_get_cstr(app->txrx->preset->name);
+        for(uint8_t i = 0; i < subghz_setting_get_preset_count(app->setting); i++) {
+            if(strcmp(subghz_setting_get_preset_name(app->setting, i), current_preset) == 0) {
+                settings.preset_index = i;
+                break;
+            }
         }
     }
+
+    //Free the Model Name
+    furi_string_free(app->selected_model->name);
+    app->selected_model->index = 0;
+
+    //Free the preset information.
+    if(app->selected_model->preset) {
+        //Free the preset data
+        if((app->selected_model)->preset->data) {
+            free(app->selected_model->preset->data);
+            app->selected_model->preset->data = NULL;
+        }
+
+        //Free the Preset name
+        furi_string_free(app->selected_model->preset->name);
+
+        //Free the preset.
+        free(app->selected_model->preset);
+        app->selected_model->preset = NULL;
+    }
+
+    //Free the Model.
+    free(app->selected_model);
+    app->selected_model = NULL;
 
     FURI_LOG_I(
         TAG,

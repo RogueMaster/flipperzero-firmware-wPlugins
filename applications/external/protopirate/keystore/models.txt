@@ -1,0 +1,28 @@
+Filetype: ProtoPirate Car Models Database
+Version: 2
+
+ModelCount: 6
+
+ModelName1: 433.92 Mhz AM650
+Frequency1: 433920000
+PresetName1: FuriHalSubGhzPresetOok650Async
+
+ModelName2: 433.92 Mhz FM476
+Frequency2: 433920000
+PresetName2: FuriHalSubGhzPreset2FSKDev476Async
+
+ModelName3: 315 Mhz AM650
+Frequency3: 315000000
+PresetName3: FuriHalSubGhzPresetOok650Async
+
+ModelName4: 315 Mhz FM476
+Frequency4: 315000000
+PresetName4: FuriHalSubGhzPreset2FSKDev476Async
+
+ModelName5: Ford Falcon BA-FGX
+Frequency5: 433920000
+PresetName5: FuriHalSubGhzPresetOok650Async
+
+ModelName6: Ford Territory SX-SYII
+Frequency6: 433920000
+PresetName6: FuriHalSubGhzPresetOok650Async

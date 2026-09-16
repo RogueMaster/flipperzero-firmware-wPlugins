@@ -18,6 +18,8 @@ _ENABLE_EMULATE = ProtoPirateDefineEnabled("ENABLE_EMULATE_FEATURE")
 
 _MAIN_APP_SOURCES = [
     "*.c*",
+    "!helpers/protopirate_models.c",
+    "!helpers/variable_item_list.c",
     "!protocols/plugins",
     "!scenes/plugins",
     "!protocols",
@@ -424,5 +426,21 @@ App(
         "protocols/protocols_common.c",
     ],
     fap_icon_assets="images",
+    fal_embedded=True,
+)
+
+App(
+    appid="protopirate_config_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="protopirate_config_plugin_ep",
+    requires=["proto_pirate"],
+    sources=[
+        "helpers/protopirate_protocol_plugin_host.c",
+        "helpers/protopirate_models.c",
+        "helpers/protopirate_txrx.c",
+        "helpers/variable_item_list.c",
+        "protocols/protocol_items.c",
+        "scenes/plugins/protopirate_config_plugin.c",
+    ],
     fal_embedded=True,
 )

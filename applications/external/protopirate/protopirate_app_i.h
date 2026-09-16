@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include "helpers/protopirate_types.h"
-#include "helpers/protopirate_settings.h"
 #include "scenes/protopirate_scene.h"
 #include "views/protopirate_receiver.h"
 #include "protopirate_history.h"
@@ -13,7 +12,7 @@
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <gui/modules/submenu.h>
-#include <gui/modules/variable_item_list.h>
+
 #include <gui/modules/widget.h>
 #include <gui/modules/text_input.h>
 #include <notification/notification_messages.h>
@@ -33,16 +32,22 @@
 #ifdef ENABLE_EMULATE_FEATURE
 #include "scenes/plugins/protopirate_emulate_plugin.h"
 #endif
+#include "scenes/plugins/protopirate_config_plugin.h"
 #include "scenes/plugins/protopirate_psa_bf_plugin.h"
 #include "scenes/plugins/protopirate_tool_scene_plugin.h"
 #include "helpers/protopirate_views.h"
 #include "helpers/protopirate_radio.h"
 #include "helpers/protopirate_protocol_plugin_host.h"
 #include "helpers/protopirate_txrx.h"
+#include "helpers/protopirate_models.h"
+#include <loader/firmware_api/firmware_api.h>
+#include "helpers/protopirate_settings.h"
+
+#define CONFIG_PLUGIN_PATH APP_ASSETS_PATH("plugins/protopirate_config_plugin.fal")
 
 #define PROTOPIRATE_KEYSTORE_DIR_NAME APP_ASSETS_PATH("encrypted")
 
-typedef struct ProtoPirateApp ProtoPirateApp;
+typedef struct VariableItemList VariableItemList;
 
 typedef struct ProtoPirateTxRx {
     SubGhzWorker* worker;
@@ -94,29 +99,28 @@ struct ProtoPirateApp {
     bool save_from_saved_info;
     bool emulate_disabled_for_loaded;
     bool emulate_feature_enabled;
+    CompositeApiResolver* plugin_resolver;
+    PluginManager* plugin_manager;
 #ifdef ENABLE_EMULATE_FEATURE
 #define EMULATE_NAV_NONE     0U
 #define EMULATE_NAV_POP      1U
 #define EMULATE_NAV_STOP_APP 2U
-    CompositeApiResolver* emulate_plugin_resolver;
-    PluginManager* emulate_plugin_manager;
     const ProtoPirateEmulatePlugin* emulate_plugin;
     uint8_t emulate_nav_pending;
 #endif
-    CompositeApiResolver* psa_bf_plugin_resolver;
-    PluginManager* psa_bf_plugin_manager;
+    const ProtoPirateConfigPlugin* config_plugin;
     const ProtoPiratePsaBfPlugin* psa_bf_plugin;
-    CompositeApiResolver* tool_scene_plugin_resolver;
-    PluginManager* tool_scene_plugin_manager;
     const ProtoPirateToolScenePlugin* tool_scene_plugin;
     ProtoPirateToolScenePluginKind tool_scene_plugin_kind;
-
 #define TOOL_SCENE_NAV_NONE            0U
 #define TOOL_SCENE_NAV_POP             1U
 #define TOOL_SCENE_NAV_NEXT            2U
 #define TOOL_SCENE_NAV_SEARCH_PREVIOUS 3U
     uint8_t tool_scene_nav_pending;
     uint32_t tool_scene_nav_target;
+
+    ProtoPirateCarModel* selected_model;
+    uint32_t car_models_count;
 };
 
 #ifdef ENABLE_EMULATE_FEATURE
@@ -132,6 +136,9 @@ bool protopirate_tool_scene_on_enter(void* app, ProtoPirateToolScenePluginKind k
 bool protopirate_tool_scene_on_event(void* app, SceneManagerEvent event);
 void protopirate_tool_scene_on_exit(void* app);
 void protopirate_tool_scene_plugin_release(ProtoPirateApp* app);
+
+bool config_plugin_load(ProtoPirateApp* app);
+void config_plugin_unload(ProtoPirateApp* app);
 
 void protopirate_app_free(ProtoPirateApp* app);
 

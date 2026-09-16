@@ -5,24 +5,6 @@
 
 #define TAG "ProtoPirateViews"
 
-bool protopirate_ensure_variable_item_list(ProtoPirateApp* app) {
-    furi_check(app);
-    if(app->variable_item_list) {
-        return true;
-    }
-
-    app->variable_item_list = variable_item_list_alloc();
-    if(!app->variable_item_list) {
-        return false;
-    }
-
-    view_dispatcher_add_view(
-        app->view_dispatcher,
-        ProtoPirateViewVariableItemList,
-        variable_item_list_get_view(app->variable_item_list));
-    return true;
-}
-
 bool protopirate_ensure_widget(ProtoPirateApp* app) {
     furi_check(app);
     if(app->widget) {
@@ -101,7 +83,6 @@ void protopirate_views_free(ProtoPirateApp* app) {
     if(app->variable_item_list) {
         FURI_LOG_D(TAG, "Removing variable_item_list view");
         view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
-        variable_item_list_free(app->variable_item_list);
         app->variable_item_list = NULL;
     }
 

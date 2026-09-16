@@ -22,6 +22,7 @@ void protopirate_settings_set_defaults(ProtoPirateSettings* settings) {
     settings->emulate_feature_enabled = false;
     settings->check_saved = false;
     settings->datetime_filenames = false;
+    settings->car_model_index = 0;
 }
 
 void protopirate_settings_load(ProtoPirateSettings* settings) {
@@ -134,6 +135,13 @@ void protopirate_settings_load(ProtoPirateSettings* settings) {
         }
         settings->datetime_filenames = (datetime_filenames_temp == 1);
 
+        // Read Selected Car Model
+        uint32_t car_model_index_temp = 0;
+        if(!flipper_format_read_uint32(ff, "CarModelIndex", &car_model_index_temp, 1)) {
+            car_model_index_temp = 0;
+        }
+        settings->car_model_index = car_model_index_temp;
+
         FURI_LOG_I(
             TAG,
             "Settings loaded: freq=%lu, preset=%u, auto_save=%d, hopping=%d, emulate=%d, check_saved=%d, sound = %d",
@@ -225,6 +233,11 @@ void protopirate_settings_save(ProtoPirateSettings* settings) {
         uint32_t datetime_filenames_temp = settings->datetime_filenames ? 1 : 0;
         if(!flipper_format_write_uint32(ff, "DateTimeFilenames", &datetime_filenames_temp, 1)) {
             FURI_LOG_E(TAG, "Failed to write Date Time Filenames");
+        }
+        uint32_t car_model_index_temp = settings->car_model_index;
+        if(!flipper_format_write_uint32(ff, "CarModelIndex", &car_model_index_temp, 1)) {
+            FURI_LOG_E(TAG, "Failed to write car model");
+
             break;
         }
         write_ok = true;
@@ -239,7 +252,6 @@ void protopirate_settings_save(ProtoPirateSettings* settings) {
             settings->emulate_feature_enabled,
             settings->check_saved,
             settings->sound);
-
     } while(false);
 
     flipper_format_free(ff);
