@@ -37,6 +37,9 @@ outside the MVP.
 
 ## Flipper menu
 
+- **Test Connection** — sends a PING and waits for PONG
+- **Get Sample Text** — fetches and displays a short message
+- **Get Date and Time** — retrieves a short UTC response
 - **Toolbox**
   - **Search Wikipedia** — displays a short English Wikipedia result
   - **Weather** — searches Open-Meteo locations and shows the current forecast
@@ -46,9 +49,6 @@ outside the MVP.
   - **Markets** — searches any Binance Spot coin with a USDT pair, shows gold and
     silver in USD per troy ounce, and gets Brent BZ/USDT from Binance Futures.
     Open price cards refresh silently every two seconds.
-- **Test Connection** — sends a PING and waits for PONG
-- **Get Sample Text** — fetches and displays a short message
-- **Get Date and Time** — retrieves a short UTC response
 - **Custom URL Request** — accepts an HTTPS URL up to 384 bytes
 - **Connection Info** — shows USB, helper, permission, device, and protocol state
 

@@ -1641,13 +1641,13 @@ static FibApp* fib_app_alloc(void) {
         fib_app_market_selected,
         app);
     view_set_previous_callback(submenu_get_view(app->markets), fib_app_back_to_toolbox);
-    submenu_add_item(app->menu, "Toolbox", FibMenuToolbox, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Test Connection", FibMenuTestConnection, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Get Sample Text", FibMenuDownloadSample, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Get Date and Time", FibMenuGetDateTime, fib_app_menu_selected, app);
+    submenu_add_item(app->menu, "Toolbox", FibMenuToolbox, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Custom URL Request", FibMenuCustomUrl, fib_app_menu_selected, app);
     submenu_add_item(
