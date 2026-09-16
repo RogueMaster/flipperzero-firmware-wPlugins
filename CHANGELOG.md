@@ -1,12 +1,14 @@
 ## v0.4.0 (unreleased)
 
+- Grouped Wikipedia, Weather, National Today, ISS, Internet Radio, and Markets
+  inside a dedicated Toolbox menu with consistent Back navigation.
 - Added symbol search for Binance Spot coins with USDT pairs and silent,
   near-live price-card refreshes.
 - Fixed automatic refresh being postponed by repeated rendering of the same
   response; Markets now refreshes every two seconds while its card is open.
 - Replaced the WTI and external Brent feeds with Binance Futures BZUSDT.
 - Added silver pricing and a compact Markets price card; placed Markets directly
-  below Internet Radio in the main menu.
+  below Internet Radio in Toolbox.
 - Kept the price card text clear of the Refresh button area.
 - Added Brent crude oil pricing to Markets.
 - Fixed Back navigation while Markets waits for connection permission.

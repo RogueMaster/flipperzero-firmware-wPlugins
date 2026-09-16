@@ -37,17 +37,18 @@ outside the MVP.
 
 ## Flipper menu
 
+- **Toolbox**
+  - **Search Wikipedia** — displays a short English Wikipedia result
+  - **Weather** — searches Open-Meteo locations and shows the current forecast
+  - **National Today** — displays the daily National Today description
+  - **Where is the ISS?** — shows current coordinates, altitude, speed, and visibility
+  - **Internet Radio** — finds MP3 stations by country and plays them on the Flipper speaker
+  - **Markets** — searches any Binance Spot coin with a USDT pair, shows gold and
+    silver in USD per troy ounce, and gets Brent BZ/USDT from Binance Futures.
+    Open price cards refresh silently every two seconds.
 - **Test Connection** — sends a PING and waits for PONG
 - **Get Sample Text** — fetches and displays a short message
 - **Get Date and Time** — retrieves a short UTC response
-- **Search Wikipedia** — displays a short English Wikipedia result
-- **Weather** — searches Open-Meteo locations and shows the current forecast
-- **National Today** — displays the daily National Today description
-- **Where is the ISS?** — shows current coordinates, altitude, speed, and visibility
-- **Internet Radio** — finds MP3 stations by country and plays them on the Flipper speaker
-- **Markets** — searches any Binance Spot coin with a USDT pair, shows gold and
-  silver in USD per troy ounce, and gets Brent BZ/USDT from Binance Futures.
-  Open price cards refresh silently every 15 seconds.
 - **Custom URL Request** — accepts an HTTPS URL up to 384 bytes
 - **Connection Info** — shows USB, helper, permission, device, and protocol state
 

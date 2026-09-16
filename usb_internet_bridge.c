@@ -42,6 +42,7 @@
 
 typedef enum {
     FibViewMenu,
+    FibViewToolbox,
     FibViewMarkets,
     FibViewStatus,
     FibViewUrlInput,
@@ -50,18 +51,22 @@ typedef enum {
 } FibView;
 
 typedef enum {
+    FibMenuToolbox,
     FibMenuTestConnection,
-    FibMenuMarkets,
     FibMenuDownloadSample,
     FibMenuGetDateTime,
-    FibMenuInformationSearch,
-    FibMenuWeather,
-    FibMenuNationalToday,
-    FibMenuIssLocation,
-    FibMenuInternetRadio,
     FibMenuCustomUrl,
     FibMenuConnectionInfo,
 } FibMenuItem;
+
+typedef enum {
+    FibToolboxInformationSearch,
+    FibToolboxWeather,
+    FibToolboxNationalToday,
+    FibToolboxIssLocation,
+    FibToolboxInternetRadio,
+    FibToolboxMarkets,
+} FibToolboxItem;
 
 typedef enum {
     FibCustomEventSessionUpdated = 1U,
@@ -110,6 +115,7 @@ typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     Submenu* menu;
+    Submenu* toolbox;
     Submenu* markets;
     unsigned market_index;
     Submenu* weather_results;
@@ -130,6 +136,7 @@ typedef struct {
     uint32_t market_last_refresh_tick;
     uint32_t market_last_response_id;
     FibView current_view;
+    FibView navigation_root;
     bool showing_connection_info;
     FibRequestMode request_mode;
     FibWeatherLocation locations[FIB_WEATHER_RESULT_LIMIT];
@@ -152,6 +159,7 @@ static FibApp* fib_app_active = NULL;
 
 static void fib_app_url_submitted(void* context);
 static void fib_app_menu_selected(void* context, uint32_t index);
+static void fib_app_toolbox_selected(void* context, uint32_t index);
 static void fib_app_weather_selected(void* context, uint32_t index);
 static void fib_app_radio_selected(void* context, uint32_t index);
 static void fib_app_continue_pending_action(FibApp* app, FibPendingAction action);
@@ -1166,9 +1174,10 @@ static void fib_app_tick(void* context) {
     }
 }
 
-static uint32_t fib_app_back_to_menu(void* context) {
+static uint32_t fib_app_back_to_root(void* context) {
     UNUSED(context);
     FibApp* app = fib_app_active;
+    FibView destination = FibViewMenu;
     if(app) {
         fib_app_stop_radio(app);
         if(app->request_mode == FibRequestModeRadioStopped) {
@@ -1176,9 +1185,26 @@ static uint32_t fib_app_back_to_menu(void* context) {
         }
         app->pending_action = FibPendingActionNone;
         app->request_waiting_for_ready = false;
-        app->current_view = FibViewMenu;
+        destination = app->navigation_root == FibViewToolbox ?
+                          FibViewToolbox :
+                          FibViewMenu;
+        app->current_view = destination;
     }
-    return FibViewMenu;
+    return destination;
+}
+
+static uint32_t fib_app_back_to_menu(void* context) {
+    UNUSED(context);
+    FibApp* app = fib_app_active;
+    if(app) app->navigation_root = FibViewMenu;
+    return fib_app_back_to_root(NULL);
+}
+
+static uint32_t fib_app_back_to_toolbox(void* context) {
+    UNUSED(context);
+    FibApp* app = fib_app_active;
+    if(app) app->navigation_root = FibViewToolbox;
+    return fib_app_back_to_root(NULL);
 }
 
 static uint32_t fib_app_back_from_status(void* context) {
@@ -1196,9 +1222,10 @@ static uint32_t fib_app_back_from_status(void* context) {
                app->request_mode == FibRequestModeRadioStopped)) {
         fib_app_stop_radio(app);
         app->request_mode = FibRequestModeRadioSearch;
+        app->current_view = FibViewRadioStations;
         return FibViewRadioStations;
     }
-    return fib_app_back_to_menu(context);
+    return fib_app_back_to_root(context);
 }
 
 static uint32_t fib_app_back_from_input(void* context) {
@@ -1209,7 +1236,7 @@ static uint32_t fib_app_back_from_input(void* context) {
         app->current_view = FibViewMarkets;
         return FibViewMarkets;
     }
-    return fib_app_back_to_menu(context);
+    return fib_app_back_to_root(context);
 }
 
 static void fib_app_status_exited(void* context) {
@@ -1507,9 +1534,12 @@ static void fib_app_menu_selected(void* context, uint32_t index) {
     FibApp* app = context;
     if(!app) return;
 
+    app->navigation_root = FibViewMenu;
     switch(index) {
-    case FibMenuMarkets:
-        fib_app_start_when_ready(app, FibPendingActionMarkets, FibRequestModeMarkets);
+    case FibMenuToolbox:
+        app->navigation_root = FibViewToolbox;
+        app->current_view = FibViewToolbox;
+        view_dispatcher_switch_to_view(app->view_dispatcher, FibViewToolbox);
         break;
     case FibMenuTestConnection:
         app->request_mode = FibRequestModeNormal;
@@ -1524,26 +1554,6 @@ static void fib_app_menu_selected(void* context, uint32_t index) {
         fib_app_start_when_ready(
             app, FibPendingActionDateTime, FibRequestModeNormal);
         break;
-    case FibMenuInformationSearch:
-        fib_app_start_when_ready(
-            app, FibPendingActionWikipediaInput, FibRequestModeWikipedia);
-        break;
-    case FibMenuWeather:
-        fib_app_start_when_ready(
-            app, FibPendingActionWeatherInput, FibRequestModeWeatherSearch);
-        break;
-    case FibMenuNationalToday:
-        fib_app_start_when_ready(
-            app, FibPendingActionNationalToday, FibRequestModeNationalToday);
-        break;
-    case FibMenuIssLocation:
-        fib_app_start_when_ready(
-            app, FibPendingActionIssLocation, FibRequestModeIssLocation);
-        break;
-    case FibMenuInternetRadio:
-        fib_app_start_when_ready(
-            app, FibPendingActionRadioCountryInput, FibRequestModeRadioSearch);
-        break;
     case FibMenuCustomUrl:
         fib_app_start_when_ready(
             app, FibPendingActionCustomUrlInput, FibRequestModeNormal);
@@ -1551,6 +1561,40 @@ static void fib_app_menu_selected(void* context, uint32_t index) {
     case FibMenuConnectionInfo:
         app->request_mode = FibRequestModeNormal;
         fib_app_show_status(app, true);
+        break;
+    default:
+        break;
+    }
+}
+
+static void fib_app_toolbox_selected(void* context, uint32_t index) {
+    FibApp* app = context;
+    if(!app) return;
+
+    app->navigation_root = FibViewToolbox;
+    switch(index) {
+    case FibToolboxInformationSearch:
+        fib_app_start_when_ready(
+            app, FibPendingActionWikipediaInput, FibRequestModeWikipedia);
+        break;
+    case FibToolboxWeather:
+        fib_app_start_when_ready(
+            app, FibPendingActionWeatherInput, FibRequestModeWeatherSearch);
+        break;
+    case FibToolboxNationalToday:
+        fib_app_start_when_ready(
+            app, FibPendingActionNationalToday, FibRequestModeNationalToday);
+        break;
+    case FibToolboxIssLocation:
+        fib_app_start_when_ready(
+            app, FibPendingActionIssLocation, FibRequestModeIssLocation);
+        break;
+    case FibToolboxInternetRadio:
+        fib_app_start_when_ready(
+            app, FibPendingActionRadioCountryInput, FibRequestModeRadioSearch);
+        break;
+    case FibToolboxMarkets:
+        fib_app_start_when_ready(app, FibPendingActionMarkets, FibRequestModeMarkets);
         break;
     default:
         break;
@@ -1566,14 +1610,15 @@ static FibApp* fib_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
     app->menu = submenu_alloc();
+    app->toolbox = submenu_alloc();
     app->markets = submenu_alloc();
     app->weather_results = submenu_alloc();
     app->radio_stations = submenu_alloc();
     app->status_widget = widget_alloc();
     app->url_input = text_input_alloc();
     app->status_text = furi_string_alloc();
-    if(!app->gui || !app->view_dispatcher || !app->menu || !app->markets || !app->weather_results ||
-       !app->radio_stations || !app->status_widget ||
+    if(!app->gui || !app->view_dispatcher || !app->menu || !app->toolbox || !app->markets ||
+       !app->weather_results || !app->radio_stations || !app->status_widget ||
        !app->url_input || !app->status_text) {
         return app;
     }
@@ -1584,6 +1629,7 @@ static FibApp* fib_app_alloc(void) {
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, fib_app_tick, FIB_UI_TICK_MS);
 
     submenu_set_header(app->menu, "USB Internet Bridge");
+    submenu_set_header(app->toolbox, "Toolbox");
     submenu_set_header(app->markets, "Markets");
     for(unsigned i = 0; i < MARKETS_COUNT; ++i) {
         submenu_add_item(app->markets, markets_name(i), i, fib_app_market_selected, app);
@@ -1594,7 +1640,8 @@ static FibApp* fib_app_alloc(void) {
         MARKETS_SEARCH_INDEX,
         fib_app_market_selected,
         app);
-    view_set_previous_callback(submenu_get_view(app->markets), fib_app_back_to_menu);
+    view_set_previous_callback(submenu_get_view(app->markets), fib_app_back_to_toolbox);
+    submenu_add_item(app->menu, "Toolbox", FibMenuToolbox, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Test Connection", FibMenuTestConnection, fib_app_menu_selected, app);
     submenu_add_item(
@@ -1602,26 +1649,41 @@ static FibApp* fib_app_alloc(void) {
     submenu_add_item(
         app->menu, "Get Date and Time", FibMenuGetDateTime, fib_app_menu_selected, app);
     submenu_add_item(
-        app->menu,
-        "Search Wikipedia",
-        FibMenuInformationSearch,
-        fib_app_menu_selected,
-        app);
-    submenu_add_item(app->menu, "Weather", FibMenuWeather, fib_app_menu_selected, app);
-    submenu_add_item(
-        app->menu, "National Today", FibMenuNationalToday, fib_app_menu_selected, app);
-    submenu_add_item(
-        app->menu, "Where is the ISS?", FibMenuIssLocation, fib_app_menu_selected, app);
-    submenu_add_item(
-        app->menu, "Internet Radio", FibMenuInternetRadio, fib_app_menu_selected, app);
-    submenu_add_item(app->menu, "Markets", FibMenuMarkets, fib_app_menu_selected, app);
-    submenu_add_item(
         app->menu, "Custom URL Request", FibMenuCustomUrl, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Connection Info", FibMenuConnectionInfo, fib_app_menu_selected, app);
+    submenu_add_item(
+        app->toolbox,
+        "Search Wikipedia",
+        FibToolboxInformationSearch,
+        fib_app_toolbox_selected,
+        app);
+    submenu_add_item(
+        app->toolbox, "Weather", FibToolboxWeather, fib_app_toolbox_selected, app);
+    submenu_add_item(
+        app->toolbox,
+        "National Today",
+        FibToolboxNationalToday,
+        fib_app_toolbox_selected,
+        app);
+    submenu_add_item(
+        app->toolbox,
+        "Where is the ISS?",
+        FibToolboxIssLocation,
+        fib_app_toolbox_selected,
+        app);
+    submenu_add_item(
+        app->toolbox,
+        "Internet Radio",
+        FibToolboxInternetRadio,
+        fib_app_toolbox_selected,
+        app);
+    submenu_add_item(
+        app->toolbox, "Markets", FibToolboxMarkets, fib_app_toolbox_selected, app);
     view_set_previous_callback(submenu_get_view(app->menu), fib_app_exit);
-    view_set_previous_callback(submenu_get_view(app->weather_results), fib_app_back_to_menu);
-    view_set_previous_callback(submenu_get_view(app->radio_stations), fib_app_back_to_menu);
+    view_set_previous_callback(submenu_get_view(app->toolbox), fib_app_back_to_menu);
+    view_set_previous_callback(submenu_get_view(app->weather_results), fib_app_back_to_toolbox);
+    view_set_previous_callback(submenu_get_view(app->radio_stations), fib_app_back_to_toolbox);
     view_set_previous_callback(widget_get_view(app->status_widget), fib_app_back_from_status);
     view_set_exit_callback(widget_get_view(app->status_widget), fib_app_status_exited);
 
@@ -1639,6 +1701,8 @@ static FibApp* fib_app_alloc(void) {
     view_set_previous_callback(text_input_get_view(app->url_input), fib_app_back_from_input);
 
     view_dispatcher_add_view(app->view_dispatcher, FibViewMenu, submenu_get_view(app->menu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, FibViewToolbox, submenu_get_view(app->toolbox));
     view_dispatcher_add_view(app->view_dispatcher, FibViewMarkets, submenu_get_view(app->markets));
     view_dispatcher_add_view(
         app->view_dispatcher, FibViewStatus, widget_get_view(app->status_widget));
@@ -1656,12 +1720,13 @@ static FibApp* fib_app_alloc(void) {
     if(!app->radio_player) return app;
     bridge_session_start(app->session);
     app->current_view = FibViewMenu;
+    app->navigation_root = FibViewMenu;
     return app;
 }
 
 static bool fib_app_is_complete(const FibApp* app) {
-    return app && app->gui && app->view_dispatcher && app->menu && app->markets && app->status_widget &&
-           app->weather_results && app->radio_stations && app->url_input &&
+    return app && app->gui && app->view_dispatcher && app->menu && app->toolbox && app->markets &&
+           app->status_widget && app->weather_results && app->radio_stations && app->url_input &&
            app->status_text && app->session && app->radio_player;
 }
 
@@ -1674,6 +1739,7 @@ static void fib_app_free(FibApp* app) {
     if(app->view_dispatcher) {
         if(app->views_added) {
             view_dispatcher_remove_view(app->view_dispatcher, FibViewMenu);
+            view_dispatcher_remove_view(app->view_dispatcher, FibViewToolbox);
             view_dispatcher_remove_view(app->view_dispatcher, FibViewMarkets);
             view_dispatcher_remove_view(app->view_dispatcher, FibViewStatus);
             view_dispatcher_remove_view(app->view_dispatcher, FibViewUrlInput);
@@ -1687,6 +1753,7 @@ static void fib_app_free(FibApp* app) {
     if(app->radio_stations) submenu_free(app->radio_stations);
     if(app->status_widget) widget_free(app->status_widget);
     if(app->menu) submenu_free(app->menu);
+    if(app->toolbox) submenu_free(app->toolbox);
     if(app->markets) submenu_free(app->markets);
     if(app->status_text) furi_string_free(app->status_text);
     if(app->gui) furi_record_close(RECORD_GUI);
