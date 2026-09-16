@@ -127,8 +127,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FlipDeFlock v0.97 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Flipcraft v2.8 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Updated: [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
-- Updated: [ProtoPirate v3.3 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Mystic Balloon v3.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
+- Updated: [ProtoPirate v3.3 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 
