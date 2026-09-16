@@ -13,11 +13,14 @@ Unreleased:
 - Left-aligned multi-line tag memory data and added a right-side scrollbar for content longer than three rows.
 - Separated the Access Keys cursor from the active slot: Up/Down browse, center selects, and Right edits, with an aligned radio marker on the active slot.
 - Added a timed two-press Back confirmation popup before exiting from the main menu.
+- Added an EPC Display setting with HEX and ASCII modes for Tag Inventory.
+- Added an ASCII EPC tool for capturing one tag, editing up to 12 ASCII characters, and writing a verified 96-bit EPC.
 - Added wraparound main-menu navigation across each two-item row and between the top and bottom rows.
 - Hid the Tag Control Erase button while the read-only TID bank is selected.
 - Added an Access Key submenu for setting a key from zero or restoring the tag password to zero after banks are unlocked.
 - Clarified Access Key actions with explicit `00000000` labels and shortened the reset warning to fit the display.
 - Removed the crowded Access Key warning line and changed reset-to-zero into a long-press action.
+- Inverted the Back-again-to-exit confirmation dialog to a black border, white background, and black text.
 
 v1.3:
 
