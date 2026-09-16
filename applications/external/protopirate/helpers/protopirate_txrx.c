@@ -133,6 +133,13 @@ uint32_t protopirate_rx(ProtoPirateApp* app, uint32_t frequency) {
     subghz_devices_idle(app->txrx->radio_device);
     uint32_t value = subghz_devices_set_frequency(app->txrx->radio_device, frequency);
     subghz_devices_flush_rx(app->txrx->radio_device);
+
+    //Enable the Speaker so I can hear the keys.
+    if(app->sound) {
+        if(furi_hal_speaker_is_mine() || furi_hal_speaker_acquire(1000)) {
+            app->txrx->radio_device->interconnect->set_async_mirror_pin(&gpio_speaker);
+        }
+    }
     subghz_devices_set_rx(app->txrx->radio_device);
 
     subghz_devices_start_async_rx(
@@ -167,6 +174,13 @@ void protopirate_rx_end(ProtoPirateApp* app) {
     if(app->txrx->radio_device) {
         subghz_devices_stop_async_rx(app->txrx->radio_device);
         subghz_devices_idle(app->txrx->radio_device);
+    }
+
+    if(app->sound) {
+        if(furi_hal_speaker_is_mine()) {
+            subghz_devices_set_async_mirror_pin(app->txrx->radio_device, NULL);
+            furi_hal_speaker_release();
+        }
     }
 
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;

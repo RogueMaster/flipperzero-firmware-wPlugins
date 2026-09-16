@@ -493,6 +493,12 @@ static bool protopirate_scene_sub_decode_open_browser_for_next_file(ProtoPirateA
     return true;
 }
 
+static void protopirate_scene_sub_decode_text_input_callback(void* context) {
+    ProtoPirateApp* app = context;
+    view_dispatcher_send_custom_event(
+        app->view_dispatcher, ProtoPirateCustomEventSubDecodeSaveConfirm);
+}
+
 void protopirate_scene_sub_decode_on_enter(void* context) {
     ProtoPirateApp* app = context;
 
@@ -621,20 +627,81 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 protopirate_history_get_raw_data(ctx->history, ctx->selected_history_index);
 
             if(ff) {
+                FuriString* file_name_str = furi_string_alloc();
+                if(app->datetime_filenames) {
+                    //Get the date and time to save.
+                    DateTime date_time;
+                    furi_hal_rtc_get_datetime(&date_time);
+                    furi_string_printf(
+                        file_name_str,
+                        "%.2d%.2d%.2d_%.2d.%.2d.%.2d_",
+                        date_time.year,
+                        date_time.month,
+                        date_time.day,
+                        date_time.hour,
+                        date_time.minute,
+                        date_time.second);
+                }
+
                 // Extract protocol name
                 FuriString* protocol = furi_string_alloc();
                 protopirate_storage_get_capture_display_protocol(ff, protocol);
 
-                FuriString* saved_path = furi_string_alloc();
-                if(protopirate_storage_save_capture(
-                       ff, furi_string_get_cstr(protocol), saved_path)) {
-                    notification_message(app->notifications, &sequence_success);
-                } else {
-                    notification_message(app->notifications, &sequence_error);
-                }
-
+                //Add the protocol
+                furi_string_cat(file_name_str, protocol);
                 furi_string_free(protocol);
-                furi_string_free(saved_path);
+
+                // Clean protocol name for filename
+                furi_string_replace_all(file_name_str, "/", "_");
+                furi_string_replace_all(file_name_str, " ", "_");
+
+                // Get the next auto-generated filename (just the name part)
+                FuriString* auto_path = furi_string_alloc();
+                if(protopirate_storage_get_next_filename(
+                       furi_string_get_cstr(file_name_str), auto_path, app->datetime_filenames)) {
+                    // Extract just the filename without folder and extension
+                    const char* full = furi_string_get_cstr(auto_path);
+                    const char* slash = strrchr(full, '/');
+                    const char* name_start = slash ? slash + 1 : full;
+
+                    // Copy without extension
+                    size_t name_len = strlen(name_start);
+                    const char* dot = strrchr(name_start, '.');
+                    if(dot) name_len = dot - name_start;
+                    if(name_len >= sizeof(app->save_filename))
+                        name_len = sizeof(app->save_filename) - 1;
+
+                    memcpy(app->save_filename, name_start, name_len);
+                    app->save_filename[name_len] = '\0';
+                } else {
+                    snprintf(app->save_filename, sizeof(app->save_filename), "capture");
+                }
+                furi_string_free(auto_path);
+
+                // Store context for when text input confirms
+                app->save_history_idx = app->txrx->idx_menu_chosen;
+                app->save_from_saved_info = false;
+
+                //Make sure we have a text input window.
+                app->text_input = text_input_alloc();
+                view_dispatcher_add_view(
+                    app->view_dispatcher,
+                    ProtoPirateViewTextInput,
+                    text_input_get_view(app->text_input));
+
+                // Configure and show text input
+                text_input_reset(app->text_input);
+                text_input_set_header_text(app->text_input, "Save filename:");
+                text_input_set_result_callback(
+                    app->text_input,
+                    protopirate_scene_sub_decode_text_input_callback,
+                    app,
+                    app->save_filename,
+                    sizeof(app->save_filename),
+                    false); // don't clear default text
+
+                view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewTextInput);
+                furi_string_free(file_name_str);
             } else {
                 FURI_LOG_E(
                     TAG,
@@ -643,6 +710,40 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 notification_message(app->notifications, &sequence_error);
             }
             consumed = true;
+        } else if(event.event == ProtoPirateCustomEventSubDecodeSaveConfirm) {
+            // User confirmed the filename in text input
+            FlipperFormat* ff =
+                protopirate_history_get_raw_data(app->txrx->history, app->save_history_idx);
+            if(ff) {
+                // Build full path: folder/filename.psf
+                FuriString* save_path = furi_string_alloc_printf(
+                    "%s/%s%s",
+                    PROTOPIRATE_APP_FOLDER,
+                    app->save_filename,
+                    PROTOPIRATE_APP_EXTENSION);
+
+                if(protopirate_storage_save_capture_to_path(ff, furi_string_get_cstr(save_path))) {
+                    notification_message(app->notifications, &sequence_success);
+                    FURI_LOG_I(TAG, "Saved to: %s", furi_string_get_cstr(save_path));
+                } else {
+                    notification_message(app->notifications, &sequence_error);
+                    FURI_LOG_E(TAG, "Save failed");
+                }
+                furi_string_free(save_path);
+            }
+
+            // Return to the receiver info widget
+            view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
+
+            //Kill the text_input view.
+            if(app->text_input) {
+                FURI_LOG_D(TAG, "Removing text_input view");
+                view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewTextInput);
+                text_input_free(app->text_input);
+                app->text_input = NULL;
+            }
+            consumed = true;
+
         }
 #ifdef ENABLE_EMULATE_FEATURE
         else if(
@@ -678,7 +779,6 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
             }
             consumed = true;
             return consumed;
-
         } else if(event.event == ProtoPirateCustomEventPsaBruteforceComplete) {
             app->txrx->idx_menu_chosen = ctx->selected_history_index;
             if(app->psa_bf_plugin) {
@@ -689,7 +789,6 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 app->view_dispatcher, ProtoPirateCustomEventSubDecodeUpdate);
             consumed = true;
             return consumed;
-
         } else if(event.event == ProtoPirateCustomEventViewReceiverOK) {
             // User selected a signal from history - show signal info
             uint16_t idx = protopirate_view_receiver_get_idx_menu(app->protopirate_receiver);

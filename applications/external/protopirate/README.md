@@ -52,7 +52,7 @@ Protocols are split into **AM** and **FM** registries. The active registry is ch
 | Ford V1                       | ✅       | ✅       | Manchester      | F4         | Rolling Code                 | CRC16      | 315.00 / 433.92 |
 | Ford V2                       | ✅       | ✅       | Manchester      | F4         | Rolling Code (simple replay) | ❌          | 434.25          |
 | Ford V3                       | ✅       | ❌       | Manchester      | F4         | Rolling Code                 | ❌          | 434.25          |
-| Honda Static                  | ✅       | ✅       | PWM             | Honda1     | Static Code                  | Checksum   | 315.00 / 433.92 |
+| Honda Static                  | ✅       | ✅       | PWM             | Honda1     | Static Code                  | Checksum   | 433.65 |
 | Kia V0 / Suzuki V0 / Honda V0 / Mitsubishi V0 | ✅       | ✅       | PWM             | FM476      | Rolling Code                 | CRC8       | 315.00 / 433.92 |
 | Kia V2                        | ✅       | ✅       | Manchester      | FM476      | Rolling Code                 | CRC4       | 315.00 / 433.92 |
 | Kia V3 / V4                   | ✅       | ✅       | PWM             | FM476      | KeeLoq                       | CRC4 (BF)  | 315.00 / 433.92 |

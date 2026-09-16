@@ -65,6 +65,8 @@ struct SubGhzProtocolDecoderRenaultV1 {
     uint64_t last_data;
     uint64_t last_data_2;
     bool last_frame_valid;
+    uint32_t seed;
+    uint64_t data_2;
 };
 
 #if PROTOPIRATE_WITH_ENCODER
@@ -74,6 +76,8 @@ struct SubGhzProtocolEncoderRenaultV1 {
     SubGhzProtocolBlockEncoder encoder;
     SubGhzBlockGeneric generic;
 
+    uint32_t seed;
+    uint64_t data_2;
     uint8_t recovered;
     uint8_t hitag2_key[6];
     uint8_t tail_bits;
@@ -637,9 +641,9 @@ static void hitag2_apply_check_remote(
 static void renault_v1_check_remote_controller(SubGhzProtocolDecoderRenaultV1* instance) {
     hitag2_apply_check_remote(
         instance->generic.data,
-        instance->generic.data_2,
+        instance->data_2,
         instance->recovered,
-        instance->generic.seed,
+        instance->seed,
         &instance->generic.serial,
         &instance->generic.btn,
         &instance->generic.cnt,
@@ -669,7 +673,7 @@ static bool hitag2_encoder_next_frame(
     uint32_t hop = hitag2_authenticator(uid, tx_btn, cnt10, instance->hitag2_key);
 
     hitag2_pack_auth_frame(uid, tx_btn, cnt10, hop, tail, raw);
-    hitag2_apply_raw(raw, &instance->generic.data, &instance->generic.data_2);
+    hitag2_apply_raw(raw, &instance->generic.data, &instance->data_2);
     instance->generic.serial = uid;
     instance->generic.btn = tx_btn;
     instance->generic.cnt = cnt10;
@@ -767,7 +771,7 @@ static bool renault_v1_encoder_get_upload(SubGhzProtocolEncoderRenaultV1* instan
     size_t index = 0;
     LevelDuration* upload = instance->encoder.upload;
     const uint64_t key = instance->generic.data;
-    const uint64_t key_2 = instance->generic.data_2 & 0xFFFFFFULL;
+    const uint64_t key_2 = instance->data_2 & 0xFFFFFFULL;
 
     for(size_t i = 0; i < HITAG2_PREAMBLE_PAIRS; i++) {
         if(!hitag2_encoder_add_level(upload, &index, true, HITAG2_TE_US)) return false;
@@ -814,10 +818,9 @@ SubGhzProtocolStatus
             ret = SubGhzProtocolStatusErrorParserOthers;
             break;
         }
-        instance->generic.data_2 = hitag2_bytes_to_u64_be(key2, sizeof(key2));
+        instance->data_2 = hitag2_bytes_to_u64_be(key2, sizeof(key2));
 
-        hitag2_read_recovered_and_seed(
-            flipper_format, &instance->recovered, &instance->generic.seed);
+        hitag2_read_recovered_and_seed(flipper_format, &instance->recovered, &instance->seed);
 
         if(!flipper_format_rewind(flipper_format)) {
             ret = SubGhzProtocolStatusErrorParserOthers;
@@ -831,7 +834,7 @@ SubGhzProtocolStatus
         uint16_t wire_cnt10 = 0;
         hitag2_unpack_frame(
             instance->generic.data,
-            instance->generic.data_2,
+            instance->data_2,
             &wire_serial,
             &wire_btn,
             &wire_cnt10,
@@ -839,9 +842,9 @@ SubGhzProtocolStatus
             &tail);
         hitag2_apply_check_remote(
             instance->generic.data,
-            instance->generic.data_2,
+            instance->data_2,
             instance->recovered,
-            instance->generic.seed,
+            instance->seed,
             &instance->generic.serial,
             &instance->generic.btn,
             &instance->generic.cnt,
@@ -886,14 +889,13 @@ SubGhzProtocolStatus
                 instance->generic.serial,
                 instance->generic.cnt,
                 instance->generic.btn,
-                instance->generic.seed,
+                instance->seed,
                 out,
                 iv);
             instance->generic.data = hitag2_bytes_to_u64_be(out, 8);
-            instance->generic.data_2 = ((uint64_t)out[8] << 16U) | ((uint64_t)out[9] << 8U) |
-                                       out[10];
-            instance->generic.seed = ((uint32_t)iv[0] << 24U) | ((uint32_t)iv[1] << 16U) |
-                                     ((uint32_t)iv[2] << 8U) | iv[3];
+            instance->data_2 = ((uint64_t)out[8] << 16U) | ((uint64_t)out[9] << 8U) | out[10];
+            instance->seed = ((uint32_t)iv[0] << 24U) | ((uint32_t)iv[1] << 16U) |
+                             ((uint32_t)iv[2] << 8U) | iv[3];
         } else if(!instance->hitag2_key_valid && instance->recovered != HITAG2_RECOVERED_YES) {
             ret = SubGhzProtocolStatusErrorParserOthers;
             break;
@@ -917,7 +919,7 @@ SubGhzProtocolStatus
             ret = SubGhzProtocolStatusErrorParserOthers;
             break;
         }
-        hitag2_u64_to_bytes_be(instance->generic.data_2, key_data, 8);
+        hitag2_u64_to_bytes_be(instance->data_2, key_data, 8);
         if(!flipper_format_insert_or_update_hex(
                flipper_format, "Key_2", key_data, sizeof(key_data))) {
             ret = SubGhzProtocolStatusErrorParserOthers;
@@ -930,7 +932,7 @@ SubGhzProtocolStatus
                 ret = SubGhzProtocolStatusErrorParserOthers;
                 break;
             }
-            if(!hitag2_write_hex_be(flipper_format, "Seed", instance->generic.seed, 4)) {
+            if(!hitag2_write_hex_be(flipper_format, "Seed", instance->seed, 4)) {
                 ret = SubGhzProtocolStatusErrorParserOthers;
                 break;
             }
@@ -939,7 +941,7 @@ SubGhzProtocolStatus
         {
             uint32_t hop = 0;
             hitag2_unpack_frame(
-                instance->generic.data, instance->generic.data_2, NULL, NULL, NULL, &hop, NULL);
+                instance->generic.data, instance->data_2, NULL, NULL, NULL, &hop, NULL);
             hitag2_write_named_fields(
                 flipper_format,
                 instance->generic.serial,
@@ -1024,14 +1026,14 @@ static bool hitag2_accept_frame(SubGhzProtocolDecoderRenaultV1* instance, uint64
         return false;
     }
 
-    instance->generic.data_2 = key_2;
+    instance->data_2 = key_2;
     instance->generic.data_count_bit = HITAG2_MIN_COUNT_BIT;
     instance->recovered = 0;
-    instance->generic.seed = 0;
+    instance->seed = 0;
     uint16_t cnt10 = 0;
     hitag2_unpack_frame(
         instance->generic.data,
-        instance->generic.data_2,
+        instance->data_2,
         &instance->generic.serial,
         &instance->generic.btn,
         &cnt10,
@@ -1180,26 +1182,26 @@ SubGhzProtocolStatus subghz_protocol_decoder_renault_v1_serialize(
     const uint32_t serial = instance->generic.serial;
     const uint8_t btn = instance->generic.btn;
     const uint32_t cnt = instance->generic.cnt;
-    const uint32_t seed = instance->generic.seed;
-    const uint64_t data_2 = instance->generic.data_2;
+    const uint32_t seed = instance->seed;
+    const uint64_t data_2 = instance->data_2;
     instance->generic.serial = 0;
     instance->generic.btn = 0;
     instance->generic.cnt = 0;
-    instance->generic.seed = 0;
-    instance->generic.data_2 = 0;
+    instance->seed = 0;
+    instance->data_2 = 0;
     SubGhzProtocolStatus ret =
         subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
     instance->generic.serial = serial;
     instance->generic.btn = btn;
     instance->generic.cnt = cnt;
-    instance->generic.seed = seed;
-    instance->generic.data_2 = data_2;
+    instance->seed = seed;
+    instance->data_2 = data_2;
     if(ret != SubGhzProtocolStatusOk) {
         return ret;
     }
 
     ret = hitag2_write_extra_fields(
-        flipper_format, instance->generic.data_2, instance->recovered, instance->generic.seed);
+        flipper_format, instance->data_2, instance->recovered, instance->seed);
     if(ret != SubGhzProtocolStatusOk) {
         return ret;
     }
@@ -1231,10 +1233,9 @@ SubGhzProtocolStatus
             ret = SubGhzProtocolStatusErrorParserOthers;
             break;
         }
-        instance->generic.data_2 = hitag2_bytes_to_u64_be(key2, sizeof(key2));
+        instance->data_2 = hitag2_bytes_to_u64_be(key2, sizeof(key2));
 
-        hitag2_read_recovered_and_seed(
-            flipper_format, &instance->recovered, &instance->generic.seed);
+        hitag2_read_recovered_and_seed(flipper_format, &instance->recovered, &instance->seed);
 
         renault_v1_check_remote_controller(instance);
         instance->hitag2_key_valid = false;
@@ -1264,7 +1265,7 @@ void subghz_protocol_decoder_renault_v1_get_string(void* context, FuriString* ou
         "%s\r\nK1:%016llX\r\nK2:%06llX Sn:%08lX\r\nBtn:%02X [%s] %db",
         instance->generic.protocol_name,
         (unsigned long long)instance->generic.data,
-        (unsigned long long)(instance->generic.data_2 & 0xFFFFFFULL),
+        (unsigned long long)(instance->data_2 & 0xFFFFFFULL),
         (unsigned long)instance->generic.serial,
         instance->generic.btn,
         hitag2_get_button_name(instance->generic.btn),
@@ -1274,7 +1275,7 @@ void subghz_protocol_decoder_renault_v1_get_string(void* context, FuriString* ou
         furi_string_cat_printf(
             output,
             "\r\nIV:%08lX Cnt:%04lX",
-            (unsigned long)instance->generic.seed,
+            (unsigned long)instance->seed,
             (unsigned long)(instance->generic.cnt & 0xFFFFU));
     } else if(instance->recovered == HITAG2_RECOVERED_BF_MISS) {
         furi_string_cat_printf(output, "\r\nBF not found");

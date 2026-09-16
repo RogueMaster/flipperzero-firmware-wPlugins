@@ -44,6 +44,7 @@ typedef enum {
     ProtoPirateCustomEventSubDecodeEmulate,
     ProtoPirateCustomEventSubDecodeBruteforceStart,
     ProtoPirateCustomEventPsaBruteforceComplete,
+    ProtoPirateCustomEventSubDecodeSaveConfirm,
     // File Browser
     ProtoPirateCustomEventSavedFileSelected,
     // Need saving confirmation

@@ -83,6 +83,8 @@ struct ProtoPirateApp {
     FuriString* loaded_file_path;
     bool auto_save;
     bool check_saved;
+    bool sound;
+    bool datetime_filenames;
     bool radio_initialized;
     uint32_t start_tx_time;
     uint8_t tx_power;

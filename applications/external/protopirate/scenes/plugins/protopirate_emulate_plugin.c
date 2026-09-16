@@ -312,7 +312,7 @@ static const uint8_t tx_power_value[TX_PRESET_VALUES_COUNT] = {
     0x0E, // -20dBm
     0x12, // -30dBm
 
-    // AM Power Values for 1st PA Table Byte.
+    // AM Power Values for 2nd PA Table Byte.
     0xC0, // 12dBm
     0xCD, // 7dBm
     0x86, // 5dBm
@@ -935,7 +935,15 @@ static void emulate_draw_callback(Canvas* canvas, void* model) {
         (ctx->freq % 1000000) / 10000);
     canvas_draw_str(canvas, 2, 30, info_str);
 
-    snprintf(info_str, sizeof(info_str), "CNT:%04lX", (unsigned long)ctx->current_counter);
+    if(ctx->current_counter > 0xFFFF) {
+        snprintf(
+            info_str,
+            sizeof(info_str),
+            "CNT:...%03lX",
+            (unsigned long)ctx->current_counter & 0xFFF);
+    } else {
+        snprintf(info_str, sizeof(info_str), "CNT:%04lX", (unsigned long)ctx->current_counter);
+    }
     canvas_draw_str(canvas, 68, 20, info_str);
 
     if(ctx->current_counter > ctx->original_counter) {

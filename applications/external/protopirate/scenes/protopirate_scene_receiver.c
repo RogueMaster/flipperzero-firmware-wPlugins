@@ -56,8 +56,10 @@ static void protopirate_scene_receiver_callback(
         protopirate_history_add_to_history(app->txrx->history, decoder_base, app->txrx->preset);
 
     if(added) {
-        notification_message(app->notifications, &sequence_semi_success);
-
+        if(!(app->sound))
+            notification_message(app->notifications, &sequence_semi_success);
+        else
+            notification_message(app->notifications, &sequence_single_vibro);
         FURI_LOG_I(
             TAG,
             "Added to history, total items: %u",
@@ -107,19 +109,42 @@ static bool protopirate_scene_receiver_process_auto_save(ProtoPirateApp* app) {
 
     FlipperFormat* ff = protopirate_history_get_raw_data(app->txrx->history, idx);
     if(ff) {
-        FuriString* protocol = furi_string_alloc();
         FuriString* saved_path = furi_string_alloc();
+        FuriString* file_name_str = furi_string_alloc();
 
-        if(protocol && saved_path) {
+        if(saved_path && file_name_str) {
+            if(app->datetime_filenames) {
+                //Get the date and time to save.
+                DateTime date_time;
+                furi_hal_rtc_get_datetime(&date_time);
+                furi_string_printf(
+                    file_name_str,
+                    "%.2d%.2d%.2d_%.2d.%.2d.%.2d_",
+                    date_time.year,
+                    date_time.month,
+                    date_time.day,
+                    date_time.hour,
+                    date_time.minute,
+                    date_time.second);
+            }
+
+            // Extract protocol name
+            FuriString* protocol = furi_string_alloc();
             flipper_format_rewind(ff);
-            if(!flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
+            if(!flipper_format_read_string(ff, "Protocol", protocol)) {
                 furi_string_set_str(protocol, "Unknown");
             }
 
-            furi_string_replace_all(protocol, "/", "_");
-            furi_string_replace_all(protocol, " ", "_");
+            //Add the protocol
+            furi_string_cat(file_name_str, protocol);
+            furi_string_free(protocol);
 
-            if(protopirate_storage_save_capture(ff, furi_string_get_cstr(protocol), saved_path)) {
+            // Clean protocol name for filename
+            furi_string_replace_all(file_name_str, "/", "_");
+            furi_string_replace_all(file_name_str, " ", "_");
+
+            if(protopirate_storage_save_capture(
+                   ff, furi_string_get_cstr(file_name_str), saved_path, app->datetime_filenames)) {
                 FURI_LOG_I(TAG, "Auto-saved: %s", furi_string_get_cstr(saved_path));
                 notification_message(app->notifications, &sequence_double_vibro);
             } else {
@@ -131,8 +156,8 @@ static bool protopirate_scene_receiver_process_auto_save(ProtoPirateApp* app) {
             notification_message(app->notifications, &sequence_error);
         }
 
-        if(protocol) furi_string_free(protocol);
         if(saved_path) furi_string_free(saved_path);
+        if(file_name_str) furi_string_free(file_name_str);
         protopirate_history_release_scratch(app->txrx->history);
     } else {
         FURI_LOG_E(TAG, "Auto-save skipped: history capture unavailable");

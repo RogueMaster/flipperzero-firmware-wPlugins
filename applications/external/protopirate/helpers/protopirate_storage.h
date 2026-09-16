@@ -24,7 +24,8 @@ bool protopirate_storage_commit_temp_file(
 bool protopirate_storage_save_capture(
     FlipperFormat* flipper_format,
     const char* protocol_name,
-    FuriString* out_path);
+    FuriString* out_path,
+    bool datetime_filenames);
 
 // Save a capture to a specific file path (user-chosen name)
 bool protopirate_storage_save_capture_to_path(FlipperFormat* flipper_format, const char* full_path);
@@ -33,7 +34,10 @@ bool protopirate_storage_save_capture_to_path(FlipperFormat* flipper_format, con
 void protopirate_storage_delete_temp(void);
 
 // Get next available filename for a protocol
-bool protopirate_storage_get_next_filename(const char* protocol_name, FuriString* out_filename);
+bool protopirate_storage_get_next_filename(
+    const char* protocol_name,
+    FuriString* out_filename,
+    bool dont_add_zero);
 
 bool protopirate_storage_get_capture_display_protocol(
     FlipperFormat* flipper_format,

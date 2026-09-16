@@ -9,31 +9,26 @@ enum ProtoPirateSettingIndex {
     ProtoPirateSettingIndexTXPower,
 #endif
     ProtoPirateSettingIndexAutoSave,
+    ProtoPirateSettingIndexDateTimeFilenames,
+    ProtoPirateSettingIndexSound,
     ProtoPirateSettingIndexCheckSaved,
     ProtoPirateSettingIndexLock,
 };
 
-#define HOPPING_COUNT 2
-const char* const hopping_text[HOPPING_COUNT] = {
+#define ON_OFF_COUNT 2
+const char* const on_off_text[ON_OFF_COUNT] = {
     "OFF",
     "ON",
 };
 
-const uint32_t hopping_value[HOPPING_COUNT] = {
+const uint32_t hopping_value[ON_OFF_COUNT] = {
     ProtoPirateHopperStateOFF,
     ProtoPirateHopperStateRunning,
 };
 
-#define AUTO_SAVE_COUNT 2
-const char* const auto_save_text[AUTO_SAVE_COUNT] = {
-    "OFF",
-    "ON",
-};
-
-#define CHECK_SAVED_COUNT 2
-const char* const check_saved_text[CHECK_SAVED_COUNT] = {
-    "OFF",
-    "ON",
+const char* const sequence_time_text[ON_OFF_COUNT] = {
+    "Sequential",
+    "Time",
 };
 
 #ifdef ENABLE_EMULATE_FEATURE
@@ -140,7 +135,7 @@ static void protopirate_scene_receiver_config_set_hopping_running(VariableItem* 
     ProtoPirateApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
 
-    variable_item_set_current_value_text(item, hopping_text[index]);
+    variable_item_set_current_value_text(item, on_off_text[index]);
     if(hopping_value[index] == ProtoPirateHopperStateOFF) {
         char text_buf[10] = {0};
         snprintf(
@@ -177,7 +172,15 @@ static void protopirate_scene_receiver_config_set_auto_save(VariableItem* item) 
     uint8_t index = variable_item_get_current_value_index(item);
 
     app->auto_save = (index == 1);
-    variable_item_set_current_value_text(item, auto_save_text[index]);
+    variable_item_set_current_value_text(item, on_off_text[index]);
+}
+
+static void protopirate_scene_receiver_config_set_datetime_filenames(VariableItem* item) {
+    ProtoPirateApp* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+
+    app->datetime_filenames = (index == 1);
+    variable_item_set_current_value_text(item, sequence_time_text[index]);
 }
 
 static void protopirate_scene_receiver_config_set_check_saved(VariableItem* item) {
@@ -185,7 +188,15 @@ static void protopirate_scene_receiver_config_set_check_saved(VariableItem* item
     uint8_t index = variable_item_get_current_value_index(item);
 
     app->check_saved = (index == 1);
-    variable_item_set_current_value_text(item, check_saved_text[index]);
+    variable_item_set_current_value_text(item, on_off_text[index]);
+}
+
+static void protopirate_scene_receiver_config_set_sound(VariableItem* item) {
+    ProtoPirateApp* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+    app->sound = (index == 1);
+
+    variable_item_set_current_value_text(item, on_off_text[index]);
 }
 
 #ifdef ENABLE_EMULATE_FEATURE
@@ -242,13 +253,13 @@ void protopirate_scene_receiver_config_on_enter(void* context) {
     item = variable_item_list_add(
         app->variable_item_list,
         "Hopping:",
-        HOPPING_COUNT,
+        ON_OFF_COUNT,
         protopirate_scene_receiver_config_set_hopping_running,
         app);
     value_index = protopirate_scene_receiver_config_hopper_value_index(
-        app->txrx->hopper_state, hopping_value, HOPPING_COUNT, app);
+        app->txrx->hopper_state, hopping_value, ON_OFF_COUNT, app);
     variable_item_set_current_value_index(item, value_index);
-    variable_item_set_current_value_text(item, hopping_text[value_index]);
+    variable_item_set_current_value_text(item, on_off_text[value_index]);
 
     item = variable_item_list_add(
         app->variable_item_list,
@@ -277,20 +288,41 @@ void protopirate_scene_receiver_config_on_enter(void* context) {
     item = variable_item_list_add(
         app->variable_item_list,
         "Auto-Save:",
-        AUTO_SAVE_COUNT,
+        ON_OFF_COUNT,
         protopirate_scene_receiver_config_set_auto_save,
         app);
     variable_item_set_current_value_index(item, app->auto_save ? 1 : 0);
-    variable_item_set_current_value_text(item, auto_save_text[app->auto_save ? 1 : 0]);
+    variable_item_set_current_value_text(item, on_off_text[app->auto_save ? 1 : 0]);
+
+    // Date/time filenames option
+    item = variable_item_list_add(
+        app->variable_item_list,
+        "Filenames:",
+        2,
+        protopirate_scene_receiver_config_set_datetime_filenames,
+        app);
+    variable_item_set_current_value_index(item, app->datetime_filenames ? 1 : 0);
+    variable_item_set_current_value_text(
+        item, sequence_time_text[app->datetime_filenames ? 1 : 0]);
 
     item = variable_item_list_add(
         app->variable_item_list,
         "Check Saved:",
-        CHECK_SAVED_COUNT,
+        ON_OFF_COUNT,
         protopirate_scene_receiver_config_set_check_saved,
         app);
     variable_item_set_current_value_index(item, app->check_saved ? 1 : 0);
-    variable_item_set_current_value_text(item, check_saved_text[app->check_saved ? 1 : 0]);
+    variable_item_set_current_value_text(item, on_off_text[app->check_saved ? 1 : 0]);
+
+    // Sound option
+    item = variable_item_list_add(
+        app->variable_item_list,
+        "Sound:",
+        ON_OFF_COUNT,
+        protopirate_scene_receiver_config_set_sound,
+        app);
+    variable_item_set_current_value_index(item, app->sound);
+    variable_item_set_current_value_text(item, on_off_text[(!app->sound) ? 0 : 1]);
 
     variable_item_list_add(app->variable_item_list, "Lock Keyboard", 1, NULL, NULL);
     variable_item_list_set_enter_callback(
