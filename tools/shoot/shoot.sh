@@ -30,7 +30,9 @@ for f in "$U8G2"/*.c; do
     SRC="$SRC $f"
 done
 
-OUT=$ROOT/screenshots
+# renders, not screenshots: screenshots/ holds captures taken off a real
+# device with qFlipper, and this tool must never be able to overwrite one
+OUT=$ROOT/renders
 mkdir -p "$OUT"
 gcc -std=gnu11 -O2 -w -I "$U8G2" -I "$ROOT" -I "$ROOT/test/stubs" -I . \
     -o /tmp/bb_shoot shoot.c u8g2_unused.c "$ROOT/beepback_tables.c" $SRC -lm

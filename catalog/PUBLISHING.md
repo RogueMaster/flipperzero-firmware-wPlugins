@@ -6,30 +6,22 @@ screenshots are committed. This is the order to do it in.
 
 ## 1. The screenshots
 
-They are already in `screenshots/`, rendered rather than photographed.
-`tools/shoot/shoot.sh` sets up the firmware's own copy of u8g2 with the two
-fonts `canvas_set_font()` picks, points it at a 128x64 buffer, and calls the
-app's real `bb_draw()`. The canvas layer it draws through is copied from
-`applications/services/gui/canvas.c`, alignment arithmetic included. So the
-content is what the device shows, pixel for pixel.
+`screenshots/` holds captures taken off a real device with qFlipper's
+screenshot button, at the 512x256 that button writes, unedited. That is what
+the catalog asks for and what the manifest points at.
 
-**They are not qFlipper captures, and the catalog asks for qFlipper captures.**
-Its bundler only checks that a screenshot is exactly 4x or 8x of 128x64, which
-these are, so it accepts them - but the guideline is theirs, and the honest
-move is either to say so or to replace them.
+`renders/` holds the same screens drawn by `tools/shoot/`, which sets up the
+firmware's own copy of u8g2 with the two fonts `canvas_set_font()` picks and
+calls the app's real `bb_draw()`. Those are for the promo art and for checking
+a layout without a device. The two directories are kept apart on purpose: a
+render is not a screenshot, the first submission was rejected for confusing
+the two, and `shoot.sh` writing into `renders/` means it cannot make that
+mistake again for us.
 
-Replacing them takes about five minutes and needs a device: in qFlipper, use
-the screenshot button above the screen preview, save six PNGs over the ones in
-`screenshots/` keeping the same names, and do not crop or re-encode them. The
-screens, in the order the manifest lists them:
-
-- `ss0.png` - a CLASSIC round mid-playback, shapes assist, HUD showing the
-  round and stage. This is the app card preview, so it matters most
-- `ss1.png` - a RULE card
-- `ss3.png` - REFLEX with a cue live and the bar draining
-- `ss2.png` - the RECORDS table for CLASSIC, with scores in it
-- `ss5.png` - the STATS screen
-- `ss4.png` - the menu
+To replace a capture: qFlipper, click the Flipper's screen to start full
+screen streaming, navigate on the device, then Ctrl+S. Do not crop, scale or
+re-encode it afterwards - and be careful how the file travels, because iOS
+re-encodes a PNG on export and shifts the orange by a few counts.
 
 ## 2. The commit SHA
 

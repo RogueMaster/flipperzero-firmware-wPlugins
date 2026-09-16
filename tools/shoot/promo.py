@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Promo art, built from the screenshots rather than around them.
+"""Promo art, built from the game's own screens rather than around them.
 
 The device panel in each image is a real rendered frame - the same
-pixels shoot.c writes into screenshots/ - so the art cannot drift from
-what the game looks like. Palette sampled from the browser build's
+pixels shoot.c writes into renders/ - so the art cannot drift from what
+the game looks like. Palette sampled from the browser build's
 existing cover so the two sit together.
 """
 import sys
@@ -142,7 +142,7 @@ def strip(shots, out):
 
 def main():
     root = Path(__file__).resolve().parents[2]
-    shots, out = root / "screenshots", root / "promo"
+    shots, out = root / "renders", root / "promo"
     out.mkdir(exist_ok=True)
     cover(shots, out)
     banner(shots, out)
