@@ -1,5 +1,9 @@
 ## v0.4.0 (unreleased)
 
+- Added WTI and Brent crude oil prices in USD per barrel to Markets.
+- Fixed Back navigation while Markets waits for connection permission.
+- Reject incomplete market responses, duplicate price fields, and nested data.
+
 - Added a single Markets menu with BTC/USDT, ETH/USDT, and gold in USD per
   troy ounce, including refresh and bounded response validation.
 - Added a complete, independently buildable client SDK example FAP.

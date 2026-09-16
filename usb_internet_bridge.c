@@ -1077,6 +1077,7 @@ static uint32_t fib_app_back_to_menu(void* context) {
         }
         app->pending_action = FibPendingActionNone;
         app->request_waiting_for_ready = false;
+        app->current_view = FibViewMenu;
     }
     return FibViewMenu;
 }
@@ -1084,7 +1085,8 @@ static uint32_t fib_app_back_to_menu(void* context) {
 static uint32_t fib_app_back_from_status(void* context) {
     UNUSED(context);
     FibApp* app = fib_app_active;
-    if(app && app->request_mode == FibRequestModeMarkets) {
+    if(app && app->request_mode == FibRequestModeMarkets &&
+       app->pending_action != FibPendingActionMarkets) {
         bridge_session_cancel(app->session);
         app->pending_action = FibPendingActionNone;
         app->request_waiting_for_ready = false;

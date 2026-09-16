@@ -4,7 +4,8 @@
 #include <string.h>
 
 const char* markets_name(unsigned index) {
-    static const char* names[] = {"Bitcoin BTC/USDT", "Ethereum ETH/USDT", "Gold USD/oz"};
+    static const char* names[] = {
+        "Bitcoin BTC/USDT", "Ethereum ETH/USDT", "Gold USD/oz", "WTI Oil USD/bbl", "Brent Oil USD/bbl"};
     return index < MARKETS_COUNT ? names[index] : "Markets";
 }
 
@@ -13,30 +14,65 @@ const char* markets_url(unsigned index) {
         "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT",
         "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=ETHUSDT",
         "https://api.gold-api.com/price/XAU",
+        "https://americasoilwatch.com/api/v1/wti",
+        "https://americasoilwatch.com/api/v1/brent",
     };
     return index < MARKETS_COUNT ? urls[index] : NULL;
 }
 
 /* Bounded scalar extraction for the providers' flat objects. Reject truncated,
  * escaped or oversized values instead of rendering partial prices. */
+static const char* whitespace(const char* p) {
+    while(*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') ++p;
+    return p;
+}
+
 static bool field(const char* json, const char* key, char* out, size_t size) {
-    char needle[40];
-    snprintf(needle, sizeof(needle), "\"%s\"", key);
-    const char* p = strstr(json, needle);
-    if(!p) return false;
-    p += strlen(needle);
-    while(*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') ++p;
-    if(*p++ != ':') return false;
-    while(*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') ++p;
-    bool quoted = *p == '"';
-    if(quoted) ++p;
-    size_t n = 0;
-    while(*p && (quoted ? *p != '"' : *p != ',' && *p != '}' && *p != ' ' && *p != '\n')) {
-        if(n + 1 >= size || (unsigned char)*p < 32 || *p == '\\') return false;
-        out[n++] = *p++;
+    const char* p = whitespace(json);
+    if(*p != '{') return false;
+    p = whitespace(p + 1);
+    bool found = false;
+    while(*p != '}') {
+        if(*p != '"') return false;
+        const char* name = ++p;
+        while(*p && *p != '"') {
+            if((unsigned char)*p < 32 || *p == '\\') return false;
+            ++p;
+        }
+        if(!*p) return false;
+        bool match = (size_t)(p - name) == strlen(key) &&
+                     memcmp(name, key, (size_t)(p - name)) == 0;
+        p = whitespace(p + 1);
+        if(*p != ':') return false;
+        p = whitespace(p + 1);
+        bool quoted = *p == '"';
+        if(quoted) ++p;
+        const char* value = p;
+        while(*p && (quoted ? *p != '"' :
+              *p != ',' && *p != '}' && whitespace(p) == p)) {
+            if((unsigned char)*p < 32 || *p == '\\' ||
+               (!quoted && (*p == '{' || *p == '[' || *p == '"'))) return false;
+            ++p;
+        }
+        size_t length = (size_t)(p - value);
+        if(!quoted && !length) return false;
+        if(match) {
+            if(found || !length || length >= size) return false;
+            memcpy(out, value, length);
+            out[length] = '\0';
+            found = true;
+        }
+        if(quoted) {
+            if(*p != '"') return false;
+            ++p;
+        }
+        p = whitespace(p);
+        if(*p == '}') break;
+        if(*p != ',') return false;
+        p = whitespace(p + 1);
+        if(*p == '}') return false;
     }
-    out[n] = 0;
-    return n && (quoted ? *p == '"' : *p == ',' || *p == '}' || *p == ' ' || *p == '\n');
+    return found && *whitespace(p + 1) == '\0';
 }
 static bool price(const char* json, const char* key, char* out, size_t size) {
     if(!field(json, key, out, size)) return false;
@@ -46,7 +82,8 @@ static bool price(const char* json, const char* key, char* out, size_t size) {
         if(*p < '0' || *p > '9') return false;
         digit = true;
     }
-    if(!digit || strtod(out, NULL) <= 0) return false;
+    if(!digit || out[0] == '.' || out[strlen(out) - 1] == '.' ||
+       strtod(out, NULL) <= 0) return false;
     /* Preserve exact provider decimal text, dropping only insignificant zeros. */
     if(dot) {
         size_t n = strlen(out);
@@ -82,14 +119,42 @@ static bool utc_timestamp(const char* value) {
     return true;
 }
 
+static bool oil_timestamp(const char* value) {
+    /* The API reports UTC with milliseconds; accept whole seconds as well. */
+    size_t length = strlen(value);
+    if(length != 20U && length != 24U) return false;
+    char whole_seconds[21];
+    memcpy(whole_seconds, value, 19U);
+    whole_seconds[19] = 'Z';
+    whole_seconds[20] = '\0';
+    if(!utc_timestamp(whole_seconds)) return false;
+    if(length == 20U) return value[19] == 'Z';
+    return value[19] == '.' && value[20] >= '0' && value[20] <= '9' &&
+           value[21] >= '0' && value[21] <= '9' &&
+           value[22] >= '0' && value[22] <= '9' && value[23] == 'Z';
+}
+
 bool markets_format(unsigned index, const char* json, char* output, size_t capacity) {
     if(index >= MARKETS_COUNT || !json || !output || !capacity) return false;
     output[0] = 0;
     char symbol[16], value[32], updated[40];
+    int written;
+    if(index >= 3U) {
+        if(!price(json, "priceUsd", value, sizeof(value)) ||
+           !field(json, "lastUpdated", updated, sizeof(updated)) ||
+           !oil_timestamp(updated)) return false;
+        written = snprintf(output, capacity,
+                           "%s USD / barrel\nUpdated: %.19s UTC\nSource: AmericasOilWatch",
+                           value, updated);
+        if(written < 0 || (size_t)written >= capacity) {
+            output[0] = '\0';
+            return false;
+        }
+        return true;
+    }
     const char* expected[] = {"BTCUSDT", "ETHUSDT", "XAU"};
     if(!field(json, "symbol", symbol, sizeof(symbol)) || strcmp(symbol, expected[index]) ||
        !price(json, index == 2 ? "price" : "lastPrice", value, sizeof(value))) return false;
-    int written;
     if(index == 2) {
         char currency[8];
         if(!field(json, "currency", currency, sizeof(currency)) || strcmp(currency, "USD") ||
