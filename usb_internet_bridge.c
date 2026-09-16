@@ -926,13 +926,13 @@ static void fib_app_render_status(FibApp* app) {
             sources[app->market_index]);
         widget_add_line_element(app->status_widget, 2U, 15U, 125U, 15U);
         widget_add_string_element(
-            app->status_widget, 64U, 27U, AlignCenter, AlignCenter, FontPrimary,
+            app->status_widget, 64U, 25U, AlignCenter, AlignCenter, FontPrimary,
             app->market_price);
         widget_add_string_element(
-            app->status_widget, 64U, 39U, AlignCenter, AlignCenter, FontSecondary,
+            app->status_widget, 64U, 35U, AlignCenter, AlignCenter, FontSecondary,
             units[app->market_index]);
         widget_add_string_element(
-            app->status_widget, 64U, 50U, AlignCenter, AlignCenter, FontSecondary,
+            app->status_widget, 64U, 44U, AlignCenter, AlignCenter, FontSecondary,
             app->market_updated);
     } else if(app->request_mode == FibRequestModeWikipedia) {
         widget_add_string_element(
@@ -1500,11 +1500,11 @@ static FibApp* fib_app_alloc(void) {
         app->menu, "Where is the ISS?", FibMenuIssLocation, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Internet Radio", FibMenuInternetRadio, fib_app_menu_selected, app);
+    submenu_add_item(app->menu, "Markets", FibMenuMarkets, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Custom URL Request", FibMenuCustomUrl, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Connection Info", FibMenuConnectionInfo, fib_app_menu_selected, app);
-    submenu_add_item(app->menu, "Markets", FibMenuMarkets, fib_app_menu_selected, app);
     view_set_previous_callback(submenu_get_view(app->menu), fib_app_exit);
     view_set_previous_callback(submenu_get_view(app->weather_results), fib_app_back_to_menu);
     view_set_previous_callback(submenu_get_view(app->radio_stations), fib_app_back_to_menu);

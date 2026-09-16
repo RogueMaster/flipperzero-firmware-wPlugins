@@ -38,7 +38,6 @@ outside the MVP.
 ## Flipper menu
 
 - **Test Connection** — sends a PING and waits for PONG
-- **Markets** — shows BTC/USDT, ETH/USDT, gold and silver in USD per troy ounce, and WTI/Brent oil in USD per barrel
 - **Get Sample Text** — fetches and displays a short message
 - **Get Date and Time** — retrieves a short UTC response
 - **Search Wikipedia** — displays a short English Wikipedia result
@@ -46,6 +45,7 @@ outside the MVP.
 - **National Today** — displays the daily National Today description
 - **Where is the ISS?** — shows current coordinates, altitude, speed, and visibility
 - **Internet Radio** — finds MP3 stations by country and plays them on the Flipper speaker
+- **Markets** — shows BTC/USDT, ETH/USDT, gold and silver in USD per troy ounce, and WTI/Brent oil in USD per barrel
 - **Custom URL Request** — accepts an HTTPS URL up to 384 bytes
 - **Connection Info** — shows USB, helper, permission, device, and protocol state
 
