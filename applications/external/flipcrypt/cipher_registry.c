@@ -982,7 +982,7 @@ const CipherDef kCiphers[] = {
         .decode = null_decode,
         .key_a_min = 2,
         .key_a_max = 10,
-        .key_a_prompt = "Enter a num (2-10)",
+        .key_a_prompt = "Every x letters (2-10)",
         .learn_text = "A null cipher hides a real message by mixing it in with meaningless "
                       "filler, rather than scrambling it like most ciphers do. In this version, "
                       "only every nth character of the text carries meaning, and the rest are "

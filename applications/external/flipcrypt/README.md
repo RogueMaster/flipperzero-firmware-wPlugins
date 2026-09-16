@@ -52,7 +52,7 @@ Navigate through the app's menu on your Flipper Zero to:
 - Select a hashing algorithm to generate a hash from input data.
 - Select an encoding method to encode / decode inputs.
 
-Once on the output screen, you can choose to save the output to a .txt file located at ext/flip_crypt_saved/, emulate it using NFC (NTAG215) or generate and display a QR code of the data (if the output is not too long). Not all three options will be available on every output screen due to memory limitations.
+Once on the output screen, you can choose to save the output to a .txt file located at /ext/apps_data/flip_crypt/saved/, emulate it using NFC (NTAG215) or generate and display a QR code of the data (if the output is not too long). Not all three options will be available on every output screen due to memory limitations.
 
 Warning - Being connected to qFlipper does make a decent amount of QR generations run out of memory and crash that work when standalone. Also, I do not guarantee accuracy of any of these functions - everything is provided as-is, don't use for anything important.
 
@@ -75,8 +75,8 @@ Any licenses for the cipher / hash function implementations I included is at the
 Feel free to leave a Github issue / PR with a feature you'd like to see.
 
 To add a cipher: 
-- Add the appropriate .c and .h files in `ciphers/`, `hashes/`, or `encoders/`
-- #include your new header file (`cipher_registry.c`)
-- Add appropriate encode and decode `CipherResult` functions (`cipher_registry.c`)
-- Add in an entry in `CipherDef kCiphers[]` (`cipher_registry.c`)
+- Add the appropriate .c and .h files in ciphers/, hashes/, or encoders/
+- #include your new header file (cipher_registry.c)
+- Add appropriate encode and decode CipherResult functions (cipher_registry.c)
+- Add in an entry in CipherDef kCiphers (cipher_registry.c)
 ##

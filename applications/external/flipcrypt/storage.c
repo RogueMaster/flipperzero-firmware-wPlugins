@@ -1,13 +1,14 @@
 #include <storage/storage.h>
+#include "storage.h"
 
 // callback for saving from output screen
 void save_result(const char* text, char* file_name) {
     File* file = storage_file_alloc(furi_record_open(RECORD_STORAGE));
 
     char buffer[128];
-    snprintf(buffer, sizeof(buffer), "/ext/flip_crypt_saved/%s.txt", file_name);
+    snprintf(buffer, sizeof(buffer), "%s/%s.txt", FLIP_CRYPT_USER_DATA_PATH, file_name);
 
-    if(storage_simply_mkdir(furi_record_open(RECORD_STORAGE), "/ext/flip_crypt_saved")) {
+    if(storage_simply_mkdir(furi_record_open(RECORD_STORAGE), FLIP_CRYPT_USER_DATA_PATH)) {
         if(storage_file_open(file, buffer, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
             storage_file_write(file, text, strlen(text));
         }
@@ -22,6 +23,7 @@ void save_result(const char* text, char* file_name) {
 void save_result_generic(const char* filename, const char* text) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
+    storage_common_mkdir(storage, APP_DATA_PATH(""));
     if(storage_file_open(file, filename, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         storage_file_write(file, text, strlen(text));
     }
