@@ -3599,9 +3599,10 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
     }
 
     if(app->exit_confirm_active && page == UhfPageMainMenu) {
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rbox(canvas, 13, 21, 102, 22, 4);
         canvas_set_color(canvas, ColorWhite);
+        canvas_draw_rbox(canvas, 13, 21, 102, 22, 4);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_rframe(canvas, 13, 21, 102, 22, 4);
         canvas_set_font(canvas, FontSecondary);
         uhf_draw_centered_text(canvas, 35, "Back again to exit");
         canvas_set_color(canvas, ColorBlack);
