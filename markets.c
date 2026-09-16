@@ -5,7 +5,7 @@
 
 const char* markets_name(unsigned index) {
     static const char* names[] = {
-        "Bitcoin BTC/USDT", "Ethereum ETH/USDT", "Gold USD/oz", "WTI Oil USD/bbl", "Brent Oil USD/bbl"};
+        "Bitcoin BTC/USDT", "Ethereum ETH/USDT", "Gold USD/oz", "WTI Oil USD/bbl", "Brent Oil USD/bbl", "Silver USD/oz"};
     return index < MARKETS_COUNT ? names[index] : "Markets";
 }
 
@@ -16,6 +16,7 @@ const char* markets_url(unsigned index) {
         "https://api.gold-api.com/price/XAU",
         "https://americasoilwatch.com/api/v1/wti",
         "https://americasoilwatch.com/api/v1/brent",
+        "https://api.gold-api.com/price/XAG",
     };
     return index < MARKETS_COUNT ? urls[index] : NULL;
 }
@@ -139,7 +140,7 @@ bool markets_format(unsigned index, const char* json, char* output, size_t capac
     output[0] = 0;
     char symbol[16], value[32], updated[40];
     int written;
-    if(index >= 3U) {
+    if(index == 3U || index == 4U) {
         if(!price(json, "priceUsd", value, sizeof(value)) ||
            !field(json, "lastUpdated", updated, sizeof(updated)) ||
            !oil_timestamp(updated)) return false;
@@ -152,10 +153,10 @@ bool markets_format(unsigned index, const char* json, char* output, size_t capac
         }
         return true;
     }
-    const char* expected[] = {"BTCUSDT", "ETHUSDT", "XAU"};
+    const char* expected[] = {"BTCUSDT", "ETHUSDT", "XAU", "", "", "XAG"};
     if(!field(json, "symbol", symbol, sizeof(symbol)) || strcmp(symbol, expected[index]) ||
-       !price(json, index == 2 ? "price" : "lastPrice", value, sizeof(value))) return false;
-    if(index == 2) {
+       !price(json, (index == 2U || index == 5U) ? "price" : "lastPrice", value, sizeof(value))) return false;
+    if(index == 2U || index == 5U) {
         char currency[8];
         if(!field(json, "currency", currency, sizeof(currency)) || strcmp(currency, "USD") ||
            !field(json, "updatedAt", updated, sizeof(updated)) || !utc_timestamp(updated)) {

@@ -38,7 +38,7 @@ outside the MVP.
 ## Flipper menu
 
 - **Test Connection** — sends a PING and waits for PONG
-- **Markets** — shows BTC/USDT, ETH/USDT, gold in USD per troy ounce, and WTI/Brent oil in USD per barrel
+- **Markets** — shows BTC/USDT, ETH/USDT, gold and silver in USD per troy ounce, and WTI/Brent oil in USD per barrel
 - **Get Sample Text** — fetches and displays a short message
 - **Get Date and Time** — retrieves a short UTC response
 - **Search Wikipedia** — displays a short English Wikipedia result

@@ -1,5 +1,7 @@
 ## v0.4.0 (unreleased)
 
+- Added silver pricing and a compact Markets price card; moved Markets to the
+  end of the main menu.
 - Added WTI and Brent crude oil prices in USD per barrel to Markets.
 - Fixed Back navigation while Markets waits for connection permission.
 - Reject incomplete market responses, duplicate price fields, and nested data.

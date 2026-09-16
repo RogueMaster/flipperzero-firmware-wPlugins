@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define MARKETS_COUNT 5U
+#define MARKETS_COUNT 6U
 
 const char* markets_name(unsigned index);
 const char* markets_url(unsigned index);

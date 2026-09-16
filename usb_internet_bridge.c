@@ -121,6 +121,8 @@ typedef struct {
     char url_buffer[FIB_MAX_URL_LENGTH + 1U];
     char input_buffer[FIB_MAX_URL_LENGTH + 1U];
     char search_result[FIB_RESPONSE_PREVIEW_SIZE + 1U];
+    char market_price[32];
+    char market_updated[32];
     FibView current_view;
     bool showing_connection_info;
     FibRequestMode request_mode;
@@ -764,13 +766,27 @@ static void fib_app_radio_stations_button(
 static void fib_app_render_status(FibApp* app) {
     bridge_session_get_snapshot(app->session, &app->snapshot);
     furi_string_reset(app->status_text);
+    bool market_card_ready = false;
 
     if(app->request_mode == FibRequestModeMarkets && app->snapshot.state == BridgeSessionStateComplete) {
         furi_string_cat_printf(app->status_text, "\e#%s\n", markets_name(app->market_index));
         if(app->snapshot.http_status != 200U) {
             furi_string_cat_printf(app->status_text, "Price service: HTTP %u\nTry again later.", app->snapshot.http_status);
         } else if(markets_format(app->market_index, app->snapshot.preview, app->search_result, sizeof(app->search_result))) {
-            furi_string_cat_str(app->status_text, app->search_result);
+            const char* price_end = strchr(app->search_result, ' ');
+            const char* updated = strstr(app->search_result, "Updated: ");
+            if(price_end && updated && (size_t)(price_end - app->search_result) < sizeof(app->market_price)) {
+                size_t length = (size_t)(price_end - app->search_result);
+                memcpy(app->market_price, app->search_result, length);
+                app->market_price[length] = '\0';
+                updated += strlen("Updated: ");
+                const char* clock = strchr(updated, 'T');
+                if(clock) updated = clock + 1;
+                snprintf(app->market_updated, sizeof(app->market_updated), "Updated: %.8s UTC", updated);
+                market_card_ready = true;
+            } else {
+                furi_string_cat_str(app->status_text, "Price data unavailable.\nPlease refresh.");
+            }
         } else {
             furi_string_cat_str(app->status_text, "Price data unavailable.\nPlease refresh.");
         }
@@ -895,7 +911,30 @@ static void fib_app_render_status(FibApp* app) {
     }
 
     widget_reset(app->status_widget);
-    if(app->request_mode == FibRequestModeWikipedia) {
+    if(market_card_ready) {
+        static const char* titles[] = {
+            "BTC / USDT", "ETH / USDT", "Gold", "WTI Crude", "Brent Crude", "Silver"};
+        static const char* units[] = {
+            "USDT", "USDT", "USD / troy oz", "USD / barrel", "USD / barrel", "USD / troy oz"};
+        static const char* sources[] = {
+            "Binance", "Binance", "Gold API", "OilWatch", "OilWatch", "Gold API"};
+        widget_add_string_element(
+            app->status_widget, 3U, 8U, AlignLeft, AlignCenter, FontSecondary,
+            titles[app->market_index]);
+        widget_add_string_element(
+            app->status_widget, 125U, 8U, AlignRight, AlignCenter, FontSecondary,
+            sources[app->market_index]);
+        widget_add_line_element(app->status_widget, 2U, 15U, 125U, 15U);
+        widget_add_string_element(
+            app->status_widget, 64U, 27U, AlignCenter, AlignCenter, FontPrimary,
+            app->market_price);
+        widget_add_string_element(
+            app->status_widget, 64U, 39U, AlignCenter, AlignCenter, FontSecondary,
+            units[app->market_index]);
+        widget_add_string_element(
+            app->status_widget, 64U, 50U, AlignCenter, AlignCenter, FontSecondary,
+            app->market_updated);
+    } else if(app->request_mode == FibRequestModeWikipedia) {
         widget_add_string_element(
             app->status_widget, 64U, 7U, AlignCenter, AlignCenter, FontPrimary, "Wikipedia");
         const uint8_t text_height = app->snapshot.active_request ? 37U : 49U;
@@ -1437,7 +1476,6 @@ static FibApp* fib_app_alloc(void) {
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, fib_app_tick, FIB_UI_TICK_MS);
 
     submenu_set_header(app->menu, "USB Internet Bridge");
-    submenu_add_item(app->menu, "Markets", FibMenuMarkets, fib_app_menu_selected, app);
     submenu_set_header(app->markets, "Markets");
     for(unsigned i = 0; i < MARKETS_COUNT; ++i) {
         submenu_add_item(app->markets, markets_name(i), i, fib_app_market_selected, app);
@@ -1466,6 +1504,7 @@ static FibApp* fib_app_alloc(void) {
         app->menu, "Custom URL Request", FibMenuCustomUrl, fib_app_menu_selected, app);
     submenu_add_item(
         app->menu, "Connection Info", FibMenuConnectionInfo, fib_app_menu_selected, app);
+    submenu_add_item(app->menu, "Markets", FibMenuMarkets, fib_app_menu_selected, app);
     view_set_previous_callback(submenu_get_view(app->menu), fib_app_exit);
     view_set_previous_callback(submenu_get_view(app->weather_results), fib_app_back_to_menu);
     view_set_previous_callback(submenu_get_view(app->radio_stations), fib_app_back_to_menu);

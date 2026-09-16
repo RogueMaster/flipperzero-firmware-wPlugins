@@ -30,6 +30,14 @@ static void test_gold_price(void) {
     assert(markets_format(2, gold, output, sizeof(output)));
     assert(strstr(output, "4297.700195 USD / troy oz") != NULL);
     assert(strstr(output, "2026-09-15T16:27:40Z") != NULL);
+
+    const char* silver =
+        "{\"currency\":\"USD\",\"name\":\"Silver\",\"price\":64.624001,"
+        "\"symbol\":\"XAG\",\"updatedAt\":\"2026-09-16T14:48:42Z\"}";
+    assert(markets_format(5, silver, output, sizeof(output)));
+    assert(strstr(output, "64.624001 USD / troy oz") != NULL);
+    assert(strstr(output, "Source: Gold API") != NULL);
+    assert(!markets_format(5, gold, output, sizeof(output)));
 }
 
 static void test_oil_prices(void) {
@@ -109,6 +117,8 @@ int main(void) {
     assert(strstr(markets_url(2), "/XAU") != NULL);
     assert(strstr(markets_url(3), "/wti") != NULL);
     assert(strstr(markets_url(4), "/brent") != NULL);
+    assert(strstr(markets_url(5), "/XAG") != NULL);
+    assert(strcmp(markets_name(5), "Silver USD/oz") == 0);
     test_crypto_prices();
     test_gold_price();
     test_oil_prices();
