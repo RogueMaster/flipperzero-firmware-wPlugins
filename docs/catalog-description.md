@@ -7,7 +7,8 @@ The Flipper app sends bounded requests over USB CDC. A desktop host validates th
 ## Features
 
 - Test the USB bridge connection
-- View BTC/USDT, ETH/USDT, gold, WTI oil, Brent oil, and silver prices in one Markets menu
+- Search Binance Spot USDT coins and view gold, silver, and Binance Futures
+  Brent prices in one auto-refreshing Markets menu
 - Fetch sample text and the current date and time
 - Search English Wikipedia
 - Check weather by location

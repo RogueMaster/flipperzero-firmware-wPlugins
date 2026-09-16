@@ -5,7 +5,7 @@
 
 const char* markets_name(unsigned index) {
     static const char* names[] = {
-        "Bitcoin BTC/USDT", "Ethereum ETH/USDT", "Gold USD/oz", "WTI Oil USD/bbl", "Brent Oil USD/bbl", "Silver USD/oz"};
+        "Bitcoin BTC/USDT", "Ethereum ETH/USDT", "Gold USD/oz", "Brent BZ/USDT", "Silver USD/oz"};
     return index < MARKETS_COUNT ? names[index] : "Markets";
 }
 
@@ -14,11 +14,43 @@ const char* markets_url(unsigned index) {
         "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT",
         "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=ETHUSDT",
         "https://api.gold-api.com/price/XAU",
-        "https://americasoilwatch.com/api/v1/wti",
-        "https://americasoilwatch.com/api/v1/brent",
+        "https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=BZUSDT",
         "https://api.gold-api.com/price/XAG",
     };
     return index < MARKETS_COUNT ? urls[index] : NULL;
+}
+
+bool markets_build_coin_request(
+    const char* input,
+    char* symbol,
+    size_t symbol_capacity,
+    char* url,
+    size_t url_capacity) {
+    if(!input || !symbol || !url || symbol_capacity == 0U || url_capacity == 0U) return false;
+    size_t length = strlen(input);
+    if(length < 2U || length > 20U) return false;
+    if(length + 5U > symbol_capacity) return false;
+    for(size_t index = 0U; index < length; ++index) {
+        char value = input[index];
+        if(value >= 'a' && value <= 'z') value = (char)(value - ('a' - 'A'));
+        if(!((value >= 'A' && value <= 'Z') || (value >= '0' && value <= '9'))) return false;
+        symbol[index] = value;
+    }
+    symbol[length] = '\0';
+    if(length < 4U || strcmp(symbol + length - 4U, "USDT") != 0) {
+        memcpy(symbol + length, "USDT", 5U);
+    }
+    int written = snprintf(
+        url,
+        url_capacity,
+        "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=%s",
+        symbol);
+    if(written < 0 || (size_t)written >= url_capacity) {
+        symbol[0] = '\0';
+        url[0] = '\0';
+        return false;
+    }
+    return true;
 }
 
 /* Bounded scalar extraction for the providers' flat objects. Reject truncated,
@@ -120,19 +152,46 @@ static bool utc_timestamp(const char* value) {
     return true;
 }
 
-static bool oil_timestamp(const char* value) {
-    /* The API reports UTC with milliseconds; accept whole seconds as well. */
-    size_t length = strlen(value);
-    if(length != 20U && length != 24U) return false;
-    char whole_seconds[21];
-    memcpy(whole_seconds, value, 19U);
-    whole_seconds[19] = 'Z';
-    whole_seconds[20] = '\0';
-    if(!utc_timestamp(whole_seconds)) return false;
-    if(length == 20U) return value[19] == 'Z';
-    return value[19] == '.' && value[20] >= '0' && value[20] <= '9' &&
-           value[21] >= '0' && value[21] <= '9' &&
-           value[22] >= '0' && value[22] <= '9' && value[23] == 'Z';
+static bool format_binance(
+    const char* expected_symbol,
+    const char* unit,
+    const char* json,
+    char* output,
+    size_t capacity) {
+    char symbol[MARKETS_MAX_SYMBOL_LENGTH + 1U];
+    char value[32];
+    char updated[40];
+    if(!expected_symbol || !unit || !field(json, "symbol", symbol, sizeof(symbol)) ||
+       strcmp(symbol, expected_symbol) ||
+       !price(json, "lastPrice", value, sizeof(value)) ||
+       !field(json, "closeTime", updated, sizeof(updated)) || !digits(updated, 13U)) {
+        return false;
+    }
+    unsigned long long seconds = strtoull(updated, NULL, 10) / 1000U;
+    int written = snprintf(
+        output,
+        capacity,
+        "%s %s\nUpdated: %02u:%02u:%02u UTC\nSource: Binance",
+        value,
+        unit,
+        (unsigned)(seconds / 3600U % 24U),
+        (unsigned)(seconds / 60U % 60U),
+        (unsigned)(seconds % 60U));
+    if(written < 0 || (size_t)written >= capacity) {
+        output[0] = '\0';
+        return false;
+    }
+    return true;
+}
+
+bool markets_format_coin(
+    const char* symbol,
+    const char* json,
+    char* output,
+    size_t capacity) {
+    if(!symbol || !json || !output || capacity == 0U) return false;
+    output[0] = '\0';
+    return format_binance(symbol, "USDT", json, output, capacity);
 }
 
 bool markets_format(unsigned index, const char* json, char* output, size_t capacity) {
@@ -140,37 +199,33 @@ bool markets_format(unsigned index, const char* json, char* output, size_t capac
     output[0] = 0;
     char symbol[16], value[32], updated[40];
     int written;
-    if(index == 3U || index == 4U) {
-        if(!price(json, "priceUsd", value, sizeof(value)) ||
-           !field(json, "lastUpdated", updated, sizeof(updated)) ||
-           !oil_timestamp(updated)) return false;
-        written = snprintf(output, capacity,
-                           "%s USD / barrel\nUpdated: %.19s UTC\nSource: AmericasOilWatch",
-                           value, updated);
-        if(written < 0 || (size_t)written >= capacity) {
-            output[0] = '\0';
-            return false;
-        }
-        return true;
+    if(index < 2U) {
+        return format_binance(
+            index == 0U ? "BTCUSDT" : "ETHUSDT",
+            "USDT",
+            json,
+            output,
+            capacity);
     }
-    const char* expected[] = {"BTCUSDT", "ETHUSDT", "XAU", "", "", "XAG"};
+    if(index == 3U) {
+        return format_binance(
+            "BZUSDT", "USDT / barrel", json, output, capacity);
+    }
+    if(index != 2U && index != 4U) return false;
+    const char* expected[] = {"", "", "XAU", "", "XAG"};
     if(!field(json, "symbol", symbol, sizeof(symbol)) || strcmp(symbol, expected[index]) ||
-       !price(json, (index == 2U || index == 5U) ? "price" : "lastPrice", value, sizeof(value))) return false;
-    if(index == 2U || index == 5U) {
-        char currency[8];
-        if(!field(json, "currency", currency, sizeof(currency)) || strcmp(currency, "USD") ||
-           !field(json, "updatedAt", updated, sizeof(updated)) || !utc_timestamp(updated)) {
-            return false;
-        }
-        written = snprintf(output, capacity, "%s USD / troy oz\nUpdated: %s\nSource: Gold API", value, updated);
-    } else {
-        if(!field(json, "closeTime", updated, sizeof(updated)) || !digits(updated, 13U)) {
-            return false;
-        }
-        unsigned long long seconds = strtoull(updated, NULL, 10) / 1000;
-        written = snprintf(output, capacity, "%s USDT\nUpdated: %02u:%02u:%02u UTC\nSource: Binance",
-            value, (unsigned)(seconds / 3600 % 24), (unsigned)(seconds / 60 % 60), (unsigned)(seconds % 60));
+       !price(json, "price", value, sizeof(value))) return false;
+    char currency[8];
+    if(!field(json, "currency", currency, sizeof(currency)) || strcmp(currency, "USD") ||
+       !field(json, "updatedAt", updated, sizeof(updated)) || !utc_timestamp(updated)) {
+        return false;
     }
+    written = snprintf(
+        output,
+        capacity,
+        "%s USD / troy oz\nUpdated: %s\nSource: Gold API",
+        value,
+        updated);
     if(written < 0 || (size_t)written >= capacity) { output[0] = 0; return false; }
     return true;
 }

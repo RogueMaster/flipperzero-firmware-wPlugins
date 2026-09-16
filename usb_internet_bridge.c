@@ -15,6 +15,7 @@
 
 #define TAG            "UsbInternetBridge"
 #define FIB_UI_TICK_MS 100U
+#define FIB_MARKET_AUTO_REFRESH_MS 15000U
 #define FIB_SAMPLE_URL "https://api.github.com/zen"
 #define FIB_TIME_URL   "https://postman-echo.com/time/now"
 #define FIB_NATIONAL_TODAY_URL "https://nationaltoday.com/today/"
@@ -69,6 +70,7 @@ typedef enum {
 typedef enum {
     FibRequestModeNormal,
     FibRequestModeMarkets,
+    FibRequestModeMarketSearch,
     FibRequestModeWikipedia,
     FibRequestModeWeatherSearch,
     FibRequestModeWeatherForecast,
@@ -123,6 +125,9 @@ typedef struct {
     char search_result[FIB_RESPONSE_PREVIEW_SIZE + 1U];
     char market_price[32];
     char market_updated[32];
+    char market_symbol[MARKETS_MAX_SYMBOL_LENGTH + 1U];
+    bool market_has_price;
+    uint32_t market_last_refresh_tick;
     FibView current_view;
     bool showing_connection_info;
     FibRequestMode request_mode;
@@ -732,8 +737,10 @@ static const char* fib_permission_text(BridgePermission permission) {
 static void fib_app_cancel_button(GuiButtonType button, InputType input_type, void* context) {
     FibApp* app = context;
     if(!app || button != GuiButtonTypeCenter || input_type != InputTypeShort) return;
-    if(app->request_mode == FibRequestModeMarkets && !bridge_session_has_active_request(app->session)) {
-        fib_app_request_or_wait(app, markets_url(app->market_index));
+    if(app->request_mode == FibRequestModeMarkets) {
+        if(bridge_session_has_active_request(app->session)) return;
+        app->market_last_refresh_tick = furi_get_tick();
+        fib_app_request_or_wait(app, app->url_buffer);
         fib_app_render_status(app);
         return;
     }
@@ -768,11 +775,21 @@ static void fib_app_render_status(FibApp* app) {
     furi_string_reset(app->status_text);
     bool market_card_ready = false;
 
-    if(app->request_mode == FibRequestModeMarkets && app->snapshot.state == BridgeSessionStateComplete) {
-        furi_string_cat_printf(app->status_text, "\e#%s\n", markets_name(app->market_index));
-        if(app->snapshot.http_status != 200U) {
-            furi_string_cat_printf(app->status_text, "Price service: HTTP %u\nTry again later.", app->snapshot.http_status);
-        } else if(markets_format(app->market_index, app->snapshot.preview, app->search_result, sizeof(app->search_result))) {
+    if(app->request_mode == FibRequestModeMarkets &&
+       app->snapshot.state == BridgeSessionStateComplete) {
+        const bool parsed = app->snapshot.http_status == 200U &&
+            (app->market_index == MARKETS_SEARCH_INDEX ?
+                 markets_format_coin(
+                     app->market_symbol,
+                     app->snapshot.preview,
+                     app->search_result,
+                     sizeof(app->search_result)) :
+                 markets_format(
+                     app->market_index,
+                     app->snapshot.preview,
+                     app->search_result,
+                     sizeof(app->search_result)));
+        if(parsed) {
             const char* price_end = strchr(app->search_result, ' ');
             const char* updated = strstr(app->search_result, "Updated: ");
             if(price_end && updated && (size_t)(price_end - app->search_result) < sizeof(app->market_price)) {
@@ -783,13 +800,35 @@ static void fib_app_render_status(FibApp* app) {
                 const char* clock = strchr(updated, 'T');
                 if(clock) updated = clock + 1;
                 snprintf(app->market_updated, sizeof(app->market_updated), "Updated: %.8s UTC", updated);
+                app->market_has_price = true;
+                app->market_last_refresh_tick = furi_get_tick();
                 market_card_ready = true;
-            } else {
-                furi_string_cat_str(app->status_text, "Price data unavailable.\nPlease refresh.");
             }
-        } else {
-            furi_string_cat_str(app->status_text, "Price data unavailable.\nPlease refresh.");
         }
+        if(!app->market_has_price) {
+            const char* title = app->market_index == MARKETS_SEARCH_INDEX ?
+                                    app->market_symbol :
+                                    markets_name(app->market_index);
+            furi_string_cat_printf(app->status_text, "\e#%s\n", title);
+            if(app->snapshot.http_status != 200U &&
+               app->market_index == MARKETS_SEARCH_INDEX) {
+                furi_string_cat_str(
+                    app->status_text,
+                    "Coin was not found.\nEnter a Binance USDT symbol.");
+            } else if(app->snapshot.http_status != 200U) {
+                furi_string_cat_printf(
+                    app->status_text,
+                    "Price service: HTTP %u\nTry again later.",
+                    app->snapshot.http_status);
+            } else {
+                furi_string_cat_str(
+                    app->status_text,
+                    "Price data unavailable.\nPlease refresh.");
+            }
+        }
+        if(app->market_has_price) market_card_ready = true;
+    } else if(app->request_mode == FibRequestModeMarkets && app->market_has_price) {
+        market_card_ready = true;
     } else if(app->request_mode == FibRequestModeWikipedia && app->snapshot.state == BridgeSessionStateComplete) {
         furi_string_cat_printf(app->status_text, "\e#%s\n", app->input_buffer);
         if(app->snapshot.http_status == 200U &&
@@ -913,24 +952,25 @@ static void fib_app_render_status(FibApp* app) {
     widget_reset(app->status_widget);
     if(market_card_ready) {
         static const char* titles[] = {
-            "BTC / USDT", "ETH / USDT", "Gold", "WTI Crude", "Brent Crude", "Silver"};
+            "BTC / USDT", "ETH / USDT", "Gold", "Brent BZ", "Silver"};
         static const char* units[] = {
-            "USDT", "USDT", "USD / troy oz", "USD / barrel", "USD / barrel", "USD / troy oz"};
+            "USDT", "USDT", "USD / troy oz", "USDT / barrel", "USD / troy oz"};
         static const char* sources[] = {
-            "Binance", "Binance", "Gold API", "OilWatch", "OilWatch", "Gold API"};
+            "Binance", "Binance", "Gold API", "Binance", "Gold API"};
+        const bool searched_coin = app->market_index == MARKETS_SEARCH_INDEX;
         widget_add_string_element(
             app->status_widget, 3U, 8U, AlignLeft, AlignCenter, FontSecondary,
-            titles[app->market_index]);
+            searched_coin ? app->market_symbol : titles[app->market_index]);
         widget_add_string_element(
             app->status_widget, 125U, 8U, AlignRight, AlignCenter, FontSecondary,
-            sources[app->market_index]);
+            searched_coin ? "Binance" : sources[app->market_index]);
         widget_add_line_element(app->status_widget, 2U, 15U, 125U, 15U);
         widget_add_string_element(
             app->status_widget, 64U, 25U, AlignCenter, AlignCenter, FontPrimary,
             app->market_price);
         widget_add_string_element(
             app->status_widget, 64U, 35U, AlignCenter, AlignCenter, FontSecondary,
-            units[app->market_index]);
+            searched_coin ? "USDT" : units[app->market_index]);
         widget_add_string_element(
             app->status_widget, 64U, 44U, AlignCenter, AlignCenter, FontSecondary,
             app->market_updated);
@@ -972,6 +1012,9 @@ static void fib_app_render_status(FibApp* app) {
             app->request_mode == FibRequestModeRadioPlaying ? "Stop" : "Play",
             fib_app_cancel_button,
             app);
+    } else if(app->request_mode == FibRequestModeMarkets && app->market_has_price) {
+        widget_add_button_element(
+            app->status_widget, GuiButtonTypeCenter, "Refresh", fib_app_cancel_button, app);
     } else if(app->snapshot.active_request) {
         widget_add_button_element(
             app->status_widget, GuiButtonTypeCenter, "Cancel", fib_app_cancel_button, app);
@@ -1087,10 +1130,20 @@ static void fib_app_tick(void* context) {
     FibApp* app = context;
     if(!app || !app->session) return;
     bridge_session_tick(app->session);
+    const uint32_t now = furi_get_tick();
+    if(app->request_mode == FibRequestModeMarkets &&
+       app->current_view == FibViewStatus && app->market_has_price &&
+       (uint32_t)(now - app->market_last_refresh_tick) >=
+           furi_ms_to_ticks(FIB_MARKET_AUTO_REFRESH_MS)) {
+        bridge_session_get_snapshot(app->session, &app->snapshot);
+        if(fib_app_internet_ready(&app->snapshot)) {
+            app->market_last_refresh_tick = now;
+            fib_app_request_or_wait(app, app->url_buffer);
+        }
+    }
     if(app->request_mode != FibRequestModeRadioPlaying ||
        !radio_player_is_running(app->radio_player)) return;
     bridge_session_get_snapshot(app->session, &app->snapshot);
-    const uint32_t now = furi_get_tick();
     if(!app->snapshot.active_request && app->snapshot.usb_connected &&
        app->snapshot.helper_present && app->snapshot.selected_major != 0U &&
        (app->snapshot.permission == BridgePermissionAllowedOnce ||
@@ -1141,6 +1194,17 @@ static uint32_t fib_app_back_from_status(void* context) {
     return fib_app_back_to_menu(context);
 }
 
+static uint32_t fib_app_back_from_input(void* context) {
+    UNUSED(context);
+    FibApp* app = fib_app_active;
+    if(app && app->request_mode == FibRequestModeMarketSearch) {
+        app->request_mode = FibRequestModeMarkets;
+        app->current_view = FibViewMarkets;
+        return FibViewMarkets;
+    }
+    return fib_app_back_to_menu(context);
+}
+
 static void fib_app_status_exited(void* context) {
     UNUSED(context);
     FibApp* app = fib_app_active;
@@ -1186,6 +1250,17 @@ static bool fib_app_search_validator(const char* text, FuriString* error, void* 
     return true;
 }
 
+static bool fib_app_market_validator(const char* text, FuriString* error, void* context) {
+    UNUSED(context);
+    char symbol[MARKETS_MAX_SYMBOL_LENGTH + 1U];
+    char url[128];
+    if(!markets_build_coin_request(text, symbol, sizeof(symbol), url, sizeof(url))) {
+        furi_string_set_str(error, "Use 2-20 letters or numbers");
+        return false;
+    }
+    return true;
+}
+
 static void fib_app_request_or_wait(FibApp* app, const char* url) {
     if(!app || !url) return;
     if(url != app->url_buffer) {
@@ -1221,7 +1296,10 @@ static void fib_app_open_search_input(
     app->input_buffer[0] = '\0';
     text_input_set_header_text(app->url_input, header);
     text_input_set_minimum_length(app->url_input, 2U);
-    text_input_set_validator(app->url_input, fib_app_search_validator, app);
+    text_input_set_validator(
+        app->url_input,
+        mode == FibRequestModeMarketSearch ? fib_app_market_validator : fib_app_search_validator,
+        app);
     text_input_set_result_callback(
         app->url_input,
         fib_app_url_submitted,
@@ -1326,6 +1404,17 @@ static void fib_app_url_submitted(void* context) {
                app->input_buffer, app->url_buffer, sizeof(app->url_buffer))) {
             return;
         }
+    } else if(app->request_mode == FibRequestModeMarketSearch) {
+        if(!markets_build_coin_request(
+               app->input_buffer,
+               app->market_symbol,
+               sizeof(app->market_symbol),
+               app->url_buffer,
+               sizeof(app->url_buffer))) return;
+        app->market_index = MARKETS_SEARCH_INDEX;
+        app->market_has_price = false;
+        app->market_last_refresh_tick = furi_get_tick();
+        app->request_mode = FibRequestModeMarkets;
     } else if(app->request_mode == FibRequestModeWeatherSearch) {
         char encoded[FIB_WEATHER_QUERY_SIZE * 3U + 1U];
         if(!fib_app_percent_encode(app->input_buffer, encoded, sizeof(encoded))) return;
@@ -1388,8 +1477,18 @@ static void fib_app_radio_selected(void* context, uint32_t index) {
 
 static void fib_app_market_selected(void* context, uint32_t index) {
     FibApp* app = context;
-    if(!app || index >= MARKETS_COUNT) return;
+    if(!app || index > MARKETS_SEARCH_INDEX) return;
+    if(index == MARKETS_SEARCH_INDEX) {
+        fib_app_open_search_input(
+            app,
+            FibRequestModeMarketSearch,
+            "Coin Symbol (e.g. SOL)",
+            21U);
+        return;
+    }
     app->market_index = index;
+    app->market_has_price = false;
+    app->market_last_refresh_tick = furi_get_tick();
     app->request_mode = FibRequestModeMarkets;
     fib_app_request_or_wait(app, markets_url(index));
     fib_app_show_status(app, false);
@@ -1480,6 +1579,12 @@ static FibApp* fib_app_alloc(void) {
     for(unsigned i = 0; i < MARKETS_COUNT; ++i) {
         submenu_add_item(app->markets, markets_name(i), i, fib_app_market_selected, app);
     }
+    submenu_add_item(
+        app->markets,
+        "Search Any Coin",
+        MARKETS_SEARCH_INDEX,
+        fib_app_market_selected,
+        app);
     view_set_previous_callback(submenu_get_view(app->markets), fib_app_back_to_menu);
     submenu_add_item(
         app->menu, "Test Connection", FibMenuTestConnection, fib_app_menu_selected, app);
@@ -1522,7 +1627,7 @@ static FibApp* fib_app_alloc(void) {
         app->input_buffer,
         sizeof(app->input_buffer),
         false);
-    view_set_previous_callback(text_input_get_view(app->url_input), fib_app_back_to_menu);
+    view_set_previous_callback(text_input_get_view(app->url_input), fib_app_back_from_input);
 
     view_dispatcher_add_view(app->view_dispatcher, FibViewMenu, submenu_get_view(app->menu));
     view_dispatcher_add_view(app->view_dispatcher, FibViewMarkets, submenu_get_view(app->markets));

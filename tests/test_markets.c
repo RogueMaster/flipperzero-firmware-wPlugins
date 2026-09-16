@@ -19,6 +19,26 @@ static void test_crypto_prices(void) {
 
     assert(markets_format(1, ethereum, output, sizeof(output)));
     assert(strstr(output, "2280.12 USDT") != NULL);
+
+    const char* solana =
+        "{\"symbol\":\"SOLUSDT\",\"lastPrice\":\"135.42000000\","
+        "\"closeTime\":1789489668007}";
+    assert(markets_format_coin("SOLUSDT", solana, output, sizeof(output)));
+    assert(strstr(output, "135.42 USDT") != NULL);
+    assert(!markets_format_coin("ADAUSDT", solana, output, sizeof(output)));
+}
+
+static void test_coin_request(void) {
+    char symbol[MARKETS_MAX_SYMBOL_LENGTH + 1U];
+    char url[160];
+    assert(markets_build_coin_request("sol", symbol, sizeof(symbol), url, sizeof(url)));
+    assert(strcmp(symbol, "SOLUSDT") == 0);
+    assert(strstr(url, "symbol=SOLUSDT") != NULL);
+    assert(markets_build_coin_request("1000shibusdt", symbol, sizeof(symbol), url, sizeof(url)));
+    assert(strcmp(symbol, "1000SHIBUSDT") == 0);
+    assert(!markets_build_coin_request("SOL/USDT", symbol, sizeof(symbol), url, sizeof(url)));
+    assert(!markets_build_coin_request("A", symbol, sizeof(symbol), url, sizeof(url)));
+    assert(!markets_build_coin_request("thissymbolisfarwaytoolong", symbol, sizeof(symbol), url, sizeof(url)));
 }
 
 static void test_gold_price(void) {
@@ -34,30 +54,22 @@ static void test_gold_price(void) {
     const char* silver =
         "{\"currency\":\"USD\",\"name\":\"Silver\",\"price\":64.624001,"
         "\"symbol\":\"XAG\",\"updatedAt\":\"2026-09-16T14:48:42Z\"}";
-    assert(markets_format(5, silver, output, sizeof(output)));
+    assert(markets_format(4, silver, output, sizeof(output)));
     assert(strstr(output, "64.624001 USD / troy oz") != NULL);
     assert(strstr(output, "Source: Gold API") != NULL);
-    assert(!markets_format(5, gold, output, sizeof(output)));
+    assert(!markets_format(4, gold, output, sizeof(output)));
 }
 
 static void test_oil_prices(void) {
-    const char* wti =
-        "{\"lastUpdated\":\"2026-09-16T11:23:05.664Z\","
-        "\"priceUsd\":103.36,\"dataSource\":\"Yahoo Finance (CL=F)\"}";
     const char* brent =
-        "{\"lastUpdated\":\"2026-09-16T11:23:22.494Z\","
-        "\"priceUsd\":107.14,\"dataSource\":\"Yahoo Finance (BZ=F)\"}";
+        "{\"symbol\":\"BZUSDT\",\"lastPrice\":\"100.25000\","
+        "\"closeTime\":1789572303865}";
     char output[192];
-    assert(markets_format(3, wti, output, sizeof(output)));
-    assert(strstr(output, "103.36 USD / barrel") != NULL);
-    assert(strstr(output, "2026-09-16T11:23:05 UTC") != NULL);
-    assert(strstr(output, "Source: AmericasOilWatch") != NULL);
-    assert(markets_format(4, brent, output, sizeof(output)));
-    assert(strstr(output, "107.14 USD / barrel") != NULL);
-    assert(!markets_format(3, "{\"priceUsd\":103.36,\"lastUpdated\":\"bad\"}",
-                           output, sizeof(output)));
-    assert(!markets_format(4, "{\"priceUsd\":-1,\"lastUpdated\":\"2026-09-16T11:23:22.494Z\"}",
-                           output, sizeof(output)));
+    assert(markets_format(3, brent, output, sizeof(output)));
+    assert(strstr(output, "100.25 USDT / barrel") != NULL);
+    assert(strstr(output, "Source: Binance") != NULL);
+    assert(!markets_format(3, "{\"symbol\":\"BTCUSDT\",\"lastPrice\":\"1\","
+                               "\"closeTime\":1789572303865}", output, sizeof(output)));
 }
 
 static void test_rejects_untrusted_or_incomplete_data(void) {
@@ -115,11 +127,11 @@ int main(void) {
     assert(strcmp(markets_name(0), "Bitcoin BTC/USDT") == 0);
     assert(strstr(markets_url(1), "ETHUSDT") != NULL);
     assert(strstr(markets_url(2), "/XAU") != NULL);
-    assert(strstr(markets_url(3), "/wti") != NULL);
-    assert(strstr(markets_url(4), "/brent") != NULL);
-    assert(strstr(markets_url(5), "/XAG") != NULL);
-    assert(strcmp(markets_name(5), "Silver USD/oz") == 0);
+    assert(strstr(markets_url(3), "symbol=BZUSDT") != NULL);
+    assert(strstr(markets_url(4), "/XAG") != NULL);
+    assert(strcmp(markets_name(4), "Silver USD/oz") == 0);
     test_crypto_prices();
+    test_coin_request();
     test_gold_price();
     test_oil_prices();
     test_rejects_untrusted_or_incomplete_data();

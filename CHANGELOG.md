@@ -1,9 +1,12 @@
 ## v0.4.0 (unreleased)
 
+- Added symbol search for Binance Spot coins with USDT pairs and silent
+  15-second price-card refreshes.
+- Replaced the WTI and external Brent feeds with Binance Futures BZUSDT.
 - Added silver pricing and a compact Markets price card; placed Markets directly
   below Internet Radio in the main menu.
 - Kept the price card text clear of the Refresh button area.
-- Added WTI and Brent crude oil prices in USD per barrel to Markets.
+- Added Brent crude oil pricing to Markets.
 - Fixed Back navigation while Markets waits for connection permission.
 - Reject incomplete market responses, duplicate price fields, and nested data.
 

@@ -45,7 +45,9 @@ outside the MVP.
 - **National Today** — displays the daily National Today description
 - **Where is the ISS?** — shows current coordinates, altitude, speed, and visibility
 - **Internet Radio** — finds MP3 stations by country and plays them on the Flipper speaker
-- **Markets** — shows BTC/USDT, ETH/USDT, gold and silver in USD per troy ounce, and WTI/Brent oil in USD per barrel
+- **Markets** — searches any Binance Spot coin with a USDT pair, shows gold and
+  silver in USD per troy ounce, and gets Brent BZ/USDT from Binance Futures.
+  Open price cards refresh silently every 15 seconds.
 - **Custom URL Request** — accepts an HTTPS URL up to 384 bytes
 - **Connection Info** — shows USB, helper, permission, device, and protocol state
 
