@@ -15,7 +15,7 @@
 
 #define TAG            "UsbInternetBridge"
 #define FIB_UI_TICK_MS 100U
-#define FIB_MARKET_AUTO_REFRESH_MS 15000U
+#define FIB_MARKET_AUTO_REFRESH_MS 2000U
 #define FIB_SAMPLE_URL "https://api.github.com/zen"
 #define FIB_TIME_URL   "https://postman-echo.com/time/now"
 #define FIB_NATIONAL_TODAY_URL "https://nationaltoday.com/today/"
@@ -128,6 +128,7 @@ typedef struct {
     char market_symbol[MARKETS_MAX_SYMBOL_LENGTH + 1U];
     bool market_has_price;
     uint32_t market_last_refresh_tick;
+    uint32_t market_last_response_id;
     FibView current_view;
     bool showing_connection_info;
     FibRequestMode request_mode;
@@ -777,18 +778,24 @@ static void fib_app_render_status(FibApp* app) {
 
     if(app->request_mode == FibRequestModeMarkets &&
        app->snapshot.state == BridgeSessionStateComplete) {
-        const bool parsed = app->snapshot.http_status == 200U &&
-            (app->market_index == MARKETS_SEARCH_INDEX ?
-                 markets_format_coin(
-                     app->market_symbol,
-                     app->snapshot.preview,
-                     app->search_result,
-                     sizeof(app->search_result)) :
-                 markets_format(
-                     app->market_index,
-                     app->snapshot.preview,
-                     app->search_result,
-                     sizeof(app->search_result)));
+        bool parsed = false;
+        const bool new_response =
+            app->snapshot.active_request_id != app->market_last_response_id;
+        if(new_response) {
+            app->market_last_response_id = app->snapshot.active_request_id;
+            parsed = app->snapshot.http_status == 200U &&
+                (app->market_index == MARKETS_SEARCH_INDEX ?
+                     markets_format_coin(
+                         app->market_symbol,
+                         app->snapshot.preview,
+                         app->search_result,
+                         sizeof(app->search_result)) :
+                     markets_format(
+                         app->market_index,
+                         app->snapshot.preview,
+                         app->search_result,
+                         sizeof(app->search_result)));
+        }
         if(parsed) {
             const char* price_end = strchr(app->search_result, ' ');
             const char* updated = strstr(app->search_result, "Updated: ");
@@ -1414,6 +1421,7 @@ static void fib_app_url_submitted(void* context) {
         app->market_index = MARKETS_SEARCH_INDEX;
         app->market_has_price = false;
         app->market_last_refresh_tick = furi_get_tick();
+        app->market_last_response_id = 0U;
         app->request_mode = FibRequestModeMarkets;
     } else if(app->request_mode == FibRequestModeWeatherSearch) {
         char encoded[FIB_WEATHER_QUERY_SIZE * 3U + 1U];
@@ -1489,6 +1497,7 @@ static void fib_app_market_selected(void* context, uint32_t index) {
     app->market_index = index;
     app->market_has_price = false;
     app->market_last_refresh_tick = furi_get_tick();
+    app->market_last_response_id = 0U;
     app->request_mode = FibRequestModeMarkets;
     fib_app_request_or_wait(app, markets_url(index));
     fib_app_show_status(app, false);
