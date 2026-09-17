@@ -268,19 +268,19 @@ jobs:
   # column-aligned macros/struct fields that clang-format rejects, and lint
   # walks the whole repo (flagging the hyphenated cloud-plugins/, esp32-wifi-fw/
   # and web-image-prep/ folders). The action exits non-zero on any violation,
-  # so the job is marked continue-on-error and only surfaces its findings in
+  # so the lint step is marked continue-on-error and only surfaces findings in
   # the job summary. Do NOT "fix" this with `ufbt format` - that would also
   # rewrite the ESP32 C sources.
   lint:
     name: Lint (advisory, non-blocking)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: ufbt lint (clang-format check)
+        continue-on-error: true
         uses: flipperdevices/flipperzero-ufbt-action@v0.1
         with:
           app-dir: .
