@@ -1,6 +1,7 @@
 ## Volor Savanna is a text adventure game
 
 #### COMPLETE:
+* Bash
 * C
 * Flipper Zero
 * Python
