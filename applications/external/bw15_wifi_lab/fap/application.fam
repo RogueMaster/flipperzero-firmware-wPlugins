@@ -1,0 +1,18 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="5ghost_wifi_lab",  # Must be unique; matches brand "5Ghost" + repo 5ghost-wifi-lab
+    name="5Ghost WiFi Lab",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ghost5_app",
+    stack_size=2 * 1024,
+    fap_category="GPIO",
+    fap_version="2.7.6",
+    fap_icon="ghost_icon.png",  # 5Ghost brand icon (task17)
+    fap_description="Companion app for the 5Ghost BW16 dual-band Wi-Fi module",
+    fap_author="PINGEQUA",
+    fap_weburl="https://github.com/pingequalab/5ghost-wifi-lab",
+    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_file_assets="files",  # bundle example portals (files/portals/*.html) -> /ext/apps_assets/<appid>/
+    fap_libs=["assets", "hwdrivers"],
+)
