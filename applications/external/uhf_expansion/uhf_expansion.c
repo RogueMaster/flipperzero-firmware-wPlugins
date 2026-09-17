@@ -41,6 +41,7 @@
 #define UHF_CMD_INV_ALT       0x8AU
 #define UHF_CMD_READ_TAG      0x81U
 #define UHF_CMD_WRITE_TAG     0x82U
+#define UHF_CMD_LOCK_TAG      0x83U
 #define UHF_CMD_SET_EPC_MATCH 0x85U
 #define UHF_PAYLOAD_START_INV 0x01U
 #define UHF_DEFAULT_POWER_DBM 20U
@@ -59,6 +60,8 @@
 #define UHF_INV_HEARTBEAT_MS        250U
 #define UHF_INV_SESSION_RENEW_MS    10000U
 #define UHF_INV_RENEW_SETTLE_MS     10U
+#define UHF_SINGLE_TAG_STABLE_MS    800U
+#define UHF_EXIT_CONFIRM_MS         1600U
 #define UHF_READER_QUERY_TIMEOUT_MS 150U
 #define UHF_TEMP_REFRESH_MS         60000U
 #define UHF_TEMP_DISPLAY_OFFSET_C   (-20)
@@ -66,6 +69,7 @@
 #define UHF_ABOUT_VISIBLE_LINES     5U
 #define UHF_TAG_DATA_HEX_PER_LINE   12U
 #define UHF_TAG_DATA_VISIBLE_LINES  3U
+#define UHF_ASCII_EPC_BYTES         12U
 
 #define UHF_BRIDGE_TX_EXT_PIN 13
 #define UHF_BRIDGE_RX_EXT_PIN 14
@@ -86,7 +90,10 @@
 #define UHF_APP_DATA_DIR    APP_DATA_PATH("uhf_expansion")
 #define UHF_VIEW_STATE_PATH UHF_APP_DATA_DIR "/view_state.bin"
 #define UHF_SETTINGS_PATH   UHF_APP_DATA_DIR "/settings.bin"
+#define UHF_KEY_VAULT_PATH  UHF_APP_DATA_DIR "/keys.bin"
 #define UHF_SETTINGS_MAGIC  0x55484632UL
+#define UHF_KEY_VAULT_MAGIC 0x55484B31UL
+#define UHF_KEY_SLOT_COUNT  4U
 
 typedef struct {
     InputEvent input;
@@ -113,6 +120,10 @@ typedef enum {
     UhfPageTidDecoder = 6,
     UhfPageEpcFuzzing = 7,
     UhfPageSettings = 8,
+    UhfPageTagSecurity = 9,
+    UhfPageKeyVault = 10,
+    UhfPageAccessKeyMenu = 11,
+    UhfPageAscii = 12,
 } UhfPage;
 
 typedef enum {
@@ -130,13 +141,26 @@ typedef enum {
     UhfStartupCount,
 } UhfStartupApp;
 
+typedef enum {
+    UhfEpcDisplayHex = 0,
+    UhfEpcDisplayAscii,
+    UhfEpcDisplayCount,
+} UhfEpcDisplay;
+
 typedef struct {
     uint32_t magic;
     uint8_t sound_enabled;
     uint8_t rf_power_dbm;
     uint8_t startup_app;
-    uint8_t reserved;
+    uint8_t epc_display;
 } UhfSettingsData;
+
+typedef struct {
+    uint32_t magic;
+    uint8_t active_slot;
+    uint8_t reserved[3];
+    uint8_t access_keys[UHF_KEY_SLOT_COUNT][4];
+} UhfKeyVaultData;
 
 typedef struct {
     bool used;
@@ -174,6 +198,8 @@ typedef struct {
 
     bool inventory_running;
     bool exit_requested;
+    bool exit_confirm_active;
+    uint32_t exit_confirm_tick;
     bool hardware_ready;
     uint32_t rx_bytes;
     uint32_t rx_frames;
@@ -210,20 +236,32 @@ typedef struct {
     bool list_selection_manual;
     size_t about_top_line;
     uint8_t tag_action_selected;
+    uint8_t tag_action_top;
+    uint8_t access_key_action_selected;
     uint8_t main_menu_selected;
+    uint8_t main_menu_top_row;
     uint8_t settings_selected;
     UhfStartupApp startup_app;
+    UhfEpcDisplay epc_display;
     bool tid_decode_attempted;
     uint32_t fuzz_sequence;
     char selected_epc[UHF_EPC_HEX_MAX + 1];
     char access_epc[UHF_EPC_HEX_MAX + 1];
     char fuzz_base_epc[UHF_EPC_HEX_MAX + 1];
+    bool ascii_tag_captured;
+    uint32_t ascii_single_since;
+    char ascii_source_epc[UHF_EPC_HEX_MAX + 1];
+    char ascii_text[UHF_ASCII_EPC_BYTES + 1];
+    char list_ascii_epc[UHF_EPC_HEX_MAX / 2U + 1U];
+    char list_ascii_compact[40];
     char selected_tid[UHF_TID_HEX_MAX + 1];
     char selected_user[UHF_USER_HEX_MAX + 1];
     char pending_tid[UHF_USER_HEX_MAX + 1];
     bool selected_tid_valid;
     bool selected_user_valid;
     bool tag_access_unfiltered;
+    bool security_mode;
+    uint32_t security_single_since;
     UhfTagBank tag_bank;
     size_t tag_data_scroll_line;
     bool epc_filter_active;
@@ -232,6 +270,9 @@ typedef struct {
     uint8_t tag_reply_cmd;
     uint8_t tag_reply[UHF_TAG_REPLY_MAX];
     size_t tag_reply_len;
+    uint8_t active_key_slot;
+    uint8_t key_vault_selected_slot;
+    uint8_t access_keys[UHF_KEY_SLOT_COUNT][4];
 
     char status[64];
     bool save_popup_active;
@@ -385,16 +426,28 @@ static void uhf_set_startup_text(UhfApp* app, const char* text, const char* subt
 static void uhf_save_last_page(const UhfApp* app);
 static void uhf_load_settings(UhfApp* app);
 static bool uhf_save_settings(const UhfApp* app);
+static void uhf_load_key_vault(UhfApp* app);
+static bool uhf_save_key_vault(const UhfApp* app);
+static bool uhf_epc_hex_to_ascii(const char* epc_hex, char* out, size_t out_size);
+static bool uhf_ascii_to_epc_hex(const char* ascii, char* out, size_t out_size);
 static bool uhf_read_selected_tid(UhfApp* app);
 static bool uhf_read_selected_user(UhfApp* app);
 static bool uhf_write_selected_bank(UhfApp* app, UhfTagBank bank, const char* value_hex);
+static bool uhf_lock_selected_bank(UhfApp* app, bool lock);
+static bool uhf_erase_selected_bank(UhfApp* app);
+static bool uhf_initialize_tag_access_key(UhfApp* app);
+static bool uhf_reset_tag_access_key(UhfApp* app);
 static void uhf_leave_tag_actions(UhfApp* app);
+static const char* uhf_current_tag_bank_value(UhfApp* app, bool* valid);
 
 static const char* const uhf_main_menu_items[] = {
     "UHF Radar",
     "Inventory",
-    "TID Decoder",
     "EPC Fuzzing",
+    "EPC ASCII",
+    "TID Decoder",
+    "Tag Control",
+    "Access Keys",
     "Settings",
     "About Us",
 };
@@ -410,7 +463,7 @@ static const char* const uhf_startup_names[] = {
 static const char* const uhf_about_lines[] = {
     "UHF tools by MTCK",
     "AKA MTools Tec",
-    "Version: 1.3",
+    "Version: 1.4",
     "Github: mtoolstec/",
     "fz-uhf-expansion",
 };
@@ -797,6 +850,54 @@ static bool uhf_prompt_memory_hex(
 
     if(!ctx.submitted) return false;
     return uhf_normalize_hex(out, max_hex_len);
+}
+
+static void uhf_trim_trailing_spaces(char* value) {
+    if(!value) return;
+
+    size_t length = strlen(value);
+    while(length > 0U && value[length - 1U] == ' ') {
+        value[--length] = '\0';
+    }
+}
+
+static bool uhf_prompt_ascii(UhfApp* app, char* out, size_t out_size) {
+    if(!app || !app->gui || !app->view_port || !out || out_size < 2U) return false;
+
+    TextInput* text_input = text_input_alloc();
+    ViewDispatcher* dispatcher = view_dispatcher_alloc();
+    if(!text_input || !dispatcher) {
+        if(text_input) text_input_free(text_input);
+        if(dispatcher) view_dispatcher_free(dispatcher);
+        return false;
+    }
+
+    UhfFilenameInputCtx ctx = {.dispatcher = dispatcher, .submitted = false};
+    text_input_set_header_text(text_input, "ASCII (max 12)");
+    text_input_set_minimum_length(text_input, 1U);
+    text_input_set_result_callback(
+        text_input, uhf_filename_input_done, &ctx, out, out_size, false);
+    view_dispatcher_set_event_callback_context(dispatcher, &ctx);
+    view_dispatcher_set_navigation_event_callback(dispatcher, uhf_filename_input_back);
+    view_dispatcher_add_view(dispatcher, 0, text_input_get_view(text_input));
+
+    gui_remove_view_port(app->gui, app->view_port);
+    view_dispatcher_attach_to_gui(dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_switch_to_view(dispatcher, 0);
+    view_dispatcher_run(dispatcher);
+    view_dispatcher_remove_view(dispatcher, 0);
+    view_dispatcher_free(dispatcher);
+    text_input_free(text_input);
+    gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
+
+    if(!ctx.submitted) return false;
+    uhf_trim_trailing_spaces(out);
+    if(!out[0] || strlen(out) > UHF_ASCII_EPC_BYTES) return false;
+    for(const char* cursor = out; *cursor; cursor++) {
+        const unsigned char c = (unsigned char)*cursor;
+        if(c < 0x20U || c > 0x7EU) return false;
+    }
+    return true;
 }
 
 static bool uhf_save_index_epc_csv(UhfApp* app, const char* filename) {
@@ -1248,16 +1349,11 @@ static bool uhf_is_valid_epc(const uint8_t* epc, size_t epc_len) {
 
     if(!epc || epc_len < 4U || epc_len > (UHF_EPC_HEX_MAX / 2U)) return false;
 
-    bool nonzero = false;
-    for(size_t i = 0; i < epc_len; i++) {
-        if(epc[i] != 0U) {
-            nonzero = true;
-            break;
-        }
-    }
-
-    return nonzero && !(epc_len >= sizeof(reader_placeholder) &&
-                        memcmp(epc, reader_placeholder, sizeof(reader_placeholder)) == 0);
+    /* All-zero EPCs are recoverable tags, not invalid frames. Keeping them
+       visible lets the user assign a new EPC after an earlier clear. */
+    return !(
+        epc_len >= sizeof(reader_placeholder) &&
+        memcmp(epc, reader_placeholder, sizeof(reader_placeholder)) == 0);
 }
 
 static UhfTagEntry* uhf_find_or_add_tag(UhfApp* app, const char* epc_hex, bool* is_new_tag) {
@@ -1332,7 +1428,7 @@ static bool uhf_send_raw_frame(UhfApp* app, const uint8_t* frame, size_t frame_s
     if(uhf_bytes_to_hex(frame, shown, hex, sizeof(hex))) {
         uhf_diag_log(app, "TX len=%lu %s", (unsigned long)frame_size, hex);
         if(frame[3] == UHF_CMD_READ_TAG || frame[3] == UHF_CMD_WRITE_TAG ||
-           frame[3] == UHF_CMD_SET_EPC_MATCH) {
+           frame[3] == UHF_CMD_LOCK_TAG || frame[3] == UHF_CMD_SET_EPC_MATCH) {
             FURI_LOG_I(TAG, "Tag TX %s", hex);
         }
     }
@@ -1402,18 +1498,58 @@ static bool uhf_wait_tag_reply(
     return false;
 }
 
+static int8_t uhf_hex_digit_value(char c) {
+    if(c >= '0' && c <= '9') return (int8_t)(c - '0');
+    if(c >= 'A' && c <= 'F') return (int8_t)(c - 'A' + 10);
+    if(c >= 'a' && c <= 'f') return (int8_t)(c - 'a' + 10);
+    return -1;
+}
+
 static bool uhf_hex_to_bytes(const char* hex, uint8_t* out, size_t out_size, size_t* out_len) {
     if(!hex || !out || !out_len) return false;
     const size_t hex_len = strlen(hex);
     if((hex_len & 1U) || hex_len / 2U > out_size) return false;
 
     for(size_t i = 0U; i < hex_len / 2U; i++) {
-        unsigned int value = 0U;
-        if(sscanf(&hex[i * 2U], "%2x", &value) != 1) return false;
-        out[i] = (uint8_t)value;
+        const int8_t high = uhf_hex_digit_value(hex[i * 2U]);
+        const int8_t low = uhf_hex_digit_value(hex[i * 2U + 1U]);
+        if(high < 0 || low < 0) return false;
+        out[i] = (uint8_t)((high << 4U) | low);
     }
     *out_len = hex_len / 2U;
     return true;
+}
+
+static bool uhf_epc_hex_to_ascii(const char* epc_hex, char* out, size_t out_size) {
+    uint8_t bytes[UHF_EPC_HEX_MAX / 2U];
+    size_t length = 0U;
+    if(!out || out_size < 2U || !uhf_hex_to_bytes(epc_hex, bytes, sizeof(bytes), &length) ||
+       length == 0U || length >= out_size) {
+        return false;
+    }
+
+    for(size_t i = 0U; i < length; i++) {
+        if(bytes[i] < 0x20U || bytes[i] > 0x7EU) return false;
+    }
+    memcpy(out, bytes, length);
+    out[length] = '\0';
+    uhf_trim_trailing_spaces(out);
+    return out[0] != '\0';
+}
+
+static bool uhf_ascii_to_epc_hex(const char* ascii, char* out, size_t out_size) {
+    if(!ascii || !out) return false;
+    const size_t length = strlen(ascii);
+    if(length == 0U || length > UHF_ASCII_EPC_BYTES) return false;
+
+    uint8_t bytes[UHF_ASCII_EPC_BYTES];
+    memset(bytes, ' ', sizeof(bytes));
+    for(size_t i = 0U; i < length; i++) {
+        const unsigned char c = (unsigned char)ascii[i];
+        if(c < 0x20U || c > 0x7EU) return false;
+        bytes[i] = c;
+    }
+    return uhf_bytes_to_hex(bytes, sizeof(bytes), out, out_size);
 }
 
 static bool uhf_set_selected_epc_filter(UhfApp* app) {
@@ -1478,6 +1614,7 @@ static bool uhf_read_selected_bank_words(
         0x00U,
     };
     payload[4] = word_address;
+    memcpy(&payload[7], app->access_keys[app->active_key_slot], 4U);
     uhf_set_status(app, "Reading %s...", name);
     if(!uhf_wait_tag_reply(app, UHF_CMD_READ_TAG, payload, sizeof(payload), 2500U)) return false;
     if(app->tag_reply_len == 1U) {
@@ -1571,13 +1708,18 @@ static bool uhf_write_selected_bank(UhfApp* app, UhfTagBank bank, const char* va
         return false;
     }
 
-    /* The user may replace the source tag with a writable target. Access must
-       therefore be unfiltered and only one target tag should be in the field. */
-    uhf_clear_selected_epc_filter(app);
-    app->tag_access_unfiltered = true;
+    /* Normal tag actions stay EPC-filtered. Fuzzing explicitly opts into an
+       unfiltered write because the source may be replaced by a target tag. */
+    if(!app->tag_access_unfiltered && !app->epc_filter_active &&
+       !uhf_set_selected_epc_filter(app)) {
+        uhf_notify_write_result(app, false);
+        return false;
+    }
+    if(app->tag_access_unfiltered) uhf_clear_selected_epc_filter(app);
     furi_delay_ms(UHF_STOP_SETTLE_MS);
 
     uint8_t payload[11U + UHF_USER_HEX_MAX / 2U] = {0};
+    memcpy(payload, app->access_keys[app->active_key_slot], 4U);
     payload[4] = (bank == UhfTagBankEpc) ? 0x01U : (bank == UhfTagBankTid ? 0x02U : 0x03U);
     payload[8] = (bank == UhfTagBankEpc) ? 0x02U : 0x00U;
     payload[10] = (uint8_t)(value_len / 2U);
@@ -1600,6 +1742,10 @@ static bool uhf_write_selected_bank(UhfApp* app, UhfTagBank bank, const char* va
         uhf_notify_write_result(app, false);
         return false;
     }
+
+    /* Once EPC memory changes, the old EPC filter can no longer match the
+       same tag. Clear it before the verification read. */
+    if(bank == UhfTagBankEpc) uhf_clear_selected_epc_filter(app);
 
     char verify[UHF_USER_HEX_MAX + 1U] = "";
     if(!uhf_read_selected_bank_words(
@@ -1637,6 +1783,151 @@ static bool uhf_write_selected_bank(UhfApp* app, UhfTagBank bank, const char* va
     uhf_set_status(app, "%s write verified", name);
     uhf_notify_write_result(app, true);
     return true;
+}
+
+static uint8_t uhf_tag_reply_status(const UhfApp* app) {
+    if(!app || app->tag_reply_len == 0U) return 0xFFU;
+    if(app->tag_reply_len == 1U) return app->tag_reply[0];
+    if(app->tag_reply_len >= 6U) {
+        const size_t record_end = 3U + app->tag_reply[2];
+        if(record_end < app->tag_reply_len) return app->tag_reply[record_end];
+    }
+    return 0xFFU;
+}
+
+static bool uhf_active_key_is_zero(const UhfApp* app) {
+    const uint8_t* key = app->access_keys[app->active_key_slot];
+    return !(key[0] || key[1] || key[2] || key[3]);
+}
+
+static bool uhf_lock_selected_bank(UhfApp* app, bool lock) {
+    if(!app || !app->access_epc[0]) return false;
+    if(lock && uhf_active_key_is_zero(app)) {
+        uhf_set_status(app, "Set non-zero tag key first");
+        uhf_notify_write_result(app, false);
+        return false;
+    }
+    if(!app->epc_filter_active && !uhf_set_selected_epc_filter(app)) return false;
+
+    uint8_t payload[6];
+    memcpy(payload, app->access_keys[app->active_key_slot], 4U);
+    payload[4] =
+        app->tag_bank == UhfTagBankUser ? 0x01U : (app->tag_bank == UhfTagBankTid ? 0x02U : 0x03U);
+    payload[5] = lock ? 0x01U : 0x00U;
+    uhf_set_status(
+        app, "%s %s...", lock ? "Locking" : "Unlocking", uhf_tag_bank_name(app->tag_bank));
+    if(!uhf_wait_tag_reply(app, UHF_CMD_LOCK_TAG, payload, sizeof(payload), 3000U)) {
+        uhf_notify_write_result(app, false);
+        return false;
+    }
+    const uint8_t status = uhf_tag_reply_status(app);
+    const bool ok = status == 0x10U;
+    uhf_set_status(
+        app, ok ? "%s complete" : "%s: %s", lock ? "Lock" : "Unlock", uhf_tag_error_text(status));
+    uhf_notify_write_result(app, ok);
+    return ok;
+}
+
+static bool uhf_initialize_tag_access_key(UhfApp* app) {
+    if(!app || !app->access_epc[0]) return false;
+    if(uhf_active_key_is_zero(app)) {
+        uhf_set_status(app, "Select a non-zero key");
+        return false;
+    }
+    if(!app->epc_filter_active && !uhf_set_selected_epc_filter(app)) return false;
+
+    /* Recovery/initialization path for a tag whose current Access Password is
+       zero. Reserved bank words 2-3 contain the new 32-bit Access Password. */
+    uint8_t payload[15] = {0};
+    payload[4] = 0x00U;
+    payload[8] = 0x02U;
+    payload[10] = 0x02U;
+    memcpy(&payload[11], app->access_keys[app->active_key_slot], 4U);
+    uhf_set_status(app, "Setting tag access key...");
+    if(!uhf_wait_tag_reply(app, UHF_CMD_WRITE_TAG, payload, sizeof(payload), 3000U)) {
+        uhf_notify_write_result(app, false);
+        return false;
+    }
+    const uint8_t status = uhf_tag_reply_status(app);
+    const bool ok = status == 0x10U;
+    if(!ok) {
+        uhf_set_status(app, "Set key: %s", uhf_tag_error_text(status));
+        uhf_notify_write_result(app, false);
+        return false;
+    }
+
+    char verify[9] = "";
+    if(!uhf_read_selected_bank_words(
+           app, 0x00U, 0x02U, 2U, verify, sizeof(verify), "Access key", true)) {
+        uhf_set_status(app, "Key set; verify unavailable");
+        uhf_notify_write_result(app, true);
+        return true;
+    }
+    char expected[9];
+    snprintf(
+        expected,
+        sizeof(expected),
+        "%02X%02X%02X%02X",
+        app->access_keys[app->active_key_slot][0],
+        app->access_keys[app->active_key_slot][1],
+        app->access_keys[app->active_key_slot][2],
+        app->access_keys[app->active_key_slot][3]);
+    const bool verified = strcmp(verify, expected) == 0;
+    uhf_set_status(app, verified ? "Tag access key verified" : "Key set; verify mismatch");
+    uhf_notify_write_result(app, verified);
+    return verified;
+}
+
+static bool uhf_reset_tag_access_key(UhfApp* app) {
+    if(!app || !app->access_epc[0]) return false;
+    if(uhf_active_key_is_zero(app)) {
+        uhf_set_status(app, "Select current non-zero key");
+        uhf_notify_write_result(app, false);
+        return false;
+    }
+    if(!app->epc_filter_active && !uhf_set_selected_epc_filter(app)) return false;
+
+    /* Authenticate with the active key, then restore Reserved words 2-3 to
+       the Gen2 default Access Password. Banks must be unlocked first. */
+    uint8_t payload[15] = {0};
+    memcpy(payload, app->access_keys[app->active_key_slot], 4U);
+    payload[4] = 0x00U;
+    payload[8] = 0x02U;
+    payload[10] = 0x02U;
+    uhf_set_status(app, "Resetting tag access key...");
+    if(!uhf_wait_tag_reply(app, UHF_CMD_WRITE_TAG, payload, sizeof(payload), 3000U)) {
+        uhf_notify_write_result(app, false);
+        return false;
+    }
+    const uint8_t status = uhf_tag_reply_status(app);
+    const bool ok = status == 0x10U;
+    uhf_set_status(
+        app, ok ? "Tag key reset to zero" : "Reset key: %s", uhf_tag_error_text(status));
+    uhf_notify_write_result(app, ok);
+    return ok;
+}
+
+static bool uhf_erase_selected_bank(UhfApp* app) {
+    if(!app || app->tag_bank == UhfTagBankTid) {
+        if(app) uhf_set_status(app, "TID cannot be erased");
+        return false;
+    }
+    bool valid = false;
+    const char* current = uhf_current_tag_bank_value(app, &valid);
+    if(!valid || !current[0]) {
+        uhf_set_status(app, "Read bank before erase");
+        return false;
+    }
+    const size_t len = strlen(current);
+    char zeros[UHF_USER_HEX_MAX + 1U];
+    if(len > UHF_USER_HEX_MAX) return false;
+    memset(zeros, '0', len);
+    /* A completely zero EPC is legal on some tags but is commonly hidden by
+       readers and makes multiple cleared tags indistinguishable. Preserve a
+       minimal non-zero identity while clearing the rest of EPC memory. */
+    if(app->tag_bank == UhfTagBankEpc && len > 0U) zeros[len - 1U] = '1';
+    zeros[len] = '\0';
+    return uhf_write_selected_bank(app, app->tag_bank, zeros);
 }
 
 static bool uhf_ensure_hardware(UhfApp* app) {
@@ -2151,8 +2442,8 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
         (unsigned long)data_len,
         (checksum_acc == 0U) ? "ok" : "bad");
 
-    if(cmd == UHF_CMD_READ_TAG || cmd == UHF_CMD_WRITE_TAG || cmd == UHF_CMD_SET_EPC_MATCH ||
-       cmd == UHF_CMD_SET_POWER) {
+    if(cmd == UHF_CMD_READ_TAG || cmd == UHF_CMD_WRITE_TAG || cmd == UHF_CMD_LOCK_TAG ||
+       cmd == UHF_CMD_SET_EPC_MATCH || cmd == UHF_CMD_SET_POWER) {
         FURI_LOG_I(
             TAG,
             "Tag RX cmd=%02X len=%lu cs=%s raw=%s",
@@ -2162,8 +2453,8 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
             app->last_rx_hex);
     }
 
-    if(cmd == UHF_CMD_READ_TAG || cmd == UHF_CMD_WRITE_TAG || cmd == UHF_CMD_SET_EPC_MATCH ||
-       cmd == UHF_CMD_SET_POWER) {
+    if(cmd == UHF_CMD_READ_TAG || cmd == UHF_CMD_WRITE_TAG || cmd == UHF_CMD_LOCK_TAG ||
+       cmd == UHF_CMD_SET_EPC_MATCH || cmd == UHF_CMD_SET_POWER) {
         const size_t copied = data_len > sizeof(app->tag_reply) ? sizeof(app->tag_reply) :
                                                                   data_len;
         if(copied) memcpy(app->tag_reply, data, copied);
@@ -2745,6 +3036,21 @@ static void uhf_make_fuzz_epc(UhfApp* app) {
     }
 }
 
+static uint8_t uhf_startup_feature(UhfStartupApp startup_app) {
+    switch(startup_app) {
+    case UhfStartupRadar:
+        return 0U;
+    case UhfStartupInventory:
+        return 1U;
+    case UhfStartupEpcFuzzing:
+        return 2U;
+    case UhfStartupTidDecoder:
+        return 4U;
+    default:
+        return 0U;
+    }
+}
+
 static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
     if(!app) return;
     switch(feature) {
@@ -2756,9 +3062,31 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         break;
     case 1:
         app->page = UhfPageList;
-        uhf_set_status(app, "OK Scan; Right Radar");
+        app->list_selection_manual = false;
+        uhf_start_inventory(app);
         break;
     case 2:
+        uhf_clear_tags(app);
+        app->access_epc[0] = '\0';
+        app->fuzz_base_epc[0] = '\0';
+        app->fuzz_sequence = 0U;
+        app->tag_access_unfiltered = false;
+        app->page = UhfPageEpcFuzzing;
+        uhf_start_inventory(app);
+        uhf_set_status(app, "Read one source tag");
+        break;
+    case 3:
+        uhf_clear_tags(app);
+        app->ascii_tag_captured = false;
+        app->ascii_single_since = 0U;
+        app->ascii_source_epc[0] = '\0';
+        app->ascii_text[0] = '\0';
+        app->tag_access_unfiltered = false;
+        app->page = UhfPageAscii;
+        uhf_start_inventory(app);
+        uhf_set_status(app, "Present one tag");
+        break;
+    case 4:
         uhf_clear_tags(app);
         app->selected_tid_valid = false;
         app->tid_decode_attempted = false;
@@ -2767,16 +3095,21 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         uhf_start_inventory(app);
         uhf_set_status(app, "Present exactly one tag");
         break;
-    case 3:
+    case 5:
         uhf_clear_tags(app);
-        app->access_epc[0] = '\0';
-        app->fuzz_base_epc[0] = '\0';
-        app->fuzz_sequence = 0U;
-        app->page = UhfPageEpcFuzzing;
+        app->security_mode = true;
+        app->security_single_since = 0U;
+        app->tag_access_unfiltered = false;
+        app->page = UhfPageTagSecurity;
         uhf_start_inventory(app);
-        uhf_set_status(app, "Read one source tag");
+        uhf_set_status(app, "Present exactly one tag");
         break;
-    case 4:
+    case 6:
+        app->page = UhfPageKeyVault;
+        app->key_vault_selected_slot = app->active_key_slot;
+        uhf_set_status(app, "Select key slot");
+        break;
+    case 7:
         app->page = UhfPageSettings;
         (void)uhf_query_reader_power(app, true);
         break;
@@ -2794,14 +3127,62 @@ static void uhf_enter_main_feature(UhfApp* app) {
 static void uhf_service_feature_page(UhfApp* app) {
     if(!app || !app->inventory_running) return;
 
-    if(app->page == UhfPageTidDecoder && !app->selected_tid_valid) {
+    if((app->page == UhfPageTidDecoder && !app->selected_tid_valid) ||
+       app->page == UhfPageTagSecurity ||
+       (app->page == UhfPageAscii && !app->ascii_tag_captured)) {
         /* Inventory keeps a history of EPCs. Expire tags no longer in the RF
            field so removing all but one tag can continue without re-entering. */
         uhf_prune_stale_tags(app, 800U);
     }
-    if(uhf_count_tags(app) != 1U) return;
+    const size_t feature_tag_count = uhf_count_tags(app);
+    if(app->page == UhfPageAscii && !app->ascii_tag_captured) {
+        if(feature_tag_count != 1U) {
+            app->ascii_single_since = 0U;
+            return;
+        }
+        const uint32_t now = furi_get_tick();
+        if(app->ascii_single_since == 0U) {
+            app->ascii_single_since = now;
+            return;
+        }
+        if((now - app->ascii_single_since) < UHF_SINGLE_TAG_STABLE_MS) return;
+    } else if(app->page == UhfPageTagSecurity) {
+        if(feature_tag_count != 1U) {
+            app->security_single_since = 0U;
+            return;
+        }
+        const uint32_t now = furi_get_tick();
+        if(app->security_single_since == 0U) {
+            app->security_single_since = now;
+            return;
+        }
+        if((now - app->security_single_since) < UHF_SINGLE_TAG_STABLE_MS) return;
+    } else if(feature_tag_count != 1U) {
+        return;
+    }
 
-    if(app->page == UhfPageTidDecoder && !app->tid_decode_attempted) {
+    if(app->page == UhfPageAscii && !app->ascii_tag_captured) {
+        if(uhf_select_first_seen_tag(app)) {
+            strncpy(app->ascii_source_epc, app->access_epc, sizeof(app->ascii_source_epc) - 1U);
+            app->ascii_source_epc[sizeof(app->ascii_source_epc) - 1U] = '\0';
+            if(!uhf_epc_hex_to_ascii(
+                   app->ascii_source_epc, app->ascii_text, sizeof(app->ascii_text))) {
+                app->ascii_text[0] = '\0';
+            }
+            app->ascii_tag_captured = true;
+            uhf_set_status(
+                app,
+                app->ascii_text[0] ? "Tag captured; edit or write" : "Tag captured; press Edit");
+        }
+    } else if(app->page == UhfPageTagSecurity) {
+        if(uhf_select_first_seen_tag(app)) {
+            app->tag_bank = UhfTagBankEpc;
+            app->tag_action_selected = 0U;
+            app->tag_action_top = 0U;
+            app->page = UhfPageTagActions;
+            uhf_set_status(app, "Choose bank; hold OK");
+        }
+    } else if(app->page == UhfPageTidDecoder && !app->tid_decode_attempted) {
         app->tid_decode_attempted = true;
         if(uhf_select_first_seen_tag(app)) {
             app->tag_access_unfiltered = false;
@@ -2851,9 +3232,13 @@ static void uhf_draw_main_menu(Canvas* canvas, UhfApp* app) {
     uhf_draw_centered_text(canvas, 10, "UHF Expansion");
 
     canvas_set_font(canvas, FontKeyboard);
-    for(size_t i = 0; i < 6U; i++) {
-        const int x = (int)(i % 2U) * 64;
-        const int y = 13 + (int)(i / 2U) * 17;
+    const size_t first = (size_t)app->main_menu_top_row * 2U;
+    const size_t end = first + 6U < COUNT_OF(uhf_main_menu_items) ? first + 6U :
+                                                                    COUNT_OF(uhf_main_menu_items);
+    for(size_t i = first; i < end; i++) {
+        const size_t visible = i - first;
+        const int x = (int)(visible % 2U) * 64;
+        const int y = 13 + (int)(visible / 2U) * 17;
         const bool selected = i == app->main_menu_selected;
         if(selected) {
             canvas_draw_rbox(canvas, x + 1, y + 1, 62, 16, 3);
@@ -2865,12 +3250,14 @@ static void uhf_draw_main_menu(Canvas* canvas, UhfApp* app) {
         /* Compact, code-drawn icons keep the grid legible without extra assets. */
         const int ix = x + 4;
         const int iy = y + 5;
-        /* All six symbols share a centered 7x7 pixel grid. */
-        static const uint8_t icons[6][7] = {
+        static const uint8_t icons[9][7] = {
             {0x1c, 0x22, 0x51, 0x59, 0x45, 0x22, 0x1c},
             {0x7d, 0x0, 0x0, 0x7d, 0x0, 0x0, 0x7d},
-            {0x2a, 0x7f, 0x22, 0x6b, 0x22, 0x7f, 0x2a},
             {0x3e, 0x41, 0x45, 0x49, 0x51, 0x41, 0x3e},
+            {0x1c, 0x22, 0x22, 0x3e, 0x22, 0x22, 0x22},
+            {0x2a, 0x7f, 0x22, 0x6b, 0x22, 0x7f, 0x2a},
+            {0x1c, 0x22, 0x22, 0x7f, 0x49, 0x49, 0x7f},
+            {0x08, 0x14, 0x08, 0x08, 0x3e, 0x08, 0x08},
             {0x4, 0x7f, 0x4, 0x0, 0x10, 0x7f, 0x10},
             {0x1c, 0x22, 0x49, 0x41, 0x49, 0x2a, 0x1c},
         };
@@ -3092,25 +3479,107 @@ static void uhf_draw_epc_fuzzing(Canvas* canvas, UhfApp* app) {
     }
 }
 
+static void uhf_draw_ascii(Canvas* canvas, UhfApp* app) {
+    uhf_draw_centered_text(canvas, 9, "EPC ASCII");
+    canvas_set_font(canvas, FontSecondary);
+
+    if(!app->ascii_tag_captured) {
+        const size_t count = uhf_count_tags(app);
+        uhf_draw_centered_text(
+            canvas,
+            29,
+            count > 1U ? "Too many tags" : (count == 1U ? "Tag found..." : "Present one tag"));
+        uhf_draw_centered_text(canvas, 42, "Then edit ASCII");
+        uhf_draw_fixed_center_button(canvas, app->inventory_running ? "Stop" : "Scan");
+        return;
+    }
+
+    canvas_draw_rframe(canvas, 0, 14, 128, 35, 3);
+    char compact[40];
+    uhf_format_list_epc_compact(canvas, app->ascii_source_epc, 120, compact, sizeof(compact));
+    canvas_set_font(canvas, FontKeyboard);
+    canvas_draw_str(canvas, 4, 23, compact);
+
+    canvas_set_font(canvas, FontSecondary);
+    char length[32];
+    snprintf(
+        length,
+        sizeof(length),
+        "ASCII %lu/%u",
+        (unsigned long)strlen(app->ascii_text),
+        (unsigned)UHF_ASCII_EPC_BYTES);
+    canvas_draw_str(canvas, 4, 36, length);
+    canvas_draw_str(canvas, 4, 47, app->ascii_text[0] ? app->ascii_text : "<empty>");
+
+    uhf_draw_fixed_side_button(canvas, "Clear", false);
+    uhf_draw_fixed_center_button(canvas, "Edit");
+    uhf_draw_fixed_side_button(canvas, "Write", true);
+}
+
 static void uhf_draw_settings(Canvas* canvas, UhfApp* app) {
     uhf_draw_centered_text(canvas, 9, "Settings");
     canvas_set_font(canvas, FontSecondary);
-    static const char* const labels[] = {"Sound", "RF Power", "Startup App"};
-    char values[3][20];
+    static const char* const labels[] = {"Sound", "RF Power", "EPC Display", "Startup App"};
+    char values[4][20];
     snprintf(values[0], sizeof(values[0]), "< %s >", app->tag_beep_enabled ? "ON" : "OFF");
     snprintf(values[1], sizeof(values[1]), "< %u dBm >", app->reader_power_dbm);
-    snprintf(values[2], sizeof(values[2]), "< %s >", uhf_startup_names[app->startup_app]);
-    for(size_t row = 0U; row < 3U; row++) {
-        const int y = 22 + (int)row * 12;
-        if(row == app->settings_selected) {
-            canvas_draw_box(canvas, 0, y - 8, 128, 11);
+    snprintf(
+        values[2],
+        sizeof(values[2]),
+        "< %s >",
+        app->epc_display == UhfEpcDisplayAscii ? "ASCII" : "HEX");
+    snprintf(values[3], sizeof(values[3]), "< %s >", uhf_startup_names[app->startup_app]);
+    const size_t total_rows = COUNT_OF(labels);
+    const size_t visible_rows = 3U;
+    const size_t top =
+        app->settings_selected >= visible_rows ? app->settings_selected - visible_rows + 1U : 0U;
+    for(size_t row = 0U; row < visible_rows; row++) {
+        const size_t item = top + row;
+        const int y = 12 + (int)row * 13;
+        if(item == app->settings_selected) {
+            canvas_draw_box(canvas, 0, y, 123, 13);
             canvas_set_color(canvas, ColorWhite);
         }
-        canvas_draw_str(canvas, 3, y, labels[row]);
-        canvas_draw_str(canvas, 125 - canvas_string_width(canvas, values[row]), y, values[row]);
-        if(row == app->settings_selected) canvas_set_color(canvas, ColorBlack);
+        canvas_draw_str(canvas, 3, y + 9, labels[item]);
+        canvas_draw_str(
+            canvas, 120 - canvas_string_width(canvas, values[item]), y + 9, values[item]);
+        if(item == app->settings_selected) canvas_set_color(canvas, ColorBlack);
     }
+    elements_scrollbar_pos(canvas, 125, 12, 39, app->settings_selected, total_rows);
     uhf_draw_fixed_center_button(canvas, "Save");
+}
+
+static void uhf_draw_tag_security(Canvas* canvas, UhfApp* app) {
+    uhf_draw_centered_text(canvas, 9, "Tag Control");
+    canvas_set_font(canvas, FontSecondary);
+    const size_t count = uhf_count_tags(app);
+    uhf_draw_centered_text(
+        canvas,
+        32,
+        count > 1U ? "Too many tags" : (count == 1U ? "Tag found..." : "Present one tag"));
+    uhf_draw_fixed_center_button(canvas, app->inventory_running ? "Stop" : "Scan");
+}
+
+static void uhf_draw_key_vault(Canvas* canvas, UhfApp* app) {
+    uhf_draw_centered_text(canvas, 9, "Access Keys");
+    canvas_set_font(canvas, FontSecondary);
+    for(uint8_t slot = 0U; slot < UHF_KEY_SLOT_COUNT; slot++) {
+        const int y = 21 + (int)slot * 10;
+        const uint8_t* key = app->access_keys[slot];
+        const bool set = key[0] || key[1] || key[2] || key[3];
+        if(slot == app->key_vault_selected_slot) {
+            canvas_draw_box(canvas, 7, y - 8, 114, 10);
+            canvas_set_color(canvas, ColorWhite);
+        }
+        canvas_draw_circle(canvas, 13, y - 3, 3);
+        if(slot == app->active_key_slot) canvas_draw_disc(canvas, 13, y - 3, 1);
+        char line[24];
+        snprintf(line, sizeof(line), "Slot %u  %s", slot + 1U, set ? "********" : "00000000");
+        canvas_draw_str(canvas, 21, y, line);
+        if(slot == app->key_vault_selected_slot) canvas_set_color(canvas, ColorBlack);
+    }
+    uhf_draw_fixed_center_button(canvas, "Use");
+    uhf_draw_fixed_side_button(canvas, "Edit", true);
 }
 
 static void uhf_draw_callback(Canvas* canvas, void* context) {
@@ -3152,10 +3621,15 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
             (unsigned long)(app->list_selected_index + 1U));
         uhf_draw_centered_text(canvas, 8, title);
     } else if(page == UhfPageTagActionMenu) {
-        uhf_draw_centered_text(canvas, 9, "Tag Action");
+        char title[24];
+        snprintf(title, sizeof(title), "%s Actions", uhf_tag_bank_button_name(app->tag_bank));
+        uhf_draw_centered_text(canvas, 9, title);
+    } else if(page == UhfPageAccessKeyMenu) {
+        uhf_draw_centered_text(canvas, 9, "Access Key");
     } else if(
         page != UhfPageRadar && page != UhfPageList && page != UhfPageTidDecoder &&
-        page != UhfPageEpcFuzzing && page != UhfPageSettings) {
+        page != UhfPageEpcFuzzing && page != UhfPageAscii && page != UhfPageSettings &&
+        page != UhfPageTagSecurity && page != UhfPageKeyVault && page != UhfPageAccessKeyMenu) {
         uhf_draw_centered_text(canvas, 11, "UHF Expansion");
     }
 
@@ -3184,6 +3658,12 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
         uhf_draw_tid_decoder(canvas, app);
     } else if(page == UhfPageEpcFuzzing) {
         uhf_draw_epc_fuzzing(canvas, app);
+    } else if(page == UhfPageAscii) {
+        uhf_draw_ascii(canvas, app);
+    } else if(page == UhfPageTagSecurity) {
+        uhf_draw_tag_security(canvas, app);
+    } else if(page == UhfPageKeyVault) {
+        uhf_draw_key_vault(canvas, app);
     } else if(page == UhfPageSettings) {
         uhf_draw_settings(canvas, app);
     } else if(page == UhfPageAbout) {
@@ -3236,6 +3716,7 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
 
             const size_t chars_per_line = UHF_TAG_DATA_HEX_PER_LINE;
             const size_t first = app->tag_data_scroll_line * chars_per_line;
+            const size_t total_lines = (strlen(value) + chars_per_line - 1U) / chars_per_line;
             canvas_set_font(canvas, FontKeyboard);
             for(size_t row = 0U; row < UHF_TAG_DATA_VISIBLE_LINES; row++) {
                 const size_t offset = first + row * chars_per_line;
@@ -3245,11 +3726,18 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
                 const size_t line_chars = remaining < chars_per_line ? remaining : chars_per_line;
                 uhf_format_hex_bytes_spaced(
                     value + offset, line_chars, data_line, sizeof(data_line));
-                const int data_width = canvas_string_width(canvas, data_line);
-                const int data_x = (128 - data_width) / 2;
-                canvas_draw_str(canvas, data_x, 28 + (int)row * 9, data_line);
+                canvas_draw_str(canvas, 6, 28 + (int)row * 9, data_line);
             }
             canvas_set_font(canvas, FontSecondary);
+            if(total_lines > UHF_TAG_DATA_VISIBLE_LINES) {
+                elements_scrollbar_pos(
+                    canvas,
+                    123,
+                    21,
+                    27,
+                    app->tag_data_scroll_line,
+                    total_lines - UHF_TAG_DATA_VISIBLE_LINES + 1U);
+            }
         } else {
             char compact[40];
             uhf_format_list_epc_compact(canvas, status, 118, compact, sizeof(compact));
@@ -3257,21 +3745,46 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
         }
 
         uhf_draw_tag_bank_cycle_button(canvas, app->tag_bank);
-        elements_button_center(canvas, "Edit");
-        elements_button_right(canvas, "Write");
+        elements_button_center(canvas, app->security_mode ? "Actions" : "Edit");
+        if(!app->security_mode || app->tag_bank != UhfTagBankTid) {
+            elements_button_right(canvas, app->security_mode ? "Erase" : "Write");
+        }
     } else if(page == UhfPageTagActionMenu) {
         canvas_set_font(canvas, FontSecondary);
-        const char* actions[] = {"Edit data", "Write to tag"};
-        for(size_t row = 0U; row < COUNT_OF(actions); row++) {
-            const int y = 27 + (int)row * 13;
-            if(row == app->tag_action_selected) {
-                canvas_draw_box(canvas, 8, y - 9, 112, 12);
+        const char* actions[] = {"Access key...", "Lock bank", "Unlock bank"};
+        const size_t visible_rows = 3U;
+        size_t top = app->tag_action_top;
+        if(top + visible_rows > COUNT_OF(actions)) top = COUNT_OF(actions) - visible_rows;
+        for(size_t row = 0U; row < visible_rows; row++) {
+            const size_t item = top + row;
+            const int y = 24 + (int)row * 11;
+            if(item == app->tag_action_selected) {
+                canvas_draw_rbox(canvas, 7, y - 8, 114, 10, 2);
                 canvas_set_color(canvas, ColorWhite);
             }
-            canvas_draw_str(canvas, 14, y, actions[row]);
-            if(row == app->tag_action_selected) canvas_set_color(canvas, ColorBlack);
+            canvas_draw_str(canvas, 13, y, actions[item]);
+            if(item == app->tag_action_selected) canvas_set_color(canvas, ColorBlack);
+        }
+        if(top > 0U) {
+            canvas_draw_triangle(canvas, 124, 14, 2, 2, CanvasDirectionBottomToTop);
+        }
+        if(top + visible_rows < COUNT_OF(actions)) {
+            canvas_draw_triangle(canvas, 124, 47, 2, 2, CanvasDirectionTopToBottom);
         }
         elements_button_center(canvas, "Select");
+    } else if(page == UhfPageAccessKeyMenu) {
+        canvas_set_font(canvas, FontSecondary);
+        const char* actions[] = {"Set from 00000000", "Reset to 00000000"};
+        for(size_t row = 0U; row < COUNT_OF(actions); row++) {
+            const int y = 27 + (int)row * 14;
+            if(row == app->access_key_action_selected) {
+                canvas_draw_rbox(canvas, 7, y - 9, 114, 12, 2);
+                canvas_set_color(canvas, ColorWhite);
+            }
+            canvas_draw_str(canvas, 13, y, actions[row]);
+            if(row == app->access_key_action_selected) canvas_set_color(canvas, ColorBlack);
+        }
+        elements_button_center(canvas, app->access_key_action_selected == 1U ? "Hold" : "Select");
     } else if(page == UhfPageList) {
         UhfTagPreview previews[UHF_LIST_VISIBLE_ROWS];
         size_t total = 0;
@@ -3323,7 +3836,21 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
                     canvas_draw_box(canvas, 0, y - 8, 128, 9);
                     canvas_set_color(canvas, ColorWhite);
                 }
-                uhf_draw_list_epc_distributed(canvas, previews[row].epc, y);
+                const bool show_ascii =
+                    app->epc_display == UhfEpcDisplayAscii &&
+                    uhf_epc_hex_to_ascii(
+                        previews[row].epc, app->list_ascii_epc, sizeof(app->list_ascii_epc));
+                if(show_ascii) {
+                    uhf_format_list_epc_compact(
+                        canvas,
+                        app->list_ascii_epc,
+                        126,
+                        app->list_ascii_compact,
+                        sizeof(app->list_ascii_compact));
+                    canvas_draw_str(canvas, 1, y, app->list_ascii_compact);
+                } else {
+                    uhf_draw_list_epc_distributed(canvas, previews[row].epc, y);
+                }
                 if(app->list_selection_manual && idx == app->list_selected_index) {
                     canvas_set_color(canvas, ColorBlack);
                 }
@@ -3350,6 +3877,16 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
         const char* found_label = (tag_count == 1U) ? "Tag Found" : "Tags Found";
         uhf_draw_centered_text(canvas, 52, found_label);
         uhf_draw_scan_hint(canvas, app->inventory_running);
+    }
+
+    if(app->exit_confirm_active && page == UhfPageMainMenu) {
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_rbox(canvas, 13, 21, 102, 22, 4);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_rframe(canvas, 13, 21, 102, 22, 4);
+        canvas_set_font(canvas, FontSecondary);
+        uhf_draw_centered_text(canvas, 35, "Back again to exit");
+        canvas_set_color(canvas, ColorBlack);
     }
 }
 
@@ -3447,6 +3984,7 @@ static void uhf_load_settings(UhfApp* app) {
     app->tag_beep_enabled = true;
     app->reader_power_dbm = UHF_DEFAULT_POWER_DBM;
     app->startup_app = UhfStartupDefault;
+    app->epc_display = UhfEpcDisplayHex;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(!storage) return;
@@ -3458,6 +3996,9 @@ static void uhf_load_settings(UhfApp* app) {
         app->tag_beep_enabled = data.sound_enabled != 0U;
         if(data.rf_power_dbm <= 20U) app->reader_power_dbm = data.rf_power_dbm;
         if(data.startup_app < UhfStartupCount) app->startup_app = (UhfStartupApp)data.startup_app;
+        if(data.epc_display < UhfEpcDisplayCount) {
+            app->epc_display = (UhfEpcDisplay)data.epc_display;
+        }
     }
     if(file) {
         storage_file_close(file);
@@ -3485,9 +4026,63 @@ static bool uhf_save_settings(const UhfApp* app) {
             .sound_enabled = app->tag_beep_enabled ? 1U : 0U,
             .rf_power_dbm = app->reader_power_dbm,
             .startup_app = (uint8_t)app->startup_app,
-            .reserved = 0U,
+            .epc_display = (uint8_t)app->epc_display,
         };
         saved = storage_file_write(file, &data, sizeof(data)) == sizeof(data);
+        saved = storage_file_sync(file) && saved;
+    }
+    if(file) {
+        storage_file_close(file);
+        storage_file_free(file);
+    }
+    furi_record_close(RECORD_STORAGE);
+    return saved;
+}
+
+static void uhf_load_key_vault(UhfApp* app) {
+    if(!app) return;
+    app->active_key_slot = 0U;
+    memset(app->access_keys, 0, sizeof(app->access_keys));
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return;
+    File* file = storage_file_alloc(storage);
+    UhfKeyVaultData data = {0};
+    if(file && storage_file_open(file, UHF_KEY_VAULT_PATH, FSAM_READ, FSOM_OPEN_EXISTING) &&
+       storage_file_read(file, &data, sizeof(data)) == sizeof(data) &&
+       data.magic == UHF_KEY_VAULT_MAGIC) {
+        memcpy(app->access_keys, data.access_keys, sizeof(app->access_keys));
+        if(data.active_slot < UHF_KEY_SLOT_COUNT) app->active_key_slot = data.active_slot;
+    }
+    if(file) {
+        storage_file_close(file);
+        storage_file_free(file);
+    }
+    furi_record_close(RECORD_STORAGE);
+}
+
+static bool uhf_save_key_vault(const UhfApp* app) {
+    if(!app) return false;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return false;
+    if(!storage_dir_exists(storage, UHF_APP_DATA_DIR)) {
+        const FS_Error result = storage_common_mkdir(storage, UHF_APP_DATA_DIR);
+        if(result != FSE_OK && result != FSE_EXIST) {
+            furi_record_close(RECORD_STORAGE);
+            return false;
+        }
+    }
+    const UhfKeyVaultData data = {
+        .magic = UHF_KEY_VAULT_MAGIC,
+        .active_slot = app->active_key_slot,
+        .reserved = {0},
+        .access_keys = {{0}},
+    };
+    UhfKeyVaultData writable = data;
+    memcpy(writable.access_keys, app->access_keys, sizeof(app->access_keys));
+    bool saved = false;
+    File* file = storage_file_alloc(storage);
+    if(file && storage_file_open(file, UHF_KEY_VAULT_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        saved = storage_file_write(file, &writable, sizeof(writable)) == sizeof(writable);
         saved = storage_file_sync(file) && saved;
     }
     if(file) {
@@ -3583,6 +4178,7 @@ static bool uhf_enter_selected_tag(UhfApp* app) {
     app->selected_tid_valid = false;
     app->selected_user_valid = false;
     app->tag_access_unfiltered = false;
+    app->security_mode = false;
     app->epc_filter_active = false;
     app->tag_bank = UhfTagBankEpc;
     app->tag_data_scroll_line = 0U;
@@ -3594,7 +4190,8 @@ static bool uhf_enter_selected_tag(UhfApp* app) {
 static void uhf_leave_tag_actions(UhfApp* app) {
     if(!app) return;
     uhf_clear_selected_epc_filter(app);
-    app->page = UhfPageList;
+    app->page = app->security_mode ? UhfPageMainMenu : UhfPageList;
+    app->security_mode = false;
     app->list_selection_manual = false;
     uhf_set_status(app, "OK Scan; arrows select");
 }
@@ -3646,6 +4243,51 @@ static void uhf_scroll_tag_bank(UhfApp* app, bool down) {
     }
 }
 
+static void uhf_edit_ascii_epc(UhfApp* app) {
+    if(!app || !app->ascii_tag_captured) return;
+
+    char pending[UHF_ASCII_EPC_BYTES + 1U];
+    strncpy(pending, app->ascii_text, sizeof(pending) - 1U);
+    pending[sizeof(pending) - 1U] = '\0';
+    if(uhf_prompt_ascii(app, pending, sizeof(pending))) {
+        strncpy(app->ascii_text, pending, sizeof(app->ascii_text) - 1U);
+        app->ascii_text[sizeof(app->ascii_text) - 1U] = '\0';
+        uhf_set_status(app, "ASCII edited; right writes");
+    } else {
+        uhf_set_status(app, "ASCII edit canceled");
+    }
+}
+
+static void uhf_write_ascii_epc(UhfApp* app) {
+    if(!app || !app->ascii_tag_captured || !app->ascii_source_epc[0]) {
+        uhf_set_status(app, "Present one tag first");
+        uhf_notify_write_result(app, false);
+        return;
+    }
+
+    char epc_hex[UHF_ASCII_EPC_BYTES * 2U + 1U];
+    if(!uhf_ascii_to_epc_hex(app->ascii_text, epc_hex, sizeof(epc_hex))) {
+        uhf_set_status(app, "ASCII must be 1-12 chars");
+        uhf_notify_write_result(app, false);
+        return;
+    }
+
+    uhf_clear_selected_epc_filter(app);
+    strncpy(app->selected_epc, app->ascii_source_epc, sizeof(app->selected_epc) - 1U);
+    app->selected_epc[sizeof(app->selected_epc) - 1U] = '\0';
+    strncpy(app->access_epc, app->ascii_source_epc, sizeof(app->access_epc) - 1U);
+    app->access_epc[sizeof(app->access_epc) - 1U] = '\0';
+    /* The source tag is only used to enter this tool. The user may replace it
+       with a different target before pressing Write. */
+    app->tag_access_unfiltered = true;
+
+    if(uhf_write_selected_bank(app, UhfTagBankEpc, epc_hex)) {
+        strncpy(app->ascii_source_epc, app->selected_epc, sizeof(app->ascii_source_epc) - 1U);
+        app->ascii_source_epc[sizeof(app->ascii_source_epc) - 1U] = '\0';
+        uhf_set_status(app, "ASCII write verified");
+    }
+}
+
 static void uhf_edit_current_tag_bank(UhfApp* app) {
     bool valid = false;
     const char* value = uhf_current_tag_bank_value(app, &valid);
@@ -3689,6 +4331,32 @@ static void uhf_write_current_tag_bank(UhfApp* app) {
     }
 }
 
+static void uhf_edit_active_key(UhfApp* app) {
+    const uint8_t slot = app->key_vault_selected_slot;
+    char key_hex[9];
+    snprintf(
+        key_hex,
+        sizeof(key_hex),
+        "%02X%02X%02X%02X",
+        app->access_keys[slot][0],
+        app->access_keys[slot][1],
+        app->access_keys[slot][2],
+        app->access_keys[slot][3]);
+    if(!uhf_prompt_memory_hex(app, "Access key (8 hex)", key_hex, sizeof(key_hex), 8U) ||
+       strlen(key_hex) != 8U) {
+        uhf_set_status(app, "Key edit canceled");
+        return;
+    }
+    size_t key_len = 0U;
+    uint8_t key[4];
+    if(!uhf_hex_to_bytes(key_hex, key, sizeof(key), &key_len) || key_len != 4U) {
+        uhf_set_status(app, "Key must be 8 hex");
+        return;
+    }
+    memcpy(app->access_keys[slot], key, sizeof(key));
+    uhf_set_status(app, uhf_save_key_vault(app) ? "Key slot saved" : "Key save failed");
+}
+
 static UhfApp* uhf_app_alloc(void) {
     UhfApp* app = malloc(sizeof(UhfApp));
     if(!app) return NULL;
@@ -3703,6 +4371,7 @@ static UhfApp* uhf_app_alloc(void) {
     app->page = UhfPageMainMenu;
     app->about_return_page = app->page;
     uhf_load_settings(app);
+    uhf_load_key_vault(app);
     uhf_set_status(app, "Init");
 
     app->data_mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
@@ -3809,12 +4478,23 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
     if(app->view_port) {
         view_port_update(app->view_port);
     }
+    if(app->page == UhfPageMainMenu && input->key != InputKeyBack) {
+        app->exit_confirm_active = false;
+    }
 
     switch(input->key) {
     case InputKeyOk: {
         if(input->type == InputTypeLong) {
             if(app->page == UhfPageList || app->page == UhfPageRadar) {
                 uhf_show_list_menu(app);
+            } else if(app->page == UhfPageTagActions && app->security_mode) {
+                app->tag_action_selected = 0U;
+                app->tag_action_top = 0U;
+                app->page = UhfPageTagActionMenu;
+                uhf_set_status(app, "Tag operations");
+            } else if(app->page == UhfPageAccessKeyMenu && app->access_key_action_selected == 1U) {
+                app->page = UhfPageTagActions;
+                (void)uhf_reset_tag_access_key(app);
             }
             break;
         }
@@ -3857,6 +4537,24 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
                 if(!app->inventory_running) uhf_start_inventory(app);
                 uhf_set_status(app, "Reading source tag");
             }
+        } else if(app->page == UhfPageAscii) {
+            if(app->ascii_tag_captured) {
+                uhf_edit_ascii_epc(app);
+            } else {
+                if(app->inventory_running) {
+                    uhf_stop_inventory(app);
+                    uhf_set_status(app, "Scan stopped");
+                } else {
+                    uhf_start_inventory(app);
+                    uhf_set_status(app, "Present one tag");
+                }
+            }
+        } else if(app->page == UhfPageKeyVault) {
+            app->active_key_slot = app->key_vault_selected_slot;
+            uhf_set_status(
+                app,
+                uhf_save_key_vault(app) ? "Active key: slot %u" : "Key save failed",
+                app->active_key_slot + 1U);
         } else if(app->page == UhfPageSettings) {
             const bool power_ok = uhf_set_reader_power(app, app->reader_power_dbm);
             const bool saved = uhf_save_settings(app);
@@ -3880,58 +4578,29 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
                 (void)uhf_enter_selected_tag(app);
             }
         } else if(app->page == UhfPageTagActions) {
-            uhf_edit_current_tag_bank(app);
-        } else if(app->page == UhfPageTagActionMenu) {
-            bool valid = false;
-            const char* value = uhf_current_tag_bank_value(app, &valid);
-            if(app->tag_action_selected == 0U) {
-                strncpy(
-                    app->pending_tid,
-                    valid && value[0] ? value : "0000",
-                    sizeof(app->pending_tid) - 1U);
-                app->pending_tid[sizeof(app->pending_tid) - 1U] = '\0';
-
-                char header[32];
-                snprintf(
-                    header,
-                    sizeof(header),
-                    "%s hex (16-bit words)",
-                    uhf_tag_bank_name(app->tag_bank));
-                const size_t max_hex =
-                    app->tag_bank == UhfTagBankEpc ?
-                        UHF_EPC_HEX_MAX :
-                        (app->tag_bank == UhfTagBankTid ? UHF_TID_HEX_MAX : UHF_USER_HEX_MAX);
-                if(uhf_prompt_memory_hex(
-                       app, header, app->pending_tid, sizeof(app->pending_tid), max_hex)) {
-                    if(app->tag_bank == UhfTagBankEpc) {
-                        strncpy(
-                            app->selected_epc, app->pending_tid, sizeof(app->selected_epc) - 1U);
-                        app->selected_epc[sizeof(app->selected_epc) - 1U] = '\0';
-                    } else if(app->tag_bank == UhfTagBankTid) {
-                        strncpy(
-                            app->selected_tid, app->pending_tid, sizeof(app->selected_tid) - 1U);
-                        app->selected_tid[sizeof(app->selected_tid) - 1U] = '\0';
-                        app->selected_tid_valid = true;
-                    } else {
-                        strncpy(
-                            app->selected_user, app->pending_tid, sizeof(app->selected_user) - 1U);
-                        app->selected_user[sizeof(app->selected_user) - 1U] = '\0';
-                        app->selected_user_valid = true;
-                    }
-                    app->tag_data_scroll_line = 0U;
-                    uhf_set_status(
-                        app, "%s edited; not written", uhf_tag_bank_name(app->tag_bank));
-                } else {
-                    uhf_set_status(app, "Edit canceled or invalid");
-                }
-                app->page = UhfPageTagActions;
-            } else if(valid && value[0]) {
-                app->page = UhfPageTagActions;
-                (void)uhf_write_selected_bank(app, app->tag_bank, value);
+            if(app->security_mode) {
+                app->tag_action_selected = 0U;
+                app->page = UhfPageTagActionMenu;
             } else {
+                uhf_edit_current_tag_bank(app);
+            }
+        } else if(app->page == UhfPageTagActionMenu) {
+            if(app->tag_action_selected == 0U) {
+                app->access_key_action_selected = 0U;
+                app->page = UhfPageAccessKeyMenu;
+            } else if(app->tag_action_selected == 1U) {
                 app->page = UhfPageTagActions;
-                uhf_set_status(app, "No data to write");
-                uhf_notify_write_result(app, false);
+                (void)uhf_lock_selected_bank(app, true);
+            } else if(app->tag_action_selected == 2U) {
+                app->page = UhfPageTagActions;
+                (void)uhf_lock_selected_bank(app, false);
+            }
+        } else if(app->page == UhfPageAccessKeyMenu) {
+            if(app->access_key_action_selected == 0U) {
+                app->page = UhfPageTagActions;
+                (void)uhf_initialize_tag_access_key(app);
+            } else {
+                uhf_set_status(app, "Hold OK to reset key");
             }
         } else {
             uhf_toggle_inventory_with_cooldown(app);
@@ -3940,17 +4609,28 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
     }
     case InputKeyLeft:
         if(app->page == UhfPageMainMenu) {
-            if((app->main_menu_selected & 1U) != 0U) app->main_menu_selected--;
+            app->main_menu_selected ^= 1U;
         } else if(app->page == UhfPageSettings && input->type == InputTypeShort) {
             if(app->settings_selected == 0U) {
                 app->tag_beep_enabled = !app->tag_beep_enabled;
             } else if(app->settings_selected == 1U) {
                 if(app->reader_power_dbm > 0U) app->reader_power_dbm--;
+            } else if(app->settings_selected == 2U) {
+                app->epc_display = app->epc_display == UhfEpcDisplayHex ? UhfEpcDisplayAscii :
+                                                                          UhfEpcDisplayHex;
             } else {
                 app->startup_app = app->startup_app == UhfStartupDefault ?
                                        (UhfStartupApp)(UhfStartupCount - 1U) :
                                        (UhfStartupApp)(app->startup_app - 1U);
             }
+        } else if(app->page == UhfPageAscii && app->ascii_tag_captured) {
+            uhf_clear_tags(app);
+            app->ascii_tag_captured = false;
+            app->ascii_single_since = 0U;
+            app->ascii_source_epc[0] = '\0';
+            app->ascii_text[0] = '\0';
+            if(!app->inventory_running) uhf_start_inventory(app);
+            uhf_set_status(app, "Present one tag");
         } else if(app->page == UhfPageEpcFuzzing && app->fuzz_base_epc[0]) {
             app->fuzz_sequence = 0U;
             app->selected_epc[0] = '\0';
@@ -3968,9 +4648,20 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
         break;
     case InputKeyUp:
         if(app->page == UhfPageMainMenu) {
-            if(app->main_menu_selected >= 2U) app->main_menu_selected -= 2U;
+            const uint8_t column = app->main_menu_selected & 1U;
+            const uint8_t rows = (uint8_t)((COUNT_OF(uhf_main_menu_items) + 1U) / 2U);
+            uint8_t row = app->main_menu_selected / 2U;
+            row = row == 0U ? (uint8_t)(rows - 1U) : (uint8_t)(row - 1U);
+            app->main_menu_selected = (uint8_t)(row * 2U + column);
+            if(app->main_menu_selected >= COUNT_OF(uhf_main_menu_items)) {
+                app->main_menu_selected = (uint8_t)(row * 2U);
+            }
+            if(row < app->main_menu_top_row) app->main_menu_top_row = row;
+            if(row >= app->main_menu_top_row + 3U) app->main_menu_top_row = row - 2U;
         } else if(app->page == UhfPageSettings) {
             if(app->settings_selected > 0U) app->settings_selected--;
+        } else if(app->page == UhfPageKeyVault) {
+            if(app->key_vault_selected_slot > 0U) app->key_vault_selected_slot--;
         } else if(app->page == UhfPageTidDecoder) {
             if(app->selected_tid_valid && app->tag_data_scroll_line > 0U) {
                 app->tag_data_scroll_line--;
@@ -3989,23 +4680,37 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
         } else if(app->page == UhfPageTagActions) {
             uhf_scroll_tag_bank(app, false);
         } else if(app->page == UhfPageTagActionMenu) {
-            app->tag_action_selected = 0U;
+            if(app->tag_action_selected > 0U) app->tag_action_selected--;
+            if(app->tag_action_selected < app->tag_action_top) {
+                app->tag_action_top = app->tag_action_selected;
+            }
+        } else if(app->page == UhfPageAccessKeyMenu) {
+            app->access_key_action_selected = 0U;
         } else {
             uhf_toggle_serial_port(app);
         }
         break;
     case InputKeyRight:
         if(app->page == UhfPageMainMenu) {
-            if((app->main_menu_selected & 1U) == 0U) app->main_menu_selected++;
+            app->main_menu_selected ^= 1U;
         } else if(app->page == UhfPageSettings && input->type == InputTypeShort) {
             if(app->settings_selected == 0U) {
                 app->tag_beep_enabled = !app->tag_beep_enabled;
             } else if(app->settings_selected == 1U) {
                 if(app->reader_power_dbm < 20U) app->reader_power_dbm++;
+            } else if(app->settings_selected == 2U) {
+                app->epc_display = app->epc_display == UhfEpcDisplayHex ? UhfEpcDisplayAscii :
+                                                                          UhfEpcDisplayHex;
             } else {
                 app->startup_app =
                     (UhfStartupApp)(((uint8_t)app->startup_app + 1U) % UhfStartupCount);
             }
+        } else if(
+            app->page == UhfPageAscii && app->ascii_tag_captured &&
+            input->type == InputTypeShort) {
+            uhf_write_ascii_epc(app);
+        } else if(app->page == UhfPageKeyVault && input->type == InputTypeShort) {
+            uhf_edit_active_key(app);
         } else if(
             app->page == UhfPageEpcFuzzing && app->fuzz_base_epc[0] &&
             input->type == InputTypeShort) {
@@ -4015,17 +4720,35 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
                 uhf_make_fuzz_epc(app);
             }
         } else if(app->page == UhfPageTagActions) {
-            if(input->type == InputTypeShort) uhf_write_current_tag_bank(app);
+            if(input->type == InputTypeShort) {
+                if(app->security_mode) {
+                    (void)uhf_erase_selected_bank(app);
+                } else {
+                    uhf_write_current_tag_bank(app);
+                }
+            }
         } else if(app->page == UhfPageList || app->page == UhfPageRadar) {
             uhf_toggle_page(app);
         }
         break;
     case InputKeyDown:
         if(app->page == UhfPageMainMenu) {
-            if(app->main_menu_selected + 2U < COUNT_OF(uhf_main_menu_items))
-                app->main_menu_selected += 2U;
+            const uint8_t column = app->main_menu_selected & 1U;
+            const uint8_t rows = (uint8_t)((COUNT_OF(uhf_main_menu_items) + 1U) / 2U);
+            uint8_t row = app->main_menu_selected / 2U;
+            row = (uint8_t)((row + 1U) % rows);
+            app->main_menu_selected = (uint8_t)(row * 2U + column);
+            if(app->main_menu_selected >= COUNT_OF(uhf_main_menu_items)) {
+                app->main_menu_selected = (uint8_t)(row * 2U);
+            }
+            if(row < app->main_menu_top_row) app->main_menu_top_row = row;
+            if(row >= app->main_menu_top_row + 3U) app->main_menu_top_row = row - 2U;
         } else if(app->page == UhfPageSettings) {
-            if(app->settings_selected < 2U) app->settings_selected++;
+            if(app->settings_selected < 3U) app->settings_selected++;
+        } else if(app->page == UhfPageKeyVault) {
+            if(app->key_vault_selected_slot + 1U < UHF_KEY_SLOT_COUNT) {
+                app->key_vault_selected_slot++;
+            }
         } else if(app->page == UhfPageTidDecoder && app->selected_tid_valid) {
             const size_t tid_bytes = strlen(app->selected_tid) / 2U;
             const size_t pages = (tid_bytes + 15U) / 16U;
@@ -4044,12 +4767,20 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
         } else if(app->page == UhfPageTagActions) {
             uhf_scroll_tag_bank(app, true);
         } else if(app->page == UhfPageTagActionMenu) {
-            app->tag_action_selected = 1U;
+            if(app->tag_action_selected < 2U) app->tag_action_selected++;
+            if(app->tag_action_selected >= app->tag_action_top + 3U) {
+                app->tag_action_top = app->tag_action_selected - 2U;
+            }
+        } else if(app->page == UhfPageAccessKeyMenu) {
+            app->access_key_action_selected = 1U;
         }
         break;
     case InputKeyBack:
         if(app->page == UhfPageAbout) {
             uhf_exit_about_page(app);
+        } else if(app->page == UhfPageAccessKeyMenu) {
+            app->page = UhfPageTagActionMenu;
+            uhf_set_status(app, "Tag operations");
         } else if(app->page == UhfPageTagActionMenu) {
             app->page = UhfPageTagActions;
             uhf_set_status(app, "%s", uhf_tag_bank_name(app->tag_bank));
@@ -4059,9 +4790,17 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
             if(app->inventory_running) uhf_stop_inventory(app);
             uhf_clear_selected_epc_filter(app);
             app->page = UhfPageMainMenu;
+            app->exit_confirm_active = false;
             uhf_set_status(app, "Select a feature");
         } else {
-            app->exit_requested = true;
+            const uint32_t now = furi_get_tick();
+            if(app->exit_confirm_active && (now - app->exit_confirm_tick) <= UHF_EXIT_CONFIRM_MS) {
+                app->exit_requested = true;
+            } else {
+                app->exit_confirm_active = true;
+                app->exit_confirm_tick = now;
+                view_port_update(app->view_port);
+            }
         }
         break;
     default:
@@ -4080,8 +4819,7 @@ int32_t uhf_expansion_app(void* p) {
     if(uhf_has_version(app)) {
         (void)uhf_set_reader_power(app, app->reader_power_dbm);
         if(app->startup_app != UhfStartupDefault) {
-            const uint8_t startup_feature = (uint8_t)app->startup_app - 1U;
-            uhf_enter_feature(app, startup_feature);
+            uhf_enter_feature(app, uhf_startup_feature(app->startup_app));
         }
     }
 
@@ -4101,6 +4839,11 @@ int32_t uhf_expansion_app(void* p) {
         uhf_update_radar_animation(app);
 
         const uint32_t now = furi_get_tick();
+
+        if(app->exit_confirm_active && (now - app->exit_confirm_tick) > UHF_EXIT_CONFIRM_MS) {
+            app->exit_confirm_active = false;
+            view_port_update(app->view_port);
+        }
 
         if(now - app->last_redraw_tick > 180U) {
             app->last_redraw_tick = now;

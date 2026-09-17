@@ -1,3 +1,13 @@
+v1.4:
+
+- Added Tag Control with reversible EPC/TID/User lock, unlock, and guarded erase.
+- Added Access Keys with four persistent password slots and protected read/write verification.
+- Added EPC ASCII capture/edit/write and HEX/ASCII inventory display.
+- Added auto-start Inventory and two-press Back exit confirmation.
+- Optimized main-menu navigation with 3x2 tiles, vertical scrolling, and wraparound.
+- Optimized Tag Control flow, stable-EPC validation, and read-only TID handling.
+- Optimized tag data layout, Access Keys labels, and exit dialog contrast.
+
 v1.3:
 
 - Refined the feature menu, icons, About page, and compact UHF data layouts.

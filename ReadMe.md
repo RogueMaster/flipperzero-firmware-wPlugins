@@ -81,7 +81,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 - Added: [DNDolphins v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDBestiary v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [UHF Expansion v1.1 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
 - Added: [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
@@ -116,7 +115,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Avocado Zero v0.1.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - Updated: [Impostor v0.1.3 (By Endika)](https://github.com/Endika/flipper-impostor-game)
 - Updated: [Fake Chip Detector v0.13 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
-- Updated: [UHF Expansion v1.3 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [Vexed v1.1 (By dlvoy)](https://github.com/dlvoy/flipper-zero-vexed) (Version Only)
 - Updated: [Swimmy Fish v3.1 (By Invizabel)](https://github.com/Invizabel/fish)
 - Updated: [WiFi (Marauder) v0.7.11 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion)
@@ -143,6 +141,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [YRM100X Pro v1.0 (By AlexeySmirnov74)](https://github.com/AlexeySmirnov74/YRM100X_PRO) `Req: YRM100X`
 - Added: [SigRoam Wardriving v0.3 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
 - Updated: [Specter v2.9 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- Updated: [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 
 <a name="release"></a>
 
@@ -983,7 +982,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - [UDECard v1.0.4 (By hahnworks](https://github.com/hahnworks/UDECard)
-- [UHF Expansion v1.3 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
+- [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
 - [UL-C Bruteforce Optimized v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
