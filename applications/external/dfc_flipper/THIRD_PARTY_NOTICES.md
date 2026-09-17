@@ -22,10 +22,10 @@ license; the direct fork ancestry is `seos_compatible`.
 
 - `lib/core`: [CinderSocket dfc-core](https://github.com/cindersocket/dfc-core),
   GPL-2.0-or-later. Preserve [its license](lib/core/LICENSE).
-- `lib/tiny-AES-c`: kokke and Mistial Dev, Unlicense. Preserve
-  [unlicense.txt](lib/tiny-AES-c/unlicense.txt) and source notices.
-- `lib/tiny-DES-c`: Mistial Dev, Unlicense. Preserve
-  [LICENSE](lib/tiny-DES-c/LICENSE) and source notices.
+- `lib/tiny_AES_c`: kokke and Mistial Dev, Unlicense. Preserve
+  [unlicense.txt](lib/tiny_AES_c/unlicense.txt) and source notices.
+- `lib/tiny_DES_c`: Mistial Dev, Unlicense. Preserve
+  [LICENSE](lib/tiny_DES_c/LICENSE) and source notices.
 - The core host tests use Evan Nemerson's µnit under the MIT license, retained
   in [munit.h](lib/core/tests/munit/munit.h). µnit is not linked into the FAP.
   Crypto repositories also contain test-only material with separate notices.

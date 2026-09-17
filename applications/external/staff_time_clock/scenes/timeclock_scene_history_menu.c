@@ -31,7 +31,11 @@ void timeclock_scene_history_menu_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, tc_str(StrHistory));
     submenu_add_item(
-        submenu, tc_str(StrAll), HistoryMenuAll, timeclock_scene_history_menu_submenu_callback, app);
+        submenu,
+        tc_str(StrAll),
+        HistoryMenuAll,
+        timeclock_scene_history_menu_submenu_callback,
+        app);
     submenu_add_item(
         submenu,
         tc_str(StrToday),

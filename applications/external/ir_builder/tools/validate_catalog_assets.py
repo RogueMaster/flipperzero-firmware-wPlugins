@@ -1,4 +1,5 @@
 """Check the catalog-facing IR Builder files before a release."""
+
 from pathlib import Path
 import re
 
@@ -10,9 +11,7 @@ CATALOG_COLORS = {(254, 138, 44), (0, 0, 0)}
 
 
 def main():
-    forbidden = re.compile(
-        r"(?m)^#{3,}|`|!\[|<[^>]+>|^\s*\||^\s*>|^---+$|&[A-Za-z]+;"
-    )
+    forbidden = re.compile(r"(?m)^#{3,}|`|!\[|<[^>]+>|^\s*\||^\s*>|^---+$|&[A-Za-z]+;")
     for name in ("description.md", "changelog.md"):
         text = (ROOT / "docs" / name).read_text(encoding="utf-8")
         assert not forbidden.search(text), f"Unsupported catalog Markdown in {name}"
@@ -33,7 +32,7 @@ def main():
     expected = (
         'appid="ir_builder"',
         'fap_category="Infrared"',
-        'fap_version=(3, 2)',
+        "fap_version=(3, 2)",
         'fap_author="@sanoobis"',
     )
     assert all(item in fam for item in expected), "Required FAM metadata is missing"

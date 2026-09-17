@@ -220,7 +220,9 @@ def _decode_header(header: bytes | bytearray | memoryview) -> _ValidatedHeader:
             f"header length {header_length} is not {HEADER_SIZE}",
         )
     if reserved != 0:
-        raise FrameDecodeError(ParseIssueCode.INVALID_HEADER, "reserved field is non-zero")
+        raise FrameDecodeError(
+            ParseIssueCode.INVALID_HEADER, "reserved field is non-zero"
+        )
 
     expected_header_crc = _U32.unpack_from(header, HEADER_CRC_OFFSET)[0]
     actual_header_crc = crc32(memoryview(header)[:HEADER_CRC_OFFSET])
@@ -361,7 +363,9 @@ class StreamDecoder:
         """Report a meaningful partial frame when the transport reaches EOF."""
 
         if self._buffer:
-            issue = ParseIssue(ParseIssueCode.TRUNCATED_FRAME, "transport ended mid-frame")
+            issue = ParseIssue(
+                ParseIssueCode.TRUNCATED_FRAME, "transport ended mid-frame"
+            )
             self.issues.append(issue)
             if self._on_issue is not None:
                 self._on_issue(issue)
@@ -400,7 +404,9 @@ class _Reader:
 
     def done(self) -> None:
         if self.offset != len(self.payload):
-            raise PayloadDecodeError(f"{len(self.payload) - self.offset} trailing payload bytes")
+            raise PayloadDecodeError(
+                f"{len(self.payload) - self.offset} trailing payload bytes"
+            )
 
 
 def _encoded_text(
@@ -416,7 +422,11 @@ def _encoded_text(
         minimum = 0 if allow_empty else 1
         raise ValueError(f"{field} UTF-8 length must be {minimum}...{maximum}")
     for byte in encoded:
-        if byte == 0 or byte == 0x7F or (byte < 0x20 and not (allow_tab and byte == 0x09)):
+        if (
+            byte == 0
+            or byte == 0x7F
+            or (byte < 0x20 and not (allow_tab and byte == 0x09))
+        ):
             raise ValueError(f"{field} contains a disallowed control character")
     return encoded
 
@@ -617,14 +627,17 @@ def encode_request_start(value: RequestStart) -> bytes:
     if not 0 <= value.declared_header_count <= MAX_HEADER_COUNT:
         raise ValueError("declared_header_count exceeds v1 limit")
     url = _encoded_text(value.url, "url", MAX_URL_BYTES)
-    return struct.pack(
-        "<BIHIB",
-        value.method,
-        value.timeout_ms,
-        len(url),
-        value.declared_body_length,
-        value.declared_header_count,
-    ) + url
+    return (
+        struct.pack(
+            "<BIHIB",
+            value.method,
+            value.timeout_ms,
+            len(url),
+            value.declared_body_length,
+            value.declared_header_count,
+        )
+        + url
+    )
 
 
 def decode_request_start(payload: bytes) -> RequestStart:

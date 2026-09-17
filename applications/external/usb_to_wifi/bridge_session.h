@@ -73,8 +73,7 @@ typedef struct {
 } BridgeSessionStatus;
 
 typedef void (*BridgeSessionUpdateCallback)(void* context);
-typedef bool (*BridgeSessionBodyCallback)(
-    void* context, const uint8_t* data, size_t length);
+typedef bool (*BridgeSessionBodyCallback)(void* context, const uint8_t* data, size_t length);
 
 BridgeSession*
     bridge_session_alloc(BridgeSessionUpdateCallback update_callback, void* update_context);
@@ -91,7 +90,9 @@ bool bridge_session_ping(BridgeSession* session);
 bool bridge_session_request_get(BridgeSession* session, const char* url, uint32_t timeout_ms);
 bool bridge_session_request_radio(BridgeSession* session, const char* url, uint32_t timeout_ms);
 void bridge_session_set_body_callback(
-    BridgeSession* session, BridgeSessionBodyCallback callback, void* context);
+    BridgeSession* session,
+    BridgeSessionBodyCallback callback,
+    void* context);
 bool bridge_session_cancel(BridgeSession* session);
 
 bool bridge_session_has_active_request(BridgeSession* session);

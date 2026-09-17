@@ -86,7 +86,7 @@
 
 #define SR_ABOUT_TEXT_MAX 640
 #define SR_PROBE_TEXT_MAX 320
-#define SR_RAW_TEXT_MAX (SR_RAWLOG_LINES * (SR_RAWLOG_LINE_MAX + 2) + 1)
+#define SR_RAW_TEXT_MAX   (SR_RAWLOG_LINES * (SR_RAWLOG_LINE_MAX + 2) + 1)
 #define SR_TICK_PERIOD_MS 100
 
 typedef enum {
@@ -157,6 +157,8 @@ typedef struct {
 const char* sigroam_log_device_name(FuriHalRtcLogDevice d);
 uint32_t sigroam_log_baud_value(FuriHalRtcLogBaudRate b);
 bool sigroam_log_device_conflicts(void);
-const char* sigroam_io_status_hint(SrIoStatus st); /* Returns a static literal for the UI to display */
+const char*
+    sigroam_io_status_hint(SrIoStatus st); /* Returns a static literal for the UI to display */
 const SrSourceCodec* sigroam_codec(const SigRoamApp* app);
-void sigroam_dash_refresh(SigRoamApp* app); /* Copies a snapshot from model/io into the Dash ViewModel, under the lock */
+void sigroam_dash_refresh(
+    SigRoamApp* app); /* Copies a snapshot from model/io into the Dash ViewModel, under the lock */

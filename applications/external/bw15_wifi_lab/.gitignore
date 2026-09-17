@@ -1,8 +1,0 @@
-dist/
-.ufbt/
-.vscode/
-*.elf
-*.bin
-*.pcap
-*.fap.fast
-.DS_Store

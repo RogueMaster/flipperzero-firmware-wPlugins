@@ -26,13 +26,21 @@ void timeclock_scene_month_on_enter(void* context) {
         uint32_t m = tc_history_month_minutes(month, app->badges[i].uid);
         grand += m;
         furi_string_cat_printf(
-            s, "%s  %02lu:%02lu\n", app->badges[i].name, (unsigned long)(m / 60), (unsigned long)(m % 60));
+            s,
+            "%s  %02lu:%02lu\n",
+            app->badges[i].name,
+            (unsigned long)(m / 60),
+            (unsigned long)(m % 60));
     }
     if(app->badge_count == 0) {
         furi_string_cat_printf(s, "%s\n", tc_str(StrNoPunches));
     }
     furi_string_cat_printf(
-        s, "\n%s: %02lu:%02lu", tc_str(StrTotal), (unsigned long)(grand / 60), (unsigned long)(grand % 60));
+        s,
+        "\n%s: %02lu:%02lu",
+        tc_str(StrTotal),
+        (unsigned long)(grand / 60),
+        (unsigned long)(grand % 60));
 
     TextBox* text_box = app->text_box;
     text_box_reset(text_box);

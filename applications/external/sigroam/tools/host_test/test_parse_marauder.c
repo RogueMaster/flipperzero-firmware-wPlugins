@@ -144,8 +144,7 @@ static bool oracle_parse(const char* line, size_t len, OracleAp* o) {
         return false;
     }
 
-    if(fields[2][0] != '[' || fields[2][0] == '\0' ||
-       fields[2][strlen(fields[2]) - 1U] != ']') {
+    if(fields[2][0] != '[' || fields[2][0] == '\0' || fields[2][strlen(fields[2]) - 1U] != ']') {
         free(buf);
         return false;
     }
@@ -599,17 +598,15 @@ static const char kLineEmptySsid[] =
 static const char kLineNonAscii[] =
     "19 | 7D:FF:D7:8C:92:C3,1Rés-Süd_5G,[WPA_WPA2_PSK],,48,-86,0.0000000,0.0000000,0.00,0.00,WIFI";
 static const char kSsidNonAscii[] = "1Rés-Süd_5G";
-static const unsigned char kSsidNonAsciiBytes[] = {
-    0x31, 0x52, 0xC3, 0xA9, 0x73, 0x2D, 0x53, 0xC3, 0xBC, 0x64, 0x5F, 0x35, 0x47
-};
+static const unsigned char kSsidNonAsciiBytes[] =
+    {0x31, 0x52, 0xC3, 0xA9, 0x73, 0x2D, 0x53, 0xC3, 0xBC, 0x64, 0x5F, 0x35, 0x47};
 static const char kLineBleNamed[] =
     "BT-729SP_85E7-LE3d:73:a7:13:85:e7,,[BLE],,0,-85,0.0000000,0.0000000,0.00,0.00,BLE";
 static const char kLineBleAnon[] =
     "4b:31:3e:f6:71:4e4b:31:3e:f6:71:4e,,[BLE],,0,-59,0.0000000,0.0000000,0.00,0.00,BLE";
 static const char kLineBleWatch[] =
     "Fitness Band (X7QPA)22:f2:e4:f7:d2:6b,,[BLE],,0,-87,0.0000000,0.0000000,0.00,0.00,BLE";
-static const char kLineBleComma[] =
-    "foo,barAA:BB:CC:DD:EE:FF,,[BLE],,0,-50,0,0,0,0,BLE";
+static const char kLineBleComma[] = "foo,barAA:BB:CC:DD:EE:FF,,[BLE],,0,-50,0,0,0,0,BLE";
 
 static SrParseResult feed_lit(SrParser* p, const char* s, SrEvent* ev) {
     memset(ev, 0, sizeof(*ev));
@@ -832,7 +829,9 @@ static void test_probe(void) {
         CHECK(acc.kind == SrSourceMarauder);
         CHECK(sr_codec_marauder.probe_line("Firmware: Other", &acc) == true);
         CHECK(strcmp(acc.firmware, "Other") == 0);
-        CHECK(acc.kind == SrSourceMarauder); /* kind is not cleared just because the firmware isn't Marauder */
+        CHECK(
+            acc.kind ==
+            SrSourceMarauder); /* kind is not cleared just because the firmware isn't Marauder */
     }
 
     CHECK(sr_codec_marauder.probe_line("WSL Bypass: enabled", &info) == false);
@@ -1295,8 +1294,8 @@ static void test_gps_synthetic(void) {
 /* A8 fuzz                                                                    */
 /* -------------------------------------------------------------------------- */
 
-#define SR_FUZZ_ITERS 20000u
-#define SR_FUZZ_SEED  0x7A23B0DEu
+#define SR_FUZZ_ITERS     20000u
+#define SR_FUZZ_SEED      0x7A23B0DEu
 #define SR_FUZZ_GPS_ITERS 8000u
 #define SR_FUZZ_GPS_SEED  0xC0FFEE01u
 
@@ -1309,7 +1308,10 @@ static uint32_t xs32(uint32_t* s) {
     return x;
 }
 
-enum { FUZZ_TEMPL_MAX = 80, FUZZ_TEMPL_LEN = 160 };
+enum {
+    FUZZ_TEMPL_MAX = 80,
+    FUZZ_TEMPL_LEN = 160
+};
 
 static char g_templ[FUZZ_TEMPL_MAX][FUZZ_TEMPL_LEN];
 static size_t g_templ_len[FUZZ_TEMPL_MAX];
@@ -1476,8 +1478,7 @@ static void test_fuzz(void) {
         }
 
         /* Cross-check data lines against the oracle (different implementation technique) */
-        if((r == SrParseOk) &&
-           (ev.kind == SrEventApFound || ev.kind == SrEventBleFound)) {
+        if((r == SrParseOk) && (ev.kind == SrEventApFound || ev.kind == SrEventBleFound)) {
             if(oracle_parse(win, n, &oa) && oa.ok) {
                 const SrApRecord* rec = (ev.kind == SrEventApFound) ? &ev.u.ap : &ev.u.ble;
                 if(rec->cursor != oa.cursor || strcmp(rec->bssid, oa.bssid) != 0 ||
@@ -1998,8 +1999,8 @@ static void cmdack_feed_blob(const char* raw, size_t n, SrParser* parser) {
     }
 }
 
-static void cmdack_feed_builder_echo(
-    SrParser* p, const char* cmd, size_t n, SrEvent* ev, SrParseResult* r) {
+static void
+    cmdack_feed_builder_echo(SrParser* p, const char* cmd, size_t n, SrEvent* ev, SrParseResult* r) {
     char echo[32];
     size_t body;
 

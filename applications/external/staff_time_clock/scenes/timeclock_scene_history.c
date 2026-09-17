@@ -15,8 +15,7 @@ void timeclock_scene_history_on_enter(void* context) {
     uint32_t state = scene_manager_get_scene_state(app->scene_manager, TimeClockSceneHistory);
 
     if(state == 1 && app->selected_index >= 0) {
-        tc_history_read_range(
-            app->text_store, app->badges[app->selected_index].uid, NULL, NULL);
+        tc_history_read_range(app->text_store, app->badges[app->selected_index].uid, NULL, NULL);
     } else if(state == 2) {
         char today[TC_DT_MAX];
         tc_now_date(today, sizeof(today));

@@ -4,20 +4,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define IRB_SLOTS 8
-#define IRB_VERSION "3.2"
-#define IRB_MAX_EXTRAS 48
-#define IRB_MAX_BUTTONS (IRB_SLOTS + IRB_MAX_EXTRAS)
-#define IRB_MAX_IMPORTS 4
-#define IRB_GROUPS 14
-#define IRB_NAME_SIZE 32
-#define IRB_PATH_SIZE 256
-#define IRB_DEFAULT_LIBRARY "/ext/apps_data/ir_builder/tv_builder.ir"
+#define IRB_SLOTS                  8
+#define IRB_VERSION                "3.2"
+#define IRB_MAX_EXTRAS             48
+#define IRB_MAX_BUTTONS            (IRB_SLOTS + IRB_MAX_EXTRAS)
+#define IRB_MAX_IMPORTS            4
+#define IRB_GROUPS                 14
+#define IRB_NAME_SIZE              32
+#define IRB_PATH_SIZE              256
+#define IRB_DEFAULT_LIBRARY        "/ext/apps_data/ir_builder/tv_builder.ir"
 #define IRB_LEGACY_DEFAULT_LIBRARY "/ext/infrared/assets/tv.ir"
-#define IRB_BUNDLED_LIBRARY APP_ASSETS_PATH("tv_builder.ir")
-#define IRB_NAV_KEYS 8
-#define IRB_NAV_SLOT_BASE IRB_MAX_BUTTONS
-#define IRB_POSITION_SLOTS (IRB_SLOTS + IRB_NAV_KEYS)
+#define IRB_BUNDLED_LIBRARY        APP_ASSETS_PATH("tv_builder.ir")
+#define IRB_NAV_KEYS               8
+#define IRB_NAV_SLOT_BASE          IRB_MAX_BUTTONS
+#define IRB_POSITION_SLOTS         (IRB_SLOTS + IRB_NAV_KEYS)
 
 typedef enum {
     IrbGroupPower,

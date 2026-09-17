@@ -26,8 +26,7 @@ static void overview_view_draw_callback(Canvas* canvas, void* _model) {
 
     if(model->is_empty) {
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(
-            canvas, 64, 32, AlignCenter, AlignCenter, model->empty_msg);
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, model->empty_msg);
         return;
     }
 

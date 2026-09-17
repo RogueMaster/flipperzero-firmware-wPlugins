@@ -277,8 +277,9 @@ static void test_fnv_vectors(void) {
     CHECK(raw_fnv1a("a") == 0xE40C292Cu);
     CHECK(raw_fnv1a("foobar") == 0xBF9CF968u);
     /* After folding, aa:bb... must equal AA:BB... */
-    CHECK(oracle_fnv1a("aa:bb:cc:dd:ee:ff", ORACLE_FNV_OFFSET) ==
-          oracle_fnv1a("AA:BB:CC:DD:EE:FF", ORACLE_FNV_OFFSET));
+    CHECK(
+        oracle_fnv1a("aa:bb:cc:dd:ee:ff", ORACLE_FNV_OFFSET) ==
+        oracle_fnv1a("AA:BB:CC:DD:EE:FF", ORACLE_FNV_OFFSET));
 }
 
 static void test_oracle_agreement(void) {
@@ -314,7 +315,9 @@ static void test_oracle_agreement(void) {
 static void test_zero_false_negatives(void) {
     char mac[18];
     uint32_t i;
-    enum { N = 5000u };
+    enum {
+        N = 5000u
+    };
 
     sr_bloom_init(&g_bloom);
     for(i = 0; i < N; i++) {
@@ -336,7 +339,9 @@ static void test_zero_false_negatives(void) {
 
 static void test_fp_table_and_fill(void) {
     static const uint32_t NS[4] = {500u, 1000u, 2000u, 4000u};
-    enum { Q = 20000u };
+    enum {
+        Q = 20000u
+    };
     unsigned row;
     uint32_t fp2000 = 0;
 
@@ -389,7 +394,7 @@ static void test_fp_table_and_fill(void) {
 /* -------------------------------------------------------------------------- */
 
 #define SR_BLOOM_FUZZ_ITERS 20000u
-#define SR_BLOOM_FUZZ_SEED 0xB1004F11u
+#define SR_BLOOM_FUZZ_SEED  0xB1004F11u
 
 static uint32_t xs32(uint32_t* s) {
     uint32_t x = *s;
@@ -402,7 +407,9 @@ static uint32_t xs32(uint32_t* s) {
 
 static void test_fuzz(void) {
     static OracleBloom o;
-    enum { RECENT_CAP = 80 };
+    enum {
+        RECENT_CAP = 80
+    };
     static char recent[32][RECENT_CAP];
     uint32_t seed = SR_BLOOM_FUZZ_SEED;
     uint32_t iter;
@@ -474,7 +481,12 @@ static void test_fuzz(void) {
         if(impl != ref) {
             sr_test_failures++;
             if(reported < 5) {
-                fprintf(stderr, "fuzz add mismatch: iter=%u seed=0x%08X buf=<%s>\n", iter, SR_BLOOM_FUZZ_SEED, buf);
+                fprintf(
+                    stderr,
+                    "fuzz add mismatch: iter=%u seed=0x%08X buf=<%s>\n",
+                    iter,
+                    SR_BLOOM_FUZZ_SEED,
+                    buf);
                 reported++;
             }
         } else {

@@ -106,7 +106,10 @@ class FibpCodecTests(unittest.TestCase):
         frames = []
         for chunk in chunks:
             frames.extend(decoder.feed(chunk))
-        self.assertEqual([frame.message_type for frame in frames], [MessageType.PING, MessageType.PONG])
+        self.assertEqual(
+            [frame.message_type for frame in frames],
+            [MessageType.PING, MessageType.PONG],
+        )
         self.assertEqual(decoder.issues, [])
 
     def test_bad_frame_crc_does_not_dispatch_and_recovers(self) -> None:
@@ -144,7 +147,9 @@ class FibpCodecTests(unittest.TestCase):
         self.assertEqual(decoder.buffered_bytes, 0)
 
     def test_maximum_payload_round_trip(self) -> None:
-        frame = Frame(MessageType.REQUEST_BODY_CHUNK, bytes(range(256)) * 2, request_id=1)
+        frame = Frame(
+            MessageType.REQUEST_BODY_CHUNK, bytes(range(256)) * 2, request_id=1
+        )
         raw = encode_frame(frame)
         self.assertEqual(len(raw), 28 + MAX_FRAME_PAYLOAD + 4)
         self.assertEqual(decode_frame(raw), frame)
@@ -189,7 +194,9 @@ class FibpCodecTests(unittest.TestCase):
         self.assertEqual(decode_header(encode_header(header)), header)
 
         response = ResponseStart(200, 1, 123)
-        self.assertEqual(decode_response_start(encode_response_start(response)), response)
+        self.assertEqual(
+            decode_response_start(encode_response_start(response)), response
+        )
         end = ResponseEnd(0, 123)
         self.assertEqual(decode_response_end(encode_response_end(end)), end)
 

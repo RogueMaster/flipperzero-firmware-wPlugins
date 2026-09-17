@@ -1,0 +1,219 @@
+{
+  "algorithm": "DES/3DES",
+  "generatorVersion": "tiny-DES-c edge vectors 1",
+  "notes": [
+    "All cases are valid inputs; weak and parity-variant keys are intentional.",
+    "CFB1 bitLength is MSB-first and unused low bits are preserved."
+  ],
+  "numberOfTests": 16,
+  "testGroups": [
+    {
+      "type": "encryption",
+      "tests": [
+        {
+          "tcId": 1,
+          "mode": "ECB",
+          "comment": "DES weak all-zero block",
+          "key": "0101010101010101",
+          "iv": "0000000000000000",
+          "msg": "0000000000000000",
+          "ct": "8ca64de9c1b123a7",
+          "result": "valid",
+          "flags": [
+            "weak-key"
+          ],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 2,
+          "mode": "ECB",
+          "comment": "DES zero key with parity cleared",
+          "key": "0000000000000000",
+          "iv": "0000000000000000",
+          "msg": "ffffffffffffffff",
+          "ct": "355550b2150e2451",
+          "result": "valid",
+          "flags": [
+            "parity"
+          ],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 3,
+          "mode": "ECB",
+          "comment": "DES key with altered parity",
+          "key": "0123456789abcdee",
+          "iv": "0000000000000000",
+          "msg": "4e6f772069732074",
+          "ct": "3fa40e8a984d4815",
+          "result": "valid",
+          "flags": [
+            "parity"
+          ],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 4,
+          "mode": "CBC",
+          "comment": "DES CBC multi-block with all-ones IV",
+          "key": "0123456789abcdef",
+          "iv": "ffffffffffffffff",
+          "msg": "000102030405060708090a0b0c0d0e0f",
+          "ct": "6ac48577b8fa6247726e74ff0e2a5bcc",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 5,
+          "mode": "CFB64",
+          "comment": "DES CFB64 non-block-aligned stream",
+          "key": "0123456789abcdef",
+          "iv": "0000000000000000",
+          "msg": "000102030405060708090a0b0c",
+          "ct": "d5d54df4246d3b0ae3983b2d08",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 6,
+          "mode": "CFB8",
+          "comment": "DES CFB8 chaining across varied bytes",
+          "key": "0123456789abcdef",
+          "iv": "ffffffffffffffff",
+          "msg": "ff00a55a1234567890",
+          "ct": "a6aa4410fd805b7ea7",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 7,
+          "mode": "CFB1",
+          "comment": "DES CFB1 one bit",
+          "key": "0123456789abcdef",
+          "iv": "0000000000000000",
+          "msg": "a5c3",
+          "ct": "25",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "openssl",
+          "bitLength": 1
+        },
+        {
+          "tcId": 8,
+          "mode": "CFB1",
+          "comment": "DES CFB1 seven bits",
+          "key": "0123456789abcdef",
+          "iv": "0000000000000000",
+          "msg": "a5c3",
+          "ct": "5d",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "openssl",
+          "bitLength": 7
+        },
+        {
+          "tcId": 9,
+          "mode": "CFB1",
+          "comment": "DES CFB1 nine bits",
+          "key": "0123456789abcdef",
+          "iv": "ffffffffffffffff",
+          "msg": "a5c35a",
+          "ct": "9743",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "openssl",
+          "bitLength": 9
+        },
+        {
+          "tcId": 10,
+          "mode": "OFB",
+          "comment": "DES OFB non-block-aligned stream",
+          "key": "0123456789abcdef",
+          "iv": "ffffffffffffffff",
+          "msg": "000102030405060708090a",
+          "ct": "59722155f76ad801cb05bd",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 11,
+          "mode": "ECB",
+          "comment": "2-key TDES ECB",
+          "key": "0123456789abcdef23456789abcdef01",
+          "iv": "0000000000000000",
+          "msg": "0001020304050607",
+          "ct": "2361ace6c5171051",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 12,
+          "mode": "CBC",
+          "comment": "2-key TDES CBC",
+          "key": "0123456789abcdef23456789abcdef01",
+          "iv": "0000000000000000",
+          "msg": "000102030405060708090a0b0c0d0e0f",
+          "ct": "2361ace6c5171051bfab799ccd5e7940",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 13,
+          "mode": "CFB64",
+          "comment": "2-key TDES CFB64 stream",
+          "key": "0123456789abcdef23456789abcdef01",
+          "iv": "ffffffffffffffff",
+          "msg": "00112233445566778899aabbccddee",
+          "ct": "01a75c37dc3c76f84b5443e123d133",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 14,
+          "mode": "ECB",
+          "comment": "3-key TDES with repeated key components",
+          "key": "0123456789abcdef0123456789abcdef0123456789abcdef",
+          "iv": "0000000000000000",
+          "msg": "fedcba9876543210",
+          "ct": "12c626af058b433b",
+          "result": "valid",
+          "flags": [
+            "degenerate-3key"
+          ],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 15,
+          "mode": "ECB",
+          "comment": "3-key TDES ECB",
+          "key": "0123456789abcdef23456789abcdef01456789abcdef0123",
+          "iv": "0000000000000000",
+          "msg": "fedcba9876543210",
+          "ct": "0737f6c53750d4a4",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        },
+        {
+          "tcId": 16,
+          "mode": "OFB",
+          "comment": "3-key TDES OFB stream",
+          "key": "0123456789abcdef23456789abcdef01456789abcdef0123",
+          "iv": "0000000000000000",
+          "msg": "00112233445566778899aabbccddeeff00",
+          "ct": "4eab51afdddead176a492e8aba36e72dce",
+          "result": "valid",
+          "flags": [],
+          "generatedBy": "cryptography+openssl"
+        }
+      ]
+    }
+  ]
+}

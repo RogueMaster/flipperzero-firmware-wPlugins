@@ -124,7 +124,10 @@ def _encode_error_payload(
     detail: str,
 ) -> bytes:
     encoded = detail.encode("utf-8", errors="replace")[:128]
-    return struct.pack("<HBBH", int(code), scope, offending_type & 0xFF, len(encoded)) + encoded
+    return (
+        struct.pack("<HBBH", int(code), scope, offending_type & 0xFF, len(encoded))
+        + encoded
+    )
 
 
 def _error_frame(
@@ -137,7 +140,9 @@ def _error_frame(
 ) -> Frame:
     return Frame(
         MessageType.ERROR,
-        _encode_error_payload(code, 1 if request_scope else 0, offending.message_type, detail),
+        _encode_error_payload(
+            code, 1 if request_scope else 0, offending.message_type, detail
+        ),
         request_id=offending.request_id if request_scope else 0,
         sequence=sequence,
     )
@@ -181,7 +186,9 @@ class MacRoleEngine:
             selected_minor=0,
             capabilities=negotiated_capabilities,
             maximum_payload=min(hello.maximum_rx_payload, 512),
-            maximum_response_bytes=min(hello.maximum_response_bytes, MAX_RESPONSE_BODY_BYTES),
+            maximum_response_bytes=min(
+                hello.maximum_response_bytes, MAX_RESPONSE_BODY_BYTES
+            ),
             echoed_client_nonce=hello.client_nonce,
             server_nonce=self.server_nonce,
         )
@@ -233,7 +240,8 @@ class MacRoleEngine:
                 encode_response_end(ResponseEnd(1 if truncated else 0, len(body))),
                 request_id=pending.request_id,
                 sequence=sequence,
-                flags=FrameFlags.FINAL | (FrameFlags.TRUNCATED if truncated else FrameFlags.NONE),
+                flags=FrameFlags.FINAL
+                | (FrameFlags.TRUNCATED if truncated else FrameFlags.NONE),
             )
         )
         return frames
@@ -243,7 +251,11 @@ class MacRoleEngine:
         try:
             message_type = MessageType(frame.message_type)
         except ValueError:
-            return [_error_frame(ErrorCode.UNSUPPORTED_MESSAGE, frame, "unknown message type")]
+            return [
+                _error_frame(
+                    ErrorCode.UNSUPPORTED_MESSAGE, frame, "unknown message type"
+                )
+            ]
 
         try:
             if message_type == MessageType.HELLO:
@@ -269,7 +281,10 @@ class MacRoleEngine:
                             request_scope=False,
                         )
                     ]
-                if self.hello is not None and self.hello.client_nonce != hello.client_nonce:
+                if (
+                    self.hello is not None
+                    and self.hello.client_nonce != hello.client_nonce
+                ):
                     self.pending = None
                     self.complete = False
                 self.hello = hello
@@ -302,10 +317,26 @@ class MacRoleEngine:
 
             if message_type == MessageType.REQUEST_START:
                 if not self.permission_granted:
-                    return [_error_frame(ErrorCode.PERMISSION_DENIED, frame, "permission is not granted")]
-                if frame.request_id == 0 or frame.sequence != 0 or self.pending is not None:
-                    return [_error_frame(ErrorCode.INVALID_STATE, frame, "request cannot start")]
-                self.pending = PendingRequest(frame.request_id, decode_request_start(frame.payload))
+                    return [
+                        _error_frame(
+                            ErrorCode.PERMISSION_DENIED,
+                            frame,
+                            "permission is not granted",
+                        )
+                    ]
+                if (
+                    frame.request_id == 0
+                    or frame.sequence != 0
+                    or self.pending is not None
+                ):
+                    return [
+                        _error_frame(
+                            ErrorCode.INVALID_STATE, frame, "request cannot start"
+                        )
+                    ]
+                self.pending = PendingRequest(
+                    frame.request_id, decode_request_start(frame.payload)
+                )
                 return []
 
             if message_type in (
@@ -315,7 +346,11 @@ class MacRoleEngine:
             ):
                 pending = self.pending
                 if pending is None or pending.request_id != frame.request_id:
-                    return [_error_frame(ErrorCode.INVALID_STATE, frame, "no matching request")]
+                    return [
+                        _error_frame(
+                            ErrorCode.INVALID_STATE, frame, "no matching request"
+                        )
+                    ]
                 if frame.sequence != pending.expected_sequence:
                     code = (
                         ErrorCode.DUPLICATE_SEQUENCE
@@ -329,12 +364,16 @@ class MacRoleEngine:
                 if message_type == MessageType.REQUEST_HEADER:
                     header = decode_header(frame.payload)
                     pending.headers.append(header)
-                    pending.aggregate_header_bytes += len(header.name.encode("utf-8")) + len(
-                        header.value.encode("utf-8")
-                    )
+                    pending.aggregate_header_bytes += len(
+                        header.name.encode("utf-8")
+                    ) + len(header.value.encode("utf-8"))
                     if len(pending.headers) > pending.start.declared_header_count:
                         self.pending = None
-                        return [_error_frame(ErrorCode.INVALID_REQUEST, frame, "too many headers")]
+                        return [
+                            _error_frame(
+                                ErrorCode.INVALID_REQUEST, frame, "too many headers"
+                            )
+                        ]
                     if pending.aggregate_header_bytes > 1024:
                         self.pending = None
                         return [
@@ -350,31 +389,53 @@ class MacRoleEngine:
                     pending.body.extend(frame.payload)
                     if len(pending.body) > pending.start.declared_body_length:
                         self.pending = None
-                        return [_error_frame(ErrorCode.INVALID_REQUEST, frame, "body exceeds declaration")]
+                        return [
+                            _error_frame(
+                                ErrorCode.INVALID_REQUEST,
+                                frame,
+                                "body exceeds declaration",
+                            )
+                        ]
                     return []
 
                 if frame.payload or not (frame.flags & FrameFlags.FINAL):
                     self.pending = None
-                    return [_error_frame(ErrorCode.INVALID_REQUEST, frame, "invalid REQUEST_END")]
-                if len(pending.headers) != pending.start.declared_header_count or len(
-                    pending.body
-                ) != pending.start.declared_body_length:
+                    return [
+                        _error_frame(
+                            ErrorCode.INVALID_REQUEST, frame, "invalid REQUEST_END"
+                        )
+                    ]
+                if (
+                    len(pending.headers) != pending.start.declared_header_count
+                    or len(pending.body) != pending.start.declared_body_length
+                ):
                     self.pending = None
-                    return [_error_frame(ErrorCode.INVALID_REQUEST, frame, "request is incomplete")]
+                    return [
+                        _error_frame(
+                            ErrorCode.INVALID_REQUEST, frame, "request is incomplete"
+                        )
+                    ]
                 responses = self._response_frames(pending)
                 self.pending = None
                 self.complete = True
                 return responses
 
             if message_type == MessageType.CANCEL:
-                if self.pending is not None and self.pending.request_id == frame.request_id:
+                if (
+                    self.pending is not None
+                    and self.pending.request_id == frame.request_id
+                ):
                     self.pending = None
                 return []
 
             if message_type in (MessageType.ERROR, MessageType.DISCONNECT):
                 return []
 
-            return [_error_frame(ErrorCode.INVALID_STATE, frame, "message has wrong direction")]
+            return [
+                _error_frame(
+                    ErrorCode.INVALID_STATE, frame, "message has wrong direction"
+                )
+            ]
         except (PayloadDecodeError, ValueError) as error:
             return [_error_frame(ErrorCode.INVALID_REQUEST, frame, str(error))]
 
@@ -462,7 +523,11 @@ class FlipperRoleEngine:
         try:
             message_type = MessageType(frame.message_type)
         except ValueError:
-            return [_error_frame(ErrorCode.UNSUPPORTED_MESSAGE, frame, "unknown message type")]
+            return [
+                _error_frame(
+                    ErrorCode.UNSUPPORTED_MESSAGE, frame, "unknown message type"
+                )
+            ]
 
         try:
             if message_type == MessageType.HELLO_ACK:
@@ -472,7 +537,9 @@ class FlipperRoleEngine:
                 if ack.echoed_client_nonce != self.client_nonce:
                     raise PayloadDecodeError("HELLO_ACK nonce mismatch")
                 if (ack.selected_major, ack.selected_minor) != (1, 0):
-                    raise PayloadDecodeError("HELLO_ACK selected an unsupported version")
+                    raise PayloadDecodeError(
+                        "HELLO_ACK selected an unsupported version"
+                    )
                 self.handshaken = True
                 return []
 
@@ -522,7 +589,11 @@ class FlipperRoleEngine:
                 MessageType.RESPONSE_END,
             ):
                 if frame.request_id != self.request_id:
-                    return [_error_frame(ErrorCode.INVALID_STATE, frame, "wrong response request ID")]
+                    return [
+                        _error_frame(
+                            ErrorCode.INVALID_STATE, frame, "wrong response request ID"
+                        )
+                    ]
                 if frame.sequence != self.response_expected_sequence:
                     code = (
                         ErrorCode.DUPLICATE_SEQUENCE
@@ -538,7 +609,9 @@ class FlipperRoleEngine:
                     self.response_started = decode_response_start(frame.payload)
                     return []
                 if self.response_started is None:
-                    raise PayloadDecodeError("response data arrived before RESPONSE_START")
+                    raise PayloadDecodeError(
+                        "response data arrived before RESPONSE_START"
+                    )
                 if message_type == MessageType.RESPONSE_HEADER:
                     self.response_headers.append(decode_header(frame.payload))
                     return []
@@ -555,11 +628,15 @@ class FlipperRoleEngine:
                 self.response_end = decode_response_end(frame.payload)
                 if self.response_end.bytes_sent != len(self.response_body):
                     raise PayloadDecodeError("RESPONSE_END byte count mismatch")
-                if len(self.response_headers) != self.response_started.declared_header_count:
+                if (
+                    len(self.response_headers)
+                    != self.response_started.declared_header_count
+                ):
                     raise PayloadDecodeError("response header count mismatch")
                 if (
                     self.response_started.declared_body_length != 0xFFFFFFFF
-                    and self.response_started.declared_body_length != len(self.response_body)
+                    and self.response_started.declared_body_length
+                    != len(self.response_body)
                 ):
                     raise PayloadDecodeError("response body length mismatch")
                 self.complete = True
@@ -569,7 +646,11 @@ class FlipperRoleEngine:
                 self.complete = True
                 return []
 
-            return [_error_frame(ErrorCode.INVALID_STATE, frame, "message has wrong direction")]
+            return [
+                _error_frame(
+                    ErrorCode.INVALID_STATE, frame, "message has wrong direction"
+                )
+            ]
         except (PayloadDecodeError, ValueError) as error:
             return [_error_frame(ErrorCode.INVALID_REQUEST, frame, str(error))]
 
@@ -622,7 +703,9 @@ class FrameTransmitter:
 
     def encoded(self, frame: Frame) -> bytes:
         encoded = bytearray(encode_frame(frame))
-        matches = self.corrupt_message is None or frame.message_type == self.corrupt_message
+        matches = (
+            self.corrupt_message is None or frame.message_type == self.corrupt_message
+        )
         if self.corrupt_crc != "none" and matches and not self.corruption_used:
             if self.corrupt_crc == "header":
                 encoded[24] ^= 0x01
@@ -631,7 +714,9 @@ class FrameTransmitter:
             else:
                 raise ValueError(f"unsupported corruption mode {self.corrupt_crc}")
             self.corruption_used = True
-            self.log(f"TX {frame.type_name}: intentionally corrupted {self.corrupt_crc} CRC")
+            self.log(
+                f"TX {frame.type_name}: intentionally corrupted {self.corrupt_crc} CRC"
+            )
         return bytes(encoded)
 
     def send(self, descriptor: int, frame: Frame) -> None:
@@ -666,7 +751,9 @@ class PtySimulator:
         self.engine = engine
         self.transmitter = transmitter
         self.log = log
-        self.decoder = StreamDecoder(lambda issue: self.log(f"RX parse error: {issue.code.value}"))
+        self.decoder = StreamDecoder(
+            lambda issue: self.log(f"RX parse error: {issue.code.value}")
+        )
 
     def run(
         self,
@@ -714,7 +801,9 @@ def _parse_fragment_sizes(value: str) -> tuple[int, ...]:
     try:
         result = tuple(int(item.strip()) for item in value.split(",") if item.strip())
     except ValueError as error:
-        raise argparse.ArgumentTypeError("fragment sizes must be comma-separated integers") from error
+        raise argparse.ArgumentTypeError(
+            "fragment sizes must be comma-separated integers"
+        ) from error
     if not result or any(size <= 0 for size in result):
         raise argparse.ArgumentTypeError("fragment sizes must be positive")
     return result
@@ -725,7 +814,9 @@ def _message_type(value: str) -> MessageType:
         return MessageType[value.upper()]
     except KeyError as error:
         names = ", ".join(item.name for item in MessageType)
-        raise argparse.ArgumentTypeError(f"unknown message type; choose one of: {names}") from error
+        raise argparse.ArgumentTypeError(
+            f"unknown message type; choose one of: {names}"
+        ) from error
 
 
 def build_argument_parser() -> argparse.ArgumentParser:
@@ -755,7 +846,9 @@ def build_argument_parser() -> argparse.ArgumentParser:
         type=_message_type,
         help="message type to corrupt (default: first outbound frame)",
     )
-    parser.add_argument("--once", action="store_true", help="exit after the demo exchange")
+    parser.add_argument(
+        "--once", action="store_true", help="exit after the demo exchange"
+    )
     parser.add_argument(
         "--timeout",
         type=float,
@@ -777,7 +870,9 @@ def build_argument_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Flipper role stops after HELLO and PING",
     )
-    parser.add_argument("--quiet", action="store_true", help="suppress stderr diagnostics")
+    parser.add_argument(
+        "--quiet", action="store_true", help="suppress stderr diagnostics"
+    )
     return parser
 
 
@@ -788,7 +883,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.timeout < 0:
         raise SystemExit("--timeout cannot be negative")
 
-    log: LogFunction = _no_log if args.quiet else lambda message: print(message, file=sys.stderr)
+    log: LogFunction = (
+        _no_log if args.quiet else lambda message: print(message, file=sys.stderr)
+    )
     if args.role == "mac":
         engine: MacRoleEngine | FlipperRoleEngine = MacRoleEngine(
             response_text=args.response_text,

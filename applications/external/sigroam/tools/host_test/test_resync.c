@@ -33,8 +33,8 @@ static void arm_wait_peer(SrResyncCtx* c, uint32_t now, uint32_t rev, uint32_t r
 }
 
 /* Drive WaitPeer through one rx growth and the quiet gap. Does not send on growth. */
-static SrResyncAct grow_then_quiet(
-    SrResyncCtx* c, uint32_t rev, uint32_t rx_new, uint32_t grow_ms) {
+static SrResyncAct
+    grow_then_quiet(SrResyncCtx* c, uint32_t rev, uint32_t rx_new, uint32_t grow_ms) {
     SrResyncAct a;
     uint32_t q = (uint32_t)SR_RESYNC_RX_QUIET_MS;
 

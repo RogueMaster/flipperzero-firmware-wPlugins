@@ -9,14 +9,16 @@ bool irb_progress(IrbLoadPhase phase, uint32_t done, uint32_t total, void* conte
     if(atomic_load(&job->cancel)) return false;
     if(phase == IrbLoadCommit) atomic_store(&job->committing, true);
     unsigned percent = total ? (uint64_t)done * 100 / total : 0;
-    if(phase != job->last_phase || percent / 5 != job->last_percent / 5 || phase == IrbLoadCommit) {
-        const char* status = phase == IrbLoadHash     ? "Checking source..."
-                             : phase == IrbLoadVerify ? "Verifying files..."
-                             : phase == IrbLoadCache  ? "Using saved index"
-                             : phase == IrbLoadCommit ? "Saving files..."
-                                                      : "Reading / writing...";
+    if(phase != job->last_phase || percent / 5 != job->last_percent / 5 ||
+       phase == IrbLoadCommit) {
+        const char* status = phase == IrbLoadHash   ? "Checking source..." :
+                             phase == IrbLoadVerify ? "Verifying files..." :
+                             phase == IrbLoadCache  ? "Using saved index" :
+                             phase == IrbLoadCommit ? "Saving files..." :
+                                                      "Reading / writing...";
         with_view_model(
-            job->app->view, IrbViewModel * m,
+            job->app->view,
+            IrbViewModel * m,
             {
                 m->progress = percent;
                 m->committing = atomic_load(&job->committing);
@@ -49,13 +51,16 @@ static bool transmit_signal(IrbJob* job, const InfraredSignal* signal) {
         }
     }
     if(!ok)
-        snprintf(job->error, sizeof(job->error),
-                 "Cannot send: invalid signal, busy IR, or RAW longer than 10 seconds.");
+        snprintf(
+            job->error,
+            sizeof(job->error),
+            "Cannot send: invalid signal, busy IR, or RAW longer than 10 seconds.");
     return ok;
 }
 static void checking(IrbJob* job, bool active) {
     with_view_model(
-        job->app->view, IrbViewModel * m,
+        job->app->view,
+        IrbViewModel * m,
         {
             m->checking = active;
             if(active) {
@@ -77,8 +82,8 @@ static bool run_send(IrbJob* job) {
     const InfraredSignal* signal = irb_cache_find(&job->app->signals, &key);
     if(!signal) {
         checking(job, true);
-        signal = irb_cache_read(&job->app->signals, job->app->storage, &key, job->error,
-                                irb_progress, job);
+        signal = irb_cache_read(
+            &job->app->signals, job->app->storage, &key, job->error, irb_progress, job);
     }
     checking(job, false);
     if(!signal) return false;
@@ -91,11 +96,14 @@ static bool run_send(IrbJob* job) {
         // Keep the feedback useful without spending display time on every 100 ms repeat.
         // The first send is immediate; subsequent redraws are limited to about 3 Hz.
         with_view_model(
-            job->app->view, IrbViewModel * m, { m->send_count = count; },
+            job->app->view,
+            IrbViewModel * m,
+            { m->send_count = count; },
             count == 1 || count % 3 == 0);
         if(!job->repeatable) break;
         uint32_t period = count == 1 ? 350 : IRB_SCAN_PERIOD_MS;
-        while(atomic_load(&job->held) && !atomic_load(&job->cancel) && elapsed_ms(started) < period)
+        while(atomic_load(&job->held) && !atomic_load(&job->cancel) &&
+              elapsed_ms(started) < period)
             furi_delay_ms(5);
     } while(atomic_load(&job->held) && !atomic_load(&job->cancel));
     return true;
@@ -103,9 +111,11 @@ static bool run_send(IrbJob* job) {
 static void scan_view(IrbJob* job, bool sending) {
     bool changed = false;
     with_view_model(
-        job->app->view, IrbViewModel * m,
+        job->app->view,
+        IrbViewModel * m,
         {
-            changed = memcmp(&m->scan, &job->scan, sizeof(job->scan)) != 0 || m->sending != sending;
+            changed = memcmp(&m->scan, &job->scan, sizeof(job->scan)) != 0 ||
+                      m->sending != sending;
             m->scan = job->scan;
             m->sending = sending;
             if(job->scan.paused) m->pausing = false;
@@ -138,8 +148,9 @@ static bool run_scan(IrbJob* job) {
     IrbSignalKey key;
     irb_project_set_position(&job->project, job->slot, job->scan.current);
     checking(job, true);
-    bool verified = irb_signal_key(&job->app->library, &job->project, job->slot, &key) &&
-                    irb_signal_source_check(job->app->storage, &key, job->error, irb_progress, job);
+    bool verified =
+        irb_signal_key(&job->app->library, &job->project, job->slot, &key) &&
+        irb_signal_source_check(job->app->storage, &key, job->error, irb_progress, job);
     checking(job, false);
     if(!verified) return false;
     IrbLibraryReader reader = {0};
@@ -158,8 +169,8 @@ static bool run_scan(IrbJob* job) {
                 emitted = irb_cache_find(&job->app->signals, &key);
                 if(!emitted) {
                     checking(job, true);
-                    emitted = irb_cache_read(&job->app->signals, job->app->storage, &key,
-                                             job->error, irb_progress, job);
+                    emitted = irb_cache_read(
+                        &job->app->signals, job->app->storage, &key, job->error, irb_progress, job);
                     checking(job, false);
                 }
                 ok = emitted != NULL;
@@ -207,9 +218,9 @@ static void name_from_path(char output[IRB_NAME_SIZE], const char* path) {
            (name[length + 2] == 'r' || name[length + 2] == 'R') && !name[length + 3])
             break;
         output[length] = ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-                          (c >= '0' && c <= '9') || c == '_' || c == '-' || c == ' ')
-                             ? c
-                             : '_';
+                          (c >= '0' && c <= '9') || c == '_' || c == '-' || c == ' ') ?
+                             c :
+                             '_';
         ++length;
     }
     while(length && output[length - 1] == ' ')
@@ -244,26 +255,40 @@ int32_t irb_work(void* context) {
             irb_project_init(&job->project);
             snprintf(job->project.library, sizeof(job->project.library), "%s", job->path);
         }
-        if(!irb_library_open_cached(storage, &job->library, &app->library, job->project.library,
-                                    job->error, irb_progress, job))
+        if(!irb_library_open_cached(
+               storage,
+               &job->library,
+               &app->library,
+               job->project.library,
+               job->error,
+               irb_progress,
+               job))
             break;
         if(!job->restore) {
             job->project.source_hash = job->library.hash;
             job->project.source_size = job->library.size;
         }
         if(!irb_project_matches(&job->project, &job->library)) {
-            strcpy(job->error,
-                   "TV library changed. Restore the original file or start a new remote.");
+            strcpy(
+                job->error,
+                "TV library changed. Restore the original file or start a new remote.");
             break;
         }
-        if(job->restore && !irb_project_check_sources(storage, &job->project, IrbLoadVerify,
-                                                      job->error, irb_progress, job))
+        if(job->restore &&
+           !irb_project_check_sources(
+               storage, &job->project, IrbLoadVerify, job->error, irb_progress, job))
             break;
         job->ok = job->restore ? !atomic_load(&job->cancel) : commit_draft(job);
         break;
     case JobOpen:
-        if(!irb_library_open_cached(storage, &job->library, &app->library, job->project.library,
-                                    job->error, irb_progress, job))
+        if(!irb_library_open_cached(
+               storage,
+               &job->library,
+               &app->library,
+               job->project.library,
+               job->error,
+               irb_progress,
+               job))
             break;
         job->project.source_hash = job->library.hash;
         job->project.source_size = job->library.size;
@@ -271,8 +296,16 @@ int32_t irb_work(void* context) {
         job->catalog = calloc(1, sizeof(*job->catalog));
         if(!job->catalog ||
            !irb_catalog_load(storage, job->catalog, job->path, job->error, irb_progress, job) ||
-           !irb_catalog_add(storage, job->catalog, &job->project, -1, &job->added, &job->mapped,
-                            job->error, irb_progress, job))
+           !irb_catalog_add(
+               storage,
+               job->catalog,
+               &job->project,
+               -1,
+               &job->added,
+               &job->mapped,
+               job->error,
+               irb_progress,
+               job))
             break;
         job->ok = irb_project_matches(&job->project, &job->library) && commit_draft(job);
         if(!job->ok) rollback_imports(storage, &job->project, 0);
@@ -285,8 +318,8 @@ int32_t irb_work(void* context) {
             job->conflict = true;
             break;
         }
-        job->ok = irb_remote_save_progress(storage, &app->library, &job->project, job->replace,
-                                           job->error, irb_progress, job);
+        job->ok = irb_remote_save_progress(
+            storage, &app->library, &job->project, job->replace, job->error, irb_progress, job);
         if(job->ok && job->rename && !irb_path_equal(job->old_name, job->project.name)) {
             char new_name[IRB_NAME_SIZE];
             snprintf(new_name, sizeof(new_name), "%s", job->project.name);
@@ -306,19 +339,34 @@ int32_t irb_work(void* context) {
         job->ok = run_scan(job);
         break;
     case JobBrowse:
-        job->ok = irb_files_load(storage, &job->files, job->page.path, job->page.projects,
-                                 job->error, irb_progress, job);
+        job->ok = irb_files_load(
+            storage,
+            &job->files,
+            job->page.path,
+            job->page.projects,
+            job->error,
+            irb_progress,
+            job);
         if(job->ok) irb_files_get_page(&job->files, job->page.start, &job->page);
         break;
     case JobCatalog:
         job->catalog = calloc(1, sizeof(*job->catalog));
-        job->ok = job->catalog &&
-                  irb_catalog_load(storage, job->catalog, job->path, job->error, irb_progress, job);
+        job->ok =
+            job->catalog &&
+            irb_catalog_load(storage, job->catalog, job->path, job->error, irb_progress, job);
         break;
     case JobImport: {
         uint32_t previous_imports = job->project.import_count;
-        job->ok = irb_catalog_add(storage, app->catalog, &job->project, job->entry, &job->added,
-                                  &job->mapped, job->error, irb_progress, job);
+        job->ok = irb_catalog_add(
+            storage,
+            app->catalog,
+            &job->project,
+            job->entry,
+            &job->added,
+            &job->mapped,
+            job->error,
+            irb_progress,
+            job);
         if(job->ok && !commit_draft(job)) {
             job->ok = false;
             job->added = 0;
@@ -330,8 +378,8 @@ int32_t irb_work(void* context) {
             job->ok = irb_project_delete(storage, &job->project, job->both, job->error);
         break;
     case JobSettings:
-        if(irb_library_open_cached(storage, &job->library, &app->library, job->path, job->error,
-                                   irb_progress, job) &&
+        if(irb_library_open_cached(
+               storage, &job->library, &app->library, job->path, job->error, irb_progress, job) &&
            irb_progress(IrbLoadCommit, 0, 1, job))
             job->ok = irb_settings_save(storage, job->path, job->error);
         break;

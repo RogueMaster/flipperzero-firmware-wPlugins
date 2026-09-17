@@ -69,7 +69,10 @@ void timeclock_reader_set_callback(
 // for a clean shutdown (see timeclock_reader.c). Safe to call again after
 // stop(), and safe to call directly to switch technology without stopping
 // first (it stops the previous radio itself).
-void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech, bool continuous);
+void timeclock_reader_start_fixed(
+    TimeclockReader* reader,
+    TimeclockReaderTech tech,
+    bool continuous);
 
 // Stop and release the radio (the reader object itself stays valid).
 void timeclock_reader_stop(TimeclockReader* reader);

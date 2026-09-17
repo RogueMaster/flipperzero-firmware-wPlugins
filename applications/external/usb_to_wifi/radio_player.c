@@ -11,9 +11,9 @@
 #include "third_party/minimp3/minimp3.h"
 
 #define RADIO_COMPRESSED_RING 12288U
-#define RADIO_DECODE_WINDOW 4096U
+#define RADIO_DECODE_WINDOW   4096U
 #define RADIO_PREBUFFER_BYTES 11264U
-#define RADIO_THREAD_STACK (24U * 1024U)
+#define RADIO_THREAD_STACK    (24U * 1024U)
 
 typedef struct {
     uint32_t source_rate;
@@ -39,7 +39,8 @@ static size_t radio_player_take(RadioPlayer* player, uint8_t* output, size_t max
     furi_mutex_acquire(player->mutex, FuriWaitForever);
     const size_t count = player->used < maximum ? player->used : maximum;
     const size_t first = count < RADIO_COMPRESSED_RING - player->tail ?
-                             count : RADIO_COMPRESSED_RING - player->tail;
+                             count :
+                             RADIO_COMPRESSED_RING - player->tail;
     memcpy(output, player->ring + player->tail, first);
     memcpy(output + first, player->ring, count - first);
     player->tail = (player->tail + count) % RADIO_COMPRESSED_RING;
@@ -106,8 +107,8 @@ static int32_t radio_player_thread(void* context) {
     RadioResampler resampler = {0};
     while(!player->stop_requested) {
         if(buffered < RADIO_DECODE_WINDOW) {
-            buffered += radio_player_take(
-                player, input + buffered, RADIO_DECODE_WINDOW - buffered);
+            buffered +=
+                radio_player_take(player, input + buffered, RADIO_DECODE_WINDOW - buffered);
         }
         if(buffered < 1024U) {
             furi_semaphore_acquire(player->data_ready, furi_ms_to_ticks(100U));
@@ -173,8 +174,8 @@ bool radio_player_start(RadioPlayer* player) {
     player->decoded_frames = 0U;
     player->stop_requested = false;
     player->running = true;
-    player->thread = furi_thread_alloc_ex(
-        "FibRadioDecoder", RADIO_THREAD_STACK, radio_player_thread, player);
+    player->thread =
+        furi_thread_alloc_ex("FibRadioDecoder", RADIO_THREAD_STACK, radio_player_thread, player);
     if(!player->thread) {
         player->running = false;
         return false;
@@ -231,7 +232,8 @@ bool radio_player_push(RadioPlayer* player, const uint8_t* data, size_t length) 
         const size_t free_bytes = RADIO_COMPRESSED_RING - player->used;
         const size_t count = (length - offset < free_bytes) ? length - offset : free_bytes;
         const size_t first = count < RADIO_COMPRESSED_RING - player->head ?
-                                 count : RADIO_COMPRESSED_RING - player->head;
+                                 count :
+                                 RADIO_COMPRESSED_RING - player->head;
         memcpy(player->ring + player->head, data + offset, first);
         memcpy(player->ring, data + offset + first, count - first);
         player->head = (player->head + count) % RADIO_COMPRESSED_RING;

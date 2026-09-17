@@ -18,8 +18,8 @@ static unsigned view_extra_slots(const IrbProject* project, uint8_t* slots) {
     return count;
 }
 static const char* position_title(const IrbViewModel* model) {
-    return model->slot < IRB_SLOTS ? irb_slot_titles[model->slot]
-                                   : irb_project_label(&model->project, model->slot);
+    return model->slot < IRB_SLOTS ? irb_slot_titles[model->slot] :
+                                     irb_project_label(&model->project, model->slot);
 }
 static void fit(Canvas* canvas, int x, int y, unsigned width, const char* text) {
     char buffer[IRB_PATH_SIZE];
@@ -36,8 +36,8 @@ static void header(Canvas* canvas, const char* text) {
     fit(canvas, 2, 10, 60, text);
     canvas_draw_line(canvas, 0, 14, 63, 14);
 }
-static unsigned wrap_page(Canvas* canvas, const char* text, unsigned y, unsigned bottom,
-                          unsigned skip) {
+static unsigned
+    wrap_page(Canvas* canvas, const char* text, unsigned y, unsigned bottom, unsigned skip) {
     unsigned lines = 0;
     while(*text) {
         char line[32];
@@ -81,14 +81,16 @@ static void row(Canvas* canvas, unsigned y, const char* text, bool selected, uns
     fit(canvas, 2, y, 60, text + offset);
     canvas_set_color(canvas, ColorBlack);
 }
-static void list(Canvas* canvas, const char* const* items, unsigned count, unsigned focus,
-                 unsigned y) {
+static void
+    list(Canvas* canvas, const char* const* items, unsigned count, unsigned focus, unsigned y) {
     for(unsigned i = 0; i < count; ++i)
         row(canvas, y + i * 13, items[i], i == focus, 0);
 }
 static void grid(Canvas* canvas, IrbViewModel* m) {
-    center(canvas, 10,
-           m->simulate ? (m->play ? "Use SIM" : "Build SIM") : (m->play ? "Use TV" : "Build TV"));
+    center(
+        canvas,
+        10,
+        m->simulate ? (m->play ? "Use SIM" : "Build SIM") : (m->play ? "Use TV" : "Build TV"));
     canvas_draw_icon(canvas, 6, 16, m->focus == 0 ? &I_power_hover_19x20 : &I_power_19x20);
     canvas_draw_icon(canvas, 4, 38, &I_power_text_24x5);
     canvas_draw_icon(canvas, 39, 16, m->focus == 1 ? &I_mute_hover_19x20 : &I_mute_19x20);
@@ -124,8 +126,12 @@ static void grid(Canvas* canvas, IrbViewModel* m) {
         canvas_set_color(canvas, ColorBlack);
         return;
     }
-    snprintf(text, sizeof(text), "%s [%lu]", m->play ? "Buttons" : "Menu",
-             irb_project_count(&m->project));
+    snprintf(
+        text,
+        sizeof(text),
+        "%s [%lu]",
+        m->play ? "Buttons" : "Menu",
+        irb_project_count(&m->project));
     row(canvas, 125, text, m->focus == 6, 0);
 }
 static void nav_button(Canvas* canvas, int x, int y, int width, int height, bool selected) {
@@ -159,15 +165,16 @@ static void nav_chevron(Canvas* canvas, int x, int y, unsigned key, bool availab
 }
 static void nav_aux_icon(Canvas* canvas, unsigned key, bool available) {
     if(!available) {
-        canvas_draw_line(canvas,
-                         key == 5   ? 7
-                         : key == 6 ? 28
-                                    : 49,
-                         92,
-                         key == 5   ? 13
-                         : key == 6 ? 34
-                                    : 55,
-                         92);
+        canvas_draw_line(
+            canvas,
+            key == 5 ? 7 :
+            key == 6 ? 28 :
+                       49,
+            92,
+            key == 5 ? 13 :
+            key == 6 ? 34 :
+                       55,
+            92);
     } else if(key == 5) {
         canvas_draw_line(canvas, 6, 87, 15, 87);
         canvas_draw_line(canvas, 6, 91, 15, 91);
@@ -198,8 +205,8 @@ static void navigation(Canvas* canvas, IrbViewModel* m) {
         if(i < 5 && i != 2)
             nav_chevron(canvas, x[i] + width[i] / 2, y[i] + height[i] / 2, i, available);
         else if(i == 2)
-            canvas_draw_str_aligned(canvas, 32, 52, AlignCenter, AlignBottom,
-                                    available ? "OK" : "-");
+            canvas_draw_str_aligned(
+                canvas, 32, 52, AlignCenter, AlignBottom, available ? "OK" : "-");
         else
             nav_aux_icon(canvas, i, available);
         nav_mark(canvas, x[i] + width[i] - 4, y[i] + 4, configured);
@@ -210,8 +217,13 @@ static void navigation(Canvas* canvas, IrbViewModel* m) {
         uint32_t selected = m->project.nav_positions[m->focus];
         uint32_t total = m->counts[irb_nav_group[m->focus]];
         if(!m->play && selected && total)
-            snprintf(status, sizeof(status), "%s %lu/%lu", irb_nav_labels[m->focus],
-                     (unsigned long)selected, (unsigned long)total);
+            snprintf(
+                status,
+                sizeof(status),
+                "%s %lu/%lu",
+                irb_nav_labels[m->focus],
+                (unsigned long)selected,
+                (unsigned long)total);
         else if(!m->play && irb_project_imported(&m->project, IRB_NAV_SLOT_BASE + m->focus))
             snprintf(status, sizeof(status), "%s imported", irb_nav_labels[m->focus]);
         else
@@ -271,8 +283,12 @@ void irb_draw(Canvas* canvas, void* context) {
     case Position: {
         header(canvas, position_title(m));
         int group = irb_slot_group_index(m->slot);
-        snprintf(buffer, sizeof(buffer), "%lu/%lu", (unsigned long)m->position,
-                 (unsigned long)(group >= 0 ? m->counts[group] : 0));
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "%lu/%lu",
+            (unsigned long)m->position,
+            (unsigned long)(group >= 0 ? m->counts[group] : 0));
         center(canvas, 35, buffer);
         center(canvas, 49, "<  position  >");
         const char* items[] = {"Use number", "Send once", "Auto scan", "Skip"};
@@ -292,10 +308,12 @@ void irb_draw(Canvas* canvas, void* context) {
     case Others:
     case Browser:
     case Import:
-        header(canvas, m->screen == Buttons  ? "Buttons"
-                       : m->screen == Others ? "Other buttons"
-                       : m->screen == Import ? "Import keys"
-                                             : "Choose file");
+        header(
+            canvas,
+            m->screen == Buttons ? "Buttons" :
+            m->screen == Others  ? "Other buttons" :
+            m->screen == Import  ? "Import keys" :
+                                   "Choose file");
         if(m->screen == Browser) {
             const char* path = m->folder;
             while(*path && canvas_string_width(canvas, path) > 60)
@@ -304,18 +322,27 @@ void irb_draw(Canvas* canvas, void* context) {
         }
         for(unsigned i = 0; i < IRB_PAGE_SIZE && m->list_start + i < m->list_count; ++i) {
             char name[IRB_PATH_SIZE + 3];
-            snprintf(name, sizeof(name), "%s%s",
-                     m->screen == Browser && m->row_directories[i] ? "/ " : "", m->rows[i]);
-            row(canvas, m->screen == Browser ? 40 + i * 12 : 30 + i * 13, name,
-                m->focus == m->list_start + i, m->tick);
+            snprintf(
+                name,
+                sizeof(name),
+                "%s%s",
+                m->screen == Browser && m->row_directories[i] ? "/ " : "",
+                m->rows[i]);
+            row(canvas,
+                m->screen == Browser ? 40 + i * 12 : 30 + i * 13,
+                name,
+                m->focus == m->list_start + i,
+                m->tick);
         }
         snprintf(buffer, sizeof(buffer), "%u/%u", m->list_count ? m->focus + 1 : 0, m->list_count);
         center(canvas, 115, buffer);
         if(!m->list_count) center(canvas, 44, "No entries");
-        center(canvas, 127,
-               m->screen == Browser                                       ? "Hold OK: path"
-               : m->play && (m->screen == Buttons || m->screen == Others) ? "OK: send"
-                                                                          : "OK: select");
+        center(
+            canvas,
+            127,
+            m->screen == Browser                                     ? "Hold OK: path" :
+            m->play && (m->screen == Buttons || m->screen == Others) ? "OK: send" :
+                                                                       "OK: select");
         break;
     case ButtonMenu: {
         header(canvas, irb_project_label(&m->project, m->slot));
@@ -323,8 +350,8 @@ void irb_draw(Canvas* canvas, void* context) {
             const char* items[] = {"Send once", "Change code", "Remove"};
             list(canvas, items, 3, m->focus, 31);
         } else {
-            const char* items[] = {"Send once", "Change code", "Rename",
-                                   "Move up",   "Move down",   "Remove"};
+            const char* items[] = {
+                "Send once", "Change code", "Rename", "Move up", "Move down", "Remove"};
             list(canvas, items, 6, m->focus, 31);
         }
         break;
@@ -392,15 +419,19 @@ void irb_draw(Canvas* canvas, void* context) {
     case Scan:
         header(canvas, m->simulate ? "Scan: IR OFF" : "Auto scan");
         wrap(canvas, position_title(m), 28, 40);
-        snprintf(buffer, sizeof(buffer), "%lu/%lu", (unsigned long)m->scan.current,
-                 (unsigned long)m->scan.total);
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "%lu/%lu",
+            (unsigned long)m->scan.current,
+            (unsigned long)m->scan.total);
         canvas_set_font(canvas, FontPrimary);
         center(canvas, 53, buffer);
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_frame(canvas, 3, 60, 58, 7);
-        unsigned percent = m->checking     ? m->progress
-                           : m->scan.total ? (uint64_t)m->scan.last_sent * 100 / m->scan.total
-                                           : 0;
+        unsigned percent = m->checking   ? m->progress :
+                           m->scan.total ? (uint64_t)m->scan.last_sent * 100 / m->scan.total :
+                                           0;
         if(percent) canvas_draw_box(canvas, 5, 62, percent * 54 / 100, 3);
         if(m->pausing)
             center(canvas, 87, "Pausing...");
@@ -408,7 +439,8 @@ void irb_draw(Canvas* canvas, void* context) {
             wrap(canvas, "Checking library...", 85, 108);
         else if(m->scan.paused) {
             center(canvas, 79, m->scan.finished ? "Finished" : "< paused >");
-            const char* items[] = {"Use number", "Replay", m->scan.finished ? "Restart" : "Resume"};
+            const char* items[] = {
+                "Use number", "Replay", m->scan.finished ? "Restart" : "Resume"};
             list(canvas, items, 3, m->action, 89);
         } else {
             center(canvas, 87, "Scanning...");
@@ -423,14 +455,18 @@ void irb_draw(Canvas* canvas, void* context) {
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, 0, 116, 64, 12);
         canvas_set_color(canvas, ColorBlack);
-        snprintf(buffer, sizeof(buffer), m->simulate ? "SIM sent %lu" : "Sent %lu",
-                 (unsigned long)m->send_count);
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            m->simulate ? "SIM sent %lu" : "Sent %lu",
+            (unsigned long)m->send_count);
         center(canvas, 126, buffer);
     }
 }
 void irb_refresh(IrbApp* app) {
     with_view_model(
-        app->view, IrbViewModel * m,
+        app->view,
+        IrbViewModel * m,
         {
             m->project = app->project;
             memcpy(m->counts, app->library.counts, sizeof(m->counts));
@@ -464,20 +500,20 @@ void irb_refresh(IrbApp* app) {
                 }
             } else if(app->screen == Buttons || app->screen == Others || app->screen == Import) {
                 uint8_t slots[IRB_MAX_BUTTONS];
-                m->list_count = app->screen == Buttons
-                                    ? irb_project_slots(&app->project, slots, app->play)
-                                : app->screen == Others ? view_extra_slots(&app->project, slots)
-                                : app->catalog          ? app->catalog->count + 1
-                                                        : 0;
+                m->list_count = app->screen == Buttons ?
+                                    irb_project_slots(&app->project, slots, app->play) :
+                                app->screen == Others ? view_extra_slots(&app->project, slots) :
+                                app->catalog          ? app->catalog->count + 1 :
+                                                        0;
                 if(app->focus >= m->list_count) app->focus = m->list_count ? m->list_count - 1 : 0;
                 m->focus = app->focus;
                 m->list_start = app->focus / IRB_PAGE_SIZE * IRB_PAGE_SIZE;
                 for(unsigned i = 0; i < IRB_PAGE_SIZE && m->list_start + i < m->list_count; ++i) {
                     unsigned index = m->list_start + i;
-                    const char* name = app->screen == Buttons || app->screen == Others
-                                           ? irb_project_label(&app->project, slots[index])
-                                       : index ? app->catalog->entries[index - 1].name
-                                               : "Add all new";
+                    const char* name = app->screen == Buttons || app->screen == Others ?
+                                           irb_project_label(&app->project, slots[index]) :
+                                       index ? app->catalog->entries[index - 1].name :
+                                               "Add all new";
                     snprintf(m->rows[i], IRB_PATH_SIZE, "%s", name);
                 }
             }

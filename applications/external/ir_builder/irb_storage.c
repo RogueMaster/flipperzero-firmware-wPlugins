@@ -5,11 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define IRB_MAX_LIBRARY_BYTES (8U * 1024U * 1024U)
-#define IRB_MAX_PROJECT_BYTES (16U * 1024U)
+#define IRB_MAX_LIBRARY_BYTES   (8U * 1024U * 1024U)
+#define IRB_MAX_PROJECT_BYTES   (16U * 1024U)
 #define IRB_MAX_TEXT_LINE_BYTES 512U
 #define IRB_MAX_DATA_LINE_BYTES (12U * 1024U)
-#define IRB_MAX_SIGNALS 8192U
+#define IRB_MAX_SIGNALS         8192U
 
 static bool irb_fail(char* error, const char* message) {
     snprintf(error, IRB_ERROR_SIZE, "%s", message);
@@ -38,14 +38,24 @@ bool irb_path_equal(const char* a, const char* b) {
     return *a == *b;
 }
 
-static bool report_progress(IrbLoadProgress progress, void* context, IrbLoadPhase phase,
-                            uint32_t done, uint32_t total) {
+static bool report_progress(
+    IrbLoadProgress progress,
+    void* context,
+    IrbLoadPhase phase,
+    uint32_t done,
+    uint32_t total) {
     return !progress || progress(phase, done, total, context);
 }
 
-static bool file_fingerprint(Storage* storage, const char* path, uint32_t* hash, uint32_t* size,
-                             uint32_t max_bytes, IrbLoadPhase phase, IrbLoadProgress progress,
-                             void* context) {
+static bool file_fingerprint(
+    Storage* storage,
+    const char* path,
+    uint32_t* hash,
+    uint32_t* size,
+    uint32_t max_bytes,
+    IrbLoadPhase phase,
+    IrbLoadProgress progress,
+    void* context) {
     if(!report_progress(progress, context, phase, 0, 0)) return false;
     File* file = storage_file_alloc(storage);
     bool ok = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING);
@@ -74,9 +84,9 @@ static bool file_fingerprint(Storage* storage, const char* path, uint32_t* hash,
                 }
                 if(prefix_length < sizeof(prefix) && (prefix_length || (c != ' ' && c != '\t')))
                     prefix[prefix_length++] = c;
-                uint32_t limit = prefix_length == sizeof(prefix) && !memcmp(prefix, "data:", 5)
-                                     ? IRB_MAX_DATA_LINE_BYTES
-                                     : IRB_MAX_TEXT_LINE_BYTES;
+                uint32_t limit = prefix_length == sizeof(prefix) && !memcmp(prefix, "data:", 5) ?
+                                     IRB_MAX_DATA_LINE_BYTES :
+                                     IRB_MAX_TEXT_LINE_BYTES;
                 ok = c != 0 && ++line_length <= limit;
             }
             *hash = irb_hash_update(*hash, buffer, length);
@@ -97,32 +107,55 @@ void irb_library_clear(IrbLibrary* library) {
     memset(library, 0, sizeof(*library));
 }
 
-bool irb_file_fingerprint(Storage* storage, const char* path, uint32_t* hash, uint32_t* size,
-                          IrbLoadPhase phase, IrbLoadProgress progress, void* context) {
-    return file_fingerprint(storage, path, hash, size, IRB_MAX_LIBRARY_BYTES, phase, progress,
-                            context);
+bool irb_file_fingerprint(
+    Storage* storage,
+    const char* path,
+    uint32_t* hash,
+    uint32_t* size,
+    IrbLoadPhase phase,
+    IrbLoadProgress progress,
+    void* context) {
+    return file_fingerprint(
+        storage, path, hash, size, IRB_MAX_LIBRARY_BYTES, phase, progress, context);
 }
 
 bool irb_library_open(Storage* storage, IrbLibrary* library, const char* path, char* error) {
     return irb_library_open_progress(storage, library, path, error, NULL, NULL);
 }
 
-bool irb_library_open_progress(Storage* storage, IrbLibrary* library, const char* path, char* error,
-                               IrbLoadProgress progress, void* context) {
+bool irb_library_open_progress(
+    Storage* storage,
+    IrbLibrary* library,
+    const char* path,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     return irb_library_open_cached(storage, library, library, path, error, progress, context);
 }
 
-bool irb_library_open_cached(Storage* storage, IrbLibrary* library, const IrbLibrary* cache,
-                             const char* path, char* error, IrbLoadProgress progress,
-                             void* context) {
+bool irb_library_open_cached(
+    Storage* storage,
+    IrbLibrary* library,
+    const IrbLibrary* cache,
+    const char* path,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     IrbLibrary next = {0};
     if(!irb_library_path_valid(path))
         return irb_fail(error, "Choose a TV library\non the SD card.");
     snprintf(next.path, sizeof(next.path), "%s", path);
-    if(!file_fingerprint(storage, path, &next.hash, &next.size, IRB_MAX_LIBRARY_BYTES, IrbLoadHash,
-                         progress, context))
-        return irb_fail(error,
-                        "Cannot read TV library.\nFile missing, too large,\nor invalid text data.");
+    if(!file_fingerprint(
+           storage,
+           path,
+           &next.hash,
+           &next.size,
+           IRB_MAX_LIBRARY_BYTES,
+           IrbLoadHash,
+           progress,
+           context))
+        return irb_fail(
+            error, "Cannot read TV library.\nFile missing, too large,\nor invalid text data.");
     if(cache && cache->storage && irb_path_equal(path, cache->path) && next.hash == cache->hash &&
        next.size == cache->size) {
         if(!report_progress(progress, context, IrbLoadCache, next.size, next.size)) return false;
@@ -159,8 +192,8 @@ bool irb_library_open_cached(Storage* storage, IrbLibrary* library, const IrbLib
         }
         bool valid = true;
         while(true) {
-            if(!report_progress(progress, context, IrbLoadIndex, flipper_format_tell(reader),
-                                next.size)) {
+            if(!report_progress(
+                   progress, context, IrbLoadIndex, flipper_format_tell(reader), next.size)) {
                 valid = false;
                 break;
             }
@@ -194,7 +227,8 @@ bool irb_library_open_cached(Storage* storage, IrbLibrary* library, const IrbLib
             next.offsets[group][next.counts[group]++] = offset;
         }
         if(!valid || !total) {
-            irb_fail(error, "Invalid or oversized\nTV library. No entries\nwere silently skipped.");
+            irb_fail(
+                error, "Invalid or oversized\nTV library. No entries\nwere silently skipped.");
             break;
         }
         // Close the scanner BEFORE opening the checksum reader. Reopening an
@@ -202,8 +236,15 @@ bool irb_library_open_cached(Storage* storage, IrbLibrary* library, const IrbLib
         flipper_format_free(reader);
         reader = NULL;
         uint32_t hash, size;
-        if(!file_fingerprint(storage, path, &hash, &size, IRB_MAX_LIBRARY_BYTES, IrbLoadVerify,
-                             progress, context) ||
+        if(!file_fingerprint(
+               storage,
+               path,
+               &hash,
+               &size,
+               IRB_MAX_LIBRARY_BYTES,
+               IrbLoadVerify,
+               progress,
+               context) ||
            hash != next.hash || size != next.size) {
             irb_fail(error, "Library changed while\nreading. Try again.");
             break;
@@ -226,18 +267,24 @@ bool irb_library_open_cached(Storage* storage, IrbLibrary* library, const IrbLib
 
 bool irb_library_unchanged(Storage* storage, const IrbLibrary* library, char* error) {
     uint32_t hash, size;
-    if(!library->storage || !file_fingerprint(storage, library->path, &hash, &size,
-                                              IRB_MAX_LIBRARY_BYTES, IrbLoadVerify, NULL, NULL))
-        return irb_fail(error,
-                        "Library is unavailable.\nRestore the same file\nand reopen the draft.");
+    if(!library->storage ||
+       !file_fingerprint(
+           storage, library->path, &hash, &size, IRB_MAX_LIBRARY_BYTES, IrbLoadVerify, NULL, NULL))
+        return irb_fail(
+            error, "Library is unavailable.\nRestore the same file\nand reopen the draft.");
     if(hash != library->hash || size != library->size)
-        return irb_fail(error, "tv.ir has changed.\nRestore the original\nlibrary, or start a "
-                               "new\nremote and recheck codes.");
+        return irb_fail(
+            error,
+            "tv.ir has changed.\nRestore the original\nlibrary, or start a "
+            "new\nremote and recheck codes.");
     return true;
 }
 
-bool irb_library_read(IrbLibrary* library, uint32_t group, uint32_t position,
-                      InfraredSignal* signal) {
+bool irb_library_read(
+    IrbLibrary* library,
+    uint32_t group,
+    uint32_t position,
+    InfraredSignal* signal) {
     IrbLibraryReader reader = {0};
     bool ok = irb_library_reader_open(&reader, library) &&
               irb_library_reader_read(&reader, group, position, signal);
@@ -261,13 +308,18 @@ void irb_library_reader_close(IrbLibraryReader* reader) {
     memset(reader, 0, sizeof(*reader));
 }
 
-bool irb_library_reader_read(IrbLibraryReader* reader, uint32_t group, uint32_t position,
-                             InfraredSignal* signal) {
+bool irb_library_reader_read(
+    IrbLibraryReader* reader,
+    uint32_t group,
+    uint32_t position,
+    InfraredSignal* signal) {
     const IrbLibrary* library = reader->library;
     return reader->file && library && group < IRB_GROUPS && position &&
            position <= library->counts[group] &&
-           flipper_format_seek(reader->file, library->offsets[group][position - 1],
-                               FlipperFormatOffsetFromStart) &&
+           flipper_format_seek(
+               reader->file,
+               library->offsets[group][position - 1],
+               FlipperFormatOffsetFromStart) &&
            infrared_signal_read_body(signal, reader->file) == InfraredErrorCodeNone &&
            infrared_signal_is_valid(signal);
 }
@@ -298,8 +350,13 @@ bool irb_project_matches(const IrbProject* project, const IrbLibrary* library) {
 }
 
 bool irb_storage_prepare(Storage* storage) {
-    const char* paths[] = {"/ext/apps_data", IRB_DATA_DIR,    IRB_PROJECT_DIR,
-                           IRB_IMPORT_DIR,   "/ext/infrared", IRB_EXPORT_DIR};
+    const char* paths[] = {
+        "/ext/apps_data",
+        IRB_DATA_DIR,
+        IRB_PROJECT_DIR,
+        IRB_IMPORT_DIR,
+        "/ext/infrared",
+        IRB_EXPORT_DIR};
     for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); ++i) {
         FS_Error result = storage_common_mkdir(storage, paths[i]);
         if(result != FSE_OK && result != FSE_EXIST) return false;
@@ -324,8 +381,8 @@ static bool read_string(FlipperFormat* ff, const char* key, char* output, size_t
 
 static bool read_project(Storage* storage, const char* path, IrbProject* project) {
     uint32_t hash, size;
-    if(!file_fingerprint(storage, path, &hash, &size, IRB_MAX_PROJECT_BYTES, IrbLoadHash, NULL,
-                         NULL))
+    if(!file_fingerprint(
+           storage, path, &hash, &size, IRB_MAX_PROJECT_BYTES, IrbLoadHash, NULL, NULL))
         return false;
     FlipperFormat* ff = flipper_format_file_alloc(storage);
     FuriString* type = furi_string_alloc();
@@ -360,7 +417,9 @@ static bool read_project(Storage* storage, const char* path, IrbProject* project
         if(version >= 4) {
             if(!flipper_format_read_uint32(ff, "Order", next->order, IRB_MAX_BUTTONS)) break;
         } else {
-            enum { IrbLegacyButtons = 32 };
+            enum {
+                IrbLegacyButtons = 32
+            };
             uint32_t legacy[IrbLegacyButtons];
             unsigned count = version == 1 ? IRB_SLOTS : IrbLegacyButtons;
             if(!flipper_format_read_uint32(ff, "Order", legacy, count)) break;
@@ -405,8 +464,8 @@ static bool read_project(Storage* storage, const char* path, IrbProject* project
                 int slot = irb_nav_slot(next, key);
                 if(slot < IRB_SLOTS || irb_slot_is_nav((uint32_t)slot)) continue;
                 IrbExtraButton extra = next->extras[slot - IRB_SLOTS];
-                if(irb_project_set_imported(next, IRB_NAV_SLOT_BASE + key, extra.source,
-                                            extra.offset))
+                if(irb_project_set_imported(
+                       next, IRB_NAV_SLOT_BASE + key, extra.source, extra.offset))
                     irb_project_remove(next, slot);
             }
         }
@@ -431,8 +490,8 @@ bool irb_project_load(Storage* storage, const char* path, IrbProject* project, c
     if(ok) *project = *recovered;
     free(recovered);
     return ok ||
-           irb_fail(error,
-                    "Cannot read this project.\nThe previous file, if\nany, is kept as .bak.");
+           irb_fail(
+               error, "Cannot read this project.\nThe previous file, if\nany, is kept as .bak.");
 }
 
 static bool write_project(Storage* storage, const char* path, const IrbProject* project) {
@@ -508,8 +567,8 @@ static void discard_backup(Storage* storage, const char* path) {
     storage_common_remove(storage, backup);
 }
 
-static bool read_settings(Storage* storage, const char* path, char* library,
-                          uint32_t* saved_version) {
+static bool
+    read_settings(Storage* storage, const char* path, char* library, uint32_t* saved_version) {
     uint32_t hash, size, version;
     if(!file_fingerprint(storage, path, &hash, &size, 1024, IrbLoadHash, NULL, NULL)) return false;
     FlipperFormat* ff = flipper_format_file_alloc(storage);
@@ -579,8 +638,13 @@ bool irb_draft_save(Storage* storage, const IrbProject* project, char* error) {
 }
 
 void irb_remote_path(char* buffer, size_t size, const char* name, bool metadata) {
-    snprintf(buffer, size, "%s/%s.%s", metadata ? IRB_PROJECT_DIR : IRB_EXPORT_DIR, name,
-             metadata ? "irb" : "ir");
+    snprintf(
+        buffer,
+        size,
+        "%s/%s.%s",
+        metadata ? IRB_PROJECT_DIR : IRB_EXPORT_DIR,
+        name,
+        metadata ? "irb" : "ir");
 }
 
 bool irb_remote_exists(Storage* storage, const char* name) {
@@ -593,13 +657,23 @@ bool irb_remote_exists(Storage* storage, const char* name) {
     return false;
 }
 
-bool irb_remote_save(Storage* storage, IrbLibrary* library, const IrbProject* project, bool replace,
-                     char* error) {
+bool irb_remote_save(
+    Storage* storage,
+    IrbLibrary* library,
+    const IrbProject* project,
+    bool replace,
+    char* error) {
     return irb_remote_save_progress(storage, library, project, replace, error, NULL, NULL);
 }
 
-bool irb_remote_save_progress(Storage* storage, IrbLibrary* library, const IrbProject* project,
-                              bool replace, char* error, IrbLoadProgress progress, void* context) {
+bool irb_remote_save_progress(
+    Storage* storage,
+    IrbLibrary* library,
+    const IrbProject* project,
+    bool replace,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     if(!irb_project_matches(project, library) || !irb_project_count(project))
         return irb_fail(error, "Select at least one\nvalid button first.");
     if(!irb_storage_prepare(storage))
@@ -672,8 +746,8 @@ bool irb_remote_save_progress(Storage* storage, IrbLibrary* library, const IrbPr
     if(!promote(storage, metadata_temp, metadata, &old_metadata)) {
         storage_common_remove(storage, remote);
         if(old_remote) irb_recover_file(storage, remote);
-        return irb_fail(error,
-                        "Project save failed.\nPrevious remote restored\nwhere storage permitted.");
+        return irb_fail(
+            error, "Project save failed.\nPrevious remote restored\nwhere storage permitted.");
     }
     discard_backup(storage, remote);
     discard_backup(storage, metadata);
@@ -687,8 +761,13 @@ bool irb_project_uses_path(const IrbProject* project, const char* path) {
     return false;
 }
 
-bool irb_project_check_sources(Storage* storage, const IrbProject* project, IrbLoadPhase phase,
-                               char* error, IrbLoadProgress progress, void* context) {
+bool irb_project_check_sources(
+    Storage* storage,
+    const IrbProject* project,
+    IrbLoadPhase phase,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     for(unsigned i = 0; i <= project->import_count; ++i) {
         const char* path = i ? project->imports[i - 1].path : project->library;
         uint32_t expected_hash = i ? project->imports[i - 1].hash : project->source_hash;
@@ -701,8 +780,12 @@ bool irb_project_check_sources(Storage* storage, const IrbProject* project, IrbL
     return true;
 }
 
-bool irb_project_read_signal(Storage* storage, IrbLibrary* library, const IrbProject* project,
-                             uint32_t slot, InfraredSignal* signal) {
+bool irb_project_read_signal(
+    Storage* storage,
+    IrbLibrary* library,
+    const IrbProject* project,
+    uint32_t slot,
+    InfraredSignal* signal) {
     if(!irb_project_active(project, slot)) return false;
     const IrbSignalRef* mapped = irb_project_imported(project, slot);
     if(slot < IRB_SLOTS && !mapped)
@@ -731,8 +814,11 @@ bool irb_project_read_signal(Storage* storage, IrbLibrary* library, const IrbPro
     return ok;
 }
 
-bool irb_project_delete(Storage* storage, const IrbProject* project, bool delete_remote,
-                        char* error) {
+bool irb_project_delete(
+    Storage* storage,
+    const IrbProject* project,
+    bool delete_remote,
+    char* error) {
     if(!irb_project_valid(project)) return irb_fail(error, "Invalid project.");
     char path[IRB_PATH_SIZE], backup[IRB_PATH_SIZE + 4];
     irb_remote_path(path, sizeof(path), project->name, false);

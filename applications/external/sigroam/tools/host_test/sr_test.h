@@ -11,10 +11,10 @@
 
 static int sr_test_failures;
 
-#define CHECK(expr)                                                        \
-    do {                                                                   \
-        if(!(expr)) {                                                      \
-            fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #expr);     \
-            sr_test_failures++;                                            \
-        }                                                                  \
+#define CHECK(expr)                                                    \
+    do {                                                               \
+        if(!(expr)) {                                                  \
+            fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #expr); \
+            sr_test_failures++;                                        \
+        }                                                              \
     } while(0)

@@ -2,10 +2,9 @@
 
 // Connectivity refers to roads + power lines
 
-enum ConnectivityMask
-{
-	RoadMask = 1,
-	PowerlineMask = 2
+enum ConnectivityMask {
+    RoadMask = 1,
+    PowerlineMask = 2
 };
 
 uint8_t GetConnections(int x, int y);

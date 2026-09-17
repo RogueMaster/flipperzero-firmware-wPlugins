@@ -1,0 +1,21 @@
+EAX' vector from ANSI C12.22-2008, Example 9 / Annex I.4
+
+Key (AES-128):
+01020304050607080102030405060708
+
+Cleartext N (68 bytes):
+A20C060A607C86F7540116007B02A703020104A803020102AC0FA20DA00BA109
+800102810448F3D2F8BE19281781159AA60D060B607C86F7540116007B821102
+48F3D2F8
+
+Plaintext P:
+54454D500B40000700051A00000200E4
+
+Ciphertext C:
+34B7276F5406D25D4E3A51731D88A5D9
+
+Tag T (four bytes):
+1BD78F32
+
+The source PDF presents some intermediate 16-byte values in its reversed
+display order. The values above are the wire/API byte order used by the tests.

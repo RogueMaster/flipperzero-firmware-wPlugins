@@ -53,7 +53,9 @@ class FibpSimulatorTests(unittest.TestCase):
         self.assertEqual(flipper.response_end.bytes_sent, len(flipper.response_body))
 
     def test_transmitter_fragment_pattern_round_trips(self) -> None:
-        frame = Frame(MessageType.PING, encode_ping_token(DEFAULT_PING_TOKEN), sequence=1)
+        frame = Frame(
+            MessageType.PING, encode_ping_token(DEFAULT_PING_TOKEN), sequence=1
+        )
         transmitter = FrameTransmitter((1, 2, 7, 64))
         encoded = transmitter.encoded(frame)
         decoder = StreamDecoder()
@@ -63,7 +65,9 @@ class FibpSimulatorTests(unittest.TestCase):
         self.assertEqual(frames, [frame])
 
     def test_transmitter_can_corrupt_header_or_frame_crc(self) -> None:
-        frame = Frame(MessageType.PING, encode_ping_token(DEFAULT_PING_TOKEN), sequence=1)
+        frame = Frame(
+            MessageType.PING, encode_ping_token(DEFAULT_PING_TOKEN), sequence=1
+        )
         for mode, expected in (
             ("header", ParseIssueCode.BAD_HEADER_CRC),
             ("frame", ParseIssueCode.BAD_FRAME_CRC),

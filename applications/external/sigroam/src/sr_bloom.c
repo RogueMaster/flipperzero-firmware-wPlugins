@@ -12,7 +12,7 @@
 
 enum {
     SR_FNV1A_OFFSET = 2166136261u, /* 0x811C9DC5 */
-    SR_FNV1A_PRIME = 16777619u     /* 0x01000193 = 2^24 + 2^8 + 0x93 */
+    SR_FNV1A_PRIME = 16777619u /* 0x01000193 = 2^24 + 2^8 + 0x93 */
 };
 
 _Static_assert(2166136261u == 0x811C9DC5u, "FNV-1a offset basis");

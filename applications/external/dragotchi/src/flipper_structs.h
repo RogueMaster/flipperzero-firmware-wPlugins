@@ -22,26 +22,27 @@
 /* Application context structure */
 struct ApplicationContext {
     /* GUI */
-    Gui *gui;
-    SceneManager *scene_manager;
-    ViewDispatcher *view_dispatcher;
+    Gui* gui;
+    SceneManager* scene_manager;
+    ViewDispatcher* view_dispatcher;
     /* Modules for GUI */
-    Loading *loading_module;
-    View *pet_view; // custom main view
-    VariableItemList *variable_item_list_module;
-    DialogEx *dialog_ex_module;
-    TextBox *text_box_module;
-    Submenu *menu_module;      // main menu
-    Submenu *care_module;      // care submenu
-    View *stats_view;          // custom Stats screen
-    View *inventory_view;      // custom Inventory screen
-    View *storm_view;          // custom animated Signal Storm screen
+    Loading* loading_module;
+    View* pet_view; // custom main view
+    VariableItemList* variable_item_list_module;
+    DialogEx* dialog_ex_module;
+    TextBox* text_box_module;
+    Submenu* menu_module; // main menu
+    Submenu* care_module; // care submenu
+    View* stats_view; // custom Stats screen
+    View* inventory_view; // custom Inventory screen
+    View* storm_view; // custom animated Signal Storm screen
 
     /* Others */
-    FuriTimer *storm_timer;    // animates the Signal Storm screen while open
-    FuriThread *secondary_thread;
-    FuriMessageQueue *threads_message_queue; // Message queue between main thread, GUI and secondary thread
-    struct GameState *game_state; // Read by draw_callback thread, written by the secondary thread
+    FuriTimer* storm_timer; // animates the Signal Storm screen while open
+    FuriThread* secondary_thread;
+    FuriMessageQueue*
+        threads_message_queue; // Message queue between main thread, GUI and secondary thread
+    struct GameState* game_state; // Read by draw_callback thread, written by the secondary thread
 };
 
 #endif

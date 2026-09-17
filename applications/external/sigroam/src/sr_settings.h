@@ -86,19 +86,17 @@ size_t sr_settings_serialize(const SrSettings* s, char* out, size_t cap);
  * on false, *out is already all defaults. stats may be NULL.
  * Before returning, sr_settings_is_valid(out) is guaranteed true (for non-NULL out).
  */
-bool sr_settings_parse(
-    const char* buf,
-    size_t len,
-    SrSettings* out,
-    SrSettingsParseStats* stats);
+bool sr_settings_parse(const char* buf, size_t len, SrSettings* out, SrSettingsParseStats* stats);
 
 bool sr_settings_effective_sound(const SrSettings* s);
 bool sr_settings_effective_vibro(const SrSettings* s);
 bool sr_settings_effective_backlight(const SrSettings* s);
 
 uint32_t sr_settings_baud_choice(size_t idx); /* Out of range returns 0 */
-size_t sr_settings_baud_index(uint32_t baud); /* Not in the table returns SR_SETTINGS_BAUD_CHOICES */
+size_t
+    sr_settings_baud_index(uint32_t baud); /* Not in the table returns SR_SETTINGS_BAUD_CHOICES */
 
 SrSourceKind sr_settings_source_choice(size_t idx); /* Out of range returns SrSourceUnknown */
-size_t sr_settings_source_index(SrSourceKind k); /* Not in the table returns SR_SETTINGS_SOURCE_CHOICES */
+size_t sr_settings_source_index(
+    SrSourceKind k); /* Not in the table returns SR_SETTINGS_SOURCE_CHOICES */
 bool sr_settings_equal(const SrSettings* a, const SrSettings* b);

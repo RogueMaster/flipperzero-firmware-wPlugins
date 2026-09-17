@@ -15,8 +15,8 @@ typedef enum {
     ExportClear,
 } ExportIndex;
 
-#define CLEAR_YES 230
-#define CLEAR_NO 231
+#define CLEAR_YES  230
+#define CLEAR_NO   231
 #define POPUP_DONE 232
 
 static char export_msg[128];
@@ -31,10 +31,8 @@ static void timeclock_scene_export_popup_callback(void* context) {
     view_dispatcher_send_custom_event(app->view_dispatcher, POPUP_DONE);
 }
 
-static void timeclock_scene_export_button_callback(
-    GuiButtonType result,
-    InputType type,
-    void* context) {
+static void
+    timeclock_scene_export_button_callback(GuiButtonType result, InputType type, void* context) {
     TimeClock* app = context;
     if(type != InputTypeShort) return;
     if(result == GuiButtonTypeLeft) {
@@ -59,7 +57,11 @@ static void timeclock_scene_export_show_menu(TimeClock* app) {
     submenu_add_item(
         submenu, tc_str(StrRestore), ExportRestore, timeclock_scene_export_submenu_callback, app);
     submenu_add_item(
-        submenu, tc_str(StrClearHistory), ExportClear, timeclock_scene_export_submenu_callback, app);
+        submenu,
+        tc_str(StrClearHistory),
+        ExportClear,
+        timeclock_scene_export_submenu_callback,
+        app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TimeClockViewSubmenu);
 }
 
@@ -120,9 +122,7 @@ bool timeclock_scene_export_on_event(void* context, SceneManagerEvent event) {
         case ExportJson:
             if(tc_history_export_json()) {
                 snprintf(
-                    export_msg,
-                    sizeof(export_msg),
-                    "Saved:\napps_data/timeclock/export.json");
+                    export_msg, sizeof(export_msg), "Saved:\napps_data/timeclock/export.json");
                 timeclock_scene_export_show_popup(app, tc_str(StrExportJson));
             } else {
                 snprintf(export_msg, sizeof(export_msg), "%s", tc_str(StrNothingExport));

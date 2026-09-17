@@ -8,7 +8,7 @@
 
 /* Simulate raising a pet from egg to just-adult with a given care policy.
  * good_care=1 keeps every need topped up; good_care=0 neglects it. */
-static void simulate(struct GameState *s, int good_care, uint32_t seed) {
+static void simulate(struct GameState* s, int good_care, uint32_t seed) {
     rng_seed(seed);
     game_state_init(s, 0);
     for(uint32_t now = 0; now <= AGE_ADULT + 120; now += 60) {
@@ -50,6 +50,6 @@ void run_integration_tests(void) {
     game_state_init(&a, 0);
     advance_state(&a, AGE_HATCHLING + 1);
     CHECK(a.persistent.stage == HATCHLING);
-    CHECK(a.persistent.hunger == MAX_HU);   // resynced at hatch, no retro-decay
+    CHECK(a.persistent.hunger == MAX_HU); // resynced at hatch, no retro-decay
     CHECK(a.persistent.last_hunger_update >= AGE_HATCHLING);
 }

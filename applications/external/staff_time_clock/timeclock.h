@@ -43,7 +43,7 @@
 // The limits and the data model (TcEventType, Badge, TcConfig) are defined in
 // timeclock_storage.h, included above, since storage owns their persistence.
 // Only the PIN-related constants live here.
-#define TC_PIN_LEN 4
+#define TC_PIN_LEN          4
 #define TC_MAX_PIN_ATTEMPTS 5
 
 const char* tc_event_str(TcEventType type);

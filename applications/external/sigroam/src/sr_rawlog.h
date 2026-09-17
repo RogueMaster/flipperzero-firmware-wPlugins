@@ -12,7 +12,10 @@
  * C string functions that scan for a NUL.
  */
 
-enum { SR_RAWLOG_LINES = 16, SR_RAWLOG_LINE_MAX = 80 };
+enum {
+    SR_RAWLOG_LINES = 16,
+    SR_RAWLOG_LINE_MAX = 80
+};
 
 typedef struct {
     char text[SR_RAWLOG_LINE_MAX + 1];

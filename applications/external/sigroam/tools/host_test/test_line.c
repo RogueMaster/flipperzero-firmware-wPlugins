@@ -26,7 +26,9 @@ _Static_assert(sizeof(SrLine) <= 576, "SrLine over Plan 3.5 line-buffer budget")
 /* Line-sequence container + a standalone oracle                              */
 /* -------------------------------------------------------------------------- */
 
-enum { ORACLE_MAX_LINES = 1100 }; /* fuzz input caps at 2048 B; worst case is "a\n" x1024 */
+enum {
+    ORACLE_MAX_LINES = 1100
+}; /* fuzz input caps at 2048 B; worst case is "a\n" x1024 */
 
 typedef struct {
     char text[SR_RAW_LINE_MAX + 1];
@@ -572,7 +574,7 @@ static void test_fuzz(void) {
      * count of only 18 is exactly that example.
      */
     CHECK(cov_lines > 200000u);
-    CHECK(cov_trunc > 200u);   /* overlong truncation path */
+    CHECK(cov_trunc > 200u); /* overlong truncation path */
     CHECK(cov_empty > 40000u); /* empty-line drop path */
     CHECK(cov_ctrl > 1000000u);
     CHECK(cov_cr > 500000u);

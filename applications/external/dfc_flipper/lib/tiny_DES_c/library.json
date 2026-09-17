@@ -1,0 +1,21 @@
+{
+    "license": "Unlicense",
+    "copyright": "Mistial Dev",
+    "version": "1.0.0",
+    "name": "tiny-DES-c",
+    "keywords": "cryptography, des, 3des, tdes, cmac",
+    "description": "Small portable DES/Triple-DES (and optional CMAC) in C",
+    "repository":
+    {
+        "type": "git",
+        "branch": "main",
+        "url": "https://github.com/mistial-dev/tiny-DES-c.git"
+    },
+    "frameworks": "*",
+    "platforms": "*",
+    "examples": "examples/ctr_smoke.cpp",
+    "build":
+    {
+        "srcFilter": "+<des.c> +<des.h> +<des.hpp>"
+    }
+}

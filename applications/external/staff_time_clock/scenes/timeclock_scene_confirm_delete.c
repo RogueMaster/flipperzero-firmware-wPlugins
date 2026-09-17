@@ -7,7 +7,7 @@
 // past punches remain, referencing the now-unregistered UID.
 
 #define CONFIRM_YES 220
-#define CONFIRM_NO 221
+#define CONFIRM_NO  221
 
 static char detail_line[80];
 

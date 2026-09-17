@@ -2,6 +2,7 @@ App(
     appid="infrared_playback",
     name="Infrared Playback",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="infrared_playback_app",
     stack_size=2 * 1024,
     fap_icon="assets/icon.png",

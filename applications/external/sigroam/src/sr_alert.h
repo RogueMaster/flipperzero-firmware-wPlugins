@@ -5,7 +5,9 @@
 
 /* ★ Pure logic. Must not include any furi header (ADR-003). */
 
-enum { SR_ALERT_MIN_GAP_MS = 3000 };
+enum {
+    SR_ALERT_MIN_GAP_MS = 3000
+};
 
 typedef enum {
     SrAlertNone = 0,

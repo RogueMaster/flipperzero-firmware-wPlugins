@@ -41,10 +41,7 @@ bool markets_build_coin_request(
         memcpy(symbol + length, "USDT", 5U);
     }
     int written = snprintf(
-        url,
-        url_capacity,
-        "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=%s",
-        symbol);
+        url, url_capacity, "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=%s", symbol);
     if(written < 0 || (size_t)written >= url_capacity) {
         symbol[0] = '\0';
         url[0] = '\0';
@@ -56,7 +53,8 @@ bool markets_build_coin_request(
 /* Bounded scalar extraction for the providers' flat objects. Reject truncated,
  * escaped or oversized values instead of rendering partial prices. */
 static const char* whitespace(const char* p) {
-    while(*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') ++p;
+    while(*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t')
+        ++p;
     return p;
 }
 
@@ -81,10 +79,10 @@ static bool field(const char* json, const char* key, char* out, size_t size) {
         bool quoted = *p == '"';
         if(quoted) ++p;
         const char* value = p;
-        while(*p && (quoted ? *p != '"' :
-              *p != ',' && *p != '}' && whitespace(p) == p)) {
+        while(*p && (quoted ? *p != '"' : *p != ',' && *p != '}' && whitespace(p) == p)) {
             if((unsigned char)*p < 32 || *p == '\\' ||
-               (!quoted && (*p == '{' || *p == '[' || *p == '"'))) return false;
+               (!quoted && (*p == '{' || *p == '[' || *p == '"')))
+                return false;
             ++p;
         }
         size_t length = (size_t)(p - value);
@@ -111,16 +109,20 @@ static bool price(const char* json, const char* key, char* out, size_t size) {
     if(!field(json, key, out, size)) return false;
     bool dot = false, digit = false;
     for(char* p = out; *p; ++p) {
-        if(*p == '.' && !dot) { dot = true; continue; }
+        if(*p == '.' && !dot) {
+            dot = true;
+            continue;
+        }
         if(*p < '0' || *p > '9') return false;
         digit = true;
     }
-    if(!digit || out[0] == '.' || out[strlen(out) - 1] == '.' ||
-       strtod(out, NULL) <= 0) return false;
+    if(!digit || out[0] == '.' || out[strlen(out) - 1] == '.' || strtod(out, NULL) <= 0)
+        return false;
     /* Preserve exact provider decimal text, dropping only insignificant zeros. */
     if(dot) {
         size_t n = strlen(out);
-        while(n && out[n - 1] == '0') out[--n] = 0;
+        while(n && out[n - 1] == '0')
+            out[--n] = 0;
         if(n && out[n - 1] == '.') out[--n] = 0;
     }
     return true;
@@ -137,12 +139,11 @@ static bool digits(const char* value, size_t exact_length) {
 static bool utc_timestamp(const char* value) {
     if(strlen(value) != 20U) return false;
     for(size_t index = 0U; index < 20U; ++index) {
-        const char expected =
-            (index == 4U || index == 7U) ? '-' :
-            index == 10U ? 'T' :
-            (index == 13U || index == 16U) ? ':' :
-            index == 19U ? 'Z' :
-            '\0';
+        const char expected = (index == 4U || index == 7U)   ? '-' :
+                              index == 10U                   ? 'T' :
+                              (index == 13U || index == 16U) ? ':' :
+                              index == 19U                   ? 'Z' :
+                                                               '\0';
         if(expected != '\0') {
             if(value[index] != expected) return false;
         } else if(value[index] < '0' || value[index] > '9') {
@@ -162,8 +163,7 @@ static bool format_binance(
     char value[32];
     char updated[40];
     if(!expected_symbol || !unit || !field(json, "symbol", symbol, sizeof(symbol)) ||
-       strcmp(symbol, expected_symbol) ||
-       !price(json, "lastPrice", value, sizeof(value)) ||
+       strcmp(symbol, expected_symbol) || !price(json, "lastPrice", value, sizeof(value)) ||
        !field(json, "closeTime", updated, sizeof(updated)) || !digits(updated, 13U)) {
         return false;
     }
@@ -184,11 +184,7 @@ static bool format_binance(
     return true;
 }
 
-bool markets_format_coin(
-    const char* symbol,
-    const char* json,
-    char* output,
-    size_t capacity) {
+bool markets_format_coin(const char* symbol, const char* json, char* output, size_t capacity) {
     if(!symbol || !json || !output || capacity == 0U) return false;
     output[0] = '\0';
     return format_binance(symbol, "USDT", json, output, capacity);
@@ -200,32 +196,26 @@ bool markets_format(unsigned index, const char* json, char* output, size_t capac
     char symbol[16], value[32], updated[40];
     int written;
     if(index < 2U) {
-        return format_binance(
-            index == 0U ? "BTCUSDT" : "ETHUSDT",
-            "USDT",
-            json,
-            output,
-            capacity);
+        return format_binance(index == 0U ? "BTCUSDT" : "ETHUSDT", "USDT", json, output, capacity);
     }
     if(index == 3U) {
-        return format_binance(
-            "BZUSDT", "USDT / barrel", json, output, capacity);
+        return format_binance("BZUSDT", "USDT / barrel", json, output, capacity);
     }
     if(index != 2U && index != 4U) return false;
     const char* expected[] = {"", "", "XAU", "", "XAG"};
     if(!field(json, "symbol", symbol, sizeof(symbol)) || strcmp(symbol, expected[index]) ||
-       !price(json, "price", value, sizeof(value))) return false;
+       !price(json, "price", value, sizeof(value)))
+        return false;
     char currency[8];
     if(!field(json, "currency", currency, sizeof(currency)) || strcmp(currency, "USD") ||
        !field(json, "updatedAt", updated, sizeof(updated)) || !utc_timestamp(updated)) {
         return false;
     }
     written = snprintf(
-        output,
-        capacity,
-        "%s USD / troy oz\nUpdated: %s\nSource: Gold API",
-        value,
-        updated);
-    if(written < 0 || (size_t)written >= capacity) { output[0] = 0; return false; }
+        output, capacity, "%s USD / troy oz\nUpdated: %s\nSource: Gold API", value, updated);
+    if(written < 0 || (size_t)written >= capacity) {
+        output[0] = 0;
+        return false;
+    }
     return true;
 }

@@ -14,26 +14,24 @@ const char StadiumStr[] = "Stadium";
 const char SaveLoadStr[] = "Save/Load";
 const char BudgetStr[] = "Budget";
 
-const char* const ToolbarStrings[] =
-{
-	BulldozerStr,
-	RoadStr,
-	PowerlineStr,
-	ResidentialStr,
-	CommericalStr,
-	IndustrialStr,
-	PowerplantStr,
-	ParkStr,
-	PoliceDeptStr,
-	FireDeptStr,
-	StadiumStr,
-	SaveLoadStr,
-	BudgetStr,
+const char* const ToolbarStrings[] = {
+    BulldozerStr,
+    RoadStr,
+    PowerlineStr,
+    ResidentialStr,
+    CommericalStr,
+    IndustrialStr,
+    PowerplantStr,
+    ParkStr,
+    PoliceDeptStr,
+    FireDeptStr,
+    StadiumStr,
+    SaveLoadStr,
+    BudgetStr,
 };
 
-const char* GetToolbarString(int index)
-{
-	return ToolbarStrings[index];
+const char* GetToolbarString(int index) {
+    return ToolbarStrings[index];
 }
 
 const char JanStr[] = "Jan";
@@ -50,24 +48,8 @@ const char NovStr[] = "Nov";
 const char DecStr[] = "Dec";
 
 const char* const MonthStrings[] =
-{
-	JanStr,
-	FebStr,
-	MarStr,
-	AprStr,
-	MayStr,
-	JunStr,
-	JulStr,
-	AugStr,
-	SepStr,
-	OctStr,
-	NovStr,
-	DecStr
-};
+    {JanStr, FebStr, MarStr, AprStr, MayStr, JunStr, JulStr, AugStr, SepStr, OctStr, NovStr, DecStr};
 
-const char* GetMonthString(int index)
-{
-	return MonthStrings[index];
+const char* GetMonthString(int index) {
+    return MonthStrings[index];
 }
-
-

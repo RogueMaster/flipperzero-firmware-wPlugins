@@ -55,11 +55,7 @@ void sigroam_scene_start_on_enter(void* context) {
     submenu_add_item(
         app->submenu, "Dashboard", SigRoamStartItemDash, sigroam_start_submenu_callback, app);
     submenu_add_item(
-        app->submenu,
-        "Probe firmware",
-        SigRoamStartItemProbe,
-        sigroam_start_submenu_callback,
-        app);
+        app->submenu, "Probe firmware", SigRoamStartItemProbe, sigroam_start_submenu_callback, app);
     submenu_add_item(
         app->submenu, "Raw log", SigRoamStartItemRaw, sigroam_start_submenu_callback, app);
     submenu_add_item(

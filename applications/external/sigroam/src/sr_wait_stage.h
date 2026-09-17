@@ -28,15 +28,15 @@
 
 typedef enum {
     SrWaitStageNone = 0, /* No pending command */
-    SrWaitStageLink,     /* L1 not reached: no bytes received yet -> waiting for Scout to speak */
-    SrWaitStageCmd,      /* L2 not reached: command not processed by the CLI -> waiting for it to be received */
-    SrWaitStageFunc,     /* L3 not reached: command received, function not yet started -> waiting for the scan to start/stop */
+    SrWaitStageLink, /* L1 not reached: no bytes received yet -> waiting for Scout to speak */
+    SrWaitStageCmd, /* L2 not reached: command not processed by the CLI -> waiting for it to be received */
+    SrWaitStageFunc, /* L3 not reached: command received, function not yet started -> waiting for the scan to start/stop */
 } SrWaitStage;
 
 typedef struct {
-    bool cmd_pending;        /* From SrScanCtlCtx.cmd_pending */
-    uint32_t rx_bytes;       /* From SrIoStats.rx_bytes */
-    uint32_t cmdack_now;     /* Current value of sr_worker_cmdack_count() */
+    bool cmd_pending; /* From SrScanCtlCtx.cmd_pending */
+    uint32_t rx_bytes; /* From SrIoStats.rx_bytes */
+    uint32_t cmdack_now; /* Current value of sr_worker_cmdack_count() */
     uint32_t cmdack_at_send; /* Snapshot of that same counter taken **before** queuing the command */
 } SrWaitCtx;
 

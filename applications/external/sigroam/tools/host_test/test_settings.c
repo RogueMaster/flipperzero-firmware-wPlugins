@@ -31,9 +31,7 @@ _Static_assert(SR_SETTINGS_VERSION == 1, "settings file Version is 1");
 /* the oracle only operates on its own copy.                                  */
 /* -------------------------------------------------------------------------- */
 
-static const uint32_t kOracleBaud[6] = {
-    9600u, 19200u, 38400u, 57600u, 115200u, 230400u
-};
+static const uint32_t kOracleBaud[6] = {9600u, 19200u, 38400u, 57600u, 115200u, 230400u};
 
 static void oracle_defaults(SrSettings* s) {
     s->baud = 115200u;
@@ -67,11 +65,8 @@ static bool oracle_is_default(const SrSettings* s) {
     return oracle_eq(s, &d);
 }
 
-static void oracle_apply_kv(
-    SrSettings* out,
-    SrSettingsParseStats* st,
-    const char* key,
-    const char* val) {
+static void
+    oracle_apply_kv(SrSettings* out, SrSettingsParseStats* st, const char* key, const char* val) {
     if(strcmp(key, "Baud") == 0) {
         size_t n = strlen(val);
         if(n > 0u && strspn(val, "0123456789") == n) {
@@ -223,11 +218,7 @@ static void oracle_apply_kv(
  * copied into their own C strings before strcmp / strtoul. A slice containing a NUL can never be
  * a legal token; if the key still matches a known name, the value is still treated as invalid.
  */
-static bool oracle_parse(
-    const char* buf,
-    size_t len,
-    SrSettings* out,
-    SrSettingsParseStats* st) {
+static bool oracle_parse(const char* buf, size_t len, SrSettings* out, SrSettingsParseStats* st) {
     const char* p;
     const char* end;
     unsigned phase;
@@ -270,8 +261,7 @@ static bool oracle_parse(
             st->lines_seen++;
         }
         if(phase == 0u) {
-            if(L != sizeof("Filetype: SigRoam Settings") - 1u ||
-               memchr(line, 0, L) != NULL ||
+            if(L != sizeof("Filetype: SigRoam Settings") - 1u || memchr(line, 0, L) != NULL ||
                strcmp(line, "Filetype: SigRoam Settings") != 0) {
                 oracle_defaults(out);
                 free(line);
@@ -536,9 +526,7 @@ static void test_serialize_len_and_cap(void) {
 /* 576-combination round-trip (288 × 2, T4.11 added debug_rows)               */
 /* -------------------------------------------------------------------------- */
 
-static const SrSourceKind kSrc3[3] = {
-    SrSourceUnknown, SrSourceMarauder, SrSourceGhostesp
-};
+static const SrSourceKind kSrc3[3] = {SrSourceUnknown, SrSourceMarauder, SrSourceGhostesp};
 
 static void test_roundtrip_576(void) {
     size_t bi, si, mask;
@@ -846,23 +834,15 @@ static uint32_t xs32(uint32_t* s) {
     return x;
 }
 
-enum { WORK_MAX = 512 };
-
-static const char* kBadTok[] = {
-    "yes",
-    "true",
-    "on",
-    "2",
-    "999",
-    "native",
-    "AUTO",
-    " 1",
-    "1 ",
-    "",
-    "4294967296",
-    "115200x"
+enum {
+    WORK_MAX = 512
 };
-enum { N_BAD_TOK = 12 };
+
+static const char* kBadTok[] =
+    {"yes", "true", "on", "2", "999", "native", "AUTO", " 1", "1 ", "", "4294967296", "115200x"};
+enum {
+    N_BAD_TOK = 12
+};
 
 static size_t line_starts(const char* s, size_t n, size_t* out, size_t max) {
     size_t c = 0;
@@ -935,12 +915,7 @@ static void test_fuzz_a(void) {
         }
         ok = sr_settings_parse(p, n, &out, &st);
         if(!sr_settings_is_valid(&out)) {
-            fprintf(
-                stderr,
-                "fuzz A invalid: iter=%u case_seed=0x%08X n=%zu\n",
-                i,
-                case_seed,
-                n);
+            fprintf(stderr, "fuzz A invalid: iter=%u case_seed=0x%08X n=%zu\n", i, case_seed, n);
         }
         CHECK(sr_settings_is_valid(&out));
         cov_valid++;

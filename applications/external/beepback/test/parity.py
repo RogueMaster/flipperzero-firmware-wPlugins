@@ -131,7 +131,9 @@ def main():
         ok = a == b
         fails += not ok
         print(
-            ("ok   " if ok else "FAIL ") + name + ("" if ok else f"\n       browser {a!r}\n       firmware {b!r}")
+            ("ok   " if ok else "FAIL ")
+            + name
+            + ("" if ok else f"\n       browser {a!r}\n       firmware {b!r}")
         )
 
     for key in sorted(fw):
@@ -140,7 +142,11 @@ def main():
         check(f"{day} is the same run in both", tuple(got["daily"][str(day)]), want)
     check("round one pays 1+2+3 notes and a round bonus", got["normal"], [160, 6, 1])
     check("and pays exactly the same on insane and fast", got["insane"], [160, 6, 1])
-    check("a new best lands in the slot it was played on", got["newBest"], [True, 400, 5000])
+    check(
+        "a new best lands in the slot it was played on",
+        got["newBest"],
+        [True, 400, 5000],
+    )
     if errors:
         fails += 1
         print("FAIL the browser build threw:", errors)

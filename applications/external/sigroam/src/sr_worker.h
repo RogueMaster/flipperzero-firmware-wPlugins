@@ -27,7 +27,9 @@ void sr_worker_request_stop(SrWorker* w); /* Atomically sets the exit flag; NULL
 /* join + furi_thread_free, then thread is set to NULL. No-op if never started. */
 void sr_worker_join(SrWorker* w);
 
-enum { SR_WORKER_CMD_MAX = 32 };
+enum {
+    SR_WORKER_CMD_MAX = 32
+};
 
 /* Queue one command, to be sent by the worker thread while it does not hold the app mutex.
  * cmd must carry its own line terminator (for example "info\n").

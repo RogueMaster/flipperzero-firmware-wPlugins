@@ -48,10 +48,19 @@ static void timeclock_scene_settings_build(TimeClock* app, uint8_t sel_pos) {
     const char* on = tc_str(StrOn);
     const char* off = tc_str(StrOff);
     snprintf(
-        sound_lbl, sizeof(sound_lbl), "%s: %s", tc_str(StrSound), app->config.sound_enabled ? on : off);
+        sound_lbl,
+        sizeof(sound_lbl),
+        "%s: %s",
+        tc_str(StrSound),
+        app->config.sound_enabled ? on : off);
     snprintf(
-        vibro_lbl, sizeof(vibro_lbl), "%s: %s", tc_str(StrVibro), app->config.vibro_enabled ? on : off);
-    snprintf(led_lbl, sizeof(led_lbl), "%s: %s", tc_str(StrLed), app->config.led_enabled ? on : off);
+        vibro_lbl,
+        sizeof(vibro_lbl),
+        "%s: %s",
+        tc_str(StrVibro),
+        app->config.vibro_enabled ? on : off);
+    snprintf(
+        led_lbl, sizeof(led_lbl), "%s: %s", tc_str(StrLed), app->config.led_enabled ? on : off);
     snprintf(
         lang_lbl,
         sizeof(lang_lbl),

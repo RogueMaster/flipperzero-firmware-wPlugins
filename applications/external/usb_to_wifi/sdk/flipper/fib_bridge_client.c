@@ -44,9 +44,8 @@ static FibBridgeState fib_bridge_map_state(BridgeSessionState state) {
     }
 }
 
-static void fib_bridge_copy_status(
-    const BridgeSessionStatus* source,
-    FibBridgeStatus* destination) {
+static void
+    fib_bridge_copy_status(const BridgeSessionStatus* source, FibBridgeStatus* destination) {
     memset(destination, 0, sizeof(*destination));
     destination->state = fib_bridge_map_state(source->state);
     destination->permission = (FibBridgePermission)source->permission;
@@ -133,7 +132,8 @@ bool fib_bridge_client_is_ready(FibBridgeClient* client) {
     if(!client) return false;
     BridgeSessionStatus snapshot;
     bridge_session_get_status(client->session, &snapshot);
-    return snapshot.state == BridgeSessionStateReady || snapshot.state == BridgeSessionStateComplete;
+    return snapshot.state == BridgeSessionStateReady ||
+           snapshot.state == BridgeSessionStateComplete;
 }
 
 bool fib_bridge_client_has_active_request(FibBridgeClient* client) {

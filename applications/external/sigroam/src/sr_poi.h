@@ -5,13 +5,15 @@
 
 /* ★ Pure logic. Must not include any furi header (ADR-003). */
 
-enum { SR_POI_ACK_MS = 2000 }; /* Product trade-off, NOT a measured value. See card D15-POI decision 6. */
+enum {
+    SR_POI_ACK_MS = 2000
+}; /* Product trade-off, NOT a measured value. See card D15-POI decision 6. */
 
 typedef enum {
     SrPoiGateOk = 0,
-    SrPoiGateNoLink,      /* serial not open / codec has no POI command */
+    SrPoiGateNoLink, /* serial not open / codec has no POI command */
     SrPoiGateNotScanning, /* not in a wardrive session -> peer would drop it silently (P2) */
-    SrPoiGateNoFix,       /* no GPS fix -> tagPOI returns silently (P3) */
+    SrPoiGateNoFix, /* no GPS fix -> tagPOI returns silently (P3) */
 } SrPoiGate;
 
 typedef enum {
@@ -23,7 +25,7 @@ typedef enum {
 
 typedef struct {
     uint8_t phase;
-    uint32_t ack_at_send;  /* snapshot of sr_worker_cmdack_count(SrCmdAckPoi) */
+    uint32_t ack_at_send; /* snapshot of sr_worker_cmdack_count(SrCmdAckPoi) */
     uint32_t sent_tick_ms;
 } SrPoiCtx;
 
@@ -34,8 +36,7 @@ static inline SrPoiGate sr_poi_gate(bool link_ok, uint8_t session, uint8_t scan_
 static inline void sr_poi_reset(SrPoiCtx* ctx);
 
 /* ack_now = current cmdack count for SrCmdAckPoi. Returns the new phase. */
-static inline SrPoiPhase
-    sr_poi_step(SrPoiCtx* ctx, uint32_t ack_now, uint32_t tick_ms);
+static inline SrPoiPhase sr_poi_step(SrPoiCtx* ctx, uint32_t ack_now, uint32_t tick_ms);
 
 /* Returns a static literal or NULL, always a single line of <= 20 chars (SR_VIEW_COLS). */
 static inline const char* sr_poi_status_text(uint8_t phase, uint8_t gate);

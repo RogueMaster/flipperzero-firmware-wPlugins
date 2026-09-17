@@ -23,21 +23,17 @@ static const char ABOUT_TEXT[] = "Dragotchi\n"
                                  "Matagotchi. Thanks MrModd!\n"
                                  "github.com/MrModd/Matagotchi";
 
-static const char LIFE_STAGE_STRING[][10] = {"Egg",
-                                             "Hatchling",
-                                             "Wyrmling",
-                                             "Drake",
-                                             "Adult",
-                                             "Dead"};
+static const char LIFE_STAGE_STRING[][10] =
+    {"Egg", "Hatchling", "Wyrmling", "Drake", "Adult", "Dead"};
 static const char ALIGNMENT_STRING[][6] = {"", "White", "Grey", "Black"};
 
 /* Game state file info */
-#define GAME_STATE_STORAGE_STATE_FILENAME "dragotchi.save"
+#define GAME_STATE_STORAGE_STATE_FILENAME    "dragotchi.save"
 #define GAME_STATE_STORAGE_SETTINGS_FILENAME "dragotchi.settings"
-#define GAME_STATE_STORAGE_STATE_PATH APP_DATA_PATH(GAME_STATE_STORAGE_STATE_FILENAME)
-#define GAME_STATE_STORAGE_SETTINGS_PATH APP_DATA_PATH(GAME_STATE_STORAGE_SETTINGS_FILENAME)
-#define GAME_STATE_HEADER_MAGIC 0xDA
-#define GAME_STATE_HEADER_VERSION 0x01
+#define GAME_STATE_STORAGE_STATE_PATH        APP_DATA_PATH(GAME_STATE_STORAGE_STATE_FILENAME)
+#define GAME_STATE_STORAGE_SETTINGS_PATH     APP_DATA_PATH(GAME_STATE_STORAGE_SETTINGS_FILENAME)
+#define GAME_STATE_HEADER_MAGIC              0xDA
+#define GAME_STATE_HEADER_VERSION            0x01
 
 /* App version, shown in the menu header. Keep in sync with application.fam.
  */

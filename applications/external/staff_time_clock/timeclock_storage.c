@@ -94,8 +94,8 @@ static int tc_hhmm_to_minutes(const char* hhmm) {
 // correctly. Returns 0 on a malformed string.
 static long tc_date_to_days(const char* ymd) {
     if(!ymd || strlen(ymd) < 10) return 0;
-    long y = (ymd[0] - '0') * 1000L + (ymd[1] - '0') * 100L + (ymd[2] - '0') * 10L +
-             (ymd[3] - '0');
+    long y =
+        (ymd[0] - '0') * 1000L + (ymd[1] - '0') * 100L + (ymd[2] - '0') * 10L + (ymd[3] - '0');
     long m = (ymd[5] - '0') * 10L + (ymd[6] - '0');
     long d = (ymd[8] - '0') * 10L + (ymd[9] - '0');
     if(m < 1 || m > 12 || d < 1 || d > 31) return 0;

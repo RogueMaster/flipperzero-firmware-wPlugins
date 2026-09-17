@@ -15,8 +15,11 @@ static uint32_t stamp(IrbSignalCache* cache) {
     }
     return cache->clock;
 }
-bool irb_signal_key(const IrbLibrary* library, const IrbProject* project, unsigned slot,
-                    IrbSignalKey* key) {
+bool irb_signal_key(
+    const IrbLibrary* library,
+    const IrbProject* project,
+    unsigned slot,
+    IrbSignalKey* key) {
     memset(key, 0, sizeof(*key));
     if(!irb_project_active(project, slot)) return false;
     const IrbSignalRef* mapped = irb_project_imported(project, slot);
@@ -59,8 +62,12 @@ bool irb_signal_key(const IrbLibrary* library, const IrbProject* project, unsign
     }
     return key->offset < key->size;
 }
-bool irb_signal_source_check(Storage* storage, const IrbSignalKey* key, char* error,
-                             IrbLoadProgress progress, void* context) {
+bool irb_signal_source_check(
+    Storage* storage,
+    const IrbSignalKey* key,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     uint32_t hash, size;
     if(irb_file_fingerprint(storage, key->path, &hash, &size, IrbLoadVerify, progress, context) &&
        hash == key->hash && size == key->size)
@@ -82,8 +89,8 @@ const InfraredSignal* irb_cache_find(IrbSignalCache* cache, const IrbSignalKey* 
     }
     return NULL;
 }
-const InfraredSignal* irb_cache_put(IrbSignalCache* cache, const IrbSignalKey* key,
-                                    const InfraredSignal* signal) {
+const InfraredSignal*
+    irb_cache_put(IrbSignalCache* cache, const IrbSignalKey* key, const InfraredSignal* signal) {
     IrbCachedSignal* entry = &cache->entries[0];
     for(unsigned i = 0; i < IRB_SIGNAL_CACHE_SIZE; ++i) {
         IrbCachedSignal* candidate = &cache->entries[i];
@@ -99,9 +106,13 @@ const InfraredSignal* irb_cache_put(IrbSignalCache* cache, const IrbSignalKey* k
     entry->used = stamp(cache);
     return entry->signal;
 }
-const InfraredSignal* irb_cache_read(IrbSignalCache* cache, Storage* storage,
-                                     const IrbSignalKey* key, char* error, IrbLoadProgress progress,
-                                     void* context) {
+const InfraredSignal* irb_cache_read(
+    IrbSignalCache* cache,
+    Storage* storage,
+    const IrbSignalKey* key,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     const InfraredSignal* found = irb_cache_find(cache, key);
     if(found) return found;
     if(!irb_signal_source_check(storage, key, error, progress, context)) return NULL;

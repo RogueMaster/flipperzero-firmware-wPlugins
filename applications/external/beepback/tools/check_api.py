@@ -18,9 +18,13 @@ import urllib.request
 # ufbt's installed SDK carries it; the dev branch is only a stand-in for
 # a machine that has no SDK, and the two differ - release 1.4.3 is API
 # 87.1 where dev is 88.2.
-LOCAL = os.path.expanduser("~/.ufbt/current/sdk_headers/f7_sdk/targets/f7/api_symbols.csv")
-URL = ("https://raw.githubusercontent.com/flipperdevices/"
-       "flipperzero-firmware/dev/targets/f7/api_symbols.csv")
+LOCAL = os.path.expanduser(
+    "~/.ufbt/current/sdk_headers/f7_sdk/targets/f7/api_symbols.csv"
+)
+URL = (
+    "https://raw.githubusercontent.com/flipperdevices/"
+    "flipperzero-firmware/dev/targets/f7/api_symbols.csv"
+)
 
 
 def load():
@@ -39,7 +43,7 @@ def main():
         return 1
     try:
         rows, source = load()
-    except Exception as exc:                                   # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         print(f"could not read the API table: {exc}", file=sys.stderr)
         return 2
 

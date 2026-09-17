@@ -70,7 +70,9 @@ def panel(img, screen_png, x, y, w):
     pad = max(6, w // 40)
     frame = Image.new("RGB", (w + pad * 2, h + pad * 2), BEZEL)
     d = ImageDraw.Draw(frame)
-    d.rounded_rectangle([0, 0, frame.width - 1, frame.height - 1], radius=pad, fill=BEZEL)
+    d.rounded_rectangle(
+        [0, 0, frame.width - 1, frame.height - 1], radius=pad, fill=BEZEL
+    )
     frame.paste(shot, (pad, pad))
     img.paste(frame, (x, y))
     return frame.width, frame.height
@@ -81,7 +83,13 @@ def cover(shots, out):
     d = ImageDraw.Draw(img)
     for i, kind in enumerate(SHAPES):
         shape(d, kind, 91 + i * 112, 88, 44, ORANGE)
-    d.text((315, 212), "BEEPBACK", font=ImageFont.truetype(BOLD, 82), fill=ORANGE, anchor="mm")
+    d.text(
+        (315, 212),
+        "BEEPBACK",
+        font=ImageFont.truetype(BOLD, 82),
+        fill=ORANGE,
+        anchor="mm",
+    )
     d.text(
         (315, 272),
         "listen  ·  watch  ·  repeat",
@@ -94,7 +102,13 @@ def cover(shots, out):
     d = ImageDraw.Draw(img)
     for i, kind in enumerate(SHAPES):
         shape(d, kind, 91 + i * 112, 88, 44, ORANGE)
-    d.text((315, 212), "BEEPBACK", font=ImageFont.truetype(BOLD, 82), fill=ORANGE, anchor="mm")
+    d.text(
+        (315, 212),
+        "BEEPBACK",
+        font=ImageFont.truetype(BOLD, 82),
+        fill=ORANGE,
+        anchor="mm",
+    )
     d.text(
         (315, 272),
         "listen  ·  watch  ·  repeat",
@@ -110,7 +124,13 @@ def cover(shots, out):
 def banner(shots, out):
     img = Image.new("RGB", (1200, 400), BG)
     d = ImageDraw.Draw(img)
-    d.text((80, 150), "BEEPBACK", font=ImageFont.truetype(BOLD, 88), fill=ORANGE, anchor="lm")
+    d.text(
+        (80, 150),
+        "BEEPBACK",
+        font=ImageFont.truetype(BOLD, 88),
+        fill=ORANGE,
+        anchor="lm",
+    )
     d.text(
         (84, 215),
         "listen  ·  watch  ·  repeat",

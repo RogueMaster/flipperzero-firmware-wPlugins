@@ -8,10 +8,18 @@
 void run_save_tests(void) {
     struct PersistentGameState p;
     memset(&p, 0, sizeof(p));
-    p.stage = ADULT; p.alignment = ALIGN_WHITE; p.birth_timestamp = 12345;
-    p.hunger = 77; p.happiness = 66; p.health = 55;
-    p.poop = 2; p.sick = 1; p.care_score = 88; p.discipline = 73;
-    p.lights_off = 1; p.attention_call = 1;
+    p.stage = ADULT;
+    p.alignment = ALIGN_WHITE;
+    p.birth_timestamp = 12345;
+    p.hunger = 77;
+    p.happiness = 66;
+    p.health = 55;
+    p.poop = 2;
+    p.sick = 1;
+    p.care_score = 88;
+    p.discipline = 73;
+    p.lights_off = 1;
+    p.attention_call = 1;
 
     unsigned char buf[sizeof(p)];
     memcpy(buf, &p, sizeof(p));

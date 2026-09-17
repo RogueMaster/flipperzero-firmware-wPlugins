@@ -6,10 +6,10 @@
 // Restore: list the timestamped backups and, after a confirmation, replace the
 // current badges + punches with a chosen backup.
 
-#define RESTORE_MAX 32
+#define RESTORE_MAX         32
 #define RESTORE_CONFIRM_YES 280u
-#define RESTORE_CONFIRM_NO 281u
-#define RESTORE_DONE 282u
+#define RESTORE_CONFIRM_NO  281u
+#define RESTORE_DONE        282u
 
 static char stamps[RESTORE_MAX][24];
 static size_t stamp_count;
@@ -20,10 +20,8 @@ static void timeclock_scene_restore_submenu_callback(void* context, uint32_t ind
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-static void timeclock_scene_restore_button_callback(
-    GuiButtonType result,
-    InputType type,
-    void* context) {
+static void
+    timeclock_scene_restore_button_callback(GuiButtonType result, InputType type, void* context) {
     TimeClock* app = context;
     if(type != InputTypeShort) return;
     if(result == GuiButtonTypeLeft) {
@@ -112,7 +110,11 @@ bool timeclock_scene_restore_on_event(void* context, SceneManagerEvent event) {
             widget_add_string_multiline_element(
                 widget, 64, 12, AlignCenter, AlignTop, FontSecondary, tc_str(StrRestoreConfirm));
             widget_add_button_element(
-                widget, GuiButtonTypeLeft, tc_str(StrNo), timeclock_scene_restore_button_callback, app);
+                widget,
+                GuiButtonTypeLeft,
+                tc_str(StrNo),
+                timeclock_scene_restore_button_callback,
+                app);
             widget_add_button_element(
                 widget,
                 GuiButtonTypeRight,

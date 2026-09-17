@@ -19,8 +19,12 @@ void run_model_tests(void) {
 
     // care clamping
     struct PersistentGameState p = s.persistent;
-    p.care_score = 98; care_reward(&p, 10); CHECK(p.care_score == CARE_MAX);
-    p.care_score = 3;  care_penalty(&p, 10); CHECK(p.care_score == CARE_MIN);
+    p.care_score = 98;
+    care_reward(&p, 10);
+    CHECK(p.care_score == CARE_MAX);
+    p.care_score = 3;
+    care_penalty(&p, 10);
+    CHECK(p.care_score == CARE_MIN);
 
     // care band thresholds
     CHECK(care_band(CARE_WHITE) == ALIGN_WHITE);

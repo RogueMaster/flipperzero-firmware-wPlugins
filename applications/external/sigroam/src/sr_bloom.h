@@ -23,11 +23,15 @@
  * The error rate follows the measured host_test table, not a quoted formula.
  */
 
-enum { SR_BLOOM_BITS = 32768, SR_BLOOM_BYTES = SR_BLOOM_BITS / 8, SR_BLOOM_K = 4 };
+enum {
+    SR_BLOOM_BITS = 32768,
+    SR_BLOOM_BYTES = SR_BLOOM_BITS / 8,
+    SR_BLOOM_K = 4
+};
 
 typedef struct {
     uint8_t bits[SR_BLOOM_BYTES];
-    uint32_t added;  /* Calls to sr_bloom_add (duplicates included; NULL/empty strings excluded) */
+    uint32_t added; /* Calls to sr_bloom_add (duplicates included; NULL/empty strings excluded) */
     uint32_t unique; /* Of those, how many were judged new = the unique-count estimate */
 } SrBloom;
 

@@ -6,10 +6,10 @@
 #include <furi_hal.h>
 #include <string.h>
 
-#define SR_WORKER_TAG           "SrWorker"
-#define SR_WORKER_STACK_SIZE    2048u
-#define SR_WORKER_CHUNK         64u
-#define SR_WORKER_RX_TIMEOUT_MS 50u
+#define SR_WORKER_TAG            "SrWorker"
+#define SR_WORKER_STACK_SIZE     2048u
+#define SR_WORKER_CHUNK          64u
+#define SR_WORKER_RX_TIMEOUT_MS  50u
 /*
  * Product/engineering choice, not a measured I2C duration.
  * Power service polls VBUS at 1 Hz; an unplug edge is persistent, so 250 ms is
@@ -89,8 +89,7 @@ static void sr_worker_sample_vbus(SrWorker* w) {
     uint8_t present;
 
     now = furi_get_tick();
-    if(w->vbus_last_ms != 0u &&
-       (uint32_t)(now - w->vbus_last_ms) < SR_WORKER_VBUS_PERIOD_MS) {
+    if(w->vbus_last_ms != 0u && (uint32_t)(now - w->vbus_last_ms) < SR_WORKER_VBUS_PERIOD_MS) {
         return;
     }
     v = furi_hal_power_get_usb_voltage();
@@ -191,8 +190,7 @@ bool sr_worker_start(SrWorker* w) {
         return false;
     }
 
-    w->thread = furi_thread_alloc_ex(
-        SR_WORKER_TAG, SR_WORKER_STACK_SIZE, sr_worker_thread, w);
+    w->thread = furi_thread_alloc_ex(SR_WORKER_TAG, SR_WORKER_STACK_SIZE, sr_worker_thread, w);
     if(w->thread == NULL) {
         return false;
     }

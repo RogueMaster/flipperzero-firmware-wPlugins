@@ -5,19 +5,19 @@
 #include <furi_hal_bus.h>
 #include <furi_hal_interrupt.h>
 
-#define RADIO_TIMER_DIVISOR 69U
-#define RADIO_SAMPLE_RATE 14493U
-#define RADIO_RING_SAMPLES 8192U
-#define RADIO_RING_MASK (RADIO_RING_SAMPLES - 1U)
-#define RADIO_PRIME_SAMPLES 6144U
-#define RADIO_CONCEAL_FADE_SAMPLES 116U
+#define RADIO_TIMER_DIVISOR           69U
+#define RADIO_SAMPLE_RATE             14493U
+#define RADIO_RING_SAMPLES            8192U
+#define RADIO_RING_MASK               (RADIO_RING_SAMPLES - 1U)
+#define RADIO_PRIME_SAMPLES           6144U
+#define RADIO_CONCEAL_FADE_SAMPLES    116U
 #define RADIO_UNDERFLOW_GRACE_SAMPLES 1449U
-#define RADIO_PWM_PERIOD 1024U
-#define RADIO_MAX_GAIN_Q8 (6U * 256U)
-#define RADIO_LEVEL_TARGET 32700U
-#define RADIO_LEVEL_UPDATE_MASK 7U
-#define RADIO_MAKEUP_GAIN_PERCENT 150
-#define RADIO_SOFT_KNEE 24576
+#define RADIO_PWM_PERIOD              1024U
+#define RADIO_MAX_GAIN_Q8             (6U * 256U)
+#define RADIO_LEVEL_TARGET            32700U
+#define RADIO_LEVEL_UPDATE_MASK       7U
+#define RADIO_MAKEUP_GAIN_PERCENT     150
+#define RADIO_SOFT_KNEE               24576
 
 struct RadioAudio {
     volatile bool running;
@@ -60,10 +60,10 @@ static int16_t radio_audio_pop(RadioAudio* audio) {
         }
         int16_t concealed = 0;
         if(audio->conceal_samples < RADIO_CONCEAL_FADE_SAMPLES) {
-            concealed = (int16_t)(
-                ((int32_t)audio->last_sample *
-                 (int32_t)(RADIO_CONCEAL_FADE_SAMPLES - audio->conceal_samples)) /
-                (int32_t)RADIO_CONCEAL_FADE_SAMPLES);
+            concealed =
+                (int16_t)(((int32_t)audio->last_sample *
+                           (int32_t)(RADIO_CONCEAL_FADE_SAMPLES - audio->conceal_samples)) /
+                          (int32_t)RADIO_CONCEAL_FADE_SAMPLES);
         }
         if(audio->conceal_samples < RADIO_UNDERFLOW_GRACE_SAMPLES) {
             audio->conceal_samples++;
@@ -95,10 +95,9 @@ static void radio_audio_isr(void* context) {
         audio->level_envelope -= (audio->level_envelope + 4095U) >> 12U;
     }
     if((audio->level_update_counter++ & RADIO_LEVEL_UPDATE_MASK) == 0U) {
-        const uint32_t minimum_envelope =
-            (RADIO_LEVEL_TARGET * 256U) / RADIO_MAX_GAIN_Q8;
-        const uint32_t envelope =
-            audio->level_envelope < minimum_envelope ? minimum_envelope : audio->level_envelope;
+        const uint32_t minimum_envelope = (RADIO_LEVEL_TARGET * 256U) / RADIO_MAX_GAIN_Q8;
+        const uint32_t envelope = audio->level_envelope < minimum_envelope ? minimum_envelope :
+                                                                             audio->level_envelope;
         uint32_t desired_gain = (RADIO_LEVEL_TARGET * 256U) / envelope;
         if(desired_gain > RADIO_MAX_GAIN_Q8) desired_gain = RADIO_MAX_GAIN_Q8;
         if(desired_gain < 256U) desired_gain = 256U;
@@ -118,8 +117,7 @@ static void radio_audio_isr(void* context) {
     sample = (sample * RADIO_MAKEUP_GAIN_PERCENT) / 100;
     const int32_t boosted_magnitude = sample < 0 ? -sample : sample;
     if(boosted_magnitude > RADIO_SOFT_KNEE) {
-        const int32_t limited =
-            RADIO_SOFT_KNEE + (boosted_magnitude - RADIO_SOFT_KNEE) / 3;
+        const int32_t limited = RADIO_SOFT_KNEE + (boosted_magnitude - RADIO_SOFT_KNEE) / 3;
         sample = sample < 0 ? -limited : limited;
     }
     if(sample > 32767) sample = 32767;
@@ -155,8 +153,8 @@ void radio_audio_free(RadioAudio* audio) {
 }
 
 bool radio_audio_start(RadioAudio* audio, uint8_t volume) {
-    if(!audio || furi_hal_bus_is_enabled(FuriHalBusTIM2) ||
-       !furi_hal_speaker_acquire(1000U)) return false;
+    if(!audio || furi_hal_bus_is_enabled(FuriHalBusTIM2) || !furi_hal_speaker_acquire(1000U))
+        return false;
     memset(audio->ring, 0, sizeof(audio->ring));
     audio->head = audio->tail = 0U;
     audio->primed = false;

@@ -48,7 +48,8 @@ static bool oa_window_open(const SrAlertCtx* ctx, uint32_t tick_ms) {
     return elapsed >= (uint32_t)SR_ALERT_MIN_GAP_MS;
 }
 
-static SrAlertKind oracle_eval(SrAlertCtx* ctx, uint32_t gps_csv_rev, bool fix_now, uint32_t tick_ms) {
+static SrAlertKind
+    oracle_eval(SrAlertCtx* ctx, uint32_t gps_csv_rev, bool fix_now, uint32_t tick_ms) {
     OaTag tag;
     uint8_t now_st;
 

@@ -135,7 +135,9 @@ class BridgeHost:
                     request.request_id, ErrorCode.NETWORK_FAILURE, str(error)
                 )
             )
-        except Exception as error:  # noqa: BLE001 - a request must never terminate the host
+        except (
+            Exception
+        ) as error:  # noqa: BLE001 - a request must never terminate the host
             self._put(
                 self.session.request_error(
                     request.request_id, ErrorCode.INTERNAL_ERROR, type(error).__name__

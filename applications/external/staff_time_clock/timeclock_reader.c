@@ -74,11 +74,8 @@ struct TimeclockReader {
     char tech[TC_TECH_MAX];
 };
 
-static void reader_format_uid(
-    TimeclockReader* reader,
-    const uint8_t* uid,
-    size_t len,
-    const char* tech) {
+static void
+    reader_format_uid(TimeclockReader* reader, const uint8_t* uid, size_t len, const char* tech) {
     if(len > 20) len = 20;
     size_t pos = 0;
     for(size_t i = 0; i < len && pos + 2 < TC_UID_STR_MAX; i++) {
@@ -256,7 +253,10 @@ void timeclock_reader_set_callback(
 // ReaderRadio and TimeclockReaderTech share the same ordinal values (both
 // Nfc=0, Rfid=1, IButton=2) by design, so a tech can be assigned to `active`
 // directly.
-void timeclock_reader_start_fixed(TimeclockReader* reader, TimeclockReaderTech tech, bool continuous) {
+void timeclock_reader_start_fixed(
+    TimeclockReader* reader,
+    TimeclockReaderTech tech,
+    bool continuous) {
     furi_assert(reader);
     timeclock_reader_stop(reader); // idempotent: never leak a previous session
 

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "sr_model.h"    /* SrSessionState */
+#include "sr_model.h" /* SrSessionState */
 #include "sr_scan_ctl.h" /* SR_SCAN_CTL_TIMEOUT_MS */
 
 /*
@@ -55,8 +55,7 @@ enum {
 };
 
 _Static_assert(SR_RESYNC_RX_QUIET_MS > 0u, "quiet gap must be positive");
-_Static_assert(
-    SR_RESYNC_RX_QUIET_MS < SR_RESYNC_GIVEUP_MS, "quiet gap must fit inside giveup");
+_Static_assert(SR_RESYNC_RX_QUIET_MS < SR_RESYNC_GIVEUP_MS, "quiet gap must fit inside giveup");
 
 /*
  * Packed into SrDashModel.wait_stage (uint8_t). Not SrWaitStage values.
@@ -65,21 +64,22 @@ _Static_assert(
 enum {
     SR_RESYNC_HINT_NONE = 0,
     SR_RESYNC_HINT_BUSY = 4, /* "Resyncing..." */
-    SR_RESYNC_HINT_LOST = 5  /* "Scan lost, press OK" */
+    SR_RESYNC_HINT_LOST = 5 /* "Scan lost, press OK" */
 };
 
 _Static_assert(sizeof("Resyncing...") - 1u <= 20u, "Resyncing... exceeds SR_VIEW_COLS");
 _Static_assert(
-    sizeof("Scan lost, press OK") - 1u <= 20u, "Scan lost, press OK exceeds SR_VIEW_COLS");
+    sizeof("Scan lost, press OK") - 1u <= 20u,
+    "Scan lost, press OK exceeds SR_VIEW_COLS");
 
 typedef enum {
     SrResyncIdle = 0,
-    SrResyncWaitPeer,  /* VBUS edge; wait for rx growth, then Q ms with no further growth */
-    SrResyncNeedStop,  /* GUI should send stopscan */
+    SrResyncWaitPeer, /* VBUS edge; wait for rx growth, then Q ms with no further growth */
+    SrResyncNeedStop, /* GUI should send stopscan */
     SrResyncAwaitStop, /* stopscan in flight */
     SrResyncNeedStart, /* GUI should send wardrive */
     SrResyncAwaitStart, /* wardrive in flight */
-    SrResyncLost       /* gave up; hint stays until the operator recovers */
+    SrResyncLost /* gave up; hint stays until the operator recovers */
 } SrResyncPhase;
 
 typedef enum {
@@ -142,8 +142,7 @@ static inline bool sr_resync_recovered(const SrResyncCtx* c, const SrResyncIn* i
     if(c == NULL || in == NULL) {
         return false;
     }
-    return in->session == SrSessionRunning &&
-           (uint32_t)(in->session_rev - c->rev_at_trig) > 0u;
+    return in->session == SrSessionRunning && (uint32_t)(in->session_rev - c->rev_at_trig) > 0u;
 }
 
 static inline uint8_t sr_resync_hint_stage(const SrResyncCtx* c) {
@@ -156,8 +155,11 @@ static inline uint8_t sr_resync_hint_stage(const SrResyncCtx* c) {
     return (uint8_t)SR_RESYNC_HINT_BUSY;
 }
 
-static inline void
-    sr_resync_note_sent(SrResyncCtx* c, uint32_t now_ms, bool is_start, uint32_t session_rev_at_send) {
+static inline void sr_resync_note_sent(
+    SrResyncCtx* c,
+    uint32_t now_ms,
+    bool is_start,
+    uint32_t session_rev_at_send) {
     if(c == NULL) {
         return;
     }
@@ -230,8 +232,7 @@ static inline SrResyncAct sr_resync_eval(SrResyncCtx* c, const SrResyncIn* in) {
         sr_resync_go_idle(c);
         return SrResyncActNone;
     }
-    if(c->phase == SrResyncNeedStop && c->tries == 0u &&
-       in->session != SrSessionRunning) {
+    if(c->phase == SrResyncNeedStop && c->tries == 0u && in->session != SrSessionRunning) {
         sr_resync_go_idle(c);
         return SrResyncActNone;
     }
@@ -245,8 +246,7 @@ static inline SrResyncAct sr_resync_eval(SrResyncCtx* c, const SrResyncIn* in) {
                 return SrResyncActNone;
             }
             if((uint32_t)(c->rx_last - c->rx_at_trig) > 0u &&
-               sr_resync_elapsed_ge(
-                   in->now_ms, c->rx_grow_ms, (uint32_t)SR_RESYNC_RX_QUIET_MS)) {
+               sr_resync_elapsed_ge(in->now_ms, c->rx_grow_ms, (uint32_t)SR_RESYNC_RX_QUIET_MS)) {
                 c->phase = SrResyncNeedStop;
                 continue;
             }
@@ -254,8 +254,7 @@ static inline SrResyncAct sr_resync_eval(SrResyncCtx* c, const SrResyncIn* in) {
 
         case SrResyncNeedStop:
             if(c->tries > 0u &&
-               !sr_resync_elapsed_ge(
-                   in->now_ms, c->try_ms, (uint32_t)SR_RESYNC_RETRY_GAP_MS)) {
+               !sr_resync_elapsed_ge(in->now_ms, c->try_ms, (uint32_t)SR_RESYNC_RETRY_GAP_MS)) {
                 return SrResyncActNone;
             }
             return SrResyncActSendStop;
@@ -266,8 +265,7 @@ static inline SrResyncAct sr_resync_eval(SrResyncCtx* c, const SrResyncIn* in) {
                 c->phase = SrResyncNeedStart;
                 continue;
             }
-            if(sr_resync_elapsed_ge(
-                   in->now_ms, c->cmd_ms, (uint32_t)SR_SCAN_CTL_TIMEOUT_MS)) {
+            if(sr_resync_elapsed_ge(in->now_ms, c->cmd_ms, (uint32_t)SR_SCAN_CTL_TIMEOUT_MS)) {
                 if(c->tries >= (uint8_t)SR_RESYNC_MAX_TRIES) {
                     c->phase = SrResyncLost;
                     return SrResyncActNone;

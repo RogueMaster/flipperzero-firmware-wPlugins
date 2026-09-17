@@ -37,8 +37,12 @@ static void example_draw(Canvas* canvas, void* context) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 0, 9, "Bridge SDK Client");
     char line[32];
-    snprintf(line, sizeof(line), "HTTP %u | %lu B", app->status.http_status,
-             (unsigned long)app->status.response_bytes);
+    snprintf(
+        line,
+        sizeof(line),
+        "HTTP %u | %lu B",
+        app->status.http_status,
+        (unsigned long)app->status.response_bytes);
     canvas_draw_str(canvas, 0, 20, line);
     const char* text = app->length ? app->preview : app->status.detail;
     size_t length = strlen(text);
@@ -50,7 +54,8 @@ static void example_draw(Canvas* canvas, void* context) {
         line[count] = '\0';
         canvas_draw_str(canvas, 0, 31 + row * 10, line);
     }
-    canvas_draw_str(canvas, 0, 63, app->status.active_request ? "BACK: cancel + exit" : "OK: GET BACK: exit");
+    canvas_draw_str(
+        canvas, 0, 63, app->status.active_request ? "BACK: cancel + exit" : "OK: GET BACK: exit");
     furi_mutex_release(app->mutex);
 }
 

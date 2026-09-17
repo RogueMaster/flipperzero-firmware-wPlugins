@@ -1,14 +1,16 @@
 #include "needs.h"
 #include "tuning.h"
 #include "care.h"
-#include "states.h"   // is_night()
+#include "states.h" // is_night()
 #include "random_generator.h"
 
 /* random inclusive [min,max] */
-static uint32_t rnd_incl(uint32_t min, uint32_t max) { return random_uniform(min, max + 1); }
+static uint32_t rnd_incl(uint32_t min, uint32_t max) {
+    return random_uniform(min, max + 1);
+}
 
-GameEventFlags advance_hunger(struct GameState *gs, uint32_t now) {
-    struct PersistentGameState *p = &gs->persistent;
+GameEventFlags advance_hunger(struct GameState* gs, uint32_t now) {
+    struct PersistentGameState* p = &gs->persistent;
     if(now <= p->last_hunger_update) return EVT_NONE;
     uint32_t t0 = p->last_hunger_update;
     uint32_t events = (now - t0) / HU_DECAY_FREQ;
@@ -28,8 +30,8 @@ GameEventFlags advance_hunger(struct GameState *gs, uint32_t now) {
     return EVT_NONE;
 }
 
-GameEventFlags advance_happiness(struct GameState *gs, uint32_t now) {
-    struct PersistentGameState *p = &gs->persistent;
+GameEventFlags advance_happiness(struct GameState* gs, uint32_t now) {
+    struct PersistentGameState* p = &gs->persistent;
     if(now <= p->last_happiness_update) return EVT_NONE;
     uint32_t t0 = p->last_happiness_update;
     uint32_t events = (now - t0) / HAP_DECAY_FREQ;
@@ -46,8 +48,8 @@ GameEventFlags advance_happiness(struct GameState *gs, uint32_t now) {
     return EVT_NONE;
 }
 
-GameEventFlags advance_health(struct GameState *gs, uint32_t now) {
-    struct PersistentGameState *p = &gs->persistent;
+GameEventFlags advance_health(struct GameState* gs, uint32_t now) {
+    struct PersistentGameState* p = &gs->persistent;
     if(now <= p->last_health_update) return EVT_NONE;
     uint32_t t0 = p->last_health_update;
     uint32_t events = (now - t0) / HP_CHECK_FREQ;
@@ -72,8 +74,8 @@ GameEventFlags advance_health(struct GameState *gs, uint32_t now) {
     return flags;
 }
 
-void hunger_feed(struct GameState *gs) {
-    struct PersistentGameState *p = &gs->persistent;
+void hunger_feed(struct GameState* gs) {
+    struct PersistentGameState* p = &gs->persistent;
     if(p->stage == DEAD) return;
     if(p->hunger >= MAX_HU) {
         care_penalty(p, CARE_OVERFEED);
@@ -85,8 +87,8 @@ void hunger_feed(struct GameState *gs) {
     gs->display_state = DISP_EATING;
 }
 
-void happiness_play(struct GameState *gs) {
-    struct PersistentGameState *p = &gs->persistent;
+void happiness_play(struct GameState* gs) {
+    struct PersistentGameState* p = &gs->persistent;
     if(p->stage == DEAD) return;
     if(p->happiness < MAX_HAPPINESS) care_reward(p, CARE_PLAY_SAD);
     uint32_t g = rnd_incl(PLAY_MIN, PLAY_MAX);
@@ -94,8 +96,8 @@ void happiness_play(struct GameState *gs) {
     gs->display_state = DISP_PLAYING;
 }
 
-void health_restore(struct GameState *gs, uint32_t amount) {
-    struct PersistentGameState *p = &gs->persistent;
+void health_restore(struct GameState* gs, uint32_t amount) {
+    struct PersistentGameState* p = &gs->persistent;
     if(p->stage == DEAD) return;
     p->health = (p->health + amount > MAX_HP) ? MAX_HP : p->health + amount;
 }

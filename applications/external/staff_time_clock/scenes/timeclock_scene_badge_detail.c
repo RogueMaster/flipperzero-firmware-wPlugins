@@ -31,7 +31,11 @@ void timeclock_scene_badge_detail_on_enter(void* context) {
         submenu_set_header(submenu, "Badge");
     }
     submenu_add_item(
-        submenu, tc_str(StrRename), DetailRename, timeclock_scene_badge_detail_submenu_callback, app);
+        submenu,
+        tc_str(StrRename),
+        DetailRename,
+        timeclock_scene_badge_detail_submenu_callback,
+        app);
     submenu_add_item(
         submenu,
         tc_str(StrReplaceChip),
@@ -47,7 +51,11 @@ void timeclock_scene_badge_detail_on_enter(void* context) {
     submenu_add_item(
         submenu, tc_str(StrAddIn), DetailAddIn, timeclock_scene_badge_detail_submenu_callback, app);
     submenu_add_item(
-        submenu, tc_str(StrAddOut), DetailAddOut, timeclock_scene_badge_detail_submenu_callback, app);
+        submenu,
+        tc_str(StrAddOut),
+        DetailAddOut,
+        timeclock_scene_badge_detail_submenu_callback,
+        app);
     submenu_add_item(
         submenu,
         tc_str(StrUndoLast),

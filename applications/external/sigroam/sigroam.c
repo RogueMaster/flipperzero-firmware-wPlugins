@@ -94,7 +94,7 @@ static void sigroam_resync_paint_hint(SigRoamApp* app) {
     }
     with_view_model(
         v,
-        SrDashModel* m,
+        SrDashModel * m,
         {
             if(m != NULL) {
                 m->wait_stage = hint;
@@ -326,8 +326,7 @@ static SigRoamApp* sigroam_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, SigRoamViewVarList, variable_item_list_get_view(app->var_list));
 
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     /* Blocking IO is allowed during startup. scene on_enter must never take this path. */
     {
@@ -344,8 +343,7 @@ static SigRoamApp* sigroam_app_alloc(void) {
             app->settings.stealth ? 1 : 0);
         if(st != SrSettingsLoadOk) {
             if(sr_settings_store_save(&app->settings)) {
-                FURI_LOG_I(
-                    SR_TAG, "settings: rewrote (%s)", sr_settings_store_status_str(st));
+                FURI_LOG_I(SR_TAG, "settings: rewrote (%s)", sr_settings_store_status_str(st));
             } else {
                 FURI_LOG_E(SR_TAG, "settings: rewrite FAILED");
             }

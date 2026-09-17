@@ -13,6 +13,6 @@
  * Returns true and fills the outputs when a valid report is received within
  * ESP_PROBE_MS; false when the board is absent or silent (game falls back to
  * pure sub-GHz hunting). Safe to call when no board is attached. */
-bool esp_probe(uint8_t *wifi_count_out, int8_t *rssi_out);
+bool esp_probe(uint8_t* wifi_count_out, int8_t* rssi_out);
 
 #endif

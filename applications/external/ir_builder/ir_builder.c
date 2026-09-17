@@ -71,7 +71,8 @@ static void start_job(IrbApp* app, IrbJob* job, Screen next) {
     app->job_return = next;
     app->worker = furi_thread_alloc_ex("IrbWorker", 6144, irb_work, job);
     with_view_model(
-        app->view, IrbViewModel * m,
+        app->view,
+        IrbViewModel * m,
         {
             m->busy = true;
             m->cancelable = true;
@@ -96,8 +97,11 @@ static void finish_job(IrbApp* app) {
     app->screen = app->job_return;
     bool cancelled = atomic_load(&job->cancel) && !atomic_load(&job->committing);
     if(job->type == JobSave && job->conflict) {
-        choice(app, ConfirmReplace, "Name exists. Replace its project and .ir export?",
-               app->keyboard_return);
+        choice(
+            app,
+            ConfirmReplace,
+            "Name exists. Replace its project and .ir export?",
+            app->keyboard_return);
     } else if(job->type == JobScan) {
         app->position = job->scan.current ? job->scan.current : app->position;
         app->action = app->position_actions[position_index(app->slot)];
@@ -129,7 +133,8 @@ static void finish_job(IrbApp* app) {
             break;
         case JobOpen: {
             irb_cache_clear(&app->signals);
-            app->focus_memory[Grid] = app->focus_memory[Navigation] = app->focus_memory[Others] = 0;
+            app->focus_memory[Grid] = app->focus_memory[Navigation] = app->focus_memory[Others] =
+                0;
             memset(app->position_actions, 0, sizeof(app->position_actions));
             irb_library_clear(&app->library);
             app->library = job->library;
@@ -141,10 +146,13 @@ static void finish_job(IrbApp* app) {
             app->dirty = app->play = false;
             go(app, Grid);
             char text[128];
-            snprintf(text, sizeof(text),
-                     "Opened %lu keys: %lu mapped to the controller, %lu in Other keys.",
-                     (unsigned long)job->added, (unsigned long)job->mapped,
-                     (unsigned long)(job->added - job->mapped));
+            snprintf(
+                text,
+                sizeof(text),
+                "Opened %lu keys: %lu mapped to the controller, %lu in Other keys.",
+                (unsigned long)job->added,
+                (unsigned long)job->mapped,
+                (unsigned long)(job->added - job->mapped));
             show(app, text, Grid);
             break;
         }
@@ -157,10 +165,11 @@ static void finish_job(IrbApp* app) {
             app->loaded_saved = true;
             app->dirty = false;
             snprintf(app->loaded_name, sizeof(app->loaded_name), "%s", app->project.name);
-            show(app,
-                 job->error[0] ? job->error
-                               : "Saved to Infrared / ir_builder. Use it here or in Infrared.",
-                 SavedMenu);
+            show(
+                app,
+                job->error[0] ? job->error :
+                                "Saved to Infrared / ir_builder. Use it here or in Infrared.",
+                SavedMenu);
             break;
         case JobBrowse:
             irb_files_clear(&app->files);
@@ -169,9 +178,9 @@ static void finish_job(IrbApp* app) {
             app->page = job->page;
             go(app, Browser);
             app->focus = job->position >= app->page.start &&
-                                 job->position < app->page.start + app->page.count
-                             ? job->position
-                             : app->page.start;
+                                 job->position < app->page.start + app->page.count ?
+                             job->position :
+                             app->page.start;
             break;
         case JobCatalog:
             free(app->catalog);
@@ -184,18 +193,23 @@ static void finish_job(IrbApp* app) {
             app->dirty = false;
             app->draft = app->draft_current = true;
             char text[100];
-            snprintf(text, sizeof(text), "Added %lu keys: %lu mapped, %lu in Other keys.",
-                     (unsigned long)job->added, (unsigned long)job->mapped,
-                     (unsigned long)(job->added - job->mapped));
+            snprintf(
+                text,
+                sizeof(text),
+                "Added %lu keys: %lu mapped, %lu in Other keys.",
+                (unsigned long)job->added,
+                (unsigned long)job->mapped,
+                (unsigned long)(job->added - job->mapped));
             show(app, text, Import);
             break;
         }
         case JobDelete:
             go(app, Home);
-            show(app,
-                 job->both ? "Project and export deleted."
-                           : "Project deleted. Your .ir export is kept.",
-                 Home);
+            show(
+                app,
+                job->both ? "Project and export deleted." :
+                            "Project deleted. Your .ir export is kept.",
+                Home);
             break;
         case JobSettings:
             snprintf(app->default_library, sizeof(app->default_library), "%s", job->path);
@@ -209,8 +223,10 @@ static void finish_job(IrbApp* app) {
         snprintf(error, sizeof(error), "%.110s Change the library in Settings.", job->error);
         show(app, error, Home);
     } else if(!cancelled)
-        show(app, job->error[0] ? job->error : "Operation failed. Check the SD card.",
-             app->job_return);
+        show(
+            app,
+            job->error[0] ? job->error : "Operation failed. Check the SD card.",
+            app->job_return);
     if(cancelled && job->type == JobDraft) app->dirty = true;
     if(!job->ok && job->type == JobBrowse) app->focus = app->page.start;
     irb_library_clear(&job->library);
@@ -267,8 +283,8 @@ static void browse(IrbApp* app, BrowsePurpose purpose, const char* path, unsigne
     job->page.projects = purpose == BrowseSaved;
     snprintf(job->page.path, sizeof(job->page.path), "%s", path);
     job->page.start = start;
-    job->position =
-        app->screen == Browser && irb_path_equal(path, app->page.path) ? app->focus : start;
+    job->position = app->screen == Browser && irb_path_equal(path, app->page.path) ? app->focus :
+                                                                                     start;
     app->browse_purpose = purpose;
     start_job(app, job, app->screen);
 }
@@ -306,8 +322,10 @@ static void save(IrbApp* app, bool replace) {
 }
 static void text_done(IrbApp* app) {
     if(!irb_name_valid(app->text, app->text_purpose != TextLabel)) {
-        show(app, "Use 1-31 printable characters. File names cannot contain path characters.",
-             Keyboard);
+        show(
+            app,
+            "Use 1-31 printable characters. File names cannot contain path characters.",
+            Keyboard);
         return;
     }
     if(app->text_purpose == TextLabel) {
@@ -315,8 +333,8 @@ static void text_done(IrbApp* app) {
             show(app, "Button name already exists.", Keyboard);
             return;
         }
-        char* label = app->slot < IRB_SLOTS ? app->project.labels[app->slot]
-                                            : app->project.extras[app->slot - IRB_SLOTS].label;
+        char* label = app->slot < IRB_SLOTS ? app->project.labels[app->slot] :
+                                              app->project.extras[app->slot - IRB_SLOTS].label;
         snprintf(label, IRB_NAME_SIZE, "%s", app->text);
         go(app, ButtonMenu);
         persist(app, ButtonMenu);
@@ -368,7 +386,9 @@ static void scan_input(IrbApp* app, InputKey key, InputType type) {
     }
     bool paused = false;
     with_view_model(
-        app->view, IrbViewModel * m, { paused = m->scan.paused && !m->sending && !m->checking; },
+        app->view,
+        IrbViewModel * m,
+        { paused = m->scan.paused && !m->sending && !m->checking; },
         false);
     IrbScanCommand command = IrbScanNone;
     if(!paused) {
@@ -425,8 +445,7 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
             atomic_store(&app->job->held, false);
         if(app->screen == Scan && app->job->type == JobScan)
             scan_input(app, key, type);
-        else if(key == InputKeyBack && type == InputTypePress &&
-                !atomic_load(&app->job->committing)) {
+        else if(key == InputKeyBack && type == InputTypePress && !atomic_load(&app->job->committing)) {
             app->consume_back = true;
             atomic_store(&app->job->cancel, true);
         }
@@ -468,8 +487,11 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
         if(key == InputKeyOk) {
             if(app->focus == 0) {
                 if(app->draft)
-                    choice(app, ConfirmNew,
-                           "Start a new remote? Current draft is replaced after loading.", Home);
+                    choice(
+                        app,
+                        ConfirmNew,
+                        "Start a new remote? Current draft is replaced after loading.",
+                        Home);
                 else
                     load(app, app->default_library, false, false);
             } else if(app->focus == 1)
@@ -503,19 +525,20 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
     case Grid: {
         bool nav = navigation_available(app);
         if(key == InputKeyUp)
-            app->focus = app->focus >= 6  ? app->focus - 2
-                         : app->focus < 2 ? (app->focus == 1 && nav ? 7 : 6)
-                                          : app->focus - 2;
+            app->focus = app->focus >= 6 ? app->focus - 2 :
+                         app->focus < 2  ? (app->focus == 1 && nav ? 7 : 6) :
+                                           app->focus - 2;
         if(key == InputKeyDown)
-            app->focus = app->focus >= 6   ? app->focus - 6
-                         : app->focus >= 4 ? (app->focus == 5 && nav ? 7 : 6)
-                                           : app->focus + 2;
+            app->focus = app->focus >= 6 ? app->focus - 6 :
+                         app->focus >= 4 ? (app->focus == 5 && nav ? 7 : 6) :
+                                           app->focus + 2;
         if(key == InputKeyLeft || key == InputKeyRight) {
             if(app->focus < 6 || nav) app->focus ^= 1;
         }
         if(key == InputKeyBack) {
             if(app->dirty)
-                choice(app, ConfirmLeave, "Draft not saved. Leave and lose unsaved changes?", Grid);
+                choice(
+                    app, ConfirmLeave, "Draft not saved. Leave and lose unsaved changes?", Grid);
             else
                 go(app, app->play ? SavedMenu : Home);
         }
@@ -548,8 +571,9 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
     case Navigation: {
         if(app->focus == IRB_NAV_KEYS) {
             if(key == InputKeyUp) app->focus = 4;
-        } else if(key == InputKeyDown &&
-                  (app->focus == 4 || app->focus == 5 || app->focus == 6 || app->focus == 7))
+        } else if(
+            key == InputKeyDown &&
+            (app->focus == 4 || app->focus == 5 || app->focus == 6 || app->focus == 7))
             app->focus = IRB_NAV_KEYS;
         else if(key <= InputKeyLeft)
             app->focus = irb_nav_move(app->focus, key);
@@ -569,8 +593,11 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
                     send(app, false);
                 } else {
                     char text[96];
-                    snprintf(text, sizeof(text), "No code assigned to %s. Edit the remote first.",
-                             irb_nav_labels[app->focus]);
+                    snprintf(
+                        text,
+                        sizeof(text),
+                        "No code assigned to %s. Edit the remote first.",
+                        irb_nav_labels[app->focus]);
                     show(app, text, Navigation);
                 }
             } else if(app->library.counts[irb_nav_group[app->focus]]) {
@@ -582,8 +609,11 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
                 go(app, ButtonMenu);
             } else {
                 char text[96];
-                snprintf(text, sizeof(text), "No %s candidates in this library.",
-                         irb_nav_labels[app->focus]);
+                snprintf(
+                    text,
+                    sizeof(text),
+                    "No %s candidates in this library.",
+                    irb_nav_labels[app->focus]);
                 show(app, text, Navigation);
             }
         }
@@ -623,8 +653,8 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
             break;
         }
         if(key == InputKeyLeft || key == InputKeyRight)
-            app->position = irb_position_step(app->position, app->library.counts[group],
-                                              key == InputKeyRight, app->repeats);
+            app->position = irb_position_step(
+                app->position, app->library.counts[group], key == InputKeyRight, app->repeats);
         if(key == InputKeyUp) app->action = (app->action + 3) % 4;
         if(key == InputKeyDown) app->action = (app->action + 1) % 4;
         if(key == InputKeyBack) go(app, app->return_screen);
@@ -636,8 +666,8 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
                 app->action = 0;
                 start_job(app, new_job(app, JobScan), Position);
             } else {
-                irb_project_set_position(&app->project, app->slot,
-                                         app->action == 3 ? 0 : app->position);
+                irb_project_set_position(
+                    &app->project, app->slot, app->action == 3 ? 0 : app->position);
                 go(app, app->return_screen);
                 persist(app, app->screen);
             }
@@ -704,9 +734,9 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
                 } else {
                     irb_project_move(&app->project, app->slot, app->focus == 4);
                     uint8_t slots[IRB_MAX_BUTTONS];
-                    unsigned count = app->button_return == Others
-                                         ? extra_slots(&app->project, slots)
-                                         : irb_project_slots(&app->project, slots, false);
+                    unsigned count = app->button_return == Others ?
+                                         extra_slots(&app->project, slots) :
+                                         irb_project_slots(&app->project, slots, false);
                     go(app, app->button_return);
                     for(unsigned i = 0; i < count; ++i)
                         if(slots[i] == app->slot) app->focus = i;
@@ -724,20 +754,28 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
                 go(app, Grid);
             } else if(app->focus == 1) {
                 if(app->draft && !app->draft_current)
-                    choice(app, ConfirmEdit, "Edit this remote? This replaces your current draft.",
-                           SavedMenu);
+                    choice(
+                        app,
+                        ConfirmEdit,
+                        "Edit this remote? This replaces your current draft.",
+                        SavedMenu);
                 else {
                     app->play = false;
                     go(app, Grid);
                     persist(app, Grid);
                 }
             } else if(app->focus < 4)
-                keyboard(app, app->focus == 2 ? TextRename : TextDuplicate,
-                         app->focus == 2 ? app->project.name : "");
+                keyboard(
+                    app,
+                    app->focus == 2 ? TextRename : TextDuplicate,
+                    app->focus == 2 ? app->project.name : "");
             else {
                 app->delete_both = false;
-                choice(app, ConfirmDelete,
-                       "Delete project only? Keep .ir export. Right: delete both.", SavedMenu);
+                choice(
+                    app,
+                    ConfirmDelete,
+                    "Delete project only? Keep .ir export. Right: delete both.",
+                    SavedMenu);
             }
         }
         break;
@@ -745,15 +783,19 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
         unsigned before = app->focus;
         move(app, key, app->page.total);
         if(app->focus / IRB_PAGE_SIZE != before / IRB_PAGE_SIZE) {
-            browse(app, app->browse_purpose, app->page.path,
-                   app->focus / IRB_PAGE_SIZE * IRB_PAGE_SIZE);
+            browse(
+                app,
+                app->browse_purpose,
+                app->page.path,
+                app->focus / IRB_PAGE_SIZE * IRB_PAGE_SIZE);
             break;
         }
         if(key == InputKeyBack)
-            go(app, app->browse_purpose == BrowseSaved    ? Home
-                    : app->browse_purpose == BrowseImport ? ProjectMenu
-                    : app->browse_purpose == BrowseOpen   ? Home
-                                                          : Settings);
+            go(app,
+               app->browse_purpose == BrowseSaved  ? Home :
+               app->browse_purpose == BrowseImport ? ProjectMenu :
+               app->browse_purpose == BrowseOpen   ? Home :
+                                                     Settings);
         if(key != InputKeyOk || !app->page.total) break;
         unsigned index = app->focus - app->page.start;
         if(index >= app->page.count) break;
@@ -763,8 +805,9 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
             char* slash = strrchr(path, '/');
             if(slash && slash > path) *slash = 0;
             browse(app, app->browse_purpose, path, 0);
-        } else if(snprintf(path, sizeof(path), "%s/%s", app->page.path, app->page.names[index]) >=
-                  (int)sizeof(path))
+        } else if(
+            snprintf(path, sizeof(path), "%s/%s", app->page.path, app->page.names[index]) >=
+            (int)sizeof(path))
             show(app, "Path is too long.", Browser);
         else if(app->page.directories[index])
             browse(app, app->browse_purpose, path, 0);
@@ -775,9 +818,11 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
         else if(app->browse_purpose == BrowseOpen) {
             if(app->draft) {
                 snprintf(app->pending_path, sizeof(app->pending_path), "%s", path);
-                choice(app, ConfirmOpen,
-                       "Open this .ir? Your current draft is replaced after it is verified.",
-                       Browser);
+                choice(
+                    app,
+                    ConfirmOpen,
+                    "Open this .ir? Your current draft is replaced after it is verified.",
+                    Browser);
             } else
                 open_remote(app, path);
         } else {
@@ -828,7 +873,9 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
         else {
             unsigned pages = 1;
             with_view_model(
-                app->view, IrbViewModel * m, { pages = m->message_pages ? m->message_pages : 1; },
+                app->view,
+                IrbViewModel * m,
+                { pages = m->message_pages ? m->message_pages : 1; },
                 false);
             if(key == InputKeyRight) app->focus = (app->focus + 1) % pages;
             if(key == InputKeyLeft) app->focus = (app->focus + pages - 1) % pages;
@@ -839,10 +886,12 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
         if(app->choice == ConfirmDelete && (key == InputKeyLeft || key == InputKeyRight)) {
             app->delete_both = !app->delete_both;
             app->focus = 0;
-            snprintf(app->message, sizeof(app->message), "%s",
-                     app->delete_both
-                         ? "Delete project AND .ir export? Left: keep export."
-                         : "Delete project only? Keep .ir export. Right: delete both.");
+            snprintf(
+                app->message,
+                sizeof(app->message),
+                "%s",
+                app->delete_both ? "Delete project AND .ir export? Left: keep export." :
+                                   "Delete project only? Keep .ir export. Right: delete both.");
         }
         if(key == InputKeyBack || (key == InputKeyOk && !app->focus))
             go(app, app->choice_return);
@@ -863,8 +912,8 @@ static void key_event(IrbApp* app, InputKey key, InputType type) {
 }
 static bool input(InputEvent* event, void* context) {
     IrbApp* app = context;
-    view_dispatcher_send_custom_event(app->dispatcher,
-                                      EventInput | ((uint32_t)event->type << 4) | event->key);
+    view_dispatcher_send_custom_event(
+        app->dispatcher, EventInput | ((uint32_t)event->type << 4) | event->key);
     return true;
 }
 static bool custom(void* context, uint32_t event) {
@@ -879,8 +928,8 @@ static bool custom(void* context, uint32_t event) {
 static void tick(void* context) {
     IrbApp* app = context;
     ++app->tick;
-    if(!app->worker && (app->screen == Browser || app->screen == Import || app->screen == Buttons ||
-                        app->screen == Others))
+    if(!app->worker && (app->screen == Browser || app->screen == Import ||
+                        app->screen == Buttons || app->screen == Others))
         irb_refresh(app);
 }
 int32_t ir_builder_app(void* argument) {

@@ -131,10 +131,7 @@ void sigroam_scene_settings_on_enter(void* context) {
         list, "Baud", (uint8_t)SR_SETTINGS_BAUD_CHOICES, settings_baud_changed, app);
     variable_item_set_current_value_index(item, (uint8_t)idx);
     snprintf(
-        app->baud_text,
-        sizeof(app->baud_text),
-        "%lu",
-        (unsigned long)sr_settings_baud_choice(idx));
+        app->baud_text, sizeof(app->baud_text), "%lu", (unsigned long)sr_settings_baud_choice(idx));
     variable_item_set_current_value_text(item, app->baud_text);
 
     idx = sr_settings_source_index(app->settings.source);

@@ -7,20 +7,13 @@
  * ★ Pure logic; must not include furi (ADR-003 / ADR-012).
  * The baud rate table is a list of UI choices in a fixed order. It is not the SDK's support list.
  */
-static const uint32_t kBaudChoices[SR_SETTINGS_BAUD_CHOICES] = {
-    9600u,
-    19200u,
-    38400u,
-    57600u,
-    115200u,
-    230400u
-};
+static const uint32_t kBaudChoices[SR_SETTINGS_BAUD_CHOICES] =
+    {9600u, 19200u, 38400u, 57600u, 115200u, 230400u};
 
 /* UI choices: Auto / Marauder. GhostESP was CUT and Native is illegal, so neither enters the table. */
 static const SrSourceKind kSourceChoices[SR_SETTINGS_SOURCE_CHOICES] = {
     SrSourceUnknown,
-    SrSourceMarauder
-};
+    SrSourceMarauder};
 
 static const char kHdrFiletype[] = "Filetype: SigRoam Settings";
 static const char kHdrVersion[] = "Version: 1";
@@ -333,11 +326,7 @@ size_t sr_settings_serialize(const SrSettings* s, char* out, size_t cap) {
     return (size_t)n;
 }
 
-bool sr_settings_parse(
-    const char* buf,
-    size_t len,
-    SrSettings* out,
-    SrSettingsParseStats* stats) {
+bool sr_settings_parse(const char* buf, size_t len, SrSettings* out, SrSettingsParseStats* stats) {
     size_t i;
     unsigned header_got;
 
@@ -380,11 +369,7 @@ bool sr_settings_parse(
         }
 
         if(header_got == 0u) {
-            if(!slice_eq(
-                   buf + start,
-                   end - start,
-                   kHdrFiletype,
-                   sizeof(kHdrFiletype) - 1u)) {
+            if(!slice_eq(buf + start, end - start, kHdrFiletype, sizeof(kHdrFiletype) - 1u)) {
                 sr_settings_defaults(out);
                 return false;
             }
@@ -392,11 +377,7 @@ bool sr_settings_parse(
             continue;
         }
         if(header_got == 1u) {
-            if(!slice_eq(
-                   buf + start,
-                   end - start,
-                   kHdrVersion,
-                   sizeof(kHdrVersion) - 1u)) {
+            if(!slice_eq(buf + start, end - start, kHdrVersion, sizeof(kHdrVersion) - 1u)) {
                 sr_settings_defaults(out);
                 return false;
             }
@@ -421,13 +402,7 @@ bool sr_settings_parse(
                 }
                 continue;
             }
-            apply_kv(
-                out,
-                stats,
-                buf + start,
-                sep - start,
-                buf + sep + 2u,
-                end - (sep + 2u));
+            apply_kv(out, stats, buf + start, sep - start, buf + sep + 2u, end - (sep + 2u));
         }
     }
 

@@ -57,12 +57,7 @@ static void dump_bits(uint32_t bits, char* out, size_t cap) {
         if((bits & (1u << i)) == 0u) {
             continue;
         }
-        int w = snprintf(
-            out + n,
-            cap - n,
-            "%s%s",
-            first ? "" : "|",
-            names[i]);
+        int w = snprintf(out + n, cap - n, "%s%s", first ? "" : "|", names[i]);
         if(w < 0) {
             return;
         }
@@ -96,8 +91,7 @@ int test_rx_policy_run(void) {
             SrRxDecision got = sr_rx_decide(bits, closing);
             SrRxDecision exp = oracle_decide(bits, closing);
 
-            if(got.drain != exp.drain || got.enqueue != exp.enqueue ||
-               got.error != exp.error) {
+            if(got.drain != exp.drain || got.enqueue != exp.enqueue || got.error != exp.error) {
                 char label[64];
                 dump_bits(bits, label, sizeof(label));
                 fprintf(

@@ -6,32 +6,31 @@
 #include "Connectivity.h"
 #include "Terrain.h"
 
-typedef struct
-{
-	uint16_t year;	// Starts at 1900
-	uint8_t month;
-	uint8_t simulationStep;
+typedef struct {
+    uint16_t year; // Starts at 1900
+    uint8_t month;
+    uint8_t simulationStep;
 
-	int32_t money;
+    int32_t money;
 
-	// 2 bits per tile : road and power line
-	uint8_t connectionMap[MAP_WIDTH * MAP_HEIGHT / 4];
+    // 2 bits per tile : road and power line
+    uint8_t connectionMap[MAP_WIDTH * MAP_HEIGHT / 4];
 
-	uint8_t terrainType;
-	uint8_t taxRate;
+    uint8_t terrainType;
+    uint8_t taxRate;
 
-	uint16_t residentialPopulation;
-	uint16_t industrialPopulation;
-	uint16_t commercialPopulation;
+    uint16_t residentialPopulation;
+    uint16_t industrialPopulation;
+    uint16_t commercialPopulation;
 
-	int32_t taxesCollected;
-	uint8_t policeBudget;
-	uint8_t fireBudget;
-	uint16_t roadBudget;
+    int32_t taxesCollected;
+    uint8_t policeBudget;
+    uint8_t fireBudget;
+    uint16_t roadBudget;
 
-	uint16_t timeToNextDisaster;
+    uint16_t timeToNextDisaster;
 
-	Building buildings[MAX_BUILDINGS];
+    Building buildings[MAX_BUILDINGS];
 } GameState;
 
 extern GameState State;
@@ -46,5 +45,3 @@ void SaveCity(void);
 bool LoadCity(void);
 
 void FocusTile(uint8_t x, uint8_t y);
-
-

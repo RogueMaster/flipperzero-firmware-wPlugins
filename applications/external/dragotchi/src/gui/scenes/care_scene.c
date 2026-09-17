@@ -8,14 +8,14 @@
 #include "../../flipper_structs.h"
 #include "../../constants.h"
 
-static void care_cb(void *ctx, uint32_t index) {
-    struct ApplicationContext *c = ctx;
+static void care_cb(void* ctx, uint32_t index) {
+    struct ApplicationContext* c = ctx;
     view_dispatcher_send_custom_event(c->view_dispatcher, index);
 }
 
-void scene_care_on_enter(void *ctx) {
-    struct ApplicationContext *c = ctx;
-    Submenu *m = c->care_module;
+void scene_care_on_enter(void* ctx) {
+    struct ApplicationContext* c = ctx;
+    Submenu* m = c->care_module;
     submenu_reset(m);
     submenu_set_header(m, "Care");
     submenu_add_item(m, "Feed", 0, care_cb, c);
@@ -27,8 +27,8 @@ void scene_care_on_enter(void *ctx) {
     view_dispatcher_switch_to_view(c->view_dispatcher, scene_care);
 }
 
-bool scene_care_on_event(void *ctx, SceneManagerEvent e) {
-    struct ApplicationContext *c = ctx;
+bool scene_care_on_event(void* ctx, SceneManagerEvent e) {
+    struct ApplicationContext* c = ctx;
     if(e.type != SceneManagerEventTypeCustom) return false;
     struct ThreadsMessage msg = {.type = (enum ThreadsMessageType)(PROCESS_FEED + e.event)};
     furi_message_queue_put(c->threads_message_queue, &msg, FuriWaitForever);
@@ -36,7 +36,7 @@ bool scene_care_on_event(void *ctx, SceneManagerEvent e) {
     return true;
 }
 
-void scene_care_on_exit(void *ctx) {
-    struct ApplicationContext *c = ctx;
+void scene_care_on_exit(void* ctx) {
+    struct ApplicationContext* c = ctx;
     submenu_reset(c->care_module);
 }

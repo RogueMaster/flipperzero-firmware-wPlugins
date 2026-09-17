@@ -19,7 +19,9 @@ enum {
 };
 
 /* Safe upper bound for FontSecondary at 128 px; originally from scenes/scene_drive.c:38-45 */
-enum { SR_VIEW_COLS = 20 };
+enum {
+    SR_VIEW_COLS = 20
+};
 
 static inline uint8_t sr_view_tab_next(uint8_t cur, int dir) {
     if(cur >= (uint8_t)SR_VIEW_TAB_COUNT) {
@@ -205,7 +207,8 @@ static inline char sr_fmt__san(unsigned char c) {
  * src[len] is not guaranteed to be a terminator (ADR-010). Do not scan it as a C string.
  * When it overflows, the last byte is written as '~'.
  */
-static inline size_t sr_fmt_fit(const char* src, size_t len, size_t max_cols, char* out, size_t cap) {
+static inline size_t
+    sr_fmt_fit(const char* src, size_t len, size_t max_cols, char* out, size_t cap) {
     size_t n;
     size_t i;
 
@@ -238,7 +241,10 @@ static inline size_t sr_fmt_fit(const char* src, size_t len, size_t max_cols, ch
     return n;
 }
 
-enum { SR_STREAM_ROWS = 5, SR_STREAM_COLS = 17 };
+enum {
+    SR_STREAM_ROWS = 5,
+    SR_STREAM_COLS = 17
+};
 
 /* Return the index of the first NUL within the first cap bytes of s, or cap if there is none. Never reads s[cap]. */
 static inline size_t sr_fmt_bounded_len(const char* s, size_t cap) {
@@ -389,7 +395,12 @@ static inline size_t sr_fmt_stream_row(
  * Returns the written length (excluding the NUL).
  */
 static inline size_t sr_fmt_gps_val(
-    const char* val, size_t val_cap, bool fix, size_t max_cols, char* out, size_t out_cap) {
+    const char* val,
+    size_t val_cap,
+    bool fix,
+    size_t max_cols,
+    char* out,
+    size_t out_cap) {
     size_t vlen;
 
     if(out == NULL || out_cap == 0) {
@@ -415,7 +426,12 @@ static inline size_t sr_fmt_gps_val(
  * blocks goes through sr_fmt__udec; overflow is likewise caught by the '~' in sr_fmt_fit.
  */
 static inline size_t sr_fmt_gps_stamp(
-    const char* dt, size_t dt_cap, bool fix, uint32_t blocks, char* out, size_t cap) {
+    const char* dt,
+    size_t dt_cap,
+    bool fix,
+    uint32_t blocks,
+    char* out,
+    size_t cap) {
     char tmp[32];
     size_t n;
     size_t dlen;

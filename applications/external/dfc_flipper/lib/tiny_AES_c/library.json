@@ -1,0 +1,21 @@
+{
+    "license": "Unlicense",
+    "copyright": "kokke; Mistial Dev",
+    "version": "1.0.0",
+    "name": "tiny-AES-c",
+    "keywords": "cryptography, aes",
+    "description": "Small portable AES128/192/256 in C",
+    "repository":
+    {
+        "type": "git",
+        "branch": "master",
+        "url": "https://github.com/kokke/tiny-AES-c.git"
+    },
+    "frameworks": "*",
+    "platforms": "*",
+    "examples": "test.c",
+    "build":
+	{
+		"srcFilter": "+<aes.c> +<aes.h> +<aes.hpp>"
+	}
+}

@@ -34,6 +34,7 @@ except Exception:
 SCAN_EVERY_MS = 5000
 REPORT_EVERY_MS = 200
 
+
 def do_scan():
     try:
         nets = wlan.scan()  # (ssid, bssid, channel, RSSI, authmode, hidden)
@@ -47,6 +48,7 @@ def do_scan():
             best = r
     return (count, best)
 
+
 cache = do_scan()
 last_scan = time.ticks_ms()
 
@@ -59,7 +61,7 @@ while True:
 
     uart.write("DRAGO wifi=%d rssi=%d\n" % cache)
 
-    if uart.any():          # drain any nudge from the Flipper
+    if uart.any():  # drain any nudge from the Flipper
         try:
             uart.read()
         except Exception:

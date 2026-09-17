@@ -38,7 +38,7 @@ enum LifeStage {
 enum DragonAlignment {
     ALIGN_NONE, // not yet adult
     ALIGN_WHITE, // raised very well
-    ALIGN_GREY,  // middling
+    ALIGN_GREY, // middling
     ALIGN_BLACK, // neglected
     DRAGON_ALIGNMENTS_NUM
 };
@@ -54,30 +54,38 @@ enum DisplayState {
     DISP_DEAD
 };
 
-enum CatchCategory { CATCH_PREY, CATCH_TREASURE, CATCH_EGG };
-enum CatchTier { TIER_SMALL, TIER_MED, TIER_LARGE };
+enum CatchCategory {
+    CATCH_PREY,
+    CATCH_TREASURE,
+    CATCH_EGG
+};
+enum CatchTier {
+    TIER_SMALL,
+    TIER_MED,
+    TIER_LARGE
+};
 struct Catch {
     uint8_t category; // enum CatchCategory
-    uint8_t tier;     // enum CatchTier (prey/treasure) or rarity (egg: 0 common,1 rare)
-    uint16_t value;   // food or hoard points
-    uint8_t band;     // 0..HUNT_BANDS-1 (flavour)
+    uint8_t tier; // enum CatchTier (prey/treasure) or rarity (egg: 0 common,1 rare)
+    uint16_t value; // food or hoard points
+    uint8_t band; // 0..HUNT_BANDS-1 (flavour)
 };
 
 /* Event flags returned by advance/action functions so the device layer can
  * decide sound/vibration and build the "while you were away" summary. */
 typedef uint32_t GameEventFlags;
-#define EVT_NONE 0u
-#define EVT_EVOLVED (1u << 0)
-#define EVT_STARVING (1u << 1) // hunger reached 0
-#define EVT_SICK (1u << 2) // became sick
-#define EVT_POOPED (1u << 3) // new poop appeared
-#define EVT_DIED (1u << 4) // died (any cause)
-#define EVT_CALL (1u << 5) // discipline/attention call raised
-#define EVT_HEALED (1u << 6) // recovered from sickness (via care)
-#define EVT_FED (1u << 7)
-#define EVT_PLAYED (1u << 8)
-#define EVT_CLEANED (1u << 9)
-#define EVT_CAUGHT (1u << 10)
+#define EVT_NONE         0u
+#define EVT_EVOLVED      (1u << 0)
+#define EVT_STARVING     (1u << 1) // hunger reached 0
+#define EVT_SICK         (1u << 2) // became sick
+#define EVT_POOPED       (1u << 3) // new poop appeared
+#define EVT_DIED         (1u << 4) // died (any cause)
+#define EVT_CALL         (1u << 5) // discipline/attention call raised
+#define EVT_HEALED       (1u << 6) // recovered from sickness (via care)
+#define EVT_FED          (1u << 7)
+#define EVT_PLAYED       (1u << 8)
+#define EVT_CLEANED      (1u << 9)
+#define EVT_CAUGHT       (1u << 10)
 #define EVT_EXPED_RETURN (1u << 11)
 
 /* Persisted game state (saved to storage) */
@@ -114,22 +122,22 @@ struct PersistentGameState {
     uint32_t last_attention_update; // cursor for attention-call checks
     uint32_t last_oldage_update; // cursor for old-age death checks (adult)
     // --- v0.2 Hunt ---
-    uint32_t hoard;             // treasure points (score)
-    uint16_t eggs_common;       // hatchery
+    uint32_t hoard; // treasure points (score)
+    uint16_t eggs_common; // hatchery
     uint16_t eggs_rare;
-    uint32_t last_forage_time;  // forage cooldown cursor
+    uint32_t last_forage_time; // forage cooldown cursor
     // Inventory breakdown (lifetime / current)
     uint16_t treasure_small;
     uint16_t treasure_med;
     uint16_t treasure_large;
-    uint16_t prey_caught;   // lifetime prey
-    uint16_t eggs_caught;   // lifetime eggs (eggs_common/rare are current, decremented on hatch)
+    uint16_t prey_caught; // lifetime prey
+    uint16_t eggs_caught; // lifetime eggs (eggs_common/rare are current, decremented on hatch)
     // Expedition
     uint8_t on_expedition;
     uint32_t expedition_start;
     uint16_t expedition_minutes;
     // --- v0.4 Signal storm (WiFi devboard) ---
-    uint16_t eggs_storm;   // board-exclusive "storm eggs" (lifetime collectible)
+    uint16_t eggs_storm; // board-exclusive "storm eggs" (lifetime collectible)
 };
 
 struct PersistentSettings {
@@ -143,15 +151,15 @@ struct GameState {
     // Transient
     uint32_t next_animation_index;
     uint8_t display_state; // enum DisplayState
-    struct Catch last_catch;   // for the catch reveal (transient)
-    uint8_t reveal_ticks;      // >0 = show reveal banner (transient)
-    char reveal_text[24];      // banner text (transient)
-    uint8_t journey_ready;     // transient: expedition returned, show log
-    char journey_log[96];      // transient: journey log text
-    uint8_t board_present;     // transient: WiFi devboard replied on last forage
-    uint8_t last_wifi;         // transient: nearby AP count from last board probe
-    int8_t last_rssi;          // transient: strongest AP RSSI from last board probe
-    uint8_t storm_ready;       // transient: show the Signal Storm result screen
+    struct Catch last_catch; // for the catch reveal (transient)
+    uint8_t reveal_ticks; // >0 = show reveal banner (transient)
+    char reveal_text[24]; // banner text (transient)
+    uint8_t journey_ready; // transient: expedition returned, show log
+    char journey_log[96]; // transient: journey log text
+    uint8_t board_present; // transient: WiFi devboard replied on last forage
+    uint8_t last_wifi; // transient: nearby AP count from last board probe
+    int8_t last_rssi; // transient: strongest AP RSSI from last board probe
+    uint8_t storm_ready; // transient: show the Signal Storm result screen
 };
 
 #endif

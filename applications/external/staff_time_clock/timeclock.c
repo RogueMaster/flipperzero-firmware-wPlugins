@@ -230,9 +230,7 @@ static TimeClock* timeclock_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, TimeClockViewWork, work_view_get_view(app->work_view));
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        TimeClockViewOverview,
-        overview_view_get_view(app->overview_view));
+        app->view_dispatcher, TimeClockViewOverview, overview_view_get_view(app->overview_view));
     view_dispatcher_add_view(
         app->view_dispatcher, TimeClockViewScan, scan_view_get_view(app->scan_view));
 

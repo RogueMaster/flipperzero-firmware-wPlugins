@@ -27,7 +27,9 @@
  *   flags bit0 = radio (0=WIFI / 1=BLE), bit1 = this entry has a GPS fix. Do not invent a third bit.
  */
 
-enum { SR_RECENT_CAP = 64 };
+enum {
+    SR_RECENT_CAP = 64
+};
 
 enum {
     SR_AP_FLAG_BLE = 1u << 0,
@@ -75,14 +77,16 @@ typedef struct {
 
     SrFirmwareInfo firmware;
     uint32_t firmware_rev; /* Incremented on each SrEventFirmware; 0 = never seen */
-    uint32_t session_rev; /* Incremented whenever the session actually transitions; pairs with the ADR-017 start/stop confirmation criteria */
-    uint32_t gps_stop_rev; /* Incremented on a GPS/NMEA stop reply while idle; the close-out confirmation signal for sampling (ADR-020) */
+    uint32_t
+        session_rev; /* Incremented whenever the session actually transitions; pairs with the ADR-017 start/stop confirmation criteria */
+    uint32_t
+        gps_stop_rev; /* Incremented on a GPS/NMEA stop reply while idle; the close-out confirmation signal for sampling (ADR-020) */
 
     char last_unknown[SR_RAW_LINE_MAX + 1];
     size_t last_unknown_len;
 
     SrApBrief recent[SR_RECENT_CAP];
-    size_t recent_head;  /* Next write position */
+    size_t recent_head; /* Next write position */
     size_t recent_count;
 } SrModel;
 

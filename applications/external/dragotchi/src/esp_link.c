@@ -7,8 +7,8 @@
 #include <stdlib.h>
 
 /* ISR-context RX callback: drain the UART into a stream buffer. */
-static void esp_rx_cb(FuriHalSerialHandle *handle, FuriHalSerialRxEvent event, void *context) {
-    FuriStreamBuffer *rx = context;
+static void esp_rx_cb(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
+    FuriStreamBuffer* rx = context;
     if(event & FuriHalSerialRxEventData) {
         while(furi_hal_serial_async_rx_available(handle)) {
             uint8_t b = furi_hal_serial_async_rx(handle);
@@ -18,16 +18,16 @@ static void esp_rx_cb(FuriHalSerialHandle *handle, FuriHalSerialRxEvent event, v
 }
 
 /* Parse "DRAGO wifi=<n> rssi=<-d>" out of a completed line. */
-static bool parse_report(const char *line, uint8_t *wifi_out, int8_t *rssi_out) {
-    const char *p = strstr(line, "DRAGO");
+static bool parse_report(const char* line, uint8_t* wifi_out, int8_t* rssi_out) {
+    const char* p = strstr(line, "DRAGO");
     if(!p) return false;
-    const char *w = strstr(p, "wifi=");
+    const char* w = strstr(p, "wifi=");
     if(!w) return false;
     int wifi = atoi(w + 5);
     if(wifi < 0) wifi = 0;
     if(wifi > 255) wifi = 255;
     int rssi = 0;
-    const char *r = strstr(p, "rssi=");
+    const char* r = strstr(p, "rssi=");
     if(r) rssi = atoi(r + 5);
     if(rssi < -127) rssi = -127;
     if(rssi > 0) rssi = 0;
@@ -36,16 +36,16 @@ static bool parse_report(const char *line, uint8_t *wifi_out, int8_t *rssi_out) 
     return true;
 }
 
-bool esp_probe(uint8_t *wifi_count_out, int8_t *rssi_out) {
+bool esp_probe(uint8_t* wifi_count_out, int8_t* rssi_out) {
     bool ok = false;
 
     /* Release the expansion service's grip on the UART first (required). */
-    Expansion *expansion = furi_record_open(RECORD_EXPANSION);
+    Expansion* expansion = furi_record_open(RECORD_EXPANSION);
     expansion_disable(expansion);
 
-    FuriHalSerialHandle *handle = furi_hal_serial_control_acquire(FuriHalSerialIdUsart);
+    FuriHalSerialHandle* handle = furi_hal_serial_control_acquire(FuriHalSerialIdUsart);
     if(handle) {
-        FuriStreamBuffer *rx = furi_stream_buffer_alloc(256, 1);
+        FuriStreamBuffer* rx = furi_stream_buffer_alloc(256, 1);
         furi_hal_serial_init(handle, ESP_LINK_BAUD);
         furi_hal_serial_async_rx_start(handle, esp_rx_cb, rx, false);
 

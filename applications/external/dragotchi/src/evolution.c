@@ -6,16 +6,21 @@
 /* Cumulative age (seconds from birth) required to ENTER each stage. */
 static uint32_t enter_age(enum LifeStage stage) {
     switch(stage) {
-        case HATCHLING: return AGE_HATCHLING;
-        case WYRMLING:  return AGE_WYRMLING;
-        case DRAKE:     return AGE_DRAKE;
-        case ADULT:     return AGE_ADULT;
-        default:        return 0xFFFFFFFFu;
+    case HATCHLING:
+        return AGE_HATCHLING;
+    case WYRMLING:
+        return AGE_WYRMLING;
+    case DRAKE:
+        return AGE_DRAKE;
+    case ADULT:
+        return AGE_ADULT;
+    default:
+        return 0xFFFFFFFFu;
     }
 }
 
-GameEventFlags check_evolution(struct GameState *gs, uint32_t now) {
-    struct PersistentGameState *p = &gs->persistent;
+GameEventFlags check_evolution(struct GameState* gs, uint32_t now) {
+    struct PersistentGameState* p = &gs->persistent;
     if(p->stage == DEAD || p->stage == ADULT) return EVT_NONE;
     if(now < p->birth_timestamp) return EVT_NONE;
     uint32_t age = now - p->birth_timestamp;
@@ -43,9 +48,12 @@ GameEventFlags check_evolution(struct GameState *gs, uint32_t now) {
     return flags;
 }
 
-GameEventFlags check_old_age(struct GameState *gs, uint32_t now) {
-    struct PersistentGameState *p = &gs->persistent;
-    if(p->stage != ADULT) { p->last_oldage_update = now; return EVT_NONE; }
+GameEventFlags check_old_age(struct GameState* gs, uint32_t now) {
+    struct PersistentGameState* p = &gs->persistent;
+    if(p->stage != ADULT) {
+        p->last_oldage_update = now;
+        return EVT_NONE;
+    }
     uint32_t age = (now >= p->birth_timestamp) ? now - p->birth_timestamp : 0;
     // Immortal while impeccably cared for; not yet old enough -> keep cursor current.
     if(p->care_score >= CARE_IMMORTAL || age < AGE_ELDER) {
@@ -55,7 +63,7 @@ GameEventFlags check_old_age(struct GameState *gs, uint32_t now) {
     if(now <= p->last_oldage_update) return EVT_NONE;
     uint32_t events = (now - p->last_oldage_update) / OLD_AGE_CHECK_FREQ;
     p->last_oldage_update += events * OLD_AGE_CHECK_FREQ;
-    int32_t deficit = CARE_IMMORTAL - p->care_score;        // 1..CARE_IMMORTAL
+    int32_t deficit = CARE_IMMORTAL - p->care_score; // 1..CARE_IMMORTAL
     uint32_t prob = (uint32_t)(OLD_AGE_BASE_PROB * deficit) / CARE_IMMORTAL;
     if(prob < 1u) prob = 1u;
     if(prob > 100u) prob = 100u;

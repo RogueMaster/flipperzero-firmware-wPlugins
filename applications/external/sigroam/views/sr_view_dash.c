@@ -17,7 +17,9 @@ _Static_assert(
 
 /* Tab bar height: y = 0..10, with the content area starting at 11 (UI-SPEC section 3).
  * draw_tabs and draw_stream each hardcoded 11 before; T4.11 collapsed them into one constant. */
-enum { SR_VIEW_TAB_H = 11 };
+enum {
+    SR_VIEW_TAB_H = 11
+};
 
 struct SrViewDash {
     View* view;
@@ -82,7 +84,8 @@ static int32_t sr_view_dash_draw_hint(Canvas* canvas, int32_t y, const char* s) 
     return row;
 }
 
-static void sr_view_dash_put_line(Canvas* canvas, int32_t y, const char* raw, int n, size_t raw_cap) {
+static void
+    sr_view_dash_put_line(Canvas* canvas, int32_t y, const char* raw, int n, size_t raw_cap) {
     char line[SR_VIEW_COLS + 1];
     size_t len;
 
@@ -635,8 +638,7 @@ static void sr_view_dash_draw_stream(Canvas* canvas, const SrDashModel* m) {
  * so this existing fifth-line slot can show POI copy without a new SrDashModel field
  * (sizeof pinned at 644). Idle GPS sampling still uses sr_gps_status_text. */
 static const char* sr_view_dash_gps_hint(const SrDashModel* m, bool idle_hint) {
-    if(m->session == (uint8_t)SrSessionRunning &&
-       m->scan_ui == (uint8_t)SrScanUiRunning) {
+    if(m->session == (uint8_t)SrSessionRunning && m->scan_ui == (uint8_t)SrScanUiRunning) {
         return sr_poi_status_text(m->gps_phase, m->gps_gate);
     }
     return sr_gps_status_text(m->gps_phase, m->gps_gate, idle_hint);
@@ -796,11 +798,10 @@ static bool sr_view_dash_input(InputEvent* event, void* context) {
 
         with_view_model(
             d->view,
-            SrDashModel* m,
+            SrDashModel * m,
             {
                 if(m != NULL &&
-                   (m->tab == (uint8_t)SR_VIEW_TAB_GPS ||
-                    m->tab == (uint8_t)SR_VIEW_TAB_DASH)) {
+                   (m->tab == (uint8_t)SR_VIEW_TAB_GPS || m->tab == (uint8_t)SR_VIEW_TAB_DASH)) {
                     ok_tab = true;
                 }
             },
@@ -821,7 +822,7 @@ static bool sr_view_dash_input(InputEvent* event, void* context) {
         dir = (event->key == InputKeyRight) ? 1 : -1;
         with_view_model(
             d->view,
-            SrDashModel* m,
+            SrDashModel * m,
             {
                 if(m != NULL) {
                     m->tab = sr_view_tab_next(m->tab, dir);
@@ -839,7 +840,7 @@ static bool sr_view_dash_input(InputEvent* event, void* context) {
         dir = (event->key == InputKeyDown) ? 1 : -1;
         with_view_model(
             d->view,
-            SrDashModel* m,
+            SrDashModel * m,
             {
                 if(m != NULL && m->tab == (uint8_t)SR_VIEW_TAB_STREAM) {
                     m->stream_top = sr_stream_scroll(
@@ -871,8 +872,7 @@ SrViewDash* sr_view_dash_alloc(void) {
     view_set_draw_callback(d->view, sr_view_dash_draw);
     view_set_input_callback(d->view, sr_view_dash_input);
 
-    with_view_model(
-        d->view, SrDashModel* m, { memset(m, 0, sizeof(SrDashModel)); }, false);
+    with_view_model(d->view, SrDashModel * m, { memset(m, 0, sizeof(SrDashModel)); }, false);
 
     return d;
 }
@@ -916,7 +916,7 @@ void sr_view_dash_set(View* v, const SrDashModel* src) {
     }
     with_view_model(
         v,
-        SrDashModel* m,
+        SrDashModel * m,
         {
             if(m != NULL) {
                 tab = m->tab;

@@ -27,7 +27,7 @@ static void dash_fill(SigRoamApp* app, SrDashModel* snap) {
     if(v != NULL) {
         with_view_model(
             v,
-            SrDashModel* cur,
+            SrDashModel * cur,
             {
                 if(cur != NULL) {
                     tab = cur->tab;
@@ -112,15 +112,11 @@ static void dash_fill(SigRoamApp* app, SrDashModel* snap) {
     /* During an active wardrive the GPS-sample fields are unused (sampling is
      * gated off). Reuse them for POI phase/gate so the existing GPS-tab hint
      * line can show POI copy without growing SrDashModel (pinned at 644). */
-    if(app->model.session == SrSessionRunning &&
-       snap->scan_ui == (uint8_t)SrScanUiRunning) {
+    if(app->model.session == SrSessionRunning && snap->scan_ui == (uint8_t)SrScanUiRunning) {
         bool poi_link = snap->serial_open && codec != NULL && codec->build_poi_cmd != NULL;
         snap->gps_phase = app->poi.phase;
         snap->gps_gate = (uint8_t)sr_poi_gate(
-            poi_link,
-            (uint8_t)app->model.session,
-            snap->scan_ui,
-            snap->gps.fix);
+            poi_link, (uint8_t)app->model.session, snap->scan_ui, snap->gps.fix);
     }
     snap->unknown_lines = app->model.unknown_lines;
     snap->malformed_lines = app->model.malformed_lines;
@@ -425,7 +421,14 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
             View* v = sr_view_dash_get_view(app->dash);
             if(v != NULL) {
                 with_view_model(
-                    v, SrDashModel* cur, { if(cur != NULL) { tab = cur->tab; } }, false);
+                    v,
+                    SrDashModel * cur,
+                    {
+                        if(cur != NULL) {
+                            tab = cur->tab;
+                        }
+                    },
+                    false);
             }
             if(tab == (uint8_t)SR_VIEW_TAB_GPS) {
                 const SrSourceCodec* codec;
@@ -449,8 +452,7 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
                 } else if(app->model.gps_blocks > 0) {
                     fix = app->model.gps.fix;
                 }
-                g = sr_poi_gate(
-                    poi_link, (uint8_t)app->model.session, scan_ui, fix);
+                g = sr_poi_gate(poi_link, (uint8_t)app->model.session, scan_ui, fix);
                 if(g == SrPoiGateNotScanning) {
                     dash_gps_start(app);
                 } else if(g == SrPoiGateOk) {

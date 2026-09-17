@@ -8,20 +8,24 @@
 #include "../flipper_structs.h"
 
 /* Integer sin/cos * 64 over 32 angle steps (no libm needed on-device). */
-static const int8_t COS64[32] = {64, 63, 59, 53, 45, 36, 24, 12, 0, -12, -24, -36, -45, -53, -59, -63, -64, -63, -59, -53, -45, -36, -24, -12, 0, 12, 24, 36, 45, 53, 59, 63};
-static const int8_t SIN64[32] = {0, 12, 24, 36, 45, 53, 59, 63, 64, 63, 59, 53, 45, 36, 24, 12, 0, -12, -24, -36, -45, -53, -59, -63, -64, -63, -59, -53, -45, -36, -24, -12};
+static const int8_t COS64[32] = {64,  63,  59,  53,  45,  36,  24,  12,  0,   -12, -24,
+                                 -36, -45, -53, -59, -63, -64, -63, -59, -53, -45, -36,
+                                 -24, -12, 0,   12,  24,  36,  45,  53,  59,  63};
+static const int8_t SIN64[32] = {0,   12,  24,  36,  45,  53,  59,  63,  64,  63,  59,
+                                 53,  45,  36,  24,  12,  0,   -12, -24, -36, -45, -53,
+                                 -59, -63, -64, -63, -59, -53, -45, -36, -24, -12};
 
 typedef struct {
     uint8_t wifi;
     int8_t rssi;
     uint8_t category; // enum CatchCategory
-    uint8_t tier;     // egg tier: 2 == board-exclusive storm egg
+    uint8_t tier; // egg tier: 2 == board-exclusive storm egg
     char text[24];
     uint32_t frame;
 } StormModel;
 
 /* A twinkling 4-ray sparkle; ray length pulses 0..3 by phase. */
-static void draw_sparkle(Canvas *cv, int x, int y, int len) {
+static void draw_sparkle(Canvas* cv, int x, int y, int len) {
     if(len <= 0) return;
     canvas_draw_dot(cv, x, y);
     canvas_draw_line(cv, x - len, y, x + len, y);
@@ -32,11 +36,15 @@ static void draw_sparkle(Canvas *cv, int x, int y, int len) {
     }
 }
 
-static inline int rx(int cx, int k, int r) { return cx + (COS64[k & 31] * r) / 64; }
-static inline int ry(int cy, int k, int r) { return cy + (SIN64[k & 31] * r) / 64; }
+static inline int rx(int cx, int k, int r) {
+    return cx + (COS64[k & 31] * r) / 64;
+}
+static inline int ry(int cy, int k, int r) {
+    return cy + (SIN64[k & 31] * r) / 64;
+}
 
-static void storm_draw(Canvas *cv, void *model) {
-    StormModel *m = model;
+static void storm_draw(Canvas* cv, void* model) {
+    StormModel* m = model;
     canvas_clear(cv);
 
     /* ---- Radar (left), sweeping and pinging the nearby signals ---- */
@@ -79,7 +87,7 @@ static void storm_draw(Canvas *cv, void *model) {
         static const uint8_t sy[] = {6, 9, 27, 31, 45, 16, 40};
         for(unsigned i = 0; i < sizeof(sx); i++) {
             int phase = (int)((m->frame / 2 + i * 3) % 8); /* 0..7 */
-            int len = phase <= 3 ? phase : (6 - phase);    /* pulse 0..3..0 */
+            int len = phase <= 3 ? phase : (6 - phase); /* pulse 0..3..0 */
             draw_sparkle(cv, sx[i], sy[i], len);
         }
     }
@@ -101,23 +109,22 @@ static void storm_draw(Canvas *cv, void *model) {
     canvas_draw_box(cv, 0, 53, 128, 11);
     canvas_set_color(cv, ColorWhite);
     canvas_draw_str(cv, 3, 61, m->text);
-    const char *hint = "OK";
+    const char* hint = "OK";
     canvas_draw_str(cv, 128 - canvas_string_width(cv, hint) - 3, 61, hint);
     canvas_set_color(cv, ColorBlack);
 }
 
-static bool storm_input(InputEvent *event, void *context) {
-    struct ApplicationContext *app = context;
-    if(event->type == InputTypeShort &&
-       (event->key == InputKeyOk || event->key == InputKeyBack)) {
+static bool storm_input(InputEvent* event, void* context) {
+    struct ApplicationContext* app = context;
+    if(event->type == InputTypeShort && (event->key == InputKeyOk || event->key == InputKeyBack)) {
         view_dispatcher_send_custom_event(app->view_dispatcher, STORM_EVT_DONE);
         return true;
     }
     return false;
 }
 
-View *storm_view_alloc(void *context) {
-    View *v = view_alloc();
+View* storm_view_alloc(void* context) {
+    View* v = view_alloc();
     view_set_context(v, context);
     view_set_draw_callback(v, storm_draw);
     view_set_input_callback(v, storm_input);
@@ -125,13 +132,14 @@ View *storm_view_alloc(void *context) {
     return v;
 }
 
-void storm_view_free(View *v) {
+void storm_view_free(View* v) {
     view_free(v);
 }
 
-void storm_view_set(View *v, const struct GameState *gs) {
+void storm_view_set(View* v, const struct GameState* gs) {
     with_view_model(
-        v, StormModel * m,
+        v,
+        StormModel * m,
         {
             m->wifi = gs->last_wifi;
             m->rssi = gs->last_rssi;
@@ -147,6 +155,6 @@ void storm_view_set(View *v, const struct GameState *gs) {
         true);
 }
 
-void storm_view_tick(View *v) {
+void storm_view_tick(View* v) {
     with_view_model(v, StormModel * m, { m->frame++; }, true);
 }

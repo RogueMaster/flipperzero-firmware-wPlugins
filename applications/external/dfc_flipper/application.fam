@@ -1,19 +1,12 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
 App(
-    appid="dfc",  # Must be unique
-    name="DFC",  # Displayed in menus
+    appid="dfc",
+    name="DFC",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="dfc_app",
     stack_size=10 * 1024,
-    fap_category="NFC",
-    # Optional values
-    fap_version="1.0",
-    fap_icon="dfc.png",  # 10x10 1-bit PNG
-    fap_description="DFC: reader/emulator for compatible NFC credentials",
-    fap_author="CinderSocket",
-    fap_weburl="https://github.com/cindersocket/dfc-flipper",
-    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_icon="dfc.png",
+    fap_icon_assets="images",
     fap_file_assets="files",
     cdefines=[
         ("AES128", "1"),
@@ -33,19 +26,23 @@ App(
             name="core",
             fap_include_paths=["src", "port"],
             sources=["src/*.c"],
-            cincludes=["lib/tiny-AES-c", "lib/tiny-DES-c"],
+            cincludes=["lib/tiny_AES_c", "lib/tiny_DES_c"],
         ),
         Lib(
-            name="tiny-AES-c",
+            name="tiny_AES_c",
             fap_include_paths=["."],
             sources=["aes.c"],
         ),
         Lib(
-            name="tiny-DES-c",
+            name="tiny_DES_c",
             fap_include_paths=["."],
             sources=["des.c"],
         ),
     ],
-    # The recursive glob would otherwise build these sources twice.
     sources=["*.c", "*.cpp", "!lib"],
+    fap_category="NFC",
+    fap_author="CinderSocket",
+    fap_weburl="https://github.com/cindersocket/dfc-flipper",
+    fap_version="1.0",
+    fap_description="DFC: reader/emulator for compatible NFC credentials",
 )

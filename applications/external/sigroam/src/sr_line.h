@@ -74,16 +74,16 @@ typedef struct {
     char buf[SR_RAW_LINE_MAX + 1];
     size_t len; /* Effective chars accumulated in buf, excluding the NUL */
 
-    bool ready;       /* buf holds a complete line awaiting consumption */
-    bool truncated;   /* The current ready line was truncated */
+    bool ready; /* buf holds a complete line awaiting consumption */
+    bool truncated; /* The current ready line was truncated */
     bool overflowing; /* Discarding the rest of the current line until '\n' */
 
     /* Statistics. Preserved by sr_line_reset; only sr_line_init clears them. */
-    uint32_t lines_total;     /* Lines delivered upward (excludes dropped empty lines) */
+    uint32_t lines_total; /* Lines delivered upward (excludes dropped empty lines) */
     uint32_t lines_truncated; /* Of those, how many were truncated */
-    uint32_t lines_empty;     /* Lines empty after stripping, dropped internally */
-    uint32_t cr_dropped;      /* Dropped '\r'; normal CRLF traffic counts here too */
-    uint32_t ctrl_dropped;    /* Other dropped control chars -- growth means a line or peer problem */
+    uint32_t lines_empty; /* Lines empty after stripping, dropped internally */
+    uint32_t cr_dropped; /* Dropped '\r'; normal CRLF traffic counts here too */
+    uint32_t ctrl_dropped; /* Other dropped control chars -- growth means a line or peer problem */
     uint32_t overflow_dropped; /* Bytes dropped for being overlong */
 } SrLine;
 

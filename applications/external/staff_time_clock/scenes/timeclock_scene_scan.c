@@ -66,8 +66,7 @@ static void timeclock_scene_scan_nav_cb(int direction, void* context) {
     // take over, or already has).
     if(!ctx || ctx->handled) return;
 
-    int next =
-        ((int)ctx->tech + direction + TimeclockReaderTechCount) % TimeclockReaderTechCount;
+    int next = ((int)ctx->tech + direction + TimeclockReaderTechCount) % TimeclockReaderTechCount;
     ctx->tech = (TimeclockReaderTech)next;
     timeclock_reader_start_fixed(ctx->reader, ctx->tech, false);
     timeclock_scene_scan_show_reading(app, ctx);
@@ -146,7 +145,11 @@ static void timeclock_scene_scan_on_uid(const char* uid_hex, const char* tech, v
         if(found >= 0) {
             timeclock_notify_error(app);
             snprintf(
-                scan_msg, sizeof(scan_msg), "%s\n%s", tc_str(StrAlreadyReg), app->badges[found].name);
+                scan_msg,
+                sizeof(scan_msg),
+                "%s\n%s",
+                tc_str(StrAlreadyReg),
+                app->badges[found].name);
             timeclock_scene_scan_result(
                 app, ctx, tc_str(StrBadge), scan_msg, TimeClockSceneBadgeList);
         } else {
@@ -189,7 +192,8 @@ void timeclock_scene_scan_on_enter(void* context) {
                     TimeclockReaderTechNfc;
     ctx->reader = timeclock_reader_alloc(app->view_dispatcher);
     timeclock_reader_set_callback(ctx->reader, timeclock_scene_scan_on_uid, app);
-    scene_manager_set_scene_state(app->scene_manager, TimeClockSceneScan, (uint32_t)(uintptr_t)ctx);
+    scene_manager_set_scene_state(
+        app->scene_manager, TimeClockSceneScan, (uint32_t)(uintptr_t)ctx);
 
     scan_view_set_nav_callback(app->scan_view, timeclock_scene_scan_nav_cb, app);
     timeclock_scene_scan_show_reading(app, ctx);
@@ -203,7 +207,8 @@ bool timeclock_scene_scan_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom && ctx) {
         if(event.event == SCAN_POPUP_DONE) {
-            scene_manager_search_and_switch_to_previous_scene(app->scene_manager, ctx->result_scene);
+            scene_manager_search_and_switch_to_previous_scene(
+                app->scene_manager, ctx->result_scene);
             return true;
         }
         return timeclock_reader_handle_event(ctx->reader, event.event);

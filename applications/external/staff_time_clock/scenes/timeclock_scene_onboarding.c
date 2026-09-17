@@ -6,9 +6,9 @@
 // First-launch onboarding: explains the optional protection PIN and lets the
 // user set it right away (arrow sequence) or skip. Shown once (config.onboarded).
 
-#define ONB_SKIP 270u
+#define ONB_SKIP   270u
 #define ONB_SETPIN 271u
-#define ONB_DONE 272u
+#define ONB_DONE   272u
 
 static void timeclock_scene_onboarding_button_callback(
     GuiButtonType result,
@@ -40,7 +40,11 @@ void timeclock_scene_onboarding_on_enter(void* context) {
     widget_add_string_multiline_element(
         widget, 64, 20, AlignCenter, AlignTop, FontSecondary, tc_str(StrOnbText));
     widget_add_button_element(
-        widget, GuiButtonTypeLeft, tc_str(StrSkip), timeclock_scene_onboarding_button_callback, app);
+        widget,
+        GuiButtonTypeLeft,
+        tc_str(StrSkip),
+        timeclock_scene_onboarding_button_callback,
+        app);
     widget_add_button_element(
         widget,
         GuiButtonTypeRight,

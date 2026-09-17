@@ -26,7 +26,7 @@ static const SrWaitStage k_oracle[8] = {
     SrWaitStageNone, /* 010 !p  z !eq */
     SrWaitStageLink, /* 011  p  z !eq */
     SrWaitStageNone, /* 100 !p !z  eq */
-    SrWaitStageCmd,  /* 101  p !z  eq */
+    SrWaitStageCmd, /* 101  p !z  eq */
     SrWaitStageNone, /* 110 !p  z  eq */
     SrWaitStageLink, /* 111  p  z  eq */
 };
@@ -52,10 +52,8 @@ static SrWaitStage oracle_wait(const SrWaitCtx* c) {
 int test_wait_stage_run(void) {
     static const bool k_pending[2] = {false, true};
     static const uint32_t k_rx[3] = {0u, 1u, 0x80000000u};
-    static const uint32_t k_ack_now[7] = {
-        0u, 5u, 6u, 5u, 0u, 0xFFFFFFFFu, 0xFFFFFFFFu};
-    static const uint32_t k_ack_at[7] = {
-        0u, 5u, 5u, 6u, 0xFFFFFFFFu, 0xFFFFFFFFu, 0u};
+    static const uint32_t k_ack_now[7] = {0u, 5u, 6u, 5u, 0u, 0xFFFFFFFFu, 0xFFFFFFFFu};
+    static const uint32_t k_ack_at[7] = {0u, 5u, 5u, 6u, 0xFFFFFFFFu, 0xFFFFFFFFu, 0u};
     unsigned n_none = 0;
     unsigned n_link = 0;
     unsigned n_cmd = 0;

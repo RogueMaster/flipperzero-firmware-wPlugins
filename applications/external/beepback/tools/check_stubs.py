@@ -19,8 +19,7 @@ import urllib.request
 # paths are relative to the repo, not to wherever this was run from
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-BASE = ("https://raw.githubusercontent.com/flipperdevices/"
-        "flipperzero-firmware/dev/")
+BASE = "https://raw.githubusercontent.com/flipperdevices/" "flipperzero-firmware/dev/"
 
 UPSTREAM = [
     "applications/services/storage/storage.h",
@@ -48,18 +47,39 @@ STUBS = [
     "test/stubs/notification/notification_messages.h",
 ]
 
-ATTRS = ("FURI_WARN_UNUSED", "FURI_RETURNS_NONNULL", "FURI_NORETURN",
-         "FURI_DEPRECATED", "FURI_ALWAYS_INLINE")
+ATTRS = (
+    "FURI_WARN_UNUSED",
+    "FURI_RETURNS_NONNULL",
+    "FURI_NORETURN",
+    "FURI_DEPRECATED",
+    "FURI_ALWAYS_INLINE",
+)
 
-KEYWORDS = {"void", "char", "short", "int", "long", "float", "double",
-            "signed", "unsigned", "bool", "const", "struct", "enum",
-            "union", "volatile", "restrict"}
+KEYWORDS = {
+    "void",
+    "char",
+    "short",
+    "int",
+    "long",
+    "float",
+    "double",
+    "signed",
+    "unsigned",
+    "bool",
+    "const",
+    "struct",
+    "enum",
+    "union",
+    "volatile",
+    "restrict",
+}
 
 DECL = re.compile(
     r"(?P<ret>[A-Za-z_][A-Za-z0-9_ \t\*]*?)\s*"
     r"\b(?P<name>[a-z_][A-Za-z0-9_]*)\s*"
     r"\((?P<args>[^()]*)\)\s*;",
-    re.S)
+    re.S,
+)
 
 
 def strip_noise(text):
@@ -79,11 +99,15 @@ def norm_param(p):
     p = p.strip()
     if not p:
         return ""
-    p = re.sub(r"\[\s*\]", " *", p)          # arrays decay
+    p = re.sub(r"\[\s*\]", " *", p)  # arrays decay
     toks = re.sub(r"\s*\*\s*", " * ", p).split()
-    if len(toks) > 1 and re.fullmatch(r"[A-Za-z_]\w*", toks[-1]) \
-            and toks[-1] not in KEYWORDS and not toks[-1].endswith("_t"):
-        toks = toks[:-1]                      # that was the parameter's name
+    if (
+        len(toks) > 1
+        and re.fullmatch(r"[A-Za-z_]\w*", toks[-1])
+        and toks[-1] not in KEYWORDS
+        and not toks[-1].endswith("_t")
+    ):
+        toks = toks[:-1]  # that was the parameter's name
     return " ".join(toks)
 
 
@@ -111,7 +135,7 @@ def fetch(path):
 
 def show(sig):
     ret, args, attrs = sig
-    lead = ("".join(a + " " for a in attrs))
+    lead = "".join(a + " " for a in attrs)
     return f"{lead}{ret} ({', '.join(args) or 'void'})"
 
 
@@ -120,7 +144,7 @@ def main():
     for path in UPSTREAM:
         try:
             real.update(parse(fetch(path)))
-        except Exception as exc:                       # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             print(f"could not fetch {path}: {exc}", file=sys.stderr)
             return 2
 
@@ -149,8 +173,10 @@ def main():
             print(f"    real {show(real[name])}")
             print(f"    stub {show(mine[name])}")
 
-    print(f"\n{checked} shared signatures checked, {bad} mismatched, "
-          f"{unknown} stub declarations not found upstream")
+    print(
+        f"\n{checked} shared signatures checked, {bad} mismatched, "
+        f"{unknown} stub declarations not found upstream"
+    )
     if not checked:
         # a check that silently verifies nothing is worse than no check
         print("\nnothing was actually compared", file=sys.stderr)

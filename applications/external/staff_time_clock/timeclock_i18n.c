@@ -10,11 +10,11 @@ static TcLang g_lang = TcLangEn;
 
 static const char* const S[TcStrCount][TcLangCount] = {
     // ---- Menu ----
-    [StrWorkMode] = {"Work mode", "Modalita lavoro", "Modo trabajo", "Mode travail", "Arbeitsmodus"},
+    [StrWorkMode] =
+        {"Work mode", "Modalita lavoro", "Modo trabajo", "Mode travail", "Arbeitsmodus"},
     [StrBadges] = {"Badges", "Badge", "Tarjetas", "Badges", "Ausweise"},
     [StrHistory] = {"History", "Storico", "Historial", "Historique", "Verlauf"},
-    [StrOverview] =
-        {"Overview", "Panoramica", "Resumen", "Apercu", "Ubersicht"},
+    [StrOverview] = {"Overview", "Panoramica", "Resumen", "Apercu", "Ubersicht"},
     [StrToday] = {"Today", "Oggi", "Hoy", "Aujourd'hui", "Heute"},
     [StrThisWeek] = {"This week", "Settimana", "Esta semana", "Cette semaine", "Diese Woche"},
     [StrExport] = {"Export", "Esporta", "Exportar", "Exporter", "Export"},
@@ -90,7 +90,8 @@ static const char* const S[TcStrCount][TcLangCount] = {
          "Registra antes\nun colaborador",
          "Enregistrez\nune personne",
          "Erst Person\nregistrieren"},
-    [StrPinToExit] = {"PIN to exit", "PIN per uscire", "PIN para salir", "PIN pour sortir", "PIN zum Ende"},
+    [StrPinToExit] =
+        {"PIN to exit", "PIN per uscire", "PIN para salir", "PIN pour sortir", "PIN zum Ende"},
     [StrWelcome] = {"Welcome", "Benvenuto", "Bienvenido", "Bienvenue", "Willkommen"},
     [StrGoodbye] = {"Goodbye", "Arrivederci", "Adios", "Au revoir", "Tschuess"},
     // ---- Badge management ----
@@ -113,10 +114,8 @@ static const char* const S[TcStrCount][TcLangCount] = {
     // ---- History filter ----
     [StrAll] = {"All", "Tutti", "Todos", "Tous", "Alle"},
     // ---- Today / Week ----
-    [StrFirstIn] =
-        {"First in", "Prima entrata", "Primera entrada", "Premiere entree", "Erster IN"},
-    [StrLastOut] =
-        {"Last out", "Ultima uscita", "Ultima salida", "Derniere sortie", "Letzter OUT"},
+    [StrFirstIn] = {"First in", "Prima entrata", "Primera entrada", "Premiere entree", "Erster IN"},
+    [StrLastOut] = {"Last out", "Ultima uscita", "Ultima salida", "Derniere sortie", "Letzter OUT"},
     [StrTotal] = {"Total", "Totale", "Total", "Total", "Gesamt"},
     [StrBreak] = {"Break", "Pausa", "Pausa", "Pause", "Pause"},
     [StrNoPunches] =
@@ -128,8 +127,7 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrWeekTotal] =
         {"Week total", "Totale settimana", "Total semana", "Total semaine", "Wochensumme"},
     // ---- Export ----
-    [StrExportCsv] =
-        {"Export CSV", "Esporta CSV", "Exportar CSV", "Exporter CSV", "CSV export"},
+    [StrExportCsv] = {"Export CSV", "Esporta CSV", "Exportar CSV", "Exporter CSV", "CSV export"},
     [StrExportJson] =
         {"Export JSON", "Esporta JSON", "Exportar JSON", "Exporter JSON", "JSON export"},
     [StrClearHistory] =
@@ -159,10 +157,8 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrBackup] = {"Backup", "Backup", "Copia seg.", "Sauvegarde", "Backup"},
     [StrBackupDone] =
         {"Backup saved", "Backup salvato", "Copia guardada", "Sauvegarde OK", "Backup fertig"},
-    [StrRestore] =
-        {"Restore", "Ripristina", "Restaurar", "Restaurer", "Wiederherstellen"},
-    [StrRestoreDone] =
-        {"Restored", "Ripristinato", "Restaurado", "Restaure", "Wiederhergestellt"},
+    [StrRestore] = {"Restore", "Ripristina", "Restaurar", "Restaurer", "Wiederherstellen"},
+    [StrRestoreDone] = {"Restored", "Ripristinato", "Restaurado", "Restaure", "Wiederhergestellt"},
     [StrNoBackups] =
         {"No backups", "Nessun backup", "Sin copias", "Aucune sauvegarde", "Keine Backups"},
     [StrRestoreConfirm] =
@@ -187,8 +183,7 @@ static const char* const S[TcStrCount][TcLangCount] = {
         {"Enter PIN", "Inserisci PIN", "Introduce PIN", "Entrez le PIN", "PIN eingeben"},
     [StrConfirmPin] =
         {"Confirm PIN", "Conferma PIN", "Confirmar PIN", "Confirmer PIN", "PIN bestaetigen"},
-    [StrCurrentPin] =
-        {"Current PIN", "PIN attuale", "PIN actual", "PIN actuel", "Aktueller PIN"},
+    [StrCurrentPin] = {"Current PIN", "PIN attuale", "PIN actual", "PIN actuel", "Aktueller PIN"},
     [StrMismatch] =
         {"Mismatch, retry", "Non combacia", "No coincide", "Non concordant", "Stimmt nicht"},
     [StrWrongPin] = {"Wrong PIN", "PIN errato", "PIN incorrecto", "PIN incorrect", "Falscher PIN"},
@@ -202,11 +197,7 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrPinSaved] =
         {"PIN saved", "PIN salvato", "PIN guardado", "PIN enregistre", "PIN gespeichert"},
     [StrPinDisabled] =
-        {"PIN disabled",
-         "PIN disattivato",
-         "PIN desactivado",
-         "PIN desactive",
-         "PIN deaktiviert"},
+        {"PIN disabled", "PIN disattivato", "PIN desactivado", "PIN desactive", "PIN deaktiviert"},
     // ---- Onboarding ----
     [StrOnbText] =
         {"Set an arrow PIN to\nprotect the app - it's\noptional, off by default.",
@@ -241,12 +232,15 @@ static const char* const S[TcStrCount][TcLangCount] = {
     [StrAddIn] = {"Add IN", "Aggiungi IN", "Anadir IN", "Ajouter IN", "IN hinzu"},
     [StrAddOut] = {"Add OUT", "Aggiungi OUT", "Anadir OUT", "Ajouter OUT", "OUT hinzu"},
     [StrPunchAdded] =
-        {"Punch added", "Timbratura aggiunta", "Fichaje anadido", "Pointage ajoute", "Stempel hinzu"},
+        {"Punch added",
+         "Timbratura aggiunta",
+         "Fichaje anadido",
+         "Pointage ajoute",
+         "Stempel hinzu"},
     [StrExportMonth] =
         {"Export month", "Esporta mese", "Exportar mes", "Exporter mois", "Monat export"},
     [StrTarget] = {"Target", "Obiettivo", "Objetivo", "Objectif", "Ziel"},
-    [StrOvertime] =
-        {"Overtime", "Straordinario", "Horas extra", "Heures sup", "Ueberstunden"},
+    [StrOvertime] = {"Overtime", "Straordinario", "Horas extra", "Heures sup", "Ueberstunden"},
     // ---- Extra (v2.4) ----
     [StrDateWrongText] =
         {"The date looks wrong.\nPunches may be logged\nwith the wrong date.",
@@ -273,8 +267,8 @@ TcLang tc_lang_get(void) {
 }
 
 const char* tc_lang_name(TcLang lang) {
-    static const char* const names[TcLangCount] =
-        {"English", "Italiano", "Espanol", "Francais", "Deutsch"};
+    static const char* const names[TcLangCount] = {
+        "English", "Italiano", "Espanol", "Francais", "Deutsch"};
     if(lang >= TcLangCount) lang = TcLangEn;
     return names[lang];
 }

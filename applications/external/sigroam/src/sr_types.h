@@ -103,8 +103,8 @@ typedef enum {
  */
 typedef enum {
     SrStopWifiTranRecv = 0, /* "Stopping WiFi tran/recv" */
-    SrStopEndNmea,          /* "END OF NMEA STREAM" */
-    SrStopGpsUpdates,       /* "Stopping GPS data updates" */
+    SrStopEndNmea, /* "END OF NMEA STREAM" */
+    SrStopGpsUpdates, /* "Stopping GPS data updates" */
 } SrStopReason;
 
 /*
@@ -113,13 +113,13 @@ typedef enum {
  */
 typedef enum {
     SrEventNone = 0,
-    SrEventApFound,      /* V-002 WiFi row (carries the cursor prefix) */
-    SrEventBleFound,     /* V-002 BLE row (no cursor prefix) */
-    SrEventGps,          /* V-004 gpsdata block */
-    SrEventScanStarted,  /* V-001 StartingWardrive. Stop with stopscan */
-    SrEventScanStopped,  /* V-003 */
-    SrEventFirmware,     /* V-005 info four rows / boot banner */
-    SrEventUnknown,      /* Malformed or unrecognized row, passed through to the Raw view */
+    SrEventApFound, /* V-002 WiFi row (carries the cursor prefix) */
+    SrEventBleFound, /* V-002 BLE row (no cursor prefix) */
+    SrEventGps, /* V-004 gpsdata block */
+    SrEventScanStarted, /* V-001 StartingWardrive. Stop with stopscan */
+    SrEventScanStopped, /* V-003 */
+    SrEventFirmware, /* V-005 info four rows / boot banner */
+    SrEventUnknown, /* Malformed or unrecognized row, passed through to the Raw view */
 } SrEventKind;
 
 /* -------------------------------------------------------------------------- */
@@ -127,11 +127,11 @@ typedef enum {
 /* -------------------------------------------------------------------------- */
 
 typedef struct {
-    SrSourceKind kind;                   /* Probe verdict; not one of the info rows */
-    char firmware[SR_FW_NAME_MAX + 1];   // ref: V-005 Firmware: Marauder
+    SrSourceKind kind; /* Probe verdict; not one of the info rows */
+    char firmware[SR_FW_NAME_MAX + 1]; // ref: V-005 Firmware: Marauder
     char version[SR_FW_VERSION_MAX + 1]; // ref: V-005 Version: v1.14.1
     char hardware[SR_FW_HARDWARE_MAX + 1]; // ref: V-005 Hardware: ESP32-C5 DevKit
-    char esp_idf[SR_FW_IDF_MAX + 1];     // ref: V-005 ESP-IDF: {esp_get_idf_version()}
+    char esp_idf[SR_FW_IDF_MAX + 1]; // ref: V-005 ESP-IDF: {esp_get_idf_version()}
 } SrFirmwareInfo;
 
 /*
@@ -152,18 +152,18 @@ typedef struct {
  * The row is still printed when there is no GPS fix.
  */
 typedef struct {
-    uint32_t cursor;                 // ref: V-002 {cursor} | prefix; BLE rows lack it, filled with 0
-    char bssid[SR_BSSID_MAX + 1];    // ref: V-002 BSSID / MAC
-    char ssid[SR_SSID_MAX + 1];      // ref: V-002 SSID (commas already replaced with _)
-    char auth[SR_AUTH_MAX + 1];      // ref: V-002 [AUTH], or [BLE] on BLE rows
+    uint32_t cursor; // ref: V-002 {cursor} | prefix; BLE rows lack it, filled with 0
+    char bssid[SR_BSSID_MAX + 1]; // ref: V-002 BSSID / MAC
+    char ssid[SR_SSID_MAX + 1]; // ref: V-002 SSID (commas already replaced with _)
+    char auth[SR_AUTH_MAX + 1]; // ref: V-002 [AUTH], or [BLE] on BLE rows
     char datetime[SR_DATETIME_MAX + 1]; // ref: V-002 YYYY-MM-DD HH:MM:SS
-    int channel;                     // ref: V-002 {ch}; fixed 0 on BLE rows
-    int rssi;                        // ref: V-002 {RSSI}
-    char lat[SR_COORD_MAX + 1];      // ref: V-002 {lat}
-    char lon[SR_COORD_MAX + 1];      // ref: V-002 {lon}
-    char alt[SR_COORD_MAX + 1];      // ref: V-002 {alt}
-    char acc[SR_COORD_MAX + 1];      // ref: V-002 {acc}
-    SrRadioType radio;               // ref: V-002 last column WIFI | BLE
+    int channel; // ref: V-002 {ch}; fixed 0 on BLE rows
+    int rssi; // ref: V-002 {RSSI}
+    char lat[SR_COORD_MAX + 1]; // ref: V-002 {lat}
+    char lon[SR_COORD_MAX + 1]; // ref: V-002 {lon}
+    char alt[SR_COORD_MAX + 1]; // ref: V-002 {alt}
+    char acc[SR_COORD_MAX + 1]; // ref: V-002 {acc}
+    SrRadioType radio; // ref: V-002 last column WIFI | BLE
 } SrApRecord;
 
 /*
@@ -173,14 +173,14 @@ typedef struct {
  * stored here verbatim as printed.
  */
 typedef struct {
-    bool fix;                            // ref: V-004 Fix: Yes|No
-    char text[SR_GPS_TEXT_MAX + 1];      // ref: V-004 optional Text:; empty string when absent
-    char sats[SR_GPS_SATS_MAX + 1];      // ref: V-004 Sats:
-    char acc[SR_COORD_MAX + 1];          // ref: V-004 Acc:
-    char lat[SR_COORD_MAX + 1];          // ref: V-004 Lat:
-    char lon[SR_COORD_MAX + 1];          // ref: V-004 Lon:
-    char alt[SR_COORD_MAX + 1];          // ref: V-004 Alt:
-    char datetime[SR_DATETIME_MAX + 1];  // ref: V-004 D/T:
+    bool fix; // ref: V-004 Fix: Yes|No
+    char text[SR_GPS_TEXT_MAX + 1]; // ref: V-004 optional Text:; empty string when absent
+    char sats[SR_GPS_SATS_MAX + 1]; // ref: V-004 Sats:
+    char acc[SR_COORD_MAX + 1]; // ref: V-004 Acc:
+    char lat[SR_COORD_MAX + 1]; // ref: V-004 Lat:
+    char lon[SR_COORD_MAX + 1]; // ref: V-004 Lon:
+    char alt[SR_COORD_MAX + 1]; // ref: V-004 Alt:
+    char datetime[SR_DATETIME_MAX + 1]; // ref: V-004 D/T:
 } SrGpsSnapshot;
 
 /*
@@ -191,7 +191,7 @@ typedef struct {
  * fix is DERIVED, not transmitted: F8 pins datetime non-empty <=> nmea.isValid().
  */
 typedef struct {
-    bool fix;                            /* derived: datetime[0] != '\0' (F8) */
+    bool fix; /* derived: datetime[0] != '\0' (F8) */
     char lat[SR_COORD_MAX + 1];
     char lon[SR_COORD_MAX + 1];
     char alt[SR_COORD_MAX + 1];
@@ -231,12 +231,12 @@ typedef struct {
 typedef struct {
     SrEventKind kind;
     union {
-        SrApRecord ap;           /* SrEventApFound */
-        SrApRecord ble;          /* SrEventBleFound */
-        SrGpsSnapshot gps;       /* SrEventGps */
+        SrApRecord ap; /* SrEventApFound */
+        SrApRecord ble; /* SrEventBleFound */
+        SrGpsSnapshot gps; /* SrEventGps */
         SrFirmwareInfo firmware; /* SrEventFirmware */
-        SrStopReason stop;       /* SrEventScanStopped */
-        SrRawView unknown;       /* SrEventUnknown -- borrowed, not owned */
+        SrStopReason stop; /* SrEventScanStopped */
+        SrRawView unknown; /* SrEventUnknown -- borrowed, not owned */
     } u;
 } SrEvent;
 
@@ -264,12 +264,13 @@ typedef struct {
  * count[cls] when sending and watch for it to change to learn when the ack arrived.
  */
 typedef enum {
-    SrCmdAckNone = 0, /* Not an acknowledgement of any known command; count[0] stays 0, never used */
-    SrCmdAckStart,    /* wardrive / wardrive -serial */
-    SrCmdAckStop,     /* stopscan */
-    SrCmdAckGps,      /* gpsdata */
-    SrCmdAckInfo,     /* info */
-    SrCmdAckPoi,      /* wardrivepoi */
+    SrCmdAckNone =
+        0, /* Not an acknowledgement of any known command; count[0] stays 0, never used */
+    SrCmdAckStart, /* wardrive / wardrive -serial */
+    SrCmdAckStop, /* stopscan */
+    SrCmdAckGps, /* gpsdata */
+    SrCmdAckInfo, /* info */
+    SrCmdAckPoi, /* wardrivepoi */
     SrCmdAckClassCount
 } SrCmdAckClass;
 

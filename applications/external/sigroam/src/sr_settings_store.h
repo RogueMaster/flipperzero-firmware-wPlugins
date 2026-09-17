@@ -10,7 +10,9 @@
  * For every load return value, *out satisfies sr_settings_is_valid(out) (for non-NULL out).
  */
 
-enum { SR_SETTINGS_STORE_MAX = 512 };
+enum {
+    SR_SETTINGS_STORE_MAX = 512
+};
 
 typedef enum {
     SrSettingsLoadOk = 0, /* File exists, header matches, no illegal values, no malformed lines */

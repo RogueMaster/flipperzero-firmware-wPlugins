@@ -345,7 +345,8 @@ static void ev_clear(SrEvent* ev) {
     memset(ev, 0, sizeof(*ev));
 }
 
-static void ev_ap(SrEvent* ev, SrEventKind kind, const char* mac, const char* ssid, int ch, int rssi) {
+static void
+    ev_ap(SrEvent* ev, SrEventKind kind, const char* mac, const char* ssid, int ch, int rssi) {
     SrApRecord* r;
 
     ev_clear(ev);
@@ -794,7 +795,9 @@ static void test_borrowed_view_not_stored(void) {
  * guaranteed to land in the red zone. **This test is only meaningful under make asan.**
  */
 static void test_window_view_no_overread(void) {
-    enum { N = 8 };
+    enum {
+        N = 8
+    };
     char* buf = (char*)malloc(N); /* exactly N bytes, no room for a NUL */
     SrEvent ev;
 
@@ -976,7 +979,7 @@ static void test_oracle_agreement_scripted(void) {
 /* -------------------------------------------------------------------------- */
 
 #define SR_MODEL_FUZZ_ITERS 8000u
-#define SR_MODEL_FUZZ_SEED 0x7D2404E1u
+#define SR_MODEL_FUZZ_SEED  0x7D2404E1u
 
 static uint32_t xs32(uint32_t* s) {
     uint32_t x = *s;
@@ -1169,11 +1172,16 @@ static void test_fuzz(void) {
             cov_apply_no++;
         }
 
-        if(kind == SrEventScanStarted && before == SrSessionIdle && g_model.session == SrSessionRunning) {
+        if(kind == SrEventScanStarted && before == SrSessionIdle &&
+           g_model.session == SrSessionRunning) {
             cov_idle_run++;
-        } else if(kind == SrEventScanStopped && before == SrSessionRunning && g_model.session == SrSessionStopped) {
+        } else if(
+            kind == SrEventScanStopped && before == SrSessionRunning &&
+            g_model.session == SrSessionStopped) {
             cov_run_stop++;
-        } else if(kind == SrEventScanStarted && before == SrSessionStopped && g_model.session == SrSessionRunning) {
+        } else if(
+            kind == SrEventScanStarted && before == SrSessionStopped &&
+            g_model.session == SrSessionRunning) {
             cov_stop_run++;
         } else if(kind == SrEventScanStopped && before == SrSessionIdle) {
             cov_ill_idle_stop++;
@@ -1698,8 +1706,7 @@ static void test_gps_csv_fixture(void) {
             if(!sr_line_truncated(&line)) {
                 memset(&ev, 0, sizeof(ev));
                 r = sr_codec_marauder.feed_line(&parser, text, len, &ev);
-                if(r == SrParseOk &&
-                   (ev.kind == SrEventApFound || ev.kind == SrEventBleFound)) {
+                if(r == SrParseOk && (ev.kind == SrEventApFound || ev.kind == SrEventBleFound)) {
                     parse_ok++;
                     if(ev.kind == SrEventApFound) {
                         ap_ok++;

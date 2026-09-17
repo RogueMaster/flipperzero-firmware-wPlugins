@@ -28,8 +28,18 @@ typedef enum {
     Others,
     ScreenCount
 } Screen;
-typedef enum { BrowseLibrary, BrowseImport, BrowseSaved, BrowseOpen } BrowsePurpose;
-typedef enum { TextSave, TextLabel, TextRename, TextDuplicate } TextPurpose;
+typedef enum {
+    BrowseLibrary,
+    BrowseImport,
+    BrowseSaved,
+    BrowseOpen
+} BrowsePurpose;
+typedef enum {
+    TextSave,
+    TextLabel,
+    TextRename,
+    TextDuplicate
+} TextPurpose;
 typedef enum {
     ConfirmNew,
     ConfirmOpen,
@@ -51,7 +61,10 @@ typedef enum {
     JobDelete,
     JobSettings
 } JobType;
-enum { EventInput = 0x1000, EventDone = 0x2000 };
+enum {
+    EventInput = 0x1000,
+    EventDone = 0x2000
+};
 typedef struct {
     IrbProject project;
     uint32_t counts[IRB_GROUPS];

@@ -10,7 +10,11 @@ mode. Requires pyserial (ships with esptool's venv: pip install esptool).
 import os, sys, time, base64, serial
 
 port = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyACM1"
-srcfile = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "main.py")
+srcfile = (
+    sys.argv[2]
+    if len(sys.argv) > 2
+    else os.path.join(os.path.dirname(__file__), "main.py")
+)
 
 
 def rd(s, t=0.4):

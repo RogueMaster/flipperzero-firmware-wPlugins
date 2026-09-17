@@ -7,16 +7,16 @@
 #include <power/power_service/power.h>
 #include <string.h>
 
-#define SR_IO_TAG "SrIo"
-#define SR_IO_RX_CAP 2048u
+#define SR_IO_TAG        "SrIo"
+#define SR_IO_RX_CAP     2048u
 #define SR_IO_RX_TRIGGER 1u
 
 /* These three numbers come from the neighboring project's on-device values (otg_gate.h:6-7 /
  * scout_drive.c:33); they are not measured optima for this project. B1 must record which sample
  * index actually turned physical=true. */
-#define SR_IO_OTG_SAMPLES 6u
-#define SR_IO_OTG_SAMPLE_MS 20u
-#define SR_IO_OTG_SETTLE_MS 200u
+#define SR_IO_OTG_SAMPLES    6u
+#define SR_IO_OTG_SAMPLE_MS  20u
+#define SR_IO_OTG_SETTLE_MS  200u
 /* Must stay equal to the upstream threshold in
  * applications/services/power/power_service/power.c ("voltage_vbus < 4.5f", read 2026-09-02).
  * Above it the charger refuses to boost and pin 1 is fed from USB VBUS instead (V-072). */

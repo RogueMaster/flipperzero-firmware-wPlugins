@@ -8,7 +8,9 @@
  * Per ADR-017 decision 1. The DoD item "start/stop mapping is correct" is equivalent to this
  * function reaching the right conclusion for every input. */
 
-enum { SR_SCAN_CTL_TIMEOUT_MS = 2000 };
+enum {
+    SR_SCAN_CTL_TIMEOUT_MS = 2000
+};
 
 typedef enum {
     SrScanUiIdle = 0, /* Not scanning, no pending command */

@@ -29,7 +29,8 @@ static void timeclock_scene_pin_set_popup_callback(void* context) {
 }
 
 // Show a brief confirmation, then return to Settings.
-static void timeclock_scene_pin_set_show_done(TimeClock* app, const char* header, const char* text) {
+static void
+    timeclock_scene_pin_set_show_done(TimeClock* app, const char* header, const char* text) {
     Popup* popup = app->popup;
     popup_reset(popup);
     popup_set_header(popup, header, 64, 8, AlignCenter, AlignTop);
@@ -126,8 +127,8 @@ bool timeclock_scene_pin_set_on_event(void* context, SceneManagerEvent event) {
 
         case TcPinModeVerifyOld:
             if(timeclock_scene_pin_verify(app, code)) {
-                uint32_t intent = scene_manager_get_scene_state(
-                    app->scene_manager, TimeClockScenePinSet);
+                uint32_t intent =
+                    scene_manager_get_scene_state(app->scene_manager, TimeClockScenePinSet);
                 if(intent == 1) {
                     // Disable the PIN.
                     app->config.pin_enabled = false;
@@ -136,7 +137,8 @@ bool timeclock_scene_pin_set_on_event(void* context, SceneManagerEvent event) {
                     app->config.attempts = 0;
                     tc_config_save(&app->config);
                     timeclock_notify_success(app);
-                    timeclock_scene_pin_set_show_done(app, tc_str(StrDone), tc_str(StrPinDisabled));
+                    timeclock_scene_pin_set_show_done(
+                        app, tc_str(StrDone), tc_str(StrPinDisabled));
                 } else {
                     // Change: proceed to set a new PIN.
                     app->pin_mode = TcPinModeSetNew;

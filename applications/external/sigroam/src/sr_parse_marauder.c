@@ -406,7 +406,8 @@ static bool probe_n(const char* line, size_t len, SrFirmwareInfo* out) {
 static bool marauder_probe(const char* line, SrFirmwareInfo* out) {
     size_t n = 0;
     if(line == NULL || out == NULL) return false;
-    while(line[n] != '\0') n++;
+    while(line[n] != '\0')
+        n++;
     return probe_n(line, n, out);
 }
 
@@ -427,8 +428,8 @@ static void gps_normalize(const char* line, size_t len, const char** out_p, size
     *out_n = n;
 }
 
-static void gps_value_after_prefix(
-    const char* p, size_t n, size_t pref_n, const char** vp, size_t* vn) {
+static void
+    gps_value_after_prefix(const char* p, size_t n, size_t pref_n, const char** vp, size_t* vn) {
     p += pref_n;
     n -= pref_n;
     while(n > 0U && *p == ' ') {
@@ -447,8 +448,8 @@ static bool gps_has_prefix(const char* p, size_t n, const char* pref, size_t pre
  * A normalized field row. Returns true once matched and filled (*r is NeedMore, or Ok when it lands).
  * Returns false on a prefix mismatch or an illegal Fix value; the caller voids the whole block per D3 item 4.
  */
-static bool gps_fill_field(
-    SrParser* parser, const char* p, size_t n, SrEvent* out, SrParseResult* r) {
+static bool
+    gps_fill_field(SrParser* parser, const char* p, size_t n, SrEvent* out, SrParseResult* r) {
     const char* vp;
     size_t vn;
 
@@ -504,8 +505,7 @@ static bool gps_fill_field(
     }
     if(gps_has_prefix(p, n, kGpsDT, sizeof(kGpsDT) - 1U)) {
         gps_value_after_prefix(p, n, sizeof(kGpsDT) - 1U, &vp, &vn);
-        copy_cap(
-            parser->gps_partial.datetime, sizeof(parser->gps_partial.datetime), vp, vn);
+        copy_cap(parser->gps_partial.datetime, sizeof(parser->gps_partial.datetime), vp, vn);
         out->kind = SrEventGps;
         out->u.gps = parser->gps_partial;
         parser->in_gps_block = false;
@@ -551,8 +551,7 @@ static SrCmdAckClass cmdack_class(const char* line, size_t len) {
     return SrCmdAckNone;
 }
 
-static SrParseResult
-    marauder_feed(SrParser* parser, const char* line, size_t len, SrEvent* out) {
+static SrParseResult marauder_feed(SrParser* parser, const char* line, size_t len, SrEvent* out) {
     const char* gp;
     size_t gn;
 

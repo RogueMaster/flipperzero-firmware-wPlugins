@@ -9,13 +9,13 @@
  * Requires an adequate thread stack (see secondary_thread stack size). */
 static const uint32_t BAND_FREQ[HUNT_BANDS] = {315000000u, 433920000u, 868350000u, 915000000u};
 
-void hunt_sense(uint8_t *activity_out, uint8_t *band_out) {
+void hunt_sense(uint8_t* activity_out, uint8_t* band_out) {
     uint8_t best_band = 1;
     float best = -127.0f, sum = 0.0f;
     int counted = 0;
 
     subghz_devices_init();
-    const SubGhzDevice *dev = subghz_devices_get_by_name("cc1101_int");
+    const SubGhzDevice* dev = subghz_devices_get_by_name("cc1101_int");
     if(dev) {
         subghz_devices_begin(dev); // returns false but the device is usable
         subghz_devices_reset(dev);
@@ -32,7 +32,10 @@ void hunt_sense(uint8_t *activity_out, uint8_t *band_out) {
                 if(r > peak) peak = r;
             }
             subghz_devices_idle(dev);
-            if(peak > best) { best = peak; best_band = b; }
+            if(peak > best) {
+                best = peak;
+                best_band = b;
+            }
             sum += peak;
             counted++;
         }

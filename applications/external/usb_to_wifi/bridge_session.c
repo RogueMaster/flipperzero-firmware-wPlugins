@@ -16,7 +16,7 @@
 #define FIB_CAPABILITY_REQUEST_HEADERS  (1UL << 2)
 #define FIB_CAPABILITY_RESPONSE_HEADERS (1UL << 3)
 #define FIB_CAPABILITY_CANCELLATION     (1UL << 4)
-#define FIB_CLIENT_CAPABILITIES \
+#define FIB_CLIENT_CAPABILITIES                                  \
     (FIB_CAPABILITY_HTTPS_GET | FIB_CAPABILITY_REQUEST_HEADERS | \
      FIB_CAPABILITY_RESPONSE_HEADERS | FIB_CAPABILITY_CANCELLATION)
 #define FIB_UNKNOWN_BODY_LENGTH UINT32_MAX
@@ -1088,7 +1088,8 @@ static void bridge_session_on_frame(const FibFrame* frame, void* context) {
             frame->type,
             frame->request_id,
             "unsupported frame version");
-        bridge_session_set_state(session, BridgeSessionStateError, "Incompatible protocol version");
+        bridge_session_set_state(
+            session, BridgeSessionStateError, "Incompatible protocol version");
         return;
     }
 
@@ -1302,9 +1303,7 @@ static void bridge_session_on_transport_event(UsbTransportEvent event, void* con
     case UsbTransportEventPortClosed: {
         const bool connected = usb_transport_is_usb_connected(session->transport);
         bridge_session_transport_lost(
-            session,
-            connected,
-            connected ? "Desktop host not found" : "USB disconnected");
+            session, connected, connected ? "Desktop host not found" : "USB disconnected");
     } break;
     case UsbTransportEventRxOverflow:
         bridge_session_reset_parser(session);
@@ -1487,8 +1486,7 @@ static bool bridge_session_request_get_internal(
     furi_mutex_acquire(session->state_mutex, FuriWaitForever);
     const bool payload_fits = 12U + url_length <= session->negotiated_payload;
     const bool headers_supported =
-        !radio_mode ||
-        (session->negotiated_capabilities & FIB_CAPABILITY_REQUEST_HEADERS) != 0U;
+        !radio_mode || (session->negotiated_capabilities & FIB_CAPABILITY_REQUEST_HEADERS) != 0U;
     const bool request_id_available = session->next_request_id != 0U;
     const bool ready = bridge_session_permission_is_allowed(session->permission) &&
                        session->helper_present && session->selected_major != 0U && payload_fits &&
@@ -1528,10 +1526,10 @@ static bool bridge_session_request_get_internal(
         } else if(!payload_fits) {
             bridge_session_set_detail_locked(session, "URL exceeds the packet size limit");
         } else if(!headers_supported) {
-            bridge_session_set_detail_locked(session, "Desktop host is too old for radio streaming");
-        } else if(!request_id_available) {
             bridge_session_set_detail_locked(
-                session, "Request IDs exhausted; restart the app");
+                session, "Desktop host is too old for radio streaming");
+        } else if(!request_id_available) {
+            bridge_session_set_detail_locked(session, "Request IDs exhausted; restart the app");
         } else {
             bridge_session_set_detail_locked(session, "Another request is active");
         }
@@ -1622,7 +1620,9 @@ bool bridge_session_cancel(BridgeSession* session) {
 }
 
 void bridge_session_set_body_callback(
-    BridgeSession* session, BridgeSessionBodyCallback callback, void* context) {
+    BridgeSession* session,
+    BridgeSessionBodyCallback callback,
+    void* context) {
     if(!session) return;
     furi_mutex_acquire(session->state_mutex, FuriWaitForever);
     session->body_callback = callback;

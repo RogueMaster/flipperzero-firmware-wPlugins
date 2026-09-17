@@ -105,8 +105,7 @@ static void sigroam_scene_probe_draw(SigRoamApp* app, SrHandshakeState st) {
     widget_reset(app->widget);
     /* Do not take the return of widget_add_text_box_element: Official is
      * void, Momentum is WidgetElement*. text_scroll is void on both. */
-    widget_add_text_scroll_element(
-        app->widget, 0, 0, SR_CANVAS_W, SR_CANVAS_H, app->probe_text);
+    widget_add_text_scroll_element(app->widget, 0, 0, SR_CANVAS_W, SR_CANVAS_H, app->probe_text);
     app->hs_shown = st;
     app->hs_rev_shown = app->model.firmware_rev;
 }

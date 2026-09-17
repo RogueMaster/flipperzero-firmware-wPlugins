@@ -12,7 +12,7 @@ void run_needs_tests(void) {
     game_state_init(&s, 0);
     uint32_t span = HU_DECAY_FREQ * 50 + 7; // 50 events + remainder
     advance_hunger(&s, span);
-    CHECK(s.persistent.hunger < MAX_HU);                 // decayed
+    CHECK(s.persistent.hunger < MAX_HU); // decayed
     CHECK(s.persistent.last_hunger_update == HU_DECAY_FREQ * 50); // remainder kept
 
     // Hunger hitting 0 docks care and flags starving
@@ -42,7 +42,7 @@ void run_needs_tests(void) {
     // Health drains only when in a bad state (starving here) and can kill
     rng_seed(7);
     game_state_init(&s, 0);
-    s.persistent.hunger = 0;       // starving -> health drains
+    s.persistent.hunger = 0; // starving -> health drains
     s.persistent.health = 3;
     f = advance_health(&s, HP_CHECK_FREQ * 300);
     CHECK(s.persistent.health == 0);

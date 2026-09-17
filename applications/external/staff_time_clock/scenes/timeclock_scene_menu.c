@@ -39,7 +39,11 @@ void timeclock_scene_menu_on_enter(void* context) {
     submenu_add_item(
         submenu, tc_str(StrExport), MenuIndexExport, timeclock_scene_menu_submenu_callback, app);
     submenu_add_item(
-        submenu, tc_str(StrSettings), MenuIndexSettings, timeclock_scene_menu_submenu_callback, app);
+        submenu,
+        tc_str(StrSettings),
+        MenuIndexSettings,
+        timeclock_scene_menu_submenu_callback,
+        app);
     submenu_add_item(
         submenu, tc_str(StrAbout), MenuIndexAbout, timeclock_scene_menu_submenu_callback, app);
 

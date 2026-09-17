@@ -75,7 +75,7 @@ git -c 'url.https://github.com/.insteadOf=git@github.com:' \
 Run the engine unit suites and compile checks for all supported build profiles:
 
 ```sh
-make -C lib/core/tests test TINY_AES_DIR=../../tiny-AES-c TINY_DES_DIR=../../tiny-DES-c
+make -C lib/core/tests test TINY_AES_DIR=../../tiny_AES_c TINY_DES_DIR=../../tiny_DES_c
 ```
 
 The explicit paths also work on case-sensitive systems. Build the Flipper

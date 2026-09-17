@@ -13,31 +13,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG            "UsbInternetBridge"
-#define FIB_UI_TICK_MS 100U
+#define TAG                        "UsbInternetBridge"
+#define FIB_UI_TICK_MS             100U
 #define FIB_MARKET_AUTO_REFRESH_MS 2000U
-#define FIB_SAMPLE_URL "https://api.github.com/zen"
-#define FIB_TIME_URL   "https://postman-echo.com/time/now"
-#define FIB_NATIONAL_TODAY_URL "https://nationaltoday.com/today/"
-#define FIB_ISS_URL "https://api.wheretheiss.at/v1/satellites/25544"
-#define FIB_RADIO_RESULT_LIMIT 5U
-#define FIB_RADIO_COUNTRY_SIZE 48U
-#define FIB_RADIO_URL_BASE \
+#define FIB_SAMPLE_URL             "https://api.github.com/zen"
+#define FIB_TIME_URL               "https://postman-echo.com/time/now"
+#define FIB_NATIONAL_TODAY_URL     "https://nationaltoday.com/today/"
+#define FIB_ISS_URL                "https://api.wheretheiss.at/v1/satellites/25544"
+#define FIB_RADIO_RESULT_LIMIT     5U
+#define FIB_RADIO_COUNTRY_SIZE     48U
+#define FIB_RADIO_URL_BASE                                                            \
     "https://all.api.radio-browser.info/json/stations/search?limit=5&hidebroken=true" \
     "&is_https=true&codec=MP3&bitrateMax=64&order=clickcount&reverse=true&"
-#define FIB_SEARCH_URL_PREFIX                                                       \
-    "https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrlimit=1" \
+#define FIB_SEARCH_URL_PREFIX                                                          \
+    "https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrlimit=1"      \
     "&prop=extracts&exchars=420&explaintext=1&redirects=1&format=json&formatversion=2" \
     "&gsrsearch="
-#define FIB_SEARCH_QUERY_SIZE 64U
-#define FIB_WEATHER_QUERY_SIZE 64U
+#define FIB_SEARCH_QUERY_SIZE    64U
+#define FIB_WEATHER_QUERY_SIZE   64U
 #define FIB_WEATHER_RESULT_LIMIT 3U
 #define FIB_GEOCODING_URL_PREFIX \
     "https://geocoding-api.open-meteo.com/v1/search?count=3&language=en&format=json&name="
-#define FIB_WEATHER_URL_FORMAT \
-    "https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s" \
+#define FIB_WEATHER_URL_FORMAT                                                        \
+    "https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s"                 \
     "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code," \
-    "wind_speed_10m&daily=temperature_2m_max,temperature_2m_min," \
+    "wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,"                     \
     "precipitation_probability_max&timezone=auto&forecast_days=1"
 
 typedef enum {
@@ -173,9 +173,9 @@ static bool fib_app_radio_body(void* context, const uint8_t* data, size_t length
 }
 
 static void fib_app_stop_radio(FibApp* app) {
-    if(!app ||
-       (app->request_mode != FibRequestModeRadioPlaying &&
-        !radio_player_is_running(app->radio_player))) return;
+    if(!app || (app->request_mode != FibRequestModeRadioPlaying &&
+                !radio_player_is_running(app->radio_player)))
+        return;
     /* Change mode first so tick/custom callbacks cannot restart the stream
      * while cancellation and decoder shutdown are in progress. */
     if(app->request_mode == FibRequestModeRadioPlaying) {
@@ -202,19 +202,15 @@ static bool fib_app_start_selected_radio(FibApp* app) {
     return true;
 }
 
-static bool fib_app_percent_encode(
-    const char* input,
-    char* output,
-    size_t output_size) {
+static bool fib_app_percent_encode(const char* input, char* output, size_t output_size) {
     if(!input || !output || output_size < 2U) return false;
     size_t used = 0U;
     static const char hex[] = "0123456789ABCDEF";
     for(size_t index = 0U; input[index] != '\0'; ++index) {
         const uint8_t value = (uint8_t)input[index];
-        const bool unreserved = (value >= 'a' && value <= 'z') ||
-                                (value >= 'A' && value <= 'Z') ||
-                                (value >= '0' && value <= '9') || value == '-' ||
-                                value == '_' || value == '.' || value == '~';
+        const bool unreserved = (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') ||
+                                (value >= '0' && value <= '9') || value == '-' || value == '_' ||
+                                value == '.' || value == '~';
         if(unreserved) {
             if(used + 1U >= output_size) return false;
             output[used++] = (char)value;
@@ -229,11 +225,8 @@ static bool fib_app_percent_encode(
     return used != 0U;
 }
 
-static bool fib_app_append_ascii(
-    char* output,
-    size_t output_size,
-    size_t* used,
-    const char* text) {
+static bool
+    fib_app_append_ascii(char* output, size_t output_size, size_t* used, const char* text) {
     while(*text) {
         if(*used + 1U >= output_size) return false;
         output[(*used)++] = *text++;
@@ -241,11 +234,8 @@ static bool fib_app_append_ascii(
     return true;
 }
 
-static void fib_app_append_codepoint(
-    uint32_t codepoint,
-    char* output,
-    size_t output_size,
-    size_t* used) {
+static void
+    fib_app_append_codepoint(uint32_t codepoint, char* output, size_t output_size, size_t* used) {
     const char* replacement = NULL;
     char single[2] = {(char)codepoint, '\0'};
 
@@ -376,10 +366,7 @@ static bool fib_app_parse_hex4(const char* text, uint32_t* value) {
     return true;
 }
 
-static bool fib_app_extract_search_result(
-    const char* json,
-    char* output,
-    size_t output_size) {
+static bool fib_app_extract_search_result(const char* json, char* output, size_t output_size) {
     if(!json || !output || output_size < 2U) return false;
     const char* cursor = strstr(json, "\"extract\":\"");
     if(!cursor) return false;
@@ -401,13 +388,12 @@ static bool fib_app_extract_search_result(
                         uint32_t low = 0U;
                         if(fib_app_parse_hex4(cursor + 3U, &low) && low >= 0xDC00U &&
                            low <= 0xDFFFU) {
-                            codepoint = 0x10000U + ((codepoint - 0xD800U) << 10U) +
-                                        (low - 0xDC00U);
+                            codepoint =
+                                0x10000U + ((codepoint - 0xD800U) << 10U) + (low - 0xDC00U);
                             cursor += 6U;
                         }
                     }
-                    fib_app_append_codepoint(
-                        codepoint, output, output_size, &used);
+                    fib_app_append_codepoint(codepoint, output, output_size, &used);
                 }
             } else {
                 output[used++] = *cursor;
@@ -435,7 +421,8 @@ static bool fib_app_extract_search_result(
                 }
                 codepoint = (codepoint << 6U) | (next & 0x3FU);
             }
-            fib_app_append_codepoint(valid ? codepoint : (uint32_t)' ', output, output_size, &used);
+            fib_app_append_codepoint(
+                valid ? codepoint : (uint32_t)' ', output, output_size, &used);
             if(valid) cursor += continuation_count;
         }
         ++cursor;
@@ -444,10 +431,7 @@ static bool fib_app_extract_search_result(
     return used != 0U;
 }
 
-static bool fib_app_build_search_url(
-    const char* query,
-    char* output,
-    size_t output_size) {
+static bool fib_app_build_search_url(const char* query, char* output, size_t output_size) {
     if(!query || !output) return false;
     const size_t prefix_length = strlen(FIB_SEARCH_URL_PREFIX);
     if(prefix_length + 1U >= output_size) return false;
@@ -455,7 +439,8 @@ static bool fib_app_build_search_url(
     return fib_app_percent_encode(query, output + prefix_length, output_size - prefix_length);
 }
 
-static void fib_app_ascii_copy(char* output, size_t output_size, const char* input, size_t length) {
+static void
+    fib_app_ascii_copy(char* output, size_t output_size, const char* input, size_t length) {
     if(output_size == 0U) return;
     size_t used = 0U;
     for(size_t index = 0U; index < length && used + 1U < output_size; ++index) {
@@ -465,16 +450,21 @@ static void fib_app_ascii_copy(char* output, size_t output_size, const char* inp
         } else if(value == 0xC4U && index + 1U < length) {
             const uint8_t next = (uint8_t)input[++index];
             output[used++] = (next == 0x9FU || next == 0x9EU) ? 'g' :
-                             (next == 0xB1U || next == 0xB0U) ? 'i' : '?';
+                             (next == 0xB1U || next == 0xB0U) ? 'i' :
+                                                                '?';
         } else if(value == 0xC5U && index + 1U < length) {
             const uint8_t next = (uint8_t)input[++index];
             output[used++] = (next == 0x9FU || next == 0x9EU) ? 's' : '?';
         } else if(value == 0xC3U && index + 1U < length) {
             const uint8_t next = (uint8_t)input[++index];
-            if(next == 0xA7U || next == 0x87U) output[used++] = 'c';
-            else if(next == 0xB6U || next == 0x96U) output[used++] = 'o';
-            else if(next == 0xBCU || next == 0x9CU) output[used++] = 'u';
-            else output[used++] = '?';
+            if(next == 0xA7U || next == 0x87U)
+                output[used++] = 'c';
+            else if(next == 0xB6U || next == 0x96U)
+                output[used++] = 'o';
+            else if(next == 0xBCU || next == 0x9CU)
+                output[used++] = 'u';
+            else
+                output[used++] = '?';
         } else {
             output[used++] = '?';
         }
@@ -482,11 +472,8 @@ static void fib_app_ascii_copy(char* output, size_t output_size, const char* inp
     output[used] = '\0';
 }
 
-static bool fib_app_json_string(
-    const char* object,
-    const char* key,
-    char* output,
-    size_t output_size) {
+static bool
+    fib_app_json_string(const char* object, const char* key, char* output, size_t output_size) {
     const char* value = strstr(object, key);
     if(!value) return false;
     value += strlen(key);
@@ -496,11 +483,8 @@ static bool fib_app_json_string(
     return output[0] != '\0';
 }
 
-static bool fib_app_json_number(
-    const char* object,
-    const char* key,
-    char* output,
-    size_t output_size) {
+static bool
+    fib_app_json_number(const char* object, const char* key, char* output, size_t output_size) {
     const char* value = strstr(object, key);
     if(!value || output_size < 2U) return false;
     value += strlen(key);
@@ -524,13 +508,21 @@ static uint8_t fib_app_parse_locations(FibApp* app, const char* json) {
         char name[32] = "";
         char country[8] = "";
         if(!fib_app_json_string(cursor, "\"name\":\"", name, sizeof(name)) ||
-           !fib_app_json_number(cursor, "\"latitude\":", location->latitude, sizeof(location->latitude)) ||
-           !fib_app_json_number(cursor, "\"longitude\":", location->longitude, sizeof(location->longitude))) {
+           !fib_app_json_number(
+               cursor, "\"latitude\":", location->latitude, sizeof(location->latitude)) ||
+           !fib_app_json_number(
+               cursor, "\"longitude\":", location->longitude, sizeof(location->longitude))) {
             cursor = end + 1U;
             continue;
         }
         fib_app_json_string(cursor, "\"country_code\":\"", country, sizeof(country));
-        snprintf(location->label, sizeof(location->label), "%s%s%s", name, country[0] ? ", " : "", country);
+        snprintf(
+            location->label,
+            sizeof(location->label),
+            "%s%s%s",
+            name,
+            country[0] ? ", " : "",
+            country);
         ++count;
         cursor = end + 1U;
     }
@@ -555,9 +547,16 @@ static uint8_t fib_app_parse_radio_stations(FibApp* app, const char* text) {
             fib_app_ascii_copy(country, sizeof(country), tab1 + 1U, (size_t)(tab2 - tab1 - 1U));
             fib_app_ascii_copy(state, sizeof(state), tab2 + 1U, (size_t)(tab3 - tab2 - 1U));
             fib_app_ascii_copy(bitrate, sizeof(bitrate), tab3 + 1U, (size_t)(tab4 - tab3 - 1U));
-            fib_app_ascii_copy(station->url, sizeof(station->url), tab4 + 1U, (size_t)(end - tab4 - 1U));
+            fib_app_ascii_copy(
+                station->url, sizeof(station->url), tab4 + 1U, (size_t)(end - tab4 - 1U));
             station->bitrate = (uint16_t)atoi(bitrate);
-            snprintf(station->label, sizeof(station->label), "%s%s%s", name, country[0] ? " - " : "", country);
+            snprintf(
+                station->label,
+                sizeof(station->label),
+                "%s%s%s",
+                name,
+                country[0] ? " - " : "",
+                country);
             if(station->url[0] != '\0') ++count;
         }
         line = *end ? end + 1U : end;
@@ -583,8 +582,13 @@ static uint8_t fib_app_radio_country_fallback(FibApp* app) {
          "https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_SC?/"},
     };
     for(uint8_t index = 0U; index < COUNT_OF(fallback); ++index) {
-        snprintf(app->stations[index].label, sizeof(app->stations[index].label), "%s", fallback[index].name);
-        snprintf(app->stations[index].url, sizeof(app->stations[index].url), "%s", fallback[index].url);
+        snprintf(
+            app->stations[index].label,
+            sizeof(app->stations[index].label),
+            "%s",
+            fallback[index].name);
+        snprintf(
+            app->stations[index].url, sizeof(app->stations[index].url), "%s", fallback[index].url);
         app->stations[index].bitrate = 64U;
     }
     return COUNT_OF(fallback);
@@ -640,10 +644,20 @@ static bool fib_app_format_weather(const char* json, char* output, size_t output
        !fib_app_weather_value(current, "\"wind_speed_10m\":", wind, sizeof(wind)) ||
        !fib_app_weather_value(daily, "\"temperature_2m_max\":[", high, sizeof(high)) ||
        !fib_app_weather_value(daily, "\"temperature_2m_min\":[", low, sizeof(low)) ||
-       !fib_app_weather_value(daily, "\"precipitation_probability_max\":[", rain, sizeof(rain))) return false;
-    snprintf(output, output_size,
+       !fib_app_weather_value(daily, "\"precipitation_probability_max\":[", rain, sizeof(rain)))
+        return false;
+    snprintf(
+        output,
+        output_size,
         "%s\nTemp: %s C\nFeels: %s C\nHumidity: %s%%\nWind: %s km/h\nHigh/Low: %s/%s C\nRain chance: %s%%",
-        fib_app_weather_description(atoi(code)), temperature, apparent, humidity, wind, high, low, rain);
+        fib_app_weather_description(atoi(code)),
+        temperature,
+        apparent,
+        humidity,
+        wind,
+        high,
+        low,
+        rain);
     return true;
 }
 
@@ -664,8 +678,7 @@ static bool fib_app_format_iss(const char* json, char* output, size_t output_siz
        !fib_app_json_number(json, "\"longitude\":", longitude, sizeof(longitude)) ||
        !fib_app_json_number(json, "\"altitude\":", altitude, sizeof(altitude)) ||
        !fib_app_json_number(json, "\"velocity\":", velocity, sizeof(velocity)) ||
-       !fib_app_json_string(
-           json, "\"visibility\":\"", visibility, sizeof(visibility))) {
+       !fib_app_json_string(json, "\"visibility\":\"", visibility, sizeof(visibility))) {
         return false;
     }
 
@@ -767,10 +780,8 @@ static void fib_app_cancel_button(GuiButtonType button, InputType input_type, vo
     bridge_session_cancel(app->session);
 }
 
-static void fib_app_radio_stations_button(
-    GuiButtonType button,
-    InputType input_type,
-    void* context) {
+static void
+    fib_app_radio_stations_button(GuiButtonType button, InputType input_type, void* context) {
     FibApp* app = context;
     if(!app || button != GuiButtonTypeLeft || input_type != InputTypeShort) return;
     fib_app_stop_radio(app);
@@ -787,34 +798,34 @@ static void fib_app_render_status(FibApp* app) {
     if(app->request_mode == FibRequestModeMarkets &&
        app->snapshot.state == BridgeSessionStateComplete) {
         bool parsed = false;
-        const bool new_response =
-            app->snapshot.active_request_id != app->market_last_response_id;
+        const bool new_response = app->snapshot.active_request_id != app->market_last_response_id;
         if(new_response) {
             app->market_last_response_id = app->snapshot.active_request_id;
             parsed = app->snapshot.http_status == 200U &&
-                (app->market_index == MARKETS_SEARCH_INDEX ?
-                     markets_format_coin(
-                         app->market_symbol,
-                         app->snapshot.preview,
-                         app->search_result,
-                         sizeof(app->search_result)) :
-                     markets_format(
-                         app->market_index,
-                         app->snapshot.preview,
-                         app->search_result,
-                         sizeof(app->search_result)));
+                     (app->market_index == MARKETS_SEARCH_INDEX ? markets_format_coin(
+                                                                      app->market_symbol,
+                                                                      app->snapshot.preview,
+                                                                      app->search_result,
+                                                                      sizeof(app->search_result)) :
+                                                                  markets_format(
+                                                                      app->market_index,
+                                                                      app->snapshot.preview,
+                                                                      app->search_result,
+                                                                      sizeof(app->search_result)));
         }
         if(parsed) {
             const char* price_end = strchr(app->search_result, ' ');
             const char* updated = strstr(app->search_result, "Updated: ");
-            if(price_end && updated && (size_t)(price_end - app->search_result) < sizeof(app->market_price)) {
+            if(price_end && updated &&
+               (size_t)(price_end - app->search_result) < sizeof(app->market_price)) {
                 size_t length = (size_t)(price_end - app->search_result);
                 memcpy(app->market_price, app->search_result, length);
                 app->market_price[length] = '\0';
                 updated += strlen("Updated: ");
                 const char* clock = strchr(updated, 'T');
                 if(clock) updated = clock + 1;
-                snprintf(app->market_updated, sizeof(app->market_updated), "Updated: %.8s UTC", updated);
+                snprintf(
+                    app->market_updated, sizeof(app->market_updated), "Updated: %.8s UTC", updated);
                 app->market_has_price = true;
                 app->market_last_refresh_tick = furi_get_tick();
                 market_card_ready = true;
@@ -825,26 +836,24 @@ static void fib_app_render_status(FibApp* app) {
                                     app->market_symbol :
                                     markets_name(app->market_index);
             furi_string_cat_printf(app->status_text, "\e#%s\n", title);
-            if(app->snapshot.http_status != 200U &&
-               app->market_index == MARKETS_SEARCH_INDEX) {
+            if(app->snapshot.http_status != 200U && app->market_index == MARKETS_SEARCH_INDEX) {
                 furi_string_cat_str(
-                    app->status_text,
-                    "Coin was not found.\nEnter a Binance USDT symbol.");
+                    app->status_text, "Coin was not found.\nEnter a Binance USDT symbol.");
             } else if(app->snapshot.http_status != 200U) {
                 furi_string_cat_printf(
                     app->status_text,
                     "Price service: HTTP %u\nTry again later.",
                     app->snapshot.http_status);
             } else {
-                furi_string_cat_str(
-                    app->status_text,
-                    "Price data unavailable.\nPlease refresh.");
+                furi_string_cat_str(app->status_text, "Price data unavailable.\nPlease refresh.");
             }
         }
         if(app->market_has_price) market_card_ready = true;
     } else if(app->request_mode == FibRequestModeMarkets && app->market_has_price) {
         market_card_ready = true;
-    } else if(app->request_mode == FibRequestModeWikipedia && app->snapshot.state == BridgeSessionStateComplete) {
+    } else if(
+        app->request_mode == FibRequestModeWikipedia &&
+        app->snapshot.state == BridgeSessionStateComplete) {
         furi_string_cat_printf(app->status_text, "\e#%s\n", app->input_buffer);
         if(app->snapshot.http_status == 200U &&
            fib_app_extract_search_result(
@@ -856,8 +865,9 @@ static void fib_app_render_status(FibApp* app) {
             furi_string_cat_printf(
                 app->status_text, "Search returned HTTP %u.", app->snapshot.http_status);
         }
-    } else if(app->request_mode == FibRequestModeWeatherForecast &&
-              app->snapshot.state == BridgeSessionStateComplete) {
+    } else if(
+        app->request_mode == FibRequestModeWeatherForecast &&
+        app->snapshot.state == BridgeSessionStateComplete) {
         furi_string_cat_printf(app->status_text, "\e#Weather\n");
         if(app->snapshot.http_status == 200U &&
            fib_app_format_weather(
@@ -869,8 +879,9 @@ static void fib_app_render_status(FibApp* app) {
             furi_string_cat_printf(
                 app->status_text, "Weather returned HTTP %u.", app->snapshot.http_status);
         }
-    } else if(app->request_mode == FibRequestModeIssLocation &&
-              app->snapshot.state == BridgeSessionStateComplete) {
+    } else if(
+        app->request_mode == FibRequestModeIssLocation &&
+        app->snapshot.state == BridgeSessionStateComplete) {
         furi_string_cat_printf(app->status_text, "\e#ISS Right Now\n");
         if(app->snapshot.http_status == 200U &&
            fib_app_format_iss(
@@ -882,8 +893,9 @@ static void fib_app_render_status(FibApp* app) {
             furi_string_cat_printf(
                 app->status_text, "ISS service returned HTTP %u.", app->snapshot.http_status);
         }
-    } else if(app->request_mode == FibRequestModeNationalToday &&
-              app->snapshot.state == BridgeSessionStateComplete) {
+    } else if(
+        app->request_mode == FibRequestModeNationalToday &&
+        app->snapshot.state == BridgeSessionStateComplete) {
         furi_string_cat_printf(app->status_text, "\e#National Today\n");
         if(app->snapshot.http_status == 200U && app->snapshot.preview[0] != '\0') {
             fib_app_append_national_today(app->status_text, app->snapshot.preview);
@@ -893,28 +905,31 @@ static void fib_app_render_status(FibApp* app) {
             furi_string_cat_printf(
                 app->status_text, "National Today returned HTTP %u.", app->snapshot.http_status);
         }
-    } else if(app->request_mode == FibRequestModeWeatherSearch &&
-              app->snapshot.state == BridgeSessionStateComplete &&
-              app->weather_results_shown && app->location_count == 0U) {
+    } else if(
+        app->request_mode == FibRequestModeWeatherSearch &&
+        app->snapshot.state == BridgeSessionStateComplete && app->weather_results_shown &&
+        app->location_count == 0U) {
         furi_string_cat_printf(
             app->status_text,
             "\e#Weather\nNo matching location found.\nTry a longer location name or add a country code.");
-    } else if(app->request_mode == FibRequestModeRadioSearch &&
-              app->snapshot.state == BridgeSessionStateComplete &&
-              app->radio_results_shown && app->station_count == 0U) {
+    } else if(
+        app->request_mode == FibRequestModeRadioSearch &&
+        app->snapshot.state == BridgeSessionStateComplete && app->radio_results_shown &&
+        app->station_count == 0U) {
         furi_string_cat_str(
             app->status_text,
             "\e#Internet Radio\nNo MP3 stations found.\nTry a country code such as UK, US, DE or JP.");
-    } else if(app->request_mode == FibRequestModeRadioPlaying ||
-              app->request_mode == FibRequestModeRadioStopped) {
+    } else if(
+        app->request_mode == FibRequestModeRadioPlaying ||
+        app->request_mode == FibRequestModeRadioStopped) {
         furi_string_cat_str(app->status_text, "\e#Internet Radio\n");
         furi_string_cat_printf(
             app->status_text,
             "%s\n\n%s\nFrames: %lu  Buf: %uK\nGaps: %lu",
             app->search_result,
             app->request_mode == FibRequestModeRadioStopped ? "Stopped" :
-            radio_player_decoded_frames(app->radio_player) ? "Playing on Flipper speaker" :
-                                                             "Buffering MP3 audio...",
+            radio_player_decoded_frames(app->radio_player)  ? "Playing on Flipper speaker" :
+                                                              "Buffering MP3 audio...",
             (unsigned long)radio_player_decoded_frames(app->radio_player),
             (unsigned)(radio_player_buffered_bytes(app->radio_player) / 1024U),
             (unsigned long)radio_player_underflows(app->radio_player));
@@ -940,7 +955,8 @@ static void fib_app_render_status(FibApp* app) {
         } else {
             furi_string_cat_printf(app->status_text, "Protocol: Waiting\n");
         }
-        furi_string_cat_printf(app->status_text, "Status: %s", fib_state_text(app->snapshot.state));
+        furi_string_cat_printf(
+            app->status_text, "Status: %s", fib_state_text(app->snapshot.state));
     } else {
         furi_string_cat_printf(app->status_text, "\e#%s\n", fib_state_text(app->snapshot.state));
         if(app->snapshot.detail[0] != '\0') {
@@ -959,68 +975,72 @@ static void fib_app_render_status(FibApp* app) {
         } else if(
             app->snapshot.state == BridgeSessionStateWaitingForHelper ||
             app->snapshot.state == BridgeSessionStateDisconnected) {
-            furi_string_cat_printf(
-                app->status_text, "Check the USB cable and desktop host.");
+            furi_string_cat_printf(app->status_text, "Check the USB cable and desktop host.");
         }
     }
 
     widget_reset(app->status_widget);
     if(market_card_ready) {
-        static const char* titles[] = {
-            "BTC / USDT", "ETH / USDT", "Gold", "Brent BZ", "Silver"};
+        static const char* titles[] = {"BTC / USDT", "ETH / USDT", "Gold", "Brent BZ", "Silver"};
         static const char* units[] = {
             "USDT", "USDT", "USD / troy oz", "USDT / barrel", "USD / troy oz"};
-        static const char* sources[] = {
-            "Binance", "Binance", "Gold API", "Binance", "Gold API"};
+        static const char* sources[] = {"Binance", "Binance", "Gold API", "Binance", "Gold API"};
         const bool searched_coin = app->market_index == MARKETS_SEARCH_INDEX;
         widget_add_string_element(
-            app->status_widget, 3U, 8U, AlignLeft, AlignCenter, FontSecondary,
+            app->status_widget,
+            3U,
+            8U,
+            AlignLeft,
+            AlignCenter,
+            FontSecondary,
             searched_coin ? app->market_symbol : titles[app->market_index]);
         widget_add_string_element(
-            app->status_widget, 125U, 8U, AlignRight, AlignCenter, FontSecondary,
+            app->status_widget,
+            125U,
+            8U,
+            AlignRight,
+            AlignCenter,
+            FontSecondary,
             searched_coin ? "Binance" : sources[app->market_index]);
         widget_add_line_element(app->status_widget, 2U, 15U, 125U, 15U);
         widget_add_string_element(
-            app->status_widget, 64U, 25U, AlignCenter, AlignCenter, FontPrimary,
-            app->market_price);
+            app->status_widget, 64U, 25U, AlignCenter, AlignCenter, FontPrimary, app->market_price);
         widget_add_string_element(
-            app->status_widget, 64U, 35U, AlignCenter, AlignCenter, FontSecondary,
+            app->status_widget,
+            64U,
+            35U,
+            AlignCenter,
+            AlignCenter,
+            FontSecondary,
             searched_coin ? "USDT" : units[app->market_index]);
         widget_add_string_element(
-            app->status_widget, 64U, 44U, AlignCenter, AlignCenter, FontSecondary,
+            app->status_widget,
+            64U,
+            44U,
+            AlignCenter,
+            AlignCenter,
+            FontSecondary,
             app->market_updated);
     } else if(app->request_mode == FibRequestModeWikipedia) {
         widget_add_string_element(
             app->status_widget, 64U, 7U, AlignCenter, AlignCenter, FontPrimary, "Wikipedia");
         const uint8_t text_height = app->snapshot.active_request ? 37U : 49U;
         widget_add_text_scroll_element(
-            app->status_widget,
-            2U,
-            15U,
-            124U,
-            text_height,
-            furi_string_get_cstr(app->status_text));
+            app->status_widget, 2U, 15U, 124U, text_height, furi_string_get_cstr(app->status_text));
     } else {
         const uint8_t text_height =
             (app->request_mode == FibRequestModeRadioPlaying ||
-             app->request_mode == FibRequestModeRadioStopped) ? 44U :
-                                    (app->snapshot.active_request || app->request_mode == FibRequestModeMarkets) ? 52U : 64U;
+             app->request_mode == FibRequestModeRadioStopped) ?
+                44U :
+            (app->snapshot.active_request || app->request_mode == FibRequestModeMarkets) ? 52U :
+                                                                                           64U;
         widget_add_text_scroll_element(
-            app->status_widget,
-            0U,
-            0U,
-            128U,
-            text_height,
-            furi_string_get_cstr(app->status_text));
+            app->status_widget, 0U, 0U, 128U, text_height, furi_string_get_cstr(app->status_text));
     }
     if(app->request_mode == FibRequestModeRadioPlaying ||
        app->request_mode == FibRequestModeRadioStopped) {
         widget_add_button_element(
-            app->status_widget,
-            GuiButtonTypeLeft,
-            "Stations",
-            fib_app_radio_stations_button,
-            app);
+            app->status_widget, GuiButtonTypeLeft, "Stations", fib_app_radio_stations_button, app);
         widget_add_button_element(
             app->status_widget,
             GuiButtonTypeCenter,
@@ -1033,8 +1053,11 @@ static void fib_app_render_status(FibApp* app) {
     } else if(app->snapshot.active_request) {
         widget_add_button_element(
             app->status_widget, GuiButtonTypeCenter, "Cancel", fib_app_cancel_button, app);
-    } else if(app->request_mode == FibRequestModeMarkets && app->pending_action == FibPendingActionNone) {
-        widget_add_button_element(app->status_widget, GuiButtonTypeCenter, "Refresh", fib_app_cancel_button, app);
+    } else if(
+        app->request_mode == FibRequestModeMarkets &&
+        app->pending_action == FibPendingActionNone) {
+        widget_add_button_element(
+            app->status_widget, GuiButtonTypeCenter, "Refresh", fib_app_cancel_button, app);
     }
 }
 
@@ -1066,8 +1089,7 @@ static bool fib_app_custom_event(void* context, uint32_t event) {
 
     if(app->request_mode == FibRequestModeRadioPlaying &&
        radio_player_is_running(app->radio_player) &&
-       app->snapshot.state == BridgeSessionStateComplete &&
-       !app->snapshot.active_request) {
+       app->snapshot.state == BridgeSessionStateComplete && !app->snapshot.active_request) {
         bridge_session_request_radio(app->session, app->url_buffer, 30000U);
         bridge_session_get_snapshot(app->session, &app->snapshot);
     }
@@ -1085,14 +1107,12 @@ static bool fib_app_custom_event(void* context, uint32_t event) {
         app->snapshot.permission == BridgePermissionAllowedAlways) &&
        !app->snapshot.active_request) {
         app->request_waiting_for_ready = false;
-        bridge_session_request_get(
-            app->session, app->url_buffer, FIB_DEFAULT_REQUEST_TIMEOUT_MS);
+        bridge_session_request_get(app->session, app->url_buffer, FIB_DEFAULT_REQUEST_TIMEOUT_MS);
         bridge_session_get_snapshot(app->session, &app->snapshot);
     }
 
     if(app->request_mode == FibRequestModeWeatherSearch &&
-              app->snapshot.state == BridgeSessionStateComplete &&
-              !app->weather_results_shown) {
+       app->snapshot.state == BridgeSessionStateComplete && !app->weather_results_shown) {
         app->weather_results_shown = true;
         app->location_count = 0U;
         if(app->snapshot.http_status == 200U) {
@@ -1114,12 +1134,13 @@ static bool fib_app_custom_event(void* context, uint32_t event) {
         } else if(app->current_view == FibViewStatus) {
             fib_app_render_status(app);
         }
-    } else if(app->request_mode == FibRequestModeRadioSearch &&
-              app->snapshot.state == BridgeSessionStateComplete &&
-              !app->radio_results_shown) {
+    } else if(
+        app->request_mode == FibRequestModeRadioSearch &&
+        app->snapshot.state == BridgeSessionStateComplete && !app->radio_results_shown) {
         app->radio_results_shown = true;
         app->station_count = app->snapshot.http_status == 200U ?
-                                 fib_app_parse_radio_stations(app, app->snapshot.preview) : 0U;
+                                 fib_app_parse_radio_stations(app, app->snapshot.preview) :
+                                 0U;
         if(app->station_count == 0U) {
             app->station_count = fib_app_radio_country_fallback(app);
         }
@@ -1127,8 +1148,12 @@ static bool fib_app_custom_event(void* context, uint32_t event) {
             submenu_reset(app->radio_stations);
             submenu_set_header(app->radio_stations, "Nearby MP3 Stations");
             for(uint8_t index = 0U; index < app->station_count; ++index) {
-                submenu_add_item(app->radio_stations, app->stations[index].label, index,
-                                 fib_app_radio_selected, app);
+                submenu_add_item(
+                    app->radio_stations,
+                    app->stations[index].label,
+                    index,
+                    fib_app_radio_selected,
+                    app);
             }
             app->current_view = FibViewRadioStations;
             view_dispatcher_switch_to_view(app->view_dispatcher, FibViewRadioStations);
@@ -1146,8 +1171,8 @@ static void fib_app_tick(void* context) {
     if(!app || !app->session) return;
     bridge_session_tick(app->session);
     const uint32_t now = furi_get_tick();
-    if(app->request_mode == FibRequestModeMarkets &&
-       app->current_view == FibViewStatus && app->market_has_price &&
+    if(app->request_mode == FibRequestModeMarkets && app->current_view == FibViewStatus &&
+       app->market_has_price &&
        (uint32_t)(now - app->market_last_refresh_tick) >=
            furi_ms_to_ticks(FIB_MARKET_AUTO_REFRESH_MS)) {
         bridge_session_get_snapshot(app->session, &app->snapshot);
@@ -1157,7 +1182,8 @@ static void fib_app_tick(void* context) {
         }
     }
     if(app->request_mode != FibRequestModeRadioPlaying ||
-       !radio_player_is_running(app->radio_player)) return;
+       !radio_player_is_running(app->radio_player))
+        return;
     bridge_session_get_snapshot(app->session, &app->snapshot);
     if(!app->snapshot.active_request && app->snapshot.usb_connected &&
        app->snapshot.helper_present && app->snapshot.selected_major != 0U &&
@@ -1185,9 +1211,7 @@ static uint32_t fib_app_back_to_root(void* context) {
         }
         app->pending_action = FibPendingActionNone;
         app->request_waiting_for_ready = false;
-        destination = app->navigation_root == FibViewToolbox ?
-                          FibViewToolbox :
-                          FibViewMenu;
+        destination = app->navigation_root == FibViewToolbox ? FibViewToolbox : FibViewMenu;
         app->current_view = destination;
     }
     return destination;
@@ -1267,7 +1291,7 @@ static bool fib_app_url_validator(const char* text, FuriString* error, void* con
     for(size_t index = 0U; index < length; ++index) {
         const uint8_t value = (uint8_t)text[index];
         if(value < 0x20U || value == 0x7FU) {
-        furi_string_set_str(error, "URL has control characters");
+            furi_string_set_str(error, "URL has control characters");
             return false;
         }
     }
@@ -1335,12 +1359,7 @@ static void fib_app_open_search_input(
         mode == FibRequestModeMarketSearch ? fib_app_market_validator : fib_app_search_validator,
         app);
     text_input_set_result_callback(
-        app->url_input,
-        fib_app_url_submitted,
-        app,
-        app->input_buffer,
-        buffer_size,
-        true);
+        app->url_input, fib_app_url_submitted, app, app->input_buffer, buffer_size, true);
     app->current_view = FibViewUrlInput;
     view_dispatcher_switch_to_view(app->view_dispatcher, FibViewUrlInput);
 }
@@ -1365,17 +1384,11 @@ static void fib_app_continue_pending_action(FibApp* app, FibPendingAction action
         break;
     case FibPendingActionWikipediaInput:
         fib_app_open_search_input(
-            app,
-            FibRequestModeWikipedia,
-            "Search Wikipedia",
-            FIB_SEARCH_QUERY_SIZE + 1U);
+            app, FibRequestModeWikipedia, "Search Wikipedia", FIB_SEARCH_QUERY_SIZE + 1U);
         break;
     case FibPendingActionWeatherInput:
         fib_app_open_search_input(
-            app,
-            FibRequestModeWeatherSearch,
-            "City or District",
-            FIB_WEATHER_QUERY_SIZE + 1U);
+            app, FibRequestModeWeatherSearch, "City or District", FIB_WEATHER_QUERY_SIZE + 1U);
         break;
     case FibPendingActionNationalToday:
         app->request_mode = FibRequestModeNationalToday;
@@ -1389,10 +1402,7 @@ static void fib_app_continue_pending_action(FibApp* app, FibPendingAction action
         break;
     case FibPendingActionRadioCountryInput:
         fib_app_open_search_input(
-            app,
-            FibRequestModeRadioSearch,
-            "Country Name",
-            FIB_RADIO_COUNTRY_SIZE + 1U);
+            app, FibRequestModeRadioSearch, "Country Name", FIB_RADIO_COUNTRY_SIZE + 1U);
         break;
     case FibPendingActionCustomUrlInput:
         app->request_mode = FibRequestModeNormal;
@@ -1416,10 +1426,8 @@ static void fib_app_continue_pending_action(FibApp* app, FibPendingAction action
     }
 }
 
-static void fib_app_start_when_ready(
-    FibApp* app,
-    FibPendingAction action,
-    FibRequestMode waiting_mode) {
+static void
+    fib_app_start_when_ready(FibApp* app, FibPendingAction action, FibRequestMode waiting_mode) {
     bridge_session_get_snapshot(app->session, &app->snapshot);
     app->request_mode = waiting_mode;
     if(fib_app_internet_ready(&app->snapshot)) {
@@ -1434,8 +1442,7 @@ static void fib_app_url_submitted(void* context) {
     FibApp* app = context;
     if(!app) return;
     if(app->request_mode == FibRequestModeWikipedia) {
-        if(!fib_app_build_search_url(
-               app->input_buffer, app->url_buffer, sizeof(app->url_buffer))) {
+        if(!fib_app_build_search_url(app->input_buffer, app->url_buffer, sizeof(app->url_buffer))) {
             return;
         }
     } else if(app->request_mode == FibRequestModeMarketSearch) {
@@ -1444,7 +1451,8 @@ static void fib_app_url_submitted(void* context) {
                app->market_symbol,
                sizeof(app->market_symbol),
                app->url_buffer,
-               sizeof(app->url_buffer))) return;
+               sizeof(app->url_buffer)))
+            return;
         app->market_index = MARKETS_SEARCH_INDEX;
         app->market_has_price = false;
         app->market_last_refresh_tick = furi_get_tick();
@@ -1453,7 +1461,8 @@ static void fib_app_url_submitted(void* context) {
     } else if(app->request_mode == FibRequestModeWeatherSearch) {
         char encoded[FIB_WEATHER_QUERY_SIZE * 3U + 1U];
         if(!fib_app_percent_encode(app->input_buffer, encoded, sizeof(encoded))) return;
-        snprintf(app->url_buffer, sizeof(app->url_buffer), "%s%s", FIB_GEOCODING_URL_PREFIX, encoded);
+        snprintf(
+            app->url_buffer, sizeof(app->url_buffer), "%s%s", FIB_GEOCODING_URL_PREFIX, encoded);
         app->weather_results_shown = false;
     } else if(app->request_mode == FibRequestModeRadioSearch) {
         char encoded[FIB_RADIO_COUNTRY_SIZE * 3U + 1U];
@@ -1466,7 +1475,8 @@ static void fib_app_url_submitted(void* context) {
         }
         if(!fib_app_percent_encode(country, encoded, sizeof(encoded))) return;
         const char* field = strlen(country) == 2U ? "countrycode=" : "country=";
-        snprintf(app->url_buffer, sizeof(app->url_buffer), "%s%s%s", FIB_RADIO_URL_BASE, field, encoded);
+        snprintf(
+            app->url_buffer, sizeof(app->url_buffer), "%s%s%s", FIB_RADIO_URL_BASE, field, encoded);
         app->radio_results_shown = false;
     } else {
         snprintf(app->url_buffer, sizeof(app->url_buffer), "%s", app->input_buffer);
@@ -1495,12 +1505,18 @@ static void fib_app_radio_selected(void* context, uint32_t index) {
     if(!app || index >= app->station_count) return;
     const FibRadioStation* station = &app->stations[index];
     snprintf(app->url_buffer, sizeof(app->url_buffer), "%s", station->url);
-    snprintf(app->search_result, sizeof(app->search_result), "%s\n%d kbps MP3",
-             station->label, station->bitrate);
+    snprintf(
+        app->search_result,
+        sizeof(app->search_result),
+        "%s\n%d kbps MP3",
+        station->label,
+        station->bitrate);
     if(!fib_app_start_selected_radio(app)) {
         app->request_mode = FibRequestModeNormal;
-        snprintf(app->search_result, sizeof(app->search_result),
-                 "Speaker or memory is busy. Close other audio apps and try again.");
+        snprintf(
+            app->search_result,
+            sizeof(app->search_result),
+            "Speaker or memory is busy. Close other audio apps and try again.");
         widget_reset(app->status_widget);
         widget_add_text_scroll_element(app->status_widget, 0, 0, 128, 64, app->search_result);
         app->current_view = FibViewStatus;
@@ -1514,11 +1530,7 @@ static void fib_app_market_selected(void* context, uint32_t index) {
     FibApp* app = context;
     if(!app || index > MARKETS_SEARCH_INDEX) return;
     if(index == MARKETS_SEARCH_INDEX) {
-        fib_app_open_search_input(
-            app,
-            FibRequestModeMarketSearch,
-            "Coin Symbol (e.g. SOL)",
-            21U);
+        fib_app_open_search_input(app, FibRequestModeMarketSearch, "Coin Symbol (e.g. SOL)", 21U);
         return;
     }
     app->market_index = index;
@@ -1547,16 +1559,13 @@ static void fib_app_menu_selected(void* context, uint32_t index) {
         fib_app_show_status(app, false);
         break;
     case FibMenuDownloadSample:
-        fib_app_start_when_ready(
-            app, FibPendingActionSample, FibRequestModeNormal);
+        fib_app_start_when_ready(app, FibPendingActionSample, FibRequestModeNormal);
         break;
     case FibMenuGetDateTime:
-        fib_app_start_when_ready(
-            app, FibPendingActionDateTime, FibRequestModeNormal);
+        fib_app_start_when_ready(app, FibPendingActionDateTime, FibRequestModeNormal);
         break;
     case FibMenuCustomUrl:
-        fib_app_start_when_ready(
-            app, FibPendingActionCustomUrlInput, FibRequestModeNormal);
+        fib_app_start_when_ready(app, FibPendingActionCustomUrlInput, FibRequestModeNormal);
         break;
     case FibMenuConnectionInfo:
         app->request_mode = FibRequestModeNormal;
@@ -1574,20 +1583,16 @@ static void fib_app_toolbox_selected(void* context, uint32_t index) {
     app->navigation_root = FibViewToolbox;
     switch(index) {
     case FibToolboxInformationSearch:
-        fib_app_start_when_ready(
-            app, FibPendingActionWikipediaInput, FibRequestModeWikipedia);
+        fib_app_start_when_ready(app, FibPendingActionWikipediaInput, FibRequestModeWikipedia);
         break;
     case FibToolboxWeather:
-        fib_app_start_when_ready(
-            app, FibPendingActionWeatherInput, FibRequestModeWeatherSearch);
+        fib_app_start_when_ready(app, FibPendingActionWeatherInput, FibRequestModeWeatherSearch);
         break;
     case FibToolboxNationalToday:
-        fib_app_start_when_ready(
-            app, FibPendingActionNationalToday, FibRequestModeNationalToday);
+        fib_app_start_when_ready(app, FibPendingActionNationalToday, FibRequestModeNationalToday);
         break;
     case FibToolboxIssLocation:
-        fib_app_start_when_ready(
-            app, FibPendingActionIssLocation, FibRequestModeIssLocation);
+        fib_app_start_when_ready(app, FibPendingActionIssLocation, FibRequestModeIssLocation);
         break;
     case FibToolboxInternetRadio:
         fib_app_start_when_ready(
@@ -1618,8 +1623,8 @@ static FibApp* fib_app_alloc(void) {
     app->url_input = text_input_alloc();
     app->status_text = furi_string_alloc();
     if(!app->gui || !app->view_dispatcher || !app->menu || !app->toolbox || !app->markets ||
-       !app->weather_results || !app->radio_stations || !app->status_widget ||
-       !app->url_input || !app->status_text) {
+       !app->weather_results || !app->radio_stations || !app->status_widget || !app->url_input ||
+       !app->status_text) {
         return app;
     }
 
@@ -1635,11 +1640,7 @@ static FibApp* fib_app_alloc(void) {
         submenu_add_item(app->markets, markets_name(i), i, fib_app_market_selected, app);
     }
     submenu_add_item(
-        app->markets,
-        "Search Any Coin",
-        MARKETS_SEARCH_INDEX,
-        fib_app_market_selected,
-        app);
+        app->markets, "Search Any Coin", MARKETS_SEARCH_INDEX, fib_app_market_selected, app);
     view_set_previous_callback(submenu_get_view(app->markets), fib_app_back_to_toolbox);
     submenu_add_item(
         app->menu, "Test Connection", FibMenuTestConnection, fib_app_menu_selected, app);
@@ -1658,28 +1659,14 @@ static FibApp* fib_app_alloc(void) {
         FibToolboxInformationSearch,
         fib_app_toolbox_selected,
         app);
+    submenu_add_item(app->toolbox, "Weather", FibToolboxWeather, fib_app_toolbox_selected, app);
     submenu_add_item(
-        app->toolbox, "Weather", FibToolboxWeather, fib_app_toolbox_selected, app);
+        app->toolbox, "National Today", FibToolboxNationalToday, fib_app_toolbox_selected, app);
     submenu_add_item(
-        app->toolbox,
-        "National Today",
-        FibToolboxNationalToday,
-        fib_app_toolbox_selected,
-        app);
+        app->toolbox, "Where is the ISS?", FibToolboxIssLocation, fib_app_toolbox_selected, app);
     submenu_add_item(
-        app->toolbox,
-        "Where is the ISS?",
-        FibToolboxIssLocation,
-        fib_app_toolbox_selected,
-        app);
-    submenu_add_item(
-        app->toolbox,
-        "Internet Radio",
-        FibToolboxInternetRadio,
-        fib_app_toolbox_selected,
-        app);
-    submenu_add_item(
-        app->toolbox, "Markets", FibToolboxMarkets, fib_app_toolbox_selected, app);
+        app->toolbox, "Internet Radio", FibToolboxInternetRadio, fib_app_toolbox_selected, app);
+    submenu_add_item(app->toolbox, "Markets", FibToolboxMarkets, fib_app_toolbox_selected, app);
     view_set_previous_callback(submenu_get_view(app->menu), fib_app_exit);
     view_set_previous_callback(submenu_get_view(app->toolbox), fib_app_back_to_menu);
     view_set_previous_callback(submenu_get_view(app->weather_results), fib_app_back_to_toolbox);
@@ -1701,8 +1688,7 @@ static FibApp* fib_app_alloc(void) {
     view_set_previous_callback(text_input_get_view(app->url_input), fib_app_back_from_input);
 
     view_dispatcher_add_view(app->view_dispatcher, FibViewMenu, submenu_get_view(app->menu));
-    view_dispatcher_add_view(
-        app->view_dispatcher, FibViewToolbox, submenu_get_view(app->toolbox));
+    view_dispatcher_add_view(app->view_dispatcher, FibViewToolbox, submenu_get_view(app->toolbox));
     view_dispatcher_add_view(app->view_dispatcher, FibViewMarkets, submenu_get_view(app->markets));
     view_dispatcher_add_view(
         app->view_dispatcher, FibViewStatus, widget_get_view(app->status_widget));

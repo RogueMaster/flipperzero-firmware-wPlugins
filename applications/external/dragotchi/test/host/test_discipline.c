@@ -12,7 +12,7 @@ void run_discipline_tests(void) {
     rng_seed(11);
     game_state_init(&s, 0);
     s.persistent.stage = WYRMLING;
-    s.persistent.discipline = 0;             // maximal call odds
+    s.persistent.discipline = 0; // maximal call odds
     advance_attention(&s, ATTENTION_CALL_FREQ * 50);
     CHECK(s.persistent.attention_call == 1);
 
@@ -27,8 +27,8 @@ void run_discipline_tests(void) {
     // Scolding when there is a real need is a misread: -care
     game_state_init(&s, 0);
     s.persistent.stage = WYRMLING;
-    s.persistent.sick = 1;                   // a real need
-    s.persistent.attention_call = 1;         // even if calling
+    s.persistent.sick = 1; // a real need
+    s.persistent.attention_call = 1; // even if calling
     care = s.persistent.care_score;
     CHECK(scold(&s) == false);
     CHECK(s.persistent.care_score == care - CARE_SCOLD_WRONG);
@@ -38,7 +38,7 @@ void run_discipline_tests(void) {
     game_state_init(&s, 0);
     s.persistent.stage = WYRMLING;
     s.persistent.discipline = 0;
-    s.persistent.hunger = 0;                 // real need
+    s.persistent.hunger = 0; // real need
     advance_attention(&s, ATTENTION_CALL_FREQ * 50);
     CHECK(s.persistent.attention_call == 0);
 }

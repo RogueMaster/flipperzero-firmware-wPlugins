@@ -20,28 +20,42 @@
  * bit3=inflight.
  */
 static const uint8_t k_scan_busy[8] = {
-    0, 1, 1, 1, 0, 0, 0, 0 /* Starting / Running / Stopping */
+    0,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0 /* Starting / Running / Stopping */
 };
 static const uint8_t k_phase_fly[8] = {
-    0, 1, 1, 0, 0, 0, 0, 1 /* WaitBlock / WaitStop / WaitSlow */
+    0,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1 /* WaitBlock / WaitStop / WaitSlow */
 };
 static const SrGpsGate k_gate_pri[16] = {
-    SrGpsGateOk,       /* 0000 */
-    SrGpsGateNoLink,   /* 0001 */
+    SrGpsGateOk, /* 0000 */
+    SrGpsGateNoLink, /* 0001 */
     SrGpsGateScanning, /* 0010 */
-    SrGpsGateNoLink,   /* 0011 */
-    SrGpsGateBusy,     /* 0100 */
-    SrGpsGateNoLink,   /* 0101 */
+    SrGpsGateNoLink, /* 0011 */
+    SrGpsGateBusy, /* 0100 */
+    SrGpsGateNoLink, /* 0101 */
     SrGpsGateScanning, /* 0110 */
-    SrGpsGateNoLink,   /* 0111 */
+    SrGpsGateNoLink, /* 0111 */
     SrGpsGateInFlight, /* 1000 */
-    SrGpsGateNoLink,   /* 1001 */
+    SrGpsGateNoLink, /* 1001 */
     SrGpsGateScanning, /* 1010 */
-    SrGpsGateNoLink,   /* 1011 */
-    SrGpsGateBusy,     /* 1100 */
-    SrGpsGateNoLink,   /* 1101 */
+    SrGpsGateNoLink, /* 1011 */
+    SrGpsGateBusy, /* 1100 */
+    SrGpsGateNoLink, /* 1101 */
     SrGpsGateScanning, /* 1110 */
-    SrGpsGateNoLink,   /* 1111 */
+    SrGpsGateNoLink, /* 1111 */
 };
 
 static SrGpsGate oracle_gate(bool link_ok, uint8_t session, uint8_t scan_ui, uint8_t phase) {
@@ -68,7 +82,10 @@ static SrGpsGate oracle_gate(bool link_ok, uint8_t session, uint8_t scan_ui, uin
  * as the implementation's if/else ladder.
  */
 static SrGpsStep oracle_step(
-    const SrGpsSampleCtx* c, uint32_t blocks_now, uint32_t stop_rev_now, uint32_t now_ms) {
+    const SrGpsSampleCtx* c,
+    uint32_t blocks_now,
+    uint32_t stop_rev_now,
+    uint32_t now_ms) {
     SrGpsStep s;
     unsigned elapsed_first;
     unsigned elapsed_slow;
@@ -112,7 +129,7 @@ static SrGpsStep oracle_step(
     };
     static const uint8_t k_nr_phase[2] = {
         (uint8_t)SrGpsPhaseNoReply, /* block unchanged */
-        (uint8_t)SrGpsPhaseIdle,    /* block changed -> recheck */
+        (uint8_t)SrGpsPhaseIdle, /* block changed -> recheck */
     };
 
     s.phase = c->phase;
@@ -329,8 +346,10 @@ int test_gps_sample_run(void) {
             for(ui_i = 0; ui_i < 8u; ui_i++) {
                 for(ph_i = 0; ph_i < 8u; ph_i++) {
                     bool link_ok = link_i != 0u;
-                    SrGpsGate got = sr_gps_gate(link_ok, (uint8_t)sess_i, (uint8_t)ui_i, (uint8_t)ph_i);
-                    SrGpsGate exp = oracle_gate(link_ok, (uint8_t)sess_i, (uint8_t)ui_i, (uint8_t)ph_i);
+                    SrGpsGate got =
+                        sr_gps_gate(link_ok, (uint8_t)sess_i, (uint8_t)ui_i, (uint8_t)ph_i);
+                    SrGpsGate exp =
+                        oracle_gate(link_ok, (uint8_t)sess_i, (uint8_t)ui_i, (uint8_t)ph_i);
 
                     CHECK(got == exp);
                     if(got == SrGpsGateOk) {
@@ -375,11 +394,12 @@ int test_gps_sample_run(void) {
                             c.sent_tick_ms = 1000u;
                             c.blocks_at_send = 5u;
                             c.stop_rev_at_send = 3u;
-                            now_ms = (now_i == 0u) ? (1000u + (uint32_t)SR_GPS_FIRST_BLOCK_MS - 1u) :
+                            now_ms = (now_i == 0u) ?
+                                         (1000u + (uint32_t)SR_GPS_FIRST_BLOCK_MS - 1u) :
                                      (now_i == 1u) ? (1000u + (uint32_t)SR_GPS_FIRST_BLOCK_MS) :
                                                      (1000u + (uint32_t)SR_GPS_SLOW_BLOCK_MS);
                             elapsed_stop = (stop_i == 0u) ? ((uint32_t)SR_GPS_STOP_ACK_MS - 1u) :
-                                                           (uint32_t)SR_GPS_STOP_ACK_MS;
+                                                            (uint32_t)SR_GPS_STOP_ACK_MS;
                             c.stop_tick_ms = now_ms - elapsed_stop;
 
                             got = sr_gps_step(
@@ -564,7 +584,12 @@ int test_gps_sample_run(void) {
     CHECK(ws.act == (uint8_t)SrGpsActNone);
     CHECK(ws.got_block == true);
 
-    printf("gps_sample wrap: a_first=%u a_stop=%u b_first=%u b_stop=%u\n", a_first, a_stop, b_first, b_stop);
+    printf(
+        "gps_sample wrap: a_first=%u a_stop=%u b_first=%u b_stop=%u\n",
+        a_first,
+        a_stop,
+        b_first,
+        b_stop);
     CHECK(a_first == 1);
     CHECK(a_stop == 1);
     CHECK(b_first == 1);
@@ -580,7 +605,10 @@ int test_gps_sample_run(void) {
     wrap.stop_rev_at_send = 3u;
     wrap.stop_tick_ms = 0x10000000u;
     ws = sr_gps_step(
-        &wrap, wrap.blocks_at_send, wrap.stop_rev_at_send, 0x10000000u + (uint32_t)SR_GPS_SLOW_BLOCK_MS);
+        &wrap,
+        wrap.blocks_at_send,
+        wrap.stop_rev_at_send,
+        0x10000000u + (uint32_t)SR_GPS_SLOW_BLOCK_MS);
     if(ws.phase == (uint8_t)SrGpsPhaseWaitStop && ws.act == (uint8_t)SrGpsActSendStop &&
        ws.got_block == false) {
         alpha = 1;
@@ -706,11 +734,7 @@ int test_gps_sample_run(void) {
     }
 
     printf(
-        "gps_sample revisit: gamma=%u delta=%u epsilon=%u zeta=%u\n",
-        gamma,
-        delta,
-        epsilon,
-        zeta);
+        "gps_sample revisit: gamma=%u delta=%u epsilon=%u zeta=%u\n", gamma, delta, epsilon, zeta);
     CHECK(gamma == 1);
     CHECK(delta == 1);
     CHECK(epsilon == 1);

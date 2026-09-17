@@ -17,10 +17,12 @@ typedef enum {
 typedef struct {
     uint32_t rx_bytes; /* Bytes the ISR actually pushed into the stream buffer */
     uint32_t rx_dropped; /* Bytes dropped because the buffer was full */
-    uint32_t rx_event_mask; /* Accumulated OR of event bits, for looking up afterwards which ones occurred */
+    uint32_t
+        rx_event_mask; /* Accumulated OR of event bits, for looking up afterwards which ones occurred */
     uint32_t rx_errors; /* Callbacks carrying an error bit (not itemized, ADR-014 decision 7) */
     uint32_t tx_bytes;
-    uint32_t rx_max_fill; /* Historical high-water mark of the RX buffer (B). See the sampling note in sr_io_read -- this is a lower bound, not the true peak. */
+    uint32_t
+        rx_max_fill; /* Historical high-water mark of the RX buffer (B). See the sampling note in sr_io_read -- this is a lower bound, not the true peak. */
     uint32_t opens; /* Successful opens */
     uint32_t closes; /* Completed closes */
 } SrIoStats;

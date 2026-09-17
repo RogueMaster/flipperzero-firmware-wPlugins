@@ -7,15 +7,19 @@ static bool fail(char* error, const char* text) {
     snprintf(error, IRB_ERROR_SIZE, "%s", text);
     return false;
 }
-static bool report(IrbLoadProgress progress, void* context, IrbLoadPhase phase, uint32_t done,
-                   uint32_t total) {
+static bool report(
+    IrbLoadProgress progress,
+    void* context,
+    IrbLoadPhase phase,
+    uint32_t done,
+    uint32_t total) {
     return !progress || progress(phase, done, total, context);
 }
-static bool same(Storage* storage, const IrbCatalog* catalog, IrbLoadProgress progress,
-                 void* context) {
+static bool
+    same(Storage* storage, const IrbCatalog* catalog, IrbLoadProgress progress, void* context) {
     uint32_t hash, size;
-    return irb_file_fingerprint(storage, catalog->path, &hash, &size, IrbLoadVerify, progress,
-                                context) &&
+    return irb_file_fingerprint(
+               storage, catalog->path, &hash, &size, IrbLoadVerify, progress, context) &&
            hash == catalog->hash && size == catalog->size;
 }
 static void catalog_label(char output[IRB_NAME_SIZE], const char* input) {
@@ -39,13 +43,18 @@ static void catalog_label(char output[IRB_NAME_SIZE], const char* input) {
     }
     output[length] = 0;
 }
-bool irb_catalog_load(Storage* storage, IrbCatalog* catalog, const char* path, char* error,
-                      IrbLoadProgress progress, void* context) {
+bool irb_catalog_load(
+    Storage* storage,
+    IrbCatalog* catalog,
+    const char* path,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     memset(catalog, 0, sizeof(*catalog));
     if(!irb_library_path_valid(path)) return fail(error, "Choose an SD-card .ir file.");
     snprintf(catalog->path, sizeof(catalog->path), "%s", path);
-    if(!irb_file_fingerprint(storage, path, &catalog->hash, &catalog->size, IrbLoadHash, progress,
-                             context))
+    if(!irb_file_fingerprint(
+           storage, path, &catalog->hash, &catalog->size, IrbLoadHash, progress, context))
         return fail(error, "Cannot read import file.");
     FlipperFormat* reader = flipper_format_buffered_file_alloc(storage);
     FuriString* name = furi_string_alloc();
@@ -53,8 +62,9 @@ bool irb_catalog_load(Storage* storage, IrbCatalog* catalog, const char* path, c
     uint32_t version;
     bool ok = flipper_format_buffered_file_open_existing(reader, path);
     flipper_format_set_strict_mode(reader, true);
-    ok = ok && flipper_format_read_header(reader, name, &version) && version == 1 &&
-         (furi_string_equal(name, "IR signals file") || furi_string_equal(name, "IR library file"));
+    ok =
+        ok && flipper_format_read_header(reader, name, &version) && version == 1 &&
+        (furi_string_equal(name, "IR signals file") || furi_string_equal(name, "IR library file"));
     while(ok) {
         if(!report(progress, context, IrbLoadIndex, flipper_format_tell(reader), catalog->size)) {
             ok = false;
@@ -81,8 +91,12 @@ bool irb_catalog_load(Storage* storage, IrbCatalog* catalog, const char* path, c
     return (ok && catalog->count && same(storage, catalog, progress, context)) ||
            fail(error, "Invalid import file, changed file, or more than 256 buttons.");
 }
-static bool copy_source(Storage* storage, const IrbCatalog* catalog, char* target,
-                        IrbLoadProgress progress, void* context) {
+static bool copy_source(
+    Storage* storage,
+    const IrbCatalog* catalog,
+    char* target,
+    IrbLoadProgress progress,
+    void* context) {
     if(!irb_storage_prepare(storage)) return false;
     bool available = false;
     for(unsigned i = 1; i <= 9999; ++i) {
@@ -149,11 +163,12 @@ static unsigned map_score(const char* name, unsigned target) {
     };
     char clean[IRB_NAME_SIZE];
     normalized(clean, name);
-    const char* alternate = !strncmp(clean, "button", 6) ? clean + 6
-                            : !strncmp(clean, "key", 3)  ? clean + 3
-                                                         : clean;
+    const char* alternate = !strncmp(clean, "button", 6) ? clean + 6 :
+                            !strncmp(clean, "key", 3)    ? clean + 3 :
+                                                           clean;
     for(unsigned i = 0; i < 6 && exact[target][i]; ++i)
-        if(!strcmp(clean, exact[target][i]) || !strcmp(alternate, exact[target][i])) return 100 - i;
+        if(!strcmp(clean, exact[target][i]) || !strcmp(alternate, exact[target][i]))
+            return 100 - i;
     if(target == 0 &&
        (!strcmp(clean, "power") || !strcmp(clean, "powertoggle") || !strcmp(clean, "standby")))
         return 50;
@@ -190,8 +205,8 @@ static bool reserved_label(const IrbProject* project, const char* label) {
         if(label_equal(label, irb_nav_labels[i])) return true;
     return false;
 }
-static bool unique_label(const IrbProject* project, const char* original,
-                         char output[IRB_NAME_SIZE]) {
+static bool
+    unique_label(const IrbProject* project, const char* original, char output[IRB_NAME_SIZE]) {
     snprintf(output, IRB_NAME_SIZE, "%s", original);
     if(!reserved_label(project, output)) return true;
     for(unsigned suffix = 2; suffix < 1000; ++suffix) {
@@ -206,14 +221,22 @@ static bool unique_label(const IrbProject* project, const char* original,
     }
     return false;
 }
-bool irb_catalog_add(Storage* storage, const IrbCatalog* catalog, IrbProject* project, int entry,
-                     uint32_t* added, uint32_t* mapped, char* error, IrbLoadProgress progress,
-                     void* context) {
+bool irb_catalog_add(
+    Storage* storage,
+    const IrbCatalog* catalog,
+    IrbProject* project,
+    int entry,
+    uint32_t* added,
+    uint32_t* mapped,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     error[0] = 0;
     *added = *mapped = 0;
     if(entry < -1 || entry >= (int)catalog->count || !irb_project_valid(project))
         return fail(error, "Invalid import selection.");
-    if(!same(storage, catalog, progress, context)) return fail(error, "Import changed. Reopen it.");
+    if(!same(storage, catalog, progress, context))
+        return fail(error, "Import changed. Reopen it.");
     IrbProject* next = malloc(sizeof(*next));
     if(!next) return fail(error, "Not enough memory.");
     *next = *project;
@@ -222,8 +245,8 @@ bool irb_catalog_add(Storage* storage, const IrbCatalog* catalog, IrbProject* pr
         if(next->imports[i].hash != catalog->hash || next->imports[i].size != catalog->size)
             continue;
         uint32_t hash, size;
-        if(irb_file_fingerprint(storage, next->imports[i].path, &hash, &size, IrbLoadVerify,
-                                progress, context) &&
+        if(irb_file_fingerprint(
+               storage, next->imports[i].path, &hash, &size, IrbLoadVerify, progress, context) &&
            hash == catalog->hash && size == catalog->size) {
             source = i;
             break;
@@ -258,8 +281,10 @@ bool irb_catalog_add(Storage* storage, const IrbCatalog* catalog, IrbProject* pr
         if(!item->usable || reference_used(next, source, item->offset)) continue;
         if(next->extra_count == IRB_MAX_EXTRAS) {
             ok = false;
-            snprintf(error, IRB_ERROR_SIZE,
-                     "Remote has too many unmatched keys. Limit: 48 Other buttons.");
+            snprintf(
+                error,
+                IRB_ERROR_SIZE,
+                "Remote has too many unmatched keys. Limit: 48 Other buttons.");
             break;
         }
         char label[IRB_NAME_SIZE];
@@ -367,8 +392,14 @@ static bool file_add(IrbFileList* files, const char* name, bool directory) {
     files->name_bytes += length;
     return true;
 }
-bool irb_files_load(Storage* storage, IrbFileList* files, const char* path, bool projects,
-                    char* error, IrbLoadProgress progress, void* context) {
+bool irb_files_load(
+    Storage* storage,
+    IrbFileList* files,
+    const char* path,
+    bool projects,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     irb_files_clear(files);
     snprintf(files->path, sizeof(files->path), "%s", path);
     files->projects = projects;
@@ -393,13 +424,15 @@ bool irb_files_load(Storage* storage, IrbFileList* files, const char* path, bool
             is_dir = (info.flags & FSF_DIRECTORY) != 0;
             if(!strcmp(name, ".") || !strcmp(name, "..")) continue;
             const char* extension = strrchr(name, '.');
-            if(projects ? (is_dir || !extension || !irb_path_equal(extension, ".irb"))
-                        : (!is_dir && (!extension || !irb_path_equal(extension, ".ir"))))
+            if(projects ? (is_dir || !extension || !irb_path_equal(extension, ".irb")) :
+                          (!is_dir && (!extension || !irb_path_equal(extension, ".ir"))))
                 continue;
         }
         if(!file_add(files, name, is_dir)) {
-            ok = fail(error, "Folder too large for memory. Use smaller subfolders (512 entries / "
-                             "16 KiB of names).");
+            ok = fail(
+                error,
+                "Folder too large for memory. Use smaller subfolders (512 entries / "
+                "16 KiB of names).");
             break;
         }
         ok = report(progress, context, IrbLoadIndex, 0, 0);
@@ -425,10 +458,15 @@ void irb_files_get_page(const IrbFileList* files, uint32_t start, IrbFilePage* p
         page->directories[page->count++] = files->entries[i].directory;
     }
 }
-bool irb_files_page(Storage* storage, IrbFilePage* page, char* error, IrbLoadProgress progress,
-                    void* context) {
+bool irb_files_page(
+    Storage* storage,
+    IrbFilePage* page,
+    char* error,
+    IrbLoadProgress progress,
+    void* context) {
     IrbFileList files = {0};
-    bool ok = irb_files_load(storage, &files, page->path, page->projects, error, progress, context);
+    bool ok =
+        irb_files_load(storage, &files, page->path, page->projects, error, progress, context);
     if(ok) irb_files_get_page(&files, page->start, page);
     irb_files_clear(&files);
     return ok;

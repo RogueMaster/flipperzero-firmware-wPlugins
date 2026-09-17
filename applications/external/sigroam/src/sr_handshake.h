@@ -7,14 +7,16 @@
 /* ★ Pure-logic decision layer. Must not include any furi header (ADR-003).
  * Per ADR-016 decision 4. The three DoD outcomes are exactly this function's return values. */
 
-enum { SR_HANDSHAKE_TIMEOUT_MS = 1500 };
+enum {
+    SR_HANDSHAKE_TIMEOUT_MS = 1500
+};
 
 typedef enum {
-    SrHandshakeIdle = 0,  /* Probe not yet sent */
-    SrHandshakeWaiting,   /* Sent, awaiting a reply */
-    SrHandshakeOk,        /* Marauder recognized */
+    SrHandshakeIdle = 0, /* Probe not yet sent */
+    SrHandshakeWaiting, /* Sent, awaiting a reply */
+    SrHandshakeOk, /* Marauder recognized */
     SrHandshakeUnknownFw, /* Bytes came back, but not Marauder */
-    SrHandshakeNoReply,   /* Timed out with not a single byte returned */
+    SrHandshakeNoReply, /* Timed out with not a single byte returned */
 } SrHandshakeState;
 
 typedef struct {
@@ -23,7 +25,7 @@ typedef struct {
     uint32_t rx_bytes_at_send;
     uint32_t rx_bytes_now;
     uint32_t fw_rev_at_send; /* Snapshot of model.firmware_rev taken in on_enter */
-    uint32_t fw_rev_now;     /* Refreshed on tick */
+    uint32_t fw_rev_now; /* Refreshed on tick */
     SrSourceKind fw_kind;
     uint32_t timeout_ms;
 } SrHandshakeCtx;

@@ -42,9 +42,9 @@ static SrScanUiState oracle_eval(const SrScanCtlCtx* c, uint32_t now_ms) {
     pending_start = start_ack ? SrScanUiRunning :
                                 (timed_out ? SrScanUiStartFailed : SrScanUiStarting);
     pending_stop = stop_ack ? SrScanUiIdle : (timed_out ? SrScanUiStopFailed : SrScanUiStopping);
-    no_cmd = c->cmd_rejected ? SrScanUiBusy :
-                               ((c->session_now == SrSessionRunning) ? SrScanUiRunning :
-                                                                      SrScanUiIdle);
+    no_cmd = c->cmd_rejected ?
+                 SrScanUiBusy :
+                 ((c->session_now == SrSessionRunning) ? SrScanUiRunning : SrScanUiIdle);
 
     if(!c->cmd_pending) {
         return no_cmd;

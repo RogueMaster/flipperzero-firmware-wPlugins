@@ -21,14 +21,14 @@
  * not a call to sr_poi_gate.
  */
 static const SrPoiGate k_gate_pri[8] = {
-    SrPoiGateOk,          /* 000 */
-    SrPoiGateNoLink,      /* 001 */
+    SrPoiGateOk, /* 000 */
+    SrPoiGateNoLink, /* 001 */
     SrPoiGateNotScanning, /* 010 */
-    SrPoiGateNoLink,      /* 011 */
-    SrPoiGateNoFix,       /* 100 */
-    SrPoiGateNoLink,      /* 101 */
+    SrPoiGateNoLink, /* 011 */
+    SrPoiGateNoFix, /* 100 */
+    SrPoiGateNoLink, /* 101 */
     SrPoiGateNotScanning, /* 110 */
-    SrPoiGateNoLink,      /* 111 */
+    SrPoiGateNoLink, /* 111 */
 };
 
 static SrPoiGate oracle_gate(bool link_ok, uint8_t session, uint8_t scan_ui, bool fix) {
@@ -54,10 +54,10 @@ static SrPoiGate oracle_gate(bool link_ok, uint8_t session, uint8_t scan_ui, boo
  * implementation, different shape (lookup vs if-ladder).
  */
 static const uint8_t k_wait_next[4] = {
-    (uint8_t)SrPoiPhaseWaitAck,  /* 00 */
-    (uint8_t)SrPoiPhaseDone,     /* 01 ack */
-    (uint8_t)SrPoiPhaseNoReply,  /* 10 timeout */
-    (uint8_t)SrPoiPhaseDone,     /* 11 ack wins */
+    (uint8_t)SrPoiPhaseWaitAck, /* 00 */
+    (uint8_t)SrPoiPhaseDone, /* 01 ack */
+    (uint8_t)SrPoiPhaseNoReply, /* 10 timeout */
+    (uint8_t)SrPoiPhaseDone, /* 11 ack wins */
 };
 
 static SrPoiPhase oracle_step(SrPoiCtx* ctx, uint32_t ack_now, uint32_t tick_ms) {
@@ -345,8 +345,7 @@ int test_poi_run(void) {
      * exhaustive in test_parse_marauder.c (cmdack cover numbers must not move). */
     memset(&parser, 0, sizeof(parser));
     memset(&ev, 0, sizeof(ev));
-    r = sr_codec_marauder.feed_line(
-        &parser, "POI tagged: POI 1 (12.34, -56.78)", 33u, &ev);
+    r = sr_codec_marauder.feed_line(&parser, "POI tagged: POI 1 (12.34, -56.78)", 33u, &ev);
     CHECK(r == SrParseUnknown);
     CHECK(ev.kind == SrEventUnknown);
     CHECK(parser.cmdack.count[SrCmdAckPoi] == 1u);
