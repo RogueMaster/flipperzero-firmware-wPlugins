@@ -1,0 +1,13 @@
+App(
+    appid="pulse_bpm",
+    name="Pulse BPM",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pulse_bpm_app",
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    fap_version="1.0",
+    fap_icon="pulse_bpm.png",
+    fap_description="Tap along a pulse to measure heart rate; live BPM, locks after 20 seconds",
+    fap_author="iz1poz",
+    fap_icon_assets="images",
+)
