@@ -443,9 +443,9 @@ static const char* uhf_current_tag_bank_value(UhfApp* app, bool* valid);
 static const char* const uhf_main_menu_items[] = {
     "UHF Radar",
     "Inventory",
-    "TID Decoder",
     "EPC Fuzzing",
     "EPC ASCII",
+    "TID Decoder",
     "Tag Control",
     "Access Keys",
     "Settings",
@@ -3018,6 +3018,16 @@ static void uhf_make_fuzz_epc(UhfApp* app) {
     }
 }
 
+static uint8_t uhf_startup_feature(UhfStartupApp startup_app) {
+    switch(startup_app) {
+    case UhfStartupRadar: return 0U;
+    case UhfStartupInventory: return 1U;
+    case UhfStartupEpcFuzzing: return 2U;
+    case UhfStartupTidDecoder: return 4U;
+    default: return 0U;
+    }
+}
+
 static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
     if(!app) return;
     switch(feature) {
@@ -3033,15 +3043,6 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         break;
     case 2:
         uhf_clear_tags(app);
-        app->selected_tid_valid = false;
-        app->tid_decode_attempted = false;
-        app->tag_data_scroll_line = 0U;
-        app->page = UhfPageTidDecoder;
-        uhf_start_inventory(app);
-        uhf_set_status(app, "Present exactly one tag");
-        break;
-    case 3:
-        uhf_clear_tags(app);
         app->access_epc[0] = '\0';
         app->fuzz_base_epc[0] = '\0';
         app->fuzz_sequence = 0U;
@@ -3049,7 +3050,7 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         uhf_start_inventory(app);
         uhf_set_status(app, "Read one source tag");
         break;
-    case 4:
+    case 3:
         uhf_clear_tags(app);
         app->ascii_tag_captured = false;
         app->ascii_single_since = 0U;
@@ -3058,6 +3059,15 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         app->page = UhfPageAscii;
         uhf_start_inventory(app);
         uhf_set_status(app, "Present one tag");
+        break;
+    case 4:
+        uhf_clear_tags(app);
+        app->selected_tid_valid = false;
+        app->tid_decode_attempted = false;
+        app->tag_data_scroll_line = 0U;
+        app->page = UhfPageTidDecoder;
+        uhf_start_inventory(app);
+        uhf_set_status(app, "Present exactly one tag");
         break;
     case 5:
         uhf_clear_tags(app);
@@ -3214,9 +3224,9 @@ static void uhf_draw_main_menu(Canvas* canvas, UhfApp* app) {
         static const uint8_t icons[9][7] = {
             {0x1c, 0x22, 0x51, 0x59, 0x45, 0x22, 0x1c},
             {0x7d, 0x0, 0x0, 0x7d, 0x0, 0x0, 0x7d},
-            {0x2a, 0x7f, 0x22, 0x6b, 0x22, 0x7f, 0x2a},
             {0x3e, 0x41, 0x45, 0x49, 0x51, 0x41, 0x3e},
             {0x1c, 0x22, 0x22, 0x3e, 0x22, 0x22, 0x22},
+            {0x2a, 0x7f, 0x22, 0x6b, 0x22, 0x7f, 0x2a},
             {0x1c, 0x22, 0x22, 0x7f, 0x49, 0x49, 0x7f},
             {0x08, 0x14, 0x08, 0x08, 0x3e, 0x08, 0x08},
             {0x4, 0x7f, 0x4, 0x0, 0x10, 0x7f, 0x10},
@@ -4748,8 +4758,7 @@ int32_t uhf_expansion_app(void* p) {
     if(uhf_has_version(app)) {
         (void)uhf_set_reader_power(app, app->reader_power_dbm);
         if(app->startup_app != UhfStartupDefault) {
-            const uint8_t startup_feature = (uint8_t)app->startup_app - 1U;
-            uhf_enter_feature(app, startup_feature);
+            uhf_enter_feature(app, uhf_startup_feature(app->startup_app));
         }
     }
 

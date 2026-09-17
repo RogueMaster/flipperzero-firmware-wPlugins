@@ -106,7 +106,7 @@ Catalog bundle, updates the Catalog fork, and opens the upstream pull request.
 
 1. Connect your UHF module as described in [Hardware Setup](#hardware-setup)
 2. Open **Apps → GPIO → UHF Expansion**
-3. Choose **UHF Radar**, **Tag Inventory**, **TID Decoder**, **EPC Fuzzing**, **EPC ASCII**, **Tag Control**, **Access Keys**, **Settings**, or **About Us**
+3. Choose **UHF Radar**, **Tag Inventory**, **EPC Fuzzing**, **EPC ASCII**, **TID Decoder**, **Tag Control**, **Access Keys**, **Settings**, or **About Us**
 4. In UHF Radar or Tag Inventory, press **OK** to start/stop inventory scanning
 5. Navigate the tag list with **Up/Down**
 6. Press **OK** on a tag to view details

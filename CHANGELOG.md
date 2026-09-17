@@ -15,6 +15,7 @@ Unreleased:
 - Added a timed two-press Back confirmation popup before exiting from the main menu.
 - Added an EPC Display setting with HEX and ASCII modes for Tag Inventory.
 - Added an EPC ASCII tool for capturing one tag, editing up to 12 ASCII characters, and writing a verified 96-bit EPC.
+- Moved TID Decoder directly before Tag Control in the main menu.
 - Added wraparound main-menu navigation across each two-item row and between the top and bottom rows.
 - Hid the Tag Control Erase button while the read-only TID bank is selected.
 - Added an Access Key submenu for setting a key from zero or restoring the tag password to zero after banks are unlocked.
