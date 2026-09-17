@@ -1,0 +1,19 @@
+App(
+    # Flipper manifests only allow lowercase appid characters.
+    appid="yrm100x_pro",
+    name="YRM100X_PRO",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="main_uhf_reader_app",
+    # The loader must reserve this before main_uhf_reader_app() can run.
+    # 4 KiB keeps 2 KiB more headroom on memory-constrained firmware states.
+    stack_size=4 * 1024,
+    requires=["gui"],
+    fap_icon="app.png",
+    fap_category="GPIO",
+    fap_icon_assets="icons",
+    fap_icon_assets_symbol="YRM100X_PRO",
+    fap_author="@AlexeySmirnov74",
+    fap_weburl="https://github.com/AlexeySmirnov74/YRM100X_PRO",
+    fap_version="1.7",
+    fap_description="UHF RFID reader, writer, clone and tag toolkit.",
+)

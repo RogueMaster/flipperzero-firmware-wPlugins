@@ -1,0 +1,32 @@
+name: Build and lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ufbt:
+    name: uFBT release SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build application
+        id: build
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          sdk-channel: release
+
+      - name: Lint sources
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          skip-setup: true
+          task: lint
+
+      - name: Upload FAP
+        uses: actions/upload-artifact@v4
+        with:
+          name: YRM100X_PRO-${{ steps.build.outputs.suffix }}
+          path: ${{ steps.build.outputs.fap-artifacts }}

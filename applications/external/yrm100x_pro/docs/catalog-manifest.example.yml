@@ -1,0 +1,22 @@
+# Copy this file to the flipper-application-catalog fork as:
+# applications/GPIO/yrm100x_pro/manifest.yml
+# Replace the placeholder only after the release source and screenshots are
+# committed to the public repository.
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/AlexeySmirnov74/YRM100X_PRO.git
+    commit_sha: REPLACE_WITH_FULL_RELEASE_COMMIT_SHA
+
+short_description: UHF RFID reader, writer, clone and tag toolkit
+description: "@docs/CATALOG.md"
+changelog: "@CHANGELOG.md"
+screenshots:
+  - screenshots/01-main-menu.png
+  - screenshots/02-antenna-info.png
+  - screenshots/03-read-multi.png
+  - screenshots/04-read-forever.png
+  - screenshots/05-saved-dumps.png
+  - screenshots/06-clone-options.png
+  - screenshots/07-bank-info.png
+  - screenshots/08-configure.png

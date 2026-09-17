@@ -1,0 +1,11 @@
+dist/
+.vscode/
+.clangd/
+.ufbt/
+.env
+*.elf
+*.fap
+*.log
+bundle.zip
+YRM100X_PRO_NOTES.md
+.catalog/

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900" role="img" aria-labelledby="title description">
+  <title id="title">Flipper Zero to YRM100X wiring</title>
+  <desc id="description">Five-wire connection: 5V to VCC, 3.3V to EN, Flipper TX to reader RXD, reader TXD to Flipper RX, and common ground.</desc>
+  <rect width="1400" height="900" fill="#ffffff"/>
+
+  <style>
+    .title { font: 700 38px Arial, sans-serif; fill: #171717; }
+    .subtitle { font: 22px Arial, sans-serif; fill: #555; }
+    .box-title { font: 700 29px Arial, sans-serif; fill: #fff; }
+    .box-subtitle { font: 19px Arial, sans-serif; fill: #fff; }
+    .pin-main { font: 700 25px Arial, sans-serif; fill: #171717; }
+    .pin-sub { font: 18px Arial, sans-serif; fill: #555; }
+    .wire-label { font: 700 18px Arial, sans-serif; fill: #171717; }
+    .note-title { font: 700 22px Arial, sans-serif; fill: #171717; }
+    .note { font: 19px Arial, sans-serif; fill: #262626; }
+  </style>
+
+  <text x="700" y="52" text-anchor="middle" class="title">YRM100X_PRO wiring</text>
+  <text x="700" y="88" text-anchor="middle" class="subtitle">Flipper Zero ↔ YRM100 / YRM100X • 3.3 V UART logic • TX and RX are crossed</text>
+
+  <rect x="55" y="125" width="485" height="570" rx="28" fill="#f7f7f7" stroke="#1d1d1d" stroke-width="4"/>
+  <path d="M83 125H512a28 28 0 0 1 28 28v64H55v-64a28 28 0 0 1 28-28z" fill="#ff8200"/>
+  <text x="297" y="168" text-anchor="middle" class="box-title">FLIPPER ZERO GPIO</text>
+  <text x="297" y="198" text-anchor="middle" class="box-subtitle">Application uses USART pins 13 / 14</text>
+
+  <rect x="860" y="125" width="485" height="570" rx="28" fill="#f4faf5" stroke="#1d1d1d" stroke-width="4"/>
+  <path d="M888 125H1317a28 28 0 0 1 28 28v64H860v-64a28 28 0 0 1 28-28z" fill="#277a47"/>
+  <text x="1102" y="168" text-anchor="middle" class="box-title">YRM100 / YRM100X</text>
+  <text x="1102" y="198" text-anchor="middle" class="box-subtitle">5-pin UART connector signal map</text>
+
+  <g>
+    <rect x="82" y="226" width="425" height="58" rx="12" fill="#fff" stroke="#dedede" stroke-width="2"/>
+    <text x="105" y="252" class="pin-main">Pin 1 · 5V</text>
+    <text x="105" y="275" class="pin-sub">Reader supply</text>
+    <circle cx="510" cy="255" r="13" fill="#d72b2b" stroke="#fff" stroke-width="3"/>
+
+    <rect x="82" y="321" width="425" height="58" rx="12" fill="#fff" stroke="#dedede" stroke-width="2"/>
+    <text x="105" y="347" class="pin-main">Pin 9 · 3.3V</text>
+    <text x="105" y="370" class="pin-sub">Enable signal</text>
+    <circle cx="510" cy="350" r="13" fill="#2867c7" stroke="#fff" stroke-width="3"/>
+
+    <rect x="82" y="416" width="425" height="58" rx="12" fill="#fff" stroke="#dedede" stroke-width="2"/>
+    <text x="105" y="442" class="pin-main">Pin 13 · TX</text>
+    <text x="105" y="465" class="pin-sub">Flipper transmits</text>
+    <circle cx="510" cy="445" r="13" fill="#e1ad00" stroke="#fff" stroke-width="3"/>
+
+    <rect x="82" y="511" width="425" height="58" rx="12" fill="#fff" stroke="#dedede" stroke-width="2"/>
+    <text x="105" y="537" class="pin-main">Pin 14 · RX</text>
+    <text x="105" y="560" class="pin-sub">Flipper receives</text>
+    <circle cx="510" cy="540" r="13" fill="#16885b" stroke="#fff" stroke-width="3"/>
+
+    <rect x="82" y="606" width="425" height="58" rx="12" fill="#fff" stroke="#dedede" stroke-width="2"/>
+    <text x="105" y="632" class="pin-main">Pin 8, 11 or 18 · GND</text>
+    <text x="105" y="655" class="pin-sub">Common ground</text>
+    <circle cx="510" cy="635" r="13" fill="#242424" stroke="#fff" stroke-width="3"/>
+  </g>
+
+  <g>
+    <rect x="893" y="226" width="425" height="58" rx="12" fill="#fff" stroke="#d8e8dc" stroke-width="2"/>
+    <circle cx="890" cy="255" r="13" fill="#d72b2b" stroke="#fff" stroke-width="3"/>
+    <text x="925" y="252" class="pin-main">Pin 1 · VCC</text>
+    <text x="925" y="275" class="pin-sub">5 V input</text>
+
+    <rect x="893" y="321" width="425" height="58" rx="12" fill="#fff" stroke="#d8e8dc" stroke-width="2"/>
+    <circle cx="890" cy="350" r="13" fill="#2867c7" stroke="#fff" stroke-width="3"/>
+    <text x="925" y="347" class="pin-main">Pin 4 · EN</text>
+    <text x="925" y="370" class="pin-sub">Enable, 3.3 V</text>
+
+    <rect x="893" y="416" width="425" height="58" rx="12" fill="#fff" stroke="#d8e8dc" stroke-width="2"/>
+    <circle cx="890" cy="445" r="13" fill="#e1ad00" stroke="#fff" stroke-width="3"/>
+    <text x="925" y="442" class="pin-main">Pin 2 · RXD</text>
+    <text x="925" y="465" class="pin-sub">Reader receives</text>
+
+    <rect x="893" y="511" width="425" height="58" rx="12" fill="#fff" stroke="#d8e8dc" stroke-width="2"/>
+    <circle cx="890" cy="540" r="13" fill="#16885b" stroke="#fff" stroke-width="3"/>
+    <text x="925" y="537" class="pin-main">Pin 3 · TXD</text>
+    <text x="925" y="560" class="pin-sub">Reader transmits</text>
+
+    <rect x="893" y="606" width="425" height="58" rx="12" fill="#fff" stroke="#d8e8dc" stroke-width="2"/>
+    <circle cx="890" cy="635" r="13" fill="#242424" stroke="#fff" stroke-width="3"/>
+    <text x="925" y="632" class="pin-main">Pin 5 · GND</text>
+    <text x="925" y="655" class="pin-sub">Common ground</text>
+  </g>
+
+  <g fill="none" stroke-linecap="round" stroke-width="9">
+    <path d="M523 255H877" stroke="#d72b2b"/>
+    <path d="M523 350H877" stroke="#2867c7"/>
+    <path d="M523 445H877" stroke="#e1ad00"/>
+    <path d="M877 540H523" stroke="#16885b"/>
+    <path d="M523 635H877" stroke="#242424"/>
+  </g>
+
+  <polygon points="877,255 855,243 855,267" fill="#d72b2b"/>
+  <polygon points="877,350 855,338 855,362" fill="#2867c7"/>
+  <polygon points="877,445 855,433 855,457" fill="#e1ad00"/>
+  <polygon points="523,540 545,528 545,552" fill="#16885b"/>
+
+  <g>
+    <rect x="629" y="230" width="142" height="34" rx="17" fill="#fff" stroke="#d72b2b" stroke-width="2"/>
+    <text x="700" y="253" text-anchor="middle" class="wire-label">5V → VCC</text>
+    <rect x="626" y="325" width="148" height="34" rx="17" fill="#fff" stroke="#2867c7" stroke-width="2"/>
+    <text x="700" y="348" text-anchor="middle" class="wire-label">3.3V → EN</text>
+    <rect x="629" y="420" width="142" height="34" rx="17" fill="#fff" stroke="#e1ad00" stroke-width="2"/>
+    <text x="700" y="443" text-anchor="middle" class="wire-label">TX → RXD</text>
+    <rect x="629" y="515" width="142" height="34" rx="17" fill="#fff" stroke="#16885b" stroke-width="2"/>
+    <text x="700" y="538" text-anchor="middle" class="wire-label">RX ← TXD</text>
+    <rect x="640" y="610" width="120" height="34" rx="17" fill="#fff" stroke="#242424" stroke-width="2"/>
+    <text x="700" y="633" text-anchor="middle" class="wire-label">GND</text>
+  </g>
+
+  <rect x="55" y="724" width="1290" height="135" rx="22" fill="#fff5e9" stroke="#ff8200" stroke-width="3"/>
+  <text x="82" y="760" class="note-title">Power</text>
+  <text x="82" y="791" class="note">Shown: Flipper pin 1 supplies YRM VCC. YRM100X_PRO enables 5 V OTG when USB-C VBUS is absent.</text>
+  <text x="82" y="820" class="note">External supply alternative: power YRM VCC from one regulated 5 V source, share GND, and leave Flipper pin 1 disconnected.</text>
+  <text x="82" y="849" class="note-title">Never join two 5 V sources. Connect with power off. UART and EN logic must remain 3.3 V.</text>
+</svg>
