@@ -1,0 +1,16 @@
+dist
+*.fap
+.vscode
+keys.txt
+*_keys.txt
+
+# host test binaries
+tests/test_*
+!tests/test_*.c
+tests/dfc_virtual_picc_host
+tests/run_vectors
+tests/dfc_probe
+
+# Python bytecode from the corpus tools
+__pycache__/
+*.pyc

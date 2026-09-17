@@ -1,0 +1,19 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # Test the pinned engine with the same crypto dependencies as the app.
+  engine-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run the engine suite
+        run: >-
+          make -C lib/core/tests test
+          TINY_AES_DIR=../../tiny-AES-c
+          TINY_DES_DIR=../../tiny-DES-c
