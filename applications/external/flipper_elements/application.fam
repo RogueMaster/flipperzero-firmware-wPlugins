@@ -1,0 +1,14 @@
+App(
+    appid="flipper_elements",
+    name="Flipper Elements",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_elements_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    order=30,
+    fap_icon="flipper_elements_10px.png",
+    fap_category="Tools",
+    fap_version="1.4",
+    fap_author="Siarhei Besarab (@steanlab)",
+    fap_description="Periodic Table of Elements for Flipper Zero",
+)
