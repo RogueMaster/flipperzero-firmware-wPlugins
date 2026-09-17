@@ -1,6 +1,11 @@
 #include "../sigroam.h"
+#include "../src/sr_sess_seed.h"
 
 #include <string.h>
+
+_Static_assert(
+    (unsigned)SR_QUAL_REFRESH_PERIOD_TICKS == 5000u / (unsigned)SR_TICK_PERIOD_MS,
+    "E-2: SR_QUAL_REFRESH_PERIOD_TICKS must equal 5000 ms / SR_TICK_PERIOD_MS");
 
 enum {
     SigRoamDashEventScroll = 0,
@@ -143,6 +148,13 @@ static void dash_fill(SigRoamApp* app, SrDashModel* snap) {
     snap->stream_top = top;
     snap->stream_count = count;
     snap->stream_n = n;
+
+    snap->qual = app->model.qual;
+    snap->qual_rev = app->model.qual_rev;
+    snap->qual_tick_ms = app->model.qual_tick_ms;
+    snap->sess_ms = app->model.sess.ms;
+    snap->radio = app->model.radio;
+    snap->radio_rev = app->model.radio_rev;
 }
 
 void sigroam_dash_refresh(SigRoamApp* app) {
@@ -338,6 +350,7 @@ static void dash_queue_cmd(SigRoamApp* app, bool is_start) {
      * cmdack_now == cmdack_at_send would hold forever -> stuck in SrWaitStageCmd forever. */
     app->scan_cmdack_at_send =
         sr_worker_cmdack_count(app->worker, is_start ? SrCmdAckStart : SrCmdAckStop);
+    app->scan_busy_rev_at_send = app->model.busy_rev;
     if(n > 0 && sr_worker_send_cmd(app->worker, cmd)) {
         app->scan.cmd_pending = true;
         app->scan.cmd_rejected = false;
@@ -383,6 +396,17 @@ static bool dash_scan_tick(SigRoamApp* app) {
     if(!app->scan.cmd_pending) {
         return false;
     }
+    /* An explicit refusal is not a timeout, and only the refusal may clear pending here.
+     * The board echoes the command (so cmdack advances and the L2 line goes away) and
+     * then answers "Busy: st=.. seal=..", meaning it will not act. Waiting on that
+     * forever would strand the UI on a question that has already been answered, while
+     * the timeout rule above must stay exactly as it is.
+     * != , not > : busy_rev wraps, same as cmdack and the furi tick. */
+    if(app->model.busy_rev != app->scan_busy_rev_at_send) {
+        app->scan.cmd_pending = false;
+        app->scan.cmd_rejected = false;
+        return true;
+    }
     ctx = app->scan;
     ctx.session_rev_now = app->model.session_rev;
     ctx.session_now = app->model.session;
@@ -396,12 +420,104 @@ static bool dash_scan_tick(SigRoamApp* app) {
     return false;
 }
 
+/* Card N1. The board keeps scanning after the app exits (scene_start.c:13-16), so a
+ * fresh launch can disagree with it; on_enter asks with `info` and this consumes the
+ * answer. Returns true when the model changed, so the caller refreshes the snapshot.
+ * Eval guards live in sr_peer_sync_eval(); disarm policy in sr_peer_sync_on_tick. */
+static bool dash_peer_sync_tick(SigRoamApp* app) {
+    SrPeerSyncTick t;
+
+    /* Disarm policy is entirely in sr_peer_sync_on_tick. Do not write
+     * peer_sync_pending = false on any other path in this function. */
+    t = sr_peer_sync_on_tick(
+        app->peer_sync_pending,
+        app->model.firmware_rev,
+        app->peer_sync_fw_rev,
+        app->model.firmware.diag_seen,
+        app->model.firmware.diag_state,
+        app->model.session,
+        app->scan.cmd_pending);
+    app->peer_sync_pending = t.keep_pending;
+    if(t.act != SrPeerSyncAdoptRunning) {
+        return false;
+    }
+    if(!sr_model_adopt_running(&app->model, furi_get_tick())) {
+        return false;
+    }
+    /* Seed is a second, idempotent step. Sess: is the last line of #info
+     * (n6-fap-sess-consume.md §2) so it may not have arrived yet; leave
+     * pending set and let dash_sess_seed_tick retry every tick. */
+    app->sess_seed_pending = true;
+    return true;
+}
+
+/* Card N6. Overlay the board's Sess: totals onto an adopted session.
+ * Every guard lives in sr_sess_seed_eval(); this function only moves data.
+ * Re-enter Dash snapshots sess_rev before the new info; seed waits for
+ * sess_rev != that snapshot, so a Probe leftover cannot stick (C3/C4). */
+static bool dash_sess_seed_tick(SigRoamApp* app) {
+    if(sr_sess_seed_eval(
+           app->model.sess_rev,
+           app->sess_seed_rev_at_send,
+           app->model.sess.ms,
+           app->model.session,
+           app->sess_seed_pending) != SrSessSeedApply) {
+        return false;
+    }
+    sr_model_seed_from_sess(&app->model, furi_get_tick());
+    app->sess_seed_pending = false;
+    return true;
+}
+
+/*
+ * F2 rev2 §1A. Dash on_enter sends `info` exactly once (below); without a
+ * repeat, the F2 headline freezes at whatever Qual: it read on entry --
+ * elapsed_ms keeps climbing underneath a stale verdict (false-WARN /
+ * false-OK, docs/exec-plans/f2-capture-health-rev2.md §1). This resends
+ * `info` every SR_QUAL_REFRESH_PERIOD_TICKS ticks while Dash is active.
+ *
+ * `info` is read-only on the firmware side (same fact on_enter's own
+ * comment relies on), so this is safe mid-scan.
+ *
+ * HARD CONSTRAINT (card §1A): this function must NEVER write
+ * app->peer_sync_pending or app->sess_seed_pending. sr_peer_sync_on_tick
+ * returns SrPeerSyncNone whenever cur == SrSessionRunning (sr_peer_sync.h
+ * :111-115) and sr_sess_seed_eval returns SrSessSeedNone whenever
+ * seed_pending is false (sr_sess_seed.h:42-46) -- as long as this function
+ * never arms either flag, the reply this triggers can only refresh
+ * model.qual / model.qual_tick_ms, never re-adopt or re-seed. tools/
+ * host_test/test_f2_health2.c locks this invariant at the pure-function
+ * level; the Makefile's qual_refresh_guard locks it at the source level.
+ *
+ * sr_worker_send_cmd returning false (queue full / link busy) is not
+ * retried or counted; the next period tries again (card §1A).
+ */
+static void dash_qual_refresh_tick(SigRoamApp* app) {
+    if(!sr_qual_refresh_due(app->tick_n, (uint32_t)SR_QUAL_REFRESH_PERIOD_TICKS)) {
+        return;
+    }
+    if(app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
+        return;
+    }
+    (void)sr_worker_send_cmd(app->worker, "info\n");
+}
+
 void sigroam_scene_dash_on_enter(void* context) {
     SigRoamApp* app = context;
 
     /* Entered via the custom callback, so app->mtx is already held. Do not acquire again. No blocking IO. */
     sr_view_dash_set_callback(app->dash, dash_view_scroll_cb, app);
     sr_view_dash_set_ok_callback(app->dash, dash_view_ok_cb, app);
+    /* Card N1: ask the board what it is doing. `info` is read-only on the firmware side
+     * (link_task.c:305-327 is echo + four handshake lines + Diag: + CmdTrace:, and
+     * touches neither g_session_state nor the seal flags), so this is safe to send even
+     * mid-scan. The reply is asynchronous; dash_peer_sync_tick() applies it. */
+    app->peer_sync_fw_rev = app->model.firmware_rev;
+    app->sess_seed_rev_at_send = app->model.sess_rev;
+    app->peer_sync_pending = false;
+    if(app->io != NULL && sr_io_is_open(app->io) && app->worker != NULL) {
+        app->peer_sync_pending = sr_worker_send_cmd(app->worker, "info\n");
+    }
     sigroam_dash_refresh(app);
     sr_notify_backlight_enforce(app->notify, sr_settings_effective_backlight(&app->settings));
     view_dispatcher_switch_to_view(app->view_dispatcher, SigRoamViewDash);
@@ -468,13 +584,23 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
     }
 
     if(event.type == SceneManagerEventTypeTick) {
-        bool need = dash_gps_tick(app);
+        /* Adoption runs first: dash_scan_tick and dash_gps_tick both read
+         * model.session, and they must see the adopted value in the same tick.
+         * Seeding runs next so those ticks also see the board's ap/ble/elapsed. */
+        bool need = dash_peer_sync_tick(app);
+        if(dash_sess_seed_tick(app)) {
+            need = true;
+        }
+        if(dash_gps_tick(app)) {
+            need = true;
+        }
         if(dash_scan_tick(app)) {
             need = true;
         }
         if(dash_poi_tick(app)) {
             need = true;
         }
+        dash_qual_refresh_tick(app);
         SrAlertKind ak = sr_alert_eval(
             &app->alert, app->model.gps_csv_rev, app->model.gps_csv.fix, furi_get_tick());
         if(ak != SrAlertNone) {

@@ -5,6 +5,44 @@ All notable changes to SigRoam are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4] — 2026-09-17
+
+Scout Lite identity on the Sess tab, a capture-quality headline, BLE-off on
+Dash, a Dash/GPS layout pass, About lockup A2, and a second Unleashed build.
+
+### Added
+
+- **The Sess tab names a Scout Lite board SigRoam.** The eight-byte wire token
+  is still `Firmware: Marauder` and is not shown on this tab. The status line
+  is Running or Sealed, the duration, and the radio permission (`W+B` / `W` /
+  `B` / `--`). A generic Marauder board still shows the wire firmware name.
+- **Dashboard capture-quality headline.** When the scanner sends `Qual:`, Dash
+  shows fix%, drop and net, refreshed on the shared 5-second tick. A stale
+  headline degrades instead of looking current.
+- **Dash shows BLE=OFF** when the scanner reports `Radio: ble=0`.
+- **A second `.fap` for Unleashed.** Official 1.4.3 and Momentum `mntm-012`
+  both report API 87.1, so one Official-SDK build covers both. Unleashed
+  `unlshd-093` (2026-09-12) is API 88.9; the loader compares the API major
+  exactly, so that firmware needs its own file. Tapping Continue on an API
+  mismatch is not support.
+
+### Changed
+
+- The app title is **SigRoam Wardriving**. Probe names SigRoam firmware when
+  it is talking to this scanner. The handshake token on the wire is unchanged.
+- **About lockup A2:** `SigRoam Wardriving v0.4` on one line (normal spacing),
+  maker line `by PINGEQUA Lab`, QR dropped to the second row. On-device
+  version matches `fap_version` 0.4 (it still said 0.3). Receive-only, No
+  attack, Marauder compatible, and the QR short link are unchanged.
+- The unique-BSSID count is the big number at the top of Dash again.
+- The status line sits on the bottom: OK, fix percent, drop, and SAT. Bytes
+  received (`rx=`) no longer show on the normal Dash while a SigRoam scan is
+  running.
+- The GPS tab dropped the `(live)` tag. Accuracy is labelled `Acc:~` because
+  it is an estimate.
+- SAT on Dash and GPS comes from the survey snapshot or a fresh Qual reading,
+  not a separate `gpsdata` poll during a scan.
+
 ## [0.3] — 2026-09-04
 
 Scan control, where the GPS reading comes from, the notification switches, and

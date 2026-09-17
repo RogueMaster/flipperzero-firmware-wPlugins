@@ -124,8 +124,15 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
     m->last_unknown_len = 0;
 
     /* session / gps / last_tick / the bloom pointer / the rawlog pointer / firmware /
-     * firmware_rev / session_rev / gps_stop_rev are all preserved.
+     * firmware_rev / busy / busy_rev / sess / sess_rev / qual / qual_rev / qual_tick_ms /
+     * radio / radio_rev / session_rev / gps_stop_rev are all preserved.
      * firmware is device identity, not session data (ADR-016 decision 5).
+     * sess / sess_rev are the peer's last reported snapshot, same family as firmware /
+     * busy_rev, not this model's session data — reset must not clear them (N6).
+     * qual / qual_rev / qual_tick_ms are the same family (F2 board snapshot, not this
+     * model's counts) — F2 rev2 adds qual_tick_ms alongside them for the same reason.
+     * radio / radio_rev are the same family (T6.5 Radio: permission bits). radio_rev==0
+     * is unknown, not "both radios off".
      * session_rev is a cumulative transition count and reset must not clear it (ADR-017 decision 3).
      * gps_stop_rev follows the same convention and reset must not clear it (ADR-020 / ADR-017
      * decision 3).
@@ -152,6 +159,31 @@ static bool apply_started(SrModel* m, uint32_t tick_ms) {
     }
     m->illegal_trans++;
     return false;
+}
+
+bool sr_model_adopt_running(SrModel* m, uint32_t tick_ms) {
+    if(m == NULL) {
+        return false;
+    }
+    /* Reuses apply_started rather than repeating it: the Stopped branch's
+     * sr_model_reset_session() call is easy to forget, and forgetting it would carry the
+     * previous session's AP counts into the adopted one. */
+    return apply_started(m, tick_ms);
+}
+
+bool sr_model_seed_from_sess(SrModel* m, uint32_t tick_ms) {
+    if(m == NULL) {
+        return false;
+    }
+    /* Overwrite, not +=. Rows that landed between adopt and seed are already
+     * inside sess.ap / sess.ble; adding them here double-counts. */
+    m->ap_wifi = m->sess.ap;
+    m->ap_ble = m->sess.ble;
+    /* Unsigned subtraction: the furi tick wraps. Pair with scene_dash.c:78.
+     * Do not clamp when sess.ms > tick_ms — that is the common case of a
+     * freshly-booted Flipper joining a board that has been scanning for a while. */
+    m->started_tick_ms = tick_ms - m->sess.ms;
+    return true;
 }
 
 static bool apply_stopped(SrModel* m, SrStopReason reason) {
@@ -280,6 +312,23 @@ bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms) {
     case SrEventFirmware:
         m->firmware = ev->u.firmware;
         m->firmware_rev++;
+        return true;
+    case SrEventBusy:
+        m->busy = ev->u.busy;
+        m->busy_rev++;
+        return true;
+    case SrEventSess:
+        m->sess = ev->u.sess;
+        m->sess_rev++;
+        return true;
+    case SrEventQual:
+        m->qual = ev->u.qual;
+        m->qual_rev++;
+        m->qual_tick_ms = tick_ms; /* F2 rev2 §1B staleness anchor */
+        return true;
+    case SrEventRadio:
+        m->radio = ev->u.radio;
+        m->radio_rev++;
         return true;
     case SrEventUnknown:
         return apply_unknown(m, &ev->u.unknown);

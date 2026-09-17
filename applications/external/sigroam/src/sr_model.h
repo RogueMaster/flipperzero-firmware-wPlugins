@@ -77,6 +77,19 @@ typedef struct {
 
     SrFirmwareInfo firmware;
     uint32_t firmware_rev; /* Incremented on each SrEventFirmware; 0 = never seen */
+    SrBusyInfo busy; /* Last explicit refusal from the board (2026-09-07) */
+    uint32_t
+        busy_rev; /* Incremented on each SrEventBusy; 0 = never refused. Snapshot it before sending, like session_rev, and compare with != */
+    SrSessInfo sess; /* Last strict Sess: snapshot; not session data of this model */
+    uint32_t sess_rev; /* Incremented on each SrEventSess; 0 = never seen. Compare with != */
+    SrQualInfo qual; /* Last strict Qual: snapshot; not session data of this model */
+    uint32_t qual_rev; /* Incremented on each SrEventQual; 0 = never seen. Compare with != */
+    /* F2 rev2 §1B: furi tick at the most recent SrEventQual, written in sr_model_apply.
+     * Paired with SR_QUAL_STALE_MS (src/sr_view_fmt.h) by the Dash render gate to degrade
+     * a superannuated Qual: to the unknown state instead of freezing the old verdict. */
+    uint32_t qual_tick_ms;
+    SrRadioInfo radio; /* Last strict Radio: snapshot; permission bits, not Sess: counts */
+    uint32_t radio_rev; /* Incremented on each SrEventRadio; 0 = never seen (unknown, not 0) */
     uint32_t
         session_rev; /* Incremented whenever the session actually transitions; pairs with the ADR-017 start/stop confirmation criteria */
     uint32_t
@@ -104,6 +117,43 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom);
  * SrStopEndNmea increment gps_stop_rev, leave session alone, and return false (ADR-020 sampling close-out).
  */
 bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms);
+
+/*
+ * Card N1. Adopt a session the board is already running, learned from the Diag: line
+ * rather than from a ScanStarted event. Takes exactly the same transition as an
+ * SrEventScanStarted would (statistics reset when coming from Stopped, started_tick_ms
+ * set, session_rev incremented), so nothing downstream has to special-case it.
+ *
+ * Call it only when sr_peer_sync_eval() returned SrPeerSyncAdoptRunning; that function
+ * owns the guards. Calling it while already Running counts an illegal transition, which
+ * is what apply_started() does for the same input and is left deliberately visible.
+ *
+ * started_tick_ms is the adoption instant. Card N6 overwrites it from Sess: ms
+ * via sr_model_seed_from_sess() once that line has been seen (unsigned wrap is
+ * allowed; do not clamp). Until then elapsed counts from relaunch.
+ *
+ * Returns true when the model changed.
+ */
+bool sr_model_adopt_running(SrModel* m, uint32_t tick_ms);
+
+/*
+ * Overlay the board's Sess: snapshot onto this model's live counters.
+ * Call only when sr_sess_seed_eval() returned SrSessSeedApply; that function
+ * owns the guards. Assignment is overwrite, not += : CSV rows that arrived
+ * between adopt and seed are already inside sess.ap / sess.ble (the board
+ * counted them first). Adding them again double-counts.
+ *
+ * started_tick_ms = tick_ms - sess.ms (uint32, wrap-around is the pairing
+ * with scene_dash.c elapsed_ms = now - started_tick_ms).
+ *
+ * ⚠ Same-launch Stopped → adopt again must not seed the previous Sess:
+ * snapshot. Dash on_enter snapshots sess_rev before it queues info; seed
+ * waits for sess_rev != that snapshot (n1n6-c1c3-fix). Re-entering Dash
+ * is a new ask, so the next #info's Sess: is what corrects the display.
+ *
+ * Returns true when the model changed.
+ */
+bool sr_model_seed_from_sess(SrModel* m, uint32_t tick_ms);
 
 /* idx 0 = newest. Returns NULL when idx >= count or m is NULL. */
 const SrApBrief* sr_model_recent(const SrModel* m, size_t idx);

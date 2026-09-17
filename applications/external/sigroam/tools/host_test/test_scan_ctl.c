@@ -312,6 +312,8 @@ int test_scan_ctl_run(void) {
 
     fprintf(stderr, "sizeof(SrModel)=%zu\n", sizeof(SrModel));
     fprintf(stderr, "sizeof(SrParser)=%zu\n", sizeof(SrParser));
+    fprintf(stderr, "sizeof(SrEvent)=%zu\n", sizeof(SrEvent));
+    fprintf(stderr, "sizeof(SrSessInfo)=%zu\n", sizeof(SrSessInfo));
     fprintf(stderr, "sizeof(SrScanCtlCtx)=%zu\n", sizeof(SrScanCtlCtx));
     CHECK(sizeof(SrScanCtlCtx) == 24);
     /* SrIoStats lives in sr_io.h and pulls in furi, so host_test cannot include it.
@@ -319,10 +321,22 @@ int test_scan_ctl_run(void) {
      * → 32. */
     fprintf(stderr, "sizeof(SrIoStats)=%zu\n", (size_t)(8u * sizeof(uint32_t)));
     /* T3.4 was 3168. After T4.6 added SrRawLog* (8 B, right next to SrBloom*), the 64-bit
-     * host value became 3176. D12 added SrGpsCsvView + gps_csv_rev → 3328. */
-    CHECK(sizeof(SrModel) == 3328);
+     * host value became 3176. D12 added SrGpsCsvView + gps_csv_rev → 3328.
+     * 2026-09-07: the #info Diag line added diag_seen/state/seal/hb[6] to SrFirmwareInfo (+28) and SrEventBusy added busy/busy_rev to SrModel. → 3368.
+     * 2026-09-09 N6: +SrSessInfo(12) + sess_rev(4) = +16 → 3384. SrEvent stays 240
+     * (Sess: is an independent arm narrower than SrFirmwareInfo).
+     * 2026-09-15 F2 rev1: +SrQualInfo(20) + qual_rev(4) = +24 → 3408. SrEvent stays 240
+     * (Qual: is an independent arm, sizeof 20).
+     * 2026-09-15 F2 rev2: +qual_tick_ms(4) absorbs 4 B of pre-existing padding
+     * before char last_unknown[512] -- stays 3408 (see test_model.c for the
+     * full alignment argument). SrEvent untouched, still 240.
+     * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
+     * SrEvent still 240 (radio arm is 2 B). */
+    CHECK(sizeof(SrModel) == 3416);
     CHECK(sizeof(SrModel) <= 4096);
-    CHECK(sizeof(SrParser) == 424);
+    CHECK(sizeof(SrParser) == 452);
+    CHECK(sizeof(SrEvent) == 240);
+    CHECK(sizeof(SrSessInfo) == 12);
     CHECK((size_t)(8u * sizeof(uint32_t)) == 32);
 
     return sr_test_failures;

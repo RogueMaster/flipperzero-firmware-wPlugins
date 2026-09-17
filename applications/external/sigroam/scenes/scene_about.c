@@ -39,32 +39,32 @@
  *      and **draws no code**, guaranteeing the conflict notice stays complete and scrollable.
  *      The predicate is sigroam_log_device_conflicts(), the same function as before.
  *
- * Layout (coordinates computed: SR_VIEW_COLS=20 -> 6.4 px/char; the 37x37 code already
- * includes a 4-module quiet zone on each side):
+ * Layout (2026-09-17 lockup A2). FontSecondary = u8g2_font_haxrcorp4089_tr.
+ * QR is 37x37 at (91, 13): dropped onto the second-row cap so row 1 is a
+ * full-width title bar. y=13 is the window that both clears row 1 (descender
+ * ends y=12) and leaves the URL cap (y=53) below the code (y=13..49).
  *
  *   x: 0                        90 91              127
- *      ┌─────────────────────────┬──────────────────┐
- *  b10 │ SigRoam <ver>           │ I_sr1g_qr        │
- *  b20 │ Wardriving              │ 37x37 (x=91,y=0) │
- *  b30 │ Receive-only.           │ QR spans y=0..36 │
- *  b40 │ No attack.              │ (b40 clears by x)│
+ *      ┌────────────────────────────────────────────┐
+ *  b10 │ SigRoam Wardriving v0.4                    │  full 128, 105 px
+ *      ├─────────────────────────┬──────────────────┤
+ *  b20 │ by PINGEQUA Lab         │ I_sr1g_qr        │  74 px
+ *  b30 │ Receive-only.           │ 37x37 (x=91,     │
+ *  b40 │ No attack.              │     y=13..49)    │
+ *  b50 │ Marauder compatible     │ (clears by x)    │
  *      ├─────────────────────────┴──────────────────┤
- *  b50 │ Marauder compatible    (full width, <=20)  │
- *  b60 │ go.pingequa.com/sr1g                       │
+ *  b60 │ go.pingequa.com/sr1g                       │  full 128
  *      └────────────────────────────────────────────┘
  *
- * Two INDEPENDENT clearances -- do not conflate them:
- *    (1) The four upper rows clear the code by **x** -- their width must be <= 91 px
- *        (the longest, "Receive-only." at 13 chars, is about 83 px).
- *        String elements are **not clipped**: anything wider is drawn straight over the
- *        code. The cap height of b40 at 30 is still inside the code's y range, so it is
- *        safe **only because** x is bounded, not because of y.
- *    (2) The full-width rows clear the code by **y** -- baseline >= 47
- *        (cap height = baseline - ascent >= 37).
- *        50 was chosen over 47 to keep a full font_height (about 10) away from the last
- *        upper row's baseline of 40, so the rows do not collide.
- *        The last row, 60 + descent (about 2) = 62 < 64: flush with the bottom but inside.
- * The upper width of 91 is not arbitrary: 91 + 37 = 128 lands exactly on the right edge.
+ * Three INDEPENDENT clearances -- do not conflate them:
+ *    (1) Row 1 is full width. One string, normal FontSecondary advance:
+ *        "SigRoam Wardriving v" SR_FAP_VERSION = 105 px (fits 128).
+ *    (2) Rows 2-5 overlap the code in y, so width must be <= 91 px.
+ *        Longest is "Marauder compatible" at 89 px; maker line 74 px.
+ *        String elements are **not clipped**.
+ *    (3) Row 6 clears the code by **y** -- cap 53 sits below QR bottom 49.
+ *        60 + descent (about 2) = 62 < 64: flush with the bottom but inside.
+ * The 91 px column is not arbitrary: 91 + 37 = 128 lands on the right edge.
  *
  * [Revised 2026-09-01 after the B-stage rejection] The original used two
  * widget_add_text_box_element regions for layout, and **hardware photos showed the upper
@@ -87,15 +87,10 @@
  * semantics as canvas_draw_str(x, baseline) in views/sr_view_dash.c.
  */
 
-/* In the normal layout only the first row needs a version filled in at runtime; the other
- * four are static literals.
+/* Draw one left-aligned row. y IS the baseline: the AlignBottom branch of
+ * canvas_draw_str_aligned does not adjust y.
  * widget_add_string_element stores a FuriString copy internally (official
- * widget_element_string.c), so passing a literal or app->about_text is equally safe. */
-static void sigroam_scene_about_fill_top(SigRoamApp* app) {
-    snprintf(app->about_text, sizeof(app->about_text), "SigRoam %s", SR_FAP_VERSION);
-}
-
-/* Draw one row. y IS the baseline: the AlignBottom branch of canvas_draw_str_aligned does not adjust y. */
+ * widget_element_string.c), so passing a literal is safe. */
 static void sigroam_scene_about_line(SigRoamApp* app, int32_t baseline, const char* text) {
     widget_add_string_element(
         app->widget, 0, baseline, AlignLeft, AlignBottom, FontSecondary, text);
@@ -108,7 +103,7 @@ static void sigroam_scene_about_fill_conflict(SigRoamApp* app) {
     snprintf(
         app->about_text,
         sizeof(app->about_text),
-        "\e#SigRoam %s\n"
+        "\e#SigRoam Wardriving v" SR_FAP_VERSION "\n" SR_BRAND_LINE "\n"
         "\n"
         "CONFLICT: set\n"
         "Settings > System >\n"
@@ -121,8 +116,7 @@ static void sigroam_scene_about_fill_conflict(SigRoamApp* app) {
         "Works with ESP32\n"
         "Marauder scanners\n"
         "with GPS and SD.\n"
-        "\n" SR_BRAND_URL "\n",
-        SR_FAP_VERSION);
+        "\n" SR_BRAND_URL "\n");
 }
 
 void sigroam_scene_about_on_enter(void* context) {
@@ -137,37 +131,29 @@ void sigroam_scene_about_on_enter(void* context) {
         widget_add_text_scroll_element(
             app->widget, 0, 0, SR_CANVAS_W, SR_CANVAS_H, app->about_text);
     } else {
-        sigroam_scene_about_fill_top(app);
+        /* Row 1 is full width (QR starts at y=13). Title + version, normal advance. */
+        sigroam_scene_about_line(app, 10, "SigRoam Wardriving v" SR_FAP_VERSION);
 
-        /* Four upper rows: width must be <= SR_ABOUT_QR_X(91), about 14 chars, or they are
-         * drawn over the code.
-         * Row 4's baseline of 40 (cap height 30) is still inside the code's y range; it clears
-         * by the x bound, not by y. */
-        sigroam_scene_about_line(app, 10, app->about_text);
-        sigroam_scene_about_line(app, 20, "Wardriving");
+        /* Rows 2-5 overlap the code in y: width must be <= SR_ABOUT_QR_X (91). */
+        sigroam_scene_about_line(app, 20, SR_BRAND_LINE);
         sigroam_scene_about_line(app, 30, "Receive-only.");
         sigroam_scene_about_line(app, 40, "No attack.");
 
-        /* Two lower rows: full width. The baseline must be >= 47 to stay out of the code's
-         * quiet zone (cap height = baseline - ascent).
-         * 50/60 rather than 47/57: a full font_height (about 10) away from the last upper
-         * row's baseline of 40, avoiding collision.
-         *
-         * NOTE: "Marauder compatible" is a **compatibility statement, not an identity**
+        /* NOTE: "Marauder compatible" is a **compatibility statement, not an identity**
          *    (user decision, 2026-09-01): SigRoam is dedicated wardriving software that is
          *    compatible with Marauder, not something "made for Marauder".
          *    The in-house firmware in ADR-023 speaks the @SR1 protocol -- hardcoding Marauder
          *    would block that path.
          *    An earlier version read "For ESP32 Marauder", which drifted toward exclusivity
-         *    and was rejected.
-         *
-         * The last row and the QR code resolve to the same short link -- the code encodes
-         * "https://" SR_BRAND_URL, so changing SR_BRAND_URL requires regenerating
-         * assets/sr1g_qr.png as well (see constraint (2) in sigroam.h). */
+         *    and was rejected. 89 px, still inside the 91 px column. */
         sigroam_scene_about_line(app, 50, "Marauder compatible");
+
+        /* Row 6 full width: cap y=53 sits below the code (y=13..49).
+         * Same short link as the QR -- changing SR_BRAND_URL requires regenerating
+         * assets/sr1g_qr.png (constraint (2) in sigroam.h). */
         sigroam_scene_about_line(app, 60, SR_BRAND_URL);
 
-        widget_add_icon_element(app->widget, SR_ABOUT_QR_X, 0, &I_sr1g_qr);
+        widget_add_icon_element(app->widget, SR_ABOUT_QR_X, SR_ABOUT_QR_Y, &I_sr1g_qr);
     }
 
     view_dispatcher_switch_to_view(app->view_dispatcher, SigRoamViewWidget);

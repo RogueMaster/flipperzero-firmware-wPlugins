@@ -25,6 +25,70 @@ static int streq(const char* a, const char* b) {
     return a[i] == b[i];
 }
 
+/*
+ * D19 AP-row oracle: snprintf + strlen based, deliberately a different code
+ * path than sr_fmt_ap_row's sr_fmt__cpy / sr_fmt__udec ladder. Same level
+ * contract (L0 full row if it fits -> L1 HhMM when >= 1h -> L2 no duration),
+ * independently written.
+ */
+static void oracle_ap_row(
+    uint32_t ap,
+    uint32_t radio_rev,
+    uint8_t radio_ble,
+    uint32_t ap_ble,
+    uint32_t ms,
+    size_t max_cols,
+    char* out,
+    size_t cap) {
+    char ble[16];
+    char dur[24];
+    char full[80];
+    size_t fl;
+
+    if(radio_rev != 0u && radio_ble == 0u) {
+        snprintf(ble, sizeof(ble), "OFF");
+    } else {
+        snprintf(ble, sizeof(ble), "%u", ap_ble);
+    }
+    if(ms < 3600000u) {
+        snprintf(dur, sizeof(dur), "%02u:%02u", ms / 60000u, (ms / 1000u) % 60u);
+    } else {
+        snprintf(
+            dur,
+            sizeof(dur),
+            "%u:%02u:%02u",
+            ms / 3600000u,
+            (ms / 60000u) % 60u,
+            (ms / 1000u) % 60u);
+    }
+    snprintf(full, sizeof(full), "AP=%u BLE=%s %s", ap, ble, dur);
+    fl = strlen(full);
+    if(fl <= max_cols) {
+        /* L0 keeps the full duration. */
+    } else if(ms >= 3600000u) {
+        snprintf(dur, sizeof(dur), "%uh%02u", ms / 3600000u, (ms / 60000u) % 60u);
+        snprintf(full, sizeof(full), "AP=%u BLE=%s %s", ap, ble, dur);
+        fl = strlen(full);
+        if(fl > max_cols) {
+            snprintf(full, sizeof(full), "AP=%u BLE=%s", ap, ble);
+            fl = strlen(full);
+        }
+    } else {
+        snprintf(full, sizeof(full), "AP=%u BLE=%s", ap, ble);
+        fl = strlen(full);
+    }
+    /* sr_fmt_fit equivalent: truncate to max_cols, '~' on the last byte. */
+    if(fl > max_cols) {
+        fl = max_cols;
+        memcpy(out, full, fl);
+        out[fl - 1u] = '~';
+        out[fl] = '\0';
+    } else {
+        memcpy(out, full, fl + 1u);
+    }
+    (void)cap;
+}
+
 int test_view_fmt_run(void) {
     unsigned tab_wrap = 0;
     unsigned bytes_b = 0;
@@ -652,9 +716,14 @@ int test_view_fmt_run(void) {
         unsigned fw_null = 0;
         unsigned fw_cut = 0;
         unsigned fw_sanitize = 0;
+        unsigned scout_yes = 0;
+        unsigned scout_no = 0;
+        unsigned sess_run = 0;
+        unsigned sess_sealed = 0;
         const char* lab;
         char dirty[8];
         char longa[24];
+        char sess[24];
         size_t i;
 
         lab = sr_fmt_session_label(0);
@@ -744,10 +813,39 @@ int test_view_fmt_run(void) {
         CHECK(strcmp(out, "A.B.C.D") == 0);
         fw_sanitize++;
 
+        CHECK(sr_fmt_hw_is_scout_lite("Scout Lite (ESP32-C5)", 22) == true);
+        CHECK(sr_fmt_hw_is_scout_lite("Scout Lite", 11) == true);
+        scout_yes += 2;
+        CHECK(sr_fmt_hw_is_scout_lite("ESP32-C5 DevKit", 16) == false);
+        CHECK(sr_fmt_hw_is_scout_lite("Scout", 6) == false);
+        CHECK(sr_fmt_hw_is_scout_lite("scout lite", 11) == false);
+        CHECK(sr_fmt_hw_is_scout_lite(NULL, 10) == false);
+        CHECK(sr_fmt_hw_is_scout_lite("", 1) == false);
+        scout_no += 5;
+
+        n = sr_fmt_sess_sigroam_status(1u, true, 1u, 86000u, 0u, 1u, 1u, 1u, sess, sizeof(sess));
+        CHECK(n > 0);
+        CHECK(n <= (size_t)SR_VIEW_COLS);
+        CHECK(strstr(sess, "Running") != NULL);
+        CHECK(strstr(sess, "01:26") != NULL);
+        CHECK(strstr(sess, "W+B") != NULL);
+        CHECK(strstr(sess, "Marauder") == NULL);
+        sess_run++;
+
+        n = sr_fmt_sess_sigroam_status(2u, true, 4u, 0u, 86000u, 1u, 1u, 0u, sess, sizeof(sess));
+        CHECK(n > 0);
+        CHECK(n <= (size_t)SR_VIEW_COLS);
+        CHECK(strstr(sess, "Sealed") != NULL);
+        CHECK(strstr(sess, "01:26") != NULL);
+        CHECK(strstr(sess, "Marauder") == NULL);
+        CHECK(strstr(sess, "SigRoam Lite") == NULL);
+        sess_sealed++;
+
         printf(
             "session cover: label_idle=%u label_run=%u label_stop=%u label_oob=%u "
             "fw_both=%u fw_a_only=%u fw_b_only=%u fw_none=%u fw_null=%u "
-            "fw_cut=%u fw_sanitize=%u\n",
+            "fw_cut=%u fw_sanitize=%u scout_yes=%u scout_no=%u "
+            "sess_run=%u sess_sealed=%u\n",
             label_idle,
             label_run,
             label_stop,
@@ -758,7 +856,11 @@ int test_view_fmt_run(void) {
             fw_none,
             fw_null,
             fw_cut,
-            fw_sanitize);
+            fw_sanitize,
+            scout_yes,
+            scout_no,
+            sess_run,
+            sess_sealed);
 
         CHECK(label_idle > 0);
         CHECK(label_run > 0);
@@ -771,6 +873,268 @@ int test_view_fmt_run(void) {
         CHECK(fw_null > 0);
         CHECK(fw_cut >= 2);
         CHECK(fw_sanitize > 0);
+        CHECK(scout_yes >= 2);
+        CHECK(scout_no >= 5);
+        CHECK(sess_run > 0);
+        CHECK(sess_sealed > 0);
+    }
+
+    /* --- D19 / ADR-025: sr_fmt_sats / sr_fmt_ap_row / sr_fmt_gps_fix_line --- */
+    {
+        unsigned sats_ok = 0;
+        unsigned ap_l0 = 0;
+        unsigned ap_l1 = 0;
+        unsigned ap_l2 = 0;
+        unsigned ap_off = 0;
+        unsigned ap_exact20 = 0;
+        unsigned ap_sweep = 0;
+        unsigned gps_line = 0;
+        unsigned hhmm_ok = 0;
+
+        /* sr_fmt_sats: two-digit zero pad under 100, verbatim at 100+. */
+        n = sr_fmt_sats(0u, out, sizeof(out));
+        CHECK(streq(out, "00"));
+        sats_ok++;
+        n = sr_fmt_sats(9u, out, sizeof(out));
+        CHECK(n == 2u);
+        CHECK(streq(out, "09"));
+        sats_ok++;
+        n = sr_fmt_sats(10u, out, sizeof(out));
+        CHECK(streq(out, "10"));
+        sats_ok++;
+        n = sr_fmt_sats(99u, out, sizeof(out));
+        CHECK(streq(out, "99"));
+        sats_ok++;
+        n = sr_fmt_sats(100u, out, sizeof(out));
+        CHECK(n == 3u);
+        CHECK(streq(out, "100"));
+        sats_ok++;
+        n = sr_fmt_sats(255u, out, sizeof(out));
+        CHECK(streq(out, "255"));
+        sats_ok++;
+        CHECK(sr_fmt_sats(9u, NULL, 8u) == 0u);
+        CHECK(sr_fmt_sats(9u, out, 0u) == 0u);
+        sats_ok++;
+
+        /* sr_fmt_ap_row targeted boundaries (hand-written expectations).
+         * L0 exact 20 cols: "AP=1500 BLE=23 01:26". */
+        n = sr_fmt_ap_row(1500u, 0u, 1u, 23u, 86000u, 20u, out, sizeof(out));
+        CHECK(n == 20u);
+        CHECK(streq(out, "AP=1500 BLE=23 01:26"));
+        ap_l0++;
+        ap_exact20++;
+
+        /* L0 one char over, under 1h: L1 unavailable -> L2. */
+        n = sr_fmt_ap_row(15000u, 0u, 1u, 23u, 86000u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=15000 BLE=23"));
+        ap_l2++;
+
+        /* BLE=OFF semantic, exact 20: "AP=150 BLE=OFF 01:26". */
+        n = sr_fmt_ap_row(150u, 1u, 0u, 23u, 86000u, 20u, out, sizeof(out));
+        CHECK(n == 20u);
+        CHECK(streq(out, "AP=150 BLE=OFF 01:26"));
+        ap_l0++;
+        ap_off++;
+        ap_exact20++;
+
+        /* BLE=OFF one char over -> L2 keeps OFF. */
+        n = sr_fmt_ap_row(1500u, 1u, 0u, 23u, 86000u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=1500 BLE=OFF"));
+        ap_l2++;
+        ap_off++;
+
+        /* L1 exact 20: L0 "AP=1234 BLE=567 1:24:00" (23) overflows, HhMM fits. */
+        n = sr_fmt_ap_row(1234u, 0u, 1u, 567u, 5040000u, 20u, out, sizeof(out));
+        CHECK(n == 20u);
+        CHECK(streq(out, "AP=1234 BLE=567 1h24"));
+        ap_l1++;
+        ap_exact20++;
+
+        /* L1 one char over -> L2. */
+        n = sr_fmt_ap_row(12345u, 0u, 1u, 567u, 5040000u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=12345 BLE=567"));
+        ap_l2++;
+
+        /* L2 from the card: huge counts at 100h. */
+        n = sr_fmt_ap_row(15234u, 0u, 1u, 8921u, 360000000u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=15234 BLE=8921"));
+        ap_l2++;
+
+        /* Duration boundary (main-session ruling 2026-09-17): 59:59 with L0
+         * too wide and L1 unavailable (< 1h) -> L2; 1h00 -> L1 "1h00". */
+        n = sr_fmt_ap_row(1234u, 0u, 1u, 567u, 3599999u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=1234 BLE=567"));
+        ap_l2++;
+        n = sr_fmt_ap_row(1234u, 0u, 1u, 567u, 3600000u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=1234 BLE=567 1h00"));
+        ap_l1++;
+
+        /* 99h59 -> 100h boundary, both land on L1 with narrow counts. */
+        n = sr_fmt_ap_row(150u, 0u, 1u, 23u, 359940000u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=150 BLE=23 99h59"));
+        ap_l1++;
+        n = sr_fmt_ap_row(150u, 0u, 1u, 23u, 360000000u, 20u, out, sizeof(out));
+        CHECK(n == 20u);
+        CHECK(streq(out, "AP=150 BLE=23 100h00"));
+        ap_l1++;
+        ap_exact20++;
+
+        /* Width cascade ruling (A): a narrow row past 1h keeps the full
+         * H:MM:SS instead of compressing (information first). */
+        n = sr_fmt_ap_row(5u, 0u, 1u, 1u, 3661000u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=5 BLE=1 1:01:01"));
+        ap_l0++;
+
+        /* radio_rev==0 (Radio: unseen) is unknown, not OFF: live count. */
+        n = sr_fmt_ap_row(150u, 0u, 0u, 23u, 86000u, 20u, out, sizeof(out));
+        CHECK(streq(out, "AP=150 BLE=23 01:26"));
+        ap_l0++;
+
+        CHECK(sr_fmt_ap_row(1u, 0u, 1u, 1u, 0u, 20u, NULL, 8u) == 0u);
+        CHECK(sr_fmt_ap_row(1u, 0u, 1u, 1u, 0u, 20u, out, 0u) == 0u);
+
+        /* sr_fmt_hhmm direct (review NIT-A). The < 1h output ("0h59") is
+         * defensive semantics only: sr_fmt_ap_row never calls it below 1h,
+         * and the design did not ratify a sub-hour HhMM format -- pinned
+         * as-is so any future change is a deliberate act. */
+        CHECK(sr_fmt_hhmm(3599000u, NULL, 8u) == 0u);
+        hhmm_ok++;
+        CHECK(sr_fmt_hhmm(3599000u, out, 0u) == 0u);
+        hhmm_ok++;
+        n = sr_fmt_hhmm(3599000u, out, sizeof(out));
+        CHECK(streq(out, "0h59"));
+        hhmm_ok++;
+        n = sr_fmt_hhmm(3600000u, out, sizeof(out));
+        CHECK(streq(out, "1h00"));
+        hhmm_ok++;
+        n = sr_fmt_hhmm(359940000u, out, sizeof(out));
+        CHECK(streq(out, "99h59"));
+        hhmm_ok++;
+        n = sr_fmt_hhmm(4294967295u, out, sizeof(out));
+        CHECK(streq(out, "1193h02"));
+        hhmm_ok++;
+
+        /* Sweep vs the snprintf oracle: ap x ble x ble_off x duration. */
+        {
+            static const uint32_t k_ap[8] = {
+                0u, 5u, 150u, 1234u, 1500u, 15234u, 99999u, 4294967295u};
+            static const uint32_t k_ble[5] = {0u, 1u, 23u, 567u, 4294967295u};
+            static const uint32_t k_ms[10] = {
+                0u,
+                999u,
+                59999u,
+                3599999u,
+                3600000u,
+                5040000u,
+                35993999u,
+                359940000u,
+                360000000u,
+                4294967295u,
+            };
+            char exp[80];
+            unsigned ai;
+            unsigned bi;
+            unsigned oi;
+            unsigned mi;
+
+            for(ai = 0u; ai < 8u; ai++) {
+                for(bi = 0u; bi < 5u; bi++) {
+                    for(oi = 0u; oi < 2u; oi++) {
+                        for(mi = 0u; mi < 10u; mi++) {
+                            uint32_t rrev = (oi == 0u) ? 0u : 1u;
+                            uint8_t rble = (oi == 0u) ? 1u : 0u;
+                            n = sr_fmt_ap_row(
+                                k_ap[ai], rrev, rble, k_ble[bi], k_ms[mi], 20u, out, sizeof(out));
+                            oracle_ap_row(
+                                k_ap[ai], rrev, rble, k_ble[bi], k_ms[mi], 20u, exp, sizeof(exp));
+                            CHECK(n == strlen(exp));
+                            CHECK(streq(out, exp));
+                            ap_sweep++;
+                            if(strstr(out, "BLE=OFF") != NULL) {
+                                ap_off++;
+                            }
+                            if(n == 20u && strchr(out, '~') == NULL) {
+                                ap_exact20++;
+                            }
+                            if(strchr(out, 'h') != NULL) {
+                                ap_l1++;
+                            } else if(strchr(out, ':') != NULL) {
+                                ap_l0++;
+                            } else {
+                                ap_l2++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /* GPS tab first line (D19 ⑦): SAT priority snapshot > fresh Qual > --.
+         * NIT-C: an all-digits snapshot is zero-padded via sr_fmt_sats too. */
+        n = sr_fmt_gps_fix_line(true, "9", 2u, false, 0u, out, sizeof(out));
+        CHECK(streq(out, "Fix: Yes SAT 09"));
+        gps_line++;
+        n = sr_fmt_gps_fix_line(true, "7", 2u, true, 255u, out, sizeof(out));
+        CHECK(streq(out, "Fix: Yes SAT 07"));
+        gps_line++;
+        n = sr_fmt_gps_fix_line(true, "09", 3u, false, 0u, out, sizeof(out));
+        CHECK(streq(out, "Fix: Yes SAT 09"));
+        gps_line++;
+        /* Non-digit device string: verbatim fallback, no padding. */
+        n = sr_fmt_gps_fix_line(true, "4A", 3u, true, 9u, out, sizeof(out));
+        CHECK(streq(out, "Fix: Yes SAT 4A"));
+        gps_line++;
+        n = sr_fmt_gps_fix_line(true, "", 1u, true, 9u, out, sizeof(out));
+        CHECK(streq(out, "Fix: Yes SAT 09"));
+        gps_line++;
+        n = sr_fmt_gps_fix_line(true, "", 1u, true, 100u, out, sizeof(out));
+        CHECK(streq(out, "Fix: Yes SAT 100"));
+        gps_line++;
+        n = sr_fmt_gps_fix_line(true, "", 1u, false, 9u, out, sizeof(out));
+        CHECK(streq(out, "Fix: Yes SAT --"));
+        gps_line++;
+        n = sr_fmt_gps_fix_line(false, "12", 3u, false, 0u, out, sizeof(out));
+        CHECK(streq(out, "Fix: No SAT 12"));
+        gps_line++;
+        n = sr_fmt_gps_fix_line(false, "", 1u, false, 0u, out, sizeof(out));
+        CHECK(streq(out, "Fix: No SAT --"));
+        gps_line++;
+        n = sr_fmt_gps_fix_line(true, NULL, 0u, true, 0u, out, sizeof(out));
+        CHECK(streq(out, "Fix: Yes SAT 00"));
+        gps_line++;
+        /* SR_GPS_SATS_MAX=7 snapshot beyond uint8_t range: verbatim fallback,
+         * exact 20-col fit. */
+        n = sr_fmt_gps_fix_line(true, "1234567", 8u, false, 0u, out, sizeof(out));
+        CHECK(n == 20u);
+        CHECK(streq(out, "Fix: Yes SAT 1234567"));
+        gps_line++;
+        CHECK(sr_fmt_gps_fix_line(true, "9", 2u, false, 0u, NULL, 8u) == 0u);
+        CHECK(sr_fmt_gps_fix_line(true, "9", 2u, false, 0u, out, 0u) == 0u);
+        gps_line++;
+
+        printf(
+            "view_fmt d19: sats=%u ap_l0=%u ap_l1=%u ap_l2=%u ap_off=%u "
+            "ap_exact20=%u ap_sweep=%u gps_line=%u hhmm=%u\n",
+            sats_ok,
+            ap_l0,
+            ap_l1,
+            ap_l2,
+            ap_off,
+            ap_exact20,
+            ap_sweep,
+            gps_line,
+            hhmm_ok);
+
+        /* Coverage floors welded to the observed deterministic counts. */
+        CHECK(sats_ok == 7u);
+        CHECK(ap_l0 == 222u);
+        CHECK(ap_l1 == 169u);
+        CHECK(ap_l2 == 422u);
+        CHECK(ap_off == 352u);
+        CHECK(ap_exact20 == 183u);
+        CHECK(ap_sweep == 800u);
+        CHECK(gps_line == 12u);
+        CHECK(hhmm_ok == 6u);
     }
 
     return sr_test_failures;

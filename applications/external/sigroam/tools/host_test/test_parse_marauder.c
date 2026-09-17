@@ -209,6 +209,67 @@ static bool oracle_parse(const char* line, size_t len, OracleAp* o) {
     return true;
 }
 
+/*
+ * Independent Sess: oracle (A3): NUL-terminate a copy, then sscanf the frozen
+ * seven-field shape. Deliberately not the implementation's scan_lit/scan_u32
+ * cursor. Absence of this oracle used to classify a valid Sess: line as
+ * unknown; the implementation now claims it, so fuzz must agree.
+ */
+typedef struct {
+    uint32_t ap;
+    uint32_t ble;
+    uint32_t ms;
+    bool ok;
+} OracleSess;
+
+static bool oracle_sess_parse(const char* line, size_t len, OracleSess* o) {
+    char* buf;
+    unsigned long ap = 0;
+    unsigned long ble = 0;
+    unsigned long ms = 0;
+    unsigned long ih = 0;
+    unsigned long ihmin = 0;
+    unsigned long ps = 0;
+    unsigned long psmin = 0;
+    char extra = 0;
+    int n;
+
+    memset(o, 0, sizeof(*o));
+    if(line == NULL) {
+        return false;
+    }
+    buf = (char*)malloc(len + 1U);
+    if(buf == NULL) {
+        return false;
+    }
+    memcpy(buf, line, len);
+    buf[len] = '\0';
+    n = sscanf(
+        buf,
+        "Sess: ap=%lu ble=%lu ms=%lu ih=%lu ihmin=%lu ps=%lu psmin=%lu%c",
+        &ap,
+        &ble,
+        &ms,
+        &ih,
+        &ihmin,
+        &ps,
+        &psmin,
+        &extra);
+    free(buf);
+    if(n != 7) {
+        return false;
+    }
+    if(ap > 0xFFFFFFFFul || ble > 0xFFFFFFFFul || ms > 0xFFFFFFFFul || ih > 0xFFFFFFFFul ||
+       ihmin > 0xFFFFFFFFul || ps > 0xFFFFFFFFul || psmin > 0xFFFFFFFFul) {
+        return false;
+    }
+    o->ap = (uint32_t)ap;
+    o->ble = (uint32_t)ble;
+    o->ms = (uint32_t)ms;
+    o->ok = true;
+    return true;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Fixture loading                                                            */
 /* -------------------------------------------------------------------------- */
@@ -1002,7 +1063,9 @@ static void test_sizeof_parser(void) {
         sizeof(SrFirmwareInfo));
     CHECK(sizeof(SrParser) <= 512);
     CHECK(sizeof(SrGpsSnapshot) == 221);
-    CHECK(sizeof(SrFirmwareInfo) == 164);
+    /* 2026-09-07: the #info Diag line added diag_seen/state/seal/hb[6] to SrFirmwareInfo (+28) and SrEventBusy added busy/busy_rev to SrModel. ADR-016's real ceilings are the two above and SrEvent <= 256 in
+     * test_line.c; this one exists so a size change cannot pass unnoticed. */
+    CHECK(sizeof(SrFirmwareInfo) == 192);
 }
 
 /* T3.3 A3: startup_info.bin goes through feed_line (not probe_line) */
@@ -1394,8 +1457,9 @@ static void test_fuzz(void) {
                 "END OF NMEA STREAM",
                 "Stopping GPS data updates",
                 "AP config set error, Maurauder SSID might visible : err=0x3005",
+                "Sess: ap=1288 ble=8171 ms=201270 ih=86136 ihmin=84328 ps=6519444 psmin=6519444",
             };
-            const char* s = msgs[xs32(&seed) % 5u];
+            const char* s = msgs[xs32(&seed) % 6u];
             n = strlen(s);
             memcpy(stack, s, n);
         } else if(mode == 4) {
@@ -1475,6 +1539,29 @@ static void test_fuzz(void) {
         if(mode == 6 && r == SrParseOk && ev.kind == SrEventBleFound &&
            strcmp(ev.u.ble.ssid, "foo,bar") == 0) {
             cov_comma_name++;
+        }
+
+        /* Cross-check Sess: against the independent sscanf oracle. A valid
+         * Sess: line used to land as Unknown; the implementation now claims
+         * it, so disagreeing here is a real fail, not noise. */
+        {
+            OracleSess os;
+
+            if(oracle_sess_parse(win, n, &os) && os.ok) {
+                if(r != SrParseOk || ev.kind != SrEventSess || ev.u.sess.ap != os.ap ||
+                   ev.u.sess.ble != os.ble || ev.u.sess.ms != os.ms) {
+                    sr_test_failures++;
+                    if(reported < 5) {
+                        fprintf(
+                            stderr,
+                            "fuzz sess oracle mismatch iter=%u seed=0x%08X n=%zu\n",
+                            iter,
+                            case_seed,
+                            n);
+                        reported++;
+                    }
+                }
+            }
         }
 
         /* Cross-check data lines against the oracle (different implementation technique) */
@@ -2014,6 +2101,301 @@ static void
     *r = sr_codec_marauder.feed_line(p, echo, body + 1u, ev);
 }
 
+/*
+ * The two diagnostic lines the firmware started sending on 2026-09-07. Both exist for
+ * the case where the board's SD path has stopped answering, so a half-read value is
+ * worse than no value: every field is checked and anything trailing rejects the line.
+ */
+static void test_diag_busy(void) {
+    SrParser p;
+    SrEvent ev;
+    SrFirmwareInfo info;
+
+    printf("diag/busy lines\n");
+
+    memset(&p, 0, sizeof(p));
+    memset(&ev, 0, sizeof(ev));
+    CHECK(feed_lit(&p, "Diag: st=3 seal=0f hb=1/22/333/4444/55555/666666", &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventFirmware);
+    CHECK(ev.u.firmware.diag_seen == true);
+    CHECK(ev.u.firmware.diag_state == 3);
+    CHECK(ev.u.firmware.diag_seal == 0x0f);
+    CHECK(ev.u.firmware.diag_hb[0] == 1u);
+    CHECK(ev.u.firmware.diag_hb[1] == 22u);
+    CHECK(ev.u.firmware.diag_hb[2] == 333u);
+    CHECK(ev.u.firmware.diag_hb[3] == 4444u);
+    CHECK(ev.u.firmware.diag_hb[4] == 55555u);
+    CHECK(ev.u.firmware.diag_hb[5] == 666666u);
+
+    /* Extremes the firmware can really emit: every counter at UINT32_MAX, and a zero
+     * heartbeat — the reading that names a task which never ran. */
+    memset(&p, 0, sizeof(p));
+    CHECK(
+        feed_lit(
+            &p,
+            "Diag: st=255 seal=ff hb=4294967295/4294967295/4294967295"
+            "/4294967295/4294967295/4294967295",
+            &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventFirmware);
+    CHECK(ev.u.firmware.diag_state == 255);
+    CHECK(ev.u.firmware.diag_seal == 0xff);
+    CHECK(ev.u.firmware.diag_hb[5] == 4294967295u);
+    memset(&p, 0, sizeof(p));
+    CHECK(feed_lit(&p, "Diag: st=0 seal=00 hb=0/0/0/0/0/0", &ev) == SrParseOk);
+    CHECK(ev.u.firmware.diag_seen == true);
+    CHECK(ev.u.firmware.diag_hb[1] == 0u);
+
+    /* diag_seen is what separates "no Diag line at all" from an all-zero reading. */
+    memset(&info, 0, sizeof(info));
+    CHECK(sr_codec_marauder.probe_line("ESP-IDF: v6.0.2", &info) == true);
+    CHECK(info.diag_seen == false);
+    CHECK(sr_codec_marauder.probe_line("Diag: st=1 seal=02 hb=1/1/1/1/1/1", &info) == true);
+    CHECK(info.diag_seen == true);
+    CHECK(strcmp(info.esp_idf, "v6.0.2") == 0);
+
+    /* Named: Firmware: starts a new #info and drops the previous Diag:.
+     * NC-A lands on diag_seen==false. Same SrParser as production (fw_partial
+     * is only memset at worker alloc). If Firmware: keeps stale diag_*, C2
+     * adopts with the previous st=. */
+    memset(&p, 0, sizeof(p));
+    memset(&ev, 0, sizeof(ev));
+    CHECK(feed_lit(&p, "Diag: st=1 seal=00 hb=1/1/1/1/1/1", &ev) == SrParseOk);
+    CHECK(ev.u.firmware.diag_seen == true);
+    CHECK(ev.u.firmware.diag_state == 1);
+    CHECK(feed_lit(&p, "Firmware: Marauder", &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventFirmware);
+    CHECK(ev.u.firmware.diag_seen == false);
+    CHECK(ev.u.firmware.diag_state == 0);
+    CHECK(strcmp(ev.u.firmware.firmware, "Marauder") == 0);
+    CHECK(feed_lit(&p, "Diag: st=4 seal=7f hb=2/2/2/2/2/2", &ev) == SrParseOk);
+    CHECK(ev.u.firmware.diag_seen == true);
+    CHECK(ev.u.firmware.diag_state == 4);
+    CHECK(ev.u.firmware.diag_seal == 0x7f);
+    CHECK(strcmp(ev.u.firmware.firmware, "Marauder") == 0);
+
+    /* Malformed shapes must fall through to the Raw ring, never half-fill the fields. */
+    {
+        static const char* bad[] = {
+            "Diag: st=3 seal=0f hb=1/22/333/4444/55555", /* five heartbeats  */
+            "Diag: st=3 seal=0f hb=1/22/333/4444/55555/666666/7", /* seven            */
+            "Diag: st=3 seal=f hb=1/1/1/1/1/1", /* one hex digit    */
+            "Diag: st=3 seal=0F hb=1/1/1/1/1/1", /* upper-case hex   */
+            "Diag: st=256 seal=0f hb=1/1/1/1/1/1", /* state > uint8    */
+            "Diag: st=3 seal=0f hb=1/1/1/1/1/1 ", /* trailing space   */
+            "Diag: st= seal=0f hb=1/1/1/1/1/1", /* empty state      */
+            "Diag: st=3 hb=1/1/1/1/1/1", /* seal missing     */
+        };
+        size_t i;
+
+        for(i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
+            memset(&p, 0, sizeof(p));
+            memset(&ev, 0, sizeof(ev));
+            CHECK(feed_lit(&p, bad[i], &ev) == SrParseUnknown);
+            CHECK(ev.kind == SrEventUnknown);
+        }
+    }
+
+    memset(&p, 0, sizeof(p));
+    memset(&ev, 0, sizeof(ev));
+    CHECK(feed_lit(&p, "Busy: st=2 seal=03", &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventBusy);
+    CHECK(ev.u.busy.state == 2);
+    CHECK(ev.u.busy.seal == 0x03);
+
+    {
+        static const char* bad[] = {
+            "Busy: st=2 seal=3", /* one hex digit        */
+            "Busy: st=2", /* no seal              */
+            "Busy: st=2 seal=03 x", /* trailing junk        */
+            "Busy: seal=03", /* no state             */
+            "Busy: st=999 seal=03", /* state > uint8        */
+        };
+        size_t i;
+
+        for(i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
+            memset(&p, 0, sizeof(p));
+            memset(&ev, 0, sizeof(ev));
+            CHECK(feed_lit(&p, bad[i], &ev) == SrParseUnknown);
+            CHECK(ev.kind == SrEventUnknown);
+        }
+    }
+
+    /* Neither line may be counted as a command acknowledgement: cmdack_class() runs on
+     * the unknown path too, and a refusal that also looked like an ack would clear the
+     * FAP's wait indicator for the wrong reason. */
+    memset(&p, 0, sizeof(p));
+    CHECK(feed_lit(&p, "Diag: st=3 seal=0f hb=1/1/1/1/1/1", &ev) == SrParseOk);
+    CHECK(feed_lit(&p, "Busy: st=2 seal=03", &ev) == SrParseOk);
+    CHECK(p.cmdack.rev == 0u);
+}
+
+/*
+ * Schema 9 Sess: line. Frozen shape from the firmware emit (n6-fap-sess-consume.md §2).
+ * The HIL sample is the last line of a real #info reply.
+ */
+static const char kLineSess[] =
+    "Sess: ap=1288 ble=8171 ms=201270 ih=86136 ihmin=84328 ps=6519444 psmin=6519444";
+static const char kLineSessTrail[] =
+    "Sess: ap=1288 ble=8171 ms=201270 ih=86136 ihmin=84328 ps=6519444 psmin=6519444x";
+
+static void test_sess(void) {
+    SrParser p;
+    SrEvent ev;
+    OracleSess os;
+    SrFirmwareInfo info;
+
+    printf("sess lines\n");
+
+    memset(&p, 0, sizeof(p));
+    memset(&ev, 0, sizeof(ev));
+    CHECK(oracle_sess_parse(kLineSess, strlen(kLineSess), &os) == true);
+    CHECK(os.ok == true);
+    CHECK(os.ap == 1288u);
+    CHECK(os.ble == 8171u);
+    CHECK(os.ms == 201270u);
+
+    /* Named: complete line parses. NC2 lands here — skipping a field such as
+     * psmin leaves p != len and this CHECK goes red. */
+    CHECK(feed_lit(&p, kLineSess, &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventSess);
+    CHECK(ev.u.sess.ap == 1288u);
+    CHECK(ev.u.sess.ble == 8171u);
+    CHECK(ev.u.sess.ms == 201270u);
+
+    /* Named: trailing extra bytes. NC1 lands here — dropping `if(p != len)
+     * return false` accepts the junk suffix and this CHECK goes red. */
+    memset(&p, 0, sizeof(p));
+    memset(&ev, 0, sizeof(ev));
+    CHECK(feed_lit(&p, kLineSessTrail, &ev) == SrParseUnknown);
+    CHECK(ev.kind == SrEventUnknown);
+
+    CHECK(oracle_sess_parse(kLineSessTrail, strlen(kLineSessTrail), &os) == false);
+
+    {
+        static const char* bad[] = {
+            "Sess: ap=1288 ble=8171 ms=201270 ih=86136 ihmin=84328 ps=6519444", /* no psmin */
+            "Sess: ap=1288 ble=8171 ms=201270 ih=86136 ihmin=84328 ps=6519444 psmin=6519444 ",
+            "Sess: ap=1288 ble=8171 ms=201270",
+            "Sess: ap= ble=8171 ms=201270 ih=1 ihmin=1 ps=1 psmin=1",
+            "sess: ap=1288 ble=8171 ms=201270 ih=1 ihmin=1 ps=1 psmin=1",
+        };
+        size_t i;
+
+        for(i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
+            memset(&p, 0, sizeof(p));
+            memset(&ev, 0, sizeof(ev));
+            CHECK(feed_lit(&p, bad[i], &ev) == SrParseUnknown);
+            CHECK(ev.kind == SrEventUnknown);
+        }
+    }
+
+    /* Parser accepts ms=0 (no session running); seeding, not parsing, refuses it. */
+    memset(&p, 0, sizeof(p));
+    CHECK(feed_lit(&p, "Sess: ap=37 ble=5 ms=0 ih=1 ihmin=1 ps=1 psmin=1", &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventSess);
+    CHECK(ev.u.sess.ap == 37u);
+    CHECK(ev.u.sess.ble == 5u);
+    CHECK(ev.u.sess.ms == 0u);
+
+    memset(&p, 0, sizeof(p));
+    CHECK(
+        feed_lit(
+            &p,
+            "Sess: ap=4294967295 ble=4294967295 ms=4294967295 ih=4294967295 "
+            "ihmin=4294967295 ps=4294967295 psmin=4294967295",
+            &ev) == SrParseOk);
+    CHECK(ev.u.sess.ap == 4294967295u);
+    CHECK(ev.u.sess.ms == 4294967295u);
+
+    /* probe_line is identity, not the session face. */
+    memset(&info, 0, sizeof(info));
+    CHECK(sr_codec_marauder.probe_line(kLineSess, &info) == false);
+
+    memset(&p, 0, sizeof(p));
+    CHECK(feed_lit(&p, kLineSess, &ev) == SrParseOk);
+    CHECK(p.cmdack.rev == 0u);
+}
+
+/*
+ * T6.5 Radio: permission bits. Frozen shape from marauder_emit_radio.
+ * Must not land in Unknown (F2 5 s #info would wash last_unknown).
+ */
+static const char kLineRadio[] = "Radio: wifi=1 ble=0";
+static const char kLineRadioBoth[] = "Radio: wifi=1 ble=1";
+static const char kLineRadioTrail[] = "Radio: wifi=1 ble=0x";
+
+static void test_radio(void) {
+    SrParser p;
+    SrEvent ev;
+    SrFirmwareInfo info;
+
+    printf("radio lines\n");
+
+    CHECK((unsigned)SrEventQual == 10u);
+    CHECK((unsigned)SrEventRadio == 11u);
+    CHECK(sizeof(SrRadioInfo) == 2u);
+    CHECK(sizeof(SrEvent) == 240u);
+
+    memset(&p, 0, sizeof(p));
+    memset(&ev, 0, sizeof(ev));
+    CHECK(feed_lit(&p, kLineRadio, &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventRadio);
+    CHECK(ev.u.radio.wifi == 1u);
+    CHECK(ev.u.radio.ble == 0u);
+    CHECK(p.cmdack.rev == 0u);
+
+    memset(&p, 0, sizeof(p));
+    CHECK(feed_lit(&p, kLineRadioBoth, &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventRadio);
+    CHECK(ev.u.radio.wifi == 1u);
+    CHECK(ev.u.radio.ble == 1u);
+
+    memset(&p, 0, sizeof(p));
+    CHECK(feed_lit(&p, "Radio: wifi=0 ble=0", &ev) == SrParseOk);
+    CHECK(ev.kind == SrEventRadio);
+    CHECK(ev.u.radio.wifi == 0u);
+    CHECK(ev.u.radio.ble == 0u);
+
+    /* Named: trailing extra bytes. Dropping p!=len accepts junk. */
+    memset(&p, 0, sizeof(p));
+    memset(&ev, 0, sizeof(ev));
+    CHECK(feed_lit(&p, kLineRadioTrail, &ev) == SrParseUnknown);
+    CHECK(ev.kind == SrEventUnknown);
+
+    {
+        static const char* bad[] = {
+            "Radio: wifi=1 ble=0 ",
+            "Radio: wifi=2 ble=0",
+            "Radio: wifi=1 ble=2",
+            "Radio: wifi=01 ble=0",
+            "Radio: wifi=1",
+            "Radio: wifi=1 ble=",
+            "Radio: ble=0 wifi=1",
+            "radio: wifi=1 ble=0",
+            "Radio:wifi=1 ble=0",
+        };
+        size_t i;
+
+        for(i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
+            memset(&p, 0, sizeof(p));
+            memset(&ev, 0, sizeof(ev));
+            CHECK(feed_lit(&p, bad[i], &ev) == SrParseUnknown);
+            CHECK(ev.kind == SrEventUnknown);
+        }
+    }
+
+    /* Qual: still parses after Radio: is recognized; prefixes must not collide. */
+    memset(&p, 0, sizeof(p));
+    CHECK(feed_lit(&p, kLineRadio, &ev) == SrParseOk);
+    CHECK(
+        feed_lit(&p, "Qual: gga=12 ggafix=11 drop=3 net=142 sd=1 sats=8 topd=1", &ev) ==
+        SrParseOk);
+    CHECK(ev.kind == SrEventQual);
+
+    memset(&info, 0, sizeof(info));
+    CHECK(sr_codec_marauder.probe_line(kLineRadio, &info) == false);
+}
+
 static void test_cmdack(void) {
     unsigned start = 0;
     unsigned stop = 0;
@@ -2262,6 +2644,9 @@ int test_parse_marauder_run(void) {
     test_gps_window_counts();
     test_gps_interrupt();
     test_gps_synthetic();
+    test_diag_busy();
+    test_sess();
+    test_radio();
     test_fuzz();
     test_cmdack();
     free_all();

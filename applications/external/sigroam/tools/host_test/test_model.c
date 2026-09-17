@@ -104,13 +104,14 @@ static uint8_t oracle_ch(int v) {
 }
 
 /*
- * Row = current state, column = SrEventKind (None..Unknown, contiguous 0..7). -1 = illegal, state
- * stays unchanged.
+ * Row = current state, column = SrEventKind (None..Unknown contiguous 0..7,
+ * then Busy=8, Sess=9 appended). -1 = illegal, state stays unchanged.
+ * Busy and Sess do not change the session, same as Firmware / Unknown.
  */
-static const int8_t kOracleNext[3][8] = {
-    /* Idle     */ {0, 0, 0, 0, 1, -1, 0, 0},
-    /* Running  */ {1, 1, 1, 1, -1, 2, 1, 1},
-    /* Stopped  */ {2, 2, 2, 2, 1, -1, 2, 2},
+static const int8_t kOracleNext[3][10] = {
+    /* Idle     */ {0, 0, 0, 0, 1, -1, 0, 0, 0, 0},
+    /* Running  */ {1, 1, 1, 1, -1, 2, 1, 1, 1, 1},
+    /* Stopped  */ {2, 2, 2, 2, 1, -1, 2, 2, 2, 2},
 };
 
 typedef struct {
@@ -130,6 +131,8 @@ typedef struct {
     uint32_t gps_csv_rev;
     SrFirmwareInfo firmware;
     uint32_t firmware_rev;
+    SrSessInfo sess;
+    uint32_t sess_rev;
     char last_unknown[SR_RAW_LINE_MAX + 1];
     size_t last_unknown_len;
     SrApBrief rec[SR_RECENT_CAP]; /* the most recent entry is rec[n-1] */
@@ -193,7 +196,7 @@ static bool oracle_apply(OracleModel* o, const SrEvent* ev, uint32_t tick_ms) {
     o->last_tick_ms = tick_ms;
 
     k = (unsigned)ev->kind;
-    if(k > (unsigned)SrEventUnknown) {
+    if(k > (unsigned)SrEventSess) {
         return false;
     }
     st = (unsigned)o->session;
@@ -222,6 +225,14 @@ static bool oracle_apply(OracleModel* o, const SrEvent* ev, uint32_t tick_ms) {
     if(ev->kind == SrEventFirmware) {
         o->firmware = ev->u.firmware;
         o->firmware_rev++;
+        return true;
+    }
+    if(ev->kind == SrEventBusy) {
+        return true;
+    }
+    if(ev->kind == SrEventSess) {
+        o->sess = ev->u.sess;
+        o->sess_rev++;
         return true;
     }
     if(ev->kind == SrEventGps) {
@@ -327,6 +338,10 @@ static void check_model_matches_oracle(const SrModel* m, const OracleModel* o) {
     CHECK(strcmp(m->gps_csv.datetime, o->gps_csv.datetime) == 0);
     CHECK(m->firmware_rev == o->firmware_rev);
     CHECK(m->firmware.kind == o->firmware.kind);
+    CHECK(m->sess_rev == o->sess_rev);
+    CHECK(m->sess.ap == o->sess.ap);
+    CHECK(m->sess.ble == o->sess.ble);
+    CHECK(m->sess.ms == o->sess.ms);
     CHECK(strcmp(m->firmware.firmware, o->firmware.firmware) == 0);
     CHECK(strcmp(m->last_unknown, o->last_unknown) == 0);
     CHECK(m->last_unknown_len == o->last_unknown_len);
@@ -424,6 +439,7 @@ static void test_sizeof_and_init(void) {
     CHECK(g_model.gps_csv.lat[0] == '\0');
     CHECK(g_model.last_unknown[0] == '\0');
     CHECK(g_model.firmware_rev == 0);
+    CHECK(g_model.sess_rev == 0);
 }
 
 static void test_firmware_apply_and_reset_keeps_identity(void) {
@@ -552,7 +568,7 @@ static void test_mac_parse(void) {
     CHECK(sr_mac_parse("AA:BB:CC:DD:EE:FF", NULL) == false);
 }
 
-static const char* kKindName[8] = {
+static const char* kKindName[10] = {
     "None",
     "ApFound",
     "BleFound",
@@ -561,6 +577,8 @@ static const char* kKindName[8] = {
     "ScanStopped",
     "Firmware",
     "Unknown",
+    "Busy",
+    "Sess",
 };
 
 static const char* kSessName[3] = {"Idle", "Running", "Stopped"};
@@ -595,6 +613,15 @@ static void fill_kind_payload(SrEvent* ev, SrEventKind kind) {
         ev->u.firmware.kind = SrSourceMarauder;
         sr_strlcpy(ev->u.firmware.firmware, sizeof(ev->u.firmware.firmware), "Marauder");
         break;
+    case SrEventBusy:
+        ev->u.busy.state = 1;
+        ev->u.busy.seal = 0;
+        break;
+    case SrEventSess:
+        ev->u.sess.ap = 1288u;
+        ev->u.sess.ble = 8171u;
+        ev->u.sess.ms = 201270u;
+        break;
     default:
         break;
     }
@@ -606,12 +633,12 @@ static void test_transitions_24(void) {
     unsigned n = 0;
 
     /*
-     * 3 states × 8 kinds. The expected next state comes from a table different from the
-     * implementation's.
+     * 3 states × 10 kinds (None..Sess). The expected next state comes from a table
+     * different from the implementation's.
      * Illegal edges: Idle+Stop / Running+Start / Stopped+Stop.
      */
     for(si = 0; si < 3u; si++) {
-        for(ki = 0; ki < 8u; ki++) {
+        for(ki = 0; ki < 10u; ki++) {
             SrEvent ev;
             SrSessionState from = (SrSessionState)si;
             SrEventKind kind = (SrEventKind)ki;
@@ -661,12 +688,17 @@ static void test_transitions_24(void) {
                 CHECK(g_model.unknown_lines == 1);
                 CHECK(strcmp(g_model.last_unknown, "raw-line") == 0);
             }
+            if(kind == SrEventSess && expect >= 0) {
+                CHECK(g_model.unknown_lines == 0);
+                CHECK(g_model.sess_rev == 1u);
+                CHECK(g_model.sess.ap == 1288u);
+            }
             if(kind == SrEventScanStarted && from == SrSessionIdle) {
                 CHECK(g_model.started_tick_ms == 100u + (n - 1u));
             }
         }
     }
-    CHECK(n == 24u);
+    CHECK(n == 30u);
     fprintf(stderr, "transition table: %u combinations\n", n);
     (void)kKindName;
     (void)kSessName;
@@ -1356,8 +1388,16 @@ static void test_session_rev(void) {
     CHECK(g_model.session_rev == 1);
 
     fprintf(stderr, "sizeof(SrModel)=%zu\n", sizeof(SrModel));
-    /* After T4.6 added SrRawLog*, 3176. D12 added SrGpsCsvView + gps_csv_rev → 3328. */
-    CHECK(sizeof(SrModel) == 3328);
+    /* After T4.6 added SrRawLog*, 3176. D12 added SrGpsCsvView + gps_csv_rev → 3328.
+     * 2026-09-07: the #info Diag line added diag_seen/state/seal/hb[6] to SrFirmwareInfo (+28) and SrEventBusy added busy/busy_rev to SrModel. → 3368.
+     * 2026-09-09 N6: +SrSessInfo(12) + sess_rev(4) = +16 → 3384.
+     * 2026-09-15 F2 rev1: +SrQualInfo(20) + qual_rev(4) = +24 → 3408.
+     * 2026-09-15 F2 rev2: +qual_tick_ms(4) lands on 4 B of pre-existing padding
+     * before char last_unknown[512] (size_t last_unknown_len right after it
+     * needs 8-B alignment) -- stays 3408, confirmed by this file's own
+     * fprintf(stderr, "sizeof(SrModel)=...") above.
+     * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416. */
+    CHECK(sizeof(SrModel) == 3416);
     CHECK(sizeof(SrModel) <= 4096);
 }
 

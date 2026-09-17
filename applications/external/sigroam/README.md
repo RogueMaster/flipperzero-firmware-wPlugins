@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/host-test.yml"><img src="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/host-test.yml/badge.svg" alt="host_test status"></a>
   <a href="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/fap-build.yml"><img src="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/fap-build.yml/badge.svg" alt="fap_build status"></a>
-  <img src="https://img.shields.io/badge/firmware-Official%20%7C%20Momentum-orange" alt="Firmware: Official and Momentum">
+  <img src="https://img.shields.io/badge/firmware-Official%20%7C%20Momentum%20%7C%20Unleashed-orange" alt="Firmware: Official, Momentum, and Unleashed">
   <img src="https://img.shields.io/badge/attack%20features-none-brightgreen" alt="Attack features: none">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
 </p>
@@ -33,9 +33,9 @@ something looks wrong.
 
 | Main menu | Dashboard |
 |---|---|
-| <img src="screenshots/menu.png" width="360" alt="SigRoam main menu with Dashboard, Probe firmware and Raw log entries"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard showing scanner status and bytes received"> |
+| <img src="screenshots/menu.png" width="360" alt="SigRoam Wardriving main menu with Dashboard, Probe firmware and Raw log entries"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard with large unique-BSSID count and bottom status line"> |
 | **Settings** | **About** |
-| <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam about screen showing version, receive-only statement and QR code"> |
+| <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam Wardriving v0.4 about screen, by PINGEQUA Lab, with QR code"> |
 
 ## Quick facts
 
@@ -46,7 +46,7 @@ something looks wrong.
 | **Serial pins** | 13 (TX), 14 (RX); 5 V on pin 1 |
 | **Default baud** | 115200, six choices in Settings |
 | **Unique-BSSID estimator** | 4 KB Bloom filter — 32768 bits, 4 hashes, RAM only |
-| **Firmware targets** | Official and Momentum — one `.fap` for both; both are built in CI |
+| **Firmware targets** | Official and Momentum share one API-87 `.fap` (Official SDK). Unleashed is a second API-88 `.fap`. CI builds Official and Momentum |
 | **Attack features** | None, permanently — see below |
 | **Tests** | Host-side unit tests under gcc and clang, plus ASan/UBSan |
 | **License** | GPL-3.0 |
@@ -121,10 +121,11 @@ Two things will stop the app from working if you skip them:
 The main menu has five entries:
 
 - **Dashboard** — four tabs, switched with left/right:
-  - `Dash` — unique BSSID estimate, AP/BLE counts, GPS fix count, bytes received,
-    elapsed time. **OK starts and stops the scan.**
+  - `Dash` — large unique-BSSID count, AP/BLE counts, and a bottom status
+    line with OK, fix percent, drop and SAT. **OK starts and stops the scan.**
   - `Strm` — the most recent parsed records, scrolling.
-  - `GPS` — fix status, satellites, coordinates. OK requests a GPS sample.
+  - `GPS` — fix status, satellites, coordinates, and `Acc:~` (an estimate).
+    OK requests a GPS sample.
   - `Sess` — session and diagnostic counters.
 - **Probe firmware** — sends `info` and reports what answered, so you can tell
   "nothing connected" from "connected but not Marauder".
@@ -134,7 +135,8 @@ The main menu has five entries:
   Backlight, Stealth, Debug rows. Sound, Vibro and the LED fire when the GPS fix
   is acquired or lost during a survey; Stealth suppresses the LED, and Backlight
   holds the display lit while you are on the dashboard.
-- **About** — version, compliance statement, and a QR code to this repository.
+- **About** — `SigRoam Wardriving v0.4`, `by PINGEQUA Lab`, the receive-only
+  statement, and a QR code to the project short link.
 
 While a scan is running, Back returns to the main menu **without stopping the
 scan**. Stopping is done only with OK on the Dash tab.
@@ -174,24 +176,28 @@ make -C tools/host_test asan   # same, with ASan/UBSan
 
 ## Firmware compatibility
 
-**One `.fap` covers both supported firmwares.** A release ships a single
-`sigroam-<version>.fap`, built against the Official SDK; it runs on Official and
-on Momentum, and there is nothing to pick at download time.
+**Official and Momentum share one `.fap`.** A release ships `sigroam-<version>.fap`
+built against the Official SDK. It runs on Official and on Momentum; there is
+nothing to pick between those two at download time.
 
 That works because loading is gated on the firmware API *major*, which is
 compared exactly, while the minor is not compared at all. Official `1.4.3` and
 Momentum `mntm-012` both report `Target: 7, API: 87.1`, and building this source
 against both SDKs produces .fap files that differ in five bytes: a debug-link
 checksum the loader never reads, and one byte of section size. Every code, data,
-relocation and symbol section is byte-identical.
+relocation and symbol section is byte-identical. The Official build is the one
+that ships (V-076): a Momentum 86-byte `.fapmeta` is the unsafe direction.
 
-Unleashed is a different API major (88.x) and is **not** covered by releases. It
-still builds from the same source, but it is not part of the regular pipeline.
+**Unleashed needs a second file.** Unleashed `unlshd-093` (2026-09-12) reports
+API 88.9. Major 88 is not 87, so the API-87 build will not load. The same source
+built against the Unleashed SDK produces `sigroam-<version>-unleashed.fap`.
+Tapping Continue on an API-mismatch dialog is not support.
 
 The app uses only the common Flipper API — no firmware-specific headers — so it
 builds against the Official SDK, which the Flipper Apps Catalog requires. CI
-keeps building both targets on every push; that matrix is what catches a
-firmware-specific API before it can reach a release.
+keeps building Official and Momentum on every push; that matrix is what catches
+a firmware-specific API before it can reach a release. Unleashed is a manual
+second target, not part of the regular pipeline.
 
 ## FAQ
 
@@ -225,11 +231,10 @@ Pins 13/14 are shared with the firmware's serial log. Set
 `Settings → System → Log Device` to `Off`.
 
 **Which firmware does it need?**
-Official or Momentum, and the same file works on both — a release ships one
-`sigroam-<version>.fap`, not one per firmware. Both targets are built in CI from
-the same source. The app uses only the common Flipper API, so it also builds
-against the Official SDK required by the Flipper Apps Catalog. Unleashed runs a
-different API major and is not covered by releases.
+Official or Momentum, and the same API-87 file works on both — a release ships
+one Official-SDK `sigroam-<version>.fap` for those two. Unleashed is API 88 and
+needs the separate `sigroam-<version>-unleashed.fap`. Continue on an API
+mismatch is not support. CI builds Official and Momentum from the same source.
 
 **Which hardware is recommended?**
 An ESP32-C5 Marauder board with GPS and microSD. Development and on-device

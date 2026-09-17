@@ -51,9 +51,25 @@ typedef struct {
     uint8_t stream_n; /* Valid entries in stream_rows[], <= SR_STREAM_ROWS */
     SrApBrief
         stream_rows[SR_STREAM_ROWS]; /* rows[0] = idx stream_top (newer), proceeding toward older */
+    SrQualInfo qual; /* Last Qual: snapshot; unused when qual_rev == 0 */
+    uint32_t qual_rev; /* 0 = never seen (generic Marauder: keep the count view) */
+    /* F2 rev2. Mirrors of SrModel fields (dash_fill copies them under app->mtx), fed to
+     * sr_fmt_qual_fresh() by the render gate in views/sr_view_dash.c. */
+    uint32_t qual_tick_ms; /* Mirrors SrModel.qual_tick_ms -- furi tick of the last Qual: */
+    uint32_t sess_ms; /* Mirrors SrModel.sess.ms -- 0 = board reports no session (§1C) */
+    SrRadioInfo radio; /* Mirrors SrModel.radio -- permission bits; unused when radio_rev==0 */
+    uint32_t radio_rev; /* 0 = Radio: never seen (unknown, not BLE OFF) */
 } SrDashModel;
 
 _Static_assert(sizeof(SrDashModel) <= 768, "SrDashModel over 768 B (T4.1 / ADR-019)");
+
+/* F2 rev2 §3. Column budget for the F2 headline only, decoupled from SR_VIEW_COLS=20
+ * (which the 23-char OK string no longer fits). The retreat loop in
+ * views/sr_view_dash.c starts here and only shrinks -- see sr_view_fmt.h's
+ * sr_view_fmt_health doc comment. */
+enum {
+    SR_HEALTH_COLS_MAX = 32
+};
 
 #ifndef SR_HOST_TEST
 #include <gui/view.h>

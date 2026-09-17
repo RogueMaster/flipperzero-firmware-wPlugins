@@ -21,13 +21,14 @@
 #include "src/sr_scan_ctl.h"
 #include "src/sr_gps_sample.h"
 #include "src/sr_poi.h"
+#include "src/sr_peer_sync.h"
 #include "src/sr_rawlog.h"
 #include "src/sr_source_codec.h"
 #include "src/sr_notify.h"
 #include "views/sr_view_dash.h"
 
 #define SR_TAG         "SigRoam"
-#define SR_FAP_VERSION "0.3"
+#define SR_FAP_VERSION "0.4"
 
 /*
  * Brand / referral slot (About page).
@@ -59,33 +60,42 @@
  *      2026-08-31), but clause 8 reserves refusal "for any reason" -- so keep the
  *      tone out of advertising register.
  *
- * NOTE: SR_BRAND_NAME was removed (2026-09-01, T4.14): after the About page was
- *    rearranged the brand no longer occupies its own row; the short-link domain
- *    go.pingequa.com carries it instead, leaving that macro with no users.
+ * SR_BRAND_NAME is the maker word. About line 2 is SR_BRAND_LINE
+ * ("by PINGEQUA Lab", 74 px). Changing the spelling must keep line 2 <= 91 px
+ * (FontSecondary advance; that row shares y with the QR).
  */
-#define SR_BRAND_URL "go.pingequa.com/sr1g"
+#define SR_BRAND_NAME "PINGEQUA"
+#define SR_BRAND_LINE "by " SR_BRAND_NAME " Lab"
+#define SR_BRAND_URL  "go.pingequa.com/sr1g"
 
 /* Flipper LCD is 128x64. Fullscreen attach has no status bar, so About
  * text-scroll uses the full canvas. (Plan/T2.4: 128 px wide.) */
 #define SR_CANVAS_W 128
 #define SR_CANVAS_H 64
 
-/* About page QR geometry (T4.14). **Regenerate the image before changing these
- * numbers; do not just edit the numbers**:
- *  - SIDE = 37 is the actual edge length of assets/sr1g_qr.png, determined by the
- *    QR version (V3 = 29 modules + a 4-module quiet zone on each side = 37, with
- *    box_size=1 giving 1 px per module).
- *    A URL crossing 42 bytes jumps to V4 (33 modules -> 41 px), which must be
- *    mirrored here.
- *  - X is derived by right alignment: 91 + 37 = 128 sits flush with the right
- *    edge, leaving 91 px on the left for the upper text block.
- * The quiet zone is already inside that 37 -- drawing any element into the
- * rectangle x>=91 and y<37 makes the code unscannable. */
+/* About page QR geometry (T4.14; Y revised 2026-09-17 lockup A).
+ * **Regenerate the image before changing SIDE; do not just edit the numbers**:
+ *  - SIDE = 37 is the actual edge of assets/sr1g_qr.png (V3 = 29 modules + a
+ *    4-module quiet zone each side, box_size=1). A URL past 42 bytes jumps to
+ *    V4 (33 modules -> 41 px) and must be mirrored here.
+ *  - X is right-aligned: 91 + 37 = 128. Rows that share the code's y range
+ *    have 91 px on the left.
+ *  - Y = 13 sits on the second-row cap (row 1 descender ends y=12) so row 1
+ *    is a full-width title bar. The code occupies y=13..49; the URL cap at
+ *    y=53 stays below it. Y outside 13..15 either clips row 1 or the URL.
+ * The quiet zone is already inside the 37. Drawing into x>=91 and
+ * y in [Y, Y+SIDE) makes the code unscannable. */
 #define SR_ABOUT_QR_SIDE 37
 #define SR_ABOUT_QR_X    (SR_CANVAS_W - SR_ABOUT_QR_SIDE)
+#define SR_ABOUT_QR_Y    13
 
 #define SR_ABOUT_TEXT_MAX 640
-#define SR_PROBE_TEXT_MAX 320
+/* 320 until 2026-09-07. The four handshake lines already cost ~190 at their field
+ * caps, and the Diag block (state name, stuck-gate name, six 10-digit heartbeats)
+ * adds ~109 — 21 bytes of slack was close enough that a long ESP-IDF string would
+ * have silently truncated the diagnostic, which is the one line that matters when
+ * nothing else is answering. */
+#define SR_PROBE_TEXT_MAX 448
 #define SR_RAW_TEXT_MAX   (SR_RAWLOG_LINES * (SR_RAWLOG_LINE_MAX + 2) + 1)
 #define SR_TICK_PERIOD_MS 100
 
@@ -148,10 +158,30 @@ typedef struct {
      * start/stop, consumed by sr_wait_stage_eval.
      * GUI-thread exclusive like app->scan (see the comment block above). */
     uint32_t scan_cmdack_at_send;
+    /* Snapshot of model.busy_rev taken **before** queuing, same reason and same
+     * before-send rule as scan_cmdack_at_send. Compared with != , never > : busy_rev
+     * wraps. GUI-thread exclusive like app->scan. */
+    uint32_t scan_busy_rev_at_send;
     SrGpsSampleCtx gps_sample;
     SrPoiCtx poi;
     SrAlertCtx alert;
     bool probe_send_busy;
+    /* Card N1 peer-state adoption. GUI-thread exclusive like app->scan (see the
+     * comment block above): armed by Dash on_enter after it queues `info`, consumed
+     * by the Dash Tick handler when the reply raises model.firmware_rev.
+     * peer_sync_fw_rev is a snapshot taken **before** the send, for the same reason as
+     * scan_cmdack_at_send, and compared with != , never > : firmware_rev wraps.
+     * Disarm policy lives in sr_peer_sync_on_tick: Wait keeps pending until this
+     * #info's Diag: arrives. */
+    uint32_t peer_sync_fw_rev;
+    bool peer_sync_pending;
+    /* Card N6 / n1n6-c1c3-fix. Armed when N1 adoption succeeds; consumed by
+     * dash_sess_seed_tick once sess_rev != sess_seed_rev_at_send.
+     * sess_seed_rev_at_send is snapshotted **before** the send, same family as
+     * peer_sync_fw_rev. Independent of peer_sync_pending: firmware_rev can rise
+     * before the Sess: line arrives. */
+    uint32_t sess_seed_rev_at_send;
+    bool sess_seed_pending;
 } SigRoamApp;
 
 const char* sigroam_log_device_name(FuriHalRtcLogDevice d);
