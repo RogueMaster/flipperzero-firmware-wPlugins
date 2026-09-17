@@ -1487,15 +1487,23 @@ static bool uhf_wait_tag_reply(
     return false;
 }
 
+static int8_t uhf_hex_digit_value(char c) {
+    if(c >= '0' && c <= '9') return (int8_t)(c - '0');
+    if(c >= 'A' && c <= 'F') return (int8_t)(c - 'A' + 10);
+    if(c >= 'a' && c <= 'f') return (int8_t)(c - 'a' + 10);
+    return -1;
+}
+
 static bool uhf_hex_to_bytes(const char* hex, uint8_t* out, size_t out_size, size_t* out_len) {
     if(!hex || !out || !out_len) return false;
     const size_t hex_len = strlen(hex);
     if((hex_len & 1U) || hex_len / 2U > out_size) return false;
 
     for(size_t i = 0U; i < hex_len / 2U; i++) {
-        unsigned int value = 0U;
-        if(sscanf(&hex[i * 2U], "%2x", &value) != 1) return false;
-        out[i] = (uint8_t)value;
+        const int8_t high = uhf_hex_digit_value(hex[i * 2U]);
+        const int8_t low = uhf_hex_digit_value(hex[i * 2U + 1U]);
+        if(high < 0 || low < 0) return false;
+        out[i] = (uint8_t)((high << 4U) | low);
     }
     *out_len = hex_len / 2U;
     return true;
