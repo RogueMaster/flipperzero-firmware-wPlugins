@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flipper-usb-internet-bridge-host"
+version = "0.3.0"
+description = "Cross-platform FIBP host for Flipper Zero"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+dependencies = ["pyserial>=3.5,<4"]
+
+[project.scripts]
+fib-bridge = "host.fibp_host.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["host*", "scripts*"]

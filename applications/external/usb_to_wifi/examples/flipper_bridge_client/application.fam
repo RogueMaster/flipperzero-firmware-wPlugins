@@ -1,0 +1,18 @@
+App(
+    appid="fib_sdk_example",
+    name="Bridge SDK Client",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fib_sdk_example_main",
+    stack_size=4096,
+    sources=[
+        "examples/flipper_bridge_client/example_app.c",
+        "sdk/flipper/fib_bridge_client.c",
+        "bridge_session.c",
+        "bridge_protocol.c",
+        "usb_transport.c",
+    ],
+    fap_category="USB",
+    fap_version="1.0",
+    fap_author="mete888",
+    fap_description="Public bridge SDK HTTPS client",
+)

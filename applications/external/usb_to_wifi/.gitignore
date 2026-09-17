@@ -1,0 +1,16 @@
+.DS_Store
+.build-tests/
+.ufbt-venv/
+.host-venv/
+**/.build/
+**/.build-*/
+**/.swiftpm-cache/
+**/.swiftpm/
+**/__pycache__/
+*.pyc
+*.egg-info/
+DerivedData/
+build/
+*.spec
+.vscode/compile_commands.json
+dist/debug/
