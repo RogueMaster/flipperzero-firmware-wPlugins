@@ -56,14 +56,14 @@ Only test tags you own or are allowed to test.
 
 ## Features
 
-- **TagTinker Flipper App:** High-performance, zero-allocation RLE streaming IR engine.
+- **TagTinker Flipper App:** High-performance RLE streaming IR engine.
 - **TagTinker Image Prep (web):** Single-file, dependency-free HTML page that lists every supported tag profile, runs a full image pipeline (tone, contrast, detail, sharpen, dither, photo-grade Oklab 3-colour quantisation) and exports a Flipper-ready BMP. Hosted at **[i12bp8.github.io/TagTinker](https://i12bp8.github.io/TagTinker/)** (source: `web-image-prep/`).
-- **Drop-folder image flow:** Drop a prepared BMP into `apps_data/tagtinker/dropped/` on the Flipper SD card, then open `Targeted Payloads → <tag> → Set Image` and pick it. The Flipper rescales any BMP on the fly so a single file can target any tag and any page.
-- **NFC Tag Scan:** Instantly identify ESL targets by scanning their NFC tag — no manual barcode entry needed.
+- **Drop-folder image flow:** Drop a prepared BMP into `apps_data/tagtinker/dropped/` on the Flipper SD card, then open `Targeted Payloads → <tag> → Set Image` and pick it. The Flipper rescales the 1-bit and two-plane BMPs that the image preparer exports, so one file can be sent to graphics tags of other sizes and to any page. Type 1626 (SmartTAG Color 2.6) targets only accept files up to 24 KB.
+- **NFC Tag Scan:** Add a target by scanning the tag's NFC chip instead of typing its barcode. This works when the tag's NFC data carries an ID TagTinker can decode; otherwise use `+ Type Barcode`.
 - **WiFi Plugins (optional):** Plug a Flipper WiFi Dev Board (ESP32-S2) into the GPIO header to unlock live, network-rendered tag designs — crypto price cards, weather tiles, identicons, and more — auto-discovered by the FAP. New plugins live entirely on the cloud worker; the Flipper firmware never has to be re-flashed to add one.
 <img alt="image" src="https://raw.githubusercontent.com/i12bp8/TagTinker/refs/heads/main/PXL_20260427_092219442.jpg" />
 
-- Display text, custom images, and test-patterns.
+- Display text and custom images.
 - Support for monochrome and accent-color (red/yellow) graphics tags.
 
 ## Getting Started
@@ -104,7 +104,7 @@ CI ([`build.yml`](.github/workflows/build.yml)) builds all three components — 
 
 **Does this require a Flipper Zero?**
 
-No, not at all! You can do this with less than $5 worth of microcontroller hardware (like an ESP32 and an IR LED). The Flipper Zero just happens to be my favorite security research tool, which is why I built the app for this platform.
+This app does. The IR protocol itself is simple enough to drive from other cheap microcontroller hardware, such as an ESP32 and an IR LED, but this repository only contains the Flipper implementation. The Flipper Zero just happens to be my favorite security research tool, which is why I built the app for this platform.
 
 **Where is the `.fap` release?**
 

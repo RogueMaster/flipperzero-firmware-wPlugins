@@ -2,8 +2,10 @@
  * Cloud plugin client.
  *
  * Talks to the TagTinker Cloudflare Worker that hosts plugin manifests
- * and renders. Default URL is hard-coded below; override at runtime by
- * calling cloud_client_set_url() (the value is persisted in NVS).
+ * and renders. The base URL is TT_CLOUD_DEFAULT_URL below unless NVS
+ * already holds one. cloud_client_set_url() can store a different URL, but
+ * nothing calls it yet, so pointing the board at another worker currently
+ * means editing TT_CLOUD_DEFAULT_URL and reflashing.
  *
  *   GET <base>/plugins        -> JSON manifest list
  *   GET <base>/render/<id>?...-> binary framebuffer (see worker docs)

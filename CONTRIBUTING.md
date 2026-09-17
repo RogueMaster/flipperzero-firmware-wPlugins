@@ -24,7 +24,6 @@ Thanks for wanting to help out! Here's how to get involved.
 - Support for new ESL tag sizes and models
 - NFC tag support for additional ESL formats
 - UI/UX improvements
-- Android companion app improvements
 
 ## Pull Request Guidelines
 
