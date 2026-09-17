@@ -119,6 +119,10 @@ bool tagtinker_barcode_to_plid(const char* barcode, uint8_t plid[4]) {
     return true;
 }
 
+bool tagtinker_type_is_known(uint16_t type_code) {
+    return find_profile_entry(type_code) != NULL;
+}
+
 bool tagtinker_barcode_to_type(const char* barcode, uint16_t* type_code) {
     if(!barcode || strlen(barcode) != 17 || !type_code) return false;
     uint16_t type = 0;

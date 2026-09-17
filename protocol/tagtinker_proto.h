@@ -105,6 +105,14 @@ static inline void tagtinker_profile_glass_size(
 bool tagtinker_is_barcode_valid(const char* barcode);
 bool tagtinker_barcode_to_plid(const char* barcode, uint8_t plid[4]);
 bool tagtinker_barcode_to_type(const char* barcode, uint16_t* type_code);
+
+/* True when this type code has an entry in the built-in profile table. */
+bool tagtinker_type_is_known(uint16_t type_code);
+
+/* Bounds for a user-entered custom tag size (pixels). Width is byte-aligned. */
+#define TAGTINKER_CUSTOM_SIZE_MIN  8U
+#define TAGTINKER_CUSTOM_SIZE_MAX  800U
+#define TAGTINKER_CUSTOM_SIZE_STEP 8U
 bool tagtinker_barcode_to_profile(const char* barcode, TagTinkerTagProfile* profile);
 
 typedef struct {

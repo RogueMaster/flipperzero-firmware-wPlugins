@@ -105,6 +105,12 @@ typedef struct {
     char barcode[TAGTINKER_BC_LEN + 1];
     uint8_t plid[4];
     TagTinkerTagProfile profile;
+    /* User-entered geometry for a tag whose type code is not in the profile
+     * table. 0x0 means unset. Applied by tagtinker_target_refresh_profile only
+     * when the barcode's type is unknown, so a real profile is never overridden. */
+    uint16_t custom_width;
+    uint16_t custom_height;
+    uint8_t custom_color; /* TagTinkerTagColor */
 } TagTinkerTarget;
 
 struct TagTinkerApp {
@@ -156,6 +162,11 @@ struct TagTinkerApp {
 
     /* Saved targets */
     TagTinkerTarget targets[TAGTINKER_MAX_TARGETS];
+
+    /* Custom-size scene working values. */
+    uint16_t custom_size_w;
+    uint16_t custom_size_h;
+    uint8_t custom_size_color;
     uint8_t target_count;
 
     /* Text to push */
@@ -294,6 +305,7 @@ typedef enum {
     TagTinkerTargetDeleteSyncedImages,
     TagTinkerTargetPingFlash,
     TagTinkerTargetDeleteTag,
+    TagTinkerTargetCustomSize,
 } TagTinkerTargetActionItem;
 
 void tagtinker_target_refresh_profile(TagTinkerTarget* target);
