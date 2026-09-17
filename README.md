@@ -30,6 +30,30 @@ This tool is built for IoT security curiosity, learning about obscure protocols,
 > [!WARNING]
 > **Hardware Warning:** Many infrared ESL tags store their firmware, address, and display data in volatile RAM to save cost and energy. If you remove the battery or let it fully discharge, the tag will lose all programming and become unresponsive ("dead"). It usually cannot be recovered without the original base station.
 
+## Which tags work
+
+TagTinker only transmits infrared, through the Flipper's IR LED. It works with infrared ESLs whose type code is in the app's profile table. The type code is digits 13 to 16 of the 17-character barcode, and the [image preparer](https://i12bp8.github.io/TagTinker/) lists the graphics types.
+
+TagTinker has no way to drive ESLs that are updated over radio, whatever their barcode or NFC tag says. For example:
+
+- SES-imagotag's VUSION access points talk to their labels over a [proprietary 2.4 GHz radio](https://www.ses-imagotag.com/wp-content/uploads/2023/01/VUSION_Datasheet_Retail_IoT_Connector_en.pdf), and in 2023 SES-imagotag [announced Bluetooth LE support](https://www.vusion.com/newsroom/ses-imagotag-expands-vusion-capabilities-to-bluetooth-based-iot-protocol) for the platform.
+- Hanshow documents labels such as the [Stellar Pro-266](https://www.hanshow.com/en/resource/the-hanshow-esl:-a-stellar-solution-for-retail-transformation) and [Nebular Pro-346](https://www.hanshow.com/en/resource/elevating-the-museum-and-gallery-experience-with-hanshow-price-tags-unveiling-the-nebular-pro-346) as RF devices working at 2402 to 2480 MHz.
+
+**What `+ Scan NFC` tells you**
+
+The scan only reads the tag's NFC data. It cannot sense whether the display listens for infrared or radio.
+
+| Message | What the Flipper found |
+| --- | --- |
+| Tag actions open | The NFC link carries an ID TagTinker decodes. `Show Tag Info` shows the model, or `Model: Unknown` when the type code is not in the profile table. |
+| Likely radio tag | No decodable ID, and the NFC link points to `nfc.imagotag.com`, the host in the [public VUSION label dump](https://github.com/i12bp8/TagTinker/issues/51). The link alone does not prove the model. |
+| Unrecognized tag | The chip was read, but its NFC data holds no ID TagTinker can decode. Everyday NFC cards land here too. For an infrared tag, try `+ Type Barcode`. |
+| Unreadable chip | An NFC-A chip answered, but no page could be read. The scan reads only NTAG/Ultralight chips; other chip types give this or "Unrecognized tag", depending on how they answer. If the tag moved during the read, take it away and present it again. |
+| Target list full | All 16 target slots are in use. Delete a saved tag first. |
+| Nothing happens | No NFC-A chip answered. The tag may have no NFC chip, or one of a type the scan does not look for. |
+
+Only test tags you own or are allowed to test.
+
 ## Features
 
 - **TagTinker Flipper App:** High-performance, zero-allocation RLE streaming IR engine.
