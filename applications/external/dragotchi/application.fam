@@ -1,0 +1,16 @@
+App(
+    appid="dragotchi",
+    name="Dragotchi",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="dragotchi_app",
+    requires=["gui", "expansion"],
+    sources=["src/*.c", "src/gui/*.c", "src/gui/scenes/*.c", "src/gui/custom_modules/*.c"],
+    stack_size=2 * 1024,
+    fap_icon="dragotchi_10px.png",
+    fap_icon_assets="assets",
+    fap_category="Games",
+    fap_description="Raise a dragon; hunt the airwaves",
+    fap_author="MrModd (original), fork by willem",
+    fap_weburl="https://github.com/MrModd/Matagotchi",
+    fap_version="0.4.0"
+)
