@@ -457,6 +457,11 @@ static bool tx_send_color26_text(TagTinkerApp* app) {
 }
 
 static bool tx_stream_text_image(TagTinkerApp* app) {
+    /* A target without a table profile has no dimensions. Refuse here: both
+     * text paths below would otherwise call malloc(0), which the firmware
+     * treats as a fatal error. */
+    if(app->image_tx_job.width == 0U || app->image_tx_job.height == 0U) return false;
+
     if(tx_is_color26(app)) {
         return tx_send_color26_text(app);
     }

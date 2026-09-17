@@ -289,7 +289,10 @@ bool tagtinker_delete_target(TagTinkerApp* app, uint8_t index) {
 
 bool tagtinker_target_supports_graphics(const TagTinkerTarget* target) {
     if(!target) return false;
-    return target->profile.kind != TagTinkerTagKindSegment;
+    /* Only profile-table entries have real dimensions. A type code missing
+     * from the table leaves a zeroed profile (0x0, kind Unknown), so the app
+     * has no known display size to render text or images for. */
+    return target->profile.known && target->profile.kind == TagTinkerTagKindDotMatrix;
 }
 
 bool tagtinker_target_supports_accent(const TagTinkerTarget* target) {

@@ -6,7 +6,8 @@
 
 static void unsupported_tag_back_cb(GuiButtonType type, InputType input_type, void* ctx) {
     UNUSED(type);
-    UNUSED(input_type);
+    /* Widget buttons report press, short and release alike; act once. */
+    if(input_type != InputTypeShort) return;
     TagTinkerApp* app = ctx;
     scene_manager_previous_scene(app->scene_manager);
 }
@@ -60,11 +61,29 @@ bool tagtinker_scene_barcode_input_on_event(void* ctx, SceneManagerEvent event) 
 
 
 
-    app->selected_target = tagtinker_ensure_target(app, app->barcode);
+    int8_t idx = tagtinker_ensure_target(app, app->barcode);
 
-    if(app->selected_target >= 0) {
-        tagtinker_select_target(app, (uint8_t)app->selected_target);
+    if(idx < 0) {
+        /* The barcode already passed validation, so the only way left to fail
+         * is a full target list. Do not open the target actions with index -1. */
+        widget_reset(app->widget);
+        widget_add_string_element(
+            app->widget, 64, 10, AlignCenter, AlignTop, FontPrimary, "Target List Full");
+        widget_add_string_multiline_element(
+            app->widget,
+            64,
+            30,
+            AlignCenter,
+            AlignTop,
+            FontSecondary,
+            "Delete a saved tag\nto add a new one.");
+        widget_add_button_element(
+            app->widget, GuiButtonTypeLeft, "Back", unsupported_tag_back_cb, app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, TagTinkerViewWidget);
+        return true;
     }
+
+    tagtinker_select_target(app, (uint8_t)idx);
 
     uint32_t target_scene = scene_manager_get_scene_state(
         app->scene_manager, TagTinkerSceneBarcodeInput);

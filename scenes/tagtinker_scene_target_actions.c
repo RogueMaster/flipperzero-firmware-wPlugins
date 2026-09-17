@@ -29,6 +29,27 @@ static void show_target_details(TagTinkerApp* app, const TagTinkerTarget* target
     text_box_set_focus(app->text_box, TextBoxFocusStart);
 
     static char details_buf[256];
+
+    if(!target->profile.known) {
+        /* No table entry: size and colour are unknown, not 0x0 and Mono. */
+        snprintf(
+            details_buf,
+            sizeof(details_buf),
+            "--- Tag Info ---\n"
+            "Model: Unknown\n"
+            "Type: %u\n"
+            "Not in the profile table,\n"
+            "so Set Text, Set Image\n"
+            "and WiFi Plugins are\n"
+            "hidden for this tag.\n"
+            "Barcode:\n%s",
+            target->profile.type_code,
+            target->barcode);
+        text_box_set_text(app->text_box, details_buf);
+        scene_manager_next_scene(app->scene_manager, TagTinkerSceneTextBox);
+        return;
+    }
+
     uint16_t size_w = target->profile.width;
     uint16_t size_h = target->profile.height;
     tagtinker_profile_glass_size(&target->profile, &size_w, &size_h);
