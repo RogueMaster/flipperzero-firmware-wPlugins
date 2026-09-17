@@ -445,7 +445,7 @@ static const char* const uhf_main_menu_items[] = {
     "Inventory",
     "TID Decoder",
     "EPC Fuzzing",
-    "ASCII",
+    "EPC ASCII",
     "Tag Control",
     "Access Keys",
     "Settings",
@@ -3405,7 +3405,7 @@ static void uhf_draw_epc_fuzzing(Canvas* canvas, UhfApp* app) {
 }
 
 static void uhf_draw_ascii(Canvas* canvas, UhfApp* app) {
-    uhf_draw_centered_text(canvas, 9, "ASCII EPC");
+    uhf_draw_centered_text(canvas, 9, "EPC ASCII");
     canvas_set_font(canvas, FontSecondary);
 
     if(!app->ascii_tag_captured) {
@@ -3449,16 +3449,27 @@ static void uhf_draw_settings(Canvas* canvas, UhfApp* app) {
     snprintf(values[2], sizeof(values[2]), "< %s >", uhf_startup_names[app->startup_app]);
     snprintf(values[3], sizeof(values[3]), "< %s >",
              app->epc_display == UhfEpcDisplayAscii ? "ASCII" : "HEX");
-    for(size_t row = 0U; row < 4U; row++) {
-        const int y = 18 + (int)row * 10;
-        if(row == app->settings_selected) {
-            canvas_draw_box(canvas, 0, y - 7, 128, 9);
+    const size_t total_rows = COUNT_OF(labels);
+    const size_t visible_rows = 3U;
+    const size_t top = app->settings_selected >= visible_rows ?
+                           app->settings_selected - visible_rows + 1U :
+                           0U;
+    for(size_t row = 0U; row < visible_rows; row++) {
+        const size_t item = top + row;
+        const int y = 12 + (int)row * 13;
+        if(item == app->settings_selected) {
+            canvas_draw_box(canvas, 0, y, 123, 13);
             canvas_set_color(canvas, ColorWhite);
         }
-        canvas_draw_str(canvas, 3, y, labels[row]);
-        canvas_draw_str(canvas, 125 - canvas_string_width(canvas, values[row]), y, values[row]);
-        if(row == app->settings_selected) canvas_set_color(canvas, ColorBlack);
+        canvas_draw_str(canvas, 3, y + 9, labels[item]);
+        canvas_draw_str(
+            canvas,
+            120 - canvas_string_width(canvas, values[item]),
+            y + 9,
+            values[item]);
+        if(item == app->settings_selected) canvas_set_color(canvas, ColorBlack);
     }
+    elements_scrollbar_pos(canvas, 125, 12, 39, app->settings_selected, total_rows);
     uhf_draw_fixed_center_button(canvas, "Save");
 }
 

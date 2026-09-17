@@ -13,7 +13,7 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 - **Feature Menu** — Opens after reader detection with six focused entries
 - **TID Decoder** — Automatically pauses on one tag and shows scrollable MDID/model details
 - **EPC Fuzzing** — Generates incremental EPC variants with explicit verified writes
-- **ASCII EPC** — Captures one tag, edits up to 12 printable ASCII characters, and writes a 96-bit EPC
+- **EPC ASCII** — Captures one tag, edits up to 12 printable ASCII characters, and writes a 96-bit EPC
 - **Persistent Settings** — Configure sound, 0–20 dBm RF power, EPC display, and a startup tool
 - **Paged EPC List** — Browse scanned tags page by page, with truncated preview
 - **Tag Details** — View full EPC, RSSI, and PC (Protocol Control) bits for each tag
@@ -106,7 +106,7 @@ Catalog bundle, updates the Catalog fork, and opens the upstream pull request.
 
 1. Connect your UHF module as described in [Hardware Setup](#hardware-setup)
 2. Open **Apps → GPIO → UHF Expansion**
-3. Choose **UHF Radar**, **Tag Inventory**, **TID Decoder**, **EPC Fuzzing**, **ASCII**, **Tag Control**, **Access Keys**, **Settings**, or **About Us**
+3. Choose **UHF Radar**, **Tag Inventory**, **TID Decoder**, **EPC Fuzzing**, **EPC ASCII**, **Tag Control**, **Access Keys**, **Settings**, or **About Us**
 4. In UHF Radar or Tag Inventory, press **OK** to start/stop inventory scanning
 5. Navigate the tag list with **Up/Down**
 6. Press **OK** on a tag to view details
@@ -114,7 +114,7 @@ Catalog bundle, updates the Catalog fork, and opens the upstream pull request.
 8. Open **Tag Control** after EPC Fuzzing to erase, lock, or unlock one presented tag
 9. Open the separate **Access Keys** tool to select or edit an Access Password slot
 10. Set **EPC Display** to **ASCII** to show printable ASCII EPCs in Tag Inventory
-11. Use **ASCII** to capture one tag, edit up to 12 characters, and write the 96-bit EPC with Right
+11. Use **EPC ASCII** to capture one tag, edit up to 12 characters, and write the 96-bit EPC with Right
 
 > **Key storage:** Access-password slots are stored locally on the SD card for
 > convenience. They are masked in the UI but are not hardware-backed secrets.
