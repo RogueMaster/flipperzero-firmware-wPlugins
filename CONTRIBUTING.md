@@ -7,7 +7,7 @@ Thanks for wanting to help out! Here's how to get involved.
 1. Fork the repo
 2. Create a feature branch: `git checkout -b my-feature`
 3. Make your changes
-4. Test on hardware if possible (or at minimum, ensure `ufbt build` passes)
+4. Test on hardware if possible (or at minimum, make sure `make build-fap` (plain `ufbt`) passes). CI builds the Flipper FAP, the cloud worker and the ESP32 firmware on every PR, so keep all three compiling.
 5. Commit with a clear message
 6. Open a pull request
 

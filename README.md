@@ -9,6 +9,7 @@
   <img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg">
   <img alt="Platform: Flipper Zero" src="https://img.shields.io/badge/Platform-Flipper%20Zero-black.svg">
   <a href="https://i12bp8.github.io/TagTinker/"><img alt="Image Prep" src="https://img.shields.io/badge/Image%20Prep-Open%20in%20browser-a78bfa?logo=github"></a>
+  <a href="https://github.com/i12bp8/TagTinker/actions/workflows/build.yml"><img alt="Build" src="https://github.com/i12bp8/TagTinker/actions/workflows/build.yml/badge.svg"></a>
 </p>
 
 <p align="center">
@@ -47,6 +48,33 @@ This tool is built for IoT security curiosity, learning about obscure protocols,
 2. Open **[i12bp8.github.io/TagTinker](https://i12bp8.github.io/TagTinker/)** in any browser, pick your tag profile, drop an image, tweak, and download the BMP.
 3. Copy the BMP into `apps_data/tagtinker/dropped/` on the SD card (over `qFlipper`, USB MTP, or whatever you use).
 4. On the Flipper open `Targeted Payloads → <your tag> → Set Image`, pick the BMP, choose a page, send.
+
+## Development
+
+The repo holds three build products plus the static web tool. A root `Makefile` wraps every toolchain and works with the stock `make` on macOS (GNU Make 3.81) as well as GNU Make 4.x. Run `make` with no arguments to list all targets.
+
+**Prerequisites**
+
+- **Python 3** — `make setup` creates `.venv/` and installs [ufbt](https://github.com/flipperdevices/flipperzero-ufbt) into it for the Flipper app.
+- **Node.js 22+ (LTS)** — for the Cloudflare worker in `cloud-plugins/`.
+- **ESP-IDF v5.2** (optional) — only needed to build or flash the WiFi devboard firmware in `esp32-wifi-fw/`. Install it at `~/esp/esp-idf` or pass `IDF_PATH=/path/to/esp-idf`. ESP-IDF's `export.sh` expects a Python virtualenv matching the `python3` on your `PATH`; if exactly one `~/.espressif/python_env/idf5.2_py*_env` exists the Makefile points ESP-IDF at it automatically, otherwise pass `IDF_PYTHON_ENV_PATH=...` yourself.
+
+**Make targets**
+
+| Target | What it does |
+| --- | --- |
+| `make setup` | One-time: create `.venv/` with ufbt, download the Flipper SDK, `npm ci` the worker |
+| `make build-all` | Build the FAP, the worker and the ESP32 firmware |
+| `make build-fap` | Build the Flipper app → `dist/tagtinker.fap` |
+| `make launch` | Build, install and run the FAP on a USB-connected Flipper (port auto-detected) |
+| `make build-worker` | Type-check and bundle the worker → `cloud-plugins/dist/index.js` |
+| `make build-esp` | Build the ESP32-S2 firmware → `esp32-wifi-fw/build/tagtinker_wifi.bin` |
+| `make flash-esp ESP_PORT=/dev/cu.usbserial-XXXX` | Build and flash the devboard (omit `ESP_PORT` to auto-detect) |
+| `make serve-web` | Serve the Image Prep tool at `http://localhost:8000/` |
+| `make lint` | Advisory `ufbt lint`; it currently fails on deliberately column-aligned code and is not a CI gate |
+| `make clean` | Remove build outputs only (keeps `.venv/`, `node_modules/` and `sdkconfig`) |
+
+CI ([`build.yml`](.github/workflows/build.yml)) builds all three components — FAP, worker and ESP32 firmware — on every pull request and every push to `main`; the web tool deploys to GitHub Pages from `main`.
 
 ## FAQ
 

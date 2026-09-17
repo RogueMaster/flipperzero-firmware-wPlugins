@@ -1,0 +1,289 @@
+# TagTinker CI - builds every deliverable in this monorepo on each push/PR.
+#
+# Jobs (all independent, all run in parallel on ubuntu-latest):
+#   fap    - Flipper Zero application (.fap) via ufbt, release + dev SDK channels
+#   worker - Cloudflare Worker (cloud-plugins/) typecheck + wrangler dry-run bundle
+#   esp32  - ESP32-S2 WiFi devboard firmware via the ESP-IDF v5.2.8 docker image
+#   web    - syntax check of the inline JavaScript in web-image-prep/index.html
+#   lint   - `ufbt lint` (clang-format), ADVISORY ONLY - never fails the run
+#
+# There are deliberately NO `paths:` filters: esp32-wifi-fw/shared/tt_wifi_proto.h
+# is compiled into BOTH the FAP (via shared/tt_wifi_proto_fap.h) and the ESP
+# firmware, so a change on either side must always rebuild both.
+#
+# Deployment of web-image-prep/ to GitHub Pages lives in pages.yml, not here.
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run per ref. A newer push to a PR branch cancels the still-running older
+# one; pushes to main are never cancelled so every main commit keeps a result.
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Flipper Zero application (application.fam at repo root)
+  # ---------------------------------------------------------------------------
+  fap:
+    name: Flipper app (${{ matrix.channel }} SDK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The `release` channel is the one users run (matches the local ufbt setup:
+    # firmware 1.4.3 / API 87.1 / f7) and is a hard gate. The `dev` channel
+    # tracks unreleased firmware and gives early warning of upcoming API
+    # breaks, so it is allowed to fail without failing the workflow.
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - channel: release
+            experimental: false
+          - channel: dev
+            experimental: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Installs Python + ufbt, downloads/caches the SDK + toolchain, then runs
+      # `ufbt -s` inside app-dir. Output lands in <app-dir>/dist.
+      - name: Build FAP with ufbt
+        id: build-app
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          app-dir: .
+          task: build
+          sdk-channel: ${{ matrix.channel }}
+          sdk-hw-target: f7
+
+      - name: Report SDK / toolchain used
+        env:
+          CHANNEL: ${{ matrix.channel }}
+          UFBT_STATUS: ${{ steps.build-app.outputs.ufbt-status }}
+          API_VERSION: ${{ steps.build-app.outputs.api-version }}
+          SUFFIX: ${{ steps.build-app.outputs.suffix }}
+          TOOLCHAIN: ${{ steps.build-app.outputs.toolchain-version }}
+          FAP_DIR: ${{ steps.build-app.outputs.fap-dir }}
+        run: |
+          sdk="$(printf '%s' "$UFBT_STATUS" | jq -r '"\(.version) (hw target \(.target))"' 2>/dev/null || echo unknown)"
+          {
+            echo "### Flipper app - ${CHANNEL} channel"
+            echo "- SDK: ${sdk}"
+            echo "- API version: ${API_VERSION}"
+            echo "- Toolchain: ${TOOLCHAIN}"
+            echo "- Artifact suffix: ${SUFFIX}"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          ls -l "$FAP_DIR" "$FAP_DIR/debug"
+
+      - name: Upload FAP + debug ELF
+        uses: actions/upload-artifact@v7
+        with:
+          name: tagtinker-fap-${{ matrix.channel }}
+          path: |
+            dist/*.fap
+            dist/debug/*.elf
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Worker (cloud-plugins/)
+  # ---------------------------------------------------------------------------
+  worker:
+    name: Cloudflare Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: cloud-plugins
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Node 22 LTS; package.json declares no `engines`, so pin it here.
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloud-plugins/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # `npm run build` = `wrangler deploy --dry-run --outdir dist`: bundles the
+      # worker without touching Cloudflare, so no account/API token is needed.
+      - name: Bundle (wrangler dry-run)
+        run: npm run build
+        env:
+          CI: "true"
+          WRANGLER_SEND_METRICS: "false"
+
+      - name: Upload worker bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: tagtinker-worker-bundle
+          path: cloud-plugins/dist/index.js
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # ESP32-S2 WiFi devboard firmware (esp32-wifi-fw/)
+  # ---------------------------------------------------------------------------
+  esp32:
+    name: ESP32-S2 WiFi firmware
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Runs `idf.py build` inside espressif/idf:v5.2.8 (same minor as the
+      # local ~/esp/esp-idf v5.2.8 install). The action only exports
+      # IDF_TARGET=esp32s2; sdkconfig.defaults additionally pins
+      # CONFIG_IDF_TARGET="esp32s2" and sdkconfig itself is gitignored, so a
+      # clean checkout resolves to the S2 target either way. If the two ever
+      # disagree idf.py refuses to build, which is what we want.
+      - name: Build with ESP-IDF v5.2.8
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.2.8
+          target: esp32s2
+          path: esp32-wifi-fw
+          command: idf.py build
+
+      - name: Verify resolved target and list binaries
+        working-directory: esp32-wifi-fw
+        run: |
+          if ! grep -q '^CONFIG_IDF_TARGET="esp32s2"' sdkconfig; then
+            echo "::error file=esp32-wifi-fw/sdkconfig.defaults::sdkconfig did not resolve to esp32s2:"
+            grep '^CONFIG_IDF_TARGET' sdkconfig || echo "(CONFIG_IDF_TARGET not set at all)"
+            exit 1
+          fi
+          echo "Target OK: $(grep '^CONFIG_IDF_TARGET=' sdkconfig)"
+          ls -l \
+            build/tagtinker_wifi.bin \
+            build/bootloader/bootloader.bin \
+            build/partition_table/partition-table.bin \
+            build/ota_data_initial.bin
+
+      # Paths are kept relative to build/ so the layout inside the artifact
+      # matches the offsets/paths recorded in flasher_args.json.
+      - name: Upload firmware images
+        uses: actions/upload-artifact@v7
+        with:
+          name: tagtinker-esp32s2-firmware
+          path: |
+            esp32-wifi-fw/build/tagtinker_wifi.bin
+            esp32-wifi-fw/build/bootloader/bootloader.bin
+            esp32-wifi-fw/build/partition_table/partition-table.bin
+            esp32-wifi-fw/build/ota_data_initial.bin
+            esp32-wifi-fw/build/flasher_args.json
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Web image-prep tool (web-image-prep/index.html, single self-contained file)
+  # ---------------------------------------------------------------------------
+  web:
+    name: Web image-prep page
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # The page has no build step, so the cheapest meaningful gate is to make
+      # sure every inline <script> still parses. Each block is written to a
+      # temp file (.mjs for type="module", .js otherwise) and run through
+      # `node --check`; <script src=...> and non-JS types (JSON, templates)
+      # are skipped.
+      - name: Syntax-check inline scripts
+        run: |
+          node - <<'JS'
+          const fs = require('fs');
+          const os = require('os');
+          const path = require('path');
+          const { spawnSync } = require('child_process');
+
+          const file = 'web-image-prep/index.html';
+          const html = fs.readFileSync(file, 'utf8');
+          const tmp = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'inline-js-'));
+          const re = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+          const classicTypes = new Set(['', 'text/javascript', 'application/javascript']);
+
+          let index = 0, checked = 0, failed = 0, m;
+          while ((m = re.exec(html)) !== null) {
+            index++;
+            const [, attrs, body] = m;
+            if (/\bsrc\s*=/i.test(attrs)) continue;
+            const typeMatch = /\btype\s*=\s*["']?([^"'\s>]+)/i.exec(attrs);
+            const type = typeMatch ? typeMatch[1].toLowerCase() : '';
+            const isModule = type === 'module';
+            if (!isModule && !classicTypes.has(type)) continue;
+
+            const line = html.slice(0, m.index).split('\n').length;
+            const out = path.join(tmp, `script-${index}-line${line}${isModule ? '.mjs' : '.js'}`);
+            fs.writeFileSync(out, body);
+            const r = spawnSync(process.execPath, ['--check', out], { encoding: 'utf8' });
+            checked++;
+            if (r.status === 0) {
+              console.log(`ok   <script> #${index} (line ${line}, ${isModule ? 'module' : 'classic'}, ${body.length} bytes)`);
+            } else {
+              failed++;
+              console.error(`::error file=${file},line=${line}::syntax error in inline <script> #${index}`);
+              console.error(r.stderr || r.stdout);
+            }
+          }
+
+          if (checked === 0) {
+            console.error(`::error file=${file}::no inline <script> blocks found - extractor is probably broken`);
+            process.exit(1);
+          }
+          console.log(`${checked} inline script(s) checked, ${failed} failed`);
+          process.exit(failed ? 1 : 0);
+          JS
+
+  # ---------------------------------------------------------------------------
+  # clang-format lint - ADVISORY ONLY
+  # ---------------------------------------------------------------------------
+  # `ufbt lint` is known to fail on main: the FAP sources intentionally use
+  # column-aligned macros/struct fields that clang-format rejects, and lint
+  # walks the whole repo (flagging the hyphenated cloud-plugins/, esp32-wifi-fw/
+  # and web-image-prep/ folders). The action exits non-zero on any violation,
+  # so the job is marked continue-on-error and only surfaces its findings in
+  # the job summary. Do NOT "fix" this with `ufbt format` - that would also
+  # rewrite the ESP32 C sources.
+  lint:
+    name: Lint (advisory, non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: ufbt lint (clang-format check)
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          app-dir: .
+          task: lint
+          sdk-channel: release
+          sdk-hw-target: f7

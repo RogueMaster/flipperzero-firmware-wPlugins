@@ -44,3 +44,7 @@ CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
 # We don't include a phy_init partition (no room next to the ESP Flasher
 # fixed offsets); use the embedded default calibration data.
 CONFIG_ESP_PHY_INIT_DATA_IN_PARTITION=n
+
+# Pin the chip target so clean builds (CI, fresh clones) do not silently fall
+# back to plain esp32. The Flipper WiFi Devboard is an ESP32-S2.
+CONFIG_IDF_TARGET="esp32s2"
