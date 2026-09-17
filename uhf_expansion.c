@@ -3046,6 +3046,7 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         app->access_epc[0] = '\0';
         app->fuzz_base_epc[0] = '\0';
         app->fuzz_sequence = 0U;
+        app->tag_access_unfiltered = false;
         app->page = UhfPageEpcFuzzing;
         uhf_start_inventory(app);
         uhf_set_status(app, "Read one source tag");
@@ -3056,6 +3057,7 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         app->ascii_single_since = 0U;
         app->ascii_source_epc[0] = '\0';
         app->ascii_text[0] = '\0';
+        app->tag_access_unfiltered = false;
         app->page = UhfPageAscii;
         uhf_start_inventory(app);
         uhf_set_status(app, "Present one tag");
@@ -3073,6 +3075,7 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         uhf_clear_tags(app);
         app->security_mode = true;
         app->security_single_since = 0U;
+        app->tag_access_unfiltered = false;
         app->page = UhfPageTagSecurity;
         uhf_start_inventory(app);
         uhf_set_status(app, "Present exactly one tag");
@@ -4225,7 +4228,9 @@ static void uhf_write_ascii_epc(UhfApp* app) {
     app->selected_epc[sizeof(app->selected_epc) - 1U] = '\0';
     strncpy(app->access_epc, app->ascii_source_epc, sizeof(app->access_epc) - 1U);
     app->access_epc[sizeof(app->access_epc) - 1U] = '\0';
-    app->tag_access_unfiltered = false;
+    /* The source tag is only used to enter this tool. The user may replace it
+       with a different target before pressing Write. */
+    app->tag_access_unfiltered = true;
 
     if(uhf_write_selected_bank(app, UhfTagBankEpc, epc_hex)) {
         strncpy(app->ascii_source_epc, app->selected_epc, sizeof(app->ascii_source_epc) - 1U);
