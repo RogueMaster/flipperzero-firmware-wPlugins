@@ -333,7 +333,13 @@ int test_rawlog_run(void) {
     fprintf(stderr, "sizeof(SrRawLog)=%zu\n", sizeof(SrRawLog));
     CHECK(sizeof(SrModel) <= 4096);
     CHECK(sizeof(SrRawLog) == 1352);
-    CHECK(sizeof(SrModel) == 3328);
+    /* 2026-09-09 N6: +SrSessInfo(12) + sess_rev(4) = +16 → 3384.
+     * 2026-09-15 F2 rev1: +SrQualInfo(20) + qual_rev(4) = +24 → 3408.
+     * 2026-09-15 F2 rev2: +qual_tick_ms(4) absorbs 4 B of pre-existing padding
+     * before char last_unknown[512] -- stays 3408 (see test_model.c for the
+     * full alignment argument).
+     * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416. */
+    CHECK(sizeof(SrModel) == 3416);
 
     empty = test_empty_render();
     lens = test_lens();

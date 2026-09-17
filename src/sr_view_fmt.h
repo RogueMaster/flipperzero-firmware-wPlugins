@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "sr_capture_health.h"
+
 /*
  * ★ Pure formatting for hand-drawn views. Must not include any furi header (ADR-003 / ADR-019 decision 4).
  * Numeric formatting, tab wrapping, truncation by character count. The draw callback only consumes results from here.
@@ -457,6 +459,99 @@ static inline const char* sr_fmt_session_label(uint8_t state) {
 }
 
 /*
+ * Hardware: prefix names the Scout Lite board, not the firmware.
+ * Firmware/app are SigRoam. Wire Firmware: stays "Marauder" (handshake).
+ * Bounded: never scan past hw_cap. Case-sensitive, same prefix as Probe.
+ */
+static inline bool sr_fmt_hw_is_scout_lite(const char* hw, size_t hw_cap) {
+    static const char k[] = "Scout Lite";
+    const size_t klen = sizeof(k) - 1u;
+    size_t n;
+    size_t i;
+
+    n = sr_fmt_bounded_len(hw, hw_cap);
+    if(n < klen) {
+        return false;
+    }
+    for(i = 0; i < klen; i++) {
+        if(hw[i] != k[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+ * Sess tab status line for Scout Lite. Never copies the wire Firmware:
+ * token. Fitted to SR_VIEW_COLS.
+ *
+ * state: Diag: SCANNING(1)→Running, SEALED(4)→Sealed; else FAP session
+ * label (Idle/Running/Stopped). duration: live elapsed while FAP session
+ * is Running (numeric 1), else board sess_ms. radio: permission bits;
+ * omitted when radio_rev==0. "Running 01:26 WiFi BLE" is 21 cols, so the
+ * radio token is W+B / W / B / --.
+ */
+static inline size_t sr_fmt_sess_sigroam_status(
+    uint8_t session,
+    bool diag_seen,
+    uint8_t diag_state,
+    uint32_t elapsed_ms,
+    uint32_t sess_ms,
+    uint32_t radio_rev,
+    uint8_t radio_wifi,
+    uint8_t radio_ble,
+    char* out,
+    size_t cap) {
+    char tmp[40];
+    char dur[16];
+    const char* st;
+    size_t n;
+    size_t slen;
+    uint32_t ms;
+
+    if(out == NULL || cap == 0) {
+        return 0;
+    }
+
+    if(diag_seen && diag_state == 4u) {
+        st = "Sealed";
+    } else if(diag_seen && diag_state == 1u) {
+        st = "Running";
+    } else {
+        st = sr_fmt_session_label(session);
+    }
+
+    ms = (session == 1u) ? elapsed_ms : sess_ms;
+    (void)sr_fmt_duration(ms, dur, sizeof(dur));
+
+    slen = sr_fmt_bounded_len(st, 16);
+    n = sr_fmt__cpy(st, slen, tmp, sizeof(tmp));
+    if(n + 1u < sizeof(tmp)) {
+        tmp[n++] = ' ';
+        tmp[n] = '\0';
+    }
+    n += sr_fmt__cpy(dur, sr_fmt_bounded_len(dur, sizeof(dur)), tmp + n, sizeof(tmp) - n);
+
+    if(radio_rev != 0u) {
+        if(n + 1u < sizeof(tmp)) {
+            tmp[n++] = ' ';
+            tmp[n] = '\0';
+        }
+        if(radio_wifi != 0u && radio_ble != 0u) {
+            n += sr_fmt__cpy("W+B", 3, tmp + n, sizeof(tmp) - n);
+        } else if(radio_wifi != 0u) {
+            n += sr_fmt__cpy("W", 1, tmp + n, sizeof(tmp) - n);
+        } else if(radio_ble != 0u) {
+            n += sr_fmt__cpy("B", 1, tmp + n, sizeof(tmp) - n);
+        } else {
+            n += sr_fmt__cpy("--", 2, tmp + n, sizeof(tmp) - n);
+        }
+    }
+
+    return sr_fmt_fit(tmp, n, (size_t)SR_VIEW_COLS, out, cap);
+}
+
+/*
  * Join two bounded strings into a single display row.
  *
  *   both a and b non-empty -> "a b"
@@ -504,4 +599,183 @@ static inline size_t sr_fmt_fw_pair(
         n += sr_fmt__cpy(b, blen, tmp + n, sizeof(tmp) - n);
     }
     return sr_fmt_fit(tmp, n, max_cols, out, out_cap);
+}
+
+/*
+ * Dash headline for the F2 capture-health verdict.
+ *
+ * Card §1.4 examples use CJK / emoji. FontSecondary is a `_tr` bitmap and
+ * cannot draw those glyphs; the strings below keep the frozen semantics
+ * (OK / WARN / CRIT / Acquiring + topd hint) in ASCII. The 23-char OK
+ * string no longer fits SR_VIEW_COLS=20 (F2 rev2 §3); the caller fits it
+ * against SR_HEALTH_COLS_MAX (views/sr_view_dash.h) instead, still through
+ * sr_fmt_fit.
+ *
+ * unseen (qual_rev==0) is not "all zeros" — that would look like no-fix.
+ */
+static inline const char* sr_health_topd_hint(uint8_t reason) {
+    if(reason == (uint8_t)SrHealthReasonGps) {
+        return "gps";
+    }
+    if(reason == (uint8_t)SrHealthReasonSdDrop) {
+        return "sd";
+    }
+    if(reason == (uint8_t)SrHealthReasonLink) {
+        return "link";
+    }
+    if(reason == (uint8_t)SrHealthReasonQueue) {
+        return "queue";
+    }
+    if(reason == (uint8_t)SrHealthReasonScan) {
+        return "scan";
+    }
+    if(reason == (uint8_t)SrHealthReasonDedup) {
+        return "dedup";
+    }
+    return "?";
+}
+
+/*
+ * F2 rev2 §1B. How long a Qual: snapshot stays on screen before the
+ * headline degrades to the unknown state. 3xT of the §1A refresh period
+ * (5000 ms), chosen to tolerate two missed cycles before declaring stale.
+ * Card-frozen; do not retune here.
+ */
+enum { SR_QUAL_STALE_MS = 15000 };
+
+/*
+ * F2 rev2 §1A. Dash tick period for resending `info`, in ticks of
+ * SR_TICK_PERIOD_MS (100 ms). 5000 / 100 = 50. Shared here so host tests
+ * pin the production value instead of mirroring a magic 50u (E-2).
+ * This header must not include sigroam.h (ADR-003); scenes/scene_dash.c
+ * _Static_assert's the 5000/SR_TICK_PERIOD_MS identity.
+ */
+enum { SR_QUAL_REFRESH_PERIOD_TICKS = 50 };
+
+/*
+ * F2 rev2 §1B / §1C. Pure freshness predicate for the Dash render gate.
+ * Folds three conditions that all lead to the same "- need SigRoam Qual"
+ * unknown-state branch of sr_view_fmt_health, so there is exactly one
+ * source of truth for "should the verdict be painted right now":
+ *   - qual_rev == 0        : Qual: has never been seen (generic Marauder).
+ *   - sess_ms == 0          : the board's own Sess: line says no session is
+ *                             running (§1C; s_sess_snap boot-accumulated
+ *                             Qual: would otherwise misread as a verdict).
+ *   - now - qual_tick_ms > SR_QUAL_STALE_MS : superannuated (§1B).
+ * now / qual_tick_ms are furi ticks; the subtraction is unsigned and wraps
+ * correctly (same convention as scene_dash.c:78-79 / sr_model.c:179-182).
+ */
+static inline bool sr_fmt_qual_fresh(
+    uint32_t qual_rev, uint32_t qual_tick_ms, uint32_t sess_ms, uint32_t now) {
+    if(qual_rev == 0u) {
+        return false;
+    }
+    if(sess_ms == 0u) {
+        return false;
+    }
+    if((now - qual_tick_ms) > (uint32_t)SR_QUAL_STALE_MS) {
+        return false;
+    }
+    return true;
+}
+
+/*
+ * F2 rev2 §1A. Pure periodicity decision for the Dash tick chain's Qual
+ * refresh (dash_qual_refresh_tick in scenes/scene_dash.c): given the
+ * app-wide tick counter (app->tick_n, one per SR_TICK_PERIOD_MS) and the
+ * desired period expressed in ticks, decide whether this tick should
+ * resend `info`. Generic on purpose -- sigroam.h's SR_TICK_PERIOD_MS is a
+ * furi-adjacent constant and this file must not include it (ADR-003); the
+ * caller converts ms to ticks itself.
+ * period_ticks == 0 never fires (defensive; the real caller always passes
+ * a nonzero compile-time constant).
+ */
+static inline bool sr_qual_refresh_due(uint32_t tick_n, uint32_t period_ticks) {
+    if(period_ticks == 0u) {
+        return false;
+    }
+    return (tick_n % period_ticks) == 0u;
+}
+
+/*
+ * T6.5 half B. Dash BLE field (the value after "BLE=").
+ * radio_rev == 0: Radio: never seen — unknown, print the live count, never "OFF".
+ * radio_rev != 0 && radio_ble == 0: permission bit off — "OFF", not "0".
+ * else: live count (BLE on; indoor ap_ble==0 is still a count).
+ */
+static inline size_t sr_fmt_ble_field(
+    uint32_t radio_rev, uint8_t radio_ble, uint32_t ap_ble, char* out, size_t cap) {
+    if(out == NULL || cap == 0) {
+        return 0;
+    }
+    if(radio_rev != 0u && radio_ble == 0u) {
+        return sr_fmt__cpy("OFF", 3, out, cap);
+    }
+    return sr_fmt__udec(ap_ble, out, cap);
+}
+
+static inline size_t sr_view_fmt_health(
+    const SrHealthEval* e,
+    const SrQualInfo* q,
+    bool fresh,
+    char* out,
+    size_t cap) {
+    char tmp[40];
+    size_t n;
+    const char* hint;
+    uint32_t fixpct_disp;
+
+    if(out == NULL || cap == 0) {
+        return 0;
+    }
+    if(!fresh || e == NULL) {
+        return sr_fmt__cpy("- need SigRoam Qual", 19, out, cap);
+    }
+
+    /*
+     * F2 rev2 §4 / gate item 7: gps_task.c write-seq vs store_task.c
+     * read-seq can hand a Qual: line where ggafix > gga, so
+     * sr_capture_health_eval's fixpct (frozen, not clamped there by
+     * design) can exceed 100. Clamp only for display -- the eval layer's
+     * WARN-low-fix / drop-rate branch selection already ran on the
+     * unclamped value and must not change.
+     */
+    fixpct_disp = (uint32_t)e->fixpct;
+    if(fixpct_disp > 100u) {
+        fixpct_disp = 100u;
+    }
+
+    tmp[0] = '\0';
+    n = 0;
+    if(e->v == SrHealthCrit) {
+        n = sr_fmt__cpy("SD not writing", 14, tmp, sizeof(tmp));
+    } else if(e->v == SrHealthAcquiring) {
+        n = sr_fmt__cpy("acquiring", 9, tmp, sizeof(tmp));
+    } else if(e->v == SrHealthOk) {
+        n = sr_fmt__cpy("OK fix", 6, tmp, sizeof(tmp));
+        n += sr_fmt__udec(fixpct_disp, tmp + n, sizeof(tmp) - n);
+        if(n + 2u < sizeof(tmp)) {
+            tmp[n++] = '%';
+            tmp[n++] = ' ';
+            tmp[n] = '\0';
+        }
+        n += sr_fmt__udec(q != NULL ? q->drop : 0u, tmp + n, sizeof(tmp) - n);
+        n += sr_fmt__cpy("drop ", 5, tmp + n, sizeof(tmp) - n);
+        n += sr_fmt__udec(q != NULL ? q->net : 0u, tmp + n, sizeof(tmp) - n);
+        n += sr_fmt__cpy("net", 3, tmp + n, sizeof(tmp) - n);
+    } else if(e->reason == (uint8_t)SrHealthReasonNoFix) {
+        n = sr_fmt__cpy("WARN nofix sky", 14, tmp, sizeof(tmp));
+    } else if(e->reason == (uint8_t)SrHealthReasonLowFix) {
+        n = sr_fmt__cpy("WARN fix", 8, tmp, sizeof(tmp));
+        n += sr_fmt__udec(fixpct_disp, tmp + n, sizeof(tmp) - n);
+        if(n + 1u < sizeof(tmp)) {
+            tmp[n++] = '%';
+            tmp[n] = '\0';
+        }
+    } else {
+        hint = sr_health_topd_hint(e->reason);
+        n = sr_fmt__cpy("WARN drop ", 10, tmp, sizeof(tmp));
+        n += sr_fmt__cpy(hint, sr_fmt_bounded_len(hint, 8), tmp + n, sizeof(tmp) - n);
+    }
+    return sr_fmt__cpy(tmp, n, out, cap);
 }

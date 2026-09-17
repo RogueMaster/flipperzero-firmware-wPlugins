@@ -39,6 +39,7 @@ static bool sigroam_resync_queue(SigRoamApp* app, bool is_start) {
     app->scan.cmd_is_start = is_start;
     app->scan_cmdack_at_send =
         sr_worker_cmdack_count(app->worker, is_start ? SrCmdAckStart : SrCmdAckStop);
+    app->scan_busy_rev_at_send = app->model.busy_rev;
     if(n > 0 && sr_worker_send_cmd(app->worker, cmd)) {
         app->scan.cmd_pending = true;
         app->scan.cmd_rejected = false;

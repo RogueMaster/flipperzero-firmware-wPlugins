@@ -2,6 +2,7 @@
 
 #include "../sigroam.h"
 #include "../src/sr_resync.h"
+#include "../src/sr_capture_health.h"
 
 #include <gui/elements.h>
 #include <stdio.h>
@@ -26,6 +27,101 @@ struct SrViewDash {
     SrViewDashCallback ok_cb;
     void* ok_ctx;
 };
+
+/*
+ * The card's mark for the verdict (f2-capture-health.md §1.4), drawn as
+ * geometry rather than text.
+ *
+ * No font on the device can render ✓ / ⚠ / ✖. The firmware ELF carries
+ * exactly five u8g2 fonts — haxrcorp4089_tr (FontSecondary), helvB08_tr
+ * (FontPrimary), profont11_mr, profont22_tn, spleen5x8_mr — and in u8g2's
+ * naming the trailing letter is the character set: `r` is ASCII 32..127, `n` is
+ * digits plus date/time glyphs, and only an `f` variant carries 256 glyphs.
+ * None of the five is an `f`. canvas.h also exposes no UTF-8 entry point, only
+ * canvas_draw_str(const char*), so a literal "✓" would arrive as three bytes
+ * with no glyph behind any of them. Lines and a circle always render.
+ *
+ * A 7x7 box whose bottom sits one pixel above the text baseline, so the mark
+ * and the string share an optical line.
+ */
+static void sr_view_dash_draw_health_mark(Canvas* canvas, int32_t x, int32_t y, uint8_t verdict) {
+    const int32_t top = y - 7;
+    const int32_t bot = y - 1;
+
+    switch(verdict) {
+    case (uint8_t)SrHealthOk: /* check */
+        canvas_draw_line(canvas, x, y - 4, x + 2, bot);
+        canvas_draw_line(canvas, x + 2, bot, x + 6, top);
+        break;
+    case (uint8_t)SrHealthWarn: /* triangle with a bang */
+        canvas_draw_line(canvas, x + 3, top, x, bot);
+        canvas_draw_line(canvas, x + 3, top, x + 6, bot);
+        canvas_draw_line(canvas, x, bot, x + 6, bot);
+        canvas_draw_line(canvas, x + 3, y - 5, x + 3, y - 3);
+        canvas_draw_dot(canvas, x + 3, y - 2);
+        break;
+    case (uint8_t)SrHealthCrit: /* cross */
+        canvas_draw_line(canvas, x, top, x + 6, bot);
+        canvas_draw_line(canvas, x + 6, top, x, bot);
+        break;
+    default: /* Acquiring: a ring, "still working" rather than a verdict */
+        canvas_draw_circle(canvas, x + 3, y - 4, 3);
+        break;
+    }
+}
+
+/* Mark at x=0 (7 px) plus a 2 px gap; the string starts after it. Screen is
+ * 128 px wide (UI-SPEC section 3), which is what SR_VIEW_COLS is budgeted for. */
+enum { SR_VIEW_HEALTH_MARK_W = 9, SR_VIEW_SCREEN_W = 128 };
+
+static void sr_view_dash_put_health(Canvas* canvas, int32_t y, const SrDashModel* m) {
+    SrHealthEval hv;
+    bool fresh;
+    char health[40];
+    char line[SR_HEALTH_COLS_MAX + 1];
+    size_t hn;
+    size_t cols;
+
+    hv = sr_capture_health_eval(&m->qual, m->elapsed_ms);
+    /* F2 rev2 §1B/§1C: qual_rev==0 / no board session / superannuated all fold into
+     * one "fresh" predicate -- see sr_fmt_qual_fresh's doc comment in sr_view_fmt.h. */
+    fresh = sr_fmt_qual_fresh(m->qual_rev, m->qual_tick_ms, m->sess_ms, furi_get_tick());
+    hn = sr_view_fmt_health(&hv, &m->qual, fresh, health, sizeof(health));
+    if(hn >= sizeof(health)) {
+        hn = sizeof(health) - 1u;
+    }
+    /* Set here rather than inherited: the mark is measured against this font and
+     * the running path has FontBigNumbers selected a few lines earlier. */
+    canvas_set_font(canvas, FontSecondary);
+    sr_view_dash_draw_health_mark(canvas, 0, y, (uint8_t)hv.v);
+
+    /*
+     * SR_HEALTH_COLS_MAX (F2 rev2 §3; was SR_VIEW_COLS=20 before, which cannot
+     * fit this row -- see sr_view_fmt.h's sr_view_fmt_health doc comment) is a
+     * character budget sized for the full 128 px line, and haxrcorp4089 is
+     * proportional — subtracting a fixed number of columns to pay for the
+     * mark would throw away characters that do fit. `OK fix100% 0drop 142net`
+     * is 23 characters, so a guessed allowance is the difference between
+     * showing the row count and cutting it off. Measure, and give back
+     * columns only while the rendered string really is too wide. Bounded by
+     * SR_HEALTH_COLS_MAX iterations; canvas_string_width is a glyph-table
+     * walk, which is what every other width check in this file already does
+     * at draw time.
+     */
+    cols = (size_t)SR_HEALTH_COLS_MAX;
+    for(;;) {
+        sr_fmt_fit(health, hn, cols, line, sizeof(line));
+        if(cols == 0u) {
+            break;
+        }
+        if(canvas_string_width(canvas, line) <=
+           (uint16_t)(SR_VIEW_SCREEN_W - SR_VIEW_HEALTH_MARK_W)) {
+            break;
+        }
+        cols--;
+    }
+    canvas_draw_str(canvas, SR_VIEW_HEALTH_MARK_W, y, line);
+}
 
 static void sr_view_dash_draw_tabs(Canvas* canvas, uint8_t cur) {
     static const char* const labels[SR_VIEW_TAB_COUNT] = {"Dash", "Strm", "GPS", "Sess"};
@@ -186,7 +282,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
             return;
         }
         sr_fmt__udec(m->ap_wifi, a, sizeof(a));
-        sr_fmt__udec(m->ap_ble, b, sizeof(b));
+        sr_fmt_ble_field(m->radio_rev, m->radio.ble, m->ap_ble, b, sizeof(b));
         n = snprintf(raw, sizeof(raw), "AP=%s BLE=%s", a, b);
         sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
         y += 10;
@@ -360,6 +456,24 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
     }
 
     if(m->session == (uint8_t)SrSessionRunning) {
+        /* State 3: running. Health headline (F2) then uniq / AP / rx.
+         * FontBigNumbers is digits-only, so the verdict string is always FontSecondary.
+         * Health + big font + rows does not fit the 53 px content area — drop the
+         * big font when Qual: has been seen; generic Marauder (qual_rev==0) keeps
+         * the previous count view (card §7 degrade).
+         * F2 rev2 §2: also skip the health row when debug_rows is on -- with health +
+         * uniq/AP/rx + d=/f= + heap that is 6 rows in a 53 px area, and debug_rows'
+         * heap/rx-drop readings (T5.1 long-run evidence) take priority over the daily
+         * F2 headline. The `else` branch's own big/small choice already accounts for
+         * debug_rows, so falling through here loses nothing. */
+        if(m->qual_rev != 0u && !m->debug_rows) {
+            if(y > 61) {
+                return;
+            }
+            sr_view_dash_put_health(canvas, y, m);
+            y += 10;
+            big = false;
+        } else {
         /* State 3: running. Big-font uniq + AP=/BLE=/fix= + rx= with duration; unchanged from before. */
         /*
          * The big font is drawn only when the serial is open AND debug rows are off:
@@ -369,6 +483,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
          * Both cases fall back to the small-font path, losing nothing.
          */
         big = m->serial_open && !m->debug_rows;
+        }
         if(big) {
             int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq");
             if(next < 0) {
@@ -393,7 +508,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
                 return;
             }
             sr_fmt__udec(m->ap_wifi, a, sizeof(a));
-            sr_fmt__udec(m->ap_ble, b, sizeof(b));
+            sr_fmt_ble_field(m->radio_rev, m->radio.ble, m->ap_ble, b, sizeof(b));
             n = snprintf(raw, sizeof(raw), "AP=%s BLE=%s", a, b);
             sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
             y += 10;
@@ -403,7 +518,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
                 return;
             }
             sr_fmt__udec(m->ap_wifi, a, sizeof(a));
-            sr_fmt__udec(m->ap_ble, b, sizeof(b));
+            sr_fmt_ble_field(m->radio_rev, m->radio.ble, m->ap_ble, b, sizeof(b));
             sr_fmt__udec(m->with_gps_fix, c, sizeof(c));
             n = snprintf(raw, sizeof(raw), "AP=%s BLE=%s fix=%s", a, b, c);
             sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
@@ -519,7 +634,15 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         return;
     }
 
-    /* State 4: readiness. Serial open, no pending command, not scanning. No big font. rx without duration. */
+    /* State 4: readiness. Serial open, no pending command, not scanning. No big font. rx without duration.
+     * F2 rev2 §2: same debug_rows exclusion as State 3 (same structure, same result). */
+    if(m->qual_rev != 0u && !m->debug_rows) {
+        if(y > 61) {
+            return;
+        }
+        sr_view_dash_put_health(canvas, y, m);
+        y += 10;
+    }
     if(y > 61) {
         return;
     }
@@ -728,6 +851,24 @@ static void sr_view_dash_draw_session(Canvas* canvas, const SrDashModel* m) {
         n = snprintf(raw, sizeof(raw), "Firmware unknown");
         sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
         n = snprintf(raw, sizeof(raw), "Use Probe firmware");
+        sr_view_dash_put_line(canvas, 61, raw, n, sizeof(raw));
+    } else if(sr_fmt_hw_is_scout_lite(
+                  m->firmware.hardware, sizeof(m->firmware.hardware))) {
+        /* Scout Lite board → product SigRoam. Wire Firmware: Marauder is
+         * the handshake token and must not appear on this tab. */
+        n = snprintf(raw, sizeof(raw), "SigRoam");
+        sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
+        n = (int)sr_fmt_sess_sigroam_status(
+            m->session,
+            m->firmware.diag_seen,
+            m->firmware.diag_state,
+            m->elapsed_ms,
+            m->sess_ms,
+            m->radio_rev,
+            m->radio.wifi,
+            m->radio.ble,
+            raw,
+            sizeof(raw));
         sr_view_dash_put_line(canvas, 61, raw, n, sizeof(raw));
     } else {
         n = (int)sr_fmt_fw_pair(

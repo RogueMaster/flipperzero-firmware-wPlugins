@@ -51,7 +51,7 @@ void sigroam_scene_start_on_enter(void* context) {
      * sr_io_is_open() is necessarily false, so the main menu header had never once displayed
      * the product name.
      */
-    submenu_set_header(app->submenu, "SigRoam");
+    submenu_set_header(app->submenu, "SigRoam Wardriving");
     submenu_add_item(
         app->submenu, "Dashboard", SigRoamStartItemDash, sigroam_start_submenu_callback, app);
     submenu_add_item(

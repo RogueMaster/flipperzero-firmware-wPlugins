@@ -27,7 +27,7 @@ SRC := ../../src
 
 # selfcontained only tests headers and needs an explicit list. Add new ★
 # headers here when you create them.
-STAR_HEADERS := sr_types.h sr_source_codec.h sr_source.h sr_line.h sr_bloom.h sr_model.h sr_settings.h sr_parse_marauder.h sr_rx_policy.h sr_handshake.h sr_scan_ctl.h sr_rawlog.h sr_view_fmt.h sr_gps_sample.h sr_wait_stage.h sr_resync.h sr_alert.h sr_poi.h
+STAR_HEADERS := sr_types.h sr_source_codec.h sr_source.h sr_line.h sr_bloom.h sr_model.h sr_settings.h sr_parse_marauder.h sr_rx_policy.h sr_handshake.h sr_scan_ctl.h sr_rawlog.h sr_view_fmt.h sr_gps_sample.h sr_wait_stage.h sr_resync.h sr_alert.h sr_poi.h sr_peer_sync.h sr_sess_seed.h sr_capture_health.h
 STAR_PATHS   := $(addprefix $(SRC)/,$(STAR_HEADERS))
 
 # guard does not use an allowlist: every sr_*.h / sr_*.c under src/ must be
@@ -41,7 +41,7 @@ NON_STAR := sr_io.h sr_io.c sr_worker.h sr_worker.c sr_settings_store.h sr_setti
 # A broken glob (src/ renamed or moved) would make guard scan 0 files and
 # still report OK -- that is the most insidious failure mode. A floor value
 # guards against it. Raise the floor whenever you add a new ★ file.
-GUARD_MIN := 23
+GUARD_MIN := 26
 
 # GUI dual-target banlist (V-059 ③: 11 symbols that are Official ABSENT /
 # Momentum +).
@@ -128,11 +128,11 @@ ASAN_CFLAGS := -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined
 
 # The ★ implementations under test are compiled straight into run_tests
 # (zero stubs, see above).
-HOST_SRCS := main.c test_source_iface.c test_line.c test_bloom.c test_model.c test_settings.c test_parse_marauder.c test_rx_policy.c test_handshake.c test_scan_ctl.c test_rawlog.c test_view_fmt.c test_gps_sample.c test_wait_stage.c test_resync.c test_alert.c test_poi.c $(SRC)/sr_line.c $(SRC)/sr_bloom.c $(SRC)/sr_model.c $(SRC)/sr_settings.c $(SRC)/sr_parse_marauder.c
+HOST_SRCS := main.c test_source_iface.c test_line.c test_bloom.c test_model.c test_settings.c test_parse_marauder.c test_rx_policy.c test_handshake.c test_scan_ctl.c test_rawlog.c test_view_fmt.c test_gps_sample.c test_wait_stage.c test_resync.c test_alert.c test_poi.c test_peer_sync.c test_sess_seed.c test_qual_parse.c test_capture_health.c test_f2_health2.c test_radio_dash.c $(SRC)/sr_line.c $(SRC)/sr_bloom.c $(SRC)/sr_model.c $(SRC)/sr_settings.c $(SRC)/sr_parse_marauder.c
 
-.PHONY: all guard gui_portable storage_guard font_guard selfcontained asan clean
+.PHONY: all guard gui_portable storage_guard font_guard qual_refresh_guard dash_health_guard selfcontained asan clean
 
-all: guard gui_portable storage_guard font_guard selfcontained run_tests
+all: guard gui_portable storage_guard font_guard qual_refresh_guard dash_health_guard selfcontained run_tests
 	./run_tests
 
 run_tests: $(HOST_SRCS) sr_test.h $(STAR_PATHS)
@@ -263,7 +263,82 @@ selfcontained:
 	  echo "selfcontained: $$h OK"; \
 	done
 
-asan: guard gui_portable storage_guard font_guard selfcontained
+# F2 rev2 (docs/exec-plans/f2-capture-health-rev2.md §1A hard constraint). The
+# periodic Qual: refresh added to scenes/scene_dash.c must never write
+# app->peer_sync_pending or app->sess_seed_pending -- doing so would silently
+# reintroduce N1/N6's re-adopt / re-seed bug on a timer instead of once. That
+# function calls furi/worker APIs and cannot run on host (tools/host_test's
+# ★ layer is furi-free by construction), so unlike the pure-function guarantee
+# locked in test_f2_health2.c, the production wiring itself can only be
+# checked statically -- same rationale as font_guard below for
+# sr_view_dash_put_big().
+qual_refresh_guard:
+	@fail=0; \
+	src=../../scenes/scene_dash.c; \
+	test -f "$$src" || { echo "qual_refresh_guard: FAIL cannot find $$src" >&2; exit 1; }; \
+	range=`awk '/^static void dash_qual_refresh_tick\(/{s=NR} s && /^\}/{print s" "NR; exit}' "$$src"`; \
+	if [ -z "$$range" ]; then \
+	  echo "qual_refresh_guard: FAIL cannot locate the body range of dash_qual_refresh_tick() -- renamed or deleted?" >&2; \
+	  exit 1; \
+	fi; \
+	lo=`echo "$$range" | cut -d" " -f1`; \
+	hi=`echo "$$range" | cut -d" " -f2`; \
+	hits=`sed -n "$$lo,$$hi p" "$$src" | grep -nE 'peer_sync_pending|sess_seed_pending' || true`; \
+	if [ -n "$$hits" ]; then \
+	  echo "qual_refresh_guard: FAIL dash_qual_refresh_tick() references peer_sync_pending/sess_seed_pending -- f2-capture-health-rev2.md §1A hard constraint" >&2; \
+	  printf '%s\n' "$$hits"; \
+	  fail=1; \
+	fi; \
+	period=`sed -n "$$lo,$$hi p" "$$src" | grep -cE 'SR_QUAL_REFRESH_PERIOD_TICKS' || true`; \
+	if [ "$$period" -lt 1 ]; then \
+	  echo "qual_refresh_guard: FAIL dash_qual_refresh_tick() body no longer uses SR_QUAL_REFRESH_PERIOD_TICKS -- E-2" >&2; \
+	  fail=1; \
+	fi; \
+	tickrange=`awk '/if\(event\.type == SceneManagerEventTypeTick\)/{s=NR; d=0} s{for(i=1;i<=length($$0);i++){c=substr($$0,i,1); if(c=="{")d++; if(c=="}"){d--; if(d==0){print s" "NR; exit}}}}' "$$src"`; \
+	if [ -z "$$tickrange" ]; then \
+	  echo "qual_refresh_guard: FAIL cannot locate SceneManagerEventTypeTick branch -- renamed or deleted?" >&2; \
+	  exit 1; \
+	fi; \
+	tlo=`echo "$$tickrange" | cut -d" " -f1`; \
+	thi=`echo "$$tickrange" | cut -d" " -f2`; \
+	calls=`sed -n "$$tlo,$$thi p" "$$src" | grep -cE 'dash_qual_refresh_tick' || true`; \
+	if [ "$$calls" -lt 1 ]; then \
+	  echo "qual_refresh_guard: FAIL Tick branch (lines $$tlo-$$thi) has $$calls dash_qual_refresh_tick occurrence(s), expected >=1 -- E-1: the call site is the Qual-refresh wiring" >&2; \
+	  fail=1; \
+	fi; \
+	if [ "$$fail" -ne 0 ]; then exit 1; fi; \
+	echo "qual_refresh_guard: OK dash_qual_refresh_tick() body (lines $$lo-$$hi) touches neither peer_sync_pending nor sess_seed_pending; Tick (lines $$tlo-$$thi) calls=$$calls"
+
+# F2 rev2 §2 / §3. views/sr_view_dash.c's health-row gating and column budget
+# need a live Canvas* (canvas_string_width) and cannot run on host, so this
+# checks the production source shape directly rather than re-deriving the
+# pixel math independently (a re-derivation would not actually exercise the
+# fix -- see the "oracle independence" note in test_f2_health2.c).
+DASH_HEALTH_GATE_MIN := 2
+
+dash_health_guard:
+	@fail=0; \
+	src=../../views/sr_view_dash.c; \
+	test -f "$$src" || { echo "dash_health_guard: FAIL cannot find $$src" >&2; exit 1; }; \
+	gates=`grep -cE 'm->qual_rev != 0u && !m->debug_rows' "$$src" || true`; \
+	if [ "$$gates" -lt $(DASH_HEALTH_GATE_MIN) ]; then \
+	  echo "dash_health_guard: FAIL only $$gates call site(s) gate the health row on !debug_rows, expected at least $(DASH_HEALTH_GATE_MIN) (State 3 running + State 4 readiness) -- card §2" >&2; \
+	  fail=1; \
+	fi; \
+	cols=`grep -cE 'cols = \(size_t\)SR_HEALTH_COLS_MAX;' "$$src" || true`; \
+	if [ "$$cols" -lt 1 ]; then \
+	  echo "dash_health_guard: FAIL retreat-loop start no longer references SR_HEALTH_COLS_MAX -- card §3 / NC-C" >&2; \
+	  fail=1; \
+	fi; \
+	buf=`grep -cE 'char line\[SR_HEALTH_COLS_MAX \+ 1\];' "$$src" || true`; \
+	if [ "$$buf" -lt 1 ]; then \
+	  echo "dash_health_guard: FAIL health line[] buffer no longer sized SR_HEALTH_COLS_MAX + 1 -- card §3" >&2; \
+	  fail=1; \
+	fi; \
+	if [ "$$fail" -ne 0 ]; then exit 1; fi; \
+	echo "dash_health_guard: OK $$gates debug_rows gate(s) / retreat start + line[] both SR_HEALTH_COLS_MAX"
+
+asan: guard gui_portable storage_guard font_guard qual_refresh_guard dash_health_guard selfcontained
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o run_tests_asan $(HOST_SRCS)
 	ASAN_OPTIONS=detect_leaks=0 ./run_tests_asan
 

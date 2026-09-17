@@ -652,9 +652,14 @@ int test_view_fmt_run(void) {
         unsigned fw_null = 0;
         unsigned fw_cut = 0;
         unsigned fw_sanitize = 0;
+        unsigned scout_yes = 0;
+        unsigned scout_no = 0;
+        unsigned sess_run = 0;
+        unsigned sess_sealed = 0;
         const char* lab;
         char dirty[8];
         char longa[24];
+        char sess[24];
         size_t i;
 
         lab = sr_fmt_session_label(0);
@@ -744,10 +749,41 @@ int test_view_fmt_run(void) {
         CHECK(strcmp(out, "A.B.C.D") == 0);
         fw_sanitize++;
 
+        CHECK(sr_fmt_hw_is_scout_lite("Scout Lite (ESP32-C5)", 22) == true);
+        CHECK(sr_fmt_hw_is_scout_lite("Scout Lite", 11) == true);
+        scout_yes += 2;
+        CHECK(sr_fmt_hw_is_scout_lite("ESP32-C5 DevKit", 16) == false);
+        CHECK(sr_fmt_hw_is_scout_lite("Scout", 6) == false);
+        CHECK(sr_fmt_hw_is_scout_lite("scout lite", 11) == false);
+        CHECK(sr_fmt_hw_is_scout_lite(NULL, 10) == false);
+        CHECK(sr_fmt_hw_is_scout_lite("", 1) == false);
+        scout_no += 5;
+
+        n = sr_fmt_sess_sigroam_status(
+            1u, true, 1u, 86000u, 0u, 1u, 1u, 1u, sess, sizeof(sess));
+        CHECK(n > 0);
+        CHECK(n <= (size_t)SR_VIEW_COLS);
+        CHECK(strstr(sess, "Running") != NULL);
+        CHECK(strstr(sess, "01:26") != NULL);
+        CHECK(strstr(sess, "W+B") != NULL);
+        CHECK(strstr(sess, "Marauder") == NULL);
+        sess_run++;
+
+        n = sr_fmt_sess_sigroam_status(
+            2u, true, 4u, 0u, 86000u, 1u, 1u, 0u, sess, sizeof(sess));
+        CHECK(n > 0);
+        CHECK(n <= (size_t)SR_VIEW_COLS);
+        CHECK(strstr(sess, "Sealed") != NULL);
+        CHECK(strstr(sess, "01:26") != NULL);
+        CHECK(strstr(sess, "Marauder") == NULL);
+        CHECK(strstr(sess, "SigRoam Lite") == NULL);
+        sess_sealed++;
+
         printf(
             "session cover: label_idle=%u label_run=%u label_stop=%u label_oob=%u "
             "fw_both=%u fw_a_only=%u fw_b_only=%u fw_none=%u fw_null=%u "
-            "fw_cut=%u fw_sanitize=%u\n",
+            "fw_cut=%u fw_sanitize=%u scout_yes=%u scout_no=%u "
+            "sess_run=%u sess_sealed=%u\n",
             label_idle,
             label_run,
             label_stop,
@@ -758,7 +794,11 @@ int test_view_fmt_run(void) {
             fw_none,
             fw_null,
             fw_cut,
-            fw_sanitize);
+            fw_sanitize,
+            scout_yes,
+            scout_no,
+            sess_run,
+            sess_sealed);
 
         CHECK(label_idle > 0);
         CHECK(label_run > 0);
@@ -771,6 +811,10 @@ int test_view_fmt_run(void) {
         CHECK(fw_null > 0);
         CHECK(fw_cut >= 2);
         CHECK(fw_sanitize > 0);
+        CHECK(scout_yes >= 2);
+        CHECK(scout_no >= 5);
+        CHECK(sess_run > 0);
+        CHECK(sess_sealed > 0);
     }
 
     return sr_test_failures;

@@ -21,6 +21,7 @@
 #include "src/sr_scan_ctl.h"
 #include "src/sr_gps_sample.h"
 #include "src/sr_poi.h"
+#include "src/sr_peer_sync.h"
 #include "src/sr_rawlog.h"
 #include "src/sr_source_codec.h"
 #include "src/sr_notify.h"
@@ -85,7 +86,12 @@
 #define SR_ABOUT_QR_X    (SR_CANVAS_W - SR_ABOUT_QR_SIDE)
 
 #define SR_ABOUT_TEXT_MAX 640
-#define SR_PROBE_TEXT_MAX 320
+/* 320 until 2026-09-07. The four handshake lines already cost ~190 at their field
+ * caps, and the Diag block (state name, stuck-gate name, six 10-digit heartbeats)
+ * adds ~109 — 21 bytes of slack was close enough that a long ESP-IDF string would
+ * have silently truncated the diagnostic, which is the one line that matters when
+ * nothing else is answering. */
+#define SR_PROBE_TEXT_MAX 448
 #define SR_RAW_TEXT_MAX (SR_RAWLOG_LINES * (SR_RAWLOG_LINE_MAX + 2) + 1)
 #define SR_TICK_PERIOD_MS 100
 
@@ -148,10 +154,30 @@ typedef struct {
      * start/stop, consumed by sr_wait_stage_eval.
      * GUI-thread exclusive like app->scan (see the comment block above). */
     uint32_t scan_cmdack_at_send;
+    /* Snapshot of model.busy_rev taken **before** queuing, same reason and same
+     * before-send rule as scan_cmdack_at_send. Compared with != , never > : busy_rev
+     * wraps. GUI-thread exclusive like app->scan. */
+    uint32_t scan_busy_rev_at_send;
     SrGpsSampleCtx gps_sample;
     SrPoiCtx poi;
     SrAlertCtx alert;
     bool probe_send_busy;
+    /* Card N1 peer-state adoption. GUI-thread exclusive like app->scan (see the
+     * comment block above): armed by Dash on_enter after it queues `info`, consumed
+     * by the Dash Tick handler when the reply raises model.firmware_rev.
+     * peer_sync_fw_rev is a snapshot taken **before** the send, for the same reason as
+     * scan_cmdack_at_send, and compared with != , never > : firmware_rev wraps.
+     * Disarm policy lives in sr_peer_sync_on_tick: Wait keeps pending until this
+     * #info's Diag: arrives. */
+    uint32_t peer_sync_fw_rev;
+    bool peer_sync_pending;
+    /* Card N6 / n1n6-c1c3-fix. Armed when N1 adoption succeeds; consumed by
+     * dash_sess_seed_tick once sess_rev != sess_seed_rev_at_send.
+     * sess_seed_rev_at_send is snapshotted **before** the send, same family as
+     * peer_sync_fw_rev. Independent of peer_sync_pending: firmware_rev can rise
+     * before the Sess: line arrives. */
+    uint32_t sess_seed_rev_at_send;
+    bool sess_seed_pending;
 } SigRoamApp;
 
 const char* sigroam_log_device_name(FuriHalRtcLogDevice d);

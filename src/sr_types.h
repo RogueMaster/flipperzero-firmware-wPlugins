@@ -55,6 +55,7 @@ enum {
 
     /* V-005: ESP-IDF row comes from esp_get_idf_version(), not hardcoded here. 63 is a cap */
     SR_FW_IDF_MAX = 63,
+    SR_DIAG_HB_COUNT = 6,
 
     /* V-004: Text row is optional; content and length unverified. 63 is a cap */
     SR_GPS_TEXT_MAX = 63,
@@ -120,7 +121,22 @@ typedef enum {
     SrEventScanStopped,  /* V-003 */
     SrEventFirmware,     /* V-005 info four rows / boot banner */
     SrEventUnknown,      /* Malformed or unrecognized row, passed through to the Raw view */
+    SrEventBusy,         /* Board refused a command in its current state (2026-09-07) */
+    SrEventSess,         /* Schema 9 Sess: line; must append after Busy (N6 / test_model.c oracle) */
+    SrEventQual,         /* F2 Qual: line; must append after Sess */
+    SrEventRadio,        /* T6.5 Radio: line; must append after Qual */
 } SrEventKind;
+
+/* Pin the trailing kinds so inserting SrEventSess before Unknown silently
+ * retargets test_model.c kOracleNext columns (contiguous 0..7 = None..Unknown).
+ * SrEventBusy was itself appended after Unknown (=8) for the same reason.
+ * SrEventQual appends after Sess (=10); the 3x10 oracle table is unchanged.
+ * SrEventRadio appends after Qual (=11). */
+_Static_assert((int)SrEventUnknown == 7, "kOracleNext columns 0..7 are None..Unknown");
+_Static_assert((int)SrEventBusy == 8, "SrEventBusy appends after Unknown");
+_Static_assert((int)SrEventSess == 9, "SrEventSess appends after Busy");
+_Static_assert((int)SrEventQual == 10, "SrEventQual appends after Sess");
+_Static_assert((int)SrEventRadio == 11, "SrEventRadio appends after Qual");
 
 /* -------------------------------------------------------------------------- */
 /* Structs                                                                    */
@@ -132,7 +148,84 @@ typedef struct {
     char version[SR_FW_VERSION_MAX + 1]; // ref: V-005 Version: v1.14.1
     char hardware[SR_FW_HARDWARE_MAX + 1]; // ref: V-005 Hardware: ESP32-C5 DevKit
     char esp_idf[SR_FW_IDF_MAX + 1];     // ref: V-005 ESP-IDF: {esp_get_idf_version()}
+    /* Fifth #info line, added by the firmware 2026-09-07: session state, the seal-gate
+     * bitmap and the six task heartbeats. It is the only channel that still answers
+     * when the board's SD path has stopped, so it must not depend on the card.
+     * Stored decoded rather than as the raw 83-byte line: SrFirmwareInfo is the widest
+     * arm of SrEvent, and ADR-016 pins sizeof(SrEvent) <= 256 / sizeof(SrParser) <= 512
+     * (test_line.c:22, test_parse_marauder.c:14). 28 bytes fits; the raw line did not.
+     * diag_seen distinguishes "board sent no Diag line" (older firmware) from an
+     * all-zero reading, which would otherwise look the same and mean the opposite. */
+    bool diag_seen;
+    uint8_t diag_state;                    /* sr_session_state_t on the board */
+    uint8_t diag_seal;                     /* SR_SEAL_* bitmap on the board   */
+    uint32_t diag_hb[SR_DIAG_HB_COUNT];    /* gps, link, scan, fuse, store, ble */
 } SrFirmwareInfo;
+
+/*
+ * "Busy: st=<u> seal=<02x>" — the board echoed the command (so cmdack advanced and the
+ * L2 indicator cleared) but refused to act on it, because the previous session has not
+ * finished sealing. Distinct from a timeout: a timeout means we do not know, this means
+ * the board answered no. sr_scan_ctl.h deliberately does not clear cmd_pending on a
+ * timeout; an explicit refusal is the one thing that may.
+ */
+typedef struct {
+    uint8_t state; /* sr_session_state_t on the board */
+    uint8_t seal;  /* SR_SEAL_* bitmap on the board */
+} SrBusyInfo;
+
+/*
+ * "Sess: ap=<u32> ble=<u32> ms=<u32> ih=<u32> ihmin=<u32> ps=<u32> psmin=<u32>"
+ * — last line of the #info reply (after Diag: / CmdTrace:), firmware schema 9.
+ * Independent union arm: stuffing these into SrFirmwareInfo would widen SrEvent
+ * past ADR-016's 256 B cap (n6-fap-sess-consume.md §4). Parser is strict on all
+ * seven fields (p != len); only ap/ble/ms are stored. ih/ihmin/ps/psmin are
+ * board heap telemetry and are discarded after the scan.
+ *
+ * sess_rev == 0 means the line has never been seen (unknown), not "all zeros".
+ * ms == 0 means no session is running — never "just started".
+ */
+typedef struct {
+    uint32_t ap;
+    uint32_t ble;
+    uint32_t ms;
+} SrSessInfo;
+
+_Static_assert(sizeof(SrSessInfo) == 12, "SrSessInfo is 3 x uint32; padding would waste the SrEvent budget");
+
+/*
+ * "Qual: gga=<u32> ggafix=<u32> drop=<u32> net=<u32> sd=<u> sats=<u> topd=<u>"
+ * — last line of the #info reply (after Sess:), F2 capture-health face.
+ * Independent union arm: 4 x uint32 + 3 x uint8 = 19 → aligned 20, narrower
+ * than SrFirmwareInfo, so SrEvent stays 240 (host pin in test_scan_ctl.c).
+ * Parser is strict on every field (p != len). qual_rev == 0 means the line
+ * has never been seen (unknown), not "all zeros" — a genuine gga=0 line is
+ * a measurement and must bump the rev.
+ */
+typedef struct {
+    uint32_t gga;
+    uint32_t ggafix;
+    uint32_t drop;
+    uint32_t net;
+    uint8_t sd;
+    uint8_t sats;
+    uint8_t topd;
+} SrQualInfo;
+
+_Static_assert(sizeof(SrQualInfo) == 20, "SrQualInfo is 4 x uint32 + 3 x uint8, aligned 20");
+
+/*
+ * "Radio: wifi=<0|1> ble=<0|1>" — permission bits after Sess: (ADR-24 / T6.5).
+ * Independent union arm, 2 B. Absence of the line is unknown, never zero;
+ * wifi/ble here are not Sess: counts. Parser is strict (p != len) and each
+ * bit is exactly one character 0 or 1.
+ */
+typedef struct {
+    uint8_t wifi;
+    uint8_t ble;
+} SrRadioInfo;
+
+_Static_assert(sizeof(SrRadioInfo) == 2, "SrRadioInfo is 2 permission bits");
 
 /*
  * ref: V-001
@@ -237,6 +330,10 @@ typedef struct {
         SrFirmwareInfo firmware; /* SrEventFirmware */
         SrStopReason stop;       /* SrEventScanStopped */
         SrRawView unknown;       /* SrEventUnknown -- borrowed, not owned */
+        SrBusyInfo busy;         /* SrEventBusy */
+        SrSessInfo sess;         /* SrEventSess — narrower than SrFirmwareInfo, SrEvent stays 240 */
+        SrQualInfo qual;         /* SrEventQual — 20 B, narrower than SrFirmwareInfo */
+        SrRadioInfo radio;       /* SrEventRadio — 2 B, narrower than SrFirmwareInfo */
     } u;
 } SrEvent;
 

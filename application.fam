@@ -13,7 +13,7 @@
 
 App(
     appid="sigroam",
-    name="SigRoam",
+    name="SigRoam Wardriving",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="sigroam_app",
     stack_size=2 * 1024,
@@ -31,8 +31,8 @@ App(
     # NOTE: this is a channel entirely separate from fap_icon: fap_icon is the 10x10 application
     #    icon the Catalog requires, whereas this is in-app artwork with no size constraint.
     fap_icon_assets="assets",
-    fap_version="0.3",
-    fap_description="Wi-Fi survey companion for external ESP32 scanners",
+    fap_version="0.4",
+    fap_description="Passive dual-band Wi-Fi and GNSS survey for Scout Lite",
     fap_author="PINGEQUA_Lab",
     sources=["*.c*", "!tools", "!backups", "!docs"],
 )
