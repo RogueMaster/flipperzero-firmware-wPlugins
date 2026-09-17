@@ -1,0 +1,18 @@
+# Flipper / ufbt build artifacts
+dist/
+build/
+.ufbt/
+*.fap
+*.o
+*.d
+*.elf
+*.bin
+*.map
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

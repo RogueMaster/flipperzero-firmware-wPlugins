@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Vladyslav Pereverzyev
+
+App(
+    appid="timeclock",
+    name="Staff Time Clock",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="timeclock_app",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_author="Vladyslav Pereverzyev",
+    fap_version="2.16",
+    fap_description="Staff time-clock for Flipper Zero (official and custom firmwares): register collaborators on NFC, RFID or iButton badges and log clock in/out to a CSV timesheet. Left/Right picks which technology is active, and any existing card works - even one from another company - since only the UID is read. Identification only: no badge emulation, no authentication bypass.",
+    fap_weburl="https://github.com/vladpereverzyev/flipper-staff-time-clock",
+    fap_icon="timeclock_10px.png", # 10x10 px, 1-bit clock icon
+    requires=[
+        "gui",
+        "storage",
+        "notification",
+        "nfc",
+        "lfrfid",
+        "ibutton",
+    ],
+)

@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Vladyslav Pereverzyev
+#
+# Builds the FAP for multiple Flipper Zero firmwares (official + popular forks)
+# with ufbt on every push/PR. On a version tag (v*) it collects every firmware's
+# .fap and publishes them together in a single GitHub Release.
+
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to create releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # one firmware failing must not block the others
+      matrix:
+        include:
+          - firmware: official
+            index: ""
+          - firmware: momentum
+            index: "https://up.momentum-fw.dev/firmware/directory.json"
+          - firmware: unleashed
+            index: "https://up.unleashedflip.com/directory.json"
+          # RogueMaster is based on Unleashed and is binary-compatible with it,
+          # so it is built against the Unleashed SDK.
+          - firmware: roguemaster
+            index: "https://up.unleashedflip.com/directory.json"
+    name: build (${{ matrix.firmware }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install ufbt
+        run: pip install --upgrade ufbt
+
+      - name: Cache ufbt SDK
+        uses: actions/cache@v4
+        with:
+          path: ~/.ufbt
+          key: ufbt-${{ matrix.firmware }}-v1
+
+      - name: Select firmware SDK (${{ matrix.firmware }})
+        run: |
+          if [ -z "${{ matrix.index }}" ]; then
+            ufbt update --channel release
+          else
+            ufbt update --index-url "${{ matrix.index }}" --channel release
+          fi
+
+      - name: Build FAP
+        run: ufbt
+
+      - name: Rename FAP per firmware and version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VER="$GITHUB_REF_NAME"
+          else
+            VER="dev-${GITHUB_SHA::7}"
+          fi
+          cp dist/timeclock.fap "timeclock-${{ matrix.firmware }}-${VER}.fap"
+          echo "Produced timeclock-${{ matrix.firmware }}-${VER}.fap"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: fap-${{ matrix.firmware }}
+          path: timeclock-${{ matrix.firmware }}-*.fap
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download all FAPs
+        uses: actions/download-artifact@v8
+        with:
+          path: faps
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: faps/**/*.fap
+          body_path: docs/RELEASE_NOTES.md
+          generate_release_notes: true
+          fail_on_unmatched_files: true
