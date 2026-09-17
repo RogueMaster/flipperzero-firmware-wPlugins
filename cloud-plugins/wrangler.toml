@@ -3,6 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2024-09-23"
 
 # `npm run deploy` will publish to <name>.<account-subdomain>.workers.dev.
-# The dev board firmware has no runtime URL setting yet. To use your own
-# deployment, set TT_CLOUD_DEFAULT_URL in esp32-wifi-fw/main/cloud_client.h,
-# then rebuild and reflash the ESP32-S2.
+# The dev board firmware has no runtime URL setting. To use your own
+# deployment, set CONFIG_TT_CLOUD_URL (idf.py menuconfig, under TagTinker,
+# or in esp32-wifi-fw/sdkconfig.defaults), then rebuild and reflash the
+# ESP32-S2.

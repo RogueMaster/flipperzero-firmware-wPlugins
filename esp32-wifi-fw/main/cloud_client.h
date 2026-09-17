@@ -2,10 +2,11 @@
  * Cloud plugin client.
  *
  * Talks to the TagTinker Cloudflare Worker that hosts plugin manifests
- * and renders. The base URL is TT_CLOUD_DEFAULT_URL below unless NVS
- * already holds one. cloud_client_set_url() can store a different URL, but
- * nothing calls it yet, so pointing the board at another worker currently
- * means editing TT_CLOUD_DEFAULT_URL and reflashing.
+ * and renders. The base URL comes from CONFIG_TT_CLOUD_URL, which is set
+ * with `idf.py menuconfig` under TagTinker or in sdkconfig.defaults, unless
+ * NVS already holds one. cloud_client_set_url() can store a different URL
+ * at run time, but nothing calls it yet, so changing worker means
+ * rebuilding and reflashing.
  *
  *   GET <base>/plugins        -> JSON manifest list
  *   GET <base>/render/<id>?...-> binary framebuffer (see worker docs)
@@ -21,8 +22,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include "sdkconfig.h"
 
+#ifdef CONFIG_TT_CLOUD_URL
+#define TT_CLOUD_DEFAULT_URL CONFIG_TT_CLOUD_URL
+#else
 #define TT_CLOUD_DEFAULT_URL "https://tagtinker.jhackerr.workers.dev"
+#endif
 
 /* Persisted base URL (no trailing slash). */
 const char* cloud_client_url(void);
