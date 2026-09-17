@@ -252,6 +252,8 @@ typedef struct {
     uint32_t ascii_single_since;
     char ascii_source_epc[UHF_EPC_HEX_MAX + 1];
     char ascii_text[UHF_ASCII_EPC_BYTES + 1];
+    char list_ascii_epc[UHF_EPC_HEX_MAX / 2U + 1U];
+    char list_ascii_compact[40];
     char selected_tid[UHF_TID_HEX_MAX + 1];
     char selected_user[UHF_USER_HEX_MAX + 1];
     char pending_tid[UHF_USER_HEX_MAX + 1];
@@ -3744,16 +3746,20 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
                     canvas_draw_box(canvas, 0, y - 8, 128, 9);
                     canvas_set_color(canvas, ColorWhite);
                 }
-                char ascii_epc[UHF_EPC_HEX_MAX / 2U + 1U];
                 const bool show_ascii =
                     app->epc_display == UhfEpcDisplayAscii &&
                     uhf_epc_hex_to_ascii(
-                        previews[row].epc, ascii_epc, sizeof(ascii_epc));
+                        previews[row].epc,
+                        app->list_ascii_epc,
+                        sizeof(app->list_ascii_epc));
                 if(show_ascii) {
-                    char ascii_compact[40];
                     uhf_format_list_epc_compact(
-                        canvas, ascii_epc, 126, ascii_compact, sizeof(ascii_compact));
-                    canvas_draw_str(canvas, 1, y, ascii_compact);
+                        canvas,
+                        app->list_ascii_epc,
+                        126,
+                        app->list_ascii_compact,
+                        sizeof(app->list_ascii_compact));
+                    canvas_draw_str(canvas, 1, y, app->list_ascii_compact);
                 } else {
                     uhf_draw_list_epc_distributed(canvas, previews[row].epc, y);
                 }
