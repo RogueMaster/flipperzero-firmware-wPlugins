@@ -31,20 +31,36 @@ static void stamp_now(char* out, size_t n) {
         (unsigned)dt.second);
 }
 
-/* Append `text` to `path`, seeding it with `header` first if it is new/empty. */
-static bool append_to(Storage* storage, const char* path, const char* header, const char* text) {
+/* Append `text` to `path`, seeding it with `header` first if it is new/empty.
+ *
+ * Returns false either because the write failed or because the file has reached
+ * SPECTER_LOG_MAX_BYTES; `full` distinguishes the two so the caller can tell the
+ * user which it was instead of showing one vague failure for both. */
+static bool
+    append_to(Storage* storage, const char* path, const char* header, const char* text, bool* full) {
     File* file = storage_file_alloc(storage);
-    bool ok = storage_file_open(file, path, FSAM_WRITE, FSOM_OPEN_APPEND);
-    if(ok) {
-        if(header && storage_file_size(file) == 0) {
-            size_t hn = strlen(header);
-            ok = storage_file_write(file, header, hn) == hn;
-        }
-        if(ok) {
-            size_t tn = strlen(text);
-            ok = storage_file_write(file, text, tn) == tn;
+    bool ok = false;
+
+    if(storage_file_open(file, path, FSAM_WRITE, FSOM_OPEN_APPEND)) {
+        /* Read off the open handle rather than a separate stat - one fewer card
+         * round-trip on a path that runs from the UI thread. */
+        uint64_t size = storage_file_size(file);
+
+        if(size >= SPECTER_LOG_MAX_BYTES) {
+            if(full) *full = true;
+        } else {
+            ok = true;
+            if(header && size == 0) {
+                size_t hn = strlen(header);
+                ok = storage_file_write(file, header, hn) == hn;
+            }
+            if(ok) {
+                size_t tn = strlen(text);
+                ok = storage_file_write(file, text, tn) == tn;
+            }
         }
     }
+
     storage_file_close(file);
     storage_file_free(file);
     return ok;
@@ -81,10 +97,11 @@ bool specter_log_append(const char* type, const char* fmt, ...) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX);
 
-    bool ok = append_to(storage, LOG_PATH, NULL, txt);
+    bool full = false;
+    bool ok = append_to(storage, LOG_PATH, NULL, txt, &full);
     /* The CSV is a convenience mirror; don't fail the whole write if only it
      * couldn't be updated, but do report a genuine .txt failure. */
-    append_to(storage, CSV_PATH, CSV_HEADER, csv);
+    append_to(storage, CSV_PATH, CSV_HEADER, csv, NULL);
 
     furi_record_close(RECORD_STORAGE);
     return ok;
@@ -151,6 +168,10 @@ bool specter_log_clear(void) {
     truncate_file(storage, CSV_PATH);
     furi_record_close(RECORD_STORAGE);
     return ok;
+}
+
+bool specter_log_is_full(void) {
+    return specter_log_size() >= SPECTER_LOG_MAX_BYTES;
 }
 
 uint32_t specter_log_size(void) {

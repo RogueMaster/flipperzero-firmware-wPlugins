@@ -67,6 +67,8 @@ static void specter_fingerprint_save(SpecterApp* app) {
     if(ok) {
         fingerprint_view_flash(app->fingerprint_view, "LOGGED");
         specter_notify_saved(app);
+    } else if(specter_log_is_full()) {
+        fingerprint_view_flash(app->fingerprint_view, "LOG FULL");
     } else {
         fingerprint_view_flash(app->fingerprint_view, "LOG FAIL");
     }

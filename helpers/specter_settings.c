@@ -43,6 +43,18 @@ static void specter_settings_sanitise(SpecterSettings* s) {
     if(s->sensitivity_index >= SPECTER_SENS_COUNT) s->sensitivity_index = 1;
     if(s->survey_index >= SPECTER_SURVEY_COUNT) s->survey_index = 1;
     if(s->custom_threshold > 90) s->custom_threshold = 90;
+
+    /* saved_struct checks a magic, a version and a size - it does not and
+     * cannot check that the bytes make sense. A _Bool holding anything other
+     * than 0 or 1 is undefined behaviour the moment it is read, so a hand-edited
+     * or corrupted file could put the app somewhere the language has no answer
+     * for. Force them back to a real boolean. */
+    s->sound = !!s->sound;
+    s->vibro = !!s->vibro;
+    s->led = !!s->led;
+    s->stealth = !!s->stealth;
+    s->logging = !!s->logging;
+    s->meter_raw = !!s->meter_raw;
 }
 
 void specter_settings_load(SpecterSettings* s) {

@@ -99,6 +99,10 @@ bool specter_scene_sweep_on_event(void* context, SceneManagerEvent event) {
                           (unsigned long)st.contacts)) {
                 sweep_view_flash(app->sweep_view, "LOGGED");
                 specter_notify_saved(app);
+            } else if(specter_log_is_full()) {
+                /* A full logbook is a different problem from a missing card,
+                 * and it has a different fix - so say which one it is. */
+                sweep_view_flash(app->sweep_view, "LOG FULL");
             } else {
                 sweep_view_flash(app->sweep_view, "LOG FAIL");
             }

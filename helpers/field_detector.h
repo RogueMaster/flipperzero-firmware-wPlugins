@@ -79,7 +79,6 @@ void field_detector_set_full_scale(FieldDetector* fd, uint8_t full_scale);
 
 void field_detector_start(FieldDetector* fd);
 void field_detector_stop(FieldDetector* fd);
-bool field_detector_is_running(FieldDetector* fd);
 
 /* Clear peak / contacts / history / cadence without dropping the radio. */
 void field_detector_reset(FieldDetector* fd);
