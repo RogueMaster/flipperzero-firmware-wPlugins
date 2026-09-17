@@ -91,16 +91,19 @@ static void sr_view_dash_put_health(Canvas* canvas, int32_t y, const SrDashModel
         hn = sizeof(health) - 1u;
     }
     /* Set here rather than inherited: the mark is measured against this font and
-     * the running path has FontBigNumbers selected a few lines earlier. */
+     * the running path has FontBigNumbers selected a few lines earlier.
+     * D19 / ADR-025 decision 1: the mark goes through the fresh gate -- stale
+     * never paints the leftover verdict (used to draw ✓ next to
+     * "- need SigRoam Qual"); it folds to the Acquiring ring. */
     canvas_set_font(canvas, FontSecondary);
-    sr_view_dash_draw_health_mark(canvas, 0, y, (uint8_t)hv.v);
+    sr_view_dash_draw_health_mark(canvas, 0, y, sr_fmt_health_mark(fresh, (uint8_t)hv.v));
 
     /*
      * SR_HEALTH_COLS_MAX (F2 rev2 §3; was SR_VIEW_COLS=20 before, which cannot
      * fit this row -- see sr_view_fmt.h's sr_view_fmt_health doc comment) is a
      * character budget sized for the full 128 px line, and haxrcorp4089 is
      * proportional — subtracting a fixed number of columns to pay for the
-     * mark would throw away characters that do fit. `OK fix100% 0drop 142net`
+     * mark would throw away characters that do fit. `OK fix100% 0drop SAT 08`
      * is 23 characters, so a guessed allowance is the difference between
      * showing the row count and cutting it off. Measure, and give back
      * columns only while the rendered string really is too wide. Bounded by
@@ -213,10 +216,15 @@ static void sr_view_dash_put_line(Canvas* canvas, int32_t y, const char* raw, in
  * The baseline is computed from the font height (tab_h + h) rather than supplied by the
  * caller: the big font is far taller than the small one, and reusing the small font's 20 would
  * push the cap height over the tab bar or even off the top of the screen.
+ * max_baseline is the caller's budget defense (D19 / ADR-025): the SigRoam running path
+ * passes 41, so the AP row it reports (baseline + 10) lands at or under y51, clear of the
+ * y61 status bar; the generic path passes 61 (the pre-D19 behavior). A baseline beyond it
+ * restores FontSecondary and returns -1 without drawing.
  * Returns the next usable baseline; returns -1 when an abnormal font height leaves no room, and
  * the caller falls back to the small-font path.
  */
-static int32_t sr_view_dash_put_big(Canvas* canvas, uint32_t v, const char* label) {
+static int32_t sr_view_dash_put_big(
+    Canvas* canvas, uint32_t v, const char* label, int32_t max_baseline) {
     char num[12];
     size_t h;
     uint16_t wnum;
@@ -228,7 +236,7 @@ static int32_t sr_view_dash_put_big(Canvas* canvas, uint32_t v, const char* labe
     canvas_set_font(canvas, FontBigNumbers);
     h = canvas_current_font_height(canvas);
     baseline = (int32_t)SR_VIEW_TAB_H + (int32_t)h;
-    if(baseline > 61) {
+    if(baseline > max_baseline) {
         /* Font height beyond expectations (no authoritative source, so defend): give up on the
          * big font and let the caller take the small-font path. */
         canvas_set_font(canvas, FontSecondary);
@@ -255,7 +263,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
     int32_t y = 20;
     bool big;
 
-    /* Five mutually exclusive states, evaluated in this order (T4.10 / D0-5; the Busy state was
+    /* Six mutually exclusive states, evaluated in this order (T4.10 / D0-5; the Busy state was
      * added during the acceptance review on 2026-08-31). */
     if(!m->serial_open) {
         /*
@@ -328,7 +336,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
 
     if(m->wait_stage == (uint8_t)SR_RESYNC_HINT_BUSY ||
        m->wait_stage == (uint8_t)SR_RESYNC_HINT_LOST) {
-        /* Packed into wait_stage so SrDashModel does not grow (sizeof == 644).
+        /* Packed into wait_stage so SrDashModel does not grow (sizeof == 712).
          * Single line: a two-line hint pushes the Dash tab's fourth row off screen (D1). */
         if(y > 61) {
             return;
@@ -352,7 +360,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         /*
          * Resync diagnostics row. **Not** gated on debug_rows: the 5.4 unplug SOP needs it and
          * Settings is not reachable mid-run. All three fields already exist in SrDashModel, so
-         * sizeof stays 644 (test_gps_sample.c:723).
+         * sizeof stays 712 (test_gps_sample.c:734).
          *
          * Why exactly these three. sr_resync.h reaches SrResyncLost through exactly two exits:
          * giveup at trigger_ms+30000, or AwaitStop timing out with tries >= 3 at t1+12000.
@@ -456,25 +464,51 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
     }
 
     if(m->session == (uint8_t)SrSessionRunning) {
-        /* State 3: running. Health headline (F2) then uniq / AP / rx.
-         * FontBigNumbers is digits-only, so the verdict string is always FontSecondary.
-         * Health + big font + rows does not fit the 53 px content area — drop the
-         * big font when Qual: has been seen; generic Marauder (qual_rev==0) keeps
-         * the previous count view (card §7 degrade).
-         * F2 rev2 §2: also skip the health row when debug_rows is on -- with health +
-         * uniq/AP/rx + d=/f= + heap that is 6 rows in a 53 px area, and debug_rows'
-         * heap/rx-drop readings (T5.1 long-run evidence) take priority over the daily
-         * F2 headline. The `else` branch's own big/small choice already accounts for
-         * debug_rows, so falling through here loses nothing. */
+        /* State 3: running.
+         * D19 / ADR-025: the SigRoam path (Qual seen, debug rows off) puts the big-font
+         * uniq back on top (same spot as the generic path), moves the duration onto the
+         * AP row (sr_fmt_ap_row's three-level fit), leaves the row under it empty
+         * (reserved for a future firmware Gps row), and sinks the health status bar to
+         * y61. rx= leaves this path: Qual freshness (stale / sess_ms==0) covers the
+         * D10/D11 link-liveness detection within 15 s, stronger than watching a number.
+         * The generic Marauder path (qual_rev==0) and the debug_rows path below are
+         * unchanged. */
         if(m->qual_rev != 0u && !m->debug_rows) {
-            if(y > 61) {
-                return;
+            int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 41);
+            if(next >= 0) {
+                n = (int)sr_fmt_ap_row(
+                    m->ap_wifi,
+                    m->radio_rev,
+                    m->radio.ble,
+                    m->ap_ble,
+                    m->elapsed_ms,
+                    (size_t)SR_VIEW_COLS,
+                    raw,
+                    sizeof(raw));
+                sr_view_dash_put_line(canvas, next, raw, n, sizeof(raw));
+            } else {
+                /* Abnormal font height: small-font fallback, zero information loss
+                 * (uniq= fix= at y21, AP row at y31, status bar at y61). */
+                sr_fmt__udec(m->unique_est, a, sizeof(a));
+                sr_fmt__udec(m->with_gps_fix, b, sizeof(b));
+                n = snprintf(raw, sizeof(raw), "uniq=%s fix=%s", a, b);
+                sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
+
+                n = (int)sr_fmt_ap_row(
+                    m->ap_wifi,
+                    m->radio_rev,
+                    m->radio.ble,
+                    m->ap_ble,
+                    m->elapsed_ms,
+                    (size_t)SR_VIEW_COLS,
+                    raw,
+                    sizeof(raw));
+                sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
             }
-            sr_view_dash_put_health(canvas, y, m);
-            y += 10;
-            big = false;
-        } else {
-        /* State 3: running. Big-font uniq + AP=/BLE=/fix= + rx= with duration; unchanged from before. */
+            sr_view_dash_put_health(canvas, 61, m);
+            return;
+        }
+
         /*
          * The big font is drawn only when the serial is open AND debug rows are off:
          *  - with the serial closed uniq is always 0, and a giant "0" is worth less than a clear hint;
@@ -483,9 +517,8 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
          * Both cases fall back to the small-font path, losing nothing.
          */
         big = m->serial_open && !m->debug_rows;
-        }
         if(big) {
-            int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq");
+            int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 61);
             if(next < 0) {
                 big = false; /* Abnormal font height; defensively fall back to the small font */
             } else {
@@ -571,8 +604,8 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
          *
          * No extra Busy-only field: this reuses the existing m->scan_ui -- sr_scan_ctl_eval returns
          * exactly SrScanUiBusy on cmd_rejected (src/sr_scan_ctl.h:48-50), and dash_fill already
-         * fills it in. D12 added uint8_t gps_src; sizeof(SrDashModel) stayed 644 (the byte fit in
-         * existing padding). Layout sentinels at tools/host_test/test_gps_sample.c:722-724 are
+         * fills it in. D12 added uint8_t gps_src; sizeof(SrDashModel) stayed 712 (the byte fit in
+         * existing padding). Layout sentinels at tools/host_test/test_gps_sample.c:733-735 are
          * only to be edited when the main session authorizes each assertion by line.
          *
          * Why stating the cause outright is allowed (and does not violate ADR-022 decision 4): this
@@ -634,14 +667,24 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         return;
     }
 
-    /* State 4: readiness. Serial open, no pending command, not scanning. No big font. rx without duration.
-     * F2 rev2 §2: same debug_rows exclusion as State 3 (same structure, same result). */
+    /* State 4: readiness. Serial open, no pending command, not scanning. No big font.
+     * D19 / ADR-025: on the SigRoam path (Qual seen, debug rows off) the Board/OK rows
+     * sit at y21/y31 and the status bar sinks to y61 (same copy table as State 3; Idle
+     * always has sess_ms==0, so it shows the stale copy by design). rx= leaves this
+     * path. The generic/debug path below is unchanged (rx kept). */
     if(m->qual_rev != 0u && !m->debug_rows) {
-        if(y > 61) {
-            return;
+        if(m->rx_bytes == 0u) {
+            n = snprintf(raw, sizeof(raw), "Board: no data");
+        } else {
+            n = snprintf(raw, sizeof(raw), "Board: data ok");
         }
-        sr_view_dash_put_health(canvas, y, m);
-        y += 10;
+        sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
+
+        n = snprintf(raw, sizeof(raw), "OK: Start scan");
+        sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
+
+        sr_view_dash_put_health(canvas, 61, m);
+        return;
     }
     if(y > 61) {
         return;
@@ -756,7 +799,7 @@ static void sr_view_dash_draw_stream(Canvas* canvas, const SrDashModel* m) {
 
 /* During an active wardrive, dash_fill stores POI phase/gate in gps_phase/gps_gate
  * so this existing fifth-line slot can show POI copy without a new SrDashModel field
- * (sizeof pinned at 644). Idle GPS sampling still uses sr_gps_status_text. */
+ * (sizeof pinned at 712). Idle GPS sampling still uses sr_gps_status_text. */
 static const char* sr_view_dash_gps_hint(const SrDashModel* m, bool idle_hint) {
     if(m->session == (uint8_t)SrSessionRunning &&
        m->scan_ui == (uint8_t)SrScanUiRunning) {
@@ -770,7 +813,6 @@ static void sr_view_dash_draw_gps(Canvas* canvas, const SrDashModel* m) {
     char a[SR_VIEW_COLS + 1];
     char b[SR_VIEW_COLS + 1];
     int n;
-    size_t slen;
     const char* s;
 
     if(m->gps_src == 0) {
@@ -791,17 +833,16 @@ static void sr_view_dash_draw_gps(Canvas* canvas, const SrDashModel* m) {
         return;
     }
 
-    if(m->gps_src == 2) {
-        n = snprintf(raw, sizeof(raw), "Fix: %s  (live)", m->gps.fix ? "Yes" : "No");
-    } else {
-        slen = sr_fmt_bounded_len(m->gps.sats, sizeof(m->gps.sats));
-        n = snprintf(
-            raw,
-            sizeof(raw),
-            "Fix: %s  Sats: %.*s",
-            m->gps.fix ? "Yes" : "No",
-            (int)slen,
-            m->gps.sats);
+    /* D19 ⑦ / ADR-025 decision 5: both live sources share one first line,
+     * "Fix: Yes SAT 09". gps_src==2's old "  (live)" mislabeled the latest CSV
+     * record as a live stream (the y61 stamp already carries the moment);
+     * gps_src==1's "Sats:" folds into the same SAT field. SAT priority:
+     * snapshot sats -> fresh Qual sats -> "--". */
+    {
+        bool qfresh =
+            sr_fmt_qual_fresh(m->qual_rev, m->qual_tick_ms, m->sess_ms, furi_get_tick());
+        n = (int)sr_fmt_gps_fix_line(
+            m->gps.fix, m->gps.sats, sizeof(m->gps.sats), qfresh, m->qual.sats, raw, sizeof(raw));
     }
     sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
 
@@ -815,7 +856,13 @@ static void sr_view_dash_draw_gps(Canvas* canvas, const SrDashModel* m) {
 
     sr_fmt_gps_val(m->gps.alt, sizeof(m->gps.alt), m->gps.fix, (size_t)SR_VIEW_COLS, a, sizeof(a));
     sr_fmt_gps_val(m->gps.acc, sizeof(m->gps.acc), m->gps.fix, (size_t)SR_VIEW_COLS, b, sizeof(b));
-    n = snprintf(raw, sizeof(raw), "Alt:%s Acc:%s", a, b);
+    /* D19 ⑦: '~' marks Acc as the firmware's hdop*5 estimate (Firmware gnss.c:95),
+     * not a receiver-reported accuracy figure. Only on a real value, never on "--". */
+    if(m->gps.fix && strcmp(b, "--") != 0) {
+        n = snprintf(raw, sizeof(raw), "Alt:%s Acc:~%s", a, b);
+    } else {
+        n = snprintf(raw, sizeof(raw), "Alt:%s Acc:%s", a, b);
+    }
     sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
 
     s = sr_view_dash_gps_hint(m, false);

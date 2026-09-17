@@ -602,14 +602,25 @@ static inline size_t sr_fmt_fw_pair(
 }
 
 /*
- * Dash headline for the F2 capture-health verdict.
+ * Dash status bar for the capture-health verdict (D19 / ADR-025: sunk to
+ * y61, `net` dropped as redundant with the big uniq, `SAT <NN>` added from
+ * the same Qual snapshot).
  *
  * Card §1.4 examples use CJK / emoji. FontSecondary is a `_tr` bitmap and
  * cannot draw those glyphs; the strings below keep the frozen semantics
- * (OK / WARN / CRIT / Acquiring + topd hint) in ASCII. The 23-char OK
- * string no longer fits SR_VIEW_COLS=20 (F2 rev2 §3); the caller fits it
- * against SR_HEALTH_COLS_MAX (views/sr_view_dash.h) instead, still through
- * sr_fmt_fit.
+ * (OK / WARN / CRIT / Acquiring + topd hint) in ASCII. Copy table (every
+ * fresh non-CRIT row ends in " SAT <NN>"; CRIT and the stale row
+ * deliberately carry no SAT):
+ *   fresh OK            "OK fix<pct>% <drop>drop SAT <NN>"
+ *   fresh WARN low-fix  "WARN fix<pct>% SAT <NN>"
+ *   fresh WARN no-fix   "WARN nofix SAT <NN>"
+ *   fresh WARN drop     "WARN drop <topd> SAT <NN>"
+ *   fresh CRIT (sd==0)  "SD not writing"
+ *   fresh Acquiring     "acquiring SAT <NN>"
+ *   stale               "- need SigRoam Qual"
+ * The 23-char OK string no longer fits SR_VIEW_COLS=20 (F2 rev2 §3); the
+ * caller fits it against SR_HEALTH_COLS_MAX (views/sr_view_dash.h) instead,
+ * still through sr_fmt_fit.
  *
  * unseen (qual_rev==0) is not "all zeros" — that would look like no-fix.
  */
@@ -714,6 +725,38 @@ static inline size_t sr_fmt_ble_field(
     return sr_fmt__udec(ap_ble, out, cap);
 }
 
+/*
+ * D19 / ADR-025. SAT count on the Dash status bar and the GPS tab first
+ * line: two-digit zero padding under 100 ("SAT 09"), built on sr_fmt__pad2;
+ * 100 and up prints all three digits verbatim (uint8_t cannot exceed 255).
+ */
+static inline size_t sr_fmt_sats(uint8_t sats, char* out, size_t cap) {
+    char tmp[4];
+
+    if(out == NULL || cap == 0) {
+        return 0;
+    }
+    if(sats >= 100u) {
+        return sr_fmt__udec((uint32_t)sats, out, cap);
+    }
+    sr_fmt__pad2((uint32_t)sats, tmp);
+    tmp[2] = '\0';
+    return sr_fmt__cpy(tmp, 2, out, cap);
+}
+
+/*
+ * D19 / ADR-025 decision 1. Status-bar mark selector: a stale Qual must
+ * never paint the leftover verdict (the pre-D19 code drew ✓ next to
+ * "- need SigRoam Qual"); stale folds to the Acquiring ring, fresh passes
+ * the verdict through. Drawn by sr_view_dash_draw_health_mark.
+ */
+static inline uint8_t sr_fmt_health_mark(bool fresh, uint8_t verdict) {
+    if(!fresh) {
+        return (uint8_t)SrHealthAcquiring;
+    }
+    return verdict;
+}
+
 static inline size_t sr_view_fmt_health(
     const SrHealthEval* e,
     const SrQualInfo* q,
@@ -724,6 +767,7 @@ static inline size_t sr_view_fmt_health(
     size_t n;
     const char* hint;
     uint32_t fixpct_disp;
+    uint8_t sats;
 
     if(out == NULL || cap == 0) {
         return 0;
@@ -744,12 +788,16 @@ static inline size_t sr_view_fmt_health(
     if(fixpct_disp > 100u) {
         fixpct_disp = 100u;
     }
+    sats = (q != NULL) ? q->sats : 0u;
 
     tmp[0] = '\0';
     n = 0;
     if(e->v == SrHealthCrit) {
+        /* Copy table: CRIT carries no SAT suffix. */
         n = sr_fmt__cpy("SD not writing", 14, tmp, sizeof(tmp));
-    } else if(e->v == SrHealthAcquiring) {
+        return sr_fmt__cpy(tmp, n, out, cap);
+    }
+    if(e->v == SrHealthAcquiring) {
         n = sr_fmt__cpy("acquiring", 9, tmp, sizeof(tmp));
     } else if(e->v == SrHealthOk) {
         n = sr_fmt__cpy("OK fix", 6, tmp, sizeof(tmp));
@@ -760,11 +808,9 @@ static inline size_t sr_view_fmt_health(
             tmp[n] = '\0';
         }
         n += sr_fmt__udec(q != NULL ? q->drop : 0u, tmp + n, sizeof(tmp) - n);
-        n += sr_fmt__cpy("drop ", 5, tmp + n, sizeof(tmp) - n);
-        n += sr_fmt__udec(q != NULL ? q->net : 0u, tmp + n, sizeof(tmp) - n);
-        n += sr_fmt__cpy("net", 3, tmp + n, sizeof(tmp) - n);
+        n += sr_fmt__cpy("drop", 4, tmp + n, sizeof(tmp) - n);
     } else if(e->reason == (uint8_t)SrHealthReasonNoFix) {
-        n = sr_fmt__cpy("WARN nofix sky", 14, tmp, sizeof(tmp));
+        n = sr_fmt__cpy("WARN nofix", 10, tmp, sizeof(tmp));
     } else if(e->reason == (uint8_t)SrHealthReasonLowFix) {
         n = sr_fmt__cpy("WARN fix", 8, tmp, sizeof(tmp));
         n += sr_fmt__udec(fixpct_disp, tmp + n, sizeof(tmp) - n);
@@ -777,5 +823,168 @@ static inline size_t sr_view_fmt_health(
         n = sr_fmt__cpy("WARN drop ", 10, tmp, sizeof(tmp));
         n += sr_fmt__cpy(hint, sr_fmt_bounded_len(hint, 8), tmp + n, sizeof(tmp) - n);
     }
+    /* Every fresh non-CRIT row ends with " SAT <NN>" (copy table above). */
+    n += sr_fmt__cpy(" SAT ", 5, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt_sats(sats, tmp + n, sizeof(tmp) - n);
     return sr_fmt__cpy(tmp, n, out, cap);
+}
+
+/*
+ * D19 ③ / ADR-025 decision 4. Duration compressed to HhMM: unpadded hours
+ * + 'h' + two-digit minutes, seconds truncated (1h24, 100h00). Used by
+ * sr_fmt_ap_row's L1 level.
+ */
+static inline size_t sr_fmt_hhmm(uint32_t ms, char* out, size_t cap) {
+    char tmp[16];
+    size_t n;
+    uint32_t total_m;
+    uint32_t m;
+    uint32_t h;
+
+    if(out == NULL || cap == 0) {
+        return 0;
+    }
+    total_m = (ms / 1000u) / 60u;
+    m = total_m % 60u;
+    h = total_m / 60u;
+    n = sr_fmt__udec(h, tmp, sizeof(tmp));
+    if(n + 3u < sizeof(tmp)) {
+        tmp[n++] = 'h';
+        sr_fmt__pad2(m, tmp + n);
+        n += 2u;
+        tmp[n] = '\0';
+    }
+    return sr_fmt__cpy(tmp, n, out, cap);
+}
+
+/*
+ * D19 ③ / ADR-025 decision 4. Dash Running AP row, three adaptive levels,
+ * width-cascaded against max_cols (the draw layer passes SR_VIEW_COLS=20):
+ *   L0  "AP=150 BLE=23 01:26"   full row; the duration keeps sr_fmt_duration's
+ *                               full H:MM:SS past 1h whenever the row fits
+ *                               (information first);
+ *   L1  "AP=1234 BLE=567 1h24"  L0 overflows AND duration >= 1h: compress to
+ *                               HhMM (sr_fmt_hhmm);
+ *   L2  "AP=15234 BLE=8921"     still over (or L0 over under 1h, where L1 is
+ *                               unavailable): drop the duration -- the Sess
+ *                               tab keeps the full value.
+ * The BLE field reuses sr_fmt_ble_field ("BLE=OFF" semantics unchanged);
+ * sr_fmt_fit is the final backstop. Level choice lives here, never in draw code.
+ * tmp is 48: the L2 base is at most 3+10+5+10=28 chars and a duration at
+ * most 15, so the space-join below can never overrun it.
+ */
+static inline size_t sr_fmt_ap_row(
+    uint32_t ap_wifi,
+    uint32_t radio_rev,
+    uint8_t radio_ble,
+    uint32_t ap_ble,
+    uint32_t elapsed_ms,
+    size_t max_cols,
+    char* out,
+    size_t cap) {
+    char tmp[48];
+    char ble[12];
+    char dur[16];
+    size_t n;
+    size_t blen;
+    size_t dlen;
+
+    if(out == NULL || cap == 0) {
+        return 0;
+    }
+
+    blen = sr_fmt_ble_field(radio_rev, radio_ble, ap_ble, ble, sizeof(ble));
+
+    /* L2 base: "AP=<wifi> BLE=<field>". */
+    n = sr_fmt__cpy("AP=", 3, tmp, sizeof(tmp));
+    n += sr_fmt__udec(ap_wifi, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt__cpy(" BLE=", 5, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt__cpy(ble, blen, tmp + n, sizeof(tmp) - n);
+
+    /* L0: append the full duration when the whole row still fits. */
+    dlen = sr_fmt_duration(elapsed_ms, dur, sizeof(dur));
+    if(n + 1u + dlen <= max_cols) {
+        tmp[n] = ' ';
+        n += 1u;
+        n += sr_fmt__cpy(dur, dlen, tmp + n, sizeof(tmp) - n);
+        return sr_fmt_fit(tmp, n, max_cols, out, cap);
+    }
+
+    /* L1: at one hour and beyond the duration compresses to HhMM. */
+    if(elapsed_ms >= 3600000u) {
+        dlen = sr_fmt_hhmm(elapsed_ms, dur, sizeof(dur));
+        if(n + 1u + dlen <= max_cols) {
+            tmp[n] = ' ';
+            n += 1u;
+            n += sr_fmt__cpy(dur, dlen, tmp + n, sizeof(tmp) - n);
+            return sr_fmt_fit(tmp, n, max_cols, out, cap);
+        }
+    }
+
+    /* L2: the duration leaves the row. */
+    return sr_fmt_fit(tmp, n, max_cols, out, cap);
+}
+
+/*
+ * D19 ⑦ / ADR-025 decision 5. GPS tab first line for both live sources
+ * (gps_src 1 and 2): "Fix: Yes SAT 09". SAT priority: the gpsdata
+ * snapshot's own sats string when non-empty -> fresh Qual sats (via
+ * sr_fmt_sats) -> "--" (Qual stale or absent: an honest unknown, never a
+ * leftover number). An all-digits snapshot within uint8_t range goes through
+ * sr_fmt_sats too, so both paths share the card's "SAT <NN>" format
+ * (review NIT-C); a non-digit or out-of-range device string copies verbatim
+ * as-is. Fitted to SR_VIEW_COLS.
+ */
+static inline size_t sr_fmt_gps_fix_line(
+    bool fix,
+    const char* snap_sats,
+    size_t snap_sats_cap,
+    bool qual_fresh,
+    uint8_t qual_sats,
+    char* out,
+    size_t cap) {
+    char tmp[24];
+    size_t n;
+    size_t slen;
+
+    if(out == NULL || cap == 0) {
+        return 0;
+    }
+
+    n = sr_fmt__cpy("Fix: ", 5, tmp, sizeof(tmp));
+    if(fix) {
+        n += sr_fmt__cpy("Yes", 3, tmp + n, sizeof(tmp) - n);
+    } else {
+        n += sr_fmt__cpy("No", 2, tmp + n, sizeof(tmp) - n);
+    }
+    n += sr_fmt__cpy(" SAT ", 5, tmp + n, sizeof(tmp) - n);
+
+    slen = sr_fmt_bounded_len(snap_sats, snap_sats_cap);
+    if(slen > 0u) {
+        uint32_t v = 0u;
+        size_t i = 0u;
+        bool digits = true;
+
+        for(i = 0u; i < slen; i++) {
+            if(snap_sats[i] < '0' || snap_sats[i] > '9') {
+                digits = false;
+                break;
+            }
+            v = v * 10u + (uint32_t)(snap_sats[i] - '0');
+            if(v > 255u) {
+                digits = false;
+                break;
+            }
+        }
+        if(digits) {
+            n += sr_fmt_sats((uint8_t)v, tmp + n, sizeof(tmp) - n);
+        } else {
+            n += sr_fmt__cpy(snap_sats, slen, tmp + n, sizeof(tmp) - n);
+        }
+    } else if(qual_fresh) {
+        n += sr_fmt_sats(qual_sats, tmp + n, sizeof(tmp) - n);
+    } else {
+        n += sr_fmt__cpy("--", 2, tmp + n, sizeof(tmp) - n);
+    }
+    return sr_fmt_fit(tmp, n, (size_t)SR_VIEW_COLS, out, cap);
 }

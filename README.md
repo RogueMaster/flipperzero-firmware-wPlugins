@@ -33,9 +33,9 @@ something looks wrong.
 
 | Main menu | Dashboard |
 |---|---|
-| <img src="screenshots/menu.png" width="360" alt="SigRoam main menu with Dashboard, Probe firmware and Raw log entries"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard showing scanner status and bytes received"> |
+| <img src="screenshots/menu.png" width="360" alt="SigRoam Wardriving main menu with Dashboard, Probe firmware and Raw log entries"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard with large unique-BSSID count and bottom status line"> |
 | **Settings** | **About** |
-| <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam about screen showing version, receive-only statement and QR code"> |
+| <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam Wardriving v0.4 about screen, by PINGEQUA Lab, with QR code"> |
 
 ## Quick facts
 
@@ -121,10 +121,11 @@ Two things will stop the app from working if you skip them:
 The main menu has five entries:
 
 - **Dashboard** — four tabs, switched with left/right:
-  - `Dash` — unique BSSID estimate, AP/BLE counts, GPS fix count, bytes received,
-    elapsed time. **OK starts and stops the scan.**
+  - `Dash` — large unique-BSSID count, AP/BLE counts, and a bottom status
+    line with OK, fix percent, drop and SAT. **OK starts and stops the scan.**
   - `Strm` — the most recent parsed records, scrolling.
-  - `GPS` — fix status, satellites, coordinates. OK requests a GPS sample.
+  - `GPS` — fix status, satellites, coordinates, and `Acc:~` (an estimate).
+    OK requests a GPS sample.
   - `Sess` — session and diagnostic counters.
 - **Probe firmware** — sends `info` and reports what answered, so you can tell
   "nothing connected" from "connected but not Marauder".
@@ -134,7 +135,8 @@ The main menu has five entries:
   Backlight, Stealth, Debug rows. Sound, Vibro and the LED fire when the GPS fix
   is acquired or lost during a survey; Stealth suppresses the LED, and Backlight
   holds the display lit while you are on the dashboard.
-- **About** — version, compliance statement, and a QR code to this repository.
+- **About** — `SigRoam Wardriving v0.4`, `by PINGEQUA Lab`, the receive-only
+  statement, and a QR code to the project short link.
 
 While a scan is running, Back returns to the main menu **without stopping the
 scan**. Stopping is done only with OK on the Dash tab.

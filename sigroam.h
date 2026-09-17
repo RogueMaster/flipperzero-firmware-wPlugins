@@ -28,7 +28,7 @@
 #include "views/sr_view_dash.h"
 
 #define SR_TAG         "SigRoam"
-#define SR_FAP_VERSION "0.3"
+#define SR_FAP_VERSION "0.4"
 
 /*
  * Brand / referral slot (About page).
@@ -60,30 +60,34 @@
  *      2026-08-31), but clause 8 reserves refusal "for any reason" -- so keep the
  *      tone out of advertising register.
  *
- * NOTE: SR_BRAND_NAME was removed (2026-09-01, T4.14): after the About page was
- *    rearranged the brand no longer occupies its own row; the short-link domain
- *    go.pingequa.com carries it instead, leaving that macro with no users.
+ * SR_BRAND_NAME is the maker word. About line 2 is SR_BRAND_LINE
+ * ("by PINGEQUA Lab", 74 px). Changing the spelling must keep line 2 <= 91 px
+ * (FontSecondary advance; that row shares y with the QR).
  */
-#define SR_BRAND_URL "go.pingequa.com/sr1g"
+#define SR_BRAND_NAME "PINGEQUA"
+#define SR_BRAND_LINE "by " SR_BRAND_NAME " Lab"
+#define SR_BRAND_URL  "go.pingequa.com/sr1g"
 
 /* Flipper LCD is 128x64. Fullscreen attach has no status bar, so About
  * text-scroll uses the full canvas. (Plan/T2.4: 128 px wide.) */
 #define SR_CANVAS_W 128
 #define SR_CANVAS_H 64
 
-/* About page QR geometry (T4.14). **Regenerate the image before changing these
- * numbers; do not just edit the numbers**:
- *  - SIDE = 37 is the actual edge length of assets/sr1g_qr.png, determined by the
- *    QR version (V3 = 29 modules + a 4-module quiet zone on each side = 37, with
- *    box_size=1 giving 1 px per module).
- *    A URL crossing 42 bytes jumps to V4 (33 modules -> 41 px), which must be
- *    mirrored here.
- *  - X is derived by right alignment: 91 + 37 = 128 sits flush with the right
- *    edge, leaving 91 px on the left for the upper text block.
- * The quiet zone is already inside that 37 -- drawing any element into the
- * rectangle x>=91 and y<37 makes the code unscannable. */
+/* About page QR geometry (T4.14; Y revised 2026-09-17 lockup A).
+ * **Regenerate the image before changing SIDE; do not just edit the numbers**:
+ *  - SIDE = 37 is the actual edge of assets/sr1g_qr.png (V3 = 29 modules + a
+ *    4-module quiet zone each side, box_size=1). A URL past 42 bytes jumps to
+ *    V4 (33 modules -> 41 px) and must be mirrored here.
+ *  - X is right-aligned: 91 + 37 = 128. Rows that share the code's y range
+ *    have 91 px on the left.
+ *  - Y = 13 sits on the second-row cap (row 1 descender ends y=12) so row 1
+ *    is a full-width title bar. The code occupies y=13..49; the URL cap at
+ *    y=53 stays below it. Y outside 13..15 either clips row 1 or the URL.
+ * The quiet zone is already inside the 37. Drawing into x>=91 and
+ * y in [Y, Y+SIDE) makes the code unscannable. */
 #define SR_ABOUT_QR_SIDE 37
 #define SR_ABOUT_QR_X    (SR_CANVAS_W - SR_ABOUT_QR_SIDE)
+#define SR_ABOUT_QR_Y    13
 
 #define SR_ABOUT_TEXT_MAX 640
 /* 320 until 2026-09-07. The four handshake lines already cost ~190 at their field

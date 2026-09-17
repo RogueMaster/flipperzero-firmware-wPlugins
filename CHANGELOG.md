@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4] — 2026-09-17
 
 Scout Lite identity on the Sess tab, a capture-quality headline, BLE-off on
-Dash, and a second Unleashed build.
+Dash, a Dash/GPS layout pass, About lockup A2, and a second Unleashed build.
 
 ### Added
 
@@ -30,6 +30,18 @@ Dash, and a second Unleashed build.
 
 - The app title is **SigRoam Wardriving**. Probe names SigRoam firmware when
   it is talking to this scanner. The handshake token on the wire is unchanged.
+- **About lockup A2:** `SigRoam Wardriving v0.4` on one line (normal spacing),
+  maker line `by PINGEQUA Lab`, QR dropped to the second row. On-device
+  version matches `fap_version` 0.4 (it still said 0.3). Receive-only, No
+  attack, Marauder compatible, and the QR short link are unchanged.
+- The unique-BSSID count is the big number at the top of Dash again.
+- The status line sits on the bottom: OK, fix percent, drop, and SAT. Bytes
+  received (`rx=`) no longer show on the normal Dash while a SigRoam scan is
+  running.
+- The GPS tab dropped the `(live)` tag. Accuracy is labelled `Acc:~` because
+  it is an estimate.
+- SAT on Dash and GPS comes from the survey snapshot or a fresh Qual reading,
+  not a separate `gpsdata` poll during a scan.
 
 ## [0.3] — 2026-09-04
 

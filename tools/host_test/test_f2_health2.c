@@ -256,8 +256,9 @@ static void t_no_board_session_suppresses_verdict(void) {
 }
 
 /*
- * §6 use case 4 / NC-C: the 23-char headline "OK fix100% 0drop 142net"
- * must land fully inside SR_HEALTH_COLS_MAX(32), no '~'. Also pins that
+ * §6 use case 4 / NC-C: the 23-char status bar "OK fix100% 0drop SAT 08"
+ * (D19 / ADR-025: `net` out, `SAT <NN>` in) must land fully inside
+ * SR_HEALTH_COLS_MAX(32), no '~'. Also pins that
  * the old SR_VIEW_COLS(20) budget really would have cut it -- that is
  * exactly what NC-C reintroduces if the retreat loop's start reverts to
  * SR_VIEW_COLS (the production-source half of that regression is caught
@@ -278,11 +279,11 @@ static void t_headline_over_20_cols_fits(void) {
 
     hn = sr_view_fmt_health(&hv, &q, true, health, sizeof(health));
     CHECK(hn == 23u);
-    CHECK(streq(health, "OK fix100% 0drop 142net"));
+    CHECK(streq(health, "OK fix100% 0drop SAT 08"));
 
     n = sr_fmt_fit(health, hn, (size_t)SR_HEALTH_COLS_MAX, line, sizeof(line));
     CHECK(n == 23u);
-    CHECK(streq(line, "OK fix100% 0drop 142net"));
+    CHECK(streq(line, "OK fix100% 0drop SAT 08"));
     CHECK(strchr(line, '~') == NULL);
 
     on = sr_fmt_fit(health, hn, (size_t)SR_VIEW_COLS, old, sizeof(old));
