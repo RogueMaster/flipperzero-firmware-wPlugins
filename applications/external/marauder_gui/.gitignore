@@ -1,0 +1,18 @@
+# Local IDE and generated build metadata
+.vscode/
+**/.vscode/compile_commands.json
+.claude/
+
+# uFBT build outputs
+**/dist/debug/
+
+# Local reference checkout (kept only for development)
+reference/
+
+# Common local secrets and environment files
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets.json

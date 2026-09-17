@@ -1,0 +1,17 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="marauder_gui",  # Must be unique
+    name="Marauder GUI",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="marauder_gui_app",
+    stack_size=2 * 1024,
+    fap_category="GPIO",
+    requires=["gui", "storage"],
+    # Optional values
+    fap_version="1.1",
+    fap_icon="marauder_gui.png",  # 10x10 1-bit PNG
+    fap_icon_assets="assets",  # key icons for the ported Marauder keyboard
+    fap_description="ESP32 Marauder companion app - WiFi/BT attacks, detectors and network tools over UART",
+    fap_author="mel4mi",
+)
