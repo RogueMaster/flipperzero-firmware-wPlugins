@@ -1,0 +1,11 @@
+#info
+Firmware: Marauder
+Version: v1.14.1
+Hardware: ESP32-C5 DevKit
+ESP-IDF: v5.5.1-710-g8410210c9a
+WSL Bypass: enabled
+Station MAC: A5:FF:8B:41:0B:8F
+AP MAC: A5:FF:8B:41:0B:82
+SD Card: Connected
+SD Card Size: 30250MB
+> 

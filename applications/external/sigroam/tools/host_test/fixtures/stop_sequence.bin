@@ -1,0 +1,6 @@
+==== GPS Data ====
+  Fix: No
+      Text: 02 ANTSTATUS=OPEN
+ S#stopscan
+Stopping GPS data updates
+> 

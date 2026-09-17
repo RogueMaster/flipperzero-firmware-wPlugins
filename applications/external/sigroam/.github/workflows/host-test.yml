@@ -1,0 +1,50 @@
+# T1.3b stage one: run the pure-logic unit tests (host_test) only.
+#
+# The Official + Momentum dual-target ufbt build defined in ADR-007 is **deliberately not in this
+# file** -- it has to install ufbt in CI and pull two SDKs, which is slower and more brittle than
+# host_test.
+# Establish a stable green baseline first; the dual-target build gets its own workflow/commit.
+#
+# Why both gcc and clang are run:
+# This repository had only ever been compiled under Apple clang on macOS (no real gcc locally).
+# The Makefile carries -Werror, and gcc's warning set differs from clang's --
+# this matrix entry is a **deliberate portability check**, not redundancy.
+# The two jobs report independently (fail-fast: false) so "the code is broken" can be told apart
+# from "one compiler is stricter".
+
+name: host_test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host_test:
+    name: host_test (${{ matrix.cc }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compiler version
+        run: ${{ matrix.cc }} --version
+
+      # The default make target = guard + selfcontained + run_tests, all three at once.
+      # Do not run run_tests alone to bypass the guards.
+      - name: make (guard + selfcontained + run_tests)
+        run: make -C tools/host_test CC=${{ matrix.cc }}
+
+      # The asan target carries ASAN_OPTIONS=detect_leaks=0 of its own:
+      # requesting leak detection under Apple ASan aborts before main, so this target
+      # claims no leak-detection capability. Linux keeps the same setting so both behave alike.
+      - name: make asan (Address + UB)
+        run: make -C tools/host_test clean && make -C tools/host_test asan CC=${{ matrix.cc }}

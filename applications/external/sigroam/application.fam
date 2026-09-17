@@ -1,0 +1,38 @@
+# SigRoam — Flipper FAP manifest
+#
+# Field validity per V-032 (scripts/fbt/appmanifest.py FlipperApplication across all three SDKs).
+# The fap_category value follows SPIKE-00-catalog.md C2: the Catalog accepts only
+#   Sub-GHz, RFID, NFC, Infrared, GPIO, iButton, USB, Games, Media, Tools, Bluetooth
+#
+# sources MUST exclude tools/ explicitly:
+#   fbt_extapps.py:152 calls GatherSources([sources, "!lib"], app_work_dir),
+#   and GatherSources -> GlobRecursive (sconsrecursiveglob.py:9-30) scans **recursively**.
+#   The default sources=["*.c*"] (appmanifest.py:70) would compile tools/host_test/main.c into
+#   the FAP and collide with the entry point. The "!dir" exclusion form is the same one fbt
+#   itself uses for "!lib".
+
+App(
+    appid="sigroam",
+    name="SigRoam",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="sigroam_app",
+    stack_size=2 * 1024,
+    fap_category="GPIO",
+    # A 10x10 1-bit PNG (a hard Catalog requirement, see docs/spikes/SPIKE-00-catalog.md:185:
+    #   "must be a 10x10, 1-bit PNG, black and white only. No transparency,
+    #    no greys, no anti-aliasing, no other colors.")
+    # The path is relative to the app directory -- read locally from fbt_extapps.py:243 and
+    #   elfmanifest.py:55, both of which use os.path.join(_apppath, fap_icon).
+    fap_icon="icons/sigroam.png",
+    # About page QR code (T4.14). Every PNG in this directory compiles into one Icon symbol,
+    # named "I_" + the filename without extension (read locally from scripts/assets.py:179)
+    # -> I_sr1g_qr, declared in the fbt-generated <appid>_icons.h = sigroam_icons.h
+    # (fbt_extapps.py:92).
+    # NOTE: this is a channel entirely separate from fap_icon: fap_icon is the 10x10 application
+    #    icon the Catalog requires, whereas this is in-app artwork with no size constraint.
+    fap_icon_assets="assets",
+    fap_version="0.3",
+    fap_description="Wi-Fi survey companion for external ESP32 scanners",
+    fap_author="PINGEQUA_Lab",
+    sources=["*.c*", "!tools", "!backups", "!docs"],
+)

@@ -1,0 +1,29 @@
+#gpsdata
+Getting GPS Data. Stop with stopscan
+> ==== GPS Data ====
+  Fix: No
+      Text: 02 ANTSTATUS=OPEN
+ Sats: 0
+  Acc: 0.00
+  Lat: 0.0000000
+  Lon: 0.0000000
+  Alt: 0.00
+  D/T: 
+==== GPS Data ====
+  Fix: No
+      Text: 02 ANTSTATUS=OPEN
+ Sats: 0
+  Acc: 0.00
+  Lat: 0.0000000
+  Lon: 0.0000000
+  Alt: 0.00
+  D/T: 
+==== GPS Data ====
+  Fix: No
+      Text: 02 ANTSTATUS=OPEN
+ Sats: 0
+  Acc: 0.00
+  Lat: 0.0000000
+  Lon: 0.0000000
+  Alt: 0.00
+  D/T: 

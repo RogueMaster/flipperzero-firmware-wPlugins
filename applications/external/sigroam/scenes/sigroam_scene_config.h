@@ -1,0 +1,6 @@
+ADD_SCENE(sigroam, start, Start)
+ADD_SCENE(sigroam, about, About)
+ADD_SCENE(sigroam, probe, Probe)
+ADD_SCENE(sigroam, raw, Raw)
+ADD_SCENE(sigroam, dash, Dash)
+ADD_SCENE(sigroam, settings, Settings)
