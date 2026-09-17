@@ -459,7 +459,7 @@ static const char* const uhf_startup_names[] = {
 static const char* const uhf_about_lines[] = {
     "UHF tools by MTCK",
     "AKA MTools Tec",
-    "Version: 1.3",
+    "Version: 1.4",
     "Github: mtoolstec/",
     "fz-uhf-expansion",
 };

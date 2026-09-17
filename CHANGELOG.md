@@ -1,29 +1,12 @@
-Unreleased:
+v1.4:
 
-- Added a standalone Tag Control tool after EPC Fuzzing, with EPC-filtered reversible lock and unlock actions for EPC, TID, and User banks.
-- Added guarded erase-by-zero for writable EPC and User banks inside Tag Control.
-- Added a separate Access Keys tool with four persistent Access Password slots used by write, erase, lock, and unlock operations.
-- Restored the original three-row, two-column main-menu tile size with vertical scrolling.
-- Prevented locking with a zero Access Password and added a zero-password recovery action for initializing the tag key.
-- Required one unique EPC to remain stable before Tag Control permits tag operations.
-- Replaced the oversized Tag Control `Scanning` button label with actionable `Stop` / `Scan` labels.
-- Kept cleared EPC tags recoverable and visible, using a minimal non-zero EPC placeholder for future clears.
-- Added Access Passwords to protected reads and verification after setting a tag access key.
-- Moved Erase to the Tag Control right-button action and kept the Actions menu to three items.
-- Left-aligned multi-line tag memory data and added a right-side scrollbar for content longer than three rows.
-- Separated the Access Keys cursor from the active slot: Up/Down browse, center selects, and Right edits, with an aligned radio marker on the active slot.
-- Added a timed two-press Back confirmation popup before exiting from the main menu.
-- Added an EPC Display setting with HEX and ASCII modes for Tag Inventory.
-- Added an EPC ASCII tool for capturing one tag, editing up to 12 ASCII characters, and writing a verified 96-bit EPC.
-- Allowed EPC ASCII writes to target a different tag after removing the captured source tag.
-- Moved TID Decoder directly before Tag Control in the main menu.
-- Started inventory automatically when entering Inventory from the main menu or Startup App.
-- Added wraparound main-menu navigation across each two-item row and between the top and bottom rows.
-- Hid the Tag Control Erase button while the read-only TID bank is selected.
-- Added an Access Key submenu for setting a key from zero or restoring the tag password to zero after banks are unlocked.
-- Clarified Access Key actions with explicit `00000000` labels and shortened the reset warning to fit the display.
-- Removed the crowded Access Key warning line and changed reset-to-zero into a long-press action.
-- Inverted the Back-again-to-exit confirmation dialog to a black border, white background, and black text.
+- Added Tag Control with reversible EPC/TID/User lock, unlock, and guarded erase.
+- Added Access Keys with four persistent password slots and protected read/write verification.
+- Added EPC ASCII capture/edit/write and HEX/ASCII inventory display.
+- Added auto-start Inventory and two-press Back exit confirmation.
+- Optimized main-menu navigation with 3x2 tiles, vertical scrolling, and wraparound.
+- Optimized Tag Control flow, stable-EPC validation, and read-only TID handling.
+- Optimized tag data layout, Access Keys labels, and exit dialog contrast.
 
 v1.3:
 
