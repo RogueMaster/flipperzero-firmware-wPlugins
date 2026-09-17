@@ -1,0 +1,15 @@
+test/test_rules
+test/test_nav
+test/test_game
+test/test_reflex
+test/test_draw
+test/test_save
+test/*.dSYM
+dist/
+.ufbt/
+test/san_*
+test/link_check
+test/armobj/
+tools/trace_screens
+test/test_port
+.vscode/

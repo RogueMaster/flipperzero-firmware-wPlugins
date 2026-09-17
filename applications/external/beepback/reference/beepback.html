@@ -1,0 +1,1951 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAB5UlEQVR4nO2bzZGDMAyFZSYV5JoWt4YcUkNazHVbYA87zniIifVnJBm/IwZZ+njYgCEBQusDVsx+3pTukJr77DVELbqmbyCqDSMVX6oGYtluGLV4gHptS2uH0bStcdlrGFllrct2w1mUa/4YAyLp9ryKY1y0O3/9/LKT4fR/e15FfV6o9m9Rz+1HgZBofcBKugQoltOwJza2pC80AE4nPSFoCQVAUog2hL143H5CzQI9HNUEoNHpUZcCp58wDugFMQSAnrNPCABUUSC4B9B7/HAPgCssuCYAjVtabowjZg+3Djhq+kUBkLjA+0MR2gGcQjxYvxUraT8OZ3k/81lkAFnWL0S0xAYwitzOAkdpArBOwFoTgHUC1poArBOw1gRgnYBEGs8MoQFoKCyAcnFUorAAtBQSgMni6KhCPw5zKPd4N/AtD05/p3cA+xOZHpKO6K3jaw5x5YCer9P2YrsCAPCfqDaIb/HcAcjSWpFqxXELAEDmBuxxrgFkUSFQ9g8BoKcmAOsEMKLeHwz1hUhvuboTpKgc6CR3kGgAXhY9a3nkbazvBDG/llmqLKp1EqiuSHdIIS4Bivuobnif/bMtk2fnn34WeAPwPhZoqqx12WsYVdsaPy6BkSHUaps/T2MCRIWBcfMfFGmtEfcAm5gAAAAASUVORK5CYII=">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>BEEPBACK v2.2 prototype</title>
+<style>
+  :root{ --body:#1c1c1e; --orange:#f08a28; --orange-dim:#a85c14;
+         --screen:#e8b184; --ink:#101012; }
+  *{box-sizing:border-box; touch-action:none; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; height:100%; overflow:hidden; overscroll-behavior:none;
+    background:var(--body); color:#8d8f95;
+    font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
+    -webkit-text-size-adjust:100%; -webkit-user-select:none; user-select:none;
+    -webkit-tap-highlight-color:transparent; touch-action:none;
+  }
+
+  /* the device is the whole page */
+  .flipper{
+    height:100dvh; height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:clamp(8px,2.5dvh,22px); padding:clamp(8px,2dvh,20px) 4vw;
+  }
+  .screen-col{ width:100%; max-width:min(520px, 68dvh); }
+  .bezel{background:var(--orange-dim);border:3px solid var(--ink);border-radius:16px;padding:7px}
+  canvas#screen{display:block;width:100%;height:auto;background:var(--screen);
+    image-rendering:pixelated;border-radius:9px;touch-action:none}
+  .brandrow{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:6px}
+  .led{width:12px;height:12px;border-radius:50%;background:#2a2a2c;flex:0 0 auto;
+    box-shadow:inset 0 0 3px rgba(0,0,0,.6);transition:background .07s,box-shadow .07s}
+  .wordmark{margin:0;color:var(--orange);
+    font:800 clamp(15px,4.4vw,26px)/1 ui-monospace,"Courier New",monospace;
+    letter-spacing:.14em;transform:skewX(-14deg)}
+
+  .controls{display:flex;align-items:flex-end;justify-content:center;gap:6%}
+  .dpad{width:min(47vw,47dvh,188px);height:auto;touch-action:none}
+  .backbtn{width:min(17vw,17dvh,68px);height:auto;margin-bottom:5%;touch-action:none}
+  .pad-face{fill:var(--orange);stroke:var(--orange-dim);stroke-width:4}
+  .key{fill:none;stroke:var(--ink);stroke-width:5;stroke-linejoin:round;stroke-linecap:round;
+    pointer-events:none;transition:fill .06s}
+  .key-solid{fill:var(--ink);stroke:none;pointer-events:none;transition:fill .06s}
+  [data-key].on .key{fill:#fff4e6}
+  [data-key].on .key-solid{fill:#fff4e6}
+  .hit{fill:transparent;cursor:pointer}
+
+  /* sideways: screen left, controls right */
+  @media (min-aspect-ratio:1/1){
+    .flipper{flex-direction:row; gap:clamp(10px,3vw,28px);}
+    .screen-col{flex:0 1 auto; max-width:min(62vw, 176dvh);}
+    .controls{flex:0 0 auto;flex-direction:column;align-items:center;gap:clamp(6px,2dvh,14px);}
+    .backbtn{margin:0 0 0 auto}
+  }
+</style>
+</head>
+<body>
+
+
+
+<div class="flipper">
+  <div class="screen-col">
+    <div class="bezel"><canvas id="screen" width="512" height="256"></canvas></div>
+    <div class="brandrow">
+      <div class="wordmark">FLIPPER</div>
+      <span class="led" id="led"></span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <svg class="dpad" viewBox="0 0 200 200" aria-label="direction pad">
+      <circle class="pad-face" cx="100" cy="100" r="94"/>
+      <g data-key="UP">
+        <rect class="hit" x="62" y="6" width="76" height="62"/>
+        <path class="key" d="M100 28 L124 62 L76 62 Z"/>
+      </g>
+      <g data-key="DOWN">
+        <rect class="hit" x="62" y="132" width="76" height="62"/>
+        <path class="key" d="M100 172 L124 138 L76 138 Z"/>
+      </g>
+      <g data-key="LEFT">
+        <rect class="hit" x="6" y="62" width="62" height="76"/>
+        <path class="key" d="M28 100 L62 76 L62 124 Z"/>
+      </g>
+      <g data-key="RIGHT">
+        <rect class="hit" x="132" y="62" width="62" height="76"/>
+        <path class="key" d="M172 100 L138 76 L138 124 Z"/>
+      </g>
+      <g data-key="OK">
+        <circle class="hit" cx="100" cy="100" r="34"/>
+        <circle class="key" cx="100" cy="100" r="30"/>
+      </g>
+    </svg>
+
+    <svg class="backbtn" viewBox="0 0 90 90" aria-label="back">
+      <circle class="pad-face" cx="45" cy="45" r="42"/>
+      <g data-key="BACK">
+        <circle class="hit" cx="45" cy="45" r="42"/>
+        <path class="key" d="M30 30 H50 A15 15 0 0 1 50 60 H37"/>
+        <path class="key-solid" d="M26 60 L40 52 L40 68 Z"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+
+<script>
+"use strict";
+
+/* ---------------------------------------------------------------- */
+/* baked 1-bit fonts (DejaVu Sans, rasterised with no antialiasing)  */
+/* ---------------------------------------------------------------- */
+const FONT_S = {"h":9,"g":{"A":[5,0,4,4,10,10,14,17,0,0],"B":[4,0,15,9,9,7,9,15,0,0],"C":[5,0,14,19,1,1,3,30,0,0],"D":[5,0,15,17,17,17,17,15,0,0],"E":[4,0,15,1,1,15,1,15,0,0],"F":[3,0,7,1,1,7,1,1,0,0],"G":[5,0,14,19,25,17,17,14,0,0],"H":[4,0,9,9,9,15,9,9,0,0],"I":[1,0,1,1,1,1,1,1,0,0],"J":[2,0,2,2,2,2,2,2,2,3],"K":[5,0,9,5,3,7,13,25,0,0],"L":[4,0,1,1,1,1,1,15,0,0],"M":[5,0,27,27,31,21,21,17,0,0],"N":[4,0,9,11,11,13,13,9,0,0],"O":[5,0,14,17,17,17,17,14,0,0],"P":[4,0,15,9,15,1,1,1,0,0],"Q":[5,0,14,17,17,17,17,14,8,0],"R":[5,0,15,9,7,13,9,17,0,0],"S":[4,0,14,1,7,12,8,15,0,0],"T":[5,0,31,4,4,4,4,4,0,0],"U":[4,0,9,9,9,9,9,6,0,0],"V":[5,0,17,10,10,10,4,4,0,0],"W":[7,0,73,85,54,54,54,34,0,0],"X":[5,0,27,10,4,4,10,17,0,0],"Y":[5,0,27,10,4,4,4,4,0,0],"Z":[5,0,31,8,4,6,2,31,0,0],"0":[4,0,6,9,9,9,9,6,0,0],"1":[3,0,3,2,2,2,2,7,0,0],"2":[4,0,7,8,8,4,2,15,0,0],"3":[4,0,7,8,8,6,8,15,0,0],"4":[4,0,4,6,6,5,15,4,0,0],"5":[4,0,15,1,7,8,8,7,0,0],"6":[4,0,14,3,1,15,9,14,0,0],"7":[4,0,15,8,4,4,4,2,0,0],"8":[4,0,6,9,9,6,9,15,0,0],"9":[4,0,7,9,15,8,12,7,0,0]," ":[2,0,0,0,0,0,0,0,0,0],".":[1,0,0,0,0,0,0,1,0,0],",":[1,0,0,0,0,0,0,1,1,0],":":[1,0,0,0,1,0,0,1,0,0],";":[1,0,0,0,1,0,0,1,1,0],"!":[1,0,1,1,1,1,0,1,0,0],"?":[3,0,7,4,2,2,0,2,0,0],"'":[1,0,1,1,0,0,0,0,0,0],"\"":[3,0,5,5,0,0,0,0,0,0],"(":[2,2,1,1,1,1,1,2,0,0],")":[2,1,2,2,2,2,2,1,0,0],"[":[2,0,3,1,1,1,1,1,3,0],"]":[2,0,3,2,2,2,2,2,3,0],"+":[5,0,0,4,4,31,4,4,0,0],"-":[2,0,0,0,0,3,0,0,0,0],"*":[5,0,21,14,14,21,0,0,0,0],"/":[3,0,4,4,2,2,2,1,1,0],"<":[5,0,0,16,14,15,16,0,0,0],">":[5,0,0,1,14,30,1,0,0,0],"=":[5,0,0,0,31,0,31,0,0,0],"%":[7,0,23,21,15,120,84,116,0,0],"#":[5,12,10,31,10,31,6,5,0,0],"&":[5,0,14,2,6,23,13,30,0,0]}};
+const FONT_P = {"h":10,"g":{"A":[8,0,24,60,60,102,126,102,195,0,0],"B":[6,0,31,51,51,31,51,51,31,0,0],"C":[6,0,60,38,3,3,3,38,60,0,0],"D":[7,0,31,51,99,99,99,51,31,0,0],"E":[5,0,31,3,3,31,3,3,31,0,0],"F":[5,0,31,3,3,31,3,3,3,0,0],"G":[7,0,124,70,3,115,99,102,124,0,0],"H":[7,0,99,99,99,127,99,99,99,0,0],"I":[2,0,3,3,3,3,3,3,3,0,0],"J":[3,0,6,6,6,6,6,6,6,6,3],"K":[6,0,51,27,15,7,15,27,51,0,0],"L":[5,0,3,3,3,3,3,3,31,0,0],"M":[8,0,195,231,231,219,219,195,195,0,0],"N":[7,0,103,103,107,107,115,115,99,0,0],"O":[7,0,62,99,99,99,99,99,62,0,0],"P":[6,0,31,51,51,51,31,3,3,0,0],"Q":[7,0,62,99,99,99,99,99,62,48,0],"R":[7,0,31,51,51,51,31,51,99,0,0],"S":[6,0,62,35,3,30,48,49,31,0,0],"T":[6,0,63,12,12,12,12,12,12,0,0],"U":[7,0,99,99,99,99,99,99,62,0,0],"V":[8,0,195,102,102,102,60,60,24,0,0],"W":[10,0,819,819,306,510,462,204,204,0,0],"X":[7,0,99,54,20,28,20,54,99,0,0],"Y":[8,0,195,102,60,24,24,24,24,0,0],"Z":[6,0,63,48,24,12,6,3,63,0,0],"0":[6,0,30,51,51,51,51,51,30,0,0],"1":[6,0,15,12,12,12,12,12,63,0,0],"2":[6,0,31,48,48,24,12,6,63,0,0],"3":[6,0,31,48,48,30,48,48,31,0,0],"4":[6,0,24,28,26,25,63,24,24,0,0],"5":[6,0,31,3,31,48,48,48,31,0,0],"6":[6,0,60,2,31,51,51,51,30,0,0],"7":[6,0,63,48,24,24,12,12,6,0,0],"8":[6,0,30,51,51,12,51,51,30,0,0],"9":[6,0,30,51,51,51,62,16,15,0,0]," ":[2,0,0,0,0,0,0,0,0,0,0],".":[2,0,0,0,0,0,0,3,3,0,0],",":[2,0,0,0,0,0,0,3,3,1,0],":":[2,0,0,0,3,3,0,3,3,0,0],";":[2,0,0,0,3,3,0,3,3,1,0],"!":[2,0,3,3,3,3,0,3,3,0,0],"?":[4,0,15,12,14,6,0,6,6,0,0],"'":[1,0,1,1,1,0,0,0,0,0,0],"\"":[3,0,5,5,5,0,0,0,0,0,0],"(":[3,6,2,3,3,3,3,3,2,6,0],")":[3,3,2,6,6,6,6,6,2,3,0],"[":[3,7,3,3,3,3,3,3,3,7,0],"]":[3,7,6,6,6,6,6,6,6,7,0],"+":[7,0,8,8,8,127,8,8,8,0,0],"-":[3,0,0,0,0,7,0,0,0,0,0],"*":[5,0,4,21,14,14,21,4,0,0,0],"/":[4,0,8,4,4,4,2,2,2,1,0],"<":[6,0,0,32,28,7,7,28,32,0,0],">":[6,0,0,1,14,56,56,14,1,0,0],"=":[6,0,0,0,63,0,63,0,0,0,0],"%":[9,0,70,41,41,214,296,296,196,0,0],"#":[7,0,40,36,126,20,63,18,10,0,0],"&":[8,0,28,6,6,142,251,115,222,0,0]}};
+
+/* ---------------------------------------------------------------- */
+/* constants                                                         */
+/* ---------------------------------------------------------------- */
+const UP=0, DOWN=1, LEFT=2, RIGHT=3, OK=4;
+const FREQ  = [1396.91, 440.00, 587.33, 1046.50, 783.99];
+const NAME  = ["UP","DOWN","LEFT","RIGHT","OK"];
+const SHORT = ["UP","DN","LF","RT","OK"];
+const SHAPE = ["star","circle","triangle","pentagon","square"];
+
+const DIFF_NAME = ["EASY","NORMAL","HARD","INSANE"];
+const PRAISE = ["LET'S GO!","NICE!","PERFECT!","GOOD!","CLEAN!","YOU GOT IT!","SICK!"];
+const VOL_NAME = ["OFF","LOW","MID","HIGH"];
+const VOL_GAIN = [0, 0.05, 0.10, 0.18];
+const SPEED_NAME = ["SLOW","NORMAL","FAST"];
+/* Four characters, for the rows and cells that carry a number as well:
+   NORMAL plus a millisecond count is wider than the row it sits in. */
+const DIFF_SHORT  = ["EASY","NORM","HARD","INSN"];
+const SPEED_SHORT = ["SLOW","NORM","FAST"];
+const RESET_ROWS  = ["RECORDS","STATS","TUTORIAL","EVERYTHING"];
+/* a reset asks once and listens for a second */
+const CONFIRM_MS  = 1000;
+const SPEED_SET = [[290,180],[220,110],[160,75]];
+const MODE_NAME = ["CLASSIC","RULES","REFLEX","CHALLENGE","DAILY"];
+/* Every rule is a transform from what plays to what you press, so the
+   input check never needs to know which rule is running. */
+const RULES = [
+  {name:b=>"SKIP "+NAME[b], seg:b=>[{t:"SKIP"},{b:b}], label:"SKIP", tip:"never press it", param:true, fn:(q,b)=>q.filter(x=>x!==b),
+   help:["One button is named.","It still plays, but you","never press it."]},
+  {name:b=>"DOUBLE "+NAME[b], seg:b=>[{t:"DOUBLE"},{b:b}], label:"DOUBLE", tip:"press it twice", param:true, fn:(q,b)=>q.flatMap(x=>x===b?[x,x]:[x]),
+   help:["One button is named.","Press it twice every","time it turns up."]},
+  {name:_=>"NO DOUBLES", label:"NO DOUBLES", tip:"repeats count once", param:false, fn:q=>q.filter((x,i)=>i===0||x!==q[i-1]),
+   help:["The same button twice","in a row counts as","one single press."]},
+  {name:_=>"EVERY OTHER", label:"EVERY OTHER", tip:"1st, 3rd, 5th step", param:false, fn:q=>q.filter((x,i)=>i%2===0),
+   help:["Press the 1st step,","the 3rd, the 5th.","Skip the ones between."]},
+  {name:_=>"LAST TWICE", label:"LAST TWICE", tip:"final step twice", param:false, fn:q=>q.concat(q[q.length-1]),
+   help:["Repeat as normal, then","press the final step","one extra time."]},
+  {name:(b,c)=>NAME[b]+" IS "+NAME[c], seg:(b,c)=>[{b:b},{t:"IS"},{b:c}], label:"X IS Y", tip:"press the new one", param:2, fn:(q,b,c)=>q.map(x=>x===b?c:x),
+   help:["One button becomes","another. Press the new","one wherever it plays."]},
+  {name:_=>"BACKWARDS", label:"BACKWARDS", tip:"last step first", param:false, fn:q=>q.slice().reverse(),
+   help:["Repeat the sequence","from the last step","back to the first."]}
+];
+/* challenge picks: the seven rules, then random, then the daily */
+const CH_RANDOM = RULES.length;      /* daily is a mode now, not a rule pick */
+const isChallenge = () => S.mode >= 3;   /* challenge and daily share the engine */
+/* Today's rule, worked out without disturbing the live generator. */
+function dailyRule(){ return Math.floor(mulberry32(dailySeed())() * RULES.length); }
+/* a small deterministic generator, so the daily is the same run for everyone */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+/* Tests pin the daily against a fixed date. Without this they would pin
+   against whatever day the machine thinks it is, and pass until midnight. */
+let bbSeedOverride = 0;
+function dailySeed(){ return bbSeedOverride || todaySeed(); }
+function todaySeed(){
+  const d = new Date();
+  return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+}
+let rng = Math.random;   /* swapped for a seeded one during the daily */
+/* EARS, not OFF: you are not switching the assist off, you are choosing
+   to play by ear. The records screens have always called it that. */
+const ASSIST_NAME = ["EARS","LED","SHAPES","ARROWS"];
+/* the led ladder follows the pitch ladder, low tone = long wavelength */
+const LED_BTN   = ["#b45cff","#ff3b30","#ffd23f","#3d9bff","#3fd65a"]; /* UP DOWN LEFT RIGHT OK */
+const LED_NAME  = ["VIOLET","RED","YELLOW","BLUE","GREEN"];
+
+const JINGLE = {
+  go:   [{f:196.00,ms:60},{f:0,ms:40},{f:294.00,ms:80}],
+  win:  [{f:659.25,ms:70},{f:880.00,ms:70},{f:1174.66,ms:150}],
+  round:[{f:523.25,ms:90},{f:659.25,ms:90},{f:880.00,ms:90},{f:1174.66,ms:220}],
+  fail: [{f:233.08,ms:130},{f:0,ms:40},{f:174.61,ms:260}],
+  over: [{f:392.00,ms:120},{f:349.23,ms:120},{f:311.13,ms:120},{f:261.63,ms:360}]
+};
+
+const T = {
+  toneMs:220, gapMs:110, shapeGap:60, flashMs:70, shapeR:17, startLen:4,
+  listenMs:700, goMs:450, successMs:750, roundMs:1100, wrongMs:900, retryMs:650,
+  ruleCardMs:2200, ruleBonus:1000,
+  overLock:800,
+  /* time per button, not per sequence: the sequence growing is the ramp */
+  easy:5000, normal:4000, hard:3000, insane:2000,
+  spHold:1100, spFade:450, spGlide:1200, spFlash:620, spWipe:340,
+  spTurns:150, spSelfSpin:0
+};
+const diffMs = () => [T.easy, T.normal, T.hard, T.insane];
+/* reflex windows are reaction times, not sequence times */
+/* Everyone rides the same ramp from the same place. The setting only changes
+   how fast it steepens, and the multiplier cancels that exactly, so where you
+   finish is down to you and not to what you picked. */
+const RX_START  = 1000;
+const RX_SHRINK = [4, 6, 9, 14];
+/* points per hit rise with the square of how tight it has got, so getting
+   deeper is worth much more than lasting longer */
+/* speed is the wait before the next cue, nothing to do with the window */
+const RX_GAP = [900, 650, 420];
+/* classic and rules key their scores by playback speed; reflex has no
+   playback, so it keys by starting window instead */
+/* Difficulty is worth points, not a separate leaderboard. Normal is the
+   baseline at 1.0, so easy costs you rather than hard feeling like a tax. */
+/* A fixed window caps how long a sequence you can ever finish, and score
+   compounds with length, so a hard setting takes away far more than a linear
+   multiplier gives back. Insane at 2000ms halves the response time of normal,
+   hence the size of its reward. */
+/* Hundredths, and every multiplier is integer maths from here down. The
+   firmware cannot carry a float, so neither does this: a product of two
+   hundredths is ten-thousandths, and 1.55 x 1.45 is exactly 22475 rather
+   than a binary approximation of 2.2475. */
+/* Ten points a note, a hundred for clearing a round, and nothing else.
+   There is no multiplier: TIME and SPEED change how hard a run is, not
+   what it pays, so the number on screen is always one you could have
+   worked out yourself. Records are clamped to SCORE_MAX on the way in,
+   which is what lets a table be laid out for a width that is always
+   enough. */
+const NOTE_POINTS = 10;
+const ROUND_BONUS = 100;
+const SCORE_MAX   = 99999;
+const clamp = (v,lo,hi) => v < lo ? lo : v > hi ? hi : v;
+const clampScore = v => Math.min(SCORE_MAX, Math.max(0, v|0));
+/* One window for the whole sequence, the same however long it is. */
+const windowMs = () => diffMs()[S.diff] + (S.mode===1 || isChallenge() ? T.ruleBonus : 0);
+const secs = ms => (ms%1000 ? (ms/1000).toFixed(1) : String(ms/1000)) + "S";
+
+/* assist: 0 off, 1 led, 2 shapes, 3 arrows. Shapes are the default. */
+const SET = { volume:2, assist:2, speed:1, haptic:false };
+
+/* The browser build kept nothing between visits, which makes a records
+   table and a stats page pointless. Version the blob so a layout change
+   discards an old one rather than misreading it, the way the firmware's
+   save file does. */
+/* the guide opens itself once and never again, on either build */
+let firstRun = true;
+const SAVE_KEY = "beepback.save.v7";
+function save(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      set:SET, diff:S.diff, best:S.best, chBest:S.chBest,
+      daily:S.daily, stats:S.stats, tutorialDone:!firstRun
+    }));
+  }catch(e){ /* private window, or storage full: play on without it */ }
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(d.set){
+      SET.volume = clamp(d.set.volume|0, 0, 3);
+      SET.assist = clamp(d.set.assist|0, 0, 3);
+      SET.speed  = clamp(d.set.speed|0, 0, 2);
+      SET.haptic = !!d.set.haptic;
+      T.toneMs = SPEED_SET[SET.speed][0]; T.gapMs = SPEED_SET[SET.speed][1];
+    }
+    if(Number.isInteger(d.diff)) S.diff = clamp(d.diff, 0, 3);
+    if(d.best)   S.best   = d.best.map(m => m.map(t => t.map(sp => sp.map(clampScore))));
+    if(d.chBest) S.chBest = d.chBest.map(r => r.map(clampScore));
+    if(d.daily)  S.daily  = d.daily;
+    if(d.stats)  S.stats  = Object.assign(emptyStats(), d.stats);
+    if(d.tutorialDone) firstRun = false;
+  }catch(e){ /* anything unreadable leaves the defaults standing */ }
+}
+const audioOn  = () => SET.volume > 0;
+/* The assist you chose, always. Silence with no cues used to be quietly
+   turned into SHAPES, which meant the row did not say what the game
+   would do; you are warned on the way out of SETTINGS instead. */
+const assist   = () => SET.assist;
+const noCue    = () => SET.volume === 0 && SET.assist === 0;
+const ledMode  = () => assist() === 1;
+const shapesOn = () => assist() === 2;
+const arrowsOn = () => assist() === 3;
+const cueOn    = () => assist() >= 2;          /* something is drawn on screen */
+const visualOn = () => assist() > 0;           /* any assist at all */
+const gapMs    = () => T.gapMs + (visualOn() ? T.shapeGap : 0);
+
+/* ---------------------------------------------------------------- */
+/* 1-bit canvas                                                      */
+/* ---------------------------------------------------------------- */
+const W=128, H=64;
+const off = document.createElement("canvas"); off.width=W; off.height=H;
+const o = off.getContext("2d", {willReadFrequently:true});
+const mono = document.createElement("canvas"); mono.width=W; mono.height=H;
+const mo = mono.getContext("2d");
+const screenEl = document.getElementById("screen");
+const sc = screenEl.getContext("2d");
+let INK=[26,22,18], BG=[255,130,0];
+
+function textWidth(f,s){
+  let w=0;
+  for(const ch of s){ const g=f.g[ch]; w += (g ? g[0] : 3) + 1; }
+  return w>0 ? w-1 : 0;
+}
+
+const C = {
+  ink:true, f:FONT_S,
+  black(){ C.ink=true; }, white(){ C.ink=false; },
+  style(){ return C.ink ? "#000" : "#fff"; },
+  clear(){ o.fillStyle="#fff"; o.fillRect(0,0,W,H); C.ink=true; },
+  dot(x,y){ o.fillStyle=C.style(); o.fillRect(x|0,y|0,1,1); },
+  box(x,y,w,h){ o.fillStyle=C.style(); o.fillRect(x|0,y|0,w|0,h|0); },
+  frame(x,y,w,h){ C.box(x,y,w,1); C.box(x,y+h-1,w,1); C.box(x,y,1,h); C.box(x+w-1,y,1,h); },
+  rbox(x,y,w,h,r){ o.fillStyle=C.style(); round(x,y,w,h,r); o.fill(); },
+  rframe(x,y,w,h,r){ o.strokeStyle=C.style(); o.lineWidth=1; round(x+.5,y+.5,w-1,h-1,r); o.stroke(); },
+  line(x1,y1,x2,y2){ o.strokeStyle=C.style(); o.lineWidth=1;
+    o.beginPath(); o.moveTo(x1+.5,y1+.5); o.lineTo(x2+.5,y2+.5); o.stroke(); },
+  disc(x,y,r){ o.fillStyle=C.style(); o.beginPath(); o.arc(x+.5,y+.5,r,0,7); o.fill(); },
+  circle(x,y,r){ o.strokeStyle=C.style(); o.lineWidth=1; o.beginPath(); o.arc(x+.5,y+.5,r,0,7); o.stroke(); },
+  font(primary){ C.f = primary ? FONT_P : FONT_S; },
+  str(x,y,ah,av,text){
+    const s = String(text).toUpperCase();
+    const f = C.f, w = textWidth(f,s), h = f.h;
+    if(ah==="c") x = Math.round(x - w/2); else if(ah==="r") x = x - w;
+    if(av==="c") y = Math.round(y - h/2); else if(av==="b") y = y - h;
+    o.fillStyle = C.style();
+    let px = x|0;
+    for(const ch of s){
+      const g = f.g[ch];
+      if(g){
+        for(let r=0;r<h;r++){
+          const mask = g[1+r];
+          if(!mask) continue;
+          for(let c=0;c<g[0];c++) if(mask & (1<<c)) o.fillRect(px+c, (y|0)+r, 1, 1);
+        }
+        px += g[0]+1;
+      } else px += 4;
+    }
+  }
+};
+function round(x,y,w,h,r){
+  o.beginPath(); o.moveTo(x+r,y);
+  o.arcTo(x+w,y,x+w,y+h,r); o.arcTo(x+w,y+h,x,y+h,r);
+  o.arcTo(x,y+h,x,y,r); o.arcTo(x,y,x+w,y,r); o.closePath();
+}
+function present(){
+  const img = o.getImageData(0,0,W,H), d = img.data;
+  for(let i=0;i<d.length;i+=4){
+    const lum = d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114;
+    const c = lum < 150 ? INK : BG;
+    d[i]=c[0]; d[i+1]=c[1]; d[i+2]=c[2]; d[i+3]=255;
+  }
+  mo.putImageData(img,0,0);
+  sc.imageSmoothingEnabled=false;
+  sc.drawImage(mono,0,0,W,H,0,0,screenEl.width,screenEl.height);
+}
+
+/* ---------------------------------------------------------------- */
+/* pixel art                                                         */
+/* ---------------------------------------------------------------- */
+const HEART_FULL = [".##.##.","#######","#######",".#####.","..###..","...#..."];
+const HEART_EMPTY= [".##.##.","#..#..#","#.....#",".#...#.","..#.#..","...#..."];
+function heart(x,y,full,s){
+  const art = full?HEART_FULL:HEART_EMPTY;
+  for(let r=0;r<6;r++) for(let c=0;c<7;c++)
+    if(art[r][c]==="#") s<=1 ? C.dot(x+c,y+r) : C.box(x+c*s,y+r*s,s,s);
+}
+function lives(x,y,n,s){ for(let i=0;i<3;i++) heart(x+i*8*s, y, i<n, s); }
+
+function glyph(cx,cy,btn,s){
+  const q=(s/2)|0;
+  if(btn===UP)    for(let i=0;i<=s;i++) C.line(cx-i, cy-s+i+q, cx+i, cy-s+i+q);
+  if(btn===DOWN)  for(let i=0;i<=s;i++) C.line(cx-i, cy+s-i-q, cx+i, cy+s-i-q);
+  if(btn===LEFT)  for(let i=0;i<=s;i++) C.line(cx-s+i+q, cy-i, cx-s+i+q, cy+i);
+  if(btn===RIGHT) for(let i=0;i<=s;i++) C.line(cx+s-i-q, cy-i, cx+s-i-q, cy+i);
+  if(btn===OK)    C.disc(cx,cy,Math.max(1,s-2));
+}
+function polyPath(cx,cy,r,sides,rot){
+  o.beginPath();
+  for(let i=0;i<sides;i++){
+    const a = rot + i*2*Math.PI/sides;
+    const x = cx + r*Math.cos(a), y = cy + r*Math.sin(a);
+    i ? o.lineTo(x,y) : o.moveTo(x,y);
+  }
+  o.closePath();
+}
+function starPath(cx,cy,r,rot){
+  o.beginPath();
+  for(let i=0;i<10;i++){
+    const rr = i%2 ? r*0.45 : r, a = rot + i*Math.PI/5;
+    const x = cx + rr*Math.cos(a), y = cy + rr*Math.sin(a);
+    i ? o.lineTo(x,y) : o.moveTo(x,y);
+  }
+  o.closePath();
+}
+function shapeRot(cx,cy,r,kind,rot){
+  const up = -Math.PI/2 + rot;
+  C.black(); o.fillStyle = "#000";
+  if(kind==="circle"){ o.beginPath(); o.arc(cx,cy,r,0,7); o.fill(); }
+  else if(kind==="triangle"){ polyPath(cx,cy+r*0.12,r*1.12,3,up); o.fill(); }
+  else if(kind==="square"){ polyPath(cx,cy,r*1.05,4,up+Math.PI/4); o.fill(); }
+  else if(kind==="pentagon"){ polyPath(cx,cy,r*1.05,5,up); o.fill(); }
+  else if(kind==="star"){ starPath(cx,cy,r*1.15,up); o.fill(); }
+}
+function shape(cx,cy,r,kind,invert){
+  const up = -Math.PI/2;
+  if(invert){ C.black(); C.box(cx-r-4, cy-r-4, r*2+8, r*2+8); C.white(); }
+  else C.black();
+  o.fillStyle = C.style();
+  if(kind==="circle"){ o.beginPath(); o.arc(cx,cy,r,0,7); o.fill(); }
+  else if(kind==="triangle"){ polyPath(cx,cy+r*0.12,r*1.12,3,up); o.fill(); }
+  else if(kind==="square"){ polyPath(cx,cy,r*1.05,4,up+Math.PI/4); o.fill(); }
+  else if(kind==="pentagon"){ polyPath(cx,cy,r*1.05,5,up); o.fill(); }
+  else if(kind==="star"){ starPath(cx,cy,r*1.15,up); o.fill(); }
+  C.black();
+}
+/* the assist visual for one button */
+function cue(cx,cy,btn,r,invert){
+  if(shapesOn()) shape(cx,cy,r,SHAPE[btn],invert);
+  else if(arrowsOn()){
+    if(invert){ C.black(); C.box(cx-r-4,cy-r-4,r*2+8,r*2+8); C.white(); }
+    glyph(cx,cy,btn,r);
+    C.black();
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* audio                                                             */
+/* ---------------------------------------------------------------- */
+let actx = null, gestureSeen = false;
+/* A browser will not make a sound until the user has interacted with the
+   page. The launcher screen needs a press to enter the game, which doubles
+   as the gesture that unlocks the speaker. */
+function armAudio(){
+  gestureSeen = true;
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state === "suspended") actx.resume();
+  }catch(e){ /* no audio available, carry on silently */ }
+}
+/* Web Audio schedules a whole jingle ahead of the clock, so pausing has
+   to reach back and stop what was already queued - on the Flipper a note
+   is silenced by the tune failing to advance, and a paused tune does not
+   advance. Same outcome, different machinery. */
+let live = [], buzzTimers = [];
+function hushAudio(){
+  for(const o of live){ try{ o.stop(); }catch(e){} }
+  live = [];
+  for(const t of buzzTimers) clearTimeout(t);
+  buzzTimers = [];
+  hush();
+}
+function playNotes(notes){
+  /* The pattern reaches the hand whether or not it reaches the ear: the
+     motor is traced from the same note list, and silence changes the
+     speaker rather than the clock. */
+  let at = 0;
+  for(const n of notes){
+    if(n.f > 0) buzzTimers.push(window.setTimeout(() => buzzFor(n.ms), at));
+    at += n.ms;
+  }
+  if(!audioOn()) return;
+  if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+  if(actx.state === "suspended") actx.resume();
+  let t = actx.currentTime + 0.005;
+  const g0 = VOL_GAIN[SET.volume];
+  for(const n of notes){
+    const dur = n.ms/1000;
+    if(n.f > 0){
+      const osc = actx.createOscillator(), g = actx.createGain();
+      osc.type="square"; osc.frequency.value=n.f;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(g0, t+0.004);
+      g.gain.setValueAtTime(g0, t+Math.max(0.01,dur-0.012));
+      g.gain.linearRampToValueAtTime(0, t+dur);
+      osc.connect(g).connect(actx.destination);
+      osc.start(t); osc.stop(t+dur+0.02);
+      live.push(osc);
+      osc.onended = () => { const i = live.indexOf(osc); if(i>=0) live.splice(i,1); };
+    }
+    t += dur;
+  }
+}
+const tone = (f,ms) => playNotes([{f:f,ms:ms}]);
+
+/* the Flipper blinks its RGB led on these events, so the mock does too */
+const ledEl = document.getElementById("led");
+let ledColor = null, ledUntil = 0;
+function ledFlash(color, ms){ ledColor = color; ledUntil = now + ms; }
+
+/* The motor traces the notes: one pulse a note, as long as the note is,
+   less a gap so two notes running are two taps and not one buzz, and
+   capped because past this it is felt as on rather than as a beat. A
+   rest gets nothing, which is what makes a rhythm a rhythm. On the
+   Flipper this is the vibro motor; here it is navigator.vibrate, which
+   phones have and most desktops quietly ignore. */
+const BUZZ_GAP = 25, BUZZ_MAX = 110, BUZZ_MIN = 25, BUZZ_HELLO = 180;
+/* Phones have a motor and most desktops do not. Where there is none the
+   row says so rather than offering a setting that does nothing. */
+const canBuzz = () => typeof navigator !== "undefined" && !!navigator.vibrate;
+function buzzFor(ms){
+  if(!SET.haptic || !navigator.vibrate) return;
+  navigator.vibrate(Math.max(BUZZ_MIN, Math.min(BUZZ_MAX, ms - BUZZ_GAP)));
+}
+function buzz(){ if(SET.haptic && navigator.vibrate) navigator.vibrate(BUZZ_HELLO); }
+function hush(){ if(navigator.vibrate) navigator.vibrate(0); }
+function ledRender(){
+  if(!ledEl) return;
+  const on = now < ledUntil && ledColor;
+  ledEl.style.background = on ? ledColor : "#2a2a2c";
+  ledEl.style.boxShadow  = on ? "0 0 16px 5px " + ledColor : "inset 0 0 3px rgba(0,0,0,.6)";
+}
+const LED_GREEN = "#4ade5b", LED_RED = "#ff4a3d", LED_BLUE = "#4aa8ff";
+
+/* ---------------------------------------------------------------- */
+/* state                                                             */
+/* ---------------------------------------------------------------- */
+const emptyBest = () => [0,1,2].map(()=>[0,1,2,3].map(()=>[0,1,2].map(()=>[0,0,0,0])));
+/* the headline board is your best in that mode and assist, whatever you set */
+/* The one record a finished run competes for. NEW BEST is measured
+   against this and nothing else. It used to be judged against the best
+   across every time and speed, which meant a good INSANE run was
+   silently held up against an easy EASY one and almost never won. */
+function slotBest(){
+  if(S.runGameMode===4) return S.daily.best[S.runMode];
+  if(S.runGameMode===3) return S.chBest[S.chRule][S.runMode];
+  return S.best[S.runGameMode][S.runDiff][S.runSpeed][S.runMode];
+}
+function slotStore(v){
+  if(S.runGameMode===4) S.daily.best[S.runMode] = v;
+  else if(S.runGameMode===3) S.chBest[S.chRule][S.runMode] = v;
+  else S.best[S.runGameMode][S.runDiff][S.runSpeed][S.runMode] = v;
+}
+
+/* what you have done, as opposed to how well; reset separately on purpose */
+function emptyStats(){
+  return {playMs:0, runs:0, notes:0, rounds:0, bestEver:0, longest:0,
+          byMode:[0,0,0,0,0], byAssist:[0,0,0,0]};
+}
+/* the entry with the most runs, or -1 while nothing has been played */
+function favourite(counts){
+  let best = -1, high = 0;
+  counts.forEach((c,i) => { if(c > high){ high = c; best = i; } });
+  return best;
+}
+
+const S = {
+  scene:"launcher", spStart:0, spPhase:0, spT:0, spFlashIdx:-1, phase:0, paused:false, pauseAt:0, prevScene:"listen",
+  menuIdx:0, setIdx:0, setFlash:0, diff:1, tutPage:0, testBtn:-1,
+  base:[], seq:[], stage:1, target:4,
+  playIdx:0, toneOn:false, stepStart:0,
+  inputIdx:0, inputStart:0, inputEnd:0, bar:1,
+  lives:3, round:1, score:0, runBest:0, praise:0,
+  lastPress:-1, pressFlash:0, newBest:false, prevBest:0, runMode:2, ledWarn:0, sweepIdx:-1,
+  scoreSpeed:1, runSpeed:1, goPage:0,
+  mode:0, runGameMode:0, modeIdx:0, setupIdx:2, resetIdx:0, scoreMode:0,
+  rxHits:0, rxWindow:700, rxCue:0, rxAt:0, rxFastest:0, runDiff:1, lockUntil:0,
+  helpIdx:0, helpFrom:"help", ruleSel:0, ruleScroll:0, testFrom:"menu",
+  ruleIdx:-1, ruleA:0, ruleB:0, ruleText:"", ruleSegs:[], expected:[],
+  /* [mode][speed][assist] - classic/rules x slow/normal/fast x ears/led/shapes/arrows */
+  chIdx:0, chRule:0, chScroll:0, modePage:0,
+  stats: emptyStats(),
+  confirmUntil:0, confirmRow:0, statScroll:0, tblAssist:0, tblScroll:0,
+  daily:{date:0, done:false, best:[0,0,0,0]},
+  /* [rule][assist] - challenge keeps a record per rule, so you can see which
+     ones you are actually good at */
+  chBest: [0,1,2,3,4,5,6].map(()=>[0,0,0,0]),
+  /* [mode][time][speed][assist] - every combination keeps its own record, so
+     the game collects the evidence for whether the multipliers are right */
+  best: emptyBest()
+};
+let now = 0;
+const expired = t => now >= t;
+/* The four screens that sit side by side, with the menu in the middle of
+   them: what you have done to its left, what you have beaten and who made
+   it to its right. LEFT and RIGHT walk along them, and the arrows at the
+   screen edges are drawn from this same table. */
+const CHAIN = ["stats","menu","scorepick","credits"];
+const STAT_ROWS = 8, STAT_VIS = 5;
+const GAME_SCENES = ["reflexgap","reflexcue","rulecard","listen","playback","go","input","hold","success","roundclear","wrong","retry"];
+
+const TUT_REFLEX = [
+  ["One cue at a time.", "Hit the matching button", "before the bar empties."],
+  ["The window shrinks", "with every hit. One", "miss ends the run."]
+];
+const TUT_RULES = [
+  ["Same game as classic,", "but every round hands", "you a rule to obey."],
+  ["It holds for the whole", "round and changes", "when the round clears."]
+];
+const TUT_PAGES = [
+  ["Every sound belongs","to one button.","Listen closely!"],
+  ["Wait for GO! then","press the buttons","in the same order."],
+  ["Wrong button or out","of time costs one","of your 3 lives."],
+  ["A round grows step","by step. Clear it for","a fresh, longer one."]
+];
+
+function randButton(){ return Math.floor(rng()*5); }
+function newBase(len){
+  S.base = [];
+  for(let i=0;i<len;i++){
+    let b = randButton(), n = S.base.length;
+    if(n>=2 && S.base[n-1]===b && S.base[n-2]===b) b = (b+1+Math.floor(rng()*4))%5;
+    S.base.push(b);
+  }
+}
+function applyRule(seq){
+  if((S.mode!==1 && !isChallenge()) || S.ruleIdx<0) return seq.slice();
+  const r = RULES[S.ruleIdx];
+  return r.param===2 ? r.fn(seq, S.ruleA, S.ruleB)
+       : r.param     ? r.fn(seq, S.ruleA)
+                     : r.fn(seq);
+}
+function setStage(n){
+  S.stage = n;
+  S.seq = S.base.slice(0, n);
+  S.expected = applyRule(S.seq);
+}
+/* A rule must leave at least one press at every stage of the ladder, and
+   it has to actually bite at full length or the round is a freebie. */
+function ruleFits(){
+  for(let n=1;n<=S.target;n++){
+    if(applyRule(S.base.slice(0,n)).length === 0) return false;
+  }
+  const full = applyRule(S.base);
+  /* a press list of one repeated button can be mashed, so it is not a round */
+  if(S.target>=3 && new Set(full).size < 2) return false;
+  return full.length !== S.base.length || full.some((x,i)=>x!==S.base[i]);
+}
+function pickRule(){
+  /* Draw the rule once and re-roll the sequence around it. Re-drawing the
+     rule on every failed attempt quietly skewed which rules you ever saw:
+     the fussy ones got replaced instead of retried, so SKIP turned up 7.7%
+     of the time against LAST TWICE at 20.5%. */
+  S.ruleIdx = Math.floor(rng()*RULES.length);
+  const r = RULES[S.ruleIdx];
+  S.ruleA = randButton();
+  S.ruleB = (S.ruleA + 1 + Math.floor(rng()*4)) % 5;
+  for(let tries=0; tries<60; tries++){
+    newBase(S.target);
+    if(ruleFits()){
+      S.ruleText = r.param===2 ? r.name(S.ruleA,S.ruleB) : r.name(S.ruleA);
+      S.ruleSegs = r.seg ? r.seg(S.ruleA,S.ruleB) : [{t:S.ruleText}];
+      return;
+    }
+  }
+  S.ruleIdx = 2; S.ruleText = RULES[2].name(); S.ruleSegs = [{t:S.ruleText}];
+}
+function newRound(){
+  if(S.mode===1) pickRule();
+  else if(isChallenge()){ /* the rule is already fixed for the whole run */ }
+  else { S.ruleIdx=-1; S.ruleText=""; newBase(S.target); }
+  setStage(1);
+}
+/* Challenge: one sequence that never resets. Each win adds a step, and the
+   step is re-rolled if it would leave the rule with nothing to press. */
+function challengeGrow(){
+  for(let tries=0; tries<40; tries++){
+    const before = S.base.length;
+    let b = randButton(), n = before;
+    if(n>=2 && S.base[n-1]===b && S.base[n-2]===b) b = (b+1+Math.floor(rng()*4))%5;
+    S.base.push(b);
+    if(applyRule(S.base).length > 0){ setStage(S.base.length); return; }
+    S.base.length = before;
+  }
+  S.base.push(randButton());
+  setStage(S.base.length);
+}
+function startChallenge(){
+  if(S.mode===4){
+    /* Seeded from the date, so every device that knows what day it is
+       generates the identical run. No server involved. */
+    rng = mulberry32(dailySeed());
+    S.diff = 1; SET.speed = 1;                 /* locked, or nobody is comparable */
+    S.chRule = Math.floor(rng()*RULES.length);
+    if(S.daily.date !== dailySeed()) S.daily = {date:dailySeed(), done:false, best:[0,0,0,0]};
+  } else {
+    rng = Math.random;
+    S.chRule = S.chIdx === CH_RANDOM ? Math.floor(Math.random()*RULES.length) : S.chIdx;
+  }
+  S.ruleIdx = S.chRule;
+  const r = RULES[S.ruleIdx];
+  S.ruleA = randButton();
+  S.ruleB = (S.ruleA + 1 + Math.floor(rng()*4)) % 5;
+  S.ruleText = r.param===2 ? r.name(S.ruleA,S.ruleB) : r.name(S.ruleA);
+  S.ruleSegs = r.seg ? r.seg(S.ruleA,S.ruleB) : [{t:S.ruleText}];
+  S.base = [];
+  challengeGrow();
+}
+
+function enter(scene){
+  S.scene = scene;
+  if(scene==="listen") S.phase = now + T.listenMs;
+  if(scene==="playback"){
+    S.playIdx=0; S.toneOn=true; S.stepStart=now; S.phase=now+T.toneMs;
+    tone(FREQ[S.seq[0]], T.toneMs);
+    if(ledMode()) ledFlash(LED_BTN[S.seq[0]], T.toneMs);
+  }
+  if(scene==="go"){ S.phase = now + T.goMs; playNotes(JINGLE.go); ledFlash(LED_BLUE,160); }
+  if(scene==="input"){
+    S.inputIdx=0; S.lastPress=-1; S.inputStart=now;
+    S.inputEnd = now + windowMs(); S.bar=1;
+  }
+  if(scene==="hold") S.phase = now + T.toneMs + gapMs();  /* let the last press ring out */
+  if(scene==="success"){
+    /* not the run's generator: the daily must not depend on praise */
+    S.praise = (S.praise + 1 + (Math.floor(now) >> 5)) % PRAISE.length;
+    S.score += NOTE_POINTS * S.expected.length;
+    S.stats.notes += S.expected.length;
+    if(S.seq.length > S.runBest) S.runBest = S.seq.length;
+    S.phase = now + T.successMs; playNotes(JINGLE.win); ledFlash(LED_GREEN,220);
+  }
+  if(scene==="roundclear"){
+    S.sweepIdx = -1;
+    S.score += ROUND_BONUS;
+    S.stats.rounds++;
+    S.phase = now + T.roundMs; playNotes(JINGLE.round); ledFlash(LED_GREEN,600);
+  }
+  if(scene==="wrong"){
+    if(S.lives>0) S.lives--;
+    S.phase = now + T.wrongMs; playNotes(JINGLE.fail); ledFlash(LED_RED,400);
+  }
+  if(scene==="retry") S.phase = now + T.retryMs;
+  if(scene==="rulecard") S.phase = now + T.ruleCardMs;
+  if(scene==="reflexgap"){
+    S.phase = now + RX_GAP[SET.speed];   /* the same wait every time */
+  }
+  if(scene==="reflexcue"){
+    S.rxCue = randButton();
+    S.rxAt = now;
+    S.phase = now + S.rxWindow;
+    S.bar = 1;
+    tone(FREQ[S.rxCue], Math.min(160, S.rxWindow));
+    if(ledMode()) ledFlash(LED_BTN[S.rxCue], Math.min(160, S.rxWindow));
+  }
+  if(scene==="gameover"){
+    S.goPage = 0;
+    S.lockUntil = now + T.overLock;   /* a press already in flight must not retry */
+    S.prevBest = slotBest();
+    S.newBest = S.score > S.prevBest;
+    if(S.newBest) slotStore(clampScore(S.score));
+    if(S.score > S.stats.bestEver) S.stats.bestEver = clampScore(S.score);
+    if(S.runGameMode!==2 && S.runBest > S.stats.longest) S.stats.longest = S.runBest;
+    if(S.runGameMode===4) S.daily.done = true;    /* one a day, and that was it */
+    save();
+    playNotes(JINGLE.over); ledFlash(LED_RED,900);
+  }
+
+  if(scene==="mode") S.modeIdx = S.mode;
+  if(scene==="soundtest") S.testBtn = -1;
+}
+function startGame(){
+  S.stats.runs++;
+  S.stats.byMode[S.mode]++;
+  S.stats.byAssist[assist()]++;
+  S.lives=3; S.score=0; S.round=1; S.runBest=0; S.newBest=false;
+  S.runMode = assist(); S.runSpeed = SET.speed; S.runGameMode = S.mode;
+  S.runDiff = S.diff;
+  if(S.mode===2){
+    S.rxHits = 0; S.rxFastest = 0;
+    S.rxWindow = RX_START;
+    S.lives = 1;                     /* one miss ends it */
+    enter("reflexgap");
+    return;
+  }
+  if(isChallenge()){
+    startChallenge();
+    enter("rulecard");
+    return;
+  }
+  rng = Math.random;
+  S.target = T.startLen;
+  newRound();
+  enter(S.mode===1 ? "rulecard" : "listen");
+}
+
+function update(){
+  if(S.paused) return;
+
+  if(S.scene==="listen" && expired(S.phase)) enter("playback");
+  else if(S.scene==="playback" && expired(S.phase)){
+    if(S.toneOn){ S.toneOn=false; S.phase = now + gapMs(); }
+    else {
+      S.playIdx++;
+      if(S.playIdx >= S.seq.length) enter("go");
+      else {
+        S.toneOn=true; S.stepStart=now; S.phase = now + T.toneMs;
+        tone(FREQ[S.seq[S.playIdx]], T.toneMs);
+        if(ledMode()) ledFlash(LED_BTN[S.seq[S.playIdx]], T.toneMs);
+      }
+    }
+  }
+  else if(S.scene==="go" && expired(S.phase)) enter("input");
+  else if(S.scene==="input"){
+    const total = S.inputEnd - S.inputStart;
+    if(expired(S.inputEnd)){ S.bar=0; enter("wrong"); }
+    else {
+      S.bar = (S.inputEnd - now)/total;
+      /* the last quarter of the bar pulses red, faster as it drains */
+      if(S.bar < 0.25 && now >= S.ledWarn){
+        ledFlash(LED_RED, 70);
+        S.ledWarn = now + 120 + 400*S.bar*4;
+      }
+    }
+  }
+
+  else if(S.scene==="hold" && expired(S.phase)){
+    /* a challenge has no rounds to clear, it just keeps growing */
+    enter(isChallenge() || S.stage < S.target ? "success" : "roundclear");
+  }
+  else if(S.scene==="success" && expired(S.phase)){
+    if(isChallenge()) challengeGrow(); else setStage(S.stage+1);
+    enter("listen");
+  }
+  else if(S.scene==="rulecard" && expired(S.phase)) enter("listen");
+  else if(S.scene==="reflexgap"){
+    if(expired(S.phase)) enter("reflexcue");
+  }
+  else if(S.scene==="reflexcue"){
+    if(expired(S.phase)){ S.bar = 0; reflexMiss(); }
+    else S.bar = (S.phase - now)/S.rxWindow;
+  }
+  else if(S.scene==="roundclear"){
+    /* one sweep through the colour ladder, red up to violet, then move on */
+    const order = [DOWN,LEFT,OK,RIGHT,UP];
+    const slot = T.roundMs/5;
+    const elapsed = T.roundMs - (S.phase - now);
+    const idx = Math.max(0, Math.min(4, Math.floor(elapsed/slot)));
+    if(idx !== S.sweepIdx){
+      S.sweepIdx = idx;
+      ledFlash(LED_BTN[order[idx]], slot*0.7);
+    }
+    if(expired(S.phase)){
+      S.round++; S.target++;
+      newRound();
+      enter(S.mode===1 ? "rulecard" : "listen");
+    }
+  }
+  else if(S.scene==="wrong" && expired(S.phase)){
+    enter(S.lives===0 ? "gameover" : "retry");
+  }
+  else if(S.scene==="retry" && expired(S.phase)){
+    enter("listen");   /* same sequence, same stage - you get another look at it */
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* input                                                             */
+/* ---------------------------------------------------------------- */
+function pauseShift(ms){
+  S.phase += ms; S.inputStart += ms; S.inputEnd += ms;
+  S.stepStart += ms; S.pressFlash += ms;
+}
+function reflexMiss(){
+  S.lives = 0;
+  S.runBest = S.rxFastest;
+  ledFlash(LED_RED, 400);
+  playNotes(JINGLE.fail);
+  enter("gameover");
+}
+function reflexHit(btn){
+  /* floor at 1ms: zero would read as "no record yet" and never update */
+  const reaction = Math.max(1, Math.round(now - S.rxAt));
+  if(!S.rxFastest || reaction < S.rxFastest) S.rxFastest = reaction;
+  S.rxHits++;
+  S.score += NOTE_POINTS;   /* a hit pays what a note pays */
+  S.stats.notes++;
+  /* no floor: the ramp has to end for everyone, however quick they are */
+  S.rxWindow = Math.max(40, S.rxWindow - RX_SHRINK[S.diff]);
+  ledFlash(LED_BTN[btn], 90);
+  enter("reflexgap");
+}
+function takePress(btn){
+  S.lastPress = btn;
+  S.pressFlash = now + T.toneMs;              /* cue lasts as long as the tone */
+  tone(FREQ[btn], T.toneMs);                  /* same length as playback */
+  ledFlash(LED_BTN[btn], 130);                /* your own press echoes its colour */
+  if(btn === S.expected[S.inputIdx]){
+    S.inputIdx++;
+    if(S.inputIdx >= S.expected.length) enter("hold");
+  } else enter("wrong");
+}
+function press(key){
+  if(S.scene==="gameover" && now < S.lockUntil) return;
+  const btn = {UP:UP,DOWN:DOWN,LEFT:LEFT,RIGHT:RIGHT,OK:OK}[key];
+  const inGame = GAME_SCENES.includes(S.scene);
+
+  if(S.scene === "launcher"){ launch(); return; }
+  if(S.scene === "splash"){ splashDone(); return; }   /* skippable */
+
+  if(S.paused){
+    if(key==="OK"){ S.paused=false; pauseShift(now - S.pauseAt); }
+    if(key==="BACK"){ S.paused=false; enter("menu"); }
+    return;
+  }
+  /* One step along the top row, from the same table the arrows are drawn
+     from, so an arrow can never point at a move that does not happen. */
+  if(key==="LEFT" || key==="RIGHT"){
+    const at = CHAIN.indexOf(S.scene);
+    if(at >= 0){
+      const to = at + (key==="RIGHT" ? 1 : -1);
+      if(to >= 0 && to < CHAIN.length){
+        if(S.scene==="settings"){ /* unreachable, listed for clarity */ }
+        enter(CHAIN[to]);
+        return;
+      }
+      return;
+    }
+  }
+  if(key==="BACK"){
+    /* leaving the game drops you back in the apps list, which is where the
+       Flipper build writes settings and scores to the SD card */
+    if(S.scene==="settings" && noCue()){ enter("nocue"); return; }
+    if(S.scene==="menu"){ save(); enter("launcher"); return; }
+    if(S.scene==="stats"){ enter("menu"); return; }
+    if(S.scene==="credits"){ enter("scorepick"); return; }
+    if(S.scene==="scorepick"){ enter("menu"); return; }
+    if(S.scene==="table"){ enter("scorepick"); return; }
+    if(S.scene==="nocue"){ enter("settings"); return; }
+    if(S.scene==="setup"){ enter(S.mode===3 ? "chpick" : "mode"); return; }
+    if(S.scene==="chpick"){ enter("mode"); return; }
+    if(S.scene==="reset"){ enter("settings"); return; }
+    if(S.scene==="detail"){ enter("settings"); return; }
+    if(S.scene==="soundtest"){ enter(S.testFrom); return; }
+    if(S.scene==="tutorial"){ enter(S.helpFrom); return; }
+    if(S.scene==="rulesguide"){ enter("help"); return; }
+    if(S.scene==="reflexguide"){ enter("help"); return; }
+    if(S.scene==="rulelist"){ enter("rulesguide"); return; }
+    if(S.scene==="ruleinfo"){ enter("rulelist"); return; }
+    if(inGame){
+      /* No pausing a reaction test: freezing a live cue would let you take
+         all the time you like and then answer. Back ends the run instead,
+         which is exactly what a miss does, so the score still stands. */
+      if(S.mode===2){ reflexMiss(); return; }
+      S.paused = true; S.pauseAt = now;
+      hushAudio();          /* nothing should still be sounding behind it */
+      return;
+    }
+    enter("menu");
+    return;
+  }
+
+  switch(S.scene){
+    case "menu":
+      if(key==="UP")    S.menuIdx = clamp(S.menuIdx-1,0,2);
+      if(key==="DOWN")  S.menuIdx = clamp(S.menuIdx+1,0,2);
+      if(key==="OK"){
+        if(S.menuIdx===0) enter("mode");
+        else if(S.menuIdx===1){ S.helpIdx=0; enter("help"); }
+        else { S.setIdx=0; enter("settings"); }
+      }
+      break;
+
+    case "mode": {
+      /* three pages: classic and rules, reflex and challenge, then daily */
+      const pageOf = i => i>>1, firstOf = p => p*2;
+      const lastOf = p => Math.min(p*2+1, MODE_NAME.length-1);
+      let page = pageOf(S.modeIdx);
+      if(key==="UP")    S.modeIdx = clamp(S.modeIdx-1, firstOf(page), lastOf(page));
+      if(key==="DOWN")  S.modeIdx = clamp(S.modeIdx+1, firstOf(page), lastOf(page));
+      if(key==="LEFT"  && page > 0) S.modeIdx = firstOf(page-1);
+      if(key==="RIGHT" && page < 2) S.modeIdx = firstOf(page+1);
+      if(key==="OK"){
+        S.mode = S.modeIdx;
+        if(S.mode===3){ enter("chpick"); break; }   /* pick the rule on its own screen */
+        S.setupIdx = setupRows().length-1;
+        enter("setup");
+      }
+      break;
+    }
+
+    case "chpick": {
+      const n = CH_RANDOM + 1;
+      if(key==="UP")   S.chIdx = clamp(S.chIdx-1,0,n-1);
+      if(key==="DOWN") S.chIdx = clamp(S.chIdx+1,0,n-1);
+      const VIS = 4;
+      if(S.chIdx < S.chScroll) S.chScroll = S.chIdx;
+      if(S.chIdx > S.chScroll + VIS - 1) S.chScroll = S.chIdx - VIS + 1;
+      if(key==="OK"||key==="RIGHT"){ S.setupIdx = setupRows().length-1; enter("setup"); }
+      break;
+    }
+
+    case "setup": {
+      const rows = setupRows(), n = rows.length, last = n-1;
+      if(S.mode===4) S.setupIdx = last;          /* nothing else on daily is yours to change */
+      if(key==="UP")   S.setupIdx = clamp(S.setupIdx-1,0,n-1);
+      if(key==="DOWN") S.setupIdx = clamp(S.setupIdx+1,0,n-1);
+      if(S.mode===4) S.setupIdx = last;
+      const d = key==="RIGHT" ? 1 : key==="LEFT" ? -1 : 0;
+      const row = rows[S.setupIdx][0];
+      if(row==="RULE" && d) S.chIdx = clamp(S.chIdx+d,0,CH_RANDOM);
+      if((row==="TIME" || row==="RAMP") && d) S.diff = clamp(S.diff+d,0,3);
+      if(row==="SPEED" && d){
+        SET.speed = Math.min(2, Math.max(0, SET.speed+d));
+        T.toneMs = SPEED_SET[SET.speed][0]; T.gapMs = SPEED_SET[SET.speed][1];
+      }
+      if(key==="OK" && S.setupIdx===last){
+        if(S.mode===4 && S.daily.date===dailySeed() && S.daily.done) break;  /* one a day */
+        startGame();
+      }
+      break;
+    }
+
+    case "settings": {
+      if(key==="UP")   S.setIdx = clamp(S.setIdx-1,0,4);
+      if(key==="DOWN") S.setIdx = clamp(S.setIdx+1,0,4);
+      const step = key==="RIGHT" ? 1 : key==="LEFT" ? -1 : 0;
+      if(S.setIdx===0 && step){
+        SET.volume = Math.min(3, Math.max(0, SET.volume+step));
+        if(SET.volume>0) tone(FREQ[OK], 140);
+      }
+      if(S.setIdx===1 && step) SET.assist = clamp(SET.assist+step,0,3);
+      if(S.setIdx===2 && step && canBuzz()){
+        SET.haptic = step > 0;
+        if(SET.haptic) buzz();           /* feel it as you turn it on */
+      }
+      if(step) save();
+      if(S.setIdx===3 && (key==="OK" || key==="RIGHT")){ S.testFrom="settings"; enter("soundtest"); }
+      if(S.setIdx===4 && (key==="OK" || key==="RIGHT")){ S.resetIdx = 0; S.confirmUntil = 0; enter("reset"); }
+      break;
+    }
+
+    case "reset": {
+      const move = key==="UP" ? -1 : key==="DOWN" ? 1 : 0;
+      if(move){
+        S.resetIdx = clamp(S.resetIdx+move, 0, RESET_ROWS.length-1);
+        S.confirmUntil = 0;              /* moving off a row disarms it */
+      }
+      if(key!=="OK") break;
+      /* Ask once, then listen for a second. A single press is never a
+         reset, and an armed row cannot be left armed. */
+      const armed = S.confirmUntil && now < S.confirmUntil && S.confirmRow === S.resetIdx;
+      if(!armed){ S.confirmRow = S.resetIdx; S.confirmUntil = now + CONFIRM_MS; break; }
+      S.confirmUntil = 0;
+      if(S.resetIdx===0){ S.best = emptyBest(); S.chBest = RULES.map(()=>[0,0,0,0]); S.daily.best=[0,0,0,0]; }
+      else if(S.resetIdx===1) S.stats = emptyStats();
+      else if(S.resetIdx===2) firstRun = true;
+      else {
+        /* everything, and out: the Flipper closes the app here, and the
+           browser has a launcher to fall back to */
+        S.best = emptyBest(); S.chBest = RULES.map(()=>[0,0,0,0]);
+        S.daily = {date:0, done:false, best:[0,0,0,0]};
+        S.stats = emptyStats();
+        SET.volume = 2; SET.assist = 2; SET.speed = 1; SET.haptic = false;
+        S.diff = 1; firstRun = true;
+        save(); enter("launcher"); break;
+      }
+      S.setFlash = now + 900;            /* the row says DONE for a moment */
+      save();
+      break;
+    }
+
+    case "help":
+      if(key==="UP")   S.helpIdx = clamp(S.helpIdx-1,0,2);
+      if(key==="DOWN") S.helpIdx = clamp(S.helpIdx+1,0,2);
+      if(key==="OK"){
+        S.tutPage = 0;
+        S.helpFrom = "help";
+        enter(["tutorial","rulesguide","reflexguide"][S.helpIdx]);
+      }
+      break;
+
+    case "reflexguide":
+      if(key==="RIGHT"||key==="OK"){
+        if(S.tutPage+1 < TUT_REFLEX.length) S.tutPage++;
+        else { S.testFrom = "help"; enter("soundtest"); }
+      }
+      if(key==="LEFT" && S.tutPage>0) S.tutPage--;
+      break;
+
+    case "tutorial": {
+      const total = TUT_PAGES.length + (visualOn()?1:0);
+      if(key==="RIGHT"||key==="OK"){
+        if(S.tutPage+1 < total) S.tutPage++;
+        else { S.testFrom = S.helpFrom; enter("soundtest"); }
+      }
+      if(key==="LEFT" && S.tutPage>0) S.tutPage--;
+      break;
+    }
+
+    case "rulesguide":
+      if(key==="RIGHT"||key==="OK"){
+        if(S.tutPage+1 < TUT_RULES.length) S.tutPage++;
+        else { S.ruleSel=0; S.ruleScroll=0; enter("rulelist"); }
+      }
+      if(key==="LEFT" && S.tutPage>0) S.tutPage--;
+      break;
+
+    case "rulelist": {
+      if(key==="UP")   S.ruleSel = clamp(S.ruleSel-1,0,RULES.length-1);
+      if(key==="DOWN") S.ruleSel = clamp(S.ruleSel+1,0,RULES.length-1);
+      const VIS = 4;
+      if(S.ruleSel < S.ruleScroll) S.ruleScroll = S.ruleSel;
+      if(S.ruleSel > S.ruleScroll + VIS - 1) S.ruleScroll = S.ruleSel - VIS + 1;
+      if(key==="OK"||key==="RIGHT") enter("ruleinfo");
+      break;
+    }
+
+    case "ruleinfo":
+      if(key==="LEFT")  enter("rulelist");
+      if(key==="DOWN") S.ruleSel = clamp(S.ruleSel+1,0,RULES.length-1);
+      if(key==="UP")   S.ruleSel = clamp(S.ruleSel-1,0,RULES.length-1);
+      break;
+
+    case "soundtest":
+      if(btn!==undefined){ S.testBtn = btn; tone(FREQ[btn], T.toneMs); ledFlash(LED_BTN[btn], T.toneMs); }
+      break;
+
+    case "stats": {
+      const VIS = STAT_VIS;
+      if(key==="DOWN" && S.statScroll + VIS < STAT_ROWS) S.statScroll++;
+      if(key==="UP"   && S.statScroll > 0) S.statScroll--;
+      break;
+    }
+
+    case "scorepick":
+      if(key==="UP")    S.scoreMode = clamp(S.scoreMode-1,0,MODE_NAME.length-1);
+      if(key==="DOWN")  S.scoreMode = clamp(S.scoreMode+1,0,MODE_NAME.length-1);
+      if(key==="OK"){ S.tblAssist = 0; S.tblScroll = 0; enter("table"); }
+      break;
+
+    case "table": {
+      /* OK turns the table to the next assist, whatever shape it is. UP
+         and DOWN are free on the grids and scroll the rules on challenge. */
+      if(key==="OK") S.tblAssist = (S.tblAssist + 1) % 4;
+      if(S.scoreMode===3){
+        const VIS = 5;
+        if(key==="DOWN" && S.tblScroll + VIS < RULES.length) S.tblScroll++;
+        if(key==="UP"   && S.tblScroll > 0) S.tblScroll--;
+      }
+      break;
+    }
+
+    case "nocue":
+      /* OK keeps them: the warning is a warning, not a veto */
+      if(key==="OK") enter("menu");
+      break;
+
+    case "credits":
+      break;
+
+    case "gameover":
+      if(key==="OK") startGame();
+      if(key==="RIGHT") S.goPage = 1;
+      if(key==="LEFT")  S.goPage = 0;
+      break;
+
+    case "go":
+      /* jumping the gun is allowed: skip the banner and count the press */
+      if(btn===undefined) return;
+      enter("input");
+      takePress(btn);
+      break;
+
+    case "input":
+      if(btn===undefined) return;
+      takePress(btn);
+      break;
+
+    case "reflexgap":
+      if(btn===undefined) return;
+      reflexMiss();          /* pressing before the cue is a miss */
+      break;
+
+    case "reflexcue":
+      if(btn===undefined) return;
+      if(btn === S.rxCue) reflexHit(btn); else reflexMiss();
+      break;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* launcher                                                          */
+/* ---------------------------------------------------------------- */
+
+const BAYER = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+/* ordered dither: the only honest way to fade on a 1-bit screen */
+function ditherErase(x,y,w,h,level){
+  const t = level*17;
+  o.fillStyle = "#fff";
+  for(let py=y; py<y+h; py++)
+    for(let px=x; px<x+w; px++)
+      if(BAYER[py&3][px&3] < t) o.fillRect(px,py,1,1);
+}
+const BRAIN_LOBES = [[14,14,11],[24,11,10],[33,15,10],[19,22,10],[29,23,10],[11,20,8],[37,22,7]];
+const BRAIN_GROOVES = [
+  [[24,4],[24,30]],
+  [[8,14],[14,11],[18,15],[13,18]],
+  [[9,24],[15,21],[19,25],[14,28]],
+  [[30,12],[36,10],[39,15],[34,17]],
+  [[31,24],[37,21],[41,25],[35,27]],
+  [[18,7],[22,5]], [[27,6],[32,7]]
+];
+function brain(ox,oy){
+  o.fillStyle = "#000";
+  for(const [cx,cy,r] of BRAIN_LOBES){ o.beginPath(); o.arc(ox+cx,oy+cy,r,0,7); o.fill(); }
+  o.beginPath(); o.moveTo(ox+22,oy+31); o.lineTo(ox+30,oy+31);
+  o.lineTo(ox+28,oy+36); o.lineTo(ox+24,oy+36); o.closePath(); o.fill();
+  o.strokeStyle = "#fff"; o.lineWidth = 2; o.lineJoin = "round"; o.lineCap = "round";
+  for(const pts of BRAIN_GROOVES){
+    o.beginPath();
+    pts.forEach((pt,i) => i ? o.lineTo(ox+pt[0],oy+pt[1]) : o.moveTo(ox+pt[0],oy+pt[1]));
+    o.stroke();
+  }
+  o.lineWidth = 1;
+}
+const easeOut = t => 1 - Math.pow(1-t, 3);
+const SP_PHASES = () => [T.spHold, T.spFade, T.spGlide, T.spFlash, T.spWipe];
+
+function splashDone(){
+  if(firstRun){ firstRun = false; save(); S.tutPage = 0; S.helpFrom = "menu"; enter("tutorial"); }
+  else enter("menu");
+}
+function updateSplash(){
+  if(!S.spStart) S.spStart = now;
+  const ph = SP_PHASES();
+  let t = now - S.spStart, i = 0;
+  while(i < ph.length && t >= ph[i]){ t -= ph[i]; i++; }
+  if(i >= ph.length){ splashDone(); return; }
+  S.spPhase = i; S.spT = ph[i] ? t/ph[i] : 1;
+
+  if(i === 3){                       /* one tone per shape as they flash past */
+    const idx = Math.min(4, Math.floor(S.spT*5));
+    if(idx !== S.spFlashIdx){
+      S.spFlashIdx = idx;
+      const b = [DOWN,LEFT,OK,RIGHT,UP][idx];
+      tone(FREQ[b], 90);
+      ledFlash(LED_BTN[b], 130);
+    }
+  }
+}
+function drawSplash(){
+  const ph = S.spPhase, t = S.spT;
+  const order = [DOWN,LEFT,OK,RIGHT,UP];
+
+  if(ph === 0 || ph === 1){
+    brain(6,14);
+    C.black(); C.font(true);
+    C.str(94,33,"c","c","BEEPBACK");
+    if(ph === 1) ditherErase(0,0,W,H,t);
+    return;
+  }
+  if(ph === 2){
+    /* ferris wheel: the ring turns, the shapes stay upright */
+    const rad = 78*(1-easeOut(t));
+    const spin = (T.spTurns/100) * easeOut(t) * Math.PI*2;
+    for(let i=0;i<5;i++){
+      const a = -Math.PI/2 + i*Math.PI*2/5 + spin;
+      shapeRot(64 + rad*Math.cos(a), 32 + rad*Math.sin(a), 7 + 5*easeOut(t),
+               SHAPE[order[i]], T.spSelfSpin ? spin : 0);
+    }
+    return;
+  }
+  if(ph === 3){
+    const idx = Math.min(4, Math.floor(t*5));
+    shape(64, 32, T.shapeR, SHAPE[order[idx]], ((t*5)%1) < 0.35);
+    return;
+  }
+  if(firstRun) drawTutorial(); else drawMenu();
+  C.white(); C.box(0, Math.round(t*H), W, H); C.black();
+}
+
+function drawLauncher(){
+  /* On hardware the Flipper's own apps browser does this job, so the web
+     build just says how to start. Slow blink: the screen is waiting, not stuck. */
+  if((now % 1200) < 800){
+    C.font(false);
+    C.str(64,32,"c","c","press a button to play");
+  }
+}
+function launch(){
+  armAudio();                     /* the press that opens the app unlocks sound */
+  S.spStart = 0; S.spPhase = 0; S.spFlashIdx = -1;
+  enter("splash");
+}
+
+/* ---------------------------------------------------------------- */
+/* screens                                                           */
+/* ---------------------------------------------------------------- */
+/* flanks a value with < > so it is obvious the row is adjustable */
+function adjustable(y,text,canLeft,canRight){
+  C.font(false);
+  C.str(ROW_VAL,y,"r","c",text);
+  if(canLeft)  chevronL(ROW_AL,y);
+  if(canRight) chevronR(ROW_AR,y);
+}
+function chevronU(x,y){
+  C.line(x-4,y+2,x,y-2); C.line(x,y-2,x+4,y+2);
+  C.line(x-4,y+3,x,y-1); C.line(x,y-1,x+4,y+3);
+}
+function chevronD(x,y){
+  C.line(x-4,y-2,x,y+2); C.line(x,y+2,x+4,y-2);
+  C.line(x-4,y-3,x,y+1); C.line(x,y+1,x+4,y-3);
+}
+
+/* A list that does not fit says so the way everything else here says it:
+   an arrow at the end you can still travel towards, and none at the end
+   you cannot. It was a bar on three screens and arrows on a fourth,
+   because the bar wanted the same strip of screen as the arrow to the
+   next screen and lost - two ways of saying one thing. */
+const SCROLL_X = 122;
+function scrollbar(top, track, vis, n, scroll){
+  if(scroll > 0) chevronU(SCROLL_X, top + 3);
+  if(scroll + vis < n) chevronD(SCROLL_X, top + track - 4);
+}
+/* 2px thick so it reads as an arrow, not a scratch */
+function chevronL(x,y){
+  C.line(x+4,y-4,x,y);   C.line(x,y,x+4,y+4);
+  C.line(x+5,y-4,x+1,y); C.line(x+1,y,x+5,y+4);
+}
+function chevronR(x,y){
+  C.line(x,y-4,x+4,y);   C.line(x+4,y,x,y+4);
+  C.line(x+1,y-4,x+5,y); C.line(x+5,y,x+1,y+4);
+}
+/* hints live in their own strip so they cannot read as a row you can press */
+function footer(text){
+  C.black(); C.box(0,53,W,11);
+  C.white(); C.font(false); C.str(64,58,"c","c",text);
+  C.black();
+}
+function footerPages(total,p,label){
+  C.black(); C.box(0,53,W,11);
+  C.white(); C.font(false);
+  for(let i=0;i<total;i++) pageDot(ROW_L + i*7, 58, i===p);
+  C.str(108,58,"r","c",label);
+  chevronR(112,58);
+  C.black();
+}
+/* Drawn as pixels, not arcs. An antialiased circle thresholds differently
+   depending on ink colour, which is why the footer dots did not match the
+   ones in the game. */
+const DOT_FULL  = ["..#..",".###.","#####",".###.","..#.."];   /* rotated square */
+const DOT_EMPTY = [".###.","#...#","#...#","#...#",".###."];
+function pageDot(cx,cy,full){
+  const art = full ? DOT_FULL : DOT_EMPTY;
+  for(let r=0;r<5;r++)
+    for(let c=0;c<5;c++)
+      if(art[r][c]==="#") C.dot(cx-2+c, cy-2+r);
+}
+
+/* one geometry for every list on every screen */
+const ROW_L = 14, ROW_R = 114, CHEV_L = 2, CHEV_R = 121;
+/* adjustable rows put their arrows at the row edges, clear of the label */
+const ROW_VAL = 112, ROW_AL = 4, ROW_AR = 118;
+function title(text){
+  C.black(); C.box(0,0,W,13); C.white(); C.font(true);
+  C.str(64,6,"c","c",text); C.black();
+}
+function hud(){
+  C.font(false);
+  if(isChallenge()){
+    C.str(2,1,"l","t","LEN "+S.stage);      /* no rounds, no target to count to */
+    C.str(64,1,"c","t",String(S.score));
+  } else {
+    C.str(2,1,"l","t","R"+S.round);
+    C.str(64,1,"c","t",S.stage+"/"+S.target);
+  }
+  lives(103,1,S.lives,1);
+}
+function steps(y,total,done){
+  if(!total) return;
+  if(total > 14){ C.font(false); C.str(64,y,"c","c",String(done)); return; }
+  let sp = 8; if(total*sp > 120) sp = Math.floor(120/total);
+  const start = 64 - ((total-1)*sp)/2;
+  for(let i=0;i<total;i++) pageDot(Math.round(start + i*sp), y, i < done);
+}
+
+function drawMenu(){
+  title("BEEPBACK");
+  const items = ["PLAY","HOW TO PLAY","SETTINGS"];
+  for(let i=0;i<3;i++){
+    const top = 19 + i*15;
+    if(S.menuIdx===i){ C.black(); C.rbox(12,top,104,14,3); C.white(); }
+    C.font(true); C.str(64,top+7,"c","c",items[i]); C.black();
+  }
+  chevronR(CHEV_R,36);   /* scores are that way */
+}
+function drawCredits(){
+  title("CREDITS");
+  C.font(false); C.str(64,22,"c","c","made by");
+  C.font(true);  C.str(64,33,"c","c","TIJNV50");
+  C.font(false); C.str(64,45,"c","c","with Claude (Opus 5)");
+  /* This build is the Flipper one, screen for screen. What it cannot be
+     is a Flipper: no RGB light under the buttons, and no motor unless
+     the browser has one. */
+  footer("also on flipper zero");
+}
+function drawMode(){
+  title("MODE");
+  const blurb = ["repeat the sequence","one rule per round","hit it before it goes",
+                 "one rule, no rounds","same run for everyone"];
+  const page = S.modeIdx>>1;
+  for(let i=page*2; i<Math.min(page*2+2, MODE_NAME.length); i++){
+    const top = 20 + (i - page*2)*16;
+    if(S.modeIdx===i){ C.black(); C.rbox(12,top,104,14,3); C.white(); }
+    C.font(true); C.str(64,top+7,"c","c",MODE_NAME[i]); C.black();
+  }
+  if(page > 0) chevronL(CHEV_L,36);
+  if(page < 2) chevronR(CHEV_R,36);
+  footer(blurb[S.modeIdx]);
+}
+const chName = i => i===CH_RANDOM ? "RANDOM" : RULES[i].label;
+function setupRows(){
+  if(S.mode===4){
+    const played = S.daily.date === dailySeed() && S.daily.done;
+    return [["TODAY", RULES[dailyRule()].label],
+            ["TIME",  DIFF_NAME[1]+" "+(T.normal/1000)+"S"],
+            ["SPEED", SPEED_NAME[1]],
+            [played ? "PLAYED" : "START", ""]];
+  }
+  if(S.mode===3){
+    return [["TIME",  DIFF_NAME[S.diff]+" "+(diffMs()[S.diff]/1000)+"S"],
+            ["SPEED", SPEED_NAME[SET.speed]],
+            ["START", ""]];
+  }
+  return S.mode===2
+    ? [["RAMP",   DIFF_NAME[S.diff]+" "+RX_SHRINK[S.diff]+"MS"],
+       ["SPEED",  SPEED_NAME[SET.speed]+" "+RX_GAP[SET.speed]+"MS"],
+       ["START",  ""]]
+    : [["TIME",   DIFF_NAME[S.diff]+" "+(diffMs()[S.diff]/1000)+"S"],
+       ["SPEED",  SPEED_NAME[SET.speed]],
+       ["START",  ""]];
+}
+function drawChPick(){
+  title("CHALLENGE");
+  const VIS = 4, rowH = 11, top0 = 15, n = CH_RANDOM + 1;
+  for(let i=0;i<VIS;i++){
+    const idx = S.chScroll + i;
+    if(idx >= n) break;
+    const top = top0 + i*rowH;
+    if(idx===S.chIdx){ C.black(); C.rbox(2,top,116,rowH,2); C.white(); }
+    C.font(false); C.str(ROW_L, top+5, "l","c", chName(idx));
+    if(idx===S.chIdx) chevronR(104,top+5);
+    C.black();
+  }
+  scrollbar(top0, VIS*rowH, VIS, n, S.chScroll);
+}
+function drawSetup(){
+  title(MODE_NAME[S.mode]);
+  const rows = setupRows();
+  const last = rows.length-1;
+  /* no multiplier to promise any more, so the rows get the whole panel */
+  const rowH = 12;
+  const bottom = 63;
+  const top0 = 13 + Math.round(((bottom - 12) - rows.length*rowH)/2);
+  for(let i=0;i<rows.length;i++){
+    const top = top0 + i*rowH;
+    if(S.setupIdx===i){ C.black(); C.rbox(2,top,124,rowH,2); C.white(); }
+    C.font(i===last);
+    C.str(i===last?64:ROW_L, top+Math.round(rowH/2), i===last?"c":"l", "c", rows[i][0]);
+    if(rows[i][1]){
+      if(S.setupIdx===i){
+        const kind = rows[i][0];
+        const v = kind==="RULE" ? S.chIdx : (kind==="SPEED" ? SET.speed : S.diff);
+        const hi = kind==="RULE" ? CH_RANDOM : (kind==="SPEED" ? 2 : 3);
+        adjustable(top+Math.round(rowH/2), rows[i][1], v>0, v<hi);
+      } else { C.font(false); C.str(ROW_R,top+Math.round(rowH/2),"r","c",rows[i][1]); }
+    }
+    C.black();
+  }
+}
+/* "DOUBLE DOWN" reads as the idiom. Boxing the button name splits it into
+   an instruction and a button, which is what it actually is. */
+function drawRuleLine(cx,cy,primary,inv){
+  C.font(primary);
+  const f = C.f, segs = S.ruleSegs.length ? S.ruleSegs : [{t:S.ruleText}];
+  const gap = 4;
+  const w = segs.map(sg => {
+    const t = sg.b!==undefined ? NAME[sg.b] : sg.t;
+    return textWidth(f, t.toUpperCase()) + (sg.b!==undefined ? 7 : 0);
+  });
+  let x = Math.round(cx - (w.reduce((a,b)=>a+b,0) + gap*(segs.length-1))/2);
+  segs.forEach((sg,i) => {
+    if(sg.b!==undefined){
+      if(inv) C.white(); else C.black();
+      C.rbox(x, cy - Math.round(f.h/2) - 1, w[i], f.h + 2, 2);
+      if(inv) C.black(); else C.white();
+      C.str(x + w[i]/2, cy, "c","c", NAME[sg.b]);
+      if(inv) C.white(); else C.black();
+    } else {
+      C.str(x + w[i]/2, cy, "c","c", sg.t);
+    }
+    x += w[i] + gap;
+  });
+}
+function drawRuleCard(){
+  title("RULE");
+  drawRuleLine(64,30,true,false);
+  C.font(false); C.str(64,46,"c","c", S.ruleIdx>=0 ? RULES[S.ruleIdx].tip : "");
+}
+function drawScorePick(){
+  title("RECORDS");
+  for(let i=0;i<MODE_NAME.length;i++){
+    const top = 14 + i*10;
+    if(S.scoreMode===i){ C.black(); C.rbox(12,top,104,10,3); C.white(); }
+    C.font(false); C.str(64,top+5,"c","c",MODE_NAME[i]); C.black();
+  }
+}
+
+/* h:mm over an hour, m:ss under it, so the number means something at a
+   glance however long you have played */
+function playtime(ms){
+  const t = Math.floor(ms/1000);
+  return t >= 3600 ? Math.floor(t/3600)+"H "+Math.floor((t%3600)/60)+"M"
+                   : Math.floor(t/60)+"M "+(t%60)+"S";
+}
+function statRow(i){
+  const st = S.stats;
+  switch(i){
+    case 0: return ["RUNS",   String(st.runs)];
+    case 1: return ["PLAYED", playtime(st.playMs)];
+    case 2: return ["ROUNDS", String(st.rounds)];
+    case 3: return ["NOTES",  String(st.notes)];
+    case 4: return ["BEST EVER", String(st.bestEver)];
+    case 5: return ["LONGEST",   String(st.longest)];
+    case 6: { const f = favourite(st.byMode);
+              return ["FAV MODE",  f<0 ? "-" : MODE_NAME[f]]; }
+    default:{ const f = favourite(st.byAssist);
+              return ["FAV ASSIST", f<0 ? "-" : ASSIST_NAME[f]]; }
+  }
+}
+function drawStats(){
+  const VIS = STAT_VIS;
+  let top = Math.min(S.statScroll, STAT_ROWS - VIS);
+  title("STATS");
+  C.font(false);
+  /* the rows give up both edges: the screen has a neighbour each way and
+     a list going down, so it has to show all three */
+  for(let i=0;i<VIS;i++){
+    const row = statRow(top+i), y = 18 + i*10;
+    C.str(11, y, "l","c", row[0]);
+    C.str(116, y, "r","c", row[1]);
+  }
+  scrollbar(14, VIS*10, VIS, STAT_ROWS, top);
+}
+
+/* A number in a table cell. A record nobody has set yet is a dash and not
+   a nought, because nought reads as a score somebody scored. */
+function cell(x,y,v){ C.str(x,y,"r","c", v ? String(v) : "-"); }
+
+/* The title bar of a table carries two things, so the mode goes left
+   rather than centre and the assist sits beside it with the key that
+   changes it. The body has no room to say it: a title, a header row, four
+   rows of records and a footer is 45px of text in 40px of screen. */
+function tableTitle(mode, assist){
+  const tag = ["EAR","LED","SHP","ARR"];
+  C.black(); C.box(0,0,W,13); C.white();
+  C.font(true);  C.str(4,6,"l","c",mode);
+  if(assist >= 0){ C.font(false); C.str(124,6,"r","c","OK: "+tag[assist]); }
+  C.black();
+}
+function drawTable(){
+  const m = S.scoreMode, as = S.tblAssist;
+  tableTitle(MODE_NAME[m], m===4 ? -1 : as);
+  C.font(false);
+  if(m===4){
+    /* one number a day, so all four assists fit and none is cycled */
+    for(let i=0;i<4;i++){
+      const y = 20 + i*10;
+      C.str(ROW_L,y,"l","c",ASSIST_NAME[i]);
+      cell(ROW_R,y,S.daily.best[i]);
+    }
+    return;
+  }
+  if(m===3){
+    const VIS = 5;
+    let top = Math.min(S.tblScroll, RULES.length - VIS);
+    for(let i=0;i<VIS;i++){
+      const r = top+i, y = 18 + i*9;
+      C.str(2,y,"l","c",RULES[r].label);
+      cell(118,y,S.chBest[r][as]);
+    }
+    scrollbar(14, VIS*9, VIS, RULES.length, top);
+    return;
+  }
+  /* classic, rules and reflex: every time against every speed at once,
+     which is the whole point of the screen - no dial to spin */
+  const col = [60, 92, 124];
+  for(let sp=0;sp<3;sp++) C.str(col[sp],16,"r","c",SPEED_SHORT[sp]);
+  for(let t=0;t<4;t++){
+    const y = 24 + t*9;
+    C.str(2,y,"l","c",DIFF_SHORT[t]);
+    for(let sp=0;sp<3;sp++) cell(col[sp], y, S.best[m][t][sp][as]);
+  }
+}
+function drawNoCue(){
+  title("IMPOSSIBLE");
+  C.font(false);
+  ["No sound and no cues:","nothing will tell you","the sequence."]
+    .forEach((l,i) => C.str(64, 20+i*11, "c","c", l));
+  footer("OK: anyway   BACK: fix");
+}
+function drawReset(){
+  title("RESET");
+  const at = S.resetIdx;
+  for(let i=0;i<RESET_ROWS.length;i++){
+    /* EVERYTHING sits a row lower than the rest, because it is not one of
+       the rest: it takes the others with it and closes the app */
+    const top = 15 + i*10 + (i===3 ? 4 : 0);
+    const sel = at===i;
+    const armed = sel && S.confirmUntil && now < S.confirmUntil && S.confirmRow===i;
+    if(sel){ C.black(); C.rbox(2,top,124,10,2); C.white(); }
+    C.font(false);
+    C.str(ROW_L,top+5,"l","c",RESET_ROWS[i]);
+    C.str(ROW_R,top+5,"r","c", armed ? "SURE?" : (sel && now < S.setFlash) ? "DONE" : "OK");
+    C.black();
+  }
+}
+function drawSettings(){
+  title("SETTINGS");
+  const rows = [
+    ["VOLUME", VOL_NAME[SET.volume], true],
+    ["ASSIST", ASSIST_NAME[SET.assist], true],
+    ["HAPTIC", canBuzz() ? (SET.haptic ? "ON" : "OFF") : "NO MOTOR", canBuzz()],
+    ["SOUNDS", ">", false],
+    ["RESET",  ">", false]
+  ];
+  for(let i=0;i<5;i++){
+    const top = 14 + i*10;
+    if(S.setIdx===i){ C.black(); C.rbox(2,top,124,10,2); C.white(); }
+    C.font(false);
+    C.str(ROW_L,top+5,"l","c",rows[i][0]);
+    if(rows[i][2] && S.setIdx===i){
+      const v = i===0 ? SET.volume : i===1 ? SET.assist : (SET.haptic?1:0);
+      const hi = i===0 ? 3 : i===1 ? 3 : 1;
+      adjustable(top+5, rows[i][1], v>0, v<hi);
+    }
+    else if(rows[i][1]===">") chevronR(ROW_AR,top+5);
+    else C.str(ROW_R,top+5,"r","c",rows[i][1]);
+    C.black();
+  }
+}
+function drawHelp(){
+  title("HOW TO PLAY");
+  const blurb = ["the basic game","rules on top of it","pure reaction"];
+  for(let i=0;i<3;i++){
+    const top = 14 + i*13;
+    if(S.helpIdx===i){ C.black(); C.rbox(12,top,104,12,3); C.white(); }
+    C.font(true); C.str(64,top+6,"c","c",MODE_NAME[i]); C.black();
+  }
+  footer(blurb[S.helpIdx]);
+}
+function drawRulesGuide(){
+  title("RULES");
+  const p = Math.min(S.tutPage, TUT_RULES.length-1);
+  C.font(false);
+  TUT_RULES[p].forEach((line,i)=> C.str(64, 21+i*11, "c","c", line));
+  footerPages(TUT_RULES.length, p, p+1 < TUT_RULES.length ? "OK" : "THE RULES");
+}
+function drawReflexGuide(){
+  title("REFLEX");
+  const p = Math.min(S.tutPage, TUT_REFLEX.length-1);
+  C.font(false);
+  TUT_REFLEX[p].forEach((line,i)=> C.str(64, 21+i*11, "c","c", line));
+  footerPages(TUT_REFLEX.length, p, p+1 < TUT_REFLEX.length ? "OK" : "SOUNDS");
+}
+function drawRuleList(){
+  title("THE RULES");
+  const VIS = 4, rowH = 11, top0 = 15;
+  for(let i=0;i<VIS;i++){
+    const idx = S.ruleScroll + i;
+    if(idx >= RULES.length) break;
+    const top = top0 + i*rowH;
+    if(idx===S.ruleSel){ C.black(); C.rbox(2,top,116,rowH,2); C.white(); }
+    C.font(false); C.str(ROW_L, top+5, "l","c", RULES[idx].label);
+    if(idx===S.ruleSel) chevronR(104,top+5);
+    C.black();
+  }
+  scrollbar(top0, VIS*rowH, VIS, RULES.length, S.ruleScroll);
+}
+function drawRuleInfo(){
+  const r = RULES[S.ruleSel];
+  title(r.label);
+  C.font(false);
+  r.help.forEach((line,i)=> C.str(64, 21+i*11, "c","c", line));
+  if(S.ruleSel > 0) chevronU(121,20);
+  if(S.ruleSel < RULES.length-1) chevronD(121,44);
+  footer("up / down: next rule");
+}
+function drawTutorial(){
+  title("HOW TO PLAY");
+  const extra = visualOn() ? 1 : 0;
+  const total = TUT_PAGES.length + extra;
+  const p = Math.min(S.tutPage, total-1);
+
+  if(p < TUT_PAGES.length){
+    C.font(false);
+    TUT_PAGES[p].forEach((l,i)=> C.str(64, 21+i*11, "c","c", l));
+  } else if(ledMode()){
+    C.font(false);
+    for(let b=0;b<5;b++){
+      const order = [DOWN,LEFT,OK,RIGHT,UP][b];
+      C.str(64, 16+b*8, "c","c", SHORT[order] + " = " + LED_NAME[order]);
+    }
+  } else {
+    C.font(false); C.str(64,18,"c","c", shapesOn() ? "one shape per sound" : "one arrow per sound");
+    for(let b=0;b<5;b++){
+      const order = [DOWN,LEFT,OK,RIGHT,UP][b];
+      cue(13+b*25, 32, order, 7, false);
+      C.font(false); C.str(13+b*25, 44, "c","c", SHORT[order]);
+    }
+  }
+  footerPages(total, p, p+1 < total ? "OK" : "SOUNDS");
+}
+function drawSoundTest(){
+  title("TRY THE SOUNDS");
+  if(S.testBtn < 0){
+    C.font(false);
+    C.str(64,27,"c","c","Press any of the five");
+    C.str(64,39,"c","c","game buttons.");
+  } else {
+    if(cueOn()) cue(30,35,S.testBtn,13,false); else glyph(30,35,S.testBtn,11);
+    C.font(true); C.str(88,35,"c","c",NAME[S.testBtn]);
+  }
+  footer("back to leave");
+}
+function drawListen(){
+  hud();
+  C.font(true); C.str(64,30,"c","c", visualOn() ? "WATCH!" : "LISTEN!");
+  if(S.mode===1) drawRuleLine(64,46,false,false);
+  else { C.font(false); C.str(64,46,"c","c","here it comes..."); }
+}
+function drawPlayback(){
+  hud();
+  if(cueOn()){
+    if(S.toneOn) cue(64, 33, S.seq[S.playIdx], T.shapeR, now < S.stepStart + T.flashMs);
+    steps(58, S.seq.length, S.playIdx+1);
+  } else {
+    C.font(false); C.str(64,16,"c","c","LISTEN");
+    if(S.toneOn) C.disc(64,34,10);
+    else { C.circle(64,34,10); C.circle(64,34,6); }
+    steps(55, S.seq.length, S.playIdx+1);
+  }
+}
+function drawGo(){
+  hud(); C.rframe(24,20,80,28,4);
+  C.font(true); C.str(64,34,"c","c","GO!");
+  if(S.mode===1) drawRuleLine(64,56,false,false);
+}
+function drawInput(){
+  hud();
+  steps(18, S.expected.length, S.inputIdx);
+  if(S.lastPress >= 0 && now < S.pressFlash){
+    if(cueOn()) cue(64,36,S.lastPress,13,false);
+    else glyph(64,36,S.lastPress,10);
+  }
+  C.frame(0,52,W,11);
+  const w = Math.round(S.bar*(W-4));
+  if(w>0) C.box(2,54,w,7);
+}
+function drawReflex(){
+  C.font(false);
+  C.str(2,1,"l","t","HITS "+S.rxHits);
+  C.str(64,1,"c","t",String(S.score));
+  C.str(126,1,"r","t",Math.round(S.rxWindow)+"MS");
+
+  if(S.scene==="reflexcue"){
+    if(cueOn()) cue(64,32,S.rxCue,T.shapeR, now < S.rxAt + T.flashMs);
+    else if(!ledMode()) C.disc(64,32,10);   /* by ear: marks that a cue is live */
+    C.frame(0,52,W,11);
+    const w = Math.round(S.bar*(W-4));
+    if(w>0) C.box(2,54,w,7);
+  } else {
+    C.font(true); C.str(64,32,"c","c","...");
+    /* said once at the start of a run, then it gets out of the way */
+    if(S.rxHits===0) footer("no pausing: back ends it");
+  }
+}
+function drawSuccess(){
+  hud();
+  C.font(true); C.str(64,30,"c","c",PRAISE[S.praise]);
+  C.font(false); C.str(64,47,"c","c","+"+(NOTE_POINTS*S.expected.length));
+}
+function drawRoundClear(){
+  hud();
+  C.font(true); C.str(64,28,"c","c","ROUND "+S.round+" CLEAR");
+  C.font(false); C.str(64,45,"c","c","+"+ROUND_BONUS);
+}
+function drawWrong(){
+  C.font(true); C.str(64,16,"c","c","WRONG!");
+  lives(41,30,S.lives,2);
+}
+function drawRetry(){
+  hud();
+  C.font(true); C.str(64,34,"c","c","TRY AGAIN");
+}
+function drawPause(){
+  C.black(); C.box(0,0,W,H);
+  C.white();
+  C.font(true); C.str(64,9,"c","c","PAUSED");
+  C.box(8,17,112,1);
+
+  C.font(false);
+  if(isChallenge()){
+    C.str(8,26,"l","c","LEN "+S.stage);
+    C.str(64,26,"c","c",String(S.score));
+  } else {
+    C.str(8,26,"l","c","ROUND "+S.round);
+    C.str(64,26,"c","c",S.stage+"/"+S.target);
+  }
+  lives(96,22,S.lives,1);
+
+  if(isChallenge()){
+    C.str(64,34,"c","c", MODE_NAME[S.mode]);
+    drawRuleLine(64,44,false,true);   /* clear of the footer at 51 */
+  } else if(S.mode===1){
+    drawRuleLine(64,39,false,true);
+  } else {
+    C.str(64,39,"c","c", MODE_NAME[S.mode]);
+  }
+
+  C.str(6,55,"l","c","OK: resume");
+  C.str(122,55,"r","c","BACK: quit");
+  C.black();
+}
+function drawGameOver(){
+  title(S.newBest ? "NEW BEST!" : "GAME OVER");
+  C.font(false);
+  if(S.goPage){
+    /* what you played on: the numbers above belong to this setup */
+    const rows = [["MODE",   MODE_NAME[S.runGameMode]],
+                  ["ASSIST", ASSIST_NAME[S.runMode]],
+                  [S.runGameMode===2 ? "RAMP" : "TIME", DIFF_NAME[S.runDiff]],
+                  ["SPEED",  SPEED_NAME[S.runSpeed]]];
+    rows.forEach(([a,b],i)=>{
+      const y = 18 + i*10;
+      C.str(ROW_L,y,"l","c",a); C.str(ROW_R,y,"r","c",b);
+    });
+    chevronL(CHEV_L,33);
+  } else {
+    const isRx = S.runGameMode===2;
+    const rows = [["SCORE", String(S.score)],
+                  [isRx ? "HITS" : "LONGEST", isRx ? String(S.rxHits) : String(S.runBest)],
+                  [isRx ? "FASTEST" : (S.newBest ? "PREVIOUS BEST" : "BEST"),
+                   isRx ? S.runBest+"MS" : String(S.prevBest)]];
+    if(isRx) rows.push([S.newBest ? "PREVIOUS BEST" : "BEST", String(S.prevBest)]);
+    const y0 = rows.length===4 ? 18 : 21, step = rows.length===4 ? 10 : 11;
+    rows.forEach(([a,b],i)=>{
+      C.str(ROW_L, y0+i*step, "l","c", a);
+      C.str(ROW_R, y0+i*step, "r","c", b);
+    });
+    chevronR(CHEV_R,33);
+  }
+  footer("OK: again    BACK: menu");
+
+  /* Wipes in top to bottom, the same move the intro ends on. The prompt is
+     the last thing to arrive, which is exactly when input goes live. */
+  if(now < S.lockUntil){
+    const p = 1 - (S.lockUntil - now)/T.overLock;
+    C.white(); C.box(0, Math.round(p*H), W, H); C.black();
+  }
+}
+
+const SCENES = {
+  menu:drawMenu, settings:drawSettings,
+  tutorial:drawTutorial, soundtest:drawSoundTest, listen:drawListen,
+  playback:drawPlayback, go:drawGo, input:drawInput, hold:drawInput,
+  success:drawSuccess, roundclear:drawRoundClear, wrong:drawWrong,
+  retry:drawRetry, gameover:drawGameOver, launcher:drawLauncher, splash:drawSplash,
+  stats:drawStats, table:drawTable, nocue:drawNoCue, credits:drawCredits,
+  mode:drawMode, setup:drawSetup, chpick:drawChPick, rulecard:drawRuleCard, reset:drawReset,
+  scorepick:drawScorePick,
+  reflexgap:drawReflex, reflexcue:drawReflex,
+  help:drawHelp, rulesguide:drawRulesGuide, rulelist:drawRuleList, ruleinfo:drawRuleInfo,
+  reflexguide:drawReflexGuide
+};
+
+let lastFrame = 0;
+function frame(ts){
+  const dt = lastFrame ? Math.min(100, ts - lastFrame) : 0;
+  lastFrame = ts;
+  now = ts;
+  /* playtime is time a run is running, not time the page is open */
+  if(!S.paused && GAME_SCENES.includes(S.scene)) S.stats.playMs += dt;
+  if(S.scene === "splash") updateSplash(); else update();
+  C.clear();
+  (SCENES[S.scene] || drawMenu)();
+  /* the row of screens says which way it runs, from the same table */
+  {
+    const at = CHAIN.indexOf(S.scene);
+    if(at > 0) chevronL(CHEV_L, 36);
+    if(at >= 0 && at < CHAIN.length-1) chevronR(CHEV_R, 36);
+  }
+  if(S.paused) drawPause();
+  present();
+  ledRender();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------------------------------------------------------------- */
+/* controls + tuning panel                                           */
+/* ---------------------------------------------------------------- */
+const KEYMAP = {ArrowUp:"UP",ArrowDown:"DOWN",ArrowLeft:"LEFT",ArrowRight:"RIGHT",
+                Enter:"OK"," ":"OK",Escape:"BACK",Backspace:"BACK"};
+/* Nothing on this page should scroll, zoom or long-press.
+   iOS Safari ignores user-scalable=no, and touch-action on an <svg> does
+   not reliably cover the shapes inside it, so every touch is cancelled
+   outright. All input runs through pointerdown, which still fires. */
+for(const type of ["touchstart","touchmove","touchend","touchcancel"]){
+  addEventListener(type, e => { if(e.cancelable) e.preventDefault(); }, {passive:false});
+}
+for(const type of ["gesturestart","gesturechange","gestureend","dblclick","contextmenu"]){
+  addEventListener(type, e => e.preventDefault());
+}
+addEventListener("pointerdown", armAudio, {passive:true});
+addEventListener("keydown", armAudio);
+addEventListener("keydown", e => {
+  const k = KEYMAP[e.key];
+  if(!k || e.repeat) return;
+  e.preventDefault(); press(k);
+  const b = document.querySelector('[data-key="'+k+'"]');
+  if(b){ b.classList.add("on"); setTimeout(()=>b.classList.remove("on"),110); }
+});
+document.querySelectorAll("[data-key]").forEach(b => {
+  let timer = 0;
+  const off = () => b.classList.remove("on");
+  b.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    press(b.getAttribute("data-key"));
+    b.classList.add("on");
+    clearTimeout(timer);
+    timer = setTimeout(off, 110);   /* not tied to pointerup, which a cancelled
+                                       touch sequence may never deliver */
+  });
+  b.addEventListener("pointerup", off);
+  b.addEventListener("pointercancel", off);
+});
+
+/* The tuning panel is gone: the numbers above are the tuned ones. */
+function syncSliders(){}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+Learn online everything what you need to know to make this game a reality.
+It should be exactly the same as the web build but in a flipper zero.

@@ -1,0 +1,50 @@
+A sequence plays. You repeat it before the timer runs out. Each round it gets one step longer.
+
+Every button has its own tone, its own colour and its own shape, and all three climb together: the lowest note is a red circle, the highest a violet star. Choose how much help you want.
+
+
+Four ways to play
+
+- EARS — sound only. Nothing on screen tells you which button it was.
+- LED — the light flashes a colour for each step.
+- SHAPES — the shape is drawn large in the middle of the screen.
+- ARROWS — just the button, for when you want to play rather than learn.
+
+Each keeps its own high score, so turning on help never quietly inflates a record set without it.
+
+There is also HAPTIC, which works alongside any of them: the motor taps out every note of every pattern, so you can feel a sequence as well as hear it. Turn the volume off and it becomes an assist of its own — play it by touch on a bus. It needs a phone or a Flipper; most desktop browsers have no motor, and the setting says so rather than pretending.
+
+
+Five modes
+
+- CLASSIC — one sequence per round, growing a step at a time.
+- RULES — every round hands you a rule to obey while you repeat it. Skip a button, double another, collapse the repeats, or play the whole thing backwards.
+- REFLEX — no memory at all. One cue at a time, hit it before the bar empties. The window tightens with every hit and a single miss ends the run.
+- CHALLENGE — pick one rule and hold it for the whole run. No rounds, no resets, one sequence that grows until you break. The only way to drill the rule that keeps killing you.
+- DAILY — the same run for everyone, seeded from the date. Same rule, same sequence, same settings, one attempt. No server involved: your device works it out from what day it is.
+
+
+Scoring you can do in your head
+
+Ten points a note, a hundred for clearing a round. That is the whole system.
+
+Time and speed change how hard a run is, not what it pays, so the number on screen is always one you could have worked out yourself. Every combination of mode, time, speed and assist keeps its own record, and NEW BEST is judged against the one you actually played — beating your best on INSANE counts, even if an old EASY run scored higher.
+
+
+Records and stats
+
+STATS counts what you have done: runs, playtime, rounds cleared, notes played back right, your longest sequence, and the mode and assist you reach for most.
+
+RECORDS is a table per mode. For CLASSIC, RULES and REFLEX it shows every time against every speed at once, so you can compare like with like.
+
+
+Controls
+
+Arrow keys, Enter or Space for OK, Escape or Backspace for BACK. Or tap the d-pad.
+
+
+Credits
+
+Made by Tijnv50, with Claude (Opus 5).
+
+Built for the Flipper Zero and playable here in the browser — the same game, screen for screen. The .fap download is the Flipper build. Not affiliated with or endorsed by Flipper Devices.
