@@ -37,7 +37,13 @@ struct FieldDetector {
     volatile bool calib_req;
     volatile bool calib_cancel_req;
     volatile uint32_t calib_duration_ms;
-    uint8_t threshold; // duty-cycle noise floor (%)
+    /* Both of these are written by the UI thread and read by the worker in its
+     * hot loop, without the mutex - deliberately, because a single byte cannot
+     * tear on this core and taking a lock per sample would be absurd. They must
+     * be volatile all the same, or the compiler is entitled to hoist the read
+     * out of the loop and the worker would never see a change. threshold was
+     * missing it while full_scale next to it had it. */
+    volatile uint8_t threshold; // duty-cycle noise floor (%)
     volatile uint8_t full_scale; // raw duty that displays as 100%
     FieldStats stats; // guarded by mutex
 };
@@ -409,11 +415,6 @@ void field_detector_stop(FieldDetector* fd) {
         furi_thread_free(fd->thread);
         fd->thread = NULL;
     }
-}
-
-bool field_detector_is_running(FieldDetector* fd) {
-    furi_assert(fd);
-    return fd->running;
 }
 
 void field_detector_reset(FieldDetector* fd) {
