@@ -3039,7 +3039,8 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         break;
     case 1:
         app->page = UhfPageList;
-        uhf_set_status(app, "OK Scan; Right Radar");
+        app->list_selection_manual = false;
+        uhf_start_inventory(app);
         break;
     case 2:
         uhf_clear_tags(app);
@@ -3455,13 +3456,13 @@ static void uhf_draw_ascii(Canvas* canvas, UhfApp* app) {
 static void uhf_draw_settings(Canvas* canvas, UhfApp* app) {
     uhf_draw_centered_text(canvas, 9, "Settings");
     canvas_set_font(canvas, FontSecondary);
-    static const char* const labels[] = {"Sound", "RF Power", "Startup App", "EPC Display"};
+    static const char* const labels[] = {"Sound", "RF Power", "EPC Display", "Startup App"};
     char values[4][20];
     snprintf(values[0], sizeof(values[0]), "< %s >", app->tag_beep_enabled ? "ON" : "OFF");
     snprintf(values[1], sizeof(values[1]), "< %u dBm >", app->reader_power_dbm);
-    snprintf(values[2], sizeof(values[2]), "< %s >", uhf_startup_names[app->startup_app]);
-    snprintf(values[3], sizeof(values[3]), "< %s >",
+    snprintf(values[2], sizeof(values[2]), "< %s >",
              app->epc_display == UhfEpcDisplayAscii ? "ASCII" : "HEX");
+    snprintf(values[3], sizeof(values[3]), "< %s >", uhf_startup_names[app->startup_app]);
     const size_t total_rows = COUNT_OF(labels);
     const size_t visible_rows = 3U;
     const size_t top = app->settings_selected >= visible_rows ?
@@ -4562,13 +4563,13 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
             } else if(app->settings_selected == 1U) {
                 if(app->reader_power_dbm > 0U) app->reader_power_dbm--;
             } else if(app->settings_selected == 2U) {
-                app->startup_app = app->startup_app == UhfStartupDefault ?
-                                       (UhfStartupApp)(UhfStartupCount - 1U) :
-                                       (UhfStartupApp)(app->startup_app - 1U);
-            } else {
                 app->epc_display = app->epc_display == UhfEpcDisplayHex ?
                                        UhfEpcDisplayAscii :
                                        UhfEpcDisplayHex;
+            } else {
+                app->startup_app = app->startup_app == UhfStartupDefault ?
+                                       (UhfStartupApp)(UhfStartupCount - 1U) :
+                                       (UhfStartupApp)(app->startup_app - 1U);
             }
         } else if(app->page == UhfPageAscii && app->ascii_tag_captured) {
             uhf_clear_tags(app);
@@ -4645,11 +4646,11 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
             } else if(app->settings_selected == 1U) {
                 if(app->reader_power_dbm < 20U) app->reader_power_dbm++;
             } else if(app->settings_selected == 2U) {
-                app->startup_app = (UhfStartupApp)(((uint8_t)app->startup_app + 1U) % UhfStartupCount);
-            } else {
                 app->epc_display = app->epc_display == UhfEpcDisplayHex ?
                                        UhfEpcDisplayAscii :
                                        UhfEpcDisplayHex;
+            } else {
+                app->startup_app = (UhfStartupApp)(((uint8_t)app->startup_app + 1U) % UhfStartupCount);
             }
         } else if(app->page == UhfPageAscii && app->ascii_tag_captured &&
                   input->type == InputTypeShort) {

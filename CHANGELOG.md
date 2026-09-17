@@ -17,6 +17,7 @@ Unreleased:
 - Added an EPC ASCII tool for capturing one tag, editing up to 12 ASCII characters, and writing a verified 96-bit EPC.
 - Allowed EPC ASCII writes to target a different tag after removing the captured source tag.
 - Moved TID Decoder directly before Tag Control in the main menu.
+- Started inventory automatically when entering Inventory from the main menu or Startup App.
 - Added wraparound main-menu navigation across each two-item row and between the top and bottom rows.
 - Hid the Tag Control Erase button while the read-only TID bank is selected.
 - Added an Access Key submenu for setting a key from zero or restoring the tag password to zero after banks are unlocked.
