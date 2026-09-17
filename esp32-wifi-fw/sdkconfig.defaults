@@ -1,14 +1,15 @@
 # TagTinker WiFi firmware - ESP-IDF defaults.
-# Targets the Flipper Wi-Fi Devboard (ESP32-S2-MINI; no PSRAM).
+# Targets the Flipper Wi-Fi Devboard (ESP32-S2, 4 MB flash).
 
 # Bigger stack for the main task: TLS handshake + JSON parse needs room.
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
 
-# UART0 is owned by our framed protocol to the Flipper. The IDF console
-# is moved to USB-Serial-JTAG (the dev board's USB-C) so logs are visible
-# during development without colliding with our binary frames.
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
-CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+# UART0 is owned by our framed protocol to the Flipper, so the IDF console
+# has to be off. The ESP32-S2 has no USB-Serial-JTAG peripheral, so asking
+# for that console silently fell back to UART0 and put boot and WiFi logs
+# on the same wire as our binary frames. CONFIG_ESP_CONSOLE_NONE is what
+# the Flipper's own devboard firmware uses.
+CONFIG_ESP_CONSOLE_NONE=y
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y
 CONFIG_BOOTLOADER_LOG_LEVEL=0
@@ -19,9 +20,9 @@ CONFIG_FREERTOS_CHECK_STACKOVERFLOW_CANARY=y
 CONFIG_FREERTOS_WATCHPOINT_END_OF_STACK=y
 
 # WiFi tuning - we don't need the full feature matrix.
-CONFIG_ESP32_WIFI_STATIC_RX_BUFFER_NUM=8
-CONFIG_ESP32_WIFI_DYNAMIC_RX_BUFFER_NUM=16
-CONFIG_ESP32_WIFI_DYNAMIC_TX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=8
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=16
 
 # mbedTLS: the small "common subset" Mozilla bundle (~20 CAs incl. the
 # Cloudflare DigiCert + ISRG roots), with stock buffer sizes so we don't
