@@ -15,6 +15,7 @@ typedef struct {
     uint32_t tick;
     bool completed;
     bool ok;
+    bool cancelled;
 } TxViewModel;
 
 typedef struct {
@@ -35,6 +36,10 @@ typedef struct {
 #define TX_COLOR26_TEXT_ROWS 16U
 #define TX_COLOR26_PACKED_BYTES \
     (((size_t)TAGTINKER_COLOR26_GLASS_W * (size_t)TAGTINKER_COLOR26_GLASS_H + 7U) / 8U)
+
+/* One BMP source row is read into a stack buffer of this size. 128 bytes is
+ * a 1024 px wide 1bpp row; the widest profile is 800 px. */
+#define TX_BMP_ROW_BUF_SIZE 128U
 
 static uint16_t tx_pick_chunk_height(uint16_t width, uint16_t height, bool second_plane);
 
@@ -554,6 +559,11 @@ static bool tx_stream_text_image(TagTinkerApp* app) {
     return ok;
 }
 
+static uint32_t tx_le32(const uint8_t* p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
+           ((uint32_t)p[3] << 24);
+}
+
 static bool tx_bmp_open(const char* path, File* file, TxBmpInfo* info) {
     if(!storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) return false;
 
@@ -562,26 +572,28 @@ static bool tx_bmp_open(const char* path, File* file, TxBmpInfo* info) {
     if(header[0] != 'B' || header[1] != 'M') return false;
 
     uint16_t bpp = header[28] | (header[29] << 8);
-    if(!(bpp == 1 || bpp == 2 || bpp == 24 || bpp == 32)) return false;
+    /* The row decoder reads one bit per pixel. "2bpp" here means two stacked
+     * 1-bit planes, as written by the web image preparer and the WiFi plugin
+     * path. 24/32-bit files would be misread, and their rows do not fit the
+     * row buffer, so they are rejected. */
+    if(!(bpp == 1 || bpp == 2)) return false;
     info->bpp = bpp;
 
-    int32_t bmp_h = header[22] | (header[23] << 8) | (header[24] << 16) | (header[25] << 24);
-    info->width = (uint16_t)(header[18] | (header[19] << 8) | (header[20] << 16) | (header[21] << 24));
-    info->top_down = false;
-    if(bmp_h < 0) {
-        info->top_down = true;
-        bmp_h = -bmp_h;
-    }
+    /* Read the 32-bit fields unsigned: shifting a byte into bit 31 of an int
+     * is undefined, and so is negating INT32_MIN. A negative height means a
+     * top-down BMP. Sizes that do not fit the 16-bit fields are rejected
+     * rather than silently truncated. */
+    uint32_t raw_w = tx_le32(&header[18]);
+    uint32_t raw_h = tx_le32(&header[22]);
+    info->top_down = (raw_h & 0x80000000U) != 0U;
+    uint32_t abs_h = info->top_down ? (~raw_h + 1U) : raw_h;
+    if(raw_w == 0U || raw_w > UINT16_MAX || abs_h == 0U || abs_h > UINT16_MAX) return false;
 
-    info->height = (uint16_t)bmp_h;
-    info->data_offset = header[10] | (header[11] << 8) | (header[12] << 16) | (header[13] << 24);
-    if(info->bpp == 1 || info->bpp == 2) {
-        info->row_stride = ((info->width + 31U) / 32U) * 4U;
-    } else if(info->bpp == 24) {
-        info->row_stride = ((info->width * 3U) + 3U) & ~3U;
-    } else {
-        info->row_stride = info->width * 4U;
-    }
+    info->width = (uint16_t)raw_w;
+    info->height = (uint16_t)abs_h;
+    info->data_offset = tx_le32(&header[10]);
+    info->row_stride = ((info->width + 31U) / 32U) * 4U;
+    if(info->row_stride > TX_BMP_ROW_BUF_SIZE) return false;
     return true;
 }
 
@@ -803,9 +815,8 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
     uint16_t plane2_off_rows = info.height;
     UNUSED(accent_color);
 
-    /* Source row stride is bounded by max profile width (800 px) -> 104 B,
-     * round up generously to 128 to absorb any future profile additions. */
-    uint8_t row_buf[128];
+    /* tx_bmp_open() rejects any file whose row stride exceeds this buffer. */
+    uint8_t row_buf[TX_BMP_ROW_BUF_SIZE];
     uint16_t cached_src_y = UINT16_MAX;
 
     /* ---- PASS 1: Count RLE compressed bit length ---- */
@@ -1001,8 +1012,14 @@ static int32_t tx_thread_callback(void* context) {
             ok = tx_stream_bmp_image(app);
         } else if(app->frame_seq_count > 0) {
             for(size_t i = 0; i < app->frame_seq_count; i++) {
-                if(!app->tx_active) { ok = false; break; }
                 if(i > 0) furi_delay_ms(20);
+                /* Check after the gap: tagtinker_ir_transmit() clears a stop
+                 * request on entry, so a Back pressed during the gap would
+                 * otherwise be lost and the next frame sent in full. */
+                if(!app->tx_active) {
+                    ok = false;
+                    break;
+                }
                 ok = tagtinker_ir_transmit(
                     app->frame_sequence[i], app->frame_lengths[i],
                     tx_apply_signal_mode(app, app->frame_repeats[i]), 10);
@@ -1056,6 +1073,10 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
                 canvas_draw_circle(canvas, x, dot_y, 1);
             }
         }
+    } else if(model->cancelled) {
+        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignTop, "Stopped");
+    } else if(model->completed && !model->ok) {
+        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignTop, "Send failed");
     } else {
         canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignTop, "Flipped ;)");
     }
@@ -1085,6 +1106,7 @@ void tagtinker_scene_transmit_on_enter(void* context) {
     model->tick = 0;
     model->completed = false;
     model->ok = true;
+    model->cancelled = false;
     view_commit_model(app->transmit_view, true);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TagTinkerViewTransmit);
@@ -1101,6 +1123,9 @@ bool tagtinker_scene_transmit_on_event(void* context, SceneManagerEvent event) {
         if(app->tx_active) {
             app->tx_active = false;
             tagtinker_ir_stop();
+            TxViewModel* model = view_get_model(app->transmit_view);
+            model->cancelled = true;
+            view_commit_model(app->transmit_view, true);
             return true;
         } else {
             if(!scene_manager_search_and_switch_to_previous_scene(app->scene_manager, TagTinkerSceneTargetActions)) {
@@ -1126,8 +1151,14 @@ bool tagtinker_scene_transmit_on_event(void* context, SceneManagerEvent event) {
             TxViewModel* model = view_get_model(app->transmit_view);
             model->completed = true;
             model->ok = (event.event == 101);
+            bool cancelled = model->cancelled;
+            bool ok = model->ok;
             view_commit_model(app->transmit_view, true);
-            notification_message(app->notifications, &sequence_success);
+            /* A cancelled send gets no sound: its last frame may have gone out
+             * fine, but the user stopped it. */
+            if(!cancelled) {
+                notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
+            }
         }
         return true;
     }
