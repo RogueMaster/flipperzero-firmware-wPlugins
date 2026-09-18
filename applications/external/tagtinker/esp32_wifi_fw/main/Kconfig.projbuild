@@ -1,0 +1,18 @@
+menu "TagTinker"
+
+config TT_CLOUD_URL
+    string "Cloud worker base URL"
+    default "https://tagtinker.jhackerr.workers.dev"
+    help
+        Base URL of the Cloudflare Worker that serves /plugins and /render
+        for the WiFi Plugins feature.
+
+        Point this at your own deployment (see cloud-plugins/) if you would
+        rather not send plugin parameters to someone else's worker. Set it
+        with `idf.py menuconfig` under TagTinker, or put
+        CONFIG_TT_CLOUD_URL="https://your-worker.example.workers.dev" in
+        sdkconfig.defaults, then rebuild and reflash the board.
+
+        No trailing slash.
+
+endmenu

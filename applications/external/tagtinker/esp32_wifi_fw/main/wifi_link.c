@@ -1,11 +1,12 @@
 /*
  * Framed UART link - implementation.
  *
- * UART config: UART1 by default on the Flipper WiFi Dev Board. The numbers
- * are picked to match the FAP-side defaults; if you change them on one side
- * you must change them on the other.
+ * UART config: UART0 on the Flipper WiFi Dev Board, whose default IO_MUX
+ * pins are wired to the Flipper's GPIO header. The numbers are picked to
+ * match the FAP-side defaults; if you change them on one side you must
+ * change them on the other.
  *
- *   pin TX = GPIO17, pin RX = GPIO18, baud 230400, no flow control.
+ *   pin TX = GPIO43, pin RX = GPIO44, baud 230400, no flow control.
  *
  * RX runs in a dedicated task that re-syncs on the 0xAA 0x55 SOF whenever
  * a CRC mismatch or oversize frame is seen.

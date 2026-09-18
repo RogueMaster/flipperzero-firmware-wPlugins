@@ -3,6 +3,7 @@
  */
 
 #include "../tagtinker_app.h"
+#include "../protocol/tagtinker_proto.h"
 
 static void target_actions_cb(void* ctx, uint32_t index) {
     TagTinkerApp* app = ctx;
@@ -33,6 +34,27 @@ static void show_target_details(TagTinkerApp* app, const TagTinkerTarget* target
     text_box_set_focus(app->text_box, TextBoxFocusStart);
 
     static char details_buf[256];
+
+    if(!target->profile.known) {
+        /* No table entry: size and colour are unknown, not 0x0 and Mono. */
+        snprintf(
+            details_buf,
+            sizeof(details_buf),
+            "--- Tag Info ---\n"
+            "Model: Unknown\n"
+            "Type: %u\n"
+            "Not in the profile table,\n"
+            "so Set Text, Set Image\n"
+            "and WiFi Plugins are\n"
+            "hidden for this tag.\n"
+            "Barcode:\n%s",
+            target->profile.type_code,
+            target->barcode);
+        text_box_set_text(app->text_box, details_buf);
+        scene_manager_next_scene(app->scene_manager, TagTinkerSceneTextBox);
+        return;
+    }
+
     uint16_t size_w = target->profile.width;
     uint16_t size_h = target->profile.height;
     tagtinker_profile_glass_size(&target->profile, &size_w, &size_h);
@@ -82,6 +104,14 @@ void tagtinker_scene_target_actions_on_enter(void* ctx) {
             app->submenu, "WiFi Plugins", TagTinkerTargetWifiPlugins, target_actions_cb, app);
     }
 
+    /* An unknown type has no table profile; let the user give it a size so the
+     * graphics actions above become usable. Shown whether or not a size is set,
+     * so it can be changed later. */
+    if(target && !tagtinker_type_is_known(target->profile.type_code)) {
+        submenu_add_item(
+            app->submenu, "Set Custom Size", TagTinkerTargetCustomSize, target_actions_cb, app);
+    }
+
     submenu_add_item(app->submenu, "LED Test", TagTinkerTargetPingFlash, target_actions_cb, app);
     submenu_add_item(app->submenu, "Delete Tag", TagTinkerTargetDeleteTag, target_actions_cb, app);
 
@@ -112,6 +142,9 @@ bool tagtinker_scene_target_actions_on_event(void* ctx, SceneManagerEvent event)
     case TagTinkerTargetWifiPlugins:
         if(!tagtinker_target_supports_graphics(&app->targets[app->selected_target])) return true;
         scene_manager_next_scene(app->scene_manager, TagTinkerSceneWifiPlugins);
+        return true;
+    case TagTinkerTargetCustomSize:
+        scene_manager_next_scene(app->scene_manager, TagTinkerSceneCustomSize);
         return true;
     case TagTinkerTargetPingFlash: {
         TagTinkerTarget* target = &app->targets[app->selected_target];

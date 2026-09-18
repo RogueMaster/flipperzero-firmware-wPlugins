@@ -27,6 +27,7 @@ typedef enum {
     TagTinkerSceneWifiPlugins,
     TagTinkerSceneWifiSetup,
     TagTinkerSceneWifiRun,
+    TagTinkerSceneCustomSize,
     TagTinkerSceneCount,
 } TagTinkerScene;
 
@@ -109,3 +110,7 @@ void tagtinker_scene_wifi_setup_on_exit(void* ctx);
 void tagtinker_scene_wifi_run_on_enter(void* ctx);
 bool tagtinker_scene_wifi_run_on_event(void* ctx, SceneManagerEvent event);
 void tagtinker_scene_wifi_run_on_exit(void* ctx);
+
+void tagtinker_scene_custom_size_on_enter(void* ctx);
+bool tagtinker_scene_custom_size_on_event(void* ctx, SceneManagerEvent event);
+void tagtinker_scene_custom_size_on_exit(void* ctx);
