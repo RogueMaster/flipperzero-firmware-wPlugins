@@ -21,15 +21,19 @@ void specter_scene_start_on_enter(void* context) {
 
     submenu_reset(submenu);
     submenu_set_header(submenu, "Specter");
-    submenu_add_item(submenu, "Sweep", StartIndexSweep, specter_scene_start_submenu_cb, app);
     submenu_add_item(
-        submenu, "Fingerprint", StartIndexFingerprint, specter_scene_start_submenu_cb, app);
+        submenu, "Sweep - find it", StartIndexSweep, specter_scene_start_submenu_cb, app);
     submenu_add_item(
-        submenu, "Site Survey", StartIndexSurvey, specter_scene_start_submenu_cb, app);
-    submenu_add_item(submenu, "Watch Mode", StartIndexWatch, specter_scene_start_submenu_cb, app);
-    submenu_add_item(submenu, "Logbook", StartIndexLogbook, specter_scene_start_submenu_cb, app);
+        submenu, "Fingerprint - type", StartIndexFingerprint, specter_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Site Survey - room", StartIndexSurvey, specter_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Watch Mode - guard", StartIndexWatch, specter_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Logbook - findings", StartIndexLogbook, specter_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartIndexSettings, specter_scene_start_submenu_cb, app);
-    submenu_add_item(submenu, "About", StartIndexAbout, specter_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Help & About", StartIndexAbout, specter_scene_start_submenu_cb, app);
 
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, SpecterSceneStart));

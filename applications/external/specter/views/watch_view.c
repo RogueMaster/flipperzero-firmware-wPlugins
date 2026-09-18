@@ -1,4 +1,5 @@
 #include "watch_view.h"
+#include "view_chrome.h"
 #include <furi.h>
 #include <gui/gui.h>
 #include <stdio.h>
@@ -14,7 +15,10 @@
 #define STATUS_Y   14
 #define STATUS_H   14
 #define FOOT1_BASE 50
-#define FOOT2_BASE 61
+/* 60, not 61. This footer and the Site Survey verdict footer are the same
+ * component - divider on row 40, two stat rows, columns at x=2 and x=66 - and
+ * they sat one pixel apart because they were written a week apart. */
+#define FOOT2_BASE 60
 #define COL_RIGHT  66
 
 struct WatchView {
@@ -31,17 +35,27 @@ typedef struct {
     uint8_t peak;
     uint32_t contacts;
     uint32_t watching_ms;
-    uint32_t first_ms;
     uint32_t last_ms;
     uint32_t in_field_ms; // total time a carrier was actually up this watch
-    uint8_t anim;
 } WatchModel;
 
-/* mm:ss, saturating at 99:59 so it can never overrun its slot. */
-static void fmt_clock(char* out, size_t n, uint32_t ms) {
+/* mm:ss while that fits, then hh:mm - flagged, because Watch is the one mode
+ * built to be left running for hours and a clock that stops at 99:59 while the
+ * LAST timer keeps counting is a screen disagreeing with itself. */
+static void fmt_clock(char* out, size_t n, uint32_t ms, bool* hours) {
     uint32_t s = ms / 1000u;
-    if(s > 99u * 60u + 59u) s = 99u * 60u + 59u;
-    snprintf(out, n, "%02lu:%02lu", (unsigned long)(s / 60u), (unsigned long)(s % 60u));
+    if(s <= 99u * 60u + 59u) {
+        *hours = false;
+        snprintf(out, n, "%02lu:%02lu", (unsigned long)(s / 60u), (unsigned long)(s % 60u));
+        return;
+    }
+    *hours = true;
+    uint32_t h = s / 3600u;
+    if(h > 99u) { // ~4 days; past here it is a stuck Flipper, not a watch
+        snprintf(out, n, "99:59");
+        return;
+    }
+    snprintf(out, n, "%02lu:%02lu", (unsigned long)h, (unsigned long)((s / 60u) % 60u));
 }
 
 /* "1m20s ago" style, compact enough for the footer. */
@@ -65,18 +79,11 @@ static void watch_view_draw(Canvas* canvas, void* model) {
     char buf[24];
 
     /* ---------- header ---------- */
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 9, "WATCH");
-    const char* hdr = m->error ? "NFC BUSY" : !m->armed ? "IDLE" : "ARMED";
-    canvas_draw_str_aligned(canvas, 126, 9, AlignRight, AlignBottom, hdr);
-    canvas_draw_line(canvas, 0, 11, 127, 11);
+    specter_chrome_header(
+        canvas, "WATCH", specter_chrome_state(m->error, m->armed, m->present), m->present);
 
     if(m->error) {
-        canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignCenter, "NFC unavailable");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(
-            canvas, 64, 46, AlignCenter, AlignCenter, "Close any other NFC app.");
+        specter_chrome_nfc_error(canvas);
         return;
     }
 
@@ -96,17 +103,45 @@ static void watch_view_draw(Canvas* canvas, void* model) {
         canvas_set_color(canvas, ColorWhite);
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(
-            canvas, 64, STATUS_Y + 9, AlignCenter, AlignBottom, "READER PRESENT");
+            canvas, 64, STATUS_Y + 9, AlignCenter, AlignBottom, "ACTIVE READER");
         canvas_set_color(canvas, ColorBlack);
+
+        /* A strength bar under the banner. Across a room the banner answers
+         * "is something there"; this answers "is it on top of the Flipper or
+         * at the edge of range", which is the next thing you want to know and
+         * used to be readable only by walking over and squinting at NOW %. */
+        canvas_draw_frame(canvas, 4, 29, 120, 9);
+        int w = ((int)m->strength * 118) / 100;
+        if(w > 0) canvas_draw_box(canvas, 5, 30, w, 7);
+
+        /* Same 1px alarm border as Sweep and Site Survey. */
+        canvas_draw_frame(canvas, 0, 0, 128, 64);
     } else {
         canvas_set_font(canvas, FontPrimary);
-        const char* word = m->contacts ? "CLEAR NOW" : "ALL CLEAR";
+        const char* word = m->contacts ? "QUIET NOW" : "NO READER";
         canvas_draw_str_aligned(canvas, 4, STATUS_Y + 9, AlignLeft, AlignBottom, word);
 
         /* elapsed clock sits on the same band, right-aligned */
+        bool hours = false;
         canvas_set_font(canvas, FontBigNumbers);
-        fmt_clock(buf, sizeof(buf), m->watching_ms);
-        canvas_draw_str_aligned(canvas, 126, CLOCK_BASE, AlignRight, AlignBottom, buf);
+        fmt_clock(buf, sizeof(buf), m->watching_ms, &hours);
+        canvas_draw_str_aligned(
+            canvas, hours ? 120 : 126, CLOCK_BASE, AlignRight, AlignBottom, buf);
+        if(hours) {
+            /* "02:37h" - the marker is the whole difference between two hours
+             * thirty-seven and two minutes thirty-seven. */
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str(canvas, 121, CLOCK_BASE, "h");
+        }
+
+        /* The reset key, visible whenever there is something to lose. It used
+         * to appear only in the bottom-right slot when the count was zero -
+         * i.e. advertised only while harmless, hidden once a short OK would
+         * silently wipe an overnight record. */
+        if(m->contacts) {
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str(canvas, 4, 33, "OK=re-arm");
+        }
     }
 
     /* ---------- footer: the tallies ---------- */
@@ -132,13 +167,13 @@ static void watch_view_draw(Canvas* canvas, void* model) {
          * you come back to a Flipper you left somewhere. */
         uint32_t s = m->in_field_ms / 1000u;
         if(s < 600u) {
-            snprintf(buf, sizeof(buf), "SEEN %lus", (unsigned long)s);
+            snprintf(buf, sizeof(buf), "UP %lus", (unsigned long)s);
         } else {
-            snprintf(buf, sizeof(buf), "SEEN %lum", (unsigned long)(s / 60u));
+            snprintf(buf, sizeof(buf), "UP %lum", (unsigned long)(s / 60u));
         }
         canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, buf);
     } else {
-        canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, "OK=reset");
+        canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, "OK=re-arm");
     }
 }
 
@@ -179,11 +214,22 @@ void watch_view_set_reset_callback(WatchView* v, WatchViewCallback cb, void* ctx
     v->reset_ctx = ctx;
 }
 
+void watch_view_reset(WatchView* v) {
+    furi_assert(v);
+    with_view_model(
+        v->view,
+        WatchModel * m,
+        {
+            memset(m, 0, sizeof(WatchModel));
+            m->last_ms = WATCH_NO_TIME;
+        },
+        true);
+}
+
 void watch_view_update(
     WatchView* v,
     const FieldStats* stats,
     uint32_t watching_ms,
-    uint32_t first_ms,
     uint32_t last_ms) {
     furi_assert(v);
     furi_assert(stats);
@@ -198,14 +244,8 @@ void watch_view_update(
             m->peak = stats->peak;
             m->contacts = stats->contacts;
             m->watching_ms = watching_ms;
-            m->first_ms = first_ms;
             m->last_ms = last_ms;
             m->in_field_ms = stats->in_field_ms;
         },
         true);
-}
-
-void watch_view_tick(WatchView* v) {
-    furi_assert(v);
-    with_view_model(v->view, WatchModel * m, { m->anim++; }, true);
 }

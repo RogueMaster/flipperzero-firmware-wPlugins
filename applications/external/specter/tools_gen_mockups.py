@@ -7,10 +7,17 @@ baseline - drawing these any other way quietly hides real layout collisions.
 Layout constants below are copied from the C, so if a screen looks wrong here it
 looks wrong on the device too.
 
-CAVEAT: the desktop font used here is close to the device's FontSecondary but
-sits one pixel shorter, so it will NOT reveal a tight vertical collision - two
-of those shipped before anyone noticed. tools_check_layout.py is the authority
-on overlaps; this script is for how a screen reads, not whether it fits.
+CAVEATS, both of which have hidden real bugs:
+  * VERTICALLY the desktop font sits one pixel shorter than FontSecondary, so
+    this will NOT reveal a tight collision - two of those shipped before anyone
+    noticed. tools_check_layout.py is the authority on overlaps.
+  * HORIZONTALLY the desktop font's natural advance is 4.0 device px per
+    character where the device's haxrcorp4089 advances 5. Every string rendered
+    here therefore came out 20% narrower than on a Flipper, which is exactly why
+    an overrunning readout ("PK100 C999+", 11 chars from x=68) looked fine in
+    the published screenshots for several releases. FontSecondary is now drawn
+    glyph by glyph at a fixed SEC_PITCH, so a string that runs off the right
+    edge of a real screen runs off the right edge here too.
 """
 from PIL import Image, ImageDraw, ImageFont
 import math, os
@@ -35,7 +42,7 @@ FP_COL_R = 66
 CONF_X, CONF_Y, CONF_W, CONF_H = 88, 15, 38, 8
 FP_DIV, TRACE_HI, TRACE_LO = 50, 53, 61
 # views/survey_view.c
-BAR_X, BAR_Y, BAR_W, BAR_H = 4, 15, 120, 11
+BAR_X, BAR_Y, BAR_W, BAR_H = 2, 14, 124, 14
 RUN_S1, RUN_S2, RUN_WAVE_TOP, RUN_WAVE_BASE = 35, 45, 50, 63
 BANNER_X, BANNER_Y, BANNER_W, BANNER_H = 2, 14, 124, 14
 DONE_V, DONE_A, DONE_S1, DONE_S2 = 25, 37, 50, 60
@@ -67,9 +74,7 @@ def line(d, x0, y0, x1, y1, col=FG, w=2):
 
 
 def circle(d, cx, cy, r, col=FG, w=2):
-    d.ellipse(
-        [L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w
-    )
+    d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w)
 
 
 def disc(d, cx, cy, r, col=FG):
@@ -88,8 +93,26 @@ def text(d, x, y, s, fnt=f_sec, col=FG, anchor="lm"):
     d.text((L(x), L(y)), s, font=fnt, fill=col, anchor=anchor)
 
 
+SEC_PITCH = 5  # device advance per FontSecondary glyph (haxrcorp4089)
+
+
+def sec(d, x, y, s, col=FG, anchor="ls"):
+    """FontSecondary at the DEVICE's advance, not the desktop font's, drawn one
+    glyph at a time. This is the only way overflow shows up here."""
+    w = len(s) * SEC_PITCH
+    if anchor == "rs":
+        x -= w
+    elif anchor == "ms":
+        x -= w / 2.0
+    for i, ch in enumerate(s):
+        d.text((L(x + i * SEC_PITCH), L(y)), ch, font=f_sec, fill=col, anchor="ls")
+
+
 def tb(d, x, y, s, fnt=f_sec, col=FG, anchor="ls"):
     """Baseline-anchored text - y is the baseline, exactly like canvas_draw_str."""
+    if fnt is f_sec:
+        sec(d, x, y, s, col, anchor)
+        return
     d.text((L(x), L(y)), s, font=fnt, fill=col, anchor=anchor)
 
 
@@ -111,14 +134,12 @@ def gauge_point(value, radius):
 
 def proximity_word(s, saturated=False):
     if saturated:
-        return "MAX"
+        return "PEGGED"
     return _proximity_word(s)
 
 
 def _proximity_word(s):
-    return (
-        "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
-    )
+    return "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
 
 
 # --------------------------------------------------------------------------
@@ -153,7 +174,14 @@ def draw_waveform(d, history, base, span):
 # --------------------------------------------------------------------------
 # Sweep (views/sweep_view.c)
 # --------------------------------------------------------------------------
-def draw_gauge(d, strength, peak, present, anim, scan=40):
+# field_scale_apply(threshold + 1, SPECTER_FULL_SCALE_DUTY=30), i.e. the first
+# duty that counts as a reader, on the meter's own scale:
+#   High (thr 0) -> 3    Medium (thr 8) -> 30    Low (thr 20) -> 70
+# A calibrated Custom typically lands in the twenties.
+SENS_MARK = {"High": 3, "Medium": 30, "Low": 70, "Custom": 27}
+
+
+def draw_gauge(d, strength, peak, present, anim, scan=40, threshold=30):
     px = py = None
     v = 0
     while v <= 100:
@@ -164,12 +192,14 @@ def draw_gauge(d, strength, peak, present, anim, scan=40):
         v += 3
     for i in range(11):
         vv = i * 10
-        hot = i >= 8
         ox, oy = gauge_point(vv, R_OUT)
-        ix, iy = gauge_point(vv, (R_IN - 3) if hot else R_IN)
+        ix, iy = gauge_point(vv, R_IN)
         line(d, ix, iy, ox, oy)
-        if hot:
-            line(d, ix + 1, iy, ox + 1, oy)
+    # where "READER" begins at the current sensitivity
+    mx, my = gauge_point(threshold, R_IN)
+    mox, moy = gauge_point(threshold, R_OUT + 2)
+    line(d, mx, my, mox, moy)
+    line(d, mx + 1, my, mox + 1, moy)
     if not present:
         sx, sy = gauge_point(scan, R_SCN)
         circle(d, sx, sy, 1)
@@ -198,54 +228,43 @@ def draw_trend(d, x, y, direction):
 
 
 def draw_readout(d, strength, peak, contacts, trend=None):
-    line(d, 64, 13, 64, 51)
+    line(d, 64, 12, 64, 51)
     tb(d, 68, 20, "FIELD", f_sec)
     if trend is not None:
         draw_trend(d, 120, 14, trend)
     tb(d, 112, 42, str(strength), f_big, anchor="rs")
     tb(d, 114, 40, "%", f_sec)
-    label = f"PK{peak} C999+" if contacts > 999 else f"PK{peak} C{contacts}"
-    tb(d, 68, 51, label, f_sec)
+    tb(d, 68, 51, f"PEAK {peak}%", f_sec)
 
 
-def render_sweep(
-    name,
-    strength,
-    peak,
-    contacts,
-    present,
-    state,
-    history,
-    anim=1,
-    calibrating=False,
-    calib_pct=0,
-    flash=None,
-    sens="Medium",
-    saturated=False,
-    trend=None,
-):
+def render_sweep(name, strength, peak, contacts, present, state, history,
+                 anim=1, calibrating=False, calib_pct=0, flash=None, sens="Medium",
+                 saturated=False, trend=None):
     img, d = canvas()
-    draw_header(d, "SPECTER", state, present, flash)
-    draw_gauge(d, strength, peak, present, anim)
+    draw_header(d, "SWEEP", state, present, flash)
+    draw_gauge(d, strength, peak, present, anim, threshold=SENS_MARK.get(sens, 30))
     draw_readout(d, strength, peak, contacts, trend)
     line(d, 0, 52, 127, 52)
     if calibrating:
-        tb(d, 2, 60, "NOISE FLOOR", f_sec)
-        tb(d, 126, 60, "OK=cancel", f_sec, anchor="rs")
+        tb(d, 2, 62, "HOLD STILL", f_sec)
+        tb(d, 126, 62, "OK=cancel", f_sec, anchor="rs")
         fill = (calib_pct * 128) // 100
         if fill:
-            box(d, 0, 62, fill, 2)
+            box(d, 0, 63, fill, 1)
     elif present:
         box(d, 0, 53, 128, 11)
         disc(d, 4, 58, 1, BG)
-        tb(d, 9, 61, "ACTIVE READER", f_sec, BG)
-        tb(d, 125, 61, proximity_word(strength, saturated), f_sec, BG, anchor="rs")
+        tb(d, 9, 62, "ACTIVE READER", f_sec, BG)
+        tb(d, 125, 62, proximity_word(strength, saturated), f_sec, BG, anchor="rs")
         frame(d, 0, 0, 127, 63, FG, lw=2)
+    elif not contacts:
+        # nothing found yet: the strip carries the two undiscoverable keys
+        tb(d, 2, 62, "LEFT=cal hold OK=log", f_sec)
     else:
         # active sensitivity on the left, waveform filling the rest
-        label = f"S:{sens}"
+        label = f"SENS {sens}"
         tb(d, 2, 62, label, f_sec)
-        wave_left = 2 + int(d.textlength(label, font=f_sec) / S) + 4
+        wave_left = 2 + len(label) * SEC_PITCH + 4
         for k in range(62):
             x = 126 - k * 2
             if x < wave_left:
@@ -280,21 +299,9 @@ def draw_trace(d, bits):
         prev = hi
 
 
-def render_fingerprint(
-    name,
-    klass,
-    blurb,
-    conf,
-    period,
-    burst,
-    jitter,
-    duty,
-    present=True,
-    state="LISTENING",
-    approx="",
-    flash=None,
-    has_cadence=True,
-):
+def render_fingerprint(name, klass, blurb, conf, period, burst, jitter, duty,
+                       present=True, state="LISTENING", approx="", flash=None,
+                       has_cadence=True):
     img, d = canvas()
     draw_header(d, "FINGERPRINT", state, present, flash)
 
@@ -305,7 +312,7 @@ def render_fingerprint(
         box(d, CONF_X + 1, CONF_Y + 1, fill, CONF_H - 2)
 
     tb(d, 2, FP_BLURB, blurb, f_sec)
-    tb(d, 126, FP_BLURB, f"{conf}%", f_sec, anchor="rs")
+    tb(d, 126, FP_BLURB, f"CONF {conf}%", f_sec, anchor="rs")
 
     if has_cadence:
         tb(d, 2, FP_STAT1, f"PER {approx}{period}ms", f_sec)
@@ -315,7 +322,7 @@ def render_fingerprint(
         tb(d, 2, FP_STAT1, "PER --", f_sec)
         tb(d, FP_COL_R, FP_STAT1, "BST --", f_sec)
         tb(d, 2, FP_STAT2, "JIT --", f_sec)
-    tb(d, FP_COL_R, FP_STAT2, f"DUTY {duty}%", f_sec)
+    tb(d, FP_COL_R, FP_STAT2, f"UP {duty}%", f_sec)
 
     line(d, 0, FP_DIV, 127, FP_DIV)
     draw_trace(d, pulse_train(period, burst) if has_cadence else [0] * W)
@@ -338,20 +345,20 @@ def render_survey_running(name, pct, left_s, field, peak, hits, present, history
     tb(d, 2, RUN_S1, f"FIELD {field}%", f_sec)
     tb(d, SV_COL_R, RUN_S1, f"PEAK {peak}%", f_sec)
     tb(d, 2, RUN_S2, f"HITS {hits}", f_sec)
-    tb(d, SV_COL_R, RUN_S2, "sweep slowly", f_sec)
+    tb(d, SV_COL_R, RUN_S2, "OK=finish", f_sec)
 
     line(d, 0, RUN_WAVE_TOP - 2, 127, RUN_WAVE_TOP - 2)
     draw_waveform(d, history, RUN_WAVE_BASE, RUN_WAVE_BASE - RUN_WAVE_TOP)
     save(img, name)
 
 
-def render_survey_verdict(name, verdict, advice, mx, av, field, hits):
+def render_survey_verdict(name, verdict, advice, mx, av, field, hits, secs=60):
     img, d = canvas()
     alarm = verdict == "ACTIVE READER"
-    draw_header(d, "SITE SURVEY", "OK=again", False, state_x=126)
-    # the header dot is not drawn in the finished state
-    box(d, 118, 0, 10, 10, BG)
-    tb(d, 126, 9, "OK=again", f_sec, anchor="rs")
+    # the finished card names the run's real length and drops the presence dot
+    tb(d, 2, 9, f"SURVEY {secs}s", f_sec)
+    tb(d, 116, 9, "OK=again", f_sec, anchor="rs")
+    line(d, 0, 11, 127, 11)
 
     if alarm:
         box(d, BANNER_X, BANNER_Y, BANNER_W, BANNER_H)
@@ -362,10 +369,10 @@ def render_survey_verdict(name, verdict, advice, mx, av, field, hits):
     tb(d, 64, DONE_A, advice, f_sec, anchor="ms")
     line(d, 0, DONE_A + 3, 127, DONE_A + 3)
 
-    tb(d, 2, DONE_S1, f"MAX {mx}%", f_sec)
+    tb(d, 2, DONE_S1, f"PEAK {mx}%", f_sec)
     tb(d, SV_COL_R, DONE_S1, f"AVG {av}%", f_sec)
     tb(d, 2, DONE_S2, f"HITS {hits}", f_sec)
-    tb(d, SV_COL_R, DONE_S2, f"FIELD {field}%", f_sec)
+    tb(d, SV_COL_R, DONE_S2, f"UP {field}%", f_sec)
 
     if alarm:
         frame(d, 0, 0, 127, 63, FG, lw=2)
@@ -379,7 +386,8 @@ def render_menu():
     img, d = canvas()
     tb(d, 4, 11, "Specter", f_pri)
     line(d, 0, 14, 127, 14)
-    items = ["Sweep", "Fingerprint", "Site Survey", "Logbook"]
+    items = ["Sweep - find it", "Fingerprint - type", "Site Survey - room",
+             "Watch Mode - guard"]
     ROW_H = 12
     for i, it in enumerate(items):
         y = 15 + i * ROW_H
@@ -394,13 +402,9 @@ def render_menu():
 
 def render_settings():
     img, d = canvas()
-    rows = [
-        ("Sensitivity", "Custom", True),
-        ("Survey time", "60 s", False),
-        ("Sound", "ON", False),
-        ("Vibrate", "ON", False),
-        ("Stealth", "ON", False),
-    ]
+    rows = [("Sensitivity", "Custom", True), ("Survey time", "60s", False),
+            ("Sound", "ON", False), ("Vibrate", "ON", False),
+            ("LED", "ON", False)]
     ROW_H = 12
     for i, (k, v, sel) in enumerate(rows):
         y = 2 + i * ROW_H
@@ -438,37 +442,38 @@ def render_logbook():
 # --------------------------------------------------------------------------
 # Watch Mode (views/watch_view.c)
 # --------------------------------------------------------------------------
-def render_watch(
-    name,
-    watching_s,
-    contacts,
-    peak,
-    present,
-    strength=0,
-    last_ago="--",
-    blink=True,
-    seen_s=0,
-):
+def render_watch(name, watching_s, contacts, peak, present, strength=0,
+                 last_ago="--", blink=True, seen_s=0):
     img, d = canvas()
-    tb(d, 2, 9, "WATCH", f_sec)
-    tb(d, 126, 9, "ARMED", f_sec, anchor="rs")
-    line(d, 0, 11, 127, 11)
+    draw_header(d, "WATCH", "READER" if present else "LISTENING", present)
 
     STATUS_Y, STATUS_H, CLOCK_BASE = 14, 14, 34
-    FOOT1, FOOT2, COLR = 50, 61, 66
+    FOOT1, FOOT2, COLR = 50, 60, 66
 
     if present:
-        # Solid, never strobing; the liveness cue is the pair of small markers.
+        # Solid, never strobing - an inverted block is already the loudest thing
+        # on a 1-bit screen. (The pair of "liveness" discs this used to draw did
+        # not exist in watch_view.c at all.)
         box(d, 0, STATUS_Y - 1, 128, STATUS_H)
-        tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, BG, anchor="ms")
-        if blink:
-            disc(d, 6, STATUS_Y + 5, 2, BG)
-            disc(d, 121, STATUS_Y + 5, 2, BG)
+        tb(d, 64, STATUS_Y + 9, "ACTIVE READER", f_pri, BG, anchor="ms")
+        # how strong, readable from across a room
+        frame(d, 4, 29, 120, 9)
+        w = (strength * 118) // 100
+        if w > 0:
+            box(d, 5, 30, w, 7)
+        frame(d, 0, 0, 127, 63, FG, lw=2)
     else:
-        word = "CLEAR NOW" if contacts else "ALL CLEAR"
+        word = "QUIET NOW" if contacts else "NO READER"
         tb(d, 4, STATUS_Y + 9, word, f_pri, anchor="ls")
         mm, ss = divmod(watching_s, 60)
-        tb(d, 126, CLOCK_BASE, f"{mm:02d}:{ss:02d}", f_big, anchor="rs")
+        hours = watching_s > 99 * 60 + 59
+        if hours:
+            mm, ss = watching_s // 3600, (watching_s // 60) % 60
+        tb(d, 120 if hours else 126, CLOCK_BASE, f"{mm:02d}:{ss:02d}", f_big, anchor="rs")
+        if hours:
+            tb(d, 121, CLOCK_BASE, "h", f_sec)
+        if contacts:
+            tb(d, 4, 33, "OK=re-arm", f_sec)
 
     line(d, 0, FOOT1 - 10, 127, FOOT1 - 10)
     tb(d, 2, FOOT1, f"HITS {contacts}", f_sec)
@@ -477,141 +482,19 @@ def render_watch(
     if present:
         tb(d, COLR, FOOT2, f"NOW {strength}%", f_sec)
     elif contacts:
-        tb(d, COLR, FOOT2, f"SEEN {seen_s}s", f_sec)
+        tb(d, COLR, FOOT2, f"UP {seen_s}s", f_sec)
     else:
-        tb(d, COLR, FOOT2, "OK=reset", f_sec)
+        tb(d, COLR, FOOT2, "OK=re-arm", f_sec)
     save(img, name)
 
 
-CLEAR_HIST = [
-    3,
-    5,
-    2,
-    8,
-    4,
-    1,
-    6,
-    3,
-    9,
-    5,
-    2,
-    7,
-    4,
-    11,
-    6,
-    3,
-    8,
-    5,
-    2,
-    10,
-    6,
-    4,
-    9,
-    5,
-    3,
-    7,
-    12,
-    6,
-    4,
-    8,
-    5,
-    14,
-    7,
-    4,
-    9,
-    6,
-    3,
-    8,
-    5,
-    11,
-    6,
-    4,
-    7,
-    3,
-    9,
-    5,
-    2,
-    8,
-    13,
-    6,
-    4,
-    7,
-    5,
-    10,
-    6,
-    3,
-    8,
-    5,
-    2,
-    7,
-    4,
-    9,
-]
+CLEAR_HIST = [3, 5, 2, 8, 4, 1, 6, 3, 9, 5, 2, 7, 4, 11, 6, 3, 8, 5, 2, 10, 6, 4, 9,
+              5, 3, 7, 12, 6, 4, 8, 5, 14, 7, 4, 9, 6, 3, 8, 5, 11, 6, 4, 7, 3, 9, 5,
+              2, 8, 13, 6, 4, 7, 5, 10, 6, 3, 8, 5, 2, 7, 4, 9]
 
-SURVEY_HIST = [
-    4,
-    6,
-    3,
-    9,
-    5,
-    2,
-    7,
-    12,
-    22,
-    38,
-    51,
-    44,
-    30,
-    18,
-    9,
-    5,
-    3,
-    8,
-    4,
-    6,
-    11,
-    7,
-    4,
-    9,
-    5,
-    3,
-    8,
-    15,
-    28,
-    41,
-    36,
-    24,
-    13,
-    7,
-    4,
-    9,
-    5,
-    2,
-    8,
-    6,
-    3,
-    10,
-    5,
-    7,
-    4,
-    9,
-    6,
-    3,
-    8,
-    5,
-    12,
-    7,
-    4,
-    10,
-    6,
-    3,
-    9,
-    5,
-    8,
-    4,
-    7,
-    3,
-]
+SURVEY_HIST = [4, 6, 3, 9, 5, 2, 7, 12, 22, 38, 51, 44, 30, 18, 9, 5, 3, 8, 4, 6, 11,
+               7, 4, 9, 5, 3, 8, 15, 28, 41, 36, 24, 13, 7, 4, 9, 5, 2, 8, 6, 3, 10,
+               5, 7, 4, 9, 6, 3, 8, 5, 12, 7, 4, 10, 6, 3, 9, 5, 8, 4, 7, 3]
 
 
 def strip(names, out, cols=None):
@@ -633,107 +516,44 @@ def strip(names, out, cols=None):
 
 
 if __name__ == "__main__":
-    render_sweep(
-        "screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2, trend=0
-    )
+    # Nothing found yet - what a first-time user actually sees, hint and all.
+    render_sweep("screen_clear.png", 7, 18, 0, False, "LISTENING", CLEAR_HIST, anim=2,
+                 trend=0)
+    # Same quiet room, but after a contact: sensitivity and the live waveform.
+    render_sweep("screen_quiet.png", 9, 22, 1, False, "LISTENING", CLEAR_HIST, anim=2,
+                 trend=-1)
     # A real polling reader at arm's length, and the Flipper laid on top of one
     # (raw duty ~31% saturates the meter -> reads MAX, not "31%").
-    render_sweep(
-        "screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1, trend=1
-    )
-    render_sweep(
-        "screen_reader_max.png",
-        100,
-        100,
-        4,
-        True,
-        "READER",
-        CLEAR_HIST,
-        anim=1,
-        saturated=True,
-        trend=1,
-    )
-    render_sweep(
-        "screen_calibrate.png",
-        4,
-        9,
-        0,
-        False,
-        "CALIBRATE",
-        CLEAR_HIST,
-        anim=2,
-        calibrating=True,
-        calib_pct=62,
-    )
+    render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1,
+                 trend=1)
+    render_sweep("screen_reader_max.png", 100, 100, 4, True, "READER", CLEAR_HIST,
+                 anim=1, saturated=True, trend=1)
+    render_sweep("screen_calibrate.png", 4, 9, 0, False, "CALIBRATING", CLEAR_HIST,
+                 anim=2, calibrating=True, calib_pct=62, sens="Custom")
 
-    render_fingerprint(
-        "screen_fingerprint.png", "POLLING", "Fixed poll cycle", 88, 204, 24, 2, 11
-    )
-    render_fingerprint(
-        "screen_fingerprint_cw.png",
-        "CONTINUOUS",
-        "Carrier held up",
-        100,
-        0,
-        0,
-        0,
-        98,
-        has_cadence=False,
-    )
+    render_fingerprint("screen_fingerprint.png", "POLLING", "Fixed poll",
+                       88, 204, 24, 2, 11)
+    render_fingerprint("screen_fingerprint_cw.png", "CONTINUOUS", "Always on",
+                       100, 0, 0, 0, 98, has_cadence=False)
 
     render_survey_running("screen_survey_run.png", 62, 23, 9, 51, 2, False, SURVEY_HIST)
-    render_survey_verdict(
-        "screen_survey_done.png", "ACTIVE READER", "Fingerprint it", 74, 21, 38, 5
-    )
-    render_survey_verdict(
-        "screen_survey_clean.png", "CLEAN", "Nothing emitting here", 6, 2, 0, 0
-    )
+    render_survey_verdict("screen_survey_done.png", "ACTIVE READER", "Fingerprint it",
+                          74, 21, 38, 5)
+    render_survey_verdict("screen_survey_clean.png", "CLEAN", "No field detected",
+                          6, 2, 0, 0)
 
-    render_watch(
-        "screen_watch.png",
-        watching_s=752,
-        contacts=2,
-        peak=100,
-        present=False,
-        last_ago="3m12s",
-        seen_s=47,
-    )
-    render_watch(
-        "screen_watch_hit.png",
-        watching_s=92,
-        contacts=4,
-        peak=71,
-        present=True,
-        strength=63,
-        last_ago="0s",
-    )
+    render_watch("screen_watch.png", watching_s=752, contacts=2, peak=100, present=False,
+                 last_ago="3m12s", seen_s=47)
+    render_watch("screen_watch_hit.png", watching_s=92, contacts=4, peak=71, present=True,
+                 strength=63, last_ago="0s")
 
     render_menu()
     render_settings()
     render_logbook()
 
-    strip(
-        (
-            "screen_reader.png",
-            "screen_fingerprint.png",
-            "screen_survey_done.png",
-            "screen_watch_hit.png",
-        ),
-        "screens.png",
-    )
-    strip(
-        (
-            "screen_clear.png",
-            "screen_reader.png",
-            "screen_fingerprint.png",
-            "screen_survey_run.png",
-            "screen_survey_done.png",
-            "screen_watch.png",
-            "screen_watch_hit.png",
-            "screen_logbook.png",
-            "screen_calibrate.png",
-            "screen_settings.png",
-        ),
-        "screens_all.png",
-        cols=5,
-    )
+    strip(("screen_reader.png", "screen_fingerprint.png",
+           "screen_survey_done.png", "screen_watch_hit.png"), "screens.png")
+    strip(("screen_clear.png", "screen_quiet.png", "screen_reader.png",
+           "screen_fingerprint.png", "screen_survey_run.png",
+           "screen_survey_done.png", "screen_watch.png", "screen_watch_hit.png",
+           "screen_logbook.png", "screen_calibrate.png"), "screens_all.png", cols=5)

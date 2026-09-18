@@ -93,6 +93,18 @@ void specter_notify_found(SpecterApp* app) {
     if(app->settings.sound) notification_message(app->notifications, &seq_snd_found);
 }
 
+void specter_notify_pegged(SpecterApp* app) {
+    furi_assert(app);
+    /* "You are on it - stop moving." Past saturation, closing in genuinely
+     * cannot produce a bigger number, and that moment is announced only on a
+     * screen you are usually not looking at: your hand is under an ATM lip or
+     * the Flipper is face-down on a pump. The motor is the one channel that
+     * still reaches you there, so this is the single most useful haptic in the
+     * app - and it asserts nothing the meter was not already showing. */
+    if(!specter_rate_allows(&app->last_pegged_tick, FOUND_MIN_INTERVAL_MS)) return;
+    if(app->settings.vibro) notification_message(app->notifications, &seq_vibro_short);
+}
+
 void specter_notify_gone(SpecterApp* app) {
     furi_assert(app);
     if(specter_lights_allowed(app)) notification_message(app->notifications, &seq_led_green_blip);

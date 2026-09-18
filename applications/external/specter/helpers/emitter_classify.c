@@ -85,22 +85,22 @@ const char* emitter_class_name(EmitterClass k) {
         return "INTERMITTENT";
     case EmitterClassUnknown:
     default:
-        return "SAMPLING";
+        return "NO CALL YET";
     }
 }
 
 const char* emitter_class_blurb(EmitterClass k) {
     switch(k) {
     case EmitterClassNoField:
-        return "Air is clear";
+        return "No carrier";
     case EmitterClassContinuous:
-        return "Carrier held up";
+        return "Always on";
     case EmitterClassPolling:
-        return "Fixed poll cycle";
+        return "Fixed poll";
     case EmitterClassIntermittent:
-        return "Irregular bursts";
+        return "Irregular";
     case EmitterClassUnknown:
     default:
-        return "Need more cycles";
+        return "Hold still";
     }
 }

@@ -25,4 +25,9 @@ void survey_view_update_running(
 /* Survey finished: freeze on the verdict card. */
 void survey_view_show_verdict(SurveyView* v, const SurveySummary* summary);
 
-void survey_view_tick(SurveyView* v);
+/* Short OK while the survey is running: end it now and grade what we have. */
+void survey_view_set_finish_callback(SurveyView* v, SurveyViewCallback cb, void* ctx);
+
+/* Clears the card. Call on scene entry so a re-entry cannot draw the previous
+ * run's verdict before the first tick arrives. */
+void survey_view_reset(SurveyView* v);

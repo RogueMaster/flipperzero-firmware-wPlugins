@@ -7,6 +7,8 @@
 typedef struct SweepView SweepView;
 
 typedef void (*SweepViewCallback)(void* context);
+/* more_sensitive = UP was pressed. */
+typedef void (*SweepViewStepCallback)(void* context, bool more_sensitive);
 
 SweepView* sweep_view_alloc(void);
 void sweep_view_free(SweepView* v);
@@ -21,11 +23,18 @@ void sweep_view_set_log_callback(SweepView* v, SweepViewCallback cb, void* conte
 /* LEFT press = calibrate the noise floor to wherever you are standing. */
 void sweep_view_set_left_callback(SweepView* v, SweepViewCallback cb, void* context);
 
+/* UP / DOWN = step sensitivity one notch without leaving the screen. */
+void sweep_view_set_sens_callback(SweepView* v, SweepViewStepCallback cb, void* context);
+
 /* Push the latest detector snapshot into the view model. */
 void sweep_view_update(SweepView* v, const FieldStats* stats, const char* sens_label);
 
 /* Briefly overprint a word in the header ("RESET", "CAL 4>7"). */
 void sweep_view_flash(SweepView* v, const char* msg);
+
+/* Clears every reading. Call on scene entry so a re-entry cannot draw the
+ * previous hunt's alarm before the first tick arrives. */
+void sweep_view_reset(SweepView* v);
 
 /* Advance animation phase (call on the UI tick). */
 void sweep_view_tick(SweepView* v);

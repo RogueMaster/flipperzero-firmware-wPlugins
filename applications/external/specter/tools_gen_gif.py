@@ -9,7 +9,7 @@ would display for a plausible physical trajectory (walk up to a terminal, rest
 on it, walk away).
 
 The first version of this animation was drawn by hand and was quietly
-impossible: it showed a field of 81% while still claiming to be SCANNING with
+impossible: it showed a field of 81% while still claiming to be LISTENING with
 zero contacts, when in reality anything over the noise floor latches presence
 and flips the screen to the alarm strip straight away.
 
@@ -84,21 +84,26 @@ def engine_frames():
 
 def sweep_frame(r, hist, anim):
     img, d = m.canvas()
-    state = "READER" if r["present"] else "SCANNING"
-    m.draw_header(d, "SPECTER", state, r["present"])
-    m.draw_gauge(d, r["shown"], r["peak"], r["present"], anim)
+    state = "READER" if r["present"] else "LISTENING"
+    m.draw_header(d, "SWEEP", state, r["present"])
+    m.draw_gauge(d, r["shown"], r["peak"], r["present"], anim,
+                 threshold=m.SENS_MARK[SENS])
     m.draw_readout(d, r["shown"], r["peak"], r["contacts"], r["trend"])
     m.line(d, 0, 52, 127, 52)
     if r["present"]:
         m.box(d, 0, 53, 128, 11)
         m.disc(d, 4, 58, 1, m.BG)
-        m.tb(d, 9, 61, "ACTIVE READER", m.f_sec, m.BG)
-        m.tb(d, 125, 61, r["word"], m.f_sec, m.BG, anchor="rs")
+        m.tb(d, 9, 62, "ACTIVE READER", m.f_sec, m.BG)
+        m.tb(d, 125, 62, r["word"], m.f_sec, m.BG, anchor="rs")
         m.frame(d, 0, 0, 127, 63, m.FG, lw=2)
+    elif not r["contacts"]:
+        m.tb(d, 2, 62, "LEFT=cal hold OK=log", m.f_sec)
+        wave_left = 999  # the hint owns the strip until something is found
     else:
-        label = f"S:{SENS}"
+        label = f"SENS {SENS}"
         m.tb(d, 2, 62, label, m.f_sec)
-        wave_left = 2 + int(d.textlength(label, font=m.f_sec) / m.S) + 4
+        wave_left = 2 + len(label) * m.SEC_PITCH + 4
+    if not r["present"]:
         for k in range(62):
             x = 126 - k * 2
             if x < wave_left:
@@ -124,22 +129,22 @@ def fingerprint_frame(fp, conf, shift):
     if fill:
         m.box(d, m.CONF_X + 1, m.CONF_Y + 1, fill, m.CONF_H - 2)
     m.tb(d, 2, m.FP_BLURB, blurb, m.f_sec)
-    m.tb(d, 126, m.FP_BLURB, f"{conf}%", m.f_sec, anchor="rs")
+    m.tb(d, 126, m.FP_BLURB, f"CONF {conf}%", m.f_sec, anchor="rs")
     m.tb(d, 2, m.FP_STAT1, f"PER {approx}{period}ms", m.f_sec)
     m.tb(d, m.FP_COL_R, m.FP_STAT1, f"BST {approx}{burst}ms", m.f_sec)
     m.tb(d, 2, m.FP_STAT2, f"JIT {approx}{jitter}ms", m.f_sec)
-    m.tb(d, m.FP_COL_R, m.FP_STAT2, f"DUTY {duty}%", m.f_sec)
+    m.tb(d, m.FP_COL_R, m.FP_STAT2, f"UP {duty}%", m.f_sec)
     m.line(d, 0, m.FP_DIV, 127, m.FP_DIV)
     bits = m.pulse_train(period, burst)
     m.draw_trace(d, bits[shift:] + bits[:shift])
     return img
 
 
-def verdict_frame(sv):
+def verdict_frame(sv, secs=60):
     verdict, advice, mx, av, field, hits = sv
     img, d = m.canvas()
-    m.tb(d, 2, 9, "SITE SURVEY", m.f_sec)
-    m.tb(d, 126, 9, "OK=again", m.f_sec, anchor="rs")
+    m.tb(d, 2, 9, f"SURVEY {secs}s", m.f_sec)
+    m.tb(d, 116, 9, "OK=again", m.f_sec, anchor="rs")
     m.line(d, 0, 11, 127, 11)
     alarm = verdict == "ACTIVE READER"
     if alarm:
@@ -149,10 +154,10 @@ def verdict_frame(sv):
     m.tb(d, 64, m.DONE_V, verdict, m.f_pri, m.BG if alarm else m.FG, anchor="ms")
     m.tb(d, 64, m.DONE_A, advice, m.f_sec, anchor="ms")
     m.line(d, 0, m.DONE_A + 3, 127, m.DONE_A + 3)
-    m.tb(d, 2, m.DONE_S1, f"MAX {mx}%", m.f_sec)
+    m.tb(d, 2, m.DONE_S1, f"PEAK {mx}%", m.f_sec)
     m.tb(d, m.SV_COL_R, m.DONE_S1, f"AVG {av}%", m.f_sec)
     m.tb(d, 2, m.DONE_S2, f"HITS {hits}", m.f_sec)
-    m.tb(d, m.SV_COL_R, m.DONE_S2, f"FIELD {field}%", m.f_sec)
+    m.tb(d, m.SV_COL_R, m.DONE_S2, f"UP {field}%", m.f_sec)
     if alarm:
         m.frame(d, 0, 0, 127, 63, m.FG, lw=2)
     return img

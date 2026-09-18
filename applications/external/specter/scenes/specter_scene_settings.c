@@ -81,9 +81,13 @@ static void logging_changed(VariableItem* item) {
     settings_commit(app);
 }
 
-/* Boosted maps the real polling band onto the whole dial; Raw shows the
- * unscaled carrier duty-cycle, which tops out around 30% on a live reader. */
-static const char* const meter_labels[] = {"Boost", "Raw"};
+/* Named for what the number on the dial IS, not for which sounds better.
+ * "Boost"/"Raw" read as a quality setting, so a curious user flipped it,
+ * watched every reading on every screen drop to about a third, and
+ * reasonably concluded the app was broken. 0-100 maps the real polling band
+ * onto the whole dial; Duty % is the unscaled carrier duty-cycle, which tops
+ * out around 30% on a live reader. */
+static const char* const meter_labels[] = {"0-100", "Duty %"};
 
 static void meter_changed(VariableItem* item) {
     SpecterApp* app = variable_item_get_context(item);
@@ -134,21 +138,21 @@ void specter_scene_settings_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->settings.stealth ? 1 : 0);
     variable_item_set_current_value_text(item, on_off[app->settings.stealth ? 1 : 0]);
 
-    item = variable_item_list_add(list, "Logging", 2, logging_changed, app);
+    item = variable_item_list_add(list, "Save findings", 2, logging_changed, app);
     variable_item_set_current_value_index(item, app->settings.logging ? 1 : 0);
     variable_item_set_current_value_text(item, on_off[app->settings.logging ? 1 : 0]);
 
-    item = variable_item_list_add(list, "Meter", 2, meter_changed, app);
+    item = variable_item_list_add(list, "Meter scale", 2, meter_changed, app);
     variable_item_set_current_value_index(item, app->settings.meter_raw ? 1 : 0);
     variable_item_set_current_value_text(item, meter_labels[app->settings.meter_raw ? 1 : 0]);
 
     /* Not a toggle - selecting it goes to the confirmation screen. */
-    item = variable_item_list_add(list, "Clear logbook", 1, NULL, app);
+    item = variable_item_list_add(list, "Clear logbook...", 1, NULL, app);
     uint32_t size = specter_log_size();
     if(size >= 1024u) {
-        snprintf(buf, sizeof(buf), "%luk", (unsigned long)(size / 1024u));
+        snprintf(buf, sizeof(buf), "%lukB", (unsigned long)(size / 1024u));
     } else {
-        snprintf(buf, sizeof(buf), "%lub", (unsigned long)size);
+        snprintf(buf, sizeof(buf), "%luB", (unsigned long)size);
     }
     variable_item_set_current_value_text(item, buf);
 

@@ -105,7 +105,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DNDInventory v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDSpellbook v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
-- Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - Updated: [Rush Hour v0.1.7 (By Endika)](https://github.com/Endika/flipper-tutu)
 - Updated: [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - Updated: [Sub Duplicate Finder v1.2.2 (By Endika)](https://github.com/Endika/flipper-sub-dup)
@@ -140,9 +139,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DFC v1.0 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - Added: [YRM100X Pro v1.0 (By AlexeySmirnov74)](https://github.com/AlexeySmirnov74/YRM100X_PRO) `Req: YRM100X`
 - Added: [SigRoam Wardriving v0.3 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
-- Updated: [Specter v2.9 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Updated: [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [SigRoam Wardriving v0.4 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
+- Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- Updated: [Specter v3.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 
 <a name="release"></a>
 
@@ -926,7 +926,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - [Space PLayground v0.1 (By alanfortlink)](https://github.com/alanfortlink/fzspground)
 - [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
-- [Specter v2.9 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- [Specter v3.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - [Spectrum Analyzer v1.5 (By jolcese)](https://github.com/jolcese/flipperzero-firmware/tree/spectrum/applications/spectrum_analyzer)
 - [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [SPI Mem Manager v1.5 (By drunkbatya)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/spi_mem_manager)

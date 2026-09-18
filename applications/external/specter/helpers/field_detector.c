@@ -22,9 +22,6 @@
  * reader poll, and it maps one column to one screen pixel with no rescaling. */
 #define TRACE_SLICE_SAMPLES 4u
 
-/* How many recent burst/gap/period triples the cadence figures average over. */
-#define CADENCE_RING 16u
-
 /* Calibration lifts the threshold this far above the measured ambient floor. */
 #define CALIBRATION_MARGIN 3u
 #define CALIBRATION_MAX    60u
@@ -41,68 +38,11 @@ struct FieldDetector {
      * hot loop, without the mutex - deliberately, because a single byte cannot
      * tear on this core and taking a lock per sample would be absurd. They must
      * be volatile all the same, or the compiler is entitled to hoist the read
-     * out of the loop and the worker would never see a change. threshold was
-     * missing it while full_scale next to it had it. */
+     * out of the loop and the worker would never see a change. */
     volatile uint8_t threshold; // duty-cycle noise floor (%)
     volatile uint8_t full_scale; // raw duty that displays as 100%
     FieldStats stats; // guarded by mutex
 };
-
-/* Rolling window of recent carrier timings, owned by the worker thread. */
-typedef struct {
-    uint16_t burst[CADENCE_RING];
-    uint16_t gap[CADENCE_RING];
-    uint16_t period[CADENCE_RING];
-    uint8_t count; // entries filled, saturates at CADENCE_RING
-    uint8_t head; // next slot to write
-    uint32_t total; // complete cycles seen since the last reset
-} CadenceRing;
-
-static void cadence_ring_clear(CadenceRing* r) {
-    memset(r, 0, sizeof(*r));
-}
-
-static uint16_t clamp_u16(uint32_t v) {
-    return (uint16_t)(v > UINT16_MAX ? UINT16_MAX : v);
-}
-
-static void cadence_ring_push(CadenceRing* r, uint32_t burst_ms, uint32_t gap_ms) {
-    r->burst[r->head] = clamp_u16(burst_ms);
-    r->gap[r->head] = clamp_u16(gap_ms);
-    r->period[r->head] = clamp_u16(burst_ms + gap_ms);
-    r->head = (uint8_t)((r->head + 1u) % CADENCE_RING);
-    if(r->count < CADENCE_RING) r->count++;
-    r->total++;
-}
-
-/* Condense the ring into the means the classifier wants. Jitter is the mean
- * absolute deviation of the period - a plain, explainable measure of how steady
- * the emitter's rhythm is, and one that does not need a square root. */
-static void cadence_ring_summarise(const CadenceRing* r, CadenceStats* out, uint8_t duty) {
-    memset(out, 0, sizeof(*out));
-    out->duty = duty;
-    out->bursts = clamp_u16(r->total);
-    if(r->count == 0) return;
-
-    uint32_t n = r->count;
-    uint32_t burst_sum = 0, gap_sum = 0, period_sum = 0;
-    for(uint32_t i = 0; i < n; i++) {
-        burst_sum += r->burst[i];
-        gap_sum += r->gap[i];
-        period_sum += r->period[i];
-    }
-    out->burst_ms = clamp_u16(burst_sum / n);
-    out->gap_ms = clamp_u16(gap_sum / n);
-    out->period_ms = clamp_u16(period_sum / n);
-
-    uint32_t mean = period_sum / n;
-    uint32_t dev_sum = 0;
-    for(uint32_t i = 0; i < n; i++) {
-        uint32_t p = r->period[i];
-        dev_sum += (p > mean) ? (p - mean) : (mean - p);
-    }
-    out->jitter_ms = clamp_u16(dev_sum / n);
-}
 
 static void field_stats_clear(FieldStats* s) {
     s->present = false;
@@ -110,6 +50,7 @@ static void field_stats_clear(FieldStats* s) {
     s->strength_raw = 0;
     s->saturated = false;
     s->peak = 0;
+    s->peak_ref = 0;
     s->average = 0;
     s->contacts = 0;
     s->last_seen_tick = 0;
@@ -136,6 +77,11 @@ static int32_t field_detector_worker(void* context) {
         fd->stats.error = true;
         fd->stats.armed = false;
         furi_mutex_release(fd->mutex);
+        /* No worker is alive past this point, and the flag must not claim one
+         * is: reset_req and calib_req are handed to this thread, so leaving it
+         * set made OK flash "RESET" and LEFT start a calibration that could
+         * never progress, against a thread that had already exited. */
+        fd->running = false;
         return 0;
     }
 
@@ -170,13 +116,10 @@ static int32_t field_detector_worker(void* context) {
     PresentHold hold;
     present_hold_reset(&hold);
 
-    /* per-sample edge tracking */
-    bool raw_prev = false;
-    uint32_t run_start = armed_tick;
-    bool have_burst = false;
-    uint32_t last_burst_ms = 0;
-    CadenceRing ring;
-    cadence_ring_clear(&ring);
+    /* Carrier rhythm. The algorithm lives in cadence.h so it can be tested on
+     * a host - see that header for the two bugs that hid in it here. */
+    CadenceTracker cad;
+    cadence_tracker_reset(&cad, false, armed_tick, tick_hz);
 
     /* pulse trace accumulation */
     uint32_t slice_hits = 0, slice_samples = 0;
@@ -190,20 +133,8 @@ static int32_t field_detector_worker(void* context) {
         bool raw = furi_hal_nfc_field_is_present();
         uint32_t now = furi_get_tick();
 
-        /* ---- edges: time each contiguous carrier-on and carrier-off run ---- */
-        if(raw != raw_prev) {
-            uint32_t run_ms = now - run_start;
-            if(raw_prev) {
-                /* an ON run just ended */
-                last_burst_ms = run_ms;
-                have_burst = true;
-            } else if(have_burst) {
-                /* an OFF run just ended and we have its burst: one full cycle */
-                cadence_ring_push(&ring, last_burst_ms, run_ms);
-            }
-            run_start = now;
-            raw_prev = raw;
-        }
+        /* ---- carrier rhythm ---- */
+        cadence_tracker_sample(&cad, raw, now);
 
         /* ---- pulse trace ---- */
         if(raw) slice_hits++;
@@ -238,12 +169,11 @@ static int32_t field_detector_worker(void* context) {
                 ema_reset(&smoother);
                 ema = 0;
                 was_present = false;
-                have_burst = false;
+                cadence_tracker_reset(&cad, raw, now, tick_hz);
                 present_hold_reset(&hold);
                 strength_sum = 0;
                 strength_n = 0;
                 calibrating = false;
-                cadence_ring_clear(&ring);
                 armed_tick = now;
                 s->armed_tick = now;
                 /* This window straddles the reset, so none of it belongs to the
@@ -257,6 +187,8 @@ static int32_t field_detector_worker(void* context) {
                 s->calibrating = false;
                 s->calibration_ready = false;
                 s->calibration_progress = 0;
+                s->calibration_floor = 0;
+                s->calibration_suggest = 0;
             }
 
             if(fd->calib_req) {
@@ -273,7 +205,7 @@ static int32_t field_detector_worker(void* context) {
 
             /* Cadence first: the hold below is sized from the measured polling
              * period, so it has to be up to date before presence is decided. */
-            cadence_ring_summarise(&ring, &s->cadence, ema);
+            cadence_tracker_summarise(&cad, &s->cadence, ema);
 
             /* Detection stays on the raw duty: the noise floor is a statement
              * about the signal, not about how the gauge is drawn. The verdict is
@@ -291,6 +223,10 @@ static int32_t field_detector_worker(void* context) {
             s->strength = shown;
             s->saturated = field_scale_is_saturated(ema, fd->full_scale);
             if(shown > s->peak) s->peak = shown;
+
+            /* Tracked separately and always at full scale - see peak_ref. */
+            uint8_t shown_ref = field_scale_apply(ema, SPECTER_FULL_SCALE_DUTY);
+            if(shown_ref > s->peak_ref) s->peak_ref = shown_ref;
 
             /* Halve both sides long before the sum could overflow - the mean is
              * preserved, and a sweep left running for days still reads sanely. */
@@ -333,6 +269,20 @@ static int32_t field_detector_worker(void* context) {
             }
 
             furi_mutex_release(fd->mutex);
+
+            /* The emitter left, so the cadence we measured stops being evidence.
+             *
+             * bursts only ever counted up, and nothing aged the ring out, so once
+             * a single cycle had been seen the classifier's silence branch
+             * (duty == 0 && bursts == 0) was unreachable for the rest of the
+             * session. Fingerprint went on declaring "POLLING, 100%" with full
+             * timings in an empty car park, and the guard in the fingerprint
+             * scene that exists precisely to stop you logging "an empty finding
+             * that looks like evidence later" could never fire. For an app whose
+             * whole claim is that it does not overstate what it measured, that
+             * was the worst bug in it. Dropping the ring here lets the verdict
+             * fall back to SAMPLING and then to NO FIELD as the duty decays. */
+            if(was_present && !present) cadence_tracker_drop(&cad);
             was_present = present;
 
             hits = 0;
@@ -408,13 +358,13 @@ void field_detector_start(FieldDetector* fd) {
 
 void field_detector_stop(FieldDetector* fd) {
     furi_assert(fd);
-    if(!fd->running) return;
+    /* Gate on the handle, not on `running` - a worker that gave up on the radio
+     * clears the flag itself, and gating on it would leak the FuriThread. */
+    if(!fd->thread) return;
     fd->running = false;
-    if(fd->thread) {
-        furi_thread_join(fd->thread);
-        furi_thread_free(fd->thread);
-        fd->thread = NULL;
-    }
+    furi_thread_join(fd->thread);
+    furi_thread_free(fd->thread);
+    fd->thread = NULL;
 }
 
 void field_detector_reset(FieldDetector* fd) {
@@ -431,6 +381,21 @@ void field_detector_reset(FieldDetector* fd) {
 void field_detector_calibrate_begin(FieldDetector* fd, uint32_t duration_ms) {
     furi_assert(fd);
     if(!fd->running) return;
+
+    /* Publish the state change now rather than leaving it to the worker's next
+     * window. The UI polls these flags every 100 ms, and the worker might not
+     * reach its own window for ~96 ms - in that gap a second calibration would
+     * still see the PREVIOUS run's calibration_ready, re-adopt that stale
+     * threshold, flash "CAL 2>5" and chime as though it had succeeded, and then
+     * throw the new measurement away when it completed. You would sweep a noisy
+     * room at a quiet room's noise floor, and that stale value got written to
+     * the SD card on the way out. */
+    furi_mutex_acquire(fd->mutex, FuriWaitForever);
+    fd->stats.calibration_ready = false;
+    fd->stats.calibration_progress = 0;
+    fd->stats.calibrating = true;
+    furi_mutex_release(fd->mutex);
+
     fd->calib_duration_ms = duration_ms;
     fd->calib_req = true;
 }
@@ -446,5 +411,7 @@ void field_detector_get(FieldDetector* fd, FieldStats* out) {
     furi_assert(out);
     furi_mutex_acquire(fd->mutex, FuriWaitForever);
     *out = fd->stats;
+    uint8_t thr = fd->threshold < 255u ? (uint8_t)(fd->threshold + 1u) : 255u;
+    out->threshold_shown = field_scale_apply(thr, fd->full_scale);
     furi_mutex_release(fd->mutex);
 }

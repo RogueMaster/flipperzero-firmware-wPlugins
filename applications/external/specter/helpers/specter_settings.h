@@ -35,6 +35,11 @@ uint8_t specter_settings_threshold(const SpecterSettings* s);
 /* Raw duty that should read as a full meter, per the Meter setting. */
 uint8_t specter_settings_full_scale(const SpecterSettings* s);
 
+/* Short tag for the current meter scale, for stamping into logbook entries.
+ * The same physical measurement reads 100% on Boost and 31% on Raw, so a
+ * logged percentage without this is not a figure anyone can compare later. */
+const char* specter_settings_meter_tag(const SpecterSettings* s);
+
 const char* specter_settings_sensitivity_label(uint8_t index);
 const char* specter_settings_survey_label(uint8_t index);
 uint32_t specter_settings_survey_seconds(const SpecterSettings* s);

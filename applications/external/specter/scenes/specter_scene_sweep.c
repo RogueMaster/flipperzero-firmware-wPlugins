@@ -3,6 +3,7 @@
 
 static uint8_t tick_counter; // paces the "locked" LED blink
 static bool calibration_handled; // the calibration result is applied exactly once
+static bool was_saturated; // edge-latch for the "you are on it" pulse
 
 static void specter_sweep_ok_cb(void* context) {
     SpecterApp* app = context;
@@ -12,6 +13,13 @@ static void specter_sweep_ok_cb(void* context) {
 static void specter_sweep_log_cb(void* context) {
     SpecterApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, SpecterCustomEventSweepLog);
+}
+
+static void specter_sweep_sens_cb(void* context, bool more_sensitive) {
+    SpecterApp* app = context;
+    view_dispatcher_send_custom_event(
+        app->view_dispatcher,
+        more_sensitive ? SpecterCustomEventSweepSensUp : SpecterCustomEventSweepSensDown);
 }
 
 static void specter_sweep_left_cb(void* context) {
@@ -26,11 +34,14 @@ void specter_scene_sweep_on_enter(void* context) {
     app->last_click_tick = 0;
     tick_counter = 0;
     calibration_handled = false;
+    was_saturated = false;
 
     specter_apply_threshold(app);
+    sweep_view_reset(app->sweep_view); // never show the last hunt's alarm
     sweep_view_set_ok_callback(app->sweep_view, specter_sweep_ok_cb, app);
     sweep_view_set_log_callback(app->sweep_view, specter_sweep_log_cb, app);
     sweep_view_set_left_callback(app->sweep_view, specter_sweep_left_cb, app);
+    sweep_view_set_sens_callback(app->sweep_view, specter_sweep_sens_cb, app);
 
     field_detector_start(app->detector);
     specter_stealth_enter(app);
@@ -63,11 +74,37 @@ static void specter_sweep_adopt_calibration(SpecterApp* app, const FieldStats* s
     specter_notify_saved(app);
 }
 
+/* UP/DOWN walk High(0) - Medium(1) - Low(2). Custom sits outside that order, so
+ * stepping out of it lands at whichever end you asked for. */
+static void specter_sweep_step_sensitivity(SpecterApp* app, bool more_sensitive) {
+    uint8_t i = app->settings.sensitivity_index;
+
+    if(i == SPECTER_SENS_CUSTOM) {
+        i = more_sensitive ? 0u : 2u;
+    } else if(more_sensitive) {
+        if(i == 0u) return; // already at High
+        i--;
+    } else {
+        if(i >= 2u) return; // already at Low
+        i++;
+    }
+
+    app->settings.sensitivity_index = i;
+    specter_apply_threshold(app);
+    app->settings_dirty = true; // flushed on the way out, off the radio's path
+    sweep_view_flash(app->sweep_view, specter_settings_sensitivity_label(i));
+}
+
 bool specter_scene_sweep_on_event(void* context, SceneManagerEvent event) {
     SpecterApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
+        if(event.event == SpecterCustomEventSweepSensUp ||
+           event.event == SpecterCustomEventSweepSensDown) {
+            specter_sweep_step_sensitivity(app, event.event == SpecterCustomEventSweepSensUp);
+            return true;
+        }
         if(event.event == SpecterCustomEventReset) {
             /* Mid-scan, the obvious meaning of OK is "stop this", not "reset my
              * counters" - that is what people reach for when they want out. */
@@ -93,10 +130,11 @@ bool specter_scene_sweep_on_event(void* context, SceneManagerEvent event) {
                 sweep_view_flash(app->sweep_view, "LOG OFF");
             } else if(specter_log_append(
                           "SWEEP",
-                          "field %u%% peak %u%% hits %lu",
+                          "field %u%% peak %u%% hits %lu m:%s",
                           (unsigned)st.strength,
                           (unsigned)st.peak,
-                          (unsigned long)st.contacts)) {
+                          (unsigned long)st.contacts,
+                          specter_settings_meter_tag(&app->settings))) {
                 sweep_view_flash(app->sweep_view, "LOGGED");
                 specter_notify_saved(app);
             } else if(specter_log_is_full()) {
@@ -131,6 +169,11 @@ bool specter_scene_sweep_on_event(void* context, SceneManagerEvent event) {
             if(st.present && !app->reader_active) specter_notify_found(app);
             if(!st.present && app->reader_active) specter_notify_gone(app);
             app->reader_active = st.present;
+
+            /* Latched so a needle hovering on the saturation boundary cannot
+             * buzz on every tick; cleared when the meter comes back down. */
+            if(st.saturated && !was_saturated) specter_notify_pegged(app);
+            was_saturated = st.saturated;
 
             /* while a reader is locked on: blink + geiger clicks scaled by strength */
             if(st.present) {

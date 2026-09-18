@@ -19,73 +19,72 @@
 
 /* Copy only the entries whose detail line starts with `type` from `text` into
  * `out`. A NULL or empty `type` copies everything. Always NUL-terminates (as
- * long as out_len > 0) and never writes past out_len. Returns the number of
- * entries kept. */
+ * long as out_len > 0) and never writes past out_len. Returns entries kept.
+ *
+ * ENTRY-AWARE, not pair-aware. The first version assumed the text was a strict
+ * sequence of (timestamp, detail) pairs, which is true of the file but NOT of
+ * what the viewer actually passes in: the viewer shows only the last few KB and
+ * trims to the first newline, so whenever that cut landed inside a timestamp
+ * line the text began on a DETAIL line. Every line was then off by one - details
+ * read as timestamps and timestamps as details - and a logbook full of READER
+ * entries filtered to nothing at all. Detail lines are indented, so that is what
+ * distinguishes them; a leading fragment with no timestamp of its own is dropped
+ * rather than shown, because a finding without its timestamp is not evidence. */
 static inline size_t
     specter_log_filter(const char* text, const char* type, char* out, size_t out_len) {
     if(!out || out_len == 0) return 0;
     out[0] = '\0';
     if(!text) return 0;
 
-    /* No filter: straight copy, still bounded. */
     bool all = (type == NULL) || (type[0] == '\0');
+    size_t tl = 0;
+    if(!all)
+        while(type[tl])
+            tl++;
 
     size_t w = 0, kept = 0;
+
+    /* One pass, two sweeps per entry: find its extent, decide, then copy. */
     const char* p = text;
-
     while(*p) {
-        /* line 1: the timestamp */
-        const char* stamp = p;
-        const char* nl = p;
-        while(*nl && *nl != '\n')
-            nl++;
-        size_t stamp_len = (size_t)(nl - stamp);
-        p = (*nl == '\n') ? nl + 1 : nl;
+        /* An entry starts at a non-indented line. Skip any leading fragment. */
+        if(*p == ' ') {
+            while(*p && *p != '\n')
+                p++;
+            if(*p == '\n') p++;
+            continue;
+        }
 
-        /* line 2: the indented detail, if this entry has one */
-        const char* detail = p;
-        const char* nl2 = p;
-        while(*nl2 && *nl2 != '\n')
-            nl2++;
-        size_t detail_len = (size_t)(nl2 - detail);
-        bool have_detail = detail_len > 0;
-        if(have_detail) p = (*nl2 == '\n') ? nl2 + 1 : nl2;
+        const char* entry = p;
+        /* the stamp line */
+        while(*p && *p != '\n')
+            p++;
+        if(*p == '\n') p++;
 
+        /* every indented line after it belongs to this entry */
         bool match = all;
-        if(!match && have_detail) {
-            /* skip the two-space indent before comparing the type tag */
-            const char* d = detail;
-            size_t left = detail_len;
-            while(left && (*d == ' ')) {
+        while(*p == ' ') {
+            const char* d = p;
+            while(*d == ' ')
                 d++;
-                left--;
+            if(!match) {
+                size_t i = 0;
+                while(i < tl && d[i] && d[i] == type[i])
+                    i++;
+                if(i == tl) match = true;
             }
-            size_t tl = 0;
-            while(type[tl])
-                tl++;
-            if(left >= tl) {
-                match = true;
-                for(size_t i = 0; i < tl; i++) {
-                    if(d[i] != type[i]) {
-                        match = false;
-                        break;
-                    }
-                }
-            }
+            while(*p && *p != '\n')
+                p++;
+            if(*p == '\n') p++;
         }
 
         if(match) {
             kept++;
-            for(size_t i = 0; i < stamp_len && w + 1 < out_len; i++)
-                out[w++] = stamp[i];
-            if(w + 1 < out_len) out[w++] = '\n';
-            if(have_detail) {
-                for(size_t i = 0; i < detail_len && w + 1 < out_len; i++)
-                    out[w++] = detail[i];
-                if(w + 1 < out_len) out[w++] = '\n';
-            }
+            for(const char* q = entry; q < p && w + 1 < out_len; q++)
+                out[w++] = *q;
+            /* the file may end without a trailing newline */
+            if(w && out[w - 1] != '\n' && w + 1 < out_len) out[w++] = '\n';
         }
-        if(!have_detail && *p == '\0') break;
     }
 
     out[w < out_len ? w : out_len - 1] = '\0';

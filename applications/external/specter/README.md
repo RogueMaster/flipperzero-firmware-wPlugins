@@ -94,10 +94,16 @@ an ATM lip, a parcel, a desk. The needle rides the field strength in real time.
 - **`FIELD %`** — the same reading as a number, with a **▲ / ▼ trend arrow**
   telling you whether the last half-second made things *warmer or colder*. When
   you're hunting, that arrow matters more than the number.
-- **`PK` / `C`** — peak reading and how many separate contacts you've had.
-- **Bottom strip** — the live waveform and your current sensitivity while quiet;
-  it flips to a black **`● ACTIVE READER`** alarm bar with a proximity word the
-  moment a carrier is detected.
+- **`PEAK %`** — the strongest reading since you armed, the number behind the
+  peak-hold dot.
+- **The mark across the dial** — where `READER` *begins* at your current
+  sensitivity. Everything past it is what Specter will call a hit, so the dial
+  answers "what counts?" instead of leaving you to guess.
+- **Bottom strip** — until you've found your first reader it carries the two keys
+  you can't discover by pressing things (`LEFT=cal`, `hold OK=log`); after that,
+  your sensitivity and a live waveform. It flips to a black
+  **`● ACTIVE READER`** alarm bar with a proximity word the moment a carrier is
+  detected.
 - **Proximity** — `FAINT → NEAR → CLOSE → STRONG → MAX`. `MAX` means the meter is
   *pegged*: you're as close as this measurement can resolve.
 
@@ -109,6 +115,7 @@ sweep with the Flipper in your pocket and hunt by ear alone.
 | `OK` | Reset peak-hold and contact count |
 | `hold OK` | Save this reading to the logbook |
 | `LEFT` | Calibrate to the room's noise floor (3 s) |
+| `UP` / `DOWN` | Step sensitivity without leaving the hunt |
 
 <br clear="right">
 
@@ -130,7 +137,7 @@ emitter from another.
 | **INTERMITTENT** | Bursty but irregular — often a phone or a reader in use |
 
 Underneath are `PER` (poll period), `BST` (burst width), `JIT` (jitter) and
-`DUTY` (true duty-cycle), plus a **logic-analyser pulse train** of the raw
+`UP` (true duty-cycle), plus a **logic-analyser pulse train** of the raw
 carrier — so the verdict is never something you have to take on faith. A genuine
 polling reader shows up as an unmistakable square wave.
 
@@ -157,13 +164,16 @@ normally, and get a single verdict at the end — no needle-watching.
 - **`TRACE`** — brief or faint hits; worth a slower second pass
 - **`ACTIVE READER`** — something was genuinely up and emitting
 
-…with `MAX` / `AVG` field, contact count, and `FIELD %` — **how much of the survey
+…with `PEAK` / `AVG` field, contact count, and `UP %` — **how much of the survey
 a carrier was actually up**, which is often the most telling number of the four.
-Runs for 30 s, 60 s or 2 min, and logs the result automatically.
+Runs for 30 s, 60 s or 2 min, and logs the result automatically. The card names
+the length it was graded over, because a 30-second `CLEAN` is not the same
+finding as a two-minute one.
 
 | Key | Action |
 |---|---|
-| `OK` | Run the survey again |
+| `OK` *(running)* | Stop now and grade what it has |
+| `OK` *(on the card)* | Run another survey |
 
 <br clear="right">
 
@@ -175,12 +185,15 @@ Runs for 30 s, 60 s or 2 min, and logs the result automatically.
 walk away. Where Sweep is you hunting and Survey is a fixed-length test, Watch
 just waits — for minutes or hours.
 
-**What you see.** A large elapsed clock and `ALL CLEAR` while nothing is there.
-The instant a reader appears the band inverts to **`READER PRESENT`**, the
-**screen wakes**, and the alarm sounds. The band is steady rather than flashing —
-a small marker pulses instead, so it reads as live without strobing at you. After it passes, the screen keeps the
-evidence: `HITS` (how many separate contacts), `PEAK`, `LAST` (how long ago the
-most recent one was) and `SEEN` (total time a carrier was actually up).
+**What you see.** A large elapsed clock and `NO READER` while nothing is there.
+The instant a reader appears the band inverts to **`ACTIVE READER`**, a strength
+bar shows how close it is, the **screen wakes**, and the alarm sounds. The band
+is steady rather than flashing — on a 1-bit screen a solid inverted block is
+already the loudest thing on it, and the readouts that genuinely change carry
+the liveness. After it passes, the screen keeps the evidence: `HITS` (how many
+separate contacts), `PEAK`, `LAST` (how long ago the most recent one was) and
+`UP` (total time a carrier was actually up). The clock rolls over to `hh:mm`
+past 99:59 rather than freezing, so an overnight watch still adds up.
 
 Watch **deliberately ignores stealth mode** — a dark, silent guard that never
 tells you it saw something would be worse than useless.
@@ -259,12 +272,12 @@ of one. The meter is scaled against that real polling band instead:
 | 12% | 40% | `NEAR` |
 | 20% | 67% | `CLOSE` |
 | 28% | 93% | `STRONG` |
-| ≥30% *(resting on a reader)* | **100%** | `MAX` |
+| ≥30% *(resting on a reader)* | **100%** | `PEGGED` |
 
 The **raw duty is never lost**: the noise floor, auto-calibration and the
-Fingerprint screen's `DUTY` all still work in true duty-cycle, because those
+Fingerprint screen's `UP` all still work in true duty-cycle, because those
 describe the *signal*, not your distance from it. Want the literal number?
-**Settings → Meter → Raw**.
+**Settings → Meter scale → Duty %**.
 
 ### 💾 Everything persists
 
@@ -412,8 +425,9 @@ The `.fap` lands in `dist/specter.fap`; `ufbt launch` copies it to `apps/NFC/` a
   duty-cycle against a typical polling band (see [Reading the meter](#-reading-the-meter--fixed-in-23));
   a reader that polls unusually sparsely will read lower at the same distance, and one in continuous-wave
   mode will peg from further away.
-- **The meter tops out.** `MAX` means the carrier is up as much as this reader ever keeps it up — past
-  that point, closing in genuinely cannot produce a bigger number. Use the `PK` peak-hold to compare
+- **The meter tops out.** `PEGGED` means the carrier is up as much as this reader ever keeps it up — past
+  that point, closing in genuinely cannot produce a bigger number. The Flipper buzzes once when it happens,
+  so you know to stop moving even when you can't see the screen. Use the `PEAK` hold to compare
   positions instead.
 - **Cadence resolves to ~2 ms.** That's the sampling period. Timings anywhere near it are shown with a
   **`~`** and the confidence is discounted accordingly — Specter would rather flag its own resolution

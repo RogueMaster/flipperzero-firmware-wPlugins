@@ -1,4 +1,5 @@
 #include "fingerprint_view.h"
+#include "view_chrome.h"
 #include <furi.h>
 #include <gui/gui.h>
 #include <stdio.h>
@@ -40,17 +41,9 @@ typedef struct {
     EmitterVerdict verdict;
     uint8_t trace[SPECTER_TRACE_LEN];
     uint8_t trace_head;
-    uint8_t anim;
     uint8_t flash; // ticks left to show flash_msg
     char flash_msg[12];
 } FingerprintModel;
-
-static void draw_error(Canvas* canvas) {
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, "NFC unavailable");
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignCenter, "Close any other NFC app.");
-}
 
 /* The pulse train: one screen column per trace slice, drawn as a logic-analyser
  * waveform with real vertical edges. This is the raw carrier - not the smoothed
@@ -86,12 +79,12 @@ static void fingerprint_view_draw(Canvas* canvas, void* model) {
 
     if(m->flash) {
         /* a confirmation takes over the right of the header for a beat */
-        canvas_draw_box(canvas, 78, 0, 50, 11);
+        canvas_draw_box(canvas, 74, 0, 54, 11);
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_str_aligned(canvas, 125, 9, AlignRight, AlignBottom, m->flash_msg);
         canvas_set_color(canvas, ColorBlack);
     } else {
-        const char* state = m->error ? "NFC BUSY" : !m->armed ? "IDLE" : "LISTENING";
+        const char* state = specter_chrome_state(m->error, m->armed, m->present);
         canvas_draw_str_aligned(canvas, 116, 9, AlignRight, AlignBottom, state);
         if(m->present) {
             canvas_draw_disc(canvas, 123, 5, 2);
@@ -99,10 +92,10 @@ static void fingerprint_view_draw(Canvas* canvas, void* model) {
             canvas_draw_circle(canvas, 123, 5, 2);
         }
     }
-    canvas_draw_line(canvas, 0, 11, 127, 11);
+    specter_chrome_rule(canvas);
 
     if(m->error) {
-        draw_error(canvas);
+        specter_chrome_nfc_error(canvas);
         return;
     }
 
@@ -113,7 +106,10 @@ static void fingerprint_view_draw(Canvas* canvas, void* model) {
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, ROW_BLURB_BASE, emitter_class_blurb(m->verdict.klass));
-    snprintf(buf, sizeof(buf), "%u%%", (unsigned)m->verdict.confidence);
+    /* Labelled: this screen shows two percentages and an unlabelled one next
+     * to the blurb was indistinguishable from the duty figure four rows down.
+     * CONF is the app's own word - the logbook already writes "conf 88%". */
+    snprintf(buf, sizeof(buf), "CONF %u%%", (unsigned)m->verdict.confidence);
     canvas_draw_str_aligned(canvas, 126, ROW_BLURB_BASE, AlignRight, AlignBottom, buf);
 
     /* ---------- the numbers behind it ---------- */
@@ -138,7 +134,7 @@ static void fingerprint_view_draw(Canvas* canvas, void* model) {
         canvas_draw_str(canvas, 2, ROW_STAT2_BASE, "JIT --");
     }
 
-    snprintf(buf, sizeof(buf), "DUTY %u%%", (unsigned)c->duty);
+    snprintf(buf, sizeof(buf), "UP %u%%", (unsigned)c->duty);
     canvas_draw_str(canvas, COL_RIGHT, ROW_STAT2_BASE, buf);
 
     /* ---------- raw carrier ---------- */
@@ -197,6 +193,12 @@ void fingerprint_view_set_reset_callback(FingerprintView* v, FingerprintViewCall
     v->reset_ctx = ctx;
 }
 
+void fingerprint_view_reset(FingerprintView* v) {
+    furi_assert(v);
+    with_view_model(
+        v->view, FingerprintModel * m, { memset(m, 0, sizeof(FingerprintModel)); }, true);
+}
+
 void fingerprint_view_update(FingerprintView* v, const FieldStats* stats) {
     furi_assert(v);
     furi_assert(stats);
@@ -234,7 +236,6 @@ void fingerprint_view_tick(FingerprintView* v) {
         v->view,
         FingerprintModel * m,
         {
-            m->anim++;
             if(m->flash) m->flash--;
         },
         true);

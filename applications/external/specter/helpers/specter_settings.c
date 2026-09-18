@@ -16,7 +16,7 @@
 static const char* const sens_labels[SPECTER_SENS_COUNT] = {"High", "Medium", "Low", "Custom"};
 static const uint8_t sens_thresh[SPECTER_SENS_COUNT] = {0, 8, 20, 0}; // Custom uses its own
 
-static const char* const survey_labels[SPECTER_SURVEY_COUNT] = {"30 s", "60 s", "2 min"};
+static const char* const survey_labels[SPECTER_SURVEY_COUNT] = {"30s", "60s", "2min"};
 static const uint32_t survey_seconds[SPECTER_SURVEY_COUNT] = {30, 60, 120};
 
 void specter_settings_set_defaults(SpecterSettings* s) {
@@ -30,6 +30,11 @@ void specter_settings_set_defaults(SpecterSettings* s) {
     s->stealth = false;
     s->logging = true;
     s->meter_raw = false; // full-scale meter by default; see field_scale.h
+}
+
+const char* specter_settings_meter_tag(const SpecterSettings* s) {
+    furi_assert(s);
+    return s->meter_raw ? "raw" : "boost";
 }
 
 uint8_t specter_settings_full_scale(const SpecterSettings* s) {

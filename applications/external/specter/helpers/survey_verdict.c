@@ -29,7 +29,12 @@ SurveyVerdict survey_verdict(const SurveySummary* s) {
      * dormant or shielded reader stays invisible to any of them. */
     if(s->contacts == 0) return SurveyVerdictClean;
 
-    if(survey_in_field_pct(s) >= ACTIVE_IN_FIELD_PCT || s->peak >= ACTIVE_PEAK) {
+    /* peak_ref, not peak: the Meter setting is a display preference. Judged on
+     * the displayed peak, switching Meter to Raw put this threshold back out of
+     * reach for a polling reader - exactly the bug the comment above says was
+     * fixed - so a brief close pass over a skimmer was filed as TRACE while the
+     * identical survey on Boost reported ACTIVE. */
+    if(survey_in_field_pct(s) >= ACTIVE_IN_FIELD_PCT || s->peak_ref >= ACTIVE_PEAK) {
         return SurveyVerdictActive;
     }
 
@@ -56,6 +61,6 @@ const char* survey_verdict_advice(SurveyVerdict v) {
         return "Sweep again, slower";
     case SurveyVerdictClean:
     default:
-        return "Nothing emitting here";
+        return "No field detected";
     }
 }

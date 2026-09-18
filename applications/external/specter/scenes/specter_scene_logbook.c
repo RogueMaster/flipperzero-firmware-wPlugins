@@ -27,7 +27,7 @@ void specter_scene_logbook_on_enter(void* context) {
             } else {
                 furi_string_printf(
                     app->text_box_store,
-                    "No entries of this kind yet.\n\n\"%s\" matched nothing in the\nrecent logbook.\n\nBack up a screen to see\neverything.",
+                    "No \"%s\"\nin the recent log.\n\nPress BACK to pick a\ndifferent filter.",
                     specter_log_filter_label(filter_index));
             }
             free(filtered);
@@ -35,18 +35,29 @@ void specter_scene_logbook_on_enter(void* context) {
         text_box_set_font(app->text_box, TextBoxFontText);
         text_box_set_focus(app->text_box, TextBoxFocusEnd);
     } else {
-        furi_string_set(
+        /* Hard-wrapped to 21 characters: three of the old lines ran past the
+         * box and wrapped mid-phrase. The old text also told everyone to turn
+         * Logging on - including the people who already had - so the one
+         * screen meant to explain an empty logbook gave the wrong reason. */
+        furi_string_set(app->text_box_store, "");
+        if(!app->settings.logging) {
+            furi_string_cat_str(
+                app->text_box_store,
+                "Saving is OFF in\n"
+                "Settings - turn it on\n\n");
+        }
+        furi_string_cat_str(
             app->text_box_store,
             "Logbook is empty.\n\n"
-            "Findings land here when you:\n"
-            " - hold OK on the Sweep screen\n"
-            " - press OK on Fingerprint\n"
-            " - finish a Site Survey\n"
-            " - catch a reader in Watch\n\n"
-            "Turn Logging on in Settings.\n"
-            "Saved on the SD card as\n"
-            "apps_data/specter/logbook.txt\n"
-            "and .csv for a spreadsheet.");
+            "Saved findings appear\n"
+            "here. To save one:\n\n"
+            " Sweep: hold OK\n"
+            " Fingerprint: OK\n"
+            " Survey: automatic\n"
+            " Watch: automatic\n\n"
+            "Files on the SD card:\n"
+            " apps_data/specter/\n"
+            " logbook.txt + .csv");
         text_box_set_font(app->text_box, TextBoxFontText);
         text_box_set_focus(app->text_box, TextBoxFocusStart);
     }

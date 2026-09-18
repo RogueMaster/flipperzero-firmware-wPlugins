@@ -25,7 +25,8 @@ typedef enum {
 typedef struct {
     uint32_t elapsed_ms; // survey wall time
     uint32_t in_field_ms; // of which, carrier present
-    uint8_t peak; // 0..100 strongest reading
+    uint8_t peak; // 0..100 strongest reading, as the user's meter showed it
+    uint8_t peak_ref; // the same peak on the canonical scale - judged against
     uint8_t average; // 0..100 mean reading
     uint32_t contacts; // distinct appearances
 } SurveySummary;

@@ -1,0 +1,72 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/at0m-b0mb/Specter-FlipperZero.git
+    commit_sha: fa32666  # v3.0 - REPLACE with the commit that carries the new screenshots
+short_description: Passively sense active 13.56 MHz NFC readers and skimmers with the onboard NFC chip. No extra hardware, never transmits.
+description: |
+  Specter turns your Flipper Zero into a pocket counter-surveillance bug-sweep for active 13.56 MHz NFC readers. It **passively listens** for the RF field that a powered-on reader constantly emits — a hidden card skimmer slipped into a payment terminal, a covert reader behind a door panel, a rogue logger taped under a desk — then tells you where it is, what kind of thing it is, whether the room is clean, and, left on watch, the moment one appears while you are away.
+
+  **No extra hardware. It never transmits.** Specter uses the Flipper's onboard NFC chip in field-detect mode, so there is nothing to buy and nothing to plug in.
+
+  ## What it does
+
+  Specter answers four questions, each on its own screen:
+
+  - **Sweep — where is it?** An analog-style EMF gauge whose needle rides the field strength in real time, with a peak-hold marker and a mark showing exactly where READER begins at your current sensitivity. When a reader's carrier is sensed the screen frames itself in an alarm border and shows a proximity readout (FAINT / NEAR / CLOSE / STRONG / PEGGED). Optional geiger clicks speed up as the field gets stronger, and the Flipper buzzes once when the meter pegs, so you can home in on the source — and know when to stop moving — without looking at the screen. UP and DOWN change sensitivity without leaving the hunt.
+  - **Fingerprint — what is it?** Classifies the reader's polling cadence as CONTINUOUS, POLLING, or INTERMITTENT with a confidence readout and a logic-analyzer pulse train.
+  - **Site Survey — is the room clean?** Sweeps over time and returns a CLEAN / TRACE / ACTIVE verdict, on a card that names the length it was graded over. Press OK to stop early and grade what it has.
+  - **Watch — did one show up while I was away?** An unattended monitor that wakes the screen and logs the moment a reader appears, with a running clock, contact count, and peak field.
+
+  ## Logbook
+
+  Every detection can be saved to the SD card, RTC-timestamped, as both a human-readable logbook.txt and a spreadsheet-friendly logbook.csv. The on-device logbook can be filtered by type — sweep readings, readers found, site surveys, or watch contacts.
+
+  ## How it works
+
+  Specter reads the external-field-detected bit on the onboard ST25R3916 NFC chip and samples it continuously, condensing it into a field-strength percentage and timing the carrier's on/off cadence. It is **listen-only** — it detects the reader's field but never emits one of its own.
+
+  ## Limitations
+
+  - **13.56 MHz (HF) only.** Specter cannot sense 125 kHz (LF) readers — the onboard field-detect path exists only on the HF radio.
+  - It detects an active, powered reader's field. A passive tag or a reader that is switched off produces no field to detect.
+changelog: |
+  ## 3.0
+
+  A user-experience release. Nothing here changes what Specter can hear — the radio code is untouched — but a great deal changes about whether you can tell what it is telling you.
+
+  - One name per measurement. PEAK is the strongest reading everywhere (it was PK, PEAK and MAX on three screens), HITS is the contact count (was C and HITS), UP is carrier-up time (was DUTY, SEEN and FIELD%), FIELD now means only the live meter, and CONF labels the confidence figure that used to be a bare percentage beside another bare percentage.
+  - The keys are on the screen. Sweep carries its two undiscoverable bindings until you find your first reader, then retires the hint. Watch shows OK=re-arm whenever there is something to lose — it used to show it only while the count was zero, i.e. only while it was harmless.
+  - The dial marks the real threshold. The bold "danger zone" ticks were decoration contradicting the app: presence is judged against the sensitivity threshold, which sits near 30% of the dial on the default setting, not 80%.
+  - Site Survey stops early on OK and grades what it has. OK used to silently discard the whole walk and restart the countdown.
+  - Watch Mode's alarm screen gains a strength bar, filling a band that was blank at the exact moment something was happening.
+  - Help opens with the full key map and a legend for PER, BST, JIT and CONF, which were defined nowhere on the device.
+  - Settings say what they change: Meter scale is now 0-100 / Duty % rather than Boost / Raw, which read as a quality setting.
+  - Fixed: Watch's clock froze at 99:59 while LAST kept counting; re-entering a mode could briefly draw the previous run's alarm; the Sweep readout could run off the right edge of the screen.
+
+  ## 2.8
+
+  - The field meter now reaches 100% resting on a reader. The strength smoother lost precision to integer rounding and settled about ten points low; it now keeps sub-unit resolution, so a real terminal reads 100% MAX as it should.
+  - The Watch alarm band no longer animates at all — a solid inverted block is already the loudest thing on the screen, and liveness is carried by the readouts that actually change.
+  - New: filter the Logbook by type — everything, sweep readings, readers found, site surveys, or watch contacts. A matched entry keeps both of its lines, because a finding without its timestamp is not evidence.
+  - The demo animation is now generated from the app's own detection code, so it shows exactly what the device would display. Host test suite is up to 437 checks across seven pure modules.
+
+  ## 2.7
+
+  - Watch Mode alarm is calmer: the READER PRESENT band no longer strobes at 5 Hz — it is solidly inverted, with a small marker pulsing at about 1 Hz as a "this is live" cue.
+  - READER PRESENT now releases faster after a reader leaves. The hold time derives from the reader's own measured polling period (about 2.5 cycles, clamped to 600–1500 ms) instead of a fixed 1.5 s.
+  - Releases now ship two builds: one for official firmware (API 87) and one for the newer API 88 line (Unleashed / RogueMaster / Momentum), because a compiled app targets a single API version.
+
+  ## 2.6
+
+  - Fixed a divider line clipping the NOISE FLOOR text during a noise-floor scan, and the ACTIVE READER alarm text losing its bottom pixel row.
+  - Added a static layout checker that fails the build if any two drawing primitives overlap on screen.
+
+  Full version history: [docs/changelog.md](https://github.com/at0m-b0mb/Specter-FlipperZero/blob/main/docs/changelog.md)
+screenshots:
+  - screenshots/ss0.png
+  - screenshots/ss1.png
+  - screenshots/ss2.png
+  - screenshots/ss0_2.png
+  - screenshots/ss1_2.png
+  - screenshots/ss2_2.png

@@ -1,4 +1,5 @@
 #include "survey_view.h"
+#include "view_chrome.h"
 #include <furi.h>
 #include <gui/gui.h>
 #include <stdio.h>
@@ -6,10 +7,12 @@
 
 /* Running: a progress bar, the live numbers, and the waveform that produced
  * them. Finished: one verdict, one next step, and the evidence underneath. */
-#define BAR_X 4
-#define BAR_Y 15
-#define BAR_W 120
-#define BAR_H 11
+/* Same box as the verdict banner below (BANNER_*), so the running and
+ * finished states of one mode are not two different rectangles. */
+#define BAR_X 2
+#define BAR_Y 14
+#define BAR_W 124
+#define BAR_H 14
 
 #define RUN_STAT1_BASE 35
 #define RUN_STAT2_BASE 45
@@ -31,6 +34,8 @@ struct SurveyView {
     View* view;
     SurveyViewCallback restart_cb;
     void* restart_ctx;
+    SurveyViewCallback finish_cb;
+    void* finish_ctx;
 };
 
 typedef struct {
@@ -48,16 +53,22 @@ typedef struct {
     /* finished */
     SurveySummary summary;
     SurveyVerdict verdict;
-    uint8_t anim;
 } SurveyModel;
 
 static void draw_header(Canvas* canvas, const SurveyModel* m) {
     char buf[16];
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 9, "SITE SURVEY");
+    if(m->finished) {
+        /* A 30-second CLEAN is not the same finding as a 2-minute one, and the
+         * card is what gets photographed. */
+        snprintf(buf, sizeof(buf), "SURVEY %lus", (unsigned long)(m->summary.elapsed_ms / 1000u));
+        canvas_draw_str(canvas, 2, 9, buf);
+    } else {
+        canvas_draw_str(canvas, 2, 9, "SITE SURVEY");
+    }
 
     if(m->finished) {
-        canvas_draw_str_aligned(canvas, 126, 9, AlignRight, AlignBottom, "OK=again");
+        canvas_draw_str_aligned(canvas, 116, 9, AlignRight, AlignBottom, "OK=again");
     } else {
         uint32_t left_ms = m->total_ms > m->elapsed_ms ? m->total_ms - m->elapsed_ms : 0;
         uint32_t left_s = (left_ms + 999u) / 1000u; // round up: never show 0:00 early
@@ -74,7 +85,7 @@ static void draw_header(Canvas* canvas, const SurveyModel* m) {
             canvas_draw_circle(canvas, 123, 5, 2);
         }
     }
-    canvas_draw_line(canvas, 0, 11, 127, 11);
+    specter_chrome_rule(canvas);
 }
 
 static void draw_running(Canvas* canvas, const SurveyModel* m) {
@@ -98,7 +109,7 @@ static void draw_running(Canvas* canvas, const SurveyModel* m) {
 
     snprintf(buf, sizeof(buf), "HITS %lu", (unsigned long)m->contacts);
     canvas_draw_str(canvas, 2, RUN_STAT2_BASE, buf);
-    canvas_draw_str(canvas, COL_RIGHT, RUN_STAT2_BASE, "sweep slowly");
+    canvas_draw_str(canvas, COL_RIGHT, RUN_STAT2_BASE, "OK=finish");
 
     /* live waveform of the strength history */
     canvas_draw_line(canvas, 0, RUN_WAVE_TOP - 2, 127, RUN_WAVE_TOP - 2);
@@ -139,14 +150,16 @@ static void draw_verdict(Canvas* canvas, const SurveyModel* m) {
     canvas_draw_line(canvas, 0, DONE_ADVICE_BASE + 3, 127, DONE_ADVICE_BASE + 3);
 
     const SurveySummary* s = &m->summary;
-    snprintf(buf, sizeof(buf), "MAX %u%%", (unsigned)s->peak);
+    snprintf(buf, sizeof(buf), "PEAK %u%%", (unsigned)s->peak);
     canvas_draw_str(canvas, 2, DONE_STAT1_BASE, buf);
     snprintf(buf, sizeof(buf), "AVG %u%%", (unsigned)s->average);
     canvas_draw_str(canvas, COL_RIGHT, DONE_STAT1_BASE, buf);
 
     snprintf(buf, sizeof(buf), "HITS %lu", (unsigned long)s->contacts);
     canvas_draw_str(canvas, 2, DONE_STAT2_BASE, buf);
-    snprintf(buf, sizeof(buf), "FIELD %u%%", (unsigned)survey_in_field_pct(s));
+    /* UP, not FIELD: FIELD is the live meter one keypress away on Sweep, and
+     * this is a fraction of the survey's duration, not a strength. */
+    snprintf(buf, sizeof(buf), "UP %u%%", (unsigned)survey_in_field_pct(s));
     canvas_draw_str(canvas, COL_RIGHT, DONE_STAT2_BASE, buf);
 
     if(alarm) {
@@ -160,11 +173,7 @@ static void survey_view_draw(Canvas* canvas, void* model) {
     draw_header(canvas, m);
 
     if(m->error) {
-        canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignCenter, "NFC unavailable");
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(
-            canvas, 64, 44, AlignCenter, AlignCenter, "Close any other NFC app.");
+        specter_chrome_nfc_error(canvas);
         return;
     }
 
@@ -178,7 +187,17 @@ static void survey_view_draw(Canvas* canvas, void* model) {
 static bool survey_view_input(InputEvent* event, void* context) {
     SurveyView* v = context;
     if(event->type == InputTypeShort && event->key == InputKeyOk) {
-        if(v->restart_cb) v->restart_cb(v->restart_ctx);
+        /* Mid-run OK used to throw the walk away and restart the countdown -
+         * the opposite of what someone who has just finished walking a room
+         * wants. Now it ends the survey and grades what it actually has; on
+         * the verdict card OK still runs another one. */
+        bool finished = false;
+        with_view_model(v->view, SurveyModel * m, { finished = m->finished; }, false);
+        if(finished) {
+            if(v->restart_cb) v->restart_cb(v->restart_ctx);
+        } else {
+            if(v->finish_cb) v->finish_cb(v->finish_ctx);
+        }
         return true;
     }
     return false; // everything else (incl. BACK) bubbles to the scene manager
@@ -210,6 +229,17 @@ void survey_view_set_restart_callback(SurveyView* v, SurveyViewCallback cb, void
     furi_assert(v);
     v->restart_cb = cb;
     v->restart_ctx = ctx;
+}
+
+void survey_view_set_finish_callback(SurveyView* v, SurveyViewCallback cb, void* ctx) {
+    furi_assert(v);
+    v->finish_cb = cb;
+    v->finish_ctx = ctx;
+}
+
+void survey_view_reset(SurveyView* v) {
+    furi_assert(v);
+    with_view_model(v->view, SurveyModel * m, { memset(m, 0, sizeof(SurveyModel)); }, true);
 }
 
 void survey_view_update_running(
@@ -249,9 +279,4 @@ void survey_view_show_verdict(SurveyView* v, const SurveySummary* summary) {
             m->verdict = survey_verdict(summary);
         },
         true);
-}
-
-void survey_view_tick(SurveyView* v) {
-    furi_assert(v);
-    with_view_model(v->view, SurveyModel * m, { m->anim++; }, true);
 }
