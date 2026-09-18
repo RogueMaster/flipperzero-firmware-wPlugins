@@ -16,6 +16,12 @@ _Static_assert(
     (int)SrSessionIdle == 0 && (int)SrSessionRunning == 1 && (int)SrSessionStopped == 2,
     "SrSessionState values changed; the sr_fmt_session_label mapping must be updated to match");
 
+/* Running + AP=0 BLE=0 copy. Exactly SR_VIEW_COLS; draw layer only — do not
+ * change sr_fmt_ap_row L0/L1/L2. Do not mix with wait_stage start/stop. */
+_Static_assert(
+    sizeof("Waiting for first AP") - 1u == (unsigned)SR_VIEW_COLS,
+    "Waiting for first AP must be exactly 20 cols");
+
 /* Tab bar height: y = 0..10, with the content area starting at 11 (UI-SPEC section 3).
  * draw_tabs and draw_stream each hardcoded 11 before; T4.11 collapsed them into one constant. */
 enum {
@@ -482,16 +488,21 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         if(m->qual_rev != 0u && !m->debug_rows) {
             int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 41);
             if(next >= 0) {
-                n = (int)sr_fmt_ap_row(
-                    m->ap_wifi,
-                    m->radio_rev,
-                    m->radio.ble,
-                    m->ap_ble,
-                    m->elapsed_ms,
-                    (size_t)SR_VIEW_COLS,
-                    raw,
-                    sizeof(raw));
-                sr_view_dash_put_line(canvas, next, raw, n, sizeof(raw));
+                if(m->ap_wifi == 0u && m->ap_ble == 0u) {
+                    n = snprintf(raw, sizeof(raw), "Waiting for first AP");
+                    sr_view_dash_put_line(canvas, next, raw, n, sizeof(raw));
+                } else {
+                    n = (int)sr_fmt_ap_row(
+                        m->ap_wifi,
+                        m->radio_rev,
+                        m->radio.ble,
+                        m->ap_ble,
+                        m->elapsed_ms,
+                        (size_t)SR_VIEW_COLS,
+                        raw,
+                        sizeof(raw));
+                    sr_view_dash_put_line(canvas, next, raw, n, sizeof(raw));
+                }
             } else {
                 /* Abnormal font height: small-font fallback, zero information loss
                  * (uniq= fix= at y21, AP row at y31, status bar at y61). */
@@ -500,15 +511,19 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
                 n = snprintf(raw, sizeof(raw), "uniq=%s fix=%s", a, b);
                 sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
 
-                n = (int)sr_fmt_ap_row(
-                    m->ap_wifi,
-                    m->radio_rev,
-                    m->radio.ble,
-                    m->ap_ble,
-                    m->elapsed_ms,
-                    (size_t)SR_VIEW_COLS,
-                    raw,
-                    sizeof(raw));
+                if(m->ap_wifi == 0u && m->ap_ble == 0u) {
+                    n = snprintf(raw, sizeof(raw), "Waiting for first AP");
+                } else {
+                    n = (int)sr_fmt_ap_row(
+                        m->ap_wifi,
+                        m->radio_rev,
+                        m->radio.ble,
+                        m->ap_ble,
+                        m->elapsed_ms,
+                        (size_t)SR_VIEW_COLS,
+                        raw,
+                        sizeof(raw));
+                }
                 sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
             }
             sr_view_dash_put_health(canvas, 61, m);
@@ -546,9 +561,13 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
             if(y > 61) {
                 return;
             }
-            sr_fmt__udec(m->ap_wifi, a, sizeof(a));
-            sr_fmt_ble_field(m->radio_rev, m->radio.ble, m->ap_ble, b, sizeof(b));
-            n = snprintf(raw, sizeof(raw), "AP=%s BLE=%s", a, b);
+            if(m->ap_wifi == 0u && m->ap_ble == 0u) {
+                n = snprintf(raw, sizeof(raw), "Waiting for first AP");
+            } else {
+                sr_fmt__udec(m->ap_wifi, a, sizeof(a));
+                sr_fmt_ble_field(m->radio_rev, m->radio.ble, m->ap_ble, b, sizeof(b));
+                n = snprintf(raw, sizeof(raw), "AP=%s BLE=%s", a, b);
+            }
             sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
             y += 10;
         } else {
@@ -556,10 +575,14 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
             if(y > 61) {
                 return;
             }
-            sr_fmt__udec(m->ap_wifi, a, sizeof(a));
-            sr_fmt_ble_field(m->radio_rev, m->radio.ble, m->ap_ble, b, sizeof(b));
-            sr_fmt__udec(m->with_gps_fix, c, sizeof(c));
-            n = snprintf(raw, sizeof(raw), "AP=%s BLE=%s fix=%s", a, b, c);
+            if(m->ap_wifi == 0u && m->ap_ble == 0u) {
+                n = snprintf(raw, sizeof(raw), "Waiting for first AP");
+            } else {
+                sr_fmt__udec(m->ap_wifi, a, sizeof(a));
+                sr_fmt_ble_field(m->radio_rev, m->radio.ble, m->ap_ble, b, sizeof(b));
+                sr_fmt__udec(m->with_gps_fix, c, sizeof(c));
+                n = snprintf(raw, sizeof(raw), "AP=%s BLE=%s fix=%s", a, b, c);
+            }
             sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
             y += 10;
         }
@@ -808,6 +831,11 @@ static void sr_view_dash_draw_stream(Canvas* canvas, const SrDashModel* m) {
  * (sizeof pinned at 712). Idle GPS sampling still uses sr_gps_status_text. */
 static const char* sr_view_dash_gps_hint(const SrDashModel* m, bool idle_hint) {
     if(m->session == (uint8_t)SrSessionRunning && m->scan_ui == (uint8_t)SrScanUiRunning) {
+        /* No wardrive CSV yet: y21 is already "No GPS data yet". Do not stack
+         * POI NoFix on top (that reads as a dead GPS lamp, not an empty log). */
+        if(m->gps_src == 0) {
+            return NULL;
+        }
         return sr_poi_status_text(m->gps_phase, m->gps_gate);
     }
     return sr_gps_status_text(m->gps_phase, m->gps_gate, idle_hint);

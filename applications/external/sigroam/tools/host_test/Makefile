@@ -27,7 +27,7 @@ SRC := ../../src
 
 # selfcontained only tests headers and needs an explicit list. Add new ★
 # headers here when you create them.
-STAR_HEADERS := sr_types.h sr_source_codec.h sr_source.h sr_line.h sr_bloom.h sr_model.h sr_settings.h sr_parse_marauder.h sr_rx_policy.h sr_handshake.h sr_scan_ctl.h sr_rawlog.h sr_view_fmt.h sr_gps_sample.h sr_wait_stage.h sr_resync.h sr_alert.h sr_poi.h sr_peer_sync.h sr_sess_seed.h sr_capture_health.h
+STAR_HEADERS := sr_types.h sr_source_codec.h sr_source.h sr_line.h sr_bloom.h sr_model.h sr_settings.h sr_parse_marauder.h sr_rx_policy.h sr_handshake.h sr_scan_ctl.h sr_rawlog.h sr_view_fmt.h sr_gps_sample.h sr_wait_stage.h sr_resync.h sr_alert.h sr_poi.h sr_peer_sync.h sr_sess_seed.h sr_capture_health.h sr_dialect.h
 STAR_PATHS   := $(addprefix $(SRC)/,$(STAR_HEADERS))
 
 # guard does not use an allowlist: every sr_*.h / sr_*.c under src/ must be
@@ -41,7 +41,7 @@ NON_STAR := sr_io.h sr_io.c sr_worker.h sr_worker.c sr_settings_store.h sr_setti
 # A broken glob (src/ renamed or moved) would make guard scan 0 files and
 # still report OK -- that is the most insidious failure mode. A floor value
 # guards against it. Raise the floor whenever you add a new ★ file.
-GUARD_MIN := 26
+GUARD_MIN := 27
 
 # GUI dual-target banlist (V-059 ③: 11 symbols that are Official ABSENT /
 # Momentum +).
@@ -128,7 +128,7 @@ ASAN_CFLAGS := -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined
 
 # The ★ implementations under test are compiled straight into run_tests
 # (zero stubs, see above).
-HOST_SRCS := main.c test_source_iface.c test_line.c test_bloom.c test_model.c test_settings.c test_parse_marauder.c test_rx_policy.c test_handshake.c test_scan_ctl.c test_rawlog.c test_view_fmt.c test_gps_sample.c test_wait_stage.c test_resync.c test_alert.c test_poi.c test_peer_sync.c test_sess_seed.c test_qual_parse.c test_capture_health.c test_f2_health2.c test_radio_dash.c $(SRC)/sr_line.c $(SRC)/sr_bloom.c $(SRC)/sr_model.c $(SRC)/sr_settings.c $(SRC)/sr_parse_marauder.c
+HOST_SRCS := main.c test_source_iface.c test_line.c test_bloom.c test_model.c test_settings.c test_parse_marauder.c test_rx_policy.c test_handshake.c test_scan_ctl.c test_rawlog.c test_view_fmt.c test_gps_sample.c test_wait_stage.c test_resync.c test_alert.c test_poi.c test_peer_sync.c test_sess_seed.c test_qual_parse.c test_capture_health.c test_f2_health2.c test_radio_dash.c test_dialect.c $(SRC)/sr_line.c $(SRC)/sr_bloom.c $(SRC)/sr_model.c $(SRC)/sr_settings.c $(SRC)/sr_parse_marauder.c
 
 .PHONY: all guard gui_portable storage_guard font_guard qual_refresh_guard dash_health_guard selfcontained asan clean
 

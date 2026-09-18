@@ -44,7 +44,8 @@ static inline const char* sr_poi_status_text(uint8_t phase, uint8_t gate);
 _Static_assert(sizeof("POI sent...") - 1u <= 20u, "POI sent... exceeds 20");
 _Static_assert(sizeof("POI logged") - 1u <= 20u, "POI logged exceeds 20");
 _Static_assert(sizeof("POI unconfirmed") - 1u <= 20u, "POI unconfirmed exceeds 20");
-_Static_assert(sizeof("POI needs GPS fix") - 1u <= 20u, "POI needs GPS fix exceeds 20");
+_Static_assert(sizeof("POI: no fix in log") - 1u <= 20u, "POI: no fix in log exceeds 20");
+_Static_assert(sizeof("POI: no fix in log") - 1u == 18u, "POI: no fix in log must be 18 cols");
 _Static_assert(sizeof("POI: no link") - 1u <= 20u, "POI: no link exceeds 20");
 
 /*
@@ -115,7 +116,9 @@ static inline const char* sr_poi_status_text(uint8_t phase, uint8_t gate) {
         return NULL;
     }
     if(gate == (uint8_t)SrPoiGateNoFix) {
-        return "POI needs GPS fix";
+        /* Copy change only (WORKLOG 2026-09-18 AP=0/POI). Gate still needs
+         * Running + non-empty CSV datetime. Do not treat gpsdata as fix. */
+        return "POI: no fix in log";
     }
     if(gate == (uint8_t)SrPoiGateNoLink) {
         return "POI: no link";
