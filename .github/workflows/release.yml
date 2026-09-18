@@ -42,10 +42,18 @@ jobs:
           ufbt
           cp dist/specter.fap out/specter-fw-dev.fap
 
+      # Releases used to go out with an empty body, so the page most people
+      # land on said nothing about what changed. The changelog is already
+      # written; lift the matching section instead of writing it twice.
+      - name: Compose release notes from the changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        run: python3 tools_release_notes.py "${GITHUB_REF_NAME}" > out/NOTES.md
+
       - name: Attach both .fap builds to the release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          body_path: out/NOTES.md
           files: |
             out/specter.fap
             out/specter-fw-dev.fap
