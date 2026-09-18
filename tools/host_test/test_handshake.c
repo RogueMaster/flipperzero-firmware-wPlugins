@@ -69,6 +69,16 @@ static SrHandshakeState oracle_eval(const SrHandshakeCtx* c, uint32_t now_ms) {
     return k_sent_table[key];
 }
 
+static bool oracle_should_retry(const SrHandshakeCtx* c, uint32_t now_ms) {
+    if(c == NULL || !c->sent) {
+        return false;
+    }
+    if(c->sends >= (uint8_t)SR_HANDSHAKE_MAX_SENDS) {
+        return false;
+    }
+    return oracle_eval(c, now_ms) == SrHandshakeNoReply;
+}
+
 int test_handshake_run(void) {
     static const SrSourceKind k_kinds[4] = {
         SrSourceUnknown,
@@ -212,6 +222,94 @@ int test_handshake_run(void) {
     wrap.fw_rev_now = 7u;
     wrap.fw_kind = SrSourceUnknown;
     CHECK(sr_handshake_eval(&wrap, 0x100u) == SrHandshakeNoReply);
+
+    CHECK(SR_HANDSHAKE_MAX_SENDS == 2);
+    CHECK(SR_HANDSHAKE_TIMEOUT_MS == 1500);
+    CHECK(sr_handshake_should_retry(NULL, 0) == false);
+
+    {
+        unsigned sent_i;
+        unsigned rose_i;
+        unsigned kind_i;
+        unsigned elapsed_i;
+        unsigned rx_i;
+        unsigned yes = 0;
+        unsigned no = 0;
+        unsigned maxed = 0;
+
+        for(sent_i = 0; sent_i < 2u; sent_i++) {
+            for(rose_i = 0; rose_i < 2u; rose_i++) {
+                for(kind_i = 0; kind_i < 4u; kind_i++) {
+                    for(elapsed_i = 0; elapsed_i < 2u; elapsed_i++) {
+                        for(rx_i = 0; rx_i < 2u; rx_i++) {
+                            SrHandshakeCtx c;
+                            uint32_t now;
+                            bool got;
+                            bool exp;
+
+                            c.sent = sent_i != 0u;
+                            c.sent_tick_ms = 10000u;
+                            c.timeout_ms = (uint32_t)SR_HANDSHAKE_TIMEOUT_MS;
+                            c.rx_bytes_at_send = 10u;
+                            c.rx_bytes_now = (rx_i != 0u) ? 20u : 10u;
+                            c.fw_rev_at_send = 7u;
+                            c.fw_rev_now = (rose_i != 0u) ? 8u : 7u;
+                            c.fw_kind = k_kinds[kind_i];
+                            c.sends = 1u;
+                            now = (elapsed_i == 0u) ? 10100u : 11600u;
+
+                            got = sr_handshake_should_retry(&c, now);
+                            exp = oracle_should_retry(&c, now);
+                            CHECK(got == exp);
+                            if(got) {
+                                yes++;
+                            } else {
+                                no++;
+                            }
+
+                            c.sends = (uint8_t)SR_HANDSHAKE_MAX_SENDS;
+                            CHECK(sr_handshake_should_retry(&c, now) == false);
+                            maxed++;
+                        }
+                    }
+                }
+            }
+        }
+
+        printf(
+            "handshake retry: yes=%u no=%u maxed=%u\n",
+            yes,
+            no,
+            maxed);
+        /* The 7 NoReply cells of the 64-combo, and only those, retry. */
+        CHECK(yes == 7);
+        CHECK(no == 57);
+        CHECK(maxed == 64);
+    }
+
+    wrap.sent = true;
+    wrap.sent_tick_ms = 0xFFFFFF00u;
+    wrap.timeout_ms = (uint32_t)SR_HANDSHAKE_TIMEOUT_MS;
+    wrap.rx_bytes_at_send = 0;
+    wrap.rx_bytes_now = 0;
+    wrap.fw_rev_at_send = 7u;
+    wrap.fw_rev_now = 7u;
+    wrap.fw_kind = SrSourceUnknown;
+    wrap.sends = 1u;
+    CHECK(sr_handshake_should_retry(&wrap, 0x40u) == false);
+    CHECK(sr_handshake_should_retry(&wrap, 0x00000700u) == true);
+    wrap.sends = 2u;
+    CHECK(sr_handshake_should_retry(&wrap, 0x00000700u) == false);
+    wrap.sends = 1u;
+    wrap.rx_bytes_now = 1;
+    CHECK(sr_handshake_eval(&wrap, 0x00000700u) == SrHandshakeUnknownFw);
+    CHECK(sr_handshake_should_retry(&wrap, 0x00000700u) == false);
+
+    wrap.fw_rev_now = 8u;
+    wrap.fw_kind = SrSourceMarauder;
+    wrap.sends = 1u;
+    CHECK(sr_handshake_eval(&wrap, 0x00000700u) == SrHandshakeOk);
+    CHECK(sr_handshake_should_retry(&wrap, 0x00000700u) == false);
 
     return sr_test_failures;
 }

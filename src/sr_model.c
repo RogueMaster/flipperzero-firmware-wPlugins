@@ -1,4 +1,5 @@
 #include "sr_model.h"
+#include "sr_dialect.h"
 
 #include <string.h>
 
@@ -157,6 +158,11 @@ static bool apply_started(SrModel* m, uint32_t tick_ms) {
         m->session_rev++;
         return true;
     }
+    /* Stock Marauder may emit StartingWardrive after the first CSV row already
+     * adopted Running. That is not an illegal transition on the generic dialect. */
+    if(sr_dialect_is_generic_marauder(&m->firmware)) {
+        return false;
+    }
     m->illegal_trans++;
     return false;
 }
@@ -196,17 +202,31 @@ static bool apply_stopped(SrModel* m, SrStopReason reason) {
      * ADR-020 decision 4: a GPS / NMEA stop reply while idle is not an "illegal session
      * transition"; it is the normal close-out of an on-demand sample. Counting it in
      * illegal_trans would pollute the diagnostic bit on the T4.4 Session tab.
-     * SrStopWifiTranRecv while idle still counts as illegal -- that one really is.
+     * SrStopWifiTranRecv while idle is illegal on SigRoam / empty Version.
+     * Stock Marauder is handled below.
      */
     if(reason == SrStopGpsUpdates || reason == SrStopEndNmea) {
         m->gps_stop_rev++;
+        return false;
+    }
+    /*
+     * Stock Marauder: FAP may never have seen StartingWardrive, so session is
+     * still Idle when "Stopping WiFi tran/recv" arrives. Confirm the stop.
+     * Already-Stopped is a no-op (duplicate banner), not illegal.
+     */
+    if(sr_dialect_is_generic_marauder(&m->firmware) && reason == SrStopWifiTranRecv) {
+        if(m->session == SrSessionIdle) {
+            m->session = SrSessionStopped;
+            m->session_rev++;
+            return true;
+        }
         return false;
     }
     m->illegal_trans++;
     return false;
 }
 
-static bool apply_ap(SrModel* m, const SrApRecord* rec, bool ble) {
+static bool apply_ap(SrModel* m, const SrApRecord* rec, bool ble, uint32_t tick_ms) {
     SrApBrief b;
     uint8_t mac[6];
 
@@ -251,6 +271,11 @@ static bool apply_ap(SrModel* m, const SrApRecord* rec, bool ble) {
     }
 
     recent_push(m, &b);
+    /* Generic Marauder: a live CSV row is L3 evidence the scan started.
+     * Only Idle: a late row after Stopped must not reopen the session. */
+    if(sr_dialect_is_generic_marauder(&m->firmware) && m->session == SrSessionIdle) {
+        (void)apply_started(m, tick_ms);
+    }
     return true;
 }
 
@@ -302,9 +327,9 @@ bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms) {
     case SrEventScanStopped:
         return apply_stopped(m, ev->u.stop);
     case SrEventApFound:
-        return apply_ap(m, &ev->u.ap, false);
+        return apply_ap(m, &ev->u.ap, false, tick_ms);
     case SrEventBleFound:
-        return apply_ap(m, &ev->u.ble, true);
+        return apply_ap(m, &ev->u.ble, true, tick_ms);
     case SrEventGps:
         m->gps = ev->u.gps;
         m->gps_blocks++;

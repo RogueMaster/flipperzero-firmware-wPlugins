@@ -60,13 +60,23 @@ static void sigroam_scene_probe_fill(SigRoamApp* app, SrHandshakeState st) {
         }
         break;
     case SrHandshakeWaiting:
-        snprintf(
-            app->probe_text,
-            sizeof(app->probe_text),
-            "\e#Probing...\n"
-            "\n"
-            "Sent: info\n"
-            "Waiting up to 1.5s");
+        if(app->hs.sends >= 2u) {
+            snprintf(
+                app->probe_text,
+                sizeof(app->probe_text),
+                "\e#Probing...\n"
+                "\n"
+                "Retrying info\n"
+                "Waiting up to 1.5s");
+        } else {
+            snprintf(
+                app->probe_text,
+                sizeof(app->probe_text),
+                "\e#Probing...\n"
+                "\n"
+                "Sent: info\n"
+                "Waiting up to 1.5s");
+        }
         break;
     case SrHandshakeOk: {
         /* Fifth line of the reply since firmware 2026-09-07. This is the only channel
@@ -164,11 +174,12 @@ static void sigroam_scene_probe_fill(SigRoamApp* app, SrHandshakeState st) {
             sizeof(app->probe_text),
             "\e#No reply\n"
             "\n"
-            "Nothing in 1.5s.\n"
+            "Nothing after 2 tries\n"
+            "(1.5s each).\n"
             "\n"
             "Board may still be\n"
-            "booting. Wait a few\n"
-            "seconds and retry.\n"
+            "booting. Leave and\n"
+            "reopen Probe.\n"
             "\n"
             "Else check pin 13/14\n"
             "wiring, board power,\n"
@@ -192,6 +203,31 @@ static void sigroam_scene_probe_draw(SigRoamApp* app, SrHandshakeState st) {
     app->hs_rev_shown = app->model.firmware_rev;
 }
 
+/* Queue `info\n` and start a new 1.5s window. On failure leave ctx untouched
+ * so a retry that hits a full worker slot still evaluates as NoReply. */
+static bool probe_queue_info(SigRoamApp* app) {
+    SrIoStats stats;
+
+    if(app == NULL || app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
+        return false;
+    }
+    if(!sr_worker_send_cmd(app->worker, "info\n")) {
+        return false;
+    }
+    sr_io_get_stats(app->io, &stats);
+    app->hs.rx_bytes_at_send = stats.rx_bytes;
+    app->hs.rx_bytes_now = stats.rx_bytes;
+    app->hs.fw_rev_at_send = app->model.firmware_rev;
+    app->hs.fw_rev_now = app->model.firmware_rev;
+    app->hs.fw_kind = app->model.firmware.kind;
+    app->hs.sent_tick_ms = furi_get_tick();
+    app->hs.sent = true;
+    if(app->hs.sends < 255u) {
+        app->hs.sends++;
+    }
+    return true;
+}
+
 void sigroam_scene_probe_on_enter(void* context) {
     SigRoamApp* app = context;
     SrHandshakeState st;
@@ -201,16 +237,7 @@ void sigroam_scene_probe_on_enter(void* context) {
     app->probe_send_busy = false;
 
     if(app->io && sr_io_is_open(app->io) && app->worker) {
-        SrIoStats stats;
-
-        sr_io_get_stats(app->io, &stats);
-        app->hs.rx_bytes_at_send = stats.rx_bytes;
-        app->hs.rx_bytes_now = stats.rx_bytes;
-        app->hs.fw_rev_at_send = app->model.firmware_rev;
-        app->hs.fw_rev_now = app->model.firmware_rev;
-        app->hs.sent_tick_ms = furi_get_tick();
-        app->hs.sent = sr_worker_send_cmd(app->worker, "info\n");
-        app->probe_send_busy = !app->hs.sent;
+        app->probe_send_busy = !probe_queue_info(app);
     } else {
         /* Fill this in even when io is not open; otherwise the memset leaves 0 and, once tick
          * refreshes now, it would be misjudged as Ok. */
@@ -228,6 +255,7 @@ bool sigroam_scene_probe_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeTick) {
         SrHandshakeState st;
+        bool retried;
 
         /* The tick handler is already inside app->mtx (sigroam.c takes the lock with zero wait
          * before dispatching). Do not take the lock again. */
@@ -240,7 +268,20 @@ bool sigroam_scene_probe_on_event(void* context, SceneManagerEvent event) {
         app->hs.fw_rev_now = app->model.firmware_rev;
         app->hs.fw_kind = app->model.firmware.kind;
         st = sr_handshake_eval(&app->hs, furi_get_tick());
-        if(st != app->hs_shown || app->model.firmware_rev != app->hs_rev_shown) {
+        retried = false;
+        if(sr_handshake_should_retry(&app->hs, furi_get_tick())) {
+            if(!probe_queue_info(app)) {
+                /* Consume the retry so a full worker slot cannot spin Tick. */
+                app->hs.sends = (uint8_t)SR_HANDSHAKE_MAX_SENDS;
+                app->probe_send_busy = true;
+            } else {
+                app->probe_send_busy = false;
+            }
+            st = sr_handshake_eval(&app->hs, furi_get_tick());
+            retried = true;
+        }
+        /* Retry keeps Waiting, so state equality would skip "Retrying info". */
+        if(retried || st != app->hs_shown || app->model.firmware_rev != app->hs_rev_shown) {
             sigroam_scene_probe_draw(app, st);
         }
         return true;

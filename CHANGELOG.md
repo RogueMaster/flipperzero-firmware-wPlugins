@@ -42,6 +42,12 @@ Dash, a Dash/GPS layout pass, About lockup A2, and a second Unleashed build.
   it is an estimate.
 - SAT on Dash and GPS comes from the survey snapshot or a fresh Qual reading,
   not a separate `gpsdata` poll during a scan.
+- Probe sends `info` a second time if the scanner does not answer in 1.5 s.
+- While a stock Marauder scan is running with no AP or BLE rows yet, Dash
+  shows `Waiting for first AP` instead of a zeroed count line. Stream stays
+  `No APs yet`.
+- On the GPS tab, an empty scan log is only `No GPS data yet`. A scan row
+  with no datetime shows `POI: no fix in log`.
 
 ## [0.3] — 2026-09-04
 

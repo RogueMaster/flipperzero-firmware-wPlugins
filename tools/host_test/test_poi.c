@@ -332,7 +332,11 @@ int test_poi_run(void) {
     CHECK(cstr_len(s) == 15u);
     s = sr_poi_status_text((uint8_t)SrPoiPhaseIdle, (uint8_t)SrPoiGateNoFix);
     CHECK(s != NULL);
-    CHECK(cstr_len(s) == 17u);
+    /* Copy change, not a gate relaxation: old "POI needs GPS fix" was 17. */
+    CHECK(cstr_len(s) == 18u);
+    CHECK(cstr_len(s) <= 20u);
+    CHECK(memcmp(s, "POI: no fix in log", 18u) == 0);
+    CHECK(s[18] == '\0');
     s = sr_poi_status_text((uint8_t)SrPoiPhaseIdle, (uint8_t)SrPoiGateNoLink);
     CHECK(s != NULL);
     CHECK(cstr_len(s) == 12u);

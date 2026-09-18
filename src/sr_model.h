@@ -110,6 +110,10 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom);
  * An illegal ScanStarted, and a non-GPS/NMEA ScanStopped while idle, only increment
  * illegal_trans, leave session alone, and return false. While idle, SrStopGpsUpdates /
  * SrStopEndNmea increment gps_stop_rev, leave session alone, and return false (ADR-020 sampling close-out).
+ * Stock Marauder (sr_dialect_is_generic_marauder): an AP/BLE row while Idle adopts
+ * Running; SrStopWifiTranRecv while Idle becomes Stopped without illegal_trans;
+ * a second ScanStarted while Running is a no-op. SigRoam Version (-sigroam-) and
+ * empty Version keep the strict rules above.
  */
 bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms);
 
