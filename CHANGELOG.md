@@ -48,6 +48,10 @@ Dash, a Dash/GPS layout pass, About lockup A2, and a second Unleashed build.
   `No APs yet`.
 - On the GPS tab, an empty scan log is only `No GPS data yet`. A scan row
   with no datetime shows `POI: no fix in log`.
+- Dash does not send `info` to a stock Marauder. That command is not
+  read-only there: it leaves `SHOW_INFO` and the next wardrive never starts.
+- After Probe recognises a generic Marauder, the app sends `stopscan` once
+  so Dash can start a scan. SigRoam firmware is unchanged.
 
 ## [0.3] — 2026-09-04
 

@@ -166,6 +166,15 @@ typedef struct {
     SrPoiCtx poi;
     SrAlertCtx alert;
     bool probe_send_busy;
+    /* Generic Marauder SHOW_INFO clear. GUI-thread exclusive like probe_send_busy.
+     * probe_stop_sent: Probe queued stopscan after Ok (do not queue a second).
+     * dash_prestart: Dash OK asked for start and is waiting for wifi_stop_rev.
+     * clear_stop_rev: wifi_stop_rev snapshot taken **before** that stopscan.
+     * Compare with != . */
+    bool probe_stop_sent;
+    bool dash_prestart;
+    uint32_t clear_stop_rev;
+    uint32_t dash_prestart_tick_ms;
     /* Card N1 peer-state adoption. GUI-thread exclusive like app->scan (see the
      * comment block above): armed by Dash on_enter after it queues `info`, consumed
      * by the Dash Tick handler when the reply raises model.firmware_rev.

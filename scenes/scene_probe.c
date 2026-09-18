@@ -1,4 +1,5 @@
 #include "../sigroam.h"
+#include "../src/sr_dialect.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -228,6 +229,26 @@ static bool probe_queue_info(SigRoamApp* app) {
     return true;
 }
 
+/* Generic Marauder only. Does not touch handshake ctx. Single worker slot. */
+static bool probe_queue_stopscan(SigRoamApp* app) {
+    const SrSourceCodec* codec;
+    char cmd[SR_WORKER_CMD_MAX];
+    size_t n;
+
+    if(app == NULL || app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
+        return false;
+    }
+    codec = sigroam_codec(app);
+    if(codec == NULL || codec->build_stop_cmd == NULL) {
+        return false;
+    }
+    n = codec->build_stop_cmd(cmd, sizeof(cmd));
+    if(n == 0u) {
+        return false;
+    }
+    return sr_worker_send_cmd(app->worker, cmd);
+}
+
 void sigroam_scene_probe_on_enter(void* context) {
     SigRoamApp* app = context;
     SrHandshakeState st;
@@ -235,6 +256,7 @@ void sigroam_scene_probe_on_enter(void* context) {
     memset(&app->hs, 0, sizeof(app->hs));
     app->hs.timeout_ms = SR_HANDSHAKE_TIMEOUT_MS;
     app->probe_send_busy = false;
+    app->probe_stop_sent = false;
 
     if(app->io && sr_io_is_open(app->io) && app->worker) {
         app->probe_send_busy = !probe_queue_info(app);
@@ -279,6 +301,15 @@ bool sigroam_scene_probe_on_event(void* context, SceneManagerEvent event) {
             }
             st = sr_handshake_eval(&app->hs, furi_get_tick());
             retried = true;
+        }
+        if(st == SrHandshakeOk && !app->probe_stop_sent &&
+           sr_dialect_probe_should_clear_show_info(&app->model.firmware)) {
+            uint32_t snap = app->model.wifi_stop_rev;
+
+            if(probe_queue_stopscan(app)) {
+                app->probe_stop_sent = true;
+                app->clear_stop_rev = snap;
+            }
         }
         /* Retry keeps Waiting, so state equality would skip "Retrying info". */
         if(retried || st != app->hs_shown || app->model.firmware_rev != app->hs_rev_shown) {

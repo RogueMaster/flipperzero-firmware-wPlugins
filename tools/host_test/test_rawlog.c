@@ -338,8 +338,9 @@ int test_rawlog_run(void) {
      * 2026-09-15 F2 rev2: +qual_tick_ms(4) absorbs 4 B of pre-existing padding
      * before char last_unknown[512] -- stays 3408 (see test_model.c for the
      * full alignment argument).
-     * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416. */
-    CHECK(sizeof(SrModel) == 3416);
+     * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
+     * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424. */
+    CHECK(sizeof(SrModel) == 3424);
 
     empty = test_empty_render();
     lens = test_lens();

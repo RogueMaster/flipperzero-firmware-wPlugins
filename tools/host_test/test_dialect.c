@@ -64,6 +64,32 @@ int test_dialect_run(void) {
     CHECK(sr_dialect_is_generic_marauder(&fw) == true);
     CHECK(sr_dialect_is_sigroam(&fw) == false);
 
+    memset(&fw, 0, sizeof(fw));
+    CHECK(sr_dialect_dash_may_send_info(NULL) == false);
+    CHECK(sr_dialect_dash_may_send_info(&fw) == false);
+    sr_strlcpy(fw.version, sizeof(fw.version), "v1.17.0");
+    CHECK(sr_dialect_dash_may_send_info(&fw) == false);
+    sr_strlcpy(fw.version, sizeof(fw.version), "v1.14.1");
+    CHECK(sr_dialect_dash_may_send_info(&fw) == false);
+    sr_strlcpy(fw.version, sizeof(fw.version), "v1.14.1-sigroam-0");
+    CHECK(sr_dialect_dash_may_send_info(&fw) == true);
+
+    memset(&fw, 0, sizeof(fw));
+    CHECK(sr_dialect_probe_should_clear_show_info(&fw) == false);
+    CHECK(sr_dialect_show_info_clear_on_start(&fw, false) == SrShowInfoClearNone);
+    CHECK(sr_dialect_show_info_clear_on_start(&fw, true) == SrShowInfoClearNone);
+    sr_strlcpy(fw.version, sizeof(fw.version), "v1.17.0");
+    CHECK(sr_dialect_probe_should_clear_show_info(&fw) == true);
+    CHECK(sr_dialect_show_info_clear_on_start(&fw, false) == SrShowInfoClearSendStop);
+    CHECK(sr_dialect_show_info_clear_on_start(&fw, true) == SrShowInfoClearWait);
+    sr_strlcpy(fw.version, sizeof(fw.version), "v1.14.1-sigroam-0");
+    CHECK(sr_dialect_probe_should_clear_show_info(&fw) == false);
+    CHECK(sr_dialect_show_info_clear_on_start(&fw, false) == SrShowInfoClearNone);
+    CHECK(sr_dialect_show_info_clear_on_start(&fw, true) == SrShowInfoClearNone);
+    CHECK(sr_dialect_show_info_clear_done(0u, 0u) == false);
+    CHECK(sr_dialect_show_info_clear_done(1u, 0u) == true);
+    CHECK(sr_dialect_show_info_clear_done(0u, 0xFFFFFFFFu) == true);
+
     /* Empty version: historical strict rules. Idle + StopWifi is illegal. */
     fresh();
     illegal0 = g_model.illegal_trans;
@@ -75,6 +101,7 @@ int test_dialect_run(void) {
     CHECK(g_model.session == SrSessionIdle);
     CHECK(g_model.session_rev == rev0);
     CHECK(g_model.illegal_trans == illegal0 + 1u);
+    CHECK(g_model.wifi_stop_rev == 1u);
 
     /* SigRoam: Idle AP row does not start a session. */
     fresh();
@@ -128,6 +155,7 @@ int test_dialect_run(void) {
     CHECK(g_model.session == SrSessionStopped);
     CHECK(g_model.session_rev == 1u);
     CHECK(g_model.illegal_trans == illegal0);
+    CHECK(g_model.wifi_stop_rev == 1u);
 
     /* Generic: duplicate ScanStarted while Running is a no-op. */
     fresh();
@@ -170,6 +198,7 @@ int test_dialect_run(void) {
     CHECK(g_model.session == SrSessionStopped);
     CHECK(g_model.session_rev == rev0);
     CHECK(g_model.illegal_trans == illegal0);
+    CHECK(g_model.wifi_stop_rev == 2u);
 
     /* Generic still uses ADR-020 for GPS stop while idle. */
     fresh();
@@ -181,9 +210,10 @@ int test_dialect_run(void) {
     CHECK(sr_model_apply(&g_model, &ev, 14) == false);
     CHECK(g_model.session == SrSessionIdle);
     CHECK(g_model.gps_stop_rev == 1u);
+    CHECK(g_model.wifi_stop_rev == 0u);
     CHECK(g_model.illegal_trans == illegal0);
 
-    CHECK(sizeof(SrModel) == 3416);
+    CHECK(sizeof(SrModel) == 3424);
 
     return sr_test_failures;
 }

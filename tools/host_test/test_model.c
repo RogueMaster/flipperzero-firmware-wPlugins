@@ -1388,8 +1388,9 @@ static void test_session_rev(void) {
      * before char last_unknown[512] (size_t last_unknown_len right after it
      * needs 8-B alignment) -- stays 3408, confirmed by this file's own
      * fprintf(stderr, "sizeof(SrModel)=...") above.
-     * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416. */
-    CHECK(sizeof(SrModel) == 3416);
+     * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
+     * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424. */
+    CHECK(sizeof(SrModel) == 3424);
     CHECK(sizeof(SrModel) <= 4096);
 }
 
