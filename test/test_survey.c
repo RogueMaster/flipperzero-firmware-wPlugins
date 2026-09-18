@@ -1,5 +1,9 @@
 /* Host tests for the site-survey verdict layer.
  *
+ * Designated initialisers on purpose: SurveySummary carries both the peak the
+ * user's meter showed and the canonical peak the verdict is judged against, and
+ * a positional list silently swapped those two when the field was added.
+ *
  *   make -C test
  *
  * The verdict is what a user actually acts on - "is this room clean?" - so the
@@ -40,13 +44,13 @@ int main(void) {
 
     /* --- clean ---------------------------------------------------------- */
     {
-        SurveySummary s = {60000, 0, 0, 0, 0};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 0, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
         check_verdict(&s, SurveyVerdictClean, "a quiet minute");
     }
     {
         /* Noise that never crossed the floor leaves contacts at zero, so even a
          * non-zero peak reading is still a clean room. */
-        SurveySummary s = {60000, 0, 9, 2, 0};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 0, .peak = 9, .peak_ref = 9, .average = 2, .contacts = 0};
         check_verdict(&s, SurveyVerdictClean, "sub-threshold noise only");
     }
     {
@@ -59,29 +63,29 @@ int main(void) {
     {
         /* One faint blip in a minute: something happened, but not enough to
          * call it an active reader. */
-        SurveySummary s = {60000, 1200, 22, 3, 1};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 1200, .peak = 22, .peak_ref = 22, .average = 3, .contacts = 1};
         check_verdict(&s, SurveyVerdictTrace, "one faint 2% blip");
     }
     {
         /* Just under both active thresholds on every axis. */
-        SurveySummary s = {60000, 11400, 49, 20, 4};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 11400, .peak = 49, .peak_ref = 49, .average = 20, .contacts = 4};
         check_verdict(&s, SurveyVerdictTrace, "19% in-field, peak 49");
     }
 
     /* --- active --------------------------------------------------------- */
     {
         /* Crossing the duration threshold alone is enough. */
-        SurveySummary s = {60000, 12000, 30, 18, 4};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 12000, .peak = 30, .peak_ref = 30, .average = 18, .contacts = 4};
         check_verdict(&s, SurveyVerdictActive, "20% in-field at modest strength");
     }
     {
         /* Crossing the strength threshold alone is enough, even for an instant:
          * nothing weak produces a reading that strong. */
-        SurveySummary s = {60000, 600, 50, 4, 1};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 600, .peak = 50, .peak_ref = 50, .average = 4, .contacts = 1};
         check_verdict(&s, SurveyVerdictActive, "brief but peak 50");
     }
     {
-        SurveySummary s = {60000, 58000, 88, 71, 1};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 58000, .peak = 88, .peak_ref = 88, .average = 71, .contacts = 1};
         check_verdict(&s, SurveyVerdictActive, "reader up the whole time");
     }
     {
@@ -89,25 +93,25 @@ int main(void) {
          * saturates near 30%, which on the scaled meter is ~89. Before the meter
          * was scaled this arrived as peak 31 and the peak test could not fire -
          * a brief close pass over a skimmer could be filed as mere TRACE. */
-        SurveySummary s = {60000, 4000, 89, 12, 2};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 4000, .peak = 89, .peak_ref = 89, .average = 12, .contacts = 2};
         check_verdict(&s, SurveyVerdictActive, "brief close pass on a polling reader");
     }
 
     /* --- in-field percentage -------------------------------------------- */
     {
-        SurveySummary s = {60000, 15000, 0, 0, 0};
+        SurveySummary s = {.elapsed_ms = 60000, .in_field_ms = 15000, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
         check(survey_in_field_pct(&s) == 25, "15s of 60s is 25%");
 
-        SurveySummary zero = {0, 0, 0, 0, 0};
+        SurveySummary zero = {.elapsed_ms = 0, .in_field_ms = 0, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
         check(survey_in_field_pct(&zero) == 0, "no elapsed time does not divide by zero");
 
         /* A survey stopped mid-window can report more in-field than elapsed;
          * the percentage must still be sane rather than wrapping. */
-        SurveySummary over = {1000, 4000, 0, 0, 0};
+        SurveySummary over = {.elapsed_ms = 1000, .in_field_ms = 4000, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
         check(survey_in_field_pct(&over) == 100, "over-long in-field clamps to 100%");
 
         /* Long surveys must not overflow the intermediate multiply. */
-        SurveySummary lng = {3600000, 1800000, 0, 0, 0};
+        SurveySummary lng = {.elapsed_ms = 3600000, .in_field_ms = 1800000, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
         check(survey_in_field_pct(&lng) == 50, "an hour-long survey still computes");
     }
 
@@ -122,6 +126,25 @@ int main(void) {
             check(strlen(n) <= 13, "verdict name fits the banner");
             check(strlen(a) <= 21, "advice fits one screen line");
         }
+    }
+
+    /* --- REGRESSION: a display preference must not change the verdict -------
+     * Settings > Meter = Raw shows the literal duty-cycle, which saturates near
+     * 30 on a real polling reader. Judged on that, ACTIVE_PEAK was unreachable
+     * again and a brief close pass over a skimmer came back TRACE. peak_ref is
+     * the same moment on the canonical scale, so the verdict does not move. */
+    {
+        /* raw meter: displayed peak 31, canonical peak 100 */
+        SurveySummary raw = {.elapsed_ms = 60000, .in_field_ms = 4000, .peak = 31, .peak_ref = 100, .average = 4, .contacts = 2};
+        check_verdict(&raw, SurveyVerdictActive, "Meter=Raw still reports ACTIVE");
+
+        /* boost meter: the same physical pass, displayed as 100 */
+        SurveySummary boost = {.elapsed_ms = 60000, .in_field_ms = 4000, .peak = 100, .peak_ref = 100, .average = 12, .contacts = 2};
+        check_verdict(&boost, SurveyVerdictActive, "and Meter=Boost agrees");
+
+        /* genuinely faint: low on both scales, stays TRACE */
+        SurveySummary faint = {.elapsed_ms = 60000, .in_field_ms = 1200, .peak = 22, .peak_ref = 22, .average = 3, .contacts = 1};
+        check_verdict(&faint, SurveyVerdictTrace, "a faint blip is still only TRACE");
     }
 
     printf("%d checks, %d failed\n", checks, failures);

@@ -12,6 +12,11 @@ static void specter_survey_restart_cb(void* context) {
     view_dispatcher_send_custom_event(app->view_dispatcher, SpecterCustomEventSurveyRestart);
 }
 
+static void specter_survey_finish_cb(void* context) {
+    SpecterApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, SpecterCustomEventSurveyFinish);
+}
+
 static void specter_survey_begin(SpecterApp* app) {
     survey_total_ms = specter_settings_survey_seconds(&app->settings) * 1000u;
     survey_finished = false;
@@ -26,6 +31,8 @@ void specter_scene_survey_on_enter(void* context) {
     SpecterApp* app = context;
 
     survey_view_set_restart_callback(app->survey_view, specter_survey_restart_cb, app);
+    survey_view_set_finish_callback(app->survey_view, specter_survey_finish_cb, app);
+    survey_view_reset(app->survey_view); // never show the last run's verdict
     specter_survey_begin(app);
     specter_stealth_enter(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, SpecterViewSurvey);
@@ -36,6 +43,7 @@ static void specter_survey_complete(SpecterApp* app, const FieldStats* st, uint3
         .elapsed_ms = elapsed_ms,
         .in_field_ms = st->in_field_ms,
         .peak = st->peak,
+        .peak_ref = st->peak_ref,
         .average = st->average,
         .contacts = st->contacts,
     };
@@ -52,15 +60,18 @@ static void specter_survey_complete(SpecterApp* app, const FieldStats* st, uint3
     }
 
     if(app->settings.logging) {
-        specter_log_append(
+        /* No on-screen claim is made about saving, so a failed write is not a
+         * lie here - but discard the result deliberately, not by accident. */
+        (void)specter_log_append(
             "SURVEY",
-            "%lus %s max %u%% avg %u%% infield %u%% hits %lu",
+            "%lus %s max %u%% avg %u%% infield %u%% hits %lu m:%s",
             (unsigned long)(elapsed_ms / 1000u),
             survey_verdict_name(verdict),
             (unsigned)summary.peak,
             (unsigned)summary.average,
             (unsigned)survey_in_field_pct(&summary),
-            (unsigned long)summary.contacts);
+            (unsigned long)summary.contacts,
+            specter_settings_meter_tag(&app->settings));
     }
 }
 
@@ -71,6 +82,17 @@ bool specter_scene_survey_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == SpecterCustomEventSurveyRestart) {
             specter_survey_begin(app);
+            consumed = true;
+        } else if(event.event == SpecterCustomEventSurveyFinish) {
+            /* Grade what we have. survey_verdict works off elapsed_ms and a
+             * ratio, so a short walk is graded on its own terms - and the card
+             * now prints the duration it was graded over. */
+            if(!survey_finished) {
+                FieldStats st;
+                field_detector_get(app->detector, &st);
+                if(!st.error)
+                    specter_survey_complete(app, &st, furi_get_tick() - survey_start_tick);
+            }
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeTick) {
@@ -89,7 +111,6 @@ bool specter_scene_survey_on_event(void* context, SceneManagerEvent event) {
                 survey_view_update_running(app->survey_view, &st, elapsed, survey_total_ms);
             }
         }
-        survey_view_tick(app->survey_view);
         consumed = true;
     }
     return consumed;

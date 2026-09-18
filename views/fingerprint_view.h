@@ -23,4 +23,8 @@ void fingerprint_view_update(FingerprintView* v, const FieldStats* stats);
 void fingerprint_view_flash(FingerprintView* v, const char* msg);
 
 /* Advance animation / decay the flash (call on the UI tick). */
+/* Clears the card. Call on scene entry so a re-entry cannot draw the previous
+ * run's classification before the first tick arrives. */
+void fingerprint_view_reset(FingerprintView* v);
+
 void fingerprint_view_tick(FingerprintView* v);

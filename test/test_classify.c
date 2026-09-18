@@ -147,7 +147,7 @@ int main(void) {
             check(strlen(n) <= 12, "class name fits the screen");
         }
         check(
-            strcmp(emitter_class_name((EmitterClass)99), "SAMPLING") == 0,
+            strcmp(emitter_class_name((EmitterClass)99), "NO CALL YET") == 0,
             "unknown enum degrades gracefully");
     }
 

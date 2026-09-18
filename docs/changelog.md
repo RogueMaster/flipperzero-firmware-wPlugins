@@ -1,5 +1,92 @@
 # Changelog
 
+## 3.0
+
+A user-experience release. Nothing here changes what Specter can hear - the
+radio code is untouched - but a great deal changes about whether you can tell
+what it is telling you. Four screens written at four different times had drifted
+into four different dialects, and the single most useful instruction in the
+README ("press LEFT and hold still for three seconds") appeared nowhere on the
+device.
+
+**One name for one thing.** The strongest reading was `PK` on Sweep, `PEAK` on
+Survey and Watch, and `MAX` on the verdict card. The contact count was `C` on
+Sweep and `HITS` everywhere else. Carrier-up time was `DUTY`, `SEEN` and
+`FIELD %` on three different screens - while `FIELD` *also* meant the live meter
+one keypress away. Now: `PEAK` is the strongest reading, `HITS` is the count,
+`UP` is carrier-up time, `FIELD` is the live meter and nothing else, and `CONF`
+labels the confidence figure that used to be a bare percentage sitting next to
+another bare percentage.
+
+- **The keys are on the screen now.** Sweep bound three keys and advertised
+  none; until you have found your first reader its bottom strip carries
+  `LEFT=cal hold OK=log`, and retires the hint once a contact registers. Watch
+  shows `OK=re-arm` whenever there is something to lose - it used to show that
+  hint *only* when the count was zero, i.e. only while it was harmless. Site
+  Survey's running screen had no hint at all.
+- **The menu says what each mode is for.** "Fingerprint" reads as biometrics and
+  "Site Survey" reads as a Wi-Fi tool. They are now `Sweep - find it`,
+  `Fingerprint - type`, `Site Survey - room`, `Watch Mode - guard`,
+  `Logbook - findings`, and - the highest-value word change here - `Help & About`.
+- **The dial answers "what counts as a reader?".** The top three ticks used to be
+  drawn bolder as a "danger zone", which was decoration pretending to be
+  information: presence is decided against the sensitivity threshold, which on
+  the default setting sits near 30% of the dial, not 80%. The bold ticks are
+  gone and a real mark is drawn at the real threshold, moving when you change
+  sensitivity or calibrate.
+- **`UP` / `DOWN` change sensitivity mid-hunt.** It is the setting you most need
+  to change with the Flipper against a terminal, and reaching it meant about ten
+  keypresses and taking the device off the target.
+- **Site Survey can be stopped early.** `OK` mid-run used to silently bin the
+  whole walk and restart the countdown. It now ends the survey and grades what
+  it actually has, and the verdict card prints the duration it was graded over -
+  a 30-second `CLEAN` is not the same finding as a two-minute one.
+- **Watch Mode's alarm screen was a fifth blank.** Rows 27-39 were empty at the
+  exact moment something was happening. They now carry a strength bar, so "is it
+  on top of the Flipper or at the edge of range" is readable from across a room.
+- **One pulse when the meter pegs.** That is the "you are on it, stop moving"
+  moment, and it was announced only on a screen you are usually not looking at -
+  your hand under an ATM lip, the Flipper face-down on a pump.
+- **Help leads with the keys, and defines the jargon.** `PER`, `BST`, `JIT` and
+  `CONF` are the entire payload of the Fingerprint screen and were defined
+  nowhere on the device. About now opens with the full key map and a
+  READING THE NUMBERS legend, instead of burying both under five paragraphs.
+- **Settings say what they change.** `Meter: Boost / Raw` read as a quality
+  setting, so flipping it dropped every reading on every screen to about a third
+  and the obvious conclusion was that the app was broken. It is now
+  `Meter scale: 0-100 / Duty %`. `Logging` is `Save findings`, and the logbook
+  size reads `kB` / `B` rather than `k` / `b`.
+- **The empty logbook stops guessing.** It used to tell everyone to turn Logging
+  on - including the people who already had it on - and three of its lines ran
+  past the width of the box and wrapped mid-phrase.
+
+**Bugs fixed**
+
+- **Watch's clock froze at 99:59** while `LAST` kept counting, so a screen left
+  running overnight disagreed with itself. Past 99:59 it now rolls to `hh:mm`
+  with a marker.
+- **Re-entering a mode could flash the previous run's alarm.** No view cleared
+  its model on scene entry, so for up to 100 ms - until the first tick - Watch
+  could draw a full-screen `ACTIVE READER` for a reader that had long gone.
+- **The Sweep readout could run off the screen.** `PK100 C999+` is eleven
+  characters starting at x=68 on a 128-pixel screen. It is now `PEAK 100%`.
+- **Dead code removed.** `first_ms` was plumbed through three files and drawn by
+  nothing; `anim` was incremented on every tick in three views that never read
+  it.
+- **The published screenshots were wrong in three ways.** The menu image omitted
+  Watch Mode entirely, so it showed Logbook in the row where a real Flipper
+  shows Watch Mode; the settings image omitted LED, putting Stealth in LED's
+  row; and Watch's image drew a pair of "liveness" markers that the app
+  deliberately does not draw. The generator also rendered text 20% narrower than
+  the device does, which is precisely why the overrunning readout above looked
+  fine in every published screenshot. It now draws at the device's own advance.
+
+**Under the hood.** The chrome every measurement screen shares - the header, the
+presence dot, the divider, the "another app is using the NFC radio" screen -
+lives in one file instead of four copies that had drifted apart, which is what
+made the four screens read as one instrument again. 473 host-side checks and the
+layout checker both still pass.
+
 ## 2.9
 
 A security and correctness audit of the whole codebase. The good news first: a

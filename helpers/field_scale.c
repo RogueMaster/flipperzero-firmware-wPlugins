@@ -19,7 +19,7 @@ const char* field_proximity_word(uint8_t shown, bool saturated) {
     /* MAX means pegged: as close as this measurement can resolve, and moving
      * nearer will not change the number. Saying so is better than letting a
      * stuck needle look like a fault. */
-    if(saturated) return "MAX";
+    if(saturated) return "PEGGED";
     if(shown >= 70u) return "STRONG";
     if(shown >= 45u) return "CLOSE";
     if(shown >= 20u) return "NEAR";

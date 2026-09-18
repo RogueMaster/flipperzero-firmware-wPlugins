@@ -131,11 +131,19 @@ bool specter_log_read_tail(FuriString* out) {
             size_t got = storage_file_read(file, buf, want);
             buf[got] = '\0';
 
-            /* If we cut into the middle of a line, drop the fragment. */
+            /* If we cut into the middle of the file, drop the fragment - and
+             * keep dropping until we are at the start of a whole ENTRY, not just
+             * the start of a line. Detail lines are indented, so landing on one
+             * means the timestamp it belongs to was cut off. */
             const char* text = buf;
             if(start > 0) {
                 const char* nl = strchr(buf, '\n');
-                if(nl) text = nl + 1;
+                text = nl ? nl + 1 : buf + got;
+                while(*text == ' ') {
+                    const char* next = strchr(text, '\n');
+                    if(!next) { text += strlen(text); break; }
+                    text = next + 1;
+                }
             }
 
             if(*text) {

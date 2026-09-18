@@ -8,7 +8,7 @@
 CC      ?= cc
 CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O1 -g
 
-TESTS   := build/test_classify build/test_survey build/test_scale build/test_present build/test_ema build/test_logfilter
+TESTS   := build/test_classify build/test_survey build/test_scale build/test_present build/test_ema build/test_logfilter build/test_cadence
 
 .PHONY: all clean
 all: $(TESTS)
@@ -40,3 +40,7 @@ build/test_ema: test_ema.c ../helpers/ema.h
 build/test_logfilter: test_logfilter.c ../helpers/log_filter.h
 	@mkdir -p build
 	$(CC) $(CFLAGS) -o $@ test_logfilter.c
+
+build/test_cadence: test_cadence.c ../helpers/cadence.h ../helpers/emitter_classify.c
+	@mkdir -p build
+	$(CC) $(CFLAGS) -o $@ test_cadence.c ../helpers/emitter_classify.c

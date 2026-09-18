@@ -19,6 +19,7 @@ void specter_scene_fingerprint_on_enter(void* context) {
     SpecterApp* app = context;
 
     specter_apply_threshold(app);
+    fingerprint_view_reset(app->fingerprint_view); // never show the last run's call
     fingerprint_view_set_save_callback(app->fingerprint_view, specter_fingerprint_save_cb, app);
     fingerprint_view_set_reset_callback(app->fingerprint_view, specter_fingerprint_reset_cb, app);
 

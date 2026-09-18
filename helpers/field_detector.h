@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "cadence.h"
 #include "ema.h"
 #include "emitter_classify.h"
 #include "field_scale.h"
@@ -35,6 +36,17 @@ typedef struct {
     uint8_t peak; // 0..100 strongest reading since the last reset
     uint8_t average; // 0..100 mean strength across the session
     bool saturated; // meter is pegged; closing in further will not move it
+
+    /* The same peak, always on the canonical meter scale, whatever the user has
+     * the Meter setting on. Verdicts are judged against this: choosing to read
+     * raw duty-cycle is a display preference and must not quietly change what
+     * Site Survey concludes about a room. */
+    uint8_t peak_ref;
+
+    /* Where "this is a reader" begins, on the same 0..100 scale the meter is
+     * drawn on, so the dial can mark it. Presence is `duty > threshold`, so
+     * threshold+1 is the first duty that actually counts as one. */
+    uint8_t threshold_shown;
 
     /* The measurement behind those, untouched: smoothed carrier duty-cycle in
      * percent. The noise floor, calibration and the classifier all work here. */
