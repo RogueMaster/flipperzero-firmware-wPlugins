@@ -126,7 +126,7 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
 
     /* session / gps / last_tick / the bloom pointer / the rawlog pointer / firmware /
      * firmware_rev / busy / busy_rev / sess / sess_rev / qual / qual_rev / qual_tick_ms /
-     * radio / radio_rev / session_rev / gps_stop_rev are all preserved.
+     * radio / radio_rev / session_rev / gps_stop_rev / wifi_stop_rev are all preserved.
      * firmware is device identity, not session data (ADR-016 decision 5).
      * sess / sess_rev are the peer's last reported snapshot, same family as firmware /
      * busy_rev, not this model's session data — reset must not clear them (N6).
@@ -136,7 +136,7 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
      * is unknown, not "both radios off".
      * session_rev is a cumulative transition count and reset must not clear it (ADR-017 decision 3).
      * gps_stop_rev follows the same convention and reset must not clear it (ADR-020 / ADR-017
-     * decision 3).
+     * decision 3). wifi_stop_rev is the same family (SHOW_INFO-clear confirm).
      * gps_csv / gps_csv_rev are session data and are cleared (D12). gps / gps_stop_rev are not.
      * bloom / rawlog contents are cleared only on explicit request; reset does not touch the ring. */
     if(also_reset_bloom && m->bloom != NULL) {
@@ -193,6 +193,9 @@ bool sr_model_seed_from_sess(SrModel* m, uint32_t tick_ms) {
 }
 
 static bool apply_stopped(SrModel* m, SrStopReason reason) {
+    if(reason == SrStopWifiTranRecv) {
+        m->wifi_stop_rev++;
+    }
     if(m->session == SrSessionRunning) {
         m->session = SrSessionStopped;
         m->session_rev++;

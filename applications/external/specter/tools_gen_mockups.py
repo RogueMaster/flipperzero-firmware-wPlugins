@@ -74,7 +74,9 @@ def line(d, x0, y0, x1, y1, col=FG, w=2):
 
 
 def circle(d, cx, cy, r, col=FG, w=2):
-    d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w)
+    d.ellipse(
+        [L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w
+    )
 
 
 def disc(d, cx, cy, r, col=FG):
@@ -139,7 +141,9 @@ def proximity_word(s, saturated=False):
 
 
 def _proximity_word(s):
-    return "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
+    return (
+        "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
+    )
 
 
 # --------------------------------------------------------------------------
@@ -237,9 +241,22 @@ def draw_readout(d, strength, peak, contacts, trend=None):
     tb(d, 68, 51, f"PEAK {peak}%", f_sec)
 
 
-def render_sweep(name, strength, peak, contacts, present, state, history,
-                 anim=1, calibrating=False, calib_pct=0, flash=None, sens="Medium",
-                 saturated=False, trend=None):
+def render_sweep(
+    name,
+    strength,
+    peak,
+    contacts,
+    present,
+    state,
+    history,
+    anim=1,
+    calibrating=False,
+    calib_pct=0,
+    flash=None,
+    sens="Medium",
+    saturated=False,
+    trend=None,
+):
     img, d = canvas()
     draw_header(d, "SWEEP", state, present, flash)
     draw_gauge(d, strength, peak, present, anim, threshold=SENS_MARK.get(sens, 30))
@@ -299,9 +316,21 @@ def draw_trace(d, bits):
         prev = hi
 
 
-def render_fingerprint(name, klass, blurb, conf, period, burst, jitter, duty,
-                       present=True, state="LISTENING", approx="", flash=None,
-                       has_cadence=True):
+def render_fingerprint(
+    name,
+    klass,
+    blurb,
+    conf,
+    period,
+    burst,
+    jitter,
+    duty,
+    present=True,
+    state="LISTENING",
+    approx="",
+    flash=None,
+    has_cadence=True,
+):
     img, d = canvas()
     draw_header(d, "FINGERPRINT", state, present, flash)
 
@@ -386,8 +415,12 @@ def render_menu():
     img, d = canvas()
     tb(d, 4, 11, "Specter", f_pri)
     line(d, 0, 14, 127, 14)
-    items = ["Sweep - find it", "Fingerprint - type", "Site Survey - room",
-             "Watch Mode - guard"]
+    items = [
+        "Sweep - find it",
+        "Fingerprint - type",
+        "Site Survey - room",
+        "Watch Mode - guard",
+    ]
     ROW_H = 12
     for i, it in enumerate(items):
         y = 15 + i * ROW_H
@@ -402,9 +435,13 @@ def render_menu():
 
 def render_settings():
     img, d = canvas()
-    rows = [("Sensitivity", "Custom", True), ("Survey time", "60s", False),
-            ("Sound", "ON", False), ("Vibrate", "ON", False),
-            ("LED", "ON", False)]
+    rows = [
+        ("Sensitivity", "Custom", True),
+        ("Survey time", "60s", False),
+        ("Sound", "ON", False),
+        ("Vibrate", "ON", False),
+        ("LED", "ON", False),
+    ]
     ROW_H = 12
     for i, (k, v, sel) in enumerate(rows):
         y = 2 + i * ROW_H
@@ -442,8 +479,17 @@ def render_logbook():
 # --------------------------------------------------------------------------
 # Watch Mode (views/watch_view.c)
 # --------------------------------------------------------------------------
-def render_watch(name, watching_s, contacts, peak, present, strength=0,
-                 last_ago="--", blink=True, seen_s=0):
+def render_watch(
+    name,
+    watching_s,
+    contacts,
+    peak,
+    present,
+    strength=0,
+    last_ago="--",
+    blink=True,
+    seen_s=0,
+):
     img, d = canvas()
     draw_header(d, "WATCH", "READER" if present else "LISTENING", present)
 
@@ -469,7 +515,14 @@ def render_watch(name, watching_s, contacts, peak, present, strength=0,
         hours = watching_s > 99 * 60 + 59
         if hours:
             mm, ss = watching_s // 3600, (watching_s // 60) % 60
-        tb(d, 120 if hours else 126, CLOCK_BASE, f"{mm:02d}:{ss:02d}", f_big, anchor="rs")
+        tb(
+            d,
+            120 if hours else 126,
+            CLOCK_BASE,
+            f"{mm:02d}:{ss:02d}",
+            f_big,
+            anchor="rs",
+        )
         if hours:
             tb(d, 121, CLOCK_BASE, "h", f_sec)
         if contacts:
@@ -488,13 +541,135 @@ def render_watch(name, watching_s, contacts, peak, present, strength=0,
     save(img, name)
 
 
-CLEAR_HIST = [3, 5, 2, 8, 4, 1, 6, 3, 9, 5, 2, 7, 4, 11, 6, 3, 8, 5, 2, 10, 6, 4, 9,
-              5, 3, 7, 12, 6, 4, 8, 5, 14, 7, 4, 9, 6, 3, 8, 5, 11, 6, 4, 7, 3, 9, 5,
-              2, 8, 13, 6, 4, 7, 5, 10, 6, 3, 8, 5, 2, 7, 4, 9]
+CLEAR_HIST = [
+    3,
+    5,
+    2,
+    8,
+    4,
+    1,
+    6,
+    3,
+    9,
+    5,
+    2,
+    7,
+    4,
+    11,
+    6,
+    3,
+    8,
+    5,
+    2,
+    10,
+    6,
+    4,
+    9,
+    5,
+    3,
+    7,
+    12,
+    6,
+    4,
+    8,
+    5,
+    14,
+    7,
+    4,
+    9,
+    6,
+    3,
+    8,
+    5,
+    11,
+    6,
+    4,
+    7,
+    3,
+    9,
+    5,
+    2,
+    8,
+    13,
+    6,
+    4,
+    7,
+    5,
+    10,
+    6,
+    3,
+    8,
+    5,
+    2,
+    7,
+    4,
+    9,
+]
 
-SURVEY_HIST = [4, 6, 3, 9, 5, 2, 7, 12, 22, 38, 51, 44, 30, 18, 9, 5, 3, 8, 4, 6, 11,
-               7, 4, 9, 5, 3, 8, 15, 28, 41, 36, 24, 13, 7, 4, 9, 5, 2, 8, 6, 3, 10,
-               5, 7, 4, 9, 6, 3, 8, 5, 12, 7, 4, 10, 6, 3, 9, 5, 8, 4, 7, 3]
+SURVEY_HIST = [
+    4,
+    6,
+    3,
+    9,
+    5,
+    2,
+    7,
+    12,
+    22,
+    38,
+    51,
+    44,
+    30,
+    18,
+    9,
+    5,
+    3,
+    8,
+    4,
+    6,
+    11,
+    7,
+    4,
+    9,
+    5,
+    3,
+    8,
+    15,
+    28,
+    41,
+    36,
+    24,
+    13,
+    7,
+    4,
+    9,
+    5,
+    2,
+    8,
+    6,
+    3,
+    10,
+    5,
+    7,
+    4,
+    9,
+    6,
+    3,
+    8,
+    5,
+    12,
+    7,
+    4,
+    10,
+    6,
+    3,
+    9,
+    5,
+    8,
+    4,
+    7,
+    3,
+]
 
 
 def strip(names, out, cols=None):
@@ -517,43 +692,112 @@ def strip(names, out, cols=None):
 
 if __name__ == "__main__":
     # Nothing found yet - what a first-time user actually sees, hint and all.
-    render_sweep("screen_clear.png", 7, 18, 0, False, "LISTENING", CLEAR_HIST, anim=2,
-                 trend=0)
+    render_sweep(
+        "screen_clear.png", 7, 18, 0, False, "LISTENING", CLEAR_HIST, anim=2, trend=0
+    )
     # Same quiet room, but after a contact: sensitivity and the live waveform.
-    render_sweep("screen_quiet.png", 9, 22, 1, False, "LISTENING", CLEAR_HIST, anim=2,
-                 trend=-1)
+    render_sweep(
+        "screen_quiet.png", 9, 22, 1, False, "LISTENING", CLEAR_HIST, anim=2, trend=-1
+    )
     # A real polling reader at arm's length, and the Flipper laid on top of one
     # (raw duty ~31% saturates the meter -> reads MAX, not "31%").
-    render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1,
-                 trend=1)
-    render_sweep("screen_reader_max.png", 100, 100, 4, True, "READER", CLEAR_HIST,
-                 anim=1, saturated=True, trend=1)
-    render_sweep("screen_calibrate.png", 4, 9, 0, False, "CALIBRATING", CLEAR_HIST,
-                 anim=2, calibrating=True, calib_pct=62, sens="Custom")
+    render_sweep(
+        "screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1, trend=1
+    )
+    render_sweep(
+        "screen_reader_max.png",
+        100,
+        100,
+        4,
+        True,
+        "READER",
+        CLEAR_HIST,
+        anim=1,
+        saturated=True,
+        trend=1,
+    )
+    render_sweep(
+        "screen_calibrate.png",
+        4,
+        9,
+        0,
+        False,
+        "CALIBRATING",
+        CLEAR_HIST,
+        anim=2,
+        calibrating=True,
+        calib_pct=62,
+        sens="Custom",
+    )
 
-    render_fingerprint("screen_fingerprint.png", "POLLING", "Fixed poll",
-                       88, 204, 24, 2, 11)
-    render_fingerprint("screen_fingerprint_cw.png", "CONTINUOUS", "Always on",
-                       100, 0, 0, 0, 98, has_cadence=False)
+    render_fingerprint(
+        "screen_fingerprint.png", "POLLING", "Fixed poll", 88, 204, 24, 2, 11
+    )
+    render_fingerprint(
+        "screen_fingerprint_cw.png",
+        "CONTINUOUS",
+        "Always on",
+        100,
+        0,
+        0,
+        0,
+        98,
+        has_cadence=False,
+    )
 
     render_survey_running("screen_survey_run.png", 62, 23, 9, 51, 2, False, SURVEY_HIST)
-    render_survey_verdict("screen_survey_done.png", "ACTIVE READER", "Fingerprint it",
-                          74, 21, 38, 5)
-    render_survey_verdict("screen_survey_clean.png", "CLEAN", "No field detected",
-                          6, 2, 0, 0)
+    render_survey_verdict(
+        "screen_survey_done.png", "ACTIVE READER", "Fingerprint it", 74, 21, 38, 5
+    )
+    render_survey_verdict(
+        "screen_survey_clean.png", "CLEAN", "No field detected", 6, 2, 0, 0
+    )
 
-    render_watch("screen_watch.png", watching_s=752, contacts=2, peak=100, present=False,
-                 last_ago="3m12s", seen_s=47)
-    render_watch("screen_watch_hit.png", watching_s=92, contacts=4, peak=71, present=True,
-                 strength=63, last_ago="0s")
+    render_watch(
+        "screen_watch.png",
+        watching_s=752,
+        contacts=2,
+        peak=100,
+        present=False,
+        last_ago="3m12s",
+        seen_s=47,
+    )
+    render_watch(
+        "screen_watch_hit.png",
+        watching_s=92,
+        contacts=4,
+        peak=71,
+        present=True,
+        strength=63,
+        last_ago="0s",
+    )
 
     render_menu()
     render_settings()
     render_logbook()
 
-    strip(("screen_reader.png", "screen_fingerprint.png",
-           "screen_survey_done.png", "screen_watch_hit.png"), "screens.png")
-    strip(("screen_clear.png", "screen_quiet.png", "screen_reader.png",
-           "screen_fingerprint.png", "screen_survey_run.png",
-           "screen_survey_done.png", "screen_watch.png", "screen_watch_hit.png",
-           "screen_logbook.png", "screen_calibrate.png"), "screens_all.png", cols=5)
+    strip(
+        (
+            "screen_reader.png",
+            "screen_fingerprint.png",
+            "screen_survey_done.png",
+            "screen_watch_hit.png",
+        ),
+        "screens.png",
+    )
+    strip(
+        (
+            "screen_clear.png",
+            "screen_quiet.png",
+            "screen_reader.png",
+            "screen_fingerprint.png",
+            "screen_survey_run.png",
+            "screen_survey_done.png",
+            "screen_watch.png",
+            "screen_watch_hit.png",
+            "screen_logbook.png",
+            "screen_calibrate.png",
+        ),
+        "screens_all.png",
+        cols=5,
+    )

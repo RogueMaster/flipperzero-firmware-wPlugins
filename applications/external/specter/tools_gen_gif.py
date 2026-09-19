@@ -86,8 +86,9 @@ def sweep_frame(r, hist, anim):
     img, d = m.canvas()
     state = "READER" if r["present"] else "LISTENING"
     m.draw_header(d, "SWEEP", state, r["present"])
-    m.draw_gauge(d, r["shown"], r["peak"], r["present"], anim,
-                 threshold=m.SENS_MARK[SENS])
+    m.draw_gauge(
+        d, r["shown"], r["peak"], r["present"], anim, threshold=m.SENS_MARK[SENS]
+    )
     m.draw_readout(d, r["shown"], r["peak"], r["contacts"], r["trend"])
     m.line(d, 0, 52, 127, 52)
     if r["present"]:

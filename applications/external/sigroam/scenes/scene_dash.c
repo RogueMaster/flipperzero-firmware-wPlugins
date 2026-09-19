@@ -1,5 +1,6 @@
 #include "../sigroam.h"
 #include "../src/sr_sess_seed.h"
+#include "../src/sr_dialect.h"
 
 #include <string.h>
 
@@ -361,12 +362,44 @@ static void dash_queue_cmd(SigRoamApp* app, bool is_start) {
     }
 }
 
+/* Generic Marauder: wait for Stopping WiFi (wifi_stop_rev) then queue wardrive.
+ * Must not queue wardrive while stopscan is still the in-flight worker command. */
+static bool dash_prestart_tick(SigRoamApp* app) {
+    bool confirmed;
+    bool timed_out;
+
+    if(!app->dash_prestart) {
+        return false;
+    }
+    confirmed = sr_dialect_show_info_clear_done(app->model.wifi_stop_rev, app->clear_stop_rev);
+    timed_out = (uint32_t)(furi_get_tick() - app->dash_prestart_tick_ms) >=
+                (uint32_t)SR_SCAN_CTL_TIMEOUT_MS;
+    if(!confirmed && !timed_out) {
+        if(!app->probe_stop_sent && !app->scan.cmd_pending) {
+            app->clear_stop_rev = app->model.wifi_stop_rev;
+            dash_queue_cmd(app, false);
+            if(app->scan.cmd_rejected && !app->scan.cmd_pending) {
+                app->scan.cmd_rejected = false;
+            }
+        }
+        return false;
+    }
+    if(app->scan.cmd_pending && !app->scan.cmd_is_start) {
+        app->scan.cmd_pending = false;
+        app->scan.cmd_rejected = false;
+    }
+    app->dash_prestart = false;
+    dash_queue_cmd(app, true);
+    return true;
+}
+
 /* OK-key dispatch via sr_scan_ctl_on_ok (D12 A1). State is eval'd over a
  * stack copy, same convention as dash_fill. */
 static void dash_scan_toggle(SigRoamApp* app) {
     SrScanCtlCtx ctx;
     SrScanUiState st;
     SrScanAct act;
+    SrShowInfoClearAct clear;
 
     ctx = app->scan;
     ctx.session_rev_now = app->model.session_rev;
@@ -374,8 +407,30 @@ static void dash_scan_toggle(SigRoamApp* app) {
     st = sr_scan_ctl_eval(&ctx, furi_get_tick());
     act = sr_scan_ctl_on_ok(st);
     if(act == SrScanActSendStart) {
-        dash_queue_cmd(app, true);
+        if(app->dash_prestart) {
+            return;
+        }
+        clear = sr_dialect_show_info_clear_on_start(&app->model.firmware, app->probe_stop_sent);
+        if(clear == SrShowInfoClearNone) {
+            dash_queue_cmd(app, true);
+            return;
+        }
+        if(clear == SrShowInfoClearWait &&
+           sr_dialect_show_info_clear_done(app->model.wifi_stop_rev, app->clear_stop_rev)) {
+            dash_queue_cmd(app, true);
+            return;
+        }
+        app->dash_prestart = true;
+        app->dash_prestart_tick_ms = furi_get_tick();
+        if(clear == SrShowInfoClearSendStop) {
+            app->clear_stop_rev = app->model.wifi_stop_rev;
+            dash_queue_cmd(app, false);
+            if(app->scan.cmd_rejected && !app->scan.cmd_pending) {
+                app->scan.cmd_rejected = false;
+            }
+        }
     } else if(act == SrScanActSendStop) {
+        app->dash_prestart = false;
         dash_queue_cmd(app, false);
     }
 }
@@ -470,14 +525,15 @@ static bool dash_sess_seed_tick(SigRoamApp* app) {
 }
 
 /*
- * F2 rev2 §1A. Dash on_enter sends `info` exactly once (below); without a
+ * F2 rev2 §1A. On SigRoam firmware, Dash on_enter sends `info` once; without a
  * repeat, the F2 headline freezes at whatever Qual: it read on entry --
  * elapsed_ms keeps climbing underneath a stale verdict (false-WARN /
  * false-OK, docs/exec-plans/f2-capture-health-rev2.md §1). This resends
  * `info` every SR_QUAL_REFRESH_PERIOD_TICKS ticks while Dash is active.
  *
- * `info` is read-only on the firmware side (same fact on_enter's own
- * comment relies on), so this is safe mid-scan.
+ * `info` is read-only on SigRoam firmware only. Stock Marauder info
+ * sets SHOW_INFO and makes scanning() true, which swallows wardrive.
+ * Skip the send unless sr_dialect_dash_may_send_info.
  *
  * HARD CONSTRAINT (card §1A): this function must NEVER write
  * app->peer_sync_pending or app->sess_seed_pending. sr_peer_sync_on_tick
@@ -496,6 +552,9 @@ static void dash_qual_refresh_tick(SigRoamApp* app) {
     if(!sr_qual_refresh_due(app->tick_n, (uint32_t)SR_QUAL_REFRESH_PERIOD_TICKS)) {
         return;
     }
+    if(!sr_dialect_dash_may_send_info(&app->model.firmware)) {
+        return;
+    }
     if(app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
         return;
     }
@@ -508,14 +567,15 @@ void sigroam_scene_dash_on_enter(void* context) {
     /* Entered via the custom callback, so app->mtx is already held. Do not acquire again. No blocking IO. */
     sr_view_dash_set_callback(app->dash, dash_view_scroll_cb, app);
     sr_view_dash_set_ok_callback(app->dash, dash_view_ok_cb, app);
-    /* Card N1: ask the board what it is doing. `info` is read-only on the firmware side
-     * (link_task.c:305-327 is echo + four handshake lines + Diag: + CmdTrace:, and
-     * touches neither g_session_state nor the seal flags), so this is safe to send even
-     * mid-scan. The reply is asynchronous; dash_peer_sync_tick() applies it. */
+    /* Card N1: SigRoam `info` is read-only (link_task.c:305-327). Stock Marauder
+     * info is not — SHOW_INFO makes scanning() true and swallows wardrive.
+     * Skip unless sr_dialect_dash_may_send_info. Probe still sends info. */
     app->peer_sync_fw_rev = app->model.firmware_rev;
     app->sess_seed_rev_at_send = app->model.sess_rev;
     app->peer_sync_pending = false;
-    if(app->io != NULL && sr_io_is_open(app->io) && app->worker != NULL) {
+    app->dash_prestart = false;
+    if(sr_dialect_dash_may_send_info(&app->model.firmware) && app->io != NULL &&
+       sr_io_is_open(app->io) && app->worker != NULL) {
         app->peer_sync_pending = sr_worker_send_cmd(app->worker, "info\n");
     }
     sigroam_dash_refresh(app);
@@ -595,6 +655,9 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
             need = true;
         }
         if(dash_scan_tick(app)) {
+            need = true;
+        }
+        if(dash_prestart_tick(app)) {
             need = true;
         }
         if(dash_poi_tick(app)) {

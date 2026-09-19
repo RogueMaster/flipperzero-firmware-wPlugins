@@ -94,6 +94,10 @@ typedef struct {
         session_rev; /* Incremented whenever the session actually transitions; pairs with the ADR-017 start/stop confirmation criteria */
     uint32_t
         gps_stop_rev; /* Incremented on a GPS/NMEA stop reply while idle; the close-out confirmation signal for sampling (ADR-020) */
+    /* Every "Stopping WiFi tran/recv" banner, including generic Idle→Stopped and
+     * already-Stopped no-ops. Session may not move; this counter still does.
+     * Compare with != (wrapping). Used to confirm SHOW_INFO was cleared. */
+    uint32_t wifi_stop_rev;
 
     char last_unknown[SR_RAW_LINE_MAX + 1];
     size_t last_unknown_len;
@@ -119,6 +123,7 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom);
  * Running; SrStopWifiTranRecv while Idle becomes Stopped without illegal_trans;
  * a second ScanStarted while Running is a no-op. SigRoam Version (-sigroam-) and
  * empty Version keep the strict rules above.
+ * Every SrStopWifiTranRecv increments wifi_stop_rev, including no-ops.
  */
 bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms);
 
