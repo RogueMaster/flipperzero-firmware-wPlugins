@@ -189,6 +189,8 @@ bool car_model_get_by_index(
                 break;
             }
 
+            FURI_LOG_D(TAG, "Using Custom Preset Data from Models File...");
+
             //Yay, we made it...
             error = false;
         }
@@ -236,11 +238,11 @@ bool car_model_get_by_index(
 
             free(car_model->preset);
             car_model->preset = NULL;
-        }
 
-        // If we allocated preset_data but never assigned it, free it
-        if(custom_preset && preset_data_size) {
-            free(preset_data);
+            // If we allocated preset_data but never assigned it, free it
+            if(custom_preset && preset_data_size) {
+                free(preset_data);
+            }
         }
     }
 

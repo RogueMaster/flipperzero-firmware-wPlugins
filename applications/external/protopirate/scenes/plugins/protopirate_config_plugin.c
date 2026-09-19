@@ -180,15 +180,14 @@ static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
 
     //set the Preset, Frequency and Hopper off or restore.
     if(model_index) {
-        variable_item_set_current_value_text(freq_menu, "Locked");
-        variable_item_set_current_value_text(hop_menu, "Locked");
-        app->txrx->hopper_state = ProtoPirateHopperStateOFF;
-        app->txrx->preset->frequency = app->selected_model->preset->frequency;
-
         //Save Original Preset.
-        if(old_model_index) {
-            app->selected_model->last_preset_index = subghz_setting_get_inx_preset_by_name(
-                app->setting, furi_string_get_cstr(app->txrx->preset->name));
+        if(!old_model_index) {
+            if(!strcmp(furi_string_get_cstr(app->txrx->preset->name), "Custom")) {
+                app->selected_model->last_preset_index = 0;
+            } else {
+                app->selected_model->last_preset_index = subghz_setting_get_inx_preset_by_name(
+                    app->setting, furi_string_get_cstr(app->txrx->preset->name));
+            }
         }
 
         protopirate_preset_init(
@@ -198,6 +197,10 @@ static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
             app->selected_model->preset->data,
             app->selected_model->preset->data_size);
 
+        variable_item_set_current_value_text(freq_menu, "Locked");
+        variable_item_set_current_value_text(hop_menu, "Locked");
+        app->txrx->hopper_state = ProtoPirateHopperStateOFF;
+        //app->txrx->preset->frequency = app->selected_model->preset->frequency;
     } else {
         //Restore Original Preset.
         protopirate_scene_receiver_config_set_frequency(freq_menu);

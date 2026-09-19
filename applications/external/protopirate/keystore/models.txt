@@ -1,7 +1,7 @@
 Filetype: ProtoPirate Car Models Database
 Version: 2
 
-ModelCount: 6
+ModelCount: 7
 
 ModelName1: 433.92 Mhz AM650
 Frequency1: 433920000
@@ -26,3 +26,8 @@ PresetName5: FuriHalSubGhzPresetOok650Async
 ModelName6: Ford Territory SX-SYII
 Frequency6: 433920000
 PresetName6: FuriHalSubGhzPresetOok650Async
+
+ModelName7: Example With Honda Preset
+Frequency7: 433920000
+PresetName7: FuriHalSubGhzPresetCustom
+CustomPresetData7: 02 0D 0B 06 08 32 07 04 14 00 13 02 12 07 11 36 10 E9 15 32 18 18 19 16 1D 92 1C 40 1B 03 20 FB 22 10 21 56 00 00 C0 00 00 00 00 00 00 00

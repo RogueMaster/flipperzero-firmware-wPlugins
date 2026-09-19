@@ -251,15 +251,7 @@ static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
         app->txrx->hopper_state = ProtoPirateHopperStateRunning;
     }
 
-    const char* preset_name = furi_string_get_cstr(app->txrx->preset->name);
-    uint8_t* preset_data = subghz_setting_get_preset_data_by_name(app->setting, preset_name);
-
-    if(preset_data == NULL) {
-        FURI_LOG_E(TAG, "Failed to get preset data for %s, using AM650", preset_name);
-        preset_data = subghz_setting_get_preset_data_by_name(app->setting, "AM650");
-    }
-
-    protopirate_begin(app, preset_data);
+    protopirate_begin(app, app->txrx->preset->data);
 
     uint32_t frequency = app->txrx->preset->frequency;
     if(app->txrx->hopper_state == ProtoPirateHopperStateRunning) {
