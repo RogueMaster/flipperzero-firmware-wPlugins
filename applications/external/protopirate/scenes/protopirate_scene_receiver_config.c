@@ -30,8 +30,5 @@ bool protopirate_scene_receiver_config_on_event(void* context, SceneManagerEvent
 void protopirate_scene_receiver_config_on_exit(void* context) {
     ProtoPirateApp* app = context;
 
-    if(app->config_plugin && app->config_plugin->on_exit) {
-        app->config_plugin->on_exit(app);
-    }
     config_plugin_unload(app);
 }

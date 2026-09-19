@@ -66,7 +66,7 @@ bool config_plugin_load(ProtoPirateApp* app) {
     }
 
     const ProtoPirateConfigPlugin* plugin = plugin_manager_get_ep(manager, 0U);
-    if(!plugin || !plugin->on_enter || !plugin->on_exit) {
+    if(!plugin || !plugin->on_enter) {
         FURI_LOG_E(TAG, "Config plugin entry point is invalid");
         plugin_manager_free(manager);
         composite_api_resolver_free(resolver);

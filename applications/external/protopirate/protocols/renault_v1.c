@@ -1467,21 +1467,19 @@ bool hitag2_bf_state_from_flipper_format(Hitag2BfState* state, FlipperFormat* ff
     return true;
 }
 
-bool hitag2_bf_needs_bruteforce(FlipperFormat* ff, bool require_renault_v1) {
+bool hitag2_bf_needs_bruteforce(FlipperFormat* ff) {
     if(!ff) {
         return false;
     }
 
     FuriString* s = furi_string_alloc();
     flipper_format_rewind(ff);
-    if(require_renault_v1) {
-        if(!flipper_format_read_string(ff, FF_PROTOCOL, s) ||
-           furi_string_cmp_str(s, RENAULT_PROTOCOL_V1_NAME) != 0) {
-            furi_string_free(s);
-            return false;
-        }
-        flipper_format_rewind(ff);
+    if(!flipper_format_read_string(ff, FF_PROTOCOL, s) ||
+       furi_string_cmp_str(s, RENAULT_PROTOCOL_V1_NAME) != 0) {
+        furi_string_free(s);
+        return false;
     }
+    flipper_format_rewind(ff);
 
     bool has_key = flipper_format_read_string(ff, FF_KEY, s);
     furi_string_free(s);

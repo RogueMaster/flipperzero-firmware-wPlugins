@@ -37,7 +37,7 @@ struct Hitag2BfState {
 
 int32_t hitag2_brute_force_thread_entry(void* arg);
 bool hitag2_bf_state_from_flipper_format(Hitag2BfState* state, FlipperFormat* ff);
-bool hitag2_bf_needs_bruteforce(FlipperFormat* ff, bool require_renault_v1);
+bool hitag2_bf_needs_bruteforce(FlipperFormat* ff);
 bool hitag2_bf_patch_flipper_format_on_success(FlipperFormat* ff, const Hitag2BfState* state);
 bool hitag2_bf_patch_flipper_format_on_miss(FlipperFormat* ff);
 bool hitag2_flipper_format_get_string(FlipperFormat* ff, FuriString* output);

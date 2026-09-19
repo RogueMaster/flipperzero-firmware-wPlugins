@@ -114,3 +114,11 @@ void protopirate_views_free(ProtoPirateApp* app) {
         app->protopirate_receiver = NULL;
     }
 }
+
+void protopirate_variable_item_list_free(ProtoPirateApp* app) {
+    if(app->variable_item_list) {
+        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
+        variable_item_list_free(app->variable_item_list);
+        app->variable_item_list = NULL;
+    }
+}

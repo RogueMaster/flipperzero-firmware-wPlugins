@@ -82,17 +82,17 @@ static void bf_free_states(void) {
     g_bf_kind = ProtoPirateBfKindNone;
 }
 
-static bool item_needs_bruteforce_from_ff(FlipperFormat* ff, bool require_psa_protocol) {
+static bool item_needs_bruteforce_from_ff(FlipperFormat* ff) {
     if(!ff) return false;
     FuriString* s = furi_string_alloc();
+
     flipper_format_rewind(ff);
-    if(require_psa_protocol) {
-        if(!flipper_format_read_string(ff, FF_PROTOCOL, s) || furi_string_cmp_str(s, "PSA") != 0) {
-            furi_string_free(s);
-            return false;
-        }
-        flipper_format_rewind(ff);
+    if(!flipper_format_read_string(ff, FF_PROTOCOL, s) || furi_string_cmp_str(s, "PSA") != 0) {
+        furi_string_free(s);
+        return false;
     }
+
+    flipper_format_rewind(ff);
     bool has_key = flipper_format_read_string(ff, FF_KEY, s);
     if(!has_key) {
         furi_string_free(s);
@@ -307,9 +307,9 @@ static void bf_cancel_thread(void) {
 }
 
 static bool plugin_needs_bruteforce(void* app, ProtoPiratePsaBfContext ctx) {
+    UNUSED(ctx);
     FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
-    const bool require = ctx == ProtoPiratePsaBfContextReceiverInfo;
-    return item_needs_bruteforce_from_ff(ff, require) || hitag2_bf_needs_bruteforce(ff, require);
+    return item_needs_bruteforce_from_ff(ff) || hitag2_bf_needs_bruteforce(ff);
 }
 
 static bool plugin_is_running(void* app) {
@@ -334,8 +334,7 @@ static bool start_bruteforce(void* app) {
     FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
     if(!ff || !plugin_needs_bruteforce(app, g_active_ctx)) return false;
 
-    const bool require = g_active_ctx == ProtoPiratePsaBfContextReceiverInfo;
-    if(item_needs_bruteforce_from_ff(ff, require)) {
+    if(item_needs_bruteforce_from_ff(ff)) {
         PsaBfState* state = malloc(sizeof(PsaBfState));
         if(!state) {
             g_host_api->notification_error(app);
@@ -351,7 +350,7 @@ static bool start_bruteforce(void* app) {
         g_bf_state = state;
         g_bf_kind = ProtoPirateBfKindPsa;
         g_bf_thread = furi_thread_alloc_ex("PsaBf", 2048, psa_brute_force_thread_entry, state);
-    } else if(hitag2_bf_needs_bruteforce(ff, require)) {
+    } else if(hitag2_bf_needs_bruteforce(ff)) {
         Hitag2BfState* state = malloc(sizeof(Hitag2BfState));
         if(!state) {
             g_host_api->notification_error(app);

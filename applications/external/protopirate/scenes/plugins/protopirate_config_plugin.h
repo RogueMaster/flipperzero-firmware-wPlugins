@@ -31,5 +31,4 @@ typedef struct ProtoPirateConfigPlugin {
         SubGhzSetting* app_settings);
     uint16_t (*car_model_get_count)(void);
     void (*on_enter)(void* app);
-    void (*on_exit)(void* app);
 } ProtoPirateConfigPlugin;

@@ -727,6 +727,13 @@ void protopirate_scene_timing_tuner_on_enter(void* context) {
     g_timing_ctx->is_receiving = true;
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewAbout);
+
+    //Kill Config if it exists now to save memory.
+    if(app->variable_item_list) {
+        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
+        variable_item_list_free(app->variable_item_list);
+        app->variable_item_list = NULL;
+    }
 }
 
 bool protopirate_scene_timing_tuner_on_event(void* context, SceneManagerEvent event) {

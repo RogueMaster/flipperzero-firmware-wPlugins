@@ -58,7 +58,7 @@ App(
     fap_author="RocketGod-git & xMasterX",
     fap_weburl="https://github.com/RocketGod-git/ProtoPirate",
     #  fap_weburl="https://protopirate.net/ProtoPirate/ProtoPirate",
-    fap_version="3.3",
+    fap_version="3.4",
     fap_description="Decode car key fob signals from Sub-GHz",
 )
 

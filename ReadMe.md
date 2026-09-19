@@ -123,7 +123,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Flipcraft v2.8 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Updated: [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 - Updated: [Mystic Balloon v3.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
-- Updated: [ProtoPirate v3.3 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [WiFi (Marauder) v0.7.12 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32`
 - ESP Flasher: [Bump Marauder v1.17.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.17.0)
 - Added: [Flipper Elements v1.4 (By steanlab)](https://github.com/steanlab/flipper-elements)
@@ -143,6 +142,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - Updated: [Specter v3.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Updated: [SigRoam Wardriving v0.4 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
+- Updated: [ProtoPirate v3.4 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 
@@ -871,7 +871,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Portal of Flipper v1.3 (By bettse)](https://gitlab.com/bettse/portal_of_flipper)
 - [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
-- [ProtoPirate v3.3 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- [ProtoPirate v3.4 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [ProtoView v1.3 (By antirez)](https://github.com/antirez/protoview)
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)

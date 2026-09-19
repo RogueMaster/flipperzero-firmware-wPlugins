@@ -35,8 +35,11 @@ const char* const tx_power_text[TX_POWER_COUNT] = {
 
 bool protopirate_ensure_variable_item_list(ProtoPirateApp* app) {
     furi_check(app);
+
     if(app->variable_item_list) {
         view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
+        variable_item_list_free(app->variable_item_list);
+        //Reassigned below... app->variable_item_list = NULL;
     }
 
     app->variable_item_list = variable_item_list_alloc();
@@ -470,22 +473,11 @@ static void plugin_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
 }
 
-static void plugin_on_exit(void* context) {
-    ProtoPirateApp* app = context;
-
-    //Reset the variable item list.
-    variable_item_list_set_selected_item(app->variable_item_list, 0);
-    variable_item_list_reset(app->variable_item_list);
-    variable_item_list_free(app->variable_item_list);
-    //app->variable_item_list = NULL;
-}
-
 static const ProtoPirateConfigPlugin protopirate_config_plugin = {
     .plugin_name = "ProtoPirate Config",
     .car_model_get_by_index = car_model_get_by_index,
     .car_model_get_count = car_model_get_count,
     .on_enter = plugin_on_enter,
-    .on_exit = plugin_on_exit,
 };
 
 static const FlipperAppPluginDescriptor protopirate_config_plugin_descriptor = {
