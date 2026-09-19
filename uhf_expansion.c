@@ -227,6 +227,7 @@ typedef struct {
 
     char status[64];
     bool save_popup_active;
+    bool save_popup_csv;
     char version[24];
     char csv_filename[32];
     bool startup_active;
@@ -1087,10 +1088,12 @@ static void uhf_show_list_menu(UhfApp* app) {
             app->page = UhfPageList;
             app->list_selection_manual = false;
             uhf_set_status(app, "Saved");
+            app->save_popup_csv = true;
             app->save_popup_active = true;
             view_port_update(app->view_port);
             furi_delay_ms(1200U);
             app->save_popup_active = false;
+            app->save_popup_csv = false;
             view_port_update(app->view_port);
         }
     } else {
@@ -3399,6 +3402,79 @@ static void uhf_draw_key_vault(Canvas* canvas, UhfApp* app) {
     uhf_draw_fixed_side_button(canvas, "Edit", true);
 }
 
+static void uhf_draw_save_popup(Canvas* canvas, const UhfApp* app) {
+    const int left = 8;
+    const int width = 112;
+    const int text_left = left + 7;
+    const int text_right = left + width - 7;
+    const int max_width = text_right - text_left;
+
+    canvas_set_font(canvas, FontSecondary);
+
+    char detail[48];
+    if(app->save_popup_csv) {
+        snprintf(detail, sizeof(detail), "%s saved", app->csv_filename);
+    } else {
+        strncpy(detail, app->status, sizeof(detail) - 1U);
+        detail[sizeof(detail) - 1U] = '\0';
+    }
+    char line[2][32] = {{0}};
+    size_t source_pos = 0U;
+    size_t line_count = 0U;
+    for(size_t row = 0U; row < 2U && detail[source_pos]; row++) {
+        size_t written = 0U;
+        while(detail[source_pos] && written < sizeof(line[row]) - 4U) {
+            line[row][written] = detail[source_pos];
+            line[row][written + 1U] = '\0';
+            if(canvas_string_width(canvas, line[row]) > max_width) {
+                line[row][written] = '\0';
+                break;
+            }
+            source_pos++;
+            written++;
+        }
+        if(row == 0U && detail[source_pos]) {
+            char* last_space = strrchr(line[row], ' ');
+            if(last_space && last_space != line[row]) {
+                const size_t word_start = (size_t)(last_space - line[row]) + 1U;
+                if(line[row][word_start] != '\0') {
+                    source_pos -= strlen(line[row]) - word_start;
+                    *last_space = '\0';
+                }
+            }
+        }
+        if(!detail[source_pos]) {
+            line_count = row + 1U;
+            break;
+        }
+        if(row == 1U) {
+            size_t length = strlen(line[row]);
+            while(length > 0U && canvas_string_width(canvas, line[row]) +
+                                      canvas_string_width(canvas, "...") > max_width) {
+                line[row][--length] = '\0';
+            }
+            line[row][length++] = '.';
+            line[row][length++] = '.';
+            line[row][length++] = '.';
+            line[row][length] = '\0';
+        }
+        line_count = row + 1U;
+    }
+
+    const int height = line_count <= 1U ? 22 : 31;
+    const int top = (64 - height) / 2;
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_rbox(canvas, left, top, width, height, 4);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_rframe(canvas, left, top, width, height, 4);
+    const int first_y = line_count == 1U ? top + 14 : top + 13;
+    for(size_t row = 0U; row < line_count; row++) {
+        const int text_width = canvas_string_width(canvas, line[row]);
+        const int text_x = left + (width - text_width) / 2;
+        canvas_draw_str(canvas, text_x, first_y + (int)row * 9, line[row]);
+    }
+}
+
 static void uhf_draw_callback(Canvas* canvas, void* context) {
     if(!context) return;
     UhfApp* app = context;
@@ -3701,12 +3777,7 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
 
     /* Keep the saved page visible underneath the transient result message. */
     if(app->save_popup_active) {
-        canvas_set_color(canvas, ColorWhite);
-        canvas_draw_rbox(canvas, 3, 21, 122, 22, 4);
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rframe(canvas, 3, 21, 122, 22, 4);
-        canvas_set_font(canvas, FontSecondary);
-        uhf_draw_centered_text(canvas, 35, app->status);
+        uhf_draw_save_popup(canvas, app);
     }
 }
 
@@ -4280,11 +4351,13 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
                 app,
                 !saved ? "Save failed" :
                          (power_ok ? "Settings saved" : "Saved; power not applied"));
+            app->save_popup_csv = false;
             app->save_popup_active = true;
             view_port_update(app->view_port);
             uhf_notify_write_result(app, saved && power_ok);
             furi_delay_ms(1200U);
             app->save_popup_active = false;
+            app->save_popup_csv = false;
             view_port_update(app->view_port);
         } else if(app->page == UhfPageAbout) {
             uhf_exit_about_page(app);
