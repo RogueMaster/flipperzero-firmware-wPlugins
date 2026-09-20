@@ -1,0 +1,17 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="flipper_prime_factors",  # Must be unique
+    name="Prime Factorization",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_prime_factors_app",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    # Optional values
+    fap_version="1.0",  # major.minor; must increase with every catalog update
+    fap_icon="flipper_prime_factors.png",  # 10x10 1-bit PNG
+    fap_description="Prime factorization of an integer by trial division",
+    fap_author="gbritoda",
+    fap_weburl="https://github.com/gbritoda/flipper0-prime_factors",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)
