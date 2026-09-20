@@ -78,6 +78,11 @@ static inline bool sr_dialect_dash_may_send_info(const SrFirmwareInfo* fw) {
  * handshake Ok; Dash queues one more only if Probe did not. SigRoam info is
  * read-only — never send this pair there (it would stop a live scan).
  *
+ * Empty Version is unknown peer, not generic: SHOW_INFO-clear must wait until
+ * Version is a non-sigroam string. ident_info_sent is kept so call sites stay
+ * stable; it must not promote an empty Version into SendStop (xu182: that
+ * made the first Dash OK a stopscan on SigRoam when info was late).
+ *
  * Worker is a single slot: Probe and Dash must not both have stopscan in
  * flight. Confirm on wifi_stop_rev moving (Stopping WiFi always prints,
  * even when session is already Stopped), not on session_rev.
@@ -92,13 +97,27 @@ static inline bool sr_dialect_probe_should_clear_show_info(const SrFirmwareInfo*
     return sr_dialect_is_generic_marauder(fw);
 }
 
-static inline SrShowInfoClearAct sr_dialect_show_info_clear_on_start(
+static inline bool sr_dialect_needs_show_info_clear(
     const SrFirmwareInfo* fw,
-    bool probe_stop_sent) {
-    if(!sr_dialect_is_generic_marauder(fw)) {
+    bool ident_info_sent) {
+    (void)ident_info_sent;
+    return sr_dialect_is_generic_marauder(fw);
+}
+
+static inline SrShowInfoClearAct sr_dialect_show_info_clear_on_start_ex(
+    const SrFirmwareInfo* fw,
+    bool probe_stop_sent,
+    bool ident_info_sent) {
+    if(!sr_dialect_needs_show_info_clear(fw, ident_info_sent)) {
         return SrShowInfoClearNone;
     }
     return probe_stop_sent ? SrShowInfoClearWait : SrShowInfoClearSendStop;
+}
+
+static inline SrShowInfoClearAct sr_dialect_show_info_clear_on_start(
+    const SrFirmwareInfo* fw,
+    bool probe_stop_sent) {
+    return sr_dialect_show_info_clear_on_start_ex(fw, probe_stop_sent, false);
 }
 
 /* Wrapping counter: != , never >. */

@@ -52,6 +52,11 @@ Dash, a Dash/GPS layout pass, About lockup A2, and a second Unleashed build.
   read-only there: it leaves `SHOW_INFO` and the next wardrive never starts.
 - After Probe recognises a generic Marauder, the app sends `stopscan` once
   so Dash can start a scan. SigRoam firmware is unchanged.
+- Empty Version is not treated as a generic Marauder. Dash holds START
+  until Version arrives; 1500 ms is retry spacing, not the end of the hold.
+- Dash shows `No SD` / `Saving...` and does not cover those with the ident
+  overlay.
+- Probe retries `info` until Version arrives or the send cap.
 
 ## [0.3] — 2026-09-04
 

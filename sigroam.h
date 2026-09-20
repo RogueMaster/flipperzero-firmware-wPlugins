@@ -175,6 +175,20 @@ typedef struct {
     bool dash_prestart;
     uint32_t clear_stop_rev;
     uint32_t dash_prestart_tick_ms;
+    /* Dash identity bootstrap while Version is empty. GUI-thread exclusive.
+     * pending: hold START until Version arrives (timeout does not drop the
+     * hold). info_sent: at least one `info` queued. sends: bootstrap+retry,
+     * cap SR_SCAN_CTL_IDENT_MAX_SENDS. */
+    bool dash_ident_pending;
+    bool dash_ident_info_sent;
+    uint8_t dash_ident_sends;
+    uint32_t dash_ident_tick_ms;
+    /* Stop-seal latch after stopscan ack on SigRoam. busy_rev_at_stop is
+     * model.busy_rev at confirm; busy_rev != that value is a new Busy:.
+     * post_stop_info: STOP ack queued `info` failed; retry until Diag 0/4. */
+    bool stop_seal_latched;
+    bool dash_post_stop_info;
+    uint32_t busy_rev_at_stop;
     /* Card N1 peer-state adoption. GUI-thread exclusive like app->scan (see the
      * comment block above): armed by Dash on_enter after it queues `info`, consumed
      * by the Dash Tick handler when the reply raises model.firmware_rev.

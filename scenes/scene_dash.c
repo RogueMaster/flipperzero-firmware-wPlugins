@@ -7,6 +7,15 @@
 _Static_assert(
     (unsigned)SR_QUAL_REFRESH_PERIOD_TICKS == 5000u / (unsigned)SR_TICK_PERIOD_MS,
     "E-2: SR_QUAL_REFRESH_PERIOD_TICKS must equal 5000 ms / SR_TICK_PERIOD_MS");
+_Static_assert(
+    (unsigned)SR_SCAN_CTL_QUAL_STALE_MS == (unsigned)SR_QUAL_STALE_MS,
+    "scan_ctl SD-dead window must match Qual stale");
+_Static_assert(
+    (unsigned)SR_SCAN_CTL_IDENT_MS == (unsigned)SR_HANDSHAKE_TIMEOUT_MS,
+    "Dash ident wait must match Probe handshake window");
+_Static_assert(
+    (unsigned)SR_SCAN_CTL_IDENT_MAX_SENDS == (unsigned)SR_HANDSHAKE_MAX_SENDS,
+    "Dash ident retry cap must match Probe info sends");
 
 enum {
     SigRoamDashEventScroll = 0,
@@ -77,7 +86,23 @@ static void dash_fill(SigRoamApp* app, SrDashModel* snap) {
         wc.cmdack_at_send = app->scan_cmdack_at_send;
         snap->wait_stage = (uint8_t)sr_wait_stage_eval(&wc);
         snap->cmd_is_start = app->scan.cmd_is_start;
+        if(snap->wait_stage == (uint8_t)SrWaitStageNone &&
+           sr_scan_ctl_ident_hold(
+               app->dash_ident_pending,
+               app->model.firmware.version[0] != '\0',
+               app->dash_ident_tick_ms,
+               now,
+               (uint32_t)SR_SCAN_CTL_IDENT_MS)) {
+            snap->wait_stage = (uint8_t)SrWaitStageLink;
+        }
     }
+    snap->board_sealing = sr_scan_ctl_sealing_ex(
+        app->model.firmware.diag_seen,
+        app->model.firmware.diag_state,
+        app->model.busy_rev,
+        app->busy_rev_at_stop,
+        app->model.busy.state,
+        app->stop_seal_latched);
 
     if(app->model.session == SrSessionRunning) {
         /* Unsigned subtraction: the furi tick wraps. See sr_scan_ctl.h:39-40. */
@@ -411,13 +436,34 @@ static void dash_scan_toggle(SigRoamApp* app) {
     ctx.session_rev_now = app->model.session_rev;
     ctx.session_now = app->model.session;
     st = sr_scan_ctl_eval(&ctx, furi_get_tick());
-    act = sr_scan_ctl_on_ok(st);
+    act = sr_scan_ctl_on_ok_ex(
+        st,
+        sr_scan_ctl_sd_dead(
+            app->model.qual_rev,
+            app->model.qual.sd,
+            app->model.qual_tick_ms,
+            furi_get_tick()),
+        sr_scan_ctl_sealing_ex(
+            app->model.firmware.diag_seen,
+            app->model.firmware.diag_state,
+            app->model.busy_rev,
+            app->busy_rev_at_stop,
+            app->model.busy.state,
+            app->stop_seal_latched),
+        sr_scan_ctl_ident_hold(
+            app->dash_ident_pending,
+            app->model.firmware.version[0] != '\0',
+            app->dash_ident_tick_ms,
+            furi_get_tick(),
+            (uint32_t)SR_SCAN_CTL_IDENT_MS));
     if(act == SrScanActSendStart) {
         if(app->dash_prestart) {
             return;
         }
-        clear = sr_dialect_show_info_clear_on_start(
-            &app->model.firmware, app->probe_stop_sent);
+        clear = sr_dialect_show_info_clear_on_start_ex(
+            &app->model.firmware,
+            app->probe_stop_sent,
+            app->dash_ident_info_sent);
         if(clear == SrShowInfoClearNone) {
             dash_queue_cmd(app, true);
             return;
@@ -478,9 +524,94 @@ static bool dash_scan_tick(SigRoamApp* app) {
        (st == SrScanUiIdle && !app->scan.cmd_is_start)) {
         app->scan.cmd_pending = false;
         app->scan.cmd_rejected = false; /* D12 A4: reject latched while pending is stale */
+        if(app->scan.cmd_is_start) {
+            app->stop_seal_latched = false;
+            app->dash_post_stop_info = false;
+        } else if(sr_scan_ctl_should_latch_stop(
+                      sr_dialect_is_sigroam(&app->model.firmware),
+                      app->model.firmware.diag_seen)) {
+            app->stop_seal_latched = true;
+            app->busy_rev_at_stop = app->model.busy_rev;
+            app->dash_post_stop_info = sr_dialect_dash_may_send_info(&app->model.firmware);
+            if(app->dash_post_stop_info &&
+               app->io != NULL && sr_io_is_open(app->io) && app->worker != NULL) {
+                /* Refresh Diag so the latch can clear at st=0/4. Do not arm
+                 * peer_sync / sess_seed (same constraint as Qual refresh). */
+                if(sr_worker_send_cmd(app->worker, "info\n")) {
+                    app->dash_post_stop_info = false;
+                }
+            }
+        }
         return true;
     }
     return false;
+}
+
+static bool dash_post_stop_info_tick(SigRoamApp* app) {
+    bool sealing;
+
+    if(!app->dash_post_stop_info) {
+        return false;
+    }
+    sealing = sr_scan_ctl_sealing_ex(
+        app->model.firmware.diag_seen,
+        app->model.firmware.diag_state,
+        app->model.busy_rev,
+        app->busy_rev_at_stop,
+        app->model.busy.state,
+        app->stop_seal_latched);
+    if(!sealing) {
+        app->dash_post_stop_info = false;
+        return false;
+    }
+    if(app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
+        return false;
+    }
+    if(sr_worker_send_cmd(app->worker, "info\n")) {
+        app->dash_post_stop_info = false;
+        return true;
+    }
+    return false;
+}
+
+static bool dash_ident_tick(SigRoamApp* app) {
+    uint32_t now;
+
+    if(!app->dash_ident_pending) {
+        return false;
+    }
+    if(app->model.firmware.version[0] != '\0') {
+        app->dash_ident_pending = false;
+        return true;
+    }
+    now = furi_get_tick();
+    if(!sr_scan_ctl_ident_retry_due(
+           true,
+           false,
+           app->dash_ident_sends,
+           app->dash_ident_tick_ms,
+           now,
+           (uint32_t)SR_SCAN_CTL_IDENT_MS)) {
+        return false;
+    }
+    if(app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
+        app->dash_ident_sends = (uint8_t)SR_SCAN_CTL_IDENT_MAX_SENDS;
+        return false;
+    }
+    if(sr_worker_send_cmd(app->worker, "info\n")) {
+        app->dash_ident_info_sent = true;
+        if(app->dash_ident_sends < 255u) {
+            app->dash_ident_sends++;
+        }
+        app->dash_ident_tick_ms = now;
+        if(!app->peer_sync_pending) {
+            app->peer_sync_fw_rev = app->model.firmware_rev;
+            app->peer_sync_pending = true;
+        }
+    } else {
+        app->dash_ident_sends = (uint8_t)SR_SCAN_CTL_IDENT_MAX_SENDS;
+    }
+    return true;
 }
 
 /* Card N1. The board keeps scanning after the app exits (scene_start.c:13-16), so a
@@ -575,16 +706,30 @@ void sigroam_scene_dash_on_enter(void* context) {
     /* Entered via the custom callback, so app->mtx is already held. Do not acquire again. No blocking IO. */
     sr_view_dash_set_callback(app->dash, dash_view_scroll_cb, app);
     sr_view_dash_set_ok_callback(app->dash, dash_view_ok_cb, app);
-    /* Card N1: SigRoam `info` is read-only (link_task.c:305-327). Stock Marauder
-     * info is not — SHOW_INFO makes scanning() true and swallows wardrive.
-     * Skip unless sr_dialect_dash_may_send_info. Probe still sends info. */
+    /* Card N1: SigRoam `info` is read-only. Stock Marauder info is not —
+     * SHOW_INFO swallows wardrive. Empty Version: bootstrap `info` and hold
+     * OK until Version (retry once after SR_SCAN_CTL_IDENT_MS). After Version
+     * is known, periodic refresh still uses sr_dialect_dash_may_send_info. */
     app->peer_sync_fw_rev = app->model.firmware_rev;
     app->sess_seed_rev_at_send = app->model.sess_rev;
     app->peer_sync_pending = false;
     app->dash_prestart = false;
-    if(sr_dialect_dash_may_send_info(&app->model.firmware) && app->io != NULL &&
-       sr_io_is_open(app->io) && app->worker != NULL) {
-        app->peer_sync_pending = sr_worker_send_cmd(app->worker, "info\n");
+    app->dash_post_stop_info = false;
+    app->dash_ident_pending = false;
+    app->dash_ident_info_sent = false;
+    app->dash_ident_sends = 0;
+    if(app->io != NULL && sr_io_is_open(app->io) && app->worker != NULL) {
+        if(app->model.firmware.version[0] == '\0') {
+            app->dash_ident_tick_ms = furi_get_tick();
+            app->dash_ident_pending = true;
+            if(sr_worker_send_cmd(app->worker, "info\n")) {
+                app->dash_ident_info_sent = true;
+                app->dash_ident_sends = 1;
+                app->peer_sync_pending = true;
+            }
+        } else if(sr_dialect_dash_may_send_info(&app->model.firmware)) {
+            app->peer_sync_pending = sr_worker_send_cmd(app->worker, "info\n");
+        }
     }
     sigroam_dash_refresh(app);
     sr_notify_backlight_enforce(app->notify, sr_settings_effective_backlight(&app->settings));
@@ -650,6 +795,9 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
          * model.session, and they must see the adopted value in the same tick.
          * Seeding runs next so those ticks also see the board's ap/ble/elapsed. */
         bool need = dash_peer_sync_tick(app);
+        if(dash_ident_tick(app)) {
+            need = true;
+        }
         if(dash_sess_seed_tick(app)) {
             need = true;
         }
@@ -657,6 +805,9 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
             need = true;
         }
         if(dash_scan_tick(app)) {
+            need = true;
+        }
+        if(dash_post_stop_info_tick(app)) {
             need = true;
         }
         if(dash_prestart_tick(app)) {

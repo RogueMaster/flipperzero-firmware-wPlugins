@@ -170,20 +170,18 @@ static void sigroam_scene_probe_fill(SigRoamApp* app, SrHandshakeState st) {
             fw->firmware[0] != '\0' ? fw->firmware : "(no name)");
         break;
     case SrHandshakeNoReply:
+        /* Keep listening: a late Firmware: still lifts eval to Ok. Do not
+         * paint a terminal No reply that then jumps to the firmware page. */
         snprintf(
             app->probe_text,
             sizeof(app->probe_text),
-            "\e#No reply\n"
-            "\n"
-            "Nothing after 2 tries\n"
-            "(1.5s each).\n"
+            "\e#Probing...\n"
             "\n"
             "Board may still be\n"
-            "booting. Leave and\n"
-            "reopen Probe.\n"
+            "booting. Waiting.\n"
             "\n"
-            "Else check pin 13/14\n"
-            "wiring, board power,\n"
+            "Back to leave.\n"
+            "Else pin 13/14, 5V,\n"
             "and baud (%lu).",
             (unsigned long)app->settings.baud);
         break;

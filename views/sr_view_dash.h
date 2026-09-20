@@ -20,6 +20,9 @@ typedef struct {
     uint8_t io_status; /* An SrIoStatus value, converted to wording at draw time */
     uint8_t session; /* SrSessionState */
     uint8_t scan_ui; /* SrScanUiState */
+    /* Fits in the 3-byte pad before ap_wifi (sizeof stays 712). From
+     * sr_scan_ctl_sealing_ex: stop latch / Diag 2/3 / post-stop Busy 2/3. */
+    bool board_sealing;
     /* ---- Dash tab ---- */
     uint32_t ap_wifi, ap_ble, unique_est, with_gps_fix;
     uint32_t rx_bytes, rx_dropped, rx_max_fill;

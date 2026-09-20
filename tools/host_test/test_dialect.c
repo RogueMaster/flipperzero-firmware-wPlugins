@@ -86,6 +86,19 @@ int test_dialect_run(void) {
     CHECK(sr_dialect_probe_should_clear_show_info(&fw) == false);
     CHECK(sr_dialect_show_info_clear_on_start(&fw, false) == SrShowInfoClearNone);
     CHECK(sr_dialect_show_info_clear_on_start(&fw, true) == SrShowInfoClearNone);
+    memset(&fw, 0, sizeof(fw));
+    CHECK(sr_dialect_needs_show_info_clear(&fw, false) == false);
+    CHECK(sr_dialect_needs_show_info_clear(&fw, true) == false);
+    CHECK(sr_dialect_show_info_clear_on_start_ex(&fw, false, true) ==
+          SrShowInfoClearNone);
+    CHECK(sr_dialect_show_info_clear_on_start_ex(&fw, true, true) ==
+          SrShowInfoClearNone);
+    sr_strlcpy(fw.version, sizeof(fw.version), "v1.14.1-sigroam-0");
+    CHECK(sr_dialect_needs_show_info_clear(&fw, true) == false);
+    CHECK(sr_dialect_show_info_clear_on_start_ex(&fw, false, true) ==
+          SrShowInfoClearNone);
+    sr_strlcpy(fw.version, sizeof(fw.version), "v1.17.0");
+    CHECK(sr_dialect_needs_show_info_clear(&fw, false) == true);
     CHECK(sr_dialect_show_info_clear_done(0u, 0u) == false);
     CHECK(sr_dialect_show_info_clear_done(1u, 0u) == true);
     CHECK(sr_dialect_show_info_clear_done(0u, 0xFFFFFFFFu) == true);

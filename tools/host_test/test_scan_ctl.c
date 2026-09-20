@@ -282,6 +282,7 @@ int test_scan_ctl_run(void) {
             }
             CHECK(got == k_spec[i].act);
             CHECK(got == exp_oracle);
+            CHECK(sr_scan_ctl_on_ok_ex(k_spec[i].st, false, false, false) == got);
 
             if(got == SrScanActNone) {
                 act_none++;
@@ -309,6 +310,76 @@ int test_scan_ctl_run(void) {
         CHECK(act_stop == 3);
         CHECK(on_ok_total == 7);
     }
+
+    CHECK(sr_scan_ctl_sd_dead(0u, 0u, 0u, 0u) == false);
+    CHECK(sr_scan_ctl_sd_dead(1u, 1u, 0u, 0u) == false);
+    CHECK(sr_scan_ctl_sd_dead(1u, 0u, 1000u, 1000u) == true);
+    CHECK(sr_scan_ctl_sd_dead(1u, 0u, 1000u, 1000u + 15000u) == true);
+    CHECK(sr_scan_ctl_sd_dead(1u, 0u, 1000u, 1000u + 15001u) == false);
+    CHECK(sr_scan_ctl_sealing(false, 3u) == false);
+    CHECK(sr_scan_ctl_sealing(true, 1u) == false);
+    CHECK(sr_scan_ctl_sealing(true, 2u) == true);
+    CHECK(sr_scan_ctl_sealing(true, 3u) == true);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiIdle, true, false, false) == SrScanActNone);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiStartFailed, true, false, false) == SrScanActNone);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiRunning, true, false, false) == SrScanActSendStop);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiIdle, false, true, false) == SrScanActNone);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiStartFailed, false, true, false) == SrScanActNone);
+    /* Sealing must not block Stop while the FAP still thinks it is Running. */
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiRunning, false, true, false) == SrScanActSendStop);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiIdle, false, false, true) == SrScanActNone);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiStartFailed, false, false, true) == SrScanActNone);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiRunning, false, false, true) == SrScanActSendStop);
+
+    /* Default Dash: no Qual yet → sd_dead false (would SendStart without ident hold). */
+    CHECK(sr_scan_ctl_sd_dead(0u, 0u, 0u, 0u) == false);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiIdle, false, false, true) == SrScanActNone);
+
+    /* STOP then OK while Diag still st=1: latch holds sealing. */
+    CHECK(sr_scan_ctl_sealing_ex(true, 1u, 0u, 0u, 0u, true) == true);
+    CHECK(sr_scan_ctl_on_ok_ex(
+        SrScanUiIdle, false,
+        sr_scan_ctl_sealing_ex(true, 1u, 0u, 0u, 0u, true),
+        false) == SrScanActNone);
+    /* Diag st=4 (SEALED) clears latch. */
+    CHECK(sr_scan_ctl_sealing_ex(true, 4u, 0u, 0u, 0u, true) == false);
+    /* Diag st=0 (IDLE) clears latch. */
+    CHECK(sr_scan_ctl_sealing_ex(true, 0u, 0u, 0u, 0u, true) == false);
+    /* Post-stop Busy st=2 seals even if Diag is stale st=1. */
+    CHECK(sr_scan_ctl_sealing_ex(true, 1u, 2u, 1u, 2u, true) == true);
+    CHECK(sr_scan_ctl_on_ok_ex(
+        SrScanUiIdle, false,
+        sr_scan_ctl_sealing_ex(true, 1u, 2u, 1u, 2u, true),
+        false) == SrScanActNone);
+    /* Post-stop Busy st=0 (IDLE refuse / seal done) clears. */
+    CHECK(sr_scan_ctl_sealing_ex(true, 1u, 2u, 1u, 0u, true) == false);
+    /* Old Busy (rev == at_stop) is ignored — latch still holds. */
+    CHECK(sr_scan_ctl_sealing_ex(true, 1u, 1u, 1u, 0u, true) == true);
+    CHECK(sr_scan_ctl_should_latch_stop(true, false) == true);
+    CHECK(sr_scan_ctl_should_latch_stop(false, true) == true);
+    CHECK(sr_scan_ctl_should_latch_stop(false, false) == false);
+
+    /* Ident hold: pending + empty Version blocks START until Version.
+     * 1500 ms is retry spacing, not the end of the hold. */
+    CHECK(sr_scan_ctl_ident_hold(true, false, 0u, 0u, 1500u) == true);
+    CHECK(sr_scan_ctl_ident_hold(true, false, 0u, 1499u, 1500u) == true);
+    CHECK(sr_scan_ctl_ident_hold(true, false, 0u, 1500u, 1500u) == true);
+    CHECK(sr_scan_ctl_ident_hold(true, false, 0u, 30000u, 1500u) == true);
+    CHECK(sr_scan_ctl_ident_hold(true, true, 0u, 0u, 1500u) == false);
+    CHECK(sr_scan_ctl_ident_hold(false, false, 0u, 0u, 1500u) == false);
+    CHECK(sr_scan_ctl_ident_retry_due(true, false, 1u, 0u, 1499u, 1500u) == false);
+    CHECK(sr_scan_ctl_ident_retry_due(true, false, 1u, 0u, 1500u, 1500u) == true);
+    CHECK(sr_scan_ctl_ident_retry_due(true, false, 2u, 0u, 1500u, 1500u) == false);
+    CHECK(sr_scan_ctl_ident_retry_due(true, true, 1u, 0u, 1500u, 1500u) == false);
+    CHECK(sr_scan_ctl_ident_yields_state4(true, true, false) == true);
+    CHECK(sr_scan_ctl_ident_yields_state4(true, false, true) == true);
+    CHECK(sr_scan_ctl_ident_yields_state4(true, false, false) == false);
+    CHECK(sr_scan_ctl_ident_yields_state4(false, true, true) == false);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiIdle, false, false, true) == SrScanActNone);
+
+    /* Qual sd=0 + sess_ms=0 still blocks START (sd_dead ignores sess_ms). */
+    CHECK(sr_scan_ctl_sd_dead(1u, 0u, 1000u, 1000u) == true);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiIdle, true, false, false) == SrScanActNone);
 
     fprintf(stderr, "sizeof(SrModel)=%zu\n", sizeof(SrModel));
     fprintf(stderr, "sizeof(SrParser)=%zu\n", sizeof(SrParser));
