@@ -81,6 +81,9 @@ Bump `fap_version` in `application.fam`, add a section to `changelog.md`, and
 submit a new manifest with the new commit SHA. Each submission must carry a
 higher version than the last or it is rejected.
 
+The pull request body for each submission is kept here: `PR.md` is v1.0,
+`PR-1.1.md` is v1.1.
+
 ## What the catalog requires, and where this repo answers it
 
 - open source license — `LICENSE` (MIT)
