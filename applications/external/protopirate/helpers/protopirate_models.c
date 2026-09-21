@@ -89,6 +89,7 @@ bool car_model_get_by_index(
             //Set the Custom preset name.
             furi_string_set_str(preset_name, "Custom");
             custom_preset = true;
+            flipper_format_rewind(ff);
         } else {
             //Get the built in preset if it exists
             const char* preset_name_long = furi_string_get_cstr(preset_name);
@@ -162,37 +163,38 @@ bool car_model_get_by_index(
         }
 
         /* Custom_preset_data (only if present) */
-        if(custom_preset &&
-           flipper_format_get_value_count(ff, preset_data_index, &preset_data_size) &&
-           preset_data_size > 0) {
-            if(preset_data_size >= 1024) {
-                FURI_LOG_E(
-                    "ProtoPirate",
-                    "%s too large: %lu",
-                    preset_data_index,
-                    (unsigned long)preset_data_size);
-                break;
+        if(custom_preset) {
+            if(flipper_format_get_value_count(ff, preset_data_index, &preset_data_size) &&
+               preset_data_size > 0) {
+                if(preset_data_size >= 1024) {
+                    FURI_LOG_E(
+                        "ProtoPirate",
+                        "%s too large: %lu",
+                        preset_data_index,
+                        (unsigned long)preset_data_size);
+                    break;
+                }
+
+                preset_data = malloc(preset_data_size);
+                if(!preset_data) {
+                    FURI_LOG_E(
+                        "ProtoPirate",
+                        "Malloc failed: %s (%lu bytes)",
+                        preset_data_index,
+                        (unsigned long)preset_data_size);
+                    break;
+                }
+
+                flipper_format_rewind(ff);
+                if(!flipper_format_read_hex(ff, preset_data_index, preset_data, preset_data_size)) {
+                    break;
+                }
+
+                FURI_LOG_D(TAG, "Using Custom Preset Data from Models File...");
+
+                //Yay, we made it...
+                error = false;
             }
-
-            preset_data = malloc(preset_data_size);
-            if(!preset_data) {
-                FURI_LOG_E(
-                    "ProtoPirate",
-                    "Malloc failed: %s (%lu bytes)",
-                    preset_data_index,
-                    (unsigned long)preset_data_size);
-                break;
-            }
-
-            flipper_format_rewind(ff);
-            if(!flipper_format_read_hex(ff, preset_data_index, preset_data, preset_data_size)) {
-                break;
-            }
-
-            FURI_LOG_D(TAG, "Using Custom Preset Data from Models File...");
-
-            //Yay, we made it...
-            error = false;
         }
     }
     }

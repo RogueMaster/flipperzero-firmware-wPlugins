@@ -141,7 +141,9 @@ bool protopirate_tool_scene_on_event(void* app, SceneManagerEvent event);
 void protopirate_tool_scene_on_exit(void* app);
 void protopirate_tool_scene_plugin_release(ProtoPirateApp* app);
 
-bool config_plugin_load(ProtoPirateApp* app);
+bool config_plugin_load(
+    ProtoPirateApp* app,
+    const ProtoPirateConfigSceneHostApi* protopirate_config_scene_host_api);
 void config_plugin_unload(ProtoPirateApp* app);
 
 void protopirate_app_free(ProtoPirateApp* app);

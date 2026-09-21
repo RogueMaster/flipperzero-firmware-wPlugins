@@ -31,7 +31,9 @@ void config_plugin_unload(ProtoPirateApp* app) {
     }
 }
 
-bool config_plugin_load(ProtoPirateApp* app) {
+bool config_plugin_load(
+    ProtoPirateApp* app,
+    const ProtoPirateConfigSceneHostApi* protopirate_config_scene_host_api) {
     furi_check(app);
 
     if(app->config_plugin) return true;
@@ -76,6 +78,7 @@ bool config_plugin_load(ProtoPirateApp* app) {
     app->plugin_resolver = resolver;
     app->plugin_manager = manager;
     app->config_plugin = plugin;
+    plugin->set_host_api(protopirate_config_scene_host_api);
     return true;
 }
 
@@ -218,7 +221,7 @@ ProtoPirateApp* protopirate_app_alloc() {
         settings.auto_save,
         settings.hopping_enabled);
 
-    config_plugin_load(app);
+    config_plugin_load(app, NULL);
     app->car_models_count = app->config_plugin->car_model_get_count();
     app->selected_model = malloc(sizeof(ProtoPirateCarModel));
     app->selected_model->name = furi_string_alloc();

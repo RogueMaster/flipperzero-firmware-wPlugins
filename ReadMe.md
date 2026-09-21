@@ -141,8 +141,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - Updated: [Specter v3.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
-- Updated: [ProtoPirate v3.4 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [SigRoam Wardriving v0.4 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
+- Updated: [ProtoPirate v3.4 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 

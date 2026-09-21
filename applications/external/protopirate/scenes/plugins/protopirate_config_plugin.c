@@ -2,6 +2,15 @@
 #include "../../protopirate_app_i.h"
 #include "../../helpers/protopirate_models.h"
 
+static const ProtoPirateConfigSceneHostApi* g_config_scene_host_api = NULL;
+
+#define protopirate_preset_init(app, preset_name, frequency, preset_data, preset_data_size) \
+    g_config_scene_host_api->protopirate_preset_init(                                       \
+        app, preset_name, frequency, preset_data, preset_data_size)
+
+#define protopirate_refresh_protocol_registry(app, ensure_receiver_ready) \
+    g_config_scene_host_api->protopirate_refresh_protocol_registry(app, ensure_receiver_ready)
+
 #define ON_OFF_COUNT 2
 const char* const on_off_text[ON_OFF_COUNT] = {
     "OFF",
@@ -476,11 +485,16 @@ static void plugin_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
 }
 
+void config_plugin_set_host_api(const ProtoPirateConfigSceneHostApi* host_api) {
+    g_config_scene_host_api = host_api;
+}
+
 static const ProtoPirateConfigPlugin protopirate_config_plugin = {
     .plugin_name = "ProtoPirate Config",
     .car_model_get_by_index = car_model_get_by_index,
     .car_model_get_count = car_model_get_count,
     .on_enter = plugin_on_enter,
+    .set_host_api = config_plugin_set_host_api,
 };
 
 static const FlipperAppPluginDescriptor protopirate_config_plugin_descriptor = {
