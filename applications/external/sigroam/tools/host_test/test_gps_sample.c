@@ -754,7 +754,9 @@ int test_gps_sample_run(void) {
      * struct, no absorbable padding there).
      * 2026-09-16 T6.5 half B: SrModel +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
      * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424.
-     * SrDashModel same +8 → 712. SrEvent stays 240 (radio arm is 2 B). */
+     * SrDashModel same +8 → 712. SrEvent stays 240 (radio arm is 2 B).
+     * 2026-09-20 board_sealing bool sits in the 3-byte pad after scan_ui
+     * (before ap_wifi); sizeof stays 712. */
     CHECK(sizeof(SrModel) == 3424);
     CHECK(sizeof(SrDashModel) == 712);
     CHECK(sizeof(SrDashModel) <= 768);

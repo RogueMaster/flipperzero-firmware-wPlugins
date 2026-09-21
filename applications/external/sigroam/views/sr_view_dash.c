@@ -3,6 +3,7 @@
 #include "../sigroam.h"
 #include "../src/sr_resync.h"
 #include "../src/sr_capture_health.h"
+#include "../src/sr_scan_ctl.h"
 
 #include <gui/elements.h>
 #include <stdio.h>
@@ -419,8 +420,13 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         return;
     }
 
-    if(m->wait_stage != (uint8_t)SrWaitStageNone) {
-        /* State 2: command in progress. No big font. rx shows bytes only, without duration. */
+    if(m->wait_stage != (uint8_t)SrWaitStageNone &&
+       !sr_scan_ctl_ident_yields_state4(
+           m->wait_stage == (uint8_t)SrWaitStageLink,
+           sr_scan_ctl_sd_dead(m->qual_rev, m->qual.sd, m->qual_tick_ms, furi_get_tick()),
+           m->board_sealing)) {
+        /* State 2: command in progress, or ident still waiting for Version.
+         * Ident Link must not hide State4 No SD / Saving (xu182). */
         if(y > 61) {
             return;
         }
@@ -438,7 +444,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         } else if(m->wait_stage == (uint8_t)SrWaitStageFunc && m->cmd_is_start) {
             n = snprintf(raw, sizeof(raw), "for scan to start");
         } else {
-            n = snprintf(raw, sizeof(raw), "for scan to stop");
+            n = snprintf(raw, sizeof(raw), "Saving...");
         }
         sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
         y += 10;
@@ -702,6 +708,22 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
      * always has sess_ms==0, so it shows the stale copy by design). rx= leaves this
      * path. The generic/debug path below is unchanged (rx kept). */
     if(m->qual_rev != 0u && !m->debug_rows) {
+        if(sr_scan_ctl_sd_dead(m->qual_rev, m->qual.sd, m->qual_tick_ms, furi_get_tick())) {
+            n = snprintf(raw, sizeof(raw), "No SD");
+            sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
+            n = snprintf(raw, sizeof(raw), "insert card");
+            sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
+            sr_view_dash_put_health(canvas, 61, m);
+            return;
+        }
+        if(m->board_sealing) {
+            n = snprintf(raw, sizeof(raw), "Saving...");
+            sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
+            n = snprintf(raw, sizeof(raw), "wait");
+            sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
+            sr_view_dash_put_health(canvas, 61, m);
+            return;
+        }
         if(m->rx_bytes == 0u) {
             n = snprintf(raw, sizeof(raw), "Board: no data");
         } else {
@@ -718,19 +740,42 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
     if(y > 61) {
         return;
     }
-    if(m->rx_bytes == 0u) {
-        n = snprintf(raw, sizeof(raw), "Board: no data");
+    if(sr_scan_ctl_sd_dead(m->qual_rev, m->qual.sd, m->qual_tick_ms, furi_get_tick())) {
+        n = snprintf(raw, sizeof(raw), "No SD");
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        y += 10;
+        if(y > 61) {
+            return;
+        }
+        n = snprintf(raw, sizeof(raw), "insert card");
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        y += 10;
+    } else if(m->board_sealing) {
+        n = snprintf(raw, sizeof(raw), "Saving...");
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        y += 10;
+        if(y > 61) {
+            return;
+        }
+        n = snprintf(raw, sizeof(raw), "wait");
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        y += 10;
     } else {
-        n = snprintf(raw, sizeof(raw), "Board: data ok");
-    }
-    sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
-    y += 10;
+        if(m->rx_bytes == 0u) {
+            n = snprintf(raw, sizeof(raw), "Board: no data");
+        } else {
+            n = snprintf(raw, sizeof(raw), "Board: data ok");
+        }
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        y += 10;
 
-    if(y > 61) {
-        return;
+        if(y > 61) {
+            return;
+        }
+        n = snprintf(raw, sizeof(raw), "OK: Start scan");
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        y += 10;
     }
-    n = snprintf(raw, sizeof(raw), "OK: Start scan");
-    sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
     y += 10;
 
     if(y > 61) {
