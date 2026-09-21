@@ -1,4 +1,4 @@
-## v0.4.0 (unreleased)
+## v0.4.0 (2026-09-21)
 
 - Grouped Wikipedia, Weather, National Today, ISS, Internet Radio, and Markets
   inside a dedicated Toolbox menu with consistent Back navigation.
@@ -6,6 +6,9 @@
   near-live price-card refreshes.
 - Fixed automatic refresh being postponed by repeated rendering of the same
   response; Markets now refreshes every two seconds while its card is open.
+- Fixed Markets timestamp rendering and a bounds error in its timestamp
+  validation that could reject valid provider responses.
+- Added sanitizer-backed Markets and protocol parser checks to CI.
 - Replaced the WTI and external Brent feeds with Binance Futures BZUSDT.
 - Added silver pricing and a compact Markets price card; placed Markets directly
   below Internet Radio in Toolbox.

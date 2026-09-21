@@ -72,7 +72,6 @@ extracted package to remove those files. The Windows executable contains the
 same icon as its native executable resource.
 
 The binaries are currently unsigned. Windows SmartScreen or Linux desktop
-policy may therefore ask for confirmation. The release candidate has automated
-Windows/Linux tests and a POSIX virtual-serial integration test, but still needs
-physical Flipper USB testing on both target operating systems before a stable
-release.
+policy may therefore ask for confirmation. The packaged host has automated
+Windows/Linux tests and a POSIX virtual-serial integration test. Physical
+Flipper USB validation on Windows and Linux has not yet been completed.

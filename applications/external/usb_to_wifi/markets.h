@@ -16,3 +16,4 @@ bool markets_build_coin_request(
     char* url,
     size_t url_capacity);
 bool markets_format_coin(const char* symbol, const char* json, char* output, size_t capacity);
+bool markets_format_updated_label(const char* formatted_market, char* output, size_t capacity);

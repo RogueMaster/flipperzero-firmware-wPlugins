@@ -485,7 +485,7 @@ class FlipperRoleEngine:
             name="FIBP Simulator",
             id_type=1,
             device_id=bytes.fromhex("0102030405060708"),
-            app_version="0.3",
+            app_version="0.4",
         )
         return [Frame(MessageType.HELLO, encode_hello(hello), sequence=0)]
 

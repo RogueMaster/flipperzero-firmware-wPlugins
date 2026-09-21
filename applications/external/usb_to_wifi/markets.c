@@ -190,6 +190,31 @@ bool markets_format_coin(const char* symbol, const char* json, char* output, siz
     return format_binance(symbol, "USDT", json, output, capacity);
 }
 
+bool markets_format_updated_label(const char* formatted_market, char* output, size_t capacity) {
+    if(!formatted_market || !output || capacity == 0U) return false;
+    output[0] = '\0';
+    const char* value = strstr(formatted_market, "Updated: ");
+    if(!value) return false;
+    value += strlen("Updated: ");
+    size_t length = strcspn(value, "\r\n");
+    if(length >= 19U && value[4] == '-' && value[7] == '-' && value[10] == 'T') {
+        value += 11U;
+        length -= 11U;
+    }
+    if(length < 8U || value[2] != ':' || value[5] != ':') return false;
+    static const size_t digit_positions[] = {0U, 1U, 3U, 4U, 6U, 7U};
+    for(size_t index = 0U; index < sizeof(digit_positions) / sizeof(digit_positions[0]); ++index) {
+        const char digit = value[digit_positions[index]];
+        if(digit < '0' || digit > '9') return false;
+    }
+    const int written = snprintf(output, capacity, "Updated: %.8s UTC", value);
+    if(written < 0 || (size_t)written >= capacity) {
+        output[0] = '\0';
+        return false;
+    }
+    return true;
+}
+
 bool markets_format(unsigned index, const char* json, char* output, size_t capacity) {
     if(index >= MARKETS_COUNT || !json || !output || !capacity) return false;
     output[0] = 0;
