@@ -9,36 +9,39 @@ does not reach catalog users until someone opens a bump PR there.
 copy for convenience, not the source of truth — the live file is the one in the
 catalog repo.
 
-## Before it can be submitted: re-take the screenshots
+## Screenshot status (verified against the source, not eyeballed)
 
-The six images in `screenshots/` are **genuine qFlipper captures, and every one
-of them shows the pre-3.0 UI** — `SPECTER` in the header, `SCANNING`, `PK100 C1`,
-`READER PRESENT`, `DUTY`, `SEEN`, and the empty band in Watch's alarm that 3.0
-fills with a strength bar. Shipping them with a 3.0 manifest would put the old
-app in the store listing.
+The six images in `screenshots/` are genuine qFlipper captures. They were taken
+against v3.0, and v3.0.1 then moved two screens by a row or two, so they are
+not all current. Each was checked by downsampling the 512x256 capture back to
+128x64 device pixels and comparing the inked rows against the constants in the
+view sources:
 
-They cannot be regenerated from this repo: the mockup renderer in
-`tools_gen_mockups.py` is pixel-accurate to the layout but draws with a desktop
-font, so its output is visibly not a Flipper capture. These need a real device.
-
-Capture each with **qFlipper → Screenshot** (it writes 128×64 PNGs; the existing
-files are 512×256, i.e. 4×, which the catalog accepts — scale with nearest
-neighbour, never smooth):
-
-| File | Screen | State to get it into |
+| File | Screen | Status |
 |---|---|---|
-| `ss0.png` | Sweep | Resting on a live reader — meter pegged, `ACTIVE READER` / `PEGGED` bar |
-| `ss0_2.png` | Sweep | Quiet room, nothing found yet — shows the `LEFT=cal hold OK=log` hint |
-| `ss1.png` | Watch Mode | Reader present — inverted `ACTIVE READER` band **and the new strength bar** |
-| `ss1_2.png` | Watch Mode | After a contact has passed — clock running, `QUIET NOW`, `OK=re-arm` |
-| `ss2.png` | Fingerprint | Locked onto a polling reader — `POLLING`, `CONF`, `PER`/`BST`/`JIT`/`UP` |
-| `ss2_2.png` | Fingerprint | Just after a short `OK` — the `LOGGED` flash in the header |
+| `ss0.png` | Sweep, on a reader, meter pegged | **current** |
+| `ss0_2.png` | Sweep, quiet room, key hint showing | **current** |
+| `ss1.png` | Watch, reader present + strength bar | **current** |
+| `ss1_2.png` | Watch, after a contact, clock running | **current** |
+| `ss2.png` | Fingerprint, POLLING | **stale** — divider is on row 50, code now says 51 |
+| `ss2_2.png` | Fingerprint, INTERMITTENT + LOGGED flash | **stale** — same row shift |
+| `ss3.png` | Logbook | **stale** — shows the mid-word wrap fixed in 3.0.1 |
+| `ss4.png` | Site Survey verdict | **do not ship** — shows `SURVEY 1s / CLEAN`, the overclaim 3.0.1 replaced with `TOO SHORT` |
 
-Drop the new files over the old ones in `screenshots/`, commit, and **update
-`commit_sha` in `manifest.yml` to that commit** — the catalog resolves the
-screenshot paths against the source repo at that exact sha, so it must be a
-commit that already contains them. (It is currently set to `fa32666`, the v3.0
-tag, which does **not** have them.)
+So before submitting, re-take **`ss2` and `ss2_2`** (Fingerprint: the stat rows
+are a row further apart now, and the confidence bar moved up one). `ss3` is
+worth re-taking too — the logbook now wraps at words instead of splitting them,
+which looks considerably better and is worth showing. `ss4` should either be
+re-taken as a real full-length survey or left out; it currently advertises a
+bug.
+
+Capture with **qFlipper -> Screenshot** (it writes 128x64 PNGs; the existing
+files are 512x256, i.e. 4x, which the catalog accepts — scale with nearest
+neighbour, never smooth).
+
+Whichever set you settle on, **update `commit_sha` in `manifest.yml` to the
+commit that contains them** — the catalog resolves the screenshot paths against
+this repo at that exact sha.
 
 ## Submitting
 

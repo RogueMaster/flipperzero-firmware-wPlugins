@@ -53,6 +53,22 @@
   <sub>A sweep, start to finish: quiet room → closing in → locked on → <b>what</b> it is → the room's verdict.</sub>
 </p>
 
+### Straight off the device
+
+<p align="center">
+  <img src="images/device.png" width="92%" alt="Four qFlipper captures from a real unit: Sweep on a live reader with the meter pegged, Sweep in a quiet room showing its key hints, Watch alarming with a strength bar, and Watch standing guard with one contact logged">
+</p>
+<p align="center">
+  <sub>
+    Not mockups — <b>qFlipper captures from a real unit.</b> The generated
+    screens below are drawn from the firmware's own layout constants, and the
+    two are checked against each other: every capture here was downsampled back
+    to 128×64 and its inked rows compared with the source.
+  </sub>
+</p>
+
+### Every screen
+
 <p align="center">
   <img src="images/screens_all.png" width="100%" alt="Specter screens">
 </p>
@@ -334,7 +350,8 @@ clean", "this is what the needle should read" — are pure C with no hardware de
 pinned down by host tests rather than discovered on the device:
 
 ```bash
-make -C test     # 300 checks: classifier, verdict, meter scaling, presence
+make -C test     # 527 checks: classifier, verdict, meter scaling, presence,
+                 #             cadence, log filtering, log wrapping
 ```
 
 ---
@@ -483,9 +500,15 @@ Specter-FlipperZero/
 │   ├── survey_verdict.{c,h}      # pure: survey stats -> CLEAN/TRACE/ACTIVE
 │   ├── field_scale.{c,h}         # pure: raw carrier duty -> full-scale meter
 │   ├── present_hold.h            # pure: debounce presence across poll gaps
+│   ├── cadence.h                 # pure: burst/gap/period timing with liveness
+│   ├── ema.h                     # pure: the strength smoother
+│   ├── log_filter.h              # pure: keep only one kind of finding
+│   ├── log_wrap.h                # pure: wrap an entry at words, not mid-word
 │   ├── specter_settings.{c,h}    # persisted settings (saved_struct)
 │   └── specter_log.{c,h}         # SD logbook, RTC-stamped .txt + live .csv
 ├── views/
+│   ├── view_chrome.h             # the header, presence dot and error screen
+│   │                             #   every measurement view shares
 │   ├── sweep_view.{c,h}          # the EMF gauge / waveform / alarm screen
 │   ├── fingerprint_view.{c,h}    # classification card + pulse-train trace
 │   ├── survey_view.{c,h}         # progress + verdict card
@@ -493,8 +516,12 @@ Specter-FlipperZero/
 ├── scenes/                       # scene-manager navigation
 ├── test/                         # host tests for the pure decision layers
 ├── icons/                        # 1-bit Flipper icons (generated)
-├── images/                       # banner + screen mockups (generated)
-└── tools_gen_*.py                # regenerate icons / mockups / banner
+├── images/                       # banner + screen mockups (generated), plus
+│                                 #   device_*.png: real captures off a Flipper
+├── screenshots/                  # the six captures the Apps Catalog listing uses
+├── docs/catalog/                 # the prepared catalog manifest + how to submit
+├── tools_check_layout.py         # static overlap + clearance checker (CI-gated)
+└── tools_gen_*.py                # regenerate icons / mockups / banner / GIF
 ```
 
 ---
@@ -509,6 +536,7 @@ All artwork is generated, so it never drifts from the app:
 | `images/social-preview.png` | **1280×640** | **Settings → Social preview** — GitHub's recommended size (min 640×320, 1 MB cap) |
 | `images/mark.png` | 512×512 | Square logo mark: avatars, favicons, slides |
 | `images/demo.gif` | 768×384 | The animation above, ~9 s, built from the real view constants |
+| `images/device.png` | 1122×698 | Four **real qFlipper captures**, not generated — `tools_gen_device.py` |
 
 ```bash
 python3 tools_gen_banner.py    # banner, social preview, logo mark
