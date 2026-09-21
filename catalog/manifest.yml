@@ -18,7 +18,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/h4sw5q2wr9-byte/BEEPBACK.git
-    commit_sha: 9adcaa1361405e444fb9988b131b19daa2d6d870
+    commit_sha: fb7d23e848e0c8c12fc10a915b60dfc5f510643c
 
 description: "@catalog/description.md"
 changelog: "@changelog.md"
