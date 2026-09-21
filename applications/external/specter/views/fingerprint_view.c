@@ -11,17 +11,30 @@
 #define ROW_CLASS_BASE 22 // FontPrimary baseline for the class name
 #define ROW_BLURB_BASE 31
 #define ROW_STAT1_BASE 40
-#define ROW_STAT2_BASE 48
+/* 49, not 48. At 48 the two stat rows sat on an 8px pitch where every other
+ * stacked pair in the app uses 10 (survey 35/45 and 50/60, watch 50/60), which
+ * left a single blank row between them - measured off a 4x device capture,
+ * PER/BST ink ends on row 39 and JIT/UP begins on 41. Legible, but visibly
+ * denser than the rest of the app, and one bad constant away from the fused
+ * look that Site Survey's progress bar actually shipped with. */
+#define ROW_STAT2_BASE 49
 #define COL_RIGHT      66 // second column of the stat rows
 
 #define CONF_X 88
-#define CONF_Y 15
+/* 14, not 15: the bar is a solid block and its bottom edge sat one row above
+ * the "CONF n%" capitals. Two clear rows now, matching the gap it keeps from
+ * the header rule on row 11. */
+#define CONF_Y 14
 #define CONF_W 38
 #define CONF_H 8
 
-#define DIVIDER_Y 50
-#define TRACE_HI  53 // carrier up
-#define TRACE_LO  61 // carrier down
+#define DIVIDER_Y 51
+/* Shifted down one with the divider, into rows 62-63 which nothing else uses,
+ * so the pulse train keeps its full 9-row swing AND two clear rows under the
+ * divider. Moving the stat rows apart without this would simply have relocated
+ * the tight gap rather than removed it. */
+#define TRACE_HI  54 // carrier up
+#define TRACE_LO  62 // carrier down
 
 #define FLASH_TICKS 10 // ~1 s at the 100 ms UI tick
 

@@ -157,8 +157,19 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     /* hub */
     canvas_draw_disc(canvas, PCX, PCY, 3);
 
-    /* throb ring when a reader is locked on */
-    if(m->present) {
+    /* Throb ring when a reader is locked on - but never while calibrating.
+     *
+     * This is a FULL circle, not the top semicircle the rest of the gauge is
+     * built from, so its lower arc reaches the bottom of the screen. In an
+     * ordinary alarm frame that is invisible: the inverted strip is painted
+     * over rows 53-63 afterwards. The calibrating branch paints no strip, so
+     * standing in a reader's field and pressing LEFT drew the arc straight
+     * through the "HOLD STILL" text for the whole 3 s.
+     *
+     * Gating it also settles a contradiction rather than just a collision: the
+     * header already reads CALIBRATING rather than READER, and the scene
+     * deliberately silences every other reader alert for the same window. */
+    if(m->present && !m->calibrating) {
         canvas_draw_circle(canvas, PCX, PCY, R_OUT + 1 + (m->anim % 3));
     }
 
@@ -193,14 +204,16 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     /* ---------- bottom strip ---------- */
     canvas_draw_line(canvas, 0, 52, 127, 52);
     if(m->calibrating) {
-        /* Learning the room's own noise floor, right where you are standing. */
-        /* FontSecondary occupies rows [baseline-7 .. baseline], so a baseline of
-         * 59 put the glyph tops on row 52 - straight through the divider above.
-         * 60 clears it, and the progress bar drops to a plain 2px fill hugging
-         * the bottom edge rather than a framed box that would then clip the
-         * text from below. */
-        /* The header now carries what is happening (CALIBRATING); this carries
-         * what the user must actually do about it. */
+        /* Learning the room's own noise floor, right where you are standing.
+         * The header carries what is happening (CALIBRATING); this strip
+         * carries what the user has to do about it.
+         *
+         * Baseline 62. FontSecondary's capitals ink rows [baseline-7 ..
+         * baseline-1] - the baseline row itself stays blank, measured off a 4x
+         * device capture - so the text lights rows 55..61, one clear row under
+         * the divider on 52 and one clear row above the progress fill on 63.
+         * (An earlier note here claimed baseline 60 and a 2px fill; both had
+         * moved and the comment had not.) */
         canvas_draw_str(canvas, 2, 62, "HOLD STILL");
         canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "OK=cancel");
         uint32_t fill = ((uint32_t)m->calib_progress * 128u) / 100u;

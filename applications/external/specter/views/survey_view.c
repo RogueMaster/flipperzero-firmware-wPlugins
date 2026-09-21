@@ -7,12 +7,18 @@
 
 /* Running: a progress bar, the live numbers, and the waveform that produced
  * them. Finished: one verdict, one next step, and the evidence underneath. */
-/* Same box as the verdict banner below (BANNER_*), so the running and
- * finished states of one mode are not two different rectangles. */
+/* Left edge, width and TOP row match the verdict banner below (BANNER_*), so
+ * flipping between the running and finished states of one mode does not move
+ * the box. The HEIGHT deliberately does not match: the banner is 14 rows
+ * because it holds FontPrimary text, while this bar holds nothing, and at 14
+ * its bottom edge inked row 27 with the stat row's capitals starting on row 28
+ * - no white between them, so on a real screen "FIELD 0%" fused with the bar.
+ * Confirmed off a hardware capture, and invisible to tools_check_layout.py,
+ * which until now only looked for shared rows. 11 leaves rows 25-27 clear. */
 #define BAR_X 2
 #define BAR_Y 14
 #define BAR_W 124
-#define BAR_H 14
+#define BAR_H 11
 
 #define RUN_STAT1_BASE 35
 #define RUN_STAT2_BASE 45

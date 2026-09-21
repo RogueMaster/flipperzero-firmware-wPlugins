@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/at0m-b0mb/Specter-FlipperZero.git
-    commit_sha: fa32666  # v3.0 - REPLACE with the commit that carries the new screenshots
+    commit_sha: REPLACE_WITH_v3.0.1_COMMIT  # must be a commit that already contains screenshots/
 short_description: Passively sense active 13.56 MHz NFC readers and skimmers with the onboard NFC chip. No extra hardware, never transmits.
 description: |
   Specter turns your Flipper Zero into a pocket counter-surveillance bug-sweep for active 13.56 MHz NFC readers. It **passively listens** for the RF field that a powered-on reader constantly emits — a hidden card skimmer slipped into a payment terminal, a covert reader behind a door panel, a rogue logger taped under a desk — then tells you where it is, what kind of thing it is, whether the room is clean, and, left on watch, the moment one appears while you are away.
