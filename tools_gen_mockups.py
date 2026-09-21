@@ -24,8 +24,13 @@ import math, os
 
 S = 6  # scale
 W, H = 128, 64
-BG = (255, 130, 0)  # flipper backlight orange
-FG = (10, 8, 4)  # near-black pixels
+# Sampled, not chosen. Every capture in screenshots/ is exactly two colours,
+# (254,138,44) and (0,0,0) - so these are the values the hardware emits, and a
+# generated screen and a real one are now the same two colours. They used to be
+# (255,130,0) on (10,8,4), which was close enough to look right on its own and
+# visibly off the moment the two sat side by side in the README.
+BG = (254, 138, 44)  # #FE8A2C - the Flipper's backlight, measured
+FG = (0, 0, 0)  # true black, as the panel actually renders it
 HERE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE_DIR, "images")
 os.makedirs(OUT, exist_ok=True)
