@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flipper-usb-internet-bridge-host"
-version = "0.3.0"
+version = "0.4.0"
 description = "Cross-platform FIBP host for Flipper Zero"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}

@@ -72,6 +72,22 @@ static void test_oil_prices(void) {
                                "\"closeTime\":1789572303865}", output, sizeof(output)));
 }
 
+static void test_updated_label(void) {
+    char label[32];
+    assert(markets_format_updated_label(
+        "12.5 USDT\nUpdated: 18:42:09 UTC\nSource: Binance",
+        label,
+        sizeof(label)));
+    assert(strcmp(label, "Updated: 18:42:09 UTC") == 0);
+    assert(markets_format_updated_label(
+        "64 USD / troy oz\nUpdated: 2026-09-16T14:48:42Z\nSource: Gold API",
+        label,
+        sizeof(label)));
+    assert(strcmp(label, "Updated: 14:48:42 UTC") == 0);
+    assert(!markets_format_updated_label("Updated: UTC", label, sizeof(label)));
+    assert(!markets_format_updated_label("Updated: 18:42:09 UTC", label, 8U));
+}
+
 static void test_rejects_untrusted_or_incomplete_data(void) {
     char output[64];
     assert(!markets_format(0, "{\"symbol\":\"ETHUSDT\",\"lastPrice\":\"1\","
@@ -134,6 +150,7 @@ int main(void) {
     test_coin_request();
     test_gold_price();
     test_oil_prices();
+    test_updated_label();
     test_rejects_untrusted_or_incomplete_data();
     test_complete_object_required();
     puts("markets tests: PASS");

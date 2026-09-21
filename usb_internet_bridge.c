@@ -806,15 +806,15 @@ static void fib_app_render_status(FibApp* app) {
         }
         if(parsed) {
             const char* price_end = strchr(app->search_result, ' ');
-            const char* updated = strstr(app->search_result, "Updated: ");
-            if(price_end && updated && (size_t)(price_end - app->search_result) < sizeof(app->market_price)) {
+            if(price_end &&
+               (size_t)(price_end - app->search_result) < sizeof(app->market_price) &&
+               markets_format_updated_label(
+                   app->search_result,
+                   app->market_updated,
+                   sizeof(app->market_updated))) {
                 size_t length = (size_t)(price_end - app->search_result);
                 memcpy(app->market_price, app->search_result, length);
                 app->market_price[length] = '\0';
-                updated += strlen("Updated: ");
-                const char* clock = strchr(updated, 'T');
-                if(clock) updated = clock + 1;
-                snprintf(app->market_updated, sizeof(app->market_updated), "Updated: %.8s UTC", updated);
                 app->market_has_price = true;
                 app->market_last_refresh_tick = furi_get_tick();
                 market_card_ready = true;
