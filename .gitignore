@@ -13,3 +13,4 @@ test/armobj/
 tools/trace_screens
 test/test_port
 .vscode/
+__pycache__/
