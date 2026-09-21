@@ -1,3 +1,9 @@
+## v1.1
+
+- A shorter description, so the catalog shows it whole instead of cutting it
+  off mid-sentence
+- The long description trimmed to match
+
 ## v1.0
 
 First release.

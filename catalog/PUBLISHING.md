@@ -91,4 +91,4 @@ higher version than the last or it is rejected.
   forbids backticks, images, code blocks, horizontal rules and blockquotes
 - `changelog.md` — same subset
 - unique lowercase app id — `beepback`
-- version as major.minor — `fap_version="1.0"`
+- version as major.minor — `fap_version`, raised on every submission
