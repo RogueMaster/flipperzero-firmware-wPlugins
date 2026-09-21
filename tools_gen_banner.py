@@ -5,6 +5,12 @@ a little specter, and radiating reader-field arcs. Supersampled for smoothness."
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import math, os
 
+from tools_brand_data import version as _version
+
+# Read from specter_i.h, never typed: a hand-written "v2.9" pill shipped into
+# the v3.0 release on the repo's front page and went unnoticed for two versions.
+VERSION = _version()
+
 OUT = os.path.join(os.path.dirname(__file__), "images")
 os.makedirs(OUT, exist_ok=True)
 
@@ -183,10 +189,13 @@ def render(path, W, H, layout="wide"):
     # version pill, sitting on the title's baseline
     f_ver = font(BOLD, u(26))
     title_w = td.textlength("SPECTER", font=f_title)
+    vtext = "v" + VERSION
     px, py = x0 + title_w + u(22), title_y + title_px - u(46)
-    pw, ph = u(84), u(38)
+    # measured, not fixed: the old u(84) was cut for "v2.9" and would clip a
+    # three-part version like 3.0.1
+    pw, ph = td.textlength(vtext, font=f_ver) + u(26), u(38)
     td.rounded_rectangle([px, py, px + pw, py + ph], radius=u(10), fill=MAG)
-    td.text((px + pw / 2, py + ph / 2), "v2.9", font=f_ver, fill=BG_TOP, anchor="mm")
+    td.text((px + pw / 2, py + ph / 2), vtext, font=f_ver, fill=BG_TOP, anchor="mm")
 
     # tagline + subtitle
     tag_y = title_y + title_px + u(14)
