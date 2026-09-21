@@ -18,7 +18,7 @@ jobs:
         run: make -C test
 
       - name: Check view layouts for overlapping draws
-        run: python3 tools_check_layout.py --max 17
+        run: python3 tools_check_layout.py --max 16 --max-tight 4
 
   build:
     needs: test

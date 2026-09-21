@@ -55,7 +55,10 @@ static void specter_survey_complete(SpecterApp* app, const FieldStats* st, uint3
     SurveyVerdict verdict = survey_verdict(&summary);
     if(verdict == SurveyVerdictActive) {
         specter_notify_found(app);
-    } else {
+    } else if(verdict != SurveyVerdictTooShort) {
+        /* Deliberately silent for TOO SHORT. The all-clear chime is a second
+         * channel saying "nothing here", and the whole point of that verdict is
+         * that we are not entitled to say it yet. */
         specter_notify_gone(app);
     }
 

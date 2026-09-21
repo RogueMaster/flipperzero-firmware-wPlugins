@@ -163,12 +163,17 @@ normally, and get a single verdict at the end — no needle-watching.
 - **`CLEAN`** — nothing crossed the noise floor
 - **`TRACE`** — brief or faint hits; worth a slower second pass
 - **`ACTIVE READER`** — something was genuinely up and emitting
+- **`TOO SHORT`** — you stopped it before it had earned the right to say `CLEAN`
 
 …with `PEAK` / `AVG` field, contact count, and `UP %` — **how much of the survey
 a carrier was actually up**, which is often the most telling number of the four.
 Runs for 30 s, 60 s or 2 min, and logs the result automatically. The card names
 the length it was graded over, because a 30-second `CLEAN` is not the same
-finding as a two-minute one.
+finding as a two-minute one — and a run cut shorter than 10 s reports
+`TOO SHORT` instead of `CLEAN`. The asymmetry is deliberate: **presence is
+proof, absence is not.** Finding something in one second is a real finding, so
+`TRACE` and `ACTIVE READER` are never withheld for being quick; finding nothing
+in one second is a claim about the whole room that one second cannot support.
 
 | Key | Action |
 |---|---|

@@ -26,7 +26,8 @@ S = 6  # scale
 W, H = 128, 64
 BG = (255, 130, 0)  # flipper backlight orange
 FG = (10, 8, 4)  # near-black pixels
-OUT = os.path.join(os.path.dirname(__file__), "images")
+HERE_DIR = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(HERE_DIR, "images")
 os.makedirs(OUT, exist_ok=True)
 
 MONO = "/System/Library/Fonts/Supplemental/Andale Mono.ttf"
@@ -37,12 +38,12 @@ BOLD = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 PCX, PCY = 32, 48
 R_ARC, R_OUT, R_IN, R_NDL, R_SCN = 26, 26, 22, 23, 19
 # views/fingerprint_view.c
-FP_CLASS, FP_BLURB, FP_STAT1, FP_STAT2 = 22, 31, 40, 48
+FP_CLASS, FP_BLURB, FP_STAT1, FP_STAT2 = 22, 31, 40, 49
 FP_COL_R = 66
-CONF_X, CONF_Y, CONF_W, CONF_H = 88, 15, 38, 8
-FP_DIV, TRACE_HI, TRACE_LO = 50, 53, 61
+CONF_X, CONF_Y, CONF_W, CONF_H = 88, 14, 38, 8
+FP_DIV, TRACE_HI, TRACE_LO = 51, 54, 62
 # views/survey_view.c
-BAR_X, BAR_Y, BAR_W, BAR_H = 2, 14, 124, 14
+BAR_X, BAR_Y, BAR_W, BAR_H = 2, 14, 124, 11
 RUN_S1, RUN_S2, RUN_WAVE_TOP, RUN_WAVE_BASE = 35, 45, 50, 63
 BANNER_X, BANNER_Y, BANNER_W, BANNER_H = 2, 14, 124, 14
 DONE_V, DONE_A, DONE_S1, DONE_S2 = 25, 37, 50, 60
@@ -96,16 +97,23 @@ def text(d, x, y, s, fnt=f_sec, col=FG, anchor="lm"):
 SEC_PITCH = 5  # device advance per FontSecondary glyph (haxrcorp4089)
 
 
-def sec(d, x, y, s, col=FG, anchor="ls"):
+# The Logbook's TextBox uses a narrower face than FontSecondary: measured off a
+# 4x device capture, "  WATCH  contact 2 at 8s fiel" is 29 characters and fills
+# the 128px width, i.e. ~4.2px per glyph against FontSecondary's 5.
+TEXTBOX_PITCH = 4
+
+
+def sec(d, x, y, s, col=FG, anchor="ls", pitch=None):
     """FontSecondary at the DEVICE's advance, not the desktop font's, drawn one
     glyph at a time. This is the only way overflow shows up here."""
-    w = len(s) * SEC_PITCH
+    SEC_PITCH_LOCAL = SEC_PITCH if pitch is None else pitch
+    w = len(s) * SEC_PITCH_LOCAL
     if anchor == "rs":
         x -= w
     elif anchor == "ms":
         x -= w / 2.0
     for i, ch in enumerate(s):
-        d.text((L(x + i * SEC_PITCH), L(y)), ch, font=f_sec, fill=col, anchor="ls")
+        d.text((L(x + i * SEC_PITCH_LOCAL), L(y)), ch, font=f_sec, fill=col, anchor="ls")
 
 
 def tb(d, x, y, s, fnt=f_sec, col=FG, anchor="ls"):
@@ -418,23 +426,50 @@ def render_settings():
     save(img, "screen_settings.png")
 
 
+def wrapped_entries(entries):
+    """Lay entries out using the app's OWN wrapper (helpers/log_wrap.h).
+
+    This screenshot used to show invented one-line entries like
+    "WATCH  hit 4 @92s f61%" that the app has never written - the real details
+    are three times that long and wrap. Compiling the actual header means the
+    picture cannot drift from the device again.
+    """
+    import subprocess, tempfile, json
+
+    prog = ['#include "log_wrap.h"', "#include <stdio.h>", "int main(void){", "  char b[512];"]
+    for t, d in entries:
+        esc = d.replace('\\', '\\\\').replace('"', '\\"')
+        prog.append(f'  specter_log_wrap(b, sizeof b, "{t}", "{esc}"); fputs(b, stdout);')
+    prog.append("  return 0;\n}")
+
+    with tempfile.TemporaryDirectory() as td:
+        c = os.path.join(td, "lb.c")
+        exe = os.path.join(td, "lb")
+        open(c, "w").write("\n".join(prog))
+        subprocess.run(
+            ["cc", "-std=c11", "-Wall", "-Wextra", "-I", os.path.join(HERE_DIR, "helpers"),
+             "-o", exe, c],
+            check=True,
+        )
+        out = subprocess.run([exe], check=True, capture_output=True, text=True).stdout
+    return out.rstrip("\n").split("\n")
+
+
 def render_logbook():
-    """The on-device viewer: each entry is a timestamp line then an indented
-    'TYPE detail' line (long details wrap in the real text box; shown here as a
-    representative prefix)."""
+    """The on-device viewer: a timestamp line, then the detail on one or more
+    indented lines exactly as helpers/log_wrap.h lays it out."""
     img, d = canvas()
-    lines = [
-        "2026-07-18 14:36:20",
-        "  WATCH  hit 4 @92s f61%",
-        "2026-07-18 14:35:11",
-        "  SURVEY 60s ACTIVE mx74",
-        "2026-07-18 14:32:07",
-        "  READER POLLING 204ms",
-        "2026-07-18 14:30:55",
-        "  SWEEP  field 78% pk86%",
+    entries = [
+        ("2026-09-21 12:19:28", ("WATCH", "contact 2 at 8s field 17% peak 100% m:boost")),
+        ("2026-09-21 12:18:03", ("SURVEY", "60s ACTIVE READER peak 74% avg 21% infield 38% hits 5 m:boost")),
     ]
-    for i, s in enumerate(lines):
-        tb(d, 2, 9 + i * 8, s, f_sec)
+    lines = []
+    for stamp, (t, detail) in entries:
+        lines.append(stamp)
+        lines.extend(wrapped_entries([(t, detail)]))
+
+    for i, s in enumerate(lines[:7]):
+        sec(d, 2, 9 + i * 8, s, pitch=TEXTBOX_PITCH)
     box(d, 125, 14, 3, 34)  # scrollbar, parked near the end
     save(img, "screen_logbook.png")
 

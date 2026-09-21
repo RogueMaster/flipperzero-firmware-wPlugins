@@ -147,6 +147,46 @@ int main(void) {
         check_verdict(&faint, SurveyVerdictTrace, "a faint blip is still only TRACE");
     }
 
+    /* A survey you cut short may not claim the room is clean.
+     *
+     * Until v3.0 a survey always ran its full 30 s / 60 s / 2 min, so CLEAN
+     * always had at least half a minute of evidence behind it. Letting OK end a
+     * run early made a one-second CLEAN reachable, and one promptly showed up
+     * in a hardware screenshot: "SURVEY 1s / CLEAN / No field detected".
+     *
+     * The rule is asymmetric on purpose - presence is proof, absence is not -
+     * so TRACE and ACTIVE are never downgraded by a short run, however brief. */
+    {
+        SurveySummary blink = {.elapsed_ms = 1000, .in_field_ms = 0, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
+        check_verdict(&blink, SurveyVerdictTooShort, "a 1 s survey may not say CLEAN");
+
+        SurveySummary just_under = {.elapsed_ms = SPECTER_SURVEY_MIN_CLEAN_MS - 1u, .in_field_ms = 0, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
+        check_verdict(&just_under, SurveyVerdictTooShort, "one ms under the floor is still TOO SHORT");
+
+        SurveySummary exactly = {.elapsed_ms = SPECTER_SURVEY_MIN_CLEAN_MS, .in_field_ms = 0, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
+        check_verdict(&exactly, SurveyVerdictClean, "at the floor exactly it may say CLEAN");
+
+        SurveySummary full = {.elapsed_ms = 60000, .in_field_ms = 0, .peak = 0, .peak_ref = 0, .average = 0, .contacts = 0};
+        check_verdict(&full, SurveyVerdictClean, "a full run with nothing seen is CLEAN");
+
+        /* positive findings are never downgraded, however short the run */
+        /* faint: 8% of the run, and nowhere near the ACTIVE_PEAK of 50 */
+        SurveySummary quick_hit = {.elapsed_ms = 2500, .in_field_ms = 200, .peak = 22, .peak_ref = 22, .average = 5, .contacts = 1};
+        check_verdict(&quick_hit, SurveyVerdictTrace, "a faint hit in 2.5 s is still TRACE, not TOO SHORT");
+
+        SurveySummary quick_reader = {.elapsed_ms = 800, .in_field_ms = 400, .peak = 95, .peak_ref = 95, .average = 40, .contacts = 1};
+        check_verdict(&quick_reader, SurveyVerdictActive, "a reader found in 0.8 s is still ACTIVE");
+
+        check(strcmp(survey_verdict_name(SurveyVerdictTooShort), "TOO SHORT") == 0,
+              "TOO SHORT is named");
+        check(strlen(survey_verdict_name(SurveyVerdictTooShort)) <= 13u,
+              "the name fits the verdict banner (ACTIVE READER is the 13-char budget)");
+        check(strlen(survey_verdict_advice(SurveyVerdictTooShort)) <= 21u,
+              "its advice line fits the 21-char screen width");
+        check(survey_verdict_advice(SurveyVerdictTooShort)[0] != '\0',
+              "and it tells you what to do about it");
+    }
+
     printf("%d checks, %d failed\n", checks, failures);
     return failures ? 1 : 0;
 }
