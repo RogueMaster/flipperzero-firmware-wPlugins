@@ -573,7 +573,7 @@ the meter reads 100%. One number, two independent reasons to be it.
 | `images/banner.png` | 2560×800 | README header, paper ground (2× so it stays crisp on retina) |
 | `images/banner-dark.png` | 2560×800 | The same drawing on true black, served by `<picture>` to dark-mode readers |
 | `images/social-preview.png` | **1280×640** | **Settings → Social preview** — GitHub's recommended size (min 640×320, 1 MB cap) |
-| `images/mark.png` | 512×512 | Square logo mark: avatars, favicons, slides |
+| `images/mark.png` | 512×512 | Square logo mark: social posts, slides, favicon. **Not a repo avatar** — GitHub shows the *owner's* profile picture next to a repo, so there is no per-repo avatar to set |
 | `images/mark-180/64/32/16.png` | as named | 180 and 64 downscaled; **32 and 16 are drawn natively** so nothing anti-aliases into mush |
 | `images/demo.gif` | 768×384 | The animation above, ~9 s, built from the real view constants |
 | `images/device.png` | 1122×698 | Four **real qFlipper captures**, not generated — `tools_gen_device.py` |
