@@ -10,7 +10,7 @@
 * **Added Density Data**: Complete volumetric density properties for 119 elements.
 * **Added CAS Registry Numbers**: Integrated standardized CAS numbers into the element's database.
 * **Added Crystal Structures**: Elemental crystal structures at approximately ambient pressure.
-* **CIAAW/IUPAC Standards Applied**: Elements with no stable isotopes now properly display the mass number of their longest-lived isotope inside square brackets (e.g. [98] for Technetium, [209] for Polonium, etc.).
+* **CIAAW/IUPAC Standards Applied**: Elements with no stable isotopes now properly display the mass number of their longest-lived isotope inside square brackets (e.g. 98 for Technetium, 209 for Polonium, etc.).
 
 ## 1.2 - Magnetism Update
 * **Added Magnetic Properties**: Integrated bulk magnetic character of elements near room temperature (Diamagnetic, Paramagnetic, Ferromagnetic, etc.). 
@@ -20,7 +20,7 @@
 * **Added Oxidation States**: Added Greenwood & Earnshaw's common oxidation states level-0.
 * **Added Atomic & Covalent Radii**: Values measured in picometers (pm).
 * **Added Ionic Radii**: Expanded data featuring the specific dominant ion formulas alongside their sizes in pm (e.g., ION: 76.0 (Li+)).
-* **UI Refinement**: Atomic number [Z] successfully detached and relocated directly to the top-left corner of the details screen for classic aesthetic navigation.
+* **UI Refinement**: Atomic number Z successfully detached and relocated directly to the top-left corner of the details screen for classic aesthetic navigation.
 
 ## 1.0 - Initial Release
 * **Smart Mini-Map**: Navigate precisely through rows and periods.
