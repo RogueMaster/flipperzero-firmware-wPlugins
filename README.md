@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://github.com/h4sw5q2wr9-byte/BEEPBACK/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-000000?style=flat-square" alt="MIT"></a>
   <img src="https://img.shields.io/badge/firmware-1.4.3%20%C2%B7%20API%2087.1-FF8200?style=flat-square" alt="Firmware 1.4.3, API 87.1">
-  <img src="https://img.shields.io/badge/tests-252%20checks-FF8200?style=flat-square" alt="252 checks">
+  <img src="https://img.shields.io/badge/tests-254%20checks-FF8200?style=flat-square" alt="254 checks">
 </p>
 
 A memory game for Flipper Zero. Five buttons, five tones. The Flipper plays a
@@ -66,7 +66,7 @@ ufbt launch        # with the device plugged in
 ./test/run_tests.sh
 ```
 
-252 checks, no device needed. In order, the suite runs:
+254 checks, no device needed. In order, the suite runs:
 
 - a diff of the stub headers against the real firmware headers, so a drifted
   stub can't compile here and fail under uFBT
