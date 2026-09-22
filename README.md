@@ -1,7 +1,5 @@
 # Pulse BPM
 
-![Pulse BPM](docs/hero.jpg)
-
 A tap-along heart-rate counter for coaches and clinicians. Feel the pulse at the wrist (or neck), press **OK** on every beat, and read a live BPM that **locks after 20 seconds**.
 
 ```text
