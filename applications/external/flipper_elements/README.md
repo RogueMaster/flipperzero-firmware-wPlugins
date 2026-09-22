@@ -11,9 +11,9 @@ Designed for quick reference, study, laboratory notes, educational use, and scie
 
 * **Complete Element Database:** Contains data for all 119 elements, stored entirely in flash memory (.rodata) with no runtime RAM overhead.
 
-* **Element Identification:** Displays the element name, symbol, atomic number [Z], category, atomic weight, and CAS Registry Number.
+* **Element Identification:** Displays the element name, symbol, atomic number Z, category, atomic weight, and CAS Registry Number.
 
-* **IUPAC-Compatible Atomic Masses:** For elements without a standard atomic weight, the mass number of the longest-lived isotope is shown in square brackets, for example [98] for technetium and [209] for polonium. Th, Pa, and U retain conventional atomic-weight values due to their characteristic terrestrial isotopic composition. 
+* **IUPAC-Compatible Atomic Masses:** For elements without a standard atomic weight, the mass number of the longest-lived isotope is shown in square brackets, for example 98 for technetium and 209 for polonium. Th, Pa, and U retain conventional atomic-weight values due to their characteristic terrestrial isotopic composition. 
 
 * **Chemical Data:** Shows common oxidation states, electronic/quantum configuration, and the total number of known or experimentally observed isotopes.
 
@@ -34,7 +34,7 @@ Designed for quick reference, study, laboratory notes, educational use, and scie
 ## Control Layout
 
 * **Up** / **Down** — Move vertically through the periodic-table layout. Navigation dynamically bypasses structural gaps.
-* **Left** / **Right** — Browse elements sequentially by atomic number [Z].
+* **Left** / **Right** — Browse elements sequentially by atomic number Z.
 * **Short Press OK** — Open the detailed element property card.
 * **Long Press OK** — Open the application information screen with author, version, and credits.
 
@@ -42,7 +42,7 @@ Designed for quick reference, study, laboratory notes, educational use, and scie
 
 The detailed element card may include:
 
-* Atomic number [Z], name, symbol, category, atomic weight, and CAS Registry Number
+* Atomic number Z, name, symbol, category, atomic weight, and CAS Registry Number
 * Common oxidation states
 * Electron / quantum configuration
 * Atomic, covalent, and ionic radii (pm)
