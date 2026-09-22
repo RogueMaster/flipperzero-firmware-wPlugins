@@ -205,26 +205,14 @@ const T = {
 const diffMs = () => [T.easy, T.normal, T.hard, T.insane];
 /* reflex windows are reaction times, not sequence times */
 /* Everyone rides the same ramp from the same place. The setting only changes
-   how fast it steepens, and the multiplier cancels that exactly, so where you
+   how fast it steepens, and a hit pays the same either way, so where you
    finish is down to you and not to what you picked. */
 const RX_START  = 1000;
 const RX_SHRINK = [4, 6, 9, 14];
-/* points per hit rise with the square of how tight it has got, so getting
-   deeper is worth much more than lasting longer */
 /* speed is the wait before the next cue, nothing to do with the window */
 const RX_GAP = [900, 650, 420];
 /* classic and rules key their scores by playback speed; reflex has no
    playback, so it keys by starting window instead */
-/* Difficulty is worth points, not a separate leaderboard. Normal is the
-   baseline at 1.0, so easy costs you rather than hard feeling like a tax. */
-/* A fixed window caps how long a sequence you can ever finish, and score
-   compounds with length, so a hard setting takes away far more than a linear
-   multiplier gives back. Insane at 2000ms halves the response time of normal,
-   hence the size of its reward. */
-/* Hundredths, and every multiplier is integer maths from here down. The
-   firmware cannot carry a float, so neither does this: a product of two
-   hundredths is ten-thousandths, and 1.55 x 1.45 is exactly 22475 rather
-   than a binary approximation of 2.2475. */
 /* Ten points a note, a hundred for clearing a round, and nothing else.
    There is no multiplier: TIME and SPEED change how hard a run is, not
    what it pays, so the number on screen is always one you could have
@@ -572,7 +560,7 @@ const S = {
      ones you are actually good at */
   chBest: [0,1,2,3,4,5,6].map(()=>[0,0,0,0]),
   /* [mode][time][speed][assist] - every combination keeps its own record, so
-     the game collects the evidence for whether the multipliers are right */
+     a run only ever competes against one played the same way */
   best: emptyBest()
 };
 let now = 0;

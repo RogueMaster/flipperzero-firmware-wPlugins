@@ -144,6 +144,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [ProtoPirate v3.4 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [USB Internet Bridge v0.4 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
 - Updated: [Specter v3.0.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- Updated: [BeepBack v1.1 (By h4sw5q2wr9-byte)](https://github.com/h4sw5q2wr9-byte/BEEPBACK)
 
 <a name="release"></a>
 
@@ -264,7 +265,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Asteroids v1.3 (By antirez)](https://github.com/antirez/flipper-asteroids)
 - [Avocado Zero v0.1.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - [Banana v0.4 (By DrEverr)](https://github.com/DrEverr/FlipperApps)
-- [BeepBack v1.0 (By h4sw5q2wr9-byte)](https://github.com/h4sw5q2wr9-byte/BEEPBACK)
+- [BeepBack v1.1 (By h4sw5q2wr9-byte)](https://github.com/h4sw5q2wr9-byte/BEEPBACK)
 - [Blackjack v0.1 (By RocketGod)](https://github.com/RocketGod-Git/Flipper-Zero-Blackjack)
 - [BlackJack v1.1 (By teeebor)](https://github.com/teeebor/flipper_games)
 - [Bomberduck v1.3 (By leo-need-more-coffee)](https://github.com/leo-need-more-coffee/flipperzero-bomberduck)
