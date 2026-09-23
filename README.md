@@ -33,9 +33,11 @@ something looks wrong.
 
 | Main menu | Dashboard |
 |---|---|
-| <img src="screenshots/menu.png" width="360" alt="SigRoam Wardriving main menu with Dashboard, Probe firmware and Raw log entries"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard with large unique-BSSID count and bottom status line"> |
+| <img src="screenshots/menu.png" width="360" alt="SigRoam Wardriving menu with Upload selected"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard with large unique-BSSID count and bottom status line"> |
 | **Settings** | **About** |
 | <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam Wardriving v0.4 about screen, by PINGEQUA Lab, with QR code"> |
+| **Upload** | |
+| <img src="screenshots/upload.png" width="360" alt="SigRoam upload screen sending a queued file, card stays in"> | |
 
 ## Quick facts
 
