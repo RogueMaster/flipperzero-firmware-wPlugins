@@ -485,8 +485,8 @@ static inline bool sr_fmt_hw_is_scout_lite(const char* hw, size_t hw_cap) {
  * Sess tab status line for Scout Lite. Never copies the wire Firmware:
  * token. Fitted to SR_VIEW_COLS.
  *
- * state: Diag: SCANNING(1)→Running, SEALED(4)→Sealed; else FAP session
- * label (Idle/Running/Stopped). duration: live elapsed while FAP session
+ * state: Diag: SCANNING(1)→Running, SEALED(4)→Sealed, UPLOADING(5)→Uploading;
+ * else FAP session label (Idle/Running/Stopped). duration: live elapsed while FAP session
  * is Running (numeric 1), else board sess_ms. radio: permission bits;
  * omitted when radio_rev==0. "Running 01:26 WiFi BLE" is 21 cols, so the
  * radio token is W+B / W / B / --.
@@ -513,7 +513,9 @@ static inline size_t sr_fmt_sess_sigroam_status(
         return 0;
     }
 
-    if(diag_seen && diag_state == 4u) {
+    if(diag_seen && diag_state == 5u) {
+        st = "Uploading";
+    } else if(diag_seen && diag_state == 4u) {
         st = "Sealed";
     } else if(diag_seen && diag_state == 1u) {
         st = "Running";

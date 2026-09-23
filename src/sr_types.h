@@ -63,6 +63,11 @@ enum {
     /* V-004: Sats row is the output of getNumSatsString(). 7 is a cap */
     SR_GPS_SATS_MAX = 7,
 
+    /* H2 Up: last_trans cap; matches firmware WIGLE_TRANS_ID_MAX. */
+    SR_UP_TRANS_MAX = 64,
+    /* H2 Up: reason token; matches firmware WIGLE_UPLOG_REASON_MAX. */
+    SR_UP_REASON_MAX = 16,
+
     /*
      * Cap on effective characters in the sr_line assembly buffer.
      * 511 + trailing NUL = 512 B, the line-assembly budget in SigRoam-Phase1-Plan.md 3.5.
@@ -125,6 +130,7 @@ typedef enum {
     SrEventSess,         /* Schema 9 Sess: line; must append after Busy (N6 / test_model.c oracle) */
     SrEventQual,         /* F2 Qual: line; must append after Sess */
     SrEventRadio,        /* T6.5 Radio: line; must append after Qual */
+    SrEventUp,           /* H2 Up: line; must append after Radio */
 } SrEventKind;
 
 /* Pin the trailing kinds so inserting SrEventSess before Unknown silently
@@ -137,6 +143,7 @@ _Static_assert((int)SrEventBusy == 8, "SrEventBusy appends after Unknown");
 _Static_assert((int)SrEventSess == 9, "SrEventSess appends after Busy");
 _Static_assert((int)SrEventQual == 10, "SrEventQual appends after Sess");
 _Static_assert((int)SrEventRadio == 11, "SrEventRadio appends after Qual");
+_Static_assert((int)SrEventUp == 12, "SrEventUp appends after Radio");
 
 /* -------------------------------------------------------------------------- */
 /* Structs                                                                    */
@@ -226,6 +233,19 @@ typedef struct {
 } SrRadioInfo;
 
 _Static_assert(sizeof(SrRadioInfo) == 2, "SrRadioInfo is 2 permission bits");
+
+/*
+ * "Up: up_q=<u32> up_last_trans=<id|-> up_disc_gps=<u32> up_reason=<token|->"
+ * H2 / PLAN §3.13.12. Independent union arm, narrower than SrFirmwareInfo.
+ * Absence of the line is unknown (up_rev == 0). Parser is strict (p != len).
+ * last_trans/reason empty sentinels are the single character "-".
+ */
+typedef struct {
+    uint32_t q;
+    uint32_t disc_gps;
+    char last_trans[SR_UP_TRANS_MAX + 1];
+    char reason[SR_UP_REASON_MAX + 1];
+} SrUpInfo;
 
 /*
  * ref: V-001
@@ -334,6 +354,7 @@ typedef struct {
         SrSessInfo sess;         /* SrEventSess — narrower than SrFirmwareInfo, SrEvent stays 240 */
         SrQualInfo qual;         /* SrEventQual — 20 B, narrower than SrFirmwareInfo */
         SrRadioInfo radio;       /* SrEventRadio — 2 B, narrower than SrFirmwareInfo */
+        SrUpInfo up;             /* SrEventUp — narrower than SrFirmwareInfo */
     } u;
 } SrEvent;
 

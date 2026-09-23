@@ -720,6 +720,7 @@ int test_view_fmt_run(void) {
         unsigned scout_no = 0;
         unsigned sess_run = 0;
         unsigned sess_sealed = 0;
+        unsigned sess_upload = 0;
         const char* lab;
         char dirty[8];
         char longa[24];
@@ -843,11 +844,20 @@ int test_view_fmt_run(void) {
         CHECK(strstr(sess, "SigRoam Lite") == NULL);
         sess_sealed++;
 
+        n = sr_fmt_sess_sigroam_status(
+            2u, true, 5u, 0u, 86000u, 1u, 1u, 0u, sess, sizeof(sess));
+        CHECK(n > 0);
+        CHECK(n <= (size_t)SR_VIEW_COLS);
+        CHECK(strstr(sess, "Uploading") != NULL);
+        CHECK(strstr(sess, "Idle") == NULL);
+        CHECK(strstr(sess, "Marauder") == NULL);
+        sess_upload++;
+
         printf(
             "session cover: label_idle=%u label_run=%u label_stop=%u label_oob=%u "
             "fw_both=%u fw_a_only=%u fw_b_only=%u fw_none=%u fw_null=%u "
             "fw_cut=%u fw_sanitize=%u scout_yes=%u scout_no=%u "
-            "sess_run=%u sess_sealed=%u\n",
+            "sess_run=%u sess_sealed=%u sess_upload=%u\n",
             label_idle,
             label_run,
             label_stop,
@@ -862,7 +872,8 @@ int test_view_fmt_run(void) {
             scout_yes,
             scout_no,
             sess_run,
-            sess_sealed);
+            sess_sealed,
+            sess_upload);
 
         CHECK(label_idle > 0);
         CHECK(label_run > 0);
@@ -879,6 +890,7 @@ int test_view_fmt_run(void) {
         CHECK(scout_no >= 5);
         CHECK(sess_run > 0);
         CHECK(sess_sealed > 0);
+        CHECK(sess_upload > 0);
     }
 
     /* --- D19 / ADR-025: sr_fmt_sats / sr_fmt_ap_row / sr_fmt_gps_fix_line --- */

@@ -1389,8 +1389,9 @@ static void test_session_rev(void) {
      * needs 8-B alignment) -- stays 3408, confirmed by this file's own
      * fprintf(stderr, "sizeof(SrModel)=...") above.
      * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
-     * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424. */
-    CHECK(sizeof(SrModel) == 3424);
+     * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424.
+     * 2026-09-21 H2: +SrUpInfo + up_rev → 3520. */
+    CHECK(sizeof(SrModel) == 3520);
     CHECK(sizeof(SrModel) <= 4096);
 }
 

@@ -93,6 +93,8 @@ typedef struct {
      * already-Stopped no-ops. Session may not move; this counter still does.
      * Compare with != (wrapping). Used to confirm SHOW_INFO was cleared. */
     uint32_t wifi_stop_rev;
+    SrUpInfo up;           /* Last strict Up: snapshot; display ledger, not sidecar */
+    uint32_t up_rev;       /* Incremented on each SrEventUp; 0 = never seen */
 
     char last_unknown[SR_RAW_LINE_MAX + 1];
     size_t last_unknown_len;

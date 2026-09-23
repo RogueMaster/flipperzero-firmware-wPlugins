@@ -314,6 +314,42 @@ static unsigned test_e2e_model(void) {
     return 1;
 }
 
+static unsigned test_hide_version_line(void) {
+    SrRawLog log;
+    SrModel m;
+    SrEvent ev;
+    const char* ver = "Version: v1.14.1-sigroam-0";
+    const char* noise = "AP config set error";
+    unsigned hits = 0;
+
+    CHECK(sr_rawlog_is_wire_version_line("Version: v1.14.1", 16) == true);
+    CHECK(sr_rawlog_is_wire_version_line("Version:v1.14.1", 15) == true);
+    CHECK(sr_rawlog_is_wire_version_line("Firmware: Marauder", 18) == false);
+    CHECK(sr_rawlog_is_wire_version_line("Versio", 6) == false);
+    hits++;
+
+    sr_rawlog_init(&log);
+    sr_model_init(&m, NULL, &log);
+    memset(&ev, 0, sizeof(ev));
+    ev.kind = SrEventUnknown;
+    ev.u.unknown.text = ver;
+    ev.u.unknown.len = strlen(ver);
+    CHECK(sr_model_apply(&m, &ev, 1) == true);
+    CHECK(m.unknown_lines == 1);
+    CHECK(log.count == 0);
+    CHECK(log.pushed == 0);
+    hits++;
+
+    ev.u.unknown.text = noise;
+    ev.u.unknown.len = strlen(noise);
+    CHECK(sr_model_apply(&m, &ev, 2) == true);
+    CHECK(m.unknown_lines == 2);
+    CHECK(log.count == 1);
+    CHECK(strstr(log.e[0].text, "Version:") == NULL);
+    hits++;
+    return hits;
+}
+
 int test_rawlog_run(void) {
     unsigned empty = 0;
     unsigned lens = 0;
@@ -326,6 +362,7 @@ int test_rawlog_run(void) {
     unsigned render_same = 0;
     unsigned render_diff = 0;
     unsigned render_wrap = 0;
+    unsigned hide_ver = 0;
 
     sr_test_failures = 0;
 
@@ -340,7 +377,7 @@ int test_rawlog_run(void) {
      * full alignment argument).
      * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
      * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424. */
-    CHECK(sizeof(SrModel) == 3424);
+    CHECK(sizeof(SrModel) == 3520);
 
     empty = test_empty_render();
     lens = test_lens();
@@ -353,10 +390,12 @@ int test_rawlog_run(void) {
     render_same = test_should_render_same();
     render_diff = test_should_render_diff();
     render_wrap = test_should_render_wrap();
+    hide_ver = test_hide_version_line();
 
     printf(
         "rawlog cover: empty=%u lens=%u no_overread=%u wrap=%u sanitize=%u "
-        "cap=%u nulls=%u e2e=%u render_same=%u render_diff=%u render_wrap=%u\n",
+        "cap=%u nulls=%u e2e=%u render_same=%u render_diff=%u render_wrap=%u "
+        "hide_ver=%u\n",
         empty,
         lens,
         no_overread,
@@ -367,7 +406,8 @@ int test_rawlog_run(void) {
         e2e,
         render_same,
         render_diff,
-        render_wrap);
+        render_wrap,
+        hide_ver);
 
     CHECK(empty == 1);
     CHECK(lens == 5);
@@ -380,6 +420,7 @@ int test_rawlog_run(void) {
     CHECK(render_same >= 1);
     CHECK(render_diff >= 2);
     CHECK(render_wrap >= 1);
+    CHECK(hide_ver == 3);
 
     return sr_test_failures;
 }

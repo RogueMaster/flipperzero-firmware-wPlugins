@@ -28,7 +28,9 @@
 #include "views/sr_view_dash.h"
 
 #define SR_TAG         "SigRoam"
-#define SR_FAP_VERSION "0.4"
+#define SR_FAP_VERSION "0.5"
+/* Display-only scanner product number on Probe (ADR-027). Not UART kVersion. */
+#define SR_SCANNER_VERSION "0.5"
 
 /*
  * Brand / referral slot (About page).
@@ -96,6 +98,7 @@
  * have silently truncated the diagnostic, which is the one line that matters when
  * nothing else is answering. */
 #define SR_PROBE_TEXT_MAX 448
+#define SR_UPLOAD_TEXT_MAX 192
 #define SR_RAW_TEXT_MAX (SR_RAWLOG_LINES * (SR_RAWLOG_LINE_MAX + 2) + 1)
 #define SR_TICK_PERIOD_MS 100
 
@@ -140,6 +143,9 @@ typedef struct {
     SrHandshakeState hs_shown; /* The state already rendered */
     uint32_t hs_rev_shown; /* model.firmware_rev at the time it was rendered */
     char probe_text[SR_PROBE_TEXT_MAX];
+    char upload_text[SR_UPLOAD_TEXT_MAX];
+    uint32_t upload_up_rev_shown;
+    bool upload_go_retry; /* GUI-thread: Center upload lost the depth-1 slot */
     char raw_text[SR_RAW_TEXT_MAX];
     uint32_t raw_pushed_shown; /* Snapshot of rawlog.pushed at the time it was rendered */
     SrRawLog rawlog;

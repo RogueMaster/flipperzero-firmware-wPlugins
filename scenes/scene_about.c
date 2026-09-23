@@ -46,12 +46,12 @@
  *
  *   x: 0                        90 91              127
  *      ┌────────────────────────────────────────────┐
- *  b10 │ SigRoam Wardriving v0.4                    │  full 128, 105 px
+ *  b10 │ SigRoam Wardriving v0.5                    │  full 128, 105 px
  *      ├─────────────────────────┬──────────────────┤
  *  b20 │ by PINGEQUA Lab         │ I_sr1g_qr        │  74 px
  *  b30 │ Receive-only.           │ 37x37 (x=91,     │
  *  b40 │ No attack.              │     y=13..49)    │
- *  b50 │ Marauder compatible     │ (clears by x)    │
+ *  b50 │ 2.4/5G + GNSS           │ (clears by x)    │
  *      ├─────────────────────────┴──────────────────┤
  *  b60 │ go.pingequa.com/sr1g                       │  full 128
  *      └────────────────────────────────────────────┘
@@ -60,7 +60,10 @@
  *    (1) Row 1 is full width. One string, normal FontSecondary advance:
  *        "SigRoam Wardriving v" SR_FAP_VERSION = 105 px (fits 128).
  *    (2) Rows 2-5 overlap the code in y, so width must be <= 91 px.
- *        Longest is "Marauder compatible" at 89 px; maker line 74 px.
+ *        Longest remaining body line is still inside 91 px. Maker 74 px.
+ *        "passive 2.4/5G + GNSS" as one row 5 string does not fit the QR
+ *        column (21 chars vs documented 89 px / 18 char Marauder line).
+ *        Receive-only. is the passive claim; row 5 is the radio/GNSS line.
  *        String elements are **not clipped**.
  *    (3) Row 6 clears the code by **y** -- cap 53 sits below QR bottom 49.
  *        60 + descent (about 2) = 62 < 64: flush with the bottom but inside.
@@ -114,9 +117,10 @@ static void sigroam_scene_about_fill_conflict(SigRoamApp* app) {
         "attack features.\n"
         "It only listens.\n"
         "\n"
-        "Works with ESP32\n"
-        "Marauder scanners\n"
-        "with GPS and SD.\n"
+        "passive 2.4/5G\n"
+        "+ GNSS.\n"
+        "Need Scout Lite\n"
+        "running SigRoam.\n"
         "\n" SR_BRAND_URL "\n");
 }
 
@@ -140,14 +144,9 @@ void sigroam_scene_about_on_enter(void* context) {
         sigroam_scene_about_line(app, 30, "Receive-only.");
         sigroam_scene_about_line(app, 40, "No attack.");
 
-        /* NOTE: "Marauder compatible" is a **compatibility statement, not an identity**
-         *    (user decision, 2026-09-01): SigRoam is dedicated wardriving software that is
-         *    compatible with Marauder, not something "made for Marauder".
-         *    The in-house firmware in ADR-023 speaks the @SR1 protocol -- hardcoding Marauder
-         *    would block that path.
-         *    An earlier version read "For ESP32 Marauder", which drifted toward exclusivity
-         *    and was rejected. 89 px, still inside the 91 px column. */
-        sigroam_scene_about_line(app, 50, "Marauder compatible");
+        /* Row 5: radio/GNSS capability. "passive" is Receive-only. above.
+         * Full "passive 2.4/5G + GNSS" does not fit the 91 px QR column. */
+        sigroam_scene_about_line(app, 50, "2.4/5G + GNSS");
 
         /* Row 6 full width: cap y=53 sits below the code (y=13..49).
          * Same short link as the QR -- changing SR_BRAND_URL requires regenerating

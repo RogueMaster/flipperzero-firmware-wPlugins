@@ -137,6 +137,7 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
      * session_rev is a cumulative transition count and reset must not clear it (ADR-017 decision 3).
      * gps_stop_rev follows the same convention and reset must not clear it (ADR-020 / ADR-017
      * decision 3). wifi_stop_rev is the same family (SHOW_INFO-clear confirm).
+     * up / up_rev are the same family (H2 board snapshot, not this model's counts).
      * gps_csv / gps_csv_rev are session data and are cleared (D12). gps / gps_stop_rev are not.
      * bloom / rawlog contents are cleared only on explicit request; reset does not touch the ring. */
     if(also_reset_bloom && m->bloom != NULL) {
@@ -309,7 +310,7 @@ static bool apply_unknown(SrModel* m, const SrRawView* v) {
     m->unknown_lines++;
     /* Pass v->len rather than n: the ring truncates to 80 itself and sets cut. n is the 511 cap
      * of last_unknown, not the rawlog contract. */
-    if(m->rawlog != NULL) {
+    if(m->rawlog != NULL && !sr_rawlog_is_wire_version_line(v->text, v->len)) {
         sr_rawlog_push(m->rawlog, v->text, v->len);
     }
     return true;
@@ -357,6 +358,10 @@ bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms) {
     case SrEventRadio:
         m->radio = ev->u.radio;
         m->radio_rev++;
+        return true;
+    case SrEventUp:
+        m->up = ev->u.up;
+        m->up_rev++;
         return true;
     case SrEventUnknown:
         return apply_unknown(m, &ev->u.unknown);

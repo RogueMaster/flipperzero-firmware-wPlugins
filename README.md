@@ -135,7 +135,7 @@ The main menu has five entries:
   Backlight, Stealth, Debug rows. Sound, Vibro and the LED fire when the GPS fix
   is acquired or lost during a survey; Stealth suppresses the LED, and Backlight
   holds the display lit while you are on the dashboard.
-- **About** — `SigRoam Wardriving v0.4`, `by PINGEQUA Lab`, the receive-only
+- **About** — `SigRoam Wardriving v0.5`, `by PINGEQUA Lab`, the receive-only
   statement, and a QR code to the project short link.
 
 While a scan is running, Back returns to the main menu **without stopping the
@@ -146,10 +146,10 @@ scan**. Stopping is done only with OK on the Dash tab.
 **SigRoam does not write survey data to the Flipper's SD card.** The only thing it
 persists on the Flipper is your settings.
 
-Logging is the scanner's job: Marauder writes its own CSV to the SD card on the
-scanner board, and that file is what you upload to [WiGLE](https://wigle.net/).
-SigRoam gives you control and live visibility over that session; it is not a
-second recorder.
+Logging is the scanner's job: the scanner writes the WiGLE CSV to the SD card
+on the board. SigRoam 0.5 can upload a sealed CSV from the scanner. HTTP 429
+is WiGLE's daily file limit; the Flipper then shows `WiGLE busy`. SigRoam is
+not a second recorder.
 
 The unique-BSSID number on the Dash tab is an estimate from a 4 KB Bloom filter
 (32768 bits, 4 hashes), kept in RAM for the session only. It can undercount

@@ -1,29 +1,9 @@
 #include "../sigroam.h"
 #include "../src/sr_dialect.h"
+#include "../src/sr_probe_fmt.h"
 
 #include <stdio.h>
 #include <string.h>
-
-static const char* field_or_q(const char* s) {
-    return (s != NULL && s[0] != '\0') ? s : "?";
-}
-
-/* Hardware: prefix names the board (Scout Lite), not the firmware.
- * Firmware/app are SigRoam. Wire Firmware: stays "Marauder" (handshake). */
-static bool hardware_is_scout_lite(const char* hw) {
-    static const char k[] = "Scout Lite";
-    size_t i;
-
-    if(hw == NULL) {
-        return false;
-    }
-    for(i = 0; k[i] != '\0'; i++) {
-        if(hw[i] != k[i]) {
-            return false;
-        }
-    }
-    return true;
-}
 
 static void sigroam_scene_probe_fill(SigRoamApp* app, SrHandshakeState st) {
     const SrFirmwareInfo* fw = &app->model.firmware;
@@ -79,82 +59,15 @@ static void sigroam_scene_probe_fill(SigRoamApp* app, SrHandshakeState st) {
                 "Waiting up to 1.5s");
         }
         break;
-    case SrHandshakeOk: {
-        /* Fifth line of the reply since firmware 2026-09-07. This is the only channel
-         * that still answers when the board's SD path has stopped, so it is worth the
-         * screen space: state names the phase, the first uncleared gate names where a
-         * STOP is stuck, and the six heartbeats name a task that has frozen. A single
-         * reading cannot tell "frozen" from "slow" — send info twice and compare. */
-        char diag[128];
-
-        diag[0] = '\0';
-        if(fw->diag_seen) {
-            static const char* const kStates[] = {
-                "IDLE", "SCANNING", "STOPPING", "DRAINING", "SEALED", "UPLOADING"};
-            static const char* const kGates[] = {
-                "scan_quiet", "ble_quiet", "obs_conv", "prelock_req",
-                "prelock_ack", "rec_empty", "seal_try"};
-            const char* st = (fw->diag_state < (uint8_t)(sizeof(kStates) / sizeof(kStates[0])))
-                                 ? kStates[fw->diag_state]
-                                 : "?";
-            const char* stuck = "(all cleared)";
-            unsigned i;
-
-            for(i = 0; i < (unsigned)(sizeof(kGates) / sizeof(kGates[0])); i++) {
-                if((fw->diag_seal & (1u << i)) == 0u) {
-                    stuck = kGates[i];
-                    break;
-                }
-            }
-            snprintf(
-                diag,
-                sizeof(diag),
-                "\nstate: %s\n"
-                "stuck: %s\n"
-                "hb %lu/%lu/%lu\n"
-                "   %lu/%lu/%lu\n",
-                st,
-                stuck,
-                (unsigned long)fw->diag_hb[0],
-                (unsigned long)fw->diag_hb[1],
-                (unsigned long)fw->diag_hb[2],
-                (unsigned long)fw->diag_hb[3],
-                (unsigned long)fw->diag_hb[4],
-                (unsigned long)fw->diag_hb[5]);
-        }
-        /* Scout Lite is the board. Firmware/app are SigRoam — not "SigRoam Lite".
-         * Wire Firmware: is still "Marauder" (handshake); do not show that token. */
-        if(hardware_is_scout_lite(fw->hardware)) {
-            snprintf(
-                app->probe_text,
-                sizeof(app->probe_text),
-                "\e#SigRoam\n"
-                "passive 2.4/5 + GNSS\n"
-                "Version: %s\n"
-                "Hardware: %s\n"
-                "ESP-IDF: %s\n"
-                "%s",
-                field_or_q(fw->version),
-                field_or_q(fw->hardware),
-                field_or_q(fw->esp_idf),
-                diag);
-        } else {
-            snprintf(
-                app->probe_text,
-                sizeof(app->probe_text),
-                "\e#%s\n"
-                "Version: %s\n"
-                "Hardware: %s\n"
-                "ESP-IDF: %s\n"
-                "%s",
-                field_or_q(fw->firmware),
-                field_or_q(fw->version),
-                field_or_q(fw->hardware),
-                field_or_q(fw->esp_idf),
-                diag);
-        }
+    case SrHandshakeOk:
+        /* ADR-027: product identity, not UART Version: / ESP-IDF:. Diag stays. */
+        (void)sr_probe_fmt_ok(
+            fw,
+            SR_SCANNER_VERSION,
+            SR_BRAND_LINE,
+            app->probe_text,
+            sizeof(app->probe_text));
         break;
-    }
     case SrHandshakeUnknownFw:
         snprintf(
             app->probe_text,

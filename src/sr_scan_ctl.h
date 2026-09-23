@@ -68,11 +68,11 @@ static inline SrScanAct sr_scan_ctl_on_ok(SrScanUiState st) {
     case SrScanUiRunning:
     case SrScanUiStarting:
     case SrScanUiStopFailed:
+    case SrScanUiStopping:
         return SrScanActSendStop;
     case SrScanUiIdle:
     case SrScanUiStartFailed:
         return SrScanActSendStart;
-    case SrScanUiStopping:
     case SrScanUiBusy:
         return SrScanActNone;
     }
@@ -104,9 +104,15 @@ static inline bool sr_scan_ctl_sealing(bool diag_seen, uint8_t diag_state) {
     return diag_seen && (diag_state == 2u || diag_state == 3u);
 }
 
-/* Live board 0=IDLE / 4=SEALED ends a stop-seal latch. */
+/* Live board 0=IDLE / 4=SEALED ends a stop-seal latch. Do not add
+ * UPLOADING(5): that would clear the latch and allow START. */
 static inline bool sr_scan_ctl_board_idle_or_sealed(uint8_t st) {
     return st == 0u || st == 4u;
+}
+
+/* Diag: st=5 UPLOADING (firmware session_gate.h). Independent of sealing. */
+static inline bool sr_scan_ctl_uploading(bool diag_seen, uint8_t diag_state) {
+    return diag_seen && diag_state == 5u;
 }
 
 static inline bool sr_scan_ctl_board_sealing_st(uint8_t st) {
@@ -198,7 +204,20 @@ static inline bool sr_scan_ctl_ident_yields_state4(
 
 static inline bool sr_scan_ctl_allow_stop(SrScanUiState st) {
     return st == SrScanUiRunning || st == SrScanUiStarting ||
-           st == SrScanUiStopFailed;
+           st == SrScanUiStopFailed || st == SrScanUiStopping;
+}
+
+/* Busy means the stop never left. Session still Running: OK sends it. */
+static inline SrScanAct sr_scan_ctl_retry_unconfirmed(
+    SrScanAct act,
+    SrScanUiState st,
+    bool session_running,
+    bool cmd_is_start) {
+    if (act == SrScanActNone && st == SrScanUiBusy && session_running &&
+        !cmd_is_start) {
+        return SrScanActSendStop;
+    }
+    return act;
 }
 
 static inline SrScanAct sr_scan_ctl_on_ok_ex(
@@ -210,4 +229,18 @@ static inline SrScanAct sr_scan_ctl_on_ok_ex(
         return sr_scan_ctl_allow_stop(st) ? SrScanActSendStop : SrScanActNone;
     }
     return sr_scan_ctl_on_ok(st);
+}
+
+/* UPLOADING: neither wardrive nor stopscan. Do not fold into sealing
+ * (sealing still allows Stop while FAP thinks Running). */
+static inline SrScanAct sr_scan_ctl_on_ok_upload_gate(
+    SrScanUiState st,
+    bool sd_dead,
+    bool sealing,
+    bool ident_hold,
+    bool uploading) {
+    if(uploading) {
+        return SrScanActNone;
+    }
+    return sr_scan_ctl_on_ok_ex(st, sd_dead, sealing, ident_hold);
 }

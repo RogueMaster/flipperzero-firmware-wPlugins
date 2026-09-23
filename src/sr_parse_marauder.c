@@ -53,6 +53,7 @@ static const char kBusy[] = "Busy: ";
 static const char kSess[] = "Sess: ";
 static const char kRadio[] = "Radio: ";
 static const char kQual[] = "Qual: ";
+static const char kUp[] = "Up: ";
 
 typedef struct {
     const char* p;
@@ -659,6 +660,117 @@ static bool radio_parse(const char* line, size_t len, SrRadioInfo* out) {
     return true;
 }
 
+static bool scan_up_trans(const char* line, size_t len, size_t* p, char* out, size_t cap) {
+    size_t n = 0;
+
+    if(out == NULL || cap < 2U || *p >= len) {
+        return false;
+    }
+    if(line[*p] == '-' && ((*p + 1U) == len || line[*p + 1U] == ' ')) {
+        out[0] = '-';
+        out[1] = '\0';
+        (*p)++;
+        return true;
+    }
+    while(*p < len && line[*p] != ' ') {
+        char c = line[*p];
+        if(!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+             c == '.' || c == '_' || c == '-')) {
+            return false;
+        }
+        if(n + 1U >= cap) {
+            return false;
+        }
+        out[n++] = c;
+        (*p)++;
+    }
+    if(n == 0U) {
+        return false;
+    }
+    out[n] = '\0';
+    return true;
+}
+
+static bool scan_up_reason(const char* line, size_t len, size_t* p, char* out, size_t cap) {
+    size_t n = 0;
+
+    if(out == NULL || cap < 2U || *p >= len) {
+        return false;
+    }
+    if(line[*p] == '-' && (*p + 1U) == len) {
+        out[0] = '-';
+        out[1] = '\0';
+        (*p)++;
+        return true;
+    }
+    while(*p < len) {
+        char c = line[*p];
+        if(!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_')) {
+            return false;
+        }
+        if(n + 1U >= cap) {
+            return false;
+        }
+        out[n++] = c;
+        (*p)++;
+    }
+    if(n == 0U) {
+        return false;
+    }
+    out[n] = '\0';
+    return true;
+}
+
+/*
+ * "Up: up_q=<u32> up_last_trans=<id|-> up_disc_gps=<u32> up_reason=<token|->",
+ * nothing after. H2. Strict on every field.
+ */
+static bool up_parse(const char* line, size_t len, SrUpInfo* out) {
+    size_t p = sizeof(kUp) - 1U;
+    uint32_t q = 0;
+    uint32_t disc = 0;
+    char last[SR_UP_TRANS_MAX + 1];
+    char reason[SR_UP_REASON_MAX + 1];
+
+    if(line == NULL || out == NULL || len < p || memcmp(line, kUp, p) != 0) {
+        return false;
+    }
+    last[0] = '\0';
+    reason[0] = '\0';
+    if(!scan_lit(line, len, &p, "up_q=", 5U) || !scan_u32(line, len, &p, &q)) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, " up_last_trans=", 15U) ||
+       !scan_up_trans(line, len, &p, last, sizeof last)) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, " up_disc_gps=", 13U) || !scan_u32(line, len, &p, &disc)) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, " up_reason=", 11U) ||
+       !scan_up_reason(line, len, &p, reason, sizeof reason)) {
+        return false;
+    }
+    if(p != len) {
+        return false;
+    }
+    out->q = q;
+    out->disc_gps = disc;
+    {
+        size_t ln = 0;
+        size_t rn = 0;
+        while(last[ln] != '\0') {
+            ln++;
+        }
+        while(reason[rn] != '\0') {
+            rn++;
+        }
+        copy_cap(out->last_trans, sizeof out->last_trans, last, ln);
+        copy_cap(out->reason, sizeof out->reason, reason, rn);
+    }
+    return true;
+}
+
 static bool probe_n(const char* line, size_t len, SrFirmwareInfo* out) {
     static const char kFw[] = "Firmware: ";
     static const char kVer[] = "Version: ";
@@ -947,6 +1059,11 @@ static SrParseResult
 
     if(qual_parse(line, len, &out->u.qual)) {
         out->kind = SrEventQual;
+        return SrParseOk;
+    }
+
+    if(up_parse(line, len, &out->u.up)) {
+        out->kind = SrEventUp;
         return SrParseOk;
     }
 
