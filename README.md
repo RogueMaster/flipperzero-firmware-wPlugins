@@ -146,10 +146,10 @@ scan**. Stopping is done only with OK on the Dash tab.
 **SigRoam does not write survey data to the Flipper's SD card.** The only thing it
 persists on the Flipper is your settings.
 
-Logging is the scanner's job: the scanner writes the WiGLE CSV to the SD card
-on the board. SigRoam 0.5 can upload a sealed CSV from the scanner. HTTP 429
-is WiGLE's daily file limit; the Flipper then shows `WiGLE busy`. SigRoam is
-not a second recorder.
+Logging stays on the scanner microSD. SigRoam 0.5 can upload a sealed CSV
+from the scanner. A successful upload keeps WiGLE's transaction id with that
+file. HTTP 429 is WiGLE's daily file limit: the round stops, and the Flipper
+shows `WiGLE busy`. SigRoam stores only settings on the Flipper.
 
 The unique-BSSID number on the Dash tab is an estimate from a 4 KB Bloom filter
 (32768 bits, 4 hashes), kept in RAM for the session only. It can undercount
@@ -211,8 +211,11 @@ rule, not a missing feature. The app is receive-only and only parses what the
 scanner prints.
 
 **Where is the survey data stored?**
-On the scanner's own microSD card, written by Marauder as CSV. SigRoam persists
-only your settings on the Flipper. The CSV is what you upload to WiGLE.
+On the scanner microSD, as a WigleWifi CSV. SigRoam stores only settings on
+the Flipper. With SigRoam 0.5, a sealed file can upload from the scanner,
+and WiGLE's transaction id stays with that file. HTTP 429 stops the round
+and the Flipper shows `WiGLE busy`. Copying the card to a computer is a
+separate path.
 
 **Can I use it with USB plugged in?**
 Yes. Pin 1 is fed from USB VBUS whenever USB is connected, and from the OTG boost
