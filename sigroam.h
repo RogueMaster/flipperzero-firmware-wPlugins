@@ -145,7 +145,11 @@ typedef struct {
     char probe_text[SR_PROBE_TEXT_MAX];
     char upload_text[SR_UPLOAD_TEXT_MAX];
     uint32_t upload_up_rev_shown;
+    uint32_t upload_fw_rev_shown; /* model.firmware_rev last drawn on Upload */
+    uint32_t upload_qual_rev_shown; /* model.qual_rev last drawn on Upload */
     bool upload_go_retry; /* GUI-thread: Center upload lost the depth-1 slot */
+    bool upload_info_armed; /* one info after enter, once the command slot is free */
+    bool upload_ident_info_sent; /* empty Version: one info, then stop until -sigroam- */
     char raw_text[SR_RAW_TEXT_MAX];
     uint32_t raw_pushed_shown; /* Snapshot of rawlog.pushed at the time it was rendered */
     SrRawLog rawlog;

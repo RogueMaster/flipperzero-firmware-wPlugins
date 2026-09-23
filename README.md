@@ -149,7 +149,9 @@ persists on the Flipper is your settings.
 Logging stays on the scanner microSD. SigRoam 0.5 can upload a sealed CSV
 from the scanner. A successful upload keeps WiGLE's transaction id with that
 file. HTTP 429 is WiGLE's daily file limit: the round stops, and the Flipper
-shows `WiGLE busy`. SigRoam stores only settings on the Flipper.
+shows `WiGLE busy`. A profile check with no HTTP status shows `No reply`.
+WiGLE documents that profile call as 200 or 500 when it answers. 401 or 403
+shows `Key rejected`. SigRoam stores only settings on the Flipper.
 
 The unique-BSSID number on the Dash tab is an estimate from a 4 KB Bloom filter
 (32768 bits, 4 hashes), kept in RAM for the session only. It can undercount
@@ -214,7 +216,8 @@ scanner prints.
 On the scanner microSD, as a WigleWifi CSV. SigRoam stores only settings on
 the Flipper. With SigRoam 0.5, a sealed file can upload from the scanner,
 and WiGLE's transaction id stays with that file. HTTP 429 stops the round
-and the Flipper shows `WiGLE busy`. Copying the card to a computer is a
+and the Flipper shows `WiGLE busy`. No HTTP status shows `No reply`.
+Copying the card to a computer is a
 separate path.
 
 **Can I use it with USB plugged in?**

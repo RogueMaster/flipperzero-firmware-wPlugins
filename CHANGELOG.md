@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- A profile check with no HTTP status shows `No reply` / `before upload`. WiGLE documents `GET /api/v2/profile/user` as 200 or 500. That screen is not an API rejection.
+- HTTP 401 or 403 shows `Key rejected` / `check API`. Any other HTTP status shows `HTTP` and the code. HTTP 429 stays `WiGLE busy` / `try later`.
+- An old `PROFILE` token shows `Profile failed` / `no status`.
+
 ## [0.5] — 2026-09-23
 
 BLE observation and on-board WiGLE upload for Scout Lite. Not product v1.0.
