@@ -58,6 +58,9 @@ typedef struct {
      *    See ADR-024.
      */
     bool debug_rows;
+    /* Short tick when the running unique estimate rises. Default on.
+     * Stealth still forces the effective sound and vibro off. */
+    bool newnet;
 } SrSettings;
 
 typedef struct {

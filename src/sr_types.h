@@ -131,6 +131,8 @@ typedef enum {
     SrEventQual,         /* F2 Qual: line; must append after Sess */
     SrEventRadio,        /* T6.5 Radio: line; must append after Qual */
     SrEventUp,           /* H2 Up: line; must append after Radio */
+    SrEventRank,         /* Account Rank: line; must append after Up */
+    SrEventCfg,          /* Cfg: line; must append after Rank */
 } SrEventKind;
 
 /* Pin the trailing kinds so inserting SrEventSess before Unknown silently
@@ -144,6 +146,8 @@ _Static_assert((int)SrEventSess == 9, "SrEventSess appends after Busy");
 _Static_assert((int)SrEventQual == 10, "SrEventQual appends after Sess");
 _Static_assert((int)SrEventRadio == 11, "SrEventRadio appends after Qual");
 _Static_assert((int)SrEventUp == 12, "SrEventUp appends after Radio");
+_Static_assert((int)SrEventRank == 13, "SrEventRank appends after Up");
+_Static_assert((int)SrEventCfg == 14, "SrEventCfg appends after Rank");
 
 /* -------------------------------------------------------------------------- */
 /* Structs                                                                    */
@@ -246,6 +250,32 @@ typedef struct {
     char last_trans[SR_UP_TRANS_MAX + 1];
     char reason[SR_UP_REASON_MAX + 1];
 } SrUpInfo;
+
+/*
+ * "Rank: rank=<u32> month=<u32> wifi_gps=<u32>"
+ * Account totals from GET /api/v2/stats/user. Not this trip's score.
+ * Absence of the line is unknown (rank_rev == 0). Parser is strict (p != len).
+ * 12 bytes, narrower than SrFirmwareInfo, so SrEvent stays 240.
+ */
+typedef struct {
+    uint32_t rank;
+    uint32_t month;
+    uint32_t wifi_gps;
+} SrRankInfo;
+
+_Static_assert(sizeof(SrRankInfo) == 12, "SrRankInfo is 3 x uint32");
+
+/*
+ * "Cfg: key=<0|1> home=<0|1> ssid=<text>"
+ * ssid is the rest of the line (spaces and UTF-8 allowed), "-" means none.
+ * Stored at most 32 bytes plus NUL. Absence of the line is cfg_rev == 0.
+ * Narrower than SrFirmwareInfo, so SrEvent stays 240.
+ */
+typedef struct {
+    uint8_t key;
+    uint8_t home;
+    char ssid[33];
+} SrCfgInfo;
 
 /*
  * ref: V-001
@@ -355,6 +385,8 @@ typedef struct {
         SrQualInfo qual;         /* SrEventQual — 20 B, narrower than SrFirmwareInfo */
         SrRadioInfo radio;       /* SrEventRadio — 2 B, narrower than SrFirmwareInfo */
         SrUpInfo up;             /* SrEventUp — narrower than SrFirmwareInfo */
+        SrRankInfo rank;         /* SrEventRank — 12 B, narrower than SrFirmwareInfo */
+        SrCfgInfo cfg;           /* SrEventCfg — ssid[33], narrower than SrFirmwareInfo */
     } u;
 } SrEvent;
 

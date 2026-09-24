@@ -10,7 +10,15 @@ static const NotificationMessage sr_msg_note_g5 = {
     .type = NotificationMessageTypeSoundOn,
     .data.sound = {.frequency = 783.99f, .volume = 1.0f},
 };
-
+/* C7, two octaves above the C5 already used above. ~15 ms click. */
+static const NotificationMessage sr_msg_note_c7 = {
+    .type = NotificationMessageTypeSoundOn,
+    .data.sound = {.frequency = 2093.00f, .volume = 1.0f},
+};
+static const NotificationMessage sr_msg_delay_15 = {
+    .type = NotificationMessageTypeDelay,
+    .data.delay = {.length = 15},
+};
 /* N4: the stock success/error sequences mix sound+vibro+backlight+LED and cannot be
    gated per switch, so these three are built here. All are single-purpose. */
 static const NotificationSequence sr_seq_vibro = {
@@ -37,7 +45,12 @@ static const NotificationSequence sr_seq_beep_acquired = {
     &message_sound_off,
     NULL,
 };
-
+static const NotificationSequence sr_seq_newnet_click = {
+    &sr_msg_note_c7,
+    &sr_msg_delay_15,
+    &message_sound_off,
+    NULL,
+};
 void sr_notify_alert(NotificationApp* n, SrAlertKind kind, const SrSettings* s) {
     if(n == NULL || kind == SrAlertNone || s == NULL) {
         return;
@@ -60,6 +73,16 @@ void sr_notify_alert(NotificationApp* n, SrAlertKind kind, const SrSettings* s) 
         } else if(kind == SrAlertGpsFixAcquired) {
             notification_message(n, &sequence_blink_green_100);
         }
+    }
+}
+
+/* Sound only: at ~1 tick per 2 s in dense areas, vibro would run all drive. */
+void sr_notify_newnet(NotificationApp* n, const SrSettings* s) {
+    if(n == NULL || s == NULL) {
+        return;
+    }
+    if(sr_settings_effective_sound(s)) {
+        notification_message(n, &sr_seq_newnet_click);
     }
 }
 

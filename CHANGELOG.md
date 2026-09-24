@@ -7,8 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6] — 2026-09-24
+
+Field dashboard for the same Scout Lite survey. Not product v1.0.
+
+The scanner app is SHA-256 `525ca563fa8379ab26bc9c43010203afcaac0ac24a54042798c6d775ebd389b8`, 1643856 bytes, written at `0x20000`. Bootloader, partition table, and otadata stay the v0.5 bytes. Pair with Flipper app 0.6.
+
+### Added
+
+- Dash shows separate 2.4 GHz and 5 GHz counts under the AP line.
+- A new unique network plays one short sound, at most once every 2 seconds, and does not vibrate. Settings calls the switch `New net tick`. It is on unless you turn it off.
+- After a survey with observations, the idle Dash keeps a one-line summary (`Sealed`, `Uploading...`, or `Stopped`).
+- If sealed files are still waiting, the idle Dash asks once. OK uploads, Back dismisses it for this launch. Missing credentials say `Set WiGLE key` or `Set home Wi-Fi`.
+- Upload shows `Key: set  Home: <ssid>`, or `Key: none` / `Home: none`.
+- Upload shows `disc` for the discovered-GPS count from the last upload status.
+- Rank shows WiGLE account rank, month rank, and WiFi GPS from the last upload status. The footer says `not this trip`.
+- This release includes `sigroam-0.6-unleashed.fap` for Unleashed API 88. Unleashed-board testing is not claimed.
+
 ### Changed
 
+- Probe shows SigRoam / v0.6 / Scout Lite.
+- About shows `SigRoam Wardriving v0.6`.
 - A profile check with no HTTP status shows `No reply` / `before upload`. WiGLE documents `GET /api/v2/profile/user` as 200 or 500. That screen is not an API rejection.
 - HTTP 401 or 403 shows `Key rejected` / `check API`. Any other HTTP status shows `HTTP` and the code. HTTP 429 stays `WiGLE busy` / `try later`.
 - An old `PROFILE` token shows `Profile failed` / `no status`.

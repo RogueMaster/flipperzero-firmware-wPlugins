@@ -40,6 +40,8 @@ struct SrViewDash {
     void* ctx;
     SrViewDashCallback ok_cb;
     void* ok_ctx;
+    SrViewDashCallback back_cb;
+    void* back_ctx;
 };
 
 /*
@@ -209,6 +211,66 @@ static void sr_view_dash_put_line(Canvas* canvas, int32_t y, const char* raw, in
     }
     sr_fmt_fit(raw, len, (size_t)SR_VIEW_COLS, line, sizeof(line));
     canvas_draw_str(canvas, 0, y, line);
+}
+
+static void sr_view_dash_put_band(Canvas* canvas, int32_t y, const SrDashModel* m) {
+    char raw[40];
+    int n;
+
+    if(m->ap_24 == 0u && m->ap_5 == 0u) {
+        return;
+    }
+    if(y > 61) {
+        return;
+    }
+    n = (int)sr_fmt_band_row(m->ap_24, m->ap_5, (size_t)SR_VIEW_COLS, raw, sizeof(raw));
+    sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+}
+
+/* Popup text sits inside the frame: x=4, and 19 columns so the last glyph
+ * stays left of the right border (20 columns fill the full 128 px). */
+#define SR_PENDING_X    4
+#define SR_PENDING_COLS 19u
+
+static void sr_view_dash_put_pending(Canvas* canvas, int32_t y, const char* raw, int n, size_t cap) {
+    char line[SR_PENDING_COLS + 1u];
+    size_t len = n < 0 ? 0u : (size_t)n;
+
+    if(len >= cap) {
+        len = cap - 1u;
+    }
+    sr_fmt_fit(raw, len, SR_PENDING_COLS, line, sizeof(line));
+    canvas_draw_str(canvas, SR_PENDING_X, y, line);
+}
+
+static void sr_view_dash_draw_pending(Canvas* canvas, const SrDashModel* m) {
+    char raw[40];
+    int n;
+    const char* line2;
+
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 0, 14, 128, 48);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_frame(canvas, 0, 14, 128, 48);
+
+    n = snprintf(
+        raw,
+        sizeof(raw),
+        "%lu %s pending",
+        (unsigned long)m->up_q,
+        m->up_q == 1u ? "survey" : "surveys");
+    sr_view_dash_put_pending(canvas, 28, raw, n, sizeof(raw));
+    if(m->cfg_known && m->cfg_key == 0u) {
+        line2 = "Set WiGLE key";
+    } else if(m->cfg_known && m->cfg_home == 0u) {
+        line2 = "Set home Wi-Fi";
+    } else {
+        line2 = "OK: Upload";
+    }
+    n = snprintf(raw, sizeof(raw), "%s", line2);
+    sr_view_dash_put_pending(canvas, 38, raw, n, sizeof(raw));
+    n = snprintf(raw, sizeof(raw), "Back: Later");
+    sr_view_dash_put_pending(canvas, 48, raw, n, sizeof(raw));
 }
 
 /*
@@ -519,8 +581,8 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         /* State 3: running.
          * D19 / ADR-025: the SigRoam path (Qual seen, debug rows off) puts the big-font
          * uniq back on top (same spot as the generic path), moves the duration onto the
-         * AP row (sr_fmt_ap_row's three-level fit), leaves the row under it empty
-         * (reserved for a future firmware Gps row), and sinks the health status bar to
+         * AP row (sr_fmt_ap_row's three-level fit), draws the band split on the row
+         * under it when that baseline is <= 53, and sinks the health status bar to
          * y61. rx= leaves this path: Qual freshness (stale / sess_ms==0) covers the
          * D10/D11 link-liveness detection within 15 s, stronger than watching a number.
          * The generic Marauder path (qual_rev==0) and the debug_rows path below are
@@ -549,6 +611,9 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
                         sizeof(raw));
                     sr_view_dash_put_line(canvas, next, raw, n, sizeof(raw));
                 }
+                if(next + 10 <= 53) {
+                    sr_view_dash_put_band(canvas, next + 10, m);
+                }
             } else {
                 /* Abnormal font height: small-font fallback, zero information loss
                  * (uniq= fix= at y21, AP row at y31, status bar at y61). */
@@ -571,6 +636,7 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
                         sizeof(raw));
                 }
                 sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
+                sr_view_dash_put_band(canvas, 41, m);
             }
             sr_view_dash_put_health(canvas, 61, m);
             return;
@@ -769,6 +835,31 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
             n = snprintf(raw, sizeof(raw), "Board: no data");
         } else {
             n = snprintf(raw, sizeof(raw), "Board: data ok");
+        }
+        if(sr_dash_idle_summary(m->session, m->ap_wifi, m->ap_ble)) {
+            n = (int)sr_fmt_ap_row(
+                m->ap_wifi,
+                m->radio_rev,
+                m->radio.ble,
+                m->ap_ble,
+                m->last_elapsed_ms,
+                (size_t)SR_VIEW_COLS,
+                raw,
+                sizeof(raw));
+            sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
+            n = snprintf(raw, sizeof(raw), "OK: Start scan");
+            sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
+            sr_view_dash_put_band(canvas, 41, m);
+            n = (int)sr_fmt_last_status(
+                m->firmware.diag_state,
+                m->firmware.diag_seen,
+                m->up_q,
+                m->up_known,
+                raw,
+                sizeof(raw));
+            sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
+            sr_view_dash_put_health(canvas, 61, m);
+            return;
         }
         sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
 
@@ -1072,6 +1163,9 @@ static void sr_view_dash_draw(Canvas* canvas, void* model) {
 
     if(m->tab == (uint8_t)SR_VIEW_TAB_DASH) {
         sr_view_dash_draw_dash(canvas, m);
+        if(m->pending_prompt) {
+            sr_view_dash_draw_pending(canvas, m);
+        }
         return;
     }
     if(m->tab == (uint8_t)SR_VIEW_TAB_STREAM) {
@@ -1095,6 +1189,27 @@ static bool sr_view_dash_input(InputEvent* event, void* context) {
     bool scrolled = false;
 
     if(event == NULL || d == NULL || d->view == NULL) {
+        return false;
+    }
+
+    if(event->key == InputKeyBack && event->type == InputTypeShort) {
+        bool eat = false;
+
+        with_view_model(
+            d->view,
+            SrDashModel* m,
+            {
+                if(m != NULL && m->pending_prompt && m->tab == (uint8_t)SR_VIEW_TAB_DASH) {
+                    eat = true;
+                }
+            },
+            false);
+        if(eat) {
+            if(d->back_cb != NULL) {
+                d->back_cb(d->back_ctx);
+            }
+            return true;
+        }
         return false;
     }
 
@@ -1213,6 +1328,14 @@ void sr_view_dash_set_ok_callback(SrViewDash* d, SrViewDashCallback cb, void* co
     }
     d->ok_cb = cb;
     d->ok_ctx = context;
+}
+
+void sr_view_dash_set_back_callback(SrViewDash* d, SrViewDashCallback cb, void* context) {
+    if(d == NULL) {
+        return;
+    }
+    d->back_cb = cb;
+    d->back_ctx = context;
 }
 
 void sr_view_dash_set(View* v, const SrDashModel* src) {

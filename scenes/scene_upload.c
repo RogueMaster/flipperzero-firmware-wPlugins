@@ -5,6 +5,7 @@
 
 #include <input/input.h>
 #include <stdio.h>
+#include <string.h>
 
 _Static_assert(
     (unsigned)SR_UPLOAD_INFO_PERIOD_TICKS == (unsigned)SR_QUAL_REFRESH_PERIOD_TICKS,
@@ -12,6 +13,7 @@ _Static_assert(
 _Static_assert(
     (unsigned)SR_UPLOAD_STATUS_PERIOD_TICKS * (unsigned)SR_TICK_PERIOD_MS == 2000u,
     "uploadstatus stays on the 2 s cadence");
+_Static_assert(sizeof("disc ") - 1u + 10u <= 20u, "disc line fits 20 columns");
 
 enum {
     SigRoamUploadEventGo = 1,
@@ -56,6 +58,33 @@ static bool sigroam_scene_upload_sd_dead(const SigRoamApp* app) {
         app->model.qual_rev, app->model.qual.sd, app->model.qual_tick_ms, furi_get_tick());
 }
 
+static void sigroam_scene_upload_append_cfg(SigRoamApp* app) {
+    char cfg[24];
+    size_t n;
+    size_t c;
+
+    if(app->model.cfg_rev == 0u) {
+        return;
+    }
+    c = sr_fmt_cfg_line(
+        app->model.cfg.key,
+        app->model.cfg.home,
+        app->model.cfg.ssid,
+        (size_t)SR_VIEW_COLS,
+        cfg,
+        sizeof(cfg));
+    n = 0u;
+    while(n < sizeof(app->upload_text) && app->upload_text[n] != '\0') {
+        n++;
+    }
+    if(n + 1u + c + 1u > sizeof(app->upload_text)) {
+        return;
+    }
+    app->upload_text[n++] = '\n';
+    memcpy(app->upload_text + n, cfg, c);
+    app->upload_text[n + c] = '\0';
+}
+
 static void sigroam_scene_upload_fill(SigRoamApp* app) {
     const SrUpInfo* u = &app->model.up;
     SrUploadPrompt prompt;
@@ -75,11 +104,14 @@ static void sigroam_scene_upload_fill(SigRoamApp* app) {
             sizeof(app->upload_text),
             "WiGLE upload\n"
             "q=%lu\n"
+            "disc %lu\n"
             "%s\n"
             "%s",
             seen ? (unsigned long)u->q : 0ul,
+            seen ? (unsigned long)u->disc_gps : 0ul,
             prompt.line1,
             prompt.line2);
+        sigroam_scene_upload_append_cfg(app);
         return;
     }
 
@@ -88,14 +120,34 @@ static void sigroam_scene_upload_fill(SigRoamApp* app) {
         sizeof(app->upload_text),
         "WiGLE upload\n"
         "q=%lu\n"
+        "disc %lu\n"
         "%s",
         seen ? (unsigned long)u->q : 0ul,
+        seen ? (unsigned long)u->disc_gps : 0ul,
         (app->model.firmware.diag_seen && st == 1u) ? "OK: stop+up" : "OK: upload");
+    sigroam_scene_upload_append_cfg(app);
 }
 
-static void sigroam_scene_upload_draw(SigRoamApp* app) {
-    widget_reset(app->widget);
+static uint32_t sigroam_scene_upload_hash(const char* s) {
+    uint32_t h = 2166136261u;
+
+    while(*s != '\0') {
+        h = (h ^ (uint8_t)*s++) * 16777619u;
+    }
+    return h;
+}
+
+/* force: first draw on enter. Otherwise rebuild only when the text changed. */
+static void sigroam_scene_upload_draw(SigRoamApp* app, bool force) {
+    uint32_t h;
+
     sigroam_scene_upload_fill(app);
+    h = sigroam_scene_upload_hash(app->upload_text);
+    if(!force && h == app->upload_text_hash) {
+        return;
+    }
+    app->upload_text_hash = h;
+    widget_reset(app->widget);
     widget_add_text_scroll_element(
         app->widget, 0, 0, SR_CANVAS_W, (uint8_t)(SR_CANVAS_H - 14), app->upload_text);
     widget_add_button_element(
@@ -117,13 +169,14 @@ void sigroam_scene_upload_on_enter(void* context) {
     app->upload_up_rev_shown = app->model.up_rev;
     app->upload_fw_rev_shown = app->model.firmware_rev;
     app->upload_qual_rev_shown = app->model.qual_rev;
+    app->upload_cfg_rev_shown = app->model.cfg_rev;
     app->upload_go_retry = false;
     app->upload_info_armed = true;
     app->upload_ident_info_sent = false;
     if(app->worker != NULL) {
         (void)sr_worker_send_cmd(app->worker, "uploadstatus\n");
     }
-    sigroam_scene_upload_draw(app);
+    sigroam_scene_upload_draw(app, true);
     view_dispatcher_switch_to_view(app->view_dispatcher, SigRoamViewWidget);
 }
 
@@ -154,11 +207,13 @@ bool sigroam_scene_upload_on_event(void* context, SceneManagerEvent event) {
         }
         if(app->upload_up_rev_shown != app->model.up_rev ||
            app->upload_fw_rev_shown != app->model.firmware_rev ||
-           app->upload_qual_rev_shown != app->model.qual_rev || (app->tick_n % 10u) == 0u) {
+           app->upload_qual_rev_shown != app->model.qual_rev ||
+           app->upload_cfg_rev_shown != app->model.cfg_rev || (app->tick_n % 10u) == 0u) {
             app->upload_up_rev_shown = app->model.up_rev;
             app->upload_fw_rev_shown = app->model.firmware_rev;
             app->upload_qual_rev_shown = app->model.qual_rev;
-            sigroam_scene_upload_draw(app);
+            app->upload_cfg_rev_shown = app->model.cfg_rev;
+            sigroam_scene_upload_draw(app, false);
         }
         return true;
     }

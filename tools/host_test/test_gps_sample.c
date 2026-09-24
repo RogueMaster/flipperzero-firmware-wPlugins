@@ -732,9 +732,11 @@ int test_gps_sample_run(void) {
      * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424.
      * SrDashModel same +8 → 712. SrEvent stays 240 (radio arm is 2 B).
      * 2026-09-20 board_sealing bool sits in the 3-byte pad after scan_ui
-     * (before ap_wifi); sizeof stays 712. */
-    CHECK(sizeof(SrModel) == 3520);
-    CHECK(sizeof(SrDashModel) == 712);
+     * (before ap_wifi); sizeof stays 712.
+     * 2026-09-24 band counts + last session + pending popup fields:
+     * SrModel 3536 → 3584, SrDashModel 712 → 736. */
+    CHECK(sizeof(SrModel) == 3584);
+    CHECK(sizeof(SrDashModel) == 736);
     CHECK(sizeof(SrDashModel) <= 768);
     CHECK(sizeof(SrGpsSampleCtx) == 20);
 

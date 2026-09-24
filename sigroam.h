@@ -25,12 +25,13 @@
 #include "src/sr_rawlog.h"
 #include "src/sr_source_codec.h"
 #include "src/sr_notify.h"
+#include "src/sr_newnet.h"
 #include "views/sr_view_dash.h"
 
 #define SR_TAG         "SigRoam"
-#define SR_FAP_VERSION "0.5"
+#define SR_FAP_VERSION "0.6"
 /* Display-only scanner product number on Probe (ADR-027). Not UART kVersion. */
-#define SR_SCANNER_VERSION "0.5"
+#define SR_SCANNER_VERSION "0.6"
 
 /*
  * Brand / referral slot (About page).
@@ -147,6 +148,10 @@ typedef struct {
     uint32_t upload_up_rev_shown;
     uint32_t upload_fw_rev_shown; /* model.firmware_rev last drawn on Upload */
     uint32_t upload_qual_rev_shown; /* model.qual_rev last drawn on Upload */
+    uint32_t upload_cfg_rev_shown; /* model.cfg_rev last drawn on Upload */
+    /* FNV-1a of upload_text last handed to the widget. widget_reset drops the
+     * scroll offset, so an unchanged text must not rebuild the widget. */
+    uint32_t upload_text_hash;
     bool upload_go_retry; /* GUI-thread: Center upload lost the depth-1 slot */
     bool upload_info_armed; /* one info after enter, once the command slot is free */
     bool upload_ident_info_sent; /* empty Version: one info, then stop until -sigroam- */
@@ -175,6 +180,9 @@ typedef struct {
     SrGpsSampleCtx gps_sample;
     SrPoiCtx poi;
     SrAlertCtx alert;
+    SrNewNetCtx newnet;
+    /* Set when the idle pending-survey popup is dismissed. Stays for this launch. */
+    bool pending_prompt_dismissed;
     bool probe_send_busy;
     /* Generic Marauder SHOW_INFO clear. GUI-thread exclusive like probe_send_busy.
      * probe_stop_sent: Probe queued stopscan after Ok (do not queue a second).

@@ -58,6 +58,8 @@ typedef struct {
 
     uint32_t ap_wifi;
     uint32_t ap_ble;
+    uint32_t ap_24; /* WIFI rows with channel 1..14; same row semantics as ap_wifi */
+    uint32_t ap_5;  /* WIFI rows with channel > 14 */
     uint32_t gps_blocks;
     uint32_t unknown_lines;
     uint32_t malformed_lines;
@@ -68,6 +70,8 @@ typedef struct {
     /* Tick supplied by the caller; the model never reads a clock itself. */
     uint32_t last_tick_ms;
     uint32_t started_tick_ms;
+    /* Frozen at the Running->Stopped edge (tick_ms - started_tick_ms). Cleared on reset. */
+    uint32_t last_elapsed_ms;
 
     SrGpsSnapshot gps; /* The most recent one, stored directly (there is only ever one) */
     SrGpsCsvView gps_csv; /* D12: live GPS copied from each wardrive CSV row; not a gpsdata block */
@@ -95,6 +99,13 @@ typedef struct {
     uint32_t wifi_stop_rev;
     SrUpInfo up;           /* Last strict Up: snapshot; display ledger, not sidecar */
     uint32_t up_rev;       /* Incremented on each SrEventUp; 0 = never seen */
+    SrRankInfo rank;       /* Last strict Rank: snapshot; account total, not this trip */
+    uint32_t rank_rev;     /* Incremented on each SrEventRank; 0 = never seen */
+    SrCfgInfo cfg;         /* Last strict Cfg: snapshot; board config, not session data */
+    /* seed_from_sess overwrote ap_wifi but ap_24/ap_5 only saw post-adopt rows.
+     * Sits in the pad after cfg. Cleared on reset_session. */
+    bool band_partial;
+    uint32_t cfg_rev;      /* Incremented on each SrEventCfg; 0 = never seen */
 
     char last_unknown[SR_RAW_LINE_MAX + 1];
     size_t last_unknown_len;

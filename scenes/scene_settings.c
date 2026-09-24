@@ -113,6 +113,17 @@ static void settings_debug_changed(VariableItem* item) {
     variable_item_set_current_value_text(item, k_off_on[idx]);
 }
 
+static void settings_newnet_changed(VariableItem* item) {
+    SigRoamApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+
+    if(idx > 1u) {
+        idx = 1u;
+    }
+    app->settings.newnet = (idx != 0u);
+    variable_item_set_current_value_text(item, k_off_on[idx]);
+}
+
 void sigroam_scene_settings_on_enter(void* context) {
     SigRoamApp* app = context;
     VariableItemList* list = app->var_list;
@@ -171,6 +182,11 @@ void sigroam_scene_settings_on_enter(void* context) {
 
     bidx = app->settings.debug_rows ? 1u : 0u;
     item = variable_item_list_add(list, "Debug rows", 2, settings_debug_changed, app);
+    variable_item_set_current_value_index(item, bidx);
+    variable_item_set_current_value_text(item, k_off_on[bidx]);
+
+    bidx = app->settings.newnet ? 1u : 0u;
+    item = variable_item_list_add(list, "New net tick", 2, settings_newnet_changed, app);
     variable_item_set_current_value_index(item, bidx);
     variable_item_set_current_value_text(item, k_off_on[bidx]);
 

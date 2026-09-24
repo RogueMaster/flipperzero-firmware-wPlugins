@@ -231,6 +231,20 @@ static void apply_kv(
         }
         return;
     }
+    if(slice_eq(key, klen, "NewNet", sizeof("NewNet") - 1u)) {
+        if(parse_bit(val, vlen, &bit)) {
+            out->newnet = bit;
+            if(st) {
+                st->keys_known++;
+            }
+        } else {
+            out->newnet = true;
+            if(st) {
+                st->values_invalid++;
+            }
+        }
+        return;
+    }
     if(st) {
         st->keys_unknown++;
     }
@@ -247,6 +261,7 @@ void sr_settings_defaults(SrSettings* out) {
     out->backlight_always = true;
     out->stealth = false;
     out->debug_rows = false;
+    out->newnet = true;
 }
 
 bool sr_settings_is_valid(const SrSettings* s) {
@@ -297,14 +312,16 @@ size_t sr_settings_serialize(const SrSettings* s, char* out, size_t cap) {
         "Vibro: %u\n"
         "Backlight: %u\n"
         "Stealth: %u\n"
-        "Debug: %u\n",
+        "Debug: %u\n"
+        "NewNet: %u\n",
         (unsigned)s->baud,
         src,
         s->sound ? 1u : 0u,
         s->vibro ? 1u : 0u,
         s->backlight_always ? 1u : 0u,
         s->stealth ? 1u : 0u,
-        s->debug_rows ? 1u : 0u);
+        s->debug_rows ? 1u : 0u,
+        s->newnet ? 1u : 0u);
     if(n < 0 || cap == 0u || (size_t)n + 1u > cap) {
         if(out != NULL && cap > 0u) {
             out[0] = '\0';
@@ -322,14 +339,16 @@ size_t sr_settings_serialize(const SrSettings* s, char* out, size_t cap) {
         "Vibro: %u\n"
         "Backlight: %u\n"
         "Stealth: %u\n"
-        "Debug: %u\n",
+        "Debug: %u\n"
+        "NewNet: %u\n",
         (unsigned)s->baud,
         src,
         s->sound ? 1u : 0u,
         s->vibro ? 1u : 0u,
         s->backlight_always ? 1u : 0u,
         s->stealth ? 1u : 0u,
-        s->debug_rows ? 1u : 0u);
+        s->debug_rows ? 1u : 0u,
+        s->newnet ? 1u : 0u);
     return (size_t)n;
 }
 
@@ -511,5 +530,5 @@ bool sr_settings_equal(const SrSettings* a, const SrSettings* b) {
     }
     return a->baud == b->baud && a->source == b->source && a->sound == b->sound &&
            a->vibro == b->vibro && a->backlight_always == b->backlight_always &&
-           a->stealth == b->stealth && a->debug_rows == b->debug_rows;
+           a->stealth == b->stealth && a->debug_rows == b->debug_rows && a->newnet == b->newnet;
 }

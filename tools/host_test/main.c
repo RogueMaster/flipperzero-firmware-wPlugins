@@ -26,6 +26,10 @@ int test_dialect_run(void);
 int test_probe_fmt_run(void);
 int test_up_parse_run(void);
 int test_upload_prompt_run(void);
+int test_band_run(void);
+int test_newnet_run(void);
+int test_idle_summary_run(void);
+int test_cfg_parse_run(void);
 
 int main(void) {
     int fails = 0;
@@ -56,6 +60,10 @@ int main(void) {
     fails += test_probe_fmt_run();
     fails += test_up_parse_run();
     fails += test_upload_prompt_run();
+    fails += test_band_run();
+    fails += test_newnet_run();
+    fails += test_idle_summary_run();
+    fails += test_cfg_parse_run();
 
     if(fails != 0) {
         printf("FAILED: %d assertion(s)\n", fails);

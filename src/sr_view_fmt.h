@@ -990,3 +990,161 @@ static inline size_t sr_fmt_gps_fix_line(
     }
     return sr_fmt_fit(tmp, n, (size_t)SR_VIEW_COLS, out, cap);
 }
+
+/*
+ * Dash band row under the AP line. Three widths, same cascade as sr_fmt_ap_row:
+ *   "2.4G 812  5G 312"
+ *   "2.4G 812 5G 312"
+ *   "2G812 5G312"
+ * sr_fmt_fit is the backstop when even the short form exceeds max_cols.
+ * Callers draw only when ap_24 + ap_5 > 0.
+ */
+static inline size_t sr_fmt_band_row(
+    uint32_t ap_24,
+    uint32_t ap_5,
+    size_t max_cols,
+    char* out,
+    size_t cap) {
+    char a[12];
+    char b[12];
+    char tmp[40];
+    size_t na;
+    size_t nb;
+    size_t n;
+
+    if(out == NULL || cap == 0u) {
+        return 0u;
+    }
+    na = sr_fmt__udec(ap_24, a, sizeof(a));
+    nb = sr_fmt__udec(ap_5, b, sizeof(b));
+
+    n = sr_fmt__cpy("2.4G ", 5u, tmp, sizeof(tmp));
+    n += sr_fmt__cpy(a, na, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt__cpy("  5G ", 5u, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt__cpy(b, nb, tmp + n, sizeof(tmp) - n);
+    if(n <= max_cols) {
+        return sr_fmt_fit(tmp, n, max_cols, out, cap);
+    }
+
+    n = sr_fmt__cpy("2.4G ", 5u, tmp, sizeof(tmp));
+    n += sr_fmt__cpy(a, na, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt__cpy(" 5G ", 4u, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt__cpy(b, nb, tmp + n, sizeof(tmp) - n);
+    if(n <= max_cols) {
+        return sr_fmt_fit(tmp, n, max_cols, out, cap);
+    }
+
+    n = sr_fmt__cpy("2G", 2u, tmp, sizeof(tmp));
+    n += sr_fmt__cpy(a, na, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt__cpy(" 5G", 3u, tmp + n, sizeof(tmp) - n);
+    n += sr_fmt__cpy(b, nb, tmp + n, sizeof(tmp) - n);
+    return sr_fmt_fit(tmp, n, max_cols, out, cap);
+}
+
+/*
+ * Idle summary status. diag_state 4/5 only when diag_known. The pending
+ * suffix is kept whole or dropped; it is not cut mid-phrase. 20 columns.
+ */
+static inline size_t sr_fmt_last_status(
+    uint8_t diag_state,
+    bool diag_known,
+    uint32_t up_q,
+    bool up_known,
+    char* out,
+    size_t cap) {
+    char tmp[40];
+    char num[12];
+    const char* base;
+    size_t blen;
+    size_t n;
+    size_t nd;
+
+    if(out == NULL || cap == 0u) {
+        return 0u;
+    }
+    if(diag_known && diag_state == 4u) {
+        base = "Sealed";
+        blen = 6u;
+    } else if(diag_known && diag_state == 5u) {
+        base = "Uploading...";
+        blen = 12u;
+    } else {
+        base = "Stopped";
+        blen = 7u;
+    }
+    n = sr_fmt__cpy(base, blen, tmp, sizeof(tmp));
+    if(up_known && up_q > 0u) {
+        nd = sr_fmt__udec(up_q, num, sizeof(num));
+        /* ", " + digits + " pending" */
+        if(n + 2u + nd + 8u <= (size_t)SR_VIEW_COLS && n + 2u + nd + 8u < sizeof(tmp)) {
+            tmp[n++] = ',';
+            tmp[n++] = ' ';
+            n += sr_fmt__cpy(num, nd, tmp + n, sizeof(tmp) - n);
+            n += sr_fmt__cpy(" pending", 8u, tmp + n, sizeof(tmp) - n);
+        }
+    }
+    return sr_fmt__cpy(tmp, n, out, cap);
+}
+
+/* 2 = SrSessionStopped. Numeric so this header stays free of sr_model.h.
+ * Pinned by the _Static_assert in views/sr_view_dash.c. */
+static inline bool sr_dash_idle_summary(uint8_t session, uint32_t ap_wifi, uint32_t ap_ble) {
+    return session == 2u && (ap_wifi > 0u || ap_ble > 0u);
+}
+
+/*
+ * Idle Dash pending-survey popup. session 1 = Running, scan_ui 0 = Idle
+ * (sr_model.h / sr_scan_ctl.h). Stopping is any non-idle scan_ui.
+ * dismissed is the once-per-launch latch.
+ */
+static inline bool sr_pending_prompt_should_show(
+    bool dismissed,
+    uint32_t qual_rev,
+    uint8_t session,
+    uint8_t scan_ui,
+    bool board_sealing,
+    bool no_sd,
+    bool up_known,
+    uint32_t up_q) {
+    if(dismissed || qual_rev == 0u) {
+        return false;
+    }
+    if(session == 1u || scan_ui != 0u) {
+        return false;
+    }
+    if(board_sealing || no_sd) {
+        return false;
+    }
+    return up_known && up_q > 0u;
+}
+
+/* Upload page config line, 20 columns. key 0 wins over a missing home. */
+static inline size_t sr_fmt_cfg_line(
+    uint8_t key,
+    uint8_t home,
+    const char* ssid,
+    size_t max_cols,
+    char* out,
+    size_t cap) {
+    char tmp[48];
+    size_t n;
+    size_t i;
+
+    if(out == NULL || cap == 0u) {
+        return 0u;
+    }
+    if(key == 0u) {
+        n = sr_fmt__cpy("Key: none", 9u, tmp, sizeof(tmp));
+        return sr_fmt_fit(tmp, n, max_cols, out, cap);
+    }
+    if(home == 0u || ssid == NULL || ssid[0] == '\0' || (ssid[0] == '-' && ssid[1] == '\0')) {
+        n = sr_fmt__cpy("Home: none", 10u, tmp, sizeof(tmp));
+        return sr_fmt_fit(tmp, n, max_cols, out, cap);
+    }
+    n = sr_fmt__cpy("Key: set  Home: ", 16u, tmp, sizeof(tmp));
+    for(i = 0u; ssid[i] != '\0' && n + 1u < sizeof(tmp); i++) {
+        tmp[n++] = ssid[i];
+    }
+    tmp[n] = '\0';
+    return sr_fmt_fit(tmp, n, max_cols, out, cap);
+}

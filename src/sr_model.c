@@ -106,6 +106,9 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
 
     m->ap_wifi = 0;
     m->ap_ble = 0;
+    m->ap_24 = 0;
+    m->ap_5 = 0;
+    m->band_partial = false;
     m->gps_blocks = 0;
     m->unknown_lines = 0;
     m->malformed_lines = 0;
@@ -113,6 +116,7 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
     m->unique_est = 0;
     m->illegal_trans = 0;
     m->started_tick_ms = 0;
+    m->last_elapsed_ms = 0;
 
     memset(&m->gps_csv, 0, sizeof(m->gps_csv));
     m->gps_csv_rev = 0;
@@ -138,6 +142,7 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
      * gps_stop_rev follows the same convention and reset must not clear it (ADR-020 / ADR-017
      * decision 3). wifi_stop_rev is the same family (SHOW_INFO-clear confirm).
      * up / up_rev are the same family (H2 board snapshot, not this model's counts).
+     * rank / rank_rev and cfg / cfg_rev are the same family (board snapshots).
      * gps_csv / gps_csv_rev are session data and are cleared (D12). gps / gps_stop_rev are not.
      * bloom / rawlog contents are cleared only on explicit request; reset does not touch the ring. */
     if(also_reset_bloom && m->bloom != NULL) {
@@ -186,6 +191,7 @@ bool sr_model_seed_from_sess(SrModel* m, uint32_t tick_ms) {
      * inside sess.ap / sess.ble; adding them here double-counts. */
     m->ap_wifi = m->sess.ap;
     m->ap_ble = m->sess.ble;
+    m->band_partial = true;
     /* Unsigned subtraction: the furi tick wraps. Pair with scene_dash.c:78.
      * Do not clamp when sess.ms > tick_ms — that is the common case of a
      * freshly-booted Flipper joining a board that has been scanning for a while. */
@@ -193,11 +199,12 @@ bool sr_model_seed_from_sess(SrModel* m, uint32_t tick_ms) {
     return true;
 }
 
-static bool apply_stopped(SrModel* m, SrStopReason reason) {
+static bool apply_stopped(SrModel* m, SrStopReason reason, uint32_t tick_ms) {
     if(reason == SrStopWifiTranRecv) {
         m->wifi_stop_rev++;
     }
     if(m->session == SrSessionRunning) {
+        m->last_elapsed_ms = tick_ms - m->started_tick_ms;
         m->session = SrSessionStopped;
         m->session_rev++;
         return true;
@@ -250,6 +257,11 @@ static bool apply_ap(SrModel* m, const SrApRecord* rec, bool ble, uint32_t tick_
         m->ap_ble++;
     } else {
         m->ap_wifi++;
+        if(rec->channel >= 1 && rec->channel <= 14) {
+            m->ap_24++;
+        } else if(rec->channel > 14) {
+            m->ap_5++;
+        }
     }
     if(rec->datetime[0] != '\0') {
         b.flags = (uint8_t)(b.flags | SR_AP_FLAG_GPS);
@@ -329,7 +341,7 @@ bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms) {
     case SrEventScanStarted:
         return apply_started(m, tick_ms);
     case SrEventScanStopped:
-        return apply_stopped(m, ev->u.stop);
+        return apply_stopped(m, ev->u.stop, tick_ms);
     case SrEventApFound:
         return apply_ap(m, &ev->u.ap, false, tick_ms);
     case SrEventBleFound:
@@ -362,6 +374,14 @@ bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms) {
     case SrEventUp:
         m->up = ev->u.up;
         m->up_rev++;
+        return true;
+    case SrEventRank:
+        m->rank = ev->u.rank;
+        m->rank_rev++;
+        return true;
+    case SrEventCfg:
+        m->cfg = ev->u.cfg;
+        m->cfg_rev++;
         return true;
     case SrEventUnknown:
         return apply_unknown(m, &ev->u.unknown);
