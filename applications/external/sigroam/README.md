@@ -35,9 +35,9 @@ something looks wrong.
 |---|---|
 | <img src="screenshots/menu.png" width="360" alt="SigRoam Wardriving menu with Upload selected"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard with large unique-BSSID count and bottom status line"> |
 | **Settings** | **About** |
-| <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam Wardriving v0.4 about screen, by PINGEQUA Lab, with QR code"> |
-| **Upload** | |
-| <img src="screenshots/upload.png" width="360" alt="SigRoam upload screen sending a queued file, card stays in"> | |
+| <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam Wardriving v0.5 about screen, receive-only, 2.4/5G and GNSS, with QR code"> |
+| **Upload** | **Probe** |
+| <img src="screenshots/upload.png" width="360" alt="SigRoam upload screen sending a queued file, card stays in"> | <img src="screenshots/probe.png" width="360" alt="SigRoam probe screen showing Scout Lite, v0.5, and state IDLE"> |
 
 ## Quick facts
 
