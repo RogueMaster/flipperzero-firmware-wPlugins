@@ -479,7 +479,7 @@ void can_shutdown_all(CanDriver **buses, uint8_t count) {
     for (uint8_t i = 0; i < count; i++) {
         if (buses[i]) buses[i]->shutdown();
     }
-    Serial.println("[CAN] Controllers stopped — bus released for restart");
+    Serial.println("[CAN] Controllers stopped — bus released");
 }
 
 #if !defined(CAN_DRIVER_TWAI) && !defined(CAN_DRIVER_MCP2515) && !defined(CAN_DRIVER_T2CAN_DUAL)

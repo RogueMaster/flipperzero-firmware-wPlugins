@@ -105,6 +105,7 @@ struct CanErrorSplit {
 };
 CanErrorSplit can_error_split(CanDriver **buses, uint8_t count);
 
-/** Quiesce every non-null driver (shutdown()) right before ESP.restart(),
- *  so no controller is still transmitting or ACKing when the chip resets. */
+/** Quiesce every non-null driver (shutdown()) right before ESP.restart() or
+ *  deep sleep, so no controller is still transmitting or ACKing when the chip
+ *  resets or powers down. */
 void can_shutdown_all(CanDriver **buses, uint8_t count);

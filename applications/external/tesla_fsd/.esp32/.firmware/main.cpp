@@ -35,6 +35,9 @@
 #if defined(BOARD_TTGO_DISPLAY)
 #include "display.h"
 #endif
+#if defined(BOARD_LILYGO)
+#include <driver/gpio.h>   // CAN TX pad hold across deep sleep
+#endif
 
 // ── Globals ───────────────────────────────────────────────────────────────────
 #if defined(CAN_DRIVER_T2CAN_DUAL)
@@ -1475,6 +1478,15 @@ static void sleep_tick(uint32_t now) {
         can_dump_stop();
         sd_syslog_close();
         led_set(LED_SLEEP);
+        // Leave the bus quiesced: TWAI stopped + uninstalled, TX driven
+        // recessive (same path as the pre-reboot quiesce, #180). Pads lose their
+        // driven level once the digital domain powers down, so latch TX. GPIO 27
+        // is an RTC pad: gpio_hold_en() takes the RTC hold, which persists through
+        // deep sleep and the wake reset. setup() releases it before TWAI starts.
+        can_shutdown_all(g_can, CAN_ACTIVE_BUS_COUNT);
+        bool tx_held = gpio_hold_en((gpio_num_t)PIN_CAN_TX) == ESP_OK;
+        Serial.printf("[SLEEP] CAN TX (GPIO %d) %s recessive\n",
+                      PIN_CAN_TX, tx_held ? "held" : "NOT held");
         esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_CAN_RX, 0);
         esp_deep_sleep_start();
         // never returns
@@ -1534,6 +1546,17 @@ void setup() {
 #endif
 
 #if defined(BOARD_LILYGO)
+    // Release the deep-sleep TX hold (sleep_tick) before anything starts TWAI:
+    // the hold survives the wake reset (IDF only auto-releases ext1 wake pads)
+    // and a held pad ignores the controller, so TX would stay dead. Program the
+    // held state (output, recessive) first so the release can't blip dominant.
+    // Runs every boot, ahead of the 5V rail and Rs; the release is a no-op
+    // after a cold boot.
+    digitalWrite(PIN_CAN_TX, HIGH);
+    pinMode(PIN_CAN_TX, OUTPUT);
+    digitalWrite(PIN_CAN_TX, HIGH);
+    gpio_hold_dis((gpio_num_t)PIN_CAN_TX);
+
     pinMode(ME2107_EN, OUTPUT);
     digitalWrite(ME2107_EN, HIGH);
     delay(100); // Wait for 5V rail to stabilize (SD power)

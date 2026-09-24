@@ -74,32 +74,31 @@
 <p id="relnote" class="sub" style="margin:0 0 20px">Looking up the latest firmware release&hellip;</p>
 
 <script>
-// Resolve the newest release (including pre-releases) and point each button at
-// its merged image. GitHub's /releases/latest/ only ever resolves to a stable
-// release, so it 404s while the current builds are pre-releases — this keeps
-// both the hosted page and a downloaded copy pointing at the real newest build.
+// Point each button at the newest release's merged image, served from GitHub
+// Pages (/firmware/, published by .github/workflows/pages.yml). GitHub's own
+// release download URLs send no CORS headers, so the browser can't fetch them
+// ("can't fetch"); Pages answers with Access-Control-Allow-Origin: *, which
+// works for this hosted page and for a downloaded copy opened from disk. The
+// absolute URL is deliberate for the downloaded copy.
 (function () {
   var REPO = 'hypery11/flipper-tesla-fsd';
+  var FW = 'https://hypery11.github.io/flipper-tesla-fsd/firmware/';
   var note = document.getElementById('relnote');
-  fetch('https://api.github.com/repos/' + REPO + '/releases?per_page=10')
+  // Query strings bust the Pages CDN cache (up to 10 min) right after a release.
+  fetch(FW + 'latest.json?t=' + Date.now())
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(function (rels) {
-      var rel = null;
-      for (var i = 0; i < rels.length; i++) {
-        if (rels[i].draft) continue;
-        var hasMerged = (rels[i].assets || []).some(function (a) {
-          return /-merged\.bin$/.test(a.name);
-        });
-        if (hasMerged) { rel = rels[i]; break; }
-      }
-      if (!rel) throw new Error('no release with flashable images');
-      var byName = {};
-      rel.assets.forEach(function (a) { byName[a.name] = a.browser_download_url; });
+    .then(function (latest) {
+      if (!latest || !latest.tag || !latest.files || !latest.files.length)
+        throw new Error('no release with flashable images');
+      var have = {};
+      latest.files.forEach(function (n) { have[n] = true; });
+      var rel = { tag_name: latest.tag };
       var missing = 0;
       document.querySelectorAll('esp-web-install-button').forEach(function (btn) {
         var env = btn.getAttribute('data-env');
-        var url = byName['tesla-fsd-' + env + '-merged.bin'];
-        if (!url) { missing++; btn.setAttribute('disabled', ''); return; }
+        var name = 'tesla-fsd-' + env + '-merged.bin';
+        if (!have[name]) { missing++; btn.setAttribute('disabled', ''); return; }
+        var url = FW + name + '?v=' + encodeURIComponent(rel.tag_name);
         btn.setAttribute('manifest', 'data:application/json;charset=utf-8,' +
           encodeURIComponent(JSON.stringify({
             name: 'Tesla FSD (' + env + ')',

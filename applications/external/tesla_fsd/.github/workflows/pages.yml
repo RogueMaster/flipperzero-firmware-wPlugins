@@ -1,0 +1,68 @@
+name: pages
+
+# Publishes docs/ (Jekyll, same as the old branch build) plus the newest
+# release's merged ESP32 images under /firmware/. The browser flasher downloads
+# from there: GitHub release asset URLs send no CORS headers, so a browser can't
+# fetch them, while GitHub Pages answers with Access-Control-Allow-Origin: *.
+
+on:
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: ['docs/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # After a build run, only redeploy for a successful tag build (that's when a
+    # release gets new images). Pushes and manual runs always deploy.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Build docs (Jekyll)
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+      - name: Add the newest release's merged images
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # jekyll-build-pages runs in a container and leaves _site root-owned.
+          sudo chown -R "$(id -u):$(id -g)" _site
+          # Same rule as the flasher always used: newest non-draft release
+          # (pre-releases included) that has flashable merged images.
+          TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=10" --jq \
+            '[.[] | select(.draft | not) | select(any(.assets[]; .name | endswith("-merged.bin")))][0].tag_name')
+          test -n "$TAG" && test "$TAG" != "null"
+          mkdir -p _site/firmware
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*-merged.bin' --dir _site/firmware
+          cd _site/firmware
+          ls *-merged.bin > /dev/null
+          jq -n --arg tag "$TAG" '{tag: $tag, files: $ARGS.positional}' --args *-merged.bin > latest.json
+          cat latest.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+      - id: deployment
+        uses: actions/deploy-pages@v4
