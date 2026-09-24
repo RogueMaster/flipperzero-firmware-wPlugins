@@ -82,10 +82,12 @@ struct ProtoPirateApp {
     View* view_about;
     FuriString* file_path;
     ProtoPirateReceiver* protopirate_receiver;
+    FuriTimer* deferred_storage_timer;
     ProtoPirateTxRx* txrx;
     SubGhzSetting* setting;
     ProtoPirateLock lock;
     FuriString* loaded_file_path;
+    bool deferred_storage_in_progress;
     bool auto_save;
     bool check_saved;
     bool sound;

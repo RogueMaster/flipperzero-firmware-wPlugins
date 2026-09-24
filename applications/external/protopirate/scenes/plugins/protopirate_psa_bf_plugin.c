@@ -32,9 +32,21 @@ static PsaBfState* g_bf_state = NULL;
 static Hitag2BfState* g_hitag2_state = NULL;
 static FuriThread* g_bf_thread = NULL;
 static ProtoPiratePsaBfContext g_active_ctx = ProtoPiratePsaBfContextReceiverInfo;
+static FlipperFormat* g_ff = NULL;
+static Storage* g_storage = NULL;
 
 static void show_bf_result(void* app, uint8_t status, ButtonCallback callback);
 static void bf_finish_and_show_result(void* app, ButtonCallback result_callback);
+
+static void bf_close_files() {
+    //Free the ff file, we opened it on BF start if we also opened Storage.
+    if(g_storage) {
+        flipper_format_free(g_ff);
+        g_ff = NULL;
+        furi_record_close(RECORD_STORAGE);
+        g_storage = NULL;
+    }
+}
 
 static uint8_t bf_status(void) {
     if(g_bf_kind == ProtoPirateBfKindHitag2 && g_hitag2_state) {
@@ -82,7 +94,7 @@ static void bf_free_states(void) {
     g_bf_kind = ProtoPirateBfKindNone;
 }
 
-static bool item_needs_bruteforce_from_ff(FlipperFormat* ff) {
+static bool psa_bf_needs_bruteforce(FlipperFormat* ff) {
     if(!ff) return false;
     FuriString* s = furi_string_alloc();
 
@@ -185,7 +197,7 @@ static void bf_result_ok_callback(GuiButtonType result, InputType type, void* co
     void* app = context;
     if((type == InputTypeShort || type == InputTypeLong) && result == GuiButtonTypeCenter) {
         if(g_host_api && g_host_api->send_custom_event) {
-            g_host_api->send_custom_event(app, ProtoPirateCustomEventReceiverInfoBruteforceCancel);
+            g_host_api->send_custom_event(app, ProtoPirateCustomEventBruteforceComplete);
         }
     }
 }
@@ -224,13 +236,12 @@ static void hitag2_refresh_history_text(void* app, FlipperFormat* ff) {
     furi_string_free(text);
 }
 
-static void apply_success_to_history(void* app) {
-    FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
+static void apply_success_to_ff(void* app) {
     uint16_t idx = g_host_api->get_history_index(app);
     if(g_bf_kind == ProtoPirateBfKindHitag2 && g_hitag2_state) {
-        if(ff) {
-            hitag2_bf_patch_flipper_format_on_success(ff, g_hitag2_state);
-            hitag2_refresh_history_text(app, ff);
+        if(g_ff) {
+            hitag2_bf_patch_flipper_format_on_success(g_ff, g_hitag2_state);
+            hitag2_refresh_history_text(app, g_ff);
         }
         return;
     }
@@ -238,28 +249,31 @@ static void apply_success_to_history(void* app) {
         return;
     }
     PsaBfState* s = g_bf_state;
-    if(ff) {
-        g_host_api->patch_flipper_format_on_success(ff, s);
+    if(g_ff) {
+        g_host_api->patch_flipper_format_on_success(g_ff, s);
     }
-    FuriString* new_str = furi_string_alloc_printf(
-        "PSA 128bit\r\n"
-        "Key1:%08lX%08lX\r\n"
-        "Key2:%04X\r\n"
-        "Btn:%02X\r\n"
-        "Ser:%06lX\r\n"
-        "Cnt:%lX\r\n"
-        "Type:%02X\r\n"
-        "Sd:%06lX",
-        (unsigned long)s->key1_high,
-        (unsigned long)s->key1_low,
-        (unsigned int)(s->key2_low & 0xFFFF),
-        (unsigned int)s->decrypted_button,
-        (unsigned long)s->decrypted_serial,
-        (unsigned long)s->decrypted_counter,
-        (unsigned int)s->decrypted_type,
-        (unsigned long)s->decrypted_seed);
-    g_host_api->history_set_item_str(app, idx, furi_string_get_cstr(new_str));
-    furi_string_free(new_str);
+
+    if(g_active_ctx != ProtoPiratePsaBfContextSavedInfo) {
+        FuriString* new_str = furi_string_alloc_printf(
+            "PSA 128bit\r\n"
+            "Key1:%08lX%08lX\r\n"
+            "Key2:%04X\r\n"
+            "Btn:%02X\r\n"
+            "Ser:%06lX\r\n"
+            "Cnt:%lX\r\n"
+            "Type:%02X\r\n"
+            "Sd:%06lX",
+            (unsigned long)s->key1_high,
+            (unsigned long)s->key1_low,
+            (unsigned int)(s->key2_low & 0xFFFF),
+            (unsigned int)s->decrypted_button,
+            (unsigned long)s->decrypted_serial,
+            (unsigned long)s->decrypted_counter,
+            (unsigned int)s->decrypted_type,
+            (unsigned long)s->decrypted_seed);
+        g_host_api->history_set_item_str(app, idx, furi_string_get_cstr(new_str));
+        furi_string_free(new_str);
+    }
 }
 
 static void bf_finish_and_show_result(void* app, ButtonCallback result_callback) {
@@ -274,26 +288,35 @@ static void bf_finish_and_show_result(void* app, ButtonCallback result_callback)
     }
 
     if(status == PSA_BF_STATUS_FOUND) {
-        apply_success_to_history(app);
-        if(g_active_ctx == ProtoPiratePsaBfContextSubDecode) {
+        apply_success_to_ff(app);
+        if(g_active_ctx == ProtoPiratePsaBfContextSavedInfo) {
+            bf_close_files();
+        }
+        if(g_active_ctx == ProtoPiratePsaBfContextSubDecode ||
+           g_active_ctx == ProtoPiratePsaBfContextSavedInfo) {
             g_host_api->notification_success(app);
         }
         ButtonCallback ok_cb = result_callback;
-        if(!ok_cb && g_active_ctx == ProtoPiratePsaBfContextReceiverInfo) {
+        if(!ok_cb && (g_active_ctx == ProtoPiratePsaBfContextReceiverInfo ||
+                      g_active_ctx == ProtoPiratePsaBfContextSubDecode ||
+                      g_active_ctx == ProtoPiratePsaBfContextSavedInfo)) {
             ok_cb = bf_result_ok_callback;
         }
         show_bf_result(app, status, ok_cb);
     } else {
         if(status == PSA_BF_STATUS_NOT_FOUND && g_bf_kind == ProtoPirateBfKindHitag2) {
-            FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
-            if(ff) {
-                hitag2_bf_patch_flipper_format_on_miss(ff);
-                hitag2_refresh_history_text(app, ff);
+            if(g_ff) {
+                hitag2_bf_patch_flipper_format_on_miss(g_ff);
+                hitag2_refresh_history_text(app, g_ff);
             }
         }
-        bf_free_states();
+        if(g_active_ctx == ProtoPiratePsaBfContextSavedInfo) {
+            bf_close_files();
+        }
+
         show_bf_result(app, status, NULL);
     }
+    bf_free_states();
 }
 
 static void bf_cancel_thread(void) {
@@ -306,10 +329,8 @@ static void bf_cancel_thread(void) {
     bf_free_states();
 }
 
-static bool plugin_needs_bruteforce(void* app, ProtoPiratePsaBfContext ctx) {
-    UNUSED(ctx);
-    FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
-    return item_needs_bruteforce_from_ff(ff) || hitag2_bf_needs_bruteforce(ff);
+static bool plugin_needs_bruteforce(FlipperFormat* ff) {
+    return psa_bf_needs_bruteforce(ff) || hitag2_bf_needs_bruteforce(ff);
 }
 
 static bool plugin_is_running(void* app) {
@@ -331,16 +352,28 @@ static void plugin_on_scene_enter(void* app, ProtoPiratePsaBfContext ctx) {
 static bool start_bruteforce(void* app) {
     if(g_bf_thread) return false;
 
-    FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
-    if(!ff || !plugin_needs_bruteforce(app, g_active_ctx)) return false;
+    if(g_active_ctx == ProtoPiratePsaBfContextSavedInfo) {
+        g_storage = furi_record_open(RECORD_STORAGE);
+        g_ff = flipper_format_file_alloc(g_storage);
 
-    if(item_needs_bruteforce_from_ff(ff)) {
+        if(!flipper_format_file_open_existing(g_ff, g_host_api->get_loaded_file_path(app))) {
+            furi_record_close(RECORD_STORAGE);
+            g_storage = NULL;
+            return false;
+        }
+    } else {
+        g_ff = g_host_api->get_history_flipper_format(app);
+        if(!g_ff) return false;
+    }
+
+    if(!plugin_needs_bruteforce(g_ff)) return false;
+    if(psa_bf_needs_bruteforce(g_ff)) {
         PsaBfState* state = malloc(sizeof(PsaBfState));
         if(!state) {
             g_host_api->notification_error(app);
             return false;
         }
-        if(!psa_bf_state_from_flipper_format(state, ff)) {
+        if(!psa_bf_state_from_flipper_format(state, g_ff)) {
             free(state);
             g_host_api->notification_error(app);
             return false;
@@ -350,13 +383,13 @@ static bool start_bruteforce(void* app) {
         g_bf_state = state;
         g_bf_kind = ProtoPirateBfKindPsa;
         g_bf_thread = furi_thread_alloc_ex("PsaBf", 2048, psa_brute_force_thread_entry, state);
-    } else if(hitag2_bf_needs_bruteforce(ff)) {
+    } else if(hitag2_bf_needs_bruteforce(g_ff)) {
         Hitag2BfState* state = malloc(sizeof(Hitag2BfState));
         if(!state) {
             g_host_api->notification_error(app);
             return false;
         }
-        if(!hitag2_bf_state_from_flipper_format(state, ff)) {
+        if(!hitag2_bf_state_from_flipper_format(state, g_ff)) {
             free(state);
             g_host_api->notification_error(app);
             return false;
@@ -374,6 +407,7 @@ static bool start_bruteforce(void* app) {
     if(!g_bf_thread) {
         bf_free_states();
         g_host_api->notification_error(app);
+
         return false;
     }
     furi_thread_start(g_bf_thread);
@@ -398,20 +432,13 @@ static bool
             return true;
         }
         return false;
-    }
-
-    if(event.type == SceneManagerEventTypeTick) {
+    } else if(event.type == SceneManagerEventTypeTick) {
         if(g_bf_thread && (g_bf_state || g_hitag2_state)) {
             uint8_t bfst = bf_status();
             if(bfst == PSA_BF_STATUS_IDLE || bfst == PSA_BF_STATUS_RUNNING) {
                 show_bf_progress(app);
             } else {
-                if(ctx == ProtoPiratePsaBfContextSubDecode) {
-                    g_host_api->send_custom_event(
-                        app, ProtoPirateCustomEventPsaBruteforceComplete);
-                } else {
-                    bf_finish_and_show_result(app, NULL);
-                }
+                bf_finish_and_show_result(app, NULL);
             }
             return true;
         }
@@ -422,21 +449,11 @@ static bool
         return false;
     }
 
-    if(event.event == ProtoPirateCustomEventPsaBruteforceComplete) {
-        if(g_bf_state || g_hitag2_state) {
-            bf_finish_and_show_result(app, NULL);
-            if(g_active_ctx == ProtoPiratePsaBfContextSubDecode) {
-                g_host_api->subdecode_signal_info_refresh(app);
-            }
-        }
-        return true;
-    }
-
     if(ctx == ProtoPiratePsaBfContextReceiverInfo) {
-        if(event.event == ProtoPirateCustomEventReceiverInfoBruteforceStart) {
+        if(event.event == ProtoPirateCustomEventBruteforceStart) {
             return start_bruteforce(app);
         }
-        if(event.event == ProtoPirateCustomEventReceiverInfoBruteforceCancel) {
+        if(event.event == ProtoPirateCustomEventBruteforceComplete) {
             if(bf_status() == PSA_BF_STATUS_FOUND) {
                 g_host_api->receiver_info_rebuild_widget(app);
                 bf_free_states();
@@ -453,14 +470,45 @@ static bool
     }
 
     if(ctx == ProtoPiratePsaBfContextSubDecode) {
-        if(event.event == ProtoPirateCustomEventSubDecodeBruteforceStart) {
+        if(event.event == ProtoPirateCustomEventBruteforceStart) {
             if(start_bruteforce(app)) {
                 return true;
             }
             return true;
         }
+        if(event.event == ProtoPirateCustomEventBruteforceComplete) {
+            if(bf_status() == PSA_BF_STATUS_FOUND) {
+                bf_free_states();
+            } else if(bf_status() == PSA_BF_STATUS_RUNNING) {
+                bf_set_cancel();
+            } else {
+                if(g_bf_state || g_hitag2_state) {
+                    bf_finish_and_show_result(app, NULL);
+                }
+            }
+            return true;
+        }
     }
 
+    if(ctx == ProtoPiratePsaBfContextSavedInfo) {
+        if(event.event == ProtoPirateCustomEventBruteforceStart) {
+            if(start_bruteforce(app)) {
+                return true;
+            }
+        } else if(event.event == ProtoPirateCustomEventBruteforceComplete) {
+            if(bf_status() == PSA_BF_STATUS_FOUND) {
+                bf_free_states();
+            } else if(bf_status() == PSA_BF_STATUS_RUNNING) {
+                bf_set_cancel();
+                bf_close_files();
+            } else {
+                if(g_bf_state || g_hitag2_state) {
+                    bf_finish_and_show_result(app, NULL);
+                }
+            }
+            return true;
+        }
+    }
     return false;
 }
 
@@ -470,8 +518,11 @@ static void plugin_on_scene_exit(void* app, ProtoPiratePsaBfContext ctx) {
     bf_cancel_thread();
 }
 
-static bool plugin_widget_left_should_bruteforce(void* app, ProtoPiratePsaBfContext ctx) {
-    return !g_bf_thread && plugin_needs_bruteforce(app, ctx);
+static bool plugin_widget_left_should_bruteforce(void* app, FlipperFormat* ff) {
+    if(!ff) {
+        ff = g_host_api->get_history_flipper_format(app);
+    }
+    return !g_bf_thread && plugin_needs_bruteforce(ff);
 }
 
 static void plugin_context_release(void* app) {

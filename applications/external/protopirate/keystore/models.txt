@@ -1,7 +1,7 @@
 Filetype: ProtoPirate Car Models Database
 Version: 2
 
-ModelCount: 8
+ModelCount: 9
 
 ModelName1: 433.92 Mhz AM650
 Frequency1: 433920000
@@ -36,3 +36,7 @@ ModelName8: Honda 315 Mhz
 Frequency8: 315000000
 PresetName8: FuriHalSubGhzPresetCustom
 CustomPresetData8: 02 0D 0B 06 08 32 07 04 14 00 13 02 12 07 11 36 10 E9 15 32 18 18 19 16 1D 92 1C 40 1B 03 20 FB 22 10 21 56 00 00 C0 00 00 00 00 00 00 00
+
+ModelName9: VAG 434.42 Mhz AM650
+Frequency9: 434420000
+PresetName9: FuriHalSubGhzPresetOok650Async

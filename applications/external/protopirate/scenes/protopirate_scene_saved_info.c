@@ -1,11 +1,16 @@
 // scenes/protopirate_scene_saved_info.c
 #include "../protopirate_app_i.h"
 #include "../helpers/protopirate_storage.h"
+#include "../helpers/protopirate_psa_bf_host.h"
 #include "../protocols/protocol_items.h"
 #include "../protocols/protocols_common.h"
+
 #include "proto_pirate_icons.h"
 
 #define TAG "ProtoPirateSceneSavedInfo"
+
+#define STATE_EMULATE 0
+#define STATE_BF      1
 
 static void protopirate_scene_saved_info_widget_callback(
     GuiButtonType result,
@@ -14,12 +19,12 @@ static void protopirate_scene_saved_info_widget_callback(
     ProtoPirateApp* app = context;
 
     if((result == GuiButtonTypeLeft) && (type == InputTypeShort)) {
-#ifdef ENABLE_EMULATE_FEATURE
-        if(app->emulate_feature_enabled && !app->emulate_disabled_for_loaded) {
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, ProtoPirateCustomEventSavedInfoEmulate);
-        }
-#endif
+        const uint32_t left_event =
+            (scene_manager_get_scene_state(app->scene_manager, ProtoPirateSceneSavedInfo) ==
+             STATE_BF) ?
+                ProtoPirateCustomEventBruteforceStart :
+                ProtoPirateCustomEventSavedInfoEmulate;
+        view_dispatcher_send_custom_event(app->view_dispatcher, left_event);
     } else if(result == GuiButtonTypeRight && (type == InputTypeShort)) {
         //Send delete event and get user confirmation to delete.
         view_dispatcher_send_custom_event(
@@ -105,6 +110,7 @@ void protopirate_scene_saved_info_on_enter(void* context) {
     }
 
     FURI_LOG_I(TAG, "File opened, reading...");
+    bool offers_bf = false;
 
     // Read fields
     uint32_t temp_data = 0;
@@ -114,7 +120,12 @@ void protopirate_scene_saved_info_on_enter(void* context) {
     if(flipper_format_read_string(ff, FF_PROTOCOL, temp_str)) {
         const char* protocol_name = furi_string_get_cstr(temp_str);
         furi_string_cat_printf(info_str, "Protocol: %s\n", protocol_name);
+
+        //Can we emulate this type?
         app->emulate_disabled_for_loaded = !protopirate_protocol_catalog_can_tx(protocol_name);
+
+        //Do we need to offer a Brute Force Option?
+        offers_bf = protopirate_protocol_catalog_offers_bruteforce(protocol_name);
     }
 
     flipper_format_rewind(ff);
@@ -194,6 +205,48 @@ void protopirate_scene_saved_info_on_enter(void* context) {
     success = true;
 
 cleanup:
+    // Now do widget operations
+    if(success && info_str && furi_string_size(info_str) > 0) {
+        FURI_LOG_I(TAG, "Adding scroll element");
+        widget_add_text_scroll_element(app->widget, 0, 0, 128, 50, furi_string_get_cstr(info_str));
+
+        bool needs_bf = false;
+        if(offers_bf && protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin) {
+            needs_bf = app->psa_bf_plugin->widget_left_should_bruteforce(app, ff);
+        }
+
+        protopirate_psa_bf_plugin_unload_if_idle(app);
+        if(needs_bf) {
+            scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneSavedInfo, STATE_BF);
+            widget_add_button_element(
+                app->widget,
+                GuiButtonTypeLeft,
+                "BF",
+                protopirate_scene_saved_info_widget_callback,
+                app);
+        } else {
+            scene_manager_set_scene_state(
+                app->scene_manager, ProtoPirateSceneSavedInfo, STATE_EMULATE);
+#ifdef ENABLE_EMULATE_FEATURE
+            if(app->emulate_feature_enabled && !app->emulate_disabled_for_loaded) {
+                widget_add_button_element(
+                    app->widget,
+                    GuiButtonTypeLeft,
+                    "Emulate",
+                    protopirate_scene_saved_info_widget_callback,
+                    app);
+            }
+#endif
+        }
+
+        widget_add_button_element(
+            app->widget,
+            GuiButtonTypeRight,
+            "Delete",
+            protopirate_scene_saved_info_widget_callback,
+            app);
+    }
+
     // Close file and storage BEFORE widget operations
     if(ff) {
         flipper_format_free(ff);
@@ -205,29 +258,6 @@ cleanup:
     }
 
     FURI_LOG_I(TAG, "Storage closed");
-
-    // Now do widget operations
-    if(success && info_str && furi_string_size(info_str) > 0) {
-        FURI_LOG_I(TAG, "Adding scroll element");
-        widget_add_text_scroll_element(app->widget, 0, 0, 128, 50, furi_string_get_cstr(info_str));
-
-#ifdef ENABLE_EMULATE_FEATURE
-        if(app->emulate_feature_enabled && !app->emulate_disabled_for_loaded) {
-            widget_add_button_element(
-                app->widget,
-                GuiButtonTypeLeft,
-                "Emulate",
-                protopirate_scene_saved_info_widget_callback,
-                app);
-        }
-#endif
-        widget_add_button_element(
-            app->widget,
-            GuiButtonTypeRight,
-            "Delete",
-            protopirate_scene_saved_info_widget_callback,
-            app);
-    }
 
     // Free strings
     if(temp_str) furi_string_free(temp_str);
@@ -245,7 +275,17 @@ bool protopirate_scene_saved_info_on_event(void* context, SceneManagerEvent even
     ProtoPirateApp* app = context;
     bool consumed = false;
 
-    if(event.type == SceneManagerEventTypeCustom) {
+    if(event.type == SceneManagerEventTypeTick) {
+        if(app->psa_bf_plugin && app->psa_bf_plugin->is_running(app)) {
+            app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSavedInfo, event);
+            consumed = true;
+        }
+
+    } else if(event.type == SceneManagerEventTypeBack) {
+        return (
+            app->psa_bf_plugin && app->psa_bf_plugin->is_running &&
+            app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextReceiverInfo, event));
+    } else if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == ProtoPirateCustomEventSavedInfoDelete) {
             FURI_LOG_I(TAG, "Delete requested");
             if(app->loaded_file_path && !furi_string_empty(app->loaded_file_path)) {
@@ -273,6 +313,16 @@ bool protopirate_scene_saved_info_on_event(void* context, SceneManagerEvent even
             }
             consumed = true;
         }
+        if(event.event == ProtoPirateCustomEventBruteforceStart ||
+           event.event == ProtoPirateCustomEventBruteforceComplete) {
+            if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin &&
+               app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSavedInfo, event)) {
+            }
+            if(event.event == ProtoPirateCustomEventBruteforceComplete)
+                protopirate_scene_saved_info_on_enter(app);
+            consumed = true;
+        }
+
 #ifdef ENABLE_EMULATE_FEATURE
         if(event.event == ProtoPirateCustomEventSavedInfoEmulate && app->emulate_feature_enabled &&
            !app->emulate_disabled_for_loaded) {

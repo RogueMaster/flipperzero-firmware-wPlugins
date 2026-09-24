@@ -75,6 +75,7 @@ typedef struct {
         ProtoPirateHistory* history);
 
     bool (*psa_bf_plugin_ensure_loaded)(void* app);
+    void (*psa_bf_plugin_unload_if_idle)(void* app);
     void (*psa_bf_context_release)(void* app);
 } ProtoPirateToolSceneHostApi;
 

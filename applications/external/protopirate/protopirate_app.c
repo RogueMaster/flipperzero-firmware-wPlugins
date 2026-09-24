@@ -116,6 +116,9 @@ ProtoPirateApp* protopirate_app_alloc() {
 
     // View Dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
+#if defined(FW_ORIGIN_RM)
+    view_dispatcher_enable_queue(app->view_dispatcher);
+#endif
     app->scene_manager = scene_manager_alloc(&protopirate_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -169,6 +172,7 @@ ProtoPirateApp* protopirate_app_alloc() {
     app->setting = subghz_setting_alloc();
     app->loaded_file_path = NULL;
     app->start_tx_time = 0;
+    app->deferred_storage_timer = NULL;
     subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
     // Apply loaded frequency and preset, with validation

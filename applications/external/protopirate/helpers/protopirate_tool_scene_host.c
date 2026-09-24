@@ -95,6 +95,10 @@ static bool host_psa_bf_plugin_ensure_loaded(void* app) {
     return protopirate_psa_bf_plugin_ensure_loaded((ProtoPirateApp*)app);
 }
 
+static void host_psa_bf_plugin_unload_if_idle(void* app) {
+    protopirate_psa_bf_plugin_unload_if_idle(app);
+}
+
 static void host_psa_bf_context_release(void* app) {
     protopirate_psa_bf_context_release((ProtoPirateApp*)app);
 }
@@ -123,6 +127,7 @@ static const ProtoPirateToolSceneHostApi protopirate_tool_scene_host_api = {
     .receiver_reset_menu = protopirate_view_receiver_reset_menu,
     .receiver_sync_menu_from_history = protopirate_view_receiver_sync_menu_from_history,
     .psa_bf_plugin_ensure_loaded = host_psa_bf_plugin_ensure_loaded,
+    .psa_bf_plugin_unload_if_idle = host_psa_bf_plugin_unload_if_idle,
     .psa_bf_context_release = host_psa_bf_context_release,
 };
 
