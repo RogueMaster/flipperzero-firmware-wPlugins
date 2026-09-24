@@ -1,5 +1,9 @@
 # Changelog
 
+v1.2.2:
+- Fixed dropping worn cursed Charms bypassing their removal restriction. Decurse still unlocks them; unworn cursed Charms may still be dropped.
+- Added regression tests for Charm removal, item dropping, and the v1.2.1 stairs/chest interaction priority through the real button handler.
+
 v1.2.1:
 - Fixed OK interaction priority so stairs, shrines, and other current-tile actions win over adjacent chests.
 

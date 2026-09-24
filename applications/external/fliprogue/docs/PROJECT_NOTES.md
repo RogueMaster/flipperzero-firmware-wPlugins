@@ -83,6 +83,20 @@ Small content slices to consider after the architecture is calmer:
 - chests with a compact choose-what-to-take menu, not automatic bulk pickup;
 - primitive merchants with a tiny inventory and simple prices, preferably one clear screen rather than a full shop simulator.
 
+## v1.2.2 Notes
+
+- Worn cursed Charms reject Drop with `It clings.`, just like Take off. The
+  attempt changes no inventory, consumes no turn, and preserves the equipped
+  effect. Unworn cursed Charms and ordinary worn Charms remain droppable.
+- Regression tests cover Cinder, Glass, Hungry, Decurse, equipment replacement,
+  full ground/item capacity, and wand charges sharing the flags field.
+- Host tests now compile the real UI input handler and camera with device stubs.
+  They verify the v1.2.1 stair priority in all four chest directions, including
+  opened chests, mimics, nearby shrines, blocked stairs, and the surface exit.
+  Directional door/shrine access, chest selection, and resting are covered too.
+- No additional interaction-priority code change was needed. Reinstating the
+  old chest-first order in a temporary test build makes the new test fail.
+
 ## v1.2.1 Notes
 
 v1.2.1 is a tiny interaction-priority patch.

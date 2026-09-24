@@ -1,6 +1,6 @@
-# FlipRogue v1.2.1 Magic Tables
+# FlipRogue v1.2.2 Magic Tables
 
-These tables match the current v1.2.1 implementation in `src/`.
+These tables match the current v1.2.2 implementation in `src/`.
 
 Unknown potions use generated color labels such as `Red Potion`. Unknown
 scrolls appear in inventory as `Scroll RUNE RUNE`, while pickup logs keep only
@@ -135,7 +135,9 @@ volatile effects or recover a little magic by resting.
 
 One Charm can be equipped at a time. Wearing a Charm identifies it; Identify
 Scrolls can also identify Charms. Cinder, Glass, and Hungry Charms start cursed
-and cannot be removed until a Decurse Scroll clears the curse.
+and, while worn, cannot be taken off, replaced, or dropped until a Decurse Scroll
+clears the curse. Unworn cursed Charms may be dropped. A blocked attempt spends
+no turn and leaves the inventory unchanged.
 
 | ID | Charm | Effect |
 |---:|---|---|

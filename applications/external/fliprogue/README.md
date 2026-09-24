@@ -120,7 +120,7 @@ and Back to cancel.
 - HP 0 ends the run. Victory is taking the Orb back to the surface stairs.
 
 There is no gas, chasm, floating-item water physics, or merchant economy in
-v1.2.1.
+v1.2.2.
 
 ## Build
 
@@ -244,6 +244,10 @@ make tests
 `build.py` discovers `src/*.c` for host tests and UFBT uses `sources=["src/*.c"]`
 from `application.fam`, so new C modules should be picked up without hand-editing
 source lists. The generated release artifact is `dist/fliprogue.fap`.
+
+Host tests also exercise the real button handler and camera using small device
+stubs in `tests/host_sdk/`. Drawing, hardware feedback, and SD storage still need
+device checks; the stubs are not part of the app build.
 
 ## Repository Notes
 

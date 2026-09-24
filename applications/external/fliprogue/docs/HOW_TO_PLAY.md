@@ -118,6 +118,9 @@ each copy still counts toward that limit. Stones and Darts stack as one slot.
 Identify Scrolls reveal one unknown potion, scroll, or Charm. Wearing a Charm
 also reveals its name.
 
+Some Charms cling once worn: you cannot take them off, replace them, or drop
+them until a Decurse Scroll breaks the curse. An unworn Charm can still be dropped.
+
 ## Magic
 
 Potions and scrolls can heal, enchant gear, reveal secrets, blink, phase, burn,

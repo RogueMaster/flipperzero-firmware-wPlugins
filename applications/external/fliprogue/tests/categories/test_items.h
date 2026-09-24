@@ -1,7 +1,9 @@
 #pragma once
 
 #include "chest_actions.h"
+#include "equipment.h"
 #include "hazards.h"
+#include "pickup_actions.h"
 #include "status_effects.h"
 #include "terrain_effects.h"
 #include "trinket_effects.h"
@@ -38,6 +40,124 @@ static void test_v11_chest_choose_one_and_persists_when_closed_or_full(void) {
     assert(fr_open_chest_choice(&game, chest, 1).kind == FR_ACTION_BLOCKED);
     assert(chest->active);
     assert(strstr(game.log, "Pack full") != NULL);
+}
+
+static void test_v122_worn_cursed_charms_cannot_leave_inventory(void) {
+    const uint8_t charms[] = {FR_TRINKET_CINDER, FR_TRINKET_GLASS, FR_TRINKET_HUNGRY};
+    for(size_t i = 0; i < sizeof(charms); i++) {
+        FrGame game;
+        make_empty_test_room(&game);
+        assert(fr_add_inventory(&game, FR_ITEM_TRINKET, charms[i], 1));
+        assert(fr_add_inventory(&game, FR_ITEM_TRINKET, FR_TRINKET_DEW, 1));
+        assert(fr_use_inventory(&game, 0, FR_USE_EQUIP, 5, 5).kind == FR_ACTION_USE);
+        FrPlayer player = game.player;
+        uint32_t turn = game.turn;
+        uint32_t seed = game.seed;
+
+        assert(!fr_drop_inventory_item(&game, 0));
+        const uint8_t actions[] = {FR_USE_DROP, FR_USE_EQUIP, FR_USE_EQUIP};
+        for(uint8_t action = 0; action < 3; action++) {
+            uint8_t index = action == 2 ? 1 : 0;
+            assert(
+                fr_use_inventory(&game, index, actions[action], 5, 5).kind == FR_ACTION_BLOCKED);
+            assert(strstr(game.log, "clings.") != NULL);
+            assert(memcmp(&game.player, &player, sizeof(player)) == 0);
+            assert(game.turn == turn && game.seed == seed);
+            assert(count_items_of_type(&game, FR_ITEM_TRINKET) == 0);
+            assert(fr_has_equipped_trinket(&game, charms[i]));
+        }
+
+        // A full ground tile must not hide the reason the worn charm is locked.
+        game.items[0] =
+            (FrItem){.active = true, .type = FR_ITEM_FOOD, .x = 5, .y = 5, .amount = 1};
+        assert(fr_use_inventory(&game, 0, FR_USE_DROP, 5, 5).kind == FR_ACTION_BLOCKED);
+        assert(strcmp(game.log, "It clings.") == 0);
+        assert(game.turn == turn);
+        assert(memcmp(&game.player, &player, sizeof(player)) == 0);
+    }
+}
+
+static void test_v122_unworn_cursed_and_worn_normal_charms_can_drop(void) {
+    for(uint8_t charm = FR_TRINKET_DEW; charm < FR_TRINKET_MAX; charm++) {
+        FrGame game;
+        make_empty_test_room(&game);
+        assert(fr_add_inventory(&game, FR_ITEM_TRINKET, charm, 1));
+        bool cursed = (game.player.inv[0].flags & FR_INV_CURSED) != 0;
+        if(!cursed) {
+            assert(fr_use_inventory(&game, 0, FR_USE_EQUIP, 5, 5).kind == FR_ACTION_USE);
+            assert(fr_has_equipped_trinket(&game, charm));
+        }
+        uint32_t turn = game.turn;
+        assert(fr_use_inventory(&game, 0, FR_USE_DROP, 5, 5).kind == FR_ACTION_USE);
+        assert(game.turn == turn + 1);
+        assert(game.player.inv_count == 0);
+        assert(fr_equipped_trinket_slot(&game) == NULL);
+        assert(count_items_of_type(&game, FR_ITEM_TRINKET) == 1);
+        assert(game.items[0].subtype == charm && game.items[0].amount == 1);
+        assert(((game.items[0].flags & FR_INV_CURSED) != 0) == cursed);
+    }
+}
+
+static void test_v122_decurse_unlocks_drop_and_equipment_changes(void) {
+    const uint8_t charms[] = {FR_TRINKET_CINDER, FR_TRINKET_GLASS, FR_TRINKET_HUNGRY};
+    for(size_t i = 0; i < sizeof(charms); i++) {
+        for(uint8_t drop = 0; drop < 2; drop++) {
+            FrGame game;
+            make_empty_test_room(&game);
+            // Consuming the first slot shifts the equipped charm's index.
+            assert(fr_add_inventory(&game, FR_ITEM_SCROLL, FR_SCROLL_DECURSE, 1));
+            assert(fr_add_inventory(&game, FR_ITEM_TRINKET, charms[i], 1));
+            assert(fr_add_inventory(&game, FR_ITEM_TRINKET, FR_TRINKET_ASH, 1));
+            assert(fr_use_inventory(&game, 1, FR_USE_EQUIP, 5, 5).kind == FR_ACTION_USE);
+            assert(fr_use_inventory(&game, 0, FR_USE_READ, 5, 5).kind == FR_ACTION_USE);
+            assert(game.player.inv_count == 2);
+            assert(game.player.inv[0].flags == FR_INV_EQUIPPED);
+            uint32_t turn = game.turn;
+            if(drop) {
+                assert(fr_use_inventory(&game, 0, FR_USE_DROP, 5, 5).kind == FR_ACTION_USE);
+                assert(game.player.inv_count == 1);
+                assert(game.player.inv[0].subtype == FR_TRINKET_ASH);
+                assert(fr_equipped_trinket_slot(&game) == NULL);
+                assert(game.items[0].subtype == charms[i]);
+                assert((game.items[0].flags & FR_INV_CURSED) == 0);
+            } else {
+                assert(fr_use_inventory(&game, 0, FR_USE_EQUIP, 5, 5).kind == FR_ACTION_USE);
+                assert(fr_equipped_trinket_slot(&game) == NULL);
+                assert(fr_use_inventory(&game, 0, FR_USE_EQUIP, 5, 5).kind == FR_ACTION_USE);
+                assert(fr_use_inventory(&game, 1, FR_USE_EQUIP, 5, 5).kind == FR_ACTION_USE);
+                assert(fr_has_equipped_trinket(&game, FR_TRINKET_ASH));
+                assert((game.player.inv[0].flags & FR_INV_EQUIPPED) == 0);
+            }
+            assert(game.turn == turn + (drop ? 1 : 3));
+        }
+    }
+}
+
+static void test_v122_failed_drop_preserves_equipment_and_wand_flags(void) {
+    FrGame game;
+    make_empty_test_room(&game);
+    assert(fr_add_inventory(&game, FR_ITEM_TRINKET, FR_TRINKET_ASH, 1));
+    assert(fr_use_inventory(&game, 0, FR_USE_EQUIP, 5, 5).kind == FR_ACTION_USE);
+    FrPlayer player = game.player;
+    uint32_t turn = game.turn;
+    for(uint8_t i = 0; i < FR_MAX_ITEMS; i++) {
+        game.items[i] =
+            (FrItem){.active = true, .type = FR_ITEM_FOOD, .x = 7, .y = 5, .amount = 1};
+    }
+    assert(fr_use_inventory(&game, 0, FR_USE_DROP, 5, 5).kind == FR_ACTION_BLOCKED);
+    assert(strcmp(game.log, "No room.") == 0);
+    game.items[0].x = 5;
+    assert(fr_use_inventory(&game, 0, FR_USE_DROP, 5, 5).kind == FR_ACTION_BLOCKED);
+    assert(strcmp(game.log, "Ground full.") == 0);
+    assert(game.turn == turn && memcmp(&game.player, &player, sizeof(player)) == 0);
+
+    make_empty_test_room(&game);
+    assert(fr_add_inventory(&game, FR_ITEM_WAND, FR_WAND_SPARK, 1));
+    // Wand charge counts share storage with charm flags, but are not curses.
+    game.player.inv[0].flags = 3;
+    assert(fr_use_inventory(&game, 0, FR_USE_DROP, 5, 5).kind == FR_ACTION_USE);
+    assert(game.player.inv_count == 0 && game.items[0].flags == 3);
+    assert(game.items[0].type == FR_ITEM_WAND && game.turn == 1);
 }
 
 static void test_unknown_item_labels_are_unique_and_class_aware(void) {

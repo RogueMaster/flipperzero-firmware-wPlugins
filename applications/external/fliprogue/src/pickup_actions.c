@@ -17,10 +17,15 @@ bool fr_item_at_xy(const FrGame* game, uint8_t x, uint8_t y) {
 
 bool fr_drop_inventory_item(FrGame* game, uint8_t index) {
     if(index >= game->player.inv_count) return false;
+    FrInvSlot* slot = &game->player.inv[index];
+    if(slot->type == FR_ITEM_TRINKET &&
+       (slot->flags & (FR_INV_EQUIPPED | FR_INV_CURSED)) == (FR_INV_EQUIPPED | FR_INV_CURSED)) {
+        fr_log(game, "It clings.");
+        return false;
+    }
     if(fr_item_at_xy(game, game->player.x, game->player.y)) return false;
     for(uint8_t i = 0; i < FR_MAX_ITEMS; i++) {
         if(game->items[i].active) continue;
-        FrInvSlot* slot = &game->player.inv[index];
         game->items[i].active = true;
         game->items[i].type = slot->type;
         game->items[i].subtype = slot->subtype;

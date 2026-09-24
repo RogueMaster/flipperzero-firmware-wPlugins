@@ -145,6 +145,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [USB Internet Bridge v0.4 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
 - Updated: [Specter v3.0.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Updated: [BeepBack v1.1 (By h4sw5q2wr9-byte)](https://github.com/h4sw5q2wr9-byte/BEEPBACK)
+- Updated: [FlipRogue v1.2.2 (By Abzac)](https://github.com/Abzac/fliprogue)
 
 <a name="release"></a>
 
@@ -315,7 +316,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Flipcraft v2.8 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - [Flipper Hero v1.4 (By mentoster)](https://github.com/mentoster/Flipper-hero)
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)
-- [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
+- [FlipRogue v1.2.2 (By Abzac)](https://github.com/Abzac/fliprogue)
 - [FMatrix v0.3.5 (By misterwaztaken)](https://github.com/misterwaztaken/fmatrix)
 - [Fortune Cookie v0.1 (By evillero)](https://github.com/evillero/fortune_cookie)
 - [Fortune Spinner v1.0 (By xantopren)](https://github.com/xantopren/fortune-spinner)

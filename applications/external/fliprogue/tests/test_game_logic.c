@@ -6,8 +6,13 @@
 #include "categories/test_monsters.h"
 #include "categories/test_perks.h"
 #include "categories/test_scores.h"
+#include "categories/test_ui_input.h"
 
 int main(void) {
+    test_v122_ok_stairs_precede_nearby_objects();
+    test_v122_blocked_stairs_do_not_fall_through_to_chest();
+    test_v122_ok_chest_then_rest_and_directional_access();
+    test_v122_doors_and_shrines_beside_chests();
     test_new_game_defaults();
     test_v072_memory_budget();
     test_v10_ui_page_math();
@@ -58,6 +63,10 @@ int main(void) {
     test_v12_ranger_perks_have_gameplay_effects();
     test_v12_mage_perks_have_gameplay_effects();
     test_inventory_drop_actions();
+    test_v122_worn_cursed_charms_cannot_leave_inventory();
+    test_v122_unworn_cursed_and_worn_normal_charms_can_drop();
+    test_v122_decurse_unlocks_drop_and_equipment_changes();
+    test_v122_failed_drop_preserves_equipment_and_wand_flags();
     test_v101_consumable_stacks_merge_anywhere_and_consume_one();
     test_v12_successful_item_use_spends_full_game_tick();
     test_v11_chest_choose_one_and_persists_when_closed_or_full();

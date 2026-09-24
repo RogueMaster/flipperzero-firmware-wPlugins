@@ -17,7 +17,7 @@ FrActionResult
             fr_finish_item_turn(game);
             return (FrActionResult){FR_ACTION_USE};
         }
-        fr_log(game, ground_full ? "Ground full." : "No room.");
+        if(game->log[0] == '\0') fr_log(game, ground_full ? "Ground full." : "No room.");
         return (FrActionResult){FR_ACTION_BLOCKED};
     }
 
