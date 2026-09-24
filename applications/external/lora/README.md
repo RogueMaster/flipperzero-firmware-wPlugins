@@ -1,5 +1,5 @@
-![GitHub release (with filter)](https://img.shields.io/github/v/release/ElectronicCats/flipper-rs485modbus?color=%23008000)
-![GitHub actions](https://img.shields.io/github/actions/workflow/status/ElectronicCats/flipper-rs485modbus/build.yml)
+![GitHub release (with filter)](https://img.shields.io/github/v/release/ElectronicCats/flipper-SX1262-LoRa?color=%23008000)
+![GitHub actions](https://img.shields.io/github/actions/workflow/status/ElectronicCats/flipper-SX1262-LoRa/build.yml)
 
 # Flipper LoRa Relay App :dolphin:
 
