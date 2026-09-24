@@ -1,264 +1,229 @@
 <p align="center">
-  <img src="screenshots/menu.png" width="420" alt="SigRoam main menu running on a Flipper Zero">
+  <img src="screenshots/dashboard.png" width="420" alt="SigRoam Flipper Zero wardriving dashboard showing Wi-Fi, BLE, GPS and capture status">
 </p>
 
-<h1 align="center">SigRoam</h1>
+<h1 align="center">SigRoam — Flipper Zero Wardriving App</h1>
 
 <p align="center">
-  <b>A receive-only Wi-Fi survey (wardriving) front-end for the Flipper Zero.</b><br>
-  Drives an external ESP32 Marauder scanner over the GPIO serial port.
+  <b>A focused Flipper Zero dashboard for GPS-tagged Wi-Fi surveys.</b><br>
+  Pair it with SigRoam scanner firmware on Scout Lite for passive 2.4/5 GHz Wi-Fi,
+  BLE observation, sealed microSD logs and WiGLE upload after you stop a survey.
 </p>
 
 <p align="center">
-  <a href="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/host-test.yml"><img src="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/host-test.yml/badge.svg" alt="host_test status"></a>
-  <a href="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/fap-build.yml"><img src="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/fap-build.yml/badge.svg" alt="fap_build status"></a>
-  <img src="https://img.shields.io/badge/firmware-Official%20%7C%20Momentum%20%7C%20Unleashed-orange" alt="Firmware: Official, Momentum, and Unleashed">
-  <img src="https://img.shields.io/badge/attack%20features-none-brightgreen" alt="Attack features: none">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
+  <a href="https://github.com/pingequalab/sigroam-wardriving/releases/latest"><b>Download the Flipper app</b></a>
+  · <a href="https://flash.pingequa.com/devices/scout-lite"><b>Flash the Scout Lite scanner</b></a>
+  · <a href="https://www.pingequa.com/products/scout-lite"><b>Get Scout Lite</b></a>
 </p>
 
----
+<p align="center">
+  <a href="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/host-test.yml"><img src="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/host-test.yml/badge.svg" alt="Host tests"></a>
+  <a href="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/fap-build.yml"><img src="https://github.com/pingequalab/sigroam-wardriving/actions/workflows/fap-build.yml/badge.svg" alt="FAP build"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0 license"></a>
+</p>
 
-> **What SigRoam is.** SigRoam turns a Flipper Zero into the control head for an
-> ESP32 Marauder Wi-Fi scanner. It starts and stops scans over the GPIO serial
-> port, shows AP, BLE and GPS counts live, and exposes the raw serial stream. It
-> is receive-only by design: no deauthentication, no handshake capture, no attack
-> traffic of any kind.
+The Flipper Zero has no Wi-Fi radio. **The Flipper app is the control head; the
+external board scans, receives GNSS data and stores the survey.** SigRoam also
+speaks the ESP32 Marauder serial protocol, so the app works as a dedicated
+dashboard with compatible Marauder scanners. The complete SigRoam workflow below
+uses the optional [SigRoam scanner firmware](https://github.com/pingequalab/sigroam-firmware)
+on the verified [Scout Lite](https://www.pingequa.com/products/scout-lite) board.
 
-The Flipper does not scan anything by itself. It starts and stops the scan, shows
-what the scanner reports in real time, and lets you read the raw serial lines when
-something looks wrong.
+## Why use SigRoam in the field?
 
-## Screenshots
+- **See whether the survey is healthy.** Dash, Strm, GPS and Sess show AP/BLE
+  observations, GNSS fix, satellite and session information. With the SigRoam
+  scanner, Dash also shows capture-quality and drop indicators; stale status
+  does not keep looking live.
+- **Keep the record on the scanner.** Scout Lite writes a WiGLE-compatible CSV
+  and session manifest to its own microSD. The Flipper stores settings, not a
+  second survey log. The large unique-BSSID number is a RAM-only estimate for
+  progress, not the authoritative CSV count.
+- **Finish the survey and send it.** With WiGLE and home Wi-Fi credentials
+  configured, stopping a SigRoam scanner session seals the CSV and automatically
+  attempts to upload pending sealed files. A successful upload keeps WiGLE's
+  `transId` with the file. The Flipper Upload page shows status and lets you retry.
+- **Recover and diagnose on the move.** Probe distinguishes a missing scanner
+  from a responding one; Raw log exposes the serial feed. The app detects a
+  stalled feed after USB power handover and shows `Resyncing...` while it retries.
 
-| Main menu | Dashboard |
+These are workflow features, not claims of faster scanning, greater radio
+sensitivity or more accurate GPS than another device.
+
+## Choose your scanner firmware
+
+| On Scout Lite | What you get | WiGLE path |
+|---|---|---|
+| **SigRoam scanner firmware + SigRoam FAP** | Dedicated passive survey, BLE observation, GNSS and capture/session status on the Flipper | Sealed CSV on Scout Lite microSD; automatic upload attempt after STOP when configured home Wi-Fi is reachable; manual retry from Upload |
+| **Factory ESP32 Marauder + SigRoam FAP** | The SigRoam dashboard controlling Marauder over its serial protocol | Marauder writes its own wardrive CSV; use Marauder's own upload workflow or copy its card. SigRoam's sealed-session auto upload does not apply |
+
+Scout Lite ships with **ESP32 Marauder**. SigRoam scanner firmware is an
+**optional browser flash**, and Marauder remains available in the
+[Scout Lite Web Flasher](https://flash.pingequa.com/devices/scout-lite).
+The dedicated scanner image is built for Scout Lite; other Marauder-compatible
+boards may run the FAP, but they have not all been bench-tested here.
+
+## Start a survey
+
+1. For the complete workflow, flash **SigRoam 0.5** with the
+   [Scout Lite Web Flasher](https://flash.pingequa.com/devices/scout-lite).
+   Disconnect Scout Lite from the Flipper first. Hold BOOT while connecting its
+   USB-C data cable, release BOOT, choose **SigRoam** and version **0.5**, then
+   connect and flash. Keep the factory Marauder image if you only want the
+   compatible dashboard.
+2. Fit a FAT32 microSD card in Scout Lite and mount it on the Flipper GPIO
+   header. The Flipper provides power on pin 1 and communicates on pins 13/14.
+   Do not power an ESP32 scanner from pin 9 (3.3 V).
+3. Download the FAP from [Releases](https://github.com/pingequalab/sigroam-wardriving/releases/latest)
+   and copy it to `SD Card/apps/GPIO/` on the Flipper. Choose the file that
+   matches your Flipper firmware; see [Compatibility and limits](#compatibility-and-limits).
+4. Set `Settings → System → Log Device` to `Off` so the system log does not
+   occupy serial pins 13/14. Open `Apps → GPIO → SigRoam Wardriving`. Use
+   **Probe firmware** if the scanner does not respond.
+5. Open **Dashboard** and press OK on `Dash` to start. Watch the GPS and
+   capture status during the survey. Press OK again to stop; Back only leaves
+   the page and does not stop scanning.
+
+For a first run, see the
+[Flipper Zero + Scout Lite field guide](https://www.pingequa.com/blogs/guides-tutorials/how-to-first-wardrive-flipper-zero-scout-lite).
+
+## Set up automatic WiGLE upload
+
+**Requires the SigRoam scanner firmware on Scout Lite.** The FAP does not upload
+over the Flipper's radio or store the CSV on the Flipper SD card.
+
+1. Get your **API Name** and **API Token** from your
+   [WiGLE account](https://wigle.net/account). Keep them private.
+2. Put these four plain-text files in the **root of the Scout Lite microSD**,
+   with only the corresponding value in each file:
+
+   | File | Contents |
+   |---|---|
+   | `wigle_api_name.txt` | WiGLE API Name |
+   | `wigle_api_token.txt` | WiGLE API Token |
+   | `home_ssid.txt` | Wi-Fi network name used for uploads |
+   | `home_psk.txt` | That network's password; leave the file empty for an open network |
+
+3. Insert the card and restart Scout Lite. At boot, the scanner imports the
+   values into its internal settings, then overwrites and removes the source
+   files. Check that the files disappeared; if they remain, do not assume the
+   import succeeded. Never post credentials in an issue or serial log.
+4. Start a survey on `Dash` and press OK to stop it. The scanner first closes
+   and verifies the CSV and session manifest. It then attempts WiGLE upload
+   using the configured Wi-Fi, processing pending sealed files. Leave the
+   scanner powered and its card inserted while `Uploading...` or `Sending`
+   is shown.
+5. Open **Upload** on the Flipper to see the queue and result. `Uploaded`
+   with a WiGLE `transId` means WiGLE accepted that file; WiGLE's later
+   processing or scoring is a separate step. If the Wi-Fi was unavailable,
+   return within range and press **Upload** to retry pending files.
+
+**Automatic means “after a successful STOP.”** SigRoam does not periodically
+pause a scan to upload or promise to detect your home Wi-Fi and start a new
+upload later. Collection is passive; the scanner uses a normal Wi-Fi connection
+and HTTPS only in the separate upload phase. A failed upload leaves the sealed
+file on the scanner card for retry.
+
+| Upload page | What to check |
 |---|---|
-| <img src="screenshots/menu.png" width="360" alt="SigRoam Wardriving menu with Upload selected"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard with large unique-BSSID count and bottom status line"> |
-| **Settings** | **About** |
-| <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam Wardriving v0.5 about screen, receive-only, 2.4/5G and GNSS, with QR code"> |
-| **Upload** | **Probe** |
-| <img src="screenshots/upload.png" width="360" alt="SigRoam upload screen sending a queued file, card stays in"> | <img src="screenshots/probe.png" width="360" alt="SigRoam probe screen showing Scout Lite, v0.5, and state IDLE"> |
+| `No SD` | Insert/check the Scout Lite microSD; the Flipper card is not the survey store. |
+| `No home Wi-Fi` | Retry where the configured network is reachable. |
+| `No reply` / `before upload` | The WiGLE profile check received no HTTP status; the file was not sent. |
+| `Key rejected` | Check the WiGLE API Name and Token. |
+| `WiGLE busy` | HTTP 429 stopped this upload round; keep the file pending and retry later. |
+| `Uploaded` + `transId` | WiGLE accepted the file; retain the ID with that survey. |
 
-## Quick facts
+You can still copy a CSV from Scout Lite's microSD and upload it manually at
+[WiGLE](https://wigle.net/) if you prefer.
 
-| | |
+## How it fits among Flipper wardriving tools
+
+This compares **documented workflows**, not scan speed or a universal winner.
+Hardware and firmware combinations matter: a feature on one scanner does not
+automatically work on every GPIO board.
+
+| Setup | Primary use | Where the survey goes and how it uploads |
+|---|---|---|
+| **SigRoam FAP + SigRoam scanner on Scout Lite** | Focused Flipper field dashboard and scanner-side session visibility | Scout Lite microSD; automatic attempt after STOP plus Flipper manual retry |
+| **[ESP32 Marauder](https://github.com/justcallmekoko/ESP32Marauder/wiki/wardrive) + its [Flipper companion](https://github.com/0xchocolate/flipperzero-wifi-marauder)** | Broad Wi-Fi/Bluetooth toolkit with Wardrive as one function | Hardware-dependent wardrive log; [Marauder Direct Upload](https://github.com/justcallmekoko/ESP32Marauder/wiki/wardriving-direct-upload) supports WiGLE after Wi-Fi setup and an upload action |
+| **[GhostESP + Flipper companion](https://github.com/GhostESP-Revival/GhostESP-FlipperCompanion)** | Broad wireless toolkit with GPS wardriving | GhostESP CSV; its [WiGLE integration](https://docs.ghostesp.net/latest/gps/wigle/) supports automatic upload when a Wi-Fi STA connection is established |
+| **[ESP32GPS Wardriver](https://github.com/Sil333033/flipperzero-wardriver)** | DIY Flipper AP/GPS list workflow | Its README documents a CSV saved on the Flipper SD card for WiGLE upload |
+
+For board shoppers, the firmware boundary matters as much as the radio:
+
+| Board | Documented wardriving hardware | SigRoam scanner v0.5 |
+|---|---|---|
+| **[Scout Lite](https://www.pingequa.com/products/scout-lite)** | ESP32-C5 2.4/5 GHz, onboard GPS and microSD | Verified reference board; optional SigRoam or factory Marauder firmware |
+| **[Apex 5 V2](https://github.com/HoneyHoneyTeam/ESP32-Marauder-5G-Apex-5-Module---For-Flipper-Zero)** | ESP32-C5 2.4/5 GHz, onboard GPS and SD slot; also Sub-GHz and nRF24 | Not verified. Its maker documents Marauder Wardrive on **V2**; V1 has a different wiring limitation |
+
+Comparison sources: linked project documentation, checked 2026-09-24.
+Marauder's Wardrive and Direct Upload wiki pages state an update date of
+2026-07-21; the Apex 5 manual notes a 2026-07-08 update. The linked GhostESP
+and ESP32GPS pages do not state an update date.
+For a broader hardware comparison including Biscuit, C5 wardrivers and
+multi-radio Flipper boards, see our
+[Flipper Zero wardriving comparison](https://www.pingequa.com/blogs/guides-tutorials/flipper-zero-esp32-gps-wardriver-sigroam-marauder).
+
+## Screens and controls
+
+| Dashboard | Upload |
 |---|---|
-| **Platform** | Flipper Zero (FAP), built with [ufbt](https://github.com/flipperdevices/flipperzero-ufbt) |
-| **Scanner protocol** | [ESP32 Marauder](https://github.com/justcallmekoko/ESP32Marauder) serial |
-| **Serial pins** | 13 (TX), 14 (RX); 5 V on pin 1 |
-| **Default baud** | 115200, six choices in Settings |
-| **Unique-BSSID estimator** | 4 KB Bloom filter — 32768 bits, 4 hashes, RAM only |
-| **Firmware targets** | Official and Momentum share one API-87 `.fap` (Official SDK). Unleashed is a second API-88 `.fap`. CI builds Official and Momentum |
-| **Attack features** | None, permanently — see below |
-| **Tests** | Host-side unit tests under gcc and clang, plus ASan/UBSan |
-| **License** | GPL-3.0 |
+| <img src="screenshots/dashboard.png" width="320" alt="SigRoam Dash with unique BSSID estimate, AP and BLE counts, GPS fix and capture status"> | <img src="screenshots/upload.png" width="320" alt="SigRoam WiGLE Upload page showing a pending queue and Sending status"> |
+| **Probe firmware** | **Main menu** |
+| <img src="screenshots/probe.png" width="320" alt="SigRoam Probe page identifying Scout Lite scanner firmware"> | <img src="screenshots/menu.png" width="320" alt="SigRoam Wardriving menu with Dashboard, Probe, Upload, Raw log, Settings and About"> |
 
-## What it deliberately does not do
+The six menu entries are **Dashboard**, **Probe firmware**, **Upload**, **Raw
+log**, **Settings** and **About**. Dashboard tabs are `Dash` (start/stop and
+status), `Strm` (recent records), `GPS` (fix and coordinates) and `Sess`
+(session diagnostics). Settings includes baud, sound, vibration, backlight and
+Stealth. Sound, vibration and LED alerts respond to GPS-fix changes; Stealth
+suppresses the LED.
 
-SigRoam is **receive-only**. It never transmits attack traffic, and it never will.
-The following are permanently out of scope — not "not yet implemented", but a
-product rule the project will not accept exceptions to:
+## Compatibility and limits
 
-- deauthentication / disassociation frames
-- WPA handshake capture
-- evil twin, karma, or rogue AP
-- beacon spam and BLE spam
-- password cracking of any kind
+- **Flipper firmware:** the v0.5 release provides one Official-SDK API-87 FAP
+  for Official and compatible Momentum firmware. Unleashed API-88 needs a
+  separate build; it is not included in this release and Unleashed-board HIL
+  is not claimed. Check the [release files and notes](https://github.com/pingequalab/sigroam-wardriving/releases/latest)
+  for your installed firmware; do not bypass an API-mismatch warning.
+- **Scanner hardware:** Scout Lite is the verified reference for the dedicated
+  SigRoam scanner firmware. The FAP speaks the Marauder serial protocol and may
+  work with other boards exposing it on Flipper pins 13/14, but those boards
+  have not all been bench-tested. GNSS and microSD are needed for located
+  WiGLE CSV; an ESP32-C5 provides 2.4 and 5 GHz through one radio, not
+  simultaneous dual-radio scanning.
+- **Survey policy:** SigRoam does not provide deauthentication, handshake
+  capture, evil twin, beacon/BLE spam or password cracking. Scanner survey
+  capture is passive. WiGLE upload uses an ordinary Wi-Fi connection after
+  scanning stops; “receive-only survey” does not mean the device never
+  transmits any network traffic.
+- **Power:** pin 1 can receive USB VBUS or battery-powered OTG boost. If USB is
+  unplugged during a survey, the scanner can restart; the FAP detects silence
+  and tries to resynchronize. Keep the scanner connected while data is being
+  saved or uploaded.
 
-The app only parses what the scanner prints. If you need those features, this is
-the wrong project.
+This is an early release, not a product-v1.0 field-readiness claim.
 
-## Hardware you need
+## Build from source
 
-- A Flipper Zero.
-- An ESP32 Marauder board with **GPS + microSD**, connected to the GPIO header.
-  Dual-band (2.4 + 5 GHz) needs **ESP32-C5**. Without GPS you get live counts,
-  not locations; without SD there is no WiGLE CSV.
-
-The app talks the Marauder serial protocol, not a specific product.
-
-On-device development and verification used
-**[Scout Lite](https://github.com/pingequalab/scout-lite)**
-(ESP32-C5 + Quectel L86-M33 GPS + microSD, pre-flashed Marauder).
-Other C5 + GPS + SD Marauder boards that present the same UART on Flipper
-pins 13/14 should work; they have not been bench-tested.
-
-> ### Reference board — Scout Lite
->
-> Same protocol, same 5V-on-pin-1 budget, GPS already wired, no adapter pin
-> map to guess. The pin notes below assume this board.
->
-> **[Hardware and build files](https://github.com/pingequalab/scout-lite)**
-> · **[pingequa.com](https://www.pingequa.com/products/scout-lite)**
-
-## Wiring and required setup
-
-| Flipper pin | Use |
-|---|---|
-| 1 (5V) | Power for the scanner |
-| 13 (TX) | Serial to the scanner |
-| 14 (RX) | Serial from the scanner |
-
-Two things will stop the app from working if you skip them:
-
-- **`Settings → System → Log Device` must be `Off`.** Pins 13/14 are shared with
-  the firmware's serial log. If the log owns them, the app cannot open the port —
-  it detects this and says so on screen rather than failing silently.
-- **5 V on pin 1 has two independent sources, and the app handles both.** With USB
-  plugged in, the pin is fed straight from USB VBUS and the firmware deliberately
-  keeps the boost converter off; on battery, the same pin is fed by the OTG boost,
-  which the app requests and then confirms before opening the port. Either way the
-  scanner is powered, so you can run the app on USB power or on battery.
-- **Unplugging USB mid-session restarts the scanner.** Power handover to the
-  battery itself is seamless, but the board browns out and comes back in its
-  non-scanning state. The app notices the silence, shows `Resyncing...` and
-  re-issues the scan command until the board answers again — measured at 67 to
-  77 seconds on the reference board, with the retries capped at 2 minutes.
-
-**Do not power the scanner from pin 9 (3.3 V).** It is limited to 150 mA and a
-5 GHz-capable ESP32 will exceed that on transmit peaks.
-
-## Interface
-
-The main menu has five entries:
-
-- **Dashboard** — four tabs, switched with left/right:
-  - `Dash` — large unique-BSSID count, AP/BLE counts, and a bottom status
-    line with OK, fix percent, drop and SAT. **OK starts and stops the scan.**
-  - `Strm` — the most recent parsed records, scrolling.
-  - `GPS` — fix status, satellites, coordinates, and `Acc:~` (an estimate).
-    OK requests a GPS sample.
-  - `Sess` — session and diagnostic counters.
-- **Probe firmware** — sends `info` and reports what answered, so you can tell
-  "nothing connected" from "connected but not Marauder".
-- **Raw log** — the raw serial lines, including anything the parser did not
-  recognise. This is the first place to look when the numbers look wrong.
-- **Settings** — Baud (six choices, default 115200), Source, Sound, Vibro,
-  Backlight, Stealth, Debug rows. Sound, Vibro and the LED fire when the GPS fix
-  is acquired or lost during a survey; Stealth suppresses the LED, and Backlight
-  holds the display lit while you are on the dashboard.
-- **About** — `SigRoam Wardriving v0.5`, `by PINGEQUA Lab`, the receive-only
-  statement, and a QR code to the project short link.
-
-While a scan is running, Back returns to the main menu **without stopping the
-scan**. Stopping is done only with OK on the Dash tab.
-
-## Where the survey data goes
-
-**SigRoam does not write survey data to the Flipper's SD card.** The only thing it
-persists on the Flipper is your settings.
-
-Logging stays on the scanner microSD. SigRoam 0.5 can upload a sealed CSV
-from the scanner. A successful upload keeps WiGLE's transaction id with that
-file. HTTP 429 is WiGLE's daily file limit: the round stops, and the Flipper
-shows `WiGLE busy`. A profile check with no HTTP status shows `No reply`.
-WiGLE documents that profile call as 200 or 500 when it answers. 401 or 403
-shows `Key rejected`. SigRoam stores only settings on the Flipper.
-
-The unique-BSSID number on the Dash tab is an estimate from a 4 KB Bloom filter
-(32768 bits, 4 hashes), kept in RAM for the session only. It can undercount
-slightly at high AP densities by design — it is a progress indicator, not the
-record of what you collected.
-
-## Building
-
-Built with [ufbt](https://github.com/flipperdevices/flipperzero-ufbt).
+Built with [ufbt](https://github.com/flipperdevices/flipperzero-ufbt):
 
 ```bash
-ufbt              # build
-ufbt launch       # build, install, and run on a connected Flipper
-ufbt cli          # device log
+ufbt                  # build
+ufbt launch           # build, install and run on a connected Flipper
+make -C tools/host_test
+make -C tools/host_test asan
 ```
 
-Host-side unit tests cover the pure-logic layer (line assembly, parsers, model,
-Bloom filter) and run without a Flipper:
-
-```bash
-make -C tools/host_test        # guards + tests
-make -C tools/host_test asan   # same, with ASan/UBSan
-```
-
-## Firmware compatibility
-
-**Official and Momentum share one `.fap`.** A release ships `sigroam-<version>.fap`
-built against the Official SDK. It runs on Official and on Momentum; there is
-nothing to pick between those two at download time.
-
-That works because loading is gated on the firmware API *major*, which is
-compared exactly, while the minor is not compared at all. Official `1.4.3` and
-Momentum `mntm-012` both report `Target: 7, API: 87.1`, and building this source
-against both SDKs produces .fap files that differ in five bytes: a debug-link
-checksum the loader never reads, and one byte of section size. Every code, data,
-relocation and symbol section is byte-identical. The Official build is the one
-that ships (V-076): a Momentum 86-byte `.fapmeta` is the unsafe direction.
-
-**Unleashed needs a second file.** Unleashed `unlshd-093` (2026-09-12) reports
-API 88.9. Major 88 is not 87, so the API-87 build will not load. The same source
-built against the Unleashed SDK produces `sigroam-<version>-unleashed.fap`.
-Tapping Continue on an API-mismatch dialog is not support.
-
-The app uses only the common Flipper API — no firmware-specific headers — so it
-builds against the Official SDK, which the Flipper Apps Catalog requires. CI
-keeps building Official and Momentum on every push; that matrix is what catches
-a firmware-specific API before it can reach a release. Unleashed is a manual
-second target, not part of the regular pipeline.
-
-## FAQ
-
-**Does SigRoam scan Wi-Fi on its own?**
-No. The Flipper Zero has no Wi-Fi radio. SigRoam is the control head; an external
-ESP32 Marauder board does the scanning and the logging.
-
-**Can it capture handshakes or send deauth frames?**
-No, and it never will. Those features are permanently out of scope as a product
-rule, not a missing feature. The app is receive-only and only parses what the
-scanner prints.
-
-**Where is the survey data stored?**
-On the scanner microSD, as a WigleWifi CSV. SigRoam stores only settings on
-the Flipper. With SigRoam 0.5, a sealed file can upload from the scanner,
-and WiGLE's transaction id stays with that file. HTTP 429 stops the round
-and the Flipper shows `WiGLE busy`. No HTTP status shows `No reply`.
-Copying the card to a computer is a
-separate path.
-
-**Can I use it with USB plugged in?**
-Yes. Pin 1 is fed from USB VBUS whenever USB is connected, and from the OTG boost
-converter when it is not. The app checks both before it opens the serial port, so
-running on a car charger and running on battery are equally supported.
-
-**The scan went quiet right after I unplugged USB. What happened?**
-The Flipper switches to battery cleanly, but the scanner board browns out during
-the handover and restarts into its non-scanning state. The app detects that the
-data stream has stopped and re-issues the scan command until the board answers;
-the counters resume on their own. On the reference board this takes 67 to 77
-seconds, which is how long the scanner needs to boot and accept commands again.
-
-**Why does the app say the serial port is busy?**
-Pins 13/14 are shared with the firmware's serial log. Set
-`Settings → System → Log Device` to `Off`.
-
-**Which firmware does it need?**
-Official or Momentum, and the same API-87 file works on both — a release ships
-one Official-SDK `sigroam-<version>.fap` for those two. Unleashed is API 88 and
-needs the separate `sigroam-<version>-unleashed.fap`. Continue on an API
-mismatch is not support. CI builds Official and Momentum from the same source.
-
-**Which hardware is recommended?**
-An ESP32-C5 Marauder board with GPS and microSD. Development and on-device
-verification used [Scout Lite](https://github.com/pingequalab/scout-lite).
-Other Marauder-compatible boards that expose the same UART, GPS and SD
-should work; they have not been bench-tested here.
+The host tests cover the pure-logic parser, model and Bloom filter. They do not
+replace on-device testing. See [CHANGELOG.md](CHANGELOG.md) for version details.
 
 ## License
 
-GPL-3.0. See [LICENSE](LICENSE).
+GPL-3.0. See [LICENSE](LICENSE). The separate
+[SigRoam scanner firmware repository](https://github.com/pingequalab/sigroam-firmware)
+documents its own distribution and hardware scope.
 
----
-
-<p align="center">
-  <b>PINGEQUA_Lab</b> — hardware and firmware for RF, GPS and field survey work.<br>
-  <a href="https://pingequa.com">pingequa.com</a> &nbsp;·&nbsp;
-  <a href="https://github.com/pingequalab/scout-lite">Scout Lite scanner board</a> &nbsp;·&nbsp;
-  <a href="https://github.com/pingequalab">More tools</a>
-</p>
+**PINGEQUA Lab** · [Scout Lite hardware](https://www.pingequa.com/products/scout-lite)
+· [Scout Lite Web Flasher](https://flash.pingequa.com/devices/scout-lite)
+· [Field guide](https://www.pingequa.com/blogs/guides-tutorials/how-to-first-wardrive-flipper-zero-scout-lite)
