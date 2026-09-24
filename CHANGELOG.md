@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Plugging in or unplugging the Flipper's USB cable during a survey no longer leaves Dash counting while the board has stopped scanning. With SigRoam firmware, Dash now checks the board's own state. If the board has stopped, Dash starts a new survey within about 15 seconds. If the board is still saving or uploading, Dash shows `Resyncing...` and waits for it to finish. After 3 minutes without success, Dash shows `Scan lost, press OK`. The survey continues in a new file, and Dash counts restart from 0.
+- Dash no longer sends a stop when USB is unplugged while the SigRoam board is still scanning.
+
 ## [0.6] — 2026-09-24
 
 For Scout Lite running SigRoam 0.6.

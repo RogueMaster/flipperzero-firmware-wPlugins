@@ -6,13 +6,19 @@
 
 #include "sigroam.h"
 
+#include "src/sr_dialect.h"
 #include "src/sr_parse_marauder.h"
+#include "src/sr_peer_watch.h"
 #include "src/sr_resync.h"
 
 #include <string.h>
 
 /* File-static: sigroam.h is not on the D11-RESYNC whitelist. GUI-thread only. */
 static SrResyncCtx s_resync;
+/* R1 reconcile, same ownership as s_resync. The event is static because the app
+ * stack is 2 KiB (application.fam) and SrEvent is ~240 B (ADR-016). */
+static SrPeerWatchCtx s_peer_watch;
+static SrEvent s_peer_watch_stop_ev;
 
 static bool sigroam_resync_queue(SigRoamApp* app, bool is_start) {
     const SrSourceCodec* codec;
@@ -56,6 +62,12 @@ static void sigroam_resync_tick(SigRoamApp* app) {
     SrResyncAct act;
     SrIoStats st;
 
+    if(!sr_peer_watch_legacy_resync_allowed(sr_dialect_is_sigroam(&app->model.firmware))) {
+        if(s_resync.phase != SrResyncIdle) {
+            sr_resync_go_idle(&s_resync);
+        }
+        return;
+    }
     memset(&st, 0, sizeof(st));
     if(app->io != NULL) {
         sr_io_get_stats(app->io, &st);
@@ -81,11 +93,50 @@ static void sigroam_resync_tick(SigRoamApp* app) {
     }
 }
 
+static void sigroam_peer_watch_tick(SigRoamApp* app) {
+    SrPeerWatchIn in;
+    SrPeerWatchAct act;
+
+    memset(&in, 0, sizeof(in));
+    in.sigroam = sr_dialect_is_sigroam(&app->model.firmware);
+    in.session = app->model.session;
+    in.session_rev = app->model.session_rev;
+    in.cmd_pending = app->scan.cmd_pending;
+    in.sess_rev = app->model.sess_rev;
+    in.sess_ms = app->model.sess.ms;
+    in.diag_seen = app->model.firmware.diag_seen;
+    in.diag_state = app->model.firmware.diag_state;
+    in.now_ms = furi_get_tick();
+
+    act = sr_peer_watch_eval(&s_peer_watch, &in);
+    if(act == SrPeerWatchActRestart) {
+        FURI_LOG_I(
+            SR_TAG,
+            "watch: board not scanning st=%u ms=%lu, restart",
+            (unsigned)in.diag_state,
+            (unsigned long)in.sess_ms);
+        /* The board's StartingWardrive is only legal from Stopped (sr_model.c apply_started). */
+        memset(&s_peer_watch_stop_ev, 0, sizeof(s_peer_watch_stop_ev));
+        s_peer_watch_stop_ev.kind = SrEventScanStopped;
+        s_peer_watch_stop_ev.u.stop = SrStopWifiTranRecv;
+        (void)sr_model_apply(&app->model, &s_peer_watch_stop_ev, in.now_ms);
+    } else if(act != SrPeerWatchActSendStart) {
+        return;
+    }
+    if(sigroam_resync_queue(app, true)) {
+        sr_peer_watch_note_sent(&s_peer_watch, in.now_ms, app->model.session_rev);
+        FURI_LOG_I(SR_TAG, "watch: start");
+    }
+}
+
 static void sigroam_resync_paint_hint(SigRoamApp* app) {
     uint8_t hint;
     View* v;
 
-    hint = sr_resync_hint_stage(&s_resync);
+    hint = sr_peer_watch_hint(&s_peer_watch);
+    if(hint == (uint8_t)SR_RESYNC_HINT_NONE) {
+        hint = sr_resync_hint_stage(&s_resync);
+    }
     if(hint == (uint8_t)SR_RESYNC_HINT_NONE || app->dash == NULL) {
         return;
     }
@@ -224,6 +275,7 @@ static void sigroam_tick_event_callback(void* context) {
     }
     app->tick_n++;
     sigroam_resync_tick(app);
+    sigroam_peer_watch_tick(app);
     memset(&st, 0, sizeof(st));
     memset(&ws, 0, sizeof(ws));
     if((app->tick_n % 10u) == 0u && app->io) {

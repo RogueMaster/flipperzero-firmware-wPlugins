@@ -30,6 +30,7 @@ int test_band_run(void);
 int test_newnet_run(void);
 int test_idle_summary_run(void);
 int test_cfg_parse_run(void);
+int test_peer_watch_run(void);
 
 int main(void) {
     int fails = 0;
@@ -64,6 +65,7 @@ int main(void) {
     fails += test_newnet_run();
     fails += test_idle_summary_run();
     fails += test_cfg_parse_run();
+    fails += test_peer_watch_run();
 
     if(fails != 0) {
         printf("FAILED: %d assertion(s)\n", fails);

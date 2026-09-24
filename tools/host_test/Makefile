@@ -27,7 +27,7 @@ SRC := ../../src
 
 # selfcontained only tests headers and needs an explicit list. Add new ★
 # headers here when you create them.
-STAR_HEADERS := sr_types.h sr_source_codec.h sr_source.h sr_line.h sr_bloom.h sr_model.h sr_settings.h sr_parse_marauder.h sr_rx_policy.h sr_handshake.h sr_scan_ctl.h sr_rawlog.h sr_view_fmt.h sr_gps_sample.h sr_wait_stage.h sr_resync.h sr_alert.h sr_poi.h sr_peer_sync.h sr_sess_seed.h sr_capture_health.h sr_dialect.h sr_probe_fmt.h sr_upload_prompt.h sr_newnet.h
+STAR_HEADERS := sr_types.h sr_source_codec.h sr_source.h sr_line.h sr_bloom.h sr_model.h sr_settings.h sr_parse_marauder.h sr_rx_policy.h sr_handshake.h sr_scan_ctl.h sr_rawlog.h sr_view_fmt.h sr_gps_sample.h sr_wait_stage.h sr_resync.h sr_alert.h sr_poi.h sr_peer_sync.h sr_sess_seed.h sr_capture_health.h sr_dialect.h sr_probe_fmt.h sr_upload_prompt.h sr_newnet.h sr_peer_watch.h
 STAR_PATHS   := $(addprefix $(SRC)/,$(STAR_HEADERS))
 
 # guard does not use an allowlist: every sr_*.h / sr_*.c under src/ must be
@@ -128,7 +128,7 @@ ASAN_CFLAGS := -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined
 
 # The ★ implementations under test are compiled straight into run_tests
 # (zero stubs, see above).
-HOST_SRCS := main.c test_source_iface.c test_line.c test_bloom.c test_model.c test_settings.c test_parse_marauder.c test_rx_policy.c test_handshake.c test_scan_ctl.c test_rawlog.c test_view_fmt.c test_gps_sample.c test_wait_stage.c test_resync.c test_alert.c test_poi.c test_peer_sync.c test_sess_seed.c test_qual_parse.c test_capture_health.c test_f2_health2.c test_radio_dash.c test_dialect.c test_probe_fmt.c test_up_parse.c test_upload_prompt.c test_band.c test_newnet.c test_idle_summary.c test_cfg_parse.c $(SRC)/sr_line.c $(SRC)/sr_bloom.c $(SRC)/sr_model.c $(SRC)/sr_settings.c $(SRC)/sr_parse_marauder.c
+HOST_SRCS := main.c test_source_iface.c test_line.c test_bloom.c test_model.c test_settings.c test_parse_marauder.c test_rx_policy.c test_handshake.c test_scan_ctl.c test_rawlog.c test_view_fmt.c test_gps_sample.c test_wait_stage.c test_resync.c test_alert.c test_poi.c test_peer_sync.c test_sess_seed.c test_qual_parse.c test_capture_health.c test_f2_health2.c test_radio_dash.c test_dialect.c test_probe_fmt.c test_up_parse.c test_upload_prompt.c test_band.c test_newnet.c test_idle_summary.c test_cfg_parse.c test_peer_watch.c $(SRC)/sr_line.c $(SRC)/sr_bloom.c $(SRC)/sr_model.c $(SRC)/sr_settings.c $(SRC)/sr_parse_marauder.c
 
 .PHONY: all guard gui_portable storage_guard font_guard qual_refresh_guard dash_health_guard selfcontained asan clean
 
