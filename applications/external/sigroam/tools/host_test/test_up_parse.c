@@ -31,6 +31,7 @@ int test_up_parse_run(void) {
 
     CHECK((unsigned)SrEventRadio == 11u);
     CHECK((unsigned)SrEventUp == 12u);
+    CHECK((unsigned)SrEventRank == 13u);
 
     memset(&parser, 0, sizeof(parser));
     CHECK(feed(&parser, kUpOk, strlen(kUpOk), &ev) == SrParseOk);
@@ -94,6 +95,66 @@ int test_up_parse_run(void) {
         memset(&parser, 0, sizeof(parser));
         CHECK(feed(&parser, kEchoU, strlen(kEchoU), &ev) == SrParseUnknown);
         CHECK(parser.cmdack.rev == 0u);
+    }
+
+    {
+        static const char kRank[] = "Rank: rank=100 month=7 wifi_gps=42";
+        memset(&parser, 0, sizeof(parser));
+        CHECK(feed(&parser, kRank, strlen(kRank), &ev) == SrParseOk);
+        CHECK(ev.kind == SrEventRank);
+        CHECK(ev.u.rank.rank == 100u);
+        CHECK(ev.u.rank.month == 7u);
+        CHECK(ev.u.rank.wifi_gps == 42u);
+        CHECK(parser.cmdack.rev == 0u);
+    }
+
+    {
+        static const char kNeg[] = "Rank: rank=-1 month=7 wifi_gps=42";
+        memset(&parser, 0, sizeof(parser));
+        CHECK(feed(&parser, kNeg, strlen(kNeg), &ev) == SrParseUnknown);
+        CHECK(ev.kind == SrEventUnknown);
+    }
+
+    {
+        static const char kOver[] = "Rank: rank=4294967296 month=7 wifi_gps=42";
+        memset(&parser, 0, sizeof(parser));
+        CHECK(feed(&parser, kOver, strlen(kOver), &ev) == SrParseUnknown);
+    }
+
+    {
+        static const char kShort[] = "Rank: rank=1 month=2";
+        memset(&parser, 0, sizeof(parser));
+        CHECK(feed(&parser, kShort, strlen(kShort), &ev) == SrParseUnknown);
+    }
+
+    {
+        static const char kTrail[] = "Rank: rank=1 month=2 wifi_gps=3 x";
+        memset(&parser, 0, sizeof(parser));
+        CHECK(feed(&parser, kTrail, strlen(kTrail), &ev) == SrParseUnknown);
+    }
+
+    {
+        static const char kMax[] = "Rank: rank=4294967295 month=4294967295 wifi_gps=4294967295";
+        memset(&parser, 0, sizeof(parser));
+        CHECK(feed(&parser, kMax, strlen(kMax), &ev) == SrParseOk);
+        CHECK(ev.u.rank.rank == 4294967295u);
+        CHECK(ev.u.rank.month == 4294967295u);
+        CHECK(ev.u.rank.wifi_gps == 4294967295u);
+    }
+
+    {
+        static const char kRank[] = "Rank: rank=9 month=8 wifi_gps=7";
+        memset(&parser, 0, sizeof(parser));
+        CHECK(m.rank_rev == 0u);
+        CHECK(m.up_rev == 1u);
+        CHECK(feed(&parser, kRank, strlen(kRank), &ev) == SrParseOk);
+        CHECK(sr_model_apply(&m, &ev, 2) == true);
+        CHECK(m.rank_rev == 1u);
+        CHECK(m.rank.rank == 9u);
+        CHECK(m.rank.month == 8u);
+        CHECK(m.rank.wifi_gps == 7u);
+        CHECK(m.up_rev == 1u);
+        CHECK(m.up.q == 3u);
     }
 
     return sr_test_failures;

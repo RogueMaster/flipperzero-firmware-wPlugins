@@ -223,7 +223,7 @@ int test_dialect_run(void) {
     CHECK(g_model.wifi_stop_rev == 0u);
     CHECK(g_model.illegal_trans == illegal0);
 
-    CHECK(sizeof(SrModel) == 3520);
+    CHECK(sizeof(SrModel) == 3584);
 
     return sr_test_failures;
 }

@@ -7,11 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Plugging in or unplugging the Flipper's USB cable during a survey no longer leaves Dash counting while the board has stopped scanning. With SigRoam firmware, Dash now checks the board's own state. If the board has stopped, Dash starts a new survey within about 15 seconds. If the board is still saving or uploading, Dash shows `Resyncing...` and waits for it to finish. After 3 minutes without success, Dash shows `Scan lost, press OK`. The survey continues in a new file, and Dash counts restart from 0.
+- Dash no longer sends a stop when USB is unplugged while the SigRoam board is still scanning.
+
+## [0.6] — 2026-09-24
+
+For Scout Lite running SigRoam 0.6.
+
+### Added
+
+- Dash shows 2.4 GHz and 5 GHz counts separately.
+- A new network plays one short sound, at most once every 2 seconds, and does not vibrate. Settings: New net tick.
+- After you stop, Dash keeps a one-line summary of that survey.
+- If sealed surveys are still waiting, Dash asks once whether to upload. It tells you when the WiGLE key or home Wi-Fi is not set.
+- Upload shows Key and Home.
+- Rank shows your WiGLE account rank, not the count from this drive.
+- Unleashed build: `sigroam-0.6-unleashed.fap`.
+
 ### Changed
 
-- A profile check with no HTTP status shows `No reply` / `before upload`. WiGLE documents `GET /api/v2/profile/user` as 200 or 500. That screen is not an API rejection.
-- HTTP 401 or 403 shows `Key rejected` / `check API`. Any other HTTP status shows `HTTP` and the code. HTTP 429 stays `WiGLE busy` / `try later`.
-- An old `PROFILE` token shows `Profile failed` / `no status`.
+- Probe and About show v0.6.
+- Upload distinguishes a missing WiGLE reply, a rejected key, and WiGLE busy.
 
 ## [0.5] — 2026-09-23
 

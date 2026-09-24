@@ -20,13 +20,15 @@ typedef struct {
     uint8_t io_status; /* An SrIoStatus value, converted to wording at draw time */
     uint8_t session; /* SrSessionState */
     uint8_t scan_ui; /* SrScanUiState */
-    /* Fits in the 3-byte pad before ap_wifi (sizeof stays 712). From
+    /* Fits in the 3-byte pad before ap_wifi. From
      * sr_scan_ctl_sealing_ex: stop latch / Diag 2/3 / post-stop Busy 2/3. */
     bool board_sealing;
     /* ---- Dash tab ---- */
     uint32_t ap_wifi, ap_ble, unique_est, with_gps_fix;
+    uint32_t ap_24, ap_5;
     uint32_t rx_bytes, rx_dropped, rx_max_fill;
     uint32_t elapsed_ms; /* now_tick - started_tick_ms; 0 when the session is not Running */
+    uint32_t last_elapsed_ms; /* frozen at Running->Stopped; 0 after reset_session */
     uint32_t heap_free, heap_min,
         heap_max_blk; /* bytes; divided by 1024u into whole KB at draw time */
     /* The Debug rows setting (T4.11 / ADR-024). true = the Dash tab appends the d=/f= and heap
@@ -62,6 +64,12 @@ typedef struct {
     uint32_t sess_ms; /* Mirrors SrModel.sess.ms -- 0 = board reports no session (§1C) */
     SrRadioInfo radio; /* Mirrors SrModel.radio -- permission bits; unused when radio_rev==0 */
     uint32_t radio_rev; /* 0 = Radio: never seen (unknown, not BLE OFF) */
+    uint32_t up_q; /* Mirrors SrModel.up.q; meaningful when up_known */
+    uint8_t cfg_key;
+    uint8_t cfg_home;
+    bool up_known;
+    bool cfg_known;
+    bool pending_prompt; /* Idle pending-survey popup; computed in dash_fill */
 } SrDashModel;
 
 _Static_assert(sizeof(SrDashModel) <= 768, "SrDashModel over 768 B (T4.1 / ADR-019)");
@@ -87,4 +95,5 @@ View* sr_view_dash_get_view(SrViewDash* d);
 void sr_view_dash_set(View* v, const SrDashModel* src);
 void sr_view_dash_set_callback(SrViewDash* d, SrViewDashCallback cb, void* context);
 void sr_view_dash_set_ok_callback(SrViewDash* d, SrViewDashCallback cb, void* context);
+void sr_view_dash_set_back_callback(SrViewDash* d, SrViewDashCallback cb, void* context);
 #endif

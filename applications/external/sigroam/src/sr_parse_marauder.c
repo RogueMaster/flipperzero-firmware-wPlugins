@@ -54,6 +54,8 @@ static const char kSess[] = "Sess: ";
 static const char kRadio[] = "Radio: ";
 static const char kQual[] = "Qual: ";
 static const char kUp[] = "Up: ";
+static const char kRank[] = "Rank: ";
+static const char kCfg[] = "Cfg: ";
 
 typedef struct {
     const char* p;
@@ -768,6 +770,66 @@ static bool up_parse(const char* line, size_t len, SrUpInfo* out) {
     return true;
 }
 
+/*
+ * "Rank: rank=<u32> month=<u32> wifi_gps=<u32>", nothing after.
+ * Account totals. A short or negative field falls through to Unknown.
+ */
+static bool rank_parse(const char* line, size_t len, SrRankInfo* out) {
+    size_t p = sizeof(kRank) - 1U;
+    uint32_t rank = 0;
+    uint32_t month = 0;
+    uint32_t wifi = 0;
+
+    if(line == NULL || out == NULL || len < p || memcmp(line, kRank, p) != 0) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, "rank=", 5U) || !scan_u32(line, len, &p, &rank)) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, " month=", 7U) || !scan_u32(line, len, &p, &month)) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, " wifi_gps=", 10U) || !scan_u32(line, len, &p, &wifi)) {
+        return false;
+    }
+    if(p != len) {
+        return false;
+    }
+    out->rank = rank;
+    out->month = month;
+    out->wifi_gps = wifi;
+    return true;
+}
+
+/*
+ * "Cfg: key=<0|1> home=<0|1> ssid=<rest of line>".
+ * key and home are exactly one character 0 or 1. ssid is the last field and
+ * keeps spaces; "-" means none. Longer than 32 bytes is truncated into ssid[33].
+ * A short or illegal key/home falls through to Unknown.
+ */
+static bool cfg_parse(const char* line, size_t len, SrCfgInfo* out) {
+    size_t p = sizeof(kCfg) - 1U;
+    uint8_t key = 0;
+    uint8_t home = 0;
+
+    if(line == NULL || out == NULL || len < p || memcmp(line, kCfg, p) != 0) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, "key=", 4U) || !scan_bit01(line, len, &p, &key)) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, " home=", 6U) || !scan_bit01(line, len, &p, &home)) {
+        return false;
+    }
+    if(!scan_lit(line, len, &p, " ssid=", 6U) || p >= len) {
+        return false;
+    }
+    out->key = key;
+    out->home = home;
+    copy_cap(out->ssid, sizeof(out->ssid), line + p, len - p);
+    return true;
+}
+
 static bool probe_n(const char* line, size_t len, SrFirmwareInfo* out) {
     static const char kFw[] = "Firmware: ";
     static const char kVer[] = "Version: ";
@@ -1060,6 +1122,16 @@ static SrParseResult marauder_feed(SrParser* parser, const char* line, size_t le
 
     if(up_parse(line, len, &out->u.up)) {
         out->kind = SrEventUp;
+        return SrParseOk;
+    }
+
+    if(rank_parse(line, len, &out->u.rank)) {
+        out->kind = SrEventRank;
+        return SrParseOk;
+    }
+
+    if(cfg_parse(line, len, &out->u.cfg)) {
+        out->kind = SrEventCfg;
         return SrParseOk;
     }
 

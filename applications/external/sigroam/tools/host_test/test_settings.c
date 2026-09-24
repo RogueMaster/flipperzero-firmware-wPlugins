@@ -41,6 +41,7 @@ static void oracle_defaults(SrSettings* s) {
     s->backlight_always = true;
     s->stealth = false;
     s->debug_rows = false;
+    s->newnet = true;
 }
 
 static bool oracle_baud_ok(uint32_t v) {
@@ -56,7 +57,7 @@ static bool oracle_baud_ok(uint32_t v) {
 static bool oracle_eq(const SrSettings* a, const SrSettings* b) {
     return a->baud == b->baud && a->source == b->source && a->sound == b->sound &&
            a->vibro == b->vibro && a->backlight_always == b->backlight_always &&
-           a->stealth == b->stealth && a->debug_rows == b->debug_rows;
+           a->stealth == b->stealth && a->debug_rows == b->debug_rows && a->newnet == b->newnet;
 }
 
 static bool oracle_is_default(const SrSettings* s) {
@@ -206,6 +207,25 @@ static void
         }
         return;
     }
+    if(strcmp(key, "NewNet") == 0) {
+        if(strcmp(val, "0") == 0) {
+            out->newnet = false;
+            if(st) {
+                st->keys_known++;
+            }
+        } else if(strcmp(val, "1") == 0) {
+            out->newnet = true;
+            if(st) {
+                st->keys_known++;
+            }
+        } else {
+            out->newnet = true;
+            if(st) {
+                st->values_invalid++;
+            }
+        }
+        return;
+    }
     if(st) {
         st->keys_unknown++;
     }
@@ -318,7 +338,8 @@ static bool oracle_parse(const char* buf, size_t len, SrSettings* out, SrSetting
                     if(memchr(key, 0, klen) == NULL &&
                        (strcmp(key, "Baud") == 0 || strcmp(key, "Source") == 0 ||
                         strcmp(key, "Sound") == 0 || strcmp(key, "Vibro") == 0 ||
-                        strcmp(key, "Backlight") == 0 || strcmp(key, "Stealth") == 0)) {
+                        strcmp(key, "Backlight") == 0 || strcmp(key, "Stealth") == 0 ||
+                        strcmp(key, "Debug") == 0 || strcmp(key, "NewNet") == 0)) {
                         oracle_apply_kv(out, st, key, "\xff");
                     } else if(st) {
                         st->keys_unknown++;
@@ -436,6 +457,8 @@ static void test_defaults_and_clamp(void) {
     CHECK(s.vibro == true);
     CHECK(s.backlight_always == true);
     CHECK(s.stealth == false);
+    CHECK(s.debug_rows == false);
+    CHECK(s.newnet == true);
     CHECK(sr_settings_is_valid(&s));
 
     s.baud = 1u;
@@ -476,27 +499,28 @@ static void fill_longest(SrSettings* s) {
 static void test_serialize_len_and_cap(void) {
     SrSettings s;
     char buf[SR_SETTINGS_TEXT_MAX];
-    char tight[119];
+    char tight[129];
     size_t n;
 
     fill_longest(&s);
     memset(buf, 0xAA, sizeof(buf));
     n = sr_settings_serialize(&s, buf, sizeof(buf));
     printf("serialize longest = %zu\n", n);
-    CHECK(n == 119u);
+    CHECK(n == 129u);
     CHECK(buf[n] == '\0');
+    CHECK(n + 1u <= (size_t)SR_SETTINGS_TEXT_MAX);
 
     CHECK(sr_settings_serialize(&s, NULL, 0) == 0);
 
     memset(tight, 0xAA, sizeof(tight));
-    n = sr_settings_serialize(&s, tight, 119u);
+    n = sr_settings_serialize(&s, tight, 129u);
     CHECK(n == 0u);
     CHECK(tight[0] == '\0');
 
     memset(buf, 0xAA, sizeof(buf));
-    n = sr_settings_serialize(&s, buf, 120u);
-    CHECK(n == 119u);
-    CHECK(buf[119] == '\0');
+    n = sr_settings_serialize(&s, buf, 130u);
+    CHECK(n == 129u);
+    CHECK(buf[129] == '\0');
 
     /*
      * Lead-session review addition: serialize must never write out a file it cannot read back. An
@@ -516,7 +540,7 @@ static void test_serialize_len_and_cap(void) {
         CHECK(n > 0u);
         CHECK(sr_settings_parse(buf, n, &back, &st));
         CHECK(st.values_invalid == 0u);
-        CHECK(st.keys_known == 7u);
+        CHECK(st.keys_known == 8u);
         CHECK(back.source == SrSourceUnknown);
         CHECK(sr_settings_is_valid(&back));
     }
@@ -555,11 +579,11 @@ static void test_roundtrip_576(void) {
                 ok = sr_settings_parse(text, w, &out, &st);
                 CHECK(ok);
                 CHECK(st.header_ok);
-                CHECK(st.keys_known == 7u);
+                CHECK(st.keys_known == 8u);
                 CHECK(st.keys_unknown == 0u);
                 CHECK(st.values_invalid == 0u);
                 CHECK(st.lines_malformed == 0u);
-                CHECK(st.lines_seen == 9u);
+                CHECK(st.lines_seen == 10u);
                 CHECK(out.baud == in.baud);
                 CHECK(out.source == in.source);
                 CHECK(out.sound == in.sound);
@@ -567,6 +591,7 @@ static void test_roundtrip_576(void) {
                 CHECK(out.backlight_always == in.backlight_always);
                 CHECK(out.stealth == in.stealth);
                 CHECK(out.debug_rows == in.debug_rows);
+                CHECK(out.newnet == in.newnet);
                 CHECK(sr_settings_is_valid(&out));
                 n++;
             }
@@ -603,7 +628,7 @@ static void test_no_nul_term(void) {
 
     fill_longest(&s);
     n = sr_settings_serialize(&s, text, sizeof(text));
-    CHECK(n == 119u);
+    CHECK(n == 129u);
     CHECK(text[n - 1u] == '\n');
 
     /* ① a complete, legal text with no trailing newline */
@@ -1227,9 +1252,63 @@ static void test_source_choice_index_equal(void) {
 
     b.stealth = true;
     CHECK(!sr_settings_equal(&a, &b));
+    b.stealth = a.stealth;
+
+    b.newnet = false;
+    CHECK(!sr_settings_equal(&a, &b));
+}
+
+/* A 0.5 file has no NewNet line: it loads with the tick on and every other value intact. */
+static void test_old_file_without_newnet(void) {
+    SrSettings in;
+    SrSettings out;
+    SrSettingsParseStats st;
+    char text[SR_SETTINGS_TEXT_MAX];
+    char old[SR_SETTINGS_TEXT_MAX];
+    const char* line;
+    const char* eol;
+    size_t n;
+    size_t head;
+    size_t tail;
+
+    sr_settings_defaults(&in);
+    in.sound = false;
+    in.debug_rows = true;
+    in.newnet = false;
+    n = sr_settings_serialize(&in, text, sizeof(text));
+    CHECK(n > 0u);
+    line = strstr(text, "NewNet: ");
+    CHECK(line != NULL);
+    if(line == NULL) {
+        return;
+    }
+    eol = strchr(line, '\n');
+    CHECK(eol != NULL);
+    if(eol == NULL) {
+        return;
+    }
+    head = (size_t)(line - text);
+    tail = n - (size_t)(eol + 1 - text);
+    memcpy(old, text, head);
+    memcpy(old + head, eol + 1, tail);
+    old[head + tail] = '\0';
+    CHECK(strstr(old, "NewNet") == NULL);
+
+    memset(&st, 0, sizeof(st));
+    CHECK(sr_settings_parse(old, head + tail, &out, &st));
+    CHECK(st.header_ok);
+    CHECK(st.keys_known == 7u);
+    CHECK(st.keys_unknown == 0u);
+    CHECK(out.newnet == true);
+    CHECK(out.sound == false);
+    CHECK(out.debug_rows == true);
+    CHECK(out.baud == in.baud);
+    CHECK(out.vibro == in.vibro);
+    CHECK(out.stealth == in.stealth);
 }
 
 int test_settings_run(void) {
+    test_old_file_without_newnet();
     test_defaults_and_clamp();
     test_serialize_len_and_cap();
     test_roundtrip_576();

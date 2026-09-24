@@ -104,7 +104,7 @@ typedef struct FSDState {
         // car disengages — keeps injection off the abort edge (#108). Off by default.
     uint8_t
         ap_inject_count; // AP-enable frames modified this engagement (Minimal Inject burst budget;
-        // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
+    // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
     uint8_t das_ap_state; // DAS_autopilotState (byte0 low nibble on 0x39B/0x399):
         // 0=DISABLED 1=UNAVAILABLE 2=AVAILABLE (offered, NOT engaged)
         // 3=ACTIVE_NOMINAL (first engaged) 4=ACTIVE_RESTRICTED 5=ACTIVE_NAV

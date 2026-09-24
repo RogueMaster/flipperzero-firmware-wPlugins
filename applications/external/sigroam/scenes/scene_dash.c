@@ -20,6 +20,7 @@ _Static_assert(
 enum {
     SigRoamDashEventScroll = 0,
     SigRoamDashEventOk = 1,
+    SigRoamDashEventPendingBack = 2,
 };
 
 static void dash_fill(SigRoamApp* app, SrDashModel* snap) {
@@ -66,6 +67,9 @@ static void dash_fill(SigRoamApp* app, SrDashModel* snap) {
 
     snap->ap_wifi = app->model.ap_wifi;
     snap->ap_ble = app->model.ap_ble;
+    /* 0/0 hides the band row; a partial split would not add up to AP. */
+    snap->ap_24 = app->model.band_partial ? 0u : app->model.ap_24;
+    snap->ap_5 = app->model.band_partial ? 0u : app->model.ap_5;
     snap->unique_est = app->model.unique_est;
     snap->with_gps_fix = app->model.with_gps_fix;
 
@@ -110,6 +114,7 @@ static void dash_fill(SigRoamApp* app, SrDashModel* snap) {
     } else {
         snap->elapsed_ms = 0;
     }
+    snap->last_elapsed_ms = app->model.last_elapsed_ms;
 
     /* app->settings is GUI-thread exclusive (sigroam.h:90-96); we are on the GUI thread here, so read it directly. */
     snap->debug_rows = app->settings.debug_rows;
@@ -181,6 +186,20 @@ static void dash_fill(SigRoamApp* app, SrDashModel* snap) {
     snap->sess_ms = app->model.sess.ms;
     snap->radio = app->model.radio;
     snap->radio_rev = app->model.radio_rev;
+    snap->up_q = app->model.up.q;
+    snap->up_known = app->model.up_rev != 0u;
+    snap->cfg_key = app->model.cfg.key;
+    snap->cfg_home = app->model.cfg.home;
+    snap->cfg_known = app->model.cfg_rev != 0u;
+    snap->pending_prompt = sr_pending_prompt_should_show(
+        app->pending_prompt_dismissed,
+        app->model.qual_rev,
+        (uint8_t)app->model.session,
+        snap->scan_ui,
+        snap->board_sealing,
+        sr_scan_ctl_sd_dead(app->model.qual_rev, app->model.qual.sd, app->model.qual_tick_ms, now),
+        snap->up_known,
+        snap->up_q);
 }
 
 void sigroam_dash_refresh(SigRoamApp* app) {
@@ -201,6 +220,11 @@ static void dash_view_scroll_cb(void* context) {
 static void dash_view_ok_cb(void* context) {
     SigRoamApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, SigRoamDashEventOk);
+}
+
+static void dash_view_back_cb(void* context) {
+    SigRoamApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, SigRoamDashEventPendingBack);
 }
 
 /* The Back path does not hold app->mtx, so it must not read any field of app->model. */
@@ -416,6 +440,23 @@ static bool dash_prestart_tick(SigRoamApp* app) {
     app->dash_prestart = false;
     dash_queue_cmd(app, true);
     return true;
+}
+
+/* upload is the OK path. Config missing a key or a home Wi-Fi only dismisses.
+ * A busy command slot keeps the popup so the next OK can retry.
+ * The popup is drawn from last tick's snapshot; the board may have been
+ * adopted as Running since, and firmware answers upload with STOP then. */
+static void dash_pending_dismiss(SigRoamApp* app, bool upload) {
+    bool blocked;
+
+    if(!upload || app->worker == NULL || app->model.session == SrSessionRunning) {
+        app->pending_prompt_dismissed = true;
+        return;
+    }
+    blocked = app->model.cfg_rev != 0u && (app->model.cfg.key == 0u || app->model.cfg.home == 0u);
+    if(blocked || sr_worker_send_cmd(app->worker, "upload\n")) {
+        app->pending_prompt_dismissed = true;
+    }
 }
 
 /* OK-key dispatch via sr_scan_ctl_on_ok (D12 A1). State is eval'd over a
@@ -697,6 +738,7 @@ void sigroam_scene_dash_on_enter(void* context) {
     /* Entered via the custom callback, so app->mtx is already held. Do not acquire again. No blocking IO. */
     sr_view_dash_set_callback(app->dash, dash_view_scroll_cb, app);
     sr_view_dash_set_ok_callback(app->dash, dash_view_ok_cb, app);
+    sr_view_dash_set_back_callback(app->dash, dash_view_back_cb, app);
     /* Card N1: SigRoam `info` is read-only. Stock Marauder info is not —
      * SHOW_INFO swallows wardrive. Empty Version: bootstrap `info` and hold
      * OK until Version (retry once after SR_SCAN_CTL_IDENT_MS). After Version
@@ -736,8 +778,14 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
             sigroam_dash_refresh(app);
             return true;
         }
+        if(event.event == SigRoamDashEventPendingBack) {
+            dash_pending_dismiss(app, false);
+            sigroam_dash_refresh(app);
+            return true;
+        }
         if(event.event == SigRoamDashEventOk) {
             uint8_t tab = (uint8_t)SR_VIEW_TAB_DASH;
+            bool pending = false;
             View* v = sr_view_dash_get_view(app->dash);
             if(v != NULL) {
                 with_view_model(
@@ -746,6 +794,7 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
                     {
                         if(cur != NULL) {
                             tab = cur->tab;
+                            pending = cur->pending_prompt;
                         }
                     },
                     false);
@@ -779,7 +828,11 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
                     dash_poi_send(app);
                 }
             } else if(tab == (uint8_t)SR_VIEW_TAB_DASH) {
-                dash_scan_toggle(app);
+                if(pending) {
+                    dash_pending_dismiss(app, true);
+                } else {
+                    dash_scan_toggle(app);
+                }
             }
             sigroam_dash_refresh(app);
             return true;
@@ -814,10 +867,22 @@ bool sigroam_scene_dash_on_event(void* context, SceneManagerEvent event) {
             need = true;
         }
         dash_qual_refresh_tick(app);
-        SrAlertKind ak = sr_alert_eval(
-            &app->alert, app->model.gps_csv_rev, app->model.gps_csv.fix, furi_get_tick());
-        if(ak != SrAlertNone) {
-            sr_notify_alert(app->notify, ak, &app->settings);
+        {
+            uint32_t now_ms = furi_get_tick();
+            SrAlertKind ak =
+                sr_alert_eval(&app->alert, app->model.gps_csv_rev, app->model.gps_csv.fix, now_ms);
+            if(ak != SrAlertNone) {
+                sr_notify_alert(app->notify, ak, &app->settings);
+            } else {
+                bool net = sr_newnet_eval(
+                    &app->newnet,
+                    app->model.unique_est,
+                    app->model.session == SrSessionRunning,
+                    now_ms);
+                if(net && app->settings.newnet) {
+                    sr_notify_newnet(app->notify, &app->settings);
+                }
+            }
         }
         if(need) {
             sigroam_dash_refresh(app);
@@ -837,5 +902,6 @@ void sigroam_scene_dash_on_exit(void* context) {
     if(app != NULL && app->dash != NULL) {
         sr_view_dash_set_callback(app->dash, NULL, NULL);
         sr_view_dash_set_ok_callback(app->dash, NULL, NULL);
+        sr_view_dash_set_back_callback(app->dash, NULL, NULL);
     }
 }

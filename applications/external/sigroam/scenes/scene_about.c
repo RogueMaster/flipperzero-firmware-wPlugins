@@ -46,7 +46,7 @@
  *
  *   x: 0                        90 91              127
  *      ┌────────────────────────────────────────────┐
- *  b10 │ SigRoam Wardriving v0.5                    │  full 128, 105 px
+ *  b10 │ SigRoam Wardriving v0.6                    │  full 128, 105 px
  *      ├─────────────────────────┬──────────────────┤
  *  b20 │ by PINGEQUA Lab         │ I_sr1g_qr        │  74 px
  *  b30 │ Receive-only.           │ 37x37 (x=91,     │
