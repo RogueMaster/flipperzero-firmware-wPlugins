@@ -4,6 +4,7 @@
 #include "../src/sr_resync.h"
 #include "../src/sr_capture_health.h"
 #include "../src/sr_scan_ctl.h"
+#include "../src/sr_dialect.h"
 
 #include <gui/elements.h>
 #include <stdio.h>
@@ -22,6 +23,12 @@ _Static_assert(
 _Static_assert(
     sizeof("Waiting for first AP") - 1u == (unsigned)SR_VIEW_COLS,
     "Waiting for first AP must be exactly 20 cols");
+_Static_assert(
+    sizeof("Uploading...") - 1u <= (unsigned)SR_VIEW_COLS,
+    "Uploading... must fit 20 cols");
+_Static_assert(
+    sizeof("do not start") - 1u <= (unsigned)SR_VIEW_COLS,
+    "do not start must fit 20 cols");
 
 /* Tab bar height: y = 0..10, with the content area starting at 11 (UI-SPEC section 3).
  * draw_tabs and draw_stream each hardcoded 11 before; T4.11 collapsed them into one constant. */
@@ -347,6 +354,38 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         return;
     }
 
+    /* Diag st=5: board is in STA upload epoch. Show before wait_stage /
+     * Running / Saving so a leftover FAP Running session cannot hide it. */
+    if(sr_scan_ctl_uploading(m->firmware.diag_seen, m->firmware.diag_state)) {
+        if(m->qual_rev != 0u && !m->debug_rows) {
+            n = snprintf(raw, sizeof(raw), "Uploading...");
+            sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
+            n = snprintf(raw, sizeof(raw), "do not start");
+            sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
+            sr_view_dash_put_health(canvas, 61, m);
+            return;
+        }
+        if(y > 61) {
+            return;
+        }
+        n = snprintf(raw, sizeof(raw), "Uploading...");
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        y += 10;
+        if(y > 61) {
+            return;
+        }
+        n = snprintf(raw, sizeof(raw), "do not start");
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        y += 10;
+        if(y > 61) {
+            return;
+        }
+        sr_fmt_bytes(m->rx_bytes, a, sizeof(a));
+        n = snprintf(raw, sizeof(raw), "rx=%s", a);
+        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+        return;
+    }
+
     if(m->wait_stage == (uint8_t)SR_RESYNC_HINT_BUSY ||
        m->wait_stage == (uint8_t)SR_RESYNC_HINT_LOST) {
         /* Packed into wait_stage so SrDashModel does not grow (sizeof == 712).
@@ -493,6 +532,12 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
          * unchanged. */
         if(m->qual_rev != 0u && !m->debug_rows) {
             int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 41);
+            if((m->scan_ui == (uint8_t)SrScanUiStopping ||
+                m->scan_ui == (uint8_t)SrScanUiStopFailed) &&
+               next >= 0) {
+                n = snprintf(raw, sizeof(raw), "Stopping...");
+                sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
+            }
             if(next >= 0) {
                 if(m->ap_wifi == 0u && m->ap_ble == 0u) {
                     n = snprintf(raw, sizeof(raw), "Waiting for first AP");
@@ -976,9 +1021,8 @@ static void sr_view_dash_draw_session(Canvas* canvas, const SrDashModel* m) {
         sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
         n = snprintf(raw, sizeof(raw), "Use Probe firmware");
         sr_view_dash_put_line(canvas, 61, raw, n, sizeof(raw));
-    } else if(sr_fmt_hw_is_scout_lite(m->firmware.hardware, sizeof(m->firmware.hardware))) {
-        /* Scout Lite board → product SigRoam. Wire Firmware: Marauder is
-         * the handshake token and must not appear on this tab. */
+    } else if(sr_dialect_is_sigroam(&m->firmware)) {
+        /* Product name, not UART Version: / Firmware: Marauder (ADR-027). */
         n = snprintf(raw, sizeof(raw), "SigRoam");
         sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
         n = (int)sr_fmt_sess_sigroam_status(
@@ -997,8 +1041,8 @@ static void sr_view_dash_draw_session(Canvas* canvas, const SrDashModel* m) {
         n = (int)sr_fmt_fw_pair(
             m->firmware.firmware,
             sizeof(m->firmware.firmware),
-            m->firmware.version,
-            sizeof(m->firmware.version),
+            NULL,
+            0,
             (size_t)SR_VIEW_COLS,
             raw,
             sizeof(raw));

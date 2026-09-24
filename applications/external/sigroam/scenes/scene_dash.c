@@ -430,7 +430,7 @@ static void dash_scan_toggle(SigRoamApp* app) {
     ctx.session_rev_now = app->model.session_rev;
     ctx.session_now = app->model.session;
     st = sr_scan_ctl_eval(&ctx, furi_get_tick());
-    act = sr_scan_ctl_on_ok_ex(
+    act = sr_scan_ctl_on_ok_upload_gate(
         st,
         sr_scan_ctl_sd_dead(
             app->model.qual_rev, app->model.qual.sd, app->model.qual_tick_ms, furi_get_tick()),
@@ -446,7 +446,10 @@ static void dash_scan_toggle(SigRoamApp* app) {
             app->model.firmware.version[0] != '\0',
             app->dash_ident_tick_ms,
             furi_get_tick(),
-            (uint32_t)SR_SCAN_CTL_IDENT_MS));
+            (uint32_t)SR_SCAN_CTL_IDENT_MS),
+        sr_scan_ctl_uploading(app->model.firmware.diag_seen, app->model.firmware.diag_state));
+    act = sr_scan_ctl_retry_unconfirmed(
+        act, st, app->model.session == SrSessionRunning, app->scan.cmd_is_start);
     if(act == SrScanActSendStart) {
         if(app->dash_prestart) {
             return;

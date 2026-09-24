@@ -757,7 +757,7 @@ int test_gps_sample_run(void) {
      * SrDashModel same +8 → 712. SrEvent stays 240 (radio arm is 2 B).
      * 2026-09-20 board_sealing bool sits in the 3-byte pad after scan_ui
      * (before ap_wifi); sizeof stays 712. */
-    CHECK(sizeof(SrModel) == 3424);
+    CHECK(sizeof(SrModel) == 3520);
     CHECK(sizeof(SrDashModel) == 712);
     CHECK(sizeof(SrDashModel) <= 768);
     CHECK(sizeof(SrGpsSampleCtx) == 20);

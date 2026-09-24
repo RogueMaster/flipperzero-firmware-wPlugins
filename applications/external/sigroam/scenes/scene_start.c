@@ -21,6 +21,7 @@
 typedef enum {
     SigRoamStartItemDash = 0,
     SigRoamStartItemProbe,
+    SigRoamStartItemUpload,
     SigRoamStartItemRaw,
     SigRoamStartItemSettings,
     SigRoamStartItemAbout,
@@ -56,6 +57,8 @@ void sigroam_scene_start_on_enter(void* context) {
         app->submenu, "Dashboard", SigRoamStartItemDash, sigroam_start_submenu_callback, app);
     submenu_add_item(
         app->submenu, "Probe firmware", SigRoamStartItemProbe, sigroam_start_submenu_callback, app);
+    submenu_add_item(
+        app->submenu, "Upload", SigRoamStartItemUpload, sigroam_start_submenu_callback, app);
     submenu_add_item(
         app->submenu, "Raw log", SigRoamStartItemRaw, sigroam_start_submenu_callback, app);
     submenu_add_item(
@@ -97,6 +100,10 @@ bool sigroam_scene_start_on_event(void* context, SceneManagerEvent event) {
         }
         if(event.event == SigRoamStartItemRaw) {
             scene_manager_next_scene(app->scene_manager, SigRoamSceneRaw);
+            return true;
+        }
+        if(event.event == SigRoamStartItemUpload) {
+            scene_manager_next_scene(app->scene_manager, SigRoamSceneUpload);
             return true;
         }
         if(event.event == SigRoamStartItemSettings) {

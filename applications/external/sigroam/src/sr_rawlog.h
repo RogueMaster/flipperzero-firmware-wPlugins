@@ -57,6 +57,28 @@ static inline char sr_rawlog_sanitize(unsigned char c) {
     return (char)c;
 }
 
+/*
+ * Wire `Version:` is Marauder dialect (v1.14.1 / v1.14.1-sigroam-0), not
+ * product copy. Parsed as SrEventFirmware so it usually never reaches Raw
+ * log; skip it if a truncated line lands as unknown (ADR-027).
+ * Match the 8-byte prefix only; do not scan past len.
+ */
+static inline bool sr_rawlog_is_wire_version_line(const char* text, size_t len) {
+    static const char k[] = "Version:";
+    const size_t klen = sizeof(k) - 1u;
+    size_t i;
+
+    if(text == NULL || len < klen) {
+        return false;
+    }
+    for(i = 0; i < klen; i++) {
+        if(text[i] != k[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static inline void sr_rawlog_push(SrRawLog* l, const char* text, size_t len) {
     SrRawLogEntry* slot;
     size_t n;

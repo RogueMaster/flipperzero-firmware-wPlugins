@@ -62,6 +62,7 @@ static SrScanAct oracle_on_ok(SrScanUiState st) {
         SrScanUiRunning,
         SrScanUiStarting,
         SrScanUiStopFailed,
+        SrScanUiStopping,
     };
     static const SrScanUiState start_set[] = {
         SrScanUiIdle,
@@ -256,7 +257,7 @@ int test_scan_ctl_run(void) {
             {SrScanUiIdle, SrScanActSendStart},
             {SrScanUiStarting, SrScanActSendStop},
             {SrScanUiRunning, SrScanActSendStop},
-            {SrScanUiStopping, SrScanActNone},
+            {SrScanUiStopping, SrScanActSendStop},
             {SrScanUiStartFailed, SrScanActSendStart},
             {SrScanUiStopFailed, SrScanActSendStop},
             {SrScanUiBusy, SrScanActNone},
@@ -301,13 +302,22 @@ int test_scan_ctl_run(void) {
             act_stop,
             on_ok_total);
         /* Welded after first print (D12 A1 / common precondition 7):
-         * stop = Running + Starting + StopFailed = 3
+         * stop = Running + Starting + StopFailed + Stopping = 4
          * start = Idle + StartFailed = 2
-         * none = Stopping + Busy = 2
+         * none = Busy = 1
          * total = 7 (every SrScanUiState value) */
-        CHECK(act_none == 2);
+        CHECK(act_none == 1);
         CHECK(act_start == 2);
-        CHECK(act_stop == 3);
+        CHECK(act_stop == 4);
+        CHECK(
+            sr_scan_ctl_retry_unconfirmed(SrScanActNone, SrScanUiBusy, true, false) ==
+            SrScanActSendStop);
+        CHECK(
+            sr_scan_ctl_retry_unconfirmed(SrScanActNone, SrScanUiBusy, true, true) ==
+            SrScanActNone);
+        CHECK(
+            sr_scan_ctl_retry_unconfirmed(SrScanActNone, SrScanUiBusy, false, false) ==
+            SrScanActNone);
         CHECK(on_ok_total == 7);
     }
 
@@ -381,6 +391,28 @@ int test_scan_ctl_run(void) {
     CHECK(sr_scan_ctl_sd_dead(1u, 0u, 1000u, 1000u) == true);
     CHECK(sr_scan_ctl_on_ok_ex(SrScanUiIdle, true, false, false) == SrScanActNone);
 
+    CHECK(sr_scan_ctl_uploading(false, 5u) == false);
+    CHECK(sr_scan_ctl_uploading(true, 0u) == false);
+    CHECK(sr_scan_ctl_uploading(true, 1u) == false);
+    CHECK(sr_scan_ctl_uploading(true, 4u) == false);
+    CHECK(sr_scan_ctl_uploading(true, 5u) == true);
+    CHECK(sr_scan_ctl_board_idle_or_sealed(5u) == false);
+    CHECK(sr_scan_ctl_sealing_ex(true, 5u, 0u, 0u, 0u, false) == false);
+    /* ADR-21: SEALED still allows START. */
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiIdle, false, false, false) == SrScanActSendStart);
+    CHECK(
+        sr_scan_ctl_on_ok_upload_gate(SrScanUiIdle, false, false, false, false) ==
+        SrScanActSendStart);
+    CHECK(sr_scan_ctl_on_ok_upload_gate(SrScanUiIdle, false, false, false, true) == SrScanActNone);
+    CHECK(
+        sr_scan_ctl_on_ok_upload_gate(SrScanUiStartFailed, false, false, false, true) ==
+        SrScanActNone);
+    /* Must not send stopscan while the board is UPLOADING. */
+    CHECK(
+        sr_scan_ctl_on_ok_upload_gate(SrScanUiRunning, false, false, false, true) ==
+        SrScanActNone);
+    CHECK(sr_scan_ctl_on_ok_ex(SrScanUiRunning, false, true, false) == SrScanActSendStop);
+
     fprintf(stderr, "sizeof(SrModel)=%zu\n", sizeof(SrModel));
     fprintf(stderr, "sizeof(SrParser)=%zu\n", sizeof(SrParser));
     fprintf(stderr, "sizeof(SrEvent)=%zu\n", sizeof(SrEvent));
@@ -404,7 +436,7 @@ int test_scan_ctl_run(void) {
      * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
      * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424.
      * SrEvent still 240 (radio arm is 2 B). */
-    CHECK(sizeof(SrModel) == 3424);
+    CHECK(sizeof(SrModel) == 3520);
     CHECK(sizeof(SrModel) <= 4096);
     CHECK(sizeof(SrParser) == 452);
     CHECK(sizeof(SrEvent) == 240);

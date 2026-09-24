@@ -5,6 +5,31 @@ All notable changes to SigRoam are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- A profile check with no HTTP status shows `No reply` / `before upload`. WiGLE documents `GET /api/v2/profile/user` as 200 or 500. That screen is not an API rejection.
+- HTTP 401 or 403 shows `Key rejected` / `check API`. Any other HTTP status shows `HTTP` and the code. HTTP 429 stays `WiGLE busy` / `try later`.
+- An old `PROFILE` token shows `Profile failed` / `no status`.
+
+## [0.5] — 2026-09-23
+
+BLE observation and on-board WiGLE upload for Scout Lite. Not product v1.0.
+
+The scanner app is SHA-256 `13e13033ad2f124b6edb4c599b99e10fb576872964169ea627fb8b320ea54b7c`, 1638160 bytes, written at `0x20000`. Bootloader, partition table, and otadata stay the v0.4 bytes. A sealed survey on that app wrote 66 BLE rows (`obs_ble=5784`).
+
+### Added
+
+- The scanner uploads a sealed WiGLE CSV. Success is an official `transId` stored next to that file.
+- HTTP 429 stops the round and records `reason=HTTP_429`. It does not mark the round done. That status is WiGLE's daily file limit.
+- Upload shows `WiGLE busy` / `try later` when the diag state is 5, there is no id, and the reason is `HTTP_429`. A real id still shows `Uploaded`. Any other state 5 stays `Sending`.
+- This scanner image observes BLE. Dash shows the live BLE count. There is no separate BLE switch.
+
+### Changed
+
+- Probe shows SigRoam / v0.5 / Scout Lite. It does not show the UART `Version:` line.
+
 ## [0.4] — 2026-09-17
 
 Scout Lite identity on the Sess tab, a capture-quality headline, BLE-off on

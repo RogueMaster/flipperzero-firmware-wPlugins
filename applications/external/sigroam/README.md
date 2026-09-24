@@ -33,9 +33,11 @@ something looks wrong.
 
 | Main menu | Dashboard |
 |---|---|
-| <img src="screenshots/menu.png" width="360" alt="SigRoam Wardriving main menu with Dashboard, Probe firmware and Raw log entries"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard with large unique-BSSID count and bottom status line"> |
+| <img src="screenshots/menu.png" width="360" alt="SigRoam Wardriving menu with Upload selected"> | <img src="screenshots/dashboard.png" width="360" alt="SigRoam dashboard with large unique-BSSID count and bottom status line"> |
 | **Settings** | **About** |
 | <img src="screenshots/settings.png" width="360" alt="SigRoam settings screen showing baud rate, source, sound and vibro options"> | <img src="screenshots/about.png" width="360" alt="SigRoam Wardriving v0.4 about screen, by PINGEQUA Lab, with QR code"> |
+| **Upload** | |
+| <img src="screenshots/upload.png" width="360" alt="SigRoam upload screen sending a queued file, card stays in"> | |
 
 ## Quick facts
 
@@ -135,7 +137,7 @@ The main menu has five entries:
   Backlight, Stealth, Debug rows. Sound, Vibro and the LED fire when the GPS fix
   is acquired or lost during a survey; Stealth suppresses the LED, and Backlight
   holds the display lit while you are on the dashboard.
-- **About** — `SigRoam Wardriving v0.4`, `by PINGEQUA Lab`, the receive-only
+- **About** — `SigRoam Wardriving v0.5`, `by PINGEQUA Lab`, the receive-only
   statement, and a QR code to the project short link.
 
 While a scan is running, Back returns to the main menu **without stopping the
@@ -146,10 +148,12 @@ scan**. Stopping is done only with OK on the Dash tab.
 **SigRoam does not write survey data to the Flipper's SD card.** The only thing it
 persists on the Flipper is your settings.
 
-Logging is the scanner's job: Marauder writes its own CSV to the SD card on the
-scanner board, and that file is what you upload to [WiGLE](https://wigle.net/).
-SigRoam gives you control and live visibility over that session; it is not a
-second recorder.
+Logging stays on the scanner microSD. SigRoam 0.5 can upload a sealed CSV
+from the scanner. A successful upload keeps WiGLE's transaction id with that
+file. HTTP 429 is WiGLE's daily file limit: the round stops, and the Flipper
+shows `WiGLE busy`. A profile check with no HTTP status shows `No reply`.
+WiGLE documents that profile call as 200 or 500 when it answers. 401 or 403
+shows `Key rejected`. SigRoam stores only settings on the Flipper.
 
 The unique-BSSID number on the Dash tab is an estimate from a 4 KB Bloom filter
 (32768 bits, 4 hashes), kept in RAM for the session only. It can undercount
@@ -211,8 +215,12 @@ rule, not a missing feature. The app is receive-only and only parses what the
 scanner prints.
 
 **Where is the survey data stored?**
-On the scanner's own microSD card, written by Marauder as CSV. SigRoam persists
-only your settings on the Flipper. The CSV is what you upload to WiGLE.
+On the scanner microSD, as a WigleWifi CSV. SigRoam stores only settings on
+the Flipper. With SigRoam 0.5, a sealed file can upload from the scanner,
+and WiGLE's transaction id stays with that file. HTTP 429 stops the round
+and the Flipper shows `WiGLE busy`. No HTTP status shows `No reply`.
+Copying the card to a computer is a
+separate path.
 
 **Can I use it with USB plugged in?**
 Yes. Pin 1 is fed from USB VBUS whenever USB is connected, and from the OTG boost

@@ -27,8 +27,10 @@
 #include "src/sr_notify.h"
 #include "views/sr_view_dash.h"
 
-#define SR_TAG         "SigRoam"
-#define SR_FAP_VERSION "0.4"
+#define SR_TAG             "SigRoam"
+#define SR_FAP_VERSION     "0.5"
+/* Display-only scanner product number on Probe (ADR-027). Not UART kVersion. */
+#define SR_SCANNER_VERSION "0.5"
 
 /*
  * Brand / referral slot (About page).
@@ -89,15 +91,16 @@
 #define SR_ABOUT_QR_X    (SR_CANVAS_W - SR_ABOUT_QR_SIDE)
 #define SR_ABOUT_QR_Y    13
 
-#define SR_ABOUT_TEXT_MAX 640
+#define SR_ABOUT_TEXT_MAX  640
 /* 320 until 2026-09-07. The four handshake lines already cost ~190 at their field
  * caps, and the Diag block (state name, stuck-gate name, six 10-digit heartbeats)
  * adds ~109 — 21 bytes of slack was close enough that a long ESP-IDF string would
  * have silently truncated the diagnostic, which is the one line that matters when
  * nothing else is answering. */
-#define SR_PROBE_TEXT_MAX 448
-#define SR_RAW_TEXT_MAX   (SR_RAWLOG_LINES * (SR_RAWLOG_LINE_MAX + 2) + 1)
-#define SR_TICK_PERIOD_MS 100
+#define SR_PROBE_TEXT_MAX  448
+#define SR_UPLOAD_TEXT_MAX 192
+#define SR_RAW_TEXT_MAX    (SR_RAWLOG_LINES * (SR_RAWLOG_LINE_MAX + 2) + 1)
+#define SR_TICK_PERIOD_MS  100
 
 typedef enum {
     SigRoamViewSubmenu,
@@ -140,6 +143,13 @@ typedef struct {
     SrHandshakeState hs_shown; /* The state already rendered */
     uint32_t hs_rev_shown; /* model.firmware_rev at the time it was rendered */
     char probe_text[SR_PROBE_TEXT_MAX];
+    char upload_text[SR_UPLOAD_TEXT_MAX];
+    uint32_t upload_up_rev_shown;
+    uint32_t upload_fw_rev_shown; /* model.firmware_rev last drawn on Upload */
+    uint32_t upload_qual_rev_shown; /* model.qual_rev last drawn on Upload */
+    bool upload_go_retry; /* GUI-thread: Center upload lost the depth-1 slot */
+    bool upload_info_armed; /* one info after enter, once the command slot is free */
+    bool upload_ident_info_sent; /* empty Version: one info, then stop until -sigroam- */
     char raw_text[SR_RAW_TEXT_MAX];
     uint32_t raw_pushed_shown; /* Snapshot of rawlog.pushed at the time it was rendered */
     SrRawLog rawlog;
