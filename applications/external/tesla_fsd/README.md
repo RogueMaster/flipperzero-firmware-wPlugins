@@ -91,7 +91,8 @@
 - Vehicle speed, steering angle, motor torque, brake state
 - DAS status: autopilot state, hands-on nag level, lane change state, blind spot warning, FCW, vision speed limit
 - GTW autopilot tier readback (NONE/HIGHWAY/ENHANCED/SELF_DRIVING/BASIC)
-- OTA detection with debounce — auto-suspends TX during firmware updates unless the explicit Ignore OTA override is enabled
+- OTA detection with debounce — auto-suspends TX during firmware updates unless the explicit Ignore OTA override is enabled. Only a stable "installing" value counts; on newer cars `0x318` byte6 is a rolling counter and can't trip it ([#183](https://github.com/hypery11/flipper-tesla-fsd/issues/183))
+- Autopark pause — all TX stops while the car runs in-car Autopark and resumes when it ends; FSD engaged isn't affected ([#180](https://github.com/hypery11/flipper-tesla-fsd/issues/180))
 
 ### CAN Capture + Test Profiles (v2.16+)
 - **CAN Capture** — record every received frame to the SD card in candump format (`apps_data/tesla_mod/captures/`). Read-only; safe to run on any car. Feeds `tools/tesla_crc_cracker.py`.
@@ -145,7 +146,7 @@ These target Tesla 2026.14.x / 2026.20 behaviour and are all **off by default**.
 | **Soft Engage** | Steer-jerk mitigation ([#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)). Holds the activation-edge injection until the wheel is within ±5° of centre. Needs `0x129` (steering angle) on the tapped bus; degrades to AP-First-only if absent. Largely superseded by Abort Guard for straight-road jerks. |
 | **Nag Burst** | Echoes `0x370` in bursts (~1 s on / ~1.5 s off) instead of continuously ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)). The rest periods are the believed reason some in-the-wild devices evade the stricter 14.x nag detector. Pairs with a ±1.8 Nm steering-torque cap. |
 | **EPAS-faithful (Mode-C)** | Demand-state torque model that mirrors a real EPAS instead of flipping `handsOnLevel` ([#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)). For cars where the standard nag killer trips the preflight. **Not yet confirmed on-car.** |
-| **Signal Map** (ESP32 → advanced) | Override where the nag killer reads AP-state / hands-on / steering: `id + byte/shift/mask` ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)). For variants whose `0x39B`/`0x399` layout differs. Freshness-gated — a wrong map fails closed. Leave DAS id `0` for auto-detect. |
+| **Signal Map** (ESP32 → advanced) | Override where the nag killer reads AP-state / hands-on / steering: `id + byte/shift/mask` ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)). For variants whose `0x39B`/`0x399` layout differs. Freshness-gated — a wrong map fails closed, and the dashboard warns when the mapped DAS id never shows up on the bus. A field with mask `0` is ignored. Leave DAS id `0` for auto-detect. |
 
 **Hardware:**
 
@@ -313,7 +314,7 @@ Single-bus read-modify-retransmit on Party CAN. No MITM, no second bus tap.
 | `0x398` | `GTW_carConfig` | RX | HW version detection |
 | `0x318` | `GTW_carState` | RX | OTA detection (auto-suspend TX) |
 | `0x399` | `DAS_status` (HW3/Legacy) / `ISA_speedLimit` (HW4) | RX/TX | HW-dispatched: pre-Highland HW3 reads as DAS_status (AP state + hands-on); HW4 keeps the chime-suppression write path |
-| `0x39B` | `DAS_status` | RX | HW4 + Highland HW3 — AP state (for AP-First), nag level, lane change, blind spot |
+| `0x39B` | `DAS_status` | RX | HW4 + Highland HW3 — AP state (byte0 low nibble, for AP-First), autopark flags (Autopark pause), nag level, lane change, blind spot |
 | `0x132` | `BMS_hvBusStatus` | RX | Pack voltage / current |
 | `0x292` | `BMS_socStatus` | RX | State of charge |
 | `0x312` | `BMS_thermalStatus` | RX | Battery temperature |
@@ -362,8 +363,8 @@ For the Flipper: yes, any MCP2515-based module (Electronic Cats, generic boards)
 - [commaai/opendbc](https://github.com/commaai/opendbc) — Tesla CAN signal database
 - [ElectronicCats/flipper-MCP2515-CANBUS](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) — MCP2515 driver for Flipper
 - Community contributors — the on-car testing, captures, and research this project runs on:
-  - **Protocol, nag killer & 2026.14.x work:** @jewelrylin (T-2CAN dual-bus captures, the frame-content preflight test, the X179 Service Mode pinout), @DrStrangeglovebox (the Feifan `0x370` reference capture + HW4 dual-CAN data + safety findings), @ssw0209-sys (the Mode-C steering-torque reference + HW4 14.x testing), @0xAccretion (HW4 Highland China-MIC DAS-layout findings, #116/#117), @dunckencn (China HW3 start-after-AP validation, steer-jerk + bus-off reports), @kristopf007 (HW4 14.x on-car testing)
-  - **Features, captures & PRs:** @JakNo (ScrollPress AP / `0x3C2`), @vrs11 (Continuous AP), @sqladm1n (RTC capture-log PR + bus/wiring investigation), @DmitroPanteliuk (full-rate `0x229` captures), @se7en7777777 (`0x485` / Highland / checksum analysis), @RoyRakete (TLSSC banned-car combo), @mamixsystem (post-SOP10 connector reference; the definitive frame-level 14.x FSD-engage investigation, #163), @p0sixturtle (Summon / tier-selector pointers, #139), @dahua910 (RHD request, #66), @HamzaObaidat (theatre-mode `0x118` research, #149), @fboulegue (EU / new-harness Juniper reports, #143/#109/#110), @densen2014 (ESP32 HW-selector suggestion #110, TLSSC bit38 toggle PR #159, Summon drive-gear safety-guard suggestion #160)
+  - **Protocol, nag killer & 2026.14.x work:** @jewelrylin (T-2CAN dual-bus captures, the frame-content preflight test, the X179 Service Mode pinout), @DrStrangeglovebox (the Feifan `0x370` reference capture + HW4 dual-CAN data + safety findings), @ssw0209-sys (the Mode-C steering-torque reference + HW4 14.x testing), @0xAccretion (HW4 Highland China-MIC DAS-layout findings, #116/#117), @dunckencn (China HW3 start-after-AP validation, steer-jerk + bus-off reports), @kristopf007 (HW4 14.x on-car testing), @anoblekman (Highland HW4 DAS decode + the in-car Autopark safety finding, #177/#180)
+  - **Features, captures & PRs:** @JakNo (ScrollPress AP / `0x3C2`), @vrs11 (Continuous AP), @sqladm1n (RTC capture-log PR + bus/wiring investigation), @DmitroPanteliuk (full-rate `0x229` captures), @se7en7777777 (`0x485` / Highland / checksum analysis), @RoyRakete (TLSSC banned-car combo), @mamixsystem (post-SOP10 connector reference; the definitive frame-level 14.x FSD-engage investigation, #163), @p0sixturtle (Summon / tier-selector pointers, #139), @dahua910 (RHD request, #66), @HamzaObaidat (theatre-mode `0x118` research, #149), @fboulegue (EU / new-harness Juniper reports, #143/#109/#110), @densen2014 (ESP32 HW-selector suggestion #110, TLSSC bit38 toggle PR #159, Summon drive-gear safety-guard suggestion #160), @Tesla234987234sdf (Palladium OTA-latch report + captures, #183/#175), @tommybsb-lab (ATOM Lite / Juniper field report behind the Signal Map fixes, #100), @sb1089 (HW3 2026.26 nag capture, #122), @ukinora (independent `0x318` rolling-counter analysis)
   - **Ban research, platform testing, ESP32, bug fixes:** @THER4iN, @MiniCS, @kp43h8, @gauner1986, @dmagyar, @ViPiMP, @marcobellinoroci-source, @danpadure, @bruvv, @Symness, @hkloudou, @nagotti, @patatman, @JordanzhaoD
 - `Starmixcraft/tesla-fsd-can-mod` — original CanFeather FSD research (GitLab repo removed; mirror at [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod))
 

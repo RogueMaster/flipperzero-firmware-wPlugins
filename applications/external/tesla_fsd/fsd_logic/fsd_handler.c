@@ -1,6 +1,7 @@
 #include "fsd_handler.h"
 #include "fsd_checksum.h"
 #include "fsd_can_ops.h"
+#include "fsd_ota.h"
 #include <string.h>
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
@@ -32,21 +33,16 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
 
 void fsd_handle_gtw_car_state(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
-    // GTW_updateInProgress: bits 1:0 of byte 6.
-    // 0=No update, 1=Update available, 2=Installing, 3=Scheduled.
-    // Only value 2 (installing) should suspend TX. Value 1 (available) caused
-    // false positives on some firmware builds (issue #19).
-    uint8_t raw = (frame->buffer[6] >> 0) & 0x03;
-    bool in_progress = (raw == 2);
-    if(in_progress) {
-        state->tesla_ota_in_progress = true;
-    } else {
-        state->tesla_ota_in_progress = false;
-    }
+    // GTW_updateInProgress: bits 1:0 of byte 6. Only a stable raw 2 (installing)
+    // pauses TX; on newer cars byte6 is a rolling counter (#183). See fsd_ota.h.
+    fsd_ota_update(state, frame->buffer[6]);
 }
 
 bool fsd_can_transmit(const FSDState* state) {
     if(state->op_mode == OpMode_ListenOnly) return false;
+    // In-car Autopark (#180): pause every TX path for the episode. Not
+    // overridable by ignore_ota — Autopark injection throws AEB/traction warnings.
+    if(state->autopark_tx_block) return false;
     if(state->tesla_ota_in_progress) return false;
     return true;
 }
@@ -555,30 +551,24 @@ void fsd_build_steering_tune_frame(CANFRAME* frame, uint8_t mode) {
 void fsd_handle_das_status_hw3(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 6) return;
     state->das_ap_state = frame->buffer[0] & 0x0Fu;
+    // DAS_autopark bits: byte3 bits0-2 (same positions as 0x39B) (#180).
+    fsd_autopark_parse(state, frame->buffer[3]);
     state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0Fu;
     state->das_seen = true;
 }
 
 void fsd_handle_das_status_hw4(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
-    // DAS_autopilotState: bit12|4 → byte1 bits[7:4]
-    // 0=UNAVAIL 1=UNAVAILABLE/AVAIL-flicker 2=AVAILABLE (offered, not engaged)
-    // 3=ACTIVE_NOMINAL (first engaged) 4=ACTIVE_MIN_DRIVER 6=active 8/9=aborting/aborted
-    uint8_t hw4_state = (frame->buffer[1] >> 4) & 0x0F;
-    // HW4 Highland (China MIC, fw 2026.20) carries DAS_autopilotState in byte0 low
-    // nibble (HW3 position: 1=avail 2=ready 3=engaged) while byte1[7:4] is pinned at
-    // 1 the whole drive (#116). Latch to byte0 only on the unique signature — byte0
-    // active (>=2) while byte1[7:4] stays exactly 1 across 3 frames — and never once
-    // byte1[7:4] is seen != 1 (that proves a standard HW4 car, byte0 left untouched).
-    uint8_t b0_state = frame->buffer[0] & 0x0F;
-    if(hw4_state != 1u) {
-        state->das_hw4_byte1_moved = true;
-        state->das_hw4_byte0_pin_count = 0;
-    } else if(!state->das_hw4_use_byte0 && !state->das_hw4_byte1_moved && b0_state >= 2u) {
-        if(state->das_hw4_byte0_pin_count < 3u) state->das_hw4_byte0_pin_count++;
-        if(state->das_hw4_byte0_pin_count >= 3u) state->das_hw4_use_byte0 = true;
-    }
-    state->das_ap_state = state->das_hw4_use_byte0 ? b0_state : hw4_state;
+    // DAS_autopilotState = byte0 low nibble on Highland HW3/HW4 (opendbc party
+    // tesla_model3_party.dbc BO_923: DAS_autopilotState = bit 0|4). byte1 is
+    // DAS_fusedSpeedLimit etc, NOT AP state (the old byte1[7:4] decode read the
+    // fusedSpeedLimit MSB — wrong on every real car we have, #163/#116/#177).
+    // 0=DISABLED 1=UNAVAILABLE 2=AVAILABLE (offered, not engaged) 3=ACTIVE_NOMINAL
+    // (first engaged) 4=ACTIVE_RESTRICTED 5=ACTIVE_NAV 6=ACTIVE_FSD (steady engaged
+    // on newer fw) 8/9=ABORTING/ABORTED 14=FAULT 15=SNA.
+    state->das_ap_state = frame->buffer[0] & 0x0Fu;
+    // DAS_autopark bits: byte3 bits0-2 (#180).
+    fsd_autopark_parse(state, frame->buffer[3]);
     // DAS_autopilotHandsOnState: bit42|4 → byte5 bits[5:2]
     state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0F;
     // DAS_autoLaneChangeState: bit46|5 → byte5 bits[7:6] + byte6 bits[2:0]
@@ -1269,11 +1259,17 @@ static bool
 
 void fsd_apply_signal_config(FSDState* state, const CANFRAME* frame, uint32_t now_ms) {
     if(state->cfg_das_id != 0 && frame->canId == state->cfg_das_id) {
-        if(state->cfg_apstate_byte < 8 && frame->data_lenght > state->cfg_apstate_byte)
+        // A mask of 0 means "not mapped" — ignore the field and keep the prior
+        // value instead of forcing it to 0 forever (#100: a tester who set only
+        // the DAS id left the masks at 0, which zeroed hands-on so the nag killer
+        // never fired).
+        if(state->cfg_apstate_mask != 0 && state->cfg_apstate_byte < 8 &&
+           frame->data_lenght > state->cfg_apstate_byte)
             state->das_ap_state =
                 (frame->buffer[state->cfg_apstate_byte] >> state->cfg_apstate_shift) &
                 state->cfg_apstate_mask;
-        if(state->cfg_handson_byte < 8 && frame->data_lenght > state->cfg_handson_byte)
+        if(state->cfg_handson_mask != 0 && state->cfg_handson_byte < 8 &&
+           frame->data_lenght > state->cfg_handson_byte)
             state->das_hands_on_state =
                 (frame->buffer[state->cfg_handson_byte] >> state->cfg_handson_shift) &
                 state->cfg_handson_mask;

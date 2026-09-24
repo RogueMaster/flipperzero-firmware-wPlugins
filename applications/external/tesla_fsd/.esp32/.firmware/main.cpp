@@ -999,6 +999,7 @@ static void button_tick() {
         if (g_factory_reset_armed) {
             Serial.println("[BTN] Factory reset confirmed — clearing NVS");
             prefs_clear();
+            can_shutdown_all(g_can, CAN_ACTIVE_BUS_COUNT);
             delay(200);
             ESP.restart();
         }
@@ -1078,6 +1079,12 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         g_state.ap_inject_count = 0;          // re-arm Minimal Inject burst next engage (#108)
     }
     fsd_abort_guard_update(&g_state);  // latch off injection if the car aborts (#108)
+    // In-car Autopark TX pause (#180): maintain the episode + block from the
+    // last-parsed DAS/speed (same vantage as abort_guard above). Capture the
+    // block edge so the start/end can be logged outside the lock.
+    bool autopark_block_before = g_state.autopark_tx_block;
+    fsd_autopark_update(&g_state, now);
+    bool autopark_block_after = g_state.autopark_tx_block;
     // Black-box event-core poll (#124): once per frame, reading das_ap_state as
     // of the last DAS parse (same vantage as abort_guard above). Detects the
     // abort transition; the snapshot carries the toggles for the .json summary.
@@ -1091,6 +1098,15 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (frame.id == CAN_ID_BMS_SOC)        g_state.seen_bms_soc++;
     if (frame.id == CAN_ID_BMS_THERMAL)    g_state.seen_bms_thermal++;
     state_exit();
+
+    // Autopark block edge (#180): log start/end like the OTA start/finish lines.
+    if (!autopark_block_before && autopark_block_after) {
+        Serial.println("[AUTOPARK] in-car Autopark detected (DAS state 6) - TX paused");
+        can_dump_log("AUTOPARK in-car Autopark - TX paused");
+    } else if (autopark_block_before && !autopark_block_after) {
+        Serial.println("[AUTOPARK] episode ended - TX resumed");
+        can_dump_log("AUTOPARK episode ended - TX resumed");
+    }
 
     // Black-box: record key diagnostic ids (all buses, both modes; the filter
     // in blackbox_record keeps the window intact on a busy bus) and arm a
@@ -1262,6 +1278,15 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (frame.id == CAN_ID_DAS_CONTROL) {
         state_enter();
         fsd_handle_das_control(&g_state, &frame);
+        state_exit();
+        return;
+    }
+    // Vehicle speed (0x257) — read-only; feeds the Autopark release gate (#180).
+    if (frame.id == CAN_ID_DI_SPEED) {
+        uint32_t now_ms = millis();
+        state_enter();
+        fsd_handle_di_speed(&g_state, &frame);
+        g_state.last_speed_tick_ms = now_ms;   // freshness for fsd_autopark_update
         state_exit();
         return;
     }
@@ -1729,9 +1754,12 @@ void loop() {
             (s.hw_version == TeslaHW_HW4)    ? "HW4"    :
             (s.hw_version == TeslaHW_HW3)    ? "HW3"    :
             (s.hw_version == TeslaHW_Legacy)  ? "Legacy" : "?";
+        // CANErr is the combined count; mostly controller RX-queue drops on a
+        // busy bus, so print the per-cause split beside it.
+        CanErrorSplit err = can_error_split(g_can, CAN_ACTIVE_BUS_COUNT);
         Serial.printf(
             "[STA] HW:%-6s AP:%-4s FSD_UI:%-4s Unlock:%-3s NAG:%-3s Echo:%lu OTA:%-3s "
-            "Profile:%d  RX:%lu TX:%lu Mod:%lu Err:%lu\n",
+            "Profile:%d  RX:%lu TX:%lu Mod:%lu CANErr:%lu (RXmissed:%lu Bus:%lu TXfail:%lu)\n",
             hw_str,
             s.ap_active       ? "ON"         : "wait",
             s.fsd_enabled     ? "ON"         : "wait",
@@ -1743,8 +1771,35 @@ void loop() {
             (unsigned long)s.rx_count,
             (unsigned long)s.tx_count,
             (unsigned long)s.frames_modified,
-            (unsigned long)s.crc_err_count);
+            (unsigned long)s.crc_err_count,
+            (unsigned long)err.rx_missed_count,
+            (unsigned long)err.bus_error_count,
+            (unsigned long)err.tx_failed_count);
         last_status_ms = now;
+    }
+
+    // ── Signal Map watchdog (#100) ────────────────────────────────────────────
+    // A configured Signal Map DAS id that never appears on the tapped bus skips
+    // the standard parsers and silently pauses the nag killer (fsd_das_ctx_fresh
+    // fails closed). Surface it as a status flag + one-shot Serial line so the
+    // user knows to fix the mapping or set DAS id 0 for auto.
+    {
+        static bool sigmap_warned = false;
+        FSDState sm = state_snapshot();
+        bool missing = fsd_signal_map_das_missing(&sm, now);
+        if (missing != sm.signal_map_das_missing) {
+            state_enter();
+            g_state.signal_map_das_missing = missing;
+            state_exit();
+        }
+        if (missing && !sigmap_warned) {
+            Serial.printf("[SIGMAP] DAS id 0x%X not seen on this bus: nag killer paused. "
+                          "Set DAS id 0 for auto.\n", sm.cfg_das_id);
+            can_dump_log("SIGMAP DAS id not seen: nag killer paused (set DAS id 0 for auto)");
+            sigmap_warned = true;
+        } else if (!missing) {
+            sigmap_warned = false;
+        }
     }
 
     // ── Periodic re-init when a CAN driver failed at boot ────────────────────

@@ -11,13 +11,12 @@
  * auto-apply: a false profile is worse than no profile, so the bar is exactly one
  * qualifying profile or nothing.
  *
- * The standard fsd_handle_das_status_hw4 parser auto-adapts to the HW4 byte0
- * LOW-nibble layout (byte1[7:4] pinned at 1, byte0 low carrying the live state)
- * via its das_hw4_use_byte0 latch (#116) — including ssw0209's 2026.20 Highland,
- * whose 0x39B matches that signature exactly (confirmed from his engaged logs).
- * So that variant is NOT a gap: its profile is present only as a disambiguation
- * candidate. A match against a std / auto-handled profile means the parser is
- * fine, so no suggestion is made.
+ * The standard fsd_handle_das_status_hw4 parser reads DAS_autopilotState from
+ * 0x39B byte0 low nibble (opendbc party BO_923) — the real position on every car
+ * we have data for (#163/#116/#177), including ssw0209's 2026.20 Highland. So the
+ * known layouts are all auto-handled: the rows below exist only as disambiguation
+ * candidates, and a match against one means the parser is fine, so no suggestion
+ * is made (needs_override stays false for all seed rows).
  *
  * Pure / header-only (static inline), mirroring fsd_capability.h — the match
  * logic lives in ONE place the host tests exercise directly.
@@ -52,8 +51,7 @@ typedef struct {
 static const FSDProfile FSD_PROFILE_DB[] = {
     // name                     das_id  apstate{b,s,m}   handson{b,s,m}   needs_override
     {"Standard HW3/Legacy", 0x399, {0, 0, 0x0F}, {5, 2, 0x0F}, false},
-    {"Standard HW4", 0x39B, {1, 4, 0x0F}, {5, 2, 0x0F}, false},
-    {"Highland (byte0 lo)", 0x39B, {0, 0, 0x0F}, {5, 2, 0x0F}, false},
+    {"Standard HW4", 0x39B, {0, 0, 0x0F}, {5, 2, 0x0F}, false},
 };
 
 #define FSD_PROFILE_DB_COUNT ((int)(sizeof(FSD_PROFILE_DB) / sizeof(FSD_PROFILE_DB[0])))

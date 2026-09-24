@@ -13,6 +13,7 @@
 #include "can_signals.h"
 #include "../../fsd_logic/fsd_checksum.h"  // shared Tesla additive checksum (single impl, both platforms)
 #include "../../fsd_logic/fsd_can_ops.h"   // shared stateless frame primitives (set_bit / mux / fsd-selected)
+#include "../../fsd_logic/fsd_ota.h"       // shared 0x318 OTA-install detection (flag vs rolling counter)
 #include <string.h>
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -91,6 +92,10 @@ void fsd_apply_hw_version(FSDState *state, TeslaHWVersion hw) {
 
 bool fsd_can_transmit(const FSDState *state) {
     if (state->op_mode == OpMode_ListenOnly) return false;
+    // In-car Autopark (#180): pause every TX path for the episode. Checked before
+    // ignore_ota so it is NOT overridable — Autopark injection throws AEB/traction
+    // /stability/regen warnings.
+    if (state->autopark_tx_block) return false;
     if (state->tesla_ota_in_progress && !state->ignore_ota) return false;
     return true;
 }
@@ -148,24 +153,10 @@ TeslaHWVersion fsd_detect_hw_version(const CanFrame *frame) {
 
 void fsd_handle_gtw_car_state(FSDState *state, const CanFrame *frame) {
     if (frame->dlc < 7) return;
-    // GTW_updateInProgress: bits 1:0 of byte 6.
-    // Filter transient / incompatible values to avoid false positives.
-    uint8_t raw = frame->data[SIG_GTW_UPDATE_IN_PROGRESS_BYTE] &
-                  SIG_GTW_UPDATE_IN_PROGRESS_MASK;
-    state->ota_raw_state = raw;
-
-    bool in_progress = (raw == OTA_IN_PROGRESS_RAW_VALUE);
-    if (in_progress) {
-        if (state->ota_assert_count < 255u) state->ota_assert_count++;
-        state->ota_clear_count = 0;
-        if (state->ota_assert_count >= OTA_ASSERT_FRAMES)
-            state->tesla_ota_in_progress = true;
-    } else {
-        if (state->ota_clear_count < 255u) state->ota_clear_count++;
-        state->ota_assert_count = 0;
-        if (state->ota_clear_count >= OTA_CLEAR_FRAMES)
-            state->tesla_ota_in_progress = false;
-    }
+    // GTW_updateInProgress: bits 1:0 of byte 6. Only a stable raw 2 (installing)
+    // pauses TX; on newer cars byte6 is a rolling counter (#183). Same debounce
+    // as the Flipper via fsd_ota.h.
+    fsd_ota_update(state, frame->data[SIG_GTW_UPDATE_IN_PROGRESS_BYTE]);
 }
 
 // ── Follow distance → speed profile (DAS_followDistance 0x3F8) ───────────────
@@ -525,17 +516,21 @@ static bool nag_in_pause(uint32_t now_ms) {
 // Configurable signal mapping (#122) — mirror of the shared fsd_handler.c.
 void fsd_apply_signal_config(FSDState *state, const CanFrame *frame, uint32_t now_ms) {
     if (state->cfg_das_id != 0 && frame->id == state->cfg_das_id) {
-        if (state->cfg_apstate_byte < 8 && frame->dlc > state->cfg_apstate_byte) {
+        // A mask of 0 means "not mapped" — ignore the field and keep the prior
+        // value instead of forcing it to 0 forever (#100: a tester who set only
+        // the DAS id left the masks at 0, which zeroed hands-on so the nag killer
+        // never fired).
+        if (state->cfg_apstate_mask != 0 && state->cfg_apstate_byte < 8 &&
+            frame->dlc > state->cfg_apstate_byte) {
             state->das_ap_state = (frame->data[state->cfg_apstate_byte] >>
                                    state->cfg_apstate_shift) & state->cfg_apstate_mask;
             // Keep ap_active in sync with the configured AP-state (#122): the
             // standard parsers never run for this variant's byte layout, so the
             // dashboard pill would otherwise stick at "Waiting" while engaged.
-            state->ap_active = (state->hw_version == TeslaHW_HW4)
-                                   ? state->das_ap_state >= SIG_DAS_HW4_AP_ACTIVE_MIN
-                                   : state->das_ap_state == SIG_DAS_HW3_AP_ACTIVE_STATE;
+            state->ap_active = fsd_das_state_engaged(state->das_ap_state);
         }
-        if (state->cfg_handson_byte < 8 && frame->dlc > state->cfg_handson_byte)
+        if (state->cfg_handson_mask != 0 && state->cfg_handson_byte < 8 &&
+            frame->dlc > state->cfg_handson_byte)
             state->das_hands_on_state = (frame->data[state->cfg_handson_byte] >>
                                          state->cfg_handson_shift) & state->cfg_handson_mask;
         state->das_ctx_seen_ms = now_ms;
@@ -780,6 +775,18 @@ bool fsd_abort_guard_allows(const FSDState *state) {
     return !(state->abort_guard && state->abort_guard_latched);
 }
 
+// DI_speed (0x257): DI_vehicleSpeed bit12|12 LE, factor 0.08, offset -40 kph.
+// Read-only — feeds the Autopark release gate (#180). Mirrors the Flipper
+// fsd_handle_di_speed decode; sets speed_seen (the caller stamps last_speed_tick_ms).
+void fsd_handle_di_speed(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc < 4) return;
+    uint16_t raw = (uint16_t)(((uint16_t)frame->data[2] << 4) | (frame->data[1] >> 4));
+    float kph = (float)raw * 0.08f - 40.0f;
+    state->vehicle_speed_kph = kph < 0.0f ? 0.0f : kph;
+    state->ui_speed = frame->data[3];
+    state->speed_seen = true;
+}
+
 // SCCM_steeringAngleSensor (0x129): 16-bit signed LE at byte0-1, factor 0.1 deg.
 void fsd_handle_steering_angle(FSDState *state, const CanFrame *frame) {
     if (frame->dlc < 4) return;
@@ -891,51 +898,41 @@ void fsd_handle_das_status_hw3(FSDState *state, const CanFrame *frame) {
     if (frame->dlc != CAN_FRAME_MAX_DATA_LEN) return;
 
     // Legacy/HW3 0x399 layout: DAS_autopilotState is byte0 low nibble.
-    // Observed HW3 mapping: 2=available/ready, 3=engaged.
     state->das_ap_state =
         frame->data[SIG_DAS_HW3_AP_STATE_BYTE] & SIG_DAS_HW3_AP_STATE_MASK;
-    state->ap_active = state->das_ap_state == SIG_DAS_HW3_AP_ACTIVE_STATE;
+    // Engaged = 3..6, not == 3: cars whose steady engaged state is 6 (newer fw)
+    // reported ap_active=false the whole drive under the old == 3 (#108).
+    state->ap_active = fsd_das_state_engaged(state->das_ap_state);
+    // DAS_autopark bits: byte3 bits0-2 (same positions on 0x39B) (#180).
+    fsd_autopark_parse(state, frame->data[SIG_DAS_AUTOPARK_BYTE]);
     fsd_handle_das_status_common(state, frame);
 }
 
 void fsd_handle_das_status_hw4(FSDState *state, const CanFrame *frame) {
     if (frame->dlc != CAN_FRAME_MAX_DATA_LEN) return;
 
-    // Standard HW4 0x39B layout: DAS_autopilotState = byte1 bits[7:4].
-    uint8_t hw4_state =
-        (frame->data[SIG_DAS_HW4_AP_STATE_BYTE] >> SIG_DAS_HW4_AP_STATE_SHIFT) &
-        SIG_DAS_HW4_AP_STATE_MASK;
-    // HW4 Highland (China MIC, fw 2026.20) instead carries DAS_autopilotState in
-    // byte0 low nibble (HW3 position: 1=available, 2=ready, 3=engaged) while
-    // byte1[7:4] is pinned at 1 the whole drive (#116).
-    uint8_t b0_state =
+    // HW4/Highland 0x39B: DAS_autopilotState = byte0 low nibble (opendbc party
+    // tesla_model3_party.dbc BO_923, DAS_autopilotState = bit 0|4). byte1 is
+    // DAS_fusedSpeedLimit etc, NOT AP state — the old byte1[7:4] decode read the
+    // fusedSpeedLimit MSB, wrong on every real car we have (#163/#116/#177).
+    state->das_ap_state =
         frame->data[SIG_DAS_HW3_AP_STATE_BYTE] & SIG_DAS_HW3_AP_STATE_MASK;
-
-    // Auto-fallback detection (self-healing; re-evaluated each power cycle). The
-    // unique Highland signature is byte0 reporting an active state (>=2) while
-    // byte1[7:4] stays exactly 1: a standard HW4 car can't produce this durably
-    // because its byte1[7:4] moves to >=2 the instant AP engages, which trips the
-    // sticky disqualifier below and pins it to the standard byte1 reading for good.
-    if (hw4_state != 1u) {
-        state->das_hw4_byte1_moved = true;
-        state->das_hw4_byte0_pin_count = 0;
-    } else if (!state->das_hw4_use_byte0 && !state->das_hw4_byte1_moved &&
-               b0_state >= SIG_DAS_HW4_AP_ACTIVE_MIN) {
-        if (state->das_hw4_byte0_pin_count < SIG_DAS_HW4_BYTE0_PIN_LATCH)
-            state->das_hw4_byte0_pin_count++;
-        if (state->das_hw4_byte0_pin_count >= SIG_DAS_HW4_BYTE0_PIN_LATCH)
-            state->das_hw4_use_byte0 = true;
-    }
-
-    if (state->das_hw4_use_byte0) {
-        state->das_ap_state = b0_state;
-        state->ap_active    = b0_state == SIG_DAS_HW3_AP_ACTIVE_STATE; // 3 = engaged
-    } else {
-        state->das_ap_state = hw4_state;
-        state->ap_active    = hw4_state >= SIG_DAS_HW4_AP_ACTIVE_MIN;
-    }
+    state->ap_active = fsd_das_state_engaged(state->das_ap_state);  // engaged = 3..6
+    // DAS_autopark bits: byte3 bits0-2 (#180).
+    fsd_autopark_parse(state, frame->data[SIG_DAS_AUTOPARK_BYTE]);
     fsd_handle_das_status_common(state, frame);
     state->das_hw4_status_seen = true;
+}
+
+// Signal Map watchdog (#100): a configured DAS id that never shows up on the
+// tapped bus silently pauses the nag killer (fsd_das_ctx_fresh fails closed).
+bool fsd_signal_map_das_missing(const FSDState *state, uint32_t now_ms) {
+    if (state->cfg_das_id == 0) return false;             // auto mode
+    if (now_ms <= SIGNAL_MAP_DAS_MISS_MS) return false;   // boot grace
+    if (state->das_ctx_seen_ms != 0 &&
+        (uint32_t)(now_ms - state->das_ctx_seen_ms) <= SIGNAL_MAP_DAS_MISS_MS)
+        return false;                                     // seen recently
+    return true;
 }
 
 // HW4 0x399 hands-on fallback — for HW4 trims that never broadcast 0x39B

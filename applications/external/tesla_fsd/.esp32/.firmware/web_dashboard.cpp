@@ -26,7 +26,7 @@
 
 // ── Module state ──────────────────────────────────────────────────────────────
 static FSDState  *g_state = nullptr;   // shared with main
-static CanDriver **g_can_buses = nullptr; // for setListenOnly()
+static CanDriver **g_can_buses = nullptr; // mode switch, error split, pre-reboot quiesce
 static uint8_t g_can_count = 0;
 static portMUX_TYPE *g_state_mux = nullptr;
 
@@ -330,6 +330,16 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 <!-- OTA Warning -->
 <div id="otaBanner" class="ota">&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; CAN TX SUSPENDED</div>
 
+<!-- Autopark Warning (#180) -->
+<div id="autoparkBanner" class="ota">&#9888;&#xFE0F; IN-CAR AUTOPARK &mdash; CAN TX PAUSED</div>
+
+<!-- Signal Map watchdog (#100) -->
+<div id="sigmapWarn" class="warn14x"><div class="w-row"><div class="w-msg">
+  <strong>&#9888;&#xFE0F; Signal Map DAS id not seen on this bus.</strong>
+  The configured DAS id isn't arriving, so AP-state can't be read and the nag
+  killer is paused. Set <b>DAS id 0</b> for auto, or fix the mapping / tap.
+</div></div></div>
+
 <!-- 2026.14.x Firmware Warning -->
 <div id="warn14x" class="warn14x">
   <div class="w-row">
@@ -410,7 +420,7 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <div class="sg">
     <div class="sb"><div class="sv" id="rxCnt">0</div><div class="sl">RX Frames</div></div>
     <div class="sb"><div class="sv" id="txCnt">0</div><div class="sl">TX Frames</div></div>
-    <div class="sb"><div class="sv" id="crcErr">0</div><div class="sl">TX Errors</div></div>
+    <div class="sb"><div class="sv" id="crcErr">0</div><div class="sl">CAN Errors</div><div class="sl" id="crcSplit">RX&nbsp;missed&nbsp;0 &middot; bus&nbsp;0 &middot; TX&nbsp;fail&nbsp;0</div></div>
     <div class="sb"><div class="sv" id="fps">0.0</div><div class="sl">Frames/s</div></div>
   </div>
 </div>
@@ -977,6 +987,14 @@ function upd(d){
     if(d.ota) otaB.innerHTML=d.ignore_ota?'&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; TX ALLOWED BY IGNORE OTA':'&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; CAN TX SUSPENDED';
   }
 
+  // Autopark banner (#180) — TX paused during an in-car Autopark episode
+  var apB=document.getElementById('autoparkBanner');
+  if(apB) apB.style.display=d.autopark_block?'block':'none';
+
+  // Signal Map watchdog banner (#100)
+  var smW=document.getElementById('sigmapWarn');
+  if(smW) smW.style.display=d.signal_map_das_missing?'block':'none';
+
   // 14.x firmware warning banner
   var w14x=document.getElementById('warn14x');
   if(w14x) w14x.style.display=d.firmware_14x_warning?'block':'none';
@@ -1040,6 +1058,7 @@ function upd(d){
   if(document.getElementById('rxCnt')) document.getElementById('rxCnt').textContent=(d.rx_count||0).toLocaleString();
   if(document.getElementById('txCnt')) document.getElementById('txCnt').textContent=(d.tx_count||0).toLocaleString();
   if(document.getElementById('crcErr')) document.getElementById('crcErr').textContent=d.crc_errors||0;
+  if(document.getElementById('crcSplit')) document.getElementById('crcSplit').textContent='RX\u00a0missed\u00a0'+(d.rx_missed_count||0)+' · bus\u00a0'+(d.bus_error_count||0)+' · TX\u00a0fail\u00a0'+(d.tx_failed_count||0);
   if(document.getElementById('fps')) document.getElementById('fps').textContent=(d.fps||0.0).toFixed(1);
   httpLogAllowed=true; // capture works in both modes — needed to log through an Activate (#108)
   if(!httpLogRunning)setHttpLogUi(false);
@@ -1561,6 +1580,12 @@ static String build_json() {
     char fps_s[12];
     snprintf(fps_s, sizeof(fps_s), "%.1f", g_fps);
 
+    // Combined CAN error count (legacy crc_errors key) and its per-cause split,
+    // taken from one read so the dashboard tile always equals its breakdown.
+    // On a busy bus it is mostly rx_missed (controller RX-queue drops).
+    CanErrorSplit err = can_error_split(g_can_buses, g_can_count);
+    uint32_t err_total = err.rx_missed_count + err.bus_error_count + err.tx_failed_count;
+
     String j;
     bool isa_speed_enabled = state.hw_version == TeslaHW_HW4;
     const char *ap_das_profile =
@@ -1580,6 +1605,8 @@ static String build_json() {
     j += "\"hw_override\":";   j += (int)state.hw_override;            j += ',';
     j += "\"hw_version\":";    j += (int)state.hw_version;             j += ',';
     j += "\"ota\":";           j += state.tesla_ota_in_progress        ? "true" : "false"; j += ',';
+    j += "\"autopark_block\":"; j += state.autopark_tx_block            ? "true" : "false"; j += ',';
+    j += "\"signal_map_das_missing\":"; j += state.signal_map_das_missing ? "true" : "false"; j += ',';
     j += "\"ap_das_profile\":\""; j += ap_das_profile;                 j += "\",";
     j += "\"isa_speed_enabled\":"; j += isa_speed_enabled              ? "true" : "false"; j += ',';
     j += "\"ignore_ota\":";    j += state.ignore_ota                   ? "true" : "false"; j += ',';
@@ -1632,7 +1659,10 @@ static String build_json() {
     j += "\"rx_count\":";      j += state.rx_count;                    j += ',';
     j += "\"tx_count\":";      j += state.tx_count;                    j += ',';
     j += "\"tx_modified\":";   j += state.frames_modified;             j += ',';
-    j += "\"crc_errors\":";    j += state.crc_err_count;               j += ',';
+    j += "\"crc_errors\":";    j += err_total;                         j += ',';
+    j += "\"rx_missed_count\":"; j += err.rx_missed_count;             j += ',';
+    j += "\"bus_error_count\":"; j += err.bus_error_count;             j += ',';
+    j += "\"tx_failed_count\":"; j += err.tx_failed_count;             j += ',';
     j += "\"fps\":";           j += fps_s;                             j += ',';
     j += "\"bms\":";           j += bms;                               j += ',';
     j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
@@ -2284,6 +2314,7 @@ static void ws_event(uint8_t num, WStype_t type,
             Serial.printf("[Web] WiFi config: AP=\"%s\" STA=\"%s\" PASS=*** HIDDEN=%d\n",
                 saved.wifi_ssid, saved.wifi_sta_ssid, saved.wifi_hidden);
             prefs_save(&saved);
+            can_shutdown_all(g_can_buses, g_can_count);
             delay(500);
             ESP.restart();
         }
@@ -2371,6 +2402,7 @@ static void handle_blackbox_get() {
 static void handle_restart() {
     if (!require_admin_auth()) return;
     g_http.send(200, "text/plain", "OK");
+    can_shutdown_all(g_can_buses, g_can_count);
     delay(500);
     ESP.restart();
 }
@@ -2513,6 +2545,7 @@ static void handle_ota_done() {
     Serial.println("[OTA] Firmware update successful!");
     Serial.println("[OTA] Rebooting in 2 seconds...");
 
+    can_shutdown_all(g_can_buses, g_can_count);
     delay(2000);
     ESP.restart();
 }

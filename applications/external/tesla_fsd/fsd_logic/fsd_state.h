@@ -104,10 +104,12 @@ typedef struct FSDState {
         // car disengages — keeps injection off the abort edge (#108). Off by default.
     uint8_t
         ap_inject_count; // AP-enable frames modified this engagement (Minimal Inject burst budget;
-    // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
-    uint8_t das_ap_state; // DAS_autopilotState: 0=UNAVAIL 1=UNAVAILABLE/AVAIL-flicker
-        // 2=AVAILABLE (offered, NOT engaged) 3=ACTIVE_NOMINAL (first
-        // engaged) 6=active 8/9=aborting/aborted
+        // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
+    uint8_t das_ap_state; // DAS_autopilotState (byte0 low nibble on 0x39B/0x399):
+        // 0=DISABLED 1=UNAVAILABLE 2=AVAILABLE (offered, NOT engaged)
+        // 3=ACTIVE_NOMINAL (first engaged) 4=ACTIVE_RESTRICTED 5=ACTIVE_NAV
+        // 6=ACTIVE_FSD (also steady engaged on newer fw) 8=ABORTING
+        // 9=ABORTED 14=FAULT 15=SNA. Engaged = 3..6.
     uint32_t
         ap_unstable_tick_ms; // ms clock when das_ap_state was last < DAS_APSTATE_ENGAGED (AP-first stability debounce)
 
@@ -185,14 +187,17 @@ typedef struct FSDState {
         // (gate for the 0x399 hands-on fallback on HW4 trims
         //  that never broadcast 0x39B, e.g. Juniper RWD on Bus 6)
 
-    // --- HW4 0x39B byte0 AP-state auto-fallback (#116) ---
-    // Highland (China MIC, fw 2026.20) ships an 8-byte HW4 0x39B but carries
-    // DAS_autopilotState in byte0 low nibble (HW3 position) while byte1[7:4] is
-    // pinned at 1 the whole drive. Detect that signature and latch this car to the
-    // byte0 reading for the session (re-detected each power cycle via memset init).
-    uint8_t das_hw4_byte0_pin_count; // consecutive (byte1[7:4]==1 && byte0>=2) frames
-    bool das_hw4_byte1_moved; // sticky: byte1[7:4] ever seen != 1 (standard HW4)
-    bool das_hw4_use_byte0; // one-way latch: read AP-state from byte0 low nibble
+    // --- In-car Autopark TX pause (#180, fsd_autopark.h) ---
+    // Highland runs in-car Autopark at DAS_autopilotState 6 with the autopark
+    // bits set in 0x39B/0x399 byte3 bits0-2. Injecting during that window throws
+    // AEB/traction/stability/regen warnings, so all TX pauses for the episode.
+    bool autopark_ready; // byte3 bit0 DAS_autoparkReady
+    bool autopark_parked; // byte3 bit1 DAS_autoParked
+    bool autopark_waiting_brake; // byte3 bit2 DAS_autoparkWaitingForBrake
+    uint32_t autopark_bit_last_ms; // ms clock any autopark bit was last seen set
+    uint8_t autopark_prev_ap_state; // das_ap_state at the previous fsd_autopark_update
+    bool autopark_episode; // inside a detected Autopark episode (state 6)
+    bool autopark_tx_block; // episode AND not confirmed driving -> pause every TX
 
     // --- GTW autopilot tier (from 0x7FF mux=2 on mixed bus) ---
     int8_t gtw_autopilot_tier; // -1 = not yet read
@@ -298,11 +303,15 @@ typedef struct FSDState {
 
     bool ignore_ota; // allow TX while Tesla OTA is detected
     bool china_mode; // bypass FSD UI selection check for China vehicles
+    bool signal_map_das_missing; // ESP32: a configured Signal Map DAS id never showed
+        // up on the tapped bus -> nag killer silently paused (#100)
 
-    // OTA detection debounce (from 0x318)
+    // OTA detection debounce (from 0x318) — used by both builds via fsd_ota.h
     uint8_t ota_raw_state; // raw GTW_updateInProgress bits [1:0]
     uint8_t ota_assert_count; // consecutive "in-progress" samples
     uint8_t ota_clear_count; // consecutive "not in-progress" samples
+    uint8_t ota_last_byte6; // previous 0x318 byte6 (flag vs rolling counter)
+    bool ota_last_valid; // ota_last_byte6 holds a real sample
 
     // per-ID seen counters (wiring/diagnostics)
     uint32_t seen_gtw_car_state; // 0x318

@@ -138,16 +138,13 @@
 // bytes 1-2: speed limit / speed warning state
 // bytes 5-6: hands-on / lane-change state
 // bytes 6-7: counter / checksum
+// DAS_autopilotState = byte0 low nibble on BOTH 0x399 (Legacy/HW3) and 0x39B
+// (HW4/Highland), per opendbc (tesla_can BO_921 / tesla_model3_party BO_923).
 #define SIG_DAS_HW3_AP_STATE_BYTE           0
 #define SIG_DAS_HW3_AP_STATE_MASK        0x0Fu
-#define SIG_DAS_HW3_AP_ACTIVE_STATE         3u
-#define SIG_DAS_HW4_AP_STATE_BYTE           1
-#define SIG_DAS_HW4_AP_STATE_SHIFT          4
-#define SIG_DAS_HW4_AP_STATE_MASK        0x0Fu
-#define SIG_DAS_HW4_AP_ACTIVE_MIN           2u
-#define SIG_DAS_HW4_BYTE0_PIN_LATCH         3u   // #116: consecutive (byte1[7:4]==1 &&
-                                                 // byte0 low nibble >= ACTIVE_MIN) frames
-                                                 // before latching to the byte0 reading
+#define SIG_DAS_HW3_AP_ACTIVE_STATE         3u   // HW-detect heuristic threshold only
+// DAS_autopark bits: byte3 bit0 autoparkReady, bit1 autoParked, bit2 waitingForBrake (#180)
+#define SIG_DAS_AUTOPARK_BYTE               3
 #define SIG_DAS_SPEED_LIMIT_BYTE_1          1
 #define SIG_DAS_SPEED_LIMIT_BYTE_2          2
 #define SIG_DAS_HANDS_ON_STATE_BYTE         5

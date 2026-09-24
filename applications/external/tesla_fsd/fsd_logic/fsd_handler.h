@@ -55,6 +55,8 @@
 // TeslaHWVersion, OpMode, and FSDState are defined in the shared headers
 // (fsd_types.h / fsd_state.h) so both the Flipper and ESP32 builds use one copy.
 #include "fsd_state.h"
+// DAS engaged helper + in-car Autopark TX pause (#180), shared header-only.
+#include "fsd_autopark.h"
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw);
 void fsd_set_bit(CANFRAME* frame, int bit, bool value);

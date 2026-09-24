@@ -168,7 +168,7 @@ static void telemetry_off_changed(VariableItem* item) {
 
 // DAS AP/hands-on read location. Order matches signal_map_apply() in the header.
 static const char* const signal_map_text[] =
-    {"Auto", "0x39B b0 (HW4)", "0x39B b1 (HW4)", "0x399 b0 (HW3)"};
+    {"Auto", "0x39B b0 (HW4)", "0x39B b1 (old)", "0x399 b0 (HW3)"};
 static void signal_map_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);

@@ -34,6 +34,7 @@ All CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_hand
 - NAG Killer (EPAS `0x370` counter+1 echo with handsOnLevel spoofing)
 - Speed profile mapping from follow-distance stalk
 - OTA update detection with automatic TX suspension by default, plus an explicit Ignore OTA override
+- In-car Autopark pause: all TX stops while the car runs Autopark and resumes when it ends (#180)
 - HW-based AP/DAS mapping for Legacy/HW3 vs HW4 signal layouts
 - ISA speed warning chime suppression (HW4 only)
 - BMS data parsing logic (voltage, current, SOC, temperature) — currently not reliable in real use
@@ -68,7 +69,8 @@ All CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_hand
   - AP Branch/Tier selector (experimental apmv3 — Live / Stage / Dev / Stage2 / EAP / Demo, or Off)
   - Track Mode (experimental) (adjustable rotation / stability / cooling via `0x313`)
   - Hardware override selector (Auto-detect / Force HW4 / Force HW3 / Force Legacy)
-- **OTA Warning Banner** — pulsing red alert when vehicle OTA update is detected
+- **OTA Warning Banner** — pulsing red alert when vehicle OTA update is detected (same banner style for the in-car Autopark TX pause)
+- **CAN Errors** — combined controller error count with an RX missed / bus / TX fail split (mostly RX-queue drops on a busy bus, not failed sends)
 - **Connection Status** — green/red dot indicator with auto-reconnect on WebSocket disconnect
 - **Device Info** — firmware build date, uptime counter, WiFi client count
 - **REST API** — `GET /api/status` returns full JSON state

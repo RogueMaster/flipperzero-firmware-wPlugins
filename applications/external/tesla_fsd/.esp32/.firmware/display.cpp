@@ -187,9 +187,16 @@ void display_update(const FSDState *state) {
         g_tft.setTextColor(TFT_RED, TFT_NAVY);
         g_tft.setTextSize(1);
         g_tft.print("OTA ACTIVE!");
-    } else {
-        // Clear OTA warning area with a blank space
+    } else if (state->autopark_tx_block) {
+        // In-car Autopark — TX paused (#180)
         g_tft.setCursor(10, 115);
+        g_tft.setTextColor(TFT_RED, TFT_NAVY);
+        g_tft.setTextSize(1);
+        g_tft.print("AUTOPARK TX");
+    } else {
+        // Clear OTA/Autopark warning area with a blank space
+        g_tft.setCursor(10, 115);
+        g_tft.setTextSize(1);
         g_tft.print("           ");
     }
 }

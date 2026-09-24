@@ -10,6 +10,9 @@
 #define CAN_ID_BMS_THERMAL    0x312u  // 786  - BMS_thermalStatus: battery temp
 #define CAN_ID_GTW_CAR_STATE  0x318u  // 792  - GTW_carState:    OTA detection
 #define CAN_ID_UI_MAP_DATA    0x238u  // 568  - UI_driverAssistMapData: map speed limit
+// CAN_ID_DI_SPEED (0x257) — vehicle speed for the Autopark release gate (#180) —
+// comes from the shared fsd_logic/fsd_handler.h (via fsd_events.h), so it is not
+// redefined here (avoids adding to the config.h/shared CAN_ID_* redefinition set).
 #define CAN_ID_SCCM_RSTALK    0x229u  // 553  - GearLever / right stalk
 #define CAN_ID_DAS_CONTROL    0x2B9u  // 697  - DAS_control: cruise set speed / ACC state
 #define CAN_ID_DAS_STATUS2    0x389u  // 905  - DAS_status2: ACC speed limit
@@ -154,13 +157,8 @@
 #define CONT_AP_STALK_STOP_RECENT_MS     750u
 #define CONT_AP_MAX_RETRIES                 3u
 
-// OTA detection hardening on GTW_carState (0x318)
-// Some firmware versions keep non-zero states when no update is actively running.
-// We only treat one specific raw value as "update in progress" and require
-// consecutive-frame confirmation to avoid false positives.
-#define OTA_IN_PROGRESS_RAW_VALUE  1u
-#define OTA_ASSERT_FRAMES          3u
-#define OTA_CLEAR_FRAMES           6u
+// OTA detection on GTW_carState (0x318): debounce thresholds are shared with the
+// Flipper in fsd_logic/fsd_ota.h.
 
 #if defined(BOARD_LILYGO)
   #define ME2107_EN 16

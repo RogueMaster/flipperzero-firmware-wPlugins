@@ -165,6 +165,18 @@ public:
         return info.rx_missed_count;
     }
 
+    uint32_t busErrorCount() override {
+        twai_status_info_t info;
+        if (twai_get_status_info(&info) != ESP_OK) return 0;
+        return info.bus_error_count;
+    }
+
+    uint32_t txFailedCount() override {
+        twai_status_info_t info;
+        if (twai_get_status_info(&info) != ESP_OK) return 0;
+        return info.tx_failed_count;
+    }
+
     void setListenOnly(bool enable) override {
 #ifdef SNIFFER_ONLY
         (void)enable;   // sniffer build is permanently Listen-Only; ignore mode switches
@@ -191,6 +203,19 @@ public:
                           label_, (unsigned long)(id & 0x7FFu));
         } else {
             Serial.printf("[CAN] %s TWAI hardware filter -> accept all\n", label_);
+        }
+    }
+
+    // Pre-reboot quiesce: stop the controller (no TX, no ACK), then take the TX
+    // pad back from the TWAI peripheral and drive it recessive until the chip
+    // resets. The level is latched high before the pad becomes an output (and
+    // set again after) so the handover itself can't blip dominant on the bus.
+    void shutdown() override {
+        stop_and_uninstall();
+        if (tx_pin_ >= 0) {
+            digitalWrite((uint8_t)tx_pin_, HIGH);
+            pinMode((uint8_t)tx_pin_, OUTPUT);
+            digitalWrite((uint8_t)tx_pin_, HIGH);
         }
     }
 };
@@ -355,6 +380,11 @@ public:
 
     // rxMissedCount(): use the CanDriver default (0). The MCP2515 overflow flag
     // would need an extra SPI read on the hot path, so it is not surfaced here.
+    // busErrorCount(): default 0 too; the chip only exposes live TEC/REC levels,
+    // not a cumulative bus-error count.
+
+    // Every errorCount() event is a sendMessage() failure.
+    uint32_t txFailedCount() override { return err_count_; }
 
     void setListenOnly(bool enable) override {
         if (!installed_ || listen_only_ == enable) return;
@@ -395,6 +425,16 @@ public:
             Serial.printf("[CAN] %s MCP2515 hardware filter -> accept all\n", label_);
         }
     }
+
+    // Pre-reboot quiesce: CONFIG mode takes the MCP2515 off the bus (no TX, no
+    // ACK), and it stays there across the ESP32 reset until begin() runs again.
+    // If the mode request doesn't take (e.g. a frame stuck pending TX), the SPI
+    // RESET instruction forces the chip into CONFIG mode.
+    void shutdown() override {
+        if (!chip_detected_) return;  // nothing answering on SPI
+        if (mcp_.setConfigMode() != MCP2515::ERROR_OK) mcp_.reset();
+        installed_ = false;
+    }
 };
 #endif
 
@@ -422,6 +462,24 @@ CanDriver *can_driver_create(CanBusId bus) {
     (void)bus;
     return can_driver_create();
 #endif
+}
+
+CanErrorSplit can_error_split(CanDriver **buses, uint8_t count) {
+    CanErrorSplit s = {};
+    for (uint8_t i = 0; i < count; i++) {
+        if (!buses[i]) continue;
+        s.rx_missed_count += buses[i]->rxMissedCount();
+        s.bus_error_count += buses[i]->busErrorCount();
+        s.tx_failed_count += buses[i]->txFailedCount();
+    }
+    return s;
+}
+
+void can_shutdown_all(CanDriver **buses, uint8_t count) {
+    for (uint8_t i = 0; i < count; i++) {
+        if (buses[i]) buses[i]->shutdown();
+    }
+    Serial.println("[CAN] Controllers stopped — bus released for restart");
 }
 
 #if !defined(CAN_DRIVER_TWAI) && !defined(CAN_DRIVER_MCP2515) && !defined(CAN_DRIVER_T2CAN_DUAL)

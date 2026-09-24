@@ -117,8 +117,9 @@ The BMS, OTA detect, and follow-distance handlers are **read-only** parsers
 
 If you want to verify this for yourself, the dispatch is in
 `scenes/fsd_running.c` and every `send_can_frame()` call site is gated by
-`fsd_can_transmit(&state)` which honours Listen-Only mode and the OTA
-Guard.
+`fsd_can_transmit(&state)` which honours Listen-Only mode, the OTA
+Guard, and the in-car Autopark pause (all TX stops while the car runs
+Autopark, #180).
 
 ## Listen-Only mode
 

@@ -94,7 +94,8 @@
 - 车速、方向盘角度、电机扭力、刹车状态
 - DAS 状态：autopilot 状态、手扶提醒等级、变道状态、盲点警示、FCW、视觉限速
 - GTW autopilot 层级回读（NONE/HIGHWAY/ENHANCED/SELF_DRIVING/BASIC）
-- OTA 检测含防抖 — 固件更新期间自动暂停 TX，除非明确启用 Ignore OTA 覆盖
+- OTA 检测含防抖 — 固件更新期间自动暂停 TX，除非明确启用 Ignore OTA 覆盖。只有稳定的“安装中”值才算数；新车的 `0x318` byte6 是循环计数器，不会再误触（[#183](https://github.com/hypery11/flipper-tesla-fsd/issues/183)）
+- 自动泊车暂停 — 车辆执行车内自动泊车（Autopark）期间暂停所有 TX，结束后恢复；FSD 启用中不受影响（[#180](https://github.com/hypery11/flipper-tesla-fsd/issues/180)）
 
 ### CAN Capture + 测试配置文件（v2.16+）
 - **CAN Capture** — 将每个收到的 frame 以 candump 格式录到 SD 卡（`apps_data/tesla_mod/captures/`）。只读；在任何车上运行都安全。可喂给 `tools/tesla_crc_cracker.py`。
@@ -148,7 +149,7 @@
 | **Soft Engage** | Steer-jerk 缓解（[#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)）。把启动边缘的注入压住，直到方向盘回到中心 ±5° 内。需要总线上有 `0x129`（方向盘角度）；没有就退化成只有 AP-First。直路抽动已大致被 Abort Guard 取代。 |
 | **Nag Burst** | 以爆发／暂停方式回放 `0x370`（约 1 秒开 / 1.5 秒关），而非连续（[#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)）。休息期被认为是一些在野设备能躲过更严格 14.x nag 检测的原因。搭配 ±1.8 Nm 转向扭力上限。 |
 | **EPAS-faithful（Mode-C）** | 模拟真实 EPAS 的 demand-state 扭力模型，不去翻 `handsOnLevel`（[#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)）。用于标准 nag 抑制会触发 preflight 的车。**尚未上车确认。** |
-| **Signal Map**（ESP32 → 高级） | 自定义 nag 抑制读取 AP-state／hands-on／方向盘的位置：`id + byte/shift/mask`（[#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)）。用于 `0x39B`/`0x399` 布局不同的车型变体。有新鲜度门控 — 设错会 fail-closed。DAS id 留 `0` 为自动检测。 |
+| **Signal Map**（ESP32 → 高级） | 自定义 nag 抑制读取 AP-state／hands-on／方向盘的位置：`id + byte/shift/mask`（[#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)）。用于 `0x39B`/`0x399` 布局不同的车型变体。有新鲜度门控 — 设错会 fail-closed，且映射的 DAS id 一直没出现在总线上时仪表板会警告。mask 为 `0` 的字段会被忽略。DAS id 留 `0` 为自动检测。 |
 
 **硬件：**
 
@@ -316,7 +317,7 @@ pio run -e m5stack-atom    # 或：esp32-lilygo、waveshare-s3-can、esp32-mcp25
 | `0x398` | `GTW_carConfig` | RX | HW 版本检测 |
 | `0x318` | `GTW_carState` | RX | OTA 检测（自动暂停 TX） |
 | `0x399` | `DAS_status`（HW3/Legacy）/ `ISA_speedLimit`（HW4） | RX/TX | 依 HW 分派：pre-Highland HW3 读为 DAS_status（AP 状态＋手扶）；HW4 保留提示音抑制写入路径 |
-| `0x39B` | `DAS_status` | RX | HW4 + Highland HW3 — AP 状态（给 AP-First）、nag 等级、变道、盲点 |
+| `0x39B` | `DAS_status` | RX | HW4 + Highland HW3 — AP 状态（byte0 低 4 位，给 AP-First）、自动泊车标志（Autopark 暂停）、nag 等级、变道、盲点 |
 | `0x132` | `BMS_hvBusStatus` | RX | 电池组电压／电流 |
 | `0x292` | `BMS_socStatus` | RX | 充电状态 |
 | `0x312` | `BMS_thermalStatus` | RX | 电池温度 |
@@ -365,8 +366,8 @@ ESP32 更便宜（$14 vs $200+），有 WiFi 仪表板、NVS 保存与深度睡�
 - [commaai/opendbc](https://github.com/commaai/opendbc) — Tesla CAN 信号数据库
 - [ElectronicCats/flipper-MCP2515-CANBUS](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) — Flipper 用 MCP2515 驱动
 - 社区贡献者 — 本项目赖以运作的实车测试、抓包与研究：
-  - **协议、nag killer 与 2026.14.x：** @jewelrylin（T-2CAN 双总线抓包、frame-content preflight 测试、X179 Service Mode 针脚图）、@DrStrangeglovebox（`0x370` 参考抓包 + HW4 双 CAN 数据 + 安全发现）、@ssw0209-sys（Mode-C 转向扭力参考 + HW4 14.x 测试）、@0xAccretion（HW4 Highland 中规 MIC DAS 布局发现，#116/#117）、@dunckencn（国行 HW3 start-after-AP 验证、steer-jerk 与 bus-off 报告）、@kristopf007（HW4 14.x 实车测试）
-  - **功能、抓包与 PR：** @JakNo（ScrollPress AP / `0x3C2`）、@vrs11（Continuous AP）、@sqladm1n（RTC 抓包日志 PR + 总线/接线排查）、@DmitroPanteliuk（全速率 `0x229` 抓包）、@se7en7777777（`0x485` / Highland / 校验和分析）、@RoyRakete（TLSSC 封禁车组合）、@mamixsystem（post-SOP10 连接器参考;frame 级 14.x FSD-engage 决定性调查，#163）、@p0sixturtle（Summon / tier-selector 线索，#139）、@dahua910（RHD 需求，#66）、@HamzaObaidat（剧院模式 `0x118` 研究，#149）、@fboulegue（EU / 新线束 Juniper 报告，#143/#109/#110）、@densen2014（ESP32 HW 选择器建议 #110、TLSSC bit38 开关 PR #159、Summon 行驶中安全防护建议 #160）
+  - **协议、nag killer 与 2026.14.x：** @jewelrylin（T-2CAN 双总线抓包、frame-content preflight 测试、X179 Service Mode 针脚图）、@DrStrangeglovebox（`0x370` 参考抓包 + HW4 双 CAN 数据 + 安全发现）、@ssw0209-sys（Mode-C 转向扭力参考 + HW4 14.x 测试）、@0xAccretion（HW4 Highland 中规 MIC DAS 布局发现，#116/#117）、@dunckencn（国行 HW3 start-after-AP 验证、steer-jerk 与 bus-off 报告）、@kristopf007（HW4 14.x 实车测试）、@anoblekman（Highland HW4 DAS 解码 + 车内自动泊车安全发现，#177/#180）
+  - **功能、抓包与 PR：** @JakNo（ScrollPress AP / `0x3C2`）、@vrs11（Continuous AP）、@sqladm1n（RTC 抓包日志 PR + 总线/接线排查）、@DmitroPanteliuk（全速率 `0x229` 抓包）、@se7en7777777（`0x485` / Highland / 校验和分析）、@RoyRakete（TLSSC 封禁车组合）、@mamixsystem（post-SOP10 连接器参考;frame 级 14.x FSD-engage 决定性调查，#163）、@p0sixturtle（Summon / tier-selector 线索，#139）、@dahua910（RHD 需求，#66）、@HamzaObaidat（剧院模式 `0x118` 研究，#149）、@fboulegue（EU / 新线束 Juniper 报告，#143/#109/#110）、@densen2014（ESP32 HW 选择器建议 #110、TLSSC bit38 开关 PR #159、Summon 行驶中安全防护建议 #160）、@Tesla234987234sdf（Palladium OTA 误锁报告 + 抓包，#183/#175）、@tommybsb-lab（ATOM Lite / Juniper 实测报告，促成 Signal Map 修正，#100）、@sb1089（HW3 2026.26 nag 抓包，#122）、@ukinora（独立的 `0x318` 循环计数器分析）
   - **封禁研究、平台测试、ESP32、bug 修复：** @THER4iN、@MiniCS、@kp43h8、@gauner1986、@dmagyar、@ViPiMP、@marcobellinoroci-source、@danpadure、@bruvv、@Symness、@hkloudou、@nagotti、@patatman、@JordanzhaoD
 - `Starmixcraft/tesla-fsd-can-mod` — 原始 CanFeather FSD 研究（GitLab repo 已被移除；镜像在 [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod)）
 

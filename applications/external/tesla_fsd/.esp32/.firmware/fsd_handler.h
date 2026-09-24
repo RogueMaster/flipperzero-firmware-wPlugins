@@ -22,6 +22,8 @@ typedef CANFRAME CanFrame;
 
 // ── Full FSD state (shared with the Flipper build) ────────────────────────────
 #include "../../fsd_logic/fsd_state.h"
+// DAS engaged helper + in-car Autopark TX pause (#180), shared header-only.
+#include "../../fsd_logic/fsd_autopark.h"
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -63,12 +65,22 @@ bool fsd_ap_first_allows(const FSDState *state, uint32_t now_ms);
 // Configurable signal-mapping context freshness window (#122).
 #define NAG_CTX_FRESH_MS 1000u
 
+// Signal Map watchdog (#100): when a DAS id is configured but the standard
+// parsers are skipped, an id that never appears on the tapped bus silently
+// pauses the nag killer (fsd_das_ctx_fresh fails closed). Surface it after this
+// long without that id. Also the boot grace before the check can fire.
+#define SIGNAL_MAP_DAS_MISS_MS 3000u
+
 /** Apply configurable signal mapping (#122): extract DAS/steering from the
  *  user-configured positions when cfg_*_id is set, and stamp the freshness clock. */
 void fsd_apply_signal_config(FSDState *state, const CanFrame *frame, uint32_t now_ms);
 /** True if the DAS context is fresh (auto mode always true; configured requires
  *  a cfg-DAS frame within NAG_CTX_FRESH_MS). */
 bool fsd_das_ctx_fresh(const FSDState *state, uint32_t now_ms);
+/** True when a Signal Map DAS id is configured but hasn't been seen within
+ *  SIGNAL_MAP_DAS_MISS_MS (auto mode / boot grace return false). Pure — the
+ *  caller owns the one-shot log + status flag (#100). */
+bool fsd_signal_map_das_missing(const FSDState *state, uint32_t now_ms);
 
 /** Soft-Engage gate (steer-jerk mitigation, #108). Returns true if injection may
  *  proceed: soft_engage off, already latched, or wheel within SOFT_ENGAGE_ANGLE_DEG
@@ -91,6 +103,9 @@ void fsd_abort_guard_update(FSDState *state);
 /** Abort-Guard gate. Returns false (suppress injection) only when abort_guard is
  *  on AND an abort was latched this engagement. */
 bool fsd_abort_guard_allows(const FSDState *state);
+
+/** Parse DI_speed (0x257) -> vehicle_speed_kph / ui_speed / speed_seen (#180). */
+void fsd_handle_di_speed(FSDState *state, const CanFrame *frame);
 
 /** Parse SCCM_steeringAngleSensor (0x129) -> steering_angle_deg. */
 void fsd_handle_steering_angle(FSDState *state, const CanFrame *frame);

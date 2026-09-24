@@ -29,7 +29,8 @@ public:
     /** Non-blocking receive.  Fills frame and returns true if a frame was available. */
     virtual bool receive(CanFrame &frame) = 0;
 
-    /** Cumulative bus/TX-error counter.
+    /** Cumulative combined error counter = rxMissedCount() + busErrorCount()
+     *  + txFailedCount(). On a busy bus this is mostly RX-queue drops.
      *  TWAI: rx_missed + bus_errors + tx_failed.
      *  MCP2515: number of sendMessage() failures (typically ALLTXBUSY). */
     virtual uint32_t errorCount() = 0;
@@ -44,6 +45,14 @@ public:
      *  overflowed (silent decimation of a busy bus). TWAI: twai_status_info_t
      *  .rx_missed_count. Drivers without the metric return 0. */
     virtual uint32_t rxMissedCount() { return 0; }
+
+    /** Cumulative bus errors (bit/stuff/form/CRC/ACK) the controller saw on
+     *  the wire. TWAI: .bus_error_count. Drivers without the metric return 0. */
+    virtual uint32_t busErrorCount() { return 0; }
+
+    /** Cumulative frames that failed to transmit. TWAI: .tx_failed_count;
+     *  MCP2515: sendMessage() failures. Drivers without the metric return 0. */
+    virtual uint32_t txFailedCount() { return 0; }
 
     /** Switch between listen-only and normal TX mode at runtime.
      *  Implementations must reinitialise the hardware as needed. */
@@ -74,6 +83,9 @@ public:
      *  Deactivate/Activate toggle. No-op while the bus is healthy. */
     virtual void serviceHealth() {}
 
+    /** Stop TX/ACK and release the bus before a reboot. Default no-op. */
+    virtual void shutdown() {}
+
     virtual ~CanDriver() = default;
 };
 
@@ -84,3 +96,15 @@ CanDriver *can_driver_create();
 /** Factory function for boards with two active CAN controllers.
  *  Caller owns the returned pointer. */
 CanDriver *can_driver_create(CanBusId bus);
+
+/** Per-cause split of errorCount(), summed over every non-null driver. */
+struct CanErrorSplit {
+    uint32_t rx_missed_count;  // frames dropped on a full controller RX queue
+    uint32_t bus_error_count;  // bus errors seen on the wire
+    uint32_t tx_failed_count;  // frames that failed to transmit
+};
+CanErrorSplit can_error_split(CanDriver **buses, uint8_t count);
+
+/** Quiesce every non-null driver (shutdown()) right before ESP.restart(),
+ *  so no controller is still transmitting or ACKing when the chip resets. */
+void can_shutdown_all(CanDriver **buses, uint8_t count);
