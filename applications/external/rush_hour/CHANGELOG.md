@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/Endika/flipper-tutu/compare/v0.1.7...v0.1.8) (2026-09-25)
+
+
+### Bug Fixes
+
+* never overwrite unreadable progress ([6881b67](https://github.com/Endika/flipper-tutu/commit/6881b6730462239d2c180b703bacb3a03d4f3c3f))
+
 ## [0.1.7](https://github.com/Endika/flipper-tutu/compare/v0.1.6...v0.1.7) (2026-09-05)
 
 

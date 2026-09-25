@@ -105,7 +105,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DNDInventory v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDSpellbook v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
-- Updated: [Rush Hour v0.1.7 (By Endika)](https://github.com/Endika/flipper-tutu)
 - Updated: [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - Updated: [Sub Duplicate Finder v1.2.2 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - Updated: [Quac! v0.10.0 (By rdefeo)](https://github.com/rdefeo/quac)
@@ -148,6 +147,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.16b29 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [ProtoPirate v3.5 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Gurpil v0.1.10 (By Endika)](https://github.com/Endika/flipper-gurpil)
+- Updated: [Rush Hour v0.1.8 (By Endika)](https://github.com/Endika/flipper-tutu)
 
 <a name="release"></a>
 
@@ -392,7 +392,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Rock Paper Scissors 3 v1.0 (By xantopren)](https://github.com/xantopren/rock-paper-scissors)
 - [Root of Life v1.4 (By Xorboo)](https://github.com/Xorboo/root-of-life)
 - [Rubiks Cube Scrambler v1.4 (By RaZeSloth)](https://github.com/RaZeSloth/flipperzero-rubiks-cube-scrambler)
-- [Rush Hour v0.1.7 (By Endika)](https://github.com/Endika/flipper-tutu)
+- [Rush Hour v0.1.8 (By Endika)](https://github.com/Endika/flipper-tutu)
 - [Scorched Tanks v1.4 (By jasniec)](https://github.com/jasniec/flipper-scorched-tanks-game)
 - [Secret Toggle (By nostrumuva)](https://github.com/nostrumuva/secret_toggle)
 - [Simon Says v0.2 (By SimplyMinimal)](https://github.com/SimplyMinimal/FlipperZero-SimonSays)

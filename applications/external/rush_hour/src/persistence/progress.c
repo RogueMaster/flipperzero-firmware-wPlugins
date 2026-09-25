@@ -24,3 +24,12 @@ uint16_t tutu_progress_complete_and_unlock(TutuProgress* p, uint16_t n, uint16_t
 bool tutu_progress_is_unlocked(const TutuProgress* p, uint16_t n) {
     return n <= p->highest_unlocked;
 }
+
+int tutu_progress_backup_slot(const bool taken[TUTU_PROGRESS_BACKUP_SLOTS]) {
+    for(int i = 0; i < TUTU_PROGRESS_BACKUP_SLOTS; i++) {
+        if(!taken[i]) {
+            return i;
+        }
+    }
+    return -1;
+}
