@@ -1,5 +1,6 @@
 #ifdef HOST_BUILD
-/* Expose truncate(2) in unistd.h with glibc when using -std=c11. */
+/* Expose access(2)/stat(2) in unistd.h/sys/stat.h with glibc when using
+ * -std=c11. */
 #define _DEFAULT_SOURCE 1
 #endif
 
@@ -9,7 +10,9 @@
 #include <string.h>
 
 #ifdef HOST_BUILD
+#include <errno.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -53,27 +56,6 @@ bool fs_read_stock_at(const char* path, uint32_t index, StockItem* out) {
     return r == 1;
 }
 
-bool fs_delete_stock_at_index(const char* path, uint32_t index) {
-    FILE* f = fopen(path, "r+b");
-    if(!f) return false;
-    fseek(f, 0, SEEK_END);
-    long size = ftell(f);
-    long count = size / (long)sizeof(StockItem);
-    if(index >= (uint32_t)count) {
-        fclose(f);
-        return false;
-    }
-    for(uint32_t i = index + 1; i < (uint32_t)count; i++) {
-        StockItem item;
-        fseek(f, (long)(i * sizeof(StockItem)), SEEK_SET);
-        if(fread(&item, sizeof(StockItem), 1, f) != 1) break;
-        fseek(f, (long)((i - 1) * sizeof(StockItem)), SEEK_SET);
-        fwrite(&item, sizeof(StockItem), 1, f);
-    }
-    fclose(f);
-    return truncate(path, (count - 1) * (long)sizeof(StockItem)) == 0;
-}
-
 bool fs_find_stock_by_uid(
     const char* filepath,
     const uint8_t* uid,
@@ -95,41 +77,117 @@ bool fs_find_stock_by_uid(
     return found;
 }
 
-bool fs_read_all_stock_items(const char* path, StockItem** out_items, size_t* out_count) {
-    if(!out_items || !out_count) return false;
+StockReadOutcome
+    fs_read_all_stock_items_ex(const char* path, StockItem** out_items, size_t* out_count) {
+    *out_items = NULL;
+    *out_count = 0;
     FILE* f = fopen(path, "rb");
-    if(!f) return false;
-    fseek(f, 0, SEEK_END);
-    long sz = ftell(f);
-    rewind(f);
-    if(sz < 0 || (size_t)sz % sizeof(StockItem) != 0) {
+    if(!f) return StockReadBlocked;
+    if(fseek(f, 0, SEEK_END) != 0) {
         fclose(f);
-        return false;
+        return StockReadBlocked;
+    }
+    long sz = ftell(f);
+    if(sz < 0) {
+        fclose(f);
+        return StockReadBlocked;
+    }
+    rewind(f);
+    if((size_t)sz % sizeof(StockItem) != 0) {
+        fclose(f);
+        return StockReadFraming;
     }
     if((size_t)sz > STOCK_DB_MAX_BYTES) {
         fclose(f);
-        return false;
+        return StockReadTooLarge;
     }
     size_t n = (size_t)sz / sizeof(StockItem);
     if(n == 0) {
         fclose(f);
-        *out_items = NULL;
-        *out_count = 0;
-        return true;
+        return StockReadOk;
     }
     StockItem* buf = malloc((size_t)sz);
+    if(!buf) {
+        fclose(f);
+        return StockReadBlocked;
+    }
+    size_t r = fread(buf, 1, (size_t)sz, f);
+    const bool read_error = ferror(f) != 0;
+    fclose(f);
+    if(read_error || r != (size_t)sz) {
+        /* The declared size was well-formed; a short/failed read here is an I/O
+     * error, not proof the file's content is corrupt -- never quarantine on a
+     * guess. */
+        free(buf);
+        return StockReadBlocked;
+    }
+    *out_items = buf;
+    *out_count = n;
+    return StockReadOk;
+}
+
+bool fs_read_all_stock_items(const char* path, StockItem** out_items, size_t* out_count) {
+    if(!out_items || !out_count) return false;
+    return fs_read_all_stock_items_ex(path, out_items, out_count) == StockReadOk;
+}
+
+StoreStat fs_stat(const char* path) {
+    struct stat st;
+    if(stat(path, &st) == 0) {
+        return StoreStatOk;
+    }
+    return (errno == ENOENT) ? StoreStatMissing : StoreStatError;
+}
+
+bool fs_exists(const char* path) {
+    return access(path, F_OK) == 0;
+}
+
+bool fs_rename(const char* src, const char* dst) {
+    return rename(src, dst) == 0;
+}
+
+bool fs_remove(const char* path) {
+    return remove(path) == 0;
+}
+
+bool fs_read_raw_bytes(const char* path, uint8_t** out_bytes, size_t* out_len) {
+    *out_bytes = NULL;
+    *out_len = 0;
+    FILE* f = fopen(path, "rb");
+    if(!f) return false;
+    if(fseek(f, 0, SEEK_END) != 0) {
+        fclose(f);
+        return false;
+    }
+    long sz = ftell(f);
+    if(sz < 0) {
+        fclose(f);
+        return false;
+    }
+    rewind(f);
+    if((size_t)sz > STOCK_DB_MAX_BYTES) {
+        fclose(f);
+        return false;
+    }
+    if(sz == 0) {
+        fclose(f);
+        return true;
+    }
+    uint8_t* buf = malloc((size_t)sz);
     if(!buf) {
         fclose(f);
         return false;
     }
     size_t r = fread(buf, 1, (size_t)sz, f);
+    const bool read_error = ferror(f) != 0;
     fclose(f);
-    if(r != (size_t)sz) {
+    if(read_error || r != (size_t)sz) {
         free(buf);
         return false;
     }
-    *out_items = buf;
-    *out_count = n;
+    *out_bytes = buf;
+    *out_len = (size_t)sz;
     return true;
 }
 
@@ -204,42 +262,6 @@ bool fs_read_stock_at(const char* path, uint32_t index, StockItem* out) {
     return r == sizeof(StockItem);
 }
 
-bool fs_delete_stock_at_index(const char* path, uint32_t index) {
-    Storage* storage = NULL;
-    File* file = NULL;
-    if(!open_file(&file, &storage, path, FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) return false;
-    uint64_t sz = storage_file_size(file);
-    if(sz > STOCK_DB_MAX_BYTES) {
-        close_file(file, storage);
-        return false;
-    }
-    if(sz % sizeof(StockItem) != 0) {
-        close_file(file, storage);
-        return false;
-    }
-    uint32_t count = (uint32_t)(sz / sizeof(StockItem));
-    if(index >= count) {
-        close_file(file, storage);
-        return false;
-    }
-    StockItem* items = malloc((size_t)sz);
-    if(!items) {
-        close_file(file, storage);
-        return false;
-    }
-    storage_file_seek(file, 0, true);
-    storage_file_read(file, items, (size_t)sz);
-    memmove(&items[index], &items[index + 1], (size_t)(count - index - 1) * sizeof(StockItem));
-    storage_file_seek(file, 0, true);
-    size_t new_bytes = (size_t)(count - 1) * sizeof(StockItem);
-    storage_file_write(file, items, new_bytes);
-    storage_file_seek(file, (uint32_t)new_bytes, true);
-    storage_file_truncate(file);
-    free(items);
-    close_file(file, storage);
-    return true;
-}
-
 bool fs_find_stock_by_uid(
     const char* filepath,
     const uint8_t* uid,
@@ -262,41 +284,122 @@ bool fs_find_stock_by_uid(
     return found;
 }
 
-bool fs_read_all_stock_items(const char* path, StockItem** out_items, size_t* out_count) {
-    if(!out_items || !out_count) return false;
+StockReadOutcome
+    fs_read_all_stock_items_ex(const char* path, StockItem** out_items, size_t* out_count) {
+    *out_items = NULL;
+    *out_count = 0;
     Storage* storage = NULL;
     File* file = NULL;
-    if(!open_file(&file, &storage, path, FSAM_READ, FSOM_OPEN_EXISTING)) return false;
+    if(!open_file(&file, &storage, path, FSAM_READ, FSOM_OPEN_EXISTING)) return StockReadBlocked;
     uint64_t sz = storage_file_size(file);
     if(sz % sizeof(StockItem) != 0) {
         close_file(file, storage);
-        return false;
+        return StockReadFraming;
     }
     if(sz > STOCK_DB_MAX_BYTES) {
         close_file(file, storage);
-        return false;
+        return StockReadTooLarge;
     }
     size_t n = (size_t)(sz / sizeof(StockItem));
     if(n == 0) {
         close_file(file, storage);
-        *out_items = NULL;
-        *out_count = 0;
-        return true;
+        return StockReadOk;
     }
     StockItem* buf = malloc((size_t)sz);
     if(!buf) {
         close_file(file, storage);
-        return false;
+        return StockReadBlocked;
     }
-    storage_file_seek(file, 0, true);
-    size_t r = storage_file_read(file, buf, (size_t)sz);
-    close_file(file, storage);
-    if(r != (size_t)sz) {
+    if(!storage_file_seek(file, 0, true)) {
+        close_file(file, storage);
         free(buf);
-        return false;
+        return StockReadBlocked;
+    }
+    size_t r = storage_file_read(file, buf, (size_t)sz);
+    const bool read_error = storage_file_get_error(file) != FSE_OK;
+    close_file(file, storage);
+    if(read_error || r != (size_t)sz) {
+        /* The declared size was well-formed; a short/failed read here is an I/O
+     * error, not proof the file's content is corrupt -- never quarantine on a
+     * guess. */
+        free(buf);
+        return StockReadBlocked;
     }
     *out_items = buf;
     *out_count = n;
+    return StockReadOk;
+}
+
+bool fs_read_all_stock_items(const char* path, StockItem** out_items, size_t* out_count) {
+    if(!out_items || !out_count) return false;
+    return fs_read_all_stock_items_ex(path, out_items, out_count) == StockReadOk;
+}
+
+StoreStat fs_stat(const char* path) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    const FS_Error error = storage_common_stat(storage, path, NULL);
+    furi_record_close(RECORD_STORAGE);
+    if(error == FSE_OK) {
+        return StoreStatOk;
+    }
+    return (error == FSE_NOT_EXIST) ? StoreStatMissing : StoreStatError;
+}
+
+bool fs_exists(const char* path) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    const bool exists = storage_common_exists(storage, path);
+    furi_record_close(RECORD_STORAGE);
+    return exists;
+}
+
+bool fs_rename(const char* src, const char* dst) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    const bool ok = storage_common_rename(storage, src, dst) == FSE_OK;
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+bool fs_remove(const char* path) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    const bool ok = storage_common_remove(storage, path) == FSE_OK;
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+bool fs_read_raw_bytes(const char* path, uint8_t** out_bytes, size_t* out_len) {
+    *out_bytes = NULL;
+    *out_len = 0;
+    Storage* storage = NULL;
+    File* file = NULL;
+    if(!open_file(&file, &storage, path, FSAM_READ, FSOM_OPEN_EXISTING)) return false;
+    uint64_t sz = storage_file_size(file);
+    if(sz > STOCK_DB_MAX_BYTES) {
+        close_file(file, storage);
+        return false;
+    }
+    if(sz == 0) {
+        close_file(file, storage);
+        return true;
+    }
+    uint8_t* buf = malloc((size_t)sz);
+    if(!buf) {
+        close_file(file, storage);
+        return false;
+    }
+    if(!storage_file_seek(file, 0, true)) {
+        close_file(file, storage);
+        free(buf);
+        return false;
+    }
+    size_t r = storage_file_read(file, buf, (size_t)sz);
+    const bool read_error = storage_file_get_error(file) != FSE_OK;
+    close_file(file, storage);
+    if(read_error || r != (size_t)sz) {
+        free(buf);
+        return false;
+    }
+    *out_bytes = buf;
+    *out_len = (size_t)sz;
     return true;
 }
 

@@ -106,11 +106,11 @@ static void test_db_upsert(void) {
     memcpy(b.uid, (uint8_t[]){0xBB}, 1);
     b.uid_len = 1;
 
-    assert(stock_db_upsert(path, &a) == true);
-    assert(stock_db_upsert(path, &b) == true);
+    assert(stock_db_upsert(path, &a).outcome == StockWriteOk);
+    assert(stock_db_upsert(path, &b).outcome == StockWriteOk);
 
     a.quantity = 99;
-    assert(stock_db_upsert(path, &a) == true);
+    assert(stock_db_upsert(path, &a).outcome == StockWriteOk);
 
     assert(stock_db_find_by_uid(path, (uint8_t[]){0xAA}, 1, &loaded) == true);
     assert(loaded.quantity == 99);

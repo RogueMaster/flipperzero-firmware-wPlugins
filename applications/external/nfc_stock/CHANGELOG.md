@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/Endika/flipper-nfc-stock/compare/v0.1.6...v0.1.7) (2026-09-25)
+
+
+### Bug Fixes
+
+* never replace the stock database after a failed read ([ebbf2f1](https://github.com/Endika/flipper-nfc-stock/commit/ebbf2f19a85af00df7948b0cf46cc4db79ac1ae3))
+
 ## [0.1.6](https://github.com/Endika/flipper-nfc-stock/compare/v0.1.5...v0.1.6) (2026-09-05)
 
 

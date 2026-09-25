@@ -109,7 +109,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub Duplicate Finder v1.2.2 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - Updated: [Quac! v0.10.0 (By rdefeo)](https://github.com/rdefeo/quac)
 - Updated: [Gurpil v0.1.9 (By Endika)](https://github.com/Endika/flipper-gurpil)
-- Updated: [NFC Stock Manager Alpha v0.1.6 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
 - Updated: [Avocado Zero v0.1.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - Updated: [Impostor v0.1.3 (By Endika)](https://github.com/Endika/flipper-impostor-game)
 - Updated: [Fake Chip Detector v0.13 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
@@ -148,6 +147,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [ProtoPirate v3.5 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Gurpil v0.1.10 (By Endika)](https://github.com/Endika/flipper-gurpil)
 - Updated: [Rush Hour v0.1.8 (By Endika)](https://github.com/Endika/flipper-tutu)
+- Updated: [NFC Stock Manager v0.1.7 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
 
 <a name="release"></a>
 
@@ -826,7 +826,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NFC Relay v0.2 (By leommxj)](https://github.com/leommxj/nfc_relay)
 - [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader)
 - [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
-- [NFC Stock Manager Alpha v0.1.6 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
+- [NFC Stock Manager v0.1.7 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
 - [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - [NFC URL v1.0 (By y-dejong)](https://github.com/y-dejong/nfcurl)
 - [NFC/RFID Detector v1.4 (By Skorpionm)](https://github.com/flipperdevices/flipperzero-firmware/pull/2795)
