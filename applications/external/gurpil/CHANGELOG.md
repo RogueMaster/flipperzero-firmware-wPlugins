@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/Endika/flipper-gurpil/compare/v0.1.9...v0.1.10) (2026-09-25)
+
+
+### Bug Fixes
+
+* never overwrite an unreadable best score ([ada748f](https://github.com/Endika/flipper-gurpil/commit/ada748fb24614347c5fe79c95ae134169d9d902e))
+
 ## [0.1.9](https://github.com/Endika/flipper-gurpil/compare/v0.1.8...v0.1.9) (2026-09-05)
 
 

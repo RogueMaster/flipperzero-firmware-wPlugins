@@ -28,11 +28,22 @@ size_t record_serialize(int32_t best, uint8_t* out, size_t out_len) {
     return RECORD_BYTES;
 }
 
-int32_t record_parse(const uint8_t* buf, size_t len) {
-    if(buf == NULL || len < RECORD_BYTES) {
-        return 0;
+bool record_is_valid(const uint8_t* buf, size_t len) {
+    return buf != NULL && len >= RECORD_BYTES && buf[0] == RECORD_MAGIC &&
+           buf[1] == RECORD_VERSION;
+}
+
+int record_backup_slot(const bool taken[RECORD_BACKUP_SLOTS]) {
+    for(int i = 0; i < RECORD_BACKUP_SLOTS; i++) {
+        if(!taken[i]) {
+            return i;
+        }
     }
-    if(buf[0] != RECORD_MAGIC || buf[1] != RECORD_VERSION) {
+    return -1;
+}
+
+int32_t record_parse(const uint8_t* buf, size_t len) {
+    if(!record_is_valid(buf, len)) {
         return 0;
     }
 
