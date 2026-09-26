@@ -1,37 +1,92 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/banner-dark.png">
-  <img src="images/banner.png" alt="Faraday — prove your pouch works. A signal-blocking pouch tester for Flipper Zero." width="100%">
-</picture>
-
+<!-- banner: paper by default, true black when the reader's GitHub is dark -->
 <p align="center">
-  <a href="https://github.com/at0m-b0mb/Faraday-FlipperZero/actions/workflows/build.yml"><img src="https://github.com/at0m-b0mb/Faraday-FlipperZero/actions/workflows/build.yml/badge.svg" alt="Build"></a>
-  <img src="https://img.shields.io/badge/Flipper%20Zero-Sub--GHz%20%2B%20NFC-555" alt="Sub-GHz and NFC">
-  <img src="https://img.shields.io/badge/extra%20hardware-none-555" alt="No extra hardware">
-  <img src="https://img.shields.io/badge/radio-listen--only-555" alt="Listen only">
-  <img src="https://img.shields.io/badge/license-MIT-555" alt="MIT">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/banner-dark.png">
+    <img src="images/banner.png" alt="Faraday — prove your pouch works. A signal-blocking pouch tester for Flipper Zero." width="100%">
+  </picture>
 </p>
 
-A signal-blocking pouch is a claim. Faraday is the measurement.
+<p align="center">
+  <sub>
+    The scale on the banner is not a graphic. It is Faraday's own grading
+    thresholds, read out of <code>helpers/fdy_grade.h</code> by the renderer at
+    build time — the same <code>#define</code>s the firmware branches on — so
+    the artwork cannot drift from the app. The hatched zone is the region it
+    refuses to grade at all, and the screen beside it is a real capture.
+  </sub>
+</p>
 
-You bought the pouch so your car key cannot be relayed out of your hallway, or so your
-contactless cards cannot be read through your bag. Almost nobody checks that it works, and
-the ones that do not work look exactly like the ones that do. Faraday measures your fob in
-the open air, measures it again sealed in the pouch, and tells you how many decibels the
-pouch actually took off — then grades it A+ to F.
+<p align="center"><i>Prove your pouch works.</i></p>
 
-It uses only the hardware already inside a Flipper Zero, and it never transmits.
+<p align="center">
+  <a href="https://at0m-b0mb.github.io/Faraday-FlipperZero/"><b>Project site</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/at0m-b0mb/Faraday-FlipperZero/releases/latest">Download</a>
+  &nbsp;·&nbsp;
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
+
+<!-- live badges: these track the repo, so the README never goes stale -->
+<p align="center">
+  <a href="https://github.com/at0m-b0mb/Faraday-FlipperZero/releases/latest"><img src="https://img.shields.io/github/v/release/at0m-b0mb/Faraday-FlipperZero?style=flat-square&color=8A6714&labelColor=000000" alt="Latest release"></a>
+  <a href="https://github.com/at0m-b0mb/Faraday-FlipperZero/releases"><img src="https://img.shields.io/github/downloads/at0m-b0mb/Faraday-FlipperZero/total?style=flat-square&color=8A6714&labelColor=000000&label=downloads" alt="Downloads"></a>
+  <a href="https://github.com/at0m-b0mb/Faraday-FlipperZero/stargazers"><img src="https://img.shields.io/github/stars/at0m-b0mb/Faraday-FlipperZero?style=flat-square&color=8A6714&labelColor=000000" alt="Stars"></a>
+  <a href="https://github.com/at0m-b0mb/Faraday-FlipperZero/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/at0m-b0mb/Faraday-FlipperZero/build.yml?branch=main&style=flat-square&labelColor=000000&color=8A6714&label=build" alt="Build"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Flipper%20Zero-8A6714?style=flat-square&logo=flipper&logoColor=FE8A2C&labelColor=000000" alt="Flipper Zero">
+  <img src="https://img.shields.io/badge/radio-Sub--GHz%20%2B%2013.56%20MHz%20NFC-8A6714?style=flat-square&labelColor=000000" alt="Sub-GHz and NFC">
+  <img src="https://img.shields.io/badge/extra%20hardware-none-8A6714?style=flat-square&labelColor=000000" alt="No extra hardware">
+  <img src="https://img.shields.io/badge/transmits-never-8A6714?style=flat-square&labelColor=000000" alt="Listen-only">
+  <img src="https://img.shields.io/badge/license-MIT-8A6714?style=flat-square&labelColor=000000" alt="MIT">
+</p>
+
+<p align="center">
+  A signal-blocking pouch is a <b>claim</b>. <b>Faraday</b> is the <b>measurement</b>.
+  You bought the pouch so your car key cannot be <b>relayed out of your hallway</b>, or so your
+  contactless cards cannot be <b>read through your bag</b> — and almost nobody checks that it
+  works, because the ones that do not work look exactly like the ones that do. Faraday measures
+  your fob <b>in the open air</b>, measures it again <b>sealed in the pouch</b>, and tells you
+  <b>how many decibels the pouch actually took off</b> — then grades it <b>A+ to F</b>. It uses
+  only the hardware already inside a Flipper Zero, and it <b>never transmits</b>.
+</p>
+
+<p align="center"><sub>A pouch is a claim. This is the number.</sub></p>
+
+<p align="center">
+  <sub>
+    <b>And it tells you when it cannot help.</b> A shielded reading can never sink below the
+    noise floor, so a weak baseline caps your grade however good the pouch is — Faraday shows
+    you that ceiling <i>before</i> you commit, and marks a result that hit it.
+    <a href="#the-honesty-rules">Why, and what to do about it.</a>
+  </sub>
+</p>
 
 ---
 
-## What it looks like
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/screens-dark.png">
-  <img src="images/screens.png" alt="Faraday's screens, captured from the device" width="100%">
-</picture>
+## On the Flipper
 
 <p align="center">
-  <img src="images/demo.gif" alt="A walk through Faraday, recorded off the device" width="62%">
+  <img src="images/demo.gif" width="70%" alt="Faraday in use: the launch intro, the main menu, the live Sub-GHz meter listening for a fob, the NFC field meter, a leak-hunt sweep, and the saved results log">
+</p>
+
+<p align="center">
+  <sub>
+    Every picture in this repository was captured from a real Flipper over USB by
+    <a href="tools_screenshot.py"><code>tools_screenshot.py</code></a>. There is no mockup
+    renderer: a drawing of the UI is a second implementation of it that can disagree with the
+    firmware while looking perfectly convincing. Version 1.3 deleted the one this repo shipped.
+  </sub>
+</p>
+
+### Every screen
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/screens-dark.png">
+    <img src="images/screens.png" alt="Faraday's screens, captured from the device" width="100%">
+  </picture>
 </p>
 
 <p align="center">
@@ -39,11 +94,6 @@ It uses only the hardware already inside a Flipper Zero, and it never transmits.
   &nbsp;&nbsp;
   <img src="images/hunt.gif" alt="Leak Hunt sweeping, recorded off the device" width="38%">
 </p>
-
-Every picture in this repository was captured from a real Flipper over USB by
-[`tools_screenshot.py`](tools_screenshot.py). There is no mockup renderer: a drawing of the
-UI is a second implementation of it that can disagree with the firmware while looking
-perfectly convincing. Version 1.3 deleted the one this repo used to ship.
 
 ---
 
