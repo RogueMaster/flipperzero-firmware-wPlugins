@@ -82,6 +82,16 @@ struct Dfc {
     // NFC
     DfcEmulator* dfc_emulator;
     DfcReader* dfc_reader;
+    bool iso_dep_last_response_valid;
+    uint8_t iso_dep_expected_pcd_block;
+    uint8_t iso_dep_picc_block;
+    uint8_t iso_dep_last_frame[62];
+    size_t iso_dep_last_frame_len;
+    uint8_t iso_dep_command[DFC_WORKER_MAX_BUFFER_SIZE];
+    size_t iso_dep_command_len;
+    size_t iso_dep_response_offset;
+    bool iso_dep_cid_valid;
+    uint8_t iso_dep_cid;
 
     // Set when Emulate was entered from "Blank Card" (main menu) rather than from a saved
     // credential's menu - routes the back button from Emulate to the Save flow instead of
@@ -109,6 +119,8 @@ void dfc_blink_start(Dfc* dfc);
 void dfc_blink_stop(Dfc* dfc);
 
 void dfc_show_loading_popup(void* context, bool show);
+
+void dfc_log_memory(const char* stage);
 
 // Radio transport for the engine, implemented in dfc_emulator_listener.c.
 NfcCommand dfc_worker_listener_callback(NfcGenericEvent event, void* context);

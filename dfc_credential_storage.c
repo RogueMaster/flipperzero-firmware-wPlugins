@@ -6,13 +6,18 @@
 #include "dfc_credential_storage.h"
 
 #include <furi.h>
+#include <furi/core/memmgr.h>
 #include <storage/storage.h>
 #include <dialogs/dialogs.h>
+#include <flipper_application/flipper_application.h>
+#include <flipper_application/plugins/plugin_manager.h>
+#include <loader/firmware_api/firmware_api.h>
 #include <lib/toolbox/path.h>
 
 #include "dfc_credential_i.h"
 #include "dfc_der.h"
-#include "dfc_text.h"
+#include "dfc_text_codec_plugin.h"
+#include "dfc_i.h"
 
 #define TAG "DfcCredentialStorage"
 
@@ -23,6 +28,77 @@ static struct {
     Storage* storage;
     DialogsApp* dialogs;
 } store;
+
+typedef struct {
+    PluginManager* manager;
+    const DfcTextCodecPlugin* api;
+} DfcTextCodec;
+
+static const DfcTextHostApi text_host_api = {
+    .dfc_credential_app_auth_commands = dfc_credential_app_auth_commands,
+    .dfc_credential_clear = dfc_credential_clear,
+    .dfc_credential_key = dfc_credential_key,
+    .dfc_credential_key_const = dfc_credential_key_const,
+    .dfc_credential_key_in_set = dfc_credential_key_in_set,
+    .dfc_credential_key_in_set_const = dfc_credential_key_in_set_const,
+    .dfc_credential_key_length = dfc_credential_key_length,
+    .dfc_credential_key_sets_resize = dfc_credential_key_sets_resize,
+    .dfc_credential_key_version_in_set = dfc_credential_key_version_in_set,
+    .dfc_credential_keys_resize = dfc_credential_keys_resize,
+    .dfc_credential_picc_auth_commands = dfc_credential_picc_auth_commands,
+    .dfc_credential_reset_application = dfc_credential_reset_application,
+    .dfc_der_decode = dfc_der_decode,
+    .dfc_der_status_name = dfc_der_status_name,
+    .dfc_der_validate_model = dfc_der_validate_model,
+    .dfc_file_data = dfc_file_data,
+    .dfc_file_data_const = dfc_file_data_const,
+    .dfc_file_resize = dfc_file_resize,
+};
+
+static bool dfc_text_codec_open(DfcTextCodec* codec, bool for_write) {
+    const char* id = for_write ? DFC_TEXT_EXPORT_PLUGIN_ID : DFC_TEXT_IMPORT_PLUGIN_ID;
+    const char* path = for_write ? DFC_TEXT_EXPORT_PLUGIN_PATH : DFC_TEXT_IMPORT_PLUGIN_PATH;
+    codec->manager =
+        plugin_manager_alloc(id, DFC_TEXT_CODEC_PLUGIN_API_VERSION, firmware_api_interface);
+    if(!codec->manager) {
+        FURI_LOG_E(TAG, "%s manager allocation failed", id);
+        return false;
+    }
+    PluginManagerError plugin_error = plugin_manager_load_single(codec->manager, path);
+    if(plugin_error != PluginManagerErrorNone) {
+        FURI_LOG_E(
+            TAG,
+            "%s plugin load failed: %u free=%u largest=%u",
+            id,
+            (unsigned)plugin_error,
+            (unsigned)memmgr_get_free_heap(),
+            (unsigned)memmgr_heap_get_max_free_block());
+        plugin_manager_free(codec->manager);
+        codec->manager = NULL;
+        return false;
+    }
+    if(plugin_manager_get_count(codec->manager) != 1) {
+        plugin_manager_free(codec->manager);
+        codec->manager = NULL;
+        return false;
+    }
+    codec->api = plugin_manager_get_ep(codec->manager, 0);
+    if(!codec->api || !codec->api->bind || !codec->api->status_name ||
+       (for_write ? !codec->api->write : !codec->api->parse)) {
+        plugin_manager_free(codec->manager);
+        codec->manager = NULL;
+        codec->api = NULL;
+        return false;
+    }
+    codec->api->bind(&text_host_api);
+    return true;
+}
+
+static void dfc_text_codec_close(DfcTextCodec* codec) {
+    codec->api = NULL;
+    if(codec->manager) plugin_manager_free(codec->manager);
+    codec->manager = NULL;
+}
 
 void dfc_credential_storage_show_error(const char* message) {
     dialog_message_show_storage_error(store.dialogs, message);
@@ -51,7 +127,38 @@ void dfc_credential_storage_deinit(void) {
 // encoding and reads the model back from those octets, so a credential the text
 // grammar accepts but the binary codec would refuse never reaches the emulator.
 // A .dfcb file is already those octets and skips the text stage.
-#define DFC_BINARY_FIRST_OCTET 0x60u
+#define DFC_BINARY_FIRST_OCTET          0x60u
+#define DFC_FLIPPER_CREDENTIAL_MAX_SIZE (16u * 1024u)
+#define DFC_BINARY_LOAD_HEAP_RESERVE    0u
+#define DFC_TEXT_LOAD_HEAP_RESERVE      (2u * 1024u)
+
+static bool dfc_credential_has_heap_for(size_t allocation, size_t reserve) {
+    size_t free_heap = memmgr_get_free_heap();
+    return allocation <= memmgr_heap_get_max_free_block() && allocation <= free_heap &&
+           reserve <= free_heap - allocation;
+}
+
+static bool dfc_credential_ats_is_radio_supported(const DfcCredential* credential) {
+    if(credential->picc_ats_len == 0) return true;
+    const uint8_t* ats = credential->picc_ats;
+    size_t length = credential->picc_ats_len;
+    if(length < 2 || ats[0] != length) return false;
+    uint8_t t0 = ats[1];
+    if((t0 & 0x0F) != 5) return false; // 64-byte frame size used by this listener.
+    size_t offset = 2;
+    if(t0 & 0x10) {
+        if(offset >= length || ats[offset++] != 0) return false; // 106 kbit/s only.
+    }
+    if(t0 & 0x20) {
+        if(offset >= length || (ats[offset++] >> 4) < 8) return false;
+    } else {
+        return false; // The default frame wait time is too short for this app.
+    }
+    if(t0 & 0x40) {
+        if(offset >= length || (ats[offset++] & 0x01)) return false; // No NAD handling.
+    }
+    return true;
+}
 
 static DfcCredentialLoadStatus dfc_credential_status_for(DfcTextStatus status) {
     switch(status) {
@@ -70,22 +177,27 @@ static DfcCredentialLoadStatus dfc_credential_status_for(DfcTextStatus status) {
 static bool dfc_credential_write_file(DfcCredential* credential, const char* path) {
     bool saved = false;
     char* text = NULL;
+    DfcTextCodec codec = {0};
     File* file = storage_file_alloc(store.storage);
 
     do {
+        if(!dfc_text_codec_open(&codec, true)) break;
         size_t needed = 0;
-        DfcTextStatus st = dfc_text_write(credential, NULL, 0, &needed);
+        DfcTextStatus st = codec.api->write(credential, NULL, 0, &needed);
         if(st != DfcTextCapacity && st != DfcTextOk) {
-            FURI_LOG_E(TAG, "cannot render credential: %s", dfc_text_status_name(st));
+            FURI_LOG_E(TAG, "cannot render credential: %s", codec.api->status_name(st));
             break;
         }
+        if(needed > DFC_FLIPPER_CREDENTIAL_MAX_SIZE) break;
         text = malloc(needed + 1);
+        if(!text) break;
         size_t len = 0;
-        st = dfc_text_write(credential, text, needed + 1, &len);
+        st = codec.api->write(credential, text, needed + 1, &len);
         if(st != DfcTextOk) {
-            FURI_LOG_E(TAG, "cannot render credential: %s", dfc_text_status_name(st));
+            FURI_LOG_E(TAG, "cannot render credential: %s", codec.api->status_name(st));
             break;
         }
+        dfc_text_codec_close(&codec);
 
         if(!storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) break;
         if(storage_file_write(file, text, len) != len) break;
@@ -96,6 +208,7 @@ static bool dfc_credential_write_file(DfcCredential* credential, const char* pat
         dialog_message_show_storage_error(store.dialogs, "Can not save\nfile");
     }
     if(text) free(text);
+    dfc_text_codec_close(&codec);
     storage_file_close(file);
     storage_file_free(file);
     return saved;
@@ -158,11 +271,24 @@ static uint8_t* dfc_credential_read_whole_file(
             if(status) *status = DfcCredentialLoadStatusMalformedFile;
             break;
         }
-        if(size > DFC_TEXT_MAX_SIZE) {
+        if(size > DFC_FLIPPER_CREDENTIAL_MAX_SIZE) {
+            if(status) *status = DfcCredentialLoadStatusCapacity;
+            break;
+        }
+        size_t path_len = strlen(path);
+        bool is_text = path_len >= strlen(DFC_APP_EXTENSION) &&
+                       strcmp(path + path_len - strlen(DFC_APP_EXTENSION), DFC_APP_EXTENSION) == 0;
+        if(!dfc_credential_has_heap_for(
+               (size_t)size,
+               is_text ? DFC_TEXT_LOAD_HEAP_RESERVE : DFC_BINARY_LOAD_HEAP_RESERVE)) {
             if(status) *status = DfcCredentialLoadStatusCapacity;
             break;
         }
         buffer = malloc((size_t)size);
+        if(!buffer) {
+            if(status) *status = DfcCredentialLoadStatusCapacity;
+            break;
+        }
         if(storage_file_read(file, buffer, (size_t)size) != size) {
             free(buffer);
             buffer = NULL;
@@ -185,77 +311,101 @@ static bool dfc_credential_file_load(
     bool parsed = false;
     size_t raw_len = 0;
     uint8_t* octets = NULL;
-    DfcCredential* staged = NULL;
+    DfcTextCodec codec = {0};
 
     if(status) *status = DfcCredentialLoadStatusMalformedFile;
 
+    dfc_log_memory("before credential read");
     uint8_t* raw = dfc_credential_read_whole_file(furi_string_get_cstr(path), &raw_len, status);
     if(!raw) return false;
+    dfc_log_memory("after credential read");
 
     do {
-        staged = malloc(sizeof(DfcCredential));
-        memset(staged, 0, sizeof(DfcCredential));
-
         size_t octets_len = 0;
         if(raw[0] == DFC_BINARY_FIRST_OCTET) {
             // Already the emulator's native input.
             octets = raw;
             octets_len = raw_len;
         } else {
+            if(!dfc_text_codec_open(&codec, false)) {
+                if(status) *status = DfcCredentialLoadStatusCodecUnavailable;
+                break;
+            }
             DfcTextError detail = {0};
-            DfcTextStatus text_status = dfc_text_parse(staged, (const char*)raw, raw_len, &detail);
+            DfcTextStatus text_status =
+                codec.api->parse(credential, (const char*)raw, raw_len, &detail);
             if(text_status != DfcTextOk) {
                 FURI_LOG_E(
                     TAG,
                     "line %u: %s (%s)",
                     (unsigned)detail.line,
                     detail.message,
-                    dfc_text_status_name(text_status));
+                    codec.api->status_name(text_status));
                 if(status) *status = dfc_credential_status_for(text_status);
                 break;
             }
+            dfc_text_codec_close(&codec);
             size_t needed = 0;
-            DfcTextStatus size_status = dfc_der_encoded_size(staged, &needed);
+            DfcTextStatus size_status = dfc_der_encoded_size(credential, &needed);
             if(size_status != DfcDerOk) {
                 if(status) *status = dfc_credential_status_for(size_status);
                 break;
             }
+            // Parsing is finished. Keep the model, then release the source
+            // before allocating its binary round-trip copy.
+            free(raw);
+            raw = NULL;
+            dfc_log_memory("before encoded copy");
+            if(!dfc_credential_has_heap_for(needed, DFC_BINARY_LOAD_HEAP_RESERVE)) {
+                if(status) *status = DfcCredentialLoadStatusCapacity;
+                break;
+            }
             octets = malloc(needed);
-            DfcDerStatus encoded = dfc_der_encode(staged, octets, needed, &octets_len);
+            if(!octets) {
+                if(status) *status = DfcCredentialLoadStatusCapacity;
+                break;
+            }
+            DfcDerStatus encoded = dfc_der_encode(credential, octets, needed, &octets_len);
             if(encoded != DfcDerOk) {
                 if(status) *status = dfc_credential_status_for(encoded);
                 break;
             }
         }
 
-        DfcDerStatus decoded = dfc_der_decode(staged, octets, octets_len);
+        DfcDerStatus decoded = dfc_der_decode(credential, octets, octets_len);
         if(decoded != DfcDerOk) {
             FURI_LOG_E(TAG, "binary rejected: %s", dfc_der_status_name(decoded));
             if(status) *status = dfc_credential_status_for(decoded);
             break;
         }
-        if(!dfc_desfire_uid_is_detectable(staged->uid, staged->uid_len)) break;
-        if(!dfc_credential_picc_ats_is_consistent(staged)) {
+        if(!dfc_desfire_uid_is_detectable(credential->uid, credential->uid_len)) break;
+        if(!dfc_credential_picc_ats_is_consistent(credential)) {
             // Well formed, but naming an answer to RATS this engine will not
             // transmit, which is the unsupported class rather than a broken file.
             FURI_LOG_E(TAG, "user ATS length octet does not describe the ATS");
             if(status) *status = DfcCredentialLoadStatusUnsupportedFormat;
             break;
         }
+        if(!dfc_credential_ats_is_radio_supported(credential)) {
+            if(status) *status = DfcCredentialLoadStatusUnsupportedFormat;
+            break;
+        }
 
         parsed = true;
+        dfc_log_memory("credential load peak");
         if(status) *status = DfcCredentialLoadStatusOk;
     } while(false);
 
     if(parsed) {
-        dfc_credential_clear(credential);
-        dfc_credential_copy_model(credential, staged);
         snprintf(credential->name, sizeof(credential->name), "%s", selected_name);
     }
 
     if(octets && octets != raw) free(octets);
     free(raw);
-    if(staged) free(staged);
+    dfc_text_codec_close(&codec);
+    if(!parsed) dfc_credential_clear(credential);
+
+    dfc_log_memory("after credential load");
 
     return parsed;
 }

@@ -88,6 +88,7 @@ void dfc_scene_emulate_on_enter(void* context) {
         activation.uid[2],
         activation.uid[3]);
 
+    // The core and the Flipper listener both use the two on-air octets.
     iso14443_3a_set_atqa(mutable_data->iso14443_3a_data, activation.atqa);
     iso14443_3a_set_sak(mutable_data->iso14443_3a_data, activation.sak);
 
@@ -98,7 +99,9 @@ void dfc_scene_emulate_on_enter(void* context) {
     dfc_set_listener_ats(mutable_data, activation.ats, activation.ats_len);
 
     furi_assert(!dfc->dfc_emulator);
+    dfc_log_memory("before emulator alloc");
     dfc->dfc_emulator = dfc_emulator_alloc(dfc->credential);
+    dfc_log_memory("after emulator alloc");
     if(!dfc->dfc_emulator) {
         popup_set_header(popup, "Out of memory", 64, 24, AlignCenter, AlignTop);
         popup_set_text(popup, "Could not start\nemulation", 64, 42, AlignCenter, AlignTop);
@@ -107,7 +110,16 @@ void dfc_scene_emulate_on_enter(void* context) {
     }
 
     dfc->listener = nfc_listener_alloc(dfc->nfc, NfcProtocolIso14443_4a, data);
+    dfc->iso_dep_last_response_valid = false;
+    dfc->iso_dep_expected_pcd_block = 0;
+    dfc->iso_dep_picc_block = 1;
+    dfc->iso_dep_last_frame_len = 0;
+    dfc->iso_dep_command_len = 0;
+    dfc->iso_dep_response_offset = 0;
+    dfc->iso_dep_cid_valid = false;
+    dfc->iso_dep_cid = 0;
     nfc_listener_start(dfc->listener, dfc_worker_listener_callback, dfc);
+    dfc_log_memory("after listener start");
 
     dfc_blink_start(dfc);
 
@@ -160,6 +172,7 @@ void dfc_scene_emulate_on_exit(void* context) {
         dfc_emulator_free(dfc->dfc_emulator);
         dfc->dfc_emulator = NULL;
     }
+    dfc_log_memory("after emulator stop");
 
     // Clear view
     popup_reset(dfc->popup);

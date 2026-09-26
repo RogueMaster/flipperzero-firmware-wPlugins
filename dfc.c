@@ -1,10 +1,49 @@
 #include "dfc_i.h"
+#include <furi/core/memmgr.h>
+#ifdef DFC_MEMORY_PROBE
+#include <storage/storage.h>
+#endif
 
 #define TAG "Dfc"
 
+void dfc_log_memory(const char* stage) {
+    size_t free_heap = memmgr_get_free_heap();
+    size_t minimum_heap = memmgr_get_minimum_free_heap();
+    size_t largest_block = memmgr_heap_get_max_free_block();
+    FURI_LOG_I(
+        "DfcMemory",
+        "%s free=%u minimum=%u largest=%u",
+        stage,
+        (unsigned)free_heap,
+        (unsigned)minimum_heap,
+        (unsigned)largest_block);
+#ifdef DFC_MEMORY_PROBE
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    if(storage_file_open(file, APP_DATA_PATH("memory.csv"), FSAM_WRITE, FSOM_OPEN_APPEND)) {
+        char line[96];
+        int length = snprintf(
+            line,
+            sizeof(line),
+            "%lu,%s,%u,%u,%u\n",
+            (unsigned long)furi_get_tick(),
+            stage,
+            (unsigned)free_heap,
+            (unsigned)minimum_heap,
+            (unsigned)largest_block);
+        if(length > 0 && (size_t)length < sizeof(line)) {
+            storage_file_write(file, line, (size_t)length);
+        }
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+#endif
+}
+
 _Static_assert(
-    DFC_BUILD_PROFILE == DFC_PROFILE_FULL_EV1,
-    "The Flipper app must be built with the full EV1 profile");
+    DFC_BUILD_PROFILE == DFC_PROFILE_FULL_EV3,
+    "The Flipper app must be built with the full EV3 profile");
 
 bool dfc_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -208,7 +247,9 @@ void dfc_show_loading_popup(void* context, bool show) {
 
 int32_t dfc_app(void* p) {
     UNUSED(p);
+    dfc_log_memory("before app alloc");
     Dfc* dfc = dfc_alloc();
+    dfc_log_memory("after app alloc");
 
     scene_manager_next_scene(dfc->scene_manager, DfcSceneMainMenu);
 

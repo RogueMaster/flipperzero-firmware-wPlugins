@@ -1,9 +1,6 @@
 [submodule "lib/core"]
 	path = lib/core
 	url = https://github.com/cindersocket/dfc-core.git
-[submodule "lib/tiny-AES-c"]
-	path = lib/tiny-AES-c
-	url = https://github.com/mistial-dev/tiny-AES-c.git
-[submodule "lib/tiny-DES-c"]
-	path = lib/tiny-DES-c
-	url = https://github.com/mistial-dev/tiny-DES-c.git
+[submodule "lib/tiny-crypto-c"]
+	path = lib/tiny-crypto-c
+	url = https://github.com/mistial-dev/tiny-crypto-c.git
