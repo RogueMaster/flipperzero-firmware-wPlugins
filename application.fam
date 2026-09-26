@@ -32,7 +32,7 @@ App(
     stack_size=10 * 1024,
     fap_category="NFC",
     # Optional values
-    fap_version="1.1",
+    fap_version="1.1.1",
     fap_icon="dfc.png",  # 10x10 1-bit PNG
     fap_description="DFC: reader/emulator for compatible NFC credentials",
     fap_author="CinderSocket",
