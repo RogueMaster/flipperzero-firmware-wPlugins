@@ -235,32 +235,109 @@ def render(theme_name, W=2560, H=800, ss=2, want_boxes=False):
     return out
 
 
-def social(theme_name="light", W=1280, H=640):
-    """The GitHub social card: same system, squarer, no scale (it is unreadable
-    at the size GitHub renders this)."""
+# GitHub's repo-card geometry. The canvas is 1280x640 and GitHub asks for a
+# 40pt border - 80px at this 2x canvas - around anything that matters, because
+# Twitter, Discord, Slack and LinkedIn each crop the card to their own aspect
+# ratio. Background may bleed to the edge; information may not.
+SOCIAL_W, SOCIAL_H = 1280, 640
+SOCIAL_SAFE = 80
+
+# Lay out a few pixels INSIDE the safe box. A rule drawn exactly on the
+# boundary comes back 77px from the edge after the supersampled LANCZOS
+# collapse, because the filter spreads a hard edge over neighbouring pixels -
+# so the file breaks the rule the layout satisfied.
+SOCIAL_PAD = 8
+
+
+def social(theme_name="light", W=SOCIAL_W, H=SOCIAL_H):
+    """The GitHub social preview card.
+
+    Laid out from the SAFE BOX, not from the canvas. The previous version
+    positioned its footer relative to the canvas height and shipped with a
+    36px bottom margin - fine in the file, cropped away on Discord.
+    """
     t = THEME[theme_name]
     ss = 2
     big = Image.new("RGB", (W * ss, H * ss), t["ground"])
     d = ImageDraw.Draw(big)
-    M = int(110 * ss)
+
+    # the safe box, in supersampled coordinates
+    inset = (SOCIAL_SAFE + SOCIAL_PAD) * ss
+    L, R = inset, W * ss - inset
+    T, B = inset, H * ss - inset
+
+    ver = version()
     mono_rail = font(MONO, int(26 * ss))
 
-    text(d, M, int(140 * ss), "FLIPPER ZERO  ·  SHIELDING TESTER", mono_rail, t["second"],
+    # --- top rail, on the safe box's top edge -------------------------------
+    text(d, L, T + int(20 * ss), "FLIPPER ZERO", mono_rail, t["second"], tracking=int(6 * ss))
+    text(d, L + int(300 * ss), T + int(20 * ss), "SHIELDING TESTER", mono_rail, t["second"],
          tracking=int(6 * ss))
-    d.line([M, int(176 * ss), W * ss - M, int(176 * ss)], fill=t["rule"], width=int(2 * ss))
-    text(d, M - int(5 * ss), int(360 * ss), "FARADAY", font(SERIF, int(180 * ss), index=2),
-         t["ink"], tracking=int(5 * ss))
-    text(d, M, int(440 * ss), "Prove your pouch works.", font(SANS, int(56 * ss), index=1), t["ink"])
-    text(d, M, int(496 * ss), "Real dB attenuation on Sub-GHz and NFC.",
-         font(SANS, int(36 * ss)), t["second"])
-    d.line([M, int(556 * ss), W * ss - M, int(556 * ss)], fill=t["rule"], width=int(2 * ss))
-    text(d, M, int(596 * ss), "github.com/at0m-b0mb/Faraday-FlipperZero", mono_rail, t["second"])
-    text(d, W * ss - M, int(596 * ss), f"v{version()}", mono_rail, t["second"], anchor="rs")
+    text(d, R, T + int(20 * ss), f"v{ver}", mono_rail, t["second"], tracking=int(6 * ss),
+         anchor="rs")
+    d.line([L, T + int(44 * ss), R, T + int(44 * ss)], fill=t["rule"], width=int(2 * ss))
+
+    # --- wordmark and tagline, left column ----------------------------------
+    # The capture occupies the right of the card, so the wordmark has to live
+    # in what is left. Measured, not assumed: at a 4x capture this column was
+    # 592px wide, "FARADAY" rendered 595px, and the card shipped reading
+    # "FARADA" with the Y hidden behind the device screen.
+    col = (W - SOCIAL_SAFE - SOCIAL_PAD - 128 * 3 - 24) * ss - L
+    wm_font = font(SERIF, int(120 * ss), index=2)  # 648px in a 696px column
+    if measure(d, "FARADAY", wm_font, int(4 * ss)) > col:
+        raise AssertionError("the wordmark does not fit beside the capture")
+    text(d, L - int(5 * ss), T + int(210 * ss), "FARADAY", wm_font, t["ink"], tracking=int(4 * ss))
+    text(d, L, T + int(266 * ss), "Prove your pouch works.", font(SANS, int(46 * ss), index=1),
+         t["ink"])
+    text(d, L, T + int(312 * ss), "Real dB attenuation, measured on the", font(SANS, int(30 * ss)),
+         t["second"])
+    text(d, L, T + int(350 * ss), "device. Graded A+ to F.", font(SANS, int(30 * ss)), t["second"])
+
+    # --- bottom rail, on the safe box's bottom edge -------------------------
+    d.line([L, B - int(44 * ss), R, B - int(44 * ss)], fill=t["rule"], width=int(2 * ss))
+    text(d, L, B - int(10 * ss), "github.com/at0m-b0mb/Faraday-FlipperZero", mono_rail,
+         t["second"])
+    text(d, R, B - int(10 * ss), "MIT  ·  never transmits", mono_rail, t["second"], anchor="rs")
 
     out = big.resize((W, H), Image.LANCZOS)
-    cap = capture("verdict.png", "shielded.png", "baseline.png")
-    paste_capture(out, cap, W - 110 - 128 * 4, 200, 4, t["rule"])
-    return out
+
+    # --- the device's own screen, pasted last and untouched ------------------
+    cap = capture("verdict.png", "band.png", "shielded.png", "baseline.png")
+    scale = 3
+    cw, ch = 128 * scale, 64 * scale
+    cx = W - SOCIAL_SAFE - SOCIAL_PAD - cw
+    cy = (H - ch) // 2 + 10
+    paste_capture(out, cap, cx, cy, scale, t["rule"])
+    return out, [(cx, cy, cw, ch)]
+
+
+def assert_safe_border(img, safe=SOCIAL_SAFE):
+    """GitHub's 40pt rule, checked on the pixels rather than on the layout.
+
+    The renderer supersamples and rescales, so the margin in the source is not
+    the margin in the file - this measures the actual inked extent.
+    """
+    im = img.convert("RGB")
+    W, H = im.size
+    px = im.load()
+    bg = px[2, 2]
+    xs, ys = [], []
+    for y in range(H):
+        for x in range(W):
+            if px[x, y] != bg:
+                xs.append(x)
+                ys.append(y)
+    if not xs:
+        raise AssertionError("social card is blank")
+    l, r, tp, b = min(xs), max(xs), min(ys), max(ys)
+    margins = {"left": l, "right": W - 1 - r, "top": tp, "bottom": H - 1 - b}
+    bad = {k: v for k, v in margins.items() if v < safe}
+    if bad:
+        raise AssertionError(
+            f"social card breaks GitHub's {safe}px safe border: {bad} "
+            f"(canvas {W}x{H}, ink x {l}..{r} y {tp}..{b})"
+        )
+    return margins
 
 
 def mark(px, theme_name="light"):
@@ -322,10 +399,15 @@ if __name__ == "__main__":
         b.save(p)
         print(f"wrote {os.path.relpath(p, HERE)}  ({b.size[0]}x{b.size[1]})  law 1 ok")
 
-    s = social("light")
+    card, boxes = social("light")
+    assert_quarantine(card, boxes)
+    m = assert_safe_border(card)
     p = os.path.join(OUT, "social-preview.png")
-    s.save(p)
-    print(f"wrote {os.path.relpath(p, HERE)}  ({s.size[0]}x{s.size[1]})")
+    card.save(p)
+    print(
+        f"wrote {os.path.relpath(p, HERE)}  ({card.size[0]}x{card.size[1]})  "
+        f"law 1 ok  safe border ok (min {min(m.values())}px)"
+    )
 
     for px in (16, 32, 64, 180):
         m = mark(px)
