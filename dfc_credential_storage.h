@@ -19,6 +19,7 @@ typedef enum {
     DfcCredentialLoadStatusUnsupportedFormat,
     DfcCredentialLoadStatusMalformedFile,
     DfcCredentialLoadStatusUnsupportedAuthMode,
+    DfcCredentialLoadStatusCodecUnavailable,
     // Well formed and understood, but larger than this build can hold. Distinct
     // from malformed so a valid credential is never reported as a broken file.
     DfcCredentialLoadStatusCapacity,

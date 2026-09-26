@@ -9,6 +9,8 @@ static const char* dfc_scene_file_select_load_error_message(DfcCredentialLoadSta
         return "File format\nunsupported";
     case DfcCredentialLoadStatusUnsupportedAuthMode:
         return "Auth mode\nunsupported";
+    case DfcCredentialLoadStatusCodecUnavailable:
+        return "Text codec\ncould not load";
     case DfcCredentialLoadStatusOpenFailed:
         return "Can not open\nfile";
     case DfcCredentialLoadStatusCapacity:
@@ -61,7 +63,7 @@ void dfc_scene_file_select_on_enter(void* context) {
 
     file_browser_configure(
         dfc->file_browser,
-        DFC_APP_EXTENSION,
+        DFC_APP_EXTENSION "|" DFC_BINARY_EXTENSION,
         STORAGE_APP_DATA_PATH_PREFIX,
         true,
         true,

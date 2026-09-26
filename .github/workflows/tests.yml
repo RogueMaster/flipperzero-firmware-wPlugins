@@ -5,6 +5,22 @@ on:
   pull_request:
 
 jobs:
+  app-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build Flipper app
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          sdk-channel: release
+      - name: Check C formatting
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          task: lint
+          skip-setup: true
+
   # Test the pinned engine with the same crypto dependencies as the app.
   engine-tests:
     runs-on: ubuntu-latest
@@ -15,5 +31,5 @@ jobs:
       - name: Run the engine suite
         run: >-
           make -C lib/core/tests test
-          TINY_AES_DIR=../../tiny-AES-c
-          TINY_DES_DIR=../../tiny-DES-c
+          CRYPTO_BACKEND=tiny
+          TINY_CRYPTO_DIR=../../tiny-crypto-c
