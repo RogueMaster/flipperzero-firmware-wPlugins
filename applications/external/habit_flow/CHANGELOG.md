@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/Endika/flipper-habit-flow/compare/v0.1.3...v0.1.4) (2026-09-25)
+
+
+### Bug Fixes
+
+* keep unreadable saved habits instead of overwriting them ([d5ce453](https://github.com/Endika/flipper-habit-flow/commit/d5ce45323637dc0ab0d2e4ff5cf2664415c782d8))
+
 ## [0.1.3](https://github.com/Endika/flipper-habit-flow/compare/v0.1.2...v0.1.3) (2026-05-25)
 
 

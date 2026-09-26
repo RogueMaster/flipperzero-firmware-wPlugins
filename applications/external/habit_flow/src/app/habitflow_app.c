@@ -5,6 +5,7 @@
 #include "include/application/hf_session_service.h"
 #include "include/domain/habit.h"
 #include "include/persistence/habit_store.h"
+#include "include/platform/hf_storage.h"
 #include "include/ports/hf_clock_port.h"
 #include "include/version.h"
 #include <furi.h>
@@ -55,8 +56,46 @@ void hf_dialog_rebind(HabitFlowApp* app) {
     dialog_ex_set_result_callback(app->dialog, dialog_result_cb);
 }
 
-void hf_app_save(HabitFlowApp* app) {
-    habit_store_save(&app->store);
+bool hf_app_save(HabitFlowApp* app) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    HfStorePort port = hf_storage_port(storage);
+    bool ok = habit_store_save(&port, &app->store);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+bool hf_app_add_habit(HabitFlowApp* app, const Habit* habit) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    HfStorePort port = hf_storage_port(storage);
+    bool ok = habit_store_add(&port, &app->store, habit);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+bool hf_app_replace_habit(HabitFlowApp* app, size_t index, const Habit* habit) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    HfStorePort port = hf_storage_port(storage);
+    bool ok = habit_store_replace_at(&port, &app->store, index, habit);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+static bool hf_app_delete_habit(HabitFlowApp* app, size_t index) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    HfStorePort port = hf_storage_port(storage);
+    bool ok = habit_store_delete_at(&port, &app->store, index);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+void hf_app_show_save_failed(HabitFlowApp* app) {
+    snprintf(
+        app->notice_buf,
+        sizeof(app->notice_buf),
+        "Couldn't save your change.\nIt wasn't written to the SD card.");
+    widget_reset(app->notice);
+    widget_add_text_scroll_element(app->notice, 0, 0, 128, 64, app->notice_buf);
+    hf_switch(app, HfViewNotice);
 }
 
 void hf_build_credits(HabitFlowApp* app) {
@@ -98,7 +137,10 @@ static void hf_show_yesterday_dialog(HabitFlowApp* app) {
 }
 
 static void hf_finish_yesterday_queue(HabitFlowApp* app) {
-    hf_session_close_yesterday_flow(&app->store, hf_clock_today_packed(), &app->yq);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    HfStorePort port = hf_storage_port(storage);
+    hf_session_close_yesterday_flow(&port, &app->store, hf_clock_today_packed(), &app->yq);
+    furi_record_close(RECORD_STORAGE);
 }
 
 static void dialog_result_cb(DialogExResult result, void* context) {
@@ -107,7 +149,10 @@ static void dialog_result_cb(DialogExResult result, void* context) {
         const bool yes = (result == DialogExResultRight);
         const size_t idx = app->yq.indices[app->yq.pos];
         hf_habit_apply_overnight(&app->store.habits[idx], yes);
-        hf_app_save(app);
+        if(!hf_app_save(app)) {
+            hf_app_show_save_failed(app);
+            return;
+        }
         app->yq.pos++;
         if(app->yq.pos >= app->yq.count) {
             hf_finish_yesterday_queue(app);
@@ -120,14 +165,20 @@ static void dialog_result_cb(DialogExResult result, void* context) {
     if(app->dlg_mode == HfDlgResetStreak) {
         if(result == DialogExResultRight) {
             hf_habit_reset_streak(&app->store.habits[app->detail_index]);
-            hf_app_save(app);
+            if(!hf_app_save(app)) {
+                hf_app_show_save_failed(app);
+                return;
+            }
         }
         hf_switch(app, HfViewDetail);
         return;
     }
     if(app->dlg_mode == HfDlgDeleteHabit) {
         if(result == DialogExResultRight) {
-            habit_store_delete_at(&app->store, app->edit_index);
+            if(!hf_app_delete_habit(app, app->edit_index)) {
+                hf_app_show_save_failed(app);
+                return;
+            }
             hf_switch(app, HfViewManage);
         } else {
             hf_switch(app, HfViewEdit);
@@ -158,6 +209,10 @@ static bool app_navigation_cb(void* context) {
         hf_switch(app, HfViewDetail);
         return true;
     }
+    if(app->current == HfViewNotice) {
+        hf_switch(app, HfViewMain);
+        return true;
+    }
     if(app->current == HfViewMain) {
         view_dispatcher_stop(app->vd);
         return true;
@@ -172,9 +227,21 @@ int32_t habitflow_app_run(void) {
     }
     memset(app, 0, sizeof(*app));
     habit_store_init(&app->store);
-    habit_store_load(&app->store);
 
-    hf_session_on_resume(&app->store, hf_clock_today_packed(), &app->yq);
+    Storage* boot_storage = furi_record_open(RECORD_STORAGE);
+    HfStorePort boot_port = hf_storage_port(boot_storage);
+    HfStoreLoadStatus load_status =
+        habit_store_load(&boot_port, &app->store, app->notice_buf, sizeof(app->notice_buf));
+    hf_session_on_resume(
+        &boot_port,
+        &app->store,
+        hf_clock_today_packed(),
+        &app->yq,
+        hf_store_autosave_allowed(load_status));
+    furi_record_close(RECORD_STORAGE);
+
+    const bool show_load_notice =
+        (load_status == HfStoreLoadCorrupt || load_status == HfStoreLoadStatError);
 
     app->gui = furi_record_open(RECORD_GUI);
     app->vd = view_dispatcher_alloc();
@@ -193,6 +260,12 @@ int32_t habitflow_app_run(void) {
     app->credits = widget_alloc();
     hf_build_credits(app);
     view_dispatcher_add_view(app->vd, HfViewCredits, widget_get_view(app->credits));
+
+    app->notice = widget_alloc();
+    if(show_load_notice) {
+        widget_add_text_scroll_element(app->notice, 0, 0, 128, 64, app->notice_buf);
+    }
+    view_dispatcher_add_view(app->vd, HfViewNotice, widget_get_view(app->notice));
 
     app->detail = view_alloc();
     view_allocate_model(app->detail, ViewModelTypeLocking, sizeof(HfCtx));
@@ -232,7 +305,9 @@ int32_t habitflow_app_run(void) {
     popup_set_callback(app->popup_mastered, popup_mastered_cb);
     view_dispatcher_add_view(app->vd, HfViewPopupMastered, popup_get_view(app->popup_mastered));
 
-    if(app->yq.count > 0) {
+    if(show_load_notice) {
+        hf_switch(app, HfViewNotice);
+    } else if(app->yq.count > 0) {
         app->dlg_mode = HfDlgYesterday;
         hf_show_yesterday_dialog(app);
         hf_switch(app, HfViewDialog);
@@ -259,6 +334,9 @@ int32_t habitflow_app_run(void) {
 
     view_dispatcher_remove_view(app->vd, HfViewDetail);
     view_free(app->detail);
+
+    view_dispatcher_remove_view(app->vd, HfViewNotice);
+    widget_free(app->notice);
 
     view_dispatcher_remove_view(app->vd, HfViewCredits);
     widget_free(app->credits);

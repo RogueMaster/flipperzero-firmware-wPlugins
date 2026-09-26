@@ -24,6 +24,7 @@ typedef enum {
     HfViewTextInput,
     HfViewDialog,
     HfViewPopupMastered,
+    HfViewNotice,
 } HfViewId;
 
 typedef enum {
@@ -51,7 +52,9 @@ struct HabitFlowApp {
     Widget* credits;
     DialogEx* dialog;
     Popup* popup_mastered;
+    Widget* notice;
     char credits_buf[320];
+    char notice_buf[256];
 
     uint32_t list_sel;
     uint32_t list_scroll;

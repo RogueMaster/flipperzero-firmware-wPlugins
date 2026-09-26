@@ -9,13 +9,20 @@ static void hf_yesterday_queue_reset(HfYesterdayQueue* q) {
     }
 }
 
-void hf_session_on_resume(HabitStore* store, uint32_t today_packed, HfYesterdayQueue* yq) {
+void hf_session_on_resume(
+    const HfStorePort* port,
+    HabitStore* store,
+    uint32_t today_packed,
+    HfYesterdayQueue* yq,
+    bool autosave_allowed) {
     furi_assert(store && yq);
     hf_yesterday_queue_reset(yq);
 
     if(store->session_date_packed == 0) {
         store->session_date_packed = today_packed;
-        habit_store_save(store);
+        if(autosave_allowed) {
+            habit_store_save(port, store);
+        }
         return;
     }
 
@@ -28,7 +35,9 @@ void hf_session_on_resume(HabitStore* store, uint32_t today_packed, HfYesterdayQ
             hf_habit_on_long_gap(&store->habits[i]);
         }
         store->session_date_packed = today_packed;
-        habit_store_save(store);
+        if(autosave_allowed) {
+            habit_store_save(port, store);
+        }
         return;
     }
 
@@ -40,21 +49,26 @@ void hf_session_on_resume(HabitStore* store, uint32_t today_packed, HfYesterdayQ
             yq->indices[yq->count++] = i;
         }
     }
-    habit_store_save(store);
+    if(autosave_allowed) {
+        habit_store_save(port, store);
+    }
     if(yq->count == 0) {
         store->session_date_packed = today_packed;
-        habit_store_save(store);
+        if(autosave_allowed) {
+            habit_store_save(port, store);
+        }
     } else {
         yq->pos = 0;
     }
 }
 
 void hf_session_close_yesterday_flow(
+    const HfStorePort* port,
     HabitStore* store,
     uint32_t today_packed,
     HfYesterdayQueue* yq) {
     furi_assert(store && yq);
     store->session_date_packed = today_packed;
-    habit_store_save(store);
+    habit_store_save(port, store);
     hf_yesterday_queue_reset(yq);
 }

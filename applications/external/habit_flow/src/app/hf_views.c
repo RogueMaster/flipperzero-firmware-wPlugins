@@ -244,7 +244,10 @@ bool hf_views_detail_input(InputEvent* event, void* context) {
         Habit* h = &app->store.habits[app->detail_index];
         bool just_mastered = false;
         hf_habit_toggle_today(h, &just_mastered);
-        hf_app_save(app);
+        if(!hf_app_save(app)) {
+            hf_app_show_save_failed(app);
+            return true;
+        }
         if(just_mastered) {
             popup_reset(app->popup_mastered);
             popup_set_header(app->popup_mastered, "Habit Mastered!", 64, 6, AlignCenter, AlignTop);
@@ -442,10 +445,12 @@ bool hf_views_edit_input(InputEvent* event, void* context) {
             if(strlen(app->edit_buf.name) == 0) {
                 snprintf(app->edit_buf.name, sizeof(app->edit_buf.name), "Habit");
             }
-            if(app->edit_is_new) {
-                habit_store_add(&app->store, &app->edit_buf);
-            } else {
-                habit_store_replace_at(&app->store, app->edit_index, &app->edit_buf);
+            bool saved = app->edit_is_new ?
+                             hf_app_add_habit(app, &app->edit_buf) :
+                             hf_app_replace_habit(app, app->edit_index, &app->edit_buf);
+            if(!saved) {
+                hf_app_show_save_failed(app);
+                return true;
             }
             hf_switch(app, HfViewManage);
             return true;
