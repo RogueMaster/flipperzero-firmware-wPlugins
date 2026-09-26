@@ -50,6 +50,12 @@ on the verified [Scout Lite](https://www.pingequa.com/products/scout-lite) board
   you to set the WiGLE key or home Wi-Fi. The Upload page shows `Key` and
   `Home`, the queue, and lets you retry. **Rank** shows the WiGLE account
   rank from the last upload status. That number is not this trip's count.
+- **Set up upload Wi-Fi on the card.** Put the Wi-Fi name and password in two
+  files on the Scout Lite microSD alongside the WiGLE API files. This avoids
+  selecting an AP and typing its password through a Flipper `Join WiFi` flow
+  when using the complete SigRoam scanner + FAP setup. Factory Marauder has
+  its own saved-Wi-Fi and direct-upload workflow; the difference here is the
+  first-time input method and SigRoam's after-STOP upload attempt.
 - **Recover and diagnose on the move.** Probe distinguishes a missing scanner
   from a responding one; Raw log exposes the serial feed. The app detects a
   stalled feed after USB power handover and shows `Resyncing...` while it retries.
@@ -77,7 +83,7 @@ boards may run the FAP, but they have not all been bench-tested here.
    Disconnect Scout Lite from the Flipper first. Hold BOOT while connecting its
    USB-C data cable, release BOOT, and write `sigroam_lite.bin` at `0x20000`.
    The [Scout Lite Web Flasher](https://flash.pingequa.com/devices/scout-lite)
-   is the browser path for that same image after the site lists 0.6. Keep the
+   lists the 0.6 image as a browser install option. Keep the
    factory Marauder image if you only want the compatible dashboard.
 2. Fit a FAT32 microSD card in Scout Lite and mount it on the Flipper GPIO
    header. The Flipper provides power on pin 1 and communicates on pins 13/14.
@@ -99,6 +105,8 @@ For a first run, see the
 
 **Requires the SigRoam scanner firmware on Scout Lite.** The FAP does not upload
 over the Flipper's radio or store the CSV on the Flipper SD card.
+The four setup files go on the **Scout Lite card**, not the Flipper card. No
+Flipper-side `Join WiFi` password entry is needed for this scanner workflow.
 
 1. Get your **API Name** and **API Token** from your
    [WiGLE account](https://wigle.net/account). Keep them private.
@@ -155,7 +163,7 @@ automatically work on every GPIO board.
 | Setup | Primary use | Where the survey goes and how it uploads |
 |---|---|---|
 | **SigRoam FAP + SigRoam scanner on Scout Lite** | Focused Flipper field dashboard and scanner-side session visibility | Scout Lite microSD; automatic attempt after STOP plus Flipper manual retry |
-| **[ESP32 Marauder](https://github.com/justcallmekoko/ESP32Marauder/wiki/wardrive) + its [Flipper companion](https://github.com/0xchocolate/flipperzero-wifi-marauder)** | Broad Wi-Fi/Bluetooth toolkit with Wardrive as one function | Hardware-dependent wardrive log; [Marauder Direct Upload](https://github.com/justcallmekoko/ESP32Marauder/wiki/wardriving-direct-upload) supports WiGLE after Wi-Fi setup and an upload action |
+| **[ESP32 Marauder](https://github.com/justcallmekoko/ESP32Marauder/wiki/wardrive) + its [Flipper companion](https://github.com/0xchocolate/flipperzero-wifi-marauder)** | Broad Wi-Fi/Bluetooth toolkit with Wardrive as one function | Hardware-dependent wardrive log; [Marauder Direct Upload](https://github.com/justcallmekoko/ESP32Marauder/wiki/wardriving-direct-upload) supports WiGLE after joining Wi-Fi and choosing an upload action. Initial `Join WiFi` uses AP selection and password entry; saved profiles reduce repeat setup. |
 | **[GhostESP + Flipper companion](https://github.com/GhostESP-Revival/GhostESP-FlipperCompanion)** | Broad wireless toolkit with GPS wardriving | GhostESP CSV; its [WiGLE integration](https://docs.ghostesp.net/latest/gps/wigle/) supports automatic upload when a Wi-Fi STA connection is established |
 | **[ESP32GPS Wardriver](https://github.com/Sil333033/flipperzero-wardriver)** | DIY Flipper AP/GPS list workflow | Its README documents a CSV saved on the Flipper SD card for WiGLE upload |
 
@@ -166,9 +174,10 @@ For board shoppers, the firmware boundary matters as much as the radio:
 | **[Scout Lite](https://www.pingequa.com/products/scout-lite)** | ESP32-C5 2.4/5 GHz, onboard GPS and microSD | Verified reference board for SigRoam 0.6; optional SigRoam or factory Marauder firmware |
 | **[Apex 5 V2](https://github.com/HoneyHoneyTeam/ESP32-Marauder-5G-Apex-5-Module---For-Flipper-Zero)** | ESP32-C5 2.4/5 GHz, onboard GPS and SD slot; also Sub-GHz and nRF24 | Not verified. Its maker documents Marauder Wardrive on **V2**; V1 has a different wiring limitation |
 
-Comparison sources: linked project documentation, checked 2026-09-24.
-Marauder's Wardrive and Direct Upload wiki pages state an update date of
-2026-07-21; the Apex 5 manual notes a 2026-07-08 update. The linked GhostESP
+Comparison sources: linked project documentation, checked 2026-09-26.
+Marauder's Direct Upload wiki states an update date of 2026-09-15; its
+[Join WiFi CLI page](https://github.com/justcallmekoko/ESP32Marauder/wiki/join)
+states 2025-06-05. The Apex 5 manual notes a 2026-07-08 update. The linked GhostESP
 and ESP32GPS pages do not state an update date.
 For a broader hardware comparison including Biscuit, C5 wardrivers and
 multi-radio Flipper boards, see our
