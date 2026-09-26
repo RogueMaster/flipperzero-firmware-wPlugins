@@ -9,9 +9,23 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  # A .fap bakes in the SDK's API version at compile time, and the loader
+  # refuses to run one that trails the firmware ("APP:87 < FW:88"). Official
+  # firmware tracks the release channel; Unleashed, RogueMaster and Momentum
+  # track dev. No single build satisfies both, so every release ships both -
+  # attaching only the release build made the download dead on every custom
+  # firmware, which is most of the audience for an app like this.
+  build:
     runs-on: ubuntu-latest
-    name: Build & attach faraday.fap
+    name: ufbt (${{ matrix.channel }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - channel: release
+            artifact: faraday.fap
+          - channel: dev
+            artifact: faraday-fw-dev.fap
     steps:
       - uses: actions/checkout@v4
 
@@ -19,21 +33,57 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install ufbt
-        run: python3 -m pip install --upgrade ufbt
-
-      - name: Sync SDK (release)
-        run: ufbt update --channel=release
+      - name: Install ufbt and Pillow
+        run: python3 -m pip install --upgrade ufbt pillow
 
       - name: Verify the grading engine
         run: make -C test
 
+      - name: Check every on-screen string fits 128px
+        run: python3 tools_check_text.py
+
+      - name: Check the version, icons and catalog images agree
+        run: python3 tools_check_meta.py
+
+      - name: Sync SDK (${{ matrix.channel }})
+        run: ufbt update --channel=${{ matrix.channel }}
+
       - name: Build Faraday
         run: ufbt
 
-      - name: Attach .fap to the release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Name the build after its firmware channel
+        run: cp dist/faraday.fap "${{ matrix.artifact }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Attach both builds to the release
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Attach to the release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/faraday.fap
+          files: |
+            faraday.fap
+            faraday-fw-dev.fap
           fail_on_unmatched_files: true
+          body: |
+            **Which file do I want?**
+
+            | File | Firmware |
+            | --- | --- |
+            | `faraday.fap` | Official firmware |
+            | `faraday-fw-dev.fap` | Unleashed, RogueMaster, Momentum |
+
+            Drop it in `SD Card/apps/Tools/`. If the launcher warns
+            `APP:87 < FW:88`, you have the other one.

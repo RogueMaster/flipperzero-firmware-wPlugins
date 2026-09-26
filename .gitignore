@@ -22,3 +22,14 @@ __pycache__/
 # host test binaries
 test/host_grade_test
 test/*.dSYM/
+
+# Working captures from tools_screenshot.py. The named screens and the ssN
+# catalog aliases ARE committed - they are the repository's illustrations and
+# the images the app catalog is submitted with. These are scratch.
+screenshots/session/
+images/session.gif
+screenshots/probe.png
+screenshots/chk_*.png
+screenshots/dbg_*.png
+screenshots/amb_*.png
+screenshots/watch_*.png

@@ -45,6 +45,9 @@ View* hunt_view_get_view(HuntView* v);
 /** OK resets the peak-hold so you can re-sweep a spot cleanly. */
 void hunt_view_set_ok_callback(HuntView* v, HuntViewOkCallback cb, void* context);
 
+/** Re-arm the opening "what to do" card. Call from the scene's on_enter. */
+void hunt_view_reset_intro(HuntView* v);
+
 void hunt_view_update(HuntView* v, const HuntData* data);
 void hunt_view_tick(HuntView* v);
 

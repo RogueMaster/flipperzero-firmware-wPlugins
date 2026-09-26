@@ -23,6 +23,12 @@
 extern "C" {
 #endif
 
+/* FdyNfcCapture, mirrored so this radio-agnostic view does not have to include
+ * the NFC helper's header. The NFC scene _Static_asserts that the two agree. */
+#define FDY_NFC_LIVE 0
+#define FDY_NFC_ARMING 1
+#define FDY_NFC_MEASURING 2
+
 typedef enum {
     FdyPhaseBaseline = 0, /* capturing the open-air reference */
     FdyPhaseShield, /* capturing the pouch-sealed level */
@@ -41,6 +47,26 @@ typedef struct {
     uint8_t peak; /* peak-hold normalised 0..100        */
     int16_t live_value; /* real reading to print (dBm or %)   */
     bool signal_ok; /* a signal is actually present now   */
+    /* The figure signal_ok is actually decided on: dB of peak-hold above the
+     * tracked noise floor for Sub-GHz, peak field duty-% for NFC. Shown on
+     * screen because the meter bar tracks the LIVE reading while the lock
+     * decision tracks the PEAK - so a bar sitting at nothing next to a strip
+     * reading "Signal found" looked like the app contradicting itself. */
+    int16_t margin;
+    /* The best grade this SETUP could possibly produce, given that a shielded
+     * reading can never sink below the noise floor. Max measurable
+     * attenuation is (peak - floor), so a baseline only 55 dB above the floor
+     * caps the test at A however good the pouch is - and the user has no way
+     * to know that from a screen showing a healthy signal. Shown while the
+     * baseline is still being taken, when moving the fob closer still helps.
+     * FdyRatingCount means "not applicable / no signal yet". */
+    uint8_t ceiling;
+    /* NFC only: which stage the timed shielded capture is in (FdyNfcCapture)
+     * and how many whole seconds are left in it. The Flipper is inside the
+     * pouch for this, so the countdown is the only way the user knows whether
+     * to keep it sealed or go and fetch it. */
+    uint8_t capture;
+    uint8_t capture_seconds;
 
     /* captured references */
     bool have_base;
@@ -75,6 +101,30 @@ View* meter_view_get_view(MeterView* v);
 
 /** OK fires when the user locks/advances. */
 void meter_view_set_ok_callback(MeterView* v, MeterViewOkCallback cb, void* context);
+
+/**
+ * Take over the action strip for about a second and a half, inverted, with a
+ * one-line message. NULL clears it.
+ *
+ * Used for the two things the user must not miss and that nothing else on
+ * screen would tell them:
+ *   - why an OK press was refused. A refusal used to be a beep and nothing
+ *     else, which from the user's side is indistinguishable from a dead
+ *     button: they press OK, hear a noise, the screen does not change, and
+ *     they conclude the app is broken.
+ *   - that a finished result could not be written to the SD card, so the
+ *     measurement they just took is not in the log they think it is in.
+ */
+void meter_view_flash_notice(MeterView* v, const char* why);
+
+/**
+ * Re-arm the opening card that says which object goes in the pouch.
+ *
+ * The two tests are opposites - Sub-GHz shields the fob, NFC shields the
+ * Flipper - and getting it the wrong way round measures nothing while looking
+ * exactly like a real test. Call from the scene's on_enter.
+ */
+void meter_view_reset_intro(MeterView* v);
 
 /** Push a fresh frame. */
 void meter_view_update(MeterView* v, const MeterData* data);

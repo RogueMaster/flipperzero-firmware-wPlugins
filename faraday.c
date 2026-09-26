@@ -96,7 +96,7 @@ void faraday_notify_click(FaradayApp* app) {
 }
 
 /* ---------------- result log ---------------- */
-void faraday_log_result(FaradayApp* app, bool is_nfc, uint32_t frequency) {
+bool faraday_log_result(FaradayApp* app, bool is_nfc, uint32_t frequency) {
     furi_assert(app);
     const FdyTest* t = &app->test;
 
@@ -109,7 +109,7 @@ void faraday_log_result(FaradayApp* app, bool is_nfc, uint32_t frequency) {
         .floored = t->atten_floored,
         .rating = t->rating,
     };
-    fdy_store_result_append(&r);
+    return fdy_store_result_append(&r);
 }
 
 /* ---------------- test state ---------------- */
@@ -185,6 +185,11 @@ static FaradayApp* faraday_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, FaradayViewHunt, hunt_view_get_view(app->hunt_view));
 
+    // "which band is my fob on"
+    app->band_view = band_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, FaradayViewBand, band_view_get_view(app->band_view));
+
     // the launch splash
     app->splash_view = splash_view_alloc();
     view_dispatcher_add_view(
@@ -208,6 +213,7 @@ static void faraday_app_free(FaradayApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewAbout);
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewMeter);
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewHunt);
+    view_dispatcher_remove_view(app->view_dispatcher, FaradayViewBand);
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewSplash);
 
     submenu_free(app->submenu);
@@ -215,6 +221,7 @@ static void faraday_app_free(FaradayApp* app) {
     widget_free(app->widget);
     meter_view_free(app->meter_view);
     hunt_view_free(app->hunt_view);
+    band_view_free(app->band_view);
     splash_view_free(app->splash_view);
 
     view_dispatcher_free(app->view_dispatcher);

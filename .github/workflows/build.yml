@@ -14,8 +14,25 @@ jobs:
     name: grading engine
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Pillow (the asset checks read PNGs)
+        run: python3 -m pip install --upgrade pillow
+
       - name: Run host tests
         run: make -C test
+
+      # Both of these caught real defects that had shipped: screen strings
+      # wider than the 128px they are drawn on, and a fap_version that had
+      # drifted a whole release behind the header the firmware compiles.
+      - name: Check every on-screen string fits 128px
+        run: python3 tools_check_text.py
+
+      - name: Check the version, icons and catalog images agree
+        run: python3 tools_check_meta.py
 
   build:
     runs-on: ubuntu-latest

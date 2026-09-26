@@ -9,6 +9,7 @@
 #include <toolbox/stream/file_stream.h>
 #include <datetime/datetime.h>
 #include <stdio.h>
+#include <string.h> // strcmp/strncpy, used below; do not rely on a transitive include
 
 #define FDY_SETTINGS_PATH APP_DATA_PATH("settings.bin")
 #define FDY_RESULTS_PATH APP_DATA_PATH("results.csv")
@@ -18,6 +19,17 @@
 /* How many logged tests we keep in memory while scanning the file. The log
  * itself is allowed to grow; we only ever render the newest slice. */
 #define FDY_RESULTS_MAX 20
+
+/* A line longer than this is not one of ours. The results file lives on a card
+ * the user can edit, and stream_read_line grows its FuriString until it finds
+ * a newline - so a file with no newline in it lets the card decide how much of
+ * the heap to take. Our own longest line is well under 128 bytes. */
+#define FDY_LINE_MAX 160u
+
+/* Stop scanning after this many lines. The log is append-only and uncapped, so
+ * a long-lived install would otherwise re-parse the whole thing on the GUI
+ * thread every time the Saved results screen opens. */
+#define FDY_SCAN_MAX 4000u
 
 typedef struct {
     uint16_t year;
@@ -59,8 +71,16 @@ void fdy_store_settings_load(FaradaySettings* s) {
            FDY_SETTINGS_VERSION)) {
         return; // nothing valid on disk - caller keeps its defaults
     }
-    /* Never trust a file to index an array. */
+    /* saved_struct checks the magic, the version and the size - never the
+     * bytes. The file lives on a card the user can edit, so every field that
+     * reaches the rest of the app is normalised here.
+     *
+     * The !! on the flags is not cosmetic: a _Bool holding anything other than
+     * 0 or 1 is undefined the moment it is read, and a hand-edited file can
+     * easily hold 2. */
     if(loaded.band_index >= FDY_BAND_COUNT) loaded.band_index = 1;
+    loaded.sound = !!loaded.sound;
+    loaded.led = !!loaded.led;
     *s = loaded;
 }
 
@@ -104,11 +124,19 @@ bool fdy_store_result_append(const FdyResult* r) {
     return ok;
 }
 
-/* Human label for a logged frequency. */
+/* Human label for a logged frequency.
+ *
+ * With its unit: the NFC rows said "13.56 MHz" while the Sub-GHz rows said
+ * "433.92", so the one column that should have made the two comparable read
+ * as two different kinds of thing. */
 static const char* fdy_freq_label(bool is_nfc, uint32_t hz) {
+    static char buf[16];
     if(is_nfc) return "13.56 MHz";
     for(size_t i = 0; i < FDY_BAND_COUNT; i++) {
-        if(fdy_bands[i].frequency == hz) return fdy_bands[i].label;
+        if(fdy_bands[i].frequency == hz) {
+            snprintf(buf, sizeof(buf), "%s MHz", fdy_bands[i].label);
+            return buf;
+        }
     }
     return "Sub-GHz";
 }
@@ -116,6 +144,7 @@ static const char* fdy_freq_label(bool is_nfc, uint32_t hz) {
 uint8_t fdy_store_results_render(FuriString* out, uint8_t max) {
     furi_assert(out);
     if(max > FDY_RESULTS_MAX) max = FDY_RESULTS_MAX;
+    if(max == 0) return 0; // the ring arithmetic below is modulo `max`
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     Stream* stream = file_stream_alloc(storage);
@@ -125,7 +154,10 @@ uint8_t fdy_store_results_render(FuriString* out, uint8_t max) {
 
     if(file_stream_open(stream, FDY_RESULTS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         FuriString* line = furi_string_alloc();
+        uint32_t scanned = 0;
         while(stream_read_line(stream, line)) {
+            if(++scanned > FDY_SCAN_MAX) break;
+            if(furi_string_size(line) > FDY_LINE_MAX) continue; // not ours
             FdyLogged e;
             char radio[10] = {0};
             unsigned year, month, day, hour, minute, floored;
@@ -152,6 +184,16 @@ uint8_t fdy_store_results_render(FuriString* out, uint8_t max) {
                    grade) != 12) {
                 continue;
             }
+
+            /* A row that parses is not a row that makes sense. These come off
+             * a user-editable card, and an out-of-range value rendered
+             * unchallenged would appear on screen as a real graded
+             * measurement, indistinguishable from one the app took. */
+            if(month > 12u || day > 31u || hour > 23u || minute > 59u) continue;
+            if(base < -200 || base > 200) continue;
+            if(shield < -200 || shield > 200) continue;
+            if(atten < -200 || atten > 200) continue;
+            if(grade[0] == '\0') continue;
 
             e.year = (uint16_t)year;
             e.month = (uint8_t)month;
@@ -183,7 +225,8 @@ uint8_t fdy_store_results_render(FuriString* out, uint8_t max) {
         const FdyLogged* e = &ring[idx];
         furi_string_cat_printf(
             out,
-            "\e#%s  %s%d %s\e#\n%s\n%02u-%02u %02u:%02u  (%d to %d)\n\n",
+            "\e#%s  %s%d %s\n%s\n%02u-%02u %02u:%02u\nair %d, bag %d\n\n",
+            // screen-ok: "A+  >=-100 dB\n433.92 MHz\n09-26 10:53\nair -100, bag -100"
             e->grade,
             e->floored ? ">=" : "",
             (int)e->atten,

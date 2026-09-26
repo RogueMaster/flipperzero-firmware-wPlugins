@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faraday</title>
+<meta name="description" content="A signal-blocking pouch is a claim. Faraday is the measurement. Real dB attenuation on Sub-GHz and NFC, on a Flipper Zero.">
+<meta property="og:title" content="Faraday — prove your pouch works">
+<meta property="og:description" content="Measures how much a Faraday pouch actually attenuates your key fob and your contactless cards. Real decibels, graded A+ to F.">
+<meta property="og:image" content="https://at0m-b0mb.github.io/Faraday-FlipperZero/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="mark-64.png">
+<link rel="apple-touch-icon" href="mark-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F1EC; --ink:#16130D; --muted:#57524A; --rule:#D9D4C8;
+  --card:#FFFFFF; --brass:#8A6714; --brass-soft:#B07D22;
+  --lcd-lit:#FE8A2C; --lcd-ink:#000;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#000000; --ink:#F3F1EC; --muted:#C2BBB1; --rule:#2A2724;
+    --card:#0B0A09; --brass:#D8862A; --brass-soft:#B07D22;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#000000; --ink:#F3F1EC; --muted:#C2BBB1; --rule:#2A2724;
+  --card:#0B0A09; --brass:#D8862A; --brass-soft:#B07D22;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:Inter,system-ui,-apple-system,sans-serif;
+  font-size:17px; line-height:1.65; letter-spacing:-.005em;
+}
+.wrap{max-width:860px; margin:0 auto; padding:0 16px}
+a{color:inherit; text-decoration-color:var(--brass-soft); text-underline-offset:3px}
+a:hover{text-decoration-thickness:2px}
+
+/* identity type: a Didone, with its optical size pinned. Left to scale, opsz
+   runs toward 96 at display sizes, which is right for a poster and wrong on a
+   screen - on true black the hairlines stop being thin and become broken. */
+.display{
+  font-family:"Bodoni Moda",Didot,Georgia,serif; font-weight:400;
+  font-optical-sizing:none; font-variation-settings:"opsz" 30;
+  letter-spacing:.06em; line-height:1;
+}
+h2{
+  font-family:"Bodoni Moda",Didot,Georgia,serif; font-weight:600;
+  font-optical-sizing:none; font-variation-settings:"opsz" 18;
+  font-size:30px; letter-spacing:.01em; margin:0 0 4px;
+}
+h3{font-size:17px; font-weight:600; margin:28px 0 6px}
+p{margin:0 0 14px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+
+header{padding:64px 0 28px}
+.rail{
+  font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  font-size:12px; letter-spacing:.18em; color:var(--muted);
+  text-transform:uppercase; display:flex; flex-wrap:wrap; gap:8px 26px;
+}
+.hero{font-size:clamp(56px,13vw,132px); margin:18px 0 10px}
+.lede{font-size:clamp(20px,3.4vw,27px); line-height:1.35; margin:0 0 10px; max-width:20ch}
+.sub{color:var(--muted); max-width:56ch}
+hr{border:0; border-top:1px solid var(--rule); margin:0}
+
+section{padding:40px 0}
+.kicker{
+  font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-size:12px;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:12px;
+}
+.lead{font-size:19px; max-width:64ch}
+.cols{display:grid; gap:26px; grid-template-columns:1fr 1fr}
+@media (max-width:720px){.cols{grid-template-columns:1fr}}
+
+figure{margin:0}
+figure img{width:100%; height:auto; display:block; border-radius:3px}
+figcaption{font-size:13px; color:var(--muted); margin-top:8px}
+
+/* the grade scale: the app's own thresholds, as an instrument */
+table{border-collapse:collapse; width:100%; font-size:15px; margin-top:8px}
+th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--rule)}
+th{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:500}
+td.g{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-weight:500; white-space:nowrap}
+td.n{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; color:var(--muted); white-space:nowrap}
+
+.note{
+  border-left:2px solid var(--brass); padding:2px 0 2px 16px; margin:18px 0;
+  color:var(--muted); max-width:62ch;
+}
+.note strong{color:var(--ink); font-weight:600}
+
+pre{
+  background:var(--card); border:1px solid var(--rule); border-radius:4px;
+  padding:14px 16px; overflow-x:auto; font-size:14px; line-height:1.55;
+  font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; margin:10px 0;
+}
+.reading{
+  background:var(--card); border:1px solid var(--rule); border-radius:4px;
+  padding:16px 18px; font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  font-size:14px; line-height:1.9; overflow-x:auto;
+}
+.reading b{color:var(--brass); font-weight:500}
+
+.cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+.btn{
+  display:inline-block; padding:10px 18px; border:1px solid var(--ink);
+  border-radius:3px; text-decoration:none; font-size:15px; font-weight:500;
+}
+.btn.solid{background:var(--ink); color:var(--paper)}
+
+footer{padding:36px 0 64px; color:var(--muted); font-size:14px}
+.colophon{font-size:13px; line-height:1.8; max-width:66ch}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="rail">
+    <span>Sub-GHz + NFC</span><span>Listen-only</span><span>Never transmits</span><span>Flipper Zero</span>
+  </div>
+  <h1 class="display hero">FARADAY</h1>
+  <p class="lede">A signal-blocking pouch is a claim.<br>This is the measurement.</p>
+  <p class="sub">Faraday measures your key fob in the open air, measures it again sealed in the pouch,
+  and tells you how many decibels the pouch actually took off — then grades it A+ to F. It uses only
+  the hardware already inside a Flipper Zero, and it never transmits.</p>
+  <div class="cta">
+    <a class="btn solid" href="https://github.com/at0m-b0mb/Faraday-FlipperZero/releases/latest">Download</a>
+    <a class="btn" href="https://github.com/at0m-b0mb/Faraday-FlipperZero">Source</a>
+  </div>
+</header>
+
+<div class="wrap"><hr></div>
+
+<section class="wrap">
+  <figure style="margin-bottom:26px">
+    <img src="demo.gif" alt="A walk through Faraday, recorded from a real Flipper Zero"
+         style="max-width:420px;margin:0 auto">
+  </figure>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="screens-dark.png">
+    <img src="screens.png" alt="Faraday's screens, captured from a real Flipper Zero">
+  </picture>
+  <p class="figcaption" style="font-size:13px;color:var(--muted);margin-top:10px">
+    Every picture here was captured off a real device over USB. There is no mockup renderer in this
+    project: a drawing of the UI is a second implementation that can disagree with the firmware while
+    looking perfectly convincing.
+  </p>
+</section>
+
+<div class="wrap"><hr></div>
+
+<section class="wrap">
+  <div class="kicker">How a test works</div>
+  <h2>Two captures and a grade</h2>
+  <div class="cols" style="margin-top:18px">
+    <div>
+      <h3>1 &nbsp;Baseline</h3>
+      <p class="sub">Hold your fob next to the Flipper in the open air and press it. When a carrier
+      rises clear of the noise, lock the reading.</p>
+      <h3>2 &nbsp;Shielded</h3>
+      <p class="sub">Seal the same fob in the pouch, hold it in the same place, press it again.</p>
+      <h3>3 &nbsp;Verdict</h3>
+      <p class="sub">The difference between the two readings is the attenuation, in dB, with a letter
+      grade and a one-line verdict.</p>
+    </div>
+    <figure>
+      <img src="splash.gif" alt="Faraday's launch intro, recorded from the device" style="max-width:320px">
+      <figcaption>The intro, recorded off the device.</figcaption>
+    </figure>
+  </div>
+
+  <div class="note">
+    <strong>Which thing goes in the bag is not the same for both tests.</strong>
+    Sub-GHz shields the <em>fob</em> — it is the transmitter, and the Flipper stays outside listening.
+    NFC shields the <em>Flipper</em> — the reader's field comes from outside, and the Flipper is
+    standing in for the card in your wallet. Getting it the wrong way round produces a confident,
+    meaningless grade, so the app says which on every screen.
+  </div>
+</section>
+
+<div class="wrap"><hr></div>
+
+<section class="wrap">
+  <div class="kicker">The scale</div>
+  <h2>What each grade means</h2>
+  <table>
+    <tr><th>Grade</th><th>Sub-GHz</th><th>NFC</th><th></th></tr>
+    <tr><td class="g">A+</td><td class="n">60 dB+</td><td class="n">98 %+</td><td>Nothing gets through.</td></tr>
+    <tr><td class="g">A</td><td class="n">45 dB+</td><td class="n">90 %+</td><td>Trust it in the field.</td></tr>
+    <tr><td class="g">B</td><td class="n">30 dB+</td><td class="n">75 %+</td><td>Fine for everyday carry.</td></tr>
+    <tr><td class="g">C</td><td class="n">20 dB+</td><td class="n">50 %+</td><td>Leaks a little.</td></tr>
+    <tr><td class="g">D</td><td class="n">10 dB+</td><td class="n">20 %+</td><td>A determined reader wins.</td></tr>
+    <tr><td class="g">F</td><td class="n">under 10 dB</td><td class="n">under 20 %</td><td>Not shielding at all.</td></tr>
+  </table>
+  <p class="sub" style="margin-top:14px">Sub-GHz is a real power measurement, so it is graded in
+  decibels. NFC field-detect is a carrier-presence duty cycle, so it is graded as the percentage of
+  the reader's field kept out — deliberately never called decibels.</p>
+</section>
+
+<div class="wrap"><hr></div>
+
+<section class="wrap">
+  <div class="kicker">The honesty rules</div>
+  <h2>What it refuses to tell you</h2>
+  <p class="lead">These are the point of the app, not a disclaimer at the bottom of it.</p>
+
+  <h3>It refuses to grade noise</h3>
+  <p class="sub">A carrier has to rise at least 20 dB above the tracked noise floor before Faraday
+  accepts a baseline, and it says so on screen when it refuses. That threshold is measured, not
+  guessed: on a quiet 433.92 MHz channel with nothing transmitting, peak-hold reaches +13 dB within
+  five seconds and +14 dB by ninety. At the 8 dB earlier versions required, a baseline made of pure
+  noise sailed straight through.</p>
+
+  <h3>It tells you the ceiling before you commit</h3>
+  <p class="sub">A shielded reading can never sink below the noise floor, so the most attenuation a
+  test can <em>prove</em> is the gap between your baseline and that floor. A weak baseline caps the
+  result no matter how good the pouch is — so the baseline screen shows the best grade the setup can
+  reach while moving the fob closer still helps.</p>
+
+  <div class="reading">
+    copper cloth, weak baseline<br>
+    base <b>-46 dBm</b> &nbsp; shielded <b>-101 dBm</b> (the floor) &nbsp;→&nbsp; <b>&gt;= 55 dB</b> &nbsp; grade <b>A</b><br>
+    <span style="color:var(--muted)">55 dB was the ceiling. A+ needs 60. It was unreachable before the pouch was even sealed.</span><br><br>
+    same cloth, strong baseline<br>
+    base <b>-27 dBm</b> &nbsp; shielded <b>-98 dBm</b> (the floor) &nbsp;→&nbsp; <b>&gt;= 71 dB</b> &nbsp; grade <b>A+</b>
+  </div>
+  <p class="sub" style="margin-top:12px">Both rows are real readings off the same piece of copper
+  cloth. Only the setup changed. A grade that hit the floor is captioned <span class="mono">FLOOR</span>,
+  so it never reads as a verdict on the pouch.</p>
+
+  <h3>It says "at least" when it means at least</h3>
+  <p class="sub">If the shielded reading sinks into the noise floor, the true attenuation is somewhere
+  past what was measured. Faraday prints <span class="mono">&gt;= 47 dB</span> rather than pretending
+  the floor is the signal.</p>
+
+  <h3>It says NO DROP when nothing dropped</h3>
+  <p class="sub">A shielded reading that is not weaker than the open-air one is not zero attenuation —
+  it is a measurement that did not work.</p>
+
+  <h3>It is relative, not a lab</h3>
+  <p class="sub">This compares two readings taken the same way. It is the right tool for "is this pouch
+  doing anything, and is it better than that one", and the wrong tool for a specification.</p>
+</section>
+
+<div class="wrap"><hr></div>
+
+<section class="wrap">
+  <div class="kicker">Leak hunt</div>
+  <h2>A grade says it leaks. This says where.</h2>
+  <div class="cols" style="margin-top:18px">
+    <p class="sub">Seal the fob, hold its button down, and sweep the Flipper along the seams, the zip,
+    the fold and the corners. The meter, the warmer/colder word and the geiger clicks all peak over
+    the spot the RF is escaping from — everything measured against the tracked noise floor, so it
+    reads the same whether you are hunting a strong fob or a weak one.</p>
+    <figure>
+      <img src="hunt.gif" alt="Leak Hunt sweeping, recorded from the device" style="max-width:320px">
+      <figcaption>Recorded off the device.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="wrap"><hr></div>
+
+<section class="wrap">
+  <div class="kicker">Install</div>
+  <h2>Two builds, one of them yours</h2>
+  <p class="sub">A <span class="mono">.fap</span> bakes in its API version at compile time, and the
+  loader refuses one that trails the firmware. Every release ships both.</p>
+  <table>
+    <tr><th>File</th><th>Firmware</th></tr>
+    <tr><td class="g">faraday.fap</td><td>Official firmware</td></tr>
+    <tr><td class="g">faraday-fw-dev.fap</td><td>Unleashed, RogueMaster, Momentum</td></tr>
+  </table>
+  <p class="sub" style="margin-top:14px">Drop it in <span class="mono">SD Card/apps/Tools/</span> with
+  qFlipper. If the launcher warns <span class="mono">APP:87 &lt; FW:88</span>, you have the other one.</p>
+
+  <h3>Building it yourself</h3>
+  <pre>python3 -m pip install --upgrade ufbt
+ufbt update --channel=release   # or dev
+ufbt                            # build
+ufbt launch                     # build, install and run over USB</pre>
+  <p class="sub">The grading engine is pure C with no Flipper headers, so it unit-tests on the host
+  with <span class="mono">make -C test</span>.</p>
+
+  <div class="cta">
+    <a class="btn solid" href="https://github.com/at0m-b0mb/Faraday-FlipperZero/releases/latest">Latest release</a>
+    <a class="btn" href="https://github.com/at0m-b0mb/Faraday-FlipperZero">Source and changelog</a>
+  </div>
+</section>
+
+<div class="wrap"><hr></div>
+
+<footer class="wrap">
+  <p>Built by <a href="https://github.com/at0m-b0mb">at0m-b0mb</a>. MIT licensed.</p>
+  <p class="colophon">
+    Named for Michael Faraday, who put a room inside a metal cage in 1836 to prove the field stopped
+    at the wall. Same experiment, smaller cage.
+    <br><br>
+    Set in Bodoni Moda for identity — measuring instruments had their nameplates engraved in Didone,
+    and this is an instrument — with Inter for anything you have to read and IBM Plex Mono for
+    measured values. The paper is a warm off-white rather than flat white; dark mode is true black
+    rather than navy. The one accent is a deep brass, and it marks measurement and nothing else: no
+    rule, frame or word on this page is gold. The orange in the screenshots is not a chosen colour at
+    all — it is the value the Flipper's own backlight emits, and it appears only inside pixels the
+    device actually produced.
+  </p>
+</footer>
+
+</body>
+</html>
