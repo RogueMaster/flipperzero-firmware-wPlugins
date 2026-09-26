@@ -1,3 +1,9 @@
+v1.1.1:
+
+- Reset the full DESFire activation when the reader field turns off or the
+  ISO-DEP session ends. A new activation now starts at PICC level instead of
+  retaining the previously selected application.
+
 v1.1:
 
 - Add full EV3 emulation with EV1 and EV2 commands, up to four applications,

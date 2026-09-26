@@ -155,7 +155,7 @@ NfcCommand dfc_worker_listener_callback(NfcGenericEvent event, void* context) {
             if((pcb & (uint8_t)~ISO14443_4A_CID_MASK) == 0xC2 && rx_len == offset &&
                dfc->iso_dep_cid_valid == use_cid && (!use_cid || cid == dfc->iso_dep_cid)) {
                 send_frame(dfc, iso14443_4a_listener, rx_data, rx_len);
-                dfc_emulator_reset_session(emulator);
+                dfc_emulator_reset_activation(emulator);
                 dfc->iso_dep_last_response_valid = false;
                 dfc->iso_dep_expected_pcd_block = 0;
                 dfc->iso_dep_picc_block = 1;
@@ -306,7 +306,7 @@ NfcCommand dfc_worker_listener_callback(NfcGenericEvent event, void* context) {
         break;
     }
     case Iso14443_4aListenerEventTypeHalted:
-        dfc_emulator_reset_session(emulator);
+        dfc_emulator_reset_activation(emulator);
         dfc->iso_dep_last_response_valid = false;
         dfc->iso_dep_expected_pcd_block = 0;
         dfc->iso_dep_picc_block = 1;
@@ -318,7 +318,7 @@ NfcCommand dfc_worker_listener_callback(NfcGenericEvent event, void* context) {
         FURI_LOG_I(TAG, "Halted");
         break;
     case Iso14443_4aListenerEventTypeFieldOff:
-        dfc_emulator_reset_session(emulator);
+        dfc_emulator_reset_activation(emulator);
         dfc->iso_dep_last_response_valid = false;
         dfc->iso_dep_expected_pcd_block = 0;
         dfc->iso_dep_picc_block = 1;
