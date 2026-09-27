@@ -31,7 +31,11 @@ static void air_view_draw(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 2, 10, "Air Check");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, "ONBOARD");
+    /* Which RF path is in use, because on this firmware it is not a constant
+     * and a reading means different things depending on the answer. */
+    canvas_draw_str_aligned(
+        canvas, 126, 10, AlignRight, AlignBottom,
+        s->rf_mode == AirRfPacket ? "ONBOARD PKT" : "ONBOARD");
     canvas_draw_line(canvas, 0, 12, 127, 12);
 
     /* ---- one bar per BLE advertising channel ---- */
@@ -55,6 +59,11 @@ static void air_view_draw(Canvas* canvas, void* model) {
     /* ---- what the numbers rest on ---- */
     if(s->valid) {
         snprintf(buf, sizeof(buf), "floor %d dBm", (int)s->floor_dbm);
+    } else if(s->dead) {
+        /* Say WHICH failure it is: a radio that never came up is a different
+         * problem from one that is up and reading nothing. */
+        snprintf(
+            buf, sizeof(buf), s->radio_ready ? "no energy read" : "radio not ready");
     } else {
         snprintf(buf, sizeof(buf), "warming up");
     }

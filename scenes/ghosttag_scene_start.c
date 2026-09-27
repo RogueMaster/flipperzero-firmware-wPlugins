@@ -1,9 +1,17 @@
 #include <stdio.h>
 #include "../ghosttag_i.h"
 
+/*
+ * These values ARE the submenu's row indices - submenu_set_selected_item takes
+ * a row, not an identifier - so a conditionally-added item must be
+ * conditionally enumerated too. Leaving StartIndexAir in the enum while
+ * omitting its row put every saved cursor position one row off.
+ */
 typedef enum {
     StartIndexHunt,
+#if GHOSTTAG_ENABLE_AIR_CHECK
     StartIndexAir,
+#endif
     StartIndexDemo,
     StartIndexDetections,
     StartIndexSettings,
@@ -41,9 +49,13 @@ void ghosttag_scene_start_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "GhostTag");
     submenu_add_item(submenu, "Hunt", StartIndexHunt, ghosttag_scene_start_submenu_cb, app);
-    /* The only mode that works on the Flipper alone with real radio: it
-     * measures BLE advertising-band energy and cannot identify anything. */
-    submenu_add_item(submenu, "Air Check (onboard)", StartIndexAir, ghosttag_scene_start_submenu_cb, app);
+#if GHOSTTAG_ENABLE_AIR_CHECK
+    /* Off by default - see the note in ghosttag_i.h. The onboard radio returns
+     * a failed read for every sample on this firmware, so the screen can only
+     * ever say NO READING. */
+    submenu_add_item(
+        submenu, "Air Check (onboard)", StartIndexAir, ghosttag_scene_start_submenu_cb, app);
+#endif
     submenu_add_item(submenu, "Demo (no board)", StartIndexDemo, ghosttag_scene_start_submenu_cb, app);
     submenu_add_item(submenu, detections, StartIndexDetections, ghosttag_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartIndexSettings, ghosttag_scene_start_submenu_cb, app);
@@ -78,9 +90,11 @@ bool ghosttag_scene_start_on_event(void* context, SceneManagerEvent event) {
         ghosttag_source_start(app, GhostTagSourceEsp32);
         scene_manager_next_scene(app->scene_manager, GhostTagSceneScan);
         return true;
+#if GHOSTTAG_ENABLE_AIR_CHECK
     case StartIndexAir:
         scene_manager_next_scene(app->scene_manager, GhostTagSceneAir);
         return true;
+#endif
     case StartIndexDemo:
         ghosttag_source_start(app, GhostTagSourceDemo);
         scene_manager_next_scene(app->scene_manager, GhostTagSceneScan);

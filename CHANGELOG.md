@@ -25,11 +25,16 @@ board that flashed perfectly and then sat there forever.
 
 ### Added
 
-- **Air Check** — a mode that runs on the **Flipper alone**. The onboard
-  STM32WB55 cannot scan BLE, but its RF test mode can measure raw energy, so
-  Air Check hops the three advertising channels and reports how busy the band
-  is. It is **energy only** and says so on every frame: it cannot read an
-  address, a vendor or a payload, and it will never claim a tracker is present.
+- **An onboard energy mode was built, tested on hardware, and compiled out.**
+  RF test mode looks like it should let the Flipper measure raw channel energy
+  without decoding anything. On official firmware (API 87) it does not:
+  `furi_hal_bt_ensure_c2_mode` reports the radio core up, the radio is
+  released with `bt_disconnect` + `furi_hal_bt_stop_advertising`, and then
+  `furi_hal_bt_get_rssi()` returns exactly `0.0` — this stack's failed-read
+  value — for every sample, on **both** `furi_hal_bt_start_rx` and
+  `furi_hal_bt_start_packet_rx`. The code is kept and correct, but gated behind
+  `GHOSTTAG_ENABLE_AIR_CHECK` rather than shipped as a menu entry that can only
+  ever say NO READING. See the README for the full result table.
 - **Demo mode** — a scripted stalking scenario played through the real UI,
   needing no hardware. An ambient phone and earbuds that are never graded
   threats, a Tile that walks past and leaves without tripping, an AirTag that

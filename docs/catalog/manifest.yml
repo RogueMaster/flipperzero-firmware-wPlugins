@@ -3,17 +3,18 @@ sourcecode:
   location:
     origin: https://github.com/at0m-b0mb/GhostTag-FlipperZero.git
     commit_sha: REPLACE_WITH_v2.0_COMMIT  # must be a commit that already contains screenshots/
-short_description: Find the Bluetooth tracker that is following you. Detects AirTags, Tiles and SmartTags that travel with you. Demo mode needs no hardware.
+short_description: Find the Bluetooth tracker that is following you. Detects AirTags, Tiles and SmartTags that travel with you. Demo mode needs no hardware at all.
 description: |
   Somebody can buy a tracker for the price of a takeaway and drop it in your bag. GhostTag watches the Bluetooth advertising channels for the ones that are still with you twenty minutes later, and tells you when it finds one.
 
   Detecting a tracker is easy — there is one in nearly every bag on a train, and almost all of them are innocent. What matters is **persistence**: the tag that is in range at the station, still in range at the shops, and still in range outside your front door. That is the only thing GhostTag grades.
 
-  ## Three ways to run it
+  ## Two ways to run it
 
   - **Demo** — needs no hardware at all. A scripted stalking scenario plays through the real interface: ambient phones and earbuds that are never graded threats, a Tile that walks past and leaves without tripping, and an AirTag that stays with you and fires a real alert. Every demo screen is stamped DEMO, and nothing from a demo is ever written to the log. Install it and see what the app does before buying anything.
-  - **Air Check** — runs on the Flipper alone. The onboard radio cannot scan Bluetooth, but it can measure raw RF energy, so Air Check hops the three BLE advertising channels and tells you how busy the band is where you are standing. A tag that persists in an empty garage means far more than one in a crowded cafe. It is energy only and says so on every frame — it cannot identify anything.
   - **Hunt** — the real thing, with a BLE-capable ESP32 companion board on the GPIO UART. Identifies Apple Find My and AirTags, Tile, Samsung SmartTag and Chipolo, tracks each one over time, and alerts when one has travelled with you.
+
+  There is no onboard-only detection mode, and that is not an oversight. The Flipper's own radio cannot scan Bluetooth at all, and its RF test mode — which looks like it could at least measure raw channel energy — returns a failed read for every sample on official firmware. That was built, tested on a real device, and compiled out rather than shipped as a screen that can only say NO READING.
 
   ## What travelling with you means
 
@@ -41,7 +42,7 @@ changelog: |
   A correctness and usability release. Every screen was rebuilt, two deadlock classes were removed, and the app now does something useful with no extra hardware at all.
 
   - **The official devboard never worked.** GhostTag told people to use the official Flipper WiFi Devboard, which is an ESP32-S2 and has no Bluetooth radio of any kind — so the documented primary hardware could never have found a single tracker. The sketch now refuses to compile for an S2, and the documentation names the boards that actually work.
-  - **New: Air Check.** The Flipper's own radio cannot scan Bluetooth, but its RF test mode can measure energy, so this hops the three advertising channels and reports how busy the band is. Energy only, and it says so on every frame.
+  - **An onboard energy mode was built, tested on hardware, and compiled out.** On official firmware the RF test mode returns a failed read for every sample on both receive paths, so an app gets no measurement at all. The code is kept and correct but gated, rather than shipped as a menu entry that can only ever read NO READING.
   - **New: Demo mode.** A scripted stalking scenario through the real interface, needing no hardware, stamped DEMO on every screen.
   - **Fixed a two-thread deadlock on teardown.** The radio worker posted into the view dispatcher's queue, which blocks when full — and the thread that drains it was simultaneously blocked joining the worker. Detections now only touch the database and the interface polls on its own tick.
   - **Fixed dead buttons.** Every view handled short presses only, but the firmware sends a long press instead of a short one once a key is held past the threshold, so a slightly firm press was silently dropped on the radar, the list and the alert screen.

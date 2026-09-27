@@ -30,6 +30,31 @@
 
 #define GHOSTTAG_VERSION "2.0"
 
+/*
+ * Air Check: measuring BLE advertising-band energy with the Flipper's own
+ * radio. OFF by default, because on official firmware it does not work.
+ *
+ * What was tried, on real hardware, on API 87:
+ *   - furi_hal_bt_ensure_c2_mode(BleGlueC2ModeStack) returns TRUE, so the
+ *     second core is up and running the radio stack.
+ *   - bt_disconnect() + furi_hal_bt_stop_advertising() to free the radio.
+ *   - furi_hal_bt_start_rx(channel)        -> furi_hal_bt_get_rssi() == 0.0
+ *   - furi_hal_bt_start_packet_rx(ch, 1M)  -> furi_hal_bt_get_rssi() == 0.0
+ *
+ * A return of exactly 0 is how this stack reports a FAILED read, and it does
+ * it for every sample on both paths, so the app gets no energy measurement at
+ * all. The code is kept because it is correct as written and would start
+ * working the day a firmware hands an application a real RSSI - but a menu
+ * entry that always reads NO READING teaches a new user that the app is
+ * broken, which is the precise problem this release exists to fix.
+ *
+ * Set this to 1 to put it back in the menu and test it against a firmware
+ * that may behave differently.
+ */
+#ifndef GHOSTTAG_ENABLE_AIR_CHECK
+#define GHOSTTAG_ENABLE_AIR_CHECK 0
+#endif
+
 /** How long without a byte from the board before the link is called dead. */
 #define GHOSTTAG_ESP_TIMEOUT_MS 4000
 

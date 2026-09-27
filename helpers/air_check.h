@@ -43,6 +43,12 @@
 
 #define AIR_ADV_CHANNELS 3
 
+/** Which of the two RF receive paths is currently in use. */
+typedef enum {
+    AirRfListen, /* furi_hal_bt_start_rx - the plain listener */
+    AirRfPacket, /* furi_hal_bt_start_packet_rx - the BLE receiver test */
+} AirRfMode;
+
 typedef struct {
     bool valid;
     uint8_t busy_pct[AIR_ADV_CHANNELS]; /* share of samples above the floor */
@@ -50,11 +56,15 @@ typedef struct {
     int8_t floor_dbm; /* the band's own noise floor this sweep */
     uint32_t samples; /* how much evidence this is built on */
     uint32_t elapsed_s;
+    bool dead; /* running a while and the radio has returned nothing usable */
+    bool radio_ready; /* the second core reported itself ready for RF test mode */
+    AirRfMode rf_mode; /* which receive path produced these numbers */
 } AirSnapshot;
 
 /** Overall band occupancy, in plain words. Never mentions trackers. */
 typedef enum {
     AirBandUnknown, /* not enough samples yet */
+    AirBandNoReading, /* the radio is not giving us anything */
     AirBandQuiet,
     AirBandModerate,
     AirBandBusy,

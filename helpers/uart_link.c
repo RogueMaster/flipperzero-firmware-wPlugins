@@ -1,4 +1,5 @@
 #include "uart_link.h"
+#include "gt_parse.h"
 
 #include <furi_hal_serial.h>
 #include <furi_hal_serial_control.h>
@@ -55,75 +56,38 @@ void uart_link_set_callbacks(
     link->cb_context = context;
 }
 
-static uint8_t hex_nibble(char c) {
-    if(c >= '0' && c <= '9') return c - '0';
-    if(c >= 'a' && c <= 'f') return c - 'a' + 10;
-    if(c >= 'A' && c <= 'F') return c - 'A' + 10;
-    return 0xFF;
-}
-
-static bool parse_mac(const char* s, uint8_t mac[6]) {
-    for(int i = 0; i < 6; i++) {
-        uint8_t hi = hex_nibble(s[i * 2]);
-        uint8_t lo = hex_nibble(s[i * 2 + 1]);
-        if(hi == 0xFF || lo == 0xFF) return false;
-        mac[i] = (hi << 4) | lo;
-    }
-    return true;
-}
-
 static void uart_link_parse_line(UartLink* link, char* line) {
     /* ANY complete line proves the board is alive, including one we do not
      * understand - a future firmware saying something new still counts. */
     link->last_rx_tick = furi_get_tick();
 
-    if(strncmp(line, "GT1,", 4) == 0) {
-        // GT1,<mac>,<rssi>,<type>,<name>  (manual tokenize - newlib has no strsep)
-        char* p = line + 4;
-        char* c1 = strchr(p, ',');
-        if(!c1) return;
-        *c1 = '\0';
-        char* mac_s = p;
-        p = c1 + 1;
-
-        char* c2 = strchr(p, ',');
-        if(!c2) return;
-        *c2 = '\0';
-        char* rssi_s = p;
-        p = c2 + 1;
-
-        char* type_s;
-        char* name_s;
-        char* c3 = strchr(p, ','); // name is optional
-        if(c3) {
-            *c3 = '\0';
-            type_s = p;
-            name_s = c3 + 1;
-        } else {
-            type_s = p;
-            name_s = "";
-        }
-        if(strlen(mac_s) < 12) return;
-
-        uint8_t mac[6];
-        if(!parse_mac(mac_s, mac)) return;
-        int rssi = atoi(rssi_s);
-        TrackerType type = tracker_type_from_code((uint8_t)atoi(type_s));
-        const char* name = (name_s && name_s[0]) ? name_s : "";
-
+    if(gt_line_is_detection(line)) {
+        GtDetection det;
+        /* The parser lives in gt_parse.c with no Flipper dependency, so the
+         * one piece of this app that reads attacker-reachable bytes can be
+         * exercised on a laptop instead of only ever on a device where a bad
+         * read shows up as a reboot. See test/test_parse.c. */
+        if(!gt_parse_detection(line + 4, &det)) return;
         if(link->rx_cb && link->accepting) {
-            link->rx_cb(link->cb_context, mac, type, (int8_t)rssi, name);
+            link->rx_cb(link->cb_context, det.mac, det.type, det.rssi, det.name);
         }
-    } else if(strncmp(line, "GTHELLO,", 8) == 0) {
+        return;
+    }
+
+    const char* version = NULL;
+    if(gt_line_is_hello(line, &version)) {
         link->greeted = true;
         if(link->status_cb && link->accepting) {
-            link->status_cb(link->cb_context, true, line + 8);
+            link->status_cb(link->cb_context, true, version);
         }
-    } else if(strncmp(line, "GTALIVE", 7) == 0) {
-        /* Heartbeat. last_rx_tick above is the whole point of it; a board that
-         * has been heartbeating has obviously greeted us at some stage even if
-         * we missed the GTHELLO (it is sent once, at the board's boot, which
-         * may well have been before the app opened). */
+        return;
+    }
+
+    if(gt_line_is_alive(line)) {
+        /* Heartbeat. The last_rx_tick above is the whole point of it; a board
+         * that has been heartbeating has obviously greeted us at some stage
+         * even if we missed the GTHELLO, which is sent once at the board's
+         * boot - quite possibly before this app was opened. */
         link->greeted = true;
     }
 }

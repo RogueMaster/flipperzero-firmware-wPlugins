@@ -25,13 +25,16 @@ careful never to claim more than it measured.
 
 ---
 
-## Three ways to run it
+## Two ways to run it
 
-|  | What it needs | What it can actually do |
+|  | What it needs | What it does |
 |---|---|---|
 | 🛰️ **Hunt** | Flipper + a **BLE-capable ESP32** | The real thing. Identifies AirTags, Tiles, SmartTags and Chipolos, tracks each one over time, and alerts when one travels with you. |
-| 📡 **Air Check** | **Flipper alone** | Measures how busy the three BLE advertising channels are right here. **Energy only** — it cannot identify anything. |
-| 👻 **Demo** | **Nothing** | A scripted stalking scenario played through the real UI, so you can see exactly what an alert looks like before you buy hardware. Every screen is stamped `DEMO`. |
+| 👻 **Demo** | **Nothing at all** | A scripted stalking scenario played through the real UI, so you can see exactly what an alert looks like before buying any hardware. Every screen is stamped `DEMO`, and a demo session is never written to the log. |
+
+> **Why isn't there an onboard-only detection mode?** Because the radio cannot
+> do it, and we checked rather than assumed — see
+> [the onboard radio](#-what-the-onboard-radio-can-and-cannot-do) below.
 
 <p align="center">
   <picture>
@@ -118,9 +121,35 @@ flowchart LR
       DB --> HEU{"Travelling<br/>with you?"}
       HEU -->|"dwell + sightings"| AL["🚨 Alert"]
       DB --> RAD["🛰️ Radar / List / Detail"]
-      RADIO["Onboard BLE test mode"] -.-> AIRC["📡 Air Check<br/><i>energy only</i>"]
     end
 ```
+
+### 📡 What the onboard radio can and cannot do
+
+`furi_hal_bt.h` also exposes **RF test mode**, which looks like it should let
+the Flipper measure raw energy on a channel even though it cannot decode
+anything. That would not find trackers, but it would at least answer "how busy
+are the advertising channels right here" — useful context, since a tag that
+persists in an empty garage means far more than one in a crowded café.
+
+**It was built, and it does not work.** On official firmware (API 87), tested
+on a real device:
+
+| Step | Result |
+|---|---|
+| `furi_hal_bt_ensure_c2_mode(BleGlueC2ModeStack)` | ✅ returns true — the radio core is up |
+| `bt_disconnect()` + `furi_hal_bt_stop_advertising()` | ✅ radio released |
+| `furi_hal_bt_start_rx(ch)` → `furi_hal_bt_get_rssi()` | ❌ returns `0.0` on **every** sample |
+| `furi_hal_bt_start_packet_rx(ch, 1M)` → `get_rssi()` | ❌ returns `0.0` on **every** sample |
+
+A return of exactly `0` is how this stack reports a **failed read**, on both
+receive paths, for every sample. So an app gets no energy measurement at all.
+
+The code is kept — it is correct as written and would start working the day a
+firmware hands an application a real RSSI — but it is compiled out
+(`GHOSTTAG_ENABLE_AIR_CHECK` in `ghosttag_i.h`) rather than shipped as a menu
+entry that can only ever read `NO READING`. If you are working on a firmware
+where this behaves differently, flip that define and please open an issue.
 
 ### What "travelling with you" actually means
 
@@ -138,7 +167,7 @@ could do.
 
 ### Reading the dial
 
-<img align="right" src="screenshots/radar_demo.png" width="240" alt="The radar dial">
+<img align="right" src="screenshots/radar_following.png" width="240" alt="The radar dial with a tracker that has been promoted">
 
 **Distance from the centre is real.** It is the measured signal strength,
 mapped onto the range rings.
@@ -204,7 +233,6 @@ the Flipper can tell *"the board is fine and the room is quiet"* apart from
 | Screen | Keys |
 |---|---|
 | **Radar** | `OK` detections · `←` help · `Back` end the hunt |
-| **Air Check** | `←` help · `Back` home |
 | **Detections** | `↑ ↓` scroll · `OK` open · `Back` return |
 | **Detail** | `← →` previous / next tracker · `Back` return |
 | **Alert** | `OK` details · `Back` dismiss |
@@ -274,9 +302,6 @@ An anti-stalking tool that overstates itself is worse than none, so:
   identical to one in your coat pocket. Walk, and re-check.
 * **Find My tags rotate their address** roughly every 15 minutes, so a long
   tail may appear as several shorter records rather than one long one.
-* **Air Check cannot identify anything.** It measures RF energy. It cannot read
-  an address, a vendor or a payload, and it will never tell you a tracker is
-  present. The verdict band carries `energy only` on every frame.
 * **A quiet result is not an all-clear.** GhostTag hears BLE advertising. A
   tracker that is switched off, out of range, or not beaconing is invisible to
   it — as is anything that is not Bluetooth at all.
@@ -299,7 +324,7 @@ caught real bugs in the rewrite:
 
 | Tool | What it does |
 |---|---|
-| `tools_check_layout.py` | Measures every on-screen string against the 128 px width and the 64-row height. Found three overflowing help lines. |
+| `tools_check_layout.py` | Measures every on-screen string against the 128 px width and the 64-row height, including both branches of a ternary — which is how `"SIMULATED - not real"` was caught running 18 px off the edge of a real device. |
 | `tools_strict_build.py` | Compiles with 14 warnings the SDK does not enable, plus per-function stack frames. Found three GUI-thread functions each burning 2.1 KB of stack. |
 | `tools_screenshot.py` | Drives the app over the Flipper's protobuf RPC and captures real frames. No mockups. |
 | `tools_gen_banner.py` | Renders the brand assets, with the safe border asserted rather than eyeballed. |

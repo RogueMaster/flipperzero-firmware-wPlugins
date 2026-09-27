@@ -90,13 +90,39 @@ def unescape(s):
     )
 
 
-def literal_after(src, pos):
-    """The first string literal starting at pos, or None if the arg is a var."""
-    m = LIT.match(src, pos)
-    if m:
-        return unescape(m.group(1))
-    # A buffer or a function call - not statically checkable.
-    return None
+def literals_in_call(src, pos):
+    """Every string literal in the rest of this call's argument list.
+
+    Matching only a literal that starts immediately at `pos` misses the ones
+    inside a ternary - canvas_draw_str(canvas, 48, 48, demo ? "A" : "B") - and
+    that blind spot shipped: "SIMULATED - not real" was drawn eleven pixels off
+    the right-hand edge of a real device and this checker reported the screen
+    as clean. Both branches of a conditional are strings that can be on screen,
+    so both get measured.
+    """
+    depth = 1
+    i = pos
+    out = []
+    n = len(src)
+    while i < n and depth > 0:
+        ch = src[i]
+        if ch == '"':
+            m = LIT.match(src, i)
+            if not m:
+                break
+            out.append(unescape(m.group(1)))
+            i = m.end()
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                break
+        elif ch == ";":
+            break
+        i += 1
+    return out
 
 
 def check_file(path, listing, problems):
@@ -120,51 +146,47 @@ def check_file(path, listing, problems):
 
     for m in DRAW_STR.finditer(src):
         x, baseline = int(m.group(1)), int(m.group(2))
-        s = literal_after(src, m.end())
-        if s is None:
-            continue
         font = font_at(m.start())
-        w = text_width(s, font)
-        right = x + w
-        listing.append((rel, lineno(m.start()), font, round(w), f"x={x} y={baseline}", s))
-        if right > SCREEN_W:
-            problems.append(
-                f"{rel}:{lineno(m.start())}  runs off the right edge: "
-                f'"{s}" at x={x} is ~{w:.0f}px wide, ending at {right:.0f} (>{SCREEN_W})'
-            )
-        if baseline > MAX_BASELINE:
-            problems.append(
-                f"{rel}:{lineno(m.start())}  baseline {baseline} clips descenders "
-                f'(max {MAX_BASELINE}): "{s}"'
-            )
+        for s in literals_in_call(src, m.end()):
+            w = text_width(s, font)
+            right = x + w
+            listing.append((rel, lineno(m.start()), font, round(w), f"x={x} y={baseline}", s))
+            if right > SCREEN_W:
+                problems.append(
+                    f"{rel}:{lineno(m.start())}  runs off the right edge: "
+                    f'"{s}" at x={x} is ~{w:.0f}px wide, ending at {right:.0f} (>{SCREEN_W})'
+                )
+            if baseline > MAX_BASELINE:
+                problems.append(
+                    f"{rel}:{lineno(m.start())}  baseline {baseline} clips descenders "
+                    f'(max {MAX_BASELINE}): "{s}"'
+                )
 
     for m in DRAW_ALIGNED.finditer(src):
         x, baseline = int(m.group(1)), int(m.group(2))
         halign = m.group(3)
-        s = literal_after(src, m.end())
-        if s is None:
-            continue
         font = font_at(m.start())
-        w = text_width(s, font)
-        if halign == "AlignRight":
-            left, right = x - w, x
-        elif halign == "AlignCenter":
-            left, right = x - w / 2, x + w / 2
-        else:
-            left, right = x, x + w
-        listing.append(
-            (rel, lineno(m.start()), font, round(w), f"{halign} x={x} y={baseline}", s)
-        )
-        if right > SCREEN_W or left < 0:
-            problems.append(
-                f"{rel}:{lineno(m.start())}  {halign} string leaves the screen: "
-                f'"{s}" spans {left:.0f}..{right:.0f} (0..{SCREEN_W})'
+        for s in literals_in_call(src, m.end()):
+            w = text_width(s, font)
+            if halign == "AlignRight":
+                left, right = x - w, x
+            elif halign == "AlignCenter":
+                left, right = x - w / 2, x + w / 2
+            else:
+                left, right = x, x + w
+            listing.append(
+                (rel, lineno(m.start()), font, round(w), f"{halign} x={x} y={baseline}", s)
             )
-        if baseline > MAX_BASELINE:
-            problems.append(
-                f"{rel}:{lineno(m.start())}  baseline {baseline} clips descenders "
-                f'(max {MAX_BASELINE}): "{s}"'
-            )
+            if right > SCREEN_W or left < 0:
+                problems.append(
+                    f"{rel}:{lineno(m.start())}  {halign} string leaves the screen: "
+                    f'"{s}" spans {left:.0f}..{right:.0f} (0..{SCREEN_W})'
+                )
+            if baseline > MAX_BASELINE:
+                problems.append(
+                    f"{rel}:{lineno(m.start())}  baseline {baseline} clips descenders "
+                    f'(max {MAX_BASELINE}): "{s}"'
+                )
 
     # Scrolling text elements: every line measured against the usable width.
     for m in SCROLL.finditer(src):

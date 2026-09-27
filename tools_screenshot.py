@@ -107,6 +107,32 @@ def tag(field, wire=2):
 
 
 # ------------------------------------------------------------------ device ---
+def wait_for_port(timeout=180.0, quiet=False):
+    """Block until a Flipper appears on USB again.
+
+    A marginal cable or connector shows up as a link that survives a short
+    burst - flashing a .fap takes seconds - and then drops partway through the
+    screen stream, which pushes about 10 KB/s continuously. When that happens
+    the port disappears from /dev entirely and only comes back when the
+    connection is physically re-seated or the device re-enumerates. Waiting
+    beats dying, because the alternative is losing every capture taken so far.
+    """
+    deadline = time.time() + timeout
+    said = False
+    while time.time() < deadline:
+        found = sorted(glob.glob("/dev/cu.usbmodemflip_*")) or sorted(glob.glob("/dev/ttyACM*"))
+        if found:
+            if said:
+                print("      back.", flush=True)
+            time.sleep(1.0)  # let it settle before grabbing it
+            return found[0]
+        if not said and not quiet:
+            print("      lost the device - waiting for it to come back ...", flush=True)
+            said = True
+        time.sleep(1.0)
+    return None
+
+
 def find_port(explicit=None):
     if explicit:
         return explicit
@@ -558,10 +584,22 @@ def restart_app(f, fap=FAP_PATH):
     f.flush()
 
 
+class LinkLost(Exception):
+    """The USB link dropped mid-capture."""
+
+
+def guard(fn, *a, **kw):
+    """Run one step, turning a dropped USB link into something recoverable."""
+    try:
+        return fn(*a, **kw)
+    except (serial.SerialException, OSError) as exc:
+        raise LinkLost(str(exc)) from exc
+
+
 def settle_shot(f, name, wait=0.7):
-    f.idle(wait)
-    f.flush()
-    data = f.frame()
+    guard(f.idle, wait)
+    guard(f.flush)
+    data = guard(f.frame)
     if data is None:
         print(f"  !! no frame for {name}")
         return None
@@ -595,72 +633,113 @@ def wait_for_alert(f, seconds=60):
     return None
 
 
-# Main menu rows, in order. The submenu remembers the row you activated, so
-# BACK returns the cursor to it - the tour tracks that rather than counting.
-ROW_HUNT, ROW_AIR, ROW_DEMO, ROW_DETECTIONS, ROW_SETTINGS, ROW_ABOUT = range(6)
+# Main menu rows on a FRESHLY LAUNCHED app. The menu cursor is scene state
+# held in RAM, so a new app instance always starts on row 0 - which is what
+# makes an absolute key path from launch reliable, where a relative one drifts
+# the moment anything is captured out of order.
+ROW_HUNT, ROW_DEMO, ROW_DETECTIONS, ROW_SETTINGS, ROW_ABOUT = range(5)
 
 
-def step_to(f, frm, to):
-    """Walk the menu cursor without relying on wrap-around."""
-    for _ in range(abs(to - frm)):
-        f.press("down" if to > frm else "up")
-    return to
+def down(n):
+    return [("down", False)] * n
 
 
-def run_tour(f, fap=FAP_PATH, relaunch=True):
-    """Walk every screen, capturing each one."""
-    if relaunch:
-        restart_app(f, fap)
-    cursor = ROW_HUNT
+# The tour is grouped into SHORT SESSIONS rather than run as one long walk.
+# A marginal USB link survives a few seconds of streaming and then drops, so a
+# thirty-second single-session tour loses everything; four short ones lose at
+# most the group that was in flight, and the runner resumes from the next
+# uncaptured screen.
+#
+# Each group: (name, keys from a freshly launched app, extra dwell seconds).
+GROUPS = [
+    ("basics", [
+        ("menu", [], 0.0),
+        ("radar_noboard", [("ok", False)], 1.2),
+    ]),
+    ("demo", [
+        # One demo run produces the radar, the alert, the detail screen and the
+        # list, so they share a session - splitting them would mean waiting out
+        # the twenty-second dwell four separate times.
+        ("radar_demo", down(ROW_DEMO) + [("ok", False)], 9.0),
+        ("alert", None, 0.0),   # None = wait for the scenario to trip one
+        ("detail", [("ok", False)], 0.8),
+        ("list", [("back", False), ("ok", False)], 0.8),
+        # Back to the dial AFTER the alert, so the hero shot shows the state
+        # the app exists to produce: the inverted FOLLOWING YOU strip, with a
+        # pulsing ring on the tag that earned it. Captured before the alert
+        # trips, the same screen is just an empty dial.
+        ("radar_following", [("back", False)], 1.2),
+    ]),
+    ("menus", [
+        ("settings", down(ROW_SETTINGS) + [("ok", False)], 0.4),
+        ("about", down(ROW_ABOUT) + [("ok", False)], 0.4),
+    ]),
+]
 
-    settle_shot(f, "menu")
 
-    # -- Hunt with no board attached. This is what most people see first, and
-    #    it is the screen the app was previously worst at explaining.
-    f.press("ok")
-    settle_shot(f, "radar_noboard", wait=1.2)
-    f.press("back")
+def have(name):
+    return os.path.exists(os.path.join(SHOTS, f"{name}.png"))
 
-    # -- Air Check: the onboard radio, measuring band energy. Give it a few
-    #    seconds so the bars are built on real samples rather than zeros.
-    cursor = step_to(f, cursor, ROW_AIR)
-    f.press("ok")
-    f.idle(7.0)
-    settle_shot(f, "air", wait=0.6)
-    f.press("back")
 
-    # -- Demo: the scripted scenario, through the real UI.
-    cursor = step_to(f, cursor, ROW_DEMO)
-    f.press("ok")
-    f.idle(9.0)  # let the cast arrive and the dial fill
-    settle_shot(f, "radar_demo", wait=0.6)
+def run_group(f, steps, fap):
+    """Walk one group from a fresh launch. Raises LinkLost if the USB drops."""
+    guard(restart_app, f, fap)
+    for name, keys, dwell in steps:
+        if keys is None:
+            img = guard(wait_for_alert, f)
+            if img is not None:
+                save(img, "alert")
+            continue
+        for key, is_long in keys:
+            guard(f.press, key, long=is_long)
+        if dwell:
+            guard(f.idle, dwell)
+        settle_shot(f, name, wait=0.6)
 
-    img = wait_for_alert(f)
-    if img is not None:
-        save(img, "alert")
-        # OK on the alert pops it and opens the detail screen.
-        f.press("ok")
-        settle_shot(f, "detail", wait=0.8)
-        f.press("back")  # detail -> radar
 
-    # -- Detections list, live, mid-demo.
-    f.press("ok")
-    settle_shot(f, "list", wait=0.8)
-    f.press("back")  # list -> radar
-    f.press("back")  # radar -> menu (cursor back on Demo)
-    cursor = ROW_DEMO
+def run_tour(f, fap=FAP_PATH, relaunch=True, attempts=4):
+    """Capture every screen, surviving a link that drops mid-tour.
 
-    # -- Settings.
-    cursor = step_to(f, cursor, ROW_SETTINGS)
-    f.press("ok")
-    settle_shot(f, "settings")
-    f.press("back")
+    Returns the Flipper handle actually in use - it may be a NEW one, because
+    recovering from a dropped link means opening the port again.
+    """
+    UNUSED = relaunch  # a fresh launch per group is what makes this resumable
+    del UNUSED
 
-    # -- Help & About.
-    cursor = step_to(f, cursor, ROW_ABOUT)
-    f.press("ok")
-    settle_shot(f, "about")
-    f.press("back")
+    for gname, steps in GROUPS:
+        todo = [st for st in steps if st[1] is None or not have(st[0])]
+        if not todo:
+            print(f"  [{gname}] already captured - skipping")
+            continue
+
+        for attempt in range(1, attempts + 1):
+            try:
+                print(f"  [{gname}] attempt {attempt}")
+                run_group(f, steps, fap)
+                break
+            except LinkLost as exc:
+                print(f"    link lost: {exc}")
+                try:
+                    f.s.close()
+                except Exception:
+                    pass
+                port = wait_for_port()
+                if port is None:
+                    print(f"    device did not come back - giving up on {gname}")
+                    break
+                try:
+                    f = Flipper(port)
+                    f.start_stream()
+                except Exception as exc2:
+                    print(f"    could not reopen the session: {exc2}")
+                    break
+        else:
+            print(f"    !! {gname} failed after {attempts} attempts")
+
+    missing = [n for _g, steps in GROUPS for (n, _k, _d) in steps if not have(n)]
+    if missing:
+        print("  not captured: " + ", ".join(missing))
+    return f
 
 
 def splash_capture(f, fps=10, scale=3, fap=FAP_PATH):
@@ -755,12 +834,11 @@ def tour_gif(f, name="demo", fps=10, scale=3):
 # What goes on the README contact sheet, in reading order.
 SHEET = [
     ("menu", "Main menu"),
-    ("radar_demo", "Radar - demo hunt"),
+    ("radar_following", "Radar - something is following"),
     ("alert", "Tracker alert"),
     ("detail", "Per-device detail"),
     ("list", "Detections"),
     ("radar_noboard", "Hunt with no board"),
-    ("air", "Air Check - onboard radio"),
     ("settings", "Settings"),
     ("splash", "Boot intro"),
     # Help & About is deliberately absent: it prints the version number, which
@@ -770,12 +848,12 @@ SHEET = [
 # The aliases the Flipper Apps Catalog manifest points at. Keeping them here
 # means the catalog never has to be re-pointed when a capture is retaken.
 CATALOG = {
-    "ss0": "radar_demo",
+    "ss0": "radar_following",
     "ss1": "alert",
     "ss2": "list",
     "ss3": "detail",
-    "ss4": "air",
-    "ss5": "radar_noboard",
+    "ss4": "radar_noboard",
+    "ss5": "radar_demo",
 }
 
 
@@ -843,7 +921,7 @@ def main():
         elif args.all:
             # run_tour restarts the app itself - the tour navigates by relative
             # presses and a fresh launch is its only reliable anchor.
-            run_tour(f, fap=args.launch or FAP_PATH, relaunch=not args.no_launch)
+            f = run_tour(f, fap=args.launch or FAP_PATH, relaunch=not args.no_launch)
             refresh_catalog()
             contact_sheet(SHEET)
         elif args.record:

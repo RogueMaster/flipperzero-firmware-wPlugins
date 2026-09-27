@@ -86,7 +86,10 @@ static void alert_view_draw(Canvas* canvas, void* model) {
      * "travelling with you", not "following you": in range across time is the
      * only thing GhostTag measured. It has no GPS and cannot match your route,
      * so it reports what it saw. */
-    canvas_draw_str(canvas, 48, 48, m->demo ? "SIMULATED - not real" : "travelling with you");
+    /* "SIMULATED" alone, because the longer wording ran eleven pixels off the
+     * right-hand edge on a real device. The banner above already says DEMO
+     * ALERT, so this is the second of two markers, not the only one. */
+    canvas_draw_str(canvas, 48, 48, m->demo ? "SIMULATED" : "travelling with you");
 
     /* ---- footer (rule on 52, text on baseline 61) ---- */
     canvas_draw_line(canvas, 0, 52, 127, 52);

@@ -2,6 +2,7 @@
 
 #include <furi_hal_bt.h>
 #include <bt/bt_service/bt.h>
+#include <ble_glue.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -11,13 +12,22 @@ static const uint8_t adv_rf_index[AIR_ADV_CHANNELS] = {0, 12, 39};
 const uint16_t air_adv_mhz[AIR_ADV_CHANNELS] = {2402, 2426, 2480};
 const char* const air_adv_label[AIR_ADV_CHANNELS] = {"37", "38", "39"};
 
+#define AIR_DATARATE_1M 1u
 #define AIR_DWELL_MS  40u
 #define AIR_SETTLE_MS 2u
 #define AIR_SWEEP_MS  1500u
 
-/* Histogram spans -100..-40 dBm, one bin per dB. */
-#define HIST_MIN_DBM (-100)
-#define HIST_BINS    61
+/* Histogram spans the whole range the radio can report, one bin per dB.
+ *
+ * An earlier version clamped to -100..-40, which was a bad bug rather than a
+ * cosmetic one: the BLE stack returns exactly 0 dBm when an RSSI read FAILS,
+ * and clamping that to the -40 ceiling filed every failed read as the loudest
+ * sample of the sweep. The result was all three channels pinned at 100% and a
+ * permanent verdict of BUSY, everywhere, including a quiet room - which is the
+ * exact opposite of what somebody sweeping an empty garage needs to be told. */
+#define HIST_MIN_DBM (-127)
+#define HIST_MAX_DBM (-1)
+#define HIST_BINS    128
 
 /* A sample this far above the band's own floor counts as occupancy rather
  * than noise. Eight dB is deliberately conservative: it keeps thermal wobble
@@ -43,14 +53,17 @@ struct AirCheck {
     /* Shared. Guarded by mutex. */
     AirSnapshot snap;
 
+    volatile bool c2_ok;
+    volatile AirRfMode rf_mode;
+    uint32_t sweeps_done;
     Bt* bt;
 };
 
+/* Bin index is simply -dbm, so bin 0 is unused and bins 1..127 are -1..-127. */
 static int bin_of(int dbm) {
-    int b = dbm - HIST_MIN_DBM;
-    if(b < 0) b = 0;
-    if(b >= HIST_BINS) b = HIST_BINS - 1;
-    return b;
+    if(dbm > HIST_MAX_DBM) dbm = HIST_MAX_DBM;
+    if(dbm < HIST_MIN_DBM) dbm = HIST_MIN_DBM;
+    return -dbm;
 }
 
 static void accum_reset(AirCheck* air) {
@@ -59,7 +72,10 @@ static void accum_reset(AirCheck* air) {
     for(size_t c = 0; c < AIR_ADV_CHANNELS; c++) air->peak[c] = HIST_MIN_DBM;
 }
 
-/** The quiet end of the distribution: the 20th percentile across all channels. */
+/** The quiet end of the distribution: the 20th percentile across all channels.
+ *
+ * Walked from the WEAKEST bin downwards, because bin index is -dbm - so the
+ * quiet end of the band is the high end of the array. */
 static int8_t band_floor(AirCheck* air) {
     uint32_t total = 0;
     for(size_t c = 0; c < AIR_ADV_CHANNELS; c++) total += air->counted[c];
@@ -67,11 +83,11 @@ static int8_t band_floor(AirCheck* air) {
 
     uint32_t want = total / 5; /* 20% */
     uint32_t seen = 0;
-    for(int b = 0; b < HIST_BINS; b++) {
+    for(int b = HIST_BINS - 1; b >= 1; b--) {
         for(size_t c = 0; c < AIR_ADV_CHANNELS; c++) seen += air->hist[c][b];
-        if(seen >= want) return (int8_t)(HIST_MIN_DBM + b);
+        if(seen >= want) return (int8_t)(-b);
     }
-    return HIST_MIN_DBM;
+    return HIST_MAX_DBM;
 }
 
 static void publish(AirCheck* air) {
@@ -85,8 +101,10 @@ static void publish(AirCheck* air) {
 
     uint32_t total = 0;
     for(size_t c = 0; c < AIR_ADV_CHANNELS; c++) {
+        /* "Above the floor" means a STRONGER signal, i.e. a SMALLER bin index. */
         uint32_t above = 0;
-        for(int b = bin_of(busy_from); b < HIST_BINS; b++) above += air->hist[c][b];
+        int from = bin_of(busy_from);
+        for(int b = 1; b <= from; b++) above += air->hist[c][b];
         uint32_t n = air->counted[c];
         s.busy_pct[c] = n ? (uint8_t)((above * 100u) / n) : 0;
         s.peak_dbm[c] = air->peak[c];
@@ -94,14 +112,39 @@ static void publish(AirCheck* air) {
     }
     s.samples = total;
     s.valid = total >= MIN_SAMPLES;
+    /* Distinguish "still filling up" from "this radio is handing us nothing".
+     * Both drew the same word before, so a genuinely dead read looked exactly
+     * like a slow start, forever. */
+    s.dead = (total == 0) && (s.elapsed_s >= 8);
+    s.radio_ready = air->c2_ok;
+    s.rf_mode = air->rf_mode;
 
     furi_mutex_acquire(air->mutex, FuriWaitForever);
     air->snap = s;
     furi_mutex_release(air->mutex);
 }
 
+/*
+ * There are two ways to put this radio into receive, and the SDK documents
+ * neither well enough to pick one from the header.
+ *
+ *   furi_hal_bt_start_rx(channel)            - "set up the RF to listen"
+ *   furi_hal_bt_start_packet_rx(channel, dr) - the BLE receiver test
+ *
+ * On official firmware (API 87) the first one leaves furi_hal_bt_get_rssi()
+ * returning exactly 0 - a failed read - on every single sample, which is not
+ * something the header hints at anywhere. So the worker tries the plain
+ * listener first and falls back to the packet receiver if the first sweep
+ * produced nothing usable, rather than shipping a guess. Whichever one yields
+ * data is reported on screen, because "which RF path worked" is a fact about
+ * the firmware in front of you, not a constant.
+ */
 static void dwell(AirCheck* air, size_t chan) {
-    furi_hal_bt_start_rx(adv_rf_index[chan]);
+    if(air->rf_mode == AirRfPacket) {
+        furi_hal_bt_start_packet_rx(adv_rf_index[chan], AIR_DATARATE_1M);
+    } else {
+        furi_hal_bt_start_rx(adv_rf_index[chan]);
+    }
     furi_delay_ms(AIR_SETTLE_MS);
 
     uint32_t deadline = furi_get_tick() + furi_ms_to_ticks(AIR_DWELL_MS - AIR_SETTLE_MS);
@@ -112,7 +155,14 @@ static void dwell(AirCheck* air, size_t chan) {
          * periodic yield below keeps it from starving the GUI even if a read
          * ever returns immediately. */
         int dbm = (int)furi_hal_bt_get_rssi();
-        if(dbm > -40) dbm = -40;
+        /* The stack returns exactly 0 when the read FAILED. A genuine 0 dBm
+         * would mean a transmitter touching the antenna, so dropping it costs
+         * nothing and stops a failed read being filed as the loudest sample of
+         * the sweep - which is precisely what pinned every channel at 100%. */
+        if(dbm >= 0) {
+            if((++n & 0x0Fu) == 0) furi_delay_tick(1);
+            continue;
+        }
         if(dbm < HIST_MIN_DBM) dbm = HIST_MIN_DBM;
         air->hist[chan][bin_of(dbm)]++;
         air->counted[chan]++;
@@ -120,25 +170,55 @@ static void dwell(AirCheck* air, size_t chan) {
         if((++n & 0x0Fu) == 0) furi_delay_tick(1);
     }
 
-    furi_hal_bt_stop_rx();
+    if(air->rf_mode == AirRfPacket) {
+        furi_hal_bt_stop_packet_test();
+    } else {
+        furi_hal_bt_stop_rx();
+    }
 }
 
 static int32_t air_check_worker(void* context) {
     AirCheck* air = context;
 
     /* Hand the radio over: stop being a Bluetooth device so it can be a plain
-     * receiver. */
+     * receiver.
+     *
+     * The order here is not decoration. RF test mode lives on the WB55's
+     * SECOND core, and asking for RSSI while that core is not running the
+     * radio stack returns 0 for every single read - which is exactly what the
+     * first hardware test of this mode produced: n=0, forever. Disconnecting
+     * and stopping advertising frees the radio; ensure_c2_mode confirms the
+     * core that actually answers the question is up. */
     air->bt = furi_record_open(RECORD_BT);
     bt_disconnect(air->bt);
     /* The second core needs a moment to flush its key storage. */
     furi_delay_ms(200);
 
+    air->c2_ok = furi_hal_bt_ensure_c2_mode(BleGlueC2ModeStack);
+    furi_hal_bt_stop_advertising();
+    furi_delay_ms(100);
+
     air->started_tick = furi_get_tick();
+    air->rf_mode = AirRfListen;
+    air->sweeps_done = 0;
     accum_reset(air);
 
     uint32_t sweep_started = furi_get_tick();
     while(air->running) {
         for(size_t c = 0; c < AIR_ADV_CHANNELS && air->running; c++) dwell(air, c);
+
+        /* Nothing at all from the plain listener: try the packet receiver once
+         * before concluding the radio has nothing to say. */
+        air->sweeps_done++;
+        if(air->rf_mode == AirRfListen && air->sweeps_done >= 3) {
+            uint32_t got = 0;
+            for(size_t c = 0; c < AIR_ADV_CHANNELS; c++) got += air->counted[c];
+            if(got == 0) {
+                air->rf_mode = AirRfPacket;
+                accum_reset(air);
+                air->started_tick = furi_get_tick();
+            }
+        }
 
         publish(air);
 
@@ -218,6 +298,7 @@ void air_check_snapshot(AirCheck* air, AirSnapshot* out) {
 }
 
 AirBand air_check_band(const AirSnapshot* snap) {
+    if(snap->dead) return AirBandNoReading;
     if(!snap->valid) return AirBandUnknown;
     /* The busiest advertising channel decides it: a tracker beacons on all
      * three, but plenty of other traffic favours one, and the question being
@@ -239,6 +320,8 @@ const char* air_band_label(AirBand band) {
         return "MODERATE";
     case AirBandBusy:
         return "BUSY";
+    case AirBandNoReading:
+        return "NO READING";
     default:
         return "SAMPLING";
     }

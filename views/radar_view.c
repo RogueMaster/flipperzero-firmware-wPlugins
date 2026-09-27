@@ -150,7 +150,17 @@ static void radar_view_draw(Canvas* canvas, void* model) {
     if(m->following > 0) {
         canvas_draw_box(canvas, 0, FOOT_TOP, 128, 11);
         canvas_set_color(canvas, ColorWhite);
-        snprintf(buf, sizeof(buf), "! %u FOLLOWING YOU", clamp_count(m->following));
+        /* Not "! %u FOLLOWING YOU". FontSecondary's space is under three
+         * pixels, so a digit between two spaces closes up against its
+         * neighbours and the alarm line rendered as "!1FOLLOWING YOU" on a
+         * real device - on the one screen that most needs to be readable at a
+         * glance. The count moves to a suffix where nothing can collapse into
+         * it, and is omitted entirely when it is one. */
+        if(m->following > 1) {
+            snprintf(buf, sizeof(buf), "! FOLLOWING YOU x%u", clamp_count(m->following));
+        } else {
+            snprintf(buf, sizeof(buf), "! FOLLOWING YOU");
+        }
         canvas_draw_str(canvas, 3, 61, buf);
         canvas_draw_str_aligned(canvas, 125, 61, AlignRight, AlignBottom, "OK");
         canvas_set_color(canvas, ColorBlack);

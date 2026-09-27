@@ -10,7 +10,7 @@ App(
     fap_author="at0m-b0mb",
     fap_weburl="https://github.com/at0m-b0mb/GhostTag-FlipperZero",
     fap_version="2.0",
-    fap_description="Anti-stalking BLE tracker hunter. Finds unknown AirTags, Tiles and Samsung SmartTags that are travelling with you and warns you. Includes a built-in Demo mode that needs no hardware. A live hunt needs a BLE-capable ESP32 companion board on the GPIO UART - note that the official Flipper WiFi devboard is an ESP32-S2 and has no Bluetooth radio, so it will not work.",
+    fap_description="Anti-stalking BLE tracker hunter. Finds unknown AirTags, Tiles and Samsung SmartTags that are travelling with you and warns you. Includes a built-in Demo mode that plays a scripted scenario through the real UI and needs no hardware at all. A live hunt needs a BLE-capable ESP32 companion board on the GPIO UART - note that the official Flipper WiFi devboard is an ESP32-S2 and has no Bluetooth radio, so it will not work.",
     # Explicit, because the glob is RECURSIVE: a __pycache__ left behind by the
     # repo's own Python tooling ends up in the LINK step as "file format not
     # recognized".
