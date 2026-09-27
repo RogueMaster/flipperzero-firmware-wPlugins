@@ -70,18 +70,28 @@ jobs:
       - name: Verify the API version baked into the artifact
         run: |
           python3 - <<'PY'
-          import glob, struct, subprocess, sys
+          import glob, os, re, struct, subprocess
           fap = "dist/ghosttag.fap"
-          tc = glob.glob("/home/runner/.ufbt/toolchain/*/bin/arm-none-eabi-readelf")
+          tc = glob.glob(os.path.expanduser("~/.ufbt/toolchain/*/bin/arm-none-eabi-readelf"))
+          assert tc, "no arm-none-eabi-readelf in the ufbt toolchain"
           out = subprocess.run([tc[0], "-x", ".fapmeta", fap],
                                capture_output=True, text=True).stdout
-          raw = bytes.fromhex("".join(
-              part for line in out.splitlines() if line.strip().startswith("0x")
-              for part in line.split()[1:5]))
-          magic, manifest, api = struct.unpack("<III", raw[:12])
-          assert magic == 0x52474448, f"bad .fapmeta magic {magic:#x}"
-          print(f"manifest v{manifest}, API {api >> 16}.{api & 0xFFFF}")
+          # Each readelf line is "0xADDR w w w w ASCII", and the ASCII column is
+          # not hex - and neither is a short final line's padding. Take only
+          # tokens that are exactly eight hex digits.
+          WORD = re.compile(r"^[0-9a-fA-F]{8}$")
+          words = [w for line in out.splitlines() if line.strip().startswith("0x")
+                   for w in line.split()[1:] if WORD.match(w)]
+          assert len(words) >= 3, f"unexpected .fapmeta dump:\n{out}"
+          magic, manifest, api = struct.unpack("<III", bytes.fromhex("".join(words[:3])))
+          assert magic == 0x52474448, f"bad .fapmeta magic {magic:#x} - is this really a .fap?"
+          line = f"{os.environ['ARTIFACT']}: manifest v{manifest}, API {api >> 16}.{api & 0xFFFF}"
+          print(line)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+              fh.write(f"- `{line}`\n")
           PY
+        env:
+          ARTIFACT: ${{ matrix.artifact }}
 
       - name: Stage artifact
         run: |
