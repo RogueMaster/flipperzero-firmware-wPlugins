@@ -11,10 +11,17 @@
  * Wire protocol (newline-terminated ASCII):
  *   ESP32 -> Flipper:
  *     GT1,<mac12hex>,<rssi>,<typecode>,<name>   one BLE tracker detection
- *     GTHELLO,<fw_version>                       sent on ESP32 boot
+ *     GTHELLO,<fw_version>                      on boot, and in reply to PING
+ *     GTALIVE,<seen_count>                      heartbeat, ~every 2 s
  *   Flipper -> ESP32:
  *     START   begin scanning
  *     STOP    stop scanning
+ *     PING    answer with GTHELLO
+ *
+ * The heartbeat is not decoration. Liveness used to be inferred from
+ * detections alone, so a board sitting in a quiet room with no trackers around
+ * it went silent and the app reported NO BOARD - telling the user their
+ * hardware was broken at exactly the moment it was working and finding nothing.
  */
 typedef struct UartLink UartLink;
 
@@ -41,3 +48,14 @@ void uart_link_stop(UartLink* link);
 bool uart_link_is_running(UartLink* link);
 
 void uart_link_send_command(UartLink* link, const char* cmd);
+
+/**
+ * Tick of the last COMPLETE line received from the board, of any kind.
+ *
+ * Counting any line rather than only detections is what makes the link
+ * indicator tell the truth in a quiet room.
+ */
+uint32_t uart_link_last_rx_tick(UartLink* link);
+
+/** True once the board has identified itself this session. */
+bool uart_link_has_greeted(UartLink* link);

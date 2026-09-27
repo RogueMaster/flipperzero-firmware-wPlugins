@@ -1,0 +1,68 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/at0m-b0mb/GhostTag-FlipperZero.git
+    commit_sha: REPLACE_WITH_v2.0_COMMIT  # must be a commit that already contains screenshots/
+short_description: Find the Bluetooth tracker that is following you. Detects AirTags, Tiles and SmartTags that travel with you. Demo mode needs no hardware.
+description: |
+  Somebody can buy a tracker for the price of a takeaway and drop it in your bag. GhostTag watches the Bluetooth advertising channels for the ones that are still with you twenty minutes later, and tells you when it finds one.
+
+  Detecting a tracker is easy — there is one in nearly every bag on a train, and almost all of them are innocent. What matters is **persistence**: the tag that is in range at the station, still in range at the shops, and still in range outside your front door. That is the only thing GhostTag grades.
+
+  ## Three ways to run it
+
+  - **Demo** — needs no hardware at all. A scripted stalking scenario plays through the real interface: ambient phones and earbuds that are never graded threats, a Tile that walks past and leaves without tripping, and an AirTag that stays with you and fires a real alert. Every demo screen is stamped DEMO, and nothing from a demo is ever written to the log. Install it and see what the app does before buying anything.
+  - **Air Check** — runs on the Flipper alone. The onboard radio cannot scan Bluetooth, but it can measure raw RF energy, so Air Check hops the three BLE advertising channels and tells you how busy the band is where you are standing. A tag that persists in an empty garage means far more than one in a crowded cafe. It is energy only and says so on every frame — it cannot identify anything.
+  - **Hunt** — the real thing, with a BLE-capable ESP32 companion board on the GPIO UART. Identifies Apple Find My and AirTags, Tile, Samsung SmartTag and Chipolo, tracks each one over time, and alerts when one has travelled with you.
+
+  ## What travelling with you means
+
+  A tracker is promoted only when all three hold: it is a known tracker type that could realistically be used to stalk someone, it has been heard at least four times, and it has stayed in range continuously for the whole dwell window you set. If a tag goes quiet for thirty seconds its dwell clock restarts, so a tag you merely passed twice cannot be graded a follower.
+
+  ## Reading the dial
+
+  Distance from the centre is real — it is the measured signal strength. The angle is **not** a bearing: there is no compass and no antenna array in a Flipper Zero, so it cannot know which direction anything is in. The angle is a stable hash of the device address, so each tag keeps its own spot and you can watch it move in and out. That is also why there is no crosshair.
+
+  ## Hardware
+
+  A live hunt needs a BLE-capable ESP32 on the GPIO UART. **The official Flipper WiFi Devboard will not work** — it is an ESP32-S2, and the S2 has no Bluetooth radio of any kind. Use an ESP32-S3, ESP32-C3, ESP32-C6 or a classic ESP32. The sketch refuses to compile for an S2 rather than giving you a binary that flashes fine and then finds nothing.
+
+  ## Limits, stated plainly
+
+  - It cannot tell you a direction.
+  - Travelling with you means in range across time, nothing more. There is no GPS and no route matching, so a tag on a shelf you stood beside looks the same as one in your pocket. Walk, and re-check.
+  - Find My tags rotate their address roughly every fifteen minutes, so a long tail may appear as several shorter records.
+  - A quiet result is not an all-clear. A tracker that is switched off, out of range, or not beaconing is invisible.
+
+  A defensive privacy tool. Use it on yourself or your property, or with consent. Everything runs locally — no cloud, no account, nothing leaves the device.
+changelog: |
+  ## 2.0
+
+  A correctness and usability release. Every screen was rebuilt, two deadlock classes were removed, and the app now does something useful with no extra hardware at all.
+
+  - **The official devboard never worked.** GhostTag told people to use the official Flipper WiFi Devboard, which is an ESP32-S2 and has no Bluetooth radio of any kind — so the documented primary hardware could never have found a single tracker. The sketch now refuses to compile for an S2, and the documentation names the boards that actually work.
+  - **New: Air Check.** The Flipper's own radio cannot scan Bluetooth, but its RF test mode can measure energy, so this hops the three advertising channels and reports how busy the band is. Energy only, and it says so on every frame.
+  - **New: Demo mode.** A scripted stalking scenario through the real interface, needing no hardware, stamped DEMO on every screen.
+  - **Fixed a two-thread deadlock on teardown.** The radio worker posted into the view dispatcher's queue, which blocks when full — and the thread that drains it was simultaneously blocked joining the worker. Detections now only touch the database and the interface polls on its own tick.
+  - **Fixed dead buttons.** Every view handled short presses only, but the firmware sends a long press instead of a short one once a key is held past the threshold, so a slightly firm press was silently dropped on the radar, the list and the alert screen.
+  - **Fixed lost alerts.** The pending alert was a single slot, so a second tracker tripping before the interface caught up overwrote the first and that warning was gone for good. Alerts were also dropped entirely on the detail, settings and help screens.
+  - **Fixed the alert re-opening itself** after you had dealt with it, and a second alert stacking another screen on top of the first.
+  - **Fixed the list selection jumping under your finger.** The list re-sorts live, so a one-decibel wobble swapped two rows and OK opened the wrong device. Selection now follows the device, not the row.
+  - **Fixed the link indicator lying.** Liveness was inferred from detections, so a working board in a quiet room reported no board. The companion firmware now heartbeats.
+  - **Fixed the worst false positive:** a tracker seen twice, minutes apart, could be graded a follower. The dwell clock now restarts after thirty seconds of silence.
+  - **Settings now persist**, which matters because somebody who turns Sound off so a stalker cannot hear the alert should not have it switch itself back on.
+  - **New:** session log to the SD card (capped, and never written from a demo), boot intro, a help screen that answers why it says no board, Left and Right to step through detections from the detail screen, an explicit clear, and Screen on plus Log to SD in settings.
+  - **The radar lost its crosshair,** because a cross through the middle reads as compass directions the app cannot measure. The alert says travelling with you rather than following you, for the same reason.
+  - Samsung classification no longer matches the company ID that is on every Samsung phone, watch and pair of earbuds. Apple Find My is split by its length byte, so a separated tag is graded differently from one whose owner is standing there.
+  - Fixed a list row drawn off the bottom of the screen, three help lines wider than the display, an alert strobing at ten hertz, and three interface functions each putting two kilobytes on the stack.
+
+  ## 1.0
+
+  Initial release: radar view, detections list, per-device detail, alert screen, settings, the following-you heuristic, and the ESP32 companion firmware.
+screenshots:
+  - screenshots/ss0.png
+  - screenshots/ss1.png
+  - screenshots/ss2.png
+  - screenshots/ss3.png
+  - screenshots/ss4.png
+  - screenshots/ss5.png

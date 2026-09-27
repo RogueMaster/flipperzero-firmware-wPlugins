@@ -1,238 +1,335 @@
-<!-- banner -->
 <p align="center">
-  <img src="images/banner.png" alt="GhostTag — BLE anti-stalking tracker hunter for Flipper Zero" width="100%">
-</p>
-
-<h1 align="center">GhostTag 👻</h1>
-<p align="center"><i>Hunt the tags that haunt you.</i></p>
-
-<p align="center">
-  <a href="https://github.com/at0m-b0mb/GhostTag-FlipperZero/actions/workflows/build.yml"><img src="https://github.com/at0m-b0mb/GhostTag-FlipperZero/actions/workflows/build.yml/badge.svg" alt="Build FAP"></a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/banner-dark.png">
+    <img src="images/banner.png" alt="GhostTag — anti-stalking BLE tracker detection for Flipper Zero" width="100%">
+  </picture>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF7800?style=for-the-badge&logo=flipper&logoColor=white" alt="Flipper Zero">
-  <img src="https://img.shields.io/badge/radio-ESP32%20WiFi%2FBLE%20board-19f7a3?style=for-the-badge" alt="ESP32">
-  <img src="https://img.shields.io/badge/build-ufbt-2da0ff?style=for-the-badge" alt="ufbt">
-  <img src="https://img.shields.io/badge/license-MIT-3ad17a?style=for-the-badge" alt="MIT">
-</p>
+  <a href="https://github.com/at0m-b0mb/GhostTag-FlipperZero/actions/workflows/build.yml"><img src="https://github.com/at0m-b0mb/GhostTag-FlipperZero/actions/workflows/build.yml/badge.svg" alt="Build"></a>
+  <a href="https://github.com/at0m-b0mb/GhostTag-FlipperZero/releases/latest"><img src="https://img.shields.io/github/v/release/at0m-b0mb/GhostTag-FlipperZero?color=B07D22&label=release" alt="Release"></a>
+  <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200" alt="Flipper Zero">
+  <img src="https://img.shields.io/badge/API-87%20%2F%2088-555" alt="Firmware API">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-3ad17a" alt="MIT">
+</a></p>
 
-<p align="center">
-  <b>GhostTag</b> turns your Flipper Zero into a personal <b>anti-stalking radar</b>. It sniffs out unknown
-  Bluetooth trackers — <b>Apple AirTags / Find My</b>, <b>Tile</b> and <b>Samsung SmartTags</b> — and warns you
-  when one has been quietly <b>travelling with you</b>.
-</p>
+> **Somebody can buy a tracker for £25 and drop it in your bag.**
+> GhostTag watches the Bluetooth advertising channels for the ones that are still
+> with you twenty minutes later — and tells you, out loud, when one is.
+
+Detecting a tracker is easy. There is one in nearly every bag on a train, and
+almost all of them are innocent. What matters is **persistence**: the tag that
+is in range at the station, still in range at the shops, and still in range
+outside your front door. That is the only thing GhostTag grades, and it is
+careful never to claim more than it measured.
 
 ---
 
-## 📟 On the Flipper
+## Three ways to run it
+
+|  | What it needs | What it can actually do |
+|---|---|---|
+| 🛰️ **Hunt** | Flipper + a **BLE-capable ESP32** | The real thing. Identifies AirTags, Tiles, SmartTags and Chipolos, tracks each one over time, and alerts when one travels with you. |
+| 📡 **Air Check** | **Flipper alone** | Measures how busy the three BLE advertising channels are right here. **Energy only** — it cannot identify anything. |
+| 👻 **Demo** | **Nothing** | A scripted stalking scenario played through the real UI, so you can see exactly what an alert looks like before you buy hardware. Every screen is stamped `DEMO`. |
 
 <p align="center">
-  <img src="images/screen_radar.png" width="32%" alt="Radar scan">
-  &nbsp;
-  <img src="images/screen_list.png" width="32%" alt="Detections list">
-  &nbsp;
-  <img src="images/screen_alert.png" width="32%" alt="Tracker alert">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/screens-dark.png">
+    <img src="images/screens.png" alt="GhostTag screens, captured from the device" width="92%">
+  </picture>
 </p>
-<p align="center">
-  <sub><b>Live radar</b> with sweep + blips &nbsp;·&nbsp; <b>Detections</b> with type, signal & follower flag &nbsp;·&nbsp; <b>Threat alert</b> when something tails you</sub>
-</p>
+<p align="center"><sub>Every screenshot in this repository is captured off a real Flipper over the RPC protocol — there are no mockups here.</sub></p>
 
 ---
 
-## ✨ Features
+## ⚠️ The official Flipper WiFi Devboard does **not** work
 
-- 🛰️ **Live radar UI** — animated sweep, range rings and signal-mapped blips. Followers pulse red.
-- 🏷️ **Multi-vendor detection** — Apple Find My / AirTag, Tile, Samsung SmartTag (Chipolo ONE Spot rides Find My).
-- 🚶 **"Is it following me?" engine** — flags a tag only after it has stayed with you across time *and* repeated sightings, not a one-off passer-by.
-- 🚨 **Loud, configurable alerts** — sound, vibration and red LED, individually toggleable.
-- 📊 **Per-device detail** — MAC, live RSSI with bars, time-tracked, sighting count, follow status.
-- 🎚️ **Tunable** — detection range (Near / Medium / Far) and dwell time before an alert (1–10 min).
-- 🔌 **Clean ESP32 protocol** — simple, debuggable UART line protocol; the Flipper is the brain, the ESP32 is the radio.
-- 🕶️ **Privacy-first** — everything runs locally on your hardware. No cloud, no accounts, no logging home.
+This is the single most important thing on this page, so it is not buried in a
+footnote.
+
+The official board is built around an **ESP32-S2**, and the ESP32-S2 has **no
+Bluetooth radio of any kind** — not BLE, not Classic. It is Wi-Fi only. No
+firmware can give it a radio it does not have. (This is also why the Marauder
+project greys out every Bluetooth menu item on that board.)
+
+GhostTag's ESP32 sketch refuses to compile for an S2 rather than handing you a
+binary that flashes perfectly and then finds nothing forever.
+
+### Boards that do work
+
+| SoC | Bluetooth | Works? |
+|---|---|:--:|
+| **ESP32-S3** | BLE 5.0 | ✅ recommended |
+| **ESP32-C3** | BLE 5.0 | ✅ recommended, cheap |
+| **ESP32** (original) | BT 4.2 + BLE | ✅ |
+| **ESP32-C6** | BLE 5.0 | ✅ needs NimBLE 2.x |
+| **ESP32-S2** | none | ❌ **no radio** |
+
+**Flipper-shaped add-on boards** (clip straight onto the GPIO):
+[ESP32 Marauder Add-On](https://electroniccats.com/store/flipper-add-on-marauder/)
+(Electronic Cats, S3) · [WiFi ESP32 Marauder](https://hackerwarehouse.com/product/wifi-esp32-marauder-for-flipper-zero/)
+(Hacker Warehouse, S3) · [Flipper Zero ESP32S3 v4](https://www.tindie.com/products/sometoms/flipper-zero-esp32s3-v4-board/)
+(Rabbit-Labs).
+
+**Plain dev boards** wired to the GPIO also work: Seeed XIAO ESP32C3/S3,
+ESP32-C3-DevKitM-1, ESP32-S3-DevKitC-1, any ESP32-WROOM-32 board.
+
+### Wiring a plain board
+
+| Flipper pin | | ESP32 |
+|---|:--:|---|
+| `13` TX | → | RX |
+| `14` RX | → | TX |
+| `11` GND | → | GND |
+
+Note the **TX ↔ RX cross-over**. Power the ESP32 from its own USB while you are
+getting started — pin `9` is 3V3 and can run a small module, but the documented
+current budget for that rail is not something to guess at with a radio on it.
 
 ---
 
 ## 🧠 How it works
 
-The Flipper Zero's **stock BLE stack is advertising/peripheral-only** — it physically *cannot* scan for other
-devices' advertisements ([furi_hal_bt docs](https://developer.flipper.net/flipperzero/doxygen/furi__hal__bt_8h.html)).
-So GhostTag splits the job: the **ESP32 companion is the BLE radio**, and the **Flipper is the brain + UI**.
+The Flipper's own Bluetooth is **advertising-only**. `furi_hal_bt.h` exposes a
+peripheral profile, advertising, and RF test mode — there is **no GAP observer
+role and no way to hand an advertisement to an application**. So the Flipper
+physically cannot see a tracker on its own. GhostTag splits the job: the ESP32
+is the radio, the Flipper is the brain and the screen.
 
 ```mermaid
 flowchart LR
     subgraph AIR["📡 Around you"]
-      A[AirTag / Find My]
-      T[Tile]
-      S[Samsung SmartTag]
+      A["AirTag / Find My"]
+      T["Tile"]
+      S["Samsung SmartTag"]
     end
     A & T & S -- "BLE adverts" --> E
 
-    subgraph BOARD["ESP32 WiFi/BLE devboard"]
-      E[NimBLE scanner] --> C[Classify vendor signature]
-      C --> P["GT1,&lt;mac&gt;,&lt;rssi&gt;,&lt;type&gt;,&lt;name&gt;"]
+    subgraph BOARD["BLE-capable ESP32"]
+      E["NimBLE scanner"] --> C["Classify vendor signature"]
+      C --> P["GT1,mac,rssi,type,name"]
     end
 
-    P -- "UART 115200<br/>pins 13/14" --> U
+    P -- "UART 115200 · pins 13/14" --> U
 
     subgraph FLIP["Flipper Zero — GhostTag.fap"]
-      U[UART worker] --> DB[(Tracker DB)]
-      DB --> HEU{Following-you<br/>heuristic}
-      HEU -->|persistent| AL[🚨 Alert]
-      DB --> RAD[🛰️ Radar / List / Detail]
+      U["UART worker"] --> DB[("Tracker DB")]
+      DB --> HEU{"Travelling<br/>with you?"}
+      HEU -->|"dwell + sightings"| AL["🚨 Alert"]
+      DB --> RAD["🛰️ Radar / List / Detail"]
+      RADIO["Onboard BLE test mode"] -.-> AIRC["📡 Air Check<br/><i>energy only</i>"]
     end
 ```
 
-**The follow heuristic.** Trackers rotate their MAC address, so GhostTag treats *persistence* as the signal:
-a record is promoted to **FOLLOWING** only once it is a known tracker type, has been seen at least a few times,
-**and** has stayed in range for the whole dwell window you configured. That mirrors how AirGuard / Apple's own
-Tracker Detect reason about stalking without GPS.
+### What "travelling with you" actually means
+
+A record is promoted only when **all three** hold:
+
+1. it is a **known tracker type** that could realistically be used to stalk someone;
+2. it has been heard **at least 4 times**; and
+3. it has been **in range continuously** for the whole dwell window you set.
+
+"Continuously" is load-bearing. If a tag goes quiet for 30 seconds, its dwell
+clock **restarts**. Without that, a tag you passed twice ten minutes apart
+satisfies any dwell window up to ten minutes — and telling somebody they are
+being followed when a tag merely passed them twice is the worst thing this app
+could do.
+
+### Reading the dial
+
+<img align="right" src="screenshots/radar_demo.png" width="240" alt="The radar dial">
+
+**Distance from the centre is real.** It is the measured signal strength,
+mapped onto the range rings.
+
+**The angle is not a bearing.** There is no compass and no antenna array in a
+Flipper Zero, so it cannot know which direction anything is in. The angle is a
+stable hash of the device address, so each tag keeps its own spot and you can
+watch it move in and out — and that is all it means. That is also why there is
+no crosshair: a cross through the middle reads as N/E/S/W.
+
+A **hollow pulsing ring** is a tracker that has been promoted. A **solid dot**
+is a tracker that has not. A **single pixel** is ambient kit that is not a
+stalking risk at all.
+
+<br clear="right">
 
 ---
 
-## 🧰 Hardware you need
+## 🚀 Install
 
-| Item | Notes |
-|---|---|
-| **Flipper Zero** | Any unit, OFW or a custom firmware (Momentum / Unleashed / RogueMaster). |
-| **ESP32 BLE board** | The official [Flipper WiFi Devboard](https://flipper.net/products/wifi-devboard) (ESP32-S2) — plug-and-play — **or** any generic ESP32 wired to the GPIO (see below). |
+### The Flipper app
 
-> [!IMPORTANT]
-> The ESP32 board is **required**. Internal Bluetooth alone can broadcast but cannot scan, so it can't see
-> trackers. If a future custom firmware ever exposes BLE observer mode, GhostTag's radio source is abstracted
-> (`helpers/uart_link.c`) and a native backend can drop straight in.
+**Grab a build** — download from [Releases](https://github.com/at0m-b0mb/GhostTag-FlipperZero/releases)
+and copy to `SD Card / apps / Bluetooth /` with [qFlipper](https://flipper.net/update).
 
-### Wiring (only for a *generic* ESP32 — the official devboard just clips on)
+> Two builds are attached to every release, because a `.fap`'s API version is
+> baked in at compile time:
+> * `ghosttag.fap` — **official** firmware (API 87)
+> * `ghosttag-fw-dev.fap` — **Momentum / Unleashed / RogueMaster** (API 88)
+>
+> Using the wrong one gives you `APP:87 < FW:88 — This app might not work`.
 
-| Flipper GPIO | → | ESP32 |
-|---|---|---|
-| `13` TX | → | RX |
-| `14` RX | → | TX |
-| `9` 3V3 | → | 3V3 |
-| `11` GND | → | GND |
-
-> Note the **TX ↔ RX cross-over**. The official devboard handles all of this for you.
-
----
-
-## 🚀 Installation
-
-### Part 1 — Flash the ESP32 (the radio)
-
-1. Install the **Arduino IDE** and the **ESP32 board package** (`esp32 by Espressif`).
-2. In **Library Manager**, install **`NimBLE-Arduino`** (tested on **1.4.x**).
-3. Open [`esp32/ghosttag_esp32/ghosttag_esp32.ino`](esp32/ghosttag_esp32/ghosttag_esp32.ino).
-4. Select your board:
-   - Official Flipper WiFi Devboard → **ESP32S2 Dev Module** (hold **BOOT** while plugging in to enter flash mode).
-   - Generic ESP32 → its matching board profile.
-5. **Upload.** On boot it prints `GTHELLO,1.0` and starts scanning at `115200` baud.
-
-### Part 2 — Install the Flipper app (the brain)
-
-**Option A — build it yourself (recommended)**
+**Or build it:**
 
 ```bash
-# one-time: install the micro Flipper build tool
 python3 -m pip install --upgrade ufbt
-
 git clone https://github.com/at0m-b0mb/GhostTag-FlipperZero.git
 cd GhostTag-FlipperZero
-
-ufbt              # builds dist/ghosttag.fap
-ufbt launch       # build + upload to a connected Flipper + run it
+ufbt          # builds dist/ghosttag.fap
+ufbt launch   # build, upload to a connected Flipper, and run it
 ```
 
-**Option B — drag-and-drop**
+Open **Apps → Bluetooth → GhostTag**. You can run **Demo** immediately — no
+hardware at all.
 
-1. Grab `ghosttag.fap` from the [Releases](https://github.com/at0m-b0mb/GhostTag-FlipperZero/releases) page.
-2. With [qFlipper](https://flipper.net/update), copy it to `SD Card / apps / Bluetooth /`.
+### The ESP32 sketch
+
+1. Arduino IDE + the **ESP32 board package** (`esp32` by Espressif).
+2. Library Manager → **`NimBLE-Arduino`**. Either **1.4.x** or **2.x** works;
+   the sketch detects which and compiles against the right scan-callback API.
+   *(C6 needs 2.x.)*
+3. Open [`esp32/ghosttag_esp32/ghosttag_esp32.ino`](esp32/ghosttag_esp32/ghosttag_esp32.ino),
+   pick your board, upload.
+
+On boot it prints `GTHELLO,2.0` and heartbeats `GTALIVE` every two seconds, so
+the Flipper can tell *"the board is fine and the room is quiet"* apart from
+*"the board is dead"* — which it could not do before v2.0.
 
 ---
 
-## 🎯 Usage
+## 🎯 Using it
 
-1. Attach + power the ESP32 board, then on the Flipper open **Apps → Bluetooth → GhostTag**.
-2. Choose **Hunt (Scan)**. The header shows **LINK** once the ESP32 is talking.
-3. **Walk around for a few minutes.** Anything broadcasting nearby appears as a radar blip and in **Detections**.
-4. If a tracker stays with you past the **Alert after** dwell time, GhostTag throws a full-screen **TRACKER ALERT**
-   with sound / vibration / LED.
-5. Press **OK** on the radar (or open **Detections**) to inspect any tag: vendor, MAC, signal, and how long it's
-   been tailing you.
+| Screen | Keys |
+|---|---|
+| **Radar** | `OK` detections · `←` help · `Back` end the hunt |
+| **Air Check** | `←` help · `Back` home |
+| **Detections** | `↑ ↓` scroll · `OK` open · `Back` return |
+| **Detail** | `← →` previous / next tracker · `Back` return |
+| **Alert** | `OK` details · `Back` dismiss |
+
+Then: **walk.** A tracker that stays with you across a few minutes of real
+movement is the signal; one that is merely nearby is not. Pop back into
+**Detections** now and then — the dwell column is the one that matters.
 
 ### Settings
 
 | Setting | Options | What it does |
 |---|---|---|
-| **Range** | Near · Medium · Far | RSSI cutoff — *Near* ignores distant tags, *Far* catches everything. |
-| **Alert after** | 1 / 3 / 5 / 10 min | How long a tag must stay with you before it's called a follower. |
-| **Sound / Vibrate / LED** | On · Off | Which alert channels fire. |
+| **Range** | Near · Medium · Far | RSSI cutoff. *Near* (~5 m) ignores the room next door. |
+| **Alert after** | 1 / 3 / 5 / 10 min | How long a tag must stay before it is called a follower. |
+| **Sound · Vibrate · LED** | On · Off | Which alert channels fire. |
+| **Screen on** | On · Off | Hold the backlight for a long hunt. |
+| **Log to SD** | On · Off | Append findings to `apps_data/ghosttag/sessions.csv`. Capped at 64 KB. Demo sessions are **never** logged. |
+
+Settings persist across restarts. That is a safety feature as much as a
+convenience: somebody who turns **Sound** off because they do not want a stalker
+to hear the alert should not have it switch itself back on.
 
 ---
 
 ## 🔬 Detection signatures
 
-The ESP32 classifies each advertisement and sends a one-digit type code. (Reference: `helpers/ble_signatures.h`.)
-
-| Tracker | BLE signature | Type code |
+| Tracker | Signature | Code |
 |---|---|:--:|
-| Apple Find My / AirTag | Manufacturer data, company `0x004C`, payload type `0x12` | `1` |
-| Apple (nearby/owner) | company `0x004C`, payload type `0x07` | `2` |
-| Tile | 16-bit service UUID / service data `0xFEED` | `3` |
-| Samsung SmartTag | service data UUID `0xFD5A` / company `0x0075` | `4` |
-| Chipolo ONE Spot | rides Apple Find My (`0x12`) | `1` |
+| Apple Find My — **separated** | manufacturer `0x004C`, type `0x12`, length ≥ `0x19` | `1` |
+| Apple — owner nearby | `0x004C`, type `0x12` short form, or `0x07` / `0x10` | `2` |
+| Tile | service UUID / service data `0xFEED` | `3` |
+| Samsung SmartTag | service data UUID `0xFD5A` (SmartThings Find) | `4` |
+| Chipolo | manufacturer `0x0157` (ONE Spot rides Find My → `1`) | `5` |
+
+Two deliberate decisions in there:
+
+* **The Find My length byte is the whole ballgame.** The long form is the
+  *separated* state — the tag has lost its owner and is broadcasting a rotating
+  key for any passing phone to relay. That is the state a tag planted on
+  somebody is in. The short form means the owner is standing right there, and
+  is graded harmless.
+* **Samsung's company ID `0x0075` is deliberately not used.** It is on every
+  Samsung phone, watch, TV and pair of earbuds in the room. Matching it
+  reported half a train carriage as SmartTags.
 
 ### UART line protocol
 
 ```
-ESP32  → Flipper :  GT1,<mac12hex>,<rssi>,<typecode>,<name>\n
-                    GTHELLO,<version>\n           (on boot)
-Flipper → ESP32  :  START\n   STOP\n   PING\n
+ESP32  → Flipper :  GT1,<mac12hex>,<rssi>,<typecode>,<name>
+                    GTHELLO,<version>      on boot and in reply to PING
+                    GTALIVE,<count>        heartbeat, every 2 s
+Flipper → ESP32  :  START    STOP    PING
 ```
 
-Plain ASCII on purpose — you can sniff it with any serial monitor while debugging.
+Plain ASCII on purpose — you can watch it in any serial monitor while debugging.
 
 ---
 
-## ⚠️ Limitations (honest notes)
+## ⚠️ What it cannot do
 
-- **Rotating MACs.** Find My devices rotate their address (~every 15 min), so a long stalk may appear as several
-  short-lived records. GhostTag still catches active separated AirTags because they advertise persistently.
-- **No GPS.** Without location, "following" is inferred from time-in-range, not from matching your route. Walk a
-  bit and re-check to confirm.
-- **Owner devices.** A nearby Apple device in *paired* mode (`0x07`) is usually its owner — it is **not** flagged
-  as a threat by default.
-- **Range.** BLE reach depends on the ESP32 antenna and surroundings (typically ~10–30 m line of sight).
+An anti-stalking tool that overstates itself is worse than none, so:
+
+* **It cannot tell you a direction.** No compass, no antenna array. The radar
+  angle is decorative and the app says so on its own help screen.
+* **It cannot prove intent.** "Travelling with you" means *in range across
+  time*, nothing more. A tag on a shelf you stood next to for ten minutes looks
+  identical to one in your coat pocket. Walk, and re-check.
+* **Find My tags rotate their address** roughly every 15 minutes, so a long
+  tail may appear as several shorter records rather than one long one.
+* **Air Check cannot identify anything.** It measures RF energy. It cannot read
+  an address, a vendor or a payload, and it will never tell you a tracker is
+  present. The verdict band carries `energy only` on every frame.
+* **A quiet result is not an all-clear.** GhostTag hears BLE advertising. A
+  tracker that is switched off, out of range, or not beaconing is invisible to
+  it — as is anything that is not Bluetooth at all.
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Persist a session log to the SD card
-- [ ] "Make it chirp" helper for separated AirTags (sound-trigger lookup)
-- [ ] GPS devboard support to confirm a follower across real movement
-- [ ] Native internal-BT backend if/when a firmware exposes BLE observer mode
+- [ ] "Make it chirp" for separated AirTags, to find one you have detected
+- [ ] GPS devboard support, to confirm a follower against real movement
+- [ ] Correlate rotating addresses by payload so one stalk is one record
+- [ ] Native internal-BT backend if a firmware ever exposes BLE observer mode
+
+---
+
+## 🛠️ Repo tooling
+
+Everything below runs on a laptop and is wired into CI, because three of these
+caught real bugs in the rewrite:
+
+| Tool | What it does |
+|---|---|
+| `tools_check_layout.py` | Measures every on-screen string against the 128 px width and the 64-row height. Found three overflowing help lines. |
+| `tools_strict_build.py` | Compiles with 14 warnings the SDK does not enable, plus per-function stack frames. Found three GUI-thread functions each burning 2.1 KB of stack. |
+| `tools_screenshot.py` | Drives the app over the Flipper's protobuf RPC and captures real frames. No mockups. |
+| `tools_gen_banner.py` | Renders the brand assets, with the safe border asserted rather than eyeballed. |
+| `tools_brand_data.py` | Reads the banner's numbers out of the C, so nothing is typed twice. |
 
 ---
 
 ## 🛡️ Responsible use
 
-GhostTag is a **defensive, anti-stalking privacy tool**. Use it to detect trackers placed on **you** or your
-property, or with the consent of the people involved. Do not use it to harass, surveil, or interfere with others.
-You are responsible for complying with the laws in your jurisdiction.
+GhostTag is a **defensive, anti-stalking privacy tool**. Use it to find
+trackers placed on **you** or your property, or with the consent of everyone
+involved. Do not use it to harass or surveil anyone. You are responsible for
+the laws where you are.
+
+Everything runs locally on your own hardware. No cloud, no account, nothing
+leaves the device.
 
 ---
 
-## 🙏 Credits & references
+## 🙏 Credits
 
-- Flipper Zero firmware & [developer docs](https://developer.flipper.net/)
-- [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino)
-- Prior art that informed the approach: [ESP32-AirTag-Scanner](https://github.com/MatthewKuKanich/ESP32-AirTag-Scanner),
-  [Ghost ESP](https://github.com/justcallmekoko/ESP32Marauder), [Wendigo](https://github.com/chris-bc/wendigo)
-
----
+Flipper Zero [developer docs](https://developer.flipper.net/) ·
+[NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) ·
+prior art that informed the approach:
+[AirGuard](https://github.com/seemoo-lab/AirGuard),
+[ESP32-AirTag-Scanner](https://github.com/MatthewKuKanich/ESP32-AirTag-Scanner),
+[ESP32Marauder](https://github.com/justcallmekoko/ESP32Marauder)
 
 ## 📄 License
 
 [MIT](LICENSE) © [at0m-b0mb](https://github.com/at0m-b0mb)
 
-<p align="center"><sub>Built for hackers who'd rather know when they're being followed. 👻</sub></p>
+<p align="center"><sub>Built for people who would rather know. 👻</sub></p>

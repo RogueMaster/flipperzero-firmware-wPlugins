@@ -3,9 +3,9 @@
 const char* tracker_type_name(TrackerType type) {
     switch(type) {
     case TrackerTypeAppleFindMy:
-        return "Apple Find My";
+        return "Find My (separated)";
     case TrackerTypeAirTagPaired:
-        return "Apple (paired)";
+        return "Apple (owner near)";
     case TrackerTypeTile:
         return "Tile";
     case TrackerTypeSamsungSmartTag:

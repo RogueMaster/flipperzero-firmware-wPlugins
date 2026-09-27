@@ -20,6 +20,12 @@ struct UartLink {
     FuriHalSerialHandle* serial;
     Expansion* expansion;
     volatile bool running;
+    /* Cleared before anything else in stop(). The worker checks it immediately
+     * before every callback, so a teardown cannot be overtaken by a detection
+     * that was already in flight. */
+    volatile bool accepting;
+    volatile uint32_t last_rx_tick;
+    volatile bool greeted;
 
     UartLinkRxCallback rx_cb;
     UartLinkStatusCallback status_cb;
@@ -67,6 +73,10 @@ static bool parse_mac(const char* s, uint8_t mac[6]) {
 }
 
 static void uart_link_parse_line(UartLink* link, char* line) {
+    /* ANY complete line proves the board is alive, including one we do not
+     * understand - a future firmware saying something new still counts. */
+    link->last_rx_tick = furi_get_tick();
+
     if(strncmp(line, "GT1,", 4) == 0) {
         // GT1,<mac>,<rssi>,<type>,<name>  (manual tokenize - newlib has no strsep)
         char* p = line + 4;
@@ -101,11 +111,20 @@ static void uart_link_parse_line(UartLink* link, char* line) {
         TrackerType type = tracker_type_from_code((uint8_t)atoi(type_s));
         const char* name = (name_s && name_s[0]) ? name_s : "";
 
-        if(link->rx_cb) {
+        if(link->rx_cb && link->accepting) {
             link->rx_cb(link->cb_context, mac, type, (int8_t)rssi, name);
         }
     } else if(strncmp(line, "GTHELLO,", 8) == 0) {
-        if(link->status_cb) link->status_cb(link->cb_context, true, line + 8);
+        link->greeted = true;
+        if(link->status_cb && link->accepting) {
+            link->status_cb(link->cb_context, true, line + 8);
+        }
+    } else if(strncmp(line, "GTALIVE", 7) == 0) {
+        /* Heartbeat. last_rx_tick above is the whole point of it; a board that
+         * has been heartbeating has obviously greeted us at some stage even if
+         * we missed the GTHELLO (it is sent once, at the board's boot, which
+         * may well have been before the app opened). */
+        link->greeted = true;
     }
 }
 
@@ -155,7 +174,10 @@ void uart_link_start(UartLink* link) {
     expansion_disable(link->expansion);
 
     link->rx_stream = furi_stream_buffer_alloc(UART_RX_STREAM_SIZE, 1);
+    link->last_rx_tick = 0;
+    link->greeted = false;
     link->running = true;
+    link->accepting = true;
 
     link->thread = furi_thread_alloc_ex("GhostTagUart", UART_WORKER_STACK, uart_link_worker, link);
     furi_thread_start(link->thread);
@@ -170,10 +192,29 @@ void uart_link_stop(UartLink* link) {
     furi_assert(link);
     if(!link->running) return;
 
+    /* Order matters here, and getting it wrong deadlocks the whole app.
+     *
+     * Stop accepting callbacks FIRST. The app's detection callback runs on
+     * this worker thread and can post to the view dispatcher's queue, which
+     * blocks when that queue is full - and the thread that drains it is the
+     * GUI thread, which is the thread sitting in furi_thread_join below. A
+     * detection arriving during teardown would have hung the Flipper hard
+     * enough to need a reboot. */
+    link->accepting = false;
+
+    /* Then silence the ISR, so nothing new enters the stream buffer we are
+     * about to free. */
+    if(link->serial) {
+        furi_hal_serial_async_rx_stop(link->serial);
+    }
+
     link->running = false;
 
     if(link->serial) {
-        furi_hal_serial_async_rx_stop(link->serial);
+        /* Let the STOP command actually leave the wire. Tearing the peripheral
+         * down straight after queueing it truncated the last few bytes, so the
+         * board carried on scanning and burning power after the app closed. */
+        furi_hal_serial_tx_wait_complete(link->serial);
         furi_hal_serial_deinit(link->serial);
         furi_hal_serial_control_release(link->serial);
         link->serial = NULL;
@@ -206,4 +247,14 @@ void uart_link_send_command(UartLink* link, const char* cmd) {
     furi_assert(link);
     if(!link->running || !link->serial) return;
     furi_hal_serial_tx(link->serial, (const uint8_t*)cmd, strlen(cmd));
+}
+
+uint32_t uart_link_last_rx_tick(UartLink* link) {
+    furi_assert(link);
+    return link->last_rx_tick;
+}
+
+bool uart_link_has_greeted(UartLink* link) {
+    furi_assert(link);
+    return link->greeted;
 }

@@ -5,10 +5,16 @@ static void ghosttag_scene_list_ok_cb(void* context) {
     view_dispatcher_send_custom_event(app->view_dispatcher, GhostTagCustomEventOpenDetail);
 }
 
+static DeviceListState ghosttag_list_state(GhostTagApp* app) {
+    if(app->source == GhostTagSourceDemo) return DeviceListStateDemo;
+    if(app->source != GhostTagSourceEsp32) return DeviceListStateIdle;
+    return app->esp_connected ? DeviceListStateLive : DeviceListStateWaiting;
+}
+
 static void ghosttag_scene_list_refresh(GhostTagApp* app) {
-    TrackerRecord snap[TRACKER_DB_MAX];
-    size_t n = tracker_db_snapshot(app->db, snap, TRACKER_DB_MAX);
-    device_list_view_set_records(app->device_list_view, snap, n);
+    size_t n = tracker_db_snapshot(app->db, app->scratch, TRACKER_DB_MAX);
+    device_list_view_set_records(app->device_list_view, app->scratch, n);
+    device_list_view_set_state(app->device_list_view, ghosttag_list_state(app));
 }
 
 void ghosttag_scene_list_on_enter(void* context) {
@@ -20,36 +26,38 @@ void ghosttag_scene_list_on_enter(void* context) {
 
 bool ghosttag_scene_list_on_event(void* context, SceneManagerEvent event) {
     GhostTagApp* app = context;
-    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeTick) {
-        // Keep the list live while a hunt is running.
-        if(uart_link_is_running(app->uart)) ghosttag_scene_list_refresh(app);
-        consumed = true;
-    } else if(event.type == SceneManagerEventTypeCustom) {
+        if(ghosttag_poll_alert(app)) return true;
+        if(ghosttag_is_hunting(app)) {
+            /* The link can drop while the list is open, so the LIVE / NO BOARD
+             * badge has to be re-evaluated, not set once on entry. */
+            ghosttag_update_link(app);
+            ghosttag_scene_list_refresh(app);
+        }
+        return true;
+    }
+
+    if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {
         case GhostTagCustomEventOpenDetail:
-            if(device_list_view_get_selected(app->device_list_view, &app->selected_record)) {
-                device_detail_view_set_record(app->device_detail_view, &app->selected_record);
+            if(device_list_view_get_selected(app->device_list_view, &app->detail_record)) {
                 scene_manager_next_scene(app->scene_manager, GhostTagSceneDetail);
+            } else {
+                /* Nothing to open. A press that changes nothing on screen is
+                 * indistinguishable from a dead button, so send the user
+                 * somewhere that answers the question they actually have. */
+                scene_manager_next_scene(app->scene_manager, GhostTagSceneAbout);
             }
-            consumed = true;
-            break;
-        case GhostTagCustomEventNewFollower:
-            if(tracker_db_take_pending_alert(app->db, &app->selected_record)) {
-                alert_view_set_record(app->alert_view, &app->selected_record);
-                ghosttag_notify_alert(app);
-                scene_manager_next_scene(app->scene_manager, GhostTagSceneAlert);
-            }
-            consumed = true;
-            break;
+            return true;
         default:
-            break;
+            return false;
         }
     }
-    return consumed;
+    return false;
 }
 
 void ghosttag_scene_list_on_exit(void* context) {
-    UNUSED(context);
+    GhostTagApp* app = context;
+    device_list_view_set_ok_callback(app->device_list_view, NULL, NULL);
 }

@@ -6,9 +6,10 @@
 /**
  * Tracker taxonomy + BLE advertisement signatures.
  *
- * The Flipper's stock BLE stack is peripheral/advertising only and cannot scan,
- * so the raw advertisement parsing happens on the ESP32 companion (see
- * esp32/ghosttag_esp32). The ESP32 classifies each advert and streams a single
+ * The Flipper's stock BLE stack is peripheral/advertising only and cannot scan
+ * - furi_hal_bt exposes advertising and RF test mode, but no GAP observer role
+ * and no way to decode an advertisement - so the raw parsing happens on a
+ * BLE-capable ESP32 companion (see esp32/ghosttag_esp32). The ESP32 classifies each advert and streams a single
  * digit TrackerType code to the Flipper over UART. The signatures below are the
  * contract both sides agree on and are documented here for reference.
  */
@@ -24,18 +25,31 @@ typedef enum {
 } TrackerType;
 
 /* ---- Advertisement signatures (parsing lives on the ESP32) ----
- * Apple Find My    : Manufacturer-Specific Data, Company ID 0x004C, payload type 0x12.
- * Apple nearby     : Company ID 0x004C, payload type 0x07/0x10 (general Apple kit).
- * Tile             : 16-bit Service UUID / Service Data 0xFEED.
- * Samsung SmartTag : Service Data UUID 0xFD5A (SmartThings Find) or Company ID 0x0075.
- * Chipolo          : ONE Spot rides Apple Find My; classic uses Company ID 0x0157.
+ *
+ * Apple Find My    : Manufacturer data, company 0x004C, payload type 0x12.
+ *                    The LENGTH byte after the type separates the two states:
+ *                    0x19 or longer is "separated" - the tag has lost its
+ *                    owner and is broadcasting a full rotating key for any
+ *                    passing phone to relay. That is the state a tag planted
+ *                    on somebody is in, and the only one graded a threat.
+ *                    The short form means the owner is right there.
+ * Apple nearby     : company 0x004C, payload type 0x07 (proximity pairing,
+ *                    e.g. AirPods) or 0x10 (nearby info, e.g. a phone).
+ * Tile             : 16-bit service UUID / service data 0xFEED.
+ * Samsung SmartTag : service data UUID 0xFD5A (SmartThings Find) ONLY.
+ *                    Company ID 0x0075 is Samsung Electronics and is on every
+ *                    Samsung phone, watch, TV and pair of earbuds in the room,
+ *                    so matching it reported half a train carriage as
+ *                    SmartTags. It is deliberately not used.
+ * Chipolo          : ONE Spot rides Apple Find My; classic uses company 0x0157.
  */
 #define GHOSTTAG_APPLE_COMPANY_ID 0x004C
 #define GHOSTTAG_APPLE_TYPE_FINDMY 0x12
-#define GHOSTTAG_APPLE_TYPE_NEARBY 0x07
+#define GHOSTTAG_APPLE_TYPE_PAIRING 0x07
+#define GHOSTTAG_APPLE_TYPE_NEARBY 0x10
+#define GHOSTTAG_APPLE_FINDMY_SEPARATED_LEN 0x19
 #define GHOSTTAG_TILE_UUID 0xFEED
 #define GHOSTTAG_SAMSUNG_UUID 0xFD5A
-#define GHOSTTAG_SAMSUNG_COMPANY_ID 0x0075
 #define GHOSTTAG_CHIPOLO_COMPANY_ID 0x0157
 
 /** Long human label, e.g. "Apple Find My". */

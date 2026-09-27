@@ -1,5 +1,7 @@
+ADD_SCENE(ghosttag, splash, Splash)
 ADD_SCENE(ghosttag, start, Start)
 ADD_SCENE(ghosttag, scan, Scan)
+ADD_SCENE(ghosttag, air, Air)
 ADD_SCENE(ghosttag, list, List)
 ADD_SCENE(ghosttag, detail, Detail)
 ADD_SCENE(ghosttag, alert, Alert)

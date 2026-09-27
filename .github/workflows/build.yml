@@ -1,4 +1,4 @@
-name: Build FAP
+name: Build
 
 on:
   push:
@@ -12,41 +12,100 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  # Cheap, hardware-free checks. These run first because both of them have
+  # caught bugs that a green ufbt build did not.
+  check:
+    name: Static checks
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Screen layout
+        run: python3 tools_check_layout.py
+
+      - name: Brand data parses out of the source
+        run: python3 tools_brand_data.py
+
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # A .fap's API version is baked in at compile time, so one build
+          # cannot serve both firmware lines. Official tracks release (API 87);
+          # Momentum / Unleashed / RogueMaster track dev (API 88). Shipping one
+          # build means half the users get
+          # "APP:87 < FW:88 - This app might not work".
+          - channel: release
+            artifact: ghosttag.fap
+            label: Official firmware (release)
+          - channel: dev
+            artifact: ghosttag-fw-dev.fap
+            label: Momentum / Unleashed / RogueMaster (dev)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install ufbt
         run: python -m pip install --upgrade ufbt
 
-      - name: Fetch Flipper SDK (release channel)
-        run: ufbt update --channel=release
+      - name: Fetch Flipper SDK (${{ matrix.channel }})
+        run: ufbt update --channel=${{ matrix.channel }}
 
-      - name: Build GhostTag.fap
+      - name: Build
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
         run: ufbt
 
-      - name: Rename artifact
+      - name: Strict warning + stack-frame sweep
+        run: python3 tools_strict_build.py --frames 512
+
+      - name: Verify the API version baked into the artifact
+        run: |
+          python3 - <<'PY'
+          import glob, struct, subprocess, sys
+          fap = "dist/ghosttag.fap"
+          tc = glob.glob("/home/runner/.ufbt/toolchain/*/bin/arm-none-eabi-readelf")
+          out = subprocess.run([tc[0], "-x", ".fapmeta", fap],
+                               capture_output=True, text=True).stdout
+          raw = bytes.fromhex("".join(
+              part for line in out.splitlines() if line.strip().startswith("0x")
+              for part in line.split()[1:5]))
+          magic, manifest, api = struct.unpack("<III", raw[:12])
+          assert magic == 0x52474448, f"bad .fapmeta magic {magic:#x}"
+          print(f"manifest v{manifest}, API {api >> 16}.{api & 0xFFFF}")
+          PY
+
+      - name: Stage artifact
         run: |
           mkdir -p out
-          cp dist/ghosttag.fap "out/ghosttag.fap"
+          cp dist/ghosttag.fap "out/${{ matrix.artifact }}"
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: ghosttag-fap
-          path: out/ghosttag.fap
+          name: ${{ matrix.artifact }}
+          path: out/${{ matrix.artifact }}
           if-no-files-found: error
 
-      - name: Attach to release (tags only)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+  release:
+    name: Attach to release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
         with:
-          files: out/ghosttag.fap
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.fap
           generate_release_notes: true

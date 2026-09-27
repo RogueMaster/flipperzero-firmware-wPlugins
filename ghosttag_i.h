@@ -14,19 +14,30 @@
 #include "ghosttag_icons.h" // generated from icons/ by fbt
 
 #include "helpers/ble_signatures.h"
+#include "helpers/settings.h"
 #include "helpers/tracker_db.h"
 #include "helpers/uart_link.h"
+#include "helpers/demo_source.h"
+#include "helpers/air_check.h"
+#include "helpers/session_log.h"
+#include "views/splash_view.h"
 #include "views/radar_view.h"
+#include "views/air_view.h"
 #include "views/device_list_view.h"
 #include "views/device_detail_view.h"
 #include "views/alert_view.h"
 #include "scenes/ghosttag_scene.h"
 
-#define GHOSTTAG_VERSION "1.0"
+#define GHOSTTAG_VERSION "2.0"
+
+/** How long without a byte from the board before the link is called dead. */
+#define GHOSTTAG_ESP_TIMEOUT_MS 4000
 
 typedef enum {
+    GhostTagViewSplash,
     GhostTagViewSubmenu,
     GhostTagViewRadar,
+    GhostTagViewAir,
     GhostTagViewDeviceList,
     GhostTagViewDeviceDetail,
     GhostTagViewAlert,
@@ -34,19 +45,37 @@ typedef enum {
     GhostTagViewAbout,
 } GhostTagViewId;
 
+/*
+ * Custom events start above the submenu index range so a stray menu index can
+ * never be mistaken for one of them.
+ */
 typedef enum {
-    GhostTagCustomEventScanOpenList = 100,
-    GhostTagCustomEventNewFollower,
+    GhostTagCustomEventSplashDone = 100,
+    GhostTagCustomEventScanOpenList,
+    GhostTagCustomEventScanOpenHelp,
     GhostTagCustomEventOpenDetail,
 } GhostTagCustomEvent;
 
-typedef struct {
-    uint8_t sensitivity_index; // 0 Near .. 2 Far (RSSI cutoff)
-    uint8_t follow_index; // dwell time before "following" flag
-    bool sound;
-    bool vibro;
-    bool led;
-} GhostTagSettings;
+/*
+ * There is deliberately no "new follower" custom event.
+ *
+ * Posting one from the radio worker meant the worker could block inside
+ * view_dispatcher_send_custom_event when the dispatcher's queue was full -
+ * and the thread that drains that queue is the GUI thread, which is the same
+ * thread that blocks in furi_thread_join while tearing the link down. That is
+ * a genuine two-thread deadlock, and it needed a reboot to clear.
+ *
+ * The worker now only touches the database. Every scene that can be on screen
+ * when an alert fires polls for one on its 100 ms tick instead, so nothing
+ * crosses a thread boundary and no alert can be lost to a full queue.
+ */
+
+/** Where detections are coming from. Drives both behaviour and what is drawn. */
+typedef enum {
+    GhostTagSourceNone,
+    GhostTagSourceEsp32, /* the real radio */
+    GhostTagSourceDemo, /* a scripted simulation, stamped DEMO on every screen */
+} GhostTagSource;
 
 typedef struct {
     Gui* gui;
@@ -58,27 +87,73 @@ typedef struct {
     VariableItemList* var_item_list;
     Widget* widget;
 
+    SplashView* splash_view;
     RadarView* radar_view;
+    AirView* air_view;
     DeviceListView* device_list_view;
     DeviceDetailView* device_detail_view;
     AlertView* alert_view;
 
     TrackerDb* db;
     UartLink* uart;
+    DemoSource* demo;
+    AirCheck* air;
+    SessionLog* log;
+
+    /* One shared snapshot buffer for every screen that needs the sorted
+     * detection list. A TrackerRecord is ~44 bytes and there are 48 of them,
+     * so a local array costs 2.1 KB of stack - and three separate scene
+     * handlers were each taking that hit on the GUI thread. Heap, once.
+     * Safe to share: scene handlers all run on the GUI thread and never nest. */
+    TrackerRecord* scratch;
 
     GhostTagSettings settings;
+    GhostTagSource source;
+    /* Which source the CURRENT detections came from. Re-entering the same kind
+     * of hunt continues the session; switching between real and simulated
+     * wipes it, because mixing invented traffic into real findings is the one
+     * thing this app must never do. */
+    GhostTagSource db_source;
 
-    TrackerRecord selected_record; // for the detail view
-    volatile uint32_t last_rx_tick; // last byte received from ESP32
+    /* The record the detail screen is showing. Separate from the alert's copy:
+     * sharing one field let an alert arriving mid-navigation swap the device
+     * under the user's cursor. */
+    TrackerRecord detail_record;
+    TrackerRecord alert_record;
+
     bool esp_connected;
+    bool esp_ever_seen; /* have we EVER heard from a board this session? */
     char esp_version[16];
+
+    bool backlight_forced;
 } GhostTagApp;
 
-/* settings.c helpers */
-int8_t ghosttag_settings_rssi_cutoff(const GhostTagSettings* s);
-uint32_t ghosttag_settings_follow_ms(const GhostTagSettings* s);
-const char* ghosttag_settings_sensitivity_label(uint8_t index);
-const char* ghosttag_settings_follow_label(uint8_t index);
+/** True while a detection source is live, whichever one it is. */
+bool ghosttag_is_hunting(GhostTagApp* app);
 
-/* fired on the GUI thread to play the configured alert feedback */
+/** Start/stop whichever source @c app->source names. */
+void ghosttag_source_start(GhostTagApp* app, GhostTagSource source);
+void ghosttag_source_stop(GhostTagApp* app);
+
+/** Drop every detection and start the session over. */
+void ghosttag_clear_detections(GhostTagApp* app);
+
+/** The dwell a tracker must survive to be called a follower, for this source. */
+uint32_t ghosttag_follow_threshold_ms(GhostTagApp* app);
+
+/** Fired on the GUI thread to play the configured alert feedback. */
 void ghosttag_notify_alert(GhostTagApp* app);
+
+/** Hold the backlight on for a hunt, or release it. */
+void ghosttag_backlight_hold(GhostTagApp* app, bool hold);
+
+/**
+ * Take one pending alert, if there is one, and push the alert scene.
+ *
+ * Call this from the tick handler of every scene that can be on screen during
+ * a hunt. Returns true if an alert was raised.
+ */
+bool ghosttag_poll_alert(GhostTagApp* app);
+
+/** Re-evaluate the ESP32 link state from the board's last line. */
+void ghosttag_update_link(GhostTagApp* app);
