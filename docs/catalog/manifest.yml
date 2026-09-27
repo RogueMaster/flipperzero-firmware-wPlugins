@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/at0m-b0mb/GhostTag-FlipperZero.git
-    commit_sha: REPLACE_WITH_v2.0_COMMIT  # must be a commit that already contains screenshots/
+    commit_sha: 19f86ac88f902ffe71b5f7b19508eca4cc82542d  # v2.0 - contains screenshots/
 short_description: Find the Bluetooth tracker that is following you. Detects AirTags, Tiles and SmartTags that travel with you. Demo mode needs no hardware at all.
 description: |
   Somebody can buy a tracker for the price of a takeaway and drop it in your bag. GhostTag watches the Bluetooth advertising channels for the ones that are still with you twenty minutes later, and tells you when it finds one.
