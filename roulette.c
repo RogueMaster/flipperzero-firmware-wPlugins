@@ -9,9 +9,9 @@
 #include <string.h>
 #include <math.h>
 
-#define CHAMBERS 6
+#define CHAMBERS          6
 #define MSG_DISPLAY_TICKS 20
-#define TICK_HZ 8
+#define TICK_HZ           8
 
 typedef enum {
     ScreenTitle,
@@ -95,8 +95,7 @@ static const NotificationSequence sequence_spin = {
     &message_note_fs5, &message_delay_10, &message_sound_off, &message_delay_10,
     &message_note_d5,  &message_delay_10, &message_sound_off, &message_delay_10,
     &message_note_a4,  &message_delay_10, &message_sound_off, &message_delay_10,
-    &message_note_e4,  &message_delay_10, &message_sound_off,
-    NULL,
+    &message_note_e4,  &message_delay_10, &message_sound_off, NULL,
 };
 
 static void roulette_spin(RouletteState* state) {
@@ -197,7 +196,7 @@ static void tick_callback(void* ctx) {
     furi_message_queue_put(queue, &event, 0);
 }
 
-int32_t russian_roulette_app(void* p) {
+int32_t roulette_app(void* p) {
     UNUSED(p);
 
     RouletteState* state = malloc(sizeof(RouletteState));
