@@ -63,7 +63,8 @@ int main(int argc, char** argv) {
     }
     printf("activation: UID ");
     for(size_t i = 0; i < activation.uid_len; i++) printf("%02X", activation.uid[i]);
-    printf(", SAK %02X, ATS ", activation.sak);
+    printf(", ATQA %02X%02X, SAK %02X, ATS ",
+           activation.atqa[0], activation.atqa[1], activation.sak);
     for(size_t i = 0; i < activation.ats_len; i++) printf("%02X", activation.ats[i]);
     printf("\n\n");
 

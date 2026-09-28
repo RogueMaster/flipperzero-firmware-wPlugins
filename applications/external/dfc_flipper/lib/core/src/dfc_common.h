@@ -18,6 +18,16 @@
 #define DFC_CMD_AUTHENTICATE_AES     0xAA
 #define DFC_CMD_AUTHENTICATE_EV2_FIRST 0x71
 #define DFC_CMD_AUTHENTICATE_EV2_NON_FIRST 0x77
+#define DFC_AUTH_COMMAND_D40          (1u << 0)
+#define DFC_AUTH_COMMAND_ISO_NATIVE    (1u << 1)
+#define DFC_AUTH_COMMAND_AES           (1u << 2)
+#define DFC_AUTH_COMMAND_EV2_FIRST     (1u << 3)
+#define DFC_AUTH_COMMAND_EV2_NON_FIRST (1u << 4)
+#define DFC_AUTH_COMMAND_ISO7816       (1u << 5)
+#define DFC_AUTH_COMMAND_ALL           ((1u << 6) - 1u)
+#define DFC_SM_DISABLE_D40             (1u << 0)
+#define DFC_SM_DISABLE_EV1             (1u << 1)
+#define DFC_SM_DISABLE_EV2_CHAINED_WRITE (1u << 2)
 #define DFC_CMD_ADDITIONAL_FRAME     0xAF
 #define DFC_CMD_CHANGE_KEY_SETTINGS  0x54
 #define DFC_CMD_GET_VERSION          0x60
@@ -83,6 +93,22 @@
 #define DFC_ISO7816_SELECT_PARENT            0x03
 #define DFC_ISO7816_SELECT_BY_DF_NAME        0x04
 #define DFC_ISO7816_INS_EXTERNAL_AUTHENTICATE 0x82
+#define DFC_ISO7816_INS_GET_CHALLENGE         0x84
+#define DFC_ISO7816_INS_INTERNAL_AUTHENTICATE 0x88
+#define DFC_ISO7816_AUTH_ALGORITHM_CONTEXT    0x00
+#define DFC_ISO7816_AUTH_ALGORITHM_2TDEA      0x02
+#define DFC_ISO7816_AUTH_ALGORITHM_3TDEA      0x04
+#define DFC_ISO7816_AUTH_ALGORITHM_AES        0x09
+#define DFC_ISO7816_AUTH_APP_REFERENCE        0x80
+#define DFC_ISO7816_AUTH_KEY_NUMBER_MASK      0x1F
+#define DFC_ISO7816_AUTH_CHALLENGE_2TDEA      8
+#define DFC_ISO7816_AUTH_CHALLENGE_LONG       16
+#define DFC_ISO7816_SW_SECURITY_HI            0x69
+#define DFC_ISO7816_SW_SECURITY_LO            0x82
+#define DFC_ISO7816_SW_INSTRUCTION_HI         0x6D
+#define DFC_ISO7816_SW_INSTRUCTION_LO         0x00
+#define DFC_ISO7816_SW_WRONG_LE_HI            0x6C
+#define DFC_ISO7816_SW_WRONG_LE_LO            0x00
 #define DFC_ISO7816_SELECT_PATH_FROM_MF      0x08
 #define DFC_ISO7816_SELECT_PATH_FROM_DF      0x09
 #define DFC_ISO7816_STATUS_WORD_LENGTH       2
@@ -132,6 +158,7 @@ extern const uint8_t DFC_ISO_AID[7];
 #define DFC_DELEGATED_CREATE_HEADER_LENGTH 11
 #define DFC_DELEGATED_INFO_COMMAND_LENGTH 3
 #define DFC_DAM_AUTH_KEY_NUMBER 0x10
+#define DFC_VC_CONFIGURATION_KEY_NUMBER 0x20
 #define DFC_DAM_MAC_KEY_NUMBER 0x11
 #define DFC_DAM_ENCRYPTION_KEY_NUMBER 0x12
 #define DFC_DELEGATED_ENCRYPTED_KEY_LENGTH 32
@@ -178,7 +205,12 @@ extern const uint8_t DFC_ISO_AID[7];
 #define DFC_MAX_KEY_SETS             16
 #define DFC_ADDITIONAL_KEY_SET_COUNT (DFC_MAX_KEY_SETS - 1)
 #define DFC_EV1_PICC_STORAGE_BYTES   (8 * 1024)
-#define DFC_EV1_MAX_FRAME_PAYLOAD    54
+// Octets one answer frame carries, whether the command came wrapped or native.
+// Under secure messaging a frame carries the whole cipher blocks that fit.
+#define DFC_EV1_MAX_FRAME_PAYLOAD    59
+#define DFC_EV3_MAX_RESPONSE_PAYLOAD 58
+#define DFC_EV3_ISO_FIDS_PER_FRAME   27
+#define DFC_ISO_FID_SIZE            2
 
 // Key Settings 2 crypto-suite bits (upper nibble) and ISO FID enable (bit 5)
 #define DFC_KEY_TYPE_DES_2K3DES 0x00
@@ -253,6 +285,12 @@ extern const uint8_t DFC_ISO_AID[7];
 // Largest single CreateStdDataFile size (also used as temporary buffer bound).
 #ifndef DFC_MAX_FILE_DATA
 #define DFC_MAX_FILE_DATA 2048
+#endif
+
+// Largest logical response or incoming native command the emulator retains.
+// The extra block covers the longest command header, CRC, padding and MAC.
+#ifndef DFC_EMULATOR_CHAIN_BUFFER_SIZE
+#define DFC_EMULATOR_CHAIN_BUFFER_SIZE (DFC_MAX_FILE_DATA + 32)
 #endif
 // Shared key-material pool. Every application and the PICC record allocate a
 // slice of num_keys * stored key length here, so the worst case is charged once
@@ -341,7 +379,8 @@ extern const uint8_t DFC_ISO_AID[7];
 #define DFC_ISO7816_SW_CONDITIONS_NOT_SATISFIED_LO 0x85
 #define DFC_ISO7816_SW_WRONG_LENGTH_HI 0x67
 #define DFC_ISO7816_SW_WRONG_LENGTH_LO 0x00
-#define DFC_FORMAT_VERSION 4
+#define DFC_FORMAT_VERSION 6
+#define DFC_MIN_READ_FORMAT_VERSION 4
 #define DFC_PROXIMITY_RANDOM_LENGTH 8
 #define DFC_PROXIMITY_PUBLISHED_TIME_LENGTH 2
 #define DFC_PROXIMITY_TRANSCRIPT_MAX (DFC_PROXIMITY_RANDOM_LENGTH * 2)

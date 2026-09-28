@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Run both crypto backends, plain and under sanitizers.
+jobs:
+  unit:
+    name: Unit suite (${{ matrix.backend }}${{ matrix.sanitize && format(', {0}', matrix.sanitize) || '' }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { backend: mbedtls, sanitize: "", cc: gcc }
+          - { backend: mbedtls, sanitize: "address,undefined", cc: gcc }
+          - { backend: tiny, sanitize: "", cc: gcc }
+          - { backend: tiny, sanitize: "address,undefined", cc: gcc }
+          - { backend: tiny, sanitize: "memory", cc: clang }
+          - { backend: tiny, sanitize: "", cc: gcc, release: "1" }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential clang libclang-rt-18-dev libmbedtls-dev
+      - name: Fetch tiny_crypto_c
+        uses: actions/checkout@v4
+        with:
+          repository: mistial-dev/tiny_crypto_c
+          ref: 180b054706bc951c0105e44ab3015028a66a7e3a
+          path: dependencies/tiny_crypto_c
+      - run: make -C tests test CRYPTO_BACKEND=${{ matrix.backend }} TINY_CRYPTO_DIR=../dependencies/tiny_crypto_c CC=${{ matrix.cc }} SANITIZE=${{ matrix.sanitize }} RELEASE=${{ matrix.release }}
+
+  # The shared library for every platform the .NET package ships.
+  native:
+    name: Native library (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: linux-x64, os: ubuntu-24.04, file: build/libdfc.so, test: true }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm, file: build/libdfc.so, test: true }
+          - { rid: osx-arm64, os: macos-14, file: build/libdfc.dylib, test: true }
+          - { rid: osx-x64, os: macos-15-intel, file: build/libdfc.dylib, test: true }
+          - { rid: win-x64, os: windows-2022, file: build/Release/libdfc.dll, test: true }
+          - { rid: win-arm64, os: windows-2022, file: build/Release/libdfc.dll, test: false, arch: "-A ARM64" }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch tiny_crypto_c
+        uses: actions/checkout@v4
+        with:
+          repository: mistial-dev/tiny_crypto_c
+          ref: 180b054706bc951c0105e44ab3015028a66a7e3a
+          path: dependencies/tiny_crypto_c
+      - name: Configure
+        shell: bash
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDFC_ROLE=simulator -DDFC_PROFILE=full_ev3 -DDFC_CRYPTO=tiny -DDFC_TINY_CRYPTO_DIR="$PWD/dependencies/tiny_crypto_c" ${{ matrix.arch }}
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Smoke test
+        if: matrix.test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Stage
+        shell: bash
+        run: |
+          mkdir -p runtimes/${{ matrix.rid }}/native
+          cp -L ${{ matrix.file }} runtimes/${{ matrix.rid }}/native/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: runtimes
+
+  dotnet:
+    name: .NET (${{ matrix.rid }})
+    needs: native
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: linux-x64, os: ubuntu-24.04 }
+          - { rid: osx-arm64, os: macos-14 }
+          - { rid: win-x64, os: windows-2022 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: runtimes
+      - name: Place the native library
+        shell: bash
+        run: mkdir -p build && cp runtimes/${{ matrix.rid }}/native/* build/
+      - run: dotnet test bindings/dotnet/Dfc.sln -c Release
+
+  pack:
+    name: NuGet package
+    needs: [native, dotnet]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          merge-multiple: true
+          path: bindings/dotnet/src/Dfc/runtimes
+      - run: dotnet pack bindings/dotnet/src/Dfc/Dfc.csproj -c Release -o packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget
+          path: packages/*.nupkg

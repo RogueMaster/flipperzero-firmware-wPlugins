@@ -34,9 +34,24 @@ encoding when it is loaded; a pre-compiled `.dfcb` file is also accepted.
 
 `.dfc` credentials must use a 7-byte UID beginning with `04`.
 
-The app stores bounded DESFire file payloads suitable for Flipper NFC
-emulation and uses only keys embedded in the selected credential when reading
-or emulating saved credentials.
+The Flipper build uses the full EV3 core profile, including EV1 and EV2
+commands. It includes D40 DES, ISO 3DES, AES and EV2 authentication, ISO 7816
+commands, and standard, backup, value, and record files. A credential can hold
+at most 4 applications, 16 files across the
+card, 3 KiB of file payload in total, 2 KiB in one file, and 512 bytes of key
+material. `.dfc` and `.dfcb` files are limited to 16 KiB on the Flipper. Large
+text credentials can exceed the available heap during on-device compilation;
+compile them to `.dfcb` on the host with `tests/compile_dfcb.py`.
+
+The NFC listener supports a 64 byte ISO-DEP frame, 106 kbit/s, FWI 8 or
+greater, CID, and no NAD. The app rejects an ATS that advertises more than the
+listener can deliver. EV2 and EV3 hardware command coverage is still being
+measured with physical readers.
+
+The reader currently authenticates with key 0 in the primary application and
+reads its configured files. Emulation uses only keys embedded in the selected
+credential. These limits are build capacities; the hardware cases in
+[tests.md](tests.md) still need physical verification.
 
 ## Disclaimer
 
@@ -56,7 +71,7 @@ associated with, sponsored by, or endorsed by NXP in any way.
 ## Build and tests
 
 The portable engine is the pinned [CinderSocket dfc-core](https://github.com/cindersocket/dfc-core)
-submodule at `lib/core`, using `git@github.com:cindersocket/dfc-core.git`.
+submodule at `lib/core`.
 Initialize the dependencies after cloning or pulling:
 
 ```sh
@@ -64,34 +79,50 @@ git submodule sync --recursive
 git submodule update --init --recursive
 ```
 
-The SSH submodule URLs require GitHub SSH access. For an HTTPS-only checkout,
-use Git's per-command URL rewrite when initializing the dependencies:
-
-```sh
-git -c 'url.https://github.com/.insteadOf=git@github.com:' \
-  submodule update --init --recursive
-```
-
 Run the engine unit suites and compile checks for all supported build profiles:
 
 ```sh
-make -C lib/core/tests test TINY_AES_DIR=../../tiny_AES_c TINY_DES_DIR=../../tiny_DES_c
+make -C lib/core/tests test CRYPTO_BACKEND=tiny TINY_CRYPTO_DIR=../../tiny_crypto_c
 ```
 
-The explicit paths also work on case-sensitive systems. Build the Flipper
-application with an installed `ufbt` SDK:
+Probe a `.dfcb` credential with the same core feature and capacity settings as
+the Flipper build. The default APDUs read the version and application IDs;
+additional hex APDUs run in order in one card session:
+
+```sh
+python3 tests/probe_dfcb.py path/to/card.dfcb
+python3 tests/probe_dfcb.py path/to/card.dfcb 9060000000 90AF000000
+python3 tests/compile_dfcb.py path/to/card.dfc path/to/card.dfcb
+```
+
+The probe exercises the core's virtual card on a host computer. It reports
+unsupported credentials and APDU responses, but does not run the FAP UI, NFC
+listener, radio timing, or a physical reader.
+
+Build the Flipper application with an installed `ufbt` SDK:
 
 ```sh
 ufbt
 ```
 
-`application.fam` compiles the engine and tiny crypto sources into the app;
+`application.fam` compiles the engine and tiny_crypto_c sources into the app;
 `port/` supplies the Flipper platform services. Host tests and host platform
 implementations are excluded from the firmware build.
 
-The Flipper build uses the full EV1 profile and the pinned tiny AES/DES
-backends. It retains D40, ISO 3DES and AES authentication, ISO 7816 commands,
-2K/4K/8K storage profiles, and standard, backup, value and record files.
+The Flipper build uses the pinned tiny_crypto_c backend. The `.dfc` parser and
+writer ship as two embedded plugins. Each loads only for its operation and
+unloads before emulation, leaving more RAM for the reader session. The plugins
+are packed into the app by `ufbt`.
+
+The firmware linker assigns 192 KiB of SRAM1, shared with the firmware and
+loaded apps; its heap is smaller after the firmware starts. The emulator
+allocates transaction snapshots and chained-command storage only when needed.
+Text loading releases the parser plugin and source before allocating its binary
+round-trip copy.
+With qFlipper screen streaming active, a four-application EV3 credential with
+3 KiB of file data loaded and answered a CCID reader; 4 KiB binary credentials
+could not be loaded reliably. Larger capacities need device measurements before
+enabling them.
 
 
 ## License boundary
@@ -104,8 +135,8 @@ See [LICENSE](LICENSE). Seader is credited above as a related project.
 The portable **`lib/core` remains GPL-2.0-or-later** under
 [its own license](lib/core/LICENSE). It does not depend on Flipper firmware.
 Its GPL v3 option permits combination with the AGPL v3 application without
-changing the core's separate license. The two tiny crypto libraries retain
-the Unlicense.
+changing the core's separate license. The tiny_crypto_c library remains
+GPL-2.0-or-later under its own license.
 
 Flipper firmware/SDK code is separately licensed under GPL v3, with component
 exceptions. Copied or adapted Flipper code and artwork retain their upstream

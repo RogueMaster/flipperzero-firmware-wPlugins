@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: Mistial Dev
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+# Build & Compiled artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.su
+__pycache__/
+test_hash
+test_aes
+test_des
+test_cpp_*
+build/
+build-*/
+
+# Coverage files
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+default.profraw
+default.profdata
+
+# IDE / OS junk
+.DS_Store
+.vscode/
+.idea/

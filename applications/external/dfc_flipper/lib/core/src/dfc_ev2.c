@@ -1,8 +1,11 @@
 #include "dfc_ev2.h"
-
-#if DFC_ENABLE_EV2_SECURE_MESSAGING
+#include "dfc_ev2_crypto.h"
 
 #include <string.h>
+
+#if DFC_ENABLE_EMULATOR
+
+#if DFC_ENABLE_EV2_SECURE_MESSAGING
 
 enum {
     DfcEv2FileCommandHeaderLength = 7,
@@ -12,10 +15,6 @@ enum {
     DfcEv2CreateTransactionMacHeaderLength = 5,
     DfcEv2CommitReaderIdHeaderLength = 0,
     DfcEv2ChangeKeyHeaderLength = DFC_CHANGE_KEY_EV2_HEADER_LENGTH - 1,
-    DfcEv2PaddingMarker = 0x80,
-    DfcEv2MacPrefixLength = 1 + DFC_EV2_COUNTER_LENGTH +
-                           DFC_EV2_TRANSACTION_IDENTIFIER_LENGTH,
-    DfcEv2MaximumMacInputLength = DfcEv2MacPrefixLength + DFC_WORKER_MAX_BUFFER_SIZE,
 };
 
 static DfcFile* target_file(DfcEmulator* emulator, const uint8_t* command, size_t command_len) {
@@ -58,32 +57,22 @@ static bool bypass_secure_messaging(
     return file && file->comm_settings == DFC_COMM_PLAIN;
 }
 
-static bool wire_mac(
-    const uint8_t key[DFC_AES_KEY_LENGTH],
-    const uint8_t* input,
-    size_t input_len,
-    uint8_t output[DFC_WIRE_MAC_LENGTH]) {
-    uint8_t full[DFC_AES_CMAC_LENGTH];
-    if(!aes_cmac((uint8_t*)key, DFC_AES_KEY_LENGTH, (uint8_t*)input, input_len, full))
-        return false;
-    for(size_t i = 0; i < DFC_WIRE_MAC_LENGTH; i++) output[i] = full[i * 2 + 1];
-    return true;
-}
-
 static bool command_mac(
     const DfcEmulator* emulator,
     uint8_t instruction,
     const uint8_t* data,
     size_t data_len,
     uint8_t output[DFC_WIRE_MAC_LENGTH]) {
-    uint8_t input[DfcEv2MaximumMacInputLength];
-    if(DfcEv2MacPrefixLength + data_len > sizeof(input)) return false;
-    input[0] = instruction;
-    input[1] = (uint8_t)emulator->ev2_command_counter;
-    input[2] = (uint8_t)(emulator->ev2_command_counter >> 8);
-    memcpy(input + 3, emulator->ev2_transaction_identifier, DFC_EV2_TRANSACTION_IDENTIFIER_LENGTH);
-    memcpy(input + DfcEv2MacPrefixLength, data, data_len);
-    return wire_mac(emulator->ev2_session_mac_key, input, DfcEv2MacPrefixLength + data_len, output);
+    return dfc_ev2_mac(
+        emulator->ev2_session_mac_key,
+        instruction,
+        emulator->ev2_command_counter,
+        emulator->ev2_transaction_identifier,
+        data,
+        data_len,
+        NULL,
+        0,
+        output);
 }
 
 bool dfc_ev2_verify_chained_command_mac(
@@ -94,10 +83,7 @@ bool dfc_ev2_verify_chained_command_mac(
     const uint8_t mac[DFC_WIRE_MAC_LENGTH]) {
     uint8_t expected[DFC_WIRE_MAC_LENGTH];
     if(!command_mac(emulator, instruction, data, data_len, expected)) return false;
-    uint8_t difference = 0;
-    for(size_t index = 0; index < sizeof(expected); index++)
-        difference |= expected[index] ^ mac[index];
-    return difference == 0;
+    return dfc_ev2_equal(expected, mac, sizeof(expected));
 }
 
 static bool response_mac(
@@ -106,35 +92,16 @@ static bool response_mac(
     const uint8_t* data,
     size_t data_len,
     uint8_t output[DFC_WIRE_MAC_LENGTH]) {
-    uint8_t input[DfcEv2MaximumMacInputLength];
-    if(DfcEv2MacPrefixLength + data_len > sizeof(input)) return false;
-    input[0] = status;
-    input[1] = (uint8_t)emulator->ev2_command_counter;
-    input[2] = (uint8_t)(emulator->ev2_command_counter >> 8);
-    memcpy(input + 3, emulator->ev2_transaction_identifier, DFC_EV2_TRANSACTION_IDENTIFIER_LENGTH);
-    memcpy(input + DfcEv2MacPrefixLength, data, data_len);
-    return wire_mac(emulator->ev2_session_mac_key, input, DfcEv2MacPrefixLength + data_len, output);
-}
-
-static void derive_iv(
-    const DfcEmulator* emulator,
-    uint8_t label_high,
-    uint8_t label_low,
-    uint8_t iv[DFC_AES_KEY_LENGTH]) {
-    uint8_t input[DFC_AES_KEY_LENGTH] = {0};
-    uint8_t zero_iv[DFC_AES_KEY_LENGTH] = {0};
-    input[0] = label_high;
-    input[1] = label_low;
-    memcpy(input + 2, emulator->ev2_transaction_identifier, DFC_EV2_TRANSACTION_IDENTIFIER_LENGTH);
-    input[6] = (uint8_t)emulator->ev2_command_counter;
-    input[7] = (uint8_t)(emulator->ev2_command_counter >> 8);
-    dfc_worker_aes_cbc_encrypt(
-        emulator->ev2_session_encryption_key,
-        DFC_AES_KEY_LENGTH,
-        zero_iv,
-        sizeof(input),
-        input,
-        iv);
+    return dfc_ev2_mac(
+        emulator->ev2_session_mac_key,
+        status,
+        emulator->ev2_command_counter,
+        emulator->ev2_transaction_identifier,
+        data,
+        data_len,
+        NULL,
+        0,
+        output);
 }
 
 static bool decrypt_command_data(
@@ -144,25 +111,16 @@ static bool decrypt_command_data(
     uint8_t* clear,
     size_t* clear_len,
     bool allow_unpadded) {
-    if(encrypted_len == 0 || encrypted_len % DFC_AES_KEY_LENGTH != 0) return false;
-    uint8_t iv[DFC_AES_KEY_LENGTH];
-    derive_iv(emulator, DFC_EV2_ENCRYPTION_LABEL_HIGH, DFC_EV2_ENCRYPTION_LABEL_LOW, iv);
-    dfc_worker_aes_cbc_decrypt(
+    return dfc_ev2_decrypt_data(
         emulator->ev2_session_encryption_key,
-        DFC_AES_KEY_LENGTH,
-        iv,
-        encrypted_len,
+        DfcEv2DirectionCommand,
+        emulator->ev2_command_counter,
+        emulator->ev2_transaction_identifier,
         encrypted,
-        clear);
-    size_t marker = encrypted_len;
-    while(marker > 0 && clear[marker - 1] == 0) marker--;
-    if(marker == 0 || clear[marker - 1] != DfcEv2PaddingMarker) {
-        if(!allow_unpadded) return false;
-        *clear_len = encrypted_len;
-        return true;
-    }
-    *clear_len = marker - 1;
-    return true;
+        encrypted_len,
+        clear,
+        clear_len,
+        allow_unpadded);
 }
 
 static bool encrypt_response_data(
@@ -172,23 +130,16 @@ static bool encrypt_response_data(
     uint8_t* encrypted,
     size_t encrypted_capacity,
     size_t* encrypted_len) {
-    size_t padded_len = ((clear_len / DFC_AES_KEY_LENGTH) + 1) * DFC_AES_KEY_LENGTH;
-    if(padded_len > encrypted_capacity) return false;
-    uint8_t padded[DFC_WORKER_MAX_BUFFER_SIZE] = {0};
-    if(padded_len > sizeof(padded)) return false;
-    memcpy(padded, clear, clear_len);
-    padded[clear_len] = DfcEv2PaddingMarker;
-    uint8_t iv[DFC_AES_KEY_LENGTH];
-    derive_iv(emulator, DFC_EV2_MAC_LABEL_HIGH, DFC_EV2_MAC_LABEL_LOW, iv);
-    dfc_worker_aes_cbc_encrypt(
+    return dfc_ev2_encrypt_data(
         emulator->ev2_session_encryption_key,
-        DFC_AES_KEY_LENGTH,
-        iv,
-        padded_len,
-        padded,
-        encrypted);
-    *encrypted_len = padded_len;
-    return true;
+        DfcEv2DirectionResponse,
+        emulator->ev2_command_counter,
+        emulator->ev2_transaction_identifier,
+        clear,
+        clear_len,
+        encrypted,
+        encrypted_capacity,
+        encrypted_len);
 }
 
 DfcEv2CommandSecurity dfc_ev2_prepare_command(
@@ -211,10 +162,8 @@ DfcEv2CommandSecurity dfc_ev2_prepare_command(
     uint8_t expected[DFC_WIRE_MAC_LENGTH];
     if(!command_mac(emulator, command[0], secured_data, secured_data_len, expected))
         return DfcEv2CommandInvalid;
-    uint8_t difference = 0;
-    for(size_t i = 0; i < sizeof(expected); i++)
-        difference |= expected[i] ^ command[1 + secured_data_len + i];
-    if(difference != 0) return DfcEv2CommandInvalid;
+    if(!dfc_ev2_equal(expected, command + 1 + secured_data_len, sizeof(expected)))
+        return DfcEv2CommandInvalid;
 
     if(1 + secured_data_len > clear_capacity) return DfcEv2CommandInvalid;
     clear_command[0] = command[0];
@@ -351,3 +300,5 @@ bool dfc_ev2_protect_response(
 }
 
 #endif
+
+#endif // DFC_ENABLE_EMULATOR

@@ -7,6 +7,11 @@
 #include "dfc_common.h"
 
 #define DFC_SM_MAX_SIZE 192
+#define DFC_SM_MAX_CIPHER_BLOCK_SIZE 16
+#define DFC_SM_LEGACY_BLOCK_SIZE 8
+#define DFC_SM_LEGACY_MAC_LENGTH 4
+#define DFC_SM_LENGTH_MARKER 0x80
+#define DFC_SM_MAX_CRYPTO_SIZE (DFC_MAX_FILE_DATA + DFC_SM_MAX_CIPHER_BLOCK_SIZE)
 
 typedef struct {
     uint8_t cipher; // DFC_CMD_AUTHENTICATE_LEGACY / _ISO / _AES
@@ -24,7 +29,7 @@ typedef struct {
     bool pcd;
 
     // Reusable buffers to keep them off the worker stack
-    uint8_t crypto_scratch[DFC_SM_MAX_SIZE];
+    uint8_t crypto_scratch[DFC_SM_MAX_CRYPTO_SIZE];
     uint8_t mac_input_scratch[DFC_SM_MAX_SIZE];
 } DfcSecureMessaging;
 
@@ -45,6 +50,12 @@ void dfc_secure_messaging_update_ev1_command(
     uint8_t cmd,
     const uint8_t* data,
     size_t data_len);
+// Accepts a contiguous command directly, including commands larger than the
+// session's scratch buffer.
+void dfc_secure_messaging_update_ev1_command_full(
+    DfcSecureMessaging* sm,
+    const uint8_t* command,
+    size_t command_len);
 // EV1 option-b commands (WriteData, Credit, …): verify trailing 8-byte truncated
 // CMAC over Cmd||data_without_mac, update IV from full CMAC. Returns clear length
 // (data_len - 8) or SIZE_MAX on failure.
@@ -53,6 +64,11 @@ size_t dfc_secure_messaging_verify_ev1_transmitted_command_mac(
     uint8_t cmd,
     const uint8_t* data,
     size_t data_len);
+// As above, with Cmd included in `command`; avoids a copy for long writes.
+size_t dfc_secure_messaging_verify_ev1_transmitted_command_mac_full(
+    DfcSecureMessaging* sm,
+    const uint8_t* command,
+    size_t command_len);
 // True for WriteData / Credit / Debit / LimitedCredit / WriteRecord / UpdateRecord
 // (EV1 MAC-mode commands that place MACt on the wire).
 bool dfc_secure_messaging_ev1_transmits_command_mac(uint8_t cmd);
@@ -62,6 +78,14 @@ size_t dfc_secure_messaging_generate_ev1_response(
     const uint8_t* plain,
     size_t plain_len,
     uint8_t* out);
+// Appends the response CMAC without copying the payload through the session's
+// small scratch buffer. `buffer` must have eight spare octets.
+size_t dfc_secure_messaging_generate_ev1_response_in_place(
+    DfcSecureMessaging* sm,
+    uint8_t status,
+    uint8_t* buffer,
+    size_t plain_len,
+    size_t capacity);
 // Returns the cleartext length, or SIZE_MAX on CMAC/format failure.
 size_t dfc_secure_messaging_unwrap_ev1_response(
     DfcSecureMessaging* sm,
@@ -105,6 +129,14 @@ size_t dfc_secure_messaging_generate_response(
     const uint8_t* plain,
     size_t plain_len,
     uint8_t* out);
+size_t dfc_secure_messaging_generate_response_with_length_marker(
+    DfcSecureMessaging* sm,
+    uint8_t comm_mode,
+    uint8_t status,
+    const uint8_t* plain,
+    size_t plain_len,
+    uint8_t* out,
+    bool length_unknown);
 
 // Emulator (PICC) side: verifies/unwraps an incoming command payload under the given comm
 // mode, matching what dfc_secure_messaging_wrap() on the reader side produced.

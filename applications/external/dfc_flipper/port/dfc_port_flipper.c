@@ -2,6 +2,7 @@
 #include "dfc_port.h"
 
 #include <furi.h>
+#include <furi/core/memmgr.h>
 #include <furi_hal.h>
 #include <gui/view_dispatcher.h>
 #include <string.h>
@@ -14,6 +15,7 @@ void dfc_random_fill(uint8_t* buf, size_t len) {
 
 void* dfc_platform_alloc(size_t size, DfcAllocTag tag) {
     DFC_UNUSED(tag);
+    if(size > memmgr_heap_get_max_free_block()) return NULL;
     void* block = malloc(size);
     if(block) memset(block, 0, size);
     return block;

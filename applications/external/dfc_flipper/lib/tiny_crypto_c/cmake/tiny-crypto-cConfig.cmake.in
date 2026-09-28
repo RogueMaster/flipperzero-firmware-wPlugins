@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+@PACKAGE_INIT@
+include("${CMAKE_CURRENT_LIST_DIR}/tiny_crypto_cTargets.cmake")
+check_required_components(tiny_crypto_c)

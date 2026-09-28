@@ -71,18 +71,23 @@ static size_t mac_len_for_cipher(uint8_t cipher) {
 }
 
 static void d40_mac(DfcSecureMessaging* sm, const uint8_t* data, size_t data_len, uint8_t* mac_out) {
-    size_t padded_len = ((data_len + 7) / 8) * 8;
-    uint8_t* padded = sm->mac_input_scratch;
-    uint8_t* encrypted = sm->crypto_scratch;
-    memcpy(padded, data, data_len);
-    if(padded_len > data_len) {
-        memset(padded + data_len, 0, padded_len - data_len);
+    if(data_len == 0) {
+        memset(mac_out, 0, DFC_SM_LEGACY_MAC_LENGTH);
+        return;
     }
-
-    uint8_t iv[8] = {0};
-    dfc_worker_des_cbc_encrypt(
-        sm->session_key, sm->session_key_len, iv, padded_len, padded, encrypted);
-    memcpy(mac_out, encrypted + padded_len - 8, 4);
+    const size_t block_size = DFC_SM_LEGACY_BLOCK_SIZE;
+    uint8_t iv[DFC_SM_LEGACY_BLOCK_SIZE] = {0};
+    uint8_t block[DFC_SM_LEGACY_BLOCK_SIZE];
+    uint8_t encrypted[DFC_SM_LEGACY_BLOCK_SIZE];
+    for(size_t offset = 0; offset < data_len; offset += block_size) {
+        size_t count = data_len - offset;
+        if(count > block_size) count = block_size;
+        memset(block, 0, sizeof(block));
+        memcpy(block, data + offset, count);
+        dfc_worker_des_cbc_encrypt(
+            sm->session_key, sm->session_key_len, iv, block_size, block, encrypted);
+    }
+    memcpy(mac_out, encrypted, DFC_SM_LEGACY_MAC_LENGTH);
 }
 
 static void
@@ -136,20 +141,41 @@ void dfc_secure_messaging_update_ev1_command(
     uint8_t cmd,
     const uint8_t* data,
     size_t data_len) {
-    if(!dfc_secure_messaging_applies_ev1(sm, cmd)) return;
+    // AdditionalFrame is normally excluded because it also carries auth steps.
+    // A caller may explicitly advance the IV for a GetVersion continuation.
+    if(sm->cipher == DFC_CMD_AUTHENTICATE_LEGACY ||
+       (cmd != DFC_CMD_ADDITIONAL_FRAME && !dfc_secure_messaging_applies_ev1(sm, cmd)))
+        return;
 
     uint8_t* mac_input = sm->mac_input_scratch;
     mac_input[0] = cmd;
-    memcpy(mac_input + 1, data, data_len);
+    if(data_len) memcpy(mac_input + 1, data, data_len);
 
     uint8_t full_mac[16];
     size_t full_mac_len = compute_full_cmac(sm, mac_input, data_len + 1, full_mac);
     update_iv_from_full_cmac(sm, full_mac, full_mac_len);
 }
 
+void dfc_secure_messaging_update_ev1_command_full(
+    DfcSecureMessaging* sm,
+    const uint8_t* command,
+    size_t command_len) {
+    if(!sm || !command || command_len == 0 ||
+       sm->cipher == DFC_CMD_AUTHENTICATE_LEGACY ||
+       !dfc_secure_messaging_applies_ev1(sm, command[0])) {
+        return;
+    }
+    uint8_t full_mac[16];
+    size_t full_mac_len = compute_full_cmac(sm, command, command_len, full_mac);
+    update_iv_from_full_cmac(sm, full_mac, full_mac_len);
+}
+
 bool dfc_secure_messaging_ev1_transmits_command_mac(uint8_t cmd) {
     switch(cmd) {
     case DFC_CMD_WRITE_DATA:
+    case DFC_CMD_WRITE_RECORD:
+    case DFC_CMD_UPDATE_RECORD:
+    case DFC_CMD_UPDATE_RECORD_ISO:
     case DFC_CMD_CREDIT:
     case DFC_CMD_DEBIT:
     case DFC_CMD_LIMITED_CREDIT:
@@ -184,6 +210,22 @@ size_t dfc_secure_messaging_verify_ev1_transmitted_command_mac(
     return plain_len;
 }
 
+size_t dfc_secure_messaging_verify_ev1_transmitted_command_mac_full(
+    DfcSecureMessaging* sm,
+    const uint8_t* command,
+    size_t command_len) {
+    if(!sm || !command || command_len < 1 + DFC_WIRE_MAC_LENGTH) return SIZE_MAX;
+    size_t clear_len = command_len - DFC_WIRE_MAC_LENGTH;
+    uint8_t full_mac[16];
+    size_t full_mac_len = compute_full_cmac(sm, command, clear_len, full_mac);
+    if(full_mac_len < DFC_WIRE_MAC_LENGTH ||
+       memcmp(full_mac, command + clear_len, DFC_WIRE_MAC_LENGTH) != 0) {
+        return SIZE_MAX;
+    }
+    update_iv_from_full_cmac(sm, full_mac, full_mac_len);
+    return clear_len - 1;
+}
+
 size_t dfc_secure_messaging_generate_ev1_response(
     DfcSecureMessaging* sm,
     uint8_t status,
@@ -200,6 +242,25 @@ size_t dfc_secure_messaging_generate_ev1_response(
 
     memcpy(out, plain, plain_len);
     memcpy(out + plain_len, full_mac, truncated_len);
+    update_iv_from_full_cmac(sm, full_mac, full_mac_len);
+    return plain_len + truncated_len;
+}
+
+size_t dfc_secure_messaging_generate_ev1_response_in_place(
+    DfcSecureMessaging* sm,
+    uint8_t status,
+    uint8_t* buffer,
+    size_t plain_len,
+    size_t capacity) {
+    size_t full_mac_len = sm->cipher == DFC_CMD_AUTHENTICATE_AES ? 16 : 8;
+    size_t truncated_len = DFC_MIN((size_t)8, full_mac_len);
+    if(!buffer || plain_len > capacity || truncated_len > capacity - plain_len) return 0;
+
+    buffer[plain_len] = status;
+    uint8_t full_mac[16];
+    full_mac_len = compute_full_cmac(sm, buffer, plain_len + 1, full_mac);
+    truncated_len = DFC_MIN((size_t)8, full_mac_len);
+    memcpy(buffer + plain_len, full_mac, truncated_len);
     update_iv_from_full_cmac(sm, full_mac, full_mac_len);
     return plain_len + truncated_len;
 }
@@ -290,6 +351,7 @@ static size_t enciphered_encode(
     size_t plain_len,
     const uint8_t* crc_suffix,
     size_t crc_suffix_len,
+    bool response_padding,
     uint8_t* out) {
     size_t block_size = sm->cipher == DFC_CMD_AUTHENTICATE_AES ? 16 : 8;
     uint8_t* clear = sm->crypto_scratch;
@@ -315,9 +377,11 @@ static size_t enciphered_encode(
 
     size_t padded_len = ((with_crc_len + block_size - 1) / block_size) * block_size;
     if(padded_len == 0) padded_len = block_size;
-
-    // Pad with zeroes up to padded_len
-    if(padded_len > with_crc_len) {
+    if(response_padding && padded_len == with_crc_len) padded_len += block_size;
+    if(response_padding) {
+        clear[with_crc_len] = DFC_SM_LENGTH_MARKER;
+        memset(clear + with_crc_len + 1, 0, padded_len - with_crc_len - 1);
+    } else if(padded_len > with_crc_len) {
         memset(clear + with_crc_len, 0, padded_len - with_crc_len);
     }
 
@@ -374,14 +438,15 @@ static size_t enciphered_decode(
         // boundary without checking the CRC would admit any ciphertext at all.
         for(size_t candidate = 0; candidate + crc_len <= wrapped_len; candidate++) {
             size_t crc_offset = candidate;
-            bool padding_is_zero = true;
+            bool padding_is_valid = true;
             for(size_t i = crc_offset + crc_len; i < wrapped_len; i++) {
-                if(clear[i] != 0x00) {
-                    padding_is_zero = false;
+                if(clear[i] != 0x00 &&
+                   !(i == crc_offset + crc_len && clear[i] == DFC_SM_LENGTH_MARKER)) {
+                    padding_is_valid = false;
                     break;
                 }
             }
-            if(!padding_is_zero) continue;
+            if(!padding_is_valid) continue;
 
             uint16_t expected_crc = crc16_iso14443(clear, candidate);
             uint16_t actual_crc =
@@ -395,14 +460,15 @@ static size_t enciphered_decode(
     } else {
         for(size_t clear_len = 0; clear_len <= wrapped_len - crc_len; clear_len++) {
             size_t crc_offset = clear_len;
-            bool padding_is_zero = true;
+            bool padding_is_valid = true;
             for(size_t i = crc_offset + crc_len; i < wrapped_len; i++) {
-                if(clear[i] != 0x00) {
-                    padding_is_zero = false;
+                if(clear[i] != 0x00 &&
+                   !(i == crc_offset + crc_len && clear[i] == DFC_SM_LENGTH_MARKER)) {
+                    padding_is_valid = false;
                     break;
                 }
             }
-            if(!padding_is_zero) continue;
+            if(!padding_is_valid) continue;
 
             uint32_t expected_crc = 0xFFFFFFFF;
             expected_crc = crc32_dfc_extend(expected_crc, crc_prefix, crc_prefix_len);
@@ -458,7 +524,7 @@ size_t dfc_secure_messaging_wrap(
         return plain_len + mac_len;
     }
 
-    return enciphered_encode(sm, header, header_len, plain, plain_len, NULL, 0, out);
+    return enciphered_encode(sm, header, header_len, plain, plain_len, NULL, 0, false, out);
 }
 
 // PICC -> PCD direction (reader receiving a response): MAC covers [...data, status].
@@ -482,12 +548,16 @@ size_t dfc_secure_messaging_unwrap(
         // An EV1 session covers the status byte; a legacy session covers the
         // payload alone.
         size_t suffix_len = sm->cipher == DFC_CMD_AUTHENTICATE_LEGACY ? 0 : 1;
-        uint8_t* mac_input = sm->mac_input_scratch;
-        memcpy(mac_input, wrapped, data_len);
-        if(suffix_len) mac_input[data_len] = status;
-
         uint8_t mac[8];
-        compute_mac(sm, mac_input, data_len + suffix_len, mac);
+        if(suffix_len) {
+            if(data_len >= sizeof(sm->crypto_scratch)) return 0;
+            uint8_t* mac_input = sm->crypto_scratch;
+            memcpy(mac_input, wrapped, data_len);
+            mac_input[data_len] = status;
+            compute_mac(sm, mac_input, data_len + suffix_len, mac);
+        } else {
+            compute_mac(sm, wrapped, data_len, mac);
+        }
 
         if(memcmp(mac, wrapped + data_len, mac_len) != 0) {
             DFC_LOG_W(TAG, "MAC mismatch");
@@ -503,13 +573,14 @@ size_t dfc_secure_messaging_unwrap(
 
 // PICC -> PCD direction (emulator generating a response): mirrors dfc_secure_messaging_unwrap's
 // MAC construction ([...data, status]) so a real reader's unwrap() call will verify it.
-size_t dfc_secure_messaging_generate_response(
+size_t dfc_secure_messaging_generate_response_with_length_marker(
     DfcSecureMessaging* sm,
     uint8_t comm_mode,
     uint8_t status,
     const uint8_t* plain,
     size_t plain_len,
-    uint8_t* out) {
+    uint8_t* out,
+    bool length_unknown) {
     if(comm_mode == DFC_COMM_PLAIN) {
         memcpy(out, plain, plain_len);
         return plain_len;
@@ -520,19 +591,33 @@ size_t dfc_secure_messaging_generate_response(
         // Mirrors dfc_secure_messaging_unwrap: EV1 covers the status byte, legacy
         // covers the payload alone.
         size_t suffix_len = sm->cipher == DFC_CMD_AUTHENTICATE_LEGACY ? 0 : 1;
-        uint8_t* mac_input = sm->mac_input_scratch;
-        memcpy(mac_input, plain, plain_len);
-        if(suffix_len) mac_input[plain_len] = status;
-
         uint8_t mac[8];
-        compute_mac(sm, mac_input, plain_len + suffix_len, mac);
+        if(suffix_len) {
+            uint8_t* mac_input = sm->mac_input_scratch;
+            memcpy(mac_input, plain, plain_len);
+            mac_input[plain_len] = status;
+            compute_mac(sm, mac_input, plain_len + suffix_len, mac);
+        } else {
+            compute_mac(sm, plain, plain_len, mac);
+        }
 
         memcpy(out, plain, plain_len);
         memcpy(out + plain_len, mac, mac_len);
         return plain_len + mac_len;
     }
 
-    return enciphered_encode(sm, NULL, 0, plain, plain_len, &status, 1, out);
+    return enciphered_encode(sm, NULL, 0, plain, plain_len, &status, 1, length_unknown, out);
+}
+
+size_t dfc_secure_messaging_generate_response(
+    DfcSecureMessaging* sm,
+    uint8_t comm_mode,
+    uint8_t status,
+    const uint8_t* plain,
+    size_t plain_len,
+    uint8_t* out) {
+    return dfc_secure_messaging_generate_response_with_length_marker(
+        sm, comm_mode, status, plain, plain_len, out, false);
 }
 
 // PCD -> PICC direction (emulator verifying an incoming command): mirrors
@@ -558,12 +643,15 @@ size_t dfc_secure_messaging_verify_command(
         size_t data_len = wrapped_len - mac_len;
 
         size_t prefix_len = legacy ? 0 : header_len;
-        uint8_t* mac_input = sm->mac_input_scratch;
-        if(prefix_len) memcpy(mac_input, header, prefix_len);
-        memcpy(mac_input + prefix_len, wrapped, data_len);
-
         uint8_t mac[8];
-        compute_mac(sm, mac_input, prefix_len + data_len, mac);
+        if(prefix_len) {
+            uint8_t* mac_input = sm->mac_input_scratch;
+            memcpy(mac_input, header, prefix_len);
+            memcpy(mac_input + prefix_len, wrapped, data_len);
+            compute_mac(sm, mac_input, prefix_len + data_len, mac);
+        } else {
+            compute_mac(sm, wrapped, data_len, mac);
+        }
 
         if(memcmp(mac, wrapped + data_len, mac_len) != 0) {
             DFC_LOG_W(TAG, "MAC mismatch");

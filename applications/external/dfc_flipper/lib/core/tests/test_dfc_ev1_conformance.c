@@ -2,11 +2,13 @@
 // DesfirePiccSimulatorTests (EV1-native command subset).
 
 #include "dfc_virtual_picc_test_helpers.h"
+#include "dfc_der.h"
 
 #include <string.h>
 
 static void blank_picc(DfcCredential* credential, uint8_t picc_key_settings_1) {
     memset(credential, 0, sizeof(*credential));
+    credential->card.generation = DfcGenerationEv1;
     credential->uid_len = DFC_DESFIRE_UID_LEN;
     memcpy(
         credential->uid,
@@ -192,30 +194,128 @@ static MunitResult test_authenticate_wrong_algorithm(const MunitParameter params
 static MunitResult test_get_version_frames(const MunitParameter params[], void* data) {
     (void)params;
     (void)data;
-    DfcCredential credential;
-    DfcVirtualPiccSession* session = open_blank(0x0F, &credential);
     uint8_t response[32];
     size_t response_len = 0;
+    const uint8_t get_version[] = {0x90, 0x60, 0x00, 0x00, 0x00};
+    const uint8_t af[] = {0x90, 0xAF, 0x00, 0x00, 0x00};
+    static const struct {
+        DfcGeneration generation;
+        uint8_t hardware[7];
+        uint8_t software[7];
+    } cases[] = {
+        {DfcGenerationEv1,
+         {0x04, 0x01, 0x01, 0x01, 0x00, 0x18, 0x05},
+         {0x04, 0x01, 0x01, 0x01, 0x03, 0x18, 0x05}},
+        {DfcGenerationEv2,
+         {0x04, 0x01, 0x01, 0x12, 0x00, 0x18, 0x05},
+         {0x04, 0x01, 0x01, 0x02, 0x01, 0x18, 0x05}},
+        {DfcGenerationEv3,
+         {0x04, 0x01, 0x01, 0x33, 0x00, 0x18, 0x05},
+         {0x04, 0x01, 0x01, 0x03, 0x00, 0x18, 0x05}},
+    };
+    static const struct {
+        uint32_t bytes;
+        uint8_t code;
+    } capacities[] = {{2048, 0x16}, {4096, 0x18}, {8192, 0x1A}};
+    for(size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        for(size_t j = 0; j < sizeof(capacities) / sizeof(capacities[0]); j++) {
+            DfcCredential credential;
+            DfcVirtualPiccSession* session = open_blank(0x0F, &credential);
+            credential.card.generation = cases[i].generation;
+            credential.card.storage = capacities[j].bytes;
+            uint8_t expected_hardware[7];
+            uint8_t expected_software[7];
+            memcpy(expected_hardware, cases[i].hardware, 7);
+            memcpy(expected_software, cases[i].software, 7);
+            expected_hardware[5] = capacities[j].code;
+            expected_software[5] = capacities[j].code;
 
+            exchange(session, get_version, sizeof(get_version), response, sizeof(response), &response_len);
+            munit_assert_size(response_len, ==, 9);
+            munit_assert_memory_equal(7, response, expected_hardware);
+            munit_assert_uint8(response[7], ==, 0x91);
+            munit_assert_uint8(response[8], ==, 0xAF);
+
+            exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
+            munit_assert_size(response_len, ==, 9);
+            munit_assert_memory_equal(7, response, expected_software);
+            munit_assert_uint8(response[7], ==, 0x91);
+            munit_assert_uint8(response[8], ==, 0xAF);
+
+            exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
+            munit_assert_size(response_len, ==, 16);
+            munit_assert_memory_equal(7, response, credential.uid);
+            static const uint8_t legacy_production[7] = {0, 0, 0, 0, 0, 0x01, 0x24};
+            static const uint8_t ev3_production[7] = {0, 0, 0, '0', '0', 0x01, 0x24};
+            const uint8_t* production = cases[i].generation == DfcGenerationEv3 ?
+                                            ev3_production :
+                                            legacy_production;
+            munit_assert_memory_equal(7, response + 7, production);
+            munit_assert_uint8(response[14], ==, 0x91);
+            munit_assert_uint8(response[15], ==, 0x00);
+            dfc_virtual_picc_session_free(session);
+        }
+    }
+
+    DfcCredential overridden;
+    DfcVirtualPiccSession* session = open_blank(0x0F, &overridden);
+    overridden.card.generation = DfcGenerationEv2;
+    overridden.card.storage = 4096;
+    overridden.card.has_hardware_version = true;
+    memcpy(overridden.card.hardware_version, "\x04\x01\x01\xAA\xBB\xCC\xDD", 7);
+    overridden.card.has_software_version = true;
+    memcpy(overridden.card.software_version, "\x04\x01\x01\x11\x22\x33\x44", 7);
+    exchange(session, get_version, sizeof(get_version), response, sizeof(response), &response_len);
+    munit_assert_memory_equal(7, response, overridden.card.hardware_version);
+    exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
+    munit_assert_memory_equal(7, response, overridden.card.software_version);
+    dfc_virtual_picc_session_free(session);
+
+    for(size_t i = 0; i < 2; i++) {
+        DfcCredential invalid;
+        session = open_blank(0x0F, &invalid);
+        invalid.card.generation = i == 0 ? (DfcGeneration)0 : (DfcGeneration)4;
+        invalid.card.storage = 4096;
+        exchange(session, get_version, sizeof(get_version), response, sizeof(response), &response_len);
+        munit_assert_size(response_len, ==, 9);
+        munit_assert_memory_equal(7, response, cases[0].hardware);
+        dfc_virtual_picc_session_free(session);
+    }
+
+    static const struct {
+        DfcGeneration generation;
+        uint32_t storage;
+    } unsupported[] = {
+        {DfcGenerationEv1, 3000},
+        {DfcGenerationEv3, 1024},
+        {DfcGenerationEv3, 16384},
+    };
+    for(size_t i = 0; i < sizeof(unsupported) / sizeof(unsupported[0]); i++) {
+        DfcCredential invalid;
+        session = open_blank(0x0F, &invalid);
+        invalid.card.generation = unsupported[i].generation;
+        invalid.card.storage = unsupported[i].storage;
+        assert_status(session, get_version, sizeof(get_version), DFC_STATUS_PARAMETER_ERROR);
+        dfc_virtual_picc_session_free(session);
+    }
+    return MUNIT_OK;
+}
+
+static MunitResult test_get_version_rejects_extra_data(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+    DfcCredential credential;
+    DfcVirtualPiccSession* session = open_blank(0x0F, &credential);
+    const uint8_t extra_get_version[] = {0x90, 0x60, 0x00, 0x00, 0x01, 0x00, 0x00};
+    assert_status(session, extra_get_version, sizeof(extra_get_version), DFC_STATUS_LENGTH_ERROR);
+
+    uint8_t response[32];
+    size_t response_len = 0;
     const uint8_t get_version[] = {0x90, 0x60, 0x00, 0x00, 0x00};
     exchange(session, get_version, sizeof(get_version), response, sizeof(response), &response_len);
-    munit_assert_size(response_len, ==, 9);
-    munit_assert_uint8(response[7], ==, 0x91);
-    munit_assert_uint8(response[8], ==, 0xAF);
-
-    const uint8_t af[] = {0x90, 0xAF, 0x00, 0x00, 0x00};
-    exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
-    munit_assert_size(response_len, ==, 9);
-    munit_assert_uint8(response[7], ==, 0x91);
-    munit_assert_uint8(response[8], ==, 0xAF);
-    munit_assert_uint8(response[4], ==, 0x03); // EV1 software type
-
-    exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
-    munit_assert_size(response_len, ==, 16);
-    munit_assert_memory_equal(7, response, credential.uid);
-    munit_assert_uint8(response[14], ==, 0x91);
-    munit_assert_uint8(response[15], ==, 0x00);
-
+    munit_assert_uint8(response[response_len - 1], ==, DFC_CMD_ADDITIONAL_FRAME);
+    const uint8_t extra_af[] = {0x90, 0xAF, 0x00, 0x00, 0x01, 0x00, 0x00};
+    assert_status(session, extra_af, sizeof(extra_af), DFC_STATUS_LENGTH_ERROR);
     dfc_virtual_picc_session_free(session);
     return MUNIT_OK;
 }
@@ -248,9 +348,10 @@ static MunitResult test_command_during_response_chaining(const MunitParameter pa
     const uint8_t read[] = {
         0x90, 0xBD, 0x00, 0x00, 0x07, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     exchange(session, read, sizeof(read), response, sizeof(response), &response_len);
-    munit_assert_size(response_len, ==, 56);
-    munit_assert_uint8(response[54], ==, 0x91);
-    munit_assert_uint8(response[55], ==, 0xAF);
+    // One frame of DFC_EV1_MAX_FRAME_PAYLOAD octets, then 91 AF.
+    munit_assert_size(response_len, ==, DFC_EV1_MAX_FRAME_PAYLOAD + 2);
+    munit_assert_uint8(response[DFC_EV1_MAX_FRAME_PAYLOAD], ==, 0x91);
+    munit_assert_uint8(response[DFC_EV1_MAX_FRAME_PAYLOAD + 1], ==, 0xAF);
 
     const uint8_t get_file_ids[] = {0x90, 0x6F, 0x00, 0x00, 0x00};
     assert_status(session, get_file_ids, sizeof(get_file_ids), DFC_STATUS_COMMAND_ABORTED);
@@ -318,6 +419,10 @@ static MunitResult test_create_duplicate_file(const MunitParameter params[], voi
     const uint8_t create_file[] = {
         0x90, 0xCD, 0x00, 0x00, 0x07, 0x01, 0x00, 0xEE, 0xEE, 0x04, 0x00, 0x00, 0x00};
     assert_status(session, create_file, sizeof(create_file), DFC_STATUS_OK);
+    munit_assert_uint32(credential.files[0].declared_size, ==, 4);
+    munit_assert_true(credential.files[0].contents_complete);
+    size_t encoded_size = 0;
+    munit_assert_int(dfc_der_encoded_size(&credential, &encoded_size), ==, DfcDerOk);
     assert_status(session, create_file, sizeof(create_file), DFC_STATUS_DUPLICATE_ERROR);
 
     dfc_virtual_picc_session_free(session);
@@ -480,14 +585,36 @@ static MunitResult test_create_file_beyond_capacity(const MunitParameter params[
     (void)data;
     DfcCredential credential;
     DfcVirtualPiccSession* session = open_blank(0x0F, &credential);
+    credential.card.storage = DFC_DEFAULT_CARD_STORAGE;
+    const uint8_t get_version[] = {0x90, 0x60, 0x00, 0x00, 0x00};
+    const uint8_t af[] = {0x90, 0xAF, 0x00, 0x00, 0x00};
+    uint8_t response[32];
+    size_t response_len = 0;
+    exchange(session, get_version, sizeof(get_version), response, sizeof(response), &response_len);
+    munit_assert_uint8(response[5], ==, 0x16);
+    exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
+    exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
+    const uint8_t free_mem[] = {0x90, 0x6E, 0x00, 0x00, 0x00};
+    exchange(session, free_mem, sizeof(free_mem), response, sizeof(response), &response_len);
+    munit_assert_memory_equal(5, response, ((uint8_t[]){0x00, 0x08, 0x00, 0x91, 0x00}));
+
     const uint8_t create_app[] = {0x90, 0xCA, 0x00, 0x00, 0x05, 0x01, 0x02, 0x03, 0x0F, 0x01, 0x00};
     assert_status(session, create_app, sizeof(create_app), DFC_STATUS_OK);
     const uint8_t select[] = {0x90, 0x5A, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03, 0x00};
     assert_status(session, select, sizeof(select), DFC_STATUS_OK);
-    // Size 0x002001 = 8193 bytes, above 8 KiB capacity.
+    // Size 0x000801 = 2049 bytes, inside the host pool but above this card's 2 KiB.
     const uint8_t create_file[] = {
-        0x90, 0xCD, 0x00, 0x00, 0x07, 0x01, 0x00, 0xEE, 0xEE, 0x01, 0x20, 0x00, 0x00};
+        0x90, 0xCD, 0x00, 0x00, 0x07, 0x01, 0x00, 0xEE, 0xEE, 0x01, 0x08, 0x00, 0x00};
     assert_status(session, create_file, sizeof(create_file), DFC_STATUS_OUT_OF_EEPROM);
+    const uint8_t create_full_file[] = {
+        0x90, 0xCD, 0x00, 0x00, 0x07, 0x01, 0x00, 0xEE, 0xEE, 0x00, 0x08, 0x00, 0x00};
+    assert_status(session, create_full_file, sizeof(create_full_file), DFC_STATUS_OK);
+    exchange(session, free_mem, sizeof(free_mem), response, sizeof(response), &response_len);
+    munit_assert_memory_equal(5, response, ((uint8_t[]){0x00, 0x00, 0x00, 0x91, 0x00}));
+    const uint8_t create_record[] = {
+        0x90, 0xC1, 0x00, 0x00, 0x0A, 0x02, 0x00, 0xEE, 0xEE, 0x01, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00};
+    assert_status(session, create_record, sizeof(create_record), DFC_STATUS_OUT_OF_EEPROM);
     dfc_virtual_picc_session_free(session);
     return MUNIT_OK;
 }
@@ -721,10 +848,12 @@ static MunitResult test_ev1_write_data_mac_requires_transmitted_cmac(
     uint8_t response[64];
     size_t response_len = 0;
 
-    // Write without MACt must fail integrity and drop auth.
-    const uint8_t write_no_mac[] = {
-        0x90, 0x3D, 0x00, 0x00, 0x09, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x11, 0x22, 0x00};
-    exchange(session, write_no_mac, sizeof(write_no_mac), response, sizeof(response), &response_len);
+    // A complete write carrying a wrong MACt fails integrity and drops auth.
+    const uint8_t write_bad_mac[] = {
+        0x90, 0x3D, 0x00, 0x00, 0x11,
+        0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x11, 0x22,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    exchange(session, write_bad_mac, sizeof(write_bad_mac), response, sizeof(response), &response_len);
     munit_assert_memory_equal(2, response, ((uint8_t[]){0x91, DFC_STATUS_INTEGRITY_ERROR}));
     munit_assert_null(session->emulator->secure_messaging);
 
@@ -766,7 +895,7 @@ static MunitResult test_get_iso_file_ids_chains_when_many(
     void* data) {
     (void)params;
     (void)data;
-#if DFC_MAX_FILES < 28
+#if DFC_MAX_FILES < 32
     return MUNIT_SKIP;
 #else
     DfcCredential credential;
@@ -777,8 +906,9 @@ static MunitResult test_get_iso_file_ids_chains_when_many(
     const uint8_t select_app[] = {0x90, 0x5A, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03, 0x00};
     assert_status(session, select_app, sizeof(select_app), DFC_STATUS_OK);
 
-    // 28 files × 2-byte FID = 56 > DFC_EV1_MAX_FRAME_PAYLOAD (54) → AF + remainder.
-    for(uint8_t n = 0; n < 28; n++) {
+    // 32 files x 2-octet FID = 64 octets. A frame carries whole identifiers, as
+    // many as fit in DFC_EV1_MAX_FRAME_PAYLOAD (59): 29 of them, 58 octets.
+    for(uint8_t n = 0; n < 32; n++) {
         DfcFile* file = dfc_credential_create_file(&credential, 0, n);
         munit_assert_not_null(file);
         file->type = 0x00;
@@ -795,14 +925,25 @@ static MunitResult test_get_iso_file_ids_chains_when_many(
     exchange(session, get_iso, sizeof(get_iso), response, sizeof(response), &response_len);
     munit_assert_uint8(response[response_len - 2], ==, 0x91);
     munit_assert_uint8(response[response_len - 1], ==, DFC_CMD_ADDITIONAL_FRAME);
-    munit_assert_size(response_len, ==, DFC_EV1_MAX_FRAME_PAYLOAD + 2);
+    munit_assert_size(response_len, ==, 58 + 2);
 
     const uint8_t af[] = {0x90, 0xAF, 0x00, 0x00, 0x00};
     exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
     munit_assert_uint8(response[response_len - 2], ==, 0x91);
     munit_assert_uint8(response[response_len - 1], ==, DFC_STATUS_OK);
-    // Remaining: 56 - 54 = 2 bytes (one FID).
-    munit_assert_size(response_len, ==, 2 + 2);
+    // The remaining three identifiers.
+    munit_assert_size(response_len, ==, 6 + 2);
+
+    // The measured EV3 card limits this list to 27 identifiers per frame.
+    credential.card.generation = DfcGenerationEv3;
+    exchange(session, get_iso, sizeof(get_iso), response, sizeof(response), &response_len);
+    munit_assert_uint8(response[response_len - 1], ==, DFC_CMD_ADDITIONAL_FRAME);
+    munit_assert_size(response_len, ==,
+                      DFC_EV3_ISO_FIDS_PER_FRAME * DFC_ISO_FID_SIZE + 2);
+    exchange(session, af, sizeof(af), response, sizeof(response), &response_len);
+    munit_assert_uint8(response[response_len - 1], ==, DFC_STATUS_OK);
+    munit_assert_size(response_len, ==,
+                      (32 - DFC_EV3_ISO_FIDS_PER_FRAME) * DFC_ISO_FID_SIZE + 2);
 
     dfc_virtual_picc_session_free(session);
     return MUNIT_OK;
@@ -1082,6 +1223,176 @@ static MunitResult test_change_file_settings_round_trips_logical_rights(
     return MUNIT_OK;
 }
 
+static DfcVirtualPiccSession* open_record_file(
+    DfcCredential* credential,
+    bool cyclic,
+    uint32_t max_records) {
+    DfcVirtualPiccSession* session = open_blank(0x0F, credential);
+    const uint8_t create_app[] = {
+        0x90, 0xCA, 0x00, 0x00, 0x05, 0x01, 0x02, 0x03, 0x0F, 0x01, 0x00};
+    const uint8_t select_app[] = {
+        0x90, 0x5A, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03, 0x00};
+    uint8_t create_file[] = {
+        0x90,
+        cyclic ? DFC_CMD_CREATE_CYCLIC_RECORD_FILE : DFC_CMD_CREATE_LINEAR_RECORD_FILE,
+        0x00,
+        0x00,
+        0x0A,
+        0x01,
+        DFC_COMM_PLAIN,
+        0xEE,
+        0xEE,
+        0x02,
+        0x00,
+        0x00,
+        (uint8_t)max_records,
+        (uint8_t)(max_records >> 8),
+        (uint8_t)(max_records >> 16),
+        0x00,
+    };
+    assert_status(session, create_app, sizeof(create_app), DFC_STATUS_OK);
+    assert_status(session, select_app, sizeof(select_app), DFC_STATUS_OK);
+    assert_status(session, create_file, sizeof(create_file), DFC_STATUS_OK);
+    return session;
+}
+
+static MunitResult test_record_transaction_visibility(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+    DfcCredential credential;
+    DfcVirtualPiccSession* session = open_record_file(&credential, false, 3);
+
+    const uint8_t write_a[] = {
+        0x90, 0x3B, 0x00, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0xA1, 0x00};
+    const uint8_t write_b[] = {
+        0x90, 0x3B, 0x00, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0xB2, 0x00};
+    const uint8_t read_all[] = {
+        0x90, 0xBB, 0x00, 0x00, 0x07, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00};
+    const uint8_t commit[] = {0x90, 0xC7, 0x00, 0x00, 0x00};
+    const uint8_t clear[] = {0x90, 0xEB, 0x00, 0x00, 0x01, 0x01, 0x00};
+    const uint8_t abort[] = {0x90, 0xA7, 0x00, 0x00, 0x00};
+
+    assert_status(session, write_a, sizeof(write_a), DFC_STATUS_OK);
+    assert_status(session, write_b, sizeof(write_b), DFC_STATUS_OK);
+    assert_status(session, read_all, sizeof(read_all), DFC_STATUS_BOUNDARY_ERROR);
+    assert_status(session, commit, sizeof(commit), DFC_STATUS_OK);
+
+    uint8_t response[16];
+    size_t response_len = 0;
+    exchange(session, read_all, sizeof(read_all), response, sizeof(response), &response_len);
+    munit_assert_memory_equal(
+        4, response, ((uint8_t[]){0xA1, 0xB2, 0x91, DFC_STATUS_OK}));
+
+    assert_status(session, clear, sizeof(clear), DFC_STATUS_OK);
+    exchange(session, read_all, sizeof(read_all), response, sizeof(response), &response_len);
+    munit_assert_memory_equal(
+        4, response, ((uint8_t[]){0xA1, 0xB2, 0x91, DFC_STATUS_OK}));
+    assert_status(session, write_a, sizeof(write_a), DFC_STATUS_PERMISSION_DENIED);
+    assert_status(session, abort, sizeof(abort), DFC_STATUS_OK);
+    exchange(session, read_all, sizeof(read_all), response, sizeof(response), &response_len);
+    munit_assert_memory_equal(
+        4, response, ((uint8_t[]){0xA1, 0xB2, 0x91, DFC_STATUS_OK}));
+
+    dfc_virtual_picc_session_free(session);
+    return MUNIT_OK;
+}
+
+static MunitResult test_single_record_cyclic_is_safe(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+    DfcCredential credential;
+    DfcVirtualPiccSession* session = open_blank(0x0F, &credential);
+    const uint8_t create_app[] = {
+        0x90, 0xCA, 0x00, 0x00, 0x05, 0x01, 0x02, 0x03, 0x0F, 0x01, 0x00};
+    const uint8_t select_app[] = {
+        0x90, 0x5A, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03, 0x00};
+    const uint8_t create_file[] = {
+        0x90, 0xC0, 0x00, 0x00, 0x0A, 0x01, 0x00, 0xEE, 0xEE,
+        0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00};
+    assert_status(session, create_app, sizeof(create_app), DFC_STATUS_OK);
+    assert_status(session, select_app, sizeof(select_app), DFC_STATUS_OK);
+    assert_status(session, create_file, sizeof(create_file), DFC_STATUS_PARAMETER_ERROR);
+    munit_assert_size(credential.num_files, ==, 0);
+
+    // A malformed stored credential may still carry the zero-capacity edge.
+    DfcFile* file = dfc_credential_create_file(&credential, 0, 1);
+    munit_assert_not_null(file);
+    file->type = DFC_FILE_TYPE_CYCLIC_RECORD;
+    file->comm_settings = DFC_COMM_PLAIN;
+    file->access_rights = 0xEEEE;
+    file->record_size = 2;
+    file->max_records = 1;
+    munit_assert_true(dfc_file_resize(&credential, file, 2));
+    const uint8_t write[] = {
+        0x90, 0x3B, 0x00, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0xA1, 0x00};
+    const uint8_t commit[] = {0x90, 0xC7, 0x00, 0x00, 0x00};
+    const uint8_t read_all[] = {
+        0x90, 0xBB, 0x00, 0x00, 0x07, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00};
+    assert_status(session, write, sizeof(write), DFC_STATUS_OK);
+    assert_status(session, commit, sizeof(commit), DFC_STATUS_OK);
+    assert_status(session, read_all, sizeof(read_all), DFC_STATUS_BOUNDARY_ERROR);
+    munit_assert_uint32(credential.files[0].record_count, ==, 0);
+    dfc_virtual_picc_session_free(session);
+    return MUNIT_OK;
+}
+
+static MunitResult test_native_write_data_chaining(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+    DfcCredential credential;
+    uint8_t zeros[100] = {0};
+    DfcVirtualPiccSession* session =
+        open_file_policy(&credential, 0x0F, 0xEEEE, DFC_COMM_PLAIN, zeros, sizeof(zeros));
+    const uint8_t select[] = {0x90, 0x5A, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03, 0x00};
+    assert_status(session, select, sizeof(select), DFC_STATUS_OK);
+
+    uint8_t expected[100];
+    for(size_t i = 0; i < sizeof(expected); i++) expected[i] = (uint8_t)(i + 1);
+
+    uint8_t first[6 + DFC_EV1_MAX_FRAME_PAYLOAD];
+    first[0] = 0x90;
+    first[1] = DFC_CMD_WRITE_DATA;
+    first[2] = 0x00;
+    first[3] = 0x00;
+    first[4] = DFC_EV1_MAX_FRAME_PAYLOAD;
+    const uint8_t header[] = {0x01, 0x00, 0x00, 0x00, 100, 0x00, 0x00};
+    memcpy(first + 5, header, sizeof(header));
+    memcpy(first + 5 + sizeof(header), expected, 52);
+    first[sizeof(first) - 1] = 0x00;
+    assert_status(session, first, sizeof(first), DFC_CMD_ADDITIONAL_FRAME);
+
+    uint8_t last[6 + 48];
+    last[0] = 0x90;
+    last[1] = DFC_CMD_ADDITIONAL_FRAME;
+    last[2] = 0x00;
+    last[3] = 0x00;
+    last[4] = 48;
+    memcpy(last + 5, expected + 52, 48);
+    last[sizeof(last) - 1] = 0x00;
+    assert_status(session, last, sizeof(last), DFC_STATUS_OK);
+
+    DfcFile* file = dfc_credential_find_file_in_app(&credential, 0, 1);
+    munit_assert_not_null(file);
+    munit_assert_memory_equal(sizeof(expected), dfc_file_data(&credential, file), expected);
+
+    uint8_t oversized[6 + 60] = {0};
+    oversized[0] = 0x90;
+    oversized[1] = DFC_CMD_WRITE_DATA;
+    oversized[4] = 60;
+    oversized[5] = 1;
+    oversized[9] = 53;
+    oversized[sizeof(oversized) - 1] = 0x00;
+    assert_status(session, oversized, sizeof(oversized), DFC_STATUS_LENGTH_ERROR);
+
+    dfc_virtual_picc_session_free(session);
+    return MUNIT_OK;
+}
+
 static MunitTest tests[] = {
     {"/write-honours-write-and-read-write-nibbles",
      test_write_honours_write_and_read_write_nibbles,
@@ -1128,6 +1439,7 @@ static MunitTest tests[] = {
      MUNIT_TEST_OPTION_NONE,
      NULL},
     {"/get-version-frames", test_get_version_frames, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {"/get-version-extra-data", test_get_version_rejects_extra_data, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {"/stray-additional-frame",
      test_stray_additional_frame,
      NULL,
@@ -1272,6 +1584,24 @@ static MunitTest tests[] = {
      NULL},
     {"/get-iso-file-ids-chains-when-many",
      test_get_iso_file_ids_chains_when_many,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {"/record-transaction-visibility",
+     test_record_transaction_visibility,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {"/single-record-cyclic-is-safe",
+     test_single_record_cyclic_is_safe,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {"/native-write-data-chaining",
+     test_native_write_data_chaining,
      NULL,
      NULL,
      MUNIT_TEST_OPTION_NONE,

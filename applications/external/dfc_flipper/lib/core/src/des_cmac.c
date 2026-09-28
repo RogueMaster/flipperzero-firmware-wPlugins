@@ -5,19 +5,19 @@
 
 #define TAG "DESCMAC"
 
-static uint8_t zeroes[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static uint8_t Rb[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b};
+static const uint8_t zeroes[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const uint8_t Rb[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b};
 
-void des_cmac_padBlock(uint8_t* block, size_t len) {
+static void des_cmac_padBlock(uint8_t* block, size_t len) {
     block[len] = 0x80;
 }
 
 // CMAC's underlying block cipher, selected by key length: 8 bytes = single DES,
 // 16 bytes = 2-key 3DES, 24 bytes = 3-key 3DES.
-bool des_cmac_block_cipher(
+static bool des_cmac_block_cipher(
     uint8_t* key,
     size_t key_len,
-    uint8_t* plain,
+    const uint8_t* plain,
     size_t plain_len,
     uint8_t* enc) {
     uint8_t iv[BLOCK_SIZE];
@@ -25,7 +25,7 @@ bool des_cmac_block_cipher(
     return dfc_crypto_des_cbc(true, key, key_len, iv, plain, enc, plain_len);
 }
 
-void des_cmac_bitShiftLeft(uint8_t* input, uint8_t* output, size_t len) {
+static void des_cmac_bitShiftLeft(uint8_t* input, uint8_t* output, size_t len) {
     size_t last = len - 1;
     for(size_t i = 0; i < last; i++) {
         output[i] = input[i] << 1;
@@ -37,13 +37,14 @@ void des_cmac_bitShiftLeft(uint8_t* input, uint8_t* output, size_t len) {
 }
 
 // x = a ^ b
-void des_cmac_xor(uint8_t* a, uint8_t* b, uint8_t* x, size_t len) {
+static void des_cmac_xor(const uint8_t* a, const uint8_t* b, uint8_t* x, size_t len) {
     for(size_t i = 0; i < len; i++) {
         x[i] = a[i] ^ b[i];
     }
 }
 
-bool des_cmac_generateSubkeys(uint8_t* key, size_t key_len, uint8_t* subkey1, uint8_t* subkey2) {
+static bool des_cmac_generateSubkeys(
+    uint8_t* key, size_t key_len, uint8_t* subkey1, uint8_t* subkey2) {
     uint8_t l[BLOCK_SIZE] = {0};
     des_cmac_block_cipher(key, key_len, zeroes, BLOCK_SIZE, l);
 
@@ -69,9 +70,9 @@ bool des_cmac_with_iv(
     uint8_t* cmac) {
     uint8_t subkey1[BLOCK_SIZE] = {0};
     uint8_t subkey2[BLOCK_SIZE] = {0};
-    uint8_t blockCount = (message_len + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    size_t blockCount = (message_len + BLOCK_SIZE - 1) / BLOCK_SIZE;
     bool lastBlockCompleteFlag;
-    uint8_t lastBlockIndex;
+    size_t lastBlockIndex;
     uint8_t lastBlock[BLOCK_SIZE] = {0};
 
     if(key_len != 8 && key_len != 16 && key_len != 24) {

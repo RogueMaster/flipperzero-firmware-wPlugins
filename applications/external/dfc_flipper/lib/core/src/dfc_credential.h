@@ -89,6 +89,13 @@ typedef struct {
     uint8_t key_settings_1;
     uint8_t key_settings_2;
     uint8_t auth_command;
+    // v6 policy. If absent, supported commands are inferred from key type and generation.
+    bool has_auth_commands;
+    uint8_t auth_commands;
+    bool has_preferred_auth_command;
+    uint8_t preferred_auth_command;
+    bool has_sm_disable;
+    uint8_t sm_disable;
     // Slice into DfcCredential.key_pool holding num_keys keys, each one stored
     // key length wide. DFC_KEY_POOL_NONE when nothing is reserved. The slice
     // length is held rather than recomputed, so a caller that edits key_len in
@@ -142,6 +149,11 @@ typedef struct {
     uint32_t storage;
     // The UID itself lives on DfcCredential; this records where it came from.
     DfcUidProvenance uid_provenance;
+    // Optional seven-octet GetVersion response overrides.
+    bool has_hardware_version;
+    uint8_t hardware_version[7];
+    bool has_software_version;
+    uint8_t software_version[7];
 } DfcCard;
 
 typedef struct {
@@ -153,6 +165,10 @@ typedef struct {
     uint8_t picc_key_settings_1;
     uint8_t picc_key_settings_2;
     uint8_t picc_auth_command;
+    bool picc_has_auth_commands;
+    uint8_t picc_auth_commands;
+    bool picc_has_preferred_auth_command;
+    uint8_t picc_preferred_auth_command;
     // PICC keys, slot 0 first. Slot 0 is the master key; later generations
     // define further slots, so this is a list rather than one key. The material
     // lives in key_pool, addressed the same way an application's does.
@@ -232,15 +248,25 @@ typedef struct {
     char name[DFC_FILE_NAME_MAX_LENGTH + 1];
 } DfcCredential;
 
-DfcCredential* dfc_credential_alloc();
+DfcCredential* dfc_credential_alloc(void);
 void dfc_credential_free(DfcCredential* dfc_credential);
 
 bool dfc_credential_clear(DfcCredential* dfc_credential);
+// Factory defaults and a generated UID, without applications or files.
+void dfc_credential_init_factory(DfcCredential* credential);
 // Resets credential to a blank, emulatable template: random UID, a default AID, a
 // single D40 DES key (all-zero, key 0), and one empty writable Standard Data file -
 // enough for a DESFire reader/writer to authenticate against and WriteData into during
 // emulation. Used by the "Blank Card" main menu flow (emulate -> write -> save).
 void dfc_credential_init_blank(DfcCredential* dfc_credential);
+
+// The singular command fields are retained for existing C callers. A v6 mask
+// takes precedence whenever its corresponding has_auth_commands flag is set.
+uint8_t dfc_credential_default_auth_commands(uint8_t key_settings_2, DfcGeneration generation);
+uint8_t dfc_credential_possible_auth_commands(uint8_t key_settings_2, DfcGeneration generation);
+uint8_t dfc_credential_compiled_auth_commands(void);
+uint8_t dfc_credential_picc_auth_commands(const DfcCredential* credential);
+uint8_t dfc_credential_app_auth_commands(const DfcCredential* credential, const DfcApplication* app);
 
 // Derive the per-key byte length from the Key Settings 2 crypto-type bits
 // (00=DES/2K3DES 8 or 16 bytes stored as 16, 01=3K3DES 24 bytes, 10=AES 16 bytes).

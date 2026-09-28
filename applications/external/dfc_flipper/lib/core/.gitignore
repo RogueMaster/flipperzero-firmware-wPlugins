@@ -1,0 +1,13 @@
+tests/dfc_probe_apdu
+tests/dfc_virtual_picc_host
+tests/test_*
+!tests/test_*.c
+*.o
+*.dSYM/
+__pycache__/
+*.pyc
+tests/role-build/
+/build*/
+bindings/dotnet/**/bin/
+bindings/dotnet/**/obj/
+bindings/dotnet/src/Dfc/runtimes/

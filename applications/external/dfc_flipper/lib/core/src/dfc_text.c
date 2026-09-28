@@ -8,6 +8,10 @@
 
 #if DFC_ENABLE_TEXT_CODEC
 
+bool dfc_credential_content_is_binary(const uint8_t* content, size_t len) {
+    return content && len > 0 && content[0] == DFC_DER_CREDENTIAL_TAG;
+}
+
 #define TYPE_STANDARD 0x00u
 #define TYPE_BACKUP   0x01u
 #define TYPE_VALUE    0x02u
@@ -31,6 +35,12 @@
 static const char* const GENERATION_NAMES[] = {"EV1", "EV2", "EV3"};
 static const char* const PROVENANCE_NAMES[] = {"Real", "Random", "Unknown"};
 static const char* const AUTH_NAMES[] = {"D40", "ISO", "AES"};
+static const char* const AUTH_COMMAND_NAMES[] = {
+    "D40", "ISO", "AES", "EV2First", "EV2NonFirst", "ISO7816"};
+static const uint8_t AUTH_COMMAND_BITS[] = {
+    DFC_AUTH_COMMAND_D40, DFC_AUTH_COMMAND_ISO_NATIVE, DFC_AUTH_COMMAND_AES,
+    DFC_AUTH_COMMAND_EV2_FIRST, DFC_AUTH_COMMAND_EV2_NON_FIRST,
+    DFC_AUTH_COMMAND_ISO7816};
 static const char* const FILE_TYPE_NAMES[] =
     {"Standard Data", "Backup Data", "Value", "Linear Record", "Cyclic Record", "Transaction MAC"};
 
@@ -56,12 +66,6 @@ static uint8_t auth_command_for(size_t index) {
     return DFC_CMD_AUTHENTICATE_LEGACY;
 }
 
-static size_t auth_index_for(uint8_t auth_command) {
-    if(auth_command == DFC_CMD_AUTHENTICATE_AES) return 2;
-    if(auth_command == DFC_CMD_AUTHENTICATE_ISO) return 1;
-    return 0;
-}
-
 // Stored key length is fixed by the key type (section 1.4); 8-octet DES is held
 // as 16, which is what the model already carries.
 static size_t stored_key_length(size_t key_len) {
@@ -82,12 +86,14 @@ typedef struct {
     const char* text;
     size_t len;
     DfcCredential* c;
+    unsigned format_version;
 
     // Significant lines seen, and how many of them a rule claimed. Every claim
     // targets a distinct key, so equality at the end means every line was
     // recognised (rule 4).
     size_t total;
     size_t consumed;
+    size_t last_claimed_line;
     uint8_t seen[TRACKED_LINES / 8];
     bool tracked;
 
@@ -95,6 +101,38 @@ typedef struct {
     DfcTextStatus status;
     DfcTextError err;
 } P;
+
+static bool fail(P* p, size_t line, const char* fmt, ...);
+static bool required(P* p, const char* key, Line* line);
+
+static bool req_auth_commands(P* p, const char* key, uint8_t* commands) {
+    Line line;
+    if(!required(p, key, &line)) return false;
+    if(line.value_len == 4 && memcmp(line.value, "None", 4) == 0) {
+        *commands = 0;
+        return true;
+    }
+    size_t at = 0;
+    uint8_t result = 0;
+    for(size_t i = 0; i < sizeof(AUTH_COMMAND_BITS); i++) {
+        size_t length = strlen(AUTH_COMMAND_NAMES[i]);
+        if(at + length <= line.value_len &&
+           memcmp(line.value + at, AUTH_COMMAND_NAMES[i], length) == 0 &&
+           (at + length == line.value_len ||
+            (at + length + 2 <= line.value_len &&
+             memcmp(line.value + at + length, ", ", 2) == 0))) {
+            result |= AUTH_COMMAND_BITS[i];
+            at += length;
+            if(at == line.value_len) break;
+            at += 2;
+        }
+    }
+    if(at != line.value_len || result == 0) {
+        return fail(p, line.number, "%s: invalid command set or order", key);
+    }
+    *commands = result;
+    return true;
+}
 
 static bool fail(P* p, size_t line, const char* fmt, ...) {
     if(!p->failed) {
@@ -230,6 +268,10 @@ static bool lookup(P* p, const char* key, Line* out, bool claim) {
         found = true;
     }
     if(found && claim) {
+        if(out->number <= p->last_claimed_line) {
+            return fail(p, out->number, "%s: out of order", key);
+        }
+        p->last_claimed_line = out->number;
         p->consumed++;
         mark_seen(p, out->number);
     }
@@ -240,6 +282,21 @@ static bool required(P* p, const char* key, Line* out) {
     if(lookup(p, key, out, true)) return true;
     if(p->failed) return false;
     return fail(p, 0, "missing required key %s", key);
+}
+
+static bool opt_preferred_auth_command(P* p, const char* key, bool* present, uint8_t* command) {
+    *present = false;
+    Line line;
+    if(!lookup(p, key, &line, true)) return !p->failed;
+    for(size_t i = 0; i < sizeof(AUTH_COMMAND_BITS); i++) {
+        size_t len = strlen(AUTH_COMMAND_NAMES[i]);
+        if(line.value_len == len && memcmp(line.value, AUTH_COMMAND_NAMES[i], len) == 0) {
+            *present = true;
+            *command = AUTH_COMMAND_BITS[i];
+            return true;
+        }
+    }
+    return fail(p, line.number, "%s: expected one authentication command", key);
 }
 
 // Octet count a hex value encodes, validating rule 3: uppercase pairs joined by
@@ -313,6 +370,21 @@ static bool opt_hex(
     }
     hex_decode(&l, out, n);
     *len = n;
+    *present = true;
+    return true;
+}
+
+static bool opt_hex_exact(P* p, const char* key, uint8_t* out, size_t want, bool* present) {
+    *present = false;
+    Line l;
+    if(!lookup(p, key, &l, true)) return !p->failed;
+    size_t n = 0;
+    if(!hex_count(p, &l, key, &n)) return false;
+    if(n != want) {
+        return fail(
+            p, l.number, "%s: expected %u octets, found %u", key, (unsigned)want, (unsigned)n);
+    }
+    hex_decode(&l, out, n);
     *present = true;
     return true;
 }
@@ -706,7 +778,7 @@ static bool parse_files(P* p, const char* parent, size_t owner) {
         } else if(f->type == TYPE_TMAC) {
             if(!parse_transaction_mac_contents(p, prefix, f)) return false;
         } else {
-            return fail_class(p, DfcTextUnsupported, 0, "%s Type: not in version 4", prefix);
+            return fail_class(p, DfcTextUnsupported, 0, "%s Type: unsupported", prefix);
         }
     }
     return true;
@@ -829,7 +901,7 @@ static bool parse_applications(P* p) {
     }
 
     for(size_t i = 0; i < count; i++) {
-        snprintf(prefix, sizeof(prefix), "Application %02X", (unsigned)i);
+        snprintf(prefix, sizeof(prefix), "Application %02X", (unsigned)(uint8_t)i);
         DfcApplication* app = &p->c->apps[i];
         dfc_credential_reset_application(app);
 
@@ -855,10 +927,21 @@ static bool parse_applications(P* p) {
         snprintf(key, sizeof(key), "%s Key Settings 2", prefix);
         if(!req_hex(p, key, &app->key_settings_2, 1)) return false;
 
-        snprintf(key, sizeof(key), "%s Authentication Mode", prefix);
-        size_t auth = 0;
-        if(!req_token(p, key, AUTH_NAMES, 3, &auth)) return false;
-        app->auth_command = auth_command_for(auth);
+        if(p->format_version >= 6) {
+            snprintf(key, sizeof(key), "%s Authentication Commands", prefix);
+            if(!req_auth_commands(p, key, &app->auth_commands)) return false;
+            app->has_auth_commands = true;
+            snprintf(key, sizeof(key), "%s Preferred Authentication Command", prefix);
+            if(!opt_preferred_auth_command(p, key, &app->has_preferred_auth_command,
+                                           &app->preferred_auth_command)) return false;
+        } else {
+            snprintf(key, sizeof(key), "%s Authentication Mode", prefix);
+            size_t auth = 0;
+            if(!req_token(p, key, AUTH_NAMES, 3, &auth)) return false;
+            app->auth_command = auth_command_for(auth);
+            app->preferred_auth_command = AUTH_COMMAND_BITS[auth];
+            app->has_preferred_auth_command = true;
+        }
 
         char selector[KEY_MAX];
         snprintf(selector, sizeof(selector), "%s Key Set Count", prefix);
@@ -878,6 +961,13 @@ static bool parse_applications(P* p) {
         if(!parse_files(p, prefix, i)) return false;
         if(!parse_capability_data(p, prefix, app)) return false;
         if(!parse_delegated(p, prefix, app)) return false;
+        if(p->format_version >= 6) {
+            size_t sm_len = 0;
+            snprintf(key, sizeof(key), "%s SM Disable", prefix);
+            if(!opt_hex(p, key, &app->sm_disable, 1, 1, &sm_len, &app->has_sm_disable)) {
+                return false;
+            }
+        }
     }
     return true;
 }
@@ -1055,9 +1145,21 @@ static bool parse_picc(P* p) {
     DfcCredential* c = p->c;
     if(!req_hex(p, "PICC Key Settings 1", &c->picc_key_settings_1, 1)) return false;
     if(!req_hex(p, "PICC Key Settings 2", &c->picc_key_settings_2, 1)) return false;
-    size_t auth = 0;
-    if(!req_token(p, "PICC Authentication Mode", AUTH_NAMES, 3, &auth)) return false;
-    c->picc_auth_command = auth_command_for(auth);
+    if(p->format_version >= 6) {
+        if(!req_auth_commands(p, "PICC Authentication Commands", &c->picc_auth_commands)) {
+            return false;
+        }
+        c->picc_has_auth_commands = true;
+        if(!opt_preferred_auth_command(p, "PICC Preferred Authentication Command",
+                                       &c->picc_has_preferred_auth_command,
+                                       &c->picc_preferred_auth_command)) return false;
+    } else {
+        size_t auth = 0;
+        if(!req_token(p, "PICC Authentication Mode", AUTH_NAMES, 3, &auth)) return false;
+        c->picc_auth_command = auth_command_for(auth);
+        c->picc_preferred_auth_command = AUTH_COMMAND_BITS[auth];
+        c->picc_has_preferred_auth_command = true;
+    }
     if(!parse_keys(p, "PICC", c->picc_key_settings_2, NULL)) return false;
     if(!opt_bool(p, "PICC Random ID", &c->picc_random_id)) return false;
     if(!opt_bool(p, "PICC Format Disabled", &c->picc_format_disabled)) return false;
@@ -1115,10 +1217,13 @@ DfcTextStatus
             break;
         }
         if(!required(&p, "Version", &l)) break;
-        if(l.value_len != 1 || l.value[0] != ('0' + DFC_FORMAT_VERSION)) {
-            fail_class(&p, DfcTextUnsupported, l.number, "Version shall be 4");
+        if(l.value_len != 1 || l.value[0] < '0' + DFC_MIN_READ_FORMAT_VERSION ||
+           l.value[0] > '0' + DFC_FORMAT_VERSION) {
+            fail_class(&p, DfcTextUnsupported, l.number, "Version shall be 4, 5, or 6");
             break;
         }
+        unsigned format_version = (unsigned)(l.value[0] - '0');
+        p.format_version = format_version;
 
         size_t index = 0;
         if(!req_token(&p, "Card Generation", GENERATION_NAMES, 3, &index)) break;
@@ -1146,6 +1251,24 @@ DfcTextStatus
         if(!req_token(&p, "UID Provenance", PROVENANCE_NAMES, 3, &index)) break;
         credential->card.uid_provenance = (DfcUidProvenance)index;
         if(!parse_static_signature(&p)) break;
+        if(format_version >= 5) {
+            if(!opt_hex_exact(
+                   &p,
+                   "Card Hardware Version",
+                   credential->card.hardware_version,
+                   sizeof(credential->card.hardware_version),
+                   &credential->card.has_hardware_version)) {
+                break;
+            }
+            if(!opt_hex_exact(
+                   &p,
+                   "Card Software Version",
+                   credential->card.software_version,
+                   sizeof(credential->card.software_version),
+                   &credential->card.has_software_version)) {
+                break;
+            }
+        }
 
         if(!parse_picc(&p)) break;
         if(!parse_files(&p, "PICC", DFC_FILE_OWNER_PICC)) break;
@@ -1181,7 +1304,7 @@ DfcTextStatus
         // shared model rules apply here too.
         DfcDerStatus model = dfc_der_validate_model(credential);
         if(model != DfcDerOk) {
-            fail_class(&p, (DfcTextStatus)model, 0, "the model breaks a version 4 rule");
+            fail_class(&p, (DfcTextStatus)model, 0, "the model breaks a DFC format rule");
         }
     }
 
@@ -1225,6 +1348,27 @@ static void w_line_str(W* w, const char* key, const char* value) {
     w_raw(w, ": ", 2);
     w_str(w, value);
     w_raw(w, "\n", 1);
+}
+
+static void w_line_auth_commands(W* w, const char* key, uint8_t commands) {
+    char value[80];
+    size_t at = 0;
+    if(commands == 0) {
+        w_line_str(w, key, "None");
+        return;
+    }
+    for(size_t i = 0; i < sizeof(AUTH_COMMAND_BITS); i++) {
+        if(!(commands & AUTH_COMMAND_BITS[i])) continue;
+        if(at != 0) {
+            value[at++] = ',';
+            value[at++] = ' ';
+        }
+        size_t length = strlen(AUTH_COMMAND_NAMES[i]);
+        memcpy(value + at, AUTH_COMMAND_NAMES[i], length);
+        at += length;
+    }
+    value[at] = '\0';
+    w_line_str(w, key, value);
 }
 
 static void w_line_uint(W* w, const char* key, uint32_t value) {
@@ -1446,6 +1590,8 @@ static DfcTextStatus write_files(W* w, const DfcCredential* c, const char* paren
 }
 
 static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
+    DfcDerStatus model = dfc_der_validate_model(c);
+    if(model != DfcDerOk) return (DfcTextStatus)model;
     if(c->uid_len != DFC_DESFIRE_UID_SHORT_LEN && c->uid_len != DFC_DESFIRE_UID_LEN &&
        c->uid_len != DFC_DESFIRE_UID_LONG_LEN) {
         return DfcTextMalformed;
@@ -1457,7 +1603,7 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
     if(c->picc_num_keys > DFC_MAX_KEYS) return DfcTextMalformed;
 
     w_line_str(w, "Filetype", "DFC Credential");
-    w_line_str(w, "Version", "4");
+    w_line_uint(w, "Version", DFC_FORMAT_VERSION);
     w_line_str(w, "Card Generation", GENERATION_NAMES[c->card.generation - 1]);
     w_line_uint(w, "Card Storage", c->card.storage);
     w_line_hex(w, "UID", c->uid, c->uid_len);
@@ -1468,10 +1614,22 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
             w, "Card Static Signature", c->picc_static_signature, sizeof(c->picc_static_signature));
     }
 #endif
+    if(c->card.has_hardware_version) {
+        w_line_hex(w, "Card Hardware Version", c->card.hardware_version,
+                   sizeof(c->card.hardware_version));
+    }
+    if(c->card.has_software_version) {
+        w_line_hex(w, "Card Software Version", c->card.software_version,
+                   sizeof(c->card.software_version));
+    }
 
     w_line_hex(w, "PICC Key Settings 1", &c->picc_key_settings_1, 1);
     w_line_hex(w, "PICC Key Settings 2", &c->picc_key_settings_2, 1);
-    w_line_str(w, "PICC Authentication Mode", AUTH_NAMES[auth_index_for(c->picc_auth_command)]);
+    w_line_auth_commands(w, "PICC Authentication Commands", dfc_credential_picc_auth_commands(c));
+    if(c->picc_has_preferred_auth_command) {
+        w_line_auth_commands(w, "PICC Preferred Authentication Command",
+                             c->picc_preferred_auth_command);
+    }
     w_line_uint(w, "PICC Key Count", (uint32_t)c->picc_num_keys);
     write_keys(w, "PICC", c, NULL, c->picc_num_keys, stored_key_length(c->picc_key_len));
     // Canonical omission: these carry their default (rule 5).
@@ -1556,7 +1714,7 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
         const DfcApplication* a = &c->apps[i];
         if(a->num_keys > DFC_MAX_KEYS) return DfcTextMalformed;
         if(a->iso_aid_len > sizeof(a->iso_aid)) return DfcTextMalformed;
-        snprintf(prefix, sizeof(prefix), "Application %02X", (unsigned)i);
+        snprintf(prefix, sizeof(prefix), "Application %02X", (unsigned)(uint8_t)i);
 
         snprintf(key, sizeof(key), "%s AID", prefix);
         w_line_hex(w, key, a->aid, 3);
@@ -1573,8 +1731,12 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
         w_line_hex(w, key, &a->key_settings_1, 1);
         snprintf(key, sizeof(key), "%s Key Settings 2", prefix);
         w_line_hex(w, key, &a->key_settings_2, 1);
-        snprintf(key, sizeof(key), "%s Authentication Mode", prefix);
-        w_line_str(w, key, AUTH_NAMES[auth_index_for(a->auth_command)]);
+        snprintf(key, sizeof(key), "%s Authentication Commands", prefix);
+        w_line_auth_commands(w, key, dfc_credential_app_auth_commands(c, a));
+        if(a->has_preferred_auth_command) {
+            snprintf(key, sizeof(key), "%s Preferred Authentication Command", prefix);
+            w_line_auth_commands(w, key, a->preferred_auth_command);
+        }
 #if DFC_ENABLE_KEY_SETS
         if(a->num_key_sets >= DFC_KEY_SET_MINIMUM_COUNT) {
             write_key_sets(w, prefix, c, a);
@@ -1608,6 +1770,10 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
             w_line_uint(w, key, a->delegated_free_blocks);
         }
 #endif
+        if(a->has_sm_disable) {
+            snprintf(key, sizeof(key), "%s SM Disable", prefix);
+            w_line_hex(w, key, &a->sm_disable, 1);
+        }
     }
     return DfcTextOk;
 }
@@ -1631,6 +1797,30 @@ DfcTextStatus dfc_text_write(const DfcCredential* credential, char* out, size_t 
     if(w.len < cap) out[w.len] = '\0';
     *len = w.len;
     return DfcTextOk;
+}
+
+DfcTextStatus dfc_credential_load(
+    DfcCredential* credential,
+    const uint8_t* content,
+    size_t len,
+    DfcTextError* detail) {
+    if(detail) {
+        detail->line = 0;
+        detail->message[0] = '\0';
+    }
+    if(!credential || (!content && len > 0)) return DfcTextMalformed;
+    if(dfc_credential_content_is_binary(content, len)) {
+        DfcDerStatus st = dfc_der_decode(credential, content, len);
+        if(st != DfcDerOk && detail) {
+            snprintf(
+                detail->message,
+                sizeof(detail->message),
+                "binary credential is %s",
+                dfc_der_status_name(st));
+        }
+        return st;
+    }
+    return dfc_text_parse(credential, (const char*)content, len, detail);
 }
 
 #endif // DFC_ENABLE_TEXT_CODEC

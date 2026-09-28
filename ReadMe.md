@@ -148,6 +148,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Rush Hour v0.1.8 (By Endika)](https://github.com/Endika/flipper-tutu)
 - Updated: [NFC Stock Manager v0.1.7 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
 - Updated: [Habit Flow v0.1.4 (By Endika)](https://github.com/Endika/flipper-habit-flow)
+- Updated: [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 
 <a name="release"></a>
 
@@ -547,7 +548,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
 - [Delonghi AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
-- [DFC v1.0 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
+- [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)
 - [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 - [Distance Sensor v1.1 (By Sanqui)](https://github.com/Sanqui/flipperzero-firmware/tree/hc_sr04) `Req: HC-SR04`

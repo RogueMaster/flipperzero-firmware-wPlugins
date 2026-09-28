@@ -126,6 +126,10 @@ static MunitResult test_copy_model_carries_pool(const MunitParameter params[], v
     DfcApplication* app = add_app(&src, 0x01, DFC_KEY_TYPE_AES | 2);
     munit_assert_not_null(app);
     fill_keys(&src, app, 0xD0);
+    src.picc_has_auth_commands = true;
+    src.picc_auth_commands = DFC_AUTH_COMMAND_D40 | DFC_AUTH_COMMAND_ISO_NATIVE;
+    src.picc_has_preferred_auth_command = true;
+    src.picc_preferred_auth_command = DFC_AUTH_COMMAND_ISO_NATIVE;
 
     DfcCredential dst;
     memset(&dst, 0, sizeof(dst));
@@ -135,6 +139,10 @@ static MunitResult test_copy_model_carries_pool(const MunitParameter params[], v
     munit_assert_size(dst.num_apps, ==, 1);
     munit_assert_size(dst.key_pool_used, ==, src.key_pool_used);
     munit_assert_size(dst.picc_key_offset, ==, src.picc_key_offset);
+    munit_assert_true(dst.picc_has_auth_commands);
+    munit_assert_uint8(dst.picc_auth_commands, ==, src.picc_auth_commands);
+    munit_assert_true(dst.picc_has_preferred_auth_command);
+    munit_assert_uint8(dst.picc_preferred_auth_command, ==, src.picc_preferred_auth_command);
 
     const uint8_t* copied_picc = dfc_credential_key_const(&dst, NULL, 0);
     munit_assert_not_null(copied_picc);

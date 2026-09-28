@@ -1,5 +1,7 @@
 #include "dfc_emulator_i.h"
 
+#if DFC_ENABLE_EMULATOR
+
 uint32_t dfc_emulator_read_uint24_le(const uint8_t* data) {
     return (uint32_t)data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16);
 }
@@ -20,7 +22,9 @@ static void des_ecb_crypt(
     size_t key_len,
     const uint8_t input[8],
     uint8_t output[8]) {
-    DFC_ASSERT(dfc_crypto_des_ecb(encrypt, key, key_len, input, output));
+    bool ok = dfc_crypto_des_ecb(encrypt, key, key_len, input, output);
+    DFC_ASSERT(ok);
+    DFC_UNUSED(ok);
 }
 
 void dfc_emulator_d40_receive_plain(
@@ -59,3 +63,5 @@ uint32_t dfc_emulator_crc32(const uint8_t* data, size_t len) {
     }
     return crc;
 }
+
+#endif // DFC_ENABLE_EMULATOR

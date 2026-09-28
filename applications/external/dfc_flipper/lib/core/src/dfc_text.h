@@ -40,6 +40,8 @@ typedef struct {
     char message[DFC_TEXT_ERROR_MESSAGE_MAX];
 } DfcTextError;
 
+#if DFC_ENABLE_TEXT_CODEC
+
 const char* dfc_text_status_name(DfcTextStatus status);
 
 // Parse `len` octets of `text` into `credential`, which is cleared first.
@@ -55,3 +57,19 @@ DfcTextStatus
 // itself is not representable. Passing NULL and a `cap` of 0 sizes the text
 // without writing it.
 DfcTextStatus dfc_text_write(const DfcCredential* credential, char* out, size_t cap, size_t* len);
+
+// True when `content` opens with the identifier octet of the binary encoding.
+// Text never does, because a .dfc document starts with a key.
+bool dfc_credential_content_is_binary(const uint8_t* content, size_t len);
+
+// Read a credential in either encoding, telling them apart by the first octet.
+// Binary goes through dfc_der_decode and text through dfc_text_parse, so both
+// enforce the same rules. `detail` may be NULL; for binary input it carries no
+// line, only the failure class.
+DfcTextStatus dfc_credential_load(
+    DfcCredential* credential,
+    const uint8_t* content,
+    size_t len,
+    DfcTextError* detail);
+
+#endif // DFC_ENABLE_TEXT_CODEC

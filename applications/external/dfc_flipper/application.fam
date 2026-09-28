@@ -1,3 +1,27 @@
+DFC_CDEFINES = [
+    ("DFC_FIRMWARE_BUILD", "1"),
+    ("DFC_CRYPTO_BACKEND_TINY", "1"),
+    ("TC_ENABLE_AES", "1"),
+    ("TC_AES_ENABLE_ECB", "1"),
+    ("TC_AES_ENABLE_CBC", "1"),
+    ("TC_AES_ENABLE_CTR", "0"),
+    ("TC_ENABLE_DES", "1"),
+    ("TC_DES_ENABLE_ECB", "1"),
+    ("TC_DES_ENABLE_CBC", "1"),
+    ("TC_DES_ENABLE_CTR", "0"),
+    ("TC_DES_ENABLE_TDES", "1"),
+    ("TC_ENABLE_SHA256", "0"),
+    ("DFC_BUILD_ROLE", "DFC_ROLE_TARGET"),
+    ("DFC_ENABLE_TEXT_CODEC", "1"),
+    ("DFC_BUILD_PROFILE", "DFC_PROFILE_FULL_EV3"),
+    ("DFC_ENABLE_STORAGE_8K", "0"),
+    ("DFC_MAX_APPS", "4"),
+    ("DFC_MAX_FILES", "16"),
+    ("DFC_FILE_POOL_SIZE", "3072"),
+    ("DFC_KEY_POOL_SIZE", "512"),
+    ("DFC_MAX_FILE_DATA", "2048"),
+]
+
 App(
     appid="dfc",
     name="DFC",
@@ -8,41 +32,58 @@ App(
     fap_icon="dfc.png",
     fap_icon_assets="images",
     fap_file_assets="files",
-    cdefines=[
-        ("AES128", "1"),
-        ("AES192", "0"),
-        ("AES256", "0"),
-        ("AES_ENABLE_CBC", "1"),
-        ("AES_ENABLE_CTR", "0"),
-        ("DES_ENABLE_ECB", "1"),
-        ("DES_ENABLE_CBC", "1"),
-        ("DES_ENABLE_CTR", "0"),
-        ("DES_ENABLE_TDES", "1"),
-        ("DFC_FIRMWARE_BUILD", "1"),
-        ("DFC_BUILD_PROFILE", "DFC_PROFILE_FULL_EV1"),
-    ],
+    cdefines=DFC_CDEFINES,
     fap_private_libs=[
         Lib(
             name="core",
             fap_include_paths=["src", "port"],
-            sources=["src/*.c"],
-            cincludes=["lib/tiny_AES_c", "lib/tiny_DES_c"],
+            sources=["src/aes_cmac.c", "src/des_cmac.c", "src/dfc_[!t]*.c"],
+            cincludes=["lib/tiny_crypto_c/src"],
         ),
         Lib(
-            name="tiny_AES_c",
-            fap_include_paths=["."],
-            sources=["aes.c"],
-        ),
-        Lib(
-            name="tiny_DES_c",
-            fap_include_paths=["."],
-            sources=["des.c"],
+            name="tiny_crypto_c",
+            fap_include_paths=["src"],
+            sources=["src/aes.c", "src/des.c", "src/common.c"],
         ),
     ],
-    sources=["*.c", "*.cpp", "!lib"],
+    sources=["*.c", "*.cpp", "!lib", "!tests", "!text_plugin"],
     fap_category="NFC",
     fap_author="CinderSocket",
     fap_weburl="https://github.com/cindersocket/dfc-flipper",
-    fap_version="1.0",
+    fap_version="1.1.1",
     fap_description="DFC: reader/emulator for compatible NFC credentials",
+)
+
+App(
+    appid="dfc_text_import",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="dfc_text_codec_ep",
+    requires=["dfc"],
+    fal_embedded=True,
+    cdefines=DFC_CDEFINES + [("DFC_TEXT_IMPORT_PLUGIN", "1")],
+    sources=["text_plugin/*.c"],
+    fap_private_libs=[
+        Lib(
+            name="text_import",
+            fap_include_paths=["../core/src", "../core/port"],
+            sources=["*.c"],
+        ),
+    ],
+)
+
+App(
+    appid="dfc_text_export",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="dfc_text_codec_ep",
+    requires=["dfc"],
+    fal_embedded=True,
+    cdefines=DFC_CDEFINES + [("DFC_TEXT_EXPORT_PLUGIN", "1")],
+    sources=["text_plugin/*.c"],
+    fap_private_libs=[
+        Lib(
+            name="text_export",
+            fap_include_paths=["../core/src", "../core/port"],
+            sources=["*.c"],
+        ),
+    ],
 )

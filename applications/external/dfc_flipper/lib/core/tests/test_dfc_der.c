@@ -84,7 +84,9 @@ static MunitResult test_round_trip(const MunitParameter params[], void* data) {
     rec->max_records = 5;
     rec->record_count = 2;
     rec->contents_complete = true;
-    munit_assert_true(dfc_file_resize(&src, rec, 8));
+    // The emulator reserves the whole record-file capacity in its pool. Only
+    // current records belong in DFCB, not the unused backing bytes.
+    munit_assert_true(dfc_file_resize(&src, rec, 20));
     memcpy(dfc_file_data(&src, rec), "\x01\x02\x03\x04\x05\x06\x07\x08", 8);
 
     uint8_t buf[DFC_DER_MAX_SIZE];
@@ -149,6 +151,89 @@ static MunitResult test_round_trip(const MunitParameter params[], void* data) {
     munit_assert_size(again_len, ==, len);
     munit_assert_memory_equal(len, again, buf);
 
+    // The same EV1 card expressed in v4 uses scalar authentication modes.
+    // Re-encoding a decoded v4 card upgrades it to the current format.
+    uint8_t legacy[DFC_DER_MAX_SIZE];
+    memcpy(legacy, buf, len);
+    bool downgraded = false;
+    for(size_t i = 0; i + 2 < len; i++) {
+        if(legacy[i] == 0x80 && legacy[i + 1] == 0x01 && legacy[i + 2] == DFC_FORMAT_VERSION) {
+            legacy[i + 2] = 4;
+            downgraded = true;
+            break;
+        }
+    }
+    munit_assert_true(downgraded);
+    bool changed_picc_auth = false;
+    bool changed_app_auth = false;
+    for(size_t i = 0; i + 2 < len; i++) {
+        if(!changed_picc_auth && legacy[i] == 0x82 && legacy[i + 1] == 0x01 &&
+           legacy[i + 2] == (DFC_AUTH_COMMAND_D40 | DFC_AUTH_COMMAND_ISO_NATIVE)) {
+            legacy[i + 2] = 0; // v4 D40 enum
+            changed_picc_auth = true;
+        }
+        if(!changed_app_auth && legacy[i] == 0x85 && legacy[i + 1] == 0x01 &&
+           legacy[i + 2] == DFC_AUTH_COMMAND_AES) {
+            legacy[i + 2] = 2; // v4 AES enum
+            changed_app_auth = true;
+        }
+    }
+    munit_assert_true(changed_picc_auth);
+    munit_assert_true(changed_app_auth);
+    DfcCredential from_v4;
+    memset(&from_v4, 0, sizeof(from_v4));
+    munit_assert_int(dfc_der_decode(&from_v4, legacy, len), ==, DfcDerOk);
+    size_t upgraded_len = 0;
+    uint8_t upgraded[DFC_DER_MAX_SIZE];
+    munit_assert_int(
+        dfc_der_encode(&from_v4, upgraded, sizeof(upgraded), &upgraded_len), ==, DfcDerOk);
+    bool is_v6 = false;
+    for(size_t i = 0; i + 2 < upgraded_len; i++) {
+        if(upgraded[i] == 0x80 && upgraded[i + 1] == 0x01 &&
+           upgraded[i + 2] == DFC_FORMAT_VERSION) {
+            is_v6 = true;
+            break;
+        }
+    }
+    munit_assert_true(is_v6);
+
+    return MUNIT_OK;
+}
+
+static MunitResult test_version_override_round_trip(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+    DfcCredential src;
+    memset(&src, 0, sizeof(src));
+    build_basic(&src);
+    src.card.has_hardware_version = true;
+    memcpy(src.card.hardware_version, "\x04\x01\x01\x12\x00\x18\x05", 7);
+    src.card.has_software_version = true;
+    memcpy(src.card.software_version, "\x04\x01\x01\x02\x01\x18\x05", 7);
+
+    uint8_t buf[DFC_DER_MAX_SIZE];
+    size_t len = 0;
+    munit_assert_int(dfc_der_encode(&src, buf, sizeof(buf), &len), ==, DfcDerOk);
+    DfcCredential dst;
+    memset(&dst, 0, sizeof(dst));
+    munit_assert_int(dfc_der_decode(&dst, buf, len), ==, DfcDerOk);
+    munit_assert_true(dst.card.has_hardware_version);
+    munit_assert_memory_equal(7, dst.card.hardware_version, src.card.hardware_version);
+    munit_assert_true(dst.card.has_software_version);
+    munit_assert_memory_equal(7, dst.card.software_version, src.card.software_version);
+
+    uint8_t malformed[DFC_DER_MAX_SIZE];
+    memcpy(malformed, buf, len);
+    bool found = false;
+    for(size_t i = 0; i + 1 < len; i++) {
+        if(malformed[i] == 0x85 && malformed[i + 1] == 0x07) {
+            malformed[i + 1] = 0x06;
+            found = true;
+            break;
+        }
+    }
+    munit_assert_true(found);
+    munit_assert_int(dfc_der_decode(&dst, malformed, len), ==, DfcDerMalformed);
     return MUNIT_OK;
 }
 
@@ -215,16 +300,16 @@ static MunitResult test_rejections(const MunitParameter params[], void* data) {
     trailing[good_len] = 0x00;
     munit_assert_int(dfc_der_decode(&dst, trailing, good_len + 1), ==, DfcDerMalformed);
 
-    // Version 5 is a later version, so unsupported rather than malformed.
-    uint8_t v5[DFC_DER_MAX_SIZE];
-    memcpy(v5, good, good_len);
+    // Version 6 is later than this implementation, so unsupported rather than malformed.
+    uint8_t v6[DFC_DER_MAX_SIZE];
+    memcpy(v6, good, good_len);
     for(size_t i = 0; i + 2 < good_len; i++) {
-        if(v5[i] == 0x80 && v5[i + 1] == 0x01 && v5[i + 2] == DFC_FORMAT_VERSION) {
-            v5[i + 2] = DFC_FORMAT_VERSION + 1;
+        if(v6[i] == 0x80 && v6[i + 1] == 0x01 && v6[i + 2] == DFC_FORMAT_VERSION) {
+            v6[i + 2] = DFC_FORMAT_VERSION + 1;
             break;
         }
     }
-    munit_assert_int(dfc_der_decode(&dst, v5, good_len), ==, DfcDerUnsupported);
+    munit_assert_int(dfc_der_decode(&dst, v6, good_len), ==, DfcDerUnsupported);
 
     // An explicit FALSE for a DEFAULT FALSE component is non-canonical.
     DfcCredential explicit_false = src;
@@ -304,15 +389,78 @@ static MunitResult test_model_validation(const MunitParameter params[], void* da
     wrong->type = 0x05;
     munit_assert_int(dfc_der_encode(&early, buf, sizeof(buf), &len), ==, DfcDerMalformed);
 
-    // An EV3 feature on an EV2 credential is malformed for the same reason.
+    // An originality signature is available from EV2 onward.
     DfcCredential ev2;
     memset(&ev2, 0, sizeof(ev2));
     build_basic(&ev2);
     ev2.card.generation = DfcGenerationEv2;
     ev2.picc_has_static_signature = true;
-    munit_assert_int(dfc_der_encode(&ev2, buf, sizeof(buf), &len), ==, DfcDerMalformed);
+    munit_assert_int(dfc_der_encode(&ev2, buf, sizeof(buf), &len), ==, DfcDerOk);
     ev2.card.generation = DfcGenerationEv3;
     munit_assert_int(dfc_der_encode(&ev2, buf, sizeof(buf), &len), ==, DfcDerOk);
+    ev2.card.generation = DfcGenerationEv1;
+    munit_assert_int(dfc_der_encode(&ev2, buf, sizeof(buf), &len), ==, DfcDerMalformed);
+
+    DfcCredential policy;
+    memset(&policy, 0, sizeof(policy));
+    build_basic(&policy);
+    policy.picc_has_auth_commands = true;
+    policy.picc_auth_commands = DFC_AUTH_COMMAND_D40;
+    policy.picc_has_preferred_auth_command = true;
+    policy.picc_preferred_auth_command = DFC_AUTH_COMMAND_ISO_NATIVE;
+    munit_assert_int(dfc_der_validate_model(&policy), ==, DfcDerMalformed);
+    policy.picc_preferred_auth_command = DFC_AUTH_COMMAND_D40;
+    munit_assert_int(dfc_der_validate_model(&policy), ==, DfcDerOk);
+    policy.picc_preferred_auth_command = DFC_AUTH_COMMAND_D40 | DFC_AUTH_COMMAND_ISO_NATIVE;
+    munit_assert_int(dfc_der_validate_model(&policy), ==, DfcDerMalformed);
+    policy.picc_has_auth_commands = false;
+    policy.picc_preferred_auth_command = 0x80;
+    munit_assert_int(dfc_der_validate_model(&policy), ==, DfcDerMalformed);
+    policy.picc_preferred_auth_command = DFC_AUTH_COMMAND_D40 | DFC_AUTH_COMMAND_ISO_NATIVE;
+    munit_assert_int(dfc_der_validate_model(&policy), ==, DfcDerMalformed);
+    policy.picc_has_auth_commands = true;
+    policy.picc_auth_commands = DFC_AUTH_COMMAND_D40;
+    policy.picc_has_preferred_auth_command = false;
+    policy.apps[0].has_preferred_auth_command = true;
+    policy.apps[0].preferred_auth_command = DFC_AUTH_COMMAND_D40;
+    munit_assert_int(dfc_der_validate_model(&policy), ==, DfcDerMalformed);
+    policy.apps[0].has_preferred_auth_command = false;
+
+    DfcCredential requested;
+    memset(&requested, 0, sizeof(requested));
+    build_basic(&requested);
+    requested.card.generation = DfcGenerationEv3;
+    requested.picc_has_auth_commands = true;
+    requested.picc_auth_commands = DFC_AUTH_COMMAND_ISO_NATIVE | DFC_AUTH_COMMAND_ISO7816;
+    requested.picc_has_preferred_auth_command = true;
+    requested.picc_preferred_auth_command = DFC_AUTH_COMMAND_ISO_NATIVE;
+    requested.apps[0].has_auth_commands = true;
+    requested.apps[0].auth_commands = DFC_AUTH_COMMAND_AES | DFC_AUTH_COMMAND_EV2_FIRST |
+                                       DFC_AUTH_COMMAND_EV2_NON_FIRST | DFC_AUTH_COMMAND_ISO7816;
+    requested.apps[0].has_preferred_auth_command = true;
+    requested.apps[0].preferred_auth_command = DFC_AUTH_COMMAND_AES;
+    DfcDerStatus requested_status =
+        (dfc_credential_compiled_auth_commands() & DFC_AUTH_COMMAND_ISO7816) ?
+            DfcDerOk : DfcDerUnsupported;
+    munit_assert_int(dfc_der_validate_model(&requested), ==, requested_status);
+    requested.picc_auth_commands = DFC_AUTH_COMMAND_ISO_NATIVE;
+    requested.apps[0].auth_commands |= DFC_AUTH_COMMAND_ISO_NATIVE;
+    munit_assert_int(dfc_der_validate_model(&requested), ==, DfcDerMalformed);
+    requested.apps[0].auth_commands &= (uint8_t)~DFC_AUTH_COMMAND_ISO_NATIVE;
+    requested.picc_key_settings_2 = DFC_KEY_TYPE_AES | 1;
+    munit_assert_int(dfc_der_validate_model(&requested), ==, DfcDerMalformed);
+
+    uint8_t unavailable = DFC_AUTH_COMMAND_ALL &
+                          (uint8_t)~dfc_credential_compiled_auth_commands();
+    if(unavailable) {
+        uint8_t disabled_command = unavailable & (uint8_t)(0u - unavailable);
+        policy.picc_has_preferred_auth_command = true;
+        policy.picc_preferred_auth_command = disabled_command;
+        munit_assert_int(dfc_der_validate_model(&policy), ==, DfcDerMalformed);
+        policy.picc_has_preferred_auth_command = false;
+        policy.picc_auth_commands = disabled_command;
+        munit_assert_int(dfc_der_validate_model(&policy), ==, DfcDerUnsupported);
+    }
 
     // complete with contents shorter than the declared size.
     DfcCredential short_complete;
@@ -379,8 +527,38 @@ static MunitResult test_capacity(const MunitParameter params[], void* data) {
     return MUNIT_OK;
 }
 
+static MunitResult test_padded_length(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+    DfcCredential credential = {0};
+    build_basic(&credential);
+    uint8_t buffer[DFC_DER_MAX_SIZE] = {0};
+    size_t length = 0;
+    munit_assert_int(dfc_der_encode(&credential, buffer, sizeof(buffer), &length), ==, DfcDerOk);
+    munit_assert_size(dfc_der_length(buffer, sizeof(buffer)), ==, length);
+    munit_assert_size(dfc_der_length(buffer, length), ==, length);
+    for(size_t i = 0; i < length; i++) {
+        munit_assert_size(dfc_der_length(buffer, i), ==, 0);
+    }
+    munit_assert_size(dfc_der_length(NULL, sizeof(buffer)), ==, 0);
+    buffer[0] = 0x30;
+    munit_assert_size(dfc_der_length(buffer, sizeof(buffer)), ==, 0);
+    const uint8_t nonminimal[] = {0x60, 0x81, 0x01, 0x00};
+    const uint8_t indefinite[] = {0x60, 0x80, 0x00, 0x00};
+    munit_assert_size(dfc_der_length(nonminimal, sizeof(nonminimal)), ==, 0);
+    munit_assert_size(dfc_der_length(indefinite, sizeof(indefinite)), ==, 0);
+    return MUNIT_OK;
+}
+
 static MunitTest tests[] = {
+    {"/padded-length", test_padded_length, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {"/round-trip", test_round_trip, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {"/version-override-round-trip",
+     test_version_override_round_trip,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
     {"/picc-level-file", test_picc_level_file, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {"/rejections", test_rejections, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {"/model-validation", test_model_validation, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},

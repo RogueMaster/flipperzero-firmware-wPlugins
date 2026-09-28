@@ -198,7 +198,7 @@ static MunitResult test_sak_and_atqa_override(const MunitParameter params[], voi
     munit_assert_int(
         dfc_virtual_picc_scan_iso14443a(session, &activation), ==, DfcVirtualPiccStatusOk);
     munit_assert_uint8(activation.sak, ==, 0x20);
-    munit_assert_memory_equal(2, activation.atqa, "\x03\x44");
+    munit_assert_memory_equal(2, activation.atqa, "\x44\x03");
     dfc_virtual_picc_session_free(session);
 
     credential.picc_has_sak = true;

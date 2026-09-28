@@ -2,6 +2,8 @@
  * transport. The Flipper listener and the host virtual PICC both call it. */
 #include "dfc_emulator_i.h"
 
+#if DFC_ENABLE_EMULATOR
+
 #define TAG                  DFC_EMULATOR_TAG
 #define ISO14443_4A_CID_MASK DFC_ISO14443_4A_CID_MASK
 #define ISO14443_4A_NAD_MASK DFC_ISO14443_4A_NAD_MASK
@@ -65,3 +67,5 @@ bool dfc_emulator_handle_iso7816_select(
     dfc_bytebuf_append_byte(tx_buffer, DFC_ISO7816_SW_NOT_FOUND_LO);
     return dfc_bytebuf_get_size_bytes(tx_buffer) > prefix_len;
 }
+
+#endif // DFC_ENABLE_EMULATOR

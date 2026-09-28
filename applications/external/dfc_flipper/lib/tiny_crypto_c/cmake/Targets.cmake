@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+set(TINY_CRYPTO_TARGET "" CACHE STRING "Application target: piv-acu, piv-pd, or empty")
+set_property(CACHE TINY_CRYPTO_TARGET PROPERTY STRINGS "" piv-acu piv-pd)
+if(NOT TINY_CRYPTO_TARGET STREQUAL "" AND
+   NOT TINY_CRYPTO_TARGET MATCHES "^piv-(acu|pd)$")
+  message(FATAL_ERROR "Unknown TINY_CRYPTO_TARGET: ${TINY_CRYPTO_TARGET}")
+endif()
+
+# Both ends derive PIV Auto challenges. AES block/CBC operations serve the
+# OSDP channel; card Secure Messaging belongs to the PD.
+set(tc_role_features
+  TC_ENABLE_AES TC_AES_ENABLE_ECB TC_AES_ENABLE_CBC
+  TC_ENABLE_SHA1 TC_ENABLE_SHA256 TC_ENABLE_SHA384 TC_ENABLE_KMAC256
+  TC_ENABLE_TLV TC_ENABLE_DER TC_TLV_ENABLE_BER
+  TC_ENABLE_AAMVA TC_ENABLE_FASCN TC_ENABLE_TWIC_UUID TC_ENABLE_TWIC_TPK
+  TC_ENABLE_TWIC_OBJECT_CRYPTO
+  TC_ENABLE_PIV_OIDS
+  TC_ENABLE_X509 TC_ENABLE_X509_PATH TC_ENABLE_X509_REVOCATION TC_ENABLE_CMS
+  TC_ENABLE_CMS_VALIDATION TC_ENABLE_KEY_CHALLENGE
+  TC_ENABLE_PIV_OBJECTS TC_ENABLE_PIV_CHUID TC_ENABLE_CREDENTIAL TC_ENABLE_GZIP
+  TC_ENABLE_RSA TC_ENABLE_EC TC_EC_ENABLE_P256 TC_EC_ENABLE_P384)
+list(APPEND tc_role_features ${tc_platform_features})
+if(TINY_CRYPTO_TARGET STREQUAL "piv-pd")
+  list(APPEND tc_role_features
+    TC_ENABLE_PIV_CVC TC_ENABLE_PIV_SM TC_PIV_SM_ENABLE_CS2 TC_PIV_SM_ENABLE_CS7
+    TC_AES_ENABLE_DYNAMIC TC_ENABLE_SSKDF)
+endif()
+
+function(tc_target_default macro output)
+  if(NOT TINY_CRYPTO_TARGET STREQUAL "" AND
+     macro MATCHES "^TC_(ENABLE_|AES_ENABLE_|DES_ENABLE_|TLV_ENABLE_|EC_ENABLE_|PIV_SM_ENABLE_)")
+    if(macro IN_LIST tc_role_features)
+      set(${output} 1 PARENT_SCOPE)
+    else()
+      set(${output} 0 PARENT_SCOPE)
+    endif()
+  else()
+    set(${output} "" PARENT_SCOPE)
+  endif()
+endfunction()
