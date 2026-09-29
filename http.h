@@ -19,6 +19,10 @@ void fhttp_close(FhttpClient* c);
 // [PING] -> [PONG]. Confirms a FlipperHTTP board is attached and responsive.
 bool fhttp_ping(FhttpClient* c);
 
+// Ask the board to scan for WiFi networks. Fills out with the raw JSON body,
+// e.g. {"networks":["Home","Cafe"]}.
+bool fhttp_scan(FhttpClient* c, char* out, size_t out_cap);
+
 // Save credentials and connect. Returns true once connected.
 bool fhttp_wifi(FhttpClient* c, const char* ssid, const char* pass);
 

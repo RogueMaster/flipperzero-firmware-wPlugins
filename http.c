@@ -127,11 +127,16 @@ static bool fhttp_wait_any(FhttpClient* c, const char* a, const char* b, uint32_
     return false;
 }
 
+// The board can be slow to answer: it may still be booting after power-up, or
+// busy finishing an earlier request. Give it several tries before giving up.
 bool fhttp_ping(FhttpClient* c) {
     if(!c->open) return false;
-    furi_stream_buffer_reset(c->rx);
-    fhttp_send_line(c, "[PING]");
-    return fhttp_wait_any(c, "[PONG]", NULL, 2000);
+    for(int attempt = 0; attempt < 4; attempt++) {
+        furi_stream_buffer_reset(c->rx);
+        fhttp_send_line(c, "[PING]");
+        if(fhttp_wait_any(c, "[PONG]", NULL, 2000)) return true;
+    }
+    return false;
 }
 
 bool fhttp_wifi(FhttpClient* c, const char* ssid, const char* pass) {
@@ -140,11 +145,48 @@ bool fhttp_wifi(FhttpClient* c, const char* ssid, const char* pass) {
     snprintf(cmd, sizeof(cmd), "[WIFI/SAVE]{\"ssid\":\"%s\",\"password\":\"%s\"}", ssid, pass);
     furi_stream_buffer_reset(c->rx);
     fhttp_send_line(c, cmd);
-    fhttp_wait_any(c, "[SUCCESS]", NULL, 5000); // best-effort; connect confirms
 
+    // [WIFI/SAVE] joins the network first and only stores the credentials once
+    // that works, so its own reply is authoritative. Joining can take a while,
+    // so wait properly rather than treating this as best-effort.
+    if(fhttp_wait_any(c, "[SUCCESS]", NULL, 20000)) return true;
+
+    // Otherwise ask explicitly. A board that is already joined answers
+    // "[INFO] Already connected to WiFi.", which is still success for us.
     furi_stream_buffer_reset(c->rx);
     fhttp_send_line(c, "[WIFI/CONNECT]");
-    return fhttp_wait_any(c, "CONNECTED", "SUCCESS", 20000);
+    return fhttp_wait_any(c, "[SUCCESS]", "Already connected", 20000);
+}
+
+// Accumulate into out until the end marker arrives; the marker and any
+// trailing whitespace are trimmed off.
+static bool fhttp_collect_until(
+    FhttpClient* c,
+    const char* endm,
+    char* out,
+    size_t out_cap,
+    uint32_t timeout_ms) {
+    size_t el = strlen(endm);
+    size_t len = 0;
+    out[0] = '\0';
+    uint32_t start = furi_get_tick();
+    uint32_t to = furi_ms_to_ticks(timeout_ms);
+    while(furi_get_tick() - start < to) {
+        uint8_t ch;
+        if(furi_stream_buffer_receive(c->rx, &ch, 1, furi_ms_to_ticks(50)) == 0) continue;
+        if(len < out_cap - 1) {
+            out[len++] = (char)ch;
+            out[len] = '\0';
+        }
+        if(len >= el && memcmp(out + len - el, endm, el) == 0) {
+            len -= el;
+            while(len > 0 && (out[len - 1] == '\n' || out[len - 1] == '\r' || out[len - 1] == ' '))
+                len--;
+            out[len] = '\0';
+            return true;
+        }
+    }
+    return false;
 }
 
 bool fhttp_get(
@@ -181,27 +223,13 @@ bool fhttp_get(
 
     if(!fhttp_wait_any(c, "[GET/SUCCESS]", NULL, 15000)) return false;
 
-    // Collect body until [GET/END].
-    const char* endm = "[GET/END]";
-    size_t el = strlen(endm);
-    size_t len = 0;
-    out[0] = '\0';
-    uint32_t start = furi_get_tick();
-    uint32_t to = furi_ms_to_ticks(15000);
-    while(furi_get_tick() - start < to) {
-        uint8_t ch;
-        if(furi_stream_buffer_receive(c->rx, &ch, 1, furi_ms_to_ticks(50)) == 0) continue;
-        if(len < out_cap - 1) {
-            out[len++] = (char)ch;
-            out[len] = '\0';
-        }
-        if(len >= el && memcmp(out + len - el, endm, el) == 0) {
-            len -= el;
-            while(len > 0 && (out[len - 1] == '\n' || out[len - 1] == '\r' || out[len - 1] == ' '))
-                len--;
-            out[len] = '\0';
-            return true;
-        }
-    }
-    return false;
+    return fhttp_collect_until(c, "[GET/END]", out, out_cap, 15000);
+}
+
+bool fhttp_scan(FhttpClient* c, char* out, size_t out_cap) {
+    if(!c->open) return false;
+    furi_stream_buffer_reset(c->rx);
+    fhttp_send_line(c, "[WIFI/SCAN]");
+    if(!fhttp_wait_any(c, "[GET/SUCCESS]", NULL, 15000)) return false;
+    return fhttp_collect_until(c, "[GET/END]", out, out_cap, 15000);
 }

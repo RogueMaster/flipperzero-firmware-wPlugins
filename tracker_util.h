@@ -38,6 +38,12 @@ typedef struct {
 // template was provided (the minimum for live tracking).
 bool config_parse(const char* buf, TrackerConfig* cfg);
 
+#define TU_SSID_LEN 33
+
+// Pull SSIDs out of the board's scan reply, e.g. {"networks":["Home","Cafe"]}.
+// Returns how many were written into out.
+int ssid_list_parse(const char* json, char out[][TU_SSID_LEN], int max);
+
 // Substitute {tracking} and {carrier} in tmpl into out (bounded by cap).
 // Returns the written length.
 size_t

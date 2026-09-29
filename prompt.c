@@ -28,6 +28,8 @@ bool prompt_text(Gui* gui, const char* header, char* buf, size_t cap, size_t min
         .confirmed = false,
     };
 
+    // The keyboard capitalizes the first character by default; holding OK
+    // inverts the case of the selected key, so both cases stay reachable.
     TextInput* text_input = text_input_alloc();
     text_input_set_header_text(text_input, header);
     text_input_set_minimum_length(text_input, min_len);

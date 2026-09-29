@@ -9,6 +9,7 @@
 #include "tracker_util.h"
 #include "http.h"
 #include "prompt.h"
+#include "menu.h"
 
 #define MAX_PACKAGES 12
 #define VISIBLE_ROWS 4
@@ -337,6 +338,65 @@ static void add_package_flow(TrackerState* state) {
     refresh_msg(state, "Added");
 }
 
+// Scan from the board, pick a network, type the password once. The board
+// stores the credentials itself, so they never touch the SD card.
+static void wifi_setup_flow(TrackerState* state) {
+    refresh_msg(state, "Connecting board...");
+    FhttpClient* http = fhttp_alloc();
+
+    if(!fhttp_open(http)) {
+        refresh_msg(state, "No board found");
+        fhttp_free(http);
+        return;
+    }
+    if(!fhttp_ping(http)) {
+        refresh_msg(state, "Board not responding");
+        fhttp_close(http);
+        fhttp_free(http);
+        return;
+    }
+
+    refresh_msg(state, "Scanning WiFi...");
+    static char ssids[12][TU_SSID_LEN];
+    char* body = malloc(2048);
+    bool scanned = fhttp_scan(http, body, 2048);
+    int n = scanned ? ssid_list_parse(body, ssids, 12) : 0;
+    free(body);
+
+    if(n <= 0) {
+        refresh_msg(state, scanned ? "No networks found" : "Scan failed");
+        fhttp_close(http);
+        fhttp_free(http);
+        return;
+    }
+
+    const char* items[12];
+    for(int i = 0; i < n; i++)
+        items[i] = ssids[i];
+
+    char pass[64] = "";
+    view_port_enabled_set(state->view_port, false);
+    int32_t pick = menu_pick(state->gui, "Select network", items, (size_t)n);
+    // An open network is legitimate, so an empty password is allowed.
+    bool confirmed = (pick >= 0) &&
+                     prompt_text(state->gui, "WiFi password", pass, sizeof(pass), 0);
+    view_port_enabled_set(state->view_port, true);
+
+    if(!confirmed) {
+        refresh_msg(state, "");
+        fhttp_close(http);
+        fhttp_free(http);
+        return;
+    }
+
+    refresh_msg(state, "Joining WiFi...");
+    bool joined = fhttp_wifi(http, ssids[pick], pass);
+    refresh_msg(state, joined ? "WiFi saved to board" : "WiFi failed");
+
+    fhttp_close(http);
+    fhttp_free(http);
+}
+
 static void delete_selected(TrackerState* state) {
     furi_mutex_acquire(state->mutex, FuriWaitForever);
     if(package_count > 0) {
@@ -505,7 +565,7 @@ static void draw_empty(Canvas* canvas) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignCenter, "No packages yet");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "LEFT: add a package");
+    canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "LEFT: menu");
     canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignCenter, "BACK: exit");
 }
 
@@ -547,7 +607,7 @@ static void draw_list(Canvas* canvas, TrackerState* state) {
 
     // Room to spare means room to say how to add one.
     if(package_count < VISIBLE_ROWS) {
-        canvas_draw_str(canvas, 13, 13 + package_count * ROW_HEIGHT + 9, "LEFT: add package");
+        canvas_draw_str(canvas, 13, 13 + package_count * ROW_HEIGHT + 9, "LEFT: menu");
     }
 }
 
@@ -667,7 +727,7 @@ int32_t package_tracker_app(void* p) {
 
         // Deferred so they run with the mutex released: the keyboard blocks,
         // and the render callback takes the same mutex.
-        bool do_add = false;
+        bool do_menu = false;
         bool do_delete = false;
         bool do_refresh = false;
 
@@ -685,11 +745,11 @@ int32_t package_tracker_app(void* p) {
                 if(in->key == InputKeyBack && in->type == InputTypeShort)
                     running = false;
                 else if(in->key == InputKeyLeft && in->type == InputTypeShort)
-                    do_add = true;
+                    do_menu = true;
                 else if(in->key == InputKeyRight && in->type == InputTypeShort)
                     do_refresh = true;
             } else if(in->key == InputKeyLeft && in->type == InputTypeShort) {
-                do_add = true;
+                do_menu = true;
             } else if(in->key == InputKeyDown) {
                 if(state->selected < package_count - 1) {
                     state->selected++;
@@ -727,9 +787,23 @@ int32_t package_tracker_app(void* p) {
 
         furi_mutex_release(state->mutex);
 
-        if(do_add)
-            add_package_flow(state);
-        else if(do_delete)
+        if(do_menu) {
+            static const char* const menu_items[] = {
+                "Add package",
+                "WiFi setup",
+                "Refresh now",
+            };
+            view_port_enabled_set(view_port, false);
+            int32_t choice = menu_pick(state->gui, "Pack Track", menu_items, 3);
+            view_port_enabled_set(view_port, true);
+
+            if(choice == 0)
+                add_package_flow(state);
+            else if(choice == 1)
+                wifi_setup_flow(state);
+            else if(choice == 2)
+                start_refresh(state);
+        } else if(do_delete)
             delete_selected(state);
         else if(do_refresh)
             start_refresh(state);

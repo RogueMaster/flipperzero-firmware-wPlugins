@@ -303,3 +303,43 @@ PackageStatus status_from_text(const char* s) {
     if(contains_ci(s, "transit")) return StatusInTransit;
     return StatusPending;
 }
+
+// Local substring search: strstr is not part of the FAP API surface we rely on.
+static const char* tu_find(const char* hay, const char* needle) {
+    for(const char* h = hay; *h; h++) {
+        size_t i = 0;
+        while(needle[i] && h[i] == needle[i])
+            i++;
+        if(!needle[i]) return h;
+    }
+    return NULL;
+}
+
+int ssid_list_parse(const char* json, char out[][TU_SSID_LEN], int max) {
+    if(!json || max <= 0) return 0;
+    const char* p = tu_find(json, "\"networks\"");
+    if(!p) return 0;
+    while(*p && *p != '[')
+        p++;
+    if(*p != '[') return 0;
+    p++;
+
+    int n = 0;
+    while(*p && *p != ']' && n < max) {
+        if(*p != '"') {
+            p++;
+            continue;
+        }
+        p++; // opening quote
+        size_t len = 0;
+        while(*p && *p != '"') {
+            if(*p == '\\' && p[1]) p++; // keep the escaped character itself
+            if(len < TU_SSID_LEN - 1) out[n][len++] = *p;
+            p++;
+        }
+        out[n][len] = '\0';
+        if(len > 0) n++;
+        if(*p == '"') p++;
+    }
+    return n;
+}
