@@ -12,6 +12,7 @@
 #define TU_PATH_MAX 48
 #define TU_HDR_MAX  4
 #define TU_HDR_LEN  96
+#define TU_BODY_MAX 192
 
 typedef enum {
     StatusPending,
@@ -25,6 +26,8 @@ typedef struct {
     char wifi_ssid[TU_SSID_MAX];
     char wifi_pass[TU_PASS_MAX];
     char url[TU_URL_MAX]; // template with {tracking} / {carrier}
+    char body[TU_BODY_MAX]; // POST payload template, same substitutions
+    bool is_post;
     char headers[TU_HDR_MAX][TU_HDR_LEN];
     int header_count;
     char field_status[TU_PATH_MAX];
@@ -50,6 +53,8 @@ size_t
     url_build(const char* tmpl, const char* tracking, const char* carrier, char* out, size_t cap);
 
 // Extract a dot/index path (e.g. "data.0.status") from a JSON string into out.
+// A segment of "last" selects the final element of an array, which is how APIs
+// that return an event timeline expose the most recent one.
 // Returns true if the path resolved to a string/number leaf.
 bool json_extract(const char* json, const char* path, char* out, size_t cap);
 

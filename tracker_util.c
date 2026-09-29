@@ -73,6 +73,12 @@ bool config_parse(const char* buf, TrackerConfig* cfg) {
         } else if(key_is(ks, ke, "URL")) {
             copy_range(cfg->url, sizeof(cfg->url), vs, ve);
             cfg->has_url = cfg->url[0] != '\0';
+        } else if(key_is(ks, ke, "METHOD")) {
+            char m[8];
+            copy_range(m, sizeof(m), vs, ve);
+            cfg->is_post = (m[0] == 'P' || m[0] == 'p');
+        } else if(key_is(ks, ke, "BODY")) {
+            copy_range(cfg->body, sizeof(cfg->body), vs, ve);
         } else if(key_is(ks, ke, "HEADER")) {
             if(cfg->header_count < TU_HDR_MAX)
                 copy_range(cfg->headers[cfg->header_count++], TU_HDR_LEN, vs, ve);
@@ -261,7 +267,18 @@ bool json_extract(const char* json, const char* path, char* out, size_t cap) {
         while(*segend && *segend != '.')
             segend++;
         p = skip_ws(p);
-        if(seg_is_num(seg, segend) && *p == '[') {
+        size_t seglen = (size_t)(segend - seg);
+        if(seglen == 4 && seg[0] == 'l' && seg[1] == 'a' && seg[2] == 's' && seg[3] == 't' &&
+           *p == '[') {
+            // Walk to the final element; timelines put the newest event last.
+            const char* last = NULL;
+            for(int i = 0; i < 256; i++) {
+                const char* el = arr_nth(p, i);
+                if(!el) break;
+                last = el;
+            }
+            p = last;
+        } else if(seg_is_num(seg, segend) && *p == '[') {
             p = arr_nth(p, seg_to_int(seg, segend));
         } else if(*p == '{') {
             p = obj_find(p, seg, (size_t)(segend - seg));
@@ -298,7 +315,8 @@ PackageStatus status_from_text(const char* s) {
     // Exception keywords win first (e.g. "Delivery Exception" is an exception).
     if(contains_ci(s, "except") || contains_ci(s, "fail") || contains_ci(s, "return"))
         return StatusException;
-    if(contains_ci(s, "out for")) return StatusOutForDelivery;
+    // Normalized APIs use out_for_delivery; plain-English sources use "out for".
+    if(contains_ci(s, "out for") || contains_ci(s, "out_for")) return StatusOutForDelivery;
     if(contains_ci(s, "deliver")) return StatusDelivered;
     if(contains_ci(s, "transit")) return StatusInTransit;
     return StatusPending;

@@ -397,6 +397,28 @@ static void wifi_setup_flow(TrackerState* state) {
     fhttp_free(http);
 }
 
+// One request for a package, using whichever method the config asks for.
+static bool tracker_fetch(
+    FhttpClient* http,
+    const char* tracking,
+    const char* carrier,
+    char* out,
+    size_t out_cap) {
+    const char* hdrs[TU_HDR_MAX];
+    for(int i = 0; i < config.header_count; i++)
+        hdrs[i] = config.headers[i];
+
+    char url[TU_URL_MAX + 96];
+    url_build(config.url, tracking, carrier, url, sizeof(url));
+
+    if(config.is_post) {
+        char body[TU_BODY_MAX + 96];
+        url_build(config.body, tracking, carrier, body, sizeof(body));
+        return fhttp_post(http, url, hdrs, config.header_count, body, out, out_cap);
+    }
+    return fhttp_get(http, url, hdrs, config.header_count, out, out_cap);
+}
+
 // Diagnostic: run one real request and show what actually came back.
 static void net_test_flow(TrackerState* state) {
     if(!config.has_url) {
@@ -418,18 +440,12 @@ static void net_test_flow(TrackerState* state) {
         return;
     }
 
-    const char* hdrs[TU_HDR_MAX];
-    for(int i = 0; i < config.header_count; i++)
-        hdrs[i] = config.headers[i];
-
-    char url[TU_URL_MAX + 96];
     const char* tracking = package_count > 0 ? packages[0].tracking : "1";
     const char* carrier = package_count > 0 ? packages[0].carrier : "UPS";
-    url_build(config.url, tracking, carrier, url, sizeof(url));
 
     refresh_msg(state, "Requesting...");
     char* body = malloc(4096);
-    bool ok = fhttp_get(http, url, hdrs, config.header_count, body, 4096);
+    bool ok = tracker_fetch(http, tracking, carrier, body, 4096);
 
     if(!ok) {
         refresh_msg(state, "GET failed (no reply)");
@@ -498,19 +514,13 @@ static int32_t refresh_worker(void* ctx) {
         }
     }
 
-    const char* hdrs[TU_HDR_MAX];
-    for(int i = 0; i < config.header_count; i++)
-        hdrs[i] = config.headers[i];
-
-    char url[TU_URL_MAX + 96];
     char* body = malloc(4096);
     for(uint8_t i = 0; i < package_count && !s->cancel; i++) {
         char m[40];
         snprintf(m, sizeof(m), "Refreshing %d/%d...", i + 1, package_count);
         refresh_msg(s, m);
 
-        url_build(config.url, packages[i].tracking, packages[i].carrier, url, sizeof(url));
-        if(fhttp_get(http, url, hdrs, config.header_count, body, 4096)) {
+        if(tracker_fetch(http, packages[i].tracking, packages[i].carrier, body, 4096)) {
             char stbuf[64];
             if(config.field_status[0] &&
                json_extract(body, config.field_status, stbuf, sizeof(stbuf)) && stbuf[0]) {

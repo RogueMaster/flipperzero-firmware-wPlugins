@@ -158,6 +158,64 @@ bool fhttp_wifi(FhttpClient* c, const char* ssid, const char* pass) {
     return fhttp_wait_any(c, "[SUCCESS]", "Already connected", 20000);
 }
 
+// Serialise "Name: value" header strings into the JSON object already opened
+// in cmd. Returns the new length.
+// The board prefixes every response body with its own metadata line, for
+// example {"Status-Code":200,"Content-Length":424}. Drop it so callers parse
+// the response itself rather than the envelope around it.
+static void strip_meta_line(char* out) {
+    if(strncmp(out, "{\"Status-Code\"", 14) != 0) return;
+    char* nl = out;
+    while(*nl && *nl != '\n')
+        nl++;
+    if(*nl == '\n') {
+        nl++;
+        memmove(out, nl, strlen(nl) + 1);
+    }
+}
+
+static int
+    append_headers(char* cmd, int n, size_t cap, const char* const* headers, int header_count) {
+    for(int i = 0; i < header_count && n < (int)cap - 8; i++) {
+        const char* h = headers[i];
+        const char* colon = h;
+        while(*colon && *colon != ':')
+            colon++;
+        if(!*colon) continue;
+        char name[64];
+        size_t nl = (size_t)(colon - h);
+        if(nl > sizeof(name) - 1) nl = sizeof(name) - 1;
+        memcpy(name, h, nl);
+        name[nl] = '\0';
+        const char* val = colon + 1;
+        while(*val == ' ')
+            val++;
+        n += snprintf(cmd + n, cap - (size_t)n, "%s\"%s\":\"%s\"", (i ? "," : ""), name, val);
+    }
+    return n;
+}
+
+// The POST payload is itself JSON, and it travels as a string inside the
+// command's JSON, so its quotes and backslashes have to be escaped.
+static void json_escape(const char* in, char* out, size_t cap) {
+    size_t n = 0;
+    for(const char* p = in; *p && n + 2 < cap; p++) {
+        if(*p == '"' || *p == '\\') {
+            out[n++] = '\\';
+            out[n++] = *p;
+        } else if(*p == '\n') {
+            out[n++] = '\\';
+            out[n++] = 'n';
+        } else if(*p == '\r') {
+            out[n++] = '\\';
+            out[n++] = 'r';
+        } else {
+            out[n++] = *p;
+        }
+    }
+    out[n] = '\0';
+}
+
 // Accumulate into out until the end marker arrives; the marker and any
 // trailing whitespace are trimmed off.
 static bool fhttp_collect_until(
@@ -198,24 +256,9 @@ bool fhttp_get(
     size_t out_cap) {
     if(!c->open) return false;
 
-    char cmd[512];
+    char cmd[768];
     int n = snprintf(cmd, sizeof(cmd), "[GET/HTTP]{\"url\":\"%s\",\"headers\":{", url);
-    for(int i = 0; i < header_count && n < (int)sizeof(cmd) - 8; i++) {
-        const char* h = headers[i];
-        const char* colon = h;
-        while(*colon && *colon != ':')
-            colon++;
-        if(!*colon) continue;
-        char name[64];
-        size_t nl = (size_t)(colon - h);
-        if(nl > sizeof(name) - 1) nl = sizeof(name) - 1;
-        memcpy(name, h, nl);
-        name[nl] = '\0';
-        const char* val = colon + 1;
-        while(*val == ' ')
-            val++;
-        n += snprintf(cmd + n, sizeof(cmd) - n, "%s\"%s\":\"%s\"", (i ? "," : ""), name, val);
-    }
+    n = append_headers(cmd, n, sizeof(cmd), headers, header_count);
     if(n < (int)sizeof(cmd) - 2) n += snprintf(cmd + n, sizeof(cmd) - n, "}}");
 
     furi_stream_buffer_reset(c->rx);
@@ -224,18 +267,36 @@ bool fhttp_get(
     if(!fhttp_wait_any(c, "[GET/SUCCESS]", NULL, 15000)) return false;
     if(!fhttp_collect_until(c, "[GET/END]", out, out_cap, 15000)) return false;
 
-    // The board prefixes the body with its own metadata line, for example
-    // {"Status-Code":200,"Content-Length":424}. Drop it so callers parse the
-    // response itself rather than the envelope around it.
-    if(strncmp(out, "{\"Status-Code\"", 14) == 0) {
-        char* nl = out;
-        while(*nl && *nl != '\n')
-            nl++;
-        if(*nl == '\n') {
-            nl++;
-            memmove(out, nl, strlen(nl) + 1);
-        }
-    }
+    strip_meta_line(out);
+    return true;
+}
+
+bool fhttp_post(
+    FhttpClient* c,
+    const char* url,
+    const char* const* headers,
+    int header_count,
+    const char* payload,
+    char* out,
+    size_t out_cap) {
+    if(!c->open) return false;
+
+    char esc[384];
+    json_escape(payload, esc, sizeof(esc));
+
+    char cmd[768];
+    int n = snprintf(
+        cmd, sizeof(cmd), "[POST/HTTP]{\"url\":\"%s\",\"payload\":\"%s\",\"headers\":{", url, esc);
+    n = append_headers(cmd, n, sizeof(cmd), headers, header_count);
+    if(n < (int)sizeof(cmd) - 2) n += snprintf(cmd + n, sizeof(cmd) - n, "}}");
+
+    furi_stream_buffer_reset(c->rx);
+    fhttp_send_line(c, cmd);
+
+    // POST has no success marker of its own: the board prints the response and
+    // then [POST/END].
+    if(!fhttp_collect_until(c, "[POST/END]", out, out_cap, 20000)) return false;
+    strip_meta_line(out);
     return true;
 }
 

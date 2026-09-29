@@ -23,6 +23,17 @@ bool fhttp_ping(FhttpClient* c);
 // e.g. {"networks":["Home","Cafe"]}.
 bool fhttp_scan(FhttpClient* c, char* out, size_t out_cap);
 
+// POST a JSON payload. The payload is escaped before being embedded in the
+// board's command.
+bool fhttp_post(
+    FhttpClient* c,
+    const char* url,
+    const char* const* headers,
+    int header_count,
+    const char* payload,
+    char* out,
+    size_t out_cap);
+
 // Save credentials and connect. Returns true once connected.
 bool fhttp_wifi(FhttpClient* c, const char* ssid, const char* pass);
 
