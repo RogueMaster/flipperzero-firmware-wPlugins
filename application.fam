@@ -1,0 +1,11 @@
+App(
+    appid="cribbage_calc",
+    name="Cribbage Calc",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="cribbage_calc_app",
+    stack_size=2 * 1024,
+    fap_category="Games",
+    fap_description="Calculate cribbage hand and crib scores",
+    fap_version="0.1",
+    sources=["*.c", "!tests"],
+)
