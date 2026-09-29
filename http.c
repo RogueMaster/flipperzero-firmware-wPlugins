@@ -85,7 +85,8 @@ static bool contains(const char* hay, const char* needle) {
     size_t nl = strlen(needle);
     for(const char* h = hay; *h; h++) {
         size_t i = 0;
-        while(needle[i] && h[i] == needle[i]) i++;
+        while(needle[i] && h[i] == needle[i])
+            i++;
         if(i == nl) return true;
     }
     return false;
@@ -127,8 +128,7 @@ bool fhttp_ping(FhttpClient* c) {
 bool fhttp_wifi(FhttpClient* c, const char* ssid, const char* pass) {
     if(!c->open) return false;
     char cmd[256];
-    snprintf(
-        cmd, sizeof(cmd), "[WIFI/SAVE]{\"ssid\":\"%s\",\"password\":\"%s\"}", ssid, pass);
+    snprintf(cmd, sizeof(cmd), "[WIFI/SAVE]{\"ssid\":\"%s\",\"password\":\"%s\"}", ssid, pass);
     furi_stream_buffer_reset(c->rx);
     fhttp_send_line(c, cmd);
     fhttp_wait_any(c, "[SUCCESS]", NULL, 5000); // best-effort; connect confirms
@@ -152,7 +152,8 @@ bool fhttp_get(
     for(int i = 0; i < header_count && n < (int)sizeof(cmd) - 8; i++) {
         const char* h = headers[i];
         const char* colon = h;
-        while(*colon && *colon != ':') colon++;
+        while(*colon && *colon != ':')
+            colon++;
         if(!*colon) continue;
         char name[64];
         size_t nl = (size_t)(colon - h);
@@ -160,9 +161,9 @@ bool fhttp_get(
         memcpy(name, h, nl);
         name[nl] = '\0';
         const char* val = colon + 1;
-        while(*val == ' ') val++;
-        n += snprintf(
-            cmd + n, sizeof(cmd) - n, "%s\"%s\":\"%s\"", (i ? "," : ""), name, val);
+        while(*val == ' ')
+            val++;
+        n += snprintf(cmd + n, sizeof(cmd) - n, "%s\"%s\":\"%s\"", (i ? "," : ""), name, val);
     }
     if(n < (int)sizeof(cmd) - 2) n += snprintf(cmd + n, sizeof(cmd) - n, "}}");
 

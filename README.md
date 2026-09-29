@@ -124,6 +124,9 @@ flipper-pack-track/
 ├── package_tracker.c      # UI, event loop, file loading, refresh worker
 ├── tracker_util.c/.h      # config parse, URL templating, JSON extraction
 ├── http.c/.h              # FlipperHTTP UART client (WiFi + GET)
+├── catalog_description.md # Store description for the Apps Catalog
+├── changelog.md
+├── LICENSE
 └── README.md
 ```
 
@@ -191,4 +194,4 @@ FIELD_UPDATED  = data.0.checkpoint_time
 
 ## License
 
-Released under the MIT License.
+Released under the [MIT License](LICENSE).

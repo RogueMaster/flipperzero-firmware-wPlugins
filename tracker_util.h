@@ -40,7 +40,8 @@ bool config_parse(const char* buf, TrackerConfig* cfg);
 
 // Substitute {tracking} and {carrier} in tmpl into out (bounded by cap).
 // Returns the written length.
-size_t url_build(const char* tmpl, const char* tracking, const char* carrier, char* out, size_t cap);
+size_t
+    url_build(const char* tmpl, const char* tracking, const char* carrier, char* out, size_t cap);
 
 // Extract a dot/index path (e.g. "data.0.status") from a JSON string into out.
 // Returns true if the path resolved to a string/number leaf.

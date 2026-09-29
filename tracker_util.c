@@ -7,8 +7,10 @@
 static void trim_range(const char** ps, const char** pe) {
     const char* s = *ps;
     const char* e = *pe;
-    while(s < e && (*s == ' ' || *s == '\t')) s++;
-    while(e > s && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r')) e--;
+    while(s < e && (*s == ' ' || *s == '\t'))
+        s++;
+    while(e > s && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r'))
+        e--;
     *ps = s;
     *pe = e;
 }
@@ -41,7 +43,8 @@ bool config_parse(const char* buf, TrackerConfig* cfg) {
     const char* p = buf;
     while(*p) {
         const char* ls = p;
-        while(*p && *p != '\n') p++;
+        while(*p && *p != '\n')
+            p++;
         const char* le = p;
         if(*p == '\n') p++;
 
@@ -51,7 +54,8 @@ bool config_parse(const char* buf, TrackerConfig* cfg) {
         if(s == e || *s == '#') continue;
 
         const char* eq = s;
-        while(eq < e && *eq != '=') eq++;
+        while(eq < e && *eq != '=')
+            eq++;
         if(eq == e) continue;
 
         const char* ks = s;
@@ -85,12 +89,8 @@ bool config_parse(const char* buf, TrackerConfig* cfg) {
 
 // --- url templating ------------------------------------------------------
 
-size_t url_build(
-    const char* tmpl,
-    const char* tracking,
-    const char* carrier,
-    char* out,
-    size_t cap) {
+size_t
+    url_build(const char* tmpl, const char* tracking, const char* carrier, char* out, size_t cap) {
     size_t o = 0;
     const char* p = tmpl;
     while(*p && o < cap - 1) {
@@ -106,7 +106,8 @@ size_t url_build(
             }
         }
         if(rep) {
-            for(const char* r = rep; *r && o < cap - 1; r++) out[o++] = *r;
+            for(const char* r = rep; *r && o < cap - 1; r++)
+                out[o++] = *r;
             p += skip;
         } else {
             out[o++] = *p++;
@@ -119,7 +120,8 @@ size_t url_build(
 // --- json path extraction ------------------------------------------------
 
 static const char* skip_ws(const char* p) {
-    while(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+    while(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
+        p++;
     return p;
 }
 
@@ -222,7 +224,8 @@ static bool seg_is_num(const char* s, const char* e) {
 
 static int seg_to_int(const char* s, const char* e) {
     int v = 0;
-    for(const char* p = s; p < e; p++) v = v * 10 + (*p - '0');
+    for(const char* p = s; p < e; p++)
+        v = v * 10 + (*p - '0');
     return v;
 }
 
@@ -255,7 +258,8 @@ bool json_extract(const char* json, const char* path, char* out, size_t cap) {
     const char* seg = path;
     while(*seg) {
         const char* segend = seg;
-        while(*segend && *segend != '.') segend++;
+        while(*segend && *segend != '.')
+            segend++;
         p = skip_ws(p);
         if(seg_is_num(seg, segend) && *p == '[') {
             p = arr_nth(p, seg_to_int(seg, segend));

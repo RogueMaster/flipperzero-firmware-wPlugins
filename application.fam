@@ -5,8 +5,10 @@ App(
     entry_point="package_tracker_app",
     requires=["gui"],
     stack_size=4 * 1024,
-    fap_version="0.1",
-    fap_description="Track shipping packages (UI only)",
+    fap_version="1.0",
+    fap_description="Track your shipments from a text file on the SD card, or live with a WiFi board.",
     fap_icon="package_10px.png",
     fap_category="Tools",
+    fap_author="thecoolguy2001",
+    fap_weburl="https://github.com/thecoolguy2001/flipper-pack-track",
 )
