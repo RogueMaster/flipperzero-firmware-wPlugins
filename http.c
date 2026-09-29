@@ -46,6 +46,9 @@ bool fhttp_open(FhttpClient* c) {
     if(c->open) return true;
     c->expansion = furi_record_open(RECORD_EXPANSION);
     expansion_disable(c->expansion);
+    // The expansion service tears down asynchronously; give it a moment before
+    // taking the pins, or its teardown lands on top of our configuration.
+    furi_delay_ms(200);
 
     c->serial = furi_hal_serial_control_acquire(FuriHalSerialIdUsart);
     if(!c->serial) {
@@ -55,6 +58,10 @@ bool fhttp_open(FhttpClient* c) {
         return false;
     }
     furi_hal_serial_init(c->serial, FHTTP_BAUD);
+    // Without this the RX pin is never switched to its UART alternate function,
+    // so nothing the board sends ever reaches the callback.
+    furi_hal_serial_enable_direction(c->serial, FuriHalSerialDirectionTx);
+    furi_hal_serial_enable_direction(c->serial, FuriHalSerialDirectionRx);
     furi_stream_buffer_reset(c->rx);
     furi_hal_serial_async_rx_start(c->serial, fhttp_rx_cb, c, false);
     c->open = true;
@@ -64,6 +71,8 @@ bool fhttp_open(FhttpClient* c) {
 void fhttp_close(FhttpClient* c) {
     if(!c->open) return;
     furi_hal_serial_async_rx_stop(c->serial);
+    furi_hal_serial_disable_direction(c->serial, FuriHalSerialDirectionRx);
+    furi_hal_serial_disable_direction(c->serial, FuriHalSerialDirectionTx);
     furi_hal_serial_deinit(c->serial);
     furi_hal_serial_control_release(c->serial);
     c->serial = NULL;
