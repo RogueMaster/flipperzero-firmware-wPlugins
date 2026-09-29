@@ -8,6 +8,7 @@
 
 #include "tracker_util.h"
 #include "http.h"
+#include "prompt.h"
 
 #define MAX_PACKAGES 12
 #define VISIBLE_ROWS 4
@@ -29,6 +30,7 @@ typedef struct {
 typedef enum {
     ScreenList,
     ScreenDetail,
+    ScreenConfirmDelete,
 } Screen;
 
 typedef enum {
@@ -52,6 +54,7 @@ typedef struct {
     FuriThread* worker;
     ViewPort* view_port;
     FuriMessageQueue* queue;
+    Gui* gui;
 } TrackerState;
 
 static Package packages[MAX_PACKAGES];
@@ -69,10 +72,13 @@ static PackageStatus status_from_str(const char* s) {
 }
 
 static void copy_field(char* dst, size_t cap, const char* src) {
-    while(*src == ' ' || *src == '\t') src++;
+    while(*src == ' ' || *src == '\t')
+        src++;
     size_t len = 0;
-    while(src[len]) len++;
-    while(len > 0 && (src[len - 1] == ' ' || src[len - 1] == '\t')) len--;
+    while(src[len])
+        len++;
+    while(len > 0 && (src[len - 1] == ' ' || src[len - 1] == '\t'))
+        len--;
     if(len > cap - 1) len = cap - 1;
     memcpy(dst, src, len);
     dst[len] = '\0';
@@ -104,15 +110,18 @@ static void parse_packages(char* buf) {
     char* line = buf;
     while(line && *line && package_count < MAX_PACKAGES) {
         char* p = line;
-        while(*p && *p != '\n') p++;
+        while(*p && *p != '\n')
+            p++;
         char* next = (*p == '\n') ? p + 1 : NULL;
         *p = '\0';
         size_t len = 0;
-        while(line[len]) len++;
+        while(line[len])
+            len++;
         if(len > 0 && line[len - 1] == '\r') line[len - 1] = '\0';
 
         char* t = line;
-        while(*t == ' ' || *t == '\t') t++;
+        while(*t == ' ' || *t == '\t')
+            t++;
         if(*t != '\0' && *t != '#') {
             Package pkg;
             memset(&pkg, 0, sizeof(pkg));
@@ -155,6 +164,62 @@ static void ensure_file(Storage* storage, const char* path, const char* tmpl) {
     if(!exists) write_file(storage, path, tmpl);
 }
 
+static const char* status_to_str(PackageStatus s) {
+    switch(s) {
+    case StatusDelivered:
+        return "delivered";
+    case StatusOutForDelivery:
+        return "out";
+    case StatusInTransit:
+        return "transit";
+    case StatusException:
+        return "exception";
+    default:
+        return "pending";
+    }
+}
+
+// The pipe and newline are field and record separators, so they can never
+// appear inside a value the user typed.
+static void sanitize_field(char* s) {
+    for(; *s; s++)
+        if(*s == '|' || *s == '\n' || *s == '\r') *s = ' ';
+}
+
+// Rewrite packages.txt from what is currently in memory.
+static void save_packages(void) {
+    size_t cap = 4096;
+    char* buf = malloc(cap);
+    int n = snprintf(
+        buf,
+        cap,
+        "# Pack Track - one package per line:\n"
+        "#   Label | Carrier | Tracking | Status | Location | Updated\n"
+        "# Status: pending, transit, out, delivered, exception\n");
+    if(n < 0) n = 0;
+
+    for(uint8_t i = 0; i < package_count && (size_t)n < cap; i++) {
+        int w = snprintf(
+            buf + n,
+            cap - (size_t)n,
+            "%s | %s | %s | %s | %s | %s\n",
+            packages[i].label,
+            packages[i].carrier,
+            packages[i].tracking,
+            status_to_str(packages[i].status),
+            packages[i].location[0] ? packages[i].location : "-",
+            packages[i].last_update[0] ? packages[i].last_update : "-");
+        if(w < 0 || (size_t)w >= cap - (size_t)n) break;
+        n += w;
+    }
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_common_mkdir(storage, PACK_DIR);
+    write_file(storage, PACK_FILE, buf);
+    furi_record_close(RECORD_STORAGE);
+    free(buf);
+}
+
 static void load_all(void) {
     package_count = 0;
     memset(&config, 0, sizeof(config));
@@ -168,23 +233,26 @@ static void load_all(void) {
         "# Pack Track - one package per line:\n"
         "#   Label | Carrier | Tracking | Status | Location | Updated\n"
         "# Status: pending, transit, out, delivered, exception\n"
-        "Example Order | UPS | 1Z999AA10123456784 | transit | Memphis, TN | Apr 17 2:14 PM\n");
+        "Flipper Case | UPS | 1Z999AA10123456784 | transit | Memphis, TN | Apr 17 2:14 PM\n"
+        "Solder Paste | USPS | 9400111899223596012345 | out | Local Facility | Apr 18 8:02 AM\n"
+        "Oscilloscope | FedEx | 771234567890 | delivered | Front Door | Apr 16 9:41 PM\n"
+        "PCB Order | DHL | 1234567890 | pending | Shenzhen, CN | Apr 15 5:30 AM\n");
     ensure_file(
         storage,
         CONFIG_FILE,
         "# Pack Track live-tracking config (optional).\n"
-            "# Fill this in to fetch real status with a WiFi devboard + your own\n"
-            "# tracking API key. Press RIGHT in the app to refresh.\n"
-            "WIFI_SSID = \n"
-            "WIFI_PASS = \n"
-            "# {tracking} and {carrier} are replaced per package:\n"
-            "URL = \n"
-            "# Optional headers (repeatable), e.g. your API key:\n"
-            "# HEADER = Authorization: Bearer YOUR_KEY\n"
-            "# JSON field paths in the response (dot keys, numbers = array index):\n"
-            "FIELD_STATUS = \n"
-            "FIELD_LOCATION = \n"
-            "FIELD_UPDATED = \n");
+        "# Fill this in to fetch real status with a WiFi devboard + your own\n"
+        "# tracking API key. Press RIGHT in the app to refresh.\n"
+        "WIFI_SSID = \n"
+        "WIFI_PASS = \n"
+        "# {tracking} and {carrier} are replaced per package:\n"
+        "URL = \n"
+        "# Optional headers (repeatable), e.g. your API key:\n"
+        "# HEADER = Authorization: Bearer YOUR_KEY\n"
+        "# JSON field paths in the response (dot keys, numbers = array index):\n"
+        "FIELD_STATUS = \n"
+        "FIELD_LOCATION = \n"
+        "FIELD_UPDATED = \n");
 
     char* pkgbuf = read_file(storage, PACK_FILE);
     if(pkgbuf) {
@@ -209,7 +277,8 @@ static void refresh_msg(TrackerState* s, const char* m) {
     view_port_update(s->view_port);
 }
 
-static void apply_field(char* dst, size_t cap, FuriMutex* mtx, const char* body, const char* path) {
+static void
+    apply_field(char* dst, size_t cap, FuriMutex* mtx, const char* body, const char* path) {
     if(!path || !path[0]) return;
     char val[64];
     if(json_extract(body, path, val, sizeof(val)) && val[0]) {
@@ -218,6 +287,78 @@ static void apply_field(char* dst, size_t cap, FuriMutex* mtx, const char* body,
         dst[cap - 1] = '\0';
         furi_mutex_release(mtx);
     }
+}
+
+// Ask for the three fields on the device keyboard, then append and save.
+// Runs on the app thread with the state mutex released, because the keyboard
+// blocks and the render callback needs that mutex to draw.
+static void add_package_flow(TrackerState* state) {
+    if(package_count >= MAX_PACKAGES) {
+        refresh_msg(state, "List is full");
+        return;
+    }
+
+    char tracking[28] = "";
+    char label[24] = "Package";
+    char carrier[16] = "UPS";
+
+    view_port_enabled_set(state->view_port, false);
+    bool ok = prompt_text(state->gui, "Tracking number", tracking, sizeof(tracking), 1) &&
+              prompt_text(state->gui, "Label", label, sizeof(label), 1) &&
+              prompt_text(state->gui, "Carrier", carrier, sizeof(carrier), 1);
+    view_port_enabled_set(state->view_port, true);
+
+    if(!ok) {
+        refresh_msg(state, "");
+        return;
+    }
+
+    sanitize_field(tracking);
+    sanitize_field(label);
+    sanitize_field(carrier);
+
+    furi_mutex_acquire(state->mutex, FuriWaitForever);
+    Package* pkg = &packages[package_count];
+    memset(pkg, 0, sizeof(*pkg));
+    copy_field(pkg->tracking, sizeof(pkg->tracking), tracking);
+    copy_field(pkg->label, sizeof(pkg->label), label);
+    copy_field(pkg->carrier, sizeof(pkg->carrier), carrier);
+    pkg->status = StatusPending;
+    copy_field(pkg->location, sizeof(pkg->location), "-");
+    copy_field(pkg->last_update, sizeof(pkg->last_update), "-");
+    package_count++;
+
+    state->selected = package_count - 1;
+    if(state->selected >= state->scroll + VISIBLE_ROWS)
+        state->scroll = state->selected - VISIBLE_ROWS + 1;
+    furi_mutex_release(state->mutex);
+
+    save_packages();
+    refresh_msg(state, "Added");
+}
+
+static void delete_selected(TrackerState* state) {
+    furi_mutex_acquire(state->mutex, FuriWaitForever);
+    if(package_count > 0) {
+        for(uint8_t i = state->selected; i + 1 < package_count; i++)
+            packages[i] = packages[i + 1];
+        package_count--;
+
+        if(package_count == 0) {
+            state->selected = 0;
+            state->scroll = 0;
+        } else {
+            if(state->selected >= package_count) state->selected = package_count - 1;
+            if(state->scroll > 0 && state->scroll + VISIBLE_ROWS > package_count)
+                state->scroll =
+                    (package_count > VISIBLE_ROWS) ? (uint8_t)(package_count - VISIBLE_ROWS) : 0;
+        }
+    }
+    state->screen = ScreenList;
+    furi_mutex_release(state->mutex);
+
+    save_packages();
+    refresh_msg(state, "Deleted");
 }
 
 static int32_t refresh_worker(void* ctx) {
@@ -247,7 +388,8 @@ static int32_t refresh_worker(void* ctx) {
     }
 
     const char* hdrs[TU_HDR_MAX];
-    for(int i = 0; i < config.header_count; i++) hdrs[i] = config.headers[i];
+    for(int i = 0; i < config.header_count; i++)
+        hdrs[i] = config.headers[i];
 
     char url[TU_URL_MAX + 96];
     char* body = malloc(4096);
@@ -266,10 +408,16 @@ static int32_t refresh_worker(void* ctx) {
                 furi_mutex_release(s->mutex);
             }
             apply_field(
-                packages[i].location, sizeof(packages[i].location), s->mutex, body,
+                packages[i].location,
+                sizeof(packages[i].location),
+                s->mutex,
+                body,
                 config.field_location);
             apply_field(
-                packages[i].last_update, sizeof(packages[i].last_update), s->mutex, body,
+                packages[i].last_update,
+                sizeof(packages[i].last_update),
+                s->mutex,
+                body,
                 config.field_updated);
         }
         view_port_update(s->view_port);
@@ -301,22 +449,32 @@ static void start_refresh(TrackerState* s) {
 
 static const char* status_short(PackageStatus s) {
     switch(s) {
-    case StatusPending: return "Pending";
-    case StatusInTransit: return "In Transit";
-    case StatusOutForDelivery: return "Out Delivery";
-    case StatusDelivered: return "Delivered";
-    case StatusException: return "Exception";
+    case StatusPending:
+        return "Pending";
+    case StatusInTransit:
+        return "In Transit";
+    case StatusOutForDelivery:
+        return "Out Delivery";
+    case StatusDelivered:
+        return "Delivered";
+    case StatusException:
+        return "Exception";
     }
     return "?";
 }
 
 static const char* status_full(PackageStatus s) {
     switch(s) {
-    case StatusPending: return "Pending pickup";
-    case StatusInTransit: return "In Transit";
-    case StatusOutForDelivery: return "Out for Delivery";
-    case StatusDelivered: return "Delivered";
-    case StatusException: return "Delivery Exception";
+    case StatusPending:
+        return "Pending pickup";
+    case StatusInTransit:
+        return "In Transit";
+    case StatusOutForDelivery:
+        return "Out for Delivery";
+    case StatusDelivered:
+        return "Delivered";
+    case StatusException:
+        return "Delivery Exception";
     }
     return "Unknown";
 }
@@ -345,11 +503,10 @@ static void draw_status_icon(Canvas* canvas, int x, int y, PackageStatus s) {
 
 static void draw_empty(Canvas* canvas) {
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 16, AlignCenter, AlignCenter, "No packages");
+    canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignCenter, "No packages yet");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "Edit on your SD card:");
-    canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignCenter, "apps_data/package_tracker/");
-    canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignCenter, "packages.txt");
+    canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "LEFT: add a package");
+    canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignCenter, "BACK: exit");
 }
 
 static void draw_list(Canvas* canvas, TrackerState* state) {
@@ -387,6 +544,11 @@ static void draw_list(Canvas* canvas, TrackerState* state) {
             canvas_invert_color(canvas);
         }
     }
+
+    // Room to spare means room to say how to add one.
+    if(package_count < VISIBLE_ROWS) {
+        canvas_draw_str(canvas, 13, 13 + package_count * ROW_HEIGHT + 9, "LEFT: add package");
+    }
 }
 
 static void draw_detail(Canvas* canvas, TrackerState* state) {
@@ -415,7 +577,21 @@ static void draw_detail(Canvas* canvas, TrackerState* state) {
     canvas_draw_str(canvas, 30, 52, p->last_update);
 
     canvas_draw_line(canvas, 0, 54, 127, 54);
-    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "BACK: list");
+    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "BACK: list  Hold OK: del");
+}
+
+static void draw_confirm(Canvas* canvas, TrackerState* state) {
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignCenter, "Delete package?");
+
+    canvas_set_font(canvas, FontSecondary);
+    if(package_count > 0) {
+        canvas_draw_str_aligned(
+            canvas, 64, 30, AlignCenter, AlignCenter, packages[state->selected].label);
+    }
+    canvas_draw_line(canvas, 0, 40, 127, 40);
+    canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignCenter, "OK: delete");
+    canvas_draw_str_aligned(canvas, 64, 60, AlignCenter, AlignCenter, "BACK: keep it");
 }
 
 static void render_callback(Canvas* canvas, void* ctx) {
@@ -426,6 +602,8 @@ static void render_callback(Canvas* canvas, void* ctx) {
 
     if(state->screen == ScreenList) {
         draw_list(canvas, state);
+    } else if(state->screen == ScreenConfirmDelete) {
+        draw_confirm(canvas, state);
     } else {
         draw_detail(canvas, state);
     }
@@ -463,6 +641,7 @@ int32_t package_tracker_app(void* p) {
     view_port_input_callback_set(view_port, input_callback, queue);
 
     Gui* gui = furi_record_open(RECORD_GUI);
+    state->gui = gui;
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     bool running = true;
@@ -486,6 +665,12 @@ int32_t package_tracker_app(void* p) {
         if(in->type != InputTypeShort && in->type != InputTypeLong && in->type != InputTypeRepeat)
             continue;
 
+        // Deferred so they run with the mutex released: the keyboard blocks,
+        // and the render callback takes the same mutex.
+        bool do_add = false;
+        bool do_delete = false;
+        bool do_refresh = false;
+
         furi_mutex_acquire(state->mutex, FuriWaitForever);
 
         if(in->type == InputTypeLong && in->key == InputKeyBack) {
@@ -497,9 +682,14 @@ int32_t package_tracker_app(void* p) {
             if(in->key == InputKeyBack && in->type == InputTypeShort) state->cancel = true;
         } else if(state->screen == ScreenList) {
             if(package_count == 0) {
-                if(in->key == InputKeyBack && in->type == InputTypeShort) running = false;
+                if(in->key == InputKeyBack && in->type == InputTypeShort)
+                    running = false;
+                else if(in->key == InputKeyLeft && in->type == InputTypeShort)
+                    do_add = true;
                 else if(in->key == InputKeyRight && in->type == InputTypeShort)
-                    start_refresh(state);
+                    do_refresh = true;
+            } else if(in->key == InputKeyLeft && in->type == InputTypeShort) {
+                do_add = true;
             } else if(in->key == InputKeyDown) {
                 if(state->selected < package_count - 1) {
                     state->selected++;
@@ -511,15 +701,23 @@ int32_t package_tracker_app(void* p) {
                     if(state->selected < state->scroll) state->scroll--;
                 }
             } else if(in->key == InputKeyRight && in->type == InputTypeShort) {
-                start_refresh(state);
+                do_refresh = true;
             } else if(in->key == InputKeyOk && in->type == InputTypeShort) {
                 state->screen = ScreenDetail;
             } else if(in->key == InputKeyBack && in->type == InputTypeShort) {
                 running = false;
             }
+        } else if(state->screen == ScreenConfirmDelete) {
+            if(in->key == InputKeyOk && in->type == InputTypeShort) {
+                do_delete = true;
+            } else if(in->key == InputKeyBack && in->type == InputTypeShort) {
+                state->screen = ScreenDetail;
+            }
         } else {
             if(in->key == InputKeyBack && in->type == InputTypeShort) {
                 state->screen = ScreenList;
+            } else if(in->key == InputKeyOk && in->type == InputTypeLong) {
+                state->screen = ScreenConfirmDelete;
             } else if(in->key == InputKeyLeft && in->type == InputTypeShort) {
                 if(state->selected > 0) state->selected--;
             } else if(in->key == InputKeyRight && in->type == InputTypeShort) {
@@ -528,6 +726,14 @@ int32_t package_tracker_app(void* p) {
         }
 
         furi_mutex_release(state->mutex);
+
+        if(do_add)
+            add_package_flow(state);
+        else if(do_delete)
+            delete_selected(state);
+        else if(do_refresh)
+            start_refresh(state);
+
         view_port_update(view_port);
     }
 
