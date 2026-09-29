@@ -25,12 +25,15 @@ typedef struct {
 static void splash_view_draw(Canvas* canvas, void* model) {
     SplashModel* m = model;
 
-    /* --- radiating waves, contained by the pouch --- */
-    /* Three rings expanding from the fob; phased by the animation clock so they
-     * appear to emanate. Kept small enough to sit inside the pouch, which is
-     * then framed on top so the waves read as "pressed against the shield". */
+    /* --- radiating waves, contained by the pouch ---
+     * Three rings expanding from the fob, phased by the animation clock so they
+     * appear to emanate, with the pouch framed on top so they read as pressed
+     * against the shield. The radius is capped at 11: the pouch interior is 28
+     * rows centred near PCY, and the old cap let the largest ring burst out
+     * through the top and bottom - on a drawing whose entire subject is a
+     * field being contained. */
     for(int i = 0; i < 3; i++) {
-        int r = 3 + ((m->anim + i * 4) % 12);
+        int r = 3 + ((m->anim + i * 4) % 9);
         if(r > 1) canvas_draw_circle(canvas, PCX, PCY, r);
     }
 
@@ -61,16 +64,21 @@ static void splash_view_draw(Canvas* canvas, void* model) {
     canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignBottom, "prove your pouch works");
 
     /* --- auto-advance progress bar --- */
+    /* The frame inks rows 58 and 61, so its interior is rows 59 AND 60 - the
+     * fill used to take only the lower one and read as a hairline. */
     canvas_draw_frame(canvas, 24, 58, 80, 4);
     int fw = (76 * (m->progress > 100 ? 100 : m->progress)) / 100;
-    if(fw > 0) canvas_draw_box(canvas, 26, 60, fw, 1);
+    if(fw > 0) canvas_draw_box(canvas, 26, 59, fw, 2);
 }
 
 static bool splash_view_input(InputEvent* event, void* context) {
     SplashView* v = context;
-    /* Any short press skips straight to the menu; Back falls through so it
-     * exits the app as usual. */
-    if(event->type == InputTypeShort && event->key != InputKeyBack) {
+    /* Any press skips straight to the menu; Back falls through so it exits the
+     * app as usual. Long counts as well as Short: the intro is on screen for
+     * under two seconds, so a key held down during it must not be the one press
+     * that does nothing. */
+    if((event->type == InputTypeShort || event->type == InputTypeLong) &&
+       event->key != InputKeyBack) {
         if(v->skip_cb) v->skip_cb(v->skip_ctx);
         return true;
     }

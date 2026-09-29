@@ -6,9 +6,13 @@
  * from the menu still exits the app cleanly. */
 #define FDY_SPLASH_TICKS 17
 
+/* Menu activations ignored for this long after the intro is skipped. */
+#define FDY_MENU_GUARD_TICKS 3
+
 typedef enum {
     StartIndexSubGhz,
     StartIndexNfc,
+    StartIndexBand,
     StartIndexHunt,
     StartIndexResults,
     StartIndexSettings,
@@ -29,6 +33,8 @@ static void faraday_scene_start_show_menu(FaradayApp* app) {
         submenu, "Test Sub-GHz (key fob)", StartIndexSubGhz, faraday_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Test NFC (card)", StartIndexNfc, faraday_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Find my fob's band", StartIndexBand, faraday_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Leak hunt (Sub-GHz)", StartIndexHunt, faraday_scene_start_submenu_cb, app);
     submenu_add_item(
@@ -66,6 +72,7 @@ bool faraday_scene_start_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeTick) {
         /* Drive the intro while it is up. */
+        if(app->menu_guard) app->menu_guard--;
         if(!app->splash_done) {
             app->splash_ticks++;
             uint8_t progress = (uint8_t)((app->splash_ticks * 100u) / FDY_SPLASH_TICKS);
@@ -83,9 +90,16 @@ bool faraday_scene_start_on_event(void* context, SceneManagerEvent event) {
          * submenu is not on screen while the splash is. */
         if(!app->splash_done && event.event == FaradayCustomEventOk) {
             app->splash_done = true;
+            /* The key that skipped the intro is released over the menu that
+             * replaces it, so a quick double-tap used to skip the intro AND
+             * open whatever row the cursor was on. Swallow menu activations
+             * for a moment. */
+            app->menu_guard = FDY_MENU_GUARD_TICKS;
             faraday_scene_start_show_menu(app);
             return true;
         }
+
+        if(app->menu_guard) return true; // still settling after the skip
 
         scene_manager_set_scene_state(app->scene_manager, FaradaySceneStart, event.event);
         switch(event.event) {
@@ -95,6 +109,10 @@ bool faraday_scene_start_on_event(void* context, SceneManagerEvent event) {
             break;
         case StartIndexNfc:
             scene_manager_next_scene(app->scene_manager, FaradaySceneNfc);
+            consumed = true;
+            break;
+        case StartIndexBand:
+            scene_manager_next_scene(app->scene_manager, FaradaySceneBand);
             consumed = true;
             break;
         case StartIndexHunt:

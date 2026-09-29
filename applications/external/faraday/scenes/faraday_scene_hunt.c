@@ -27,6 +27,7 @@ void faraday_scene_hunt_on_enter(void* context) {
 
     fdy_subghz_set_freq(app->subghz, fdy_bands[bi].frequency);
     hunt_view_set_ok_callback(app->hunt_view, faraday_hunt_ok_cb, app);
+    hunt_view_reset_intro(app->hunt_view);
 
     fdy_subghz_start(app->subghz);
     fdy_subghz_reset_peak(app->subghz);
@@ -65,9 +66,15 @@ bool faraday_scene_hunt_on_event(void* context, SceneManagerEvent event) {
          * hear and what you see can never disagree. */
         int16_t margin = hunt_view_margin(&d);
         if(app->settings.sound && margin >= FDY_HUNT_FLOOR_DB) {
-            uint32_t interval = FDY_CLICK_SLOW_MS - (uint32_t)margin * FDY_CLICK_PER_DB;
-            if(interval < FDY_CLICK_FAST_MS) interval = FDY_CLICK_FAST_MS;
-            if(interval > FDY_CLICK_SLOW_MS) interval = FDY_CLICK_SLOW_MS;
+            /* Subtract only what there is room to subtract. Computing
+             * SLOW - margin*PER_DB directly wraps around in unsigned arithmetic
+             * once the margin passes 38 dB, and the upper clamp then pins the
+             * result at the SLOWEST rate - so the clicks went quiet exactly
+             * when a strong leak was found, which is the opposite of what the
+             * hunt is for. */
+            uint32_t step = (uint32_t)margin * FDY_CLICK_PER_DB;
+            uint32_t span = FDY_CLICK_SLOW_MS - FDY_CLICK_FAST_MS;
+            uint32_t interval = (step >= span) ? FDY_CLICK_FAST_MS : (FDY_CLICK_SLOW_MS - step);
             uint32_t now = furi_get_tick();
             if((uint32_t)(now - app->last_click_tick) >= interval) {
                 faraday_notify_click(app);

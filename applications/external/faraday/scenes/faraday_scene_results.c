@@ -12,15 +12,17 @@ void faraday_scene_results_on_enter(void* context) {
     if(n == 0) {
         furi_string_cat_printf(
             text,
-            "\e#No results yet\e#\n\n"
-            "Finish a Sub-GHz or NFC test and\n"
-            "it lands here automatically.\n\n"
-            "Handy for comparing two or three\n"
-            "pouches before you buy one.\n");
+            "\e#No results yet\n\n"
+            "Finish a Sub-GHz or NFC\n"
+            "test and it lands here\n"
+            "automatically.\n\n"
+            "Handy for comparing two\n"
+            "or three pouches before\n"
+            "you buy one.\n");
     } else {
         furi_string_cat_printf(
             text,
-            "\e#Saved to\e#\n%s\n\nCopy it off with qFlipper to\ncompare pouches later.\n",
+            "\e#Saved to\n%s\n\nCopy it off with qFlipper\nto compare pouches later.\n",
             fdy_store_results_path());
     }
 

@@ -4,15 +4,22 @@
 
 /* ~2 ms per sample, 48 samples per window => ~10 strength updates/s: fast
  * enough to catch a reader's polling bursts, smooth enough to read. */
-#define FDY_SAMPLE_PERIOD_US  2000u
+#define FDY_SAMPLE_PERIOD_MS  2u
 #define FDY_WINDOW_SAMPLES    48u
 #define FDY_PRESENT_THRESHOLD 4u // duty % that counts as "a field is here"
+#define FDY_WORKER_STACK      2048u
+
+/* One window is FDY_WINDOW_SAMPLES * FDY_SAMPLE_PERIOD_MS = ~96 ms. */
+#define FDY_WINDOW_MS       (FDY_WINDOW_SAMPLES * FDY_SAMPLE_PERIOD_MS)
+#define FDY_ARM_WINDOWS     52u /* ~5 s to seal the Flipper in the pouch */
+#define FDY_MEASURE_WINDOWS 42u /* ~4 s of sealed measurement            */
 
 struct FdyNfc {
     FuriThread* thread;
     FuriMutex* mutex;
     volatile bool running;
     volatile bool reset_req;
+    volatile bool shield_req; // start the timed shielded capture
     FdyNfcSnapshot snap; // guarded by mutex
 };
 
@@ -20,6 +27,8 @@ static void fdy_nfc_clear(FdyNfcSnapshot* s) {
     s->present = false;
     s->strength = 0;
     s->peak = 0;
+    s->capture = (uint8_t)FdyNfcCaptureLive;
+    s->seconds = 0;
     s->history_head = 0;
     memset(s->history, 0, sizeof(s->history));
 }
@@ -27,14 +36,27 @@ static void fdy_nfc_clear(FdyNfcSnapshot* s) {
 static int32_t fdy_nfc_worker(void* context) {
     FdyNfc* n = context;
 
-    FuriHalNfcError err = furi_hal_nfc_acquire();
-    if(err != FuriHalNfcErrorNone) {
+    /* Keep asking for the chip instead of giving up on the first refusal.
+     *
+     * furi_hal_nfc_acquire() returns busy while another app still holds the
+     * radio. Returning here left n->running true with no thread behind it, so
+     * snap.error could never clear and fdy_nfc_start() early-returned on the
+     * stale flag - the "NFC busy" screen was a dead end that no key could
+     * leave except Back, and nothing on screen said so. Retrying on a yielding
+     * delay means the screen heals itself the moment the other app lets go. */
+    while(n->running) {
+        if(furi_hal_nfc_acquire() == FuriHalNfcErrorNone) break;
         furi_mutex_acquire(n->mutex, FuriWaitForever);
         n->snap.error = true;
         n->snap.armed = false;
         furi_mutex_release(n->mutex);
-        return 0;
+        furi_delay_tick(MAX(furi_ms_to_ticks(250), 1UL));
     }
+    if(!n->running) return 0; // asked to stop while waiting for the chip
+
+    furi_mutex_acquire(n->mutex, FuriWaitForever);
+    n->snap.error = false;
+    furi_mutex_release(n->mutex);
 
     furi_hal_nfc_low_power_mode_stop();
     furi_hal_nfc_field_detect_start(); // listen for an external carrier; never emit
@@ -46,6 +68,14 @@ static int32_t fdy_nfc_worker(void* context) {
 
     uint32_t hits = 0, samples = 0;
     uint8_t ema = 0;
+    uint16_t stage = 0; // windows left in the current capture stage
+    FdyNfcCapture capture = FdyNfcCaptureLive;
+
+    /* Kernel ticks, not furi_delay_us(). That call is a non-yielding DWT busy
+     * wait, so pacing this loop with it would hold the core for the whole gap
+     * between samples, starve the GUI service and leave the app looking like
+     * it is ignoring the buttons. */
+    const uint32_t sample_ticks = MAX(furi_ms_to_ticks(FDY_SAMPLE_PERIOD_MS), 1UL);
 
     while(n->running) {
         if(furi_hal_nfc_field_is_present()) hits++;
@@ -57,13 +87,62 @@ static int32_t fdy_nfc_worker(void* context) {
 
             furi_mutex_acquire(n->mutex, FuriWaitForever);
             FdyNfcSnapshot* s = &n->snap;
-            if(n->reset_req) {
-                s->peak = 0;
+
+            if(n->shield_req) {
+                /* Begin the timed shielded capture. */
+                n->shield_req = false;
                 n->reset_req = false;
+                ema = 0;
+                s->peak = 0;
+                s->strength = 0;
+                s->present = false;
+                stage = FDY_ARM_WINDOWS;
+                capture = FdyNfcCaptureArming;
+            } else if(n->reset_req) {
+                /* A plain peak reset must also drop the LOW-PASS, not just the
+                 * peak. ema is a worker local carrying several windows of the
+                 * PREVIOUS phase's field, so publishing a peak from it in the
+                 * same window silently re-latched the baseline - which is
+                 * exactly what made every NFC pouch grade F. */
+                n->reset_req = false;
+                ema = 0;
+                s->peak = 0;
+                s->strength = 0;
+                s->present = false;
+                stage = 0;
+                capture = FdyNfcCaptureLive;
+            } else {
+                s->strength = ema;
+                s->present = ema > FDY_PRESENT_THRESHOLD;
+
+                switch(capture) {
+                case FdyNfcCaptureArming:
+                    /* Deliberately NOT accumulating: the Flipper is in the
+                     * user's hand, passing through the reader field on its way
+                     * into the pouch. */
+                    if(stage) stage--;
+                    if(!stage) {
+                        stage = FDY_MEASURE_WINDOWS;
+                        capture = FdyNfcCaptureMeasuring;
+                    }
+                    break;
+                case FdyNfcCaptureMeasuring:
+                    if(ema > s->peak) s->peak = ema;
+                    if(stage) stage--;
+                    if(!stage) capture = FdyNfcCaptureFrozen;
+                    break;
+                case FdyNfcCaptureFrozen:
+                    /* Held. Taking the Flipper back out of the pouch to press
+                     * OK must not overwrite what was measured inside it. */
+                    break;
+                default:
+                    if(ema > s->peak) s->peak = ema;
+                    break;
+                }
             }
-            s->strength = ema;
-            s->present = ema > FDY_PRESENT_THRESHOLD;
-            if(ema > s->peak) s->peak = ema;
+
+            s->capture = (uint8_t)capture;
+            s->seconds = (uint8_t)(((uint32_t)stage * FDY_WINDOW_MS + 999u) / 1000u);
             s->history_head = (uint8_t)((s->history_head + 1u) % FDY_HISTORY_LEN);
             s->history[s->history_head] = ema;
             furi_mutex_release(n->mutex);
@@ -72,7 +151,7 @@ static int32_t fdy_nfc_worker(void* context) {
             samples = 0;
         }
 
-        furi_delay_us(FDY_SAMPLE_PERIOD_US);
+        furi_delay_tick(sample_ticks);
     }
 
     furi_hal_nfc_field_detect_stop();
@@ -112,8 +191,11 @@ void fdy_nfc_start(FdyNfc* n) {
     furi_mutex_release(n->mutex);
 
     n->reset_req = false;
+    n->shield_req = false;
     n->running = true;
-    n->thread = furi_thread_alloc_ex("FaradayNfc", 2048, fdy_nfc_worker, n);
+    n->thread = furi_thread_alloc_ex("FaradayNfc", FDY_WORKER_STACK, fdy_nfc_worker, n);
+    /* Below the UI, for the same reason as the Sub-GHz worker. */
+    furi_thread_set_priority(n->thread, FuriThreadPriorityLow);
     furi_thread_start(n->thread);
 }
 
@@ -141,6 +223,13 @@ void fdy_nfc_reset_peak(FdyNfc* n) {
         furi_mutex_acquire(n->mutex, FuriWaitForever);
         n->snap.peak = 0;
         furi_mutex_release(n->mutex);
+    }
+}
+
+void fdy_nfc_begin_shielded(FdyNfc* n) {
+    furi_assert(n);
+    if(n->running) {
+        n->shield_req = true; // the worker picks it up on its next window
     }
 }
 

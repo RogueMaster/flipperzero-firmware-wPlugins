@@ -17,10 +17,15 @@ struct HuntView {
     void* ok_ctx;
 };
 
+/* How long the "what to do" card stays up when the screen opens, in 100 ms
+ * scene ticks. Long enough to read, short enough not to be in the way. */
+#define HUNT_INTRO_TICKS 30
+
 typedef struct {
     HuntData d;
     uint8_t history[FDY_HISTORY_LEN];
     uint8_t anim;
+    uint8_t intro; // counts the opening instruction card back off the screen
 } HuntModel;
 
 int16_t hunt_view_margin(const HuntData* data) {
@@ -59,6 +64,13 @@ static void hunt_view_draw(Canvas* canvas, void* model) {
         canvas_draw_frame(canvas, 64 - w / 2 - 4, 13, w + 8, 14);
     }
 
+    /* How far over the noise floor, beside the word rather than buried in the
+     * bottom strip as a bare "+1" with nothing saying what it counted. The
+     * word is centred and never reaches x=96, so this column is free. */
+    canvas_set_font(canvas, FontSecondary);
+    snprintf(buf, sizeof(buf), "+%d dB", (int)margin);
+    canvas_draw_str_aligned(canvas, 126, 24, AlignRight, AlignBottom, buf);
+
     /* live bar + peak-hold tick */
     canvas_draw_frame(canvas, 2, 29, 124, 11);
     int fw = (120 * (d->level > 100 ? 100 : d->level)) / 100;
@@ -84,15 +96,34 @@ static void hunt_view_draw(Canvas* canvas, void* model) {
     canvas_draw_box(canvas, 0, 53, 128, 11);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
-    snprintf(buf, sizeof(buf), "%d dBm  +%d", (int)d->rssi, (int)margin);
-    canvas_draw_str(canvas, 3, 62, buf);
-    canvas_draw_str_aligned(canvas, 125, 62, AlignRight, AlignBottom, "OK reset");
+    snprintf(buf, sizeof(buf), "%d dBm", (int)d->rssi);
+    canvas_draw_str(canvas, 3, 61, buf);
+    canvas_draw_str_aligned(canvas, 125, 61, AlignRight, AlignBottom, "OK reset");
     canvas_set_color(canvas, ColorBlack);
+
+    /* An opening card saying what to physically DO. Leak Hunt is the one
+     * screen whose meaning is entirely in the user's hands - the numbers mean
+     * nothing unless they know to seal the fob, hold its button down and sweep
+     * the seams - and nothing on screen used to say that. It covers the trace
+     * area, which has nothing to show in the first three seconds anyway. */
+    if(m->intro > 0) {
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, 2, 40, 124, 12);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_frame(canvas, 2, 40, 124, 12);
+        canvas_draw_str_aligned(
+            canvas, 64, 48, AlignCenter, AlignBottom, "Sweep seams, zip, corners");
+    }
 }
 
 static bool hunt_view_input(InputEvent* event, void* context) {
     HuntView* v = context;
-    if(event->type == InputTypeShort && event->key == InputKeyOk) {
+    if(event->key != InputKeyOk) return false; // Back still pops the scene
+
+    /* Short AND Long: a sweep is done one-handed with the fob held down in the
+     * other, so OK gets pressed clumsily and often held. A Short-only handler
+     * would drop exactly those presses. See meter_view_input. */
+    if(event->type == InputTypeShort || event->type == InputTypeLong) {
         if(v->ok_cb) v->ok_cb(v->ok_ctx);
         return true;
     }
@@ -147,5 +178,17 @@ void hunt_view_update(HuntView* v, const HuntData* data) {
 
 void hunt_view_tick(HuntView* v) {
     furi_assert(v);
-    with_view_model(v->view, HuntModel * m, { m->anim++; }, true);
+    with_view_model(
+        v->view,
+        HuntModel * m,
+        {
+            m->anim++;
+            if(m->intro) m->intro--;
+        },
+        true);
+}
+
+void hunt_view_reset_intro(HuntView* v) {
+    furi_assert(v);
+    with_view_model(v->view, HuntModel * m, { m->intro = HUNT_INTRO_TICKS; }, true);
 }

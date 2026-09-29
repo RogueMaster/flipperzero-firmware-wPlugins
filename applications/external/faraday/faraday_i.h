@@ -19,16 +19,18 @@
 #include "helpers/fdy_store.h" // also defines FaradaySettings
 #include "views/meter_view.h"
 #include "views/hunt_view.h"
+#include "views/band_view.h"
 #include "views/splash_view.h"
 #include "scenes/faraday_scene.h"
 
-#define FARADAY_VERSION FAP_VERSION
+#define FARADAY_VERSION "1.3"
 
 typedef enum {
     FaradayViewSplash,
     FaradayViewSubmenu,
     FaradayViewMeter,
     FaradayViewHunt,
+    FaradayViewBand,
     FaradayViewSettings,
     FaradayViewAbout,
 } FaradayViewId;
@@ -52,6 +54,19 @@ typedef struct {
     uint8_t rating; // FdyRating
 } FdyTest;
 
+/** State of the "which band is my fob on" sweep. */
+typedef struct {
+    int16_t peak[FDY_BAND_COUNT]; /* loudest dBm heard on each band */
+    uint8_t active; /* band being sampled                */
+    uint8_t dwell; /* ticks spent on it so far          */
+    uint8_t pass; /* sweeps completed                  */
+    bool done;
+    bool found; /* a band won by a clear margin      */
+    bool weak; /* led, but too faint to trust       */
+    uint8_t winner;
+    int16_t margin; /* winner's lead over the runner-up  */
+} FdyBandScan;
+
 typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
@@ -64,6 +79,7 @@ typedef struct {
 
     MeterView* meter_view;
     HuntView* hunt_view;
+    BandView* band_view;
     SplashView* splash_view;
 
     FdySubGhz* subghz;
@@ -71,10 +87,12 @@ typedef struct {
 
     FaradaySettings settings;
     FdyTest test;
+    FdyBandScan scan;
 
     uint32_t last_click_tick; // paces the leak-hunt geiger clicks
     bool splash_done; // the intro plays once per launch
     uint8_t splash_ticks; // intro auto-advance counter
+    uint8_t menu_guard; // ticks to ignore menu activations after a skip
 } FaradayApp;
 
 /* test-flow helpers (defined in faraday.c) */
@@ -86,5 +104,8 @@ void faraday_notify_reject(FaradayApp* app); // nothing to capture yet
 void faraday_notify_verdict(FaradayApp* app, uint8_t rating);
 void faraday_notify_click(FaradayApp* app); // single leak-hunt geiger tick
 
-/* Log a finished test (defined in faraday.c). */
-void faraday_log_result(FaradayApp* app, bool is_nfc, uint32_t frequency);
+/* Log a finished test (defined in faraday.c). Returns false if the result
+ * could not be written - no SD card, card full, or the file is read-only.
+ * Callers must surface that: a test the user believes was saved and was
+ * not is worse than one that visibly failed. */
+bool faraday_log_result(FaradayApp* app, bool is_nfc, uint32_t frequency);

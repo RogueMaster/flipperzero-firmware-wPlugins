@@ -30,6 +30,23 @@ typedef enum {
     FdyRatingCount,
 } FdyRating;
 
+/* Lower bound of each grade, declared once.
+ *
+ * The grading engine below and every screen that explains the scale read
+ * these same names, so a threshold change cannot leave the About text quietly
+ * describing an older version of the app. */
+#define FDY_DB_APLUS 60
+#define FDY_DB_A     45
+#define FDY_DB_B     30
+#define FDY_DB_C     20
+#define FDY_DB_D     10
+
+#define FDY_PCT_APLUS 98
+#define FDY_PCT_A     90
+#define FDY_PCT_B     75
+#define FDY_PCT_C     50
+#define FDY_PCT_D     20
+
 /** "A+", "A", ... "F" */
 const char* fdy_rating_letter(FdyRating r);
 

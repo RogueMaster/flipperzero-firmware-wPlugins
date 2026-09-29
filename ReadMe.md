@@ -150,6 +150,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Habit Flow v0.1.4 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - Updated: [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - Updated: [Maze 3D v7.0 (By k20120509)](https://github.com/k20120509/flipper-release)
+- Updated: [Faraday v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
 
 <a name="release"></a>
 
@@ -584,7 +585,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Eye Saver v0.1 (By paul-sopin)](https://github.com/paul-sopin/flipper-eye-saver)
 - [Fake Chip Detector v0.13 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - [FAP Boilerplate v1.3 (By leedave)](https://github.com/leedave/flipper-zero-fap-boilerplate)
-- [Faraday v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
+- [Faraday v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
 - [FCC ID Lookup v0.1 (By lrehmann)](https://github.com/lrehmann/fcc-id-lookup-flipper)
 - [FDX-B Maker v1.0 (By snowsign)](https://github.com/snowsign/fdxb-maker)
 - [Fencing Test Box v0.1 (By aarjaneiro)](https://www.github.com/aarjaneiro/fencing_testbox)

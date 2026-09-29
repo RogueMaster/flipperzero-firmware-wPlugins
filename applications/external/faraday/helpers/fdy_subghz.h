@@ -30,6 +30,11 @@ typedef struct {
 } FdyBand;
 
 #define FDY_BAND_COUNT 4
+
+/* The bottom of the meter's display scale, in dBm. Used as the "nothing heard
+ * yet" seed for a per-band peak. It is a DISPLAY bound, not a measurement:
+ * never seed a noise-floor tracker from it (see fdy_subghz.c). */
+#define FDY_RSSI_FLOOR_DBM (-100)
 extern const FdyBand fdy_bands[FDY_BAND_COUNT];
 
 /** Atomic snapshot copied out for drawing. Plain integers only. */

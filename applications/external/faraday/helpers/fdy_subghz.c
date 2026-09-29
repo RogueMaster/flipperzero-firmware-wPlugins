@@ -7,14 +7,35 @@
 
 #define TAG "Faraday"
 
-#define FDY_SETTLE_US    1500 // RSSI settle after retuning
-#define FDY_SAMPLE_US    2000 // gap between RSSI reads (~500 Hz)
+#define FDY_SETTLE_MS    2 // RSSI settle after retuning
+#define FDY_SAMPLE_MS    2 // gap between RSSI reads (~500 Hz)
 #define FDY_WORKER_STACK (2 * 1024)
+
+/* Noise-floor tracking. The floor snaps DOWN to any new quiet minimum
+ * immediately, but only creeps back UP while the channel is actually quiet -
+ * "quiet" meaning the live reading is within FDY_FLOOR_QUIET_DB of the floor.
+ *
+ * That gate is the whole point. Without it the floor rises on every sample,
+ * carrier or not, so a fob held down for a second drags the floor up onto its
+ * own carrier: peak - floor collapses, the app decides nothing is transmitting
+ * and refuses to lock the baseline while the user is still pressing the fob.
+ * It also quietly shrinks every attenuation figure measured against it. */
+#define FDY_FLOOR_QUIET_DB      3
+#define FDY_FLOOR_CREEP_SAMPLES 250 // ~500 ms per dB at the 2 ms sample rate
+
+/* One trace slot per this many samples.
+ *
+ * The ring is FDY_HISTORY_LEN (64) deep and was advanced once per 2 ms sample,
+ * so the Leak Hunt "rolling trace of the sweep you just made" actually showed
+ * 128 ms of history - about a tenth of a second, far less than one pass along
+ * a seam, which made it useless for the job it exists to do. At 60 samples a
+ * slot the ring spans 64 * 60 * 2 ms = ~7.7 s, which is a real sweep. */
+#define FDY_TRACE_DECIMATE 60
 
 /* Meter scale. -100 dBm reads empty (bare noise floor), -30 dBm pegs it - the
  * span a fob's carrier sweeps as it goes from "sealed in a good pouch" to
  * "pressed against the antenna". */
-#define FDY_RSSI_MIN (-100)
+#define FDY_RSSI_MIN FDY_RSSI_FLOOR_DBM
 #define FDY_RSSI_MAX (-30)
 
 /* Common ISM bands a car key, garage/gate remote or alarm fob lives on. */
@@ -55,6 +76,17 @@ static int32_t fdy_subghz_thread(void* context) {
     uint32_t current = 0; // force initial tune
     int16_t peak = FDY_RSSI_MIN;
     int16_t floor = FDY_RSSI_MIN;
+    uint16_t quiet = 0; // consecutive quiet samples, paces the floor creep
+    bool primed = false; // peak/floor seeded from a real sample yet?
+    uint8_t trace_div = 0; // decimates the sample rate down to the trace rate
+
+    /* Pace the loop in kernel ticks, never in furi_delay_us(): that call is a
+     * non-yielding DWT busy-wait, so it would pin the core for the whole gap
+     * between samples. The GUI service then stops draining its input queue and
+     * the app looks like it is ignoring the buttons. Ticks block on the kernel,
+     * so the UI runs in the gaps. */
+    const uint32_t sample_ticks = MAX(furi_ms_to_ticks(FDY_SAMPLE_MS), 1UL);
+    const uint32_t settle_ticks = MAX(furi_ms_to_ticks(FDY_SETTLE_MS), 1UL);
 
     furi_mutex_acquire(s->mutex, FuriWaitForever);
     s->snapshot.valid = true;
@@ -69,10 +101,6 @@ static int32_t fdy_subghz_thread(void* context) {
         s->reset_request = false;
         furi_mutex_release(s->mutex);
 
-        if(reset) {
-            peak = FDY_RSSI_MIN;
-        }
-
         // retune only when the band changes
         if(want != current) {
             if(subghz_devices_is_frequency_valid(device, want)) {
@@ -80,23 +108,49 @@ static int32_t fdy_subghz_thread(void* context) {
                 subghz_devices_set_frequency(device, want);
                 subghz_devices_flush_rx(device);
                 subghz_devices_set_rx(device);
-                furi_delay_us(FDY_SETTLE_US);
+                furi_delay_tick(settle_ticks);
                 current = want;
-                floor = FDY_RSSI_MIN; // relearn the floor on the new band
+                primed = false; // relearn both trackers on the new band
+                quiet = 0;
             } else {
                 current = want; // skip invalid band, keep last reading
             }
         }
 
         int16_t rssi = (int16_t)subghz_devices_get_rssi(device);
+
+        /* Seed from the RADIO, not from FDY_RSSI_MIN.
+         *
+         * FDY_RSSI_MIN is the meter's display scale, and it has nothing to do
+         * with what this room reads. Seeding the trackers from it broke the
+         * "did anything actually transmit" gate in both directions: on a quiet
+         * band the true ambient sits BELOW -100, so the floor snapped down
+         * while the peak stayed pinned at the constant and the app reported a
+         * permanent phantom carrier; on a noisy band the floor started 15 dB
+         * too low and the quiet-gated creep could never recover it. */
+        if(!primed) {
+            peak = rssi;
+            floor = rssi;
+            quiet = 0;
+            primed = true;
+        }
+        if(reset) peak = rssi; // a peak-hold restarts at the current level
         if(rssi > peak) peak = rssi;
 
-        // Track the noise floor: snap down fast to a new quiet minimum, drift
-        // up slowly so a burst doesn't permanently raise it.
-        if(rssi < floor)
+        /* Snap down to a new quiet minimum at once; creep back up only while
+         * the channel is quiet, so a carrier can never raise the floor onto
+         * itself. See FDY_FLOOR_QUIET_DB above. */
+        if(rssi < floor) {
             floor = rssi;
-        else if((furi_get_tick() & 0x3F) == 0 && floor < FDY_RSSI_MAX)
-            floor++;
+            quiet = 0;
+        } else if(rssi - floor <= FDY_FLOOR_QUIET_DB) {
+            if(++quiet >= FDY_FLOOR_CREEP_SAMPLES) {
+                quiet = 0;
+                if(floor < FDY_RSSI_MAX) floor++;
+            }
+        } else {
+            quiet = 0; // something is transmitting: hold the floor where it is
+        }
 
         furi_mutex_acquire(s->mutex, FuriWaitForever);
         FdySubGhzSnapshot* sn = &s->snapshot;
@@ -106,11 +160,14 @@ static int32_t fdy_subghz_thread(void* context) {
         sn->frequency = current;
         sn->level = fdy_subghz_normalize(rssi);
         sn->peak_norm = fdy_subghz_normalize(peak);
-        sn->history_head = (uint8_t)((sn->history_head + 1) % FDY_HISTORY_LEN);
-        sn->history[sn->history_head] = sn->level;
+        if(++trace_div >= FDY_TRACE_DECIMATE) {
+            trace_div = 0;
+            sn->history_head = (uint8_t)((sn->history_head + 1) % FDY_HISTORY_LEN);
+            sn->history[sn->history_head] = sn->level;
+        }
         furi_mutex_release(s->mutex);
 
-        furi_delay_us(FDY_SAMPLE_US);
+        furi_delay_tick(sample_ticks);
     }
 
     subghz_devices_idle(device);
@@ -163,6 +220,9 @@ void fdy_subghz_start(FdySubGhz* s) {
 
     s->running = true;
     s->thread = furi_thread_alloc_ex("FaradaySubGhz", FDY_WORKER_STACK, fdy_subghz_thread, s);
+    /* Below the UI. A sampling worker that outranks the GUI service delays
+     * every redraw and every input event behind its own loop. */
+    furi_thread_set_priority(s->thread, FuriThreadPriorityLow);
     furi_thread_start(s->thread);
 }
 

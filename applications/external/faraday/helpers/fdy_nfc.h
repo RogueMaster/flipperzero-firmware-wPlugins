@@ -22,6 +22,23 @@ extern "C" {
 #define FDY_HISTORY_LEN 64
 #endif
 
+/**
+ * Where a timed shielded capture has got to.
+ *
+ * The NFC test is the one flow where the FLIPPER goes in the pouch, not the
+ * thing being measured - so the user cannot see the screen or press a button
+ * while the measurement is being taken. Plain peak-hold cannot work here: the
+ * peak would be re-latched by the bare reader field on the way in and again on
+ * the way out, and it was - every pouch graded F. So the shielded half runs on
+ * a timer instead: arm, measure, freeze.
+ */
+typedef enum {
+    FdyNfcCaptureLive = 0, /* free-running peak-hold (the baseline half) */
+    FdyNfcCaptureArming, /* counting down while the user seals the pouch */
+    FdyNfcCaptureMeasuring, /* accumulating the sealed field              */
+    FdyNfcCaptureFrozen, /* done - the peak is held until the user looks */
+} FdyNfcCapture;
+
 /** Atomic snapshot for the meter view. */
 typedef struct {
     bool armed; /* detector running                     */
@@ -29,6 +46,8 @@ typedef struct {
     bool present; /* a carrier is over the noise floor now */
     uint8_t strength; /* current field duty-cycle 0..100%      */
     uint8_t peak; /* peak-hold strength since reset        */
+    uint8_t capture; /* FdyNfcCapture                        */
+    uint8_t seconds; /* whole seconds left in this stage      */
     uint8_t history[FDY_HISTORY_LEN];
     uint8_t history_head;
 } FdyNfcSnapshot;
@@ -44,6 +63,13 @@ bool fdy_nfc_is_running(FdyNfc* n);
 
 /** Drop the peak-hold so the next capture phase starts clean. */
 void fdy_nfc_reset_peak(FdyNfc* n);
+
+/**
+ * Start the timed shielded capture: a few seconds to seal the Flipper in the
+ * pouch, then a few seconds of measurement, then the peak freezes so taking
+ * the Flipper back out cannot overwrite it.
+ */
+void fdy_nfc_begin_shielded(FdyNfc* n);
 
 void fdy_nfc_get(FdyNfc* n, FdyNfcSnapshot* out);
 
