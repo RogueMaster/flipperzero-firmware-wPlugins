@@ -397,6 +397,57 @@ static void wifi_setup_flow(TrackerState* state) {
     fhttp_free(http);
 }
 
+// Diagnostic: run one real request and show what actually came back.
+static void net_test_flow(TrackerState* state) {
+    if(!config.has_url) {
+        refresh_msg(state, "No URL in config.txt");
+        return;
+    }
+
+    refresh_msg(state, "Connecting board...");
+    FhttpClient* http = fhttp_alloc();
+    if(!fhttp_open(http)) {
+        refresh_msg(state, "No board found");
+        fhttp_free(http);
+        return;
+    }
+    if(!fhttp_ping(http)) {
+        refresh_msg(state, "Board not responding");
+        fhttp_close(http);
+        fhttp_free(http);
+        return;
+    }
+
+    const char* hdrs[TU_HDR_MAX];
+    for(int i = 0; i < config.header_count; i++)
+        hdrs[i] = config.headers[i];
+
+    char url[TU_URL_MAX + 96];
+    const char* tracking = package_count > 0 ? packages[0].tracking : "1";
+    const char* carrier = package_count > 0 ? packages[0].carrier : "UPS";
+    url_build(config.url, tracking, carrier, url, sizeof(url));
+
+    refresh_msg(state, "Requesting...");
+    char* body = malloc(4096);
+    bool ok = fhttp_get(http, url, hdrs, config.header_count, body, 4096);
+
+    if(!ok) {
+        refresh_msg(state, "GET failed (no reply)");
+    } else {
+        // The header line is far too short for a real response; write the whole
+        // thing to the SD card where it can be read properly.
+        Storage* storage = furi_record_open(RECORD_STORAGE);
+        storage_common_mkdir(storage, PACK_DIR);
+        write_file(storage, PACK_DIR "/nettest.txt", body);
+        furi_record_close(RECORD_STORAGE);
+        refresh_msg(state, "Wrote nettest.txt");
+    }
+
+    free(body);
+    fhttp_close(http);
+    fhttp_free(http);
+}
+
 static void delete_selected(TrackerState* state) {
     furi_mutex_acquire(state->mutex, FuriWaitForever);
     if(package_count > 0) {
@@ -792,9 +843,10 @@ int32_t package_tracker_app(void* p) {
                 "Add package",
                 "WiFi setup",
                 "Refresh now",
+                "Net test",
             };
             view_port_enabled_set(view_port, false);
-            int32_t choice = menu_pick(state->gui, "Pack Track", menu_items, 3);
+            int32_t choice = menu_pick(state->gui, "Pack Track", menu_items, 4);
             view_port_enabled_set(view_port, true);
 
             if(choice == 0)
@@ -803,6 +855,8 @@ int32_t package_tracker_app(void* p) {
                 wifi_setup_flow(state);
             else if(choice == 2)
                 start_refresh(state);
+            else if(choice == 3)
+                net_test_flow(state);
         } else if(do_delete)
             delete_selected(state);
         else if(do_refresh)

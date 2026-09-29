@@ -222,8 +222,21 @@ bool fhttp_get(
     fhttp_send_line(c, cmd);
 
     if(!fhttp_wait_any(c, "[GET/SUCCESS]", NULL, 15000)) return false;
+    if(!fhttp_collect_until(c, "[GET/END]", out, out_cap, 15000)) return false;
 
-    return fhttp_collect_until(c, "[GET/END]", out, out_cap, 15000);
+    // The board prefixes the body with its own metadata line, for example
+    // {"Status-Code":200,"Content-Length":424}. Drop it so callers parse the
+    // response itself rather than the envelope around it.
+    if(strncmp(out, "{\"Status-Code\"", 14) == 0) {
+        char* nl = out;
+        while(*nl && *nl != '\n')
+            nl++;
+        if(*nl == '\n') {
+            nl++;
+            memmove(out, nl, strlen(nl) + 1);
+        }
+    }
+    return true;
 }
 
 bool fhttp_scan(FhttpClient* c, char* out, size_t out_cap) {
