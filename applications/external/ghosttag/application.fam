@@ -6,9 +6,10 @@ App(
     stack_size=8 * 1024,
     fap_icon="icons/ghosttag_10px.png",
     fap_icon_assets="icons",
+    sources=["ghosttag.c", "helpers/*.c", "scenes/*.c", "views/*.c"],
     fap_category="GPIO/ESP32",
     fap_author="at0m-b0mb",
     fap_weburl="https://github.com/at0m-b0mb/GhostTag-FlipperZero",
-    fap_version="1.0",
-    fap_description="Anti-stalking BLE tracker hunter: detect unknown AirTags, Tiles & Samsung SmartTags following you. Needs the WiFi/BLE devboard (ESP32).",
+    fap_version="2.0",
+    fap_description="Anti-stalking BLE tracker hunter. Finds unknown AirTags, Tiles and Samsung SmartTags that are travelling with you and warns you. Includes a built-in Demo mode that plays a scripted scenario through the real UI and needs no hardware at all. A live hunt needs a BLE-capable ESP32 companion board on the GPIO UART - note that the official Flipper WiFi devboard is an ESP32-S2 and has no Bluetooth radio, so it will not work.",
 )
