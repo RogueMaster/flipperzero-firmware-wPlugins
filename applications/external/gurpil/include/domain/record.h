@@ -8,7 +8,7 @@
  *
  * A record is the best (highest) distance a player has achieved. It is persisted as a
  * fixed-size little-endian byte buffer with a magic/version marker for corruption detection.
- * The record is non-negative (int32_t >= 0). File I/O is handled elsewhere (Task 9);
+ * The record is non-negative (int32_t >= 0). File I/O lives in persistence/best_store;
  * this module is pure serialization/parsing + keeping the maximum.
  */
 

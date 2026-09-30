@@ -7,7 +7,7 @@
 /*
  * Pure screen-mapping and input-mapping helpers for the Canvas UI layer (no furi, no I/O),
  * host-testable in isolation from Canvas/InputEvent. src/views/game_view.c (the furi-facing
- * render callback) and the Task 11 app's input callback are the only places these get wired to
+ * render callback) and the game view's input callback are the only places these get wired to
  * real hardware types.
  *
  * Single source of truth for the 128x64 screen layout: the vehicle's fixed column and the
@@ -59,7 +59,7 @@ int32_t screen_column_to_world_x(int32_t distance, int column);
 uint8_t terrain_height_to_screen_y(int16_t height);
 
 /* Abstraction over the D-pad keys this game reacts to, decoupled from furi's InputKey so this
- * mapping stays host-testable; the input callback (furi-aware, Task 11) translates the real
+ * mapping stays host-testable; the game view's input callback (furi-aware) translates the real
  * InputKey into this enum before calling shape_for_input_key. */
 typedef enum {
     GurpilKeyUp,

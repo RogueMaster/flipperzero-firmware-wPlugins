@@ -6,7 +6,7 @@
 
 /*
  * The furi isolation boundary for rendering: this header pulls in Canvas, so only furi-aware
- * callers (the Task 11 app layer) include it. GameState and its accessors stay plain C.
+ * callers (the views layer) include it. GameState and its accessors stay plain C.
  *
  * `gurpil_render` is a pure function of `game` and `best` — it never mutates GameState and
  * never blocks on input, so the caller can (and must) invoke it on every tick via

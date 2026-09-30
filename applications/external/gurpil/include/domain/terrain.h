@@ -18,7 +18,7 @@
  *
  * HEIGHT is a small "game unit" surface offset, bounded to [TERRAIN_HEIGHT_MIN,
  * TERRAIN_HEIGHT_MAX] — an integer band the renderer maps onto the 128x64 display's playable
- * strip. Everything here is integer arithmetic, kept fixed-point friendly for the Task 4 sim.
+ * strip. Everything here is integer arithmetic, kept fixed-point friendly for the sim.
  */
 
 enum {

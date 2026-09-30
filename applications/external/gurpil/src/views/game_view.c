@@ -330,7 +330,7 @@ static void render_speed_bar(Canvas* canvas, const GameState* game) {
 
 static void render_speed_stage(Canvas* canvas, const GameState* game) {
     // char[12], not a tight buffer: the ufbt build runs -Werror=format-truncation, which sizes
-    // "%u" for a full unsigned int regardless of the tiny stage value (see project build notes).
+    // "%u" for a full unsigned int regardless of the tiny stage value.
     char text[12];
     snprintf(text, sizeof(text), SPEED_STAGE_FORMAT, (unsigned)game_speed_stage(game));
 

@@ -16,8 +16,9 @@ Press the D-pad to switch your wheel shape at any time:
 | **Down** | Square □ |
 | **Left** | Triangle △ |
 
-Each shape is best on a different terrain (flat, rocky, uphill, obstacle) — match it to the
-ground ahead to keep your speed up. Reach checkpoints to earn extra time and push your best
+The circle is fastest on flat ground, the line on rocks and the triangle uphill (the square
+comes close there). Obstacles stop every shape but the line — match it to the ground ahead to
+keep your speed up. Reach checkpoints to earn extra time and push your best
 distance. The run is endless: it only ends when time runs out.
 
 The pace ramps up as you go: a run opens at a gentle **x1**, then builds to **x2** and **x3**
