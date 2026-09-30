@@ -156,7 +156,7 @@ static void cribbage_draw_callback(Canvas* canvas, void* context) {
         draw_text(canvas, 4, 10, "Scores", FontPrimary);
         for(uint8_t index = 0; index < 3; index++) {
             if(index == 1 && cribbage_score_his_heels(app->cards[0])) {
-                snprintf(buffer, sizeof(buffer), "%s: %u  (+2 heels)", result_names[index], app->scores[index].total);
+                snprintf(buffer, sizeof(buffer), "Dealer: %u (+2 heels)", app->scores[index].total);
             } else {
                 snprintf(buffer, sizeof(buffer), "%s: %u", result_names[index], app->scores[index].total);
             }

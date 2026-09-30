@@ -41,4 +41,3 @@ uint8_t cribbage_score_his_heels(CribbageCard starter);
 bool cribbage_cards_equal(CribbageCard left, CribbageCard right);
 uint8_t cribbage_card_value(CribbageCard card);
 const char* cribbage_rank_name(CribbageRank rank);
-const char* cribbage_suit_name(CribbageSuit suit);
