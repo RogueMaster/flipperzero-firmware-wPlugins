@@ -153,6 +153,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [Specter v3.1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Updated: [Trivia Zero v0.1.14 (By Endika)](https://github.com/Endika/flipper-trivia-zero)
+- Updated: [Avocado Zero v0.1.2 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 
 <a name="release"></a>
 
@@ -271,7 +272,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Arduventure v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperArduventure)
 - [Arkanoid v1.3 (By gotnull)](https://github.com/gotnull/flipperzero-firmware-wPlugins)
 - [Asteroids v1.3 (By antirez)](https://github.com/antirez/flipper-asteroids)
-- [Avocado Zero v0.1.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
+- [Avocado Zero v0.1.2 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - [Banana v0.4 (By DrEverr)](https://github.com/DrEverr/FlipperApps)
 - [BeepBack v1.1 (By h4sw5q2wr9-byte)](https://github.com/h4sw5q2wr9-byte/BEEPBACK)
 - [Blackjack v0.1 (By RocketGod)](https://github.com/RocketGod-Git/Flipper-Zero-Blackjack)

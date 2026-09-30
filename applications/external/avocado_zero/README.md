@@ -7,7 +7,7 @@ A tiny **care sim** for Flipper Zero: you suspend an avocado pit over a glass of
 - **Clean** the glass when the water is dirty so your pit stays healthy. Cleaning when it really needs it helps the roots grow.
 - **Days** tick by in real time; dirt builds up if you stay away too long.
 - **Win** when the roots reach their full length—then you can start a fresh pit and do it again.
-- If the water gets **too dry or too filthy**, it is **game over**; hit **Start** to try again from the beginning.
+- If the water gets **too filthy**, it is **game over**; hit **Start** to try again from the beginning.
 
 ## Screenshots
 
@@ -38,7 +38,7 @@ Pushed your luck too far? New run with **Start**.
 | `make linter` | `cppcheck` on app sources |
 | `make format` | `clang-format` tracked `.c` / `.h` |
 
-Set `FLIPPER_FIRMWARE_PATH` if your firmware tree is not next to this repo.
+Set `FLIPPER_FIRMWARE_PATH` to your firmware tree in a gitignored `local.mk` (`FLIPPER_FIRMWARE_PATH = /path/to/flipperzero-firmware`).
 
 ## Save
 

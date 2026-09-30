@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Endika/flipper-avocado-zero/compare/v0.1.1...v0.1.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* never overwrite an unreadable save ([f63d2a2](https://github.com/Endika/flipper-avocado-zero/commit/f63d2a201e0dfcb0c5040689ac1e901eb5040dec))
+
 ## [0.1.1](https://github.com/Endika/flipper-avocado-zero/compare/v0.1.0...v0.1.1) (2026-09-05)
 
 
