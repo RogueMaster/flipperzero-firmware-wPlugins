@@ -23,6 +23,6 @@ App(
     fap_category="Games",
     fap_author="Endika",
     fap_weburl="https://github.com/Endika/flipper-trivia-zero",
-    fap_version="0.1.12",
+    fap_version="0.1.14",
     fap_description="Bilingual flashcard trivia: random questions with reveal-on-OK, two languages shipped.",
 )

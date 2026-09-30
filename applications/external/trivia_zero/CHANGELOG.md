@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.14](https://github.com/Endika/flipper-trivia-zero/compare/v0.1.13...v0.1.14) (2026-09-28)
+
+
+### Bug Fixes
+
+* keep The Artful Dodger untranslated in the Spanish pack ([cfd3f88](https://github.com/Endika/flipper-trivia-zero/commit/cfd3f8873695d7b539f0d318ada2065bf2b67567))
+
+## [0.1.13](https://github.com/Endika/flipper-trivia-zero/compare/v0.1.12...v0.1.13) (2026-09-27)
+
+
+### Bug Fixes
+
+* build the fap from the committed pack and keep stub output out of it ([eb29210](https://github.com/Endika/flipper-trivia-zero/commit/eb29210dd2c7b70b88c12da89117ff349cf1152d))
+* correct literal translations of names and titles in the Spanish pack ([6c3aa36](https://github.com/Endika/flipper-trivia-zero/commit/6c3aa360069c9ae002dba8672fdb19f6c6edb2bb))
+* keep pi and omicron in the pack and refuse characters with no ASCII form ([ad4569e](https://github.com/Endika/flipper-trivia-zero/commit/ad4569e697261d12d127260c035992d84283b1ef))
+* translate the physics answers Jerk and Gray instead of Imbecil and Gris ([2b452ac](https://github.com/Endika/flipper-trivia-zero/commit/2b452ac33ae2f65ab7f1030cff9a74ec60178ed7))
+
 ## [0.1.12](https://github.com/Endika/flipper-trivia-zero/compare/v0.1.11...v0.1.12) (2026-05-09)
 
 
