@@ -36,7 +36,7 @@ make prepare
 make fap
 ```
 
-If needed, change `FLIPPER_FIRMWARE_PATH` in `Makefile`.
+Set `FLIPPER_FIRMWARE_PATH` to your firmware tree in a gitignored `local.mk` (`FLIPPER_FIRMWARE_PATH = /path/to/flipperzero-firmware`).
 
 ## SD Card Data
 
