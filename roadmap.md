@@ -14,18 +14,18 @@ This roadmap prepares Cribbage Calc for a polished public release and eventual s
 
 ## 2. UI and Device Polish
 
-- [ ] Improve card presentation so selected rank and suit are immediately readable on the 128×64 display.
-- [ ] Make all result-screen actions discoverable, including breakdown navigation when his heels is displayed.
-- [ ] Refine the results overview and breakdown layouts for readable labels, values, and navigation hints.
-- [ ] Improve duplicate-card feedback by clearly identifying the conflicting card and slot.
-- [ ] Test the complete workflow on-device: new deal, rank/suit selection, Back navigation, duplicate recovery, score details, and New Deal.
+- [x] Improve card presentation so selected rank and suit are immediately readable on the 128×64 display.
+- [x] Make all result-screen actions discoverable, including breakdown navigation when his heels is displayed.
+- [x] Refine the results overview and breakdown layouts for readable labels, values, and navigation hints.
+- [x] Improve duplicate-card feedback by clearly identifying the conflicting card and slot.
+- [x] Test the complete workflow on-device: new deal, rank/suit selection, Back navigation, duplicate recovery, score details, and New Deal.
 - [ ] Incorporate feedback from real cribbage use before declaring the UI stable.
 
 **Done when:** a first-time user can enter a deal, recover from an accidental duplicate, understand every displayed score, and start another deal without outside instructions.
 
 ## 3. Apps Catalog Preparation
 
-- [ ] Choose and add an OSI-approved open-source `LICENSE` that permits binary distribution by the catalog.
+- [x] Choose and add an OSI-approved open-source `LICENSE` that permits binary distribution by the catalog.
 - [ ] Create a 10×10, 1-bit PNG app icon and reference it with `fap_icon` in `application.fam`.
 - [ ] Capture unmodified qFlipper screenshots of the polished app; include a welcome/entry screen and results screen.
 - [ ] Add `changelog.md` with an initial `v0.1` entry; keep it updated for every catalog submission.
