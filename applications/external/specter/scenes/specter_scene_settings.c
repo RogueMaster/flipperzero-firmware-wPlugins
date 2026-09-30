@@ -15,6 +15,7 @@ typedef enum {
     SettingsIndexStealth,
     SettingsIndexLogging,
     SettingsIndexMeter,
+    SettingsIndexIntro,
     SettingsIndexClearLog,
 } SettingsIndex;
 
@@ -86,14 +87,22 @@ static void logging_changed(VariableItem* item) {
  * watched every reading on every screen drop to about a third, and
  * reasonably concluded the app was broken. 0-100 maps the real polling band
  * onto the whole dial; Duty % is the unscaled carrier duty-cycle, which tops
- * out around 30% on a live reader. */
-static const char* const meter_labels[] = {"0-100", "Duty %"};
+ * out around 30% on a live reader. The words live in specter_settings.c so the
+ * logbook can stamp findings with the same ones. */
 
 static void meter_changed(VariableItem* item) {
     SpecterApp* app = variable_item_get_context(item);
     uint8_t i = variable_item_get_current_value_index(item);
     app->settings.meter_raw = i;
-    variable_item_set_current_value_text(item, meter_labels[i]);
+    variable_item_set_current_value_text(item, specter_settings_meter_label(i));
+    settings_commit(app);
+}
+
+static void intro_changed(VariableItem* item) {
+    SpecterApp* app = variable_item_get_context(item);
+    uint8_t i = variable_item_get_current_value_index(item);
+    app->settings.intro = i;
+    variable_item_set_current_value_text(item, on_off[i]);
     settings_commit(app);
 }
 
@@ -144,7 +153,12 @@ void specter_scene_settings_on_enter(void* context) {
 
     item = variable_item_list_add(list, "Meter scale", 2, meter_changed, app);
     variable_item_set_current_value_index(item, app->settings.meter_raw ? 1 : 0);
-    variable_item_set_current_value_text(item, meter_labels[app->settings.meter_raw ? 1 : 0]);
+    variable_item_set_current_value_text(
+        item, specter_settings_meter_label(app->settings.meter_raw ? 1 : 0));
+
+    item = variable_item_list_add(list, "Intro", 2, intro_changed, app);
+    variable_item_set_current_value_index(item, app->settings.intro ? 1 : 0);
+    variable_item_set_current_value_text(item, on_off[app->settings.intro ? 1 : 0]);
 
     /* Not a toggle - selecting it goes to the confirmation screen. */
     item = variable_item_list_add(list, "Clear logbook...", 1, NULL, app);

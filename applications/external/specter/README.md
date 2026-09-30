@@ -17,6 +17,14 @@
 
 <p align="center"><i>Sweep for the readers you can't see.</i></p>
 
+<p align="center">
+  <a href="https://at0m-b0mb.github.io/Specter-FlipperZero/"><b>Project site</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/releases/latest">Download</a>
+  &nbsp;·&nbsp;
+  <a href="docs/changelog.md">Changelog</a>
+</p>
+
 <!-- live badges: these track the repo, so the README never goes stale -->
 <p align="center">
   <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/releases/latest"><img src="https://img.shields.io/github/v/release/at0m-b0mb/Specter-FlipperZero?style=flat-square&color=8A6714&labelColor=000000" alt="Latest release"></a>
@@ -58,35 +66,29 @@
 ## On the Flipper
 
 <p align="center">
-  <img src="images/demo.gif" width="70%" alt="Specter in use: sweeping a quiet room, closing in on a reader, locking on at MAX, fingerprinting its polling cadence, then a site-survey verdict">
+  <img src="images/demo.gif" width="70%" alt="Specter in use: sweeping a quiet room, closing in on a reader, locking on at PEGGED, fingerprinting its polling cadence, then a site-survey verdict">
 </p>
 <p align="center">
   <sub>A sweep, start to finish: quiet room → closing in → locked on → <b>what</b> it is → the room's verdict.</sub>
 </p>
 
-### Straight off the device
+### The screens no single mode owns
 
 <p align="center">
-  <img src="images/device.png" width="92%" alt="Four qFlipper captures from a real unit: Sweep on a live reader with the meter pegged, Sweep in a quiet room showing its key hints, Watch alarming with a strength bar, and Watch standing guard with one contact logged">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/screens-dark.png">
+    <img src="images/screens.png" width="100%" alt="The boot intro, main menu, Sweep listening, Fingerprint with nothing there, a Site Survey walking, Watch with a contact logged, the Logbook and Settings — all captured from a real Flipper Zero">
+  </picture>
 </p>
 <p align="center">
   <sub>
-    Not mockups — <b>qFlipper captures from a real unit.</b> The generated
-    screens below are drawn from the firmware's own layout constants, and the
-    two are checked against each other: every capture here was downsampled back
-    to 128×64 and its inked rows compared with the source.
-  </sub>
-</p>
-
-### Every screen
-
-<p align="center">
-  <img src="images/screens_all.png" width="100%" alt="Specter screens">
-</p>
-<p align="center">
-  <sub>
-    <b>Sweep</b> (quiet) &nbsp;·&nbsp; <b>Sweep</b> (reader locked) &nbsp;·&nbsp; <b>Fingerprint</b> &nbsp;·&nbsp; <b>Survey</b> (running) &nbsp;·&nbsp; <b>Survey</b> (verdict)<br>
-    <b>Watch</b> (clear) &nbsp;·&nbsp; <b>Watch</b> (reader!) &nbsp;·&nbsp; <b>Logbook</b> &nbsp;·&nbsp; <b>Calibrate</b> &nbsp;·&nbsp; <b>Settings</b>
+    The quiet states and the intro — the four modes below each carry their own
+    capture, so these are the ones they do not. <b>Every image
+    in this README is a capture off a real device</b>, taken over the Flipper's
+    own RPC session by <code>tools_screenshot.py</code>. There is no mockup
+    renderer in this project any more — a drawing of the UI is a second
+    implementation of it, and it disagreed with the firmware while looking
+    perfectly convincing (see <a href="docs/changelog.md">3.0.1</a>).
   </sub>
 </p>
 
@@ -109,7 +111,7 @@ the right one depends on what you are actually trying to find out:
 
 ### Sweep — *where is it?*
 
-<img src="images/screen_reader_max.png" width="42%" align="right" alt="Sweep — reader found, meter pegged">
+<img src="screenshots/sweep_reader.png" width="42%" align="right" alt="Sweep — reader found, meter pegged">
 
 **What it does.** A live EMF-style meter. Hold the Flipper flat and move it slowly
 over the thing you're checking — a card terminal, a door reader, the underside of
@@ -131,7 +133,7 @@ an ATM lip, a parcel, a desk. The needle rides the field strength in real time.
   your sensitivity and a live waveform. It flips to a black
   **`● ACTIVE READER`** alarm bar with a proximity word the moment a carrier is
   detected.
-- **Proximity** — `FAINT → NEAR → CLOSE → STRONG → MAX`. `MAX` means the meter is
+- **Proximity** — `FAINT → NEAR → CLOSE → STRONG → PEGGED`. `PEGGED` means the meter is
   *pegged*: you're as close as this measurement can resolve.
 
 **Sound.** Optional geiger clicks that **speed up as you get closer**, so you can
@@ -148,7 +150,7 @@ sweep with the Flipper in your pocket and hunt by ear alone.
 
 ### Fingerprint — *what kind of thing is it?*
 
-<img src="images/screen_fingerprint.png" width="42%" align="right" alt="Fingerprint — polling reader identified">
+<img src="screenshots/fingerprint_reader.png" width="42%" align="right" alt="Fingerprint — polling reader identified">
 
 **What it does.** Once Sweep has found something, hold the Flipper **still**
 against it. Fingerprint stops measuring proximity and starts **timing the
@@ -180,7 +182,7 @@ polling reader shows up as an unmistakable square wave.
 
 ### Site Survey — *is this room clean?*
 
-<img src="images/screen_survey_done.png" width="42%" align="right" alt="Site Survey — verdict">
+<img src="screenshots/survey_active.png" width="42%" align="right" alt="Site Survey — verdict">
 
 **What it does.** A **timed** sweep of a whole space. Start it, walk the room
 normally, and get a single verdict at the end — no needle-watching.
@@ -211,7 +213,7 @@ in one second is a claim about the whole room that one second cannot support.
 
 ### Watch Mode — *did one appear while I was away?*
 
-<img src="images/screen_watch_hit.png" width="42%" align="right" alt="Watch Mode — reader present">
+<img src="screenshots/watch_reader.png" width="42%" align="right" alt="Watch Mode — reader present">
 
 **What it does.** Stands guard **indefinitely**. Arm it, set the Flipper down,
 walk away. Where Sweep is you hunting and Survey is a fixed-length test, Watch
@@ -401,8 +403,10 @@ make -C test    # run the host tests for the pure logic
 
 The `.fap` lands in `dist/specter.fap`; `ufbt launch` copies it to `apps/NFC/` and starts it for you.
 
-> Icons in `icons/`, screenshots and the banner in `images/` are generated — regenerate with
-> `python3 tools_gen_icons.py`, `python3 tools_gen_mockups.py` and `python3 tools_gen_banner.py` (needs `pillow`).
+> Icons in `icons/` and the banner in `images/` are generated — regenerate with
+> `python3 tools_gen_icons.py` and `python3 tools_gen_banner.py` (needs `pillow`).
+> Everything in `screenshots/` is captured from a real device with
+> `python3 tools_screenshot.py` (needs `pyserial` and a Flipper on USB).
 
 ---
 
@@ -527,7 +531,7 @@ Specter-FlipperZero/
 ├── scenes/                       # scene-manager navigation
 ├── test/                         # host tests for the pure decision layers
 ├── icons/                        # 1-bit Flipper icons (generated)
-├── images/                       # banner + screen mockups (generated), plus
+├── images/                       # banner, mark and social card (generated), plus
 │                                 #   device_*.png: real captures off a Flipper
 ├── screenshots/                  # the six captures the Apps Catalog listing uses
 ├── docs/catalog/                 # the prepared catalog manifest + how to submit
@@ -575,16 +579,22 @@ the meter reads 100%. One number, two independent reasons to be it.
 | `images/social-preview.png` | **1280×640** | **Settings → Social preview** — GitHub's recommended size (min 640×320, 1 MB cap) |
 | `images/mark.png` | 512×512 | Square logo mark: social posts, slides, favicon. **Not a repo avatar** — GitHub shows the *owner's* profile picture next to a repo, so there is no per-repo avatar to set |
 | `images/mark-180/64/32/16.png` | as named | 180 and 64 downscaled; **32 and 16 are drawn natively** so nothing anti-aliases into mush |
-| `images/demo.gif` | 768×384 | The animation above, ~9 s, built from the real view constants |
-| `images/device.png` | 1122×698 | Four **real qFlipper captures**, not generated — `tools_gen_device.py` |
-| `images/series.json` | — | The extracted carrier, its duty, and the capture it came from |
+| `images/demo.gif` | 384×192 | A scripted walk through every mode, **recorded off the device** — `tools_screenshot.py --tour-gif` |
+| `images/splash.gif` | 384×192 | The boot intro, recorded from the launch request onwards — `--splash` |
+| `images/screens.png` | — | Contact sheet of the captures, light ground, rebuilt by `--sheet` |
+| `images/screens-dark.png` | — | The same sheet on true black, served by `<picture>` to dark-mode readers |
+| `screenshots/*.png` | 512×256 | **Every screen, captured off a real device** over RPC. Exactly two colours: the panel's own. |
 
 ```bash
-python3 tools_brand_data.py    # print the facts the branding is allowed to state
-python3 tools_gen_banner.py    # banner (light + dark), social preview, logo mark
-python3 tools_gen_gif.py       # the demo animation
-python3 tools_gen_mockups.py   # screen stills
-python3 tools_gen_icons.py     # 1-bit Flipper icons
+python3 tools_brand_data.py          # the facts the branding is allowed to state
+python3 tools_gen_banner.py          # banner (light + dark), social preview, logo mark
+python3 tools_gen_icons.py           # 1-bit Flipper icons
+
+# these need a Flipper on USB (pip install pyserial)
+python3 tools_screenshot.py --all      # walk every screen and capture it
+python3 tools_screenshot.py --reader   # the shots that need a live reader
+python3 tools_screenshot.py --splash   # the boot intro
+python3 tools_screenshot.py --tour-gif # one GIF of the app being used
 ```
 
 > The social preview is the one asset GitHub can't pick up from the repo — it has

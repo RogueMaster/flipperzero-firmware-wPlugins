@@ -225,6 +225,10 @@ static SpecterApp* specter_app_alloc(void) {
         app->view_dispatcher, SpecterViewTextBox, text_box_get_view(app->text_box));
 
     // custom views
+    app->splash_view = splash_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, SpecterViewSplash, splash_view_get_view(app->splash_view));
+
     app->sweep_view = sweep_view_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, SpecterViewSweep, sweep_view_get_view(app->sweep_view));
@@ -259,6 +263,7 @@ static void specter_app_free(SpecterApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewTextBox);
+    view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSplash);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSweep);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewFingerprint);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSurvey);
@@ -269,6 +274,7 @@ static void specter_app_free(SpecterApp* app) {
     widget_free(app->widget);
     text_box_free(app->text_box);
     furi_string_free(app->text_box_store);
+    splash_view_free(app->splash_view);
     sweep_view_free(app->sweep_view);
     fingerprint_view_free(app->fingerprint_view);
     survey_view_free(app->survey_view);
@@ -288,7 +294,9 @@ static void specter_app_free(SpecterApp* app) {
 int32_t specter_app(void* p) {
     UNUSED(p);
     SpecterApp* app = specter_app_alloc();
-    scene_manager_next_scene(app->scene_manager, SpecterSceneStart);
+    /* Splash is the root scene: it plays the intro on the way in and is
+     * what BACK from the menu lands on, where it quits. */
+    scene_manager_next_scene(app->scene_manager, SpecterSceneSplash);
     view_dispatcher_run(app->view_dispatcher);
     specter_app_free(app);
     return 0;

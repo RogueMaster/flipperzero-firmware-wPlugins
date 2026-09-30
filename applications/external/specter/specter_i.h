@@ -20,17 +20,19 @@
 #include "helpers/specter_settings.h"
 #include "helpers/survey_verdict.h"
 #include "views/fingerprint_view.h"
+#include "views/splash_view.h"
 #include "views/survey_view.h"
 #include "views/sweep_view.h"
 #include "views/watch_view.h"
 #include "scenes/specter_scene.h"
 
-#define SPECTER_VERSION "3.0.1"
+#define SPECTER_VERSION "3.1.1"
 
 /* How long the noise-floor calibration listens for, in milliseconds. */
 #define SPECTER_CALIBRATE_MS 3000u
 
 typedef enum {
+    SpecterViewSplash,
     SpecterViewSubmenu,
     SpecterViewSweep,
     SpecterViewFingerprint,
@@ -52,6 +54,7 @@ typedef enum {
     SpecterCustomEventSurveyRestart, // OK on the verdict card re-runs the survey
     SpecterCustomEventSurveyFinish, // OK mid-run ends it early and grades it
     SpecterCustomEventWatchReset, // OK re-arms the watch
+    SpecterCustomEventSplashDone, // the boot intro finished or was skipped
 } SpecterCustomEvent;
 
 typedef struct {
@@ -66,6 +69,7 @@ typedef struct {
     TextBox* text_box;
     FuriString* text_box_store;
 
+    SplashView* splash_view;
     SweepView* sweep_view;
     FingerprintView* fingerprint_view;
     SurveyView* survey_view;

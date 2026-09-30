@@ -63,6 +63,20 @@ typedef struct {
 
 static void draw_header(Canvas* canvas, const SurveyModel* m) {
     char buf[16];
+
+    /* The radio was never acquired, so there is no survey and there is no
+     * countdown. This branch used to be missing entirely: draw_header() runs
+     * before survey_view_draw()'s error early-return, so the fault card was
+     * served with a live timer ticking down above it, which then froze at
+     * 0:00 and sat there for the life of the scene - a screen simultaneously
+     * claiming to be measuring and to be broken. Every other measurement
+     * screen shows the shared NFC BUSY state word here; now this one does too. */
+    if(m->error) {
+        specter_chrome_header(
+            canvas, "SITE SURVEY", specter_chrome_state(true, false, false), false);
+        return;
+    }
+
     canvas_set_font(canvas, FontSecondary);
     if(m->finished) {
         /* A 30-second CLEAN is not the same finding as a 2-minute one, and the
@@ -179,7 +193,7 @@ static void survey_view_draw(Canvas* canvas, void* model) {
     draw_header(canvas, m);
 
     if(m->error) {
-        specter_chrome_nfc_error(canvas);
+        specter_chrome_nfc_error_hint(canvas, "OK=retry");
         return;
     }
 

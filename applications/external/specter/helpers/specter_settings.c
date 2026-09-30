@@ -6,15 +6,45 @@
 #include <saved_struct.h>
 #include <storage/storage.h>
 
-#define SETTINGS_PATH    APP_DATA_PATH("specter.conf")
-#define SETTINGS_MAGIC   0x5Cu
-/* Bumped in 2.3 when the Meter setting was added. saved_struct validates size
- * as well as version, so an older file is simply ignored and the defaults come
- * back - a one-time reset of preferences rather than a garbled struct. */
-#define SETTINGS_VERSION 2u
+#define SETTINGS_PATH       APP_DATA_PATH("specter.conf")
+#define SETTINGS_MAGIC      0x5Cu
+/* 2 in 2.3 when the Meter setting was added; 3 in 3.1 for the intro switch.
+ *
+ * saved_struct validates size as well as version, so adding a field makes every
+ * previously saved file unloadable. Up to now that meant a silent one-time
+ * reset of everyone's preferences - sensitivity, survey length, stealth, the
+ * lot - as the price of one new checkbox. That is a bad trade, and it is
+ * avoidable: the old layout is the exact prefix of the new one, so the previous
+ * version is tried as a fallback and copied forward. */
+#define SETTINGS_VERSION    3u
+#define SETTINGS_VERSION_V2 2u
+
+/* The v2 layout, frozen. Do not edit this to match SpecterSettings - the whole
+ * point is that it describes what is already on people's SD cards. */
+typedef struct {
+    uint8_t sensitivity_index;
+    uint8_t custom_threshold;
+    uint8_t survey_index;
+    bool sound;
+    bool vibro;
+    bool led;
+    bool stealth;
+    bool logging;
+    bool meter_raw;
+} SpecterSettingsV2;
 
 static const char* const sens_labels[SPECTER_SENS_COUNT] = {"High", "Medium", "Low", "Custom"};
 static const uint8_t sens_thresh[SPECTER_SENS_COUNT] = {0, 8, 20, 0}; // Custom uses its own
+
+/* The meter-scale vocabulary, in ONE place.
+ *
+ * These words were previously duplicated: the Settings list said "0-100" and
+ * "Duty %" while the logbook stamped every saved finding with "m:boost" or
+ * "m:raw" - names the UI had deliberately stopped using in 3.0, because
+ * Boost/Raw read as a quality setting rather than as a scale. The result was a
+ * log describing a setting in vocabulary that appears nowhere on the device,
+ * which is exactly the kind of thing you cannot act on six months later. */
+static const char* const meter_labels[2] = {"0-100", "Duty %"};
 
 static const char* const survey_labels[SPECTER_SURVEY_COUNT] = {"30s", "60s", "2min"};
 static const uint32_t survey_seconds[SPECTER_SURVEY_COUNT] = {30, 60, 120};
@@ -30,11 +60,19 @@ void specter_settings_set_defaults(SpecterSettings* s) {
     s->stealth = false;
     s->logging = true;
     s->meter_raw = false; // full-scale meter by default; see field_scale.h
+    s->intro = true; // the boot animation, on by default
+}
+
+const char* specter_settings_meter_label(uint8_t index) {
+    return meter_labels[index & 1u];
 }
 
 const char* specter_settings_meter_tag(const SpecterSettings* s) {
     furi_assert(s);
-    return s->meter_raw ? "raw" : "boost";
+    /* Literally the label the Settings screen shows, so the two can never drift
+     * apart again. The logbook writer already scrubs commas and newlines, so a
+     * space in "Duty %" cannot shift a CSV column. */
+    return specter_settings_meter_label(s->meter_raw ? 1u : 0u);
 }
 
 uint8_t specter_settings_full_scale(const SpecterSettings* s) {
@@ -60,6 +98,7 @@ static void specter_settings_sanitise(SpecterSettings* s) {
     s->stealth = !!s->stealth;
     s->logging = !!s->logging;
     s->meter_raw = !!s->meter_raw;
+    s->intro = !!s->intro;
 }
 
 void specter_settings_load(SpecterSettings* s) {
@@ -71,6 +110,26 @@ void specter_settings_load(SpecterSettings* s) {
            SETTINGS_PATH, &loaded, sizeof(loaded), SETTINGS_MAGIC, SETTINGS_VERSION)) {
         specter_settings_sanitise(&loaded);
         *s = loaded;
+        return;
+    }
+
+    /* Not the current version. Before giving up and handing back defaults, try
+     * the previous layout: everything it holds is still meaningful, and the
+     * only field it lacks already has its default sitting in *s. The file is
+     * rewritten in the new format on the next save, so this path is taken at
+     * most once per installation. */
+    SpecterSettingsV2 old;
+    if(saved_struct_load(SETTINGS_PATH, &old, sizeof(old), SETTINGS_MAGIC, SETTINGS_VERSION_V2)) {
+        s->sensitivity_index = old.sensitivity_index;
+        s->custom_threshold = old.custom_threshold;
+        s->survey_index = old.survey_index;
+        s->sound = old.sound;
+        s->vibro = old.vibro;
+        s->led = old.led;
+        s->stealth = old.stealth;
+        s->logging = old.logging;
+        s->meter_raw = old.meter_raw;
+        specter_settings_sanitise(s);
     }
 }
 

@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/at0m-b0mb/Specter-FlipperZero.git
-    commit_sha: REPLACE_WITH_v3.0.1_COMMIT  # must be a commit that already contains screenshots/
+    commit_sha: REPLACE_WITH_v3.1_COMMIT  # must be a commit that already contains screenshots/
 short_description: Passively sense active 13.56 MHz NFC readers and skimmers with the onboard NFC chip. No extra hardware, never transmits.
 description: |
   Specter turns your Flipper Zero into a pocket counter-surveillance bug-sweep for active 13.56 MHz NFC readers. It **passively listens** for the RF field that a powered-on reader constantly emits — a hidden card skimmer slipped into a payment terminal, a covert reader behind a door panel, a rogue logger taped under a desk — then tells you where it is, what kind of thing it is, whether the room is clean, and, left on watch, the moment one appears while you are away.
@@ -31,6 +31,31 @@ description: |
   - **13.56 MHz (HF) only.** Specter cannot sense 125 kHz (LF) readers — the onboard field-detect path exists only on the HF radio.
   - It detects an active, powered reader's field. A passive tag or a reader that is switched off produces no field to detect.
 changelog: |
+  ## 3.1
+
+  A boot intro, a real capture pipeline, and a round of fixes found by looking at the thing on hardware.
+
+  - New: a boot intro. Specter opens by drawing itself. A trace writes across the screen from the left, flat and silent — what a clean room looks like on this instrument — then a reader's poll cuts in, the screen inverts for a fifth of a second, and the SPECTER nameplate engraves itself a letter at a time. Any key skips it, and Settings has a switch to turn it off.
+  - Fix: Fingerprint claimed 100% confidence that there was nothing there. With no carrier present the screen drew a full confidence bar and CONF 100% beside NO FIELD — pixel for pixel what it draws for a nailed-on POLLING reader. The bar and the readout are now absent when there is no field.
+  - Fix: a CONTINUOUS emitter printed stale polling timings. An unbroken carrier has no period, burst or jitter, but the cadence figures were retained from before the transition and stated without the tilde that marks an unresolved number.
+  - Fix: Meter scale = Duty % made CLOSE, STRONG and PEGGED unreachable, and stopped the geiger clicks ever speeding up. Proximity and click rate are now judged on the canonical scale, because how close you are to a reader is a fact about the room, not a display preference.
+  - Fix: Site Survey drew a live countdown over the NFC-busy fault card and froze it at 0:00. It now shows the shared NFC BUSY state word, and OK retries the acquire instead of doing nothing.
+  - Fix: the Site Survey CLEAN card said "No field detected" directly above a non-zero PEAK. It now says "Nothing above floor", which is what CLEAN actually means.
+  - Fix: Watch hid its OK=re-arm hint exactly while a reader was present — the one state where a short OK destroys the most.
+  - Settings survive a version bump now. Adding a field used to reset every saved preference; the old layout is migrated forward instead.
+  - Every image in the repository is now captured from a real device over the Flipper's own RPC session. The mockup renderer is gone.
+
+  ## 3.0.1
+
+  Fixes you only see on real hardware.
+
+  - Fix: the Site Survey progress bar was touching the row of stats under it — not overlapping, so nothing flagged it, but with no white rows between them the text visibly fused with the bar.
+  - The layout checker now looks for clearance, not just overlap, using an ink model measured off 4x device captures rather than assumed.
+  - Fix: Fingerprint's two stat rows were on an 8px pitch where every other stacked pair in the app uses 10.
+  - Fix: the "reader locked on" throb ring was drawn through the calibration text.
+  - Fix: a one-second Site Survey could report CLEAN. A run cut shorter than 10 s now reports TOO SHORT. The rule is deliberately asymmetric: presence is proof, absence is not, so TRACE and ACTIVE are never withheld for being quick.
+  - Fix: the logbook wrapped by character, not by word, so entries broke mid-word.
+
   ## 3.0
 
   A user-experience release. Nothing here changes what Specter can hear — the radio code is untouched — but a great deal changes about whether you can tell what it is telling you.

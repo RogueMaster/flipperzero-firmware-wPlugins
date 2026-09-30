@@ -4,40 +4,53 @@ Specter is listed in the official [Flipper Apps Catalog][cat]. The catalog is
 **pinned to v2.8** (`ecd52fd`) — it does not follow this repo, so a release here
 does not reach catalog users until someone opens a bump PR there.
 
-`manifest.yml` in this folder is the **prepared v3.0 bump**, ready to drop into
+`manifest.yml` in this folder is the **prepared v3.1 bump**, ready to drop into
 `applications/NFC/specter/manifest.yml` in a fork of the catalog repo. It is a
 copy for convenience, not the source of truth — the live file is the one in the
 catalog repo.
 
-## Screenshot status (verified against the source, not eyeballed)
+## Screenshots
 
-The six images in `screenshots/` are genuine qFlipper captures. They were taken
-against v3.0, and v3.0.1 then moved two screens by a row or two, so they are
-not all current. Each was checked by downsampling the 512x256 capture back to
-128x64 device pixels and comparing the inked rows against the constants in the
-view sources:
+**Every image is captured from a real device by `tools_screenshot.py`**, over
+the Flipper's own RPC session, at 512x256 (4x the 128x64 panel) in the panel's
+own two colours. The catalog accepts 4x. There is no longer any manual step
+here and no qFlipper involved:
 
-| File | Screen | Status |
+```bash
+python3 tools_screenshot.py --all       # every screen that stands on its own
+python3 tools_screenshot.py --reader    # the ones needing a live reader held on it
+python3 tools_screenshot.py --catalog   # refresh the ssN.png aliases below
+python3 tools_screenshot.py --verify    # assert every file is two colours
+```
+
+The six the manifest points at are **aliases**, refreshed by `--catalog` from
+the semantically-named captures. The mapping lives in `CATALOG` in
+`tools_screenshot.py`, so the manifest never has to be re-pointed when a
+capture is retaken — only refreshed:
+
+| Alias | From | Screen |
 |---|---|---|
-| `ss0.png` | Sweep, on a reader, meter pegged | **current** |
-| `ss0_2.png` | Sweep, quiet room, key hint showing | **current** |
-| `ss1.png` | Watch, reader present + strength bar | **current** |
-| `ss1_2.png` | Watch, after a contact, clock running | **current** |
-| `ss2.png` | Fingerprint, POLLING | **stale** — divider is on row 50, code now says 51 |
-| `ss2_2.png` | Fingerprint, INTERMITTENT + LOGGED flash | **stale** — same row shift |
-| `ss3.png` | Logbook | **stale** — shows the mid-word wrap fixed in 3.0.1 |
-| `ss4.png` | Site Survey verdict | **do not ship** — shows `SURVEY 1s / CLEAN`, the overclaim 3.0.1 replaced with `TOO SHORT` |
+| `ss0.png` | `sweep_reader` | Sweep, reader locked on |
+| `ss0_2.png` | `sweep_idle` | Sweep, quiet room, key hint showing |
+| `ss1.png` | `watch_reader` | Watch, reader present + strength bar |
+| `ss1_2.png` | `watch_quiet` | Watch, standing guard |
+| `ss2.png` | `fingerprint_reader` | Fingerprint, POLLING, full carrier trace |
+| `ss2_2.png` | `survey_done` | Site Survey verdict card |
 
-So before submitting, re-take **`ss2` and `ss2_2`** (Fingerprint: the stat rows
-are a row further apart now, and the confidence bar moved up one). `ss3` is
-worth re-taking too — the logbook now wraps at words instead of splitting them,
-which looks considerably better and is worth showing. `ss4` should either be
-re-taken as a real full-length survey or left out; it currently advertises a
-bug.
+Two of those carry a constraint worth knowing before you retake them:
 
-Capture with **qFlipper -> Screenshot** (it writes 128x64 PNGs; the existing
-files are 512x256, i.e. 4x, which the catalog accepts — scale with nearest
-neighbour, never smooth).
+- **`ss2` must be a Fingerprint screen with a reader actually on it.** The
+  banner reads its entire signature waveform back out of that file
+  (`tools_brand_data.carrier_from_capture`), so an idle capture turns the
+  brand's one measured element into a flat line. `--reader` scores every frame
+  by how many polls it caught and keeps the richest, because a reader polls in
+  bursts and whichever frame the shutter happens to land on otherwise decides
+  it. When you retake it, update `DEVICE_UP_PCT` and `DEVICE_PERIOD_MS` in
+  `tools_gen_banner.py` to whatever that capture prints — the renderer asserts
+  the two agree within a few points and refuses to build if they drift.
+- **`ss2_2` must be a survey that ran long enough.** Under
+  `SPECTER_SURVEY_MIN_CLEAN_MS` the verdict is `TOO SHORT`, which is correct
+  behaviour but a poor shop window.
 
 Whichever set you settle on, **update `commit_sha` in `manifest.yml` to the
 commit that contains them** — the catalog resolves the screenshot paths against

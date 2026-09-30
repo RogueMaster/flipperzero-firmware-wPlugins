@@ -21,6 +21,9 @@ typedef struct {
     bool stealth; // screen + LED dark: sweep without advertising that you are
     bool logging; // append findings to the SD logbook
     bool meter_raw; // show unscaled carrier duty instead of a full-scale meter
+    /* Appended, never inserted. The v2 layout is the exact prefix of this one,
+     * which is what makes the migration in specter_settings.c a plain copy. */
+    bool intro; // play the boot animation on launch
 } SpecterSettings;
 
 void specter_settings_set_defaults(SpecterSettings* s);
@@ -35,9 +38,13 @@ uint8_t specter_settings_threshold(const SpecterSettings* s);
 /* Raw duty that should read as a full meter, per the Meter setting. */
 uint8_t specter_settings_full_scale(const SpecterSettings* s);
 
-/* Short tag for the current meter scale, for stamping into logbook entries.
- * The same physical measurement reads 100% on Boost and 31% on Raw, so a
- * logged percentage without this is not a figure anyone can compare later. */
+/* The meter-scale label, as the Settings list shows it. */
+const char* specter_settings_meter_label(uint8_t index);
+
+/* The same word, stamped into logbook entries. The same physical measurement
+ * reads 100% on the 0-100 scale and 31% on Duty %, so a logged percentage
+ * without this is not a figure anyone can compare later - and it has to be
+ * named in the words the device itself uses. */
 const char* specter_settings_meter_tag(const SpecterSettings* s);
 
 const char* specter_settings_sensitivity_label(uint8_t index);

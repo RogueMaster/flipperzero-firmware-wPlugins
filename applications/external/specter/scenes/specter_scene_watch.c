@@ -97,7 +97,7 @@ bool specter_scene_watch_on_event(void* context, SceneManagerEvent event) {
                 if(app->settings.led && (watch_tick_counter % WATCH_LED_EVERY_TICKS == 0u))
                     specter_notify_present_led(app);
                 if(app->settings.sound) {
-                    uint32_t interval = 360u - 3u * st.strength;
+                    uint32_t interval = 360u - 3u * st.strength_ref;
                     if(interval < 70u) interval = 70u;
                     if(interval > 360u) interval = 360u;
                     if((uint32_t)(now - watch_last_click_tick) >= interval) {

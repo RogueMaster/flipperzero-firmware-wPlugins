@@ -93,8 +93,16 @@ bool specter_scene_survey_on_event(void* context, SceneManagerEvent event) {
             if(!survey_finished) {
                 FieldStats st;
                 field_detector_get(app->detector, &st);
-                if(!st.error)
+                if(st.error) {
+                    /* The acquire failed, so there is nothing to grade. The
+                     * error is sticky - field_detector only clears it on a
+                     * fresh start - so OK used to be a silent no-op here, on
+                     * the one screen whose card tells you to close the other
+                     * app "and retry". OK is now that retry. */
+                    specter_survey_begin(app);
+                } else {
                     specter_survey_complete(app, &st, furi_get_tick() - survey_start_tick);
+                }
             }
             consumed = true;
         }

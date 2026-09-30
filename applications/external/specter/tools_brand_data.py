@@ -9,17 +9,19 @@ Two of them, and both exist because the old banner got them wrong:
 
   * The signal. The old banner drew a decorative gauge at a made-up 82% and a
     cartoon ghost. The house rule for this project is that the signature
-    element is made of REAL product data - so the curve on the banner is the
-    actual meter output for a walk up to a reader and away again, produced by
-    compiling the app's own helpers (field_scale.c, emitter_classify.c,
-    survey_verdict.c) through tools_gif_data.c. Same series the demo GIF runs on.
+    element is made of REAL product data - so the waveform on the banner is
+    read back out of a hardware capture in screenshots/, column by column.
+
+    There used to be a second source here: a meter curve synthesised by
+    compiling the app's own helpers through tools_gif_data.c, which fed the
+    generated demo GIF. Both are gone as of 3.1. A renderer that reproduces
+    the product is a second implementation of it, and the only thing this file
+    is allowed to hand the banner now is a measurement.
 
     python3 tools_brand_data.py     # print what it would hand the renderer
 """
 import os
 import re
-import subprocess
-import tempfile
 
 from PIL import Image
 
@@ -33,61 +35,6 @@ def version():
     if not m:
         raise SystemExit("SPECTER_VERSION not found in specter_i.h")
     return m.group(1)
-
-
-def approach():
-    """The real meter trace for walking up to a reader, resting on it, leaving.
-
-    Returns (shown, present, fingerprint) where `shown` is the 0..100 meter
-    value per 100 ms UI tick, `present` is the latched detection flag, and
-    `fingerprint` is the classifier's call on the cadence it measured.
-    """
-    helpers = [
-        os.path.join(HERE, "helpers", f)
-        for f in ("field_scale.c", "emitter_classify.c", "survey_verdict.c")
-    ]
-    with tempfile.TemporaryDirectory() as td:
-        exe = os.path.join(td, "branddata")
-        subprocess.run(
-            [
-                "cc",
-                "-std=c11",
-                "-Wall",
-                "-Wextra",
-                "-I",
-                os.path.join(HERE, "helpers"),
-                "-o",
-                exe,
-                os.path.join(HERE, "tools_gif_data.c"),
-            ]
-            + helpers,
-            check=True,
-        )
-        out = subprocess.run([exe], check=True, capture_output=True, text=True).stdout
-
-    shown, present, fp = [], [], None
-    for line in out.splitlines():
-        if not line.strip() or line.startswith("#"):
-            continue
-        if line.startswith("FP "):
-            f = line[3:].split("|")
-            fp = {
-                "klass": f[0],
-                "blurb": f[1],
-                "confidence": int(f[2]),
-                "period_ms": int(f[3]),
-                "burst_ms": int(f[4]),
-                "jitter_ms": int(f[5]),
-                "duty": int(f[6]),
-                "timing_reliable": bool(int(f[7])),
-            }
-        elif line.startswith("SV "):
-            continue
-        else:
-            f = line.split()
-            shown.append(int(f[2]))
-            present.append(int(f[4]))
-    return shown, present, fp
 
 
 def parse_defines(relpath, *names):
@@ -148,19 +95,7 @@ def carrier_from_capture(path=os.path.join("screenshots", "ss2.png")):
 
 
 if __name__ == "__main__":
-    shown, present, fp = approach()
     print(f"version      : {version()}")
-    print(f"samples      : {len(shown)} at 100 ms  (peak {max(shown)})")
-    print(
-        f"detected at  : sample {present.index(1)}"
-        if 1 in present
-        else "never detected"
-    )
-    print(f"fingerprint  : {fp['klass']} / {fp['blurb']} / conf {fp['confidence']}%")
-    print(
-        f"               period {fp['period_ms']}ms burst {fp['burst_ms']}ms duty {fp['duty']}%"
-    )
-    print(f"curve        : {shown}")
 
     bits, hi, lo = carrier_from_capture()
     c_hi, c_lo = parse_defines("views/fingerprint_view.c", "TRACE_HI", "TRACE_LO")

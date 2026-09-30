@@ -159,8 +159,19 @@ static void watch_view_draw(Canvas* canvas, void* model) {
     canvas_draw_str(canvas, 2, FOOT2_BASE, buf);
 
     if(m->present) {
-        snprintf(buf, sizeof(buf), "NOW %u%%", (unsigned)m->strength);
-        canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, buf);
+        /* OK=re-arm, not NOW %.
+         *
+         * The hint used to be drawn only in the not-present branch, so the one
+         * state where a short OK destroys the most - an overnight record, mid
+         * alarm - was the only state where nothing on screen said OK destroys
+         * anything. Unlike Sweep's equivalent wipe, Watch does not even flash a
+         * confirmation afterwards.
+         *
+         * NOW % is what gives way, because during an alarm it is the redundant
+         * one: the strength bar drawn under the banner is the same measurement,
+         * readable across a room, and it exists precisely so nobody has to walk
+         * over and squint at this number. */
+        canvas_draw_str(canvas, COL_RIGHT, FOOT2_BASE, "OK=re-arm");
     } else if(m->contacts) {
         /* Nothing right now, but something was here: how long a carrier was
          * actually up across the whole watch. That is the figure you want when

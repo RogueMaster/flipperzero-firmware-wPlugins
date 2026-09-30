@@ -75,6 +75,13 @@ const char* survey_verdict_advice(SurveyVerdict v) {
         return "Let it run longer";
     case SurveyVerdictClean:
     default:
-        return "No field detected";
+        /* Not "No field detected". CLEAN means nothing crossed the sensitivity
+         * threshold - but PEAK and AVG are raised from every sample, gated by
+         * nothing, so an ordinary room's noise prints a few percent right
+         * above this line. A card reading "PEAK 9% / No field detected" is a
+         * screen arguing with itself, and the number is the honest half: a
+         * field WAS measured, it just was not a reader. Say what was actually
+         * decided. */
+        return "Nothing above floor";
     }
 }

@@ -43,6 +43,20 @@ typedef struct {
      * Site Survey concludes about a room. */
     uint8_t peak_ref;
 
+    /* The LIVE strength and saturation, likewise always on the canonical
+     * scale. Proximity words and the geiger click rate are judged on these for
+     * exactly the reason peak_ref exists: how close you are to a reader is a
+     * fact about the room, not a display preference.
+     *
+     * This is not hypothetical tidiness. On Meter = Duty % the displayed
+     * `strength` is raw carrier duty, which tops out near 30 on a live
+     * terminal - so CLOSE (>=45), STRONG (>=70) and PEGGED were all
+     * unreachable, and the clicks never got faster than their slowest third.
+     * That is precisely the unreachable-vocabulary bug 2.3 fixed for the
+     * default scale, re-created by the setting that was added alongside it. */
+    uint8_t strength_ref;
+    bool saturated_ref;
+
     /* Where "this is a reader" begins, on the same 0..100 scale the meter is
      * drawn on, so the dial can mark it. Presence is `duty > threshold`, so
      * threshold+1 is the first duty that actually counts as one. */

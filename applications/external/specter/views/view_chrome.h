@@ -45,11 +45,22 @@ static inline void specter_chrome_rule(Canvas* canvas) {
     canvas_draw_line(canvas, 0, 11, 127, 11);
 }
 
-/* One fault, one wording, one layout. Says what happened AND what to do. */
-static inline void specter_chrome_nfc_error(Canvas* canvas) {
+/* One fault, one wording, one layout. Says what happened AND what to do.
+ *
+ * `hint` is an optional key binding for screens where a key does something in
+ * this state - NULL where none does. An unadvertised key is the same defect
+ * whether the screen is working or faulted. Baseline 62: FontSecondary
+ * capitals ink rows [baseline-7 .. baseline-1] and leave the baseline row
+ * blank, so it lights 55..61 - four clear rows under the line above it. */
+static inline void specter_chrome_nfc_error_hint(Canvas* canvas, const char* hint) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "NFC radio busy");
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "Close any other app");
     canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignCenter, "using NFC and retry.");
+    if(hint) canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, hint);
+}
+
+static inline void specter_chrome_nfc_error(Canvas* canvas) {
+    specter_chrome_nfc_error_hint(canvas, NULL);
 }

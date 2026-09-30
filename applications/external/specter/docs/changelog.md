@@ -1,5 +1,127 @@
 # Changelog
 
+## 3.1.1
+
+One fix, reported within the hour by the first person to watch the thing boot.
+
+- **Fix: the boot intro flashed the whole screen black.** The "contact" beat -
+  the moment the poll is found - inverted all 128x64 for two ticks. It was
+  reported as a bug, and that is the right verdict: a panel going entirely
+  black during startup does not read as emphasis, it reads as the display
+  glitching or the app crashing, which is a terrible thing for an intro to
+  imply about a tool you are about to trust. Only the band the carrier lives in
+  inverts now - rows 34-52, clear of everything drawn at that moment. Same
+  beat, same meaning, unmistakably part of the drawing rather than part of the
+  hardware.
+
+  The general lesson is worth keeping: on a screen this small, **an effect that
+  covers everything is indistinguishable from a fault**. Emphasis has to be
+  local to the thing being emphasised, or it stops being emphasis.
+
+Off-device, in the same pass: the README and the project site were each showing
+several captures twice (a contact sheet plus the same screens again as per-mode
+stills), and the site's Didone headings were pinned to a sturdier optical size
+because a hairline on true black stops being a thin line and starts being an
+intermittent one.
+
+## 3.1
+
+A boot intro, a real capture pipeline, and the end of the mock-ups.
+
+- **New: a boot intro.** Specter now opens by drawing itself. A trace writes
+  across the screen from the left, flat and silent - what a clean room looks
+  like on this instrument - then a reader's poll cuts in, the screen inverts
+  for a fifth of a second, and the SPECTER nameplate engraves itself a letter
+  at a time. The inversion is deliberately the same gesture the Sweep screen
+  makes when it locks on, so the intro and the instrument share a vocabulary,
+  and the waveform is generated from `SPECTER_FULL_SCALE_DUTY` - the duty cycle
+  the whole meter is scaled against - rather than from a shape that merely
+  looks good. Any key skips it, and **Settings -> Intro** turns it off for good.
+- **Fix: Fingerprint claimed 100% confidence that there was nothing there.**
+  With no carrier present the screen drew a completely full confidence bar and
+  "CONF 100%" next to "NO FIELD" - pixel-for-pixel the same loud, solid block
+  it draws for a nailed-on POLLING reader. The classifier is right (within the
+  noise floor, silence is the one thing it can be certain of) but the screen
+  was using its most emphatic element to say "strong finding" on the state that
+  means "nothing here". The bar and the readout are now simply absent when
+  there is no field; `NO FIELD` over `No carrier` already says it. The
+  classifier is untouched, so nothing downstream changes.
+- **Settings survive a version bump now.** Adding a field changes
+  `sizeof(SpecterSettings)`, and `saved_struct` validates size as well as
+  version - so every previous release quietly reset everyone's sensitivity,
+  survey length, stealth and logging preferences as the price of one new
+  option. The old layout is the exact prefix of the new one, so it is now tried
+  as a fallback and copied forward. This is the last release that will lose
+  your settings, and it does not lose them either.
+- **New: `tools_screenshot.py` - every image in this repository now comes off
+  the device.** It drives the Flipper over its own protobuf RPC session,
+  injects key presses, and pulls the framebuffer back: `--all` walks every
+  screen, `--reader` captures the ones that need a live reader held against
+  the back of the unit, `--splash` records the intro from the launch request
+  onwards, and `--tour-gif` records one continuous GIF of the app being used.
+  Captures land at 4x in the panel's own two colours, which is what both the
+  Apps Catalog and the branding rules want.
+- **Removed: `tools_gen_mockups.py` and `tools_gen_gif.py`.** A renderer that
+  draws the UI is a second implementation of it, and a second implementation
+  disagrees with the firmware sooner or later while still looking completely
+  convincing - which is exactly what happened in 3.0.1, where mock-ups drawn
+  at the wrong glyph advance hid a readout running off the right edge of the
+  screen for several releases. There is nothing left in the project that can
+  draw a screen Specter cannot produce.
+- **Fix: a CONTINUOUS emitter printed polling timings it does not have.** An
+  unbroken carrier has no period, burst or jitter - that is what "Always on"
+  means - but the cadence figures were retained from before the transition, so
+  a reader that stopped polling and held its field up showed a full set of
+  stale timings underneath a verdict denying they exist. The classifier also
+  forces `timing_reliable` for that class, which suppressed the `~` that marks
+  an unresolved number: stale timings, stated at full confidence. Those three
+  rows now read `--`, and UP still prints, because duty is the one figure that
+  does mean something for a continuous carrier.
+- **Fix: `Meter scale = Duty %` put CLOSE, STRONG and PEGGED out of reach.**
+  On that setting the displayed strength is raw carrier duty, which tops out
+  around 30 on a live terminal - so three of the five proximity words could
+  never appear, and the geiger clicks never got faster than their slowest
+  third. That is exactly the unreachable-vocabulary bug 2.3 fixed for the
+  default scale, re-created by the setting added alongside it. Proximity and
+  click rate are now judged on the canonical scale, for the same reason
+  `peak_ref` already was: how close you are to a reader is a fact about the
+  room, not a display preference.
+- **Fix: Site Survey ran a countdown over its own fault screen.** The header
+  was drawn before the error early-return, so "NFC radio busy" was served with
+  a live timer ticking down above it, which then froze at 0:00 and sat there
+  for the life of the scene - a screen claiming simultaneously to be measuring
+  and to be broken. It now shows the shared `NFC BUSY` state word like every
+  other measurement screen. And because the acquire failure is sticky, OK was
+  a silent no-op on the one card that tells you to close the other app *and
+  retry* - OK is now that retry.
+- **Fix: the CLEAN verdict card argued with itself.** It printed PEAK, AVG and
+  UP - none of which are gated by the sensitivity threshold, so an ordinary
+  room's noise puts a few percent on them - directly above the flat sentence
+  "No field detected". The advice now reads **"Nothing above floor"**, which is
+  what CLEAN actually decided and what the numbers above it are consistent with.
+- **Fix: Watch hid `OK=re-arm` exactly when it mattered.** The hint was drawn
+  only in the not-present branch, so the one state where a short OK destroys
+  the most - an overnight record, mid-alarm - was the only state where nothing
+  on screen warned that OK destroys anything. It now takes the footer slot that
+  `NOW %` had, because during an alarm `NOW %` is the redundant one: the
+  strength bar under the banner is the same measurement, readable across a room.
+- **Fix: the logbook described the meter in words the device never shows.**
+  Findings were stamped `m:boost` / `m:raw` while Settings said `0-100` /
+  `Duty %` - names the UI deliberately stopped using in 3.0, because
+  Boost/Raw read as a quality setting rather than as a scale. Both now come
+  from one table, so they cannot drift apart again.
+- **Fix: the README documented a proximity word that does not exist.** It
+  listed `FAINT -> NEAR -> CLOSE -> STRONG -> MAX` and explained `MAX`, while
+  the code has said `PEGGED` since 2.4 - and the same README used `PEGGED`
+  correctly in two other places.
+- **The Fingerprint capture is now chosen by measurement, not by timing.** A
+  reader polls in bursts and the trace window is about a second wide, so
+  whichever frame the shutter happens to catch decides whether the carrier is
+  a rich square wave or a flat line with two blips. `--reader` now scores every
+  frame by how many polls it actually caught and keeps the best one. This
+  matters beyond the screenshot: the banner reads its entire signature waveform
+  back out of that file.
+
 ## 3.0.1
 
 Fixes found by looking at the thing on real hardware, which is the only place

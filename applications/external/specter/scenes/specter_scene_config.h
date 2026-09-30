@@ -1,3 +1,4 @@
+ADD_SCENE(specter, splash, Splash)
 ADD_SCENE(specter, start, Start)
 ADD_SCENE(specter, sweep, Sweep)
 ADD_SCENE(specter, fingerprint, Fingerprint)

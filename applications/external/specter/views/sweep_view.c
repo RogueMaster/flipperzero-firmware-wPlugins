@@ -33,10 +33,11 @@ typedef struct {
     bool armed;
     bool error;
     bool present;
-    uint8_t strength; // 0..100
+    uint8_t strength; // 0..100, as displayed (honours the Meter setting)
+    uint8_t strength_ref; // 0..100, always canonical - proximity is judged here
     uint8_t peak; // 0..100
     uint8_t threshold_shown; // 0..100, where "reader" begins on this dial
-    bool saturated; // meter pegged - closing in further will not move it
+    bool saturated_ref; // pegged on the canonical scale, not the displayed one
     uint32_t contacts;
     uint8_t history[SPECTER_HISTORY_LEN];
     uint8_t history_head;
@@ -223,13 +224,15 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_disc(canvas, 4, 58, 1);
         canvas_draw_str(canvas, 9, 62, "ACTIVE READER");
+        /* strength_ref, not strength: the word says how close you are, which
+         * cannot depend on which number the Meter setting chose to print. */
         canvas_draw_str_aligned(
             canvas,
             125,
             62,
             AlignRight,
             AlignBottom,
-            field_proximity_word(m->strength, m->saturated));
+            field_proximity_word(m->strength_ref, m->saturated_ref));
         canvas_set_color(canvas, ColorBlack);
         /* One 1px border, matching Site Survey's alarm. There used to be a
          * second frame inset at (1,1,126,62); its bottom edge ran along row 62
@@ -378,8 +381,9 @@ void sweep_view_update(SweepView* v, const FieldStats* stats, const char* sens_l
             m->error = stats->error;
             m->present = stats->present;
             m->strength = stats->strength;
+            m->strength_ref = stats->strength_ref;
             m->peak = stats->peak;
-            m->saturated = stats->saturated;
+            m->saturated_ref = stats->saturated_ref;
             m->threshold_shown = stats->threshold_shown;
             m->contacts = stats->contacts;
             memcpy(m->history, stats->history, sizeof(m->history));

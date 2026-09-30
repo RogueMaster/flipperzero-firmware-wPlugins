@@ -226,6 +226,8 @@ static int32_t field_detector_worker(void* context) {
 
             /* Tracked separately and always at full scale - see peak_ref. */
             uint8_t shown_ref = field_scale_apply(ema, SPECTER_FULL_SCALE_DUTY);
+            s->strength_ref = shown_ref;
+            s->saturated_ref = field_scale_is_saturated(ema, SPECTER_FULL_SCALE_DUTY);
             if(shown_ref > s->peak_ref) s->peak_ref = shown_ref;
 
             /* Halve both sides long before the sum could overflow - the mean is
