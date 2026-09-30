@@ -2,32 +2,67 @@
 #include "scenes/k2_scene.h"
 #include <furi_hal.h>
 
+void k2_rfid_app_set_default_config(K2RfidApp* app) {
+    if (!app) return;
+
+    app->printer_idx = 0;   /* "K2" */
+    app->material_idx = 0;  /* "01001" - "Hyper PLA" */
+    app->color_idx = 0;     /* "FFFFFF" - "White" */
+    app->weight_idx = 0;    /* "0330" - "1 KG" */
+    snprintf(app->serial_str, sizeof(app->serial_str), "000001");
+
+    memset(&app->config, 0, sizeof(app->config));
+    snprintf(app->config.printer_model, sizeof(app->config.printer_model), "K2");
+    snprintf(app->config.material_id, sizeof(app->config.material_id), "01001");
+    snprintf(app->config.color_hex, sizeof(app->config.color_hex), "FFFFFF");
+    snprintf(app->config.weight_code, sizeof(app->config.weight_code), "0330");
+    snprintf(app->config.serial, sizeof(app->config.serial), "%s", app->serial_str);
+    snprintf(app->config.batch, sizeof(app->config.batch), "A2");
+    snprintf(app->config.vendor_id, sizeof(app->config.vendor_id), "0276");
+    snprintf(app->config.date, sizeof(app->config.date), "AB124");
+}
+
 void k2_rfid_app_sync_config(K2RfidApp* app) {
     if (!app) return;
 
+    /* Ensure indices are within bounds */
+    if (app->printer_idx >= k2_db_get_printer_count()) app->printer_idx = 0;
+    if (app->material_idx >= k2_db_get_material_count()) app->material_idx = 0;
+    if (app->color_idx >= k2_db_get_color_count()) app->color_idx = 0;
+    if (app->weight_idx >= k2_db_get_weight_count()) app->weight_idx = 0;
+    if (app->serial_str[0] == '\0') {
+        snprintf(app->serial_str, sizeof(app->serial_str), "000001");
+    }
+
     /* Printer */
     const char* pr = k2_db_get_printer_name(app->printer_idx);
-    strncpy(app->config.printer_model, pr ? pr : "K2", sizeof(app->config.printer_model) - 1);
+    snprintf(app->config.printer_model, sizeof(app->config.printer_model), "%s", pr ? pr : "K2");
 
     /* Material */
     const K2Material* mat = k2_db_get_material(app->material_idx);
-    strncpy(app->config.material_id, mat ? mat->id : "01001", sizeof(app->config.material_id) - 1);
+    snprintf(app->config.material_id, sizeof(app->config.material_id), "%s", (mat && mat->id) ? mat->id : "01001");
 
     /* Color */
     const K2ColorPreset* col = k2_db_get_color(app->color_idx);
-    strncpy(app->config.color_hex, col ? col->hex : "FFFFFF", sizeof(app->config.color_hex) - 1);
+    snprintf(app->config.color_hex, sizeof(app->config.color_hex), "%s", (col && col->hex) ? col->hex : "FFFFFF");
 
     /* Weight */
     const K2WeightOption* w = k2_db_get_weight(app->weight_idx);
-    strncpy(app->config.weight_code, w ? w->code : "0330", sizeof(app->config.weight_code) - 1);
+    snprintf(app->config.weight_code, sizeof(app->config.weight_code), "%s", (w && w->code) ? w->code : "0330");
 
     /* Serial */
-    strncpy(app->config.serial, app->serial_str, sizeof(app->config.serial) - 1);
+    snprintf(app->config.serial, sizeof(app->config.serial), "%s", app->serial_str);
 
     /* Defaults */
-    strncpy(app->config.batch, "A2", sizeof(app->config.batch) - 1);
-    strncpy(app->config.vendor_id, "0276", sizeof(app->config.vendor_id) - 1);
-    strncpy(app->config.date, "AB124", sizeof(app->config.date) - 1);
+    if (app->config.batch[0] == '\0') {
+        snprintf(app->config.batch, sizeof(app->config.batch), "A2");
+    }
+    if (app->config.vendor_id[0] == '\0') {
+        snprintf(app->config.vendor_id, sizeof(app->config.vendor_id), "0276");
+    }
+    if (app->config.date[0] == '\0') {
+        snprintf(app->config.date, sizeof(app->config.date), "AB124");
+    }
 }
 
 void k2_rfid_app_randomize_serial(K2RfidApp* app) {
@@ -70,12 +105,7 @@ static K2RfidApp* k2_rfid_app_alloc(void) {
     }
 
     /* Initialize Spool defaults */
-    app->printer_idx = 0;
-    app->material_idx = 0;
-    app->color_idx = 0;
-    app->weight_idx = 0;
-    strncpy(app->serial_str, "000001", sizeof(app->serial_str));
-    k2_rfid_app_sync_config(app);
+    k2_rfid_app_set_default_config(app);
 
     /* Records */
     app->gui = furi_record_open(RECORD_GUI);

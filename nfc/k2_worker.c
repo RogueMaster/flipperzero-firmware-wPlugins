@@ -161,8 +161,11 @@ bool k2_worker_save_spool_to_nfc(const K2SpoolConfig* config, const uint8_t* opt
     furi_record_close(RECORD_STORAGE);
 
     const K2Material* mat = k2_db_find_material_by_id(config->material_id);
-    const char* mat_name = mat ? mat->name : "Custom";
+    const char* mat_name = (mat && mat->name) ? mat->name : "Hyper PLA";
     const char* col_name = k2_db_find_closest_color_name(config->color_hex);
+    if (!col_name || strlen(col_name) == 0) {
+        col_name = "White";
+    }
 
     char clean_name[32] = {0};
     for (size_t i = 0, j = 0; i < strlen(mat_name) && j < sizeof(clean_name) - 1; i++) {

@@ -52,6 +52,53 @@ void k2_scene_tag_info_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, K2ViewWidget);
 }
 
+static void k2_scene_tag_info_sync_to_app(K2RfidApp* app) {
+    if (!app) return;
+    strncpy(app->config.material_id, app->last_spool.material_id, sizeof(app->config.material_id) - 1);
+    app->config.material_id[sizeof(app->config.material_id) - 1] = '\0';
+
+    strncpy(app->config.color_hex, app->last_spool.color_hex, sizeof(app->config.color_hex) - 1);
+    app->config.color_hex[sizeof(app->config.color_hex) - 1] = '\0';
+
+    strncpy(app->config.weight_code, app->last_spool.length_code, sizeof(app->config.weight_code) - 1);
+    app->config.weight_code[sizeof(app->config.weight_code) - 1] = '\0';
+
+    strncpy(app->config.serial, app->last_spool.serial, sizeof(app->config.serial) - 1);
+    app->config.serial[sizeof(app->config.serial) - 1] = '\0';
+
+    strncpy(app->config.printer_model, app->last_spool.printer_model, sizeof(app->config.printer_model) - 1);
+    app->config.printer_model[sizeof(app->config.printer_model) - 1] = '\0';
+
+    strncpy(app->serial_str, app->last_spool.serial, sizeof(app->serial_str) - 1);
+    app->serial_str[sizeof(app->serial_str) - 1] = '\0';
+
+    /* Find matching indices */
+    for (size_t i = 0; i < k2_db_get_material_count(); i++) {
+        if (strcasecmp(k2_db_get_material(i)->id, app->config.material_id) == 0) {
+            app->material_idx = i;
+            break;
+        }
+    }
+    for (size_t i = 0; i < k2_db_get_color_count(); i++) {
+        if (strcasecmp(k2_db_get_color(i)->hex, app->config.color_hex) == 0) {
+            app->color_idx = i;
+            break;
+        }
+    }
+    for (size_t i = 0; i < k2_db_get_weight_count(); i++) {
+        if (strncmp(k2_db_get_weight(i)->code, app->config.weight_code, 4) == 0) {
+            app->weight_idx = i;
+            break;
+        }
+    }
+    for (size_t i = 0; i < k2_db_get_printer_count(); i++) {
+        if (strcasecmp(k2_db_get_printer_name(i), app->config.printer_model) == 0) {
+            app->printer_idx = i;
+            break;
+        }
+    }
+}
+
 bool k2_scene_tag_info_on_event(void* context, SceneManagerEvent event) {
     K2RfidApp* app = context;
     bool consumed = false;
@@ -59,33 +106,13 @@ bool k2_scene_tag_info_on_event(void* context, SceneManagerEvent event) {
     if (event.type == SceneManagerEventTypeCustom) {
         consumed = true;
         if (event.event == K2CustomEventTagInfoSave) {
-            /* Sync config to last_spool and save */
-            strncpy(app->config.material_id, app->last_spool.material_id, sizeof(app->config.material_id));
-            strncpy(app->config.color_hex, app->last_spool.color_hex, sizeof(app->config.color_hex));
-            strncpy(app->config.weight_code, app->last_spool.length_code, sizeof(app->config.weight_code));
-            strncpy(app->config.serial, app->last_spool.serial, sizeof(app->config.serial));
-            strncpy(app->config.printer_model, app->last_spool.printer_model, sizeof(app->config.printer_model));
+            k2_scene_tag_info_sync_to_app(app);
             scene_manager_next_scene(app->scene_manager, K2SceneSave);
         } else if (event.event == K2CustomEventTagInfoEmulate) {
-            strncpy(app->config.material_id, app->last_spool.material_id, sizeof(app->config.material_id));
-            strncpy(app->config.color_hex, app->last_spool.color_hex, sizeof(app->config.color_hex));
-            strncpy(app->config.weight_code, app->last_spool.length_code, sizeof(app->config.weight_code));
-            strncpy(app->config.serial, app->last_spool.serial, sizeof(app->config.serial));
-            strncpy(app->config.printer_model, app->last_spool.printer_model, sizeof(app->config.printer_model));
+            k2_scene_tag_info_sync_to_app(app);
             scene_manager_next_scene(app->scene_manager, K2SceneEmulate);
         } else if (event.event == K2CustomEventTagInfoEdit) {
-            strncpy(app->config.material_id, app->last_spool.material_id, sizeof(app->config.material_id));
-            strncpy(app->config.color_hex, app->last_spool.color_hex, sizeof(app->config.color_hex));
-            strncpy(app->config.weight_code, app->last_spool.length_code, sizeof(app->config.weight_code));
-            strncpy(app->config.serial, app->last_spool.serial, sizeof(app->config.serial));
-            strncpy(app->config.printer_model, app->last_spool.printer_model, sizeof(app->config.printer_model));
-            /* Find matching indices */
-            for (size_t i = 0; i < k2_db_get_material_count(); i++) {
-                if (strcmp(k2_db_get_material(i)->id, app->config.material_id) == 0) {
-                    app->material_idx = i;
-                    break;
-                }
-            }
+            k2_scene_tag_info_sync_to_app(app);
             scene_manager_next_scene(app->scene_manager, K2SceneConfig);
         }
     }

@@ -5,7 +5,12 @@ void k2_scene_save_on_enter(void* context) {
     K2RfidApp* app = context;
     Popup* popup = app->popup;
 
-    k2_rfid_app_sync_config(app);
+    /* Ensure valid spool configuration */
+    if (app->config.material_id[0] == '\0') {
+        k2_rfid_app_set_default_config(app);
+    } else {
+        k2_rfid_app_sync_config(app);
+    }
 
     char saved_path[128] = {0};
     bool ok = k2_worker_save_spool_to_nfc(&app->config, NULL, saved_path, sizeof(saved_path));

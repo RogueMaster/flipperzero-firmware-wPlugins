@@ -145,19 +145,19 @@ static uint8_t hex_val(char c) {
 }
 
 const char* k2_db_find_closest_color_name(const char* hex_str) {
-    if (!hex_str || strlen(hex_str) < 6) return "Unknown";
+    if (!hex_str || strlen(hex_str) < 6) return "White";
     /* Skip leading '#' or '0' if present */
     const char* p = hex_str;
     if (*p == '#') p++;
     if (strlen(p) == 7 && *p == '0') p++; /* handle "0FFFFFF" */
-    if (strlen(p) < 6) return "Unknown";
+    if (strlen(p) < 6) return "White";
 
     uint8_t r = (hex_val(p[0]) << 4) | hex_val(p[1]);
     uint8_t g = (hex_val(p[2]) << 4) | hex_val(p[3]);
     uint8_t b = (hex_val(p[4]) << 4) | hex_val(p[5]);
 
     uint32_t min_dist_sq = 0xFFFFFFFF;
-    const char* closest_name = "Unknown";
+    const char* closest_name = "White";
     size_t count = k2_db_get_color_count();
 
     for (size_t i = 0; i < count; i++) {
@@ -170,7 +170,7 @@ const char* k2_db_find_closest_color_name(const char* hex_str) {
             closest_name = K2_COLORS[i].name;
         }
     }
-    return closest_name;
+    return closest_name ? closest_name : "White";
 }
 
 size_t k2_db_get_weight_count(void) {
@@ -183,14 +183,14 @@ const K2WeightOption* k2_db_get_weight(size_t index) {
 }
 
 const char* k2_db_find_weight_label_by_code(const char* code) {
-    if (!code) return "1 KG";
+    if (!code || strlen(code) < 4) return "1 KG";
     size_t count = k2_db_get_weight_count();
     for (size_t i = 0; i < count; i++) {
         if (strncmp(K2_WEIGHTS[i].code, code, 4) == 0) {
             return K2_WEIGHTS[i].label;
         }
     }
-    return "Unknown";
+    return "1 KG";
 }
 
 size_t k2_db_get_printer_count(void) {
@@ -305,8 +305,11 @@ bool k2_parse_payload(const uint8_t sector1[48], const uint8_t sector2[48], K2Sp
     info_out->material = k2_db_find_material_by_id(info_out->material_id);
 
     /* Look up color name and weight label */
-    strncpy(info_out->color_name, k2_db_find_closest_color_name(info_out->color_hex), sizeof(info_out->color_name) - 1);
-    strncpy(info_out->weight_label, k2_db_find_weight_label_by_code(info_out->length_code), sizeof(info_out->weight_label) - 1);
+    const char* c_name = k2_db_find_closest_color_name(info_out->color_hex);
+    snprintf(info_out->color_name, sizeof(info_out->color_name), "%s", c_name ? c_name : "White");
+
+    const char* w_label = k2_db_find_weight_label_by_code(info_out->length_code);
+    snprintf(info_out->weight_label, sizeof(info_out->weight_label), "%s", w_label ? w_label : "1 KG");
 
     info_out->valid = true;
     return true;

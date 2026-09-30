@@ -81,6 +81,7 @@ struct K2RfidApp {
     char file_path[128];
 };
 
+void k2_rfid_app_set_default_config(K2RfidApp* app);
 void k2_rfid_app_sync_config(K2RfidApp* app);
 void k2_rfid_app_randomize_serial(K2RfidApp* app);
 
