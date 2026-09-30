@@ -98,3 +98,7 @@ CribbageScoreBreakdown cribbage_score_hand(
     score.total = score.fifteens + score.pairs + score.runs + score.flush + score.nobs;
     return score;
 }
+
+uint8_t cribbage_score_his_heels(CribbageCard starter) {
+    return starter.rank == CribbageRankJack ? 2 : 0;
+}

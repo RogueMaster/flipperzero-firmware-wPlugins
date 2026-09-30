@@ -4,10 +4,10 @@ This roadmap prepares Cribbage Calc for a polished public release and eventual s
 
 ## 1. Scoring Confidence
 
-- [ ] Add tests for individual scoring categories: no-score hand, all fifteen combinations, pair royal, four of a kind, nobs, and Ace-low runs.
-- [ ] Add tests for duplicated and triplicated run patterns, including double, triple, and double-double runs.
-- [ ] Add flush tests for four- and five-card player-hand flushes and the crib's five-card-only flush rule.
-- [ ] Add an integration test using a complete 13-card deal and assert the non-dealer, dealer, crib, and his-heels results.
+- [x] Add tests for individual scoring categories: no-score hand, all fifteen combinations, pair royal, four of a kind, nobs, and Ace-low runs.
+- [x] Add tests for duplicated and triplicated run patterns, including double, triple, and double-double runs.
+- [x] Add flush tests for four- and five-card player-hand flushes and the crib's five-card-only flush rule.
+- [x] Add an integration test using a complete 13-card deal and assert the non-dealer, dealer, crib, and his-heels results.
 - [ ] Run `make test` after each scoring change and test the canonical 29-point hand on the Flipper.
 
 **Done when:** automated tests cover every scoring category and important multiplicity rule, and the known on-device test deal produces its expected results.

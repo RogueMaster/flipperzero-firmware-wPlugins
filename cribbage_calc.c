@@ -82,7 +82,7 @@ static void cribbage_draw_callback(Canvas* canvas, void* context) {
             snprintf(buffer, sizeof(buffer), "%s: %u", result_names[index], app->scores[index].total);
             draw_text(canvas, 4, 24 + index * 11, buffer, FontSecondary);
         }
-        if(app->cards[0].rank == CribbageRankJack) {
+        if(cribbage_score_his_heels(app->cards[0])) {
             draw_text(canvas, 4, 57, "His heels (dealer): +2", FontSecondary);
         } else {
             draw_text(canvas, 4, 57, "LEFT/RIGHT: breakdown", FontSecondary);

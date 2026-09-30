@@ -37,6 +37,7 @@ CribbageScoreBreakdown cribbage_score_hand(
     CribbageCard starter,
     bool is_crib);
 
+uint8_t cribbage_score_his_heels(CribbageCard starter);
 bool cribbage_cards_equal(CribbageCard left, CribbageCard right);
 uint8_t cribbage_card_value(CribbageCard card);
 const char* cribbage_rank_name(CribbageRank rank);
