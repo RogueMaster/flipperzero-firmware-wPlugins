@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/Endika/flipper-hyper-focus-calc/compare/v0.1.2...v0.1.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* keep unreadable saved sensors instead of overwriting them ([fda434a](https://github.com/Endika/flipper-hyper-focus-calc/commit/fda434afe96f590dd816423fdb579e551c14d617))
+
 ## [0.1.2](https://github.com/Endika/flipper-hyper-focus-calc/compare/v0.1.1...v0.1.2) (2026-05-25)
 
 

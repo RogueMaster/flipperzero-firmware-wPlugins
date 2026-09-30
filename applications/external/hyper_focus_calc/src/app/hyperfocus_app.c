@@ -58,6 +58,7 @@ typedef enum {
     ViewSensorEdit,
     ViewTextInput,
     ViewCredits,
+    ViewNotice,
 } AppViewId;
 
 typedef struct {
@@ -65,6 +66,7 @@ typedef struct {
     Gui* gui;
     Submenu* menu;
     Widget* credits;
+    Widget* notice;
     View* calc;
     View* sensor_list;
     View* sensor_edit;
@@ -81,6 +83,7 @@ typedef struct {
     bool edit_is_new;
     char text_store[SENSOR_NAME_MAX];
     char credits_buf[384];
+    char notice_buf[192];
     AppViewId current_view;
 } HyperFocusApp;
 
@@ -93,6 +96,7 @@ static void app_calc_refresh(HyperFocusApp* app);
 static void app_switch(HyperFocusApp* app, AppViewId v);
 static void app_request_redraw(HyperFocusApp* app);
 static void app_build_credits(HyperFocusApp* app);
+static void app_show_save_failed(HyperFocusApp* app);
 static bool app_navigation(void* context);
 
 static void app_switch(HyperFocusApp* app, AppViewId v) {
@@ -134,6 +138,27 @@ static void app_build_credits(HyperFocusApp* app) {
         APP_AUTHOR,
         APP_REPO_URL);
     widget_add_text_scroll_element(app->credits, 0, 0, 128, 64, app->credits_buf);
+}
+
+// A save can fail well after launch (e.g. a rename that only breaks mid-session), so this
+// always builds a fresh message rather than reusing whatever the launch-time notice said —
+// showing that stale text here would blame the wrong thing.
+static void app_show_save_failed(HyperFocusApp* app) {
+    if(app->store.save_blocked) {
+        snprintf(
+            app->notice_buf,
+            sizeof(app->notice_buf),
+            "Couldn't save your changes.\nSaving is disabled until the sensors file is "
+            "fixed.");
+    } else {
+        snprintf(
+            app->notice_buf,
+            sizeof(app->notice_buf),
+            "Couldn't save your changes.\nNothing was written.");
+    }
+    widget_reset(app->notice);
+    widget_add_text_scroll_element(app->notice, 0, 0, 128, 64, app->notice_buf);
+    app_switch(app, ViewNotice);
 }
 
 static void app_calc_refresh(HyperFocusApp* app) {
@@ -187,7 +212,7 @@ static bool calc_input_cb(InputEvent* event, void* context) {
 }
 
 static uint32_t sensor_list_total(const HyperFocusApp* app) {
-    return app->store.count + 1u;
+    return app->store.record.count + 1u;
 }
 
 static void list_clamp_scroll(HyperFocusApp* app) {
@@ -221,9 +246,10 @@ static void sensor_list_draw_cb(Canvas* canvas, void* model) {
     for(uint32_t row = 0; row < vis && app->list_scroll + row < total; row++) {
         const uint32_t i = app->list_scroll + row;
         char line[40];
-        if(i < app->store.count) {
+        if(i < app->store.record.count) {
             const bool sel = (i == app->list_sel);
-            snprintf(line, sizeof(line), "%s%s", sel ? "> " : "  ", app->store.sensors[i].name);
+            snprintf(
+                line, sizeof(line), "%s%s", sel ? "> " : "  ", app->store.record.sensors[i].name);
         } else {
             const bool sel = (i == app->list_sel);
             snprintf(line, sizeof(line), "%s%s", sel ? "> " : "  ", "Add sensor");
@@ -268,8 +294,8 @@ static bool sensor_list_input_cb(InputEvent* event, void* context) {
 
     if(event->key == InputKeyOk) {
         if(event->type == InputTypeLong) {
-            if(app->list_sel < app->store.count) {
-                app->edit_buf = app->store.sensors[app->list_sel];
+            if(app->list_sel < app->store.record.count) {
+                app->edit_buf = app->store.record.sensors[app->list_sel];
                 app->edit_index = app->list_sel;
                 app->edit_is_new = false;
                 app->edit_row = 0;
@@ -278,10 +304,13 @@ static bool sensor_list_input_cb(InputEvent* event, void* context) {
             return true;
         }
         if(event->type == InputTypeShort) {
-            if(app->list_sel < app->store.count) {
-                sensors_store_set_active(&app->store, app->list_sel);
-                app_calc_refresh(app);
-                app_switch(app, ViewCalc);
+            if(app->list_sel < app->store.record.count) {
+                if(sensors_store_set_active(&app->store, app->list_sel)) {
+                    app_calc_refresh(app);
+                    app_switch(app, ViewCalc);
+                } else {
+                    app_show_save_failed(app);
+                }
             } else {
                 sensor_data_set_defaults(&app->edit_buf);
                 app->edit_buf.name[0] = '\0';
@@ -412,19 +441,25 @@ static bool sensor_edit_input_cb(InputEvent* event, void* context) {
             if(!sensor_data_valid(&app->edit_buf)) {
                 return true;
             }
-            if(app->edit_is_new) {
-                sensors_store_add(&app->store, &app->edit_buf);
+            const bool saved =
+                app->edit_is_new ?
+                    sensors_store_add(&app->store, &app->edit_buf) :
+                    sensors_store_replace_at(&app->store, app->edit_index, &app->edit_buf);
+            if(saved) {
+                app_calc_refresh(app);
+                app_switch(app, ViewSensorList);
             } else {
-                sensors_store_replace_at(&app->store, app->edit_index, &app->edit_buf);
+                app_show_save_failed(app);
             }
-            app_calc_refresh(app);
-            app_switch(app, ViewSensorList);
             return true;
         }
         if(app->edit_row == 5 && !app->edit_is_new) {
-            sensors_store_delete_at(&app->store, app->edit_index);
-            app_calc_refresh(app);
-            app_switch(app, ViewSensorList);
+            if(sensors_store_delete_at(&app->store, app->edit_index)) {
+                app_calc_refresh(app);
+                app_switch(app, ViewSensorList);
+            } else {
+                app_show_save_failed(app);
+            }
             return true;
         }
     }
@@ -464,6 +499,10 @@ static bool app_navigation(void* context) {
         app_switch(app, ViewMenu);
         return true;
     }
+    if(app->current_view == ViewNotice) {
+        app_switch(app, ViewMenu);
+        return true;
+    }
     if(app->current_view == ViewMenu) {
         view_dispatcher_stop(app->vd);
         return true;
@@ -478,7 +517,7 @@ int32_t hyperfocus_app_run(void) {
     }
     memset(app, 0, sizeof(*app));
 
-    sensors_store_load(&app->store);
+    sensors_store_load(&app->store, app->notice_buf, sizeof(app->notice_buf));
 
     app->focal_mm = 50;
     app->fstop_idx = hyperfocal_fstop_index_of(2.8f);
@@ -497,6 +536,12 @@ int32_t hyperfocus_app_run(void) {
 
     app->credits = widget_alloc();
     view_dispatcher_add_view(app->vd, ViewCredits, widget_get_view(app->credits));
+
+    app->notice = widget_alloc();
+    if(app->notice_buf[0] != '\0') {
+        widget_add_text_scroll_element(app->notice, 0, 0, 128, 64, app->notice_buf);
+    }
+    view_dispatcher_add_view(app->vd, ViewNotice, widget_get_view(app->notice));
 
     app->calc = view_alloc();
     view_allocate_model(app->calc, ViewModelTypeLocking, sizeof(HfcViewCtx));
@@ -529,12 +574,19 @@ int32_t hyperfocus_app_run(void) {
     view_dispatcher_add_view(app->vd, ViewTextInput, text_input_get_view(app->text_input));
 
     app_calc_refresh(app);
-    app_switch(app, ViewCalc);
+    if(app->notice_buf[0] != '\0') {
+        app_switch(app, ViewNotice);
+    } else {
+        app_switch(app, ViewCalc);
+    }
 
     view_dispatcher_run(app->vd);
 
     view_dispatcher_remove_view(app->vd, ViewTextInput);
     text_input_free(app->text_input);
+
+    view_dispatcher_remove_view(app->vd, ViewNotice);
+    widget_free(app->notice);
 
     view_dispatcher_remove_view(app->vd, ViewCredits);
     widget_free(app->credits);

@@ -36,8 +36,12 @@ make prepare   # Symlink into flipperzero-firmware/applications_user
 make fap       # Build .fap (requires FLIPPER_FIRMWARE_PATH)
 ```
 
-Set `FLIPPER_FIRMWARE_PATH` if your firmware checkout is not `/home/<YOUR_PATH>/flipperzero-firmware`.
+`make prepare` and `make fap` need your firmware path in a gitignored `local.mk`:
+
+```makefile
+FLIPPER_FIRMWARE_PATH = /path/to/flipperzero-firmware
+```
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[GPLv3](LICENSE)

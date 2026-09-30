@@ -154,6 +154,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Specter v3.1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Updated: [Trivia Zero v0.1.14 (By Endika)](https://github.com/Endika/flipper-trivia-zero)
 - Updated: [Avocado Zero v0.1.2 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
+- Updated: [HyperFocus Calc v0.1.3 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 
 <a name="release"></a>
 
@@ -694,7 +695,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [HID File Transfer v1.0 (By Kavakuo)](https://github.com/Kavakuo/HID-File-Transfer)
 - [Hitachi AC Remote v1.1 (By dogtopus)](https://github.com/dogtopus/flipperzero-hitachi-ac-remote)
 - [HTW AC Remote v1.2 (By sokogen)](https://github.com/sokogen/flipperzero-htw-ac-remote)
-- [HyperFocus Calc v0.1.2 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
+- [HyperFocus Calc v0.1.3 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - [I2C BMS Reader v0.4 (By gazirov)](https://github.com/gazirov/battery_reader) `Req: TI BQ30/BQ40 controllers`
 - [I2C Explorer v0.9 (By 4mb3rz)](https://github.com/4mb3rz/Flipper-I2C-Explorer)
 - [I2C Tools Cli v1.0 (By Tristus1er)](https://github.com/Tristus1er/flipperzero-i2c-tools-cli)
