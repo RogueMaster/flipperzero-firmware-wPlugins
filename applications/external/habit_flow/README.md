@@ -36,4 +36,4 @@ make linter
 
 ## Development
 
-This project mirrors the layout used in other Flipper apps in this workspace: `include/` / `src/`, `application.fam`, `Makefile`, `.clang-format`, GitHub Actions CI, and release-please for versioning.
+Same layout as my other Flipper apps: `include/` / `src/`, `application.fam`, `Makefile`, `.clang-format`, GitHub Actions CI, and release-please for versioning.
