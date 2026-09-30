@@ -42,10 +42,17 @@ static void draw_text(Canvas* canvas, uint8_t x, uint8_t y, const char* text, Fo
     canvas_draw_str(canvas, x, y, text);
 }
 
-static void draw_card(Canvas* canvas, uint8_t y, CribbageCard card) {
+static void draw_slot_title(Canvas* canvas, const CribbageApp* app) {
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "%s  %u/13", slot_names[app->slot], app->slot + 1);
+    if(app->slot == 0) snprintf(buffer, sizeof(buffer), "Starter  1/13");
+    draw_text(canvas, 4, 10, buffer, FontSecondary);
+}
+
+static void draw_card(Canvas* canvas, uint8_t y, CribbageCard card, Font font) {
     char buffer[32];
     snprintf(buffer, sizeof(buffer), "%s of %s", cribbage_rank_name(card.rank), cribbage_suit_name(card.suit));
-    draw_text(canvas, 4, y, buffer, FontSecondary);
+    draw_text(canvas, 4, y, buffer, font);
 }
 
 static void cribbage_draw_callback(Canvas* canvas, void* context) {
@@ -59,43 +66,45 @@ static void cribbage_draw_callback(Canvas* canvas, void* context) {
         draw_text(canvas, 4, 48, "OK: enter a deal", FontSecondary);
         draw_text(canvas, 4, 60, "BACK: exit", FontSecondary);
     } else if(app->screen == CribbageScreenRank) {
-        snprintf(buffer, sizeof(buffer), "%s (%u/13)", slot_names[app->slot], app->slot + 1);
-        draw_text(canvas, 4, 12, buffer, FontPrimary);
+        draw_slot_title(canvas, app);
         snprintf(buffer, sizeof(buffer), "Rank: %s", cribbage_rank_name(app->pending.rank));
         draw_text(canvas, 4, 31, buffer, FontPrimary);
-        draw_text(canvas, 4, 48, "UP/DOWN: change", FontSecondary);
+        draw_text(canvas, 4, 47, "UP/DOWN: change rank", FontSecondary);
         draw_text(canvas, 4, 60, "OK: suit   BACK: previous", FontSecondary);
     } else if(app->screen == CribbageScreenSuit) {
-        snprintf(buffer, sizeof(buffer), "%s (%u/13)", slot_names[app->slot], app->slot + 1);
-        draw_text(canvas, 4, 12, buffer, FontPrimary);
-        draw_card(canvas, 31, app->pending);
-        draw_text(canvas, 4, 48, "UP H  RIGHT D", FontSecondary);
-        draw_text(canvas, 4, 60, "DOWN C LEFT S  OK: save", FontSecondary);
+        draw_slot_title(canvas, app);
+        draw_card(canvas, 26, app->pending, FontPrimary);
+        draw_text(canvas, 4, 39, "UP Hearts  RIGHT Diamonds", FontSecondary);
+        draw_text(canvas, 4, 49, "DOWN Clubs  LEFT Spades", FontSecondary);
+        draw_text(canvas, 4, 60, "OK: save   BACK: rank", FontSecondary);
     } else if(app->screen == CribbageScreenDuplicate) {
         draw_text(canvas, 4, 12, "Duplicate card", FontPrimary);
-        draw_text(canvas, 4, 30, "Already used in:", FontSecondary);
-        draw_text(canvas, 4, 42, slot_names[app->duplicate_slot], FontSecondary);
-        draw_text(canvas, 4, 60, "OK/BACK: change suit", FontSecondary);
+        draw_card(canvas, 27, app->pending, FontPrimary);
+        draw_text(canvas, 4, 40, "Already used in:", FontSecondary);
+        draw_text(canvas, 4, 50, slot_names[app->duplicate_slot], FontSecondary);
+        draw_text(canvas, 4, 60, "OK: suit   BACK: rank", FontSecondary);
     } else if(app->screen == CribbageScreenResults) {
-        draw_text(canvas, 4, 11, "Deal scores", FontPrimary);
+        draw_text(canvas, 4, 10, "Scores", FontPrimary);
         for(uint8_t index = 0; index < 3; index++) {
-            snprintf(buffer, sizeof(buffer), "%s: %u", result_names[index], app->scores[index].total);
-            draw_text(canvas, 4, 24 + index * 11, buffer, FontSecondary);
+            if(index == 1 && cribbage_score_his_heels(app->cards[0])) {
+                snprintf(buffer, sizeof(buffer), "%s: %u  (+2 heels)", result_names[index], app->scores[index].total);
+            } else {
+                snprintf(buffer, sizeof(buffer), "%s: %u", result_names[index], app->scores[index].total);
+            }
+            draw_text(canvas, 4, 22 + index * 11, buffer, FontSecondary);
         }
-        if(cribbage_score_his_heels(app->cards[0])) {
-            draw_text(canvas, 4, 57, "His heels (dealer): +2", FontSecondary);
-        } else {
-            draw_text(canvas, 4, 57, "LEFT/RIGHT: breakdown", FontSecondary);
-        }
+        draw_text(canvas, 4, 54, "LEFT/RIGHT: details", FontSecondary);
+        draw_text(canvas, 4, 63, "OK: new   BACK: edit", FontSecondary);
     } else {
         CribbageScoreBreakdown score = app->scores[app->detail_hand];
         snprintf(buffer, sizeof(buffer), "%s: %u", result_names[app->detail_hand], score.total);
-        draw_text(canvas, 4, 11, buffer, FontPrimary);
+        draw_text(canvas, 4, 10, buffer, FontPrimary);
         snprintf(buffer, sizeof(buffer), "15s %u  Pairs %u  Runs %u", score.fifteens, score.pairs, score.runs);
-        draw_text(canvas, 4, 28, buffer, FontSecondary);
+        draw_text(canvas, 4, 27, buffer, FontSecondary);
         snprintf(buffer, sizeof(buffer), "Flush %u  Nobs %u", score.flush, score.nobs);
-        draw_text(canvas, 4, 42, buffer, FontSecondary);
-        draw_text(canvas, 4, 60, "LEFT/RIGHT: hand BACK: scores", FontSecondary);
+        draw_text(canvas, 4, 39, buffer, FontSecondary);
+        draw_text(canvas, 4, 50, "LEFT/RIGHT: hand", FontSecondary);
+        draw_text(canvas, 4, 60, "OK: new   BACK: scores", FontSecondary);
     }
 }
 
@@ -185,7 +194,8 @@ static bool handle_event(CribbageApp* app, const InputEvent* event) {
             }
         }
     } else if(app->screen == CribbageScreenDuplicate) {
-        app->screen = CribbageScreenSuit;
+        if(event->key == InputKeyOk) app->screen = CribbageScreenSuit;
+        else if(event->key == InputKeyBack) app->screen = CribbageScreenRank;
     } else if(app->screen == CribbageScreenResults) {
         if(event->key == InputKeyBack) begin_previous_slot(app);
         else if(event->key == InputKeyOk) {

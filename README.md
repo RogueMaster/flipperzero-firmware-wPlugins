@@ -8,8 +8,9 @@ An external Flipper App Package (FAP) that scores a starter, non-dealer hand, de
 - `UP ♥`, `RIGHT ♦`, `DOWN ♣`, `LEFT ♠`: select suit on the suit screen.
 - `OK`: advance, save a card, or start a new deal from results.
 - `BACK`: return to the previous entry or leave the app from the welcome screen.
+- On the results overview, use `LEFT`/`RIGHT` to open score details; there, use them to move between hands. `BACK` returns to the scores, and `OK` begins a new deal.
 
-Duplicate cards are rejected. Results include hand scores, the crib score, category breakdowns, and the dealer's two-point his-heels bonus when the starter is a Jack.
+Duplicate cards are rejected with the selected card and the earlier conflicting slot shown on-screen. Results include hand scores, the crib score, category breakdowns, and the dealer's two-point his-heels bonus when the starter is a Jack.
 
 ## Build
 
