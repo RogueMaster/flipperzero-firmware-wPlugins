@@ -59,6 +59,15 @@ static void draw_large_club_icon(Canvas* canvas, uint8_t x, uint8_t baseline) {
     canvas_draw_line(canvas, x + 5, top + 18, x + 11, top + 18);
 }
 
+static void draw_large_diamond_icon(Canvas* canvas, uint8_t x, uint8_t baseline) {
+    static const uint8_t widths[] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 17, 17, 15, 13, 11, 9, 7, 5, 3, 1};
+    uint8_t top = baseline - 19;
+    for(uint8_t row = 0; row < 19; row++) {
+        uint8_t width = widths[row];
+        canvas_draw_line(canvas, x + (17 - width) / 2, top + row, x + (17 + width) / 2 - 1, top + row);
+    }
+}
+
 static void draw_suit_icon(
     Canvas* canvas, uint8_t x, uint8_t y, CribbageSuit suit, uint8_t scale) {
     static const uint8_t hearts[] = {0x36, 0x7F, 0x7F, 0x3E, 0x1C, 0x08, 0x00};
@@ -69,11 +78,15 @@ static void draw_suit_icon(
         0x038, 0x07C, 0x07C, 0x0FE, 0x1FF, 0x1FF, 0x0FE, 0x038, 0x038, 0x07C};
 
     if(suit > CribbageSuitSpades) return;
+    if(scale == 2 && suit == CribbageSuitDiamonds) {
+        draw_large_diamond_icon(canvas, x, y);
+        return;
+    }
+    if(scale == 2 && suit == CribbageSuitClubs) {
+        draw_large_club_icon(canvas, x, y);
+        return;
+    }
     if(suit == CribbageSuitClubs) {
-        if(scale == 2) {
-            draw_large_club_icon(canvas, x, y);
-            return;
-        }
         uint8_t top = y - 10 * scale;
         for(uint8_t row = 0; row < 10; row++) {
             for(uint8_t column = 0; column < 9; column++) {
