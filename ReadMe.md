@@ -135,7 +135,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DFC v1.0 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - Added: [YRM100X Pro v1.0 (By AlexeySmirnov74)](https://github.com/AlexeySmirnov74/YRM100X_PRO) `Req: YRM100X`
 - Added: [SigRoam Wardriving v0.3 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
-- Updated: [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - Updated: [USB Internet Bridge v0.4 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
 - Updated: [Specter v3.0.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
@@ -152,6 +151,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Maze 3D v7.0 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [Faraday v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
 - Updated: [GhostTag v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) `Req: ESP32`
+- Updated: [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 
 <a name="release"></a>
 
