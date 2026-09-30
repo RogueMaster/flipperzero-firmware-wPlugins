@@ -49,19 +49,47 @@ static void draw_slot_title(Canvas* canvas, const CribbageApp* app) {
     draw_text(canvas, 4, 10, buffer, FontSecondary);
 }
 
-static void draw_suit_icon(Canvas* canvas, uint8_t x, uint8_t y, CribbageSuit suit) {
+static void draw_large_club_icon(Canvas* canvas, uint8_t x, uint8_t baseline) {
+    uint8_t top = baseline - 19;
+
+    canvas_draw_disc(canvas, x + 8, top + 4, 4);
+    canvas_draw_disc(canvas, x + 4, top + 10, 4);
+    canvas_draw_disc(canvas, x + 12, top + 10, 4);
+    canvas_draw_box(canvas, x + 7, top + 12, 3, 6);
+    canvas_draw_line(canvas, x + 5, top + 18, x + 11, top + 18);
+}
+
+static void draw_suit_icon(
+    Canvas* canvas, uint8_t x, uint8_t y, CribbageSuit suit, uint8_t scale) {
     static const uint8_t hearts[] = {0x36, 0x7F, 0x7F, 0x3E, 0x1C, 0x08, 0x00};
     static const uint8_t diamonds[] = {0x08, 0x1C, 0x3E, 0x7F, 0x3E, 0x1C, 0x08};
-    static const uint8_t clubs[] = {0x1C, 0x3E, 0x77, 0x7F, 0x3E, 0x1C, 0x1C, 0x3E, 0x00};
     static const uint8_t spades[] = {0x08, 0x1C, 0x3E, 0x7F, 0x7F, 0x1C, 0x3E};
-    static const uint8_t* const icons[] = {hearts, diamonds, clubs, spades};
+    static const uint8_t* const icons[] = {hearts, diamonds, NULL, spades};
+    static const uint16_t club[] = {
+        0x038, 0x07C, 0x07C, 0x0FE, 0x1FF, 0x1FF, 0x0FE, 0x038, 0x038, 0x07C};
 
     if(suit > CribbageSuitSpades) return;
-    uint8_t height = suit == CribbageSuitClubs ? 9 : 7;
+    if(suit == CribbageSuitClubs) {
+        if(scale == 2) {
+            draw_large_club_icon(canvas, x, y);
+            return;
+        }
+        uint8_t top = y - 10 * scale;
+        for(uint8_t row = 0; row < 10; row++) {
+            for(uint8_t column = 0; column < 9; column++) {
+                if(club[row] & (1U << (8 - column))) {
+                    canvas_draw_box(canvas, x + column * scale, top + row * scale, scale, scale);
+                }
+            }
+        }
+        return;
+    }
+    uint8_t height = 7;
+    uint8_t top = y - height * scale;
     for(uint8_t row = 0; row < height; row++) {
         for(uint8_t column = 0; column < 7; column++) {
             if(icons[suit][row] & (1U << (6 - column))) {
-                canvas_draw_dot(canvas, x + column, y - height + row);
+                canvas_draw_box(canvas, x + column * scale, top + row * scale, scale, scale);
             }
         }
     }
@@ -70,18 +98,18 @@ static void draw_suit_icon(Canvas* canvas, uint8_t x, uint8_t y, CribbageSuit su
 static void draw_card(Canvas* canvas, uint8_t y, CribbageCard card, Font font) {
     const char* rank = cribbage_rank_name(card.rank);
     draw_text(canvas, 4, y, rank, font);
-    draw_suit_icon(canvas, card.rank == 10 ? 20 : 13, y, card.suit);
+    draw_suit_icon(canvas, card.rank == 10 ? 20 : 13, y, card.suit, 1);
 }
 
 static void draw_suit_controls(Canvas* canvas) {
-    draw_text(canvas, 4, 40, "UP:", FontSecondary);
-    draw_suit_icon(canvas, 21, 40, CribbageSuitHearts);
-    draw_text(canvas, 38, 40, "RIGHT:", FontSecondary);
-    draw_suit_icon(canvas, 73, 40, CribbageSuitDiamonds);
-    draw_text(canvas, 4, 50, "DOWN:", FontSecondary);
-    draw_suit_icon(canvas, 32, 50, CribbageSuitClubs);
-    draw_text(canvas, 49, 50, "LEFT:", FontSecondary);
-    draw_suit_icon(canvas, 77, 50, CribbageSuitSpades);
+    draw_text(canvas, 4, 47, "UP: H   RIGHT: D", FontSecondary);
+    draw_text(canvas, 4, 55, "DOWN: C  LEFT: S", FontSecondary);
+}
+
+static void draw_suit_picker_card(Canvas* canvas, CribbageCard card) {
+    canvas_draw_frame(canvas, 34, 14, 60, 26);
+    draw_text(canvas, 44, 34, cribbage_rank_name(card.rank), FontPrimary);
+    draw_suit_icon(canvas, 64, 36, card.suit, 2);
 }
 
 static void cribbage_draw_callback(Canvas* canvas, void* context) {
@@ -102,9 +130,9 @@ static void cribbage_draw_callback(Canvas* canvas, void* context) {
         draw_text(canvas, 4, 60, "OK: suit   BACK: previous", FontSecondary);
     } else if(app->screen == CribbageScreenSuit) {
         draw_slot_title(canvas, app);
-        draw_card(canvas, 26, app->pending, FontPrimary);
+        draw_suit_picker_card(canvas, app->pending);
         draw_suit_controls(canvas);
-        draw_text(canvas, 4, 60, "OK: save   BACK: rank", FontSecondary);
+        draw_text(canvas, 4, 63, "OK: save   BACK: rank", FontSecondary);
     } else if(app->screen == CribbageScreenDuplicate) {
         draw_text(canvas, 4, 12, "Duplicate card", FontPrimary);
         draw_card(canvas, 27, app->pending, FontPrimary);
