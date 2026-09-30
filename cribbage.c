@@ -16,11 +16,6 @@ const char* cribbage_rank_name(CribbageRank rank) {
     return (rank >= CribbageRankAce && rank <= CribbageRankKing) ? names[rank] : "?";
 }
 
-const char* cribbage_suit_name(CribbageSuit suit) {
-    static const char* const names[] = {"Hearts", "Diamonds", "Clubs", "Spades"};
-    return suit <= CribbageSuitSpades ? names[suit] : "?";
-}
-
 static uint8_t score_fifteens(const CribbageCard cards[5]) {
     uint8_t score = 0;
     for(uint8_t mask = 1; mask < 32; mask++) {
