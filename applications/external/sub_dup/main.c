@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-static SubDupFinderApp *app_alloc(void) {
-    SubDupFinderApp *app = malloc(sizeof(SubDupFinderApp));
+static SubDupFinderApp* app_alloc(void) {
+    SubDupFinderApp* app = malloc(sizeof(SubDupFinderApp));
     // furi's malloc crashes on exhaustion rather than returning NULL, so this only
     // documents the invariant — but pass the pointer bare: cppcheck's value-flow
     // keeps the null alive through `furi_check(app != NULL)`.
@@ -25,7 +25,7 @@ static SubDupFinderApp *app_alloc(void) {
     return app;
 }
 
-static void app_free(SubDupFinderApp *app) {
+static void app_free(SubDupFinderApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, SubDupFinderViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, SubDupFinderViewGroups);
     view_dispatcher_remove_view(app->view_dispatcher, SubDupFinderViewFiles);
@@ -46,14 +46,14 @@ static void app_free(SubDupFinderApp *app) {
     free(app);
 }
 
-int32_t sub_dup_finder_app(void *p) {
+int32_t sub_dup_finder_app(void* p) {
     UNUSED(p);
 
-    SubDupFinderApp *app = app_alloc();
+    SubDupFinderApp* app = app_alloc();
     settings_load(app->scan_dir, sizeof(app->scan_dir));
     ui_setup_views(app);
 
-    Gui *gui = furi_record_open(RECORD_GUI);
+    Gui* gui = furi_record_open(RECORD_GUI);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_switch_to_view(app->view_dispatcher, SubDupFinderViewSubmenu);
     view_dispatcher_run(app->view_dispatcher);

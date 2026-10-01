@@ -49,7 +49,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [WashCity, Microel, MiZIP, Bip, CharlieCard, Saflok, CSC, Banapass and H World no longer present values from blocks that were never read; MiZIP no longer guesses which of its two credit blocks is current, and CharlieCard no longer picks a balance sector by comparing two unread counters (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
 - NFC: [SmartRider again parses dumps saved before the file format recorded which blocks were read, such as converted PM3 dumps, and Bambu now parses them too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
 - NFC: [the SKPPK, SevPPK and SZPPK ticket parsers no longer report a ticket as not issued when its blocks were simply never read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
-- Updated: [Stratagem Hero v1.0.1 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 - Added: [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - Added: [Handpan Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/handpan_chords)
 - Added: [Ballu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
@@ -156,6 +155,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.16b34 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Sub Duplicate Finder v1.3 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - Updated: [Maze 3D v7.1 (By k20120509)](https://github.com/k20120509/flipper-release)
+- Updated: [Stratagem Hero v1.0.1 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 
 <a name="release"></a>
 

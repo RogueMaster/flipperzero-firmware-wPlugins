@@ -27,15 +27,15 @@ typedef enum {
 } SubDupFinderSubmenuIndex;
 
 typedef struct {
-    ViewDispatcher *view_dispatcher;
-    Submenu *main_submenu;
-    Submenu *groups_submenu;
-    Submenu *files_in_group_submenu;
-    Submenu *browser_submenu;
-    DialogEx *confirm_dialog;
-    DialogEx *summary_dialog;
-    Widget *credits_widget;
-    Popup *popup;
+    ViewDispatcher* view_dispatcher;
+    Submenu* main_submenu;
+    Submenu* groups_submenu;
+    Submenu* files_in_group_submenu;
+    Submenu* browser_submenu;
+    DialogEx* confirm_dialog;
+    DialogEx* summary_dialog;
+    Widget* credits_widget;
+    Popup* popup;
     HashDatabase db;
     char scan_dir[FULL_PATH_LEN];
     char scanned_dir[FULL_PATH_LEN];
