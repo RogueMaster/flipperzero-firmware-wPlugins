@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5 - Isotope Overhaul
+
+* Added Isotope summary statistics: total known, stable, and naturally occurring (NAT).
+* Added Display of the top 3 most common natural isotopes, sorted by descending percentage (e.g., 197Au: 100%).
+* Added MAX_LIFE parameter tracker for the heaviest isotopes, rendering values in ms up to Exa-Years.
+* Added Specific physical transition path parameters: SF, EC, Alpha, Beta+/-.
+* Changed Display values dynamically condensed to fit the 128x64 screen constraints (e.g., 99.9%, My/Gy format suffix limits).
+* ChangedComplete two-line render restructuring to accommodate extra element stats without overlapping.
+* ChangedPre-processed specific bounds values strictly matching the NUBASE bounds directly inside .rodata for optimized heap consumption.
+
 ## 1.4 - Mohs Scale & Earth Properties Update
 * **Added Mohs Hardness**: Integrated approximate scratch hardness values on the Mohs scale.
 * **Added Abundance Data**: Display element abundance in the Earth's crust (in ppm).
