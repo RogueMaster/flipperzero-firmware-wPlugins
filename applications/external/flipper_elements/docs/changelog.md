@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0 - Bio/Geo Expansion & Smart Engine UI
+* Human Biochemistry Data: Added physiological classifications, exact human body abundance percentages, and dedicated biological function/toxicity descriptions for all 119 elements.
+* Geochemical Profiles: Added Goldschmidt classifications (lithophile, siderophile, chalcophile, atmophile) along with precise occurrence concentrations mapped across the Earth's Crust, Oceans, Atmosphere, and Cosmic environments.
+* Property Guide Subsystem: Integrated a brand-new, instantly accessible Legend tab mapped to the 'OK' button inside the element card, rapidly decoding physical variables, crystal structure abbreviations, and quantum terms.
+
 ## 1.9 - Electro-Magnetic Data & Phase Transitions
 * Van der Waals Radii: Added VDW metrics to the element's Sizes panel.
 * Magnetic Phase Transitions: Added tracking for Curie (Tc) and Néel (Tn) transition temperatures.
