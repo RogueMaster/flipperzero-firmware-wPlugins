@@ -1,47 +1,37 @@
 # Changelog
 
-## 1.9. - Electro-Magnetic Engine & Advanced Dimensions
-
-* Extended Element Data Structures: Included Van der Waals radii (VDW) metrics in the Sizes panel.
-* Deep Magnetic Properties: Added tracking for magnetic phase transitions natively mapped via Curie & Néel temperatures (Tc/Tn).
-* Electronic Framework: Embedded exact measurements for Electrical Resistivity (Ohm.m) and Electrical Conductivity (S/m).
-* Automatically appends standard (293-298 K) temperature conditions for conductivity strings specifically when variables are present.
-* Reference Update: "Alvarez" dataset added to the internal sources view.
+## 1.9 - Electro-Magnetic Data & Phase Transitions
+* Van der Waals Radii: Added VDW metrics to the element's Sizes panel.
+* Magnetic Phase Transitions: Added tracking for Curie (Tc) and Néel (Tn) transition temperatures.
+* Electro-Magnetic Properties: Added precise measurements for Electrical Resistivity (Ohm.m) and Conductivity (S/m).
+* Smart Constants: The engine now dynamically appends standard (293-298 K) baseline labels exclusively for elements possessing valid resistivity/conductivity values.
+* References Update: The "Alvarez" dataset has been integrated into the Sources menu.
 
 ## 1.8 - Brand UI Overhaul & Interactive Menus
+* Interactive About Carousel: Replaced the standard native text box with a custom multi-page UI architecture. Users can now switch instantly between 'About', 'References', and 'Thanks' panels using the D-Pad.
+* Scientific Sources Tab: Added a dedicated sub-view exclusively for listing reference materials (e.g., CIAAW, NUBASE, Slater, Shannon).
+* XBM Graphics Engine: Completely redesigned application startup/exit sequences integrating native, memory-optimized LAB-66 logo graphic assets.
+* Smart Unit Filter: The rendering engine now cleverly strips suffix variables (such as W/(m.K) or a.u.) whenever an element parameter is N/A, avoiding messy "ghost unit" rendering.
 
-* Implemented an exclusive interactive About-carousel GUI model featuring rigid graphical lower sub-menus and native vertical tracking bounding overlays. 
-* Integrated a sub-view dedicated to displaying verifiable scientific reference materials directly within the hardware limits (e.g., CIAAW, NUBASE, Slater, Shannon frameworks).
-* Added dynamic branding via pure memory-optimized XBM assets inclusion, redesigning both application startup/logo screens and bounded exit layout prompts effectively.
-* Replaced the monolithic native Flipper OS text-box within standard Information tabs by a structurally independent viewport architecture relying entirely on detached UI-thread custom callbacks for v_about. 
-* Intelligent Unit-Appending logic: Deep visual readout strings optimizations dropping appended raw values conditionally. Removes "ghost parameters" effectively (dynamically converting malformed outputs like "N/A W/(m.K)" securely down to precise standalone "N/A" boundaries everywhere).
+## 1.7 - Thermo-Physical & Quantum Properties Update 
+* Metallic Radii: Added exact sizes for Metallic Radius measured in picometers (pm).
+* Quantum Polarizability: Integrated static polarizability metrics tracked in atomic units (a.u.).
+* Thermo-Physical Framework: Display detailed thermal conductivity (W/(m.K)) alongside specific heat states, matching compound/phase tags respectively.
+* Expanded Text Buffers: Boosted element text reading memory boundaries from 1536 up to 2048 chars to efficiently process new macro-datasets without crashing device stack layouts.
+* Extended Viewport Limits: Augmented detail views bottom offsets vertically (tracking limit to 780 px) to scale seamlessly with vast structural readouts.
 
-## 1.7 - Thermo-Physical & Quantum Datasets Expansion 
+## 1.6 - Precision UX Update & Data Parsing 
+* Seamless Card Traversal: Overhauled GUI mapping enabling users to instantaneously leap onto neighboring left/right atomic elements inside detailed menus via the D-Pad without returning to the main grid.
+* Advanced Multi-line Formats: Structured crystal shapes logic perfectly wraps sequential read arrays, bypassing long phrases truncations and preventing display bugs.
+* Isotope Filter Enhancements: Added logic to isolate the most common naturally occurring elements by filtering out traces below the 1% threshold to reduce screen clutter.
+* UI Category Grouping: Added dedicated visual split dividers cleanly grouping NAT (>=1%), MAX LIFE, and stable (Stbl) isotope data rows.
 
-* Added Extended Element Data Structures: Added exact values for Metallic Radius (pm) rendering safely into atomic parameters view.
-* Added Advanced Quantum Properties: Integrated polarizability metrics tracked directly in atomic units (a.u.).
-* Added Advanced Thermo-Physical Parameters: Accurately mapping detailed thermal conductivity (W/(m.K)) and specific heat states (with precise compound/phase states labels).
-* Expanded Memory Buffers: Increased native layout textual tracking buffers structurally (1536 to 2048 chars) protecting memory from stack overflows triggered by massive dataset augmentations.
-* Re-scaled Internal Vertical Limits: Expanded deepest maximum screen text scrolling boundary offsets dynamically (590 tracking depth threshold limits) correctly adapting natively wrapped scrollbar interactions. 
-* Main interface 'About' references bumped to align seamlessly with the new release state (v1.7).
-
-## 1.6 - Precision UX Update & Expanded Parsing
-
-* Added Seamless In-Card Traversal: You can now use Left/Right D-Pad buttons to switch instantly between elements directly inside the details sheet without reverting to the main grid.
-* Dedicated view labels integrated for explicitly split structural outputs: NAT (>=1%), MAX LIFE, and Stbl counts.
-* Changed: Filtered Isotope render thresholds: dynamically truncates naturally occurring elements (NAT) below the 1% mark to avoid visual overflow.
-* Changed: Expanded buffer bounds and virtual text offsets limit capabilities effectively parsing massive NuBase datasets natively without crashing vertical reading frames. 
-* Changed: Restructured Multi-line geometries layout: thoroughly preserves full string boundaries strictly ensuring textual bounds of complex crystalline formats naturally adapt over sequential lines instead of truncation gaps.
-
-## 1.5 - Isotope Overhaul
-
-* Added Isotope summary statistics: total known, stable, and naturally occurring (NAT).
-* Added Display of the top 3 most common natural isotopes, sorted by descending percentage (e.g., 197Au: 100%).
-* Added MAX_LIFE parameter tracker for the heaviest isotopes, rendering values in ms up to Exa-Years.
-* Added Specific physical transition path parameters: SF, EC, Alpha, Beta+/-.
-* Changed Display values dynamically condensed to fit the 128x64 screen constraints (e.g., 99.9%, My/Gy format suffix limits).
-* ChangedComplete two-line render restructuring to accommodate extra element stats without overlapping.
-* ChangedPre-processed specific bounds values strictly matching the NUBASE bounds directly inside .rodata for optimized heap consumption.
+## 1.5 - Extreme Isotope Statistics Tracker 
+* Heavy Analysis Dashboard: Global Element NuBase outputs summarize Total known, Stable, and Natural (NAT) stats natively within the UI parameters.
+* Naturally Occurring Yield Trimming: Highlights up to the top 3 natural isotopes, accurately sorted by percentage distribution (e.g., 197Au: 100%).
+* Extreme Lifespan Tracker (MAX LIFE)**: Automatically assigns the longest-living unstable isotope alongside accurate decay transition modes (SF, Alpha, EC, Beta+/-). 
+* Display Formatting Output**: Heavily optimized visualization natively converts large numbers onto My/Gy/Py formats directly sparing minimal horizontal resolution capabilities.
+* Microcontroller RAM Optimizations: Pre-processed dataset parameter limits match standard bounds injected flawlessly right into Flipper .rodata avoiding live processing operations inside standard loops.
 
 ## 1.4 - Mohs Scale & Earth Properties Update
 * **Added Mohs Hardness**: Integrated approximate scratch hardness values on the Mohs scale.
