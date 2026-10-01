@@ -6,6 +6,7 @@ App(
         "main.c",
         "logic.c",
         "storage_helper.c",
+        "settings.c",
         "ui.c",
     ],
     entry_point="sub_dup_finder_app",
@@ -14,6 +15,6 @@ App(
     fap_category="Sub-GHz",
     fap_author="Endika",
     fap_weburl="https://github.com/Endika/flipper-sub-dup",
-    fap_version="1.2.2",
+    fap_version="1.3.0",
     fap_description="Identify and clean up duplicate .sub files in storage",
 )

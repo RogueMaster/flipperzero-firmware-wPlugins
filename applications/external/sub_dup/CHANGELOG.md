@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/Endika/flipper-sub-dup/compare/v1.2.2...v1.3.0) (2026-09-25)
+
+
+### Features
+
+* choose the folder to scan and remember it ([1298d0c](https://github.com/Endika/flipper-sub-dup/commit/1298d0c4b0e4c206199ba0904010d6a858e414aa))
+
+
+### Bug Fixes
+
+* never offer unreadable or truncated files for deletion ([ba7aeef](https://github.com/Endika/flipper-sub-dup/commit/ba7aeef68f65a9c52d28ed2426cc17e22775ee75))
+
 ## [1.2.2](https://github.com/Endika/flipper-sub-dup/compare/v1.2.1...v1.2.2) (2026-09-05)
 
 
