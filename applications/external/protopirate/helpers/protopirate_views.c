@@ -3,7 +3,7 @@
 
 #include <furi.h>
 
-#define TAG "ProtoPirateViews"
+#define TAG "PPViews"
 
 bool protopirate_ensure_widget(ProtoPirateApp* app) {
     furi_check(app);
@@ -120,5 +120,13 @@ void protopirate_variable_item_list_free(ProtoPirateApp* app) {
         view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
         variable_item_list_free(app->variable_item_list);
         app->variable_item_list = NULL;
+    }
+}
+
+void protopirate_widget_free(ProtoPirateApp* app) {
+    if(app->widget) {
+        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewWidget);
+        widget_free(app->widget);
+        app->widget = NULL;
     }
 }

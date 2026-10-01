@@ -1,8 +1,9 @@
 #include "protopirate_models.h"
+#ifdef ENABLE_MODELS_DATABASE
 
-#define TAG "ProtoPirateModels"
+#define TAG "PPModels"
 
-#define PROTOPIRATE_MODELS_FILE APP_ASSETS_PATH("models.txt")
+#define PROTOPIRATE_MODELS_FILE APP_ASSETS_PATH("models_db/models.txt")
 
 //Models File Format.
 #define MODELS_FILE_HEADER              "ProtoPirate Car Models Database"
@@ -73,7 +74,7 @@ bool car_model_get_by_index(
 
         //Read the Model Name.
         if(!flipper_format_read_string(ff, model_name_index, model_name)) {
-            FURI_LOG_E("ProtoPirate", "Failed to read %s", model_name_index);
+            FURI_LOG_E(TAG, "Failed to read %s", model_name_index);
             break;
         }
 
@@ -168,7 +169,7 @@ bool car_model_get_by_index(
                preset_data_size > 0) {
                 if(preset_data_size >= 1024) {
                     FURI_LOG_E(
-                        "ProtoPirate",
+                        TAG,
                         "%s too large: %lu",
                         preset_data_index,
                         (unsigned long)preset_data_size);
@@ -178,7 +179,7 @@ bool car_model_get_by_index(
                 preset_data = malloc(preset_data_size);
                 if(!preset_data) {
                     FURI_LOG_E(
-                        "ProtoPirate",
+                        TAG,
                         "Malloc failed: %s (%lu bytes)",
                         preset_data_index,
                         (unsigned long)preset_data_size);
@@ -201,7 +202,10 @@ bool car_model_get_by_index(
 
     if(!error) {
         //Set the Car Model name and index.
-        furi_string_set((car_model)->name, model_name);
+        size_t length = furi_string_utf8_length(model_name) + 1;
+        if(car_model->name) free(car_model->name);
+        car_model->name = malloc(length);
+        snprintf(car_model->name, length, furi_string_get_cstr(model_name));
         car_model->index = index;
 
         //Alloc a preset if none, or recycle.
@@ -220,10 +224,16 @@ bool car_model_get_by_index(
         car_model->preset->data_size = preset_data_size;
         car_model->preset->frequency = frequency;
     } else {
+        char* tmp;
+        if(car_models_count)
+            tmp = "< Select a Car Model >";
+        else
+            tmp = "No Models in Database";
+        if(car_model->name) free(car_model->name);
+        size_t length = strlen(tmp) + 1;
+        car_model->name = malloc(length);
+        snprintf(car_model->name, length, tmp);
         car_model->index = 0;
-        furi_string_set_str(
-            car_model->name,
-            (car_models_count) ? "< Select a Car Model >" : "No Models in Database");
 
         if(car_model->preset) {
             if(car_model->preset->data) {
@@ -285,3 +295,4 @@ uint16_t car_model_get_count(void) {
     //Finished, return the count or 0 if error.
     return (uint16_t)model_count;
 }
+#endif

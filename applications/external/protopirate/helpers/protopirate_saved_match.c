@@ -4,7 +4,7 @@
 #include <storage/storage.h>
 #include <string.h>
 
-#define TAG              "ProtoPirateMatch"
+#define TAG              "PPMatch"
 #define CNT_MATCH_MARGIN 50
 
 bool protopirate_saved_match_signal(

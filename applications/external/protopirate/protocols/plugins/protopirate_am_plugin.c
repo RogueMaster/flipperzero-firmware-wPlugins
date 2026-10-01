@@ -15,6 +15,7 @@
 #include "../subaru.h"
 #include "../star_line.h"
 #include "../honda_v1.h"
+#include <lib/flipper_application/flipper_application.h>
 
 static const SubGhzProtocol* const protopirate_protocol_registry_am_items[] = {
     &chrysler_protocol_v0,
@@ -41,7 +42,7 @@ static const SubGhzProtocolRegistry protopirate_protocol_registry_am = {
 };
 
 static const ProtoPirateProtocolPlugin protopirate_am_plugin = {
-    .plugin_name = "ProtoPirate AM Default Registry",
+    .plugin_name = "AM Registry",
     .kind = ProtoPirateProtocolPluginKindRx,
     .route = ProtoPirateProtocolRegistryRouteAMDefault,
     .registry = &protopirate_protocol_registry_am,

@@ -5,7 +5,7 @@
 
 #include "../defines.h"
 
-#define TAG "ProtoPirateCatalog"
+#define TAG "PPCatalog"
 
 #define PROTOPIRATE_CC1101_REG_MDMCFG2        0x12U
 #define PROTOPIRATE_CC1101_MOD_FORMAT_MASK    0x70U

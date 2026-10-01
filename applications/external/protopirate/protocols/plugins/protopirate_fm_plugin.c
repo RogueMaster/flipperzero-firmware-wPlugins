@@ -9,6 +9,7 @@
 #include "../mazda_v0.h"
 #include "../psa.h"
 #include "../renault_v1.h"
+#include <lib/flipper_application/flipper_application.h>
 
 static const SubGhzProtocol* const protopirate_protocol_registry_fm_items[] = {
     &subghz_protocol_scher_khan,
@@ -29,7 +30,7 @@ static const SubGhzProtocolRegistry protopirate_protocol_registry_fm = {
 };
 
 static const ProtoPirateProtocolPlugin protopirate_fm_plugin = {
-    .plugin_name = "ProtoPirate FM Default Registry",
+    .plugin_name = "FM Default Registry",
     .kind = ProtoPirateProtocolPluginKindRx,
     .route = ProtoPirateProtocolRegistryRouteFMDefault,
     .registry = &protopirate_protocol_registry_fm,

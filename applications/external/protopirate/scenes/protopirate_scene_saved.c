@@ -4,7 +4,7 @@
 
 #include "proto_pirate_icons.h"
 
-#define TAG "ProtoPirateSceneSaved"
+#define TAG "PPSceneSaved"
 
 void protopirate_scene_saved_on_enter(void* context) {
     furi_check(context);
@@ -18,12 +18,6 @@ void protopirate_scene_saved_on_enter(void* context) {
         furi_record_close(RECORD_STORAGE);
     }
 
-    if(!app->file_path) {
-        FURI_LOG_E(TAG, "file_path is NULL");
-        scene_manager_previous_scene(app->scene_manager);
-        return;
-    }
-
     if(!app->dialogs) {
         app->dialogs = furi_record_open(RECORD_DIALOGS);
         if(!app->dialogs) {
@@ -34,28 +28,31 @@ void protopirate_scene_saved_on_enter(void* context) {
     }
 
     DialogsFileBrowserOptions browser_options;
-    dialog_file_browser_set_basic_options(&browser_options, ".psf", &I_subghz_10px);
+    dialog_file_browser_set_basic_options(&browser_options, ".psf", &I_protopirate_10px);
     browser_options.base_path = PROTOPIRATE_APP_FOLDER;
     browser_options.skip_assets = true;
     browser_options.hide_dot_files = true;
 
-    furi_string_set(app->file_path, PROTOPIRATE_APP_FOLDER);
-
     FuriString* selection = furi_string_alloc();
-    if(app->loaded_file_path && !furi_string_empty(app->loaded_file_path)) {
+    if(app->loaded_file_path && (strlen(app->loaded_file_path) > 0)) {
         furi_string_set(selection, app->loaded_file_path);
     } else {
         furi_string_set(selection, PROTOPIRATE_APP_FOLDER);
     }
 
+    FuriString* file_path_furi_str = furi_string_alloc_set_str(app->file_path);
     bool file_selected =
-        dialog_file_browser_show(app->dialogs, selection, app->file_path, &browser_options);
+        dialog_file_browser_show(app->dialogs, selection, file_path_furi_str, &browser_options);
+    furi_string_free(file_path_furi_str);
 
     if(file_selected) {
         if(app->loaded_file_path) {
-            furi_string_free(app->loaded_file_path);
+            free(app->loaded_file_path);
+            app->loaded_file_path = NULL;
         }
-        app->loaded_file_path = furi_string_alloc_set(selection);
+        size_t len = furi_string_utf8_length(selection) + 1;
+        app->loaded_file_path = malloc(len);
+        snprintf(app->loaded_file_path, len, furi_string_get_cstr(selection));
         furi_string_free(selection);
         scene_manager_next_scene(app->scene_manager, ProtoPirateSceneSavedInfo);
     } else {

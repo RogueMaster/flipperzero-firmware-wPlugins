@@ -1,5 +1,6 @@
 #include "../protopirate_protocol_plugins.h"
 #include "../protocols_common.h"
+#include <lib/flipper_application/flipper_application.h>
 
 #ifndef PP_TX_PROTOCOL_HEADER
 #error "PP_TX_PROTOCOL_HEADER must be defined for TX protocol plugins"

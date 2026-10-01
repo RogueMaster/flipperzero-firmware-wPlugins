@@ -11,17 +11,19 @@
 
 #include "../defines.h"
 
-extern const char FF_BIT[];
-extern const char FF_KEY[];
-extern const char FF_SERIAL[];
-extern const char FF_BTN[];
-extern const char FF_CNT[];
-extern const char FF_REPEAT[];
-extern const char FF_PROTOCOL[];
-extern const char FF_PRESET[];
-extern const char FF_FREQUENCY[];
-extern const char FF_MANUFACTURE[];
-extern const char FF_TYPE[];
+// Macros, not extern arrays: a plugin that does not link protocols_common.c
+// still needs these field names.
+#define FF_BIT         "Bit"
+#define FF_KEY         "Key"
+#define FF_SERIAL      "Serial"
+#define FF_BTN         "Btn"
+#define FF_CNT         "Cnt"
+#define FF_REPEAT      "Repeat"
+#define FF_PROTOCOL    "Protocol"
+#define FF_PRESET      "Preset"
+#define FF_FREQUENCY   "Frequency"
+#define FF_MANUFACTURE "Manufacture"
+#define FF_TYPE        "Type"
 
 bool pp_preset_name_is_custom_marker(const char* preset_name);
 

@@ -7,7 +7,7 @@
 typedef struct ProtoPirateApp ProtoPirateApp;
 typedef struct ProtoPirateTxRx ProtoPirateTxRx;
 
-void protopirate_unload_protocol_plugin(ProtoPirateTxRx* txrx);
+void protopirate_unload_protocol_plugin(ProtoPirateApp* app);
 bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_receiver_ready);
 bool protopirate_apply_protocol_registry_for_context(
     ProtoPirateApp* app,

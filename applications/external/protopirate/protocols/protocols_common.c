@@ -2,18 +2,6 @@
 
 #include <string.h>
 
-const char FF_BIT[] = "Bit";
-const char FF_KEY[] = "Key";
-const char FF_SERIAL[] = "Serial";
-const char FF_BTN[] = "Btn";
-const char FF_CNT[] = "Cnt";
-const char FF_REPEAT[] = "Repeat";
-const char FF_PROTOCOL[] = "Protocol";
-const char FF_PRESET[] = "Preset";
-const char FF_FREQUENCY[] = "Frequency";
-const char FF_MANUFACTURE[] = "Manufacture";
-const char FF_TYPE[] = "Type";
-
 uint8_t pp_reverse_bits8(uint8_t value) {
     value = (uint8_t)(((value >> 4U) | (value << 4U)) & 0xFFU);
     value = (uint8_t)(((value & 0x33U) << 2U) | ((value >> 2U) & 0x33U));
