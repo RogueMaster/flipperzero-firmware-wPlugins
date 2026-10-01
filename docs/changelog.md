@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6 - Precision UX Update & Expanded Parsing
+
+* Added Seamless In-Card Traversal: You can now use Left/Right D-Pad buttons to switch instantly between elements directly inside the details sheet without reverting to the main grid.
+* Dedicated view labels integrated for explicitly split structural outputs: NAT (>=1%), MAX LIFE, and Stbl counts.
+* Changed: Filtered Isotope render thresholds: dynamically truncates naturally occurring elements (NAT) below the 1% mark to avoid visual overflow.
+* Changed: Expanded buffer bounds and virtual text offsets limit capabilities effectively parsing massive NuBase datasets natively without crashing vertical reading frames. 
+* Changed: Restructured Multi-line geometries layout: thoroughly preserves full string boundaries strictly ensuring textual bounds of complex crystalline formats naturally adapt over sequential lines instead of truncation gaps.
+
 ## 1.5 - Isotope Overhaul
 
 * Added Isotope summary statistics: total known, stable, and naturally occurring (NAT).
