@@ -1,62 +1,69 @@
 # Flipper Elements
 
-**A compact periodic table of the elements for Flipper Zero.**
+**A compact, yet exhaustive periodic table and chemical database for Flipper Zero**
 
-Explore essential chemical and physical data for all 119 elements directly on your Flipper Zero.  
+Explore essential chemical, physical, quantum, geochemical, and biological data for all 119 elements directly on your Flipper Zero.  
 Designed for quick reference, study, laboratory notes, educational use, and science-focused hardware projects.
 
 **Author:** [Siarhei Besarab](https://en.wikipedia.org/wiki/Siarhei_Besarab) (aka steanlab)
 
 ## Features
 
-* **Complete Element Database:** Contains data for all 119 elements, stored entirely in flash memory (.rodata) with no runtime RAM overhead.
+* **Complete Element Database (v2.0):** Contains a massive dataset for all 119 elements, stored entirely in flash memory (.rodata) with heavily optimized string formatting (Macros/Smart Text Wrapping) to ensure zero runtime RAM overhead and prevent stack overflows.
 
-* **Element Identification:** Displays the element name, symbol, atomic number Z, category, atomic weight, and CAS Registry Number.
+* **Element Identification & History:** Displays the element name, symbol, atomic number (Z), discoverer, block/group/period, category, atomic weight, and CAS Registry Number.
 
-* **IUPAC-Compatible Atomic Masses:** For elements without a standard atomic weight, the mass number of the longest-lived isotope is shown in square brackets, for example 98 for technetium and 209 for polonium. Th, Pa, and U retain conventional atomic-weight values due to their characteristic terrestrial isotopic composition. 
+* **IUPAC-Compatible Atomic Masses:** For elements without a standard atomic weight, the mass number of the longest-lived isotope is shown in square brackets (e.g., 98 for technetium, 209 for polonium). Th, Pa, and U retain conventional atomic-weight values due to their characteristic terrestrial isotopic composition. 
 
-* **Chemical Data:** Shows common oxidation states, electronic/quantum configuration, and the total number of known or experimentally observed isotopes.
+* **Advanced Isotope Analytics:** Tracks total known isotopes, stable isotopes, natural isotopic abundances (showing all components $\ge$ 0.5%), and provides precise decay pathway metrics (Max Lifetime) detailing exact stages for heavy elements (Alpha, Beta+/-, SF, EC).
 
-* **Atomic-Scale Data:** Includes atomic radii, covalent radii, and dominant ionic radii. Radius values are displayed in picometers (pm), together with the relevant ion formula where applicable.
+* **Comprehensive Atomic Sizing:** Includes atomic (ATM), covalent (COV), ionic (ION), metallic (MET), and Van der Waals (VDW) radii. Values are mapped directly in picometers (pm).
 
-* **Physical Data:** Displays density, melting point, boiling point, approximate Mohs hardness, magnetic behaviour near room temperature, crystal structure, and abundance in the Earth’s crust (ppm).
+* **Thermo-Physical & Electrical Data:** Greatly expanded from basic properties. Includes density, melting/boiling points, thermal conductivity (W/(m·K)), specific heat capacity (J/(kg·K)), electrical resistivity (Ohm·m), electrical conductivity (S/m), and Mohs hardness.
 
-* **Magnetic Properties:** Includes bulk magnetic classifications such as diamagnetic, paramagnetic, ferromagnetic, ferrimagnetic, and antiferromagnetic where applicable.
+* **Quantum & Chemical Properties:** Shows common oxidation states, expanded electronic configuration, electron affinity (kJ/mol), Pauling electronegativity, ionization energy (kJ/mol), and dipole polarizability (a.u.).
 
-* **Crystal Structures:** Shows elemental crystal structures at approximately ambient pressure. Common abbreviations are expanded for readability, for example *fcc* -> *face-centred cubic*, *bcc* -> *body-centred cubic*, and *hcc* -> *hexagonal close-packed*.
+* **Geochemical & Cosmic Profiles:** Categorizes elements by their Goldschmidt classification (lithophile, siderophile, chalcophile, atmophile) and shows accurate concentration levels in the Earth's Crust (ppm), Oceans (mg/L), Atmosphere (ppm), and Cosmos (ppb).
 
-* **Isotope Database**: Summary analytics tracked directly to experimental NUBASE parameters (Total, Stable, Natural).
-  
-* **Decay Pathway Metrics**: Accurately mapping detailed heavy decay lifetimes (MAX_LIFE) mapping down exact stages (SF, EC, Alpha, Beta+/-).
+* **Human Biology & Medicine Integration:** A dedicated bioscience section tracks the element's role in the human body (e.g., Trace, Major, Toxic), exact biological abundance by weight (%), and comprehensive descriptions of physiological functions, enzymes, or toxicity hazards.
 
-* Thermo-Physical & Quantum Integration: Access meticulously expanded structural parameters instantly — browse mapped specific heat variations accurately aligned to explicit conditions directly alongside comprehensive metallic radius details, mapped thermal conductivity capabilities, and strict tracking scaling atomic polarizability datasets accurately rendered avoiding data clipping directly from device limits logic iterations
+* **Crystal & Magnetic Data:** 
+  * Displays bulk magnetic classifications explicitly mapped (diamagn., paramagn., ferromagn., antiferromagn.) alongside Curie/Neel critical temperatures (Tc/Tn) in Kelvin.
+  * Shows elementary crystal structures natively providing both the full structural name and its abbreviation (e.g., *face-centered cubic (fcc)*).
 
-* **Smart Mini-Map:** Navigate precisely through groups, periods, and the overall layout of the periodic table.
-
-* **Navigation UI:** Supports intuitive linear traversal through the elements by atomic number, while preserving spatial navigation across the periodic-table layout.
-
-* **Optimized for Flipper Zero:** The complete element dataset is compiled into flash memory (.rodata), avoiding dynamic allocation and runtime RAM overhead.
+* **Smart UI & Quick Reference Tools:** 
+  * Intuitive spatial grid (Mini-Map) layout that respects natural periodic gaps.
+  * Deep scrollable element cards with quick horizontal element-jumping.
+  * **Built-in Legend:** A rapid-access terminology guide for physical variables.
 
 ## Control Layout
 
-* **Up** / **Down** — Move vertically through the periodic-table layout. Navigation dynamically bypasses structural gaps.
-* **Left** / **Right** — Browse elements sequentially by atomic number Z.
-* **Short Press OK** — Open the detailed element property card.
-* **Long Press OK** — Open the application information screen with author, version, and credits.
+**In the Main Grid (Periodic Table Layout):**
+* **Up / Down / Left / Right** — Spatially navigate through periods, groups, and blocks.
+* **Short Press OK** — Open the detailed comprehensive element property card.
+* **Long Press OK** — Open the "About" screen (Author info, links).
 
-## Data Fields
+**Inside the Element Detail Card:**
+* **Up / Down** — Scroll through the detailed multi-line text (Atomic, Isotopes, Sizes, Physical, Quantum, Geo Props, Human Bio).
+* **Left / Right** — Instantly jump to the previous (Z-1) or next (Z+1) element without returning to the main grid.
+* **Short Press OK** — Open the **Property Guide/Legend** to decode specific scientific abbreviations and measurement units.
 
-The detailed element card may include:
+**Inside the About Screen:**
+* **Left** — View Scientific References / Data sources.
+* **Right** — View the Special Thanks & Credits screen.
 
-* Atomic number Z, name, symbol, category, atomic weight, and CAS Registry Number
-* Common oxidation states
-* Electron / quantum configuration
-* Atomic, covalent, and ionic radii (pm)
-* Density, melting point, boiling point, and Mohs hardness
-* Magnetic behaviour near room temperature
-* Crystal structure at approximately ambient pressure
-* Abundance in the Earth’s crust (ppm)
-* Number of known or experimentally observed isotopes
+## Data Fields Dictionary
+
+The detailed element card is divided into smart categories including:
+
+* **DISCOVERER & CAS:** Historical discovery attribution and chemical registry standard.
+* **ATOMIC:** Element category, Block (s/p/d/f), Oxidation states, Group, Period, Crystal Structure.
+* **ISOTOPES:** Total/Stable counters, Natural occurrence breakdown (%), Max half-life & decay mode.
+* **SIZES (pm):** Atomic, Covalent, Ionic, Metallic, and Van der Waals radii.
+* **PHYSICAL:** Mass (u), Density ($g/cm^3$), Melt/Boil points (K), Thermal Cond., Heat Capacity, Electrical Resistance/Conductance, Mohs hardness, Magnetism order, and Phase transition Temps.
+* **QUANTUM:** Electron Affinity, Electronegativity, Ionization Energy, Dipolar Polarizability, Orbital configuration.
+* **GEO PROPS:** Goldschmidt class, presence in Crust, Sea, Atmosphere, and Cosmic environments.
+* **HUMAN BIO:** Human physiological role classification, percentage of human body weight, and specific biochemical functions / toxicity profiles.
 
 ## Contacts
 
