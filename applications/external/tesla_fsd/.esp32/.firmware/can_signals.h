@@ -41,7 +41,7 @@
 #define SIG_AP_NAG_CLEAR_BIT               19
 #define SIG_AP_HW4_FSD_ENABLE_BIT          60
 #define SIG_AP_HW4_EMERGENCY_VEHICLE_BIT   59
-#define SIG_AP_HW4_NAG_CONFIRM_BIT         47
+#define SIG_AP_SUMMON_ENABLE_BIT           47   // bit47 UI_summonEnable (EU Summon unlock)
 
 #define SIG_AP_HW3_SPEED_RAW_BYTE           3
 #define SIG_AP_HW3_SPEED_RAW_SHIFT          1

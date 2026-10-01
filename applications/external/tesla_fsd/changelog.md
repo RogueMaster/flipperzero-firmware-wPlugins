@@ -1,3 +1,8 @@
+## 2.16-beta.34 — ESP32 Summon-bit parity + motion-based Summon safety
+
+- **ESP32: the nag killer no longer sets 0x3FD bit47 on HW4.** bit47 is the Summon-enable bit (confirmed on-car in #163), not part of nag suppression — the nag killer works through the bit19 clear and the 0x370 EPAS echo. It was being set whenever the nag killer ran on HW4; now, like the HW3 path and the Flipper, it's set only when Summon EU Unlock is on. The misnamed constant is renamed to SIG_AP_SUMMON_ENABLE_BIT. No change to nag behaviour. (PR #207)
+- **Summon EU Unlock auto-disables once the car is moving (#193).** The existing guard disabled Summon when the gear lever (0x229) went into drive, but Palladium Model S/X don't broadcast 0x229 on the Party bus, so it could stay armed while driving and interfere with normal AP. Now it also disables on clear vehicle motion from 0x257 (above 3 km/h, fresh and valid), which works regardless of platform. The gear-lever guard is unchanged. Thanks @Tesla234987234sdf for the Listen-Only captures that pinned it. (PR #207)
+
 ## 2.16-beta.33 — Flipper Summon-bit parity, dead Extras removed, ESP32 rename
 
 - **Flipper: the Summon bit (0x3FD mux1 bit47) is only set when Summon EU Unlock is on (#163).** The HW4 path used to set it on every mux1 frame; it now matches the HW3 path and the ESP32, gating on the toggle. The Flipper menu has no Summon toggle, so a Flipper no longer sets bit47 at all. bit19 (the EU restriction clear) is unchanged. (PR #202)

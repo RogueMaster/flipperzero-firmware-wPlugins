@@ -1298,10 +1298,35 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     // Vehicle speed (0x257) — read-only; feeds the Autopark release gate (#180).
     if (frame.id == CAN_ID_DI_SPEED) {
         uint32_t now_ms = millis();
+        FSDState saved;
+        bool disabled = false;
+        float disabled_kph = 0.0f;
         state_enter();
         fsd_handle_di_speed(&g_state, &frame);
         g_state.last_speed_tick_ms = now_ms;   // freshness for fsd_autopark_update
+        // Safety guard (#193): Palladium S/X don't broadcast 0x229 on Party, so
+        // the gear-lever Summon disable can't fire there. Auto-disable Summon EU
+        // Unlock on clear vehicle motion instead — platform-independent. Fresh,
+        // valid speed only (same window fsd_autopark_update uses); SNA/invalid
+        // readings exceed FSD_DI_SPEED_MAX_VALID_KPH and are excluded. Edge-
+        // triggered on the true→false flip so NVS is written once.
+        if (g_state.summon_unlock &&
+            (uint32_t)(now_ms - g_state.last_speed_tick_ms) <= FSD_AUTOPARK_SPEED_FRESH_MS &&
+            g_state.vehicle_speed_kph <= FSD_DI_SPEED_MAX_VALID_KPH &&
+            g_state.vehicle_speed_kph > SUMMON_DISABLE_SPEED_KPH) {
+            g_state.summon_unlock = false;
+            saved = g_state;
+            disabled = true;
+            disabled_kph = g_state.vehicle_speed_kph;
+        }
         state_exit();
+        if (disabled) {
+            Serial.printf("[SAFETY] Summon EU Unlock auto-disabled on vehicle motion "
+                          "(0x257, %.1f km/h)\n", disabled_kph);
+            can_dump_log("[SAFETY] Summon EU Unlock auto-disabled on vehicle motion "
+                         "(0x257, %.1f km/h)", disabled_kph);
+            prefs_save(&saved);
+        }
         return;
     }
     if (frame.id == CAN_ID_VCFRONT_LIGHT) {

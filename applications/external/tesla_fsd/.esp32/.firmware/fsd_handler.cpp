@@ -321,7 +321,7 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
             }
             if (state->summon_unlock) {
                 set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);       // bit19 EU restriction clear
-                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true);  // bit47 summon enable
+                set_bit(frame, SIG_AP_SUMMON_ENABLE_BIT, true);    // bit47 summon enable
                 modified = true;
             }
             // Telemetry Off (experimental): clear reachable DAS_autopilotControl mux1
@@ -366,13 +366,12 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
              state->apmv3_branch <= 5)) {
             if (state->nag_killer) {
                 set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);      // clear hands-on-wheel nag
-                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true); // HW4 nag-suppression confirmation bit
                 state->nag_suppressed = true;
                 modified = true;
             }
             if (state->summon_unlock) {
                 set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);       // bit19 EU restriction clear
-                set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true);  // bit47 summon enable
+                set_bit(frame, SIG_AP_SUMMON_ENABLE_BIT, true);    // bit47 summon enable
                 modified = true;
             }
             // Telemetry Off (experimental): clear reachable DAS_autopilotControl mux1

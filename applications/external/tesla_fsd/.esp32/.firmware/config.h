@@ -158,6 +158,12 @@
 #define CONT_AP_STALK_STOP_RECENT_MS     750u
 #define CONT_AP_MAX_RETRIES                 3u
 
+// Summon EU Unlock safety: auto-disable on clear vehicle motion (0x257, #193).
+// Palladium S/X don't broadcast 0x229 on Party, so the gear-lever guard can't
+// fire there. Above this speed the car is clearly driving (well past Summon's
+// own crawl and the autopark creep window), so disarm the Summon override.
+#define SUMMON_DISABLE_SPEED_KPH          3.0f
+
 // OTA detection on GTW_carState (0x318): debounce thresholds are shared with the
 // Flipper in fsd_logic/fsd_ota.h.
 
