@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9. - Electro-Magnetic Engine & Advanced Dimensions
+
+* Extended Element Data Structures: Included Van der Waals radii (VDW) metrics in the Sizes panel.
+* Deep Magnetic Properties: Added tracking for magnetic phase transitions natively mapped via Curie & Néel temperatures (Tc/Tn).
+* Electronic Framework: Embedded exact measurements for Electrical Resistivity (Ohm.m) and Electrical Conductivity (S/m).
+* Automatically appends standard (293-298 K) temperature conditions for conductivity strings specifically when variables are present.
+* Reference Update: "Alvarez" dataset added to the internal sources view.
+
 ## 1.8 - Brand UI Overhaul & Interactive Menus
 
 * Implemented an exclusive interactive About-carousel GUI model featuring rigid graphical lower sub-menus and native vertical tracking bounding overlays. 
