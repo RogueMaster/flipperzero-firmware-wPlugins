@@ -60,7 +60,7 @@ The detailed element card is divided into smart categories including:
 * **ATOMIC:** Element category, Block (s/p/d/f), Oxidation states, Group, Period, Crystal Structure.
 * **ISOTOPES:** Total/Stable counters, Natural occurrence breakdown (%), Max half-life & decay mode.
 * **SIZES (pm):** Atomic, Covalent, Ionic, Metallic, and Van der Waals radii.
-* **PHYSICAL:** Mass (u), Density ($g/cm^3$), Melt/Boil points (K), Thermal Cond., Heat Capacity, Electrical Resistance/Conductance, Mohs hardness, Magnetism order, and Phase transition Temps.
+* **PHYSICAL:** Mass (u), Density (g/cm3), Melt/Boil points (K), Thermal Cond., Heat Capacity, Electrical Resistance/Conductance, Mohs hardness, Magnetism order, and Phase transition Temps.
 * **QUANTUM:** Electron Affinity, Electronegativity, Ionization Energy, Dipolar Polarizability, Orbital configuration.
 * **GEO PROPS:** Goldschmidt class, presence in Crust, Sea, Atmosphere, and Cosmic environments.
 * **HUMAN BIO:** Human physiological role classification, percentage of human body weight, and specific biochemical functions / toxicity profiles.
