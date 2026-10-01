@@ -145,7 +145,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Stock Manager v0.1.7 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
 - Updated: [Habit Flow v0.1.4 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - Updated: [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
-- Updated: [Maze 3D v7.0 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [Faraday v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
 - Updated: [GhostTag v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) `Req: ESP32`
 - Updated: [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
@@ -156,6 +155,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Flipper Elements v1.9 (By steanlab)](https://github.com/steanlab/flipper-elements)
 - Updated: [Tesla Mod v2.16b34 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Sub Duplicate Finder v1.3 (By Endika)](https://github.com/Endika/flipper-sub-dup)
+- Updated: [Maze 3D v7.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 
 <a name="release"></a>
 
@@ -361,7 +361,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Mancala v0.1 (By fgreil)](https://github.com/fgreil/mitzi-mancala)
 - [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins)
 - [Matagotchi v1.1 (By MrModd)](https://github.com/MrModd/Matagotchi)
-- [Maze 3D v7.0 (By k20120509)](https://github.com/k20120509/flipper-release)
+- [Maze 3D v7.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 - [MicroCity v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperMicroCity)
 - [Mind Probe v0.1 (By Miksang)](https://github.com/Miksang/flipper_guessing_game)
 - [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)

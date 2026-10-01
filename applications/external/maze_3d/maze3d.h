@@ -7,13 +7,14 @@
 // Screen size
 #define SCREEN_W    128
 #define SCREEN_H    64
-// Render columns (performance): each column renders N pixels wide
-#define RENDER_COLS 64
+// Render columns (performance): each column covers N screen pixels.
+// 32 columns = 4px per column. Good balance of speed and visual quality.
+#define RENDER_COLS 32
 // Framebuffer: 1-bit XBM
 #define FB_BYTES    (SCREEN_W * SCREEN_H / 8)
 
-// Max maze size
-#define MAP_MAX 31
+// Max maze size (actual maze capped at 21, so 23 is enough).
+#define MAP_MAX 23
 
 // Cell types (minimal: only empty, wall, exit)
 typedef enum {

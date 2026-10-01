@@ -19,17 +19,6 @@ static inline void fb_clear(void) {
         g.fb[i] = 0;
 }
 
-// Draw an XBM bitmap (used for Chinese text glyphs).
-void fb_blit_xbm(int x0, int y0, int w, int h, int bpr, const uint8_t* bits, uint8_t on) {
-    for(int y = 0; y < h; y++) {
-        if(y0 + y < 0 || y0 + y >= SCREEN_H) continue;
-        for(int x = 0; x < w; x++) {
-            uint8_t byte = bits[y * bpr + (x >> 3)];
-            if(byte & (1 << (x & 7))) fb_set(x0 + x, y0 + y, on);
-        }
-    }
-}
-
 // ---- Map access ----
 static inline uint8_t map_at(int x, int y) {
     if((unsigned)x >= (unsigned)g.map_w || (unsigned)y >= (unsigned)g.map_h) return WALL_BRICK;

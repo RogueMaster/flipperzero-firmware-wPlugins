@@ -3,12 +3,12 @@ App(
     name="Maze 3D",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="maze3d_app",
-    stack_size=12 * 1024,
+    stack_size=16 * 1024,
     fap_icon="maze3d.png",
     fap_category="Games",
     fap_author="k20120509",
     fap_weburl="https://github.com/k20120509/flipper-release",
-    fap_version="7.0",
+    fap_version="7.1",
     fap_description="Minimal 3D raycasting maze game. Walk through randomly generated mazes and find the exit. Pure English UI.",
     # v6.11.1: 3D raycasting maze with MC sandbox, score shop, 10 items, buff system, bilingual
 )
