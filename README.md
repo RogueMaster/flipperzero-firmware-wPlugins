@@ -29,6 +29,8 @@ Designed for quick reference, study, laboratory notes, educational use, and scie
   
 * **Decay Pathway Metrics**: Accurately mapping detailed heavy decay lifetimes (MAX_LIFE) mapping down exact stages (SF, EC, Alpha, Beta+/-).
 
+* Thermo-Physical & Quantum Integration: Access meticulously expanded structural parameters instantly — browse mapped specific heat variations accurately aligned to explicit conditions directly alongside comprehensive metallic radius details, mapped thermal conductivity capabilities, and strict tracking scaling atomic polarizability datasets accurately rendered avoiding data clipping directly from device limits logic iterations
+
 * **Smart Mini-Map:** Navigate precisely through groups, periods, and the overall layout of the periodic table.
 
 * **Navigation UI:** Supports intuitive linear traversal through the elements by atomic number, while preserving spatial navigation across the periodic-table layout.
