@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7 - Thermo-Physical & Quantum Datasets Expansion 
+
+* Added Extended Element Data Structures: Added exact values for Metallic Radius (pm) rendering safely into atomic parameters view.
+* Added Advanced Quantum Properties: Integrated polarizability metrics tracked directly in atomic units (a.u.).
+* Added Advanced Thermo-Physical Parameters: Accurately mapping detailed thermal conductivity (W/(m.K)) and specific heat states (with precise compound/phase states labels).
+* Expanded Memory Buffers: Increased native layout textual tracking buffers structurally (1536 to 2048 chars) protecting memory from stack overflows triggered by massive dataset augmentations.
+* Re-scaled Internal Vertical Limits: Expanded deepest maximum screen text scrolling boundary offsets dynamically (590 tracking depth threshold limits) correctly adapting natively wrapped scrollbar interactions. 
+* Main interface 'About' references bumped to align seamlessly with the new release state (v1.7).
+
 ## 1.6 - Precision UX Update & Expanded Parsing
 
 * Added Seamless In-Card Traversal: You can now use Left/Right D-Pad buttons to switch instantly between elements directly inside the details sheet without reverting to the main grid.
