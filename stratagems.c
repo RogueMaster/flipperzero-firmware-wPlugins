@@ -256,6 +256,13 @@ Stratagem STRATAGEM_EAGLE_SMOKE_STRIKE = {
     .cooldown = 15,
     .level = 8,
 };
+Stratagem STRATAGEM_EAGLE_GAS_AIRSTRIKE = {
+    .type = StratagemType_EagleStrike,
+    .title = "Eagle Gas Airstrike",
+    .code = "URLR",
+    .icon = &I_stratagem_eagle_gas_airstrike,
+    .cooldown = 15,
+};
 Stratagem STRATAGEM_EAGLE_NAPALM_AIRSTRIKE = {
     .type = StratagemType_EagleStrike,
     .title = "Eagle Napalm Airstrike",
@@ -513,6 +520,13 @@ Stratagem STRATAGEM_MAXIGUN = {
     .code = "DLRDUU",
     .icon = &I_stratagem_maxigun,
     .cooldown = 480,
+};
+Stratagem STRATAGEM_MELTAGUN = {
+    .type = StratagemType_SupportWeapon,
+    .title = "Meltagun",
+    .code = "DLULLD",
+    .icon = &I_stratagem_meltagun,
+    .cooldown = 410,
 };
 Stratagem STRATAGEM_ONE_TRUE_FLAG = {
     .type = StratagemType_SupportWeapon,
@@ -859,6 +873,7 @@ Stratagem* stratagems[] = {
     &STRATAGEM_EAGLE_AIRSTRIKE,
     &STRATAGEM_EAGLE_CLUSTER_BOMB,
     &STRATAGEM_EAGLE_SMOKE_STRIKE,
+    &STRATAGEM_EAGLE_GAS_AIRSTRIKE,
     &STRATAGEM_EAGLE_NAPALM_AIRSTRIKE,
     &STRATAGEM_EAGLE_110MM_ROCKET_PODS,
     &STRATAGEM_EAGLE_500KG_BOMB,
@@ -894,6 +909,7 @@ Stratagem* stratagems[] = {
     &STRATAGEM_SOLO_SILO,
     &STRATAGEM_CREMATOR,
     &STRATAGEM_MAXIGUN,
+    &STRATAGEM_MELTAGUN,
     &STRATAGEM_ONE_TRUE_FLAG,
 
     &STRATAGEM_ANTI_PERSONNEL_MINEFIELD,
