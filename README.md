@@ -25,6 +25,10 @@ Designed for quick reference, study, laboratory notes, educational use, and scie
 
 * **Crystal Structures:** Shows elemental crystal structures at approximately ambient pressure. Common abbreviations are expanded for readability, for example *fcc* -> *face-centred cubic*, *bcc* -> *body-centred cubic*, and *hcc* -> *hexagonal close-packed*.
 
+* **Isotope Database**: Summary analytics tracked directly to experimental NUBASE parameters (Total, Stable, Natural).
+  
+* **Decay Pathway Metrics**: Accurately mapping detailed heavy decay lifetimes (MAX_LIFE) mapping down exact stages (SF, EC, Alpha, Beta+/-).
+
 * **Smart Mini-Map:** Navigate precisely through groups, periods, and the overall layout of the periodic table.
 
 * **Navigation UI:** Supports intuitive linear traversal through the elements by atomic number, while preserving spatial navigation across the periodic-table layout.
