@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8 - Brand UI Overhaul & Interactive Menus
+
+* Implemented an exclusive interactive About-carousel GUI model featuring rigid graphical lower sub-menus and native vertical tracking bounding overlays. 
+* Integrated a sub-view dedicated to displaying verifiable scientific reference materials directly within the hardware limits (e.g., CIAAW, NUBASE, Slater, Shannon frameworks).
+* Added dynamic branding via pure memory-optimized XBM assets inclusion, redesigning both application startup/logo screens and bounded exit layout prompts effectively.
+* Replaced the monolithic native Flipper OS text-box within standard Information tabs by a structurally independent viewport architecture relying entirely on detached UI-thread custom callbacks for v_about. 
+* Intelligent Unit-Appending logic: Deep visual readout strings optimizations dropping appended raw values conditionally. Removes "ghost parameters" effectively (dynamically converting malformed outputs like "N/A W/(m.K)" securely down to precise standalone "N/A" boundaries everywhere).
+
 ## 1.7 - Thermo-Physical & Quantum Datasets Expansion 
 
 * Added Extended Element Data Structures: Added exact values for Metallic Radius (pm) rendering safely into atomic parameters view.
