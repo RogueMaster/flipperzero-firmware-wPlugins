@@ -85,16 +85,9 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     } else if(g.mode == MODE_ABOUT) {
         draw_about(canvas);
     } else if(g.mode == MODE_PLAY || g.mode == MODE_CLEAR) {
-        // Blit the raycast framebuffer to canvas.
-        for(int y = 0; y < SCREEN_H; y++) {
-            for(int x = 0; x < SCREEN_W; x++) {
-                uint16_t idx = ((uint16_t)y << 4) + ((uint16_t)x >> 3);
-                uint8_t bit = 1u << (x & 7);
-                if(g.fb[idx] & bit) {
-                    canvas_draw_dot(canvas, x, y);
-                }
-            }
-        }
+        // Blit the entire raycast framebuffer in one call (XBM format).
+        // This replaces 8192 canvas_draw_dot calls and is much faster.
+        canvas_draw_xbm(canvas, 0, 0, SCREEN_W, SCREEN_H, g.fb);
         // HUD overlay
         if(g.show_hud || (g.tick & 63) < 20) {
             canvas_set_color(canvas, ColorBlack);
@@ -195,6 +188,7 @@ int32_t maze3d_app(void* p) {
                     running = false;
                 } else {
                     g.mode = MODE_MENU;
+                    g.dirty = true;
                     sfx_play(SFX_MENU_OK);
                 }
                 continue;
@@ -202,19 +196,28 @@ int32_t maze3d_app(void* p) {
 
             if(g.mode == MODE_MENU) {
                 handle_menu_input(key, type);
+                g.dirty = true;
             } else if(g.mode == MODE_PLAY) {
                 game_handle_input(key, type);
             } else {
                 handle_overlay_input(key, type);
+                g.dirty = true;
             }
         }
 
-        // World update only while playing.
+        // World update only while playing (tick always advances for blink anim).
         if(g.mode == MODE_PLAY) {
             game_update();
-            engine_render();
         }
-        view_port_update(vp);
+
+        // Only re-render when something changed (avoids wasting CPU / watchdog).
+        if(g.dirty || g.mode == MODE_PLAY) {
+            if(g.mode == MODE_PLAY) {
+                engine_render();
+            }
+            view_port_update(vp);
+            g.dirty = false;
+        }
         sfx_tick_update();
     }
 
