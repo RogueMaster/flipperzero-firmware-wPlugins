@@ -7,19 +7,23 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "assets/lab66_logo_52x48.h"
+
 #define VIEW_SPLASH 0
 #define VIEW_GRID 1
 #define VIEW_DETAILS 2
 #define VIEW_ABOUT 3 
 #define VIEW_EXIT_PROMPT 4 
 #define VIEW_EXIT_SPLASH 5
+#define VIEW_REFS 6
+#define VIEW_THANKS 7
 
 #define EVENT_START_APP 101 
 #define EVENT_SHOW_DETAILS 102
 #define EVENT_SHOW_ABOUT 103
 #define EVENT_FINAL_CLOSE 104
-#define EVENT_JUMP_RIGHT 105
-#define EVENT_JUMP_LEFT 106
+#define EVENT_SHOW_REFS 105
+#define EVENT_SHOW_THANKS 106
 
 #define E(x, y, z, p, g, sym, n, m, mp, bp, d, c, e, af, pl, ie, di, bk, ox, ra, rc, ri, rm, mag, cr, ca, mh, ab, is, po, tc, sh) \
     { x, y, z, p, g, sym, n, m, mp, bp, d, c, e, af, pl, ie, di, bk, ox, ra, rc, ri, rm, mag, cr, ca, mh, ab, is, po, tc, sh }
@@ -163,22 +167,25 @@ static const Element* get_elm_xy(uint8_t c, uint8_t r) {
 }
 
 static const Element* get_elm_z(uint8_t z) {
-    if(z > 0 && z <= 119) return &DB[z-1]; // O(1)
+    if(z > 0 && z <= 119) return &DB[z-1]; 
     return NULL;
 }
 
 typedef struct { uint8_t cur_x; uint8_t cur_y; } ViewModel;
-
 typedef struct { int scroll; char txt[2048]; } DetModel;
+
+// Модель для хранения позиции скролла About меню
+typedef struct { int scroll; } AboutModel; 
 
 typedef struct {
     Gui* gui; ViewDispatcher* disp; 
     View* v_splash; View* v_grid;         
-    View* v_exit_splash; View* v_details; TextBox* v_about;    
+    View* v_exit_splash; View* v_details; 
+    View* v_about;    
+    TextBox* v_refs; TextBox* v_thanks;
     DialogEx* dialog; FuriTimer* t_splash; FuriTimer* t_exit; 
 } App;
 
-// ========================= ПАРСЕР ========================
 static void draw_multiline(Canvas* canvas, int x, int y, const char* text) {
     int current_y = y; char buffer[64]; const char* ptr = text;
     while(ptr != NULL && *ptr != '\0') {
@@ -199,16 +206,26 @@ static void draw_multiline(Canvas* canvas, int x, int y, const char* text) {
     }
 }
 
-// ========================= СПЛЕШ: СТАРТ ========================
-static void start_splash_draw(Canvas* c, void* m) {
-    UNUSED(m);
-    canvas_set_color(c, ColorBlack); canvas_draw_box(c, 0, 0, 128, 64); 
-    canvas_set_color(c, ColorWhite);   
-    canvas_set_font(c, FontPrimary); 
-    canvas_draw_str_aligned(c, 64, 15, AlignCenter, AlignCenter, "Periodic Table");
-    canvas_set_font(c, FontSecondary);
-    canvas_draw_str_aligned(c, 64, 30, AlignCenter, AlignCenter, "of Elements");
-    canvas_draw_str_aligned(c, 64, 52, AlignCenter, AlignCenter, "LAB-66@Siarhei Besarab");
+static void start_splash_draw(Canvas* canvas, void* ctx) {
+    UNUSED(ctx);
+    
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 0, 0, canvas_width(canvas), canvas_height(canvas));
+
+    canvas_set_color(canvas, ColorBlack);
+
+    canvas_draw_xbm(
+        canvas,
+        8,
+        8,
+        LAB66_LOGO_WIDTH,
+        LAB66_LOGO_HEIGHT,
+        lab66_logo_bits);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 66, 19, "PERIODIC");
+    canvas_draw_str(canvas, 66, 35, "TABLE OF");
+    canvas_draw_str(canvas, 66, 51, "ELEMENTS");
 }
 
 static void s_t_cb(void* ctx) { 
@@ -219,16 +236,41 @@ static void s_en_cb(void* ctx) {
     furi_timer_start(((App*)ctx)->t_splash, furi_ms_to_ticks(2000)); 
 }
 
-
-// ========================= СПЛЕШ: ВЫХОД ========================
-static void exit_splash_draw(Canvas* c, void* ctx) {
+static void exit_splash_draw(Canvas* canvas, void* ctx) {
     UNUSED(ctx);
-    canvas_set_color(c, ColorBlack); canvas_draw_box(c, 0, 0, 128, 64);
-    canvas_set_color(c, ColorWhite);
-    canvas_set_font(c, FontPrimary); 
-    canvas_draw_str_aligned(c, 64, 25, AlignCenter, AlignCenter, "See you later!");
-    canvas_set_font(c, FontSecondary); 
-    canvas_draw_str_aligned(c, 64, 45, AlignCenter, AlignCenter, "LAB-66 (C) 2026"); 
+    
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 0, 0, canvas_width(canvas), canvas_height(canvas));
+
+    canvas_set_color(canvas, ColorBlack);
+    
+    canvas_draw_frame(canvas, 0, 0, canvas_width(canvas), canvas_height(canvas));
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(
+        canvas,
+        64,
+        20,
+        AlignCenter,
+        AlignCenter,
+        "Flipper Elements v1.8");
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas,
+        64,
+        34,
+        AlignCenter,
+        AlignCenter,
+        "LAB-66 (C) Siarhei Besarab");
+
+    canvas_draw_str_aligned(
+        canvas,
+        64,
+        48,
+        AlignCenter,
+        AlignCenter,
+        "September 2026");
 }
 
 static void e_t_cb(void* ctx) { 
@@ -248,7 +290,6 @@ static void diag_res_cb(DialogExResult r, void* ctx) {
     }
 }
 
-// ========================== ГЛАВНАЯ СЕТКА ==========================
 static void grid_draw(Canvas* canvas, void* _m) {
     ViewModel* model = (ViewModel*)_m;
     canvas_clear(canvas);
@@ -330,25 +371,58 @@ static bool grid_input(InputEvent* ev, void* _ctx) {
     return false;
 }
 
-// ========================== DETAILS VIEW ==========================
+#define U(val, unit) (strcmp((val), "N/A") == 0 ? "" : (unit))
+
 static void sync_det_txt(View* v_det, uint8_t nx, uint8_t ny) {
     const Element* e = get_elm_xy(nx, ny);
     if(e) {
         with_view_model(v_det, DetModel* m, {
             m->scroll = 0; 
+            
+            char heat_buf[64] = "N/A";
+            if (e->sheat && strcmp(e->sheat, "N/A") != 0) {
+                char val[16] = {0};
+                const char* space = strchr(e->sheat, ' '); 
+                
+                if (space && (size_t)(space - e->sheat) < sizeof(val)) {
+                    size_t len = space - e->sheat;
+                    memcpy(val, e->sheat, len);
+                    val[len] = '\0';
+                    snprintf(heat_buf, sizeof(heat_buf), "%s J/(Kg.K)%s", val, space);
+                } else {
+                    snprintf(heat_buf, sizeof(heat_buf), "%s J/(Kg.K)", e->sheat);
+                }
+            }
+
             snprintf(m->txt, sizeof(m->txt), 
                  "[ %s (%s) ] Z:%d\n-----------------\nDISCOVERER:\n %s\nCAS: %s\n"
                  "=== ATOMIC INFO ===\nCAT: %s\nBLK: %s | OX: %s\nGRP: %d | PER: %d\nCRYST:\n %s\n"
                  "=== ISOTOPES ===\nTOTAL: %s\n=== SIZES (pm) ===\nATM: %s | COV: %s\nION: %s\nMET: %s\n"
-                 "=== PHYSICAL ===\nMASS: %s u\nDENS: %s g/cm3\nMELT: %s K\nBOIL: %s K\nTHERM: %s W/(m.K)\nHEAT: %s\n"
-                 "HARDNESS: %s Mohs\nABUND: %s ppm\nMAGN: %s\n"
-                 "=== QUANTUM ===\nAFFIN: %s kJ/mol\nEL.NG: %s\nION_E: %s kJ/mol\nPOLAR: %s a.u.\nORBIT: %s", 
+                 "=== PHYSICAL ===\nMASS: %s%s\nDENS: %s%s\nMELT: %s%s\nBOIL: %s%s\nTHRM CONDCT:\n %s%s\nHEAT CAP:\n %s\n"
+                 "HARDNESS: %s%s\nABUND: %s%s\nMAGN: %s\n"
+                 "=== QUANTUM ===\nAFFIN: %s%s\nEL.NG: %s\nION_E: %s%s\nPOLAR: %s%s\nORBIT:\n %s", 
                  e->name, e->symbol, e->z, e->disc, e->cas, e->cat, e->blk, e->ox, e->group, e->period, 
-                 e->cryst, e->iso, e->r_a, e->r_c, e->r_i, e->r_m, e->mass, e->dens, e->melt, e->boil, e->tcond, e->sheat, e->mohs, 
-                 e->abund, e->mag, e->aff, e->pauling, e->ie, e->polar, e->e_conf);
+                 e->cryst, e->iso, e->r_a, e->r_c, e->r_i, e->r_m, 
+                 
+                 e->mass, U(e->mass, " u"),
+                 e->dens, U(e->dens, " g/cm3"), 
+                 e->melt, U(e->melt, " K"), 
+                 e->boil, U(e->boil, " K"), 
+                 e->tcond, U(e->tcond, " W/(m.K)"), 
+                 heat_buf, 
+                 e->mohs, U(e->mohs, " Mohs"), 
+                 e->abund, U(e->abund, " ppm"), 
+                 e->mag, 
+                 
+                 e->aff, U(e->aff, " kJ/mol"),
+                 e->pauling, 
+                 e->ie, U(e->ie, " kJ/mol"), 
+                 e->polar, U(e->polar, " a.u."), 
+                 e->e_conf);
         }, true); 
     }
 }
+#undef U
 
 static void det_draw(Canvas* canvas, void* _m) {
     DetModel* model = (DetModel*)_m;
@@ -419,9 +493,93 @@ static bool det_input(InputEvent* ev, void* _ctx) {
     return false;
 }
 
-// РОУТЕРЫ
+// ========================== НОВЫЙ КАСТОМНЫЙ ABOUT VIEW С БАМПЕРАМИ ==========================
+static void about_draw(Canvas* canvas, void* _m) {
+    AboutModel* model = (AboutModel*)_m;
+    canvas_clear(canvas); 
+    canvas_set_color(canvas, ColorBlack);
+    
+    // Центральный скроллируемый текст 
+    const char* txt_main = 
+        "Flipper Elements v1.8\n\n"
+        "Periodic Table of Elements\n"
+        "for Flipper Zero.\n\n"
+        "Author: Siarhei Besarab\n"
+        "aka steanlab.\n\n"
+        "Contacts:\n"
+        "LAB-66: t.me/lab66\n"
+        "Linkedin: @steanlab\n"
+        "Mastodon: @lab66\n"
+        "---------------\n"
+        "Support Development:\n"
+        "patreon.com/steanlab\n"
+        "paypal.me/steanlab\n"
+        "revolut.me/steanlab\n"
+        "github.com/sponsors/\nsteanlab\n"
+        "donorbox.org/donations-\n"
+        "for-lab-66\n\n\n "; 
+
+    canvas_set_font(canvas, FontSecondary);
+    draw_multiline(canvas, 2, 10 - model->scroll, txt_main);
+
+    // БЕЛЫЙ ПЕРЕКРЫВАЮЩИЙ ФУТЕР-БЛОК ДЛЯ МЕНЮ
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 0, 52, 128, 12);
+    
+    // ОТРИСОВКА ЧЕРНОЙ КНОПОЧНОЙ ПАНЕЛИ И ГРАНИЦ
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_line(canvas, 0, 51, 128, 51); // верхняя разделительная линия
+    
+    // Рисуем кнопки управления (четко по ТЗ пользователя)
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 62, "[ < Refs ]");
+    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "[ Thanks > ]");
+
+    // Индикатор скролла 
+    int sb_y = (model->scroll * 40) / 190; // ~ 190px - макс. размер скролла основного текста
+    if (sb_y > 42) sb_y = 42; 
+    if (sb_y < 0) sb_y = 0; 
+    canvas_draw_box(canvas, 126, sb_y, 2, 8); 
+}
+
+static bool about_input(InputEvent* ev, void* _ctx) {
+    App* a = (App*)_ctx;
+    
+    if(ev->type == InputTypeShort || ev->type == InputTypeRepeat) {
+        
+        // Листаем вверх-вниз центральный текст
+        if(ev->key == InputKeyUp) { 
+            with_view_model(a->v_about, AboutModel* m, { 
+                if(m->scroll > 0) m->scroll -= 11; 
+            }, true); 
+            return true; 
+        }
+        if(ev->key == InputKeyDown) { 
+            with_view_model(a->v_about, AboutModel* m, { 
+                if(m->scroll < 200) m->scroll += 11; 
+            }, true); 
+            return true; 
+        }
+
+        // Переходим к окошкам Sources (Refs) или Thanks (Right)
+        if(ev->key == InputKeyLeft) {
+            view_dispatcher_send_custom_event(a->disp, EVENT_SHOW_REFS); 
+            return true; 
+        }
+        if(ev->key == InputKeyRight) {
+            view_dispatcher_send_custom_event(a->disp, EVENT_SHOW_THANKS); 
+            return true; 
+        }
+    }
+    // Кнопка BACK проходит мимо, так как она привязана в view_set_previous_callback
+    return false; 
+}
+
+
+// РОУТЕРЫ 
 static uint32_t grid_b(void* ctx) { UNUSED(ctx); return VIEW_EXIT_PROMPT; }
 static uint32_t to_grid(void* ctx) { UNUSED(ctx); return VIEW_GRID; }
+static uint32_t to_about(void* ctx) { UNUSED(ctx); return VIEW_ABOUT; }
 
 
 // ИВЕНТ-ЛУП
@@ -439,15 +597,22 @@ static bool main_ev(void* ctx, uint32_t ev) {
     }
 
     if (ev == EVENT_SHOW_ABOUT) {
-        char txt[1024]; 
-        snprintf(txt, sizeof(txt), 
-                 "Flipper Elements v1.7\n\nPeriodic Table of Elements\nfor Flipper Zero.\n"
-                 "Author: Siarhei Besarab\naka steanlab.\n\nContacts:\nLAB-66: t.me/lab66\nLinkedin: @steanlab\nMastodon: @lab66\n"
-                 "---------------\nSupport Development:\npatreon.com/steanlab\npaypal.me/steanlab\nrevolut.me/steanlab\ngithub.com/sponsors/\nsteanlab\ndonorbox.org/donations-\nfor-lab-66\n\nThank You!");
-        text_box_set_text(a->v_about, txt); 
+        // Обязательно сбрасываем скролл, чтобы при возврате экран был на верху
+        with_view_model(a->v_about, AboutModel* m, { m->scroll = 0; }, true);
         view_dispatcher_switch_to_view(a->disp, VIEW_ABOUT); 
         return true;
     } 
+
+    // Захватываем левую и правую кнопки из карусели 
+    if (ev == EVENT_SHOW_REFS) {
+        view_dispatcher_switch_to_view(a->disp, VIEW_REFS); 
+        return true;
+    }
+    if (ev == EVENT_SHOW_THANKS) {
+        view_dispatcher_switch_to_view(a->disp, VIEW_THANKS); 
+        return true;
+    }
+
     return false;
 }
 
@@ -480,9 +645,39 @@ int32_t flipper_elements_app(void* p) {
     view_set_previous_callback(a->v_details, to_grid);
     view_dispatcher_add_view(a->disp, VIEW_DETAILS, a->v_details);
 
-    a->v_about = text_box_alloc(); text_box_set_font(a->v_about, TextBoxFontText);
-    View* v_ab = text_box_get_view(a->v_about); view_set_previous_callback(v_ab, to_grid);
-    view_dispatcher_add_view(a->disp, VIEW_ABOUT, v_ab);
+    // Новое кастомное About-окошко
+    a->v_about = view_alloc(); view_set_context(a->v_about, a);
+    view_allocate_model(a->v_about, ViewModelTypeLocking, sizeof(AboutModel)); 
+    view_set_draw_callback(a->v_about, about_draw); view_set_input_callback(a->v_about, about_input);
+    view_set_previous_callback(a->v_about, to_grid);
+    view_dispatcher_add_view(a->disp, VIEW_ABOUT, a->v_about);
+
+    // Экран Refs (Открывается кнопкой Влево)
+    a->v_refs = text_box_alloc(); text_box_set_font(a->v_refs, TextBoxFontText);
+    text_box_set_text(a->v_refs, 
+        "Mass/Iso: CIAAW, NUBASE\n"
+        "Radii: Slater, Cordero,\n"
+        "Shannon, Kaye & Laby\n"
+        "Oxid: Greenwood, Earnshaw\n"
+        "Polar: Schwerdtfeger & Nagle\n"
+        "Phys: RSC, NIST, PubChem");
+    View* v_rf = text_box_get_view(a->v_refs); 
+    view_set_previous_callback(v_rf, to_about);
+    view_dispatcher_add_view(a->disp, VIEW_REFS, v_rf);
+
+    // Экран Thanks (Открывается кнопкой Вправо)
+    a->v_thanks = text_box_alloc(); text_box_set_font(a->v_thanks, TextBoxFontText);
+    text_box_set_text(a->v_thanks, 
+        "Special Thanks to:\n\n"
+        "Flipper Zero team &\n"
+        "Pavel Zhovner for\n"
+        "swiftly providing lab\n"
+        "equipment: FZ, VGM,\n"
+        "WiFi Devboard &\n"
+        "Prototyping boards!");
+    View* v_th = text_box_get_view(a->v_thanks); 
+    view_set_previous_callback(v_th, to_about);
+    view_dispatcher_add_view(a->disp, VIEW_THANKS, v_th);
 
     a->dialog = dialog_ex_alloc(); dialog_ex_set_context(a->dialog, a);
     dialog_ex_set_header(a->dialog, "Exit Application?", 64, 18, AlignCenter, AlignCenter);
@@ -499,10 +694,12 @@ int32_t flipper_elements_app(void* p) {
 
     view_dispatcher_remove_view(a->disp, VIEW_SPLASH); view_dispatcher_remove_view(a->disp, VIEW_GRID);
     view_dispatcher_remove_view(a->disp, VIEW_DETAILS); view_dispatcher_remove_view(a->disp, VIEW_ABOUT);
+    view_dispatcher_remove_view(a->disp, VIEW_REFS); view_dispatcher_remove_view(a->disp, VIEW_THANKS);
     view_dispatcher_remove_view(a->disp, VIEW_EXIT_PROMPT); view_dispatcher_remove_view(a->disp, VIEW_EXIT_SPLASH);
 
     view_free(a->v_splash); view_free(a->v_grid); view_free(a->v_details); view_free(a->v_exit_splash);
-    text_box_free(a->v_about); dialog_ex_free(a->dialog); furi_timer_free(a->t_splash); furi_timer_free(a->t_exit);
+    view_free(a->v_about); text_box_free(a->v_refs); text_box_free(a->v_thanks); dialog_ex_free(a->dialog); 
+    furi_timer_free(a->t_splash); furi_timer_free(a->t_exit);
     view_dispatcher_free(a->disp); furi_record_close(RECORD_GUI); free(a); 
 
     return 0;
